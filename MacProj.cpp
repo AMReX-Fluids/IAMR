@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.40 1999-01-07 23:00:09 lijewski Exp $
+// $Id: MacProj.cpp,v 1.41 1999-02-11 18:51:15 marc Exp $
 //
 
 #include <Misc.H>
@@ -763,7 +763,8 @@ MacProj::mac_sync_compute (int           level,
                            MultiFab*     u_mac, 
                            MultiFab*     Ssync,
                            int           comp,
-                           MultiFab**    sync_edges,
+                           const MultiFab* const* sync_edges,
+			   int           eComp,
                            MultiFab*     rho_half,
                            FluxRegister* adv_flux_reg,
                            Array<int>    is_conservative, 
@@ -820,11 +821,11 @@ MacProj::mac_sync_compute (int           level,
         //
         xflux.resize(::surroundingNodes(grids[Ssyncmfi.index()],0),1);
         yflux.resize(::surroundingNodes(grids[Ssyncmfi.index()],1),1);
-        xflux.copy(sync_edges0mfi());
-        yflux.copy(sync_edges1mfi());
+        xflux.copy(sync_edges0mfi(),eComp,0,1);
+        yflux.copy(sync_edges1mfi(),eComp,0,1);
 #if (BL_SPACEDIM == 3)
         zflux.resize(::surroundingNodes(grids[Ssyncmfi.index()],2),1);
-        zflux.copy(sync_edges2mfi());
+        zflux.copy(sync_edges2mfi(),eComp,0,1);
 #endif
         godunov.ComputeSyncAofs(grids[Ssyncmfi.index()],
                                 area0mfi(),

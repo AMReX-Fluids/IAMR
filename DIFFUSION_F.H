@@ -2,7 +2,7 @@
 #define _DIFFUSION_F_H
 
 /*
-** $Id: DIFFUSION_F.H,v 1.7 1998-11-04 23:33:12 lijewski Exp $
+** $Id: DIFFUSION_F.H,v 1.8 1999-02-11 18:51:14 marc Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -98,7 +98,7 @@ extern "C"
                        const Real *r, const Real* mu);
     
     void FORT_HOOPRHS (Real *fab, ARLIM_P(fab_lo), ARLIM_P(fab_hi),
-                       Real *u,   ARLIM_P(u_lo), ARLIM_P(u_hi),
+                       const Real *u,   ARLIM_P(u_lo), ARLIM_P(u_hi),
                        const Real* r, const Real* b, 
                        const Real *vol, ARLIM_P(vol_lo), ARLIM_P(vol_hi));
 
@@ -107,7 +107,7 @@ extern "C"
                         const Real* r, ARLIM_P(r_lo), ARLIM_P(r_hi),
                         const Real* b,
                         const Real *vfab, ARLIM_P(v_lo), ARLIM_P(v_hi),
-                        Real *denfab, ARLIM_P(den_lo), ARLIM_P(den_hi),
+                        const Real *denfab, ARLIM_P(den_lo), ARLIM_P(den_hi),
                         int* usehoop, int* useden);
     
     void FORT_SET_TENSOR_ALPHA (Real *fab, ARLIM_P(fab_lo), ARLIM_P(fab_hi),
@@ -122,7 +122,7 @@ extern "C"
     
     void FORT_TENSOR_HOOPRHS (const int* xvel_comp, 
                        Real *fab, ARLIM_P(fab_lo), ARLIM_P(fab_hi),
-                       Real *u,   ARLIM_P(u_lo), ARLIM_P(u_hi),
+                       const Real *u,   ARLIM_P(u_lo), ARLIM_P(u_hi),
                        const Real* r, const Real* b, 
                        const Real *vol, ARLIM_P(vol_lo), ARLIM_P(vol_hi),
                        const Real *betax, ARLIM_P(betax_lo), ARLIM_P(betax_hi),

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.110 1999-02-09 00:47:14 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.111 1999-02-11 18:51:15 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1870,15 +1870,46 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                        int  first_scalar,
                                        int  last_scalar)
 {
+    MultiFab** fluxSC;
+    const int nGrow=0;
+    const int nComp = 1;
+    diffusion->allocFluxBoxesLevel(fluxSC,nGrow,nComp);
+    
     for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
     {
         if (is_diffusive[sigma])
         {
             int rho_flag = 0;
+	    
             diffuse_scalar_setup(sigma, &rho_flag);
-            diffusion->diffuse_scalar(dt,sigma,be_cn_theta,rho_half,rho_flag);
+	    
+            diffusion->diffuse_scalar(dt,sigma,be_cn_theta,rho_half,rho_flag,fluxSC);
+	    //
+	    // Increment the viscous flux registers
+	    //
+	    if (do_reflux)
+	    {
+		for (int d = 0; d < BL_SPACEDIM; d++)
+		{
+		    for (MultiFabIterator fmfi(*fluxSC[d]); fmfi.isValid(); ++fmfi)
+		    {
+			if (level < parent->finestLevel())
+			    getLevel(level+1).getViscFluxReg().CrseInit(fmfi(),
+									fmfi().box(),
+									d,0,sigma,
+									nComp,-dt);
+			
+			if (level > 0)
+			    getViscFluxReg().FineAdd(fmfi(),d,fmfi.index(),
+						     0,sigma,nComp,dt);
+		    }
+		}
+		if (level < parent->finestLevel())
+		    getLevel(level+1).getViscFluxReg().CrseInitFinish();
+	    }
         }
-    }    
+    }
+    diffusion->removeFluxBoxesLevel(fluxSC);
 }
 
 void
@@ -3644,7 +3675,9 @@ NavierStokes::mac_sync ()
                                         prev_pres_time,dt,
                                         NUM_STATE,be_cn_theta);
         //
-        // The following used to be done in mac_sync_compute.
+        // The following used to be done in mac_sync_compute.  Ssync is
+	//   the source for a rate of change to S over the time step, so
+	//   Ssync*dt is the source to the actual sync amount.
         //
         Ssync->mult(dt,Ssync->nGrow());
         //
@@ -3653,14 +3686,42 @@ NavierStokes::mac_sync ()
         if (is_diffusive[Xvel])
             diffusion->diffuse_Vsync(Vsync, dt, be_cn_theta, rho_half, 1);
 
+	MultiFab** fluxSC = 0;
+	bool any_diffusive = false;
         for (int sigma  = 0; sigma < numscal; sigma++)
+	    if (is_diffusive[BL_SPACEDIM+sigma])
+		any_diffusive = true;
+
+	if (any_diffusive)
+	    diffusion->allocFluxBoxesLevel(fluxSC,0,1);
+
+        for (int sigma=0; sigma<numscal; sigma++)
         {
-            int do_viscsyncflux = 1;
-            int rho_flag        = !is_conservative[BL_SPACEDIM+sigma] ? 1 : 2;
-            if (is_diffusive[BL_SPACEDIM+sigma])
+	    const int state_ind = BL_SPACEDIM + sigma;
+            const int rho_flag = !is_conservative[state_ind] ? 1 : 2;
+            if (is_diffusive[state_ind])
+	    {
                 diffusion->diffuse_Ssync(Ssync, sigma, dt, be_cn_theta,
-                                         rho_half, rho_flag, do_viscsyncflux);
+                                         rho_half, rho_flag, fluxSC);
+		//
+		// Increment the viscous flux registers
+		//
+		if (level > 0)
+		{
+		    for (int d = 0; d < BL_SPACEDIM; d++)
+		    {
+			Real mult = dt;
+			for (MultiFabIterator fmfi(*fluxSC[d]); fmfi.isValid(); ++fmfi)
+			    getViscFluxReg().FineAdd(fmfi(),d,fmfi.index(),
+						     0,state_ind,1,mult);
+		    }
+		}
+	    }
         }
+
+	if (any_diffusive)
+	    diffusion->removeFluxBoxesLevel(fluxSC);
+
         //
         // Add the sync correction to the state.
         //

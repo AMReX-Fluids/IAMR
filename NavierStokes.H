@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.28 1998-11-23 22:43:34 lijewski Exp $
+// $Id: NavierStokes.H,v 1.29 1999-02-11 18:51:15 marc Exp $
 //
 
 #include <LevelBld.H>
@@ -293,8 +293,8 @@ protected:
     // Advect scalars.
     //
     void scalar_advection (Real dt,
-                           int  first_scalar,
-                           int  last_scalar);
+			   int  first_scalar,
+			   int  last_scalar);
     //
     // Update scalars, (viscous solve in scalar_update).
     //

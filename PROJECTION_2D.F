@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.12 1999-02-03 00:40:49 lijewski Exp $
+c $Id: PROJECTION_2D.F,v 1.13 1999-02-11 18:51:16 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -520,6 +520,7 @@ c     Local variables
       REAL_T div_edge, rho_edge
       REAL_T div_edge_m1, rho_edge_m1, div_edge_m2, rho_edge_m2
       REAL_T max_divu, min_divu
+      REAL_T uExt(0:NstripMAX-1)
 
       ins = ARG_L1(phi)
       ine = ARG_H1(phi)
@@ -566,6 +567,7 @@ c     directly from cell-centers just inside domain
          vtot = vtot+r(i)
          max_divu = max(max_divu,divcor(i,j))
          min_divu = min(min_divu,divcor(i,j))
+         uExt(i-ics) = half*(three*u(i,jcs+1,1) - u(i,jcs,1))
       end do
       divcor_ave = divcor_ave/vtot
       max_pert = ABS(divcor(ics,j)-divcor_ave)
@@ -604,8 +606,8 @@ c     normal velocity, for the advective/diffusive step, for example.
          c(i) = r(icR) / rho(icR,j)
          b(i) = - a(i) - c(i)
          s(i) = hx*
-     &        (r(icR)*( u(icR,j,1)-half*hx*(divcor(icR,j)-divcor_ave))
-     &        +r(icL)*(-u(icL,j,1)-half*hx*(divcor(icL,j)-divcor_ave)))
+     &        (r(icR)*( uExt(icR-ics)-half*hx*(divcor(icR,j)-divcor_ave))
+     &        +r(icL)*(-uExt(icL-ics)-half*hx*(divcor(icL,j)-divcor_ave)))
       end do
 
       if (per .eq. 1) then
@@ -619,8 +621,8 @@ c     (retain r-stuff here, just to be sure scaling is not destroyed)
          c(1) = r(icR) / rho(icR,j)
          b(1) = - beta - c(1)
          s(1) = hx*
-     &        (r(icR)*( u(icR,j,1)-half*hx*(divcor(icR,j)-divcor_ave))
-     &        +r(icL)*(-u(icL,j,1)-half*hx*(divcor(icL,j)-divcor_ave)))
+     &        (r(icR)*( uExt(icR-ics)-half*hx*(divcor(icR,j)-divcor_ave))
+     &        +r(icL)*(-uExt(icL-ics)-half*hx*(divcor(icL,j)-divcor_ave)))
          
 c     Do right-side periodic on penultimate node
          icL = ice - 1
@@ -629,8 +631,8 @@ c     Do right-side periodic on penultimate node
          alpha  = r(icR) / rho(icR,j)
          b(neq) = - a(neq) - alpha
          s(neq) = hx*
-     &        (r(icR)*( u(icR,j,1)-half*hx*(divcor(icR,j)-divcor_ave))
-     &        +r(icL)*(-u(icL,j,1)-half*hx*(divcor(icL,j)-divcor_ave)))
+     &        (r(icR)*( uExt(icR-ics)-half*hx*(divcor(icR,j)-divcor_ave))
+     &        +r(icL)*(-uExt(icL-ics)-half*hx*(divcor(icL,j)-divcor_ave)))
          
 c     Solve the equations
          call cyclic(a,b,c,alpha,beta,s,x,neq)
@@ -643,13 +645,13 @@ c     Solid walls, Nuemann conditions
          c(1) = r(icR) / rho(icR,j)
          b(1) = - c(1)
          s(1) = hx*
-     &        r(icR)*( u(icR,j,1)-half*hx*(divcor(icR,j)-divcor_ave))
+     &        r(icR)*( uExt(icR-ics)-half*hx*(divcor(icR,j)-divcor_ave))
          
          icL = ice
          a(neq) = r(icL) / rho(icL,j)
          b(neq) = - a(ine-1)
          s(neq) = hx*
-     &        r(icL)*(-u(icL,j,1)-half*hx*(divcor(icL,j)-divcor_ave))
+     &        r(icL)*(-uExt(icL-ics)-half*hx*(divcor(icL,j)-divcor_ave))
          
 c     Solve the equations (we know they're singular, pass the arbitrary value, and
 c     a flag that we've already normalized the rhs, in the sense that
