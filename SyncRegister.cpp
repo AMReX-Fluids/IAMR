@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.27 1998-05-20 19:59:18 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.28 1998-05-20 20:32:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -993,6 +993,51 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
     }
 }
 
+static
+void
+NullOverlap (const BoxArray& Pgrids,
+             const Geometry& fine_geom,
+             const Box&      reglo,
+             FArrayBox&      ffablo,
+             const Box&      reghi,
+             FArrayBox&      ffabhi,
+             Array<IntVect>& pshifts)
+{
+    const int n_comp   = 1;
+    const int set_comp = 0;
+
+    for (int i = 0; i < Pgrids.length(); i++)
+    {
+        Box overlap_lo = reglo & Pgrids[i];
+        if (overlap_lo.ok())
+            ffablo.setVal(0,overlap_lo,set_comp,n_comp);
+
+        fine_geom.periodicShift(reglo, Pgrids[i], pshifts);
+
+        for (int iiv = 0; iiv < pshifts.length(); iiv++)
+        {
+            Box overlap_lo_per(Pgrids[i]);
+            overlap_lo_per.shift(pshifts[iiv]);
+            overlap_lo_per &= reglo;
+            ffablo.setVal(0,overlap_lo_per,set_comp,n_comp);
+        }
+
+        Box overlap_hi = reghi & Pgrids[i];
+        if (overlap_hi.ok())
+            ffabhi.setVal(0,overlap_hi,set_comp,n_comp);
+
+        fine_geom.periodicShift(reghi, Pgrids[i], pshifts);
+
+        for (int iiv = 0; iiv < pshifts.length(); iiv++)
+        {
+            Box overlap_hi_per(Pgrids[i]);
+            overlap_hi_per.shift(pshifts[iiv]);
+            overlap_hi_per &= reghi;
+            ffabhi.setVal(0,overlap_hi_per,set_comp,n_comp);
+        }
+    }
+}
+
 void
 SyncRegister::CompDVAdd (const MultiFab& U, 
                          const BoxArray& Pgrids,
@@ -1080,38 +1125,7 @@ SyncRegister::CompDVAdd (const MultiFab& U,
                         ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
                         reghi.loVect(),reghi.hiVect(),dx_fine,&mult,&is_rz);
 
-            int n_comp   = 1;
-            int set_comp = 0;
-            for (int i = 0; i < Pgrids.length(); i++)
-            {
-                Box overlap_lo = reglo & Pgrids[i];
-                if (overlap_lo.ok())
-                    ffablo.setVal(0.,overlap_lo,set_comp,n_comp);
-
-                fine_geom.periodicShift(reglo, Pgrids[i], pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    Box overlap_lo_per(Pgrids[i]);
-                    overlap_lo_per.shift(pshifts[iiv]);
-                    overlap_lo_per &= reglo;
-                    ffablo.setVal(0.,overlap_lo_per,set_comp,n_comp);
-                }
-
-                Box overlap_hi = reghi & Pgrids[i];
-                if (overlap_hi.ok())
-                    ffabhi.setVal(0.,overlap_hi,set_comp,n_comp);
-
-                fine_geom.periodicShift(reghi, Pgrids[i], pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    Box overlap_hi_per(Pgrids[i]);
-                    overlap_hi_per.shift(pshifts[iiv]);
-                    overlap_hi_per &= reghi;
-                    ffabhi.setVal(0.,overlap_hi_per,set_comp,n_comp);
-                }
-            }
+            NullOverlap(Pgrids,fine_geom,reglo,ffablo,reghi,ffabhi,pshifts);
             //
             // Define coarsened tmp fabs.
             //
@@ -1464,39 +1478,7 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
                          reghi.loVect(),reghi.hiVect(),
                          dx_fine,&mult,&is_rz);
 
-            int n_comp   = 1;
-            int set_comp = 0;
-
-            for (int i = 0; i < Pgrids.length(); i++)
-            {
-                Box overlap_lo = reglo & Pgrids[i];
-                if (overlap_lo.ok())
-                    ffablo.setVal(0,overlap_lo,set_comp,n_comp);
-
-                fine_geom.periodicShift(reglo, Pgrids[i], pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    Box overlap_lo_per(Pgrids[i]);
-                    overlap_lo_per.shift(pshifts[iiv]);
-                    overlap_lo_per &= reglo;
-                    ffablo.setVal(0,overlap_lo_per,set_comp,n_comp);
-                }
-
-                Box overlap_hi = reghi & Pgrids[i];
-                if (overlap_hi.ok())
-                    ffabhi.setVal(0,overlap_hi,set_comp,n_comp);
-
-                fine_geom.periodicShift(reghi, Pgrids[i], pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    Box overlap_hi_per(Pgrids[i]);
-                    overlap_hi_per.shift(pshifts[iiv]);
-                    overlap_hi_per &= reghi;
-                    ffabhi.setVal(0,overlap_hi_per,set_comp,n_comp);
-                }
-            }
+            NullOverlap(Pgrids,fine_geom,reglo,ffablo,reghi,ffabhi,pshifts);
             //
             // Coarsen edge value.
             //
