@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.235 2004-02-06 22:30:07 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.236 2004-02-09 23:38:46 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -470,6 +470,8 @@ NavierStokes::NavierStokes (Amr&            papa,
     rho_half   = new MultiFab(grids,1,1);
     rho_ptime  = new MultiFab(grids,1,1);
     rho_ctime  = new MultiFab(grids,1,1);
+    rho_qtime  = 0;
+    rho_tqtime = 0;
     //
     // Build metric coefficients for RZ calculations.
     //
@@ -560,6 +562,8 @@ NavierStokes::~NavierStokes ()
     delete rho_half;
     delete rho_ptime;
     delete rho_ctime;
+    delete rho_qtime;
+    delete rho_tqtime;
     delete Vsync;
     delete Ssync;
     delete sync_reg;
@@ -752,8 +756,10 @@ NavierStokes::restart (Amr&          papa,
     rho_half   = new MultiFab(grids,1,1);
     rho_ptime  = new MultiFab(grids,1,1);
     rho_ctime  = new MultiFab(grids,1,1);
+    rho_qtime  = 0;
+    rho_tqtime = 0;
     //
-    // Build metric coeficients for RZ calculations.
+    // Build metric coefficients for RZ calculations.
     //
     buildMetrics();
     //
@@ -1296,6 +1302,7 @@ NavierStokes::advance_setup (Real time,
             const Real      ptime  = clevel.state[State_Type].prevTime();
             const Real      ctime  = clevel.state[State_Type].curTime();
             {
+                BL_ASSERT(clevel.rho_qtime == 0);
                 const Real qtime = ptime + 0.25*(ctime-ptime);
                 clevel.rho_qtime = new MultiFab(cgrids,1,1);
                 FillPatchIterator fpi(clevel,*(clevel.rho_qtime),
@@ -1304,6 +1311,7 @@ NavierStokes::advance_setup (Real time,
                     (*clevel.rho_qtime)[fpi.index()].copy(fpi());
             }
             {
+                BL_ASSERT(clevel.rho_tqtime == 0);
                 const Real tqtime = ptime + 0.75*(ctime-ptime);
                 clevel.rho_tqtime = new MultiFab(cgrids,1,1);
                 FillPatchIterator fpi(clevel,*(clevel.rho_tqtime),
@@ -3210,11 +3218,6 @@ NavierStokes::post_timestep (int crse_iteration)
     }
 
     if (level > 0) incrPAvg();
-    //
-    // If we needed qtr time rho's, don't need them anymore.
-    //
-    delete rho_qtime;  rho_qtime  = 0;
-    delete rho_tqtime; rho_tqtime = 0;
 
     old_intersect_new          = grids;
     is_first_step_after_regrid = false;
