@@ -6,6 +6,10 @@ PROFILE = FALSE
 DIM	= 2
 DIM	= 3
 
+WHICH_HG=
+WHICH_HG=_new
+
+
 #
 # Holy Grail stuff ...
 #
@@ -50,7 +54,7 @@ include ../mk/Make.defs
 
 CPPFLAGS += -DBL_USE_NEW_HFILES
 
-INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib ../bndrylib ../hgproj
+INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib ../bndrylib ../hgproj$(WHICH_HG)
 
 ifeq ($(USE_BSP), TRUE)
 DEFINES += -DBL_USE_BSP
@@ -142,8 +146,6 @@ ifeq ($(BSP_MACHINE), OSF1)
 #FOPTF  = -fast -O5 -tune ev5
 endif
 
-DEFINES += -DGUTHAMR 
-
 3RD = 1
 3RD=
 ifdef 3RD
@@ -166,12 +168,12 @@ CDEBF +=
 
 include $(HERE)/Make.package 
 
-INCLUDE_LOCATIONS += ../hgproj/include/3d.v7
+#INCLUDE_LOCATIONS += ../hgproj/include/3d.v7
 
 FOPTF = -fast
 
-vpath %.cpp : . ../pBoxLib_2 ../amrlib ../bndrylib ../hgproj
-vpath %.F   : . ../amrlib ../bndrylib ../hgproj
+vpath %.cpp : . ../pBoxLib_2 ../amrlib ../bndrylib ../hgproj$(WHICH_HG)
+vpath %.F   : . ../amrlib ../bndrylib ../hgproj$(WHICH_HG)
 
 all: $(executable)
 
