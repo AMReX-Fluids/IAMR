@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.88 2003-02-18 21:35:03 almgren Exp $
+// $Id: MacProj.cpp,v 1.89 2003-02-19 19:30:54 almgren Exp $
 //
 #include <winstd.H>
 
@@ -298,14 +298,11 @@ MacProj::mac_project (int             level,
     // ghost cell.  We enforce that assumption by setting it here.
     //
     for (MFIter mfi(ns.get_rho(time)); mfi.isValid(); ++mfi)
-    {
         S[mfi].copy(ns.get_rho(time)[mfi],0,Density,1);
-    }
 
     if (OutFlowBC::HasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)
-    {
         set_outflow_bcs(level, mac_phi, u_mac, S, divu);
-    }
+
     //
     // Store the Dirichlet boundary condition for mac_phi in mac_bndry.
     //
@@ -759,9 +756,9 @@ MacProj::mac_sync_compute (int                   level,
                   tforces.mult(S,tforces.box(),tforces.box(),Density,comp,1);
                 }
 
-                godunov->SyncAdvect(grids[i], dx, dt, level, area[level][0][S_fpi], u_mac[0][S_fpi],
-                                    grad_phi[0], xflux, area[level][1][S_fpi], u_mac[1][S_fpi],
-                                    grad_phi[1], yflux,
+                godunov->SyncAdvect(grids[i], dx, dt, level, 
+                                    area[level][0][S_fpi], u_mac[0][S_fpi], grad_phi[0], xflux, 
+                                    area[level][1][S_fpi], u_mac[1][S_fpi], grad_phi[1], yflux,
 #if (BL_SPACEDIM == 3)                            
                                     area[level][2][S_fpi], u_mac[2][S_fpi], grad_phi[2], zflux,
 #endif
@@ -1100,79 +1097,91 @@ MacProj::set_outflow_bcs (int             level,
     //   (1/r)(d/dr)[r/rho dphi/dr] = dv/dr - S
     //
     bool hasOutFlow;
-    Orientation outFace;
-    OutFlowBC::GetOutFlowFace(hasOutFlow,outFace,phys_bc);
+    Orientation outFaces[2*BL_SPACEDIM];
+    int numOutFlowFaces;
+
+    OutFlowBC::GetOutFlowFaces(hasOutFlow,outFaces,phys_bc,numOutFlowFaces);
 
     const BoxArray&   grids  = LevelData[level].boxArray();
     const Geometry&   geom   = parent->Geom(level);
     const Box&        domain = parent->Geom(level).Domain();
 
-    if (!grids_on_side_of_domain(grids,geom.Domain(),outFace)) 
-      return;
-
-    const int outDir    = outFace.coordDir();
-    const int bndBxWdth = 1;
-
-    Box ccBndBox;
-    if (outFace.faceDir() == Orientation::high)
-    {
-	ccBndBox = 
-            Box(BoxLib::adjCellHi(domain,outDir,bndBxWdth)).shift(outDir,-bndBxWdth);
-    } else {
-	ccBndBox = 
-            Box(BoxLib::adjCellLo(domain,outDir,bndBxWdth)).shift(outDir,bndBxWdth);
-    }
-    Box phiBox  = BoxLib::adjCell(domain,outFace,1);
-
-    const Box      valid_ccBndBox       = ccBndBox & domain;
-    const BoxArray uncovered_outflow_ba = BoxLib::complementIn(valid_ccBndBox,grids);
-
-    if (uncovered_outflow_ba.size() && 
-	BoxLib::intersect(grids,valid_ccBndBox).size())
-      BoxLib::Error("MacProj: Cannot yet handle partially refined outflow");
-    
-    FArrayBox rhodat(ccBndBox,1);
-    FArrayBox divudat(ccBndBox,1);
-    FArrayBox phidat(phiBox,1);
-
-    const BoxArray& ba = S.boxArray();
-    
-    BL_ASSERT(ba == divu.boxArray());
     //
-    // Fill rhodat & divudat.
+    // Create 1-wide cc box just outside boundary to hold phi.
+    // Create 1-wide cc box just inside  boundary to hold rho,u,divu.
     //
-    S.copy(rhodat, Density, 0, 1);
-    divu.copy(divudat, 0, 0, 1);
+
+    BoxList  ccBoxList;
+    BoxList phiBoxList;
+
+    for (int iface = 0; iface < numOutFlowFaces; iface++)
+     if (grids_on_side_of_domain(grids,geom.Domain(),outFaces[iface])) 
+     {
+      const int outDir    = outFaces[iface].coordDir();
+
+      Box ccBndBox;
+      if (outFaces[iface].faceDir() == Orientation::high)
+      {
+	ccBndBox = 
+            Box(BoxLib::adjCellHi(domain,outDir,2)).shift(outDir,-2);
+      } else {
+  	ccBndBox = 
+            Box(BoxLib::adjCellLo(domain,outDir,2)).shift(outDir,2);
+      }
+      ccBoxList.push_back(ccBndBox);
+
+      Box phiBox  = BoxLib::adjCell(domain,outFaces[iface],1);
+      phiBoxList.push_back(phiBox);
+
+      const Box      valid_ccBndBox       = ccBndBox & domain;
+      const BoxArray uncovered_outflow_ba = BoxLib::complementIn(valid_ccBndBox,grids);
+
+      if (uncovered_outflow_ba.size() && 
+  	BoxLib::intersect(grids,valid_ccBndBox).size())
+        BoxLib::Error("MacProj: Cannot yet handle partially refined outflow");
+     }
+
+    BoxArray  ccBoxArray( ccBoxList);
+    BoxArray phiBoxArray(phiBoxList);
+    
+    MultiFab  rhodat(ccBoxArray,1,0);
+    MultiFab divudat(ccBoxArray,1,0);
+    MultiFab  phidat(phiBoxArray,1,0);
+
+     rhodat.copy(S,Density,0,1);
+    divudat.copy(divu,0,0,1);
+     phidat.setVal(0.);
+
     //
     // Load ec data.
     //
-    FArrayBox uedat[BL_SPACEDIM];
-    
+
+    MultiFab uedat[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; ++i)
     {
-	uedat[i].resize(BoxLib::surroundingNodes(ccBndBox,i), 1);
-	u_mac[i].copy(uedat[i]);
+      BoxArray edgeArray(ccBoxArray);
+      edgeArray.surroundingNodes(i);
+      uedat[i].define(edgeArray,1,0,Fab_allocate);
+      uedat[i].copy(u_mac[i],0,0,1);
     }
-    
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "starting mac bc calculation" << std::endl;
     
     MacOutFlowBC macBC;
     phidat.setVal(0.0);
-    macBC.computeBC(uedat,divudat,rhodat,phidat,geom,outFace);
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "finishing mac bc calculation" << std::endl;
+    NavierStokes* ns_level = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
+    Real gravity = ns_level->getGravity();
+    macBC.computeBC(uedat,divudat,rhodat,phidat,geom,outFaces,numOutFlowFaces,gravity);
 
-    for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
-    {
-        Box ovlp = (*mac_phi)[mfi].box() & phidat.box();
-
+    // Must do this kind of copy instead of mac_phi->copy(phidat);
+    //   because we're copying onto the ghost cells of the FABs,
+    //   not the valid regions.
+    for (MFIter pdmfi(phidat); pdmfi.isValid(); ++pdmfi)
+     for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
+     {
+        Box ovlp = (*mac_phi)[mfi].box() & phidat[pdmfi].box();
         if (ovlp.ok())
-        {
-	    (*mac_phi)[mfi].copy(phidat,ovlp);
-        }
-    }
+            (*mac_phi)[mfi].copy(phidat[pdmfi],ovlp);
+     }
 }
 
 //
