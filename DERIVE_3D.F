@@ -1,6 +1,8 @@
-c $Id: DERIVE_3D.F,v 1.5 1998-02-22 19:06:44 car Exp $
+c $Id: DERIVE_3D.F,v 1.6 1998-03-10 23:31:12 car Exp $
 #undef BL_LANG_CC
+#ifndef BL_LANG_FORT
 #define BL_LANG_FORT
+#endif
 
 #include "REAL.H"
 #include "CONSTANTS.H"
