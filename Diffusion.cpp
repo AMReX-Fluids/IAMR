@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.83 1999-03-30 23:14:33 marc Exp $
+// $Id: Diffusion.cpp,v 1.84 1999-03-30 23:58:54 lijewski Exp $
 //
 
 //
@@ -2254,6 +2254,8 @@ Diffusion::getBndryData (ViscBndry& bndry,
 
     MultiFab S(grids, num_comp, nGrow);
 
+    S.setVal(BL_SAFE_BOGUS);
+
     bndry.define(grids,num_comp,caller->Geom());
 
     FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
@@ -2318,23 +2320,24 @@ Diffusion::FillBoundary (BndryRegister& bdry,
 
     MultiFab S(caller->boxArray(),num_comp,nGrow);
 
-    {
-        FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
-
-        for ( ; S_fpi.isValid(); ++S_fpi)
-        {
-            S[S_fpi.index()].copy(S_fpi(), 0, 0, num_comp);
-        }
-    }
+    FillPatchIterator Rho_fpi(*caller,S);
+    FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
 
     if (rho_flag == 2)
-    {
-        FillPatchIterator rho_fpi(*caller,S,nGrow,time,State_Type,Density,1);
+	Rho_fpi.Initialize(nGrow,time,State_Type,Density,1);
 
-        for ( ; rho_fpi.isValid(); ++rho_fpi)
+    for ( ; S_fpi.isValid(); ++S_fpi)
+    {
+        S[S_fpi.index()].copy(S_fpi(), 0, 0, num_comp);
+
+	if (rho_flag == 2)
         {
+	    Rho_fpi.isValid();
+
             for (int n = 0; n < num_comp; ++n)
-                S[rho_fpi.index()].divide(rho_fpi(), 0, n, 1);
+                S[S_fpi.index()].divide(Rho_fpi(), 0, n, 1);
+
+	    ++Rho_fpi;
         }
     }
     //
