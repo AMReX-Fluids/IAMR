@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.129 1999-04-12 23:16:19 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.130 1999-04-15 22:17:34 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -401,16 +401,13 @@ NavierStokes::NavierStokes (Amr&            papa,
     //
     // Set up the level projector.
     //
-    if (do_MLsync_proj || do_sync_proj)
+    if (projector == 0)
     {
-        if (projector == 0)
-        {
-            projector = new Projection(parent,&phys_bc,
-                                       do_sync_proj,parent->finestLevel(),
-                                       radius_grow);
-        }
-        projector->install_level(level, this, &radius );
+        projector = new Projection(parent,&phys_bc,
+                                   do_sync_proj,parent->finestLevel(),
+                                   radius_grow);
     }
+    projector->install_level(level, this, &radius );
     //
     // Set up the godunov box.
     //
@@ -638,15 +635,12 @@ NavierStokes::restart (Amr&     papa,
 {
     AmrLevel::restart(papa,is,bReadSpecial);
 
-    if (do_MLsync_proj || do_sync_proj)
+    if (projector == 0)
     {
-        if (projector == 0)
-        {
-            projector = new Projection(parent,&phys_bc,do_sync_proj,
-                                       parent->finestLevel(),radius_grow);
-        }
-        projector->install_level(level, this, &radius );
+        projector = new Projection(parent,&phys_bc,do_sync_proj,
+                                   parent->finestLevel(),radius_grow);
     }
+    projector->install_level(level, this, &radius );
     //
     // Set the godunov box.
     //
