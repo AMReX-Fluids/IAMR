@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.44 1998-06-08 20:41:30 car Exp $
+// $Id: Projection.cpp,v 1.45 1998-07-06 17:28:00 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -460,7 +460,6 @@ Projection::level_project(int level,
     const int ngrids = grids.length();
     int nghost = 1; // required by aliaslib--rbp
     MultiFab rhs_cc(grids,1,nghost,Fab_allocate);
-    rhs_cc.setVal(0.0);
     Copy(rhs_cc,dsdt,0,0,1,nghost);
     radMult(level,rhs_cc,0);    
     for (int i=0;i<ngrids;i++) 
@@ -1604,7 +1603,6 @@ Projection::computeDV (MultiFab&       DV,
         assert(U_boxes[Umfi.index()] == Umfi.validbox());
 
         ufab.resize(::grow(Umfi.validbox(),1),BL_SPACEDIM);
-        ufab.setVal(0.0);
         ufab.copy(Umfi(),ufab.box(),src_comp,ufab.box(),0,BL_SPACEDIM);
 
         Box ndbox = ::surroundingNodes(Umfi.validbox());
