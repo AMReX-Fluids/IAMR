@@ -1,5 +1,5 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
-max_step  =  10        # maximum timestep
+max_step  =  20        # maximum timestep
 stop_time =  10000.0   # maximum problem time
 
 # ------------------  INPUTS TO CLASS AMR ---------------------
@@ -10,12 +10,13 @@ geometry.prob_hi   =  1. 1. 1.
 
 # multigrid class
 mg.usecg = 0
+mg.usecg = 1
 mg.nu_f = 10
 mg.nu_1 = 2
 mg.nu_2 = 2
 smg.eps = 1.0e-3
-mg.v = 0
-mg.maxiter = 100
+mg.v = 1
+mg.maxiter = 400
 Lp.v = 0
 Lp.harmavg = 1
 
@@ -24,8 +25,11 @@ mac.v = 1
 proj.v = 1
 
 amr.n_cell    =  8 8 8
+amr.n_cell    =  16 16 16
+amr.n_cell    =  32 32 32
 
 amr.max_level =  1            # maximum level number allowed
+amr.max_level =  0            # maximum level number allowed
 amr.ref_ratio       = 2 4 2 2  # refinement ratio
 amr.blocking_factor = 2       # block factor in grid generation
 amr.regrid_int      = 5       # how often to regrid
@@ -33,9 +37,12 @@ amr.n_error_buf     = 2 2 2 2  # number of buffer cells in error est
 amr.grid_eff        = 0.7     # what constitutes an efficient grid
 amr.check_int       = 20      # number of timesteps between checkpoints
 amr.check_file      = chk     # root name of checkpoint file
-amr.plot_file       = plt 20
+amr.plot_file_root  = plt
+amr.plot_int        = 1
 amr.grid_log        = grdlog  # name of grid logging file
 amr.max_grid_size   = 64
+amr.max_grid_size   = 8
+amr.max_grid_size   = 16
 
 # ------------------  INPUTS TO PHYSICS CLASS -------------------
 ns.dt_cutoff      = 0.000001  # level 0 timestep below which we halt
@@ -55,9 +62,12 @@ ns.anelastic      = 0        # 0 => no anelastic approx
 #ns.fixed_dt	  = 06.37755     # hardwire dt
 ns.sum_interval   = 1        # timesteps between computing mass
 ns.do_sync_proj   = 1        # 1 => do Sync Project
+ns.do_sync_proj   = 0        # 1 => do Sync Project
 ns.do_reflux      = 1        # 1 => do refluxing
+ns.do_reflux      = 0        # 1 => do refluxing
 ns.do_mac_proj    = 1        # 1 => do MAC projection
 ns.do_radiation   = 0        # 1 => do discrete-ordinates radiation
+ns.do_MLsync_proj = 0        # 1 => do ML sync project
 
 ns.mem_debug = 0
 

@@ -949,16 +949,9 @@ void
 FluxRegister::FineAdd(const MultiFab& mflx, int dir,
 		      int srccomp, int destcomp, int numcomp, REAL mult)
 {
-if(ParallelDescriptor::NProcs() > 1) {
-  ParallelDescriptor::Abort("FineAdd(multifab, ...) not implemented in parallel.");
-} else {
-  cerr << "FineAdd(multifab, ...) not implemented in parallel." << endl;
-}
-    const BoxArray& bxa = mflx.boxArray();
-    int ngrd = bxa.length();
-    int k;
-    for (k = 0; k < ngrd; k++) {
-	FineAdd(mflx[k],dir,k,srccomp,destcomp,numcomp,mult);
+    for(ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(); ++mflxmfi)
+    {
+	FineAdd(mflxmfi(),dir,mflxmfi.index(),srccomp,destcomp,numcomp,mult);
     }
 }
 
@@ -967,16 +960,11 @@ void
 FluxRegister::FineAdd(const MultiFab& mflx, const MultiFab& area, int dir,
 		      int srccomp, int destcomp, int numcomp, REAL mult)
 {
-if(ParallelDescriptor::NProcs() > 1) {
-  ParallelDescriptor::Abort("FineAdd(multifab, multifab, ...) not implemented in parallel.");
-} else {
-  cerr << "FineAdd(multifab, multifab, ...) not implemented in parallel." << endl;
-}
-    const BoxArray& bxa = mflx.boxArray();
-    int ngrd = bxa.length();
-    int k;
-    for (k = 0; k < ngrd; k++) {
-	FineAdd(mflx[k],area[k],dir,k,srccomp,destcomp,numcomp,mult);
+    for(ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(); ++mflxmfi)
+    {
+	ConstDependentMultiFabIterator areamfi(mflxmfi, area);
+	FineAdd(mflxmfi(),areamfi(),dir,mflxmfi.index(),
+		srccomp,destcomp,numcomp,mult);
     }
 }
 
@@ -1024,11 +1012,6 @@ FluxRegister::FineAdd(const FARRAYBOX& flux, const FARRAYBOX& area,
                       int dir, int boxno,
 		      int srccomp, int destcomp, int numcomp, REAL mult)
 {
-if(ParallelDescriptor::NProcs() > 1) {
-  ParallelDescriptor::Abort("FineAdd(flux, area, ..., boxno, ...) not implemented in parallel.");
-} else {
-  cerr << "FineAdd(flux, area, ..., boxno, ...) not implemented in parallel." << endl;
-}
     int nvf = flux.nComp();
     assert(srccomp >= 0 && srccomp+numcomp <= nvf);
     assert(destcomp >= 0 && destcomp+numcomp <= ncomp);

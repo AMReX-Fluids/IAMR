@@ -2,12 +2,12 @@ PRECISION = DOUBLE
 DEBUG	= FALSE
 DEBUG	= TRUE
 PROFILE = FALSE
-#DIM	= 2
-#PRVERSION = v9
+DIM	= 2
+PRVERSION = v9
 
 # use v7 for 3d
-DIM	= 3
-PRVERSION = v7
+#DIM	= 3
+#PRVERSION = v7
 
 COMP = KCC
 
@@ -41,8 +41,8 @@ BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
 INCLUDE_LOCATIONS += $(BSP_HOME)/include
 LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1
 LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1/$(BSP_DEVICE)
-LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
-#LIBRARIES += -lbspcore_O0 -lbsplevel1_O0
+#LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
+LIBRARIES += -lbspcore_O0 -lbsplevel1_O0
 ###### exception library (for newest bsplib)
 # end bsp parallel locations
 LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc

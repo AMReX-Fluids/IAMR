@@ -1,5 +1,5 @@
 #ifndef _NavierStokes_H_
-#define _NavierStokes_H_ $Id: NavierStokes.H,v 1.2 1997-07-17 22:01:06 vince Exp $
+#define _NavierStokes_H_ $Id: NavierStokes.H,v 1.3 1997-09-19 18:07:58 vince Exp $
 
 #include <LevelBld.H>
 #include <BC_TYPES.H>
@@ -262,8 +262,8 @@ protected: // ===================== protected member functions ===
     
     // average a fine multifab down onto a coarse one
     void avgDown( const BoxArray &grids, const BoxArray &fgrids,
-                  const MultiFab &S_crse, const MultiFab &S_fine,
-                  const MultiFab &volume, const MultiFab &fvolume,
+                  MultiFab &S_crse, MultiFab &S_fine,
+                  MultiFab &volume, MultiFab &fvolume,
                   int c_level,            int f_level,
                   int strt_comp, int num_comp, IntVect& fratio );
  

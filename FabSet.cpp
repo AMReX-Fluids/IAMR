@@ -271,8 +271,6 @@ if(ParallelDescriptor::NProcs() > 1) {
 FabSet &FabSet::plusFrom(const MultiFab &src, int nghost, int src_comp,
 		         int dest_comp, int num_comp)
 {
-cerr << "FabSet::copyFrom(MultiFab, nghost, ...) not yet implemented" << endl;
-ParallelDescriptor::Abort("Exiting.");
 /*
     int slen = src.length();
     int dlen = length();
@@ -295,6 +293,61 @@ ParallelDescriptor::Abort("Exiting.");
 	}
     }
 */
+
+//
+//
+//  this can be optimized by only communicating the components
+//  used in the linComp--this implementation communicates
+//  all the components
+//
+//
+
+    assert (nghost <= src.nGrow());
+    const BoxArray &sba = src.boxArray();
+
+    MultiFabCopyDescriptor mfcd(true);
+    MultiFabId mfidsrc  = mfcd.RegisterFabArray((MultiFab *) &src);
+    List<FillBoxId> fillBoxIdList;
+
+    for(MultiFabIterator thismfi(*this); thismfi.isValid(); ++thismfi) {
+      FArrayBox &dfab = thismfi();
+      for(int isrc = 0; isrc < src.length(); ++isrc) {
+	Box sbox = grow(sba[isrc], nghost);
+	Box ovlp(dfab.box());
+	ovlp &= sbox;
+	if(ovlp.ok()) {
+	  //dfab.plus(sfab,ovlp,src_comp,dest_comp,num_comp);
+          BoxList unfilledBoxes(ovlp.ixType());  // unused here
+          FillBoxId fbidsrc;
+          fbidsrc = mfcd.AddBox(mfidsrc, ovlp, unfilledBoxes,
+                                0, 0, num_comp);
+          fillBoxIdList.append(fbidsrc);
+	}
+      }
+    }
+
+    mfcd.CollectData();
+
+    ListIterator<FillBoxId> fbidli(fillBoxIdList);
+
+    for(MultiFabIterator thismfi(*this); thismfi.isValid(); ++thismfi) {
+      FArrayBox &dfab = thismfi();
+      for(int isrc = 0; isrc < src.length(); ++isrc) {
+	Box sbox = grow(sba[isrc], nghost);
+	Box ovlp(dfab.box());
+	ovlp &= sbox;
+	if(ovlp.ok()) {
+          assert(fbidli);
+          FillBoxId fbidsrc = fbidli();
+          ++fbidli;
+          FArrayBox sfab(fbidsrc.box(), num_comp);
+          mfcd.FillFab(mfidsrc, fbidsrc, sfab);
+
+	  dfab.plus(sfab,ovlp,src_comp,dest_comp,num_comp);
+	}
+      }
+    }
+
     return *this;
 }
 
@@ -324,33 +377,20 @@ FabSet &FabSet::linComb(Real a, const MultiFab &mfa, int a_comp,
 		        Real b, const MultiFab &mfb, int b_comp,
 		        int dest_comp, int num_comp, int n_ghost)
 {
-  if(ParallelDescriptor::NProcs() > 1) {
-    cerr << "FabSet::linComb(2) not implemented in parallel." << endl;
-    ParallelDescriptor::Abort("Exiting.");
-  } else {
-    cerr << "FabSet::linComb(2) not implemented in parallel." << endl;
-  }
-
     const BoxArray &bxa = mfa.boxArray();
     const BoxArray &bxb = mfb.boxArray();
     assert( bxa == bxb);
-
- // turn this loop inside out for parallel (mfiterate over *this)
- // to fill dest locally
-
     assert( n_ghost <= mfa.nGrow());
     assert( n_ghost <= mfb.nGrow());
 
-    int nfab = bxa.length();
-    int nreg = length();
-
-    for (int grd = 0; grd < nfab; grd++) {
-        const BOX& grd_box = grow(bxa[grd],n_ghost);
-        const FARRAYBOX& a_fab = mfa[grd];
-        const FARRAYBOX& b_fab = mfb[grd];
-        for (int reg = 0; reg < nreg; reg++) {
-            FARRAYBOX &reg_fab = (*this)[reg];
-            BOX ovlp(reg_fab.box());
+/*
+    for (int grd = 0; grd < bxa.length(); grd++) {
+        const Box &grd_box = grow(bxa[grd],n_ghost);
+        const FArrayBox& a_fab = mfa[grd];
+        const FArrayBox& b_fab = mfb[grd];
+        for (int reg = 0; reg < length(); reg++) {
+            FArrayBox &reg_fab = (*this)[reg];
+            Box ovlp(reg_fab.box());
             ovlp &= grd_box;
             if (ovlp.ok()) {
                 reg_fab.linComb(a_fab,ovlp,a_comp,b_fab,ovlp,b_comp,
@@ -358,6 +398,75 @@ FabSet &FabSet::linComb(Real a, const MultiFab &mfa, int a_comp,
             }
         }
     }
+*/
+
+//
+//
+//  this can be optimized by only communicating the components
+//  used in the linComp--this implementation communicates
+//  all the components
+//
+//
+
+    MultiFabCopyDescriptor mfcd(true);
+    MultiFabId mfid_mfa  = mfcd.RegisterFabArray((MultiFab *) &mfa);
+    MultiFabId mfid_mfb  = mfcd.RegisterFabArray((MultiFab *) &mfb);
+    List<FillBoxId> fillBoxIdList_mfa;
+    List<FillBoxId> fillBoxIdList_mfb;
+
+    for(MultiFabIterator thismfi(*this); thismfi.isValid(); ++thismfi) {
+      FArrayBox &reg_fab = thismfi();
+      for(int grd = 0; grd < bxa.length(); grd++) {
+        const Box &grd_box = grow(bxa[grd],n_ghost);
+        Box ovlp(reg_fab.box());
+        ovlp &= grd_box;
+        if(ovlp.ok()) {
+          //reg_fab.linComb(a_fab,ovlp,a_comp,b_fab,ovlp,b_comp,
+                          //a,b,ovlp,dest_comp,num_comp);
+          BoxList unfilledBoxes(ovlp.ixType());  // unused here
+          FillBoxId fbid_mfa;
+          fbid_mfa = mfcd.AddBox(mfid_mfa, ovlp, unfilledBoxes,
+                                 0, 0, num_comp);
+          fillBoxIdList_mfa.append(fbid_mfa);
+
+          FillBoxId fbid_mfb;
+          fbid_mfb = mfcd.AddBox(mfid_mfb, ovlp, unfilledBoxes,
+                                 0, 0, num_comp);
+          fillBoxIdList_mfb.append(fbid_mfb);
+        }
+      }
+    }
+
+    mfcd.CollectData();
+
+    ListIterator<FillBoxId> fbidli_mfa(fillBoxIdList_mfa);
+    ListIterator<FillBoxId> fbidli_mfb(fillBoxIdList_mfb);
+
+    for(MultiFabIterator thismfi(*this); thismfi.isValid(); ++thismfi) {
+      FArrayBox &reg_fab = thismfi();
+      for(int grd = 0; grd < bxa.length(); grd++) {
+        const Box &grd_box = grow(bxa[grd],n_ghost);
+        Box ovlp(reg_fab.box());
+        ovlp &= grd_box;
+        if(ovlp.ok()) {
+          assert(fbidli_mfa);
+          FillBoxId fbid_mfa = fbidli_mfa();
+          ++fbidli_mfa;
+          FArrayBox a_fab(fbid_mfa.box(), num_comp);
+          mfcd.FillFab(mfid_mfa, fbid_mfa, a_fab);
+
+          assert(fbidli_mfb);
+          FillBoxId fbid_mfb = fbidli_mfb();
+          ++fbidli_mfb;
+          FArrayBox b_fab(fbid_mfb.box(), num_comp);
+          mfcd.FillFab(mfid_mfb, fbid_mfb, b_fab);
+
+          reg_fab.linComb(a_fab,ovlp,a_comp,b_fab,ovlp,b_comp,
+                          a,b,ovlp,dest_comp,num_comp);
+        }
+      }
+    }
+
 
     return *this;
 }

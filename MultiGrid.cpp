@@ -1,4 +1,4 @@
-// $Id: MultiGrid.cpp,v 1.1 1997-07-08 23:08:04 vince Exp $
+// $Id: MultiGrid.cpp,v 1.2 1997-09-19 18:07:57 vince Exp $
 // 
 
 #include <stdlib.h>
@@ -175,7 +175,7 @@ MultiGrid::solve_(MultiFab &_sol, REAL eps_rel, REAL eps_abs,
 {
       // Relax system maxiter times, stop if relative error <= _eps_rel or
       // if absolute err <= _abs_eps
-    bool returnVal = 0;  // should use bool for return value from this function
+    long returnVal = 0;  // should use bool for return value from this function
     REAL error0 = errorEstimate(level, bc_mode);
     REAL error  = error0;
     if( verbose ) {
@@ -227,16 +227,16 @@ MultiGrid::solve_(MultiFab &_sol, REAL eps_rel, REAL eps_abs,
       // values stored in initialsolution.
 	_sol.copy(*cor[level]);
 	_sol.plus(*initialsolution,0,_sol.nComp(),0);
-	//return(1);
 	returnVal = 1;
     } else {
       returnVal = 0;
     }
 
-    ParallelDescriptor::ReduceBoolAnd(returnVal);
+    // use long instead of bool--there is a bug on the t3e which
+    // causes reduction problems with bool
+    ParallelDescriptor::ReduceLongAnd(returnVal);
 
       // Otherwise, failed to solve satisfactorily
-    //return(0);
     return ((int) returnVal);
 }
 
