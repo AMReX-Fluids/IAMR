@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_2D.F,v 1.8 1999-02-17 20:33:30 lijewski Exp $
+c $Id: SYNCREG_2D.F,v 1.9 1999-06-03 18:17:45 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -70,6 +70,7 @@ c           timestep on the coarse grid.  mult = 1/ratio.
          end do
       end if
 
+#if BL_PRVERSION==9
       if (is_rz .eq. 1) then
 
        if (lenx .ge. leny) then
@@ -99,6 +100,7 @@ c           timestep on the coarse grid.  mult = 1/ratio.
        end if
 
       end if
+#endif
       
       end
 
@@ -167,6 +169,7 @@ c     FOR FIVE-POINT STENCIL
          end do
       end do
 
+#if BL_PRVERSION==9
       if (is_rz .eq. 1) then
 
 c      extra term added to DGphi for cylindrical coordinates
@@ -207,6 +210,7 @@ c        here we subtract it since we want D G^perp phi
         end do
         end do
       endif
+#endif
 
       do j = lo(2), hi(2)
       do i = lo(1), hi(1)
