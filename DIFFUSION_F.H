@@ -2,7 +2,7 @@
 #define _DIFFUSION_F_H
 
 /*
-** $Id: DIFFUSION_F.H,v 1.9 1999-02-25 17:35:36 car Exp $
+** $Id: DIFFUSION_F.H,v 1.10 1999-02-25 20:16:12 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -118,6 +118,9 @@ extern "C"
                         Real *denfab, ARLIM_P(den_lo), ARLIM_P(den_hi),
                         const Real *betax, ARLIM_P(betax_lo), ARLIM_P(betax_hi),
                         const Real *betay, ARLIM_P(betay_lo), ARLIM_P(betay_hi),
+#if (BL_SPACEDIM ==3)
+                        const Real *betaz, ARLIM_P(betaz_lo), ARLIM_P(betaz_hi),
+#endif
                         const int* isrz);
     
     void FORT_TENSOR_HOOPRHS (const int* xvel_comp, 

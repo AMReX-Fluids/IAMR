@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.70 1999-02-25 17:35:36 car Exp $
+// $Id: Diffusion.cpp,v 1.71 1999-02-25 20:16:12 propp Exp $
 //
 
 //
@@ -1574,6 +1574,9 @@ Diffusion::getTensorOp (Real                   a,
             DependentMultiFabIterator rho_halfmfi(alphamfi, (*rho_half));
             DependentMultiFabIterator beta0mfi(alphamfi, (*beta[0]));
             DependentMultiFabIterator beta1mfi(alphamfi, (*beta[1]));
+#if (BL_SPACEDIM==3)
+            DependentMultiFabIterator beta2mfi(alphamfi, (*beta[2]));
+#endif
             assert(alpha.box(alphamfi.index()) == alphamfi.validbox());
             assert(volume.box(alphamfi.index()) == volumemfi.validbox());
 
@@ -1605,12 +1608,23 @@ Diffusion::getTensorOp (Real                   a,
 	    const int* betay_lo = betay.loVect();
 	    const int* betay_hi = betay.hiVect();
 
+#if (BL_SPACEDIM == 3)
+            FArrayBox& betaz = beta2mfi();
+            const Real* betaz_dat = betaz.dataPtr(dataComp);
+            const int* betaz_lo = betaz.loVect();
+            const int* betaz_hi = betaz.hiVect();
+#endif
+
             FORT_SET_TENSOR_ALPHA(alpha_dat, ARLIM(alo), ARLIM(ahi),
                                   lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
                                   voli, ARLIM(vlo), ARLIM(vhi),
                                   rho_dat,ARLIM(rlo),ARLIM(rhi),
                                   betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
-                                  betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),&isrz);
+                                  betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),
+#if (BL_SPACEDIM == 3)
+				  betaz_dat,ARLIM(betaz_lo),ARLIM(betaz_hi),
+#endif
+				  &isrz);
         }
     }
     tensor_op->setScalars(a,b);
@@ -1688,6 +1702,10 @@ Diffusion::getTensorOp (Real                   a,
             DependentMultiFabIterator rho_halfmfi(alphamfi, (*rho_half));
             DependentMultiFabIterator beta0mfi(alphamfi, (*beta[0]));
             DependentMultiFabIterator beta1mfi(alphamfi, (*beta[1]));
+#if (BL_SPACEDIM==3)
+            DependentMultiFabIterator beta2mfi(alphamfi, (*beta[2]));
+#endif
+
             assert(alpha.box(alphamfi.index()) == alphamfi.validbox());
             assert(volume.box(alphamfi.index()) == volumemfi.validbox());
 
@@ -1719,12 +1737,23 @@ Diffusion::getTensorOp (Real                   a,
             const int* betay_lo = betay.loVect();
             const int* betay_hi = betay.hiVect();
 
+#if (BL_SPACEDIM == 3)
+            FArrayBox& betaz = beta2mfi();
+            const Real* betaz_dat = betaz.dataPtr(dataComp);
+            const int* betaz_lo = betaz.loVect();
+            const int* betaz_hi = betaz.hiVect();
+#endif
+
             FORT_SET_TENSOR_ALPHA(alpha_dat, ARLIM(alo), ARLIM(ahi),
                                   lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
                                   voli, ARLIM(vlo), ARLIM(vhi),
                                   rho_dat,ARLIM(rlo),ARLIM(rhi),
                                   betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
-                                  betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),&isrz);
+                                  betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),
+#if (BL_SPACEDIM == 3)
+				  betaz_dat,ARLIM(betaz_lo),ARLIM(betaz_hi),
+#endif
+				  &isrz);
         }
     }
     tensor_op->setScalars(a,b);
