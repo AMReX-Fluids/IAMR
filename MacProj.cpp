@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.58 1999-11-22 22:13:02 sstanley Exp $
+// $Id: MacProj.cpp,v 1.59 1999-11-23 01:36:46 propp Exp $
 //
 
 #include <Misc.H>
@@ -1026,17 +1026,16 @@ MacProj::set_outflow_bcs (int             level,
 
     const int bndBxWdth = 1;
 
-    Box phiBox, ccBndBox;
-    if (outFace.faceDir() == Orientation::low) 
-    {
-        ccBndBox= ::adjCellLo(domain,bndBxWdth).shift(outDir,bndBxWdth);
-        phiBox  = ::adjCellLo(domain,1);
-    }
-    else
-    {
-        ccBndBox= ::adjCellHi(domain,bndBxWdth).shift(outDir,-bndBxWdth);
-        phiBox  = ::adjCellHi(domain,1);
-    }
+    Box ccBndBox;
+    if (outFace.faceDir() == Orientation::high)
+      {
+	ccBndBox = 
+	  Box(::adjCellHi(domain,outDir,bndBxWdth)).shift(outDir,-bndBxWdth);
+      } else {
+	ccBndBox = 
+	  Box(::adjCellLo(domain,outDir,bndBxWdth)).shift(outDir,bndBxWdth);
+      }
+    Box phiBox  = ::adjCell(domain,outFace,1);
 
     const Box valid_ccBndBox = ccBndBox & domain;
     const BoxArray uncovered_outflow_ba = ::complementIn(valid_ccBndBox,grids);
@@ -1092,5 +1091,7 @@ MacProj::set_outflow_bcs (int             level,
 	  }
       }
 }
+
+
 
 
