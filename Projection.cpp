@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.113 1999-09-14 22:53:07 car Exp $
+// $Id: Projection.cpp,v 1.114 1999-09-14 23:01:56 car Exp $
 //
 
 #ifdef BL_T3E
@@ -242,7 +242,11 @@ Projection::setUpBcs ()
         }
     }
 
+#ifdef BL_USE_HGPROJ_SERIAL
+    projector_bndry = new inviscid_fluid_boundary_class(proj_bc);
+#else
     projector_bndry = new inviscid_fluid_boundary(proj_bc);
+#endif
 }
 
 //
@@ -2529,7 +2533,11 @@ Projection::initialVorticityProject (int c_lev)
 
     delete projector_bndry;
 
+#ifdef BL_USE_HGPROJ_SERIAL
+    projector_bndry = new inviscid_fluid_boundary_class(proj_bc);
+#else
     projector_bndry = new inviscid_fluid_boundary(proj_bc);
+#endif
 
     bldSyncProject();
 
