@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.4 1997-12-12 22:44:09 lijewski Exp $
+c $Id: PROB_3D.F,v 1.5 1997-12-15 20:56:09 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -123,20 +123,6 @@ c     ::::: local variables
       end
 
 c ::: -----------------------------------------------------------
-c ::: Here define a random number generator if on a Linux machine
-c ::: -----------------------------------------------------------
-
-#ifdef BL_NEED_RAND
-      REAL_T function rand()
-      integer iseed,ia,ic,im
-      parameter (ia=7141,ic=54773,im=259200)
-      data iseed/11011/
-      iseed=mod(iseed*ia+ic,im)
-      rand=iseed*(one/im)
-      end
-#endif
-
-c ::: -----------------------------------------------------------
       subroutine initbubble(level,time,lo,hi,nscal,
      &	 	            vel,scal,DIMS(state),press,DIMS(press),
      &                      dx,xlo,xhi)
@@ -158,14 +144,7 @@ c     ::::: local variables
       REAL_T  rho, dist, c, ux, uy, uz, rhobub
       REAL_T  x_vel, y_vel, z_vel
       REAL_T  spx, spy, cpx, cpy, spz, cpz
-
-#if defined(BL_ARCH_CRAY) || defined(BL_T3E)
-#     define RANDOM ranf()
-      REAL_T ranf
-#else
-#     define RANDOM rand()
-      REAL_T rand
-#endif
+      REAL_T  rn
 
 #include "probdata.H"
 
@@ -205,7 +184,8 @@ c     ::::: local variables
                ux = x_vel - velfact*two*spy*cpy*spx**2
                uy = y_vel + velfact*two*spx*cpx*spy**2
                uz = z_vel
-               rhobub = denfact*(one + randfact*RANDOM)
+               call blutilrand(rn)
+               rhobub = denfact*(one + randfact*rn)
                rho = cvmgt(rhobub,one,dist.lt.radblob)
 	       c   = cvmgt(one,zero,dist.lt.radblob)
 	       vel(i,j,k,1) = ux
@@ -233,7 +213,8 @@ c     ::::: local variables
                ux = x_vel
                uy = y_vel
                uz = z_vel
-               rhobub = denfact*(one + randfact*RANDOM)
+               call blutilrand(rn)
+               rhobub = denfact*(one + randfact*rn)
                rho = cvmgt(rhobub,one,dist.lt.radblob)
                c   = cvmgt(one,zero,dist.lt.radblob)
                vel(i,j,k,1) = ux
@@ -950,14 +931,7 @@ c ::: -----------------------------------------------------------
 
       integer    i, j, k
       REAL_T     y_vel
-
-#if defined(BL_ARCH_CRAY) || defined(BL_T3E)
-#     define RANDOM ranf()
-      REAL_T ranf
-#else
-#     define RANDOM rand()
-      REAL_T rand
-#endif
+      REAL_T     rn
 
 #include "probdata.H"
 
@@ -1066,14 +1040,6 @@ c ::: -----------------------------------------------------------
 
       integer    i, j, k
       REAL_T     z_vel
-
-#if defined(BL_ARCH_CRAY) || defined(BL_T3E)
-#     define RANDOM ranf()
-      REAL_T ranf
-#else
-#     define RANDOM rand()
-      REAL_T rand
-#endif
 
 #include "probdata.H"
 

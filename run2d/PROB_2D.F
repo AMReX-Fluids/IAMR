@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.3 1997-12-12 22:44:08 lijewski Exp $
+c $Id: PROB_2D.F,v 1.4 1997-12-15 20:56:09 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -134,20 +134,6 @@ c     ::::: local variables
       end
 
 c ::: -----------------------------------------------------------
-c ::: Here define a random number generator if on a Linux machine
-c ::: -----------------------------------------------------------
-
-#ifdef BL_NEED_RAND
-      REAL_T function rand()
-      integer iseed,ia,ic,im
-      parameter (ia=7141,ic=54773,im=259200)
-      data iseed/11011/
-      iseed=mod(iseed*ia+ic,im)
-      rand=iseed*(one/im)
-      end
-#endif
-
-c ::: -----------------------------------------------------------
       subroutine initbubble(level,time,lo,hi,nscal,
      &	 	            vel,scal,DIMS(state),press,DIMS(press),
      &                      dx,xlo,xhi)
@@ -169,16 +155,9 @@ c     ::::: local variables
       REAL_T  rho, dist, c, ux, uy, rhobub
       REAL_T  x_vel, y_vel
       REAL_T  rho1, rho2, rhoavg, rhodiff
+      REAL_T  rn
 
 #include "probdata.H"
-
-#ifdef BL_ARCH_CRAY
-#     define RANDOM ranf()
-      REAL_T ranf
-#else
-#     define RANDOM rand()
-      REAL_T rand
-#endif
 
       hx = dx(1)
       hy = dx(2)
@@ -208,7 +187,8 @@ c     ::::: local variables
 	       c   = cvmgt(one,zero,dist.lt.radblob)
                ux = x_vel
                uy = y_vel
-               rhobub = denfact*(one + randfact*RANDOM)
+               call blutilrand(rn)
+               rhobub = denfact*(one + randfact*rn)
                rho = cvmgt(rhobub,one,dist.lt.radblob)
 c              rho = rhoavg + half * rhodiff *  tanh(5000.*(dist-radblob))
 	       c   = cvmgt(one,zero,dist.lt.radblob)
