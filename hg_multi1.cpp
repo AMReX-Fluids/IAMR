@@ -1,6 +1,6 @@
 
 //
-// $Id: hg_multi1.cpp,v 1.13 1997-10-08 20:15:52 car Exp $
+// $Id: hg_multi1.cpp,v 1.14 1997-11-18 00:41:44 car Exp $
 //
 
 #include <Tracer.H>
@@ -400,7 +400,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   for (mglev = 0; mglev <= mglev_max; mglev++) 
   {
     BoxArray mesh = mg_mesh[mglev];
-    mesh.convert(IntVect::TheNodeVector());
+    mesh.convert(IndexType(IntVect::TheNodeVector()));
     sigma_node.set(mglev, new MultiFab(mesh, BL_SPACEDIM, 1));
     sigma_node[mglev].setVal(1.e20);
   }
