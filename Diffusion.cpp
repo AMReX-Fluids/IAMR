@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.91 1999-07-27 17:33:10 marc Exp $
+// $Id: Diffusion.cpp,v 1.92 1999-08-22 21:21:44 lijewski Exp $
 //
 
 //
@@ -452,6 +452,8 @@ Diffusion::diffuse_scalar (Real                   dt,
 #if (BL_SPACEDIM == 2) 
         if (sigma == Xvel && CoordSys::IsRZ())
         {
+            Array<Real> rcen;
+
             for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
             {
                 DependentMultiFabIterator volumemfi(Rhsmfi, volume);
@@ -460,10 +462,13 @@ Diffusion::diffuse_scalar (Real                   dt,
                 BL_ASSERT(S_old.box(Rhsmfi.index()) == S_oldmfi.validbox());
                 BL_ASSERT(volume.box(Rhsmfi.index()) == volumemfi.validbox());
         
-                const Box& bx = Rhsmfi.validbox();
-                Box sbx       = ::grow(S_oldmfi.validbox(),S_old.nGrow());
-                Array<Real> rcen(bx.length(0));
+                const Box& bx  = Rhsmfi.validbox();
+                Box        sbx = ::grow(S_oldmfi.validbox(),S_old.nGrow());
+                Box        vbox = ::grow(volumemfi.validbox(),volume.nGrow());
+
+                rcen.resize(bx.length(0));
                 parent->Geom(level).GetCellLoc(rcen, bx, 0);
+
                 const int*  lo      = bx.loVect();
                 const int*  hi      = bx.hiVect();
                 const int*  slo     = sbx.loVect();
@@ -473,7 +478,6 @@ Diffusion::diffuse_scalar (Real                   dt,
                 const Real* rcendat = rcen.dataPtr();
                 const Real  coeff   = (1.0-be_cn_theta)*visc_coef[sigma]*dt;
                 const Real* voli    = volumemfi().dataPtr();
-                Box         vbox    = ::grow(volumemfi.validbox(),volume.nGrow());
                 const int*  vlo     = vbox.loVect();
                 const int*  vhi     = vbox.hiVect();
                 FORT_HOOPRHS(rhs, ARLIM(lo), ARLIM(hi), 
@@ -2202,18 +2206,25 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
             for (int n = 0; n < BL_SPACEDIM; ++n)
                 visc_tmpmfi().divide(volumemfi(),volumemfi.validbox(),0,n,1);
         }
+
 #if (BL_SPACEDIM == 2)
         if (CoordSys::IsRZ())
         {
             int fort_xvel_comp = Xvel+1;
-            for (int k = 0; k < ngrd; k++)
+
+            Array<Real> rcen;
+
+            for (MultiFabIterator vmfi(visc_tmp); vmfi.isValid(); ++vmfi)
             {
-                //visc_tmp[k] += -mu * u / r^2
+                const int  k   = vmfi.index();
                 const Box& bx  = visc_tmp.box(k);
                 Box        vbx = ::grow(bx,visc_tmp.nGrow());
                 Box        sbx = ::grow(s_tmp.box(k),s_tmp.nGrow());
-                Array<Real> rcen(bx.length(0));
+
+                rcen.resize(bx.length(0));
+
                 parent->Geom(level).GetCellLoc(rcen, bx, 0);
+
                 const int*       lo        = bx.loVect();
                 const int*       hi        = bx.hiVect();
                 const int*       vlo       = vbx.loVect();
