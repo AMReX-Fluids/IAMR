@@ -87,7 +87,7 @@ c local variables
          end do
          call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(jcs,if))
+         max_pert = ABS(divuExt(jcs+1,if))
          do j = jcs+1, jce-1
             max_pert = MAX(max_pert,ABS(divuExt(j,if)))
          end do
@@ -106,7 +106,7 @@ c local variables
          end do
          call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(ics,jf))
+         max_pert = ABS(divuExt(ics+1,jf))
          do i = ics+1, ice-1
             max_pert = MAX(max_pert,ABS(divuExt(i,jf)))
          end do
@@ -128,7 +128,7 @@ c    $                      -(u(ics+1,j,1) - u(ics,j,1)) / hx
          end do
          call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(jcs,if))
+         max_pert = ABS(divuExt(jcs+1,if))
          do j = jcs+1, jce-1
             max_pert = MAX(max_pert,ABS(divuExt(j,if)))
          end do
@@ -147,7 +147,7 @@ c    $                      -(u(ics+1,j,1) - u(ics,j,1)) / hx
          end do
          call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(ics,jf))
+         max_pert = ABS(divuExt(ics+1,jf))
          do i = ics+1, ice-1
             max_pert = MAX(max_pert,ABS(divuExt(i,jf)))
          end do
