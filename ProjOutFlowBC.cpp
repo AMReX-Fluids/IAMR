@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.27 2003-02-21 21:38:40 almgren Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.28 2003-02-21 22:49:10 car Exp $
 //
 #include <winstd.H>
 
@@ -55,10 +55,10 @@ ProjOutFlowBC::ProjOutFlowBC ()
 
 #if 1
 void 
-ProjOutFlowBC::computeBC (FArrayBox*        velMF,
-                          FArrayBox*        divuMF,
-                          FArrayBox*        rhoMF,
-                          FArrayBox*        phiMF,
+ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
+                          FArrayBox        divuMF[2*BL_SPACEDIM],
+                          FArrayBox        rhoMF[2*BL_SPACEDIM],
+                          FArrayBox        phiMF[2*BL_SPACEDIM],
                           const Geometry&   geom, 
                           Orientation*      outFaces,
                           int               numOutFlowFaces,
@@ -175,7 +175,7 @@ ProjOutFlowBC::computeBC (FArrayBox*        velMF,
 
     DEF_LIMITS(divuMF[iface], divuPtr, divulo, divuhi);
     DEF_LIMITS( rhoMF[iface],  rhoPtr,  rholo,  rhohi);
-    DEF_LIMITS( velMF[iface],  velPtr,  vello,  velhi);
+    DEF_LIMITS( velMF[0][iface],  velPtr,  vello,  velhi);
 
     //
     // Extrapolate the velocities, divu, and rho to the outflow edge in

@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.148 2003-02-21 21:38:40 almgren Exp $
+// $Id: Projection.cpp,v 1.149 2003-02-21 22:49:10 car Exp $
 //
 #include <winstd.H>
 
@@ -2375,48 +2375,49 @@ Projection::initialVorticityProject (int c_lev)
 
 void 
 Projection::putDown (MultiFab**         phi,
-                     MultiFab&          phi_fine_strip,
+                     FArrayBox*         phi_fine_strip,
                      int                c_lev,
                      int                f_lev,
                      const Orientation* outFaces,
                      int                numOutFlowFaces,
                      int                ncStripWidth)
 {
-    //
-    // Put down to coarser levels.
-    //
-    const int nCompPhi = phi_fine_strip.nComp();
-    const int nGrow    = phi_fine_strip.nGrow();
-    IntVect ratio      = IntVect::TheUnitVector();
+  //
+  // Put down to coarser levels.
+  //
+  const int nCompPhi = 1; // phi_fine_strip.nComp();
+  const int nGrow    = 0; // phi_fine_strip.nGrow();
+  IntVect ratio      = IntVect::TheUnitVector();
 
-    for (int lev = f_lev-1; lev >= c_lev; lev--) {
+  for (int lev = f_lev-1; lev >= c_lev; lev--)
+    {
 
       ratio *= parent->refRatio(lev);
       const Box& domainC = parent->Geom(lev).Domain();
       BoxList phiC_strip_bl(IndexType::TheNodeType());
-      
+
+      FArrayBox phi_crse_strip[2*BL_SPACEDIM];
+      // (phiC_strip_ba, nCompPhi, nGrow);
       for (int iface = 0; iface < numOutFlowFaces; iface++) 
-      {
-        Box phiC_strip = BoxLib::surroundingNodes(BoxLib::bdryNode(domainC,outFaces[iface],ncStripWidth));
-        phiC_strip_bl.push_back(phiC_strip);
-      }
-      BoxArray phiC_strip_ba(phiC_strip_bl);
-      MultiFab phi_crse_strip(phiC_strip_ba, nCompPhi, nGrow);
-      phi_crse_strip.setVal(0);
+	{
+	  Box phiC_strip = 
+	    BoxLib::surroundingNodes(BoxLib::bdryNode(domainC, outFaces[iface], ncStripWidth));
+	  phiC_strip.grow(nGrow);
+	  phi_crse_strip[iface].resize(phiC_strip, nCompPhi);
+	  phi_crse_strip[iface].setVal(0);
+	}
       
-        for (MFIter finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
-        {
-            const int i = finemfi.index();
-            Box ovlp = BoxLib::coarsen(finemfi.validbox(),ratio) & phi_crse_strip.box(i);
-            FORT_PUTDOWN (phi_crse_strip[i].dataPtr(),
-                          ARLIM(phi_crse_strip[i].loVect()),
-                          ARLIM(phi_crse_strip[i].hiVect()),
-                          phi_fine_strip[i].dataPtr(),
-                          ARLIM(phi_fine_strip[i].loVect()),
-                          ARLIM(phi_fine_strip[i].hiVect()),
-                          ovlp.loVect(),ovlp.hiVect(),ratio.getVect());
-        }
-        phi[lev]->copy(phi_crse_strip);
+      for ( int iface = 0; iface < numOutFlowFaces; ++iface )
+	{
+	  Box ovlp = BoxLib::coarsen(phi_fine_strip[iface].box(),ratio) & phi_crse_strip[iface].box();
+	  FORT_PUTDOWN (BL_TO_FORTRAN(phi_crse_strip[iface]),
+			BL_TO_FORTRAN(phi_fine_strip[iface]),
+			ovlp.loVect(), ovlp.hiVect(), ratio.getVect());
+	}
+      for ( int iface = 0; iface < numOutFlowFaces; ++iface )
+	{
+	  phi[lev]->copy(phi_crse_strip[iface]);
+	}
     }
 }
 
@@ -2720,86 +2721,98 @@ Projection::set_outflow_bcs_at_level (int          which_call,
                                       int          have_divu,
                                       Real         gravity)
 {
-    NavierStokes* ns = dynamic_cast<NavierStokes*>(&LevelData[lev]);
-    BL_ASSERT(!(ns == 0));
+  NavierStokes* ns = dynamic_cast<NavierStokes*>(&LevelData[lev]);
+  BL_ASSERT(!(ns == 0));
 
-    Box domain = parent->Geom(lev).Domain();
+  Box domain = parent->Geom(lev).Domain();
 
-    BoxList   phi_strip_bl(IndexType::TheNodeType());
-    BoxList state_strip_bl;
+  BoxList   phi_strip_bl(IndexType::TheNodeType());
+  BoxList state_strip_bl;
 
-    const int nGrow        = 0;
-    const int nCompPhi     = 1;
-    const int ncStripWidth = 1;
+  const int ncStripWidth = 1;
 
-    FArrayBox  rho[2*BL_SPACEDIM];
-    FArrayBox dsdt[2*BL_SPACEDIM];
-    FArrayBox dudt[2*BL_SPACEDIM];
+  FArrayBox  rho[2*BL_SPACEDIM];
+  FArrayBox dsdt[2*BL_SPACEDIM];
+  FArrayBox dudt[1][2*BL_SPACEDIM];
 
-    FArrayBox phi_fine_strip[2*BL_SPACEDIM];
+  FArrayBox phi_fine_strip[2*BL_SPACEDIM];
 
-    for (int iface = 0; iface < numOutFlowFaces; iface++) {
-        dsdt[iface].resize(state_strip[iface],1);
-        dudt[iface].resize(state_strip[iface],BL_SPACEDIM);
+  for (int iface = 0; iface < numOutFlowFaces; iface++)
+    {
+      dsdt[iface].resize(state_strip[iface],1);
+      dudt[0][iface].resize(state_strip[iface],BL_SPACEDIM);
 
-         rho[iface].resize(state_strip[iface],1);
-         Sig_in->copy(rho[iface]);
+      rho[iface].resize(state_strip[iface],1);
+      Sig_in->copy(rho[iface]);
 
-        Box phi_strip = 
-         BoxLib::surroundingNodes(BoxLib::bdryNode(domain,
-                   outFacesAtThisLevel[iface],ncStripWidth));
-        phi_fine_strip[iface].resize(phi_strip,1);
-        phi_fine_strip[iface].setVal(0.);
+      Box phi_strip = 
+	BoxLib::surroundingNodes(BoxLib::bdryNode(domain,
+						  outFacesAtThisLevel[iface],
+						  ncStripWidth));
+      phi_fine_strip[iface].resize(phi_strip,1);
+      phi_fine_strip[iface].setVal(0.);
     }
 
-    ProjOutFlowBC projBC;
-    if (which_call == INITIAL_PRESS) {
+  ProjOutFlowBC projBC;
+  if (which_call == INITIAL_PRESS) 
+    {
 
       projBC.computeRhoG(rho,phi_fine_strip,
                          parent->Geom(lev),
                          outFacesAtThisLevel,numOutFlowFaces,gravity);
 
-    } else {
+    }
+  else
+    {
 
-      if (have_divu) {
-        Vel_in->FillBoundary();
+      if (have_divu)
+	{
+	  Vel_in->FillBoundary();
 
-//      Build a new MultiFab for which the cells outside the domain
-//        are in the valid region instead of being ghost cells, so that
-//        we can copy these values into the dudt array.
-        BoxList grown_vel_bl;
-        for (int i = 0; i < Vel_in->size(); i++)
-           grown_vel_bl.push_back(BoxLib::grow(Vel_in->boxArray()[i],1));
-        BoxArray grown_vel_ba(grown_vel_bl);
-        MultiFab grown_vel(grown_vel_ba,BL_SPACEDIM,0);
-        for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
-           grown_vel[vmfi.index()].copy((*Vel_in)[vmfi.index()]);
+	  //      Build a new MultiFab for which the cells outside the domain
+	  //        are in the valid region instead of being ghost cells, so that
+	  //        we can copy these values into the dudt array.
+	  BoxList grown_vel_bl;
+	  for (int i = 0; i < Vel_in->size(); i++)
+	    grown_vel_bl.push_back(BoxLib::grow(Vel_in->boxArray()[i],1));
+	  BoxArray grown_vel_ba(grown_vel_bl);
+	  MultiFab grown_vel(grown_vel_ba,BL_SPACEDIM,0);
+	  for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
+	    {
+	      grown_vel[vmfi.index()].copy((*Vel_in)[vmfi.index()]);
+	    }
 
-        for (int iface = 0; iface < numOutFlowFaces; iface++) 
-        {
-          grown_vel.copy(dudt[iface]);
-           Divu_in->copy(dsdt[iface]);
-        }
+	  for (int iface = 0; iface < numOutFlowFaces; iface++) 
+	    {
+	      grown_vel.copy(dudt[0][iface]);
+	      Divu_in->copy(dsdt[iface]);
+	    }
 
-      } else {
-        for (int iface = 0; iface < numOutFlowFaces; iface++) 
-        {
-          Vel_in->copy(dudt[iface]);
-          dsdt[iface].setVal(0.);
-        }
-      }
+	}
+      else
+	{
+	  for (int iface = 0; iface < numOutFlowFaces; iface++) 
+	    {
+	      Vel_in->copy(dudt[0][iface]);
+	      dsdt[iface].setVal(0.);
+	    }
+	}
 
-
-      projBC.computeBC(dudt,dsdt,rho,phi_fine_strip,
-                       parent->Geom(lev),
-                       outFacesAtThisLevel,
-                       numOutFlowFaces,gravity);
+      projBC.computeBC(dudt, dsdt, rho, phi_fine_strip,
+		       parent->Geom(lev),
+		       outFacesAtThisLevel,
+		       numOutFlowFaces, gravity);
 
     }
 
-    phi[lev]->copy(phi_fine_strip);
+  for ( int iface = 0; iface < numOutFlowFaces; iface++)
+    {
+      phi[lev]->copy(phi_fine_strip[iface]);
+    }
 
-    if (lev > c_lev) 
-      putDown(phi,phi_fine_strip,c_lev,lev,outFacesAtThisLevel,
-              numOutFlowFaces,ncStripWidth);
+  if (lev > c_lev) 
+    {
+      putDown(phi, phi_fine_strip, c_lev, lev, outFacesAtThisLevel,
+	      numOutFlowFaces, ncStripWidth);
+    }
 }

@@ -3,7 +3,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.40 2003-02-19 18:55:42 almgren Exp $
+// $Id: Projection.H,v 1.41 2003-02-21 22:49:10 car Exp $
 //
 
 #include <BC_TYPES.H>
@@ -310,10 +310,6 @@ protected:
                                    Real         gravity);
 
 
-    void putDown(MultiFab** phi, MultiFab& phi_fine_strip,
-		 int c_lev, int f_lev, const Orientation* outFaces,
-		 int numOutFlowFaces, int ncStripWidth);
-
 
 #if 0
     void computeBC(FArrayBox& vel, FArrayBox& divu,
@@ -328,6 +324,11 @@ protected:
 
 
 protected:
+
+    void putDown(MultiFab** phi, FArrayBox* phi_fine_strip,
+		 int c_lev, int f_lev, const Orientation* outFaces,
+		 int numOutFlowFaces, int ncStripWidth);
+
     //
     // Pointers to amrlevel and amr.
     //

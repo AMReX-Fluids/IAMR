@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.27 2002-10-17 20:36:40 marc Exp $
+# $Id: GNUmakefile,v 1.28 2003-02-21 22:49:10 car Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -12,6 +12,7 @@ DEBUG	  = TRUE
 PROFILE   = FALSE
 DIM	      = 2
 COMP	  = g++
+FCOMP	  = Intel
 USE_MPI   = TRUE
 USE_MPI   = FALSE
 NAMESPACE = TRUE

@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.25 2003-02-19 21:42:35 almgren Exp $
+// $Id: MacOutFlowBC.cpp,v 1.26 2003-02-21 22:49:10 car Exp $
 //
 #include <winstd.H>
 
@@ -46,10 +46,10 @@ MacOutFlowBC::MacOutFlowBC ()
 }
 
 void 
-MacOutFlowBC::computeBC (MultiFab*         velMF,
-                         MultiFab&         divuMF,
-                         MultiFab&         rhoMF,
-                         MultiFab&         phiMF,
+MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
+                         FArrayBox         divuMF[2*BL_SPACEDIM],
+                         FArrayBox         rhoMF[2*BL_SPACEDIM],
+                         FArrayBox         phiMF[2*BL_SPACEDIM],
                          const Geometry&   geom, 
                          Orientation*      outFaces,
                          int               numOutFlowFaces,
@@ -294,7 +294,10 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
 
        if (zeroAll) {
 
-         phiMF.setVal(0);
+         for ( i = 0; i < numOutFlowFaces; i++ )
+	   {
+	     phiMF[i].setVal(0);
+	   }
 
        } else {
 

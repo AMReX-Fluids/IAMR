@@ -2,7 +2,7 @@
 #define _MACOUTFLOWBC_H_
 
 //
-// $Id: MacOutFlowBC.H,v 1.9 2003-02-19 21:42:35 almgren Exp $
+// $Id: MacOutFlowBC.H,v 1.10 2003-02-21 22:49:10 car Exp $
 //
 
 #include "FArrayBox.H"
@@ -26,10 +26,10 @@ public:
 
     MacOutFlowBC ();
 
-    void computeBC (MultiFab*         velMF,
-                    MultiFab&         divuMF,
-                    MultiFab&         rhoMF,
-                    MultiFab&         phiMF,
+    void computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
+                    FArrayBox         divuMF[2*BL_SPACEDIM],
+                    FArrayBox         rhoMF[2*BL_SPACEDIM],
+                    FArrayBox         phiMF[2*BL_SPACEDIM],
                     const Geometry&   geom,
                     Orientation*      outFaces,
                     int               numOutFlowFaces,
