@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_2D.F,v 1.5 1998-03-31 17:26:41 lijewski Exp $
+c $Id: SYNCREG_2D.F,v 1.6 1998-08-10 22:31:34 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -137,53 +137,78 @@ c ::: -----------------------------------------------------------
       
       integer    i, j, lenx, leny
       REAL_T     p1, p2, p3, p4, denom
+      REAL_T     rm,rp,rminv,rpinv
+      REAL_T     gpy_ul,gpy_ur,gpy_ll,gpy_lr
+      REAL_T     pext,vext
 
-      if (is_rz.eq.1) then
-         print *, "This should not be called with rz on"
-         stop
-      end if
-
-c     NOTE: the factor of mult here accounts for the fact that one
-c           takes ratio time steps on the fine grid for every one
-c           timestep on the coarse grid.  mult = 1/ratio. 
-      
 c     FOR NINE-POINT STENCIL
-      denom = -mult*( one/(twelve*dx(1)**2) + one/(twelve*dx(2)**2) )
+      denom = one/(twelve*dx(1)**2) + one/(twelve*dx(2)**2) 
 
 c     FOR FIVE-POINT STENCIL
-c     denom = -mult*( one/(four*dx(1)**2) + one/(four*dx(2)**2) )
+c     denom = one/(four*dx(1)**2) + one/(four*dx(2)**2) 
 
       lenx = hi(1)-lo(1)+1
       leny = hi(2)-lo(2)+1
-      if (lenx .ge. leny) then
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               p1 = sigma(i-1,j-1)*(-phi(i-1,j-1) + phi(i  ,j-1)
-     &                             + phi(i-1,j  ) - phi(i  ,j  ))
-               p2 = sigma(i-1,j  )*(-phi(i-1,j+1) + phi(i  ,j+1)
-     &                             + phi(i-1,j)   - phi(i  ,j  ))
-               p3 = sigma(i  ,j-1)*(-phi(i+1,j-1) + phi(i  ,j-1)
-     &                             + phi(i+1,j)   - phi(i  ,j  ))
-               p4 = sigma(i  ,j  )*(-phi(i+1,j+1) + phi(i  ,j+1)
-     &                             + phi(i+1,j)   - phi(i  ,j  ))
-               divgp(i,j) = denom*(p1+p2+p3+p4)
-            end do
-         end do
-      else
+      do j = lo(2), hi(2)
          do i = lo(1), hi(1)
-            do j = lo(2), hi(2)
-               p1 = sigma(i-1,j-1)*(-phi(i-1,j-1) + phi(i  ,j-1)
-     &                             + phi(i-1,j  ) - phi(i  ,j  ))
-               p2 = sigma(i-1,j  )*(-phi(i-1,j+1) + phi(i  ,j+1)
-     &                             + phi(i-1,j)   - phi(i  ,j  ))
-               p3 = sigma(i  ,j-1)*(-phi(i+1,j-1) + phi(i  ,j-1)
-     &                             + phi(i+1,j)   - phi(i  ,j  ))
-               p4 = sigma(i  ,j  )*(-phi(i+1,j+1) + phi(i  ,j+1)
-     &                             + phi(i+1,j)   - phi(i  ,j  ))
-               divgp(i,j) = denom*(p1+p2+p3+p4)
-            end do
+            p1 = sigma(i-1,j-1)*(-phi(i-1,j-1) + phi(i  ,j-1)
+     &                           +phi(i-1,j  ) - phi(i  ,j  ))
+            p2 = sigma(i-1,j  )*(-phi(i-1,j+1) + phi(i  ,j+1)
+     &                           +phi(i-1,j)   - phi(i  ,j  ))
+            p3 = sigma(i  ,j-1)*(-phi(i+1,j-1) + phi(i  ,j-1)
+     &                           +phi(i+1,j)   - phi(i  ,j  ))
+            p4 = sigma(i  ,j  )*(-phi(i+1,j+1) + phi(i  ,j+1)
+     &                           +phi(i+1,j)   - phi(i  ,j  ))
+            divgp(i,j) = denom*(p1+p2+p3+p4)
          end do
-      end if
+      end do
+
+      if (is_rz .eq. 1) then
+
+c      extra term added to DGphi for cylindrical coordinates
+       do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            rp = dx(1) / (two * (dfloat(i)+half)*dx(1))
+            rm = dx(1) / (two * (dfloat(i)-half)*dx(1))
+
+            pext = ((sigma(i-1,j-1) * (phi(i,j-1) - phi(i,j)) +
+     $               sigma(i-1,j  ) * (phi(i,j+1) - phi(i,j))) * rm -
+     $              (sigma(i  ,j-1) * (phi(i,j-1) - phi(i,j)) +
+     $               sigma(i  ,j  ) * (phi(i,j+1) - phi(i,j))) * rp)
+
+            divgp(i,j) = divgp(i,j) + denom*pext
+         end do
+       end do
+
+c      extra term added to DGbarphi for cylindrical coordinates --
+c        here we subtract it since we want D G^perp phi
+       do j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+           rm = twelve*(dfloat(i)-half)*dx(1)
+           rp = twelve*(dfloat(i)+half)*dx(1)
+           rminv = dx(1) / (rm * dx(2)**2)
+           rpinv = dx(1) / (rp * dx(2)**2)
+   
+	   gpy_ur = half * sigma(i  ,j  ) * ( phi(i+1,j+1) + phi(i,j+1) 
+     $                                       -phi(i+1,j  ) - phi(i,j  ))
+	   gpy_ul = half * sigma(i-1,j  ) * ( phi(i-1,j+1) + phi(i,j+1) 
+     $                                       -phi(i-1,j  ) - phi(i,j  ))
+	   gpy_lr = half * sigma(i  ,j-1) * ( phi(i+1,j  ) + phi(i,j  ) 
+     $                                       -phi(i+1,j-1) - phi(i,j-1))
+	   gpy_ll = half * sigma(i-1,j-1) * ( phi(i-1,j  ) + phi(i,j  ) 
+     $                                       -phi(i-1,j-1) - phi(i,j-1))
+           vext =  (gpy_lr - gpy_ur)*rpinv 
+     $            +(gpy_ul - gpy_ll)*rminv
+           divgp(i,j) = divgp(i,j) - vext
+        end do
+        end do
+      endif
+
+      do j = lo(2), hi(2)
+      do i = lo(1), hi(1)
+           divgp(i,j) = divgp(i,j) * mult
+      end do
+      end do
 
       end
 
