@@ -1,0 +1,12 @@
+ $fortin
+
+  probtype = 7
+  xblob = 1.0
+  yblob = 1.0
+  radblob = 0.4
+  denfact = 1.0
+  velfact = 1.0
+
+  adverr  = 0.5
+  vorterr = 10.0
+ $end
