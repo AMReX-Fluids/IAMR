@@ -27,7 +27,7 @@ GUTHAMR_HOME=/usr/people/vince/Parallel/guthamr
 #include $(GUTHAMR_HOME)/mk/Make.defs
 include $(HERE)/Make.defs
 
-INCLUDE_LOCATIONS += $(HERE) $(HERE)/pboxlib2.0
+INCLUDE_LOCATIONS += $(HERE) ../pboxlib2.0
 #INCLUDE_LOCATIONS += $(GUTHAMR_HOME)/include
 INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
 #LIBRARY_LOCATIONS += ./graphtools
@@ -115,7 +115,7 @@ CDEBF +=
 
 include $(HERE)/Make.package 
 
-vpath %.cpp :$(HERE) $(HERE)/pboxlib2.0
+vpath %.cpp :$(HERE) ../pboxlib2.0
 vpath %.F :$(HERE)
 #vpath %.a :$(GUTHAMR_HOME)/lib/$(machineSuffix)
 
