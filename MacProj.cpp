@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.48 1999-04-05 17:39:21 car Exp $
+// $Id: MacProj.cpp,v 1.49 1999-04-16 21:47:39 almgren Exp $
 //
 
 #include <Misc.H>
@@ -546,7 +546,7 @@ MacProj::mac_sync_solve (int       level,
                 DependentMultiFabIterator Volmfi(Rhsmfi, volume[level]);
                 vol_wgted_rhs.mult(Volmfi());
                 sum += vol_wgted_rhs.sum(0,1);
-                vol += Volmfi().sum(0,1);
+                vol += Volmfi().sum(Rhsmfi().box(),0,1);
             }
             ParallelDescriptor::ReduceRealSum(sum);
             ParallelDescriptor::ReduceRealSum(vol);
