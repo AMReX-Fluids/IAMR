@@ -2,7 +2,7 @@
 #define _RESTRICTOR_H_
 
 //
-// $Id: restrictor.H,v 1.3 1997-09-26 16:57:16 lijewski Exp $
+// $Id: restrictor.H,v 1.4 1997-09-30 20:37:25 car Exp $
 //
 
 #include <interface.H>
@@ -17,22 +17,20 @@ typedef const class amr_restrictor_class& amr_restrictor;
 // restrictors like node-based full-weighting that do special stuff
 // at the edges of grids.
 
-class amr_restrictor_class {
+class amr_restrictor_class 
+{
  public:
   amr_restrictor_class() { }
   virtual ~amr_restrictor_class() { }
-  virtual Box box(const Box&, const IntVect&) const
-    { BoxLib::Error("amr_restrictor_class::box---Restriction function not defined.");
-      return Box(); }
-  virtual void fill(Fab&, const Box&,
-	            Fab&, const IntVect&) const
-    { BoxLib::Error("amr_restrictor_class::fill---Restriction function not defined."); }
+  virtual Box box(const Box&, const IntVect&) const = 0;
+  virtual void fill(Fab&, const Box&, Fab&, const IntVect&) const = 0;
   virtual void interface(Fab&, const Box&, MultiFab&,
 			 const copy_cache*, const level_interface&,
 			 const amr_boundary_class&, const IntVect&) const { }
 };
 
-class cell_average_restrictor_class : public amr_restrictor_class {
+class cell_average_restrictor_class : public amr_restrictor_class 
+{
  public:
   cell_average_restrictor_class() { }
   Box box(const Box& fb, const IntVect& rat) const;
@@ -40,7 +38,8 @@ class cell_average_restrictor_class : public amr_restrictor_class {
 	    Fab& fgr, const IntVect& rat) const;
 };
 
-class injection_restrictor_class : public amr_restrictor_class {
+class injection_restrictor_class : public amr_restrictor_class 
+{
  public:
   injection_restrictor_class() { }
   Box box(const Box& fb, const IntVect& rat) const;
@@ -48,7 +47,8 @@ class injection_restrictor_class : public amr_restrictor_class {
 	    Fab& fgr, const IntVect& rat) const;
 };
 
-class default_restrictor_class : public amr_restrictor_class {
+class default_restrictor_class : public amr_restrictor_class 
+{
  public:
   default_restrictor_class() { }
   Box box(const Box& fb, const IntVect& rat) const;
@@ -59,7 +59,8 @@ class default_restrictor_class : public amr_restrictor_class {
 // Vanilla bilinear (full-weighting) restrictor class.
 // Restricts fine-fine interfaces, even those at the boundary.
 // Does nothing at coarse-fine interfaces.
-class bilinear_restrictor_class : public amr_restrictor_class {
+class bilinear_restrictor_class : public amr_restrictor_class 
+{
  public:
   bilinear_restrictor_class() { }
   Box box(const Box& fb, const IntVect& rat) const;
@@ -74,7 +75,8 @@ class bilinear_restrictor_class : public amr_restrictor_class {
 // Restricts all interfaces, uses data at coarse points
 // along coarse-fine interfaces.
 class bilinear_restrictor_coarse_class
- : public bilinear_restrictor_class {
+ : public bilinear_restrictor_class 
+ {
  public:
   bilinear_restrictor_coarse_class() { }
   void interface(Fab& patch, const Box& region,
@@ -83,7 +85,7 @@ class bilinear_restrictor_coarse_class
 		 const amr_boundary_class& bdy, const IntVect& rat) const;
 };
 
-const amr_restrictor_class error_restrictor;
+// const amr_restrictor_class error_restrictor;
 const cell_average_restrictor_class cell_average_restrictor;
 const injection_restrictor_class injection_restrictor;
 const default_restrictor_class default_restrictor;
