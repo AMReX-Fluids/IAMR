@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.47 1998-11-04 00:15:39 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.48 1998-11-07 03:09:31 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -559,10 +559,8 @@ SyncRegister::CrseDVInit (const MultiFab& U,
             }
         }
     }
-    //
-    // Enforce periodicity of U_local using extended valid boxes.
-    //
-    geom.FillPeriodicBoundary(U_local, true);
+
+    geom.FillPeriodicBoundary(U_local,true,false);
     //
     // Now do all the zeroing-out associated with the fine grids, on the
     // interior and on ghost cells on periodic and ext_dir edges.
@@ -875,10 +873,8 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
         mfi().setComplement(0,mfi.validbox(),0,1);
         mfi().copy(dsdt[mfi.index()], mfi.validbox());
     }
-    //
-    // Enforce periodicity of dsdt_local using extended valid boxes.
-    //
-    geom.FillPeriodicBoundary(dsdt_local, true);
+
+    geom.FillPeriodicBoundary(dsdt_local,true,false);
 
     for (MultiFabIterator mfi(dsdt_local); mfi.isValid(); ++mfi)
     {
@@ -1278,14 +1274,10 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
             }
         }
     }
-    //
-    // Enforce periodicity of Sig_local using extended valid boxes.
-    //
-    geom.FillPeriodicBoundary(Sig_local, 0, 1, true);
-    //
-    // Enforce periodicity of Phi_local.
-    //
-    geom.FillPeriodicBoundary(Phi_local, 0, 1);
+
+    geom.FillPeriodicBoundary(Sig_local, 0, 1, true, false);
+
+    geom.FillPeriodicBoundary(Phi_local, 0, 1, false, false);
     //
     // Now compute node centered div(Sigma*grad(PHI)).
     //

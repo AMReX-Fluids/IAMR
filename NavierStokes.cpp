@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.95 1998-11-06 18:16:35 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.96 1998-11-07 03:09:30 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -24,6 +24,7 @@
 #include <NAVIERSTOKES_F.H>
 #include <PROJECTION_F.H>
 #include <PROB_F.H>
+#include <VISCOPERATOR_F.H>
 
 #ifdef BL_USE_NEW_HFILES
 #include <vector>
@@ -103,6 +104,7 @@ int  NavierStokes::do_MLsync_proj         = 1;
 int  NavierStokes::do_reflux              = 1;
 int  NavierStokes::do_mac_proj            = 1;
 int  NavierStokes::check_umac_periodicity = 1;
+int  NavierStokes::do_init_vort_proj      = 0;
 
 //     
 // New members for non-zero divu.
@@ -147,9 +149,10 @@ NavierStokes::read_geometry ()
             phys_bc.lo(0) != Symmetry)
     {
         phys_bc.setLo(0,Symmetry);
+
         if (ParallelDescriptor::IOProcessor())
         {
-            cout << "\nWarning:  Setting phys_bc at xlo to Symmetry\n\n";
+            cout << "\nWarning: Setting phys_bc at xlo to Symmetry\n\n";
         }
     }
 #endif
@@ -238,12 +241,13 @@ NavierStokes::read_params ()
     //
     // Get run options.
     //
-    pp.query("do_temp",        do_temp        );
-    int initial_do_sync_proj = do_sync_proj;
-    pp.query("do_sync_proj",   do_sync_proj   );
-    pp.query("do_MLsync_proj", do_MLsync_proj );
-    pp.query("do_reflux",      do_reflux      );
-    pp.query("do_mac_proj",    do_mac_proj    );
+    pp.query("do_temp",          do_temp          );
+    int initial_do_sync_proj =   do_sync_proj;
+    pp.query("do_sync_proj",     do_sync_proj     );
+    pp.query("do_MLsync_proj",   do_MLsync_proj   );
+    pp.query("do_reflux",        do_reflux        );
+    pp.query("do_init_vort_proj",do_init_vort_proj);
+    pp.query("do_mac_proj",      do_mac_proj      );
     //
     // This test insures if the user toggles do_sync_proj,
     // the user has knowledge that do_MLsync_proj is meaningless.
@@ -265,16 +269,15 @@ NavierStokes::read_params ()
     pp.query("visc_tol",visc_tol);
     pp.query("visc_abs_tol",visc_abs_tol);
 
-    int n_vel_visc_coef   = pp.countval("vel_visc_coef");
-    int n_temp_cond_coef  = pp.countval("temp_cond_coef");
-    int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
+    const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
+    const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
+    const int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
 
     if (n_vel_visc_coef != 1)
     {
         if (ParallelDescriptor::IOProcessor())
         {
-            cout << "NavierStokes::read_params: you must input only one vel_visc_coef"
-                 << endl;
+            cout << "NavierStokes::read_params(): only one vel_visc_coef allowed\n";
         }
         exit(0);
     }
@@ -283,8 +286,7 @@ NavierStokes::read_params ()
     {
         if (ParallelDescriptor::IOProcessor())
         {
-            cout << "NavierStokes::read_params: you must input only one temp_cond_coef"
-                 << endl;
+            cout << "NavierStokes::read_params(): only one temp_cond_coef allowed\n";
         }
         exit(0);
     }
@@ -298,11 +300,13 @@ NavierStokes::read_params ()
     pp.get("vel_visc_coef",visc_coef[0]);
     for (int i = 1; i < BL_SPACEDIM; i++)
       visc_coef[i] = visc_coef[0];
-
+    //
     // Here we set the coefficient for density, which does not diffuse.
+    //
     visc_coef[Density] = -1;
-
-    // Set the coefficients for the scalars, but temperature
+    //
+    // Set the coefficients for the scalars, but temperature.
+    //
     Array<REAL> scal_diff_coefs(n_scal_diff_coefs);
     pp.getarr("scal_diff_coefs",scal_diff_coefs,0,n_scal_diff_coefs);
 
@@ -326,8 +330,7 @@ NavierStokes::read_params ()
     {
         if (ParallelDescriptor::IOProcessor())
         {
-            cout << "NavierStokes::read_params: must have be_cn_theta <= 1.0 && >= .5"
-                 << NL;
+            cout << "Must have be_cn_theta <= 1.0 && >= .5\n";
         }
         BoxLib::Abort("NavierStokes::read_params()");
     }
@@ -488,17 +491,16 @@ NavierStokes::init_additional_state_types ()
     have_divu = have_divu && dummy_Divu_Type==Divu_Type;
     if (ParallelDescriptor::IOProcessor())
     {
-      cout << "NavierStokes::init_additional_state_types()::have_divu = "
-           << have_divu << NL;
+        cout << "NavierStokes::init_additional_state_types()::have_divu = "
+             << have_divu << NL;
     }
     if (have_divu && _Divu!=Divu)
     {
-      if (ParallelDescriptor::IOProcessor())
-      {
-        cout << "NavierStokes::init_additional_state_types(): divu must be " <<
-                "0-th, Divu_Type component in the state\n";
-      }
-      BoxLib::Abort("NavierStokes::init_additional_state_types()");
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "divu must be 0-th, Divu_Type component in the state\n";
+        }
+        BoxLib::Abort("NavierStokes::init_additional_state_types()");
     }
 
     int _Dsdt = -1;
@@ -508,33 +510,32 @@ NavierStokes::init_additional_state_types ()
     have_dsdt = have_dsdt && dummy_Dsdt_Type==Dsdt_Type;
     if (ParallelDescriptor::IOProcessor())
     {
-      cout << "NavierStokes::init_additional_state_types()::have_dsdt = "
-           << have_dsdt << NL;
+        cout << "NavierStokes::init_additional_state_types()::have_dsdt = "
+             << have_dsdt << NL;
     }
     if (have_dsdt && _Dsdt!=Dsdt)
     {
-      if (ParallelDescriptor::IOProcessor())
-      {
-        cout << "NavierStokes::init_additional_state_types(): dsdt must be " <<
-                "0-th, Dsdt_Type component in the state\n";
-      }
-      BoxLib::Abort("NavierStokes::init_additional_state_types()");
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "NavierStokes::init_additional_state_types(): dsdt must be "
+                 << "0-th, Dsdt_Type component in the state\n";
+        }
+        BoxLib::Abort("NavierStokes::init_additional_state_types()");
     }
     if (have_dsdt && !have_divu)
     {
-      if (ParallelDescriptor::IOProcessor())
-      {
-        cout << "NavierStokes::init_additional_state_types(): "
-             << "must have divu in order to have dsdt\n";
-      }
-      BoxLib::Abort("NavierStokes::init_additional_state_types()");
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "Must have divu in order to have dsdt\n";
+        }
+        BoxLib::Abort("NavierStokes::init_additional_state_types()");
     }
 
     num_state_type = desc_lst.length();
     if (ParallelDescriptor::IOProcessor())
     {
-      cout << "NavierStokes::init_additional_state_types: num_state_type = "
-           << num_state_type << NL;
+        cout << "NavierStokes::init_additional_state_types: num_state_type = "
+             << num_state_type << NL;
     }
 }
 
@@ -1168,8 +1169,12 @@ NavierStokes::advance (Real time,
 {
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        cout << "Advancing grids at level " << level
-             << " : starting time = " << time << " with dt = " << dt << NL;
+        cout << "Advancing grids at level "
+             << level
+             << " : starting time = "
+             << time
+             << " with dt = "
+             << dt << NL;
     }
     advance_setup(time,dt,iteration,ncycle);
 
@@ -1437,11 +1442,39 @@ NavierStokes::predict_velocity (Real  dt,
     const Real prev_pres_time = state[Press_Type].prevTime();
     //
     // Compute viscous terms at level n.
+    // Ensure reasonable values in 1 grow cell.  Here, do extrap for
+    // c-f/phys boundary, since we have no interpolator fn, also,
+    // preserve extrap for corners at periodic/non-periodic intersections.
     //
-    MultiFab visc_terms(grids,BL_SPACEDIM,1,Fab_allocate);
-    getViscTerms(visc_terms,Xvel,BL_SPACEDIM,prev_time);
-    if (be_cn_theta == 1.0)
-        visc_terms.setVal(0.0,1);
+    const int nGrow = 1;
+    const int nComp = BL_SPACEDIM;
+    MultiFab visc_terms(grids,nComp,nGrow,Fab_allocate);
+
+    if (be_cn_theta==1.0)
+    {
+	visc_terms.setVal(0);
+    }
+    else
+    {
+	getViscTerms(visc_terms,Xvel,nComp,prev_time);
+    
+        for (MultiFabIterator mfi(visc_terms); mfi.isValid(); ++mfi)
+	{
+	    FArrayBox& vt  = mfi();
+	    const Box& box = mfi.validbox();
+	    FORT_VISCEXTRAP(vt.dataPtr(),ARLIM(vt.loVect()),ARLIM(vt.hiVect()),
+			    box.loVect(),box.hiVect(),&nComp);
+	}
+	
+	visc_terms.FillBoundary();
+	//
+	// Note: this is a special periodic fill in that we want to
+        // preserve the extrapolated grow values when periodic --
+        // usually we preserve only valid data.  The scheme relies on
+        // the fact that there is good data in the "non-periodic" grow cells.
+        //
+        geom.FillPeriodicBoundary(visc_terms,false,true);
+    }
     //
     // Set up the timestep estimation.
     //
@@ -1536,7 +1569,7 @@ NavierStokes::test_umac_periodic ()
     if (ParallelDescriptor::NProcs() > 1)
         return;
 
-    const Real TOLERANCE = 1.e-10;
+    const Real Tolerance = 1.e-10;
 
     if (geom.isAnyPeriodic())
     {
@@ -1574,7 +1607,7 @@ NavierStokes::test_umac_periodic ()
 
 				const Real max_norm = diff.norm(0);
 
-				if (max_norm > TOLERANCE)
+				if (max_norm > Tolerance)
 				{
 				    cout << "dir = "         << d
 					 << ", diff norm = " << max_norm
@@ -2972,6 +3005,18 @@ NavierStokes::post_init_state ()
     const int finest_level = parent->finestLevel();
     const Real divu_time   = have_divu ? state[Divu_Type].curTime()
                                        : state[Press_Type].curTime();
+    if (do_init_vort_proj)
+    {
+        //
+	// NOTE: this assumes have_divu == 0.
+	// Only used if vorticity is used to initialize the velocity field.
+        //
+	assert(!have_divu);
+        assert(!(projector == 0));
+        
+	projector->initialVorticityProject(0);
+    }
+
     if (projector)
         //
         // Do sync project to define divergence free velocity field.
@@ -4419,15 +4464,15 @@ NavierStokes::getState (FArrayBox&  fab,
     Box bx(grids[gridno]);
     bx.grow(ngrow);
     fab.resize(bx,num_comp);
-    if (fab.box()!=bx)
+    if (fab.box() != bx)
     {
-      cout << "NavierStokes::getState : fab.box()!=bx\n";
-      cout << "bx        = " << bx << NL;
-      cout << "fab.box() = " << fab.box() << NL;
-      BoxLib::Abort("NavierStokes::getState(...)");
+      cout << "NavierStokes::getState : fab.box()!=bx\n"
+           << "bx        = " << bx << '\n'
+           << "fab.box() = " << fab.box() << '\n';
+      BoxLib::Abort("NavierStokes::getState()");
     }
     
-    if(!have_state)
+    if (!have_state)
     {
         fab.setVal(0.0);  // Can't filpatch what we don't have.
     }

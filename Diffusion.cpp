@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.42 1998-11-04 23:33:13 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.43 1998-11-07 03:09:29 lijewski Exp $
 //
 
 //
@@ -2606,7 +2606,7 @@ Diffusion::getViscTerms (MultiFab&  visc_terms,
         //
         // Copy into periodic translates of visc_tmp.
         //
-        caller->Geom().FillPeriodicBoundary(visc_tmp);
+        caller->Geom().FillPeriodicBoundary(visc_tmp,false,false);
         //
         // Copy from valid regions of overlapping grids.
         //
@@ -2772,7 +2772,7 @@ Diffusion::getTensorViscTerms (MultiFab&  visc_terms,
         //
         // Copy into periodic translates of visc_tmp.
         //
-        caller->Geom().FillPeriodicBoundary(visc_tmp);
+        caller->Geom().FillPeriodicBoundary(visc_tmp,false,false);
         //
         // Copy from valid regions of overlapping grids.
         //
