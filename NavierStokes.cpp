@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.232 2003-09-26 19:33:43 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.233 2003-10-15 18:02:03 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -420,6 +420,8 @@ NavierStokes::NavierStokes ()
     rho_half     = 0;
     rho_ptime    = 0;
     rho_ctime    = 0;
+    rho_qtime    = 0;
+    rho_tqtime   = 0;
     p_avg        = 0;
     Vsync        = 0;
     Ssync        = 0;
@@ -1274,6 +1276,48 @@ NavierStokes::advance_setup (Real time,
     }
 
     make_rho_prev_time();
+
+    //
+    //  If refRatio==4 to the next level coarser, and we're going to diffuse
+    //    scalars as SoverRho, we're going to need rho at 1/4 and 3/4 time there.
+    //    Make these things if this is the first subcycled step.
+    //
+    if (level>0)
+    {
+        bool needs_rho4 = iteration==1 && parent->nCycle(level)==4;
+
+        if (needs_rho4)
+            for (int i=0; i<NUM_STATE; ++i)
+                needs_rho4 = needs_rho4 ||
+                    (diffusionType[i] == Laplacian_SoverRho);
+
+        if (needs_rho4)
+        {
+            NavierStokes& clevel = getLevel(level-1);
+            const BoxArray& cgrids = clevel.boxArray();
+
+            const Real ptime = clevel.state[State_Type].prevTime();
+            const Real ctime  = clevel.state[State_Type].curTime();
+
+            {
+                const Real qtime  = ptime + 0.25*(ctime-ptime);
+                clevel.rho_qtime = new MultiFab(cgrids,1,1);
+                FillPatchIterator fpi(clevel,*(clevel.rho_qtime),
+                                      1,qtime,State_Type,Density,1);
+                for ( ; fpi.isValid(); ++fpi)
+                    (*clevel.rho_qtime)[fpi.index()].copy(fpi());
+            }
+            {
+                const Real tqtime = ptime + 0.75*(ctime-ptime);
+                clevel.rho_tqtime = new MultiFab(cgrids,1,1);
+                FillPatchIterator fpi(clevel,*(clevel.rho_tqtime),
+                                      1,tqtime,State_Type,Density,1);
+                for ( ; fpi.isValid(); ++fpi)
+                    (*clevel.rho_tqtime)[fpi.index()].copy(fpi());
+            }
+        }
+    }
+
     //
     // Calculate the time N viscosity and diffusivity
     //   Note: The viscosity and diffusivity at time N+1 are 
@@ -1329,6 +1373,14 @@ NavierStokes::advance_cleanup (Real dt,
     mac_rhs = 0;
     delete aofs;
     aofs = 0;
+
+    // If we needed qtr time rho's, don't need them anymore
+    if (level>0 && parent->nCycle(level)==4 && iteration==parent->nCycle(level))
+    {
+        NavierStokes& clevel = getLevel(level-1);
+        delete clevel.rho_qtime;  clevel.rho_qtime = 0;
+        delete clevel.rho_tqtime; clevel.rho_tqtime = 0;
+    }
 }
 
 
@@ -1610,6 +1662,16 @@ NavierStokes::get_rho (Real time)
     else if (whichTime == AmrNewTime)
     {
         return *rho_ctime;
+    }
+    else if (whichTime == Amr1QtrTime)
+    {
+        BL_ASSERT(rho_qtime);
+        return *rho_qtime;
+    }
+    else if (whichTime == Amr3QtrTime)
+    {
+        BL_ASSERT(rho_qtime);
+        return *rho_tqtime;
     }
     else if (whichTime == AmrHalfTime)
     {
