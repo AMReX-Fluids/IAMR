@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.149 2003-02-21 22:49:10 car Exp $
+// $Id: Projection.cpp,v 1.150 2003-02-21 23:07:44 car Exp $
 //
 #include <winstd.H>
 
@@ -341,7 +341,7 @@ Projection::level_project (int             level,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::level_project()");
 
-    if (ParallelDescriptor::IOProcessor() && verbose)
+    if ( verbose && ParallelDescriptor::IOProcessor() )
 	std::cout << "... level projector at level " << level << '\n';
 
     if (sync_proj == 0)
@@ -679,7 +679,7 @@ Projection::filterP (int             level,
                      Real            dt,
                      int             have_divu)
 {
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ( verbose && ParallelDescriptor::IOProcessor() )
         std::cout << "... filterP at level " << level << std::endl;
 
     int             rzflag   = CoordSys::IsRZ();
@@ -2583,7 +2583,10 @@ Projection::set_outflow_bcs (int        which_call,
     if (which_call != LEVEL_PROJ)
       BL_ASSERT(c_lev == 0);
 
-    std::cout << "...setting outflow bcs for the nodal projection ... " << std::endl;
+    if ( verbose && ParallelDescriptor::IOProcessor() ) 
+      {
+	std::cout << "...setting outflow bcs for the nodal projection ... " << std::endl;
+      }
 
     bool        hasOutFlow;
     Orientation outFaces[2*BL_SPACEDIM];
