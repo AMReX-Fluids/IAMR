@@ -1,11 +1,13 @@
 //
-// $Id: Diffusion.cpp,v 1.111 2001-08-01 21:50:55 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.112 2001-08-09 22:42:00 marc Exp $
 //
 
 //
 // Comment out this line to use diffusion class outside
 // the context of NavierStokes and classes derived from it.
 //
+#include <winstd.H>
+
 #define USE_NAVIERSTOKES 1
 
 #include <Box.H>

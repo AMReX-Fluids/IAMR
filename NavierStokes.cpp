@@ -1,9 +1,11 @@
 //
-// $Id: NavierStokes.cpp,v 1.193 2001-08-01 21:50:56 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.194 2001-08-09 22:42:00 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
 //
+#include <winstd.H>
+
 #include <algorithm>
 #include <vector>
 #include <cstdio>

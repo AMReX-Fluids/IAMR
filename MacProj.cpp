@@ -1,7 +1,8 @@
 
 //
-// $Id: MacProj.cpp,v 1.79 2001-08-01 21:50:56 lijewski Exp $
+// $Id: MacProj.cpp,v 1.80 2001-08-09 22:42:00 marc Exp $
 //
+#include <winstd.H>
 
 #include <LO_BCTYPES.H>
 #include <CoordSys.H>
