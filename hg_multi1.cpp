@@ -145,6 +145,7 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
     cgw_ucache.set(i, new unroll_cache(cgwork[i]));
   }
 
+  // PARALLEL
   for (int igrid = 0; igrid < mg_mesh[0].length(); igrid++) 
   {
     Fab& gtmp = cgwork[7][igrid];
@@ -194,6 +195,7 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   singular = 0;
   if (mg_boundary.singular()) 
   {
+    // PARALLEL -- REDUCTION
     for (i = 0; i < mg_mesh[0].length(); i++) 
     {
       singular += mg_mesh[0][i].numPts();
@@ -380,6 +382,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 #    if (BL_SPACEDIM == 3)
     const Real hz = h[mglev][2];
 #    endif
+    // PARALLEL
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
     {
       const Box& scbox = sigma[mglev][igrid].box();
@@ -434,6 +437,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 
 #ifdef HG_CONSTANT
 
+    // PARALLEL
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
     {
       ctmp[igrid].setVal(1.0, interface[mglev].part_fine(igrid), 0);
@@ -448,6 +452,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     const Real hz = h[mglev][2];
 #    endif
 #  endif
+    // PARALLEL
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
     {
       const Box& cenbox = cen[mglev][igrid].box();
@@ -500,6 +505,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 				 dest[lev_min].nGrow()));
     MultiFab& mtmp = mask[mglev];
     mtmp.setVal(0.0);
+    // PARALLEL
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
     {
       mtmp[igrid].setVal(1.0, interface[mglev].part_fine(igrid), 0);
@@ -787,7 +793,7 @@ holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
   }
   else 
   {
-/*
+#if 0
     // this general version not currently used, but may need to be revived
     // if special stencils are ever needed for the multilevel iteration
     MultiFab& target = work[lto];
@@ -803,10 +809,11 @@ holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	corr[lfrom], rat,
 	error_boundary, holy_grail_interpolator_class(sigptr, sigbox));
     }
-*/
+#endif
     // multigrid interpolation, grids known to match up
     // special stencil needed for multigrid convergence
     IntVect rat = mg_domain[lto].length() / mg_domain[lfrom].length();
+    // PARALLEL
     for (int igrid = 0; igrid < mg_mesh[lto].length(); igrid++) 
     {
       const Box& fbox = work[lto][igrid].box();

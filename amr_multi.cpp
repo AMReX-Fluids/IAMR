@@ -122,14 +122,14 @@ amr_multigrid::build_mesh(const Box& fdomain)
 
       // ml_index here is still the index for the previous mg_mesh:
       mglev_common = ml_index[lev_min] - ldiff;
-/*
+#if 0
          Before IntVect refinement ratios we used
 
       mglev_common = ml_index[lev_min - 1] + 1 - ldiff;
 
          This can no longer be counted on to work since in a (4,1) case
          the intermediate levels no longer match.
-*/
+#endif
       mglev_common = (mglev_common > 0) ? mglev_common : 0;
     }
 
