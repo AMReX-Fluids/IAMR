@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.34 1999-12-02 07:43:09 sstanley Exp $
+// $Id: NS_setup.cpp,v 1.35 2000-04-11 16:35:55 lijewski Exp $
 //
 
 #include <NavierStokes.H>
@@ -14,9 +14,8 @@
 #include <FArrayBox.H>
 #include <CoordSys.H>
 
-static Box the_same_box (const Box& b) { return b;                   }
-static Box grow_box_by_one (const Box& b)    { return grow(b,1);           }
-static Box cell_to_node (const Box& b)    { return ::surroundingNodes(b); }
+static Box the_same_box (const Box& b)    { return b;           }
+static Box grow_box_by_one (const Box& b) { return ::grow(b,1); }
 
 //
 // Components are  Interior, Inflow, Outflow, Symmetry, SlipWall, NoSlipWall.
