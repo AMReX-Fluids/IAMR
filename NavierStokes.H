@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.22 1998-09-29 20:07:50 lijewski Exp $
+// $Id: NavierStokes.H,v 1.23 1998-09-30 20:41:28 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -497,6 +497,7 @@ protected: // ===================== protected data members ===
     static int  do_MLsync_proj;
     static int  do_reflux;
     static int  do_mac_proj;
+    static int  check_umac_periodicity;
 
     // ----------------------- static new members for non-zero divu
     static int additional_state_types_initialized;

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.92 1998-09-29 20:07:49 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.93 1998-09-30 20:41:28 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -55,15 +55,7 @@ const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
 
 //
-// Initialization functions follow
-//
-
-//
-// Initialization of static members to default values.
-//
-
-//
-// ----------------------- static objects.
+// Static objects.
 //
 ErrorList   NavierStokes::err_list;
 BCRec       NavierStokes::phys_bc;
@@ -72,7 +64,7 @@ MacProj    *NavierStokes::mac_projector = 0;
 Godunov    *NavierStokes::godunov       = 0;
 
 //
-// ----------------------- internal parameters.
+// Internal parameters.
 //
 int  NavierStokes::verbose      = 0;
 Real NavierStokes::cfl          = 0.8;
@@ -88,6 +80,7 @@ int  NavierStokes::radius_grow  = 1;
 int  NavierStokes::sum_interval = -1;
 int  NavierStokes::NUM_SCALARS  = 0;
 int  NavierStokes::NUM_STATE    = 0;
+
 Array<int> NavierStokes::is_conservative;
 
 //
@@ -96,28 +89,30 @@ Array<int> NavierStokes::is_conservative;
 Real NavierStokes::be_cn_theta  = 0.5;
 Real NavierStokes::visc_tol     = 1.0e-10;  // tolerance for viscous solve
 Real NavierStokes::visc_abs_tol = 1.0e-10;  // absolute tol. for visc solve
+
 Array<int> NavierStokes::is_diffusive;
 Array<Real> NavierStokes::visc_coef;
 
 //
-// ----------------------- internal switches.
+// Internal switches.
 //
-int  NavierStokes::do_temp         = 0;
-int  NavierStokes::Temp            = -1;
-int  NavierStokes::do_sync_proj    = 1;
-int  NavierStokes::do_MLsync_proj  = 1;
-int  NavierStokes::do_reflux       = 1;
-int  NavierStokes::do_mac_proj     = 1;
+int  NavierStokes::do_temp                = 0;
+int  NavierStokes::Temp                   = -1;
+int  NavierStokes::do_sync_proj           = 1;
+int  NavierStokes::do_MLsync_proj         = 1;
+int  NavierStokes::do_reflux              = 1;
+int  NavierStokes::do_mac_proj            = 1;
+int  NavierStokes::check_umac_periodicity = 1;
 
 //     
-// ------------------------ new members for non-zero divu.
+// New members for non-zero divu.
 //
 int  NavierStokes::additional_state_types_initialized = 0;
-int  NavierStokes::Divu_Type = -1;
-int  NavierStokes::Dsdt_Type = -1;
-int  NavierStokes::have_divu = 0;
-int  NavierStokes::have_dsdt = 0;
-int  NavierStokes::S_in_vel_diffusion = 1;
+int  NavierStokes::Divu_Type                          = -1;
+int  NavierStokes::Dsdt_Type                          = -1;
+int  NavierStokes::have_divu                          = 0;
+int  NavierStokes::have_dsdt                          = 0;
+int  NavierStokes::S_in_vel_diffusion                 = 1;
 
 
 Real NavierStokes::divu_minus_s_factor = 0.0;
@@ -1515,10 +1510,8 @@ NavierStokes::predict_velocity (Real  dt,
                              U_fpi(), tforces);
     }
 
-    if (level == 0 && geom.isAnyPeriodic())
-    {
+    if (check_umac_periodicity)
         test_umac_periodic();
-    }
     //
     // Compute estimate of the timestep.
     //
@@ -1530,88 +1523,71 @@ NavierStokes::predict_velocity (Real  dt,
 }
 
 //
-// Test for periodic umac on a single level 0 grid.
+// Where possible, test that edge-based values agree across periodic boundary.
 //
 
 void
 NavierStokes::test_umac_periodic ()
 {
     //
-    // Error block.
+    // TODO -- make this routine work in parallel.
     //
-    if (grids.length() != 1)
+    if (ParallelDescriptor::NProcs() > 1)
         return;
-    assert(level == 0);
-    //
-    // Get the bounds and grid size.
-    //
-    const Box &grd = grids[0];
-    const int *lo  = grd.loVect();
-    const int *hi  = grd.hiVect();
-    //
-    // Get the velocities.
-    //
-    int xperiod        = (geom.isPeriodic(0) ? 1 : 0);
-    const int *ux_lo   = u_mac[0][0].loVect();
-    const int *ux_hi   = u_mac[0][0].hiVect();
-    const Real *ux_dat = u_mac[0][0].dataPtr();
 
-    int yperiod        = (geom.isPeriodic(1) ? 1 : 0);
-    const int *uy_lo   = u_mac[1][0].loVect();
-    const int *uy_hi   = u_mac[1][0].hiVect();
-    const Real *uy_dat = u_mac[1][0].dataPtr();
-#if (BL_SPACEDIM == 3)
-    int zperiod        = (geom.isPeriodic(2) ? 1 : 0);
-    const int *uz_lo   = u_mac[2][0].loVect();
-    const int *uz_hi   = u_mac[2][0].hiVect();
-    const Real *uz_dat = u_mac[2][0].dataPtr();
-#endif
-    //
-    // Call the fortran.
-    //
-    Real udiff = 0.0;
-    Real vdiff = 0.0;
-#if (BL_SPACEDIM == 3)                                             
-    Real wdiff = 0.0;
-#endif
-    
-    FORT_TEST_UMAC_PERIODIC(lo, hi, 
-                            ux_dat, ARLIM(ux_lo), ARLIM(ux_hi),
-                            &xperiod, &udiff,
-                            uy_dat, ARLIM(uy_lo), ARLIM(uy_hi),
-                            &yperiod, &vdiff,
-#if (BL_SPACEDIM == 3)                                             
-                            uz_dat, ARLIM(uz_lo), ARLIM(uz_hi),
-                            &zperiod, &wdiff,
-#endif
-                            &level);
-    
-    if (level == 0 && udiff > 1.0e-10)
+    const Real TOLERANCE = 1.e-10;
+
+    if (geom.isAnyPeriodic())
     {
-        if (ParallelDescriptor::IOProcessor())
-        {
-            cout << "!!!!!!!!!!!!!!!!!!!!!!!! udiff = " << udiff << NL;
-        }
-        BoxLib::Abort("Exiting.");
+	FArrayBox diff;
+
+        Array<IntVect> pshifts(27);
+
+	for (int d = 0; d < BL_SPACEDIM; d++)
+	{
+	    if (geom.isPeriodic(d))
+	    {
+		const Box& eDomain = ::surroundingNodes(geom.Domain(), d);
+
+		for (int i = 0; i < grids.length(); i++)
+		{
+		    Box eBox = ::surroundingNodes(grids[i], d);
+
+		    geom.periodicShift(eDomain, eBox, pshifts);
+
+		    for (int iiv = 0; iiv < pshifts.length(); iiv++)
+                    {
+			eBox += pshifts[iiv];
+
+			for (int j = 0; j < grids.length(); j++)
+			{
+                            Box srcBox = ::surroundingNodes(grids[j],d) & eBox;
+
+			    if (srcBox.ok())
+			    {
+                                Box dstBox = srcBox - pshifts[iiv];
+
+				diff.resize(dstBox, 1);
+				diff.copy(u_mac[d][i],dstBox);
+				diff.minus(u_mac[d][j],srcBox,dstBox,0,0,1);
+
+				const Real max_norm = diff.norm(0);
+
+				if (max_norm > TOLERANCE)
+				{
+				    cout << "dir = "         << d
+					 << ", diff norm = " << max_norm
+					 << " for region: "  << dstBox << endl;
+				    BoxLib::Error("Periodic bust in u_mac");
+				}
+			    }
+			}
+			eBox -= pshifts[iiv];
+		    }
+		}
+	    }
+	}
     }
-    if (level == 0 && vdiff > 1.0e-10)
-    {
-        if (ParallelDescriptor::IOProcessor())
-        {
-            cout << "!!!!!!!!!!!!!!!!!!!!!!!! vdiff = " << vdiff << NL;
-        }
-        BoxLib::Abort("Exiting.");
-    }
-#if (BL_SPACEDIM == 3)                                             
-    if (level == 0 && vdiff > 1.0e-10)
-    {
-        if (ParallelDescriptor::IOProcessor())
-        {
-            cout << "!!!!!!!!!!!!!!!!!!!!!!!! vdiff = " << vdiff << NL;
-        }
-        BoxLib::Abort("Exiting.");
-    }
-#endif
 }
 
 //
