@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_2D.F,v 1.11 1999-07-01 23:56:24 propp Exp $
+c $Id: MACPROJ_2D.F,v 1.12 1999-07-12 23:16:03 propp Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -302,7 +302,7 @@ c     Make sure u_mac is periodic
             endif
             
 c     Do left-side periodic BC (keep r in there to guarantee correct scaling)
-            i = rho_start
+            j = rho_start
             rL = half*(r(j)+r(rho_end))
             rR = half*(r(j)+r(j+1))
             beta=two*rL/(rho(i,j)+rho(i,rho_end))
@@ -311,7 +311,7 @@ c     Do left-side periodic BC (keep r in there to guarantee correct scaling)
             s(1)=(rR*u(i,j+1)-rL*u(i,j))*hx - r(j)*(divcor(i,j)-divcor_ave)*hx*hx
             
 c     Do right-side periodic
-            i = rho_end
+            j = rho_end
             rL = half*(r(j)+r(j-1))
             rR = half*(r(rho_start)+r(j))
             a(neq)=two*rL/(rho(i,j)+rho(i,j-1))
@@ -325,14 +325,14 @@ c     Solve the equations
          else
             
 c     Solid walls, Nuemann conditions (dphi/dx=u=0)
-            i = rho_start
+            j = rho_start
             rR = half*(r(j)+r(j+1))
             c(1) = two*rR/(rho(i,j)+rho(i,j+1))
             b(1) = - c(1)
             s(1)= rR*u(i,j+1)*hx - r(j)*(divcor(i,j)-divcor_ave)*hx*hx
             
             
-            i = rho_end
+            j = rho_end
             rL = half*(r(j)+r(j-1))
             a(neq) = two*rL/(rho(i,j)+rho(i,j-1))
             b(neq) = - a(neq)
