@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.137 1999-06-07 17:32:43 marc Exp $
+// $Id: NavierStokes.cpp,v 1.138 1999-06-29 17:27:48 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1259,7 +1259,12 @@ NavierStokes::advance (Real time,
     {
         calc_divu(time+dt, dt, get_new_data(Divu_Type));
         if (have_dsdt)
+        {
             calc_dsdt(time,dt,get_new_data(Dsdt_Type));
+            if (initial_step)
+                MultiFab::Copy(get_old_data(Dsdt_Type),
+                               get_new_data(Dsdt_Type),0,0,1,0);
+        }
     }
     //
     // Add the advective and other terms to get velocity at t^{n+1}.
@@ -3163,7 +3168,7 @@ NavierStokes::post_init_state ()
 	// NOTE: this assumes have_divu == 0.
 	// Only used if vorticity is used to initialize the velocity field.
         //
-	BL_ASSERT(!have_divu);
+	//BL_ASSERT(!have_divu);
         BL_ASSERT(!(projector == 0));
         
 	projector->initialVorticityProject(0);
