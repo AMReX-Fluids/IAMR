@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.108 1999-01-07 23:00:10 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.109 1999-02-03 21:55:54 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -784,11 +784,9 @@ NavierStokes::setTimeLevel (Real time,
 void
 NavierStokes::initData ()
 {
-    static const aString RunstatString("init_data");
+    static RunStats stats("init_data");
 
-    RunStats rs(RunstatString, Level());
-
-    rs.start();
+    stats.start();
     //
     // Initialize the state and the pressure.
     //
@@ -841,7 +839,7 @@ NavierStokes::initData ()
         }
     }
 
-    rs.end();
+    stats.end();
 }
 
 //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.62 1998-12-11 20:40:29 lijewski Exp $
+// $Id: Projection.cpp,v 1.63 1999-02-03 21:55:55 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -89,11 +89,6 @@ static RegType project_bc [] =
 {
     interior, inflow, outflow, refWall, refWall, refWall
 };
-
-//
-// Used in a number of calls to RunStat. 
-//
-static const aString SyncProjStr("sync_project");
 
 Projection::Projection (Amr*   _parent,
                         BCRec* _phys_bc, 
@@ -219,6 +214,7 @@ Projection::install_level (int           level,
     radius.set(level, _radius);
 
     delete sync_proj;
+
     sync_proj = 0;
 }
 
@@ -694,9 +690,9 @@ Projection::syncProject (int             c_lev,
                          Real            dt_crse,
                          int             crse_dt_ratio)
 {
-    RunStats proj_stats(SyncProjStr,c_lev);
+    static RunStats stats("sync_project");
 
-    proj_stats.start();
+    stats.start();
 
     int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
 
@@ -811,7 +807,7 @@ Projection::syncProject (int             c_lev,
     AddPhi(pres, phi, grids);
     UpdateArg1(vel, dt_crse, *Vsync, BL_SPACEDIM, grids, 1);
 
-    proj_stats.end();
+    stats.end();
 }
 
 //
@@ -839,9 +835,9 @@ Projection::MLsyncProject (int             c_lev,
                            const Geometry& fine_geom,
                            const Geometry& crse_geom)
 {
-    RunStats proj_stats(SyncProjStr,c_lev);
+    static RunStats stats("sync_project");
 
-    proj_stats.start();
+    stats.start();
     
     int lev;
     if (verbose && ParallelDescriptor::IOProcessor()) 
@@ -1015,7 +1011,7 @@ Projection::MLsyncProject (int             c_lev,
 
     delete crse_rhs;
 
-    proj_stats.end();
+    stats.end();
 }
 
 //
@@ -1028,9 +1024,9 @@ Projection::initialVelocityProject (int  c_lev,
                                     Real cur_divu_time, 
                                     int  have_divu)
 {
-    RunStats proj_stats(SyncProjStr,c_lev);
+    static RunStats stats("sync_project");
 
-    proj_stats.start();
+    stats.start();
 
     int lev;
     int f_lev = finest_level;
@@ -1232,7 +1228,7 @@ Projection::initialVelocityProject (int  c_lev,
         if (!rho_wgt_vel_proj) 
             delete sig[lev];
 
-    proj_stats.end();
+    stats.end();
 }
 
 //
@@ -1248,9 +1244,9 @@ Projection::initialSyncProject (int       c_lev,
                                 Real      dt_init,
                                 int       have_divu)
 {
-    RunStats proj_stats(SyncProjStr,c_lev);
+    static RunStats stats("sync_project");
 
-    proj_stats.start();
+    stats.start();
 
     int lev;
     int f_lev = finest_level;
@@ -1474,7 +1470,7 @@ Projection::initialSyncProject (int       c_lev,
     for (lev = c_lev; lev <= f_lev; lev++) 
         incrPress(lev, 1.0);
 
-    proj_stats.end();
+    stats.end();
 }
 
 //
