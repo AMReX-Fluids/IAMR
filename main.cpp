@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.22 1998-05-13 23:17:50 almgren Exp $
+// $Id: main.cpp,v 1.23 1998-05-14 22:08:57 almgren Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -78,6 +78,7 @@ main (int   argc,
         print_usage(argc, argv);
     }
     int  max_step;
+    Real strt_time;
     Real stop_time;
 
     ParmParse pp(argc-2,argv+2,NULL,argv[1]); 
@@ -101,10 +102,17 @@ main (int   argc,
 #endif
 
     max_step  = -1;    
+    strt_time =  0.0;  
     stop_time = -1.0;  
 
     pp.query("max_step",max_step);
+    pp.query("strt_time",strt_time);
     pp.query("stop_time",stop_time);
+
+    if ( strt_time < 0.0 ) {
+      ParallelDescriptor::Abort(
+        "MUST SPECIFY a non-negative strt_time");
+    }
 
     if ( max_step < 0 && stop_time < 0.0 ) {
       ParallelDescriptor::Abort(
@@ -113,7 +121,7 @@ main (int   argc,
 
     Amr* amrptr = new Amr;
 
-    amrptr->init(stop_time);
+    amrptr->init(strt_time,stop_time);
 
     while ( amrptr->okToContinue()           &&
            (amrptr->levelSteps(0) < max_step || max_step < 0) &&
