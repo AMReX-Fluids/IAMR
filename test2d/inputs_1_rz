@@ -125,9 +125,6 @@ geometry.is_periodic = 0 0
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 
-ns.lo_bc             = 0 5  # boundary conditions on the low end of the domain
-ns.hi_bc             = 0 2  # boundary conditions on the high end of the domain
-
 ns.lo_bc             = 5 5  # boundary conditions on the low end of the domain
 ns.hi_bc             = 5 2  # boundary conditions on the high end of the domain
 
