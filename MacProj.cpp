@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.73 2000-10-02 20:50:15 lijewski Exp $
+// $Id: MacProj.cpp,v 1.74 2000-10-10 20:59:54 marc Exp $
 //
 
 #include <Misc.H>
@@ -67,9 +67,8 @@ getOutFlowFace(bool& haveOutFlow, Orientation& outFace, BCRec* _phys_bc)
 
   }
 
-  if (numOutFlowBC > 1) {
-    BoxLib::Error("currently only allowed one outflow bc");
-  }
+  if (numOutFlowBC > 1)
+      haveOutFlow = false; // true signals low-D solve for outflow.  false will enforce Div(U)=0
 
 }
 
@@ -97,9 +96,8 @@ hasOutFlowBC(BCRec* _phys_bc)
 
   }
 
-  if (numOutFlowBC > 1) {
-    BoxLib::Error("currently only allowed one outflow bc");
-  }
+  if (numOutFlowBC > 1) 
+      has_out_flow = false;//  true signals low-D solve for outflow.  false will enforce Div(U)=0
 
   return has_out_flow;
 }

@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.130 2000-10-02 20:50:16 lijewski Exp $
+// $Id: Projection.cpp,v 1.131 2000-10-10 20:59:55 marc Exp $
 //
 
 #ifdef BL3_PROFILING
@@ -80,7 +80,7 @@ getOutFlowFace (bool&        haveOutFlow,
     }
 
     if (numOutFlowBC > 1)
-        BoxLib::Error("currently only allowed one outflow bc");
+        haveOutFlow = false; //  true signals low-D solve for outflow.  false will enforce Div(U)=0
 }
 
 //
@@ -111,7 +111,7 @@ hasOutFlowBC (BCRec* _phys_bc)
     }
   
     if (numOutFlowBC > 1) 
-        BoxLib::Error("currently only allowed one outflow bc");
+        has_out_flow = false; //true signals low-D solve for outflow. false will enforce Div(U)=0
   
     return has_out_flow;
 }

@@ -1,6 +1,6 @@
 
 //
-// $Id: NavierStokes.cpp,v 1.187 2000-10-02 20:50:15 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.188 2000-10-10 20:59:54 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -5330,33 +5330,25 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
 
 static
 void
-getOutFlowFace (bool&        haveOutFlow,
-                Orientation& outFace,
-                BCRec*       _phys_bc)
+getOutFlowFaces (Array<Orientation>& outFaces,
+                 BCRec*              _phys_bc)
 {
-    haveOutFlow      = false;
-    int numOutFlowBC = 0;
-
+    outFaces.resize(0);
     for (int idir = 0; idir < BL_SPACEDIM; idir++)
     {
         if (_phys_bc->lo(idir) == Outflow)
         {
-            haveOutFlow = true;
-            outFace = Orientation(idir,Orientation::low);
-            numOutFlowBC++;
+            const int len = outFaces.length();
+            outFaces.resize(len+1);
+            outFaces.set(len,Orientation(idir,Orientation::low));
         }
 
         if (_phys_bc->hi(idir) == Outflow)
         {
-            haveOutFlow = true;
-            outFace = Orientation(idir,Orientation::high);
-            numOutFlowBC++;
+            const int len = outFaces.length();
+            outFaces.resize(len+1);
+            outFaces.set(len,Orientation(idir,Orientation::high));
         }
-    }
-
-    if (numOutFlowBC > 1)
-    {
-        BoxLib::Error("currently only allowed one outflow bc");
     }
 }
 
@@ -5364,95 +5356,99 @@ void
 NavierStokes::manual_tags_placement (TagBoxArray&    tags,
                                      Array<IntVect>& bf_lev)
 {
-    bool hasOutFlow;
-    Orientation outFace;
-    getOutFlowFace(hasOutFlow,outFace,&phys_bc);
-    if (hasOutFlow)
+    Array<Orientation> outFaces;
+    getOutFlowFaces(outFaces,&phys_bc);
+    if (outFaces.length()>0)
     {
-        const int oDir = outFace.coordDir();
-        const Box& crse_domain = ::coarsen(geom.Domain(),bf_lev[level]);
-        const int mult = (outFace.isLow() ? +1 : -1);
-        if (do_refine_outflow)
+        for (int i=0; i<outFaces.length(); ++i)
         {
-            //
-            // Refine entire outflow boundary if new boxes within grid_tol
-            // from outflow
-            //
-            const int grid_tol = 1;
-            const Box outflowBox = ::adjCell(crse_domain,outFace,grid_tol).shift(oDir,mult*grid_tol);
-            //
-            // Only refine if there are already tagged cells in the outflow
-            // region
-            //
-            bool hasTags = false;
-            FabArrayIterator<TagBox::TagType,TagBox> tbi(tags);
-            for ( ; !hasTags && tbi.isValid(); ++tbi)
-                if (tbi().numTags(outflowBox) > 0)
-                    hasTags = true;
-
-            if (hasTags)
-              tags.setVal(BoxArray(&outflowBox,1),TagBox::SET);
-        }
-        else if (do_derefine_outflow)
-        {
-            const int np = parent->nProper();
-            //
-            // Calculate the number of level 0 cells to be left uncovered
-            // at the outflow.  The convoluted logic allows for the fact that
-            // the number of uncovered cells must be a multiple of the level
-            // blocking factor.  So, when calculating the number of coarse
-            // cells below, we always round the division up.
-            //
-            int N_coarse_cells = Nbuf_outflow / bf_lev[0][oDir];
-            if (Nbuf_outflow % bf_lev[0][oDir] != 0)
-                N_coarse_cells++;
-
-            int N_level_cells = N_coarse_cells * bf_lev[0][oDir];
-
-            //
-            // Adjust this to get the number of cells to be left uncovered at
-            // levels higher than 0
-            //
-            for (int i = 1; i <= level; ++i)
+            const Orientation& outFace = outFaces[i];
+            const int oDir = outFace.coordDir();
+            const Box& crse_domain = ::coarsen(geom.Domain(),bf_lev[level]);
+            const int mult = (outFace.isLow() ? +1 : -1);
+            if (do_refine_outflow)
             {
-                /*** Calculate the minimum cells at this level ***/
-
-                const int rat = (parent->refRatio(i-1))[oDir];
-                N_level_cells = N_level_cells * rat + np;
-
-                /*** Calculate the required number of coarse cells ***/
-
-                N_coarse_cells = N_level_cells / bf_lev[i][oDir];
-                if (N_level_cells % bf_lev[i][oDir] != 0)
-                    N_coarse_cells++;
-
-                /*** Calculate the corresponding number of level cells ***/
-
-                N_level_cells = N_coarse_cells * bf_lev[i][oDir];
+                //
+                // Refine entire outflow boundary if new boxes within grid_tol
+                // from outflow
+                //
+                const int grid_tol = 1;
+                const Box outflowBox =
+                    ::adjCell(crse_domain,outFace,grid_tol).shift(oDir,mult*grid_tol);
+                //
+                // Only refine if there are already tagged cells in the outflow
+                // region
+                //
+                bool hasTags = false;
+                FabArrayIterator<TagBox::TagType,TagBox> tbi(tags);
+                for ( ; !hasTags && tbi.isValid(); ++tbi)
+                    if (tbi().numTags(outflowBox) > 0)
+                        hasTags = true;
+                
+                if (hasTags)
+                    tags.setVal(BoxArray(&outflowBox,1),TagBox::SET);
             }
-            //
-            // Untag the cells near the outflow
-            //
-            if (N_coarse_cells > 0)
+            else if (do_derefine_outflow)
             {
+                const int np = parent->nProper();
                 //
-                // Generate box at the outflow and grow it in all directions
-                // other than the outflow.  This forces outflow cells in the
-                // ghostcells in directions other that oDir to be cleared.
+                // Calculate the number of level 0 cells to be left uncovered
+                // at the outflow.  The convoluted logic allows for the fact that
+                // the number of uncovered cells must be a multiple of the level
+                // blocking factor.  So, when calculating the number of coarse
+                // cells below, we always round the division up.
                 //
-                Box outflowBox = ::adjCell(crse_domain, outFace, 1);
-                for (int dir = 0; dir < BL_SPACEDIM; dir++)
-                    if (dir != oDir) outflowBox.grow(dir, 1);
+                int N_coarse_cells = Nbuf_outflow / bf_lev[0][oDir];
+                if (Nbuf_outflow % bf_lev[0][oDir] != 0)
+                    N_coarse_cells++;
+                
+                int N_level_cells = N_coarse_cells * bf_lev[0][oDir];
+                
                 //
-                // Now, grow the box into the domain (opposite direction as
-                // outFace) the number of cells we need to clear.
+                // Adjust this to get the number of cells to be left uncovered at
+                // levels higher than 0
                 //
-                if (outFace.isLow())
-                    outflowBox.growHi(oDir, N_coarse_cells);
-                else
-                    outflowBox.growLo(oDir, N_coarse_cells);
-
-                tags.setVal(BoxArray(&outflowBox,1),TagBox::CLEAR);
+                for (int i = 1; i <= level; ++i)
+                {
+                    /*** Calculate the minimum cells at this level ***/
+                    
+                    const int rat = (parent->refRatio(i-1))[oDir];
+                    N_level_cells = N_level_cells * rat + np;
+                    
+                    /*** Calculate the required number of coarse cells ***/
+                    
+                    N_coarse_cells = N_level_cells / bf_lev[i][oDir];
+                    if (N_level_cells % bf_lev[i][oDir] != 0)
+                        N_coarse_cells++;
+                    
+                    /*** Calculate the corresponding number of level cells ***/
+                    
+                    N_level_cells = N_coarse_cells * bf_lev[i][oDir];
+                }
+                //
+                // Untag the cells near the outflow
+                //
+                if (N_coarse_cells > 0)
+                {
+                    //
+                    // Generate box at the outflow and grow it in all directions
+                    // other than the outflow.  This forces outflow cells in the
+                    // ghostcells in directions other that oDir to be cleared.
+                    //
+                    Box outflowBox = ::adjCell(crse_domain, outFace, 1);
+                    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+                        if (dir != oDir) outflowBox.grow(dir, 1);
+                    //
+                    // Now, grow the box into the domain (opposite direction as
+                    // outFace) the number of cells we need to clear.
+                    //
+                    if (outFace.isLow())
+                        outflowBox.growHi(oDir, N_coarse_cells);
+                    else
+                        outflowBox.growLo(oDir, N_coarse_cells);
+                    
+                    tags.setVal(BoxArray(&outflowBox,1),TagBox::CLEAR);
+                }
             }
         }
     }
