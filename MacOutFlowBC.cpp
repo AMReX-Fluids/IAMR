@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.4 1999-08-03 22:21:16 propp Exp $
+// $Id: MacOutFlowBC.cpp,v 1.5 1999-08-06 21:48:41 propp Exp $
 //
 
 #include "MacOutFlowBC.H"
@@ -345,7 +345,7 @@ MacOutFlowBC_MG::MacOutFlowBC_MG(Box& Domain,
     {
       first = false;
       ParmParse pp("mac_mg");
-      pp.query("verbose",verbose);
+      pp.query("v",verbose);
       int use_cg;
       pp.query("useCGbottomSolver",use_cg);
       useCGbottomSolver = (use_cg > 0) ? true : false;

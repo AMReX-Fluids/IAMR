@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ProjOutFlowBC.cpp,v 1.4 1999-08-03 22:21:17 propp Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.5 1999-08-06 21:48:42 propp Exp $
 //
 
 #include "ProjOutFlowBC.H"
@@ -346,7 +346,7 @@ ProjOutFlowBC_MG::ProjOutFlowBC_MG(const Box& Domain,
     {
       first = false;
       ParmParse pp("proj_mg");
-      pp.query("verbose",verbose);
+      pp.query("v",verbose);
       int use_cg;
       pp.query("useCGbottomSolver",use_cg);
       useCGbottomSolver = (use_cg > 0) ? true : false;
