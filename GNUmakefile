@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.69 1999-01-06 16:42:07 lijewski Exp $
+# $Id: GNUmakefile,v 1.70 1999-02-17 20:34:09 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -11,14 +11,18 @@ INSTALL_ROOT = $(TOP)
 #
 # Variables for the user to set ...
 #
-PRECISION     = DOUBLE
-DEBUG	      = TRUE
-PROFILE       = FALSE
-DIM	      = 3
-COMP          = KCC
-USE_TENSOR    = FALSE
-USE_WINDOWS   = FALSE
-USE_MPI       = TRUE
+PRECISION   = DOUBLE
+DEBUG	    = TRUE
+PROFILE     = FALSE
+DIM	    = 3
+COMP        = KCC
+USE_TENSOR  = FALSE
+USE_WINDOWS = FALSE
+USE_MPI     = TRUE
+#
+# What stencil do you want to use?
+#
+PRVERSION = v9
 #
 # Use hgproj-serial -- only for testing.
 #
@@ -31,10 +35,17 @@ USE_HGPROJ_SERIAL = FALSE
 #
 ifeq ($(USE_HGPROJ_SERIAL),TRUE)
 DEFINES += -DBL_USE_HGPROJ_SERIAL
+endif
+
 ifeq ($(DIM),2)
-PRVERSION = v9
-else
-PRVERSION = v7
+#
+# SYNCREG_2D.F builds RHS differently for 5 and 9 point stencils.
+#
+ifeq ($(findstring 5, $(PRVERSION)), 5)
+DEFINES += -DBL_PRVERSION=5
+endif
+ifeq ($(findstring 9, $(PRVERSION)), 9)
+DEFINES += -DBL_PRVERSION=9
 endif
 endif
 #
