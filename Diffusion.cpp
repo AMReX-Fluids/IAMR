@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.56 1998-12-23 23:00:46 marc Exp $
+// $Id: Diffusion.cpp,v 1.57 1999-01-21 00:32:43 lijewski Exp $
 //
 
 //
@@ -2757,87 +2757,53 @@ Diffusion::getBndryData (ViscBndry& bndry,
                          int        rho_flag)
 {
     assert(num_comp == 1);
-
-    const BCRec& bc = caller->get_desc_lst()[State_Type].getBC(src_comp);
-
-    bndry.define(grids,num_comp,caller->Geom());
     //
-    // Fill physical boundary values into grow cells of a tmp multifab
-    // passed into bndry.  (COI+c-f+periodic handled inside solver)
+    // Fill phys bndry vals of grow cells of (tmp) multifab passed to bndry.
     //
-    // TODO -- A MultiFab is a huge amount of space in which to pass along
-    // the phys bc's.  InterpBndryData needs a more efficient interface.
-    //
-    const int nGrow = 1;
-
-    MultiFab Stmp(grids, num_comp, nGrow);
-
-    const Geometry& geom = parent->Geom(level);
-    //
-    // Make a grown box that excludes periodic sides and corners.
-    //
-    Box grDomain = ::grow(geom.Domain(), nGrow);
-    Box grDomainNoPer = grDomain;
-    if (geom.isAnyPeriodic())
-	for (int i=0; i<BL_SPACEDIM; i++)
-	    if (geom.isPeriodic(i))
-		grDomainNoPer.grow(i,-nGrow);
-    //
-    // Get state, rho, and have caller set physical bc's.
-    // We are going to exclude periodic sides and corners, but
-    // the FilBoundary() stuff doesn't know this.  Set safe garbage
-    // values out there; not zero, so we can divide if we have to.
-    //
-    MultiFab& S = caller->get_data(State_Type,time);
-
-    assert(S.boxArray() == grids);
-
-    BoxList gval_boxes = ::boxDiff(grDomain, grDomainNoPer);
-
-    for (BoxListIterator bli(gval_boxes); bli; ++bli)
-    {
-        for (MultiFabIterator mfi(S); mfi.isValid(); ++mfi)
-	{
-            int i = mfi.index();
-
-            if (S[i].box().intersects(bli()))
-            {
-                Box ovlp = S[i].box() & bli();
-
-		S[i].setVal(BL_SAFE_BOGUS,ovlp,src_comp,num_comp);
-		if (rho_flag == 2)
-		    S[i].setVal(BL_SAFE_BOGUS,ovlp,Density,1);
-	    }
-	}
-    }
-    
-    caller->setPhysBoundaryValues(State_Type,src_comp,num_comp,time);
+    const BCRec& bc    = caller->get_desc_lst()[State_Type].getBC(src_comp);
+    const int    nGrow = 1;
+    int          sComp = src_comp;
+    MultiFab*    S     = &caller->get_data(State_Type,time);
 
     if (rho_flag == 2)
-        caller->setPhysBoundaryValues(State_Type,Density,1,time);
-
-    for (MultiFabIterator Stmpmfi(Stmp); Stmpmfi.isValid(); ++Stmpmfi)    
     {
-        DependentMultiFabIterator Smfi(Stmpmfi,S);
+	sComp = 0;
+	S     = new MultiFab(grids, num_comp, nGrow);
+    }
 
-	BoxList bl = ::boxDiff(Stmpmfi().box() & grDomainNoPer,
-                               Stmpmfi().box() & geom.Domain());
+    bndry.define(grids,num_comp,caller->Geom());
 
-	for (BoxListIterator bli(bl); bli; ++bli)
+    FillPatchIterator Rho_fpi(*caller,*S);
+    FillPatchIterator Phi_fpi(*caller,*S,nGrow,time,State_Type,src_comp,num_comp);
+    
+    if (rho_flag == 2)
+	Rho_fpi.Initialize(nGrow,time,State_Type,Density,1);
+	
+    for ( ; Phi_fpi.isValid(); ++Phi_fpi)
+    {
+	if (rho_flag == 2)
+	    Rho_fpi.isValid();
+
+	const int i = Phi_fpi.index();
+
+	BoxList gCells = ::boxDiff(Phi_fpi().box(), Phi_fpi.validbox());
+	
+	for (BoxListIterator bli(gCells); bli; ++bli)
 	{
-	    Stmpmfi().copy(Smfi(), bli(), src_comp, bli(), 0, num_comp);
+	    (*S)[i].copy(Phi_fpi(),bli(),0,bli(),sComp,num_comp);
 
 	    if (rho_flag == 2)
-	    {
-                assert(Smfi().min(bli(), Density) > 0.0);
-		Stmpmfi().divide(Smfi(), bli(), Density, 0, num_comp);
-	    }
+		for (int n = 0; n < num_comp; ++n)
+		    (*S)[i].divide(Rho_fpi(),bli(),0,sComp+n,1);
 	}
+
+	if (rho_flag == 2)
+	    ++Rho_fpi;
     }
-    
+	
     if (level == 0)
     {
-	bndry.setBndryValues(Stmp,0,0,num_comp,bc);
+	bndry.setBndryValues(*S,sComp,0,num_comp,bc);
     }
     else
     {
@@ -2849,8 +2815,11 @@ Diffusion::getBndryData (ViscBndry& bndry,
         //
 	crse_br.setVal(BL_BOGUS);
 	coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
-	bndry.setBndryValues(crse_br,0,Stmp,0,0,num_comp,crse_ratio,bc);
+	bndry.setBndryValues(crse_br,0,*S,sComp,0,num_comp,crse_ratio,bc);
     }
+    
+    if (rho_flag == 2)
+	delete S;
 }
 
 void
