@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.42 2001-08-01 21:50:56 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.43 2001-08-10 19:19:36 lijewski Exp $
 //
 
 #include <NavierStokes.H>
@@ -177,7 +177,7 @@ set_dsdt_bc(BCRec& bc, const BCRec& phys_bc)
 void
 NavierStokes::variableSetUp ()
 {
-    BL_ASSERT(desc_lst.length() == 0);
+    BL_ASSERT(desc_lst.size() == 0);
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
@@ -280,7 +280,7 @@ NavierStokes::variableSetUp ()
     if (do_temp)
     {
 	// stick Divu_Type on the end of the descriptor list
-	Divu_Type = desc_lst.length();
+	Divu_Type = desc_lst.size();
 	int nGrowDivu = 1;
 	desc_lst.addDescriptor(Divu_Type,IndexType::TheCellType(),
                                StateDescriptor::Point,nGrowDivu,1,
@@ -289,7 +289,7 @@ NavierStokes::variableSetUp ()
 	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,FORT_DIVUFILL);
 	
 	// stick Dsdt_Type on the end of the descriptor list
-	Dsdt_Type = desc_lst.length();
+	Dsdt_Type = desc_lst.size();
 	int nGrowDsdt = 0;
 	desc_lst.addDescriptor(Dsdt_Type,IndexType::TheCellType(),
                                StateDescriptor::Point,nGrowDsdt,1,
