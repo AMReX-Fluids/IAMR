@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.102 1999-07-01 21:53:05 almgren Exp $
+// $Id: Projection.cpp,v 1.103 1999-07-01 23:56:25 propp Exp $
 //
 
 #ifdef BL_T3E
@@ -2200,23 +2200,25 @@ Projection::set_level_projector_outflow_bcs (int       level,
     // FIXME: the three outflow boundary routines should be collapsed into
     //        one, since they all do roughly the same thing.
     //
-    //
-    // Make sure out flow only occurs at yhi faces.
-    //
-    const Orientation outFace(1, Orientation::high);
     bool hasOutFlow;
-    Orientation _outFace;
-    getOutFlowFace(hasOutFlow,_outFace,phys_bc);
-    BL_ASSERT(_outFace == outFace);
+    Orientation outFace;
+    getOutFlowFace(hasOutFlow,outFace,phys_bc);
 
-    const Real* dx         = parent->Geom(level).CellSize();
     const Box& domain      = parent->Geom(level).Domain();
-    const int outDir       = 1;
+    const int outDir       = outFace.coordDir();
     const int ccStripWidth = 3;
     const int ncStripWidth = 1;
-    const Box state_strip
-        = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
-    const Box phi_strip    = ::surroundingNodes(bdryHi(domain,outDir,ncStripWidth));
+
+    Box state_strip;
+    if (outFace.faceDir() == Orientation::high)
+      {
+	state_strip
+	  = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+      } else {
+	state_strip
+	  = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
+      }
+    Box phi_strip = ::surroundingNodes(bdryNode(domain,outFace,ncStripWidth));
     //
     // Only do this if the entire outflow face is covered by boxes at this level
     // (skip if doesnt touch, and bomb if only partially covered)
@@ -2239,23 +2241,9 @@ Projection::set_level_projector_outflow_bcs (int       level,
         divu.copy(divuFab,0,0,1);
         vel.copy(velFab,0,0,BL_SPACEDIM);
 #if (BL_SPACEDIM == 2)
-        //
-        // Make r_i needed in HGPHIBC (set = 1 if cartesian).
-        //
-        Box region = Box(::adjCellHi(domain,outDir,1)).shift(outDir, -1);
-        Array<Real> rcen(region.length(0), 1.0);
-        if (CoordSys::IsRZ() == 1) 
-            parent->Geom(level).GetCellLoc(rcen, region, 0);
-    
-        const int isPeriodicInX = parent->Geom(level).isPeriodic(0);
+	const Geometry& thisGeom = parent->Geom(level);
+	computeBC(velFab,divuFab,rhoFab,phiFab,thisGeom,outFace);
 
-        FORT_HGPHIBC(ARLIM(velFab.loVect()), ARLIM(velFab.hiVect()), velFab.dataPtr(),
-                     ARLIM(divuFab.loVect()),ARLIM(divuFab.hiVect()),divuFab.dataPtr(),
-                     ARLIM(rhoFab.loVect()), ARLIM(rhoFab.hiVect()), rhoFab.dataPtr(),
-                     ARLIM(region.loVect()), ARLIM(region.hiVect()), rcen.dataPtr(),
-                     &dx[0],
-                     ARLIM(phiFab.loVect()), ARLIM(phiFab.hiVect()), phiFab.dataPtr(),
-                     &isPeriodicInX);
         for (MultiFabIterator mfi(phi); mfi.isValid(); ++mfi)
         {
             const Box ovlp = mfi.validbox() & phi_strip;
@@ -2299,13 +2287,9 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
     //        data from the state (presumably is where vel, sig from anyway).  sig
     //        is poorly named, and we need other stuff as well, so we should
     //        probably just remove sig and vel from args
-    //
-    // make sure out flow only occurs at yhi faces
-    const Orientation outFace(1, Orientation::high);
     bool hasOutFlow;
-    Orientation _outFace;
-    getOutFlowFace(hasOutFlow,_outFace,phys_bc);
-    BL_ASSERT(_outFace == outFace);
+    Orientation outFace;
+    getOutFlowFace(hasOutFlow,outFace,phys_bc);
 
     BL_ASSERT(c_lev == 0);
     //
@@ -2314,7 +2298,7 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
     // Get 1-wide nc box, phi_strip, along top, grown out by one
     // tangential to face.
     //
-    const int outDir       = 1;
+    const int outDir       = outFace.coordDir();
     const int ccStripWidth = 3;
     const int ncStripWidth = 1;
     //
@@ -2327,9 +2311,14 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
     for ( ; f_lev>=c_lev; --f_lev)
     {
         domain = parent->Geom(f_lev).Domain();
-        state_strip
-            = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
-
+      if (outFace.faceDir() == Orientation::high)
+	{
+	  state_strip
+	    = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+	} else {
+	  state_strip
+	    = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
+	}
         const BoxArray& Lgrids = parent->getLevel(f_lev).boxArray();
         const Box valid_state_strip = state_strip & domain;
         const BoxArray uncovered_outflow_ba = ::complementIn(valid_state_strip,Lgrids);
@@ -2338,8 +2327,7 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
         if ( !(uncovered_outflow_ba.ready()) )
             break;
     }
-    const Real* dx = parent->Geom(f_lev).CellSize();
-    const Box phi_strip = ::surroundingNodes(bdryHi(domain,outDir,ncStripWidth));
+    Box phi_strip = ::surroundingNodes(bdryNode(domain,outFace,ncStripWidth));
 
     const int   nGrow    = 0;
     const int   nCompPhi = 1;
@@ -2354,13 +2342,6 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
     MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
     
     phi_fine_strip.setVal(0);
-    //
-    // Make r_i needed in HGPHIBC (set = 1 if cartesian).
-    //
-    Box region = Box(::adjCellHi(domain,outDir,1)).shift(outDir, -1);
-    Array<Real> rcen(region.length(0), 1.0);
-    if (CoordSys::IsRZ() == 1) 
-        parent->Geom(f_lev).GetCellLoc(rcen, region, 0);
     
     int Divu_Type, Divu;
     FArrayBox rho;
@@ -2386,21 +2367,9 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
             rho.copy(rhoFpi());
         else
             rho.setVal(1.0);
-        //
-        // Fill phi_fine_strip with boundary cell values for phi, then
-        // copy into arg data.  Note: Though this looks like a distributed
-        // operation, the MultiFab is built on a single box...this is
-        // necesary currently, since FORT_HGPHIBC requires a slice across
-        // the entire domain.
-        //
-        const int isPeriodicInX = parent->Geom(f_lev).isPeriodic(0);
-        
-        FORT_HGPHIBC(ARLIM(velFpi().loVect()),  ARLIM(velFpi().hiVect()),  velFpi().dataPtr(),
-                     ARLIM(divuFpi().loVect()), ARLIM(divuFpi().hiVect()), divuFpi().dataPtr(),
-                     ARLIM(rho.loVect()),       ARLIM(rho.hiVect()),       rho.dataPtr(),
-                     ARLIM(region.loVect()),    ARLIM(region.hiVect()),    rcen.dataPtr(),    &dx[0],
-                     ARLIM(phimfi().loVect()),  ARLIM(phimfi().hiVect()),  phimfi().dataPtr(),
-                     &isPeriodicInX);
+
+	const Geometry& thisGeom = parent->Geom(f_lev);
+	computeBC(velFpi(),divuFpi(),rho,phimfi(),thisGeom,outFace);
 
         if (rho_wgt_vel_proj)
             ++rhoFpi;
@@ -2419,27 +2388,7 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
     
     phi[f_lev]->copy(phi_fine_strip);
     
-    IntVect ratio = IntVect::TheUnitVector();
-    
-    for (int lev = f_lev-1; lev >= c_lev; lev--) 
-    {
-        ratio *= parent->refRatio(lev);
-        const Box& domainC = parent->Geom(lev).Domain();
-        Box top_phiC_strip = ::surroundingNodes(bdryHi(domainC,outDir,ncStripWidth));
-        BoxArray top_phiC_strip_ba(&top_phiC_strip,1);
-        MultiFab phi_crse_strip(top_phiC_strip_ba,nCompPhi,nGrow);
-        phi_crse_strip.setVal(0);
-        
-        for (MultiFabIterator finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
-        {
-            DependentMultiFabIterator crsemfi(finemfi, phi_crse_strip);
-            Box ovlp = Box(finemfi.validbox()).coarsen(ratio) & crsemfi.validbox();
-            FORT_PUTDOWN (crsemfi().dataPtr(),ARLIM(crsemfi().loVect()),ARLIM(crsemfi().hiVect()),
-                          finemfi().dataPtr(),ARLIM(finemfi().loVect()),ARLIM(finemfi().hiVect()),
-                          ovlp.loVect(),ovlp.hiVect(),ratio.getVect());
-        }
-        phi[lev]->copy(phi_crse_strip);
-    }
+    putDown(phi,phi_fine_strip,c_lev,f_lev,outFace,ncStripWidth);
 }
 
 void
@@ -2455,26 +2404,29 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
     // except that we work with time derivatives of U and S.
     //
 
-    // make sure out flow only occurs at yhi faces
-    const Orientation outFace(1, Orientation::high);
     bool hasOutFlow;
-    Orientation _outFace;
-    getOutFlowFace(hasOutFlow,_outFace,phys_bc);
-    BL_ASSERT(_outFace == outFace);
+    Orientation outFace;
+    getOutFlowFace(hasOutFlow,outFace,phys_bc);
 
     const int f_lev = finest_level;
 
     BL_ASSERT(c_lev == 0);
 
-    const Real* dx           = parent->Geom(f_lev).CellSize();
     const Box&  domain       = parent->Geom(f_lev).Domain();
-    const int   outDir       = 1;
+    const int   outDir       = outFace.coordDir();
     const int   ccStripWidth = 3;
     const int   ncStripWidth = 1;
-    Box state_strip =
-        ::adjCellHi(domain,outDir,ccStripWidth).shift(outDir,-ccStripWidth+1);
-    Box phi_strip = 
-        ::surroundingNodes(bdryHi(domain,outDir,ncStripWidth));
+
+    Box state_strip;
+    if (outFace.faceDir() == Orientation::high)
+      {
+	state_strip
+	  = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+      } else {
+	state_strip
+	  = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
+      }
+    Box phi_strip = ::surroundingNodes(bdryNode(domain,outFace,ncStripWidth));
     const int   nGrow        = 0;
     const int   nCompPhi     = 1;
 
@@ -2489,13 +2441,6 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
     MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
 
     phi_fine_strip.setVal(0);
-    //
-    // Make r_i needed in HGPHIBC (set = 1 if cartesian).
-    //
-    Box region = Box(::adjCellHi(domain,outDir,1)).shift(outDir, -1);
-    Array<Real> rcen(region.length(0), 1.0);
-    if (CoordSys::IsRZ() == 1) 
-        parent->Geom(f_lev).GetCellLoc(rcen, region, 0);
     
     int Divu_Type, Divu;
     if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
@@ -2553,21 +2498,9 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
         if (!proj_0 && !proj_2)
             dsdt.minus(divuOldFpi());
         dsdt.mult(dt_inv);
-        //
-        // Fill phi_fine_strip with boundary cell values for phi, then
-        // copy into arg data.  Note: Though this looks like a distributed
-        // operation, the MultiFab is built on a single box...this is
-        // necesary currently, since FORT_HGPHIBC requires a slice across
-        // the entire domain
-        //
-        const int isPeriodicInX = parent->Geom(f_lev).isPeriodic(0);
 
-        FORT_HGPHIBC(ARLIM(dudt.loVect()),     ARLIM(dudt.hiVect()),     dudt.dataPtr(),
-                     ARLIM(dsdt.loVect()),     ARLIM(dsdt.hiVect()),     dsdt.dataPtr(),
-                     ARLIM(rhonph.loVect()),   ARLIM(rhonph.hiVect()),   rhonph.dataPtr(),
-                     ARLIM(region.loVect()),   ARLIM(region.hiVect()),   rcen.dataPtr(),     &dx[0],
-                     ARLIM(phimfi().loVect()), ARLIM(phimfi().hiVect()), phimfi().dataPtr(),
-                     &isPeriodicInX);
+	const Geometry& thisGeom = parent->Geom(f_lev);
+	computeBC(dudt,dsdt,rhonph,phimfi(),thisGeom,outFace);
 #else
     //
     // check to see if divu == 0 near outflow.  If it isn't, then abort.
@@ -2585,30 +2518,8 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
     }
 
     phi[f_lev]->copy(phi_fine_strip);
-    //
-    // Put down to coarser levels.
-    //
-    IntVect ratio = IntVect::TheUnitVector();
-    for (int lev = f_lev-1; lev >= c_lev; lev--) 
-    {
-        ratio *= parent->refRatio(lev);
-        const Box& domainC = parent->Geom(lev).Domain();
-        Box top_phiC_strip = ::surroundingNodes(bdryHi(domainC,outDir,ncStripWidth));
-	    
-        BoxArray top_phiC_strip_ba(&top_phiC_strip,1);
-        MultiFab phi_crse_strip(top_phiC_strip_ba, nCompPhi, nGrow);
-        phi_crse_strip.setVal(0);
-	    
-        for (MultiFabIterator finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
-        {
-            DependentMultiFabIterator crsemfi(finemfi, phi_crse_strip);
-            Box ovlp = Box(finemfi.validbox()).coarsen(ratio) & crsemfi.validbox();
-            FORT_PUTDOWN (crsemfi().dataPtr(),ARLIM(crsemfi().loVect()),ARLIM(crsemfi().hiVect()),
-                          finemfi().dataPtr(),ARLIM(finemfi().loVect()),ARLIM(finemfi().hiVect()),
-                          ovlp.loVect(),ovlp.hiVect(),ratio.getVect());
-        }
-        phi[lev]->copy(phi_crse_strip);
-    }
+
+    putDown(phi,phi_fine_strip,c_lev,f_lev,outFace,ncStripWidth);
 }
 
 //
@@ -2763,4 +2674,115 @@ Projection::initialVorticityProject (int c_lev)
     BoxLib::Error("Projection::initialVorticityProject(): not implented yet for 3D");
 #endif
 }
+
+void 
+Projection::putDown(MultiFab** phi, MultiFab& phi_fine_strip,
+		    int c_lev, int f_lev, const Orientation& outFace,
+		    int ncStripWidth)
+{
+  //
+  // Put down to coarser levels.
+  //
+  int nCompPhi = phi_fine_strip.nComp();
+  int nGrow = phi_fine_strip.nGrow();
+
+  IntVect ratio = IntVect::TheUnitVector();
+  for (int lev = f_lev-1; lev >= c_lev; lev--) 
+    {
+      ratio *= parent->refRatio(lev);
+      const Box& domainC = parent->Geom(lev).Domain();
+      Box phiC_strip = ::surroundingNodes(bdryNode(domainC,outFace,ncStripWidth));
+      
+      BoxArray phiC_strip_ba(&phiC_strip,1);
+      MultiFab phi_crse_strip(phiC_strip_ba, nCompPhi, nGrow);
+      phi_crse_strip.setVal(0);
+      
+      for (MultiFabIterator finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
+        {
+	  DependentMultiFabIterator crsemfi(finemfi, phi_crse_strip);
+	  Box ovlp = Box(finemfi.validbox()).coarsen(ratio) & crsemfi.validbox();
+	  FORT_PUTDOWN (crsemfi().dataPtr(),ARLIM(crsemfi().loVect()),
+			ARLIM(crsemfi().hiVect()),
+			finemfi().dataPtr(),ARLIM(finemfi().loVect()),
+			ARLIM(finemfi().hiVect()),
+			ovlp.loVect(),ovlp.hiVect(),ratio.getVect());
+        }
+      phi[lev]->copy(phi_crse_strip);
+    }
+}
+
+void 
+Projection::computeBC(FArrayBox& velFab, FArrayBox& divuFab,
+		      FArrayBox& rhoFab, FArrayBox& phiFab,
+		      const Geometry& geom, const Orientation& outFace)
+{
+#if (BL_SPACEDIM == 2)
+  const Box& domain = geom.Domain();
+  const Real* dx = geom.CellSize();
+
+  //
+  // Make r_i needed in HGPHIBC (set = 1 if cartesian).
+  //
+  int R_DIR = 0;
+  int Z_DIR = 1;
+  int outDir = outFace.coordDir();
+  int perpDir = (outDir == Z_DIR) ? R_DIR : Z_DIR;
+  Box region = Box(::adjCellHi(domain,outDir,1)).shift(outDir, -1);
+  Array<Real> rcen(region.length(perpDir), 1.0);
+  if (CoordSys::IsRZ() && perpDir == R_DIR) 
+    geom.GetCellLoc(rcen, region, perpDir);
+  
+  const int isPeriodic = geom.isPeriodic(perpDir);
+  //
+  // Fill phi_fine_strip with boundary cell values for phi, then
+  // copy into arg data.  Note: Though this looks like a distributed
+  // operation, the MultiFab is built on a single box...this is
+  // necesary currently, since FORT_HGPHIBC requires a slice across
+  // the entire domain
+  //
+
+  // allocate memory for divu, vel, rho
+  int stripWidth = 1;
+  Box edgeBox(::adjCell(domain,outFace,stripWidth));
+  FArrayBox divuExt(edgeBox,1);
+  FArrayBox rhoExt(edgeBox,1);
+  FArrayBox uExt(edgeBox,1);
+  
+  int face = int(outFace);
+  int zeroIt;
+
+  int r_lo=region.smallEnd(perpDir);
+  int r_hi=region.bigEnd(perpDir);
+  
+  FORT_EXTRAP_PROJ(ARLIM(velFab.loVect()),  ARLIM(velFab.hiVect()), velFab.dataPtr(),
+		   ARLIM(divuFab.loVect()), ARLIM(divuFab.hiVect()), divuFab.dataPtr(),
+		   ARLIM(rhoFab.loVect()),    ARLIM(rhoFab.hiVect()),rhoFab.dataPtr(),
+		   &r_lo,&r_hi,rcen.dataPtr(),
+		   ARLIM(uExt.loVect()),  ARLIM(uExt.hiVect()), uExt.dataPtr(),
+		   ARLIM(divuExt.loVect()), ARLIM(divuExt.hiVect()), divuExt.dataPtr(),
+		   ARLIM(rhoExt.loVect()),    ARLIM(rhoExt.hiVect()),rhoExt.dataPtr(),
+		   &face,&zeroIt);
+
+  if (zeroIt)
+    {
+
+      phiFab.setVal(0.0);
+
+    }  else {
+      int length = divuExt.length()[perpDir];
+      BL_ASSERT(length == uExt.length()[perpDir]);
+      BL_ASSERT(length == rhoExt.length()[perpDir]);
+      BL_ASSERT(length == region.length()[perpDir]);
+      FORT_HGPHIBC(&dx[perpDir],rcen.dataPtr(),
+		   uExt.dataPtr(),divuExt.dataPtr(),rhoExt.dataPtr(),&length,
+		   ARLIM(phiFab.loVect()), ARLIM(phiFab.hiVect()), phiFab.dataPtr(),
+		   &face,&isPeriodic);
+
+    }
+#else
+  BoxLib::Error("computeBC not yet implemented for 3d");
+#endif
+}
+
+
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.54 1999-05-26 19:28:54 marc Exp $
+// $Id: MacProj.cpp,v 1.55 1999-07-01 23:56:24 propp Exp $
 //
 
 #include <Misc.H>
@@ -1008,23 +1008,19 @@ MacProj::set_outflow_bcs (int             level,
     //
     //   (1/r)(d/dr)[r/rho dphi/dr] = dv/dr - S
     //
-    // Outflow here is assumed to occur only at yhi faces (should be easy to
-    // generalize, however).
-    //
 #if (BL_SPACEDIM == 2)
     const BoxArray&   grids = LevelData[level].boxArray();
     const Geometry&   geom  = parent->Geom(level);
-    const Orientation outFace(1, Orientation::high);
+
+    bool hasOutFlow;
+    Orientation outFace;
+    getOutFlowFace(hasOutFlow,outFace,phys_bc);
 
     if (!grids_on_side_of_domain(grids,geom.Domain(),outFace)) 
       return;
     //
     // Make sure outflow only occurs at yhi faces.
     //
-    bool hasOutFlow;
-    Orientation _outFace;
-    getOutFlowFace(hasOutFlow,_outFace,phys_bc);
-    BL_ASSERT(_outFace == outFace);
 
     const int rzflag  = CoordSys::IsRZ();
     const Real* dx    = parent->Geom(level).CellSize();
@@ -1033,9 +1029,9 @@ MacProj::set_outflow_bcs (int             level,
     // Load cc data (rho, divu).
     //
     const int bndBxWdth = 1;
-    const int dir       = outFace.coordDir();
+    const int outDir       = outFace.coordDir();
 
-    Box ccBndBox = ::adjCell(domain,outFace,bndBxWdth).shift(dir,-bndBxWdth);
+    Box ccBndBox = ::adjCell(domain,outFace,bndBxWdth).shift(outDir,-bndBxWdth);
     Box phiBox   = ::adjCell(domain,outFace,1);
 
     const Box valid_ccBndBox = ccBndBox & domain;
@@ -1065,31 +1061,36 @@ MacProj::set_outflow_bcs (int             level,
         FArrayBox uedat[BL_SPACEDIM-1];
 
         for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
-            if (i != dir)
+            if (i != outDir)
                 uedat[cnt++].resize(::surroundingNodes(ccBndBox,i), 1);
 
         for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
-            if (i != dir)
+            if (i != outDir)
                 u_mac[i].copy(uedat[cnt++]);
         //
         // Make cc r (set = 1 if cartesian).
         //
-        Array<Real> rcen(ccBndBox.length(0), 1.0);
-
-        if (CoordSys::IsRZ() == 1) 
-            parent->Geom(level).GetCellLoc(rcen, ccBndBox, 0);
+	int R_DIR = 0;
+	int Z_DIR = 1;
+	int perpDir = (outDir == Z_DIR) ? R_DIR : Z_DIR;
+        Array<Real> rcen(ccBndBox.length(perpDir), 1.0);
+        if (CoordSys::IsRZ() && perpDir == R_DIR) 
+            parent->Geom(level).GetCellLoc(rcen, ccBndBox, perpDir);
         //
         // Compute boundary solution.
         //
-        const int isPeriodicInX = parent->Geom(level).isPeriodic(0);
+        const int isPeriodic = parent->Geom(level).isPeriodic(perpDir);
+	int face = int(outFace);
+
+	int r_lo = ccBndBox.smallEnd(perpDir);
+	int r_hi = ccBndBox.bigEnd(perpDir);
 
         FORT_MACPHIBC(ARLIM(uedat[0].loVect()),ARLIM(uedat[0].hiVect()),uedat[0].dataPtr(),
                       ARLIM(divudat.loVect()), ARLIM(divudat.hiVect()),divudat.dataPtr(),
                       ARLIM(rhodat.loVect()),  ARLIM(rhodat.hiVect()), rhodat.dataPtr(),
-                      ARLIM(ccBndBox.loVect()),ARLIM(ccBndBox.hiVect()),
-                      rcen.dataPtr(), &dx[0],
+                      &r_lo, &r_hi, rcen.dataPtr(), &dx[perpDir],
                       ARLIM(phidat.loVect()),  ARLIM(phidat.hiVect()), phidat.dataPtr(),
-                      &isPeriodicInX);
+                      &face,&isPeriodic);
 
         for (MultiFabIterator mfi(*mac_phi); mfi.isValid(); ++mfi)
         {

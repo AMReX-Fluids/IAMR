@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.29 1999-07-01 21:18:28 almgren Exp $
+c $Id: PROJECTION_2D.F,v 1.30 1999-07-01 23:56:25 propp Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -474,8 +474,184 @@ c
 
       end
 
-      subroutine FORT_HGPHIBC(DIMS(u),u,DIMS(div),divcor,DIMS(rho),rho,
-     &                        DIMS(r),r,hx,DIMS(phi),phi,per)
+      subroutine FORT_EXTRAP_PROJ(DIMS(u),u,DIMS(divu),divu,DIMS(rho),rho,
+     &     r_lo,r_hi,r,DIMS(uExt),uExt,DIMS(divuExt),divuExt,
+     &     DIMS(rhoExt),rhoExt,face, zeroIt)
+      implicit none
+
+      integer DIMDEC(u)
+      integer DIMDEC(divu)
+      integer DIMDEC(rho)
+      integer DIMDEC(uExt)
+      integer DIMDEC(divuExt)
+      integer DIMDEC(rhoExt)
+      integer r_lo,r_hi
+      integer face
+      REAL_T      u(DIMV(u),SDIM)
+      REAL_T   divu(DIMV(divu))
+      REAL_T    rho(DIMV(rho))
+      REAL_T   uExt(DIMV(uExt))
+      REAL_T   divuExt(DIMV(divuExt))
+      REAL_T   rhoExt(DIMV(rhoExt))
+      REAL_T   r(r_lo:r_hi)
+      integer  zeroIt
+
+c local variables
+      integer ics,ice,jcs,jce
+      integer ifs,ife,jfs,jfe
+      integer if,jf
+      REAL_T divu_ave, vtot
+      REAL_T max_divu, min_divu
+      REAL_T max_pert, small_pert
+      parameter ( small_pert = SMALL)
+      integer i,j
+
+#define XLO 0
+#define YLO 1
+#define XHI 2
+#define YHI 3
+
+      ics = ARG_L1(u)
+      ice = ARG_H1(u)
+      jcs = ARG_L2(u)
+      jce = ARG_H2(u)
+
+      ifs = ARG_L1(uExt)
+      ife = ARG_H1(uExt)
+      jfs = ARG_L2(uExt)
+      jfe = ARG_H2(uExt)
+
+      zeroIt = 0
+      divu_ave = zero
+      vtot = zero
+
+      if (face .eq. XLO) then
+         if=ife
+         max_divu = divu(ice-1,jcs)
+         min_divu = max_divu
+         do j = jcs, jce
+            uExt(if,j)    = half*(three*u(ice-1,j,2)    - u(ice,j,2))
+            divuExt(if,j) = half*(three*divu(ice-1,j) - divu(ice,j))
+            rhoExt(if,j)  = half*(three*rho(ice-1,j)    - rho(ice,j))
+            
+            divu_ave = divu_ave+divuExt(if,j)
+            vtot = vtot+one
+            max_divu = max(max_divu,divuExt(if,j))
+            min_divu = min(min_divu,divuExt(if,j))
+         end do
+         divu_ave = divu_ave/vtot
+
+         max_pert = ABS(divuExt(if,jcs)-divu_ave)
+         do j = jcs+1, jce
+            max_pert = MAX(max_pert,ABS(divuExt(if,j)-divu_ave))
+         end do
+         max_pert = max_pert/(ABS(divu_ave)+small_pert)
+         if ((max_divu.eq.zero.and.min_divu.eq.zero)
+     &        .or.(max_pert.le.small_pert)) then
+            zeroIt = 1
+            return
+         end if
+         do j = jcs, jce
+            divuExt(if,j) = divuExt(if,j) - divu_ave
+         end do
+      else if (face .eq. YLO) then
+         jf = jfe
+         max_divu = divu(ics,jce-1)
+         min_divu = max_divu
+         do i = ics, ice
+            uExt(i,jf)    = half*(three*u(i,jce-1,1)    - u(i,jce,1))
+            divuExt(i,jf) = half*(three*divu(i,jce-1) - divu(i,jce))
+            rhoExt(i,jf)  = half*(three*rho(i,jce-1)    - rho(i,jce))
+            
+            divu_ave = divu_ave+r(i)*divuExt(i,jf)
+            vtot = vtot+r(i)
+            max_divu = max(max_divu,divuExt(i,jf))
+            min_divu = min(min_divu,divuExt(i,jf))
+         end do
+         divu_ave = divu_ave/vtot
+
+         max_pert = ABS(divuExt(ics,jf)-divu_ave)
+         do i = ics+1, ice
+            max_pert = MAX(max_pert,ABS(divuExt(i,jf)-divu_ave))
+         end do
+         max_pert = max_pert/(ABS(divu_ave)+small_pert)
+         if ((max_divu.eq.zero.and.min_divu.eq.zero)
+     &        .or.(max_pert.le.small_pert)) then
+            zeroIt = .true.
+            return
+         end if
+         do i = ics, ice
+            divuExt(i,jf) = divuExt(i,jf) - divu_ave
+         end do
+      else if (face .eq. XHI) then
+         if = ife
+         max_divu = divu(ics+1,jcs)
+         min_divu = max_divu
+         do j = jcs, jce
+            uExt(if,j)    = half*(three*u(ics+1,j,2)    - u(ics,j,2))
+            divuExt(if,j) = half*(three*divu(ics+1,j) - divu(ics,j))
+            rhoExt(if,j)  = half*(three*rho(ics+1,j)    - rho(ics,j))
+            
+            divu_ave = divu_ave+divuExt(if,j)
+            vtot = vtot+one
+            max_divu = max(max_divu,divuExt(if,j))
+            min_divu = min(min_divu,divuExt(if,j))
+         end do
+         divu_ave = divu_ave/vtot
+
+         max_pert = ABS(divuExt(if,jcs)-divu_ave)
+         do j = jcs+1, jce
+            max_pert = MAX(max_pert,ABS(divuExt(if,j)-divu_ave))
+         end do
+         max_pert = max_pert/(ABS(divu_ave)+small_pert)
+         if ((max_divu.eq.zero.and.min_divu.eq.zero)
+     &        .or.(max_pert.le.small_pert)) then
+            zeroIt = .true.
+            return
+         end if
+         do j = jcs, jce
+            divuExt(if,j) = divuExt(if,j) - divu_ave
+         end do
+      else if (face .eq. YHI) then
+         jf = jfe
+         max_divu = divu(ics,jcs+1)
+         min_divu = max_divu
+         do i = ics, ice
+            uExt(i,jf)    = half*(three*u(i,jcs+1,1)    - u(i,jcs,1))
+            divuExt(i,jf) = half*(three*divu(i,jcs+1) - divu(i,jcs))
+            rhoExt(i,jf)  = half*(three*rho(i,jcs+1)    - rho(i,jcs))
+            
+            divu_ave = divu_ave+r(i)*divuExt(i,jf)
+            vtot = vtot+r(i)
+            max_divu = max(max_divu,divuExt(i,jf))
+            min_divu = min(min_divu,divuExt(i,jf))
+         end do
+         divu_ave = divu_ave/vtot
+
+         max_pert = ABS(divuExt(ics,jf)-divu_ave)
+         do i = ics+1, ice
+            max_pert = MAX(max_pert,ABS(divuExt(i,jf)-divu_ave))
+         end do
+         max_pert = max_pert/(ABS(divu_ave)+small_pert)
+         if ((max_divu.eq.zero.and.min_divu.eq.zero)
+     &        .or.(max_pert.le.small_pert)) then
+            zeroIt = .true.
+            return
+         end if
+         do i = ics, ice
+            divuExt(i,jf) = divuExt(i,jf) - divu_ave
+         end do
+      endif
+#undef XLO
+#undef YLO
+#undef XHI
+#undef YHI
+
+      end
+
+
+      subroutine FORT_HGPHIBC(hx,r,uExt, divuExt,rhoExt,length,
+     &                        DIMS(phi),phi,face,per)
 c
 c     Compute the value of phi for hgproj to be used at an  upper, y-outflow face,
 c     assuming that the tangential velocity on the edges of the outflow boundary
@@ -485,101 +661,42 @@ c
       implicit none
 
       integer DIMDEC(phi)
-      integer DIMDEC(u)
-      integer DIMDEC(div)
-      integer DIMDEC(rho)
-      integer DIMDEC(r)
+      integer length
       integer per
+      integer face
       REAL_T    phi(DIMV(phi))
-      REAL_T      u(DIMV(u),SDIM)
-      REAL_T divcor(DIMV(div))
-      REAL_T    rho(DIMV(rho))
-      REAL_T      r(DIM1(r))
+      REAL_T      r(0:length-1)
+      REAL_T      uExt(0:length-1)
+      REAL_T      divuExt(0:length-1)
+      REAL_T      rhoExt(0:length-1)
       REAL_T hx
       
 c     Local variables
       integer NstripMAX
       parameter (NstripMAX = 1000)
-      integer ics, ice, jcs, jce, ins, ine, jns, jne
-      integer ni, nj, i, j, icL, icR, neq
+      integer ins, ine, ics, ice
+      integer i, j, icL, icR, neq
       REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX), s(NstripMAX)
       REAL_T x(NstripMAX), alpha, beta, sVal
-      REAL_T max_pert, small_pert
-      parameter ( small_pert = SMALL)
       logical rNormed
-      REAL_T divcor_ave, vtot
-      REAL_T div_edge, rho_edge
-      REAL_T div_edge_m1, rho_edge_m1, div_edge_m2, rho_edge_m2
-      REAL_T max_divu, min_divu, phitot, rnode, hdr
-      REAL_T uExt(0:NstripMAX-1)
-      REAL_T divuExt(0:NstripMAX-1)
-      REAL_T rhoExt(0:NstripMAX-1)
+      REAL_T vtot, phitot, rnode, hdr
 
-      ins = ARG_L1(phi)
-      ine = ARG_H1(phi)
-      jns = ARG_L2(phi)
-      jne = ARG_H2(phi)
+#define XLO 0
+#define YLO 1
+#define XHI 2
+#define YHI 3
       
-      ics = ARG_L1(u)
-      ice = ARG_H1(u)
-      jcs = ARG_L2(u)
-      jce = ARG_H2(u)
-      
-c     Get average and extremes of divu.  If == 0, then boundary nodes should be set to
-c     phi = 0.  Assume that cell-centered values are given on a 3-wide strip across the
-c     entire domain--the top row of the box are cell-centered "ghost" cells.  The phi
-c     values are given along a 1-wide strip along the top of the domain.
-#ifndef NDEBUG
-      if ( (ins .ne. ics)   .or.
-     &     (ine .ne. ice+1) .or.
-     &     (jns .ne. jcs+2) .or.
-     &     (jne .ne. jce)   .or.
-     &     (jns .ne. jne) ) then
-         
-         write(6,*) 'FORT_HGPHIBC: bad bounds'
-         stop
-         
-      else if (ine - ins + 1 .gt. NstripMAX) then
-         
-         write(6,*) 'FORT_HGPHIBC: recompile with NstripMAX >',ine-ins+1
-         stop
-         
-      end if
-#endif
-      
-      divcor_ave = zero
-      vtot = zero
-      j = jcs + 1
-      max_divu = divcor(ics,j)
-      min_divu = max_divu
-      do i = ics, ice
-         uExt(i-ics)    = half*(three*u(i,jcs+1,1)    - u(i,jcs,1))
-         divuExt(i-ics) = half*(three*divcor(i,jcs+1) - divcor(i,jcs))
-         rhoExt(i-ics)  = half*(three*rho(i,jcs+1)    - rho(i,jcs))
-         
-         divcor_ave = divcor_ave+r(i)*divuExt(i-ics)
-         vtot = vtot+r(i)
-         max_divu = max(max_divu,divuExt(i-ics))
-         min_divu = min(min_divu,divuExt(i-ics))
-      end do
-      divcor_ave = divcor_ave/vtot
-      max_pert = ABS(divuExt(0)-divcor_ave)
-      do i = ics+1, ice
-         max_pert = MAX(max_pert,ABS(divuExt(i-ics)-divcor_ave))
-      end do
-      max_pert = max_pert/(ABS(divcor_ave)+small_pert)
-      if ((max_divu.eq.zero.and.min_divu.eq.zero)
-     &     .or.(max_pert.le.small_pert)) then
-         do j = ARG_L2(phi),ARG_H2(phi)
-            do i = ARG_L1(phi),ARG_H1(phi)
-               phi(i,j) = zero
-            end do
-         end do
-         return
-      end if
-      do i = ics, ice
-         divuExt(i-ics) = divuExt(i-ics) - divcor_ave
-      end do
+      ics = 0
+      ice = length-1
+
+      if (face .eq. XLO .or. face .eq. XHI) then
+         ins = ARG_L2(phi)
+         ine = ARG_H2(phi)
+      else if (face .eq. YLO .or. face .eq. YHI) then
+         ins = ARG_L1(phi)
+         ine = ARG_H1(phi)
+      endif
+
       
 c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu if U is 
 c     zero, S = d/dt(divu) if U = (ustar - uold)/dt] with periodic or Neumann
@@ -593,17 +710,15 @@ c                        d/dy( 1/rho d/dy( phi ) ) = dV/dy - S_ave
 c     
 c     This information should be used to construct the normal gradient of the
 c     normal velocity, for the advective/diffusive step, for example.
-      hdr = half*(r(ics+1) - r(ics))
-      j = jns
       do i = 2,ine-ins
-         icR = ins + i - 1
-         icL = icR - 1
-         a(i) = r(icL) / rhoExt(icL-ics)
-         c(i) = r(icR) / rhoExt(icR-ics)
+         icR = ics + i - 1
+         icL = ics + i - 2
+         a(i) = r(icL) / rhoExt(icL)
+         c(i) = r(icR) / rhoExt(icR)
          b(i) = - a(i) - c(i)
          rnode = half*(r(icL)+r(icR))
-         s(i) = (r(icR)*uExt(icR-ics)-r(icL)*uExt(icL-ics))*hx
-     &        -  rnode*half*(divuExt(icL-ics)+divuExt(icR-ics))*hx*hx
+         s(i) = (r(icR)*uExt(icR)-r(icL)*uExt(icL))*hx
+     &        -  rnode*half*(divuExt(icL)+divuExt(icR))*hx*hx
       end do
 
       if (per .eq. 1) then
@@ -613,21 +728,21 @@ c     (retain r-stuff here, just to be sure scaling is not destroyed)
          neq = ine - ins
          icL = ice
          icR = ics
-         beta = r(icL) / rhoExt(icL-ics)
-         c(1) = r(icR) / rhoExt(icR-ics)
+         beta = r(icL) / rhoExt(icL)
+         c(1) = r(icR) / rhoExt(icR)
          b(1) = - beta - c(1)
          rnode = half*(r(icL)+r(icR))
-         s(1) = (r(icR)*uExt(icR-ics)-r(icL)*uExt(icL-ics))*hx
-     &        -  rnode*half*(divuExt(icL-ics)+divuExt(icR-ics))*hx*hx
+         s(1) = (r(icR)*uExt(icR)-r(icL)*uExt(icL))*hx
+     &        -  rnode*half*(divuExt(icL)+divuExt(icR))*hx*hx
          
 c     Do right-side periodic on penultimate node
          icL = ice - 1
          icR = ice
-         a(neq) = r(icL) / rhoExt(icL-ics)
-         alpha  = r(icR) / rhoExt(icR-ics)
+         a(neq) = r(icL) / rhoExt(icL)
+         alpha  = r(icR) / rhoExt(icR)
          b(neq) = - a(neq) - alpha
-         s(neq) = (r(icR)*uExt(icR-ics)-r(icL)*uExt(icL-ics))*hx
-     &        -  rnode*half*(divuExt(icL-ics)+divuExt(icR-ics))*hx*hx
+         s(neq) = (r(icR)*uExt(icR)-r(icL)*uExt(icL))*hx
+     &        -  rnode*half*(divuExt(icL)+divuExt(icR))*hx*hx
          
 c     Solve the equations
          call cyclic(a,b,c,alpha,beta,s,x,neq)
@@ -635,21 +750,21 @@ c     Solve the equations
       else
 
 c     Solid walls, Nuemann conditions
-         
+         hdr = half*(r(ics+1) - r(ics))
          neq = ine - ins + 1
          icR = ics
          c(1) = r(icR) / rhoExt(icR-ics)
          b(1) = - c(1)
          rnode = r(ics) - hdr
-         s(1) = r(icR)*uExt(icR-ics)*hx
-     &        -  rnode*half*divuExt(icR-ics)*hx*hx
+         s(1) = r(icR)*uExt(icR)*hx
+     &        -  rnode*half*divuExt(icR)*hx*hx
         
          icL = ice
-         a(neq) = r(icL) / rhoExt(icL-ics)
+         a(neq) = r(icL) / rhoExt(icL)
          b(neq) = - a(neq)
          rnode = r(ice) + hdr
-         s(neq) = -r(icL)*uExt(icL-ics)*hx
-     &        -  rnode*half*divuExt(icL-ics)*hx*hx
+         s(neq) = -r(icL)*uExt(icL)*hx
+     &        -  rnode*half*divuExt(icL)*hx*hx
          
          
 c     Solve the equations (we know they're singular, pass the arbitrary value, and
@@ -683,15 +798,27 @@ c     Try normalizing phi to average to zero
       end do
       
 c     Write the solution into the arg
-      do i = 1,neq
-         phi(i+ins-1,jns) = x(i)
-      end do
-      if (per .eq. 1) then
-         phi(ine,jns) = phi(ins,jns)
-      end if
+      if (face .eq. XLO .or. face .eq. XHI) then
+         do i = 1,neq
+            phi(ARG_L1(phi),i+ARG_L2(phi)-1) = x(i)
+         end do
+         if (per .eq. 1) then
+            phi(ARG_L1(phi),ARG_H2(phi)) = phi(ARG_L1(phi),ARG_L2(phi))
+         end if
+      else if (face .eq. YLO .or. face .eq. YHI) then
+         do i = 1,neq
+            phi(i+ARG_L1(phi)-1,ARG_L2(phi)) = x(i)
+         end do
+         if (per .eq. 1) then
+            phi(ARG_H1(phi),ARG_L2(phi)) = phi(ARG_L1(phi),ARG_L2(phi))
+         end if
+      endif
+#undef XLO
+#undef YLO
+#undef XHI
+#undef YHI
       
       end
-      
       SUBROUTINE tridag_sing(a,b,c,r,u,n,sVal,rNormed)
       INTEGER n,NMAX
       REAL_T a(n),b(n),c(n),r(n),u(n), sVal

@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.27 1999-07-01 20:07:25 almgren Exp $
+// $Id: Projection.H,v 1.28 1999-07-01 23:56:25 propp Exp $
 //
 
 #include <BC_TYPES.H>
@@ -281,6 +281,16 @@ protected:
                                               int        c_lev,
                                               Real       start_time,
                                               Real       dt);
+  
+    void putDown(MultiFab** phi, MultiFab& phi_fine_strip,
+		 int c_lev, int f_lev, const Orientation& outFace,
+		 int ncStripWidth);
+
+
+    void computeBC(FArrayBox& vel, FArrayBox& divu,
+		   FArrayBox& rho, FArrayBox& phi,
+		   const Geometry& geom, const Orientation& outFace);
+
 protected:
     //
     // Pointers to amrlevel and amr.

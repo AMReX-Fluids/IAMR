@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_2D.F,v 1.10 1999-05-19 21:26:31 marc Exp $
+c $Id: MACPROJ_2D.F,v 1.11 1999-07-01 23:56:24 propp Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -136,7 +136,7 @@ c ::
        end
 
       subroutine FORT_MACPHIBC(DIMS(u),u,DIMS(div),divcor,DIMS(rho),rho,
-     &                         DIMS(r),r,hx,DIMS(phi),phi,per)
+     &                         r_lo,r_hi,r,hx,DIMS(phi),phi,face,per)
 c
 c     Compute the value of phi for macproj to be used at an  upper, y-outflow face,
 c     assuming that the tangential velocity on the edges of the outflow boundary
@@ -148,13 +148,14 @@ c
       integer DIMDEC(u)
       integer DIMDEC(div)
       integer DIMDEC(rho)
-      integer DIMDEC(r)
+      integer r_lo,r_hi
       integer per
+      integer face
       REAL_T    phi(DIMV(phi))
       REAL_T      u(DIMV(u))
       REAL_T divcor(DIMV(div))
       REAL_T    rho(DIMV(rho))
-      REAL_T      r(DIM1(r))
+      REAL_T      r(r_lo:r_hi)
       REAL_T hx
       
 c     Local variables
@@ -163,20 +164,26 @@ c     Local variables
       REAL_T small_udiff, small_pert
       parameter (small_udiff = SMALL)
       parameter ( small_pert = SMALL)
-      integer i, ii, j, neq
+      integer i, ii, j, jj, neq,n
       REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX), s(NstripMAX)
       REAL_T x(NstripMAX), alpha, beta, sVal
       logical rNormed
       REAL_T divcor_ave, vtot
       REAL_T rL, rR, diff
       REAL_T max_divu, min_divu, max_pert, phitot
-
+      integer rstart
+      integer rho_start,rho_end
+#define XLO 0
+#define YLO 1
+#define XHI 2
+#define YHI 3
 c     NOTE: Assumes that rho at edge between i, i-1 = half*(rho(i)+rho(i-1))
 c             (1) Linear fit of rho between nodes
 c             (2) rho, divcor on same boxes (box), and r(ARG_L1(rho),ARG_L2(rho))
 c             (3) phi is on box, shifted up one
 c             (4) u is edge-based, on surroundingNodes(box)
 #ifndef NDEBUG
+#if 0
       if (ARG_H1(phi) - ARG_L1(phi) + 1 .gt. NstripMAX) then
          
          write(6,*) 'FORT_MACPHIBC: recompile with NstripMAX >',
@@ -188,11 +195,11 @@ c             (4) u is edge-based, on surroundingNodes(box)
 c     Check assumptions on input data
       if ( (ARG_L1(rho).ne.ARG_L1(div))   .or.
      &     (ARG_L1(rho).ne.ARG_L1(u))     .or.
-     &     (ARG_L1(rho).ne.ARG_L1(r))     .or.
+     &     (ARG_L1(rho).ne.r_lo)     .or.
      &     (ARG_L1(rho).ne.ARG_L1(phi))   .or.
      &     (ARG_H1(rho).ne.ARG_H1(div))   .or.
      &     (ARG_H1(rho).ne.ARG_H1(u)-1)   .or.
-     &     (ARG_H1(rho).ne.ARG_H1(r))     .or.
+     &     (ARG_H1(rho).ne.r_hi)     .or.
      &     (ARG_H1(rho).ne.ARG_H1(phi))   .or.
      &     (ARG_L2(rho).ne.ARG_L2(div))   .or.
      &     (ARG_L2(rho).ne.ARG_L2(phi)-1) .or.
@@ -203,7 +210,7 @@ c     Check assumptions on input data
          write(6,*) 'FORT_MACPHIBC: bad size for input data'
          stop
       endif
-      
+#endif      
 #endif
 
 c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu] w/periodic or
@@ -224,21 +231,41 @@ c     Compute average of divu over outflow bc.  Set trivial solution if average
 c     is zero, or if divu is constant
       divcor_ave = zero
       vtot = zero
-      j = ARG_H2(rho)
-      max_divu = divcor(ARG_L1(rho),j)
-      min_divu = max_divu
-      do i = ARG_L1(rho), ARG_H1(rho)
-         divcor_ave = divcor_ave+r(i)*divcor(i,j)
-         vtot = vtot+r(i)
-         max_divu = max(max_divu,divcor(i,j))
-         min_divu = min(min_divu,divcor(i,j))
-      end do
-      divcor_ave = divcor_ave/vtot
-      max_pert = ABS(divcor(ARG_L1(rho),j)-divcor_ave)
-      do i = ARG_L1(rho)+1, ARG_H1(rho)
-         max_pert = MAX(max_pert,ABS(divcor(i,j)-divcor_ave))
-      end do
-      max_pert = max_pert/(ABS(divcor_ave)+small_pert)
+
+      if (face .eq. XLO .or. face .eq. XHI) then
+         i = ARG_H1(rho)
+         max_divu = divcor(i,ARG_L2(rho))
+         min_divu = max_divu
+         do j = ARG_L2(rho), ARG_H2(rho)
+            divcor_ave = divcor_ave+r(j)*divcor(i,j)
+            vtot = vtot+r(j)
+            max_divu = max(max_divu,divcor(i,j))
+            min_divu = min(min_divu,divcor(i,j))
+         end do
+         divcor_ave = divcor_ave/vtot
+         max_pert = ABS(divcor(i,ARG_L2(rho))-divcor_ave)
+         do j = ARG_L2(rho)+1, ARG_H2(rho)
+            max_pert = MAX(max_pert,ABS(divcor(i,j)-divcor_ave))
+         end do
+         max_pert = max_pert/(ABS(divcor_ave)+small_pert)
+      else if (face .eq. YLO .or. face .eq. YHI) then
+         j = ARG_H2(rho)
+         max_divu = divcor(ARG_L1(rho),j)
+         min_divu = max_divu
+         do i = ARG_L1(rho), ARG_H1(rho)
+            divcor_ave = divcor_ave+r(i)*divcor(i,j)
+            vtot = vtot+r(i)
+            max_divu = max(max_divu,divcor(i,j))
+            min_divu = min(min_divu,divcor(i,j))
+         end do
+         divcor_ave = divcor_ave/vtot
+         max_pert = ABS(divcor(ARG_L1(rho),j)-divcor_ave)
+         do i = ARG_L1(rho)+1, ARG_H1(rho)
+            max_pert = MAX(max_pert,ABS(divcor(i,j)-divcor_ave))
+         end do
+         max_pert = max_pert/(ABS(divcor_ave)+small_pert)
+      endif
+      
       if ((max_divu.eq.zero.and.min_divu.eq.zero)
      &     .or.(max_pert.le.small_pert)) then
          do j = ARG_L2(phi),ARG_H2(phi)
@@ -249,90 +276,176 @@ c     is zero, or if divu is constant
          return
       end if
 
-      
 c     Carry out non-trivial solve.  First set interior equations, then do BC's
-      neq = ARG_H1(rho) - ARG_L1(rho) + 1
-      do i = 2,neq-1
-         ii = i + ARG_L1(rho) - 1
-         rL = half*(r(ii)+r(ii-1))
-         rR = half*(r(ii)+r(ii+1))
-         a(i)=two*rL/(rho(ii,j)+rho(ii-1,j))
-         c(i)=two*rR/(rho(ii,j)+rho(ii+1,j))
-         b(i)=- a(i) - c(i)
-         s(i)=(rR*u(ii+1,j)-rL*u(ii,j))*hx - r(ii)*(divcor(ii,j)-divcor_ave)*hx*hx
-      end do
-
-      if (per .eq. 1) then
-
+      if (face .eq. XLO .or. face .eq. XHI) then
+         rho_start = ARG_L2(rho)
+         rho_end   = ARG_H2(rho)
+         neq = rho_end - rho_start + 1
+         i = ARG_H1(rho)
+         do n = 2,neq-1
+            j = n + rho_start - 1
+            rL = half*(r(j)+r(j-1))
+            rR = half*(r(j)+r(j+1))
+            a(n)=two*rL/(rho(i,j)+rho(i,j-1))
+            c(n)=two*rR/(rho(i,j)+rho(i,j+1))
+            b(n)=- a(n) - c(n)
+            s(n)=(rR*u(i,j+1)-rL*u(i,j))*hx - r(j)*(divcor(i,j)-divcor_ave)*hx*hx
+         end do
+         
+         if (per .eq. 1) then
+            
 c     Make sure u_mac is periodic
-         diff = u(ARG_L1(u),j) - u(ARG_H1(u),j)
-         if (ABS(diff) .gt. small_udiff) then
-            write(6,*) 'MACPHIBC: periodic umac screwy.  diff =',diff
-            stop
-         endif
-         
+            diff = u(i,ARG_L2(u)) - u(i,ARG_H2(u))
+            if (ABS(diff) .gt. small_udiff) then
+               write(6,*) 'MACPHIBC: periodic umac screwy.  diff =',diff
+               stop
+            endif
+            
 c     Do left-side periodic BC (keep r in there to guarantee correct scaling)
-         ii = ARG_L1(rho)
-         rL = half*(r(ii)+r(ARG_H1(rho)))
-         rR = half*(r(ii)+r(ii+1))
-         beta=two*rL/(rho(ii,j)+rho(ARG_H1(rho),j))
-         c(1)=two*rR/(rho(ii,j)+rho(ii+1,j))
-         b(1)=- beta - c(1)
-         s(1)=(rR*u(ii+1,j)-rL*u(ii,j))*hx - r(ii)*(divcor(ii,j)-divcor_ave)*hx*hx
-         
+            i = rho_start
+            rL = half*(r(j)+r(rho_end))
+            rR = half*(r(j)+r(j+1))
+            beta=two*rL/(rho(i,j)+rho(i,rho_end))
+            c(1)=two*rR/(rho(i,j)+rho(i,j+1))
+            b(1)=- beta - c(1)
+            s(1)=(rR*u(i,j+1)-rL*u(i,j))*hx - r(j)*(divcor(i,j)-divcor_ave)*hx*hx
+            
 c     Do right-side periodic
-         ii = ARG_H1(rho)
-         rL = half*(r(ii)+r(ii-1))
-         rR = half*(r(ARG_L1(rho))+r(ii))
-         a(neq)=two*rL/(rho(ii,j)+rho(ii-1,j))
-         alpha=two*rR/(rho(ii,j)+rho(ARG_L1(rho),j))
-         b(neq)=- a(neq) - alpha
-         s(neq)=(rR*u(ii+1,j)-rL*u(ii,j))*hx - r(ii)*(divcor(ii,j)-divcor_ave)*hx*hx
-         
+            i = rho_end
+            rL = half*(r(j)+r(j-1))
+            rR = half*(r(rho_start)+r(j))
+            a(neq)=two*rL/(rho(i,j)+rho(i,j-1))
+            alpha=two*rR/(rho(i,j)+rho(i,rho_start))
+            b(neq)=- a(neq) - alpha
+            s(neq)=(rR*u(i,j+1)-rL*u(i,j))*hx - r(j)*(divcor(i,j)-divcor_ave)*hx*hx
+            
 c     Solve the equations
-         call cyclic(a,b,c,alpha,beta,s,x,neq)
-         
-      else
-
+            call cyclic(a,b,c,alpha,beta,s,x,neq)
+            
+         else
+            
 c     Solid walls, Nuemann conditions (dphi/dx=u=0)
-         ii = ARG_L1(rho)
-         rR = half*(r(ii)+r(ii+1))
-         c(1) = two*rR/(rho(ii,j)+rho(ii+1,j))
-         b(1) = - c(1)
-         s(1)= rR*u(ii+1,j)*hx - r(ii)*(divcor(ii,j)-divcor_ave)*hx*hx
-         
-
-         ii = ARG_H1(rho)
-         rL = half*(r(ii)+r(ii-1))
-         a(neq) = two*rL/(rho(ii,j)+rho(ii-1,j))
-         b(neq) = - a(neq)
-         s(neq)=-rL*u(ii,j)*hx - r(ii)*(divcor(ii,j)-divcor_ave)*hx*hx
-         
+            i = rho_start
+            rR = half*(r(j)+r(j+1))
+            c(1) = two*rR/(rho(i,j)+rho(i,j+1))
+            b(1) = - c(1)
+            s(1)= rR*u(i,j+1)*hx - r(j)*(divcor(i,j)-divcor_ave)*hx*hx
+            
+            
+            i = rho_end
+            rL = half*(r(j)+r(j-1))
+            a(neq) = two*rL/(rho(i,j)+rho(i,j-1))
+            b(neq) = - a(neq)
+            s(neq)=-rL*u(i,j)*hx - r(j)*(divcor(i,j)-divcor_ave)*hx*hx
+            
 c     Solve the equations (we know they're singular, pass the arbitrary value, and
 c     a flag that we've already normalized the rhs, in the sense that
-c                          Int[dU/dx - (S-S_ave)] == 0
-         sVal = zero
-         rNormed = .true.
-         call tridag_sing(a,b,c,s,x,neq,sVal,rNormed)
+c     Int[dU/dx - (S-S_ave)] == 0
+            sVal = zero
+            rNormed = .true.
+            call tridag_sing(a,b,c,s,x,neq,sVal,rNormed)
+            
+         end if
+      else if (face .eq. YLO .or. face .eq. YHI) then
+         rho_start = ARG_L1(rho)
+         rho_end   = ARG_H1(rho)
+         neq = rho_end - rho_start + 1
+         j = ARG_H2(rho)
+         do n = 2,neq-1
+            i = n + rho_start - 1
+            rL = half*(r(i)+r(i-1))
+            rR = half*(r(i)+r(i+1))
+            a(n)=two*rL/(rho(i,j)+rho(i-1,j))
+            c(n)=two*rR/(rho(i,j)+rho(i+1,j))
+            b(n)=- a(n) - c(n)
+            s(n)=(rR*u(i+1,j)-rL*u(i,j))*hx - r(i)*(divcor(i,j)-divcor_ave)*hx*hx
+         end do
          
+         if (per .eq. 1) then
+            
+c     Make sure u_mac is periodic
+            diff = u(ARG_L1(u),j) - u(ARG_H1(u),j)
+            if (ABS(diff) .gt. small_udiff) then
+               write(6,*) 'MACPHIBC: periodic umac screwy.  diff =',diff
+               stop
+            endif
+            
+c     Do left-side periodic BC (keep r in there to guarantee correct scaling)
+            i = rho_start
+            rL = half*(r(i)+r(rho_end))
+            rR = half*(r(i)+r(i+1))
+            beta=two*rL/(rho(i,j)+rho(rho_end,j))
+            c(1)=two*rR/(rho(i,j)+rho(i+1,j))
+            b(1)=- beta - c(1)
+            s(1)=(rR*u(i+1,j)-rL*u(i,j))*hx - r(i)*(divcor(i,j)-divcor_ave)*hx*hx
+            
+c     Do right-side periodic
+            i = rho_end
+            rL = half*(r(i)+r(i-1))
+            rR = half*(r(rho_start)+r(i))
+            a(neq)=two*rL/(rho(i,j)+rho(i-1,j))
+            alpha=two*rR/(rho(i,j)+rho(rho_start,j))
+            b(neq)=- a(neq) - alpha
+            s(neq)=(rR*u(i+1,j)-rL*u(i,j))*hx - r(i)*(divcor(i,j)-divcor_ave)*hx*hx
+            
+c     Solve the equations
+            call cyclic(a,b,c,alpha,beta,s,x,neq)
+            
+         else
+            
+c     Solid walls, Nuemann conditions (dphi/dx=u=0)
+            i = rho_start
+            rR = half*(r(i)+r(i+1))
+            c(1) = two*rR/(rho(i,j)+rho(i+1,j))
+            b(1) = - c(1)
+            s(1)= rR*u(i+1,j)*hx - r(i)*(divcor(i,j)-divcor_ave)*hx*hx
+            
+            
+            i = rho_end
+            rL = half*(r(i)+r(i-1))
+            a(neq) = two*rL/(rho(i,j)+rho(i-1,j))
+            b(neq) = - a(neq)
+            s(neq)=-rL*u(i,j)*hx - r(i)*(divcor(i,j)-divcor_ave)*hx*hx
+            
+c     Solve the equations (we know they're singular, pass the arbitrary value, and
+c     a flag that we've already normalized the rhs, in the sense that
+c     Int[dU/dx - (S-S_ave)] == 0
+            sVal = zero
+            rNormed = .true.
+            call tridag_sing(a,b,c,s,x,neq,sVal,rNormed)
+            
+         end if
       end if
 
 c     Try normalizing phi to average to zero
       phitot = zero
       vtot = zero
-      do i = 1,neq
-         phitot = phitot + x(i)*r(ARG_L1(rho)+i-1)
-         vtot = vtot + r(ARG_L1(rho)+i-1)
+      if (face .eq. XLO .or. face .eq. XHI) then
+         rstart = ARG_L2(rho)
+      else if (face .eq. YLO .or. face .eq. YHI) then
+         rstart = ARG_L1(rho)
+      endif
+      do n = 1,neq
+         phitot = phitot + x(n)*r(rstart+n-1)
+         vtot = vtot + r(rstart+n-1)
       end do
       phitot = phitot / vtot
-      do i = 1,neq
-         x(i) = x(i) - phitot
+      do n = 1,neq
+         x(n) = x(n) - phitot
       end do
 
 c     Write the solution into the arg
-      j = ARG_H2(phi)
-      do i = 1,neq
-         phi(ARG_L1(phi)-1+i,j) = x(i)
-      end do
-      
+      if (face .eq. XLO .or. face .eq. XHI) then
+         do n = 1,neq
+            phi(ARG_H1(phi),ARG_L2(phi)-1+n) = x(n)
+         end do
+      else if (face .eq. YLO .or. face .eq. YHI) then
+         do n = 1,neq
+            phi(ARG_L1(phi)-1+n,ARG_H2(phi)) = x(n)
+         end do
+      endif
+#undef XLO
+#undef YLO
+#undef XHI
+#undef YHI
       end
