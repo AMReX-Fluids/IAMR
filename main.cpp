@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.39 2001-08-01 21:51:01 lijewski Exp $
+// $Id: main.cpp,v 1.40 2001-09-21 21:46:27 lijewski Exp $
 //
 
 #include <cstdio>
@@ -14,9 +14,7 @@
 #include <ParallelDescriptor.H>
 #include <AmrLevel.H>
 #include <TagBox.H>
-#ifdef BL_USE_MPI
 #include <hgparallel.H>
-#endif
 
 #ifndef NDEBUG
 
@@ -136,12 +134,10 @@ main (int   argc,
     Real stop_time;
 
     ParmParse pp;
-#ifdef BL_USE_MPI
     //
     // Initialize some Holy Grail junk.
     //
     HG::MPI_init();
-#endif
 
     max_step  = -1;    
     strt_time =  0.0;  
@@ -175,9 +171,7 @@ main (int   argc,
     //
     // Close down the Holy Grail junk.
     //
-#ifdef BL_USE_MPI
     HG::MPI_finish();
-#endif
 
     if (CArena* arena = dynamic_cast<CArena*>(The_FAB_Arena))
     {
