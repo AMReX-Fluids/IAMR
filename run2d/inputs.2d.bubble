@@ -150,13 +150,11 @@ fab.format = NATIVE
 #
 #   DistributionMapping.strategy = ROUNDROBIN
 #   DistributionMapping.strategy = KNAPSACK
-#   DistributionMapping.strategy = RANDOM
-#   DistributionMapping.strategy = SIZEBALANCED
 #
 # The default strategy is ROUNDROBIN.
 #
-DistributionMapping.strategy = KNAPSACK
 DistributionMapping.strategy = ROUNDROBIN
+DistributionMapping.strategy = KNAPSACK
 
 #**********************************
 #GRIDDING CONTROLS (these are optional)
