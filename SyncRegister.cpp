@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.26 1998-05-20 19:34:59 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.27 1998-05-20 19:59:18 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -607,6 +607,33 @@ FillExtDir (FArrayBox&       dstfab,
 }
 
 void
+SyncRegister::incrementPeriodic (const Geometry& crse_geom,
+                                 const Box&      crse_node_domain,
+                                 const Box&      cboxlo,
+                                 const Box&      cboxhi,
+                                 FArrayBox&      cfablo,
+                                 FArrayBox&      cfabhi,
+                                 Array<IntVect>& pshifts)
+{
+    crse_geom.periodicShift(crse_node_domain, cboxlo, pshifts);
+
+    for (int iiv = 0; iiv < pshifts.length(); iiv++)
+    {
+        cfablo.shift(pshifts[iiv]);
+        increment(cfablo);
+        cfablo.shift(-pshifts[iiv]);
+    }
+    crse_geom.periodicShift(crse_node_domain, cboxhi, pshifts);
+
+    for (int iiv = 0; iiv < pshifts.length(); iiv++)
+    {
+        cfabhi.shift(pshifts[iiv]);
+        increment(cfabhi);
+        cfabhi.shift(-pshifts[iiv]);
+    }
+}
+
+void
 SyncRegister::FineDVAdd (const MultiFab& U, 
                          const Real*     dx_fine, 
                          const Geometry& crse_geom, 
@@ -722,22 +749,9 @@ SyncRegister::FineDVAdd (const MultiFab& U,
 
             if (crse_geom.isAnyPeriodic())
             {
-                crse_geom.periodicShift(crse_node_domain, cboxlo, pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    cfablo.shift(pshifts[iiv]);
-                    increment(cfablo);
-                    cfablo.shift(-pshifts[iiv]);
-                }
-                crse_geom.periodicShift(crse_node_domain, cboxhi, pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    cfabhi.shift(pshifts[iiv]);
-                    increment(cfabhi);
-                    cfabhi.shift(-pshifts[iiv]);
-                }
+                incrementPeriodic(crse_geom,crse_node_domain,
+                                  cboxlo,cboxhi,
+                                  cfablo,cfabhi,pshifts);
             }
         }
     }
@@ -1128,22 +1142,9 @@ SyncRegister::CompDVAdd (const MultiFab& U,
 
             if (crse_geom.isAnyPeriodic())
             {
-                crse_geom.periodicShift(crse_node_domain, cboxlo, pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    cfablo.shift(pshifts[iiv]);
-                    increment(cfablo);
-                    cfablo.shift(-pshifts[iiv]);
-                }
-                crse_geom.periodicShift(crse_node_domain, cboxhi, pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    cfabhi.shift(pshifts[iiv]);
-                    increment(cfabhi);
-                    cfabhi.shift(-pshifts[iiv]);
-                }
+                incrementPeriodic(crse_geom,crse_node_domain,
+                                  cboxlo,cboxhi,
+                                  cfablo,cfabhi,pshifts);
             }
         }
     }
@@ -1350,22 +1351,9 @@ SyncRegister::FineLPhiAdd (const MultiFab& Phi,
 
             if (crse_geom.isAnyPeriodic())
             {
-                crse_geom.periodicShift(crse_node_domain, cboxlo, pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    cfablo.shift(pshifts[iiv]);
-                    increment(cfablo);
-                    cfablo.shift(-pshifts[iiv]);
-                }
-                crse_geom.periodicShift(crse_node_domain, cboxhi, pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    cfabhi.shift(pshifts[iiv]);
-                    increment(cfabhi);
-                    cfabhi.shift(-pshifts[iiv]);
-                }
+                incrementPeriodic(crse_geom,crse_node_domain,
+                                  cboxlo,cboxhi,
+                                  cfablo,cfabhi,pshifts);
             }
         }
     }
@@ -1532,22 +1520,9 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
             //
             if (crse_geom.isAnyPeriodic())
             {
-                crse_geom.periodicShift(crse_node_domain, cboxlo, pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    cfablo.shift(pshifts[iiv]);
-                    increment(cfablo);
-                    cfablo.shift(-pshifts[iiv]);
-                }
-                crse_geom.periodicShift(crse_node_domain, cboxhi, pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    cfabhi.shift(pshifts[iiv]);
-                    increment(cfabhi);
-                    cfabhi.shift(-pshifts[iiv]);
-                }
+                incrementPeriodic(crse_geom,crse_node_domain,
+                                  cboxlo,cboxhi,
+                                  cfablo,cfabhi,pshifts);
             }
         }
     }

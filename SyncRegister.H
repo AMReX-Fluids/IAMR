@@ -2,7 +2,7 @@
 #define _SYNCREGISTER_H_
 
 //
-// $Id: SyncRegister.H,v 1.9 1998-05-18 22:08:55 lijewski Exp $
+// $Id: SyncRegister.H,v 1.10 1998-05-20 19:59:17 lijewski Exp $
 //
 
 #include <PArray.H>
@@ -116,6 +116,14 @@ protected:
     // Helper member functions.
     //
     void increment (const FArrayBox& fab);
+
+    void incrementPeriodic (const Geometry& crse_geom,
+                            const Box&      crse_node_domain,
+                            const Box&      cboxlo,
+                            const Box&      cboxhi,
+                            FArrayBox&      cfablo,
+                            FArrayBox&      cfabhi,
+                            Array<IntVect>& pshifts);
 };
 
 #endif /*_SYNCREGISTER_H_*/
