@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.58 2000-04-20 20:50:56 sstanley Exp $
+// $Id: NavierStokes.H,v 1.59 2000-04-21 22:27:31 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -770,5 +770,9 @@ protected:
     static int  S_in_vel_diffusion;
     static int  do_init_vort_proj;
     static int  do_init_proj;
+    //
+    // Running statistics controls
+    //
+    static int  do_running_statistics;
 };
 #endif /*_NavierStokes_H_*/

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.162 2000-04-20 20:50:57 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.163 2000-04-21 22:27:31 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -110,6 +110,7 @@ int  NavierStokes::do_init_proj           = 1;
 int  NavierStokes::do_refine_outflow      = 0;
 int  NavierStokes::do_derefine_outflow    = 1;
 int  NavierStokes::Nbuf_outflow           = 1;
+int  NavierStokes::do_running_statistics  = 0;
 
 
 //     
@@ -345,6 +346,11 @@ NavierStokes::read_params ()
     pp.query("Nbuf_outflow",Nbuf_outflow);
     BL_ASSERT(Nbuf_outflow >= 0);
     BL_ASSERT(!(Nbuf_outflow <= 0 && do_derefine_outflow == 1));
+
+    //
+    // Check whether we are doign runnign statistics
+    //
+    pp.query("do_running_statistics",do_running_statistics);
 }
 
 NavierStokes::NavierStokes ()
