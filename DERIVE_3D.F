@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.13 1999-07-01 21:49:21 almgren Exp $
+c $Id: DERIVE_3D.F,v 1.14 1999-07-02 21:39:36 propp Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1147,13 +1147,13 @@ c
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-            gpx = fourth * (p(i+1,j,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i,j+1,k  )+
-     $                      p(i+1,j,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i,j+1,k+1))/dx(1)
-            gpy = fourth * (p(i,j+1,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i+1,j,k  )+
-     $                      p(i,j+1,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i+1,j,k+1))/dx(2)
-            gpz = fourth * (p(i,  j,k+1)-p(i,  j,k)+p(i,  j+1,k+1)-p(i,  j+1,k)+
-     $                      p(i+1,j,k+1)-p(i+1,j,k)+p(i+1,j+1,k+1)-p(i+1,j+1,k))/dx(3)
-            grdp(i,j,1) = sqrt(gpx**2 + gpy**2 + gpz**2)
+            gpx = fourth * (p(i+1,j,k  ,1)-p(i,j,k  ,1)+p(i+1,j+1,k  ,1)-p(i,j+1,k  ,1)+
+     $                      p(i+1,j,k+1,1)-p(i,j,k+1,1)+p(i+1,j+1,k+1,1)-p(i,j+1,k+1,1))/dx(1)
+            gpy = fourth * (p(i,j+1,k  ,1)-p(i,j,k  ,1)+p(i+1,j+1,k  ,1)-p(i+1,j,k  ,1)+
+     $                      p(i,j+1,k+1,1)-p(i,j,k+1,1)+p(i+1,j+1,k+1,1)-p(i+1,j,k+1,1))/dx(2)
+            gpz = fourth * (p(i,  j,k+1,1)-p(i,  j,k,1)+p(i,  j+1,k+1,1)-p(i,  j+1,k,1)+
+     $                      p(i+1,j,k+1,1)-p(i+1,j,k,1)+p(i+1,j+1,k+1,1)-p(i+1,j+1,k,1))/dx(3)
+            grdp(i,j,k,1) = sqrt(gpx**2 + gpy**2 + gpz**2)
           end do
         end do
       end do
