@@ -1,6 +1,6 @@
 
 //
-// $Id: main.cpp,v 1.37 2000-11-27 18:17:53 lijewski Exp $
+// $Id: main.cpp,v 1.38 2001-02-27 18:49:44 lijewski Exp $
 //
 
 #ifdef BL3_PROFILING
@@ -252,6 +252,12 @@ main (int   argc,
     }
 
     delete amrptr;
+    //
+    // Close down the Holy Grail junk.
+    //
+#ifdef BL_USE_MPI
+    HG::MPI_finish();
+#endif
     //
     // This MUST follow the above delete as ~Amr() may dump files to disk.
     //
