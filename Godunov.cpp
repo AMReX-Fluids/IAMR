@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.32 2003-02-18 21:35:03 almgren Exp $
+// $Id: Godunov.cpp,v 1.33 2003-02-18 21:39:56 almgren Exp $
 //
 
 //
@@ -324,6 +324,11 @@ Godunov::edge_states     (const Box&  grd,
                           AdvectionScheme advection_scheme)
 
 { 
+
+#if (BL_SPACEDIM == 3)
+  BL_ASSERT(advection_scheme != BDS);
+#endif
+
   if (advection_scheme == PRE_MAC) 
      edge_states_orig(grd,dx,dt,velpred,uedge,stx,vedge,sty,
 #if (BL_SPACEDIM == 3)
@@ -338,12 +343,11 @@ Godunov::edge_states     (const Box&  grd,
 #endif
                      S,tforces,divu,fab_ind,state_ind,bc,iconserv);
 
+#if (BL_SPACEDIM == 2)
   if (advection_scheme == BDS) 
      edge_states_bds(grd,dx,dt,velpred,uedge,stx,vedge,sty,
-#if (BL_SPACEDIM == 3)
-                     wedge,stz,
-#endif
                      S,tforces,divu,fab_ind,state_ind,bc,iconserv);
+#endif
 } 
 void
 Godunov::edge_states_orig (const Box&  grd,
