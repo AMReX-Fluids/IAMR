@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.4 2000-06-27 16:05:04 sstanley Exp $
+c $Id: FLUCTFILE.F,v 1.5 2000-06-29 20:49:05 sstanley Exp $
 c
 
 #undef BL_LANG_CC
@@ -254,9 +254,6 @@ c     *** Local Variables ***
 c
       integer i, j, k, ijoff, ipad, kpad
       REAL_T dummy
-      REAL_T locDat(:,:,:)
-      allocatable locDat
-      allocate (locDat(dimFile(1),dimFile(2),dimFile(3)))
 
 
 c
