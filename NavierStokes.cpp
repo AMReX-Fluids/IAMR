@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.84 1998-07-16 23:18:01 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.85 1998-07-24 01:23:58 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -813,7 +813,9 @@ NavierStokes::setTimeLevel (Real time,
 void
 NavierStokes::initData ()
 {
-    RunStats rs("init_data", Level());
+    static const aString RunstatString("init_data");
+
+    RunStats rs(RunstatString, Level());
 
     rs.start();
     //
@@ -1185,12 +1187,19 @@ NavierStokes::advance (Real time,
     MultiFab& P_new = get_new_data(Press_Type);
     MultiFab& P_old = get_old_data(Press_Type);
 
-    RunStats vel_pred_stats("vel_predict", level);
-    RunStats  vel_adv_stats("vel_advect" , level);
-    RunStats scal_adv_stats("scal_advect", level);
-    RunStats  vel_upd_stats("vel_update" , level);
-    RunStats scal_upd_stats("scal_update", level);
-    RunStats      mac_stats("mac_project", level);
+    static const aString VelPredictStr("vel_predict");
+    static const aString VelAdvectStr("vel_advect");
+    static const aString ScalAdvectStr("scal_advect");
+    static const aString VelUpdateStr("vel_update");
+    static const aString ScalUpdateStr("scal_update");
+    static const aString MacProjectStr("mac_project");
+
+    RunStats vel_pred_stats(VelPredictStr, level);
+    RunStats  vel_adv_stats(VelAdvectStr , level);
+    RunStats scal_adv_stats(ScalAdvectStr, level);
+    RunStats  vel_upd_stats(VelUpdateStr , level);
+    RunStats scal_upd_stats(ScalUpdateStr, level);
+    RunStats      mac_stats(MacProjectStr, level);
     //
     // ------------------ Advance starts here
     //
@@ -1321,7 +1330,9 @@ NavierStokes::level_projector (Real dt,
 {
    if (iteration > 0)
    {
-       RunStats lp_stats("level_project",level);
+       static const aString RunstatString("level_project");
+
+       RunStats lp_stats(RunstatString,level);
 
        lp_stats.start();
 
@@ -2777,7 +2788,8 @@ NavierStokes::post_timestep ()
     //
     if (do_mac_proj && (level < finest_level))
     {
-        RunStats mac_sync_stats("mac_sync", level);
+        static const aString RunstatString("mac_sync");
+        RunStats mac_sync_stats(RunstatString, level);
         mac_sync_stats.start();
         mac_sync();
         mac_sync_stats.end();

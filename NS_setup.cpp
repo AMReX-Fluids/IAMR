@@ -1,11 +1,10 @@
 
 //
-// $Id: NS_setup.cpp,v 1.17 1998-07-14 21:36:19 marc Exp $
+// $Id: NS_setup.cpp,v 1.18 1998-07-24 01:24:00 lijewski Exp $
 //
 
 #include <NavierStokes.H>
 #include <RegType.H>
-#include <RunStats.H>
 #include <ParmParse.H>
 #include <ErrorList.H>
 #include <PROB_F.H>

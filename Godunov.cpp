@@ -1,5 +1,5 @@
 //
-// $Id: Godunov.cpp,v 1.12 1998-06-08 23:10:39 lijewski Exp $
+// $Id: Godunov.cpp,v 1.13 1998-07-24 01:24:02 lijewski Exp $
 //
 
 //
@@ -14,7 +14,6 @@
 #include <BoxDomain.H>
 #include <FArrayBox.H>
 #include <Godunov.H>
-#include <RunStats.H>
 #include <GODUNOV_F.H>
 
 #define GEOM_GROW 1
@@ -37,18 +36,9 @@
 #define GDIMS(l,h) &l[0], &l[1], &l[2], &h[0], &h[1], &h[2]
 #endif
 
-int Godunov::verbose = 0;
-int Godunov::slope_order = 4;
+int Godunov::verbose             = 0;
+int Godunov::slope_order         = 4;
 int Godunov::use_forces_in_trans = 0;
-
-//
-// Setup functions follow.
-//
-
-//
-// Initialization of static members.
-//
-#define bogus_value 1.e20
 
 //
 // Construct the Godunov Object.
@@ -132,6 +122,8 @@ void
 Godunov::SetBogusScratch ()
 {
 #ifndef NDEBUG
+    const Real bogus_value = 1.e20;
+
     for (int i = 0 ; i < scr_size ; i++)
     {
         stxlo[i]  = bogus_value;

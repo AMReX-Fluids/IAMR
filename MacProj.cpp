@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.27 1998-07-09 17:58:04 lijewski Exp $
+// $Id: MacProj.cpp,v 1.28 1998-07-24 01:24:01 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -9,7 +9,6 @@
 #include <ParmParse.H>
 #include <BoxDomain.H>
 #include <MacProj.H>
-#include <RunStats.H>
 #include <MacBndry.H>
 #include <MacOpMacDrivers.H>
 #include <NavierStokes.H>
