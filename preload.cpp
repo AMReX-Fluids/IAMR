@@ -1,7 +1,7 @@
 
 #ifdef BL_USE_BSP
 //
-// $Id: preload.cpp,v 1.9 1997-12-05 18:32:53 lijewski Exp $
+// $Id: preload.cpp,v 1.10 1998-03-26 18:14:38 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -11,6 +11,8 @@
 #endif
 
 #include "ParallelDescriptor.H"
+
+#include "bsp.h"
 
 extern int _bsp_do_stat;
 extern int _bsp_do_cgprof;
