@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.39 1998-12-12 00:07:41 lijewski Exp $
+// $Id: MacProj.cpp,v 1.40 1999-01-07 23:00:09 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -565,36 +565,35 @@ MacProj::mac_sync_compute (int           level,
     //
     // Get parameters.
     //
-    const BoxArray& grids  = LevelData[level].boxArray();
-    const Geometry& geom   = parent->Geom(level);
-    const Real* dx         = geom.CellSize();
-    const int numscal      = NUM_STATE - BL_SPACEDIM;
-    MultiFab* mac_sync_phi = &mac_phi_crse[level];
-    NavierStokes& ns_level = *(NavierStokes*) &(parent->getLevel(level));
-    Godunov* godunov       = ns_level.godunov;
-
+    const BoxArray& grids    = LevelData[level].boxArray();
+    const Geometry& geom     = parent->Geom(level);
+    const Real* dx           = geom.CellSize();
+    const int numscal        = NUM_STATE - BL_SPACEDIM;
+    MultiFab* mac_sync_phi   = &mac_phi_crse[level];
+    NavierStokes& ns_level   = *(NavierStokes*) &(parent->getLevel(level));
+    Godunov* godunov         = ns_level.godunov;
     bool use_forces_in_trans = godunov->useForcesInTrans();
 
     MultiFab vel_visc_terms;
+
     if (use_forces_in_trans)
     {
         vel_visc_terms.define(grids,BL_SPACEDIM,1,Fab_allocate);
-        ns_level.getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
-        if (be_cn_theta == 1.0)
-            vel_visc_terms.setVal(0.0,1);
+
+        if (be_cn_theta != 1.0)
+            ns_level.getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
+        else
+            vel_visc_terms.setVal(0,1);
     }
     //
     // Get viscous forcing.
     //
-    MultiFab* visc_terms = new MultiFab(grids,NUM_STATE,1,Fab_allocate);
+    MultiFab visc_terms(grids,NUM_STATE,1);
+
     if (be_cn_theta != 1.0)
-    {
-        ns_level.getViscTerms((*visc_terms),Xvel,NUM_STATE,prev_time);
-    }
+        ns_level.getViscTerms(visc_terms,Xvel,NUM_STATE,prev_time);
     else
-    {
-        visc_terms->setVal(0.0,1);
-    }
+        visc_terms.setVal(0,1);
 
     Array<int> ns_level_bc, bndry[BL_SPACEDIM];
     //
@@ -605,7 +604,7 @@ MacProj::mac_sync_compute (int           level,
     FillPatchIterator P_fpi(ns_level,ns_level.get_old_data(Press_Type),1,
                             pres_prev_time,Press_Type,0,1);
 
-    FillPatchIterator S_fpi(ns_level,*visc_terms,HYP_GROW,
+    FillPatchIterator S_fpi(ns_level,visc_terms,HYP_GROW,
                             prev_time,State_Type,0,NUM_STATE);
     //
     // Compute the mac sync correction.
@@ -625,10 +624,9 @@ MacProj::mac_sync_compute (int           level,
         DependentMultiFabIterator Ssyncmfi(S_fpi,*Ssync);
         DependentMultiFabIterator rho_halfmfi(S_fpi,*rho_half);
         DependentMultiFabIterator mac_sync_phimfi(S_fpi,*mac_sync_phi);
-        DependentMultiFabIterator visc_termsmfi(S_fpi,*visc_terms);
+        DependentMultiFabIterator visc_termsmfi(S_fpi,visc_terms);
 
-        int i = S_fpi.index();
-
+        const int i     = S_fpi.index();
         FArrayBox& S    = S_fpi();
         FArrayBox& divu = (*divu_fp)[i];
         //
@@ -747,7 +745,7 @@ MacProj::mac_sync_compute (int           level,
         // Multiply the sync term by dt -- now done in the calling routine.
         //
     }
-    delete visc_terms;
+
     delete divu_fp;
 }
 

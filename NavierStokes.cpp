@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.107 1998-12-26 18:21:18 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.108 1999-01-07 23:00:10 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1025,8 +1025,8 @@ NavierStokes::advance_setup (Real time,
     //
     if (do_reflux && level < finest_level)
     {
-        getAdvFluxReg(level+1).setVal(0.0);
-        getViscFluxReg(level+1).setVal(0.0);
+        getAdvFluxReg(level+1).setVal(0);
+        getViscFluxReg(level+1).setVal(0);
     }
     //
     // Alloc space for edge velocities (normal comp only).
@@ -1345,6 +1345,7 @@ NavierStokes::predict_velocity (Real  dt,
     //
     // Get simulation parameters.
     //
+    const int   nComp          = BL_SPACEDIM;
     const Real* dx             = geom.CellSize();
     const Real  prev_time      = state[State_Type].prevTime();
     const Real  prev_pres_time = state[Press_Type].prevTime();
@@ -1354,14 +1355,9 @@ NavierStokes::predict_velocity (Real  dt,
     // c-f/phys boundary, since we have no interpolator fn, also,
     // preserve extrap for corners at periodic/non-periodic intersections.
     //
-    const int nComp = BL_SPACEDIM;
     MultiFab visc_terms(grids,nComp,1);
 
-    if (be_cn_theta==1.0)
-    {
-	visc_terms.setVal(0);
-    }
-    else
+    if (be_cn_theta != 1.0)
     {
 	getViscTerms(visc_terms,Xvel,nComp,prev_time);
     
@@ -1382,6 +1378,10 @@ NavierStokes::predict_velocity (Real  dt,
         //
         geom.FillPeriodicBoundary(visc_terms,false,true);
     }
+    else
+    {
+	visc_terms.setVal(0);
+    }
     //
     // Set up the timestep estimation.
     //
@@ -1391,9 +1391,7 @@ NavierStokes::predict_velocity (Real  dt,
 
     FArrayBox tforces, Gp;
     Array<int> bndry[BL_SPACEDIM];
-    //
-    // FillPatch'd state data.
-    //
+
     FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,
                             prev_pres_time,Press_Type,0,1);
 
@@ -1406,9 +1404,6 @@ NavierStokes::predict_velocity (Real  dt,
           U_fpi.isValid() && Rho_fpi.isValid() && P_fpi.isValid();
           ++U_fpi, ++Rho_fpi, ++P_fpi)
     {
-        //
-        // Since all the MultiFabs are based on same grid we'll use indices.
-        //
         const int i = U_fpi.index();
 
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
@@ -1424,9 +1419,7 @@ NavierStokes::predict_velocity (Real  dt,
         getGradP(P_fpi(),Gp,grids[i],1);
 
         godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp,Rho_fpi());
-        //
-        // Set up the Godunov box.
-        //
+
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
                bndry[1] = getBCArray(State_Type,i,1,1);,
                bndry[2] = getBCArray(State_Type,i,2,1);)
@@ -1438,9 +1431,7 @@ NavierStokes::predict_velocity (Real  dt,
                        u_mac[2][i], bndry[2].dataPtr(),
 #endif
                        U_fpi(), Rho_fpi(), tforces);
-        //
-        // Predict the mac velocities.
-        //
+
         godunov->ComputeUmac(grids[i], dx, dt, 
                              u_mac[0][i], bndry[0].dataPtr(),
                              u_mac[1][i], bndry[1].dataPtr(),
@@ -1452,9 +1443,7 @@ NavierStokes::predict_velocity (Real  dt,
 
     if (check_umac_periodicity)
         test_umac_periodic();
-    //
-    // Compute estimate of the timestep.
-    //
+
     Real tempdt = Min(change_max,cfl/cflmax);
 
     ParallelDescriptor::ReduceRealMin(tempdt);
@@ -1541,9 +1530,7 @@ NavierStokes::velocity_advection (Real dt)
     {
         cout << "... advect velocities\n";
     }
-    //
-    // Get simulation parameters.
-    //
+
     const int   finest_level   = parent->finestLevel();
     const Real* dx             = geom.CellSize();
     const Real  prev_time      = state[State_Type].prevTime();
@@ -1552,15 +1539,15 @@ NavierStokes::velocity_advection (Real dt)
     // Compute viscosity components.
     //
     MultiFab visc_terms(grids,BL_SPACEDIM,1);
-    getViscTerms(visc_terms,Xvel,BL_SPACEDIM,prev_time);
-    if (be_cn_theta == 1.0)
-        visc_terms.setVal(0.0,1);
+
+    if (be_cn_theta != 1.0)
+        getViscTerms(visc_terms,Xvel,BL_SPACEDIM,prev_time);
+    else
+        visc_terms.setVal(0,1);
 
     Array<int> bndry[BL_SPACEDIM];
     FArrayBox xflux, yflux, zflux, divu, tforces, Gp;
-    //
-    // FillPatch'd state data.
-    //
+
     FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,
                             prev_pres_time,Press_Type,0,1);
 
@@ -1582,15 +1569,11 @@ NavierStokes::velocity_advection (Real dt)
         const int i = U_fpi.index();
 
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
-        //
-        // Compute the total forcing.
-        //
+
         getGradP(P_fpi(),Gp,grids[i],1);
 
         godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp,Rho_fpi());
-        //
-        // Set up the workspace for the godunov Box.
-        //
+
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
                bndry[1] = getBCArray(State_Type,i,1,1);,
                bndry[2] = getBCArray(State_Type,i,2,1);)
@@ -1626,7 +1609,7 @@ NavierStokes::velocity_advection (Real dt)
         }
     }
     //
-    // pullFluxes() contains CrseInit() calls. Got to complete the process.
+    // pullFluxes() contains CrseInit() calls -- complete the process.
     //
     if (do_reflux && level < finest_level)
         getAdvFluxReg(level+1).CrseInitFinish();
@@ -1656,9 +1639,11 @@ NavierStokes::scalar_advection (Real dt,
     // Get the viscous terms.
     //
     MultiFab visc_terms(grids,num_scalars,1);
-    getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
-    if (be_cn_theta == 1.0)
-        visc_terms.setVal(0.0,1);
+
+    if (be_cn_theta != 1.0)
+        getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
+    else
+        visc_terms.setVal(0,1);
     //
     // Set up the grid loop.
     //
@@ -1666,19 +1651,19 @@ NavierStokes::scalar_advection (Real dt,
 
     MultiFab vel_visc_terms;
 
-    int use_forces_in_trans = godunov->useForcesInTrans();
+    const bool use_forces_in_trans = godunov->useForcesInTrans();
 
     if (use_forces_in_trans)
     {
       vel_visc_terms.define(grids,BL_SPACEDIM,1,Fab_allocate);
-      getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
-      if (be_cn_theta == 1.0)
-          vel_visc_terms.setVal(0.0,1);
+
+      if (be_cn_theta != 1.0)
+          getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
+      else
+          vel_visc_terms.setVal(0,1);
     }
     Array<int> state_bc, bndry[BL_SPACEDIM];
-    //
-    // FillPatch'd state data.
-    //
+
     MultiFab* divu_fp = getDivCond(1,prev_time);
 
     FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,
@@ -1700,9 +1685,6 @@ NavierStokes::scalar_advection (Real dt,
               Rho_fpi.isValid() && P_fpi.isValid();
           ++U_fpi, ++S_fpi, ++Rho_fpi, ++P_fpi)
     {
-        //
-        // Since all the MultiFabs are based on same grid just use indices.
-        //
         const int i = U_fpi.index();
 
         getForce(tforces,i,1,fscalar,num_scalars,Rho_fpi());
@@ -1715,9 +1697,7 @@ NavierStokes::scalar_advection (Real dt,
             
             godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[i],Gp,Rho_fpi());
         }
-        //
-        // Set up the workspace for the godunov Box.
-        //
+
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
                bndry[1] = getBCArray(State_Type,i,1,1);,
                bndry[2] = getBCArray(State_Type,i,2,1);)
@@ -1768,7 +1748,7 @@ NavierStokes::scalar_advection (Real dt,
 
     delete divu_fp;
     //
-    // pullFluxes() contains CrseInit() calls. Got to complete the process.
+    // pullFluxes() contains CrseInit() calls -- complete the process.
     //
     if (do_reflux && level < parent->finestLevel())
         getAdvFluxReg(level+1).CrseInitFinish();
@@ -1820,7 +1800,7 @@ NavierStokes::scalar_advection_update (Real dt,
         DependentMultiFabIterator S_newmfi(Rho_fpi,S_new);
         DependentMultiFabIterator Aofsmfi(Rho_fpi,Aofs);
 
-        int i = Rho_fpi.index();
+        const int i = Rho_fpi.index();
 
         for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
         {
@@ -1889,11 +1869,11 @@ NavierStokes::velocity_update (Real dt)
 
     if (!initial_iter)
     {
-      velocity_diffusion_update(dt);
+        velocity_diffusion_update(dt);
     }
     else
     {
-      initial_velocity_diffusion_update(dt);
+        initial_velocity_diffusion_update(dt);
     }
 }
 
@@ -1917,13 +1897,8 @@ NavierStokes::velocity_advection_update (Real dt)
 
     for ( ; Rho_fpi.isValid() && P_fpi.isValid(); ++Rho_fpi, ++P_fpi)
     {
-        //
-        // Since all the MultiFabs are based on same grid we'll use indices.
-        //
         const int i = Rho_fpi.index();
-        //
-        // Get the forcing terms.
-        //
+
         getGradP(P_fpi(),Gp,grids[i],0);
 
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,Rho_fpi());
@@ -1979,26 +1954,21 @@ NavierStokes::diffuse_velocity_setup (Real       dt,
 void
 NavierStokes::initial_velocity_diffusion_update (Real dt)
 {
-    MultiFab&  U_old          = get_old_data(State_Type);
-    MultiFab&  U_new          = get_new_data(State_Type);
-    MultiFab&  Aofs           = *aofs;
-    const Real prev_time      = state[State_Type].prevTime();
-    const Real pres_prev_time = state[Press_Type].prevTime();
     //
     // Do following only at initial iteration -- rbp, per jbb.
     //
     if (is_diffusive[Xvel])
     {
-        //
-        // Get viscous forcing terms.
-        //
-	const int nComp = BL_SPACEDIM;
+        MultiFab&  U_old          = get_old_data(State_Type);
+        MultiFab&  U_new          = get_new_data(State_Type);
+        MultiFab&  Aofs           = *aofs;
+        const int  nComp          = BL_SPACEDIM;
+        const Real prev_time      = state[State_Type].prevTime();
+        const Real pres_prev_time = state[Press_Type].prevTime();
+
 	MultiFab visc_terms(grids,nComp,1);
-	if (be_cn_theta==1.0)
-	{
-	    visc_terms.setVal(0.0);
-	}
-        else
+
+	if (be_cn_theta != 1.0)
         {
 	    getViscTerms(visc_terms,Xvel,nComp,prev_time);
 	
@@ -2014,6 +1984,10 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
 
             geom.FillPeriodicBoundary(visc_terms,false,true);
         }
+        else
+	{
+	    visc_terms.setVal(0.0);
+	}
 
         FArrayBox tforces, Gp;
         //
@@ -2027,16 +2001,14 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
 
         for ( ; Rho_fpi.isValid() && P_fpi.isValid(); ++Rho_fpi, ++P_fpi)
         {
-            int i = Rho_fpi.index();
+            const int i = Rho_fpi.index();
 
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,Rho_fpi());
 
             getGradP(P_fpi(),Gp,grids[i],0);
 
             godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp,(*rho_half)[i]);
-            //
-            // Compute the inviscid update.
-            //
+
             godunov->Add_aofs_tf(U_old[i], U_new[i], 0, BL_SPACEDIM, Aofs[i],
                                  0, tforces, 0, grids[i], dt);
         }
@@ -4470,8 +4442,7 @@ NavierStokes::calc_divu (Real      time,
                   rho_fpi.isValid() && temp_fpi.isValid();
                   ++rho_fpi, ++temp_fpi)
             {
-                int i = rho_fpi.index();
-
+                const int  i    = rho_fpi.index();
                 FArrayBox& rho  = rho_fpi();
                 FArrayBox& temp = temp_fpi();
 
