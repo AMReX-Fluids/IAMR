@@ -2,7 +2,7 @@
 #define _VISCBNDRY2D_H_
 
 //
-// $Id: ViscBndry2D.H,v 1.5 1998-11-18 00:14:15 lijewski Exp $
+// $Id: ViscBndry2D.H,v 1.6 1999-01-06 00:51:15 marc Exp $
 //
 
 #include <MCInterpBndryData.H>
@@ -28,9 +28,9 @@ public:
     void setHomogValues (const Array<BCRec>& phys_bc,
                          IntVect&            ratio);
 #else
-    virtual void setBndryConds (const Array<BCRec>& phys_bc,
-                                const Geometry&     geom,
-                                int                 ratio);
+    virtual void setBndryConds (const BCRec& phys_bc,
+                                int          ratio,
+                                int          comp=0);
 
     void setHomogValues (const Array<BCRec>& phys_bc,
                          int                 ratio);
