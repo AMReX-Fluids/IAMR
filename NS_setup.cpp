@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.21 1998-11-03 22:17:55 sstanley Exp $
+// $Id: NS_setup.cpp,v 1.22 1998-11-18 00:37:26 sstanley Exp $
 //
 
 #include <NavierStokes.H>
@@ -318,8 +318,8 @@ NavierStokes::variableSetUp ()
     //
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
     //
-    err_list.add("tracer",0,ErrorRec::Special,FORT_ADVERROR);
-    err_list.add("mag_vort",1,ErrorRec::Special,FORT_MVERROR);
+    err_list.add("tracer",1,ErrorRec::Special,FORT_ADVERROR);
+    err_list.add("mag_vort",0,ErrorRec::Special,FORT_MVERROR);
 }
 
 void
