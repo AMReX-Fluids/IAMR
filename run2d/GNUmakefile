@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.24 2001-08-21 22:52:42 lijewski Exp $
+# $Id: GNUmakefile,v 1.25 2002-09-12 22:41:52 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -8,12 +8,12 @@ TOP = $(PBOXLIB_HOME)
 # Variables for the user to set ...
 #
 PRECISION = DOUBLE
-DEBUG	  = TRUE
+DEBUG	  = FALSE
 PROFILE   = FALSE
 DIM	      = 2
 COMP	  = g++
-COMP      = KCC
-USE_MPI   = FALSE
+COMP      = mpKCC
+USE_MPI   = TRUE
 NAMESPACE = TRUE
 NAMESPACE = FALSE
 USE_THREADS	= TRUE
@@ -153,6 +153,7 @@ ifeq ($(BUILD_INPLACE), TRUE)
   vpath %.FH  $(vpath_FH)
   vpath %.h   $(vpath_h)
   vpath %.F   $(vpath_F)
+  vpath %.f   $(vpath_F)
 else
   vpath %.H   ..
   vpath %.cpp ..
