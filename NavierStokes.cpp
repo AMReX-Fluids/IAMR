@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.247 2004-09-10 17:32:43 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.248 2005-01-26 23:02:52 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3043,7 +3043,7 @@ NavierStokes::computeNewDt (int                   finest_level,
     for (int i = 0; i <= max_level; i++)
     {
         n_factor   *= n_cycle[i];
-        dt_level[i] = dt_0/( (float)n_factor );
+        dt_level[i] = dt_0/( (Real)n_factor );
     }
 }
 
@@ -3092,7 +3092,7 @@ NavierStokes::computeInitialDt (int                   finest_level,
     for (int i = 0; i <= max_level; i++)
     {
         n_factor   *= n_cycle[i];
-        dt_level[i] = dt_0/( (float)n_factor );
+        dt_level[i] = dt_0/( (Real)n_factor );
     }
 }
 
@@ -3120,7 +3120,7 @@ NavierStokes::post_init_estDT (Real&        dt_init,
         n_factor   = 1;
         for (int m = finest_level; m > k; m--) 
              n_factor *= parent->nCycle(m);
-        dt_init    = std::min( dt_init, dt_save[k]/((float) n_factor) );
+        dt_init    = std::min( dt_init, dt_save[k]/((Real) n_factor) );
     }
  
     Array<Real> dt_level(finest_level+1,dt_init);
@@ -3145,7 +3145,7 @@ NavierStokes::post_init_estDT (Real&        dt_init,
     for (int k = 0; k <= finest_level; k++)
     {
         n_factor  *= nc_save[k];
-        dt_save[k] = dt0/( (float) n_factor);
+        dt_save[k] = dt0/( (Real) n_factor);
     }
     //
     // Hack.
