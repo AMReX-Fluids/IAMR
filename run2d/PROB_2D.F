@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.9 1998-05-19 00:52:23 marc Exp $
+c $Id: PROB_2D.F,v 1.10 1998-05-19 17:15:06 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -479,7 +479,7 @@ c     ::::: local variables
             scal(i,j,1) = one/denfact + (one - one/denfact)
      &           *half*(one + tanh(40.*(dist - radblob)))
             scal(i,j,2) = one / scal(i,j,1)
-            do n = 2,nscal-1
+            do n = 3,nscal-1
                scal(i,j,n) = one
             enddo
             scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
