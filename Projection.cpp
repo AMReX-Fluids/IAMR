@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.42 1998-06-01 19:35:01 lijewski Exp $
+// $Id: Projection.cpp,v 1.43 1998-06-01 19:45:39 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -1654,8 +1654,8 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
                    &extrap_edges, &extrap_corners,&isrz);
 #endif
 #if (BL_SPACEDIM == 3)
-        Real divumin = divu->min();
-        Real divumax = divu->max();
+        Real divumin = divu.min();
+        Real divumax = divu.max();
         if (divumin != divumax || divumin != 0.0) 
         {
             if (ParallelDescriptor::IOProcessor())
@@ -1690,8 +1690,8 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
         mfi().copy(dmfi());
 
 #if (BL_SPACEDIM == 3)
-        Real divumin = divu.min();
-        Real divumax = divu.max();
+        Real divumin = dmfi().min();
+        Real divumax = dmfi().max();
         if (divumin != divumax || divumin != 0.0) 
         {
             if (ParallelDescriptor::IOProcessor())
