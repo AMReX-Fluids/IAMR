@@ -1,5 +1,5 @@
 //
-// $Id: MacBndry.cpp,v 1.7 1998-04-15 22:25:35 marc Exp $
+// $Id: MacBndry.cpp,v 1.8 1998-05-08 21:54:42 marc Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -17,10 +17,11 @@ void MacBndry::setBndryConds(const BCRec& phys_bc, IntVect& ratio)
     const Box& domain = geom.Domain();
     const RealBox& prob_domain = geom.ProbDomain();
 
+    int comp = 0;
     for (OrientationIter fi; fi; ++fi) {
         Orientation face(fi());
         Array<Real> &bloc = bcloc[face];
-        Array<BoundCond> &bctag = bcond[face][0];
+        Array<Array<BoundCond> >& bctag = bcond[face];
 
         int dir = face.coordDir();
         Real delta = dx[dir]*ratio[dir];
@@ -33,16 +34,16 @@ void MacBndry::setBndryConds(const BCRec& phys_bc, IntVect& ratio)
             if (domain[face] == grd[face] && !geom.isPeriodic(dir)) {
                   // All physical bc values are located on face
                 if (p_bc == Outflow) {
-                    bctag[i] = LO_DIRICHLET;
+                    bctag[i][comp] = LO_DIRICHLET;
                     bloc[i] = 0.;
                 } else {
-                    bctag[i] = LO_NEUMANN;
+                    bctag[i][comp] = LO_NEUMANN;
                     bloc[i] = 0.;
                 }
             } else {
                   // internal bndry
-                bctag[i] = LO_DIRICHLET;
-                  bloc[i] = 0.5*delta;
+                bctag[i][comp] = LO_DIRICHLET;
+		bloc[i] = 0.5*delta;
             }
         }
     }
