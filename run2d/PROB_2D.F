@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.19 2000-05-01 17:44:30 car Exp $
+c $Id: PROB_2D.F,v 1.20 2000-10-09 22:08:58 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -214,7 +214,8 @@ c
             dist = sqrt((x-xblob)**2 + (y-yblob)**2)
             vel(i,j,1) = x_vel
             vel(i,j,2) = y_vel
-            scal(i,j,1) = cvmgt(denfact,one,dist.lt.radblob)
+            scal(i,j,1) = one + half*(denfact-one)*(one-tanh(30.*(dist-radblob)))
+c           scal(i,j,1) = cvmgt(denfact,one,dist.lt.radblob)
             do n = 2,nscal-1
                scal(i,j,n) = one
             end do                  
