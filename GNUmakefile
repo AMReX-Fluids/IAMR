@@ -30,7 +30,7 @@ HERE = .
 
 include ../mk/Make.defs
 
-INCLUDE_LOCATIONS += $(HERE) ../pboxlib2.0
+INCLUDE_LOCATIONS += $(HERE) ../pBoxLib_2
 INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
 #LIBRARY_LOCATIONS += ./graphtools
 
@@ -117,7 +117,7 @@ CDEBF +=
 
 include $(HERE)/Make.package 
 
-vpath %.cpp :$(HERE) ../pboxlib2.0
+vpath %.cpp :$(HERE) ../pBoxLib_2
 vpath %.F :$(HERE)
 
 all: $(executable)
