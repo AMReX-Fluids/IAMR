@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.97 1999-06-29 18:04:37 jbb Exp $
+// $Id: Projection.cpp,v 1.98 1999-06-29 18:23:18 jbb Exp $
 //
 
 #ifdef BL_T3E
@@ -164,7 +164,9 @@ Projection::Projection (Amr*   _parent,
     if (CoordSys::IsRZ())
         amr_multigrid::SetRZ();
 #endif
+    projector_bndry = 0;
     setUpBcs();
+
     sync_proj = 0;
 }
 
@@ -215,6 +217,8 @@ Projection::read_params ()
 void 
 Projection::setUpBcs ()
 {
+    if (projector_bndry) delete projector_bndry;
+
     //
     // Set up projector bndry.
     //
