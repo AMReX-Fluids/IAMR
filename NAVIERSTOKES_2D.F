@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.9 2000-06-02 17:25:51 lijewski Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.10 2002-03-18 22:44:26 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -17,7 +17,7 @@ c
       subroutine FORT_GRADP (
      &     p,DIMS(p),
      &     gp,DIMS(gp),
-     &     lo,hi,dx)
+     &     lo,hi,dx,is_full)
 c 
 c     Compute a cell centered gradient from a node
 c     centered field.  Returns all components of GRADP
@@ -28,18 +28,28 @@ c
       REAL_T     dx(SDIM)
       REAL_T     p(DIMV(p))
       REAL_T     gp(DIMV(gp),SDIM)
+      integer    is_full
       integer    i,j
       REAL_T     ddx, ddy
 
       ddx = half/dx(1)
       ddy = half/dx(2)
 
-      do j = lo(2), hi(2)
+      if (is_full .eq. 0) then
+        do j = lo(2), hi(2)
         do i = lo(1), hi(1)
           gp(i,j,1) = ddx*(p(i+1,j)-p(i,j)+p(i+1,j+1)-p(i,j+1))
           gp(i,j,2) = ddy*(p(i,j+1)-p(i,j)+p(i+1,j+1)-p(i+1,j))
         end do
-      end do
+        end do
+      else
+        do j = lo(2), hi(2)
+        do i = lo(1), hi(1)
+          gp(i,j,1) = (p(i+1,j)-p(i,j)+p(i+1,j+1)-p(i,j+1))
+          gp(i,j,2) = (p(i,j+1)-p(i,j)+p(i+1,j+1)-p(i+1,j))
+        end do
+        end do
+      endif
 
       end
 

@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.8 1999-10-08 23:51:27 sstanley Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.9 2002-03-18 22:44:26 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -60,7 +60,8 @@ extern "C" {
 
     void FORT_GRADP (const Real* p, ARLIM_P(p_lo), ARLIM_P(p_hi),
                      const Real* gp, ARLIM_P(gp_lo), ARLIM_P(gp_hi),
-                     const int* lo, const int* hi, const Real* dx );
+                     const int* lo, const int* hi, const Real* dx ,
+                     const int* is_full);
     
     void FORT_AVGDOWN (const Real* crse, ARLIM_P(clo),     ARLIM_P(chi),
                        const int* nvar,

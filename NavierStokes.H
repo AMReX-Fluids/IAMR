@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.73 2001-08-01 21:50:56 lijewski Exp $
+// $Id: NavierStokes.H,v 1.74 2002-03-18 22:44:26 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -514,12 +514,6 @@ protected:
     //
     void getGradP (MultiFab& gp,
                    Real      time);
-    //
-    // Helper function for preceding getGradP().
-    //
-    void getGradP (FArrayBox& p_fab,
-                   FArrayBox& gp,
-                   const Box& gpbox_to_fill);
     //
     // Get dSdt from the state data.
     //

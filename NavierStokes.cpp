@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.195 2001-09-10 21:05:26 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.196 2002-03-18 22:44:26 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -4543,6 +4543,8 @@ NavierStokes::getGradP (MultiFab& gp,
     const int NGrow = gp.nGrow();
     MultiFab& P_old = get_old_data(Press_Type);
 
+    const Real* dx             = geom.CellSize();
+
     if (level > 0 && state[Press_Type].descriptor()->timeType() ==
                      StateDescriptor::Point)
     {
@@ -4598,7 +4600,7 @@ NavierStokes::getGradP (MultiFab& gp,
 
             for (MFIter mfi(pMF); mfi.isValid(); ++mfi) 
             {
-                getGradP(pMF[mfi],gp[mfi],gp[mfi].box());
+                Projection::getGradP(pMF[mfi],gp[mfi],gp[mfi].box(),dx);
             }
         }
         //
@@ -4616,7 +4618,7 @@ NavierStokes::getGradP (MultiFab& gp,
 
             for ( ; P_fpi.isValid(); ++P_fpi) 
             {
-                getGradP(P_fpi(),gpTmp[P_fpi],gpTmp[P_fpi].box());
+                Projection::getGradP(P_fpi(),gpTmp[P_fpi],gpTmp[P_fpi].box(),dx);
             }
         }
         //
@@ -4665,40 +4667,9 @@ NavierStokes::getGradP (MultiFab& gp,
         {
             BL_ASSERT(BoxLib::grow(grids[P_fpi.index()],NGrow) == gp[P_fpi].box());
 
-            getGradP(P_fpi(),gp[P_fpi],gp[P_fpi].box());
+            Projection::getGradP(P_fpi(),gp[P_fpi],gp[P_fpi].box(),dx);
         }
     }
-}
-
-//
-// Given a nodal pressure P compute the pressure gradient at the
-// contained cell centers.
-//
-// This function should live in Projection, but it made life easier
-// to have it here.
-//
-
-void
-NavierStokes::getGradP (FArrayBox& p_fab,
-                        FArrayBox& gp,
-                        const Box& gpbox_to_fill)
-{
-    //
-    // Test to see if p_fab contains gpbox_to_fill
-    //
-    BL_ASSERT(BoxLib::enclosedCells(p_fab.box()).contains(gpbox_to_fill));
-
-    const int*  plo    = p_fab.loVect();
-    const int*  phi    = p_fab.hiVect();
-    const int*  glo    = gp.box().loVect();
-    const int*  ghi    = gp.box().hiVect();
-    const int*   lo    = gpbox_to_fill.loVect();
-    const int*   hi    = gpbox_to_fill.hiVect();
-    const Real* p_dat  = p_fab.dataPtr();
-    const Real* gp_dat = gp.dataPtr();
-    const Real* dx     = geom.CellSize();
-
-    FORT_GRADP(p_dat,ARLIM(plo),ARLIM(phi),gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx);
 }
 
 //

@@ -3,7 +3,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.38 2000-10-31 20:28:34 lijewski Exp $
+// $Id: Projection.H,v 1.39 2002-03-18 22:44:26 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -181,6 +181,15 @@ public:
                              const BoxArray& grids,
                              Real            time);
 
+    //
+    // Helper function for NavierStokes::getGradP().
+    //
+    static
+    void getGradP (FArrayBox& p_fab,
+                   FArrayBox& gp,
+                   const Box& gpbox_to_fill,
+                   const Real* dx);
+
 protected:
     //
     // Read parameters from the input file.
@@ -297,6 +306,7 @@ protected:
     void computeBC(FArrayBox& vel, FArrayBox& divu,
 		   FArrayBox& rho, FArrayBox& phi,
 		   const Geometry& geom, const Orientation& outFace);
+
 
 protected:
     //

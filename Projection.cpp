@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.137 2002-02-20 17:49:45 lijewski Exp $
+// $Id: Projection.cpp,v 1.138 2002-03-18 22:44:26 almgren Exp $
 //
 #include <winstd.H>
 
@@ -2766,5 +2766,39 @@ Projection::getStreamFunction (PArray<MultiFab>& phi)
 
 #else
     BoxLib::Error("Projection::getStreamFunction(): not implented yet for 3D");
+#endif
+}
+
+//
+// Given a nodal pressure P compute the pressure gradient at the
+// contained cell centers.
+
+void
+Projection::getGradP (FArrayBox& p_fab,
+                      FArrayBox& gp,
+                      const Box& gpbox_to_fill,
+                      const Real* dx)
+{
+    //
+    // Test to see if p_fab contains gpbox_to_fill
+    //
+    BL_ASSERT(BoxLib::enclosedCells(p_fab.box()).contains(gpbox_to_fill));
+
+    const int*  plo    = p_fab.loVect();
+    const int*  phi    = p_fab.hiVect();
+    const int*  glo    = gp.box().loVect();
+    const int*  ghi    = gp.box().hiVect();
+    const int*   lo    = gpbox_to_fill.loVect();
+    const int*   hi    = gpbox_to_fill.hiVect();
+    const Real* p_dat  = p_fab.dataPtr();
+    const Real* gp_dat = gp.dataPtr();
+
+#if (BL_SPACEDIM == 2)
+    int is_full = 0;
+    if (hg_stencil == holy_grail_amr_multigrid::full)  is_full = 1;
+    FORT_GRADP(p_dat,ARLIM(plo),ARLIM(phi),gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx,
+               &is_full);
+#elif (BL_SPACEDIM == 3)
+    FORT_GRADP(p_dat,ARLIM(plo),ARLIM(phi),gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx);
 #endif
 }

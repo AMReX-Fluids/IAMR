@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_2D.F,v 1.12 2000-04-18 23:34:09 almgren Exp $ 
+c $Id: DERIVE_2D.F,v 1.13 2002-03-18 22:44:26 almgren Exp $ 
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -620,7 +620,11 @@ c
       integer    i,j
       REAL_T     d
 
+#if (BL_PRVERSION == 5)
       d = half/dx
+#elif (BL_PRVERSION == 9)
+      d = half
+#endif
 
       if (dir .eq. 0) then
          do j = lo(2), hi(2)
