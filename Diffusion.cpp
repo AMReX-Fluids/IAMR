@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.43 1998-11-07 03:09:29 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.44 1998-11-09 21:22:42 lijewski Exp $
 //
 
 //
@@ -28,6 +28,12 @@
 
 #include <DIFFUSION_F.H>
 #include <VISCOPERATOR_F.H>
+
+#ifdef BL_USE_NEW_HFILES
+#include <cfloat>
+#else
+#include <float.h>
+#endif
 
 #if defined(BL_OSF1)
 #if defined(BL_USE_DOUBLE)
