@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.85 1999-03-31 16:01:31 marc Exp $
+// $Id: Diffusion.cpp,v 1.86 1999-04-06 22:31:36 marc Exp $
 //
 
 //
@@ -2192,7 +2192,8 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         {
             DependentMultiFabIterator volumemfi(visc_tmpmfi, volume);
             assert(grids[volumemfi.index()] == volumemfi.validbox());
-            visc_tmpmfi().divide(volumemfi(),volumemfi.validbox(),0,0,1);
+            for (int n = 0; n < BL_SPACEDIM; ++n)
+                visc_tmpmfi().divide(volumemfi(),volumemfi.validbox(),0,n,1);
         }
 #if (BL_SPACEDIM == 2)
         if (CoordSys::IsRZ())
