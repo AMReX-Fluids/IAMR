@@ -1,6 +1,6 @@
 
 //
-// $Id: FluxRegister.cpp,v 1.14 1997-10-21 22:00:54 vince Exp $
+// $Id: FluxRegister.cpp,v 1.15 1997-11-11 19:21:42 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -1191,7 +1191,7 @@ void FluxRegister::CrseInit(const FArrayBox &flux, const Box &subbox, int dir,
             fabComTag.nComp    = fabCom.nComp();
             fabComTag.box      = fabCom.box();
             fabComTag.face     = face_lo;
-            ParallelDescriptor::SendData(fabComTag.toProc, fabComTag,
+            ParallelDescriptor::SendData(fabComTag.toProc, &fabComTag,
                                          fabCom.dataPtr(),
                                          fabComTag.box.numPts() *
                                          fabComTag.nComp * sizeof(Real));
@@ -1219,7 +1219,7 @@ void FluxRegister::CrseInit(const FArrayBox &flux, const Box &subbox, int dir,
             fabComTag.nComp    = fabCom.nComp();
             fabComTag.box      = fabCom.box();
             fabComTag.face     = face_hi;
-            ParallelDescriptor::SendData(fabComTag.toProc, fabComTag,
+            ParallelDescriptor::SendData(fabComTag.toProc, &fabComTag,
                                          fabCom.dataPtr(),
                                          fabComTag.box.numPts() *
                                          fabComTag.nComp * sizeof(Real));

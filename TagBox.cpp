@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.13 1997-10-21 22:00:58 vince Exp $
+// $Id: TagBox.cpp,v 1.14 1997-11-11 19:21:43 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -495,7 +495,7 @@ return;
        ++tbmdsendli)
    {
      ParallelDescriptor::SendData(distributionMap[tbmdsendli().fabIndex],
-                                  tbmdsendli(), NULL, 0);
+                                  &tbmdsendli(), NULL, 0);
    }
 
    ParallelDescriptor::Synchronize();  // to guarantee messages are sent
