@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.21 2004-12-04 05:31:57 car Exp $
+c $Id: PROB_3D.F,v 1.22 2004-12-06 18:06:02 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -20,6 +20,7 @@ c
 #include "probdata.H"
       data rt_pertamp/0.0D0/
       data rt_nfreq/0/
+      data rt_xfrontw/0.0d0/
       end
 c ::: -----------------------------------------------------------
 c ::: This routine is called at problem initialization time
@@ -270,7 +271,15 @@ c     rad, over a width of trn
 
       DOUBLE PRECISION function zblend1(x,rad,trn)
       DOUBLE PRECISION x, rad, trn
-      zblend1 = 0.5D0*(1.0D0 + TANH((x-rad)/trn))
+      if ( trn .eq. 0.0d0 ) then
+         if ( x .lt. rad ) then
+            zblend1 = 0.0
+         else
+            zblend1 = 1.0
+         end if
+      else
+         zblend1 = 0.5D0*(1.0D0 + TANH((x-rad)/trn))
+      end if
       end
 c
 c ::: -----------------------------------------------------------
@@ -293,6 +302,8 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
+      REAL_T  zblend1
+      EXTERNAL zblend1
 c
 c     ::::: local variables
 c
@@ -307,31 +318,29 @@ c
       hy = dx(2)
       hz = dx(3)
 
-      do k = lo(3), hi(3)
-         z = xlo(3) + hz*(dble(k-lo(3)) + 0.5d0)
-         do j = lo(2), hi(2)
-            y = xlo(2) + hy*(dble(j-lo(2)) + 0.5d0)
-            do i = lo(1), hi(1)
-               x = xlo(1) + hx*(dble(i-lo(1)) + 0.5d0)
-               pert = 0.d0
-               do n = 1, rt_nfreq
-                  do m = 1, rt_nfreq
-                     pert = pert
-     &                    + sin(
-     &                    2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1)
-     &                    )
-     &                    * sin(
-     &                    2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2)
-     &                    )
-     &                    *rt_ranampl(n,m)
-                  end do
+      do j = lo(2), hi(2)
+         y = xlo(2) + hy*(dble(j-lo(2)) + 0.5d0)
+         do i = lo(1), hi(1)
+            x = xlo(1) + hx*(dble(i-lo(1)) + 0.5d0)
+            pert = 0.d0
+            do n = 1, rt_nfreq
+               do m = 1, rt_nfreq
+                  pert = pert
+     &                 + sin(
+     &                 2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1)
+     &                 )
+     &                 * sin(
+     &                 2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2)
+     &                 )
+     &                 *rt_ranampl(n,m)
                end do
-               ztemp = z + pert*rt_pertamp
-               if ( ztemp < rt_splitx ) then
-                  scal(i,j,k,1) = rt_den_1
-               else
-                  scal(i,j,k,1) = rt_den_2
-               end if
+            end do
+            ztemp = rt_splitx + pert*rt_pertamp
+            do k = lo(3), hi(3)
+               z = xlo(3) + hz*(dble(k-lo(3)) + 0.5d0)
+               scal(i,j,k,1) = 
+     &              rt_den_1 
+     &              + (rt_den_2-rt_den_1)*zblend1(z,ztemp,rt_xfrontw)
                vel(i,j,k,1) = 0
                vel(i,j,k,2) = 0
                vel(i,j,k,3) = 0
