@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.33 1998-05-26 16:39:05 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.34 1998-05-27 15:13:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -186,6 +186,8 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     const Box& domain = ::surroundingNodes(geom.Domain());
 
     Array<IntVect> pshifts(27);
+
+    vector<FillBoxId> fillBoxIdList;
     //
     // FILL RHS FROM BNDRY REGISTERS
     //
@@ -194,8 +196,6 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     //
     if (geom.isAnyPeriodic())
     {
-        vector<FillBoxId> fillBoxIdList;
-
         for (OrientationIter face; face; ++face)
         {
             assert(fillBoxIdList.size() == 0);
@@ -250,21 +250,12 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                         sbox &= mfi().box();
                         if (sbox.ok())
                         {
-                            //
-                            // Shift the FAB, directly FillFab() & shift back.
-                            //
-                            D_TERM(mfi().shift(0,-pshifts[iiv][0]);,
-                                   mfi().shift(1,-pshifts[iiv][1]);,
-                                   mfi().shift(2,-pshifts[iiv][2]););
-                            assert(fillBoxIdIter != fillBoxIdList.end());
-                            FillBoxId fillboxid = *fillBoxIdIter++;
-                            fscd.FillFab(faid, fillboxid, mfi());
-                            mfi().shift(pshifts[iiv]);
+                            assert(!(fillBoxIdIter == fillBoxIdList.end()));
+                            fscd.FillFab(faid, *fillBoxIdIter++, mfi(), sbox);
                         }
                     }
                 }
             }
-
         }
     }
     //
@@ -321,7 +312,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
         bndry_mask[face()].setVal(0);
     }
 
-    FArrayBox cellMask;
+    FArrayBox tmpfab;
 
     for (OrientationIter face; face; ++face)
     {
@@ -329,14 +320,14 @@ SyncRegister::InitRHS (MultiFab&       rhs,
         {
             Box mask_cells = ::enclosedCells(::grow(fsi().box(),1));
 
-            cellMask.resize(mask_cells,1);
-            cellMask.setVal(0);
+            tmpfab.resize(mask_cells,1);
+            tmpfab.setVal(0);
 
             for (int n = 0; n < grids.length(); n++)
             {
                 Box intersect = mask_cells & grids[n];
                 if (intersect.ok())
-                    cellMask.setVal(1.0,intersect,0,1);
+                    tmpfab.setVal(1.0,intersect,0,1);
             }
  
             if (geom.isAnyPeriodic())
@@ -354,7 +345,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                         if (intersect.ok())
                         {
                             intersect.shift(-iv);
-                            cellMask.setVal(1.0,intersect,0,1);
+                            tmpfab.setVal(1.0,intersect,0,1);
                         }
                     }
                     mask_cells.shift(-iv);
@@ -363,9 +354,9 @@ SyncRegister::InitRHS (MultiFab&       rhs,
             REAL* mask_dat = fsi().dataPtr();
             const int* mlo = fsi().loVect(); 
             const int* mhi = fsi().hiVect();
-            REAL* cell_dat = cellMask.dataPtr();
-            const int* clo = cellMask.loVect(); 
-            const int* chi = cellMask.hiVect();
+            REAL* cell_dat = tmpfab.dataPtr();
+            const int* clo = tmpfab.loVect(); 
+            const int* chi = tmpfab.hiVect();
         
             FORT_MAKEMASK(mask_dat,ARLIM(mlo),ARLIM(mhi),
                           cell_dat,ARLIM(clo),ARLIM(chi));
@@ -416,15 +407,50 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     //
     // MULTIPLY RHS BY BNDRY_MASK
     //
-    // TODO -- finish this!!!
-    //
     for (OrientationIter face; face; ++face)
     {
+        assert(fillBoxIdList.size() == 0);
+
+        FabSetCopyDescriptor fscd;
+
+        FabSetId faid = fscd.RegisterFabSet(&bndry_mask[face()]);
+
         for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
         {
             for (int j = 0; j < grids.length(); j++)
             {
-                mfi().mult(bndry_mask[face()][j]);
+                Box intersect = mfi().box() & bndry_mask[face()].fabbox(j);
+
+                if (intersect.ok())
+                {
+                    fillBoxIdList.push_back(fscd.AddBox(faid,
+                                                        intersect,
+                                                        0,
+                                                        j,
+                                                        0,
+                                                        0,
+                                                        mfi().nComp()));
+                }
+            }
+        }
+
+        fscd.CollectData();
+
+        vector<FillBoxId>::iterator fillBoxIdIter = fillBoxIdList.begin();
+
+        for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
+        {
+            for (int j = 0; j < grids.length(); j++)
+            {
+                Box intersect = mfi().box() & bndry_mask[face()].fabbox(j);
+
+                if (intersect.ok())
+                {
+                    assert(!(fillBoxIdIter == fillBoxIdList.end()));
+                    tmpfab.resize(intersect, mfi().nComp());
+                    fscd.FillFab(faid, *fillBoxIdIter++, tmpfab, intersect);
+                    mfi().mult(tmpfab,intersect,intersect,0,0,mfi().nComp());
+                }
             }
         }
     }
