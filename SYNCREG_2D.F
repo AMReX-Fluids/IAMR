@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_2D.F,v 1.11 1999-07-01 17:23:12 almgren Exp $
+c $Id: SYNCREG_2D.F,v 1.12 1999-07-02 18:56:13 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -249,7 +249,7 @@ c
          end do
       end do
 
-      if (lo(1) .eq. 0) then
+      if (is_rz .eq. 1 .and. lo(1) .eq. 0) then
         i = 0
         do j = lo(2), hi(2)
           p3 = (sigma(i-1,j-1) + sigma(i,j-1)) * 
