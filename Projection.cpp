@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.64 1999-02-24 01:56:10 propp Exp $
+// $Id: Projection.cpp,v 1.65 1999-02-24 18:36:41 car Exp $
 //
 
 #ifdef BL_T3E
@@ -255,8 +255,9 @@ Projection::bldSyncProject ()
 #else
     sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
                                              0, finest_level, finest_level,
-                                             *projector_bndry, false, true,
-                                             false, P_code);
+                                             *projector_bndry,
+					     holy_grail_amr_multigrid::cross,
+                                             P_code);
 #endif
 
 #ifdef ATMOSPHERE
