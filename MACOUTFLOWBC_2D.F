@@ -821,7 +821,7 @@ c     values come directly from cell-centers just inside domain
       neq = ice - ics + 1
 
       if ( neq .gt. NStripMax ) then
-         STOP 'MACPHIBC: NStripMax too small'
+         call bl_error( 'MACPHIBC: NStripMax too small' )
       end if
 
 c     Carry out non-trivial solve.  First set interior equations, then do BC's
