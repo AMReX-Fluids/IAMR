@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.82 1999-03-30 22:41:19 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.83 1999-03-30 23:14:33 marc Exp $
 //
 
 //
@@ -128,6 +128,7 @@ Diffusion::Diffusion (Amr*               Parent,
         ppdiff.query("scale_abec",scale_abec);
         ppdiff.query("est_visc_mag",est_visc_mag);
         ppdiff.query("Lphi_in_abs_tol",Lphi_in_abs_tol);
+        ppdiff.query("Rhs_in_abs_tol",Rhs_in_abs_tol);
 
         ParmParse pp("ns");
 
