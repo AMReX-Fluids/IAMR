@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.116 2002-09-26 16:39:31 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.117 2002-11-07 19:02:03 lijewski Exp $
 //
 
 //
@@ -287,6 +287,7 @@ Diffusion::diffuse_scalar (Real                   dt,
                            const MultiFab* const* betanp1,
                            const SolveMode&       solve_mode)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::diffuse_scalar()");
     //
     // This routine expects that physical BC's have been loaded into
     // the grow cells of the old and new state at this level.  If rho_flag==2,
@@ -515,6 +516,8 @@ Diffusion::diffuse_velocity (Real                   dt,
                              const MultiFab* const* betan, 
                              const MultiFab* const* betanp1)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::diffuse_velocity()");
+
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... diffuse_velocity\n";
 
