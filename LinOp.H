@@ -2,7 +2,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.3 1997-09-26 16:57:01 lijewski Exp $
+// $Id: LinOp.H,v 1.4 1997-10-01 17:55:01 lijewski Exp $
 //
 
 #include <Array.H>
@@ -12,8 +12,6 @@
 #include <BoxArray.H>
 #include <MultiFab.H>
 #include <BndryData.H>
-
-enum BC_Mode { Homogeneous_BC = 0, Inhomogeneous_BC };
 
 //@Man:
 /*@Memo:
@@ -87,6 +85,9 @@ enum BC_Mode { Homogeneous_BC = 0, Inhomogeneous_BC };
 class LinOp
 {
 public:
+
+    enum BC_Mode { Homogeneous_BC = 0, Inhomogeneous_BC };
+
 //@ManMemo: administrative functions
 //@ManDoc: allocate a LinOp for this box array, boundary and (uniform) spacing info
     LinOp(const BoxArray &ba, const BndryData& mgb, const REAL _h);
@@ -111,16 +112,16 @@ public:
     }
 //@ManDoc: applies level LinOp to "in", returns "out", uses BC\_mode flag
     void apply(MultiFab &out, MultiFab& in, int level = 0,
-	       BC_Mode bc_mode=Inhomogeneous_BC);
+	       LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
 //@ManDoc: fills level boundary cells using BC\_mode flag, int. BC data if reqd
     void applyBC(MultiFab &inout, int level = 0,
-		 BC_Mode bc_mode=Inhomogeneous_BC);
+		 LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
 //@ManDoc: compute the level residual = rhsL - L(solnL)
     void residual(MultiFab &residL, const MultiFab &rhsL, MultiFab &solnL,
-		  int level = 0, BC_Mode bc_mode=Inhomogeneous_BC);
+		  int level = 0, LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
 //@ManDoc: smooth the level system L(solnL)=rhsL
     void smooth(MultiFab &solnL, const MultiFab &rhsL,
-		int level = 0, BC_Mode bc_mode=Inhomogeneous_BC);
+		int level = 0, LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
 
 //@ManMemo: utility functions
 //@ManDoc: Compute the norm of "in"

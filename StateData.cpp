@@ -1,6 +1,6 @@
 
 //
-// $Id: StateData.cpp,v 1.9 1997-10-01 01:03:15 car Exp $
+// $Id: StateData.cpp,v 1.10 1997-10-01 17:55:02 lijewski Exp $
 //
 
 #include <StateData.H>
@@ -54,12 +54,12 @@ StateData::define(const BOX& p_domain, const BoxArray& grds,
     grids.define(grds);
       // convert to proper type
     IndexType typ(desc->getType());
-    TimeCenter t_typ(desc->timeType());
+    StateDescriptor::TimeCenter t_typ(desc->timeType());
     if ( ! typ.cellCentered()) {
 	domain.convert(typ);
 	grids.convert(typ);
     }
-    if (t_typ == Point) {
+    if (t_typ == StateDescriptor::Point) {
 	new_time.start = new_time.stop = time;
 	old_time.start = old_time.stop = time - dt;
     } else {
@@ -133,7 +133,7 @@ StateData::~StateData()
 void
 StateData::setTimeLevel(REAL time, REAL dt_old, REAL dt_new)
 {
-    if (desc->timeType() == Point) {
+    if (desc->timeType() == StateDescriptor::Point) {
 	new_time.start = new_time.stop = time;
 	old_time.start = old_time.stop = time - dt_old;
     } else {
@@ -149,7 +149,7 @@ void
 StateData::swapTimeLevels(REAL dt)
 {
     old_time = new_time;
-    if (desc->timeType() == Point) {
+    if (desc->timeType() == StateDescriptor::Point) {
 	new_time.start += dt;
 	new_time.stop  += dt;
     } else {
@@ -194,7 +194,7 @@ StateData::FillBoundary(const REAL* dx, const RealBox& prob_domain,
 		    int src_comp, int num_comp, int do_new)
 {
     REAL cur_time;
-    if (desc->timeType() == Point) {
+    if (desc->timeType() == StateDescriptor::Point) {
 	cur_time = new_time.start;
 	if (!do_new) cur_time = old_time.start;
     } else {
@@ -279,7 +279,7 @@ StateData::linInterp(FArrayBox& dest, const BOX& subbox, REAL time,
 		     bool extrap)
 {
     REAL teps = (new_time.start - old_time.start)/1000.0;
-    if (desc->timeType() == Point) {
+    if (desc->timeType() == StateDescriptor::Point) {
 	if (old_data == 0) {
 	    teps = new_time.start/10000.0;
 	    REAL dt = time - new_time.start;
@@ -328,7 +328,7 @@ StateData::linInterpAddBox(MultiFabCopyDescriptor &multiFabCopyDesc,
                      bool extrap)
 {
     REAL teps = (new_time.start - old_time.start)/1000.0;
-    if (desc->timeType() == Point) {
+    if (desc->timeType() == StateDescriptor::Point) {
         if (old_data == 0) {
             teps = new_time.start/10000.0;
             REAL dt = time - new_time.start;
@@ -375,7 +375,7 @@ StateData::linInterpFillFab(MultiFabCopyDescriptor &multiFabCopyDesc,
                      bool extrap)
 {
     REAL teps = (new_time.start - old_time.start)/1000.0;
-    if (desc->timeType() == Point) {
+    if (desc->timeType() == StateDescriptor::Point) {
         if (old_data == 0) {
             teps = new_time.start/10000.0;
             REAL dt = time - new_time.start;

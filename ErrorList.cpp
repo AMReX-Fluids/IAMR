@@ -1,12 +1,12 @@
 
 //
-// $Id: ErrorList.cpp,v 1.4 1997-09-26 16:56:56 lijewski Exp $
+// $Id: ErrorList.cpp,v 1.5 1997-10-01 17:55:00 lijewski Exp $
 //
 
 #include <ErrorList.H>
 
 // ------------------------------------------------------------------
-ErrorRec::ErrorRec(const aString &nm, int ng, ErrorType etyp, ErrorFunc f)
+ErrorRec::ErrorRec(const aString &nm, int ng, ErrorRec::ErrorType etyp, ErrorFunc f)
     : ngrow(ng), err_type(etyp), err_func(f), derive_name(nm)
 {
 }
@@ -54,7 +54,7 @@ ErrorList::operator[] (int k) const
 
 // ------------------------------------------------------------------
 void
-ErrorList::add(const aString &name, int nextra, ErrorType typ,
+ErrorList::add(const aString &name, int nextra, ErrorRec::ErrorType typ,
 	       ErrorFunc func)
 {
     lst.append(new ErrorRec(name,nextra,typ,func));

@@ -1,6 +1,6 @@
 
 //
-// $Id: CGSolver.cpp,v 1.6 1997-09-26 23:30:23 car Exp $
+// $Id: CGSolver.cpp,v 1.7 1997-10-01 17:55:00 lijewski Exp $
 //
 
 // Conjugate gradient support
@@ -88,7 +88,7 @@ CGSolver::norm(const MultiFab& res)
 
 void
 CGSolver::solve(MultiFab &sol, const MultiFab &rhs,
-		REAL eps_rel, REAL eps_abs, BC_Mode bc_mode)
+		REAL eps_rel, REAL eps_abs, LinOp::BC_Mode bc_mode)
 {
       // algorithm:
       //   k=0;r=rhs-A*soln_0;
@@ -121,20 +121,20 @@ CGSolver::solve(MultiFab &sol, const MultiFab &rhs,
 
       /* Note:
 	 This routine assumes the LinOp is linear, and that when bc_mode =
-	 Homogeneous_BC, LinOp::apply() on a zero vector will return a zero
+	 LinOp::Homogeneous_BC, LinOp::apply() on a zero vector will return a zero
 	 vector.  Given that, we define the problem we solve here from the
 	 original equation:
 
-	      Lp(sol) = rhs --> Lp(s) + Lp(sol,bc_mode=Homogeneous_BC) = rhs
+	      Lp(sol) = rhs --> Lp(s) + Lp(sol,bc_mode=LinOp::Homogeneous_BC) = rhs
 
 	 where s is set to the incoming solution guess.  Rewriting,
 
-	      Lp(sol,bc_mode=Homogeneous_BC) = r     [ = rhs - Lp(s) ].
+	      Lp(sol,bc_mode=LinOp::Homogeneous_BC) = r     [ = rhs - Lp(s) ].
 
 	 CG needs the residual of this equation on our initial guess.  But
 	 because we made the above assumption,
 
-	      r - Lp(sol,bc_mode=Homogeneous_BC) = r = rhs - Lp(s)
+	      r - Lp(sol,bc_mode=LinOp::Homogeneous_BC) = r = rhs - Lp(s)
 
 	 Which is simply the residual of the original equation evaluated at
 	 the initial guess.  Thus we get by with only one call to Lp.residual.
@@ -146,7 +146,7 @@ CGSolver::solve(MultiFab &sol, const MultiFab &rhs,
     sol.setVal(0.0);
 
       // Set bc_mode=homogeneous
-    BC_Mode temp_bc_mode=Homogeneous_BC;
+    LinOp::BC_Mode temp_bc_mode=LinOp::Homogeneous_BC;
     REAL rnorm = norm(*r);
     REAL rnorm0 = rnorm;
     if(  verbose > 0 ) {
@@ -336,7 +336,7 @@ CGSolver::update(MultiFab &sol, REAL alpha, MultiFab& r,
 }
 
 REAL
-CGSolver::axp(MultiFab& w, MultiFab& p, BC_Mode bc_mode)
+CGSolver::axp(MultiFab& w, MultiFab& p, LinOp::BC_Mode bc_mode)
 {
       // Compute w = A.p, and return Transpose(p).w
     REAL pw = 0.0;

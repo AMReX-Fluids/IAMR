@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.4 1997-09-24 19:47:07 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.5 1997-10-01 17:55:02 lijewski Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -99,7 +99,7 @@ MultiGrid::~MultiGrid()
 }
 
 REAL
-MultiGrid::errorEstimate(int level, BC_Mode bc_mode)
+MultiGrid::errorEstimate(int level, LinOp::BC_Mode bc_mode)
 {
       // Get inf-norm of residual
     int p = 0;
@@ -147,7 +147,7 @@ MultiGrid::prepareForLevel(int level)
 void
 MultiGrid::residualCorrectionForm(MultiFab& resL, const MultiFab& rhsL,
 				  MultiFab& solnL, const MultiFab& inisol,
-				  BC_Mode bc_mode, int level)
+				  LinOp::BC_Mode bc_mode, int level)
 {
       // Using the linearity of the operator, Lp, we can solve this system
       // instead by solving for the correction required to the initial guess.
@@ -160,7 +160,7 @@ MultiGrid::residualCorrectionForm(MultiFab& resL, const MultiFab& rhsL,
 void
 MultiGrid::solve(MultiFab &_sol, const MultiFab &_rhs,
 		 REAL _eps_rel, REAL _eps_abs,
-		 BC_Mode bc_mode)
+		 LinOp::BC_Mode bc_mode)
 {
       // Prepare memory for new level, and solve the general boundary
       // value problem to within relative error _eps_rel.  Customized
@@ -169,14 +169,14 @@ MultiGrid::solve(MultiFab &_sol, const MultiFab &_rhs,
     prepareForLevel(level);
     residualCorrectionForm(*rhs[level], _rhs, *cor[level], _sol,
 			   bc_mode, level);
-    if( ! solve_(_sol, _eps_rel, _eps_abs, Homogeneous_BC, level) ) {
+    if( ! solve_(_sol, _eps_rel, _eps_abs, LinOp::Homogeneous_BC, level) ) {
 	BoxLib::Error("MultiGrid:: failed to converge!");
     }
 }
 
 int
 MultiGrid::solve_(MultiFab &_sol, REAL eps_rel, REAL eps_abs,
-                  BC_Mode bc_mode, int level)
+                  LinOp::BC_Mode bc_mode, int level)
 {
       // Relax system maxiter times, stop if relative error <= _eps_rel or
       // if absolute err <= _abs_eps
@@ -286,7 +286,7 @@ MultiGrid::numLevels() const
 
 void
 MultiGrid::relax(MultiFab& solL, MultiFab& rhsL, int level,
-		 REAL eps_rel, REAL eps_abs, BC_Mode bc_mode)
+		 REAL eps_rel, REAL eps_abs, LinOp::BC_Mode bc_mode)
 {
       // Recursively relax system.  Equivalent to multigrid V-cycle.
       // At coarsest grid, call coarsestSmooth
@@ -314,7 +314,7 @@ MultiGrid::relax(MultiFab& solL, MultiFab& rhsL, int level,
 
 void
 MultiGrid::coarsestSmooth(MultiFab& solL, MultiFab& rhsL, int level,
-			  REAL eps_rel, REAL eps_abs, BC_Mode bc_mode)
+			  REAL eps_rel, REAL eps_abs, LinOp::BC_Mode bc_mode)
 {
     prepareForLevel(level);
     if (usecg == 0) {

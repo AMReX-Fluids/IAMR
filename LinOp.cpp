@@ -1,5 +1,5 @@
 //
-// $Id: LinOp.cpp,v 1.4 1997-09-24 19:47:06 lijewski Exp $
+// $Id: LinOp.cpp,v 1.5 1997-10-01 17:55:01 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -154,14 +154,14 @@ LinOp::LinOp(const LinOp& _lp, int level)
 }
 
 void
-LinOp::apply(MultiFab& out, MultiFab& in, int level, BC_Mode bc_mode)
+LinOp::apply(MultiFab& out, MultiFab& in, int level, LinOp::BC_Mode bc_mode)
 {
     applyBC(in,level,bc_mode);
     Fapply(out,in,level);
 }
 
 void
-LinOp::applyBC(MultiFab &inout, int level, BC_Mode bc_mode)
+LinOp::applyBC(MultiFab &inout, int level, LinOp::BC_Mode bc_mode)
 {
       // The inout MultiFab must have at least LinOp_grow ghost cells for applyBC
     assert( inout.nGrow() >= LinOp_grow);
@@ -175,7 +175,7 @@ LinOp::applyBC(MultiFab &inout, int level, BC_Mode bc_mode)
     
     int flagden = 1;	// fill in the bndry data and undrrelxr
     int flagbc  = 1;	// with values
-    if (bc_mode == Homogeneous_BC) flagbc = 0; // nodata if homog
+    if (bc_mode == LinOp::Homogeneous_BC) flagbc = 0; // nodata if homog
     int nc = inout.nComp();
 
     inout.FillBoundary();
@@ -231,7 +231,7 @@ LinOp::applyBC(MultiFab &inout, int level, BC_Mode bc_mode)
     
 void
 LinOp::residual(MultiFab &residL, const MultiFab &rhsL, MultiFab &solnL,
-		int level, BC_Mode bc_mode)
+		int level, LinOp::BC_Mode bc_mode)
 {
     apply(residL, solnL, level, bc_mode);
     //for(int gn = 0; gn < solnL.length(); ++gn) {
@@ -254,7 +254,7 @@ LinOp::residual(MultiFab &residL, const MultiFab &rhsL, MultiFab &solnL,
 
 void
 LinOp::smooth(MultiFab &solnL, const MultiFab &rhsL,
-	      int level, BC_Mode bc_mode)
+	      int level, LinOp::BC_Mode bc_mode)
 {
     applyBC(solnL, level, bc_mode);
     for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++) {

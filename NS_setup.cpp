@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.7 1997-09-26 16:57:03 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.8 1997-10-01 17:55:02 lijewski Exp $
 //
 
 #include <NavierStokes.H>
@@ -136,8 +136,9 @@ void NavierStokes::variableSetUp()
     NUM_SCALARS = NUM_STATE - Density;
 
       // **************  DEFINE VELOCITY VARIABLES  ********************
-    desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),Point,1,
-                           NUM_STATE,&cell_cons_interp);
+    desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
+                           StateDescriptor::Point,1,NUM_STATE,
+                           &cell_cons_interp);
     set_x_vel_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,FORT_XVELFILL);
     set_y_vel_bc(bc,phys_bc);
@@ -177,8 +178,9 @@ void NavierStokes::variableSetUp()
 	BoxLib::Error("Density cannot diffuse, bad visc_coef");
     }
       // ---- pressure
-    desc_lst.addDescriptor(Press_Type,IndexType::TheNodeType(),Interval,1,1,
-			   &node_bilinear_interp);
+    desc_lst.addDescriptor(Press_Type,IndexType::TheNodeType(),
+                           StateDescriptor::Interval,1,1,
+                           &node_bilinear_interp);
     set_pressure_bc(bc,phys_bc);
     desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,FORT_PRESFILL);
 
@@ -224,8 +226,8 @@ void NavierStokes::variableSetUp()
 */
 
       // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
-     err_list.add("tracer",1,Special,FORT_ADVERROR);
-//   err_list.add("mag_vort",0,Special,FORT_MVERROR);
+     err_list.add("tracer",1,ErrorRec::Special,FORT_ADVERROR);
+//   err_list.add("mag_vort",0,ErrorRec::Special,FORT_MVERROR);
 }
 
 // -------------------------------------------------------------

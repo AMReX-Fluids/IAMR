@@ -2,7 +2,7 @@
 #define _MULTIGRID_H_
 
 //
-// $Id: MultiGrid.H,v 1.3 1997-09-26 16:57:02 lijewski Exp $
+// $Id: MultiGrid.H,v 1.4 1997-10-01 17:55:01 lijewski Exp $
 //
 
 #include <Boolean.H>
@@ -107,7 +107,7 @@ public:
 //@ManDoc: solve the system to relative err eps\_rel, absolute err eps\_abs
     virtual void solve(MultiFab &solution, const MultiFab &rhs,
 	               REAL eps_rel = -1.0, REAL eps_abs = -1.0,
-	               BC_Mode bc_mode=Inhomogeneous_BC);
+	               LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
 
 //@ManMemo: Access members
 //@ManDoc: return the linear operator
@@ -203,31 +203,31 @@ protected:
 //@ManMemo: Internal members
 //@ManDoc: Solve the linear system to relative and absolute tolerance
     virtual int solve_(MultiFab& _sol,
-		       REAL _eps_rel, REAL _eps_abs, BC_Mode bc_mode,
+		       REAL _eps_rel, REAL _eps_abs, LinOp::BC_Mode bc_mode,
 		       int level);
 //@ManDoc: Put the system in r-c form
     void residualCorrectionForm(MultiFab& newrhs,
 				const MultiFab& oldrhs,
 				MultiFab& initialsolution,
 				const MultiFab& inisol,
-				BC_Mode bc_mode,
+				LinOp::BC_Mode bc_mode,
                                 int level);
 //@ManDoc: Make space, set switches for new solution level
     void prepareForLevel(int level);
 //@ManDoc: Compute the number of multigrid levels, assuming ratio=2
     int numLevels() const;
 //@ManDoc: Return scalar estimate of error
-    virtual REAL errorEstimate(int level, BC_Mode bc_mode);
+    virtual REAL errorEstimate(int level, LinOp::BC_Mode bc_mode);
 //@ManDoc: Transfer MultiFab from fine to coarse level
     void average(MultiFab &c, const MultiFab &f);
 //@ManDoc: Transfer MultiFab from coarse to fine level
     void interpolate(MultiFab &f, const MultiFab &c);
 //@ManDoc: Perform a MG V-cycle
     void relax(MultiFab& solL, MultiFab& rhsL, int level,
-	       REAL eps_rel, REAL eps_abs, BC_Mode bc_mode);
+	       REAL eps_rel, REAL eps_abs, LinOp::BC_Mode bc_mode);
 //@ManDoc: Perform relaxation at bottom of V-cycle
     virtual void coarsestSmooth(MultiFab& solL, MultiFab& rhsL, int level,
-				REAL eps_rel, REAL eps_abs, BC_Mode bc_mode);
+				REAL eps_rel, REAL eps_abs, LinOp::BC_Mode bc_mode);
 protected:
 //@ManDoc: default flag, whether to use CG at bottom of MG cycle
     static int def_usecg;

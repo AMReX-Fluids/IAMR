@@ -2,7 +2,7 @@
 #define _ErrorList_H_
 
 //
-// $Id: ErrorList.H,v 1.3 1997-09-26 16:56:56 lijewski Exp $
+// $Id: ErrorList.H,v 1.4 1997-10-01 17:55:00 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -21,12 +21,10 @@ typedef void (*ErrorFunc)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
                           const REAL* prob_lo, const REAL* time,
 			  const int* level);
 
-enum ErrorType { Richardson=0, Special };
 
 /// Contains necessary info and functions for tagging cells for regridding
 class ErrorRec
 {
-
   /** ErrorRec is designed to tag cells for regridding based on the state
     data contained in AmrLevel and its derivatives.  It is conceivable that
     actual error tagging will be through derivation, so provision is made for
@@ -36,17 +34,10 @@ class ErrorRec
     friend class ErrorList;
     friend ostream& operator << (ostream&, const ErrorList& );
 
-private:
- // name of quantity to derive
-    aString derive_name; 
-//  number of extra zones
-    int	   ngrow;	
-//  function to do error estimation
-    ErrorFunc    err_func;
-// 
-    ErrorType    err_type;      
-///
 public:
+
+    enum ErrorType { Richardson=0, Special };
+
 //  constructor
     ErrorRec(const aString &nm, int ng, ErrorType et, ErrorFunc f);
 //  destructor
@@ -59,6 +50,16 @@ public:
     ErrorType errType() const { return err_type; }
 ///
     ErrorFunc errFunc() const { return err_func; }
+
+private:
+ // name of quantity to derive
+    aString derive_name; 
+//  number of extra zones
+    int	   ngrow;	
+//  function to do error estimation
+    ErrorFunc    err_func;
+// 
+    ErrorType    err_type;      
 };
 
 /// Container class for ErrorRec
@@ -78,7 +79,7 @@ public:
     int length() const {return lst.length(); }
 ///
     void add(const aString &name, int nextra, 
-	     ErrorType typ, ErrorFunc func);
+	     ErrorRec::ErrorType typ, ErrorFunc func);
 ///
     const ErrorRec* operator[] (int k) const;
 

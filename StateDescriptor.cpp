@@ -1,6 +1,6 @@
 
 //
-// $Id: StateDescriptor.cpp,v 1.3 1997-09-26 16:57:06 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.4 1997-10-01 17:55:03 lijewski Exp $
 //
 
 #include <StateDescriptor.H>
@@ -23,7 +23,7 @@ DescriptorList::clear()
 }
 
 void
-DescriptorList::addDescriptor(int indx, IndexType typ, TimeCenter ttyp,
+DescriptorList::addDescriptor(int indx, IndexType typ, StateDescriptor::TimeCenter ttyp,
 			      int nextra, int num_comp, 
 			      Interpolater *interp)
 {
@@ -49,11 +49,11 @@ DescriptorList::resetComponentBCs(int indx, int comp,
 
 StateDescriptor::StateDescriptor()
     : id(-1), ncomp(0), ngrow(0),
-      mapper(0), names(), bc(), bc_func(), t_type(Point)
+      mapper(0), names(), bc(), bc_func(), t_type(StateDescriptor::Point)
 {
 }
 
-StateDescriptor::StateDescriptor(IndexType btyp, TimeCenter ttyp,
+StateDescriptor::StateDescriptor(IndexType btyp, StateDescriptor::TimeCenter ttyp,
                                  int ident, int nextra, 
                                  int num_comp, Interpolater *interp)
     : type(btyp), t_type(ttyp),
@@ -74,7 +74,7 @@ StateDescriptor::~StateDescriptor()
 }
 
 void
-StateDescriptor::define(IndexType btyp,  TimeCenter ttyp,
+StateDescriptor::define(IndexType btyp,  StateDescriptor::TimeCenter ttyp,
                              int ident, int nextra,
                              int num_comp, Interpolater *interp) 
 {

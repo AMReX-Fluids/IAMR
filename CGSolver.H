@@ -2,7 +2,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.3 1997-09-26 16:56:53 lijewski Exp $
+// $Id: CGSolver.H,v 1.4 1997-10-01 17:55:00 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -94,7 +94,7 @@ public:
 //@ManDoc: solve the system, Lp(solnL)=rhsL to relative err, tolerance
     virtual void solve(MultiFab &solnL, const MultiFab &rhsL,
 	               REAL eps_rel = -1.0, REAL eps_abs = -1.0,
-	               BC_Mode bc_mode=Inhomogeneous_BC);
+	               LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
 //@ManMemo: Access members
 //@ManDoc: set maximum allowed number of CG iterations
     void setMaxIter(int _maxiter)
@@ -139,7 +139,7 @@ protected:
     void update(MultiFab &sol, REAL alpha, MultiFab& r,
 		const MultiFab& p, const MultiFab& w);
 //@ManDoc: compute w = A.p, and return Transpose(p).w in the CG algorithm
-    REAL axp(MultiFab& w, MultiFab& p, BC_Mode bc_mode);
+    REAL axp(MultiFab& w, MultiFab& p, LinOp::BC_Mode bc_mode);
 //@ManDoc: compute a suitable norm of the residual, used to check stopping criteria
     REAL norm(const MultiFab& res);
 //@ManDoc: MultiGrid solver to be used as preconditioner
