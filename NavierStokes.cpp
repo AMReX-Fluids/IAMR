@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.173 2000-06-28 21:50:02 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.174 2000-07-07 20:18:49 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -850,7 +850,7 @@ NavierStokes::setTimeLevel (Real time,
 
     if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Interval) 
     {
-      state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_new);
+      state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
     } 
     else if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point) 
     {
