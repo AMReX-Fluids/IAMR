@@ -1,39 +1,51 @@
-PRECISION = DOUBLE
-DEBUG	= FALSE
-DEBUG	= TRUE
-PROFILE = FALSE
-
-DIM	= 3
-DIM	= 2
-
-WHICH_HG=
-
-COMP = KCC
-
-USE_WINDOWS=FALSE
-USE_MPI=TRUE
-USE_MPI=FALSE
-USE_NETCDF=FALSE
+#
+# $Id: GNUmakefile,v 1.52 1998-11-02 20:50:05 lijewski Exp $
+#
+PRECISION     = DOUBLE
+DEBUG	      = FALSE
+DEBUG	      = TRUE
+PROFILE       = FALSE
+DIM	      = 2
+DIM	      = 3
+WHICH_HG      =
+COMP          = KCC
+USE_WINDOWS   = FALSE
+USE_MPI       = FALSE
+USE_MPI       = TRUE
+USE_NETCDF    = FALSE
 USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
-
+#
+# Base name of the executable.
+#
 EBASE = amr
-LBASE = 
-
-HERE = .
 
 PBOXLIB_HOME = ..
 
-include ../mk/Make.defs
+TOP = $(PBOXLIB_HOME)
+#
+# Where libraries and include files will be installed.
+#
+INSTALL_ROOT = $(TOP)
 
-INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib ../bndrylib ../mglib ../hgproj
+include ../mk/Make.defs ./Make.package
 
-MPI_HOME =
+INCLUDE_LOCATIONS += . $(TOP)/include
+
+LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
+
+LIBRARIES += -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
 
 ifeq ($(USE_MPI), TRUE)
 DEFINES += -DBL_USE_MPI
+LIBRARIES += -lmpi
 ifeq ($(MACHINE), OSF1)
-MPI_HOME = /usr/local/mpi
+INCLUDE_LOCATIONS += /usr/local/mpi/include
+LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
+endif
+ifeq ($(MACHINE), AIX)
+INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
+LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
 endif
 endif
 
@@ -44,22 +56,9 @@ DEFINES += -DBL_USE_WINDOWS
 endif
 
 ifeq ($(USE_ARRAYVIEW),TRUE)
-#ARRAYVIEWDIR  = /usr/local/ccse/ArrayView
-#ARRAYVIEWDIR  = /usr/people/vince/Visualization/ArrayView
-ARRAYVIEWDIR  = .
-INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
-#LIBRARY_LOCATIONS += $(ARRAYVIEWDIR) 
-#LIBRARIES += -larrayview$(DIM)d.$(machineSuffix) 
+INCLUDE_LOCATIONS += .
 DEFINES += -DBL_USE_ARRAYVIEW
 DEFINES += -DBL_ARRAYVIEW_TAGBOX
-endif
-
-ifeq ($(USE_MPI), TRUE)
-ifeq ($(MACHINE), OSF1)
-INCLUDE_LOCATIONS += $(MPI_HOME)/include
-LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
-endif
-LIBRARIES += -lmpi
 endif
 
 ifeq ($(USE_NETCDF),TRUE)
@@ -82,35 +81,15 @@ FDEBF += -warn truncated_source
 FDEBF += -warn unused
 endif
 endif
-
+#
+# For Running 3rd Only
+#
 3RD = 1
-3RD=
+3RD =
 ifdef 3RD
-# FOR RUNNING 3RD ONLY
 LDFLAGS += --link_command_prefix 3rd
-#CXXDEBF = +K0 --link_command_prefix 3rd -non_shared
 LDFLAGS += -non_shared -v
-#LIBRARIES += -ldnet_stub
-#FDEBF += -automatic
-# FOR RUNNING 3RD ONLY
 endif
-
-CXXFLAGS +=
-CXXOPTF +=
-CXXDEBF +=
-
-CFLAGS +=
-COPTF +=
-CDEBF +=
-
-include $(HERE)/Make.package 
-
-#INCLUDE_LOCATIONS += ../hgproj/include/3d.v7
-
-FOPTF = -fast
-
-vpath %.cpp : . ../pBoxLib_2 ../amrlib ../bndrylib ../mglib ../hgproj
-vpath %.F   : . ../amrlib ../bndrylib ../mglib ../hgproj$(WHICH_HG)
 
 all: $(executable)
 

@@ -1,133 +1,19 @@
 #
-# amrlib sources
+# $Id: Make.package,v 1.33 1998-11-02 20:50:05 lijewski Exp $
 #
-AMR_C_SOURCES = main.cpp Amr.cpp AmrLevel.cpp BCRec.cpp Cluster.cpp \
-                Derive.cpp ErrorList.cpp FluxRegister.cpp \
-                Interpolater.cpp StateData.cpp StateDescriptor.cpp \
-                TagBox.cpp
-
-AMR_C_HEADERS = Amr.H AmrLevel.H BCRec.H Cluster.H Derive.H \
-                ErrorList.H FluxRegister.H Interpolater.H \
-                LevelBld.H StateData.H StateDescriptor.H 
-
-AMR_F_SOURCES = INTERP_$(DIM)D.F FLUXREG_$(DIM)D.F FILCC_$(DIM)D.F 
-AMR_F_HEADERS = INTERP_F.H BC_TYPES.H PROB_AMR_F.H FLUXREG_F.H
-
-CEXE_sources += $(AMR_C_SOURCES)
-CEXE_headers += $(AMR_H_HEADERS)
-
-FEXE_sources += $(AMR_F_SOURCES)
-FEXE_headers += $(AMR_F_HEADERS)
-#
-# bndrylib sources
-#
-BNDRYLIB_BASE=EXE
-C$(BNDRYLIB_BASE)_sources += FabSet.cpp BndryRegister.cpp \
-			     Geometry.cpp CoordSys.cpp RealBox.cpp
-C$(BNDRYLIB_BASE)_headers += FabSet.H BndryRegister.H \
-			     Geometry.H CoordSys.H RealBox.H
-
-F$(BNDRYLIB_BASE)_headers += COORDSYS_F.H
-F$(BNDRYLIB_BASE)_sources += COORDSYS_$(DIM)D.F
-#
-# HGPROJ sources
-#
-HGLIB_BASE=EXE
-C$(HGLIB_BASE)_sources += interface.cpp boundary.cpp \
-			  interpolator.cpp \
-			  restrictor.cpp fill_patch.cpp amr_multi.cpp \
-			  hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
-			  hg_projector.cpp \
-			  hgparallel.cpp
-
-C$(HGLIB_BASE)_headers += interface.H boundary.H \
-			  interpolator.H \
-			  restrictor.H fill_patch.H amr_multi.H \
-			  hg_multi.H \
-			  hg_projector.H \
-			  hgparallel.h
-
-F$(HGLIB_BASE)_sources += amr_real$(DIM)d.F hg_multi$(DIM)d.F \
-			  hg_proj$(DIM)d.F hg_avg$(DIM)d.F
-
-ifeq ($(DIM),3)
-F$(HGLIB_BASE)_sources += hg_multi$(DIM)d_terrain.F
-endif
-
-#
-# boxlib sources
-#
-BOXLIB_BASE=EXE
- 
-C$(BOXLIB_BASE)_sources += BoxLib.cpp Tracer.cpp RunStats.cpp
-C$(BOXLIB_BASE)_headers += BoxLib.H BLVERSION.H Tracer.H RunStats.H
-
-C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp aString.cpp
-C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H Assert.H aString.H
-
-C$(BOXLIB_BASE)_headers += ArrayLim.H REAL.H Boolean.H SPACE.H SPACE_F.H
-C$(BOXLIB_BASE)_headers += CONSTANTS.H UseCount.H
-
-C$(BOXLIB_BASE)_sources += DistributionMapping.cpp ParallelDescriptor.cpp
-C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
-
-C${BOXLIB_BASE}_sources += FabConv.cpp FPC.cpp BoxAssoc.cpp FArrayBox.cpp
-C${BOXLIB_BASE}_headers += FabConv.H FPC.H BoxAssoc.H FArrayBox.H
-
-C$(BOXLIB_BASE)_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp
-C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H
-
-C$(BOXLIB_BASE)_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp MultiFab.cpp
-C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H Looping.H MultiFab.H
-
-C$(BOXLIB_BASE)_sources += VisMF.cpp BArena.cpp CArena.cpp
-C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
-
-T_headers += Array.H PArray.H List.H Pointers.H Tuple.H Misc.H
-T_headers += ccse-mpi.H
-
-T_headers += BaseFab.H FabArray.H
-#
-# multigrid sources
-#
-MGLIB_BASE=EXE
-C$(MGLIB_BASE)_headers += ABecLaplacian.H BndryData.H BoundCond.H \
-                          CGSolver.H InterpBndryData.H LO_BCTYPES.H \
-                          Laplacian.H LinOp.H Mask.H MultiGrid.H
-
-C$(MGLIB_BASE)_sources += ABecLaplacian.cpp BndryData.cpp CGSolver.cpp \
-                          InterpBndryData.cpp Laplacian.cpp LinOp.cpp \
-                          Mask.cpp MultiGrid.cpp
-
-F$(MGLIB_BASE)_headers += ABec_F.H CG_F.H INTERPBNDRYDATA_F.H \
-                          LO_F.H LP_F.H MG_F.H
-
-F$(MGLIB_BASE)_sources += ABec_$(DIM)D.F ABec_UTIL.F CG_$(DIM)D.F \
-                          INTERPBNDRYDATA_$(DIM)D.F LO_$(DIM)D.F \
-                          LO_UTIL.F LP_$(DIM)D.F MG_$(DIM)D.F
-#
-# IAMR sources:  _run2d
-#
-CEXE_sources += NS_setup.cpp NSBld.cpp
+CEXE_sources += main.cpp NS_setup.cpp NSBld.cpp
 FEXE_headers += probdata.H PROB_F.H
-ifeq ($(DIM),2)
-FEXE_sources += PROB_2D.F 
-endif
-ifeq ($(DIM),3)
-FEXE_sources += PROB_3D.F 
-endif
-#
-# IAMR sources:  _bndry
-#
+FEXE_sources += PROB_$(DIM)D.F 
+
 CEXE_sources += SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
+
 ifeq ($(DIM),2)
 CEXE_sources += ViscBndry2D.cpp
-endif
-
-CEXE_headers += SyncRegister.H  RegType.H  ViscBndry.H  MacBndry.H 
-ifeq ($(DIM),2)
 CEXE_headers += ViscBndry2D.H
 endif
+
+CEXE_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H
+CEXE_headers += ArrayView.H DatasetClient.H
 
 FEXE_headers += SYNCREG_F.H VISCOPERATOR_F.H
 FEXE_sources += SYNCREG_$(DIM)D.F VISCOPERATOR_$(DIM)D.F
@@ -136,13 +22,11 @@ FEXE_sources += SYNCREG_$(DIM)D.F VISCOPERATOR_$(DIM)D.F
 #
 ifndef ATMOS_MACOP
 CEXE_sources += MacOperator.cpp
-CEXE_headers += MacOperator.H
+CEXE_headers += MacOperator.H MacOpProjDrivers.H MacOpMacDrivers.H
 FEXE_sources += MACOPERATOR_$(DIM)D.F
 FEXE_headers += MACOPERATOR_F.H
 endif
-#
-# IAMR sources:  _ns_mac_new
-#
+
 CEXE_sources += NavierStokes.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
 CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H 
 						                   
@@ -151,6 +35,7 @@ FEXE_sources += DERIVE_$(DIM)D.F GODUNOV_F.F GODUNOV_$(DIM)D.F NAVIERSTOKES_$(DI
 
 FEXE_headers += DERIVE_F.H GODUNOV.FH GODUNOV_F.H PROJECTION_F.H MACPROC_F.H \
 		DIFFUSION_F.H NAVIERSTOKES_F.H 
+
 ifeq ($(USE_ARRAYVIEW),TRUE)
 CEXE_sources += DatasetClient.cpp
 endif
