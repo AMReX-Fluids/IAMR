@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.4 1998-02-22 19:06:53 car Exp $
+c $Id: SYNCREG_3D.F,v 1.5 1998-03-31 17:26:41 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -113,7 +113,6 @@ c           timestep on the coarse grid.  mult = 1/ratio.
           end do
       end if
       
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -282,7 +281,6 @@ c           timestep on the coarse grid.  mult = 1/ratio.
          end do
       end if
       
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -362,7 +360,6 @@ c           timestep on the coarse grid.  mult = 1/ratio.
        end do
       end do
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -567,8 +564,9 @@ c        ::::: sum in j and k directions
          end if
       
       else if (dir .eq. 1) then
-
+c
 c        ::::: sum in i and k directions
+c
          jc = lo(2)
          j = ratioy*jc
 
@@ -888,7 +886,6 @@ c        ::::: sum in i and j directions
          end if
       end if
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -923,7 +920,6 @@ c ::: -----------------------------------------------------------
        end do
       end do
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -955,6 +951,5 @@ c ::: -----------------------------------------------------------
        end do
       end do
  
-      return
       end
 

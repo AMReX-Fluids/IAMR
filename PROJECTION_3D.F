@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.4 1998-02-22 19:06:53 car Exp $
+c $Id: PROJECTION_3D.F,v 1.5 1998-03-31 17:26:40 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -13,9 +13,6 @@ c
 #include "ArrayLim.H"
 
 #define SDIM 3
-
-
-c=========================================================
 
        subroutine FORT_FILTERP (
      &     pnew,scratch,DIMS(p),
@@ -48,36 +45,30 @@ c
        twelfth = one / 12.d0
 
        do k = lo(3)+1, hi(3)
-       do j = lo(2)+1, hi(2)
-       do i = lo(1)+1, hi(1)
-  
-         scratch(i,j,k) = six * pnew(i,j,k) - 
-     $      (pnew(i-1,j,k) + pnew(i+1,j,k) + 
-     $       pnew(i,j-1,k) + pnew(i,j+1,k) +
-     $       pnew(i,j,k-1) + pnew(i,j,k+1) )
-         scratch(i,j,k) = - twelfth * scratch(i,j,k) * fac
+          do j = lo(2)+1, hi(2)
+             do i = lo(1)+1, hi(1)
+                
+                scratch(i,j,k) = six * pnew(i,j,k) - 
+     $               (pnew(i-1,j,k) + pnew(i+1,j,k) + 
+     $               pnew(i,j-1,k) + pnew(i,j+1,k) +
+     $               pnew(i,j,k-1) + pnew(i,j,k+1) )
+                scratch(i,j,k) = - twelfth * scratch(i,j,k) * fac
 
-       end do
-       end do
+             end do
+          end do
        end do
 
        do k = lo(3)+1, hi(3)
-       do j = lo(2)+1, hi(2)
-       do i = lo(1)+1, hi(1)
+          do j = lo(2)+1, hi(2)
+             do i = lo(1)+1, hi(1)
 
-         pnew(i,j,k) = pnew(i,j,k) + scratch(i,j,k)
+                pnew(i,j,k) = pnew(i,j,k) + scratch(i,j,k)
 
+             end do
+          end do
        end do
-       end do
-       end do
-c
-c     end of routine
-c
-       return 
+ 
        end
-
-
-c=========================================================
 
        subroutine FORT_ACCEL_TO_VEL( lo, hi, 
      &     uold,DIMS(uold),
@@ -92,9 +83,9 @@ c
        integer    DIMDEC(uold),DIMDEC(unew)
        REAL_T     uold(DIMV(uold),SDIM)
        REAL_T     unew(DIMV(unew),SDIM)
-c
+
        integer i, j, k, n
-c
+
        do n = 1, SDIM
           do k = lo(3)-1, hi(3)+1
              do j = lo(2)-1, hi(2)+1
@@ -104,16 +95,9 @@ c
              end do
           end do
        end do
-c     
-c     end of routine
-c     
-       return
+
        end
-      
-      
-      
-c=========================================================
-      
+
       subroutine FORT_VEL_TO_ACCEL( lo, hi, 
      &     unew,DIMS(unew),
      &     uold,DIMS(uold),
@@ -126,9 +110,9 @@ c
       integer    DIMDEC(unew),DIMDEC(uold)
       REAL_T     uold(DIMV(uold),SDIM)
       REAL_T     unew(DIMV(unew),SDIM)
-c     
+
       integer i, j, k, n
-c     
+
       do n = 1, SDIM
          do k = lo(3)-1, hi(3)+1
             do j = lo(2)-1, hi(2)+1
@@ -138,15 +122,9 @@ c
             end do
          end do
       end do
-c     
-c     end of routine
-c     
-      return
+
       end
-      
-      
-c=========================================================
-      
+
       subroutine FORT_PROJ_UPDATE(
      &     boxlo, boxhi, nvar, ngrow,
      &     un, DIMS(un),
@@ -161,9 +139,9 @@ c
       integer    DIMDEC(un),DIMDEC(uo)
       REAL_T     un(DIMV(un),nvar)
       REAL_T     uo(DIMV(uo),nvar)
-c     
+
       integer i, j, k, n
-c     
+
       do n = 1, nvar
          do k = boxlo(3), boxhi(3)
             do j = boxlo(2), boxhi(2)
@@ -173,22 +151,13 @@ c
             end do
          end do
       end do
-c     
-c     end of routine
-c
-       return
+
        end
-
-
-
-
-c=========================================================
 
        subroutine FORT_RADMPY(a,DIMS(grid),ng,r,nr,n)
 c 
 c     multiply A by a Radius r
 c
-
        integer    ng,nr
        integer    n(SDIM)
        integer    DIMDEC(grid)
@@ -206,15 +175,8 @@ c
              end do
           end do
        end do
-c
-c     end of routine
-c
-       return
+
        end
-
-
-
-c=========================================================
 
        subroutine FORT_RADDIV(a,DIMS(grid),ng,r,nr,n)
 c 
@@ -237,9 +199,5 @@ c
              end do
           end do
        end do
-c
-c     end of routine
-c
-       return
-       end
 
+       end

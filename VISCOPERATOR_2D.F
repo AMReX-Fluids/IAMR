@@ -1,5 +1,5 @@
 c
-c $Id: VISCOPERATOR_2D.F,v 1.4 1998-02-22 19:06:54 car Exp $
+c $Id: VISCOPERATOR_2D.F,v 1.5 1998-03-31 17:26:41 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -81,6 +81,5 @@ c         visc(i,j,n) = two*visc(i-1,j+1,n) - visc(i-2,j+2,n)
           visc(i,j,n) = visc(i-1,j+1,n)
        end do
 
-       return
        end
 

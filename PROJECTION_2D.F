@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.6 1998-03-26 06:41:02 almgren Exp $
+c $Id: PROJECTION_2D.F,v 1.7 1998-03-31 17:26:40 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -13,8 +13,6 @@ c
 #include "ArrayLim.H"
 
 #define SDIM 2
-
-c=========================================================
 
        subroutine FORT_FILTERP (
      &     pnew,scratch,DIMS(p),
@@ -46,11 +44,11 @@ c
        integer    wrap_around_x
        integer    wrap_around_y
        integer i, j
-c
+
        if ( abs(dx(1)-dx(2)) .gt. 1.e-8 .and. fac .gt. 1.e-4 )then
           print *, 'is filter properly formatted for dx != dy ?'
        end if
-c
+
        do j = lo(2)+1, hi(2)
           do i = lo(1)+1, hi(1)
              scratch(i,j) = four * pnew(i,j) - 
@@ -116,7 +114,7 @@ c
      $       (pnew(i-1,j) + pnew(lo(1)+1,j) + pnew(i,j-1) + pnew(i,lo(2)+1) )
            scratch(i,j) = - eighth * scratch(i,j) * fac
        end if
-c
+
        do j = lo(2)+1, hi(2)
           do i = lo(1)+1, hi(1)
              pnew(i,j) = pnew(i,j) + scratch(i,j)
@@ -143,14 +141,8 @@ c
          pnew(lo(1)  ,hi(2)+1) = pnew(lo(1)  ,hi(2)+1) + scratch(lo(1)  ,hi(2)+1)
          pnew(hi(1)+1,hi(2)+1) = pnew(hi(1)+1,hi(2)+1) + scratch(hi(1)+1,hi(2)+1)
        end if
-c
-c     end of routine
-c
-       return 
+
        end
-
-
-c=========================================================
 
        subroutine FORT_ACCEL_TO_VEL( lo, hi, 
      &     uold,DIMS(uold),
@@ -165,9 +157,9 @@ c
        integer    DIMDEC(uold),DIMDEC(unew)
        REAL_T     uold(DIMV(uold),SDIM)
        REAL_T     unew(DIMV(unew),SDIM)
-c
+
        integer i, j, n
-c
+
        do n = 1, SDIM
           do j = lo(2)-1, hi(2)+1
              do i = lo(1)-1, hi(1)+1
@@ -175,15 +167,8 @@ c
              end do
           end do
        end do
-c
-c     end of routine
-c
-       return
+
        end
-
-
-
-c=========================================================
 
       subroutine FORT_VEL_TO_ACCEL( lo, hi, 
      &     unew,DIMS(unew),
@@ -197,9 +182,9 @@ c
       integer    DIMDEC(unew),DIMDEC(uold)
       REAL_T     uold(DIMV(uold),SDIM)
       REAL_T     unew(DIMV(unew),SDIM)
-c     
+
       integer i, j, n
-c
+
       do n = 1, SDIM
          do j = lo(2)-1, hi(2)+1
             do i = lo(1)-1, hi(1)+1
@@ -207,14 +192,8 @@ c
             end do
          end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
-
-
-c=========================================================
 
       subroutine FORT_PROJ_UPDATE(
      &     boxlo, boxhi, nvar, ngrow,
@@ -230,9 +209,9 @@ c
       integer    DIMDEC(un),DIMDEC(uo)
       REAL_T     un(DIMV(un),nvar)
       REAL_T     uo(DIMV(uo),nvar)
-c     
+
       integer i, j, n
-c     
+
       do n = 1, nvar
          do j = boxlo(2), boxhi(2)
             do i = boxlo(1), boxhi(1)
@@ -240,15 +219,8 @@ c
             end do
          end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
-      
-
-
-c=========================================================
 
        subroutine FORT_RADMPY(a,DIMS(grid),ng,r,nr,n)
 c 
@@ -261,21 +233,14 @@ c
      $              ARG_L2(grid)-ng:ARG_H2(grid)+ng)
        REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
        integer i, j
-c
+
        do j = ARG_L2(grid)-n(2), ARG_H2(grid)+n(2)
           do i = ARG_L1(grid)-n(1), ARG_H1(grid)+n(1)
 	     a(i,j) = r(i)*a(i,j)
           end do
        end do
-c
-c     end of routine
-c
-       return
+
        end
-
-
-c=========================================================
-
 
        subroutine FORT_RADDIV(a,DIMS(grid),ng,r,nr,n)
 c 
@@ -287,22 +252,16 @@ c
        REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
      $              ARG_L2(grid)-ng:ARG_H2(grid)+ng)
        REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
-c
+
        integer i, j
-c
+
        do j = ARG_L2(grid)-n(2), ARG_H2(grid)+n(2)
           do i = ARG_L1(grid)-n(1), ARG_H1(grid)+n(1)
 	    a(i,j) = a(i,j)/r(i)
           end do
        end do
-c
-c     end of routine
-c
-       return
+
        end
-
-c=========================================================
-
 
       subroutine FORT_HGN2C(
      &     isrz,lrweighted, DIMS(nodedat), nodedat,
@@ -322,8 +281,6 @@ c     holy grail projection
       REAL_T  ccdat(DIMV(ccdat))
 
       integer i,j
-
-c ---- begin ----------
 
       if (ARG_H1(ccdat)   .lt. lo(1) .or. 
      &    ARG_L1(ccdat)   .gt. hi(1) .or. 
@@ -353,10 +310,7 @@ c ---- begin ----------
         end do
       end do
 
-      return
       end
-
-c=========================================================
 
       subroutine FORT_HGC2N(
      &     nghost, DIMS(dat), dat, rcen,
@@ -394,143 +348,134 @@ c
       REAL_T  factor, rhi, rlo
 
       if (extrap_edges .eq. 1) then
-
+c
 c ... fix up bcs at domain edges
+c
+         if(ARG_L1(rhs)+nghost .eq. domlo(1)) then
+            i = domlo(1)
+            do j = ARG_L2(rhs)+nghost, ARG_H2(rhs)-nghost
+               dat(i-1,j) = dat(i,j)
+            end do
+         end if
 
-        if(ARG_L1(rhs)+nghost .eq. domlo(1)) then
-          i = domlo(1)
-          do j = ARG_L2(rhs)+nghost, ARG_H2(rhs)-nghost
-             dat(i-1,j) = dat(i,j)
-          end do
-        end if
+         if(ARG_L1(rhs)-nghost .eq. domhi(1)+1) then
+            i = domhi(1)
+            do j = ARG_L2(rhs)+nghost, ARG_H2(rhs)-nghost
+               dat(i+1,j) = dat(i,j)
+            end do
+         end if
 
-        if(ARG_L1(rhs)-nghost .eq. domhi(1)+1) then
-          i = domhi(1)
-          do j = ARG_L2(rhs)+nghost, ARG_H2(rhs)-nghost
-            dat(i+1,j) = dat(i,j)
-          end do
-        end if
+         if(ARG_L2(rhs)+nghost .eq. domlo(2)) then
+            j = domlo(2)
+            do i = ARG_L1(rhs)+nghost, ARG_H1(rhs)-nghost
+               dat(i,j-1) = dat(i,j)
+            end do
+         end if
 
-        if(ARG_L2(rhs)+nghost .eq. domlo(2)) then
-          j = domlo(2)
-          do i = ARG_L1(rhs)+nghost, ARG_H1(rhs)-nghost
-            dat(i,j-1) = dat(i,j)
-          end do
-        end if
-
-        if(ARG_H2(rhs)-nghost .eq. domhi(2)+1) then
-          j = domhi(2)
-          do i = ARG_L1(rhs)+nghost, ARG_H1(rhs)-nghost
-             dat(i,j+1) = dat(i,j)
-          end do
-        end if
+         if(ARG_H2(rhs)-nghost .eq. domhi(2)+1) then
+            j = domhi(2)
+            do i = ARG_L1(rhs)+nghost, ARG_H1(rhs)-nghost
+               dat(i,j+1) = dat(i,j)
+            end do
+         end if
       end if
 
       if (extrap_corners .eq. 1) then
 
-        if(ARG_L1(rhs)+nghost .eq. domlo(1) .and.
-     &     ARG_L2(rhs)+nghost .eq. domlo(2)) then
-          i = domlo(1)
-          j = domlo(2)
-          dat(i-1,j)   = dat(i,j)
-          dat(i,j-1)   = dat(i,j)
-          dat(i-1,j-1) = dat(i,j)
-        end if
+         if(ARG_L1(rhs)+nghost .eq. domlo(1) .and.
+     &        ARG_L2(rhs)+nghost .eq. domlo(2)) then
+            i = domlo(1)
+            j = domlo(2)
+            dat(i-1,j)   = dat(i,j)
+            dat(i,j-1)   = dat(i,j)
+            dat(i-1,j-1) = dat(i,j)
+         end if
 
-        if(ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
-     &     ARG_H2(rhs)+nghost .eq. domlo(2)) then
-          i = domhi(1)
-          j = domlo(2)
-          dat(i+1,j)   = dat(i,j)
-          dat(i,j-1)   = dat(i,j)
-          dat(i+1,j-1) = dat(i,j)
-        end if
+         if(ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
+     &        ARG_H2(rhs)+nghost .eq. domlo(2)) then
+            i = domhi(1)
+            j = domlo(2)
+            dat(i+1,j)   = dat(i,j)
+            dat(i,j-1)   = dat(i,j)
+            dat(i+1,j-1) = dat(i,j)
+         end if
 
-        if(ARG_L1(rhs)+nghost .eq. domlo(1) .and.
-     &     ARG_L2(rhs)-nghost .eq. domhi(2)+1) then
-          i = domlo(1)
-          j = domhi(2)
-          dat(i-1,j)   = dat(i,j)
-          dat(i,j+1)   = dat(i,j)
-          dat(i-1,j+1) = dat(i,j)
-        end if
+         if(ARG_L1(rhs)+nghost .eq. domlo(1) .and.
+     &        ARG_L2(rhs)-nghost .eq. domhi(2)+1) then
+            i = domlo(1)
+            j = domhi(2)
+            dat(i-1,j)   = dat(i,j)
+            dat(i,j+1)   = dat(i,j)
+            dat(i-1,j+1) = dat(i,j)
+         end if
 
-        if(ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
-     &     ARG_H2(rhs)-nghost .eq. domhi(2)+1) then
-          i = domhi(1)
-          j = domhi(2)
-          dat(i+1,j)   = dat(i,j)
-          dat(i,j+1)   = dat(i,j)
-          dat(i+1,j+1) = dat(i,j)
-        end if
+         if(ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
+     &        ARG_H2(rhs)-nghost .eq. domhi(2)+1) then
+            i = domhi(1)
+            j = domhi(2)
+            dat(i+1,j)   = dat(i,j)
+            dat(i,j+1)   = dat(i,j)
+            dat(i+1,j+1) = dat(i,j)
+         end if
       end if
 
       if (ARG_L1(rhs)+1 .lt. ARG_L1(dat) .or. 
-     $    ARG_H1(rhs)-1 .gt. ARG_H1(dat) .or.
-     &    ARG_L2(rhs)+1 .lt. ARG_L2(dat) .or. 
-     $    ARG_H2(rhs)-1 .gt. ARG_H2(dat)) then
-        write(6,*) "FORT_HG_CELL_TO_NODE: bad index limits"
-        stop
+     $     ARG_H1(rhs)-1 .gt. ARG_H1(dat) .or.
+     &     ARG_L2(rhs)+1 .lt. ARG_L2(dat) .or. 
+     $     ARG_H2(rhs)-1 .gt. ARG_H2(dat)) then
+         write(6,*) "FORT_HG_CELL_TO_NODE: bad index limits"
+         stop
       end if
 
       if (is_rz.ne.1) then
-        do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
-          do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
-            rhs(i,j) = fourth*(dat(i-1,j-1)+dat(i-1,j)+
-     &                         dat(i,j-1)+dat(i,j))
-          end do
-        end do
+         do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
+            do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
+               rhs(i,j) = fourth*(dat(i-1,j-1)+dat(i-1,j)+
+     &              dat(i,j-1)+dat(i,j))
+            end do
+         end do
       else
-        do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
-          do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
-            if (hifix.eq.1 .and. ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
-     &          i .eq. ARG_H1(rhs)-nghost ) then
-              rhi = rcen(i-1)
-            else 
-              rhi = rcen(i)
-            end if
-            if(lowfix.eq.1 .and. ARG_L1(rhs)+nghost .eq. domlo(1) .and.
-     &          i .eq. ARG_L1(rhs)+nghost ) then
-              rlo = rcen(i)
-            else
-              rlo = rcen(i-1)
-            end if
-            rhs(i,j) = fourth*(rlo * (dat(i-1,j-1) + dat(i-1,j)) +
-     &                         rhi * (dat(i,j-1)   + dat(i,j)))
-          end do
-        end do
-        factor = dr/24.0
-        do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
-          do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
-            if (hifix.eq.1 .and. ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
-     &          i .eq. ARG_H1(rhs)-nghost ) then
-              rhi = -one
-            else 
-              rhi = one
-            end if
-            if(lowfix.eq.1 .and. ARG_L1(rhs)+nghost .eq. domlo(1) .and.
-     &          i .eq. ARG_L1(rhs)+nghost ) then
-              rlo = -one
-            else
-              rlo = one
-            end if
-            rhs(i,j) = rhs(i,j) + factor *
-     &                    (rlo * (dat(i-1,j-1) + dat(i-1,j)) -
-     &                     rhi * (dat(i  ,j-1) + dat(i  ,j)))
-          end do
-        end do
+         do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
+            do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
+               if (hifix.eq.1 .and. ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
+     &              i .eq. ARG_H1(rhs)-nghost ) then
+                  rhi = rcen(i-1)
+               else 
+                  rhi = rcen(i)
+               end if
+               if(lowfix.eq.1 .and. ARG_L1(rhs)+nghost .eq. domlo(1) .and.
+     &              i .eq. ARG_L1(rhs)+nghost ) then
+                  rlo = rcen(i)
+               else
+                  rlo = rcen(i-1)
+               end if
+               rhs(i,j) = fourth*(rlo * (dat(i-1,j-1) + dat(i-1,j)) +
+     &              rhi * (dat(i,j-1)   + dat(i,j)))
+            end do
+         end do
+         factor = dr/24.0
+         do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
+            do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
+               if (hifix.eq.1 .and. ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
+     &              i .eq. ARG_H1(rhs)-nghost ) then
+                  rhi = -one
+               else 
+                  rhi = one
+               end if
+               if(lowfix.eq.1 .and. ARG_L1(rhs)+nghost .eq. domlo(1) .and.
+     &              i .eq. ARG_L1(rhs)+nghost ) then
+                  rlo = -one
+               else
+                  rlo = one
+               end if
+               rhs(i,j) = rhs(i,j) + factor *
+     &              (rlo * (dat(i-1,j-1) + dat(i-1,j)) -
+     &              rhi * (dat(i  ,j-1) + dat(i  ,j)))
+            end do
+         end do
       end if
 
-c
-c     end of routine
-c
-      return
       end
-
-
-
-c=========================================================
-
 
       subroutine FORT_HGPHIBC(DIMS(u),u,DIMS(div),divcor,DIMS(rho),rho,
      &                        DIMS(r),r,hx,DIMS(phi),phi)
@@ -568,14 +513,14 @@ c
       iend =ie
 
 #if 0
-        divcor_ave = zero
-        vtot = zero
-        do i=is,ie-1 
+      divcor_ave = zero
+      vtot = zero
+      do i=is,ie-1 
 #if 0
-           div_edge = half*(divcor(i,je-1)+divcor(i,je))
+         div_edge = half*(divcor(i,je-1)+divcor(i,je))
 #endif
 #if 1
-           div_edge = divcor(i,je)
+         div_edge = divcor(i,je)
 #endif
            divcor_ave = divcor_ave+r(i)*div_edge
            vtot = vtot+r(i)
@@ -659,10 +604,7 @@ c        write(6,*)'rho,u,divcor=',rho(is,je-1),u(is,je-1,1),divcor(is,je-1)
           fstm = fst
         end do
 #endif
-c
-c     end of routine
-c
-      return
+
       end
 
 

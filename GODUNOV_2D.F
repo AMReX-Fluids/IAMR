@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.6 1998-02-22 19:06:45 car Exp $
+c $Id: GODUNOV_2D.F,v 1.7 1998-03-31 17:26:36 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -15,9 +15,6 @@ c
 #define SDIM 2
 #define XVEL 1
 #define YVEL 2
-
-c=========================================================
-
 
       subroutine FORT_ESTDT (
      &     vel,DIMS(vel),
@@ -40,28 +37,28 @@ c
       integer   i, j
       integer lo(SDIM), hi(SDIM)
       REAL_T  dt,dx(SDIM),cfl,u_max(SDIM)
-c
+
       integer DIMDEC(vel)
       integer DIMDEC(rho)
       integer DIMDEC(tf)
-c
+
       REAL_T  vel(DIMV(vel),SDIM)
       REAL_T  rho(DIMV(rho))
       REAL_T  tforces(DIMV(tf),SDIM)
-c
+
       small   = 1.0d-8
       u       = zero
       v       = zero
       tforce1 = zero
       tforce2 = zero
-c
+
       do j = lo(2), hi(2)
-      do i = lo(1), hi(1)
-         u = max(u,abs(vel(i,j,1)))
-         v = max(v,abs(vel(i,j,2)))
-         tforce1 = max(tforce1,abs(tforces(i,j,1)/rho(i,j)))
-         tforce2 = max(tforce2,abs(tforces(i,j,2)/rho(i,j)))
-      end do
+         do i = lo(1), hi(1)
+            u = max(u,abs(vel(i,j,1)))
+            v = max(v,abs(vel(i,j,2)))
+            tforce1 = max(tforce1,abs(tforces(i,j,1)/rho(i,j)))
+            tforce2 = max(tforce2,abs(tforces(i,j,2)/rho(i,j)))
+         end do
       end do
 
       u_max(1) = u
@@ -84,15 +81,8 @@ c
       if (dt .eq. dt_start) dt = min(dx(1),dx(2))
 
       dt = dt*cfl
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
-c=========================================================
 
       subroutine FORT_TEST_U_RHO(
      &     u,DIMS(u),
@@ -164,15 +154,7 @@ c
  1001 format(' V  MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
  1002 format('RHO MAX/MIN      ',e21.14,2x,e21.14)
 
-c
-c     end of routine
-c
-      return
       end
-
-
-
-c=========================================================
 
       subroutine FORT_TEST_UMAC_RHO(
      &     umac,DIMS(umac),
@@ -196,7 +178,7 @@ c
       REAL_T  umac(DIMV(umac))
       REAL_T  vmac(DIMV(vmac))
       REAL_T  rho(DIMV(rho))
-c
+
       hx   = dx(1)
       hy   = dx(2)
       imin = lo(1)
@@ -209,7 +191,7 @@ c
       vmin =  1.e30
       rhomax = -1.e30
       rhomin =  1.e30
-c
+
       do j = jmin, jmax
          do i = imin, imax+1
             umax = max(umax,umac(i,j))
@@ -244,16 +226,8 @@ c
 #ifndef	BL_NO_FORT_FLUSH
       call flush(6)
 #endif
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
-
-c=========================================================
 
       subroutine FORT_TRANSVEL(
      &     u, ulo, uhi, sx, ubc, slxscr,
@@ -287,7 +261,7 @@ c
 
       integer use_minion
       REAL_T tforces(DIMV(work),SDIM)
-c
+
       dth  = half*dt
       dthx = half*dt / dx(1)
       dthy = half*dt / dx(2)
@@ -332,10 +306,9 @@ c
             ulo(i,j) = cvmgt(zero,uad,ltm)
          end do
       end do
-
-c     --------------------------------------------------------------
+c
 c     compute the y transverse velocities
-c     --------------------------------------------------------------
+c
       call FORT_SLOPES(v,DIMS(s),
      &     sx,sy,DIMS(work),lo,hi,slxscr,slyscr,vbc)
 
@@ -347,12 +320,12 @@ c     --------------------------------------------------------------
       end do
 
       if(use_minion.eq.1)then
-        do i = imin-1, imax+1
-          do j = jmin,jmax+1
-            vlo(i,j) = vlo(i,j) + dth*tforces(i,j-1,2)
-            vhi(i,j) = vhi(i,j) + dth*tforces(i,j,  2)
-          end do
-        end do
+         do i = imin-1, imax+1
+            do j = jmin,jmax+1
+               vlo(i,j) = vlo(i,j) + dth*tforces(i,j-1,2)
+               vhi(i,j) = vhi(i,j) + dth*tforces(i,j,  2)
+            end do
+         end do
       end if
 
       call trans_ybc(v,DIMS(s),
@@ -366,15 +339,8 @@ c     --------------------------------------------------------------
             vlo(i,j) = cvmgt(zero,vad,ltm)
          end do
       end do
-c     
-c     end of routine
-c
-      return
+
       end
-      
-
-
-c=========================================================
 
       subroutine FORT_ESTATE(s, tforces, DIMS(s),
 
@@ -402,21 +368,21 @@ c
       REAL_T eps
       logical ltx,lty
       parameter( eps = 1.0e-6 )
-c
+
       integer DIMDEC(s)
       integer DIMDEC(work)
       integer DIMDEC(uedge)
       integer DIMDEC(vedge)
-c
+
       REAL_T s(DIMV(s))
       REAL_T u(DIMV(s))
       REAL_T v(DIMV(s))
       REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
       REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
-c
+
       REAL_T uedge(DIMV(uedge)), xstate(DIMV(uedge))
       REAL_T vedge(DIMV(vedge)), ystate(DIMV(vedge))
-c
+
       REAL_T xlo(DIMV(work)), xhi(DIMV(work))
       REAL_T ylo(DIMV(work)), yhi(DIMV(work))
       REAL_T  sx(DIMV(work)), uad(DIMV(work)) 
@@ -424,7 +390,7 @@ c
       REAL_T tforces(DIMV(work))
 
       integer use_minion
-c
+
       dth  = half*dt
       dthx = half*dt/dx(1)
       dthy = half*dt/dx(2)
@@ -434,195 +400,183 @@ c
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
-
-c     --------------------------------------------------------------
+c
 c     compute the slopes
-c     --------------------------------------------------------------
+c
       call FORT_SLOPES(s,DIMS(s),
      &     sx,sy,DIMS(work),lo,hi,slxscr,slyscr,bc)
-
-c     --------------------------------------------------------------
+c
 c     trace the state to the cell edges
-c     --------------------------------------------------------------
+c
       do i = imin, imax+1
-      do j = jmin-1,jmax+1
-        xlo(i,j) = s(i-1,j) + (half - dthx*u(i-1,j))*sx(i-1,j)
-        xhi(i,j) = s(i  ,j) - (half + dthx*u(i  ,j))*sx(i  ,j)
-      end do
+         do j = jmin-1,jmax+1
+            xlo(i,j) = s(i-1,j) + (half - dthx*u(i-1,j))*sx(i-1,j)
+            xhi(i,j) = s(i  ,j) - (half + dthx*u(i  ,j))*sx(i  ,j)
+         end do
       end do
 
       if(use_minion.eq.1)then
-        do i = imin, imax+1
-          do j = jmin-1,jmax+1
-            xlo(i,j) = xlo(i,j) + dth*tforces(i-1,j)
-            xhi(i,j) = xhi(i,j) + dth*tforces(i,  j)
-          end do
-        end do
+         do i = imin, imax+1
+            do j = jmin-1,jmax+1
+               xlo(i,j) = xlo(i,j) + dth*tforces(i-1,j)
+               xhi(i,j) = xhi(i,j) + dth*tforces(i,  j)
+            end do
+         end do
       end if
 
       call trans_xbc(s,DIMS(s),
      &     xlo,xhi,uad,DIMS(work),lo,hi,n,bc)
       
       do i = imin, imax+1
-      do j = jmin-1,jmax+1
-        fu  = cvmgt(zero,one,abs(uad(i,j)).lt.eps)
-        stx = cvmgp(xlo(i,j),xhi(i,j),uad(i,j))
-        xlo(i,j) = fu*stx + (one - fu)*half*(xhi(i,j)+xlo(i,j))
+         do j = jmin-1,jmax+1
+            fu  = cvmgt(zero,one,abs(uad(i,j)).lt.eps)
+            stx = cvmgp(xlo(i,j),xhi(i,j),uad(i,j))
+            xlo(i,j) = fu*stx + (one - fu)*half*(xhi(i,j)+xlo(i,j))
+         end do
       end do
-      end do
-c     --------------------------------------------------------------
+
       do j = jmin,jmax+1
-      do i = imin-1,imax+1
-        ylo(i,j) = s(i,j-1) + (half - dthy*v(i,j-1))*sy(i,j-1)
-        yhi(i,j) = s(i,j  ) - (half + dthy*v(i,j  ))*sy(i,j  )
-      end do
+         do i = imin-1,imax+1
+            ylo(i,j) = s(i,j-1) + (half - dthy*v(i,j-1))*sy(i,j-1)
+            yhi(i,j) = s(i,j  ) - (half + dthy*v(i,j  ))*sy(i,j  )
+         end do
       end do
 
       if(use_minion.eq.1)then
-        do i = imin-1, imax+1
-          do j = jmin,jmax+1
-            ylo(i,j) = ylo(i,j) + dth*tforces(i,j-1)
-            yhi(i,j) = yhi(i,j) + dth*tforces(i,j)
-          end do
-        end do
+         do i = imin-1, imax+1
+            do j = jmin,jmax+1
+               ylo(i,j) = ylo(i,j) + dth*tforces(i,j-1)
+               yhi(i,j) = yhi(i,j) + dth*tforces(i,j)
+            end do
+         end do
       end if
 
       call trans_ybc(s,DIMS(s),
      &     ylo,yhi,vad,DIMS(work),lo,hi,n,bc)
 
       do j = jmin,jmax+1
-      do i = imin-1,imax+1
+         do i = imin-1,imax+1
             fv  = cvmgt(zero,one,abs(vad(i,j)).lt.eps)
             sty = cvmgp(ylo(i,j),yhi(i,j),vad(i,j))
             ylo(i,j) = fv*sty + (one - fv)*half*(yhi(i,j)+ylo(i,j))
+         end do
       end do
-      end do
-
-c     --------------------------------------------------------------
+c
 c     compute the xedge state
-c     --------------------------------------------------------------
-
+c
       if ((velpred.ne.1) .or. (n.eq.XVEL)) then
-      do 100 j = jmin,jmax
-      do i = imin-1,imax+1
-         tr = half*
-     &        (vad(i,j+1)+vad(i,j))*
-     &        (ylo(i,j+1)-ylo(i,j))/hy
-         
-         stxlo(i+1) = s(i,j) + (half-dthx*u(i,j))*sx(i,j)
-     &        - dth*tr
-     &        + dth*tforces(i,j)
-         stxhi(i  ) = s(i,j) - (half+dthx*u(i,j))*sx(i,j)
-     &        - dth*tr
-     &        + dth*tforces(i,j)
-      end do
+         do 100 j = jmin,jmax
+            do i = imin-1,imax+1
+               tr = half*
+     &              (vad(i,j+1)+vad(i,j))*
+     &              (ylo(i,j+1)-ylo(i,j))/hy
+               
+               stxlo(i+1) = s(i,j) + (half-dthx*u(i,j))*sx(i,j)
+     &              - dth*tr
+     &              + dth*tforces(i,j)
+               stxhi(i  ) = s(i,j) - (half+dthx*u(i,j))*sx(i,j)
+     &              - dth*tr
+     &              + dth*tforces(i,j)
+            end do
 
-      if (bc(1,1).eq.EXT_DIR) then
-         stxhi(imin) = s(imin-1,j)
-         stxlo(imin) = s(imin-1,j)
-      else if (bc(1,1).eq.EXTRAP.or.bc(1,1).eq.HOEXTRAP
-     &        .or.bc(1,1).eq.REFLECT_EVEN) then
-         stxlo(imin) = stxhi(imin)
-      else if (bc(1,1).eq.REFLECT_ODD) then
-         stxhi(imin) = zero
-         stxlo(imin) = stxhi(imin)
-      end if
-      if (bc(1,2).eq.EXT_DIR) then
-        stxlo(imax+1) = s(imax+1,j)
-        stxhi(imax+1) = s(imax+1,j)
-      else if (bc(1,2).eq.EXTRAP.or.bc(1,2).eq.HOEXTRAP
-     &    .or.bc(1,2).eq.REFLECT_EVEN) then
-        stxhi(imax+1) = stxlo(imax+1)
-      else if (bc(1,2).eq.REFLECT_ODD) then
-        stxlo(imax+1) = zero
-        stxhi(imax+1) = zero
-      end if
+            if (bc(1,1).eq.EXT_DIR) then
+               stxhi(imin) = s(imin-1,j)
+               stxlo(imin) = s(imin-1,j)
+            else if (bc(1,1).eq.EXTRAP.or.bc(1,1).eq.HOEXTRAP
+     &              .or.bc(1,1).eq.REFLECT_EVEN) then
+               stxlo(imin) = stxhi(imin)
+            else if (bc(1,1).eq.REFLECT_ODD) then
+               stxhi(imin) = zero
+               stxlo(imin) = stxhi(imin)
+            end if
+            if (bc(1,2).eq.EXT_DIR) then
+               stxlo(imax+1) = s(imax+1,j)
+               stxhi(imax+1) = s(imax+1,j)
+            else if (bc(1,2).eq.EXTRAP.or.bc(1,2).eq.HOEXTRAP
+     &              .or.bc(1,2).eq.REFLECT_EVEN) then
+               stxhi(imax+1) = stxlo(imax+1)
+            else if (bc(1,2).eq.REFLECT_ODD) then
+               stxlo(imax+1) = zero
+               stxhi(imax+1) = zero
+            end if
 
-      if ( velpred .eq. 1 ) then
-         do i = imin, imax+1
-            ltx = stxlo(i) .le. zero  .and.  stxhi(i) .ge. zero
-            ltx = ltx .or. (abs(stxlo(i)+stxhi(i)) .lt. eps)
-            stx = cvmgp(stxlo(i),stxhi(i),stxlo(i)+stxhi(i))
-            xstate(i,j) = cvmgt(zero,stx,ltx)
-         end do
-      else
-         do i = imin, imax+1
-            xstate(i,j) = cvmgp(stxlo(i),stxhi(i),uedge(i,j))
-            xstate(i,j) = cvmgt(half*(stxlo(i)+stxhi(i)),xstate(i,j),
-     &                           abs(uedge(i,j)).lt.eps)
-         end do
+            if ( velpred .eq. 1 ) then
+               do i = imin, imax+1
+                  ltx = stxlo(i) .le. zero  .and.  stxhi(i) .ge. zero
+                  ltx = ltx .or. (abs(stxlo(i)+stxhi(i)) .lt. eps)
+                  stx = cvmgp(stxlo(i),stxhi(i),stxlo(i)+stxhi(i))
+                  xstate(i,j) = cvmgt(zero,stx,ltx)
+               end do
+            else
+               do i = imin, imax+1
+                  xstate(i,j) = cvmgp(stxlo(i),stxhi(i),uedge(i,j))
+                  xstate(i,j) = cvmgt(half*(stxlo(i)+stxhi(i)),xstate(i,j),
+     &                 abs(uedge(i,j)).lt.eps)
+               end do
+            end if
+            place_to_break = 1
+100      continue
       end if
-      place_to_break = 1
-  100 continue
-      end if
-
-c     --------------------------------------------------------------
+c
 c     compute the yedge states
-c     --------------------------------------------------------------
-      
+c      
       if ((velpred.ne.1) .or. (n.eq.YVEL)) then
-      do 200 i = imin, imax
-      do j = jmin-1,jmax+1
-         tr = half*
-     &        (uad(i+1,j)+uad(i,j))*
-     &        (xlo(i+1,j)-xlo(i,j))/hx
+         do 200 i = imin, imax
+            do j = jmin-1,jmax+1
+               tr = half*
+     &              (uad(i+1,j)+uad(i,j))*
+     &              (xlo(i+1,j)-xlo(i,j))/hx
 
-         stylo(j+1)= s(i,j) + (half-dthy*v(i,j))*sy(i,j)
-     &        - dth*tr
-     &        + dth*tforces(i,j)
-         styhi(j  )= s(i,j) - (half+dthy*v(i,j))*sy(i,j)
-     &        - dth*tr
-     &        + dth*tforces(i,j)
+               stylo(j+1)= s(i,j) + (half-dthy*v(i,j))*sy(i,j)
+     &              - dth*tr
+     &              + dth*tforces(i,j)
+               styhi(j  )= s(i,j) - (half+dthy*v(i,j))*sy(i,j)
+     &              - dth*tr
+     &              + dth*tforces(i,j)
 
-      end do
+            end do
 
-      if (bc(2,1).eq.EXT_DIR) then
-         styhi(jmin) = s(i,jmin-1)
-         stylo(jmin) = s(i,jmin-1)
-      else if (bc(2,1).eq.EXTRAP.or.bc(2,1).eq.HOEXTRAP
-     &        .or.bc(2,1).eq.REFLECT_EVEN) then
-         stylo(jmin) = styhi(jmin)
-      else if (bc(2,1).eq.REFLECT_ODD) then
-         styhi(jmin) = zero
-         stylo(jmin) = zero
-      end if
-      
-      if (bc(2,2).eq.EXT_DIR) then
-         stylo(jmax+1) = s(i,jmax+1)
-         styhi(jmax+1) = s(i,jmax+1)
-      else if (bc(2,2).eq.EXTRAP.or.bc(2,2).eq.HOEXTRAP
-     &        .or.bc(2,2).eq.REFLECT_EVEN) then
-        styhi(jmax+1) = stylo(jmax+1)
-      else if (bc(2,2).eq.REFLECT_ODD) then
-        stylo(jmax+1) = zero
-        styhi(jmax+1) = zero
+            if (bc(2,1).eq.EXT_DIR) then
+               styhi(jmin) = s(i,jmin-1)
+               stylo(jmin) = s(i,jmin-1)
+            else if (bc(2,1).eq.EXTRAP.or.bc(2,1).eq.HOEXTRAP
+     &              .or.bc(2,1).eq.REFLECT_EVEN) then
+               stylo(jmin) = styhi(jmin)
+            else if (bc(2,1).eq.REFLECT_ODD) then
+               styhi(jmin) = zero
+               stylo(jmin) = zero
+            end if
+            
+            if (bc(2,2).eq.EXT_DIR) then
+               stylo(jmax+1) = s(i,jmax+1)
+               styhi(jmax+1) = s(i,jmax+1)
+            else if (bc(2,2).eq.EXTRAP.or.bc(2,2).eq.HOEXTRAP
+     &              .or.bc(2,2).eq.REFLECT_EVEN) then
+               styhi(jmax+1) = stylo(jmax+1)
+            else if (bc(2,2).eq.REFLECT_ODD) then
+               stylo(jmax+1) = zero
+               styhi(jmax+1) = zero
+            end if
+
+            if ( velpred .eq. 1 ) then
+               do j = jmin, jmax+1
+                  lty = stylo(j) .le. zero  .and.  styhi(j) .ge. zero
+                  lty = lty .or. (abs(stylo(j)+styhi(j)) .lt. eps)
+                  sty = cvmgp(stylo(j),styhi(j),stylo(j)+styhi(j))
+                  ystate(i,j)=cvmgt(zero,sty,lty)
+               end do
+            else
+               do j=jmin,jmax+1
+                  ystate(i,j) = cvmgp(stylo(j),styhi(j),vedge(i,j))
+                  ystate(i,j) = cvmgt(half*(stylo(j)+styhi(j)),ystate(i,j),
+     &                 abs(vedge(i,j)).lt.eps)
+               end do
+            end if
+            place_to_break = 1
+200      continue
       end if
 
-      if ( velpred .eq. 1 ) then
-         do j = jmin, jmax+1
-           lty = stylo(j) .le. zero  .and.  styhi(j) .ge. zero
-	   lty = lty .or. (abs(stylo(j)+styhi(j)) .lt. eps)
-           sty = cvmgp(stylo(j),styhi(j),stylo(j)+styhi(j))
-           ystate(i,j)=cvmgt(zero,sty,lty)
-         end do
-      else
-         do j=jmin,jmax+1
-            ystate(i,j) = cvmgp(stylo(j),styhi(j),vedge(i,j))
-            ystate(i,j) = cvmgt(half*(stylo(j)+styhi(j)),ystate(i,j),
-     &                           abs(vedge(i,j)).lt.eps)
-         end do
-      end if
-      place_to_break = 1
-  200 continue
-      end if
-c
-c     end of routine
-c
-      return
       end
-      
-
-c=========================================================
 
       subroutine FORT_ADV_FORCING(
      &     aofs,DIMS(aofs),
@@ -656,14 +610,13 @@ c
       REAL_T yflux(DIMV(vedge))
       REAL_T areax(DIMV(ax))
       REAL_T areay(DIMV(ay))
-c
+
       imin = lo(1)
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
 c
-c     if nonconservative initialize the advective tendency 
-c     as -U*grad(S)
+c     if nonconservative initialize the advective tendency as -U*grad(S)
 c
       if ( iconserv .ne. 1 ) then
          do j = jmin,jmax
@@ -694,8 +647,7 @@ c
          end do
       end do
 c     
-c     compute the part of the advective tendency 
-c     that depends on the flux convergence
+c     compute part of advective tendency that depends on the flux convergence
 c     
       if ( iconserv .ne. 1 ) then
          do j = jmin,jmax
@@ -714,14 +666,8 @@ c
             end do
          end do
       end if
-c
-c     end of routine
-c
-      return
-      end
-      
 
-c=========================================================
+      end
 
       subroutine FORT_SYNC_ADV_FORCING(
      &     sync,DIMS(sync),
@@ -754,7 +700,7 @@ c
       REAL_T yflux(DIMV(vcor))
       REAL_T areax(DIMV(ax))
       REAL_T areay(DIMV(ay))
-c
+
       imin = lo(1)
       jmin = lo(2)
       imax = hi(1)
@@ -773,7 +719,7 @@ c
             yflux(i,j) = yflux(i,j)*vcor(i,j)*areay(i,j)
          end do
       end do
-c     
+
       do j = jmin,jmax
          do i = imin,imax
             sync(i,j) = sync(i,j) + (
@@ -781,14 +727,8 @@ c
      &           yflux(i,j+1) - yflux(i,j) )/vol(i,j)
          end do
       end do
-c     
-c     end of routine
-c     
-      return
-      end
-      
-c=========================================================
 
+      end
 
       subroutine trans_xbc(
      &     s,DIMS(s),
@@ -812,12 +752,12 @@ c
       logical ltest
       integer j
       integer imin,jmin,imax,jmax
-c
+
       imin = lo(1)
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
-c
+
       if (xbc(1,1).eq.EXT_DIR) then
          if (n .eq. XVEL) then
             do j = jmin-1,jmax+1
@@ -869,16 +809,8 @@ c
             xlo(imax+1,j) = zero
          end do
       end if
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
-c=========================================================
-
 
       subroutine trans_ybc(
      &     s,DIMS(s),
@@ -902,12 +834,12 @@ c
       logical ltest
       integer i
       integer imin,jmin,imax,jmax
-c
+
       imin = lo(1)
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
-c
+
       if (ybc(2,1).eq.EXT_DIR) then
          if (n .eq. YVEL) then
             do i = imin-1,imax+1
@@ -933,7 +865,7 @@ c
             ylo(i,jmin) = zero
          end do
       end if
-c
+
       if (ybc(2,2).eq.EXT_DIR) then
          if (n .eq. YVEL) then
             do i = imin-1,imax+1
@@ -959,15 +891,8 @@ c
             yhi(i,jmax+1) = zero
          end do
       end if
-c
-c     end of routine
-c
-      return
+
       end
-
-
-c=========================================================
-
 
       subroutine FORT_SLOPES (s,DIMS(s),slx,sly,DIMS(sl),
      &     lo,hi,slxscr,slyscr,bc)
@@ -983,7 +908,9 @@ c     by setting them to zero outside of the domain and using a
 c     one-sided derivative from the interior
 c
       implicit none
+
 #include "GODUNOV.FH"
+
       integer lo(SDIM), hi(SDIM)
       integer bc(SDIM,2)
       integer DIMDEC(s)
@@ -1011,17 +938,17 @@ c
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
-
+c
 c ::: ::::: added to prevent underflow for small s values
+c
       do j = lo(2)-ng, hi(2)+ng
         do i = lo(1)-ng, hi(1)+ng
 	  s(i,j) = cvmgt(s(i,j), zero, abs(s(i,j)).gt.1.0e-20)
         end do
       end do
-
-c     -------------------------------------------------
+c
 c     COMPUTE 0TH order slopes
-c     -------------------------------------------------
+c
       if (slope_order.eq.1) then
         do j = jmin-1,jmax+1
            do i = imin-1,imax+1
@@ -1030,205 +957,204 @@ c     -------------------------------------------------
   	   end do
         end do
       end if
-
-c     -------------------------------------------------
+c
 c     COMPUTE 2nd order slopes
-c     -------------------------------------------------
+c
       if (slope_order.eq.2) then
-        if (ng .lt. 2) then
-           write(6,*) "SLOPE_2D: not enough bndry cells for 2nd order"
-  	   stop
-        end if
+         if (ng .lt. 2) then
+            write(6,*) "SLOPE_2D: not enough bndry cells for 2nd order"
+            stop
+         end if
+c
 c     ------------------------ x slopes
-        do j = jmin-1,jmax+1
-          do i = imin-1,imax+1
-            del  = half*(s(i+1,j)-s(i-1,j))
-            dpls = two*(s(i+1,j) - s(i ,j))
-            dmin = two*(s(i ,j) - s(i-1,j))
-            slim = min(abs(dpls), abs(dmin))
-            slim = cvmgp(slim, zero, dpls*dmin)
-            sflg = sign(one,del)
-            slx(i,j)= sflg*min(slim,abs(del))
-  	end do
-        end do
-  
-        if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
-           do j = jmin-1, jmax+1
-  	    slx(imin-1,j) = zero
-              del  = (s(imin+1,j)+three*s(imin,j)-four*s(imin-1,j))/three
-              dpls = two*(s(imin+1,j) - s(imin  ,j))
-              dmin = two*(s(imin  ,j) - s(imin-1,j))
-              slim = min(abs(dpls), abs(dmin))
-              slim = cvmgp(slim, zero, dpls*dmin)
-              sflg = sign(one,del)
-              slx(imin,j)= sflg*min(slim,abs(del))
-  	 end do
-        end if
-        if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
-           do j = jmin-1, jmax+1
-  	    slx(imax+1,j) = zero
-              del  = -(s(imax-1,j)+three*s(imax,j)-four*s(imax+1,j))/three
-              dpls = two*(s(imax+1,j) - s(imax  ,j))
-              dmin = two*(s(imax  ,j) - s(imax-1,j))
-              slim = min(abs(dpls), abs(dmin))
-              slim = cvmgp(slim, zero, dpls*dmin)
-              sflg = sign(one,del)
-              slx(imax,j)= sflg*min(slim,abs(del))
-  	 end do
-        end if
-
+c
+         do j = jmin-1,jmax+1
+            do i = imin-1,imax+1
+               del  = half*(s(i+1,j)-s(i-1,j))
+               dpls = two*(s(i+1,j) - s(i ,j))
+               dmin = two*(s(i ,j) - s(i-1,j))
+               slim = min(abs(dpls), abs(dmin))
+               slim = cvmgp(slim, zero, dpls*dmin)
+               sflg = sign(one,del)
+               slx(i,j)= sflg*min(slim,abs(del))
+            end do
+         end do
+         
+         if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
+            do j = jmin-1, jmax+1
+               slx(imin-1,j) = zero
+               del  = (s(imin+1,j)+three*s(imin,j)-four*s(imin-1,j))/three
+               dpls = two*(s(imin+1,j) - s(imin  ,j))
+               dmin = two*(s(imin  ,j) - s(imin-1,j))
+               slim = min(abs(dpls), abs(dmin))
+               slim = cvmgp(slim, zero, dpls*dmin)
+               sflg = sign(one,del)
+               slx(imin,j)= sflg*min(slim,abs(del))
+            end do
+         end if
+         if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
+            do j = jmin-1, jmax+1
+               slx(imax+1,j) = zero
+               del  = -(s(imax-1,j)+three*s(imax,j)-four*s(imax+1,j))/three
+               dpls = two*(s(imax+1,j) - s(imax  ,j))
+               dmin = two*(s(imax  ,j) - s(imax-1,j))
+               slim = min(abs(dpls), abs(dmin))
+               slim = cvmgp(slim, zero, dpls*dmin)
+               sflg = sign(one,del)
+               slx(imax,j)= sflg*min(slim,abs(del))
+            end do
+         end if
+c
 c     ------------------------ y slopes
-        do j = jmin-1,jmax+1
-          do i = imin-1,imax+1
-            del  = half*(s(i,j+1)-s(i,j-1))
-            dpls = two*(s(i,j+1) - s(i,j ))
-            dmin = two*(s(i,j ) - s(i,j-1))
-            slim = min(abs(dpls),abs(dmin))
-            slim = cvmgp(slim, zero, dpls*dmin)
-            sflg = sign(one,del)
-            sly(i,j)= sflg*min(slim,abs(del))
-  	  end do
-        end do
+c
+         do j = jmin-1,jmax+1
+            do i = imin-1,imax+1
+               del  = half*(s(i,j+1)-s(i,j-1))
+               dpls = two*(s(i,j+1) - s(i,j ))
+               dmin = two*(s(i,j ) - s(i,j-1))
+               slim = min(abs(dpls),abs(dmin))
+               slim = cvmgp(slim, zero, dpls*dmin)
+               sflg = sign(one,del)
+               sly(i,j)= sflg*min(slim,abs(del))
+            end do
+         end do
 
-        if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
-           do i = imin-1, imax+1
-  	    sly(i,jmin-1) = zero
-              del  = (s(i,jmin+1)+three*s(i,jmin)-four*s(i,jmin-1))/three
-              dpls = two*(s(i,jmin+1) - s(i,jmin  ))
-              dmin = two*(s(i,jmin  ) - s(i,jmin-1))
-              slim = min(abs(dpls), abs(dmin))
-              slim = cvmgp(slim, zero, dpls*dmin)
-              sflg = sign(one,del)
-              sly(i,jmin)= sflg*min(slim,abs(del))
-           end do
-        end if
-        if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
-           do i = imin-1, imax+1
-  	    sly(i,jmax+1) = zero
-              del  = -(s(i,jmax-1)+three*s(i,jmax)-four*s(i,jmax+1))/three
-              dpls = two*(s(i,jmax+1) - s(i,jmax  ))
-              dmin = two*(s(i,jmax  ) - s(i,jmax-1))
-              slim = min(abs(dpls), abs(dmin))
-              slim = cvmgp(slim, zero, dpls*dmin)
-              sflg = sign(one,del)
-              sly(i,jmax)= sflg*min(slim,abs(del))
-           end do
-        end if
+         if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
+            do i = imin-1, imax+1
+               sly(i,jmin-1) = zero
+               del  = (s(i,jmin+1)+three*s(i,jmin)-four*s(i,jmin-1))/three
+               dpls = two*(s(i,jmin+1) - s(i,jmin  ))
+               dmin = two*(s(i,jmin  ) - s(i,jmin-1))
+               slim = min(abs(dpls), abs(dmin))
+               slim = cvmgp(slim, zero, dpls*dmin)
+               sflg = sign(one,del)
+               sly(i,jmin)= sflg*min(slim,abs(del))
+            end do
+         end if
+         if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
+            do i = imin-1, imax+1
+               sly(i,jmax+1) = zero
+               del  = -(s(i,jmax-1)+three*s(i,jmax)-four*s(i,jmax+1))/three
+               dpls = two*(s(i,jmax+1) - s(i,jmax  ))
+               dmin = two*(s(i,jmax  ) - s(i,jmax-1))
+               slim = min(abs(dpls), abs(dmin))
+               slim = cvmgp(slim, zero, dpls*dmin)
+               sflg = sign(one,del)
+               sly(i,jmax)= sflg*min(slim,abs(del))
+            end do
+         end if
+c
 c ... end, if slope_order .eq. 2
+c
       end if
-
-c     -------------------------------------------------
+c
 c     COMPUTE 4TH order slopes
-c     -------------------------------------------------
+c
       if (slope_order.eq.4) then
-        if (ng .lt. 3) then
-          write(6,*) "SLOPE_2D: not enough bndry cells for 4th order"
- 	  stop
-        end if
- 
+         if (ng .lt. 3) then
+            write(6,*) "SLOPE_2D: not enough bndry cells for 4th order"
+            stop
+         end if
+c         
 c     ------------------------ x slopes
-        do j = jmin-1,jmax+1
-          do i = imin-2,imax+2
-             dmin           =  two*(s(i,  j)-s(i-1,j))
-             dpls           =  two*(s(i+1,j)-s(i  ,j))
-             slxscr(i,cen)  = half*(s(i+1,j)-s(i-1,j))
-             slxscr(i,lim)  = min(abs(dmin),abs(dpls))
-             slxscr(i,lim)  = cvmgp(slxscr(i,lim),zero,dpls*dmin)
-             slxscr(i,flag) = sign(one,slxscr(i,cen))
-             slxscr(i,fromm)= slxscr(i,flag)*
-     &             min(slxscr(i,lim),abs(slxscr(i,cen)))
-          end do
-          do i = imin-1,imax+1
-             ds = two * two3rd * slxscr(i,cen) -
-     &           sixth * (slxscr(i+1,fromm) + slxscr(i-1,fromm))
-             slx(i,j) = slxscr(i,flag)*min(abs(ds),slxscr(i,lim))
-          end do
-        end do
+c
+         do j = jmin-1,jmax+1
+            do i = imin-2,imax+2
+               dmin           =  two*(s(i,  j)-s(i-1,j))
+               dpls           =  two*(s(i+1,j)-s(i  ,j))
+               slxscr(i,cen)  = half*(s(i+1,j)-s(i-1,j))
+               slxscr(i,lim)  = min(abs(dmin),abs(dpls))
+               slxscr(i,lim)  = cvmgp(slxscr(i,lim),zero,dpls*dmin)
+               slxscr(i,flag) = sign(one,slxscr(i,cen))
+               slxscr(i,fromm)= slxscr(i,flag)*
+     &              min(slxscr(i,lim),abs(slxscr(i,cen)))
+            end do
+            do i = imin-1,imax+1
+               ds = two * two3rd * slxscr(i,cen) -
+     &              sixth * (slxscr(i+1,fromm) + slxscr(i-1,fromm))
+               slx(i,j) = slxscr(i,flag)*min(abs(ds),slxscr(i,lim))
+            end do
+         end do
 
-        if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
-           do j = jmin-1, jmax+1
-              del  = -sixteen/fifteen*s(imin-1,j) + half*s(imin,j) + 
-     &             two3rd*s(imin+1,j) - tenth*s(imin+2,j)
-              dmin = two*(s(imin  ,j)-s(imin-1,j))
-              dpls = two*(s(imin+1,j)-s(imin  ,j))
-              slim = min(abs(dpls), abs(dmin))
-              slim = cvmgp(slim, zero, dpls*dmin)
-              sflg = sign(one,del)
-	      slx(imin-1,j) = zero
-              slx(imin,  j) = sflg*min(slim,abs(del))
-           end do
-        end if
-        if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
-           do j = jmin-1, jmax+1
-              del  = -( -sixteen/fifteen*s(imax+1,j) + half*s(imax,j) + 
-     &                two3rd*s(imax-1,j) - tenth*s(imax-2,j) )
-              dmin = two*(s(imax  ,j)-s(imax-1,j))
-              dpls = two*(s(imax+1,j)-s(imax  ,j))
-              slim = min(abs(dpls), abs(dmin))
-              slim = cvmgp(slim, zero, dpls*dmin)
-              sflg = sign(one,del)
-              slx(imax,  j) = sflg*min(slim,abs(del))
-	      slx(imax+1,j) = zero
-           end do
-        end if
-
+         if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
+            do j = jmin-1, jmax+1
+               del  = -sixteen/fifteen*s(imin-1,j) + half*s(imin,j) + 
+     &              two3rd*s(imin+1,j) - tenth*s(imin+2,j)
+               dmin = two*(s(imin  ,j)-s(imin-1,j))
+               dpls = two*(s(imin+1,j)-s(imin  ,j))
+               slim = min(abs(dpls), abs(dmin))
+               slim = cvmgp(slim, zero, dpls*dmin)
+               sflg = sign(one,del)
+               slx(imin-1,j) = zero
+               slx(imin,  j) = sflg*min(slim,abs(del))
+            end do
+         end if
+         if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
+            do j = jmin-1, jmax+1
+               del  = -( -sixteen/fifteen*s(imax+1,j) + half*s(imax,j) + 
+     &              two3rd*s(imax-1,j) - tenth*s(imax-2,j) )
+               dmin = two*(s(imax  ,j)-s(imax-1,j))
+               dpls = two*(s(imax+1,j)-s(imax  ,j))
+               slim = min(abs(dpls), abs(dmin))
+               slim = cvmgp(slim, zero, dpls*dmin)
+               sflg = sign(one,del)
+               slx(imax,  j) = sflg*min(slim,abs(del))
+               slx(imax+1,j) = zero
+            end do
+         end if
+c
 c     ------------------------ y slopes
-        do i = imin-1,imax+1
-           do j = jmin-2,jmax+2
-              dmin           =  two*(s(i,j  )-s(i,j-1))
-              dpls           =  two*(s(i,j+1)-s(i,j  ))
-              slyscr(j,cen)  = half*(s(i,j+1)-s(i,j-1))
-              slyscr(j,lim)  = min(abs(dmin),abs(dpls))
-              slyscr(j,lim)  = cvmgp(slyscr(j,lim),zero,dpls*dmin)
-              slyscr(j,flag) = sign(one,slyscr(j,cen))
-              slyscr(j,fromm)= slyscr(j,flag)*
-     &             min(slyscr(j,lim),abs(slyscr(j,cen)))
-           end do
-           do j = jmin-1,jmax+1
-              ds = two * two3rd * slyscr(j,cen) -
-     &           sixth * (slyscr(j+1,fromm) + slyscr(j-1,fromm))
-              sly(i,j) = slyscr(j,flag)*min(abs(ds),slyscr(j,lim))
-           end do
-        end do
+c
+         do i = imin-1,imax+1
+            do j = jmin-2,jmax+2
+               dmin           =  two*(s(i,j  )-s(i,j-1))
+               dpls           =  two*(s(i,j+1)-s(i,j  ))
+               slyscr(j,cen)  = half*(s(i,j+1)-s(i,j-1))
+               slyscr(j,lim)  = min(abs(dmin),abs(dpls))
+               slyscr(j,lim)  = cvmgp(slyscr(j,lim),zero,dpls*dmin)
+               slyscr(j,flag) = sign(one,slyscr(j,cen))
+               slyscr(j,fromm)= slyscr(j,flag)*
+     &              min(slyscr(j,lim),abs(slyscr(j,cen)))
+            end do
+            do j = jmin-1,jmax+1
+               ds = two * two3rd * slyscr(j,cen) -
+     &              sixth * (slyscr(j+1,fromm) + slyscr(j-1,fromm))
+               sly(i,j) = slyscr(j,flag)*min(abs(ds),slyscr(j,lim))
+            end do
+         end do
 
-        if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
-           do i = imin-1, imax+1
-              del  = -sixteen/fifteen*s(i,jmin-1) + half*s(i,jmin) + 
-     &           two3rd*s(i,jmin+1) - tenth*s(i,jmin+2)
-              dmin = two*(s(i,jmin  )-s(i,jmin-1))
-              dpls = two*(s(i,jmin+1)-s(i,jmin  ))
-              slim = min(abs(dpls), abs(dmin))
-              slim = cvmgp(slim, zero, dpls*dmin)
-              sflg = sign(one,del)
-	      sly(i,jmin-1) = zero
-              sly(i,jmin  ) = sflg*min(slim,abs(del))
-	   end do
-        end if
-        if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
-           do i = imin-1, imax+1
-              del  = -( -sixteen/fifteen*s(i,jmax+1) + half*s(i,jmax) + 
-     &           two3rd*s(i,jmax-1) - tenth*s(i,jmax-2) )
-              dmin = two*(s(i,jmax  )-s(i,jmax-1))
-              dpls = two*(s(i,jmax+1)-s(i,jmax  ))
-              slim = min(abs(dpls), abs(dmin))
-              slim = cvmgp(slim, zero, dpls*dmin)
-              sflg = sign(one,del)
-              sly(i,jmax  ) = sflg*min(slim,abs(del))
-	      sly(i,jmax+1) = zero
-	   end do
-        end if
+         if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
+            do i = imin-1, imax+1
+               del  = -sixteen/fifteen*s(i,jmin-1) + half*s(i,jmin) + 
+     &              two3rd*s(i,jmin+1) - tenth*s(i,jmin+2)
+               dmin = two*(s(i,jmin  )-s(i,jmin-1))
+               dpls = two*(s(i,jmin+1)-s(i,jmin  ))
+               slim = min(abs(dpls), abs(dmin))
+               slim = cvmgp(slim, zero, dpls*dmin)
+               sflg = sign(one,del)
+               sly(i,jmin-1) = zero
+               sly(i,jmin  ) = sflg*min(slim,abs(del))
+            end do
+         end if
+         if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
+            do i = imin-1, imax+1
+               del  = -( -sixteen/fifteen*s(i,jmax+1) + half*s(i,jmax) + 
+     &              two3rd*s(i,jmax-1) - tenth*s(i,jmax-2) )
+               dmin = two*(s(i,jmax  )-s(i,jmax-1))
+               dpls = two*(s(i,jmax+1)-s(i,jmax  ))
+               slim = min(abs(dpls), abs(dmin))
+               slim = cvmgp(slim, zero, dpls*dmin)
+               sflg = sign(one,del)
+               sly(i,jmax  ) = sflg*min(slim,abs(del))
+               sly(i,jmax+1) = zero
+            end do
+         end if
+c
 c ... end, if slope_order .eq. 4
+c
       end if
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
-
-c=========================================================
 
       subroutine FORT_SCALMINMAX(s,DIMS(s),sn,DIMS(sn),
      &     lo,hi,bc)
@@ -1243,7 +1169,7 @@ c
       REAL_T sn(DIMV(sn))
       integer  i, j, imin, imax, jmin, jmax
       REAL_T   smin, smax
-c
+
       imin = lo(1)
       imax = hi(1)
       jmin = lo(2)
@@ -1252,18 +1178,25 @@ c
 c     set corner values for s
 c
 c     :: corner ilo, jlo
+c
       if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
          s(imin-1,jmin-1) = s(imin,jmin)
       end if
+c
 c     :: corner ihi, jlo
+c
       if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
          s(imax+1,jmin-1) = s(imax,jmin)
       end if
+c
 c     :: corner ilo, jhi
+c
       if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
          s(imin-1,jmax+1) = s(imin,jmax)
       end if
+c
 c     :: corner ihi, jhi
+c
       if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
          s(imax+1,jmax+1) = s(imax,jmax)
       end if
@@ -1284,15 +1217,8 @@ c
             sn(i,j) = min(sn(i,j),smax)
          end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
-c=========================================================
 
       subroutine FORT_SUM_TF_GP(
      &     tforces,DIMS(tf),
@@ -1310,7 +1236,7 @@ c
       REAL_T tforces(DIMV(tf),SDIM)
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T rho(DIMV(rho))
-c
+
       do n = 1, SDIM
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1320,13 +1246,8 @@ c
             end do
          end do
       end do
-c     
-c     end of routine
-c     
-      return
-      end
 
-c=========================================================
+      end
 
       subroutine FORT_SUM_TF_GP_VISC(
      &     tforces,DIMS(tf),
@@ -1348,7 +1269,7 @@ c
       REAL_T visc(DIMV(visc),SDIM)
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T rho(DIMV(rho))
-c
+
       do n = 1, SDIM
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1359,13 +1280,8 @@ c
             end do
          end do
       end do
-c     
-c     end of routine
-c     
-      return
-      end
 
-c=========================================================
+      end
 
       subroutine FORT_SUM_TF_DIVU(
      &     S,DIMS(S),
@@ -1380,19 +1296,18 @@ c
       integer nvar, iconserv
       integer lo(SDIM), hi(SDIM)
       integer i, j, n
-c
+
       integer DIMDEC(S)
       integer DIMDEC(tf)
       integer DIMDEC(divu)
       integer DIMDEC(rho)
-c
+
       REAL_T S(DIMV(S),nvar)
       REAL_T tforces(DIMV(tf),nvar)
       REAL_T divu(DIMV(divu))
       REAL_T rho(DIMV(rho))
-c
-      if ( iconserv .eq. 1 ) then
 
+      if ( iconserv .eq. 1 ) then
          do n = 1, nvar
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -1401,9 +1316,7 @@ c
                end do
             end do
          end do
-
       else
-
          do n = 1, nvar
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -1412,16 +1325,9 @@ c
                end do
             end do
          end do
-
       end if
-c     
-c     end of routine
-c     
-      return
+
       end
-
-
-c=========================================================
 
       subroutine FORT_SUM_TF_DIVU_VISC(
      &     S,DIMS(S),
@@ -1437,21 +1343,20 @@ c
       integer nvar, iconserv
       integer lo(SDIM), hi(SDIM)
       integer i, j, n
-c
+
       integer DIMDEC(S)
       integer DIMDEC(tf)
       integer DIMDEC(divu)
       integer DIMDEC(visc)
       integer DIMDEC(rho)
-c
+
       REAL_T S(DIMV(S),nvar)
       REAL_T tforces(DIMV(tf),nvar)
       REAL_T divu(DIMV(divu))
       REAL_T visc(DIMV(visc),nvar)
       REAL_T rho(DIMV(rho))
-c
-      if ( iconserv .eq. 1 ) then
 
+      if ( iconserv .eq. 1 ) then
          do n = 1, nvar
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -1462,9 +1367,7 @@ c
                end do
             end do
          end do
-
       else
-
          do n = 1, nvar
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -1474,17 +1377,9 @@ c
                end do
             end do
          end do
-
       end if
-c     
-c     end of routine
-c     
-      return
+
       end
-
-
-c=========================================================
-
 
       subroutine FORT_UPDATE_TF(
      &     s,       DIMS(s),
@@ -1503,7 +1398,7 @@ c
       REAL_T s(DIMV(s),nvar)
       REAL_T sn(DIMV(sn),nvar)
       REAL_T tforces(DIMV(tf),nvar)
-c
+
       do n = 1,nvar
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1511,15 +1406,8 @@ c
             end do
          end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
-c=========================================================
 
       subroutine FORT_CORRECT_TF(
      &     ss,  sp,  DIMS(ss),
@@ -1531,14 +1419,14 @@ c
       integer i, j, n, nvar
       integer lo(SDIM), hi(SDIM)
       REAL_T dt,hdt
-c
+
       integer DIMDEC(ss)
       integer DIMDEC(tfs)
       REAL_T  ss(DIMV(ss),nvar)
       REAL_T  sp(DIMV(ss),nvar)
       REAL_T tfs(DIMV(tfs),nvar)
       REAL_T tfn(DIMV(tfs),nvar)
-c
+
       hdt = half*dt
       do n = 1,nvar
          do j = lo(2), hi(2)
@@ -1548,14 +1436,8 @@ c
             end do
          end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
-
-c=========================================================
-
 
       subroutine FORT_UPDATE_AOFS_TF(
      &     s,       DIMS(s),
@@ -1578,7 +1460,7 @@ c
       REAL_T sn(DIMV(sn),nvar)
       REAL_T aofs(DIMV(aofs),nvar)
       REAL_T tforces(DIMV(tf),nvar)
-c
+
       do n = 1,nvar
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1588,13 +1470,8 @@ c
             end do
          end do
       end do
-c
-c     end of routine
-c
-      return
-      end
 
-c=========================================================
+      end
 
       subroutine FORT_UPDATE_AOFS_TF_GP(
      &     u,       DIMS(u),
@@ -1623,7 +1500,7 @@ c
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T tforces(DIMV(tf),SDIM)
       REAL_T dt
-c
+
       do n = 1, SDIM
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1634,10 +1511,7 @@ c
             end do
          end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
 
 

@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.5 1998-02-22 19:06:51 car Exp $
+c $Id: PROB_2D.F,v 1.6 1998-03-31 17:26:39 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -50,7 +50,6 @@ c ::: -----------------------------------------------------------
       write(6,fortin)
       close(unit=untin)
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -92,8 +91,9 @@ c ::: -----------------------------------------------------------
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-
+c
 c     ::::: local variables
+c
       integer i, j
       REAL_T  x, y
       REAL_T  hx, hy
@@ -130,10 +130,10 @@ c     ::::: local variables
          write(6,*) "INITDATA: bad probtype = ",probtype
       end if
 
-      return
       end
-
+c
 c ::: -----------------------------------------------------------
+c
       subroutine initbubble(level,time,lo,hi,nscal,
      &	 	            vel,scal,DIMS(state),press,DIMS(press),
      &                      dx,xlo,xhi)
@@ -147,8 +147,9 @@ c ::: -----------------------------------------------------------
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-
+c
 c     ::::: local variables
+c
       integer i, j
       REAL_T  x, y
       REAL_T  hx, hy
@@ -199,11 +200,8 @@ c              rho = rhoavg + half * rhodiff *  tanh(5000.*(dist-radblob))
 	    end do
          end do
 
-
-      return
       end
 
-c ::: -----------------------------------------------------------
       subroutine initspin(level,time,lo,hi,nscal,
      &	 	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
@@ -217,8 +215,9 @@ c ::: -----------------------------------------------------------
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-
+c
 c     ::::: local variables
+c
       integer i, j
       REAL_T  x, y
       REAL_T  hx, hy
@@ -268,10 +267,8 @@ c              rho = one + denfact * tanh(10.*(dist-radblob))
 	    end do
          end do
 
-      return
       end
 
-c ::: -----------------------------------------------------------
       subroutine initvort(level,time,lo,hi,nscal,
      &	 	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
@@ -284,8 +281,9 @@ c ::: -----------------------------------------------------------
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-
+c
 c     ::::: local variables
+c
       integer i, j
       REAL_T  x, y, r
       REAL_T  hx, hy
@@ -322,10 +320,7 @@ c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
 	    end do
          end do
 
-      return
       end
-
-c===================================================================
 
       subroutine initpipe(level,time,lo,hi,nscal,
      &	 	          vel,scal,DIMS(state),press,DIMS(press),
@@ -340,9 +335,9 @@ c===================================================================
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-
-
+c
 c     ::::: local variables
+c
       integer i, j, n
       REAL_T  x, y
       REAL_T  hx, hy
@@ -368,10 +363,8 @@ c     ::::: local variables
           end do
          end do
 
-      return
       end
 
-c ::: -----------------------------------------------------------
       subroutine initpervort(level,time,lo,hi,nscal,
      &	 	             vel,scal,DIMS(state),press,DIMS(press),
      &                       dx,xlo,xhi)
@@ -385,8 +378,9 @@ c ::: -----------------------------------------------------------
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-
+c
 c     ::::: local variables
+c
       integer i, j
       REAL_T  x, y
       REAL_T  hx, hy
@@ -415,7 +409,6 @@ c     ::::: local variables
 	    end do
          end do
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -463,7 +456,6 @@ c ::: -----------------------------------------------------------
 	 end do
       end do
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -527,7 +519,6 @@ c       ::::: refine where there is bubble gradient
       end if
 #endif
  
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -571,25 +562,28 @@ c ::: -----------------------------------------------------------
 #include "probdata.H"
 
       if (level .eq. 0) then
+c
 c       ::::: refine around entire bubble
-        do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-          tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
-        end do
-        end do
+c
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
+            end do
+         end do
       else
+c
 c       ::::: refine where there is bubble gradient
-        do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-          ax = abs(temperature(i+1,j,1) - temperature(i-1,j,1))
-          ay = abs(temperature(i,j+1,1) - temperature(i,j-1,1))
-          aerr = max(ax,ay)
-          tag(i,j) = cvmgt(set,tag(i,j),aerr.gt.bubgrad)
-        end do
-        end do
+c
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               ax = abs(temperature(i+1,j,1) - temperature(i-1,j,1))
+               ay = abs(temperature(i,j+1,1) - temperature(i,j-1,1))
+               aerr = max(ax,ay)
+               tag(i,j) = cvmgt(set,tag(i,j),aerr.gt.bubgrad)
+            end do
+         end do
       end if
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -641,9 +635,7 @@ c            x = xlo(1) + dx(1)*(i - lo(1) + 0.5)
 	 end do
       end do
 
-      return
       end
-
 
 c ::: -----------------------------------------------------------
 c ::: This routine is called during a filpatch operation when
@@ -717,7 +709,6 @@ c ::: -----------------------------------------------------------
 	 end do
       end if            
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -792,7 +783,6 @@ c ::: -----------------------------------------------------------
 	 end do
       end if            
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -866,7 +856,6 @@ c ::: -----------------------------------------------------------
          end do
       end if    
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -946,7 +935,6 @@ c ::: -----------------------------------------------------------
 	 end do
       end if            
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -1026,7 +1014,6 @@ c ::: -----------------------------------------------------------
 	 end do
       end if            
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -1073,69 +1060,70 @@ c ::: -----------------------------------------------------------
       ihi = min(ARG_H1(p),domhi(1))
       jlo = max(ARG_L2(p),domlo(2))
       jhi = min(ARG_H2(p),domhi(2))
-
+c
 c     ::::: left side
+c
       if (fix_xlo) then
-          do i = ARG_L1(p), domlo(1)-1
-	  do j = jlo,jhi
-	     p(i,j) = p(ilo,j)
-	  end do
-	  end do
-	  if (fix_ylo) then
-	     do i = ARG_L1(p), domlo(1)-1
-	     do j = ARG_L2(p), domlo(2)-1
-	        p(i,j) = p(ilo,jlo)
-	     end do
-             end do
-          end if
-	  if (fix_yhi) then
-	     do i = ARG_L1(p), domlo(1)-1
-	     do j = domhi(2)+1, ARG_H2(p)
-	        p(i,j) = p(ilo,jhi)
-	     end do
-	     end do
-          end if
-      end if            
-
+         do i = ARG_L1(p), domlo(1)-1
+            do j = jlo,jhi
+               p(i,j) = p(ilo,j)
+            end do
+         end do
+         if (fix_ylo) then
+            do i = ARG_L1(p), domlo(1)-1
+               do j = ARG_L2(p), domlo(2)-1
+                  p(i,j) = p(ilo,jlo)
+               end do
+            end do
+         end if
+         if (fix_yhi) then
+            do i = ARG_L1(p), domlo(1)-1
+               do j = domhi(2)+1, ARG_H2(p)
+                  p(i,j) = p(ilo,jhi)
+               end do
+            end do
+         end if
+      end if
+c
 c     ::::: right side
+c
       if (fix_xhi) then
          do i = domhi(1)+1, ARG_H1(p)
-	 do j = jlo,jhi
-	    p(i,j) = p(ihi,j)
-	 end do
+            do j = jlo,jhi
+               p(i,j) = p(ihi,j)
+            end do
 	 end do
 	 if (fix_ylo) then
 	    do i = domhi(1)+1, ARG_H1(p)
-	    do j = ARG_L2(p), domlo(2)-1
-	       p(i,j) = p(ihi,jlo)
-	    end do
+               do j = ARG_L2(p), domlo(2)-1
+                  p(i,j) = p(ihi,jlo)
+               end do
 	    end do
          end if
 	 if (fix_yhi) then
 	    do i = domhi(1)+1, ARG_H1(p)
-	    do j = domhi(2)+1, ARG_H2(p)
-	       p(i,j) = p(ihi,jhi)
-	    end do
+               do j = domhi(2)+1, ARG_H2(p)
+                  p(i,j) = p(ihi,jhi)
+               end do
 	    end do
          end if
       end if
       
       if (fix_ylo) then
          do j = ARG_L2(p), domlo(2)-1
-	 do i = ilo, ihi
-	    p(i,j) = p(i,jlo)
-	 end do
+            do i = ilo, ihi
+               p(i,j) = p(i,jlo)
+            end do
 	 end do
       end if
 
       if (fix_yhi) then
          do j = domhi(2)+1, ARG_H2(p)
-	 do i = ilo, ihi
-	    p(i,j) = p(i,jhi)
-	 end do
+            do i = ilo, ihi
+               p(i,j) = p(i,jhi)
+            end do
 	 end do
       end if
 
-      return
       end
 

@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_2D.F,v 1.4 1998-02-22 19:06:49 car Exp $
+c $Id: MACOPERATOR_2D.F,v 1.5 1998-03-31 17:26:37 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -60,16 +60,18 @@ c ::
             end if
           end do
        end do
-
+c
 c      ::::: finish coef in X direction (part 2)
+c
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)+1
              rhoavg = half * (rho(i,j) + rho(i-1,j))
              cx(i,j) = dx(1) * ax(i,j) / rhoavg
           end do
        end do
-
+c
 c      ::::: finish coef in Y direction (part 2)
+c
        do j = lo(2), hi(2)+1
           do i = lo(1), hi(1)
              rhoavg = half * (rho(i,j) + rho(i,j-1))
@@ -77,7 +79,6 @@ c      ::::: finish coef in Y direction (part 2)
           end do
        end do
 
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -121,8 +122,9 @@ c ::
 
        integer i, j
        REAL_T  divu
-
+c
 c      ::::: rhs holds the divergence condition (possibly zero)
+c
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
              divu = ax(i+1,j)*ux(i+1,j) - ax(i,j)*ux(i,j)
@@ -131,7 +133,6 @@ c      ::::: rhs holds the divergence condition (possibly zero)
           end do
        end do
  
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -165,7 +166,7 @@ c ::
        REAL_T  rho(DIMV(rho))
        REAL_T  dx(SDIM), mult
        integer init
-c
+
        integer i, j
        REAL_T  rhoavg, gp
 c
@@ -203,12 +204,8 @@ c
              uy(i,j) = uy(i,j) + mult * gp / rhoavg
           end do
        end do
-c
-c     end of routine
-c
-       return
-       end
 
+       end
 
 c :: ----------------------------------------------------------
 c :: MACSYNCRHS
@@ -233,15 +230,15 @@ c ::
        REAL_T  vol(DIMV(vol))
 
        integer i, j
-
+c
 c      ::::: multiply by volume since reflux step (which computed rhs)
 c      ::::: divided by volume.
+c
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
              rhs(i,j) = rhsscale*vol(i,j)*rhs(i,j)
           end do
        end do
 
-       return
        end
 

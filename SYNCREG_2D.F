@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_2D.F,v 1.4 1998-02-22 19:06:53 car Exp $
+c $Id: SYNCREG_2D.F,v 1.5 1998-03-31 17:26:41 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -100,7 +100,6 @@ c           timestep on the coarse grid.  mult = 1/ratio.
 
       end if
       
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -324,7 +323,6 @@ c     FOR FIVE-POINT STENCIL
       end do
 #endif
       
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -428,7 +426,6 @@ c        ::::: sum in i direction
          end if
       end if
       
-      return
       end
 
 #if 0
@@ -485,7 +482,6 @@ c     Note: double counting of corners is intended
         end do
       end if
 
-      return
       end
 #endif
 
@@ -517,7 +513,6 @@ c ::: -----------------------------------------------------------
         end do
       end do
       
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -547,5 +542,4 @@ c ::: -----------------------------------------------------------
         end do
       end do
       
-      return
       end

@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_2D.F,v 1.4 1998-02-22 19:06:49 car Exp $
+c $Id: MACPROJ_2D.F,v 1.5 1998-03-31 17:26:37 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -58,24 +58,23 @@ c ::
        leny = hi(2)-lo(2)+1
        if (lenx .ge. leny) then
           do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             dmac(i,j) = ( xarea(i+1,j)*ux(i+1,j) - xarea(i,j)*ux(i,j)
-     &                 +   yarea(i,j+1)*uy(i,j+1) - yarea(i,j)*uy(i,j)
-     &                   )/vol(i,j)
+             do i = lo(1), hi(1)
+                dmac(i,j) = ( xarea(i+1,j)*ux(i+1,j) - xarea(i,j)*ux(i,j)
+     &               +   yarea(i,j+1)*uy(i,j+1) - yarea(i,j)*uy(i,j)
+     &               )/vol(i,j)
 
-          end do
+             end do
           end do
        else
           do i = lo(1), hi(1)
-          do j = lo(2), hi(2)
-             dmac(i,j) = ( xarea(i+1,j)*ux(i+1,j) - xarea(i,j)*ux(i,j)
-     &                 +   yarea(i,j+1)*uy(i,j+1) - yarea(i,j)*uy(i,j)
-     &                   )/vol(i,j)
-          end do
+             do j = lo(2), hi(2)
+                dmac(i,j) = ( xarea(i+1,j)*ux(i+1,j) - xarea(i,j)*ux(i,j)
+     &               +   yarea(i,j+1)*uy(i,j+1) - yarea(i,j)*uy(i,j)
+     &               )/vol(i,j)
+             end do
           end do
        end if
 
-       return
        end
 
 
@@ -112,29 +111,23 @@ c ::
        leny = hi(2)-lo(2)+1
        if (lenx .ge. leny) then
           do n = 1, nvar
-          do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             snew(i,j,n) = snew(i,j,n) + mult*dmac(i,j)*sold(i,j,n)
-          end do
-          end do
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   snew(i,j,n) = snew(i,j,n) + mult*dmac(i,j)*sold(i,j,n)
+                end do
+             end do
           end do
        else
           do n = 1, nvar
-          do i = lo(1), hi(1)
-          do j = lo(2), hi(2)
-             snew(i,j,n) = snew(i,j,n) + mult*dmac(i,j)*sold(i,j,n)
-          end do
-          end do
+             do i = lo(1), hi(1)
+                do j = lo(2), hi(2)
+                   snew(i,j,n) = snew(i,j,n) + mult*dmac(i,j)*sold(i,j,n)
+                end do
+             end do
           end do
        end if
 
-       return
        end
-
-
-
-c=========================================================
-
 
       subroutine FORT_MACPHIBC(
      &     DIMS(u),uhalfx,DIMS(div),divu,DIMS(rho),rho,
@@ -159,12 +152,12 @@ c
       REAL_T  rcen(DIM1(rcen))
       REAL_T rhalf(DIM1(rhalf))
       REAL_T hx
-c
+
       REAL_T fst,fstm
       REAL_T rhoedge, divu_ave, vtot
       integer i,j,is,ie,js,je
       REAL_T max_divu, min_divu
-c
+
 #if 0
       return
 #endif
@@ -174,21 +167,23 @@ c
       je = ARG_H2(phi)
 
 
-        divu_ave = zero
-        vtot = zero
-        max_divu = zero
-        min_divu = zero
-        do j=je-1,je-1
-        do i=is,ie 
-           divu_ave = divu_ave+rcen(i)*divu(i,j)
-           vtot = vtot+rcen(i)
-           max_divu = max(max_divu,divu(i,j))
-           min_divu = min(min_divu,divu(i,j))
-        end do
-        end do
-        divu_ave = divu_ave/vtot
+      divu_ave = zero
+      vtot = zero
+      max_divu = zero
+      min_divu = zero
 
-      if(max_divu.eq.zero.and.min_divu.eq.zero) then
+      do j=je-1,je-1
+         do i=is,ie 
+            divu_ave = divu_ave+rcen(i)*divu(i,j)
+            vtot = vtot+rcen(i)
+            max_divu = max(max_divu,divu(i,j))
+            min_divu = min(min_divu,divu(i,j))
+         end do
+      end do
+
+      divu_ave = divu_ave/vtot
+
+      if (max_divu.eq.zero.and.min_divu.eq.zero) then
         return
       end if
 
@@ -204,5 +199,4 @@ c
          fstm = fst
       end do
 
-      return
       end

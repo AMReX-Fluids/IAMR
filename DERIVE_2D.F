@@ -1,7 +1,9 @@
-c $Id: DERIVE_2D.F,v 1.5 1998-02-22 19:06:43 car Exp $ 
+c
+c $Id: DERIVE_2D.F,v 1.6 1998-03-31 17:26:34 lijewski Exp $ 
+c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
-#  define BL_LANG_FORT
+#define BL_LANG_FORT
 #endif
 
 #include "REAL.H" 
@@ -12,7 +14,6 @@ c $Id: DERIVE_2D.F,v 1.5 1998-02-22 19:06:43 car Exp $
 #include "ArrayLim.H"
 
 #define SDIM 2
-
 
 c     -----------------------------------------------------------
 c     This file contains functions which compute derived quantities.  
@@ -36,8 +37,6 @@ c     bc        => array of bndry types for component values
 c                  valid only if component touches bndry
 c     -----------------------------------------------------------
 
-c=========================================================
-
       subroutine FORT_DERKENG (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
      $                         bc,level,grid_no)
@@ -59,8 +58,9 @@ c
       integer    i,j
       integer    nlft, nrgt, nbot, ntop
       REAL_T     rho, u, v
-      
+c      
 c     ::::: lets punt if not in domain interior
+c
       nlft = max(0,domlo(1)-lo(1))
       nrgt = max(0,hi(1)-domhi(1))
       nbot = max(0,domlo(2)-lo(2))
@@ -79,14 +79,8 @@ c     ::::: lets punt if not in domain interior
 	    e(i,j,1) = half*rho*(u**2 + v**2)
 	 end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
-
-c=========================================================
-
 
       subroutine FORT_DERLOGS (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
@@ -111,8 +105,9 @@ c
       REAL_T     sml
 
       data sml / 1.0d-10 /
-      
+c      
 c     ::::: lets punt if not in domain interior
+c
       nlft = max(0,domlo(1)-lo(1))
       nrgt = max(0,hi(1)-domhi(1))
       nbot = max(0,domlo(2)-lo(2))
@@ -129,15 +124,8 @@ c     ::::: lets punt if not in domain interior
 	    e(i,j,1) = log10(rho)
 	 end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
-c=========================================================
 
       subroutine FORT_DERMVEL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
@@ -161,8 +149,9 @@ c
       integer    i,j
       integer    nlft, nrgt, nbot, ntop
       REAL_T     u, v
-      
+c      
 c     ::::: lets punt if not in domain interior
+c
       nlft = max(0,domlo(1)-lo(1))
       nrgt = max(0,hi(1)-domhi(1))
       nbot = max(0,domlo(2)-lo(2))
@@ -180,16 +169,8 @@ c     ::::: lets punt if not in domain interior
 	    e(i,j,1) = sqrt(u**2 + v**2)
 	 end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
-c=========================================================
-
 
       subroutine FORT_DERDVRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
@@ -210,8 +191,9 @@ c
 
       integer    i,j
       integer    nlft, nrgt, nbot, ntop
-      
+c      
 c     ::::: lets punt if not in domain interior
+c
       nlft = max(0,domlo(1)-lo(1))
       nrgt = max(0,hi(1)-domhi(1))
       nbot = max(0,domlo(2)-lo(2))
@@ -227,15 +209,8 @@ c     ::::: lets punt if not in domain interior
 	    e(i,j,1) = dat(i,j,2)/dat(i,j,1)
 	 end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
-c=========================================================
 
       subroutine FORT_DERMPRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
@@ -256,8 +231,9 @@ c
 
       integer    i,j
       integer    nlft, nrgt, nbot, ntop
-      
+c      
 c     ::::: lets punt if not in domain interior
+c
       nlft = max(0,domlo(1)-lo(1))
       nrgt = max(0,hi(1)-domhi(1))
       nbot = max(0,domlo(2)-lo(2))
@@ -273,15 +249,8 @@ c     ::::: lets punt if not in domain interior
 	    e(i,j,1) = dat(i,j,2)*dat(i,j,1)
 	 end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
-c=========================================================
 
       subroutine FORT_DERLGRHODUST (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                              lo,hi,domlo,domhi,delta,xlo,time,dt,
@@ -303,8 +272,9 @@ c
       integer    i,j
       integer    nlft, nrgt, nbot, ntop
       REAL_T     dust
-      
+c      
 c     ::::: lets punt if not in domain interior
+c
       nlft = max(0,domlo(1)-lo(1))
       nrgt = max(0,hi(1)-domhi(1))
       nbot = max(0,domlo(2)-lo(2))
@@ -321,15 +291,8 @@ c     ::::: lets punt if not in domain interior
 	    e(i,j,1) = log10(dust)
 	 end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
-c=========================================================
 
       subroutine FORT_DERMGVORT (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
@@ -354,16 +317,18 @@ c
       REAL_T    vx, uy, dx, dy
       logical   fixlft, fixrgt, fixbot, fixtop
       REAL_T    vxcen, vxlft, vxrgt, uycen, uybot, uytop, vorfun
-
+c
 c     ::::: some useful macro definitions
+c
 #     define U(i,j) dat(i,j,1)
 #     define V(i,j) dat(i,j,2)
 #     define VLOX bc(1,1,2)
 #     define VHIX bc(1,2,2)
 #     define ULOY bc(2,1,1)
 #     define UHIY bc(2,2,1)
-
+c
 c     ::::: statement functions that implement stencil
+c
       vxcen(i,j) = half*(V(i+1,j)-V(i-1,j))/dx
       vxlft(i,j) = (V(i+1,j)+three*V(i,j)-four*V(i-1,j))/(three*dx)
       vxrgt(i,j) = (four*V(i+1,j)-three*V(i,j)-V(i-1,j))/(three*dx)
@@ -374,8 +339,9 @@ c     ::::: statement functions that implement stencil
 
       dx = delta(1)
       dy = delta(2)
-      
+c     
 c     ::::: lets punt if not in domain interior
+c
       nlft = max(0,domlo(1)-lo(1))
       nrgt = max(0,hi(1)-domhi(1))
       nbot = max(0,domlo(2)-lo(2))
@@ -402,8 +368,9 @@ c     ::::: lets punt if not in domain interior
      &           (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
       fixtop = ( (hi(2) .eq. domhi(2)) .and. 
      &           (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
-
+c
 c     ::::: handle special bndry conditions at the left edge
+c
       if (fixlft) then
          i = lo(1)
          do j = lo(2), hi(2)
@@ -412,8 +379,9 @@ c     ::::: handle special bndry conditions at the left edge
     	    vort(i,j,1) = vorfun(vx,uy)
 	 end do
       end if
-
+c
 c     ::::: handle special bndry conditions on the right
+c
       if (fixrgt) then
          i = hi(1)
          do j = lo(2), hi(2)
@@ -422,8 +390,9 @@ c     ::::: handle special bndry conditions on the right
     	    vort(i,j,1) = vorfun(vx,uy)
 	 end do
       end if
-
+c
 c     ::::: handle special bndry conditions on bottom
+c
       if (fixbot) then
          j = lo(2)
          do i = lo(1), hi(1)
@@ -432,8 +401,9 @@ c     ::::: handle special bndry conditions on bottom
     	    vort(i,j,1) = vorfun(vx,uy)
 	 end do
       end if
-
+c
 c     ::::: handle special bndry conditions on top
+c
       if (fixtop) then
          j = hi(2)
          do i = lo(1), hi(1)
@@ -442,8 +412,9 @@ c     ::::: handle special bndry conditions on top
     	    vort(i,j,1) = vorfun(vx,uy)
 	 end do
       end if
-
+c
 c     ::::: check corners
+c
       if (fixlft .and. fixbot) then
          i = lo(1)
 	 j = lo(2)
@@ -479,14 +450,8 @@ c     ::::: check corners
 #     undef VHIX
 #     undef ULOY
 #     undef UHIY
-c
-c     end of routine
-c
-      return
+
       end
-
-
-c=========================================================
 
       subroutine FORT_DERMGVORT2 (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
      &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
@@ -512,8 +477,9 @@ c
       REAL_T    uycen, uylo, uyhi
       REAL_T    vxcen, vxlo, vxhi
       REAL_T    vorfun
-
+c
 c     ::::: some useful macro definitions
+c
 #     define U(i,j) dat(i,j,1)
 #     define V(i,j) dat(i,j,2)
 
@@ -522,8 +488,9 @@ c     ::::: some useful macro definitions
 
 #     define VLOX bc(1,1,2)
 #     define VHIX bc(1,2,2)
-
+c
 c     ::::: statement functions that implement stencil
+c
       uycen(i,j) = half*(U(i,j+1)-U(i,j-1))/dy
       uylo(i,j) = (eight*U(i,j)-six*U(i,j+1)+U(i,j+2))/(three*dy)
       uyhi(i,j) = (eight*U(i,j)-six*U(i,j-1)+U(i,j-2))/(three*dy)
@@ -536,8 +503,9 @@ c     ::::: statement functions that implement stencil
 
       dx = delta(1)
       dy = delta(2)
-      
+c      
 c     ::::: lets punt if not in domain interior
+c
       nxlo = max(0,domlo(1)-lo(1))
       nxhi = max(0,hi(1)-domhi(1))
       nylo = max(0,domlo(2)-lo(2))
@@ -547,11 +515,12 @@ c     ::::: lets punt if not in domain interior
          write(6,*) "FORT_DERMGVORT2: outside domain"
 	 stop
       end if
-
+c
 c     :: at physical bndries where an edge value is prescribed,
 c     :: set the value in the outside cell so that a central
 c     :: difference formula is equivalent to the higher order
 c     :: one sided formula
+c
       if (lo(1) .eq. domlo(1)) then
          i = lo(1)
          if (VLOX.eq.EXT_DIR .or. VLOX.eq.HOEXTRAP) then
@@ -586,11 +555,11 @@ c     :: one sided formula
       end if
 
       do j = lo(2), hi(2)
-      do i = lo(1), hi(1)
-         uy = uycen(i,j)
-	 vx = vxcen(i,j)
-	 vort(i,j,1) = vorfun(vx,uy)
-      end do
+         do i = lo(1), hi(1)
+            uy = uycen(i,j)
+            vx = vxcen(i,j)
+            vort(i,j,1) = vorfun(vx,uy)
+         end do
       end do
 
 #     undef U
@@ -599,14 +568,8 @@ c     :: one sided formula
 #     undef UHIY
 #     undef VLOX
 #     undef VHIX
-c
-c     end of routine
-c
-      return
+
       end
-
-c=========================================================
-
 
       subroutine FORT_DERMGDIVU (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
@@ -630,8 +593,9 @@ c
       REAL_T    ux, vy, dx, dy
       REAL_T    uxcen, uxlo, uxhi
       REAL_T    vycen, vylo, vyhi
-
+c
 c     ::::: some useful macro definitions
+c
 #     define U(i,j) dat(i,j,1)
 #     define V(i,j) dat(i,j,2)
 
@@ -640,8 +604,9 @@ c     ::::: some useful macro definitions
 
 #     define VLOY bc(2,1,2)
 #     define VHIY bc(2,2,2)
-
+c
 c     ::::: statement functions that implement stencil
+c
       uxcen(i,j) = half*(U(i+1,j)-U(i-1,j))/dx
       uxlo(i,j) = (eight*U(i,j)-six*U(i+1,j)+U(i+2,j))/(three*dx)
       uxhi(i,j) = (eight*U(i,j)-six*U(i-1,j)+U(i-2,j))/(three*dx)
@@ -657,8 +622,9 @@ c     ::::: statement functions that implement stencil
 
       dx = delta(1)
       dy = delta(2)
-      
+c      
 c     ::::: lets punt if not in domain interior
+c
       nxlo = max(0,domlo(1)-lo(1))
       nxhi = max(0,hi(1)-domhi(1))
       nylo = max(0,domlo(2)-lo(2))
@@ -668,14 +634,14 @@ c     ::::: lets punt if not in domain interior
          write(6,*) "FORT_DERMGDIVU: outside domain"
 	 stop
       end if
-
+c
 c     :: at physical bndries where an edge value is prescribed,
 c     :: set the value in the outside cell so that a central
 c     :: difference formula is equivalent to the higher order
 c     :: one sided formula
-
+c
 c     boundaries handled by fill routines
-
+c
       if (lo(1) .eq. domlo(1)) then
          i = lo(1)
          if (ULOX.eq.EXT_DIR) then
@@ -726,15 +692,15 @@ c     boundaries handled by fill routines
       end if
 
       do j = lo(2), hi(2)
-      do i = lo(1), hi(1)
-         ux = uxcen(i,j)
-	 vy = vycen(i,j)
-	 divu(i,j,1) = ux + vy
+         do i = lo(1), hi(1)
+            ux = uxcen(i,j)
+            vy = vycen(i,j)
+            divu(i,j,1) = ux + vy
+         end do
       end do
-      end do
-
+c
 c we overwrote the ghost cells above, so set them back below
-
+c
       call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),1),DIMS(dat),
      $                   domlo,domhi,delta,xlo,time,bc(1,1,1))
       call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),2),DIMS(dat),
@@ -746,16 +712,8 @@ c we overwrote the ghost cells above, so set them back below
 #     undef UHIX
 #     undef VLOY
 #     undef VHIY
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
-
-c=========================================================
 
       subroutine FORT_GRADP_DIR (
      &     p,DIMS(p),
@@ -773,33 +731,27 @@ c
       REAL_T     gp(DIMV(gp))
       integer    i,j
       REAL_T     d
-c
+
       d = half/dx
-c
+
       if (dir .eq. 0) then
          do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            gp(i,j) = d*(p(i+1,j)-p(i,j)+p(i+1,j+1)-p(i,j+1))
-         end do
+            do i = lo(1), hi(1)
+               gp(i,j) = d*(p(i+1,j)-p(i,j)+p(i+1,j+1)-p(i,j+1))
+            end do
          end do
       else if (dir .eq. 1) then
          do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            gp(i,j) = d*(p(i,j+1)-p(i,j)+p(i+1,j+1)-p(i+1,j))
-         end do
+            do i = lo(1), hi(1)
+               gp(i,j) = d*(p(i,j+1)-p(i,j)+p(i+1,j+1)-p(i+1,j))
+            end do
          end do
       else
          write(6,*) "FORT_GRADP_DIR: invalid dir = ",dir
          stop
       end if
-c
-c     end of routine
-c
-      return
+
       end
-
-c=========================================================
-
 
       subroutine FORT_DERAVGPRES (avgpres,DIMS(gp),nv,dat,DIMS(dat),ncomp,
      &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
@@ -823,17 +775,14 @@ c
       integer grid_no
 
       integer i,j
-c
-         do j = lo(2), hi(2)
+
+      do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             avgpres(i,j) = fourth*( dat(i+1,j  )+dat(i,j  ) +
-     $                              dat(i+1,j+1)+dat(i,j+1) )
+     $           dat(i+1,j+1)+dat(i,j+1) )
          end do
-         end do
-c
-c     end of routine
-c
-      return
+      end do
+
       end
 
 c=========================================================
@@ -859,15 +808,8 @@ c
       call FORT_GRADP_DIR (
      &     dat,DIMS(dat),grdpx,DIMS(gp),
      &     lo,hi,0,delta)
-c
-c     end of routine
-c
-      return
+
       end
-
-
-c=========================================================
-
 
       subroutine FORT_DERGRDPY (grdpy,DIMS(gp),nv,dat,DIMS(dat),ncomp,
      &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
@@ -889,8 +831,5 @@ c
       call FORT_GRADP_DIR (
      &     dat,DIMS(dat),grdpy,DIMS(gp),
      &     lo,hi,1,delta)
-c
-c     end of routine
-c
-      return
+
       end

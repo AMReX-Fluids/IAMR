@@ -1,5 +1,5 @@
 c
-c $Id: VISCOPERATOR_3D.F,v 1.4 1998-02-22 19:06:54 car Exp $
+c $Id: VISCOPERATOR_3D.F,v 1.5 1998-03-31 17:26:41 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -37,130 +37,130 @@ c ::
 c         ::::: left side
           i = lo(1)-1
           do k = lo(3), hi(3)
-          do j = lo(2), hi(2)
+             do j = lo(2), hi(2)
 c            visc(i,j,k,n) = two*visc(i+1,j,k,n) - visc(i+2,j,k,n)
-             visc(i,j,k,n) = visc(i+1,j,k,n)
-          end do
+                visc(i,j,k,n) = visc(i+1,j,k,n)
+             end do
           end do
 
 c         ::::: right side
           i = hi(1)+1
           do k = lo(3), hi(3)
-          do j = lo(2), hi(2)
+             do j = lo(2), hi(2)
 c            visc(i,j,k,n) = two*visc(i-1,j,k,n) - visc(i-2,j,k,n)
-             visc(i,j,k,n) = visc(i-1,j,k,n)
-          end do
+                visc(i,j,k,n) = visc(i-1,j,k,n)
+             end do
           end do
 
 c         ::::: bottom side
           j = lo(2)-1
           do k = lo(3), hi(3)
-          do i = lo(1), hi(1)
+             do i = lo(1), hi(1)
 c            visc(i,j,k,n) = two*visc(i,j+1,k,n) - visc(i,j+2,k,n)
-             visc(i,j,k,n) = visc(i,j+1,k,n)
-          end do
+                visc(i,j,k,n) = visc(i,j+1,k,n)
+             end do
           end do
 
 c         ::::: top side
           j = hi(2)+1
           do k = lo(3), hi(3)
-          do i = lo(1), hi(1)
+             do i = lo(1), hi(1)
 c            visc(i,j,k,n) = two*visc(i,j-1,k,n) - visc(i,j-2,k,n)
-             visc(i,j,k,n) = visc(i,j-1,k,n)
-          end do
+                visc(i,j,k,n) = visc(i,j-1,k,n)
+             end do
           end do
 
 c         ::::: down side
           k = lo(3)-1
           do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
+             do i = lo(1), hi(1)
 c            visc(i,j,k,n) = two*visc(i,j,k+1,n) - visc(i,j,k+2,n)
-             visc(i,j,k,n) = visc(i,j,k+1,n)
-          end do
+                visc(i,j,k,n) = visc(i,j,k+1,n)
+             end do
           end do
 
 c         ::::: up side
           k = hi(3)+1
           do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
+             do i = lo(1), hi(1)
 c            visc(i,j,k,n) = two*visc(i,j,k-1,n) - visc(i,j,k-2,n)
-             visc(i,j,k,n) = visc(i,j,k-1,n)
-          end do
+                visc(i,j,k,n) = visc(i,j,k-1,n)
+             end do
           end do
 
 c         ::::: k-edges
           i = lo(1)-1
           j = lo(2)-1
           do k = lo(3), hi(3)
-            visc(i,j,k,n) = visc(i+1,j+1,k,n)
+             visc(i,j,k,n) = visc(i+1,j+1,k,n)
           end do
- 
+          
           i = lo(1)-1
           j = hi(2)+1
           do k = lo(3), hi(3)
-            visc(i,j,k,n) = visc(i+1,j-1,k,n)
+             visc(i,j,k,n) = visc(i+1,j-1,k,n)
           end do
 
           i = hi(1)+1
           j = lo(2)-1
           do k = lo(3), hi(3)
-            visc(i,j,k,n) = visc(i-1,j+1,k,n)
+             visc(i,j,k,n) = visc(i-1,j+1,k,n)
           end do
- 
+          
           i = hi(1)+1
           j = hi(2)+1
           do k = lo(3), hi(3)
-            visc(i,j,k,n) = visc(i-1,j-1,k,n)
+             visc(i,j,k,n) = visc(i-1,j-1,k,n)
           end do
 
 c         ::::: j-edges
           i = lo(1)-1
           k = lo(3)-1
           do j = lo(2), hi(2)
-            visc(i,j,k,n) = visc(i+1,j,k+1,n)
+             visc(i,j,k,n) = visc(i+1,j,k+1,n)
           end do
- 
+          
           i = lo(1)-1
           k = hi(3)+1
           do j = lo(2), hi(2)
-            visc(i,j,k,n) = visc(i+1,j,k-1,n)
+             visc(i,j,k,n) = visc(i+1,j,k-1,n)
           end do
 
           i = hi(1)+1
           k = lo(3)-1
           do j = lo(2), hi(2)
-            visc(i,j,k,n) = visc(i-1,j,k+1,n)
+             visc(i,j,k,n) = visc(i-1,j,k+1,n)
           end do
- 
+          
           i = hi(1)+1
           k = hi(3)+1
           do j = lo(2), hi(2)
-            visc(i,j,k,n) = visc(i-1,j,k-1,n)
+             visc(i,j,k,n) = visc(i-1,j,k-1,n)
           end do
 
 c         ::::: i-edges
           j = lo(2)-1
           k = lo(3)-1
           do i = lo(1), hi(1)
-            visc(i,j,k,n) = visc(i,j+1,k+1,n)
+             visc(i,j,k,n) = visc(i,j+1,k+1,n)
           end do
- 
+          
           j = lo(2)-1
           k = hi(3)+1
           do i = lo(1), hi(1)
-            visc(i,j,k,n) = visc(i,j+1,k-1,n)
+             visc(i,j,k,n) = visc(i,j+1,k-1,n)
           end do
 
           j = hi(2)+1
           k = lo(3)-1
           do i = lo(1), hi(1)
-            visc(i,j,k,n) = visc(i,j-1,k+1,n)
+             visc(i,j,k,n) = visc(i,j-1,k+1,n)
           end do
- 
+          
           j = hi(2)+1
           k = hi(3)+1
           do i = lo(1), hi(1)
-            visc(i,j,k,n) = visc(i,j-1,k-1,n)
+             visc(i,j,k,n) = visc(i,j-1,k-1,n)
           end do
 
 c         ::::: corners
@@ -206,5 +206,4 @@ c         ::::: corners
 
        end do
 
-       return
        end

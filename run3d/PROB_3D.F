@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.6 1998-02-22 19:06:52 car Exp $
+c $Id: PROB_3D.F,v 1.7 1998-03-31 17:26:39 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -50,7 +50,6 @@ c ::: -----------------------------------------------------------
        write(6,fortin)
        close(unit=untin)
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -92,8 +91,9 @@ c ::: -----------------------------------------------------------
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-
+c
 c     ::::: local variables
+c
       integer i, j, k
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -119,10 +119,8 @@ c     ::::: local variables
          write(6,*) "INITDATA: bad probtype = ",probtype
       end if
 
-      return
       end
 
-c ::: -----------------------------------------------------------
       subroutine initbubble(level,time,lo,hi,nscal,
      &	 	            vel,scal,DIMS(state),press,DIMS(press),
      &                      dx,xlo,xhi)
@@ -135,9 +133,9 @@ c ::: -----------------------------------------------------------
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-
-
+c
 c     ::::: local variables
+c
       integer i, j, k
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -170,7 +168,7 @@ c     ::::: local variables
       end if
 
 #if 0
-         do k = lo(3), hi(3)
+      do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             y = xlo(2) + hy*(float(j-lo(2)) + half)
 	    spy = sin(Pi*y)
@@ -195,20 +193,20 @@ c     ::::: local variables
                scal(i,j,k,2) = c
 	    end do
          end do
-         end do
+      end do
 #endif
 
-         do k = lo(3), hi(3)
-          z = xlo(3) + hz*(float(k-lo(3)) + half)
-          do j = lo(2), hi(2)
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
             if (axis_dir .eq. 1) then
-              y = xlo(2) + hy*(float(j-lo(2)) + half)
-              dist = sqrt((z-zblob)**2 + (y-yblob)**2)
+               y = xlo(2) + hy*(float(j-lo(2)) + half)
+               dist = sqrt((z-zblob)**2 + (y-yblob)**2)
             end if
             do i = lo(1), hi(1)
                if (axis_dir .eq. 2) then
-                 x = xlo(1) + hx*(float(i-lo(1)) + half)
-                 dist = sqrt((z-zblob)**2 + (x-xblob)**2)
+                  x = xlo(1) + hx*(float(i-lo(1)) + half)
+                  dist = sqrt((z-zblob)**2 + (x-xblob)**2)
                end if
                ux = x_vel
                uy = y_vel
@@ -224,13 +222,10 @@ c     ::::: local variables
                scal(i,j,k,2) = c
             end do
          end do
-         end do
+      end do
 
-
-      return
       end
 
-c ::: -----------------------------------------------------------
       subroutine initspin(level,time,lo,hi,nscal,
      &	 	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
@@ -244,8 +239,9 @@ c ::: -----------------------------------------------------------
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-
+c
 c     ::::: local variables
+c
       integer i, j, k
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -283,85 +279,83 @@ c     ::::: local variables
 
       if (axis_dir .eq. 3) then
          do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            y = xlo(2) + hy*(float(j-lo(2)) + half)
-	    spy = sin(Pi*y / ylen)
-	    cpy = cos(Pi*y / ylen)
-	    do i = lo(1), hi(1)
-               x = xlo(1) + hx*(float(i-lo(1)) + half)
- 	       spx = sin(Pi*x / xlen)
-	       cpx = cos(Pi*x / xlen)
-  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-               rho = cvmgt(denfact,one,dist.lt.radblob)
- 	       c   = cvmgt(one,zero,dist.lt.radblob)
-               ux = x_vel - velfact*two*spy*cpy*spx**2
-               uy = y_vel + velfact*two*spx*cpx*spy**2
-               uz = z_vel
-               vel(i,j,k,1) = ux
-               vel(i,j,k,2) = uy
-               vel(i,j,k,3) = uz
-               scal(i,j,k,1) = rho
-	       scal(i,j,k,2) = c
-	    end do
-         end do
-         end do
-      else if (axis_dir .eq. 2) then
-         do j = lo(2), hi(2)
-         do k = lo(3), hi(3)
-            z = xlo(3) + hz*(float(k-lo(3)) + half)
-            spz = sin(Pi*z / zlen)
-            cpz = cos(Pi*z / zlen)
-            do i = lo(1), hi(1)
-               x = xlo(1) + hx*(float(i-lo(1)) + half)
-               spx = sin(Pi*x / xlen)
-               cpx = cos(Pi*x / xlen)
-               dist = sqrt((x-xblob)**2 + (z-zblob)**2)
-               rho = cvmgt(denfact,one,dist.lt.radblob)
-               c   = cvmgt(one,zero,dist.lt.radblob)
-               ux = x_vel - velfact*two*spz*cpz*spx**2
-               uy = y_vel
-               uz = z_vel + velfact*two*spx*cpx*spz**2
-               vel(i,j,k,1) = ux
-               vel(i,j,k,2) = uy
-               vel(i,j,k,3) = uz
-               scal(i,j,k,1) = rho
-               scal(i,j,k,2) = c
-            end do
-         end do
-         end do
-      else if (axis_dir .eq. 1) then
-         do i = lo(1), hi(1)
-         do k = lo(3), hi(3)
-            z = xlo(3) + hz*(float(k-lo(3)) + half)
-            spz = sin(Pi*z / zlen)
-            cpz = cos(Pi*z / zlen)
             do j = lo(2), hi(2)
                y = xlo(2) + hy*(float(j-lo(2)) + half)
                spy = sin(Pi*y / ylen)
                cpy = cos(Pi*y / ylen)
-               dist = sqrt((z-zblob)**2 + (y-yblob)**2)
-               rho = cvmgt(denfact,one,dist.lt.radblob)
-               c   = cvmgt(one,zero,dist.lt.radblob)
-               ux = x_vel
-               uy = y_vel + velfact*two*spz*cpz*spy**2
-               uz = z_vel - velfact*two*spy*cpy*spz**2
-               vel(i,j,k,1) = ux
-               vel(i,j,k,2) = uy
-               vel(i,j,k,3) = uz
-               scal(i,j,k,1) = rho
-               scal(i,j,k,2) = c
+               do i = lo(1), hi(1)
+                  x = xlo(1) + hx*(float(i-lo(1)) + half)
+                  spx = sin(Pi*x / xlen)
+                  cpx = cos(Pi*x / xlen)
+                  dist = sqrt((x-xblob)**2 + (y-yblob)**2)
+                  rho = cvmgt(denfact,one,dist.lt.radblob)
+                  c   = cvmgt(one,zero,dist.lt.radblob)
+                  ux = x_vel - velfact*two*spy*cpy*spx**2
+                  uy = y_vel + velfact*two*spx*cpx*spy**2
+                  uz = z_vel
+                  vel(i,j,k,1) = ux
+                  vel(i,j,k,2) = uy
+                  vel(i,j,k,3) = uz
+                  scal(i,j,k,1) = rho
+                  scal(i,j,k,2) = c
+               end do
             end do
          end do
+      else if (axis_dir .eq. 2) then
+         do j = lo(2), hi(2)
+            do k = lo(3), hi(3)
+               z = xlo(3) + hz*(float(k-lo(3)) + half)
+               spz = sin(Pi*z / zlen)
+               cpz = cos(Pi*z / zlen)
+               do i = lo(1), hi(1)
+                  x = xlo(1) + hx*(float(i-lo(1)) + half)
+                  spx = sin(Pi*x / xlen)
+                  cpx = cos(Pi*x / xlen)
+                  dist = sqrt((x-xblob)**2 + (z-zblob)**2)
+                  rho = cvmgt(denfact,one,dist.lt.radblob)
+                  c   = cvmgt(one,zero,dist.lt.radblob)
+                  ux = x_vel - velfact*two*spz*cpz*spx**2
+                  uy = y_vel
+                  uz = z_vel + velfact*two*spx*cpx*spz**2
+                  vel(i,j,k,1) = ux
+                  vel(i,j,k,2) = uy
+                  vel(i,j,k,3) = uz
+                  scal(i,j,k,1) = rho
+                  scal(i,j,k,2) = c
+               end do
+            end do
+         end do
+      else if (axis_dir .eq. 1) then
+         do i = lo(1), hi(1)
+            do k = lo(3), hi(3)
+               z = xlo(3) + hz*(float(k-lo(3)) + half)
+               spz = sin(Pi*z / zlen)
+               cpz = cos(Pi*z / zlen)
+               do j = lo(2), hi(2)
+                  y = xlo(2) + hy*(float(j-lo(2)) + half)
+                  spy = sin(Pi*y / ylen)
+                  cpy = cos(Pi*y / ylen)
+                  dist = sqrt((z-zblob)**2 + (y-yblob)**2)
+                  rho = cvmgt(denfact,one,dist.lt.radblob)
+                  c   = cvmgt(one,zero,dist.lt.radblob)
+                  ux = x_vel
+                  uy = y_vel + velfact*two*spz*cpz*spy**2
+                  uz = z_vel - velfact*two*spy*cpy*spz**2
+                  vel(i,j,k,1) = ux
+                  vel(i,j,k,2) = uy
+                  vel(i,j,k,3) = uz
+                  scal(i,j,k,1) = rho
+                  scal(i,j,k,2) = c
+               end do
+            end do
          end do
       else 
          print *,'BAD AXIS_DIR IN INITSPIN ',axis_dir
          stop
       end if
 
-      return
       end
 
-c ::: -----------------------------------------------------------
       subroutine initvort(level,time,lo,hi,nscal,
      &	 	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
@@ -375,8 +369,9 @@ c ::: -----------------------------------------------------------
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-
+c
 c     ::::: local variables
+c
       integer i, j, k
       REAL_T  x, y, z, r
       REAL_T  hx, hy, hz
@@ -391,7 +386,7 @@ c     ::::: local variables
       hz = dx(2)
       small = 1.0e-10
 
-         do k = lo(3), hi(3)
+      do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             y = xlo(2) + hy*(float(j-lo(2)) + half) - yblob
 	    do i = lo(1), hi(1)
@@ -409,9 +404,8 @@ c     ::::: local variables
                scal(i,j,k,2) = cvmgt(one,zero,r.lt.radblob)
 	    end do
          end do
-         end do
+      end do
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -454,14 +448,13 @@ c ::: -----------------------------------------------------------
 #include "probdata.H"
 
       do k = lo(3), hi(3)
-      do j = lo(2), hi(2)
-      do i = lo(1), hi(1)
-         tag(i,j,k) = cvmgt(set,tag(i,j,k),rho(i,j,k,1).lt.denerr)
-      end do
-      end do
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               tag(i,j,k) = cvmgt(set,tag(i,j,k),rho(i,j,k,1).lt.denerr)
+            end do
+         end do
       end do
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -505,30 +498,33 @@ c ::: -----------------------------------------------------------
 #include "probdata.H"
 
       if (level .eq. 0) then
+c
 c       ::::: refine around entire bubble
-        do k = lo(3), hi(3)
-        do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-          tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
-        end do
-        end do
-        end do
+c
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+               end do
+            end do
+         end do
       else
+c
 c       ::::: refine where there is bubble gradient
-        do k = lo(3), hi(3)
-        do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-          ax = abs(adv(i+1,j,k,1) - adv(i-1,j,k,1))
-          ay = abs(adv(i,j+1,k,1) - adv(i,j-1,k,1))
-          az = abs(adv(i,j,k+1,1) - adv(i,j,k-1,1))
-          aerr = max(ax,ay,az)
-          tag(i,j,k) = cvmgt(set,tag(i,j,k),aerr.gt.bubgrad)
-        end do
-        end do
-        end do
+c
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  ax = abs(adv(i+1,j,k,1) - adv(i-1,j,k,1))
+                  ay = abs(adv(i,j+1,k,1) - adv(i,j-1,k,1))
+                  az = abs(adv(i,j,k+1,1) - adv(i,j,k-1,1))
+                  aerr = max(ax,ay,az)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),aerr.gt.bubgrad)
+               end do
+            end do
+         end do
       end if
  
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -573,16 +569,14 @@ c ::: -----------------------------------------------------------
 #include "probdata.H"
 
       do k = lo(3), hi(3)
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            tag(i,j,k) = cvmgt(set,clear,abs(vort(i,j,k,1)).gt.vorterr)
-	 end do
-      end do
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               tag(i,j,k) = cvmgt(set,clear,abs(vort(i,j,k,1)).gt.vorterr)
+            end do
+         end do
       end do
 
-      return
       end
-
 
 c ::: -----------------------------------------------------------
 c ::: This routine is called during a filpatch operation when
@@ -625,66 +619,63 @@ c ::: -----------------------------------------------------------
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(rho).lt.domlo(1)) then
          do i = ARG_L1(rho), domlo(1)-1
             do k = ARG_L3(rho), ARG_H3(rho)
-            do j = ARG_L2(rho), ARG_H2(rho)
-               rho(i,j,k) = denfact
-	    end do
+               do j = ARG_L2(rho), ARG_H2(rho)
+                  rho(i,j,k) = denfact
+               end do
 	    end do
 	 end do
-      end if            
+      end if
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(rho).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(rho)
             do k = ARG_L3(rho), ARG_H3(rho)
-            do j = ARG_L2(rho), ARG_H2(rho)
-	       rho(i,j,k) = denfact
-	    end do
+               do j = ARG_L2(rho), ARG_H2(rho)
+                  rho(i,j,k) = denfact
+               end do
 	    end do
 	 end do
-      end if            
-
+      end if         
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(rho).lt.domlo(2)) then
-           do j = ARG_L2(rho), domlo(2)-1
-              do k = ARG_L3(rho), ARG_H3(rho)
-              do i = ARG_L1(rho), ARG_H1(rho)
-	         rho(i,j,k) = denfact
-	      end do
-	      end do
-	   end do
+         do j = ARG_L2(rho), domlo(2)-1
+            do k = ARG_L3(rho), ARG_H3(rho)
+               do i = ARG_L1(rho), ARG_H1(rho)
+                  rho(i,j,k) = denfact
+               end do
+            end do
+         end do
       end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(rho).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(rho)
             do k = ARG_L3(rho), ARG_H3(rho)
-            do i = ARG_L1(rho), ARG_H1(rho)
-	       rho(i,j,k) = denfact
-	    end do
+               do i = ARG_L1(rho), ARG_H1(rho)
+                  rho(i,j,k) = denfact
+               end do
 	    end do
 	 end do
       end if            
 
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(rho).lt.domlo(3)) then
-           do k = ARG_L3(rho), domlo(3)-1
-              do j = ARG_L2(rho), ARG_H2(rho)
-              do i = ARG_L1(rho), ARG_H1(rho)
-                 rho(i,j,k) = denfact
-              end do
-              end do
-           end do
-      end if
-
-      if (bc(3,2).eq.EXT_DIR.and.ARG_H3(rho).gt.domhi(3)) then
-           do k = domhi(3)+1, ARG_H3(rho)
-              do j = ARG_L2(rho), ARG_H2(rho)
-              do i = ARG_L1(rho), ARG_H1(rho)
-                rho(i,j,k) = denfact
-              end do
-              end do
+         do k = ARG_L3(rho), domlo(3)-1
+            do j = ARG_L2(rho), ARG_H2(rho)
+               do i = ARG_L1(rho), ARG_H1(rho)
+                  rho(i,j,k) = denfact
+               end do
+            end do
          end do
       end if
 
+      if (bc(3,2).eq.EXT_DIR.and.ARG_H3(rho).gt.domhi(3)) then
+         do k = domhi(3)+1, ARG_H3(rho)
+            do j = ARG_L2(rho), ARG_H2(rho)
+               do i = ARG_L1(rho), ARG_H1(rho)
+                  rho(i,j,k) = denfact
+               end do
+            end do
+         end do
+      end if
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -729,9 +720,9 @@ c ::: -----------------------------------------------------------
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(adv).lt.domlo(1)) then
          do i = ARG_L1(adv), domlo(1)-1
             do k = ARG_L3(adv), ARG_H3(adv)
-            do j = ARG_L2(adv), ARG_H2(adv)
-	       adv(i,j,k) = zero
-	    end do
+               do j = ARG_L2(adv), ARG_H2(adv)
+                  adv(i,j,k) = zero
+               end do
 	    end do
 	 end do
       end if            
@@ -739,9 +730,9 @@ c ::: -----------------------------------------------------------
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(adv).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(adv)
             do k = ARG_L3(adv), ARG_H3(adv)
-            do j = ARG_L2(adv), ARG_H2(adv)
-	       adv(i,j,k) = zero
-	    end do
+               do j = ARG_L2(adv), ARG_H2(adv)
+                  adv(i,j,k) = zero
+               end do
 	    end do
 	 end do
       end if            
@@ -749,9 +740,9 @@ c ::: -----------------------------------------------------------
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(adv).lt.domlo(2)) then
          do j = ARG_L2(adv), domlo(2)-1
             do k = ARG_L3(adv), ARG_H3(adv)
-            do i = ARG_L1(adv), ARG_H1(adv)
-	       adv(i,j,k) = zero
-	    end do
+               do i = ARG_L1(adv), ARG_H1(adv)
+                  adv(i,j,k) = zero
+               end do
 	    end do
 	 end do
       end if            
@@ -759,9 +750,9 @@ c ::: -----------------------------------------------------------
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(adv).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(adv)
             do k = ARG_L3(adv), ARG_H3(adv)
-            do i = ARG_L1(adv), ARG_H1(adv)
-	       adv(i,j,k) = zero
-	    end do
+               do i = ARG_L1(adv), ARG_H1(adv)
+                  adv(i,j,k) = zero
+               end do
 	    end do
 	 end do
       end if            
@@ -769,9 +760,9 @@ c ::: -----------------------------------------------------------
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(adv).lt.domlo(3)) then
          do k = ARG_L3(adv), domlo(3)-1
             do j = ARG_L2(adv), ARG_H2(adv)
-            do i = ARG_L1(adv), ARG_H1(adv)
-               adv(i,j,k) = zero
-            end do
+               do i = ARG_L1(adv), ARG_H1(adv)
+                  adv(i,j,k) = zero
+               end do
             end do
          end do
       end if 
@@ -779,14 +770,13 @@ c ::: -----------------------------------------------------------
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(adv).gt.domhi(3)) then
          do k = domhi(3)+1, ARG_H3(adv)
             do j = ARG_L2(adv), ARG_H2(adv)
-            do i = ARG_L1(adv), ARG_H1(adv)
-               adv(i,j,k) = zero
-            end do
+               do i = ARG_L1(adv), ARG_H1(adv)
+                  adv(i,j,k) = zero
+               end do
             end do
          end do
       end if
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -837,9 +827,9 @@ c ::: -----------------------------------------------------------
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(u).lt.domlo(1)) then
          do i = ARG_L1(u), domlo(1)-1
             do k = ARG_L3(u), ARG_H3(u)
-            do j = ARG_L2(u), ARG_H2(u)
-               u(i,j,k) = x_vel
-	    end do
+               do j = ARG_L2(u), ARG_H2(u)
+                  u(i,j,k) = x_vel
+               end do
 	    end do
 	 end do
       end if            
@@ -847,9 +837,9 @@ c ::: -----------------------------------------------------------
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(u).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(u)
             do k = ARG_L3(u), ARG_H3(u)
-            do j = ARG_L2(u), ARG_H2(u)
-               u(i,j,k) = x_vel
-	    end do
+               do j = ARG_L2(u), ARG_H2(u)
+                  u(i,j,k) = x_vel
+               end do
 	    end do
 	 end do
       end if            
@@ -857,9 +847,9 @@ c ::: -----------------------------------------------------------
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(u).lt.domlo(2)) then
          do j = ARG_L2(u), domlo(2)-1
             do k = ARG_L3(u), ARG_H3(u)
-            do i = ARG_L1(u), ARG_H1(u)
-               u(i,j,k) = x_vel
-	    end do
+               do i = ARG_L1(u), ARG_H1(u)
+                  u(i,j,k) = x_vel
+               end do
 	    end do
 	 end do
       end if            
@@ -867,9 +857,9 @@ c ::: -----------------------------------------------------------
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(u).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(u)
             do k = ARG_L3(u), ARG_H3(u)
-            do i = ARG_L1(u), ARG_H1(u)
-               u(i,j,k) = x_vel
-	    end do
+               do i = ARG_L1(u), ARG_H1(u)
+                  u(i,j,k) = x_vel
+               end do
 	    end do
 	 end do
       end if            
@@ -877,9 +867,9 @@ c ::: -----------------------------------------------------------
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(u).lt.domlo(3)) then
          do k = ARG_L3(u), domlo(3)-1
             do j = ARG_L2(u), ARG_H2(u)
-            do i = ARG_L1(u), ARG_H1(u)
-               u(i,j,k) = x_vel
-            end do
+               do i = ARG_L1(u), ARG_H1(u)
+                  u(i,j,k) = x_vel
+               end do
             end do
          end do
       end if
@@ -887,14 +877,13 @@ c ::: -----------------------------------------------------------
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(u).gt.domhi(3)) then
          do k = domhi(3)+1, ARG_H3(u)
             do j = ARG_L2(u), ARG_H2(u)
-            do i = ARG_L1(u), ARG_H1(u)
-               u(i,j,k) = x_vel
-            end do
+               do i = ARG_L1(u), ARG_H1(u)
+                  u(i,j,k) = x_vel
+               end do
             end do
          end do
       end if
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -945,65 +934,64 @@ c ::: -----------------------------------------------------------
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(v).lt.domlo(1)) then
          do i = ARG_L1(v), domlo(1)-1
-           do k = ARG_L3(v), ARG_H3(v)
-           do j = ARG_L2(v), ARG_H2(v)
-	     v(i,j,k) = y_vel
-	    end do
+            do k = ARG_L3(v), ARG_H3(v)
+               do j = ARG_L2(v), ARG_H2(v)
+                  v(i,j,k) = y_vel
+               end do
 	    end do
 	 end do
       end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(v).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(v)
-           do k = ARG_L3(v), ARG_H3(v)
-           do j = ARG_L2(v), ARG_H2(v)
-	     v(i,j,k) = y_vel
-	   end do
-	   end do
+            do k = ARG_L3(v), ARG_H3(v)
+               do j = ARG_L2(v), ARG_H2(v)
+                  v(i,j,k) = y_vel
+               end do
+            end do
 	 end do
       end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(v).lt.domlo(2)) then
          do j = ARG_L2(v), domlo(2)-1
-           do k = ARG_L3(v), ARG_H3(v)
-           do i = ARG_L1(v), ARG_H1(v)
-	     v(i,j,k) = y_vel
-	   end do
-	   end do
+            do k = ARG_L3(v), ARG_H3(v)
+               do i = ARG_L1(v), ARG_H1(v)
+                  v(i,j,k) = y_vel
+               end do
+            end do
 	 end do
       end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(v).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(v)
-           do k = ARG_L3(v), ARG_H3(v)
-           do i = ARG_L1(v), ARG_H1(v)
-	     v(i,j,k) = y_vel
-	   end do
-	   end do
+            do k = ARG_L3(v), ARG_H3(v)
+               do i = ARG_L1(v), ARG_H1(v)
+                  v(i,j,k) = y_vel
+               end do
+            end do
 	 end do
       end if            
 
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(v).lt.domlo(3)) then
          do k = ARG_L3(v), domlo(3)-1
-           do j = ARG_L2(v), ARG_H2(v)
-           do i = ARG_L1(v), ARG_H1(v)
-             v(i,j,k) = y_vel
-           end do
-           end do
+            do j = ARG_L2(v), ARG_H2(v)
+               do i = ARG_L1(v), ARG_H1(v)
+                  v(i,j,k) = y_vel
+               end do
+            end do
          end do
       end if        
 
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(v).gt.domhi(3)) then
          do k = domhi(3)+1, ARG_H3(v)
-           do j = ARG_L2(v), ARG_H2(v)
-           do i = ARG_L1(v), ARG_H1(v)
-             v(i,j,k) = y_vel
-           end do
-           end do
+            do j = ARG_L2(v), ARG_H2(v)
+               do i = ARG_L1(v), ARG_H1(v)
+                  v(i,j,k) = y_vel
+               end do
+            end do
          end do
       end if        
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -1053,65 +1041,64 @@ c ::: -----------------------------------------------------------
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(w).lt.domlo(1)) then
          do i = ARG_L1(w), domlo(1)-1
-           do k = ARG_L3(w), ARG_H3(w)
-           do j = ARG_L2(w), ARG_H2(w)
-	     w(i,j,k) = z_vel
-	    end do
+            do k = ARG_L3(w), ARG_H3(w)
+               do j = ARG_L2(w), ARG_H2(w)
+                  w(i,j,k) = z_vel
+               end do
 	    end do
 	 end do
       end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(w).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(w)
-           do k = ARG_L3(w), ARG_H3(w)
-           do j = ARG_L2(w), ARG_H2(w)
-	     w(i,j,k) = z_vel
-	    end do
+            do k = ARG_L3(w), ARG_H3(w)
+               do j = ARG_L2(w), ARG_H2(w)
+                  w(i,j,k) = z_vel
+               end do
 	    end do
 	 end do
       end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(w).lt.domlo(2)) then
          do j = ARG_L2(w), domlo(2)-1
-           do k = ARG_L3(w), ARG_H3(w)
-           do i = ARG_L1(w), ARG_H1(w)
-	     w(i,j,k) = z_vel
-	   end do
-	   end do
+            do k = ARG_L3(w), ARG_H3(w)
+               do i = ARG_L1(w), ARG_H1(w)
+                  w(i,j,k) = z_vel
+               end do
+            end do
 	 end do
       end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(w).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(w)
-           do k = ARG_L3(w), ARG_H3(w)
-           do i = ARG_L1(w), ARG_H1(w)
-	     w(i,j,k) = z_vel
-	   end do
-	   end do
+            do k = ARG_L3(w), ARG_H3(w)
+               do i = ARG_L1(w), ARG_H1(w)
+                  w(i,j,k) = z_vel
+               end do
+            end do
 	 end do
       end if            
 
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(w).lt.domlo(3)) then
          do k = ARG_L3(w), domlo(3)-1
-           do j = ARG_L2(w), ARG_H2(w)
-           do i = ARG_L1(w), ARG_H1(w)
-             w(i,j,k) = z_vel
-           end do
-           end do
+            do j = ARG_L2(w), ARG_H2(w)
+               do i = ARG_L1(w), ARG_H1(w)
+                  w(i,j,k) = z_vel
+               end do
+            end do
          end do
       end if        
 
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(w).gt.domhi(3)) then
          do k = domhi(3)+1, ARG_H3(w)
-           do j = ARG_L2(w), ARG_H2(w)
-           do i = ARG_L1(w), ARG_H1(w)
-             w(i,j,k) = z_vel
-           end do
-           end do
+            do j = ARG_L2(w), ARG_H2(w)
+               do i = ARG_L1(w), ARG_H1(w)
+                  w(i,j,k) = z_vel
+               end do
+            end do
          end do
       end if        
 
-      return
       end
 
 
@@ -1170,250 +1157,249 @@ c ::: -----------------------------------------------------------
 
       if (fix_xlo) then
          do i = ARG_L1(p), domlo(1)-1
-         do k = klo, khi
-	 do j = jlo,jhi
-	    p(i,j,k) = p(ilo,j,k)
-	 end do
-	 end do
+            do k = klo, khi
+               do j = jlo,jhi
+                  p(i,j,k) = p(ilo,j,k)
+               end do
+            end do
 	 end do
 
 	 if (fix_ylo) then
 	    do i = ARG_L1(p), domlo(1)-1
-	    do j = ARG_L2(p), domlo(2)-1
-	    do k = klo, khi
-	       p(i,j,k) = p(ilo,jlo,k)
-	    end do
-	    end do
+               do j = ARG_L2(p), domlo(2)-1
+                  do k = klo, khi
+                     p(i,j,k) = p(ilo,jlo,k)
+                  end do
+               end do
 	    end do
 
 	    if (fix_zlo) then
-	      do i = ARG_L1(p), domlo(1)-1
-	      do j = ARG_L2(p), domlo(2)-1
-	      do k = ARG_L3(p), domlo(3)-1
-	         p(i,j,k) = p(ilo,jlo,klo)
-	      end do
-	      end do
-	      end do
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ilo,jlo,klo)
+                     end do
+                  end do
+               end do
 	    end if
 	    if (fix_zhi) then
-	      do i = ARG_L1(p), domlo(1)-1
-	      do j = ARG_L2(p), domlo(2)-1
-	      do k = domhi(3)+1, ARG_H3(p)
-	         p(i,j,k) = p(ilo,jlo,khi)
-	      end do
-	      end do
-	      end do
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ilo,jlo,khi)
+                     end do
+                  end do
+               end do
 	    end if
 	 end if
 	 if (fix_yhi) then
 	    do i = ARG_L1(p), domlo(1)-1
-	    do j = domhi(2)+1, ARG_H2(p)
-	    do k = klo, khi
-	       p(i,j,k) = p(ilo,jhi,k)
-	    end do
-	    end do
+               do j = domhi(2)+1, ARG_H2(p)
+                  do k = klo, khi
+                     p(i,j,k) = p(ilo,jhi,k)
+                  end do
+               end do
 	    end do
 	    if (fix_zlo) then
-	      do i = ARG_L1(p), domlo(1)-1
-	      do j = domhi(2)+1, ARG_H2(p)
-	      do k = ARG_L3(p), domlo(3)-1
-	         p(i,j,k) = p(ilo,jhi,klo)
-	      end do
-	      end do
-	      end do
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ilo,jhi,klo)
+                     end do
+                  end do
+               end do
 	    end if
 	    if (fix_zhi) then
-	      do i = ARG_L1(p), domlo(1)-1
-	      do j = domhi(2)+1, ARG_H2(p)
-	      do k = domhi(3)+1, ARG_H3(p)
-	         p(i,j,k) = p(ilo,jhi,khi)
-	      end do
-	      end do
-	      end do
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ilo,jhi,khi)
+                     end do
+                  end do
+               end do
 	    end if
 	 end if
 	 if (fix_zlo) then
 	    do i = ARG_L1(p), domlo(1)-1
-	    do j = jlo, jhi
-	    do k = ARG_L3(p), domlo(3)-1
-	       p(i,j,k) = p(ilo,j,klo)
-	    end do
-	    end do
+               do j = jlo, jhi
+                  do k = ARG_L3(p), domlo(3)-1
+                     p(i,j,k) = p(ilo,j,klo)
+                  end do
+               end do
 	    end do
 	 end if
 	 if (fix_zhi) then
 	    do i = ARG_L1(p), domlo(1)-1
-	    do j = jlo, jhi
-	    do k = domhi(3)+1, ARG_H3(p)
-	       p(i,j,k) = p(ilo,j,khi)
-	    end do
-	    end do
+               do j = jlo, jhi
+                  do k = domhi(3)+1, ARG_H3(p)
+                     p(i,j,k) = p(ilo,j,khi)
+                  end do
+               end do
 	    end do
 	 end if
       end if            
 
       if (fix_xhi) then
          do i = domhi(1)+1, ARG_H1(p)
-         do k = klo, khi
-	 do j = jlo,jhi
-	    p(i,j,k) = p(ihi,j,k)
-	 end do
-	 end do
+            do k = klo, khi
+               do j = jlo,jhi
+                  p(i,j,k) = p(ihi,j,k)
+               end do
+            end do
 	 end do
 	 if (fix_ylo) then
 	    do i = domhi(1)+1, ARG_H1(p)
-	    do j = ARG_L2(p), domlo(2)-1
-	    do k = klo, khi
-	       p(i,j,k) = p(ihi,jlo,k)
-	    end do
-	    end do
+               do j = ARG_L2(p), domlo(2)-1
+                  do k = klo, khi
+                     p(i,j,k) = p(ihi,jlo,k)
+                  end do
+               end do
 	    end do
 
 	    if (fix_zlo) then
-	      do i = domhi(1)+1, ARG_H1(p)
-	      do j = ARG_L2(p), domlo(2)-1
-	      do k = ARG_L3(p), domlo(3)-1
-	         p(i,j,k) = p(ihi,jlo,klo)
-	      end do
-	      end do
-	      end do
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ihi,jlo,klo)
+                     end do
+                  end do
+               end do
 	    end if
 	    if (fix_zhi) then
-	      do i = domhi(1)+1, ARG_H1(p)
-	      do j = ARG_L2(p), domlo(2)-1
-	      do k = domhi(3)+1, ARG_H3(p)
-	         p(i,j,k) = p(ihi,jlo,khi)
-	      end do
-	      end do
-	      end do
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ihi,jlo,khi)
+                     end do
+                  end do
+               end do
 	    end if
 	 end if
 	 if (fix_yhi) then
 	    do i = domhi(1)+1, ARG_H1(p)
-	    do j = domhi(2)+1, ARG_H2(p)
-	    do k = klo, khi
-	       p(i,j,k) = p(ihi,jhi,k)
-	    end do
-	    end do
+               do j = domhi(2)+1, ARG_H2(p)
+                  do k = klo, khi
+                     p(i,j,k) = p(ihi,jhi,k)
+                  end do
+               end do
 	    end do
 	    if (fix_zlo) then
-	      do i = domhi(1)+1, ARG_H1(p)
-	      do j = domhi(2)+1, ARG_H2(p)
-	      do k = ARG_L3(p), domlo(3)-1
-	         p(i,j,k) = p(ihi,jhi,klo)
-	      end do
-	      end do
-	      end do
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ihi,jhi,klo)
+                     end do
+                  end do
+               end do
 	    end if
 	    if (fix_zhi) then
-	      do i = domhi(1)+1, ARG_H1(p)
-	      do j = domhi(2)+1, ARG_H2(p)
-	      do k = domhi(3)+1, ARG_H3(p)
-	         p(i,j,k) = p(ihi,jhi,khi)
-	      end do
-	      end do
-	      end do
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ihi,jhi,khi)
+                     end do
+                  end do
+               end do
 	    end if
 	 end if
 	 if (fix_zlo) then
 	    do i = domhi(1)+1, ARG_H1(p)
-	    do j = jlo, jhi
-	    do k = ARG_L3(p), domlo(3)-1
-	       p(i,j,k) = p(ihi,j,klo)
-	    end do
-	    end do
+               do j = jlo, jhi
+                  do k = ARG_L3(p), domlo(3)-1
+                     p(i,j,k) = p(ihi,j,klo)
+                  end do
+               end do
 	    end do
 	 end if
 	 if (fix_zhi) then
 	    do i = domhi(1)+1, ARG_H1(p)
-	    do j = jlo, jhi
-	    do k = domhi(3)+1, ARG_H3(p)
-	       p(i,j,k) = p(ihi,j,khi)
-	    end do
-	    end do
+               do j = jlo, jhi
+                  do k = domhi(3)+1, ARG_H3(p)
+                     p(i,j,k) = p(ihi,j,khi)
+                  end do
+               end do
 	    end do
 	 end if
       end if            
 
       if (fix_ylo) then
          do j = ARG_L2(p), domlo(2)-1
-         do k = klo, khi
-	 do i = ilo, ihi
-	    p(i,j,k) = p(i,jlo,k)
-	 end do
-	 end do
+            do k = klo, khi
+               do i = ilo, ihi
+                  p(i,j,k) = p(i,jlo,k)
+               end do
+            end do
 	 end do
 
 	 if (fix_zlo) then
 	    do j = ARG_L2(p), domlo(2)-1
-	    do k = ARG_L3(p), domlo(3)-1
-	    do i = ilo, ihi
-	       p(i,j,k) = p(i,jlo,klo)
-	    end do
-	    end do
+               do k = ARG_L3(p), domlo(3)-1
+                  do i = ilo, ihi
+                     p(i,j,k) = p(i,jlo,klo)
+                  end do
+               end do
 	    end do
 	 end if
 	 if (fix_zhi) then
 	    do j = ARG_L2(p), domlo(2)-1
-	    do k = domhi(3)+1, ARG_H3(p)
-	    do i = ilo, ihi
-	       p(i,j,k) = p(i,jlo,khi)
-	    end do
-	    end do
+               do k = domhi(3)+1, ARG_H3(p)
+                  do i = ilo, ihi
+                     p(i,j,k) = p(i,jlo,khi)
+                  end do
+               end do
 	    end do
 	 end if
       end if            
 
       if (fix_yhi) then
          do j = domhi(2)+1, ARG_H2(p)
-         do k = klo, khi
-	 do i = ilo, ihi
-	    p(i,j,k) = p(i,jhi,k)
-	 end do
-	 end do
+            do k = klo, khi
+               do i = ilo, ihi
+                  p(i,j,k) = p(i,jhi,k)
+               end do
+            end do
 	 end do
 
 	 if (fix_zlo) then
 	    do j = domhi(2)+1, ARG_H2(p)
-	    do k = ARG_L3(p), domlo(3)-1
-	    do i = ilo, ihi
-	       p(i,j,k) = p(i,jhi,klo)
-	    end do
-	    end do
+               do k = ARG_L3(p), domlo(3)-1
+                  do i = ilo, ihi
+                     p(i,j,k) = p(i,jhi,klo)
+                  end do
+               end do
 	    end do
 	 end if
 	 if (fix_zhi) then
 	    do j = domhi(2)+1, ARG_H2(p)
-	    do k = domhi(3)+1, ARG_H3(p)
-	    do i = ilo, ihi
-	       p(i,j,k) = p(i,jhi,khi)
-	    end do
-	    end do
+               do k = domhi(3)+1, ARG_H3(p)
+                  do i = ilo, ihi
+                     p(i,j,k) = p(i,jhi,khi)
+                  end do
+               end do
 	    end do
 	 end if
       end if            
 
       if (fix_zlo) then
          do k = ARG_L3(p), domlo(3)-1
-         do j = jlo, jhi
-	 do i = ilo, ihi
-	    p(i,j,k) = p(i,j,klo)
-	 end do
-	 end do
+            do j = jlo, jhi
+               do i = ilo, ihi
+                  p(i,j,k) = p(i,j,klo)
+               end do
+            end do
 	 end do
       end if            
 
       if (fix_zhi) then
          do k = domhi(3)+1, ARG_H3(p)
-         do j = jlo, jhi
-	 do i = ilo, ihi
-	    p(i,j,k) = p(i,j,khi)
-	 end do
-	 end do
+            do j = jlo, jhi
+               do i = ilo, ihi
+                  p(i,j,k) = p(i,j,khi)
+               end do
+            end do
 	 end do
       end if            
 
-      return
       end
 
 

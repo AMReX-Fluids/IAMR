@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.5 1998-03-26 06:41:01 almgren Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.6 1998-03-31 17:26:38 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -14,9 +14,6 @@ c
 
 #define SDIM 2
 
-
-c=========================================================
-
       subroutine FORT_TEST_UMAC_PERIODIC(
      &     lo,hi,
      &     u,DIMS(u),xper,udiff,
@@ -28,20 +25,20 @@ c
       implicit none
       integer i,j
       integer imin,jmin,imax,jmax
-c
+
       REAL_T udiff,vdiff
       integer xper,yper
       integer lo(SDIM),hi(SDIM),level
       integer DIMDEC(u),DIMDEC(v)
       REAL_T u(DIMV(u)),v(DIMV(v))
-c
+
       imin = lo(1)
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
       udiff = zero
       vdiff = zero
-c
+
       if ( xper .eq. 1 ) then
          do j = jmin,jmax
             udiff = MAX( udiff, abs(u(imax+1,j)-u(imin,j)) )
@@ -50,7 +47,7 @@ c
             udiff = udiff
          end if
       end if
-c
+
       if ( yper .eq. 1 ) then
          do i = imin,imax
             vdiff = MAX( vdiff, abs(v(i,jmax+1)-v(i,jmin)) )
@@ -59,14 +56,8 @@ c
             vdiff = vdiff
          end if
       end if
-c     
-c     end of routine
-c     
-      return
+
       end
-
-
-c=========================================================
 
       subroutine FORT_GRADP (
      &     p,DIMS(p),
@@ -84,25 +75,18 @@ c
       REAL_T     gp(DIMV(gp),SDIM)
       integer    i,j
       REAL_T     ddx, ddy
-c
+
       ddx = half/dx(1)
       ddy = half/dx(2)
-c
+
       do j = lo(2), hi(2)
         do i = lo(1), hi(1)
           gp(i,j,1) = ddx*(p(i+1,j)-p(i,j)+p(i+1,j+1)-p(i,j+1))
           gp(i,j,2) = ddy*(p(i,j+1)-p(i,j)+p(i+1,j+1)-p(i+1,j))
         end do
       end do
-c
-c     end of routine
-c
-      return
+
       end
-
-
-c=========================================================
-
 
       subroutine FORT_AVGDOWN (
      &     crse,DIMS(crse),nvar,
@@ -139,46 +123,42 @@ c     ----------------------------------------------------------
 
       lratx = ratios(1)
       lraty = ratios(2)
+
+      do n = 1, nvar
 c
-      do 100 n = 1, nvar
-
 c     set coarse grid to zero on overlap
-      do jc = lo(2), hi(2)
-         do ic = lo(1), hi(1)
-            crse(ic,jc,n) = zero
-         end do
-      end do
-
-c     sum fine data
-      do joff = 0, lraty-1
+c
          do jc = lo(2), hi(2)
-            j = jc*lraty + joff
-            do ioff = 0, lratx-1
-               do ic = lo(1), hi(1)
-                  i = ic*lratx + ioff
-                  crse(ic,jc,n) = crse(ic,jc,n) +
-     &                 fv(i,j)*fine(i,j,n)
+            do ic = lo(1), hi(1)
+               crse(ic,jc,n) = zero
+            end do
+         end do
+c
+c     sum fine data
+c
+         do joff = 0, lraty-1
+            do jc = lo(2), hi(2)
+               j = jc*lraty + joff
+               do ioff = 0, lratx-1
+                  do ic = lo(1), hi(1)
+                     i = ic*lratx + ioff
+                     crse(ic,jc,n) = crse(ic,jc,n) +
+     &                    fv(i,j)*fine(i,j,n)
+                  end do
                end do
+            end do
+         end do
+c
+c     divide out by volume weight
+c
+         do ic = lo(1), hi(1)
+            do jc = lo(2), hi(2)
+               crse(ic,jc,n) = crse(ic,jc,n)/cv(ic,jc)
             end do
          end do
       end do
 
-c     divide out by volume weight
-      do ic = lo(1), hi(1)
-         do jc = lo(2), hi(2)
-            crse(ic,jc,n) = crse(ic,jc,n)/cv(ic,jc)
-         end do
-      end do
-  100 continue
-c
-c     end of function
-c
-      return
       end
-
-
-c===========================================================
-
 
       subroutine FORT_TESTINJECT(
      &     crse,DIMS(crse),
@@ -192,33 +172,27 @@ c
       integer  ratios(2)
       REAL_T   crse(DIMV(crse))
       REAL_T   fine(DIMV(fine))
-c
+
       REAL_T diff
       integer ic, jc
       integer lratx, lraty
-c
+
       lratx = ratios(1)
       lraty = ratios(2)
-c
+
       diff = zero
       do jc = lo(2), hi(2)
          do ic = lo(1), hi(1)
             diff = max(diff,abs(crse(ic,jc)-fine(lratx*ic,lraty*jc)))
          end do
       end do
-c
+
       if ( diff .gt. 1.0e-10 ) then
          print *, 'mismatch between fine and coarse nodes'
          stop
       end if
-c
-c     end of routine
-c
-      return
+
       end
-
-
-
 
 c :: ----------------------------------------------------------
 c :: Replace coarse grid pressure data with corresponding
@@ -256,24 +230,19 @@ c ::
       leny = hi(2)-lo(2)+1
 
       if (lenx .ge. leny) then
-
-          do jc = lo(2), hi(2)
-	  do ic = lo(1), hi(1)
-	    crse(ic,jc) = fine(lratx*ic,lraty*jc)
-	  end do
-	  end do
-
+         do jc = lo(2), hi(2)
+            do ic = lo(1), hi(1)
+               crse(ic,jc) = fine(lratx*ic,lraty*jc)
+            end do
+         end do
       else
-
-	  do ic = lo(1), hi(1)
-          do jc = lo(2), hi(2)
-	    crse(ic,jc) = fine(lratx*ic,lraty*jc)
-	  end do
-	  end do
-
+         do ic = lo(1), hi(1)
+            do jc = lo(2), hi(2)
+               crse(ic,jc) = fine(lratx*ic,lraty*jc)
+            end do
+         end do
       end if
 
-      return
       end
 
 c :: ----------------------------------------------------------
@@ -305,22 +274,20 @@ c ::
        leny = hi(2)-lo(2)+1
 
        if (lenx .ge. leny) then
-             do j = lo(2), hi(2)
+          do j = lo(2), hi(2)
 	     do i = lo(1), hi(1)
 	        a(i,j) = a(i,j) + alpha*b(i,j)
 	     end do
-	     end do
+          end do
        else
-	     do i = lo(1), hi(1)
+          do i = lo(1), hi(1)
              do j = lo(2), hi(2)
 	        a(i,j) = a(i,j) + alpha*b(i,j)
 	     end do
-	     end do
+          end do
        end if
 
-       return
        end
-
 
 c :: ----------------------------------------------------------
 c :: SUMMASS
@@ -372,7 +339,6 @@ c ::
           mass = mass + tmp(j)
        end do
 
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -425,7 +391,6 @@ c ::
           mass = mass + tmp(j)
        end do
 
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -456,14 +421,13 @@ c ::
        REAL_T  surroundingVolume
 
        do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
+          do i = lo(1),hi(1)
 
-          surroundingVolume = vol(i,j) + vol(i-1,j) + vol(i,j-1) + vol(i-1,j-1)
-          total_press = total_press + press(i,j) * surroundingVolume
-          total_vol   = total_vol   +              surroundingVolume
+             surroundingVolume = vol(i,j) + vol(i-1,j) + vol(i,j-1) + vol(i-1,j-1)
+             total_press = total_press + press(i,j) * surroundingVolume
+             total_vol   = total_vol   +              surroundingVolume
 
+          end do
        end do
-       end do
 
-       return
        end

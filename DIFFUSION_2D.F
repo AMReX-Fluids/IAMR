@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_2D.F,v 1.5 1998-02-22 19:06:44 car Exp $
+c $Id: DIFFUSION_2D.F,v 1.6 1998-03-31 17:26:35 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -72,7 +72,9 @@ c ::
       REAL_T  onemintheta
 
       onemintheta = one-theta
+c
 c     ::::: compute X fluxes
+c
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)+1
 	       sx1 = s_o(i,j) - s_o(i-1,j)
@@ -80,8 +82,9 @@ c     ::::: compute X fluxes
 	       xflux(i,j) = mult*(theta*sx1 + onemintheta*sx2)*xarea(i,j)/dx(1)
             end do
          end do
-
+c
 c     ::::: compute Y fluxes
+c
          do j = lo(2), hi(2)+1
             do i = lo(1), hi(1)
 	       sy1 = s_o(i,j) - s_o(i,j-1)
@@ -90,12 +93,7 @@ c     ::::: compute Y fluxes
 	    end do
          end do
 
-      return
       end
-
-c ::
-c :: ----------------------------------------------------------
-c ::
 
       subroutine FORT_VISCSYNCFLUX (ssync,DIMS(ssync),lo,hi,
      $                              xflux,DIMS(xf),yflux,DIMS(yf),
@@ -118,16 +116,18 @@ c ::
       REAL_T  sx
       REAL_T  sy
       integer i, j
-
+c
 c     ::::: compute X fluxes
+c
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)+1
 	       sx = ssync(i,j) - ssync(i-1,j)
                xflux(i,j) = mult*sx*xarea(i,j)/dx(1)
             end do
          end do
-
+c
 c     ::::: compute Y fluxes
+c
          do j = lo(2), hi(2)+1
             do i = lo(1), hi(1)
 	       sy = ssync(i,j) - ssync(i,j-1)
@@ -135,10 +135,7 @@ c     ::::: compute Y fluxes
 	    end do
          end do
 
-      return
       end
-
-
 
 c :: ----------------------------------------------------------
 c :: HOOPSRC
@@ -173,9 +170,7 @@ c      end if
           end do
        end do
 
-       return
        end
-
 
 c :: ----------------------------------------------------------
 c :: HOOPRHS
@@ -204,18 +199,16 @@ c ::
        REAL_T  vol(DIMV(vol))
        REAL_T  r(DIM1(fab))
        REAL_T  b
-c
+
        integer i, j
-c
+
        do j = ARG_L2(fab), ARG_H2(fab)
           do i = ARG_L1(fab), ARG_H1(fab)
              fab(i,j) = fab(i,j) - b*vol(i,j)*u(i,j)/(r(i)*r(i))
           end do
        end do
 
-       return
        end
-
 
 c :: ----------------------------------------------------------
 c :: TENSOR_HOOPRHS
@@ -253,10 +246,10 @@ c ::
        REAL_T  betax(DIMV(betax))
        REAL_T  betay(DIMV(betay))
        REAL_T  b
-c
+
        REAL_T  betacen
        integer i, j
-c
+
        do j = ARG_L2(fab), ARG_H2(fab)
           do i = ARG_L1(fab), ARG_H1(fab)
              betacen = fourth*(betax(i,j)+betax(i+1,j)+
@@ -266,7 +259,6 @@ c
           end do
        end do
 
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -307,7 +299,6 @@ c ::
           end do
        end do
 
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -347,48 +338,35 @@ c ::
        integer i, j
 
        if (usehoop .eq. 0) then
-
-        if (useden .eq. 0) then
-
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               fab(i,j) = vol(i,j)
-            end do
-         end do
-
-        else 
-
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               fab(i,j) = vol(i,j) * denfab(i,j)
-            end do
-         end do
-
-        end if
-
+          if (useden .eq. 0) then
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   fab(i,j) = vol(i,j)
+                end do
+             end do
+          else 
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   fab(i,j) = vol(i,j) * denfab(i,j)
+                end do
+             end do
+          end if
        else
-
-        if (useden .eq. 0) then
-
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               fab(i,j) = vol(i,j) * (one + (b / (r(i)*r(i))))
-            end do
-         end do
-
-        else
-
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               fab(i,j) = vol(i,j) * (denfab(i,j) + (b / (r(i)*r(i))))
-            end do
-         end do
-
-        end if
-
+          if (useden .eq. 0) then
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   fab(i,j) = vol(i,j) * (one + (b / (r(i)*r(i))))
+                end do
+             end do
+          else
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   fab(i,j) = vol(i,j) * (denfab(i,j) + (b / (r(i)*r(i))))
+                end do
+             end do
+          end if
        end if
 
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -436,87 +414,76 @@ c ::
        integer i, j
 
        if (isrz .eq. 0) then
-
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               alpha(i,j,1) = vol(i,j) * denfab(i,j)
-               alpha(i,j,2) = vol(i,j) * denfab(i,j)
-            end do
-         end do
-
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                alpha(i,j,1) = vol(i,j) * denfab(i,j)
+                alpha(i,j,2) = vol(i,j) * denfab(i,j)
+             end do
+          end do
        else
-
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               alpha(i,j,2) = vol(i,j) * denfab(i,j)
-               betacen = fourth*(betax(i,j)+betax(i+1,j)+
-     &                           betay(i,j)+betay(i,j+1))
-               alpha(i,j,1) = vol(i,j) * (denfab(i,j)+
-     &                                    b*two*betacen/(r(i)**2))
-            end do
-         end do
-
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                alpha(i,j,2) = vol(i,j) * denfab(i,j)
+                betacen = fourth*(betax(i,j)+betax(i+1,j)+
+     &               betay(i,j)+betay(i,j+1))
+                alpha(i,j,1) = vol(i,j) * (denfab(i,j)+
+     &               b*two*betacen/(r(i)**2))
+             end do
+          end do
        end if
 
-       return
        end
-
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       subroutine FORT_DIV_MU_SI(lo, hi, dx, mu, DIMS(divu), divu,
      &     DIMS(divmusi), divmusi)
 
       implicit none
-
+c
 c ... inputs
-
+c
       integer lo(SDIM), hi(SDIM)
       REAL_T  dx(SDIM)
       integer DIMDEC(divu)
       REAL_T  divu(DIMV(divu))      
       REAL_T  mu
-
+c
 c ... outputs
-
+c
       integer DIMDEC(divmusi)
       REAL_T  divmusi(DIMV(divmusi),SDIM)
-
+c
 c ... local 
-
+c
       integer i,j
       REAL_T sleft, sright, stop, sbot
-
-c---------------------- begin here -------------------------------------
-
+c
 c ... Note: the following IS correct for r-z. Terms from the hoop stress
 c           cancel with terms from tau_rr to eliminate all r dependence.
-
+c
       do j=lo(2),hi(2)
-        do i=lo(1),hi(1)
-          sleft = half*(divu(i-1,j)+divu(i,j))
-          sright = half*(divu(i+1,j)+divu(i,j))
+         do i=lo(1),hi(1)
+            sleft = half*(divu(i-1,j)+divu(i,j))
+            sright = half*(divu(i+1,j)+divu(i,j))
 
-          divmusi(i,j,1) = mu*(sright-sleft)/dx(1)
+            divmusi(i,j,1) = mu*(sright-sleft)/dx(1)
 
-          stop = half*(divu(i,j)+divu(i,j+1))
-          sbot = half*(divu(i,j-1)+divu(i,j))
+            stop = half*(divu(i,j)+divu(i,j+1))
+            sbot = half*(divu(i,j-1)+divu(i,j))
 
-          divmusi(i,j,2) = mu*(stop-sbot)/dx(2)
+            divmusi(i,j,2) = mu*(stop-sbot)/dx(2)
 
-        end do
+         end do
       end do
-      return
-      end
 
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+      end
 
       subroutine FORT_DIV_VARMU_SI(lo, hi, dx, DIMS(divu), divu,
      &     DIMS(betax), betax, DIMS(betay), betay, DIMS(divmusi), divmusi)
 
       implicit none
-
+c
 c ... inputs
-
+c
       integer lo(SDIM), hi(SDIM)
       REAL_T  dx(SDIM)
       integer DIMDEC(divu)
@@ -525,79 +492,72 @@ c ... inputs
       REAL_T  betax(DIMV(betax))
       integer DIMDEC(betay)
       REAL_T  betay(DIMV(betay))
-
+c
 c ... outputs
-
+c
       integer DIMDEC(divmusi)
       REAL_T  divmusi(DIMV(divmusi),SDIM)
-
+c
 c ... local 
-
+c
       integer i,j
       REAL_T sleft, sright, stop, sbot
-
-c---------------------- begin here -------------------------------------
-
+c
 c ... Note: the following IS correct for r-z. Terms from the hoop stress
 c           cancel with terms from tau_rr to eliminate all r dependence.
-
+c
       do j=lo(2),hi(2)
-        do i=lo(1),hi(1)
-          sleft = half*(divu(i-1,j)+divu(i,j))
-          sright = half*(divu(i+1,j)+divu(i,j))
+         do i=lo(1),hi(1)
+            sleft = half*(divu(i-1,j)+divu(i,j))
+            sright = half*(divu(i+1,j)+divu(i,j))
 
-          divmusi(i,j,1) = (betax(i+1,j)*sright-
-     &                    betax(i,j)*sleft)/dx(1)
+            divmusi(i,j,1) = (betax(i+1,j)*sright-
+     &           betax(i,j)*sleft)/dx(1)
 
-          stop = half*(divu(i,j)+divu(i,j+1))
-          sbot = half*(divu(i,j-1)+divu(i,j))
+            stop = half*(divu(i,j)+divu(i,j+1))
+            sbot = half*(divu(i,j-1)+divu(i,j))
 
-          divmusi(i,j,2) = (betay(i,j+1)*stop-
-     &                    betay(i,j)*sbot)/dx(2)
+            divmusi(i,j,2) = (betay(i,j+1)*stop-
+     &           betay(i,j)*sbot)/dx(2)
 
-        end do
+         end do
       end do
-      return
-      end
 
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+      end
 
       subroutine FORT_CCTOEDGE(lo, hi, DIMS(beta), beta,
      &   DIMS(betax), betax, DIMS(betay), betay)
 
       implicit none
-
+c
 c ... inputs
-
+c
       integer lo(SDIM), hi(SDIM)
       integer DIMDEC(beta)
       REAL_T  beta(DIMV(beta))
       integer DIMDEC(betax)
       integer DIMDEC(betay)
-
+c
 c ... outputs
-
+c
       REAL_T  betax(DIMV(betax))
       REAL_T  betay(DIMV(betay))
-
+c
 c ... local
-
+c
       integer i,j
 
-c----------------------- begin ---------------------------
-
       do j=lo(2),hi(2)
-        do i=lo(1),hi(1)+1
-          betax(i,j) = .5*(beta(i-1,j)+beta(i,j))
-        end do
+         do i=lo(1),hi(1)+1
+            betax(i,j) = .5*(beta(i-1,j)+beta(i,j))
+         end do
       end do
 
       do j=lo(2),hi(2)+1
-        do i=lo(1),hi(1)
-          betay(i,j) = .5*(beta(i,j-1)+beta(i,j))
-        end do
+         do i=lo(1),hi(1)
+            betay(i,j) = .5*(beta(i,j-1)+beta(i,j))
+         end do
       end do
 
-      return
       end
 

@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.5 1998-03-26 06:41:01 almgren Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.6 1998-03-31 17:26:39 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -14,9 +14,6 @@ c
 
 #define SDIM 3
 
-c=========================================================
-
-
       subroutine FORT_TEST_UMAC_PERIODIC(
      &     lo,hi,
      &     u,DIMS(u),xper,udiff,
@@ -29,13 +26,13 @@ c
       implicit none
       integer i,j,k
       integer imin,jmin,kmin,imax,jmax,kmax
-c
+
       REAL_T udiff,vdiff,wdiff
       integer xper,yper,zper
       integer lo(SDIM),hi(SDIM),level
       integer DIMDEC(u),DIMDEC(v),DIMDEC(w)
       REAL_T u(DIMV(u)),v(DIMV(v)),w(DIMV(w))
-c
+
       imin = lo(1)
       jmin = lo(2)
       kmin = lo(3)
@@ -45,7 +42,7 @@ c
       udiff = zero
       vdiff = zero
       wdiff = zero
-c
+
       if ( xper .eq. 1 ) then
          do k = kmin,kmax
             do j = jmin,jmax
@@ -56,7 +53,7 @@ c
             udiff = udiff
          end if
       end if
-c     
+
       if ( yper .eq. 1 ) then
          do k = kmin,kmax
             do i = imin,imax
@@ -67,7 +64,7 @@ c
             vdiff = vdiff
          end if
       end if
-c     
+
       if ( zper .eq. 1 ) then
          do j = jmin,jmax
             do i = imin,imax
@@ -78,15 +75,8 @@ c
             vdiff = vdiff
          end if
       end if
-c     
-c     end of routine
-c
-         return
-         end
 
-
-
-c=========================================================
+      end
 
       subroutine FORT_GRADP(
      &     p,DIMS(p),
@@ -109,11 +99,11 @@ c ::
       integer    i,j,k
       REAL_T     ddx, ddy, ddz
       integer    ilo, ihi, jlo, jhi, klo, khi
-c
+
       ddx = fourth/dx(1)
       ddy = fourth/dx(2)
       ddz = fourth/dx(3)
-c
+
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -131,15 +121,8 @@ c
             end do
          end do
       end do
-c
-c     end of routine
-c     
-      return
+
       end
-
-
-
-c=========================================================
 
       subroutine FORT_AVGDOWN (
      &     crse,DIMS(crse),nvar,
@@ -177,56 +160,51 @@ c     ----------------------------------------------------------
       lratx = ratios(1)
       lraty = ratios(2)
       lratz = ratios(3)
-c
-      do 100 n = 1, nvar
 
+      do n = 1, nvar
+c
 c     set coarse grid to zero on overlap
-      do kc = lo(3), hi(3)
-         do jc = lo(2), hi(2)
-            do ic = lo(1), hi(1)
-               crse(ic,jc,kc,n) = zero
+c
+         do kc = lo(3), hi(3)
+            do jc = lo(2), hi(2)
+               do ic = lo(1), hi(1)
+                  crse(ic,jc,kc,n) = zero
+               end do
             end do
          end do
-      end do
-      
+c         
 c     sum fine data
-      do koff = 0, lratz-1
-         do kc = lo(3),hi(3)
-	    k = kc*lratz + koff
-	    do joff = 0, lraty-1
-               do jc = lo(2), hi(2)
-                  j = jc*lraty + joff
-                  do ioff = 0, lratx-1
-                     do ic = lo(1), hi(1)
-                        i = ic*lratx + ioff
-                        crse(ic,jc,kc,n) = crse(ic,jc,kc,n) +
-     &                       fv(i,j,k)*fine(i,j,k,n)
+c
+         do koff = 0, lratz-1
+            do kc = lo(3),hi(3)
+               k = kc*lratz + koff
+               do joff = 0, lraty-1
+                  do jc = lo(2), hi(2)
+                     j = jc*lraty + joff
+                     do ioff = 0, lratx-1
+                        do ic = lo(1), hi(1)
+                           i = ic*lratx + ioff
+                           crse(ic,jc,kc,n) = crse(ic,jc,kc,n) +
+     &                          fv(i,j,k)*fine(i,j,k,n)
+                        end do
                      end do
                   end do
                end do
-	    end do
+            end do
          end do
-      end do
-
+c
 c     divide out by volume weight
-      do kc = lo(3), hi(3)
-         do ic = lo(1), hi(1)
-            do jc = lo(2), hi(2)
-               crse(ic,jc,kc,n) = crse(ic,jc,kc,n)/cv(ic,jc,kc)
+c
+         do kc = lo(3), hi(3)
+            do ic = lo(1), hi(1)
+               do jc = lo(2), hi(2)
+                  crse(ic,jc,kc,n) = crse(ic,jc,kc,n)/cv(ic,jc,kc)
+               end do
             end do
          end do
       end do
-  100 continue
-c
-c     end of function
-c
-      return
+
       end
-
-
-
-c===========================================================
-
 
       subroutine FORT_TESTINJECT(
      &     crse,DIMS(crse),
@@ -240,15 +218,15 @@ c
       integer  ratios(3)
       REAL_T   crse(DIMV(crse))
       REAL_T   fine(DIMV(fine))
-c
+
       REAL_T diff
       integer  ic, jc, kc
       integer  lratx, lraty, lratz
-c
+
       lratx = ratios(1)
       lraty = ratios(2)
       lratz = ratios(3)
-c
+
       diff = zero
       do kc = lo(3), hi(3)
          do jc = lo(2), hi(2)
@@ -258,17 +236,13 @@ c
             end do
          end do
       end do
-c
+
       if ( diff .gt. 1.0e-10 ) then
          print *, 'mismatch between fine and coarse nodes'
          stop
       end if
-c
-c     end of routine
-c
-      return
-      end
 
+      end
 
 c :: ----------------------------------------------------------
 c :: Replace coarse grid pressure data with corresponding
@@ -310,39 +284,31 @@ c ::
       mxlen = max(lenx,leny,lenz)
 
       if (lenx .eq. mxlen) then
-
-          do kc = lo(3), hi(3)
-          do jc = lo(2), hi(2)
-	  do ic = lo(1), hi(1)
-	    crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
-	  end do
-	  end do
-	  end do
-
+         do kc = lo(3), hi(3)
+            do jc = lo(2), hi(2)
+               do ic = lo(1), hi(1)
+                  crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
+               end do
+            end do
+         end do
       else if (leny .eq. mxlen) then
-
-          do kc = lo(3), hi(3)
-	  do ic = lo(1), hi(1)
-          do jc = lo(2), hi(2)
-	    crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
-	  end do
-	  end do
-	  end do
-
+         do kc = lo(3), hi(3)
+            do ic = lo(1), hi(1)
+               do jc = lo(2), hi(2)
+                  crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
+               end do
+            end do
+         end do
       else
-
-	  do ic = lo(1), hi(1)
-          do jc = lo(2), hi(2)
-          do kc = lo(3), hi(3)
-	    crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
-	  end do
-	  end do
-	  end do
-
+         do ic = lo(1), hi(1)
+            do jc = lo(2), hi(2)
+               do kc = lo(3), hi(3)
+                  crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
+               end do
+            end do
+         end do
       end if
 
-
-      return
       end
 
 c :: ----------------------------------------------------------
@@ -377,33 +343,31 @@ c ::
 
        if (lenx .eq. mxlen) then
 	  do i = lo(1), hi(1)
-          do j = lo(2), hi(2)
-          do k = lo(3), hi(3)
-	     a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
-	  end do
-	  end do
+             do j = lo(2), hi(2)
+                do k = lo(3), hi(3)
+                   a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
+                end do
+             end do
 	  end do
        else if (leny .eq. mxlen) then
 	  do i = lo(1), hi(1)
-          do j = lo(2), hi(2)
-          do k = lo(3), hi(3)
-	     a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
-	  end do
-	  end do
+             do j = lo(2), hi(2)
+                do k = lo(3), hi(3)
+                   a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
+                end do
+             end do
 	  end do
        else
 	  do i = lo(1), hi(1)
-          do j = lo(2), hi(2)
-          do k = lo(3), hi(3)
-	     a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
-	  end do
-	  end do
+             do j = lo(2), hi(2)
+                do k = lo(3), hi(3)
+                   a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
+                end do
+             end do
 	  end do
        end if
 
-       return
        end
-
 
 c :: ----------------------------------------------------------
 c :: SUMMASS
@@ -437,11 +401,11 @@ c ::
        end do
 
        do k = ARG_L3(grid), ARG_H3(grid)
-       do i = ARG_L1(grid), ARG_H1(grid)
-       do j = ARG_L2(grid), ARG_H2(grid)
-          tmp(j) = tmp(j) + vol*rho(i,j,k)
-       end do
-       end do
+          do i = ARG_L1(grid), ARG_H1(grid)
+             do j = ARG_L2(grid), ARG_H2(grid)
+                tmp(j) = tmp(j) + vol*rho(i,j,k)
+             end do
+          end do
        end do
 
        mass = zero
@@ -449,7 +413,6 @@ c ::
           mass = mass + tmp(j)
        end do
 
-       return
        end
 
 
@@ -485,11 +448,11 @@ c ::
        end do
 
        do k = ARG_L3(grid), ARG_H3(grid)
-       do i = ARG_L1(grid), ARG_H1(grid)
-       do j = ARG_L2(grid), ARG_H2(grid)
-          tmp(j) = tmp(j) + vol*rho(i,j,k)*rho(i,j,k)
-       end do
-       end do
+          do i = ARG_L1(grid), ARG_H1(grid)
+             do j = ARG_L2(grid), ARG_H2(grid)
+                tmp(j) = tmp(j) + vol*rho(i,j,k)*rho(i,j,k)
+             end do
+          end do
        end do
 
        mass = zero
@@ -497,7 +460,6 @@ c ::
           mass = mass + tmp(j)
        end do
 
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -529,19 +491,18 @@ c ::
        REAL_T  surroundingVolume
 
        do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
+          do j = lo(2),hi(2)
+             do i = lo(1),hi(1)
 
-          surroundingVolume = vol(i,j  ,k  ) + vol(i-1,j  ,k  ) + 
-     $                        vol(i,j-1,k  ) + vol(i-1,j-1,k  ) +
-     $                        vol(i,j  ,k-1) + vol(i-1,j  ,k-1) + 
-     $                        vol(i,j-1,k-1) + vol(i-1,j-1,k-1)
-          total_press = total_press + press(i,j,k) * surroundingVolume
-          total_vol   = total_vol   +                surroundingVolume
+                surroundingVolume = vol(i,j  ,k  ) + vol(i-1,j  ,k  ) + 
+     $               vol(i,j-1,k  ) + vol(i-1,j-1,k  ) +
+     $               vol(i,j  ,k-1) + vol(i-1,j  ,k-1) + 
+     $               vol(i,j-1,k-1) + vol(i-1,j-1,k-1)
+                total_press = total_press + press(i,j,k) * surroundingVolume
+                total_vol   = total_vol   +                surroundingVolume
 
-       end do
-       end do
+             end do
+          end do
        end do
 
-       return
        end

@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_3D.F,v 1.4 1998-02-22 19:06:49 car Exp $
+c $Id: MACOPERATOR_3D.F,v 1.5 1998-03-31 17:26:37 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -56,53 +56,55 @@ c ::
        REAL_T  rhoavg
 
        do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-            if (rho(i,j,k) .lt. zero) then
-              print *,' '
-              print *,'TESTING in MACCOEF '
-              print *,'RHO HAS GONE NEGATIVE AT ',i,j,k,rho(i,j,k)
-              print *,' '
-              stop
-            end if
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                if (rho(i,j,k) .lt. zero) then
+                   print *,' '
+                   print *,'TESTING in MACCOEF '
+                   print *,'RHO HAS GONE NEGATIVE AT ',i,j,k,rho(i,j,k)
+                   print *,' '
+                   stop
+                end if
+             end do
           end do
        end do
-       end do
-
+c
 c      ::::: finish coef in X direction (part 2)
+c
        do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-         do i = lo(1), hi(1)+1
-           rhoavg = half * ( rho(i,j,k) + rho(i-1,j,k) )
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)+1
+                rhoavg = half * ( rho(i,j,k) + rho(i-1,j,k) )
 c          cx(i,j,k) = half*dx(1)*ax(i,j,k)*(one/rho(i,j,k) + one/rho(i-1,j,k))
-           cx(i,j,k) = dx(1) * ax(i,j,k) / rhoavg 
-         end do
+                cx(i,j,k) = dx(1) * ax(i,j,k) / rhoavg 
+             end do
+          end do
        end do
-       end do
-
+c
 c      ::::: finish coef in Y direction (part 2)
+c
        do k = lo(3), hi(3)
-       do j = lo(2), hi(2)+1
-         do i = lo(1), hi(1)
-           rhoavg = half * ( rho(i,j,k) + rho(i,j-1,k) )
+          do j = lo(2), hi(2)+1
+             do i = lo(1), hi(1)
+                rhoavg = half * ( rho(i,j,k) + rho(i,j-1,k) )
 c          cy(i,j,k) = half*dx(2)*ay(i,j,k)*(one/rho(i,j,k) + one/rho(i,j-1,k))
-           cy(i,j,k) = dx(2) * ay(i,j,k) / rhoavg 
-         end do
+                cy(i,j,k) = dx(2) * ay(i,j,k) / rhoavg 
+             end do
+          end do
        end do
-       end do
-
+c
 c      ::::: finish coef in Z direction (part 2)
+c
        do k = lo(3), hi(3)+1
-       do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-           rhoavg = half * ( rho(i,j,k) + rho(i,j,k-1) )
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                rhoavg = half * ( rho(i,j,k) + rho(i,j,k-1) )
 c          cz(i,j,k) = half*dx(3)*az(i,j,k)*(one/rho(i,j,k) + one/rho(i,j,k-1))
-           cz(i,j,k) = dx(3) * az(i,j,k) / rhoavg 
-         end do
-       end do
+                cz(i,j,k) = dx(3) * az(i,j,k) / rhoavg 
+             end do
+          end do
        end do
 
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -150,20 +152,20 @@ c ::
 
        integer i, j, k
        REAL_T  divu
-
+c
 c      ::::: rhs holds the divergence condition (possibly zero)
+c
        do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             divu = ax(i+1,j,k)*ux(i+1,j,k) - ax(i,j,k)*ux(i,j,k)
-     &            + ay(i,j+1,k)*uy(i,j+1,k) - ay(i,j,k)*uy(i,j,k)
-     &            + az(i,j,k+1)*uz(i,j,k+1) - az(i,j,k)*uz(i,j,k)
-             rhs(i,j,k) = scale*(divu - vol(i,j,k)*rhs(i,j,k))
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                divu = ax(i+1,j,k)*ux(i+1,j,k) - ax(i,j,k)*ux(i,j,k)
+     &               + ay(i,j+1,k)*uy(i,j+1,k) - ay(i,j,k)*uy(i,j,k)
+     &               + az(i,j,k+1)*uz(i,j,k+1) - az(i,j,k)*uz(i,j,k)
+                rhs(i,j,k) = scale*(divu - vol(i,j,k)*rhs(i,j,k))
+             end do
           end do
        end do
-       end do
 
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -189,7 +191,7 @@ c ::
      &     ux,DIMS(ux),uy,DIMS(uy),uz,DIMS(uz),
      &     phi,DIMS(phi),rho,DIMS(rho),
      &     dx,mult)
-c
+
        integer DIMDEC(ux)
        integer DIMDEC(uy)
        integer DIMDEC(uz)
@@ -202,7 +204,7 @@ c
        REAL_T  phi(DIMV(phi))
        REAL_T  rho(DIMV(rho))
        integer init
-c
+
        integer i, j, k
        REAL_T  rhoavg, gp
 c
@@ -267,15 +269,8 @@ c
              end do
           end do
        end do
-c
-c     end of routine
-c
-       return
+
        end
-
-
-
-
 
 c :: ----------------------------------------------------------
 c :: MACSYNCRHS
@@ -300,16 +295,16 @@ c ::
        REAL_T  vol(DIMV(vol))
 
        integer i, j, k
-
+c
 c      ::::: multiply by volume since reflux step (which computed rhs)
 c      ::::: divided by volume.
+c
        do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             rhs(i,j,k) = rhsscale*vol(i,j,k)*rhs(i,j,k)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                rhs(i,j,k) = rhsscale*vol(i,j,k)*rhs(i,j,k)
+             end do
           end do
        end do
-       end do
 
-       return
        end

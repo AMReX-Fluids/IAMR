@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_3D.F,v 1.4 1998-02-22 19:06:49 car Exp $
+c $Id: MACPROJ_3D.F,v 1.5 1998-03-31 17:26:38 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -63,20 +63,17 @@ c ::
        integer i, j, k
 
        do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          dmac(i,j,k) = ( xarea(i+1,j,k)*ux(i+1,j,k) - xarea(i,j,k)*ux(i,j,k)
-     &              +     yarea(i,j+1,k)*uy(i,j+1,k) - yarea(i,j,k)*uy(i,j,k)
-     &              +     zarea(i,j,k+1)*uz(i,j,k+1) - zarea(i,j,k)*uz(i,j,k)
-     &                )/vol(i,j,k)
-       end do
-       end do
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dmac(i,j,k) = ( xarea(i+1,j,k)*ux(i+1,j,k) - xarea(i,j,k)*ux(i,j,k)
+     &               +     yarea(i,j+1,k)*uy(i,j+1,k) - yarea(i,j,k)*uy(i,j,k)
+     &               +     zarea(i,j,k+1)*uz(i,j,k+1) - zarea(i,j,k)*uz(i,j,k)
+     &               )/vol(i,j,k)
+             end do
+          end do
        end do
 
-       return
        end
-
-
 
 c :: ----------------------------------------------------------
 c :: UCORUPDT
@@ -113,38 +110,35 @@ c ::
 
        if (lenx .ge. leny .and. lenx .ge. lenz) then
           do n = 1, nvar
-          do k = lo(3), hi(3)
-          do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             snew(i,j,k,n) = snew(i,j,k,n) + mult*dmac(i,j,k)*sold(i,j,k,n)
-          end do
-          end do
-          end do
+             do k = lo(3), hi(3)
+                do j = lo(2), hi(2)
+                   do i = lo(1), hi(1)
+                      snew(i,j,k,n) = snew(i,j,k,n) + mult*dmac(i,j,k)*sold(i,j,k,n)
+                   end do
+                end do
+             end do
           end do
        else if (leny .ge. lenx .and. leny .ge. lenz) then
           do n = 1, nvar
-          do k = lo(3), hi(3)
-          do i = lo(1), hi(1)
-          do j = lo(2), hi(2)
-             snew(i,j,k,n) = snew(i,j,k,n) + mult*dmac(i,j,k)*sold(i,j,k,n)
-          end do
-          end do
-          end do
+             do k = lo(3), hi(3)
+                do i = lo(1), hi(1)
+                   do j = lo(2), hi(2)
+                      snew(i,j,k,n) = snew(i,j,k,n) + mult*dmac(i,j,k)*sold(i,j,k,n)
+                   end do
+                end do
+             end do
           end do
        else 
           do n = 1, nvar
-          do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-          do k = lo(3), hi(3)
-             snew(i,j,k,n) = snew(i,j,k,n) + mult*dmac(i,j,k)*sold(i,j,k,n)
-          end do
-          end do
-          end do
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   do k = lo(3), hi(3)
+                      snew(i,j,k,n) = snew(i,j,k,n) + mult*dmac(i,j,k)*sold(i,j,k,n)
+                   end do
+                end do
+             end do
           end do
        end if
-c
-c     end of routine
-c
-       return
+
        end
 
