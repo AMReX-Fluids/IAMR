@@ -1,7 +1,7 @@
 #ifndef _MASK_H_
 #define _MASK_H_
 //
-// $Id: Mask.H,v 1.1 1997-07-08 23:08:04 vince Exp $
+// $Id: Mask.H,v 1.2 1997-09-15 23:05:18 lijewski Exp $
 //
 
 #include <BaseFab.H>
@@ -37,9 +37,6 @@ public:
 //@ManDoc: allocating constructor (nc=number of components)
     Mask(const BOX& bx, int nc = 1)
 	: BaseFab<int>(bx,nc) {};
-//@ManDoc: construct aliased Mask (ns=number of components in source Mask, nc=components in new aliased Mask)
-    Mask(Mask &m, const BOX& subb, int ns, int nc)
-	: BaseFab<int>(m,subb,ns,nc) {};
 //@ManDoc: construct from input stream
     Mask(istream &is);
 //@ManDoc: destructor

@@ -28,15 +28,6 @@ DOUBLE PRECISION NOT ALLOWED ON CRAY
 
 #include <AmrLevel.H>
 
-// stupid thing to fix template instantiation bug
-#include <AliasedDPtr.H>
-
-void
-boing()
-{
-    AliasedDPtr<REAL> adp(1);
-}
-
 
 #if BL_USE_WINDOWS&&(BL_SPACEDIM==2)
 #   define BL_USE_CONTOUR  1
