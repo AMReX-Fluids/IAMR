@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.24 1998-05-20 16:10:56 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.25 1998-05-20 16:50:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -26,7 +26,8 @@
 SyncRegister::SyncRegister ()
 {
     fine_level = -1;
-    ratio = IntVect::TheUnitVector(); ratio.scale(-1);
+    ratio      = IntVect::TheUnitVector();
+    ratio.scale(-1);
 }
 
 SyncRegister::SyncRegister (const BoxArray& fine_boxes,
@@ -150,7 +151,7 @@ SyncRegister::sum ()
         bb.minBox(grids[k]);
     bb.surroundingNodes();
     FArrayBox bfab(bb,1);
-    bfab.setVal(0.0);
+    bfab.setVal(0);
 
     for (OrientationIter face; face; ++face)
     {
@@ -185,7 +186,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     if (ParallelDescriptor::NProcs() > 1)
         ParallelDescriptor::Abort("Bye");
 
-    rhs.setVal(0.0);
+    rhs.setVal(0);
     const BoxArray& rhs_boxes = rhs.boxArray();
     int nrhs                  = rhs_boxes.length();
     int nreg                  = grids.length();
@@ -262,9 +263,9 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                 if (bhi.ok())
                     rhs[k].mult(2.0,bhi,0,1);
                 if (blo.ok() && phys_lo[dir] == Outflow) 
-                    rhs[k].setVal(0.0,blo,0,1);
+                    rhs[k].setVal(0,blo,0,1);
                 if (bhi.ok() && phys_hi[dir] == Outflow) 
-                    rhs[k].setVal(0.0,bhi,0,1);
+                    rhs[k].setVal(0,bhi,0,1);
             }
         } 
     }
@@ -471,24 +472,25 @@ SyncRegister::CrseDVInit (const MultiFab& U,
 
             if (subbox.ok())
             {
-                mfi().setVal(0.0,subbox,0,BL_SPACEDIM);
+                mfi().setVal(0,subbox,0,BL_SPACEDIM);
 
                 for (int dir = 0; dir < BL_SPACEDIM; dir++)
                 {
                     int bc_index = 2*BL_SPACEDIM*dir + dir;
+
                     if (bc[bc_index] == EXT_DIR &&
                         grids[fine].smallEnd(dir) == mfi.validbox().smallEnd(dir))
                     {
                         Box finesidelo(subbox);
                         finesidelo.setRange(dir,finesidelo.smallEnd(dir)-1,1);
-                        mfi().setVal(0.0,finesidelo,0,BL_SPACEDIM);
+                        mfi().setVal(0,finesidelo,0,BL_SPACEDIM);
                     }
                     if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
                         grids[fine].bigEnd(dir) == mfi.validbox().bigEnd(dir))
                     {
                         Box finesidehi(subbox);
                         finesidehi.setRange(dir,finesidehi.bigEnd(dir)+1,1);
-                        mfi().setVal(0.0,finesidehi,0,BL_SPACEDIM);
+                        mfi().setVal(0,finesidehi,0,BL_SPACEDIM);
                     }
                 }
             }
@@ -513,7 +515,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
 
                     if (fine_shifted.ok())
                     {
-                        mfi().setVal(0.0,fine_shifted,0,BL_SPACEDIM);
+                        mfi().setVal(0,fine_shifted,0,BL_SPACEDIM);
 
                         for (int dir = 0; dir < BL_SPACEDIM; dir++)
                         {
@@ -524,7 +526,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
                             {
                                 Box finesidelo(fine_shifted);
                                 finesidelo.setRange(dir,fine_shifted.smallEnd(dir)-1,1);
-                                mfi().setVal(0.0,finesidelo,0,BL_SPACEDIM);
+                                mfi().setVal(0,finesidelo,0,BL_SPACEDIM);
                             }
 
                             if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
@@ -532,7 +534,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
                             {
                                 Box finesidehi(fine_shifted);
                                 finesidehi.setRange(dir,fine_shifted.bigEnd(dir)+1,1);
-                                mfi().setVal(0.0,finesidehi,0,BL_SPACEDIM);
+                                mfi().setVal(0,finesidehi,0,BL_SPACEDIM);
                             }
                         }
                     }
@@ -580,19 +582,18 @@ SyncRegister::FineDVAdd (const MultiFab& U,
 
     for (ConstMultiFabIterator mfi(U); mfi.isValid(false); ++mfi)
     {
-        Box ubox = ::grow(mfi.validbox(),1);
-
-        ufab.resize(ubox,BL_SPACEDIM);
+        ufab.resize(::grow(mfi.validbox(),1),BL_SPACEDIM);
         ufab.setComplement(0,mfi.validbox(),0,BL_SPACEDIM);
         ufab.copy(mfi(),mfi.validbox(),0,mfi.validbox(),0,BL_SPACEDIM);
 
-        const int* ulo = ubox.loVect();
-        const int* uhi = ubox.hiVect();
+        const int* ulo = ufab.box().loVect();
+        const int* uhi = ufab.box().hiVect();
         int* bc        = fine_bc[mfi.index()];
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             int bc_index = 2*BL_SPACEDIM*dir + dir;
+
             if (bc[bc_index] == EXT_DIR)
             {
                 Box sidelo(mfi.validbox());
@@ -656,8 +657,8 @@ SyncRegister::FineDVAdd (const MultiFab& U,
             const int* fhi_hi = tboxhi.hiVect();
             ffablo.resize(tboxlo,1);
             ffabhi.resize(tboxhi,1);
-            ffablo.setVal(0.0);
-            ffabhi.setVal(0.0);
+            ffablo.setVal(0);
+            ffabhi.setVal(0);
             //
             // Define coarsened tmp fabs.
             //
@@ -665,8 +666,8 @@ SyncRegister::FineDVAdd (const MultiFab& U,
             cboxhi.coarsen(ratio);
             cfablo.resize(cboxlo,1);
             cfabhi.resize(cboxhi,1);
-            cfablo.setVal(0.0);
-            cfabhi.setVal(0.0);
+            cfablo.setVal(0);
+            cfabhi.setVal(0);
             //
             // Compute divu on fine grid edges in regions defined
             // by reglo and reghi.  Fabs are set to zero outside region.
@@ -764,7 +765,7 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
 
             if (subbox.ok())
             {
-                dsdtfab.setVal(0.0,subbox,0,1);
+                dsdtfab.setVal(0,subbox,0,1);
 
                 for (int dir = 0; dir < BL_SPACEDIM; dir++)
                 {
@@ -776,7 +777,7 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
                         Box finesidelo(subbox);
                         finesidelo.growLo(dir,1);
                         finesidelo.setRange(dir,finesidelo.loVect()[dir],1);
-                        dsdtfab.setVal(0.0,finesidelo,0,1);
+                        dsdtfab.setVal(0,finesidelo,0,1);
                     }
                     if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
                         grids[fine].hiVect()[dir] == mfi.validbox().hiVect()[dir])
@@ -784,7 +785,7 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
                         Box finesidehi(subbox);
                         finesidehi.growHi(dir,1);
                         finesidehi.setRange(dir,finesidehi.hiVect()[dir],1);
-                        dsdtfab.setVal(0.0,finesidehi,0,1);
+                        dsdtfab.setVal(0,finesidehi,0,1);
                     }
                 }
             }
@@ -819,7 +820,7 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
                    domlo, domhi, lowfix, hifix, &hx,
                    &extrap_edges, &extrap_corners, &is_rz);
 #elif (BL_SPACEDIM==3)
-        divu.setVal(0.0);
+        divu.setVal(0);
 #endif
         divu.negate();
         divu.mult(mult);
@@ -893,8 +894,8 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
             const int* fhi_hi = tboxhi.hiVect();
             ffablo.resize(tboxlo,1);
             ffabhi.resize(tboxhi,1);
-            ffablo.setVal(0.0);
-            ffabhi.setVal(0.0);
+            ffablo.setVal(0);
+            ffabhi.setVal(0);
             //
             // Define coarsened tmp fabs.
             //
@@ -902,8 +903,8 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
             cboxhi.coarsen(ratio);
             cfablo.resize(cboxlo,1);
             cfabhi.resize(cboxhi,1);
-            cfablo.setVal(0.0);
-            cfabhi.setVal(0.0);
+            cfablo.setVal(0);
+            cfabhi.setVal(0);
             //
             // Average dsdt to nodes on fine grid edges in regions defined
             // by reglo and reghi.  Fabs are set to zero outside region.
@@ -935,7 +936,7 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                        domlo, domhi, lowfix, hi_fix, &hx,
                        &extrap_edges, &extrap_corners, &is_rz);
 #elif (BL_SPACEDIM==3)
-            ffablo_tmp.setVal(0.0);
+            ffablo_tmp.setVal(0);
 #endif
             ffablo_tmp.negate();
             ffablo_tmp.mult(mult);
@@ -952,7 +953,7 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                        domlo, domhi, low_fix, hifix, &hx,
                        &extrap_edges, &extrap_corners, &is_rz);
 #elif (BL_SPACEDIM==3)
-            ffabhi_tmp.setVal(0.0);
+            ffabhi_tmp.setVal(0);
 #endif
             ffabhi_tmp.negate();
             ffabhi_tmp.mult(mult);
@@ -989,12 +990,6 @@ SyncRegister::CompDVAdd (const MultiFab& U,
                          int**           fine_bc,
                          Real            mult)
 {
-    cerr << "SyncRegister::CompDVAdd() not implemented in parallel.\n";
-    if (ParallelDescriptor::NProcs() > 1)
-        ParallelDescriptor::Abort("Bye");
-
-    const BoxArray& U_boxes     = U.boxArray();
-    const int ngrds             = U_boxes.length();
     const Box& crse_node_domain = ::surroundingNodes(crse_geom.Domain());
 
     Array<IntVect> pshifts(27);
@@ -1002,42 +997,39 @@ SyncRegister::CompDVAdd (const MultiFab& U,
     FArrayBox ufab;
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
 
-    for (int k = 0; k < ngrds; k++)
+    for (ConstMultiFabIterator mfi(U); mfi.isValid(false); ++mfi)
     {
-        Box ubox = ::grow(U_boxes[k],1);
+        ufab.resize(::grow(mfi.validbox(),1),BL_SPACEDIM);
+        ufab.setComplement(0,mfi.validbox(),0,BL_SPACEDIM);
+        ufab.copy(mfi(),mfi.validbox(),0,mfi.validbox(),0,BL_SPACEDIM);
 
-        ufab.resize(ubox,BL_SPACEDIM);
-        ufab.setVal(0.0);
-        ufab.copy(U[k],U_boxes[k],0,U_boxes[k],0,BL_SPACEDIM);
-
-        const int* ulo = ubox.loVect();
-        const int* uhi = ubox.hiVect();
-        int * bc       = fine_bc[k];
+        const int* ulo = ufab.box().loVect();
+        const int* uhi = ufab.box().hiVect();
+        int* bc        = fine_bc[mfi.index()];
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             int bc_index = 2*BL_SPACEDIM*dir + dir;
+
             if (bc[bc_index] == EXT_DIR)
             {
-                Box sidelo(U_boxes[k]);
+                Box sidelo(mfi.validbox());
                 sidelo.growLo(dir,1);
-                const int* dlo = sidelo.loVect();
-                sidelo.setRange(dir,dlo[dir],1);
-                ufab.copy(U[k],sidelo,dir,sidelo,dir,1);
+                sidelo.setRange(dir,sidelo.loVect()[dir],1);
+                ufab.copy(mfi(),sidelo,dir,sidelo,dir,1);
             }
             if (bc[bc_index+BL_SPACEDIM] == EXT_DIR)
             {
-                Box sidehi(U_boxes[k]);
+                Box sidehi(mfi.validbox());
                 sidehi.growHi(dir,1);
-                const int* dhi = sidehi.hiVect();
-                sidehi.setRange(dir,dhi[dir],1);
-                ufab.copy(U[k],sidehi,dir,sidehi,dir,1);
+                sidehi.setRange(dir,sidehi.hiVect()[dir],1);
+                ufab.copy(mfi(),sidehi,dir,sidehi,dir,1);
             }
         }
         //
         // Now compute node centered surrounding box.
         //
-        Box ndbox       = ::surroundingNodes(U_boxes[k]);
+        Box ndbox       = ::surroundingNodes(mfi.validbox());
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
 
@@ -1080,8 +1072,8 @@ SyncRegister::CompDVAdd (const MultiFab& U,
             const int* fhi_hi = tboxhi.hiVect();
             ffablo.resize(tboxlo,1);
             ffabhi.resize(tboxhi,1);
-            ffablo.setVal(0.0);
-            ffabhi.setVal(0.0);
+            ffablo.setVal(0);
+            ffabhi.setVal(0);
             //
             // Compute divu on fine grid edges in regions defined
             // by reglo and reghi.  Fabs are set to zero outside region.
@@ -1132,8 +1124,8 @@ SyncRegister::CompDVAdd (const MultiFab& U,
             cboxhi.coarsen(ratio);
             cfablo.resize(cboxlo,1);
             cfabhi.resize(cboxhi,1);
-            cfablo.setVal(0.0);
-            cfabhi.setVal(0.0);
+            cfablo.setVal(0);
+            cfabhi.setVal(0);
             //
             // Coarsen edge values.
             //
@@ -1216,7 +1208,7 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
             Box subbox = grids[fine] & mfi.validbox();
 
             if (subbox.ok())
-                mfi().setVal(0.0,subbox,0,1);
+                mfi().setVal(0,subbox,0,1);
         }
     }
     //
@@ -1274,10 +1266,8 @@ SyncRegister::FineLPhiAdd (const MultiFab& Phi,
 
     for (ConstMultiFabIterator pmfi(Phi); pmfi.isValid(false); ++pmfi)
     {
-        const Box& ndbox = pmfi.validbox();
-
-        pfab.resize(::grow(ndbox,1),1);
-        pfab.setComplement(0.0,pmfi.validbox(),0,1);
+        pfab.resize(::grow(pmfi.validbox(),1),1);
+        pfab.setComplement(0,pmfi.validbox(),0,1);
         pfab.copy(pmfi(),pmfi.validbox());
 
         const int* pfab_lo = pfab.loVect();
@@ -1286,20 +1276,20 @@ SyncRegister::FineLPhiAdd (const MultiFab& Phi,
         ConstDependentMultiFabIterator smfi(pmfi, Sigma);
 
         sfab.resize(::grow(smfi.validbox(),1),1);
-        sfab.setComplement(0.0,smfi.validbox(),0,1);
+        sfab.setComplement(0,smfi.validbox(),0,1);
         sfab.copy(smfi(),smfi.validbox());
 
         const int* sfab_lo = sfab.loVect();
         const int* sfab_hi = sfab.hiVect();
-        const int* ndlo    = ndbox.loVect();
-        const int* ndhi    = ndbox.hiVect();
+        const int* ndlo    = pmfi.validbox().loVect();
+        const int* ndhi    = pmfi.validbox().hiVect();
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             //
             // Determine region of interest, and size of tmp fabs.
             //
-            Box tboxlo(ndbox), tboxhi(ndbox);
+            Box tboxlo(pmfi.validbox()), tboxhi(pmfi.validbox());
             tboxlo.setRange(dir,ndlo[dir],1);
             tboxhi.setRange(dir,ndhi[dir],1);
             Box cboxlo(tboxlo), cboxhi(tboxhi);
@@ -1333,8 +1323,8 @@ SyncRegister::FineLPhiAdd (const MultiFab& Phi,
             const int* fhi_hi = tboxhi.hiVect();
             ffablo.resize(tboxlo,1);
             ffabhi.resize(tboxhi,1);
-            ffablo.setVal(0.0);
-            ffabhi.setVal(0.0);
+            ffablo.setVal(0);
+            ffabhi.setVal(0);
             //
             // Define coarsened tmp fabs.
             //
@@ -1342,8 +1332,8 @@ SyncRegister::FineLPhiAdd (const MultiFab& Phi,
             cboxhi.coarsen(ratio);
             cfablo.resize(cboxlo,1);
             cfabhi.resize(cboxhi,1);
-            cfablo.setVal(0.0);
-            cfabhi.setVal(0.0);
+            cfablo.setVal(0);
+            cfabhi.setVal(0);
             //
             // Compute divgp on fine grid edges in regions defined
             // by reglo and reghi.  Fabs are set to zero outside region.
@@ -1402,7 +1392,7 @@ SyncRegister::FineLPhiAdd (const MultiFab& Phi,
 
 void
 SyncRegister::CompLPhiAdd (const MultiFab& Phi,
-                           const MultiFab& sigma,
+                           const MultiFab& Sigma,
                            const BoxArray& Pgrids, 
                            const Real*     dx_fine, 
                            const Geometry& fine_geom, 
@@ -1410,46 +1400,42 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
                            int             is_rz,
                            Real            mult)
 {
-    cerr << "SyncRegister::CompLPhiAdd() not implemented in parallel.\n";
-    if (ParallelDescriptor::NProcs() > 1)
-        ParallelDescriptor::Abort("Bye");
+    //
+    // This code assumes Sigma and Phi have same processor distribution.
+    //
+    assert(Phi.boxArray().length() == Sigma.boxArray().length());
 
     const Box& crse_node_domain = ::surroundingNodes(crse_geom.Domain());
-    const BoxArray& Phi_boxes   = Phi.boxArray();
-    const int ngrds             = Phi_boxes.length();
-    const BoxArray& Sig_boxes   = sigma.boxArray();
 
     FArrayBox pfab, sfab;
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
 
     Array<IntVect> pshifts(27);
 
-    for (int k = 0; k < ngrds; k++)
+    for (ConstMultiFabIterator pmfi(Phi); pmfi.isValid(false); ++pmfi)
     {
-        const Box& ndbox = Phi_boxes[k];
-        Box pbox = ::grow(ndbox,1);
-        pfab.resize(pbox,1);
-        pfab.setVal(0.0);
-        pfab.copy(Phi[k],Phi_boxes[k]);
+        ConstDependentMultiFabIterator smfi(pmfi, Sigma);
+
+        pfab.resize(::grow(pmfi.validbox(),1),1);
+        pfab.setComplement(0,pmfi.validbox(),0,1);
+        pfab.copy(pmfi(),pmfi.validbox());
         const int* pfab_lo = pfab.loVect();
         const int* pfab_hi = pfab.hiVect();
 
-        const FArrayBox& sig = sigma[k];
-        sfab.resize(::grow(Sig_boxes[k],1),1);
-        sfab.setVal(0.0);
-        sfab.copy(sig,Sig_boxes[k]);
+        sfab.resize(::grow(smfi.validbox(),1),1);
+        sfab.setComplement(0,smfi.validbox(),0,1);
+        sfab.copy(smfi(),smfi.validbox());
         const int* sfab_lo = sfab.loVect();
         const int* sfab_hi = sfab.hiVect();
-
-        const int* ndlo = ndbox.loVect();
-        const int* ndhi = ndbox.hiVect();
+        const int* ndlo    = pmfi.validbox().loVect();
+        const int* ndhi    = pmfi.validbox().hiVect();
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             //
             // Determine region of interest, and size of tmp fabs.
             //
-            Box tboxlo(ndbox), tboxhi(ndbox);
+            Box tboxlo(pmfi.validbox()), tboxhi(pmfi.validbox());
             tboxlo.setRange(dir,ndlo[dir],1);
             tboxhi.setRange(dir,ndhi[dir],1);
             Box cboxlo(tboxlo), cboxhi(tboxhi);
@@ -1483,8 +1469,8 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
             const int* fhi_hi = tboxhi.hiVect();
             ffablo.resize(tboxlo,1);
             ffabhi.resize(tboxhi,1);
-            ffablo.setVal(0.0);
-            ffabhi.setVal(0.0);
+            ffablo.setVal(0);
+            ffabhi.setVal(0);
             //
             // Define coarsened tmp fabs.
             //
@@ -1492,8 +1478,8 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
             cboxhi.coarsen(ratio);
             cfablo.resize(cboxlo,1);
             cfabhi.resize(cboxhi,1);
-            cfablo.setVal(0.0);
-            cfabhi.setVal(0.0);
+            cfablo.setVal(0);
+            cfabhi.setVal(0);
             //
             // Compute divgp on fine grid edges in regions defined
             // by reglo and reghi.  Fabs are set to zero outside region.
@@ -1516,7 +1502,7 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
             {
                 Box overlap_lo = reglo & Pgrids[i];
                 if (overlap_lo.ok())
-                    ffablo.setVal(0.,overlap_lo,set_comp,n_comp);
+                    ffablo.setVal(0,overlap_lo,set_comp,n_comp);
 
                 fine_geom.periodicShift(reglo, Pgrids[i], pshifts);
 
@@ -1525,12 +1511,12 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
                     Box overlap_lo_per(Pgrids[i]);
                     overlap_lo_per.shift(pshifts[iiv]);
                     overlap_lo_per &= reglo;
-                    ffablo.setVal(0.,overlap_lo_per,set_comp,n_comp);
+                    ffablo.setVal(0,overlap_lo_per,set_comp,n_comp);
                 }
 
                 Box overlap_hi = reghi & Pgrids[i];
                 if (overlap_hi.ok())
-                    ffabhi.setVal(0.,overlap_hi,set_comp,n_comp);
+                    ffabhi.setVal(0,overlap_hi,set_comp,n_comp);
 
                 fine_geom.periodicShift(reghi, Pgrids[i], pshifts);
 
@@ -1539,7 +1525,7 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
                     Box overlap_hi_per(Pgrids[i]);
                     overlap_hi_per.shift(pshifts[iiv]);
                     overlap_hi_per &= reghi;
-                    ffabhi.setVal(0.,overlap_hi_per,set_comp,n_comp);
+                    ffabhi.setVal(0,overlap_hi_per,set_comp,n_comp);
                 }
             }
             //
