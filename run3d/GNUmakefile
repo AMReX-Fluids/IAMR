@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.15 1999-06-28 20:37:03 car Exp $
+# $Id: GNUmakefile,v 1.16 1999-06-28 20:38:23 car Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -38,8 +38,8 @@ include $(TOP)/mk/Make.defs ./Make.package
 BUILD_INPLACE:=FALSE
 BUILD_INPLACE:=TRUE
 
-CXXFLAGS += --strict --display_error_number
-CXXFLAGS +=  --diag_suppress 450
+#CXXFLAGS += --strict --display_error_number
+#CXXFLAGS +=  --diag_suppress 450
 
 ifeq ($(BUILD_INPLACE), TRUE)
   include $(TOP)/iamrlib/Make.package
