@@ -234,7 +234,7 @@ c  check to see if we should zero phi
       REAL_T rhs(DIM1(rhs))
       REAL_T r(r_lo:r_hi)
       REAL_T h
-      integer isPeriodic
+      integer isPeriodic(SDIM)
 
       REAL_T a(0:100),b(0:100),c(0:100),s(0:100)
       integer i
@@ -256,7 +256,7 @@ c  check to see if we should zero phi
          beta(i)=two*rL/(rhoExt(i)+rhoExt(i-1))
       enddo
 
-      if (isPeriodic.eq.1) then
+      if (isPeriodic(1).eq.1) then
          rL = half*(r(ics)+r(ice))
          rR = half*(r(ics)+r(ics+1))
          rhs(ics)=(rR*uExt(ics+1)-rL*uExt(ics))/h - r(ics)*(divuExt(ics))
@@ -399,17 +399,17 @@ c Local variables
       integer DIMDEC(phi)
       REAL_T phi(DIM1(phi))
       integer lo(SDIM),hi(SDIM)
-      integer isPeriodic
+      integer isPeriodic(SDIM)
       integer ics,ice
       logical setSingularPoint
       ics = lo(1)
       ice = hi(1)
 
-      if (isPeriodic .NE. 1 .and. setSingularPoint) then
+      if (isPeriodic(1) .NE. 1 .and. setSingularPoint) then
          phi(ice)= zero
       endif
 
-      if (isPeriodic.eq.1) then
+      if (isPeriodic(1).eq.1) then
          phi(ics-1) = phi(ice)
          phi(ice+1) = phi(ics)
       else
