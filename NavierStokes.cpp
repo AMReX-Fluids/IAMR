@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.41 1998-05-01 18:23:57 car Exp $
+// $Id: NavierStokes.cpp,v 1.42 1998-05-06 20:48:35 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -89,7 +89,7 @@ Array<Real> NavierStokes::visc_coef;
 
 // ----------------------- internal switches
 int  NavierStokes::do_sync_proj    = 1;
-int  NavierStokes::do_MLsync_proj  = 0;
+int  NavierStokes::do_MLsync_proj  = 1;
 int  NavierStokes::do_reflux       = 1;
 int  NavierStokes::do_mac_proj     = 1;
 int  NavierStokes::do_diffusion    = 1;
