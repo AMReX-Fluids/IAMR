@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.224 2003-02-19 18:50:05 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.225 2003-02-19 18:52:12 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1830,6 +1830,7 @@ NavierStokes::scalar_advection (Real dt,
 
     MultiFab* divu_fp = getDivCond(1,prev_time);
 
+    int nGrowF = 1;
     MultiFab* dsdt = getDsdt(nGrowF,prev_time);
     for (MFIter dsdtmfi(*dsdt); dsdtmfi.isValid(); ++dsdtmfi)
     {
