@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.30 1999-09-02 21:59:41 almgren Exp $
+// $Id: Projection.H,v 1.31 1999-09-14 18:28:06 car Exp $
 //
 
 #include <BC_TYPES.H>
@@ -16,7 +16,7 @@
 #include <FluxRegister.H>
 
 class holy_grail_amr_projector;
-class inviscid_fluid_boundary_class;
+class inviscid_fluid_boundary;
 
 class Projection 
 {
@@ -309,7 +309,7 @@ protected:
     // Boundary objects.
     //
     BCRec*                         phys_bc;
-    inviscid_fluid_boundary_class* projector_bndry;
+    inviscid_fluid_boundary* projector_bndry;
 
     int finest_level;
     int do_sync_proj;
