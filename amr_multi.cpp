@@ -449,7 +449,6 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
 
 void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
 {
-  int ltmp;
   if (mglev == 0) {
     cgsolve(mglev);
   }
