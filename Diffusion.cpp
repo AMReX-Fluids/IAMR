@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.49 1998-11-20 21:00:34 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.50 1998-11-24 01:02:09 lijewski Exp $
 //
 
 //
@@ -1345,7 +1345,8 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
     {
         cout << "Diffusion::diffuse_Vsync\n";
     }
-    const Real* dx = caller->Geom().CellSize();
+    const Real* dx   = caller->Geom().CellSize();
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
     //
     // At this point in time we can only do decoupled scalar
     // so we loop over components.
@@ -1363,7 +1364,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
         {
             r_norm = Max(r_norm,Rhsmfi().norm(0));
         }
-        ParallelDescriptor::ReduceRealMax(r_norm);
+        ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1425,7 +1426,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
         {
             s_norm = Max(s_norm,Solnmfi().norm(0));
         }
-        ParallelDescriptor::ReduceRealMax(s_norm);
+        ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1543,6 +1544,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*  Vsync,
 #else
     const int finest_level = parent->finestLevel();
     const Real* dx         = caller->Geom().CellSize();
+    const int IOProc       = ParallelDescriptor::IOProcessorNumber();
 
     MultiFab Soln(grids,BL_SPACEDIM,1);
     MultiFab Rhs(grids,BL_SPACEDIM,0);
@@ -1557,7 +1559,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*  Vsync,
     }
     ParallelDescriptor::ReduceRealMax(r_norm);
 
-    if (ParallelDescriptor::IOProcessor())
+    if (ParallelDescriptor::IOProcessor(),IOProc)
     {
         cout << "Original max of Vsync " << r_norm << '\n';
     }
@@ -1618,7 +1620,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*  Vsync,
     {
         s_norm = Max(s_norm,Solnmfi().norm(0));
     }
-    ParallelDescriptor::ReduceRealMax(s_norm);
+    ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1710,7 +1712,8 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
 
-    const Real* dx = caller->Geom().CellSize();
+    const Real* dx   = caller->Geom().CellSize();
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
     MultiFab Soln(grids,1,1);
     MultiFab Rhs(grids,1,0);
@@ -1723,7 +1726,7 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
     {
         r_norm = Max(r_norm,Rhsmfi().norm(0));
     }
-    ParallelDescriptor::ReduceRealMax(r_norm);
+    ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1789,7 +1792,7 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
     {
         s_norm = Max(s_norm,Solnmfi().norm(0));
     }
-    ParallelDescriptor::ReduceRealMax(s_norm);
+    ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
     {
