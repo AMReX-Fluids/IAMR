@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.10 2004-07-27 17:28:08 car Exp $
+c $Id: INFL_FORCE_F.F,v 1.11 2004-09-27 16:55:23 car Exp $
 c
 
 #undef BL_LANG_CC
@@ -18,11 +18,6 @@ c
 
 #define FF_UNIT       20
 
-#if defined(BL_T3E) || defined(BL_AIX) || defined(BL_IRIX64) || defined(BL_CRAYX1)
-#define OPEN_APPEND position='append'
-#else
-#define OPEN_APPEND access='append'
-#endif
 
 c ::: -----------------------------------------------------------
 c ::: This routine is used by INITDATA and the fill routines to 
@@ -174,7 +169,7 @@ c     I really should fix the shifting routine to allow the data to be right
 c     shifted as well as left shifted. SAS
 c
       else if (storePnt - 1 .lt. 1) then
-         open(11,file='WARNING.Inflow_Forcing',OPEN_APPEND)
+         open(11,file='WARNING.Inflow_Forcing',position='append')
          write(11,1000) storePnt, filePnt, timePnt, npass, timeOffset,
      $        dtFile, dimFile(strmwse_dir), time
 1000     format('** Stepped off the left end of the stored data.  Reloading',
