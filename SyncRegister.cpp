@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.57 1999-05-10 18:54:15 car Exp $
+// $Id: SyncRegister.cpp,v 1.58 1999-06-30 22:40:04 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -401,6 +401,11 @@ SyncRegister::InitRHS (MultiFab&       rhs,
             }
         } 
     }
+
+    ofstream os("old.fab");
+    rhs[0].writeOn(os);
+    cout << "RHS " << endl;
+    cout << rhs[0] << endl;
     //
     // Set Up bndry_mask.
     //
@@ -957,8 +962,6 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
                            const Geometry& geom,
                            int             is_rz,
                            int**           crse_bc, 
-                           int             lowfix,
-                           int             hifix,
                            Real            mult)
 {
     WriteNorms(*this,"SyncRegister::CrseDsdtAdd(B)");
@@ -983,6 +986,8 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
         mfi().copy(dsdt[mfi.index()], mfi.validbox());
     }
     geom.FillPeriodicBoundary(dsdt_local,true,false);
+
+    int imax = geom.Domain().bigEnd()[0]+1;
 
     for (MultiFabIterator mfi(dsdt_local); mfi.isValid(); ++mfi)
     {
@@ -1042,10 +1047,11 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
                    mfi().dataPtr(),
                    rcen.dataPtr(), 
                    ARLIM(ndlo), ARLIM(ndhi), divu.dataPtr(), 
-                   domlo, domhi, lowfix, hifix, &hx, &is_rz);
+                   domlo, domhi, &hx, &is_rz, &imax);
         divu.negate();
         divu.mult(mult);
     }
+ 
 
     for (OrientationIter face; face; ++face)
     {
@@ -1061,8 +1067,6 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                            const Geometry& crse_geom,
                            int             is_rz,
                            int**           fine_bc, 
-                           int             lowfix,
-                           int             hifix,
                            Real            mult)
 {
     WriteNorms(*this,"SyncRegister::FineDsdtAdd(B)");
@@ -1072,6 +1076,8 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
     MultiFab cloMF[BL_SPACEDIM], chiMF[BL_SPACEDIM];
 
     BuildMFs(dsdt,cloMF,chiMF,ratio,WITH_SURROUNDING_BOX);
+
+    int imax = geom.Domain().bigEnd()[0]+1;
 
     for (ConstMultiFabIterator mfi(dsdt); mfi.isValid(); ++mfi)
     {
@@ -1120,26 +1126,24 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
 
             ffablo_tmp.resize(reglo,1);
             int nghost         = 0;
-            int hi_fix         = 0;
             Real hx            = geom.CellSize()[0];
             FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
                        dsdtfab.dataPtr(),
                        rcen.dataPtr(), 
                        ARLIM(reglo.loVect()), ARLIM(reglo.hiVect()), 
                        ffablo_tmp.dataPtr(),
-                       domlo, domhi, lowfix, hi_fix, &hx,&is_rz);
+                       domlo, domhi, &hx, &is_rz, &imax);
             ffablo_tmp.negate();
             ffablo_tmp.mult(mult);
             ffablo.copy(ffablo_tmp);
             ffabhi_tmp.resize(reghi,1);
 
-            int low_fix = 0;
             FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
                        dsdtfab.dataPtr(),
                        rcen.dataPtr(), 
                        ARLIM(reghi.loVect()), ARLIM(reghi.hiVect()), 
                        ffabhi_tmp.dataPtr(), 
-                       domlo, domhi, low_fix, hifix, &hx,&is_rz);
+                       domlo, domhi, &hx, &is_rz, &imax);
             ffabhi_tmp.negate();
             ffabhi_tmp.mult(mult);
             ffabhi.copy(ffabhi_tmp);

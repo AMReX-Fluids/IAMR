@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.25 1999-06-29 17:31:04 marc Exp $
+// $Id: Projection.H,v 1.26 1999-06-30 22:40:03 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -163,11 +163,11 @@ public:
     //
     // Compute the node-centered divergence of U.
     //
-    void computeDV (MultiFab&       DV,
-                    const MultiFab& U,
+    void computeDV (int             level,
+                    MultiFab&       DV,
+                    MultiFab&       U,
                     int             src_comp,
-                    const Real*     dx,
-                    int             is_rz);
+                    const Real*     dx);
     //
     // Put divu in the rhs of the projector.
     //

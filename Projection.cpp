@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.98 1999-06-29 18:23:18 jbb Exp $
+// $Id: Projection.cpp,v 1.99 1999-06-30 22:40:03 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -362,7 +362,7 @@ Projection::level_project (int             level,
 {
     if (ParallelDescriptor::IOProcessor() && verbose)
 	cout << "... level projector at level " << level << '\n';
-    
+
     if (sync_proj == 0)
         bldSyncProject();
     //
@@ -513,10 +513,6 @@ Projection::level_project (int             level,
     if (do_sync_proj) 
     {
         int isrz   = CoordSys::IsRZ();
-        int bcxlo  = phys_bc->lo(0);
-        int bcxhi  = phys_bc->hi(0);
-        int lowfix = (isrz==1 && bcxlo!=FOEXTRAP && bcxlo!=HOEXTRAP);
-        int hifix  = (isrz==1 && bcxhi!=FOEXTRAP && bcxhi!=HOEXTRAP);
 
         if (level < finest_level) 
         {
@@ -525,7 +521,7 @@ Projection::level_project (int             level,
             //
             crse_sync_reg->CrseDVInit(U_new,geom,rz_flag,bc);
             if (have_divu) 
-                crse_sync_reg->CrseDsdtAdd(*divusource,geom,rz_flag,bc,lowfix,hifix);
+                crse_sync_reg->CrseDsdtAdd(*divusource,geom,rz_flag,bc);
         } 
         if (level > 0 && (((proj_0 || proj_2) &&
                            iteration == crse_dt_ratio) ||
@@ -539,7 +535,7 @@ Projection::level_project (int             level,
             fine_sync_reg->FineDVAdd(U_new,dx,crse_geom,rz_flag,bc,invrat);
             if (have_divu) 
                 fine_sync_reg->FineDsdtAdd(*divusource,geom,crse_geom,rz_flag,
-                                           bc,lowfix,hifix,invrat);
+                                           bc,invrat);
         }
     }
     //
@@ -759,7 +755,7 @@ Projection::filterP (int             level,
                 ndomhi.setRange(dir,ndhi[dir],1);
                 //
                 // Any RHS point on the physical bndry must be multiplied by
-                // two (only for ref-wall and inflow) and set to zero at
+                // two (only for ref-wall, inflow and symmetry) and set to zero at
                 // outflow.
                 //
                 Box blo = P_grids[k] & ndomlo;
@@ -1754,14 +1750,21 @@ Projection::initialSyncProject (int       c_lev,
 //
 // Compute the node-centered divergence of U.
 //
-
 void
-Projection::computeDV (MultiFab&       DV,
-                       const MultiFab& U,
+Projection::computeDV (int             level,
+                       MultiFab&       DV,
+                       MultiFab& U,
                        int             src_comp,
-                       const Real*     dx,
-                       int             is_rz)
+                       const Real*     dx)
 {
+    int is_rz = (CoordSys::IsRZ() ? 1 : 0);
+
+    if (is_rz) 
+    {
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            radMult(level,U,n);
+    }
+
     const Real      mult    = 1.0;
     const BoxArray& U_boxes = U.boxArray();
 
@@ -1787,6 +1790,12 @@ Projection::computeDV (MultiFab&       DV,
                     DVmfi().dataPtr(),ARLIM(ndlo),ARLIM(ndhi),
                     ndlo,ndhi,dx,&mult,&is_rz);
     }
+
+    if (is_rz)
+    {
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            radDiv(level,U,n);
+    }
 }
 
 //
@@ -1808,8 +1817,6 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
     const int       bcxlo  = phys_bc->lo(0);
     const int       bcxhi  = phys_bc->hi(0);
     int             isrz   = user_rz == -1 ? CoordSys::IsRZ() : user_rz;
-    int             lowfix = (isrz==1 && bcxlo!=FOEXTRAP && bcxlo!=HOEXTRAP);
-    int             hifix  = (isrz==1 && bcxhi!=FOEXTRAP && bcxhi!=HOEXTRAP);
     const Real*     dx     = geom.CellSize();
     Real            hx     = dx[0];
     const Box&      domain = geom.Domain();
@@ -1821,6 +1828,8 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
     BL_ASSERT(!(ns == 0));
 
     MultiFab* divu = ns->getDivCond(1,time);
+
+    int imax = geom.Domain().bigEnd()[0]+1;
 
     for (MultiFabIterator rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi)
     {
@@ -1834,7 +1843,7 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
 
         FORT_HGC2N(&nghost,ARLIM(divulo),ARLIM(divuhi),divudat,
                    rcen.dataPtr(), ARLIM(rhslo),ARLIM(rhshi),rhsdat,
-                   domlo,domhi,lowfix,hifix,&hx,&isrz);
+                   domlo,domhi,&hx,&isrz,&imax);
     }
 
     delete divu;
@@ -2159,7 +2168,6 @@ Projection::rescaleVar (MultiFab*       sig,
 //
 // Multiply by a radius for r-z coordinates.
 //
-
 void
 Projection::radMult (int       level,
                      MultiFab& mf,
@@ -2172,10 +2180,11 @@ Projection::radMult (int       level,
 
     int nr = radius_grow;
 
-    int n[BL_SPACEDIM];
+    const Box& domain = parent->Geom(level).Domain();
+    const int* domlo  = domain.loVect();
+    const int* domhi  = domain.hiVect();
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        n[i] = ngrow;
+    Real bogus_value = BogusValue;
 
     for (MultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
     {
@@ -2186,14 +2195,15 @@ Projection::radMult (int       level,
         Real* dat     = mfmfi().dataPtr(comp);
         Real* rad     = &radius[level][mfmfi.index()];
 
-        FORT_RADMPY(dat,ARLIM(lo),ARLIM(hi),&ngrow,rad,&nr,n);
+        FORT_RADMPY(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
+                    rad,&nr,&bogus_value);
     }
 }
+
 
 //
 // Divide by a radius for r-z coordinates.
 //
-
 void
 Projection::radDiv (int       level,
                     MultiFab& mf,
@@ -2205,10 +2215,11 @@ Projection::radDiv (int       level,
     int ngrow = mf.nGrow();
     int nr    = radius_grow;
 
-    int n[BL_SPACEDIM];
+    const Box& domain = parent->Geom(level).Domain();
+    const int* domlo  = domain.loVect();
+    const int* domhi  = domain.hiVect();
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        n[i] = ngrow;
+    Real bogus_value = BogusValue;
 
     for (MultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
     {
@@ -2219,7 +2230,8 @@ Projection::radDiv (int       level,
         Real*      dat = mfmfi().dataPtr(comp);
         Real*      rad = &radius[level][mfmfi.index()];
 
-        FORT_RADDIV(dat,ARLIM(lo),ARLIM(hi),&ngrow,rad,&nr,n);
+        FORT_RADDIV(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
+                    rad,&nr,&bogus_value);
     }
 }
 
@@ -2654,7 +2666,6 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
 // This projects the initial vorticity field (stored in pressure)
 // to define an initial velocity field.
 //
-
 void
 Projection::initialVorticityProject (int c_lev)
 {

@@ -2,7 +2,7 @@
 #define _PROJECTION_F_H_ 
 
 /*
-** $Id: PROJECTION_F.H,v 1.10 1999-03-05 01:17:38 almgren Exp $
+** $Id: PROJECTION_F.H,v 1.11 1999-06-30 22:40:03 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -74,24 +74,25 @@ extern "C" {
                            const Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi) );
     
     void FORT_RADMPY (Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+                      const int* domlo, const int* domhi,
                       const int* nghost,
-                      const Real* row, const int* nrow,
-                      const int* n);
+                      const Real* radius, const int* nrad,
+                      const Real* bogus_value);
     
     void FORT_RADDIV (Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                       const int* nghost,
-                      const Real* row, const int* nrow,
-                      const int* n);
+                      const int* domlo, const int* domhi,
+                      const int* nghost,
+                      const Real* radius, const int* nrad,
+                      const Real* bogus_value);
     
     void FORT_HGC2N(const int* nghost, 
                     ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                     const Real* dat, const Real* rcen,
                     ARLIM_P(rhs_lo), ARLIM_P(rhs_hi),
                     Real* rhsdat,
-                    const int* domlo,
-                    const int* domhi, const int& lowfix,
-                    const int& hifix, const Real* hr,
-                    const int* is_rz);
+                    const int* domlo, const int* domhi, 
+                    const Real* hr,
+                    const int* is_rz, const int* imax);
     
     void FORT_HGN2C(const int* isrz, const int* rweighted, 
                     ARLIM_P(nodelo),ARLIM_P(nodehi), 

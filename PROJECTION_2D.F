@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.26 1999-06-22 19:13:29 propp Exp $
+c $Id: PROJECTION_2D.F,v 1.27 1999-06-30 22:40:02 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -192,7 +192,7 @@ c
       integer i, j, n
       REAL_T dt_inv
    
-      dt_inv = 1./dt;
+      dt_inv = one/dt
 
       do n = 1, SDIM
          do j = lo(2)-1, hi(2)+1
@@ -231,46 +231,89 @@ c
 
       end
 
-       subroutine FORT_RADMPY(a,DIMS(grid),ng,r,nr,n)
+      subroutine FORT_RADMPY(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)
 c 
-c     multiply A by a Radius r
+c     multiply A by Radius r
 c
-       integer    ng,nr
-       integer    n(SDIM)
-       integer    DIMDEC(grid)
-       REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
-     $              ARG_L2(grid)-ng:ARG_H2(grid)+ng)
-       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
-       integer i, j
-
-       do j = ARG_L2(grid)-n(2), ARG_H2(grid)+n(2)
-          do i = ARG_L1(grid)-n(1), ARG_H1(grid)+n(1)
-	     a(i,j) = r(i)*a(i,j)
-          end do
-       end do
-
-       end
-
-       subroutine FORT_RADDIV(a,DIMS(grid),ng,r,nr,n)
 c 
-c     divide A by a Radius r
+c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
+c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
 c
-       integer    ng,nr
-       integer    n(SDIM)
-       integer    DIMDEC(grid)
-       REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
-     $              ARG_L2(grid)-ng:ARG_H2(grid)+ng)
-       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
+      integer    ng,nr
+      integer    DIMDEC(grid)
+      integer    domlo(2), domhi(2)
+      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
+     $             ARG_L2(grid)-ng:ARG_H2(grid)+ng)
+      REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
+      REAL_T     bogus_value
 
-       integer i, j
+      integer i, j
 
-       do j = ARG_L2(grid)-n(2), ARG_H2(grid)+n(2)
-          do i = ARG_L1(grid)-n(1), ARG_H1(grid)+n(1)
-	    a(i,j) = a(i,j)/r(i)
-          end do
-       end do
+      do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
+         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
+           a(i,j) = r(i)*a(i,j)
+         end do
+      end do
 
-       end
+      if (ARG_L1(grid)-ng .lt. domlo(1)) then
+         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
+         do i = ARG_L1(grid)-ng, domlo(1)-1
+           a(i,j) = bogus_value
+         end do
+         end do
+      end if
+
+      if (ARG_H1(grid)+ng .gt. domhi(1)) then
+         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
+         do i = domhi(1)+1, ARG_H1(grid)+ng
+           a(i,j) = bogus_value
+         end do
+         end do
+      end if
+
+      end
+
+      subroutine FORT_RADDIV(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)
+c 
+c     divide A by Radius r
+c
+c 
+c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
+c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
+c
+      integer    ng,nr
+      integer    DIMDEC(grid)
+      integer    domlo(2), domhi(2)
+      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
+     $             ARG_L2(grid)-ng:ARG_H2(grid)+ng)
+      REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
+      REAL_T     bogus_value
+
+      integer i, j
+
+      do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
+         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
+           a(i,j) = a(i,j)/r(i)
+         end do
+      end do
+
+      if (ARG_L1(grid)-ng .lt. domlo(1)) then
+         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
+         do i = ARG_L1(grid)-ng, domlo(1)-1
+           a(i,j) = bogus_value
+         end do
+         end do
+      end if
+
+      if (ARG_H1(grid)+ng .gt. domhi(1)) then
+         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
+         do i = domhi(1)+1, ARG_H1(grid)+ng
+           a(i,j) = bogus_value
+         end do
+         end do
+      end if
+
+      end
 
       subroutine FORT_HGN2C(
      &     isrz,lrweighted, DIMS(nodedat), nodedat,
@@ -324,7 +367,7 @@ c        call flush(6)
       subroutine FORT_HGC2N(
      &     nghost, DIMS(dat), dat, rcen,
      &     DIMS(rhs), rhs,
-     &     domlo, domhi, lowfix, hifix, dr, is_rz) 
+     &     domlo, domhi, dr, is_rz, imax) 
 c
 c     ----------------------------------------------------------
 c     HGC2N
@@ -342,7 +385,7 @@ c     rhs         <= node centered array with results
 c     ----------------------------------------------------------
 c 
       implicit none
-      integer nghost, is_rz, lowfix, hifix
+      integer nghost 
       integer domlo(SDIM), domhi(SDIM)
       integer DIMDEC(dat)
       integer DIMDEC(rhs)
@@ -350,6 +393,7 @@ c
       REAL_T  rcen(DIM1(dat))
       REAL_T  dat(DIMV(dat))
       REAL_T  rhs(DIMV(rhs))
+      integer is_rz, imax
 
       integer i, j
       REAL_T  factor, rhi, rlo
@@ -366,48 +410,67 @@ c
          do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
             do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
                rhs(i,j) = fourth*(dat(i-1,j-1)+dat(i-1,j)+
-     &              dat(i,j-1)+dat(i,j))
+     &                            dat(i  ,j-1)+dat(i  ,j) )
             end do
          end do
+
       else
+
+#if BL_PRVERSION == 9
          do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
             do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
-               if (hifix.eq.1 .and. ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
-     &              i .eq. ARG_H1(rhs)-nghost ) then
+               if (i .eq. imax) then
                   rhi = rcen(i-1)
                else 
                   rhi = rcen(i)
                end if
-               if(lowfix.eq.1 .and. ARG_L1(rhs)+nghost .eq. domlo(1) .and.
-     &              i .eq. ARG_L1(rhs)+nghost ) then
+               if (i .eq. 0) then
                   rlo = rcen(i)
                else
                   rlo = rcen(i-1)
                end if
+
                rhs(i,j) = fourth*(rlo * (dat(i-1,j-1) + dat(i-1,j)) +
-     &              rhi * (dat(i,j-1)   + dat(i,j)))
+     &                            rhi * (dat(i  ,j-1) + dat(i  ,j)))
             end do
          end do
          factor = dr/24.0
          do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
             do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
-               if (hifix.eq.1 .and. ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
-     &              i .eq. ARG_H1(rhs)-nghost ) then
+               if (i .eq. imax) then
                   rhi = -one
                else 
                   rhi = one
                end if
-               if(lowfix.eq.1 .and. ARG_L1(rhs)+nghost .eq. domlo(1) .and.
-     &              i .eq. ARG_L1(rhs)+nghost ) then
+               if (i .eq. 0) then
                   rlo = -one
                else
                   rlo = one
                end if
                rhs(i,j) = rhs(i,j) + factor *
      &              (rlo * (dat(i-1,j-1) + dat(i-1,j)) -
-     &              rhi * (dat(i  ,j-1) + dat(i  ,j)))
+     &               rhi * (dat(i  ,j-1) + dat(i  ,j)))
             end do
          end do
+
+#elif BL_PRVERSION == 5
+         do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
+            do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
+               if (i .eq. imax) then
+                  rhi = rcen(i-1)
+               else 
+                  rhi = rcen(i)
+               end if
+               if (i .eq. 0) then
+                 rhs(i,j) = fourth*rhi*(dat(i,j-1) + dat(i,j))
+               else
+                 rlo = rcen(i-1)
+                 rhs(i,j) = fourth*(rlo * (dat(i-1,j-1) + dat(i-1,j)) +
+     &                              rhi * (dat(i  ,j-1) + dat(i  ,j)))
+               endif
+            end do
+         end do
+#endif
       end if
 
       end
