@@ -1,4 +1,4 @@
-#define _SYNCREG_3D_F_  $Id: SYNCREG_3D.F,v 1.1 1997-07-08 23:08:14 vince Exp $
+#define _SYNCREG_3D_F_  $Id: SYNCREG_3D.F,v 1.2 1997-09-27 02:33:52 almgren Exp $
 
 #include "REAL.H"
 #include "CONSTANTS.H"
@@ -882,6 +882,73 @@ c        ::::: sum in i and j directions
          endif
       endif
 
+      return
+      end
+
+c ::: -----------------------------------------------------------
+c ::: create mask at nodes using values at surrounding cells
+c :::
+c ::: INPUTS/OUTPUTS:
+c ::: mask       <=  node-centered mask array
+c ::: DIMS(mask)  => index limits for mask
+c ::: cells       => cell-centered array (each value is 0. or 1.)
+c ::: DIMS(cells) => index limits for cells
+c ::: -----------------------------------------------------------
+
+      subroutine FORT_MAKEMASK(mask,DIMS(mask),cells,DIMS(cells))
+
+      integer    DIMDEC(mask)
+      integer    DIMDEC(cells)
+      REAL_T     mask(DIMV(mask))
+      REAL_T     cells(DIMV(cells))
+
+      integer    i, j, k
+
+      do k = ARG_L3(mask), ARG_H3(mask)
+       do j = ARG_L2(mask), ARG_H2(mask)
+        do i = ARG_L1(mask), ARG_H1(mask)
+ 
+          mask(i,j,k) = cells(i,j  ,k  ) + cells(i-1,j  ,k  )
+     $                + cells(i,j-1,k  ) + cells(i-1,j-1,k  )
+     $                + cells(i,j  ,k-1) + cells(i-1,j  ,k-1)
+     $                + cells(i,j-1,k-1) + cells(i-1,j-1,k-1)
+
+        enddo
+       enddo
+      enddo
+
+      return
+      end
+
+c ::: -----------------------------------------------------------
+c ::: modify mask from values 0. through 8. to values 0. or 1.
+c :::
+c ::: INPUTS/OUTPUTS:
+c ::: mask       <=  node-centered mask array
+c ::: DIMS(mask)  => index limits for mask
+c ::: -----------------------------------------------------------
+
+      subroutine FORT_CONVERTMASK(mask,DIMS(mask))
+
+      integer    DIMDEC(mask)
+      REAL_T     mask(DIMV(mask))
+ 
+      integer    i, j, k
+
+      do k = ARG_L3(mask), ARG_H3(mask)
+       do j = ARG_L2(mask), ARG_H2(mask)
+        do i = ARG_L1(mask), ARG_H1(mask)
+ 
+          if (mask(i,j,k) .gt. 7.5) then
+             mask(i,j,k) = zero
+          else
+             mask(i,j,k) = one
+          endif
+
+        enddo
+       enddo
+      enddo
+ 
       return
       end
 

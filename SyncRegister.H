@@ -2,7 +2,7 @@
 #define _SYNCREGISTER_H_
 
 //
-// $Id: SyncRegister.H,v 1.3 1997-09-26 16:57:06 lijewski Exp $
+// $Id: SyncRegister.H,v 1.4 1997-09-27 02:33:51 almgren Exp $
 //
 
 #include <PArray.H>
@@ -86,6 +86,7 @@ protected:
 
     IntVect ratio;
     int fine_level;
+    FabSet    bndry_mask[2*BL_SPACEDIM];
 
       // helper member functions
     void increment(const FARRAYBOX& fab);
