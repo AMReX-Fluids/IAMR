@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.114 2002-03-26 20:51:08 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.115 2002-08-21 20:12:40 car Exp $
 //
 
 //
@@ -38,10 +38,10 @@ const Real BL_BOGUS      = DBL_QNAN;
 const Real BL_BOGUS      = FLT_QNAN;
 #endif
 #else
-const Real BL_BOGUS      = 1.e30;
+const Real BL_BOGUS      = 1.e200;
 #endif
 
-const Real BL_SAFE_BOGUS = -666.e30;
+const Real BL_SAFE_BOGUS = -666.e200;
 
 //
 // Include files for tensor solve.

@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.199 2002-08-16 23:15:02 car Exp $
+// $Id: NavierStokes.cpp,v 1.200 2002-08-21 20:12:40 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3589,7 +3589,7 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
     Array<BCRec> bc(BL_SPACEDIM);
     MultiFab     crse_phi(crse_ba,1,0);
 
-    crse_phi.setVal(1.e30);
+    crse_phi.setVal(1.e200);
     crse_phi.copy(phi,0,0,1);
 
     FArrayBox     fine_phi;
@@ -3609,7 +3609,7 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
         for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
         {
             fine_phi.resize(P_grids[mfi.index()],1);
-            fine_phi.setVal(1.e30);
+            fine_phi.setVal(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc);
             fine_phi.mult(cur_mult_factor);
@@ -3623,7 +3623,7 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
         for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
         {
             fine_phi.resize(P_grids[mfi.index()],1);
-            fine_phi.setVal(1.e30);
+            fine_phi.setVal(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc);
             P_new[mfi.index()].plus(fine_phi);
