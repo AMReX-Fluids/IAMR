@@ -43,7 +43,8 @@
                      const int*  putidx,
                      const int*  getidx,
                      int*        fname,
-                     int*        flen);
+                     int*        flen,
+                     int*        count);
 
       void FORT_WRITE(Real*       dat,
                       const int*  imax,

@@ -7,6 +7,7 @@
 #include <list>
 #include <REAL.H>
 #include <vector>
+#include <BLassert.H>
 #include <BoxLib.H>
 #include <ParmParse.H>
 
@@ -193,15 +194,34 @@ main (int   argc,
 
     int putidx = 1;
 
-    for (PList::const_iterator it = LP.begin(); it != LP.end(); ++it, ++putidx)
+    for (PList::const_iterator it = LP.begin(); it != LP.end(); )
     {
         std::vector<int> fname  = EncodeStringForFortran(ifiles[it->second]);
         int              flen   = fname.size();
         int              getidx = it->third;
+        int              count  = 1;  // How many consecutive platters?
 
         fluct[putidx-1] = it->first;
 
-        std::cout << "Reading platter "
+        PList::const_iterator cit = it; ++cit;
+
+        for ( ; cit != LP.end(); ++cit)
+        {
+            if (ifiles[it->second] == ifiles[cit->second])
+            {
+                BL_ASSERT((it->third + count) == cit->third);
+
+                fluct[putidx+count-1] = cit->first;
+
+                count++;
+            }
+            else
+                break;
+        }
+
+        std::cout << "Reading "
+                  << count
+                  << " platters starting at "
                   << getidx
                   << " from "
                   << ifiles[it->second] << std::endl;
@@ -215,7 +235,11 @@ main (int   argc,
                   &putidx,
                   &getidx,
                   &fname[0],
-                  &flen);
+                  &flen,
+                  &count);
+
+        putidx += count;
+        for (int i = 0; i < count; i++) ++it;
     }
 
     std::cout << "Building swirl-type turbulence file: " << ofile << std::endl;    

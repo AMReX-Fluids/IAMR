@@ -49,15 +49,15 @@
       end
 
       subroutine FORT_FILL(dat,imax,jmax,kmax,ncomp,time,putidx,
-     &     getidx,fname,flen)
+     &     getidx,fname,flen,count)
 
       implicit none
 
-      integer imax, jmax, kmax, ncomp, getidx, putidx, flen, fname(flen)
+      integer imax,jmax,kmax,ncomp,getidx,putidx,flen,fname(flen),count
       double precision dat(imax,jmax,kmax,ncomp), time
 
       integer imaxt, jmaxt, kmaxt, ncompt
-      integer i, j, k, n
+      integer i, j, k, n, nn
       double precision scalex, scaley, scalez, dummy
       double precision, allocatable :: times(:)
       character filet*(flen)
@@ -101,10 +101,12 @@
             enddo
          endif
 
-         read(1) ((dat(i,j,putidx,n), i=1,imax), j=1,jmax)
+         do nn = 1,count
+            read(1) ((dat(i,j,putidx+nn-1,n), i=1,imax), j=1,jmax)
+         enddo
 
-         if (getidx.lt.kmaxt) then
-            do k = getidx+1, kmaxt
+         if ((getidx+count-1).lt.kmaxt) then
+            do k = getidx+count, kmaxt
                read(1) dummy
             enddo
          endif
