@@ -9,7 +9,7 @@ LLIB=v7
 !ENDIF
 
 FPP_FLAGS=/ansi /nologo \
-	/S. /S..\pboxlib2.0 /S.\include\$(DIM)d.$(LLIB) \
+	/S. /S..\pboxlib_2 /S.\include\$(DIM)d.$(LLIB) \
 	/DBL_NEED_RAND \
 	/DBL_NO_FORT_FLUSH \
 	/DBL_SPACEDIM=$(DIM) \
@@ -17,7 +17,7 @@ FPP_FLAGS=/ansi /nologo \
 	/DBL_LANG_FORT
 
 .f.for:
-	fpp $(FPP_FLAGS) $*.f | perl strip72 -c > $*.for
+	fpp $(FPP_FLAGS) $*.f | perl ..\scripts\strip72 -c > $*.for
 
 FORT_FILES= \
 	ABec_$(DIM)D.For \
