@@ -1,5 +1,5 @@
 //
-// $Id: OutFlowBC.cpp,v 1.5 2002-10-15 17:34:43 car Exp $
+// $Id: OutFlowBC.cpp,v 1.6 2003-02-19 19:13:09 almgren Exp $
 //
 #include <winstd.H>
 
@@ -137,38 +137,43 @@ OutFlowBC_MG::vcycle (int downiter,
 }
 
 void
-OutFlowBC::GetOutFlowFace (bool&        haveOutFlow,
-                           Orientation& outFace,
-                           BCRec*       _phys_bc)
+OutFlowBC::GetOutFlowFaces (bool&        haveOutFlow,
+                            Orientation* outFaces,
+                            BCRec*       _phys_bc,
+                            int&        numOutFlowBC)
 {
     haveOutFlow = false;
 
-    int numOutFlowBC = 0;
+    numOutFlowBC = 0;
 
     for (int idir = 0; idir < BL_SPACEDIM; idir++)
     {
         if (_phys_bc->lo(idir) == Outflow)
         {
             haveOutFlow = true;
-            outFace = Orientation(idir,Orientation::low);
+            outFaces[numOutFlowBC] = Orientation(idir,Orientation::low);
             numOutFlowBC++;
         }
 
         if (_phys_bc->hi(idir) == Outflow)
         {
             haveOutFlow = true;
-            outFace = Orientation(idir,Orientation::high);
+            outFaces[numOutFlowBC] = Orientation(idir,Orientation::high);
             numOutFlowBC++;
         }
 
     }
 
+#if 0
+//  We used to constrain our outflow bc to only one wall.  We are now
+//  in the process of fixing that (10/2/02)
     if (numOutFlowBC > 1)
         //
         // True signals low-D solve for outflow.
         // False will enforce Div(U) == 0.
         //
         haveOutFlow = false;
+#endif
 }
 
 bool
@@ -192,12 +197,16 @@ OutFlowBC::HasOutFlowBC (BCRec* _phys_bc)
         }
     }
 
+#if 0
+//  We used to constrain our outflow bc to only one wall.  We are now
+//  in the process of fixing that (10/2/02)
     if (numOutFlowBC > 1)
         //
         // True signals low-D solve for outflow.
         // False will enforce Div(U) == 0.
         //
         has_out_flow = false;
+#endif
 
     return has_out_flow;
 }
