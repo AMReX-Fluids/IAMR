@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.27 1999-06-04 23:13:24 propp Exp $
+// $Id: NS_setup.cpp,v 1.28 1999-06-11 15:12:01 sstanley Exp $
 //
 
 #include <NavierStokes.H>
@@ -349,3 +349,7 @@ NavierStokes::sum_integrated_quantities ()
     }
 }
 
+void
+NavierStokes::manual_grid_placement(BoxList& boxes)
+{
+}

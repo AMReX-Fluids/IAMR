@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.41 1999-05-27 19:16:38 sstanley Exp $
+// $Id: NavierStokes.H,v 1.42 1999-06-11 15:12:01 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -585,6 +585,13 @@ protected:
                                 const Real time,
                                 const int src_comp,
                                 const int num_comp = 1);
+
+    //
+    // Called in grid_places after boxes created via error tagging routines
+    //   (to allow grid placement via methods other than error tagging)
+    //
+    virtual void manual_grid_placement(BoxList& boxes);
+
 
     //
     // Determine whether a time corresponds to the New or Old
