@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.53 1999-02-25 01:39:11 propp Exp $
+// $Id: SyncRegister.cpp,v 1.54 1999-02-25 17:35:38 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -445,10 +445,10 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                     mask_cells -= pshifts[iiv];
                 }
             }
-            REAL* mask_dat = fsi().dataPtr();
+            Real* mask_dat = fsi().dataPtr();
             const int* mlo = fsi().loVect(); 
             const int* mhi = fsi().hiVect();
-            REAL* cell_dat = tmpfab.dataPtr();
+            Real* cell_dat = tmpfab.dataPtr();
             const int* clo = tmpfab.loVect(); 
             const int* chi = tmpfab.hiVect();
         
@@ -490,7 +490,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     {
         for (FabSetIterator fsi(bndry_mask[face()]); fsi.isValid(); ++fsi)
         {
-            REAL* mask_dat  = fsi().dataPtr();
+            Real* mask_dat  = fsi().dataPtr();
             const int* mlo  = fsi().loVect(); 
             const int* mhi  = fsi().hiVect();
 

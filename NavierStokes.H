@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.30 1999-02-18 18:22:16 sstanley Exp $
+// $Id: NavierStokes.H,v 1.31 1999-02-25 17:35:37 car Exp $
 //
 
 #include <LevelBld.H>
@@ -182,7 +182,7 @@ public:
                                    Array<int>&           n_cycle,
                                    const Array<IntVect>& ref_ratio,
                                    Array<Real>&          dt_level,
-                                   REAL                  stop_time);
+                                   Real                  stop_time);
 
     virtual void computeNewDt (int                   finest_level,
                                int                   sub_cycle,
@@ -197,7 +197,7 @@ public:
    void post_init_estDT (Real&        dt_init,
                          Array<int>&  nc_save,
                          Array<Real>& dt_save,
-                         REAL         stop_time);
+                         Real         stop_time);
     //
     // Estimate the end of the simulation for amrLevel.
     //
@@ -217,7 +217,7 @@ public:
     //
     // Insure state, and pressure are consistent.
     //
-    virtual void post_init (REAL stop_time);
+    virtual void post_init (Real stop_time);
     //
     // Advance grids at this level in time.
     //

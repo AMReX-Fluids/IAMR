@@ -2,7 +2,7 @@
 #define _DIFFUSION_F_H
 
 /*
-** $Id: DIFFUSION_F.H,v 1.8 1999-02-11 18:51:14 marc Exp $
+** $Id: DIFFUSION_F.H,v 1.9 1999-02-25 17:35:36 car Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -53,22 +53,22 @@
 
 extern "C"
 {
-    void FORT_VISCFLUX_VC (const REAL* s_old, const REAL* s_new,
+    void FORT_VISCFLUX_VC (const Real* s_old, const Real* s_new,
                            ARLIM_P(slo), ARLIM_P(shi),
                            const int*  lo, const int*  hi,
-                           const REAL* flux, ARLIM_P(f_lo), ARLIM_P(f_hi),
-                           const REAL* area, ARLIM_P(a_lo), ARLIM_P(a_hi),
-                           const REAL* betan, const REAL* betanp1,
+                           const Real* flux, ARLIM_P(f_lo), ARLIM_P(f_hi),
+                           const Real* area, ARLIM_P(a_lo), ARLIM_P(a_hi),
+                           const Real* betan, const Real* betanp1,
                            ARLIM_P(b_lo), ARLIM_P(b_hi),
-                           const REAL* dx, const REAL* mult, const REAL* theta,
+                           const Real* dx, const Real* mult, const Real* theta,
                            const int* dir);
     
-    void FORT_VISCFLUX_CC (const REAL* s_old, const REAL* s_new,
+    void FORT_VISCFLUX_CC (const Real* s_old, const Real* s_new,
                            ARLIM_P(slo), ARLIM_P(shi),
                            const int*  lo, const int*  hi,
-                           const REAL* flux, ARLIM_P(f_lo), ARLIM_P(f_hi),
-                           const REAL* area, ARLIM_P(a_lo), ARLIM_P(a_hi),
-                           const REAL* dx, const REAL* mult, const REAL* theta,
+                           const Real* flux, ARLIM_P(f_lo), ARLIM_P(f_hi),
+                           const Real* area, ARLIM_P(a_lo), ARLIM_P(a_hi),
+                           const Real* dx, const Real* mult, const Real* theta,
                            const int* dir);
 #if (BL_SPACEDIM == 2)
     void FORT_VISCSYNCFLUX (const Real* ssync, ARLIM_P(slo), ARLIM_P(shi),

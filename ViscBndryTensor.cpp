@@ -1,5 +1,5 @@
 //
-// $Id: ViscBndryTensor.cpp,v 1.2 1999-02-24 01:56:11 propp Exp $
+// $Id: ViscBndryTensor.cpp,v 1.3 1999-02-25 17:35:39 car Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -12,12 +12,12 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
 {
     assert (comp < MCLinOp::bcComponentsNeeded());
 
-    const REAL* dx     = geom.CellSize();
-    const BOX&  domain = geom.Domain();
+    const Real* dx     = geom.CellSize();
+    const Box&  domain = geom.Domain();
 
     for (OrientationIter fi; fi; ++fi)
     {
-        Array<REAL>&               bloc  = bcloc[fi()];
+        Array<Real>&               bloc  = bcloc[fi()];
         Array< Array<BoundCond> >& bctag = bcond[fi()];
 
         int dir = fi().coordDir();

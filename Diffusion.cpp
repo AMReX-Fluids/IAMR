@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.69 1999-02-24 01:56:10 propp Exp $
+// $Id: Diffusion.cpp,v 1.70 1999-02-25 17:35:36 car Exp $
 //
 
 //
@@ -39,10 +39,10 @@
 #if defined(BL_USE_DOUBLE)
 const Real BL_BOGUS      = DBL_QNAN;
 #else
-const REAL BL_BOGUS      = FLT_QNAN;
+const Real BL_BOGUS      = FLT_QNAN;
 #endif
 #else
-const REAL BL_BOGUS      = 1.e30;
+const Real BL_BOGUS      = 1.e30;
 #endif
 
 const Real BL_SAFE_BOGUS = -666.e30;

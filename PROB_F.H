@@ -2,7 +2,7 @@
 #define _PROB_F_H_
 
 /*
-** $Id: PROB_F.H,v 1.6 1998-05-13 23:17:46 almgren Exp $
+** $Id: PROB_F.H,v 1.7 1999-02-25 17:35:38 car Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -106,15 +106,15 @@
                          const Real* dx, const Real* grd_lo,
                          const Real* time, const int* bc);
 
-     void FORT_DIVUFILL (REAL* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+     void FORT_DIVUFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-                         const REAL* dx, const REAL* grd_lo,
-                         const REAL* time, const int* bc);
+                         const Real* dx, const Real* grd_lo,
+                         const Real* time, const int* bc);
 
-     void FORT_DSDTFILL (REAL* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+     void FORT_DSDTFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-                         const REAL* dx, const REAL* grd_lo,
-                         const REAL* time, const int* bc);
+                         const Real* dx, const Real* grd_lo,
+                         const Real* time, const int* bc);
 
      void FORT_DENERROR  (int* tag, ARLIM_P(tlo), ARLIM_P(thi),
                           const int* tagval, const int* clearval,

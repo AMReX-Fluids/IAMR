@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.113 1999-02-23 22:59:15 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.114 1999-02-25 17:35:37 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -297,7 +297,7 @@ NavierStokes::read_params ()
     //
     // Set the coefficients for the scalars, but temperature.
     //
-    Array<REAL> scal_diff_coefs(n_scal_diff_coefs);
+    Array<Real> scal_diff_coefs(n_scal_diff_coefs);
     pp.getarr("scal_diff_coefs",scal_diff_coefs,0,n_scal_diff_coefs);
 
     int scalId = Density;

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.11 1999-02-19 16:19:52 sstanley Exp $
+// $Id: Diffusion.H,v 1.12 1999-02-25 17:35:36 car Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -66,22 +66,22 @@ public:
 
     FluxRegister* viscFluxReg () { return viscflux_reg; }
 
-    REAL get_scaled_abs_tol (int                    sigma,
+    Real get_scaled_abs_tol (int                    sigma,
                              const MultiFab*        rhs,
-                             REAL                   a,
-                             REAL                   b,
+                             Real                   a,
+                             Real                   b,
                              const MultiFab*        alpha,
                              const MultiFab* const* beta,
-                             REAL                   reduction) const;
+                             Real                   reduction) const;
 
-    REAL get_scaled_abs_tol (int                    sigma,
+    Real get_scaled_abs_tol (int                    sigma,
                              const MultiFab*        rhs,
-                             REAL                   a,
-                             REAL                   b,
+                             Real                   a,
+                             Real                   b,
                              const MultiFab*        alpha,
                              const MultiFab* const* betan,
                              const MultiFab* const* betanp1,
-                             REAL                   reduction) const;
+                             Real                   reduction) const;
 
     void diffuse_scalar (Real                   dt,
 			 int                    sigma,
@@ -280,18 +280,18 @@ private:
     static Real        visc_tol;
     static Real        visc_abs_tol;
     static int         verbose;
-    static Array<REAL> typical_vals;
+    static Array<Real> typical_vals;
 };
 
 inline
-REAL
+Real
 Diffusion::get_scaled_abs_tol (int             sigma,
                                const MultiFab* rhs,
-                               REAL            a,
-                               REAL            b,
+                               Real            a,
+                               Real            b,
                                const MultiFab* alpha,
                                const MultiFab* const * beta,
-                               REAL            reduction) const
+                               Real            reduction) const
 {
     return get_scaled_abs_tol(sigma, rhs, a, b, alpha, beta, 0, reduction);
 }

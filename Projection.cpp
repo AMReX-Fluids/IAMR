@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.66 1999-02-25 01:39:11 propp Exp $
+// $Id: Projection.cpp,v 1.67 1999-02-25 17:35:38 car Exp $
 //
 
 #ifdef BL_T3E
@@ -1490,7 +1490,7 @@ Projection::filterUandP (int             level,
     FArrayBox scratch, gradp;
 
     const Geometry& geom = parent->Geom(level);
-    const BOX& domain    = geom.Domain();
+    const Box& domain    = geom.Domain();
 
     int wrap_around_x = 0;
     if (geom.isPeriodic(0) && grids[0] == domain)
