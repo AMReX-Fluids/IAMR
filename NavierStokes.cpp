@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.196 2002-03-18 22:44:26 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.197 2002-04-30 17:07:41 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2540,9 +2540,35 @@ NavierStokes::volWgtSum (const std::string& name,
 }
 
 void
+NavierStokes::sum_integrated_quantities ()
+{
+    const int finest_level = parent->finestLevel();
+
+    Real time = state[State_Type].curTime();
+    Real mass = 0.0;
+    Real trac = 0.0;
+
+    for (int lev = 0; lev <= finest_level; lev++)
+    {
+        NavierStokes& ns_level = getLevel(lev);
+        mass += ns_level.volWgtSum("density",time);
+        trac += ns_level.volWgtSum("tracer",time);
+    }
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        const int old_prec = std::cout.precision(12);
+        std::cout << '\n';
+        std::cout << "TIME= " << time << " MASS= " << mass << '\n';
+        std::cout << "TIME= " << time << " TRAC= " << trac << '\n';
+        std::cout.precision(old_prec);
+    }
+}
+
+void
 NavierStokes::setPlotVariables()
 {
-  AmrLevel::setPlotVariables();
+    AmrLevel::setPlotVariables();
 }
 
 std::string

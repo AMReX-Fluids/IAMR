@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.43 2001-08-10 19:19:36 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.44 2002-04-30 17:07:41 lijewski Exp $
 //
 
 #include <NavierStokes.H>
@@ -353,29 +353,3 @@ NavierStokes::variableSetUp ()
     err_list.add("tracer",1,ErrorRec::Special,FORT_ADVERROR);
     err_list.add("mag_vort",0,ErrorRec::Special,FORT_MVERROR);
 }
-
-void
-NavierStokes::sum_integrated_quantities ()
-{
-    int finest_level = parent->finestLevel();
-    Real time        = state[State_Type].curTime();
-    Real mass        = 0.0;
-    Real trac        = 0.0;
-
-    for (int lev = 0; lev <= finest_level; lev++)
-    {
-        NavierStokes& ns_level = getLevel(lev);
-        mass += ns_level.volWgtSum("density",time);
-        trac += ns_level.volWgtSum("tracer",time);
-    }
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-        int old_prec = std::cout.precision(12);
-        std::cout << '\n';
-        std::cout << "TIME= " << time << " MASS= " << mass << '\n';
-        std::cout << "TIME= " << time << " TRAC= " << trac << '\n';
-        std::cout.precision(old_prec);
-    }
-}
-
