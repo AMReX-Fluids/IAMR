@@ -2,7 +2,7 @@
 #define _PROJECTION_F_H_ 
 
 /*
-** $Id: PROJECTION_F.H,v 1.8 1999-02-25 01:39:11 propp Exp $
+** $Id: PROJECTION_F.H,v 1.9 1999-02-26 22:22:06 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -15,6 +15,7 @@
 #    define FORT_HGC2N         hgc2n
 #    define FORT_HGN2C         hgn2c
 #    define FORT_HGPHIBC       hgphibc
+#    define FORT_FILTRHS       filtrhs
 #endif
 
 #ifdef BL_LANG_CC
@@ -28,6 +29,7 @@
 #    define FORT_HGC2N         HGC2N
 #    define FORT_HGN2C         HGN2C
 #    define FORT_HGPHIBC       HGPHIBC
+#    define FORT_FILTRHS       FILTRHS
 #  else
 #    define FORT_FILTERP       filterp_
 #    define FORT_VEL_TO_ACCEL  veltoaccel_
@@ -38,6 +40,7 @@
 #    define FORT_HGC2N         hgc2n_
 #    define FORT_HGN2C         hgn2c_
 #    define FORT_HGPHIBC       hgphibc_
+#    define FORT_FILTRHS       filtrhs_
 #  endif
 
 #include <ArrayLim.H>
@@ -104,6 +107,14 @@ extern "C" {
                       ARLIM_P(phi_lo), ARLIM_P(phi_hi), const Real* phi,
 		      const int* isPeriodicInX);
 #endif    
+
+
+    void FORT_FILTRHS (const REAL* phi , ARLIM_P(p_lo), ARLIM_P(p_hi),
+                       const REAL* sig , ARLIM_P(s_lo), ARLIM_P(s_hi),
+                       const REAL* uold, ARLIM_P(u_lo), ARLIM_P(u_hi),
+                       REAL* divgp, ARLIM_P(dglo), ARLIM_P(dghi),
+                       const int* lo, const int* hi,
+                       const REAL* dx, const REAL* mult, int* is_rz);
 }
 
 #endif

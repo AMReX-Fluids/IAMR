@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.72 1999-02-26 17:28:12 marc Exp $
+// $Id: Diffusion.cpp,v 1.73 1999-02-26 22:22:05 almgren Exp $
 //
 
 //
@@ -1085,7 +1085,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         }
         ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
+        if (verbose && ParallelDescriptor::IOProcessor())
         {
             cout << "Original max of Vsync " << r_norm << '\n';
         }
@@ -1150,7 +1150,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         }
         ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
+        if (verbose && ParallelDescriptor::IOProcessor())
         {
             cout << "Final max of Vsync " << s_norm << '\n';
         }

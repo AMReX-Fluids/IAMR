@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.17 1998-11-06 18:16:35 lijewski Exp $
+// $Id: Projection.H,v 1.18 1999-02-26 22:22:03 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -43,25 +43,33 @@ public:
     // Compute the level projection in NavierStokes::advance.
     //
     void level_project (int             level,
+                        Real            time,
                         Real            dt,
                         Real            cur_pres_time,
-                        Real            old_state_time,
-                        Real            cur_state_time,
                         const Geometry& geom, 
                         MultiFab&       U_old,
                         MultiFab&       U_new,
                         MultiFab&       P_old,
                         MultiFab&       P_new,
                         MultiFab*       rho_half,
-                        MultiFab&       dsdt, 
                         SyncRegister*   crse_sync_reg,
                         SyncRegister*   fine_sync_reg,
                         int             crse_dt_ratio,
                         int**           bc,
                         int             iteration,
-                        Real            divu_minus_s_factor,
-                        MultiFab&       divuold,
-                        int             have_divu);
+                        int             have_divu,
+                        int             Divu_Type);
+
+    // solve DG(correction to P_new) = -D G^perp p^(n-half)
+    //  or   DG(correction to P_new) = -D G^perp p^(n-half) - D(U^n /dt)
+    void filterP(int level,
+                 const Geometry& geom,
+                 MultiFab &P_old,
+                 MultiFab &P_new,
+                 MultiFab &U_old,
+                 MultiFab * rho_half,
+                 int ** bc);
+
     //
     // Attempt at creating better pressure fill.
     //
@@ -148,16 +156,6 @@ public:
     void radDiv (int       level,
                  MultiFab& mf,
                  int       comp);
-    //
-    // Filter the velocities and pressures after a projection.
-    //
-    void filterUandP (int             level,
-                      MultiFab&       P_new, 
-                      MultiFab&       U_new,
-                      MultiFab*       rho_half,
-                      const BoxArray& grids,
-                      const Real*     dx,
-                      const Real      dt);
     //
     // Compute the node-centered divergence of U.
     //
@@ -326,9 +324,11 @@ protected:
     static Real sync_tol;
     static Real proj_abs_tol;
     static Real filter_factor;
+    static int  new_proj;
     static int  filter_u;
     static int  rho_wgt_vel_proj;
     static int  do_outflow_bcs;
     static int  make_sync_solvable;
+    static Real divu_minus_s_factor;
 };
 #endif

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.115 1999-02-26 17:28:42 marc Exp $
+// $Id: NavierStokes.cpp,v 1.116 1999-02-26 22:22:04 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -116,8 +116,6 @@ int  NavierStokes::have_divu                          = 0;
 int  NavierStokes::have_dsdt                          = 0;
 int  NavierStokes::S_in_vel_diffusion                 = 1;
 
-
-Real NavierStokes::divu_minus_s_factor = 0.0;
 Real NavierStokes::divu_relax_factor   = 0.0;
      
 int  NavierStokes::num_state_type = 2;     // for backward compatibility
@@ -314,7 +312,6 @@ NavierStokes::read_params ()
 	pp.get("temp_cond_coef",visc_coef[Temp]);
     }
     
-    pp.query("divu_minus_s_factor",divu_minus_s_factor);
     pp.query("divu_relax_factor",divu_relax_factor);
     pp.query("S_in_vel_diffusion",S_in_vel_diffusion);
     pp.query("be_cn_theta",be_cn_theta);
@@ -1361,40 +1358,14 @@ NavierStokes::level_projector (Real dt,
            sync_bc[i]       = sync_bc_array[i].dataPtr();
        }
 
-       MultiFab *dsdt = 0, *divuold = 0;
-
-       if (have_divu)
-       {
-           FillStateBndry(time,Divu_Type,0,1);
-           FillStateBndry(time+dt,Divu_Type,0,1);
-
-           dsdt    = getDivCond(1,time+dt);
-           divuold = getDivCond(1,time);
-
-           dsdt->minus(*divuold,0,1,1);
-
-           for (MultiFabIterator mfi(*dsdt); mfi.isValid(); ++mfi)
-           {
-               mfi().mult(1.0/dt,0,1);
-           }
-       }
-       else
-       {
-           dsdt    = new MultiFab(grids,1,1);
-           divuold = new MultiFab(grids,1,1,Fab_noallocate);
-           dsdt->setVal(0.0);
-       }
-
        int crse_dt_ratio  = (level > 0) ? parent->MaxRefRatio(level-1) : -1;
        const Real cur_pres_time = state[Press_Type].curTime();
 
-       projector->level_project(level,dt,cur_pres_time,time,time+dt,geom,
-                                U_old,U_new,P_old,P_new,rho_half,*dsdt,
+       projector->level_project(level,time,dt,cur_pres_time,geom,
+                                U_old,U_new,P_old,P_new,rho_half,
                                 crse_ptr,sync_reg,crse_dt_ratio,
-                                sync_bc.dataPtr(),iteration,
-                                divu_minus_s_factor,*divuold,have_divu);
-       delete dsdt;
-       delete divuold;
+                                sync_bc.dataPtr(),iteration,have_divu,
+                                Divu_Type);
 
        lp_stats.end();
    }

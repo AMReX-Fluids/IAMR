@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.31 1999-02-25 17:35:37 car Exp $
+// $Id: NavierStokes.H,v 1.32 1999-02-26 22:22:04 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -733,7 +733,6 @@ protected:
     static int  num_state_type;
     static int  have_divu;
     static int  have_dsdt;
-    static Real divu_minus_s_factor;
     static Real divu_relax_factor;
     static int  S_in_vel_diffusion;
     static int  do_init_vort_proj;

@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.16 1999-02-25 01:39:10 propp Exp $
+c $Id: PROJECTION_2D.F,v 1.17 1999-02-26 22:22:06 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -691,3 +691,140 @@ c     Write the solution into the arg
 13    continue
       return
       END
+
+c ::: -----------------------------------------------------------
+c ::: This routine will compute D (U / dt + sigma G^perp phi)
+c :::
+c ::: NOTE: phi is node-centered
+c :::       sigma is cell-centered      
+c :::       U is cell-centered      
+c ::: 
+c ::: INPUTS/OUTPUTS:
+c ::: phi        => node centered data
+c ::: DIMS(phi)  => index limits for phi
+c ::: sigma      => cell-centered coefficient array
+c ::: DIMS(sigma)=> index limits for sigma      
+c ::: u          => cell-centered velocity array
+c ::: DIMS(u)    => index limits for u      
+c ::: divgp     <=  node-centered divergence of gradient
+c ::: DIMS(divgp)=> index limits for divgp
+c ::: lo,hi      => node-centered subregion of divgp to define
+c ::: dx         => cell sizes      
+c ::: mult       => scalar multiplicative factor      
+c ::: -----------------------------------------------------------
+
+      subroutine FORT_FILTRHS(phi,DIMS(phi),sigma,DIMS(sigma),
+     &                        u,DIMS(u),divgp,DIMS(divgp),
+     &                        lo,hi,dx,mult,is_rz)
+
+      integer    DIMDEC(phi)
+      integer    DIMDEC(sigma)
+      integer    DIMDEC(u)
+      integer    DIMDEC(divgp)
+      integer    lo(SDIM), hi(SDIM)
+      REAL_T     dx(SDIM), mult
+      REAL_T     phi(DIMV(phi))
+      REAL_T     sigma(DIMV(sigma))
+      REAL_T     u(DIMV(u),SDIM)
+      REAL_T     divgp(DIMV(divgp))
+      integer    is_rz
+      
+      integer    i, j
+      REAL_T     p1, p2, p3, p4, denom
+      REAL_T     rminv,rpinv,fac
+      REAL_T     gpy_ul,gpy_ur,gpy_ll,gpy_lr
+      REAL_T     pext,vext,ux,vy
+
+#if BL_PRVERSION==9
+c     FOR NINE-POINT STENCIL
+      denom = one/(twelve*dx(1)**2) + one/(twelve*dx(2)**2) 
+#elif BL_PRVERSION==5
+c     FOR FIVE-POINT STENCIL
+      denom = one/(four*dx(1)**2) + one/(four*dx(2)**2)
+#else
+#error "Unknown PRVERSION setting"
+#endif
+
+      do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            p1 = sigma(i-1,j-1)*(-phi(i-1,j-1) + phi(i  ,j-1)
+     &                           +phi(i-1,j  ) - phi(i  ,j  ))
+            p2 = sigma(i-1,j  )*(-phi(i-1,j+1) + phi(i  ,j+1)
+     &                           +phi(i-1,j)   - phi(i  ,j  ))
+            p3 = sigma(i  ,j-1)*(-phi(i+1,j-1) + phi(i  ,j-1)
+     &                           +phi(i+1,j)   - phi(i  ,j  ))
+            p4 = sigma(i  ,j  )*(-phi(i+1,j+1) + phi(i  ,j+1)
+     &                           +phi(i+1,j)   - phi(i  ,j  ))
+            divgp(i,j) = denom*(p1+p2+p3+p4)
+         enddo
+      enddo
+
+      do j = lo(2), hi(2)
+      do i = lo(1), hi(1)
+        ux = half*(u(i,j,1)-u(i-1,j,1)+u(i,j-1,1)-u(i-1,j-1,1))/dx(1)
+        vy = half*(u(i,j,2)-u(i,j-1,2)+u(i-1,j,2)-u(i-1,j-1,2))/dx(2)
+        divgp(i,j) = divgp(i,j) + ux + vy
+      enddo
+      enddo
+
+      if (is_rz .eq. 1) then
+
+c      extra term added to DGphi for cylindrical coordinates
+       do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            rpinv = half / (dfloat(i)+half)
+            rminv = half / (dfloat(i)-half)
+
+            pext = ((sigma(i-1,j-1) * (phi(i,j-1) - phi(i,j)) +
+     $               sigma(i-1,j  ) * (phi(i,j+1) - phi(i,j))) * rminv -
+     $              (sigma(i  ,j-1) * (phi(i,j-1) - phi(i,j)) +
+     $               sigma(i  ,j  ) * (phi(i,j+1) - phi(i,j))) * rpinv)
+
+            divgp(i,j) = divgp(i,j) + denom*pext
+         enddo
+       enddo
+
+c      extra term added to DGbarphi for cylindrical coordinates --
+c        here we subtract it since we want D G^perp phi
+       fac = one / (twelve * dx(2)**2)
+       do j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+           rminv = fac / (dfloat(i)-half)
+           rpinv = fac / (dfloat(i)+half)
+   
+	   gpy_ur = half * sigma(i  ,j  ) * ( phi(i+1,j+1) + phi(i,j+1) 
+     $                                       -phi(i+1,j  ) - phi(i,j  ))
+	   gpy_ul = half * sigma(i-1,j  ) * ( phi(i-1,j+1) + phi(i,j+1) 
+     $                                       -phi(i-1,j  ) - phi(i,j  ))
+	   gpy_lr = half * sigma(i  ,j-1) * ( phi(i+1,j  ) + phi(i,j  ) 
+     $                                       -phi(i+1,j-1) - phi(i,j-1))
+	   gpy_ll = half * sigma(i-1,j-1) * ( phi(i-1,j  ) + phi(i,j  ) 
+     $                                       -phi(i-1,j-1) - phi(i,j-1))
+           vext =  (gpy_lr - gpy_ur)*rpinv 
+     $            +(gpy_ul - gpy_ll)*rminv
+           divgp(i,j) = divgp(i,j) - vext
+        enddo
+        enddo
+
+        fac = one / (twelve * dx(2))
+        do j = lo(2), hi(2)
+        do i = lo(1), hi(1)
+          rminv = fac / (dfloat(i)-half)
+          rpinv = fac / (dfloat(i)+half)
+
+          vext = (u(i  ,j-1,2) - u(i  ,j  ,2))*rpinv 
+     $          +(u(i-1,j  ,2) - u(i-1,j-1,2))*rminv
+   
+          divgp(i,j) = divgp(i,j) + vext
+        enddo
+        enddo
+
+      endif
+
+      do j = lo(2), hi(2)
+      do i = lo(1), hi(1)
+           divgp(i,j) = divgp(i,j) * mult
+      enddo
+      enddo
+
+      end
