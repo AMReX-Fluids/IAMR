@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.10 1998-11-05 23:30:17 lijewski Exp $
+c $Id: PROJECTION_2D.F,v 1.11 1998-11-19 23:37:59 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -539,9 +539,9 @@ c     values are given along a 1-wide strip along the top of the domain.
          write(6,*) 'FORT_HGPHIBC: bad bounds'
          stop
          
-      else if (jne - jns + 1 .gt. NstripMAX) then
+      else if (ine - ins + 1 .gt. NstripMAX) then
          
-         write(6,*) 'FORT_HGPHIBC: recompile with NstripMAX >',jne-jns+1
+         write(6,*) 'FORT_HGPHIBC: recompile with NstripMAX >',ine-ins+1
          stop
          
       end if
@@ -552,9 +552,9 @@ c     directly from cell-centers just inside domain
       
       divcor_ave = zero
       vtot = zero
-      max_divu = zero
-      min_divu = zero
       j = jcs + 1
+      max_divu = divcor(ics,j)
+      min_divu = max_divu
       do i = ics, ice
          divcor_ave = divcor_ave+r(i)*divcor(i,j)
          vtot = vtot+r(i)
@@ -729,7 +729,7 @@ c     Write the solution into the arg
       REAL_T alpha,beta,a(n),b(n),c(n),r(n),x(n)
       PARAMETER (NMAX=500)
       INTEGER i
-      REAL_T fact,gamma,bb(NMAX),u(NMAX),z(NMAX)
+      REAL_T fact,gamma,bb(NMAX),u(NMAX),z(NMAX),den
       if(n.le.2)then
          write(6,*) 'n too small in cyclic'
          stop
@@ -750,7 +750,8 @@ c     Write the solution into the arg
         u(i)=0.
 12    continue
       call tridag(a,bb,c,u,z,n)
-      fact=(x(1)+beta*x(n)/gamma)/(one+z(1)+beta*z(n)/gamma)
+      den=one+z(1)+beta*z(n)/gamma
+      fact=cvmgt(zero,(x(1)+beta*x(n)/gamma)/den,den.eq.zero)
       do 13 i=1,n
         x(i)=x(i)-fact*z(i)
 13    continue
