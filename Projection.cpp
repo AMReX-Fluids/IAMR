@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.94 1999-06-25 21:47:02 almgren Exp $
+// $Id: Projection.cpp,v 1.95 1999-06-28 20:37:03 car Exp $
 //
 
 #ifdef BL_T3E
@@ -1200,7 +1200,7 @@ Projection::MLsyncProject (int             c_lev,
 #ifdef BL_USE_HGPROJ_SERIAL
         restrict_level(u_real[n][c_lev], u_real[n][c_lev+1], ratio);
 #else
-        restrict_level(u_real[n][c_lev], u_real[n][c_lev+1], ratio, default_restrictor(), level_interface(), 0);
+        restrict_level(u_real[n][c_lev], u_real[n][c_lev+1], ratio, default_restrictor(), default_level_interface, 0);
 #endif
     }
 
@@ -1210,7 +1210,7 @@ Projection::MLsyncProject (int             c_lev,
 #ifdef BL_USE_HGPROJ_SERIAL
     restrict_level(s_real[c_lev], s_real[c_lev+1], ratio);
 #else
-    restrict_level(s_real[c_lev], s_real[c_lev+1], ratio, default_restrictor(), level_interface(), 0);
+    restrict_level(s_real[c_lev], s_real[c_lev+1], ratio, default_restrictor(), default_level_interface, 0);
 #endif
 
     p_real.set(c_lev,   phi[c_lev]);
@@ -1682,7 +1682,7 @@ Projection::initialSyncProject (int       c_lev,
                            parent->refRatio(lev-1));
 #else
             restrict_level(u_real[n][lev-1],u_real[n][lev],parent->refRatio(lev-1),
-                           default_restrictor(),level_interface(),0);
+                           default_restrictor(), default_level_interface,0);
 #endif
         }
     }
@@ -2553,7 +2553,9 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
     FillPatchIterator divuNewFpi(LevelData[f_lev],cc_MultiFab,nGrow,
                                  start_time+dt,Divu_Type,srcCompDivu,nCompDivu);
 	
+#if BL_SPACEDIM == 2
     Real dt_inv = 1./dt;
+#endif
 
     for ( ;rhoOldFpi.isValid()  &&  velOldFpi.isValid()  &&  divuOldFpi.isValid() &&
               rhoNewFpi.isValid()  &&  velNewFpi.isValid()  &&  divuNewFpi.isValid();
