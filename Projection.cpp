@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.47 1998-07-09 18:28:30 lijewski Exp $
+// $Id: Projection.cpp,v 1.48 1998-07-24 02:05:18 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -81,6 +81,11 @@ int       Projection::make_sync_solvable = 0;
 
 static RegType project_bc[] =
 {interior, inflow, outflow, refWall, refWall, refWall};
+
+//
+// Used in a number of calls to RunStat. 
+//
+static const aString SyncProjStr("sync_project");
 
 // ==================================================
 // Setup functions follow
@@ -671,7 +676,7 @@ void Projection::syncProject(int c_lev, MultiFab & pres, MultiFab & vel,
                              const Geometry& geom,
                              const Real * dx, Real dt_crse, int crse_dt_ratio)
 {
-  RunStats proj_stats("sync_project",c_lev);
+  RunStats proj_stats(SyncProjStr,c_lev);
   proj_stats.start();
 
   int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
@@ -811,7 +816,7 @@ void Projection::MLsyncProject(int c_lev,
                                const Geometry & fine_geom,
                                const Geometry & crse_geom)
 {
-  RunStats proj_stats("sync_project",c_lev);
+  RunStats proj_stats(SyncProjStr,c_lev);
   proj_stats.start();
     
   int lev;
@@ -1023,7 +1028,7 @@ void Projection::initialVelocityProject(int c_lev,
                                         int have_divu)
 {
     //----------------- manipulate state + pressure data ---------------------
-  RunStats proj_stats("sync_project",c_lev);
+  RunStats proj_stats(SyncProjStr,c_lev);
   proj_stats.start();
 
   int lev;
@@ -1265,7 +1270,7 @@ Projection::initialSyncProject (int       c_lev,
                                 Real      dt_init,
                                 int       have_divu)
 {
-    RunStats proj_stats("sync_project",c_lev);
+    RunStats proj_stats(SyncProjStr,c_lev);
     proj_stats.start();
 
     int lev;
