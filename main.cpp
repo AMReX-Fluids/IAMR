@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: main.cpp,v 1.30 1999-04-01 18:15:17 lijewski Exp $
+// $Id: main.cpp,v 1.31 1999-04-02 23:08:03 marc Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -193,7 +193,9 @@ main (int   argc,
     //
     // Initialize some Holy Grail junk.
     //
+#ifdef BL_USE_MPI
     HG::MPI_init();
+#endif
     //
     // Instantiate after we're running in Parallel.
     //
