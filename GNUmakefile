@@ -87,6 +87,7 @@ LDFLAGS += -non_shared -v
 #FDEBF += -automatic
 # FOR RUNNING 3RD ONLY
 endif
+LIBRARIES+=-lm_4sqrt
 
 #FC = f77  -warn declarations -extend_source -check_bounds
 #FC = f90  -warn declarations -extend_source -check_bounds
@@ -98,7 +99,7 @@ CXXOPTF +=
 CXXDEBF +=
 
 FFLAGS += 
-FOPTF += 
+FOPTF += -fpe2
 FDEBF += -fpe2
 
 CFLAGS +=

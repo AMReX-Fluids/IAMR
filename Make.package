@@ -220,7 +220,7 @@ LBASE=proj
 #LBASE=ell
 
 ifeq ($(LBASE),proj)
-CEXE_sources += mall_info.cpp cache.cpp interface.cpp boundary.cpp interpolator.cpp \
+CEXE_sources += cache.cpp interface.cpp boundary.cpp interpolator.cpp \
        		restrictor.cpp fill_patch.cpp amr_multi.cpp \
 		hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
 		hg_projector.cpp
