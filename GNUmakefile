@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.74 1999-04-16 19:19:12 lijewski Exp $
+# $Id: GNUmakefile,v 1.75 1999-05-24 18:11:44 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -61,15 +61,6 @@ else
   INCLUDE_LOCATIONS += . $(TOP)/hgproj-serial
   INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
   INCLUDE_LOCATIONS += $(TOP)/include
-endif
-
-ifeq ($(USE_MPI),TRUE)
-ifeq ($(MACHINE),OSF1)
-INCLUDE_LOCATIONS += /usr/local/mpi/include
-endif
-ifeq ($(MACHINE),AIX)
-INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
-endif
 endif
 
 ifeq ($(KCC_VERSION),3.3)
