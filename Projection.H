@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.18 1999-02-26 22:22:03 almgren Exp $
+// $Id: Projection.H,v 1.19 1999-03-01 18:58:33 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -187,17 +187,6 @@ protected:
     // Set up the sync projection.
     //
     void bldSyncProject ();
-    //
-    // Fill patch to get the divU.
-    //
-    void getDivCond (int        level,
-                     FArrayBox& fab,
-                     int        ngrow,
-                     Real       time);
-
-    MultiFab* getDivCond (int  level,
-                          int  ngrow,
-                          Real time);
     //
     // Convert U from an Accleration like quantity to a velocity
     // Unew = Uold + alpha*Unew
