@@ -1,4 +1,4 @@
-// $Id: NavierStokes.cpp,v 1.5 1997-07-24 20:31:19 vince Exp $
+// $Id: NavierStokes.cpp,v 1.6 1997-07-25 23:13:31 vince Exp $
 
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2794,6 +2794,7 @@ void NavierStokes::initial_velocity_diffusion_update(REAL dt)
 
         // update U_new with viscosity
         //for (i = 0; i < grids.length(); i++)
+#if (USEOLDFILLPATCH == 1)
         for(MultiFabIterator U_oldmfi(U_old); U_oldmfi.isValid(); ++U_oldmfi) {
             DependentMultiFabIterator U_newmfi(U_oldmfi, U_new);
             DependentMultiFabIterator Aofsmfi(U_oldmfi, Aofs);
@@ -2816,8 +2817,113 @@ void NavierStokes::initial_velocity_diffusion_update(REAL dt)
                                   Aofsmfi(),  0,
                                   tforces,  0,
                                   grd,      dt );
+        }  // end MultiFabIterator
+#else
+
+    int destComp = 0;
+    int rhoNGrow = 0;
+    int nComp    = 1;
+    FillPatchIterator Rhofpi(*this, U_old, rhoNGrow, destComp, prev_time,
+                             State_Type, Density, nComp);
+    MultiFab &P_old = get_old_data(Press_Type);
+    int presNGrow   = 0;
+    int presSrcComp = 0;
+    FillPatchIterator pressurefpi(*this, P_old, presNGrow, destComp, pres_prev_time,
+                           Press_Type, presSrcComp, nComp);
+    for(;
+        Rhofpi.isValid()     &&
+        pressurefpi.isValid();
+        ++Rhofpi,
+        ++pressurefpi)
+    {
+            DependentMultiFabIterator U_oldmfi(Rhofpi, U_old);
+            DependentMultiFabIterator U_newmfi(Rhofpi, U_new);
+            DependentMultiFabIterator Aofsmfi(Rhofpi, Aofs);
+            DependentMultiFabIterator rho_halfmfi(Rhofpi, (*rho_half));
+            DependentMultiFabIterator visc_termsmfi(Rhofpi, visc_terms);
+	    assert(grids[U_oldmfi.index()] == U_oldmfi.validbox());
+
+	    int i = U_oldmfi.index();
+
+            FARRAYBOX& Rh = rho_halfmfi();
+            const BOX& grd = U_oldmfi.validbox();
+
+            // get the forcing terms
+            //getGradP(Gp,     i,0,            pres_prev_time);
+        // from NS::getGradP vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+        {
+        BOX gpbx(grids[i]);
+        gpbx.grow(presNGrow);
+        BOX p_box(surroundingNodes(gpbx));
+        //FARRAYBOX p_fab(p_box,1);
+        FArrayBox &p_fab = pressurefpi();
+        assert(p_fab.box() == p_box);
+        //FillPatch(p_fab,0,time,Press_Type,0,1);
+        //-----------------------  size the pressure gradient storage
+        //BOX gpbx(grd);
+        //gpbx.grow(ngrow);
+        Gp.resize(gpbx,BL_SPACEDIM);
+
+        //------------------------ test to see if p_fab contains gpbx
+        BOX test = p_fab.box();
+        test = test.enclosedCells();
+        assert( test.contains( gpbx ) == true );
+
+        // ----------------------- set pointers
+        const int *plo = p_fab.loVect();
+        const int *phi = p_fab.hiVect();
+        const int *glo = gpbx.loVect();
+        const int *ghi = gpbx.hiVect();
+        const REAL *p_dat  = p_fab.dataPtr();
+        const REAL *gp_dat = Gp.dataPtr();
+        const REAL *dx     = geom.CellSize();
+
+        // ----------------------- create the pressure gradient
+        FORT_GRADP (p_dat,ARLIM(plo),ARLIM(phi),
+                    gp_dat,ARLIM(glo),ARLIM(ghi),glo,ghi,dx);
         }
-    }
+        // from NS::getGradP ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+            //getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time);
+        // from NS::getForce vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+        REAL grav = Abs(gravity);
+        Box tfbox(grids[i]);
+        tfbox.grow(rhoNGrow);
+        tforces.resize(tfbox, BL_SPACEDIM);
+        for(int dc = 0; dc < BL_SPACEDIM; dc++) {
+          int sc = Xvel + dc;
+#if (BL_SPACEDIM == 2)
+          if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001)
+#endif
+#if (BL_SPACEDIM == 3)
+          if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
+#endif
+          {
+              // set force to -rho*g
+            FARRAYBOX rho(Rhofpi.fabbox());
+            //getState(rho,i,1,Density,1,prev_time);
+            rho.copy(Rhofpi());
+            rho.mult(-grav);
+            tforces.copy(rho,0,dc,1);
+          } else {
+            tforces.setVal(0.0,dc);
+          }
+        }  // end for(dc...)
+        // from NS::getForce ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+            godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rh );
+            
+            // compute the inviscid update
+            godunov->Add_aofs_tf( U_oldmfi(),
+                                  U_newmfi(), 0, BL_SPACEDIM, 
+                                  Aofsmfi(),  0,
+                                  tforces,  0,
+                                  grd,      dt );
+        }  // end MultiFabIterator
+#endif
+    }  // end if(is_diffusive[Xvel])
 #endif
 }
 
@@ -4590,13 +4696,11 @@ void NavierStokes::pullFluxes( int level, int i, int start_ind, int ncomp,
 void NavierStokes::getForce( FARRAYBOX& force, int gridno, int ngrow,
                              int strt_comp, int num_comp, REAL time)
 {
-/*
 //bool canUse_getForce = false;
 //assert(canUse_getForce);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getForce" << endl;
 cerr << endl;
-*/
 
     BOX bx(grids[gridno]);
     bx.grow(ngrow);
@@ -4631,13 +4735,11 @@ cerr << endl;
 // fill patch and then call the other GradP function    
 void NavierStokes::getGradP(FARRAYBOX& gp, int gridno, int ngrow, REAL time)
 {
-/*
 //bool canUse_getGradP1 = false;
 //assert(canUse_getGradP1);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getGradP" << endl;
 cerr << endl;
-*/
 
     BOX gpbx(grids[gridno]);
     gpbx.grow(ngrow);
@@ -4660,13 +4762,11 @@ cerr << endl;
 void NavierStokes::getGradP(FARRAYBOX &p_fab, FARRAYBOX& gp,
                             const BOX &grd, int ngrow )
 {
-/*
 bool canUse_getGradP2 = false;
 //assert(canUse_getGradP2);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getGradP (2)" << endl;
 cerr << endl;
-*/
 
     //-----------------------  size the pressure gradient storage
     BOX gpbx(grd);
@@ -4698,13 +4798,11 @@ cerr << endl;
 void NavierStokes::getDivCond(FARRAYBOX& fab, int gridno, int ngrow, 
                          REAL time)
 {
-/*
 bool canUse_getDivCond = false;
 //assert(canUse_getDivCond);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getDivCond (1)" << endl;
 cerr << endl;
-*/
 
     getState(fab, gridno, ngrow, time, have_divu, Divu_Type,
              //divu_assoc, divu_unfilled);
@@ -4717,13 +4815,11 @@ cerr << endl;
 void NavierStokes::getDsdt(FARRAYBOX& fab, int gridno, int ngrow, 
                          REAL time)
 {
-/*
 bool canUse_getDsDt = false;
 //assert(canUse_getDsDt);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getDsdt" << endl;
 cerr << endl;
-*/
 
     getState(fab, gridno, ngrow, time, (have_dsdt && have_divu), Dsdt_Type,
              //dsdt_assoc, dsdt_unfilled);
@@ -4736,13 +4832,11 @@ cerr << endl;
 void NavierStokes::getState(FARRAYBOX& fab, int gridno, int ngrow,
 		       int strt_comp, int num_comp, REAL time)
 {
-/*
 bool canUse_getState1 = false;
 //assert(canUse_getState1);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getState (1)" << endl;
 cerr << endl;
-*/
 
     getState(fab,gridno,ngrow,State_Type,strt_comp,num_comp,time);
 }
@@ -4752,13 +4846,11 @@ void NavierStokes::getState(FARRAYBOX& fab, int gridno, int ngrow,
 		        int state_indx, int strt_comp, int num_comp, 
                         REAL time)
 {
-/*
 bool canUse_getState2 = false;
 //assert(canUse_getState2);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getState (2)" << endl;
 cerr << endl;
-*/
 
     BOX bx(grids[gridno]);
     bx.grow(ngrow);
@@ -4847,13 +4939,11 @@ void NavierStokes::getState(FARRAYBOX& fab, int gridno, int ngrow,
                        Array<BOX>& unfilled, int
                        num_comp, int strt_comp)
 {
-/*
 bool canUse_getState3 = false;
 //assert(canUse_getState3);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getState (3)" << endl;
 cerr << endl;
-*/
 
     // create the storage
     BOX bx(grids[gridno]);
@@ -4889,13 +4979,11 @@ cerr << endl;
 // fill patch divU
 void NavierStokes::getDivCond(FARRAYBOX& fab, int ngrow, REAL time)
 {
-/*
 bool canUse_getDivCond = false;
 //assert(canUse_getDivCond);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getDivCond (2)" << endl;
 cerr << endl;
-*/
 
     // for NavierStokes, defaults divU = 0
     if(!have_divu) {

@@ -95,7 +95,7 @@ CXXDEBF +=
 
 FFLAGS += 
 FOPTF += 
-FDEBF += -C
+FDEBF += -C -fpe2
 
 CFLAGS +=
 COPTF +=

@@ -3,12 +3,12 @@ initialderived        ymom
 initialderived        xmom
 initialderived        density
 initialscale          2
-initialscale          5
 initialscale          1
+initialscale          5
 numberformat          %5.3e
 numberformat          %7.5e
-numberformat          %9.7e
 numberformat          %7.5f
+numberformat          %12.8f
 maxpixmapsize         1000000
 reservesystemcolors   0
 reservesystemcolors   24
@@ -16,7 +16,7 @@ showboxes             TRUE
 windowheight          650
 windowwidth           900
 windowheight          550
-windowwidth           600
+windowwidth           800
 fabordering           sgi
 fabordering           alpha
 filetype              sf

@@ -2862,13 +2862,13 @@ c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
      @ nsets, edge, nevals, dstart, sstart, dstrid, sstrid,
      @ hx, alpha, rho, it, pcode)
       implicit real*8(a-h,o-z), integer(i-n)
-      real*8 r(0:1), p(0:1), z(0:1)
-      real*8 x(0:1), w(0:1), c(0:1), mask(0:1)
+      real*8 r(0:*), p(0:*), z(0:*)
+      real*8 x(0:*), w(0:*), c(0:*), mask(0:*)
       integer ngrids
       integer strid(ngrids), nvals(ngrids)
       integer rs(ngrids), ps(ngrids), zs(ngrids)
       integer xs(ngrids), ws(ngrids), cs(ngrids), ms(ngrids)
-      real*8 edge(0:1)
+      real*8 edge(0:*)
       integer nsets
       integer nevals(nsets), dstart(nsets), sstart(nsets)
       integer dstrid(nsets), sstrid(nsets)

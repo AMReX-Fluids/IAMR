@@ -4,7 +4,7 @@
 #define _FABARRAY_H_
 
 //
-// $Id: FabArray.H,v 1.4 1997-07-24 20:31:16 vince Exp $
+// $Id: FabArray.H,v 1.5 1997-07-25 23:13:30 vince Exp $
 //
 
 #include <Assert.H>
@@ -1336,7 +1336,7 @@ FabArray<T, FAB>::FillBoundary (int start_comp, int num_comp) {
                 continue;
             Box destbox(ba[nbor]);
             destbox &= fab.box();
-            fab.copy(fs[nbor],destbox,scomp,destbox,scomp,num_comp);
+            fab.copy(fs[nbor],destbox,start_comp,destbox,start_comp,num_comp);
         }
     }
 */
@@ -1353,7 +1353,7 @@ FabArray<T, FAB>::FillBoundary (int start_comp, int num_comp) {
       Box destbox(boxarray[j]);
       destbox &= fai().box();
       if(destbox.ok()) {
-        //fai().copy(fs[j],destbox,scomp,destbox,scomp,num_comp);
+        //fai().copy(fs[j],destbox,start_comp,destbox,start_comp,num_comp);
 	BoxList unfilledBoxes;  // unused here
 	FillBoxId fbid;
 	fbid = facd.AddBox(faid, destbox, unfilledBoxes,
@@ -1380,10 +1380,11 @@ FabArray<T, FAB>::FillBoundary (int start_comp, int num_comp) {
 	++fbidli;
 
 	assert(destbox == fbid.box());
-	FArrayBox overlapFab(fbid.box(), num_comp);
+	FArrayBox overlapFab(fbid.box(), fai().nComp());
 	facd.FillFab(faid, fbid, overlapFab);
 
-        fai().copy(overlapFab, destbox);
+        fai().copy(overlapFab, overlapFab.box(), start_comp,
+		   destbox, start_comp, num_comp);
       }
     }
   }
