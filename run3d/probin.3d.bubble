@@ -5,7 +5,7 @@
   yblob = 0.5
   zblob = 1.0
   radblob = 0.2
-  denfact = 2.0
+  denfact = 1.1
   adv_dir = 1
   adv_vel = 0.0
   adverr  = 0.1
