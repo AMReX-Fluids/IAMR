@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.20 2003-02-19 19:19:26 almgren Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.21 2003-02-19 19:23:34 almgren Exp $
 //
 #include <winstd.H>
 
@@ -213,8 +213,6 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
      //  we'll assume for now we can choose either one.
      if (numRegions == 1 && numOutFlowFaces > 1)
        BL_ASSERT(dx[0] == dx[1]);
-
-#endif
 
 //   Note numRegions = 1 or 2, those are the only possibilities.
      for (int ireg = 0; ireg < numRegions; ireg++) 
