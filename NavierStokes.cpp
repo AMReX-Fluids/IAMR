@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.37 1998-03-30 17:30:27 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.38 1998-04-01 18:21:38 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2873,7 +2873,7 @@ NavierStokes::writePlotFile (const aString& dir,
     //
     // Force other processors to wait till directory is built.
     //
-    ParallelDescriptor::Synchronize();
+    ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor())
     {
