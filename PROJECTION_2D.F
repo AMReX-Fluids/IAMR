@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.25 1999-06-07 17:30:54 marc Exp $
+c $Id: PROJECTION_2D.F,v 1.26 1999-06-22 19:13:29 propp Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -188,13 +188,16 @@ c
       integer    DIMDEC(unew),DIMDEC(uold)
       REAL_T     uold(DIMV(uold),SDIM)
       REAL_T     unew(DIMV(unew),SDIM)
-
+     
       integer i, j, n
+      REAL_T dt_inv
+   
+      dt_inv = 1./dt;
 
       do n = 1, SDIM
          do j = lo(2)-1, hi(2)+1
             do i = lo(1)-1, hi(1)+1
-               unew(i,j,n) = (unew(i,j,n)-uold(i,j,n))/dt
+               unew(i,j,n) = (unew(i,j,n)-uold(i,j,n))*dt_inv
             end do
          end do
       end do

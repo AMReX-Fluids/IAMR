@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.92 1999-06-21 22:00:30 propp Exp $
+// $Id: Projection.cpp,v 1.93 1999-06-22 19:13:29 propp Exp $
 //
 
 #ifdef BL_T3E
@@ -1546,6 +1546,7 @@ Projection::initialSyncProject (int       c_lev,
         phi[lev] = &LevelData[lev].get_old_data(Press_Type);
     }
 
+    Real dt_inv = 1./dt;
     if (have_divu) 
     {
         //
@@ -1586,7 +1587,7 @@ Projection::initialSyncProject (int       c_lev,
                 DependentMultiFabIterator dsdt_it(mfi,*dsdt);
                 if (!proj_0 && !proj_2) 
                     dsdt_it().minus(divu_it());
-                dsdt_it().divide(dt);
+                dsdt_it().mult(dt_inv);
                 mfi().copy(dsdt_it());
             }
 
@@ -1634,7 +1635,6 @@ Projection::initialSyncProject (int       c_lev,
         }
         else
         {
-            const Real dt_inv = 1./dt;
             vel[lev]->mult(dt_inv,0,BL_SPACEDIM,1);
         }
     }
@@ -2553,6 +2553,8 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
     FillPatchIterator divuNewFpi(LevelData[f_lev],cc_MultiFab,nGrow,
                                  start_time+dt,Divu_Type,srcCompDivu,nCompDivu);
 	
+    Real dt_inv = 1./dt;
+
     for ( ;rhoOldFpi.isValid()  &&  velOldFpi.isValid()  &&  divuOldFpi.isValid() &&
               rhoNewFpi.isValid()  &&  velNewFpi.isValid()  &&  divuNewFpi.isValid();
           ++rhoOldFpi, ++velOldFpi, ++divuOldFpi, ++rhoNewFpi, ++velNewFpi, ++divuNewFpi)
@@ -2573,14 +2575,14 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
         dudt.copy(velNewFpi());
         if (!proj_0 && !proj_2)
             dudt.minus(velOldFpi());
-        dudt.divide(dt);
+        dudt.mult(dt_inv);
 	    
         BL_ASSERT(divuOldFpi.validbox() == divuNewFpi.validbox());
         dsdt.resize(divuOldFpi.validbox(),nCompDivu);
         dsdt.copy(divuNewFpi());
         if (!proj_0 && !proj_2)
             dsdt.minus(divuOldFpi());
-        dsdt.divide(dt);
+        dsdt.mult(dt_inv);
         //
         // Fill phi_fine_strip with boundary cell values for phi, then
         // copy into arg data.  Note: Though this looks like a distributed
