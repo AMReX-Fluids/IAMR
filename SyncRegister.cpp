@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.58 1999-06-30 22:40:04 almgren Exp $
+// $Id: SyncRegister.cpp,v 1.59 1999-07-01 20:21:32 propp Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -402,10 +402,6 @@ SyncRegister::InitRHS (MultiFab&       rhs,
         } 
     }
 
-    ofstream os("old.fab");
-    rhs[0].writeOn(os);
-    cout << "RHS " << endl;
-    cout << rhs[0] << endl;
     //
     // Set Up bndry_mask.
     //
