@@ -146,8 +146,9 @@ F$(MGLIB_BASE)_sources += ABec_$(DIM)D.F \
                           LP_$(DIM)D.F \
                           MG_$(DIM)D.F
 
-
+ifeq ($(USE_BSP),TRUE)
 CEXE_sources += preload.cpp
+endif
 
 
 ifeq ($(EBASE),mgIBD)
