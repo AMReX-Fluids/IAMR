@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.54 1998-11-10 23:55:34 lijewski Exp $
+# $Id: GNUmakefile,v 1.55 1998-11-13 21:04:28 sstanley Exp $
 #
 PRECISION     = DOUBLE
 DEBUG	      = FALSE
@@ -125,7 +125,7 @@ libs:
 ifeq ($(USE_HGPROJ_SERIAL),FALSE)
 	cd $(TOP)/hgproj;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 else
-	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) libproj
+	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) libproj
 endif
 	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 
