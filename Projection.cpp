@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.93 1999-06-22 19:13:29 propp Exp $
+// $Id: Projection.cpp,v 1.94 1999-06-25 21:47:02 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -488,8 +488,6 @@ Projection::level_project (int             level,
     //
     rho_half->setBndry(BogusValue);
     scaleVar(rho_half, 1, &U_new, grids, level);
-    if (have_divu)
-        radMult(level,*divusource,0);
     //
     // Application specific first guess.
     //
@@ -570,6 +568,8 @@ Projection::level_project (int             level,
     {
         bool      use_u  = true;
         const int nghost = 1;
+
+        radMult(level,*divusource,0);
         divusource->mult(-1.0,0,1,nghost);
 
         PArray<MultiFab> rhs_real(level+1);
