@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.11 1998-06-09 21:42:54 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.12 1998-07-02 23:47:00 lijewski Exp $
 //
 
 #include <MacBndry.H>
@@ -419,14 +419,12 @@ mac_sync_driver (const MacBndry& mac_bndry,
     {
         bool use_mg_precond = true;
         CGSolver mac_cg(mac_op,use_mg_precond);
-        Real local_mac_sync_tol = mac_sync_tol/pow(100.0, level);
-        mac_cg.solve(*mac_sync_phi,Rhs,local_mac_sync_tol,mac_abs_tol);
+        mac_cg.solve(*mac_sync_phi,Rhs,mac_sync_tol,mac_abs_tol);
     }
     else
     {
         MultiGrid mac_mg(mac_op);
-        Real local_mac_sync_tol = mac_sync_tol/pow(100.0, level);
-        mac_mg.solve(*mac_sync_phi,Rhs,local_mac_sync_tol,mac_abs_tol);
+        mac_mg.solve(*mac_sync_phi,Rhs,mac_sync_tol,mac_abs_tol);
     }
     
     int mac_op_lev = 0;
