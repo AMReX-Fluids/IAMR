@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.23 1998-05-14 22:08:57 almgren Exp $
+// $Id: main.cpp,v 1.24 1998-06-20 03:17:54 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -33,6 +33,69 @@ using std::set_new_handler;
 #else
 #include <new.h>
 #endif
+
+#ifndef NDEBUG
+extern "C" void PrintBoxArray (const BoxArray& ba);
+
+void
+PrintBoxArray (const BoxArray& ba)
+{
+    cout << ba << endl;
+}
+
+extern "C" void PrintBoxDomain (const BoxDomain& bd);
+
+void
+PrintBoxDomain (const BoxDomain& bd)
+{
+    cout << bd << endl;
+}
+
+extern "C" void PrintTagBox (const TagBox& tb);
+
+extern "C" void PrintTagBoxArray (const TagBoxArray& tba);
+
+void
+PrintTagBox (const TagBox& tb)
+{
+    const Box& bx = tb.box();
+
+    cout << "TagBox: box = " << bx << ":\n";
+
+    for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
+    {
+        if (tb(p) == TagBox::SET)
+        {
+            cout << p << ' ';
+        }
+    }
+
+    cout << endl;
+}
+
+void
+PrintTagBoxArray (const TagBoxArray& tba)
+{
+    cout << "TagBoxArray:\n";
+
+    for (int i = 0; i < tba.length(); i++)
+    {
+        const Box& bx = tba[i].box();
+
+        cout << "\ti = " << i << ", box = " << bx << ":\n";
+
+        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
+        {
+            if (tba[i](p) == TagBox::SET)
+            {
+                cout << p << ' ';
+            }
+        }
+
+        cout << endl;
+    }
+}
+#endif /*NDEBUG*/
 
 static
 void 
