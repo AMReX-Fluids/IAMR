@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.152 2003-09-08 18:49:31 almgren Exp $
+// $Id: Projection.cpp,v 1.153 2003-09-09 19:31:22 almgren Exp $
 //
 #include <winstd.H>
 
@@ -2841,7 +2841,12 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
   for ( int iface = 0; iface < numOutFlowFaces; iface++)
     {
-      phi[lev]->copy(phi_fine_strip[iface]);
+      MultiFab phi_fine_strip_mf(BoxArray(phi_fine_strip[iface].box()),1,0);
+
+      for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi)
+         phi_fine_strip_mf[mfi].copy(phi_fine_strip[iface]);
+
+      phi[lev]->copy(phi_fine_strip_mf);
     }
 
   if (lev > c_lev) 
