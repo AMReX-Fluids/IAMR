@@ -1,6 +1,10 @@
 #ifndef _MACOPERATOR_H_
 #define _MACOPERATOR_H_
 
+//
+// $Id: MacOperator.H,v 1.3 1997-09-26 16:57:01 lijewski Exp $
+//
+
 //==========================================================================
 // This class defines how mass continuity is defined for the projection operators
 // in class NavierStokes.  For the Mac project, this is done through setting a

@@ -2,6 +2,10 @@
 #ifndef WRITEMULTIFAB_H
 #define WRITEMULTIFAB_H
 
+//
+// $Id: WriteMultiFab.H,v 1.3 1997-09-26 16:57:08 lijewski Exp $
+//
+
 #include <REAL.H>
 #include <Box.H>
 #include <BoxList.H>

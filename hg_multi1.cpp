@@ -1,3 +1,8 @@
+
+//
+// $Id: hg_multi1.cpp,v 1.8 1997-09-26 16:57:12 lijewski Exp $
+//
+
 #include <Tracer.H>
 #include <hg_multi.H>
 

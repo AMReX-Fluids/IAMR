@@ -1,6 +1,10 @@
 #ifndef _ErrorList_H_
 #define _ErrorList_H_
 
+//
+// $Id: ErrorList.H,v 1.3 1997-09-26 16:56:56 lijewski Exp $
+//
+
 #include <REAL.H>
 #include <List.H>
 #include <aString.H>

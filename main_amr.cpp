@@ -1,4 +1,8 @@
 
+//
+// $Id: main_amr.cpp,v 1.5 1997-09-26 16:57:15 lijewski Exp $
+//
+
 #ifdef BL_ARCH_CRAY
 #  ifdef BL_USE_DOUBLE
 DOUBLE PRECISION NOT ALLOWED ON CRAY

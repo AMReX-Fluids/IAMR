@@ -1,6 +1,10 @@
 #ifndef _HG_PROJECTOR_H_
 #define _HG_PROJECTOR_H_
 
+//
+// $Id: hg_projector.H,v 1.6 1997-09-26 16:57:13 lijewski Exp $
+//
+
 #include <Boolean.H>
 #include <hg_multi.H>
 

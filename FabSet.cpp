@@ -1,32 +1,25 @@
-// --------------------------------------------------------------------
-// FabSet.C
-// --------------------------------------------------------------------
+
+//
+// $Id: FabSet.cpp,v 1.6 1997-09-26 16:56:57 lijewski Exp $
+//
+
 #include <FabSet.H>
 #include <Looping.H>
 
-// --------------------------------------------------------------------
 FabSet::FabSet() : MultiFab() {
 }
 
-
-// --------------------------------------------------------------------
 FabSet::~FabSet() {
 }
 
-
-// --------------------------------------------------------------------
 FabSet::FabSet(int _len) : MultiFab() {
   fabparray.resize(_len);
 }
 
-
-// --------------------------------------------------------------------
 FabSet::FabSet(istream &is) : MultiFab() {
     readFrom(is);
 }
 
-
-// --------------------------------------------------------------------
 void FabSet::setFab(int boxno, FArrayBox *fab) {
       if(n_comp == 0) {
         n_comp = fab->nComp();
@@ -43,15 +36,11 @@ void FabSet::setFab(int boxno, FArrayBox *fab) {
       fabboxarray.set(boxno, fab->box());
 }
 
-
-// --------------------------------------------------------------------
 const FabSet &FabSet::copyTo(FArrayBox &dest) const {
     this->copy(dest);
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 const FabSet &FabSet::copyTo(FArrayBox& dest, int src_comp,
 			     int dest_comp, int num_comp) const
 {
@@ -59,8 +48,6 @@ const FabSet &FabSet::copyTo(FArrayBox& dest, int src_comp,
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 const FabSet &FabSet::copyTo(FArrayBox &dest, const Box &subbox,
 			     int src_comp, int dest_comp,
 			     int num_comp) const
@@ -69,7 +56,6 @@ const FabSet &FabSet::copyTo(FArrayBox &dest, const Box &subbox,
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const FArrayBox &src) {
     for(FabSetIterator fsi(*this); fsi.isValid(); ++fsi) {
 	fsi().copy(src);
@@ -77,7 +63,6 @@ FabSet &FabSet::copyFrom(const FArrayBox &src) {
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const FArrayBox& src, int src_comp,
 			 int dest_comp, int num_comp)
 {
@@ -88,7 +73,6 @@ FabSet &FabSet::copyFrom(const FArrayBox& src, int src_comp,
 }
 
 
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const FArrayBox &src, const Box &subbox,
 		         int src_comp, int dest_comp, int num_comp)
 {
@@ -106,45 +90,37 @@ FabSet &FabSet::copyFrom(const FArrayBox &src, const Box &subbox,
 }
 
 
-// --------------------------------------------------------------------
-// the following are different from MultiFab only in the return value
+//
+// The following are different from MultiFab only in the return value
+//
 
-// --------------------------------------------------------------------
 FabSet &FabSet::plus(Real v, int comp, int num_comp) {
     this->plus(v, comp, num_comp);
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 FabSet &FabSet::plus(Real v, const Box &subreg, int comp, int num_comp)
 {
     this->plus(v, subreg, comp, num_comp);
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 FabSet &FabSet::mult(Real v, int comp, int num_comp) {
     this->mult(v, comp, num_comp);
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 FabSet &FabSet::mult(Real v, const Box &subreg, int comp, int num_comp)
 {
     this->mult(v, subreg, comp, num_comp);
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const FabSet &src) {
     this->copy(src);
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const FabSet &src, int src_comp, int dest_comp,
 		         int num_comp)
 {
@@ -152,7 +128,6 @@ FabSet &FabSet::copyFrom(const FabSet &src, int src_comp, int dest_comp,
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const FabSet &src, const Box &subreg,
 		         int src_comp, int dest_comp, int num_comp)
 {
@@ -161,8 +136,6 @@ ParallelDescriptor::Abort("Exiting.");
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
 		         int dest_comp, int num_comp)
 {
@@ -235,7 +208,6 @@ FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
     return *this;
 }
 
-// --------------------------------------------------------------------
 const FabSet &FabSet::copyTo(MultiFab &dest, int nghost, int src_comp,
 	                     int dest_comp, int num_comp) const
 {
@@ -267,7 +239,6 @@ if(ParallelDescriptor::NProcs() > 1) {
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::plusFrom(const MultiFab &src, int nghost, int src_comp,
 		         int dest_comp, int num_comp)
 {
@@ -351,9 +322,11 @@ FabSet &FabSet::plusFrom(const MultiFab &src, int nghost, int src_comp,
     return *this;
 }
 
-// --------------------------------------------------------------------
+//
 // Linear combination this := a*this + b*src
 // Note: corresponding fabsets must be commensurate
+//
+
 FabSet &FabSet::linComb(Real a, Real b, const FabSet &src, int src_comp,
 		        int dest_comp, int num_comp)
 {
@@ -372,7 +345,6 @@ FabSet &FabSet::linComb(Real a, Real b, const FabSet &src, int src_comp,
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::linComb(Real a, const MultiFab &mfa, int a_comp,
 		        Real b, const MultiFab &mfb, int b_comp,
 		        int dest_comp, int num_comp, int n_ghost)
@@ -471,7 +443,6 @@ FabSet &FabSet::linComb(Real a, const MultiFab &mfa, int a_comp,
     return *this;
 }
 
-// --------------------------------------------------------------------
 ostream &
 operator << (ostream &os, const FabSet &mf)
 {
@@ -489,7 +460,6 @@ ParallelDescriptor::Abort("Exiting.");
     return os;
 }
 
-// --------------------------------------------------------------------
 ostream &
 FabSet::writeOn(ostream &os) const
 {
@@ -506,7 +476,6 @@ ParallelDescriptor::Abort("Exiting.");
     return os;
 }
 
-// --------------------------------------------------------------------
 istream &
 FabSet::readFrom(istream &is)
 {
@@ -529,64 +498,52 @@ ParallelDescriptor::Abort("Exiting.");
     return is;
 }
 
-
-
-// --------------------------------------------------------------------
 FabSetIterator::FabSetIterator(FabSet &fabset)
                : MultiFabIterator(fabset)
 {
 }
 
-// --------------------------------------------------------------------
 FabSetIterator::~FabSetIterator() {
 }
 
 
-// --------------------------------------------------------------------
 DependentFabSetIterator::DependentFabSetIterator(FabSetIterator &controllerfsiter,
                                                  FabSet &fabset)
                         : DependentMultiFabIterator(controllerfsiter, fabset)
 {
 }
 
-// --------------------------------------------------------------------
 DependentFabSetIterator::DependentFabSetIterator(FabSetIterator &controllerfsiter,
                                                  const FabSet &fabset)
                         : DependentMultiFabIterator(controllerfsiter, fabset)
 {
 }
 
-// --------------------------------------------------------------------
 DependentFabSetIterator::DependentFabSetIterator(MultiFabIterator &controllerfsiter,
                                                  FabSet &fabset)
                         : DependentMultiFabIterator(controllerfsiter, fabset)
 {
 }
 
-// --------------------------------------------------------------------
 DependentFabSetIterator::DependentFabSetIterator(MultiFabIterator &controllerfsiter,
                                                  const FabSet &fabset)
                         : DependentMultiFabIterator(controllerfsiter, fabset)
 {
 }
 
-// --------------------------------------------------------------------
 DependentFabSetIterator::~DependentFabSetIterator() {
 }
 
 
-// --------------------------------------------------------------------
 ConstFabSetIterator::ConstFabSetIterator(const FabSet &fabset)
                     : ConstMultiFabIterator(fabset)
 {
 }
 
-// --------------------------------------------------------------------
 ConstFabSetIterator::~ConstFabSetIterator() {
 }
 
 
-// --------------------------------------------------------------------
 ConstDependentFabSetIterator::ConstDependentFabSetIterator(
                                  ConstFabSetIterator &controllerfsiter,
                                  const FabSet &fabset)
@@ -594,7 +551,6 @@ ConstDependentFabSetIterator::ConstDependentFabSetIterator(
 {
 }
 
-// --------------------------------------------------------------------
 ConstDependentFabSetIterator::ConstDependentFabSetIterator(
                                  ConstMultiFabIterator &controllerfsiter,
                                  const FabSet &fabset)
@@ -602,21 +558,15 @@ ConstDependentFabSetIterator::ConstDependentFabSetIterator(
 {
 }
 
-// --------------------------------------------------------------------
 ConstDependentFabSetIterator::~ConstDependentFabSetIterator() {
 }
 
 
 
-// --------------------------------------------------------------------
 FabSetCopyDescriptor::FabSetCopyDescriptor(bool cacheremotedata)
                      : MultiFabCopyDescriptor(cacheremotedata)
 {
 }
 
-// --------------------------------------------------------------------
 FabSetCopyDescriptor::~FabSetCopyDescriptor() {
 }
-
-// --------------------------------------------------------------------
-// --------------------------------------------------------------------

@@ -1,6 +1,10 @@
 #ifndef _BCREC_H_
 #define _BCREC_H_ 
 
+//
+// $Id: BCRec.H,v 1.2 1997-09-26 16:56:52 lijewski Exp $
+//
+
 #include <Misc.H>
 #include <Box.H>
 #include <BC_TYPES.H>

@@ -1,6 +1,10 @@
 #ifndef _StateDescriptor_H_
 #define _StateDescriptor_H_ 
 
+//
+// $Id: StateDescriptor.H,v 1.3 1997-09-26 16:57:06 lijewski Exp $
+//
+
 #include <Array.H>
 #include <PArray.H>
 #include <aString.H>

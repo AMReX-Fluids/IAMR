@@ -1,6 +1,10 @@
 #ifndef _GEOMETRY_H_
 #define _GEOMETRY_H_
 
+//
+// $Id: Geometry.H,v 1.2 1997-09-26 16:56:58 lijewski Exp $
+//
+
 #include <CoordSys.H>
 #include <RealBox.H>
 #include <BoxArray.H>

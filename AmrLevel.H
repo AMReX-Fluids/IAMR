@@ -1,6 +1,10 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 
+//
+// $Id: AmrLevel.H,v 1.4 1997-09-26 16:56:51 lijewski Exp $
+//
+
 #include <REAL.H>
 #include <Box.H>
 #include <RealBox.H>

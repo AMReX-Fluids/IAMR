@@ -1,6 +1,10 @@
 #ifndef _Cluster_H_
 #define _Cluster_H_ 
 
+//
+// $Id: Cluster.H,v 1.3 1997-09-26 16:56:54 lijewski Exp $
+//
+
 #include <IntVect.H>
 #include <Box.H>
 #include <Array.H>

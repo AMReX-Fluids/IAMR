@@ -1,3 +1,8 @@
+
+//
+// $Id: WriteMultiFab.cpp,v 1.7 1997-09-26 16:57:08 lijewski Exp $
+//
+
 #include <WriteMultiFab.H>
 #include <Tuple.H>
 #include <MultiFab.H>

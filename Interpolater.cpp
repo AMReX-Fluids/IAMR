@@ -1,4 +1,8 @@
 
+//
+// $Id: Interpolater.cpp,v 1.5 1997-09-26 16:57:00 lijewski Exp $
+//
+
 #ifdef BL_USE_NEW_HFILES
 #include <cmath>
 #else

@@ -1,6 +1,10 @@
 #ifndef _CACHE_H_
 #define _CACHE_H_
 
+//
+// $Id: cache.H,v 1.5 1997-09-26 16:57:10 lijewski Exp $
+//
+
 #include <interface.H>
 #include <boundary.H>
 

@@ -1,4 +1,7 @@
-// $Id: hg_projector.cpp,v 1.7 1997-09-24 20:23:43 car Exp $
+//
+// $Id: hg_projector.cpp,v 1.8 1997-09-26 16:57:14 lijewski Exp $
+//
+
 #include <hg_projector.H>
 
 #ifdef BL_FORT_USE_UNDERSCORE

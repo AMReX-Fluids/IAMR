@@ -1,6 +1,10 @@
 #ifndef _INTERFACE_H_
 #define _INTERFACE_H_
 
+//
+// $Id: interface.H,v 1.5 1997-09-26 16:57:14 lijewski Exp $
+//
+
 #include <amr_defs.H>
 
 class amr_boundary_class;

@@ -1,4 +1,8 @@
 
+//
+// $Id: RealBox.cpp,v 1.5 1997-09-26 16:57:04 lijewski Exp $
+//
+
 #include <aString.H>
 #include <Misc.H>
 #include <Utility.H>

@@ -1,6 +1,10 @@
 #ifndef _RealBox_H_
 #define _RealBox_H_ 
 
+//
+// $Id: RealBox.H,v 1.3 1997-09-26 16:57:04 lijewski Exp $
+//
+
 #include <Array.H>
 #include <REAL.H>
 #include <Box.H>

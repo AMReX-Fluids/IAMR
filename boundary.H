@@ -1,6 +1,10 @@
 #ifndef _BOUNDARY_H_
 #define _BOUNDARY_H_
 
+//
+// $Id: boundary.H,v 1.5 1997-09-26 16:57:09 lijewski Exp $
+//
+
 #include <interface.H>
 
 class copy_cache;

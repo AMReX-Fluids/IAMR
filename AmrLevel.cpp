@@ -1,3 +1,8 @@
+
+//
+// $Id: AmrLevel.cpp,v 1.14 1997-09-26 16:56:51 lijewski Exp $
+//
+
 // #define ADVANCE_DEBUG 1
 
 #ifdef	_MSC_VER

@@ -1,6 +1,10 @@
 #ifndef _Derive_H_
 #define _Derive_H_
 
+//
+// $Id: Derive.H,v 1.3 1997-09-26 16:56:55 lijewski Exp $
+//
+
 #include <REAL.H>
 #include <List.H>
 #include <aString.H>

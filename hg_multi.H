@@ -1,6 +1,10 @@
 #ifndef _HG_MULTI_H_
 #define _HG_MULTI_H_
 
+//
+// $Id: hg_multi.H,v 1.6 1997-09-26 16:57:12 lijewski Exp $
+//
+
 #include <amr_multi.H>
 #include <hg_version.H>
 

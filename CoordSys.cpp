@@ -1,9 +1,11 @@
 
+//
+// $Id: CoordSys.cpp,v 1.5 1997-09-26 16:56:55 lijewski Exp $
+//
+
 #ifdef BL_USE_NEW_HFILES
-#include <climits>
 #include <cmath>
 #else
-#include <limits.h>
 #include <math.h>
 #endif
 

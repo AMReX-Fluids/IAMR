@@ -1,9 +1,7 @@
 
-#ifdef BL_USE_NEW_HFILES
-#include <cstring>
-#else
-#include <string.h>
-#endif
+//
+// $Id: Derive.cpp,v 1.3 1997-09-26 16:56:55 lijewski Exp $
+//
 
 #include <Derive.H>
 

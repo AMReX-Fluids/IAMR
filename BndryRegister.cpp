@@ -1,3 +1,8 @@
+
+//
+// $Id: BndryRegister.cpp,v 1.3 1997-09-26 16:56:53 lijewski Exp $
+//
+
 #include <BndryRegister.H>
 
 const char NL = '\n';

@@ -1,4 +1,8 @@
 
+//
+// $Id: amr_multi.cpp,v 1.9 1997-09-26 16:57:09 lijewski Exp $
+//
+
 #include <amr_multi.H>
 
 const char NL = '\n';

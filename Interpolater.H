@@ -1,6 +1,10 @@
 #ifndef _INTERPOLATER_H_
 #define _INTERPOLATER_H_ 
 
+//
+// $Id: Interpolater.H,v 1.3 1997-09-26 16:57:00 lijewski Exp $
+//
+
 #define _NodeBilinear_H_      "%W%  %G%"
 #define _CellBilinear_H_      "%W%  %G%"
 #define _CellConservative_H_  "%W%  %G%"

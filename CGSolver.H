@@ -1,6 +1,10 @@
 #ifndef _CGSOLVER_H_
 #define _CGSOLVER_H_
 
+//
+// $Id: CGSolver.H,v 1.3 1997-09-26 16:56:53 lijewski Exp $
+//
+
 #ifdef BL_USE_NEW_HFILES
 #include <cmath>
 #else

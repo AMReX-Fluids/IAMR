@@ -1,4 +1,8 @@
 
+//
+// $Id: restrictor.cpp,v 1.4 1997-09-26 16:57:16 lijewski Exp $
+//
+
 #include <restrictor.H>
 #include <fill_patch.H>
 

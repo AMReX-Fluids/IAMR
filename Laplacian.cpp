@@ -1,3 +1,8 @@
+
+//
+// $Id: Laplacian.cpp,v 1.2 1997-09-26 16:57:01 lijewski Exp $
+//
+
 #include <Laplacian.H>
 
 #include <LP_F.H>

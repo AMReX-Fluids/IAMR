@@ -1,4 +1,8 @@
 
+//
+// $Id: hg_multi2.cpp,v 1.6 1997-09-26 16:57:12 lijewski Exp $
+//
+
 #include <hg_multi.H>
 
 #ifdef BL_FORT_USE_UNDERSCORE

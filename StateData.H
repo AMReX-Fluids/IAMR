@@ -1,6 +1,10 @@
 #ifndef _StateData_H_
 #define _StateData_H_ 
 
+//
+// $Id: StateData.H,v 1.4 1997-09-26 16:57:05 lijewski Exp $
+//
+
 #include <Box.H>
 #include <RealBox.H>
 #include <BoxArray.H>

@@ -1,6 +1,10 @@
 #ifndef _INTERPOLATOR_H_
 #define _INTERPOLATOR_H_
 
+//
+// $Id: interpolator.H,v 1.4 1997-09-26 16:57:14 lijewski Exp $
+//
+
 #include <amr_defs.H>
 
 typedef const class amr_interpolator_class& amr_interpolator;

@@ -1,4 +1,8 @@
 
+//
+// $Id: interface.cpp,v 1.7 1997-09-26 16:57:14 lijewski Exp $
+//
+
 #include <interface.H>
 #include <boundary.H>
 

@@ -1,6 +1,10 @@
 #ifndef _RESTRICTOR_H_
 #define _RESTRICTOR_H_
 
+//
+// $Id: restrictor.H,v 1.3 1997-09-26 16:57:16 lijewski Exp $
+//
+
 #include <interface.H>
 #include <boundary.H>
 

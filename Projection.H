@@ -1,6 +1,10 @@
 #ifndef _Projection_H_
 #define _Projection_H_
 
+//
+// $Id: Projection.H,v 1.4 1997-09-26 16:57:03 lijewski Exp $
+//
+
 #include <BC_TYPES.H>
 #include <BCRec.H>
 #include <Amr.H>

@@ -1,6 +1,10 @@
 #ifndef _FLUXREGISTER_H_
 #define _FLUXREGISTER_H_
 
+//
+// $Id: FluxRegister.H,v 1.3 1997-09-26 16:56:57 lijewski Exp $
+//
+
 #include <BndryRegister.H>
 
 class Geometry;

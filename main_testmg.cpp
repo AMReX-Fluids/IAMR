@@ -1,4 +1,8 @@
 
+//
+// $Id: main_testmg.cpp,v 1.4 1997-09-26 16:57:15 lijewski Exp $
+//
+
 #include <ParmParse.H>
 #include <LO_BCTYPES.H>
 #include <BndryData.H>

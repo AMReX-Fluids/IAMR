@@ -1,6 +1,10 @@
 #ifndef _AMR_DEFS_H_
 #define _AMR_DEFS_H_
 
+//
+// $Id: amr_defs.H,v 1.4 1997-09-26 16:57:08 lijewski Exp $
+//
+
 #if (defined BL_IRIX || defined BL_OSF1 || \
      defined BL_Linux || defined BL_ARCH_CRAY)
 #  ifndef SYSV

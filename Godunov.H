@@ -1,6 +1,10 @@
 #ifndef _GODUNOV_CLASS_H_
 #define _GODUNOV_CLASS_H_ 
 
+//
+// $Id: Godunov.H,v 1.2 1997-09-26 16:56:59 lijewski Exp $
+//
+
 //===========================================================
 // This header file defines the Godunov driver class.  Its
 // interface simplifies the calling sequence for the Godunov

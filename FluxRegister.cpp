@@ -1,9 +1,7 @@
 
-#ifdef BL_USE_NEW_HFILES
-#include <climits>
-#else
-#include <limits.h>
-#endif
+//
+// $Id: FluxRegister.cpp,v 1.11 1997-09-26 16:56:58 lijewski Exp $
+//
 
 #include <FluxRegister.H>
 #include <Geometry.H>

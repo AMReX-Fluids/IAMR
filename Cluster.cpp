@@ -1,4 +1,8 @@
 
+//
+// $Id: Cluster.cpp,v 1.4 1997-09-26 16:56:54 lijewski Exp $
+//
+
 #include <Cluster.H>
 
 enum CutStatus{ hole_cut=0, steep_cut, bisect_cut, invalid_cut };

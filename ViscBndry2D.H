@@ -1,6 +1,10 @@
 #ifndef _VISCBNDRY2D_H_
 #define _VISCBNDRY2D_H_
 
+//
+// $Id: ViscBndry2D.H,v 1.3 1997-09-26 16:57:07 lijewski Exp $
+//
+
 #include <MCInterpBndryData.H>
 #include <BC_TYPES.H>
 

@@ -1,6 +1,10 @@
 #ifndef _BOUNDCOND_H_
 #define _BOUNDCOND_H_
 
+//
+// $Id: BoundCond.H,v 1.3 1997-09-26 16:56:53 lijewski Exp $
+//
+
 #include <Assert.H>
 
 //@Man:

@@ -1,4 +1,8 @@
 
+//
+// $Id: TagBox.cpp,v 1.10 1997-09-26 16:57:07 lijewski Exp $
+//
+
 #include <TagBox.H>
 #include <Misc.H>
 #include <Geometry.H>

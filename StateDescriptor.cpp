@@ -1,27 +1,27 @@
 
+//
+// $Id: StateDescriptor.cpp,v 1.3 1997-09-26 16:57:06 lijewski Exp $
+//
+
 #include <StateDescriptor.H>
 #include <Interpolater.H>
 #include <BCRec.H>
 
-// -------------------------------------------------------------
 DescriptorList::DescriptorList()
     : desc(PArrayManage)
 {
 }
 
-// -------------------------------------------------------------
 DescriptorList::~DescriptorList()
 {
 }
 
-// -------------------------------------------------------------
 void
 DescriptorList::clear()
 {
     desc.clear();
 }
 
-// -------------------------------------------------------------
 void
 DescriptorList::addDescriptor(int indx, IndexType typ, TimeCenter ttyp,
 			      int nextra, int num_comp, 
@@ -33,7 +33,6 @@ DescriptorList::addDescriptor(int indx, IndexType typ, TimeCenter ttyp,
 				     num_comp,interp));
 }  
 
-// -------------------------------------------------------------
 void
 DescriptorList::setComponent(int indx, int comp, const aString &nm,
                                   const BCRec& bc, BndryFunc func)
@@ -41,7 +40,6 @@ DescriptorList::setComponent(int indx, int comp, const aString &nm,
     desc[indx].setComponent(comp,nm,bc,func);
 }  
 
-// -------------------------------------------------------------
 void
 DescriptorList::resetComponentBCs(int indx, int comp,
                                   const BCRec& bc, BndryFunc func)
@@ -49,15 +47,12 @@ DescriptorList::resetComponentBCs(int indx, int comp,
     desc[indx].resetComponentBCs(comp,bc,func);
 }
 
-// -------------------------------------------------------------
-// -------------------------------------------------------------
 StateDescriptor::StateDescriptor()
     : id(-1), ncomp(0), ngrow(0),
       mapper(0), names(), bc(), bc_func(), t_type(Point)
 {
 }
 
-// -------------------------------------------------------------
 StateDescriptor::StateDescriptor(IndexType btyp, TimeCenter ttyp,
                                  int ident, int nextra, 
                                  int num_comp, Interpolater *interp)
@@ -73,13 +68,11 @@ StateDescriptor::StateDescriptor(IndexType btyp, TimeCenter ttyp,
     bc_func.resize(num_comp);
 }
 
-// -------------------------------------------------------------
 StateDescriptor::~StateDescriptor()
 {
     mapper = 0;
 }
 
-// -------------------------------------------------------------
 void
 StateDescriptor::define(IndexType btyp,  TimeCenter ttyp,
                              int ident, int nextra,
@@ -100,7 +93,6 @@ StateDescriptor::define(IndexType btyp,  TimeCenter ttyp,
 
 }
 		       
-// -------------------------------------------------------------
 void
 StateDescriptor::setComponent(int comp, const aString &nm, const BCRec &bcr,
                                    BndryFunc func)
@@ -111,7 +103,6 @@ StateDescriptor::setComponent(int comp, const aString &nm, const BCRec &bcr,
     bc[comp] = bcr;
 }
 
-// -------------------------------------------------------------
 void
 StateDescriptor::resetComponentBCs(int comp, const BCRec &bcr,
                                    BndryFunc func)
@@ -121,7 +112,6 @@ StateDescriptor::resetComponentBCs(int comp, const BCRec &bcr,
     bc[comp] = bcr;
 }
 
-// -------------------------------------------------------------
 void
 StateDescriptor::dumpNames(ostream &os, int start_comp,
                                 int num_comp) const

@@ -1,6 +1,10 @@
 #ifndef _COORDSYS_H_
 #define _COORDSYS_H_ 
 
+//
+// $Id: CoordSys.H,v 1.3 1997-09-26 16:56:55 lijewski Exp $
+//
+
 #include <REAL.H>
 #include <Array.H>
 #include <Box.H>

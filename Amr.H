@@ -1,6 +1,10 @@
 #ifndef _Amr_H_
 #define _Amr_H_ 
 
+//
+// $Id: Amr.H,v 1.5 1997-09-26 16:56:50 lijewski Exp $
+//
+
 #ifdef BL_USE_NEW_HFILES
 #include <fstream>
 using std::ofstream;

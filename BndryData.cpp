@@ -1,9 +1,7 @@
 
-#ifdef BL_USE_NEW_HFILES
-#include <climits>
-#else
-#include <limits.h>
-#endif
+//
+// $Id: BndryData.cpp,v 1.5 1997-09-26 16:56:52 lijewski Exp $
+//
 
 #include <BndryData.H>
 #include <Utility.H>

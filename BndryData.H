@@ -1,6 +1,10 @@
 #ifndef _BNDRYDATA_H_
 #define _BNDRYDATA_H_
 
+//
+// $Id: BndryData.H,v 1.3 1997-09-26 16:56:52 lijewski Exp $
+//
+
 #include <BoxArray.H>
 #include <FArrayBox.H>
 #include <Orientation.H>

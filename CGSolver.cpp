@@ -1,3 +1,8 @@
+
+//
+// $Id: CGSolver.cpp,v 1.5 1997-09-26 16:56:54 lijewski Exp $
+//
+
 // Conjugate gradient support
 
 #include <ParmParse.H>
