@@ -40,8 +40,8 @@ RSC=rc.exe
 # PROP Output_Dir "Release"
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
-# ADD BASE F90 /include:"Release/" /compile_only /nologo /fpp
-# ADD F90 /include:"Release/" /compile_only /nologo /fpp
+# ADD BASE F90 /include:"Release/" /compile_only /nologo
+# ADD F90 /include:"Release/" /compile_only /nologo
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /O2 /I "." /I ".\include\2d.v9" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D BL_SPACEDIM=2 /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -64,9 +64,10 @@ LINK32=link.exe
 # PROP Use_Debug_Libraries 1
 # PROP Output_Dir "Debug"
 # PROP Intermediate_Dir "Debug"
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /fpp
-# ADD F90 /extend_source:132 /browser /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /fpp="/ansi /DBL_SPACEDIM=2 /DBL_USE_DOUBLE /DBL_LANG_FORT /I.\include\2d.v9"
+# ADD BASE F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0
+# ADD F90 /extend_source:132 /browser /include:"Debug/" /compile_only /nologo /debug:full /optimize:0
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
 # ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "." /I ".\include\2d.v9" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D BL_SPACEDIM=2 /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -76,7 +77,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 dfor.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 
 !ENDIF 
 
@@ -101,6 +102,10 @@ SOURCE=.\Amr.cpp
 
 SOURCE=.\amr_graph.cpp
 # PROP Exclude_From_Build 1
+# End Source File
+# Begin Source File
+
+SOURCE=.\amr_multi.cpp
 # End Source File
 # Begin Source File
 
@@ -476,75 +481,6 @@ SOURCE=.\ViscBndry2D.cpp
 
 SOURCE=.\WriteMultiFab.cpp
 # ADD CPP /D "BL_LANG_CC"
-# End Source File
-# End Group
-# Begin Group "Template Sources"
-
-# PROP Default_Filter "*.C"
-# Begin Source File
-
-SOURCE=.\AliasedDPtr.C
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\ArithFab.C
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\Array.C
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\BaseFab.C
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\DPtr.C
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\FabArray.C
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\List.C
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\NormedFab.C
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\OrderedFab.C
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\PArray.C
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\Pointers.C
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\SimpleDPtr.C
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\Tuple.C
-# PROP Exclude_From_Build 1
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -1080,23 +1016,127 @@ SOURCE=.\WriteMultiFab.H
 # PROP Default_Filter "*.for"
 # Begin Source File
 
+SOURCE=.\ABec_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\amr_real2d.For
+# End Source File
+# Begin Source File
+
+SOURCE=.\CG_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\COORDSYS_2D.For
+# End Source File
+# Begin Source File
+
+SOURCE=.\DERIVE_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\DIFFUSION_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\FILCC_2D.For
+# End Source File
+# Begin Source File
+
+SOURCE=.\FLUXREG_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
 SOURCE=.\GODUNOV_2D.for
-# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\GODUNOV_F.For
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_avg2d.for
+# ADD F90 /iface:cref
 # End Source File
 # Begin Source File
 
 SOURCE=.\hg_multi2d.for
-# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_proj2d.for
+# ADD F90 /iface:cref
 # End Source File
 # Begin Source File
 
 SOURCE=.\INTERP_2D.for
-# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
 # End Source File
 # Begin Source File
 
-SOURCE=.\PROB_2D.for
-# PROP Exclude_From_Build 1
+SOURCE=.\INTERPBNDRYDATA_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\LO_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\LO_UTIL.For
+# End Source File
+# Begin Source File
+
+SOURCE=.\LP_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\MACOPERATOR_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\MACPROJ_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\MG_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\NAVIERSTOKES_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\PROB_2D.For
+# End Source File
+# Begin Source File
+
+SOURCE=.\PROJECTION_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\SYNCREG_2D.for
+# ADD F90 /iface:cref
+# End Source File
+# Begin Source File
+
+SOURCE=.\VISCOPERATOR_2D.for
+# ADD F90 /iface:cref
 # End Source File
 # End Group
 # End Target

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.2 1997-07-17 23:25:38 car Exp $
+// $Id: ParmParse.cpp,v 1.3 1997-07-18 20:58:26 car Exp $
 //
 
 #ifdef	_MSC_VER
@@ -449,7 +449,7 @@ ParmParse::read_file (const char*      fname,
     //
     if (fname != 0 && fname[0] != 0)
     {
-        FILE* pffd = fopen(fname, "r");
+        FILE* pffd = fopen(fname, "rb");
         if (pffd == 0)
         {
             cerr << "ParmParse::read_file(): couldn't open \""

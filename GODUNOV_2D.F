@@ -1,4 +1,4 @@
-c $Id: GODUNOV_2D.F,v 1.2 1997-07-17 22:05:00 car Exp $
+c $Id: GODUNOV_2D.F,v 1.3 1997-07-18 20:58:24 car Exp $
 #undef BL_LANG_CC
 #define BL_LANG_FORT
 
@@ -151,7 +151,9 @@ c
         write(6,1000) umax,umin,u_max(1) 
         write(6,1001) vmax,vmin,u_max(2) 
         write(6,1002) rhomax,rhomin
+#ifndef	BL_NO_FORT_FLUSH
         call flush(6)
+#endif
       endif
 
  1000 format(' U  MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
@@ -235,7 +237,9 @@ c
  1001 format('VMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
  1002 format('RHO  MAX/MIN      ',e21.14,2x,e21.14)
 
+#ifndef	BL_NO_FORT_FLUSH
       call flush(6)
+#endif
 c
 c     end of routine
 c

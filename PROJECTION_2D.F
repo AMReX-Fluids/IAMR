@@ -1,4 +1,4 @@
-c $Id: PROJECTION_2D.F,v 1.1 1997-07-08 23:08:13 vince Exp $
+c $Id: PROJECTION_2D.F,v 1.2 1997-07-18 20:58:26 car Exp $
 #undef BL_LANG_CC
 #define BL_LANG_FORT
 
@@ -253,7 +253,9 @@ c ---- begin ----------
       if(isrz.eq.1.and.lrweighted.ne.1)then
         write(6,*)
      &    'FORT_HGN2C : isrz=1 and lrweighted!=1 not yet implemented'
+#ifndef	BL_NO_FORT_FLUSH
         call flush(6)
+#endif
         stop
       endif
 

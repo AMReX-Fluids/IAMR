@@ -1,7 +1,7 @@
 #define _POLYNOMINTERPCOEFFS_
-//
-// $Id: LO_UTIL.F,v 1.1 1997-07-08 23:08:04 vince Exp $
-//
+/*
+ * $Id: LO_UTIL.F,v 1.2 1997-07-18 20:58:25 car Exp $
+*/
       
 #undef TESTING_POLYNOMINTERPCOEFFS
 #ifdef TESTING_POLYNOMINTERPCOEFFS

@@ -116,7 +116,11 @@ operator >> (istream &is, RunStatsData &rd)
 	}
 	is >> rd.name;
 	is >> rd.level;
-	is >> rd.is_on;
+	{
+	    int i_is_on;
+	    is >> i_is_on;
+	    rd.is_on = i_is_on?true:false;
+	}
 	is >> rd.run_time;
 	is >> rd.run_wtime;
 	is >> rd.max_time;

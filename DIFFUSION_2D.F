@@ -1,5 +1,5 @@
 
-// $Id: DIFFUSION_2D.F,v 1.1 1997-07-08 23:08:12 vince Exp $
+C $Id: DIFFUSION_2D.F,v 1.2 1997-07-18 20:58:23 car Exp $
 #undef BL_LANG_CC
 #define BL_LANG_FORT
 

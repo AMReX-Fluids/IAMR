@@ -1,4 +1,4 @@
-c $Id: GODUNOV.F,v 1.2 1997-07-17 22:05:00 car Exp $
+c $Id: GODUNOV_F.F,v 1.1 1997-07-18 20:58:24 car Exp $
 #undef BL_LANG_CC
 #define BL_LANG_FORT
 
@@ -25,7 +25,9 @@ c=========================================================
      &   slope_order.ne.4)then
         write(6,*)'FORT_SET_PARAMS : illegal value of slope_order = ',
      &            slope_order
+#ifndef	BL_NO_FORT_FLUSH
         call flush(6)
+#endif
         stop
       endif
       return

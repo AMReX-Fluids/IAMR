@@ -172,7 +172,9 @@ c
         write(6,1001) vmax,vmin,u_max(2)
         write(6,1002) wmax,wmin,u_max(3)
         write(6,1003) rhomax,rhomin
+#ifndef	BL_NO_FORT_FLUSH
         call flush(6)
+#endif
       endif
 
  1000 format(' U  MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
@@ -287,7 +289,9 @@ c
  1002 format('WMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
  1003 format('RHO  MAX/MIN      ',e21.14,2x,e21.14)
 
+#ifndef	BL_NO_FORT_FLUSH
       call flush(6)
+#endif
 c
 c     end of routine
 c

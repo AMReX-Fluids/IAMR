@@ -1,8 +1,8 @@
 #ifndef _LO_BCTYPES_H_
 #define _LO_BCTYPES_H_
-//
-// $Id: LO_BCTYPES.H,v 1.1 1997-07-08 23:08:04 vince Exp $
-//
+/*
+ * $Id: LO_BCTYPES.H,v 1.2 1997-07-18 20:58:25 car Exp $
+ */
 
 #define LO_DIRICHLET 101
 #define LO_NEUMANN 102

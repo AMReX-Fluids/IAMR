@@ -129,13 +129,13 @@ c ::: -----------------------------------------------------------
 c ::: Here define a random number generator if on a Linux machine
 c ::: -----------------------------------------------------------
 
-#ifdef BL_Linux
+#ifdef BL_NEED_RAND
       REAL_T function rand()
       integer iseed,ia,ic,im
       parameter (ia=7141,ic=54773,im=259200)
       data iseed/11011/
       iseed=mod(iseed*ia+ic,im)
-      ran=iseed*(one/im)
+      rand=iseed*(one/im)
       end
 #endif
 

@@ -21,7 +21,7 @@ class RunStatsData
 private:
     aString name;
     int level;
-    int is_on;
+    bool is_on;
     double run_time;
     double run_wtime;
     double max_time;
