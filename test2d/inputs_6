@@ -8,9 +8,7 @@
 
 proj.proj_2 = 1
 proj.filter_factor = .1
-
-ns.do_MLsync_proj = 1
-ns.init_iter=0
+ns.init_iter=1
 
 #**********************************
 #RUN CONTROLS  
@@ -20,7 +18,6 @@ ns.init_iter=0
 max_step =         1  # maximum (integer) number of time steps
 #stop_time =       2.0 # maximum (real) time (in same units as dt)
 
-amr.n_cell =      16 16 # indices of the domain at level 0
 amr.n_cell =      64 64 # indices of the domain at level 0
 
 # (this one is optional)
@@ -56,7 +53,7 @@ amr.v                   = 1
 
 mg.v                    = 0
 cg.v                    = 0
-proj.Pcode              = 4
+proj.Pcode              = 1
 
 #**********************************
 #OUTPUT CONTROLS
@@ -174,7 +171,7 @@ mg.usecg = 0
 mg.nu_f = 100
 
 # USE THIS ONLY FOR TESTING
-#amr.max_grid_size = 128     # maximum linear dimension of any one grid
+#amr.max_grid_size = 64     # maximum linear dimension of any one grid
 
 RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update
                    mac_project mac_sync level_project sync_project init_data
