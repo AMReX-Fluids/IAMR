@@ -1,6 +1,7 @@
 #ifndef _HG_PROJECTOR_H_
 #define _HG_PROJECTOR_H_
 
+#include <Boolean.H>
 #include <hg_multi.H>
 
 extern PArray<MultiFab> null_amr_real;
@@ -37,7 +38,8 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid
 			       Boundary, Pcode, cache_),
       make_sparse_node_source_solvable(0) { }
 
-  Array<BoxArray>& mesh() {
+  Array<BoxArray>& mesh() 
+  {
     return ml_mesh;
   }
 
@@ -79,7 +81,8 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid
   void project(PArray<MultiFab>* u, PArray<MultiFab>& p,
 	       PArray<MultiFab>& Coarse_source,
 	       Real H[], Real tol,
-	       int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) {
+	       int Lev_min = -1, int Lev_max = -1, Real scale = 0.0)
+  {
     project(u, p, Coarse_source, null_amr_real,
 	    H, tol, Lev_min, Lev_max, scale);
   }
@@ -91,7 +94,8 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid
   void sync_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
 		    PArray<MultiFab>& Coarse_source,
 		    Real H[], Real tol,
-		    int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) {
+		    int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
+  {
     sync_project(u, p, Coarse_source, null_amr_real,
 		 H, tol, Lev_min, Lev_max, scale);
   }
@@ -122,7 +126,8 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid
 		      PArray<MultiFab>& rhs,
 		      PArray<MultiFab>& Coarse_source,
 		      int use_u, Real H[], Real tol,
-		      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) {
+		      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
+  {
     manual_project(u, p, rhs, Coarse_source, null_amr_real,
 		   use_u, H, tol, Lev_min, Lev_max, scale);
   }
@@ -133,9 +138,10 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid
 		      int use_u, Real H[], Real tol,
 		      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
 
-  int make_sparse_node_source_solvable;
-  void make_it_so() {
-    make_sparse_node_source_solvable = 1;
+  bool make_sparse_node_source_solvable;
+  void make_it_so() 
+  {
+    make_sparse_node_source_solvable = true;
   }
 };
 

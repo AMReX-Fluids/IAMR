@@ -76,7 +76,7 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
 
   int igrid, iface, idim, i;
 
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   dom = coarsen(src.dom, rat);
   im = Im;
@@ -140,7 +140,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 
   int igrid, iface, iedge, icor, idim, i;
 
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   dom = Domain;
   im = Im;
@@ -519,7 +519,7 @@ void level_interface::add(List<Box>& bl, Box b, int startgrid)
 
 void level_interface::xfer(List<Box>& bl, int idim)
 {
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   nbx[idim] = bl.length();
   bx[idim]  = new Box[nbx[idim]];

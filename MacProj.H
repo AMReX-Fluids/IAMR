@@ -7,7 +7,8 @@
 #include <AmrLevel.H>
 #include <FluxRegister.H>
 
-class MacProj {
+class MacProj
+{
 public:
     // -------------------------------------------------------------
     // Setup functions follow
@@ -112,4 +113,5 @@ protected: // ======================== protected data members
     static int fix_mac_sync_rhs;
 #endif
 };
+
 #endif

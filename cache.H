@@ -12,7 +12,8 @@
 #  define FFCCPY2     FCCPY2
 #endif
 
-extern "C" {
+extern "C" 
+{
 #if (BL_SPACEDIM == 2)
   void FFCCPY1(Real*, Real*, const int&, int*, int*, int*, int*, int*);
 #else
@@ -21,13 +22,15 @@ extern "C" {
 #endif
 }
 
-class boundary_cache {
+class boundary_cache 
+{
  public:
   virtual ~boundary_cache() { }
   virtual void run() const = 0;
 };
 
-class copy_cache {
+class copy_cache 
+{
  public:
   // data are public so that users may set up their own calls
   int nsets;
@@ -110,7 +113,8 @@ class copy_cache {
 */
 };
 
-class unroll_cache {
+class unroll_cache 
+{
  public:
   // data are public so that users may set up their own calls
   int nsets;

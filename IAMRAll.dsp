@@ -1263,10 +1263,6 @@ SOURCE=.\GraphTool.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\hg_elliptic.H
-# End Source File
-# Begin Source File
-
 SOURCE=.\hg_multi.H
 # End Source File
 # Begin Source File

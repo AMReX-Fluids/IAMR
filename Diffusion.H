@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.H,v 1.2 1997-09-23 19:25:40 lijewski Exp $
+// $Id: Diffusion.H,v 1.3 1997-09-24 20:23:37 car Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -38,7 +38,8 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 #  endif
 #endif
 
-class Diffusion {
+class Diffusion 
+{
 
   Amr* parent;
   AmrLevel* caller;

@@ -17,7 +17,8 @@ typedef const class amr_boundary_class& amr_boundary;
 // The domain (2nd Box) arguments to dir and box should be cell-based
 // regardless of the type of the region.
 
-class amr_boundary_class {
+class amr_boundary_class 
+{
  protected:
   virtual void check_against_boundary(BoxList& bl, List<int>& il,
 				      const Box& b, int ib,
@@ -44,7 +45,8 @@ class amr_boundary_class {
 			      const level_interface&) const { }
   virtual void set_border_cache(copy_cache*, int, int&,
 				MultiFab&,
-				const level_interface&, int) const {
+				const level_interface&, int) const 
+  {
     BoxLib::Error("amr_boundary_class::set_border_cache---boundary condition not defined.");
   }
   virtual void boundary_mesh(BoxArray& exterior_mesh, int *&grid_ref,
@@ -52,7 +54,8 @@ class amr_boundary_class {
 			     const Box& domain) const;
   virtual void duplicate(List<Box>&, const Box&) const { }
   virtual int fill_patch_special(Fab&, const Box&,
-				 MultiFab&, const Box&, int) const {
+				 MultiFab&, const Box&, int) const 
+  {
     return 0;
   }
   virtual int singular() const {
@@ -61,7 +64,8 @@ class amr_boundary_class {
   }
 };
 
-inline int amr_boundary_class::dir(const Box& region, const Box& domain) const
+inline int 
+amr_boundary_class::dir(const Box& region, const Box& domain) const
 {
   int retval = 0;
   if (region.bigEnd(0) < domain.smallEnd(0))
@@ -97,7 +101,9 @@ inline int amr_boundary_class::dir(const Box& region, const Box& domain) const
   return retval;
 }
 
-class reflection_boundary_class : public amr_boundary_class {
+class reflection_boundary_class 
+    : public amr_boundary_class 
+{
  public:
   reflection_boundary_class() { }
   int defined() const { return 1; }
@@ -111,7 +117,8 @@ class reflection_boundary_class : public amr_boundary_class {
   }
 };
 
-class negation_boundary_class : public amr_boundary_class {
+class negation_boundary_class : public amr_boundary_class 
+{
  public:
   negation_boundary_class() { }
   int defined() const { return 1; }
@@ -158,7 +165,8 @@ const periodic_boundary_class periodic_boundary;
 // are all error_boundary, so this class should only be used as
 // a base for derivation.
 
-class amr_fluid_boundary_class {
+class amr_fluid_boundary_class
+{
  protected:
   const amr_boundary_class *v[BL_SPACEDIM];
   const amr_boundary_class *s;
@@ -167,13 +175,16 @@ class amr_fluid_boundary_class {
   amr_fluid_boundary_class();
   virtual ~amr_fluid_boundary_class() { }
 
-  virtual amr_boundary velocity(int i) const {
+  virtual amr_boundary velocity(int i) const 
+  {
     return *v[i];
   }
-  virtual amr_boundary scalar() const {
+  virtual amr_boundary scalar() const 
+  {
     return *s;
   }
-  virtual amr_boundary pressure() const {
+  virtual amr_boundary pressure() const
+  {
     return *p;
   }
 };
@@ -190,7 +201,8 @@ typedef const amr_fluid_boundary_class& amr_fluid_boundary;
 
 class inviscid_fluid_boundary;
 
-class mixed_boundary_class : public amr_boundary_class {
+class mixed_boundary_class : public amr_boundary_class 
+{
  protected:
   inviscid_fluid_boundary *ptr;
   int flowdim;
@@ -231,7 +243,8 @@ class mixed_boundary_class : public amr_boundary_class {
 // the domain.  Currently only periodic and refWall type
 // boundaries are supported.
 
-class inviscid_fluid_boundary : public amr_fluid_boundary_class {
+class inviscid_fluid_boundary : public amr_fluid_boundary_class 
+{
   friend class mixed_boundary_class;
  protected:
   RegType bc[BL_SPACEDIM][2];

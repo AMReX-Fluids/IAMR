@@ -1,4 +1,4 @@
-// $Id: hg_projector.cpp,v 1.6 1997-09-24 19:47:16 lijewski Exp $
+// $Id: hg_projector.cpp,v 1.7 1997-09-24 20:23:43 car Exp $
 #include <hg_projector.H>
 
 #ifdef BL_FORT_USE_UNDERSCORE
@@ -474,7 +474,7 @@ holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 
   int igrid, jgrid, i;
 
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   const IntVect& rat = gen_ratio[lev-1];
   for (int iface = 0; iface < interface[mglev].nfaces(); iface++) 
@@ -485,11 +485,11 @@ holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
       igrid = interface[mglev].fgrid(iface, 1);
     unsigned geo = interface[mglev].fgeo(iface);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].fflag(iface) == 1)
+    if (geo == level_interface::ALL || igrid < 0 || interface[mglev].fflag(iface) == 1)
       continue;
     // fine grid on just one side
     int idim = interface[mglev].fdim(iface);
-    int idir = (geo & LOW) ? -1 : 1;
+    int idir = (geo & level_interface::LOW) ? -1 : 1;
     const Box& sbox = source[lev][igrid].box();
     const Box& fbox = S[lev][igrid].box();
     Box cbox = interface[mglev].face(iface);
@@ -534,14 +534,14 @@ holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     }
   }
 
-  int ga[N_CORNER_GRIDS];
+  int ga[level_interface::N_CORNER_GRIDS];
 
 #if (BL_SPACEDIM == 3)
 
   for (int iedge = 0; iedge < interface[mglev].nedges(); iedge++) 
   {
     // find a fine grid touching this edge
-    for (i = 0; i < N_EDGE_GRIDS; i++) 
+    for (i = 0; i < level_interface::N_EDGE_GRIDS; i++) 
     {
       igrid = interface[mglev].egrid(iedge, i);
       if (igrid >= 0)
@@ -549,7 +549,7 @@ holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     }
     unsigned geo = interface[mglev].egeo(iedge);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].eflag(iedge) == 1)
+    if (geo == level_interface::ALL || igrid < 0 || interface[mglev].eflag(iedge) == 1)
       continue;
     // fine grid on just one side
     const Box& sbox = source[lev][igrid].box();
@@ -588,7 +588,7 @@ holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     }
     // fill in the grids on the other sides, if any
     const Box& freg = interface[mglev].node_edge(iedge);
-    for (i = 1; i < N_EDGE_GRIDS; i++) 
+    for (i = 1; i < level_interface::N_EDGE_GRIDS; i++) 
     {
       jgrid = interface[mglev].egrid(iedge, i);
       if (jgrid >= 0 && jgrid != igrid)
@@ -601,7 +601,7 @@ holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
   for (int icor = 0; icor < interface[mglev].ncorners(); icor++) 
   {
     // find a fine grid touching this corner
-    for (i = 0; i < N_CORNER_GRIDS; i++) 
+    for (i = 0; i < level_interface::N_CORNER_GRIDS; i++) 
     {
       igrid = interface[mglev].cgrid(icor, i);
       if (igrid >= 0)
@@ -609,7 +609,7 @@ holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     }
     unsigned geo = interface[mglev].cgeo(icor);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].cflag(icor) == 1)
+    if (geo == level_interface::ALL || igrid < 0 || interface[mglev].cflag(icor) == 1)
       continue;
     // fine grid on just one side
     const Box& sbox = source[lev][igrid].box();
@@ -655,7 +655,7 @@ holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     }
     // fill in the grids on the other sides, if any
     const Box& freg = interface[mglev].corner(icor);
-    for (i = 1; i < N_CORNER_GRIDS; i++) 
+    for (i = 1; i < level_interface::N_CORNER_GRIDS; i++) 
     {
       jgrid = interface[mglev].cgrid(icor, i);
       if (jgrid >= 0 && jgrid != igrid)
@@ -677,7 +677,7 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
 #endif
   int igrid, jgrid, i;
 
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   const IntVect& rat = gen_ratio[lev-1];
   for (int iface = 0; iface < interface[mglev].nfaces(); iface++) 
@@ -688,11 +688,11 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
       igrid = interface[mglev].fgrid(iface, 1);
     unsigned geo = interface[mglev].fgeo(iface);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].fflag(iface) == 1)
+    if (geo == level_interface::ALL || igrid < 0 || interface[mglev].fflag(iface) == 1)
       continue;
     // fine grid on just one side
     int idim = interface[mglev].fdim(iface);
-    int idir = (geo & LOW) ? -1 : 1;
+    int idir = (geo & level_interface::LOW) ? -1 : 1;
     const Box& sbox = source[lev][igrid].box();
     const Box& fbox = u[0][lev][igrid].box();
     Box cbox = interface[mglev].face(iface);
@@ -763,12 +763,12 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
 
 #if (BL_SPACEDIM == 3)
 
-  int ga[N_CORNER_GRIDS];
+  int ga[level_interface::N_CORNER_GRIDS];
 
   for (int iedge = 0; iedge < interface[mglev].nedges(); iedge++) 
   {
     // find a fine grid touching this edge
-    for (i = 0; i < N_EDGE_GRIDS; i++) 
+    for (i = 0; i < level_interface::N_EDGE_GRIDS; i++) 
     {
       igrid = interface[mglev].egrid(iedge, i);
       if (igrid >= 0)
@@ -776,7 +776,7 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
     }
     unsigned geo = interface[mglev].egeo(iedge);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].eflag(iedge) == 1)
+    if (geo == level_interface::ALL || igrid < 0 || interface[mglev].eflag(iedge) == 1)
       continue;
     // fine grid on just one side
     const Box& sbox = source[lev][igrid].box();
@@ -830,7 +830,7 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
     }
     // fill in the grids on the other sides, if any
     const Box& freg = interface[mglev].node_edge(iedge);
-    for (i = 1; i < N_EDGE_GRIDS; i++) 
+    for (i = 1; i < level_interface::N_EDGE_GRIDS; i++) 
     {
       jgrid = interface[mglev].egrid(iedge, i);
       if (jgrid >= 0 && jgrid != igrid)
@@ -841,7 +841,7 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
   for (int icor = 0; icor < interface[mglev].ncorners(); icor++) 
   {
     // find a fine grid touching this corner
-    for (i = 0; i < N_CORNER_GRIDS; i++) 
+    for (i = 0; i < level_interface::N_CORNER_GRIDS; i++) 
     {
       igrid = interface[mglev].cgrid(icor, i);
       if (igrid >= 0)
@@ -849,7 +849,7 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
     }
     unsigned geo = interface[mglev].cgeo(icor);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].cflag(icor) == 1)
+    if (geo == level_interface::ALL || igrid < 0 || interface[mglev].cflag(icor) == 1)
       continue;
     // fine grid on just one side
     const Box& sbox = source[lev][igrid].box();
@@ -901,7 +901,7 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
     }
     // fill in the grids on the other sides, if any
     const Box& freg = interface[mglev].corner(icor);
-    for (i = 1; i < N_CORNER_GRIDS; i++) 
+    for (i = 1; i < level_interface::N_CORNER_GRIDS; i++) 
     {
       jgrid = interface[mglev].cgrid(icor, i);
       if (jgrid >= 0 && jgrid != igrid)
@@ -922,13 +922,13 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
     }
     unsigned geo = interface[mglev].cgeo(icor);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].cflag(icor) == 1)
+    if (geo == level_interface::ALL || igrid < 0 || interface[mglev].cflag(icor) == 1)
       continue;
-    else if (geo == XL || geo == XH || geo == YL || geo == YH) 
+    else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
     {
       // fine grid on two adjacent sides
-      int idim = (geo == XL || geo == XH) ? 0 : 1;
-      int idir = (geo & LL) ? -1 : 1;
+      int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
+      int idir = (geo & level_interface::LL) ? -1 : 1;
       const Box& sbox = source[lev][igrid].box();
       Box cbox = interface[mglev].corner(icor);
       Box fbox = interface[mglev].corner(icor);
@@ -991,11 +991,11 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
 	  internal_copy(source[lev], jgrid, igrid, freg);
       }
     }
-    else if (geo == LL || geo == HL || geo == LH || geo == HH) 
+    else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) 
     {
       // outside corner
-      int idir0 = (geo & XL) ? -1 : 1;
-      int idir1 = (geo & YL) ? -1 : 1;
+      int idir0 = (geo & level_interface::XL) ? -1 : 1;
+      int idir1 = (geo & level_interface::YL) ? -1 : 1;
       const Box& sbox = source[lev][igrid].box();
       Box cbox = interface[mglev].corner(icor);
       cbox.grow(rat).convert(cellvect).coarsen(rat);
@@ -1033,7 +1033,7 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
 	delete vcp;
       }
     }
-    else if (geo == (LL | HH) || geo == (LH | HL)) 
+    else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
     {
       // diagonal corner
       const Box& sbox = source[lev][igrid].box();
@@ -1063,7 +1063,7 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
 		 0, 0, icor);
       fill_patch(vf, u[1][lev], interface[mglev], boundary.velocity(1),
 		 0, 0, icor);
-      int jdir = (geo == (LL | HH)) ? 1 : -1;
+      int jdir = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
       Box creg = interface[mglev].corner(icor);
       creg.coarsen(rat);
       Real *const sptr = source[lev][igrid].dataPtr();
@@ -1093,11 +1093,11 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
       Box fbox = interface[mglev].corner(icor);
       cbox.grow(rat).convert(cellvect).coarsen(rat);
       fbox.grow(1).convert(cellvect);
-      if ((geo & XL) == XL)
+      if ((geo & level_interface::XL) == level_interface::XL)
 	fbox.growHi(0, rat[0]-1);
       else
 	fbox.growLo(0, rat[0]-1);
-      if ((geo & YL) == YL)
+      if ((geo & level_interface::YL) == level_interface::YL)
 	fbox.growHi(1, rat[1]-1);
       else
 	fbox.growLo(1, rat[1]-1);
@@ -1107,7 +1107,7 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
       fill_patch(vf, u[1][lev], interface[mglev], boundary.velocity(1),
 		 0, 0, icor);
       int idir0, idir1;
-      if ((geo & XL) == XL) 
+      if ((geo & level_interface::XL) == level_interface::XL) 
       {
 	idir0 = -1;
 	cbox.growLo(0, -1);
@@ -1117,7 +1117,7 @@ holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
 	idir0 = 1;
 	cbox.growHi(0, -1);
       }
-      if ((geo & YL) == YL) 
+      if ((geo & level_interface::YL) == level_interface::YL) 
       {
 	idir1 = -1;
 	cbox.growLo(1, -1);

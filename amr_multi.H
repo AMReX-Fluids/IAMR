@@ -27,7 +27,8 @@ class amr_multigrid
 
   void build_index();
 
-  int get_amr_level(int mglev) {
+  int get_amr_level(int mglev) 
+  {
     for (int i = lev_min; i <= lev_max; i++) {
       if (ml_index[i] == mglev)
 	return i;
@@ -72,14 +73,13 @@ class amr_multigrid
 
   virtual ~amr_multigrid();
 
+#if (BL_SPACEDIM != 2 )
   static void SetRZ()
   {
     c_sys = 1;
-    if (BL_SPACEDIM != 2) {
-      cerr << "error in amr_multigrid::SetRZ---only in 2D" << endl;
-      exit(1);
-    }
   }
+#endif
+
   static void SetCartesian()
     { c_sys = 0; }
 

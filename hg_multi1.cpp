@@ -425,7 +425,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 
 #endif
 
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   cen.resize(mglev_max + 1);
   for (mglev = 0; mglev <= mglev_max; mglev++) 
@@ -630,7 +630,7 @@ holy_grail_amr_multigrid::can_coarsen(const BoxArray& mesh,
 void 
 holy_grail_amr_multigrid::sync_interfaces()
 {
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   for (int lev = lev_min+1; lev <= lev_max; lev++) 
   {
@@ -646,7 +646,7 @@ holy_grail_amr_multigrid::sync_interfaces()
 	igrid = interface[mglev].fgrid(iface, 1);
       unsigned geo = interface[mglev].fgeo(iface);
       // reject fine-fine interfaces and those without an interior fine grid
-      if (geo == ALL || igrid < 0 || interface[mglev].fflag(iface) == 1)
+      if (geo == level_interface::ALL || igrid < 0 || interface[mglev].fflag(iface) == 1)
 	continue;
       interpolate_patch(target[igrid], interface[mglev].node_face(iface),
 			dest[lev-1], rat,
@@ -658,7 +658,7 @@ holy_grail_amr_multigrid::sync_interfaces()
 void 
 holy_grail_amr_multigrid::sync_periodic_interfaces()
 {
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   for (int lev = lev_min+1; lev <= lev_max; lev++) 
   {
@@ -677,7 +677,7 @@ holy_grail_amr_multigrid::sync_periodic_interfaces()
       unsigned geo = interface[mglev].fgeo(iface);
       // use only exterior coarse-fine faces with an interior fine grid
       const Box& nbox = interface[mglev].node_face(iface);
-      if (geo == ALL || igrid < 0 || interface[mglev].fflag(iface) == 1 ||
+      if (geo == level_interface::ALL || igrid < 0 || interface[mglev].fflag(iface) == 1 ||
 	  idomain.intersects(nbox))
 	continue;
       interpolate_patch(target[igrid], nbox, dest[lev-1], rat,

@@ -224,7 +224,7 @@ holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 #endif
 #endif
 
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   Box tdom = mg_domain[mglev];
   tdom.convert(nodevect);

@@ -395,9 +395,9 @@ int fill_patch(Fab& patch, const Box& region,
       }
     }
     else if (idim == 0) {
-      int gridnum[N_CORNER_GRIDS+1];
+      int gridnum[level_interface::N_CORNER_GRIDS+1];
       gridnum[0] = -1;
-      for (int i = 0; i < N_CORNER_GRIDS; i++) {
+      for (int i = 0; i < level_interface::N_CORNER_GRIDS; i++) {
 	int igrid = interface.cgrid(index,i);
 	if (igrid != -1) {
 	  for (int j = 0; gridnum[j] != igrid; j++) {
@@ -429,9 +429,9 @@ int fill_patch(Fab& patch, const Box& region,
     }
 #if (BL_SPACEDIM == 3)
     else if (idim == 1) {
-      int gridnum[N_EDGE_GRIDS+1];
+      int gridnum[level_interface::N_EDGE_GRIDS+1];
       gridnum[0] = -1;
-      for (int i = 0; i < N_EDGE_GRIDS; i++) {
+      for (int i = 0; i < level_interface::N_EDGE_GRIDS; i++) {
 	int igrid = interface.egrid(index,i);
 	if (igrid != -1) {
 	  for (int j = 0; gridnum[j] != igrid; j++) {
@@ -462,10 +462,10 @@ int fill_patch(Fab& patch, const Box& region,
       }
     }
 #endif
-    else if (idim == FACEDIM) {
-      int gridnum[N_FACE_GRIDS+1];
+    else if (idim == level_interface::FACEDIM) {
+      int gridnum[level_interface::N_FACE_GRIDS+1];
       gridnum[0] = -1;
-      for (int i = 0; i < N_FACE_GRIDS; i++) {
+      for (int i = 0; i < level_interface::N_FACE_GRIDS; i++) {
 	int igrid = interface.fgrid(index,i);
 	if (igrid != -1) {
 	  for (int j = 0; gridnum[j] != igrid; j++) {
@@ -639,7 +639,7 @@ int fill_patch(Fab& patch,
 
 void sync_internal_borders(MultiFab& r, const level_interface& interface)
 {
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   int igrid, jgrid;
   if (type(r) == nodevect) {
@@ -647,7 +647,7 @@ void sync_internal_borders(MultiFab& r, const level_interface& interface)
       igrid = interface.fgrid(iface, 0);
       jgrid = interface.fgrid(iface, 1);
       // only do interior faces with fine grid on both sides
-      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
 	break;
       internal_copy(r, jgrid, igrid, interface.node_face(iface));
     }
@@ -656,7 +656,7 @@ void sync_internal_borders(MultiFab& r, const level_interface& interface)
       igrid = interface.cgrid(icor, 0);
       jgrid = interface.cgrid(icor, 3);
       // only do interior corners with fine grid on all sides
-      if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != level_interface::ALL)
 	break;
       if (jgrid == interface.cgrid(icor, 1))
 	internal_copy(r, jgrid, igrid, interface.corner(icor));
@@ -666,7 +666,7 @@ void sync_internal_borders(MultiFab& r, const level_interface& interface)
       igrid = interface.egrid(iedge, 0);
       jgrid = interface.egrid(iedge, 3);
       // only do interior edges with fine grid on all sides
-      if (igrid < 0 || jgrid < 0 || interface.egeo(iedge) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.egeo(iedge) != level_interface::ALL)
 	break;
       if (jgrid == interface.egrid(iedge, 1))
 	internal_copy(r, jgrid, igrid, interface.node_edge(iedge));
@@ -675,7 +675,7 @@ void sync_internal_borders(MultiFab& r, const level_interface& interface)
       igrid = interface.cgrid(icor, 0);
       jgrid = interface.cgrid(icor, 7);
       // only do interior corners with fine grid on all sides
-      if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != level_interface::ALL)
 	break;
       if (interface.cgrid(icor, 3) == interface.cgrid(icor, 1)) {
 	if (jgrid != interface.cgrid(icor, 3)) {
@@ -721,7 +721,7 @@ void sync_internal_borders(MultiFab& r, const level_interface& interface)
 void fill_internal_borders(MultiFab& r, const level_interface& interface,
 			   int w)
 {
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
   int igrid, jgrid;
@@ -729,7 +729,7 @@ void fill_internal_borders(MultiFab& r, const level_interface& interface,
     for (int iface = 0; iface < interface.nfaces(); iface++) {
       igrid = interface.fgrid(iface, 0);
       jgrid = interface.fgrid(iface, 1);
-      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
 	break;
 #if 1
       const Box& b = interface.node_face(iface);
@@ -770,7 +770,7 @@ void fill_internal_borders(MultiFab& r, const level_interface& interface,
     for (int iface = 0; iface < interface.nfaces(); iface++) {
       igrid = interface.fgrid(iface, 0);
       jgrid = interface.fgrid(iface, 1);
-      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
 	break;
       const int idim = interface.fdim(iface);
 #if (BL_SPACEDIM == 2)
@@ -804,7 +804,7 @@ void fill_internal_borders(MultiFab& r, const level_interface& interface,
     for (int iface = 0; iface < interface.nfaces(); iface++) {
       igrid = interface.fgrid(iface, 0);
       jgrid = interface.fgrid(iface, 1);
-      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
 	break;
       const int idim = interface.fdim(iface);
       const int a = (type(r, idim) == BOX_NODE);
@@ -846,7 +846,7 @@ void clear_part_interface(MultiFab& r, const level_interface& interface)
   if (r.nComp() != 1)
     BoxLib::Error("clear_part_interface---only single components currently supported");
 
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   int igrid;
   if (type(r) == nodevect) {

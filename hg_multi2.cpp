@@ -295,7 +295,7 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 {
   int igrid, i;
 
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   const IntVect& rat = gen_ratio[lev-1];
   int mglevc = ml_index[lev-1];
@@ -308,14 +308,14 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
       igrid = interface[mglev].fgrid(iface, 1);
     unsigned geo = interface[mglev].fgeo(iface);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].fflag(iface) == 1) 
+    if (geo == level_interface::ALL || igrid < 0 || interface[mglev].fflag(iface) == 1) 
     {
       fres_flag[lev][iface] = 1; // means "fres_dc[lev][iface] not allocated"
       continue;
     }
     // fine grid on just one side
     int idim = interface[mglev].fdim(iface);
-    int idir = (geo & LOW) ? -1 : 1;
+    int idir = (geo & level_interface::LOW) ? -1 : 1;
     Box& fbox = fres_fbox[lev][iface];
     Box& cbox = fres_cbox[lev][iface];
     Box& creg = fres_creg[lev][iface];
@@ -366,7 +366,7 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
   for (int iedge = 0; iedge < interface[mglev].nedges(); iedge++) 
   {
     // find a fine grid touching this edge
-    for (i = 0; i < N_EDGE_GRIDS; i++) 
+    for (i = 0; i < level_interface::N_EDGE_GRIDS; i++) 
     {
       igrid = interface[mglev].egrid(iedge, i);
       if (igrid >= 0)
@@ -374,7 +374,7 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     }
     unsigned geo = interface[mglev].egeo(iedge);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].eflag(iedge) == 1) 
+    if (geo == level_interface::ALL || igrid < 0 || interface[mglev].eflag(iedge) == 1) 
     {
       eres_flag[lev][iedge] = 1; // means "eres_dc[lev][iedge] not allocated"
       continue;
@@ -430,7 +430,7 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
   for (int icor = 0; icor < interface[mglev].ncorners(); icor++) 
   {
     // find a fine grid touching this corner
-    for (i = 0; i < N_CORNER_GRIDS; i++) 
+    for (i = 0; i < level_interface::N_CORNER_GRIDS; i++) 
     {
       igrid = interface[mglev].cgrid(icor, i);
       if (igrid >= 0)
@@ -438,7 +438,7 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     }
     unsigned geo = interface[mglev].cgeo(icor);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].cflag(icor) == 1) 
+    if (geo == level_interface::ALL || igrid < 0 || interface[mglev].cflag(icor) == 1) 
     {
       cres_flag[lev][icor] = 1; // means "cres_dc[lev][icor] not allocated"
       continue;
@@ -500,7 +500,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #endif
   int igrid, i;
 
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   const IntVect& rat = gen_ratio[lev-1];
   int mglevc = ml_index[lev-1];
@@ -513,11 +513,11 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       igrid = interface[mglev].fgrid(iface, 1);
     unsigned geo = interface[mglev].fgeo(iface);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].fflag(iface) == 1)
+    if (geo == level_interface::ALL || igrid < 0 || interface[mglev].fflag(iface) == 1)
       continue;
     // fine grid on just one side
     int idim = interface[mglev].fdim(iface);
-    int idir = (geo & LOW) ? -1 : 1;
+    int idir = (geo & level_interface::LOW) ? -1 : 1;
     const Box& sbox = source[lev][igrid].box();
     const Box& fbox = fres_fbox[lev][iface];
     const Box& cbox = fres_cbox[lev][iface];
@@ -565,14 +565,14 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 
 #ifdef HG_CROSS_STENCIL
 
-  int ga[N_CORNER_GRIDS];
+  int ga[level_interface::N_CORNER_GRIDS];
 
 #if (BL_SPACEDIM == 3)
 
   for (int iedge = 0; iedge < interface[mglev].nedges(); iedge++) 
   {
     // find a fine grid touching this edge
-    for (i = 0; i < N_EDGE_GRIDS; i++) 
+    for (i = 0; i < level_interface::N_EDGE_GRIDS; i++) 
     {
       igrid = interface[mglev].egrid(iedge, i);
       if (igrid >= 0)
@@ -580,7 +580,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     }
     unsigned geo = interface[mglev].egeo(iedge);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo != ALL && igrid >= 0 && interface[mglev].eflag(iedge) == 0) 
+    if (geo != level_interface::ALL && igrid >= 0 && interface[mglev].eflag(iedge) == 0) 
     {
       const Box& sbox = source[lev][igrid].box();
       const Box& fbox = eres_fbox[lev][iedge];
@@ -621,7 +621,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  t.getVect(), ga);
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].node_edge(iedge);
-      for (i = 1; i < N_EDGE_GRIDS; i++) 
+      for (i = 1; i < level_interface::N_EDGE_GRIDS; i++) 
       {
 	int jgrid = interface[mglev].egrid(iedge, i);
 	if (jgrid >= 0 && jgrid != igrid)
@@ -635,7 +635,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
   for (int icor = 0; icor < interface[mglev].ncorners(); icor++) 
   {
     // find a fine grid touching this corner
-    for (i = 0; i < N_CORNER_GRIDS; i++) 
+    for (i = 0; i < level_interface::N_CORNER_GRIDS; i++) 
     {
       igrid = interface[mglev].cgrid(icor, i);
       if (igrid >= 0)
@@ -643,7 +643,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     }
     unsigned geo = interface[mglev].cgeo(icor);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo != ALL && igrid >= 0 && interface[mglev].cflag(icor) == 0) 
+    if (geo != level_interface::ALL && igrid >= 0 && interface[mglev].cflag(icor) == 0) 
     {
       const Box& sbox = source[lev][igrid].box();
       const Box& fbox = cres_fbox[lev][icor];
@@ -686,7 +686,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  ga);
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
-      for (i = 1; i < N_CORNER_GRIDS; i++) 
+      for (i = 1; i < level_interface::N_CORNER_GRIDS; i++) 
       {
 	int jgrid = interface[mglev].cgrid(icor, i);
 	if (jgrid >= 0 && jgrid != igrid)
@@ -700,7 +700,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
   for (int icor = 0; icor < interface[mglev].ncorners(); icor++) 
   {
     // find a fine grid touching this corner
-    for (i = 0; i < N_CORNER_GRIDS; i++) 
+    for (i = 0; i < level_interface::N_CORNER_GRIDS; i++) 
     {
       igrid = interface[mglev].cgrid(icor, i);
       if (igrid >= 0)
@@ -708,13 +708,13 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     }
     unsigned geo = interface[mglev].cgeo(icor);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].cflag(icor) == 1)
+    if (geo == level_interface::ALL || igrid < 0 || interface[mglev].cflag(icor) == 1)
       continue;
-    else if (geo == XL || geo == XH || geo == YL || geo == YH) 
+    else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
     {
       // fine grid on two adjacent sides
-      int idim = (geo == XL || geo == XH) ? 0 : 1;
-      int idir = (geo & LL) ? -1 : 1;
+      int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
+      int idir = (geo & level_interface::LL) ? -1 : 1;
       const Box& sbox = source[lev][igrid].box();
       const Box& fbox = cres_fbox[lev][icor];
       const Box& cbox = cres_cbox[lev][icor];
@@ -756,18 +756,18 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  );
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
-      for (i = 1; i < N_CORNER_GRIDS; i++) 
+      for (i = 1; i < level_interface::N_CORNER_GRIDS; i++) 
       {
 	int jgrid = interface[mglev].cgrid(icor, i);
 	if (jgrid >= 0 && jgrid != igrid)
 	  internal_copy(resid[mglev], jgrid, igrid, freg);
       }
     }
-    else if (geo == LL || geo == HL || geo == LH || geo == HH) 
+    else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) 
     {
       // outside corner
-      int idir0 = (geo & XL) ? -1 : 1;
-      int idir1 = (geo & YL) ? -1 : 1;
+      int idir0 = (geo & level_interface::XL) ? -1 : 1;
+      int idir1 = (geo & level_interface::YL) ? -1 : 1;
       const Box& sbox = source[lev][igrid].box();
       const Box& cbox = cres_cbox[lev][icor];
 #ifndef HG_CONSTANT
@@ -804,10 +804,10 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #endif
 		  );
     }
-    else if (geo == (LL | HH) || geo == (LH | HL)) 
+    else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
     {
       // diagonal corner
-      int jdir = (geo == (LL | HH)) ? 1 : -1;
+      int jdir = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
       const Box& sbox = source[lev][igrid].box();
       const Box& fbox = cres_fbox[lev][icor];
       const Box& cbox = cres_cbox[lev][icor];
@@ -848,7 +848,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  );
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
-      for (i = 1; i < N_CORNER_GRIDS; i++) 
+      for (i = 1; i < level_interface::N_CORNER_GRIDS; i++) 
       {
 	int jgrid = interface[mglev].cgrid(icor, i);
 	if (jgrid >= 0 && jgrid != igrid)
@@ -858,8 +858,8 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     else 
     {
       // inside corner
-      int idir0 = ((geo & XL) == XL) ? -1 : 1;
-      int idir1 = ((geo & YL) == YL) ? -1 : 1;
+      int idir0 = ((geo & level_interface::XL) == level_interface::XL) ? -1 : 1;
+      int idir1 = ((geo & level_interface::YL) == level_interface::YL) ? -1 : 1;
       const Box& sbox = source[lev][igrid].box();
       const Box& fbox = cres_fbox[lev][icor];
       const Box& cbox = cres_cbox[lev][icor];
@@ -900,7 +900,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
       int kgrid = -1;
-      for (i = 1; i < N_CORNER_GRIDS; i++) 
+      for (i = 1; i < level_interface::N_CORNER_GRIDS; i++) 
       {
 	int jgrid = interface[mglev].cgrid(icor, i);
 	if (jgrid >= 0 && jgrid != igrid && jgrid != kgrid) 

@@ -88,7 +88,9 @@ tempIntList.clear();
     cout << "Creating projector\n";
   }
 
+#if BL_SPACEDIM != 2
   if (CoordSys::IsRZ() == 1) amr_multigrid::SetRZ();
+#endif
   setUpBcs();
   sync_proj = NULL;
 }

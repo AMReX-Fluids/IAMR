@@ -43,7 +43,8 @@ class NSBld : public LevelBld
                                  const BoxArray &ba, REAL time);
 };
 
-class NavierStokes : public AmrLevel {
+class NavierStokes : public AmrLevel 
+{
 
 public:   // ===================== public member functions ===
 

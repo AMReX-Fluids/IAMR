@@ -382,14 +382,14 @@ void amr_boundary_class::fill_borders(MultiFab& r,
 				      int w) const
 {
     TRACER("amr_boundary_class::fill_borders");
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
   int igrid, jgrid;
   const Box& domain = interface.domain();
   BoxLib::Error("amr_boundary_class::fill_borders---old function not used for some time, check source code carefully before using.");
   for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) == ALL) {
+      if (interface.fgeo(iface) == level_interface::ALL) {
       igrid = interface.fgrid(iface, 0);
       jgrid = interface.fgrid(iface, 1);
       if (igrid < 0 || jgrid < 0) {
@@ -451,10 +451,10 @@ void mixed_boundary_class::sync_borders(MultiFab& r,
     BoxLib::Error("mixed_boundary_class::sync_borders---only NODE-based sync defined");
   }
 
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != ALL)
+      if (interface.fgeo(iface) != level_interface::ALL)
       break;
     int igrid = interface.fgrid(iface, 0);
     if (igrid < 0) {
@@ -476,13 +476,13 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 					int w) const
 {
   TRACER("mixed_boundary_class::fill_borders(..., w)");
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
   const Box& domain = interface.domain();
   int igrid, jgrid;
   for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != ALL)
+    if (interface.fgeo(iface) != level_interface::ALL)
       break;
     igrid = interface.fgrid(iface, 0);
     jgrid = interface.fgrid(iface, 1);
@@ -690,13 +690,13 @@ void mixed_boundary_class::set_sync_cache(copy_cache* cache,
   if (type(r) != nodevect)
     BoxLib::Error("mixed_boundary_class::set_sync_cache---only NODE-based sync defined");
 
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   Real *const baseptr = cache->dptr;
 
   const Box& domain = interface.domain();
   for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != ALL)
+    if (interface.fgeo(iface) != level_interface::ALL)
       break;
     int igrid = interface.fgrid(iface, 0);
     if (igrid < 0) {
@@ -806,14 +806,14 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
   if (flowdim >= 0 || flowdim == -3)
     BoxLib::Error("mixed_boundary_class::set_border_cache---negation borders not currently supported");
 
-  DECLARE_GEOMETRY_TYPES;
+  // DECLARE_GEOMETRY_TYPES;
 
   Real *const baseptr = cache->dptr;
 
   const Box& domain = interface.domain();
   int igrid, jgrid;
   for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != ALL)
+    if (interface.fgeo(iface) != level_interface::ALL)
       break;
     igrid = interface.fgrid(iface, 0);
     jgrid = interface.fgrid(iface, 1);
