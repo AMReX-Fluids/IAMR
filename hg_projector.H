@@ -7,7 +7,8 @@
 
 extern PArray<MultiFab> null_amr_real;
 
-class holy_grail_amr_projector : public holy_grail_amr_multigrid {
+class holy_grail_amr_projector : public holy_grail_amr_multigrid 
+{
  protected:
   void right_hand_side(PArray<MultiFab>* u, PArray<MultiFab>& S);
   void grid_average(PArray<MultiFab>& S);

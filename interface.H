@@ -35,7 +35,8 @@ extern const class level_interface null_level_interface;
 #  define N_CORNER_GRIDS 8
 #endif
 
-class level_interface {
+class level_interface 
+{
  public:
 
   level_interface() : status(-1) { }

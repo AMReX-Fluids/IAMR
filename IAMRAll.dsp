@@ -68,7 +68,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0
-# ADD F90 /extend_source:132 /browser /include:"Debug/" /compile_only /nologo /warn:declarations /debug:full /optimize:0 /iface:cref
+# ADD F90 /extend_source:132 /browser /include:"Debug/" /compile_only /nologo /warn:declarations /debug:full /optimize:0 /warn:argument_checking /iface:cref /warn:stderrors
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
 # ADD CPP /nologo /W3 /Gm /vd0 /GX /Zi /Od /I "." /I ".\include\2d.v9" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D BL_SPACEDIM=2 /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D "_CRTDBG_MAP_ALLOC" /FR /YX /FD /c
 # SUBTRACT CPP /Gy
