@@ -187,6 +187,7 @@ void NavierStokes::variableSetUp()
 
       // **************  DEFINE DERIVED QUANTITIES ********************
       // kinetic energy
+/*
     derive_lst.add("energy",IndexType::TheCellType(),1,FORT_DERKENG,
                    cell_to_cell,IndexType::TheCellType());
     derive_lst.addComponent("energy",desc_lst,State_Type,Density,1);
@@ -222,6 +223,8 @@ void NavierStokes::variableSetUp()
                    cell_to_node,IndexType::TheNodeType());
     derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
 #endif
+
+*/
 
       // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
      err_list.add("tracer",1,Special,FORT_ADVERROR);

@@ -415,7 +415,6 @@ return;
 
 
    // dont use FabArrayIterator here
-   BoxList unfilledBoxes;  // returned by AddBox, not used
    for(int idest = 0; idest < fabparray.length(); ++idest) {
       bool destLocal = (distributionMap[idest] == myproc);
       for(int isrc = idest + 1; isrc < fabparray.length(); ++isrc) {
@@ -436,6 +435,8 @@ return;
            tbmd.nOverlap       = nOverlap;
            tbmd.overlapBox     = ovlp;
            if(destLocal) {
+	     IndexType boxType(ovlp.ixType());
+             BoxList unfilledBoxes(boxType);  // returned by AddBox, not used
              tbmd.fillBoxId = facd.AddBox(faid, ovlp, unfilledBoxes, isrc, 0,0,1);
            }
 

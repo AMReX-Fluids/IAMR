@@ -1,4 +1,4 @@
-// $Id: MacOperator.cpp,v 1.2 1997-07-17 23:47:15 car Exp $
+// $Id: MacOperator.cpp,v 1.3 1997-08-14 17:59:18 vince Exp $
 #include <MacBndry.H>
 #include <MacOperator.H>
 #include <MacOpMacDrivers.H>
@@ -48,16 +48,26 @@ void MacOperator::setCoefficients(MultiFab* area, MultiFab& rho, int rho_comp,
 #endif
 
     int ngrd = ba.length();
-    int k;
-    for (k = 0; k < ngrd; k++) {
-	const BOX& grd = ba[k];
+    //for(int k = 0; k < ngrd; k++)
+    for(MultiFabIterator rhomfi(rho); rhomfi.isValid(); ++rhomfi)
+    {
+	DependentMultiFabIterator bxcoefmfi(rhomfi, bxcoef);
+	DependentMultiFabIterator bycoefmfi(rhomfi, bycoef);
+	DependentMultiFabIterator area0mfi(rhomfi, area[0]);
+	DependentMultiFabIterator area1mfi(rhomfi, area[1]);
+#if (BL_SPACEDIM == 3)
+	DependentMultiFabIterator bzcoefmfi(rhomfi, bzcoef);
+	DependentMultiFabIterator area2mfi(rhomfi, area[2]);
+#endif
+	assert(ba[rhomfi.index()] == rhomfi.validbox());
+	const BOX& grd = ba[rhomfi.index()];
         const int* lo = grd.loVect();
         const int* hi = grd.hiVect();
-	FArrayBox& bx = bxcoef[k];
-	FArrayBox& by = bycoef[k];
-	const FArrayBox& ax = area[0][k];
-	const FArrayBox& ay = area[1][k];
-	const FArrayBox& den = rho[k];
+	FArrayBox& bx = bxcoefmfi();
+	FArrayBox& by = bycoefmfi();
+	const FArrayBox& ax = area0mfi();
+	const FArrayBox& ay = area1mfi();
+	const FArrayBox& den = rhomfi();
 
 	DEF_LIMITS(bx,bx_dat,bxlo,bxhi);
 	DEF_LIMITS(by,by_dat,bylo,byhi);
@@ -76,8 +86,8 @@ void MacOperator::setCoefficients(MultiFab* area, MultiFab& rho, int rho_comp,
 #endif
 #if (BL_SPACEDIM == 3)
 
-	FArrayBox& bz = bzcoef[k];
-	const FArrayBox& az = area[2][k];
+	FArrayBox& bz = bzcoefmfi();
+	const FArrayBox& az = area2mfi();
 
         DEF_CLIMITS(az,az_dat,azlo,azhi);
         DEF_LIMITS(bz,bz_dat,bzlo,bzhi);
@@ -90,7 +100,7 @@ void MacOperator::setCoefficients(MultiFab* area, MultiFab& rho, int rho_comp,
                      az_dat,ARLIM(azlo),ARLIM(azhi),
 		     den_dat,ARLIM(dlo),ARLIM(dhi),lo,hi,dx);
 #endif
-    }
+    }  // end MultiFabIterator
   
     bCoefficients(bxcoef,0);
     bCoefficients(bycoef,1);
@@ -112,17 +122,25 @@ void MacOperator::defRHS( MultiFab* area, MultiFab& volume, MultiFab& Rhs,
     assert( Rhs.boxArray() == ba );
 
     int ngrd = ba.length();
-    int k;
-    for (k = 0; k < ngrd; k++) {
-	const BOX& grd = ba[k];
+    //for(int k = 0; k < ngrd; k++)
+    for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    {
+	DependentMultiFabIterator volumemfi(Rhsmfi, volume);
+	DependentMultiFabIterator area0mfi(Rhsmfi, area[0]);
+	DependentMultiFabIterator area1mfi(Rhsmfi, area[1]);
+	DependentMultiFabIterator vel0mfi(Rhsmfi, vel[0]);
+	DependentMultiFabIterator vel1mfi(Rhsmfi, vel[1]);
+
+	assert(ba[Rhsmfi.index()] == Rhsmfi.validbox());
+	const BOX& grd = Rhsmfi.validbox();
         const int* lo = grd.loVect();
         const int* hi = grd.hiVect();
-	const FArrayBox& ax = area[0][k];
-	const FArrayBox& ay = area[1][k];
-	const FArrayBox& vol = volume[k];
-	const FArrayBox& ux = vel[0][k];
-	const FArrayBox& uy = vel[1][k];
-	FArrayBox& rhs = Rhs[k];
+	const FArrayBox& ax = area0mfi();
+	const FArrayBox& ay = area1mfi();
+	const FArrayBox& vol = volumemfi();
+	const FArrayBox& ux = vel0mfi();
+	const FArrayBox& uy = vel1mfi();
+	FArrayBox& rhs = Rhsmfi();
 
 	DEF_CLIMITS(ux,ux_dat,uxlo,uxhi);
 	DEF_CLIMITS(uy,uy_dat,uylo,uyhi);
@@ -142,10 +160,12 @@ void MacOperator::defRHS( MultiFab* area, MultiFab& volume, MultiFab& Rhs,
 #endif
 #if (BL_SPACEDIM == 3)
 
-	const FArrayBox& az = area[2][k];
+	DependentMultiFabIterator area2mfi(Rhsmfi, area[2]);
+	DependentMultiFabIterator vel2mfi(Rhsmfi, vel[2]);
+	const FArrayBox& az = area2mfi();
         DEF_CLIMITS(az,az_dat,azlo,azhi);
 
-	const FArrayBox& uz = vel[2][k];
+	const FArrayBox& uz = vel2mfi();
 	DEF_CLIMITS(uz,uz_dat,uzlo,uzhi);
 
 	FORT_MACRHS(ux_dat,ARLIM(uxlo),ARLIM(uxhi),
@@ -226,19 +246,27 @@ void MacOperator::velUpdate(MultiFab* Vel, MultiFab& Phi, const MultiFab& Rho,
     applyBC(Phi,apply_lev);
 
     int ngrd = ba.length();
-    int k;
-    for (k = 0; k < ngrd; k++) {
-	const BOX& grd = ba[k];
+    //for(int k = 0; k < ngrd; k++)
+    for(MultiFabIterator Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
+    {
+	DependentMultiFabIterator Rhomfi(Phimfi, Rho);
+	DependentMultiFabIterator Vel0mfi(Phimfi, Vel[0]);
+	DependentMultiFabIterator Vel1mfi(Phimfi, Vel[1]);
+#if (BL_SPACEDIM == 3 )
+	DependentMultiFabIterator Vel2mfi(Phimfi, Vel[2]);
+#endif
+	assert(ba[Phimfi.index()] == Phimfi.validbox());
+	const BOX& grd = Phimfi.validbox();
 
         mac_vel_update( 0, 
-                        Vel[0][k],
-                        Vel[1][k],
+                        Vel0mfi(),
+                        Vel1mfi(),
 #if (BL_SPACEDIM == 3 )
-                        Vel[2][k],
+                        Vel2mfi(),
 #endif
-                        Phi[k],
-                        &(Rho[k]), rho_comp,  
-                        grd, 0, k, dx, scale );
+                        Phimfi(),
+                        &(Rhomfi()), rho_comp,  
+                        grd, 0, Phimfi.index(), dx, scale );
     }
 }
 
@@ -252,14 +280,18 @@ void MacOperator::syncRhs(const MultiFab& Volume, MultiFab& Rhs,
 
     const BoxArray& ba = *gbox[0];
 
-    int ngrd = ba.length();
-    int k;
-    for (k = 0; k < ngrd; k++) {
-	const BOX& grd = ba[k];
+    //int ngrd = ba.length();
+    //for(int k = 0; k < ngrd; k++)
+    for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    {
+	DependentMultiFabIterator Volumemfi(Rhsmfi, Volume);
+	assert(ba[Rhsmfi.index()] == Rhsmfi.validbox());
+	const BOX& grd = Rhsmfi.validbox();
+
         const int* lo = grd.loVect();
         const int* hi = grd.hiVect();
-	FArrayBox& rhs = Rhs[k];
-	const FArrayBox& vol = Volume[k];
+	FArrayBox& rhs = Rhsmfi();
+	const FArrayBox& vol = Volumemfi();
 
 	DEF_CLIMITS(vol,vol_dat,vlo,vhi);
 	DEF_LIMITS(rhs,rhs_dat,rlo,rhi);

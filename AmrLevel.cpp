@@ -318,7 +318,7 @@ void FillPatchIterator::Initialize(const int boxGrow,
   }
   localMFBoxes.grow(growSize);  // these are the ones we want to fillpatch
 
-  IndexType boxType(localMFBoxes[0].ixType());
+  IndexType boxType(levelData.boxArray()[0].ixType());
   BoxList unfilledBoxesOnThisLevel(boxType);
   BoxList unfillableBoxesOnThisLevel(boxType);
 
@@ -329,6 +329,8 @@ void FillPatchIterator::Initialize(const int boxGrow,
     }
 
     unfilledBoxesOnThisLevel.clear();
+    assert(unfilledBoxesOnThisLevel.ixType() == boxType);
+    assert(unfilledBoxesOnThisLevel.ixType() == localMFBoxes[ibox].ixType());
     unfilledBoxesOnThisLevel.add(localMFBoxes[ibox]);
 
     // find the boxes that can be filled on each level--these are all
@@ -646,7 +648,7 @@ FillPatchIterator::FillPatchIterator(AmrLevel &amrlevel,
   }
   localMFBoxes.grow(growSize);  // these are the ones we want to fillpatch
 
-  IndexType boxType(localMFBoxes.ixType());
+  IndexType boxType(levelData.boxArray()[0].ixType());
   Box unfilledBoxOnThisLevel(boxType);
   BoxList unfillableBoxesOnThisLevel(boxType);
 
@@ -1102,6 +1104,8 @@ AmrLevel::FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
     }
     if(ParallelDescriptor::NProcs() > 1) {
       ParallelDescriptor::Abort("FillPatch() not implemented in parallel");
+    } else {
+      cerr << "FillPatch() not implemented in parallel" << endl;
     }
 
 
@@ -1224,6 +1228,8 @@ AmrLevel::FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
 
     if(ParallelDescriptor::NProcs() > 1) {
       ParallelDescriptor::Abort("FillPatch(..., Box) not implemented in parallel");
+    } else {
+      cerr << "FillPatch(..., Box) not implemented in parallel" << endl;
     }
 
 
@@ -1485,7 +1491,9 @@ AmrLevel::FillCoarsePatch(FARRAYBOX &dest,
 	ParallelDescriptor::Abort("Exiting.");
     }
     if(ParallelDescriptor::NProcs() > 1) {
-      ParallelDescriptor::Abort("FillCoarsePatch called with nprocs > 1.");
+      ParallelDescriptor::Abort("FillCoarsePatch not implemented in parallel.");
+    } else {
+      cerr << "FillCoarsePatch not implemented in parallel." << endl;
     }
 
     BOX dbox(dest.box());
@@ -1544,8 +1552,10 @@ PArray<FARRAYBOX>*
 AmrLevel::derive(const aString &name, REAL time)
 {
     if(ParallelDescriptor::NProcs() > 1) {
-      cerr << "AmrLevel::derive (PArray):  fix for parallel." << endl;
+      cerr << "AmrLevel::derive(returning PArray *) not implemented in parallel." << endl;
       ParallelDescriptor::Abort("Exiting.");
+    } else {
+      cerr << "AmrLevel::derive(returning PArray *) not implemented in parallel." << endl;
     }
     int state_indx, src_comp;
     if (isStateVariable(name,state_indx,src_comp)) {
@@ -1637,10 +1647,13 @@ AmrLevel::derive(const aString &name, REAL time)
 FARRAYBOX*
 AmrLevel::derive(const BOX& b, const aString &name, REAL time)
 {
-    if(ParallelDescriptor::NProcs() > 1) {
-      cerr << "AmrLevel::derive(box, name, time):  fix for parallel." << endl;
-      ParallelDescriptor::Abort("Exiting.");
-    }
+
+if(ParallelDescriptor::NProcs() > 1) {
+  cerr << "AmrLevel::derive(box, name, time) not implemented in parallel." << endl;
+  ParallelDescriptor::Abort("Exiting.");
+} else {
+  cerr << "AmrLevel::derive(box, name, time) not implemented in parallel." << endl;
+}
 
     int state_indx, src_comp;
 
@@ -1653,6 +1666,13 @@ AmrLevel::derive(const BOX& b, const aString &name, REAL time)
 
     const DeriveRec* d;
     if (d = derive_lst.get(name)) {
+
+        cerr << "AmrLevel::derive:  about to FillDerive on var =  " << name << endl;
+	cerr << "FillDerive not implemented in parallel." << endl;
+        if(ParallelDescriptor::NProcs() > 1) {
+          ParallelDescriptor::Abort("Exiting.");
+	}
+
 	FARRAYBOX *dest = new FARRAYBOX(b,d->numDerive());
 	FillDerive(*dest,b,name,time);
 	return dest;

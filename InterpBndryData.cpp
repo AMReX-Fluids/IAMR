@@ -61,6 +61,7 @@ InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
     assert( grids == mf.boxArray() );
 
       // set bndry flags and locations
+/*  original code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     IntVect ref_ratio = IntVect::TheUnitVector();
     setBndryConds(bc, geom, ref_ratio);
 
@@ -70,6 +71,38 @@ InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
 	for (OrientationIter fi; fi; ++fi) {
 	    Orientation face(fi());
 	    if (bx[face] == geom.Domain()[face]) {
+		  // physical bndry, copy from grid
+                FARRAYBOX& bnd_fab = bndry[face][grd];
+		bnd_fab.copy(mf[grd],mf_start,bnd_start,num_comp);
+	    }
+	}
+    }
+
+    // now copy boundary values stored in ghost cells of fine
+    // into bndry.  This only does something for physical boundaries,
+    // we don't need to make it periodic aware
+    for (OrientationIter fi; fi; ++fi) {
+	bndry[fi()].copyFrom(mf,0,mf_start,bnd_start,num_comp);
+    }
+*/
+
+
+    IntVect ref_ratio = IntVect::TheUnitVector();
+    setBndryConds(bc, geom, ref_ratio);
+
+    // this needs to be turned inside out for proper parallel implementation
+    // (start with OrientationIter in the outer loop)
+
+    int ngrd = grids.length();
+    //for(int grd = 0; grd < ngrd; grd++)
+    for(ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    {
+	assert(grids[mfi.index()] == mfi.validbox());
+	int grd = mfi.index();
+	const BOX& bx = grids[grd];
+	for(OrientationIter fi; fi; ++fi) {
+	    Orientation face(fi());
+	    if(bx[face] == geom.Domain()[face]) {
 		  // physical bndry, copy from grid
                 FARRAYBOX& bnd_fab = bndry[face][grd];
 		bnd_fab.copy(mf[grd],mf_start,bnd_start,num_comp);

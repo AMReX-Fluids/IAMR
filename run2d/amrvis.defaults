@@ -3,8 +3,8 @@ initialderived        ymom
 initialderived        xmom
 initialderived        density
 initialscale          1
-initialscale          5
 initialscale          2
+initialscale          5
 numberformat          %5.3e
 numberformat          %7.5e
 numberformat          %7.5f

@@ -1,4 +1,4 @@
-// $Id: NavierStokes.cpp,v 1.8 1997-07-30 16:29:33 car Exp $
+// $Id: NavierStokes.cpp,v 1.9 1997-08-14 17:59:21 vince Exp $
 
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -904,6 +904,8 @@ void NavierStokes::init( AmrLevel &old)
     if(ParallelDescriptor::NProcs() > 1) {
       cerr << "Using old FillPatch with multiple processors." << endl;
       ParallelDescriptor::Abort("NavierStokes::init( AmrLevel &old)");
+    } else {
+      cerr << "Using old FillPatch." << endl;
     }
     // get best state and pressure data
     for (i = 0; i < grids.length(); i++) {
@@ -2995,7 +2997,11 @@ void NavierStokes::errorEst(TagBoxArray &tags, int clearval, int tagval,
 // ---------------------------------------------------------------
 REAL NavierStokes::sumDerive(const aString& name, REAL time)
 {
+if(ParallelDescriptor::NProcs() > 1) {
     ParallelDescriptor::Abort("NavierStokes::sumDerive(...) not implemented in parallel.");
+} else {
+    cerr << "NavierStokes::sumDerive(...) not implemented in parallel." << endl;
+}
     REAL sum = 0.0;
     int finest_level = parent->finestLevel();
     int i;
@@ -3019,9 +3025,7 @@ REAL NavierStokes::sumDerive(const aString& name, REAL time)
 // ---------------------------------------------------------------
 REAL  NavierStokes::volWgtSum(const aString& name, REAL time)
 {
-if(ParallelDescriptor::NProcs() > 1) {
-    ParallelDescriptor::Abort("NavierStokes::volWgtSum(...) not implemented in parallel.");
-}
+/*  original code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     REAL sum = 0.0;
     int finest_level = parent->finestLevel();
     int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
@@ -3058,6 +3062,67 @@ if(ParallelDescriptor::NProcs() > 1) {
 #endif
 	sum += s;
 	delete stuff;
+	delete tmp;
+    }
+    return sum;
+*/
+
+
+    int stateIndex, srcComp;
+    if(isStateVariable(name,stateIndex,srcComp)) {
+      // do nothing
+    } else {
+      ParallelDescriptor::Abort("Error in NS::volWgtSum:  bad variable.");
+    }
+    int boxGrow = 0;
+    int destComp = 0;
+    int nComp = 1;
+    MultiFab &dataMF = get_data(stateIndex, time);
+
+    REAL sum = 0.0;
+    int finest_level = parent->finestLevel();
+    int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
+    const Real *dx = geom.CellSize();
+    //for(int i = 0; i < grids.length(); i++)
+    for(FillPatchIterator fpi(*this, dataMF, boxGrow, destComp, time,
+			      stateIndex, srcComp, nComp); fpi.isValid(); ++fpi)
+    {
+      int i = fpi.index();
+      assert(grids[i] == fpi.validbox());
+	FArrayBox &derivedFabTemp = fpi();
+	FArrayBox *derivedFab = new FArrayBox(grids[i], nComp);
+	derivedFab->copy(derivedFabTemp);
+	if(level < finest_level) {
+	    const BoxArray& f_box = parent->boxArray(level+1);
+	    for(int j = 0; j < f_box.length(); j++) {
+		Box c_box = coarsen(f_box[j],fine_ratio);
+		c_box &= grids[i];
+		if(c_box.ok()) {
+		  derivedFab->setVal(0.0,c_box,0);
+		}
+	    }
+	}
+	REAL s;
+	const REAL* dat = derivedFab->dataPtr();
+	const int* dlo = derivedFab->loVect();
+	const int* dhi = derivedFab->hiVect();
+	const int* lo = grids[i].loVect();
+	const int* hi = grids[i].hiVect();
+	int nz = hi[1]-lo[1]+1;
+	REAL *tmp = new REAL[nz];
+
+#if (BL_SPACEDIM == 2)
+	int irlo = lo[0]-radius_grow;
+	int irhi = hi[0]+radius_grow;
+	REAL *rad = &radius[i];
+	FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+                     dx,&s,rad,&irlo,&irhi,&rz_flag,tmp);
+#endif
+#if (BL_SPACEDIM == 3)
+	FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),dx,&s,tmp);
+#endif
+	sum += s;
+	delete derivedFab;
 	delete tmp;
     }
     ParallelDescriptor::ReduceRealSum(sum);
@@ -3896,6 +3961,8 @@ void NavierStokes::SyncInterp( MultiFab &CrseSync, int c_lev,
 
     if(ParallelDescriptor::NProcs() > 1) {  // punt
       ParallelDescriptor::Abort("NavierStokes::SyncInterp not implemented in parallel");
+    } else {
+      cerr << "NavierStokes::SyncInterp not implemented in parallel" << endl;
     }
 
     // This routine interpolates the num_comp components of CrseSync
@@ -4031,6 +4098,8 @@ void NavierStokes::SyncProjInterp( MultiFab &phi,   int c_lev,
     if(ParallelDescriptor::NProcs() > 1) {  // punt
       ParallelDescriptor::Abort("NavierStokes::SyncProjInterp not implemented in parallel");
       // because of phi.copy(crse_phi) within multifab loop below
+    } else {
+      cerr << "NavierStokes::SyncProjInterp not implemented in parallel" << endl;
     }
     // get fine parameters
     NavierStokes& fine_level = getLevel(f_lev);
@@ -4088,6 +4157,8 @@ void NavierStokes::avgDown( const BoxArray &grids,  const BoxArray &fgrids,
     if(ParallelDescriptor::NProcs() > 1) {  // punt
       ParallelDescriptor::Abort("NavierStokes::avgDown not implemented in parallel");
       // because of nested multifab loops
+    } else {
+      cerr << "NavierStokes::avgDown not implemented in parallel" << endl;
     }
     int crse, fine;
     assert( S_crse.nComp() == S_fine.nComp() );
@@ -4590,8 +4661,10 @@ void NavierStokes::avgDown()
 
     // inject fine pressure nodes down onto coarse nodes
     if(ParallelDescriptor::NProcs() > 1) {
-      cerr << "Not implemented in parallel" << endl;
+      cerr << "NavierStokes::avgDown() not implemented in parallel." << endl;
       ParallelDescriptor::Abort("NavierStokes::avgDown()");
+    } else {
+      cerr << "NavierStokes::avgDown() not implemented in parallel." << endl;
     }
     for (crse = 0; crse < ncrse; crse++) {
 

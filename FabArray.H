@@ -4,7 +4,7 @@
 #define _FABARRAY_H_
 
 //
-// $Id: FabArray.H,v 1.5 1997-07-25 23:13:30 vince Exp $
+// $Id: FabArray.H,v 1.6 1997-08-14 17:59:15 vince Exp $
 //
 
 #include <Assert.H>
@@ -1072,6 +1072,7 @@ FabArray<T, FAB>::copy (const FabArray<T, FAB>& farray) {
       }
       if( ! fabComTag.box.ok()) {
 	cerr << "Error:  _in FabArray::copy(FabArray):  bad fabComTag.box" << endl;
+	cerr << "fabComTag.box = " << fabComTag.box << endl;
 	ParallelDescriptor::Abort("Bad receive nbytes");
       }
 
@@ -1354,7 +1355,8 @@ FabArray<T, FAB>::FillBoundary (int start_comp, int num_comp) {
       destbox &= fai().box();
       if(destbox.ok()) {
         //fai().copy(fs[j],destbox,start_comp,destbox,start_comp,num_comp);
-	BoxList unfilledBoxes;  // unused here
+	IndexType boxType(destbox.ixType());
+	BoxList unfilledBoxes(boxType);  // unused here
 	FillBoxId fbid;
 	fbid = facd.AddBox(faid, destbox, unfilledBoxes,
 			   start_comp, start_comp, num_comp);
@@ -1652,7 +1654,7 @@ template <class T, class FAB>
 FabArrayCopyDescriptor<T, FAB>::FabArrayCopyDescriptor(bool cacheremotedata)
                          : nextFabArrayId(0),
                            nextFillBoxId(0),
-			   dataAvailable(true),
+			   dataAvailable(false),
 			   cacheRemoteData(cacheremotedata),
 			   completelyFilled(false),
 			   totalRemoteBoxes(0),
@@ -1888,6 +1890,9 @@ void FabArrayCopyDescriptor<T, FAB>::CollectData() {
     assert(fabComTagList.length() == 0);
   }
   for(ListIterator<FabComTag> fctli(fabComTagList); fctli; ++fctli) {
+    assert(fctli().procThatNeedsData == myproc);
+    assert(fctli().procThatHasData   != myproc);
+    assert(fctli().subBox.ok());
     ParallelDescriptor::SendData(fctli().procThatHasData, fctli(), NULL, 0);
   }
   fabComTagList.clear();
@@ -1900,28 +1905,11 @@ void FabArrayCopyDescriptor<T, FAB>::CollectData() {
     while(ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
     {  // data was sent to this processor
 
-      // checks
-      if(dataWaitingSize != 0) {
-        cerr << "Error in FabArrayCopyDescriptor<T, FAB>::CollectData:  ";
-        cerr << "data payload size for data send request is nonzero." << endl;
-        cerr << "data payload size = " << dataWaitingSize << endl;
-        ParallelDescriptor::Abort("CollectData:  bad data send request size");
-      }
-
-      if(fabComTag.procThatHasData != myproc) {
-	cerr << "Error 1 in CollectData..." << endl;
-	ParallelDescriptor::Abort("Error 1 in CollectData...");
-      }
-      if( ! fabComTag.subBox.ok()) {
-	cerr << "Error 2 in CollectData..." << endl;
-	ParallelDescriptor::Abort("Error 2 in CollectData...");
-      }
-      if( ! fabArrays[fabComTag.fabArrayId]->
-	      box(fabComTag.fabIndex).contains(fabComTag.subBox))
-      {
-	cerr << "Error 3 in CollectData..." << endl;
-	ParallelDescriptor::Abort("Error 3 in CollectData...");
-      }
+      assert(dataWaitingSize == 0);
+      assert(fabComTag.procThatHasData == myproc);
+      assert(fabComTag.subBox.ok());
+      assert(fabArrays[fabComTag.fabArrayId]->
+	      box(fabComTag.fabIndex).contains(fabComTag.subBox));
       // other checks here
 
       ParallelDescriptor::ReceiveData(nullptr, 0);  // to advance msg header
@@ -1948,8 +1936,12 @@ void FabArrayCopyDescriptor<T, FAB>::CollectData() {
   while(ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
   {  // data was sent to this processor
 
+    assert(fabComTag.procThatHasData   != myproc);
+    assert(fabComTag.subBox.ok());
     // check for consistency and correct number of received and expected messages
     if(myproc != fabComTag.procThatNeedsData) {
+      cerr << "myproc = " << myproc << endl;
+      cerr << "fabComTag.procThatNeedsData = " << fabComTag.procThatNeedsData << endl;
       ParallelDescriptor::Abort("FillFab:  bad procThatNeedsData");
     }
 

@@ -1,4 +1,4 @@
-// $Id: MacProj.cpp,v 1.2 1997-07-17 22:01:04 vince Exp $
+// $Id: MacProj.cpp,v 1.3 1997-08-14 17:59:19 vince Exp $
 
 #include <stdio.h>
 #include <Misc.H>
@@ -302,7 +302,10 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
                     S, Rhs, u_mac, mac_phi );
 
   // test that u_mac is divergence free
-  if (verbose) check_div_cond(level, u_mac);
+  //if (verbose) check_div_cond(level, u_mac);
+  // for parallel, verbose is defined true on the IOProcessor, so
+  // we cannont do the above (only check_div_cond on the IOProcessor)
+  check_div_cond(level, u_mac);
 
   
   // store advection velocities in mac registers at crse/fine boundaries

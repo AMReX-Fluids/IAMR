@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.1 1997-07-08 23:08:07 vince Exp $
+// $Id: MultiFab.cpp,v 1.2 1997-08-14 17:59:20 vince Exp $
 //
 
 #include <iostream.h>
@@ -543,7 +543,9 @@ linInterp (FArrayBox&      dest,
         const int sc = src_comp;
 
       if(ParallelDescriptor::NProcs() > 1) {
-	ParallelDescriptor::Abort("Error: MultiFab::linInterp 2:  fix parallel.");
+	ParallelDescriptor::Abort("Error: MultiFab::linInterp 2 not implemented in parallel.");
+      } else {
+	cerr << "Error: MultiFab::linInterp 2 not implemented in parallel." << endl;
       }
 
         for(ConstMultiFabIterator mfi(f2); mfi.isValid(); ++mfi) {

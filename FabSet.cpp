@@ -166,24 +166,68 @@ ParallelDescriptor::Abort("Exiting.");
 FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
 		         int dest_comp, int num_comp)
 {
-if(ParallelDescriptor::NProcs() > 1) {
-  cerr << "FabSet::copyTo(MultiFab, nghost, ...) not yet implemented" << endl;
-  ParallelDescriptor::Abort("Exiting.");
-}
-
-    int slen = src.length();
-    int dlen = length();
+/*  original code vvvvvvvvvvvvvvvvvvvvvvvvvv
     assert (nghost <= src.nGrow());
     const BoxArray& sba = src.boxArray();
-    for (int s = 0; s < slen; s++) {
+    for (int s = 0; s < src.length; s++) {
         const FARRAYBOX& sfab = src[s];
         BOX sbox = grow(sba[s],nghost);
-        for (int d = 0; d < dlen; d++) {
+        for (int d = 0; d < length(); d++) {
             FARRAYBOX& dfab = (*this)[d];
             BOX ovlp = dfab.box();
             ovlp &= sbox;
             if (ovlp.ok()) {
                 dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
+            }
+        }
+    }
+*/
+
+
+    assert (nghost <= src.nGrow());
+
+    FabSetCopyDescriptor fscd(true);
+    MultiFabId srcmfid = fscd.RegisterFabArray((MultiFab *) &src);  // cast away
+						 // const, this must be fixed
+    List<FillBoxId> fillBoxIdList;
+
+    const BoxArray& sba = src.boxArray();
+    for(FabSetIterator fsi(*this); fsi.isValid(); ++fsi) {
+       FArrayBox &dfab = fsi();
+       for(int s = 0; s < src.length(); ++s) {
+        Box sbox = grow(sba[s],nghost);
+            Box ovlp = dfab.box();
+            ovlp &= sbox;
+            if(ovlp.ok()) {
+              //dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
+	      IndexType boxType(ovlp.ixType());
+	      BoxList unfilledBoxes(boxType);  // unused here
+	      FillBoxId fbid = fscd.AddBox(srcmfid, ovlp, unfilledBoxes,
+				           src_comp, dest_comp, num_comp);
+	      fillBoxIdList.append(fbid);
+            }
+        }
+    }
+
+    fscd.CollectData();
+
+    ListIterator<FillBoxId> fbidli(fillBoxIdList);
+
+    for(FabSetIterator fsi(*this); fsi.isValid(); ++fsi) {
+       FArrayBox &dfab = fsi();
+       for(int s = 0; s < src.length(); ++s) {
+        Box sbox = grow(sba[s],nghost);
+            Box ovlp = dfab.box();
+            ovlp &= sbox;
+            if(ovlp.ok()) {
+	      assert(fbidli);
+	      FillBoxId fbid = fbidli();
+	      ++fbidli;
+
+	      FArrayBox sfabTemp(ovlp, num_comp);
+	      fscd.FillFab(srcmfid, fbid, sfabTemp);
+	      int srcCompTemp = 0;  // copy from temp src = 0
+              dfab.copy(sfabTemp, ovlp, srcCompTemp, ovlp, dest_comp, num_comp);
             }
         }
     }
@@ -196,8 +240,10 @@ const FabSet &FabSet::copyTo(MultiFab &dest, int nghost, int src_comp,
 	                     int dest_comp, int num_comp) const
 {
 if(ParallelDescriptor::NProcs() > 1) {
-  cerr << "FabSet::copyFrom(MultiFab, nghost, ...) not yet implemented" << endl;
+  cerr << "FabSet::copyTo(MultiFab, nghost, ...) not implemented in parallel." << endl;
   ParallelDescriptor::Abort("Exiting.");
+} else {
+  cerr << "FabSet::copyTo(MultiFab, nghost, ...) not implemented in parallel." << endl;
 }
 
     int dlen = dest.length();
@@ -279,8 +325,10 @@ FabSet &FabSet::linComb(Real a, const MultiFab &mfa, int a_comp,
 		        int dest_comp, int num_comp, int n_ghost)
 {
   if(ParallelDescriptor::NProcs() > 1) {
-    cerr << "FabSet::linComb(2) not yet implemented" << endl;
+    cerr << "FabSet::linComb(2) not implemented in parallel." << endl;
     ParallelDescriptor::Abort("Exiting.");
+  } else {
+    cerr << "FabSet::linComb(2) not implemented in parallel." << endl;
   }
 
     const BoxArray &bxa = mfa.boxArray();

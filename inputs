@@ -1,7 +1,8 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
 max_step  =   1000     # maximum timestep
-max_step  =   40       # maximum timestep
+max_step  =   20       # maximum timestep
 max_step  =   1        # maximum timestep
+max_step  =   40       # maximum timestep
 max_step  =   10       # maximum timestep
 stop_time =  10000.0   # maximum problem time
 
@@ -26,12 +27,13 @@ mac.v = 1
 proj.v = 1
 
 amr.n_cell    =  8 8
-amr.n_cell    =  64 64
 amr.n_cell    =  32 32
+amr.n_cell    =  64 64
+amr.n_cell    =  16 16
 
+amr.max_level =  1            # maximum level number allowed
 amr.max_level =  0            # maximum level number allowed
 amr.max_level =  2            # maximum level number allowed
-amr.max_level =  1            # maximum level number allowed
 amr.ref_ratio       = 2 4 2 2  # refinement ratio
 amr.blocking_factor = 4       # block factor in grid generation
 amr.regrid_int      = 2       # how often to regrid
@@ -43,8 +45,8 @@ amr.plot_file_root  = plt
 amr.plot_int        = 1
 amr.grid_log        = grdlog  # name of grid logging file
 amr.max_grid_size   = 128
-amr.max_grid_size   = 16
 amr.max_grid_size   = 32
+amr.max_grid_size   = 16
 
 # ----------------  BOUNDARY CONDITIONS ---------------------
 

@@ -1,4 +1,4 @@
-#define _Projection_C_ $Id: Projection.cpp,v 1.5 1997-07-31 01:11:10 car Exp $
+#define _Projection_C_ $Id: Projection.cpp,v 1.6 1997-08-14 17:59:22 vince Exp $
 #include <stdio.h>
 #include <Misc.H>
 #include <CoordSys.H>
@@ -323,10 +323,12 @@ void Projection::level_project(int level,
       DependentMultiFabIterator U_oldmfi(P_newmfi, U_old);
       // interpolate values for P_new from coarse grid
       if(ParallelDescriptor::NProcs() > 1) {
-	cerr << "Error in Projection::level_project:  Not implemented in parallel"
-	     << endl;
+	cerr << "Projection::level_project not implemented in parallel." << endl;
 	ParallelDescriptor::Abort("Exiting.");
+      } else {
+	cerr << "Projection::level_project not implemented in parallel." << endl;
       }
+
       LevelData[level].FillCoarsePatch(P_newmfi(),0,cur_pres_time,Press_Type,0,1);
       //assert(grids[P_newmfi.index()] == P_newmfi.validbox());
       assert(P_newmfi().box() == P_newmfi.fabbox());
@@ -562,6 +564,8 @@ void Projection::harmonic_project(int level, REAL dt, REAL cur_pres_time,
     DependentMultiFabIterator harm_phimfi(temp_phimfi, *harm_phi);
     if(ParallelDescriptor::NProcs() > 1) {
       ParallelDescriptor::Abort("Projection::harmonic_project not implemented in parallel");
+    } else {
+      cerr << "Projection::harmonic_project not implemented in parallel" << endl;
     }
     LevelData[level].FillCoarsePatch(temp_phimfi(),0,
 				  prev_pres_time,Press_Type,0,1);
@@ -1250,6 +1254,8 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], REAL dt,
 	cerr << "Projection::initialSyncProject not implemented in parallel." << endl;
 	cerr << "This loop contains a call to FillPatch (in getDivCond)." << endl;
 	ParallelDescriptor::Abort("Exiting.");
+      } else {
+	cerr << "Projection::initialSyncProject not implemented in parallel." << endl;
       }
       for (int i=0;i<ngrids;i++) {
 	BOX divubox = grids[i];
@@ -1522,10 +1528,11 @@ void Projection::put_divu_in_node_rhs(MultiFab& rhs, Amr* parent, int level,
     FARRAYBOX* divu = new FARRAYBOX(divubox,1);
     getDivCond(level,*divu,1,time);
     if(ParallelDescriptor::NProcs() > 1) {
-      cerr << "Error in Projection::put_divu_in_node_rhs:  "
-	   << "Not implemented in parallel" << endl;
+      cerr << "Projection::put_divu_in_node_rhs not implemented in parallel." << endl;
       cerr << "Nested MultiFab loops." << endl;
       ParallelDescriptor::Abort("Exiting.");
+    } else {
+      cerr << "Projection::put_divu_in_node_rhs not implemented in parallel." << endl;
     }
 
 #if (BL_SPACEDIM == 2)
@@ -1574,10 +1581,11 @@ void Projection::put_divu_in_cc_rhs(MultiFab& rhs, Amr* parent, int level,
     divubox.grow(1);
     FARRAYBOX divu(divubox,1);
     if(ParallelDescriptor::NProcs() > 1) {
-      cerr << "Error in Projection::put_divu_in_cc_rhs:  "
-	   << "Not implemented in parallel" << endl;
+      cerr << "Projection::put_divu_in_cc_rhs not implemented in parallel" << endl;
       cerr << "Nested MultiFab loops." << endl;
       ParallelDescriptor::Abort("Exiting.");
+    } else {
+      cerr << "Projection::put_divu_in_cc_rhs not implemented in parallel" << endl;
     }
     getDivCond(level,divu,1,time);
     rhs[i].copy(divu);
@@ -1644,11 +1652,12 @@ void Projection::EnforcePeriodicity( MultiFab &psi, int nvar,
             // copy from psi to temp
             temp.shift(-iv);
             if(ParallelDescriptor::NProcs() > 1) {
-              cerr << "Error in Projection::EnforcePeriodicity:  "
-	           << "Not implemented in parallel" << endl;
+              cerr << "Projection::EnforcePeriodicity not implemented in parallel." << endl;
               cerr << "Nested MultiFab loops." << endl;
               ParallelDescriptor::Abort("Exiting.");
-            }
+            } else {
+              cerr << "Projection::EnforcePeriodicity not implemented in parallel." << endl;
+	    }
             psi.copy(temp,0,0,nvar);
 
             // shift and copy from temp back to psi

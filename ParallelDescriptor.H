@@ -13,6 +13,16 @@
 #include <FArrayBox.H>
 #ifdef BL_USE_BSP
 #include "bsp.h"
+
+#ifdef FIXBSPLIBLEVEL1HEADER
+extern "C" {
+  extern void bsp_fold(void (*)(void *, void *, void *, int *),
+                       void*,void*,int);
+  extern void bsp_fold_cpp(void (*)(void *, void *, void *, int *),
+                           void*,void* , int, int, char *);
+}
+#endif
+
 #include "bsp_level1.h"
 
 #define StartParallel(nprocs)    bsp_begin(nprocs)

@@ -1,4 +1,4 @@
-// $Id: SyncRegister.cpp,v 1.5 1997-07-23 17:46:21 car Exp $
+// $Id: SyncRegister.cpp,v 1.6 1997-08-14 17:59:23 vince Exp $
 #include <BC_TYPES.H>
 #include <SyncRegister.H>
 #include <Tracer.H>
@@ -159,6 +159,8 @@ SyncRegister::InitRHS(MultiFab& rhs, const Geometry& geom,
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::InitRHS(...) not implemented in parallel.");
+} else {
+  cerr << "SyncRegister::InitRHS(...) not implemented in parallel." << endl;;
 }
     rhs.setVal(0.0);
     const BoxArray& rhs_boxes = rhs.boxArray();
@@ -243,6 +245,8 @@ SyncRegister::CrseDVInit(const MultiFab& U,
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CrseDVInit(...) not implemented in parallel.");
+} else {
+  cerr << "SyncRegister::CrseDVInit(...) not implemented in parallel." << endl;
 }
       // first zero all registers
     setVal(0.0);
@@ -445,6 +449,8 @@ SyncRegister::FineDVAdd(const MultiFab& U,
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::FineDVAdd(...) not implemented in parallel.");
+} else {
+  cerr << "SyncRegister::FineDVAdd(...) not implemented in parallel." << endl;
 }
     const BoxArray& U_boxes = U.boxArray();
     int ngrds = U_boxes.length();
@@ -583,6 +589,8 @@ SyncRegister::CrseDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CrseDsdtAdd(...) not implemented in parallel.");
+} else {
+  cerr << "SyncRegister::CrseDsdtAdd(...) not implemented in parallel." << endl;
 }
     int k, dir, fine;
 
@@ -705,6 +713,8 @@ SyncRegister::FineDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::FineDsdtAdd(...) not implemented in parallel.");
+} else {
+  cerr << "SyncRegister::FineDsdtAdd(...) not implemented in parallel." << endl;
 }
     const BoxArray& dsdt_boxes = dsdt.boxArray();
     int ngrds = dsdt_boxes.length();
@@ -895,6 +905,8 @@ SyncRegister::CompDVAdd(const MultiFab& U,
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CompDVAdd(...) not implemented in parallel.");
+} else {
+  cerr << "SyncRegister::CompDVAdd(...) not implemented in parallel." << endl;
 }
     const BoxArray& U_boxes = U.boxArray();
     int ngrds = U_boxes.length();
@@ -1065,6 +1077,8 @@ SyncRegister::CrseLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CrseLPhiAdd(...) not implemented in parallel.");
+} else {
+  cerr << "SyncRegister::CrseLPhiAdd(...) not implemented in parallel." << endl;
 }
     int nfine = grids.length();
     const BoxArray& Phi_boxes = Phi.boxArray();
@@ -1192,6 +1206,8 @@ SyncRegister::FineLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::FineLPhiAdd(...) not implemented in parallel.");
+} else {
+  cerr << "SyncRegister::FineLPhiAdd(...) not implemented in parallel." << endl;
 }
     int k, dir, idir;
 
@@ -1323,6 +1339,8 @@ SyncRegister::CompLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CompLPhiAdd(...) not implemented in parallel.");
+} else {
+  cerr << "SyncRegister::CompLPhiAdd(...) not implemented in parallel." << endl;
 }
     int k, dir, idir;
 
@@ -1495,6 +1513,8 @@ static void printFAB(ostream& os, const FARRAYBOX& f)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::printFAB(...) not implemented in parallel.");
+} else {
+  cerr << "SyncRegister::printFAB(...) not implemented in parallel." << endl;
 }
 
     int comp = 0;
@@ -1526,6 +1546,8 @@ SyncRegister::print(ostream &os)
 {
   if(ParallelDescriptor::NProcs() > 1) {
     ParallelDescriptor::Abort("SyncRegister::print(os) not implemented in parallel.");
+  } else {
+    cerr << "SyncRegister::print(os) not implemented in parallel." << endl;
   }
     int ngrd = grids.length();
     os << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";

@@ -1,4 +1,4 @@
-// $Id: Diffusion.cpp,v 1.4 1997-07-24 20:31:15 vince Exp $
+// $Id: Diffusion.cpp,v 1.5 1997-08-14 17:59:13 vince Exp $
 
 // comment out this line to use diffusion class outside
 // the context of NavierStokes and classes derived from it
@@ -2583,9 +2583,11 @@ void Diffusion::FillBoundary(BndryRegister& bdry, int src_comp, int dest_comp,
             if (need_old_data) {
               sold_tmpmfi().shift(iv);
               if(ParallelDescriptor::NProcs() > 1) {
-                cerr << "Error in Diffusion::FillBoundary" << endl;
+                cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
                 cerr << "Nested MultiFabIterator loops (S_old.copy)" << endl;
                 ParallelDescriptor::Abort("Exiting");
+	      } else {
+                cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
 	      }
               S_old.copy(sold_tmpmfi(),src_comp,0,num_comp);
               sold_tmpmfi().shift(-iv);
@@ -2593,9 +2595,11 @@ void Diffusion::FillBoundary(BndryRegister& bdry, int src_comp, int dest_comp,
 
             snew_tmpmfi().shift(iv);
             if(ParallelDescriptor::NProcs() > 1) {
-              cerr << "Error in Diffusion::FillBoundary" << endl;
+              cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
               cerr << "Nested MultiFabIterator loops (S_new.copy)" << endl;
               ParallelDescriptor::Abort("Exiting");
+	    } else {
+              cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
 	    }
             S_new.copy(snew_tmpmfi(),src_comp,0,num_comp);
             snew_tmpmfi().shift(-iv);
@@ -2609,9 +2613,11 @@ void Diffusion::FillBoundary(BndryRegister& bdry, int src_comp, int dest_comp,
             if (need_old_data) {
               rho_oldmfi().shift(iv);
               if(ParallelDescriptor::NProcs() > 1) {
-                cerr << "Error in Diffusion::FillBoundary" << endl;
+                cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
                 cerr << "Nested MultiFabIterator loops (S_old.copy)" << endl;
                 ParallelDescriptor::Abort("Exiting");
+	      } else {
+                cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
 	      }
               S_old.copy(rho_oldmfi(),Density,0,1);
               rho_oldmfi().shift(-iv);
@@ -2619,9 +2625,11 @@ void Diffusion::FillBoundary(BndryRegister& bdry, int src_comp, int dest_comp,
 
             rho_newmfi().shift(iv);
             if(ParallelDescriptor::NProcs() > 1) {
-              cerr << "Error in Diffusion::FillBoundary" << endl;
+              cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
               cerr << "Nested MultiFabIterator loops (S_new.copy)" << endl;
               ParallelDescriptor::Abort("Exiting");
+	    } else {
+              cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
 	    }
             S_new.copy(rho_newmfi(),Density,0,1);
             rho_newmfi().shift(-iv);
