@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.161 2004-09-08 23:20:06 almgren Exp $
+// $Id: Projection.cpp,v 1.162 2004-09-09 20:12:11 almgren Exp $
 //
 #include <winstd.H>
 
@@ -7,7 +7,6 @@
 #include <Geometry.H>
 #include <ParmParse.H>
 #include <BoxDomain.H>
-#include <MacOpProjDrivers.H>
 #include <NavierStokes.H>
 #include <Profiler.H>
 #include <Projection.H>
@@ -527,10 +526,6 @@ Projection::level_project (int             level,
     //
     rho_half->setBndry(BogusValue);
     scaleVar(LEVEL_PROJ,rho_half, 1, &U_new, grids, level);
-    //
-    // Application specific first guess.
-    //
-    ProjFirstGuess(U_new, P_new, level, grids);
     //
     // Enforce periodicity of U_new and rho_half (i.e. coefficient of G phi)
     // *after* everything has been done to them.
@@ -2178,11 +2173,6 @@ Projection::scaleVar (int             which_call,
     if (vel != 0 && anel_coeff[level] != 0)
       for (int n = 0; n < BL_SPACEDIM; n++) 
         AnelCoeffMult(level,*vel,n);
-
-    //
-    // Scale level projection variables for a particular projection.
-    //
-    proj_scale_var(sig,vel,grids,level);
 }
 
 //
@@ -2231,10 +2221,6 @@ Projection::rescaleVar (int             which_call,
     //
     if (sig != 0)
         sig->invert(1.0,sig_nghosts);
-    //
-    // Unscale level projection variables for a particular projection.
-    //
-    proj_unscale_var(sig,vel,grids,level);
 }
 
 //

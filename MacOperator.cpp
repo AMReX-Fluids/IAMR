@@ -1,12 +1,11 @@
 //
-// $Id: MacOperator.cpp,v 1.29 2003-02-05 22:11:42 almgren Exp $
+// $Id: MacOperator.cpp,v 1.30 2004-09-09 20:12:11 almgren Exp $
 //
 #include <winstd.H>
 
 #include <MacBndry.H>
 #include <MacOperator.H>
 #include <MacOpMacDrivers.H>
-#include <MacOpProjDrivers.H>
 #include <MACOPERATOR_F.H>
 #include <CGSolver.H>
 #include <MultiGrid.H>
@@ -440,39 +439,4 @@ mac_sync_driver (const MacBndry& mac_bndry,
     
   int mac_op_lev = 0;
   mac_op.applyBC(*mac_sync_phi,0,1,mac_op_lev);
-}
-
-//
-// Make an application specific initial guess.
-//
-
-void
-ProjFirstGuess (MultiFab&       U_new,
-                MultiFab&       P_new,
-                int             level,
-                const BoxArray& grids )
-{}
-
-//
-// Scale the variables for a projection solve.
-//
-
-void
-proj_scale_var (MultiFab*       rho,
-                MultiFab*       vel,
-                const BoxArray& grids,
-                int             level)
-{
-}
-
-//
-// Unscale the variables for a projection solve.
-//
-
-void
-proj_unscale_var (MultiFab*       rho,
-                  MultiFab*       vel,
-                  const BoxArray& grids,
-                  int             level)
-{
 }
