@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.38 1998-04-01 18:21:38 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.39 1998-04-02 00:13:31 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3762,34 +3762,11 @@ void NavierStokes::avgDown( const BoxArray &cgrids,  const BoxArray &fgrids,
     assert( S_crse.nComp() == S_fine.nComp() );
     int num_crse = cgrids.length();
     int num_fine = fgrids.length();
-
-/*
-    // loop over coarse grids, and intersect coarse with fine
-    int crse, fine;
-    for ( crse = 0; crse < num_crse; crse++) {
-        const Box& cbox = cgrids[crse];
-        for ( fine = 0; fine < num_fine; fine++) {
-            const Box& fbox = fgrids[fine];
-            Box ovlp(coarsen(fbox,fratio));
-            ovlp &= cbox;
-            if (ovlp.ok()) {
-                avgDown( S_fine[fine],  S_crse[crse], 
-                         fvolume[fine], cvolume[crse], 
-                         f_level,       c_level,      
-                         ovlp, strt_comp, num_comp, fratio );
-            }
-        }
-    }
-*/
-
-//
-//
-//  this needs to be optimized to communicate only the
-//  overlap part of the fab
-//
-//
-
-    MultiFabCopyDescriptor mfcd(true);
+    //
+    //  this needs to be optimized to communicate only the
+    //  overlap part of the fab
+    //
+    MultiFabCopyDescriptor mfcd;
     MultiFabId mfidS_fine  = mfcd.RegisterFabArray(&S_fine);
     MultiFabId mfidFineVol = mfcd.RegisterFabArray(&fvolume);
 
@@ -4331,36 +4308,11 @@ void NavierStokes::avgDown()
     int ng_pres = P_crse.nGrow();
     int ncrse   = grids.length();
     int nfine   = fgrids.length();
-
-/*
-    int crse, fine;
-    // inject fine pressure nodes down onto coarse nodes
-    for (crse = 0; crse < ncrse; crse++) {
-        // the coarse grid nodes
-        const Box& cbox = P_cgrids[crse];
-        
-        // loop over fine grids and periodic extensions
-        for (fine = 0; fine < nfine; fine++) {
-
-            // inject fine down to coarse
-            ovlp  = coarsen(P_fgrids[fine],fine_ratio);
-            ovlp &= cbox;
-            if (ovlp.ok()) {
-                injectDown( ovlp, P_crse[crse], P_fine[fine], fine_ratio );
-            }
-        } // end of fine grid loop
-    } // end of coarse grid loop
-*/
-
-//
-//
-//  this needs to be optimized to communicate only the
-//  overlap part of the fab
-//
-//
-
-
-    MultiFabCopyDescriptor mfcd(true);
+    //
+    //  this needs to be optimized to communicate only the
+    //  overlap part of the fab
+    //
+    MultiFabCopyDescriptor mfcd;
     MultiFabId mfidP_fine  = mfcd.RegisterFabArray(&P_fine);
 
     List<FillBoxId> fillBoxIdList;
