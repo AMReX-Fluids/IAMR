@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Godunov.cpp,v 1.19 1999-06-30 23:18:40 propp Exp $
+// $Id: Godunov.cpp,v 1.20 2000-04-20 20:50:57 sstanley Exp $
 //
 
 //
@@ -1278,4 +1278,37 @@ Godunov::Sum_tf_divu_visc (FArrayBox& S,
                           VIdat, ARLIM(vlo), ARLIM(vhi),
                           RHdat, ARLIM(rlo), ARLIM(rhi),
                           tlo, thi, &num_comp, &iconserv);
+}
+
+
+bool
+Godunov::are_any(const Array<AdvectionForm>& advectionType,
+                 const AdvectionForm         testForm,
+                 const int                   sComp,
+                 const int                   nComp)
+{
+    for (int comp = sComp; comp < sComp + nComp; ++comp)
+    {
+        if (advectionType[comp] == testForm)
+            return true;
+    }
+
+    return false;
+}
+
+int
+Godunov::how_many(const Array<AdvectionForm>& advectionType,
+                  const AdvectionForm         testForm,
+                  const int                   sComp,
+                  const int                   nComp)
+{
+    int counter = 0;
+
+    for (int comp = sComp; comp < sComp + nComp; ++comp)
+    {
+        if (advectionType[comp] == testForm)
+            ++counter;
+    }
+
+    return counter;
 }

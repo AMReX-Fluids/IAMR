@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.94 2000-04-13 21:17:27 sstanley Exp $
+// $Id: Diffusion.cpp,v 1.95 2000-04-20 20:50:58 sstanley Exp $
 //
 
 //
@@ -2624,4 +2624,51 @@ Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
 
     return rho_flag;
 }
+
+bool
+Diffusion::are_any(const Array<DiffusionForm>& diffusionType,
+                   const DiffusionForm         testForm,
+                   const int                   sComp,
+                   const int                   nComp)
+{
+    for (int comp = sComp; comp < sComp + nComp; ++comp)
+    {
+        if (diffusionType[comp] == testForm)
+            return true;
+    }
+
+    return false;
+}
+
+int
+Diffusion::how_many(const Array<DiffusionForm>& diffusionType,
+                    const DiffusionForm         testForm,
+                    const int                   sComp,
+                    const int                   nComp)
+{
+    int counter = 0;
+
+    for (int comp = sComp; comp < sComp + nComp; ++comp)
+    {
+        if (diffusionType[comp] == testForm)
+            ++counter;
+    }
+
+    return counter;
+}
+/*
+bool
+Diffusion::are_any_Laplacian_SoverRho(const Array<DiffusionForm>& diffusionType,
+                                      const int                   sComp,
+                                      const int                   nComp)
+{
+    for (int comp = sComp; comp < sComp + nComp; ++comp)
+    {
+        if (diffusionType[comp] == Laplacian_SoverRho)
+            return true;
+    }
+
+    return false;
+}
+*/
 #endif /*USE_NAVIERSTOKES*/

@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.57 2000-04-13 21:17:29 sstanley Exp $
+// $Id: NavierStokes.H,v 1.58 2000-04-20 20:50:56 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -298,6 +298,7 @@ protected:
                                        MultiFab*&  alpha,
                                        MultiFab**& diffn,
                                        MultiFab**& diffnp1); 
+
     //
     // Make rho at time n+1/2.
     //
@@ -429,6 +430,9 @@ protected:
     // Compute the mac sync correction.
     //
     virtual void mac_sync ();
+    virtual void sync_setup (MultiFab*& DeltaSsync);
+    virtual void sync_cleanup (MultiFab*& DeltaSsync);
+
     //
     // Reflux function.
     //

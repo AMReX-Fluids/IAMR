@@ -4,7 +4,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.8 2000-04-13 21:17:28 sstanley Exp $
+// $Id: Godunov.H,v 1.9 2000-04-20 20:50:57 sstanley Exp $
 //
 //
 // A useful enumeration of the forms for the advective terms
@@ -152,6 +152,17 @@ public:      // public access functions
                         FArrayBox &Rho,
                         const Box &grd, const Real *dx, const Real dt,
                         const Real *u_max );
+
+    static bool are_any(const Array<AdvectionForm>& advectionType,
+                        const AdvectionForm         testForm,
+                        const int                   sComp,
+                        const int                   nComp);
+
+    static int how_many(const Array<AdvectionForm>& advectionType,
+                        const AdvectionForm         testForm,
+                        const int                   sComp,
+                        const int                   nComp);
+
 
     // =============================================================
     // Source term functions follow

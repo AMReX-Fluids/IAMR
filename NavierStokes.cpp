@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.161 2000-04-13 21:17:29 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.162 2000-04-20 20:50:57 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1255,11 +1255,14 @@ NavierStokes::advance (Real time,
     // Add the advective and other terms to get scalars at t^{n+1}.
     //
     scal_upd_stats.start();
+
+    //
+    // Update Rho and Compute rho at half time level including 1-zone 
+    // bndry values.
+    //
     scalar_update(dt,first_scalar,first_scalar);
-    //
-    // Compute rho at half time level including 1-zone bndry values.
-    //
     makerhonph(dt);
+
     //
     // Add the advective and other terms to get scalars at t^{n+1}.
     //
@@ -3736,7 +3739,11 @@ NavierStokes::mac_sync ()
     const int  numscal        = NUM_STATE - BL_SPACEDIM;
     const Real prev_time      = state[State_Type].prevTime();
     const Real prev_pres_time = state[Press_Type].prevTime();
-    Real       dt             = parent->dtLevel(level);
+    const Real dt             = parent->dtLevel(level);
+    MultiFab*  DeltaSsync;      // hold (Delta rho)*q for conserved quantities
+
+    sync_setup(DeltaSsync);
+
     //
     // Compute the u_mac for the correction.
     //
@@ -3759,6 +3766,38 @@ NavierStokes::mac_sync ()
         //   Ssync*dt is the source to the actual sync amount.
         //
         Ssync->mult(dt,Ssync->nGrow());
+
+        //
+        // For all conservative variables Q (other than density)
+        // express Q as rho*q and increment sync by -(sync_for_rho)*q
+        // (See Pember, et. al., LBNL-41339, Jan. 1989)
+        //
+        FArrayBox delta_ssync;
+
+        int iconserved = -1;
+        for (int istate = BL_SPACEDIM; istate < NUM_STATE; istate++)
+        {
+            if (istate != Density && advectionType[istate] == Conservative)
+            {
+                iconserved++;
+
+                for (MultiFabIterator Smfi(S_new); Smfi.isValid(); ++Smfi)
+                {
+                    DependentMultiFabIterator SsyncMfi(Smfi, *Ssync);
+                    DependentMultiFabIterator delSsyncMfi(Smfi, *DeltaSsync);
+                    const int  i   = Smfi.index();
+                    const Box& grd = grids[i];
+
+                    delta_ssync.resize(grd,1);
+                    delta_ssync.copy(Smfi(), grd, istate, grd, 0, 1);
+                    delta_ssync.divide(Smfi(), grd, Density, 0, 1);
+                    delta_ssync.mult(SsyncMfi(),grd,Density-BL_SPACEDIM,0,1);
+                    delSsyncMfi().copy(delta_ssync,grd,0,grd,iconserved,1);
+                    SsyncMfi().minus(delta_ssync,grd,0,istate-BL_SPACEDIM,1);
+                }
+            }
+        }
+
         //
         // Compute viscous sync.
         //
@@ -3836,6 +3875,30 @@ NavierStokes::mac_sync ()
         if (any_diffusive)
             diffusion->removeFluxBoxesLevel(fluxSC);
 
+
+        //
+        // For all conservative variables Q (other than density)
+        // increment sync by (sync_for_rho)*q_presync.
+        // (See Pember, et. al., LBNL-41339, Jan. 1989)
+        //
+        iconserved = -1;
+        for (int istate = BL_SPACEDIM; istate < NUM_STATE; istate++)
+        {
+            if (istate != Density && advectionType[istate] == Conservative)
+            {
+                iconserved++;
+
+                for (MultiFabIterator SsyncMfi(*Ssync); SsyncMfi.isValid(); 
+                                                                  ++SsyncMfi)
+                {
+                    DependentMultiFabIterator delSsyncMfi(SsyncMfi,*DeltaSsync);
+                    const int i = SsyncMfi.index();
+                    SsyncMfi().plus(delSsyncMfi(), grids[i],
+                                     iconserved, istate-BL_SPACEDIM, 1);
+                }
+            }
+        }
+
         //
         // Add the sync correction to the state.
         //
@@ -3877,7 +3940,33 @@ NavierStokes::mac_sync ()
                        0, BL_SPACEDIM, numscal, 1 , mult, sync_bc.dataPtr());
         }
     }
+
+    sync_cleanup(DeltaSsync);
 }
+
+void
+NavierStokes::sync_setup (MultiFab*& DeltaSsync)
+{
+    BL_ASSERT(DeltaSsync == 0);
+
+    int nconserved = Godunov::how_many(advectionType, Conservative,
+                                       BL_SPACEDIM, NUM_STATE-BL_SPACEDIM);
+
+    if (nconserved > 0 && level < parent->finestLevel())
+    {
+        DeltaSsync = new MultiFab(grids, nconserved, 1, Fab_allocate);
+        DeltaSsync->setVal(0,1);
+    }
+}
+
+void
+NavierStokes::sync_cleanup (MultiFab*& DeltaSsync)
+{
+    delete DeltaSsync;
+
+    DeltaSsync = 0;
+}
+
 
 //
 // The reflux function

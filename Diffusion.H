@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.16 2000-04-13 21:17:27 sstanley Exp $
+// $Id: Diffusion.H,v 1.17 2000-04-20 20:50:57 sstanley Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -251,6 +251,16 @@ public:
     inline int tensorMaxOrder() const;
 
     static int set_rho_flag(const DiffusionForm compDiffusionType);
+
+    static bool are_any(const Array<DiffusionForm>& diffusionType,
+                        const DiffusionForm         testForm,
+                        const int                   sComp,
+                        const int                   nComp);
+
+    static int how_many(const Array<DiffusionForm>& diffusionType,
+                        const DiffusionForm         testForm,
+                        const int                   sComp,
+                        const int                   nComp);
 
 protected:
     //
