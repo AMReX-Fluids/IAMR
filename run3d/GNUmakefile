@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.24 2001-08-10 20:16:01 lijewski Exp $
+# $Id: GNUmakefile,v 1.25 2001-08-14 21:21:11 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -20,11 +20,6 @@ USE_MPI   = TRUE
 NAMESPACE = TRUE
 NAMESPACE = FALSE
 #STRICTLY  = TRUE
-#
-# BoxLib3 Support
-#
-USE_BL3=TRUE
-USE_BL3=FALSE
 #
 # Hypre support
 #
@@ -120,23 +115,6 @@ else
   ifeq ($(USE_HYPRE),TRUE)
     error hypre not here yet
   endif
-endif
-
-ifeq ($(USE_BL3),TRUE)
-  DEFINES += -DBL3_PROFILING
-  ifeq ($(USE_MPI),TRUE)
-    DEFINES += -DBL3_USE_MPI
-    CEXE_sources += BL3Mpi.cpp
-  endif
-  ifeq ($(USE_THREADS),TRUE)
-    DEFINES += -DBL3_PTHREADS
-  endif
-  CEXE_headers += Thread.H Profiler.H BoxLib3.H Utility.H Assert.H Error.H
-  CEXE_sources += BL3Thread.cpp BL3Profiler.cpp BL3Utility.cpp 
-  CEXE_sources += BL3Error.cpp
-  CEXE_sources += BL3Parallel.cpp  BL3BoxLib3.cpp
-  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)
-  BOXLIB3_HOME := $(PBOXLIB_HOME)/BoxLib3
 endif
 
 ifeq ($(MACHINE),T3E)
