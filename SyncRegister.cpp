@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.55 1999-02-25 20:20:43 propp Exp $
+// $Id: SyncRegister.cpp,v 1.56 1999-05-10 17:18:37 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -130,10 +130,10 @@ SyncRegister::define (const BoxArray& fine_boxes,
                       int             fine_lev)
 {
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        assert(ratio[dir] == -1);
+        BLassert(ratio[dir] == -1);
 
-    assert(!grids.ready());
-    assert(fine_boxes.isDisjoint());
+    BLassert(!grids.ready());
+    BLassert(fine_boxes.isDisjoint());
 
     ratio      = ref_ratio;
     fine_level = fine_lev;
@@ -254,7 +254,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                                                 0,
                                                 mfi().nComp());
 
-                        assert(sr.m_fbid.box() == sbox);
+                        BLassert(sr.m_fbid.box() == sbox);
 
                         srrec.push_back(sr);
                     }
@@ -267,7 +267,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
     for (int i = 0; i < srrec.size(); i++)
     {
-        assert(rhs.DistributionMap()[srrec[i].m_idx] == MyProc);
+        BLassert(rhs.DistributionMap()[srrec[i].m_idx] == MyProc);
 
         FArrayBox& fab = rhs[srrec[i].m_idx];
 
@@ -308,7 +308,7 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
                                             0,
                                             mfi().nComp());
 
-                    assert(sr.m_fbid.box() == intersect);
+                    BLassert(sr.m_fbid.box() == intersect);
 
                     srrec.push_back(sr);
                 }
@@ -322,7 +322,7 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
     {
         const Box& bx = srrec[i].m_fbid.box();
 
-        assert(rhs.DistributionMap()[srrec[i].m_idx] == MyProc);
+        BLassert(rhs.DistributionMap()[srrec[i].m_idx] == MyProc);
 
         FArrayBox& rhs_fab = rhs[srrec[i].m_idx];
 
@@ -593,7 +593,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
 
     for (MultiFabIterator mfi(U_local); mfi.isValid(); ++mfi)
     {
-        assert(mfi.validbox() == U.boxArray()[mfi.index()]);
+        BLassert(mfi.validbox() == U.boxArray()[mfi.index()]);
 
         int* bc = crse_bc[mfi.index()];
 
@@ -739,7 +739,7 @@ BuildMFs (const MultiFab& mf,
           const IntVect&  ratio,
           HowToBuild      how)
 {
-    assert(how == WITH_BOX || how == WITH_SURROUNDING_BOX);
+    BLassert(how == WITH_BOX || how == WITH_SURROUNDING_BOX);
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
@@ -812,7 +812,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                                                 0,
                                                 mf.nComp());
 
-                        assert(sr.m_fbid.box() == sbox);
+                        BLassert(sr.m_fbid.box() == sbox);
 
                         srrec.push_back(sr);
                     }
@@ -827,7 +827,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
     {
         FabSet& fabset = bndry[srrec[i].m_face];
 
-        assert(fabset.DistributionMap()[srrec[i].m_idx] == MyProc);
+        BLassert(fabset.DistributionMap()[srrec[i].m_idx] == MyProc);
 
         tmpfab.resize(srrec[i].m_fbid.box(), mf.nComp());
 
@@ -1332,7 +1332,7 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
     //
     // This code assumes Sigma and Phi have same processor distribution.
     //
-    assert(Phi.boxArray().length() == Sigma.boxArray().length());
+    BLassert(Phi.boxArray().length() == Sigma.boxArray().length());
 
     MultiFab Sig_local(Sigma.boxArray(),1,1);
     MultiFab Phi_local(Phi.boxArray(),1,1);
@@ -1410,7 +1410,7 @@ SyncRegister::FineLPhiAdd (const MultiFab& Phi,
     //
     // This code assumes Sigma and Phi have same processor distribution.
     //
-    assert(Phi.boxArray().length() == Sigma.boxArray().length());
+    BLassert(Phi.boxArray().length() == Sigma.boxArray().length());
 
     FArrayBox pfab, sfab, ffablo, ffabhi;
 
@@ -1517,7 +1517,7 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
     //
     // This code assumes Sigma and Phi have same processor distribution.
     //
-    assert(Phi.boxArray().length() == Sigma.boxArray().length());
+    BLassert(Phi.boxArray().length() == Sigma.boxArray().length());
 
     Array<IntVect> pshifts(27);
 

@@ -1,5 +1,5 @@
 //
-// $Id: ViscBndryTensor.cpp,v 1.3 1999-02-25 17:35:39 car Exp $
+// $Id: ViscBndryTensor.cpp,v 1.4 1999-05-10 17:18:38 car Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -10,7 +10,7 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
                                 int          ratio,
                                 int          comp)
 {
-    assert (comp < MCLinOp::bcComponentsNeeded());
+    BLassert (comp < MCLinOp::bcComponentsNeeded());
 
     const Real* dx     = geom.CellSize();
     const Box&  domain = geom.Domain();

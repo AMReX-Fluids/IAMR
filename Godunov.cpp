@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Godunov.cpp,v 1.15 1998-11-05 00:42:54 lijewski Exp $
+// $Id: Godunov.cpp,v 1.16 1999-05-10 17:18:35 car Exp $
 //
 
 //
@@ -88,9 +88,9 @@ Godunov::read_params ()
 
     pp.query("slope_order",slope_order);
 #if (BL_SPACEDIM==2)
-    assert(slope_order==1 || slope_order==2 || slope_order==4);
+    BLassert(slope_order==1 || slope_order==2 || slope_order==4);
 #else
-    assert(slope_order==1 || slope_order==4);
+    BLassert(slope_order==1 || slope_order==4);
 #endif
     pp.query("use_forces_in_trans",use_forces_in_trans);
     int use_unlimited_slopes=use_unlimited_slopes_DEF;
@@ -238,8 +238,8 @@ Godunov::Setup (const Box&       grd,
                 FArrayBox&       rho, 
                 const FArrayBox& tforces)
 {
-    assert(rho.nComp() == 1);
-    assert(U.nComp() >= BL_SPACEDIM);
+    BLassert(rho.nComp() == 1);
+    BLassert(U.nComp() >= BL_SPACEDIM);
     //
     // Compute the edge boxes.
     //
@@ -362,23 +362,23 @@ Godunov::edge_states (const Box&  grd,
     //
     // Error block.
     //
-    assert(S.box().contains(work_bx));
+    BLassert(S.box().contains(work_bx));
 
-    assert(U.nComp()       >= BL_SPACEDIM);
-    assert(S.nComp()       >= fab_ind    );
-    assert(tforces.nComp() >= fab_ind    );
+    BLassert(U.nComp()       >= BL_SPACEDIM);
+    BLassert(S.nComp()       >= fab_ind    );
+    BLassert(tforces.nComp() >= fab_ind    );
 
-    assert(uedge.box()     == xflux_bx   );
-    assert(uedge.nComp()   >= 1          );
-    assert(stx.nComp()     >= 1          );
+    BLassert(uedge.box()     == xflux_bx   );
+    BLassert(uedge.nComp()   >= 1          );
+    BLassert(stx.nComp()     >= 1          );
 
-    assert(vedge.box()     == yflux_bx   );
-    assert(vedge.nComp()   >= 1          );
-    assert(sty.nComp()     >= 1          );
+    BLassert(vedge.box()     == yflux_bx   );
+    BLassert(vedge.nComp()   >= 1          );
+    BLassert(sty.nComp()     >= 1          );
 #ifdef ADD_W
-    assert(wedge.box()     == zflux_bx   );
-    assert(wedge.nComp()   >= 1          );
-    assert(stz.nComp()     >= 1          );
+    BLassert(wedge.box()     == zflux_bx   );
+    BLassert(wedge.nComp()   >= 1          );
+    BLassert(stz.nComp()     >= 1          );
 #endif    
     //
     // Create the bounds and pointers.
@@ -677,21 +677,21 @@ Godunov::SyncAdvect (const Box&  grd,
     //
     // Error block.
     //
-    assert(S.box().contains(work_bx));
+    BLassert(S.box().contains(work_bx));
 
-    assert(S.nComp()       >= BL_SPACEDIM);
-    assert(S.nComp()       >= fab_ind    );
-    assert(tforces.nComp() >= fab_ind    );
-    assert(sync.nComp()    >= sync_ind   );
+    BLassert(S.nComp()       >= BL_SPACEDIM);
+    BLassert(S.nComp()       >= fab_ind    );
+    BLassert(tforces.nComp() >= fab_ind    );
+    BLassert(sync.nComp()    >= sync_ind   );
 
-    assert(ucorr.box()     == xflux_bx   );
-    assert(ucorr.nComp()   >= 1          );
+    BLassert(ucorr.box()     == xflux_bx   );
+    BLassert(ucorr.nComp()   >= 1          );
 
-    assert(vcorr.box()     == yflux_bx   );
-    assert(vcorr.nComp()   >= 1          );
+    BLassert(vcorr.box()     == yflux_bx   );
+    BLassert(vcorr.nComp()   >= 1          );
 #ifdef ADD_W
-    assert(wcorr.box()     == zflux_bx   );
-    assert(wcorr.nComp()   >= 1          );
+    BLassert(wcorr.box()     == zflux_bx   );
+    BLassert(wcorr.nComp()   >= 1          );
 #endif    
     //
     // Compute the edge states.
@@ -843,9 +843,9 @@ Godunov::estdt (FArrayBox&  U,
                 Real        cfl,
                 Real*       u_max)
 {
-    assert( U.nComp()       >= BL_SPACEDIM );
-    assert( tforces.nComp() >= BL_SPACEDIM );
-    assert( rho.nComp()     == 1           );
+    BLassert( U.nComp()       >= BL_SPACEDIM );
+    BLassert( tforces.nComp() >= BL_SPACEDIM );
+    BLassert( rho.nComp()     == 1           );
 
     const int *lo     = grd.loVect();
     const int *hi     = grd.hiVect();
@@ -879,8 +879,8 @@ Godunov::test_u_rho (FArrayBox&  U,
                      const Real  dt,
                      const Real* u_max)
 {
-    assert(U.nComp()   >= BL_SPACEDIM);
-    assert(rho.nComp() == 1          );
+    BLassert(U.nComp()   >= BL_SPACEDIM);
+    BLassert(rho.nComp() == 1          );
     
     const int *lo  = grd.loVect();
     const int *hi  = grd.hiVect();
@@ -925,12 +925,12 @@ Godunov::test_umac_rho (FArrayBox&  umac,
     //
     // Test block.
     //
-    assert(umac.nComp() == 1);
-    assert(vmac.nComp() == 1);
+    BLassert(umac.nComp() == 1);
+    BLassert(vmac.nComp() == 1);
 #ifdef ADD_W
-    assert(wmac.nComp() == 1);
+    BLassert(wmac.nComp() == 1);
 #endif
-    assert(rho.nComp()  == 1);
+    BLassert(rho.nComp()  == 1);
     
     const int *lo  = grd.loVect();
     const int *hi  = grd.hiVect();
@@ -981,9 +981,9 @@ Godunov::Add_tf (FArrayBox& Sold,
                  const Box& grd,
                  Real       dt)
 {
-    assert(Snew.nComp()    >= start_ind + num_comp);
-    assert(Sold.nComp()    >= start_ind + num_comp);
-    assert(tforces.nComp() >= tf_ind    + num_comp);
+    BLassert(Snew.nComp()    >= start_ind + num_comp);
+    BLassert(Sold.nComp()    >= start_ind + num_comp);
+    BLassert(tforces.nComp() >= tf_ind    + num_comp);
 
     const int *slo    = Sold.loVect();
     const int *shi    = Sold.hiVect();
@@ -1018,10 +1018,10 @@ Godunov::Correct_tf (FArrayBox& Sstar,
                      const Box& grd,
                      Real       dt)
 {
-    assert(Snp1.nComp()   >= start_ind + num_comp);
-    assert(Sstar.nComp()  >= start_ind + num_comp);
-    assert(tfstar.nComp() >= tf_ind    + num_comp);
-    assert(tfn.nComp()    >= tf_ind    + num_comp);
+    BLassert(Snp1.nComp()   >= start_ind + num_comp);
+    BLassert(Sstar.nComp()  >= start_ind + num_comp);
+    BLassert(tfstar.nComp() >= tf_ind    + num_comp);
+    BLassert(tfn.nComp()    >= tf_ind    + num_comp);
 
     const int *slo    = Sstar.loVect();
     const int *shi    = Sstar.hiVect();
@@ -1057,10 +1057,10 @@ Godunov::Add_aofs_tf (FArrayBox& Sold,
                       const Box& grd,
                       Real       dt)
 {
-    assert(Snew.nComp()    >= start_ind + num_comp);
-    assert(Sold.nComp()    >= start_ind + num_comp);
-    assert(Aofs.nComp()    >= aofs_ind  + num_comp);
-    assert(tforces.nComp() >= tf_ind    + num_comp);
+    BLassert(Snew.nComp()    >= start_ind + num_comp);
+    BLassert(Sold.nComp()    >= start_ind + num_comp);
+    BLassert(Aofs.nComp()    >= aofs_ind  + num_comp);
+    BLassert(tforces.nComp() >= tf_ind    + num_comp);
 
     const int *slo    = Sold.loVect();
     const int *shi    = Sold.hiVect();
@@ -1098,12 +1098,12 @@ Godunov::Add_aofs_tf_gp (FArrayBox& Uold,
                          const Box& grd,
                          Real       dt)
 {
-    assert(Unew.nComp()    >= BL_SPACEDIM);
-    assert(Uold.nComp()    >= BL_SPACEDIM);
-    assert(Aofs.nComp()    >= BL_SPACEDIM);
-    assert(tforces.nComp() >= BL_SPACEDIM);
-    assert(gp.nComp()      == BL_SPACEDIM);
-    assert(rho.nComp()     == 1          );
+    BLassert(Unew.nComp()    >= BL_SPACEDIM);
+    BLassert(Uold.nComp()    >= BL_SPACEDIM);
+    BLassert(Aofs.nComp()    >= BL_SPACEDIM);
+    BLassert(tforces.nComp() >= BL_SPACEDIM);
+    BLassert(gp.nComp()      == BL_SPACEDIM);
+    BLassert(rho.nComp()     == 1          );
     
     const int *lo     = grd.loVect();
     const int *hi     = grd.hiVect();
@@ -1144,9 +1144,9 @@ Godunov::Sum_tf_gp (FArrayBox& tforces,
                     FArrayBox& gp,
                     FArrayBox& rho)
 {
-    assert(rho.nComp()     == 1);
-    assert(tforces.nComp() >= BL_SPACEDIM);
-    assert(gp.nComp()      == BL_SPACEDIM);
+    BLassert(rho.nComp()     == 1);
+    BLassert(tforces.nComp() >= BL_SPACEDIM);
+    BLassert(gp.nComp()      == BL_SPACEDIM);
     
     const int *tlo    = tforces.loVect();
     const int *thi    = tforces.hiVect();
@@ -1176,10 +1176,10 @@ Godunov::Sum_tf_gp_visc (FArrayBox& tforces,
                          FArrayBox& gp,
                          FArrayBox& rho)
 {
-    assert(rho.nComp()     == 1);
-    assert(tforces.nComp() >= BL_SPACEDIM);
-    assert(visc.nComp()    >= BL_SPACEDIM);
-    assert(gp.nComp()      == BL_SPACEDIM);
+    BLassert(rho.nComp()     == 1);
+    BLassert(tforces.nComp() >= BL_SPACEDIM);
+    BLassert(visc.nComp()    >= BL_SPACEDIM);
+    BLassert(gp.nComp()      == BL_SPACEDIM);
     
     const int *vlo    = visc.loVect();  
     const int *vhi    = visc.hiVect();
@@ -1219,10 +1219,10 @@ Godunov::Sum_tf_divu (FArrayBox& S,
                       FArrayBox& rho,
                       int        iconserv)
 {
-    assert(S.nComp()       >= s_ind+num_comp);
-    assert(tforces.nComp() >= s_ind+num_comp);
-    assert(divu.nComp()    == 1             );
-    assert(rho.nComp()     == 1             );
+    BLassert(S.nComp()       >= s_ind+num_comp);
+    BLassert(tforces.nComp() >= s_ind+num_comp);
+    BLassert(divu.nComp()    == 1             );
+    BLassert(rho.nComp()     == 1             );
     
     const int *slo    = S.loVect();
     const int *shi    = S.hiVect();
@@ -1264,11 +1264,11 @@ Godunov::Sum_tf_divu_visc (FArrayBox& S,
                            FArrayBox& rho,
                            int        iconserv)
 {
-    assert(S.nComp()       >= s_ind+num_comp);
-    assert(tforces.nComp() >= s_ind+num_comp);
-    assert(divu.nComp()    == 1             );
-    assert(visc.nComp()    >= v_ind+num_comp);
-    assert(rho.nComp()     == 1             );
+    BLassert(S.nComp()       >= s_ind+num_comp);
+    BLassert(tforces.nComp() >= s_ind+num_comp);
+    BLassert(divu.nComp()    == 1             );
+    BLassert(visc.nComp()    >= v_ind+num_comp);
+    BLassert(rho.nComp()     == 1             );
     
     const int *slo    = S.loVect();
     const int *shi    = S.hiVect();

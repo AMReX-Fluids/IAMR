@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.132 1999-05-07 20:31:54 marc Exp $
+// $Id: NavierStokes.cpp,v 1.133 1999-05-10 17:18:36 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -491,7 +491,7 @@ NavierStokes::init_additional_state_types ()
     int dummy_State_Type;
     bool have_temp = isStateVariable("temp", dummy_State_Type, Temp);
     have_temp &= dummy_State_Type == State_Type;
-    assert((do_temp && have_temp)  ||  (!do_temp && !have_temp));
+    BLassert((do_temp && have_temp)  ||  (!do_temp && !have_temp));
 
     int _Divu = -1;
     int dummy_Divu_Type;
@@ -675,24 +675,24 @@ NavierStokes::restart (Amr&     papa,
     //
     buildRho0();
 
-    assert(sync_reg == 0);
+    BLassert(sync_reg == 0);
     if (level > 0 && do_sync_proj)
     {
         sync_reg = new SyncRegister(grids,crse_ratio,level);
     }
-    assert(advflux_reg == 0);
+    BLassert(advflux_reg == 0);
     if (level > 0 && do_reflux)
     {
         advflux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
     }
-    assert(viscflux_reg == 0);
+    BLassert(viscflux_reg == 0);
     if (level > 0 && do_reflux)
     {
         viscflux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
     }
 
-    assert(Vsync == 0);
-    assert(Ssync == 0);
+    BLassert(Vsync == 0);
+    BLassert(Ssync == 0);
     if (level < parent->finestLevel())
     {
         Vsync = new MultiFab(grids,BL_SPACEDIM,1);
@@ -842,7 +842,7 @@ NavierStokes::initData ()
     {
         DependentMultiFabIterator pnewmfi(snewmfi, P_new);
 
-        assert(grids[snewmfi.index()] == snewmfi.validbox());
+        BLassert(grids[snewmfi.index()] == snewmfi.validbox());
 
         const int* lo   = snewmfi.validbox().loVect();
         const int* hi   = snewmfi.validbox().hiVect();
@@ -956,7 +956,7 @@ NavierStokes::init ()
     MultiFab& P_new = get_new_data(Press_Type);
     MultiFab& P_old = get_old_data(Press_Type);
 
-    assert(level > 0);
+    BLassert(level > 0);
 
     const Array<Real>& dt_amr = parent->dtLevel();
     Array<Real> dt_new(level+1);
@@ -1086,7 +1086,7 @@ NavierStokes::advance_setup (Real time,
     //
     // Alloc multifab to hold advective tendencies.
     //
-    assert(aofs == 0);
+    BLassert(aofs == 0);
     aofs = new MultiFab(grids,NUM_STATE,0);
     //
     // Set rho_avg.
@@ -1565,9 +1565,9 @@ NavierStokes::test_umac_periodic ()
     {
         const int dim = pirm[i].m_dim;
 
-        assert(pirm[i].m_fbid.box() == pirm[i].m_srcBox);
-        assert(pirm[i].m_srcBox.sameSize(pirm[i].m_dstBox));
-        assert(u_mac[dim].DistributionMap()[pirm[i].m_idx] == MyProc);
+        BLassert(pirm[i].m_fbid.box() == pirm[i].m_srcBox);
+        BLassert(pirm[i].m_srcBox.sameSize(pirm[i].m_dstBox));
+        BLassert(u_mac[dim].DistributionMap()[pirm[i].m_idx] == MyProc);
 
         diff.resize(pirm[i].m_srcBox, 1);
 
@@ -2255,7 +2255,7 @@ NavierStokes::sumDerive (const aString& name, Real time)
     Real      sum = 0.0;
     MultiFab* mf  = derive(name,time,0);
 
-    assert(!(mf == 0));
+    BLassert(!(mf == 0));
 
     for (MultiFabIterator mfi(*mf); mfi.isValid(); ++mfi)
     {
@@ -2407,7 +2407,7 @@ NavierStokes::writePlotFile (const aString& dir,
     Array<const MultiFab*> derived_mfs = additionalStateDataItems();
     Array< vector<int> >   derived_map = additionalStateDataItemsMap();
 
-    assert(derived_mfs.length() == derived_map.length());
+    BLassert(derived_mfs.length() == derived_map.length());
 
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
@@ -2611,7 +2611,7 @@ NavierStokes::writePlotFile (const aString& dir,
         derived_count = 0;
         for (int i = 0; i < derived_mfs.length(); i++)
         {
-            assert(derived_mfs[i]->boxArray() == grids);
+            BLassert(derived_mfs[i]->boxArray() == grids);
             const int nComp = derived_map[i].size();
             MultiFab::Copy(derived_all,*derived_mfs[i],0,derived_count,nComp,nGrow);
             derived_count += nComp;
@@ -3121,8 +3121,8 @@ NavierStokes::post_init_state ()
 	// NOTE: this assumes have_divu == 0.
 	// Only used if vorticity is used to initialize the velocity field.
         //
-	assert(!have_divu);
-        assert(!(projector == 0));
+	BLassert(!have_divu);
+        BLassert(!(projector == 0));
         
 	projector->initialVorticityProject(0);
     }
@@ -3285,7 +3285,7 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
                           int**     bc_orig_qty,
                           int       which_interp)
 {
-    assert(which_interp >= 0 && which_interp <= 4);
+    BLassert(which_interp >= 0 && which_interp <= 4);
 
     Interpolater* interpolater = 0;
 
@@ -3465,7 +3465,7 @@ NavierStokes::avgDown (const BoxArray& cgrids,
                        int             num_comp,
                        IntVect&        fratio)
 {
-    assert(S_crse.nComp() == S_fine.nComp());
+    BLassert(S_crse.nComp() == S_fine.nComp());
 
     MultiFabCopyDescriptor mfcd;
 
@@ -3478,7 +3478,7 @@ NavierStokes::avgDown (const BoxArray& cgrids,
     //
     for (ConstMultiFabIterator mfi(S_crse); mfi.isValid(); ++mfi)
     {
-        assert(grids[mfi.index()] == mfi.validbox());
+        BLassert(grids[mfi.index()] == mfi.validbox());
 
         for (int fine = 0; fine < fgrids.length(); fine++)
         {
@@ -3496,7 +3496,7 @@ NavierStokes::avgDown (const BoxArray& cgrids,
                                                   0,
                                                   num_comp));
 
-              assert(fillBoxIdList.back().box() == fine_ovlp);
+              BLassert(fillBoxIdList.back().box() == fine_ovlp);
               //
               // Also save the index of the coarse FAB needed filling.
               //
@@ -3510,7 +3510,7 @@ NavierStokes::avgDown (const BoxArray& cgrids,
                                                      0,
                                                      1));
 
-              assert(fillBoxIdListVol.back().box() == fine_ovlp);
+              BLassert(fillBoxIdListVol.back().box() == fine_ovlp);
               //
               // Here we'll save the fine index so we can reconstruct `ovlp'.
               //
@@ -3521,7 +3521,7 @@ NavierStokes::avgDown (const BoxArray& cgrids,
 
     mfcd.CollectData();
 
-    assert(fillBoxIdList.size() == fillBoxIdListVol.size());
+    BLassert(fillBoxIdList.size() == fillBoxIdListVol.size());
 
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -3534,9 +3534,9 @@ NavierStokes::avgDown (const BoxArray& cgrids,
 
         Box ovlp = ::coarsen(fgrids[f_idx],fratio) & cgrids[c_idx];
 
-        assert(ovlp.ok());
-        assert(S_crse.DistributionMap()[c_idx] == MyProc);
-        assert(cvolume.DistributionMap()[c_idx] == MyProc);
+        BLassert(ovlp.ok());
+        BLassert(S_crse.DistributionMap()[c_idx] == MyProc);
+        BLassert(cvolume.DistributionMap()[c_idx] == MyProc);
 
         const FillBoxId& fbidFine    = fillBoxIdList[i];
         const FillBoxId& fbidFineVol = fillBoxIdListVol[i];
@@ -3901,7 +3901,7 @@ NavierStokes::reflux ()
     if (level == parent->finestLevel())
         return;
 
-    assert(do_reflux);
+    BLassert(do_reflux);
 
     MultiFab& S_crse = get_new_data(State_Type);
     //
@@ -3961,7 +3961,7 @@ NavierStokes::reflux ()
         for (MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
         {
             DependentMultiFabIterator Ssyncmfi(Vsyncmfi, *Ssync);
-            assert(grids[Vsyncmfi.index()] == Vsyncmfi.validbox());
+            BLassert(grids[Vsyncmfi.index()] == Vsyncmfi.validbox());
 
             if (bf.intersects(Vsyncmfi.validbox()))
             {
@@ -4082,7 +4082,7 @@ NavierStokes::avgDown ()
     //
     for (MultiFabIterator mfi(P_crse); mfi.isValid(); ++mfi)
     {
-        assert(P_cgrids[mfi.index()] == mfi.validbox());
+        BLassert(P_cgrids[mfi.index()] == mfi.validbox());
         //
         // Loop over fine grids and periodic extensions.
         //
@@ -4102,15 +4102,15 @@ NavierStokes::avgDown ()
                                                     0,
                                                     P_fine.nComp()));
 
-                assert(fillBoxIdList.back().box() == fine_ovlp);
+                BLassert(fillBoxIdList.back().box() == fine_ovlp);
                 //
                 // I need to save both the fine and the coarse grid indices.
                 // I'll try to stuff'm into the single integer place available.
                 // This assumes that integers are >= 4 bytes in size.
                 //
-                assert(sizeof(int) >= 4);
-                assert(fine < 0xFFFF);
-                assert(mfi.index() < 0xFFFF);
+                BLassert(sizeof(int) >= 4);
+                BLassert(fine < 0xFFFF);
+                BLassert(mfi.index() < 0xFFFF);
 
                 fillBoxIdList.back().FabIndex((fine << 16) | mfi.index());
             }
@@ -4130,13 +4130,13 @@ NavierStokes::avgDown ()
         int c_idx = fbidFine.FabIndex() & 0xFFFF;
         int f_idx = (fbidFine.FabIndex() >> 16) & 0xFFFF;
 
-        assert(c_idx >= 0 && c_idx < P_cgrids.length());
-        assert(f_idx >= 0 && f_idx < P_fgrids.length());
+        BLassert(c_idx >= 0 && c_idx < P_cgrids.length());
+        BLassert(f_idx >= 0 && f_idx < P_fgrids.length());
 
         Box ovlp = ::coarsen(P_fgrids[f_idx],fine_ratio) & P_cgrids[c_idx];
 
-        assert(ovlp.ok());
-        assert(P_crse.DistributionMap()[c_idx] == MyProc);
+        BLassert(ovlp.ok());
+        BLassert(P_crse.DistributionMap()[c_idx] == MyProc);
         //
         // Inject fine down to coarse.
         //
@@ -4278,11 +4278,11 @@ NavierStokes::getForce (FArrayBox&       force,
                         int              num_comp,
                         const FArrayBox& Rho)
 {
-    assert(Rho.nComp() == 1);
+    BLassert(Rho.nComp() == 1);
 
     force.resize(::grow(grids[gridno],ngrow),num_comp);
 
-    assert(Rho.box().contains(force.box()));
+    BLassert(Rho.box().contains(force.box()));
 
     const Real grav = Abs(gravity);
 
@@ -4351,7 +4351,7 @@ NavierStokes::getGradP (FArrayBox& p_fab,
     //
     // Test to see if p_fab contains gp.box().
     //
-    assert(::enclosedCells(p_fab.box()).contains(gp.box()));
+    BLassert(::enclosedCells(p_fab.box()).contains(gp.box()));
 
     const int*  plo    = p_fab.loVect();
     const int*  phi    = p_fab.hiVect();
@@ -4965,7 +4965,7 @@ NavierStokes::compute_grad_divu_minus_s (Real      time,
         for (MultiFabIterator divu_minus_smfi(divu_minus_s);
              divu_minus_smfi.isValid(); ++divu_minus_smfi)
         {
-            assert(grids[divu_minus_smfi.index()] == divu_minus_smfi.validbox());
+            BLassert(grids[divu_minus_smfi.index()] == divu_minus_smfi.validbox());
             Box grid = divu_minus_smfi.validbox();
             grid.surroundingNodes();
             if (grid.intersects(dom_lo))
@@ -4984,7 +4984,7 @@ NavierStokes::compute_grad_divu_minus_s (Real      time,
     {
         DependentMultiFabIterator grad_divu_minus_smfi(divu_minus_smfi,
                                                        (*grad_divu_minus_s));
-        assert(grids[divu_minus_smfi.index()] == divu_minus_smfi.validbox());
+        BLassert(grids[divu_minus_smfi.index()] == divu_minus_smfi.validbox());
         //
         // Compute gradient of this field.
         //
@@ -5037,7 +5037,7 @@ NavierStokes::compute_grad_divu_minus_s (Real      time,
          grad_divu_minus_smfi.isValid(); ++grad_divu_minus_smfi)
     {
         DependentMultiFabIterator rho_halfmfi(grad_divu_minus_smfi, (*rho_half));
-        assert(grids[grad_divu_minus_smfi.index()] == grad_divu_minus_smfi.validbox());
+        BLassert(grids[grad_divu_minus_smfi.index()] == grad_divu_minus_smfi.validbox());
         if (scaleRhoDivDt)
         {
             grad_divu_minus_smfi().mult(divu_relax_factor*dx[0]*dx[1]/
@@ -5127,7 +5127,7 @@ NavierStokes::calcDiffusivity(const Real time,
     //        component Density+1 in the state corresponds to component
     //        0 in the arrays diffn and diffnp1.
     //
-    assert(src_comp > Density);
+    BLassert(src_comp > Density);
 
     const MultiFab& S = get_data(State_Type, time);
 
@@ -5205,7 +5205,7 @@ NavierStokes::getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
                              const int src_comp,
                              const int num_comp)
 {
-    assert(src_comp > Density);
+    BLassert(src_comp > Density);
 
     //
     // Pick correct diffusivity component

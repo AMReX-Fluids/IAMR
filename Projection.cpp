@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.84 1999-05-07 20:33:56 marc Exp $
+// $Id: Projection.cpp,v 1.85 1999-05-10 17:18:37 car Exp $
 //
 
 #ifdef BL_T3E
@@ -424,7 +424,7 @@ Projection::level_project (int             level,
     if (have_divu)
     {
         NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
-        assert(!(ns==0));
+        BLassert(!(ns==0));
 
         divusource = ns->getDivCond(1,time+dt);
         if (!new_proj)
@@ -687,7 +687,7 @@ Projection::filterP (int             level,
 
     MultiFab* divuold = 0;
 
-    assert(grids.length() == P_grids.length());
+    BLassert(grids.length() == P_grids.length());
     
     temp_phi->setVal(0);
     temp_rho->setVal(0);
@@ -773,7 +773,7 @@ Projection::filterP (int             level,
     {
         NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
 
-        assert(!(ns == 0));
+        BLassert(!(ns == 0));
 
         MultiFab* divuold = ns->getDivCond(1,time);
 
@@ -846,7 +846,7 @@ Projection::harmonic_project (int             level,
                               const Geometry& geom,
                               MultiFab&       P_old)
 {
-    assert(level != 0);
+    BLassert(level != 0);
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
         cout << "... harmonic projector\n";
@@ -1556,7 +1556,7 @@ Projection::initialSyncProject (int       c_lev,
 
             NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(lev));
 
-            assert(!(ns == 0));
+            BLassert(!(ns == 0));
 
             MultiFab* divu = ns->getDivCond(nghost,strt_time);
             MultiFab* dsdt = ns->getDivCond(nghost,strt_time+dt);
@@ -1745,7 +1745,7 @@ Projection::computeDV (MultiFab&       DV,
     {
         DependentMultiFabIterator Umfi(DVmfi, U);
 
-        assert(U_boxes[Umfi.index()] == Umfi.validbox());
+        BLassert(U_boxes[Umfi.index()] == Umfi.validbox());
 
         ufab.resize(::grow(Umfi.validbox(),1),BL_SPACEDIM);
         ufab.copy(Umfi(),ufab.box(),src_comp,ufab.box(),0,BL_SPACEDIM);
@@ -1774,7 +1774,7 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
                                   Real            time,
                                   int             user_rz)
 {
-    assert(user_rz >= -1 && user_rz <= 1);
+    BLassert(user_rz >= -1 && user_rz <= 1);
 
     rhs.setVal(0);
 
@@ -1792,7 +1792,7 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
 
     NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
 
-    assert(!(ns == 0));
+    BLassert(!(ns == 0));
 
     MultiFab* divu = ns->getDivCond(1,time);
 
@@ -1828,7 +1828,7 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 
     NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
 
-    assert(!(ns == 0));
+    BLassert(!(ns == 0));
 
     MultiFab* divu = ns->getDivCond(1,time);
 
@@ -1848,7 +1848,7 @@ Projection::EnforcePeriodicity (MultiFab&       psi,
                                 const BoxArray& /*grids*/,
                                 const Geometry& geom)
 {
-    assert(nvar <= psi.nComp());
+    BLassert(nvar <= psi.nComp());
 
     geom.FillPeriodicBoundary(psi,0,nvar,false,false);
 }
@@ -1867,7 +1867,7 @@ Projection::UnConvertUnew (MultiFab&       Uold,
     {
         DependentMultiFabIterator Unewmfi(Uoldmfi, Unew);
 
-        assert(grids[Uoldmfi.index()] == Uoldmfi.validbox());
+        BLassert(grids[Uoldmfi.index()] == Uoldmfi.validbox());
 
         UnConvertUnew( Uoldmfi(), alpha, Unewmfi(), Uoldmfi.validbox() );
     }
@@ -1884,10 +1884,10 @@ Projection::UnConvertUnew (FArrayBox& Uold,
                            FArrayBox& Unew,
                            const Box& grd)
 {
-    assert(Unew.nComp() >= BL_SPACEDIM);
-    assert(Uold.nComp() >= BL_SPACEDIM);
-    assert(Unew.contains(grd) == true);
-    assert(Uold.contains(grd) == true);
+    BLassert(Unew.nComp() >= BL_SPACEDIM);
+    BLassert(Uold.nComp() >= BL_SPACEDIM);
+    BLassert(Unew.contains(grd) == true);
+    BLassert(Uold.contains(grd) == true);
     
     const int*  lo    = grd.loVect();
     const int*  hi    = grd.hiVect();
@@ -1918,7 +1918,7 @@ Projection::ConvertUnew (MultiFab&       Unew,
     {
         DependentMultiFabIterator Unewmfi(Uoldmfi, Unew);
 
-        assert(grids[Uoldmfi.index()] == Uoldmfi.validbox());
+        BLassert(grids[Uoldmfi.index()] == Uoldmfi.validbox());
 
         ConvertUnew( Unewmfi(), Uoldmfi(), alpha, Uoldmfi.validbox() );
     }
@@ -1932,10 +1932,10 @@ void
 Projection::ConvertUnew( FArrayBox &Unew, FArrayBox &Uold, Real alpha,
                               const Box &grd )
 {
-    assert(Unew.nComp() >= BL_SPACEDIM);
-    assert(Uold.nComp() >= BL_SPACEDIM);
-    assert(Unew.contains(grd) == true);
-    assert(Uold.contains(grd) == true);
+    BLassert(Unew.nComp() >= BL_SPACEDIM);
+    BLassert(Uold.nComp() >= BL_SPACEDIM);
+    BLassert(Unew.contains(grd) == true);
+    BLassert(Uold.contains(grd) == true);
     
     const int*  lo    = grd.loVect();
     const int*  hi    = grd.hiVect();
@@ -1967,7 +1967,7 @@ Projection::UpdateArg1 (MultiFab&       Unew,
     {
         DependentMultiFabIterator Unewmfi(Uoldmfi, Unew);
 
-        assert(grids[Uoldmfi.index()] == Uoldmfi.validbox());
+        BLassert(grids[Uoldmfi.index()] == Uoldmfi.validbox());
 
         UpdateArg1(Unewmfi(),alpha,Uoldmfi(),nvar,Uoldmfi.validbox(),ngrow);
     }
@@ -1987,8 +1987,8 @@ Projection::UpdateArg1 (FArrayBox& Unew,
                         const Box& grd,
                         int        ngrow)
 {
-    assert(nvar <= Uold.nComp());
-    assert(nvar <= Unew.nComp());
+    BLassert(nvar <= Uold.nComp());
+    BLassert(nvar <= Unew.nComp());
 
     Box        b  = ::grow(grd,ngrow);
     const Box& bb = Unew.box();
@@ -1996,8 +1996,8 @@ Projection::UpdateArg1 (FArrayBox& Unew,
     if (bb.ixType() == IndexType::TheNodeType())
         b.surroundingNodes();
 
-    assert(Uold.contains(b) == true);
-    assert(Unew.contains(b) == true);
+    BLassert(Uold.contains(b) == true);
+    BLassert(Unew.contains(b) == true);
 
     const int*  lo    = b.loVect();
     const int*  hi    = b.hiVect();
@@ -2065,9 +2065,9 @@ Projection::scaleVar (MultiFab*       sig,
                       int             level)
 {
     if (sig != 0)
-        assert(sig->nComp() == 1);
+        BLassert(sig->nComp() == 1);
     if (vel != 0)
-        assert(vel->nComp() >= BL_SPACEDIM);
+        BLassert(vel->nComp() >= BL_SPACEDIM);
     //
     // Convert sigma from rho to 1/rho.
     // nghosts info needed to avoid divide by zero.
@@ -2103,9 +2103,9 @@ Projection::rescaleVar (MultiFab*       sig,
                         int             level)
 {
     if (sig != 0)
-        assert(sig->nComp() == 1);
+        BLassert(sig->nComp() == 1);
     if (vel != 0)
-        assert(vel->nComp() >= BL_SPACEDIM);
+        BLassert(vel->nComp() >= BL_SPACEDIM);
     //
     // Divide by radius to rescale for RZ coordinates.
     //
@@ -2139,8 +2139,8 @@ Projection::radMult (int       level,
                      MultiFab& mf,
                      int       comp)
 {
-    assert(radius_grow >= mf.nGrow());
-    assert(comp >= 0 && comp < mf.nComp());
+    BLassert(radius_grow >= mf.nGrow());
+    BLassert(comp >= 0 && comp < mf.nComp());
 
     int ngrow = mf.nGrow();
 
@@ -2153,7 +2153,7 @@ Projection::radMult (int       level,
 
     for (MultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
     {
-        assert(mf.box(mfmfi.index()) == mfmfi.validbox());
+        BLassert(mf.box(mfmfi.index()) == mfmfi.validbox());
 
         const int* lo = mfmfi.validbox().loVect();
         const int* hi = mfmfi.validbox().hiVect();
@@ -2173,8 +2173,8 @@ Projection::radDiv (int       level,
                     MultiFab& mf,
                     int       comp)
 {
-    assert(comp >= 0 && comp < mf.nComp());
-    assert(radius_grow >= mf.nGrow());
+    BLassert(comp >= 0 && comp < mf.nComp());
+    BLassert(radius_grow >= mf.nGrow());
 
     int ngrow = mf.nGrow();
     int nr    = radius_grow;
@@ -2186,7 +2186,7 @@ Projection::radDiv (int       level,
 
     for (MultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
     {
-        assert(mf.box(mfmfi.index()) == mfmfi.validbox());
+        BLassert(mf.box(mfmfi.index()) == mfmfi.validbox());
 
         const int* lo  = mfmfi.validbox().loVect();
         const int* hi  = mfmfi.validbox().hiVect();
@@ -2223,7 +2223,7 @@ Projection::set_level_projector_outflow_bcs (int       level,
     bool hasOutFlow;
     Orientation _outFace;
     getOutFlowFace(hasOutFlow,_outFace,phys_bc);
-    assert(_outFace == outFace);
+    BLassert(_outFace == outFace);
 
     const Real* dx         = parent->Geom(level).CellSize();
     const Box& domain      = parent->Geom(level).Domain();
@@ -2240,7 +2240,7 @@ Projection::set_level_projector_outflow_bcs (int       level,
     const Box valid_state_strip = state_strip & domain;
     const BoxArray uncovered_outflow_ba = ::complementIn(valid_state_strip,grids);
 
-    assert( !(uncovered_outflow_ba.ready() &&
+    BLassert( !(uncovered_outflow_ba.ready() &&
               ::intersect(grids,valid_state_strip).ready()) );
 
     if ( !(uncovered_outflow_ba.ready()) )
@@ -2337,9 +2337,9 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
     bool hasOutFlow;
     Orientation _outFace;
     getOutFlowFace(hasOutFlow,_outFace,phys_bc);
-    assert(_outFace == outFace);
+    BLassert(_outFace == outFace);
 
-    assert(c_lev == 0);
+    BLassert(c_lev == 0);
     //
     // Get 3-wide cc box, state_strip, along top, incl. 2 rows of int and
     // 1 row of ghosts.
@@ -2365,7 +2365,7 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
         const BoxArray& Lgrids = parent->getLevel(f_lev).boxArray();
         const Box valid_state_strip = state_strip & domain;
         const BoxArray uncovered_outflow_ba = ::complementIn(valid_state_strip,Lgrids);
-        assert( !(uncovered_outflow_ba.ready() &&
+        BLassert( !(uncovered_outflow_ba.ready() &&
                   ::intersect(Lgrids,valid_state_strip).ready()) );
         if ( !(uncovered_outflow_ba.ready()) )
             break;
@@ -2489,11 +2489,11 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
     bool hasOutFlow;
     Orientation _outFace;
     getOutFlowFace(hasOutFlow,_outFace,phys_bc);
-    assert(_outFace == outFace);
+    BLassert(_outFace == outFace);
 
     const int f_lev = finest_level;
 
-    assert(c_lev == 0);
+    BLassert(c_lev == 0);
 
     const Real* dx           = parent->Geom(f_lev).CellSize();
     const Box&  domain       = parent->Geom(f_lev).Domain();
@@ -2558,20 +2558,20 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
         //
         // Make rhonph, du/dt, and dsdt.
         //
-        assert(rhoOldFpi.validbox() == rhoNewFpi.validbox());
+        BLassert(rhoOldFpi.validbox() == rhoNewFpi.validbox());
         rhonph.resize(rhoOldFpi.validbox(),nCompRho);
         rhonph.copy(rhoNewFpi());
         rhonph.plus(rhoOldFpi());
         rhonph.divide(2.0);
 
-        assert(divuOldFpi.validbox() == divuNewFpi.validbox());
+        BLassert(divuOldFpi.validbox() == divuNewFpi.validbox());
         dudt.resize(velOldFpi.validbox(),nCompVel);
         dudt.copy(velNewFpi());
         if (!new_proj)
             dudt.minus(velOldFpi());
         dudt.divide(dt);
 	    
-        assert(velOldFpi.validbox() == velNewFpi.validbox());
+        BLassert(velOldFpi.validbox() == velNewFpi.validbox());
         dsdt.resize(divuOldFpi.validbox(),nCompDivu);
         dsdt.copy(divuNewFpi());
         if (!new_proj)

@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.38 1999-05-07 20:31:05 marc Exp $
+// $Id: NavierStokes.H,v 1.39 1999-05-10 17:18:36 car Exp $
 //
 
 #include <LevelBld.H>
@@ -603,19 +603,19 @@ protected:
 
     Diffusion& getDiffusion ()
     {
-        assert(diffusion);
+        BLassert(diffusion);
         return *diffusion;
     }
 
     SyncRegister& getSyncReg ()
     {
-        assert(sync_reg);
+        BLassert(sync_reg);
         return *sync_reg;
     }
 
     FluxRegister& getAdvFluxReg ()
     {
-        assert(advflux_reg);
+        BLassert(advflux_reg);
         return *advflux_reg;
     }
 
@@ -626,7 +626,7 @@ protected:
 
     FluxRegister& getViscFluxReg ()
     {
-        assert(viscflux_reg);
+        BLassert(viscflux_reg);
         return *viscflux_reg;
     }
 

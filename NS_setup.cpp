@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.23 1999-01-06 16:42:07 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.24 1999-05-10 17:18:35 car Exp $
 //
 
 #include <NavierStokes.H>
@@ -180,7 +180,7 @@ set_dsdt_bc(BCRec& bc, const BCRec& phys_bc)
 void
 NavierStokes::variableSetUp ()
 {
-    assert(desc_lst.length() == 0);
+    BLassert(desc_lst.length() == 0);
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {

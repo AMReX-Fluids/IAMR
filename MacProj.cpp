@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.51 1999-04-21 22:21:39 marc Exp $
+// $Id: MacProj.cpp,v 1.52 1999-05-10 17:18:35 car Exp $
 //
 
 #include <Misc.H>
@@ -461,7 +461,7 @@ MacProj::mac_sync_solve (int       level,
                          MultiFab* rho_half,
                          IntVect&  fine_ratio)
 {
-    assert(level < finest_level);
+    BLassert(level < finest_level);
 
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "... mac_sync_solve at level " << level << '\n';
@@ -503,7 +503,7 @@ MacProj::mac_sync_solve (int       level,
 
         for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
         {
-            assert(grids[Rhsmfi.index()] == Rhsmfi.validbox());
+            BLassert(grids[Rhsmfi.index()] == Rhsmfi.validbox());
 
             if (Rhsmfi.validbox().intersects(bf))
             {
@@ -826,7 +826,7 @@ MacProj::mac_sync_compute (int           level,
                            Array<int>&   is_conservative, 
                            Real          dt)
 {
-    assert(comp >= BL_SPACEDIM);
+    BLassert(comp >= BL_SPACEDIM);
 
     FArrayBox xflux, yflux, zflux;
     FArrayBox grad_phi[BL_SPACEDIM];
@@ -1024,7 +1024,7 @@ MacProj::set_outflow_bcs (int             level,
     bool hasOutFlow;
     Orientation _outFace;
     getOutFlowFace(hasOutFlow,_outFace,phys_bc);
-    assert(_outFace == outFace);
+    BLassert(_outFace == outFace);
 
     const int rzflag  = CoordSys::IsRZ();
     const Real* dx    = parent->Geom(level).CellSize();
@@ -1053,7 +1053,7 @@ MacProj::set_outflow_bcs (int             level,
 
         const BoxArray& ba = S.boxArray();
 
-        assert(ba == divu.boxArray());
+        BLassert(ba == divu.boxArray());
         //
         // Fill rhodat & divudat.
         //
