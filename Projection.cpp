@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.115 1999-09-15 23:50:29 almgren Exp $
+// $Id: Projection.cpp,v 1.116 1999-09-21 20:07:43 car Exp $
 //
 
 #ifdef BL_T3E
@@ -318,14 +318,18 @@ Projection::bldSyncProject ()
                                              0, finest_level, finest_level,
                                              *projector_bndry, P_code);
 #else
+    holy_grail_amr_multigrid::stencil stencil = holy_grail_amr_multigrid::cross;
+#if BL_SPACEDIM == 2
+#if BL_PRVERSION == 9
+    stencil = holy_grail_amr_multigrid::full;
+#elif BL_PRVERSION == 5
+    stencil = holy_grail_amr_multigrid::cross;
+#endif
+#endif
     sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
                                              0, finest_level, finest_level,
                                              *projector_bndry,
-#if (BL_PRVERSION == 9)
-					     holy_grail_amr_multigrid::full,
-#elif (BL_PRVERSION == 5)
-					     holy_grail_amr_multigrid::cross,
-#endif
+					     stencil,
                                              P_code);
 #if BL_SPACEDIM == 2
     if (CoordSys::IsRZ())
