@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.32 1998-06-09 21:46:24 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.33 1998-06-18 23:26:13 lijewski Exp $
 //
 
 //
@@ -2912,6 +2912,7 @@ Diffusion::getBndryData (ViscBndry& bndry,
     }
 
     int use_old_code = 0; // FOR DEBUGGING ONLY
+
     if (rho_flag != 2 || use_old_code)
     {
         if (level == 0)
@@ -3000,6 +3001,9 @@ Diffusion::FillBoundary (BndryRegister& bdry,
 
     snew_tmp.define(S_new.boxArray(),num_comp,S_new.nGrow(),Fab_allocate);
     Copy(snew_tmp,S_new,src_comp,0,num_comp,S_new.nGrow());
+
+//snew_tmp.setBndry(0);
+
     snew_tmp.FillBoundary();
 
     MultiFab rho_old, rho_new;
@@ -3022,17 +3026,17 @@ Diffusion::FillBoundary (BndryRegister& bdry,
     //
     if (need_old_data)
     {
-        parent->Geom(level).FillPeriodicBoundary(S_old, src_comp, num_comp);
+        parent->Geom(level).FillPeriodicBoundary(sold_tmp);
     }
-    parent->Geom(level).FillPeriodicBoundary(S_new, src_comp, num_comp);
+    parent->Geom(level).FillPeriodicBoundary(snew_tmp);
 
     if (rho_flag == 2)
     {
         if (need_old_data)
         {
-            parent->Geom(level).FillPeriodicBoundary(S_old, Density, 1);
+            parent->Geom(level).FillPeriodicBoundary(sold_tmp,0,1);
         }
-        parent->Geom(level).FillPeriodicBoundary(S_new, Density, 1);
+        parent->Geom(level).FillPeriodicBoundary(snew_tmp,0,1);
     }
 
     if (rho_flag == 2)
