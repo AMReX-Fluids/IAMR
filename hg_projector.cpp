@@ -1,5 +1,5 @@
 //
-// $Id: hg_projector.cpp,v 1.14 1997-12-11 23:30:34 lijewski Exp $
+// $Id: hg_projector.cpp,v 1.15 1998-01-13 18:59:05 car Exp $
 //
 
 #include <hg_projector.H>
@@ -336,10 +336,9 @@ holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 {
   assert(S[lev_min].nGrow() == 1);
 
-  int lev, igrid;
   if (singular) 
   {
-    for (lev = lev_max; lev > lev_min; lev--) 
+    for (int lev = lev_max; lev > lev_min; lev--) 
     {
       restrict_level(S[lev-1], false, S[lev], gen_ratio[lev-1]);
     }
@@ -358,13 +357,13 @@ holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
     if (pcode >= 2)
       cout << "Cell-source solvability adjustment: " << adjust << '\n';
 
-    for (lev = lev_min; lev <= lev_max; lev++) 
+    for (int lev = lev_min; lev <= lev_max; lev++) 
     {
       S[lev].plus(-adjust, 0);
     }
   }
 
-  for (lev = lev_min; lev <= lev_max; lev++) 
+  for (int lev = lev_min; lev <= lev_max; lev++) 
   {
     int mglev = ml_index[lev];
 #if (BL_SPACEDIM == 2)
@@ -384,7 +383,7 @@ holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
         DependentMultiFabIterator smfi(pmfi, S[lev]);
       const Box& sbox = pmfi().box();
       const Box& fbox = smfi().box();
-      const Box& freg = interface[mglev].part_fine(igrid);
+      const Box& freg = interface[mglev].part_fine(pmfi.index());
       Real *sptr = pmfi().dataPtr();
       Real * csptr = smfi().dataPtr();
 #if (BL_SPACEDIM == 2)
@@ -413,9 +412,7 @@ holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 #if (BL_SPACEDIM == 3)
     Real hz = h[mglev][2];
 #endif
-    int igrid, i;
-
-    for (i = 0; i < BL_SPACEDIM; i++) 
+    for (int i = 0; i < BL_SPACEDIM; i++) 
     {
       fill_borders(u[i][lev], 
 #ifdef HG_USE_CACHE
@@ -432,7 +429,7 @@ holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
         DependentMultiFabIterator u1mfi(smfi, u[1][lev]);
       const Box& sbox = smfi().box();
       const Box& fbox = u0mfi().box();
-      const Box& freg = interface[mglev].part_fine(igrid);
+      const Box& freg = interface[mglev].part_fine(smfi.index());
       Real *const sptr = smfi().dataPtr();
       Real *const u0ptr = u0mfi().dataPtr();
       Real *const u1ptr = u1mfi().dataPtr();
