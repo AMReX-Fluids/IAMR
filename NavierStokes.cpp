@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.69 1998-06-16 22:28:14 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.70 1998-06-16 23:19:09 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1453,7 +1453,7 @@ NavierStokes::predict_velocity (Real  dt,
         //
         int i = U_fpi.index();
 
-        setForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,Rho_fpi);
+        setForce(tforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
         //
         // Test velocities, rho and cfl.
         //
@@ -1640,7 +1640,7 @@ NavierStokes::velocity_advection (Real dt)
         //
         int i = U_fpi.index();
 
-        setForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,Rho_fpi);
+        setForce(tforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
         //
         // Compute the total forcing.
         //
@@ -1769,11 +1769,11 @@ NavierStokes::scalar_advection (Real dt,
         //
         int i = U_fpi.index();
 
-        setForce(tforces,i,1,fscalar,num_scalars,prev_time,Rho_fpi);
+        setForce(tforces,i,1,fscalar,num_scalars,Rho_fpi());
         
         if (use_forces_in_trans)
         {
-            setForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,Rho_fpi);
+            setForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
             
             godunov->Sum_tf_gp_visc(tvelforces, vel_visc_terms[i],
                                     (*Gp_fp)[i], Rho_fpi());
@@ -1899,7 +1899,7 @@ NavierStokes::scalar_advection_update (Real dt,
 
             int i = Rho_fpi.index();
 
-            setForce(tforces,i,0,sigma,1,half_time,Rho_fpi);
+            setForce(tforces,i,0,sigma,1,Rho_fpi());
 
             godunov->Add_aofs_tf(S_oldmfi(), S_newmfi(), sigma, 1, Aofsmfi(),
                                  sigma, tforces, 0, grids[i], dt);
@@ -2147,7 +2147,7 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
         {
             int i = Rho_fpi.index();
 
-            setForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,Rho_fpi);
+            setForce(tforces,i,0,Xvel,BL_SPACEDIM,Rho_fpi());
 
             godunov->Sum_tf_gp_visc(tforces, visc_terms[i],
                                     (*Gp_fp)[i], (*rho_half)[i]);
@@ -2520,7 +2520,7 @@ NavierStokes::estTimeStep ()
         //
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
-        setForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,Rho_fpi);
+        setForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,Rho_fpi());
         getGradP(p_fab, Gp, grids[i], 0);
         tforces.minus(Gp,0,0,BL_SPACEDIM);
         //
@@ -4117,15 +4117,18 @@ NavierStokes::getForce (FArrayBox& force,
 }
 
 void
-NavierStokes::setForce (FArrayBox&               force,
-                        int                      gridno,
-                        int                      ngrow,
-                        int                      strt_comp,
-                        int                      num_comp,
-                        Real                     /*time*/,
-                        const FillPatchIterator& Rho_fpi)
+NavierStokes::setForce (FArrayBox&       force,
+                        int              gridno,
+                        int              ngrow,
+                        int              strt_comp,
+                        int              num_comp,
+                        const FArrayBox& Rho)
 {
+    assert(Rho.nComp() == 1);
+
     force.resize(::grow(grids[gridno],ngrow),num_comp);
+
+    assert(Rho.box() == force.box());
 
     const Real grav = Abs(gravity);
 
@@ -4142,56 +4145,14 @@ NavierStokes::setForce (FArrayBox&               force,
             //
             // Set force to -rho*g.
             //
-            force.copy(Rho_fpi(),0,dc,1);
-            force.mult(-grav);
+            force.copy(Rho,0,dc,1);
+            force.mult(-grav,dc,1);
         }
         else
         {
             force.setVal(0.0,dc);
         }
     }
-}
-
-MultiFab*
-NavierStokes::getForce (int  ngrow,
-                        int  strt_comp,
-                        int  num_comp,
-                        Real time)
-{
-    MultiFab* force = new MultiFab(grids, num_comp, ngrow);
-
-    const Real grav = Abs(gravity);
-
-    for (int dc = 0; dc < num_comp; dc++)
-    {
-        const int sc = strt_comp + dc;
-#if (BL_SPACEDIM == 2)
-        if (sc == Yvel && grav > 0.001) 
-#endif
-#if (BL_SPACEDIM == 3)
-        if (sc == Zvel && grav > 0.001) 
-#endif
-        {
-            //
-            // Set force to -rho*g.
-            //
-            FillPatchIterator Rho_fpi(*this,*force,ngrow,0,time,State_Type,
-                                      Density,1);
-
-            for ( ; Rho_fpi.isValid(); ++Rho_fpi)
-            {
-                DependentMultiFabIterator force_dmfi(Rho_fpi,*force);
-                Rho_fpi().mult(-grav);
-                force_dmfi().copy(Rho_fpi(),0,dc,1);
-            }
-        }
-        else
-        {
-            force->setVal(0.0,dc,1,ngrow);
-        }
-    }
-
-    return force;
 }
 
 //

@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.19 1998-06-16 22:28:14 lijewski Exp $
+// $Id: NavierStokes.H,v 1.20 1998-06-16 23:19:09 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -352,13 +352,7 @@ protected: // ===================== protected member functions ===
                           int strt_comp, int num_comp, Real time);
 
     void setForce(FArrayBox& force, int gridno, int ngrow,
-                  int strt_comp, int num_comp, Real time,
-                  const FillPatchIterator& Rho_fpi);
-
-    MultiFab* getForce (int  ngrow,
-                        int  strt_comp,
-                        int  num_comp,
-                        Real time);
+                  int strt_comp, int num_comp, const FArrayBox& Rho);
     
     // get state data
     void getState(FArrayBox& fab,int gridno, int ngrow,
