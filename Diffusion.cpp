@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.86 1999-04-06 22:31:36 marc Exp $
+// $Id: Diffusion.cpp,v 1.87 1999-04-08 17:58:40 marc Exp $
 //
 
 //
@@ -664,7 +664,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         //
         // Copy to single-component multifab.  Use Soln as a temporary here.
         //
-        MultiFab::Copy(Soln_old,U_old,Xvel,0,BL_SPACEDIM,soln_old_grow);
+        MultiFab::Copy(Soln_old,U_old,Xvel,0,BL_SPACEDIM,0);
         tensor_op->apply(Rhs,Soln_old);
 
         if (do_reflux && (level<finest_level || level>0))
@@ -773,9 +773,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         }
 #endif
     }
-    //
-    // I am using a ghost cell in Soln even though Bill does not.
-    //
     const int soln_grow = 1;
     MultiFab Soln(grids,BL_SPACEDIM,soln_grow);
     Soln.setVal(0.0);
@@ -784,7 +781,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     //
     if (level == 0)
     {
-        MultiFab::Copy(Soln,U_old,Xvel,0,BL_SPACEDIM,soln_grow);
+        MultiFab::Copy(Soln,U_old,Xvel,0,BL_SPACEDIM,0);
     }
     else
     {
@@ -1010,7 +1007,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         MultiFab Rhs(grids,1,0);
 
         Soln.setVal(0);
-        Rhs.copy(*Vsync,comp,0,1);
+        MultiFab::Copy(Rhs,*Vsync,comp,0,1,0);
 
         if (verbose)
         {
@@ -1190,7 +1187,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     MultiFab Rhs(grids,BL_SPACEDIM,0);
 
     Soln.setVal(0);
-    Rhs.copy(*Vsync,0,0,BL_SPACEDIM);
+    MultiFab::Copy(Rhs,*Vsync,0,0,BL_SPACEDIM,0);
 
     if (verbose)
     {
@@ -1324,10 +1321,14 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
                 zflux.resize(zflux_bx,1);
                 zflux.copy(tensorflux2mfi(),sigma,0,1);
 #endif
-                viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,dt);
-                viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,dt);
+                //
+                //  Multiply by dt^2: one to make fluxes "extensive", the other to 
+                //   convert Vsync from accel increment to velocity increment
+                //
+                viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,dt*dt);
+                viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,dt*dt);
 #if (BL_SPACEDIM == 3)
-                viscflux_reg->FineAdd(zflux,2,i,0,sigma,1,dt);
+                viscflux_reg->FineAdd(zflux,2,i,0,sigma,1,dt*dt);
 #endif
             }
         }
