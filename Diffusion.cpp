@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.79 1999-03-10 17:47:28 marc Exp $
+// $Id: Diffusion.cpp,v 1.80 1999-03-25 18:58:40 marc Exp $
 //
 
 //
@@ -354,7 +354,8 @@ Diffusion::diffuse_scalar (Real                   dt,
     // state + dt*Div(explicit_fluxes), e.g.)
     //
     if (verbose && ParallelDescriptor::IOProcessor())
-        cout << "... diffuse_scalar " << sigma << '\n';
+        cout << "... diffusing scalar: "
+             << caller->get_desc_lst()[State_Type].name(sigma) << '\n';
 
     int allnull, allthere;
     checkBetas(betan, betanp1, allthere, allnull);
@@ -526,9 +527,8 @@ Diffusion::diffuse_scalar (Real                   dt,
     // Construct solver and call it.
     //
     const Real S_tol     = visc_tol;
-    const Real S_tol_abs = visc_abs_tol;
-    //const Real S_tol_abs = get_scaled_abs_tol(sigma, &Rhs, a, b, alpha,
-    //                                          betan, betanp1, visc_abs_tol);
+    const Real S_tol_abs = get_scaled_abs_tol(sigma, &Rhs, a, b, alpha,
+                                              betan, betanp1, visc_abs_tol);
     if (use_cg_solve)
     {
         CGSolver cg(*visc_op,use_mg_precond_flag);
@@ -827,9 +827,8 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     // Construct solver and call it.
     //
     const Real S_tol     = visc_tol;
-    const Real S_tol_abs = visc_abs_tol;
-    //const Real S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b, alpha, betan,
-    //                                          betanp1, visc_abs_tol);
+    const Real S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b, alpha, betan,
+                                              betanp1, visc_abs_tol);
     if (use_tensor_cg_solve)
     {
         const int use_mg_pre = 0;
@@ -1049,8 +1048,6 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         // Construct solver and call it.
         //
         const Real S_tol      = visc_tol;
-        const Real S_tol_abs  = visc_abs_tol;
-#if 0
         const MultiFab* alpha = &(visc_op->aCoefficients());
 
         MultiFab const* betan[BL_SPACEDIM];
@@ -1063,7 +1060,6 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         }
         const Real S_tol_abs = get_scaled_abs_tol(comp, &Rhs, a, b, alpha,
                                                   betan, betanp1, visc_abs_tol);
-#endif
         if (use_cg_solve)
         {
             CGSolver cg(*visc_op,use_mg_precond_flag);
@@ -1235,8 +1231,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     // Construct solver and call it.
     //
     const Real S_tol      = visc_tol;
-    const Real S_tol_abs  = visc_abs_tol;
-#if 0
     const MultiFab* alpha = &(tensor_op->aCoefficients());
     MultiFab const* betan[BL_SPACEDIM];
     MultiFab const* betanp1[BL_SPACEDIM];
@@ -1247,7 +1241,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     }
     const Real S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b, alpha, betan,
                                               betanp1, visc_abs_tol);
-#endif
 
     if (use_tensor_cg_solve)
     {
@@ -1360,7 +1353,8 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     const int IOProc    = ParallelDescriptor::IOProcessorNumber();
 
     if (verbose && ParallelDescriptor::IOProcessor())
-        cout << "Diffusion::diffuse_Ssync for state " << state_ind << '\n';
+        cout << "Diffusion::diffuse_Ssync: "
+             << caller->get_desc_lst()[State_Type].name(state_ind) << '\n';
 
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
@@ -1425,8 +1419,6 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     // Construct solver and call it.
     //
     const Real S_tol = visc_tol;
-    const Real S_tol_abs = visc_abs_tol;
-#if 0
     MultiFab const * betan[BL_SPACEDIM];
     MultiFab const * betanp1[BL_SPACEDIM];
     for (int d = 0; d < BL_SPACEDIM; d++)
@@ -1436,7 +1428,6 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     }
     const Real S_tol_abs = get_scaled_abs_tol(state_ind, &Rhs, a, b,
                                               alpha, betan, betanp1, visc_abs_tol);
-#endif
     if (use_cg_solve)
     {
         CGSolver cg(*visc_op,use_mg_precond_flag);
@@ -1994,6 +1985,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     // it to the time N data.  First, however, we must precompute the
     // fine N bndry values.  We will do this for each scalar that diffuses.
     //
+    // Note: This routine DOES NOT fill grow cells
+    //
     const Real* dx = caller->Geom().CellSize();
     MultiFab&   S  = caller->get_data(State_Type,time);
 
@@ -2110,34 +2103,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
             }
         }
 #endif
-        assert(visc_tmp.nGrow() > 0);
-        const BoxArray& ba = visc_tmp.boxArray();
-        //
-        // THIS IS JUST A HACK - DONT KNOW HOW TO FILL VISC TERMS
-        // IN GHOST CELLS OUTSIDE FINE GRIDS.
-        //
-        for (MultiFabIterator visc_tmpmfi(visc_tmp);
-             visc_tmpmfi.isValid(); ++visc_tmpmfi)
-        {
-            assert(ba[visc_tmpmfi.index()] == visc_tmpmfi.validbox());
-            const Box& grd   = visc_tmpmfi.validbox();
-            const int* lo    = grd.loVect();
-            const int* hi    = grd.hiVect();
-            FArrayBox& visc  = visc_tmpmfi();
-            int        ncomp = visc.nComp();
-            DEF_LIMITS(visc,vdat,vlo,vhi);
-            FORT_VISCEXTRAP(vdat,ARLIM(vlo),ARLIM(vhi),lo,hi,&ncomp);
-        }
-        //
-        // Copy into periodic translates of visc_tmp.
-        //
-        caller->Geom().FillPeriodicBoundary(visc_tmp,false,true);
-        //
-        // Copy from valid regions of overlapping grids.
-        //
-        visc_tmp.FillBoundary();
 
-        MultiFab::Copy(visc_terms,visc_tmp,0,comp-src_comp,1,1);
+        MultiFab::Copy(visc_terms,visc_tmp,0,comp-src_comp,1,0);
     }
 }
 
@@ -2156,13 +2123,14 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     if (ncomp < BL_SPACEDIM)
         BoxLib::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least BL_SPACEDIM components");
 
-    const int vel_ncomp = BL_SPACEDIM;
     //
     // Before computing the godunov predicitors we may have to
     // precompute the viscous source terms.  To do this we must
     // construct a Laplacian operator, set the coeficients and apply
     // it to the time N data.  First, however, we must precompute the
     // fine N bndry values.  We will do this for each scalar that diffuses.
+    //
+    // Note: This routine DOES NOT fill grow cells
     //
     const Real* dx   = caller->Geom().CellSize();
     MultiFab&   S    = caller->get_data(State_Type,time);
@@ -2190,7 +2158,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         tensor_op.maxOrder(tensor_max_order);
         tensor_op.setScalars(a,b);
 
-        const int nghost = 1; // like bill
+        const int nghost = 0;
         //
         // alpha should be the same size as volume.
         //
@@ -2214,7 +2182,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
             tensor_op.bCoefficients(bcoeffs,n);
         }
 
-        MultiFab::Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,1);
+        MultiFab::Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,0);
 
         tensor_op.apply(visc_tmp,s_tmp);
         //
@@ -2266,33 +2234,8 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
             }
         }
 #endif
-        assert(visc_tmp.nGrow() > 0);
-        const BoxArray& ba = visc_tmp.boxArray();
-        //
-        // THIS IS JUST A HACK - DONT KNOW HOW TO FILL VISC TERMS
-        // IN GHOST CELLS OUTSIDE FINE GRIDS.
-        //
-        for (MultiFabIterator visc_tmpmfi(visc_tmp);
-             visc_tmpmfi.isValid(); ++visc_tmpmfi)
-        {
-            assert(ba[visc_tmpmfi.index()] == visc_tmpmfi.validbox());
-            const Box& grd  = visc_tmpmfi.validbox();
-            const int* lo   = grd.loVect();
-            const int* hi   = grd.hiVect();
-            FArrayBox& visc = visc_tmpmfi();
-            DEF_LIMITS(visc,vdat,vlo,vhi);
-            FORT_VISCEXTRAP(vdat,ARLIM(vlo),ARLIM(vhi),lo,hi,&vel_ncomp);
-        }
-        //
-        // Copy into periodic translates of visc_tmp.
-        //
-        caller->Geom().FillPeriodicBoundary(visc_tmp,false,true);
-        //
-        // Copy from valid regions of overlapping grids.
-        //
-        visc_tmp.FillBoundary();
 
-        MultiFab::Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,1);
+        MultiFab::Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,0);
     }
 }
 
