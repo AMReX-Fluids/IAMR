@@ -4,7 +4,7 @@
 #define _SYNCREGISTER_H_
 
 //
-// $Id: SyncRegister.H,v 1.12 1998-11-04 00:15:39 lijewski Exp $
+// $Id: SyncRegister.H,v 1.13 1998-12-11 21:10:47 lijewski Exp $
 //
 
 #include <PArray.H>
@@ -21,9 +21,11 @@ class SyncRegister
 {
 public:
     SyncRegister ();
+
     SyncRegister (const BoxArray& fine_boxes,
                   const IntVect&  ref_ratio,
                   int             fine_lev);
+
     ~SyncRegister ();
 
     void define (const BoxArray& fine_boxes,
@@ -111,22 +113,24 @@ public:
     Real sum ();
 
 protected:
-
-    IntVect ratio;
-    int     fine_level;
-    FabSet  bndry_mask[2*BL_SPACEDIM];
     //
     // Helper member functions.
     //
-    void increment (const FArrayBox& fab);
+    void incrementPeriodic (const Geometry& geom,
+                            const Box&      domain,
+                            const MultiFab& mf);
 
-    void incrementPeriodic (const Geometry& crse_geom,
-                            const Box&      crse_node_domain,
-                            const Box&      cboxlo,
-                            const Box&      cboxhi,
-                            FArrayBox&      cfablo,
-                            FArrayBox&      cfabhi,
-                            Array<IntVect>& pshifts);
+    void copyPeriodic (const Geometry& geom,
+                       const Box&      domain,
+                       MultiFab&       rhs) const;
+
+    void multByBndryMask (MultiFab& rhs) const;
+    //
+    // The data.
+    //
+    FabSet  bndry_mask[2*BL_SPACEDIM];
+    IntVect ratio;
+    int     fine_level;
 };
 
 #endif /*_SYNCREGISTER_H_*/
