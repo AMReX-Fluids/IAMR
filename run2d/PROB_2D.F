@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.7 1998-05-12 22:13:28 lijewski Exp $
+c $Id: PROB_2D.F,v 1.8 1998-05-13 23:16:57 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -139,9 +139,9 @@ c
      &                 dx,xlo,xhi)
 
       else if (probtype .eq. 4) then
-         call initpipe(level,time,lo,hi,nscal,
-     &     	       vel,scal,DIMS(state),press,DIMS(press),
-     &                 dx,xlo,xhi)
+         call initchannel(level,time,lo,hi,nscal,
+     &     	          vel,scal,DIMS(state),press,DIMS(press),
+     &                    dx,xlo,xhi)
 
       else if (probtype .eq. 5) then
          call initpervort(level,time,lo,hi,nscal,
@@ -172,24 +172,17 @@ c
 c
 c     ::::: local variables
 c
-      integer i, j
+      integer i, j, n
       REAL_T  x, y
       REAL_T  hx, hy
-      REAL_T  rho, dist, c, ux, uy, rhobub
+      REAL_T  dist
       REAL_T  x_vel, y_vel
-      REAL_T  rho1, rho2, rhoavg, rhodiff
       REAL_T  rn
 
 #include "probdata.H"
 
       hx = dx(1)
       hy = dx(2)
-
-      rho1 = 999.2
-      rho2 = 1.225
-
-      rhoavg  = half * (rho1 + rho2)
-      rhodiff = rho1 - rho2
 
       if (adv_dir .eq. 1) then
          x_vel = adv_vel
@@ -207,18 +200,13 @@ c
 	    do i = lo(1), hi(1)
                x = xlo(1) + hx*(float(i-lo(1)) + half)
   	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-	       c   = cvmgt(one,zero,dist.lt.radblob)
-               ux = x_vel
-               uy = y_vel
-               call blutilrand(rn)
-               rhobub = denfact*(one + randfact*rn)
-               rho = cvmgt(rhobub,one,dist.lt.radblob)
-c              rho = rhoavg + half * rhodiff *  tanh(5000.*(dist-radblob))
-	       c   = cvmgt(one,zero,dist.lt.radblob)
-	       vel(i,j,1) = ux
-	       vel(i,j,2) = uy
-	       scal(i,j,1) = rho
-               scal(i,j,2) = c
+               vel(i,j,1) = x_vel
+               vel(i,j,2) = y_vel
+               scal(i,j,1) = cvmgt(denfact,one,dist.lt.radblob)
+               do n = 2,nscal-1
+                  scal(i,j,n) = zero
+               enddo                  
+               scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
 	    end do
          end do
 
@@ -243,10 +231,9 @@ c
       integer i, j
       REAL_T  x, y
       REAL_T  hx, hy
-      REAL_T  rho, dist, c, ux, uy
+      REAL_T  dist
       REAL_T  x_vel, y_vel
       REAL_T  spx, spy, cpx, cpy
-      REAL_T  xlen, ylen
 
 #include "probdata.H"
 
@@ -264,28 +251,27 @@ c
          stop
       end if
 
-      xlen = one
-      ylen = one
-
          do j = lo(2), hi(2)
             y = xlo(2) + hy*(float(j-lo(2)) + half)
-	    spy = sin(Pi*y / ylen)
-	    cpy = cos(Pi*y / ylen)
+	    spy = sin(Pi*y)
+	    cpy = cos(Pi*y)
 	    do i = lo(1), hi(1)
                x = xlo(1) + hx*(float(i-lo(1)) + half)
- 	       spx = sin(Pi*x / xlen + Pi*xoffset) 
-               cpx = cos(Pi*x / xlen + Pi*xoffset)
-  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-               rho = cvmgt(denfact,one,dist.lt.radblob)
-c              rho = one + denfact * tanh(10.*(dist-radblob))
-	       c   = cvmgt(one,zero,dist.lt.radblob)
-               ux = x_vel - sign(1.d0,x)*velfact*two*spy*cpy*spx**2
-               uy = y_vel + sign(1.d0,x)*velfact*two*spx*cpx*spy**2
 
-               vel(i,j,1) = ux
-               vel(i,j,2) = uy
-               scal(i,j,1) = rho
-	       scal(i,j,2) = c
+ 	       spx = sin(Pi*x)
+               cpx = cos(Pi*x)
+
+               vel(i,j,1) = x_vel - velfact*two*spy*cpy*spx**2
+               vel(i,j,2) = y_vel + velfact*two*spx*cpx*spy**2
+
+  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
+
+               scal(i,j,1) = one + (denfact-one) * tanh(10.*(dist-radblob))
+               do n = 2,nscal-1
+                  scal(i,j,n) = zero
+               enddo                  
+	       scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
+
 	    end do
          end do
 
@@ -344,9 +330,9 @@ c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
 
       end
 
-      subroutine initpipe(level,time,lo,hi,nscal,
-     &	 	          vel,scal,DIMS(state),press,DIMS(press),
-     &                    dx,xlo,xhi)
+      subroutine initchannel(level,time,lo,hi,nscal,
+     &	 	             vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
 
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -369,21 +355,23 @@ c
       hx = dx(1)
       hy = dx(2)
 
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-              vel(i,j,1) = zero
-              vel(i,j,2) = adv_vel
-              scal(i,j,1) = one
-            end do
-         end do
+      do j = lo(2), hi(2)
+         y = xlo(2) + hy*(float(j-lo(2)) + half)
+         do i = lo(1), hi(1)
+            vel(i,j,1) = adv_vel
+            vel(i,j,2) = zero
+            scal(i,j,1) = one
 
-         do n = 2,nscal
-          do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-              scal(i,j,n) = one
-            end do
-          end do
+            do n = 2,nscal-1
+               scal(i,j,n) = zero
+            enddo                  
+
+            x = xlo(1) + hx*(float(i-lo(1)) + half)
+  	    dist = sqrt((x-xblob)**2 + (y-yblob)**2)
+	    scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
+
          end do
+      end do
 
       end
 
@@ -417,17 +405,18 @@ c
             y = xlo(2) + hy*(float(j-lo(2)) + half)
 	    do i = lo(1), hi(1)
 
-
                x = xlo(1) + hx*(float(i-lo(1)) + half)
 
                vel(i,j,1) = tanh(30.*(.25-abs(y-.5)))
                vel(i,j,2) = .05*sin(two*Pi*x)
 
-
                scal(i,j,1) = one
-
+               do n = 2,nscal-1
+                  scal(i,j,n) = zero
+               enddo
+                  
   	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-	       scal(i,j,2) = cvmgt(one,zero,dist.lt.radblob)
+	       scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
 	    end do
          end do
 
@@ -520,26 +509,58 @@ c ::: -----------------------------------------------------------
 
 #include "probdata.H"
 
-c     if (level .eq. 0) then
-c       ::::: refine around entire bubble
+c     probtype = SPIN
+      if (probtype .eq. 1) then
+
         do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-          tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
         end do
+
+c     probtype = BUBBLE
+      else if (probtype .eq. 2) then
+
+        if (level .eq. 0) then
+c         ::::: refine around entire bubble
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+             end do
+          end do
+        end if
+
+c     probtype = VORTEX IN A BOX
+      else if (probtype .eq. 3) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
         end do
-#if 0
+
+c     probtype = CHANNEL
+      else if (probtype .eq. 4) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
+c     probtype = PERIODIC SHEAR LAYER
+      else if (probtype .eq. 5) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
       else
-c       ::::: refine where there is bubble gradient
-        do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-          ax = abs(adv(i+1,j,1) - adv(i-1,j,1))
-          ay = abs(adv(i,j+1,1) - adv(i,j-1,1))
-          aerr = max(ax,ay)
-          tag(i,j) = cvmgt(set,tag(i,j),aerr.gt.bubgrad)
-        end do
-        end do
-      end if
-#endif
+        print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
+        stop
+      endif
  
       end
 
@@ -583,28 +604,68 @@ c ::: -----------------------------------------------------------
 
 #include "probdata.H"
 
-      if (level .eq. 0) then
-c
-c       ::::: refine around entire bubble
-c
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
-            end do
-         end do
+c     probtype = SPIN
+      if (probtype .eq. 1) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
+           end do
+        end do
+
+c     probtype = BUBBLE
+      else if (probtype .eq. 2) then
+
+        if (level .eq. 0) then
+c         ::::: refine around entire bubble
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
+             end do
+          end do
+        else
+c         ::::: refine where there is bubble gradient
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                ax = abs(temperature(i+1,j,1) - temperature(i-1,j,1))
+                ay = abs(temperature(i,j+1,1) - temperature(i,j-1,1))
+                aerr = max(ax,ay)
+                tag(i,j) = cvmgt(set,tag(i,j),aerr.gt.bubgrad)
+             end do
+          end do
+        end if
+
+c     probtype = VORTEX IN A BOX
+      else if (probtype .eq. 3) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
+           end do
+        end do
+
+c     probtype = CHANNEL
+      else if (probtype .eq. 4) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
+           end do
+        end do
+
+c     probtype = PERIODIC SHEAR LAYER
+      else if (probtype .eq. 5) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
+           end do
+        end do
+
       else
-c
-c       ::::: refine where there is bubble gradient
-c
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               ax = abs(temperature(i+1,j,1) - temperature(i-1,j,1))
-               ay = abs(temperature(i,j+1,1) - temperature(i,j-1,1))
-               aerr = max(ax,ay)
-               tag(i,j) = cvmgt(set,tag(i,j),aerr.gt.bubgrad)
-            end do
-         end do
-      end if
+        print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
+        stop
+      endif
 
       end
 
@@ -649,13 +710,49 @@ c ::: -----------------------------------------------------------
 
 #include "probdata.H"
 
-      do j = lo(2), hi(2)
-c         y = xlo(2) + dx(2)*(j - lo(2) + 0.5)
-         do i = lo(1), hi(1)
-c            x = xlo(1) + dx(1)*(i - lo(1) + 0.5)
-            tag(i,j) = cvmgt(set,clear,abs(vort(i,j,1)).gt.vorterr)
-	 end do
-      end do
+c     probtype = SPIN
+      if (probtype .eq. 1) then
+
+c     probtype = BUBBLE
+      else if (probtype .eq. 2) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+           end do
+        end do
+
+c     probtype = VORTEX IN A BOX
+      else if (probtype .eq. 3) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+           end do
+        end do
+
+c     probtype = CHANNEL
+      else if (probtype .eq. 4) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+           end do
+        end do
+
+c     probtype = PERIODIC SHEAR LAYER
+      else if (probtype .eq. 5) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+           end do
+        end do
+
+      else
+        print *,'DONT KNOW THIS PROBTYPE IN FORT_MVERROR ',probtype
+        stop
+      endif
 
       end
 
@@ -1147,5 +1244,242 @@ c
 	 end do
       end if
 
+      end
+
+c ::: -----------------------------------------------------------
+c ::: This routine is called during a filpatch operation when
+c ::: the patch to be filled falls outside the interior
+c ::: of the problem domain.  You are requested to supply the
+c ::: data outside the problem interior in such a way that the
+c ::: data is consistant with the types of the boundary conditions
+c ::: you specified in the C++ code.  
+c ::: 
+c ::: NOTE:  you can assume all interior cells have been filled
+c :::        with valid data.
+c ::: 
+c ::: INPUTS/OUTPUTS:
+c ::: 
+c ::: divu     <=  divu array
+c ::: DIMS(divu)=> index extent of p array
+c ::: domlo,hi  => index extent of problem domain
+c ::: dx        => cell spacing
+c ::: xlo       => physical location of lower left hand
+c :::	           corner of rho array
+c ::: time      => problem evolution time
+c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi) 
+c ::: -----------------------------------------------------------
+
+      subroutine FORT_DIVUFILL (divu,DIMS(divu),domlo,domhi,delta,
+     &                          xlo,time,bc )
+
+      integer    DIMDEC(divu)
+      integer    bc(SDIM,2)
+      integer    domlo(SDIM), domhi(SDIM)
+      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     divu(DIMV(divu))
+
+      integer    i, j
+      integer    ilo, ihi, jlo, jhi
+      REAL_T     y
+
+      integer lo(SDIM), hi(SDIM)
+
+      lo(1) = ARG_L1(divu)
+      hi(1) = ARG_H1(divu)
+      lo(2) = ARG_L2(divu)
+      hi(2) = ARG_H2(divu)
+
+      ilo = max(lo(1),domlo(1))
+      ihi = min(hi(1),domhi(1))
+      jlo = max(lo(2),domlo(2))
+      jhi = min(hi(2),domhi(2))
+
+      call filcc (divu,DIMS(divu),domlo,domhi,delta,xlo,bc)
+
+      if (bc(1,1).eq.EXT_DIR.and.lo(1).lt.domlo(1)) then
+           if(jlo.le.jhi)then
+             do j = jlo, jhi
+               do i = lo(1), domlo(1)-1
+                 divu(i,j) = divu(domlo(1),j)
+               end do
+             end do
+           end if
+           if (lo(2).lt.domlo(2)) then
+             do j = lo(2), domlo(2)-1
+               do i = lo(1), domlo(1)-1
+                 divu(i,j) = divu(domlo(1),domlo(2))
+               end do
+             end do
+           end if
+           if(hi(2).gt.domhi(2))then
+             do j = domhi(2)+1, hi(2)
+               do i = lo(1), domlo(1)-1
+                 divu(i,j) = divu(domlo(1),domhi(2))
+               end do
+             end do
+           end if
+
+      end if            
+
+      if (bc(1,2).eq.EXT_DIR.and.hi(1).gt.domhi(1)) then
+           if(jlo.le.jhi)then
+             do j = jlo,jhi
+               do i = domhi(1)+1,hi(1)
+                 divu(i,j) = divu(domhi(1),j)
+               end do
+             end do
+           end if
+           if (lo(2).lt.domlo(2)) then
+             do j = lo(2), domlo(2)-1
+               do i = domhi(1)+1,hi(1)
+                 divu(i,j) = divu(domhi(1),domlo(2))
+               end do
+             end do
+           end if
+           if(hi(2).gt.domhi(2))then
+             do j = domhi(2)+1, hi(2)
+               do i = domhi(1)+1,hi(1)
+                 divu(i,j) = divu(domhi(1),domhi(2))
+               end do
+             end do
+           end if
+      end if            
+
+      if (bc(2,1).eq.EXT_DIR.and.lo(2).lt.domlo(2)) then
+           if(ilo.le.ihi)then
+             do j = lo(2), domlo(2)-1
+               do i = ilo,ihi
+                 divu(i,j) = divu(i,domlo(2))
+               end do
+             end do
+           end if
+           if (lo(1).lt.domlo(1)) then
+             do j = lo(2), domlo(2)-1
+               do i = lo(1), domlo(1)-1
+                 divu(i,j) = divu(domlo(1),domlo(2))
+               end do
+             end do
+           end if
+           if(hi(1).gt.domhi(1))then
+             do j = lo(2), domlo(2)-1
+               do i = domhi(1)+1, hi(1)
+                 divu(i,j) = divu(domhi(1),domlo(2))
+               end do
+             end do
+           end if
+
+      end if            
+
+      if (bc(2,2).eq.EXT_DIR.and.hi(2).gt.domhi(2)) then
+           if(ilo.le.ihi)then
+             do j = domhi(2)+1, hi(2)
+               do i = ilo,ihi
+                 divu(i,j) = divu(i,domhi(2))
+               end do
+             end do
+           end if
+           if (lo(1).lt.domlo(1)) then
+             do j = domhi(2)+1, hi(2)
+               do i = lo(1), domlo(1)-1
+                 divu(i,j) = divu(domlo(1),domhi(2))
+               end do
+             end do
+           end if
+           if(hi(1).gt.domhi(1))then
+             do j = domhi(2)+1, hi(2)
+               do i = domhi(1)+1, hi(1)
+                 divu(i,j) = divu(domhi(1),domhi(2))
+               end do
+             end do
+           end if
+      end if            
+
+      return
+      end
+
+c ::: -----------------------------------------------------------
+c ::: This routine is called during a filpatch operation when
+c ::: the patch to be filled falls outside the interior
+c ::: of the problem domain.  You are requested to supply the
+c ::: data outside the problem interior in such a way that the
+c ::: data is consistant with the types of the boundary conditions
+c ::: you specified in the C++ code.  
+c ::: 
+c ::: NOTE:  you can assume all interior cells have been filled
+c :::        with valid data.
+c ::: 
+c ::: INPUTS/OUTPUTS:
+c ::: 
+c ::: dsdt     <=  dsdt array
+c ::: DIMS(dsdt)=> index extent of p array
+c ::: domlo,hi  => index extent of problem domain
+c ::: dx        => cell spacing
+c ::: xlo       => physical location of lower left hand
+c :::	           corner of rho array
+c ::: time      => problem evolution time
+c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi) 
+c ::: -----------------------------------------------------------
+
+
+      subroutine FORT_DSDTFILL (dsdt,DIMS(dsdt),domlo,domhi,delta,
+     &                          xlo,time,bc )
+
+      integer    DIMDEC(dsdt)
+      integer    bc(SDIM,2)
+      integer    domlo(SDIM), domhi(SDIM)
+      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     dsdt(DIMV(dsdt))
+
+      integer    i, j
+      integer    ilo, ihi, jlo, jhi
+      REAL_T     y
+
+      integer lo(SDIM), hi(SDIM)
+
+      lo(1) = ARG_L1(dsdt)
+      hi(1) = ARG_H1(dsdt)
+      lo(2) = ARG_L2(dsdt)
+      hi(2) = ARG_H2(dsdt)
+
+      ilo = max(lo(1),domlo(1))
+      ihi = min(hi(1),domhi(1))
+      jlo = max(lo(2),domlo(2))
+      jhi = min(hi(2),domhi(2))
+
+      call filcc (dsdt,DIMS(dsdt),domlo,domhi,delta,xlo,bc)
+
+      if (bc(1,1).eq.EXT_DIR.and.lo(1).lt.domlo(1)) then
+           do i = lo(1), domlo(1)-1
+             do j = lo(2), hi(2)
+               dsdt(i,j) = zero
+             end do
+           end do
+      end if            
+
+      if (bc(1,2).eq.EXT_DIR.and.hi(1).gt.domhi(1)) then
+           do i = domhi(1)+1, hi(1)
+             do j = lo(2), hi(2)
+               dsdt(i,j) = zero
+             end do
+           end do
+      end if            
+
+      if (bc(2,1).eq.EXT_DIR.and.lo(2).lt.domlo(2)) then
+           do j = lo(2), domlo(2)-1
+              do i = lo(1), hi(1)
+                 dsdt(i,j) = zero
+              end do
+           end do
+      end if            
+
+      if (bc(2,2).eq.EXT_DIR.and.hi(2).gt.domhi(2)) then
+           do j = domhi(2)+1, hi(2)
+              do i = lo(1), hi(1)
+                 dsdt(i,j) = zero
+              end do
+           end do
+      end if            
+
+      return
       end
 
