@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.178 2000-07-18 17:00:55 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.179 2000-07-19 17:20:40 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3011,7 +3011,11 @@ NavierStokes::post_timestep (int crse_iteration)
 // Build any additional data structures after restart.
 //
 
-void NavierStokes::post_restart() {}
+void NavierStokes::post_restart()
+{
+    make_rho_prev_time();
+    make_rho_curr_time();
+}
 
 //
 // Build any additional data structures after regrid.
