@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.120 2002-11-20 16:50:55 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.121 2003-03-10 23:07:39 lijewski Exp $
 //
 
 //
@@ -913,8 +913,6 @@ Diffusion::diffuse_Vsync (MultiFab*              Vsync,
                           const MultiFab* const* beta)
 {
     BL_ASSERT(rho_flag == 1|| rho_flag == 3);
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "Diffusion::diffuse_Vsync\n";
 
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
@@ -967,12 +965,11 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
                                       int             rho_flag)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "Diffusion::diffuse_Vsync\n";
+        std::cout << "Diffusion::diffuse_Vsync_constant_mu ...\n";
 
-    NavierStokes& ns    = *(NavierStokes*) &(parent->getLevel(level));
-
-    const Real* dx     = caller->Geom().CellSize();
-    const int   IOProc = ParallelDescriptor::IOProcessorNumber();
+    NavierStokes& ns     = *(NavierStokes*) &(parent->getLevel(level));
+    const Real*   dx     = caller->Geom().CellSize();
+    const int     IOProc = ParallelDescriptor::IOProcessorNumber();
     //
     // At this point in time we can only do decoupled scalar
     // so we loop over components.
@@ -985,7 +982,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         Soln.setVal(0);
         MultiFab::Copy(Rhs,*Vsync,comp,0,1,0);
 
-        if (verbose)
+        if (verbose > 1)
         {
             Real r_norm = 0.0;
             for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
@@ -1065,7 +1062,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
 
         MultiFab::Copy(*Vsync,Soln,0,comp,1,1);
 
-        if (verbose)
+        if (verbose > 1)
         {
             Real s_norm = 0.0;
             for (MFIter Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
@@ -1166,12 +1163,15 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
                                  const MultiFab* const* beta)
 {
     BL_ASSERT(rho_flag == 1 || rho_flag == 3);
-    NavierStokes& ns    = *(NavierStokes*) &(parent->getLevel(level));
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+        std::cout << "Diffusion::diffuse_tensor_Vsync ...\n";
+
+    NavierStokes& ns         = *(NavierStokes*) &(parent->getLevel(level));
     const int   finest_level = parent->finestLevel();
     const Real* dx           = caller->Geom().CellSize();
     const int   IOProc       = ParallelDescriptor::IOProcessorNumber();
-
-    const Real cur_time  = caller->get_state_data(State_Type).curTime();
+    const Real  cur_time     = caller->get_state_data(State_Type).curTime();
 
     MultiFab Soln(grids,BL_SPACEDIM,1);
     MultiFab Rhs(grids,BL_SPACEDIM,0);
@@ -1179,7 +1179,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     Soln.setVal(0);
     MultiFab::Copy(Rhs,*Vsync,0,0,BL_SPACEDIM,0);
 
-    if (verbose)
+    if (verbose > 1)
     {
         Real r_norm = 0.0;
         for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
@@ -1250,7 +1250,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
 
     MultiFab::Copy(*Vsync,Soln,0,0,BL_SPACEDIM,1);
 
-    if (verbose)
+    if (verbose > 1)
     {
         Real s_norm = 0.0;
         for (MFIter Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
@@ -1320,6 +1320,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
         }
         removeFluxBoxesLevel(tensorflux);
     }
+
     delete tensor_op;
 }
 
@@ -1351,7 +1352,7 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     Soln.setVal(0);
     MultiFab::Copy(Rhs,*Ssync,sigma,0,1,0);
 
-    if (verbose)
+    if (verbose > 1)
     {
         MultiFab junk(grids,1,0);
 
@@ -1420,18 +1421,18 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
         CGSolver cg(*visc_op,use_mg_precond_flag);
         cg.solve(Soln,Rhs,S_tol,S_tol_abs);
     }
-    else if ( use_hypre_solve )
-      {
+    else if (use_hypre_solve)
+    {
 #ifdef MG_USE_HYPRE
-          BoxLib::Error("HypreABec not ready");
-	  //	  HypreABec hp(Soln.boxArray(), 00, dx, 0, false);
-	  //	  hp.setup_solver(S_tol, S_tol_abs, 50);
-	  //	  hp.solve(Soln, Rhs, true);
-	  //	  hp.clear_solver();
+        BoxLib::Error("HypreABec not ready");
+        //	  HypreABec hp(Soln.boxArray(), 00, dx, 0, false);
+        //	  hp.setup_solver(S_tol, S_tol_abs, 50);
+        //	  hp.solve(Soln, Rhs, true);
+        //	  hp.clear_solver();
 #else
-          BoxLib::Error("HypreABec not in this build");
+        BoxLib::Error("HypreABec not in this build");
 #endif
-      }
+    }
     else
     {
         MultiGrid mg(*visc_op);
@@ -1449,7 +1450,7 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
 
     MultiFab::Copy(*Ssync,Soln,0,sigma,1,0);
     
-    if (verbose)
+    if (verbose > 1)
     {
         Real s_norm = 0.0;
         for (MFIter Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
@@ -2306,7 +2307,6 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
     {
         BoxArray cgrids = grids;
         cgrids.coarsen(crse_ratio);
-        //BndryRegister crse_br(cgrids,0,1,1,num_comp);
         BndryRegister crse_br(cgrids,0,1,2,num_comp);
         //
         // interp for solvers over ALL c-f brs, need safe data.
