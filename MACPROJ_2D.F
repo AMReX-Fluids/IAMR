@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_2D.F,v 1.9 1999-05-07 20:30:27 marc Exp $
+c $Id: MACPROJ_2D.F,v 1.10 1999-05-19 21:26:31 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -169,7 +169,7 @@ c     Local variables
       logical rNormed
       REAL_T divcor_ave, vtot
       REAL_T rL, rR, diff
-      REAL_T max_divu, min_divu, max_pert, phitot, hxsq
+      REAL_T max_divu, min_divu, max_pert, phitot
 
 c     NOTE: Assumes that rho at edge between i, i-1 = half*(rho(i)+rho(i-1))
 c             (1) Linear fit of rho between nodes
@@ -251,7 +251,6 @@ c     is zero, or if divu is constant
 
       
 c     Carry out non-trivial solve.  First set interior equations, then do BC's
-      hxsq = hx*hx
       neq = ARG_H1(rho) - ARG_L1(rho) + 1
       do i = 2,neq-1
          ii = i + ARG_L1(rho) - 1
@@ -260,7 +259,7 @@ c     Carry out non-trivial solve.  First set interior equations, then do BC's
          a(i)=two*rL/(rho(ii,j)+rho(ii-1,j))
          c(i)=two*rR/(rho(ii,j)+rho(ii+1,j))
          b(i)=- a(i) - c(i)
-         s(i)=r(ii)*( (u(ii+1,j)-u(ii,j))/hx-(divcor(ii,j)-divcor_ave) )*hxsq
+         s(i)=(rR*u(ii+1,j)-rL*u(ii,j))*hx - r(ii)*(divcor(ii,j)-divcor_ave)*hx*hx
       end do
 
       if (per .eq. 1) then
@@ -279,7 +278,7 @@ c     Do left-side periodic BC (keep r in there to guarantee correct scaling)
          beta=two*rL/(rho(ii,j)+rho(ARG_H1(rho),j))
          c(1)=two*rR/(rho(ii,j)+rho(ii+1,j))
          b(1)=- beta - c(1)
-         s(i)=r(ii)*( (u(ii+1,j)-u(ii,j))/hx-(divcor(ii,j)-divcor_ave) )*hxsq
+         s(1)=(rR*u(ii+1,j)-rL*u(ii,j))*hx - r(ii)*(divcor(ii,j)-divcor_ave)*hx*hx
          
 c     Do right-side periodic
          ii = ARG_H1(rho)
@@ -288,7 +287,7 @@ c     Do right-side periodic
          a(neq)=two*rL/(rho(ii,j)+rho(ii-1,j))
          alpha=two*rR/(rho(ii,j)+rho(ARG_L1(rho),j))
          b(neq)=- a(neq) - alpha
-         s(neq)=r(ii)*( (u(ii+1,j)-u(ii,j))/hx-(divcor(ii,j)-divcor_ave) )*hxsq
+         s(neq)=(rR*u(ii+1,j)-rL*u(ii,j))*hx - r(ii)*(divcor(ii,j)-divcor_ave)*hx*hx
          
 c     Solve the equations
          call cyclic(a,b,c,alpha,beta,s,x,neq)
@@ -300,13 +299,14 @@ c     Solid walls, Nuemann conditions (dphi/dx=u=0)
          rR = half*(r(ii)+r(ii+1))
          c(1) = two*rR/(rho(ii,j)+rho(ii+1,j))
          b(1) = - c(1)
-         s(i)=r(ii)*( u(ii+1,j)/hx - (divcor(ii,j)-divcor_ave) )*hxsq
+         s(1)= rR*u(ii+1,j)*hx - r(ii)*(divcor(ii,j)-divcor_ave)*hx*hx
+         
 
          ii = ARG_H1(rho)
          rL = half*(r(ii)+r(ii-1))
          a(neq) = two*rL/(rho(ii,j)+rho(ii-1,j))
          b(neq) = - a(neq)
-         s(neq)=r(ii)*( -u(ii,j)/hx - (divcor(ii,j)-divcor_ave) )*hxsq
+         s(neq)=-rL*u(ii,j)*hx - r(ii)*(divcor(ii,j)-divcor_ave)*hx*hx
          
 c     Solve the equations (we know they're singular, pass the arbitrary value, and
 c     a flag that we've already normalized the rhs, in the sense that
@@ -319,10 +319,12 @@ c                          Int[dU/dx - (S-S_ave)] == 0
 
 c     Try normalizing phi to average to zero
       phitot = zero
+      vtot = zero
       do i = 1,neq
-         phitot = phitot + x(i)
+         phitot = phitot + x(i)*r(ARG_L1(rho)+i-1)
+         vtot = vtot + r(ARG_L1(rho)+i-1)
       end do
-      phitot = phitot / neq
+      phitot = phitot / vtot
       do i = 1,neq
          x(i) = x(i) - phitot
       end do

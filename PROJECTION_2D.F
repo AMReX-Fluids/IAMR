@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.23 1999-05-07 20:29:47 marc Exp $
+c $Id: PROJECTION_2D.F,v 1.24 1999-05-19 21:26:31 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -445,7 +445,7 @@ c     Local variables
       REAL_T divcor_ave, vtot
       REAL_T div_edge, rho_edge
       REAL_T div_edge_m1, rho_edge_m1, div_edge_m2, rho_edge_m2
-      REAL_T max_divu, min_divu, phitot, hxsq
+      REAL_T max_divu, min_divu, phitot, rnode, hdr
       REAL_T uExt(0:NstripMAX-1)
       REAL_T divuExt(0:NstripMAX-1)
       REAL_T rhoExt(0:NstripMAX-1)
@@ -528,8 +528,7 @@ c                        d/dy( 1/rho d/dy( phi ) ) = dV/dy - S_ave
 c     
 c     This information should be used to construct the normal gradient of the
 c     normal velocity, for the advective/diffusive step, for example.
-
-      hxsq = hx*hx
+      hdr = half*(r(ics+1) - r(ics))
       j = jns
       do i = 2,ine-ins
          icR = ins + i - 1
@@ -537,8 +536,9 @@ c     normal velocity, for the advective/diffusive step, for example.
          a(i) = r(icL) / rhoExt(icL-ics)
          c(i) = r(icR) / rhoExt(icR-ics)
          b(i) = - a(i) - c(i)
-         s(i) = half*(r(icL)+r(icR))*( (uExt(icR-ics)-uExt(icL-ics))/hx
-     &        -               half*(divuExt(icL-ics)+divuExt(icR-ics)) )*hxsq
+         rnode = half*(r(icL)+r(icR))
+         s(i) = (r(icR)*uExt(icR-ics)-r(icL)*uExt(icL-ics))*hx
+     &        -  rnode*half*(divuExt(icL-ics)+divuExt(icR-ics))*hx*hx
       end do
 
       if (per .eq. 1) then
@@ -551,8 +551,9 @@ c     (retain r-stuff here, just to be sure scaling is not destroyed)
          beta = r(icL) / rhoExt(icL-ics)
          c(1) = r(icR) / rhoExt(icR-ics)
          b(1) = - beta - c(1)
-         s(1) = r(icR)*( uExt(icR-ics)/hx-half*divuExt(icR-ics) )*hxsq
-     &        + r(icL)*(-uExt(icL-ics)/hx-half*divuExt(icL-ics) )*hxsq
+         rnode = half*(r(icL)+r(icR))
+         s(1) = (r(icR)*uExt(icR-ics)-r(icL)*uExt(icL-ics))*hx
+     &        -  rnode*half*(divuExt(icL-ics)+divuExt(icR-ics))*hx*hx
          
 c     Do right-side periodic on penultimate node
          icL = ice - 1
@@ -560,8 +561,8 @@ c     Do right-side periodic on penultimate node
          a(neq) = r(icL) / rhoExt(icL-ics)
          alpha  = r(icR) / rhoExt(icR-ics)
          b(neq) = - a(neq) - alpha
-         s(neq) = r(icR)*( uExt(icR-ics)/hx-half*divuExt(icR-ics) )*hxsq
-     &        +   r(icL)*(-uExt(icL-ics)/hx-half*divuExt(icL-ics) )*hxsq
+         s(neq) = (r(icR)*uExt(icR-ics)-r(icL)*uExt(icL-ics))*hx
+     &        -  rnode*half*(divuExt(icL-ics)+divuExt(icR-ics))*hx*hx
          
 c     Solve the equations
          call cyclic(a,b,c,alpha,beta,s,x,neq)
@@ -569,16 +570,22 @@ c     Solve the equations
       else
 
 c     Solid walls, Nuemann conditions
+         
          neq = ine - ins + 1
          icR = ics
-         c(1)   = r(icR) / rhoExt(icR-ics)
-         b(1)   = - c(1)
-         s(1) = half*(3*r(icR)-r(icR+1))*( uExt(icR-ics)/hx-half*divuExt(icR-ics) )*hxsq
-         
+         c(1) = r(icR) / rhoExt(icR-ics)
+         b(1) = - c(1)
+         rnode = r(ics) - hdr
+         s(1) = r(icR)*uExt(icR-ics)*hx
+     &        -  rnode*half*divuExt(icR-ics)*hx*hx
+        
          icL = ice
          a(neq) = r(icL) / rhoExt(icL-ics)
          b(neq) = - a(neq)
-         s(neq) = half*(3*r(icL)-r(icL-1))*(-uExt(icL-ics)/hx-half*divuExt(icL-ics) )*hxsq
+         rnode = r(ice) + hdr
+         s(neq) = -r(icL)*uExt(icL-ics)*hx
+     &        -  rnode*half*divuExt(icL-ics)*hx*hx
+         
          
 c     Solve the equations (we know they're singular, pass the arbitrary value, and
 c     a flag that we've already normalized the rhs, in the sense that
@@ -591,14 +598,25 @@ c                          Int[dU/dx - (S-S_ave)] == 0
       
 c     Try normalizing phi to average to zero
       phitot = zero
-      do i = 1,neq
-         phitot = phitot + x(i)
+      vtot = zero
+      do i = 1,ine-ins-1
+         rnode = r(ics+i-1) - hdr
+         phitot = phitot + x(i)*rnode
+         vtot = vtot + rnode
       end do
-      phitot = phitot / neq
-      do i = 1,neq
+      do i = ine-ins,neq
+         rnode = r(ics+i-2) + hdr
+         phitot = phitot + x(i)*rnode
+         vtot = vtot + rnode
+      end do
+      phitot = phitot / vtot
+      do i = 1,ine-ins-1
          x(i) = x(i) - phitot
       end do
-
+      do i = ine-ins,neq
+         x(i) = x(i) - phitot
+      end do
+      
 c     Write the solution into the arg
       do i = 1,neq
          phi(i+ins-1,jns) = x(i)
@@ -619,7 +637,7 @@ c     Write the solution into the arg
       REAL_T bet,gam(NMAX)
       logical rNormed, singular
       singular = .false.
-      if(b(1).eq.zero)then
+      if((b(1).eq.zero).or.(ABS(b(n)).le.eps))then
          write(6,*) 'tridag: rewrite equations'
          stop
       end if
