@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.23 1997-12-11 23:30:22 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.24 1997-12-17 23:29:28 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -17,6 +17,7 @@
 #include <NavierStokes.H>
 #include <MultiGrid.H>
 #include <ArrayLim.H>
+#include <Utility.H>
 #include <NAVIERSTOKES_F.H>
 #include <PROJECTION_F.H>
 #include <PROB_F.H>
