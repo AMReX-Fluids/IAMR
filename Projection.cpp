@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.159 2004-07-08 16:43:30 car Exp $
+// $Id: Projection.cpp,v 1.160 2004-09-08 20:58:54 almgren Exp $
 //
 #include <winstd.H>
 
@@ -80,6 +80,8 @@ static RegType project_bc [] =
 #define INITIAL_VEL     1002
 #define INITIAL_PRESS   1003
 #define INITIAL_SYNC    1004
+#define SYNC_PROJ       1005
+#define FILTER_P        1006
 
 Projection::Projection (Amr*   _parent,
                         BCRec* _phys_bc, 
@@ -93,7 +95,8 @@ Projection::Projection (Amr*   _parent,
     finest_level(_finest_level),
     radius_grow(_radius_grow), 
     LevelData(_finest_level+1), 
-    radius(_finest_level+1)
+    radius(_finest_level+1),
+    anel_coeff(_finest_level+1)
 {
     read_params();
 
@@ -105,6 +108,9 @@ Projection::Projection (Amr*   _parent,
     setUpBcs();
 
     sync_proj = 0;
+ 
+    for (int lev = 0; lev <= finest_level; lev++)
+       anel_coeff[lev] = 0;
 }
 
 Projection::~Projection ()
@@ -240,6 +246,16 @@ Projection::install_level (int                   level,
     delete sync_proj;
 
     sync_proj = 0;
+}
+void
+Projection::install_anelastic_coefficient (int                   level,
+                                           Real                **_anel_coeff)
+{
+    if (verbose && ParallelDescriptor::IOProcessor()) 
+        std::cout << "Installing anel_coeff into projector level " << level << '\n';
+    if (level > anel_coeff.size()-1) 
+       anel_coeff.resize(level+1);
+    anel_coeff.set(level, _anel_coeff);
 }
 
 //
@@ -505,7 +521,7 @@ Projection::level_project (int             level,
     // Scale the projection variables.
     //
     rho_half->setBndry(BogusValue);
-    scaleVar(rho_half, 1, &U_new, grids, level);
+    scaleVar(LEVEL_PROJ,rho_half, 1, &U_new, grids, level);
     //
     // Application specific first guess.
     //
@@ -628,7 +644,7 @@ Projection::level_project (int             level,
     //
     // Unscale level projection variables.
     //
-    rescaleVar(rho_half, 1, &U_new, grids, level);
+    rescaleVar(LEVEL_PROJ,rho_half, 1, &U_new, grids, level);
     //
     // Put U_new back to "normal"; subtract U_old*divu...factor/dt from U_new
     //
@@ -719,7 +735,7 @@ Projection::filterP (int             level,
     //
     // Scale the projection variables.
     //
-    scaleVar(rho_half, 0, &U_old, grids, level);
+    scaleVar(FILTER_P,rho_half, 0, &U_old, grids, level);
     //
     // Copy from valid regions only.
     //
@@ -861,7 +877,7 @@ Projection::filterP (int             level,
     //
     // Unscale the projection variables.
     //
-    rescaleVar(rho_half, 0, &U_old, grids, level);
+    rescaleVar(FILTER_P, rho_half, 0, &U_old, grids, level);
 
     delete temp_phi;
     delete sync_resid_crse;
@@ -924,7 +940,7 @@ Projection::syncProject (int             c_lev,
     //
     // Scale sync projection variables.
     //
-    scaleVar(&sig,1,Vsync,grids,c_lev);
+    scaleVar(SYNC_PROJ,&sig,1,Vsync,grids,c_lev);
     //
     // If periodic, copy into periodic translates of Vsync.
     //
@@ -1001,7 +1017,7 @@ Projection::syncProject (int             c_lev,
     //
     // Unscale the sync projection variables for rz.
     //
-    rescaleVar(&sig,1,Vsync,grids,c_lev);
+    rescaleVar(SYNC_PROJ,&sig,1,Vsync,grids,c_lev);
     //
     // Add projected Vsync to new velocity at this level & add phi to pressure.
     //
@@ -1098,8 +1114,8 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Do necessary scaling
     //
-    scaleVar(&rho_crse, 0, Vsync,   grids,      c_lev  );
-    scaleVar(&rho_fine, 0, &V_corr, fine_grids, c_lev+1);
+    scaleVar(SYNC_PROJ,&rho_crse, 0, Vsync,   grids,      c_lev  );
+    scaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, fine_grids, c_lev+1);
     //
     // Set up alias lib.
     //
@@ -1207,8 +1223,8 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Do necessary un-scaling.
     //
-    rescaleVar(&rho_crse, 0, Vsync,   grids,      c_lev  );
-    rescaleVar(&rho_fine, 0, &V_corr, fine_grids, c_lev+1);
+    rescaleVar(SYNC_PROJ,&rho_crse, 0, Vsync,   grids,      c_lev  );
+    rescaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, fine_grids, c_lev+1);
 
     for (MFIter phimfi(*phi[c_lev+1]); phimfi.isValid(); ++phimfi) 
     {
@@ -1376,7 +1392,7 @@ Projection::initialVelocityProject (int  c_lev,
     {
        AmrLevel&       amr_level = parent->getLevel(lev);
        const BoxArray& grids     = amr_level.boxArray();
-       scaleVar(sig[lev],1,vel[lev],grids,lev);
+       scaleVar(INITIAL_VEL,sig[lev],1,vel[lev],grids,lev);
     }
 
     //
@@ -1461,7 +1477,7 @@ Projection::initialVelocityProject (int  c_lev,
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
         const BoxArray& grids = parent->getLevel(lev).boxArray();
-        rescaleVar(sig[lev],1,vel[lev],grids,lev);
+        rescaleVar(INITIAL_VEL,sig[lev],1,vel[lev],grids,lev);
     }
 
     for (lev = c_lev; lev <= f_lev; lev++) 
@@ -1535,7 +1551,7 @@ Projection::initialPressureProject (int  c_lev)
         //
         // Scale the projection variables.
         //
-        scaleVar(sig[lev],1,vel[lev],grids,lev);
+        scaleVar(INITIAL_PRESS,sig[lev],1,vel[lev],grids,lev);
     }
 
     //
@@ -1586,7 +1602,7 @@ Projection::initialPressureProject (int  c_lev)
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
         const BoxArray& grids = parent->getLevel(lev).boxArray();
-        rescaleVar(sig[lev],1,vel[lev],grids,lev);
+        rescaleVar(INITIAL_PRESS,sig[lev],1,vel[lev],grids,lev);
     }
 
     //
@@ -1721,7 +1737,7 @@ Projection::initialSyncProject (int       c_lev,
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
         AmrLevel& amr_level = parent->getLevel(lev);
-        scaleVar(sig[lev],1,vel[lev],amr_level.boxArray(),lev);
+        scaleVar(INITIAL_SYNC,sig[lev],1,vel[lev],amr_level.boxArray(),lev);
 
         if (have_divu && CoordSys::IsRZ()) 
           radMult(lev,*(rhs[lev]),0);    
@@ -1819,7 +1835,7 @@ Projection::initialSyncProject (int       c_lev,
     // Unscale initial sync projection variables.
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
-        rescaleVar(sig[lev],1,vel[lev],parent->getLevel(lev).boxArray(),lev);
+        rescaleVar(INITIAL_SYNC,sig[lev],1,vel[lev],parent->getLevel(lev).boxArray(),lev);
     //
     // Add correction at coarse and fine levels.
     //
@@ -2111,22 +2127,34 @@ Projection::incrPress (int  level,
 //
 
 void
-Projection::scaleVar (MultiFab*       sig,
+Projection::scaleVar (int             which_call,
+                      MultiFab*       sig,
                       int             sig_nghosts,
                       MultiFab*       vel,
                       const BoxArray& grids,
                       int             level)
 {
+    BL_ASSERT((which_call == INITIAL_VEL  ) || 
+              (which_call == INITIAL_PRESS) || 
+              (which_call == INITIAL_SYNC ) ||
+              (which_call == LEVEL_PROJ   ) ||
+              (which_call == SYNC_PROJ    ) );
+
     if (sig != 0)
         BL_ASSERT(sig->nComp() == 1);
     if (vel != 0)
         BL_ASSERT(vel->nComp() >= BL_SPACEDIM);
+
     //
-    // Convert sigma from rho to 1/rho.
+    // Convert sigma from rho to anel_coeff/rho if not INITIAL_PRESS.
     // nghosts info needed to avoid divide by zero.
     //
-    if (sig != 0)
-        sig->invert(1.0,sig_nghosts);
+    if (sig != 0) {
+      sig->invert(1.0,sig_nghosts);
+      if (which_call  != INITIAL_PRESS &&
+          anel_coeff[level] != 0) AnelCoeffMult(level,*sig,0);
+    }
+
     //
     // Scale by radius for RZ.
     //
@@ -2138,6 +2166,14 @@ Projection::scaleVar (MultiFab*       sig,
             for (int n = 0; n < BL_SPACEDIM; n++) 
                 radMult(level,*vel,n);
     }
+
+    //
+    // Scale velocity by anel_coeff if it exists
+    //
+    if (vel != 0 && anel_coeff[level] != 0)
+      for (int n = 0; n < BL_SPACEDIM; n++) 
+        AnelCoeffMult(level,*vel,n);
+
     //
     // Scale level projection variables for a particular projection.
     //
@@ -2149,16 +2185,26 @@ Projection::scaleVar (MultiFab*       sig,
 //
 
 void
-Projection::rescaleVar (MultiFab*       sig,
+Projection::rescaleVar (int             which_call,
+                        MultiFab*       sig,
                         int             sig_nghosts,
                         MultiFab*       vel,
                         const BoxArray& grids,
                         int             level)
 {
+    BL_ASSERT((which_call == INITIAL_VEL  ) || 
+              (which_call == INITIAL_PRESS) || 
+              (which_call == INITIAL_SYNC ) ||
+              (which_call == LEVEL_PROJ   ) ||
+              (which_call == SYNC_PROJ    ) );
+
     if (sig != 0)
         BL_ASSERT(sig->nComp() == 1);
     if (vel != 0)
         BL_ASSERT(vel->nComp() >= BL_SPACEDIM);
+
+    if (which_call  != INITIAL_PRESS && sig != 0 &&
+        anel_coeff[level] != 0) AnelCoeffDiv(level,*sig,0);
     //
     // Divide by radius to rescale for RZ coordinates.
     //
@@ -2170,6 +2216,9 @@ Projection::rescaleVar (MultiFab*       sig,
             for (int n = 0; n < BL_SPACEDIM; n++)
                 radDiv(level,*vel,n);
     }
+    if (vel != 0 && anel_coeff[level] != 0) 
+      for (int n = 0; n < BL_SPACEDIM; n++)
+        AnelCoeffDiv(level,*vel,n);
     //
     // Convert sigma from 1/rho to rho
     // NOTE: this must come after division by r to be correct,
@@ -2251,6 +2300,74 @@ Projection::radDiv (int       level,
 
         FORT_RADDIV(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
                     rad,&nr,&bogus_value);
+    }
+}
+
+//
+// Multiply by anel_coeff if it is defined
+//
+void
+Projection::AnelCoeffMult (int       level,
+                           MultiFab& mf,
+                           int       comp)
+{
+    BL_ASSERT(anel_coeff[level] != 0);
+    BL_ASSERT(comp >= 0 && comp < mf.nComp());
+    int ngrow = mf.nGrow();
+    int nr    = 1;
+
+    const Box& domain = parent->Geom(level).Domain();
+    const int* domlo  = domain.loVect();
+    const int* domhi  = domain.hiVect();
+
+    Real bogus_value = BogusValue;
+
+    int mult = 1;
+
+    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+    {
+        BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
+
+        const int* lo = mfmfi.validbox().loVect();
+        const int* hi = mfmfi.validbox().hiVect();
+        Real* dat     = mf[mfmfi].dataPtr(comp);
+
+        FORT_ANELCOEFFMPY(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
+                          anel_coeff[level][mfmfi.index()],&nr,&bogus_value,&mult);
+    }
+}
+
+//
+// Divide by anel_coeff if it is defined
+//
+void
+Projection::AnelCoeffDiv (int       level,
+                          MultiFab& mf,
+                          int       comp)
+{
+    BL_ASSERT(comp >= 0 && comp < mf.nComp());
+    BL_ASSERT(anel_coeff[level] != 0);
+    int ngrow = mf.nGrow();
+    int nr    = 1;
+
+    const Box& domain = parent->Geom(level).Domain();
+    const int* domlo  = domain.loVect();
+    const int* domhi  = domain.hiVect();
+
+    Real bogus_value = BogusValue;
+
+    int mult = 0;
+
+    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+    {
+        BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
+
+        const int* lo = mfmfi.validbox().loVect();
+        const int* hi = mfmfi.validbox().hiVect();
+        Real* dat     = mf[mfmfi].dataPtr(comp);
+
+        FORT_ANELCOEFFMPY(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
+                          anel_coeff[level][mfmfi.index()],&nr,&bogus_value,&mult);
     }
 }
 
@@ -2810,7 +2927,6 @@ Projection::set_outflow_bcs_at_level (int          which_call,
                          parent->Geom(lev),
                          outFacesAtThisLevel,numOutFlowFaces,gravity,
                          lo_bc,hi_bc);
-
     }
   else
     {

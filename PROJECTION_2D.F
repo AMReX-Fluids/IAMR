@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.38 2002-11-14 23:04:56 lijewski Exp $
+c $Id: PROJECTION_2D.F,v 1.39 2004-09-08 20:58:54 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -308,6 +308,60 @@ c
       if (ARG_H1(grid)+ng .gt. domhi(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = domhi(1)+1, ARG_H1(grid)+ng
+           a(i,j) = bogus_value
+         end do
+         end do
+      end if
+
+      end
+
+      subroutine FORT_ANELCOEFFMPY(a,DIMS(grid),domlo,domhi,ng,rho0,nr,bogus_value,mult)
+c 
+c     multiply A by the anelastic coefficient
+c
+c 
+c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
+c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
+c
+      integer    ng,nr
+      integer    DIMDEC(grid)
+      integer    domlo(2), domhi(2)
+      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
+     $             ARG_L2(grid)-ng:ARG_H2(grid)+ng)
+      REAL_T     rho0(ARG_L2(grid)-nr:ARG_H2(grid)+nr)
+      REAL_T     bogus_value
+      integer    mult
+
+      integer i, j
+
+      if (mult .eq. 1) then
+         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
+         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
+           a(i,j) = a(i,j) * rho0(j)
+         end do
+         end do
+      else if (mult .eq. 0) then
+         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
+         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
+           a(i,j) = a(i,j) / rho0(j)
+         end do
+         end do
+      else 
+         print *,'BOGUS MULT IN ANELCOEFFMULT ',mult
+         stop
+      end if
+
+      if (ARG_L2(grid)-ng .lt. domlo(2)) then
+         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
+         do j = ARG_L2(grid)-ng, domlo(2)-1
+           a(i,j) = bogus_value
+         end do
+         end do
+      end if
+
+      if (ARG_H2(grid)+ng .gt. domhi(2)) then
+         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
+         do j = domhi(2)+1, ARG_H2(grid)+ng
            a(i,j) = bogus_value
          end do
          end do

@@ -2,7 +2,7 @@
 #define _PROJECTION_F_H_ 
 
 /*
-** $Id: PROJECTION_F.H,v 1.17 2002-04-26 22:10:02 lijewski Exp $
+** $Id: PROJECTION_F.H,v 1.18 2004-09-08 20:58:54 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -12,6 +12,7 @@
 #    define FORT_PROJ_UPDATE   projupdate
 #    define FORT_RADMPY        radmpy
 #    define FORT_RADDIV        raddiv
+#    define FORT_ANELCOEFFMPY  anelcoeffmpy
 #    define FORT_HGC2N         hgc2n
 #    define FORT_HGN2C         hgn2c
 #    define FORT_FILTRHS       filtrhs
@@ -23,6 +24,7 @@
 #    define FORT_PROJ_UPDATE   PROJUPDATE
 #    define FORT_RADMPY        RADMPY
 #    define FORT_RADDIV        RADDIV
+#    define FORT_ANELCOEFFMPY  ANELCOEFFMPY
 #    define FORT_HGC2N         HGC2N
 #    define FORT_HGN2C         HGN2C
 #    define FORT_FILTRHS       FILTRHS
@@ -33,6 +35,7 @@
 #    define FORT_PROJ_UPDATE   projupdate
 #    define FORT_RADMPY        radmpy
 #    define FORT_RADDIV        raddiv
+#    define FORT_ANELCOEFFMPY  anelcoeffmpy
 #    define FORT_HGC2N         hgc2n
 #    define FORT_HGN2C         hgn2c
 #    define FORT_FILTRHS       filtrhs
@@ -43,6 +46,7 @@
 #    define FORT_PROJ_UPDATE   projupdate_
 #    define FORT_RADMPY        radmpy_
 #    define FORT_RADDIV        raddiv_
+#    define FORT_ANELCOEFFMPY  anelcoeffmpy_
 #    define FORT_HGC2N         hgc2n_
 #    define FORT_HGN2C         hgn2c_
 #    define FORT_FILTRHS       filtrhs_
@@ -89,6 +93,12 @@ extern "C" {
                       const int* nghost,
                       const Real* radius, const int* nrad,
                       const Real* bogus_value);
+
+    void FORT_ANELCOEFFMPY (Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+                            const int* domlo, const int* domhi,
+                            const int* nghost,
+                            const Real* anelcoeff, const int* nr,
+                            const Real* bogus_value, const int* mult);
     
     void FORT_HGC2N(const int* nghost, 
                     ARLIM_P(dat_lo), ARLIM_P(dat_hi),

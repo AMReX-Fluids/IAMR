@@ -3,7 +3,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.42 2004-02-20 18:10:28 lijewski Exp $
+// $Id: Projection.H,v 1.43 2004-09-08 20:58:54 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -38,6 +38,9 @@ public:
     void install_level (int                   level,
                         AmrLevel*             level_data,
                         Array< Array<Real> >* radius);
+
+    void install_anelastic_coefficient (int                        level,
+                                        Real                **anel_coeff);
     //
     // Reset finest_level.
     //
@@ -173,6 +176,16 @@ public:
     void radDiv (int       level,
                  MultiFab& mf,
                  int       comp);
+
+    //
+    // Multiply/divide a MultiFab by anel_coeff.
+    //
+    void AnelCoeffMult (int       level,
+                        MultiFab& mf,
+                        int       comp);
+    void AnelCoeffDiv (int       level,
+                       MultiFab& mf,
+                       int       comp);
     //
     // Put divu in the rhs of the projector.
     //
@@ -271,7 +284,8 @@ protected:
     //
     // This function scales variables at the start of a projection.
     //
-    void scaleVar (MultiFab*       sig,
+    void scaleVar (int             which_call,
+                   MultiFab*       sig,
                    int             sig_nghosts,
                    MultiFab*       vel,
                    const BoxArray& grids,
@@ -279,7 +293,8 @@ protected:
     //
     // This function rescales variables at the end of a projection.
     //
-    void rescaleVar (MultiFab*       sig,
+    void rescaleVar (int             which_call,
+                     MultiFab*       sig,
                      int             sig_nghosts,
                      MultiFab*       vel,
                      const BoxArray& grids,
@@ -338,6 +353,10 @@ protected:
     //
     int                            radius_grow;
     PArray< Array< Array<Real> > > radius;
+    //
+    // Anelastic coefficient array.
+    //
+    Array<Real**> anel_coeff;
     //
     // The aliasLib level projector.
     //
