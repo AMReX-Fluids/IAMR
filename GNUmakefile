@@ -53,7 +53,7 @@ include ../mk/Make.defs
 
 CPPFLAGS += -DBL_USE_NEW_HFILES
 
-INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib ../bndrylib ../hgproj$(WHICH_HG)
+INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib ../bndrylib ../mglib ../hgproj$(WHICH_HG)
 
 ifeq ($(USE_BSP), TRUE)
 DEFINES += -DBL_USE_BSP
@@ -171,8 +171,8 @@ include $(HERE)/Make.package
 
 FOPTF = -fast
 
-vpath %.cpp : . ../pBoxLib_2 ../amrlib ../bndrylib ../hgproj$(WHICH_HG)
-vpath %.F   : . ../amrlib ../bndrylib ../hgproj$(WHICH_HG)
+vpath %.cpp : . ../pBoxLib_2 ../amrlib ../bndrylib ../mglib ../hgproj$(WHICH_HG)
+vpath %.F   : . ../amrlib ../bndrylib ../mglib ../hgproj$(WHICH_HG)
 
 all: $(executable)
 
