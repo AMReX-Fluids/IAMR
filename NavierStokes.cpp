@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.30 1998-03-24 21:46:09 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.31 1998-03-25 22:40:35 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3093,135 +3093,104 @@ void NavierStokes::errorEst(TagBoxArray &tags, int clearval, int tagval,
 // ---------------------------------------------------------------
 Real NavierStokes::sumDerive(const aString& name, Real time)
 {
-if(ParallelDescriptor::NProcs() > 1) {
-    ParallelDescriptor::Abort("NavierStokes::sumDerive(...) not implemented in parallel.");
-} else {
-    cerr << "NavierStokes::sumDerive(...) not implemented in parallel.\n";
-}
-    Real sum = 0.0;
+    Real sum         = 0.0;
     int finest_level = parent->finestLevel();
-    int i;
-    for (i = 0; i < grids.length(); i++) {
-        FArrayBox* stuff = derive(grids[i],name,time);
-        if (level < finest_level) {
+    MultiFab* mf     = derive(name,time,0);
+
+    assert(!(mf == 0));
+
+    for (MultiFabIterator mfi(*mf); mfi.isValid(); ++mfi)
+    {
+        FArrayBox& fab = mfi();
+
+        if (level < finest_level)
+        {
             const BoxArray& f_box = parent->boxArray(level+1);
-            for (int j = 0; j < f_box.length(); j++) {
+
+            for (int j = 0; j < f_box.length(); j++)
+            {
                 Box c_box = coarsen(f_box[j],fine_ratio);
-                c_box &= grids[i];
-                if (c_box.ok()) stuff->setVal(0.0,c_box,0);
+                c_box &= grids[mfi.index()];
+                if (c_box.ok())
+                    fab.setVal(0.0,c_box,0);
             }
         }
-        sum += stuff->sum(0);
-        delete stuff;
+
+        sum += fab.sum(0);
     }
+
+    delete mf;
+
     ParallelDescriptor::ReduceRealSum(sum);
+
     return sum;
 }
 
 // ---------------------------------------------------------------
 Real  NavierStokes::volWgtSum(const aString& name, Real time)
 {
-/*  original code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-    Real sum = 0.0;
+    Real sum         = 0.0;
     int finest_level = parent->finestLevel();
-    int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
-    const Real* dx = geom.CellSize();
-    int i;
-    for (i = 0; i < grids.length(); i++) {
-        FArrayBox* stuff = derive(grids[i],name,time);
-        if (level < finest_level) {
-            const BoxArray& f_box = parent->boxArray(level+1);
-            for (int j = 0; j < f_box.length(); j++) {
-                Box c_box = coarsen(f_box[j],fine_ratio);
-                c_box &= grids[i];
-                if (c_box.ok()) stuff->setVal(0.0,c_box,0);
-            }
-        }
-        Real s;
-        const Real* dat = stuff->dataPtr();
-        const int* dlo = stuff->loVect();
-        const int* dhi = stuff->hiVect();
-        const int* lo = grids[i].loVect();
-        const int* hi = grids[i].hiVect();
-        int nz = hi[1]-lo[1]+1;
-        Real *tmp = new Real[nz];
+    int rz_flag      = CoordSys::IsRZ() ? 1 : 0;
+    const Real* dx   = geom.CellSize();
+    MultiFab* mf     = derive(name,time,0);
 
-#if (BL_SPACEDIM == 2)
-        int irlo = lo[0]-radius_grow;
-        int irhi = hi[0]+radius_grow;
-        Real *rad = &radius[i];
-        FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
-                     dx,&s,rad,&irlo,&irhi,&rz_flag,tmp);
-#endif
-#if (BL_SPACEDIM == 3)
-        FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),dx,&s,tmp);
-#endif
-        sum += s;
-        delete stuff;
-        delete tmp;
-    }
-    return sum;
-*/
+    assert(!(mf == 0));
 
-
-    int stateIndex, srcComp;
-    if(isStateVariable(name,stateIndex,srcComp)) {
-      // do nothing
-    } else {
-      ParallelDescriptor::Abort("Error in NS::volWgtSum:  bad variable.");
-    }
-    int boxGrow = 0;
-    int destComp = 0;
-    int nComp = 1;
-    MultiFab &dataMF = get_data(stateIndex, time);
-
-    Real sum = 0.0;
-    int finest_level = parent->finestLevel();
-    int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
-    const Real *dx = geom.CellSize();
-    //for(int i = 0; i < grids.length(); i++)
-    for(FillPatchIterator fpi(*this, dataMF, boxGrow, destComp, time,
-                              stateIndex, srcComp, nComp); fpi.isValid(); ++fpi)
+    for (MultiFabIterator mfi(*mf); mfi.isValid(); ++mfi)
     {
-      int i = fpi.index();
-      assert(grids[i] == fpi.validbox());
-        FArrayBox &derivedFabTemp = fpi();
-        FArrayBox *derivedFab = new FArrayBox(grids[i], nComp);
-        derivedFab->copy(derivedFabTemp);
-        if(level < finest_level) {
+        FArrayBox& fab = mfi();
+
+        if (level < finest_level)
+        {
             const BoxArray& f_box = parent->boxArray(level+1);
-            for(int j = 0; j < f_box.length(); j++) {
+
+            for (int j = 0; j < f_box.length(); j++)
+            {
                 Box c_box = coarsen(f_box[j],fine_ratio);
-                c_box &= grids[i];
-                if(c_box.ok()) {
-                  derivedFab->setVal(0.0,c_box,0);
-                }
+                c_box &= grids[mfi.index()];
+                if (c_box.ok())
+                    fab.setVal(0.0,c_box,0);
             }
         }
         Real s;
-        const Real* dat = derivedFab->dataPtr();
-        const int* dlo = derivedFab->loVect();
-        const int* dhi = derivedFab->hiVect();
-        const int* lo = grids[i].loVect();
-        const int* hi = grids[i].hiVect();
-        int nz = hi[1]-lo[1]+1;
-        Real *tmp = new Real[nz];
+        const Real* dat = fab.dataPtr();
+        const int* dlo  = fab.loVect();
+        const int* dhi  = fab.hiVect();
+        const int* lo   = grids[mfi.index()].loVect();
+        const int* hi   = grids[mfi.index()].hiVect();
+        Real* rad       = &radius[mfi.index()];
+
+        Array<Real> tmp(hi[1]-lo[1]+1);
 
 #if (BL_SPACEDIM == 2)
-        int irlo = lo[0]-radius_grow;
-        int irhi = hi[0]+radius_grow;
-        Real *rad = &radius[i];
+        int irlo  = lo[0]-radius_grow;
+        int irhi  = hi[0]+radius_grow;
+        Real* rad = &radius[i];
+        //
+        // Note that this routine will do a volume weighted sum of
+        // whatever quantity is passed in, not strictly the "mass".
+        //
         FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
-                     dx,&s,rad,&irlo,&irhi,&rz_flag,tmp);
+                     dx,&s,rad,&irlo,&irhi,&rz_flag,tmp.dataPtr());
 #endif
+
 #if (BL_SPACEDIM == 3)
-        FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),dx,&s,tmp);
+        //
+        // Note that this routine will do a volume weighted sum of
+        // whatever quantity is passed in, not strictly the "mass".
+        //
+        FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+                     dx,&s,tmp.dataPtr());
 #endif
+
         sum += s;
-        delete derivedFab;
-        delete tmp;
     }
+
+    delete mf;
+
     ParallelDescriptor::ReduceRealSum(sum);
+
     return sum;
 }
 
