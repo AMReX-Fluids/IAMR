@@ -2,13 +2,13 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.7 1999-08-25 18:04:04 propp Exp $
+** $Id: GODUNOV_F.H,v 1.8 1999-08-25 21:09:12 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
 #    define FORT_TEST_U_RHO         testurho
 #    define FORT_TEST_UMAC_RHO      testumacrho
-#    define FORT_ESTDT              estdt
+#    define FORT_ESTDT              estmdt
 #    define FORT_TRANSVEL           transvel
 #    define FORT_ESTATE             estate
 #    define FORT_ADV_FORCING        advforcing
@@ -29,7 +29,7 @@
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_TEST_U_RHO         TESTURHO 
 #    define FORT_TEST_UMAC_RHO      TESTUMACRHO
-#    define FORT_ESTDT              ESTDT 
+#    define FORT_ESTDT              ESTMDT 
 #    define FORT_TRANSVEL           TRANSVEL  
 #    define FORT_ESTATE             ESTATE    
 #    define FORT_ADV_FORCING        ADVFORCING    
@@ -47,7 +47,7 @@
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_TEST_U_RHO         testurho
 #    define FORT_TEST_UMAC_RHO      testumacrho
-#    define FORT_ESTDT              estdt
+#    define FORT_ESTDT              estmdt
 #    define FORT_TRANSVEL           transvel
 #    define FORT_ESTATE             estate
 #    define FORT_ADV_FORCING        advforcing
@@ -65,7 +65,7 @@
 #  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_TEST_U_RHO         testurho_
 #    define FORT_TEST_UMAC_RHO      testumacrho_
-#    define FORT_ESTDT              estdt_
+#    define FORT_ESTDT              estmdt_
 #    define FORT_TRANSVEL           transvel_
 #    define FORT_ESTATE             estate_
 #    define FORT_ADV_FORCING        advforcing_
