@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.11 1999-05-25 03:17:42 car Exp $
+c $Id: DERIVE_3D.F,v 1.12 1999-05-27 19:16:37 sstanley Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1083,3 +1083,42 @@ c
      &     lo,hi,2,delta(3))
 
       end
+
+
+      subroutine FORT_DERAVGPRES (avgpres,DIMS(gp),nv,dat,DIMS(dat),ncomp,
+     &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                            bc,level,grid_no)
+c
+c     This routine computes cell-centered pressure as average of the eight
+c       surrounding nodal values.
+c
+      integer DIMDEC(gp)
+      integer DIMDEC(dat)
+      REAL_T  avgpres(DIMV(gp))
+      REAL_T  dat(DIMV(dat))
+      integer nv, ncomp
+      integer lo(SDIM), hi(SDIM)
+      integer domlo(SDIM), domhi(SDIM)
+      REAL_T  delta(SDIM)
+      REAL_T  xlo(SDIM)
+      REAL_T  time, dt
+      integer bc(SDIM,2,ncomp)
+      integer level
+      integer grid_no
+
+      integer i,j,k
+
+      do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+            avgpres(i,j,k) = eighth*( 
+     $                     dat(i+1,j,k)     + dat(i,j,k) 
+     $                   + dat(i+1,j+1,k)   + dat(i,j+1,k)
+     $                   + dat(i+1,j,k+1)   + dat(i,j,k+1) 
+     $                   + dat(i+1,j+1,k+1) + dat(i,j+1,k+1) )
+          end do
+        end do
+      end do
+
+      end
+

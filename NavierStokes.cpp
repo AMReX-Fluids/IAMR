@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.135 1999-05-26 00:57:13 marc Exp $
+// $Id: NavierStokes.cpp,v 1.136 1999-05-27 19:16:38 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2348,31 +2348,71 @@ NavierStokes::volWgtSum (const aString& name,
 int
 NavierStokes::additionalStateDataItemsCount () const
 {
-    return 0;
+    int icount = 0;
+    const List<DeriveRec>& dlist = derive_lst.dlist();
+    for (ListIterator<DeriveRec> it(dlist); it; ++it)
+        if (parent->isDerivePlotVar(it().name()))
+           icount++;
+
+    return icount;
 }
 
 Array<aString>
 NavierStokes::additionalStateDataItemsNames () const
 {
-    Array<aString> dummy;
+    Array<aString> names(additionalStateDataItemsCount());
 
-    return dummy;
+    int icount = 0;
+    const List<DeriveRec>& dlist = derive_lst.dlist();
+    for (ListIterator<DeriveRec> it(dlist); it; ++it)
+        if (parent->isDerivePlotVar(it().name()))
+            names[icount++] = it().name();
+
+    return names;
 }
 
 Array<const MultiFab*>
-NavierStokes::additionalStateDataItems () const
+NavierStokes::additionalStateDataItems ()
 {
-    Array<const MultiFab*> dummy;
+    Array<const MultiFab*> mfs;
 
-    return dummy;
+    const List<DeriveRec>& dlist = derive_lst.dlist();
+
+    derive_mfs.resize(dlist.length(),PArrayManage);
+
+    const Real cur_time = state[State_Type].curTime();
+    const int nGrow = 0;
+    int cnt = 0;
+    for (ListIterator<DeriveRec> it(dlist); it; ++it, ++cnt)
+    {
+        if (parent->isDerivePlotVar(it().name()))
+        {
+            derive_mfs.set(cnt,derive(it().name(),cur_time,nGrow));
+
+            mfs.resize(mfs.length() + 1);
+            mfs[mfs.length()-1] = &(derive_mfs[cnt]);
+        }
+    }
+
+    return mfs;
 }
 
 Array< vector<int> >
 NavierStokes::additionalStateDataItemsMap () const
 {
-    Array< vector<int> > dummy;
+    Array< vector<int> > map;
 
-    return dummy;
+    const List<DeriveRec>& dlist = derive_lst.dlist();
+    for (ListIterator<DeriveRec> it(dlist); it; ++it)
+    {
+        if (parent->isDerivePlotVar(it().name()))
+        {
+            map.resize(map.length() + 1);
+            map[map.length()-1].push_back(0);
+        }
+    }
+
+    return map;
 }
 
 aString
@@ -2616,6 +2656,8 @@ NavierStokes::writePlotFile (const aString& dir,
             MultiFab::Copy(derived_all,*derived_mfs[i],0,derived_count,nComp,nGrow);
             derived_count += nComp;
         }
+
+        derive_mfs.clear();
 
         RunStats::addBytes(VisMF::Write(derived_all,TheFullPath,how,true));
     }

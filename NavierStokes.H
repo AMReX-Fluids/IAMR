@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.40 1999-05-10 18:54:13 car Exp $
+// $Id: NavierStokes.H,v 1.41 1999-05-27 19:16:38 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -164,7 +164,7 @@ public:
     // Pointers to additional StateData MultiFabs derived
     // classes want to write out to plotfiles.
     //
-    virtual Array<const MultiFab*> additionalStateDataItems () const;
+    virtual Array<const MultiFab*> additionalStateDataItems ();
     //
     // For each MultiFab in additionalStateDataItems(), this is a map
     // of those components of the respective MultiFab that should be written.
@@ -636,6 +636,10 @@ protected:
     }
 
 protected:
+    //
+    // Stuff for writing derived quantities in a plot file
+    //
+    PArray<MultiFab> derive_mfs;
     //
     // Mac edge velocities.
     //
