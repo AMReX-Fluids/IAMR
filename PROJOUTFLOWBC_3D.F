@@ -1384,7 +1384,7 @@ c        node wide in direction of face.
 
         i = ARG_L1(phi)
 
-        do j = ARG_L2(phi),ARG_H2(phi)
+        do j = ARG_L2(phi)+1,ARG_H2(phi)-1
           rhog = zero
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_i   = half * (rho(i  ,j,k) + rho(i  ,j-1,k))
@@ -1408,6 +1408,15 @@ c        node wide in direction of face.
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
           end do
+        else
+          rhog = zero
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = half * (rho(i  ,j,k) + rho(i  ,j-1,k))
+            rho_ip1 = half * (rho(i+1,j,k) + rho(i+1,j-1,k))
+            rhoExt  = half * (three*rho_i - rho_ip1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
         end if
 
         j = ARG_H2(phi)
@@ -1423,13 +1432,22 @@ c        node wide in direction of face.
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
           end do
+        else
+          rhog = zero
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = half * (rho(i  ,j,k) + rho(i  ,j-1,k))
+            rho_ip1 = half * (rho(i+1,j,k) + rho(i+1,j-1,k))
+            rhoExt  = half * (three*rho_i - rho_ip1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
         end if
 
       else if (face .eq. XHI) then
 
         i = ARG_L1(phi)
 
-        do j = ARG_L2(phi),ARG_H2(phi)
+        do j = ARG_L2(phi)+1,ARG_H2(phi)-1
           rhog = zero
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_i   = half * (rho(i-1,j,k) + rho(i-1,j-1,k))
@@ -1453,6 +1471,15 @@ c        node wide in direction of face.
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
           end do
+        else
+          rhog = zero
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = half * (rho(i-1,j,k) + rho(i-1,j-1,k))
+            rho_im1 = half * (rho(i-2,j,k) + rho(i-2,j-1,k))
+            rhoExt  = half * (three*rho_i - rho_im1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
         end if
 
         j = ARG_H2(phi)
@@ -1468,13 +1495,22 @@ c        node wide in direction of face.
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
           end do
+        else
+          rhog = zero
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = half * (rho(i-1,j,k) + rho(i-1,j-1,k))
+            rho_im1 = half * (rho(i-2,j,k) + rho(i-2,j-1,k))
+            rhoExt  = half * (three*rho_i - rho_im1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
         end if
 
       else if (face .eq. YLO) then
 
         j = ARG_L2(phi)
 
-        do i = ARG_L1(phi),ARG_H1(phi)
+        do i = ARG_L1(phi)+1,ARG_H1(phi)-1
           rhog = zero
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_j   = half * (rho(i,j  ,k) + rho(i-1,j  ,k))
@@ -1498,6 +1534,15 @@ c        node wide in direction of face.
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
           end do
+        else
+          rhog = zero
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = half * (rho(i,j  ,k) + rho(i-1,j  ,k))
+            rho_jp1 = half * (rho(i,j+1,k) + rho(i-1,j+1,k))
+            rhoExt  = half * (three*rho_j - rho_jp1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
         end if
 
         i = ARG_H1(phi)
@@ -1513,13 +1558,22 @@ c        node wide in direction of face.
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
           end do
+        else
+          rhog = zero
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = half * (rho(i,j  ,k) + rho(i-1,j  ,k))
+            rho_jp1 = half * (rho(i,j+1,k) + rho(i-1,j+1,k))
+            rhoExt  = half * (three*rho_j - rho_jp1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
         end if
 
       else if (face .eq. YHI) then
 
         j = ARG_L2(phi)
 
-        do i = ARG_L1(phi),ARG_H1(phi)
+        do i = ARG_L1(phi)+1,ARG_H1(phi)-1
           rhog = zero
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_j   = half * (rho(i,j-1,k) + rho(i-1,j-1,k))
@@ -1543,6 +1597,15 @@ c        node wide in direction of face.
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
           end do
+        else
+          rhog = zero
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = half * (rho(i,j-1,k) + rho(i-1,j-1,k))
+            rho_jm1 = half * (rho(i,j-2,k) + rho(i-1,j-2,k))
+            rhoExt  = half * (three*rho_j - rho_jm1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
         end if
 
         i = ARG_H1(phi)
@@ -1554,6 +1617,15 @@ c        node wide in direction of face.
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_j   = rho(i,j-1,k)
             rho_jm1 = rho(i,j-2,k)
+            rhoExt  = half * (three*rho_j - rho_jm1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else
+          rhog = zero
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = half * (rho(i,j-1,k) + rho(i-1,j-1,k))
+            rho_jm1 = half * (rho(i,j-2,k) + rho(i-1,j-2,k))
             rhoExt  = half * (three*rho_j - rho_jm1 )
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
