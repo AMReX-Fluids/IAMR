@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.24 1999-05-19 21:26:31 marc Exp $
+c $Id: PROJECTION_2D.F,v 1.25 1999-06-07 17:30:54 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -304,7 +304,7 @@ c     holy grail projection
         write(6,*)
      &    'FORT_HGN2C : isrz=1 and lrweighted!=1 not yet implemented'
 #ifndef	BL_NO_FORT_FLUSH
-        call flush(6)
+c        call flush(6)
 #endif
         stop
       end if

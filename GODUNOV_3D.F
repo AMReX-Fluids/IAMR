@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.11 1999-04-05 17:57:15 car Exp $
+c $Id: GODUNOV_3D.F,v 1.12 1999-06-07 17:30:09 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -168,7 +168,7 @@ c
          write(6,1002) wmax,wmin,u_max(3)
          write(6,1003) rhomax,rhomin
 #ifndef	BL_NO_FORT_FLUSH
-         call flush(6)
+c         call flush(6)
 #endif
       end if
 
@@ -277,7 +277,7 @@ c
  1003 format('RHO  MAX/MIN      ',e21.14,2x,e21.14)
 
 #ifndef	BL_NO_FORT_FLUSH
-      call flush(6)
+c      call flush(6)
 #endif
 
       end
