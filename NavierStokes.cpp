@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.181 2000-07-21 21:54:32 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.182 2000-07-24 22:39:49 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -360,6 +360,7 @@ NavierStokes::NavierStokes ()
 {
     rho_avg      = 0;
     rho_half     = 0;
+    rho_interp   = 0;
     rho_ptime    = 0;
     rho_ctime    = 0;
     p_avg        = 0;
@@ -404,9 +405,10 @@ NavierStokes::NavierStokes (Amr&            papa,
         p_avg   = new MultiFab(P_grids,1,0);
     }
 
-    rho_half  = new MultiFab(grids,1,1);
-    rho_ptime = new MultiFab(grids,1,1);
-    rho_ctime = new MultiFab(grids,1,1);
+    rho_half   = new MultiFab(grids,1,1);
+    rho_interp = new MultiFab(grids,1,1);
+    rho_ptime  = new MultiFab(grids,1,1);
+    rho_ctime  = new MultiFab(grids,1,1);
     //
     // Build metric coefficients for RZ calculations.
     //
@@ -492,6 +494,7 @@ NavierStokes::~NavierStokes ()
     delete rho_avg;
     delete p_avg;
     delete rho_half;
+    delete rho_interp;
     delete rho_ptime;
     delete rho_ctime;
     delete Vsync;
@@ -682,9 +685,10 @@ NavierStokes::restart (Amr&     papa,
         rho_avg = new MultiFab(grids,1,1);
         p_avg   = new MultiFab(P_grids,1,0);
     }
-    rho_half  = new MultiFab(grids,1,1);
-    rho_ptime = new MultiFab(grids,1,1);
-    rho_ctime = new MultiFab(grids,1,1);
+    rho_half   = new MultiFab(grids,1,1);
+    rho_interp = new MultiFab(grids,1,1);
+    rho_ptime  = new MultiFab(grids,1,1);
+    rho_ctime  = new MultiFab(grids,1,1);
     //
     // Build metric coeficients for RZ calculations.
     //
@@ -1486,8 +1490,6 @@ NavierStokes::get_rho (Real time)
 {
     const TimeLevel whichTime = which_time(State_Type,time);
 
-    BL_ASSERT(!(whichTime == AmrOtherTime));
-
     if (whichTime == AmrOldTime)
     {
         return rho_ptime;
@@ -1496,9 +1498,34 @@ NavierStokes::get_rho (Real time)
     {
         return rho_ctime;
     }
-    else
+    else if (whichTime == AmrHalfTime)
     {
         return get_rho_half_time();
+    }
+    else
+    {
+        //
+        // Interpolate into rho_interp.
+        //
+        const Real T1  = state[State_Type].prevTime();
+        const Real T2  = state[State_Type].curTime();
+        const Real EPS = .001 * (T2 - T1);
+
+        BL_ASSERT(time >= (T1-EPS) && time <= (T2+EPS));
+
+        for (MultiFabIterator dest(*rho_interp); dest.isValid(); ++dest)
+        {
+            DependentMultiFabIterator prev(dest,*rho_ptime);
+            DependentMultiFabIterator curr(dest,*rho_ctime);
+
+            const Box& bx = dest().box();
+
+            BL_ASSERT(bx == prev().box() && bx == curr().box());
+
+            dest().linInterp(prev(),bx,0,curr(),bx,0,T1,T2,time,bx,0,1);
+        }
+
+        return rho_interp;
     }
 }
 
