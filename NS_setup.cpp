@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.32 1999-07-27 17:33:10 marc Exp $
+// $Id: NS_setup.cpp,v 1.33 1999-09-21 16:29:19 sstanley Exp $
 //
 
 #include <NavierStokes.H>
@@ -298,7 +298,7 @@ NavierStokes::variableSetUp ()
     // average pressure
     //
     derive_lst.add("avg_pressure",IndexType::TheCellType(),1,FORT_DERAVGPRES,
-                   cell_to_node);
+                   the_same_box);
     derive_lst.addComponent("avg_pressure",desc_lst,Press_Type,Pressure,1);
     //
     // pressure gradient in X direction
