@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.100 1998-11-23 22:43:34 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.101 1998-12-09 20:25:13 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3226,8 +3226,52 @@ NavierStokes::post_init_press (Real&        dt_init,
 }
 
 //
+// Helper function for NavierStokes::SyncInterp().
+//
+
+static
+void
+set_bc_new (int*            bc_new,
+            int             n,
+            int             src_comp,
+            const int*      clo,
+            const int*      chi,
+            const int*      cdomlo,
+            const int*      cdomhi,
+            const BoxArray& cgrids,
+            int**           bc_orig_qty)
+            
+{
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        int bc_index = (n+src_comp)*(2*BL_SPACEDIM) + dir;
+        bc_new[bc_index]             = INT_DIR;
+        bc_new[bc_index+BL_SPACEDIM] = INT_DIR;
+ 
+        if (clo[dir] < cdomlo[dir] || chi[dir] > cdomhi[dir])
+        {
+            for (int crse = 0; crse < cgrids.length(); crse++)
+            {
+                const int* c_lo = cgrids[crse].loVect();
+                const int* c_hi = cgrids[crse].hiVect();
+
+                if (clo[dir] < cdomlo[dir] && c_lo[dir] == cdomlo[dir])
+                    bc_new[bc_index] = bc_orig_qty[crse][bc_index];
+                if (chi[dir] > cdomhi[dir] && c_hi[dir] == cdomhi[dir])
+                    bc_new[bc_index+BL_SPACEDIM] = bc_orig_qty[crse][bc_index+BL_SPACEDIM]; 
+            }
+        }
+    }
+}
+
+//
 // Interpolate A cell centered Sync correction from a
 // coarse level (c_lev) to a fine level (f_lev).
+//
+// This routine interpolates the num_comp components of CrseSync
+// (starting at src_comp) and either increments or puts the result into
+// the num_comp components of FineSync (starting at dest_comp)
+// The components of bc_orig_qty corespond to the quantities of CrseSync.
 //
 
 void
@@ -3244,117 +3288,89 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
                           int**     bc_orig_qty,
                           int       which_interp)
 {
-    int i,n,dir;
-
-    if (ParallelDescriptor::NProcs() > 1)
-      BoxLib::Abort("NavierStokes::SyncInterp(): not implemented in parallel");
-    //
-    // This routine interpolates the num_comp components of CrseSync
-    // (starting at src_comp) and either increments or puts the result into
-    // the num_comp components of FineSync (starting at dest_comp)
-    // The components of bc_orig_qty corespond to the quantities of CrseSync.
-    //
     assert(which_interp >= 0 && which_interp <= 2);
 
-    Interpolater* interpolater=0;
-    interpolater = (which_interp == 0) ? &cell_cons_interp : interpolater;
-    interpolater = (which_interp == 1) ? &pc_interp : interpolater;
-    interpolater = (which_interp == 2) ? &unlimited_cc_interp : interpolater;
+    Interpolater* interpolater = 0;
 
-    Array<BCRec> bc_interp(num_comp);
-    Array<IntVect> pshifts(27);
+    if (which_interp == 0)
+        interpolater = &cell_cons_interp;
+    else if (which_interp == 1)
+        interpolater = &pc_interp;
+    else if (which_interp == 2)
+        interpolater = &unlimited_cc_interp;
 
-    FArrayBox cdata,fdata;
-    //
-    // Get fine parameters.
-    //
     NavierStokes& fine_level = getLevel(f_lev);
     const BoxArray& fgrids   = fine_level.boxArray();
     const Geometry& fgeom    = parent->Geom(f_lev);
-    int nfine                = fgrids.length();
-    const Box& domain        = fgeom.Domain();
-    //
-    // Get coarse parameters.
-    //
-    NavierStokes& crse_level = getLevel(c_lev);
-    const BoxArray& cgrids   = crse_level.boxArray();
+    const BoxArray& cgrids   = getLevel(c_lev).boxArray();
     const Geometry& cgeom    = parent->Geom(c_lev);
     const Real* dx_crse      = cgeom.CellSize();
+    Box cdomain              = ::coarsen(fgeom.Domain(),ratio);
+    const int* cdomlo        = cdomain.loVect();
+    const int* cdomhi        = cdomain.hiVect();
+    int* bc_new              =  new int[2*BL_SPACEDIM*(src_comp+num_comp)];
 
-    const Box cdomain(coarsen(domain,ratio));
-    const int* cdomlo = cdomain.loVect();
-    const int* cdomhi = cdomain.hiVect();
+    BoxArray cdataBA(fgrids.length());
 
-    int* bc_new =  new int[2*BL_SPACEDIM*(src_comp+num_comp)];
+    for (int i = 0; i < fgrids.length(); i++)
+        cdataBA.set(i,interpolater->CoarseBox(fgrids[i],ratio));
     //
-    // Loop over fine grids.
+    // Note: The boxes in cdataBA may NOT be disjoint !!!
     //
-    for (i = 0; i < nfine; i++)
+    MultiFab cdataMF(cdataBA, num_comp, 0);
+
+    cdataMF.setVal(0);
+
+    cdataMF.copy(CrseSync, src_comp, 0, num_comp);
+    //
+    // Set physical boundary conditions in cdataMF.
+    //
+    for (MultiFabIterator mfi(cdataMF); mfi.isValid(); ++mfi)
     {
-        //
-        // Create storage for interpolation.
-        //
-        const Box& grd = fgrids[i];
-        Box cgrd = interpolater->CoarseBox(grd,ratio);
+        int i            = mfi.index();
+        const Box& grd   = fgrids[i];
+        FArrayBox& cdata = mfi();
+        const Box& cgrd  = cdata.box();
+        const int* clo   = cdata.loVect();
+        const int* chi   = cdata.hiVect();
+        const Real* xlo  = fine_level.grid_loc[i].lo();
 
-        fdata.resize(grd,num_comp);
-        cdata.resize(cgrd,num_comp);
-        cdata.setVal(0);
-        CrseSync.copy(cdata,src_comp,0,num_comp);
-
-        const int* clo  = cdata.loVect();
-        const int* chi  = cdata.hiVect();
-        const Real* xlo = fine_level.grid_loc[i].lo();
-
-        for (n = 0; n < num_comp; n++)
+        for (int n = 0; n < num_comp; n++)
         {
-            for (dir = 0; dir < BL_SPACEDIM; dir++)
-            {
-                int bc_index = (n+src_comp)*(2*BL_SPACEDIM) + dir;
-                bc_new[bc_index]             = INT_DIR;
-                bc_new[bc_index+BL_SPACEDIM] = INT_DIR;
- 
-                if (clo[dir] < cdomlo[dir] || chi[dir] > cdomhi[dir])
-                {
-                    for (int crse = 0; crse < cgrids.length(); crse++)
-                    {
-                        const int* crse_lo = cgrids[crse].loVect();
-                        const int* crse_hi = cgrids[crse].hiVect();
+            set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
 
-                        if (clo[dir] < cdomlo[dir] &&
-                            crse_lo[dir] == cdomlo[dir])
-                        {
-                            bc_new[bc_index] = bc_orig_qty[crse][bc_index];
-                        }
-                        if (chi[dir] > cdomhi[dir] &&
-                            crse_hi[dir] == cdomhi[dir]) {
-                            bc_new[bc_index+BL_SPACEDIM] = bc_orig_qty[crse][bc_index+BL_SPACEDIM]; 
-                        }
-                    }
-                }
-            }
             FORT_FILCC(cdata.dataPtr(n), ARLIM(clo), ARLIM(chi),
                        cdomlo, cdomhi, dx_crse, xlo,
                        &(bc_new[2*BL_SPACEDIM*(n+src_comp)]));
         }
-        //
-        // Fill in periodic images.
-        //
-        if (cgeom.isAnyPeriodic())
-        {
-            cgeom.periodicShift(cgeom.Domain(), cgrd, pshifts);
+    }
+    cgeom.FillPeriodicBoundary(cdataMF, 0, num_comp, false, false);
+    //
+    // Interpolate from cdataMF to fdata and update FineSync.
+    // Note that FineSync and cdataMF will have the same distribution
+    // since the length of their BoxArrays are equal.
+    //
+    FArrayBox fdata;
 
-            for (int iiv = 0; iiv < pshifts.length(); iiv++)
-            {
-                cdata.shift(pshifts[iiv]);
-                CrseSync.copy(cdata,src_comp,0,num_comp);
-                cdata.shift(-pshifts[iiv]);
-            }
-        }
+    Array<BCRec> bc_interp(num_comp);
+
+    for (MultiFabIterator mfi(cdataMF); mfi.isValid(); ++mfi)
+    {
+        int i            = mfi.index();
+        FArrayBox& cdata = mfi();
+        const int* clo   = cdata.loVect();
+        const int* chi   = cdata.hiVect();
+
+        fdata.resize(fgrids[i], num_comp);
         //
         // Set the boundary condition array for interpolation.
         //
-        for (n = 0; n < num_comp; n++)
+        for (int n = 0; n < num_comp; n++)
+        {
+            set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
+        }
+
+        for (int n = 0; n < num_comp; n++)
         {
             for (int dir = 0; dir < BL_SPACEDIM; dir++)
             {
@@ -3363,23 +3379,14 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
                 bc_interp[n].setHi(dir,bc_new[bc_index+BL_SPACEDIM]);
             }
         }
-        //
-        // Scale coarse interpolant for anelastic.
-        //
+
         ScaleCrseSyncInterp(cdata, c_lev, num_comp);
-        //
-        // Compute the interpolated correction.
-        //
-        interpolater->interp(cdata,0,
-                             fdata,0,num_comp,grd,ratio,
+
+        interpolater->interp(cdata,0,fdata,0,num_comp,fgrids[i],ratio,
                              cgeom,fgeom,bc_interp);
-        //
-        // Rescale Fine interpolant for anelastic.
-        //
+
         reScaleFineSyncInterp(fdata, f_lev, num_comp);
-        //
-        // Set Fine Sync equal to the correction or add it in.
-        //
+
         if (increment)
         {
             fdata.mult(dt_clev);
@@ -3403,60 +3410,42 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
                               int       c_lev,
                               MultiFab& P_new,
                               int       f_lev,
-                              IntVect&  ratio )
+                              IntVect&  ratio)
 {
-    if (ParallelDescriptor::NProcs() > 1)
-        BoxLib::Abort("NavierStokes::SyncProjInterp(): not implemented in parallel");
-    //
-    // Because of phi.copy(crse_phi) within multifab loop below ...
-    //
-    // Get fine parameters.
-    //
-    NavierStokes& fine_level = getLevel(f_lev);
-    const BoxArray& fgrids   = fine_level.boxArray();
-    const Geometry& fgeom    = parent->Geom(f_lev);
-    const BoxArray& P_grids  = P_new.boxArray();
-    const int nfine          = fgrids.length();
-    //
-    // Get coarse parameters.
-    //
-    NavierStokes& crse_level = getLevel(c_lev);
-    const Geometry& cgeom    = parent->Geom(c_lev);
+    const Geometry& fgeom   = parent->Geom(f_lev);
+    const BoxArray& P_grids = P_new.boxArray();
+    const Geometry& cgeom   = parent->Geom(c_lev);
 
-    int i;
-    FArrayBox fine_phi, crse_phi;
+    BoxArray crse_ba(P_grids.length());
+
+    for (int i = 0; i < P_grids.length(); i++)
+        crse_ba.set(i,node_bilinear_interp.CoarseBox(P_grids[i],ratio));
+
+    MultiFab crse_phi(crse_ba,1,0);
+
+    crse_phi.setVal(1.e30);
+
+    crse_phi.copy(phi,0,0,1);
+
+    FArrayBox fine_phi;
+
     Array<BCRec> bc(BL_SPACEDIM);
-    //
-    // Loop over the fine grids.
-    //
-    for (i = 0; i < nfine; i++)
+
+    for (MultiFabIterator mfi(crse_phi); mfi.isValid(); ++mfi)
     {
-        //
-        // Get space for bi/trilinear interpolation.
-        //
-        const Box& fbox = P_grids[i];
-        const Box  cbox(node_bilinear_interp.CoarseBox(fbox,ratio));
-        fine_phi.resize(fbox,1);
-        crse_phi.resize(cbox,1);
+        fine_phi.resize(P_grids[mfi.index()],1);
+
         fine_phi.setVal(1.e30);
-        crse_phi.setVal(1.e30);
-        phi.copy(crse_phi);
-        //
-        // Compute the interpolated pressure sync correction.
-        //
-        node_bilinear_interp.interp(crse_phi,0,
-                                    fine_phi,0,1,
-                                    fbox,ratio,cgeom,fgeom,bc);
-        //
-        // Add the fine corrections to the state.
-        //
-        P_new[i].plus(fine_phi);
+
+        node_bilinear_interp.interp(mfi(),0,fine_phi,0,1,
+                                    fine_phi.box(),ratio,cgeom,fgeom,bc);
+
+        P_new[mfi.index()].plus(fine_phi);
     }
 }
 
 //
-// This function averages a multifab of fine data down onto
-// a multifab of coarse data.
+// Averages a multifab of fine data down onto a multifab of coarse data.
 //
 // This should be an Amrlevel or Multifab function
 //
