@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.33 2003-02-18 21:39:56 almgren Exp $
+// $Id: Godunov.cpp,v 1.34 2003-02-19 21:43:52 almgren Exp $
 //
 
 //
@@ -639,6 +639,7 @@ Godunov::edge_states_bds (const Box&  grd,
 
     if (velpred == 1) BoxLib::Error("Call to ESTATE_BDS only valid for velpred = 0");
       
+#if (BL_SPACEDIM == 2)
     FORT_ESTATE_BDS(s_dat, tfr_dat, divu_dat, ARLIM(s_lo), ARLIM(s_hi),
                     
                     xlo_dat, xhi_dat, slx_dat,
@@ -659,6 +660,7 @@ Godunov::edge_states_bds (const Box&  grd,
                     ARLIM(ww_lo), ARLIM(ww_hi),
                     bc, lo, hi, &dt, dx, &fort_ind,
                     &use_forces_in_trans, &iconserv);
+#endif
 }
 
 //
