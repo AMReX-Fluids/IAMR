@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.86 1998-07-29 19:07:42 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.87 1998-09-09 23:37:54 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -4349,13 +4349,6 @@ NavierStokes::getState (int  ngrow,
 //
 // Fills ghost cells of state:
 //
-// For finer levels, the ghost cells that are interior to the
-// problem domain, but exterior to the valid region of the state
-// at that level are not properly filled by either a multifab
-// FillBoundary() or a setPhysBoundaryValues(). This routine takes care of
-// those cells. It is not particularly efficient, but probably not too
-// inefficient either -- rbp.
-//
 
 void
 NavierStokes::FillStateBndry (Real time,
@@ -4368,36 +4361,25 @@ NavierStokes::FillStateBndry (Real time,
     if (S.nGrow() == 0)
         return;
 
-    for (int istate = src_comp; istate < src_comp+num_comp; istate++)
+    FillPatchIterator fpi(*this,S,S.nGrow(),time,state_idx,src_comp,num_comp);
+
+    for ( ; fpi.isValid(); ++fpi)
     {
-        FillPatchIterator fpi(*this,S,S.nGrow(),time,state_idx,istate,1);
+        //
+        // Fill all ghost cells interior & exterior to valid region.
+        //
+        BoxList boxes = ::boxDiff(fpi().box(),grids[fpi.index()]);
 
-        for ( ; fpi.isValid(); ++fpi)
+        for (BoxListIterator bli(boxes); bli; ++bli)
         {
-            //
-            // Fill all ghost cells interior & exterior to valid region.
-            //
-            BoxList boxes = ::boxDiff(fpi().box(),grids[fpi.index()]);
-
-            for (BoxListIterator bli(boxes); bli; ++bli)
-            {
-                S[fpi.index()].copy(fpi(),
-                                    bli(),
-                                    0,
-                                    bli(),
-                                    istate,
-                                    1);
-            }
+            S[fpi.index()].copy(fpi(),
+                                bli(),
+                                0,
+                                bli(),
+                                src_comp,
+                                num_comp);
         }
     }
-    //
-    // Touch up ghost cells interior to valid region.
-    //
-    S.FillBoundary();
-    //
-    // Now do ones on the physical boundary.
-    //
-    setPhysBoundaryValues(state_idx,src_comp,num_comp,time);
 }
 
 //
