@@ -1489,8 +1489,8 @@ const Box &FillPatchIterator::UngrownBox() const {
 
 // -------------------------------------------------------------
 void
-AmrLevel::FillCoarsePatch(FARRAYBOX &dest,
-		          int dest_comp, REAL time,
+AmrLevel::FillCoarsePatch(FArrayBox &dest,
+		          int dest_comp, Real time,
 		          int state_indx, int src_comp, int ncomp,
 		          Interpolater *mapper)
 {
@@ -1505,7 +1505,7 @@ AmrLevel::FillCoarsePatch(FARRAYBOX &dest,
       cerr << "FillCoarsePatch not implemented in parallel.\n";
     }
 
-    BOX dbox(dest.box());
+    Box dbox(dest.box());
 
     int nv = dest.nComp();
     int ndesc = desc_lst.length();
@@ -1517,9 +1517,9 @@ AmrLevel::FillCoarsePatch(FARRAYBOX &dest,
     assert( desc.inRange(src_comp, ncomp) );
     assert( ncomp <= (nv-dest_comp) );
 
-    const REALBOX& prob_domain = geom.ProbDomain();
+    const REALBOX &prob_domain = geom.ProbDomain();
 
-    const BOX& p_domain = state[state_indx].getDomain();
+    const Box &p_domain = state[state_indx].getDomain();
 
    // does grid intersect domain exterior?
     int inside = p_domain.contains(dbox);
@@ -1531,10 +1531,10 @@ AmrLevel::FillCoarsePatch(FARRAYBOX &dest,
     if (map == 0) map = desc.interp();
 
       // coarsen unfilled region and widen by interpolater stencil width
-    BOX crse_reg(map->CoarseBox(dbox,crse_ratio));
+    Box crse_reg(map->CoarseBox(dbox,crse_ratio));
 
       // alloc patch for crse level
-    FARRAYBOX crse(crse_reg,ncomp);
+    FArrayBox crse(crse_reg,ncomp);
 
       // fill patch at lower level
     AmrLevel &crse_lev = parent->getLevel(level-1);
@@ -1769,8 +1769,7 @@ AmrLevel::FillDerive(FARRAYBOX &dest, const BOX& subbox,
 	    FARRAYBOX src(sbox,n_state);
 	    int dc = 0;
 	    int state_indx, sc, nc;
-            int k;
-	    for (k = 0; k < nsr; k++) {
+	    for(int k = 0; k < nsr; k++) {
 		d->getRange(k,state_indx,sc,nc);
 		const BOX& sg = state[state_indx].boxArray()[i];
 		if (sg.contains(sbox)) {

@@ -418,13 +418,15 @@ return;
    // dont use FabArrayIterator here
    for(int idest = 0; idest < fabparray.length(); ++idest) {
       bool destLocal = (distributionMap[idest] == myproc);
-      for(int isrc = idest + 1; isrc < fabparray.length(); ++isrc) {
+      if(destLocal) {
 	 if(boxarray[idest] != fabparray[idest].box()) {
 	   cerr << "boxarray[idest] != fabparray[idest].box()\n";
 	   cerr << "boxarray[" << idest << "] = " << boxarray[idest] << '\n';
 	   cerr << "fabparray[" << idest << "].box() = "
                 << fabparray[idest].box() << "\n\n";
 	 }
+      }
+      for(int isrc = idest + 1; isrc < fabparray.length(); ++isrc) {
 	 //assert(boxarray[idest] == fabparray[idest].box());
          Box ovlp(boxarray[idest]);
          ovlp &= boxarray[isrc];

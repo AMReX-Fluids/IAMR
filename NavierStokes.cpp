@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.14 1997-09-24 19:47:08 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.15 1997-09-25 00:15:07 vince Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1737,7 +1737,7 @@ REAL NavierStokes::predict_velocity( REAL dt, REAL &comp_cfl )
     }
     return dt*tempdt;
     //return dt*Min(change_max,cfl/cflmax);
-}
+}  // end predict_velocity()
 
 
 // test for periodic umac on a single level 0 grid
@@ -2943,6 +2943,8 @@ void NavierStokes::initial_velocity_diffusion_update(REAL dt)
 void NavierStokes::errorEst(TagBoxArray &tags, int clearval, int tagval,
                             REAL time)
 {
+/*
+//  original code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     const BOX& domain = geom.Domain();
     const int* domain_lo = domain.loVect();
     const int* domain_hi = domain.hiVect();
@@ -2987,7 +2989,73 @@ void NavierStokes::errorEst(TagBoxArray &tags, int clearval, int tagval,
 	    delete dfab;
 	}
     }
-}
+*/
+
+
+    const Box &domain = geom.Domain();
+    const int *domain_lo = domain.loVect();
+    const int *domain_hi = domain.hiVect();
+    const Real *dx = geom.CellSize();
+    const Real *prob_lo = geom.ProbLo();
+
+    // loop over error estimation quantities, derive quantity
+    // then call user supplied error tagging function
+    for(int j = 0; j < err_list.length(); j++) {
+      const ErrorRec *err = err_list[j];
+      int ngrow = err->nGrow();
+      int state_index, src_comp;
+      if( ! isStateVariable(err->name(),state_index, src_comp)) {
+        cerr << "Error in NavierStokes::errorEst:  " << err->name() << " is not"
+	     << " a state variable:  fix for parallel." << endl;
+        ParallelDescriptor::Abort("Exiting.");
+      }
+
+      //MultiFab &dataMF = get_data(state_index, time);
+      MultiFab &dataMF = get_new_data(state_index);
+
+      int destComp = 0;
+      int nComp = 1;
+
+      for(FillPatchIterator fpi(*this, dataMF, ngrow, destComp, time,
+				state_index, src_comp, nComp);
+	  fpi.isValid();
+	  ++fpi)
+
+      {
+        int i = fpi.index();
+        //DependentFabArrayIterator<int, TAGBOX> tagsfai(fpi, tags);
+        //TAGBOX &tn = tagsfai();
+	//assert(tags[i] != NULL);
+        TAGBOX &tn = tags[i];
+
+        int *tptr = tn.dataPtr();
+        const Box &tbox = tn.box();
+        const int *tlo = tbox.loVect();
+        const int *thi = tbox.hiVect();
+
+        const int *lo = grids[i].loVect();
+        const int *hi = grids[i].hiVect();
+        const Real *xlo = grid_loc[i].lo();
+
+        //Box bx(grow(grids[i],ngrow));
+        //FArrayBox *dfab = derive(bx,err->name(),time);
+        FArrayBox &dfab = fpi();
+        Real *dat = dfab.dataPtr();
+        const int *dat_lo = dfab.loVect();
+        const int *dat_hi = dfab.hiVect();
+        int ncomp = dfab.nComp();
+
+        err->errFunc()(tptr,ARLIM(tlo),ARLIM(thi),&tagval,&clearval,
+                       dat, ARLIM(dat_lo), ARLIM(dat_hi),
+                       lo, hi, &ncomp,
+                       domain_lo, domain_hi,
+                       dx, xlo, prob_lo, &time, &level);
+        //delete dfab;
+      }
+    }
+
+
+}  // end errorEst(...)
 
 
 // ---------------------------------------------------------------

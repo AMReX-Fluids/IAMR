@@ -166,11 +166,14 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
       // mask turned off if covered by fine grid
     REAL *derives = 0;
     int  tmplen = 0;
-    for (int grd = 0; grd < ngrd; grd++) {
-	const BOX& fine_bx = grids[grd];
-        BOX crse_bx = coarsen(fine_bx,ratio);
-        const int* cblo = crse_bx.loVect();
-        const int* cbhi = crse_bx.hiVect();
+    //for (int grd = 0; grd < ngrd; grd++)
+    for(ConstMultiFabIterator fine_mfi(fine); fine_mfi.isValid(); ++fine_mfi)
+    {
+	assert(grids[fine_mfi.index()] == fine_mfi.validbox());
+	const Box &fine_bx = fine_mfi.validbox();
+        Box crse_bx = coarsen(fine_bx,ratio);
+        const int *cblo = crse_bx.loVect();
+        const int *cbhi = crse_bx.hiVect();
         int mxlen = crse_bx.longside() + 2;
         if (pow(float(mxlen), float(BL_SPACEDIM-1)) > tmplen) {
             delete derives;
@@ -178,14 +181,14 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
 #if (BL_SPACEDIM > 2)
 	    tmplen *= mxlen;
 #endif	    
-            derives = new REAL[tmplen*NUMDERIV];
+            derives = new Real[tmplen*NUMDERIV];
         }
-	const int* lo = fine_bx.loVect();
-	const int* hi = fine_bx.hiVect();
-	const FARRAYBOX& fine_grd = fine[grd];
-        const int* finelo = fine_grd.loVect();
-        const int* finehi = fine_grd.hiVect();
-        const REAL* finedat = fine_grd.dataPtr(f_start);
+	const int *lo = fine_bx.loVect();
+	const int *hi = fine_bx.hiVect();
+	const FArrayBox &fine_grd = fine_mfi();
+        const int *finelo = fine_grd.loVect();
+        const int *finehi = fine_grd.hiVect();
+        const Real *finedat = fine_grd.dataPtr(f_start);
 
 	for (OrientationIter fi; fi; ++fi) {
 	    Orientation face(fi());
@@ -193,20 +196,20 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
 	    if (fine_bx[face] != fine_domain[face] ||
                 geom.isPeriodic(dir)) {
 		  // internal or periodic edge, interpolate from crse data
-                const Mask& mask = masks[face][grd];
+                const Mask& mask = masks[face][fine_mfi.index()];
                 const int* mlo = mask.loVect();
                 const int* mhi = mask.hiVect();
                 const int* mdat = mask.dataPtr();
 
-                const FARRAYBOX& crse_fab = crse[face][grd];
-                const int* clo = crse_fab.loVect();
-                const int* chi = crse_fab.hiVect();
-                const REAL* cdat = crse_fab.dataPtr(c_start);
+                const FArrayBox &crse_fab = crse[face][fine_mfi.index()];
+                const int *clo = crse_fab.loVect();
+                const int *chi = crse_fab.hiVect();
+                const Real *cdat = crse_fab.dataPtr(c_start);
 
-                FARRAYBOX& bnd_fab = bndry[face][grd];
-                const int* blo = bnd_fab.loVect();
-                const int* bhi = bnd_fab.hiVect();
-                REAL* bdat = bnd_fab.dataPtr(bnd_start);
+                FArrayBox &bnd_fab = bndry[face][fine_mfi.index()];
+                const int *blo = bnd_fab.loVect();
+                const int *bhi = bnd_fab.hiVect();
+                Real *bdat = bnd_fab.dataPtr(bnd_start);
 
 		int is_not_covered = BndryData::not_covered;
                 bdfunc[face](bdat,ARLIM(blo),ARLIM(bhi),
@@ -217,11 +220,11 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
             } else {
 		  // physical bndry, copy from ghost region of
 		  // corresponding grid
-                FARRAYBOX& bnd_fab = bndry[face][grd];
+                FArrayBox &bnd_fab = bndry[face][fine_mfi.index()];
 		bnd_fab.copy(fine_grd,f_start,bnd_start,num_comp);
 	    }
 	}
-    }
+    }  // end for(fine_mfi)
     delete derives;
 
     // now copy boundary values stored in ghost cells of fine

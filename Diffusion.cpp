@@ -1,4 +1,4 @@
-// $Id: Diffusion.cpp,v 1.10 1997-09-24 20:21:57 car Exp $
+// $Id: Diffusion.cpp,v 1.11 1997-09-25 00:15:03 vince Exp $
 
 // comment out this line to use diffusion class outside
 // the context of NavierStokes and classes derived from it
@@ -593,12 +593,14 @@ void Diffusion::diffuse_velocity_constant_mu(REAL dt, REAL be_cn_theta,
     }
 
     // compute guess of solution
-    for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
-      DependentMultiFabIterator U_oldmfi(Solnmfi, U_old);
-      if (level == 0) {
-	Solnmfi().copy(U_oldmfi(),sigma,0,1);
-      }
-      else {
+    if(level == 0) {
+      //for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
+        //DependentMultiFabIterator U_oldmfi(Solnmfi, U_old);
+	  //Solnmfi().copy(U_oldmfi(),sigma,0,1);
+      //}
+      Soln.copy(U_old,sigma,0,1);
+    } else {
+      for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
 	// coarse grid data exists at this time
 	// use interpolated crse grid data for guess
 	caller->FillCoarsePatch(Solnmfi(),0,cur_time,State_Type,sigma,1);
@@ -907,13 +909,14 @@ void Diffusion::diffuse_tensor_velocity(REAL dt, REAL be_cn_theta,
 
     Soln.setVal(0.0);
     // compute guess of solution
-    for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
-      DependentMultiFabIterator U_oldmfi(Solnmfi, U_old);
-
-      if (level == 0) {
-	Solnmfi().copy(U_oldmfi(),Xvel,0,BL_SPACEDIM);
-      }
-      else {
+    if(level == 0) {
+      //for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
+        //DependentMultiFabIterator U_oldmfi(Solnmfi, U_old);
+	  //Solnmfi().copy(U_oldmfi(),Xvel,0,BL_SPACEDIM);
+      //}
+      Soln.copy(U_old,Xvel,0,BL_SPACEDIM);
+    } else {
+      for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
 	// coarse grid data exists at this time
 	// use interpolated crse grid data for guess
 	caller->FillCoarsePatch(Solnmfi(),0,cur_time,State_Type,Xvel,BL_SPACEDIM);
@@ -2495,7 +2498,6 @@ void Diffusion::getBndryData(ViscBndry& bndry, int src_comp,
 // we want to fill the bndry with S, not rho*S
       MultiFab Stmp(S.boxArray(),1,S.nGrow());
       Stmp.copy(S,src_comp,0,1,S.nGrow());
-      int ngrd = S.boxArray().length();
       for(MultiFabIterator Smfi(S); Smfi.isValid(); ++Smfi) {
         DependentMultiFabIterator Stmpmfi(Smfi, Stmp);
         assert (Smfi().min(Density)>0.0);
@@ -2514,7 +2516,6 @@ void Diffusion::getBndryData(ViscBndry& bndry, int src_comp,
       }      
       
     }
-
 }
 
 void Diffusion::FillBoundary(BndryRegister& bdry, int src_comp, int dest_comp,

@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.5 1997-09-24 19:47:06 lijewski Exp $
+// $Id: MacProj.cpp,v 1.6 1997-09-25 00:15:06 vince Exp $
 //
 
 #include <Misc.H>
@@ -321,9 +321,12 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
     for (int dir = 0; dir < BL_SPACEDIM; dir++) {
       mr.CrseInit(u_mac[dir],area[level][dir],dir,0,0,1,mult);
     }
-    if (verbose) 
-      cout << "LEVEL " << level << " MACREG: CrseInit sum = " 
-	   << mr.SumReg(0) << NL;
+    if (verbose) {
+      // dont do this for parallel (verbose is only true
+      // on the IOProcessor).
+      //cout << "LEVEL " << level << " MACREG: CrseInit sum = " 
+	   //<< mr.SumReg(0) << endl;
+    }
   }
 
   // increment in fine grid velocity to velocity registers
@@ -332,10 +335,10 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
     for (int dir = 0; dir < BL_SPACEDIM; dir++) {
       mac_reg[level].FineAdd(u_mac[dir],area[level][dir],dir,0,0,1,mult);
     }
-    if (verbose) {
+    //if (verbose) {
       cout << "LEVEL " << level << " MACREG: FineAdd sum = " 
 	   << mac_reg[level].SumReg(0) << NL;
-    }
+    //}
   }
 
   // if finest level possible no need to keep phi for boundary conditions
