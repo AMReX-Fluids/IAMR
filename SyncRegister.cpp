@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.51 1999-02-09 17:50:33 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.52 1999-02-24 16:53:06 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -132,8 +132,8 @@ SyncRegister::define (const BoxArray& fine_boxes,
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
         assert(ratio[dir] == -1);
 
-    assert(fine_boxes.isDisjoint());
     assert(!grids.ready());
+    assert(fine_boxes.isDisjoint());
 
     ratio      = ref_ratio;
     fine_level = fine_lev;
@@ -141,80 +141,36 @@ SyncRegister::define (const BoxArray& fine_boxes,
     grids.define(fine_boxes);
     grids.coarsen(ratio);
 
-    for (OrientationIter face; face; ++face)
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        bndry[face()].resize(grids.length());
-        bndry[face()].DefineGrids(grids);
-        bndry[face()].DefineDistributionMap(grids);
+        //
+        // Construct BoxArrays for the FabSets.
+        //
+        const Orientation lo = Orientation(dir,Orientation::low);
+        const Orientation hi = Orientation(dir,Orientation::high);
 
-        bndry_mask[face()].resize(grids.length());
-        bndry_mask[face()].DefineGrids(grids);
-        bndry_mask[face()].DefineDistributionMap(grids);
-    }
-    //
-    // Construct disjoint "face" fabs that are node centered in all index
-    // directions.  The "grow" function at the bottom of this loop shrinks
-    // the domain in the index direction just allocated so that the fabs
-    // in the other directions will not overlap.
-    //
-    const int myproc = ParallelDescriptor::MyProc();
+        BoxArray loBA(grids.length());
+        BoxArray hiBA(grids.length());
 
-    for (int k = 0; k < grids.length(); k++)
-    {
-        Box ndbox = ::surroundingNodes(grids[k]);
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        for (int k = 0; k < grids.length(); k++)
         {
-            Box nd_lo(ndbox);
+            Box ndbox = ::surroundingNodes(grids[k]);
+
+            Box nd_lo = ndbox;
             nd_lo.setRange(dir,ndbox.smallEnd(dir),1);
-            FabSet& lo = bndry[Orientation(dir,Orientation::low)];
-            lo.setBox(k, nd_lo);
-            if (lo.DistributionMap()[k] == myproc)
-            {
-                //
-                // Local.
-                //
-                assert(!lo.defined(k));
-                lo.clear(k);
-                lo.setFab(k,new FArrayBox(nd_lo,1));
-            }
-            FabSet& lo_mask = bndry_mask[Orientation(dir,Orientation::low)];
-            lo_mask.setBox(k, nd_lo);
-            if (lo_mask.DistributionMap()[k] == myproc)
-            {
-                //
-                // Local.
-                //
-                assert(!lo_mask.defined(k));
-                lo_mask.clear(k);
-                lo_mask.setFab(k,new FArrayBox(nd_lo,1));
-            }
-            Box nd_hi(ndbox);
+            loBA.set(k,nd_lo);
+
+            Box nd_hi = ndbox;
             nd_hi.setRange(dir,ndbox.bigEnd(dir),1);
-            FabSet& hi = bndry[Orientation(dir,Orientation::high)];
-            hi.setBox(k, nd_hi);
-            if (hi.DistributionMap()[k] == myproc)
-            {
-                //
-                // Local.
-                //
-                assert(!hi.defined(k));
-                hi.clear(k);
-                hi.setFab(k,new FArrayBox(nd_hi,1));
-            }
-            FabSet& hi_mask = bndry_mask[Orientation(dir,Orientation::high)];
-            hi_mask.setBox(k, nd_hi);
-            if (hi_mask.DistributionMap()[k] == myproc)
-            {
-                //
-                // Local.
-                //
-                assert(!hi_mask.defined(k));
-                hi_mask.clear(k);
-                hi_mask.setFab(k,new FArrayBox(nd_hi,1));
-            }
-            assert(ndbox.shortside() > 0);
+            hiBA.set(k,nd_hi);
         }
+        //
+        // Define the FabSets.
+        //
+        bndry[lo].define(loBA,1);
+        bndry_mask[lo].define(loBA,1);
+        bndry[hi].define(hiBA,1);
+        bndry_mask[hi].define(hiBA,1);
     }
 }
 
@@ -226,7 +182,7 @@ SyncRegister::sum ()
     //
     // Sum values in all registers.  Note that overlap is counted twice.
     //
-    Box bb(grids[0]);
+    Box bb = grids[0];
 
     for (int k = 1; k < grids.length(); k++)
         bb.minBox(grids[k]);
