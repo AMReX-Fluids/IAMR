@@ -9,30 +9,13 @@ DIM	= 3
 WHICH_HG=_new
 WHICH_HG=
 
-#
-# Holy Grail stuff ...
-#
-ifeq ($(DIM),2)
-#
-# c5: -DHG_CONSTANT -DHG_CROSS_STENCIL
-# v5: -DHG_CROSS_STENCIL
-# c9: -DHG_CONSTANT
-# v9:
-#
-CPPFLAGS +=
-else
-#
-# c7: -DHG_CONSTANT -DHG_CROSS_STENCIL
-# v7: -DHG_CROSS_STENCIL
-#
-CPPFLAGS += -DHG_CROSS_STENCIL
-endif
-
 COMP = KCC
 
 USE_WINDOWS=FALSE
 USE_BSP=TRUE
 USE_BSP=FALSE
+USE_MPI=FALSE
+USE_MPI=TRUE
 USE_NETCDF=FALSE
 USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
@@ -72,6 +55,11 @@ endif
 endif
 endif
 
+ifeq ($(USE_MPI), TRUE)
+DEFINES += -DBL_USE_MPI
+MPI_HOME = /usr/local/mpi
+endif
+
 
 
 # FillPatch switches
@@ -108,6 +96,12 @@ ifeq ($(USE_BSP), TRUE)
 INCLUDE_LOCATIONS += $(BSP_HOME)/include
 LIBRARY_LOCATIONS += $(BSP_HOME)/lib/$(BSP_MACHINE)
 LIBRARY_LOCATIONS += $(BSP_HOME)/lib/$(BSP_MACHINE)/$(BSP_DEVICE)
+endif
+
+ifeq ($(USE_MPI), TRUE)
+INCLUDE_LOCATIONS += $(MPI_HOME)/include
+LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
+LIBRARIES += -lmpi
 endif
 
 ifeq ($(USE_NETCDF),TRUE)

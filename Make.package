@@ -46,7 +46,8 @@ C$(HGLIB_BASE)_headers += interface.H boundary.H \
 			  hg_projector.H 
 
 F$(HGLIB_BASE)_sources += amr_real$(DIM)d.F hg_multi$(DIM)d.F \
-			  hg_proj$(DIM)d.F hg_avg$(DIM)d.F 
+			  hg_proj$(DIM)d.F hg_avg$(DIM)d.F \
+			  hg_multi$(DIM)d_terrain.F
 
 #
 # boxlib sources
