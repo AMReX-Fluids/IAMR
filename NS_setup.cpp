@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.30 1999-07-16 18:23:54 sstanley Exp $
+// $Id: NS_setup.cpp,v 1.31 1999-07-20 20:40:03 almgren Exp $
 //
 
 #include <NavierStokes.H>
@@ -359,3 +359,9 @@ void
 NavierStokes::manual_grid_placement(BoxList& boxes)
 {
 }
+
+void
+NavierStokes::manual_tags_placement(TagBoxArray& tags, IntVect& bf)
+{
+}
+

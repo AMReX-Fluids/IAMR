@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.44 1999-07-08 23:49:22 sstanley Exp $
+// $Id: NavierStokes.H,v 1.45 1999-07-20 20:40:03 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -591,6 +591,11 @@ protected:
     //
     virtual void manual_grid_placement(BoxList& boxes);
 
+    //
+    // Called in grid_places after other tagging routines to modify
+    //   the list of tagged points
+    //
+    virtual void manual_tags_placement(TagBoxArray& tags, IntVect& bf);
 
     //
     // Determine whether a time corresponds to the New or Old
