@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.11 2004-09-27 16:55:23 car Exp $
+c $Id: INFL_FORCE_F.F,v 1.12 2004-10-13 19:31:01 lijewski Exp $
 c
 
 #undef BL_LANG_CC
@@ -47,8 +47,7 @@ c
       REAL_T inflDat(DIMV(inflDat)), probLo(SDIM), probHi(SDIM)
 
       integer lo(SDIM), hi(SDIM), nCmpFile
-      integer n, npass, filePnt, storePnt, filePntOld, filePntReqd,
-     $        maxFilePntChng, npassOld
+      integer n, npass, filePnt, storePnt, filePntOld, npassOld
       REAL_T dtFile, timeMaxFile, timeOffset, timePnt,
      $       dtEstimate
       logical is_periodic
@@ -64,7 +63,7 @@ c
       allocatable storDat
       save loStoreDim, hiStoreDim, storDat,
      $     dimFile, xloFile, xhiFile, dxFile, dtFile, timeMaxFile, 
-     $     storePnt, filePnt, maxFilePntChng, timePnt, timeOffset, npass
+     $     storePnt, filePnt, timePnt, timeOffset, npass
 
 #include "INFL_FORCE_F.H"
 
@@ -80,11 +79,7 @@ c
          do n = 1, SDIM
             xloFile(n) = half * (probHi(n) + probLo(n)) - half * probSizeFile(n)
             xhiFile(n) = xloFile(n) + probSizeFile(n)
-            if (n .ne. strmwse_dir) then
-               write(6,1001) n,probLo(n),probHi(n),xloFile(n),xhiFile(n)
-            endif
          enddo
-1001     format('dir: ',i2,' problem: ',f10.5,2x,f10.5,' file:',f10.5,2x,f10.5)
 
          do n = 1, 3
             loStoreDim(n) = 1
@@ -111,7 +106,6 @@ c
          filePnt = INT((time - timeOffset) / dtFile) + 1
          timePnt = timeOffset + FLOAT(filePnt-1) * dtFile
          storePnt = 2
-         maxFilePntChng = 0
 
          call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
      $        FF_DIMS(storDat), storDat)
@@ -119,65 +113,33 @@ c
 
       call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
 
+      npassOld   = npass
       filePntOld = filePnt
-      npassOld = npass
 
       do while ( (time .lt. timePnt - half*dtFile) .or.
-     $     (time .gt. timePnt + half*dtFile) )
+     $           (time .gt. timePnt + half*dtFile) )
          if (time .gt. timePnt + half*dtFile) then
-            filePnt = filePnt + 1
+            filePnt  = filePnt + 1
             storePnt = storePnt + 1
-
             if (filePnt .gt. dimFile(strmwse_dir) - 1) then
-               npass = npass + 1
+               npass      = npass + 1
                timeOffset = FLOAT(npass) * timeMaxFile
-
-               filePnt = filePnt - dimFile(strmwse_dir) + 1
+               filePnt    = filePnt - dimFile(strmwse_dir) + 1
             endif
-
          else if (time .lt. timePnt - half*dtFile) then
-            filePnt = filePnt - 1
+            filePnt  = filePnt - 1
             storePnt = storePnt - 1
-
             if (filePnt .lt. 1) then
-               npass = npass - 1
+               npass      = npass - 1
                timeOffset = FLOAT(npass) * timeMaxFile
-
-               filePnt = filePnt + dimFile(strmwse_dir) - 1
+               filePnt    = filePnt + dimFile(strmwse_dir) - 1
             endif
          endif
-
          timePnt = timeOffset + FLOAT(filePnt-1) * dtFile
       enddo
 
-      if (npass .eq. npassOld) 
-     $     maxFilePntChng = MAX(maxFilePntChng, ABS(filePnt-filePntOld))
-c
-c     *** Stepped off the right edge of the stored data ***
-c
-      if (storePnt + 1 .gt. hiStoreDim(strmwse_dir)) then
-         filePntReqd = filePnt - maxFilePntChng
-
-         call FILL_FRCARRYS(filePntReqd - 1, 1, dimFile, nCompInflow,
-     $        FF_DIMS(storDat), storDat)
-         storePnt = 2 - filePntReqd + filePnt
-c
-c     *** Stepped off the left edge of the stored data ***
-c
-c     In this case we flush the data array and load it entirely from scratch.
-c     I really should fix the shifting routine to allow the data to be right 
-c     shifted as well as left shifted. SAS
-c
-      else if (storePnt - 1 .lt. 1) then
-         open(11,file='WARNING.Inflow_Forcing',position='append')
-         write(11,1000) storePnt, filePnt, timePnt, npass, timeOffset,
-     $        dtFile, dimFile(strmwse_dir), time
-1000     format('** Stepped off the left end of the stored data.  Reloading',
-     $        /3x,'the entire data array.',
-     $        /3x,'storePnt = ',I3,2x,'filePnt = ',I3,2x,'timePnt = ',E12.4,
-     $        /3x,'npass = ',I3,2x,'timeOffset = ',E12.4,2x,'dtFile = ',E12.4,
-     $        /3x,'dimFile = ',I3,2x,'time = ',E12.4)
-         close(11)
+      if ((storePnt + 1 .gt. hiStoreDim(strmwse_dir)) .or.
+     &    (storePnt - 1 .lt. 1)) then
          call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
      $        FF_DIMS(storDat), storDat)
          storePnt = 2
@@ -225,11 +187,7 @@ c
          do n = 1, SDIM
             xloFile(n) = half * (probHi(n) + probLo(n)) - half * probSizeFile(n)
             xhiFile(n) = xloFile(n) + probSizeFile(n)
-            if (n .ne. strmwse_dir) then
-               write(6,1001) n,probLo(n),probHi(n),xloFile(n),xhiFile(n)
-            endif
          enddo
-1001     format('dir: ',i2,' problem: ',f10.5,2x,f10.5,' file:',f10.5,2x,f10.5)
 
          do n = 1, 3
             loStoreDim(n) = 1
@@ -397,8 +355,6 @@ c
       call FF_SET_LOHI(FF_DIMS(dat), lo, hi)
 
       intDummy = hi(strmwse_dir) - lo(strmwse_dir) + 1
-      write(6,1001) intDummy
-1001  format('FILL_FRCARRYS: loading ',i5,' platters of data ...')
 c
 c     *** Wrap baseFilePnt into the box if it is outside ***
 c
@@ -507,8 +463,6 @@ c
       call FF_SET_LOHI(FF_DIMS(dat), lo, hi)
 
       intDummy = hi(strmwse_dir) - lo(strmwse_dir) + 1
-      write(6,1001) intDummy
-1001  format('FILL_FRCARRYS_SWIRL: loading ',i5,' platters of data ...')
 
       do n = 1, 3
          filLo(n) = 1
