@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.63 1998-06-08 15:51:14 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.64 1998-06-09 21:09:12 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1199,7 +1199,6 @@ NavierStokes::advance (Real time,
         dmfi().mult(.5*dt);
         mfi().plus(dmfi());
     }
-
     delete dsdt;
     //
     // Compute mac velocities and maximum cfl number.
@@ -1369,8 +1368,8 @@ NavierStokes::level_projector (Real dt,
                                 crse_ptr,sync_reg,crse_dt_ratio,
                                 sync_bc.dataPtr(),iteration,
                                 divu_minus_s_factor,*divuold,have_divu);
-       delete divuold;
        delete dsdt;
+       delete divuold;
 
        lp_stats.end();
    }
@@ -1485,10 +1484,10 @@ NavierStokes::predict_velocity (Real  dt,
                              U_fpmfi(), (*tforces_fp)[i]);
     }
 
-    delete Gp_fp;
-    delete tforces_fp;
-    delete Rho_fp;
     delete U_fp;
+    delete Rho_fp;
+    delete tforces_fp;
+    delete Gp_fp;
 
     if (level == 0 && geom.isAnyPeriodic())
     {
@@ -1821,14 +1820,13 @@ NavierStokes::scalar_advection (Real dt,
             pullFluxes(i, state_ind, 1, xflux, yflux, zflux, dt);
         }
     }
-
-    delete tvelforces_fp;
-    delete Gp_fp;
-    delete divu_fp;
-    delete tforces_fp;
-    delete Rho_fp;
-    delete S_fp;
     delete U_fp;
+    delete S_fp;
+    delete Rho_fp;
+    delete tforces_fp;
+    delete divu_fp;
+    delete Gp_fp;
+    delete tvelforces_fp;
     //
     // pullFluxes() contains CrseInit() calls. Got to complete the process.
     //
@@ -2143,9 +2141,8 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
             godunov->Add_aofs_tf(U_old[i], U_new[i], 0, BL_SPACEDIM, Aofs[i],
                                  0, (*tforces_fp)[i], 0, grids[i], dt);
         }
-
-        delete tforces_fp;
         delete Gp_fp;
+        delete tforces_fp;
     }
 }
 
@@ -2482,7 +2479,6 @@ NavierStokes::estTimeStep ()
 
         return factor*fixed_dt;
     }
-
     const int n_grow    = 0;
     Real estdt          = 1.0e+20;
     const Real cur_time = state[State_Type].curTime();
@@ -2519,9 +2515,8 @@ NavierStokes::estTimeStep ()
 	}
 	estdt = Min(estdt,dt);
     }
-
-    delete tforces_fp;
     delete Rho_fp;
+    delete tforces_fp;
     //
     // Parallel reductions.
     //
@@ -3179,7 +3174,6 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
                     }
                 }
             }
-
             FORT_FILCC(cdata.dataPtr(n), ARLIM(clo), ARLIM(chi),
                        cdomlo, cdomhi, dx_crse, xlo,
                        &(bc_new[2*BL_SPACEDIM*(n+src_comp)]));
@@ -3242,7 +3236,7 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
         }
     }
 
-    delete bc_new;
+    delete [] bc_new;
 }
 
 //
@@ -4106,31 +4100,37 @@ NavierStokes::getForce (int  ngrow,
                         int  num_comp,
                         Real time)
 {
-    MultiFab* mf = new MultiFab(grids, num_comp, ngrow);
-
-    mf->setVal(0);
-
+    MultiFab* force = new MultiFab(grids, num_comp, ngrow);
     const Real grav = Abs(gravity);
 
+    for (int dc = 0; dc < num_comp; dc++)
+    {
+        const int sc = strt_comp + dc;
 #if (BL_SPACEDIM == 2)
-    const int SC = Yvel;
+        if (sc == Yvel && grav > 0.001) 
 #endif
 #if (BL_SPACEDIM == 3)
-    const int SC = Zvel;
+        if (sc == Zvel && grav > 0.001) 
 #endif
-    
-    if (grav > 0.001 && strt_comp >= SC && strt_comp+num_comp < SC)
-    {
-        MultiFab* rho = getState(ngrow,State_Type,Density,1,time);
-
-        rho->mult(-grav);
-
-        mf->copy(*rho,0,SC-strt_comp,1);
-
-        delete rho;
+        {
+            //
+            // Set force to -rho*g.
+            //
+            MultiFab* rho = getState(ngrow,State_Type,Density,1,time);
+            for (MultiFabIterator mfi(*force); mfi.isValid(false); ++mfi)
+            {
+                DependentMultiFabIterator dmfi(mfi,*rho);
+                dmfi().mult(-grav);
+                mfi().copy(dmfi(),0,dc,1);
+            }
+        }
+        else
+        {
+            force->setVal(0.0,dc,1,ngrow);
+        }
     }
 
-    return mf;
+    return force;
 }
 
 //
@@ -4551,9 +4551,8 @@ NavierStokes::calc_divu (Real      time,
                 mfi().divide(rho_it(),mfi.validbox(),0,0,1);
                 mfi().divide(temp_it(),mfi.validbox(),0,0,1);
             }
-
-            delete temp;
             delete rho;
+            delete temp;
         }
     }
 }
