@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.134 1999-05-10 18:54:14 car Exp $
+// $Id: NavierStokes.cpp,v 1.135 1999-05-26 00:57:13 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -489,8 +489,8 @@ NavierStokes::init_additional_state_types ()
     // Set "Temp" from user's variable setup.
     //
     int dummy_State_Type;
-    bool have_temp = isStateVariable("temp", dummy_State_Type, Temp);
-    have_temp &= dummy_State_Type == State_Type;
+    int have_temp = isStateVariable("temp", dummy_State_Type, Temp);
+    have_temp &= (dummy_State_Type == State_Type);
     BL_ASSERT((do_temp && have_temp)  ||  (!do_temp && !have_temp));
 
     int _Divu = -1;
@@ -1715,7 +1715,7 @@ NavierStokes::scalar_advection (Real dt,
 
     MultiFab vel_visc_terms;
 
-    const bool use_forces_in_trans = godunov->useForcesInTrans();
+    const int use_forces_in_trans = godunov->useForcesInTrans();
 
     if (use_forces_in_trans)
     {
