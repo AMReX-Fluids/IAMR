@@ -2,7 +2,7 @@
 #define _HG_MULTI_H_
 
 //
-// $Id: hg_multi.H,v 1.7 1997-10-01 20:58:42 lijewski Exp $
+// $Id: hg_multi.H,v 1.8 1997-10-03 23:37:35 car Exp $
 //
 
 #include <amr_multi.H>
@@ -72,9 +72,13 @@ class holy_grail_amr_multigrid
 
   // level caches which are not members of amr_multigrid:
     bool cache; 
+#ifdef HG_USE_CACHE
   Array<copy_cache*> corr_scache;
+#ifdef HG_CONSTANT
   Array<unroll_cache*> cgw_ucache;
+#endif
   copy_cache* cgw1_bcache;
+#endif
 
   // sync caches:
 
@@ -116,7 +120,9 @@ class holy_grail_amr_multigrid
   void level_residual(MultiFab& r,
 		      MultiFab& s,
 		      MultiFab& d,
+#ifdef HG_USE_CACHE
 		      copy_cache* dbc,
+#endif
 		      int mglev,
 		      int iclear = 1);
   void relax(int mglev, int i1, int is_zero);

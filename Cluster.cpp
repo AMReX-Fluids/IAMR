@@ -1,6 +1,6 @@
 
 //
-// $Id: Cluster.cpp,v 1.5 1997-10-01 01:03:02 car Exp $
+// $Id: Cluster.cpp,v 1.6 1997-10-03 23:37:31 car Exp $
 //
 
 #include <Cluster.H>
@@ -359,7 +359,7 @@ ClusterList::boxList(BoxList &blst)
 
 // ------------------------------------------------------------------
 void
-ClusterList::chop(REAL eff)
+ClusterList::chop(double eff)
 {
     ListIterator<Cluster*> cli(lst);
     while (cli) {

@@ -2,7 +2,7 @@
 #define _AMR_MULTI_H_
 
 //
-// $Id: amr_multi.H,v 1.6 1997-09-30 20:53:14 car Exp $
+// $Id: amr_multi.H,v 1.7 1997-10-03 23:37:32 car Exp $
 //
 
 #include <fill_patch.H>
@@ -25,7 +25,11 @@ class amr_multigrid
   PArray<MultiFab> save;               // lives on middle levels of ml_mesh
   PArray<MultiFab> coarse_source;      // lives on ml_mesh, if it exists
 
-  Array<copy_cache*> dest_bcache, corr_bcache, work_bcache;
+#ifdef HG_USE_CACHE
+  Array<copy_cache*> dest_bcache;
+  Array<copy_cache*> corr_bcache;
+  Array<copy_cache*> work_bcache;
+#endif
 
   static int c_sys;
 
@@ -118,7 +122,9 @@ class amr_multigrid
   virtual void level_residual(MultiFab& r,
 			      MultiFab& s,
 			      MultiFab& d,
+#ifdef HG_USE_CACHE
 			      copy_cache* dbc,
+#endif
 			      int mglev,
 			      int iclear = 1) = 0;
   virtual void interface_residual(int mglev, int mgc) = 0;

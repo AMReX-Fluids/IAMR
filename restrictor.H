@@ -2,7 +2,7 @@
 #define _RESTRICTOR_H_
 
 //
-// $Id: restrictor.H,v 1.5 1997-10-01 01:03:22 car Exp $
+// $Id: restrictor.H,v 1.6 1997-10-03 23:37:37 car Exp $
 //
 
 #include <interface.H>
@@ -25,7 +25,10 @@ class amr_restrictor_class
   virtual Box box(const Box&, const IntVect&) const = 0;
   virtual void fill(Fab&, const Box&, Fab&, const IntVect&) const = 0;
   virtual void interface(Fab&, const Box&, MultiFab&,
-			 const copy_cache*, const level_interface&,
+#ifdef HG_USE_CACHE
+			 const copy_cache*, 
+#endif
+			 const level_interface&,
 			 const amr_boundary_class&, const IntVect&) const { }
 };
 
@@ -70,7 +73,10 @@ class bilinear_restrictor_class
   void fill(Fab& patch, const Box& region,
 	    Fab& fgr, const IntVect& rat) const;
   void interface(Fab& patch, const Box& region,
-	         MultiFab& fine, const copy_cache*,
+	         MultiFab& fine, 
+#ifdef HG_USE_CACHE
+		 const copy_cache*,
+#endif
 		 const level_interface& interface,
 		 const amr_boundary_class& bdy, const IntVect& rat) const;
 };
@@ -83,7 +89,10 @@ class bilinear_restrictor_coarse_class
  public:
   bilinear_restrictor_coarse_class() { }
   void interface(Fab& patch, const Box& region,
-	         MultiFab& fine, const copy_cache*,
+	         MultiFab& fine, 
+#ifdef HG_USE_CACHE
+		 const copy_cache*,
+#endif
 		 const level_interface& interface,
 		 const amr_boundary_class& bdy, const IntVect& rat) const;
 };

@@ -3,13 +3,13 @@
 DIM=3
 
 !IF $(DIM) == 2
-LLIB=v9
+HGDEF=
 !ELSE
-LLIB=v7
+HGDEF=/DHG_CROSS_STENCIL
 !ENDIF
 
 FPP_FLAGS=/ansi /nologo \
-	/S. /S..\pboxlib_2 /S.\include\$(DIM)d.$(LLIB) \
+	/S. /S..\pboxlib_2 $(HGDEF) \
 	/DBL_NEED_RAND \
 	/DBL_NO_FORT_FLUSH \
 	/DBL_SPACEDIM=$(DIM) \

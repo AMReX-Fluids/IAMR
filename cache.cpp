@@ -1,6 +1,6 @@
-
+#ifdef HG_USE_CACHE
 //
-// $Id: cache.cpp,v 1.8 1997-10-01 01:03:19 car Exp $
+// $Id: cache.cpp,v 1.9 1997-10-03 23:37:34 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -10,6 +10,25 @@
 #endif
 
 #include <cache.H>
+
+
+#ifdef BL_FORT_USE_UNDERSCORE
+#  define FFCCPY1     fccpy1_
+#  define FFCCPY2     fccpy2_
+#else
+#  define FFCCPY1     FCCPY1
+#  define FFCCPY2     FCCPY2
+#endif
+
+extern "C" 
+{
+#if (BL_SPACEDIM == 2)
+  void FFCCPY1(Real*, Real*, const int&, int*, int*, int*, int*, int*);
+#else
+  void FFCCPY2(Real*, Real*, const int&, int*, int*, int*, int*,
+	       int*, int*, int*, int*);
+#endif
+}
 
 // -----------------------------------------------------------------
 //  these functions are un-inlined to debug.  put them back when the
@@ -24,11 +43,12 @@ void copy_cache::run() const
     FFCCPY2(dptr, sptr, nsets, dstart, sstart, dstrid1, dstrid2,
             sstrid1, sstrid2, nvals1, nvals2);
 #endif
-  }
+}
 
 
 #if (BL_SPACEDIM == 2)
-void copy_cache::set(int i, int Dstart, int Sstart, int Dstrid, int Sstrid, int Nvals) {
+void copy_cache::set(int i, int Dstart, int Sstart, int Dstrid, int Sstrid, int Nvals)
+{
     if (i < 0 || i >= nsets)
       BoxLib::Error("copy_cache::set---out of range");
     dstart[i] = Dstart;
@@ -37,34 +57,34 @@ void copy_cache::set(int i, int Dstart, int Sstart, int Dstrid, int Sstrid, int 
     sstrid[i] = Sstrid;
     nvals[i]  = Nvals;
 }
-
-
-
-
-unroll_cache::unroll_cache(int Nsets, Real *Ptr)
-  : nsets(Nsets), ptr(Ptr) {
-#if (BL_SPACEDIM == 2)
-    start = new int[3 * nsets];
-    strid = start + nsets;
-    nvals = start + 2 * nsets;
-#else
-    start  = new int[4 * nsets];
-    strid1 = start + nsets;
-    strid2 = start + 2 * nsets;
-    nvals  = start + 3 * nsets;
-#endif
-  }
-
-void unroll_cache::set(int i, int Start, int Strid, int Nvals) {
+#elif (BL_SPACEDIM == 3)
+void copy_cache::set(int i, int Dstart, int Sstart, int Dstrid1, int Dstrid2,
+	   int Sstrid1, int Sstrid2, int Nvals1, int Nvals2) 
+{
     if (i < 0 || i >= nsets)
-      BoxLib::Error("unroll_cache::set---out of range");
-    start[i] = Start;
-    strid[i] = Strid;
-    nvals[i] = Nvals;
-  }
-
+      BoxLib::Error("copy_cache::set---out of range");
+    dstart[i] = Dstart;
+    sstart[i] = Sstart;
+    if (Nvals1 >= Nvals2) 
+    {
+      dstrid1[i] = Dstrid1;
+      dstrid2[i] = Dstrid2;
+      sstrid1[i] = Sstrid1;
+      sstrid2[i] = Sstrid2;
+      nvals1[i]  = Nvals1;
+      nvals2[i]  = Nvals2;
+    }
+    else 
+    {
+      dstrid1[i] = Dstrid2;
+      dstrid2[i] = Dstrid1;
+      sstrid1[i] = Sstrid2;
+      sstrid2[i] = Sstrid1;
+      nvals1[i]  = Nvals2;
+      nvals2[i]  = Nvals1;
+    }
+}
 #endif
-// -----------------------------------------------------------------
 
 copy_cache::copy_cache(int Nsets, Real *Dptr, Real *Sptr)
   : nsets(Nsets), dptr(Dptr), sptr(Sptr)
@@ -86,7 +106,8 @@ copy_cache::copy_cache(int Nsets, Real *Dptr, Real *Sptr)
   sstrid2 = dstart + 5 * nsets;
   nvals1  = dstart + 6 * nsets;
   nvals2  = dstart + 7 * nsets;
-  for (int i = 0; i < nsets; i++) {
+  for (int i = 0; i < nsets; i++) 
+  {
     nvals1[i] = 0;
     nvals2[i] = 0;
   }
@@ -107,8 +128,10 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
   int igrid, jgrid, iface, icor, i;
 
   nsets = 0;
-  for (i = 0; i < BL_SPACEDIM; i++) {
-    for (igrid = 0; igrid < interface.nboxes(i); igrid++) {
+  for (i = 0; i < BL_SPACEDIM; i++) 
+  {
+    for (igrid = 0; igrid < interface.nboxes(i); igrid++) 
+    {
 	if (interface.geo(i, igrid) != level_interface::ALL)
 	break;
       nsets++;
@@ -139,14 +162,16 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
   sstrid2 = dstart + 5 * nsets;
   nvals1  = dstart + 6 * nsets;
   nvals2  = dstart + 7 * nsets;
-  for (i = 0; i < nsets; i++) {
+  for (i = 0; i < nsets; i++) 
+  {
     nvals1[i] = 0;
     nvals2[i] = 0;
   }
 #endif
 
   int iset = 0;
-  for (iface = 0; iface < interface.nfaces(); iface++) {
+  for (iface = 0; iface < interface.nfaces(); iface++) 
+  {
     igrid = interface.fgrid(iface, 0);
     jgrid = interface.fgrid(iface, 1);
     if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
@@ -162,10 +187,12 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
     dstartj = r[jgrid].dataPtr() - baseptr +
 	      b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
 	      stridj * (b.smallEnd(1) - r[jgrid].box().smallEnd(1));
-    if (interface.fdim(iface) == 0) {
+    if (interface.fdim(iface) == 0) 
+    {
       nvals = b.length(1);
     }
-    else {
+    else 
+    {
       nvals = b.length(0);
       stridi = 1;
       stridj = 1;
@@ -185,17 +212,20 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 	      b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
 	      stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
 	      stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
-    if (interface.fdim(iface) == 0) {
+    if (interface.fdim(iface) == 0) 
+    {
       nvals1 = b.length(1);
       nvals2 = b.length(2);
     }
-    else if (interface.fdim(iface) == 1) {
+    else if (interface.fdim(iface) == 1) 
+    {
       nvals1 = b.length(0);
       nvals2 = b.length(2);
       stridi1 = 1;
       stridj1 = 1;
     }
-    else {
+    else 
+    {
       nvals1 = b.length(0);
       nvals2 = b.length(1);
       stridi2 = stridi1;
@@ -209,13 +239,15 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
   }
 
 #if (BL_SPACEDIM == 2)
-  for (icor = 0; icor < interface.ncorners(); icor++) {
+  for (icor = 0; icor < interface.ncorners(); icor++) 
+  {
     igrid = interface.cgrid(icor, 0);
     jgrid = interface.cgrid(icor, 3);
     // only do interior corners with fine grid on all sides
     if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != level_interface::ALL)
       break;
-    if (jgrid == interface.cgrid(icor, 1)) {
+    if (jgrid == interface.cgrid(icor, 1)) 
+    {
       const Box& b = interface.corner(icor);
       int dstartj, sstarti, stridi, stridj;
       stridi = r[igrid].box().length(0);
@@ -231,13 +263,15 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
   }
 #else
   int iedge;
-  for (iedge = 0; iedge < interface.nedges(); iedge++) {
+  for (iedge = 0; iedge < interface.nedges(); iedge++) 
+  {
     igrid = interface.egrid(iedge, 0);
     jgrid = interface.egrid(iedge, 3);
     // only do interior edges with fine grid on all sides
     if (igrid < 0 || jgrid < 0 || interface.egeo(iedge) != level_interface::ALL)
       break;
-    if (jgrid == interface.egrid(iedge, 1)) {
+    if (jgrid == interface.egrid(iedge, 1)) 
+    {
       const Box& b = interface.node_edge(iedge);
       int dstartj, sstarti, stridi1, stridi2, stridj1, stridj2, nvals1;
       stridi1 = r[igrid].box().length(0);
@@ -252,29 +286,35 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 	        b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
 	        stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
 	        stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
-      if ((nvals1 = b.length(0)) > 1) {
+      if ((nvals1 = b.length(0)) > 1) 
+      {
 	stridi1 = 1;
 	stridj1 = 1;
       }
-      else if ((nvals1 = b.length(2)) > 1) {
+      else if ((nvals1 = b.length(2)) > 1) 
+      {
 	stridi1 = stridi2;
 	stridj1 = stridj2;
       }
-      else {
+      else 
+      {
 	nvals1 = b.length(1);
       }
       set(iset++, dstartj, sstarti, stridj1, 0,
 		 stridi1, 0, nvals1, 1);
     }
   }
-  for (icor = 0; icor < interface.ncorners(); icor++) {
+  for (icor = 0; icor < interface.ncorners(); icor++) 
+  {
     igrid = interface.cgrid(icor, 0);
     jgrid = interface.cgrid(icor, 7);
     // only do interior corners with fine grid on all sides
     if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != level_interface::ALL)
       break;
-    if (interface.cgrid(icor, 3) == interface.cgrid(icor, 1)) {
-      if (jgrid != interface.cgrid(icor, 3)) {
+    if (interface.cgrid(icor, 3) == interface.cgrid(icor, 1)) 
+    {
+      if (jgrid != interface.cgrid(icor, 3)) 
+      {
 	const Box& b = interface.corner(icor);
 	int dstartj, sstarti, stridi1, stridi2, stridj1, stridj2;
 	stridi1 = r[igrid].box().length(0);
@@ -291,7 +331,8 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 	          stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
 	set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
 	jgrid = interface.cgrid(icor, 5);
-	if (jgrid != interface.cgrid(icor, 7)) {
+	if (jgrid != interface.cgrid(icor, 7)) 
+	{
 	  stridj1 = r[jgrid].box().length(0);
 	  stridj2 = stridj1 * r[jgrid].box().length(1);
 	  dstartj = r[jgrid].dataPtr() - baseptr +
@@ -302,8 +343,10 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 	}
       }
     }
-    else if (interface.cgrid(icor, 5) == interface.cgrid(icor, 1)) {
-      if (jgrid != interface.cgrid(icor, 5)) {
+    else if (interface.cgrid(icor, 5) == interface.cgrid(icor, 1)) 
+    {
+      if (jgrid != interface.cgrid(icor, 5)) 
+      {
 	const Box& b = interface.corner(icor);
 	int dstartj, sstarti, stridi1, stridi2, stridj1, stridj2;
 	stridi1 = r[igrid].box().length(0);
@@ -320,7 +363,8 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 	          stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
 	set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
 	jgrid = interface.cgrid(icor, 3);
-	if (jgrid != interface.cgrid(icor, 7)) {
+	if (jgrid != interface.cgrid(icor, 7)) 
+	{
 	  stridj1 = r[jgrid].box().length(0);
 	  stridj2 = stridj1 * r[jgrid].box().length(1);
 	  dstartj = r[jgrid].dataPtr() - baseptr +
@@ -328,9 +372,11 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 	            stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
 		    stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
 	  set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
-	  if (jgrid == interface.cgrid(icor, 2)) {
+	  if (jgrid == interface.cgrid(icor, 2)) 
+	  {
 	    jgrid = interface.cgrid(icor, 6);
-	    if (jgrid != interface.cgrid(icor, 7)) {
+	    if (jgrid != interface.cgrid(icor, 7)) 
+	    {
 	      stridj1 = r[jgrid].box().length(0);
 	      stridj2 = stridj1 * r[jgrid].box().length(1);
 	      dstartj = r[jgrid].dataPtr() - baseptr +
@@ -368,7 +414,8 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
   int igrid, jgrid, iface;
 
   nsets = 0;
-  for (iface = 0; iface < interface.nfaces(); iface++) {
+  for (iface = 0; iface < interface.nfaces(); iface++) 
+  {
     if (interface.fgeo(iface) != level_interface::ALL)
       break;
     if (interface.fgrid(iface, 0) >= 0)
@@ -397,14 +444,16 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
   sstrid2 = dstart + 5 * nsets;
   nvals1  = dstart + 6 * nsets;
   nvals2  = dstart + 7 * nsets;
-  for (int i = 0; i < nsets; i++) {
+  for (int i = 0; i < nsets; i++) 
+  {
     nvals1[i] = 0;
     nvals2[i] = 0;
   }
 #endif
 
   int iset = 0;
-  for (iface = 0; iface < interface.nfaces(); iface++) {
+  for (iface = 0; iface < interface.nfaces(); iface++) 
+  {
     igrid = interface.fgrid(iface, 0);
     jgrid = interface.fgrid(iface, 1);
     if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
@@ -412,7 +461,8 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
     const Box& b = interface.node_face(iface);
 #if (BL_SPACEDIM == 2)
     int dstarti, dstartj, sstarti, sstartj, stridi, stridj, nvals;
-    if (interface.fdim(iface) == 0) {
+    if (interface.fdim(iface) == 0) 
+    {
       nvals = b.length(1);
       stridi = r[igrid].box().length(0);
       stridj = r[jgrid].box().length(0);
@@ -425,7 +475,8 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 	        stridj * (b.smallEnd(1) - r[jgrid].box().smallEnd(1));
       sstartj = dstartj + 2;
     }
-    else {
+    else 
+    {
       nvals = b.length(0) + 2 * w;
       stridi = r[igrid].box().length(0);
       stridj = r[jgrid].box().length(0);
@@ -445,7 +496,8 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 #else
     int dstarti, dstartj, sstarti, sstartj;
     int stridi1, stridi2, stridj1, stridj2;
-    if (interface.fdim(iface) == 0) {
+    if (interface.fdim(iface) == 0) 
+    {
       int nvals1, nvals2;
       nvals1 = b.length(1);
       nvals2 = b.length(2);
@@ -468,7 +520,8 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
       set(iset++, dstartj, sstarti, stridj1, stridj2,
                  stridi1, stridi2, nvals1, nvals2);
     }
-    else if (interface.fdim(iface) == 1) {
+    else if (interface.fdim(iface) == 1) 
+    {
       int nvals1i, nvals1j, nvals2;
       int il1 = 0, ih1 = 0, jl1 = 0, jh1 = 0;
       if (r.box(jgrid).smallEnd(0) == b.smallEnd(0))
@@ -509,7 +562,8 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
       set(iset++, dstartj, sstarti, stridj1, stridj2,
 	  stridi1, stridi2, nvals1j, nvals2);
     }
-    else {
+    else 
+    {
       int nvals1i, nvals1j, nvals2i, nvals2j;
       int il1 = 0, ih1 = 0, jl1 = 0, jh1 = 0;
       int il2 = 0, ih2 = 0, jl2 = 0, jh2 = 0;
@@ -569,6 +623,45 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
   nsets = iset;
 }
 
+#ifdef HG_CONSTANT
+
+unroll_cache::unroll_cache(int Nsets, Real *Ptr)
+  : nsets(Nsets), ptr(Ptr) 
+{
+#if (BL_SPACEDIM == 2)
+    start = new int[3 * nsets];
+    strid = start + nsets;
+    nvals = start + 2 * nsets;
+#else
+    start  = new int[4 * nsets];
+    strid1 = start + nsets;
+    strid2 = start + 2 * nsets;
+    nvals  = start + 3 * nsets;
+#endif
+}
+
+#if (BL_SPACEDIM==2)
+void 
+unroll_cache::set(int i, int Start, int Strid, int Nvals) 
+{
+    if (i < 0 || i >= nsets)
+      BoxLib::Error("unroll_cache::set---out of range");
+    start[i] = Start;
+    strid[i] = Strid;
+    nvals[i] = Nvals;
+}
+#else
+void 
+unroll_cache::set(int i, int Start, int Strid1, int Strid2, int Nvals) 
+{
+    if (i < 0 || i >= nsets)
+      BoxLib::Error("unroll_cache::set---out of range");
+    start[i]  = Start;
+    strid1[i] = Strid1;
+    strid2[i] = Strid2;
+    nvals[i]  = Nvals;
+}
+#endif
 unroll_cache::unroll_cache(MultiFab& r)
 {
   nsets = r.length();
@@ -588,7 +681,8 @@ unroll_cache::unroll_cache(MultiFab& r)
   nvals  = start + 3 * nsets;
 #endif
 
-  for (int igrid = 0; igrid < r.length(); igrid++) {
+  for (int igrid = 0; igrid < r.length(); igrid++)
+  {
     set(igrid, r[igrid].dataPtr() - baseptr,
 	r[igrid].box().length(0),
 #if (BL_SPACEDIM == 3)
@@ -597,3 +691,5 @@ unroll_cache::unroll_cache(MultiFab& r)
 	r[igrid].box().numPts());
   }
 }
+#endif
+#endif

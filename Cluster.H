@@ -2,7 +2,7 @@
 #define _Cluster_H_ 
 
 //
-// $Id: Cluster.H,v 1.4 1997-10-01 01:03:02 car Exp $
+// $Id: Cluster.H,v 1.5 1997-10-03 23:37:30 car Exp $
 //
 
 #include <IntVect.H>
@@ -10,7 +10,7 @@
 #include <Array.H>
 #include <BoxArray.H>
 #include <BoxDomain.H>
-#include <REAL.H>
+//#include <REAL.H>
 
 
 class ClusterList;
@@ -82,9 +82,9 @@ public:
     void distribute(ClusterList &clst, const BoxDomain &bd);
 
 //  compute ratio of tagged to total number og points in cluster
-    REAL eff() const {
+    double eff() const {
 	assert( ok() );
-	return ((REAL) numTag())/((REAL) bx.numPts());
+	return ((double) numTag())/((double) bx.numPts());
     }
 
 protected:
@@ -134,7 +134,7 @@ public:
     void boxList(BoxList &blst);
 
 //  chop all clusters in list that have poor efficiency
-    void chop(REAL eff);
+    void chop(double eff);
 
 //  intersect clusters with BoxDomain to insure cluster
 //  boxes are interior to domain

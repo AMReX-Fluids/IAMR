@@ -1,6 +1,6 @@
 
 //
-// $Id: fill_patch.cpp,v 1.12 1997-10-01 01:03:20 car Exp $
+// $Id: fill_patch.cpp,v 1.13 1997-10-03 23:37:35 car Exp $
 //
 
 #include <fill_patch.H>
@@ -32,17 +32,23 @@ extern "C"
 
 void
 fill_borders(MultiFab& r,
+#ifdef HG_USE_CACHE
 	     const copy_cache* border_cache,
+#endif
 	     const level_interface& interface,
 	     amr_boundary bdy,
 	     int w)
 {
     TRACER("fill_patch::fill_borders");
+#ifdef HG_USE_CACHE
     if (border_cache) 
     {
 	// assumes cache built properly---does not check current bdy and w
 	border_cache->run();
     }
+#else
+    if ( 0 );
+#endif
     else 
     {
 	fill_internal_borders(r, interface, w);
@@ -998,7 +1004,9 @@ interpolate_patch(Fab& patch, const Box& region,
 void
 restrict_patch(Fab& patch, const Box& region,
 	       MultiFab& r, const IntVect& rat,
+#ifdef HG_USE_CACHE
 	       const copy_cache* border_cache,
+#endif
 	       const amr_restrictor_class& restric,
 	       const level_interface& interface,
 	       amr_boundary bdy)
@@ -1024,14 +1032,20 @@ restrict_patch(Fab& patch, const Box& region,
     {
 	// This assertion difficult in BoxLib since r.mesh() is not cc:
 	//assert(r.mesh() == interface.interior_mesh());
-	restric.interface(patch, region, r, border_cache, interface, bdy, rat);
+	restric.interface(patch, region, r, 
+#ifdef HG_USE_CACHE
+	    border_cache,
+#endif
+	    interface, bdy, rat);
     }
 }
 
 void
 restrict_level(MultiFab& dest, int bflag,
 	       MultiFab& r, const IntVect& rat,
+#ifdef HG_USE_CACHE
 	       const copy_cache* border_cache,
+#endif
 	       const amr_restrictor_class& restric,
 	       const level_interface& interface,
 	       amr_boundary bdy)
@@ -1040,12 +1054,18 @@ restrict_level(MultiFab& dest, int bflag,
     {
 	if (bflag) 
 	{
-	    restrict_patch(dest[igrid], r, rat, border_cache,
+	    restrict_patch(dest[igrid], r, rat,
+#ifdef HG_USE_CACHE
+		border_cache,
+#endif
 		restric, interface, bdy);
 	}
 	else
 	{
-	    restrict_patch(dest[igrid], dest.box(igrid), r, rat, border_cache,
+	    restrict_patch(dest[igrid], dest.box(igrid), r, rat, 
+#ifdef HG_USE_CACHE
+		border_cache,
+#endif
 		restric, interface, bdy);
 	}
     }

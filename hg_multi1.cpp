@@ -1,6 +1,6 @@
 
 //
-// $Id: hg_multi1.cpp,v 1.10 1997-10-01 01:03:20 car Exp $
+// $Id: hg_multi1.cpp,v 1.11 1997-10-03 23:37:36 car Exp $
 //
 
 #include <Tracer.H>
@@ -90,6 +90,9 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
     }
   }
 
+
+#ifdef HG_USE_CACHE
+
   corr_scache.resize(mglev_max + 1, 0);
 
   if ( cache )
@@ -114,6 +117,7 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
 	      mg_boundary, 1));
       }
   }
+#endif
   build_sigma(Sigma);
 
   if( cache )
@@ -135,20 +139,24 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   cgwork[6].setVal(0.0);
   cgwork.set(7, new MultiFab(mesh0, 1, ib));
 
+#ifdef HG_USE_CACHE
   if( cache )
   {
       cgw1_bcache = new copy_cache(cgwork[1], interface[0], mg_boundary, 1);
   }
+#endif
 
   assert(cgwork[3].nGrow() == ib &&
 	 cgwork[4].nGrow() == ib &&
 	 cgwork[5].nGrow() == ib);
 
+#ifdef HG_CONSTANT
   cgw_ucache.resize(8);
   for (i = 0; i < 8; i++) 
   {
     cgw_ucache.set(i, new unroll_cache(cgwork[i]));
   }
+#endif
 
   // PARALLEL
   // for (int igrid = 0; igrid < mg_mesh[0].length(); igrid++) 
@@ -328,19 +336,33 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   if (mglev_max > 0) 
   {
     IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
-    restrict_level(sigma_split[mglev-1], sigma[mglev], rat, 0,
+    restrict_level(sigma_split[mglev-1], sigma[mglev], rat, 
+#ifdef HG_USE_CACHE
+	0,
+#endif
 		   holy_grail_sigma_restrictor);
   }
-  fill_borders(sigma[mglev], 0, interface[mglev], boundary.scalar());
+  fill_borders(sigma[mglev],
+#ifdef HG_USE_CACHE
+      0,
+#endif
+      interface[mglev], boundary.scalar());
   for (mglev = mglev_max - 1; mglev > 0; mglev--) 
   {
     IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
-    restrict_level(sigma_split[mglev-1], sigma_split[mglev], rat, 0,
+    restrict_level(sigma_split[mglev-1], sigma_split[mglev], rat, 
+#ifdef HG_USE_CACHE
+	0,
+#endif
 		   holy_grail_sigma_restrictor);
   }
   for (mglev = 0; mglev < mglev_max; mglev++) 
   {
-    fill_borders(sigma_split[mglev], 0, interface[mglev], boundary.scalar());
+    fill_borders(sigma_split[mglev], 
+#ifdef HG_USE_CACHE
+	0, 
+#endif
+	interface[mglev], boundary.scalar());
   }
 
   for (i = 0; i < BL_SPACEDIM; i++) 
@@ -535,19 +557,24 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 void 
 holy_grail_amr_multigrid::clear()
 {
-  int i, lev, mglev;
+  int lev, mglev;
 
   line_order.clear();
   line_after.clear();
 
   delete_sync_caches();
 
+#ifdef HG_USE_CACHE
   delete cgw1_bcache;
-  for (i = 0; i < 8; i++) 
+#endif
+
+#ifdef HG_CONSTANT
+  for (int i = 0; i < 8; i++) 
   {
     delete cgw_ucache[i];
     cgw_ucache[i] = 0;
   }
+#endif
   delete cgwork.remove(0);
   delete cgwork.remove(1);
   delete cgwork.remove(2);
@@ -561,7 +588,7 @@ holy_grail_amr_multigrid::clear()
 #  ifndef SIGMA_NODE
   mglev = mglev_max;
   delete sigma.remove(mglev);
-  for (i = 0; i < BL_SPACEDIM; i++) 
+  for (int i = 0; i < BL_SPACEDIM; i++) 
   {
     sigma_nd[i].remove(mglev);
   }
@@ -602,6 +629,7 @@ holy_grail_amr_multigrid::clear()
     }
   }
 
+#ifdef HG_USE_CACHE
   for (lev = lev_min; lev <= lev_max; lev++) 
   {
     delete dest_bcache[lev];
@@ -619,6 +647,7 @@ holy_grail_amr_multigrid::clear()
     delete work_bcache[mglev];
     work_bcache[mglev] = 0;
   }
+#endif
 
   amr_multigrid::clear();
 }
@@ -708,7 +737,10 @@ holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
   IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
   if (get_amr_level(lto) >= 0) 
   {
-    restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
+    restrict_level(resid[lto], 0, work[lfrom], rat, 
+#ifdef HG_USE_CACHE
+	work_bcache[lfrom],
+#endif
 		   bilinear_restrictor_coarse_class(),
 		   interface[lfrom], mg_boundary);
   }
@@ -722,7 +754,11 @@ void
 holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 {
   int igrid;
-  fill_borders(work[lfrom], work_bcache[lfrom], interface[lfrom], mg_boundary);
+  fill_borders(work[lfrom], 
+#ifdef HG_USE_CACHE
+      work_bcache[lfrom],
+#endif
+      interface[lfrom], mg_boundary);
   IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
   for (igrid = 0; igrid < resid[lto].length(); igrid++) 
   {

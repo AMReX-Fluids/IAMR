@@ -1,6 +1,6 @@
 
 //
-// $Id: boundary.cpp,v 1.6 1997-09-26 16:57:09 lijewski Exp $
+// $Id: boundary.cpp,v 1.7 1997-10-03 23:37:33 car Exp $
 //
 
 #include <boundary.H>
@@ -683,6 +683,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
   }
 }
 
+#ifdef HG_USE_CACHE
 void mixed_boundary_class::set_sync_cache(copy_cache* cache,
 					  int nsets, int& iset,
 					  MultiFab& r,
@@ -1182,6 +1183,8 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
   if (iset > nsets)
     BoxLib::Error("mixed_boundary_class::set_boundary_cache---too many boundary edges to cache");
 }
+
+#endif
 
 void amr_boundary_class::boundary_mesh(BoxArray& exterior_mesh,
 				       int *&grid_ref,

@@ -2,12 +2,14 @@
 #define _BOUNDARY_H_
 
 //
-// $Id: boundary.H,v 1.6 1997-10-01 01:03:18 car Exp $
+// $Id: boundary.H,v 1.7 1997-10-03 23:37:32 car Exp $
 //
 
 #include <interface.H>
 
+#ifdef HG_USE_CACHE
 class copy_cache;
+#endif
 
 // typedef const class amr_boundary_class& amr_boundary;
 
@@ -44,6 +46,7 @@ class amr_boundary_class
   virtual void fill_borders(MultiFab& r,
 			    const level_interface& interface,
 			    int w = -1) const;
+#ifdef HG_USE_CACHE
   virtual void set_sync_cache(copy_cache*, int, int&,
 			      MultiFab&,
 			      const level_interface&) const { }
@@ -53,6 +56,7 @@ class amr_boundary_class
   {
     BoxLib::Error("amr_boundary_class::set_border_cache---boundary condition not defined.");
   }
+#endif
   virtual void boundary_mesh(BoxArray& exterior_mesh, int *&grid_ref,
 			     const BoxArray& interior_mesh,
 			     const Box& domain) const;
@@ -234,6 +238,7 @@ class mixed_boundary_class
   void fill_borders(MultiFab& r,
 		    const level_interface& interface,
 		    int w = -1) const;
+#ifdef HG_USE_CACHE
   void set_sync_cache(copy_cache* cache, int nsets, int& iset,
 		      MultiFab& r,
 		      const level_interface& interface) const;
@@ -241,6 +246,7 @@ class mixed_boundary_class
 			MultiFab& r,
 			const level_interface& interface,
 			int w) const;
+#endif
   void duplicate(List<Box>& bl, const Box& domain) const;
   int fill_patch_special(Fab&, const Box&,
 			 MultiFab&, const Box&, int flags) const;

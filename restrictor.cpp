@@ -1,6 +1,6 @@
 
 //
-// $Id: restrictor.cpp,v 1.6 1997-10-01 01:03:23 car Exp $
+// $Id: restrictor.cpp,v 1.7 1997-10-03 23:37:37 car Exp $
 //
 
 #include <restrictor.H>
@@ -148,7 +148,9 @@ void
 bilinear_restrictor_class::interface(Fab& patch,
 					  const Box& region,
 					  MultiFab& fine,
+#ifdef HG_USE_CACHE
 					  const copy_cache* border_cache,
+#endif
 					  const level_interface& interface,
 					  amr_boundary bdy,
 					  const IntVect& rat) const
@@ -247,7 +249,11 @@ bilinear_restrictor_class::interface(Fab& patch,
   }
   else 
   {
-    fill_borders(fine, border_cache, interface, bdy, ratmax - 1);
+    fill_borders(fine, 
+#ifdef HG_USE_CACHE
+	border_cache, 
+#endif
+	interface, bdy, ratmax - 1);
     for (int iface = 0; iface < interface.nfaces(); iface++) 
     {
       if (interface.fgeo(iface) == level_interface::ALL && interface.fflag(iface) == 0) 
@@ -333,14 +339,15 @@ bilinear_restrictor_class::interface(Fab& patch,
 
 void 
 bilinear_restrictor_coarse_class::interface(Fab& patch,
-						 const Box& region,
-						 MultiFab& fine,
-						 const copy_cache*
-						   border_cache,
-						 const level_interface&
-						   interface,
-						 amr_boundary bdy,
-						 const IntVect& rat) const
+					    const Box& region,
+					    MultiFab& fine,
+#ifdef HG_USE_CACHE
+					    const copy_cache* border_cache,
+#endif
+					    const level_interface&
+					    interface,
+					    amr_boundary bdy,
+					    const IntVect& rat) const
 {
   if (patch.box().type() != nodevect)
     BoxLib::Error("bilinear_restrictor_coarse_class::interface---bilinear restriction only defined for NODE-based data");
@@ -357,7 +364,11 @@ bilinear_restrictor_coarse_class::interface(Fab& patch,
 #endif
 
   if (fine.nGrow() >= ratmax - 1)
-    fill_borders(fine, border_cache, interface, bdy, ratmax - 1);
+    fill_borders(fine, 
+#ifdef HG_USE_CACHE
+    border_cache, 
+#endif
+    interface, bdy, ratmax - 1);
 
   for (int iface = 0; iface < interface.nfaces(); iface++) 
   {
