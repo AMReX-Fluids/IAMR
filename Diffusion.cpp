@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.66 1999-02-18 21:12:08 almgren Exp $
+// $Id: Diffusion.cpp,v 1.67 1999-02-23 19:07:02 marc Exp $
 //
 
 //
@@ -806,13 +806,13 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                 const int *vhi      = vbox.hiVect();
     
                 const FArrayBox& betax = betanp10mfi();
-		const int* betax_hi = betax.loVect();
-		const int* betax_lo = betax.hiVect();
+		const int* betax_lo = betax.loVect();
+		const int* betax_hi = betax.hiVect();
 		const Real* betax_dat = betax.dataPtr(dComp);
 
                 const FArrayBox& betay = betanp11mfi();
-		const int* betay_hi = betay.loVect();
-		const int* betay_lo = betay.hiVect();
+		const int* betay_lo = betay.loVect();
+		const int* betay_hi = betay.hiVect();
 		const Real* betay_dat = betay.dataPtr(dComp);
 
                 FORT_TENSOR_HOOPRHS(&fort_xvel_comp, rhs, ARLIM(lo), ARLIM(hi), 
