@@ -164,6 +164,6 @@ mg.nu_f = 100
 
 RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update
                    mac_project mac_sync level_project sync_project init_data
-                   write_pltfile write_chkfile processor_map fab_arena
+                   write_pltfile write_chkfile processor_map
                    fill_patch fill_boundary fill_periodic_bndry fabset_lincomb
                    fabset_copyfrom fabset_plusfrom reflux fabarray_copy
