@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.26 1999-05-27 20:25:00 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.27 1999-06-04 23:13:24 propp Exp $
 //
 
 #include <NavierStokes.H>
@@ -16,6 +16,7 @@
 
 static Box the_same_box (const Box& b) { return b;                   }
 static Box grow_box_by_one (const Box& b)    { return grow(b,1);           }
+static Box cell_to_node (const Box& b)    { return ::surroundingNodes(b); }
 
 //
 // Components are  Interior, Inflow, Outflow, Symmetry, SlipWall, NoSlipWall.
@@ -293,6 +294,12 @@ NavierStokes::variableSetUp ()
     //
     derive_lst.add("diveru",IndexType::TheCellType(),1,FORT_DERMGDIVU,grow_box_by_one);
     derive_lst.addComponent("diveru",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
+    // average pressure
+    //
+    derive_lst.add("avg_pressure",IndexType::TheCellType(),1,FORT_DERAVGPRES,
+                   cell_to_node);
+    derive_lst.addComponent("avg_pressure",desc_lst,Press_Type,Pressure,1);
     //
     // pressure gradient in X direction
     //
