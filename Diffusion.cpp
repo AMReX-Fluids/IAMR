@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.80 1999-03-25 18:58:40 marc Exp $
+// $Id: Diffusion.cpp,v 1.81 1999-03-30 17:25:18 lijewski Exp $
 //
 
 //
@@ -84,6 +84,7 @@ int  Diffusion::tensor_max_order    = 2;
 int  Diffusion::scale_abec          = 0;
 int  Diffusion::est_visc_mag        = 1;
 int  Diffusion::Lphi_in_abs_tol     = 0;
+int  Diffusion::Rhs_in_abs_tol      = 0;
 
 Array<Real> Diffusion::typical_vals;
 const Real typical_vals_DEF = 1.0;
@@ -194,6 +195,7 @@ Diffusion::echo_settings () const
         cout << "   scale_abec =          " << scale_abec << '\n';
         cout << "   est_visc_mag =        " << est_visc_mag << '\n';
         cout << "   Lphi_in_abs_tol =     " << Lphi_in_abs_tol << '\n';
+        cout << "   Rhs_in_abs_tol =      " << Rhs_in_abs_tol << '\n';
     
         cout << "   typical_vals =";
         for (int i = 0; i <NUM_STATE; i++)
@@ -226,27 +228,20 @@ Diffusion::get_scaled_abs_tol (int                    sigma,
                                const MultiFab* const* betanp1,
                                Real                   reduction) const
 {
-    //
-    // Get norm of rhs.
-    //
-    Real norm_est, norm_rhs = 0;
+    Real norm_est = 1;
 
-    if (rhs != 0)
+    if (rhs != 0 && Rhs_in_abs_tol)
     {
         assert(grids == rhs->boxArray());
 
         for (ConstMultiFabIterator Rhsmfi(*rhs); Rhsmfi.isValid(); ++Rhsmfi)
         {
-            norm_rhs = Max(norm_rhs,Rhsmfi().norm(0));
+            norm_est = Max(norm_est,Rhsmfi().norm(0));
         }
-        ParallelDescriptor::ReduceRealMax(norm_rhs);
+        ParallelDescriptor::ReduceRealMax(norm_est);
     }
 
-    if (!Lphi_in_abs_tol)
-    {
-        norm_est = norm_rhs;
-    }
-    else
+    if (Lphi_in_abs_tol)
     {
         //
         // Approximate (||A||.||x|| + ||rhs||)*reduction
@@ -322,7 +317,7 @@ Diffusion::get_scaled_abs_tol (int                    sigma,
         //
         Real norm_x = typical_vals[sigma];
 
-        norm_est = Max( norm_A * norm_x, norm_rhs );
+        norm_est = Max( norm_A * norm_x, norm_est );
     }
     
     assert(norm_est >= 0);

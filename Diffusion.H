@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.12 1999-02-25 17:35:36 car Exp $
+// $Id: Diffusion.H,v 1.13 1999-03-30 17:25:17 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -275,6 +275,7 @@ private:
     static int         scale_abec;
     static int         est_visc_mag;
     static int         Lphi_in_abs_tol;
+    static int         Rhs_in_abs_tol;
     static Array<int>  is_diffusive;    // Does variable diffuse?
     static Array<Real> visc_coef;       // Const coef viscosity terms
     static Real        visc_tol;
