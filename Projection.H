@@ -2,7 +2,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.8 1998-01-26 20:56:43 car Exp $
+// $Id: Projection.H,v 1.9 1998-03-03 19:03:58 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -121,12 +121,12 @@ public: // ================== public access functions
                    const Real* dx, int is_rz);
     
     // put divu in the rhs of the projector
-    void put_divu_in_node_rhs(MultiFab& rhs, Amr* parent, int level,
+    void put_divu_in_node_rhs(MultiFab& rhs, int level,
                          const int& nghost,
                          const BoxArray& P_grids, Real time,
                          int user_rz = -1);
 
-    void put_divu_in_cc_rhs(MultiFab& rhs, Amr* parent, int level,
+    void put_divu_in_cc_rhs(MultiFab& rhs, int level,
                                  const BoxArray& grids, Real time);
 
 protected:  // ================== protected member functions
@@ -218,7 +218,7 @@ protected:  // ================== protected member functions
                                             int c_lev,Real cur_divu_time);
     
     void set_initial_syncproject_outflow_bcs(MultiFab** phi,
-                                             Amr* parent,int c_lev,Real
+                                             int c_lev,Real
                                              start_time, Real dt);
     
 protected:// ================== protected data members

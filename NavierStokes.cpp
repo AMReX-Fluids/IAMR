@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.27 1998-02-09 21:11:58 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.28 1998-03-03 19:03:57 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -5543,9 +5543,7 @@ NavierStokes::compute_grad_divu_minus_s(Real time, MultiFab* grad_divu_minus_s,
     int nghost = 0;
     if(have_divu) {
 
-      projector->put_divu_in_node_rhs(S, parent, level,
-                  nghost,
-                  node_grids, time);
+      projector->put_divu_in_node_rhs(S, level, nghost, node_grids, time);
     } else {
       S.setVal(0.0);
     }

@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.29 1998-02-23 22:59:02 car Exp $
+// $Id: Projection.cpp,v 1.30 1998-03-03 19:03:58 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -924,13 +924,13 @@ void Projection::MLsyncProject(int c_lev,
       u_realfinemfi().copy(V_corrmfi(), n, 0);
     }
 
-    restrict_level(u_real[n][c_lev], false, u_real[n][c_lev+1], ratio, 0, default_restrictor(), level_interface(), 0);
+    restrict_level(u_real[n][c_lev], u_real[n][c_lev+1], ratio, 0, default_restrictor(), level_interface(), 0);
   }
 
   s_real.set(c_lev,   &rho_crse);
   s_real.set(c_lev+1, &rho_fine);
 
-  restrict_level(s_real[c_lev], false, s_real[c_lev+1], ratio, 0, default_restrictor(), level_interface(), 0);
+  restrict_level(s_real[c_lev], s_real[c_lev+1], ratio, 0, default_restrictor(), level_interface(), 0);
 
   p_real.set(c_lev,   phi[c_lev]);
   p_real.set(c_lev+1, phi[c_lev+1]);
@@ -1108,7 +1108,7 @@ void Projection::initialVelocityProject(int c_lev,
                         phys_bc->hi(1) == Outflow); 
   if (outflow_at_top && have_divu && do_outflow_bcs) 
   {
-    set_initial_projection_outflow_bcs(vel,sig,phi,parent,c_lev,cur_divu_time);
+    set_initial_projection_outflow_bcs(vel,sig,phi,c_lev,cur_divu_time);
   }
 #endif
 
@@ -1216,8 +1216,7 @@ void Projection::initialVelocityProject(int c_lev,
       const BoxArray& grids = amr_level.boxArray();
       rhs_cc[lev]  = new MultiFab(grids,1,nghost,Fab_allocate);
       MultiFab* rhslev = rhs_cc[lev];
-      put_divu_in_cc_rhs(*rhslev,parent,lev,
-                         grids,cur_divu_time);
+      put_divu_in_cc_rhs(*rhslev,lev,grids,cur_divu_time);
       rhslev->mult(-1.0,0,1,nghost);
       radMult(lev,*rhslev,0); 
     }
@@ -1390,7 +1389,7 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
     phys_bc->hi(0) != Outflow && phys_bc->hi(1) == Outflow; 
   if (outflow_at_top && have_divu && do_outflow_bcs) 
   {
-    set_initial_syncproject_outflow_bcs(phi,parent,c_lev,strt_time,dt);
+    set_initial_syncproject_outflow_bcs(phi,c_lev,strt_time,dt);
   }
 #endif
 
@@ -1456,7 +1455,7 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
   {
     for (lev = f_lev; lev >= c_lev+1; lev--) 
     {
-      restrict_level(u_real[n][lev-1], false, u_real[n][lev], parent->refRatio(lev-1),
+      restrict_level(u_real[n][lev-1], u_real[n][lev], parent->refRatio(lev-1),
 	  0, default_restrictor(), level_interface(), 0);
     }
   }
@@ -1612,7 +1611,7 @@ void Projection::computeDV(MultiFab& DV, const MultiFab& U,
 }
 
 // put S in the rhs of the projector--node based version
-void Projection::put_divu_in_node_rhs(MultiFab& rhs, Amr* parent, int level,
+void Projection::put_divu_in_node_rhs(MultiFab& rhs, int level,
                                  const int& nghost, const BoxArray& P_grids,
                                  Real time, int user_rz)
 {
@@ -1698,7 +1697,7 @@ void Projection::put_divu_in_node_rhs(MultiFab& rhs, Amr* parent, int level,
 }
 
 // put S in the rhs of the projector--cell based version
-void Projection::put_divu_in_cc_rhs(MultiFab& rhs, Amr* parent, int level,
+void Projection::put_divu_in_cc_rhs(MultiFab& rhs, int level,
                                  const BoxArray& grids, Real time)
 {
   rhs.setVal(0.0);
@@ -2443,7 +2442,7 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
 }
 
 void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi, 
-                 Amr* parent, int c_lev, Real start_time, Real dt)
+                 int c_lev, Real start_time, Real dt)
 {
 #if (BL_SPACEDIM == 2)
   //int rho_comp = Density;
