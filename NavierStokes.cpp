@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.77 1998-07-07 22:12:15 car Exp $
+// $Id: NavierStokes.cpp,v 1.78 1998-07-08 16:33:19 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3419,8 +3419,8 @@ NavierStokes::avgDown (const BoxArray& cgrids,
         Box ovlp = ::coarsen(fgrids[f_idx],fratio) & cgrids[c_idx];
 
         assert(ovlp.ok());
-        assert(S_crse.DistributionMap().ProcessorMap()[c_idx] == MyProc);
-        assert(cvolume.DistributionMap().ProcessorMap()[c_idx] == MyProc);
+        assert(S_crse.DistributionMap()[c_idx] == MyProc);
+        assert(cvolume.DistributionMap()[c_idx] == MyProc);
 
         const FillBoxId& fbidFine    = fillBoxIdList[i];
         const FillBoxId& fbidFineVol = fillBoxIdListVol[i];
@@ -3995,7 +3995,7 @@ NavierStokes::avgDown ()
         Box ovlp = ::coarsen(P_fgrids[f_idx],fine_ratio) & P_cgrids[c_idx];
 
         assert(ovlp.ok());
-        assert(P_crse.DistributionMap().ProcessorMap()[c_idx] == MyProc);
+        assert(P_crse.DistributionMap()[c_idx] == MyProc);
         //
         // Inject fine down to coarse.
         //

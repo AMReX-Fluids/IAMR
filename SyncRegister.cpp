@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.43 1998-07-06 16:58:52 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.44 1998-07-08 16:33:18 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -247,7 +247,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
             for (int i = 0; i < fillBoxIDs.size(); i++)
             {
-                assert(rhs.ProcessorMap()[fillBoxIDs[i].FabIndex()] == MyProc);
+                assert(rhs.DistributionMap()[fillBoxIDs[i].FabIndex()] == MyProc);
 
                 FArrayBox& fab = rhs[fillBoxIDs[i].FabIndex()];
 
@@ -458,7 +458,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
         {
             const FillBoxId& fbID = fillBoxIDs[i];
 
-            assert(rhs.ProcessorMap()[fbID.FabIndex()] == MyProc);
+            assert(rhs.DistributionMap()[fbID.FabIndex()] == MyProc);
 
             FArrayBox& rhs_fab = rhs[fbID.FabIndex()];
 
