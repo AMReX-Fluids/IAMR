@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.9 1998-05-14 19:59:13 almgren Exp $
+c $Id: PROB_3D.F,v 1.10 1998-06-01 22:15:38 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -113,13 +113,6 @@ c ::: -----------------------------------------------------------
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
-      integer i, j, k
-      REAL_T  x, y, z
-      REAL_T  hx, hy, hz
-      REAL_T  x_vel, y_vel, z_vel, dist
 
 #include "probdata.H"
 
@@ -137,15 +130,34 @@ c
          call initvort(level,time,lo,hi,nscal,
      &     	       vel,scal,DIMS(state),press,DIMS(press),
      &                 dx,xlo,xhi)
+
+      else if (probtype .eq. 4) then
+         call initchannel(level,time,lo,hi,nscal,
+     &     	          vel,scal,DIMS(state),press,DIMS(press),
+     &                    dx,xlo,xhi)
+
+      else if (probtype .eq. 5) then
+         call initpervort(level,time,lo,hi,nscal,
+     &     	          vel,scal,DIMS(state),press,DIMS(press),
+     &                    dx,xlo,xhi)
+
+      else if (probtype .eq. 6) then
+         call inithotspot(level,time,lo,hi,nscal,
+     &     	          vel,scal,DIMS(state),press,DIMS(press),
+     &                    dx,xlo,xhi)
+
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
       end if
-
       end
 
+c
+c ::: -----------------------------------------------------------
+c
       subroutine initbubble(level,time,lo,hi,nscal,
      &	 	            vel,scal,DIMS(state),press,DIMS(press),
      &                      dx,xlo,xhi)
+
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(state)
@@ -158,13 +170,11 @@ c
 c
 c     ::::: local variables
 c
-      integer i, j, k
+      integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
-      REAL_T  rho, dist, c, ux, uy, uz, rhobub
+      REAL_T  dist
       REAL_T  x_vel, y_vel, z_vel
-      REAL_T  spx, spy, cpx, cpy, spz, cpz
-      REAL_T  rn
 
 #include "probdata.H"
 
@@ -180,7 +190,7 @@ c
          x_vel = zero
          y_vel = adv_vel
          z_vel = zero
-      else if (adv_dir .eq. 3) then
+      else if (adv_dir .eq. 2) then
          x_vel = zero
          y_vel = zero
          z_vel = adv_vel
@@ -189,65 +199,29 @@ c
          stop
       end if
 
-#if 0
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            y = xlo(2) + hy*(float(j-lo(2)) + half)
-	    spy = sin(Pi*y)
-	    cpy = cos(Pi*y)
-	    do i = lo(1), hi(1)
-               x = xlo(1) + hx*(float(i-lo(1)) + half)
- 	       spx = sin(Pi*x)
-	       cpx = cos(Pi*x)
-  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-	       c   = cvmgt(one,zero,dist.lt.radblob)
-               ux = x_vel - velfact*two*spy*cpy*spx**2
-               uy = y_vel + velfact*two*spx*cpx*spy**2
-               uz = z_vel
-               call blutilrand(rn)
-               rhobub = denfact*(one + randfact*rn)
-               rho = cvmgt(rhobub,one,dist.lt.radblob)
-	       c   = cvmgt(one,zero,dist.lt.radblob)
-	       vel(i,j,k,1) = ux
-	       vel(i,j,k,2) = uy
-	       vel(i,j,k,3) = uz
-	       scal(i,j,k,1) = rho
-               scal(i,j,k,2) = c
-	    end do
-         end do
-      end do
-#endif
-
       do k = lo(3), hi(3)
          z = xlo(3) + hz*(float(k-lo(3)) + half)
          do j = lo(2), hi(2)
-            if (axis_dir .eq. 1) then
-               y = xlo(2) + hy*(float(j-lo(2)) + half)
-               dist = sqrt((z-zblob)**2 + (y-yblob)**2)
-            end if
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
             do i = lo(1), hi(1)
-               if (axis_dir .eq. 2) then
-                  x = xlo(1) + hx*(float(i-lo(1)) + half)
-                  dist = sqrt((z-zblob)**2 + (x-xblob)**2)
-               end if
-               ux = x_vel
-               uy = y_vel
-               uz = z_vel
-               call blutilrand(rn)
-               rhobub = denfact*(one + randfact*rn)
-               rho = cvmgt(rhobub,one,dist.lt.radblob)
-               c   = cvmgt(one,zero,dist.lt.radblob)
-               vel(i,j,k,1) = ux
-               vel(i,j,k,2) = uy
-               vel(i,j,k,3) = uz
-               scal(i,j,k,1) = rho
-               scal(i,j,k,2) = c
-            end do
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+               dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+               vel(i,j,k,1) = x_vel
+               vel(i,j,k,2) = y_vel
+               vel(i,j,k,3) = z_vel
+               scal(i,j,k,1) = cvmgt(denfact,one,dist.lt.radblob)
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = zero
+               end do                  
+               scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+   	    end do
          end do
       end do
 
       end
-
+c
+c ::: -----------------------------------------------------------
+c
       subroutine initspin(level,time,lo,hi,nscal,
      &	 	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
@@ -264,13 +238,258 @@ c
 c
 c     ::::: local variables
 c
-      integer i, j, k
+      integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
-      REAL_T  rho, dist, c, ux, uy, uz
+      REAL_T  dist
       REAL_T  x_vel, y_vel, z_vel
-      REAL_T  spx, spy, cpx, cpy, spz, cpz
-      REAL_T  xlen, ylen, zlen
+      REAL_T  spx, spy, cpx, cpy
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(2)
+
+      if (adv_dir .eq. 1) then
+         x_vel = adv_vel
+         y_vel = zero
+         z_vel = zero
+      else if (adv_dir .eq. 2) then
+         x_vel = zero
+         y_vel = adv_vel
+         z_vel = zero
+      else if (adv_dir .eq. 2) then
+         x_vel = zero
+         y_vel = zero
+         z_vel = adv_vel
+      else
+         write(6,*) "INITSPIN: adv_dir = ",adv_dir
+         stop
+      end if
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+	    spy = sin(Pi*y)
+	    cpy = cos(Pi*y)
+	    do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+ 	       spx = sin(Pi*x)
+               cpx = cos(Pi*x)
+
+               vel(i,j,k,1) = x_vel - velfact*two*spy*cpy*spx**2
+               vel(i,j,k,2) = y_vel + velfact*two*spx*cpx*spy**2
+               vel(i,j,k,3) = z_vel
+
+  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+
+               scal(i,j,k,1) = one + (denfact-one) * tanh(10.*(dist-radblob))
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = zero
+               end do                  
+	       scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+
+	    end do
+         end do
+      end do
+
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initvort(level,time,lo,hi,nscal,
+     &	 	          vel,scal,DIMS(state),press,DIMS(press),
+     &                    dx,xlo,xhi)
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z, r
+      REAL_T  hx, hy, hz
+      REAL_T  c, ux, uy, uz
+      REAL_T  umagin, umagout, absu, sinth, costh
+      REAL_T  small, a, b, r0
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+      small = 1.0e-10
+
+      r0 = two/three * radvort
+      a = one / ((radvort - r0)*(two*radvort - r0))
+      b = a * radvort**2 * (radvort - r0)
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half) - zblob
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half) - yblob
+	    do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half) - xblob
+  	       r = sqrt(x**2 + y**2)
+c              umagin = .5*r - 4*r**3
+c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
+               umagin = velfact * (one - a*(r - r0)**2)
+               umagout = velfact * b/max(radvort,r)
+               absu = cvmgp(umagout,umagin,r - radvort)
+               sinth = y/max(r,small*radvort)
+               costh = x/max(r,small*radvort)
+               vel(i,j,k,1) = -absu*sinth
+               vel(i,j,k,2) = absu*costh
+               vel(i,j,k,3) = zero
+               scal(i,j,k,1) = cvmgt(denfact,one,r.lt.radblob)
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = one
+               end do                  
+               scal(i,j,k,nscal) = cvmgt(one,zero,r.lt.radblob)
+	    end do
+         end do
+      end do
+
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initchannel(level,time,lo,hi,nscal,
+     &	 	             vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  dist
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            do i = lo(1), hi(1)
+               vel(i,j,k,1) = adv_vel
+               vel(i,j,k,2) = zero
+               vel(i,j,k,3) = zero
+               scal(i,j,k,1) = one
+
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = one
+               end do                  
+
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+	       scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+            end do
+         end do
+      end do
+
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initpervort(level,time,lo,hi,nscal,
+     &	 	             vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  dist
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+	    do i = lo(1), hi(1)
+
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+               vel(i,j,k,1) = tanh(30.*(.25-abs(y-.5)))
+               vel(i,j,k,2) = .05*sin(two*Pi*x)
+               vel(i,j,k,3) = zero
+
+               scal(i,j,k,1) = one
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = one
+               end do
+                  
+  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+	       scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+	    end do
+         end do
+      end do
+
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine inithotspot(level,time,lo,hi,nscal,
+     &	 	             vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+
+
+c     ::::: local variables
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  x_vel, y_vel, z_vel
+      REAL_T  dist
 
 #include "probdata.H"
 
@@ -290,146 +509,33 @@ c
          x_vel = zero
          y_vel = zero
          z_vel = adv_vel
-      else
-         write(6,*) "initspin: adv_dir = ",adv_dir
-         stop
-      end if
-
-      xlen = 1.d0
-      ylen = 1.d0
-      zlen = 1.d0
-
-      if (axis_dir .eq. 3) then
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               y = xlo(2) + hy*(float(j-lo(2)) + half)
-               spy = sin(Pi*y / ylen)
-               cpy = cos(Pi*y / ylen)
-               do i = lo(1), hi(1)
-                  x = xlo(1) + hx*(float(i-lo(1)) + half)
-                  spx = sin(Pi*x / xlen)
-                  cpx = cos(Pi*x / xlen)
-                  dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-                  rho = cvmgt(denfact,one,dist.lt.radblob)
-                  c   = cvmgt(one,zero,dist.lt.radblob)
-                  ux = x_vel - velfact*two*spy*cpy*spx**2
-                  uy = y_vel + velfact*two*spx*cpx*spy**2
-                  uz = z_vel
-                  vel(i,j,k,1) = ux
-                  vel(i,j,k,2) = uy
-                  vel(i,j,k,3) = uz
-                  scal(i,j,k,1) = rho
-                  scal(i,j,k,2) = c
-               end do
-            end do
-         end do
-      else if (axis_dir .eq. 2) then
-         do j = lo(2), hi(2)
-            do k = lo(3), hi(3)
-               z = xlo(3) + hz*(float(k-lo(3)) + half)
-               spz = sin(Pi*z / zlen)
-               cpz = cos(Pi*z / zlen)
-               do i = lo(1), hi(1)
-                  x = xlo(1) + hx*(float(i-lo(1)) + half)
-                  spx = sin(Pi*x / xlen)
-                  cpx = cos(Pi*x / xlen)
-                  dist = sqrt((x-xblob)**2 + (z-zblob)**2)
-                  rho = cvmgt(denfact,one,dist.lt.radblob)
-                  c   = cvmgt(one,zero,dist.lt.radblob)
-                  ux = x_vel - velfact*two*spz*cpz*spx**2
-                  uy = y_vel
-                  uz = z_vel + velfact*two*spx*cpx*spz**2
-                  vel(i,j,k,1) = ux
-                  vel(i,j,k,2) = uy
-                  vel(i,j,k,3) = uz
-                  scal(i,j,k,1) = rho
-                  scal(i,j,k,2) = c
-               end do
-            end do
-         end do
-      else if (axis_dir .eq. 1) then
-         do i = lo(1), hi(1)
-            do k = lo(3), hi(3)
-               z = xlo(3) + hz*(float(k-lo(3)) + half)
-               spz = sin(Pi*z / zlen)
-               cpz = cos(Pi*z / zlen)
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy*(float(j-lo(2)) + half)
-                  spy = sin(Pi*y / ylen)
-                  cpy = cos(Pi*y / ylen)
-                  dist = sqrt((z-zblob)**2 + (y-yblob)**2)
-                  rho = cvmgt(denfact,one,dist.lt.radblob)
-                  c   = cvmgt(one,zero,dist.lt.radblob)
-                  ux = x_vel
-                  uy = y_vel + velfact*two*spz*cpz*spy**2
-                  uz = z_vel - velfact*two*spy*cpy*spz**2
-                  vel(i,j,k,1) = ux
-                  vel(i,j,k,2) = uy
-                  vel(i,j,k,3) = uz
-                  scal(i,j,k,1) = rho
-                  scal(i,j,k,2) = c
-               end do
-            end do
-         end do
       else 
-         print *,'BAD AXIS_DIR IN INITSPIN ',axis_dir
+         write(6,*) "inithotspot: adv_dir = ",adv_dir
          stop
       end if
-
-      end
-
-      subroutine initvort(level,time,lo,hi,nscal,
-     &	 	          vel,scal,DIMS(state),press,DIMS(press),
-     &                    dx,xlo,xhi)
-
-      integer    level, nscal
-      integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(state)
-      integer    DIMDEC(press)
-      REAL_T     time, dx(SDIM)
-      REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     vel(DIMV(state),SDIM)
-      REAL_T    scal(DIMV(state),nscal)
-      REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
-      integer i, j, k
-      REAL_T  x, y, z, r
-      REAL_T  hx, hy, hz
-      REAL_T  c, ux, uy, uz
-      REAL_T  umagin, umagout, absu, sinth, costh
-      REAL_T  small
-
-#include "probdata.H"
-
-      hx = dx(1)
-      hy = dx(2)
-      hz = dx(2)
-      small = 1.0e-10
 
       do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
          do j = lo(2), hi(2)
-            y = xlo(2) + hy*(float(j-lo(2)) + half) - yblob
-	    do i = lo(1), hi(1)
-               x = xlo(1) + hx*(float(i-lo(1)) + half) - xblob
-  	       r = sqrt(x**2 + y**2)
-               umagin = .5*r - 4*r**3
-               umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
-               absu = cvmgp(umagout,umagin,r - radvort)
-               sinth = y/max(r,small*radvort)
-               costh = x/max(r,small*radvort)
-               vel(i,j,k,1) = -absu*sinth
-               vel(i,j,k,2) = absu*costh
-               vel(i,j,k,3) = zero
-               scal(i,j,k,1) = cvmgt(denfact,one,r.lt.radblob)
-               scal(i,j,k,2) = cvmgt(one,zero,r.lt.radblob)
-	    end do
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+               dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+               vel(i,j,k,1) = x_vel
+               vel(i,j,k,2) = y_vel
+               vel(i,j,k,3) = z_vel
+               scal(i,j,k,1) = one/denfact + (one - one/denfact)
+     &              *half*(one + tanh(40.*(dist - radblob)))
+               scal(i,j,k,2) = one / scal(i,j,k,1)
+               do n = 3,nscal-1
+                  scal(i,j,k,n) = one
+               end do
+               scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+            end do
          end do
       end do
-
+      
       end
-
 c ::: -----------------------------------------------------------
 c ::: This routine will tag high error cells based on the 
 c ::: density gradient
@@ -519,36 +625,167 @@ c ::: -----------------------------------------------------------
 
 #include "probdata.H"
 
-      if (level .eq. 0) then
-c
-c       ::::: refine around entire bubble
-c
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
-               end do
-            end do
-         end do
+c     probtype = SPIN
+      if (probtype .eq. 1) then
+
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+
+c     probtype = BUBBLE
+      else if (probtype .eq. 2) then
+
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+
+c     probtype = VORTEX IN A BOX
+      else if (probtype .eq. 3) then
+
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+
+c     probtype = CHANNEL
+      else if (probtype .eq. 4) then
+
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+
+c     probtype = PERIODIC SHEAR LAYER
+      else if (probtype .eq. 5) then
+
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+
+c     probtype = HOT SPOT
+      else if (probtype .eq. 6) then
+
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+
       else
-c
-c       ::::: refine where there is bubble gradient
-c
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  ax = abs(adv(i+1,j,k,1) - adv(i-1,j,k,1))
-                  ay = abs(adv(i,j+1,k,1) - adv(i,j-1,k,1))
-                  az = abs(adv(i,j,k+1,1) - adv(i,j,k-1,1))
-                  aerr = max(ax,ay,az)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),aerr.gt.bubgrad)
-               end do
-            end do
-         end do
+        print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
+        stop
       end if
  
       end
 
+c ::: -----------------------------------------------------------
+c ::: This routine will tag high error cells based on the
+c ::: temperature gradient
+c :::
+c ::: INPUTS/OUTPUTS:
+c :::
+c ::: tag      <=  integer tag array
+c ::: DIMS(tag) => index extent of tag array
+c ::: set       => integer value to tag cell for refinement
+c ::: clear     => integer value to untag cell
+c ::: temp      => density array
+c ::: DIMS(temp)=> index extent of temp array
+c ::: lo,hi     => index extent of grid
+c ::: nvar      => number of components in rho array (should be 1)
+c ::: domlo,hi  => index extent of problem domain
+c ::: dx        => cell spacing
+c ::: xlo       => physical location of lower left hand
+c :::              corner of tag array
+c ::: problo    => phys loc of lower left corner of prob domain
+c ::: time      => problem evolution time
+c ::: -----------------------------------------------------------
+      subroutine FORT_TEMPERROR (tag,DIMS(tag),set,clear,
+     &                           temperature,DIMS(temp),lo,hi,nvar,
+     &                           domlo,domhi,dx,xlo,
+     &                           problo,time,level)
+
+      integer   DIMDEC(tag)
+      integer   DIMDEC(temp)
+      integer   nvar, set, clear, level
+      integer   domlo(SDIM), domhi(SDIM)
+      integer   lo(SDIM), hi(SDIM)
+      REAL_T    dx(SDIM), xlo(SDIM), problo(SDIM), time
+      integer   tag(DIMV(tag))
+      REAL_T    temperature(DIMV(temp),nvar)
+
+      REAL_T    x, y, z, ax, ay, az, aerr
+      integer   i, j, k
+
+#include "probdata.H"
+
+c     probtype = SPIN
+      if (probtype .eq. 1) then
+
+c     probtype = BUBBLE
+      else if (probtype .eq. 2) then
+
+c     probtype = VORTEX IN A BOX
+      else if (probtype .eq. 3) then
+
+c     probtype = CHANNEL
+      else if (probtype .eq. 4) then
+
+c     probtype = PERIODIC SHEAR LAYER
+      else if (probtype .eq. 5) then
+
+c     probtype = HOT SPOT
+      else if (probtype .eq. 6) then
+
+        if (level .eq. 0) then
+c         ::::: refine around entire hot spot
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   tag(i,j,k) = cvmgt(set,tag(i,j,k),temperature(i,j,k,1).gt.temperr)
+                end do
+             end do
+          end do
+        else
+c         ::::: refine where there is temperature gradient
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   ax = abs(temperature(i+1,j,k,1) - temperature(i-1,j,k,1))
+                   ay = abs(temperature(i,j+1,k,1) - temperature(i,j-1,k,1))
+                   az = abs(temperature(i,j,k+1,1) - temperature(i,j,k-1,1))
+                   aerr = max(ax,ay,az)
+                   tag(i,j,k) = cvmgt(set,tag(i,j,k),aerr.gt.bubgrad)
+                end do
+             end do
+          end do
+        end if
+
+      else
+        print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
+        stop
+      end if
+
+      end
 c ::: -----------------------------------------------------------
 c ::: This routine will tag high error cells based on the 
 c ::: magnitude of vorticity
@@ -590,13 +827,68 @@ c ::: -----------------------------------------------------------
 
 #include "probdata.H"
 
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               tag(i,j,k) = cvmgt(set,clear,abs(vort(i,j,k,1)).gt.vorterr)
+c     probtype = SPIN
+      if (probtype .eq. 1) then
+
+c     probtype = BUBBLE
+      else if (probtype .eq. 2) then
+
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+               end do
             end do
          end do
-      end do
+
+c     probtype = VORTEX IN A BOX
+      else if (probtype .eq. 3) then
+
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+               end do
+            end do
+         end do
+
+c     probtype = CHANNEL
+      else if (probtype .eq. 4) then
+
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+               end do
+            end do
+         end do
+
+c     probtype = PERIODIC SHEAR LAYER
+      else if (probtype .eq. 5) then
+
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+               end do
+            end do
+         end do
+
+c     probtype = HOT SPOT
+      else if (probtype .eq. 6) then
+
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+               end do
+            end do
+         end do
+
+      else
+        print *,'DONT KNOW THIS PROBTYPE IN FORT_MVERROR ',probtype
+        stop
+      end if
 
       end
 
