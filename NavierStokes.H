@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.36 1999-04-02 21:23:48 sstanley Exp $
+// $Id: NavierStokes.H,v 1.37 1999-04-02 21:28:33 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -591,8 +591,8 @@ protected:
     // time in the state
     //
     enum TimeLevel { NS_OldTime, NS_NewTime, NS_BadTime };
-    NavierStokes::TimeLevel which_time(Real time,
-                                       int  state_indx = State_Type) const;
+    NavierStokes::TimeLevel which_time(int  state_indx,
+                                       Real time) const;
 
 
 
