@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.158 2004-05-19 19:47:36 car Exp $
+// $Id: Projection.cpp,v 1.159 2004-07-08 16:43:30 car Exp $
 //
 #include <winstd.H>
 
@@ -483,7 +483,7 @@ Projection::level_project (int             level,
     //   but before fields are scaled by r or rho is set to 1/rho.
     //
     Real gravity = ns->getGravity();
-    if (OutFlowBC::HasOutFlowBC(phys_bc) && (have_divu || abs(gravity) > 0.0) 
+    if (OutFlowBC::HasOutFlowBC(phys_bc) && (have_divu || std::abs(gravity) > 0.0) 
                                          && do_outflow_bcs) 
     {
         MultiFab* phi[MAX_LEV] = {0};
