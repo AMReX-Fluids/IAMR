@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.24 1998-06-16 20:35:41 lijewski Exp $
+// $Id: MacProj.cpp,v 1.25 1998-06-16 23:19:33 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -536,7 +536,7 @@ MacProj::mac_sync_compute (int           level,
                            Real          be_cn_theta,
                            const int*    increment_sync)
 {
-    FArrayBox Rho;
+    FArrayBox Rho, tforces, tvelforces;
     FArrayBox xflux, yflux, zflux;
     FArrayBox grad_phi[BL_SPACEDIM];
     //
@@ -575,13 +575,11 @@ MacProj::mac_sync_compute (int           level,
     //
     // FillPatch()d stuff allocated on heap ...
     //
-    MultiFab* tforces_fp    = ns_level.getForce(1,0,NUM_STATE,prev_time);
-    MultiFab* Gp_fp         = ns_level.getGradP(1,pres_prev_time);
-    MultiFab* divu_fp       = ns_level.getDivCond(1,prev_time);
-    MultiFab* tvelforces_fp = ns_level.getForce(1,Xvel,BL_SPACEDIM,prev_time);
+    MultiFab* Gp_fp   = ns_level.getGradP(1,pres_prev_time);
+    MultiFab* divu_fp = ns_level.getDivCond(1,prev_time);
 
-    FillPatchIterator S_fpi(ns_level,*visc_terms,HYP_GROW,0,prev_time,
-                            State_Type,0,NUM_STATE);
+    FillPatchIterator S_fpi(ns_level,*visc_terms,HYP_GROW,0,
+                            prev_time,State_Type,0,NUM_STATE);
     //
     // Compute the mac sync correction.
     //
@@ -606,11 +604,9 @@ MacProj::mac_sync_compute (int           level,
 
         int i = S_fpi.index();
 
-        FArrayBox& S          = S_fpi();
-        FArrayBox& tforces    = (*tforces_fp)[i];
-        FArrayBox& Gp         = (*Gp_fp)[i];
-        FArrayBox& divu       = (*divu_fp)[i];
-        FArrayBox& tvelforces = (*tvelforces_fp)[i];
+        FArrayBox& S    = S_fpi();
+        FArrayBox& Gp   = (*Gp_fp)[i];
+        FArrayBox& divu = (*divu_fp)[i];
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
@@ -621,14 +617,12 @@ MacProj::mac_sync_compute (int           level,
 #if (BL_SPACEDIM == 3)
         grad_phi[2].resize(::surroundingNodes(grids[i],2),1);
 #endif
-        mac_vel_update(1,
-                       grad_phi[0],
-                       grad_phi[1],
+        mac_vel_update(1, grad_phi[0], grad_phi[1],
 #if (BL_SPACEDIM == 3)
                        grad_phi[2],
 #endif
-                       mac_sync_phimfi(),
-                       &rho_halfmfi(), 0, grids[i], level, i, dx, dt/2.0);
+                       mac_sync_phimfi(), &rho_halfmfi(),
+                       0, grids[i], level, i, dx, dt/2.0);
         //
         // Step 2: compute Mac correction by calling GODUNOV box
         //
@@ -636,6 +630,8 @@ MacProj::mac_sync_compute (int           level,
         //
         Rho.resize(::grow(grids[i],1),1);
         Rho.copy(S,Density,0,1);
+
+        ns_level.setForce(tforces,i,1,0,NUM_STATE,Rho);
         //
         // Compute total forcing terms.
         //
@@ -646,6 +642,7 @@ MacProj::mac_sync_compute (int           level,
         if (use_forces_in_trans)
         {
             DependentMultiFabIterator dmfi(S_fpi, vel_visc_terms);
+            ns_level.setForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho);
             godunov->Sum_tf_gp_visc(tvelforces, dmfi(), Gp, Rho);
         }
         //
@@ -670,7 +667,7 @@ MacProj::mac_sync_compute (int           level,
         //
         // Loop over state components and compute the sync advective component.
         //
-        for (int comp = 0 ; comp < NUM_STATE ; comp++)
+        for (int comp = 0; comp < NUM_STATE; comp++)
         {
             int do_comp = (increment_sync == NULL);
             if (!do_comp)
@@ -685,22 +682,15 @@ MacProj::mac_sync_compute (int           level,
             FArrayBox& temp    = (comp < BL_SPACEDIM ? u_sync : s_sync);
             ns_level_bc        = ns_level.getBCArray(State_Type,i,comp,1);
 
-            godunov->SyncAdvect(grids[i], dx, dt, level,
-                                area0mfi(), u_mac0mfi(),
-                                grad_phi[0],       xflux,
-                                 
-                                area1mfi(), u_mac1mfi(),
-                                grad_phi[1],       yflux,
+            godunov->SyncAdvect(grids[i], dx, dt, level, area0mfi(), u_mac0mfi(),
+                                grad_phi[0], xflux, area1mfi(), u_mac1mfi(),
+                                grad_phi[1], yflux,
 #if (BL_SPACEDIM == 3)                            
-                                area2mfi(), u_mac2mfi(),
-                                grad_phi[2],       zflux,
+                                area2mfi(), u_mac2mfi(), grad_phi[2], zflux,
 #endif
-                                S, tforces, comp,
-                                temp,       sync_ind,
-                                is_conservative[comp],
-                                comp,
-                                ns_level_bc.dataPtr(),
-                                volumemfi());
+                                S, tforces, comp, temp, sync_ind,
+                                is_conservative[comp], comp,
+                                ns_level_bc.dataPtr(), volumemfi());
             //
             // NOTE: the signs here are opposite from VELGOD.
             // NOTE: fluxes expected to be in extensive form.
@@ -732,10 +722,8 @@ MacProj::mac_sync_compute (int           level,
         //
     }
     delete visc_terms;
-    delete tforces_fp;
     delete Gp_fp;
     delete divu_fp;
-    delete tvelforces_fp;
 }
 
 //
