@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.21 1999-04-15 17:43:36 propp Exp $
+c $Id: PROJECTION_2D.F,v 1.22 1999-04-16 18:17:19 propp Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -718,6 +718,7 @@ c ::: -----------------------------------------------------------
       subroutine FORT_FILTRHS(phi,DIMS(phi),sigma,DIMS(sigma),
      &                        divgp,DIMS(divgp),
      &                        lo,hi,dx,mult,is_rz)
+      implicit none
 
       integer    DIMDEC(phi)
       integer    DIMDEC(sigma)
@@ -733,7 +734,7 @@ c ::: -----------------------------------------------------------
       REAL_T     p1, p2, p3, p4, denom
       REAL_T     rminv,rpinv,fac
       REAL_T     gpy_ul,gpy_ur,gpy_ll,gpy_lr
-      REAL_T     pext
+      REAL_T     pext, vext
 
 #if BL_PRVERSION==9
 c     FOR NINE-POINT STENCIL
