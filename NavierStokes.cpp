@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.48 1998-05-21 15:52:50 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.49 1998-05-23 03:14:00 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1559,6 +1559,8 @@ Real NavierStokes::predict_velocity( Real dt, Real &comp_cfl )
         Box tfbox(grids[i]);
         tfbox.grow(1);
         tforces.resize(tfbox, BL_SPACEDIM);
+        FArrayBox rho;
+
         for(int dc = 0; dc < BL_SPACEDIM; dc++) {
           int sc = Xvel + dc;
 #if (BL_SPACEDIM == 2)
@@ -1568,8 +1570,8 @@ Real NavierStokes::predict_velocity( Real dt, Real &comp_cfl )
           if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
 #endif
           {
-              // set force to -rho*g
-            FArrayBox rho(Rho.box());
+            // set force to -rho*g
+            rho.resize(Rho.box());
             //getState(rho,i,1,Density,1,prev_time);
             rho.copy(Rho);
             rho.mult(-grav);
@@ -1812,6 +1814,7 @@ void NavierStokes::velocity_advection( Real dt )
         Box tfbox(grids[i]);
         tfbox.grow(1);
         tforces.resize(tfbox, BL_SPACEDIM);
+        FArrayBox rho;
         for(int dc = 0; dc < BL_SPACEDIM; dc++) {
           int sc = Xvel + dc;
 #if (BL_SPACEDIM == 2)
@@ -1822,7 +1825,7 @@ void NavierStokes::velocity_advection( Real dt )
 #endif
           {
               // set force to -rho*g
-            FArrayBox rho(Rho.box());
+            rho.resize(Rho.box());
             //getState(rho,i,1,Density,1,prev_time);
             rho.copy(Rho);
             rho.mult(-grav);
@@ -2027,6 +2030,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
         Box tfbox(grids[i]);
         tfbox.grow(1);
         tforces.resize(tfbox, BL_SPACEDIM);
+        FArrayBox rho;
         for(int dc = 0; dc < num_scalars; dc++) {
           int sc = fscalar + dc;
 #if (BL_SPACEDIM == 2)
@@ -2037,7 +2041,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
 #endif
           {
               // set force to -rho*g
-            FArrayBox rho(Rho.box());
+            rho.resize(Rho.box());
             //getState(rho,i,1,Density,1,prev_time);
             rho.copy(Rho);
             rho.mult(-grav);
@@ -2072,6 +2076,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
 
         // from NS::getForce vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
           Real grav = Abs(gravity);
+          FArrayBox rho;
           for(int dc = 0; dc < BL_SPACEDIM; dc++) {
             int sc = Xvel + dc;
 #if (BL_SPACEDIM == 2)
@@ -2082,7 +2087,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
 #endif
             {
                 // set force to -rho*g
-              FArrayBox rho(Rho.box());
+              rho.resize(Rho.box());
               //getState(rho,i,1,Density,1,prev_time);
               rho.copy(Rho);
               rho.mult(-grav);
@@ -2265,6 +2270,7 @@ void NavierStokes::scalar_advection_update(Real dt, int first_scalar, int last_s
             Box tfbox(grids[i]);
             tfbox.grow(0);
             tforces.resize(tfbox, BL_SPACEDIM);
+            FArrayBox rho;
             for(int dc = 0; dc < BL_SPACEDIM; dc++) {
               int sc = sigma + dc;
 #if (BL_SPACEDIM == 2)
@@ -2276,7 +2282,7 @@ void NavierStokes::scalar_advection_update(Real dt, int first_scalar, int last_s
               {
                   // set force to -rho*g
                 FArrayBox &Rho = Rhofpi();
-                FArrayBox rho(Rho.box());
+                rho.resize(Rho.box());
                 //getState(rho,i,1,Density,1,half_time);
                 rho.copy(Rhofpi());
                 rho.mult(-grav);
@@ -2443,6 +2449,7 @@ void NavierStokes::velocity_advection_update(Real dt)
         Box tfbox(grids[i]);
         tfbox.grow(rhoNGrow);
         tforces.resize(tfbox, BL_SPACEDIM);
+        FArrayBox rho;
         for(int dc = 0; dc < BL_SPACEDIM; dc++) {
           int sc = Xvel + dc;
 #if (BL_SPACEDIM == 2)
@@ -2453,7 +2460,7 @@ void NavierStokes::velocity_advection_update(Real dt)
 #endif
           {
               // set force to -rho*g
-            FArrayBox rho(Rhofpi().box());
+            rho.resize(Rhofpi().box());
             //getState(rho,i,1,Density,1,prev_time);
             rho.copy(Rhofpi());
             rho.mult(-grav);
@@ -2618,6 +2625,7 @@ void NavierStokes::initial_velocity_diffusion_update(Real dt)
         Box tfbox(grids[i]);
         tfbox.grow(rhoNGrow);
         tforces.resize(tfbox, BL_SPACEDIM);
+        FArrayBox rho;
         for(int dc = 0; dc < BL_SPACEDIM; dc++) {
           int sc = Xvel + dc;
 #if (BL_SPACEDIM == 2)
@@ -2628,7 +2636,7 @@ void NavierStokes::initial_velocity_diffusion_update(Real dt)
 #endif
           {
               // set force to -rho*g
-            FArrayBox rho(Rhofpi().box());
+            rho.resize(Rhofpi().box());
             //getState(rho,i,1,Density,1,prev_time);
             rho.copy(Rhofpi());
             rho.mult(-grav);
@@ -3012,6 +3020,7 @@ NavierStokes::estTimeStep ()
     Real estdt = 1.0e+20;
 
     int destComp = 0;
+    FArrayBox p_fab;
     FillPatchIterator Ufpi(*this, U_new, n_grow, destComp, cur_time,
                            State_Type, Xvel, BL_SPACEDIM);
     FillPatchIterator Rhofpi(*this, U_new, n_grow, destComp, cur_time,
@@ -3034,7 +3043,7 @@ NavierStokes::estTimeStep ()
         // get the pressure
         assert(grids[i] == Ufpi.validbox());
         Box p_box(surroundingNodes(grids[i]));
-        FArrayBox p_fab(p_box,1);
+        p_fab.resize(p_box,1);
         p_fab.copy(P_newmfi(),p_box);
 
         // get the density and and velocities
@@ -3051,6 +3060,7 @@ NavierStokes::estTimeStep ()
         Box tfbox(grids[i]);
         tfbox.grow(n_grow);
         tforces.resize(tfbox, BL_SPACEDIM);
+        FArrayBox rho;
         for(int dc = 0; dc < BL_SPACEDIM; dc++) {
           int sc = Xvel + dc;
 #if (BL_SPACEDIM == 2)
@@ -3061,7 +3071,7 @@ NavierStokes::estTimeStep ()
 #endif
           {
               // set force to -rho*g
-            FArrayBox rho(Rho.box());
+            rho.resize(Rho.box());
             //getState(rho,i,1,Density,1,cur_time);
             rho.copy(Rho);
             rho.mult(-grav);
@@ -3870,19 +3880,24 @@ void NavierStokes::avgDown( const BoxArray &cgrids,  const BoxArray &fgrids,
 
     mfcd.CollectData();
 
+    FArrayBox fine_fab;
+    FArrayBox fine_vol;
+
     ListIterator<FillBoxId> fbidli(fillBoxIdList);
     ListIterator<FillBoxId> fbidlivol(fillBoxIdListVol);
-
     
-    for(ConstMultiFabIterator mfi(S_crse); mfi.isValid(); ++mfi) {
+    for (ConstMultiFabIterator mfi(S_crse); mfi.isValid(); ++mfi)
+    {
         ConstDependentMultiFabIterator mfivol(mfi, volume);
         assert(grids[mfi.index()] == mfi.validbox());
         const Box &cbox = mfi.validbox();
-        for(int fine = 0; fine < num_fine; fine++) {
+        for(int fine = 0; fine < num_fine; fine++)
+        {
             const Box &fbox = fgrids[fine];
             Box ovlp(coarsen(fbox,fratio));
             ovlp &= cbox;
-            if(ovlp.ok()) {
+            if (ovlp.ok())
+            {
                 assert(fbidli);
                 FillBoxId fbidFine = fbidli();
                 ++fbidli;
@@ -3890,8 +3905,8 @@ void NavierStokes::avgDown( const BoxArray &cgrids,  const BoxArray &fgrids,
                 FillBoxId fbidFineVol = fbidlivol();
                 ++fbidlivol;
 
-                FArrayBox fine_fab(fbidFine.box(), num_comp);
-                FArrayBox fine_vol(fbidFineVol.box(), 1);
+                fine_fab.resize(fbidFine.box(), num_comp);
+                fine_vol.resize(fbidFineVol.box(), 1);
 
                 mfcd.FillFab(mfidS_fine,  fbidFine,    fine_fab);
                 mfcd.FillFab(mfidFineVol, fbidFineVol, fine_vol);
@@ -4392,12 +4407,14 @@ void NavierStokes::avgDown()
     for(MultiFabIterator mfi(P_crse); mfi.isValid(); ++mfi) {
         assert(P_cgrids[mfi.index()] == mfi.validbox());
         const Box &cbox = mfi.validbox();
-        
-        // loop over fine grids and periodic extensions
-        for(int fine = 0; fine < nfine; fine++) {
+        //
+        // Loop over fine grids and periodic extensions.
+        //
+        for (int fine = 0; fine < nfine; fine++)
+        {
             ovlp  = coarsen(P_fgrids[fine],fine_ratio);
             ovlp &= cbox;
-            if(ovlp.ok()) {         // inject fine down to coarse
+            if (ovlp.ok()) {         // inject fine down to coarse
               //injectDown( ovlp, P_crse[crse], P_fine[fine], fine_ratio );
 
               BoxList unfilledBoxes(ovlp.ixType());  // unused here
@@ -4407,42 +4424,48 @@ void NavierStokes::avgDown()
                                      0, 0, P_fine.nComp());
               fillBoxIdList.append(fbidFine);
             }
-        } // end of fine grid loop
-    } // end of coarse grid loop
+        }
+    }
 
 
     mfcd.CollectData();
 
+    FArrayBox fine_fab;
+
     ListIterator<FillBoxId> fbidli(fillBoxIdList);
 
-
-    for(MultiFabIterator mfi(P_crse); mfi.isValid(); ++mfi) {
+    for (MultiFabIterator mfi(P_crse); mfi.isValid(); ++mfi)
+    {
         assert(P_cgrids[mfi.index()] == mfi.validbox());
         const Box &cbox = mfi.validbox();
-        
-        // loop over fine grids and periodic extensions
-        for(int fine = 0; fine < nfine; fine++) {
+        //
+        // Loop over fine grids and periodic extensions.
+        //
+        for (int fine = 0; fine < nfine; fine++)
+        {
             ovlp  = coarsen(P_fgrids[fine],fine_ratio);
             ovlp &= cbox;
-            if(ovlp.ok()) {         // inject fine down to coarse
+            if (ovlp.ok())
+            {
+                //
+                // Inject fine down to coarse.
+                //
                 assert(fbidli);
                 FillBoxId fbidFine = fbidli();
                 ++fbidli;
 
-                FArrayBox fine_fab(fbidFine.box(), P_fine.nComp());
+                fine_fab.resize(fbidFine.box(), P_fine.nComp());
                 mfcd.FillFab(mfidP_fine,  fbidFine,    fine_fab);
 
                 injectDown( ovlp, mfi(), fine_fab, fine_ratio );
             }
-        } // end of fine grid loop
-    } // end of coarse grid loop
-
-
-
-    // ******************************************************** 
-    // Next average down divu and dSdT at new time                      
-    // ******************************************************** 
-    if(have_divu) {
+        }
+    }
+    //
+    // Next average down divu and dSdT at new time.
+    //
+    if (have_divu)
+    {
         MultiFab &Divu_crse = get_new_data(Divu_Type);
         MultiFab &Divu_fine = fine_lev.get_new_data(Divu_Type);
         
@@ -4534,6 +4557,7 @@ void NavierStokes::getForce( FArrayBox& force, int gridno, int ngrow,
     const int* hi = bx.hiVect();
 
     Real grav = Abs(gravity);
+    FArrayBox rho;
     for (int dc = 0; dc < num_comp; dc++) {
         int sc = strt_comp + dc;
 #if (BL_SPACEDIM == 2)
@@ -4544,7 +4568,6 @@ void NavierStokes::getForce( FArrayBox& force, int gridno, int ngrow,
 #endif
         {
               // set force to -rho*g
-            FArrayBox rho;
             getState(rho,gridno,ngrow,Density,1,time);
             rho.mult(-grav);
             force.copy(rho,0,dc,1);
@@ -4912,34 +4935,6 @@ NavierStokes::compute_grad_divu_minus_s(Real time, MultiFab* grad_divu_minus_s,
 
 // end, dv fix
 
-#if 0
-    for (i = 0; i < grids.length(); i++) {
-
-        // compute nodal divU-S 
-        FArrayBox divu_minus_s(node_grids[i],1);
-        divu_minus_s.copy(Dv[i]);
-        divu_minus_s.minus(S[i]);
-
-        // compute gradient of this field
-        getGradP( divu_minus_s, (*grad_divu_minus_s)[i], grids[i], 0 );
-      
-        if (scaleRhoDivDt) {
-            (*grad_divu_minus_s)[i].mult(divu_relax_factor*dx[0]*dx[1]/
-                                         parent->dtLevel(0));
-            int n;
-            for (n=0; n<BL_SPACEDIM; n++)
-                (*grad_divu_minus_s)[i].mult((*rho_half)[i],grids[i],0,n,1);
-        } else {
-            (*grad_divu_minus_s)[i].mult(divu_relax_factor*dx[0]*dx[1]*dt/
-                                         parent->dtLevel(0));
-        }
-    }
-
-    if (is_rz) {
-        for (int n = 0; n < BL_SPACEDIM; n++) 
-            projector->radDiv(level,*grad_divu_minus_s,n);
-    }
-#endif
 #if 1
     MultiFab divu_minus_s(node_grids,1,0,Fab_allocate);
     //for (i = 0; i < grids.length(); i++)

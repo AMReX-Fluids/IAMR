@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.37 1998-05-19 00:52:25 marc Exp $
+// $Id: Projection.cpp,v 1.38 1998-05-23 03:14:01 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -1299,13 +1299,17 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
         cerr << "This loop contains a call to FillPatch (in getDivCond).\n";
         ParallelDescriptor::Abort("Exiting.");
       } 
+
+      FArrayBox divu;
+      FArrayBox dsdt;
+
       for (int i=0;i<ngrids;i++) 
       {
         Box divubox = grids[i];
         divubox.grow(1);
-        FArrayBox divu(divubox,1);
+        divu.resize(divubox,1);
         getDivCond(lev,divu,1,strt_time);
-        FArrayBox dsdt(divubox,1);
+        dsdt.resize(divubox,1);
         getDivCond(lev,dsdt,1,strt_time+dt);
         dsdt.minus(divu);
         dsdt.divide(dt);
@@ -1671,11 +1675,12 @@ void Projection::put_divu_in_cc_rhs(MultiFab& rhs, int level,
   rhs.setVal(0.0);
   const int ngrids = grids.length();
   int i;
+  FArrayBox divu;
   for (i=0;i<ngrids;i++) 
   {
     Box divubox = grids[i];
     divubox.grow(1);
-    FArrayBox divu(divubox,1);
+    divu.resize(divubox,1);
     if(ParallelDescriptor::NProcs() > 1) 
     {
       cerr << "Projection::put_divu_in_cc_rhs not implemented in parallel" << NL;
@@ -2200,6 +2205,7 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
 	} 
     
 	int Divu_Type, Divu;
+        FArrayBox rho;
 	if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
 	{
 	    BoxLib::Error("Projection::set_initial_projection_outflow_bcs(): Divu not found");
@@ -2219,13 +2225,13 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
 	    DependentMultiFabIterator phimfi(rhoFpi, phi_fine_strip);
 
 	    // Note: potentially wasteful FillPatch on Rho, but this seemed cleanest
-	    FArrayBox rho(rhoFpi.validbox(), nCompRho);
+            rho.resize(rhoFpi.validbox(), nCompRho);
 	    if (rho_wgt_vel_proj)
 	    {
 		rho.copy(rhoFpi());
-		
-	    } else {
-		
+	    }
+            else
+            {
 		rho.setVal(1.0);
 	    }
 	    
@@ -2321,6 +2327,10 @@ void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi,
 	{
 	    BoxLib::Error("Projection::set_syncproject_outflow_bcs(): Divu not found");
 	}
+
+        FArrayBox rhonph;
+        FArrayBox dudt;
+        FArrayBox dsdt;
     
 	FillPatchIterator rhoOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time,
 				    State_Type, srcCompRho, nCompRho);
@@ -2348,28 +2358,28 @@ void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi,
 
 	    // Make rhonph, du/dt, and dsdt
 	    assert(rhoOldFpi.validbox() == rhoNewFpi.validbox());
-	    FArrayBox rhonph(rhoOldFpi.validbox(),nCompRho);
+            rhonph.resize(rhoOldFpi.validbox(),nCompRho);
 	    rhonph.copy(rhoNewFpi());
 	    rhonph.plus(rhoOldFpi());
 	    rhonph.divide(2.0);
 
 	    assert(divuOldFpi.validbox() == divuNewFpi.validbox());
-	    FArrayBox dudt(velOldFpi.validbox(),nCompVel);
+            dudt.resize(velOldFpi.validbox(),nCompVel);
 	    dudt.copy(velNewFpi());
 	    dudt.minus(velOldFpi());
 	    dudt.divide(dt);
 	    
 	    assert(velOldFpi.validbox() == velNewFpi.validbox());
-	    FArrayBox dsdt(divuOldFpi.validbox(),nCompDivu);
+            dsdt.resize(divuOldFpi.validbox(),nCompDivu);
 	    dsdt.copy(divuNewFpi());
 	    dsdt.minus(divuOldFpi());
 	    dsdt.divide(dt);
-	    
-
+            //
 	    // Fill phi_fine_strip with boundary cell values for phi, then copy into arg data
 	    // Note: Though this looks like a distributed operation, the MultiFab is built
 	    // on a single box...this is necesary currently, since FORT_HGPHIBC requires
 	    // a slice across the entire domain
+            //
 	    const int isPeriodicInX = (int) parent->Geom(f_lev).isPeriodic(0);
 	    FORT_HGPHIBC(ARLIM(dudt.loVect()),     ARLIM(dudt.hiVect()),     dudt.dataPtr(),
 			 ARLIM(dsdt.loVect()),     ARLIM(dsdt.hiVect()),     dsdt.dataPtr(),

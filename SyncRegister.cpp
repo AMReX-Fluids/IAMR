@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.31 1998-05-22 17:45:14 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.32 1998-05-23 03:14:02 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -143,8 +143,7 @@ Real
 SyncRegister::sum ()
 {
     //
-    // Sum values in all registers.
-    // NOTE: overlap counted twice.
+    // Sum values in all registers.  Note that overlap is counted twice.
     //
     Box bb(grids[0]);
     for (int k = 1; k < grids.length(); k++)
@@ -182,39 +181,40 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                        const Geometry& geom,
                        const BCRec*    phys_bc)
 {
-    cerr << "SyncRegister::InitRHS() not implemented in parallel.\n";
-    if (ParallelDescriptor::NProcs() > 1)
-        ParallelDescriptor::Abort("Bye");
-
     rhs.setVal(0);
-    const BoxArray& rhs_boxes = rhs.boxArray();
-    int nrhs                  = rhs_boxes.length();
-    int nreg                  = grids.length();
-    const Box& cell_domain    = geom.Domain();
-    const Box& domain         = ::surroundingNodes(cell_domain);
+
+    const Box& domain = ::surroundingNodes(geom.Domain());
 
     Array<IntVect> pshifts(27);
     //
     // FILL RHS FROM BNDRY REGISTERS
     //
-    // If periodic, copy the values from sync registers onto the nodes
-    // of the rhs which are not covered by sync registers through periodic
-    // shifts.
+    // If periodic, copy the values from sync registers onto the nodes of the
+    // rhs which are not covered by sync registers through periodic shifts.
+    //
+    // TODO -- finish this!!!
     //
     if (geom.isAnyPeriodic())
     {
-        for (int k = 0; k < nrhs; k++)
+        for (OrientationIter face; face; ++face)
         {
-            for (int j = 0; j < nreg; j++)
+            for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
             {
-                for (OrientationIter face; face; ++face)
+                for (int j = 0; j < grids.length(); j++)
                 {
                     geom.periodicShift(domain,bndry[face()][j].box(),pshifts);
 
                     for (int iiv = 0; iiv < pshifts.length(); iiv++)
                     {
                         bndry[face()][j].shift(pshifts[iiv]);
-                        rhs[k].copy(bndry[face()][j]);
+                        Box intersect = bndry[face()][j].box() & mfi().box();
+                        if (intersect.ok())
+                            mfi().copy(bndry[face()][j],
+                                       intersect,
+                                       0,
+                                       intersect,
+                                       0,
+                                       mfi().nComp());
                         bndry[face()][j].shift(-pshifts[iiv]);
                     }
                 }
@@ -222,77 +222,71 @@ SyncRegister::InitRHS (MultiFab&       rhs,
         }
     }
     //
-    // This will overwrite the above-set values on all nodes covered
-    // by a sync register.
+    // Overwrite above-set values on all nodes covered by a sync register.
     //
-    for (int k = 0; k < nrhs; k++)
+    for (OrientationIter face; face; ++face)
     {
-        for (int j = 0; j < nreg; j++)
-        {
-            for (OrientationIter face; face; ++face)
-            {
-                rhs[k].copy(bndry[face()][j]);
-            }
-        }
+        bndry[face()].copyTo(rhs);
     }
     const int* dlo     = domain.loVect();
     const int* dhi     = domain.hiVect();
     const int* phys_lo = phys_bc->lo();
     const int* phys_hi = phys_bc->hi();
 
-    FArrayBox tmp_rhs;
-
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        Box domlo(domain), domhi(domain);
-        domlo.setRange(dir,dlo[dir],1);
-        domhi.setRange(dir,dhi[dir],1);
         //
         // Any RHS point on the physical bndry must be multiplied
         // by two (only for ref-wall and inflow) and set to zero at outflow.
         //
         if (!geom.isPeriodic(dir))
         {
-            for (int k = 0; k < nrhs; k++)
-            {
-                Box blo = rhs_boxes[k] & domlo;
-                Box bhi = rhs_boxes[k] & domhi;
+            Box domlo(domain), domhi(domain);
 
-                if (blo.ok())
-                    rhs[k].mult(2.0,blo,0,1);
-                if (bhi.ok())
-                    rhs[k].mult(2.0,bhi,0,1);
-                if (blo.ok() && phys_lo[dir] == Outflow) 
-                    rhs[k].setVal(0,blo,0,1);
-                if (bhi.ok() && phys_hi[dir] == Outflow) 
-                    rhs[k].setVal(0,bhi,0,1);
+            domlo.setRange(dir,dlo[dir],1);
+            domhi.setRange(dir,dhi[dir],1);
+
+            for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
+            {
+                Box bx = mfi.validbox() & domlo;
+                if (bx.ok())
+                {
+                    if (phys_lo[dir] == Outflow) 
+                        mfi().setVal(0,bx,0,1);
+                    else
+                        mfi().mult(2.0,bx,0,1);
+                }
+                bx = mfi.validbox() & domhi;
+                if (bx.ok())
+                {
+                    if (phys_hi[dir] == Outflow)
+                        mfi().setVal(0,bx,0,1);
+                    else
+                        mfi().mult(2.0,bx,0,1);
+                }
             }
         } 
     }
     //
     // SET UP BNDRY_MASK
     //
-    for (int j = 0; j < nreg; j++)
+    for (OrientationIter face; face; ++face)
     {
-        for (OrientationIter face; face; ++face)
-        {
-            bndry_mask[face()][j].setVal(0);
-        }
+        bndry_mask[face()].setVal(0);
     }
 
-    const int ngrds = grids.length();
+    FArrayBox cellMask;
 
-    for (int j = 0; j < nreg; j++)
+    for (OrientationIter face; face; ++face)
     {
-        for (OrientationIter face; face; ++face)
+        for (FabSetIterator fsi(bndry_mask[face()]); fsi.isValid(false); ++fsi)
         {
-            FArrayBox& mask = bndry_mask[face()][j];
+            Box mask_cells = ::enclosedCells(::grow(fsi().box(),1));
 
-            Box mask_cells = ::enclosedCells(::grow(mask.box(),1));
-            FArrayBox cellMask(mask_cells,1);
+            cellMask.resize(mask_cells,1);
             cellMask.setVal(0);
 
-            for (int n = 0; n < ngrds; n++)
+            for (int n = 0; n < grids.length(); n++)
             {
                 Box intersect = mask_cells & grids[n];
                 if (intersect.ok())
@@ -301,13 +295,14 @@ SyncRegister::InitRHS (MultiFab&       rhs,
  
             if (geom.isAnyPeriodic())
             {
-                geom.periodicShift(cell_domain,mask_cells,pshifts);
+                geom.periodicShift(geom.Domain(),mask_cells,pshifts);
 
                 for (int iiv = 0; iiv < pshifts.length(); iiv++)
                 {
                     IntVect iv = pshifts[iiv];
                     mask_cells.shift(iv);
-                    for (int n = 0; n < ngrds; n++)
+
+                    for (int n = 0; n < grids.length(); n++)
                     {
                         Box intersect = mask_cells & grids[n];
                         if (intersect.ok())
@@ -319,9 +314,9 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                     mask_cells.shift(-iv);
                 }
             }
-            REAL* mask_dat = mask.dataPtr();
-            const int* mlo = mask.loVect(); 
-            const int* mhi = mask.hiVect();
+            REAL* mask_dat = fsi().dataPtr();
+            const int* mlo = fsi().loVect(); 
+            const int* mhi = fsi().hiVect();
             REAL* cell_dat = cellMask.dataPtr();
             const int* clo = cellMask.loVect(); 
             const int* chi = cellMask.hiVect();
@@ -332,8 +327,6 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     }
 
     Box node_domain = ::surroundingNodes(domain);
-    const int* ndlo = node_domain.loVect();
-    const int* ndhi = node_domain.hiVect();
     //
     // Here double the cell contributions if at a non-periodic physical bdry.
     //
@@ -341,51 +334,51 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     {
         if (!geom.isPeriodic(dir))
         {
-            Box domlo(node_domain);
-            Box domhi(node_domain);
-            domlo.setRange(dir,ndlo[dir],1);
-            domhi.setRange(dir,ndhi[dir],1);
-            for (int j = 0; j < nreg; j++)
+            Box domlo(node_domain), domhi(node_domain);
+
+            domlo.setRange(dir,node_domain.loVect()[dir],1);
+            domhi.setRange(dir,node_domain.hiVect()[dir],1);
+
+            for (OrientationIter face; face; ++face)
             {
-                for (OrientationIter face; face; ++face)
+                for (FabSetIterator fsi(bndry_mask[face()]); fsi.isValid(false); ++fsi)
                 {
-                    Box bndry_box_lo(bndry_mask[face()][j].box());
-                    Box bndry_box_hi(bndry_mask[face()][j].box());
-                    bndry_box_lo &= domlo;
-                    bndry_box_hi &= domhi;
-                    if (bndry_box_lo.ok()) 
-                        bndry_mask[face()][j].mult(2.0,bndry_box_lo,0,1);
-                    if (bndry_box_hi.ok()) 
-                        bndry_mask[face()][j].mult(2.0,bndry_box_hi,0,1);
+                    Box bx = fsi().box() & domlo;
+                    if (bx.ok()) 
+                        fsi().mult(2.0,bx,0,1);
+                    bx = fsi().box() & domhi;
+                    if (bx.ok()) 
+                        fsi().mult(2.0,bx,0,1);
                 }
             }
         }
     }
     //
-    // Here convert from sum of cell contributions to 0. or 1.
+    // Here convert from sum of cell contributions to 0 or 1.
     //
-    for (int j = 0; j < nreg; j++)
+    for (OrientationIter face; face; ++face)
     {
-        for (OrientationIter face; face; ++face)
+        for (FabSetIterator fsi(bndry_mask[face()]); fsi.isValid(false); ++fsi)
         {
-            FArrayBox& mask = bndry_mask[face()][j];
-            REAL* mask_dat  = mask.dataPtr();
-            const int* mlo  = mask.loVect(); 
-            const int* mhi  = mask.hiVect();
+            REAL* mask_dat  = fsi().dataPtr();
+            const int* mlo  = fsi().loVect(); 
+            const int* mhi  = fsi().hiVect();
 
             FORT_CONVERTMASK(mask_dat,ARLIM(mlo),ARLIM(mhi));
         }
     }
     //
-    // MULTIPLY RHS BY BNDRY_MASK 
+    // MULTIPLY RHS BY BNDRY_MASK
     //
-    for (int k = 0; k < nrhs; k++)
+    // TODO -- finish this!!!
+    //
+    for (OrientationIter face; face; ++face)
     {
-        for (int j = 0; j < nreg; j++)
+        for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
         {
-            for (OrientationIter face; face; ++face)
+            for (int j = 0; j < grids.length(); j++)
             {
-                rhs[k].mult(bndry_mask[face()][j]);
+                mfi().mult(bndry_mask[face()][j]);
             }
         }
     }
