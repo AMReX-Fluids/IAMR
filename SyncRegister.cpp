@@ -1,4 +1,4 @@
-// $Id: SyncRegister.cpp,v 1.6 1997-08-14 17:59:23 vince Exp $
+// $Id: SyncRegister.cpp,v 1.7 1997-09-18 22:31:01 lijewski Exp $
 #include <BC_TYPES.H>
 #include <SyncRegister.H>
 #include <Tracer.H>
@@ -671,8 +671,7 @@ if(ParallelDescriptor::NProcs() > 1) {
         const int* ndhi = ndbox.hiVect();
         const int* dsdtlo = dsdtbox.loVect();
         const int* dsdthi = dsdtbox.hiVect();
-        int nghost = 0;
-        REAL hx = dx[0];
+
         int rlen  = dsdtbox.length(0);
         Array<REAL> rcen;
         rcen.resize(rlen);
@@ -686,9 +685,11 @@ if(ParallelDescriptor::NProcs() > 1) {
         const int* domlo = domain.loVect();
         const int* domhi = domain.hiVect();
 
+#if (BL_SPACEDIM==2)
+        int nghost = 0;
+        REAL hx = dx[0];
         int extrap_edges = 0;
         int extrap_corners = 0;
-#if (BL_SPACEDIM==2)
 	FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
                    dsdtfab.dataPtr(),
                    rcen.dataPtr(), 
@@ -704,7 +705,6 @@ if(ParallelDescriptor::NProcs() > 1) {
 	increment(divu);
     }
 }
-
 
 void
 SyncRegister::FineDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
@@ -819,8 +819,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
             const int* dsdtlo = dsdtbox.loVect();
             const int* dsdthi = dsdtbox.hiVect();
-            int nghost = 0;
-            REAL hx = dx[0];
+
             int rlen  = dsdtbox.length(0);
             Array<REAL> rcen;
             rcen.resize(rlen);
@@ -836,10 +835,12 @@ if(ParallelDescriptor::NProcs() > 1) {
 
             FARRAYBOX ffablo_tmp(reglo,1);
 
+#if (BL_SPACEDIM==2)
+            int nghost = 0;
+            int hi_fix = 0;
+            REAL hx = dx[0];
             int extrap_edges = 0;
             int extrap_corners = 0;
-            int hi_fix = 0;
-#if (BL_SPACEDIM==2)
 	FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
                    dsdtfab.dataPtr(),
                    rcen.dataPtr(), 
@@ -859,8 +860,9 @@ if(ParallelDescriptor::NProcs() > 1) {
 
         FARRAYBOX ffabhi_tmp(reghi,1);
 
-        int low_fix = 0;
+
 #if (BL_SPACEDIM==2)
+        int low_fix = 0;
 	FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
                    dsdtfab.dataPtr(),
                    rcen.dataPtr(), 

@@ -203,10 +203,12 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 
 void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 {
+#if defined(HG_CONSTANT) || !defined(SIGMA_NODE)
   Real hx = h[mglev][0];
   Real hy = h[mglev][1];
 #if (BL_SPACEDIM == 3)
   Real hz = h[mglev][2];
+#endif
 #endif
 
   DECLARE_GEOMETRY_TYPES;

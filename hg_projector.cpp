@@ -322,7 +322,9 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 
   for (lev = lev_min; lev <= lev_max; lev++) {
     int mglev = ml_index[lev];
+#if (BL_SPACEDIM == 2)
     Real hx = h[mglev][0];
+#endif
 
     fill_borders(S[lev], 0, interface[mglev], boundary.scalar());
 
@@ -415,7 +417,11 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 { 
   int mglev = ml_index[lev];
   int mgc = ml_index[lev-1];
+
+#if (BL_SPACEDIM == 2)
   Real hx = h[mglev][0];
+#endif
+
   int igrid, jgrid, i;
 
   DECLARE_GEOMETRY_TYPES;
