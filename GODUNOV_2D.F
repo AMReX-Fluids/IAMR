@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.31 2003-02-06 20:28:38 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.32 2003-02-06 20:32:10 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1057,16 +1057,14 @@ c
 
       if (xbc(1,1).eq.EXT_DIR) then
          if (n .eq. XVEL) then
-            if (uad(imin,j) .ge. zero) then
-              do j = jmin-1,jmax+1
+            do j = jmin-1,jmax+1
+              if (uad(imin,j) .ge. zero) then
                  xhi(imin,j) = s(imin-1,j)
                  xlo(imin,j) = s(imin-1,j)
-              end do
-            else 
-              do j = jmin-1,jmax+1
+              else 
                  xlo(imin,j) = xhi(imin,j)
-              end do
-            end if
+              end if
+            end do
          else
             do j = jmin-1,jmax+1
                ltest = uad(imin,j).le.eps
@@ -1089,16 +1087,14 @@ c
 c
       if (xbc(1,2).eq.EXT_DIR) then
          if (n .eq. XVEL) then
-            if (uad(imax+1,j) .le. zero) then
-              do j = jmin-1,jmax+1
+            do j = jmin-1,jmax+1
+              if (uad(imax+1,j) .le. zero) then
                  xhi(imax+1,j) = s(imax+1,j)
                  xlo(imax+1,j) = s(imax+1,j)
-              end do
-            else 
-              do j = jmin-1,jmax+1
+               else 
                  xhi(imax+1,j) = xlo(imax+1,j)
-              end do
-            end if
+               end if
+             end do
          else
             do j = jmin-1,jmax+1
                ltest = uad(imax+1,j).ge.-eps
@@ -1152,16 +1148,14 @@ c
 
       if (ybc(2,1).eq.EXT_DIR) then
          if (n .eq. YVEL) then
-            if (vad(i,jmin).ge.zero) then
-              do i = imin-1,imax+1
+            do i = imin-1,imax+1
+              if (vad(i,jmin).ge.zero) then
                  yhi(i,jmin) = s(i,jmin-1)
                  ylo(i,jmin) = s(i,jmin-1)
-              end do
-            else
-              do i = imin-1,imax+1
+              else
                  ylo(i,jmin) = yhi(i,jmin)
-              end do
-            end if
+              end if
+            end do
          else
             do i = imin-1,imax+1
                ltest = vad(i,jmin).le.eps
@@ -1184,16 +1178,14 @@ c
 
       if (ybc(2,2).eq.EXT_DIR) then
          if (n .eq. YVEL) then
-            if (vad(i,jmax+1).le.zero) then
-              do i = imin-1,imax+1
+            do i = imin-1,imax+1
+              if (vad(i,jmax+1).le.zero) then
                  ylo(i,jmax+1) = s(i,jmax+1)
                  yhi(i,jmax+1) = s(i,jmax+1)
-              end do
-            else
-              do i = imin-1,imax+1
+              else
                  yhi(i,jmax+1) = ylo(i,jmax+1)
-              end do
-            end if
+              end if
+            end do
          else
             do i = imin-1,imax+1
                ltest = vad(i,jmax+1).ge.-eps
