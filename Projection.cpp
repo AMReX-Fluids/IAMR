@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.30 1998-03-03 19:03:58 lijewski Exp $
+// $Id: Projection.cpp,v 1.31 1998-03-24 20:18:48 car Exp $
 //
 
 #ifdef BL_T3E
@@ -234,7 +234,7 @@ Projection::bldSyncProject()
 
   sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
                                            0, finest_level, finest_level,
-                                           *projector_bndry, false, P_code); /* , do_cache?true:false) ; */
+                                           *projector_bndry, false, true, false, P_code); /* , do_cache?true:false) ; */
 
 #ifdef ATMOSPHERE
   // This is not the usual way of setting parameters
@@ -924,13 +924,13 @@ void Projection::MLsyncProject(int c_lev,
       u_realfinemfi().copy(V_corrmfi(), n, 0);
     }
 
-    restrict_level(u_real[n][c_lev], u_real[n][c_lev+1], ratio, 0, default_restrictor(), level_interface(), 0);
+    restrict_level(u_real[n][c_lev], u_real[n][c_lev+1], ratio, default_restrictor(), level_interface(), 0);
   }
 
   s_real.set(c_lev,   &rho_crse);
   s_real.set(c_lev+1, &rho_fine);
 
-  restrict_level(s_real[c_lev], s_real[c_lev+1], ratio, 0, default_restrictor(), level_interface(), 0);
+  restrict_level(s_real[c_lev], s_real[c_lev+1], ratio, default_restrictor(), level_interface(), 0);
 
   p_real.set(c_lev,   phi[c_lev]);
   p_real.set(c_lev+1, phi[c_lev+1]);
@@ -1456,7 +1456,7 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
     for (lev = f_lev; lev >= c_lev+1; lev--) 
     {
       restrict_level(u_real[n][lev-1], u_real[n][lev], parent->refRatio(lev-1),
-	  0, default_restrictor(), level_interface(), 0);
+	  default_restrictor(), level_interface(), 0);
     }
   }
 

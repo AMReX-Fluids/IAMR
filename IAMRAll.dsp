@@ -450,8 +450,8 @@ InputName=ABec_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -463,9 +463,10 @@ InputPath=.\ABec_3D.F
 InputName=ABec_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -485,8 +486,8 @@ InputName=CG_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -498,9 +499,10 @@ InputPath=.\CG_3D.F
 InputName=CG_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -520,8 +522,8 @@ InputName=DERIVE_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -533,9 +535,10 @@ InputPath=.\DERIVE_3D.F
 InputName=DERIVE_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -555,8 +558,8 @@ InputName=DIFFUSION_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -568,9 +571,10 @@ InputPath=.\DIFFUSION_3D.F
 InputName=DIFFUSION_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -590,8 +594,8 @@ InputName=GODUNOV_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -603,9 +607,10 @@ InputPath=.\GODUNOV_3D.F
 InputName=GODUNOV_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -625,8 +630,8 @@ InputName=INTERPBNDRYDATA_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -638,9 +643,10 @@ InputPath=.\INTERPBNDRYDATA_3D.F
 InputName=INTERPBNDRYDATA_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -660,8 +666,8 @@ InputName=LO_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -673,9 +679,10 @@ InputPath=.\LO_3D.F
 InputName=LO_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -695,8 +702,8 @@ InputName=LP_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -708,9 +715,10 @@ InputPath=.\LP_3D.F
 InputName=LP_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -730,8 +738,8 @@ InputName=MACOPERATOR_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -743,9 +751,10 @@ InputPath=.\MACOPERATOR_3D.F
 InputName=MACOPERATOR_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -765,8 +774,8 @@ InputName=MACPROJ_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -778,9 +787,10 @@ InputPath=.\MACPROJ_3D.F
 InputName=MACPROJ_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -800,8 +810,8 @@ InputName=MG_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -813,9 +823,10 @@ InputPath=.\MG_3D.F
 InputName=MG_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -828,6 +839,8 @@ SOURCE=.\NAVIERSTOKES_3D.F
 
 !IF  "$(CFG)" == "IAMRAll - Win32 Release"
 
+# PROP Ignore_Default_Tool 1
+
 !ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
@@ -836,9 +849,10 @@ InputPath=.\NAVIERSTOKES_3D.F
 InputName=NAVIERSTOKES_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -851,6 +865,8 @@ SOURCE=.\PROB_3D.F
 
 !IF  "$(CFG)" == "IAMRAll - Win32 Release"
 
+# PROP Ignore_Default_Tool 1
+
 !ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
@@ -859,9 +875,10 @@ InputPath=.\PROB_3D.F
 InputName=PROB_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -881,8 +898,8 @@ InputName=PROJECTION_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -894,9 +911,10 @@ InputPath=.\PROJECTION_3D.F
 InputName=PROJECTION_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -916,8 +934,8 @@ InputName=SYNCREG_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -929,9 +947,10 @@ InputPath=.\SYNCREG_3D.F
 InputName=SYNCREG_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -951,8 +970,8 @@ InputName=VISCOPERATOR_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                  ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -964,9 +983,10 @@ InputPath=.\VISCOPERATOR_3D.F
 InputName=VISCOPERATOR_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
-       $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+  /DBL_LANG_FORT                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+  /DBL_NO_FORT_FLUSH    $(InputName).F | perl          ..\scripts\strip72 -c >\
+  $(InputName).for
 
 # End Custom Build
 
@@ -1000,9 +1020,10 @@ InputPath=.\GODUNOV_F.F
 InputName=GODUNOV_F
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+ /DBL_LANG_FORT                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+ /DBL_NO_FORT_FLUSH $(InputName).F | perl                  ..\scripts\strip72 -c\
+ > $(InputName).for
 
 # End Custom Build
 
@@ -1023,9 +1044,10 @@ InputPath=.\LO_UTIL.F
 InputName=LO_UTIL
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-               /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-               ..\scripts\strip72 -c > $(InputName).for
+	fpp /m /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
+ /DBL_LANG_FORT                  /DBL_SPACEDIM=3 /DBL_USE_DOUBLE\
+ /DBL_NO_FORT_FLUSH $(InputName).F | perl                  ..\scripts\strip72 -c\
+ > $(InputName).for
 
 # End Custom Build
 
