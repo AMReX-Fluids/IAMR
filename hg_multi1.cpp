@@ -1,6 +1,6 @@
 
 //
-// $Id: hg_multi1.cpp,v 1.11 1997-10-03 23:37:36 car Exp $
+// $Id: hg_multi1.cpp,v 1.12 1997-10-06 16:35:36 lijewski Exp $
 //
 
 #include <Tracer.H>
@@ -595,7 +595,7 @@ holy_grail_amr_multigrid::clear()
   for (mglev = 0; mglev < mglev_max; mglev++) 
   {
     sigma.remove(mglev);
-    for (i = 0; i < BL_SPACEDIM; i++) 
+    for (int i = 0; i < BL_SPACEDIM; i++) 
     {
       delete sigma_nd[i].remove(mglev);
     }
