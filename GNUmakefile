@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.72 1999-04-05 17:57:14 car Exp $
+# $Id: GNUmakefile,v 1.73 1999-04-16 18:25:00 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -42,8 +42,7 @@ ifeq ($(DIM),2)
 #
 ifeq ($(findstring 5, $(PRVERSION)), 5)
 DEFINES += -DBL_PRVERSION=5
-endif
-ifeq ($(findstring 9, $(PRVERSION)), 9)
+else
 DEFINES += -DBL_PRVERSION=9
 endif
 endif
