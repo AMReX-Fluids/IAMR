@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.39 1999-07-27 00:09:36 propp Exp $
+# $Id: Make.package,v 1.40 2000-05-22 19:57:43 sstanley Exp $
 #
 IAMRLIB_BASE=EXE
 ifeq ($(LBASE),iamr)
@@ -32,8 +32,11 @@ endif
 C$(IAMRLIB_BASE)_sources += NavierStokes.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
 C$(IAMRLIB_BASE)_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H 
 
-F$(IAMRLIB_BASE)_sources += DERIVE_$(DIM)D.F GODUNOV_F.F GODUNOV_$(DIM)D.F NAVIERSTOKES_$(DIM)D.F \
-		PROJECTION_$(DIM)D.F MACPROJ_$(DIM)D.F DIFFUSION_$(DIM)D.F 
+F$(IAMRLIB_BASE)_sources += DERIVE_$(DIM)D.F GODUNOV_F.F GODUNOV_$(DIM)D.F \
+                            NAVIERSTOKES_$(DIM)D.F PROJECTION_$(DIM)D.F \
+                            MACPROJ_$(DIM)D.F DIFFUSION_$(DIM)D.F       \
+                            SLABSTAT_NS_$(DIM)D.F
 
-F$(IAMRLIB_BASE)_headers += DERIVE_F.H GODCOMM_F.H GODUNOV_F.H PROJECTION_F.H MACPROJ_F.H \
-		DIFFUSION_F.H NAVIERSTOKES_F.H 
+F$(IAMRLIB_BASE)_headers += DERIVE_F.H GODCOMM_F.H GODUNOV_F.H PROJECTION_F.H \
+                            MACPROJ_F.H DIFFUSION_F.H NAVIERSTOKES_F.H \
+                            SLABSTAT_NS_F.H
