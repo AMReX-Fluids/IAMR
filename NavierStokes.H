@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.15 1998-05-19 00:52:22 marc Exp $
+// $Id: NavierStokes.H,v 1.16 1998-05-28 03:12:35 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -178,6 +178,8 @@ public:   // ===================== public member functions ===
     void getDivCond(FArrayBox& fab, int ngrow, Real time);
     void getDivCond(FArrayBox& fab, int gridno, int ngrow, Real time);
 
+    MultiFab* getDivCond (int ngrow, Real time);
+
     // public so MacProj can access it
     virtual void SetGodunov();
     static Godunov *godunov;
@@ -337,6 +339,11 @@ protected: // ===================== protected member functions ===
     // virtual function to allow arbitrary forcing
     virtual void getForce(FArrayBox& force, int gridno, int ngrow,
                           int strt_comp, int num_comp, Real time);
+
+    MultiFab* getForce (int  ngrow,
+                        int  strt_comp,
+                        int  num_comp,
+                        Real time);
     
     // get state data
     void getState(FArrayBox& fab,int gridno, int ngrow,
@@ -344,12 +351,17 @@ protected: // ===================== protected member functions ===
 
     void getState(FArrayBox& fab,int gridno, int ngrow,
                   int state_indx, int strt_comp, int num_comp, Real time);
+
+    MultiFab* getState(int ngrow,
+                       int state_indx, int strt_comp, int num_comp, Real time);
     
     void getState(FArrayBox& fab, int gridno, int ngrow, 
                   Real time, int have_state, int state_indx,
                   //BoxAssoc& assoc, Array<Box>& unfilled,
                   Array<Box>& unfilled,
                   int start_comp = 0, int num_comp = 1);
+
+
     
     // get pressure gradient data via fill-patching
     void getGradP(FArrayBox& gp, int gridno, int ngrow, Real time);
@@ -358,6 +370,8 @@ protected: // ===================== protected member functions ===
     // contained cell centers
     void getGradP(FArrayBox &p_fab, FArrayBox& gp,
                   const Box &grd, int ngrow );
+
+    MultiFab* getGradP (int ngrow, Real time);
     
     // get dSdt from the state data
     void getDsdt(FArrayBox& fab, int gridno, int ngrow, Real time);
