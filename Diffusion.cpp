@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.53 1998-12-03 02:38:59 sstanley Exp $
+// $Id: Diffusion.cpp,v 1.54 1998-12-09 22:16:55 sstanley Exp $
 //
 
 //
@@ -744,8 +744,9 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
             // Copy to single-component multifab.
             // Note: use Soln as a temporary here.
             //
-            Copy(Soln,U_old,sigma,0,1,1);
+            Copy(Soln,U_old,sigma,0,1,0);
             visc_op->apply(Rhs,Soln);
+            Copy(U_old,Soln,0,sigma,1,1);
             delete visc_op;
             //
             // Complete Rhs by adding body sources.
