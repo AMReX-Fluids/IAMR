@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.155 1999-10-22 23:07:57 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.156 1999-11-05 18:53:33 propp Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -121,7 +121,7 @@ Real NavierStokes::divu_relax_factor   = 0.0;
      
 int  NavierStokes::num_state_type = 2;     // for backward compatibility
 
-int  NavierStokes::do_divu_sync = 1;       // for debugging new correction to MLSP
+int  NavierStokes::do_divu_sync = 0;       // for debugging new correction to MLSP
 
 
 void
@@ -255,6 +255,11 @@ NavierStokes::read_params ()
     pp.query("do_mac_proj",      do_mac_proj      );
 
     pp.query("do_divu_sync",      do_divu_sync    );
+    // make sure we don't use divu_sync
+    if (do_divu_sync)
+    {
+      BoxLib::Error("do_divu_sync == 1 is the wrong setting");
+    }
 
     //
     // This test ensures that if the user toggles do_sync_proj,
@@ -518,7 +523,7 @@ NavierStokes::init_additional_state_types ()
         BoxLib::Abort("NavierStokes::init_additional_state_types()");
     }
 
-    if (have_divu && !do_MLsync_proj) 
+    if (have_divu && do_sync_proj && !do_MLsync_proj) 
     {
         cout << "Must run the ML sync project if have_divu is true " << endl;
         cout << "  because the divu sync is only implemented in the " << endl;
@@ -809,7 +814,9 @@ NavierStokes::resetState (Real time,
         state[Divu_Type].setTimeLevel(time,dt_old,dt_new);
         if (have_dsdt)
         {
-            state[Dsdt_Type].reset();
+             // Dont do this, we want to improve dsdt with press iters
+             // but we do need to make sure time is set correctly..
+             // state[Dsdt_Type].reset();
             state[Dsdt_Type].setTimeLevel(time,dt_old,dt_new);
         }
     }
@@ -3582,23 +3589,52 @@ NavierStokes::level_sync ()
     // We are also copying the new computed value of divu into the Divu state. 
     if (do_sync_proj && have_divu && do_divu_sync == 1) 
     {
-      const Real cur_time = state[Divu_Type].curTime();
-      const Real dt_inv = 1.0 / dt;
+        const Real cur_time = state[Divu_Type].curTime();
+        const Real dt_inv = 1.0 / dt;
 
-      MultiFab& cur_divu_crse = get_new_data(Divu_Type);
-      calc_divu(cur_time,dt,cc_rhs_crse);
-      MultiFab::Copy(new_divu_crse,cc_rhs_crse,0,0,1,0);
-      cc_rhs_crse.minus(cur_divu_crse,0,1,0);
-      MultiFab::Copy(cur_divu_crse,new_divu_crse,0,0,1,0);
-      cc_rhs_crse.mult(dt_inv,0,1,0);
+        MultiFab& cur_divu_crse = get_new_data(Divu_Type);
+        calc_divu(cur_time,dt,cc_rhs_crse);
+        MultiFab::Copy(new_divu_crse,cc_rhs_crse,0,0,1,0);
+        cc_rhs_crse.minus(cur_divu_crse,0,1,0);
+        MultiFab::Copy(cur_divu_crse,new_divu_crse,0,0,1,0);
+        cc_rhs_crse.mult(dt_inv,0,1,0);
 
-      NavierStokes& fine_lev = getLevel(level+1);
-      MultiFab& cur_divu_fine = fine_lev.get_new_data(Divu_Type);
-      fine_lev.calc_divu(cur_time,dt,cc_rhs_fine);
-      MultiFab::Copy(new_divu_fine,cc_rhs_fine,0,0,1,0);
-      cc_rhs_fine.minus(cur_divu_fine,0,1,0);
-      MultiFab::Copy(cur_divu_fine,new_divu_fine,0,0,1,0);
-      cc_rhs_fine.mult(dt_inv,0,1,0);
+        NavierStokes& fine_lev = getLevel(level+1);
+        MultiFab& cur_divu_fine = fine_lev.get_new_data(Divu_Type);
+        fine_lev.calc_divu(cur_time,dt,cc_rhs_fine);
+        MultiFab::Copy(new_divu_fine,cc_rhs_fine,0,0,1,0);
+        cc_rhs_fine.minus(cur_divu_fine,0,1,0);
+        MultiFab::Copy(cur_divu_fine,new_divu_fine,0,0,1,0);
+        cc_rhs_fine.mult(dt_inv,0,1,0);
+
+        // With new divu's, get new Dsdt, then average down
+        calc_dsdt(cur_time, dt, get_new_data(Dsdt_Type));
+        fine_lev.calc_dsdt(cur_time, dt/crse_dt_ratio,
+                           fine_lev.get_new_data(Dsdt_Type));
+        for (int k = level; k>= 0; k--)
+        {
+            NavierStokes&   flev     = getLevel(k+1);
+            const BoxArray& fgrids   = flev.grids;
+            MultiFab&       fvolume  = flev.volume;
+          
+            NavierStokes&   clev     = getLevel(k);
+            const BoxArray& cgrids   = clev.grids;
+            MultiFab&       cvolume  = clev.volume;
+          
+            IntVect&  fratio = clev.fine_ratio;
+          
+            NavierStokes::avgDown(cgrids, fgrids,
+                                  clev.get_new_data(Divu_Type),
+                                  flev.get_new_data(Divu_Type),
+                                  cvolume, fvolume,
+                                  k, k+1, 0, 1, fratio);
+
+            NavierStokes::avgDown(cgrids, fgrids,
+                                  clev.get_new_data(Dsdt_Type),
+                                  flev.get_new_data(Dsdt_Type),
+                                  cvolume, fvolume,
+                                  k, k+1, 0, 1, fratio);
+        }
     }
 
     //
