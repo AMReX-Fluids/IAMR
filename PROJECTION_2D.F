@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.20 1999-03-25 19:00:23 marc Exp $
+c $Id: PROJECTION_2D.F,v 1.21 1999-04-15 17:43:36 propp Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -500,7 +500,7 @@ c     values are given along a 1-wide strip along the top of the domain.
       divcor_ave = divcor_ave/vtot
       max_pert = ABS(divuExt(0)-divcor_ave)
       do i = ics+1, ice
-         max_pert = MAX(max_pert,ABS(divuExt(ics-i)-divcor_ave))
+         max_pert = MAX(max_pert,ABS(divuExt(i-ics)-divcor_ave))
       end do
       max_pert = max_pert/(ABS(divcor_ave)+small_pert)
       if ((max_divu.eq.zero.and.min_divu.eq.zero)
