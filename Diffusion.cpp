@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.63 1999-02-17 18:13:10 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.64 1999-02-18 18:22:14 sstanley Exp $
 //
 
 //
@@ -45,11 +45,8 @@ const REAL BL_BOGUS      = FLT_QNAN;
 const REAL BL_BOGUS      = 1.e30;
 #endif
 
-#if defined(USE_TENSOR)
 const Real BL_SAFE_BOGUS = -666.e30;
-#endif
 
-#if (BL_SPACEDIM==2) && defined (USE_TENSOR)
 //
 // Include files for tensor solve.
 //
@@ -57,8 +54,7 @@ const Real BL_SAFE_BOGUS = -666.e30;
 #include <LO_BCTYPES.H>
 #include <MCMultiGrid.H>
 #include <MCCGSolver.H>
-#include <ViscBndry2D.H>
-#endif
+#include <ViscBndryTensor.H>
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -85,7 +81,6 @@ bool Diffusion::use_mg_precond_flag = false;
 int  Diffusion::verbose = 0;
 int  Diffusion::max_order = 2;
 int  Diffusion::tensor_max_order = 2;
-int  Diffusion::use_dv_constant_mu_def = 1;
 int  Diffusion::scale_abec = 0;
 int  Diffusion::est_visc_mag = 1;
 int  Diffusion::Lphi_in_abs_tol = 0;
@@ -158,7 +153,6 @@ Diffusion::Diffusion (Amr*               Parent,
 
         ppdiff.query("use_cg_solve",use_cg_solve);
         ppdiff.query("use_tensor_cg_solve",use_tensor_cg_solve);
-        ppdiff.query("use_dv_constant_mu",use_dv_constant_mu_def);
         int use_mg_precond = 0;
         ppdiff.query("use_mg_precond",use_mg_precond);
         use_mg_precond_flag = (use_mg_precond ? true : false);
@@ -228,7 +222,6 @@ Diffusion::echo_settings () const
         cout << "  From diffuse:\n";
         cout << "   use_cg_solve =        " << use_cg_solve << '\n';
         cout << "   use_tensor_cg_solve = "  << use_tensor_cg_solve << '\n';
-        cout << "   use_dv_constant_mu =  " << use_dv_constant_mu_def << '\n';
         cout << "   use_mg_precond_flag = " << use_mg_precond_flag << '\n';
         cout << "   max_order =           " << max_order << '\n';
         cout << "   tensor_max_order =    " << tensor_max_order << '\n';
@@ -630,7 +623,7 @@ Diffusion::diffuse_velocity (Real                   dt,
     checkBetas(betan, betanp1, allthere, allnull);
     for (int d=0; d<BL_SPACEDIM; ++d)
     {
-	if (allnull || !use_dv_constant_mu_def)
+	if (allnull)
 	{
 	    assert(visc_coef[Xvel+d]>=0);
 	}
@@ -641,7 +634,7 @@ Diffusion::diffuse_velocity (Real                   dt,
     }
 #endif
 
-    if (use_dv_constant_mu_def)
+    if (allnull)
     {
 	MultiFab **fluxSC;
 	allocFluxBoxesLevel(fluxSC,0,1);
@@ -688,13 +681,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                                     const MultiFab* const* betan, 
                                     const MultiFab* const* betanp1)
 {
-#if !defined(USE_TENSOR)
-    cout << "Diffusion::diffuse_tensor_velocity(): "
-         << "USE_TENSOR must be defined at compile time.\n"
-         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
-         << "and rerun\n";
-    BoxLib::Abort();
-#else
     const int finest_level = parent->finestLevel();
     //
     // At this point, S_old has bndry at time N S_new contains GRAD(SU).
@@ -725,8 +711,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         Real b = -(1.0-be_cn_theta)*dt;
 	if (allnull)
 	    b *= visc_coef[Xvel];
-
-        ViscBndry2D visc_bndry;
+        ViscBndryTensor visc_bndry;
         DivVis* tensor_op = getTensorOp(a,b,prev_time,visc_bndry,rho_half,dComp,betan);
         tensor_op->maxOrder(tensor_max_order);
         //
@@ -885,7 +870,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     if (allnull)
 	b *= visc_coef[Xvel];
        
-    ViscBndry2D visc_bndry;
+    ViscBndryTensor visc_bndry;
     DivVis* tensor_op = getTensorOp(a,b,cur_time,visc_bndry,rho_half,dComp,betanp1);
     tensor_op->maxOrder(tensor_max_order);
     const MultiFab* alpha = &(tensor_op->aCoefficients());
@@ -997,7 +982,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         removeFluxBoxesLevel(tensorflux);
     }
     delete tensor_op;
-#endif /*defined(USE_TENSOR)*/
 }
 
 void
@@ -1012,21 +996,23 @@ Diffusion::diffuse_Vsync (MultiFab*              Vsync,
     {
         cout << "Diffusion::diffuse_Vsync\n";
     }
-
+#ifndef NDEBUG
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
-
-    int constant_viscosity = allnull;
-    int use_dv_constant_mu = use_dv_constant_mu_def;
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int d=0; d<BL_SPACEDIM; ++d)
     {
-        use_dv_constant_mu = use_dv_constant_mu && visc_coef[Xvel+i] >= 0.0;
+        if (allnull)
+        {
+            assert(visc_coef[Xvel+d]>=0);
+        }
+        else
+        {
+            assert(beta[d]->min(0,0) >= 0.0);
+        }
     }
-    if (!use_dv_constant_mu && use_dv_constant_mu_def)
-        BoxLib::Abort("Diffusion::diffuse_Vsync(): must have velocity visc_coefs >= 0.0 if use_dv_constant_mu == 1");
+#endif
 
-    if (constant_viscosity || use_dv_constant_mu)
+    if (allnull)
     {
         diffuse_Vsync_constant_mu(Vsync,dt,be_cn_theta,rho_half,rho_flag);
     }
@@ -1263,13 +1249,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
                                  int                    rho_flag,
                                  const MultiFab* const* beta)
 {
-#if !defined(USE_TENSOR)
-    cout << "Diffusion::diffuse_tensor_Vsync(): "
-         << "USE_TENSOR must be defined at compile time.\n"
-         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
-         << "and rerun.\n";
-    BoxLib::Abort();
-#else
     const int finest_level = parent->finestLevel();
     const Real* dx         = caller->Geom().CellSize();
     const int IOProc       = ParallelDescriptor::IOProcessorNumber();
@@ -1421,7 +1400,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
         removeFluxBoxesLevel(tensorflux);
     }
     delete tensor_op;
-#endif /*defined(USE_TENSOR)*/
 }
 
 void
@@ -1558,27 +1536,15 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     delete visc_op;
 }
 
-#if defined(USE_TENSOR)
 DivVis*
 Diffusion::getTensorOp (Real                   a,
                         Real                   b,
                         Real                   time,
-#if (BL_SPACEDIM==2)  
-                        ViscBndry2D&           visc_bndry,
-#else
-                        ViscBndry3D&           visc_bndry,
-#endif
+                        ViscBndryTensor&       visc_bndry,
                         const MultiFab*        rho_half,
 			int                    dataComp,
                         const MultiFab* const* beta)
 {
-#if !defined(USE_TENSOR)
-    cout << "Diffusion::getTensorOp(): "
-         << "USE_TENSOR must be defined at compile time.\n"
-         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
-         << "and rerun.\n";
-    BoxLib::Abort();
-#else
     int allthere;
     checkBeta(beta, allthere);
 
@@ -1661,7 +1627,6 @@ Diffusion::getTensorOp (Real                   a,
     }
 
     return tensor_op;
-#endif
 }
 
 DivVis*
@@ -1671,13 +1636,6 @@ Diffusion::getTensorOp (Real                   a,
 			int                    dataComp,
                         const MultiFab* const* beta)
 {
-#if !defined(USE_TENSOR)
-    cout << "Diffusion::getTensorOp(): "
-         << "USE_TENSOR must be defined at compile time.\n"
-         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
-         << "and rerun.\n";
-    BoxLib::Abort();
-#else
     int allthere = beta != 0;
     if (allthere)
     {
@@ -1703,7 +1661,7 @@ Diffusion::getTensorOp (Real                   a,
 
     IntVect ref_ratio = level > 0 ? parent->refRatio(level-1) : IntVect::TheUnitVector();
 
-    ViscBndry2D bndry;
+    ViscBndryTensor bndry;
     bndry.define(grids,2*BL_SPACEDIM,caller->Geom());
     bndry.setHomogValues(bcarray, ref_ratio[0]);
     DivVis* tensor_op = new DivVis(bndry,dx);
@@ -1781,9 +1739,7 @@ Diffusion::getTensorOp (Real                   a,
     }
 
     return tensor_op;
-#endif
 }
-#endif /*defined(USE_TENSOR)*/
 
 ABecLaplacian*
 Diffusion::getViscOp (int                    comp,
@@ -2213,13 +2169,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 			       int                    dataComp,
                                const MultiFab* const* beta)
 {
-#if  !defined (USE_TENSOR)
-    cout << "Diffusion::getTensorViscTerms(): "
-         << "USE_TENSOR must be defined at compile time.\n"
-         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
-         << "and rerun\n";
-    BoxLib::Abort();
-#else
     int allthere;
     checkBeta(beta, allthere);
 
@@ -2251,7 +2200,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 
     if (is_diffusive[src_comp])
     {
-        ViscBndry2D visc_bndry;
+        ViscBndryTensor visc_bndry;
         getTensorBndryData(visc_bndry,time);
         //
         // Set up operator and apply to compute viscous terms.
@@ -2368,7 +2317,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 
         Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,1);
     }
-#endif /*defined (USE_TENSOR)*/
 }
 
 void
@@ -2488,22 +2436,11 @@ Diffusion::FillBoundary (BndryRegister& bdry,
     bdry.copyFrom(S,nGrow,0,dest_comp,num_comp);
 }
 
-#if defined (USE_TENSOR)
 void
 Diffusion::getTensorBndryData(
-#if (BL_SPACEDIM==2) 
-                            ViscBndry2D& bndry, 
-#else 
-                            ViscBndry3D& bndry, 
-#endif
+                            ViscBndryTensor& bndry, 
                             Real time)
 {
-#if (BL_SPACEDIM==3)
-    cout << "Diffusion::getTensorBndryData(): not yet implemented for 3-D.\n"
-         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
-         << "and rerun\n";
-    BoxLib::Abort();
-#else
     const int num_comp = BL_SPACEDIM;
     const int src_comp = Xvel;
     //
@@ -2539,8 +2476,6 @@ Diffusion::getTensorBndryData(
         bndry.setBndryValues(crse_br,0,S,src_comp,0,num_comp,crse_ratio[0],bcarray);
     }
 }
-#endif
-#endif /*defined (USE_TENSOR)*/
 
 void
 Diffusion::checkBetas (const MultiFab* const* beta1, 

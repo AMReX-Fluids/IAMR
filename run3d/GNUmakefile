@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.6 1999-02-17 20:32:54 lijewski Exp $
+# $Id: GNUmakefile,v 1.7 1999-02-18 18:22:36 sstanley Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -12,7 +12,7 @@ DEBUG	  = TRUE
 PROFILE   = FALSE
 DIM       = 3
 COMP      = KCC
-USE_MPI   = TRUE
+USE_MPI   = FALSE
 #
 # What stencil do you want to use?
 #
@@ -22,7 +22,7 @@ PRVERSION = v7
 #
 # Touch Projection.cpp if you want to change the state of USE_HGPROJ_SERIAL.
 #
-USE_HGPROJ_SERIAL = FALSE
+USE_HGPROJ_SERIAL = TRUE
 
 ifeq ($(USE_HGPROJ_SERIAL),TRUE)
 EBASE = amr-serial
@@ -36,13 +36,13 @@ include $(TOP)/mk/Make.defs ./Make.package
 ifeq ($(USE_HGPROJ_SERIAL),FALSE)
 INCLUDE_LOCATIONS += . .. $(TOP)/include
 LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
+LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lmcmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
 else
 INCLUDE_LOCATIONS += . .. $(TOP)/hgproj-serial
 INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
 INCLUDE_LOCATIONS += $(TOP)/include
 LIBRARY_LOCATIONS += $(TOP)/hgproj-serial/lib/$(machineSuffix) $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
+LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lmcmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
 endif
 
 ifeq ($(USE_MPI),TRUE)
@@ -114,6 +114,7 @@ else
 	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE=
 endif
 	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+	cd $(TOP)/tensorMG;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) PRVERSION=$(PRVERSION) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) install
 #
 # Cleanup libraries.
@@ -128,6 +129,7 @@ else
 	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE= clean
 endif
 	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
+	cd $(TOP)/tensorMG;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
 	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) clean
 
 include $(TOP)/mk/Make.rules

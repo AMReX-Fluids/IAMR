@@ -1,24 +1,29 @@
-#ifndef _VISCBNDRY2D_H_
-#define _VISCBNDRY2D_H_
+#ifndef _VISCBNDRYTENSOR_H_
+#define _VISCBNDRYTENSOR_H_
 
 //
-// $Id: ViscBndry2D.H,v 1.6 1999-01-06 00:51:15 marc Exp $
+// $Id: ViscBndryTensor.H,v 1.1 1999-02-18 18:22:18 sstanley Exp $
 //
 
 #include <MCInterpBndryData.H>
 #include <BC_TYPES.H>
 
-class ViscBndry2D
+class ViscBndryTensor
     :
     public MCInterpBndryData
 {
 public:
-    ViscBndry2D () {}
+    ViscBndryTensor () {}
 
-    ViscBndry2D (const BoxArray& grids,
-                 const Geometry& geom)
+    ViscBndryTensor (const BoxArray& grids,
+                     const Geometry& geom)
         :
+#if BL_SPACEDIM == 2
         MCInterpBndryData(grids,4,geom) {}
+#elif BL_SPACEDIM == 3
+        MCInterpBndryData(grids,12,geom) {}
+#endif
+
 
 #if 0
     virtual void setBndryConds (const Array<BCRec>& phys_bc,
@@ -38,4 +43,4 @@ public:
 
 };
 
-#endif /*_VISCBNDRY2D_H_*/
+#endif /*_VISCBNDRYTENSOR_H_*/

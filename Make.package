@@ -1,12 +1,10 @@
 #
-# $Id: Make.package,v 1.35 1998-12-02 00:24:34 lijewski Exp $
+# $Id: Make.package,v 1.36 1999-02-18 18:22:15 sstanley Exp $
 #
 CLIB_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
 
-ifeq ($(DIM),2)
-CLIB_sources += ViscBndry2D.cpp
-CLIB_headers += ViscBndry2D.H
-endif
+CLIB_sources += ViscBndryTensor.cpp
+CLIB_headers += ViscBndryTensor.H
 
 CLIB_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H
 

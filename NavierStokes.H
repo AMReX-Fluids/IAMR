@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.29 1999-02-11 18:51:15 marc Exp $
+// $Id: NavierStokes.H,v 1.30 1999-02-18 18:22:16 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -293,8 +293,8 @@ protected:
     // Advect scalars.
     //
     void scalar_advection (Real dt,
-			   int  first_scalar,
-			   int  last_scalar);
+                           int  first_scalar,
+                           int  last_scalar);
     //
     // Update scalars, (viscous solve in scalar_update).
     //
@@ -561,6 +561,26 @@ protected:
                          int  state_indx,
                          int  src_comp, 
                          int  num_comp); 
+    //
+    // Calculate nonuniform viscosity and diffusivity
+    //
+    void calcViscosity(Real time,
+                       const MultiFab& state,
+                       MultiFab* visc[BL_SPACEDIM]);
+
+    void calcDiffusivity(Real time,
+                         const MultiFab& state,
+                         MultiFab* diff[BL_SPACEDIM],
+                         int sComp = 0,
+                         int num_comp = 1);
+
+    void getViscosity(MultiFab* viscosity[BL_SPACEDIM],
+                      Real time);
+
+    void getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
+                        Real time,
+                        int sComp);
+
 
     NavierStokes& getLevel (int lev)
     {
@@ -612,6 +632,11 @@ protected:
     MultiFab* aofs;
 
     Diffusion* diffusion;
+    //
+    // MultiFab arrays for variable viscosity and diffusivity
+    //
+    MultiFab **viscn, **viscnp1;
+    MultiFab **diffn, **diffnp1;
     //
     // Volume and area fractions.
     //
@@ -687,6 +712,8 @@ protected:
     static Real        visc_tol;
     static Real        visc_abs_tol;
     static Real        be_cn_theta;
+    static int         variable_vel_visc;  // variable viscosity flag
+    static int         variable_scal_diff; // variable scalar diffusion flag
     //
     // Internal switches.
     //

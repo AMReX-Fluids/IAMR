@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.9 1999-02-11 18:51:14 marc Exp $
+// $Id: Diffusion.H,v 1.10 1999-02-18 18:22:14 sstanley Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -27,13 +27,11 @@
 //
 // Include files for tensor solve.
 //
-#if(BL_SPACEDIM==2) && defined (USE_TENSOR)
-#include <ViscBndry2D.H>
+#include <ViscBndryTensor.H>
 #include <DivVis.H>
 #include <LO_BCTYPES.H>
 #include <MCMultiGrid.H>
 #include <MCCGSolver.H>
-#endif
 
 #ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type}; 
@@ -171,25 +169,16 @@ public:
                               const MultiFab* const* beta = 0,
                               const MultiFab*        alpha_in = 0);
 
-#if defined(USE_TENSOR)
     DivVis* getTensorOp (Real                   a,
                          Real                   b, 
                          Real                   time, 
-#if (BL_SPACEDIM==2) 
-                         ViscBndry2D&           visc_bndry,
-#else 
-                         ViscBndry3D&           visc_bndry,
-#endif
+                         ViscBndryTensor&       visc_bndry,
                          const MultiFab*        rho_half,
 			 int                    dataComp,
                          const MultiFab* const* beta);
 
     void getTensorBndryData(
-#if (BL_SPACEDIM==2) 
-        ViscBndry2D& bndry, 
-#else 
-        ViscBndry3D& bndry, 
-#endif
+        ViscBndryTensor& bndry, 
         Real time);
 
     DivVis* getTensorOp (Real                   a,
@@ -197,7 +186,6 @@ public:
                          const MultiFab*        rho_half,
 			 int                    dataComp,
                          const MultiFab* const* beta);
-#endif
 
     void getViscTerms (MultiFab&              visc_terms,
                        int                    src_comp,

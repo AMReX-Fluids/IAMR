@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.8 1999-02-17 20:32:39 lijewski Exp $
+# $Id: GNUmakefile,v 1.9 1999-02-18 18:22:33 sstanley Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -36,13 +36,13 @@ include $(TOP)/mk/Make.defs ./Make.package
 ifeq ($(USE_HGPROJ_SERIAL),FALSE)
 INCLUDE_LOCATIONS += . .. $(TOP)/include
 LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
+LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lmcmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
 else
 INCLUDE_LOCATIONS += . .. $(TOP)/hgproj-serial
 INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
 INCLUDE_LOCATIONS += $(TOP)/include
 LIBRARY_LOCATIONS += $(TOP)/hgproj-serial/lib/$(machineSuffix) $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
+LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lmcmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
 endif
 
 ifeq ($(USE_MPI),TRUE)
@@ -109,6 +109,7 @@ else
 	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE=
 endif
 	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+	cd $(TOP)/tensorMG;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) PRVERSION=$(PRVERSION) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) install
 #
 # Cleanup libraries.
@@ -123,6 +124,7 @@ else
 	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE= clean
 endif
 	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
+	cd $(TOP)/tensorMG;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
 	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) clean
 
 include $(TOP)/mk/Make.rules

@@ -1,16 +1,14 @@
-#if (BL_SPACEDIM==2) && defined (USE_TENSOR)
-
 //
-// $Id: ViscBndry2D.cpp,v 1.14 1999-02-03 17:59:36 lijewski Exp $
+// $Id: ViscBndryTensor.cpp,v 1.1 1999-02-18 18:22:18 sstanley Exp $
 //
 
 #include <LO_BCTYPES.H>
-#include <ViscBndry2D.H>
+#include <ViscBndryTensor.H>
 
 void
-ViscBndry2D::setBndryConds (const BCRec& bc,
-                            int          ratio,
-                            int          comp)
+ViscBndryTensor::setBndryConds (const BCRec& bc,
+                                int          ratio,
+                                int          comp)
 {
 #if BL_SPACEDIM == 2
     assert(comp < 2*2);     // u and v, plus derivs of same
@@ -46,7 +44,8 @@ ViscBndry2D::setBndryConds (const BCRec& bc,
                     bctag[i][comp] = LO_DIRICHLET;
                     bloc[i] = 0.0;
                 }
-                else if (p_bc == FOEXTRAP || p_bc == HOEXTRAP || p_bc == REFLECT_EVEN)
+                else if (p_bc == FOEXTRAP || p_bc == HOEXTRAP 
+                                          || p_bc == REFLECT_EVEN)
                 {
                     bctag[i][comp] = LO_NEUMANN;
                     bloc[i] = 0.0;
@@ -70,8 +69,8 @@ ViscBndry2D::setBndryConds (const BCRec& bc,
 }
 
 void
-ViscBndry2D::setHomogValues (const Array<BCRec>& bc,
-                             int                 ratio)
+ViscBndryTensor::setHomogValues (const Array<BCRec>& bc,
+                                 int                 ratio)
 {
     for (int n = 0; n < bc.length(); ++n)
         setBndryConds(bc[n], ratio, n);
@@ -84,5 +83,3 @@ ViscBndry2D::setHomogValues (const Array<BCRec>& bc,
         }
     }
 }
-
-#endif /*(BL_SPACEDIM==2) && defined (USE_TENSOR)*/
