@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_3D.F,v 1.2 2003-10-14 19:52:39 lijewski Exp $
+c $Id: INFL_FORCE_3D.F,v 1.3 2003-12-19 18:32:52 lijewski Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -55,13 +55,14 @@ c :::        direction and pass in a FAB to fill with indices from -1 to 5,
 c :::        the -1 index is integer shifted over to an index of 63 to do
 c :::        the interpolation for the forcing.
 c :::
-      subroutine INTRP_DATA(time, xlo, dx, storePnt, fillComp, timePnt, dtFile,
-     $                      dxFile, xloFile, xhiFile, nCompStorDat, 
-     $                      FF_DIMS(storDat), storDat,
-     $                      DIMS(inflDat), inflDat, bc, probLo, probHi)
+      subroutine INTRP_DATA(time, xlo, dx, storePnt, fillComp, filePnt,
+     $     timePnt, dtFile, dxFile, xloFile, xhiFile, nCompStorDat, 
+     $     FF_DIMS(storDat), storDat,
+     $     DIMS(inflDat), inflDat, bc, probLo, probHi)
 
       implicit none
-      integer storePnt, fillComp, nCompStorDat
+
+      integer storePnt, fillComp, filePnt, nCompStorDat
       integer loStoreDim(3), hiStoreDim(3)
       integer DIMDEC(inflDat)
       integer FF_DIMDEC(storDat)
@@ -76,6 +77,7 @@ c :::
       integer i, j, k, iloc, jloc, kloc, ixcalc, jycalc, kzcalc
       integer lo(SDIM), hi(SDIM), n_lev_cells(SDIM)
       integer loStorDim(3), hiStorDim(3)
+
       REAL_T tm1, tp1, ctm1, ct0, ctp1, 
      $       x, xm1, x0, xp1, cxm1, cx0, cxp1,
      $       y, ym1, y0, yp1, cym1, cy0, cyp1,
@@ -95,8 +97,20 @@ c     ----------------------------------------------
 c     :::: Set the time interpolation constants ::::
 c     ----------------------------------------------
 c
-      tm1 = timePnt - dtFile
-      tp1 = timePnt + dtFile
+      if (infl_type .eq. -1) then
+         call bl_abort('INFL_FILL: infl_type is not set')
+      endif
+
+      if (infl_type .eq. infl_periodic_type) then
+         tm1 = timePnt - dtFile
+         tp1 = timePnt + dtFile
+      else if (infl_type .eq. infl_swirl_type) then
+         tm1 = fluct_times(filePnt + storePnt - 2)
+         tp1 = fluct_times(filePnt + storePnt)
+      else
+         call bl_abort('INTRP_DATA: unknown infl_type')
+      endif
+
       ctm1 = (time - timePnt) * (time - tp1) / (tm1 - timePnt) / (tm1 - tp1)
       ct0  = (time - tm1) * (time - tp1) / (timePnt - tm1) / (timePnt - tp1)
       ctp1 = (time - tm1) * (time - timePnt) / (tp1 - tm1) / (tp1 - timePnt)

@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.7 2003-10-17 20:22:36 marc Exp $
+c $Id: FLUCTFILE.F,v 1.8 2003-12-19 18:32:52 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -16,7 +16,11 @@ c
 
 #include "INFL_FORCE_F.H"
 
-      data nCompInflow /3/
+      data nCompInflow          / 3/
+      data infl_type            /-1/
+      data infl_periodic_type   / 1/
+      data infl_swirl_type      / 2/
+      data tstart_turb          /-1/
 
       end
 
@@ -89,41 +93,65 @@ c ::: probSizeFile  => Domain size from the fluctuations file
 c ::: dxFile     => Grid spacing from the fluctuations file
 c ::: -----------------------------------------------------------
 c
-      SUBROUTINE RD_SCL_FLCTHD(iunit, nCmpFile, dimFile, probSizeFile, dxFile)
+      subroutine RD_SCL_FLCTHD(iunit, nCmpFile, dimFile, probSizeFile, dxFile)
 
-      IMPLICIT NONE
+      implicit none
 
 #include "INFL_FORCE_F.H"
 
-      INTEGER iunit, dimFile(3), nCmpFile
+      integer iunit, dimFile(3), nCmpFile
       REAL_T probSizeFile(3), dxFile(3)
 
-      integer i1bc, j1bc, k1bc, ierr
-c 
-c     *************************************
-c     *** Read Header from Restart File ***
-c     *************************************
-c
+      integer i1bc, j1bc, k1bc, dummy, ierr, i
+      logical first
+
+      first = (infl_type .eq. -1)
+
       ierr = 0
-      READ(iunit,iostat=ierr) dimFile, nCmpFile
+      read(iunit,iostat=ierr) dimFile, nCmpFile
       if (ierr.ne.0) nCmpFile = BL_SPACEDIM
       if (nCmpFile.ne.nCompInflow) then
          call bl_abort('RD_SCL_FLCTHD: nCmpFile != nCompInflow')
       endif
 
-      READ(iunit) probSizeFile
-      READ(iunit) i1bc, j1bc, k1bc
+      if (dimFile(3) .lt. 3) then
+         call bl_abort('RD_SCL_FLCTHD: dimFile(3) must be >= 3')
+      endif
+
+      read(iunit) probSizeFile
+      !
+      ! Assume infl_swirl_type file until proven otherwise.
+      !
+      infl_type = infl_swirl_type
+      !
+      ! infl_periodic_type only has three integers here.
+      !
+      ierr = 0
+      read(iunit,iostat=ierr) i1bc, j1bc, k1bc, dummy
+      if (ierr.ne.0) infl_type = infl_periodic_type
 
       dxFile(1) = probSizeFile(1)/FLOAT(dimFile(1)-1)
       dxFile(2) = probSizeFile(2)/FLOAT(dimFile(2)-1)
+      dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
 
-      if (dimFile(3) .gt. 1) then
-        dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
-      else
-        dxFile(3) = zero
+      if (infl_type .eq. infl_swirl_type) then
+         if (.NOT. ASSOCIATED(fluct_times)) then
+            allocate(fluct_times(1:dimFile(3)))
+         endif
+         read(iunit) (fluct_times(i),i=1,dimFile(3))
       endif
 
-      END
+      if (first) then
+         if (infl_type .eq. infl_periodic_type) then
+            write(6,*) 'RD_SCL_FLCTHD: infl_type: infl_periodic_type'
+         else if (infl_type .eq. infl_swirl_type) then
+            write(6,*) 'RD_SCL_FLCTHD: infl_type: infl_swirl_type'
+         else
+            call bl_abort('RD_SCL_FLCTHD: unknown infl_type')
+         endif
+      endif
+
+      end
 c
 c ::: -----------------------------------------------------------
 c ::: This routine reads a record of data from an inflow/initial

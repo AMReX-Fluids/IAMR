@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.7 2003-10-14 19:52:39 lijewski Exp $
+c $Id: INFL_FORCE_F.F,v 1.8 2003-12-19 18:32:52 lijewski Exp $
 c
 
 #undef BL_LANG_CC
@@ -41,18 +41,15 @@ c ::: dx             =>  Grid spacing
 c ::: time           =>  Time for the fill
 c ::: -----------------------------------------------------------
 c
-      subroutine INFL_FILL(fillComp, DIMS(inflDat), inflDat, xlo, dx, time,
-     $                     bc, probLo, probHi)
+      subroutine INFL_FILL_PERIODIC(fillComp, DIMS(inflDat), inflDat,
+     $     xlo, dx, time, bc, probLo, probHi)
 
       implicit none
-      integer fillComp
-      integer DIMDEC(inflDat)
-      integer bc(SDIM,2)
 
-      REAL_T time
-      REAL_T xlo(SDIM), dx(SDIM)
-      REAL_T inflDat(DIMV(inflDat))
-      REAL_T probLo(SDIM), probHi(SDIM)
+      integer fillComp, DIMDEC(inflDat), bc(SDIM,2)
+
+      REAL_T time, xlo(SDIM), dx(SDIM)
+      REAL_T inflDat(DIMV(inflDat)), probLo(SDIM), probHi(SDIM)
 
       integer lo(SDIM), hi(SDIM), nCmpFile
       integer n, npass, filePnt, storePnt, filePntOld, filePntReqd,
@@ -77,181 +74,98 @@ c
 #include "INFL_FORCE_F.H"
 
       if (.NOT. ALLOCATED(storDat)) then
-c
-c       --------------------------------------------------------
-c       :::: Allocate and Fill the Arrays on the First Call ::::
-c       --------------------------------------------------------
-c
-        open(FF_UNIT, file=flct_file, form='unformatted')
-        call RD_SCL_FLCTHD(FF_UNIT,nCmpFile,dimFile,probSizeFile,dxFile)
-        close(FF_UNIT)
+         open(FF_UNIT, file=flct_file, form='unformatted')
+         call RD_SCL_FLCTHD(FF_UNIT,nCmpFile,dimFile,probSizeFile,dxFile)
+         close(FF_UNIT)
 
-        call SET_LOHI(DIMS(inflDat), lo, hi)
+         call SET_LOHI(DIMS(inflDat), lo, hi)
 
-#if 0
-        do n= 1,SDIM
-          if (n .NE. strmwse_dir) then
-            is_periodic = bc(n,1) .eq. INT_DIR .and. 
-     $                    xlo(n) + dx(n)*half .lt. probLo(n)
-            is_periodic = is_periodic .or. (bc(n,2) .eq. INT_DIR .and.
-     $             xlo(n) + dx(n)*(float(hi(n)-lo(n)) + half) .gt. probHi(n))
-
-            if (.NOT.is_periodic .AND.
-     $          (probHi(n) - probLo(n) .lt. probSizeFile(n))) then
-              print *, "turbFile is too big in dir ",n,probSizeFile(n),
-     $                     probHi(n)-probLo(n)
-              call BL_PD_ABORT()
+         xloFile(3) = zero
+         xhiFile(3) = zero
+         do n = 1, SDIM
+            xloFile(n) = half * (probHi(n) + probLo(n)) - half * probSizeFile(n)
+            xhiFile(n) = xloFile(n) + probSizeFile(n)
+            if (n .ne. strmwse_dir) then
+               write(6,1001) n,probLo(n),probHi(n),xloFile(n),xhiFile(n)
             endif
+         enddo
+1001     format('dir: ',i2,' problem: ',f10.5,2x,f10.5,' file:',f10.5,2x,f10.5)
 
-            if (is_periodic .and. 
-     $          probHi(n)-probLo(n) - (probSizeFile(n)-two*dxFile(n)) 
-     $                                             .gt. 0.001d0*dxFile(n)) then
-              print *, "size wrong in periodic dir",n,
-     $                      probSizeFile(n)-two*dxFile(n), probHi(n)-probLo(n)
-              call BL_PD_ABORT()
-            endif
-          endif
-        enddo
+         do n = 1, 3
+            loStoreDim(n) = 1
+            hiStoreDim(n) = dimFile(n)
+         enddo
 
-#endif
+         if (numInflPlanesStore .GT. 0 .AND.
+     $        numInflPlanesStore .LT. hiStoreDim(strmwse_dir))
+     $        hiStoreDim(strmwse_dir) = numInflPlanesStore
 
-        do n = 1, SDIM
-          xloFile(n) = half * (probHi(n) + probLo(n)) - half * probSizeFile(n)
-          xhiFile(n) = xloFile(n) + probSizeFile(n)
-          if (n .ne. strmwse_dir) then
-             write(6,1001) n,probLo(n),probHi(n),xloFile(n),xhiFile(n)
-          endif
-        enddo
+         call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
 
- 1001   format('dir: ',i2,' problem: ',f10.5,2x,f10.5,' file:',f10.5,2x,f10.5)
-
-#if (BL_SPACEDIM==2)
-        xloFile(3) = zero
-        xhiFile(3) = zero
-#endif
-c
-c       :::: Set the Dimensions for the inflow data array and allocate space
-c
-        do n = 1, 3
-          loStoreDim(n) = 1
-          hiStoreDim(n) = dimFile(n)
-        enddo
-
-        if (numInflPlanesStore .GT. 0 .AND.
-     $      numInflPlanesStore .LT. hiStoreDim(strmwse_dir))
-     $    hiStoreDim(strmwse_dir) = numInflPlanesStore
-
-        call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
-
-        ALLOCATE(storDat(FF_DIMV(storDat),nCompInflow))
+         ALLOCATE(storDat(FF_DIMV(storDat),nCompInflow))
 c
 c       ::::   Convert the streamwise direction lengths to times   ::::
 c       :::: and set up the pointers into the data arrays and file ::::
 c
-        timeMaxFile = probSizeFile(strmwse_dir) / convVel
-        dtFile = dxFile(strmwse_dir) / convVel
+         timeMaxFile = probSizeFile(strmwse_dir) / convVel
+         dtFile = dxFile(strmwse_dir) / convVel
 
-        npass = INT(time / timeMaxFile)
-        timeOffset = FLOAT(npass) * timeMaxFile
+         npass = INT(time / timeMaxFile)
+         timeOffset = FLOAT(npass) * timeMaxFile
 
-        filePnt = INT((time - timeOffset) / dtFile) + 1
-        timePnt = timeOffset + FLOAT(filePnt-1) * dtFile
-        storePnt = 2
-        maxFilePntChng = 0
+         filePnt = INT((time - timeOffset) / dtFile) + 1
+         timePnt = timeOffset + FLOAT(filePnt-1) * dtFile
+         storePnt = 2
+         maxFilePntChng = 0
 
-        call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
-     $                     FF_DIMS(storDat), storDat)
+         call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
+     $        FF_DIMS(storDat), storDat)
       endif
-c
-c     ------------------------------------------
-c     :::: Find Correct Interpolation Point ::::
-c     ------------------------------------------
-c
+
       call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
 
-#ifdef INFL_FRC_DIAGS
-      OPEN(12,file='LOG.Inflow_Forcing',OPEN_APPEND)
-      if (fillComp .eq. FLCT_XVEL) then
-        WRITE(12,2000) 'X',time, storePnt, filePnt, npass, timeOffset,
-     $                 dimFile(strmwse_dir), numInflPlanesStore, maxFilePntChng
-      else if (fillComp .eq. FLCT_YVEL) then
-        WRITE(12,2000) 'Y',time, storePnt, filePnt, npass, timeOffset,
-     $                 dimFile(strmwse_dir), numInflPlanesStore, maxFilePntChng
-      else if (fillComp .eq. FLCT_ZVEL) then
-        WRITE(12,2000) 'Z',time, storePnt, filePnt, npass, timeOffset,
-     $                 dimFile(strmwse_dir), numInflPlanesStore, maxFilePntChng
-      endif
-      close(12)
-#endif
       filePntOld = filePnt
       npassOld = npass
+
       do while ( (time .lt. timePnt - half*dtFile) .or.
-     $           (time .gt. timePnt + half*dtFile) )
-        if (time .gt. timePnt + half*dtFile) then
-          filePnt = filePnt + 1
-          storePnt = storePnt + 1
+     $     (time .gt. timePnt + half*dtFile) )
+         if (time .gt. timePnt + half*dtFile) then
+            filePnt = filePnt + 1
+            storePnt = storePnt + 1
 
-          if (filePnt .gt. dimFile(strmwse_dir) - 1) then
-            npass = npass + 1
-            timeOffset = FLOAT(npass) * timeMaxFile
+            if (filePnt .gt. dimFile(strmwse_dir) - 1) then
+               npass = npass + 1
+               timeOffset = FLOAT(npass) * timeMaxFile
 
-            filePnt = filePnt - dimFile(strmwse_dir) + 1
-          endif
+               filePnt = filePnt - dimFile(strmwse_dir) + 1
+            endif
 
-        else if (time .lt. timePnt - half*dtFile) then
-          filePnt = filePnt - 1
-          storePnt = storePnt - 1
+         else if (time .lt. timePnt - half*dtFile) then
+            filePnt = filePnt - 1
+            storePnt = storePnt - 1
 
-          if (filePnt .lt. 1) then
-            npass = npass - 1
-            timeOffset = FLOAT(npass) * timeMaxFile
+            if (filePnt .lt. 1) then
+               npass = npass - 1
+               timeOffset = FLOAT(npass) * timeMaxFile
 
-            filePnt = filePnt + dimFile(strmwse_dir) - 1
-          endif
-        endif
+               filePnt = filePnt + dimFile(strmwse_dir) - 1
+            endif
+         endif
 
-        timePnt = timeOffset + FLOAT(filePnt-1) * dtFile
+         timePnt = timeOffset + FLOAT(filePnt-1) * dtFile
       enddo
 
       if (npass .eq. npassOld) 
-     $  maxFilePntChng = MAX(maxFilePntChng, ABS(filePnt-filePntOld))
-
-#ifdef INFL_FRC_DIAGS
-      OPEN(12,file='LOG.Inflow_Forcing',OPEN_APPEND)
-      if (fillComp .eq. FLCT_XVEL) then
-        WRITE(12,2000) 'X',time, storePnt, filePnt, npass, timeOffset,
-     $                 dimFile(strmwse_dir), numInflPlanesStore, maxFilePntChng
-      else if (fillComp .eq. FLCT_YVEL) then
-        WRITE(12,2000) 'Y',time, storePnt, filePnt, npass, timeOffset,
-     $                 dimFile(strmwse_dir), numInflPlanesStore, maxFilePntChng
-      else if (fillComp .eq. FLCT_ZVEL) then
-        WRITE(12,2000) 'Z',time, storePnt, filePnt, npass, timeOffset,
-     $                 dimFile(strmwse_dir), numInflPlanesStore, maxFilePntChng
-      endif
- 2000 FORMAT(A1,1xE11.3,1x,3(I3,1x),E11.3,1x,3(I3,1x))
-      close(12)
-#endif
-c
-c     -------------------------------------------
-c     ::: Load Data if off end of stored data :::
-c     -------------------------------------------
+     $     maxFilePntChng = MAX(maxFilePntChng, ABS(filePnt-filePntOld))
 c
 c     *** Stepped off the right edge of the stored data ***
 c
       if (storePnt + 1 .gt. hiStoreDim(strmwse_dir)) then
-        filePntReqd = filePnt - maxFilePntChng
+         filePntReqd = filePnt - maxFilePntChng
 
-        call FILL_FRCARRYS(filePntReqd - 1, 1, dimFile, nCompInflow,
-     $                     FF_DIMS(storDat), storDat)
-        storePnt = 2 - filePntReqd + filePnt
-
-#ifdef INFL_FRC_DIAGS
-        OPEN(12,file='LOG.Inflow_Forcing',OPEN_APPEND)
-        WRITE(12,2010) storePnt, filePnt, filePntReqd
-        close(12)
- 2010 FORMAT(12x,3(I3,1x))
-#endif
-
+         call FILL_FRCARRYS(filePntReqd - 1, 1, dimFile, nCompInflow,
+     $        FF_DIMS(storDat), storDat)
+         storePnt = 2 - filePntReqd + filePnt
 c
 c     *** Stepped off the left edge of the stored data ***
 c
@@ -260,38 +174,201 @@ c     I really should fix the shifting routine to allow the data to be right
 c     shifted as well as left shifted. SAS
 c
       else if (storePnt - 1 .lt. 1) then
-        open(11,file='WARNING.Inflow_Forcing',OPEN_APPEND)
-        write(11,1000) storePnt, filePnt, timePnt, npass, timeOffset,
-     $                 dtFile, dimFile(strmwse_dir), time
- 1000   format('** Stepped off the left end of the stored data.  Reloading',
+         open(11,file='WARNING.Inflow_Forcing',OPEN_APPEND)
+         write(11,1000) storePnt, filePnt, timePnt, npass, timeOffset,
+     $        dtFile, dimFile(strmwse_dir), time
+1000     format('** Stepped off the left end of the stored data.  Reloading',
      $        /3x,'the entire data array.',
      $        /3x,'storePnt = ',I3,2x,'filePnt = ',I3,2x,'timePnt = ',E12.4,
      $        /3x,'npass = ',I3,2x,'timeOffset = ',E12.4,2x,'dtFile = ',E12.4,
      $        /3x,'dimFile = ',I3,2x,'time = ',E12.4)
-        close(11)
-        call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
-     $                     FF_DIMS(storDat), storDat)
-        storePnt = 2
-
-#ifdef INFL_FRC_DIAGS
-        OPEN(12,file='LOG.Inflow_Forcing',OPEN_APPEND)
-        WRITE(12,2020) storePnt, filePnt
-        close(12)
- 2020 FORMAT('BACK LOAD',3x,2(I3,1x))
-#endif
+         close(11)
+         call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
+     $        FF_DIMS(storDat), storDat)
+         storePnt = 2
       endif
-c
-c     -----------------------------------------
-c     :::: Interpolate Data to Fill inflDat :::
-c     -----------------------------------------
-c
-      call INTRP_DATA(time, xlo, dx, storePnt, fillComp, timePnt, dtFile,
-     $                dxFile, xloFile, xhiFile, nCompInflow, 
-     $                FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
-     $                bc, probLo, probHi)
+
+      call INTRP_DATA(time, xlo, dx, storePnt, fillComp, filePnt,
+     $     timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
+     $     FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
+     $     bc, probLo, probHi)
 
       end
 
+      subroutine INFL_FILL_SWIRL(fillComp, DIMS(inflDat), inflDat, xlo,
+     $     dx, time, bc, probLo, probHi)
+
+      implicit none
+
+      integer fillComp, DIMDEC(inflDat), bc(SDIM,2)
+      REAL_T time, xlo(SDIM), dx(SDIM)
+      REAL_T inflDat(DIMV(inflDat)), probLo(SDIM), probHi(SDIM)
+
+      integer lo(SDIM), hi(SDIM), nCmpFile, storePnt, shft
+      integer n, filePnt, filePntSave, FF_DIMDEC(storDat)
+      integer dimFile(3), loStoreDim(3), hiStoreDim(3)
+      REAL_T dxFile(3), probSizeFile(3), xloFile(3), xhiFile(3), timePnt
+      REAL_T storDat(:,:,:,:), dtFile
+
+      allocatable storDat
+
+      save loStoreDim, hiStoreDim, storDat, dimFile, xloFile, xhiFile,
+     $     dxFile, filePntSave
+
+#include "INFL_FORCE_F.H"
+
+      if (.NOT. ALLOCATED(storDat)) then
+         open(FF_UNIT, file=flct_file, form='unformatted')
+         call RD_SCL_FLCTHD(FF_UNIT,nCmpFile,dimFile,probSizeFile,dxFile)
+         close(FF_UNIT)
+
+         call SET_LOHI(DIMS(inflDat), lo, hi)
+
+         xloFile(3) = zero
+         xhiFile(3) = zero
+
+         do n = 1, SDIM
+            xloFile(n) = half * (probHi(n) + probLo(n)) - half * probSizeFile(n)
+            xhiFile(n) = xloFile(n) + probSizeFile(n)
+            if (n .ne. strmwse_dir) then
+               write(6,1001) n,probLo(n),probHi(n),xloFile(n),xhiFile(n)
+            endif
+         enddo
+1001     format('dir: ',i2,' problem: ',f10.5,2x,f10.5,' file:',f10.5,2x,f10.5)
+
+         do n = 1, 3
+            loStoreDim(n) = 1
+            hiStoreDim(n) = dimFile(n)
+         enddo
+
+         if (numInflPlanesStore .GT. 0 .AND.
+     $        numInflPlanesStore .LT. hiStoreDim(strmwse_dir)) then
+            hiStoreDim(strmwse_dir) = numInflPlanesStore
+         endif
+
+         call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
+
+         ALLOCATE(storDat(FF_DIMV(storDat),nCompInflow))
+
+         if ((time .le. fluct_times(1)) .or.
+     $        (time .ge. fluct_times(dimFile(strmwse_dir)))) then
+            write(6,101) time, fluct_times(1), fluct_times(dimFile(strmwse_dir))
+            call bl_abort('INFL_FILL_SWIRL: time is out of range')
+         endif
+
+         filePnt = 1
+         do while (fluct_times(filePnt) .lt. time)
+            filePnt = filePnt + 1
+         enddo
+
+         if (filePnt .eq. dimFile(strmwse_dir)) then
+            filePnt = filePnt - 2
+         else
+            filePnt = filePnt - 1
+         endif
+
+         call FILL_FRCARRYS_SWIRL(filePnt, 1, dimFile, nCompInflow,
+     $        FF_DIMS(storDat), storDat)
+
+         filePntSave = filePnt
+      endif
+
+      call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
+
+      if ((time .le. fluct_times(1)) .or.
+     $     (time .ge. fluct_times(dimFile(strmwse_dir)))) then
+            write(6,101) time, fluct_times(1), fluct_times(dimFile(strmwse_dir))
+         call bl_abort('INFL_FILL_SWIRL: time is out of range')
+      endif
+
+101   format('time: ',f10.5,' range: ',f10.5,' ... ',f10.5)
+
+      filePnt = 1
+      do while (fluct_times(filePnt) .lt. time)
+         filePnt = filePnt + 1
+      enddo
+
+      if (filePnt .eq. dimFile(strmwse_dir)) then
+         filePnt = filePnt - 2
+      else
+         filePnt = filePnt - 1
+      endif
+
+      if ((filePnt .ge. filePntSave) .and.
+     $     (filePnt .lt. (filePntSave + hiStoreDim(strmwse_dir) - 2))) then
+         !
+         ! We've got enough data in storDat to do the interpolation.
+         !
+         storePnt = 2 + (filePnt - filePntSave)
+      else
+         !
+         ! Got to reload storDat.
+         ! Always load exactly hiStoreDim(strmwse_dir) platters of data.
+         !
+         shft = filePnt + hiStoreDim(strmwse_dir) - 1 - dimFile(strmwse_dir)
+
+         if (shft .gt. 0) then
+            filePnt = filePnt - shft
+            storePnt = 2 + shft
+         else
+            storePnt = 2
+         endif
+
+         if (filePnt .lt. 0) then
+            call bl_abort('INFL_FILL_SWIRL: filePnt .lt. 0 ?')
+         endif
+         if (storePnt .lt. 2) then
+            call bl_abort('INFL_FILL_SWIRL: storePnt .lt. 2 ?')
+         endif
+
+         call FILL_FRCARRYS_SWIRL(filePnt, 1, dimFile, nCompInflow,
+     $        FF_DIMS(storDat), storDat)
+
+         filePntSave = filePnt
+      endif
+
+      timePnt = fluct_times(filePnt + storePnt - 1)
+      dtFile  = -1 ! Not used
+
+      call INTRP_DATA(time, xlo, dx, storePnt, fillComp, filePnt,
+     $     timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
+     $     FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
+     $     bc, probLo, probHi)
+
+      end
+
+      subroutine INFL_FILL(fillComp, DIMS(inflDat), inflDat, xlo, dx, time,
+     $                     bc, probLo, probHi)
+
+      implicit none
+
+      integer fillComp, DIMDEC(inflDat), bc(SDIM,2)
+
+      REAL_T time, xlo(SDIM), dx(SDIM)
+      REAL_T inflDat(DIMV(inflDat)), probLo(SDIM), probHi(SDIM)
+
+      REAL_T offset_time
+
+#include "INFL_FORCE_F.H"
+
+      if (infl_type .eq. -1) then
+         call bl_abort('INFL_FILL: infl_type is not set')
+      endif
+
+      if (infl_type .eq. infl_periodic_type) then
+         call INFL_FILL_PERIODIC(fillComp, DIMS(inflDat), inflDat,
+     $        xlo, dx, time, bc, probLo, probHi)
+      else if (infl_type .eq. infl_swirl_type) then
+         if (tstart_turb .eq. -1) then
+            call bl_abort('INFL_FILL: tstart_turb is not set')
+         endif
+         offset_time = time + tstart_turb
+         call INFL_FILL_SWIRL(fillComp, DIMS(inflDat), inflDat,
+     $        xlo, dx, offset_time, bc, probLo, probHi)
+      else
+         call bl_abort('INFL_FILL: unknown infl_type')
+      endif
+      end
 c
 c ::: -----------------------------------------------------------
 c ::: This routine fills the inflow forcing data array from the file.
@@ -329,10 +406,12 @@ c
 #include "INFL_FORCE_F.H"
 
       call FF_SET_LOHI(FF_DIMS(dat), lo, hi)
+
+      intDummy = hi(strmwse_dir) - lo(strmwse_dir) + 1
+      write(6,1001) intDummy
+1001  format('FILL_FRCARRYS: loading ',i5,' platters of data ...')
 c
-c     ------------------------------------------------------
 c     *** Wrap baseFilePnt into the box if it is outside ***
-c     ------------------------------------------------------
 c
 c     Note: This assumes the first and last point in the file 
 c           are the same.  This is the case for data generated with mkInitFlct.
@@ -345,13 +424,10 @@ c
         baseFilePnt = baseFilePnt - (dimFile(strmwse_dir) - 1)
       endif
 c
-c     ----------------------------------------------------
 c     *** If the data can be filled in one pass, do so ***
-c     ----------------------------------------------------
 c
       if (hi(strmwse_dir) - baseArrayPnt + 1 
      $                        .LE. dimFile(strmwse_dir) - baseFilePnt + 1) then
-
         do n = 1, 3
           filLo(n) = 1
           loRd(n) = lo(n)
@@ -370,10 +446,8 @@ c
         enddo
         close(FF_UNIT)
 c
-c     --------------------------------------------------------------
 c     *** If the data can not be filled in one pass, fill in two ***
 c     ***   passes wrapping around in the streamwise direction   ***
-c     --------------------------------------------------------------
 c
 c     Note: In this case, we are guaranteed that the arrays can be filled 
 c           in two passes since the array is guaranteed not to have 
@@ -425,3 +499,48 @@ c
       endif
 
       END
+
+      subroutine FILL_FRCARRYS_SWIRL(baseFilePnt, baseArrayPnt, dimFile, 
+     $     nComp, FF_DIMS(dat), dat)
+
+      implicit none
+
+      integer baseFilePnt, baseArrayPnt, nComp, dimFile(3)
+      integer FF_DIMDEC(dat)
+      REAL_T dat(FF_DIMV(dat),nComp)
+
+      integer intDummy, n
+      integer lo(3), hi(3), loRd(3), hiRd(3), filLo(3)
+      REAL_T realDummy
+
+#include "INFL_FORCE_F.H"
+
+      call FF_SET_LOHI(FF_DIMS(dat), lo, hi)
+
+      intDummy = hi(strmwse_dir) - lo(strmwse_dir) + 1
+      write(6,1001) intDummy
+1001  format('FILL_FRCARRYS_SWIRL: loading ',i5,' platters of data ...')
+
+      do n = 1, 3
+         filLo(n) = 1
+         loRd(n)  = lo(n)
+         hiRd(n)  = hi(n)
+      enddo
+      loRd(strmwse_dir)  = baseArrayPnt
+      filLo(strmwse_dir) = baseFilePnt
+
+      open(FF_UNIT, file=flct_file, form='unformatted')
+
+      read(FF_UNIT) intDummy
+      read(FF_UNIT) realDummy
+      read(FF_UNIT) intDummy
+      read(FF_UNIT) realDummy
+
+      do n = 1, nComp
+         call RD_FLCTREC(FF_UNIT, dimFile, loRd, hiRd, filLo,
+     $        FF_DIMS(dat), dat(lo(1),lo(2),lo(3),n))
+      enddo
+
+      close(FF_UNIT)
+
+      end
