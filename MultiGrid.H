@@ -2,7 +2,7 @@
 #define _MULTIGRID_H_
 
 //
-// $Id: MultiGrid.H,v 1.6 1997-12-11 23:30:21 lijewski Exp $
+// $Id: MultiGrid.H,v 1.7 1998-03-06 16:47:10 lijewski Exp $
 //
 
 #include <Boolean.H>
@@ -99,13 +99,13 @@ public:
     virtual ~MultiGrid();
 //@ManMemo: Callable members
 //@ManDoc: solve the system, Lp(solution)=rhs to default err tolerance
-    void operator()(MultiFab &solution, const MultiFab &rhs)
+    void operator()(MultiFab &solution, const MultiFab &_rhs)
     {
-        solve(solution, rhs);
+        solve(solution, _rhs);
     }
 
 //@ManDoc: solve the system to relative err eps\_rel, absolute err eps\_abs
-    virtual void solve(MultiFab &solution, const MultiFab &rhs,
+    virtual void solve(MultiFab &solution, const MultiFab &_rhs,
                        Real eps_rel = -1.0, Real eps_abs = -1.0,
                        LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
 
