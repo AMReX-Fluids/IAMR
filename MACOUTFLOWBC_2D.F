@@ -1188,7 +1188,6 @@ c     We know that the faces are ordered: XLO,XHI,YLO,YHI
 
       if (xhi_outflow .eq. 1) then
         do j = 0,leny-1
-     $                           x(ifinal+j)
           phi2(leny-1-j) = x(ifinal+j)
         enddo
         ifinal = ifinal+leny
