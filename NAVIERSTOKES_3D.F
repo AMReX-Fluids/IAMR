@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.6 1998-03-31 17:26:39 lijewski Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.7 1998-09-30 20:40:59 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -13,70 +13,6 @@ c
 #include "ArrayLim.H"
 
 #define SDIM 3
-
-      subroutine FORT_TEST_UMAC_PERIODIC(
-     &     lo,hi,
-     &     u,DIMS(u),xper,udiff,
-     &     v,DIMS(v),yper,vdiff,
-     &     w,DIMS(w),zper,wdiff,
-     &     level)
-c     
-c     This function tests u_mac for periodicity
-c
-      implicit none
-      integer i,j,k
-      integer imin,jmin,kmin,imax,jmax,kmax
-
-      REAL_T udiff,vdiff,wdiff
-      integer xper,yper,zper
-      integer lo(SDIM),hi(SDIM),level
-      integer DIMDEC(u),DIMDEC(v),DIMDEC(w)
-      REAL_T u(DIMV(u)),v(DIMV(v)),w(DIMV(w))
-
-      imin = lo(1)
-      jmin = lo(2)
-      kmin = lo(3)
-      imax = hi(1)
-      jmax = hi(2)
-      kmax = hi(3)
-      udiff = zero
-      vdiff = zero
-      wdiff = zero
-
-      if ( xper .eq. 1 ) then
-         do k = kmin,kmax
-            do j = jmin,jmax
-               udiff = MAX( udiff, abs(u(imax+1,j,k)-u(imin,j,k)) )
-            end do
-         end do
-         if ( udiff .gt. 1.e-10 ) then
-            udiff = udiff
-         end if
-      end if
-
-      if ( yper .eq. 1 ) then
-         do k = kmin,kmax
-            do i = imin,imax
-               vdiff = MAX( vdiff, abs(v(i,jmax+1,k)-v(i,jmin,k)) )
-            end do
-         end do
-         if ( vdiff .gt. 1.e-10 ) then
-            vdiff = vdiff
-         end if
-      end if
-
-      if ( zper .eq. 1 ) then
-         do j = jmin,jmax
-            do i = imin,imax
-               wdiff = MAX( wdiff, abs(w(i,j,kmax+1)-w(i,j,kmin)) )
-            end do
-         end do
-         if ( vdiff .gt. 1.e-10 ) then
-            vdiff = vdiff
-         end if
-      end if
-
-      end
 
       subroutine FORT_GRADP(
      &     p,DIMS(p),

@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.6 1998-03-31 17:26:38 lijewski Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.7 1998-09-30 20:40:59 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -13,51 +13,6 @@ c
 #include "ArrayLim.H"
 
 #define SDIM 2
-
-      subroutine FORT_TEST_UMAC_PERIODIC(
-     &     lo,hi,
-     &     u,DIMS(u),xper,udiff,
-     &     v,DIMS(v),yper,vdiff,
-     &     level )
-c     
-c     This function tests u_mac for periodicity
-c
-      implicit none
-      integer i,j
-      integer imin,jmin,imax,jmax
-
-      REAL_T udiff,vdiff
-      integer xper,yper
-      integer lo(SDIM),hi(SDIM),level
-      integer DIMDEC(u),DIMDEC(v)
-      REAL_T u(DIMV(u)),v(DIMV(v))
-
-      imin = lo(1)
-      jmin = lo(2)
-      imax = hi(1)
-      jmax = hi(2)
-      udiff = zero
-      vdiff = zero
-
-      if ( xper .eq. 1 ) then
-         do j = jmin,jmax
-            udiff = MAX( udiff, abs(u(imax+1,j)-u(imin,j)) )
-         end do
-         if ( udiff .gt. 1.e-10 ) then
-            udiff = udiff
-         end if
-      end if
-
-      if ( yper .eq. 1 ) then
-         do i = imin,imax
-            vdiff = MAX( vdiff, abs(v(i,jmax+1)-v(i,jmin)) )
-         end do
-         if ( vdiff .gt. 1.e-10 ) then
-            vdiff = vdiff
-         end if
-      end if
-
-      end
 
       subroutine FORT_GRADP (
      &     p,DIMS(p),

@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.5 1997-12-14 23:35:59 lijewski Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.6 1998-09-30 20:40:59 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -12,7 +12,6 @@
 #    define FORT_PUTDOWN     putdown
 #    define FORT_TESTINJECT  testinject
 #    define FORT_INCRMULT    incrmult
-#    define FORT_TEST_UMAC_PERIODIC    testumacperiodic
 #    define FORT_SUMMASS     summass
 #    define FORT_SUMMASSSQ   summasssq
 #endif
@@ -25,7 +24,6 @@
 #    define FORT_PUTDOWN     PUTDOWN
 #    define FORT_TESTINJECT  TESTINJECT
 #    define FORT_INCRMULT    INCRMULT
-#    define FORT_TEST_UMAC_PERIODIC    TESTUMACPERIODIC
 #    define FORT_SUMMASS     SUMMASS
 #    define FORT_SUMMASSSQ   SUMMASSSQ
 #  else
@@ -35,7 +33,6 @@
 #    define FORT_PUTDOWN     putdown_
 #    define FORT_TESTINJECT  testinject_
 #    define FORT_INCRMULT    incrmult_
-#    define FORT_TEST_UMAC_PERIODIC    testumacperiodic_
 #    define FORT_SUMMASS     summass_
 #    define FORT_SUMMASSSQ   summasssq_
 #  endif
@@ -74,18 +71,6 @@ extern "C" {
                         const int* lo, const int* hi,
                         const Real* alpha);
 
-    void FORT_TEST_UMAC_PERIODIC( const int* lo, const int* hi,
-                                  const Real* u, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                                  int *xper, Real *udiff,
-                                  const Real* v, ARLIM_P(v_lo), ARLIM_P(v_hi),
-                                  int *yper, Real *vdiff,
-#if (BL_SPACEDIM == 3)                                                   
-                                  const Real* w, ARLIM_P(w_lo), ARLIM_P(w_hi),
-                                  int *zper, Real *wdiff,
-#endif
-                                  int *level );
-    
-    
 #if (BL_SPACEDIM == 2)
     void FORT_SUMMASS (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                        ARLIM_P(grid_lo), ARLIM_P(grid_hi),
