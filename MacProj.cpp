@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.64 2000-06-28 21:50:02 almgren Exp $
+// $Id: MacProj.cpp,v 1.65 2000-07-05 22:42:56 almgren Exp $
 //
 
 #include <Misc.H>
@@ -651,24 +651,33 @@ MacProj::mac_sync_compute (int                   level,
     Godunov*        godunov             = ns_level.godunov;
     bool            use_forces_in_trans = godunov->useForcesInTrans()?true:false;
 
-    MultiFab vel_visc_terms;
+    MultiFab vel_visc_terms(grids,BL_SPACEDIM,1);
+    MultiFab scal_visc_terms(grids,numscal,1);
 
-    if (use_forces_in_trans)
-    {
-        vel_visc_terms.define(grids,BL_SPACEDIM,1,Fab_allocate);
+     vel_visc_terms.setVal(0,1); // Initialize to make calls below safe
+    scal_visc_terms.setVal(0,1); // Initialize to make calls below safe
 
-        if (be_cn_theta != 1.0)
-            ns_level.getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
-        else
-            vel_visc_terms.setVal(0,1);
-    }
     //
     // Get viscous forcing.
     //
-    MultiFab visc_terms(grids,NUM_STATE,1);
-    visc_terms.setVal(0,1); // Initialize to make calls below safe
-    if (be_cn_theta != 1.0)
-        ns_level.getViscTerms(visc_terms,Xvel,NUM_STATE,prev_time);
+    if (be_cn_theta != 1.0) 
+    {
+      int i;
+      bool do_get_visc_terms = false;
+
+      for (i=0; i < BL_SPACEDIM; ++i)
+        if (increment_sync[i] == 1) do_get_visc_terms = true;
+
+      if (do_get_visc_terms || use_forces_in_trans)
+        ns_level.getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
+
+      do_get_visc_terms = false;
+      for (i=BL_SPACEDIM; i < increment_sync.length(); ++i)
+        if (increment_sync[i] == 1) do_get_visc_terms = true;
+
+      if (do_get_visc_terms)
+        ns_level.getViscTerms(scal_visc_terms,BL_SPACEDIM,numscal,prev_time);
+    }
 
     Array<int> ns_level_bc, bndry[BL_SPACEDIM];
     //
@@ -683,7 +692,7 @@ MacProj::mac_sync_compute (int                   level,
     FillPatchIterator P_fpi(ns_level,ns_level.get_old_data(Press_Type),1,
                             prev_pres_time,Press_Type,0,1);
 
-    FillPatchIterator S_fpi(ns_level,visc_terms,HYP_GROW,
+    FillPatchIterator S_fpi(ns_level,vel_visc_terms,HYP_GROW,
                             prev_time,State_Type,0,NUM_STATE);
 
     FluxRegister* temp_reg = 0;
@@ -712,7 +721,8 @@ MacProj::mac_sync_compute (int                   level,
         DependentMultiFabIterator Ssyncmfi(S_fpi,*Ssync);
         DependentMultiFabIterator rho_halfmfi(S_fpi,*rho_half);
         DependentMultiFabIterator mac_sync_phimfi(S_fpi,*mac_sync_phi);
-        DependentMultiFabIterator visc_termsmfi(S_fpi,visc_terms);
+        DependentMultiFabIterator vel_visc_termsmfi(S_fpi,vel_visc_terms);
+        DependentMultiFabIterator scal_visc_termsmfi(S_fpi,scal_visc_terms);
 
         const int i     = S_fpi.index();
         FArrayBox& S    = S_fpi();
@@ -745,9 +755,9 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Compute total forcing terms.
         //
-        godunov->Sum_tf_gp_visc(tforces, visc_termsmfi(), Gp[i], Rho);
+        godunov->Sum_tf_gp_visc(tforces, vel_visc_termsmfi(), Gp[i], Rho);
         godunov->Sum_tf_divu_visc(S, tforces, BL_SPACEDIM, numscal,
-                                  visc_termsmfi(), BL_SPACEDIM, divu, Rho, 1);
+                                  scal_visc_termsmfi(), 0, divu, Rho, 1);
 
         if (use_forces_in_trans)
         {
