@@ -28,7 +28,7 @@ amr.probin_file = probin.2d.periodic_shear_layer
 #ADAPTIVITY CONTROLS
 #**********************************
 
-amr.max_level      = 2 # maximum number of levels of refinement
+amr.max_level      = 1 # maximum number of levels of refinement
 amr.regrid_int     = 2 # how often to regrid if max_level > 0
 
 # (this one is optional)

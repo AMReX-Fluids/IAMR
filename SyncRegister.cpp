@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.25 1998-05-20 16:50:45 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.26 1998-05-20 19:34:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -391,6 +391,39 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     }
 }
 
+static
+void
+Nullify (const BoxArray& grids,
+         FArrayBox&      fab,
+         const Box&      validbox,
+         const Box&      subbox,
+         int*            bc,
+         int             ncomp,
+         int             fine_index)
+{
+    fab.setVal(0,subbox,0,ncomp);
+
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        int bc_index = 2*BL_SPACEDIM*dir + dir;
+
+        if (bc[bc_index] == EXT_DIR &&
+            grids[fine_index].smallEnd(dir) == validbox.smallEnd(dir))
+        {
+            Box finesidelo(subbox);
+            finesidelo.setRange(dir,finesidelo.smallEnd(dir)-1,1);
+            fab.setVal(0,finesidelo,0,ncomp);
+        }
+        if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
+            grids[fine_index].bigEnd(dir) == validbox.bigEnd(dir))
+        {
+            Box finesidehi(subbox);
+            finesidehi.setRange(dir,finesidehi.bigEnd(dir)+1,1);
+            fab.setVal(0,finesidehi,0,ncomp);
+        }
+    }
+}
+
 void
 SyncRegister::CrseDVInit (const MultiFab& U, 
                           const Geometry& geom, 
@@ -434,19 +467,19 @@ SyncRegister::CrseDVInit (const MultiFab& U,
             //
             // Fill ghost cells outside of domain.
             // 
-            if (dmfi_U.validbox().smallEnd(dir) == geom.Domain().smallEnd(dir))
+            if (bc[bc_index] == EXT_DIR &&
+                dmfi_U.validbox().smallEnd(dir) == geom.Domain().smallEnd(dir))
             {
                 Box sidelo(dmfi_U.validbox());
                 sidelo.setRange(dir,sidelo.smallEnd(dir)-1,1);
-                if (bc[bc_index] == EXT_DIR)
-                    mfi().copy(dmfi_U(),sidelo,dir,sidelo,dir,1);
+                mfi().copy(dmfi_U(),sidelo,dir,sidelo,dir,1);
             }
-            if (dmfi_U.validbox().bigEnd(dir) == geom.Domain().bigEnd(dir))
+            if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
+                dmfi_U.validbox().bigEnd(dir) == geom.Domain().bigEnd(dir))
             {
                 Box sidehi(dmfi_U.validbox());
                 sidehi.setRange(dir,sidehi.bigEnd(dir)+1,1);
-                if (bc[bc_index+BL_SPACEDIM] == EXT_DIR)
-                    mfi().copy(dmfi_U(),sidehi,dir,sidehi,dir,1);
+                mfi().copy(dmfi_U(),sidehi,dir,sidehi,dir,1);
             }
         }
     }
@@ -472,27 +505,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
 
             if (subbox.ok())
             {
-                mfi().setVal(0,subbox,0,BL_SPACEDIM);
-
-                for (int dir = 0; dir < BL_SPACEDIM; dir++)
-                {
-                    int bc_index = 2*BL_SPACEDIM*dir + dir;
-
-                    if (bc[bc_index] == EXT_DIR &&
-                        grids[fine].smallEnd(dir) == mfi.validbox().smallEnd(dir))
-                    {
-                        Box finesidelo(subbox);
-                        finesidelo.setRange(dir,finesidelo.smallEnd(dir)-1,1);
-                        mfi().setVal(0,finesidelo,0,BL_SPACEDIM);
-                    }
-                    if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
-                        grids[fine].bigEnd(dir) == mfi.validbox().bigEnd(dir))
-                    {
-                        Box finesidehi(subbox);
-                        finesidehi.setRange(dir,finesidehi.bigEnd(dir)+1,1);
-                        mfi().setVal(0,finesidehi,0,BL_SPACEDIM);
-                    }
-                }
+                Nullify(grids,mfi(),mfi.validbox(),subbox,bc,BL_SPACEDIM,fine);
             }
             //
             // Now zero out under periodic translations of fine grids.
@@ -565,6 +578,34 @@ SyncRegister::CrseDVInit (const MultiFab& U,
     }
 }
 
+static
+void
+FillExtDir (FArrayBox&       dstfab,
+            const FArrayBox& srcfab,
+            const Box&       validbox,
+            int*             bc)
+{
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        int bc_index = 2*BL_SPACEDIM*dir + dir;
+
+        if (bc[bc_index] == EXT_DIR)
+        {
+            Box sidelo(validbox);
+            sidelo.growLo(dir,1);
+            sidelo.setRange(dir,sidelo.loVect()[dir],1);
+            dstfab.copy(srcfab,sidelo,dir,sidelo,dir,1);
+        }
+        if (bc[bc_index+BL_SPACEDIM] == EXT_DIR)
+        {
+            Box sidehi(validbox);
+            sidehi.growHi(dir,1);
+            sidehi.setRange(dir,sidehi.hiVect()[dir],1);
+            dstfab.copy(srcfab,sidehi,dir,sidehi,dir,1);
+        }
+    }
+}
+
 void
 SyncRegister::FineDVAdd (const MultiFab& U, 
                          const Real*     dx_fine, 
@@ -590,27 +631,7 @@ SyncRegister::FineDVAdd (const MultiFab& U,
         const int* uhi = ufab.box().hiVect();
         int* bc        = fine_bc[mfi.index()];
 
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            int bc_index = 2*BL_SPACEDIM*dir + dir;
-
-            if (bc[bc_index] == EXT_DIR)
-            {
-                Box sidelo(mfi.validbox());
-                sidelo.growLo(dir,1);
-                const int* dlo = sidelo.loVect();
-                sidelo.setRange(dir,dlo[dir],1);
-                ufab.copy(mfi(),sidelo,dir,sidelo,dir,1);
-            }
-            if (bc[bc_index+BL_SPACEDIM] == EXT_DIR)
-            {
-                Box sidehi(mfi.validbox());
-                sidehi.growHi(dir,1);
-                const int* dhi = sidehi.hiVect();
-                sidehi.setRange(dir,dhi[dir],1);
-                ufab.copy(mfi(),sidehi,dir,sidehi,dir,1);
-            }
-        }
+        FillExtDir(ufab, mfi(), mfi.validbox(), bc);
         //
         // Now compute node centered surrounding box.
         //
@@ -765,29 +786,7 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
 
             if (subbox.ok())
             {
-                dsdtfab.setVal(0,subbox,0,1);
-
-                for (int dir = 0; dir < BL_SPACEDIM; dir++)
-                {
-                    int bc_index = 2*BL_SPACEDIM*dir + dir;
-
-                    if (bc[bc_index] == EXT_DIR &&
-                        grids[fine].loVect()[dir] == mfi.validbox().loVect()[dir])
-                    {
-                        Box finesidelo(subbox);
-                        finesidelo.growLo(dir,1);
-                        finesidelo.setRange(dir,finesidelo.loVect()[dir],1);
-                        dsdtfab.setVal(0,finesidelo,0,1);
-                    }
-                    if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
-                        grids[fine].hiVect()[dir] == mfi.validbox().hiVect()[dir])
-                    {
-                        Box finesidehi(subbox);
-                        finesidehi.growHi(dir,1);
-                        finesidehi.setRange(dir,finesidehi.hiVect()[dir],1);
-                        dsdtfab.setVal(0,finesidehi,0,1);
-                    }
-                }
+                Nullify(grids,dsdtfab,mfi.validbox(),subbox,bc,1,fine);
             }
         }
         //
@@ -1007,25 +1006,7 @@ SyncRegister::CompDVAdd (const MultiFab& U,
         const int* uhi = ufab.box().hiVect();
         int* bc        = fine_bc[mfi.index()];
 
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            int bc_index = 2*BL_SPACEDIM*dir + dir;
-
-            if (bc[bc_index] == EXT_DIR)
-            {
-                Box sidelo(mfi.validbox());
-                sidelo.growLo(dir,1);
-                sidelo.setRange(dir,sidelo.loVect()[dir],1);
-                ufab.copy(mfi(),sidelo,dir,sidelo,dir,1);
-            }
-            if (bc[bc_index+BL_SPACEDIM] == EXT_DIR)
-            {
-                Box sidehi(mfi.validbox());
-                sidehi.growHi(dir,1);
-                sidehi.setRange(dir,sidehi.hiVect()[dir],1);
-                ufab.copy(mfi(),sidehi,dir,sidehi,dir,1);
-            }
-        }
+        FillExtDir(ufab, mfi(), mfi.validbox(), bc);
         //
         // Now compute node centered surrounding box.
         //
