@@ -1,17 +1,17 @@
 #ifndef _DIFFUSION_F_H
-#define _DIFFUSION_F_H  $Id: DIFFUSION_F.H,v 1.2 1997-07-17 22:00:58 vince Exp $
+#define _DIFFUSION_F_H  $Id: DIFFUSION_F.H,v 1.3 1997-09-29 17:06:24 lijewski Exp $
 
 #ifdef BL_LANG_FORT
 #    define FORT_VISCFLUX    viscflux
 #    define FORT_VISCSYNCFLUX viscsyncflux
 #    define FORT_HOOPSRC     hoopsrc
 #    define FORT_HOOPRHS     hooprhs
-#    define FORT_TENSOR_HOOPSRC     tensor_hoopsrc
-#    define FORT_TENSOR_HOOPRHS     tensor_hooprhs
+#    define FORT_TENSOR_HOOPSRC     tensorhoopsrc
+#    define FORT_TENSOR_HOOPRHS     tensorhooprhs
 #    define FORT_SETALPHA    setalpha
-#    define FORT_SET_TENSOR_ALPHA    set_tensor_alpha
-#    define FORT_DIV_VARMU_SI    div_varmu_si
-#    define FORT_DIV_MU_SI    div_mu_si
+#    define FORT_SET_TENSOR_ALPHA    settensoralpha
+#    define FORT_DIV_VARMU_SI    divvarmusi
+#    define FORT_DIV_MU_SI    divmuusii
 #    define FORT_CCTOEDGE        cctoedge
 #endif
 
@@ -21,24 +21,24 @@
 #    define FORT_VISCSYNCFLUX VISCSYNCFLUX
 #    define FORT_HOOPSRC     HOOPSRC
 #    define FORT_HOOPRHS     HOOPRHS
-#    define FORT_TENSOR_HOOPSRC     TENSOR_HOOPSRC
-#    define FORT_TENSOR_HOOPRHS     TENSOR_HOOPRHS
+#    define FORT_TENSOR_HOOPSRC     TENSORHOOPSRC
+#    define FORT_TENSOR_HOOPRHS     TENSORHOOPRHS
 #    define FORT_SETALPHA    SETALPHA
-#    define FORT_SET_TENSOR_ALPHA    SET_TENSOR_ALPHA
-#    define FORT_DIV_VARMU_SI    DIV_VARMU_SI
-#    define FORT_DIV_MU_SI    DIV_MU_SI
+#    define FORT_SET_TENSOR_ALPHA    SETTENSORALPHA
+#    define FORT_DIV_VARMU_SI    DIVVARMUSI
+#    define FORT_DIV_MU_SI    DIVMUUSII
 #    define FORT_CCTOEDGE        CCTOEDGE
 #  else
 #    define FORT_VISCFLUX    viscflux_
 #    define FORT_VISCSYNCFLUX viscsyncflux_
 #    define FORT_HOOPSRC     hoopsrc_
 #    define FORT_HOOPRHS     hooprhs_
-#    define FORT_TENSOR_HOOPSRC     tensor_hoopsrc_
-#    define FORT_TENSOR_HOOPRHS     tensor_hooprhs_
+#    define FORT_TENSOR_HOOPSRC     tensorhoopsrc_
+#    define FORT_TENSOR_HOOPRHS     tensorhooprhs_
 #    define FORT_SETALPHA    setalpha_
-#    define FORT_SET_TENSOR_ALPHA    set_tensor_alpha_
-#    define FORT_DIV_VARMU_SI    div_varmu_si_
-#    define FORT_DIV_MU_SI    div_mu_si_
+#    define FORT_SET_TENSOR_ALPHA    settensoralpha_
+#    define FORT_DIV_VARMU_SI    divvarmusi_
+#    define FORT_DIV_MU_SI    divmuusii_
 #    define FORT_CCTOEDGE        cctoedge_
 #  endif
 

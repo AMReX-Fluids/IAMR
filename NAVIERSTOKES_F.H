@@ -1,5 +1,5 @@
 #ifndef _NAVIERSTOKES_F_H_
-#define _NAVIERSTOKES_F_H_  $Id: NAVIERSTOKES_F.H,v 1.2 1997-07-17 22:01:04 vince Exp $
+#define _NAVIERSTOKES_F_H_  $Id: NAVIERSTOKES_F.H,v 1.3 1997-09-29 17:06:25 lijewski Exp $
 
 #ifdef BL_LANG_FORT
 #    define FORT_FILCC       filcc
@@ -8,7 +8,7 @@
 #    define FORT_PUTDOWN     putdown
 #    define FORT_TESTINJECT  testinject
 #    define FORT_INCRMULT    incrmult
-#    define FORT_TEST_UMAC_PERIODIC    test_umac_periodic
+#    define FORT_TEST_UMAC_PERIODIC    testumacperiodic
 #    define FORT_SUMMASS     summass
 #    define FORT_SUMMASSSQ   summasssq
 #endif
@@ -21,7 +21,7 @@
 #    define FORT_PUTDOWN     PUTDOWN
 #    define FORT_TESTINJECT  TESTINJECT
 #    define FORT_INCRMULT    INCRMULT
-#    define FORT_TEST_UMAC_PERIODIC    TEST_UMAC_PERIODIC
+#    define FORT_TEST_UMAC_PERIODIC    TESTUMACPERIODIC
 #    define FORT_SUMMASS     SUMMASS
 #    define FORT_SUMMASSSQ   SUMMASSSQ
 #  else
@@ -31,7 +31,7 @@
 #    define FORT_PUTDOWN     putdown_
 #    define FORT_TESTINJECT  testinject_
 #    define FORT_INCRMULT    incrmult_
-#    define FORT_TEST_UMAC_PERIODIC    test_umac_periodic_
+#    define FORT_TEST_UMAC_PERIODIC    testumacperiodic_
 #    define FORT_SUMMASS     summass_
 #    define FORT_SUMMASSSQ   summasssq_
 #  endif

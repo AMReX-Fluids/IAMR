@@ -3,9 +3,9 @@
 
 #ifdef BL_LANG_FORT
 #    define FORT_FILTERP       filterp
-#    define FORT_VEL_TO_ACCEL  vel_to_accel
-#    define FORT_ACCEL_TO_VEL  accel_to_vel
-#    define FORT_PROJ_UPDATE   proj_update
+#    define FORT_VEL_TO_ACCEL  veltoaccel
+#    define FORT_ACCEL_TO_VEL  acceltovel
+#    define FORT_PROJ_UPDATE   projupdate
 #    define FORT_RADMPY        radmpy
 #    define FORT_RADDIV        raddiv
 #    define FORT_HGC2N         hgc2n
@@ -16,9 +16,9 @@
 #ifdef BL_LANG_CC
 #  ifdef BL_FORT_USE_UPPERCASE
 #    define FORT_FILTERP       FILTERP
-#    define FORT_VEL_TO_ACCEL  VEL_TO_ACCEL
-#    define FORT_ACCEL_TO_VEL  ACCEL_TO_VEL
-#    define FORT_PROJ_UPDATE   PROJ_UPDATE
+#    define FORT_VEL_TO_ACCEL  VELTOACCEL
+#    define FORT_ACCEL_TO_VEL  ACCELTOVEL
+#    define FORT_PROJ_UPDATE   PROJUPDATE
 #    define FORT_RADMPY        RADMPY
 #    define FORT_RADDIV        RADDIV
 #    define FORT_HGC2N         HGC2N
@@ -26,9 +26,9 @@
 #    define FORT_HGPHIBC       HGPHIBC
 #  else
 #    define FORT_FILTERP       filterp_
-#    define FORT_VEL_TO_ACCEL  vel_to_accel_
-#    define FORT_ACCEL_TO_VEL  accel_to_vel_
-#    define FORT_PROJ_UPDATE   proj_update_
+#    define FORT_VEL_TO_ACCEL  veltoaccel_
+#    define FORT_ACCEL_TO_VEL  acceltovel_
+#    define FORT_PROJ_UPDATE   projupdate_
 #    define FORT_RADMPY        radmpy_
 #    define FORT_RADDIV        raddiv_
 #    define FORT_HGC2N         hgc2n_
