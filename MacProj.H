@@ -1,7 +1,7 @@
 #ifndef _MacProj_H_
 #define _MacProj_H_
 //
-// $Id: MacProj.H,v 1.26 2004-02-20 18:10:27 lijewski Exp $
+// $Id: MacProj.H,v 1.27 2004-09-08 21:02:25 almgren Exp $
 //
 #include <BC_TYPES.H>
 #include <BCRec.H>
@@ -27,6 +27,9 @@ public:
                         MultiFab&             volume,
                         MultiFab*             area,
                         Array< Array<Real> >* _radius );
+
+    void install_anelastic_coefficient (int                    level, 
+                                        Real**            anel_coeff);
     
     void setup (int level);
     void cleanup (int level);
@@ -79,6 +82,10 @@ public:
                            Array<AdvectionForm>& advectionType,
                            bool		         modify_reflux_normal_vel,
                            Real                  dt);
+
+    void   scaleArea (int level, MultiFab* area, Real** anel_coeff);
+    void rescaleArea (int level, MultiFab* area, Real** anel_coeff);
+
 protected:
     //
     // Test the divergence constraint.
@@ -115,6 +122,10 @@ protected:
     //
     PArray<MultiFab> volume;
     Array<MultiFab*> area;
+    //
+    // Anelastic coefficient array.
+    //
+    Array<Real**> anel_coeff;
     //
     // Radius data.
     //

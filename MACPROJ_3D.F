@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_3D.F,v 1.6 2000-06-02 17:25:51 lijewski Exp $
+c $Id: MACPROJ_3D.F,v 1.7 2004-09-08 21:02:25 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -117,3 +117,107 @@ c ::
 
        end
 
+c :: ----------------------------------------------------------
+c :: SCALEAREA
+c ::          area = area * anel_coeff
+c ::                 OR 
+c ::          area = area / anel_coeff
+c :: ----------------------------------------------------------
+
+       subroutine FORT_SCALEAREA (xarea,DIMS(ax),yarea,DIMS(ay),
+     &                            zarea,DIMS(az),
+     &                            anel_coeff,anel_coeff_lo,anel_coeff_hi,lo,hi,mult)
+
+       integer lo(SDIM), hi(SDIM)
+       integer anel_coeff_lo,anel_coeff_hi
+       integer DIMDEC(ax)
+       integer DIMDEC(ay)
+       integer DIMDEC(az)
+       REAL_T xarea(DIMV(ax))
+       REAL_T yarea(DIMV(ay))
+       REAL_T zarea(DIMV(az))
+       REAL_T anel_coeff(anel_coeff_lo:anel_coeff_hi)
+       integer mult
+
+       integer i,j,k
+
+       if (mult .eq. 1) then
+
+          do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+          do i = lo(1), hi(1)+1
+             xarea(i,j,k) =  xarea(i,j,k) * anel_coeff(k)
+          end do
+          end do
+          end do
+
+          do k = lo(3), hi(3)
+          do j = lo(2), hi(2)+1
+          do i = lo(1), hi(1)
+             yarea(i,j,k) =  yarea(i,j,k) * anel_coeff(k)
+          end do
+          end do
+          end do
+
+          do k = lo(3), hi(3)+1
+          do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             zarea(i,j,k) =  zarea(i,j,k) * 0.5d0 * (anel_coeff(k)+anel_coeff(k-1))
+          end do
+          end do
+          end do
+
+          if (lo(3) .eq. 0) then
+             k = lo(3)
+             do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                zarea(i,j,k) =  zarea(i,j,k) * anel_coeff(k-1) /
+     $                          (0.5d0 * (anel_coeff(k)+anel_coeff(k-1)))
+             end do
+             end do
+          end if
+
+       else if (mult .eq. -1) then
+
+          do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+          do i = lo(1), hi(1)+1
+             xarea(i,j,k) =  xarea(i,j,k) / anel_coeff(k)
+          end do
+          end do
+          end do
+
+          do k = lo(3), hi(3)
+          do j = lo(2), hi(2)+1
+          do i = lo(1), hi(1)
+             yarea(i,j,k) =  yarea(i,j,k) / anel_coeff(k)
+          end do
+          end do
+          end do
+
+          do k = lo(3), hi(3)+1
+          do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             zarea(i,j,k) =  zarea(i,j,k) / (0.5d0 * (anel_coeff(k)+anel_coeff(k-1)))
+          end do
+          end do
+          end do
+
+          if (lo(3) .eq. 0) then
+             k = lo(3)
+             do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                zarea(i,j,k) =  zarea(i,j,k) / anel_coeff(k-1) *
+     $                         (0.5d0 * (anel_coeff(k)+anel_coeff(k-1)))
+             end do
+             end do
+          end if
+
+       else 
+ 
+          print *,'BOGUS MULT IN SCALEAREA '
+          stop
+
+       end if
+
+       end

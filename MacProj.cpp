@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.95 2004-02-20 18:10:27 lijewski Exp $
+// $Id: MacProj.cpp,v 1.96 2004-09-08 21:02:25 almgren Exp $
 //
 #include <winstd.H>
 
@@ -78,7 +78,7 @@ MacProj::MacProj (Amr*   _parent,
     mac_phi_crse(_finest_level+1, PArrayManage),
     mac_reg(_finest_level+1, PArrayManage),
     volume(_finest_level+1), area(_finest_level+1),
-    radius(_finest_level+1) 
+    anel_coeff(_finest_level+1), radius(_finest_level+1) 
 {
     read_params();
 
@@ -86,6 +86,9 @@ MacProj::MacProj (Amr*   _parent,
         std::cout << "Creating mac_projector\n";
 
     finest_level_allocated = finest_level;
+
+    for (int lev = 0; lev <= finest_level; lev++)
+       anel_coeff[lev] = 0;
 }
 
 MacProj::~MacProj () {}
@@ -158,6 +161,16 @@ MacProj::install_level (int                   level,
         mac_reg.set(level,new FluxRegister(LevelData[level].boxArray(),
                                            parent->refRatio(level-1),level,1));
     }
+}
+void
+MacProj::install_anelastic_coefficient (int               level,
+                                        Real**            _anel_coeff)
+{
+    if (verbose && ParallelDescriptor::IOProcessor())
+        std::cout << "Installing anel_coeff into MacProj level " << level << '\n';
+
+    if (level > anel_coeff.size()-1) anel_coeff.resize(level+1);
+    anel_coeff.set(level, _anel_coeff);
 }
 
 void
@@ -349,6 +362,9 @@ MacProj::mac_project (int             level,
       {
 	the_solver = 2;
       }
+
+    if (anel_coeff[level] != 0) scaleArea(level,area[level],anel_coeff[level]);
+
     mac_level_driver(mac_bndry, grids, the_solver, level, Density,
                      dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
                      area[level], volume[level], S, Rhs, u_mac, mac_phi);
@@ -418,6 +434,8 @@ MacProj::mac_project (int             level,
 
     if (check_umac_periodicity)
         test_umac_periodic(level,u_mac);
+
+    if (anel_coeff[level] != 0) rescaleArea(level,area[level],anel_coeff[level]);
 }
 
 //
@@ -565,9 +583,11 @@ MacProj::mac_sync_solve (int       level,
       {
 	the_solver = 2;
       }
+    if (anel_coeff[level] != 0) scaleArea(level,area[level],anel_coeff[level]);
     mac_sync_driver(mac_bndry, grids, the_solver, level, dx, dt,
                     mac_sync_tol, mac_abs_tol, rhs_scale, area[level],
                     volume[level], Rhs, rho_half, mac_sync_phi);
+    if (anel_coeff[level] != 0) rescaleArea(level,area[level],anel_coeff[level]);
 }
 
 //
@@ -1315,5 +1335,81 @@ MacProj::test_umac_periodic (int level,MultiFab* u_mac)
                       << " for region: "  << pirm[i].m_dstBox << std::endl;
             BoxLib::Error("Periodic bust in u_mac");
         }
+    }
+}
+
+void
+MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff)
+{
+    const BoxArray& grids = LevelData[level].boxArray();
+
+    int mult = 1;
+
+    for (MFIter mfi(*area); mfi.isValid(); ++mfi)
+    {
+        const FArrayBox& xarea  = area[0][mfi];
+        const FArrayBox& yarea  = area[1][mfi];
+
+        DEF_CLIMITS(xarea,ax_dat,axlo,axhi);
+        DEF_CLIMITS(yarea,ay_dat,aylo,ayhi);
+
+        const int* lo = grids[mfi.index()].loVect();
+        const int* hi = grids[mfi.index()].hiVect();
+
+        int anel_coeff_lo = lo[BL_SPACEDIM-1]-1;
+        int anel_coeff_hi = hi[BL_SPACEDIM-1]+1;
+
+#if (BL_SPACEDIM == 2)
+        FORT_SCALEAREA(ax_dat,ARLIM(axlo),ARLIM(axhi), 
+                       ay_dat,ARLIM(aylo),ARLIM(ayhi), 
+                       anel_coeff[mfi.index()],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+
+#elif (BL_SPACEDIM == 3)
+        const FArrayBox& zarea = area[2][mfi];
+        DEF_CLIMITS(zarea,az_dat,azlo,azhi);
+        FORT_SCALEAREA(ax_dat,ARLIM(axlo),ARLIM(axhi), 
+                       ay_dat,ARLIM(aylo),ARLIM(ayhi), 
+                       az_dat,ARLIM(azlo),ARLIM(azhi), 
+                       anel_coeff[mfi.index()],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+
+#endif
+    }
+}
+
+void
+MacProj::rescaleArea (int level, MultiFab* area, Real** anel_coeff)
+{
+    const BoxArray& grids = LevelData[level].boxArray();
+
+    int mult = -1;
+
+    for (MFIter mfi(*area); mfi.isValid(); ++mfi)
+    {
+        const FArrayBox& xarea  = area[0][mfi];
+        const FArrayBox& yarea  = area[1][mfi];
+
+        DEF_CLIMITS(xarea,ax_dat,axlo,axhi);
+        DEF_CLIMITS(yarea,ay_dat,aylo,ayhi);
+
+        const int* lo        = grids[mfi.index()].loVect();
+        const int* hi        = grids[mfi.index()].hiVect();
+
+        int anel_coeff_lo = lo[BL_SPACEDIM-1]-1;
+        int anel_coeff_hi = hi[BL_SPACEDIM-1]+1;
+
+#if (BL_SPACEDIM == 2)
+        FORT_SCALEAREA(ax_dat,ARLIM(axlo),ARLIM(axhi), 
+                       ay_dat,ARLIM(aylo),ARLIM(ayhi), 
+                       anel_coeff[mfi.index()],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+
+#elif (BL_SPACEDIM == 3)
+        const FArrayBox& zarea = area[2][mfi];
+        DEF_CLIMITS(zarea,az_dat,azlo,azhi);
+        FORT_SCALEAREA(ax_dat,ARLIM(axlo),ARLIM(axhi), 
+                       ay_dat,ARLIM(aylo),ARLIM(ayhi), 
+                       az_dat,ARLIM(azlo),ARLIM(azhi), 
+                       anel_coeff[mfi.index()],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+
+#endif
     }
 }
