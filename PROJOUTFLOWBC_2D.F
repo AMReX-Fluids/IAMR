@@ -847,7 +847,7 @@ c
       
 c     Local variables
       integer NstripMAX
-      parameter (NstripMAX = 1000)
+      parameter (NstripMAX = 2000)
       integer ins, ine, ics, ice
       integer i, j, icL, icR, neq
       REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX), s(NstripMAX)
@@ -901,6 +901,9 @@ c     normal velocity, for the advective/diffusive step, for example.
 c     Do left-side periodic BC (since first/last node coincide, use first 
 c     node only (retain r-stuff here, just to be sure scaling is not destroyed)
          neq = ine - ins
+         if ( neq .gt. NStripMax ) then
+            STOP 'HGPHIBC: NstripMax too small'
+         end if
          icL = ice
          icR = ics
          beta = r(icL) / rhoExt(icL)
@@ -926,6 +929,9 @@ c     Solve the equations
 c     Solid walls, Nuemann conditions
          hdr = half*(r(ics+1) - r(ics))
          neq = ine - ins + 1
+         if ( neq .gt. NStripMax ) then
+            STOP 'HGPHIBC: NstripMax too small'
+         end if
          icR = ics
          c(1) = r(icR) / rhoExt(icR-ics)
          b(1) = - c(1)

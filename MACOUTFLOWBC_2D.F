@@ -776,7 +776,7 @@ c
 
 c     Local variables
       integer NstripMAX
-      parameter (NstripMAX = 1000)
+      parameter (NstripMAX = 2000)
       REAL_T small_udiff
       parameter (small_udiff = SMALL)
       integer i, j, neq,n
@@ -819,6 +819,10 @@ c     values come directly from cell-centers just inside domain
       ics = lo(1)
       ice = hi(1)
       neq = ice - ics + 1
+
+      if ( neq .gt. NStripMax ) then
+         STOP 'MACPHIBC: NStripMax too small'
+      end if
 
 c     Carry out non-trivial solve.  First set interior equations, then do BC's
       do n = 2,neq-1
