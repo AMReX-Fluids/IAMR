@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.75 1998-06-30 03:59:57 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.76 1998-07-01 17:42:38 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1324,15 +1324,11 @@ NavierStokes::level_projector (Real dt,
        MultiFab& P_old = get_old_data(Press_Type);
        MultiFab& P_new = get_new_data(Press_Type);
 
-       SyncRegister* crse_ptr;
+       SyncRegister* crse_ptr = 0;
 
        if (level < parent->finestLevel() && do_sync_proj)
        {
            crse_ptr = &(getLevel(level+1).getSyncReg());
-       }
-       else
-       {
-           crse_ptr = 0;
        }
 
        Array<int*> sync_bc(grids.length());
@@ -1348,16 +1344,9 @@ NavierStokes::level_projector (Real dt,
 
        if (have_divu)
        {
-#if 1
            FillStateBndry(time,Divu_Type,0,1);
            FillStateBndry(time+dt,Divu_Type,0,1);
-#else
-           MultiFab& divu_old = get_old_data(Divu_Type);
-           MultiFab& divu_new = get_new_data(Divu_Type);
-           divu_new.FillBoundary();
-           divu_old.FillBoundary();
-           setPhysBoundaryValues(Divu_Type,0,1,time+dt);
-#endif
+
            dsdt    = getDivCond(1,time+dt);
            divuold = getDivCond(1,time);
 
@@ -3572,7 +3561,7 @@ NavierStokes::level_sync ()
         MultiFab& rho_fine          = *fine_level.rho_avg;
         const Geometry& fine_geom   = parent->Geom(level+1);
         const Geometry& crse_geom   = parent->Geom(level);
-        const BoxArray&   finegrids = vel_fine.boxArray();
+        const BoxArray& finegrids   = vel_fine.boxArray();
         const BoxArray& P_finegrids = pres_fine.boxArray();
 
         MultiFab phi(P_finegrids,1,1);
@@ -4393,11 +4382,12 @@ NavierStokes::getState (int  ngrow,
 
 //
 // Fills ghost cells of state:
+//
 // For finer levels, the ghost cells that are interior to the
 // problem domain, but exterior to the valid region of the state
-// at that that level are not properly filled by either a multifab
-// FillBoundary or a setPhysBoundaryValues. This routine takes care of those 
-// cells. It is not particularly efficient, but probably not too
+// at that level are not properly filled by either a multifab
+// FillBoundary() or a setPhysBoundaryValues(). This routine takes care of
+// those cells. It is not particularly efficient, but probably not too
 // inefficient either -- rbp.
 //
 
@@ -4409,30 +4399,43 @@ NavierStokes::FillStateBndry (Real time,
 {
     MultiFab& S = get_data(state_idx,time);
 
-    const int ngrow = S.nGrow();
-
-    if (ngrow == 0)
+    if (S.nGrow() == 0)
         return;
 
     for (int istate = src_comp; istate < src_comp+num_comp; istate++)
     {
-        FillPatchIterator fpi(*this,S,ngrow,0,time,state_idx,istate,1);
+        FillPatchIterator fpi(*this,S,S.nGrow(),0,time,state_idx,istate,1);
 
         for ( ; fpi.isValid(); ++fpi)
         {
-            if (!grids.contains(fpi().box()))
+            //
+            // Fill all ghost cells interior & exterior to valid region.
+            //
+            BoxList boxes = ::boxDiff(fpi().box(),grids[fpi.index()]);
+
+            for (BoxListIterator bli(boxes); bli; ++bli)
             {
-                S[fpi.index()].copy(fpi(),0,istate,1);
+                S[fpi.index()].copy(fpi(),
+                                    bli(),
+                                    0,
+                                    bli(),
+                                    istate,
+                                    1);
             }
         }
     }
-
+    //
+    // Touch up ghost cells interior to valid region.
+    //
     S.FillBoundary();
+    //
+    // Now do ones on the physical boundary.
+    //
     setPhysBoundaryValues(state_idx,src_comp,num_comp,time);
 }
 
 //
-// fill patch a state component.  This is a driver for calling
+// Fill patch a state component.  This is a driver for calling
 // the amrLevel filpatch function.  amrLevel filpatch works
 // by first interpolating coarse data (time, then space), overwriting
 // coarse data with fine data, and letting physical boundary conditions
