@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.9 1998-05-13 23:17:48 almgren Exp $
+// $Id: Godunov.cpp,v 1.10 1998-05-29 23:42:06 lijewski Exp $
 //
 
 //==========================================================
@@ -236,18 +236,7 @@ void Godunov::Setup( const Box &grd, const Real *dx, Real dt, int velpred,
     wad.resize(work_bx,1);
 #endif
 
-    // set work variables to bogus values
     SetBogusScratch();
-    xflux.setVal( bogus_value );
-    yflux.setVal( bogus_value );
-    uad.setVal(   bogus_value );
-    vad.setVal(   bogus_value );
-#ifdef ADD_W
-    zflux.setVal( bogus_value );
-    wad.setVal(   bogus_value );
-#endif
-    work.setVal(  bogus_value );
-    
     // ---------------------------- test the cell-centered velocities
     // Real u_max[3];
     // test_u_rho( S, rho, grd, dx, dt, u_max );
@@ -361,7 +350,6 @@ void Godunov::edge_states( const Box &grd, const Real *dx, Real dt, int velpred,
     const Real *sty_dat   = sty.dataPtr();
 
     // set work space to bogus values
-    work.setVal(  bogus_value );
     SetBogusScratch();
 
 #ifdef ADD_W
@@ -514,7 +502,6 @@ void Godunov::ComputeAofs( const Box &grd,
     const int *lo    = grd.loVect();
     const int *hi    = grd.hiVect();
 
-    aofs.setVal(bogus_value,aofs_ind);
     const int *a_lo  = aofs.loVect();
     const int *a_hi  = aofs.hiVect();
     const Real *aofs_dat = aofs.dataPtr(aofs_ind);
