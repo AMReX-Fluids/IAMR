@@ -2,7 +2,7 @@
 #define _AMR_MULTI_H_
 
 //
-// $Id: amr_multi.H,v 1.7 1997-10-03 23:37:32 car Exp $
+// $Id: amr_multi.H,v 1.8 1997-10-06 17:35:08 car Exp $
 //
 
 #include <fill_patch.H>
@@ -19,7 +19,8 @@ class amr_multigrid
   Array< Array<Box> > mg_domain_array;
   Array< Array<BoxArray> > mg_mesh_array;
   amr_boundary mg_boundary;
-  level_interface *interface, **interface_array;
+  level_interface* interface;
+  level_interface** interface_array;
   PArray<MultiFab> source, dest;       // live on active levels of ml_mesh
   PArray<MultiFab> resid, corr, work;  // live on mg_mesh
   PArray<MultiFab> save;               // lives on middle levels of ml_mesh
