@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.49 1999-04-16 21:47:39 almgren Exp $
+// $Id: MacProj.cpp,v 1.50 1999-04-19 20:07:37 marc Exp $
 //
 
 #include <Misc.H>
@@ -1093,9 +1093,9 @@ MacProj::set_outflow_bcs (int             level,
 
         for (MultiFabIterator mfi(*mac_phi); mfi.isValid(); ++mfi)
         {
-            if (mfi.validbox().intersects(phidat.box()))
+            if (mfi().box().intersects(phidat.box()))
             {
-                Box ovlp = mfi.validbox() & phidat.box();
+                Box ovlp = mfi().box() & phidat.box();
                 mfi().copy(phidat,ovlp);
             }
         }
