@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.217 2003-02-12 21:57:36 car Exp $
+// $Id: NavierStokes.cpp,v 1.218 2003-02-13 17:04:35 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -5375,86 +5375,84 @@ NavierStokes::calcDpdt ()
 void
 NavierStokes::create_umac_grown ()
 {
-    for (int n=0; n<BL_SPACEDIM; ++n)
+    for (int n = 0; n < BL_SPACEDIM; ++n)
     {
         u_macG[n].copy(u_mac[n]);
-
         u_macG[n].FillBoundary(0,1);
         geom.FillPeriodicBoundary(u_macG[n],0,1);
     }
         
-        if (level > 0)
+    if (level > 0)
+    {
+        BoxArray f_bnd_ba = GetBndryCells(grids,1,geom);
+        BoxArray c_bnd_ba = BoxArray(f_bnd_ba.size());
+
+        for (int i = 0; i < f_bnd_ba.size(); ++i)
         {
-            BoxArray f_bnd_ba = GetBndryCells(grids,1,geom);
-            BoxArray c_bnd_ba = BoxArray(f_bnd_ba.size());
-
-            for (int i = 0; i < f_bnd_ba.size(); ++i)
-            {
-                c_bnd_ba.set(i,Box(f_bnd_ba[i]).coarsen(crse_ratio));
-                f_bnd_ba.set(i,Box(c_bnd_ba[i]).refine(crse_ratio));
-            }
-            
-            const BoxArray& cgrids = getLevel(level-1).boxArray();
-            
-            for (int n = 0; n < BL_SPACEDIM; ++n)
-            {
-                MultiFab crseT(BoxArray(cgrids).surroundingNodes(n),1,0);
-                
-                crseT.setVal(1.e200);
-                for (MFIter mfi(crseT); mfi.isValid(); ++mfi)
-                    crseT[mfi].copy(getLevel(level-1).u_mac[n][mfi]);
-                crseT.FillBoundary(0,1);
-                getLevel(level-1).geom.FillPeriodicBoundary(crseT,0,1);
-                
-                MultiFab crse_src(BoxArray(c_bnd_ba).surroundingNodes(n),1,0);
-                crse_src.setVal(1.e200);
-                crse_src.copy(crseT);
-                crse_src.FillBoundary(0,1);
-                getLevel(level-1).geom.FillPeriodicBoundary(crse_src,0,1);
-
-                MultiFab fine_src(BoxArray(f_bnd_ba).surroundingNodes(n),1,0);
-                
-                for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
-                {
-                    const int  nComp = 1;
-                    const Box  box   = Box(c_bnd_ba[mfi.index()]).surroundingNodes(n);
-                    const int* rat   = crse_ratio.getVect();
-                    FORT_PC_CF_EDGE_INTERP(box.loVect(), box.hiVect(), &nComp, rat, &n,
-                                           crse_src[mfi].dataPtr(),
-                                           ARLIM(crse_src[mfi].loVect()),
-                                           ARLIM(crse_src[mfi].hiVect()),
-                                           fine_src[mfi].dataPtr(),
-                                           ARLIM(fine_src[mfi].loVect()),
-                                           ARLIM(fine_src[mfi].hiVect()));
-                }
-                //
-                // Replace pc-interpd fine data with preferred u_mac data at
-                // this level u_mac valid only on surrounding faces of valid
-                // region - this op will not fill grow region.
-                //
-                fine_src.copy(u_mac[n]);
-
-                for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
-                {
-                    //
-                    // Interpolate unfilled grow cells using best data from
-                    // surrounding faces of valid region, and pc-interpd data
-                    // on fine edges overlaying coarse edges.
-                    //
-                    const int  nComp = 1;
-                    const Box& fbox  = fine_src[mfi.index()].box();
-                    const int* rat   = crse_ratio.getVect();
-                    FORT_EDGE_INTERP(fbox.loVect(), fbox.hiVect(), &nComp, rat, &n,
-                                     fine_src[mfi].dataPtr(),
-                                     ARLIM(fine_src[mfi].loVect()),
-                                     ARLIM(fine_src[mfi].hiVect()));
-                }
-
-                u_macG[n].copy(fine_src);
-
-                u_macG[n].copy(u_mac[n]);
-                u_macG[n].FillBoundary(0,1);
-                geom.FillPeriodicBoundary(u_macG[n],0,1);
-            }
+            c_bnd_ba.set(i,Box(f_bnd_ba[i]).coarsen(crse_ratio));
+            f_bnd_ba.set(i,Box(c_bnd_ba[i]).refine(crse_ratio));
         }
+            
+        const BoxArray& cgrids = getLevel(level-1).boxArray();
+            
+        for (int n = 0; n < BL_SPACEDIM; ++n)
+        {
+            MultiFab crseT(BoxArray(cgrids).surroundingNodes(n),1,0);
+                
+            crseT.setVal(1.e200);
+            for (MFIter mfi(crseT); mfi.isValid(); ++mfi)
+                crseT[mfi].copy(getLevel(level-1).u_mac[n][mfi]);
+            crseT.FillBoundary(0,1);
+            getLevel(level-1).geom.FillPeriodicBoundary(crseT,0,1);
+                
+            MultiFab crse_src(BoxArray(c_bnd_ba).surroundingNodes(n),1,0);
+            crse_src.setVal(1.e200);
+            crse_src.copy(crseT);
+            crse_src.FillBoundary(0,1);
+            getLevel(level-1).geom.FillPeriodicBoundary(crse_src,0,1);
+
+            MultiFab fine_src(BoxArray(f_bnd_ba).surroundingNodes(n),1,0);
+                
+            for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
+            {
+                const int  nComp = 1;
+                const Box  box   = Box(c_bnd_ba[mfi.index()]).surroundingNodes(n);
+                const int* rat   = crse_ratio.getVect();
+                FORT_PC_CF_EDGE_INTERP(box.loVect(), box.hiVect(), &nComp, rat, &n,
+                                       crse_src[mfi].dataPtr(),
+                                       ARLIM(crse_src[mfi].loVect()),
+                                       ARLIM(crse_src[mfi].hiVect()),
+                                       fine_src[mfi].dataPtr(),
+                                       ARLIM(fine_src[mfi].loVect()),
+                                       ARLIM(fine_src[mfi].hiVect()));
+            }
+            //
+            // Replace pc-interpd fine data with preferred u_mac data at
+            // this level u_mac valid only on surrounding faces of valid
+            // region - this op will not fill grow region.
+            //
+            fine_src.copy(u_mac[n]);
+
+            for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
+            {
+                //
+                // Interpolate unfilled grow cells using best data from
+                // surrounding faces of valid region, and pc-interpd data
+                // on fine edges overlaying coarse edges.
+                //
+                const int  nComp = 1;
+                const Box& fbox  = fine_src[mfi.index()].box();
+                const int* rat   = crse_ratio.getVect();
+                FORT_EDGE_INTERP(fbox.loVect(), fbox.hiVect(), &nComp, rat, &n,
+                                 fine_src[mfi].dataPtr(),
+                                 ARLIM(fine_src[mfi].loVect()),
+                                 ARLIM(fine_src[mfi].hiVect()));
+            }
+
+            u_macG[n].copy(fine_src);
+            u_macG[n].copy(u_mac[n]);
+            u_macG[n].FillBoundary(0,1);
+            geom.FillPeriodicBoundary(u_macG[n],0,1);
+        }
+    }
 }
