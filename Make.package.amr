@@ -1,0 +1,29 @@
+AMR_C_SOURCES = 	main.C \
+	Amr.C           AmrLevel.C         BCRec.C    \
+	Cluster.C       Derive.C   	   ErrorList.C \
+	FluxRegister.C  Interpolater.C     RunStats.C \
+	StateData.C     StateDescriptor.C  TagBox.C \
+	Contour.C	Raster.C
+
+AMR_C_HEADERS = \
+	Amr.H           AmrLevel.H	BCRec.H \
+	Cluster.H	Contour.H	Derive.H \
+	ErrorList.H  	FluxRegister.H	Interpolater.H \
+	LevelBld.H      Raster.H        RunStats.H \
+ 	StateData.H  	StateDescriptor.H 
+
+AMR_F_SOURCES = INTERP_$(DIM)D.F 	FLUXREG_$(DIM)D.F 	FILCC_$(DIM)D.F 
+
+AMR_F_HEADERS = INTERP_F.H BC_TYPES.H PROB_AMR_F.H FLUXREG_F.H MAKESLICE_F.H
+
+ifeq ($(DIM),3)
+        AMR_F_SOURCES += MAKESLICE_3D.F
+endif
+
+
+CLIB_sources += $(AMR_C_SOURCES)
+CLIB_headers += $(AMR_H_HEADERS)
+
+FLIB_sources += $(AMR_F_SOURCES)
+FLIB_headers += $(AMR_F_HEADERS)
+

@@ -1,0 +1,12 @@
+#
+# $Id: Make.package.graphtool,v 1.1 1997-07-08 23:08:08 vince Exp $
+#
+
+GRAPHTOOL_BASE=EXE
+ifeq ($(LBASE),graphtool)
+    GRAPHTOOL_BASE=LIB
+endif
+
+C$(GRAPHTOOL_BASE)_sources += GraphTool.C IFrame.C PSfile.C XWindow.C
+C$(GRAPHTOOL_BASE)_headers += GraphTool.H IFrame.H PSfile.H XWindow.H
+C$(GRAPHTOOL_BASE)_headers += XWinExterns.H

@@ -1,0 +1,425 @@
+c $Id: NAVIERSTOKES_2D.F,v 1.1 1997-07-08 23:08:13 vince Exp $
+#undef BL_LANG_CC
+#define BL_LANG_FORT
+
+#include "REAL.H"
+#include "CONSTANTS.H"
+#include "BC_TYPES.H"
+#include "NAVIERSTOKES_F.H"
+#include "DIMS.H"
+
+#define SDIM 2
+
+
+c=========================================================
+
+      subroutine FORT_TEST_UMAC_PERIODIC(
+     &     lo,hi,
+     &     u,DIMS(u),xper,udiff,
+     &     v,DIMS(v),yper,vdiff,
+     &     level )
+c     
+c     This function tests u_mac for periodicity
+c
+      implicit none
+      integer i,j
+      integer imin,jmin,imax,jmax
+c
+      REAL_T udiff,vdiff
+      integer xper,yper
+      integer lo(SDIM),hi(SDIM),level
+      integer DIMDEC(u),DIMDEC(v)
+      REAL_T u(DIMV(u)),v(DIMV(v))
+c
+      imin = lo(1)
+      jmin = lo(2)
+      imax = hi(1)
+      jmax = hi(2)
+      udiff = zero
+      vdiff = zero
+c
+      if ( xper .eq. 1 ) then
+         do j = jmin,jmax
+            udiff = MAX( udiff, abs(u(imax+1,j)-u(imin,j)) )
+         enddo
+         if ( udiff .gt. 1.e-10 ) then
+            udiff = udiff
+         endif
+      endif
+c
+      if ( yper .eq. 1 ) then
+         do i = imin,imax
+            vdiff = MAX( vdiff, abs(v(i,jmax+1)-v(i,jmin)) )
+         enddo
+         if ( vdiff .gt. 1.e-10 ) then
+            vdiff = vdiff
+         endif
+      endif
+c     
+c     end of routine
+c     
+      return
+      end
+
+
+c=========================================================
+
+      subroutine FORT_GRADP (
+     &     p,DIMS(p),
+     &     gp,DIMS(gp),
+     &     lo,hi,dx)
+c 
+c     Compute a cell centered gradient from a node
+c     centered field.  Returns all components of GRADP
+c     
+      integer    DIMDEC(p)
+      integer    DIMDEC(gp)
+      integer    lo(SDIM), hi(SDIM)
+      REAL_T     dx(SDIM)
+      REAL_T     p(DIMV(p))
+      REAL_T     gp(DIMV(gp),SDIM)
+      integer    i,j
+      REAL_T     ddx, ddy
+c
+      ddx = half/dx(1)
+      ddy = half/dx(2)
+c
+      do j = lo(2), hi(2)
+        do i = lo(1), hi(1)
+          gp(i,j,1) = ddx*(p(i+1,j)-p(i,j)+p(i+1,j+1)-p(i,j+1))
+          gp(i,j,2) = ddy*(p(i,j+1)-p(i,j)+p(i+1,j+1)-p(i+1,j))
+        enddo
+      enddo
+c
+c     end of routine
+c
+      return
+      end
+
+
+c=========================================================
+
+
+      subroutine FORT_AVGDOWN (
+     &     crse,DIMS(crse),nvar,
+     &     fine,DIMS(fine),
+     &     cv,DIMS(cv),
+     &     fv,DIMS(fv),
+     &     lo,hi,ratios)
+c     ----------------------------------------------------------
+c     Volume-weight average the fine grid data onto the coarse
+c     grid.  Overlap is given in coarse grid coordinates.
+c     
+c     crse      =  coarse grid data
+c     nvar	= number of components in arrays
+c     fine      = fine grid data
+c     cv        = coarse grid volume array
+c     fv        = fine grid volume array
+c     lo,hi     = index limits of overlap (crse grid)
+c     ratios    = IntVect refinement ratio
+c     ----------------------------------------------------------
+      integer  DIMDEC(crse)
+      integer  DIMDEC(cv)
+      integer  DIMDEC(fine)
+      integer  DIMDEC(fv)
+      integer  lo(SDIM), hi(SDIM)
+      integer  nvar
+      integer  ratios(SDIM)
+      REAL_T   crse(DIMV(crse),nvar)
+      REAL_T     cv(DIMV(cv))
+      REAL_T   fine(DIMV(fine),nvar)
+      REAL_T     fv(DIMV(fv))
+
+      integer  i, j, n, ic, jc, ioff, joff
+      integer  lratx,lraty
+
+      lratx = ratios(1)
+      lraty = ratios(2)
+c
+      do 100 n = 1, nvar
+
+c     set coarse grid to zero on overlap
+      do jc = lo(2), hi(2)
+         do ic = lo(1), hi(1)
+            crse(ic,jc,n) = zero
+         enddo
+      enddo
+
+c     sum fine data
+      do joff = 0, lraty-1
+         do jc = lo(2), hi(2)
+            j = jc*lraty + joff
+            do ioff = 0, lratx-1
+               do ic = lo(1), hi(1)
+                  i = ic*lratx + ioff
+                  crse(ic,jc,n) = crse(ic,jc,n) +
+     &                 fv(i,j)*fine(i,j,n)
+               enddo
+            enddo
+         enddo
+      enddo
+
+c     divide out by volume weight
+      do ic = lo(1), hi(1)
+         do jc = lo(2), hi(2)
+            crse(ic,jc,n) = crse(ic,jc,n)/cv(ic,jc)
+         enddo
+      enddo
+  100 continue
+c
+c     end of function
+c
+      return
+      end
+
+
+c===========================================================
+
+
+      subroutine FORT_TESTINJECT(
+     &     crse,DIMS(crse),
+     &     fine,DIMS(fine),lo,hi,ratios)
+c
+c     test for consistency of pressure nodes
+c
+      integer  DIMDEC(crse)
+      integer  DIMDEC(fine)
+      integer  lo(2), hi(2)
+      integer  ratios(2)
+      REAL_T   crse(DIMV(crse))
+      REAL_T   fine(DIMV(fine))
+c
+      REAL_T diff
+      integer ic, jc
+      integer lratx, lraty
+c
+      lratx = ratios(1)
+      lraty = ratios(2)
+c
+      diff = zero
+      do jc = lo(2), hi(2)
+         do ic = lo(1), hi(1)
+            diff = max(diff,abs(crse(ic,jc)-fine(lratx*ic,lraty*jc)))
+         enddo
+      enddo
+c
+      if ( diff .gt. 1.0e-10 ) then
+         print *, 'mismatch between fine and coarse nodes'
+         stop
+      endif
+c
+c     end of routine
+c
+      return
+      end
+
+
+
+
+c :: ----------------------------------------------------------
+c :: Replace coarse grid pressure data with corresponding
+c :: fine grid pressure data.
+c ::
+c :: INPUTS / OUTPUTS:
+c ::  crse      <=  coarse grid data
+c ::  DIMS(crse) => index limits of crse
+c ::  fine       => fine grid data
+c ::  DIMS(fine) => index limits of fine 
+c ::  lo,hi      => index limits of overlap (crse grid)
+c ::  ratios     => IntVect refinement ratio
+c ::
+c :: NOTE:
+c ::  Assumes pressure fields are node based
+c :: ----------------------------------------------------------
+c ::
+      subroutine FORT_PUTDOWN (crse,DIMS(crse),
+     &			       fine,DIMS(fine),lo,hi,ratios)
+      integer  DIMDEC(crse)
+      integer  DIMDEC(fine)
+      integer  lo(2), hi(2)
+      integer  ratios(2)
+      REAL_T   crse(DIMV(crse))
+      REAL_T   fine(DIMV(fine))
+
+      integer  ic, jc
+      integer  lenx, leny
+      integer  lratx, lraty
+
+      lratx = ratios(1)
+      lraty = ratios(2)
+
+      lenx = hi(1)-lo(1)+1
+      leny = hi(2)-lo(2)+1
+
+      if (lenx .ge. leny) then
+
+          do jc = lo(2), hi(2)
+	  do ic = lo(1), hi(1)
+	    crse(ic,jc) = fine(lratx*ic,lraty*jc)
+	  enddo
+	  enddo
+
+      else
+
+	  do ic = lo(1), hi(1)
+          do jc = lo(2), hi(2)
+	    crse(ic,jc) = fine(lratx*ic,lraty*jc)
+	  enddo
+	  enddo
+
+      endif
+
+      return
+      end
+
+c :: ----------------------------------------------------------
+c :: UTILITY ROUTINE: compute:
+c ::             A += alpha*B on subrange
+c ::
+c :: INPUTS / OUTPUTS:
+c ::  a         <=  output array
+c ::  b          => input array
+c ::  DIMS(a)    => index limits of a array
+c ::  DIMS(b)    => index limits of a array
+c ::  lo,hi      => index limits of update region
+c ::  alpha      => multiplicative factor
+c :: ----------------------------------------------------------
+c ::
+       subroutine FORT_INCRMULT(a,DIMS(a),b,DIMS(b),lo,hi,alpha)
+
+       integer    DIMDEC(a)
+       integer    DIMDEC(b)
+       integer    lo(2), hi(2)
+       REAL_T     alpha
+       REAL_T     a(DIMV(a))
+       REAL_T     b(DIMV(b))
+
+       integer i, j
+       integer lenx, leny
+
+       lenx = hi(1)-lo(1)+1
+       leny = hi(2)-lo(2)+1
+
+       if (lenx .ge. leny) then
+             do j = lo(2), hi(2)
+	     do i = lo(1), hi(1)
+	        a(i,j) = a(i,j) + alpha*b(i,j)
+	     enddo
+	     enddo
+       else
+	     do i = lo(1), hi(1)
+             do j = lo(2), hi(2)
+	        a(i,j) = a(i,j) + alpha*b(i,j)
+	     enddo
+	     enddo
+       endif
+
+       return
+       end
+
+
+c :: ----------------------------------------------------------
+c :: SUMMASS
+c ::             MASS = sum{ vol(i,j)*rho(i,j) }
+c ::
+c :: INPUTS / OUTPUTS:
+c ::  rho        => density field
+c ::  DIMS(rho)  => index limits of rho aray
+c ::  lo,hi      => index limits of grid interior
+c ::  dx	 => cell size
+c ::  mass      <=  total mass
+c ::  r		 => radius at cell center
+c ::  irlo,hi    => index limits of r array
+c ::  rz_flag    => == 1 if R_Z coords
+c ::  tmp        => temp column array
+c :: ----------------------------------------------------------
+c ::
+       subroutine FORT_SUMMASS(rho,DIMS(rho),DIMS(grid),dx,mass,
+     &                         r,irlo,irhi,rz_flag,tmp)
+
+       integer irlo, irhi, rz_flag
+       integer DIMDEC(rho)
+       integer DIMDEC(grid)
+       REAL_T  mass, dx(2)
+       REAL_T  rho(DIMV(rho))
+       REAL_T  r(irlo:irhi)
+       REAL_T  tmp(DIM2(grid))
+
+       integer i, j
+       REAL_T  dr, dz, vol
+
+       dr = dx(1)
+       dz = dx(2)
+
+       do j = ARG_L2(grid), ARG_H2(grid)
+          tmp(j) = zero
+       enddo
+
+       do i = ARG_L1(grid), ARG_H1(grid)
+          vol = dr*dz
+	  if (rz_flag .eq. 1) vol = vol*two*Pi*r(i)
+          do j = ARG_L2(grid), ARG_H2(grid)
+	     tmp(j) = tmp(j) + vol*rho(i,j)
+	  enddo
+       enddo
+
+       mass = zero
+       do j = ARG_L2(grid), ARG_H2(grid)
+          mass = mass + tmp(j)
+       enddo
+
+       return
+       end
+
+c :: ----------------------------------------------------------
+c :: SUMMASSSQ
+c ::             MASS = sum{ vol(i,j)*rho(i,j)*rho(i,j) }
+c ::
+c :: INPUTS / OUTPUTS:
+c ::  rho        => density field
+c ::  DIMS(rho)  => index limits of rho aray
+c ::  lo,hi      => index limits of grid interior
+c ::  ds   	 => cell size
+c ::  mass      <=  total mass
+c ::  r		 => radius at cell center
+c ::  irlo,hi    => index limits of r array
+c ::  rz_flag    => == 1 if R_Z coords
+c ::  tmp        => temp column array
+c :: ----------------------------------------------------------
+c ::
+       subroutine FORT_SUMMASSSQ(rho,DIMS(rho),DIMS(grid),dx,mass,
+     &                           r,irlo,irhi,rz_flag,tmp)
+
+       integer irlo, irhi, rz_flag
+       integer DIMDEC(rho)
+       integer DIMDEC(grid)
+       REAL_T  mass, dx(SDIM)
+       REAL_T  rho(DIMV(rho))
+       REAL_T  r(irlo:irhi)
+       REAL_T  tmp(DIM2(grid))
+
+       integer i, j, k
+       REAL_T  dr, dz, vol
+
+       dr = dx(1)
+       dz = dx(2)
+
+       do j = ARG_L2(grid), ARG_H2(grid)
+          tmp(j) = zero
+       enddo
+
+       do i = ARG_L1(grid), ARG_H1(grid)
+          vol = dr*dz
+	  if (rz_flag .eq. 1) vol = vol*two*Pi*r(i)
+          do j = ARG_L2(grid), ARG_H2(grid)
+             tmp(j) = tmp(j) + vol*rho(i,j)*rho(i,j)
+          enddo
+       enddo
+
+       mass = zero
+       do j = ARG_L2(grid), ARG_H2(grid)
+          mass = mass + tmp(j)
+       enddo
+
+       return
+       end

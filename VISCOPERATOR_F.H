@@ -1,0 +1,25 @@
+#ifndef _VISCOPERATOR_F_H_
+#define _VISCOPERATOR_F_H_  "$Id: VISCOPERATOR_F.H,v 1.1 1997-07-08 23:08:15 vince Exp $"
+
+#ifdef BL_LANG_FORT
+#    define FORT_VISCEXTRAP   viscextrap
+#endif
+
+#ifdef BL_LANG_CC
+#  ifdef BL_FORT_USE_UPPERCASE
+#    define FORT_VISCEXTRAP    VISCEXTRAP
+#  else
+#    define FORT_VISCEXTRAP    viscextrap_
+#endif
+
+#include <ArrayLim.H>
+
+extern "C"
+{
+    void FORT_VISCEXTRAP (REAL* visc, ARLIM_P(visclo), ARLIM_P(isclo),
+			  const int* lo, const int* hi,
+			  const int* comp);
+};
+#endif
+
+#endif

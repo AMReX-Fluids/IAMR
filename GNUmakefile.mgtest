@@ -1,0 +1,61 @@
+#
+# $Id: GNUmakefile.mgtest,v 1.1 1997-07-08 23:08:15 vince Exp $
+#
+
+#
+# Set these to the appropriate place.
+#
+GUTHAMR_HOME=/usr/people/vince/Parallel/guthamr
+#BNDRYLIB_HOME=$(GUTHAMR_HOME)
+#AMRDIR=/usr/people/vince/Parallel/_amr
+
+# bsp parallel locations
+BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
+INCLUDE_LOCATIONS += $(BSP_HOME)/include
+LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1
+LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1/$(BSP_DEVICE)
+LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
+###### exception library (for newest bsplib)
+LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
+LIBRARIES += -lexc
+# end bsp parallel locations
+
+
+COMP         = KCC
+DIM          = 3
+DIM          = 2
+PRECISION    = DOUBLE
+DEBUG        = TRUE
+
+# EBASE = mg or mgIBD
+EBASE = mg
+#EBASE = mgIBD
+
+include $(GUTHAMR_HOME)/mk/Make.defs Make.package
+
+
+
+#DEFINES += -DTESTINGMG
+
+ifeq ($(DEBUG), FALSE)
+ifeq ($(COMP), KCC)
+override CXXOPTF += -Olimit 1000
+endif
+endif
+
+# Options for the KCC compiler on mothra:
+#   prefix link with 3rd for memory checker -> $(executable).3log
+ifeq ($(COMP),KCC)
+# CXXFLAGS += --link_command_prefix 3rd
+endif
+
+all: $(executable)
+
+#LIBRARIES += -lmg$(optionsSuffix) -lamr$(optionsSuffix) -lbndry$(DIM)d -lbox$(DIM)d
+LIBRARIES += -lX11
+
+#INCLUDE_LOCATIONS += . ../src $(GUTHAMR_HOME)/include $(BNDRYLIB_HOME)/include $(AMRDIR)
+#LIBRARY_LOCATIONS += . ../src $(GUTHAMR_HOME)/lib/$(machineSuffix)\
+			$(BNDRYLIB_HOME)/lib/$(machineSuffix) $(AMRDIR)
+
+include $(GUTHAMR_HOME)/mk/Make.rules

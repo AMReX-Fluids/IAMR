@@ -1,0 +1,17 @@
+
+CEXE_sources += Projection.C MacProj.C Godunov.C Diffusion.C NavierStokes.C 
+ifdef USE_NETCDF
+CEXE_sources += netcdfIO.C Debug.C
+endif
+						                   
+CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H 
+ifdef USE_NETCDF
+CEXE_headers += netcdfIO.H
+endif
+
+FEXE_sources += DERIVE_$(DIM)D.F GODUNOV.F GODUNOV_$(DIM)D.F NAVIERSTOKES_$(DIM)D.F \
+		PROJECTION_$(DIM)D.F MACPROJ_$(DIM)D.F DIFFUSION_$(DIM)D.F 
+
+FEXE_headers += DERIVE_F.H GODUNOV.H GODUNOV_F.H PROJECTION_F.H MACPROC_F.H \
+		DIFFUSION_F.H NAVIERSTOKES_F.H 
+

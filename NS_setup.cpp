@@ -1,0 +1,243 @@
+#include <stdio.h>
+#include <strstream.h>
+#include <NavierStokes.H>
+#include <RegType.H>
+#include <RunStats.H>
+#include <ParmParse.H>
+#include <ErrorList.H>
+#include <PROB_F.H>
+#include <DERIVE_F.H>
+#include <Misc.H>
+#include <FArrayBox.H>
+#include <CoordSys.H>
+#include <ArrayView.H>
+
+BOX cell_to_cell(const BOX& b) { return b; }
+BOX cell_grow(const BOX& b) { return grow(b,1); }
+BOX cell_to_node(const BOX& b) { return surroundingNodes(b); }
+
+// components are  Interior, Inflow, Outflow, Symmetry, SlipWall, NoSlipWall
+static int norm_vel_bc[] =
+{INT_DIR, EXT_DIR, EXTRAP, REFLECT_ODD, EXT_DIR, EXT_DIR};
+static int tang_vel_bc[] =
+{INT_DIR, EXT_DIR, EXTRAP, REFLECT_EVEN, HOEXTRAP, EXT_DIR};
+static int scalar_bc[] =
+{INT_DIR, EXT_DIR, EXTRAP, REFLECT_EVEN, EXTRAP, EXTRAP};
+static int press_bc[] =
+{INT_DIR, EXTRAP, EXTRAP, REFLECT_EVEN, EXTRAP, EXTRAP};
+#if 0
+static int temp_bc[] =
+{INT_DIR, EXT_DIR, EXTRAP, REFLECT_EVEN, EXT_DIR, EXT_DIR};
+#endif
+
+static void set_x_vel_bc(BCRec& bc, const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    bc.setLo(0,norm_vel_bc[lo_bc[0]]);
+    bc.setHi(0,norm_vel_bc[hi_bc[0]]);
+    bc.setLo(1,tang_vel_bc[lo_bc[1]]);
+    bc.setHi(1,tang_vel_bc[hi_bc[1]]);
+#if (BL_SPACEDIM == 3)
+    bc.setLo(2,tang_vel_bc[lo_bc[2]]);
+    bc.setHi(2,tang_vel_bc[hi_bc[2]]);
+#endif
+}
+
+static void set_y_vel_bc(BCRec& bc, const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    bc.setLo(0,tang_vel_bc[lo_bc[0]]);
+    bc.setHi(0,tang_vel_bc[hi_bc[0]]);
+    bc.setLo(1,norm_vel_bc[lo_bc[1]]);
+    bc.setHi(1,norm_vel_bc[hi_bc[1]]);
+#if (BL_SPACEDIM == 3)
+    bc.setLo(2,tang_vel_bc[lo_bc[2]]);
+    bc.setHi(2,tang_vel_bc[hi_bc[2]]);
+#endif
+}
+
+
+#if (BL_SPACEDIM == 3)
+static void set_z_vel_bc(BCRec& bc, const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    bc.setLo(0,tang_vel_bc[lo_bc[0]]);
+    bc.setHi(0,tang_vel_bc[hi_bc[0]]);
+    bc.setLo(1,tang_vel_bc[lo_bc[1]]);
+    bc.setHi(1,tang_vel_bc[hi_bc[1]]);
+    bc.setLo(2,norm_vel_bc[lo_bc[2]]);
+    bc.setHi(2,norm_vel_bc[hi_bc[2]]);
+}
+#endif
+
+static void set_scalar_bc(BCRec& bc, const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    int i;
+    for (i = 0; i < BL_SPACEDIM; i++) {
+	bc.setLo(i,scalar_bc[lo_bc[i]]);
+	bc.setHi(i,scalar_bc[hi_bc[i]]);
+    }
+}
+
+#if 0
+static void set_temp_bc(BCRec& bc, const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    int i;
+    for (i = 0; i < BL_SPACEDIM; i++) {
+	bc.setLo(i,temp_bc[lo_bc[i]]);
+	bc.setHi(i,temp_bc[hi_bc[i]]);
+    }
+}
+#endif
+
+static void set_pressure_bc(BCRec& bc, const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    int i;
+    for (i = 0; i < BL_SPACEDIM; i++) {
+	bc.setLo(i,press_bc[lo_bc[i]]);
+	bc.setHi(i,press_bc[hi_bc[i]]);
+    }
+}
+
+
+// -------------------------------------------------------------
+void NavierStokes::variableSetUp()
+{
+    assert(desc_lst.length() == 0);
+
+    int dir;
+    for (dir = 0; dir < BL_SPACEDIM; dir++) {
+        phys_bc.setLo(dir,SlipWall);
+        phys_bc.setHi(dir,SlipWall);
+    }
+
+    read_params();
+
+    BCRec bc;
+
+      // set number of state variables
+    int Trac = Density + 1;
+//  int Temp = Trac + 1;
+    NUM_STATE = Trac + 1;
+    NUM_SCALARS = NUM_STATE - Density;
+
+      // **************  DEFINE VELOCITY VARIABLES  ********************
+    desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),Point,1,
+                           NUM_STATE,&cell_cons_interp);
+    set_x_vel_bc(bc,phys_bc);
+    desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,FORT_XVELFILL);
+    set_y_vel_bc(bc,phys_bc);
+    desc_lst.setComponent(State_Type,Yvel,"y_velocity",bc,FORT_YVELFILL);
+#if (BL_SPACEDIM == 3)
+    set_z_vel_bc(bc,phys_bc);
+    desc_lst.setComponent(State_Type,Zvel,"z_velocity",bc,FORT_ZVELFILL);
+#endif
+
+      // **************  DEFINE SCALAR VARIABLES  ********************
+    set_scalar_bc(bc,phys_bc);
+    desc_lst.setComponent(State_Type,Density,"density",bc,FORT_DENFILL);
+    desc_lst.setComponent(State_Type,Trac,"tracer",bc,FORT_ADVFILL);
+
+      // **************  DEFINE TEMPERATURE  ********************
+//  set_temp_bc(bc,phys_bc);
+//  desc_lst.setComponent(State_Type,Temp,"temp",bc,FORT_TEMPFILL);
+
+    if (visc_coef.length() < NUM_STATE) {
+	cerr << "ERROR: not enough visc_coef values specified" << endl;
+	abort();
+    } else if (visc_coef.length() > NUM_STATE) {
+	cerr << "WARN: too many visc_coef values specified" << endl;
+    }
+
+    is_conservative.resize(NUM_STATE);
+    is_diffusive.resize(NUM_STATE);
+    int i;
+    for (i = 0; i < NUM_STATE; i++) {
+	is_conservative[i] = false;
+	is_diffusive[i] = false;
+	if (visc_coef[i] > 0.0) is_diffusive[i] = true;
+    }
+    is_conservative[Density] = true;
+    is_conservative[Trac] = true;
+//  is_conservative[Temp] = true;
+    if (is_diffusive[Density]) {
+	cerr << "ERROR: density cannot diffuse, bad visc_coef" << endl;
+	abort();
+    }
+      // ---- pressure
+    desc_lst.addDescriptor(Press_Type,IndexType::TheNodeType(),Interval,1,1,
+			   &node_bilinear_interp);
+    set_pressure_bc(bc,phys_bc);
+    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,FORT_PRESFILL);
+
+      // **************  DEFINE DERIVED QUANTITIES ********************
+      // kinetic energy
+    derive_lst.add("energy",IndexType::TheCellType(),1,FORT_DERKENG,
+                   cell_to_cell,IndexType::TheCellType());
+    derive_lst.addComponent("energy",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("energy",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+
+    derive_lst.add("mag_vel",IndexType::TheCellType(),1,FORT_DERMVEL,
+                   cell_to_cell,IndexType::TheCellType());
+    derive_lst.addComponent("mag_vel",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+
+      // magnitude of vorticity
+    derive_lst.add("mag_vort",IndexType::TheCellType(),1,FORT_DERMGVORT,
+                   cell_grow,IndexType::TheCellType());
+    derive_lst.addComponent("mag_vort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+
+      // divergence of velocity field
+    derive_lst.add("divu",IndexType::TheCellType(),1,FORT_DERMGDIVU,
+                   cell_grow,IndexType::TheCellType());
+    derive_lst.addComponent("divu",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+
+      // pressure gradient in X direction
+    derive_lst.add("gradpx",IndexType::TheCellType(),1,FORT_DERGRDPX,
+                   cell_to_node,IndexType::TheNodeType());
+    derive_lst.addComponent("gradpx",desc_lst,Press_Type,Pressure,1);
+
+      // pressure gradient in Y direction
+    derive_lst.add("gradpy",IndexType::TheCellType(),1,FORT_DERGRDPY,
+                   cell_to_node,IndexType::TheNodeType());
+    derive_lst.addComponent("gradpy",desc_lst,Press_Type,Pressure,1);
+
+#if (BL_SPACEDIM == 3)
+      // pressure gradient in Z direction
+    derive_lst.add("gradpz",IndexType::TheCellType(),1,FORT_DERGRDPZ,
+                   cell_to_node,IndexType::TheNodeType());
+    derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
+#endif
+
+      // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
+     err_list.add("tracer",1,Special,FORT_ADVERROR);
+//   err_list.add("mag_vort",0,Special,FORT_MVERROR);
+}
+
+// -------------------------------------------------------------
+void
+NavierStokes::sum_integrated_quantities()
+{
+    int finest_level = parent->finestLevel();
+    REAL time = state[State_Type].curTime();
+    REAL mass = 0.0;
+    REAL trac = 0.0;
+    int lev;
+    for (lev = 0; lev <= finest_level; lev++) {
+        NavierStokes& ns_level = getLevel(lev);
+        mass += ns_level.volWgtSum("density",time);
+        trac += ns_level.volWgtSum("tracer",time);
+    }
+    cout.precision(12);
+    cout << "TIME= " << time << " MASS=     " << mass << '\n';
+    cout << "TIME= " << time << " TRAC=     " << trac << '\n';
+}
+
