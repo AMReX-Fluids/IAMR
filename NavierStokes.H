@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.66 2000-07-14 17:15:31 lijewski Exp $
+// $Id: NavierStokes.H,v 1.67 2000-07-18 17:00:55 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -300,9 +300,9 @@ protected:
     //
     void make_rho_curr_time ();
     //
-    // Make rho at time n+1/2.
+    // Get rho at time n+1/2 -- don't delete the pointer !!!
     //
-    void make_rho_half_time (Real dt);
+    MultiFab* get_rho_half_time ();
     //
     // Update velocities after advection.
     //
@@ -752,4 +752,5 @@ protected:
     //
     static int  do_running_statistics;
 };
+
 #endif /*_NavierStokes_H_*/
