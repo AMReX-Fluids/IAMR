@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.79 1998-07-09 17:58:04 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.80 1998-07-09 18:28:29 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -976,8 +976,8 @@ NavierStokes::init ()
     //
     // Get best coarse state and pressure data.
     //
-    FillCoarsePatch(S_new,cur_time,State_Type,0,NUM_STATE);
-    FillCoarsePatch(P_new,cur_pres_time,Press_Type,0,1);
+    FillCoarsePatch(S_new,0,cur_time,State_Type,0,NUM_STATE);
+    FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
 
     for (MultiFabIterator mfi(P_new); mfi.isValid(false); ++mfi)
     {
@@ -989,10 +989,10 @@ NavierStokes::init ()
     //
     if (have_divu)
     {
-        FillCoarsePatch(get_new_data(Divu_Type),cur_time,Divu_Type,0,1);
+        FillCoarsePatch(get_new_data(Divu_Type),0,cur_time,Divu_Type,0,1);
         if (have_dsdt)
         {
-            FillCoarsePatch(get_new_data(Dsdt_Type),cur_time,Dsdt_Type,0,1);
+            FillCoarsePatch(get_new_data(Dsdt_Type),0,cur_time,Dsdt_Type,0,1);
         }
     }
 }

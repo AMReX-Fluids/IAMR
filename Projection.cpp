@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.46 1998-07-09 17:58:05 lijewski Exp $
+// $Id: Projection.cpp,v 1.47 1998-07-09 18:28:30 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -322,7 +322,7 @@ Projection::level_project(int level,
 
     if (level != 0)
     {
-	LevelData[level].FillCoarsePatch(P_new,cur_pres_time,Press_Type,0,1);
+	LevelData[level].FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
     }
 
     // set up outflow bcs, BEFORE manipulating state, pressure data
@@ -583,8 +583,8 @@ void Projection::harmonic_project(int level, Real dt, Real cur_pres_time,
 
   Real prev_pres_time = cur_pres_time - dt;
 
-  LevelData[level].FillCoarsePatch(*temp_phi,prev_pres_time,Press_Type,0,1);
-  LevelData[level].FillCoarsePatch(*harm_phi,cur_pres_time,Press_Type,0,1);
+  LevelData[level].FillCoarsePatch(*temp_phi,0,prev_pres_time,Press_Type,0,1);
+  LevelData[level].FillCoarsePatch(*harm_phi,0,cur_pres_time,Press_Type,0,1);
 
   for (MultiFabIterator phimfi(*temp_phi); phimfi.isValid(); ++phimfi)
   {

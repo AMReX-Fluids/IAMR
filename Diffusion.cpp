@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.37 1998-07-09 17:58:03 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.38 1998-07-09 18:28:28 lijewski Exp $
 //
 
 //
@@ -854,7 +854,7 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
         }
         else
         {
-            caller->FillCoarsePatch(Soln,cur_time,State_Type,sigma,1);
+            caller->FillCoarsePatch(Soln,0,cur_time,State_Type,sigma,1);
         }
         //
         // Copy guess into U_new.
@@ -1190,7 +1190,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
     }
     else
     {
-        caller->FillCoarsePatch(Soln,cur_time,State_Type,Xvel,BL_SPACEDIM);
+        caller->FillCoarsePatch(Soln,0,cur_time,State_Type,Xvel,BL_SPACEDIM);
     }
     //
     // Copy guess into U_new.
