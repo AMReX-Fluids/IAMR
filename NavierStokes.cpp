@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.109 1999-02-03 21:55:54 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.110 1999-02-09 00:47:14 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1450,70 +1450,117 @@ NavierStokes::predict_velocity (Real  dt,
 }
 
 //
-// Where possible, test that edge-based values agree across periodic boundary.
+// Structure used by test_umac_periodic().
+//
+
+struct TURec
+{
+    TURec ()
+        :
+        m_idx(-1),
+        m_dim(-1)
+    {}
+
+    TURec (int        idx,
+           int        dim,
+           const Box& srcBox,
+           const Box& dstBox)
+        :
+        m_srcBox(srcBox),
+        m_dstBox(dstBox),
+        m_idx(idx),
+        m_dim(dim)
+    {}
+
+    FillBoxId m_fbid;
+    Box       m_srcBox;
+    Box       m_dstBox;
+    int       m_idx;
+    int       m_dim;
+};
+
+//
+// Test that edge-based values agree across periodic boundary.
 //
 
 void
 NavierStokes::test_umac_periodic ()
 {
-    //
-    // TODO -- make this routine work in parallel.
-    //
-    if (ParallelDescriptor::NProcs() > 1)
-        return;
+    if (!geom.isAnyPeriodic()) return;
 
-    const Real Tolerance = 1.e-10;
+    const Real              Tol    = 1.e-10;
+    const int               MyProc = ParallelDescriptor::MyProc();
+    FArrayBox               diff;
+    Array<IntVect>          pshifts(27);
+    MultiFabCopyDescriptor  mfcd;
+    vector<TURec>           pirm;
+    MultiFabId              mfid[BL_SPACEDIM];
 
-    if (geom.isAnyPeriodic())
+    for (int dim = 0; dim < BL_SPACEDIM; dim++)
     {
-	FArrayBox diff;
+        if (geom.isPeriodic(dim))
+        {
+            Box eDomain = ::surroundingNodes(geom.Domain(),dim);
 
-        Array<IntVect> pshifts(27);
+            mfid[dim] = mfcd.RegisterMultiFab(&u_mac[dim]);
 
-	for (int d = 0; d < BL_SPACEDIM; d++)
-	{
-	    if (geom.isPeriodic(d))
-	    {
-		const Box& eDomain = ::surroundingNodes(geom.Domain(), d);
+            for (ConstMultiFabIterator mfi(u_mac[dim]); mfi.isValid(); ++mfi)
+            {
+                Box eBox = u_mac[dim].boxArray()[mfi.index()];
 
-		for (int i = 0; i < grids.length(); i++)
-		{
-		    Box eBox = ::surroundingNodes(grids[i], d);
+                geom.periodicShift(eDomain, eBox, pshifts);
 
-		    geom.periodicShift(eDomain, eBox, pshifts);
+                for (int iiv = 0; iiv < pshifts.length(); iiv++)
+                {
+                    eBox += pshifts[iiv];
 
-		    for (int iiv = 0; iiv < pshifts.length(); iiv++)
+                    for (int j = 0; j < grids.length(); j++)
                     {
-			eBox += pshifts[iiv];
+                        Box srcBox = u_mac[dim].boxArray()[j] & eBox;
 
-			for (int j = 0; j < grids.length(); j++)
-			{
-                            Box srcBox = ::surroundingNodes(grids[j],d) & eBox;
+                        if (srcBox.ok())
+                        {
+                            Box dstBox = srcBox - pshifts[iiv];
 
-			    if (srcBox.ok())
-			    {
-                                Box dstBox = srcBox - pshifts[iiv];
+                            TURec r(mfi.index(),dim,srcBox,dstBox);
 
-				diff.resize(dstBox, 1);
-				diff.copy(u_mac[d][i],dstBox);
-				diff.minus(u_mac[d][j],srcBox,dstBox,0,0,1);
+                            r.m_fbid = mfcd.AddBox(mfid[dim],srcBox,0,j,0,0,1);
 
-				const Real max_norm = diff.norm(0);
+                            pirm.push_back(r);
+                        }
+                    }
 
-				if (max_norm > Tolerance)
-				{
-				    cout << "dir = "         << d
-					 << ", diff norm = " << max_norm
-					 << " for region: "  << dstBox << endl;
-				    BoxLib::Error("Periodic bust in u_mac");
-				}
-			    }
-			}
-			eBox -= pshifts[iiv];
-		    }
-		}
-	    }
-	}
+                    eBox -= pshifts[iiv];
+                }
+            }
+        }
+    }
+
+    mfcd.CollectData();
+
+    for (int i = 0; i < pirm.size(); i++)
+    {
+        const int dim = pirm[i].m_dim;
+
+        assert(pirm[i].m_fbid.box() == pirm[i].m_srcBox);
+        assert(pirm[i].m_srcBox.sameSize(pirm[i].m_dstBox));
+        assert(u_mac[dim].DistributionMap()[pirm[i].m_idx] == MyProc);
+
+        diff.resize(pirm[i].m_srcBox, 1);
+
+        mfcd.FillFab(mfid[dim], pirm[i].m_fbid, diff);
+
+        diff.minus(u_mac[dim][pirm[i].m_idx],pirm[i].m_dstBox,diff.box(),0,0,1);
+
+        const Real max_norm = diff.norm(0);
+
+        if (max_norm > Tol)
+        {
+            cout << "dir = "         << dim
+                 << ", diff norm = " << max_norm
+                 << " for region: "  << pirm[i].m_dstBox << endl;
+            BoxLib::Error("Periodic bust in u_mac");
+        }
     }
 }
 
