@@ -2,7 +2,7 @@
 #define _VISCBNDRYDATA_H_
 
 //
-// $Id: ViscBndry.H,v 1.3 1997-09-26 16:57:07 lijewski Exp $
+// $Id: ViscBndry.H,v 1.4 1998-03-26 06:41:01 almgren Exp $
 //
 
 #include <InterpBndryData.H>
@@ -13,11 +13,10 @@ class ViscBndry : public InterpBndryData
 public:
     ViscBndry() : InterpBndryData()  {}
 
-    ViscBndry(const BoxArray& _grids, int _ncomp,const Geometry& geom) :
-        InterpBndryData(_grids,_ncomp,geom) {};
+    ViscBndry(const BoxArray& _grids, int _ncomp,const Geometry& _geom) :
+        InterpBndryData(_grids,_ncomp,_geom) {};
 
-    virtual void setBndryConds(const BCRec& phys_bc,
-                               const Geometry& geom, IntVect& ratio);
+    virtual void setBndryConds(const BCRec& phys_bc, IntVect& ratio);
 
     void setHomogValues(const BCRec& bc, IntVect& ratio);
 };

@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.11 1997-12-11 23:30:22 lijewski Exp $
+// $Id: NavierStokes.H,v 1.12 1998-03-26 06:40:59 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -323,7 +323,7 @@ protected: // ===================== protected member functions ===
     //=================================================================
     
     // virtual function get fluxes out of the advection routines
-    virtual void pullFluxes( int level, int gridno, int start_ind, int ncomp,
+    virtual void pullFluxes( int gridno, int start_ind, int ncomp,
                              FArrayBox &xflux,
                              FArrayBox &yflux,
                              FArrayBox &zflux, Real dt );
@@ -357,7 +357,7 @@ protected: // ===================== protected member functions ===
                   Real time, int have_state, int state_indx,
                   //BoxAssoc& assoc, Array<Box>& unfilled,
                   Array<Box>& unfilled,
-                  int num_comp = 1, int start_comp = 0);
+                  int start_comp = 0, int num_comp = 1);
     
     // get pressure gradient data via fill-patching
     void getGradP(FArrayBox& gp, int gridno, int ngrow, Real time);

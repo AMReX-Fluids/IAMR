@@ -1,12 +1,11 @@
 //
-// $Id: ViscBndry.cpp,v 1.6 1997-12-11 23:30:26 lijewski Exp $
+// $Id: ViscBndry.cpp,v 1.7 1998-03-26 06:40:58 almgren Exp $
 //
 
 #include <LO_BCTYPES.H>
 #include <ViscBndry.H>
 
-void ViscBndry::setBndryConds(const BCRec& bc,
-                              const Geometry& geom, IntVect& ratio)
+void ViscBndry::setBndryConds(const BCRec& bc, IntVect& ratio)
 {
 
 //  NOTE: ALL BCLOC VALUES ARE NOW DEFINED AS A LENGTH IN PHYSICAL DIMENSIONS
@@ -58,7 +57,7 @@ void
 ViscBndry::setHomogValues(const BCRec& bc, IntVect& ratio)
 {
 
-    setBndryConds(bc, geom, ratio);
+    setBndryConds(bc, ratio);
 
 /*
     int ngrd = grids.length();

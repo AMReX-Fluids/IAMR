@@ -2,7 +2,7 @@
 #define _PROJECTION_F_H_ 
 
 /*
-** $Id: PROJECTION_F.H,v 1.5 1997-12-14 23:36:00 lijewski Exp $
+** $Id: PROJECTION_F.H,v 1.6 1998-03-26 06:41:00 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -46,7 +46,13 @@ extern "C" {
     
     void FORT_FILTERP(Real * pnew, Real * scratch, ARLIM_P(p_lo), ARLIM_P(p_hi),
                       const int* lo, const int* hi, const Real * dx,
-                      const Real * fac);
+                      const Real * fac,
+#if (BL_SPACEDIM == 2)
+                      const int * wrap_around_x, const int * wrap_around_y);
+#elif (BL_SPACEDIM == 3)
+                      const int * wrap_around_x, const int * wrap_around_y,
+                      const int * wrap_around_z);
+#endif
 
     void FORT_VEL_TO_ACCEL (const int* lo, const int* hi,
                             const Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi),
@@ -85,7 +91,8 @@ extern "C" {
                     const int* extrap_edges, 
                     const int* extrap_corners, const int* is_rz);
     
-    void FORT_HGN2C(const int* isrz, const int* rweighted, ARLIM_P(nodelo),ARLIM_P(nodehi), 
+    void FORT_HGN2C(const int* isrz, const int* rweighted, 
+                    ARLIM_P(nodelo),ARLIM_P(nodehi), 
                     const Real* nodedat,
                     ARLIM_P(cclo), ARLIM_P(cchi), const int* lo, const int* hi,
                     Real* ccdat);

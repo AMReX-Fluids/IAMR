@@ -2,7 +2,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.9 1998-03-03 19:03:58 lijewski Exp $
+// $Id: Projection.H,v 1.10 1998-03-26 06:41:00 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -112,7 +112,8 @@ public: // ================== public access functions
     void radDiv(  int level, MultiFab& mf, int comp );
 
     // filter the velocities and pressures after a projection
-    void filterUandP( MultiFab &P_new, MultiFab &U_new, MultiFab *rho_half,
+    void filterUandP( int level, MultiFab &P_new, 
+                      MultiFab &U_new, MultiFab *rho_half,
                       const BoxArray &grids,
                       const Real *dx, const Real dt );
 
@@ -214,12 +215,11 @@ protected:  // ================== protected member functions
                                          MultiFab * rho_half, MultiFab& dsdt);
     
     void set_initial_projection_outflow_bcs(MultiFab** vel,MultiFab** sig,
-                                            MultiFab** phi,Amr* parent,
+                                            MultiFab** phi,
                                             int c_lev,Real cur_divu_time);
     
-    void set_initial_syncproject_outflow_bcs(MultiFab** phi,
-                                             int c_lev,Real
-                                             start_time, Real dt);
+    void set_initial_syncproject_outflow_bcs(MultiFab** phi, int c_lev,
+                                             Real start_time, Real dt);
     
 protected:// ================== protected data members
 

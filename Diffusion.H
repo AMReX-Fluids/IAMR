@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.H,v 1.5 1997-12-11 23:30:13 lijewski Exp $
+// $Id: Diffusion.H,v 1.6 1998-03-26 06:40:59 almgren Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -62,11 +62,14 @@ class Diffusion
   static bool use_mg_precond_flag;
   static int use_dv_constant_mu_def;
   static int scale_abec;
+  static int est_visc_mag;
+  static int Lphi_in_abs_tol;
   static Array<int> is_diffusive;     // does variable diffuse?
   static Array<Real> visc_coef;       // const coef viscosity terms
   static Real visc_tol;
   static Real visc_abs_tol;
   static int verbose;
+  static Array<REAL> typical_vals;
 
 public:
 
@@ -78,6 +81,22 @@ public:
             Array<Real> _visc_coef);
 
   virtual ~Diffusion();
+
+  void echo_settings() const;
+
+
+  inline REAL get_scaled_abs_tol(int sigma, const MultiFab* rhs,
+                                 REAL a, REAL b,
+                                 const MultiFab* alpha,
+                                 const MultiFab* const * beta,
+                                 REAL reduction) const;
+
+  REAL get_scaled_abs_tol(int sigma, const MultiFab* rhs,
+                          REAL a, REAL b,
+                          const MultiFab* alpha,
+                          const MultiFab* const * betan,
+                          const MultiFab* const * betanp1,
+                          REAL reduction) const;
 
   void diffuse_scalar(Real dt, int sigma, Real be_cn_theta,
                       MultiFab* rho_half, int rho_flag,
@@ -163,14 +182,15 @@ public:
 
   int useDvConstantMu() { return use_dv_constant_mu_def; }
 
-  void checkBetas(MultiFab** beta1, MultiFab** beta2,
-                  int& allthere, int& allnull);
+  void checkBetas(const MultiFab* const * beta1,
+                  const MultiFab* const * beta2,
+                  int& allthere, int& allnull) const;
 
-  void checkBeta(MultiFab** beta,
-                 int& allthere, int& allnull);
+  void checkBeta(const MultiFab* const * beta,
+                 int& allthere, int& allnull) const;
 
-  void checkBeta(MultiFab** beta,
-                 int& allthere);
+  void checkBeta(const MultiFab* const * beta,
+                 int& allthere) const;
 
   void allocFluxBoxesLevel(MultiFab**& fluxbox, 
                            int nghost=0, int nvar=1);
@@ -183,6 +203,16 @@ public:
   void compute_divmusi(Real time, Real mu, MultiFab& divmusi);
 #endif
 };
+
+inline
+REAL Diffusion::get_scaled_abs_tol(int sigma, const MultiFab* rhs,
+                                   REAL a, REAL b,
+                                   const MultiFab* alpha,
+                                   const MultiFab* const * beta,
+                                   REAL reduction) const
+{
+    return get_scaled_abs_tol(sigma, rhs, a, b, alpha, beta, NULL, reduction);
+}
 
 #endif
 

@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.14 1997-12-11 23:30:25 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.15 1998-03-26 06:40:58 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -58,6 +58,10 @@ SyncRegister::define(const BoxArray& fine_boxes,
         bndry[face()].resize(ngrds);
         bndry[face()].DefineGrids(grids);
         bndry[face()].DefineDistributionMap(grids);
+
+        bndry_mask[face()].resize(ngrds);
+        bndry_mask[face()].DefineGrids(grids);
+        bndry_mask[face()].DefineDistributionMap(grids);
     }
       // construct disjoint "face" fabs that are node centered in
       // all index directions.  The "grow" function at the bottom
@@ -69,17 +73,21 @@ SyncRegister::define(const BoxArray& fine_boxes,
     for (int k = 0; k < ngrds; k++) {
         Box ndbox(surroundingNodes(grids[k]));
         for (int dir = 0; dir < BL_SPACEDIM; dir++) {
-              const int* blo = ndbox.loVect();
+            const int* blo = ndbox.loVect();
             Box nd_lo(ndbox);
             nd_lo.setRange(dir,blo[dir],1);
             FabSet &lo = bndry[Orientation(dir,Orientation::low)];
             lo.setFab(k,new FArrayBox(nd_lo,1));
+            FabSet &lo_mask = bndry_mask[Orientation(dir,Orientation::low)];
+            lo_mask.set(k,new FARRAYBOX(nd_lo,1));
 
             const int* bhi = ndbox.hiVect();
             Box nd_hi(ndbox);
             nd_hi.setRange(dir,bhi[dir],1);
             FabSet &hi = bndry[Orientation(dir,Orientation::high)];
             hi.setFab(k,new FArrayBox(nd_hi,1));
+            FabSet &hi_mask = bndry_mask[Orientation(dir,Orientation::high)];
+            hi_mask.set(k,new FARRAYBOX(nd_hi,1));
 
             assert(ndbox.shortside() > 0);
         }
@@ -89,7 +97,7 @@ SyncRegister::define(const BoxArray& fine_boxes,
     for (int k = 0; k < ngrds; k++) {
         Box ndbox(surroundingNodes(grids[k]));
         for (int dir = 0; dir < BL_SPACEDIM; dir++) {
-              const int* blo = ndbox.loVect();
+            const int* blo = ndbox.loVect();
             Box nd_lo(ndbox);
             nd_lo.setRange(dir,blo[dir],1);
             FabSet &lo = bndry[Orientation(dir,Orientation::low)];
@@ -98,6 +106,13 @@ SyncRegister::define(const BoxArray& fine_boxes,
               assert( ! lo.defined(k) );
               lo.clear(k);
               lo.setFab(k,new FArrayBox(nd_lo,1));
+            }
+            FabSet &lo_mask = bndry_mask[Orientation(dir,Orientation::low)];
+            lo_mask.setBox(k, nd_lo);
+            if(lo_mask.DistributionMap()[k] == myproc) {  // local
+              assert( ! lo_mask.defined(k) );
+              lo_mask.clear(k);
+              lo_mask.setFab(k,new FArrayBox(nd_lo,1));
             }
 
             const int* bhi = ndbox.hiVect();
@@ -109,6 +124,13 @@ SyncRegister::define(const BoxArray& fine_boxes,
               assert( ! hi.defined(k) );
               hi.clear(k);
               hi.setFab(k,new FArrayBox(nd_hi,1));
+            }
+            FabSet &hi_mask = bndry[Orientation(dir,Orientation::high)];
+            hi_mask.setBox(k, nd_hi);
+            if(hi_mask.DistributionMap()[k] == myproc) {  // local
+              assert( ! hi_mask.defined(k) );
+              hi_mask.clear(k);
+              hi_mask.setFab(k,new FArrayBox(nd_hi,1));
             }
 
             assert(ndbox.shortside() > 0);
@@ -177,35 +199,42 @@ if(ParallelDescriptor::NProcs() > 1) {
 } else {
   cerr << "SyncRegister::InitRHS(...) not implemented in parallel.\n";
 }
+    int dir;
     rhs.setVal(0.0);
     const BoxArray& rhs_boxes = rhs.boxArray();
     int nrhs = rhs_boxes.length();
     int nreg = grids.length();
 
-    const Box cell_domain(geom.Domain());
-    const Box domain = surroundingNodes(cell_domain);
+    const BOX& cell_domain(geom.Domain());
+    const BOX& domain = surroundingNodes(cell_domain);
 
     Array<IntVect> pshifts(27);
 
-    int j,k;
+    int j,k,n;
+    int iiv;
+
+// ************************************************************************* //
+//  FILL RHS FROM BNDRY REGISTERS
+// ************************************************************************* //
+
     // if periodic, copy the values from sync registers onto the nodes
     // of the rhs which are not covered by sync registers through periodic
     // shifts
     if (geom.isAnyPeriodic()) {
 
       for (k = 0; k < nrhs; k++) {
-        for (j = 0; j < nreg; j++) {
-            for (OrientationIter face; face; ++face) {
-                  Box regbox(bndry[face()][j].box());
+	for (j = 0; j < nreg; j++) {
+	    for (OrientationIter face; face; ++face) {
+                  BOX regbox(bndry[face()][j].box());
                   geom.periodicShift(domain,regbox,pshifts);
-                  for (int iiv = 0; iiv < pshifts.length(); iiv++) {
+                  for (iiv = 0; iiv < pshifts.length(); iiv++) {
                     IntVect iv = pshifts[iiv];
                     bndry[face()][j].shift(iv);
-                    rhs[k].copy(bndry[face()][j]);
+		    rhs[k].copy(bndry[face()][j]);
                     bndry[face()][j].shift(-iv);
                   }
-            }
-        }
+	    }
+	}
       }
     }
  
@@ -225,10 +254,10 @@ if(ParallelDescriptor::NProcs() > 1) {
     const int* phys_lo = phys_bc->lo();
     const int* phys_hi = phys_bc->hi();
 
-    FArrayBox tmp_rhs;
+    FARRAYBOX tmp_rhs;
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++) {
-      Box domlo(domain), domhi(domain);
+    for (dir = 0; dir < BL_SPACEDIM; dir++) {
+      BOX domlo(domain), domhi(domain);
       domlo.setRange(dir,dlo[dir],1);
       domhi.setRange(dir,dhi[dir],1);
 
@@ -236,20 +265,125 @@ if(ParallelDescriptor::NProcs() > 1) {
       // by two (only for ref-wall and inflow) and set to zero
       // at outflow
       if (!geom.isPeriodic(dir)) {
-        for (k = 0; k < nrhs; k++) {
-            Box blo(rhs_boxes[k]);
-            Box bhi(blo);
-            blo &= domlo;
-            bhi &= domhi;
-            if (blo.ok()) rhs[k].mult(2.0,blo,0,1);
-            if (bhi.ok()) rhs[k].mult(2.0,bhi,0,1);
+	for (k = 0; k < nrhs; k++) {
+	    BOX blo(rhs_boxes[k]);
+	    BOX bhi(blo);
+	    blo &= domlo;
+	    bhi &= domhi;
+	    if (blo.ok()) rhs[k].mult(2.0,blo,0,1);
+	    if (bhi.ok()) rhs[k].mult(2.0,bhi,0,1);
 
             if (blo.ok() && phys_lo[dir] == Outflow) 
               rhs[k].setVal(0.0,blo,0,1);
             if (bhi.ok() && phys_hi[dir] == Outflow) 
               rhs[k].setVal(0.0,bhi,0,1);
-        }
+	}
       } 
+    }
+
+// ************************************************************************* //
+//  SET UP BNDRY_MASK
+// ************************************************************************* //
+
+    for (j = 0; j < nreg; j++) {
+      for (OrientationIter face; face; ++face) {
+         bndry_mask[face()][j].setVal(0.);
+      }
+    }
+
+    int ngrds = grids.length();
+    for (j = 0; j < nreg; j++) {
+      for (OrientationIter face; face; ++face) {
+        FARRAYBOX& mask = bndry_mask[face()][j];
+
+        BOX mask_cells(enclosedCells(grow(mask.box(),1)));
+        FARRAYBOX cellMask(mask_cells,1);
+        cellMask.setVal(0.);
+
+        for (n = 0; n < ngrds; n++) {
+          BOX intersect(mask_cells);
+          intersect &= grids[n];
+          if (intersect.ok()) cellMask.setVal(1.0,intersect,0,1);
+        }
+ 
+        if (geom.isAnyPeriodic()) {
+          geom.periodicShift(cell_domain,mask_cells,pshifts);
+          for (iiv = 0; iiv < pshifts.length(); iiv++) {
+            IntVect iv = pshifts[iiv];
+            mask_cells.shift(iv);
+            for (n = 0; n < ngrds; n++) {
+              BOX intersect(mask_cells);
+              intersect &= grids[n];
+              if (intersect.ok()) {
+                intersect.shift(-iv);
+                cellMask.setVal(1.0,intersect,0,1);
+              }
+            }
+            mask_cells.shift(-iv);
+          }
+        }
+
+        REAL* mask_dat = mask.dataPtr();
+        const int* mlo = mask.loVect(); 
+        const int* mhi = mask.hiVect();
+
+        REAL* cell_dat = cellMask.dataPtr();
+        const int* clo = cellMask.loVect(); 
+        const int* chi = cellMask.hiVect();
+        
+        FORT_MAKEMASK(mask_dat,ARLIM(mlo),ARLIM(mhi),
+                      cell_dat,ARLIM(clo),ARLIM(chi));
+      }
+    }
+
+    BOX node_domain(surroundingNodes(domain));
+    const int* ndlo = node_domain.loVect();
+    const int* ndhi = node_domain.hiVect();
+
+//  Here double the cell contributions if at a non-periodic physical bdry
+    for (dir = 0; dir < BL_SPACEDIM; dir++) {
+      if (!geom.isPeriodic(dir)) {
+        BOX domlo(node_domain);
+        BOX domhi(node_domain);
+        domlo.setRange(dir,ndlo[dir],1);
+        domhi.setRange(dir,ndhi[dir],1);
+        for (j = 0; j < nreg; j++) {
+          for (OrientationIter face; face; ++face) {
+             BOX bndry_box_lo(bndry_mask[face()][j].box());
+             BOX bndry_box_hi(bndry_mask[face()][j].box());
+             bndry_box_lo &= domlo;
+             bndry_box_hi &= domhi;
+             if (bndry_box_lo.ok()) 
+               bndry_mask[face()][j].mult(2.0,bndry_box_lo,0,1);
+             if (bndry_box_hi.ok()) 
+               bndry_mask[face()][j].mult(2.0,bndry_box_hi,0,1);
+          }
+        }
+      }
+    }
+
+//  Here convert from sum of cell contributions to 0. or 1.
+    for (j = 0; j < nreg; j++) {
+      for (OrientationIter face; face; ++face) {
+
+         FARRAYBOX& mask = bndry_mask[face()][j];
+         REAL* mask_dat = mask.dataPtr();
+         const int* mlo = mask.loVect(); 
+         const int* mhi = mask.hiVect();
+        
+         FORT_CONVERTMASK(mask_dat,ARLIM(mlo),ARLIM(mhi));
+      }
+    }
+
+// ************************************************************************* //
+//  MULTIPLY RHS BY BNDRY_MASK 
+// ************************************************************************* //
+    for (k = 0; k < nrhs; k++) {
+      for (j = 0; j < nreg; j++) {
+        for (OrientationIter face; face; ++face) {
+           rhs[k].mult(bndry_mask[face()][j]);
+        }
+      }
     }
 }
 

@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.5 1998-02-22 19:06:52 car Exp $
+c $Id: PROJECTION_2D.F,v 1.6 1998-03-26 06:41:02 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -14,12 +14,12 @@ c
 
 #define SDIM 2
 
-
 c=========================================================
 
        subroutine FORT_FILTERP (
      &     pnew,scratch,DIMS(p),
-     &     lo,hi,dx,fac)
+     &     lo,hi,dx,fac,
+     &     wrap_around_x,wrap_around_y)
 c
 c     ----------------------------------------------------------
 c     filter the pressure coming out of the level projection
@@ -32,6 +32,8 @@ c     pnew      <=>
 c     p_lo,p_hi  => index limits of pressure array
 c     lo,hi      => index limits of cell centered interior
 c     fac        => fudge factor for filtering
+c     wrap_around_x => is this a single periodic box in the x-direction
+c     wrap_around_y => is this a single periodic box in the y-direction
 c     
 c     ----------------------------------------------------------
 c 
@@ -41,6 +43,8 @@ c
        integer    lo(2), hi(2)
        REAL_T     dx(2)
        REAL_T     fac
+       integer    wrap_around_x
+       integer    wrap_around_y
        integer i, j
 c
        if ( abs(dx(1)-dx(2)) .gt. 1.e-8 .and. fac .gt. 1.e-4 )then
@@ -54,12 +58,91 @@ c
              scratch(i,j) = - eighth * scratch(i,j) * fac
           end do
        end do
+ 
+       if (wrap_around_x .eq. 1) then
+         i = lo(1)
+         do j = lo(2)+1, hi(2)
+             scratch(i,j) = four * pnew(i,j) - 
+     $         (pnew(hi(1),j) + pnew(i+1,j) + pnew(i,j-1) + pnew(i,j+1) )
+             scratch(i,j) = - eighth * scratch(i,j) * fac
+         end do
+
+         i = hi(1)+1
+         do j = lo(2)+1, hi(2)
+             scratch(i,j) = four * pnew(i,j) - 
+     $         (pnew(i-1,j) + pnew(lo(1)+1,j) + pnew(i,j-1) + pnew(i,j+1) )
+             scratch(i,j) = - eighth * scratch(i,j) * fac
+         end do
+       end if
+ 
+       if (wrap_around_y .eq. 1) then
+         j = lo(2)
+         do i = lo(1)+1, hi(1)
+             scratch(i,j) = four * pnew(i,j) - 
+     $         (pnew(i-1,j) + pnew(i+1,j) + pnew(i,hi(2)) + pnew(i,j+1) )
+             scratch(i,j) = - eighth * scratch(i,j) * fac
+         end do
+
+         j = hi(2)+1
+         do i = lo(1)+1, hi(1)
+             scratch(i,j) = four * pnew(i,j) - 
+     $         (pnew(i-1,j) + pnew(i+1,j) + pnew(i,j-1) + pnew(i,lo(2)+1) )
+             scratch(i,j) = - eighth * scratch(i,j) * fac
+         end do
+       end if
+ 
+       if (wrap_around_x .eq. 1 .and. wrap_around_y .eq. 1) then
+         i = lo(1)
+         j = lo(2)
+           scratch(i,j) = four * pnew(i,j) - 
+     $       (pnew(hi(1),j) + pnew(i+1,j) + pnew(i,hi(2)) + pnew(i,j+1) )
+           scratch(i,j) = - eighth * scratch(i,j) * fac
+
+         i = hi(1)+1
+         j = lo(2)
+           scratch(i,j) = four * pnew(i,j) - 
+     $       (pnew(i-1,j) + pnew(lo(1)+1,j) + pnew(i,hi(2)) + pnew(i,j+1) )
+           scratch(i,j) = - eighth * scratch(i,j) * fac
+
+         i = lo(1)
+         j = hi(2)+1
+           scratch(i,j) = four * pnew(i,j) - 
+     $       (pnew(hi(1),j) + pnew(i+1,j) + pnew(i,j-1) + pnew(i,lo(2)+1) )
+           scratch(i,j) = - eighth * scratch(i,j) * fac
+
+         i = hi(1)+1
+         j = hi(2)+1
+           scratch(i,j) = four * pnew(i,j) - 
+     $       (pnew(i-1,j) + pnew(lo(1)+1,j) + pnew(i,j-1) + pnew(i,lo(2)+1) )
+           scratch(i,j) = - eighth * scratch(i,j) * fac
+       end if
 c
        do j = lo(2)+1, hi(2)
           do i = lo(1)+1, hi(1)
              pnew(i,j) = pnew(i,j) + scratch(i,j)
           end do
        end do
+
+       if (wrap_around_x .eq. 1) then
+         do j = lo(2)+1, hi(2)
+           pnew(lo(1)  ,j) = pnew(lo(1)  ,j) + scratch(lo(1)  ,j)
+           pnew(hi(1)+1,j) = pnew(hi(1)+1,j) + scratch(hi(1)+1,j)
+         end do
+       end if
+
+       if (wrap_around_y .eq. 1) then
+         do i = lo(1)+1, hi(1)
+           pnew(i,lo(2)  ) = pnew(i,lo(2)  ) + scratch(i,lo(2)  )
+           pnew(i,hi(2)+1) = pnew(i,hi(2)+1) + scratch(i,hi(2)+1)
+         end do
+       end if
+
+       if (wrap_around_x .eq. 1 .and. wrap_around_y .eq. 1) then
+         pnew(lo(1)  ,lo(2)  ) = pnew(lo(1)  ,lo(2)  ) + scratch(lo(1)  ,lo(2)  )
+         pnew(hi(1)+1,lo(2)  ) = pnew(hi(1)+1,lo(2)  ) + scratch(hi(1)+1,lo(2)  )
+         pnew(lo(1)  ,hi(2)+1) = pnew(lo(1)  ,hi(2)+1) + scratch(lo(1)  ,hi(2)+1)
+         pnew(hi(1)+1,hi(2)+1) = pnew(hi(1)+1,hi(2)+1) + scratch(hi(1)+1,hi(2)+1)
+       end if
 c
 c     end of routine
 c
@@ -467,9 +550,8 @@ c
       REAL_T divcor(DIMV(div))
       REAL_T    rho(DIMV(rho))
       REAL_T      r(DIM1(r))
-      REAL_T hx,rhs,fst,fstm,sigmax
+      REAL_T hx,rhs,fst,fstm
       integer i,is,ie,js,je,iend,j
-      integer ivp
       REAL_T  divcor_ave, vtot
       REAL_T  div_edge, rho_edge, div_edge_m1, rho_edge_m1, div_edge_m2, rho_edge_m2
 

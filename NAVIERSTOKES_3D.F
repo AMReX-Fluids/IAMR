@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.4 1998-02-22 19:06:51 car Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.5 1998-03-26 06:41:01 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -495,6 +495,52 @@ c ::
        mass = zero
        do j = ARG_L2(grid), ARG_H2(grid)
           mass = mass + tmp(j)
+       end do
+
+       return
+       end
+
+c :: ----------------------------------------------------------
+c :: SUMPRESS
+c ::             SUM = sum{ press(i,j,k) * surroundingVolume(i,j,k) }
+c ::
+c :: INPUTS / OUTPUTS:
+c ::  press      => pressure field on nodes
+c ::  DIMS(press)=> index limits of press aray
+c ::  vol        => volume field (zero-ed out under finer grids)
+c ::  DIMS(vol)  => index limits of vol aray
+c ::  lo,hi      => index limits of grid interior in nodal space
+c ::  total_press<= sum of volume-weighted nodal pressures
+c ::  total_vol  <= sum of volumes
+c :: ----------------------------------------------------------
+c ::
+       subroutine FORT_SUMPRESS(press,DIMS(press),vol,DIMS(vol),lo,hi,
+     $                          total_press,total_vol)
+
+       integer lo(3),hi(3)
+       integer DIMDEC(press)
+       integer DIMDEC(vol)
+       integer DIMDEC(grid)
+       REAL_T  press(DIMV(press))
+       REAL_T  vol(DIMV(vol))
+       REAL_T  total_press,total_vol
+
+       integer i, j, k
+       REAL_T  surroundingVolume
+
+       do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+
+          surroundingVolume = vol(i,j  ,k  ) + vol(i-1,j  ,k  ) + 
+     $                        vol(i,j-1,k  ) + vol(i-1,j-1,k  ) +
+     $                        vol(i,j  ,k-1) + vol(i-1,j  ,k-1) + 
+     $                        vol(i,j-1,k-1) + vol(i-1,j-1,k-1)
+          total_press = total_press + press(i,j,k) * surroundingVolume
+          total_vol   = total_vol   +                surroundingVolume
+
+       end do
+       end do
        end do
 
        return

@@ -2,7 +2,7 @@
 #define _MACBNDRYDATA_H_
 
 //
-// $Id: MacBndry.H,v 1.3 1997-09-26 16:57:01 lijewski Exp $
+// $Id: MacBndry.H,v 1.4 1998-03-26 06:40:59 almgren Exp $
 //
 
 #include <InterpBndryData.H>
@@ -12,11 +12,10 @@ class MacBndry : public InterpBndryData
 public:
     MacBndry() : InterpBndryData()  {}
 
-    MacBndry(const BoxArray& _grids, int _ncomp, const Geometry& geom) :
-        InterpBndryData(_grids,_ncomp,geom) {};
+    MacBndry(const BoxArray& _grids, int _ncomp, const Geometry& _geom) :
+        InterpBndryData(_grids,_ncomp,_geom) {};
 
-    virtual void setBndryConds(const BCRec& phys_bc,
-                               const Geometry& geom, IntVect& ratio);
+    virtual void setBndryConds(const BCRec& phys_bc, IntVect& ratio);
 };
 
 #endif

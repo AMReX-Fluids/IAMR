@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.31 1998-03-25 22:40:35 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.32 1998-03-26 06:40:57 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1148,7 +1148,9 @@ void NavierStokes::advance_setup( Real time, Real dt, int iteration, int ncycle)
 
     if( (level>0 || geom.isAnyPeriodic()) && do_diffusion ) {
         // this is neccessary so that diffusion works properly during the first
-        // time step
+        // time step (Diffusion can call only AmrLevel::setPhysBndryValues() to
+        // fill ghost cells.  That function does not know about ghost cells over
+        // coarse values, or periodic bc's)
         for ( int k = 0; k < num_state_type; k++) {
             if(k!=Press_Type) {
                 MultiFab &new_state = get_new_data(k);
@@ -1157,10 +1159,6 @@ void NavierStokes::advance_setup( Real time, Real dt, int iteration, int ncycle)
                 FillStateBndry(time+dt,k,0,new_state.nComp());
             }
         }
-        // --------------------- DS --------------
-        // SaveNewBoundary( time+dt );
-        // SaveOldBoundary( time    );
-        // --------------------- DS --------------
     }
 
 }
@@ -1909,7 +1907,7 @@ void NavierStokes::velocity_advection( Real dt )
                                   volumemfi() );
 
             // get fluxes for diagnostics and refluxing
-            pullFluxes( level, i, comp, 1, xflux, yflux, zflux, dt );
+            pullFluxes( i, comp, 1, xflux, yflux, zflux, dt );
         } // end of velocity loop
     } // end of grid loop
 
@@ -2057,7 +2055,7 @@ void NavierStokes::velocity_advection( Real dt )
                                   volumemfi() );
 
             // get fluxes for diagnostics and refluxing
-            pullFluxes( level, i, comp, 1, xflux, yflux, zflux, dt );
+            pullFluxes( i, comp, 1, xflux, yflux, zflux, dt );
         } // end of velocity loop
     } // end of grid loop
 #endif
@@ -2179,7 +2177,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
                                   volumemfi() );
 
             // get the fluxes for refluxing and diagnostic purposes
-            pullFluxes( level, i, state_ind, 1, xflux, yflux, zflux, dt );
+            pullFluxes( i, state_ind, 1, xflux, yflux, zflux, dt );
             
         } // end of scalar loop
     } // end of grid loop
@@ -2403,7 +2401,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
                                   volumemfi() );
 
             // get the fluxes for refluxing and diagnostic purposes
-            pullFluxes( level, i, state_ind, 1, xflux, yflux, zflux, dt );
+            pullFluxes( i, state_ind, 1, xflux, yflux, zflux, dt );
             
         } // end of scalar loop
 
@@ -4361,28 +4359,28 @@ void NavierStokes::SyncProjInterp( MultiFab &phi,   int c_lev,
 //  This should be an Amrlevel or Multifab function
 //
 //------------------------------------------------------------
-void NavierStokes::avgDown( const BoxArray &grids,  const BoxArray &fgrids,
+void NavierStokes::avgDown( const BoxArray &cgrids,  const BoxArray &fgrids,
                             MultiFab &S_crse, MultiFab &S_fine,
-                            MultiFab &volume, MultiFab &fvolume,
+                            MultiFab &cvolume, MultiFab &fvolume,
                             int c_level,            int f_level,
                             int strt_comp, int num_comp, IntVect& fratio )
 {
     assert( S_crse.nComp() == S_fine.nComp() );
-    int num_crse = grids.length();
+    int num_crse = cgrids.length();
     int num_fine = fgrids.length();
 
 /*
     // loop over coarse grids, and intersect coarse with fine
     int crse, fine;
     for ( crse = 0; crse < num_crse; crse++) {
-        const Box& cbox = grids[crse];
+        const Box& cbox = cgrids[crse];
         for ( fine = 0; fine < num_fine; fine++) {
             const Box& fbox = fgrids[fine];
             Box ovlp(coarsen(fbox,fratio));
             ovlp &= cbox;
             if (ovlp.ok()) {
                 avgDown( S_fine[fine],  S_crse[crse], 
-                         fvolume[fine], volume[crse], 
+                         fvolume[fine], cvolume[crse], 
                          f_level,       c_level,      
                          ovlp, strt_comp, num_comp, fratio );
             }
@@ -4962,24 +4960,6 @@ void NavierStokes::avgDown()
             if (ovlp.ok()) {
                 injectDown( ovlp, P_crse[crse], P_fine[fine], fine_ratio );
             }
-
-            // // test for proper injecting of coarse to fine
-            // if ( fgeom.isAnyPeriodic() ) {
-            //     fgeom.periodicShift(domain, P_fgrids[fine], pshifts );
-            //     for( int iiv=0; iiv<pshifts.length(); iiv++) {
-            //         IntVect iv=pshifts[iiv];
-            //         P_fine[fine].shift(iv);
-            //         ovlp  = P_fgrids[fine];
-            //         ovlp.shift(iv);
-            //         ovlp.coarsen(fine_ratio);
-            //         ovlp &= cbox;
-            //         if (ovlp.ok()) {
-            //           testInject( ovlp, P_crse[crse], P_fine[fine], fine_ratio );
-            //         }
-            //         P_fine[fine].shift(-iv);
-            //     }
-            // }
-            
         } // end of fine grid loop
     } // end of coarse grid loop
 */
@@ -5083,7 +5063,7 @@ void NavierStokes::avgDown()
 // virtual access function for getting the advective flux out of the
 // advection routines for diagnostics and refluxing
 // ---------------------------------------------------------------
-void NavierStokes::pullFluxes( int level, int i, int start_ind, int ncomp,
+void NavierStokes::pullFluxes( int i, int start_ind, int ncomp,
                                FArrayBox &xflux,
                                FArrayBox &yflux,
                                FArrayBox &zflux, Real dt )
@@ -5359,8 +5339,8 @@ void NavierStokes::FillStateBndry(Real time, int state_indx, int src_comp,
 void NavierStokes::getState(FArrayBox& fab, int gridno, int ngrow, 
                        Real time, int have_state, int state_indx,
                        //BoxAssoc& assoc, Array<Box>& unfilled, int
-                       Array<Box>& unfilled, int
-                       num_comp, int strt_comp)
+                       Array<Box>& unfilled,
+                       int strt_comp, int num_comp)
 {
 //bool canUse_getState3 = false;
 //assert(canUse_getState3);
@@ -5552,12 +5532,14 @@ NavierStokes::compute_grad_divu_minus_s(Real time, MultiFab* grad_divu_minus_s,
         getGradP( divu_minus_s, (*grad_divu_minus_s)[i], grids[i], 0 );
       
         if (scaleRhoDivDt) {
-            (*grad_divu_minus_s)[i].mult(divu_relax_factor*dx[0]*dx[1]/parent->dtLevel(0));
+            (*grad_divu_minus_s)[i].mult(divu_relax_factor*dx[0]*dx[1]/
+                                         parent->dtLevel(0));
             int n;
             for (n=0; n<BL_SPACEDIM; n++)
                 (*grad_divu_minus_s)[i].mult((*rho_half)[i],grids[i],0,n,1);
         } else {
-            (*grad_divu_minus_s)[i].mult(divu_relax_factor*dx[0]*dx[1]*dt/parent->dtLevel(0));
+            (*grad_divu_minus_s)[i].mult(divu_relax_factor*dx[0]*dx[1]*dt/
+                                         parent->dtLevel(0));
         }
     }
 
@@ -5654,13 +5636,15 @@ NavierStokes::compute_grad_divu_minus_s(Real time, MultiFab* grad_divu_minus_s,
         DependentMultiFabIterator rho_halfmfi(grad_divu_minus_smfi, (*rho_half));
         assert(grids[grad_divu_minus_smfi.index()] == grad_divu_minus_smfi.validbox());
         if (scaleRhoDivDt) {
-            grad_divu_minus_smfi().mult(divu_relax_factor*dx[0]*dx[1]/parent->dtLevel(0));
+            grad_divu_minus_smfi().mult(divu_relax_factor*dx[0]*dx[1]/
+                                        parent->dtLevel(0));
             int n;
             for (n=0; n<BL_SPACEDIM; n++)
                 grad_divu_minus_smfi().mult(rho_halfmfi(),
                                             grad_divu_minus_smfi.validbox(),0,n,1);
         } else {
-            grad_divu_minus_smfi().mult(divu_relax_factor*dx[0]*dx[1]*dt/parent->dtLevel(0));
+            grad_divu_minus_smfi().mult(divu_relax_factor*dx[0]*dx[1]*dt/
+                                        parent->dtLevel(0));
         }
     }
 

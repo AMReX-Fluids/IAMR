@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.12 1998-03-06 16:33:17 lijewski Exp $
+// $Id: MacProj.cpp,v 1.13 1998-03-26 06:40:57 almgren Exp $
 //
 
 #include <Misc.H>
@@ -37,13 +37,6 @@ const Real* fabdat = (fab).dataPtr();
 
 #define GEOM_GROW 1
 #define HYP_GROW 3
-
-// initialization of static members
-//#ifdef ATMOSPHERE
-//int  MacProj::use_viscosity    = 0;
-//#else
-//int  MacProj::use_viscosity    = 1;
-//#endif
 
 int  MacProj::use_viscosity    = 1;
 int  MacProj::verbose          = false;
@@ -253,9 +246,6 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
   }
 
   mac_phi->setVal(0.0);
-  //mac_phi->setCacheWidth(1);
-
-  //Real hx = dx[0];
 
 #if (BL_SPACEDIM == 2)
   int outflow_at_top = phys_bc->lo(0) != Outflow && phys_bc->lo(1) != Outflow && 
@@ -404,31 +394,58 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
       }
   }
 
-#if 1
-  // remove constant null space component from the rhs of the solve
-  // this code should go away when Marc makes this option
-  // part of the multigrid code--rbp, 2/13/97
+  // Remove constant null space component from the rhs of the solve
+  // when appropriate (i.e. when the grids span the whole domain AND
+  // the boundary conditions are Neumann for phi on all sides of the domain.)
+  // Note that Rhs does not yet have the radial scaling in it for r-z
+  // problems so we must do explicit volume-weighting here.
+
   if ( fix_mac_sync_rhs ) {
-    Real sum = 0.0;
+    int all_neumann = 1;
+    for (int dir = 0; dir < BL_SPACEDIM; dir++) {
+      if (phys_bc->lo()[dir] == Outflow ||
+          phys_bc->hi()[dir] == Outflow)
+        all_neumann = 0;
+    }
+
     long size = 0;
-    //int i;
     for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
-      sum += Rhsmfi().sum( 0, 1 );
       size += Rhsmfi().box().numPts();
     }
-    ParallelDescriptor::ReduceRealSum(sum);
     ParallelDescriptor::ReduceLongSum(size);
-    Real fix = sum / size;
-    cout << "Average correction = " << fix << NL;
-    Rhs.plus( -fix, 0 );
-    sum = 0;
-    for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
-      sum += Rhsmfi().sum( 0, 1 );
+
+    if (size == geom.Domain().numPts() && all_neumann == 1) {
+
+      Real sum = 0.0;
+      Real vol = 0.0;
+      FArrayBox vol_wgted_rhs;
+      for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
+        vol_wgted_rhs.resize(Rhsmfi().box());
+        vol_wgted_rhs.copy(Rhsmfi());
+        DependentMultiFabIterator Volmfi(Rhsmfi, volume[level]);
+        vol_wgted_rhs.mult(Volmfi());
+        sum += vol_wgted_rhs.sum(0,1);
+        vol += Volmfi().sum(0,1);
+      }
+      ParallelDescriptor::ReduceRealSum(sum);
+      ParallelDescriptor::ReduceRealSum(vol);
+
+      Real fix = sum / vol;
+      cout << "Average correction on mac sync RHS = " << fix << NL;
+      Rhs.plus( -fix, 0 );
+
+      sum = 0;
+      for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
+        vol_wgted_rhs.resize(Rhsmfi().box());
+        vol_wgted_rhs.copy(Rhsmfi());
+        DependentMultiFabIterator Volmfi(Rhsmfi, volume[level]);
+        vol_wgted_rhs.mult(Volmfi());
+        sum += vol_wgted_rhs.sum(0,1);
+      }
+      ParallelDescriptor::ReduceRealSum(sum);
+      cout << "...new sum = " << sum << NL;
     }
-    ParallelDescriptor::ReduceRealSum(sum);
-    cout << "...new sum = " << sum << NL;
   }
-#endif
 
   mac_sync_phi->setVal(0.0);
   //mac_sync_phi->setCacheWidth(1);

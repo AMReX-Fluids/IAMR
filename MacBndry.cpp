@@ -1,12 +1,11 @@
 //
-// $Id: MacBndry.cpp,v 1.5 1997-12-11 23:30:18 lijewski Exp $
+// $Id: MacBndry.cpp,v 1.6 1998-03-26 06:40:56 almgren Exp $
 //
 
 #include <LO_BCTYPES.H>
 #include <MacBndry.H>
 
-void MacBndry::setBndryConds(const BCRec& phys_bc,
-                             const Geometry& geom, IntVect& ratio)
+void MacBndry::setBndryConds(const BCRec& phys_bc, IntVect& ratio)
 {
 
 //  NOTE: ALL BCLOC VALUES ARE NOW DEFINED AS A LENGTH IN PHYSICAL DIMENSIONS

@@ -1,14 +1,13 @@
 #if (BL_SPACEDIM==2) && defined (USE_TENSOR)
 
 //
-// $Id: ViscBndry2D.cpp,v 1.6 1997-12-11 23:30:26 lijewski Exp $
+// $Id: ViscBndry2D.cpp,v 1.7 1998-03-26 06:40:59 almgren Exp $
 //
 
 #include <LO_BCTYPES.H>
 #include <ViscBndry2D.H>
 
-void ViscBndry2D::setBndryConds(const Array<BCRec>& bcarray,
-                                const Geometry& geom, int ratio)
+void ViscBndry2D::setBndryConds(const Array<BCRec>& bcarray, int ratio)
 {
     int ncomp = bcond[0][0].length();
     assert(ncomp==2*2); // u and v, plus derivs of same
@@ -39,7 +38,7 @@ void ViscBndry2D::setBndryConds(const Array<BCRec>& bcarray,
             // bctag is bc type (with array info on orientation,grid,comp)gone
             BoundCond  &bctag = bcond[face][i][icomp];
 
-            if (domain[face] == grd[face]) {
+            if (domain[face] == grd[face] && !geom.isPeriodic(dir)) {
               // All physical bc values are located on face
               if (p_bc == EXT_DIR ) {
                 bctag = LO_DIRICHLET;
@@ -69,7 +68,7 @@ void
 ViscBndry2D::setHomogValues(const Array<BCRec>& bc, int ratio)
 {
 
-    setBndryConds(bc, geom, ratio);
+    setBndryConds(bc, ratio);
 /*
     int ngrd = grids.length();
     for (int grd = 0; grd < ngrd; grd++) {

@@ -2,7 +2,7 @@
 #define _VISCBNDRY2D_H_
 
 //
-// $Id: ViscBndry2D.H,v 1.3 1997-09-26 16:57:07 lijewski Exp $
+// $Id: ViscBndry2D.H,v 1.4 1998-03-26 06:41:01 almgren Exp $
 //
 
 #include <MCInterpBndryData.H>
@@ -17,13 +17,11 @@ public:
         MCInterpBndryData(_grids,4,geom) {};
 
 #if 0
-    virtual void setBndryConds(const Array<BCRec>& phys_bc,
-                               const Geometry& geom, IntVect& ratio);
+    virtual void setBndryConds(const Array<BCRec>& phys_bc, IntVect& ratio);
 
     void setHomogValues(const Array<BCRec>& phys_bc, IntVect& ratio);
 #else
-    virtual void setBndryConds(const Array<BCRec>& phys_bc,
-                               const Geometry& geom, int ratio);
+    virtual void setBndryConds(const Array<BCRec>& phys_bc, int ratio);
 
     void setHomogValues(const Array<BCRec>& phys_bc, int ratio);
 #endif
