@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.3 1998-12-02 19:15:20 lijewski Exp $
+# $Id: GNUmakefile,v 1.4 1999-01-06 21:28:15 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -7,13 +7,12 @@ TOP = $(PBOXLIB_HOME)
 #
 # Variables for the user to set ...
 #
-PRECISION     = DOUBLE
-DEBUG	      = TRUE
-PROFILE       = FALSE
-DIM	      = 3
-COMP          = KCC
-USE_MPI       = TRUE
-USE_ARRAYVIEW = FALSE
+PRECISION = DOUBLE
+DEBUG	  = TRUE
+PROFILE   = FALSE
+DIM	  = 3
+COMP      = KCC
+USE_MPI   = TRUE
 #
 # Use hgproj-serial -- only for testing.
 #
