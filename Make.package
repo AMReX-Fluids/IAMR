@@ -98,7 +98,7 @@ C$(MGLIB_BASE)_sources += ABecLaplacian.cpp BndryData.cpp CGSolver.cpp \
 F$(MGLIB_BASE)_headers += ABec_F.H CG_F.H INTERPBNDRYDATA_F.H \
                           LO_F.H LP_F.H MG_F.H
 
-F$(MGLIB_BASE)_sources += ABec_$(DIM)D.F CG_$(DIM)D.F \
+F$(MGLIB_BASE)_sources += ABec_$(DIM)D.F ABec_UTIL.F CG_$(DIM)D.F \
                           INTERPBNDRYDATA_$(DIM)D.F LO_$(DIM)D.F \
                           LO_UTIL.F LP_$(DIM)D.F MG_$(DIM)D.F
 #
