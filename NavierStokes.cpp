@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.50 1998-05-26 16:38:42 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.51 1998-05-27 15:14:48 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3915,8 +3915,8 @@ NavierStokes::avgDown (const BoxArray& cgrids,
                 assert(!(fbidli == fillBoxIdList.end()));
                 assert(!(fbidlivol == fillBoxIdListVol.end()));
 
-                FillBoxId fbidFine    = *fbidli++;
-                FillBoxId fbidFineVol = *fbidlivol++;
+                const FillBoxId& fbidFine    = *fbidli++;
+                const FillBoxId& fbidFineVol = *fbidlivol++;
 
                 fine_fab.resize(fbidFine.box(), num_comp);
                 fine_vol.resize(fbidFineVol.box(), 1);
@@ -4486,7 +4486,7 @@ NavierStokes::avgDown ()
                 //
                 // Inject fine down to coarse.
                 //
-                FillBoxId fbidFine = *fbidli++;
+                const FillBoxId& fbidFine = *fbidli++;
 
                 fine_fab.resize(fbidFine.box(), P_fine.nComp());
                 mfcd.FillFab(mfidP_fine, fbidFine, fine_fab);
