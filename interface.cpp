@@ -2,9 +2,6 @@
 #include <interface.H>
 #include <boundary.H>
 
-const char NL = '\n';
-const char SP = ' ';
-
 const level_interface null_level_interface;
 
 level_interface::~level_interface()
@@ -447,42 +444,42 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 #if (BL_SPACEDIM == 3)
   cout << nbx[2] << " faces, ";
 #endif
-  cout << nbx[1] << " edges, " << nbx[0] << " corners" << NL;
+  cout << nbx[1] << " edges, " << nbx[0] << " corners" << '\n';
 
-  cout << "Exterior grids are:" << NL;
+  cout << "Exterior grids are:" << '\n';
   for (igrid = 0; igrid < em.length(); igrid++) {
-    cout << em[igrid] << SP << grid_ref[igrid] << NL;
+    cout << em[igrid] << ' ' << grid_ref[igrid] << '\n';
   }
-  cout << "Part-fine grids are:" << NL;
+  cout << "Part-fine grids are:" << '\n';
   for (igrid = 0; igrid < im.length(); igrid++) {
-    cout << pf[igrid] << NL;
+    cout << pf[igrid] << '\n';
   }
-  cout << "box    geo   flag   aux   grids" << NL;
-  cout << "Faces are:" << NL;
+  cout << "box    geo   flag   aux   grids" << '\n';
+  cout << "Faces are:" << '\n';
   for (iface = 0; iface < nbx[FACEDIM]; iface++) {
-    cout << bx[FACEDIM][iface] << SP << ge[FACEDIM][iface] << SP
-	 << flg[FACEDIM][iface] << SP << ax[FACEDIM][iface];
+    cout << bx[FACEDIM][iface] << ' ' << ge[FACEDIM][iface] << ' '
+	 << flg[FACEDIM][iface] << ' ' << ax[FACEDIM][iface];
     for (i = 0; i < N_FACE_GRIDS; i++)
-      cout << SP << fgr[iface][i];
-    cout << NL;
+      cout << ' ' << fgr[iface][i];
+    cout << '\n';
   }
 #if (BL_SPACEDIM == 3)
-  cout << "Edges are:" << NL;
+  cout << "Edges are:" << '\n';
   for (iedge = 0; iedge < nbx[1]; iedge++) {
-    cout << bx[1][iedge] << SP << ge[1][iedge] << SP
-	 << flg[1][iedge] << SP << ax[1][iedge];
+    cout << bx[1][iedge] << ' ' << ge[1][iedge] << ' '
+	 << flg[1][iedge] << ' ' << ax[1][iedge];
     for (i = 0; i < N_EDGE_GRIDS; i++)
-      cout << SP << egr[iedge][i];
-    cout << NL;
+      cout << ' ' << egr[iedge][i];
+    cout << '\n';
   }
 #endif
-  cout << "Corners are:" << NL;
+  cout << "Corners are:" << '\n';
   for (icor = 0; icor < nbx[0]; icor++) {
-    cout << bx[0][icor] << SP << ge[0][icor] << SP
-	 << flg[0][icor] << SP << ax[0][icor];
+    cout << bx[0][icor] << ' ' << ge[0][icor] << ' '
+	 << flg[0][icor] << ' ' << ax[0][icor];
     for (i = 0; i < N_CORNER_GRIDS; i++)
-      cout << SP << cgr[icor][i];
-    cout << NL;
+      cout << ' ' << cgr[icor][i];
+    cout << '\n';
   }
 */
 }
