@@ -137,3 +137,18 @@ RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update
                    fabset_copyfrom fabset_plusfrom reflux fabarray_copy
                    collect_data mpi_wait mpi_barrier mpi_reduce 
                    mpi_broadcast mpi_gather mpi_recv mpi_send crse_init_finish
+#
+# StationData.vars     -- Names of StateData components to output
+# StationData.coord    -- BL_SPACEDIM array of Reals
+# StationData.coord    -- the next one
+# StationData.coord    -- ditto ...
+#
+# e.g.
+#
+#StationData.vars  = density xmom ymom zmom
+#StationData.coord = 0.1 0.1 0.1
+#StationData.coord = 0.11 0.21 0.3
+#StationData.coord = 0.5 0.5 0.5
+#StationData.coord = 1.23 1.23 1.23
+#StationData.coord = 0.23 1.53 2.83
+#StationData.coord = 2.34 2.34 2.34
