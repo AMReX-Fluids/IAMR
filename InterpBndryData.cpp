@@ -167,7 +167,7 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
         const int* cblo = crse_bx.loVect();
         const int* cbhi = crse_bx.hiVect();
         int mxlen = crse_bx.longside() + 2;
-        if (pow(mxlen,(float)BL_SPACEDIM-1) > tmplen) {
+        if (pow(float(mxlen), float(BL_SPACEDIM-1)) > tmplen) {
             delete derives;
             tmplen = mxlen;
 #if (BL_SPACEDIM > 2)
