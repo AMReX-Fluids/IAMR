@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.92 1999-08-22 21:21:44 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.93 1999-09-10 20:28:35 sstanley Exp $
 //
 
 //
@@ -1725,9 +1725,9 @@ Diffusion::getTensorOp (Real                   a,
 
 ABecLaplacian*
 Diffusion::getViscOp (int                    comp,
-                      Real                   a,
-                      Real                   b,
-                      Real                   time,
+                      const Real             a,
+                      const Real             b,
+                      const Real             time,
                       ViscBndry&             visc_bndry,
                       const MultiFab*        rho_half,
                       int                    rho_flag, 
@@ -1850,8 +1850,8 @@ Diffusion::getViscOp (int                    comp,
 
 ABecLaplacian*
 Diffusion::getViscOp (int                    comp,
-                      Real                   a,
-                      Real                   b,
+                      const Real             a,
+                      const Real             b,
                       const MultiFab*        rho_half,
                       int                    rho_flag,
                       Real*                  rhsscale,

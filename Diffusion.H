@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.14 1999-07-27 17:33:09 marc Exp $
+// $Id: Diffusion.H,v 1.15 1999-09-10 20:28:34 sstanley Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -245,43 +245,51 @@ public:
     inline int maxOrder() const;
     inline int tensorMaxOrder() const;
 
+protected:
+    //
+    // Data Required by Derived Classes
+    //
+          Amr*      parent;
+          AmrLevel* caller;
+    const BoxArray& grids;
+    const int       level;
+    //
+    // Volume and area fractions.
+    //
+    const MultiFab& volume;
+    const MultiFab* area;
+    //
+    // Static data.
+    //
+    static bool        use_mg_precond_flag;
+    static int         use_cg_solve;
+    static int         scale_abec;
+    static Array<int>  is_diffusive;    // Does variable diffuse?
+    static Array<Real> visc_coef;       // Const coef viscosity terms
+    static int         verbose;
+    static Real        visc_tol;
+    static Real        visc_abs_tol;
+
 private:
     //
     // The data.
     //
-    Amr*            parent;
-    AmrLevel*       caller;
     Diffusion*      coarser;
     Diffusion*      finer;
-    const BoxArray& grids;
-    int             level;
     int             NUM_STATE;
     IntVect         crse_ratio;
     FluxRegister*   viscflux_reg;
-    //
-    // Volume and area fractions.
-    //
-    MultiFab& volume;
-    MultiFab* area;
     //
     // Static data.
     //
     static int         first;
     static int         do_reflux;
-    static int         use_cg_solve;
     static int         use_tensor_cg_solve;
     static int         max_order;
     static int         tensor_max_order;
-    static bool        use_mg_precond_flag;
-    static int         scale_abec;
     static int         est_visc_mag;
     static int         Lphi_in_abs_tol;
     static int         Rhs_in_abs_tol;
-    static Array<int>  is_diffusive;    // Does variable diffuse?
-    static Array<Real> visc_coef;       // Const coef viscosity terms
-    static Real        visc_tol;
-    static Real        visc_abs_tol;
-    static int         verbose;
     static Array<Real> typical_vals;
 };
 
