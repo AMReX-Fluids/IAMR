@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.24 1998-06-20 03:17:54 lijewski Exp $
+// $Id: main.cpp,v 1.25 1998-07-15 22:41:26 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -35,47 +35,65 @@ using std::set_new_handler;
 #endif
 
 #ifndef NDEBUG
-extern "C" void PrintBoxArray (const BoxArray& ba);
 
-void
-PrintBoxArray (const BoxArray& ba)
+extern "C"
 {
-    cout << ba << endl;
+    void PrintBoxArray (const BoxArray& ba);
+    void PrintBoxDomain (const BoxDomain& bd);
+    void PrintTagBox (const TagBox& tb);
+    void PrintTagBoxArray (const TagBoxArray& tba);
+    void TagBoxCount (const TagBox& tb);
+    void TagBoxArrayCount (const TagBoxArray& tba);
 }
 
-extern "C" void PrintBoxDomain (const BoxDomain& bd);
+void PrintBoxArray (const BoxArray& ba) { cout << ba << endl; }
 
-void
-PrintBoxDomain (const BoxDomain& bd)
-{
-    cout << bd << endl;
-}
-
-extern "C" void PrintTagBox (const TagBox& tb);
-
-extern "C" void PrintTagBoxArray (const TagBoxArray& tba);
+void PrintBoxDomain (const BoxDomain& bd) { cout << bd << endl; }
 
 void
 PrintTagBox (const TagBox& tb)
 {
     const Box& bx = tb.box();
 
+    long count = 0;
+
     cout << "TagBox: box = " << bx << ":\n";
 
     for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
     {
-        if (tb(p) == TagBox::SET)
+        if (!(tb(p) == TagBox::CLEAR))
         {
+            count++;
             cout << p << ' ';
         }
     }
 
-    cout << endl;
+    cout << "Total tagged cells = " << count << endl;
+}
+
+void
+TagBoxCount (const TagBox& tb)
+{
+    const Box& bx = tb.box();
+
+    long count = 0;
+
+    for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
+    {
+        if (!(tb(p) == TagBox::CLEAR))
+        {
+            count++;
+        }
+    }
+
+    cout << "Total tagged cells = " << count << endl;
 }
 
 void
 PrintTagBoxArray (const TagBoxArray& tba)
 {
+    long count = 0;
+
     cout << "TagBoxArray:\n";
 
     for (int i = 0; i < tba.length(); i++)
@@ -86,14 +104,38 @@ PrintTagBoxArray (const TagBoxArray& tba)
 
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (tba[i](p) == TagBox::SET)
+            if (!(tba[i](p) == TagBox::CLEAR))
             {
+                count++;
                 cout << p << ' ';
             }
         }
 
-        cout << endl;
+        cout << '\n';
     }
+
+    cout << "Total tagged cells = " << count << endl;
+}
+
+void
+TagBoxArrayCount (const TagBoxArray& tba)
+{
+    long count = 0;
+
+    for (int i = 0; i < tba.length(); i++)
+    {
+        const Box& bx = tba[i].box();
+
+        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
+        {
+            if (!(tba[i](p) == TagBox::CLEAR))
+            {
+                count++;
+            }
+        }
+    }
+
+    cout << "Total tagged cells = " << count << endl;
 }
 #endif /*NDEBUG*/
 
