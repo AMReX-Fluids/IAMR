@@ -1,5 +1,5 @@
 #ifndef _MACOPERATOR_F_H_
-#define _MACOPERATOR_F_H_  "$Id: MACOPERATOR_F.H,v 1.3 1997-10-08 20:15:35 car Exp $"
+#define _MACOPERATOR_F_H_  "$Id: MACOPERATOR_F.H,v 1.4 1997-12-11 23:30:18 lijewski Exp $"
 
 #ifdef BL_LANG_FORT
 #    define FORT_MACCOEF       maccoef
@@ -27,28 +27,28 @@ extern "C"
 {
 #if (BL_SPACEDIM == 2)
     void FORT_MACCOEF (Real* cx, ARLIM_P(cxlo), ARLIM_P(cxhi),
-		       Real* cy, ARLIM_P(cylo), ARLIM_P(cyhi),
-		       const Real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
-		       const Real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
-		       const Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
-		       const int* lo, const int* hi,
-		       const Real* dx);
+                       Real* cy, ARLIM_P(cylo), ARLIM_P(cyhi),
+                       const Real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
+                       const Real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
+                       const Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
+                       const int* lo, const int* hi,
+                       const Real* dx);
 
     void FORT_MACRHS  (const Real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
-		       const Real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
-		       const Real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
-		       const Real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
-		       const Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-		       Real* rhs, ARLIM_P(rlo), ARLIM_P(rhi),
-		       const int* lo, const int* hi,
-		       const Real* scale);
+                       const Real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
+                       const Real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
+                       const Real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
+                       const Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+                       Real* rhs, ARLIM_P(rlo), ARLIM_P(rhi),
+                       const int* lo, const int* hi,
+                       const Real* scale);
 
     void FORT_MACUPDATE (const int *init,
                          Real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
-			 Real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
-			 const Real* phi, ARLIM_P(p_lo), ARLIM_P(p_hi),
-			 const Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
-			 const Real* dx, const Real* scale);
+                         Real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
+                         const Real* phi, ARLIM_P(p_lo), ARLIM_P(p_hi),
+                         const Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
+                         const Real* dx, const Real* scale);
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -84,9 +84,9 @@ extern "C"
 #endif
 
     void FORT_MACSYNCRHS (Real* rhs, ARLIM_P(rlo), ARLIM_P(rhi),
-			  const int* lo, const int* hi,
-			  const Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-			  const Real* dx, const Real* rhs_scale);
+                          const int* lo, const int* hi,
+                          const Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+                          const Real* dx, const Real* rhs_scale);
 }
 #endif
 

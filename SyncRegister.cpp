@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.13 1997-11-18 00:06:30 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.14 1997-12-11 23:30:25 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -34,7 +34,7 @@ SyncRegister::SyncRegister()
 }
 
 SyncRegister::SyncRegister(const BoxArray& fine_boxes,
-			   IntVect ref_ratio, int fine_lev)
+                           IntVect ref_ratio, int fine_lev)
 {
     ratio = IntVect::TheUnitVector(); ratio.scale(-1);
     define(fine_boxes,ref_ratio,fine_lev);
@@ -42,9 +42,9 @@ SyncRegister::SyncRegister(const BoxArray& fine_boxes,
 
 void
 SyncRegister::define(const BoxArray& fine_boxes,
-		     IntVect ref_ratio, int fine_lev)
+                     IntVect ref_ratio, int fine_lev)
 {
-	TRACER("SyncRegister::define");
+        TRACER("SyncRegister::define");
     for (int dir=0; dir < BL_SPACEDIM; dir++) assert(ratio[dir] == -1);
     assert(fine_boxes.isDisjoint());
     assert(!grids.ready());
@@ -55,7 +55,7 @@ SyncRegister::define(const BoxArray& fine_boxes,
     grids.coarsen(ratio);
     int ngrds = grids.length();
     for (OrientationIter face; face; ++face) {
-	bndry[face()].resize(ngrds);
+        bndry[face()].resize(ngrds);
         bndry[face()].DefineGrids(grids);
         bndry[face()].DefineDistributionMap(grids);
     }
@@ -67,52 +67,52 @@ SyncRegister::define(const BoxArray& fine_boxes,
 
 /*  original code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     for (int k = 0; k < ngrds; k++) {
-	Box ndbox(surroundingNodes(grids[k]));
-	for (int dir = 0; dir < BL_SPACEDIM; dir++) {
-  	    const int* blo = ndbox.loVect();
-	    Box nd_lo(ndbox);
-	    nd_lo.setRange(dir,blo[dir],1);
-	    FabSet &lo = bndry[Orientation(dir,Orientation::low)];
-	    lo.setFab(k,new FArrayBox(nd_lo,1));
+        Box ndbox(surroundingNodes(grids[k]));
+        for (int dir = 0; dir < BL_SPACEDIM; dir++) {
+              const int* blo = ndbox.loVect();
+            Box nd_lo(ndbox);
+            nd_lo.setRange(dir,blo[dir],1);
+            FabSet &lo = bndry[Orientation(dir,Orientation::low)];
+            lo.setFab(k,new FArrayBox(nd_lo,1));
 
-	    const int* bhi = ndbox.hiVect();
-	    Box nd_hi(ndbox);
-	    nd_hi.setRange(dir,bhi[dir],1);
-	    FabSet &hi = bndry[Orientation(dir,Orientation::high)];
-	    hi.setFab(k,new FArrayBox(nd_hi,1));
+            const int* bhi = ndbox.hiVect();
+            Box nd_hi(ndbox);
+            nd_hi.setRange(dir,bhi[dir],1);
+            FabSet &hi = bndry[Orientation(dir,Orientation::high)];
+            hi.setFab(k,new FArrayBox(nd_hi,1));
 
-	    assert(ndbox.shortside() > 0);
-	}
+            assert(ndbox.shortside() > 0);
+        }
     }
 */
     int myproc = ParallelDescriptor::MyProc();
     for (int k = 0; k < ngrds; k++) {
-	Box ndbox(surroundingNodes(grids[k]));
-	for (int dir = 0; dir < BL_SPACEDIM; dir++) {
-  	    const int* blo = ndbox.loVect();
-	    Box nd_lo(ndbox);
-	    nd_lo.setRange(dir,blo[dir],1);
-	    FabSet &lo = bndry[Orientation(dir,Orientation::low)];
-	    lo.setBox(k, nd_lo);
-	    if(lo.DistributionMap()[k] == myproc) {  // local
-	      assert( ! lo.defined(k) );
-	      lo.clear(k);
-	      lo.setFab(k,new FArrayBox(nd_lo,1));
-	    }
+        Box ndbox(surroundingNodes(grids[k]));
+        for (int dir = 0; dir < BL_SPACEDIM; dir++) {
+              const int* blo = ndbox.loVect();
+            Box nd_lo(ndbox);
+            nd_lo.setRange(dir,blo[dir],1);
+            FabSet &lo = bndry[Orientation(dir,Orientation::low)];
+            lo.setBox(k, nd_lo);
+            if(lo.DistributionMap()[k] == myproc) {  // local
+              assert( ! lo.defined(k) );
+              lo.clear(k);
+              lo.setFab(k,new FArrayBox(nd_lo,1));
+            }
 
-	    const int* bhi = ndbox.hiVect();
-	    Box nd_hi(ndbox);
-	    nd_hi.setRange(dir,bhi[dir],1);
-	    FabSet &hi = bndry[Orientation(dir,Orientation::high)];
-	    hi.setBox(k, nd_hi);
-	    if(hi.DistributionMap()[k] == myproc) {  // local
-	      assert( ! hi.defined(k) );
-	      hi.clear(k);
-	      hi.setFab(k,new FArrayBox(nd_hi,1));
-	    }
+            const int* bhi = ndbox.hiVect();
+            Box nd_hi(ndbox);
+            nd_hi.setRange(dir,bhi[dir],1);
+            FabSet &hi = bndry[Orientation(dir,Orientation::high)];
+            hi.setBox(k, nd_hi);
+            if(hi.DistributionMap()[k] == myproc) {  // local
+              assert( ! hi.defined(k) );
+              hi.clear(k);
+              hi.setFab(k,new FArrayBox(nd_hi,1));
+            }
 
-	    assert(ndbox.shortside() > 0);
-	}
+            assert(ndbox.shortside() > 0);
+        }
     }
 }
 
@@ -135,9 +135,9 @@ SyncRegister::sum()
       // copy registers onto FAB
 /*  original code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     for (k = 0; k < ngrds; k++) {
-	for (OrientationIter face; face; ++face) {
-	    bfab.copy(bndry[face()][k]);
-	}
+        for (OrientationIter face; face; ++face) {
+            bfab.copy(bndry[face()][k]);
+        }
     }
     return bfab.sum(0,1);
 */
@@ -157,13 +157,13 @@ SyncRegister::increment(const FArrayBox& src)
     //int ngrds = grids.length();
 
     //for (int k = 0; k < ngrds; k++) {
-	//for (OrientationIter face; face; ++face) {
-	    //bndry[face()][k].plus(src);
-	//}
+        //for (OrientationIter face; face; ++face) {
+            //bndry[face()][k].plus(src);
+        //}
     //}
     for(OrientationIter face; face; ++face) {
       for(FabSetIterator fsi(bndry[face()]); fsi.isValid(); ++fsi) {
-	fsi().plus(src);
+        fsi().plus(src);
       }
     }
 }
@@ -194,18 +194,18 @@ if(ParallelDescriptor::NProcs() > 1) {
     if (geom.isAnyPeriodic()) {
 
       for (k = 0; k < nrhs; k++) {
-	for (j = 0; j < nreg; j++) {
-	    for (OrientationIter face; face; ++face) {
+        for (j = 0; j < nreg; j++) {
+            for (OrientationIter face; face; ++face) {
                   Box regbox(bndry[face()][j].box());
                   geom.periodicShift(domain,regbox,pshifts);
                   for (int iiv = 0; iiv < pshifts.length(); iiv++) {
                     IntVect iv = pshifts[iiv];
                     bndry[face()][j].shift(iv);
-		    rhs[k].copy(bndry[face()][j]);
+                    rhs[k].copy(bndry[face()][j]);
                     bndry[face()][j].shift(-iv);
                   }
-	    }
-	}
+            }
+        }
       }
     }
  
@@ -236,19 +236,19 @@ if(ParallelDescriptor::NProcs() > 1) {
       // by two (only for ref-wall and inflow) and set to zero
       // at outflow
       if (!geom.isPeriodic(dir)) {
-	for (k = 0; k < nrhs; k++) {
-	    Box blo(rhs_boxes[k]);
-	    Box bhi(blo);
-	    blo &= domlo;
-	    bhi &= domhi;
-	    if (blo.ok()) rhs[k].mult(2.0,blo,0,1);
-	    if (bhi.ok()) rhs[k].mult(2.0,bhi,0,1);
+        for (k = 0; k < nrhs; k++) {
+            Box blo(rhs_boxes[k]);
+            Box bhi(blo);
+            blo &= domlo;
+            bhi &= domhi;
+            if (blo.ok()) rhs[k].mult(2.0,blo,0,1);
+            if (bhi.ok()) rhs[k].mult(2.0,bhi,0,1);
 
             if (blo.ok() && phys_lo[dir] == Outflow) 
               rhs[k].setVal(0.0,blo,0,1);
             if (bhi.ok() && phys_hi[dir] == Outflow) 
               rhs[k].setVal(0.0,bhi,0,1);
-	}
+        }
       } 
     }
 }
@@ -256,7 +256,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 void
 SyncRegister::CrseDVInit(const MultiFab& U, 
                          const Geometry& geom, 
-			 int is_rz, int ** crse_bc, Real mult)
+                         int is_rz, int ** crse_bc, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CrseDVInit(...) not implemented in parallel.");
@@ -286,7 +286,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
         FArrayBox& ufab = (*U_local)[k];
         Box ubox(U_boxes[k]);
-	ufab.copy(U[k],ubox,0,ubox,0,BL_SPACEDIM);
+        ufab.copy(U[k],ubox,0,ubox,0,BL_SPACEDIM);
 
         int * bc = crse_bc[k];
         for (dir = 0; dir < BL_SPACEDIM; dir++) {
@@ -368,11 +368,11 @@ if(ParallelDescriptor::NProcs() > 1) {
 
         int * bc = crse_bc[k];
 
-	for (fine = 0; fine < nfine; fine++) {
-	    Box subbox(ubox);
-	    subbox &= grids[fine];
+        for (fine = 0; fine < nfine; fine++) {
+            Box subbox(ubox);
+            subbox &= grids[fine];
 
-	    if (subbox.ok()) {
+            if (subbox.ok()) {
 
              ufab.setVal(0.0,subbox,0,BL_SPACEDIM);
 
@@ -407,7 +407,7 @@ if(ParallelDescriptor::NProcs() > 1) {
              fine_shifted.shift(iv);
              fine_shifted &= ufab.box();
 
-	     if (fine_shifted.ok()) {
+             if (fine_shifted.ok()) {
 
                ufab.setVal(0.0,fine_shifted,0,BL_SPACEDIM);
 
@@ -428,7 +428,7 @@ if(ParallelDescriptor::NProcs() > 1) {
                   ufab.setVal(0.0,finesidehi,0,BL_SPACEDIM);
                 }
              }
-	   }
+           }
          }
         }
       }
@@ -442,15 +442,15 @@ if(ParallelDescriptor::NProcs() > 1) {
         const int* ulo = ufab.loVect();
         const int* uhi = ufab.hiVect();
 
-	Box ndbox(surroundingNodes(U_boxes[k]));
-	divu.resize(ndbox,1);
+        Box ndbox(surroundingNodes(U_boxes[k]));
+        divu.resize(ndbox,1);
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
 
-	FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
+        FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
                     divu.dataPtr(),ARLIM(ndlo),ARLIM(ndhi),
                     ndlo,ndhi,dx,&mult,&is_rz);
-	increment(divu);
+        increment(divu);
     }
 
     delete U_local;
@@ -460,7 +460,7 @@ void
 SyncRegister::FineDVAdd(const MultiFab& U, 
                         const Real* dx_fine, 
                         const Geometry& crse_geom, 
-			int is_rz, int ** fine_bc, Real mult)
+                        int is_rz, int ** fine_bc, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::FineDVAdd(...) not implemented in parallel.");
@@ -477,10 +477,10 @@ if(ParallelDescriptor::NProcs() > 1) {
     FArrayBox ufab;
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
     for (k = 0; k < ngrds; k++) {
-	Box ubox(grow(U_boxes[k],1));
-	ufab.resize(ubox,BL_SPACEDIM);
-	ufab.setVal(0.0);
-	ufab.copy(U[k],U_boxes[k],0,U_boxes[k],0,BL_SPACEDIM);
+        Box ubox(grow(U_boxes[k],1));
+        ufab.resize(ubox,BL_SPACEDIM);
+        ufab.setVal(0.0);
+        ufab.copy(U[k],U_boxes[k],0,U_boxes[k],0,BL_SPACEDIM);
         const int* ulo = ubox.loVect();
         const int* uhi = ubox.hiVect();
 
@@ -503,61 +503,61 @@ if(ParallelDescriptor::NProcs() > 1) {
           }
         }
 
-	  // now compute node centered surrounding box
-	Box ndbox(surroundingNodes(U_boxes[k]));
+          // now compute node centered surrounding box
+        Box ndbox(surroundingNodes(U_boxes[k]));
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
 
-	for (dir = 0; dir < BL_SPACEDIM; dir++) {
-	      // determine region of interest, and size of tmp fabs
-	    Box tboxlo(ndbox), tboxhi(ndbox);
-	    tboxlo.setRange(dir,ndlo[dir],1);
-	    tboxhi.setRange(dir,ndhi[dir],1);
-	    Box cboxlo(tboxlo), cboxhi(tboxhi);
-	    Box reglo(tboxlo), reghi(tboxhi);
-	    for (idir = 0; idir < BL_SPACEDIM; idir++) {
-		if (idir < dir) {
-		      // previous direction have included these
-		      // points in the stencil already, shrink
-		    reglo.grow(idir,-1);
-		    reghi.grow(idir,-1);
-		}
-		if (idir != dir) {
-		      // need additional room for stencil calculation
-		    tboxlo.grow(idir,ratio[idir]-1);
-		    tboxhi.grow(idir,ratio[idir]-1);
-		}
-	    }
-	      // define fine grid tmp fabs
+        for (dir = 0; dir < BL_SPACEDIM; dir++) {
+              // determine region of interest, and size of tmp fabs
+            Box tboxlo(ndbox), tboxhi(ndbox);
+            tboxlo.setRange(dir,ndlo[dir],1);
+            tboxhi.setRange(dir,ndhi[dir],1);
+            Box cboxlo(tboxlo), cboxhi(tboxhi);
+            Box reglo(tboxlo), reghi(tboxhi);
+            for (idir = 0; idir < BL_SPACEDIM; idir++) {
+                if (idir < dir) {
+                      // previous direction have included these
+                      // points in the stencil already, shrink
+                    reglo.grow(idir,-1);
+                    reghi.grow(idir,-1);
+                }
+                if (idir != dir) {
+                      // need additional room for stencil calculation
+                    tboxlo.grow(idir,ratio[idir]-1);
+                    tboxhi.grow(idir,ratio[idir]-1);
+                }
+            }
+              // define fine grid tmp fabs
             const int* flo_lo = tboxlo.loVect();
             const int* flo_hi = tboxlo.hiVect();
             const int* fhi_lo = tboxhi.loVect();
             const int* fhi_hi = tboxhi.hiVect();
-	    ffablo.resize(tboxlo,1);
-	    ffabhi.resize(tboxhi,1);
-	    ffablo.setVal(0.0);
-	    ffabhi.setVal(0.0);
+            ffablo.resize(tboxlo,1);
+            ffabhi.resize(tboxhi,1);
+            ffablo.setVal(0.0);
+            ffabhi.setVal(0.0);
 
-	      // define coarsened tmp fabs
-	    cboxlo.coarsen(ratio);
-	    cboxhi.coarsen(ratio);
-	    cfablo.resize(cboxlo,1);
-	    cfabhi.resize(cboxhi,1);
-	    cfablo.setVal(0.0);
-	    cfabhi.setVal(0.0);
+              // define coarsened tmp fabs
+            cboxlo.coarsen(ratio);
+            cboxhi.coarsen(ratio);
+            cfablo.resize(cboxlo,1);
+            cfabhi.resize(cboxhi,1);
+            cfablo.setVal(0.0);
+            cfabhi.setVal(0.0);
 
-	      // compute divu on fine grid edges in regions defined
+              // compute divu on fine grid edges in regions defined
               // by reglo and reghi.  Fabs are set to zero outside region
-	    FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
-			ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
-			reglo.loVect(),reglo.hiVect(),
+            FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
+                        ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
+                        reglo.loVect(),reglo.hiVect(),
                         dx_fine,&mult,&is_rz);
-	    FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
-			ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
-			reghi.loVect(),reghi.hiVect(),
+            FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
+                        ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
+                        reghi.loVect(),reghi.hiVect(),
                         dx_fine,&mult,&is_rz);
 
-	      // coarsen edge value
+              // coarsen edge value
             const int* clo = cboxlo.loVect();
             const int* chi = cboxlo.hiVect();
             FORT_SRCRSEREG(ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
@@ -569,9 +569,9 @@ if(ParallelDescriptor::NProcs() > 1) {
                            cfabhi.dataPtr(),ARLIM(clo),ARLIM(chi),
                            clo,chi,&dir,ratio.getVect());
 
-	      // intersect and add to registers
-	    increment(cfablo);
-	    increment(cfabhi);
+              // intersect and add to registers
+            increment(cfablo);
+            increment(cfabhi);
 
             int iiv;
             Array<IntVect> pshifts(27);
@@ -591,15 +591,15 @@ if(ParallelDescriptor::NProcs() > 1) {
                  increment(cfabhi);
                  cfabhi.shift(-iv);
               }
-	   }
+           }
 
-	}
+        }
     }
 }
 
 void
 SyncRegister::CrseDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
-			  int is_rz, int ** crse_bc, 
+                          int is_rz, int ** crse_bc, 
                           int lowfix, int hifix, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
@@ -618,10 +618,10 @@ if(ParallelDescriptor::NProcs() > 1) {
 
     FArrayBox dsdtfab, divu;
     for (k = 0; k < ncrse; k++) {
-	Box dsdtbox(grow(dsdt_boxes[k],1));
-	dsdtfab.resize(dsdtbox,1);
-	dsdtfab.setVal(0.0);
-	dsdtfab.copy(dsdt[k],dsdt_boxes[k],0,dsdt_boxes[k],0,1);
+        Box dsdtbox(grow(dsdt_boxes[k],1));
+        dsdtfab.resize(dsdtbox,1);
+        dsdtfab.setVal(0.0);
+        dsdtfab.copy(dsdt[k],dsdt_boxes[k],0,dsdt_boxes[k],0,1);
 
         int * bc = crse_bc[k];
 
@@ -649,10 +649,10 @@ if(ParallelDescriptor::NProcs() > 1) {
         }
 #endif
 
-	for (fine = 0; fine < nfine; fine++) {
-	    Box subbox(dsdtbox);
-	    subbox &= grids[fine];
-	    if (subbox.ok()) dsdtfab.setVal(0.0,subbox,0,1);
+        for (fine = 0; fine < nfine; fine++) {
+            Box subbox(dsdtbox);
+            subbox &= grids[fine];
+            if (subbox.ok()) dsdtfab.setVal(0.0,subbox,0,1);
 
             if (subbox.ok()) {
             for (dir = 0; dir < BL_SPACEDIM; dir++) {
@@ -676,11 +676,11 @@ if(ParallelDescriptor::NProcs() > 1) {
             }
             }
 
-	}
+        }
 
-	  // average dsdt to nodes
-	Box ndbox(surroundingNodes(dsdt_boxes[k]));
-	divu.resize(ndbox,1);
+          // average dsdt to nodes
+        Box ndbox(surroundingNodes(dsdt_boxes[k]));
+        divu.resize(ndbox,1);
 
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
@@ -705,7 +705,7 @@ if(ParallelDescriptor::NProcs() > 1) {
         Real hx = dx[0];
         int extrap_edges = 0;
         int extrap_corners = 0;
-	FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
+        FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
                    dsdtfab.dataPtr(),
                    rcen.dataPtr(), 
                    ARLIM(ndlo), ARLIM(ndhi), divu.dataPtr(), 
@@ -717,13 +717,13 @@ if(ParallelDescriptor::NProcs() > 1) {
 #endif
         divu.negate();
         divu.mult(mult);
-	increment(divu);
+        increment(divu);
     }
 }
 
 void
 SyncRegister::FineDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
-			  int is_rz, int ** fine_bc, 
+                          int is_rz, int ** fine_bc, 
                           int lowfix, int hifix, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
@@ -742,10 +742,10 @@ if(ParallelDescriptor::NProcs() > 1) {
     FArrayBox dsdtfab;
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
     for (k = 0; k < ngrds; k++) {
-	Box dsdtbox(grow(dsdt_boxes[k],1));
-	dsdtfab.resize(dsdtbox,1);
-	dsdtfab.setVal(0.0);
-	dsdtfab.copy(dsdt[k],dsdt_boxes[k],0,dsdt_boxes[k],0,1);
+        Box dsdtbox(grow(dsdt_boxes[k],1));
+        dsdtfab.resize(dsdtbox,1);
+        dsdtfab.setVal(0.0);
+        dsdtfab.copy(dsdt[k],dsdt_boxes[k],0,dsdt_boxes[k],0,1);
         const int* dsdtlo = dsdtbox.loVect();
         const int* dsdthi = dsdtbox.hiVect();
 
@@ -786,50 +786,50 @@ if(ParallelDescriptor::NProcs() > 1) {
         }
 #endif
 
-	  // now compute node centered surrounding box
-	Box ndbox(surroundingNodes(dsdt_boxes[k]));
+          // now compute node centered surrounding box
+        Box ndbox(surroundingNodes(dsdt_boxes[k]));
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
 
-	for (dir = 0; dir < BL_SPACEDIM; dir++) {
-	      // determine region of interest, and size of tmp fabs
-	    Box tboxlo(ndbox), tboxhi(ndbox);
-	    tboxlo.setRange(dir,ndlo[dir],1);
-	    tboxhi.setRange(dir,ndhi[dir],1);
-	    Box cboxlo(tboxlo), cboxhi(tboxhi);
-	    Box reglo(tboxlo), reghi(tboxhi);
-	    for (idir = 0; idir < BL_SPACEDIM; idir++) {
-		if (idir < dir) {
-		      // previous direction have included these
-		      // points in the stencil already, shrink
-		    reglo.grow(idir,-1);
-		    reghi.grow(idir,-1);
-		}
-		if (idir != dir) {
-		      // need additional room for stencil calculation
-		    tboxlo.grow(idir,ratio[idir]-1);
-		    tboxhi.grow(idir,ratio[idir]-1);
-		}
-	    }
-	      // define fine grid tmp fabs
+        for (dir = 0; dir < BL_SPACEDIM; dir++) {
+              // determine region of interest, and size of tmp fabs
+            Box tboxlo(ndbox), tboxhi(ndbox);
+            tboxlo.setRange(dir,ndlo[dir],1);
+            tboxhi.setRange(dir,ndhi[dir],1);
+            Box cboxlo(tboxlo), cboxhi(tboxhi);
+            Box reglo(tboxlo), reghi(tboxhi);
+            for (idir = 0; idir < BL_SPACEDIM; idir++) {
+                if (idir < dir) {
+                      // previous direction have included these
+                      // points in the stencil already, shrink
+                    reglo.grow(idir,-1);
+                    reghi.grow(idir,-1);
+                }
+                if (idir != dir) {
+                      // need additional room for stencil calculation
+                    tboxlo.grow(idir,ratio[idir]-1);
+                    tboxhi.grow(idir,ratio[idir]-1);
+                }
+            }
+              // define fine grid tmp fabs
             const int* flo_lo = tboxlo.loVect();
             const int* flo_hi = tboxlo.hiVect();
             const int* fhi_lo = tboxhi.loVect();
             const int* fhi_hi = tboxhi.hiVect();
-	    ffablo.resize(tboxlo,1);
-	    ffabhi.resize(tboxhi,1);
-	    ffablo.setVal(0.0);
-	    ffabhi.setVal(0.0);
+            ffablo.resize(tboxlo,1);
+            ffabhi.resize(tboxhi,1);
+            ffablo.setVal(0.0);
+            ffabhi.setVal(0.0);
 
-	      // define coarsened tmp fabs
-	    cboxlo.coarsen(ratio);
-	    cboxhi.coarsen(ratio);
-	    cfablo.resize(cboxlo,1);
-	    cfabhi.resize(cboxhi,1);
-	    cfablo.setVal(0.0);
-	    cfabhi.setVal(0.0);
+              // define coarsened tmp fabs
+            cboxlo.coarsen(ratio);
+            cboxhi.coarsen(ratio);
+            cfablo.resize(cboxlo,1);
+            cfabhi.resize(cboxhi,1);
+            cfablo.setVal(0.0);
+            cfabhi.setVal(0.0);
 
-	      // average dsdt to nodes on fine grid edges in regions defined
+              // average dsdt to nodes on fine grid edges in regions defined
               // by reglo and reghi.  Fabs are set to zero outside region
 
             const int* dsdtlo = dsdtbox.loVect();
@@ -856,7 +856,7 @@ if(ParallelDescriptor::NProcs() > 1) {
             Real hx = dx[0];
             int extrap_edges = 0;
             int extrap_corners = 0;
-	FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
+        FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
                    dsdtfab.dataPtr(),
                    rcen.dataPtr(), 
                    ARLIM(reglo.loVect()), ARLIM(reglo.hiVect()), 
@@ -878,7 +878,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
 #if (BL_SPACEDIM==2)
         int low_fix = 0;
-	FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
+        FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
                    dsdtfab.dataPtr(),
                    rcen.dataPtr(), 
                    ARLIM(reghi.loVect()), ARLIM(reghi.hiVect()), 
@@ -908,7 +908,7 @@ if(ParallelDescriptor::NProcs() > 1) {
    // intersect and add to registers
         increment(cfablo);
         increment(cfabhi);
-	}
+        }
     }
 }
 
@@ -938,10 +938,10 @@ if(ParallelDescriptor::NProcs() > 1) {
     FArrayBox ufab;
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
     for (k = 0; k < ngrds; k++) {
-	Box ubox(grow(U_boxes[k],1));
-	ufab.resize(ubox,BL_SPACEDIM);
-	ufab.setVal(0.0);
-	ufab.copy(U[k],U_boxes[k],0,U_boxes[k],0,BL_SPACEDIM);
+        Box ubox(grow(U_boxes[k],1));
+        ufab.resize(ubox,BL_SPACEDIM);
+        ufab.setVal(0.0);
+        ufab.copy(U[k],U_boxes[k],0,U_boxes[k],0,BL_SPACEDIM);
         const int* ulo = ubox.loVect();
         const int* uhi = ubox.hiVect();
 
@@ -964,49 +964,49 @@ if(ParallelDescriptor::NProcs() > 1) {
           }
         }
 
-	  // now compute node centered surrounding box
-	Box ndbox(surroundingNodes(U_boxes[k]));
+          // now compute node centered surrounding box
+        Box ndbox(surroundingNodes(U_boxes[k]));
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
 
-	for (dir = 0; dir < BL_SPACEDIM; dir++) {
-	      // determine region of interest, and size of tmp fabs
-	    Box tboxlo(ndbox), tboxhi(ndbox);
-	    tboxlo.setRange(dir,ndlo[dir],1);
-	    tboxhi.setRange(dir,ndhi[dir],1);
-	    Box cboxlo(tboxlo), cboxhi(tboxhi);
-	    Box reglo(tboxlo), reghi(tboxhi);
-	    for (idir = 0; idir < BL_SPACEDIM; idir++) {
-		if (idir < dir) {
-		      // previous direction have included these
-		      // points in the stencil already, shrink
-		    reglo.grow(idir,-1);
-		    reghi.grow(idir,-1);
-		}
-		if (idir != dir) {
-		      // need additional room for stencil calculation
-		    tboxlo.grow(idir,ratio[idir]-1);
-		    tboxhi.grow(idir,ratio[idir]-1);
-		}
-	    }
-	      // define fine grid tmp fabs
+        for (dir = 0; dir < BL_SPACEDIM; dir++) {
+              // determine region of interest, and size of tmp fabs
+            Box tboxlo(ndbox), tboxhi(ndbox);
+            tboxlo.setRange(dir,ndlo[dir],1);
+            tboxhi.setRange(dir,ndhi[dir],1);
+            Box cboxlo(tboxlo), cboxhi(tboxhi);
+            Box reglo(tboxlo), reghi(tboxhi);
+            for (idir = 0; idir < BL_SPACEDIM; idir++) {
+                if (idir < dir) {
+                      // previous direction have included these
+                      // points in the stencil already, shrink
+                    reglo.grow(idir,-1);
+                    reghi.grow(idir,-1);
+                }
+                if (idir != dir) {
+                      // need additional room for stencil calculation
+                    tboxlo.grow(idir,ratio[idir]-1);
+                    tboxhi.grow(idir,ratio[idir]-1);
+                }
+            }
+              // define fine grid tmp fabs
             const int* flo_lo = tboxlo.loVect();
             const int* flo_hi = tboxlo.hiVect();
             const int* fhi_lo = tboxhi.loVect();
             const int* fhi_hi = tboxhi.hiVect();
-	    ffablo.resize(tboxlo,1);
-	    ffabhi.resize(tboxhi,1);
-	    ffablo.setVal(0.0);
-	    ffabhi.setVal(0.0);
+            ffablo.resize(tboxlo,1);
+            ffabhi.resize(tboxhi,1);
+            ffablo.setVal(0.0);
+            ffabhi.setVal(0.0);
 
-	      // compute divu on fine grid edges in regions defined
+              // compute divu on fine grid edges in regions defined
               // by reglo and reghi.  Fabs are set to zero outside region
-	    FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
-			ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
-			reglo.loVect(),reglo.hiVect(),dx_fine,&mult,&is_rz);
-	    FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
-			ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
-			reghi.loVect(),reghi.hiVect(),dx_fine,&mult,&is_rz);
+            FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
+                        ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
+                        reglo.loVect(),reglo.hiVect(),dx_fine,&mult,&is_rz);
+            FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
+                        ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
+                        reghi.loVect(),reghi.hiVect(),dx_fine,&mult,&is_rz);
 
             int n_comp = 1;
             int set_comp = 0;
@@ -1043,15 +1043,15 @@ if(ParallelDescriptor::NProcs() > 1) {
 
             }
 
-	      // define coarsened tmp fabs
-	    cboxlo.coarsen(ratio);
-	    cboxhi.coarsen(ratio);
-	    cfablo.resize(cboxlo,1);
-	    cfabhi.resize(cboxhi,1);
-	    cfablo.setVal(0.0);
-	    cfabhi.setVal(0.0);
+              // define coarsened tmp fabs
+            cboxlo.coarsen(ratio);
+            cboxhi.coarsen(ratio);
+            cfablo.resize(cboxlo,1);
+            cfabhi.resize(cboxhi,1);
+            cfablo.setVal(0.0);
+            cfabhi.setVal(0.0);
 
-	      // coarsen edge values
+              // coarsen edge values
             const int* clo = cboxlo.loVect();
             const int* chi = cboxlo.hiVect();
             FORT_SRCRSEREG(ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
@@ -1064,8 +1064,8 @@ if(ParallelDescriptor::NProcs() > 1) {
                            clo,chi,&dir,ratio.getVect());
 
             // intersect and add to registers
-	    increment(cfablo);
-	    increment(cfabhi);
+            increment(cfablo);
+            increment(cfabhi);
 
             if (crse_geom.isAnyPeriodic()) {
               crse_geom.periodicShift( crse_node_domain, cboxlo, pshifts);
@@ -1083,14 +1083,14 @@ if(ParallelDescriptor::NProcs() > 1) {
                  increment(cfabhi);
                  cfabhi.shift(-iv);
               }
-	   }
-	}
+           }
+        }
     }
 }
 
 void
 SyncRegister::CrseLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
-			  const Geometry& geom, int is_rz, Real mult)
+                          const Geometry& geom, int is_rz, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CrseLPhiAdd(...) not implemented in parallel.");
@@ -1115,18 +1115,18 @@ if(ParallelDescriptor::NProcs() > 1) {
     for (k = 0; k < ncrse; k++) {
 
         FArrayBox& pfab = (*Phi_local)[k];
-	pfab.setVal(0.0);
-	pfab.copy(Phi[k],Phi_boxes[k]);
+        pfab.setVal(0.0);
+        pfab.copy(Phi[k],Phi_boxes[k]);
 
         FArrayBox& sfab = (*Sig_local)[k];
-	sfab.setVal(0.0);
+        sfab.setVal(0.0);
         sfab.copy(sigma[k],sig_boxes[k]);
 
-	for (int fine = 0; fine < nfine; fine++) {
-	    Box subbox(grids[fine]);
-	    subbox &= sig_boxes[k];
-	    if (subbox.ok()) sfab.setVal(0.0,subbox,0,1);
-	}
+        for (int fine = 0; fine < nfine; fine++) {
+            Box subbox(grids[fine]);
+            subbox &= sig_boxes[k];
+            if (subbox.ok()) sfab.setVal(0.0,subbox,0,1);
+        }
     }
 
     FArrayBox dest;
@@ -1186,30 +1186,30 @@ if(ParallelDescriptor::NProcs() > 1) {
        }
     }
 
-	  // now compute node centered div(sigma*grad(PHI))
+          // now compute node centered div(sigma*grad(PHI))
     FArrayBox divgp;
     for (k = 0; k < ncrse; k++) {
 
         FArrayBox& sfab = (*Sig_local)[k];
-	const int* slo = sfab.loVect();
-	const int* shi = sfab.hiVect();
+        const int* slo = sfab.loVect();
+        const int* shi = sfab.hiVect();
 
         FArrayBox& pfab = (*Phi_local)[k];
-	const int* p_lo = pfab.loVect();
-	const int* p_hi = pfab.hiVect();
+        const int* p_lo = pfab.loVect();
+        const int* p_hi = pfab.hiVect();
 
-	Box ndbox(Phi_boxes[k]);
-	divgp.resize(ndbox,1);
-	const int* glo = divgp.loVect();
-	const int* ghi = divgp.hiVect();
+        Box ndbox(Phi_boxes[k]);
+        divgp.resize(ndbox,1);
+        const int* glo = divgp.loVect();
+        const int* ghi = divgp.hiVect();
 
-	FORT_SRDGPHI(pfab.dataPtr(),ARLIM(p_lo),ARLIM(p_hi),
-		     sfab.dataPtr(),ARLIM(slo),ARLIM(shi),
-		     divgp.dataPtr(),ARLIM(glo),ARLIM(ghi),
+        FORT_SRDGPHI(pfab.dataPtr(),ARLIM(p_lo),ARLIM(p_hi),
+                     sfab.dataPtr(),ARLIM(slo),ARLIM(shi),
+                     divgp.dataPtr(),ARLIM(glo),ARLIM(ghi),
                      glo,ghi,dx,&mult,&is_rz);
 
-	  // add this to intersecting registers
-	increment(divgp);
+          // add this to intersecting registers
+        increment(divgp);
     }
 
     delete Sig_local;
@@ -1218,7 +1218,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
 void
 SyncRegister::FineLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
-			  const Real* dx_fine, const Geometry& crse_geom, 
+                          const Real* dx_fine, const Geometry& crse_geom, 
                           int is_rz, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
@@ -1238,76 +1238,76 @@ if(ParallelDescriptor::NProcs() > 1) {
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
 
     for (k = 0; k < ngrds; k++) {
-	const Box& ndbox = Phi_boxes[k];
-	Box pbox(grow(ndbox,1));
-	pfab.resize(pbox,1);
-	pfab.setVal(0.0);
-	pfab.copy(Phi[k],Phi_boxes[k]);
-	const int* pfab_lo = pfab.loVect();
-	const int* pfab_hi = pfab.hiVect();
+        const Box& ndbox = Phi_boxes[k];
+        Box pbox(grow(ndbox,1));
+        pfab.resize(pbox,1);
+        pfab.setVal(0.0);
+        pfab.copy(Phi[k],Phi_boxes[k]);
+        const int* pfab_lo = pfab.loVect();
+        const int* pfab_hi = pfab.hiVect();
 
-	const FArrayBox& sig = sigma[k];
-	sfab.resize(grow(Sig_boxes[k],1),1);
-	sfab.setVal(0.0);
-	sfab.copy(sig,Sig_boxes[k]);
-	const int* sfab_lo = sfab.loVect();
-	const int* sfab_hi = sfab.hiVect();
+        const FArrayBox& sig = sigma[k];
+        sfab.resize(grow(Sig_boxes[k],1),1);
+        sfab.setVal(0.0);
+        sfab.copy(sig,Sig_boxes[k]);
+        const int* sfab_lo = sfab.loVect();
+        const int* sfab_hi = sfab.hiVect();
 
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
 
-	for (dir = 0; dir < BL_SPACEDIM; dir++) {
-	      // determine region of interest, and size of tmp fabs
-	    Box tboxlo(ndbox), tboxhi(ndbox);
-	    tboxlo.setRange(dir,ndlo[dir],1);
-	    tboxhi.setRange(dir,ndhi[dir],1);
-	    Box cboxlo(tboxlo), cboxhi(tboxhi);
-	    Box reglo(tboxlo), reghi(tboxhi);
-	    for (idir = 0; idir < BL_SPACEDIM; idir++) {
-		if (idir < dir) {
-		      // previous direction have included these
-		      // points in the stencil already, shrink
-		    reglo.grow(idir,-1);
-		    reghi.grow(idir,-1);
-		}
-		if (idir != dir) {
-		      // need additional room for stencil calculation
-		    tboxlo.grow(idir,ratio[idir]-1);
-		    tboxhi.grow(idir,ratio[idir]-1);
-		}
-	    }
-	      // define fine grid tmp fabs
+        for (dir = 0; dir < BL_SPACEDIM; dir++) {
+              // determine region of interest, and size of tmp fabs
+            Box tboxlo(ndbox), tboxhi(ndbox);
+            tboxlo.setRange(dir,ndlo[dir],1);
+            tboxhi.setRange(dir,ndhi[dir],1);
+            Box cboxlo(tboxlo), cboxhi(tboxhi);
+            Box reglo(tboxlo), reghi(tboxhi);
+            for (idir = 0; idir < BL_SPACEDIM; idir++) {
+                if (idir < dir) {
+                      // previous direction have included these
+                      // points in the stencil already, shrink
+                    reglo.grow(idir,-1);
+                    reghi.grow(idir,-1);
+                }
+                if (idir != dir) {
+                      // need additional room for stencil calculation
+                    tboxlo.grow(idir,ratio[idir]-1);
+                    tboxhi.grow(idir,ratio[idir]-1);
+                }
+            }
+              // define fine grid tmp fabs
             const int* flo_lo = tboxlo.loVect();
             const int* flo_hi = tboxlo.hiVect();
             const int* fhi_lo = tboxhi.loVect();
             const int* fhi_hi = tboxhi.hiVect();
-	    ffablo.resize(tboxlo,1);
-	    ffabhi.resize(tboxhi,1);
-	    ffablo.setVal(0.0);
-	    ffabhi.setVal(0.0);
+            ffablo.resize(tboxlo,1);
+            ffabhi.resize(tboxhi,1);
+            ffablo.setVal(0.0);
+            ffabhi.setVal(0.0);
 
-	      // define coarsened tmp fabs
-	    cboxlo.coarsen(ratio);
-	    cboxhi.coarsen(ratio);
-	    cfablo.resize(cboxlo,1);
-	    cfabhi.resize(cboxhi,1);
-	    cfablo.setVal(0.0);
-	    cfabhi.setVal(0.0);
+              // define coarsened tmp fabs
+            cboxlo.coarsen(ratio);
+            cboxhi.coarsen(ratio);
+            cfablo.resize(cboxlo,1);
+            cfabhi.resize(cboxhi,1);
+            cfablo.setVal(0.0);
+            cfabhi.setVal(0.0);
 
-	      // compute divgp on fine grid edges in regions defined
+              // compute divgp on fine grid edges in regions defined
               // by reglo and reghi.  Fabs are set to zero outside region
-	    FORT_SRDGPHI(pfab.dataPtr(),ARLIM(pfab_lo),ARLIM(pfab_hi),
-		         sfab.dataPtr(),ARLIM(sfab_lo),ARLIM(sfab_hi),
-			 ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
-			 reglo.loVect(),reglo.hiVect(),
+            FORT_SRDGPHI(pfab.dataPtr(),ARLIM(pfab_lo),ARLIM(pfab_hi),
+                         sfab.dataPtr(),ARLIM(sfab_lo),ARLIM(sfab_hi),
+                         ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
+                         reglo.loVect(),reglo.hiVect(),
                          dx_fine,&mult,&is_rz);
-	    FORT_SRDGPHI(pfab.dataPtr(),ARLIM(pfab_lo),ARLIM(pfab_hi),
-			 sfab.dataPtr(),ARLIM(sfab_lo),ARLIM(sfab_hi),
-			 ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
-			 reghi.loVect(),reghi.hiVect(),
+            FORT_SRDGPHI(pfab.dataPtr(),ARLIM(pfab_lo),ARLIM(pfab_hi),
+                         sfab.dataPtr(),ARLIM(sfab_lo),ARLIM(sfab_hi),
+                         ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
+                         reghi.loVect(),reghi.hiVect(),
                          dx_fine,&mult,&is_rz);
 
-	      // coarsen edge value
+              // coarsen edge value
             const int* clo = cboxlo.loVect();
             const int* chi = cboxlo.hiVect();
             FORT_SRCRSEREG(ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
@@ -1319,9 +1319,9 @@ if(ParallelDescriptor::NProcs() > 1) {
                            cfabhi.dataPtr(),ARLIM(clo),ARLIM(chi),
                            clo,chi,&dir,ratio.getVect());
 
-	      // intersect and add to registers
-	    increment(cfablo);
-	    increment(cfabhi);
+              // intersect and add to registers
+            increment(cfablo);
+            increment(cfabhi);
 
             int iiv;
             Array<IntVect> pshifts(27);
@@ -1341,8 +1341,8 @@ if(ParallelDescriptor::NProcs() > 1) {
                  increment(cfabhi);
                  cfabhi.shift(-iv);
               }
-	   }
-	}
+           }
+        }
     }
 }
 
@@ -1374,73 +1374,73 @@ if(ParallelDescriptor::NProcs() > 1) {
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
 
     for (k = 0; k < ngrds; k++) {
-	const Box& ndbox = Phi_boxes[k];
-	Box pbox(grow(ndbox,1));
-	pfab.resize(pbox,1);
-	pfab.setVal(0.0);
-	pfab.copy(Phi[k],Phi_boxes[k]);
-	const int* pfab_lo = pfab.loVect();
-	const int* pfab_hi = pfab.hiVect();
+        const Box& ndbox = Phi_boxes[k];
+        Box pbox(grow(ndbox,1));
+        pfab.resize(pbox,1);
+        pfab.setVal(0.0);
+        pfab.copy(Phi[k],Phi_boxes[k]);
+        const int* pfab_lo = pfab.loVect();
+        const int* pfab_hi = pfab.hiVect();
 
-	const FArrayBox& sig = sigma[k];
-	sfab.resize(grow(Sig_boxes[k],1),1);
-	sfab.setVal(0.0);
-	sfab.copy(sig,Sig_boxes[k]);
-	const int* sfab_lo = sfab.loVect();
-	const int* sfab_hi = sfab.hiVect();
+        const FArrayBox& sig = sigma[k];
+        sfab.resize(grow(Sig_boxes[k],1),1);
+        sfab.setVal(0.0);
+        sfab.copy(sig,Sig_boxes[k]);
+        const int* sfab_lo = sfab.loVect();
+        const int* sfab_hi = sfab.hiVect();
 
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
 
-	for (dir = 0; dir < BL_SPACEDIM; dir++) {
-	      // determine region of interest, and size of tmp fabs
-	    Box tboxlo(ndbox), tboxhi(ndbox);
-	    tboxlo.setRange(dir,ndlo[dir],1);
-	    tboxhi.setRange(dir,ndhi[dir],1);
-	    Box cboxlo(tboxlo), cboxhi(tboxhi);
-	    Box reglo(tboxlo), reghi(tboxhi);
-	    for (idir = 0; idir < BL_SPACEDIM; idir++) {
-		if (idir < dir) {
-		      // previous direction have included these
-		      // points in the stencil already, shrink
-		    reglo.grow(idir,-1);
-		    reghi.grow(idir,-1);
-		}
-		if (idir != dir) {
-		      // need additional room for stencil calculation
-		    tboxlo.grow(idir,ratio[idir]-1);
-		    tboxhi.grow(idir,ratio[idir]-1);
-		}
-	    }
-	      // define fine grid tmp fabs
+        for (dir = 0; dir < BL_SPACEDIM; dir++) {
+              // determine region of interest, and size of tmp fabs
+            Box tboxlo(ndbox), tboxhi(ndbox);
+            tboxlo.setRange(dir,ndlo[dir],1);
+            tboxhi.setRange(dir,ndhi[dir],1);
+            Box cboxlo(tboxlo), cboxhi(tboxhi);
+            Box reglo(tboxlo), reghi(tboxhi);
+            for (idir = 0; idir < BL_SPACEDIM; idir++) {
+                if (idir < dir) {
+                      // previous direction have included these
+                      // points in the stencil already, shrink
+                    reglo.grow(idir,-1);
+                    reghi.grow(idir,-1);
+                }
+                if (idir != dir) {
+                      // need additional room for stencil calculation
+                    tboxlo.grow(idir,ratio[idir]-1);
+                    tboxhi.grow(idir,ratio[idir]-1);
+                }
+            }
+              // define fine grid tmp fabs
             const int* flo_lo = tboxlo.loVect();
             const int* flo_hi = tboxlo.hiVect();
             const int* fhi_lo = tboxhi.loVect();
             const int* fhi_hi = tboxhi.hiVect();
-	    ffablo.resize(tboxlo,1);
-	    ffabhi.resize(tboxhi,1);
-	    ffablo.setVal(0.0);
-	    ffabhi.setVal(0.0);
+            ffablo.resize(tboxlo,1);
+            ffabhi.resize(tboxhi,1);
+            ffablo.setVal(0.0);
+            ffabhi.setVal(0.0);
 
-	      // define coarsened tmp fabs
-	    cboxlo.coarsen(ratio);
-	    cboxhi.coarsen(ratio);
-	    cfablo.resize(cboxlo,1);
-	    cfabhi.resize(cboxhi,1);
-	    cfablo.setVal(0.0);
-	    cfabhi.setVal(0.0);
+              // define coarsened tmp fabs
+            cboxlo.coarsen(ratio);
+            cboxhi.coarsen(ratio);
+            cfablo.resize(cboxlo,1);
+            cfabhi.resize(cboxhi,1);
+            cfablo.setVal(0.0);
+            cfabhi.setVal(0.0);
 
-	      // compute divgp on fine grid edges in regions defined
+              // compute divgp on fine grid edges in regions defined
               // by reglo and reghi.  Fabs are set to zero outside region
-	    FORT_SRDGPHI(pfab.dataPtr(),ARLIM(pfab_lo),ARLIM(pfab_hi),
-		         sfab.dataPtr(),ARLIM(sfab_lo),ARLIM(sfab_hi),
-			 ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
-			 reglo.loVect(),reglo.hiVect(),
+            FORT_SRDGPHI(pfab.dataPtr(),ARLIM(pfab_lo),ARLIM(pfab_hi),
+                         sfab.dataPtr(),ARLIM(sfab_lo),ARLIM(sfab_hi),
+                         ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
+                         reglo.loVect(),reglo.hiVect(),
                          dx_fine,&mult,&is_rz);
-	    FORT_SRDGPHI(pfab.dataPtr(),ARLIM(pfab_lo),ARLIM(pfab_hi),
-			 sfab.dataPtr(),ARLIM(sfab_lo),ARLIM(sfab_hi),
-			 ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
-			 reghi.loVect(),reghi.hiVect(),
+            FORT_SRDGPHI(pfab.dataPtr(),ARLIM(pfab_lo),ARLIM(pfab_hi),
+                         sfab.dataPtr(),ARLIM(sfab_lo),ARLIM(sfab_hi),
+                         ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
+                         reghi.loVect(),reghi.hiVect(),
                          dx_fine,&mult,&is_rz);
 
             int n_comp = 1;
@@ -1479,7 +1479,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
             }
 
-	      // coarsen edge value
+              // coarsen edge value
             const int* clo = cboxlo.loVect();
             const int* chi = cboxlo.hiVect();
             FORT_SRCRSEREG(ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
@@ -1515,8 +1515,8 @@ if(ParallelDescriptor::NProcs() > 1) {
                  increment(cfabhi);
                  cfabhi.shift(-iv);
               }
-	   }
-	}
+           }
+        }
     }
 }
 

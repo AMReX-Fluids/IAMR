@@ -2,7 +2,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.6 1997-10-08 20:15:43 car Exp $
+// $Id: Projection.H,v 1.7 1997-12-11 23:30:23 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -127,7 +127,7 @@ public: // ================== public access functions
                          int user_rz = -1);
 
     void put_divu_in_cc_rhs(MultiFab& rhs, Amr* parent, int level,
-				 const BoxArray& grids, Real time);
+                                 const BoxArray& grids, Real time);
 
 protected:  // ================== protected member functions
     

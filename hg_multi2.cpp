@@ -1,6 +1,6 @@
 
 //
-// $Id: hg_multi2.cpp,v 1.8 1997-11-18 18:31:33 car Exp $
+// $Id: hg_multi2.cpp,v 1.9 1997-12-11 23:30:32 lijewski Exp $
 //
 
 #include <hg_multi.H>
@@ -30,78 +30,78 @@ extern "C"
 #  ifdef HG_CROSS_STENCIL
   void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 #    ifdef HG_CONSTANT
-		   intS, Real&, const int&,
+                   intS, Real&, const int&,
 #    else
-		   Real*, intS, Real*, intS, intS, RealRS, intRS,
+                   Real*, intS, Real*, intS, intS, RealRS, intRS,
 #    endif
-		   int&, int&);
+                   int&, int&);
   void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 #    ifdef HG_CONSTANT
-		   intS, Real&, const int&,
+                   intS, Real&, const int&,
 #    else
-		   Real*, intS, Real*, intS, intS, RealRS, intRS,
+                   Real*, intS, Real*, intS, intS, RealRS, intRS,
 #    endif
-		   const int*);
+                   const int*);
 #  else
   void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 #    ifdef HG_CONSTANT
-		   intS, Real&,
-		   const int&, int&, int&
+                   intS, Real&,
+                   const int&, int&, int&
 #    else
-		   Real*, intS, Real*, intS, intS, RealRS,
-		   intRS, int&, int&, const int&, const int&
+                   Real*, intS, Real*, intS, intS, RealRS,
+                   intRS, int&, int&, const int&, const int&
 #    endif
-		   );
+                   );
   void FORT_HGORES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 #    ifdef HG_CONSTANT
-		   intS, Real&,
-		   const int&, int&, int&
+                   intS, Real&,
+                   const int&, int&, int&
 #    else
-		   Real*, intS, Real*, intS, intS, RealRS,
-		   intRS, int&, int&, const int&
+                   Real*, intS, Real*, intS, intS, RealRS,
+                   intRS, int&, int&, const int&
 #    endif
-		   );
+                   );
   void FORT_HGIRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 #    ifdef HG_CONSTANT
-		   intS, Real&,
-		   const int&, int&, int&
+                   intS, Real&,
+                   const int&, int&, int&
 #    else
-		   Real*, intS, Real*, intS, intS, RealRS,
-		   intRS, int&, int&, const int&
+                   Real*, intS, Real*, intS, intS, RealRS,
+                   intRS, int&, int&, const int&
 #    endif
-		   );
+                   );
   void FORT_HGDRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 #    ifdef HG_CONSTANT
-		   intS, Real&,
-		   const int&, int&
+                   intS, Real&,
+                   const int&, int&
 #    else
-		   Real*, intS, Real*, intS, intS, RealRS,
-		   intRS, int&, const int&
+                   Real*, intS, Real*, intS, intS, RealRS,
+                   intRS, int&, const int&
 #    endif
-		   );
+                   );
 #  endif
 #elif (BL_SPACEDIM == 3)
   void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 #  ifdef HG_CONSTANT
-		   intS, Real&, const int&,
+                   intS, Real&, const int&,
 #  else
-		   Real*, intS, Real*, intS, intS, RealRS, intRS,
+                   Real*, intS, Real*, intS, intS, RealRS, intRS,
 #  endif
-		   int&, int&);
+                   int&, int&);
   void FORT_HGERES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 #  ifdef HG_CONSTANT
-		   intS, Real&, const int&,
+                   intS, Real&, const int&,
 #  else
-		   Real*, intS, Real*, intS, intS, RealRS, intRS,
+                   Real*, intS, Real*, intS, intS, RealRS, intRS,
 #  endif
-		   const int*, const int*);
+                   const int*, const int*);
   void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 #  ifdef HG_CONSTANT
-		   intS, Real&, const int&,
+                   intS, Real&, const int&,
 #  else
-		   Real*, intS, Real*, intS, intS, RealRS, intRS,
+                   Real*, intS, Real*, intS, intS, RealRS, intRS,
 #  endif
-		   const int*);
+                   const int*);
 #endif
 }
 
@@ -344,7 +344,7 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     {
       fres_sc[lev].set(iface, new FArrayBox(sigmacbox));
       fill_patch(fres_sc[lev][iface], sigma[mglevc],
-		 interface[mglevc], boundary.scalar());
+                 interface[mglevc], boundary.scalar());
     }
 #endif
     if (cgrid >= 0) 
@@ -372,7 +372,7 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     {
       igrid = interface[mglev].egrid(iedge, i);
       if (igrid >= 0)
-	break;
+        break;
     }
     unsigned geo = interface[mglev].egeo(iedge);
     // reject fine-fine interfaces and those without an interior fine grid
@@ -397,7 +397,7 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     sigmafbox.convert(IntVect::TheCellVector());
     eres_sf[lev].set(iedge, new FArrayBox(sigmafbox));
     fill_patch(eres_sf[lev][iedge], sigma[mglev], interface[mglev],
-	       boundary.scalar(), 0, 1, iedge);
+               boundary.scalar(), 0, 1, iedge);
     sigmacbox = cbox;
     sigmacbox.convert(IntVect::TheCellVector());
     if (cgrid >= 0) 
@@ -409,7 +409,7 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     {
       eres_sc[lev].set(iedge, new FArrayBox(sigmacbox));
       fill_patch(eres_sc[lev][iedge], sigma[mglevc],
-		 interface[mglevc], boundary.scalar());
+                 interface[mglevc], boundary.scalar());
     }
 #  endif
     if (cgrid >= 0) 
@@ -436,7 +436,7 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     {
       igrid = interface[mglev].cgrid(icor, i);
       if (igrid >= 0)
-	break;
+        break;
     }
     unsigned geo = interface[mglev].cgeo(icor);
     // reject fine-fine interfaces and those without an interior fine grid
@@ -461,7 +461,7 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     sigmafbox.convert(IntVect::TheCellVector());
     cres_sf[lev].set(icor, new FArrayBox(sigmafbox));
     fill_patch(cres_sf[lev][icor], sigma[mglev], interface[mglev],
-	       boundary.scalar(), 0, 0, icor);
+               boundary.scalar(), 0, 0, icor);
     sigmacbox = cbox;
     sigmacbox.convert(IntVect::TheCellVector());
     if (cgrid >= 0) 
@@ -473,7 +473,7 @@ holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     {
       cres_sc[lev].set(icor, new FArrayBox(sigmacbox));
       fill_patch(cres_sc[lev][icor], sigma[mglevc],
-		 interface[mglevc], boundary.scalar());
+                 interface[mglevc], boundary.scalar());
     }
 #endif
     if (cgrid >= 0) 
@@ -537,30 +537,30 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     Real *const sptr = source[lev][igrid].dataPtr();
     Real *const dptr = dest[lev][igrid].dataPtr();
     FORT_HGFRES(rptr, DIMLIST(sbox),
-		sptr, DIMLIST(sbox),
-		dptr, DIMLIST(fbox),
-		cdst.dataPtr(), DIMLIST(cbox),
+                sptr, DIMLIST(sbox),
+                dptr, DIMLIST(fbox),
+                cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		sigmafptr, DIMLIST(sigmafbox),
-		sigmac.dataPtr(), DIMLIST(sigmacbox),
+                sigmafptr, DIMLIST(sigmafbox),
+                sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		DIMLIST(creg),
+                DIMLIST(creg),
 #ifdef HG_CONSTANT
-		hx,
-		rat[0], idim, idir
+                hx,
+                rat[0], idim, idir
 #elif (BL_SPACEDIM == 2)
-		hx, hy,
+                hx, hy,
 #  ifdef HG_CROSS_STENCIL
-		rat[0], rat[1], idim, idir
+                rat[0], rat[1], idim, idir
 #  else
-		rat[0], rat[1], idim, idir,
-		IsRZ(), mg_domain[mglevc].bigEnd(0) + 1
+                rat[0], rat[1], idim, idir,
+                IsRZ(), mg_domain[mglevc].bigEnd(0) + 1
 #  endif
 #else
-		hx, hy, hz,
-		rat[0], rat[1], rat[2], idim, idir
+                hx, hy, hz,
+                rat[0], rat[1], rat[2], idim, idir
 #endif
-		);
+                );
   }
 
 #ifdef HG_CROSS_STENCIL
@@ -576,7 +576,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     {
       igrid = interface[mglev].egrid(iedge, i);
       if (igrid >= 0)
-	break;
+        break;
     }
     unsigned geo = interface[mglev].egeo(iedge);
     // reject fine-fine interfaces and those without an interior fine grid
@@ -599,33 +599,33 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       FArrayBox& cdst = eres_dc[lev][iedge];
       if (eres_flag[lev][iedge] == 0) 
       {
-	fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
+        fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
       }
       Real *const rptr = resid[mglev][igrid].dataPtr();
       Real *const sptr = source[lev][igrid].dataPtr();
       interface[mglev].geo_array(ga, 1, iedge);
       FORT_HGERES(rptr, DIMLIST(sbox),
-		  sptr, DIMLIST(sbox),
-		  fdst.dataPtr(), DIMLIST(fbox),
-		  cdst.dataPtr(), DIMLIST(cbox),
+                  sptr, DIMLIST(sbox),
+                  fdst.dataPtr(), DIMLIST(fbox),
+                  cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		  sigmaf.dataPtr(), DIMLIST(sigmafbox),
-		  sigmac.dataPtr(), DIMLIST(sigmacbox),
+                  sigmaf.dataPtr(), DIMLIST(sigmafbox),
+                  sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		  DIMLIST(creg),
+                  DIMLIST(creg),
 #ifdef HG_CONSTANT
                   hx, rat[0],
 #else
-		  hx, hy, hz, rat[0], rat[1], rat[2],
+                  hx, hy, hz, rat[0], rat[1], rat[2],
 #endif
-		  t.getVect(), ga);
+                  t.getVect(), ga);
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].node_edge(iedge);
       for (i = 1; i < level_interface::N_EDGE_GRIDS; i++) 
       {
-	int jgrid = interface[mglev].egrid(iedge, i);
-	if (jgrid >= 0 && jgrid != igrid)
-	  internal_copy(resid[mglev], jgrid, igrid, freg);
+        int jgrid = interface[mglev].egrid(iedge, i);
+        if (jgrid >= 0 && jgrid != igrid)
+          internal_copy(resid[mglev], jgrid, igrid, freg);
       }
     }
   }
@@ -639,7 +639,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     {
       igrid = interface[mglev].cgrid(icor, i);
       if (igrid >= 0)
-	break;
+        break;
     }
     unsigned geo = interface[mglev].cgeo(icor);
     // reject fine-fine interfaces and those without an interior fine grid
@@ -657,40 +657,40 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       const Box& creg = cres_creg[lev][icor];
       FArrayBox& fdst = cres_df[lev][icor];
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
-		 0, 0, icor);
+                 0, 0, icor);
       FArrayBox& cdst = cres_dc[lev][icor];
       if (cres_flag[lev][icor] == 0) 
       {
-	fill_patch(cdst, dest[lev-1], interface[mglevc],
-		   boundary.pressure());
+        fill_patch(cdst, dest[lev-1], interface[mglevc],
+                   boundary.pressure());
       }
       Real *const rptr = resid[mglev][igrid].dataPtr();
       Real *const sptr = source[lev][igrid].dataPtr();
       interface[mglev].geo_array(ga, 0, icor);
       FORT_HGCRES(rptr, DIMLIST(sbox),
-		  sptr, DIMLIST(sbox),
-		  fdst.dataPtr(), DIMLIST(fbox),
-		  cdst.dataPtr(), DIMLIST(cbox),
+                  sptr, DIMLIST(sbox),
+                  fdst.dataPtr(), DIMLIST(fbox),
+                  cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		  sigmaf.dataPtr(), DIMLIST(sigmafbox),
-		  sigmac.dataPtr(), DIMLIST(sigmacbox),
+                  sigmaf.dataPtr(), DIMLIST(sigmafbox),
+                  sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		  DIMLIST(creg),
+                  DIMLIST(creg),
 #ifdef HG_CONSTANT
                   hx, rat[0],
 #elif (BL_SPACEDIM == 2)
-		  hx, hy, rat[0], rat[1],
+                  hx, hy, rat[0], rat[1],
 #else
-		  hx, hy, hz, rat[0], rat[1], rat[2],
+                  hx, hy, hz, rat[0], rat[1], rat[2],
 #endif
-		  ga);
+                  ga);
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
       for (i = 1; i < level_interface::N_CORNER_GRIDS; i++) 
       {
-	int jgrid = interface[mglev].cgrid(icor, i);
-	if (jgrid >= 0 && jgrid != igrid)
-	  internal_copy(resid[mglev], jgrid, igrid, freg);
+        int jgrid = interface[mglev].cgrid(icor, i);
+        if (jgrid >= 0 && jgrid != igrid)
+          internal_copy(resid[mglev], jgrid, igrid, freg);
       }
     }
   }
@@ -704,7 +704,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     {
       igrid = interface[mglev].cgrid(icor, i);
       if (igrid >= 0)
-	break;
+        break;
     }
     unsigned geo = interface[mglev].cgeo(icor);
     // reject fine-fine interfaces and those without an interior fine grid
@@ -727,40 +727,40 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       const Box& creg = cres_creg[lev][icor];
       FArrayBox& fdst = cres_df[lev][icor];
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
-		 0, 0, icor);
+                 0, 0, icor);
       FArrayBox& cdst = cres_dc[lev][icor];
       if (cres_flag[lev][icor] == 0) 
       {
-	fill_patch(cdst, dest[lev-1], interface[mglevc],
-		   boundary.pressure());
+        fill_patch(cdst, dest[lev-1], interface[mglevc],
+                   boundary.pressure());
       }
       Real *const rptr = resid[mglev][igrid].dataPtr();
       Real *const sptr = source[lev][igrid].dataPtr();
       FORT_HGFRES(rptr, DIMLIST(sbox),
-		  sptr, DIMLIST(sbox),
-		  fdst.dataPtr(), DIMLIST(fbox),
-		  cdst.dataPtr(), DIMLIST(cbox),
+                  sptr, DIMLIST(sbox),
+                  fdst.dataPtr(), DIMLIST(fbox),
+                  cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		  sigmaf.dataPtr(), DIMLIST(sigmafbox),
-		  sigmac.dataPtr(), DIMLIST(sigmacbox),
+                  sigmaf.dataPtr(), DIMLIST(sigmafbox),
+                  sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		  DIMLIST(creg),
+                  DIMLIST(creg),
 #ifdef HG_CONSTANT
                   hx,
                   rat[0], idim, idir
 #else
                   hx, hy,
                   rat[0], rat[1], idim, idir,
-		  IsRZ(), mg_domain[mglevc].bigEnd(0) + 1
+                  IsRZ(), mg_domain[mglevc].bigEnd(0) + 1
 #endif
-		  );
+                  );
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
       for (i = 1; i < level_interface::N_CORNER_GRIDS; i++) 
       {
-	int jgrid = interface[mglev].cgrid(icor, i);
-	if (jgrid >= 0 && jgrid != igrid)
-	  internal_copy(resid[mglev], jgrid, igrid, freg);
+        int jgrid = interface[mglev].cgrid(icor, i);
+        if (jgrid >= 0 && jgrid != igrid)
+          internal_copy(resid[mglev], jgrid, igrid, freg);
       }
     }
     else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) 
@@ -780,21 +780,21 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       FArrayBox& cdst = cres_dc[lev][icor];
       if (cres_flag[lev][icor] == 0) 
       {
-	fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
+        fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
       }
       Real *const rptr = resid[mglev][igrid].dataPtr();
       Real *const sptr = source[lev][igrid].dataPtr();
       const Box& fbox = dest[lev][igrid].box();
       Real *const dptr = dest[lev][igrid].dataPtr();
       FORT_HGORES(rptr, DIMLIST(sbox),
-		  sptr, DIMLIST(sbox),
-		  dptr, DIMLIST(fbox),
-		  cdst.dataPtr(), DIMLIST(cbox),
+                  sptr, DIMLIST(sbox),
+                  dptr, DIMLIST(fbox),
+                  cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		  sigmaf.dataPtr(), DIMLIST(sigmafbox),
-		  sigmac.dataPtr(), DIMLIST(sigmacbox),
+                  sigmaf.dataPtr(), DIMLIST(sigmafbox),
+                  sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		  DIMLIST(creg),
+                  DIMLIST(creg),
 #ifdef HG_CONSTANT
                   hx,
                   rat[0], idir0, idir1
@@ -802,7 +802,7 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
                   hx, hy,
                   rat[0], rat[1], idir0, idir1, IsRZ()
 #endif
-		  );
+                  );
     }
     else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
     {
@@ -820,24 +820,24 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       const Box& creg = cres_creg[lev][icor];
       FArrayBox& fdst = cres_df[lev][icor];
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
-		 0, 0, icor);
+                 0, 0, icor);
       FArrayBox& cdst = cres_dc[lev][icor];
       if (cres_flag[lev][icor] == 0) 
       {
-	fill_patch(cdst, dest[lev-1], interface[mglevc],
-		   boundary.pressure());
+        fill_patch(cdst, dest[lev-1], interface[mglevc],
+                   boundary.pressure());
       }
       Real *const rptr = resid[mglev][igrid].dataPtr();
       Real *const sptr = source[lev][igrid].dataPtr();
       FORT_HGDRES(rptr, DIMLIST(sbox),
-		  sptr, DIMLIST(sbox),
-		  fdst.dataPtr(), DIMLIST(fbox),
-		  cdst.dataPtr(), DIMLIST(cbox),
+                  sptr, DIMLIST(sbox),
+                  fdst.dataPtr(), DIMLIST(fbox),
+                  cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		  sigmaf.dataPtr(), DIMLIST(sigmafbox),
-		  sigmac.dataPtr(), DIMLIST(sigmacbox),
+                  sigmaf.dataPtr(), DIMLIST(sigmafbox),
+                  sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		  DIMLIST(creg),
+                  DIMLIST(creg),
 #ifdef HG_CONSTANT
                   hx,
                   rat[0], jdir
@@ -845,14 +845,14 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
                   hx, hy,
                   rat[0], rat[1], jdir, IsRZ()
 #endif
-		  );
+                  );
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
       for (i = 1; i < level_interface::N_CORNER_GRIDS; i++) 
       {
-	int jgrid = interface[mglev].cgrid(icor, i);
-	if (jgrid >= 0 && jgrid != igrid)
-	  internal_copy(resid[mglev], jgrid, igrid, freg);
+        int jgrid = interface[mglev].cgrid(icor, i);
+        if (jgrid >= 0 && jgrid != igrid)
+          internal_copy(resid[mglev], jgrid, igrid, freg);
       }
     }
     else 
@@ -872,23 +872,23 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       const Box& creg = cres_creg[lev][icor];
       FArrayBox& fdst = cres_df[lev][icor];
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
-		 0, 0, icor);
+                 0, 0, icor);
       FArrayBox& cdst = cres_dc[lev][icor];
       if (cres_flag[lev][icor] == 0) 
       {
-	fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
+        fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
       }
       Real *const rptr = resid[mglev][igrid].dataPtr();
       Real *const sptr = source[lev][igrid].dataPtr();
       FORT_HGIRES(rptr, DIMLIST(sbox),
-		  sptr, DIMLIST(sbox),
-		  fdst.dataPtr(), DIMLIST(fbox),
-		  cdst.dataPtr(), DIMLIST(cbox),
+                  sptr, DIMLIST(sbox),
+                  fdst.dataPtr(), DIMLIST(fbox),
+                  cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		  sigmaf.dataPtr(), DIMLIST(sigmafbox),
-		  sigmac.dataPtr(), DIMLIST(sigmacbox),
+                  sigmaf.dataPtr(), DIMLIST(sigmafbox),
+                  sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		  DIMLIST(creg),
+                  DIMLIST(creg),
 #ifdef HG_CONSTANT
                   hx,
                   rat[0], idir0, idir1
@@ -896,18 +896,18 @@ holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
                   hx, hy,
                   rat[0], rat[1], idir0, idir1, IsRZ()
 #endif
-		  );
+                  );
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
       int kgrid = -1;
       for (i = 1; i < level_interface::N_CORNER_GRIDS; i++) 
       {
-	int jgrid = interface[mglev].cgrid(icor, i);
-	if (jgrid >= 0 && jgrid != igrid && jgrid != kgrid) 
-	{
-	  internal_copy(resid[mglev], jgrid, igrid, freg);
-	  kgrid = jgrid;
-	}
+        int jgrid = interface[mglev].cgrid(icor, i);
+        if (jgrid >= 0 && jgrid != igrid && jgrid != kgrid) 
+        {
+          internal_copy(resid[mglev], jgrid, igrid, freg);
+          kgrid = jgrid;
+        }
       }
     }
   }

@@ -2,7 +2,7 @@
 #define _HG_PROJECTOR_H_
 
 //
-// $Id: hg_projector.H,v 1.7 1997-10-08 20:15:53 car Exp $
+// $Id: hg_projector.H,v 1.8 1997-12-11 23:30:33 lijewski Exp $
 //
 
 #include <Boolean.H>
@@ -20,7 +20,7 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid
   void interface_average(PArray<MultiFab>& S, int lev);
   void interface_divergence(PArray<MultiFab>* u, int lev);
   void form_solution_vector(PArray<MultiFab>* u,
-			    PArray<MultiFab>& sigma_in);
+                            PArray<MultiFab>& sigma_in);
 
   void sparse_node_source_adjustment(PArray<MultiFab>& sparse_source);
 
@@ -33,13 +33,13 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid
   // Lev_max can then be anything from Lev_min to Lev_max_max.
 
   holy_grail_amr_projector(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
-			   const Box& fdomain,
-			   int Lev_min_min, int Lev_min_max, int Lev_max_max,
-			   const amr_fluid_boundary_class& Boundary, int Pcode,
-			   bool cache_)
+                           const Box& fdomain,
+                           int Lev_min_min, int Lev_min_max, int Lev_max_max,
+                           const amr_fluid_boundary_class& Boundary, int Pcode,
+                           bool cache_)
     : holy_grail_amr_multigrid(Mesh, Gen_ratio, fdomain,
-			       Lev_min_min, Lev_min_max, Lev_max_max,
-			       Boundary, Pcode, cache_),
+                               Lev_min_min, Lev_min_max, Lev_max_max,
+                               Boundary, Pcode, cache_),
       make_sparse_node_source_solvable(0) { }
 
   Array<BoxArray>& mesh() 
@@ -83,30 +83,30 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid
   // own requirements.
 
   void project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-	       PArray<MultiFab>& Coarse_source,
-	       Real H[], Real tol,
-	       int Lev_min = -1, int Lev_max = -1, Real scale = 0.0)
+               PArray<MultiFab>& Coarse_source,
+               Real H[], Real tol,
+               int Lev_min = -1, int Lev_max = -1, Real scale = 0.0)
   {
     project(u, p, Coarse_source, null_amr_real,
-	    H, tol, Lev_min, Lev_max, scale);
+            H, tol, Lev_min, Lev_max, scale);
   }
   void project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-	       PArray<MultiFab>& Coarse_source,
-	       PArray<MultiFab>& Sigma, Real H[], Real tol,
-	       int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
+               PArray<MultiFab>& Coarse_source,
+               PArray<MultiFab>& Sigma, Real H[], Real tol,
+               int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
 
   void sync_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-		    PArray<MultiFab>& Coarse_source,
-		    Real H[], Real tol,
-		    int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
+                    PArray<MultiFab>& Coarse_source,
+                    Real H[], Real tol,
+                    int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
   {
     sync_project(u, p, Coarse_source, null_amr_real,
-		 H, tol, Lev_min, Lev_max, scale);
+                 H, tol, Lev_min, Lev_max, scale);
   }
   void sync_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-		    PArray<MultiFab>& Coarse_source,
-		    PArray<MultiFab>& Sigma, Real H[], Real tol,
-		    int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
+                    PArray<MultiFab>& Coarse_source,
+                    PArray<MultiFab>& Sigma, Real H[], Real tol,
+                    int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
 
   // This is the do-it-yourself version:  The right hand side for the
   // elliptic solve is specified in rhs.  The resulting potential will
@@ -127,20 +127,20 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid
   // that it integrates to 0 to maximum precision.
 
   void manual_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-		      PArray<MultiFab>& rhs,
-		      PArray<MultiFab>& Coarse_source,
-		      int use_u, Real H[], Real tol,
-		      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
+                      PArray<MultiFab>& rhs,
+                      PArray<MultiFab>& Coarse_source,
+                      int use_u, Real H[], Real tol,
+                      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
   {
     manual_project(u, p, rhs, Coarse_source, null_amr_real,
-		   use_u, H, tol, Lev_min, Lev_max, scale);
+                   use_u, H, tol, Lev_min, Lev_max, scale);
   }
   void manual_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-		      PArray<MultiFab>& rhs,
-		      PArray<MultiFab>& Coarse_source,
-		      PArray<MultiFab>& Sigma,
-		      int use_u, Real H[], Real tol,
-		      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
+                      PArray<MultiFab>& rhs,
+                      PArray<MultiFab>& Coarse_source,
+                      PArray<MultiFab>& Sigma,
+                      int use_u, Real H[], Real tol,
+                      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
 
   bool make_sparse_node_source_solvable;
   void make_it_so() 

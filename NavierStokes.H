@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.10 1997-12-05 18:32:48 lijewski Exp $
+// $Id: NavierStokes.H,v 1.11 1997-12-11 23:30:22 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -60,7 +60,7 @@ public:   // ===================== public member functions ===
     //=================================================================
     NavierStokes();
     NavierStokes(Amr& papa, int lev, const Geometry &level_geom,
-		 const BoxArray& bl, Real time);
+                 const BoxArray& bl, Real time);
     virtual ~NavierStokes();
 
     virtual void restart(Amr& papa, istream &is);
@@ -100,7 +100,7 @@ public:   // ===================== public member functions ===
 
     // error estimation for regridding
     virtual void errorEst(TagBoxArray &tb, int clearval, int tagval,
-			  Real time);
+                          Real time);
 
     // integrate derived quantities over domain
     Real sumDerive(const aString& name, Real time);
@@ -134,15 +134,15 @@ public:   // ===================== public member functions ===
     Real estTimeStep();
     Real initialTimeStep();
     virtual void computeInitialDt(int finest_level, int sub_cycle,
-				  Array<int>& n_cycle,
-				  const Array<IntVect>& ref_ratio,
-				  Array<Real>& dt_level);
+                                  Array<int>& n_cycle,
+                                  const Array<IntVect>& ref_ratio,
+                                  Array<Real>& dt_level);
     virtual void computeNewDt(int finest_level, int sub_cycle,
-			      Array<int>& n_cycle,
-			      const Array<IntVect>& ref_ratio,
-			      Array<Real>& dt_min,
-			      Array<Real>& dt_level,
-	                      Real stop_time);
+                              Array<int>& n_cycle,
+                              const Array<IntVect>& ref_ratio,
+                              Array<Real>& dt_min,
+                              Array<Real>& dt_level,
+                              Real stop_time);
 
     // this function estimates the initial timesteping used by the model
     void post_init_estDT( Real &dt_init,
@@ -379,31 +379,31 @@ protected: // ===================== protected member functions ===
     {return *(NavierStokes*) &parent->getLevel(lev); }
 
     Diffusion& getDiffusion() {
-	assert( diffusion );
-	return *diffusion;
+        assert( diffusion );
+        return *diffusion;
     }
 
     SyncRegister& getSyncReg() {
-	assert( sync_reg );
-	return *sync_reg;
+        assert( sync_reg );
+        return *sync_reg;
     }
 
     FluxRegister& getAdvFluxReg() {
-	assert( advflux_reg );
-	return *advflux_reg;
+        assert( advflux_reg );
+        return *advflux_reg;
     }
 
     FluxRegister& getAdvFluxReg(int lev) {
-	return getLevel(lev).getAdvFluxReg();
+        return getLevel(lev).getAdvFluxReg();
     }
 
     FluxRegister& getViscFluxReg() {
-	assert( viscflux_reg );
-	return *viscflux_reg;
+        assert( viscflux_reg );
+        return *viscflux_reg;
     }
 
     FluxRegister& getViscFluxReg(int lev) {
-	return getLevel(lev).getViscFluxReg();
+        return getLevel(lev).getViscFluxReg();
     }
 
 protected: // ===================== protected data members ===

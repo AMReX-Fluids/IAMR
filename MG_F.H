@@ -1,9 +1,9 @@
 #ifndef _MG_F_H_
-#define _MG_F_H_ "$Id: MG_F.H,v 1.2 1997-10-08 20:15:36 car Exp $"
+#define _MG_F_H_ "$Id: MG_F.H,v 1.3 1997-12-11 23:30:18 lijewski Exp $"
 
 #include <REAL.H>
 
-#if	defined(BL_LANG_FORT)
+#if        defined(BL_LANG_FORT)
 
 #if (BL_SPACEDIM == 2) 
 #define FORT_AVERAGE   average2dgen
@@ -18,7 +18,7 @@
 #endif
 
 
-#if	defined(BL_LANG_CC)
+#if        defined(BL_LANG_CC)
 
 
 #if (BL_SPACEDIM == 2)
@@ -54,16 +54,16 @@
 extern "C"
 {
     void FORT_AVERAGE (
-	Real* crse,       ARLIM_P(crse_lo), ARLIM_P(crse_hi),
-	const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
-	const int *tlo, const int *thi,
-	const int *nc);
+        Real* crse,       ARLIM_P(crse_lo), ARLIM_P(crse_hi),
+        const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+        const int *tlo, const int *thi,
+        const int *nc);
 
     void FORT_INTERP (
-	Real* fine,       ARLIM_P(fine_lo), ARLIM_P(fine_hi),
-	const Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
-	const int *tlo, const int *thi,
-	const int *nc);
+        Real* fine,       ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+        const Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
+        const int *tlo, const int *thi,
+        const int *nc);
 }
 #endif
 

@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.8 1997-10-08 20:15:32 car Exp $
+// $Id: InterpBndryData.cpp,v 1.9 1997-12-11 23:30:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -62,8 +62,8 @@ InterpBndryData::InterpBndryData(const BoxArray& _grids, int _ncomp,
 // At the coarsest level the bndry values are taken from adjacent grids.
 void
 InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
-				int bnd_start, int num_comp,
-				const BCRec& bc )
+                                int bnd_start, int num_comp,
+                                const BCRec& bc )
 {
       // check that boxarrays are identical
     assert( grids.ready() );
@@ -76,22 +76,22 @@ InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
 
     int ngrd = grids.length();
     for (int grd = 0; grd < ngrd; grd++) {
-	const Box& bx = grids[grd];
-	for (OrientationIter fi; fi; ++fi) {
-	    Orientation face(fi());
-	    if (bx[face] == geom.Domain()[face]) {
-		  // physical bndry, copy from grid
+        const Box& bx = grids[grd];
+        for (OrientationIter fi; fi; ++fi) {
+            Orientation face(fi());
+            if (bx[face] == geom.Domain()[face]) {
+                  // physical bndry, copy from grid
                 FArrayBox& bnd_fab = bndry[face][grd];
-		bnd_fab.copy(mf[grd],mf_start,bnd_start,num_comp);
-	    }
-	}
+                bnd_fab.copy(mf[grd],mf_start,bnd_start,num_comp);
+            }
+        }
     }
 
     // now copy boundary values stored in ghost cells of fine
     // into bndry.  This only does something for physical boundaries,
     // we don't need to make it periodic aware
     for (OrientationIter fi; fi; ++fi) {
-	bndry[fi()].copyFrom(mf,0,mf_start,bnd_start,num_comp);
+        bndry[fi()].copyFrom(mf,0,mf_start,bnd_start,num_comp);
     }
 */
 
@@ -106,24 +106,24 @@ InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
     //for(int grd = 0; grd < ngrd; grd++)
     for(ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
-	assert(grids[mfi.index()] == mfi.validbox());
-	int grd = mfi.index();
-	const Box& bx = grids[grd];
-	for(OrientationIter fi; fi; ++fi) {
-	    Orientation face(fi());
-	    if(bx[face] == geom.Domain()[face]) {
-		  // physical bndry, copy from grid
+        assert(grids[mfi.index()] == mfi.validbox());
+        int grd = mfi.index();
+        const Box& bx = grids[grd];
+        for(OrientationIter fi; fi; ++fi) {
+            Orientation face(fi());
+            if(bx[face] == geom.Domain()[face]) {
+                  // physical bndry, copy from grid
                 FArrayBox& bnd_fab = bndry[face][grd];
-		bnd_fab.copy(mf[grd],mf_start,bnd_start,num_comp);
-	    }
-	}
+                bnd_fab.copy(mf[grd],mf_start,bnd_start,num_comp);
+            }
+        }
     }
 
     // now copy boundary values stored in ghost cells of fine
     // into bndry.  This only does something for physical boundaries,
     // we don't need to make it periodic aware
     for (OrientationIter fi; fi; ++fi) {
-	bndry[fi()].copyFrom(mf,0,mf_start,bnd_start,num_comp);
+        bndry[fi()].copyFrom(mf,0,mf_start,bnd_start,num_comp);
     }
 }
 
@@ -131,9 +131,9 @@ InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
 //  Takes an integer ratio, and calls the IntVect version below.
 void
 InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
-				const MultiFab& fine, int f_start,
-				int bnd_start, int num_comp, int ratio,
-				const BCRec& bc)
+                                const MultiFab& fine, int f_start,
+                                int bnd_start, int num_comp, int ratio,
+                                const BCRec& bc)
 {
     IntVect ratio_vect = ratio * IntVect::TheUnitVector();
     setBndryValues(crse, c_start,
@@ -150,9 +150,9 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
 //     (C) Copy from valid region of MultiFab at fine/fine interface
 void
 InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
-				const MultiFab& fine, int f_start,
-				int bnd_start, int num_comp, IntVect& ratio,
-				const BCRec& bc)
+                                const MultiFab& fine, int f_start,
+                                int bnd_start, int num_comp, IntVect& ratio,
+                                const BCRec& bc)
 {
     if (! bdfunc_set) bdfunc_init();
 
@@ -173,8 +173,8 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
     //for (int grd = 0; grd < ngrd; grd++)
     for(ConstMultiFabIterator fine_mfi(fine); fine_mfi.isValid(); ++fine_mfi)
     {
-	assert(grids[fine_mfi.index()] == fine_mfi.validbox());
-	const Box &fine_bx = fine_mfi.validbox();
+        assert(grids[fine_mfi.index()] == fine_mfi.validbox());
+        const Box &fine_bx = fine_mfi.validbox();
         Box crse_bx = coarsen(fine_bx,ratio);
         const int *cblo = crse_bx.loVect();
         const int *cbhi = crse_bx.hiVect();
@@ -183,23 +183,23 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
             delete derives;
             tmplen = mxlen;
 #if (BL_SPACEDIM > 2)
-	    tmplen *= mxlen;
-#endif	    
+            tmplen *= mxlen;
+#endif            
             derives = new Real[tmplen*NUMDERIV];
         }
-	const int *lo = fine_bx.loVect();
-	const int *hi = fine_bx.hiVect();
-	const FArrayBox &fine_grd = fine_mfi();
+        const int *lo = fine_bx.loVect();
+        const int *hi = fine_bx.hiVect();
+        const FArrayBox &fine_grd = fine_mfi();
         const int *finelo = fine_grd.loVect();
         const int *finehi = fine_grd.hiVect();
         const Real *finedat = fine_grd.dataPtr(f_start);
 
-	for (OrientationIter fi; fi; ++fi) {
-	    Orientation face(fi());
+        for (OrientationIter fi; fi; ++fi) {
+            Orientation face(fi());
             int dir = face.coordDir();
-	    if (fine_bx[face] != fine_domain[face] ||
+            if (fine_bx[face] != fine_domain[face] ||
                 geom.isPeriodic(dir)) {
-		  // internal or periodic edge, interpolate from crse data
+                  // internal or periodic edge, interpolate from crse data
                 const Mask& mask = masks[face][fine_mfi.index()];
                 const int* mlo = mask.loVect();
                 const int* mhi = mask.hiVect();
@@ -215,19 +215,19 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
                 const int *bhi = bnd_fab.hiVect();
                 Real *bdat = bnd_fab.dataPtr(bnd_start);
 
-		int is_not_covered = BndryData::not_covered;
+                int is_not_covered = BndryData::not_covered;
                 bdfunc[face](bdat,ARLIM(blo),ARLIM(bhi),
-			     lo,hi,ARLIM(cblo),ARLIM(cbhi),
+                             lo,hi,ARLIM(cblo),ARLIM(cbhi),
                              &num_comp,ratio.getVect(),&is_not_covered,
-			     mdat,ARLIM(mlo),ARLIM(mhi),
+                             mdat,ARLIM(mlo),ARLIM(mhi),
                              cdat,ARLIM(clo),ARLIM(chi),derives);
             } else {
-		  // physical bndry, copy from ghost region of
-		  // corresponding grid
+                  // physical bndry, copy from ghost region of
+                  // corresponding grid
                 FArrayBox &bnd_fab = bndry[face][fine_mfi.index()];
-		bnd_fab.copy(fine_grd,f_start,bnd_start,num_comp);
-	    }
-	}
+                bnd_fab.copy(fine_grd,f_start,bnd_start,num_comp);
+            }
+        }
     }  // end for(fine_mfi)
     delete derives;
 
@@ -235,7 +235,7 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
     // into bndry.  This only does something for physical boundaries,
     // we don't need to make it periodic aware
     for (OrientationIter face; face; ++face) {
-	bndry[face()].copyFrom(fine,0,f_start,bnd_start,num_comp);
+        bndry[face()].copyFrom(fine,0,f_start,bnd_start,num_comp);
     }
 }
 

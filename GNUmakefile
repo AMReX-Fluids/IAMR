@@ -133,13 +133,13 @@ endif
 #CXXFLAGS = -g --diag_suppress 177
 #CXXFLAGS = --strict_warnings
 ifeq ($(BSP_MACHINE), OSF1)
-FFLAGS += -real_size 64
-FDEBF += -C
-FDEBF += - -warn argument_checking
-FDEBF += - -warn declarations
-FDEBF += - -warn truncated_source
-FDEBF += - -warn unused
-FOPTF  = -fast -O5 -tune ev5
+#FFLAGS += -real_size 64
+#FDEBF += -C
+#FDEBF += - -warn argument_checking
+#FDEBF += - -warn declarations
+#FDEBF += - -warn truncated_source
+#FDEBF += - -warn unused
+#FOPTF  = -fast -O5 -tune ev5
 endif
 
 DEFINES += -DGUTHAMR 

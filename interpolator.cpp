@@ -1,6 +1,6 @@
 
 //
-// $Id: interpolator.cpp,v 1.6 1997-11-18 18:31:35 car Exp $
+// $Id: interpolator.cpp,v 1.7 1997-12-11 23:30:35 lijewski Exp $
 //
 
 #include <interpolator.H>
@@ -21,7 +21,7 @@ extern "C"
 
 Box 
 bilinear_interpolator_class::box(const Box& region,
-				     const IntVect& rat) const
+                                     const IntVect& rat) const
 {
   if (region.cellCentered()) 
   {
@@ -40,18 +40,18 @@ bilinear_interpolator_class::box(const Box& region,
 
 void 
 bilinear_interpolator_class::fill(FArrayBox& patch,
-				       const Box& region,
-				       FArrayBox& cgr,
-				       const Box& cb,
-				       const IntVect& rat) const
+                                       const Box& region,
+                                       FArrayBox& cgr,
+                                       const Box& cb,
+                                       const IntVect& rat) const
 {
   if (patch.box().cellCentered()) 
   {
     for (int i = 0; i < patch.nComp(); i++) 
     {
       FACINT2(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-	      cgr.dataPtr(i), DIMLIST(cgr.box()), DIMLIST(cb),
-	      D_DECL(rat[0], rat[1], rat[2]));
+              cgr.dataPtr(i), DIMLIST(cgr.box()), DIMLIST(cb),
+              D_DECL(rat[0], rat[1], rat[2]));
     }
   }
   else if (patch.box().type() == IntVect::TheNodeVector()) 
@@ -61,9 +61,9 @@ bilinear_interpolator_class::fill(FArrayBox& patch,
     {
       for (int i = 0; i < patch.nComp(); i++) 
       {
-	FANINT2(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		cgr.dataPtr(i), DIMLIST(cgr.box()), DIMLIST(cb),
-		D_DECL(rat[0], rat[1], rat[2]));
+        FANINT2(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
+                cgr.dataPtr(i), DIMLIST(cgr.box()), DIMLIST(cb),
+                D_DECL(rat[0], rat[1], rat[2]));
       }
     }
     else 
@@ -71,9 +71,9 @@ bilinear_interpolator_class::fill(FArrayBox& patch,
       FArrayBox epatch(eregion, patch.nComp());
       for (int i = 0; i < patch.nComp(); i++) 
       {
-	FANINT2(epatch.dataPtr(i), DIMLIST(epatch.box()), DIMLIST(eregion),
-		cgr.dataPtr(i), DIMLIST(cgr.box()), DIMLIST(cb),
-		D_DECL(rat[0], rat[1], rat[2]));
+        FANINT2(epatch.dataPtr(i), DIMLIST(epatch.box()), DIMLIST(eregion),
+                cgr.dataPtr(i), DIMLIST(cgr.box()), DIMLIST(cb),
+                D_DECL(rat[0], rat[1], rat[2]));
       }
       patch.copy(epatch,region);
     }

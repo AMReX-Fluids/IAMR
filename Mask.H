@@ -1,7 +1,7 @@
 #ifndef _MASK_H_
 #define _MASK_H_
 //
-// $Id: Mask.H,v 1.5 1997-12-09 23:32:03 lijewski Exp $
+// $Id: Mask.H,v 1.6 1997-12-11 23:30:20 lijewski Exp $
 //
 
 #include <BaseFab.H>
@@ -10,19 +10,19 @@
 //@Man:
 /*@Memo:
         A Mask is a derived Fab class whose elements maintain a logical
-	"TRUE" or "FALSE" state.  A Mask can perform several elementary
-	logical operations on its data members.
-*/	
+        "TRUE" or "FALSE" state.  A Mask can perform several elementary
+        logical operations on its data members.
+*/        
 /*@Doc:
         Implement a logical class Mask to maintain the TRUE or FALSE state
-	of elements in a box.  A Mask can perform element-wise logical
-	operations, but is otherwise very similar to an FArrayBox object.
-	A Mask object can set its components based on comparing (a subregion
-	of a) real-valued FArrayBox element magnitudes to a scalar value, or
-	by "and", "or" operations with (the a subregion of) other Masks.
-	
+        of elements in a box.  A Mask can perform element-wise logical
+        operations, but is otherwise very similar to an FArrayBox object.
+        A Mask object can set its components based on comparing (a subregion
+        of a) real-valued FArrayBox element magnitudes to a scalar value, or
+        by "and", "or" operations with (the a subregion of) other Masks.
+        
         This class does NOT provide a copy constructor or assignment operator.
-	
+        
 */
 class Mask
     :
@@ -33,10 +33,10 @@ public:
 //@ManMemo: administrative functions
 //@ManDoc: default constructor
     Mask()
-	: BaseFab<int>() {};
+        : BaseFab<int>() {};
 //@ManDoc: allocating constructor (nc=number of components)
     Mask(const Box& bx, int nc = 1)
-	: BaseFab<int>(bx,nc) {};
+        : BaseFab<int>(bx,nc) {};
 //@ManDoc: construct from input stream
     Mask(istream &is);
 //@ManDoc: destructor
@@ -60,14 +60,14 @@ public:
     Mask& And(const Mask& src);
 //@ManDoc: as above, but specify source/destination/number of components
     Mask& And(const Mask& src,
-	      int srccomp, int destcomp, int numcomp=1);
+              int srccomp, int destcomp, int numcomp=1);
 //@ManDoc: as above, and specify subregion
     Mask& And(const Mask& src, const Box& subbox,
-	      int srccomp, int destcomp, int numcomp=1);
+              int srccomp, int destcomp, int numcomp=1);
 //@ManDoc: in-pace And, over source components to destination components, and on intersection of source and destination boxes
     Mask& And(const Mask& src, const Box& srcbox,
-	      const Box& destbox,
-	      int srccomp, int destcomp, int numcomp=1);
+              const Box& destbox,
+              int srccomp, int destcomp, int numcomp=1);
 
 //@ManMemo: logical Or functions
 //@ManDoc: in-place Or operator
@@ -76,14 +76,14 @@ public:
     Mask& Or(const Mask& src);
 //@ManDoc: as above, but specify source/destination/number of components
     Mask& Or(const Mask& src,
-	     int srccomp, int destcomp, int numcomp=1);
+             int srccomp, int destcomp, int numcomp=1);
 //@ManDoc: as above, and specify subregion
     Mask& Or(const Mask& src, const Box& subbox,
-	     int srccomp, int destcomp, int numcomp=1);
+             int srccomp, int destcomp, int numcomp=1);
 //@ManDoc: in-pace Or, over source components to destination components, and on intersection of source and destination boxes
     Mask& Or(const Mask& src, const Box& srcbox,
-	     const Box& destbox,
-	     int srccomp, int destcomp, int numcomp=1);
+             const Box& destbox,
+             int srccomp, int destcomp, int numcomp=1);
 
 private:
 // Disallow copy operator

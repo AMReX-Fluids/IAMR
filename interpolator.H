@@ -2,7 +2,7 @@
 #define _INTERPOLATOR_H_
 
 //
-// $Id: interpolator.H,v 1.6 1997-10-08 20:15:56 car Exp $
+// $Id: interpolator.H,v 1.7 1997-12-11 23:30:35 lijewski Exp $
 //
 
 #include <amr_defs.H>
@@ -23,7 +23,7 @@ class amr_interpolator_class
   virtual ~amr_interpolator_class() { }
   virtual Box box(const Box&, const IntVect&) const = 0;
   virtual void fill(FArrayBox&, const Box&,
-		    FArrayBox&, const Box&, const IntVect&) const = 0;
+                    FArrayBox&, const Box&, const IntVect&) const = 0;
 };
 
 class bilinear_interpolator_class
@@ -33,7 +33,7 @@ class bilinear_interpolator_class
   bilinear_interpolator_class() { }
   Box box(const Box&, const IntVect&) const;
   void fill(FArrayBox&, const Box&,
-	    FArrayBox&, const Box&, const IntVect&) const;
+            FArrayBox&, const Box&, const IntVect&) const;
 };
 
 /* const amr_interpolator_class error_interpolator; */

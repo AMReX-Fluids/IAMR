@@ -1,6 +1,6 @@
 #ifdef HG_USE_CACHE
 //
-// $Id: cache.cpp,v 1.10 1997-10-03 23:55:53 car Exp $
+// $Id: cache.cpp,v 1.11 1997-12-11 23:30:30 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -26,7 +26,7 @@ extern "C"
   void FFCCPY1(Real*, Real*, const int&, int*, int*, int*, int*, int*);
 #else
   void FFCCPY2(Real*, Real*, const int&, int*, int*, int*, int*,
-	       int*, int*, int*, int*);
+               int*, int*, int*, int*);
 #endif
 }
 
@@ -59,7 +59,7 @@ void copy_cache::set(int i, int Dstart, int Sstart, int Dstrid, int Sstrid, int 
 }
 #elif (BL_SPACEDIM == 3)
 void copy_cache::set(int i, int Dstart, int Sstart, int Dstrid1, int Dstrid2,
-	   int Sstrid1, int Sstrid2, int Nvals1, int Nvals2) 
+           int Sstrid1, int Sstrid2, int Nvals1, int Nvals2) 
 {
     if (i < 0 || i >= nsets)
       BoxLib::Error("copy_cache::set---out of range");
@@ -117,7 +117,7 @@ copy_cache::copy_cache(int Nsets, Real *Dptr, Real *Sptr)
 // sync cache
 
 copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
-		       amr_boundary bdy)
+                       amr_boundary bdy)
 {
   assert(r.length() > 0);
   assert(r.nComp() == 1);
@@ -132,8 +132,8 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
   {
     for (igrid = 0; igrid < interface.nboxes(i); igrid++) 
     {
-	if (interface.geo(i, igrid) != level_interface::ALL)
-	break;
+        if (interface.geo(i, igrid) != level_interface::ALL)
+        break;
       nsets++;
     }
   }
@@ -182,11 +182,11 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
     stridi = r[igrid].box().length(0);
     stridj = r[jgrid].box().length(0);
     sstarti = r[igrid].dataPtr() - baseptr +
-	      b.smallEnd(0) - r[igrid].box().smallEnd(0) +
-	      stridi * (b.smallEnd(1) - r[igrid].box().smallEnd(1));
+              b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+              stridi * (b.smallEnd(1) - r[igrid].box().smallEnd(1));
     dstartj = r[jgrid].dataPtr() - baseptr +
-	      b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-	      stridj * (b.smallEnd(1) - r[jgrid].box().smallEnd(1));
+              b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+              stridj * (b.smallEnd(1) - r[jgrid].box().smallEnd(1));
     if (interface.fdim(iface) == 0) 
     {
       nvals = b.length(1);
@@ -207,11 +207,11 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
     sstarti = r[igrid].dataPtr() - baseptr +
               b.smallEnd(0) - r[igrid].box().smallEnd(0) +
               stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
-	      stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+              stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
     dstartj = r[jgrid].dataPtr() - baseptr +
-	      b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-	      stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
-	      stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+              b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+              stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+              stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
     if (interface.fdim(iface) == 0) 
     {
       nvals1 = b.length(1);
@@ -234,7 +234,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
       stridj1 = 1;
     }
     set(iset++, dstartj, sstarti, stridj1, stridj2,
-	       stridi1, stridi2, nvals1, nvals2);
+               stridi1, stridi2, nvals1, nvals2);
 #endif
   }
 
@@ -253,11 +253,11 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
       stridi = r[igrid].box().length(0);
       stridj = r[jgrid].box().length(0);
       sstarti = r[igrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - r[igrid].box().smallEnd(0) +
-	        stridi * (b.smallEnd(1) - r[igrid].box().smallEnd(1));
+                b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+                stridi * (b.smallEnd(1) - r[igrid].box().smallEnd(1));
       dstartj = r[jgrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-	        stridj * (b.smallEnd(1) - r[jgrid].box().smallEnd(1));
+                b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+                stridj * (b.smallEnd(1) - r[jgrid].box().smallEnd(1));
       set(iset++, dstartj, sstarti, 0, 0, 1);
     }
   }
@@ -279,29 +279,29 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
       stridj1 = r[jgrid].box().length(0);
       stridj2 = stridj1 * r[jgrid].box().length(1);
       sstarti = r[igrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - r[igrid].box().smallEnd(0) +
-	        stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
-	        stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+                b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+                stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+                stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
       dstartj = r[jgrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-	        stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
-	        stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+                b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+                stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+                stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
       if ((nvals1 = b.length(0)) > 1) 
       {
-	stridi1 = 1;
-	stridj1 = 1;
+        stridi1 = 1;
+        stridj1 = 1;
       }
       else if ((nvals1 = b.length(2)) > 1) 
       {
-	stridi1 = stridi2;
-	stridj1 = stridj2;
+        stridi1 = stridi2;
+        stridj1 = stridj2;
       }
       else 
       {
-	nvals1 = b.length(1);
+        nvals1 = b.length(1);
       }
       set(iset++, dstartj, sstarti, stridj1, 0,
-		 stridi1, 0, nvals1, 1);
+                 stridi1, 0, nvals1, 1);
     }
   }
   for (icor = 0; icor < interface.ncorners(); icor++) 
@@ -315,78 +315,78 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
     {
       if (jgrid != interface.cgrid(icor, 3)) 
       {
-	const Box& b = interface.corner(icor);
-	int dstartj, sstarti, stridi1, stridi2, stridj1, stridj2;
-	stridi1 = r[igrid].box().length(0);
-	stridi2 = stridi1 * r[igrid].box().length(1);
-	stridj1 = r[jgrid].box().length(0);
-	stridj2 = stridj1 * r[jgrid].box().length(1);
-	sstarti = r[igrid].dataPtr() - baseptr +
-	          b.smallEnd(0) - r[igrid].box().smallEnd(0) +
-	          stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
-	          stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
-	dstartj = r[jgrid].dataPtr() - baseptr +
-	          b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-	          stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
-	          stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
-	set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
-	jgrid = interface.cgrid(icor, 5);
-	if (jgrid != interface.cgrid(icor, 7)) 
-	{
-	  stridj1 = r[jgrid].box().length(0);
-	  stridj2 = stridj1 * r[jgrid].box().length(1);
-	  dstartj = r[jgrid].dataPtr() - baseptr +
-	            b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-	            stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
-		    stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
-	  set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
-	}
+        const Box& b = interface.corner(icor);
+        int dstartj, sstarti, stridi1, stridi2, stridj1, stridj2;
+        stridi1 = r[igrid].box().length(0);
+        stridi2 = stridi1 * r[igrid].box().length(1);
+        stridj1 = r[jgrid].box().length(0);
+        stridj2 = stridj1 * r[jgrid].box().length(1);
+        sstarti = r[igrid].dataPtr() - baseptr +
+                  b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+                  stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+                  stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+        dstartj = r[jgrid].dataPtr() - baseptr +
+                  b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+                  stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+                  stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+        set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
+        jgrid = interface.cgrid(icor, 5);
+        if (jgrid != interface.cgrid(icor, 7)) 
+        {
+          stridj1 = r[jgrid].box().length(0);
+          stridj2 = stridj1 * r[jgrid].box().length(1);
+          dstartj = r[jgrid].dataPtr() - baseptr +
+                    b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+                    stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+                    stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+          set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
+        }
       }
     }
     else if (interface.cgrid(icor, 5) == interface.cgrid(icor, 1)) 
     {
       if (jgrid != interface.cgrid(icor, 5)) 
       {
-	const Box& b = interface.corner(icor);
-	int dstartj, sstarti, stridi1, stridi2, stridj1, stridj2;
-	stridi1 = r[igrid].box().length(0);
-	stridi2 = stridi1 * r[igrid].box().length(1);
-	stridj1 = r[jgrid].box().length(0);
-	stridj2 = stridj1 * r[jgrid].box().length(1);
-	sstarti = r[igrid].dataPtr() - baseptr +
-	          b.smallEnd(0) - r[igrid].box().smallEnd(0) +
-	          stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
-	          stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
-	dstartj = r[jgrid].dataPtr() - baseptr +
-	          b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-	          stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
-	          stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
-	set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
-	jgrid = interface.cgrid(icor, 3);
-	if (jgrid != interface.cgrid(icor, 7)) 
-	{
-	  stridj1 = r[jgrid].box().length(0);
-	  stridj2 = stridj1 * r[jgrid].box().length(1);
-	  dstartj = r[jgrid].dataPtr() - baseptr +
-	            b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-	            stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
-		    stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
-	  set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
-	  if (jgrid == interface.cgrid(icor, 2)) 
-	  {
-	    jgrid = interface.cgrid(icor, 6);
-	    if (jgrid != interface.cgrid(icor, 7)) 
-	    {
-	      stridj1 = r[jgrid].box().length(0);
-	      stridj2 = stridj1 * r[jgrid].box().length(1);
-	      dstartj = r[jgrid].dataPtr() - baseptr +
-		        b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
-		        stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
-	      set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
-	    }
-	  }
-	}
+        const Box& b = interface.corner(icor);
+        int dstartj, sstarti, stridi1, stridi2, stridj1, stridj2;
+        stridi1 = r[igrid].box().length(0);
+        stridi2 = stridi1 * r[igrid].box().length(1);
+        stridj1 = r[jgrid].box().length(0);
+        stridj2 = stridj1 * r[jgrid].box().length(1);
+        sstarti = r[igrid].dataPtr() - baseptr +
+                  b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+                  stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+                  stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+        dstartj = r[jgrid].dataPtr() - baseptr +
+                  b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+                  stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+                  stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+        set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
+        jgrid = interface.cgrid(icor, 3);
+        if (jgrid != interface.cgrid(icor, 7)) 
+        {
+          stridj1 = r[jgrid].box().length(0);
+          stridj2 = stridj1 * r[jgrid].box().length(1);
+          dstartj = r[jgrid].dataPtr() - baseptr +
+                    b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+                    stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+                    stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+          set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
+          if (jgrid == interface.cgrid(icor, 2)) 
+          {
+            jgrid = interface.cgrid(icor, 6);
+            if (jgrid != interface.cgrid(icor, 7)) 
+            {
+              stridj1 = r[jgrid].box().length(0);
+              stridj2 = stridj1 * r[jgrid].box().length(1);
+              dstartj = r[jgrid].dataPtr() - baseptr +
+                        b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+                        stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+                        stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+              set(iset++, dstartj, sstarti, 0, 0, 0, 0, 1, 1);
+            }
+          }
+        }
       }
     }
   }
@@ -399,7 +399,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 // border cache
 
 copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
-		       amr_boundary bdy, int w)
+                       amr_boundary bdy, int w)
 {
   assert(r.length() > 0);
   assert(r.nComp() == 1);
@@ -467,12 +467,12 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
       stridi = r[igrid].box().length(0);
       stridj = r[jgrid].box().length(0);
       dstarti = r[igrid].dataPtr() - baseptr +
-	        b.smallEnd(0) + 1 - r[igrid].box().smallEnd(0) +
-	        stridi * (b.smallEnd(1) - r[igrid].box().smallEnd(1));
+                b.smallEnd(0) + 1 - r[igrid].box().smallEnd(0) +
+                stridi * (b.smallEnd(1) - r[igrid].box().smallEnd(1));
       sstarti = dstarti - 2;
       dstartj = r[jgrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - 1 - r[jgrid].box().smallEnd(0) +
-	        stridj * (b.smallEnd(1) - r[jgrid].box().smallEnd(1));
+                b.smallEnd(0) - 1 - r[jgrid].box().smallEnd(0) +
+                stridj * (b.smallEnd(1) - r[jgrid].box().smallEnd(1));
       sstartj = dstartj + 2;
     }
     else 
@@ -481,12 +481,12 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
       stridi = r[igrid].box().length(0);
       stridj = r[jgrid].box().length(0);
       dstarti = r[igrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - w - r[igrid].box().smallEnd(0) +
-	        stridi * (b.smallEnd(1) + 1 - r[igrid].box().smallEnd(1));
+                b.smallEnd(0) - w - r[igrid].box().smallEnd(0) +
+                stridi * (b.smallEnd(1) + 1 - r[igrid].box().smallEnd(1));
       sstarti = dstarti - 2 * stridi;
       dstartj = r[jgrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - w - r[jgrid].box().smallEnd(0) +
-	        stridj * (b.smallEnd(1) - 1 - r[jgrid].box().smallEnd(1));
+                b.smallEnd(0) - w - r[jgrid].box().smallEnd(0) +
+                stridj * (b.smallEnd(1) - 1 - r[jgrid].box().smallEnd(1));
       sstartj = dstartj + 2 * stridj;
       stridi = 1;
       stridj = 1;
@@ -506,14 +506,14 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
       stridj1 = r[jgrid].box().length(0);
       stridj2 = stridj1 * r[jgrid].box().length(1);
       dstarti = r[igrid].dataPtr() - baseptr +
-	        b.smallEnd(0) + 1 - r[igrid].box().smallEnd(0) +
-	        stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
-	        stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+                b.smallEnd(0) + 1 - r[igrid].box().smallEnd(0) +
+                stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+                stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
       sstarti = dstarti - 2;
       dstartj = r[jgrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - 1 - r[jgrid].box().smallEnd(0) +
-	        stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
-	        stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+                b.smallEnd(0) - 1 - r[jgrid].box().smallEnd(0) +
+                stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+                stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
       sstartj = dstartj + 2;
       set(iset++, dstarti, sstartj, stridi1, stridi2,
                  stridj1, stridj2, nvals1, nvals2);
@@ -540,27 +540,27 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
       stridj1 = r[jgrid].box().length(0);
       stridj2 = stridj1 * r[jgrid].box().length(1);
       dstarti = r[igrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - il1 - r[igrid].box().smallEnd(0) +
-	        stridi1 * (b.smallEnd(1) + 1 - r[igrid].box().smallEnd(1)) +
-	        stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+                b.smallEnd(0) - il1 - r[igrid].box().smallEnd(0) +
+                stridi1 * (b.smallEnd(1) + 1 - r[igrid].box().smallEnd(1)) +
+                stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
       sstarti = r[igrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - jl1 - r[igrid].box().smallEnd(0) +
-	        stridi1 * (b.smallEnd(1) - 1 - r[igrid].box().smallEnd(1)) +
-	        stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+                b.smallEnd(0) - jl1 - r[igrid].box().smallEnd(0) +
+                stridi1 * (b.smallEnd(1) - 1 - r[igrid].box().smallEnd(1)) +
+                stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
       dstartj = r[jgrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - jl1 - r[jgrid].box().smallEnd(0) +
-	        stridj1 * (b.smallEnd(1) - 1 - r[jgrid].box().smallEnd(1)) +
-	        stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+                b.smallEnd(0) - jl1 - r[jgrid].box().smallEnd(0) +
+                stridj1 * (b.smallEnd(1) - 1 - r[jgrid].box().smallEnd(1)) +
+                stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
       sstartj = r[jgrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - il1 - r[jgrid].box().smallEnd(0) +
-	        stridj1 * (b.smallEnd(1) + 1 - r[jgrid].box().smallEnd(1)) +
-	        stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+                b.smallEnd(0) - il1 - r[jgrid].box().smallEnd(0) +
+                stridj1 * (b.smallEnd(1) + 1 - r[jgrid].box().smallEnd(1)) +
+                stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
       stridi1 = 1;
       stridj1 = 1;
       set(iset++, dstarti, sstartj, stridi1, stridi2,
-	  stridj1, stridj2, nvals1i, nvals2);
+          stridj1, stridj2, nvals1i, nvals2);
       set(iset++, dstartj, sstarti, stridj1, stridj2,
-	  stridi1, stridi2, nvals1j, nvals2);
+          stridi1, stridi2, nvals1j, nvals2);
     }
     else 
     {
@@ -592,21 +592,21 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
       stridj1 = r[jgrid].box().length(0);
       stridj2 = stridj1 * r[jgrid].box().length(1);
       dstarti = r[igrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - il1 - r[igrid].box().smallEnd(0) +
-	        stridi1 * (b.smallEnd(1) - il2 - r[igrid].box().smallEnd(1)) +
-	        stridi2 * (b.smallEnd(2) + 1 - r[igrid].box().smallEnd(2));
+                b.smallEnd(0) - il1 - r[igrid].box().smallEnd(0) +
+                stridi1 * (b.smallEnd(1) - il2 - r[igrid].box().smallEnd(1)) +
+                stridi2 * (b.smallEnd(2) + 1 - r[igrid].box().smallEnd(2));
       sstarti = r[igrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - jl1 - r[igrid].box().smallEnd(0) +
-	        stridi1 * (b.smallEnd(1) - jl2 - r[igrid].box().smallEnd(1)) +
-	        stridi2 * (b.smallEnd(2) - 1 - r[igrid].box().smallEnd(2));
+                b.smallEnd(0) - jl1 - r[igrid].box().smallEnd(0) +
+                stridi1 * (b.smallEnd(1) - jl2 - r[igrid].box().smallEnd(1)) +
+                stridi2 * (b.smallEnd(2) - 1 - r[igrid].box().smallEnd(2));
       dstartj = r[jgrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - jl1 - r[jgrid].box().smallEnd(0) +
-	        stridj1 * (b.smallEnd(1) - jl2 - r[jgrid].box().smallEnd(1)) +
-	        stridj2 * (b.smallEnd(2) - 1 - r[jgrid].box().smallEnd(2));
+                b.smallEnd(0) - jl1 - r[jgrid].box().smallEnd(0) +
+                stridj1 * (b.smallEnd(1) - jl2 - r[jgrid].box().smallEnd(1)) +
+                stridj2 * (b.smallEnd(2) - 1 - r[jgrid].box().smallEnd(2));
       sstartj = r[jgrid].dataPtr() - baseptr +
-	        b.smallEnd(0) - il1 - r[jgrid].box().smallEnd(0) +
-	        stridj1 * (b.smallEnd(1) - il2 - r[jgrid].box().smallEnd(1)) +
-	        stridj2 * (b.smallEnd(2) + 1 - r[jgrid].box().smallEnd(2));
+                b.smallEnd(0) - il1 - r[jgrid].box().smallEnd(0) +
+                stridj1 * (b.smallEnd(1) - il2 - r[jgrid].box().smallEnd(1)) +
+                stridj2 * (b.smallEnd(2) + 1 - r[jgrid].box().smallEnd(2));
       stridi2 = stridi1;
       stridj2 = stridj1;
       stridi1 = 1;
@@ -684,11 +684,11 @@ unroll_cache::unroll_cache(MultiFab& r)
   for (int igrid = 0; igrid < r.length(); igrid++)
   {
     set(igrid, r[igrid].dataPtr() - baseptr,
-	r[igrid].box().length(0),
+        r[igrid].box().length(0),
 #if (BL_SPACEDIM == 3)
-	r[igrid].box().length(0) * r[igrid].box().length(1),
+        r[igrid].box().length(0) * r[igrid].box().length(1),
 #endif
-	r[igrid].box().numPts());
+        r[igrid].box().numPts());
   }
 }
 #endif

@@ -2,7 +2,7 @@
 #define _MACOPERATOR_H_
 
 //
-// $Id: MacOperator.H,v 1.4 1997-10-08 20:15:37 car Exp $
+// $Id: MacOperator.H,v 1.5 1997-12-11 23:30:18 lijewski Exp $
 //
 
 //==========================================================================
@@ -24,7 +24,7 @@ public:
 
     // define the gradient coeficients used by the multigrid object.
     void setCoefficients(MultiFab* area, MultiFab& rho, int rho_comp,
-			 const Real* dx);
+                         const Real* dx);
 
     // initialize the rhs for the level solves
     void defRHS(MultiFab* area, MultiFab& vol, MultiFab& rhs,

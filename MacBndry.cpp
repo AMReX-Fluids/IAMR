@@ -1,12 +1,12 @@
 //
-// $Id: MacBndry.cpp,v 1.4 1997-10-08 20:15:36 car Exp $
+// $Id: MacBndry.cpp,v 1.5 1997-12-11 23:30:18 lijewski Exp $
 //
 
 #include <LO_BCTYPES.H>
 #include <MacBndry.H>
 
 void MacBndry::setBndryConds(const BCRec& phys_bc,
-			     const Geometry& geom, IntVect& ratio)
+                             const Geometry& geom, IntVect& ratio)
 {
 
 //  NOTE: ALL BCLOC VALUES ARE NOW DEFINED AS A LENGTH IN PHYSICAL DIMENSIONS
@@ -19,33 +19,33 @@ void MacBndry::setBndryConds(const BCRec& phys_bc,
     const RealBox& prob_domain = geom.ProbDomain();
 
     for (OrientationIter fi; fi; ++fi) {
-	Orientation face(fi());
-	Array<Real> &bloc = bcloc[face];
-	Array<BoundCond> &bctag = bcond[face];
+        Orientation face(fi());
+        Array<Real> &bloc = bcloc[face];
+        Array<BoundCond> &bctag = bcond[face];
 
-	int dir = face.coordDir();
-	Real delta = dx[dir]*ratio[dir];
-	int p_bc = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
+        int dir = face.coordDir();
+        Real delta = dx[dir]*ratio[dir];
+        int p_bc = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
 
-	for (int i = 0; i < ngrds; i++) {
-	    const Box& grd = grids[i];
-	    int faceindx = grd[face] + (face.isLow() ? 0 : 1);
+        for (int i = 0; i < ngrds; i++) {
+            const Box& grd = grids[i];
+            int faceindx = grd[face] + (face.isLow() ? 0 : 1);
 
-	    if (domain[face] == grd[face] && !geom.isPeriodic(dir)) {
-		  // All physical bc values are located on face
-		if (p_bc == Outflow) {
-		    bctag[i] = LO_DIRICHLET;
-		    bloc[i] = 0.;
-		} else {
-		    bctag[i] = LO_NEUMANN;
-		    bloc[i] = 0.;
-		}
-	    } else {
-		  // internal bndry
-		bctag[i] = LO_DIRICHLET;
-  		bloc[i] = 0.5*delta;
-	    }
-	}
+            if (domain[face] == grd[face] && !geom.isPeriodic(dir)) {
+                  // All physical bc values are located on face
+                if (p_bc == Outflow) {
+                    bctag[i] = LO_DIRICHLET;
+                    bloc[i] = 0.;
+                } else {
+                    bctag[i] = LO_NEUMANN;
+                    bloc[i] = 0.;
+                }
+            } else {
+                  // internal bndry
+                bctag[i] = LO_DIRICHLET;
+                  bloc[i] = 0.5*delta;
+            }
+        }
     }
 }
 

@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.14 1997-12-05 18:32:53 lijewski Exp $
+// $Id: main.cpp,v 1.15 1997-12-11 23:30:35 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -8,7 +8,7 @@
 #endif
 #endif
 
-#ifndef	WIN32
+#ifndef        WIN32
 #include <unistd.h>
 #endif
 
@@ -25,7 +25,11 @@
 #include <AmrLevel.H>
 
 #ifdef BL_USE_NEW_HFILES
+#include <new>
 using std::setprecision;
+using std::set_new_handler;
+#else
+#include <new.h>
 #endif
 
 const int NPROCS = 1;
@@ -47,10 +51,22 @@ print_usage (int,
     ParallelDescriptor::Abort("Exiting.");
 }
 
+static
+void
+OutOfMemory ()
+{
+    BoxLib::Error("Sorry, out of memory, bye ...");
+}
+
 int
 main (int   argc,
       char* argv[])
 {
+    //
+    // Make sure to catch new failures.
+    //
+    set_new_handler(OutOfMemory);
+
     TRACER("amr");
     cout << setprecision(10);
 
@@ -70,13 +86,13 @@ main (int   argc,
     if (nprocs > 1)
     {
       cerr << "Error in main:  multiple processors specified with "
-	   << "code compiled without a parallel library.\n";
+           << "code compiled without a parallel library.\n";
       exit(-1);
     }
 #endif
     StartParallel(nprocs);
 
-#ifndef	WIN32
+#ifndef        WIN32
     int sleeptime = 0; pp.query("sleep", sleeptime);
     sleep(sleeptime);
 #endif
@@ -93,7 +109,7 @@ main (int   argc,
 
     while (amrptr->okToContinue()           &&
            amrptr->levelSteps(0) < max_step &&
-	   amrptr->cumTime() < stop_time)
+           amrptr->cumTime() < stop_time)
     {
         amrptr->coarseTimeStep(stop_time);
     }

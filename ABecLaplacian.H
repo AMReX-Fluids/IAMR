@@ -2,7 +2,7 @@
 #define _AABBecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.4 1997-10-08 20:15:18 car Exp $
+// $Id: ABecLaplacian.H,v 1.5 1997-12-11 23:30:08 lijewski Exp $
 //
 
 #include <Tuple.H>
@@ -12,57 +12,57 @@
 //@Man:
 /*@Memo:
         An ABecLaplacian tailors the description of a linear operator to apply
-	the second-order central difference approximation to the differential
-	operator, alpha*a(x).phi - beta*div[b(x).grad(phi)], on a cell-centered
-	MultiFab, phi.  Here, alpha and beta are constants, a(x) is a
-	cell-centered MultiFab, and b(x) is a vector of wall-centered
-	MultiFabs, 1 per dimension.  phi can have multiple components, but
-	all coefficient info is scalar, and norm reports on ALL components
-	together.
-*/	
+        the second-order central difference approximation to the differential
+        operator, alpha*a(x).phi - beta*div[b(x).grad(phi)], on a cell-centered
+        MultiFab, phi.  Here, alpha and beta are constants, a(x) is a
+        cell-centered MultiFab, and b(x) is a vector of wall-centered
+        MultiFabs, 1 per dimension.  phi can have multiple components, but
+        all coefficient info is scalar, and norm reports on ALL components
+        together.
+*/        
 /*@Doc:
         An ABecLaplacian tailors a LinOp (a virtual base class for general
-	linear operators) to compute the second-order central difference
-	approximation to the differential operator,
-	\begin{center}
-	alpha*a(x).phi - beta*div[b(x).grad(phi)],
-	\end{center}
-	on a cell-centered
-	MultiFab, phi.  Here, alpha and beta are constants, a(x) is a
-	cell-centered MultiFab, and b(x) is a vector of wall-centered
-	MultiFabs, 1 per dimension.  phi can have multiple components, but
-	all coefficient info is scalar, and norm reports on ALL components
-	together.
+        linear operators) to compute the second-order central difference
+        approximation to the differential operator,
+        \begin{center}
+        alpha*a(x).phi - beta*div[b(x).grad(phi)],
+        \end{center}
+        on a cell-centered
+        MultiFab, phi.  Here, alpha and beta are constants, a(x) is a
+        cell-centered MultiFab, and b(x) is a vector of wall-centered
+        MultiFabs, 1 per dimension.  phi can have multiple components, but
+        all coefficient info is scalar, and norm reports on ALL components
+        together.
 
-	This class provides the necessary
-	implementations for applying the operator, and for 
-	smoothing a guessed solution to the linear equation system,
-	L(phi) = rhs (where rhs is another cell-centered MultiFab).  This
-	class also provides access functions to set/control the coefficient
-	MulitFabs a and b, as well as the scalars, alpha and beta.  These
-	customizations are designed for 2D and 3D, with constant (but
-	not necessarily equal) mesh spacing in each direction.
+        This class provides the necessary
+        implementations for applying the operator, and for 
+        smoothing a guessed solution to the linear equation system,
+        L(phi) = rhs (where rhs is another cell-centered MultiFab).  This
+        class also provides access functions to set/control the coefficient
+        MulitFabs a and b, as well as the scalars, alpha and beta.  These
+        customizations are designed for 2D and 3D, with constant (but
+        not necessarily equal) mesh spacing in each direction.
 
-	Application of the operator and smoothing are
-	"level" operations, and therefore must access "hidden" level data
-	(such as boundary conditions, etc) as required, in concert with the
-	semantics of the underlying LinOp defintions.  Accordingly, these
-	implementations are "protected" and called only by the publically
-	accessible members of the virtual base class, LinOp.  Note that these
-	implementations may therefore assume that boundary (ghost) nodes and
-	other pertinent information are filled properly by the base class
-	functions prior to call.
+        Application of the operator and smoothing are
+        "level" operations, and therefore must access "hidden" level data
+        (such as boundary conditions, etc) as required, in concert with the
+        semantics of the underlying LinOp defintions.  Accordingly, these
+        implementations are "protected" and called only by the publically
+        accessible members of the virtual base class, LinOp.  Note that these
+        implementations may therefore assume that boundary (ghost) nodes and
+        other pertinent information are filled properly by the base class
+        functions prior to call.
 
-	Defaults are as follows for the coefficients:
-	\begin{itemize}
-	\item alpha = 1.0
-	\item beta = 1.0
-	\item a (MultiFab) = 0.0
-	\item b (MultiFab) = 1.0
-	\end{itemize}
-	
+        Defaults are as follows for the coefficients:
+        \begin{itemize}
+        \item alpha = 1.0
+        \item beta = 1.0
+        \item a (MultiFab) = 0.0
+        \item b (MultiFab) = 1.0
+        \end{itemize}
+        
         This class does NOT provide a copy constructor or assignment operator.
-		
+                
 */
 class ABecLaplacian
     : public LinOp
@@ -83,12 +83,12 @@ public:
 //@ManDoc: get scalar alpha coefficient
     Real get_alpha() const
     {
-	return alpha;
+        return alpha;
     }
 //@ManDoc: get scalar beta coefficient
     Real get_beta() const
     {
-	return beta;
+        return beta;
     }
 //@ManDoc: return reference to "a" coefficients for base level
     const MultiFab& aCoefficients(int level=0);
@@ -101,19 +101,19 @@ public:
 
 //@ManDoc: alternative (older) version of above members
     void setCoefficients(const MultiFab &_a,
-			 const MultiFab &_bX,
-			 const MultiFab &_bY)
+                         const MultiFab &_bX,
+                         const MultiFab &_bY)
     {
-	aCoefficients(_a);
-	bCoefficients(_bX, 0);
-	bCoefficients(_bY, 1);
+        aCoefficients(_a);
+        bCoefficients(_bX, 0);
+        bCoefficients(_bY, 1);
     }
 //@ManDoc: collective version of above members (taking an array of MultiFabs for "b")
     void setCoefficients(const MultiFab& _a,
-			 const MultiFab* _b)
+                         const MultiFab* _b)
     {
-	aCoefficients(_a);
-	for (int n=0; n<BL_SPACEDIM; ++n) bCoefficients(_b[n], n);
+        aCoefficients(_a);
+        for (int n=0; n<BL_SPACEDIM; ++n) bCoefficients(_b[n], n);
     }
 //@ManDoc: allocate/fill internal data for new level
     virtual void prepareForLevel(int level);
@@ -132,7 +132,7 @@ protected:
 //@ManMemoDoc: smooth the residual 
 //@ManDoc: apply smoother to improve residual to L(solnL)=rhsL
     virtual void Fsmooth(MultiFab &solnL, const MultiFab &rhsL, int level,
-			 int rgbflag);
+                         int rgbflag);
 protected:
 //@ManDoc: Array (on level) of "a" coefficients
     Array< MultiFab* > acoefs;

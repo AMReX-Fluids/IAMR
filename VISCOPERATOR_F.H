@@ -1,5 +1,5 @@
 #ifndef _VISCOPERATOR_F_H_
-#define _VISCOPERATOR_F_H_  "$Id: VISCOPERATOR_F.H,v 1.3 1997-10-08 20:15:48 car Exp $"
+#define _VISCOPERATOR_F_H_  "$Id: VISCOPERATOR_F.H,v 1.4 1997-12-11 23:30:25 lijewski Exp $"
 
 #ifdef BL_LANG_FORT
 #    define FORT_VISCEXTRAP   viscextrap
@@ -17,8 +17,8 @@
 extern "C"
 {
     void FORT_VISCEXTRAP (Real* visc, ARLIM_P(visclo), ARLIM_P(isclo),
-			  const int* lo, const int* hi,
-			  const int* comp);
+                          const int* lo, const int* hi,
+                          const int* comp);
 }
 #endif
 

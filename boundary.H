@@ -2,7 +2,7 @@
 #define _BOUNDARY_H_
 
 //
-// $Id: boundary.H,v 1.9 1997-11-18 18:31:31 car Exp $
+// $Id: boundary.H,v 1.10 1997-12-11 23:30:29 lijewski Exp $
 //
 
 #include <interface.H>
@@ -27,8 +27,8 @@ class amr_boundary_class
 {
  protected:
   virtual void check_against_boundary(BoxList& bl, List<int>& il,
-				      const Box& b, int ib,
-				      const Box& d, int dim1) const;
+                                      const Box& b, int ib,
+                                      const Box& d, int dim1) const;
  public:
   amr_boundary_class() { }
   virtual ~amr_boundary_class() { }
@@ -36,33 +36,33 @@ class amr_boundary_class
   virtual int defined() const { return 0; }
   virtual Box box(const Box&, const Box&, int) const;
   virtual void fill(FArrayBox&, const Box&,
-		    FArrayBox&, const Box&, const Box&, int) const
+                    FArrayBox&, const Box&, const Box&, int) const
     { BoxLib::Error("amr_boundary_class::fill---boundary fill function not defined."); }
   virtual void fill(FArrayBox&, const Box&,
-		    MultiFab&, int, const Box&) const
+                    MultiFab&, int, const Box&) const
     { BoxLib::Error("amr_boundary_class::fill---boundary fill function not defined."); }
   virtual void sync_borders(MultiFab&,
-			    const level_interface&) const { }
+                            const level_interface&) const { }
   virtual void fill_borders(MultiFab& r,
-			    const level_interface& interface,
-			    int w = -1) const;
+                            const level_interface& interface,
+                            int w = -1) const;
 #ifdef HG_USE_CACHE
   virtual void set_sync_cache(copy_cache*, int, int&,
-			      MultiFab&,
-			      const level_interface&) const { }
+                              MultiFab&,
+                              const level_interface&) const { }
   virtual void set_border_cache(copy_cache*, int, int&,
-				MultiFab&,
-				const level_interface&, int) const 
+                                MultiFab&,
+                                const level_interface&, int) const 
   {
     BoxLib::Error("amr_boundary_class::set_border_cache---boundary condition not defined.");
   }
 #endif
   virtual void boundary_mesh(BoxArray& exterior_mesh, int *&grid_ref,
-			     const BoxArray& interior_mesh,
-			     const Box& domain) const;
+                             const BoxArray& interior_mesh,
+                             const Box& domain) const;
   virtual void duplicate(List<Box>&, const Box&) const { }
   virtual int fill_patch_special(FArrayBox&, const Box&,
-				 MultiFab&, const Box&, int) const 
+                                 MultiFab&, const Box&, int) const 
   {
     return 0;
   }
@@ -81,9 +81,9 @@ amr_boundary_class::dir(const Box& region, const Box& domain) const
   for ( int i = 0; i < BL_SPACEDIM; ++i )
   {
       if ( region.bigEnd(i) < domain.smallEnd(i) )
-	  return -(i+1);
+          return -(i+1);
       if ( region.bigEnd(1) > domain.bigEnd(i) )
-	  return +(i+1);
+          return +(i+1);
   }
   BoxLib::Error("amr_boundary_class::dir--boundary box not outside domain.");
   return 0;
@@ -129,9 +129,9 @@ class reflection_boundary_class
   reflection_boundary_class() { }
   int defined() const { return 1; }
   void fill(FArrayBox&, const Box&,
-	    FArrayBox&, const Box&, const Box&, int) const;
+            FArrayBox&, const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
-	    MultiFab&, int, const Box&) const = 0;
+            MultiFab&, int, const Box&) const = 0;
     // { BoxLib::Error("reflection_boundary_class::fill---interface version not defined"); }
   bool singular() const {
     return true;
@@ -145,9 +145,9 @@ class negation_boundary_class
   negation_boundary_class() { }
   int defined() const { return 1; }
   void fill(FArrayBox&, const Box&,
-	    FArrayBox&, const Box&, const Box&, int) const;
+            FArrayBox&, const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
-	    MultiFab&, int, const Box&) const = 0;
+            MultiFab&, int, const Box&) const = 0;
     // { BoxLib::Error("negation_boundary_class::fill---interface version not defined"); }
   bool singular() const {
     return false;
@@ -159,16 +159,16 @@ class periodic_boundary_class
 {
  protected:
   void check_against_boundary(BoxList& bl, List<int>& il,
-			      const Box& b, int ib,
-			      const Box& d, int dim1) const;
+                              const Box& b, int ib,
+                              const Box& d, int dim1) const;
  public:
   periodic_boundary_class() { }
   int defined() const { return 1; }
   Box box(const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
-	    FArrayBox&, const Box&, const Box&, int) const;
+            FArrayBox&, const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
-	    MultiFab&, int, const Box&) const = 0;
+            MultiFab&, int, const Box&) const = 0;
     // { BoxLib::Error("periodic_boundary_class::fill---interface version not defined"); }
   void duplicate(List<Box>& bl, const Box& domain) const;
   bool singular() const {
@@ -232,8 +232,8 @@ class mixed_boundary_class
   inviscid_fluid_boundary *ptr;
   int flowdim;
   void check_against_boundary(BoxList& bl, List<int>& il,
-			      const Box& b, int ib,
-			      const Box& d, int dim1) const;
+                              const Box& b, int ib,
+                              const Box& d, int dim1) const;
  public:
   mixed_boundary_class(inviscid_fluid_boundary *Ptr, int idim) 
   {
@@ -243,26 +243,26 @@ class mixed_boundary_class
   int defined() const { return 1; }
   Box box(const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
-	    FArrayBox&, const Box&, const Box&, int) const;
+            FArrayBox&, const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
-	    MultiFab&, int, const Box&) const;
+            MultiFab&, int, const Box&) const;
   void sync_borders(MultiFab&,
-		    const level_interface&) const;
+                    const level_interface&) const;
   void fill_borders(MultiFab& r,
-		    const level_interface& interface,
-		    int w = -1) const;
+                    const level_interface& interface,
+                    int w = -1) const;
 #ifdef HG_USE_CACHE
   void set_sync_cache(copy_cache* cache, int nsets, int& iset,
-		      MultiFab& r,
-		      const level_interface& interface) const;
+                      MultiFab& r,
+                      const level_interface& interface) const;
   void set_border_cache(copy_cache* cache, int nsets, int& iset,
-			MultiFab& r,
-			const level_interface& interface,
-			int w) const;
+                        MultiFab& r,
+                        const level_interface& interface,
+                        int w) const;
 #endif
   void duplicate(List<Box>& bl, const Box& domain) const;
   int fill_patch_special(FArrayBox&, const Box&,
-			 MultiFab&, const Box&, int flags) const;
+                         MultiFab&, const Box&, int flags) const;
   bool singular() const;
 };
 

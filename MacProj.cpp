@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.9 1997-10-21 22:00:56 vince Exp $
+// $Id: MacProj.cpp,v 1.10 1997-12-11 23:30:19 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -109,8 +109,8 @@ void MacProj::read_params()
 
 
 void MacProj::install_level(int level, AmrLevel * level_data,
-			    MultiFab &_volume, MultiFab *_area,
-			    PArray<Real> * _radius )
+                            MultiFab &_volume, MultiFab *_area,
+                            PArray<Real> * _radius )
 {
   if (verbose) {
     cout << "Installing MacProj level " << level << NL;
@@ -149,7 +149,7 @@ void MacProj::install_level(int level, AmrLevel * level_data,
     const BoxArray& grids = LevelData[level].boxArray();
     mac_reg.clear(level);
     mac_reg.set(level, new FluxRegister(grids,parent->refRatio(level-1),
-					level,1));
+                                        level,1));
   }
 }
 
@@ -176,22 +176,22 @@ void MacProj::BuildPhiBC(int level)
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++) {
       if (lo[dir] == domlo[dir]) {
-	if (phys_lo[dir] == Outflow) {
-	  bc.setLo(dir,LO_DIRICHLET);
-	} else {
-	  bc.setLo(dir,LO_NEUMANN);
-	}
+        if (phys_lo[dir] == Outflow) {
+          bc.setLo(dir,LO_DIRICHLET);
+        } else {
+          bc.setLo(dir,LO_NEUMANN);
+        }
       } else {
-	bc.setLo(dir,LO_DIRICHLET);
+        bc.setLo(dir,LO_DIRICHLET);
       }
       if (hi[dir] == domhi[dir]) {
-	if (phys_hi[dir] == Outflow) {
-	  bc.setHi(dir,LO_DIRICHLET);
-	} else {
-	  bc.setHi(dir,LO_NEUMANN);
-	}
+        if (phys_hi[dir] == Outflow) {
+          bc.setHi(dir,LO_DIRICHLET);
+        } else {
+          bc.setHi(dir,LO_NEUMANN);
+        }
       } else {
-	bc.setHi(dir,LO_DIRICHLET);
+        bc.setHi(dir,LO_DIRICHLET);
       }
     }
   }
@@ -228,8 +228,8 @@ void MacProj::cleanup(int level)
 // ==================================================
 
 void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
-			  Real dt, Real time,
-			  const MultiFab& divu, int have_divu)
+                          Real dt, Real time,
+                          const MultiFab& divu, int have_divu)
 {
   if (verbose) {
     cout << "... mac_project at level " << level << NL;
@@ -284,8 +284,8 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
     crse_br.copyFrom(CPhi,extent_rad,src_comp,dest_comp,num_comp);
 
     mac_bndry.setBndryValues(crse_br,src_comp,*mac_phi,src_comp,
-			     dest_comp,num_comp,crse_ratio,
-			     *phys_bc);
+                             dest_comp,num_comp,crse_ratio,
+                             *phys_bc);
   }
 
   // compute the nondivergent velocities, by creating the linop
@@ -325,7 +325,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
       // dont do this for parallel (verbose is only true
       // on the IOProcessor).
       //cout << "LEVEL " << level << " MACREG: CrseInit sum = " 
-	   //<< mr.SumReg(0) << endl;
+           //<< mr.SumReg(0) << endl;
     }
   }
 
@@ -337,7 +337,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
     }
     //if (verbose) {
       //cout << "LEVEL " << level << " MACREG: FineAdd sum = " 
-	   //<< mac_reg[level].SumReg(0) << NL;
+           //<< mac_reg[level].SumReg(0) << NL;
     //}
   }
 
@@ -353,7 +353,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
 // ==================================================
 
 void MacProj::mac_sync_solve(int level, MultiFab* u_mac, 
-			     Real dt, MultiFab * rho_half, IntVect& fine_ratio)
+                             Real dt, MultiFab * rho_half, IntVect& fine_ratio)
 {
   if (verbose) {
     cout << "... mac_sync_solve at level " << level << NL;
@@ -395,7 +395,7 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
       Box bf(fine_boxes[kf]);
       bf.coarsen(fine_ratio);
       for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
-	  assert(grids[Rhsmfi.index()] == Rhsmfi.validbox());
+          assert(grids[Rhsmfi.index()] == Rhsmfi.validbox());
           Box bx(Rhsmfi.validbox());
           bx &= bf;
           if (bx.ok()) {
@@ -441,7 +441,7 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
   int num_comp = 1;
   if (level == 0) {
     mac_bndry.setBndryValues(*mac_sync_phi,src_comp,dest_comp,num_comp,
-			     *phys_bc);
+                             *phys_bc);
   } else {
     BoxArray crse_boxes(grids);
     crse_boxes.coarsen(crse_ratio);
@@ -449,8 +449,8 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
     BndryRegister crse_br(crse_boxes,n_ghost,1,1,num_comp);
     crse_br.setVal(0.);
     mac_bndry.setBndryValues(crse_br,src_comp,*mac_sync_phi,src_comp,
-			     dest_comp,num_comp,crse_ratio,
-			     *phys_bc);
+                             dest_comp,num_comp,crse_ratio,
+                             *phys_bc);
   }
 
   // now define edge centered coefficients and adjust RHS
@@ -483,11 +483,11 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
 // way.
 // ================================================================
 void MacProj::mac_sync_compute(int level, MultiFab * u_mac, 
-			       MultiFab * Vsync,  MultiFab * Ssync,
-			       MultiFab * rho_half,
-			       FluxRegister* adv_flux_reg,
-			       Array<int> is_conservative, Real prev_time, 
-			       Real pres_prev_time, Real dt, 
+                               MultiFab * Vsync,  MultiFab * Ssync,
+                               MultiFab * rho_half,
+                               FluxRegister* adv_flux_reg,
+                               Array<int> is_conservative, Real prev_time, 
+                               Real pres_prev_time, Real dt, 
                                int NUM_STATE, Real be_cn_theta,
                                const int* increment_sync)
 {
@@ -531,24 +531,24 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 
     // compute the mac sync correction
     for(MultiFabIterator u_mac0mfi(u_mac[0]); u_mac0mfi.isValid(); ++u_mac0mfi) {
-	DependentMultiFabIterator u_mac1mfi(u_mac0mfi, u_mac[1]);
-	DependentMultiFabIterator volumemfi(u_mac0mfi, volume[level]);
-	DependentMultiFabIterator area0mfi(u_mac0mfi, area[level][0]);
-	DependentMultiFabIterator area1mfi(u_mac0mfi, area[level][1]);
+        DependentMultiFabIterator u_mac1mfi(u_mac0mfi, u_mac[1]);
+        DependentMultiFabIterator volumemfi(u_mac0mfi, volume[level]);
+        DependentMultiFabIterator area0mfi(u_mac0mfi, area[level][0]);
+        DependentMultiFabIterator area1mfi(u_mac0mfi, area[level][1]);
 #if (BL_SPACEDIM == 3 )
-	DependentMultiFabIterator area2mfi(u_mac0mfi, area[level][2]);
-	DependentMultiFabIterator u_mac2mfi(u_mac0mfi, u_mac[2]);
+        DependentMultiFabIterator area2mfi(u_mac0mfi, area[level][2]);
+        DependentMultiFabIterator u_mac2mfi(u_mac0mfi, u_mac[2]);
 #endif
-	DependentMultiFabIterator Vsyncmfi(u_mac0mfi, *Vsync);
-	DependentMultiFabIterator Ssyncmfi(u_mac0mfi, *Ssync);
-	DependentMultiFabIterator rho_halfmfi(u_mac0mfi, *rho_half);
-	DependentMultiFabIterator mac_sync_phimfi(u_mac0mfi, *mac_sync_phi);
-	DependentMultiFabIterator visc_termsmfi(u_mac0mfi, *visc_terms);
-	DependentMultiFabIterator vel_visc_termsmfi(u_mac0mfi, vel_visc_terms);
-	int i = u_mac0mfi.index();
+        DependentMultiFabIterator Vsyncmfi(u_mac0mfi, *Vsync);
+        DependentMultiFabIterator Ssyncmfi(u_mac0mfi, *Ssync);
+        DependentMultiFabIterator rho_halfmfi(u_mac0mfi, *rho_half);
+        DependentMultiFabIterator mac_sync_phimfi(u_mac0mfi, *mac_sync_phi);
+        DependentMultiFabIterator visc_termsmfi(u_mac0mfi, *visc_terms);
+        DependentMultiFabIterator vel_visc_termsmfi(u_mac0mfi, vel_visc_terms);
+        int i = u_mac0mfi.index();
 
         // get the bounds
-	const Box &grd = grids[i];
+        const Box &grd = grids[i];
 
         // Step 1: compute ucorr = grad(phi)/rhonph
         //---------------------------------------------------
@@ -579,8 +579,8 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
         ns_level.getForce(tforces,i,1,       0,NUM_STATE,prev_time);
         ns_level.getGradP(Gp,     i,1,              pres_prev_time);
         ns_level.getDivCond(divu, i,1,                   prev_time);
-	Rho.resize(grow(grd,1),1);
-	Rho.copy(S,Density,0,1);
+        Rho.resize(grow(grd,1),1);
+        Rho.copy(S,Density,0,1);
 
         // compute total forcing terms
         if ( use_viscosity ) {
@@ -598,7 +598,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
         }
 
         if (use_forces_in_trans) {
-	  ns_level.getForce(tvelforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
+          ns_level.getForce(tvelforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
           godunov->Sum_tf_gp_visc( tvelforces, vel_visc_termsmfi(), Gp, Rho );
         }
         
@@ -694,12 +694,12 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 // ==================================================
 
 void MacProj::mac_sync_compute(int level, MultiFab * u_mac, 
-			       MultiFab * Ssync, int comp,
+                               MultiFab * Ssync, int comp,
                                MultiFab** sync_edges,
-			       MultiFab * rho_half,
-			       FluxRegister* adv_flux_reg,
-			       Array<int> is_conservative, 
-			       Real dt)
+                               MultiFab * rho_half,
+                               FluxRegister* adv_flux_reg,
+                               Array<int> is_conservative, 
+                               Real dt)
 {
     assert (comp>=BL_SPACEDIM);
 
@@ -722,21 +722,21 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 
     // compute the mac sync correction
     for(MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi) {
-	DependentMultiFabIterator volumemfi(Ssyncmfi, volume[level]);
-	DependentMultiFabIterator area0mfi(Ssyncmfi, area[level][0]);
-	DependentMultiFabIterator area1mfi(Ssyncmfi, area[level][1]);
-	DependentMultiFabIterator sync_edges0mfi(Ssyncmfi, *sync_edges[0]);
-	DependentMultiFabIterator sync_edges1mfi(Ssyncmfi, *sync_edges[1]);
+        DependentMultiFabIterator volumemfi(Ssyncmfi, volume[level]);
+        DependentMultiFabIterator area0mfi(Ssyncmfi, area[level][0]);
+        DependentMultiFabIterator area1mfi(Ssyncmfi, area[level][1]);
+        DependentMultiFabIterator sync_edges0mfi(Ssyncmfi, *sync_edges[0]);
+        DependentMultiFabIterator sync_edges1mfi(Ssyncmfi, *sync_edges[1]);
 #if (BL_SPACEDIM == 3 )
-	DependentMultiFabIterator area2mfi(Ssyncmfi, area[level][2]);
-	DependentMultiFabIterator sync_edges2mfi(Ssyncmfi, *sync_edges[2]);
+        DependentMultiFabIterator area2mfi(Ssyncmfi, area[level][2]);
+        DependentMultiFabIterator sync_edges2mfi(Ssyncmfi, *sync_edges[2]);
 #endif
-	DependentMultiFabIterator rho_halfmfi(Ssyncmfi, *rho_half);
-	DependentMultiFabIterator mac_sync_phimfi(Ssyncmfi, *mac_sync_phi);
+        DependentMultiFabIterator rho_halfmfi(Ssyncmfi, *rho_half);
+        DependentMultiFabIterator mac_sync_phimfi(Ssyncmfi, *mac_sync_phi);
         int i = Ssyncmfi.index();
 
         // get the bounds
-	const Box &grd = grids[i];
+        const Box &grd = grids[i];
 
         // Step 1: compute ucorr = grad(phi)/rhonph
         //---------------------------------------------------
@@ -839,11 +839,11 @@ void MacProj::check_div_cond(int level, MultiFab U_edge[]) const
     DEF_CLIMITS(vol,vol_dat,vlo,vhi);
 #if (BL_SPACEDIM == 2)
     FORT_MACDIV(dmac_dat,ARLIM(dlo),ARLIM(dhi),dlo,dhi,
-		ux_dat,ARLIM(uxlo),ARLIM(uxhi),
-		uy_dat,ARLIM(uylo),ARLIM(uyhi),
-		ax_dat,ARLIM(axlo),ARLIM(axhi), 
-		ay_dat,ARLIM(aylo),ARLIM(ayhi), 
-		vol_dat,ARLIM(vlo),ARLIM(vhi));
+                ux_dat,ARLIM(uxlo),ARLIM(uxhi),
+                uy_dat,ARLIM(uylo),ARLIM(uyhi),
+                ax_dat,ARLIM(axlo),ARLIM(axhi), 
+                ay_dat,ARLIM(aylo),ARLIM(ayhi), 
+                vol_dat,ARLIM(vlo),ARLIM(vhi));
 #endif
 #if (BL_SPACEDIM == 3)
 
@@ -853,18 +853,18 @@ void MacProj::check_div_cond(int level, MultiFab U_edge[]) const
     DEF_CLIMITS(zarea,az_dat,azlo,azhi);
 
     FORT_MACDIV(dmac_dat,ARLIM(dlo),ARLIM(dhi),dlo,dhi,
-		ux_dat,ARLIM(uxlo),ARLIM(uxhi),
-		uy_dat,ARLIM(uylo),ARLIM(uyhi),
-		uz_dat,ARLIM(uzlo),ARLIM(uzhi),
-		ax_dat,ARLIM(axlo),ARLIM(axhi),
-		ay_dat,ARLIM(aylo),ARLIM(ayhi),
-		az_dat,ARLIM(azlo),ARLIM(azhi),
-		vol_dat,ARLIM(vlo),ARLIM(vhi));
+                ux_dat,ARLIM(uxlo),ARLIM(uxhi),
+                uy_dat,ARLIM(uylo),ARLIM(uyhi),
+                uz_dat,ARLIM(uzlo),ARLIM(uzhi),
+                ax_dat,ARLIM(axlo),ARLIM(axhi),
+                ay_dat,ARLIM(aylo),ARLIM(ayhi),
+                az_dat,ARLIM(azlo),ARLIM(azhi),
+                vol_dat,ARLIM(vlo),ARLIM(vhi));
 #endif
     if (verbose) {
       Real g_norm = dmac.norm(0);
       cout << "Max norm of div(U_edge) for grid  " << U_edge0mfi.index() << " = "
-	   << g_norm << NL;
+           << g_norm << NL;
       sum += dmac.sum(0);
       cout << "SUM of DIV(U_edge) = " << sum << NL;
     }
@@ -874,7 +874,7 @@ void MacProj::check_div_cond(int level, MultiFab U_edge[]) const
 
 
 void MacProj::set_outflow_bcs(int level,
-			      MultiFab* mac_phi, Amr* parent, MultiFab* u_mac, 
+                              MultiFab* mac_phi, Amr* parent, MultiFab* u_mac, 
                               MultiFab & S, const  MultiFab& divu)
 {
   const BoxArray& grids = LevelData[level].boxArray();
@@ -905,8 +905,8 @@ void MacProj::set_outflow_bcs(int level,
     } else {
       int ii;
       for(ii=0; ii<rlen;ii++) {
-	rcen[ii] = 1.0;
-	redge[ii] = 1.0;
+        rcen[ii] = 1.0;
+        redge[ii] = 1.0;
       }
       redge[rlen] = 1.0;
     }
@@ -921,11 +921,11 @@ void MacProj::set_outflow_bcs(int level,
     rho = S[i].dataPtr(Density);
     DEF_LIMITS((*mac_phi)[i],phi,phi_lo,phi_hi);
     FORT_MACPHIBC(ARLIM(u_lo),ARLIM(u_hi),uhalfx,
-		  ARLIM(divu_lo),ARLIM(divu_hi),divudat,
-		  ARLIM(rho_lo),ARLIM(rho_hi),rho,
-		  ARLIM(rcen_lo),ARLIM(rcen_hi),rcen.dataPtr(),
-		  ARLIM(redge_lo),ARLIM(redge_hi),redge.dataPtr(),
-		  &hx,ARLIM(phi_lo),ARLIM(phi_hi),phi);
+                  ARLIM(divu_lo),ARLIM(divu_hi),divudat,
+                  ARLIM(rho_lo),ARLIM(rho_hi),rho,
+                  ARLIM(rcen_lo),ARLIM(rcen_hi),rcen.dataPtr(),
+                  ARLIM(redge_lo),ARLIM(redge_hi),redge.dataPtr(),
+                  &hx,ARLIM(phi_lo),ARLIM(phi_hi),phi);
   } else if(level==0) {
     const Real* dx = parent->Geom(0).CellSize();
     Real hx = dx[0];
@@ -961,14 +961,14 @@ void MacProj::set_outflow_bcs(int level,
       destbox &= top_rho_strip;
       Box srcbox = destbox;
       if(destbox.ok()) {
-	rho_strip.copy(Smfi(),srcbox,Density,destbox,0,1);
+        rho_strip.copy(Smfi(),srcbox,Density,destbox,0,1);
       }
 
       destbox = Smfi.validbox();
       destbox &= top_strip;
       srcbox = destbox;
       if(destbox.ok()) {
-	divu_strip.copy(divumfi(),srcbox,0,destbox,0,1);
+        divu_strip.copy(divumfi(),srcbox,0,destbox,0,1);
       }
 
       destbox = Smfi.validbox();
@@ -977,7 +977,7 @@ void MacProj::set_outflow_bcs(int level,
       destbox &= top_vel_strip;
       srcbox = destbox;
       if(destbox.ok()) {
-	mac_vel_strip.copy(u_mac0mfi(),srcbox,0,destbox,0,1);
+        mac_vel_strip.copy(u_mac0mfi(),srcbox,0,destbox,0,1);
       }
     }
 
@@ -994,8 +994,8 @@ void MacProj::set_outflow_bcs(int level,
       geom.GetEdgeLoc(redge,rbox, 0);
     } else {
       for(i=0; i<rlen;i++) {
-	rcen[i] = 1.0;
-	redge[i] = 1.0;
+        rcen[i] = 1.0;
+        redge[i] = 1.0;
       }
       redge[rlen] = 1.0;
     }
@@ -1008,11 +1008,11 @@ void MacProj::set_outflow_bcs(int level,
     DEF_LIMITS(mac_phi_strip,phidat,phi_lo,phi_hi);
     DEF_CLIMITS(mac_vel_strip,udat,ulo,uhi);
     FORT_MACPHIBC(ARLIM(ulo),ARLIM(uhi),udat,
-		  ARLIM(divu_lo),ARLIM(divu_hi),divudat,
-		  ARLIM(rho_lo),ARLIM(rho_hi),rhodat,
-		  ARLIM(rcen_lo),ARLIM(rcen_hi),rcen.dataPtr(),
-		  ARLIM(redge_lo),ARLIM(redge_hi),redge.dataPtr(),
-		  &hx,ARLIM(phi_lo),ARLIM(phi_hi),phidat);
+                  ARLIM(divu_lo),ARLIM(divu_hi),divudat,
+                  ARLIM(rho_lo),ARLIM(rho_hi),rhodat,
+                  ARLIM(rcen_lo),ARLIM(rcen_hi),rcen.dataPtr(),
+                  ARLIM(redge_lo),ARLIM(redge_hi),redge.dataPtr(),
+                  &hx,ARLIM(phi_lo),ARLIM(phi_hi),phidat);
     for(MultiFabIterator mac_phimfi(*mac_phi); mac_phimfi.isValid(); ++mac_phimfi) {
       mac_phimfi().copy(mac_phi_strip);
     }

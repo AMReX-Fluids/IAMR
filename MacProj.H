@@ -2,7 +2,7 @@
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.5 1997-10-08 20:15:38 car Exp $
+// $Id: MacProj.H,v 1.6 1997-12-11 23:30:19 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -51,19 +51,19 @@ public:
     void mac_sync_compute(int level, MultiFab * u_mac,  
                           MultiFab * Vsync, MultiFab * Ssync,
                           MultiFab * rho_half, 
-			  FluxRegister* adv_flux_reg,
+                          FluxRegister* adv_flux_reg,
                           Array<int> is_conservative,
                           Real prev_time, Real prev_pres_time, Real dt,
                           int NUM_STATE, Real be_cn_theta,
                           const int* increment_sync=NULL);
     
     void mac_sync_compute(int level, MultiFab * u_mac, 
-			  MultiFab * Sync, int comp,
+                          MultiFab * Sync, int comp,
                           MultiFab** sync_edges,
-			  MultiFab * rho_half,
-			  FluxRegister* adv_flux_reg,
-			  Array<int> is_conservative, 
-			  Real dt);
+                          MultiFab * rho_half,
+                          FluxRegister* adv_flux_reg,
+                          Array<int> is_conservative, 
+                          Real dt);
 
 protected: // ======================== protected member functions
 

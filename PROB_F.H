@@ -55,41 +55,41 @@
                          const int* nscal,
                          Real* vel, Real* scal, 
                          ARLIM_P(s_lo), ARLIM_P(s_hi),
-		         Real* press,
+                         Real* press,
                          ARLIM_P(p_lo), ARLIM_P(p_hi),
                          const Real* dx,
                          const Real* xlo, const Real* xhi);
 
      void FORT_DENFILL  (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-			 const Real* dx, const Real* grd_lo,
-			 const Real* time, const int* bc);
+                         const Real* dx, const Real* grd_lo,
+                         const Real* time, const int* bc);
 
      void FORT_ADVFILL  (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
                          const int* dom_lo, const int* dom_hi,
-			 const Real* dx, const Real* grd_lo,
-			 const Real* time, const int* bc);
+                         const Real* dx, const Real* grd_lo,
+                         const Real* time, const int* bc);
 
      void FORT_XVELFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-			 const Real* dx, const Real* grd_lo,
-			 const Real* time, const int* bc);
+                         const Real* dx, const Real* grd_lo,
+                         const Real* time, const int* bc);
 
      void FORT_YVELFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-			 const Real* dx, const Real* grd_lo,
-			 const Real* time, const int* bc);
+                         const Real* dx, const Real* grd_lo,
+                         const Real* time, const int* bc);
 
 #if (BL_SPACEDIM == 3)
      void FORT_ZVELFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-			 const Real* dx, const Real* grd_lo,
-			 const Real* time, const int* bc);
+                         const Real* dx, const Real* grd_lo,
+                         const Real* time, const int* bc);
 #endif
      void FORT_PRESFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-			 const Real* dx, const Real* grd_lo,
-			 const Real* time, const int* bc);
+                         const Real* dx, const Real* grd_lo,
+                         const Real* time, const int* bc);
 
      void FORT_TEMPFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
                          const int* dom_lo, const int* dom_hi,
@@ -99,7 +99,7 @@
      void FORT_DENERROR  (int* tag, ARLIM_P(tlo), ARLIM_P(thi),
                           const int* tagval, const int* clearval,
                           Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
-		          const int* lo, const int* hi, const int* nvar,
+                          const int* lo, const int* hi, const int* nvar,
                           const int* domain_lo, const int* domain_hi,
                           const Real* dx, const Real* xlo,
                           const Real* prob_lo, const Real* time,
@@ -108,7 +108,7 @@
      void FORT_ADVERROR  (int* tag, ARLIM_P(tlo), ARLIM_P(thi),
                           const int* tagval, const int* clearval,
                           Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
-		          const int* lo, const int* hi, const int* nvar,
+                          const int* lo, const int* hi, const int* nvar,
                           const int* domain_lo, const int* domain_hi,
                           const Real* dx, const Real* xlo,
                           const Real* prob_lo, const Real* time,
@@ -117,7 +117,7 @@
      void FORT_TEMPERROR  (int* tag, ARLIM_P(tlo), ARLIM_P(thi),
                            const int* tagval, const int* clearval,
                            Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
-		           const int* lo, const int* hi, const int* nvar,
+                           const int* lo, const int* hi, const int* nvar,
                            const int* domain_lo, const int* domain_hi,
                            const Real* dx, const Real* xlo,
                            const Real* prob_lo, const Real* time,
@@ -126,7 +126,7 @@
      void FORT_MVERROR   (int* tag, ARLIM_P(tlo), ARLIM_P(thi),
                           const int* tagval, const int* clearval,
                           Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
-		          const int* lo, const int* hi, const int* nvar,
+                          const int* lo, const int* hi, const int* nvar,
                           const int* domain_lo, const int* domain_hi,
                           const Real* dx, const Real* xlo,
                           const Real* prob_lo, const Real* time,

@@ -2,7 +2,7 @@
 #define _SYNCREGISTER_H_
 
 //
-// $Id: SyncRegister.H,v 1.6 1997-10-08 20:15:46 car Exp $
+// $Id: SyncRegister.H,v 1.7 1997-12-11 23:30:25 lijewski Exp $
 //
 
 #include <PArray.H>
@@ -18,39 +18,39 @@ class SyncRegister : public BndryRegister
 public:
     SyncRegister();
     SyncRegister(const BoxArray& fine_boxes,
-		 IntVect ref_ratio, int fine_lev);
+                 IntVect ref_ratio, int fine_lev);
     ~SyncRegister();
 
     void define(const BoxArray& fine_boxes,
-		IntVect ref_ratio, int fine_lev);
+                IntVect ref_ratio, int fine_lev);
 
       // access functions
     IntVect refRatio() const {
-	return ratio;
+        return ratio;
     }
     int fineLevel() const {
-	return fine_level;
+        return fine_level;
     }
     int crseLevel() const {
-	return fine_level-1;
+        return fine_level-1;
     }
     const BoxArray& coarsenedBoxes() const {
-	return grids;
+        return grids;
     }
 
     void CrseDVInit(const MultiFab& V, const Geometry& geom, 
-		    int is_rz, int ** crse_bc, Real mult = 1.0);
+                    int is_rz, int ** crse_bc, Real mult = 1.0);
 
     void FineDVAdd(const MultiFab& V, 
                    const Real* dx_fine, const Geometry& crse_geom,
-		   int is_rz, int ** fine_bc, Real mult);
+                   int is_rz, int ** fine_bc, Real mult);
 
     void CrseDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
-			 int is_rz, int ** crse_bc, 
+                         int is_rz, int ** crse_bc, 
                          int lowfix, int hifix, Real mult = 1.0);
 
     void FineDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
-		   int is_rz, int ** fine_bc, 
+                   int is_rz, int ** fine_bc, 
                    int lowfix, int hifix,Real mult);
 
     void CompDVAdd(const MultiFab& V, 
@@ -61,14 +61,14 @@ public:
                    int is_rz, int ** fine_bc, Real mult);
 
     void CrseLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
-		     const Geometry& geom, int is_rz, Real mult = 1.0);
+                     const Geometry& geom, int is_rz, Real mult = 1.0);
 
     void FineLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
-		     const Real* dx_fine, const Geometry& geom, 
+                     const Real* dx_fine, const Geometry& geom, 
                      int is_rz, Real mult);
 
     void CompLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
-		     const BoxArray& fine_boxes, 
+                     const BoxArray& fine_boxes, 
                      const Real* dx_fine, 
                      const Geometry& fine_geom, 
                      const Geometry& crse_geom, 

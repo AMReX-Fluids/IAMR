@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.9 1997-10-08 20:15:41 car Exp $
+// $Id: NS_setup.cpp,v 1.10 1997-12-11 23:30:21 lijewski Exp $
 //
 
 #include <NavierStokes.H>
@@ -84,8 +84,8 @@ static void set_scalar_bc(BCRec& bc, const BCRec& phys_bc)
     const int* hi_bc = phys_bc.hi();
     int i;
     for (i = 0; i < BL_SPACEDIM; i++) {
-	bc.setLo(i,scalar_bc[lo_bc[i]]);
-	bc.setHi(i,scalar_bc[hi_bc[i]]);
+        bc.setLo(i,scalar_bc[lo_bc[i]]);
+        bc.setHi(i,scalar_bc[hi_bc[i]]);
     }
 }
 
@@ -96,8 +96,8 @@ static void set_temp_bc(BCRec& bc, const BCRec& phys_bc)
     const int* hi_bc = phys_bc.hi();
     int i;
     for (i = 0; i < BL_SPACEDIM; i++) {
-	bc.setLo(i,temp_bc[lo_bc[i]]);
-	bc.setHi(i,temp_bc[hi_bc[i]]);
+        bc.setLo(i,temp_bc[lo_bc[i]]);
+        bc.setHi(i,temp_bc[hi_bc[i]]);
     }
 }
 #endif
@@ -108,8 +108,8 @@ static void set_pressure_bc(BCRec& bc, const BCRec& phys_bc)
     const int* hi_bc = phys_bc.hi();
     int i;
     for (i = 0; i < BL_SPACEDIM; i++) {
-	bc.setLo(i,press_bc[lo_bc[i]]);
-	bc.setHi(i,press_bc[hi_bc[i]]);
+        bc.setLo(i,press_bc[lo_bc[i]]);
+        bc.setHi(i,press_bc[hi_bc[i]]);
     }
 }
 
@@ -158,24 +158,24 @@ void NavierStokes::variableSetUp()
 //  desc_lst.setComponent(State_Type,Temp,"temp",bc,FORT_TEMPFILL);
 
     if (visc_coef.length() < NUM_STATE) {
-	BoxLib::Error("Not enough visc_coef values specified");
+        BoxLib::Error("Not enough visc_coef values specified");
     } else if (visc_coef.length() > NUM_STATE) {
-	BoxLib::Warning("Too many visc_coef values specified");
+        BoxLib::Warning("Too many visc_coef values specified");
     }
 
     is_conservative.resize(NUM_STATE);
     is_diffusive.resize(NUM_STATE);
     int i;
     for (i = 0; i < NUM_STATE; i++) {
-	is_conservative[i] = false;
-	is_diffusive[i] = false;
-	if (visc_coef[i] > 0.0) is_diffusive[i] = true;
+        is_conservative[i] = false;
+        is_diffusive[i] = false;
+        if (visc_coef[i] > 0.0) is_diffusive[i] = true;
     }
     is_conservative[Density] = true;
     is_conservative[Trac] = true;
 //  is_conservative[Temp] = true;
     if (is_diffusive[Density]) {
-	BoxLib::Error("Density cannot diffuse, bad visc_coef");
+        BoxLib::Error("Density cannot diffuse, bad visc_coef");
     }
       // ---- pressure
     desc_lst.addDescriptor(Press_Type,IndexType::TheNodeType(),

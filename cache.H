@@ -2,7 +2,7 @@
 #define _CACHE_H_
 
 //
-// $Id: cache.H,v 1.7 1997-10-03 23:37:33 car Exp $
+// $Id: cache.H,v 1.8 1997-12-11 23:30:30 lijewski Exp $
 //
 
 #include <interface.H>
@@ -37,11 +37,11 @@ class copy_cache
 
   // sync cache
   copy_cache(MultiFab& r, const level_interface& interface,
-	     amr_boundary bdy);
+             amr_boundary bdy);
 
   // border cache (only w == 1 case currently supported)
   copy_cache(MultiFab& r, const level_interface& interface,
-	     amr_boundary bdy, int w);
+             amr_boundary bdy, int w);
 
   ~copy_cache()
   {
@@ -52,7 +52,7 @@ class copy_cache
   void set(int i, int Dstart, int Sstart, int Dstrid, int Sstrid, int Nvals);
 #else
   void set(int i, int Dstart, int Sstart, int Dstrid1, int Dstrid2,
-	   int Sstrid1, int Sstrid2, int Nvals1, int Nvals2);
+           int Sstrid1, int Sstrid2, int Nvals1, int Nvals2);
 #endif
 
   void run() const;

@@ -2,7 +2,7 @@
 #define _AMR_DEFS_H_
 
 //
-// $Id: amr_defs.H,v 1.6 1997-11-18 18:31:30 car Exp $
+// $Id: amr_defs.H,v 1.7 1997-12-11 23:30:28 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -67,8 +67,8 @@ mfnorm(const MultiFab& mf)
     // for (i = 0; i < mf.length(); i++) 
     for ( ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi ) 
     {
-	Real s = mfi().norm(0);
-	r = (r > s) ? r : s;
+        Real s = mfi().norm(0);
+        r = (r > s) ? r : s;
     }
     ParallelDescriptor::ReduceRealMax(r);
     return r;

@@ -1,5 +1,5 @@
 #ifndef _DIFFUSION_F_H
-#define _DIFFUSION_F_H  $Id: DIFFUSION_F.H,v 1.4 1997-10-08 20:15:26 car Exp $
+#define _DIFFUSION_F_H  $Id: DIFFUSION_F.H,v 1.5 1997-12-11 23:30:11 lijewski Exp $
 
 #ifdef BL_LANG_FORT
 #    define FORT_VISCFLUX    viscflux
@@ -60,7 +60,7 @@ extern "C" {
                               const Real* xflux, ARLIM_P(xflo), ARLIM_P(xfhi),
                             const Real* yflux, ARLIM_P(yflo), ARLIM_P(yfhi),
                             const Real* xarea, ARLIM_P(axlo), ARLIM_P(axhi),
-		             const Real* yarea, ARLIM_P(aylo), ARLIM_P(ayhi),
+                             const Real* yarea, ARLIM_P(aylo), ARLIM_P(ayhi),
                             const Real* dx, const Real * mult);
     
 #endif

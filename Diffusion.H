@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.H,v 1.4 1997-10-08 20:15:26 car Exp $
+// $Id: Diffusion.H,v 1.5 1997-12-11 23:30:13 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -72,70 +72,70 @@ public:
 
   Diffusion();
   Diffusion(Amr* Parent, AmrLevel* Caller, Diffusion* coarser,
-	    int num_state, FluxRegister* Viscflux_reg,
-	    MultiFab& Volume, MultiFab* Area,
+            int num_state, FluxRegister* Viscflux_reg,
+            MultiFab& Volume, MultiFab* Area,
             Array<int>  _is_diffusive,
             Array<Real> _visc_coef);
 
   virtual ~Diffusion();
 
   void diffuse_scalar(Real dt, int sigma, Real be_cn_theta,
-		      MultiFab* rho_half, int rho_flag,
+                      MultiFab* rho_half, int rho_flag,
                       int do_viscreflux=1,
                       MultiFab* delta_rhs=NULL, MultiFab* alpha=NULL, 
                       MultiFab** betan = NULL, 
                       MultiFab** betanp1=NULL);
 
   void diffuse_velocity(Real dt, Real be_cn_theta,
-			MultiFab* rho_half, int rho_flag,
+                        MultiFab* rho_half, int rho_flag,
                         MultiFab*  delta_rhs = NULL, 
                         MultiFab** betan = NULL, 
                         MultiFab** betanp1 = NULL);
 
   void diffuse_velocity_constant_mu(Real dt, Real be_cn_theta,
-			MultiFab* rho_half,
+                        MultiFab* rho_half,
                         MultiFab* delta_rhs); 
 
   void diffuse_tensor_velocity(Real dt, Real be_cn_theta,
-			MultiFab* rho_half,
+                        MultiFab* rho_half,
                         MultiFab* delta_rhs, 
                         MultiFab** betan, 
                         MultiFab** betanp1);
 
   void diffuse_Vsync(MultiFab *Vsync, Real dt, Real be_cn_theta,
-		     MultiFab* rho_half, int rho_flag,
+                     MultiFab* rho_half, int rho_flag,
                      MultiFab** beta=NULL);
 
   void diffuse_Vsync_constant_mu(MultiFab *Vsync, Real dt, Real be_cn_theta,
-		     MultiFab* rho_half, int rho_flag);
+                     MultiFab* rho_half, int rho_flag);
 
   void diffuse_tensor_Vsync(MultiFab *Vsync, Real dt, Real be_cn_theta,
-		     MultiFab* rho_half, int rho_flag,
+                     MultiFab* rho_half, int rho_flag,
                      MultiFab** beta);
 
   void diffuse_Ssync(MultiFab *Ssync, int sigma, Real dt, Real be_cn_theta,
-		     MultiFab* rho_half, int rho_flag,
+                     MultiFab* rho_half, int rho_flag,
                      int do_viscsyncflux, 
                      MultiFab** beta=NULL, MultiFab* alpha=NULL);
 
   ABecLaplacian* getViscOp(int src_comp, Real a, Real b, 
-			   Real time, ViscBndry & visc_bndry,
-			   MultiFab* rho_half, int rho_flag, Real* rhsscale=NULL,
+                           Real time, ViscBndry & visc_bndry,
+                           MultiFab* rho_half, int rho_flag, Real* rhsscale=NULL,
                            MultiFab** beta=NULL, MultiFab* alpha_in=NULL);
 
   ABecLaplacian* getViscOp(int src_comp, Real a, Real b,
-			   MultiFab* rho_half, int rho_flag, Real* rhsscale=NULL,
+                           MultiFab* rho_half, int rho_flag, Real* rhsscale=NULL,
                            MultiFab** beta=NULL, MultiFab* alpha_in=NULL);
 
 #if defined(USE_TENSOR)
   DivVis* getTensorOp(Real a, Real b, 
-			   Real time, 
+                           Real time, 
 #if (BL_SPACEDIM==2) 
                            ViscBndry2D& visc_bndry,
 #else 
                            ViscBndry3D& visc_bndry,
 #endif
-			   MultiFab* rho_half,
+                           MultiFab* rho_half,
                            MultiFab** beta);
   void getTensorBndryData(
 #if (BL_SPACEDIM==2) 
@@ -145,21 +145,21 @@ public:
 #endif
                           Real time);
   DivVis* getTensorOp(Real a, Real b, 
-			   MultiFab* rho_half,
+                           MultiFab* rho_half,
                            MultiFab** beta);
 #endif
 
   void getViscTerms(MultiFab& visc_terms, int src_comp, int comp,
-		    Real time, int rho_flag=0, MultiFab**beta=NULL);
+                    Real time, int rho_flag=0, MultiFab**beta=NULL);
 
   void getTensorViscTerms(MultiFab& visc_terms, 
-			     Real time, MultiFab** beta);
+                             Real time, MultiFab** beta);
 
   void getBndryData(ViscBndry& bndry, int src_comp,
-		    int num_comp, Real time, int rho_flag=0);
+                    int num_comp, Real time, int rho_flag=0);
 
   void FillBoundary(BndryRegister& bdry, int src_comp, int dest_comp,
-		int num_comp, Real time, int rho_flag=0);
+                int num_comp, Real time, int rho_flag=0);
 
   int useDvConstantMu() { return use_dv_constant_mu_def; }
 

@@ -1,12 +1,12 @@
 //
-// $Id: ViscBndry.cpp,v 1.5 1997-10-08 20:15:48 car Exp $
+// $Id: ViscBndry.cpp,v 1.6 1997-12-11 23:30:26 lijewski Exp $
 //
 
 #include <LO_BCTYPES.H>
 #include <ViscBndry.H>
 
 void ViscBndry::setBndryConds(const BCRec& bc,
-			      const Geometry& geom, IntVect& ratio)
+                              const Geometry& geom, IntVect& ratio)
 {
 
 //  NOTE: ALL BCLOC VALUES ARE NOW DEFINED AS A LENGTH IN PHYSICAL DIMENSIONS
@@ -19,36 +19,36 @@ void ViscBndry::setBndryConds(const BCRec& bc,
     const RealBox& prob_domain = geom.ProbDomain();
 
     for (OrientationIter fi; fi; ++fi) {
-	Orientation face(fi());
-	Array<Real> &bloc = bcloc[face];
-	Array<BoundCond> &bctag = bcond[face];
+        Orientation face(fi());
+        Array<Real> &bloc = bcloc[face];
+        Array<BoundCond> &bctag = bcond[face];
 
-	int dir = face.coordDir();
-	Real delta = dx[dir]*ratio[dir];
-	int p_bc = (face.isLow() ? bc.lo(dir) : bc.hi(dir));
+        int dir = face.coordDir();
+        Real delta = dx[dir]*ratio[dir];
+        int p_bc = (face.isLow() ? bc.lo(dir) : bc.hi(dir));
 
-	for (int i = 0; i < ngrds; i++) {
-	    const Box& grd = grids[i];
+        for (int i = 0; i < ngrds; i++) {
+            const Box& grd = grids[i];
 
-	    if (domain[face] == grd[face] && !geom.isPeriodic(dir)) {
-		  // All physical bc values are located on face
-		if (p_bc == EXT_DIR) {
-		    bctag[i] = LO_DIRICHLET;
-		    bloc[i] = 0.;
-		} else if (p_bc == EXTRAP || p_bc == HOEXTRAP || 
+            if (domain[face] == grd[face] && !geom.isPeriodic(dir)) {
+                  // All physical bc values are located on face
+                if (p_bc == EXT_DIR) {
+                    bctag[i] = LO_DIRICHLET;
+                    bloc[i] = 0.;
+                } else if (p_bc == EXTRAP || p_bc == HOEXTRAP || 
                            p_bc == REFLECT_EVEN) {
-		    bctag[i] = LO_NEUMANN;
-		    bloc[i] = 0.;
-		} else if (p_bc == REFLECT_ODD) {
-		    bctag[i] = LO_REFLECT_ODD;
-		    bloc[i] = 0.;
-		}
-	    } else {
-		  // internal bndry
-		bctag[i] = LO_DIRICHLET;
-		bloc[i] = 0.5*delta;
-	    }
-	}
+                    bctag[i] = LO_NEUMANN;
+                    bloc[i] = 0.;
+                } else if (p_bc == REFLECT_ODD) {
+                    bctag[i] = LO_REFLECT_ODD;
+                    bloc[i] = 0.;
+                }
+            } else {
+                  // internal bndry
+                bctag[i] = LO_DIRICHLET;
+                bloc[i] = 0.5*delta;
+            }
+        }
     }
 }
 

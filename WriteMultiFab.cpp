@@ -1,6 +1,6 @@
 
 //
-// $Id: WriteMultiFab.cpp,v 1.7 1997-09-26 16:57:08 lijewski Exp $
+// $Id: WriteMultiFab.cpp,v 1.8 1997-12-11 23:30:27 lijewski Exp $
 //
 
 #include <WriteMultiFab.H>
@@ -40,13 +40,13 @@ struct TagStruct {
 
 void
 WriteMultiFab(char *filename, const MultiFab &multifab,
-	      Real _H, const BoxList &bs, const Box &container,
-	      int ratio, Real bgValue)
+              Real _H, const BoxList &bs, const Box &container,
+              int ratio, Real bgValue)
 {
     Real H[BL_SPACEDIM];
     int n;
     for(n = 0; n < BL_SPACEDIM; ++n) {
-	H[n] = _H;
+        H[n] = _H;
     }
     WriteMultiFab(filename, multifab, H, bs, container, ratio, bgValue);
 }
@@ -54,8 +54,8 @@ WriteMultiFab(char *filename, const MultiFab &multifab,
 
 void
 WriteMultiFab(char *filename, const MultiFab &multifab,
-	      const Real *H, const BoxList &bs, const Box &container,
-	      int ratio, Real bgValue)
+              const Real *H, const BoxList &bs, const Box &container,
+              int ratio, Real bgValue)
 {
     int i, n, myproc = ParallelDescriptor::MyProc();
     Tuple< Real, BL_SPACEDIM > probLo;
@@ -64,9 +64,9 @@ WriteMultiFab(char *filename, const MultiFab &multifab,
     const int *hi = container.hiVect();
     Real HBG[BL_SPACEDIM];
     for(n = 0; n < BL_SPACEDIM; n++) {
-	probLo[n] = H[n] * lo[n];
-	probHi[n] = H[n] * (hi[n]+1.0);
-	HBG[n] = H[n] * ratio;
+        probLo[n] = H[n] * lo[n];
+        probHi[n] = H[n] * (hi[n]+1.0);
+        HBG[n] = H[n] * ratio;
     }
     Box bxbg(container);
     bxbg.coarsen(ratio);
@@ -120,22 +120,22 @@ WriteMultiFab(char *filename, const MultiFab &multifab,
     ParallelDescriptor::Synchronize();
 
     for(i = 0; i < multifab.length(); i++) {
-	FArrayBox fab(multifab.boxArray()[i], multifab.nComp());
-	multifab.copy(fab);
+        FArrayBox fab(multifab.boxArray()[i], multifab.nComp());
+        multifab.copy(fab);
 
       if(ParallelDescriptor::IOProcessor()) {
 
         os << fab.box() << NL;    // For each grid, dump box
-	os << "1\n";                    //                level
-	os << "0\n";                    //                steps
-	os << "0.0\n";                  //                time
-	for(n = 0; n < BL_SPACEDIM; n++) {
-	    os << probLo[n] << SP      //                probLo
+        os << "1\n";                    //                level
+        os << "0\n";                    //                steps
+        os << "0.0\n";                  //                time
+        for(n = 0; n < BL_SPACEDIM; n++) {
+            os << probLo[n] << SP      //                probLo
                << probHi[n] << NL;    //                probHi
-	} // endfor: dimension
+        } // endfor: dimension
 
-	//multifab.copy(fab);
-	fab.writeOn(os);
+        //multifab.copy(fab);
+        fab.writeOn(os);
 
 
       }  // end if(ParallelDescriptor::IOProcessor())

@@ -3,7 +3,7 @@
 #define WRITEMULTIFAB_H
 
 //
-// $Id: WriteMultiFab.H,v 1.3 1997-09-26 16:57:08 lijewski Exp $
+// $Id: WriteMultiFab.H,v 1.4 1997-12-11 23:30:27 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -19,12 +19,12 @@
 
 void
 WriteMultiFab(char *filename, const MultiFab &phi,
-	      Real H, const BoxList& bs, const Box &container,
-	      int ratio=2, Real bgValue=0.0);
+              Real H, const BoxList& bs, const Box &container,
+              int ratio=2, Real bgValue=0.0);
 
 void
 WriteMultiFab(char *filename, const MultiFab &phi,
-	      const Real* H, const BoxList& bs, const Box &container,
-	      int ratio=2, Real bgValue=0.0);
+              const Real* H, const BoxList& bs, const Box &container,
+              int ratio=2, Real bgValue=0.0);
 
 #endif /*WRITEMULTIFAB_H*/

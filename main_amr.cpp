@@ -1,6 +1,6 @@
 
 //
-// $Id: main_amr.cpp,v 1.6 1997-10-01 01:03:22 car Exp $
+// $Id: main_amr.cpp,v 1.7 1997-12-11 23:30:36 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -11,7 +11,11 @@ DOUBLE PRECISION NOT ALLOWED ON CRAY
 
 #ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
+#include <new>
+using std::setprecision;
+using std::set_new_handler;
 #else
+#include <new.h>
 #include <stdlib.h>
 #endif
 
@@ -35,11 +39,23 @@ void   print_usage(int, char **);
 
 const int NPROCS = 1;
 
+static
+void
+OutOfMemory ()
+{
+    BoxLib::Error("Sorry, out of memory, bye ...");
+}
+
 // ###################################################################
 // ##### MAIN PROGRAM
 // ###################################################################
 main(int argc, char *argv[])
 {
+    //
+    // Make sure to catch new failures.
+    //
+    set_new_handler(OutOfMemory);
+
     cout << setprecision(10);
 
     // -------------------------------------------------
@@ -89,9 +105,8 @@ main(int argc, char *argv[])
     // -------------------------------------------------
     while (amrptr->okToContinue() &&
            amrptr->levelSteps(0) < max_step &&
-	   amrptr->cumTime() < stop_time) {
-
-        // do a timestep
+           amrptr->cumTime() < stop_time)
+    {
         amrptr->coarseTimeStep(stop_time);
     }
 

@@ -2,7 +2,7 @@
 #define _HG_MULTI_H_
 
 //
-// $Id: hg_multi.H,v 1.9 1997-10-08 20:15:52 car Exp $
+// $Id: hg_multi.H,v 1.10 1997-12-11 23:30:31 lijewski Exp $
 //
 
 #include <amr_multi.H>
@@ -25,7 +25,7 @@ class holy_grail_interpolator_class
   holy_grail_interpolator_class(Real **Sigptr, const Box& Sigbox)
     : sigptr(Sigptr), sigbox(Sigbox) { }
   void fill(FArrayBox& patch, const Box& region,
-	    FArrayBox& cgr, const Box& cb, const IntVect& rat) const;
+            FArrayBox& cgr, const Box& cb, const IntVect& rat) const;
 };
 
 #  else
@@ -40,7 +40,7 @@ class holy_grail_interpolator_class
   holy_grail_interpolator_class(Real *Sigptr, const Box& Sigbox)
     : sigptr(Sigptr), sigbox(Sigbox) { }
   void fill(FArrayBox& patch, const Box& region,
-	    FArrayBox& cgr, const Box& cb, const IntVect&) const;
+            FArrayBox& cgr, const Box& cb, const IntVect&) const;
 };
 
 #  endif
@@ -51,7 +51,7 @@ class holy_grail_sigma_restrictor_class
  public:
   holy_grail_sigma_restrictor_class() { }
   void fill(FArrayBox& patch, const Box& region,
-	    FArrayBox& fgr, const IntVect& rat) const;
+            FArrayBox& fgr, const IntVect& rat) const;
 };
 
 const holy_grail_sigma_restrictor_class holy_grail_sigma_restrictor;
@@ -118,13 +118,13 @@ class holy_grail_amr_multigrid
   void mg_restrict_level(int lto, int lfrom);
   void interface_residual(int mglev, int lev);
   void level_residual(MultiFab& r,
-		      MultiFab& s,
-		      MultiFab& d,
+                      MultiFab& s,
+                      MultiFab& d,
 #ifdef HG_USE_CACHE
-		      copy_cache* dbc,
+                      copy_cache* dbc,
 #endif
-		      int mglev,
-		      int iclear = 1);
+                      int mglev,
+                      int iclear = 1);
   void relax(int mglev, int i1, int is_zero);
   void cgsolve(int mglev);
 
@@ -133,12 +133,12 @@ class holy_grail_amr_multigrid
  public:
 
   holy_grail_amr_multigrid(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
-			   const Box& fdomain,
-			   int Lev_min_min, int Lev_min_max, int Lev_max_max,
-			   const amr_fluid_boundary_class& Boundary, int Pcode,
-			   bool cache_)
+                           const Box& fdomain,
+                           int Lev_min_min, int Lev_min_max, int Lev_max_max,
+                           const amr_fluid_boundary_class& Boundary, int Pcode,
+                           bool cache_)
     : amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
-		    Boundary.pressure(), Pcode),
+                    Boundary.pressure(), Pcode),
       boundary(Boundary), smoother_mode(2), line_solve_dim(-1),
       cache(cache_)
   {
@@ -146,9 +146,9 @@ class holy_grail_amr_multigrid
   }
 
   void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
-	     PArray<MultiFab>& Coarse_source,
-	     PArray<MultiFab>& Sigma, Real H[],
-	     int Lev_min, int Lev_max);
+             PArray<MultiFab>& Coarse_source,
+             PArray<MultiFab>& Sigma, Real H[],
+             int Lev_min, int Lev_max);
   void clear();
 
   int smoother_mode;
