@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ProjOutFlowBC.cpp,v 1.8 1999-11-17 23:13:35 propp Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.9 1999-11-23 21:04:56 propp Exp $
 //
 
 #include "ProjOutFlowBC.H"
@@ -160,7 +160,13 @@ ProjOutFlowBC::computeProjBC(FArrayBox& velFab, FArrayBox& divuFab,
   int R_DIR = 0;
   int Z_DIR = 1;
   int perpDir = (outDir == Z_DIR) ? R_DIR : Z_DIR;
-  Box region = Box(::adjCell(domain,outFace,1)).shift(outDir, -1);
+  Box region = Box(::adjCell(domain,outFace,1));
+  if (outFace.faceDir() == Orientation::high)
+    {
+      region.shift(outDir, -1);
+    } else {
+      region.shift(outDir, 1);
+    }
   int r_lo=region.smallEnd(perpDir);
   int r_hi=region.bigEnd(perpDir);
 
