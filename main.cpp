@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.17 1997-12-22 23:12:04 car Exp $
+// $Id: main.cpp,v 1.18 1998-01-12 22:23:14 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -60,7 +60,9 @@ main (int   argc,
     //
     // Make sure to catch new failures.
     //
+#ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
+#endif
 
     TRACER("amr");
     cout << setprecision(10);

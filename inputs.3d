@@ -63,8 +63,8 @@ ns.gravity        = 0.0      # body force  (no gravity)
 ns.anelastic      = 0        # 0 => no anelastic approx
 #ns.fixed_dt	  = 06.37755     # hardwire dt
 ns.sum_interval   = 1        # timesteps between computing mass
-ns.do_sync_proj   = 1        # 1 => do Sync Project
 ns.do_sync_proj   = 0        # 1 => do Sync Project
+ns.do_sync_proj   = 1        # 1 => do Sync Project
 ns.do_reflux      = 1        # 1 => do refluxing
 ns.do_reflux      = 0        # 1 => do refluxing
 ns.do_mac_proj    = 1        # 1 => do MAC projection
