@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.63 1999-02-03 21:55:55 lijewski Exp $
+// $Id: Projection.cpp,v 1.64 1999-02-24 01:56:10 propp Exp $
 //
 
 #ifdef BL_T3E
@@ -1665,19 +1665,20 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 
         mfi().copy(dmfi());
 
-#if (BL_SPACEDIM == 3)
-        Real divumin = dmfi().min();
-        Real divumax = dmfi().max();
-        if (divumin != divumax || divumin != 0.0) 
-        {
-            if (ParallelDescriptor::IOProcessor())
-            {
-                cout << "Projection::put_divu_in_cc_rhs: not yet "
-                     << "implemented for 3-d, non-zero divu\n";
-            }
-            BoxLib::Abort();
-        }
-#endif
+	// This should be ok in 3D
+	//#if (BL_SPACEDIM == 3)
+        //Real divumin = dmfi().min();
+        //Real divumax = dmfi().max();
+        //if (divumin != divumax || divumin != 0.0) 
+	  //{
+	  //            if (ParallelDescriptor::IOProcessor())
+          //  {
+	  //     cout << "Projection::put_divu_in_cc_rhs: not yet "
+	  //          << "implemented for 3-d, non-zero divu\n";
+	  // }
+	  // BoxLib::Abort();
+	  // }
+	//#endif
     }
 
     delete divu;

@@ -1,5 +1,5 @@
 //
-// $Id: ViscBndryTensor.cpp,v 1.1 1999-02-18 18:22:18 sstanley Exp $
+// $Id: ViscBndryTensor.cpp,v 1.2 1999-02-24 01:56:11 propp Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -10,11 +10,7 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
                                 int          ratio,
                                 int          comp)
 {
-#if BL_SPACEDIM == 2
-    assert(comp < 2*2);     // u and v, plus derivs of same
-#elif BL_SPACEDIM == 3
-    assert(comp < 3*(3+1)); // u and v, plus derivs of same
-#endif
+    assert (comp < MCLinOp::bcComponentsNeeded());
 
     const REAL* dx     = geom.CellSize();
     const BOX&  domain = geom.Domain();
@@ -25,11 +21,7 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
         Array< Array<BoundCond> >& bctag = bcond[fi()];
 
         int dir = fi().coordDir();
-#if 0
-	Real delta = dx[dir]*ratio[dir];
-#else
 	Real delta = dx[dir]*ratio;
-#endif
         int p_bc = fi().isLow() ? bc.lo(dir): bc.hi(dir);
 
         for (int i = 0; i < boxes().length(); i++)

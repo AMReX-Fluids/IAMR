@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.68 1999-02-24 01:02:38 marc Exp $
+// $Id: Diffusion.cpp,v 1.69 1999-02-24 01:56:10 propp Exp $
 //
 
 //
@@ -1653,19 +1653,20 @@ Diffusion::getTensorOp (Real                   a,
     const Real* dx    = caller->Geom().CellSize();
     const Box& domain = caller->Geom().Domain();
 
-    Array<BCRec> bcarray(2*BL_SPACEDIM);
+    int nDer = MCLinOp::bcComponentsNeeded();
+    Array<BCRec> bcarray(nDer,BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+				    D_DECL(EXT_DIR,EXT_DIR,EXT_DIR)));
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++)
     {
-        bcarray[idim] = caller->get_desc_lst()[State_Type].getBC(Xvel+idim);
-        bcarray[idim+BL_SPACEDIM] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-                                          D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+      bcarray[idim] = caller->get_desc_lst()[State_Type].getBC(Xvel+idim);
     }
 
     IntVect ref_ratio = level > 0 ? parent->refRatio(level-1) : IntVect::TheUnitVector();
 
     ViscBndryTensor bndry;
-    bndry.define(grids,2*BL_SPACEDIM,caller->Geom());
+    //bndry.define(grids,2*BL_SPACEDIM,caller->Geom());
+    bndry.define(grids,nDer,caller->Geom());
     bndry.setHomogValues(bcarray, ref_ratio[0]);
     DivVis* tensor_op = new DivVis(bndry,dx);
     tensor_op->maxOrder(tensor_max_order);
@@ -2451,16 +2452,16 @@ Diffusion::getTensorBndryData(
     //
     // Create the BCRec's interpreted by ViscBndry objects
     //
-    Array<BCRec> bcarray(2*BL_SPACEDIM);
+    int nDer = MCLinOp::bcComponentsNeeded();
+    Array<BCRec> bcarray(nDer, BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+				     D_DECL(EXT_DIR,EXT_DIR,EXT_DIR)));
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++)
     {
-        bcarray[idim] = caller->get_desc_lst()[State_Type].getBC(src_comp+idim);
-        bcarray[idim+BL_SPACEDIM] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-                                          D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+      bcarray[idim] = caller->get_desc_lst()[State_Type].getBC(src_comp+idim);
     }
-
-    bndry.define(grids,2*num_comp,caller->Geom());
+    //bndry.define(grids,2*num_comp,caller->Geom());
+    bndry.define(grids,nDer,caller->Geom());
 
     MultiFab& S = caller->get_data(State_Type,time);
     S.FillBoundary(src_comp,num_comp);
