@@ -1,4 +1,4 @@
-// $Id: NavierStokes.cpp,v 1.7 1997-07-28 21:39:54 vince Exp $
+// $Id: NavierStokes.cpp,v 1.8 1997-07-30 16:29:33 car Exp $
 
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -332,12 +332,16 @@ NavierStokes::NavierStokes(Amr& papa, int lev, const Geometry &level_geom,
     aofs  = 0;
 
     // set up the level projector
-    if (projector == 0) {
-        projector = new Projection(parent,&phys_bc,
-				 do_sync_proj,parent->finestLevel(),
-				 radius_grow );
+    if ( do_MLsync_proj || do_sync_proj )
+    {
+	if (projector == 0)
+	{
+	    projector = new Projection(parent,&phys_bc,
+				     do_sync_proj,parent->finestLevel(),
+				     radius_grow );
+	}
+	projector->install_level(level, this, &radius );
     }
-    projector->install_level(level, this, &radius );
 
     // set up the godunov box
     SetGodunov();
@@ -566,12 +570,15 @@ NavierStokes::restart(Amr& papa, istream& is)
 {
     AmrLevel::restart(papa,is);
 
-    if (projector == 0) {
-      projector = new Projection(parent,&phys_bc,
-				 do_sync_proj,parent->finestLevel(),
-				 radius_grow );
+    if ( do_MLsync_proj || do_sync_proj )
+    {
+	if (projector == 0) {
+	  projector = new Projection(parent,&phys_bc,
+				     do_sync_proj,parent->finestLevel(),
+				     radius_grow );
+	}
+	projector->install_level(level, this, &radius );
     }
-    projector->install_level(level, this, &radius );
 
     // set the godunov box
     SetGodunov();
@@ -1335,7 +1342,8 @@ REAL NavierStokes::advance(REAL time, REAL dt, int iteration, int ncycle)
     
     // do a level project to update the pressure and velocity fields
     if (!initial_step) {
-        level_projector(dt,time,iteration);
+	if ( projector )
+	    level_projector(dt,time,iteration);
         if (level > 0) {
             REAL alpha = 1.0/ (REAL) ncycle;
             incrPAvg(iteration,alpha);
@@ -3665,7 +3673,8 @@ void NavierStokes::post_regrid(int lbase, int new_finest)
 {
     AmrLevel & amr_level = getLevel(level);
     int finest_level = parent->finestLevel();
-    if (level == lbase) projector->setFinestLevel(new_finest);
+    if ( projector )
+	if (level == lbase) projector->setFinestLevel(new_finest);
 }
 
 // ensure state, and pressure are consistent
@@ -3795,7 +3804,8 @@ void NavierStokes::post_init_state()
     } else {
         divu_time = pres_time;
     }
-    projector->initialVelocityProject(0,divu_time,have_divu);
+    if ( projector )
+	projector->initialVelocityProject(0,divu_time,have_divu);
     NavierStokes::initial_step = true;
     
     // average velocity and scalar data down from finer levels
@@ -3839,7 +3849,8 @@ void NavierStokes::post_init_press( REAL &dt_init,
         }
 
         REAL dt_crse = parent->dtLevel(0);
-	projector->initialSyncProject(0,sig,dt_crse,strt_time,
+	if ( projector )
+	    projector->initialSyncProject(0,sig,dt_crse,strt_time,
                                       dt_init,have_divu);
 
         delete sig;
@@ -4199,7 +4210,8 @@ void NavierStokes::level_sync()
     
     // ================================ Multilevel Sync projection
     // ================================ or single level
-    if (do_MLsync_proj) {
+    if (do_MLsync_proj)
+    {
         
         MultiFab& vel_fine          = fine_level.get_new_data(State_Type);
         MultiFab& rho_fine          = *fine_level.rho_avg;
@@ -4254,7 +4266,9 @@ void NavierStokes::level_sync()
         }
         delete[] fine_sync_bc;
         
-    } else {
+    }
+    else if ( do_sync_proj) 
+    {
         
         const BoxArray& P_grids = pres.boxArray();
         BoxArray sync_boxes     = pres_fine.boxArray();
