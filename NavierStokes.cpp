@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.116 1999-02-26 22:22:04 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.117 1999-03-02 01:03:42 propp Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -5036,7 +5036,9 @@ NavierStokes::compute_grad_divu_minus_s (Real      time,
                                         parent->dtLevel(0));
         }
     }
-#endif /*BL_SPACEDIM==2*/
+#else
+    BoxLib::Error("compute_grad_div_u_minus_s not implemented in 3d");
+#endif 
 }
 
 //

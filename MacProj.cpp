@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.42 1999-02-26 18:53:12 propp Exp $
+// $Id: MacProj.cpp,v 1.43 1999-03-02 01:03:42 propp Exp $
 //
 
 #include <Misc.H>
@@ -39,6 +39,69 @@ const Real* fabdat = (fab).dataPtr();
 
 #define GEOM_GROW 1
 #define HYP_GROW 3
+
+// note: this is a temporary function.  Eventually this will be moved to a 
+// boundary condition class.
+static
+void
+getOutFlowFace(bool& haveOutFlow, Orientation& outFace, BCRec* _phys_bc)
+{
+
+  haveOutFlow = false;
+  int numOutFlowBC = 0;
+  for (int idir = 0; idir < BL_SPACEDIM; idir++) {
+
+    if (_phys_bc->lo(idir) == Outflow) {
+      haveOutFlow = true;
+      outFace = Orientation(idir,Orientation::low);
+      numOutFlowBC++;
+    }
+
+    if (_phys_bc->hi(idir) == Outflow) {
+      haveOutFlow = true;
+      outFace = Orientation(idir,Orientation::high);
+      numOutFlowBC++;
+    }
+
+  }
+
+  if (numOutFlowBC > 1) {
+    BoxLib::Error("currently only allowed one outflow bc");
+  }
+
+}
+
+
+// note: this is a temporary function.  Eventually this will be moved to a 
+// boundary condition class.
+static
+bool
+hasOutFlowBC(BCRec* _phys_bc)
+{
+
+  bool has_out_flow = false;
+  int numOutFlowBC = 0;
+  for (int idir = 0; idir < BL_SPACEDIM; idir++) {
+
+    if (_phys_bc->lo(idir) == Outflow) {
+      has_out_flow = true;
+      numOutFlowBC++;
+    }
+
+    if (_phys_bc->hi(idir) == Outflow) {
+      has_out_flow = true;
+      numOutFlowBC++;
+    }
+
+  }
+
+  if (numOutFlowBC > 1) {
+    BoxLib::Error("currently only allowed one outflow bc");
+  }
+
+  return has_out_flow;
+}
+
 
 int  MacProj::verbose          = 0;
 int  MacProj::use_cg_solve     = 0;
@@ -290,18 +353,12 @@ MacProj::mac_project (int             level,
 
     mac_phi->setVal(0.0);
 
-#if (BL_SPACEDIM == 2)
-    int outflow_at_top = phys_bc->lo(0) != Outflow && phys_bc->lo(1) != Outflow && 
-        phys_bc->hi(0) != Outflow && phys_bc->hi(1) == Outflow;
-    const Orientation outFace(1,Orientation::high);
-    if (outflow_at_top &&
+    if (hasOutFlowBC(phys_bc) &&
         have_divu      &&
-        do_outflow_bcs &&
-        grids_on_side_of_domain(grids,geom.Domain(),outFace))
+        do_outflow_bcs)
     {
         set_outflow_bcs(level, mac_phi, u_mac, S, divu);
     }
-#endif
 
     //
     // Store the Dirichlet boundary condition for mac_phi in mac_bndry.
@@ -970,7 +1027,17 @@ MacProj::set_outflow_bcs (int             level,
     // generalize, however).
     //
 #if (BL_SPACEDIM == 2)
+    const BoxArray& grids = LevelData[level].boxArray();
+    const Geometry& geom  = parent->Geom(level);
     const Orientation outFace(1, Orientation::high);
+    if ( !grids_on_side_of_domain(grids,geom.Domain(),outFace)) 
+      return;
+    
+    // make sure outflow only occurs at yhi faces
+    bool hasOutFlow;
+    Orientation _outFace;
+    getOutFlowFace(hasOutFlow,_outFace,phys_bc);
+    assert(_outFace == outFace);
 
     const int rzflag  = CoordSys::IsRZ();
     const Real* dx    = parent->Geom(level).CellSize();
@@ -1043,6 +1110,9 @@ MacProj::set_outflow_bcs (int             level,
         }
     }
 #else
-    BoxLib::Error("MacProj::set_outflow_bcs(): not implemented yet for 3D");
+    BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
 #endif
 }
+
+
+

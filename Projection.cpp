@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.73 1999-03-01 23:58:24 almgren Exp $
+// $Id: Projection.cpp,v 1.74 1999-03-02 01:03:43 propp Exp $
 //
 
 #ifdef BL_T3E
@@ -68,6 +68,68 @@ Copy (MultiFab& dst,
 	}
     }
 }
+
+// note: this is a temporary function.  Eventually this will be moved to a 
+// boundary condition class.
+static
+void
+getOutFlowFace(bool& haveOutFlow, Orientation& outFace, BCRec* _phys_bc)
+{
+
+  haveOutFlow = false;
+  int numOutFlowBC = 0;
+  for (int idir = 0; idir < BL_SPACEDIM; idir++) {
+
+    if (_phys_bc->lo(idir) == Outflow) {
+      haveOutFlow = true;
+      outFace = Orientation(idir,Orientation::low);
+      numOutFlowBC++;
+    }
+
+    if (_phys_bc->hi(idir) == Outflow) {
+      haveOutFlow = true;
+      outFace = Orientation(idir,Orientation::high);
+      numOutFlowBC++;
+    }
+
+  }
+
+  if (numOutFlowBC > 1) {
+    BoxLib::Error("currently only allowed one outflow bc");
+  }
+
+}
+
+// note: this is a temporary function.  Eventually this will be moved to a 
+// boundary condition class.
+static
+bool
+hasOutFlowBC(BCRec* _phys_bc)
+{
+
+  bool has_out_flow = false;
+  int numOutFlowBC = 0;
+  for (int idir = 0; idir < BL_SPACEDIM; idir++) {
+
+    if (_phys_bc->lo(idir) == Outflow) {
+      has_out_flow = true;
+      numOutFlowBC++;
+    }
+
+    if (_phys_bc->hi(idir) == Outflow) {
+      has_out_flow = true;
+      numOutFlowBC++;
+    }
+
+  }
+
+  if (numOutFlowBC > 1) {
+    BoxLib::Error("currently only allowed one outflow bc");
+  }
+
+  return has_out_flow;
+}
+
 
 #define BogusValue 1.e20
 #define MAX_LEV 10
@@ -339,16 +401,11 @@ Projection::level_project (int             level,
     //
     // Set up outflow bcs, BEFORE manipulating state, pressure data.
     //
-#if (BL_SPACEDIM == 2)
-    int outflow_at_top = (phys_bc->lo(0) != Outflow &&
-			  phys_bc->lo(1) != Outflow &&
-			  phys_bc->hi(0) != Outflow &&
-			  phys_bc->hi(1) == Outflow);
-    if (outflow_at_top && have_divu && do_outflow_bcs) 
+
+    if(hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) 
     {
 	set_level_projector_outflow_bcs(level,time+dt,P_new);
     }
-#endif
 
     //
     // Convert Unew to Ustar/dt or (Ustar-Un)/dt and Pnew to an update.
@@ -1271,16 +1328,11 @@ Projection::initialVelocityProject (int  c_lev,
     //
     // Set up outflow bcs.
     //
-#if (BL_SPACEDIM == 2)
-    int outflow_at_top = (phys_bc->lo(0) != Outflow &&
-                          phys_bc->lo(1) != Outflow && 
-                          phys_bc->hi(0) != Outflow &&
-                          phys_bc->hi(1) == Outflow);
-    if (outflow_at_top && have_divu && do_outflow_bcs)
+
+    if (hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)
     {
         set_initial_projection_outflow_bcs(vel,sig,phi,c_lev,cur_divu_time);
     }
-#endif
 
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
@@ -1510,16 +1562,6 @@ Projection::initialSyncProject (int       c_lev,
                     dsdt_it().minus(divu_it());
                 dsdt_it().divide(dt);
                 mfi().copy(dsdt_it());
-#if (BL_SPACEDIM == 3)
-                Real mindsdt = dsdt_it().min();
-                Real maxdsdt = dsdt_it().max();
-                if (mindsdt != maxdsdt || mindsdt != 0.0) 
-                {
-                    cout << "Projection::initialSyncProject: WARNING not yet "
-                         << "implemented for 3-d, non-zero divu\n";
-                    BoxLib::Abort();
-                }
-#endif
             }
 
             delete divu;
@@ -1537,16 +1579,11 @@ Projection::initialSyncProject (int       c_lev,
         P_old.setVal(0);
     }
 
-#if (BL_SPACEDIM == 2)
-    int outflow_at_top = phys_bc->lo(0) != Outflow &&
-                         phys_bc->lo(1) != Outflow && 
-                         phys_bc->hi(0) != Outflow &&
-                         phys_bc->hi(1) == Outflow; 
-    if (outflow_at_top && have_divu && do_outflow_bcs) 
+    if (hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) 
     {
         set_initial_syncproject_outflow_bcs(phi,c_lev,strt_time,dt);
     }
-#endif
+
     //
     // Set velocity bndry values to bogus values.
     //
@@ -2171,6 +2208,13 @@ Projection::set_level_projector_outflow_bcs (int       level,
     //        one, since they all do roughly the same thing.
     //
 #if (BL_SPACEDIM == 2)
+    // make sure out flow only occurs at yhi faces
+    const Orientation outFace(1, Orientation::high);
+    bool hasOutFlow;
+    Orientation _outFace;
+    getOutFlowFace(hasOutFlow,_outFace,phys_bc);
+    assert(_outFace == outFace);
+
     const Real* dx         = parent->Geom(level).CellSize();
     const Box& domain      = parent->Geom(level).Domain();
     const int outDir       = 1;
@@ -2236,7 +2280,7 @@ Projection::set_level_projector_outflow_bcs (int       level,
 
     phi.copy(phi_fine_strip);
 #else
-    BoxLib::Error("Projection::set_level_projector_outflow_bcs not implemented yet for 3D");
+    BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
 #endif
 }
 
@@ -2264,6 +2308,14 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
     // FIXME: vel and sig unused here.  We needed a filpatch operation, so pulled data from
     //        the state (presumably is where vel, sig from anyway).  sig is poorly named, and
     //        we need other stuff as well, so we should probably just remove sig and vel from args
+
+    // make sure out flow only occurs at yhi faces
+    const Orientation outFace(1, Orientation::high);
+    bool hasOutFlow;
+    Orientation _outFace;
+    getOutFlowFace(hasOutFlow,_outFace,phys_bc);
+    assert(_outFace == outFace);
+
     const int f_lev  = finest_level;
 
     assert(c_lev == 0);
@@ -2369,7 +2421,7 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
         phi[lev]->copy(phi_crse_strip);
     }
 #else
-    BoxLib::Error("Projection::set_initial_projection_outflow_bcs(): not implented yet for 3D");
+    BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
 #endif
 }
 
@@ -2386,6 +2438,14 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
     // What we do is similar to what we do in set_initial_projection_outflow_bcs
     // except that we work with time derivatives of U and S.
     //
+
+    // make sure out flow only occurs at yhi faces
+    const Orientation outFace(1, Orientation::high);
+    bool hasOutFlow;
+    Orientation _outFace;
+    getOutFlowFace(hasOutFlow,_outFace,phys_bc);
+    assert(_outFace == outFace);
+
     const int f_lev = finest_level;
 
     assert(c_lev == 0);
@@ -2511,7 +2571,7 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
         phi[lev]->copy(phi_crse_strip);
     }
 #else
-    BoxLib::Error("Projection::set_initial_syncproject_outflow_bcs(): not implented yet for 3D");
+    BoxLib::Error("outflow bc not implemented in 3D");
 #endif
 }
 
@@ -2666,3 +2726,4 @@ Projection::initialVorticityProject (int c_lev)
     BoxLib::Error("Projection::initialVorticityProject(): not implented yet for 3D");
 #endif
 }
+
