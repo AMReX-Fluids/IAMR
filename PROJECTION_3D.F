@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.8 1999-03-01 18:38:37 propp Exp $
+c $Id: PROJECTION_3D.F,v 1.9 1999-03-05 01:17:21 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -345,24 +345,21 @@ c ::: mult       => scalar multiplicative factor
 c ::: -----------------------------------------------------------
 
       subroutine FORT_FILTRHS(phi,DIMS(phi),sigma,DIMS(sigma),
-     &                        u,DIMS(u),divgp,DIMS(divgp),
+     &                        divgp,DIMS(divgp),
      &                        lo,hi,dx,mult,is_rz)
 
       integer    DIMDEC(phi)
       integer    DIMDEC(sigma)
-      integer    DIMDEC(u)
       integer    DIMDEC(divgp)
       integer    lo(SDIM), hi(SDIM)
       REAL_T     dx(SDIM), mult
       REAL_T     phi(DIMV(phi))
       REAL_T     sigma(DIMV(sigma))
-      REAL_T     u(DIMV(u),SDIM)
       REAL_T     divgp(DIMV(divgp))
       integer    is_rz
 
       integer    i, j, k, lenx, leny, lenz
       REAL_T     p1, p2, p3, p4, p5, p6, p7, p8, denom
-      REAL_T     ux, vy, wz
 
 c     NOTE: the factor of mult here accounts for the fact that one
 c           takes ratio time steps on the fine grid for every one
@@ -417,19 +414,6 @@ c check and make sure dx == dy == dz
      &             - three*phi(i-1,j-1,k-1) - nine*phi(i,j,k) )
                divgp(i,j,k) = denom*(p1+p2+p3+p4+p5+p6+p7+p8)
 
-               ux = fourth/dx(1) * (
-     $          (u(i,j,k,1) + u(i,j,k-1,1) + u(i,j-1,k,1) + u(i,j-1,k-1,1)) -
-     $          (u(i-1,j,k,1) + u(i-1,j,k-1,1) + 
-     $           u(i-1,j-1,k,1) + u(i-1,j-1,k-1,1)) )
-               vy = fourth/dx(2) * (
-     $          (u(i,j,k,2) + u(i,j,k-1,2) + u(i-1,j,k,2) + u(i-1,j,k-1,2)) -
-     $          (u(i,j-1,k,2) + u(i,j-1,k-1,2) + 
-     $           u(i-1,j-1,k,2) + u(i-1,j-1,k-1,2)) )
-               wz = fourth/dx(3) * (
-     $          (u(i,j,k,3) + u(i-1,j,k,3) + u(i,j-1,k,3) + u(i-1,j-1,k,3)) -
-     $          (u(i,j,k-1,3) + u(i-1,j,k-1,3) + 
-     $           u(i,j-1,k-1,3) + u(i-1,j-1,k-1,3)) )
-               divgp(i,j,k) = divgp(i,j,k) + ux + vy + wz
             end do
           end do
          end do
@@ -471,20 +455,6 @@ c check and make sure dx == dy == dz
      &             - three*phi(i-1,j-1,k-1) - nine*phi(i,j,k) )
                divgp(i,j,k) = denom*(p1+p2+p3+p4+p5+p6+p7+p8)
 
-               ux = fourth/dx(1) * (
-     $          (u(i,j,k,1) + u(i,j,k-1,1) + u(i,j-1,k,1) + u(i,j-1,k-1,1)) -
-     $          (u(i-1,j,k,1) + u(i-1,j,k-1,1) + 
-     $           u(i-1,j-1,k,1) + u(i-1,j-1,k-1,1)) )
-               vy = fourth/dx(2) * (
-     $          (u(i,j,k,2) + u(i,j,k-1,2) + u(i-1,j,k,2) + u(i-1,j,k-1,2)) -
-     $          (u(i,j-1,k,2) + u(i,j-1,k-1,2) + 
-     $           u(i-1,j-1,k,2) + u(i-1,j-1,k-1,2)) )
-               wz = fourth/dx(3) * (
-     $          (u(i,j,k,3) + u(i-1,j,k,3) + u(i,j-1,k,3) + u(i-1,j-1,k,3)) -
-     $          (u(i,j,k-1,3) + u(i-1,j,k-1,3) + 
-     $           u(i,j-1,k-1,3) + u(i-1,j-1,k-1,3)) )
-               divgp(i,j,k) = divgp(i,j,k) + ux + vy + wz
-
             end do
           end do
          end do
@@ -525,20 +495,6 @@ c check and make sure dx == dy == dz
      &             - phi(i-1,j-1,k) - phi(i,j-1,k-1) - phi(i-1,j,k-1) 
      &             - three*phi(i-1,j-1,k-1) - nine*phi(i,j,k) )
                divgp(i,j,k) = denom*(p1+p2+p3+p4+p5+p6+p7+p8)
-
-               ux = fourth/dx(1) * (
-     $          (u(i,j,k,1) + u(i,j,k-1,1) + u(i,j-1,k,1) + u(i,j-1,k-1,1)) -
-     $          (u(i-1,j,k,1) + u(i-1,j,k-1,1) + 
-     $           u(i-1,j-1,k,1) + u(i-1,j-1,k-1,1)) )
-               vy = fourth/dx(2) * (
-     $          (u(i,j,k,2) + u(i,j,k-1,2) + u(i-1,j,k,2) + u(i-1,j,k-1,2)) -
-     $          (u(i,j-1,k,2) + u(i,j-1,k-1,2) + 
-     $           u(i-1,j-1,k,2) + u(i-1,j-1,k-1,2)) )
-               wz = fourth/dx(3) * (
-     $          (u(i,j,k,3) + u(i-1,j,k,3) + u(i,j-1,k,3) + u(i-1,j-1,k,3)) -
-     $          (u(i,j,k-1,3) + u(i-1,j,k-1,3) + 
-     $           u(i,j-1,k-1,3) + u(i-1,j-1,k-1,3)) )
-               divgp(i,j,k) = divgp(i,j,k) + ux + vy + wz
 
             end do
           end do

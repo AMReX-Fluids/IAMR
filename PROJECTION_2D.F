@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.17 1999-02-26 22:22:06 almgren Exp $
+c $Id: PROJECTION_2D.F,v 1.18 1999-03-05 01:17:21 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -714,18 +714,16 @@ c ::: mult       => scalar multiplicative factor
 c ::: -----------------------------------------------------------
 
       subroutine FORT_FILTRHS(phi,DIMS(phi),sigma,DIMS(sigma),
-     &                        u,DIMS(u),divgp,DIMS(divgp),
+     &                        divgp,DIMS(divgp),
      &                        lo,hi,dx,mult,is_rz)
 
       integer    DIMDEC(phi)
       integer    DIMDEC(sigma)
-      integer    DIMDEC(u)
       integer    DIMDEC(divgp)
       integer    lo(SDIM), hi(SDIM)
       REAL_T     dx(SDIM), mult
       REAL_T     phi(DIMV(phi))
       REAL_T     sigma(DIMV(sigma))
-      REAL_T     u(DIMV(u),SDIM)
       REAL_T     divgp(DIMV(divgp))
       integer    is_rz
       
@@ -733,7 +731,7 @@ c ::: -----------------------------------------------------------
       REAL_T     p1, p2, p3, p4, denom
       REAL_T     rminv,rpinv,fac
       REAL_T     gpy_ul,gpy_ur,gpy_ll,gpy_lr
-      REAL_T     pext,vext,ux,vy
+      REAL_T     pext
 
 #if BL_PRVERSION==9
 c     FOR NINE-POINT STENCIL
@@ -757,14 +755,6 @@ c     FOR FIVE-POINT STENCIL
      &                           +phi(i+1,j)   - phi(i  ,j  ))
             divgp(i,j) = denom*(p1+p2+p3+p4)
          enddo
-      enddo
-
-      do j = lo(2), hi(2)
-      do i = lo(1), hi(1)
-        ux = half*(u(i,j,1)-u(i-1,j,1)+u(i,j-1,1)-u(i-1,j-1,1))/dx(1)
-        vy = half*(u(i,j,2)-u(i,j-1,2)+u(i-1,j,2)-u(i-1,j-1,2))/dx(2)
-        divgp(i,j) = divgp(i,j) + ux + vy
-      enddo
       enddo
 
       if (is_rz .eq. 1) then
@@ -803,19 +793,6 @@ c        here we subtract it since we want D G^perp phi
            vext =  (gpy_lr - gpy_ur)*rpinv 
      $            +(gpy_ul - gpy_ll)*rminv
            divgp(i,j) = divgp(i,j) - vext
-        enddo
-        enddo
-
-        fac = one / (twelve * dx(2))
-        do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-          rminv = fac / (dfloat(i)-half)
-          rpinv = fac / (dfloat(i)+half)
-
-          vext = (u(i  ,j-1,2) - u(i  ,j  ,2))*rpinv 
-     $          +(u(i-1,j  ,2) - u(i-1,j-1,2))*rminv
-   
-          divgp(i,j) = divgp(i,j) + vext
         enddo
         enddo
 
