@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.16 1997-09-25 00:32:23 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.17 1997-09-25 16:16:48 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1013,7 +1013,7 @@ void NavierStokes::init()
     NavierStokes& old = getLevel(level-1);
     REAL cur_time  = old.state[State_Type].curTime();
     REAL prev_time = old.state[State_Type].prevTime();
-    REAL dt_old = (cur_time - prev_time)/(REAL)parent->MaxRefRatio(level-1
+    REAL dt_old = (cur_time - prev_time)/(REAL)parent->MaxRefRatio(level-1);
 
     setTimeLevel(cur_time,dt_old,dt);
 
