@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.21 1998-05-19 22:38:50 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.22 1998-05-19 23:08:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -288,9 +288,9 @@ SyncRegister::InitRHS (MultiFab&       rhs,
         {
             FArrayBox& mask = bndry_mask[face()][j];
 
-            Box mask_cells(::enclosedCells(::grow(mask.box(),1)));
+            Box mask_cells = ::enclosedCells(::grow(mask.box(),1));
             FArrayBox cellMask(mask_cells,1);
-            cellMask.setVal(0.);
+            cellMask.setVal(0);
 
             for (n = 0; n < ngrds; n++)
             {
@@ -572,57 +572,53 @@ SyncRegister::FineDVAdd (const MultiFab& U,
                          int**           fine_bc,
                          Real            mult)
 {
-    cerr << "SyncRegister::FineDVAdd() not implemented in parallel.\n";
-    if (ParallelDescriptor::NProcs() > 1)
-        ParallelDescriptor::Abort("Bye");
-
-    const BoxArray& U_boxes     = U.boxArray();
-    int ngrds                   = U_boxes.length();
     const Box& crse_node_domain = ::surroundingNodes(crse_geom.Domain());
- 
-    int k, dir, idir;
 
     FArrayBox ufab;
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
 
-    for (k = 0; k < ngrds; k++)
+    Array<IntVect> pshifts(27);
+
+    for (ConstMultiFabIterator mfi(U); mfi.isValid(false); ++mfi)
     {
-        Box ubox(::grow(U_boxes[k],1));
+        Box ubox = ::grow(mfi.validbox(),1);
+
         ufab.resize(ubox,BL_SPACEDIM);
-        ufab.setVal(0);
-        ufab.copy(U[k],U_boxes[k],0,U_boxes[k],0,BL_SPACEDIM);
+        ufab.setComplement(0,mfi.validbox(),0,BL_SPACEDIM);
+        ufab.copy(mfi(),mfi.validbox(),0,mfi.validbox(),0,BL_SPACEDIM);
+
         const int* ulo = ubox.loVect();
         const int* uhi = ubox.hiVect();
-        int* bc        = fine_bc[k];
+        int* bc        = fine_bc[mfi.index()];
 
-        for (dir = 0; dir < BL_SPACEDIM; dir++)
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             int bc_index = 2*BL_SPACEDIM*dir + dir;
             if (bc[bc_index] == EXT_DIR)
             {
-                Box sidelo(U_boxes[k]);
+                Box sidelo(mfi.validbox());
                 sidelo.growLo(dir,1);
                 const int* dlo = sidelo.loVect();
                 sidelo.setRange(dir,dlo[dir],1);
-                ufab.copy(U[k],sidelo,dir,sidelo,dir,1);
+                ufab.copy(mfi(),sidelo,dir,sidelo,dir,1);
             }
             if (bc[bc_index+BL_SPACEDIM] == EXT_DIR)
             {
-                Box sidehi(U_boxes[k]);
+                Box sidehi(mfi.validbox());
                 sidehi.growHi(dir,1);
                 const int* dhi = sidehi.hiVect();
                 sidehi.setRange(dir,dhi[dir],1);
-                ufab.copy(U[k],sidehi,dir,sidehi,dir,1);
+                ufab.copy(mfi(),sidehi,dir,sidehi,dir,1);
             }
         }
         //
         // Now compute node centered surrounding box.
         //
-        Box ndbox       = ::surroundingNodes(U_boxes[k]);
+        Box ndbox       = ::surroundingNodes(mfi.validbox());
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
 
-        for (dir = 0; dir < BL_SPACEDIM; dir++)
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             //
             // Determine region of interest, and size of tmp fabs.
@@ -632,7 +628,7 @@ SyncRegister::FineDVAdd (const MultiFab& U,
             tboxhi.setRange(dir,ndhi[dir],1);
             Box cboxlo(tboxlo), cboxhi(tboxhi);
             Box reglo(tboxlo), reghi(tboxhi);
-            for (idir = 0; idir < BL_SPACEDIM; idir++)
+            for (int idir = 0; idir < BL_SPACEDIM; idir++)
             {
                 if (idir < dir)
                 {
@@ -675,6 +671,7 @@ SyncRegister::FineDVAdd (const MultiFab& U,
             //
             // Compute divu on fine grid edges in regions defined
             // by reglo and reghi.  Fabs are set to zero outside region.
+            //
             FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
                         ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
                         reglo.loVect(),reglo.hiVect(),
@@ -702,12 +699,11 @@ SyncRegister::FineDVAdd (const MultiFab& U,
             increment(cfablo);
             increment(cfabhi);
 
-            int iiv;
-            Array<IntVect> pshifts(27);
             if (crse_geom.isAnyPeriodic())
             {
                 crse_geom.periodicShift(crse_node_domain, cboxlo, pshifts);
-                for (iiv = 0; iiv < pshifts.length(); iiv++)
+
+                for (int iiv = 0; iiv < pshifts.length(); iiv++)
                 {
                     IntVect iv = pshifts[iiv];
                     cfablo.shift(iv);
@@ -715,7 +711,8 @@ SyncRegister::FineDVAdd (const MultiFab& U,
                     cfablo.shift(-iv);
                 }
                 crse_geom.periodicShift(crse_node_domain, cboxhi, pshifts);
-                for (iiv = 0; iiv < pshifts.length(); iiv++)
+
+                for (int iiv = 0; iiv < pshifts.length(); iiv++)
                 {
                     IntVect iv = pshifts[iiv];
                     cfabhi.shift(iv);
@@ -770,7 +767,8 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
 
     for (k = 0; k < ncrse; k++)
     {
-        Box dsdtbox(::grow(dsdt_boxes[k],1));
+        Box dsdtbox = ::grow(dsdt_boxes[k],1);
+
         dsdtfab.resize(dsdtbox,1);
         dsdtfab.setVal(0.0);
         dsdtfab.copy(dsdt[k],dsdt_boxes[k],0,dsdt_boxes[k],0,1);
@@ -874,10 +872,12 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
 
     for (k = 0; k < ngrds; k++)
     {
-        Box dsdtbox(::grow(dsdt_boxes[k],1));
+        Box dsdtbox = ::grow(dsdt_boxes[k],1);
+
         dsdtfab.resize(dsdtbox,1);
         dsdtfab.setVal(0.0);
         dsdtfab.copy(dsdt[k],dsdt_boxes[k],0,dsdt_boxes[k],0,1);
+
         const int* dsdtlo = dsdtbox.loVect();
         const int* dsdthi = dsdtbox.hiVect();
         //
@@ -1040,14 +1040,16 @@ SyncRegister::CompDVAdd (const MultiFab& U,
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
     for (k = 0; k < ngrds; k++)
     {
-        Box ubox(::grow(U_boxes[k],1));
+        Box ubox = ::grow(U_boxes[k],1);
+
         ufab.resize(ubox,BL_SPACEDIM);
         ufab.setVal(0.0);
         ufab.copy(U[k],U_boxes[k],0,U_boxes[k],0,BL_SPACEDIM);
+
         const int* ulo = ubox.loVect();
         const int* uhi = ubox.hiVect();
+        int * bc       = fine_bc[k];
 
-        int * bc = fine_bc[k];
         for (dir = 0; dir < BL_SPACEDIM; dir++)
         {
             int bc_index = 2*BL_SPACEDIM*dir + dir;
@@ -1256,11 +1258,11 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
     //
     // Enforce periodicity of Sig_local using extended valid boxes.
     //
-    geom.FillPeriodicBoundary(Sig_local, true);
+    geom.FillPeriodicBoundary(Sig_local, 0, 1, true);
     //
     // Enforce periodicity of Phi_local.
     //
-    geom.FillPeriodicBoundary(Phi_local);
+    geom.FillPeriodicBoundary(Phi_local, 0, 1);
     //
     // Now compute node centered div(Sigma*grad(PHI)).
     //
@@ -1312,7 +1314,7 @@ SyncRegister::FineLPhiAdd (const MultiFab& Phi,
     for (k = 0; k < ngrds; k++)
     {
         const Box& ndbox = Phi_boxes[k];
-        Box pbox(::grow(ndbox,1));
+        Box pbox = ::grow(ndbox,1);
         pfab.resize(pbox,1);
         pfab.setVal(0.0);
         pfab.copy(Phi[k],Phi_boxes[k]);
@@ -1466,7 +1468,7 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
     for (k = 0; k < ngrds; k++)
     {
         const Box& ndbox = Phi_boxes[k];
-        Box pbox(::grow(ndbox,1));
+        Box pbox = ::grow(ndbox,1);
         pfab.resize(pbox,1);
         pfab.setVal(0.0);
         pfab.copy(Phi[k],Phi_boxes[k]);
