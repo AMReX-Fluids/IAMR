@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.35 1998-12-03 16:03:46 lijewski Exp $
+// $Id: MacProj.cpp,v 1.36 1998-12-07 21:45:07 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -344,12 +344,14 @@ MacProj::mac_project (int             level,
         {
             mr.CrseInit(u_mac[dir],area[level][dir],dir,0,0,1,-1.0);
         }
+
+        Real sumreg =  mr.SumReg(0);
         if (verbose && ParallelDescriptor::IOProcessor())
         {
             cout << "LEVEL "
                  << level
                  << " MACREG: CrseInit sum = "
-                 << mr.SumReg(0) << endl;
+                 << sumreg << endl;
         }
     }
     //
@@ -362,12 +364,15 @@ MacProj::mac_project (int             level,
         {
             mac_reg[level].FineAdd(u_mac[dir],area[level][dir],dir,0,0,1,mult);
         }
+
+        Real sumreg = mac_reg[level].SumReg(0);
+
         if (verbose && ParallelDescriptor::IOProcessor())
         {
             cout << "LEVEL "
                  << level
                  << " MACREG: FineAdd sum = "
-                 << mac_reg[level].SumReg(0) << endl;
+                 << sumreg << endl;
         }
     }
     //
