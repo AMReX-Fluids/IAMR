@@ -1,5 +1,5 @@
 //
-// $Id: LinOp.cpp,v 1.6 1997-10-08 20:15:35 car Exp $
+// $Id: LinOp.cpp,v 1.7 1997-12-10 21:56:54 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -20,10 +20,12 @@ int LinOp::def_harmavg = 0;
 int LinOp::def_verbose = 0;
 int LinOp::def_maxorder = 2;
 
+#ifndef NDEBUG
   // LinOp::applyBC fills LinOp_grow ghost cells with data expected in LinOp::apply
   //  therefore, the incoming MultiFab to LinOp::applyBC better have this many ghost
   //  allocated
 const int LinOp_grow = 1;
+#endif
 
   // LinOp::computePeriodicIntersections precomputes some intersection information
   // assuming that Periodic_BC_grow cells are important enough to be included in

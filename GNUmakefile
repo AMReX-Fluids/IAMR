@@ -50,7 +50,7 @@ include ../mk/Make.defs
 
 CPPFLAGS += -DBL_USE_NEW_HFILES
 
-INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib
+INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib ../bndrylib
 
 ifeq ($(USE_BSP), TRUE)
 DEFINES += -DBL_USE_BSP
@@ -168,8 +168,8 @@ include $(HERE)/Make.package
 
 FOPTF = -fast
 
-vpath %.cpp : . ../pBoxLib_2 ../amrlib
-vpath %.F   : . ../amrlib
+vpath %.cpp : . ../pBoxLib_2 ../amrlib ../bndrylib
+vpath %.F   : . ../amrlib ../bndrylib
 
 all: $(executable)
 
