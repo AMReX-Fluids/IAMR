@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.174 2000-07-07 20:18:49 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.175 2000-07-07 20:27:39 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2646,27 +2646,33 @@ NavierStokes::writePlotFile (const aString& dir,
 
     Real plot_time;
     if (derive_names.length() > 0)
-      {
+    {
 	for (ListIterator<aString> it(derive_names); it; ++it) 
-	  {
+	{
             if (it() == "avg_pressure" || it() == "gradpx" 
                                        || it() == "gradpy"
-                                       || it() == "gradpz") {
-//            plot_time = getLevel(0).state[Press_Type].curTime();
-              int f_lev = parent->finestLevel();
-              plot_time = getLevel(f_lev).state[Press_Type].curTime();
+                                       || it() == "gradpz") 
+            {
+              if (state[Press_Type].descriptor()->timeType() == 
+                  StateDescriptor::Interval) 
+              {
+                plot_time = cur_time;
+              } else {
+//              plot_time = getLevel(0).state[Press_Type].curTime();
+                int f_lev = parent->finestLevel();
+                plot_time = getLevel(f_lev).state[Press_Type].curTime();
+              }
             } else {
               plot_time = cur_time;
             } 
 	    const DeriveRec* rec = derive_lst.get(it());
 	    ncomp = rec->numDerive();
-//	    MultiFab* derive_dat = derive(it(),cur_time,nGrow);
 	    MultiFab* derive_dat = derive(it(),plot_time,nGrow);
 	    MultiFab::Copy(plotMF,*derive_dat,0,cnt,ncomp,nGrow);
 	    delete derive_dat;
 	    cnt += ncomp;
-	  }
-      }
+	}
+    }
 
     //
     // Use the Full pathname when naming the MultiFab.
