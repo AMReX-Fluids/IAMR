@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Godunov.cpp,v 1.18 1999-06-30 20:51:15 propp Exp $
+// $Id: Godunov.cpp,v 1.19 1999-06-30 23:18:40 propp Exp $
 //
 
 //
@@ -23,15 +23,6 @@
 #define XVEL 0
 #define YVEL 1
 #define ZVEL 2
-
-//
-// Why ??? Because, I like my macro the best.  DS
-//
-#if (BL_SPACEDIM == 2 )
-#define GDIMS(l,h) &l[0], &l[1], &h[0], &h[1] 
-#else
-#define GDIMS(l,h) &l[0], &l[1], &l[2], &h[0], &h[1], &h[2]
-#endif
 
 int Godunov::verbose               = 0;
 int Godunov::slope_order           = 4;
@@ -320,8 +311,8 @@ Godunov::Setup (const Box&       grd,
 #if (BL_SPACEDIM == 3)
                   w_dat, wad_dat, zhi_dat, slz_dat, wbc, slzscr,
 #endif    
-                  GDIMS(u_lo,u_hi),
-                  GDIMS(w_lo,w_hi), 
+                  ARLIM(u_lo), ARLIM(u_hi),
+                  ARLIM(w_lo), ARLIM(w_hi), 
                   lo, hi, &dt, dx, &use_forces_in_trans, tforcedat);
 }
 
@@ -432,21 +423,21 @@ Godunov::edge_states (const Box&  grd,
     //
     int fort_ind = state_ind+1;  
 
-    FORT_ESTATE(s_dat, tfr_dat, GDIMS(s_lo,s_hi),
+    FORT_ESTATE(s_dat, tfr_dat, ARLIM(s_lo), ARLIM(s_hi),
 
                 u_dat, xlo_dat, xhi_dat, slx_dat, uad_dat,
                 slxscr, stxlo, stxhi,
-                uedge_dat, stx_dat, GDIMS(u_lo,u_hi), 
+                uedge_dat, stx_dat, ARLIM(u_lo), ARLIM(u_hi), 
 
                 v_dat, ylo_dat, yhi_dat, sly_dat, vad_dat,
                 slyscr, stylo, styhi,
-                vedge_dat, sty_dat, GDIMS(v_lo,v_hi), 
+                vedge_dat, sty_dat, ARLIM(v_lo), ARLIM(v_hi), 
 #if (BL_SPACEDIM == 3)
                 w_dat, zlo_dat, zhi_dat, slz_dat, wad_dat,
                 slzscr, stzlo, stzhi,
-                wedge_dat, stz_dat, GDIMS(w_lo,w_hi), 
+                wedge_dat, stz_dat, ARLIM(w_lo), ARLIM(w_hi), 
 #endif
-                GDIMS(ww_lo,ww_hi),
+                ARLIM(ww_lo), ARLIM(ww_hi),
                 bc, lo, hi, &dt, dx, &fort_ind, &velpred, 
                 &use_forces_in_trans);
 }
@@ -621,16 +612,16 @@ Godunov::ComputeAofs (const Box& grd,
     //
     // Compute the advective tendency.
     //
-    FORT_ADV_FORCING(aofs_dat, GDIMS(a_lo,a_hi),
-                     xflux_dat, uedge_dat, GDIMS(xflux_lo,xflux_hi),
-                     areax_dat, GDIMS(ax_lo,ax_hi),
-                     yflux_dat, vedge_dat, GDIMS(yflux_lo,yflux_hi),
-                     areay_dat, GDIMS(ay_lo,ay_hi),
+    FORT_ADV_FORCING(aofs_dat, ARLIM(a_lo), ARLIM(a_hi),
+                     xflux_dat, uedge_dat, ARLIM(xflux_lo), ARLIM(xflux_hi),
+                     areax_dat, ARLIM(ax_lo), ARLIM(ax_hi),
+                     yflux_dat, vedge_dat, ARLIM(yflux_lo), ARLIM(yflux_hi),
+                     areay_dat, ARLIM(ay_lo), ARLIM(ay_hi),
 #if (BL_SPACEDIM == 3)                                                    
-                     zflux_dat, wedge_dat, GDIMS(zflux_lo,zflux_hi),
-                     areaz_dat, GDIMS(az_lo,az_hi),
+                     zflux_dat, wedge_dat, ARLIM(zflux_lo), ARLIM(zflux_hi),
+                     areaz_dat, ARLIM(az_lo), ARLIM(az_hi),
 #endif
-                     vol_dat, GDIMS(v_lo,v_hi),
+                     vol_dat, ARLIM(v_lo), ARLIM(v_hi),
                      lo, hi, &iconserv);
 }
 
@@ -769,18 +760,18 @@ Godunov::ComputeSyncAofs (const Box& grd,
     //
     // Compute the corrective tendency.
     //
-    FORT_SYNC_ADV_FORCING(sync_dat, GDIMS(s_lo,s_hi),
+    FORT_SYNC_ADV_FORCING(sync_dat, ARLIM(s_lo), ARLIM(s_hi),
                            
-                          xflux_dat, ucorr_dat, GDIMS(xflux_lo,xflux_hi),
-                          areax_dat, GDIMS(ax_lo,ax_hi),
+                          xflux_dat, ucorr_dat, ARLIM(xflux_lo), ARLIM(xflux_hi),
+                          areax_dat, ARLIM(ax_lo), ARLIM(ax_hi),
                            
-                          yflux_dat, vcorr_dat, GDIMS(yflux_lo,yflux_hi),
-                          areay_dat, GDIMS(ay_lo,ay_hi),
+                          yflux_dat, vcorr_dat, ARLIM(yflux_lo), ARLIM(yflux_hi),
+                          areay_dat, ARLIM(ay_lo), ARLIM(ay_hi),
 #if (BL_SPACEDIM == 3)                                             
-                          zflux_dat, wcorr_dat, GDIMS(zflux_lo,zflux_hi),
-                          areaz_dat, GDIMS(az_lo,az_hi),
+                          zflux_dat, wcorr_dat, ARLIM(zflux_lo), ARLIM(zflux_hi),
+                          areaz_dat, ARLIM(az_lo), ARLIM(az_hi),
 #endif
-                          vol_dat, GDIMS(v_lo,v_hi),
+                          vol_dat, ARLIM(v_lo), ARLIM(v_hi),
                           lo, hi, &iconserv);
 }    
 
@@ -812,11 +803,11 @@ Godunov::ScalMinMax (FArrayBox& Sold,
     const Real *smax_dat = smax.dataPtr(); 
 #endif
 
-    FORT_SCALMINMAX (Sold_dat, GDIMS(slo,shi),
-                     Snew_dat, GDIMS(slo,shi),
+    FORT_SCALMINMAX (Sold_dat, ARLIM(slo), ARLIM(shi),
+                     Snew_dat, ARLIM(slo), ARLIM(shi),
 #if (BL_SPACEDIM == 3)
                      smin_dat, smax_dat,
-                     GDIMS(lo,hi),
+                     ARLIM(lo), ARLIM(hi),
 #endif
                      lo, hi, bc);
 }
@@ -855,9 +846,9 @@ Godunov::estdt (FArrayBox&  U,
     const Real *rdat  = rho.dataPtr();
 
     Real dt;
-    FORT_ESTDT(Udat,  GDIMS(vlo,vhi),
-               tfdat, GDIMS(tlo,thi),
-               rdat,  GDIMS(rlo,rhi),
+    FORT_ESTDT(Udat,  ARLIM(vlo), ARLIM(vhi),
+               tfdat, ARLIM(tlo), ARLIM(thi),
+               rdat,  ARLIM(rlo), ARLIM(rhi),
                lo, hi, &dt, dx, &cfl, u_max);
     return dt;
 }
@@ -891,12 +882,12 @@ Godunov::test_u_rho (FArrayBox&  U,
 #endif
 
     Real cflmax = 0;
-    FORT_TEST_U_RHO(u,  GDIMS(vlo,vhi),
-                    v,  GDIMS(vlo,vhi),
+    FORT_TEST_U_RHO(u,  ARLIM(vlo), ARLIM(vhi),
+                    v,  ARLIM(vlo), ARLIM(vhi),
 #if (BL_SPACEDIM == 3)                          
-                    w,  GDIMS(vlo,vhi),
+                    w,  ARLIM(vlo), ARLIM(vhi),
 #endif
-                    rh, GDIMS(rlo,rhi),
+                    rh, ARLIM(rlo), ARLIM(rhi),
                     lo, hi, &dt, dx, &cflmax, u_max, &verbose);
     return cflmax;
 }
@@ -946,12 +937,12 @@ Godunov::test_umac_rho (FArrayBox&  umac,
 #endif
 
     Real cfl;
-    FORT_TEST_UMAC_RHO(um, GDIMS(ulo,uhi),
-                       vm, GDIMS(vlo,vhi),
+    FORT_TEST_UMAC_RHO(um, ARLIM(ulo), ARLIM(uhi),
+                       vm, ARLIM(vlo), ARLIM(vhi),
 #if (BL_SPACEDIM == 3)                            
-                       wm, GDIMS(wlo,whi),
+                       wm, ARLIM(wlo), ARLIM(whi),
 #endif                                              
-                       rh, GDIMS(rlo,rhi),
+                       rh, ARLIM(rlo), ARLIM(rhi),
                        lo, hi, &dt, dx, &cfl, u_max);
     return cfl;
 }
@@ -990,9 +981,9 @@ Godunov::Add_tf (FArrayBox& Sold,
     const Real *SNdat = Snew.dataPtr(start_ind);
     const Real *TFdat = tforces.dataPtr(tf_ind);
     
-    FORT_UPDATE_TF(SOdat, GDIMS(slo,shi), 
-                   SNdat, GDIMS(slo,shi),
-                   TFdat, GDIMS(tlo,thi),
+    FORT_UPDATE_TF(SOdat, ARLIM(slo), ARLIM(shi), 
+                   SNdat, ARLIM(slo), ARLIM(shi),
+                   TFdat, ARLIM(tlo), ARLIM(thi),
                    lo, hi, &dt, &num_comp);
 }
 
@@ -1029,8 +1020,8 @@ Godunov::Correct_tf (FArrayBox& Sstar,
     const Real *TSdat = tfstar.dataPtr(tf_ind);
     const Real *TNdat = tfn.dataPtr(tf_ind);
     
-    FORT_CORRECT_TF(SSdat, SPdat, GDIMS(slo,shi),
-                    TSdat, TNdat, GDIMS(tlo,thi),
+    FORT_CORRECT_TF(SSdat, SPdat, ARLIM(slo), ARLIM(shi),
+                    TSdat, TNdat, ARLIM(tlo), ARLIM(thi),
                     lo, hi, &dt, &num_comp);
 }
 
@@ -1070,10 +1061,10 @@ Godunov::Add_aofs_tf (FArrayBox& Sold,
     const Real *AOdat = Aofs.dataPtr(aofs_ind);
     const Real *TFdat = tforces.dataPtr(tf_ind);
     
-    FORT_UPDATE_AOFS_TF(SOdat, GDIMS(slo,shi), 
-                        SNdat, GDIMS(slo,shi),
-                        AOdat, GDIMS(alo,ahi),
-                        TFdat, GDIMS(tlo,thi),
+    FORT_UPDATE_AOFS_TF(SOdat, ARLIM(slo), ARLIM(shi), 
+                        SNdat, ARLIM(slo), ARLIM(shi),
+                        AOdat, ARLIM(alo), ARLIM(ahi),
+                        TFdat, ARLIM(tlo), ARLIM(thi),
                         lo, hi, &dt, &num_comp);
 }
 
@@ -1119,12 +1110,12 @@ Godunov::Add_aofs_tf_gp (FArrayBox& Uold,
     const Real *GPdat = gp.dataPtr();
     const Real *RHdat = rho.dataPtr();
     
-    FORT_UPDATE_AOFS_TF_GP(UOdat, GDIMS(ulo,uhi),
-                           UNdat, GDIMS(ulo,uhi),
-                           AOdat, GDIMS(alo,ahi),
-                           TFdat, GDIMS(tlo,thi),
-                           GPdat, GDIMS(glo,ghi),
-                           RHdat, GDIMS(rlo,rhi),
+    FORT_UPDATE_AOFS_TF_GP(UOdat, ARLIM(ulo), ARLIM(uhi),
+                           UNdat, ARLIM(ulo), ARLIM(uhi),
+                           AOdat, ARLIM(alo), ARLIM(ahi),
+                           TFdat, ARLIM(tlo), ARLIM(thi),
+                           GPdat, ARLIM(glo), ARLIM(ghi),
+                           RHdat, ARLIM(rlo), ARLIM(rhi),
                            lo, hi, &dt);
 }
 
@@ -1153,9 +1144,9 @@ Godunov::Sum_tf_gp (FArrayBox& tforces,
     const Real *GPdat = gp.dataPtr();
     const Real *RHdat = rho.dataPtr();
      
-    FORT_SUM_TF_GP(TFdat, GDIMS(tlo,thi),
-                   GPdat, GDIMS(glo,ghi),
-                   RHdat, GDIMS(rlo,rhi),
+    FORT_SUM_TF_GP(TFdat, ARLIM(tlo), ARLIM(thi),
+                   GPdat, ARLIM(glo), ARLIM(ghi),
+                   RHdat, ARLIM(rlo), ARLIM(rhi),
                    tlo, thi);
 }
 
@@ -1189,10 +1180,10 @@ Godunov::Sum_tf_gp_visc (FArrayBox& tforces,
     const Real *GPdat = gp.dataPtr();
     const Real *RHdat = rho.dataPtr();
      
-    FORT_SUM_TF_GP_VISC(TFdat, GDIMS(tlo,thi),
-                        VIdat, GDIMS(vlo,vhi),
-                        GPdat, GDIMS(glo,ghi),
-                        RHdat, GDIMS(rlo,rhi),
+    FORT_SUM_TF_GP_VISC(TFdat, ARLIM(tlo), ARLIM(thi),
+                        VIdat, ARLIM(vlo), ARLIM(vhi),
+                        GPdat, ARLIM(glo), ARLIM(ghi),
+                        RHdat, ARLIM(rlo), ARLIM(rhi),
                         tlo, thi);
 }
 
@@ -1232,10 +1223,10 @@ Godunov::Sum_tf_divu (FArrayBox& S,
     const Real *DUdat = divu.dataPtr();
     const Real *RHdat = rho.dataPtr();
      
-    FORT_SUM_TF_DIVU(Sdat,  GDIMS(slo,shi),
-                     TFdat, GDIMS(tlo,thi),
-                     DUdat, GDIMS(dlo,dhi),
-                     RHdat, GDIMS(rlo,rhi),
+    FORT_SUM_TF_DIVU(Sdat,  ARLIM(slo), ARLIM(shi),
+                     TFdat, ARLIM(tlo), ARLIM(thi),
+                     DUdat, ARLIM(dlo), ARLIM(dhi),
+                     RHdat, ARLIM(rlo), ARLIM(rhi),
                      tlo, thi, &num_comp, &iconserv);
 }
 
@@ -1281,10 +1272,10 @@ Godunov::Sum_tf_divu_visc (FArrayBox& S,
     const Real *VIdat = visc.dataPtr(v_ind);
     const Real *RHdat = rho.dataPtr();
      
-    FORT_SUM_TF_DIVU_VISC(Sdat,  GDIMS(slo,shi),
-                          TFdat, GDIMS(tlo,thi),
-                          DUdat, GDIMS(dlo,dhi),
-                          VIdat, GDIMS(vlo,vhi),
-                          RHdat, GDIMS(rlo,rhi),
+    FORT_SUM_TF_DIVU_VISC(Sdat,  ARLIM(slo), ARLIM(shi),
+                          TFdat, ARLIM(tlo), ARLIM(thi),
+                          DUdat, ARLIM(dlo), ARLIM(dhi),
+                          VIdat, ARLIM(vlo), ARLIM(vhi),
+                          RHdat, ARLIM(rlo), ARLIM(rhi),
                           tlo, thi, &num_comp, &iconserv);
 }
