@@ -49,15 +49,9 @@ proj.v                  = 1
 diffuse.v               = 1
 amr.v                   = 1
 
-<<<<<<< inputs.2d.periodic_shear_layer
 mg.v                    = 1
 cg.v                    = 0
-proj.Pcode              = 4
-=======
-mg.v                    = 2
-cg.v                    = 1
 proj.Pcode              = 1
->>>>>>> 1.8
 
 #**********************************
 #OUTPUT CONTROLS
