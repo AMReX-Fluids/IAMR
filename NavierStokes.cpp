@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.140 1999-07-01 20:07:14 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.141 1999-07-08 23:49:22 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1914,8 +1914,8 @@ NavierStokes::scalar_diffusion_update (Real dt,
         {
             int rho_flag = 0;
 
-            diffuse_scalar_setup(sigma, &rho_flag);
-
+            MultiFab*  delta_rhs   = 0;
+            MultiFab*  alpha       = 0;
             MultiFab** cmp_diffn   = 0;
             MultiFab** cmp_diffnp1 = 0;
 
@@ -1930,12 +1930,15 @@ NavierStokes::scalar_diffusion_update (Real dt,
                 getDiffusivity(cmp_diffnp1, diffTime, sigma);
             }
 
+            diffuse_scalar_setup(dt, sigma, &rho_flag, 
+                                 delta_rhs, alpha, cmp_diffn, cmp_diffnp1);
+
             diffusion->diffuse_scalar(dt,sigma,be_cn_theta,
                                       rho_half,rho_flag,
                                       fluxSC,
                                       0,
-                                      0,
-                                      0,
+                                      delta_rhs,
+                                      alpha,
                                       cmp_diffn,
                                       cmp_diffnp1);
 
@@ -1944,6 +1947,9 @@ NavierStokes::scalar_diffusion_update (Real dt,
                 diffusion->removeFluxBoxesLevel(cmp_diffn);
                 diffusion->removeFluxBoxesLevel(cmp_diffnp1);
             }
+
+            delete delta_rhs;
+            delete alpha;
 
             //
             // Increment the viscous flux registers
@@ -1974,8 +1980,13 @@ NavierStokes::scalar_diffusion_update (Real dt,
 }
 
 void
-NavierStokes::diffuse_scalar_setup (int  sigma,
-                                    int* rho_flag) 
+NavierStokes::diffuse_scalar_setup (Real        dt,
+                                    int         sigma,
+                                    int*        rho_flag,
+                                    MultiFab*&  delta_rhs,
+                                    MultiFab*&  alpha,
+                                    MultiFab**& diffn,
+                                    MultiFab**& diffnp1)
 {
     (*rho_flag) = !is_conservative[sigma] ? 1 : 2;
 }

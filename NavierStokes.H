@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.43 1999-07-01 20:07:15 almgren Exp $
+// $Id: NavierStokes.H,v 1.44 1999-07-08 23:49:22 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -310,8 +310,13 @@ protected:
                                   int  first_scalar,
                                   int  last_scalar);
 
-    void diffuse_scalar_setup (int  sigma,
-                               int* rho_flag); 
+    virtual void diffuse_scalar_setup (Real        dt,
+                                       int         sigma,
+                                       int*        rho_flag,
+                                       MultiFab*&  delta_rhs,
+                                       MultiFab*&  alpha,
+                                       MultiFab**& diffn,
+                                       MultiFab**& diffnp1); 
     //
     // Make rho at time n+1/2.
     //
@@ -327,10 +332,10 @@ protected:
 
     void initial_velocity_diffusion_update (Real dt);
 
-    void diffuse_velocity_setup (Real       dt,
-                                 MultiFab*& delta_rhs,
-                                 MultiFab**& viscn,
-                                 MultiFab**& viscnp1); 
+    virtual void diffuse_velocity_setup (Real       dt,
+                                         MultiFab*& delta_rhs,
+                                         MultiFab**& viscn,
+                                         MultiFab**& viscnp1); 
     //
     // Compute level projection.
     //
