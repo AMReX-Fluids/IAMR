@@ -1,6 +1,6 @@
 
 //
-// $Id: restrictor.cpp,v 1.8 1997-10-08 20:15:57 car Exp $
+// $Id: restrictor.cpp,v 1.9 1997-10-13 16:55:15 car Exp $
 //
 
 #include <restrictor.H>
@@ -344,8 +344,7 @@ bilinear_restrictor_coarse_class::interface(FArrayBox& patch,
 #ifdef HG_USE_CACHE
 					    const copy_cache* border_cache,
 #endif
-					    const level_interface&
-					    interface,
+					    const level_interface& interface,
 					    const amr_boundary_class& bdy,
 					    const IntVect& rat) const
 {
