@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.168 2000-06-09 22:12:45 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.169 2000-06-12 14:34:12 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3475,8 +3475,12 @@ void
 NavierStokes::SyncProjInterp (MultiFab& phi,
                               int       c_lev,
                               MultiFab& P_new,
+                              MultiFab& P_old,
                               int       f_lev,
-                              IntVect&  ratio)
+                              IntVect&  ratio,
+                              bool      first_crse_step_after_initial_iters,
+                              Real      cur_crse_pres_time,
+                              Real      prev_crse_pres_time)
 {
     const Geometry& fgeom   = parent->Geom(f_lev);
     const BoxArray& P_grids = P_new.boxArray();
@@ -3499,16 +3503,48 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
 
     Array<BCRec> bc(BL_SPACEDIM);
 
-    for (MultiFabIterator mfi(crse_phi); mfi.isValid(); ++mfi)
+    NavierStokes& fine_lev = getLevel(f_lev);
+    Real  cur_fine_pres_time = fine_lev.state[Press_Type].curTime();
+    Real prev_fine_pres_time = fine_lev.state[Press_Type].prevTime();
+
+    if (state[Press_Type].descriptor()->timeType() == 
+        StateDescriptor::Point && 
+        first_crse_step_after_initial_iters)
     {
-        fine_phi.resize(P_grids[mfi.index()],1);
+        Real time_since_zero =  cur_crse_pres_time - prev_crse_pres_time;
+        Real dt_to_prev_time = prev_fine_pres_time - prev_crse_pres_time;
+        Real dt_to_cur_time  =  cur_fine_pres_time - prev_crse_pres_time;
 
-        fine_phi.setVal(1.e30);
+        for (MultiFabIterator mfi(crse_phi); mfi.isValid(); ++mfi)
+        {
+            fine_phi.resize(P_grids[mfi.index()],1);
+            fine_phi.setVal(1.e30);
+            node_bilinear_interp.interp(mfi(),0,fine_phi,0,1,
+                                        fine_phi.box(),ratio,cgeom,fgeom,bc);
+            Real cur_mult_factor = dt_to_cur_time / time_since_zero;
+            cout << "CUR MULT FACTOR IN SYNCPROJINTERP " << 
+                     cur_mult_factor << endl;
+            fine_phi.mult(cur_mult_factor);
+            P_new[mfi.index()].plus(fine_phi);
 
-        node_bilinear_interp.interp(mfi(),0,fine_phi,0,1,
-                                    fine_phi.box(),ratio,cgeom,fgeom,bc);
-
-        P_new[mfi.index()].plus(fine_phi);
+            Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
+            cout << "PREV MULT FACTOR IN SYNCPROJINTERP " << 
+                     prev_mult_factor << endl;
+            fine_phi.mult(prev_mult_factor);
+            P_old[mfi.index()].plus(fine_phi);
+        }
+    }
+    else 
+    {
+        for (MultiFabIterator mfi(crse_phi); mfi.isValid(); ++mfi)
+        {
+            fine_phi.resize(P_grids[mfi.index()],1);
+            fine_phi.setVal(1.e30);
+            node_bilinear_interp.interp(mfi(),0,fine_phi,0,1,
+                                        fine_phi.box(),ratio,cgeom,fgeom,bc);
+            P_new[mfi.index()].plus(fine_phi);
+            P_old[mfi.index()].plus(fine_phi);
+        }
     }
 }
 
@@ -3766,20 +3802,30 @@ NavierStokes::level_sync ()
         // adds in its contribution to levels (level) and (level+1).
         //
 
-        bool first_crse_step_after_initial_iters = false;
-        if (state[Press_Type].prevTime() > state[State_Type].prevTime())
-          first_crse_step_after_initial_iters = true;
+
+        Real  cur_crse_pres_time = state[Press_Type].curTime();
+        Real prev_crse_pres_time = state[Press_Type].prevTime();
+
+        NavierStokes& fine_lev = getLevel(level+1);
+        Real  cur_fine_pres_time = fine_lev.state[Press_Type].curTime();
+        Real prev_fine_pres_time = fine_lev.state[Press_Type].prevTime();
+
+        bool first_crse_step_after_initial_iters =
+         (prev_crse_pres_time > state[State_Type].prevTime());
 
         bool pressure_time_is_interval = 
          (state[Press_Type].descriptor()->timeType() == StateDescriptor::Interval);
-
         projector->MLsyncProject(level,pres,vel,cc_rhs_crse,
                                  pres_fine,vel_fine,cc_rhs_fine,
                                  *rho_half, rho_fine, Vsync,V_corr,phi,
                                  &rhs_sync_reg,crsr_sync_ptr,
                                  dx,dt,ratio,crse_dt_ratio, fine_geom,geom,
                                  pressure_time_is_interval,
-                                 first_crse_step_after_initial_iters);
+                                 first_crse_step_after_initial_iters,
+                                  cur_crse_pres_time,
+                                 prev_crse_pres_time,
+                                  cur_fine_pres_time,
+                                 prev_fine_pres_time);
 
         //
         // Correct pressure and velocities after the projection.
@@ -3802,11 +3848,14 @@ NavierStokes::level_sync ()
             ratio                 *= parent->refRatio(lev-1);
             NavierStokes& fine_lev = getLevel(lev);
             MultiFab&     P_new    = fine_lev.get_new_data(Press_Type);
+            MultiFab&     P_old    = fine_lev.get_old_data(Press_Type);
             MultiFab&     U_new    = fine_lev.get_new_data(State_Type);
 
             SyncInterp(V_corr, level+1, U_new, lev, ratio,
                        0, 0, BL_SPACEDIM, 1 , dt, fine_sync_bc.dataPtr());
-            SyncProjInterp(phi, level+1, P_new, lev, ratio);
+            SyncProjInterp(phi, level+1, P_new, P_old, lev, ratio,
+                           first_crse_step_after_initial_iters,
+                           cur_crse_pres_time, prev_crse_pres_time);
         }
 
         if (state[Press_Type].descriptor()->timeType() == 
@@ -3830,16 +3879,26 @@ NavierStokes::level_sync ()
         // Correct pressure and velocities after the projection.
         //
         ratio = IntVect::TheUnitVector(); 
+
+        Real  cur_crse_pres_time = state[Press_Type].curTime();
+        Real prev_crse_pres_time = state[Press_Type].prevTime();
+
+        bool first_crse_step_after_initial_iters =
+         (prev_crse_pres_time > state[State_Type].prevTime());
+
         for (int lev = level+1; lev <= finest_level; lev++)
         {
             ratio                 *= parent->refRatio(lev-1);
             NavierStokes& fine_lev = getLevel(lev);
             MultiFab&     P_new    = fine_lev.get_new_data(Press_Type);
+            MultiFab&     P_old    = fine_lev.get_old_data(Press_Type);
             MultiFab&     U_new    = fine_lev.get_new_data(State_Type);
             
             SyncInterp(*Vsync, level, U_new, lev, ratio,
                        0, 0, BL_SPACEDIM, 1 , dt, sync_bc.dataPtr());
-            SyncProjInterp(phi, level, P_new, lev, ratio);
+            SyncProjInterp(phi, level, P_new, P_old, lev, ratio,
+                           first_crse_step_after_initial_iters,
+                           cur_crse_pres_time, prev_crse_pres_time);
         }
 
         if (state[Press_Type].descriptor()->timeType() == 

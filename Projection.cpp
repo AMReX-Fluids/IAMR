@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.124 2000-06-09 23:29:35 almgren Exp $
+// $Id: Projection.cpp,v 1.125 2000-06-12 14:34:12 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -1177,7 +1177,11 @@ Projection::MLsyncProject (int             c_lev,
                            const Geometry& fine_geom,
                            const Geometry& crse_geom,
                            bool		   pressure_time_is_interval,
-                           bool first_crse_step_after_initial_iters)
+                           bool first_crse_step_after_initial_iters,
+                           Real             cur_crse_pres_time,
+                           Real            prev_crse_pres_time,
+                           Real             cur_fine_pres_time,
+                           Real            prev_fine_pres_time)
 {
     static RunStats stats("sync_project");
 
@@ -1354,28 +1358,25 @@ Projection::MLsyncProject (int             c_lev,
   
       MultiFab& pres_fine_old = LevelData[c_lev+1].get_old_data(Press_Type);
  
-      if (first_crse_step_after_initial_iters && 
-          (parent->MaxRefRatio(c_lev) == 2) )
-      // Only update the most recent pressure.
+      if (first_crse_step_after_initial_iters)
       {
-        Real mult_factor = 2.0;
-        (*phi[c_lev+1]).mult(mult_factor);
-        AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
-      } 
-      else if (first_crse_step_after_initial_iters &&
-               (parent->MaxRefRatio(c_lev) == 4) )
-      {
-        Real mult_factor = (4.0 / 3.0);
-        (*phi[c_lev+1]).mult(mult_factor);
-        AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
+        Real time_since_zero =  cur_crse_pres_time - prev_crse_pres_time;
+        Real dt_to_prev_time = prev_fine_pres_time - prev_crse_pres_time;
+        Real dt_to_cur_time  =  cur_fine_pres_time - prev_crse_pres_time;
 
-        Real mult_factor = (3.0 / 4.0) * (6.0 / 3.0) ;
-        (*phi[c_lev+1]).mult(mult_factor);
+        Real cur_mult_factor = dt_to_cur_time / time_since_zero;
+        cout << "NEW MULT FACTOR " << cur_mult_factor << endl;
+        (*phi[c_lev+1]).mult(cur_mult_factor);
         AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
+
+        Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
+        cout << "OLD MULT FACTOR " << prev_mult_factor << endl;
+        (*phi[c_lev+1]).mult(prev_mult_factor);
+        AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
       }
       else 
       {
-        AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
+        AddPhi(pres_fine    , *phi[c_lev+1], fine_grids);
         AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
       }
     }

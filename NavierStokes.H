@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.62 2000-06-09 22:12:45 almgren Exp $
+// $Id: NavierStokes.H,v 1.63 2000-06-12 14:34:12 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -363,8 +363,12 @@ protected:
     void SyncProjInterp (MultiFab& phi,
                          int       c_lev,
                          MultiFab& P_new,
+                         MultiFab& P_old,
                          int       f_lev,
-                         IntVect&  ratio);
+                         IntVect&  ratio,
+                         bool      first_crse_step_after_initial_iters,
+                         Real      cur_crse_pres_time,
+                         Real      prev_crse_pres_time);
     //
     // Average a fine multifab down onto a coarse one.
     //

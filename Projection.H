@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.33 2000-06-09 22:12:46 almgren Exp $
+// $Id: Projection.H,v 1.34 2000-06-12 14:34:12 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -126,7 +126,11 @@ public:
                         const Geometry& fine_geom,
                         const Geometry& crse_geom,
                         bool		pressure_time_is_interval,
-                        bool		first_crse_step_after_initial_iters);
+                        bool		first_crse_step_after_initial_iters,
+                        Real		 cur_crse_pres_time,
+                        Real		prev_crse_pres_time,
+                        Real		 cur_fine_pres_time,
+                        Real		prev_fine_pres_time);
     //
     // This projects an initial vorticity field to define a velocity field.
     //
