@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.28 1999-07-01 17:23:12 almgren Exp $
+c $Id: PROJECTION_2D.F,v 1.29 1999-07-01 21:18:28 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -231,13 +231,13 @@ c
 
       end
 
-      subroutine FORT_RADMPY(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)
+      subroutine FORT_RADMPY(a,DIMS(grid),domlo,domhi,ng,r,nr)
 c 
 c     multiply A by Radius r
 c
 c 
-c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
-c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
+c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT R IS REFLECTED AROUND
+c           R=0 AND R=RMAX.
 c
       integer    ng,nr
       integer    DIMDEC(grid)
@@ -245,7 +245,6 @@ c
       REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
      $             ARG_L2(grid)-ng:ARG_H2(grid)+ng)
       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
-      REAL_T     bogus_value
 
       integer i, j
 
@@ -258,7 +257,7 @@ c
       if (ARG_L1(grid)-ng .lt. domlo(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = ARG_L1(grid)-ng, domlo(1)-1
-           a(i,j) = bogus_value
+           a(i,j) = -r(i)*a(i,j)
          end do
          end do
       end if
@@ -266,7 +265,7 @@ c
       if (ARG_H1(grid)+ng .gt. domhi(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = domhi(1)+1, ARG_H1(grid)+ng
-           a(i,j) = bogus_value
+           a(i,j) = r(domhi(1))*a(i,j)
          end do
          end do
       end if
@@ -277,9 +276,8 @@ c
 c 
 c     divide A by Radius r
 c
-c 
-c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
-c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
+c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT R IS REFLECTED AROUND
+c           R=0 AND R=RMAX.
 c
       integer    ng,nr
       integer    DIMDEC(grid)
@@ -300,7 +298,7 @@ c
       if (ARG_L1(grid)-ng .lt. domlo(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = ARG_L1(grid)-ng, domlo(1)-1
-           a(i,j) = bogus_value
+           a(i,j) = -a(i,j)/r(i)
          end do
          end do
       end if
@@ -308,7 +306,7 @@ c
       if (ARG_H1(grid)+ng .gt. domhi(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = domhi(1)+1, ARG_H1(grid)+ng
-           a(i,j) = bogus_value
+           a(i,j) = a(i,j)/r(domhi(1))
          end do
          end do
       end if
