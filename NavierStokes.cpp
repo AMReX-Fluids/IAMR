@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.229 2003-03-10 20:41:12 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.230 2003-05-01 18:25:53 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3811,7 +3811,6 @@ NavierStokes::avgDown_doit (const FArrayBox& fine_fab,
 void
 NavierStokes::level_sync (int crse_iteration)
 {
-    const Real      strt_time     = ParallelDescriptor::second();
     const Real*     dx            = geom.CellSize();
     IntVect         ratio         = parent->refRatio(level);
     const int       finest_level  = parent->finestLevel();
@@ -4032,18 +4031,6 @@ NavierStokes::level_sync (int crse_iteration)
 
         if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
             calcDpdt();
-    }
-
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
-
-    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
-    if (verbose && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "NavierStokes:level_sync(): lev: "
-                  << level
-                  << ", time: " << run_time << std::endl;
     }
 }
 

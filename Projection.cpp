@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.150 2003-02-21 23:07:44 car Exp $
+// $Id: Projection.cpp,v 1.151 2003-05-01 18:25:53 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -341,6 +341,8 @@ Projection::level_project (int             level,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::level_project()");
 
+    const Real strt_time = ParallelDescriptor::second();
+
     if ( verbose && ParallelDescriptor::IOProcessor() )
 	std::cout << "... level projector at level " << level << '\n';
 
@@ -504,7 +506,6 @@ Projection::level_project (int             level,
     //
     rho_half->setBndry(BogusValue);
     scaleVar(rho_half, 1, &U_new, grids, level);
-
     //
     // Application specific first guess.
     //
@@ -664,6 +665,18 @@ Projection::level_project (int             level,
         U_old.mult(-dt_inv,0,BL_SPACEDIM,1);
         filterP(level,geom,P_old,P_new,U_old,rho_half,bc,time,dt,have_divu);
         U_old.mult(-dt,0,BL_SPACEDIM,1);
+    }
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "Projection:level_project(): lev: "
+                  << level
+                  << ", time: " << run_time << std::endl;
     }
 }
 
@@ -879,6 +892,8 @@ Projection::syncProject (int             c_lev,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::syncProject()");
 
+    const Real strt_time = ParallelDescriptor::second();
+
     int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
@@ -992,6 +1007,18 @@ Projection::syncProject (int             c_lev,
     //
     AddPhi(pres, phi, grids);
     UpdateArg1(vel, dt_crse, *Vsync, BL_SPACEDIM, grids, 1);
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "Projection:syncProject(): c_lev: "
+                  << c_lev
+                  << ", time: " << run_time << std::endl;
+    }
 }
 
 //
@@ -1028,6 +1055,8 @@ Projection::MLsyncProject (int             c_lev,
                            Real            prev_fine_pres_time)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::MLsyncProject()");
+
+    const Real strt_time = ParallelDescriptor::second();
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << '\n';
@@ -1226,6 +1255,18 @@ Projection::MLsyncProject (int             c_lev,
     //
     UpdateArg1(vel_crse, dt_crse, *Vsync, BL_SPACEDIM, grids,      1);
     UpdateArg1(vel_fine, dt_crse, V_corr, BL_SPACEDIM, fine_grids, 1);
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "Projection:MLsyncProject(): levels = "
+                  << c_lev << ", " << c_lev+1
+                  << ", time: " << run_time << std::endl;
+    }
 }
 
 //
