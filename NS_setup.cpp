@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.33 1999-09-21 16:29:19 sstanley Exp $
+// $Id: NS_setup.cpp,v 1.34 1999-12-02 07:43:09 sstanley Exp $
 //
 
 #include <NavierStokes.H>
@@ -356,7 +356,7 @@ NavierStokes::sum_integrated_quantities ()
 }
 
 void
-NavierStokes::manual_tags_placement(TagBoxArray& tags, IntVect& bf)
+NavierStokes::manual_tags_placement(TagBoxArray& tags, Array<IntVect>& bf_lev)
 {
 }
 
