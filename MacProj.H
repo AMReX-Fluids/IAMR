@@ -1,7 +1,7 @@
 #ifndef _MacProj_H_
 #define _MacProj_H_
 //
-// $Id: MacProj.H,v 1.24 2003-02-05 22:06:20 almgren Exp $
+// $Id: MacProj.H,v 1.25 2003-02-06 19:07:22 almgren Exp $
 //
 #include <BC_TYPES.H>
 #include <BCRec.H>
@@ -40,6 +40,8 @@ public:
                       Real            prev_time,
                       const MultiFab& divu,
                       int             have_divu);
+
+    void test_umac_periodic (int level, MultiFab* u_mac);
     //
     // The sync solve.
     //
@@ -130,6 +132,7 @@ protected:
     static Real mac_tol;
     static Real mac_abs_tol;
     static Real mac_sync_tol;
+    static int  check_umac_periodicity;
 
 #if 1
 // this code should go away when Marc makes this option

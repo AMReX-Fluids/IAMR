@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.77 2003-01-30 07:16:29 almgren Exp $
+// $Id: NavierStokes.H,v 1.78 2003-02-06 19:07:22 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -253,7 +253,6 @@ protected:
     Real predict_velocity (Real  dt,
                            Real& comp_cfl);
 
-    void test_umac_periodic ();  // Ensure level 0 periodic umac are periodic.
     //
     // Make mac velocities divergence free.
     //
@@ -739,7 +738,6 @@ protected:
     static int  do_mac_proj;
     static bool do_fillPatchUMAC;
     static int  do_divu_sync;
-    static int  check_umac_periodicity;
     static int  do_refine_outflow;          // The following three items control
     static int  do_derefine_outflow;        //   how grids are treated at 
     static int  Nbuf_outflow;               //   outflow boundaries.

@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.85 2003-02-05 22:06:20 almgren Exp $
+// $Id: MacProj.cpp,v 1.86 2003-02-06 19:07:22 almgren Exp $
 //
 #include <winstd.H>
 
@@ -53,6 +53,12 @@ Real MacProj::mac_abs_tol      = 1.0e-16;
 Real MacProj::mac_sync_tol     = 1.0e-8;
 int  MacProj::do_outflow_bcs   = 1;
 int  MacProj::fix_mac_sync_rhs = 0;
+int  MacProj::check_umac_periodicity = 1;
+
+namespace
+{
+  Real umac_periodic_test_Tol    = 1.e-10;
+}
 
 //
 // Setup functions follow
@@ -99,6 +105,9 @@ MacProj::read_params ()
     pp.query( "mac_abs_tol",      mac_abs_tol      );
     pp.query( "do_outflow_bcs",   do_outflow_bcs   );
     pp.query( "fix_mac_sync_rhs", fix_mac_sync_rhs );
+    pp.query("check_umac_periodicity",check_umac_periodicity);
+    pp.query("umac_periodic_test_Tol",   umac_periodic_test_Tol);
+
     if ( use_cg_solve && use_hypre_solve)
       {
 	BoxLib::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
@@ -408,6 +417,9 @@ MacProj::mac_project (int             level,
         delete mac_phi;
         mac_phi = 0;
     }
+
+    if (check_umac_periodicity)
+        test_umac_periodic(level,u_mac);
 }
 
 //
@@ -1161,6 +1173,118 @@ MacProj::set_outflow_bcs (int             level,
     }
 }
 
+//
+// Structure used by test_umac_periodic().
+//
 
+struct TURec
+{
+    TURec ()
+        :
+        m_idx(-1),
+        m_dim(-1)
+    {}
 
+    TURec (int        idx,
+           int        dim,
+           const Box& srcBox,
+           const Box& dstBox)
+        :
+        m_srcBox(srcBox),
+        m_dstBox(dstBox),
+        m_idx(idx),
+        m_dim(dim)
+    {}
 
+    FillBoxId m_fbid;
+    Box       m_srcBox;
+    Box       m_dstBox;
+    int       m_idx;
+    int       m_dim;
+};
+
+//
+// Test that edge-based values agree across periodic boundary.
+//
+
+void
+MacProj::test_umac_periodic (int level,MultiFab* u_mac)
+{
+    const Geometry& geom    = parent->Geom(level);
+    const BoxArray& grids   = LevelData[level].boxArray();
+    if (!geom.isAnyPeriodic()) return;
+
+    const int               MyProc = ParallelDescriptor::MyProc();
+    FArrayBox               diff;
+    Array<IntVect>          pshifts(27);
+    MultiFabCopyDescriptor  mfcd;
+    std::vector<TURec>      pirm;
+    MultiFabId              mfid[BL_SPACEDIM];
+
+    for (int dim = 0; dim < BL_SPACEDIM; dim++)
+    {
+        if (geom.isPeriodic(dim))
+        {
+            Box eDomain = BoxLib::surroundingNodes(geom.Domain(),dim);
+
+            mfid[dim] = mfcd.RegisterMultiFab(&u_mac[dim]);
+
+            for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
+            {
+                Box eBox = u_mac[dim].boxArray()[mfi.index()];
+
+                geom.periodicShift(eDomain, eBox, pshifts);
+
+                for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                {
+                    eBox += pshifts[iiv];
+
+                    for (int j = 0; j < grids.size(); j++)
+                    {
+                        Box srcBox = u_mac[dim].boxArray()[j] & eBox;
+
+                        if (srcBox.ok())
+                        {
+                            Box dstBox = srcBox - pshifts[iiv];
+
+                            TURec r(mfi.index(),dim,srcBox,dstBox);
+
+                            r.m_fbid = mfcd.AddBox(mfid[dim],srcBox,0,j,0,0,1);
+
+                            pirm.push_back(r);
+                        }
+                    }
+
+                    eBox -= pshifts[iiv];
+                }
+            }
+        }
+    }
+
+    mfcd.CollectData();
+
+    for (int i = 0; i < pirm.size(); i++)
+    {
+        const int dim = pirm[i].m_dim;
+
+        BL_ASSERT(pirm[i].m_fbid.box() == pirm[i].m_srcBox);
+        BL_ASSERT(pirm[i].m_srcBox.sameSize(pirm[i].m_dstBox));
+        BL_ASSERT(u_mac[dim].DistributionMap()[pirm[i].m_idx] == MyProc);
+
+        diff.resize(pirm[i].m_srcBox, 1);
+
+        mfcd.FillFab(mfid[dim], pirm[i].m_fbid, diff);
+
+        diff.minus(u_mac[dim][pirm[i].m_idx],pirm[i].m_dstBox,diff.box(),0,0,1);
+
+        const Real max_norm = diff.norm(0);
+
+//      if (max_norm > umac_periodic_test_Tol )
+        {
+            std::cout << "dir = "         << dim
+                      << ", diff norm = " << max_norm
+                      << " for region: "  << pirm[i].m_dstBox << std::endl;
+//          BoxLib::Error("Periodic bust in u_mac");
+        }
+    }
+}

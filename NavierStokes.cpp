@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.214 2003-02-05 22:06:20 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.215 2003-02-06 19:07:22 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -102,7 +102,6 @@ int  NavierStokes::do_reflux                  = 1;
 int  NavierStokes::modify_reflux_normal_vel   = 0;
 int  NavierStokes::do_mac_proj                = 1;
 bool NavierStokes::do_fillPatchUMAC           = false;
-int  NavierStokes::check_umac_periodicity     = 1;
 int  NavierStokes::do_init_vort_proj          = 0;
 int  NavierStokes::do_init_proj               = 1;
 int  NavierStokes::do_refine_outflow          = 0;
@@ -209,12 +208,6 @@ NavierStokes::read_geometry ()
 #endif
 }
 
-namespace
-{
-  Real umac_periodic_test_Tol    = 1.e-10;
-}
-
-
 void
 NavierStokes::read_params ()
 {
@@ -300,7 +293,6 @@ NavierStokes::read_params ()
     pp.query("sum_interval",sum_interval);
     pp.query("gravity",gravity);
 
-    pp.query("check_umac_periodicity",check_umac_periodicity);
     //
     // Get run options.
     //
@@ -315,8 +307,6 @@ NavierStokes::read_params ()
     pp.query("do_mac_proj",              do_mac_proj      );
     pp.query("do_fillPatchUMAC",         do_fillPatchUMAC );
     pp.query("do_divu_sync",             do_divu_sync     );
-
-    pp.query("umac_periodic_test_Tol",   umac_periodic_test_Tol);
 
     //
     // Make sure we don't use divu_sync.
@@ -1622,6 +1612,7 @@ NavierStokes::predict_velocity (Real  dt,
     MultiFab Gp(grids,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
 
+    FArrayBox* null_fab = 0;
     for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
              U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM);
          U_fpi.isValid() && P_fpi.isValid();
@@ -1646,10 +1637,10 @@ NavierStokes::predict_velocity (Real  dt,
                bndry[2] = getBCArray(State_Type,i,2,1);)
 
         godunov->Setup(grids[i], dx, dt, 1,
-                       u_mac[0][i], bndry[0].dataPtr(),
-                       u_mac[1][i], bndry[1].dataPtr(),
+                       *null_fab, bndry[0].dataPtr(),
+                       *null_fab, bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                         
-                       u_mac[2][i], bndry[2].dataPtr(),
+                       *null_fab, bndry[2].dataPtr(),
 #endif
                        U_fpi(), (*rho_ptime)[i], tforces);
 
@@ -1662,128 +1653,11 @@ NavierStokes::predict_velocity (Real  dt,
                              U_fpi(), tforces);
     }
 
-    if (check_umac_periodicity)
-        test_umac_periodic();
-
     Real tempdt = std::min(change_max,cfl/cflmax);
 
     ParallelDescriptor::ReduceRealMin(tempdt);
 
     return dt*tempdt;
-}
-
-//
-// Structure used by test_umac_periodic().
-//
-
-struct TURec
-{
-    TURec ()
-        :
-        m_idx(-1),
-        m_dim(-1)
-    {}
-
-    TURec (int        idx,
-           int        dim,
-           const Box& srcBox,
-           const Box& dstBox)
-        :
-        m_srcBox(srcBox),
-        m_dstBox(dstBox),
-        m_idx(idx),
-        m_dim(dim)
-    {}
-
-    FillBoxId m_fbid;
-    Box       m_srcBox;
-    Box       m_dstBox;
-    int       m_idx;
-    int       m_dim;
-};
-
-//
-// Test that edge-based values agree across periodic boundary.
-//
-
-void
-NavierStokes::test_umac_periodic ()
-{
-    if (!geom.isAnyPeriodic()) return;
-
-    const int               MyProc = ParallelDescriptor::MyProc();
-    FArrayBox               diff;
-    Array<IntVect>          pshifts(27);
-    MultiFabCopyDescriptor  mfcd;
-    std::vector<TURec>      pirm;
-    MultiFabId              mfid[BL_SPACEDIM];
-
-    for (int dim = 0; dim < BL_SPACEDIM; dim++)
-    {
-        if (geom.isPeriodic(dim))
-        {
-            Box eDomain = BoxLib::surroundingNodes(geom.Domain(),dim);
-
-            mfid[dim] = mfcd.RegisterMultiFab(&u_mac[dim]);
-
-            for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
-            {
-                Box eBox = u_mac[dim].boxArray()[mfi.index()];
-
-                geom.periodicShift(eDomain, eBox, pshifts);
-
-                for (int iiv = 0; iiv < pshifts.size(); iiv++)
-                {
-                    eBox += pshifts[iiv];
-
-                    for (int j = 0; j < grids.size(); j++)
-                    {
-                        Box srcBox = u_mac[dim].boxArray()[j] & eBox;
-
-                        if (srcBox.ok())
-                        {
-                            Box dstBox = srcBox - pshifts[iiv];
-
-                            TURec r(mfi.index(),dim,srcBox,dstBox);
-
-                            r.m_fbid = mfcd.AddBox(mfid[dim],srcBox,0,j,0,0,1);
-
-                            pirm.push_back(r);
-                        }
-                    }
-
-                    eBox -= pshifts[iiv];
-                }
-            }
-        }
-    }
-
-    mfcd.CollectData();
-
-    for (int i = 0; i < pirm.size(); i++)
-    {
-        const int dim = pirm[i].m_dim;
-
-        BL_ASSERT(pirm[i].m_fbid.box() == pirm[i].m_srcBox);
-        BL_ASSERT(pirm[i].m_srcBox.sameSize(pirm[i].m_dstBox));
-        BL_ASSERT(u_mac[dim].DistributionMap()[pirm[i].m_idx] == MyProc);
-
-        diff.resize(pirm[i].m_srcBox, 1);
-
-        mfcd.FillFab(mfid[dim], pirm[i].m_fbid, diff);
-
-        diff.minus(u_mac[dim][pirm[i].m_idx],pirm[i].m_dstBox,diff.box(),0,0,1);
-
-        const Real max_norm = diff.norm(0);
-
-        if (max_norm > umac_periodic_test_Tol )
-        {
-            std::cout << "dir = "         << dim
-                      << ", diff norm = " << max_norm
-                      << " for region: "  << pirm[i].m_dstBox << std::endl;
-            BoxLib::Error("Periodic bust in u_mac");
-        }
-    }
 }
 
 //
