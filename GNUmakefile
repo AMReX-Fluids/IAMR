@@ -1,5 +1,15 @@
 #
-# $Id: GNUmakefile,v 1.57 1998-11-18 23:47:37 lijewski Exp $
+# $Id: GNUmakefile,v 1.58 1998-11-20 17:15:07 lijewski Exp $
+#
+PBOXLIB_HOME = ..
+
+TOP = $(PBOXLIB_HOME)
+#
+# Where libraries and include files will be installed.
+#
+INSTALL_ROOT  = $(TOP)
+#
+# Variables for the user to set ...
 #
 PRECISION     = DOUBLE
 DEBUG	      = FALSE
@@ -37,14 +47,6 @@ endif
 # Base name of the executable.
 #
 EBASE = amr
-
-PBOXLIB_HOME = ..
-
-TOP = $(PBOXLIB_HOME)
-#
-# Where libraries and include files will be installed.
-#
-INSTALL_ROOT = $(TOP)
 
 include $(TOP)/mk/Make.defs ./Make.package
 
@@ -113,7 +115,11 @@ LDFLAGS += --link_command_prefix 3rd
 LDFLAGS += -non_shared -v
 endif
 
+vpath %.a $(LIBRARY_LOCATIONS)
+
 all: $(executable)
+
+$(executable): $(LIBRARIES)
 #
 # Build and install all libraries needed by IAMRAll in an appropriate order.
 #
