@@ -36,6 +36,15 @@ amr.regrid_int     = 2 # how often to regrid if max_level > 0
 # MUST SET ONLY ONE OF THE TWO BELOW (COMMENT OUT THE OTHER)
 amr.ref_ratio        = 4 2 # integer refinement ratio 
 #amr.ref_ratio_vect         # IntVect refinement ratio 
+#
+# Only call LinOp::ApplyBC() on alternate calls to LinOp::Fsmooth()
+# from within LinOp::smooth(). This is not theoretically correct but
+# can cut down fairly significantly on communication overhead when
+# running in Parallel; especially so for periodic problems.
+#
+#   0 is false and 1 is true
+#
+Lp.alternateApplyBC = 0
 
 #**********************************
 #VERBOSITY CONTROLS (these are all optional with defaults shown)
