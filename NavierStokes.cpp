@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.215 2003-02-06 19:07:22 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.216 2003-02-12 21:55:40 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -5451,6 +5451,15 @@ NavierStokes::create_umac_grown ()
                 }
 
                 u_macG[n].copy(fine_src);
+
+                u_macG[n].copy(u_mac[n]);
+                u_macG[n].FillBoundary(0,1);
+                geom.FillPeriodicBoundary(u_macG[n],0,1);
+      if (level == 1) {
+          cout << "UMACG " << u_macG[1][0] << endl;
+          exit(0);
+      }
+
             }
         }
 }
