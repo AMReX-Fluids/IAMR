@@ -1,0 +1,15 @@
+#
+# $Id: Make.package,v 1.1 1999-02-18 00:56:35 sstanley Exp $
+#
+CEXE_sources += WritePlotFile.cpp
+CEXE_headers += 
+
+FEXE_sources += EXACT_$(DIM)D.F
+FEXE_headers += 
+
+#
+# Shared Routines
+###################
+
+CEXE_sources += DataServices.cpp AmrData.cpp
+FEXE_sources += FABUTIL_$(DIM)D.F
