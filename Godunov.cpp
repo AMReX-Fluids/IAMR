@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Godunov.cpp,v 1.17 1999-05-10 18:54:13 car Exp $
+// $Id: Godunov.cpp,v 1.18 1999-06-30 20:51:15 propp Exp $
 //
 
 //
@@ -24,11 +24,6 @@
 #define YVEL 1
 #define ZVEL 2
 
-#if (BL_SPACEDIM == 3 )
-#define ADD_W
-#else
-#undef ADD_W
-#endif
 //
 // Why ??? Because, I like my macro the best.  DS
 //
@@ -112,7 +107,7 @@ Godunov::ZeroScratch ()
     stylo  = 0;
     styhi  = 0;
     slyscr = 0;
-#ifdef ADD_W     
+#if (BL_SPACEDIM == 3)     
     stzlo  = 0;
     stzhi  = 0;
     slzscr = 0;
@@ -137,7 +132,7 @@ Godunov::SetBogusScratch ()
         stylo[i]  = bogus_value;
         styhi[i]  = bogus_value;
         slyscr[i] = bogus_value;
-#ifdef ADD_W     
+#if (BL_SPACEDIM == 3)     
         stzlo[i]  = bogus_value;
         stzhi[i]  = bogus_value;
         slzscr[i] = bogus_value;
@@ -175,7 +170,7 @@ Godunov::SetScratch (int max_size)
     stylo  = new Real[scr_size];
     styhi  = new Real[scr_size];
     slyscr = new Real[scr_size];
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
     stzlo  = new Real[scr_size];
     stzhi  = new Real[scr_size];
     slzscr = new Real[scr_size];
@@ -195,7 +190,7 @@ Godunov::RemScratch ()
     delete [] stylo;
     delete [] styhi;
     delete [] slyscr;
-#ifdef ADD_W    
+#if (BL_SPACEDIM == 3)    
     delete [] stzlo;
     delete [] stzhi;
     delete [] slzscr; 
@@ -230,7 +225,7 @@ Godunov::Setup (const Box&       grd,
                 const int*       ubc,
                 FArrayBox&       yflux,
                 const int*       vbc,
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
                 FArrayBox&       zflux,
                 const int*       wbc,
 #endif
@@ -247,7 +242,7 @@ Godunov::Setup (const Box&       grd,
     xflux_bx.surroundingNodes(0);
     yflux_bx = grd;
     yflux_bx.surroundingNodes(1);
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
     zflux_bx = grd;
     zflux_bx.surroundingNodes(2);
 #endif
@@ -258,7 +253,7 @@ Godunov::Setup (const Box&       grd,
     {
         xflux.resize(xflux_bx,1);
         yflux.resize(yflux_bx,1);
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
         zflux.resize(zflux_bx,1);
 #endif
     }
@@ -273,7 +268,7 @@ Godunov::Setup (const Box&       grd,
     work.resize(work_bx,2*BL_SPACEDIM+1);
     uad.resize(work_bx,1);
     vad.resize(work_bx,1);
-#ifdef ADD_W 
+#if (BL_SPACEDIM == 3) 
     wad.resize(work_bx,1);
 #endif
 
@@ -296,7 +291,7 @@ Godunov::Setup (const Box&       grd,
     const Real *uad_dat = uad.dataPtr();
     const Real *v_dat   = U.dataPtr(YVEL);
     const Real *vad_dat = vad.dataPtr();
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
     const Real *w_dat   = U.dataPtr(ZVEL);
     const Real *wad_dat = wad.dataPtr();
     const Real *xhi_dat = work.dataPtr(1);
@@ -322,7 +317,7 @@ Godunov::Setup (const Box&       grd,
     //
     FORT_TRANSVEL(u_dat, uad_dat, xhi_dat, slx_dat, ubc, slxscr, 
                   v_dat, vad_dat, yhi_dat, sly_dat, vbc, slyscr, 
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
                   w_dat, wad_dat, zhi_dat, slz_dat, wbc, slzscr,
 #endif    
                   GDIMS(u_lo,u_hi),
@@ -348,7 +343,7 @@ Godunov::edge_states (const Box&  grd,
                       FArrayBox&  stx,
                       FArrayBox&  vedge,
                       FArrayBox&  sty,
-#ifdef ADD_W               
+#if (BL_SPACEDIM == 3)               
                       FArrayBox&  wedge,
                       FArrayBox&  stz,
 #endif
@@ -375,7 +370,7 @@ Godunov::edge_states (const Box&  grd,
     BL_ASSERT(vedge.box()     == yflux_bx   );
     BL_ASSERT(vedge.nComp()   >= 1          );
     BL_ASSERT(sty.nComp()     >= 1          );
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
     BL_ASSERT(wedge.box()     == zflux_bx   );
     BL_ASSERT(wedge.nComp()   >= 1          );
     BL_ASSERT(stz.nComp()     >= 1          );
@@ -408,7 +403,7 @@ Godunov::edge_states (const Box&  grd,
     //
     SetBogusScratch();
 
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
     const int *w_lo       = wedge.loVect();
     const int *w_hi       = wedge.hiVect();
     const Real *w_dat     = U.dataPtr(ZVEL);
@@ -446,7 +441,7 @@ Godunov::edge_states (const Box&  grd,
                 v_dat, ylo_dat, yhi_dat, sly_dat, vad_dat,
                 slyscr, stylo, styhi,
                 vedge_dat, sty_dat, GDIMS(v_lo,v_hi), 
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
                 w_dat, zlo_dat, zhi_dat, slz_dat, wad_dat,
                 slzscr, stzlo, stzhi,
                 wedge_dat, stz_dat, GDIMS(w_lo,w_hi), 
@@ -469,7 +464,7 @@ Godunov::ComputeUmac (const Box&  grd,
                       const int*  ubc, 
                       FArrayBox&  vmac,
                       const int*  vbc, 
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
                       FArrayBox&  wmac,
                       const int*  wbc, 
 #endif
@@ -480,7 +475,7 @@ Godunov::ComputeUmac (const Box&  grd,
     //
     // 2D calls.
     //
-#ifndef ADD_W                  
+#if (BL_SPACEDIM == 2)                  
     edge_states(grd, dx, dt, velpred,
                 umac, umac,
                 vmac, vmac,
@@ -493,7 +488,7 @@ Godunov::ComputeUmac (const Box&  grd,
     //
     // 3D calls.
     //
-#ifdef ADD_W                  
+#if (BL_SPACEDIM == 3)                  
     edge_states(grd, dx, dt, velpred,
                 umac, umac,
                 vmac, vmac,
@@ -528,7 +523,7 @@ Godunov::AdvectState (const Box&  grd,
                       FArrayBox&  areay,
                       FArrayBox&  vedge,
                       FArrayBox&  yflux,  
-#ifdef ADD_W                               
+#if (BL_SPACEDIM == 3)                               
                       FArrayBox&  areaz,
                       FArrayBox&  wedge,
                       FArrayBox&  zflux,
@@ -551,7 +546,7 @@ Godunov::AdvectState (const Box&  grd,
     edge_states(grd, dx, dt, velpred,
                 uedge, xflux,
                 vedge, yflux,
-#ifdef ADD_W             
+#if (BL_SPACEDIM == 3)             
                 wedge, zflux,
 #endif
                 U, S, tforces, fab_ind, state_ind, bc);
@@ -561,7 +556,7 @@ Godunov::AdvectState (const Box&  grd,
     ComputeAofs( grd,
                  areax, uedge, xflux,  
                  areay, vedge, yflux,  
-#ifdef ADD_W                             
+#if (BL_SPACEDIM == 3)                             
                  areaz, wedge, zflux,
 #endif                     
                  vol, aofs, aofs_ind, iconserv);
@@ -579,7 +574,7 @@ Godunov::ComputeAofs (const Box& grd,
                       FArrayBox& areay,
                       FArrayBox& vedge,
                       FArrayBox& yflux,  
-#ifdef ADD_W                               
+#if (BL_SPACEDIM == 3)                               
                       FArrayBox& areaz,
                       FArrayBox& wedge,
                       FArrayBox& zflux,
@@ -614,7 +609,7 @@ Godunov::ComputeAofs (const Box& grd,
     const int *yflux_hi   = yflux.hiVect();
     const Real *yflux_dat = yflux.dataPtr();
     const Real *vedge_dat = vedge.dataPtr();
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
     const int *az_lo      = areaz.loVect();
     const int *az_hi      = areaz.hiVect();
     const Real *areaz_dat = areaz.dataPtr();
@@ -631,7 +626,7 @@ Godunov::ComputeAofs (const Box& grd,
                      areax_dat, GDIMS(ax_lo,ax_hi),
                      yflux_dat, vedge_dat, GDIMS(yflux_lo,yflux_hi),
                      areay_dat, GDIMS(ay_lo,ay_hi),
-#ifdef ADD_W                                                    
+#if (BL_SPACEDIM == 3)                                                    
                      zflux_dat, wedge_dat, GDIMS(zflux_lo,zflux_hi),
                      areaz_dat, GDIMS(az_lo,az_hi),
 #endif
@@ -657,7 +652,7 @@ Godunov::SyncAdvect (const Box&  grd,
                      FArrayBox& vedge,
                      FArrayBox& vcorr,
                      FArrayBox& yflux,
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
                      FArrayBox& areaz,
                      FArrayBox& wedge,
                      FArrayBox& wcorr,
@@ -689,7 +684,7 @@ Godunov::SyncAdvect (const Box&  grd,
 
     BL_ASSERT(vcorr.box()     == yflux_bx   );
     BL_ASSERT(vcorr.nComp()   >= 1          );
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
     BL_ASSERT(wcorr.box()     == zflux_bx   );
     BL_ASSERT(wcorr.nComp()   >= 1          );
 #endif    
@@ -699,7 +694,7 @@ Godunov::SyncAdvect (const Box&  grd,
     edge_states(grd, dx, dt, velpred,
                 uedge, xflux,
                 vedge, yflux,
-#ifdef ADD_W     
+#if (BL_SPACEDIM == 3)     
                 wedge, zflux,
 #endif
                 S, S, tforces, fab_ind, state_ind, bc);
@@ -709,7 +704,7 @@ Godunov::SyncAdvect (const Box&  grd,
     ComputeSyncAofs(grd,
                     areax, ucorr, xflux,  
                     areay, vcorr, yflux,  
-#ifdef ADD_W                             
+#if (BL_SPACEDIM == 3)                             
                     areaz, wcorr, zflux,
 #endif                     
                     vol, sync, sync_ind, iconserv);
@@ -727,7 +722,7 @@ Godunov::ComputeSyncAofs (const Box& grd,
                           FArrayBox& areay,
                           FArrayBox& vcorr,
                           FArrayBox& yflux,  
-#ifdef ADD_W                             
+#if (BL_SPACEDIM == 3)                             
                           FArrayBox& areaz,
                           FArrayBox& wcorr,
                           FArrayBox& zflux,
@@ -762,7 +757,7 @@ Godunov::ComputeSyncAofs (const Box& grd,
     const int *yflux_hi   = yflux.hiVect();
     const Real *yflux_dat = yflux.dataPtr();
     const Real *vcorr_dat = vcorr.dataPtr();
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
     const int *az_lo      = areaz.loVect();
     const int *az_hi      = areaz.hiVect();
     const Real *areaz_dat = areaz.dataPtr();
@@ -781,7 +776,7 @@ Godunov::ComputeSyncAofs (const Box& grd,
                            
                           yflux_dat, vcorr_dat, GDIMS(yflux_lo,yflux_hi),
                           areay_dat, GDIMS(ay_lo,ay_hi),
-#ifdef ADD_W                                             
+#if (BL_SPACEDIM == 3)                                             
                           zflux_dat, wcorr_dat, GDIMS(zflux_lo,zflux_hi),
                           areaz_dat, GDIMS(az_lo,az_hi),
 #endif
@@ -807,7 +802,7 @@ Godunov::ScalMinMax (FArrayBox& Sold,
     const Real *Sold_dat = Sold.dataPtr(ind);
     const Real *Snew_dat = Snew.dataPtr(ind);
 
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
     Box flatbox(grd);
     int zlen = flatbox.length()[BL_SPACEDIM-1];
     flatbox.growHi(BL_SPACEDIM-1,3-zlen);
@@ -819,7 +814,7 @@ Godunov::ScalMinMax (FArrayBox& Sold,
 
     FORT_SCALMINMAX (Sold_dat, GDIMS(slo,shi),
                      Snew_dat, GDIMS(slo,shi),
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
                      smin_dat, smax_dat,
                      GDIMS(lo,hi),
 #endif
@@ -891,14 +886,14 @@ Godunov::test_u_rho (FArrayBox&  U,
     const Real *rh = rho.dataPtr();
     const Real *u  = U.dataPtr(XVEL);
     const Real *v  = U.dataPtr(YVEL);
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
     const Real *w  = U.dataPtr(ZVEL);
 #endif
 
     Real cflmax = 0;
     FORT_TEST_U_RHO(u,  GDIMS(vlo,vhi),
                     v,  GDIMS(vlo,vhi),
-#ifdef ADD_W                          
+#if (BL_SPACEDIM == 3)                          
                     w,  GDIMS(vlo,vhi),
 #endif
                     rh, GDIMS(rlo,rhi),
@@ -913,7 +908,7 @@ Godunov::test_u_rho (FArrayBox&  U,
 Real
 Godunov::test_umac_rho (FArrayBox&  umac,
                         FArrayBox&  vmac,
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
                         FArrayBox&  wmac,
 #endif
                         FArrayBox&  rho,
@@ -927,7 +922,7 @@ Godunov::test_umac_rho (FArrayBox&  umac,
     //
     BL_ASSERT(umac.nComp() == 1);
     BL_ASSERT(vmac.nComp() == 1);
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
     BL_ASSERT(wmac.nComp() == 1);
 #endif
     BL_ASSERT(rho.nComp()  == 1);
@@ -944,7 +939,7 @@ Godunov::test_umac_rho (FArrayBox&  umac,
     const Real *vm = vmac.dataPtr();
     const Real *rh = rho.dataPtr();
     
-#ifdef ADD_W
+#if (BL_SPACEDIM == 3)
     const int *wlo = wmac.loVect();
     const int *whi = wmac.hiVect();
     const Real *wm = wmac.dataPtr();
@@ -953,7 +948,7 @@ Godunov::test_umac_rho (FArrayBox&  umac,
     Real cfl;
     FORT_TEST_UMAC_RHO(um, GDIMS(ulo,uhi),
                        vm, GDIMS(vlo,vhi),
-#ifdef ADD_W                            
+#if (BL_SPACEDIM == 3)                            
                        wm, GDIMS(wlo,whi),
 #endif                                              
                        rh, GDIMS(rlo,rhi),
