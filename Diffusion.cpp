@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.87 1999-04-08 17:58:40 marc Exp $
+// $Id: Diffusion.cpp,v 1.88 1999-04-13 00:10:47 marc Exp $
 //
 
 //
@@ -1856,13 +1856,14 @@ Diffusion::getViscOp (int                    comp,
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
 
-    const Real*  dx     = caller->Geom().CellSize();
-    const Box&   domain = caller->Geom().Domain();
-    const BCRec& bc     = caller->get_desc_lst()[State_Type].getBC(comp);
+    const Geometry& geom = caller->Geom();
+    const Real*  dx      = geom.CellSize();
+    const Box&   domain  = geom.Domain();
+    const BCRec& bc      = caller->get_desc_lst()[State_Type].getBC(comp);
 
     IntVect ref_ratio = level > 0 ? parent->refRatio(level-1) : IntVect::TheUnitVector();
 
-    ViscBndry bndry(grids,1,domain);
+    ViscBndry bndry(grids,1,geom);
     bndry.setHomogValues(bc, ref_ratio);
 
     ABecLaplacian* visc_op = new ABecLaplacian(bndry,dx);
