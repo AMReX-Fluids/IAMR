@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.30 2003-02-06 19:38:22 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.31 2003-02-06 20:28:38 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -868,9 +868,11 @@ c    &                   - dth*s(i,j)*(vedge(i,j+1)-vedge(i,j))/hy
 
       subroutine FORT_ADV_FORCING(
      &     aofs,DIMS(aofs),
-     &     xflux,uedge,DIMS(uedge),
+     &     xflux,DIMS(xflux),
+     &     uedge,DIMS(uedge),
      &     areax,DIMS(ax),
-     &     yflux,vedge,DIMS(vedge),
+     &     yflux,DIMS(yflux),
+     &     vedge,DIMS(vedge),
      &     areay,DIMS(ay),
      &     vol,DIMS(vol),
      &     lo,hi,iconserv )
@@ -888,14 +890,16 @@ c
       integer DIMDEC(vol)
       integer DIMDEC(uedge)
       integer DIMDEC(vedge)
+      integer DIMDEC(xflux)
+      integer DIMDEC(yflux)
       integer DIMDEC(ax)
       integer DIMDEC(ay)
       REAL_T aofs(DIMV(aofs))
       REAL_T vol(DIMV(vol))
       REAL_T uedge(DIMV(uedge))
       REAL_T vedge(DIMV(vedge))
-      REAL_T xflux(DIMV(uedge))
-      REAL_T yflux(DIMV(vedge))
+      REAL_T xflux(DIMV(xflux))
+      REAL_T yflux(DIMV(yflux))
       REAL_T areax(DIMV(ax))
       REAL_T areay(DIMV(ay))
 
@@ -959,9 +963,11 @@ c
 
       subroutine FORT_SYNC_ADV_FORCING(
      &     sync,DIMS(sync),
-     &     xflux,ucor,DIMS(ucor),
+     &     xflux,DIMS(xflux),
+     &     ucor,DIMS(ucor),
      &     areax,DIMS(ax),
-     &     yflux,vcor,DIMS(vcor),
+     &     yflux,DIMS(yflux),
+     &     vcor,DIMS(vcor),
      &     areay,DIMS(ay),
      &     vol,DIMS(vol),
      &     lo,hi,iconserv )
@@ -978,14 +984,16 @@ c
       integer DIMDEC(vol)
       integer DIMDEC(ucor)
       integer DIMDEC(vcor)
+      integer DIMDEC(xflux)
+      integer DIMDEC(yflux)
       integer DIMDEC(ax)
       integer DIMDEC(ay)
       REAL_T sync(DIMV(sync))
       REAL_T vol(DIMV(vol))
       REAL_T ucor(DIMV(ucor))
       REAL_T vcor(DIMV(vcor))
-      REAL_T xflux(DIMV(ucor))
-      REAL_T yflux(DIMV(vcor))
+      REAL_T xflux(DIMV(xflux))
+      REAL_T yflux(DIMV(yflux))
       REAL_T areax(DIMV(ax))
       REAL_T areay(DIMV(ay))
 

@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.12 2003-02-06 19:38:22 almgren Exp $
+** $Id: GODUNOV_F.H,v 1.13 2003-02-06 20:28:39 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -183,15 +183,17 @@ extern "C"
 		    int* use_forces_in_trans, int* iconserv);
    
    void FORT_ADV_FORCING(const Real* aofs_dat, ARLIM_P(a_lo), ARLIM_P(a_hi),
-			 const Real* xflux_dat, const Real* uedge_dat, 
-			 ARLIM_P(xflux_lo),ARLIM_P(xflux_hi),
+
+			 const Real* xflux_dat, ARLIM_P(xflux_lo),ARLIM_P(xflux_hi),
+                         const Real* uedge_dat, ARLIM_P(uedge_lo),ARLIM_P(uedge_hi),
 			 const Real* areax_dat, ARLIM_P(ax_lo), ARLIM_P(ax_hi),
-			 const Real* yflux_dat, const Real* vedge_dat, 
-			 ARLIM_P(yflux_lo),ARLIM_P(yflux_hi),
+
+			 const Real* yflux_dat, ARLIM_P(yflux_lo),ARLIM_P(yflux_hi),
+                         const Real* vedge_dat, ARLIM_P(vedge_lo),ARLIM_P(vedge_hi),
 			 const Real* areay_dat, ARLIM_P(ay_lo), ARLIM_P(ay_hi),
 #if (BL_SPACEDIM == 3)                                                    
-			 const Real* zflux_dat, const Real* wedge_dat, 
-			 ARLIM_P(zflux_lo),ARLIM_P(zflux_hi),
+			 const Real* zflux_dat, ARLIM_P(zflux_lo),ARLIM_P(zflux_hi),
+                         const Real* wedge_dat, ARLIM_P(wedge_lo),ARLIM_P(wedge_hi),
 			 const Real* areaz_dat, ARLIM_P(az_lo), ARLIM_P(az_hi),
 #endif
 			 const Real* vol_dat, ARLIM_P(v_lo),ARLIM_P(v_hi),
@@ -199,16 +201,16 @@ extern "C"
    
    void FORT_SYNC_ADV_FORCING(const Real* sync_dat,ARLIM_P(s_lo),ARLIM_P(s_hi),
 			      
-			      const Real* xflux_dat, const Real* ucorr_dat, 
-			      ARLIM_P(xflux_lo),ARLIM_P(xflux_hi),
+			      const Real* xflux_dat, ARLIM_P(xflux_lo),ARLIM_P(xflux_hi),
+                              const Real* ucorr_dat, ARLIM_P(ucorr_lo),ARLIM_P(ucorr_hi),
 			      const Real* areax_dat, ARLIM_P(ax_lo), ARLIM_P(ax_hi),
 			      
-			      const Real* yflux_dat, const Real* vcorr_dat, 
-			      ARLIM_P(yflux_lo),ARLIM_P(yflux_hi),
+			      const Real* yflux_dat, ARLIM_P(yflux_lo),ARLIM_P(yflux_hi),
+                              const Real* vcorr_dat, ARLIM_P(vcorr_lo),ARLIM_P(vcorr_hi),
 			      const Real* areay_dat, ARLIM_P(ay_lo), ARLIM_P(ay_hi),
 #if (BL_SPACEDIM == 3)                                             
-			      const Real* zflux_dat, const Real* wcorr_dat, 
-			      ARLIM_P(zflux_lo),ARLIM_P(zflux_hi),
+			      const Real* zflux_dat, ARLIM_P(zflux_lo),ARLIM_P(zflux_hi),
+                              const Real* wcorr_dat, ARLIM_P(wcorr_lo),ARLIM_P(wcorr_hi),
 			      const Real* areaz_dat, ARLIM_P(az_lo), ARLIM_P(az_hi),
 #endif
 			      const Real* vol_dat, ARLIM_P(v_lo),ARLIM_P(v_hi),

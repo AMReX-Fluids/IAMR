@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.25 2003-02-06 19:38:22 almgren Exp $
+c $Id: GODUNOV_3D.F,v 1.26 2003-02-06 20:28:38 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -937,7 +937,6 @@ c
       end if
 
       end
-#endif
 
       subroutine FORT_ESTATE_FPU(s, tforces, DIMS(s),
      &     xlo, xhi, sx, slxscr, stxlo, stxhi,
@@ -1003,7 +1002,6 @@ c
       integer use_minion, iconserv
       REAL_T spx,smx,spy,smy,spz,smz,st,denom
 
-      eps  = 1.0D-6
       dth  = half*dt
       dthx = half*dt / dx(1)
       dthy = half*dt / dx(2)
@@ -1402,11 +1400,14 @@ c    &                    - dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
 
       subroutine FORT_ADV_FORCING(
      &     aofs,DIMS(aofs),
-     &     xflux,uedge,DIMS(uedge),
+     &     xflux,DIMS(xflux),
+     &     uedge,DIMS(uedge),
      &     areax,DIMS(ax),
-     &     yflux,vedge,DIMS(vedge),
+     &     yflux,DIMS(yflux),
+     &     vedge,DIMS(vedge),
      &     areay,DIMS(ay),
-     &     zflux,wedge,DIMS(wedge),
+     &     zflux,DIMS(zflux),
+     &     wedge,DIMS(wedge),
      &     areaz,DIMS(az),
      &     vol,DIMS(vol),
      &     lo,hi,iconserv )
@@ -1425,6 +1426,9 @@ c
       integer DIMDEC(uedge)
       integer DIMDEC(vedge)
       integer DIMDEC(wedge)
+      integer DIMDEC(xflux)
+      integer DIMDEC(yflux)
+      integer DIMDEC(zflux)
       integer DIMDEC(ax)
       integer DIMDEC(ay)
       integer DIMDEC(az)
@@ -1433,9 +1437,9 @@ c
       REAL_T uedge(DIMV(uedge))
       REAL_T vedge(DIMV(vedge))
       REAL_T wedge(DIMV(wedge))
-      REAL_T xflux(DIMV(uedge))
-      REAL_T yflux(DIMV(vedge))
-      REAL_T zflux(DIMV(wedge))
+      REAL_T xflux(DIMV(xflux))
+      REAL_T yflux(DIMV(yflux))
+      REAL_T zflux(DIMV(zflux))
       REAL_T areax(DIMV(ax))
       REAL_T areay(DIMV(ay))
       REAL_T areaz(DIMV(az))
@@ -1526,14 +1530,17 @@ c
       end
 
       subroutine FORT_SYNC_ADV_FORCING(
-     &     sync,DIMS(sync),
-     &     xflux,ucor,DIMS(ucor),
+     &     sync ,DIMS(sync),
+     &     xflux,DIMS(xflux),
+     &     ucor ,DIMS(ucor),
      &     areax,DIMS(ax),
-     &     yflux,vcor,DIMS(vcor),
+     &     yflux,DIMS(yflux),
+     &     vcor ,DIMS(vcor),
      &     areay,DIMS(ay),
-     &     zflux,wcor,DIMS(wcor),
+     &     zflux,DIMS(zflux),
+     &     wcor ,DIMS(wcor),
      &     areaz,DIMS(az),
-     &     vol,DIMS(vol),
+     &     vol ,DIMS(vol),
      &     lo,hi,iconserv )
 c
 c     This subroutine computes the sync advective tendency
@@ -1550,6 +1557,9 @@ c
       integer DIMDEC(ucor)
       integer DIMDEC(vcor)
       integer DIMDEC(wcor)
+      integer DIMDEC(xflux)
+      integer DIMDEC(yflux)
+      integer DIMDEC(zflux)
       integer DIMDEC(ax)
       integer DIMDEC(ay)
       integer DIMDEC(az)
@@ -1558,9 +1568,9 @@ c
       REAL_T ucor(DIMV(ucor))
       REAL_T vcor(DIMV(vcor))
       REAL_T wcor(DIMV(wcor))
-      REAL_T xflux(DIMV(ucor))
-      REAL_T yflux(DIMV(vcor))
-      REAL_T zflux(DIMV(wcor))
+      REAL_T xflux(DIMV(xflux))
+      REAL_T yflux(DIMV(yflux))
+      REAL_T zflux(DIMV(zflux))
       REAL_T areax(DIMV(ax))
       REAL_T areay(DIMV(ay))
       REAL_T areaz(DIMV(az))

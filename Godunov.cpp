@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.30 2003-02-06 19:38:23 almgren Exp $
+// $Id: Godunov.cpp,v 1.31 2003-02-06 20:28:39 almgren Exp $
 //
 
 //
@@ -353,8 +353,6 @@ Godunov::edge_states (const Box&  grd,
     const Real *tfr_dat   = tforces.dataPtr(fab_ind);
     const Real *uad_dat   = uad.dataPtr();
     const Real *vad_dat   = vad.dataPtr();
-    const Real *uedge_dat = uedge.dataPtr();
-    const Real *vedge_dat = vedge.dataPtr();
     const Real *stx_dat   = stx.dataPtr();
     const Real *sty_dat   = sty.dataPtr();
     //
@@ -365,7 +363,6 @@ Godunov::edge_states (const Box&  grd,
 #if (BL_SPACEDIM == 3)
     const Real *w_dat     = U.dataPtr(ZVEL);
     const Real *wad_dat   = wad.dataPtr();
-    const Real *wedge_dat = wedge.dataPtr();
     const Real *stz_dat   = stz.dataPtr();
     const Real *xhi_dat   = work.dataPtr(0);
     const Real *yhi_dat   = work.dataPtr(0);
@@ -644,53 +641,24 @@ Godunov::ComputeAofs (const Box& grd,
                       int        aofs_ind,
                       int        iconserv )
 {
-    //
-    // Create the bounds and pointers.
-    //
     const int *lo         = grd.loVect();
     const int *hi         = grd.hiVect();
-    const int *a_lo       = aofs.loVect();
-    const int *a_hi       = aofs.hiVect();
-    const Real *aofs_dat  = aofs.dataPtr(aofs_ind);
-    const int *ax_lo      = areax.loVect();
-    const int *ax_hi      = areax.hiVect();
-    const Real *areax_dat = areax.dataPtr();
-    const int *ay_lo      = areay.loVect();
-    const int *ay_hi      = areay.hiVect();
-    const Real *areay_dat = areay.dataPtr();
-    const int *v_lo       = vol.loVect();
-    const int *v_hi       = vol.hiVect();
-    const Real *vol_dat   = vol.dataPtr();
-    const int *xflux_lo   = xflux.loVect();
-    const int *xflux_hi   = xflux.hiVect();
-    const Real *xflux_dat = xflux.dataPtr();
-    const Real *uedge_dat = uedge.dataPtr();
-    const int *yflux_lo   = yflux.loVect();
-    const int *yflux_hi   = yflux.hiVect();
-    const Real *yflux_dat = yflux.dataPtr();
-    const Real *vedge_dat = vedge.dataPtr();
-#if (BL_SPACEDIM == 3)
-    const int *az_lo      = areaz.loVect();
-    const int *az_hi      = areaz.hiVect();
-    const Real *areaz_dat = areaz.dataPtr();
-    const int *zflux_lo   = zflux.loVect();
-    const int *zflux_hi   = zflux.hiVect();
-    const Real *zflux_dat = zflux.dataPtr();
-    const Real *wedge_dat = wedge.dataPtr();
-#endif
-    //
-    // Compute the advective tendency.
-    //
-    FORT_ADV_FORCING(aofs_dat, ARLIM(a_lo), ARLIM(a_hi),
-                     xflux_dat, uedge_dat, ARLIM(xflux_lo), ARLIM(xflux_hi),
-                     areax_dat, ARLIM(ax_lo), ARLIM(ax_hi),
-                     yflux_dat, vedge_dat, ARLIM(yflux_lo), ARLIM(yflux_hi),
-                     areay_dat, ARLIM(ay_lo), ARLIM(ay_hi),
+
+    FORT_ADV_FORCING( aofs.dataPtr(aofs_ind),ARLIM(aofs.loVect()), ARLIM(aofs.hiVect()),
+
+                     xflux.dataPtr(), ARLIM(xflux.loVect()), ARLIM(xflux.hiVect()),
+                     uedge.dataPtr(), ARLIM(uedge.loVect()), ARLIM(uedge.hiVect()),
+                     areax.dataPtr(), ARLIM(areax.loVect()), ARLIM(areax.hiVect()),
+
+                     yflux.dataPtr(), ARLIM(yflux.loVect()), ARLIM(yflux.hiVect()),
+                     vedge.dataPtr(), ARLIM(vedge.loVect()), ARLIM(vedge.hiVect()),
+                     areay.dataPtr(), ARLIM(areay.loVect()), ARLIM(areay.hiVect()),
 #if (BL_SPACEDIM == 3)                                                    
-                     zflux_dat, wedge_dat, ARLIM(zflux_lo), ARLIM(zflux_hi),
-                     areaz_dat, ARLIM(az_lo), ARLIM(az_hi),
+                     zflux.dataPtr(), ARLIM(zflux.loVect()), ARLIM(zflux.hiVect()),
+                     wedge.dataPtr(), ARLIM(wedge.loVect()), ARLIM(wedge.hiVect()),
+                     areaz.dataPtr(), ARLIM(areaz.loVect()), ARLIM(areaz.hiVect()),
 #endif
-                     vol_dat, ARLIM(v_lo), ARLIM(v_hi),
+                     vol.dataPtr(), ARLIM(vol.loVect()), ARLIM(vol.hiVect()),
                      lo, hi, &iconserv);
 }
 
@@ -794,55 +762,23 @@ Godunov::ComputeSyncAofs (const Box& grd,
                           int        sync_ind,
                           int        iconserv)
 {
-    //
-    // Create the bounds and pointers.
-    //
     const int *lo         = grd.loVect();
     const int *hi         = grd.hiVect();
-    const int *s_lo       = sync.loVect();
-    const int *s_hi       = sync.hiVect();
-    const Real *sync_dat  = sync.dataPtr(sync_ind);
-    const int *ax_lo      = areax.loVect();
-    const int *ax_hi      = areax.hiVect();
-    const Real *areax_dat = areax.dataPtr();
-    const int *ay_lo      = areay.loVect();
-    const int *ay_hi      = areay.hiVect();
-    const Real *areay_dat = areay.dataPtr();
-    const int *v_lo       = vol.loVect();
-    const int *v_hi       = vol.hiVect();
-    const Real *vol_dat   = vol.dataPtr();
-    const int *xflux_lo   = xflux.loVect();
-    const int *xflux_hi   = xflux.hiVect();
-    const Real *xflux_dat = xflux.dataPtr();
-    const Real *ucorr_dat = ucorr.dataPtr();
-    const int *yflux_lo   = yflux.loVect();
-    const int *yflux_hi   = yflux.hiVect();
-    const Real *yflux_dat = yflux.dataPtr();
-    const Real *vcorr_dat = vcorr.dataPtr();
-#if (BL_SPACEDIM == 3)
-    const int *az_lo      = areaz.loVect();
-    const int *az_hi      = areaz.hiVect();
-    const Real *areaz_dat = areaz.dataPtr();
-    const int *zflux_lo   = zflux.loVect();
-    const int *zflux_hi   = zflux.hiVect();
-    const Real *zflux_dat = zflux.dataPtr();
-    const Real *wcorr_dat = wcorr.dataPtr();
-#endif
-    //
-    // Compute the corrective tendency.
-    //
-    FORT_SYNC_ADV_FORCING(sync_dat, ARLIM(s_lo), ARLIM(s_hi),
+    FORT_SYNC_ADV_FORCING(sync.dataPtr(sync_ind), ARLIM(sync.loVect()), ARLIM(sync.hiVect()),
                            
-                          xflux_dat, ucorr_dat, ARLIM(xflux_lo), ARLIM(xflux_hi),
-                          areax_dat, ARLIM(ax_lo), ARLIM(ax_hi),
-                           
-                          yflux_dat, vcorr_dat, ARLIM(yflux_lo), ARLIM(yflux_hi),
-                          areay_dat, ARLIM(ay_lo), ARLIM(ay_hi),
+                          xflux.dataPtr(),ARLIM(xflux.loVect()),ARLIM(xflux.hiVect()),
+                          ucorr.dataPtr(),ARLIM(ucorr.loVect()),ARLIM(ucorr.hiVect()),
+                          areax.dataPtr(),ARLIM(areax.loVect()),ARLIM(areax.hiVect()),
+
+                          yflux.dataPtr(),ARLIM(yflux.loVect()),ARLIM(yflux.hiVect()),
+                          vcorr.dataPtr(),ARLIM(vcorr.loVect()),ARLIM(vcorr.hiVect()),
+                          areay.dataPtr(),ARLIM(areay.loVect()),ARLIM(areay.hiVect()),
 #if (BL_SPACEDIM == 3)                                             
-                          zflux_dat, wcorr_dat, ARLIM(zflux_lo), ARLIM(zflux_hi),
-                          areaz_dat, ARLIM(az_lo), ARLIM(az_hi),
+                          zflux.dataPtr(),ARLIM(zflux.loVect()),ARLIM(zflux.hiVect()),
+                          wcorr.dataPtr(),ARLIM(wcorr.loVect()),ARLIM(wcorr.hiVect()),
+                          areaz.dataPtr(),ARLIM(areaz.loVect()),ARLIM(areaz.hiVect()),
 #endif
-                          vol_dat, ARLIM(v_lo), ARLIM(v_hi),
+                          vol.dataPtr(), ARLIM(vol.loVect()), ARLIM(vol.hiVect()),
                           lo, hi, &iconserv);
 }    
 
