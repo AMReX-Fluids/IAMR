@@ -1,6 +1,6 @@
 
 //
-// $Id: amr_multi.cpp,v 1.12 1997-10-08 20:15:49 car Exp $
+// $Id: amr_multi.cpp,v 1.13 1997-11-18 00:06:34 lijewski Exp $
 //
 
 #include <amr_multi.H>
@@ -303,7 +303,7 @@ amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
   for (i = 0; i <= mglev_max; i++) 
   {
     BoxArray mesh = mg_mesh[i];
-    mesh.convert(type(source[lev_min]));
+    mesh.convert(IndexType(type(source[lev_min])));
     resid.set(i, new MultiFab(mesh, 1, source[lev_min].nGrow()));
     corr.set(i, new MultiFab(mesh, 1, dest[lev_min].nGrow()));
     if (type(dest[lev_min]) == IntVect::TheCellVector())

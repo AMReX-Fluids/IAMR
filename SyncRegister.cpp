@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.12 1997-10-08 20:15:47 car Exp $
+// $Id: SyncRegister.cpp,v 1.13 1997-11-18 00:06:30 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1534,9 +1534,9 @@ if(ParallelDescriptor::NProcs() > 1) {
     Box subbox(bx);
     os << "[box = " << subbox << ", comp = "
          << comp << ']' << NL;
-    const int* len = bx.length();
+    const int* len = bx.length().getVect();
     const int* lo = bx.loVect();
-    const int* s_len = subbox.length();
+    const int* s_len = subbox.length().getVect();
     const int* s_lo = subbox.loVect();
     const Real* d = f.dataPtr(comp);
     char str[80];

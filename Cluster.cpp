@@ -1,6 +1,6 @@
 
 //
-// $Id: Cluster.cpp,v 1.7 1997-10-08 20:15:24 car Exp $
+// $Id: Cluster.cpp,v 1.8 1997-11-18 00:06:28 lijewski Exp $
 //
 
 #include <Cluster.H>
@@ -144,7 +144,7 @@ Cluster::chop()
 
     const int* lo = bx.loVect();
     const int* hi = bx.hiVect();
-    const int* len = bx.length();
+    const int* len = bx.length().getVect();
 
       // compute histogram
     int* hist[BL_SPACEDIM];

@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.14 1997-11-11 19:21:43 lijewski Exp $
+// $Id: TagBox.cpp,v 1.15 1997-11-18 00:06:32 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -48,16 +48,16 @@ TagBox::coarsen(const IntVect & ratio)
 
    const int* flo = domain.loVect();
    const int* fhi = domain.hiVect();
-   const int* flen = domain.length();
+   const int* flen = domain.length().getVect();
    int* fdat = dataPtr();
    const int* clo = cbox.loVect();
    const int* chi = cbox.hiVect();
-   const int* clen = cbox.length();
+   const int* clen = cbox.length().getVect();
    int* cdat = crse->dataPtr();
 
    const int* lo  = b1.loVect();
    const int* hi  = b1.hiVect();
-   const int* len = b1.length();
+   const int* len = b1.length().getVect();
    int longlen, dir;
    longlen = b1.longside(dir);
 
@@ -196,7 +196,7 @@ TagBox::buffer(int nbuff, int nwid)
           jlo=inlo[1]; jhi=inhi[1]; ,
           klo=inlo[2]; khi=inhi[2];)
 
-   const int* len = domain.length();
+   const int* len = domain.length().getVect();
    const int* lo = domain.loVect();
    int ni, nj, nk;
    ni = nj = nk = 0;
@@ -240,9 +240,9 @@ TagBox::merge(const TagBox& src)
    bx &= src.domain;
    if (bx.ok()) {
       const int* dlo = domain.loVect();
-      const int* dlen = domain.length();
+      const int* dlen = domain.length().getVect();
       const int* slo = src.domain.loVect();
-      const int* slen = src.domain.length();
+      const int* slen = src.domain.length().getVect();
       const int* lo = bx.loVect();
       const int* hi = bx.hiVect();
       const int* ds0 = src.dataPtr();
@@ -313,7 +313,7 @@ TagBox::colate(Array<IntVect> &ar, int start) const
    // starting at given offset of array ar, enter location (IntVect) of
    // each tagged cell in tagbox
    int count = 0;
-   const int* len = domain.length();
+   const int* len = domain.length().getVect();
    const int* lo = domain.loVect();
    const int* d = dataPtr();
    int ni, nj, nk;

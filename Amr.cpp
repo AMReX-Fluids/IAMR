@@ -1,6 +1,6 @@
 
 //
-// $Id: Amr.cpp,v 1.12 1997-11-10 22:30:07 car Exp $
+// $Id: Amr.cpp,v 1.13 1997-11-18 00:06:27 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -928,7 +928,7 @@ Amr::defBaseLevel(Real strt_time) {
       // check that base domain has even number of zones in all
       // directions
     const Box& domain = geom[0].Domain();
-    const int* d_len = domain.length();
+    const int* d_len = domain.length().getVect();
     int idir;
     for (idir = 0; idir < BL_SPACEDIM; idir++) {
 	if (d_len[idir]%2 != 0) {
