@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.64 1998-06-09 21:09:12 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.65 1998-06-09 21:42:52 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1355,9 +1355,8 @@ NavierStokes::level_projector (Real dt,
        else
        {
            dsdt    = new MultiFab(grids,1,1,Fab_allocate);
-           divuold = new MultiFab(grids,1,1,Fab_allocate);
+           divuold = new MultiFab(grids,1,1,Fab_noallocate);
            dsdt->setVal(0.0);
-           divuold->setVal(0.0);
        }
 
        int crse_dt_ratio  = (level > 0) ? parent->MaxRefRatio(level-1) : -1;

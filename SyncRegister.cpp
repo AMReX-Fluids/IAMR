@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.38 1998-06-08 15:51:13 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.39 1998-06-09 21:42:51 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -149,7 +149,7 @@ SyncRegister::sum ()
 
     for (OrientationIter face; face; ++face)
     {
-        for (FabSetIterator fsi(bndry[face()]); fsi.isValid(); ++fsi)
+        for (FabSetIterator fsi(bndry[face()]); fsi.isValid(false); ++fsi)
         {
             bfab.copy(fsi());
         }
@@ -164,7 +164,7 @@ SyncRegister::increment (const FArrayBox& src)
 {
     for (OrientationIter face; face; ++face)
     {
-        for (FabSetIterator fsi(bndry[face()]); fsi.isValid(); ++fsi)
+        for (FabSetIterator fsi(bndry[face()]); fsi.isValid(false); ++fsi)
         {
             fsi().plus(src);
         }

@@ -1,5 +1,5 @@
 //
-// $Id: ViscBndry.cpp,v 1.10 1998-05-29 23:20:30 lijewski Exp $
+// $Id: ViscBndry.cpp,v 1.11 1998-06-09 21:42:51 lijewski Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -72,7 +72,7 @@ ViscBndry::setHomogValues (const BCRec& bc,
 
     for (OrientationIter fi; fi; ++fi)
     {
-        for (FabSetIterator fsi(bndry[fi()]); fsi.isValid(); ++fsi)
+        for (FabSetIterator fsi(bndry[fi()]); fsi.isValid(false); ++fsi)
         {
             fsi().setVal(0.);
         }

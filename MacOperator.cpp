@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.10 1998-06-08 15:51:14 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.11 1998-06-09 21:42:54 lijewski Exp $
 //
 
 #include <MacBndry.H>
@@ -58,7 +58,7 @@ MacOperator::setCoefficients (MultiFab*   area,
     bzcoef.setVal(0);
 #endif
 
-    for (MultiFabIterator rhomfi(rho); rhomfi.isValid(); ++rhomfi)
+    for (MultiFabIterator rhomfi(rho); rhomfi.isValid(false); ++rhomfi)
     {
         DependentMultiFabIterator bxcoefmfi(rhomfi, bxcoef);
         DependentMultiFabIterator bycoefmfi(rhomfi, bycoef);
@@ -136,7 +136,7 @@ MacOperator::defRHS (MultiFab* area,
     const BoxArray& ba = gbox[0];
     assert(Rhs.boxArray() == ba);
 
-    for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(false); ++Rhsmfi)
     {
         DependentMultiFabIterator volumemfi(Rhsmfi, volume);
         DependentMultiFabIterator area0mfi(Rhsmfi, area[0]);
@@ -273,7 +273,7 @@ MacOperator::velUpdate (MultiFab*       Vel,
     int apply_lev = 0;
     applyBC(Phi,apply_lev);
 
-    for (MultiFabIterator Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
+    for (MultiFabIterator Phimfi(Phi); Phimfi.isValid(false); ++Phimfi)
     {
         DependentMultiFabIterator Rhomfi(Phimfi, Rho);
         DependentMultiFabIterator Vel0mfi(Phimfi, Vel[0]);
@@ -310,7 +310,7 @@ MacOperator::syncRhs (const MultiFab& Volume,
 {
     const BoxArray& ba = gbox[0];
 
-    for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(false); ++Rhsmfi)
     {
         DependentMultiFabIterator Volumemfi(Rhsmfi, Volume);
         assert(ba[Rhsmfi.index()] == Rhsmfi.validbox());

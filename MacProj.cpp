@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.22 1998-06-08 15:51:15 lijewski Exp $
+// $Id: MacProj.cpp,v 1.23 1998-06-09 21:42:53 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -286,9 +286,9 @@ MacProj::mac_project (int             level,
         MultiFab& CPhi = mac_phi_crse[level-1];
         BoxArray crse_boxes(grids);
         crse_boxes.coarsen(crse_ratio);
-        int in_rad     = 0;
-        int out_rad    = 1;
-        int extent_rad = 1;
+        const int in_rad     = 0;
+        const int out_rad    = 1;
+        const int extent_rad = 1;
         BndryRegister crse_br(crse_boxes,in_rad,out_rad,extent_rad,num_comp);
         crse_br.copyFrom(CPhi,extent_rad,src_comp,dest_comp,num_comp);
 
@@ -301,7 +301,7 @@ MacProj::mac_project (int             level,
     //
     // Initialize the rhs with divu.
     //
-    Real rhs_scale = 2.0/dt;
+    const Real rhs_scale = 2.0/dt;
     MultiFab Rhs(grids,1,0,Fab_allocate);
     Rhs.copy(divu);
 
@@ -339,7 +339,7 @@ MacProj::mac_project (int             level,
     //
     if (level > 0)
     {
-        Real mult = 1.0/( (double) parent->MaxRefRatio(level-1) );
+        const Real mult = 1.0/( (double) parent->MaxRefRatio(level-1) );
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             mac_reg[level].FineAdd(u_mac[dir],area[level][dir],dir,0,0,1,mult);
@@ -414,13 +414,13 @@ MacProj::mac_sync_solve (int       level,
     {
         Box bf = ::coarsen(fine_boxes[kf],fine_ratio);
 
-        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(false); ++Rhsmfi)
         {
             assert(grids[Rhsmfi.index()] == Rhsmfi.validbox());
 
             if (Rhsmfi.validbox().intersects(bf))
             {
-                Rhsmfi().setVal(0.0,Rhsmfi.validbox() & bf,0);
+                Rhsmfi().setVal(0.0,(Rhsmfi.validbox() & bf),0);
             }
         }
     }
@@ -441,7 +441,7 @@ MacProj::mac_sync_solve (int       level,
         }
 
         long size = 0;
-        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(false); ++Rhsmfi)
         {
             size += Rhsmfi().box().numPts();
         }
@@ -452,7 +452,7 @@ MacProj::mac_sync_solve (int       level,
             Real sum = 0.0;
             Real vol = 0.0;
             FArrayBox vol_wgted_rhs;
-            for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+            for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(false); ++Rhsmfi)
             {
                 vol_wgted_rhs.resize(Rhsmfi().box());
                 vol_wgted_rhs.copy(Rhsmfi());
@@ -499,7 +499,7 @@ MacProj::mac_sync_solve (int       level,
     //
     // Now define edge centered coefficients and adjust RHS for MAC solve.
     //
-    Real rhs_scale = 2.0/dt;
+    const Real rhs_scale = 2.0/dt;
     //
     // Solve the sync system.
     //
@@ -585,7 +585,7 @@ MacProj::mac_sync_compute (int           level,
     //
     Array<int> ns_level_bc, bndry[BL_SPACEDIM];
 
-    for (MultiFabIterator u_mac0mfi(u_mac[0]); u_mac0mfi.isValid(); ++u_mac0mfi)
+    for (MultiFabIterator u_mac0mfi(u_mac[0]); u_mac0mfi.isValid(false); ++u_mac0mfi)
     {
         DependentMultiFabIterator u_mac1mfi(u_mac0mfi, u_mac[1]);
         DependentMultiFabIterator volumemfi(u_mac0mfi, volume[level]);
@@ -728,13 +728,12 @@ MacProj::mac_sync_compute (int           level,
         // Multiply the sync term by dt -- now done in the calling routine.
         //
     }
-
     delete visc_terms;
-    delete tvelforces_fp;
-    delete divu_fp;
-    delete Gp_fp;
-    delete tforces_fp;
     delete S_fp;
+    delete tforces_fp;
+    delete Gp_fp;
+    delete divu_fp;
+    delete tvelforces_fp;
 }
 
 //
@@ -772,7 +771,7 @@ MacProj::mac_sync_compute (int           level,
     //
     // Compute the mac sync correction.
     //
-    for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
+    for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(false); ++Ssyncmfi)
     {
         DependentMultiFabIterator volumemfi(Ssyncmfi, volume[level]);
         DependentMultiFabIterator area0mfi(Ssyncmfi, area[level][0]);
@@ -848,8 +847,9 @@ MacProj::mac_sync_compute (int           level,
 // Check the mac divergence.
 //
 
-void MacProj::check_div_cond (int      level,
-                              MultiFab U_edge[]) const
+void
+MacProj::check_div_cond (int      level,
+                         MultiFab U_edge[]) const
 {
     const BoxArray& grids = LevelData[level].boxArray();
 
@@ -857,7 +857,7 @@ void MacProj::check_div_cond (int      level,
 
     FArrayBox dmac;
 
-    for (MultiFabIterator U_edge0mfi(U_edge[0]); U_edge0mfi.isValid();
+    for (MultiFabIterator U_edge0mfi(U_edge[0]); U_edge0mfi.isValid(false);
          ++U_edge0mfi)
     {
         DependentMultiFabIterator U_edge1mfi(U_edge0mfi, U_edge[1]);
@@ -939,15 +939,13 @@ MacProj::set_outflow_bcs (int             level,
         //
         // WORKS FOR SINGLE GRID ONLY
         //
-        int i = 0;
-        Box rbox = grids[i];
-        int rlen  = rbox.length(0);
+        const int i     = 0;
+        const Box& rbox = grids[i];
+        const int rlen  = rbox.length(0);
         Box redge_box(rbox);
         redge_box.growHi(0,1);
-        Array<Real> rcen;
-        rcen.resize(rlen);
-        Array<Real> redge;
-        redge.resize(rlen+1);
+        Array<Real> rcen(rlen);
+        Array<Real> redge(rlen+1);
         if (CoordSys::IsRZ() == 1)
         {
             geom.GetCellLoc(rcen,rbox, 0);
@@ -957,13 +955,13 @@ MacProj::set_outflow_bcs (int             level,
         {
             for (int ii = 0; ii < rlen; ii++)
             {
-                rcen[ii] = 1.0;
+                rcen[ii]  = 1.0;
                 redge[ii] = 1.0;
             }
             redge[rlen] = 1.0;
         }
-        const int* rcen_lo = rbox.loVect();
-        const int* rcen_hi = rbox.hiVect();
+        const int* rcen_lo  = rbox.loVect();
+        const int* rcen_hi  = rbox.hiVect();
         const int* redge_lo = rbox.loVect();
         const int* redge_hi = redge_box.hiVect();
         DEF_CLIMITS(divu[i],divudat,divu_lo,divu_hi);
@@ -1002,7 +1000,7 @@ MacProj::set_outflow_bcs (int             level,
 
         mac_phi_strip.setVal(0.0);
 
-        for (MultiFabIterator Smfi(S); Smfi.isValid(); ++Smfi)
+        for (MultiFabIterator Smfi(S); Smfi.isValid(false); ++Smfi)
         {
             DependentMultiFabIterator divumfi(Smfi, divu);
             DependentMultiFabIterator u_mac0mfi(Smfi, u_mac[0]);
@@ -1032,15 +1030,12 @@ MacProj::set_outflow_bcs (int             level,
                 mac_vel_strip.copy(u_mac0mfi(),destbox,0,destbox,0,1);
             }
         }
-
-        Box rbox = top_strip;
-        int rlen  = rbox.length(0);
+        const Box& rbox = top_strip;
+        const int rlen  = rbox.length(0);
         Box redge_box(rbox);
         redge_box.growHi(0,1);
-        Array<Real> rcen;
-        rcen.resize(rlen);
-        Array<Real> redge;
-        redge.resize(rlen+1);
+        Array<Real> rcen(rlen);
+        Array<Real> redge(rlen+1);
         if (CoordSys::IsRZ() == 1)
         {
             geom.GetCellLoc(rcen,rbox, 0);
@@ -1069,8 +1064,7 @@ MacProj::set_outflow_bcs (int             level,
                       ARLIM(rcen_lo),ARLIM(rcen_hi),rcen.dataPtr(),
                       ARLIM(redge_lo),ARLIM(redge_hi),redge.dataPtr(),
                       &hx,ARLIM(phi_lo),ARLIM(phi_hi),phidat);
-        for (MultiFabIterator mac_phimfi(*mac_phi);
-             mac_phimfi.isValid();
+        for (MultiFabIterator mac_phimfi(*mac_phi); mac_phimfi.isValid(false);
              ++mac_phimfi)
         {
             mac_phimfi().copy(mac_phi_strip);
