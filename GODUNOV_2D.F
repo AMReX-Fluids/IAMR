@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.35 2003-02-19 19:36:23 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.36 2003-02-28 18:35:06 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -667,11 +667,6 @@ c
 c
 c     trace the state to the cell edges
 c
-c     do j = 40,80
-c       print *,'SPEC ',j,s(3,j)
-c     enddo
-c     print *,' '
-
       do j = jmin-1,jmax+1
          do i = imin,  imax+1
             xlo(i,j) = s(i-1,j) + (half  - dthx*uedge(i,j))*sx(i-1,j)
@@ -764,11 +759,9 @@ c
 
                if (iconserv.eq.1) then
 
-                  tr = (vedge(i,j+1)*ylo(i,j+1) - vedge(i,j)*ylo(i,j))/hy
-
-                  st = - dth*tr + dth*(tforces(i,j) - s(i,j)*divu(i,j))
-     &                 + dth*s(i,j)*(vedge(i,j+1)-vedge(i,j))/hy
-c    &                 - dth*s(i,j)*(uedge(i+1,j)-uedge(i,j))/hx
+                  st = -(vedge(i,j+1)*ylo(i,j+1) - vedge(i,j)*ylo(i,j))/hy
+     &                 + s(i,j)*(vedge(i,j+1)-vedge(i,j))/hy
+     &                 - s(i,j)*divu(i,j)
 
                else
 
@@ -789,11 +782,12 @@ c    &                 - dth*s(i,j)*(uedge(i+1,j)-uedge(i,j))/hx
 #else
                   tr = half*(vedge(i,j+1) + vedge(i,j)) * extra_work(i,j,2)
 #endif
-                  st =  - dth*tr + dth*tforces(i,j)
+                  st =  -tr
+
                endif
 
-               stxlo(i+1)= spx - dthx*uedge(i+1,j)*sx(i,j) + st
-               stxhi(i  )= smx - dthx*uedge(i  ,j)*sx(i,j) + st
+               stxlo(i+1)= spx - dthx*uedge(i+1,j)*sx(i,j) + dth*(st + tforces(i,j))
+               stxhi(i  )= smx - dthx*uedge(i  ,j)*sx(i,j) + dth*(st + tforces(i,j))
 
             end do
 
@@ -840,11 +834,9 @@ c
 
                if (iconserv.eq.1) then
 
-                  tr = (uedge(i+1,j)*xlo(i+1,j) - uedge(i,j)*xlo(i,j))/hx
-
-                  st    = -dth*tr + dth*(tforces(i,j) - s(i,j)*divu(i,j))
-     &                   + dth*s(i,j)*(uedge(i+1,j)-uedge(i,j))/hx
-c    &                   - dth*s(i,j)*(vedge(i,j+1)-vedge(i,j))/hy
+                  st = -(uedge(i+1,j)*xlo(i+1,j) - uedge(i,j)*xlo(i,j))/hx
+     &                 + s(i,j)*(uedge(i+1,j)-uedge(i,j))/hx
+     &                 - s(i,j)*divu(i,j)
 
                else
 
@@ -864,12 +856,12 @@ c    &                   - dth*s(i,j)*(vedge(i,j+1)-vedge(i,j))/hy
 #else
                   tr = half*(uedge(i+1,j) + uedge(i,j)) * extra_work(i,j,1)
 #endif
-                  st = -dth*tr + dth*tforces(i,j)
+                  st = -tr
 
                endif
 
-               stylo(j+1)= spy - dthy*vedge(i,j+1)*sy(i,j) + st
-               styhi(j  )= smy - dthy*vedge(i,j  )*sy(i,j) + st
+               stylo(j+1)= spy - dthy*vedge(i,j+1)*sy(i,j) + dth*(st + tforces(i,j))
+               styhi(j  )= smy - dthy*vedge(i,j  )*sy(i,j) + dth*(st + tforces(i,j))
 
             end do
             
