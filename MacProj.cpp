@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.25 1998-06-16 23:19:33 lijewski Exp $
+// $Id: MacProj.cpp,v 1.26 1998-06-17 17:04:48 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -537,7 +537,7 @@ MacProj::mac_sync_compute (int           level,
                            const int*    increment_sync)
 {
     FArrayBox Rho, tforces, tvelforces;
-    FArrayBox xflux, yflux, zflux;
+    FArrayBox xflux, yflux, zflux, Gp;
     FArrayBox grad_phi[BL_SPACEDIM];
     //
     // Get parameters.
@@ -572,20 +572,22 @@ MacProj::mac_sync_compute (int           level,
     {
         visc_terms->setVal(0.0,1);
     }
+
+    Array<int> ns_level_bc, bndry[BL_SPACEDIM];
     //
     // FillPatch()d stuff allocated on heap ...
     //
-    MultiFab* Gp_fp   = ns_level.getGradP(1,pres_prev_time);
     MultiFab* divu_fp = ns_level.getDivCond(1,prev_time);
+
+    FillPatchIterator P_fpi(ns_level,ns_level.get_old_data(Press_Type),1,
+                            0,pres_prev_time,Press_Type,0,1);
 
     FillPatchIterator S_fpi(ns_level,*visc_terms,HYP_GROW,0,
                             prev_time,State_Type,0,NUM_STATE);
     //
     // Compute the mac sync correction.
     //
-    Array<int> ns_level_bc, bndry[BL_SPACEDIM];
-
-    for ( ; S_fpi.isValid(); ++S_fpi)
+    for ( ; S_fpi.isValid() && P_fpi.isValid(); ++S_fpi, ++P_fpi)
     {
         DependentMultiFabIterator u_mac0mfi(S_fpi,u_mac[0]);
         DependentMultiFabIterator u_mac1mfi(S_fpi, u_mac[1]);
@@ -605,7 +607,6 @@ MacProj::mac_sync_compute (int           level,
         int i = S_fpi.index();
 
         FArrayBox& S    = S_fpi();
-        FArrayBox& Gp   = (*Gp_fp)[i];
         FArrayBox& divu = (*divu_fp)[i];
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
@@ -635,6 +636,8 @@ MacProj::mac_sync_compute (int           level,
         //
         // Compute total forcing terms.
         //
+        ns_level.getGradP(P_fpi(),Gp,grids[i],1);
+
         godunov->Sum_tf_gp_visc(tforces, visc_termsmfi(), Gp, Rho);
         godunov->Sum_tf_divu_visc(S, tforces, BL_SPACEDIM, numscal,
                                   visc_termsmfi(), BL_SPACEDIM, divu, Rho, 1);
@@ -722,7 +725,6 @@ MacProj::mac_sync_compute (int           level,
         //
     }
     delete visc_terms;
-    delete Gp_fp;
     delete divu_fp;
 }
 

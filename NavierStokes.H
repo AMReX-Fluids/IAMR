@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.20 1998-06-16 23:19:09 lijewski Exp $
+// $Id: NavierStokes.H,v 1.21 1998-06-17 17:04:48 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -380,8 +380,6 @@ protected: // ===================== protected member functions ===
     void getGradP(FArrayBox &p_fab, FArrayBox& gp,
                   const Box &grd, int ngrow );
 
-    MultiFab* getGradP (int ngrow, Real time);
-    
     // get dSdt from the state data
     void getDsdt(FArrayBox& fab, int gridno, int ngrow, Real time);
 
