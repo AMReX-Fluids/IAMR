@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.25 1999-05-10 18:54:13 car Exp $
+// $Id: NS_setup.cpp,v 1.26 1999-05-27 20:25:00 lijewski Exp $
 //
 
 #include <NavierStokes.H>
@@ -14,9 +14,8 @@
 #include <FArrayBox.H>
 #include <CoordSys.H>
 
-static Box cell_to_cell (const Box& b) { return b;                   }
-static Box cell_grow (const Box& b)    { return grow(b,1);           }
-static Box cell_to_node (const Box& b) { return surroundingNodes(b); }
+static Box the_same_box (const Box& b) { return b;                   }
+static Box grow_box_by_one (const Box& b)    { return grow(b,1);           }
 
 //
 // Components are  Interior, Inflow, Outflow, Symmetry, SlipWall, NoSlipWall.
@@ -278,38 +277,38 @@ NavierStokes::variableSetUp ()
     //
     // kinetic energy
     //
-    derive_lst.add("energy",IndexType::TheCellType(),1,FORT_DERKENG,cell_to_cell);
+    derive_lst.add("energy",IndexType::TheCellType(),1,FORT_DERKENG,the_same_box);
     derive_lst.addComponent("energy",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("energy",desc_lst,State_Type,Xvel,BL_SPACEDIM);
 
-    derive_lst.add("mag_vel",IndexType::TheCellType(),1,FORT_DERMVEL,cell_to_cell);
+    derive_lst.add("mag_vel",IndexType::TheCellType(),1,FORT_DERMVEL,the_same_box);
     derive_lst.addComponent("mag_vel",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // magnitude of vorticity
     //
-    derive_lst.add("mag_vort",IndexType::TheCellType(),1,FORT_DERMGVORT,cell_grow);
+    derive_lst.add("mag_vort",IndexType::TheCellType(),1,FORT_DERMGVORT,grow_box_by_one);
     derive_lst.addComponent("mag_vort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // divergence of velocity field
     //
-    derive_lst.add("diveru",IndexType::TheCellType(),1,FORT_DERMGDIVU,cell_grow);
+    derive_lst.add("diveru",IndexType::TheCellType(),1,FORT_DERMGDIVU,grow_box_by_one);
     derive_lst.addComponent("diveru",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // pressure gradient in X direction
     //
-    derive_lst.add("gradpx",IndexType::TheCellType(),1,FORT_DERGRDPX,cell_to_node);
+    derive_lst.add("gradpx",IndexType::TheCellType(),1,FORT_DERGRDPX,the_same_box);
     derive_lst.addComponent("gradpx",desc_lst,Press_Type,Pressure,1);
     //
     // pressure gradient in Y direction
     //
-    derive_lst.add("gradpy",IndexType::TheCellType(),1,FORT_DERGRDPY,cell_to_node);
+    derive_lst.add("gradpy",IndexType::TheCellType(),1,FORT_DERGRDPY,the_same_box);
     derive_lst.addComponent("gradpy",desc_lst,Press_Type,Pressure,1);
 
 #if (BL_SPACEDIM == 3)
     //
     // pressure gradient in Z direction
     //
-    derive_lst.add("gradpz",IndexType::TheCellType(),1,FORT_DERGRDPZ,cell_to_node);
+    derive_lst.add("gradpz",IndexType::TheCellType(),1,FORT_DERGRDPZ,the_same_box);
     derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
 #endif
     //
