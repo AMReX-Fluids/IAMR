@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.47 1999-03-27 00:07:44 marc Exp $
+// $Id: MacProj.cpp,v 1.48 1999-04-05 17:39:21 car Exp $
 //
 
 #include <Misc.H>
@@ -271,6 +271,7 @@ MacProj::cleanup (int level)
 // Projection functions follow ...
 //
 
+#if BL_SPACEDIM == 2
 static
 bool
 grids_on_side_of_domain (const BoxArray&    grids,
@@ -303,6 +304,7 @@ grids_on_side_of_domain (const BoxArray&    grids,
 
     return false;
 }
+#endif
 
 //
 // Compute the level advance mac projection.
