@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.21 1998-05-19 22:35:18 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.22 1998-05-21 15:52:48 lijewski Exp $
 //
 
 //
@@ -392,7 +392,6 @@ void Diffusion::diffuse_scalar(Real dt, int sigma, Real be_cn_theta,
     // complete Rhs by adding body sources
     for(MultiFabIterator S_newmfi(S_new); S_newmfi.isValid(); ++S_newmfi) {
       DependentMultiFabIterator volumemfi(S_newmfi, volume);
-      DependentMultiFabIterator alphamfi(S_newmfi, (*alpha));
       DependentMultiFabIterator rho_halfmfi(S_newmfi, (*rho_half));
       DependentMultiFabIterator Rhsmfi(S_newmfi, Rhs);
       assert(grids[S_newmfi.index()] == S_newmfi.validbox());
@@ -406,6 +405,7 @@ void Diffusion::diffuse_scalar(Real dt, int sigma, Real be_cn_theta,
       }
 
       if(alpha!=NULL) {
+          DependentMultiFabIterator alphamfi(S_newmfi, (*alpha));
         S_newmfi().mult(alphamfi(),S_newmfi.validbox(),0,sigma,1);
       }
 

@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.47 1998-05-19 00:52:23 marc Exp $
+// $Id: NavierStokes.cpp,v 1.48 1998-05-21 15:52:50 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1997,7 +1997,6 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
     {
 
       DependentMultiFabIterator visc_termsmfi(Ufpi, visc_terms);
-      DependentMultiFabIterator vel_visc_termsmfi(Ufpi, vel_visc_terms);
       DependentMultiFabIterator aofsmfi(Ufpi, (*aofs));
       DependentMultiFabIterator volumemfi(Ufpi, volume);
       DependentMultiFabIterator u_mac0mfi(Ufpi, u_mac[0]);
@@ -2066,7 +2065,9 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
             divu.setVal(0.0);  // can't filpatch what we don't have
           }
 
-        if (use_forces_in_trans) {
+        if (use_forces_in_trans)
+        {
+            DependentMultiFabIterator vel_visc_termsmfi(Ufpi, vel_visc_terms);
           //getForce(tvelforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
 
         // from NS::getForce vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv

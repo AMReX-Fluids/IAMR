@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.14 1998-05-13 23:17:48 almgren Exp $
+// $Id: MacProj.cpp,v 1.15 1998-05-21 15:52:49 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -554,7 +554,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
         DependentMultiFabIterator rho_halfmfi(u_mac0mfi, *rho_half);
         DependentMultiFabIterator mac_sync_phimfi(u_mac0mfi, *mac_sync_phi);
         DependentMultiFabIterator visc_termsmfi(u_mac0mfi, *visc_terms);
-        DependentMultiFabIterator vel_visc_termsmfi(u_mac0mfi, vel_visc_terms);
+
         int i = u_mac0mfi.index();
 
         // get the bounds
@@ -600,9 +600,11 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
                                    BL_SPACEDIM,
                                    divu, Rho, 1 );
 
-        if (use_forces_in_trans) {
-          ns_level.getForce(tvelforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
-          godunov->Sum_tf_gp_visc( tvelforces, vel_visc_termsmfi(), Gp, Rho );
+        if (use_forces_in_trans)
+        {
+            DependentMultiFabIterator vel_visc_termsmfi(u_mac0mfi, vel_visc_terms);
+            ns_level.getForce(tvelforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
+            godunov->Sum_tf_gp_visc( tvelforces, vel_visc_termsmfi(), Gp, Rho );
         }
         
         // set up the workspace for the godunov Box
