@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.28 2002-10-17 20:36:40 marc Exp $
+// $Id: Godunov.cpp,v 1.29 2003-02-04 21:11:13 almgren Exp $
 //
 
 //
@@ -493,6 +493,8 @@ Godunov::edge_states_fpu (const Box&  grd,
     //
     int fort_ind = state_ind+1;  
 
+    if (velpred == 1) BoxLib::Error("Call to ESTATE_FPU only valid for velpred = 0");
+      
     FORT_ESTATE_FPU(s_dat, tfr_dat, ARLIM(s_lo), ARLIM(s_hi),
                     
                     xlo_dat, xhi_dat, slx_dat,
@@ -511,7 +513,7 @@ Godunov::edge_states_fpu (const Box&  grd,
                     stz.dataPtr(),   ARLIM(stz.loVect()),   ARLIM(stz.hiVect()),
 #endif
                     ARLIM(ww_lo), ARLIM(ww_hi),
-                    bc, lo, hi, &dt, dx, &fort_ind, &velpred, 
+                    bc, lo, hi, &dt, dx, &fort_ind,
                     &use_forces_in_trans, &iconserv);
 }
 

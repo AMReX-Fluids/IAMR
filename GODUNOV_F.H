@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.10 2002-10-17 20:36:40 marc Exp $
+** $Id: GODUNOV_F.H,v 1.11 2003-02-04 21:11:13 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -179,7 +179,7 @@ extern "C"
 #endif
 		    ARLIM_P(ww_lo),ARLIM_P(ww_hi),
 		    const int* bc, const int* lo, const int* hi, 
-		    Real* dt, const Real* dx, int* fort_ind, int* velpred, 
+		    Real* dt, const Real* dx, int* fort_ind, 
 		    int* use_forces_in_trans, int* iconserv);
    
    void FORT_ADV_FORCING(const Real* aofs_dat, ARLIM_P(a_lo), ARLIM_P(a_hi),
