@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.118 1999-03-02 01:15:16 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.119 1999-03-05 19:21:27 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -150,9 +150,7 @@ NavierStokes::read_geometry ()
         phys_bc.setLo(0,Symmetry);
 
         if (ParallelDescriptor::IOProcessor())
-        {
             cout << "\nWarning: Setting phys_bc at xlo to Symmetry\n\n";
-        }
     }
 #endif
 }
@@ -517,7 +515,7 @@ NavierStokes::init_additional_state_types ()
     have_divu = 0;
     have_divu = isStateVariable("divu", dummy_Divu_Type, _Divu);
     have_divu = have_divu && dummy_Divu_Type==Divu_Type;
-    if (ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "NavierStokes::init_additional_state_types()::have_divu = "
              << have_divu << '\n';
@@ -534,7 +532,7 @@ NavierStokes::init_additional_state_types ()
     have_dsdt = 0;
     have_dsdt = isStateVariable("dsdt", dummy_Dsdt_Type, _Dsdt);
     have_dsdt = have_dsdt && dummy_Dsdt_Type==Dsdt_Type;
-    if (ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "NavierStokes::init_additional_state_types()::have_dsdt = "
              << have_dsdt << '\n';
@@ -553,7 +551,7 @@ NavierStokes::init_additional_state_types ()
     }
 
     num_state_type = desc_lst.length();
-    if (ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "NavierStokes::init_additional_state_types: num_state_type = "
              << num_state_type << '\n';
@@ -1230,9 +1228,8 @@ NavierStokes::advance (Real time,
     //
     mac_stats.start();
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
         cout << "... mac_projection\n";
-    }
+
     MultiFab* divu = getDivCond(0,time);
     MultiFab* dsdt = getDsdt(0,time);
 
@@ -1406,9 +1403,7 @@ NavierStokes::predict_velocity (Real  dt,
                                 Real& comp_cfl)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
         cout << "... predict edge velocities\n";
-    }
     //
     // Get simulation parameters.
     //
@@ -1641,9 +1636,7 @@ void
 NavierStokes::velocity_advection (Real dt)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
         cout << "... advect velocities\n";
-    }
 
     const int   finest_level   = parent->finestLevel();
     const Real* dx             = geom.CellSize();
@@ -1739,9 +1732,7 @@ NavierStokes::scalar_advection (Real dt,
                                 int  lscalar)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
         cout << "... advect scalars\n";
-    }
     //
     // Get simulation parameters.
     //
@@ -1885,9 +1876,8 @@ NavierStokes::scalar_update (Real dt,
                              int  last_scalar)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
         cout << "... update scalars\n";
-    }
+
     scalar_advection_update(dt, first_scalar, last_scalar);
     scalar_diffusion_update(dt, first_scalar, last_scalar);
 }
@@ -2034,20 +2024,14 @@ void
 NavierStokes::velocity_update (Real dt)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
         cout << "... update velocities\n";
-    }
 
     velocity_advection_update(dt);
 
     if (!initial_iter)
-    {
         velocity_diffusion_update(dt);
-    }
     else
-    {
         initial_velocity_diffusion_update(dt);
-    }
 }
 
 void
@@ -2718,9 +2702,7 @@ NavierStokes::estTimeStep ()
         cout << "estTimeStep :: \n"
              << "LEV = " << level << " UMAX = ";
         for (int k = 0; k < BL_SPACEDIM; k++)
-        {
             cout << u_max[k] << "  ";
-        }
         cout << '\n';
     }
     Real vel_max = u_max[0];

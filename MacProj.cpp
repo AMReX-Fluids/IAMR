@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.43 1999-03-02 01:03:42 propp Exp $
+// $Id: MacProj.cpp,v 1.44 1999-03-05 19:21:26 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -15,8 +15,6 @@
 #include <MacOpMacDrivers.H>
 #include <NavierStokes.H>
 #include <MACPROJ_F.H>
-
-const char NL = '\n';
 
 #ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type};
@@ -102,7 +100,6 @@ hasOutFlowBC(BCRec* _phys_bc)
   return has_out_flow;
 }
 
-
 int  MacProj::verbose          = 0;
 int  MacProj::use_cg_solve     = 0;
 Real MacProj::mac_tol          = 1.0e-12;
@@ -134,9 +131,7 @@ MacProj::MacProj (Amr*   _parent,
     read_params();
 
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
         cout << "Creating mac_projector\n";
-    }
 
     finest_level_allocated = finest_level;
 }
@@ -146,13 +141,9 @@ MacProj::~MacProj () {}
 void
 MacProj::read_params ()
 {
-    //
-    // Read parameters from input file and command line.
-    //
     ParmParse pp("mac");
 
     pp.query( "v",                verbose          );
-
     pp.query( "mac_tol",          mac_tol          );
     pp.query( "mac_sync_tol",     mac_sync_tol     );
     pp.query( "use_cg_solve",     use_cg_solve     );
@@ -169,17 +160,11 @@ MacProj::install_level (int           level,
                         PArray<Real>* _radius )
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
-        cout << "Installing MacProj level " << level << NL;
-    }
+        cout << "Installing MacProj level " << level << '\n';
 
     if (parent->finestLevel() < finest_level)
-    {
         for (int lev = parent->finestLevel() + 1; lev <= finest_level; lev++)
-        {
             mac_reg.clear(lev);
-        }
-    }
 
     finest_level = parent->finestLevel();
 
@@ -207,9 +192,9 @@ MacProj::install_level (int           level,
 
     if (level > 0)
     {
-        const BoxArray& grids = LevelData[level].boxArray();
         mac_reg.clear(level);
-        mac_reg.set(level, new FluxRegister(grids,parent->refRatio(level-1),
+        mac_reg.set(level, new FluxRegister(LevelData[level].boxArray(),
+                                            parent->refRatio(level-1),
                                             level,1));
     }
 }
@@ -217,19 +202,19 @@ MacProj::install_level (int           level,
 void
 MacProj::BuildPhiBC (int level)
 {
-    const BoxArray& grids = LevelData[level].boxArray();
-    const Geometry& geom  = parent->Geom(level);
-    const int ngrds       = grids.length();
+    const BoxArray& grids   = LevelData[level].boxArray();
+    const Geometry& geom    = parent->Geom(level);
+    const int       ngrds   = grids.length();
     phi_bcs[level].resize(ngrds);
-    const Box& domain     = geom.Domain();
-    const int* domlo      = domain.loVect();
-    const int* domhi      = domain.hiVect();
-    const int* phys_lo    = phys_bc->lo();
-    const int* phys_hi    = phys_bc->hi();
+    const Box&      domain  = geom.Domain();
+    const int*      domlo   = domain.loVect();
+    const int*      domhi   = domain.hiVect();
+    const int*      phys_lo = phys_bc->lo();
+    const int*      phys_hi = phys_bc->hi();
 
     for (int i = 0; i < ngrds; i++)
     {
-        BCRec& bc     = phi_bcs[level][i];
+        BCRec&     bc = phi_bcs[level][i];
         const int* lo = grids[i].loVect();
         const int* hi = grids[i].hiVect();
 
@@ -269,7 +254,7 @@ MacProj::setup (int level)
         if (!mac_phi_crse.defined(level))
         {
             const BoxArray& grids = LevelData[level].boxArray();
-            mac_phi_crse.set(level, new MultiFab(grids,1,1,Fab_allocate));
+            mac_phi_crse.set(level,new MultiFab(grids,1,1));
             mac_phi_crse[level].setVal(0.0);
         }
     }
@@ -279,9 +264,7 @@ void
 MacProj::cleanup (int level)
 {
     if (level < parent->maxLevel())
-    {
         mac_phi_crse.clear(level);
-    }
 }
 
 //
@@ -290,29 +273,35 @@ MacProj::cleanup (int level)
 
 static
 bool
-grids_on_side_of_domain (const BoxArray& grids,
-                        const Box&      domain,
-			const Orientation& outFace)
+grids_on_side_of_domain (const BoxArray&    grids,
+                         const Box&         domain,
+                         const Orientation& outFace)
 {
-  const int idir = outFace.coordDir();
+    const int idir = outFace.coordDir();
 
-  if (outFace.isLow()) {
-    for (int igrid = 0; igrid < grids.length(); igrid++) { 
-      if (grids[igrid].smallEnd(idir) == domain.smallEnd(idir)) { 
-	return true;
-      }
+    if (outFace.isLow())
+    {
+        for (int igrid = 0; igrid < grids.length(); igrid++)
+        { 
+            if (grids[igrid].smallEnd(idir) == domain.smallEnd(idir))
+            { 
+                return true;
+            }
+        }
     }
-  }
   
-  if (outFace.isHigh()) {
-    for (int igrid = 0; igrid < grids.length(); igrid++) {
-      if (grids[igrid].bigEnd(idir) == domain.bigEnd(idir)) {
-	return true;
-      }
+    if (outFace.isHigh())
+    {
+        for (int igrid = 0; igrid < grids.length(); igrid++)
+        {
+            if (grids[igrid].bigEnd(idir) == domain.bigEnd(idir))
+            {
+                return true;
+            }
+        }
     }
-  }
 
-  return false;
+    return false;
 }
 
 //
@@ -329,37 +318,29 @@ MacProj::mac_project (int             level,
                       int             have_divu)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
-        cout << "... mac_project at level " << level << NL;
-    }
-    const BoxArray& grids = LevelData[level].boxArray();
-    const Geometry& geom  = parent->Geom(level);
-    const Real* dx        = geom.CellSize();
-    const int max_level   = parent->maxLevel();
-    MultiFab* mac_phi     = 0;
-    IntVect crse_ratio    = (level > 0) ? 
-        parent->refRatio(level-1) : IntVect::TheZeroVector();
+        cout << "... mac_project at level " << level << '\n';
+
+    const BoxArray& grids      = LevelData[level].boxArray();
+    const Geometry& geom       = parent->Geom(level);
+    const Real*     dx         = geom.CellSize();
+    const int       max_level  = parent->maxLevel();
+    MultiFab*       mac_phi    = 0;
+    IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
+                                           : IntVect::TheZeroVector();
     //
     // If finest level possible no need to make permanent mac_phi for bcs.
     //
     if (level == max_level)
-    {
-        mac_phi = new MultiFab(grids,1,1,Fab_allocate);
-    }
+        mac_phi = new MultiFab(grids,1,1);
     else
-    {
         mac_phi = &mac_phi_crse[level];
-    }
 
     mac_phi->setVal(0.0);
 
-    if (hasOutFlowBC(phys_bc) &&
-        have_divu      &&
-        do_outflow_bcs)
+    if (hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)
     {
         set_outflow_bcs(level, mac_phi, u_mac, S, divu);
     }
-
     //
     // Store the Dirichlet boundary condition for mac_phi in mac_bndry.
     //
@@ -392,7 +373,7 @@ MacProj::mac_project (int             level,
     // Initialize the rhs with divu.
     //
     const Real rhs_scale = 2.0/dt;
-    MultiFab Rhs(grids,1,0,Fab_allocate);
+    MultiFab Rhs(grids,1,0);
     Rhs.copy(divu);
 
     mac_level_driver(mac_bndry, grids, use_cg_solve, level, Density,
@@ -411,19 +392,25 @@ MacProj::mac_project (int             level,
     if (level < finest_level)
     {
         FluxRegister& mr = mac_reg[level+1];
+
         mr.setVal(0.0);
+
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             mr.CrseInit(u_mac[dir],area[level][dir],dir,0,0,1,-1.0);
         }
 
-        Real sumreg =  mr.SumReg(0);
-        if (verbose && ParallelDescriptor::IOProcessor())
+        if (verbose)
         {
-            cout << "LEVEL "
-                 << level
-                 << " MACREG: CrseInit sum = "
-                 << sumreg << endl;
+            Real sumreg =  mr.SumReg(0);
+
+            if (ParallelDescriptor::IOProcessor())
+            {
+                cout << "LEVEL "
+                     << level
+                     << " MACREG: CrseInit sum = "
+                     << sumreg << endl;
+            }
         }
     }
     //
@@ -431,20 +418,24 @@ MacProj::mac_project (int             level,
     //
     if (level > 0)
     {
-        const Real mult = 1.0/( (double) parent->MaxRefRatio(level-1) );
+        const Real mult = 1.0/parent->MaxRefRatio(level-1);
+
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             mac_reg[level].FineAdd(u_mac[dir],area[level][dir],dir,0,0,1,mult);
         }
 
-        Real sumreg = mac_reg[level].SumReg(0);
-
-        if (verbose && ParallelDescriptor::IOProcessor())
+        if (verbose)
         {
-            cout << "LEVEL "
-                 << level
-                 << " MACREG: FineAdd sum = "
-                 << sumreg << endl;
+            Real sumreg = mac_reg[level].SumReg(0);
+
+            if (ParallelDescriptor::IOProcessor())
+            {
+                cout << "LEVEL "
+                     << level
+                     << " MACREG: FineAdd sum = "
+                     << sumreg << endl;
+            }
         }
     }
     //
@@ -468,18 +459,17 @@ MacProj::mac_sync_solve (int       level,
                          MultiFab* rho_half,
                          IntVect&  fine_ratio)
 {
-    if (verbose && ParallelDescriptor::IOProcessor())
-    {
-        cout << "... mac_sync_solve at level " << level << NL;
-    }
     assert(level < finest_level);
 
-    const BoxArray& grids = LevelData[level].boxArray();
-    const Geometry& geom  = parent->Geom(level);
-    IntVect crse_ratio    = (level > 0) ? 
-        parent->refRatio(level-1) : IntVect::TheZeroVector();
-    const Real* dx             = geom.CellSize();
+    if (verbose && ParallelDescriptor::IOProcessor())
+        cout << "... mac_sync_solve at level " << level << '\n';
+
+    const BoxArray& grids      = LevelData[level].boxArray();
+    const Geometry& geom       = parent->Geom(level);
+    const Real*     dx         = geom.CellSize();
     const BoxArray& fine_boxes = LevelData[level+1].boxArray();
+    IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
+                                           : IntVect::TheZeroVector();
     //
     // Reusing storage here, since there should be no more need for the
     // values in mac_phi at this level and mac_sync_phi only need to last
@@ -494,7 +484,7 @@ MacProj::mac_sync_solve (int       level,
     // MAC register, VOL = cell volume.  All other cells have a
     // value of zero (including crse cells under fine grids).
     //
-    MultiFab Rhs(grids,1,0,Fab_allocate);
+    MultiFab Rhs(grids,1,0);
     Rhs.setVal(0.0);
     //
     // Reflux subtracts values at hi edge of coarse cell and
@@ -560,10 +550,10 @@ MacProj::mac_sync_solve (int       level,
             ParallelDescriptor::ReduceRealSum(vol);
 
             const Real fix = sum / vol;
-            if (ParallelDescriptor::IOProcessor())
-            {
-                cout << "Average correction on mac sync RHS = " << fix << NL;
-            }
+
+            if (verbose && ParallelDescriptor::IOProcessor())
+                cout << "Average correction on mac sync RHS = " << fix << '\n';
+
             Rhs.plus(-fix, 0);
         }
     }
@@ -637,14 +627,14 @@ MacProj::mac_sync_compute (int           level,
     //
     // Get parameters.
     //
-    const BoxArray& grids    = LevelData[level].boxArray();
-    const Geometry& geom     = parent->Geom(level);
-    const Real* dx           = geom.CellSize();
-    const int numscal        = NUM_STATE - BL_SPACEDIM;
-    MultiFab* mac_sync_phi   = &mac_phi_crse[level];
-    NavierStokes& ns_level   = *(NavierStokes*) &(parent->getLevel(level));
-    Godunov* godunov         = ns_level.godunov;
-    bool use_forces_in_trans = godunov->useForcesInTrans();
+    const BoxArray& grids               = LevelData[level].boxArray();
+    const Geometry& geom                = parent->Geom(level);
+    const Real*     dx                  = geom.CellSize();
+    const int       numscal             = NUM_STATE - BL_SPACEDIM;
+    MultiFab*       mac_sync_phi        = &mac_phi_crse[level];
+    NavierStokes&   ns_level            = *(NavierStokes*) &(parent->getLevel(level));
+    Godunov*        godunov             = ns_level.godunov;
+    bool            use_forces_in_trans = godunov->useForcesInTrans();
 
     MultiFab vel_visc_terms;
 
@@ -765,18 +755,18 @@ MacProj::mac_sync_compute (int           level,
         //
         for (int comp = 0; comp < NUM_STATE; comp++)
         {
-            int do_comp = (increment_sync == NULL);
+            bool do_comp = increment_sync == 0;
             if (!do_comp)
             {
-                do_comp = comp < BL_SPACEDIM || (increment_sync[comp]==1);
+                do_comp = comp < BL_SPACEDIM || increment_sync[comp] == 1;
             }
             if (!do_comp)
                 continue;
-            const int u_ind    = comp;
-            const int s_ind    = comp-BL_SPACEDIM;
-            const int sync_ind = (comp < BL_SPACEDIM ? u_ind  : s_ind);
-            FArrayBox& temp    = (comp < BL_SPACEDIM ? u_sync : s_sync);
-            ns_level_bc        = ns_level.getBCArray(State_Type,i,comp,1);
+            const int  u_ind    = comp;
+            const int  s_ind    = comp-BL_SPACEDIM;
+            const int  sync_ind = comp < BL_SPACEDIM ? u_ind  : s_ind;
+            FArrayBox& temp     = comp < BL_SPACEDIM ? u_sync : s_sync;
+            ns_level_bc         = ns_level.getBCArray(State_Type,i,comp,1);
 
             godunov->SyncAdvect(grids[i], dx, dt, level, area0mfi(), u_mac0mfi(),
                                 grad_phi[0], xflux, area1mfi(), u_mac1mfi(),
@@ -847,11 +837,11 @@ MacProj::mac_sync_compute (int           level,
     FArrayBox xflux, yflux, zflux;
     FArrayBox grad_phi[BL_SPACEDIM];
 
-    const int s_ind        = comp - BL_SPACEDIM;    
-    const BoxArray& grids  = LevelData[level].boxArray();
-    const Geometry& geom   = parent->Geom(level);
-    MultiFab* mac_sync_phi = &mac_phi_crse[level];
-    NavierStokes& ns_level = *(NavierStokes*) &(parent->getLevel(level));
+    const int       s_ind        = comp - BL_SPACEDIM;    
+    const BoxArray& grids        = LevelData[level].boxArray();
+    const Geometry& geom         = parent->Geom(level);
+    MultiFab*       mac_sync_phi = &mac_phi_crse[level];
+    NavierStokes&   ns_level     = *(NavierStokes*) &(parent->getLevel(level));
 
     Godunov godunov(512);
     //
@@ -997,13 +987,14 @@ MacProj::check_div_cond (int      level,
         sum += dmac.sum(0);
     }
 
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
-    ParallelDescriptor::ReduceRealSum(sum,IOProc);
-
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        cout << "SUM of DIV(U_edge) = " << sum << NL;
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        ParallelDescriptor::ReduceRealSum(sum,IOProc);
+        
+        if (ParallelDescriptor::IOProcessor())
+            cout << "SUM of DIV(U_edge) = " << sum << '\n';
     }
 }
 
@@ -1027,13 +1018,15 @@ MacProj::set_outflow_bcs (int             level,
     // generalize, however).
     //
 #if (BL_SPACEDIM == 2)
-    const BoxArray& grids = LevelData[level].boxArray();
-    const Geometry& geom  = parent->Geom(level);
+    const BoxArray&   grids = LevelData[level].boxArray();
+    const Geometry&   geom  = parent->Geom(level);
     const Orientation outFace(1, Orientation::high);
-    if ( !grids_on_side_of_domain(grids,geom.Domain(),outFace)) 
+
+    if (!grids_on_side_of_domain(grids,geom.Domain(),outFace)) 
       return;
-    
-    // make sure outflow only occurs at yhi faces
+    //
+    // Make sure outflow only occurs at yhi faces.
+    //
     bool hasOutFlow;
     Orientation _outFace;
     getOutFlowFace(hasOutFlow,_outFace,phys_bc);
@@ -1113,6 +1106,3 @@ MacProj::set_outflow_bcs (int             level,
     BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
 #endif
 }
-
-
-

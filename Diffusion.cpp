@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.74 1999-03-04 22:24:51 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.75 1999-03-05 19:21:26 lijewski Exp $
 //
 
 //
@@ -187,7 +187,7 @@ Diffusion::echo_settings () const
         cout << "Diffusion settings...\n";
         cout << "  From diffuse:\n";
         cout << "   use_cg_solve =        " << use_cg_solve << '\n';
-        cout << "   use_tensor_cg_solve = "  << use_tensor_cg_solve << '\n';
+        cout << "   use_tensor_cg_solve = " << use_tensor_cg_solve << '\n';
         cout << "   use_mg_precond_flag = " << use_mg_precond_flag << '\n';
         cout << "   max_order =           " << max_order << '\n';
         cout << "   tensor_max_order =    " << tensor_max_order << '\n';
@@ -197,9 +197,7 @@ Diffusion::echo_settings () const
     
         cout << "   typical_vals =";
         for (int i = 0; i <NUM_STATE; i++)
-        {
             cout << "  " << typical_vals[i];
-        }
 
         cout << "\n\n  From ns:\n";
         cout << "   do_reflux =           " << do_reflux << '\n';
@@ -241,7 +239,6 @@ Diffusion::get_scaled_abs_tol (int                    sigma,
         {
             norm_rhs = Max(norm_rhs,Rhsmfi().norm(0));
         }
-
         ParallelDescriptor::ReduceRealMax(norm_rhs);
     }
 
@@ -397,7 +394,7 @@ Diffusion::diffuse_scalar (Real                   dt,
                 Smfi().divide(S_old[Smfi.index()],Smfi.validbox(),Density,0,1);
         visc_op->apply(Rhs,Soln);
         visc_op->compFlux(D_DECL(*flux[0],*flux[1],*flux[2]),Soln);
-        for (int i=0; i<BL_SPACEDIM; ++i)
+        for (int i = 0; i < BL_SPACEDIM; ++i)
             (*flux[i]).mult(-b/(dt*caller->Geom().CellSize()[i]));
         delete visc_op;
         //
@@ -520,7 +517,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     // Make a good guess for Soln
     //
     MultiFab::Copy(Soln,S_new,sigma,0,1,0);
-    if (rho_flag==2)
+    if (rho_flag == 2)
         for (MultiFabIterator Smfi(Soln); Smfi.isValid(); ++Smfi)
             Smfi().divide(S_new[Smfi.index()],Smfi.validbox(),Density,0,1);
     //
@@ -546,7 +543,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     MultiFab** emfSC; // Temporary single-component, edge-based multifab
     allocFluxBoxesLevel(emfSC,0,1);
     visc_op->compFlux(D_DECL(*emfSC[0],*emfSC[1],*emfSC[2]),Soln);
-    for (int i=0; i<BL_SPACEDIM; ++i)
+    for (int i = 0; i < BL_SPACEDIM; ++i)
         (*emfSC[i]).mult(b/(dt*caller->Geom().CellSize()[i]));
     delete visc_op;
     for (MultiFabIterator mfi(Soln); mfi.isValid(); ++mfi)
@@ -558,7 +555,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     //
     MultiFab::Copy(S_new,Soln,0,sigma,1,0);
     
-    if (rho_flag==2)
+    if (rho_flag == 2)
         for (MultiFabIterator Smfi(S_new); Smfi.isValid(); ++Smfi)
             Smfi().mult(S_new[Smfi.index()],Smfi.validbox(),Density,sigma,1);
 }
@@ -1025,15 +1022,18 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         Soln.setVal(0);
         Rhs.copy(*Vsync,comp,0,1);
 
-        Real r_norm = 0.0;
-        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+        if (verbose)
         {
-            r_norm = Max(r_norm,Rhsmfi().norm(0));
-        }
-        ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
+            Real r_norm = 0.0;
+            for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+            {
+                r_norm = Max(r_norm,Rhsmfi().norm(0));
+            }
+            ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
 
-        if (verbose && ParallelDescriptor::IOProcessor())
-            cout << "Original max of Vsync " << r_norm << '\n';
+            if (ParallelDescriptor::IOProcessor())
+                cout << "Original max of Vsync " << r_norm << '\n';
+        }
         //
         // Multiply RHS by volume and density.
         //
@@ -1088,15 +1088,18 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
 
         MultiFab::Copy(*Vsync,Soln,0,comp,1,1);
 
-        Real s_norm = 0.0;
-        for (MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
+        if (verbose)
         {
-            s_norm = Max(s_norm,Solnmfi().norm(0));
-        }
-        ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
+            Real s_norm = 0.0;
+            for (MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
+            {
+                s_norm = Max(s_norm,Solnmfi().norm(0));
+            }
+            ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
 
-        if (verbose && ParallelDescriptor::IOProcessor())
-            cout << "Final max of Vsync " << s_norm << '\n';
+            if (ParallelDescriptor::IOProcessor())
+                cout << "Final max of Vsync " << s_norm << '\n';
+        }
 
         delete visc_op;
 
@@ -1192,9 +1195,9 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
                                  int                    rho_flag,
                                  const MultiFab* const* beta)
 {
-    const int finest_level = parent->finestLevel();
-    const Real* dx         = caller->Geom().CellSize();
-    const int IOProc       = ParallelDescriptor::IOProcessorNumber();
+    const int   finest_level = parent->finestLevel();
+    const Real* dx           = caller->Geom().CellSize();
+    const int   IOProc       = ParallelDescriptor::IOProcessorNumber();
 
     MultiFab Soln(grids,BL_SPACEDIM,1);
     MultiFab Rhs(grids,BL_SPACEDIM,0);
@@ -1202,16 +1205,17 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     Soln.setVal(0);
     Rhs.copy(*Vsync,0,0,BL_SPACEDIM);
 
-    Real r_norm = 0.0;
-    for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    if (verbose)
     {
-        r_norm = Max(r_norm,Rhsmfi().norm(0));
-    }
-    ParallelDescriptor::ReduceRealMax(r_norm);
+        Real r_norm = 0.0;
+        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+        {
+            r_norm = Max(r_norm,Rhsmfi().norm(0));
+        }
+        ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
 
-    if (ParallelDescriptor::IOProcessor(),IOProc)
-    {
-        cout << "Original max of Vsync " << r_norm << '\n';
+        if (ParallelDescriptor::IOProcessor())
+            cout << "Original max of Vsync " << r_norm << '\n';
     }
     //
     // Multiply RHS by volume and density.
@@ -1242,11 +1246,11 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     const Real S_tol_abs  = visc_abs_tol;
 #if 0
     const MultiFab* alpha = &(tensor_op->aCoefficients());
-    MultiFab const * betan[BL_SPACEDIM];
-    MultiFab const * betanp1[BL_SPACEDIM];
+    MultiFab const* betan[BL_SPACEDIM];
+    MultiFab const* betanp1[BL_SPACEDIM];
     for (int d = 0; d < BL_SPACEDIM; d++)
     {
-        betan[d] = &tensor_op->bCoefficients(d);
+        betan[d]   = &tensor_op->bCoefficients(d);
         betanp1[d] = betan[d];
     }
     const Real S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b, alpha, betan,
@@ -1269,15 +1273,18 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
 
     MultiFab::Copy(*Vsync,Soln,0,0,BL_SPACEDIM,1);
 
-    Real s_norm = 0.0;
-    for (MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
+    if (verbose)
     {
-        s_norm = Max(s_norm,Solnmfi().norm(0));
-    }
-    ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
+        Real s_norm = 0.0;
+        for (MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
+        {
+            s_norm = Max(s_norm,Solnmfi().norm(0));
+        }
+        ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
 
-    if (ParallelDescriptor::IOProcessor())
-        cout << "Final max of Vsync " << s_norm << '\n';
+        if (ParallelDescriptor::IOProcessor())
+            cout << "Final max of Vsync " << s_norm << '\n';
+    }
 
     FArrayBox xflux, yflux, zflux;
 
@@ -1358,13 +1365,13 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
                           const MultiFab*        alpha)
 {
     const int state_ind = sigma + BL_SPACEDIM;
+    const int IOProc    = ParallelDescriptor::IOProcessorNumber();
 
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "Diffusion::diffuse_Ssync for state " << state_ind << '\n';
 
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
     MultiFab Soln(grids,1,1);
     MultiFab Rhs(grids,1,0);
@@ -1374,9 +1381,11 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
 
     if (verbose)
     {
-        MultiFab junk(grids,1,0,Fab_allocate);
+        MultiFab junk(grids,1,0);
+
         MultiFab::Copy(junk,Rhs,0,0,1,0);
-        if (rho_flag==2)
+
+        if (rho_flag == 2)
         {
             MultiFab& S_new = caller->get_new_data(State_Type);
             for (MultiFabIterator jmfi(junk); jmfi.isValid(); ++jmfi)
@@ -1387,9 +1396,11 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
         }
         Real r_norm = 0.0;
         for (MultiFabIterator jmfi(junk); jmfi.isValid(); ++jmfi)
+        {
             r_norm = Max(r_norm,jmfi().norm(0));
-    
+        }
         ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
+
         if (ParallelDescriptor::IOProcessor())
             cout << "Original max of Ssync " << r_norm << '\n';
     }
@@ -1450,7 +1461,7 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     if (flux_allthere)
     {
         visc_op->compFlux(D_DECL(*flux[0],*flux[1],*flux[2]),Soln);
-        for (int i=0; i<BL_SPACEDIM; ++i)
+        for (int i = 0; i < BL_SPACEDIM; ++i)
             (*flux[i]).mult(b/(dt*caller->Geom().CellSize()[i]),0);
     }
 
@@ -1460,9 +1471,11 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     {
         Real s_norm = 0.0;
         for (MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
+        {
             s_norm = Max(s_norm,Solnmfi().norm(0));
-    
+        }
         ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
+
         if (ParallelDescriptor::IOProcessor())
             cout << "Final max of Ssync " << s_norm << '\n';
     }
@@ -1470,6 +1483,7 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     if (rho_flag == 2)
     {
         MultiFab& S_new = caller->get_new_data(State_Type);
+
         for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
         {
             DependentMultiFabIterator S_newmfi(Ssyncmfi,S_new);
@@ -1504,7 +1518,7 @@ Diffusion::getTensorOp (Real                   a,
     //
     // alpha should be the same size as volume.
     //
-    const int nCompAlpha = (BL_SPACEDIM==2  ?  2  :  1);
+    const int nCompAlpha = (BL_SPACEDIM == 2  ?  2  :  1);
     MultiFab alpha(grids,nCompAlpha,nghost);
     alpha.setVal(0.0,nghost);
 
@@ -1633,7 +1647,7 @@ Diffusion::getTensorOp (Real                   a,
     //
     // alpha should be the same size as volume.
     //
-    const int nCompAlpha = (BL_SPACEDIM==2  ?  2  :  1);
+    const int nCompAlpha = (BL_SPACEDIM == 2  ?  2  :  1);
     MultiFab alpha(grids,nCompAlpha,nghost);
     alpha.setVal(0.0);
 
