@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.97 1998-11-07 03:47:34 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.98 1998-11-16 23:25:29 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -4177,7 +4177,7 @@ NavierStokes::setForce (FArrayBox&       force,
 
     force.resize(::grow(grids[gridno],ngrow),num_comp);
 
-    assert(Rho.box() == force.box());
+    assert(Rho.box().contains(force.box()));
 
     const Real grav = Abs(gravity);
 
