@@ -2,7 +2,7 @@
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.7 1998-03-06 16:33:16 lijewski Exp $
+// $Id: MacProj.H,v 1.8 1998-05-13 23:17:45 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -104,7 +104,6 @@ protected: // ======================== protected data members
     int finest_level_allocated;
     static int verbose;
     static int use_cg_solve;
-    static int use_viscosity;
     
     static Real mac_tol;
     static Real mac_abs_tol;

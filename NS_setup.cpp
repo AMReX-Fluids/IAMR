@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.12 1998-03-27 00:07:28 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.13 1998-05-13 23:17:49 almgren Exp $
 //
 
 #include <NavierStokes.H>
@@ -44,12 +44,21 @@ static int press_bc[] =
     INT_DIR, EXTRAP, EXTRAP, REFLECT_EVEN, EXTRAP, EXTRAP
 };
 
-#if 0
 static int temp_bc[] =
 {
     INT_DIR, EXT_DIR, EXTRAP, REFLECT_EVEN, EXT_DIR, EXT_DIR
 };
-#endif
+
+static int divu_bc[] =
+{
+    INT_DIR, REFLECT_EVEN, REFLECT_EVEN, REFLECT_EVEN, REFLECT_EVEN, REFLECT_EVEN
+};
+
+static int dsdt_bc[] =
+{
+    INT_DIR, EXT_DIR, EXT_DIR, REFLECT_EVEN, REFLECT_EVEN, REFLECT_EVEN
+};
+
 
 static
 void
@@ -116,7 +125,6 @@ set_scalar_bc (BCRec&       bc,
     }
 }
 
-#if 0
 static
 void
 set_temp_bc (BCRec&       bc,
@@ -130,7 +138,6 @@ set_temp_bc (BCRec&       bc,
         bc.setHi(i,temp_bc[hi_bc[i]]);
     }
 }
-#endif
 
 static
 void
@@ -145,6 +152,33 @@ set_pressure_bc (BCRec&       bc,
         bc.setHi(i,press_bc[hi_bc[i]]);
     }
 }
+
+static 
+void 
+set_divu_bc(BCRec& bc, const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    for (int i = 0; i < BL_SPACEDIM; i++) 
+    {
+        bc.setLo(i,divu_bc[lo_bc[i]]);
+        bc.setHi(i,divu_bc[hi_bc[i]]);
+    }
+}
+
+static 
+void 
+set_dsdt_bc(BCRec& bc, const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    for (int i = 0; i < BL_SPACEDIM; i++) 
+    {
+        bc.setLo(i,dsdt_bc[lo_bc[i]]);
+        bc.setHi(i,dsdt_bc[hi_bc[i]]);
+    }
+}
+
 
 void
 NavierStokes::variableSetUp ()
@@ -163,10 +197,11 @@ NavierStokes::variableSetUp ()
     //
     // Set number of state variables.
     //
-    int Trac = Density + 1;
-//  int Temp = Trac + 1;
-    NUM_STATE = Trac + 1;
+    NUM_STATE = Density + 1;
+    int Temp = (do_temp  ?  NUM_STATE++  :  -1);
+    int Trac = NUM_STATE++;
     NUM_SCALARS = NUM_STATE - Density;
+
     //
     // **************  DEFINE VELOCITY VARIABLES  ********************
     //
@@ -190,16 +225,10 @@ NavierStokes::variableSetUp ()
     //
     // **************  DEFINE TEMPERATURE  ********************
     //
-//  set_temp_bc(bc,phys_bc);
-//  desc_lst.setComponent(State_Type,Temp,"temp",bc,FORT_TEMPFILL);
-
-    if (visc_coef.length() < NUM_STATE)
+    if (do_temp)
     {
-        BoxLib::Error("Not enough visc_coef values specified");
-    }
-    else if (visc_coef.length() > NUM_STATE)
-    {
-        BoxLib::Warning("Too many visc_coef values specified");
+        set_temp_bc(bc,phys_bc);
+        desc_lst.setComponent(State_Type,Temp,"temp",bc,FORT_TEMPFILL);
     }
 
     is_conservative.resize(NUM_STATE);
@@ -212,8 +241,8 @@ NavierStokes::variableSetUp ()
             is_diffusive[i] = true;
     }
     is_conservative[Density] = true;
+    if (do_temp) is_conservative[Temp] = true;
     is_conservative[Trac] = true;
-//  is_conservative[Temp] = true;
     if (is_diffusive[Density])
     {
         BoxLib::Error("Density cannot diffuse, bad visc_coef");
@@ -226,6 +255,27 @@ NavierStokes::variableSetUp ()
                            &node_bilinear_interp);
     set_pressure_bc(bc,phys_bc);
     desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,FORT_PRESFILL);
+
+    if (do_temp)
+    {
+	// stick Divu_Type on the end of the descriptor list
+	Divu_Type = desc_lst.length();
+	int nGrowDivu = 1;
+	desc_lst.addDescriptor(Divu_Type,IndexType::TheCellType(),
+                               StateDescriptor::Point,nGrowDivu,1,
+			       &cell_cons_interp);
+	set_divu_bc(bc,phys_bc);
+	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,FORT_DIVUFILL);
+	
+	// stick Dsdt_Type on the end of the descriptor list
+	Dsdt_Type = desc_lst.length();
+	int nGrowDsdt = 0;
+	desc_lst.addDescriptor(Dsdt_Type,IndexType::TheCellType(),
+                               StateDescriptor::Point,nGrowDsdt,1,
+			       &cell_cons_interp);
+	set_dsdt_bc(bc,phys_bc);
+	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,FORT_DSDTFILL);
+    }
     //
     // **************  DEFINE DERIVED QUANTITIES ********************
     //
@@ -269,7 +319,7 @@ NavierStokes::variableSetUp ()
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
     //
     err_list.add("tracer",1,ErrorRec::Special,FORT_ADVERROR);
-//   err_list.add("mag_vort",0,ErrorRec::Special,FORT_MVERROR);
+    err_list.add("mag_vort",0,ErrorRec::Special,FORT_MVERROR);
 }
 
 void

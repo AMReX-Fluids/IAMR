@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.35 1998-04-22 22:01:55 almgren Exp $
+// $Id: Projection.cpp,v 1.36 1998-05-13 23:17:50 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -41,16 +41,16 @@ const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
 
 #define SET_BOGUS_BNDRY 1
-Real bogus_value = 1.0e+20;
+#define bogus_value 1.e20
 
 #define MAX_LEV 10
 
 // initialization of static members
-int       Projection::verbose = false;
+int       Projection::verbose = 0;
 int       Projection::P_code = 0;
-Real      Projection::proj_tol = 1.0e-10;
+Real      Projection::proj_tol = 1.0e-12;
 Real      Projection::sync_tol = 1.0e-8;
-Real      Projection::proj_abs_error = 1.0e-15;
+Real      Projection::proj_abs_tol = 1.0e-16;
 Real      Projection::filter_factor = 0.0;
 int       Projection::filter_u = 0;
 int       Projection::rho_wgt_vel_proj = 0;
@@ -120,25 +120,18 @@ void Projection::read_params()
   // read parameters from input file and command line
   ParmParse pp("proj");
 
+  pp.query("v",verbose);
   pp.query("Pcode",P_code);
 
-  if(ParallelDescriptor::IOProcessor()) 
-  {
-    verbose = pp.contains("v");
-  } 
-  else 
-  {
-    verbose = false;
-  }
-  pp.get("proj_tol",proj_tol);
-  pp.get("sync_tol",sync_tol);
+  pp.query("proj_tol",proj_tol);
+  pp.query("sync_tol",sync_tol);
+  pp.query("proj_abs_tol",proj_abs_tol);
+
   pp.query("make_sync_solvable",make_sync_solvable);
-  pp.query("bogus_value",bogus_value);
 
   pp.query("filter_factor",filter_factor);
   pp.query("filter_u",filter_u);
 
-  pp.query("proj_abs_error",proj_abs_error);
 
   pp.query("rho_wgt_vel_proj",rho_wgt_vel_proj);
 
@@ -409,16 +402,18 @@ Projection::level_project(int level,
     if (level < finest_level) 
     {   // init sync registers between level and level+1
       crse_sync_reg->CrseDVInit(U_new,geom,rz_flag,bc);
-      crse_sync_reg->CrseDsdtAdd(dsdt, geom, rz_flag, bc, 
-                                 lowfix, hifix);
+      if (have_divu) 
+        crse_sync_reg->CrseDsdtAdd(dsdt, geom, rz_flag, bc, 
+                                   lowfix, hifix);
     } 
     if (level > 0) 
     { // increment sync registers between level and level-1
       Real invrat = 1.0/(double)crse_dt_ratio;
       const Geometry& crse_geom = parent->Geom(level-1);
       fine_sync_reg->FineDVAdd(U_new,dx,crse_geom,rz_flag,bc,invrat);
-      fine_sync_reg->FineDsdtAdd(dsdt,geom,rz_flag,bc,lowfix,
-                                 hifix,invrat);
+      if (have_divu) 
+        fine_sync_reg->FineDsdtAdd(dsdt,geom,rz_flag,bc,lowfix,
+                                   hifix,invrat);
     }
 
   }
@@ -453,7 +448,7 @@ Projection::level_project(int level,
   {
     // for divu=0 only
     sync_proj->project(u_real, p_real, null_amr_real, s_real, (Real*)dx,
-                       proj_tol, level, level, proj_abs_error);
+                       proj_tol, level, level, proj_abs_tol);
   } 
   else 
   {
@@ -484,7 +479,7 @@ Projection::level_project(int level,
     rhs_real.set(level, &rhs_cc);
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                               use_u, (Real*)dx,
-                              proj_tol, level, level, proj_abs_error);
+                              proj_tol, level, level, proj_abs_tol);
   }
 
   // copy and delete u_real
@@ -630,7 +625,7 @@ void Projection::harmonic_project(int level, Real dt, Real cur_pres_time,
   bool use_u = false;
   sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                             use_u, (Real*)dx,
-                            proj_tol, level, level, proj_abs_error);
+                            proj_tol, level, level, proj_abs_tol);
 
   // copy and delete u_real
   // ----------------------------------------------------
@@ -749,7 +744,7 @@ void Projection::syncProject(int c_lev, MultiFab & pres, MultiFab & vel,
   bool use_u = true;
   sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                             use_u, (Real*)dx,
-                            sync_tol, c_lev, c_lev, proj_abs_error);
+                            sync_tol, c_lev, c_lev, proj_abs_tol);
 
   // copy and delete u_real
   // ----------------------------------------------------
@@ -929,7 +924,7 @@ void Projection::MLsyncProject(int c_lev,
   sync_proj->manual_project(u_real, p_real, null_amr_real,
                             crse_rhs_real, s_real,
                             use_u, (Real*)dx_fine,
-                            sync_tol, c_lev, c_lev+1, proj_abs_error);
+                            sync_tol, c_lev, c_lev+1, proj_abs_tol);
 
   // copy and delete u_real
   // ----------------------------------------------------
@@ -1180,7 +1175,7 @@ void Projection::initialVelocityProject(int c_lev,
   {
     // zero divu only
     sync_proj->project(u_real, p_real, null_amr_real, s_real, (Real*)dx_lev,
-                       proj_tol, c_lev, f_lev, proj_abs_error);
+                       proj_tol, c_lev, f_lev, proj_abs_tol);
   } 
   else 
   {
@@ -1205,7 +1200,7 @@ void Projection::initialVelocityProject(int c_lev,
     }
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                               use_u, (Real*)dx_lev,
-                              proj_tol, c_lev, f_lev, proj_abs_error);
+                              proj_tol, c_lev, f_lev, proj_abs_tol);
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
       delete rhs_cc[lev];
@@ -1442,7 +1437,7 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
   {
     // zero divu only or debugging
     sync_proj->project(u_real, p_real, null_amr_real, s_real, (Real*)dx_lev,
-                       proj_tol, c_lev, f_lev, proj_abs_error);
+                       proj_tol, c_lev, f_lev, proj_abs_tol);
   } 
   else 
   {
@@ -1456,7 +1451,7 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
     }
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                               use_u, (Real*)dx_lev,
-                              proj_tol, c_lev, f_lev, proj_abs_error);
+                              proj_tol, c_lev, f_lev, proj_abs_tol);
   }
 
   // copy and delete u_real, delete s_real if appropriate

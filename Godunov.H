@@ -2,7 +2,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.5 1997-12-19 21:09:03 lijewski Exp $
+// $Id: Godunov.H,v 1.6 1998-05-13 23:17:45 almgren Exp $
 //
 
 //===========================================================
@@ -216,7 +216,6 @@ public:      // public access functions
 #endif
 
     // internal parameters
-    static Real bogus_value;  // bogus value for debugging
     int max_1d;    // largest dimension size allowed
     int scr_size;  // actual length of the scratch space
     
@@ -253,7 +252,7 @@ protected:   // protected data members
 
 // flags
 
-    static int printMinMax;
+    static int verbose;
     static int use_forces_in_trans;
 
 // algorithm control parameters

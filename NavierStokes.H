@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.13 1998-03-28 00:34:47 lijewski Exp $
+// $Id: NavierStokes.H,v 1.14 1998-05-13 23:17:45 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -126,7 +126,8 @@ public:   // ===================== public member functions ===
     virtual void computeInitialDt(int finest_level, int sub_cycle,
                                   Array<int>& n_cycle,
                                   const Array<IntVect>& ref_ratio,
-                                  Array<Real>& dt_level);
+                                  Array<Real>& dt_level,
+                                  REAL stop_time);
     virtual void computeNewDt(int finest_level, int sub_cycle,
                               Array<int>& n_cycle,
                               const Array<IntVect>& ref_ratio,
@@ -137,7 +138,8 @@ public:   // ===================== public member functions ===
     // this function estimates the initial timesteping used by the model
     void post_init_estDT( Real &dt_init,
                           Array<int> &nc_save,
-                          Array<Real> &dt_save );
+                          Array<Real> &dt_save,
+                          REAL stop_time);
 
     // estimate the end of the simulation for amrLevel
     virtual int okToContinue();
@@ -156,7 +158,7 @@ public:   // ===================== public member functions ===
     virtual void post_restart();
 
     // insure state, and pressure are consistent
-    virtual void post_init();
+    virtual void post_init(REAL stop_time);
 
     // advance grids at this level in time
     virtual Real advance(Real time, Real dt, int iteration, int ncycle);
@@ -481,11 +483,11 @@ protected: // ===================== protected data members ===
     static Real be_cn_theta;
 
     // ----------------------- internal switches
+    static int  do_temp;
     static int  do_sync_proj;
     static int  do_MLsync_proj;
     static int  do_reflux;
     static int  do_mac_proj;
-    static int  do_diffusion;
 
     // ----------------------- static new members for non-zero divu
     static int additional_state_types_initialized;

@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.18 1998-04-15 22:25:34 marc Exp $
+// $Id: Diffusion.cpp,v 1.19 1998-05-13 23:17:47 almgren Exp $
 //
 
 //
@@ -86,6 +86,9 @@ Diffusion::Diffusion(Amr* Parent, AmrLevel* Caller, Diffusion* Coarser,
     first = 0;
 
     ParmParse ppdiff("diffuse");
+
+    ppdiff.query("v",verbose);
+
     ppdiff.query("use_cg_solve",use_cg_solve);
     ppdiff.query("use_tensor_cg_solve",use_tensor_cg_solve);
     ppdiff.query("use_dv_constant_mu",use_dv_constant_mu_def);
@@ -121,16 +124,6 @@ Diffusion::Diffusion(Amr* Parent, AmrLevel* Caller, Diffusion* Coarser,
         visc_coef[i] = _visc_coef[i];
     }
 
-    // Ensure visc spec makes sense
-    int n_visc_coeffs = pp.countval("visc_coef");
-    int n_var_visc_flags = pp.countval("variable_visc");
-
-    if ((n_var_visc_flags > 0) &&
-        (n_visc_coeffs != n_var_visc_flags))
-    {
-        BoxLib::Error("Diffusion::_ctr_: vectors visc_coef and variable_coef must be the same length");
-    }
-
     // Read in typical state sizes
     typical_vals.resize(NUM_STATE);
     for (int i = 0; i < NUM_STATE; i++)
@@ -145,10 +138,6 @@ Diffusion::Diffusion(Amr* Parent, AmrLevel* Caller, Diffusion* Coarser,
     }
 
     echo_settings();
-
-    if(ParallelDescriptor::IOProcessor()) {
-      verbose = 1;
-    }
   }
 
   if (level > 0) {

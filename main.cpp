@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.21 1998-04-27 16:52:44 lijewski Exp $
+// $Id: main.cpp,v 1.22 1998-05-13 23:17:50 almgren Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -100,16 +100,24 @@ main (int   argc,
     sleep(sleeptime);
 #endif
 
-    max_step  = 0;    pp.query("max_step",max_step);
-    stop_time = 0.0;  pp.query("stop_time",stop_time);
+    max_step  = -1;    
+    stop_time = -1.0;  
+
+    pp.query("max_step",max_step);
+    pp.query("stop_time",stop_time);
+
+    if ( max_step < 0 && stop_time < 0.0 ) {
+      ParallelDescriptor::Abort(
+       "Exiting because neither max_step nor stop_time is non-negative.");
+    }
 
     Amr* amrptr = new Amr;
 
-    amrptr->init();
+    amrptr->init(stop_time);
 
-    while (amrptr->okToContinue()           &&
-           amrptr->levelSteps(0) < max_step &&
-           amrptr->cumTime() < stop_time)
+    while ( amrptr->okToContinue()           &&
+           (amrptr->levelSteps(0) < max_step || max_step < 0) &&
+           (amrptr->cumTime() < stop_time || stop_time < 0.0) )
     {
         amrptr->coarseTimeStep(stop_time);
     }

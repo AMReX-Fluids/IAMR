@@ -2,7 +2,7 @@
 #define _PROB_F_H_
 
 /*
-** $Id: PROB_F.H,v 1.5 1997-12-14 23:36:00 lijewski Exp $
+** $Id: PROB_F.H,v 1.6 1998-05-13 23:17:46 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -14,6 +14,8 @@
 #    define FORT_ZVELFILL    zvelfill
 #    define FORT_PRESFILL    presfill
 #    define FORT_TEMPFILL    tempfill
+#    define FORT_DIVUFILL    divufill
+#    define FORT_DSDTFILL    dsdtfill
 #    define FORT_DENERROR    denerror
 #    define FORT_ADVERROR    adverror
 #    define FORT_TEMPERROR   temperror
@@ -31,6 +33,8 @@
 #    define FORT_ZVELFILL    ZVELFILL
 #    define FORT_PRESFILL    PRESFILL
 #    define FORT_TEMPFILL    TEMPFILL
+#    define FORT_DIVUFILL    DIVUFILL
+#    define FORT_DSDTFILL    DSDTFILL
 #    define FORT_DENERROR    DENERROR
 #    define FORT_ADVERROR    ADVERROR
 #    define FORT_TEMPERROR   TEMPERROR
@@ -44,6 +48,8 @@
 #    define FORT_ZVELFILL    zvelfill_
 #    define FORT_PRESFILL    presfill_
 #    define FORT_TEMPFILL    tempfill_
+#    define FORT_DIVUFILL    divufill_
+#    define FORT_DSDTFILL    dsdtfill_
 #    define FORT_DENERROR    denerror_
 #    define FORT_ADVERROR    adverror_
 #    define FORT_TEMPERROR   temperror_
@@ -99,6 +105,16 @@
                          const int* dom_lo, const int* dom_hi,
                          const Real* dx, const Real* grd_lo,
                          const Real* time, const int* bc);
+
+     void FORT_DIVUFILL (REAL* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+                         const int* dom_lo, const int* dom_hi,
+                         const REAL* dx, const REAL* grd_lo,
+                         const REAL* time, const int* bc);
+
+     void FORT_DSDTFILL (REAL* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+                         const int* dom_lo, const int* dom_hi,
+                         const REAL* dx, const REAL* grd_lo,
+                         const REAL* time, const int* bc);
 
      void FORT_DENERROR  (int* tag, ARLIM_P(tlo), ARLIM_P(thi),
                           const int* tagval, const int* clearval,

@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.13 1998-03-26 06:40:57 almgren Exp $
+// $Id: MacProj.cpp,v 1.14 1998-05-13 23:17:48 almgren Exp $
 //
 
 #include <Misc.H>
@@ -38,11 +38,10 @@ const Real* fabdat = (fab).dataPtr();
 #define GEOM_GROW 1
 #define HYP_GROW 3
 
-int  MacProj::use_viscosity    = 1;
-int  MacProj::verbose          = false;
+int  MacProj::verbose          = 0;
 int  MacProj::use_cg_solve     = 0;
-Real MacProj::mac_tol          = 1.0e-8;
-Real MacProj::mac_abs_tol      = 1.0e-15;
+Real MacProj::mac_tol          = 1.0e-12;
+Real MacProj::mac_abs_tol      = 1.0e-16;
 Real MacProj::mac_sync_tol     = 1.0e-8;
 int  MacProj::do_outflow_bcs   = 1;
 int  MacProj::fix_mac_sync_rhs = 0;
@@ -85,18 +84,14 @@ void MacProj::read_params()
   // read parameters from input file and command line
   ParmParse pp("mac");
 
-  if(ParallelDescriptor::IOProcessor()) {
-    verbose = pp.contains("v");
-  } else {
-    verbose = false;
-  }
-  pp.get(   "mac_tol",          mac_tol          );
-  pp.get(   "mac_sync_tol",     mac_sync_tol     );
+  pp.query( "v",                verbose          );
+
+  pp.query( "mac_tol",          mac_tol          );
+  pp.query( "mac_sync_tol",     mac_sync_tol     );
   pp.query( "use_cg_solve",     use_cg_solve     );
   pp.query( "mac_abs_tol",      mac_abs_tol      );
   pp.query( "do_outflow_bcs",   do_outflow_bcs   );
   pp.query( "fix_mac_sync_rhs", fix_mac_sync_rhs );
-  pp.query( "use_viscosity",    use_viscosity    ); 
 }
 
 
@@ -537,13 +532,11 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 
     // get viscous forcing
     MultiFab *visc_terms = NULL;
-    if ( use_viscosity ) {
-        visc_terms = new MultiFab(grids,NUM_STATE,1,Fab_allocate);
-        if (be_cn_theta!=1.0) {
-          ns_level.getViscTerms((*visc_terms),Xvel,NUM_STATE,prev_time);
-        } else {
-          visc_terms->setVal(0.0,1);
-        }
+    visc_terms = new MultiFab(grids,NUM_STATE,1,Fab_allocate);
+    if (be_cn_theta!=1.0) {
+      ns_level.getViscTerms((*visc_terms),Xvel,NUM_STATE,prev_time);
+    } else {
+      visc_terms->setVal(0.0,1);
     }
 
     // compute the mac sync correction
@@ -600,19 +593,12 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
         Rho.copy(S,Density,0,1);
 
         // compute total forcing terms
-        if ( use_viscosity ) {
-            godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rho );
-            godunov->Sum_tf_divu_visc( S, tforces,
-                                       BL_SPACEDIM, numscal,
-                                       visc_termsmfi(),
-                                       BL_SPACEDIM,
-                                       divu, Rho, 1 );
-        } else {
-            godunov->Sum_tf_gp(   tforces, Gp, Rho );
-            godunov->Sum_tf_divu( S, tforces,
-                                  BL_SPACEDIM, numscal,
-                                  divu, Rho, 1 );
-        }
+        godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rho );
+        godunov->Sum_tf_divu_visc( S, tforces,
+                                   BL_SPACEDIM, numscal,
+                                   visc_termsmfi(),
+                                   BL_SPACEDIM,
+                                   divu, Rho, 1 );
 
         if (use_forces_in_trans) {
           ns_level.getForce(tvelforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);

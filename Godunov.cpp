@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.8 1997-12-19 21:09:04 lijewski Exp $
+// $Id: Godunov.cpp,v 1.9 1998-05-13 23:17:48 almgren Exp $
 //
 
 //==========================================================
@@ -38,7 +38,7 @@
 #define GDIMS(l,h) &l[0], &l[1], &l[2], &h[0], &h[1], &h[2]
 #endif
 
-int Godunov::printMinMax = 1;
+int Godunov::verbose = 0;
 int Godunov::slope_order = 4;
 int Godunov::use_forces_in_trans = 0;
 
@@ -47,7 +47,7 @@ int Godunov::use_forces_in_trans = 0;
 // =============================================================
 
 // initialization of static members
-Real Godunov::bogus_value = 5000000;
+#define bogus_value 1.e20
 
 // construct the Godunov Object
 Godunov::Godunov() :
@@ -74,7 +74,8 @@ void Godunov::read_params()
   // read parameters from input file and command line
   ParmParse pp("godunov");
 
-  pp.query("printMinMax",printMinMax);
+  pp.query("v",verbose);
+
   pp.query("slope_order",slope_order);
 #if (BL_SPACEDIM==2)
   assert(slope_order==1 || slope_order==2 || slope_order==4);
@@ -790,7 +791,6 @@ Real Godunov::test_u_rho( FArrayBox &U, FArrayBox &rho,
 #endif
 
     Real cflmax = 0;
-    int  verbose = printMinMax;
     FORT_TEST_U_RHO( u,  GDIMS(vlo,vhi),
                      v,  GDIMS(vlo,vhi),
 #ifdef ADD_W                          

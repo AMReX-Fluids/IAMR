@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.44 1998-05-08 21:57:47 marc Exp $
+// $Id: NavierStokes.cpp,v 1.45 1998-05-13 23:17:49 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -62,14 +62,14 @@ Godunov    *NavierStokes::godunov       = 0;
 
 
 // ----------------------- internal parameters
-int  NavierStokes::verbose      = false;
+int  NavierStokes::verbose      = 0;
 Real NavierStokes::cfl          = 0.8;
-Real NavierStokes::init_shrink  = 0.5;
+Real NavierStokes::init_shrink  = 1.0;
 Real NavierStokes::change_max   = 1.1;
 Real NavierStokes::fixed_dt     = -1.0;
 Real NavierStokes::dt_cutoff    = 0.0;
 int  NavierStokes::init_iter    = 2;
-Real NavierStokes::gravity      = 0;
+Real NavierStokes::gravity      = 0.0;
 int  NavierStokes::initial_step = false;
 int  NavierStokes::initial_iter = false;
 int  NavierStokes::radius_grow  = 1;
@@ -88,11 +88,11 @@ Array<Real> NavierStokes::visc_coef;
 
 
 // ----------------------- internal switches
+int  NavierStokes::do_temp         = 0;
 int  NavierStokes::do_sync_proj    = 1;
 int  NavierStokes::do_MLsync_proj  = 1;
 int  NavierStokes::do_reflux       = 1;
 int  NavierStokes::do_mac_proj     = 1;
-int  NavierStokes::do_diffusion    = 1;
      
 // ------------------------ new members for non-zero divu
 int  NavierStokes::additional_state_types_initialized = 0;
@@ -147,8 +147,9 @@ NavierStokes::read_params()
     ParmParse pp("ns");
 
     if(ParallelDescriptor::IOProcessor()) {
-      verbose = pp.contains("v");
     }
+
+    pp.query("v",verbose);
 
     Array<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
     pp.getarr("lo_bc",lo_bc,0,BL_SPACEDIM);
@@ -195,21 +196,21 @@ NavierStokes::read_params()
     }
     
     // get timestepping parameters
-    pp.get("init_shrink",init_shrink);
     pp.get("cfl",cfl);
-    pp.get("init_iter",init_iter);
+    pp.query("init_iter",init_iter);
+    pp.query("init_shrink",init_shrink);
     pp.query("dt_cutoff",dt_cutoff);
     pp.query("change_max",change_max);
     pp.query("fixed_dt",fixed_dt);
     pp.query("sum_interval",sum_interval);
-    pp.get("gravity",gravity);
+    pp.query("gravity",gravity);
 
     // get run options
+    pp.query("do_temp",        do_temp        );
     int initial_do_sync_proj = do_sync_proj;
     pp.query("do_sync_proj",   do_sync_proj   );
     pp.query("do_MLsync_proj", do_MLsync_proj );
     pp.query("do_reflux",      do_reflux      );
-    pp.query("do_diffusion",   do_diffusion   );
 
     // this test insures if the user toggles do_sync_proj,
     // the user has knowledge that do_MLsync_proj is meaningless
@@ -221,16 +222,51 @@ NavierStokes::read_params()
     }
 
 
-    // read viscous parameters and array of viscous coeficients.
+    // read viscous/diffusive parameters and array of viscous/diffusive coeffs.
     // NOTE: at this point, we dont know number of state variables
     //       so just read all values listed
     pp.query("visc_tol",visc_tol);
     pp.query("visc_abs_tol",visc_abs_tol);
 
-    int n_visc = pp.countval("visc_coef");
+    int n_vel_visc_coef   = pp.countval("vel_visc_coef");
+    int n_temp_cond_coef  = pp.countval("temp_cond_coef");
+    int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
+
+    if (n_vel_visc_coef != 1) {
+      cout << "NavierStokes::read_params: you must input only one vel_visc_coef"
+           << endl;
+      exit(0);
+    }
+
+    if (do_temp && n_temp_cond_coef != 1) {
+      cout << "NavierStokes::read_params: you must input only one temp_cond_coef"
+           << endl;
+      exit(0);
+    }
+
+    int n_visc = BL_SPACEDIM + 1 + n_scal_diff_coefs;
+    if (do_temp) n_visc++;
     visc_coef.resize(n_visc);
     is_diffusive.resize(n_visc);
-    pp.getarr("visc_coef",visc_coef,0,n_visc);
+ 
+    pp.get("vel_visc_coef",visc_coef[0]);
+    for (int i = 1; i < BL_SPACEDIM; i++) {
+      visc_coef[i] = visc_coef[0];
+    }
+ 
+    // Here we set the coefficient for density, which does not diffuse.
+    visc_coef[Density] = -1;
+
+    if (do_temp) pp.get("temp_cond_coef",visc_coef[Density+1]);
+
+    Array<REAL> scal_diff_coefs(n_scal_diff_coefs);
+    pp.getarr("scal_diff_coefs",scal_diff_coefs,0,n_scal_diff_coefs);
+
+    int firstScal = Density + 1;
+    if (do_temp) firstScal++;
+    for (int i = 0; i < n_scal_diff_coefs; i++) {
+      visc_coef[firstScal+i] = scal_diff_coefs[i];
+    }
 
     pp.query("divu_minus_s_factor",divu_minus_s_factor);
     pp.query("divu_relax_factor",divu_relax_factor);
@@ -1083,9 +1119,7 @@ void NavierStokes::advance_setup( Real time, Real dt, int iteration, int ncycle)
 
     // alloc multifab to hold advective tendencies
     assert( aofs == 0 );
-    if ( do_diffusion ) {
-        aofs = new MultiFab(grids,NUM_STATE,0,Fab_allocate);
-    }
+    aofs = new MultiFab(grids,NUM_STATE,0,Fab_allocate);
     
     // set rho_avg
     if ( !initial_step && (level > 0) && (iteration == 1) ) {
@@ -1102,7 +1136,7 @@ void NavierStokes::advance_setup( Real time, Real dt, int iteration, int ncycle)
     MultiFab &temp = get_new_data(State_Type);
     temp.setVal(bogus_value);
 
-    if( (level>0 || geom.isAnyPeriodic()) && do_diffusion ) {
+    if( level>0 || geom.isAnyPeriodic() ) {
         // this is neccessary so that diffusion works properly during the first
         // time step (Diffusion can call only AmrLevel::setPhysBndryValues() to
         // fill ghost cells.  That function does not know about ghost cells over
@@ -1234,7 +1268,7 @@ Real NavierStokes::advance(Real time, Real dt, int iteration, int ncycle)
       dsdt.setVal(0.0);
     }
 
-    //------------------- compute mac velocities and maximum clf number
+    //------------------- compute mac velocities and maximum cfl number
     if (do_mac_proj)
         mac_projector->mac_project(level,u_mac,Sold,dt,time,divu,have_divu);
     mac_stats.end();
@@ -3155,7 +3189,9 @@ void NavierStokes::computeNewDt(int finest_level, int sub_cycle,
 
     Real eps = 0.0001*dt_0;
     Real cur_time  = state[State_Type].curTime();
-    if ( (cur_time + dt_0) > (stop_time - eps) ) dt_0 = stop_time - cur_time;
+    if (stop_time >= 0.0) {
+      if ( (cur_time + dt_0) > (stop_time - eps) ) dt_0 = stop_time - cur_time;
+    }
 
     // adjust the time step to be able to output checkpoints at specific times
     int a,b;
@@ -3186,7 +3222,8 @@ void NavierStokes::computeNewDt(int finest_level, int sub_cycle,
 void NavierStokes::computeInitialDt(int finest_level, int sub_cycle,
                                Array<int>& n_cycle,
                                const Array<IntVect>& ref_ratio,
-                               Array<Real>& dt_level)
+                               Array<Real>& dt_level, 
+                               REAL stop_time)
 {
       // grids have been constructed, compute dt for all levels
     if (level > 0) return;
@@ -3215,6 +3252,13 @@ void NavierStokes::computeInitialDt(int finest_level, int sub_cycle,
         dt_0 = Min(dt_0,n_factor*dt_level[i]);
     }
 
+
+    REAL eps = 0.0001*dt_0;
+    REAL cur_time  = state[State_Type].curTime();
+    if (stop_time >= 0.0) {
+      if ( (cur_time + dt_0) > (stop_time - eps) ) dt_0 = stop_time - cur_time;
+    }
+
     n_factor = 1;
     for (i = 0; i <= max_level; i++) {
         n_factor *= n_cycle[i];
@@ -3228,7 +3272,8 @@ void NavierStokes::computeInitialDt(int finest_level, int sub_cycle,
 //-------------------------------------------------------------
 void NavierStokes::post_init_estDT( Real &dt_init,
                                     Array<int> &nc_save,
-                                    Array<Real> &dt_save )
+                                    Array<Real> &dt_save,
+                                    REAL stop_time)
 {
     int k;
     
@@ -3253,6 +3298,11 @@ void NavierStokes::post_init_estDT( Real &dt_init,
     for (k = 0; k <= finest_level; k++) {
         n_factor *= nc_save[k];
         dt0 = Min(dt0,n_factor*dt_save[k]);
+    }
+
+    REAL eps = 0.0001*dt0;
+    if (stop_time >= 0.0) {
+      if ( (strt_time + dt0) > (stop_time - eps) ) dt0 = stop_time - strt_time;
     }
 
     n_factor = 1;
@@ -3364,7 +3414,7 @@ void NavierStokes::post_regrid(int lbase, int new_finest)
 }
 
 // ensure state, and pressure are consistent
-void NavierStokes::post_init()
+void NavierStokes::post_init(REAL stop_time)
 {
     // nothing to sync up at level > 0
     if (level > 0)
@@ -3380,7 +3430,7 @@ void NavierStokes::post_init()
     post_init_state();
 
     // estimate the initial timestepping
-    post_init_estDT( dt_init, nc_save, dt_save );
+    post_init_estDT( dt_init, nc_save, dt_save, stop_time );
 
     // initialize the pressure by iterating the initial timestep
     post_init_press( dt_init, nc_save, dt_save );

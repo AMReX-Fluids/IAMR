@@ -2,7 +2,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.11 1998-04-22 22:01:56 almgren Exp $
+// $Id: Projection.H,v 1.12 1998-05-13 23:17:46 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -245,7 +245,7 @@ protected:// ================== protected data members
     static int P_code;
     static Real proj_tol;
     static Real sync_tol;
-    static Real proj_abs_error;
+    static Real proj_abs_tol;
     static Real filter_factor;
     static int filter_u;
     static int rho_wgt_vel_proj;
