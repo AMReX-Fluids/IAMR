@@ -1,6 +1,6 @@
 
 //
-// $Id: ViscBench2d.cpp,v 1.4 2001-10-17 17:53:33 lijewski Exp $
+// $Id: ViscBench2d.cpp,v 1.5 2002-12-18 19:27:58 almgren Exp $
 //
 
 #include <new>
@@ -18,7 +18,6 @@ using std::set_new_handler;
 #include "Box.H"
 #include "FArrayBox.H"
 #include "ParmParse.H"
-#include "Boolean.H"
 #include "ParallelDescriptor.H"
 #include "DataServices.H"
 #include "Utility.H"
@@ -59,11 +58,11 @@ main (int   argc,
     //
     // Make sure to catch new failures.
     //
-    set_new_handler(Utility::OutOfMemory);
+    set_new_handler(BoxLib::OutOfMemory);
 
     ParallelDescriptor::StartParallel(&argc, &argv);
 
-    ParmParse pp(argc-1,argv+1);
+    ParmParse pp;
 
     if (pp.contains("help"))
         PrintUsage(argv[0]);
@@ -81,7 +80,7 @@ main (int   argc,
         AmrData::SetVerbose(true);
     }
     pp.query("infile", iFile);
-    if (iFile.isNull())
+    if (iFile.empty())
         BoxLib::Abort("You must specify `infile'");
 
     pp.query("exfile", exFile);
@@ -136,7 +135,7 @@ main (int   argc,
 
         MultiFab dataI(baI, nComp, 0);
 
-	for (int iGrid=0; iGrid<baI.length(); ++iGrid)
+	for (int iGrid=0; iGrid<baI.size(); ++iGrid)
 	{
             const Box& dataGrid = baI[iGrid];
 
@@ -182,7 +181,7 @@ main (int   argc,
         for (int iComp=0; iComp<nComp; ++iComp)
         {
             Real Ln = 0.0;
-            for (int iGrid=0; iGrid<baI.length(); ++iGrid)
+            for (int iGrid=0; iGrid<baI.size(); ++iGrid)
             {
                 Real grdLn = (*error[iLevel])[iGrid].norm(norm,iComp,1);
                 Ln = Ln + pow(grdLn, norm) * cellvol;
@@ -197,10 +196,10 @@ main (int   argc,
     //
     // Write Plot Files
     //
-    if (!errFile.isNull())
+    if (!errFile.empty())
         WritePlotFile(error, amrDataI, errFile, verbose);
 
-    if (!exFile.isNull())
+    if (!exFile.empty())
         WritePlotFile(dataE, amrDataI, exFile, verbose);
 
 
@@ -220,8 +219,8 @@ amrDatasHaveSameDerives(const AmrData& amrd1,
 {
     const Array<aString>& derives1 = amrd1.PlotVarNames();
     const Array<aString>& derives2 = amrd2.PlotVarNames();
-    int length = derives1.length();
-    if (length != derives2.length())
+    int length = derives1.size();
+    if (length != derives2.size())
 	return false;
     for (int i=0; i<length; ++i)
 	if (derives1[i] != derives2[i])

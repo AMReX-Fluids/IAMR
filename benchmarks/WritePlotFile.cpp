@@ -18,7 +18,6 @@
 #endif
 
 #include <Utility.H>
-#include <Tracer.H>
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
 #include <RealBox.H>
@@ -28,6 +27,10 @@
 using std::setprecision;
 #ifndef WIN32
 using std::set_new_handler;
+#endif
+
+#ifdef BL_USE_SETBUF
+#define pubsetbuf setbuf
 #endif
 
 #include <WritePlotFile.H>
@@ -92,8 +95,8 @@ writePlotFile (const aString&  dir,
 	    grid_loc[j].resize(1);
 	    grid_loc[j][0] = RealBox(Geometry::ProbLo(),Geometry::ProbHi());
 	} else {
-	    grid_loc[j].resize(grids.length());
-	    for (int L=0; L < grids.length(); L++)
+	    grid_loc[j].resize(grids.size());
+	    for (int L=0; L < grids.size(); L++)
 	    {
 		const Box bx = grids[L];
 		grid_loc[j][L] = RealBox(D_DECL( dx[j][0]*bx.smallEnd(0),
@@ -126,15 +129,15 @@ writePlotFile (const aString&  dir,
     // Now for the full pathname of that directory.
     //
     aString FullPath = dir;
-    if (!FullPath.isNull() && FullPath[FullPath.length()-1] != '/')
+    if (!FullPath.empty() && FullPath[FullPath.size()-1] != '/')
 	FullPath += '/';
     FullPath += Level;
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-	if (!Utility::UtilCreateDirectory(FullPath, 0755))
-	    Utility::CreateDirectoryFailed(FullPath);
+	if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
+	    BoxLib::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
     //
@@ -191,7 +194,7 @@ writePlotFile (const aString&  dir,
 	//
 	// Now write state data.
 	//
-	int ngrds          = (level==0 ? 1 : grids.length());
+	int ngrds          = (level==0 ? 1 : grids.size());
 	Real cur_time      = curTime;
 	const MultiFab& cell_dat = (level==0 ? level0_dat : mf);
 	    
@@ -199,7 +202,7 @@ writePlotFile (const aString&  dir,
 	// level steps
 	os << levelSteps << '\n';
 	
-	for (i = 0; i < cell_dat.boxArray().length(); ++i)
+	for (i = 0; i < cell_dat.boxArray().size(); ++i)
 	{
 	    for (n = 0; n < BL_SPACEDIM; n++)
 		// lo/hi position of this grid
@@ -221,7 +224,6 @@ writePlotFile (const aString&  dir,
     //
     FullPath += MultiFabBaseName;
 
-    //RunStats::addBytes(VisMF::Write(state[State_Type].newData(),FullPath,how));
     const MultiFab& cell_dat = (level==0 ? level0_dat : mf);
     VisMF::Write(cell_dat,FullPath,VisMF::OneFilePerCPU);
 };
@@ -242,8 +244,8 @@ writePlotFile (const char*     name,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!Utility::UtilCreateDirectory(pltfile, 0755))
-            Utility::CreateDirectoryFailed(pltfile);
+        if (!BoxLib::UtilCreateDirectory(pltfile, 0755))
+            BoxLib::CreateDirectoryFailed(pltfile);
     //
     // Force other processors to wait till directory is built.
     //
@@ -255,7 +257,7 @@ writePlotFile (const char*     name,
 
     ofstream HeaderFile;
 
-    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
     int old_prec;
 
@@ -267,7 +269,7 @@ writePlotFile (const char*     name,
         HeaderFile.open(HeaderFileName.c_str(), ios::out|ios::trunc);
 
         if (!HeaderFile.good())
-            Utility::FileOpenFailed(HeaderFileName);
+            BoxLib::FileOpenFailed(HeaderFileName);
 
         old_prec = HeaderFile.precision(30);
     }
@@ -275,10 +277,7 @@ writePlotFile (const char*     name,
     int finest_level = 1;
     for (int k = 0; k <= finest_level; k++)
     {
-        RunStats write_pltfile_stats("write_pltfile", k);
-        write_pltfile_stats.start();
         writePlotFile(pltfile, HeaderFile, k, mf, geom, refRatio, bgVal);
-        write_pltfile_stats.end();
     }
 
     if (ParallelDescriptor::IOProcessor())
@@ -286,8 +285,6 @@ writePlotFile (const char*     name,
         //
         // Accumulate # of bytes written to header file.
         //
-        RunStats::addBytes(VisMF::FileOffset(HeaderFile));
-
         HeaderFile.precision(old_prec);
 
         if (!HeaderFile.good())
@@ -313,8 +310,8 @@ void WritePlotFile(const Array<MultiFab*> mfa,
     int finestLevel = amrdToMimic.FinestLevel();    
     
     if (ParallelDescriptor::IOProcessor())
-        if (!Utility::UtilCreateDirectory(oFile,0755))
-            Utility::CreateDirectoryFailed(oFile);
+        if (!BoxLib::UtilCreateDirectory(oFile,0755))
+            BoxLib::CreateDirectoryFailed(oFile);
     //
     // Force other processors to wait till directory is built.
     //
@@ -327,7 +324,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
 
     ofstream os;
   
-    os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+    os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
   
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "Opening file = " << oFileHeader << '\n';
@@ -335,7 +332,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
     os.open(oFileHeader.c_str(), ios::out|ios::binary);
 
     if (os.fail())
-        Utility::FileOpenFailed(oFileHeader);
+        BoxLib::FileOpenFailed(oFileHeader);
     //
     // Start writing plotfile.
     //
@@ -373,7 +370,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
         //
         // Write state data.
         //
-        int nGrids = amrdToMimic.boxArray(iLevel).length();
+        int nGrids = amrdToMimic.boxArray(iLevel).size();
         char buf[64];
         sprintf(buf, "Level_%d", iLevel);
     
@@ -399,8 +396,8 @@ void WritePlotFile(const Array<MultiFab*> mfa,
             Level += '/';
             Level += buf;
     
-            if (!Utility::UtilCreateDirectory(Level, 0755))
-                Utility::CreateDirectoryFailed(Level);
+            if (!BoxLib::UtilCreateDirectory(Level, 0755))
+                BoxLib::CreateDirectoryFailed(Level);
         }
         //
         // Force other processors to wait till directory is built.

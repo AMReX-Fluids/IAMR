@@ -1,7 +1,7 @@
 #
-# $Id: Make.package,v 1.1 1999-02-18 00:56:35 sstanley Exp $
+# $Id: Make.package,v 1.2 2002-12-18 19:27:58 almgren Exp $
 #
-CEXE_sources += WritePlotFile.cpp
+CEXE_sources += WritePlotFile.cpp ViscBench$(DIM)d.cpp
 CEXE_headers += 
 
 FEXE_sources += EXACT_$(DIM)D.F
@@ -11,5 +11,5 @@ FEXE_headers +=
 # Shared Routines
 ###################
 
-CEXE_sources += DataServices.cpp AmrData.cpp
+CEXE_sources += DataServices.cpp AmrData.cpp XYPlotDataList.cpp
 FEXE_sources += FABUTIL_$(DIM)D.F

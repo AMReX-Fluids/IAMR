@@ -1,98 +1,81 @@
 #
-# $Id: GNUmakefile,v 1.4 1999-05-24 18:11:45 car Exp $
+# $Id: GNUmakefile,v 1.5 2002-12-18 19:27:58 almgren Exp $
 #
-PBOXLIB_HOME = ../../
+PBOXLIB_HOME = ../..
 
 TOP = $(PBOXLIB_HOME)
 #
 # Variables for the user to set ...
 #
-PRECISION     = DOUBLE
-DEBUG	      = TRUE
-PROFILE       = FALSE
-DIM	      = 3
-COMP          = KCC
-USE_MPI       = FALSE
-#
-# Base name of the executable.
-#
+PRECISION = DOUBLE
+DEBUG	  = TRUE
+PROFILE   = FALSE
+DIM	  = 2
+COMP	  = g++
+USE_MPI   = FALSE
+
 EBASE = ViscBench
 
-include $(TOP)/mk/Make.defs ./Make.package
+include $(TOP)/mk/Make.defs 
+include ./Make.package
 
-CEXE_sources += $(EBASE)$(DIM)d.cpp
+#include $(TOP)/amrlib/Make.package
+include $(TOP)/bndrylib/Make.package
+include $(TOP)/BoxLib/Make.package
 
-DEFINES += -DBL_PARALLEL_IO
-
-#
-# Local INCLUDES
-#
+INCLUDE_LOCATIONS += .
+#INCLUDE_LOCATIONS += $(TOP)/amrlib
+INCLUDE_LOCATIONS += $(TOP)/bndrylib
+INCLUDE_LOCATIONS += $(TOP)/BoxLib
 INCLUDE_LOCATIONS += $(TOP)/pAmrvis
-vpath %.H   . $(TOP)/pAmrvis
-vpath %.cpp . $(TOP)/pAmrvis
-vpath %.F   . $(TOP)/pAmrvis
-
-
-INCLUDE_LOCATIONS += . .. $(TOP)/include
-LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -lbox$(DIM)d -lbndry$(DIM)d
-
-ifeq ($(USE_ARRAYVIEW),TRUE)
-DEFINES += -DBL_USE_ARRAYVIEW
-DEFINES += -DBL_ARRAYVIEW_TAGBOX
-endif
 
 ifeq ($(MACHINE),OSF1)
 #
 # Some additional stuff for our preferred development/debugging environment.
 #
-ifeq ($(PRECISION),DOUBLE)
-FFLAGS += -real_size 64
-endif
-FDEBF += -C
-FDEBF += -warn argument_checking
-FDEBF += -warn declarations
-ifneq ($(FC), f90)
-FDEBF += -warn truncated_source
-FDEBF += -warn unused
-endif
-endif
-#
-# For Running 3rd Only
-#
-3RD = 1
-3RD =
-ifdef 3RD
-LDFLAGS += --link_command_prefix 3rd
-LDFLAGS += -non_shared -v
+  ifeq ($(PRECISION),DOUBLE)
+    FFLAGS += -real_size 64
+  endif
+  FDEBF += -C
+  FDEBF += -warn argument_checking
+  FDEBF += -warn declarations
+  ifneq ($(FC), f90)
+    FDEBF += -warn truncated_source
+    FDEBF += -warn unused
+  endif
 endif
 
-vpath %.H   .. 
-vpath %.cpp .. 
-vpath %.a   $(LIBRARY_LOCATIONS)
+vpath_cpp := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/BoxLib
+vpath_H   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/BoxLib
+vpath_FH  := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/BoxLib
+vpath_h   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/BoxLib
+vpath_F   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/BoxLib
+vpath_f   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/BoxLib
+vpath %.cpp $(vpath_cpp)
+vpath %.H   $(vpath_H)
+vpath %.FH  $(vpath_FH)
+vpath %.h   $(vpath_h)
+vpath %.F   $(vpath_F)
+vpath %.f   $(vpath_f)
 
 all: $(executable)
 
-ifeq ($(MACHINE),T3E)
 #
-# We don't explicity set the path of the mpi directory on the T3E.
+# Create MS-IDE dsp file to build this project
 #
-$(executable): $(filter-out -lmpi, $(LIBRARIES))
-else
-$(executable): $(LIBRARIES)
+DspOlevel = 1
+DspFileRoot = $(EBASE)$(DIM)d
+ifeq ($(DEBUG), TRUE)
+  DspOlevel := 0
 endif
-#
-# Build and install all libraries needed in an appropriate order.
-#
-libs:
-	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/bndrylib;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+dsp: $(DspFileRoot).dsp
+.dspDepends: $(FEXE_sources) $(FEXE_headers) $(fEXE_sources) $(CEXE_headers) $(CEXE_sources) $(INCLUDE_LOCATIONS)
+	@echo $^ > .dspDepends
 
-#
-# Cleanup libraries.
-#
-cleanlibs:
-	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-	cd $(TOP)/bndrylib;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
+$(DspFileRoot).dsp: .dspDepends
+	@(echo Building DSP file = $(DspFileRoot).dsp;\
+	$(TOP)/scripts/dsp.mak -p $(DspFileRoot) -t $(TOP) -d $(DIM) -o $(DspFileRoot).dsp -O $(DspOlevel) -f $^)
+
+.PHONY: dsp .dspDepends libs cleanlibs nodata 
 
 include $(TOP)/mk/Make.rules
