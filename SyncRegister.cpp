@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.36 1998-05-28 17:45:10 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.37 1998-05-29 00:08:19 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -278,17 +278,17 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
             for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
             {
-                Box bx = mfi.validbox() & domlo;
-                if (bx.ok())
+                if (domlo.intersects(mfi.validbox()))
                 {
+                    Box bx = mfi.validbox() & domlo;
                     if (phys_lo[dir] == Outflow) 
                         mfi().setVal(0,bx,0,1);
                     else
                         mfi().mult(2.0,bx,0,1);
                 }
-                bx = mfi.validbox() & domhi;
-                if (bx.ok())
+                if (domlo.intersects(mfi.validbox()))
                 {
+                    Box bx = mfi.validbox() & domhi;
                     if (phys_hi[dir] == Outflow)
                         mfi().setVal(0,bx,0,1);
                     else
@@ -318,9 +318,10 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
             for (int n = 0; n < grids.length(); n++)
             {
-                Box intersect = mask_cells & grids[n];
-                if (intersect.ok())
-                    tmpfab.setVal(1.0,intersect,0,1);
+                if (mask_cells.intersects(grids[n]))
+                {
+                    tmpfab.setVal(1.0,mask_cells & grids[n],0,1);
+                }
             }
  
             if (geom.isAnyPeriodic())
@@ -334,9 +335,9 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
                     for (int n = 0; n < grids.length(); n++)
                     {
-                        Box intersect = mask_cells & grids[n];
-                        if (intersect.ok())
+                        if (mask_cells.intersects(grids[n]))
                         {
+                            Box intersect = mask_cells & grids[n];
                             intersect.shift(-iv);
                             tmpfab.setVal(1.0,intersect,0,1);
                         }
@@ -373,12 +374,10 @@ SyncRegister::InitRHS (MultiFab&       rhs,
             {
                 for (FabSetIterator fsi(bndry_mask[face()]); fsi.isValid(false); ++fsi)
                 {
-                    Box bx = fsi().box() & domlo;
-                    if (bx.ok()) 
-                        fsi().mult(2.0,bx,0,1);
-                    bx = fsi().box() & domhi;
-                    if (bx.ok()) 
-                        fsi().mult(2.0,bx,0,1);
+                    if (domlo.intersects(fsi().box()))
+                        fsi().mult(2.0,fsi().box() & domlo,0,1);
+                    if (domhi.intersects(fsi().box()))
+                        fsi().mult(2.0,fsi().box() & domhi,0,1);
                 }
             }
         }
@@ -412,10 +411,9 @@ SyncRegister::InitRHS (MultiFab&       rhs,
         {
             for (int j = 0; j < grids.length(); j++)
             {
-                Box intersect = mfi().box() & bndry_mask[face()].fabbox(j);
-
-                if (intersect.ok())
+                if (mfi().box().intersects(bndry_mask[face()].fabbox(j)))
                 {
+                    Box intersect = mfi().box() & bndry_mask[face()].fabbox(j);
                     fillBoxIdList.push_back(fscd.AddBox(faid,
                                                         intersect,
                                                         0,
@@ -435,14 +433,13 @@ SyncRegister::InitRHS (MultiFab&       rhs,
         {
             for (int j = 0; j < grids.length(); j++)
             {
-                Box intersect = mfi().box() & bndry_mask[face()].fabbox(j);
-
-                if (intersect.ok())
+                if (mfi().box().intersects(bndry_mask[face()].fabbox(j)))
                 {
                     assert(!(fillBoxIdIter == fillBoxIdList.end()));
-                    tmpfab.resize(intersect, mfi().nComp());
-                    fscd.FillFab(faid, *fillBoxIdIter++, tmpfab, intersect);
-                    mfi().mult(tmpfab,intersect,intersect,0,0,mfi().nComp());
+                    const FillBoxId& fbID = *fillBoxIdIter++;
+                    tmpfab.resize(fbID.box(), mfi().nComp());
+                    fscd.FillFab(faid, fbID, tmpfab, fbID.box());
+                    mfi().mult(tmpfab,fbID.box(),fbID.box(),0,0,mfi().nComp());
                 }
             }
         }
@@ -557,10 +554,9 @@ SyncRegister::CrseDVInit (const MultiFab& U,
 
         for (int fine = 0; fine < grids.length(); fine++)
         {
-            Box subbox = mfi.validbox() & grids[fine];
-
-            if (subbox.ok())
+            if (grids[fine].intersects(mfi.validbox()))
             {
+                Box subbox = mfi.validbox() & grids[fine];
                 Nullify(grids,mfi(),mfi.validbox(),subbox,bc,BL_SPACEDIM,fine);
             }
             //
@@ -584,8 +580,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
 
                     if (fine_shifted.ok())
                     {
-                        Nullify(grids,mfi(),mfi.validbox(),fine_shifted,
-                                bc,BL_SPACEDIM,fine);
+                        Nullify(grids,mfi(),mfi.validbox(),fine_shifted,bc,BL_SPACEDIM,fine);
                     }
                 }
             }
@@ -853,10 +848,9 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
 
         for (int fine = 0; fine < grids.length(); fine++)
         {
-            Box subbox = dsdtfab.box() & grids[fine];
-
-            if (subbox.ok())
+            if (grids[fine].intersects(dsdtfab.box()))
             {
+                Box subbox = dsdtfab.box() & grids[fine];
                 Nullify(grids,dsdtfab,mfi.validbox(),subbox,bc,1,fine);
             }
         }
@@ -1033,9 +1027,10 @@ NullOverlap (const BoxArray& Pgrids,
 
     for (int i = 0; i < Pgrids.length(); i++)
     {
-        Box overlap_lo = reglo & Pgrids[i];
-        if (overlap_lo.ok())
-            ffablo.setVal(0,overlap_lo,set_comp,n_comp);
+        if (reglo.intersects(Pgrids[i]))
+        {
+            ffablo.setVal(0,reglo & Pgrids[i],set_comp,n_comp);
+        }
 
         fine_geom.periodicShift(reglo, Pgrids[i], pshifts);
 
@@ -1047,9 +1042,10 @@ NullOverlap (const BoxArray& Pgrids,
             ffablo.setVal(0,overlap_lo_per,set_comp,n_comp);
         }
 
-        Box overlap_hi = reghi & Pgrids[i];
-        if (overlap_hi.ok())
-            ffabhi.setVal(0,overlap_hi,set_comp,n_comp);
+        if (reghi.intersects(Pgrids[i]))
+        {
+            ffabhi.setVal(0,reghi & Pgrids[i],set_comp,n_comp);
+        }
 
         fine_geom.periodicShift(reghi, Pgrids[i], pshifts);
 
@@ -1192,10 +1188,8 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
 
         for (int fine = 0; fine < grids.length(); fine++)
         {
-            Box subbox = grids[fine] & mfi.validbox();
-
-            if (subbox.ok())
-                mfi().setVal(0,subbox,0,1);
+            if (grids[fine].intersects(mfi.validbox()))
+                mfi().setVal(0,grids[fine] & mfi.validbox(),0,1);
         }
     }
     //
