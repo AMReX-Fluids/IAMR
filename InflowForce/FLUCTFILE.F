@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.6 2003-10-14 19:52:39 lijewski Exp $
+c $Id: FLUCTFILE.F,v 1.7 2003-10-17 20:22:36 marc Exp $
 c
 
 #undef  BL_LANG_CC
@@ -106,7 +106,7 @@ c     *************************************
 c
       ierr = 0
       READ(iunit,iostat=ierr) dimFile, nCmpFile
-      if (ierr.ne.0) nCmpFile = 3
+      if (ierr.ne.0) nCmpFile = BL_SPACEDIM
       if (nCmpFile.ne.nCompInflow) then
          call bl_abort('RD_SCL_FLCTHD: nCmpFile != nCompInflow')
       endif
