@@ -1,5 +1,5 @@
 //
-// $Id: LinOp.cpp,v 1.3 1997-09-23 19:25:44 lijewski Exp $
+// $Id: LinOp.cpp,v 1.4 1997-09-24 19:47:06 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -41,7 +41,7 @@ LinOp::initialize()
     pp.query("v", def_verbose);
     if (def_verbose) {
       if(ParallelDescriptor::IOProcessor()) {
-	cout << "def_harmavg = " << def_harmavg << endl;
+	cout << "def_harmavg = " << def_harmavg << '\n';
       }
     }
     initialized = true;

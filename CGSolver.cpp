@@ -6,6 +6,8 @@
 #include <CG_F.H>
 #include <CGSolver.H>
 
+const char NL = '\n';
+
 int CGSolver::initialized = 0;
 int CGSolver::def_maxiter = 40;
 int CGSolver::def_verbose = 0;
@@ -18,7 +20,7 @@ CGSolver::initialize()
     pp.query("verbose", def_verbose);
     pp.query("v", def_verbose);
     if(def_verbose) {
-	cout << "def_maxiter=" << def_maxiter << endl;
+	cout << "def_maxiter=" << def_maxiter << NL;
     }
     initialized = 1;
 }
@@ -144,7 +146,7 @@ CGSolver::solve(MultiFab &sol, const MultiFab &rhs,
     if(  verbose > 0 ) {
       if(ParallelDescriptor::IOProcessor()) {
 	for (int k=0; k<lev; k++) cout << "   ";
-	cout << "CGsolver: Initial error (error0) =  " << rnorm0 << endl;
+	cout << "CGsolver: Initial error (error0) =  " << rnorm0 << NL;
       }
     }
 
@@ -241,7 +243,7 @@ CGSolver::solve(MultiFab &sol, const MultiFab &rhs,
 	  if(ParallelDescriptor::IOProcessor()) {
 	    for (int k=0; k<lev; k++) cout << "   ";
 	    cout << "CGSolver: Iteration " << nit << " error/error0 "
-		 << rnorm/rnorm0 << endl;
+		 << rnorm/rnorm0 << NL;
 	  }
 	}
     }

@@ -1,5 +1,5 @@
 //
-// $Id: Mask.cpp,v 1.4 1997-09-24 17:00:48 lijewski Exp $
+// $Id: Mask.cpp,v 1.5 1997-09-24 19:47:07 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -33,7 +33,7 @@ ostream& operator << (ostream& os, const Mask& m)
 	for( int k=0; k<ncomp; k++ ) os << "  " << m(p,k);
         os << NL;
     }
-    os << ")" << endl;
+    os << ")\n";
     assert(os.good());
     return os;
 }

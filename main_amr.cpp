@@ -95,9 +95,9 @@ main(int argc, char *argv[])
     // -----   final business
     // -------------------------------------------------
 
-      // cout << "Local timing stats (since restart)" << endl;
+      // cout << "Local timing stats (since restart)" << '\n';
       // stats.report(cout);
-      // cout << "Global timing stats (entire run)" << endl;
+      // cout << "Global timing stats (entire run)" << '\n';
       // global_stats += stats;
       // global_stats.report(cout);
       RunStats::report(cout);

@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.3 1997-09-23 19:25:47 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.4 1997-09-24 19:47:07 lijewski Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -15,6 +15,8 @@
 #include <CGSolver.H>
 #include <MG_F.H>
 #include <MultiGrid.H>
+
+const char NL = '\n';
 
 bool MultiGrid::initialized = false;
 int MultiGrid::def_nu_0 = 1;
@@ -50,16 +52,16 @@ MultiGrid::initialize()
     pp.query("numLevelsMAX", def_numLevelsMAX);
     if(def_verbose) {
       if(ParallelDescriptor::IOProcessor()) {
-	cout << "def_nu_0 = " << def_nu_0 << endl;
-	cout << "def_nu_1 = " << def_nu_1 << endl;
-	cout << "def_nu_2 = " << def_nu_2 << endl;
-	cout << "def_nu_f = " << def_nu_f << endl;
-	cout << "def_maxiter = " << def_maxiter << endl;
-	cout << "def_usecg = "  << def_usecg << endl;
-	cout << "def_rtol_b = " << def_rtol_b << endl;
-	cout << "def_atol_b = " << def_atol_b << endl;
-	cout << "def_nu_b = "   << def_nu_b << endl;
-	cout << "def_numLevelsMAX = "   << def_numLevelsMAX << endl;
+	cout << "def_nu_0 = " << def_nu_0 << NL;
+	cout << "def_nu_1 = " << def_nu_1 << NL;
+	cout << "def_nu_2 = " << def_nu_2 << NL;
+	cout << "def_nu_f = " << def_nu_f << NL;
+	cout << "def_maxiter = " << def_maxiter << NL;
+	cout << "def_usecg = "  << def_usecg << NL;
+	cout << "def_rtol_b = " << def_rtol_b << NL;
+	cout << "def_atol_b = " << def_atol_b << NL;
+	cout << "def_nu_b = "   << def_nu_b << NL;
+	cout << "def_numLevelsMAX = "   << def_numLevelsMAX << NL;
       }
     }
 }
@@ -184,14 +186,14 @@ MultiGrid::solve_(MultiFab &_sol, REAL eps_rel, REAL eps_abs,
     if( verbose ) {
       if(ParallelDescriptor::IOProcessor()) {
 	for (int k=0; k<level; k++) cout << "   ";
-        cout << "MultiGrid: Initial error (error0) = " << error0 << endl;
+        cout << "MultiGrid: Initial error (error0) = " << error0 << NL;
       }
     }
 
     if( eps_rel < 1.0e-16 && eps_rel > 0.0) {
       if(ParallelDescriptor::IOProcessor()) {
         cerr << "MultiGrid: Tolerance " << eps_rel
-             << " < 1e-16 is probably set too low" << endl;
+             << " < 1e-16 is probably set too low" << NL;
       }
     }
     int nit;
@@ -215,7 +217,7 @@ MultiGrid::solve_(MultiFab &_sol, REAL eps_rel, REAL eps_abs,
 	    for (int k=0; k<level; k++) cout << "   ";
 	    if(ParallelDescriptor::IOProcessor()) {
 	      cout << "MultiGrid: Iteration " << nit << " error/error0 "
-		   << error/error0 << endl;
+		   << error/error0 << NL;
 	    }
 	}
     }

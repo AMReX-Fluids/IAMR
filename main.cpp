@@ -63,7 +63,7 @@ main(int argc, char *argv[])
 #ifndef BL_USE_BSP
     if(nprocs > 1) {
       cerr << "Error in main:  multiple processors specified with "
-	   << "code compiled without a parallel library." << endl;
+	   << "code compiled without a parallel library.\n";
       exit(-1);
     }
 #endif
@@ -109,9 +109,9 @@ main(int argc, char *argv[])
     // -----   final business
     // -------------------------------------------------
 
-      // cout << "Local timing stats (since restart)" << endl;
+      // cout << "Local timing stats (since restart)" << '\n';
       // stats.report(cout);
-      // cout << "Global timing stats (entire run)" << endl;
+      // cout << "Global timing stats (entire run)" << '\n';
       // global_stats += stats;
       // global_stats.report(cout);
       RunStats::report(cout);

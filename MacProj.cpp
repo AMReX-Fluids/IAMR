@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.4 1997-09-23 19:25:46 lijewski Exp $
+// $Id: MacProj.cpp,v 1.5 1997-09-24 19:47:06 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -14,6 +14,8 @@
 #include <MacOpMacDrivers.H>
 #include <NavierStokes.H>
 #include <MACPROJ_F.H>
+
+const char NL = '\n';
 
 #ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type};
@@ -71,7 +73,7 @@ MacProj::MacProj(Amr * _parent, int _finest_level,
   read_params();
 
   if (verbose) {
-    cout << "Creating mac_projector" << endl;
+    cout << "Creating mac_projector\n";
   }
 
   finest_level_allocated = finest_level;
@@ -111,7 +113,7 @@ void MacProj::install_level(int level, AmrLevel * level_data,
 			    PArray<REAL> * _radius )
 {
   if (verbose) {
-    cout << "Installing MacProj level " << level << endl;
+    cout << "Installing MacProj level " << level << NL;
   }
 
   if (parent->finestLevel() < finest_level) {
@@ -230,7 +232,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
 			  const MultiFab& divu, int have_divu)
 {
   if (verbose) {
-    cout << "... mac_project at level " << level << endl;
+    cout << "... mac_project at level " << level << NL;
   }
 
   const BoxArray& grids = LevelData[level].boxArray();
@@ -321,7 +323,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
     }
     if (verbose) 
       cout << "LEVEL " << level << " MACREG: CrseInit sum = " 
-	   << mr.SumReg(0) << endl;
+	   << mr.SumReg(0) << NL;
   }
 
   // increment in fine grid velocity to velocity registers
@@ -332,7 +334,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
     }
     if (verbose) {
       cout << "LEVEL " << level << " MACREG: FineAdd sum = " 
-	   << mac_reg[level].SumReg(0) << endl;
+	   << mac_reg[level].SumReg(0) << NL;
     }
   }
 
@@ -351,7 +353,7 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
 			     REAL dt, MultiFab * rho_half, IntVect& fine_ratio)
 {
   if (verbose) {
-    cout << "... mac_sync_solve at level " << level << endl;
+    cout << "... mac_sync_solve at level " << level << NL;
   }
 
   assert(level < finest_level);
@@ -414,14 +416,14 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
     ParallelDescriptor::ReduceRealSum(sum);
     ParallelDescriptor::ReduceLongSum(size);
     REAL fix = sum / size;
-    cout << "Average correction = " << fix << endl;
+    cout << "Average correction = " << fix << NL;
     Rhs.plus( -fix, 0 );
     sum = 0;
     for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
       sum += Rhsmfi().sum( 0, 1 );
     }
     ParallelDescriptor::ReduceRealSum(sum);
-    cout << "...new sum = " << sum << endl;
+    cout << "...new sum = " << sum << NL;
   }
 #endif
 
@@ -859,9 +861,9 @@ void MacProj::check_div_cond(int level, MultiFab U_edge[]) const
     if (verbose) {
       REAL g_norm = dmac.norm(0);
       cout << "Max norm of div(U_edge) for grid  " << U_edge0mfi.index() << " = "
-	   << g_norm << endl;
+	   << g_norm << NL;
       sum += dmac.sum(0);
-      cout << "SUM of DIV(U_edge) = " << sum << endl;
+      cout << "SUM of DIV(U_edge) = " << sum << NL;
     }
   }
 }

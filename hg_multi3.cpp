@@ -34,6 +34,7 @@
 #  define   FORT_HGIP       HGIP
 #endif
 
+const char NL = '\n';
 const char SP = ' ';
 
 extern "C" 
@@ -488,7 +489,7 @@ holy_grail_amr_multigrid::build_line_order(int lsd)
       {
 	cout << SP << j();
       }
-      cout << endl;
+      cout << NL;
     }
 #endif
   }
@@ -595,7 +596,7 @@ holy_grail_amr_multigrid::cgsolve(int mglev)
   {
     i++;
     if (i > 250 && pcode >= 2)
-      cout << "Conjugate-gradient iteration failed to converge" << endl;
+      cout << "Conjugate-gradient iteration failed to converge\n";
     Real rho_old = rho;
     // safe to set the clear flag to 0 here---bogus values make it
     // into r but are cleared from z by the mask in c
@@ -619,7 +620,7 @@ holy_grail_amr_multigrid::cgsolve(int mglev)
 		 ipmask[igrid].dataPtr(), dimlist(reg), alpha, rho);
     }
     if (pcode >= 3)
-      cout << i << SP << rho << endl;
+      cout << i << SP << rho << NL;
     if (rho <= tol || i > 250)
       break;
     alpha = rho / rho_old;
@@ -649,7 +650,7 @@ holy_grail_amr_multigrid::cgsolve(int mglev)
   {
     i++;
     if (i > 250 && pcode >= 2)
-      cout << "Conjugate-gradient iteration failed to converge" << endl;
+      cout << "Conjugate-gradient iteration failed to converge\n";
     Real rho_old = rho;
     // safe to set the clear flag to 0 here---bogus values make it
     // into r but are cleared from z by the mask in c
@@ -670,7 +671,7 @@ holy_grail_amr_multigrid::cgsolve(int mglev)
     //z.assign(r).mult(c);
     rho = inner_product(z, r);
     if (pcode >= 3)
-      cout << i << SP << rho << endl;
+      cout << i << SP << rho << NL;
     if (rho <= tol || i > 250)
       break;
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
@@ -683,5 +684,5 @@ holy_grail_amr_multigrid::cgsolve(int mglev)
 #endif
 
   if (pcode >= 2)
-    cout << i << " iterations required for conjugate-gradient" << endl;
+    cout << i << " iterations required for conjugate-gradient\n";
 }

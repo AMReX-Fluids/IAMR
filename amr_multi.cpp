@@ -1,6 +1,7 @@
 
 #include <amr_multi.H>
 
+const char NL = '\n';
 const char SP = ' ';
 
 int amr_multigrid::c_sys = 0; // default is Cartesian, 1 is RZ
@@ -37,13 +38,13 @@ amr_multigrid::mesh_write(Array<BoxArray>& m,
 			       Array<Box>& d, ostream& os)
 {
   int ilev, igrid;
-  os << m.length() << endl;
+  os << m.length() << NL;
   for (ilev = 0; ilev < m.length(); ilev++) 
   {
-    os << "    " << d[ilev] << SP << m[ilev].length() << endl;
+    os << "    " << d[ilev] << SP << m[ilev].length() << NL;
     for (igrid = 0; igrid < m[ilev].length(); igrid++) 
     {
-      os << '\t' << m[ilev][igrid] << endl;;
+      os << '\t' << m[ilev][igrid] << NL;;
     }
   }
 }
@@ -57,13 +58,13 @@ amr_multigrid::mesh_write(Array<BoxArray>& m, Array<IntVect>& r,
   {
     fd.coarsen(r[ilev]);
   }
-  os << m.length() << endl;
+  os << m.length() << NL;
   for (ilev = 0; ilev < m.length(); ilev++) 
   {
-    os << "    " << fd << SP << m[ilev].length() << endl;
+    os << "    " << fd << SP << m[ilev].length() << NL;
     for (igrid = 0; igrid < m[ilev].length(); igrid++) 
     {
-      os << '\t' << m[ilev][igrid] << endl;;
+      os << '\t' << m[ilev][igrid] << NL;;
     }
     if (ilev <= m.length() - 2) 
     {
@@ -362,7 +363,7 @@ amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2,
     Real lev_norm = mfnorm(source[lev]);
     norm = (lev_norm > norm) ? lev_norm : norm;
     //if (pcode >= 2)
-    //  cout << "Source norm is " << lev_norm << " at level " << lev << endl;
+    //  cout << "Source norm is " << lev_norm << " at level " << lev << NL;
   }
   if (coarse_source.ready()) 
   {
@@ -376,7 +377,7 @@ amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2,
     }
   }
   if (pcode >= 1)
-    cout << "Source norm is " << norm << endl;
+    cout << "Source norm is " << norm << NL;
 
   Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol);
   int it = 1;
@@ -393,7 +394,7 @@ amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2,
       BoxLib::Error("amr_multigrid::solve---multigrid iteration failed");
   }
   if (pcode >= 1)
-    cout << it << " cycles required" << endl;
+    cout << it << " cycles required" << NL;
 
   //This final restriction not needed unless you want coarse and fine
   //potentials to match up for use by the calling program.  Coarse
@@ -419,7 +420,7 @@ amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
   Real res_norm = ml_residual(mglev, lev);
 
   if (pcode >= 2)
-    cout << "Residual at level " << lev << " is " << res_norm << endl;
+    cout << "Residual at level " << lev << " is " << res_norm << NL;
 
   res_norm = (res_norm_fine > res_norm) ? res_norm_fine : res_norm;
 
@@ -512,7 +513,7 @@ amr_multigrid::ml_residual(int mglev, int lev)
   //fit(mg_domain[mglev]);
   //contour(resid[mglev], 3, 1);
   //contour(resid[mglev], unitvect, 11, 1);
-  //cout << mglev << SP << mfnorm(resid[mglev]) << endl;
+  //cout << mglev << SP << mfnorm(resid[mglev]) << NL;
   //cin.get();
   return mfnorm(resid[mglev]);
 }
@@ -536,7 +537,7 @@ amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
       wtmp.setVal(0.0);
       level_residual(wtmp, resid[mglev], ctmp, corr_bcache[mglev], mglev, 1);
       cout << "  Residual at multigrid level " << mglev << " is "
-        << mfnorm(wtmp) << endl;
+        << mfnorm(wtmp) << NL;
     }
     else 
     {

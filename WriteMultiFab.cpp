@@ -120,7 +120,7 @@ WriteMultiFab(char *filename, const MultiFab &multifab,
 
       if(ParallelDescriptor::IOProcessor()) {
 
-        os << fab.box() << endl;    // For each grid, dump box
+        os << fab.box() << NL;    // For each grid, dump box
 	os << "1\n";                    //                level
 	os << "0\n";                    //                steps
 	os << "0.0\n";                  //                time

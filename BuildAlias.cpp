@@ -1,8 +1,10 @@
 //
-// $Id: BuildAlias.cpp,v 1.3 1997-09-24 17:45:44 lijewski Exp $
+// $Id: BuildAlias.cpp,v 1.4 1997-09-24 19:47:03 lijewski Exp $
 //
 
 #include <BuildAlias.H>
+
+const char NL = '\n';
 
 static void error(char* message)
 {
@@ -20,7 +22,7 @@ static int compatible(const level_mesh& mesh, const BoxArray& bs)
       Box tmp = bs[i];
       if (tmp.convert(IntVect::TheCellVector()) != mesh[i]) {
 	  cerr << "compatable: NOT: tmp = " << tmp
-	       << " mesh[i] = " << mesh[i] << endl;
+	       << " mesh[i] = " << mesh[i] << NL;
 	  retval = 0;
       }
       

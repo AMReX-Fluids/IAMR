@@ -415,16 +415,15 @@ return;
    List<TagBoxMergeDesc> tbmdList;
    List<FabComTag> tbmdClearList;
 
-
    // dont use FabArrayIterator here
    for(int idest = 0; idest < fabparray.length(); ++idest) {
       bool destLocal = (distributionMap[idest] == myproc);
       for(int isrc = idest + 1; isrc < fabparray.length(); ++isrc) {
 	 if(boxarray[idest] != fabparray[idest].box()) {
-	   cerr << "boxarray[idest] != fabparray[idest].box()" << endl;
-	   cerr << "boxarray[" << idest << "] = " << boxarray[idest] << endl;
-	   cerr << "fabparray[" << idest << "].box() = " << fabparray[idest].box() << endl;
-	   cerr << endl;
+	   cerr << "boxarray[idest] != fabparray[idest].box()\n";
+	   cerr << "boxarray[" << idest << "] = " << boxarray[idest] << '\n';
+	   cerr << "fabparray[" << idest << "].box() = "
+                << fabparray[idest].box() << "\n\n";
 	 }
 	 //assert(boxarray[idest] == fabparray[idest].box());
          Box ovlp(boxarray[idest]);

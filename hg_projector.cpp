@@ -1,4 +1,4 @@
-// $Id: hg_projector.cpp,v 1.5 1997-09-24 17:58:18 car Exp $
+// $Id: hg_projector.cpp,v 1.6 1997-09-24 19:47:16 lijewski Exp $
 #include <hg_projector.H>
 
 #ifdef BL_FORT_USE_UNDERSCORE
@@ -267,7 +267,7 @@ holy_grail_amr_projector::sparse_node_source_adjustment(PArray<MultiFab>&
     adjust /= mg_domain[ml_index[lev_min]].numPts();
 
     if (pcode >= 2)
-      cout << "Sparse-source solvability adjustment: " << adjust << endl;
+      cout << "Sparse-source solvability adjustment: " << adjust << '\n';
 
     for (lev = lev_min; lev <= lev_max; lev++) 
     {
@@ -349,7 +349,7 @@ holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
     adjust /= mg_domain[ml_index[lev_min]].numPts();
 
     if (pcode >= 2)
-      cout << "Cell-source solvability adjustment: " << adjust << endl;
+      cout << "Cell-source solvability adjustment: " << adjust << '\n';
 
     for (lev = lev_min; lev <= lev_max; lev++) 
     {
@@ -454,7 +454,7 @@ holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
     Real adjustment = inner_product(source[lev_min], work[mglev0]) /
       mg_domain[ml_index[lev_min]].volume();
     if (pcode >= 2)
-      cout << "Solvability adjustment is " << adjustment << endl;
+      cout << "Solvability adjustment is " << adjustment << '\n';
     for (lev = lev_min; lev <= lev_max; lev++) 
     {
       source[lev].plus(-adjustment, 0);

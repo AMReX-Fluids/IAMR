@@ -11,6 +11,8 @@
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
 
+const char NL = '\n';
+
 #define DEF_CLIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();          \
 const int* fabhi = (fab).hiVect();          \
@@ -263,7 +265,7 @@ void FluxRegister::Reflux(MultiFab &S, const MultiFab &volume, Real scale,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("FluxRegister::Reflux(MultiFab &S, const MultiFab &volume, ...) not implemented in parallel");
 } else {
-  cerr << "FluxRegister::Reflux(MultiFab &S, const MultiFab &volume, ...) not implemented in parallel" << endl;
+  cerr << "FluxRegister::Reflux(MultiFab &S, const MultiFab &volume, ...) not implemented in parallel" << NL;
 }
     int nreg = grids.length();
     const BoxArray& grd_boxes = S.boxArray();
@@ -334,8 +336,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 			s_box.shift(1,iv[1]);,
 			s_box.shift(2,iv[2]); )
 		if( !bx.intersects(s_box) ){
-		  cerr << "FluxRegister::Reflux logic error"<<endl;
-		  exit(1);
+		  BoxLib::Error("FluxRegister::Reflux logic error");
 		}
 
 		for (OrientationIter fi; fi; ++fi) {
@@ -432,8 +433,7 @@ void FluxRegister::Reflux(MultiFab &S, Real scale,
 			s_box.shift(1,iv[1]);,
 			s_box.shift(2,iv[2]); )
 		if( !bx.intersects(s_box) ){
-		  cerr << "FluxRegister::Reflux logic error"<<endl;
-		  exit(1);
+		  BoxLib::Error("FluxRegister::Reflux logic error");
 		}
 
 		for (OrientationIter fi; fi; ++fi) {
@@ -669,7 +669,7 @@ FluxRegister::CrseInit(const MultiFab& mflx, int dir,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("CrseInit(multifab, ...) not implemented in parallel.");
 } else {
-  cerr << "CrseInit(multifab, ...) not implemented in parallel." << endl;
+  cerr << "CrseInit(multifab, ...) not implemented in parallel.\n";
 }
     const BoxArray& bxa = mflx.boxArray();
     for(ConstMultiFabIterator mfi(mflx); mfi.isValid(); ++mfi) {
@@ -687,7 +687,7 @@ FluxRegister::CrseInit(const MultiFab& mflx, const MultiFab& area,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("CrseInit(multifab, multifab, ...) not implemented in parallel.");
 } else {
-  cerr << "CrseInit(multifab, multifab, ...) not implemented in parallel." << endl;
+  cerr << "CrseInit(multifab, multifab, ...) not implemented in parallel.\n";
 }
     const BoxArray& bxa = mflx.boxArray();
     for(ConstMultiFabIterator mfi(mflx); mfi.isValid(); ++mfi) {
@@ -861,12 +861,12 @@ void FluxRegister::CrseInitFinish() {
         if(dataWaitingSize != shouldReceiveBytes) {
             cerr << "Error in FluxRegister::CrseInitFinish():  "
                  << "dataWaitingSize != shouldReceiveBytes:  = "
-                 << dataWaitingSize << " != " << shouldReceiveBytes << endl;
+                 << dataWaitingSize << " != " << shouldReceiveBytes << NL;
             ParallelDescriptor::Abort("Bad received nbytes");
         }
         if( ! fabComTag.box.ok()) {
             cerr << "Error in FluxRegister::CrseInitFinish():  "
-                 << "bad fabComTag.box" << endl;
+                 << "bad fabComTag.box\n";
             ParallelDescriptor::Abort("Bad received box");
         }
 
@@ -894,7 +894,7 @@ FluxRegister::CrseInit(const FARRAYBOX& flux, const FARRAYBOX& area,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("CrseInit(fab, fab, ...) not implemented in parallel.");
 } else {
-  cerr << "CrseInit(fab, fab, ...) not implemented in parallel." << endl;
+  cerr << "CrseInit(fab, fab, ...) not implemented in parallel.\n";
 }
     int nvf = flux.nComp();
     assert(srccomp >= 0 && srccomp+numcomp <= nvf);
@@ -1064,7 +1064,7 @@ static void printFAB(ostream& os, const FARRAYBOX& f, int comp)
     const BOX& bx = f.box();
     BOX subbox(bx);
     os << "[box = " << subbox << ", comp = "
-         << comp << "]" << endl;
+         << comp << "]" << NL;
     const int* len = bx.length();
     const int* lo = bx.loVect();
     const int* s_len = subbox.length();
@@ -1082,7 +1082,7 @@ static void printFAB(ostream& os, const FARRAYBOX& f, int comp)
             sprintf(str,"%18.12f ",d_x[i]);
             os << str;
         }
-        os << endl;
+        os << NL;
     }
 }
 */
@@ -1097,10 +1097,10 @@ FluxRegister::print(ostream &os)
 /*
     int ngrd = grids.length();
     os << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
-    os << "FluxRegister with coarse level = " << crseLevel() << endl;
+    os << "FluxRegister with coarse level = " << crseLevel() << NL;
     int k;
     for (k = 0; k < ngrd; k++) {
-        os << "  Registers surrounding coarsened box " << grids[k] << endl;
+        os << "  Registers surrounding coarsened box " << grids[k] << NL;
         int comp;
         for (comp = 0; comp < ncomp; comp++) {
             for (OrientationIter face; face; ++face) {
@@ -1109,7 +1109,7 @@ FluxRegister::print(ostream &os)
             }
         }
     }
-    os << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+    os << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << NL;
 */
 }
     

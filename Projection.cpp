@@ -17,6 +17,8 @@
 #include <NAVIERSTOKES_F.H>
 #include <hg_projector.H>
 
+const char NL = '\n';
+
 #ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type};
 #if (BL_SPACEDIM == 2)
@@ -83,7 +85,7 @@ tempIntList.clear();
 
   if (verbose) 
   {
-    cout << "Creating projector" << endl;
+    cout << "Creating projector\n";
   }
 
   if (CoordSys::IsRZ() == 1) amr_multigrid::SetRZ();
@@ -99,7 +101,7 @@ Projection::~Projection()
 {
   if (verbose) 
   {
-    cout << "Deleting projector" << endl;
+    cout << "Deleting projector\n";
   }
   delete sync_proj;
   delete projector_bndry;
@@ -176,7 +178,7 @@ Projection::install_level(int level, AmrLevel * level_data,
 {
   if (verbose) 
   {
-    cout << "Installing projector level " << level << endl;
+    cout << "Installing projector level " << level << NL;
   }
 
   finest_level = parent->finestLevel();
@@ -226,7 +228,7 @@ void Projection::bldSyncProject()
 
   if (verbose) 
   {
-    cout << "bldSyncProject:: amr_mesh = " << endl;
+    cout << "bldSyncProject:: amr_mesh = \n";
     amr_multigrid::mesh_write(amesh, gen_ratio, fdomain, cout);
   }
 
@@ -287,7 +289,7 @@ Projection::level_project(int level,
 {
   if (verbose) 
   {
-    cout << "... level projector at level " << level << endl;
+    cout << "... level projector at level " << level << NL;
   }
 
   //----------------- manipulate state + pressure data ---------------------
@@ -338,12 +340,12 @@ Projection::level_project(int level,
       // interpolate values for P_new from coarse grid
       if(ParallelDescriptor::NProcs() > 1) 
       {
-	cerr << "Projection::level_project not implemented in parallel." << endl;
+	cerr << "Projection::level_project not implemented in parallel.\n";
 	ParallelDescriptor::Abort("Exiting.");
       } 
       else 
       {
-	cerr << "Projection::level_project not implemented in parallel." << endl;
+	cerr << "Projection::level_project not implemented in parallel.\n";
       }
 
       LevelData[level].FillCoarsePatch(P_newmfi(),0,cur_pres_time,Press_Type,0,1);
@@ -480,7 +482,7 @@ Projection::level_project(int level,
       if(dsdtmin!=dsdtmax || dsdtmin!= 0.0) 
       {
 	cout << "Projection::level_project: WARNING not yet " <<
-	  "implemented for 3-d, non-zero divu" << endl;
+	  "implemented for 3-d, non-zero divu\n";
 	ParallelDescriptor::Abort("Exiting.");
       }
 #endif
@@ -559,13 +561,13 @@ void Projection::harmonic_project(int level, REAL dt, REAL cur_pres_time,
 {
   if (level == 0) 
   {
-    cout << "NOT SUPPOSED TO BE IN HARMONIC AT LEVEL 0 " << endl;
+    cout << "NOT SUPPOSED TO BE IN HARMONIC AT LEVEL 0 \n";
     ParallelDescriptor::Abort("Exiting.");
   }
 
   if (verbose) 
   {
-    cout << "... harmonic projector" << endl;
+    cout << "... harmonic projector\n";
   }
 
   //----------------- manipulate state + pressure data ---------------------
@@ -603,7 +605,7 @@ void Projection::harmonic_project(int level, REAL dt, REAL cur_pres_time,
     } 
     else 
     {
-      cerr << "Projection::harmonic_project not implemented in parallel" << endl;
+      cerr << "Projection::harmonic_project not implemented in parallel\n";
     }
     LevelData[level].FillCoarsePatch(temp_phimfi(),0,
 				  prev_pres_time,Press_Type,0,1);
@@ -699,7 +701,7 @@ void Projection::syncProject(int c_lev, MultiFab & pres, MultiFab & vel,
   if (verbose) 
   {
     cout << "SyncProject: level = " << c_lev
-	 << " correction to level " << finest_level << endl;
+	 << " correction to level " << finest_level << NL;
   }
 
   //----------------- manipulate state + pressure data ---------------------
@@ -837,8 +839,7 @@ void Projection::MLsyncProject(int c_lev,
   int lev;
   if (verbose) 
   {
-    cout << "SyncProject: levels = " << c_lev << ", "
-	 << c_lev+1 << endl;
+    cout << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << NL;
   }
     
   int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
@@ -1054,14 +1055,14 @@ void Projection::initialVelocityProject(int c_lev,
   if (verbose) 
   {
     cout << "initialVelocityProject: levels = " << c_lev << "  "
-	 << f_lev << endl;
+         << f_lev << NL;
     if (rho_wgt_vel_proj) 
     {
-      cout << "RHO WEIGHTED INITIAL VELOCITY PROJECTION" << endl;
+      cout << "RHO WEIGHTED INITIAL VELOCITY PROJECTION\n";
     } 
     else 
     {
-      cout << "CONSTANT DENSITY INITIAL VELOCITY PROJECTION" << endl;
+      cout << "CONSTANT DENSITY INITIAL VELOCITY PROJECTION\n";
     }
   }
 
@@ -1295,8 +1296,7 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], REAL dt,
   int f_lev = finest_level;
   if (verbose) 
   {
-    cout << "SyncProject: levels = " << c_lev << "  "
-	 << f_lev << endl;
+    cout << "SyncProject: levels = " << c_lev << "  " << f_lev << NL;
   }
 
   //----------------- manipulate state + pressure data ---------------------
@@ -1341,13 +1341,13 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], REAL dt,
       rhslev->setVal(0.0);
       if(ParallelDescriptor::NProcs() > 1) 
       {
-	cerr << "Projection::initialSyncProject not implemented in parallel." << endl;
-	cerr << "This loop contains a call to FillPatch (in getDivCond)." << endl;
+	cerr << "Projection::initialSyncProject not implemented in parallel." << NL;
+	cerr << "This loop contains a call to FillPatch (in getDivCond).\n";
 	ParallelDescriptor::Abort("Exiting.");
       } 
       else 
       {
-	cerr << "Projection::initialSyncProject not implemented in parallel." << endl;
+	cerr << "Projection::initialSyncProject not implemented in parallel." << NL;
       }
       for (int i=0;i<ngrids;i++) 
       {
@@ -1373,7 +1373,7 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], REAL dt,
     if(mindsdt!=maxdsdt || mindsdt!= 0.0) 
     {
       cout << "Projection::initialSyncProject: WARNING not yet " <<
-	"implemented for 3-d, non-zero divu" << endl;
+	"implemented for 3-d, non-zero divu\n";
       ParallelDescriptor::Abort("Exiting.");
     }
 #endif
@@ -1650,13 +1650,13 @@ void Projection::put_divu_in_node_rhs(MultiFab& rhs, Amr* parent, int level,
     getDivCond(level,*divu,1,time);
     if(ParallelDescriptor::NProcs() > 1) 
     {
-      cerr << "Projection::put_divu_in_node_rhs not implemented in parallel." << endl;
-      cerr << "Nested MultiFab loops." << endl;
+      cerr << "Projection::put_divu_in_node_rhs not implemented in parallel." << NL;
+      cerr << "Nested MultiFab loops.\n";
       ParallelDescriptor::Abort("Exiting.");
     } 
     else 
     {
-      cerr << "Projection::put_divu_in_node_rhs not implemented in parallel." << endl;
+      cerr << "Projection::put_divu_in_node_rhs not implemented in parallel." << NL;
     }
 
 #if (BL_SPACEDIM == 2)
@@ -1689,7 +1689,7 @@ void Projection::put_divu_in_node_rhs(MultiFab& rhs, Amr* parent, int level,
     if(divumin!=divumax || divumin!= 0.0) 
     {
       cout << "Projection::put_divu_in_node_rhs: not yet " <<
-	"implemented for 3-d, non-zero divu" << endl;
+	"implemented for 3-d, non-zero divu\n";
       ParallelDescriptor::Abort("Exiting.");
     }
     delete divu;
@@ -1711,13 +1711,13 @@ void Projection::put_divu_in_cc_rhs(MultiFab& rhs, Amr* parent, int level,
     FARRAYBOX divu(divubox,1);
     if(ParallelDescriptor::NProcs() > 1) 
     {
-      cerr << "Projection::put_divu_in_cc_rhs not implemented in parallel" << endl;
-      cerr << "Nested MultiFab loops." << endl;
+      cerr << "Projection::put_divu_in_cc_rhs not implemented in parallel" << NL;
+      cerr << "Nested MultiFab loops.\n";
       ParallelDescriptor::Abort("Exiting.");
     } 
     else 
     {
-      cerr << "Projection::put_divu_in_cc_rhs not implemented in parallel" << endl;
+      cerr << "Projection::put_divu_in_cc_rhs not implemented in parallel" << NL;
     }
     getDivCond(level,divu,1,time);
     rhs[i].copy(divu);
@@ -1727,7 +1727,7 @@ void Projection::put_divu_in_cc_rhs(MultiFab& rhs, Amr* parent, int level,
     if(divumin!=divumax || divumin!= 0.0) 
     {
       cout << "Projection::put_divu_in_cc_rhs: not yet " <<
-	"implemented for 3-d, non-zero divu" << endl;
+	"implemented for 3-d, non-zero divu\n";
       exit(0);
     }
 #endif
@@ -1790,13 +1790,13 @@ void Projection::EnforcePeriodicity( MultiFab &psi, int nvar,
             temp.shift(-iv);
             if(ParallelDescriptor::NProcs() > 1) 
 	    {
-              cerr << "Projection::EnforcePeriodicity not implemented in parallel." << endl;
-              cerr << "Nested MultiFab loops." << endl;
+              cerr << "Projection::EnforcePeriodicity not implemented in parallel." << NL;
+              cerr << "Nested MultiFab loops.\n";
               ParallelDescriptor::Abort("Exiting.");
             } 
 	    else 
 	    {
-              cerr << "Projection::EnforcePeriodicity not implemented in parallel." << endl;
+              cerr << "Projection::EnforcePeriodicity not implemented in parallel." << NL;
 	    }
             psi.copy(temp,0,0,nvar);
 
@@ -2257,7 +2257,7 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
   const int ngrids = P_grids.length();
   if(c_lev!=0) 
   {
-    cout << "initialVelocityProject: clev!=0--something wrong?" << endl;
+    cout << "initialVelocityProject: clev!=0--something wrong?\n";
     ParallelDescriptor::Abort("Exiting.");
   } 
   else if(c_lev==f_lev && ngrids==1) 
@@ -2455,7 +2455,7 @@ void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi,
   const int ngrids = P_grids.length();
   if(c_lev!=0) 
   {
-    cout << "initialSyncProject: clev!=0--something wrong?" << endl;
+    cout << "initialSyncProject: clev!=0--something wrong?\n";
     ParallelDescriptor::Abort("Exiting.");
   } 
   else 

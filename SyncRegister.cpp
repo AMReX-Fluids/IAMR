@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.9 1997-09-24 16:01:49 car Exp $
+// $Id: SyncRegister.cpp,v 1.10 1997-09-24 19:47:10 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,6 +22,8 @@
 #endif
 
 #include <SYNCREG_F.H>
+
+const char NL = '\n';
 
 static void printFAB(ostream& os, const FARRAYBOX& f);
 
@@ -173,7 +175,7 @@ SyncRegister::InitRHS(MultiFab& rhs, const Geometry& geom,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::InitRHS(...) not implemented in parallel.");
 } else {
-  cerr << "SyncRegister::InitRHS(...) not implemented in parallel." << endl;;
+  cerr << "SyncRegister::InitRHS(...) not implemented in parallel.\n";
 }
     rhs.setVal(0.0);
     const BoxArray& rhs_boxes = rhs.boxArray();
@@ -259,7 +261,7 @@ SyncRegister::CrseDVInit(const MultiFab& U,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CrseDVInit(...) not implemented in parallel.");
 } else {
-  cerr << "SyncRegister::CrseDVInit(...) not implemented in parallel." << endl;
+  cerr << "SyncRegister::CrseDVInit(...) not implemented in parallel.\n";
 }
       // first zero all registers
     setVal(0.0);
@@ -463,7 +465,7 @@ SyncRegister::FineDVAdd(const MultiFab& U,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::FineDVAdd(...) not implemented in parallel.");
 } else {
-  cerr << "SyncRegister::FineDVAdd(...) not implemented in parallel." << endl;
+  cerr << "SyncRegister::FineDVAdd(...) not implemented in parallel.\n";
 }
     const BoxArray& U_boxes = U.boxArray();
     int ngrds = U_boxes.length();
@@ -603,7 +605,7 @@ SyncRegister::CrseDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CrseDsdtAdd(...) not implemented in parallel.");
 } else {
-  cerr << "SyncRegister::CrseDsdtAdd(...) not implemented in parallel." << endl;
+  cerr << "SyncRegister::CrseDsdtAdd(...) not implemented in parallel.\n";
 }
     int k, dir, fine;
 
@@ -727,7 +729,7 @@ SyncRegister::FineDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::FineDsdtAdd(...) not implemented in parallel.");
 } else {
-  cerr << "SyncRegister::FineDsdtAdd(...) not implemented in parallel." << endl;
+  cerr << "SyncRegister::FineDsdtAdd(...) not implemented in parallel.\n";
 }
     const BoxArray& dsdt_boxes = dsdt.boxArray();
     int ngrds = dsdt_boxes.length();
@@ -921,7 +923,7 @@ SyncRegister::CompDVAdd(const MultiFab& U,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CompDVAdd(...) not implemented in parallel.");
 } else {
-  cerr << "SyncRegister::CompDVAdd(...) not implemented in parallel." << endl;
+  cerr << "SyncRegister::CompDVAdd(...) not implemented in parallel.\n";
 }
     const BoxArray& U_boxes = U.boxArray();
     int ngrds = U_boxes.length();
@@ -1093,7 +1095,7 @@ SyncRegister::CrseLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CrseLPhiAdd(...) not implemented in parallel.");
 } else {
-  cerr << "SyncRegister::CrseLPhiAdd(...) not implemented in parallel." << endl;
+  cerr << "SyncRegister::CrseLPhiAdd(...) not implemented in parallel.\n";
 }
     int nfine = grids.length();
     const BoxArray& Phi_boxes = Phi.boxArray();
@@ -1222,7 +1224,7 @@ SyncRegister::FineLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::FineLPhiAdd(...) not implemented in parallel.");
 } else {
-  cerr << "SyncRegister::FineLPhiAdd(...) not implemented in parallel." << endl;
+  cerr << "SyncRegister::FineLPhiAdd(...) not implemented in parallel.\n";
 }
     int k, dir, idir;
 
@@ -1355,7 +1357,7 @@ SyncRegister::CompLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CompLPhiAdd(...) not implemented in parallel.");
 } else {
-  cerr << "SyncRegister::CompLPhiAdd(...) not implemented in parallel." << endl;
+  cerr << "SyncRegister::CompLPhiAdd(...) not implemented in parallel.\n";
 }
     int k, dir, idir;
 
@@ -1524,14 +1526,14 @@ static void printFAB(ostream& os, const FARRAYBOX& f)
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::printFAB(...) not implemented in parallel.");
 } else {
-  cerr << "SyncRegister::printFAB(...) not implemented in parallel." << endl;
+  cerr << "SyncRegister::printFAB(...) not implemented in parallel.\n";
 }
 
     int comp = 0;
     const BOX& bx = f.box();
     BOX subbox(bx);
     os << "[box = " << subbox << ", comp = "
-         << comp << "]" << endl;
+         << comp << ']' << NL;
     const int* len = bx.length();
     const int* lo = bx.loVect();
     const int* s_len = subbox.length();
@@ -1547,7 +1549,7 @@ if(ParallelDescriptor::NProcs() > 1) {
             sprintf(str,"%18.12f ",d_x[i]);
             os << str;
         }
-        os << endl;
+        os << NL;
     }
 }
 
@@ -1557,17 +1559,17 @@ SyncRegister::print(ostream &os)
   if(ParallelDescriptor::NProcs() > 1) {
     ParallelDescriptor::Abort("SyncRegister::print(os) not implemented in parallel.");
   } else {
-    cerr << "SyncRegister::print(os) not implemented in parallel." << endl;
+    cerr << "SyncRegister::print(os) not implemented in parallel.\n";
   }
     int ngrd = grids.length();
     os << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
-    os << "SyncRegister with coarse level = " << crseLevel() << endl;
+    os << "SyncRegister with coarse level = " << crseLevel() << NL;
     for (int k = 0; k < ngrd; k++) {
-        os << "  Registers surrounding coarsened box " << grids[k] << endl;
+        os << "  Registers surrounding coarsened box " << grids[k] << NL;
         for (OrientationIter face; face; ++face) {
             printFAB(os,bndry[face()][k]);
         }
     }
-    os << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+    os << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
 }
 

@@ -2,6 +2,7 @@
 #include <interface.H>
 #include <boundary.H>
 
+const char NL = '\n';
 const char SP = ' ';
 
 const level_interface null_level_interface;
@@ -446,42 +447,42 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 #if (BL_SPACEDIM == 3)
   cout << nbx[2] << " faces, ";
 #endif
-  cout << nbx[1] << " edges, " << nbx[0] << " corners" << endl;
+  cout << nbx[1] << " edges, " << nbx[0] << " corners" << NL;
 
-  cout << "Exterior grids are:" << endl;
+  cout << "Exterior grids are:" << NL;
   for (igrid = 0; igrid < em.length(); igrid++) {
-    cout << em[igrid] << SP << grid_ref[igrid] << endl;
+    cout << em[igrid] << SP << grid_ref[igrid] << NL;
   }
-  cout << "Part-fine grids are:" << endl;
+  cout << "Part-fine grids are:" << NL;
   for (igrid = 0; igrid < im.length(); igrid++) {
-    cout << pf[igrid] << endl;
+    cout << pf[igrid] << NL;
   }
-  cout << "box    geo   flag   aux   grids" << endl;
-  cout << "Faces are:" << endl;
+  cout << "box    geo   flag   aux   grids" << NL;
+  cout << "Faces are:" << NL;
   for (iface = 0; iface < nbx[FACEDIM]; iface++) {
     cout << bx[FACEDIM][iface] << SP << ge[FACEDIM][iface] << SP
 	 << flg[FACEDIM][iface] << SP << ax[FACEDIM][iface];
     for (i = 0; i < N_FACE_GRIDS; i++)
       cout << SP << fgr[iface][i];
-    cout << endl;
+    cout << NL;
   }
 #if (BL_SPACEDIM == 3)
-  cout << "Edges are:" << endl;
+  cout << "Edges are:" << NL;
   for (iedge = 0; iedge < nbx[1]; iedge++) {
     cout << bx[1][iedge] << SP << ge[1][iedge] << SP
 	 << flg[1][iedge] << SP << ax[1][iedge];
     for (i = 0; i < N_EDGE_GRIDS; i++)
       cout << SP << egr[iedge][i];
-    cout << endl;
+    cout << NL;
   }
 #endif
-  cout << "Corners are:" << endl;
+  cout << "Corners are:" << NL;
   for (icor = 0; icor < nbx[0]; icor++) {
     cout << bx[0][icor] << SP << ge[0][icor] << SP
 	 << flg[0][icor] << SP << ax[0][icor];
     for (i = 0; i < N_CORNER_GRIDS; i++)
       cout << SP << cgr[icor][i];
-    cout << endl;
+    cout << NL;
   }
 */
 }

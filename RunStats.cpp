@@ -11,7 +11,6 @@ using std::ios;
 using std::setprecision;
 #endif
 
-const char NL = '\n';
 const char SP = ' ';
 
 List<RunStatsData> RunStats::ld;
@@ -226,7 +225,7 @@ RunStats::report(ostream &os)
 	    ++ldi;
 	}
 	os << "total CPU time          = " << tot_run_time << '\n';
-	os << "total Wall Clock time   = " << tot_run_wtime << endl;
+	os << "total Wall Clock time   = " << tot_run_wtime << '\n';
     }
 }
 
@@ -239,9 +238,9 @@ RunStats::dumpStats(ofstream &os)
     ParallelDescriptor::ReduceRealSum(rtime);
     ParallelDescriptor::ReduceRealMax(wtime);
     if (ParallelDescriptor::IOProcessor()) {
-	os << "(ListRunStats " << ld.length() << NL;
-	os << rtime + total_run_time << NL;
-	os << wtime + total_run_wtime << NL;
+	os << "(ListRunStats " << ld.length() << '\n';
+	os << rtime + total_run_time << '\n';
+	os << wtime + total_run_wtime << '\n';
 	ListIterator<RunStatsData> ldi(ld);
 	while(ldi) {
 	    os << ldi();

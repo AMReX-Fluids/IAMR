@@ -74,7 +74,7 @@ ParallelDescriptor::Abort("BndryData::operator<< not yet implemented in parallel
 	    os << mgb.masks[f][grd];
 	    os << mgb.bndry[f][grd];
 	}
-	os << "--------------------------------------------------" << endl;
+	os << "--------------------------------------------------\n";
     }
     return os;
 }

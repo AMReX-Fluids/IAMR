@@ -1,4 +1,4 @@
-// $Id: Diffusion.cpp,v 1.8 1997-09-23 23:10:28 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.9 1997-09-24 19:47:04 lijewski Exp $
 
 // comment out this line to use diffusion class outside
 // the context of NavierStokes and classes derived from it
@@ -31,6 +31,8 @@
 #include <MCCGSolver.H>
 #include <ViscBndry2D.H>
 #endif
+
+const char NL = '\n';
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -97,7 +99,7 @@ Diffusion::Diffusion(Amr* Parent, AmrLevel* Caller, Diffusion* Coarser,
     int n_diff = _is_diffusive.length();
     if (n_diff < NUM_STATE || n_visc < NUM_STATE) {
       cout << "Diffusion::Diffusion : is_diffusive and/or visc_coef arrays are " <<
-              " not long enough" << endl;
+              " not long enough\n";
       ParallelDescriptor::Abort("Exiting.");
     }
     visc_coef.resize(NUM_STATE);
@@ -133,7 +135,7 @@ void Diffusion::diffuse_scalar(REAL dt, int sigma, REAL be_cn_theta,
 {
 
   if (verbose) {
-    cout << "... diffuse_scalar " << sigma << endl;
+    cout << "... diffuse_scalar " << sigma << NL;
   }
 
   int allnull, allthere;
@@ -432,7 +434,7 @@ void Diffusion::diffuse_velocity(REAL dt, REAL be_cn_theta,
 
 {
   if (verbose) {
-    cout << "... diffuse_velocity" << endl;
+    cout << "... diffuse_velocity\n";
   }
 
   int allnull, allthere;
@@ -445,7 +447,7 @@ void Diffusion::diffuse_velocity(REAL dt, REAL be_cn_theta,
     use_dv_constant_mu = use_dv_constant_mu && visc_coef[Xvel+i] >= 0.0; 
   if(!use_dv_constant_mu && use_dv_constant_mu_def) {
     cout << "Diffusion::diffuse_velocity : must have velocity visc_coefs "
-         << ">= 0.0 if use_dv_constant_mu == 1" << endl;
+         << ">= 0.0 if use_dv_constant_mu == 1\n";
     ParallelDescriptor::Abort("Exiting.");
   }
 
@@ -747,15 +749,15 @@ void Diffusion::diffuse_tensor_velocity(REAL dt, REAL be_cn_theta,
 {
 #if (BL_SPACEDIM==3) 
     cout << "Diffusion::diffuse_tensor_velocity : " <<
-            "not yet implemented for 3-D" << endl;
+            "not yet implemented for 3-D\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun" << endl;
+            " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::diffuse_tensor_velocity");
 #elif !defined(USE_TENSOR)
     cout << "Diffusion::diffuse_tensor_velocity :  " <<
-    cout << "USE_TENSOR must be defined at compile time" << endl;
+    cout << "USE_TENSOR must be defined at compile time\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun" << endl;
+            " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::diffuse_tensor_velocity");
 #else
 
@@ -1041,7 +1043,7 @@ void Diffusion::diffuse_Vsync(MultiFab *Vsync, REAL dt,
 
 {
   if (verbose) {
-    cout << "Diffusion::diffuse_Vsync" << endl;
+    cout << "Diffusion::diffuse_Vsync\n";
   }
 
   int allnull, allthere;
@@ -1054,7 +1056,7 @@ void Diffusion::diffuse_Vsync(MultiFab *Vsync, REAL dt,
     use_dv_constant_mu = use_dv_constant_mu && visc_coef[Xvel+i] >= 0.0; 
   if(!use_dv_constant_mu && use_dv_constant_mu_def) {
     cout << "Diffusion::diffuse_Vsync : must have velocity visc_coefs "
-         << ">= 0.0 if use_dv_constant_mu == 1" << endl;
+         << ">= 0.0 if use_dv_constant_mu == 1\n";
     ParallelDescriptor::Abort("Diffusion::diffuse_Vsync");
   }
 
@@ -1109,7 +1111,7 @@ void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, REAL dt,
   //int i;
 
   if (verbose)
-    cout << "Diffusion::diffuse_Vsync" << endl;
+    cout << "Diffusion::diffuse_Vsync\n";
 
   int ngrds = grids.length();
   const REAL* dx = caller->Geom().CellSize();
@@ -1125,7 +1127,7 @@ void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, REAL dt,
     Rhs.copy(*Vsync,comp,0,1);
 
     REAL r_norm = Rhs[0].norm(0);
-    cout << "Original max of Vsync " << r_norm << endl;
+    cout << "Original max of Vsync " << r_norm << NL;
 
     //  Compute norm of RHS after multiplication by volume and density
     REAL mf_norm = 0.0;
@@ -1166,7 +1168,7 @@ void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, REAL dt,
     Vsync->copy(Soln,0,comp,1,1);
 
     REAL s_norm = Soln[0].norm(0);
-    cout << "Final max of Vsync " << s_norm << endl;
+    cout << "Final max of Vsync " << s_norm << NL;
 
     delete visc_op;
 
@@ -1263,15 +1265,15 @@ void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, REAL dt,
 {
 #if (BL_SPACEDIM==3) 
     cout << "Diffusion::diffuse_tensor_Vsync : " <<
-            "not yet implemented for 3-D" << endl;
+            "not yet implemented for 3-D\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun" << endl;
+            " and rerun\n";
     ParallelDescriptor::Abort("Exiting.");
 #elif !defined(USE_TENSOR)
     cout << "Diffusion::diffuse_tensor_Vsync :  " <<
-    cout << "USE_TENSOR must be defined at compile time" << endl;
+    cout << "USE_TENSOR must be defined at compile time\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun" << endl;
+            " and rerun\n";
     ParallelDescriptor::Abort("Exiting.");
 #else
 
@@ -1294,7 +1296,7 @@ void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, REAL dt,
   }
   ParallelDescriptor::ReduceRealMax(r_norm);
 
-  cout << "Original max of Vsync " << r_norm << endl;
+  cout << "Original max of Vsync " << r_norm << NL;
 
   //  Compute norm of RHS after multiplication by volume and density
   REAL mf_norm = 0.0;
@@ -1340,7 +1342,7 @@ void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, REAL dt,
   }
   ParallelDescriptor::ReduceRealMax(s_norm);
 
-  cout << "Final max of Vsync " << s_norm << endl;
+  cout << "Final max of Vsync " << s_norm << NL;
 
   FARRAYBOX xflux, yflux, zflux;
 
@@ -1418,7 +1420,7 @@ void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, REAL dt,
 
 {
   if (verbose)
-    cout << "Diffusion::diffuse_Ssync for scalar " << sigma << endl;
+    cout << "Diffusion::diffuse_Ssync for scalar " << sigma << NL;
 
   int allnull, allthere;
   checkBeta(beta, allthere, allnull);
@@ -1438,7 +1440,7 @@ void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, REAL dt,
   }
   ParallelDescriptor::ReduceRealMax(r_norm);
 
-  cout << "Original max of Ssync " << r_norm << endl;
+  cout << "Original max of Ssync " << r_norm << NL;
 
   //  Compute norm of RHS
   REAL mf_norm = 0.0;
@@ -1491,7 +1493,7 @@ void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, REAL dt,
   }
   ParallelDescriptor::ReduceRealMax(s_norm);
 
-  cout << "Final max of Ssync " << s_norm << endl;
+  cout << "Final max of Ssync " << s_norm << NL;
 
   delete visc_op;
 
@@ -1641,15 +1643,15 @@ DivVis* Diffusion::getTensorOp(REAL a, REAL b,
 {
 #if (BL_SPACEDIM==3) 
     cout << "Diffusion::getTensorOp :  " <<
-            "not yet implemented for 3-D" << endl;
+            "not yet implemented for 3-D\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun" << endl;
+            " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorOp");
 #elif !defined(USE_TENSOR)
     cout << "Diffusion::getTensorOp :  " <<
-    cout << "USE_TENSOR must be defined at compile time" << endl;
+    cout << "USE_TENSOR must be defined at compile time\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun" << endl;
+            " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorOp");
 #else
 
@@ -1741,15 +1743,15 @@ DivVis* Diffusion::getTensorOp(REAL a, REAL b,
 {
 #if (BL_SPACEDIM==3) 
     cout << "Diffusion::getTensorOp :  " <<
-            "not yet implemented for 3-D" << endl;
+            "not yet implemented for 3-D\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun" << endl;
+            " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorOp");
 #elif !defined(USE_TENSOR)
     cout << "Diffusion::getTensorOp :  " <<
-    cout << "USE_TENSOR must be defined at compile time" << endl;
+    cout << "USE_TENSOR must be defined at compile time\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun" << endl;
+            " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorOp");
 #else
 
@@ -1760,8 +1762,8 @@ DivVis* Diffusion::getTensorOp(REAL a, REAL b,
     }
   }
   if(!allthere) {
-    cout << "Diffusion::getTensorOp : all betas must allocated" << endl;
-    cout << "  all NULL or all non-NULL" << endl;
+    cout << "Diffusion::getTensorOp : all betas must allocated\n";
+    cout << "  all NULL or all non-NULL\n";
     ParallelDescriptor::Abort("Diffusion::getTensorOp");
   }
 
@@ -2279,15 +2281,15 @@ void Diffusion::getTensorViscTerms(MultiFab& visc_terms,
 {
 #if (BL_SPACEDIM==3)
     cout << "Diffusion::getTensorViscTerms :  " <<
-            "not yet implemented for 3-D" << endl;
+            "not yet implemented for 3-D\n"
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun" << endl;
+            " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorViscTerms");
 #elif  !defined (USE_TENSOR)
     cout << "Diffusion::getTensorViscTerms :  " <<
-            "USE_TENSOR must be defined at compile time" << endl;
+            "USE_TENSOR must be defined at compile time\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun" << endl;
+            " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorViscTerms");
 #else
 
@@ -2297,8 +2299,8 @@ void Diffusion::getTensorViscTerms(MultiFab& visc_terms,
   int src_comp = Xvel;
   int ncomp = visc_terms.nComp();
   if(ncomp < BL_SPACEDIM) {
-    cout << "Diffusion::getTensorViscTerms : visc_terms must have" << endl;
-    cout << "  at least BL_SPACEDIM components" << endl;
+    cout << "Diffusion::getTensorViscTerms : visc_terms must have\n";
+    cout << "  at least BL_SPACEDIM components\n";
     ParallelDescriptor::Abort("Diffusion::getTensorViscTerms");
   }
   int vel_ncomp = BL_SPACEDIM;
@@ -2462,7 +2464,7 @@ void Diffusion::getBndryData(ViscBndry& bndry, int src_comp,
 			     int num_comp, REAL time, int rho_flag)
 {
     if (num_comp != 1) {
-       cout << "NEED NUM_COMP = 1" << endl;
+       cout << "NEED NUM_COMP = 1\n";
        ParallelDescriptor::Abort("Diffusion::getBndryData");
     }
     const BCRec& bc = caller->get_desc_lst()[State_Type].getBC(src_comp);
@@ -2592,11 +2594,12 @@ void Diffusion::FillBoundary(BndryRegister& bdry, int src_comp, int dest_comp,
             if (need_old_data) {
               sold_tmpmfi().shift(iv);
               if(ParallelDescriptor::NProcs() > 1) {
-                cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
-                cerr << "Nested MultiFabIterator loops (S_old.copy)" << endl;
+                cerr << "Diffusion::FillBoundary not implemented in parallel."
+                     << NL;
+                cerr << "Nested MultiFabIterator loops (S_old.copy)" << NL;
                 ParallelDescriptor::Abort("Exiting");
 	      } else {
-                cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
+                cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
 	      }
               S_old.copy(sold_tmpmfi(),src_comp,0,num_comp);
               sold_tmpmfi().shift(-iv);
@@ -2604,11 +2607,11 @@ void Diffusion::FillBoundary(BndryRegister& bdry, int src_comp, int dest_comp,
 
             snew_tmpmfi().shift(iv);
             if(ParallelDescriptor::NProcs() > 1) {
-              cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
-              cerr << "Nested MultiFabIterator loops (S_new.copy)" << endl;
+              cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
+              cerr << "Nested MultiFabIterator loops (S_new.copy)" << NL;
               ParallelDescriptor::Abort("Exiting");
 	    } else {
-              cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
+              cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
 	    }
             S_new.copy(snew_tmpmfi(),src_comp,0,num_comp);
             snew_tmpmfi().shift(-iv);
@@ -2622,11 +2625,11 @@ void Diffusion::FillBoundary(BndryRegister& bdry, int src_comp, int dest_comp,
             if (need_old_data) {
               rho_oldmfi().shift(iv);
               if(ParallelDescriptor::NProcs() > 1) {
-                cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
-                cerr << "Nested MultiFabIterator loops (S_old.copy)" << endl;
+                cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
+                cerr << "Nested MultiFabIterator loops (S_old.copy)" << NL;
                 ParallelDescriptor::Abort("Exiting");
 	      } else {
-                cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
+                cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
 	      }
               S_old.copy(rho_oldmfi(),Density,0,1);
               rho_oldmfi().shift(-iv);
@@ -2634,11 +2637,11 @@ void Diffusion::FillBoundary(BndryRegister& bdry, int src_comp, int dest_comp,
 
             rho_newmfi().shift(iv);
             if(ParallelDescriptor::NProcs() > 1) {
-              cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
-              cerr << "Nested MultiFabIterator loops (S_new.copy)" << endl;
+              cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
+              cerr << "Nested MultiFabIterator loops (S_new.copy)" << NL;
               ParallelDescriptor::Abort("Exiting");
 	    } else {
-              cerr << "Diffusion::FillBoundary not implemented in parallel." << endl;
+              cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
 	    }
             S_new.copy(rho_newmfi(),Density,0,1);
             rho_newmfi().shift(-iv);
@@ -2690,9 +2693,9 @@ void Diffusion::getTensorBndryData(
 {
 #if (BL_SPACEDIM==3)
     cout << "Diffusion::getTensorBndryData :  " <<
-            "not yet implemented for 3-D" << endl;
+            "not yet implemented for 3-D" << NL;
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun" << endl;
+            " and rerun" << NL;
     ParallelDescriptor::Abort("Diffusion::getTensorBndryData");
 #else
     int num_comp = BL_SPACEDIM;
@@ -2742,8 +2745,8 @@ void Diffusion::checkBetas(MultiFab** beta1, MultiFab** beta2,
   allnull  = allnull1 && allnull2;
   allthere = allthere1 && allthere2;
   if(!(allthere || allnull)) {
-    cout << "Diffusion::checkBetas : all betas must either be" << endl;
-    cout << "  all NULL or all non-NULL" << endl;
+    cout << "Diffusion::checkBetas : all betas must either be"
+         << "  all NULL or all non-NULL\n";
     ParallelDescriptor::Abort("Diffusion::checkBetas");
   }
 }
@@ -2762,8 +2765,8 @@ void Diffusion::checkBeta(MultiFab** beta,
     }
   }
   if(!(allthere || allnull)) {
-    cout << "Diffusion::checkBeta : all betas must either be" << endl;
-    cout << "  all NULL or all non-NULL" << endl;
+    cout << "Diffusion::checkBeta : all betas must either be"
+         << "  all NULL or all non-NULL\n";
     ParallelDescriptor::Abort("Diffusion::checkBeta");
   }
 }
@@ -2780,8 +2783,8 @@ void Diffusion::checkBeta(MultiFab** beta,
     }
   }
   if(!allthere) {
-    cout << "Diffusion::checkBeta : all betas must be" << endl;
-    cout << "  all non-NULL" << endl;
+    cout << "Diffusion::checkBeta : all betas must be"
+         << "  all non-NULL\n";
     ParallelDescriptor::Abort("Diffusion::checkBeta");
   }
 }

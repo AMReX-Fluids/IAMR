@@ -25,9 +25,6 @@ extern "C" {
 #endif
 }
 
-const char SP = ' ';
-
-
 void fill_borders(MultiFab& r,
                          const copy_cache* border_cache,
                          const level_interface& interface,
@@ -231,7 +228,7 @@ int get_patch(Fab& patch, const Box& region,
   if (flags & 8) {
     for (int iqq = 0; iqq < flags/16; iqq++)
       cout << "  ";
-    cout << "Getting " << region << endl;
+    cout << "Getting " << region << '\n';
     flags += 16;
   }
 
@@ -511,7 +508,7 @@ int fill_patch(Fab& patch,
 	       amr_boundary bdy, int flags,
 	       int igrid)
 {
-  cout << "Warning:  using obsolete form of fill_patch" << endl;
+  cout << "Warning:  using obsolete form of fill_patch" << '\n';
 
   if (!region.ok())
     return 1;
@@ -523,7 +520,7 @@ int fill_patch(Fab& patch,
   if (flags & 8) {
     for (int iqq = 0; iqq < flags/16; iqq++)
       cout << "  ";
-    cout << "Filling " << region << endl;
+    cout << "Filling " << region << '\n';
     flags += 16;
   }
 
@@ -560,13 +557,13 @@ int fill_patch(Fab& patch,
       // no intersections with grids on this level
       if (!idomain.intersects(region)) {
 	// last-ditch chance, maybe boundary condition can do something
-	cout << "Using fill_patch_special" << endl;
+	cout << "Using fill_patch_special" << '\n';
 	return bdy.fill_patch_special(patch, region, *this, flags);
       }
 //      else if (!idomain.contains(region)) {
 //	Box side1 = region;
 //	Box side2 = box_chop(side1, idomain);
-//	cout << side1 << SP << side2 << endl;
+//	cout << side1 << ' ' << side2 << '\n';
 //	fill_patch(patch, side1, active, bdy, flags);
 //	fill_patch(patch, side2, active, bdy, flags);
 //	return 0;

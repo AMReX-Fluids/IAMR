@@ -129,10 +129,6 @@ CLUSTER::minBox()
 	hi.max(p);
     }
     bx = BOX(lo,hi);
-#if 0
-    cout << "CLUSTER with box = " << bx << " npts = " << len <<
-	" eff = " << eff() << endl;
-#endif
 }
 
 // ------------------------------------------------------------

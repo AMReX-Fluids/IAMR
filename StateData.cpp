@@ -426,6 +426,6 @@ StateData::checkPoint(ostream &os, bool dump_old)
 void
 StateData::printTimeInterval(ostream &os)
 {
-    os << "[" << old_time.start << ' ' << old_time.stop << "] ["
-       << new_time.start << ' ' << new_time.stop << "]" << endl;
+    os << '[' << old_time.start << ' ' << old_time.stop << "] ["
+       << new_time.start << ' ' << new_time.stop << ']' << '\n';
 }

@@ -16,7 +16,7 @@ int
 main(int argc, char **argv)
 {
     if(argc < 3) {
-      cerr << "usage:  " << argv[0] << " inputsfile nprocs [options]" << endl;
+      cerr << "usage:  " << argv[0] << " inputsfile nprocs [options]" << '\n';
       exit(-1);
     }
 
@@ -220,7 +220,7 @@ readBoxList(const aString file, BOX& domain )
 	BOX tmpbox;
 	boxspec >> tmpbox;
 	if( ! domain.contains(tmpbox)) {
-	    cerr << "readBoxList: bogus box " << tmpbox << endl;
+	    cerr << "readBoxList: bogus box " << tmpbox << '\n';
 	    exit(1);
         }
 	retval.append(tmpbox);

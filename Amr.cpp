@@ -20,6 +20,8 @@ using std::ifstream;
 using std::ios;
 #endif
 
+const char NL = '\n';
+
 // ###################################################################
 // #####   INLINE-able functions
 // ###################################################################
@@ -184,10 +186,9 @@ Amr::Amr()
     int got_check_per = pp.query("check_per",check_per);
 
     if (got_check_int == 1 && got_check_per == 1) {
-      cout << "MUST ONLY SPECIFY amr.check_int OR amr.check_per " << endl;
-      exit(0);
+      BoxLib::Error("MUST ONLY SPECIFY amr.check_int OR amr.check_per");
     } else if (got_check_per == 1) {
-      cout << "WARNING: Specifying amr.check_per will change the time step. " << endl;
+      BoxLib::Warning("Specifying amr.check_per will change the time step.");
     }
 
     plot_file_root = "plt";
@@ -200,10 +201,9 @@ Amr::Amr()
     int got_plot_per = pp.query("plot_per",plot_per);
 
     if (got_plot_int == 1 && got_plot_per == 1) {
-      cout << "MUST ONLY SPECIFY amr.plot_int OR amr.plot_per " << endl;
-      exit(0);
+      BoxLib::Error("MUST ONLY SPECIFY amr.plot_int OR amr.plot_per");
     } else if (got_plot_per == 1) {
-      cout << "WARNING: Specifying amr.plot_per will change the time step. " << endl;
+      BoxLib::Warning("Specifying amr.plot_per will change the time step.");
     }
 
     pp.query("max_grid_size",max_grid_size);
@@ -226,9 +226,7 @@ Amr::Amr()
       int got_int = pp.queryarr("ref_ratio"     ,ratios,0,max_level);
    
       if (got_int == 1 && got_vect == 1) {
-        cout << "Only input *either* ref_ratio or ref_ratio_vect!" << endl;
-        exit(0);
-
+        BoxLib::Error("Only input *either* ref_ratio or ref_ratio_vect");
       } else if (got_vect == 1) {
         int k = 0;
         for( i = 0; i < max_level; i++ ) {
@@ -245,10 +243,8 @@ Amr::Amr()
         }
 
      } else {
-       cout << "Must input *either* ref_ratio or ref_ratio_vect " << endl;
-       exit(0);
+       BoxLib::Error("Must input *either* ref_ratio or ref_ratio_vect");
      }
-
     }
 
       // read computational domain and set geometry
@@ -431,14 +427,14 @@ Amr::writePlotFile (const aString& root,
     {
         if (ParallelDescriptor::IOProcessor())
         {
-            cout << "PLOTFILE: file = " << pltfile << endl;
+            cout << "PLOTFILE: file = " << pltfile << NL;
         }
     }
     if (record_run_info)
     {
         if (ParallelDescriptor::IOProcessor())
         {
-            runlog << "PLOTFILE: file = " << pltfile << endl;
+            runlog << "PLOTFILE: file = " << pltfile << NL;
         }
     }
 
@@ -456,7 +452,7 @@ Amr::writePlotFile (const aString& root,
 
     if (os.fail())
     {
-        cerr << "Error in Amr::writePlotFile:  os failed." << endl;
+        cerr << "Error in Amr::writePlotFile:  os failed." << NL;
         return;
     }
 
@@ -633,7 +629,7 @@ void Amr::restart(const aString& filename)
     {
       if(ParallelDescriptor::IOProcessor())
       {
-	cout << "restarting calculation from file " << filename << endl;
+	cout << "restarting calculation from file " << filename << NL;
       }
     }
 
@@ -646,7 +642,7 @@ void Amr::restart(const aString& filename)
       // start calculation from given restart file
     if (record_run_info) {
       if(ParallelDescriptor::IOProcessor()) {
-	runlog << "RESTART from file = " << filename << endl;
+	runlog << "RESTART from file = " << filename << NL;
       }
     }
 
@@ -727,14 +723,14 @@ Amr::checkPoint ()
     {
         if (ParallelDescriptor::IOProcessor())
         {
-            cout << "CHECKPOINT: file = " << ckfile << endl;
+            cout << "CHECKPOINT: file = " << ckfile << NL;
         }
     }
     if (record_run_info)
     {
         if (ParallelDescriptor::IOProcessor())
         {
-            runlog << "CHECKPOINT: file = " << ckfile << endl;
+            runlog << "CHECKPOINT: file = " << ckfile << NL;
         }
     }
 
@@ -835,7 +831,7 @@ void Amr::timeStep(int level, REAL time, int iteration, int niter)
     if (trace) {
       if(ParallelDescriptor::IOProcessor()) {
 	cout << "ADVANCE grids at level " << level
-	     << " with dt = " << dt_level[level] << endl;
+	     << " with dt = " << dt_level[level] << NL;
       }
     }
     REAL dt_new = amr_level[level].advance(time,dt_level[level],
@@ -889,16 +885,14 @@ void Amr::coarseTimeStep(REAL stop_time){
 
     if (!silent) {
       if(ParallelDescriptor::IOProcessor()) {
-        cout << endl;
-	cout << "STEP = " << level_steps[0] << " TIME = "
-	     << cumtime << " DT = " << dt_level[0] << endl;
-        cout << endl;
+	cout << "\nSTEP = " << level_steps[0] << " TIME = "
+	     << cumtime << " DT = " << dt_level[0] << NL << NL;
       }
     }
     if (record_run_info) {
       if(ParallelDescriptor::IOProcessor()) {
 	runlog << "STEP = " << level_steps[0] << " TIME = "
-	       << cumtime << " DT = " << dt_level[0] << endl;
+	       << cumtime << " DT = " << dt_level[0] << NL;
       }
     }
 
@@ -977,12 +971,12 @@ Amr::regrid(int lbase, REAL time)
 
     if (!silent) {
       if(ParallelDescriptor::IOProcessor()) {
-	cout << "REGRID: at level lbase = " << lbase << endl;
+	cout << "REGRID: at level lbase = " << lbase << NL;
       }
     }
     if (record_run_info) {
       if(ParallelDescriptor::IOProcessor()) {
-	runlog << "REGRID: at level lbase = " << lbase << endl;
+	runlog << "REGRID: at level lbase = " << lbase << NL;
       }
     }
 
@@ -1049,7 +1043,7 @@ Amr::regrid(int lbase, REAL time)
 		cout   << "   level " << lev << ": "
 		       << numgrids << " grids, "
 		       << ncells << " cells  = " << frac
-		       << " % of domain" << endl;
+		       << " % of domain" << NL;
 	      }
 	    }
 	    if (record_run_info) {
@@ -1057,7 +1051,7 @@ Amr::regrid(int lbase, REAL time)
 		runlog << "   level " << lev << ": "
 		       << numgrids << " grids, "
 		       << ncells << " cells  = " << frac
-		       << " % of domain" << endl;
+		       << " % of domain" << NL;
 	      }
 	    }
 	}
@@ -1097,7 +1091,7 @@ void Amr::printGridInfo(ostream &os, int min_lev, int max_lev) {
 	    os << '\n';
 	}
     }
-    os << endl;
+    os << NL;
 }
 
 // ##################################################################
@@ -1373,8 +1367,8 @@ Amr::grid_places(
 
 	    if (!new_bx.isDisjoint()) {
 		cout << "WARNING: new grids at level "<<levf
-		     << " not disjoint" << endl;
-		cout << new_bx << endl;
+		     << " not disjoint" << NL
+		     << new_bx << NL;
 	    }
 
 	    new_grids[levf].define(new_bx);

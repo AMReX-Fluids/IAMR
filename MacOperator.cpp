@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.4 1997-09-23 19:25:46 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.5 1997-09-24 19:47:06 lijewski Exp $
 //
 
 #include <MacBndry.H>
@@ -325,8 +325,7 @@ void mac_level_driver( const MacBndry &mac_bndry,
     mac_op.defRHS(area,volume,Rhs,u_mac,rhs_scale);
     mac_op.maxOrder(2);
     if (use_cg_solve && mac_op.maxOrder() != 2) {
-        cout << "Cant use CGSolver with maxorder > 2 " << endl;
-        exit(1);
+        BoxLib::Error("Can't use CGSolver with maxorder > 2");
     }
     
     // construct MultiGrid or CGSolver object and solve system
@@ -359,8 +358,7 @@ void mac_sync_driver( const MacBndry &mac_bndry,
     mac_op.setCoefficients(area,*rho_half, 0, dx);
     mac_op.syncRhs(volume,Rhs,rhs_scale,dx);
     if (use_cg_solve && mac_op.maxOrder() != 2) {
-        cout << "Cant use CGSolver with maxorder > 2 " << endl;
-        exit(1);
+        BoxLib::Error("Can't use CGSolver with maxorder > 2");
     }
     
     // now construct MultiGrid or CGSolver object to solve system

@@ -67,7 +67,7 @@ operator << (ostream &os, const ErrorList& elst)
     while(li) {
 	os << li()->derive_name;
 	os << ' ' << li()->ngrow << ' ' << err_name[li()->err_type];
-	os << endl;
+	os << '\n';
 	++li;
     }
     return os;

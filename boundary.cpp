@@ -1362,7 +1362,7 @@ int mixed_boundary_class::fill_patch_special(Fab& patch,
 					     const Box& domain,
 					     int flags) const
 {
-  cout << "fill_patch_special---patch is " << region << endl;
+  cout << "fill_patch_special---patch is " << region << '\n';
   BoxLib::Error("mixed_boundary_class::fill_patch_special disabled");
   Box tdomain = domain;
   tdomain.convert(type(r));
