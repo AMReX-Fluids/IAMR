@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.16 1998-12-23 22:57:02 marc Exp $
+c $Id: PROB_2D.F,v 1.17 1999-02-16 22:02:00 sstanley Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -33,10 +33,11 @@ c ::: namlen    => length of name
 c ::: strttime <=  start problem with this time variable
 c ::: 
 c ::: -----------------------------------------------------------
-      subroutine FORT_PROBINIT (init,name,namlen)
+      subroutine FORT_PROBINIT (init,name,namlen,problo,probhi)
       integer init,namlen
       integer name(namlen)
       integer untin, i
+      REAL_T  problo(SDIM), probhi(SDIM)
 
 #include "probdata.H"
 
@@ -72,6 +73,14 @@ c
       read(untin,fortin)
 c      write(6,fortin)
       close(unit=untin)
+
+c
+c     Initialize the common blocks
+c
+      do i=1, SDIM
+        f_problo(i) = problo(i)
+        f_probhi(i) = probhi(i)
+      enddo
 
       end
 
@@ -146,6 +155,11 @@ c ::: -----------------------------------------------------------
          call inithotspot(level,time,lo,hi,nscal,
      &     	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
+
+      else if (probtype .eq. 7) then
+         call initviscbench(level,time,lo,hi,nscal,
+     &     	            vel,scal,DIMS(state),press,DIMS(press),
+     &                      dx,xlo,xhi)
 
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
@@ -274,6 +288,74 @@ c
 
 	    end do
          end do
+
+      end
+c
+c ::: -----------------------------------------------------------
+c ::: This case is an unsteady  viscous benchmark for which the 
+c ::: exact solution is,
+c :::     u(x,y,t) = - Cos(Pi x) Sin(Pi y) Exp(-2 Pi^2 Nu t)
+c :::     v(x,y,t) =   Sin(Pi x) Cos(Pi y) Exp(-2 Pi^2 Nu t)
+c :::     p(x,y,t) = - {Cos(2 Pi x) + Cos(2 Pi y)} Exp(-4 Pi^2 Nu t) / 4
+c ::: In the utilities, iamrlib/BenchMarks, there is a 
+c ::: tool ViscBench2d.cpp that reads a plot file and compares the
+c ::: solution against this exact solution.  This benchmark was
+c ::: originally derived by G.I. Taylor (Phil. Mag., Vol. 46, No. 274, 
+c ::: pp. 671-674, 1923) and Ethier and Steinman 
+c ::: (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give 
+c ::: the pressure field.
+c
+      subroutine initviscbench(level,time,lo,hi,nscal,
+     &	 	               vel,scal,DIMS(state),press,DIMS(press),
+     &                         dx,xlo,xhi)
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, n
+      REAL_T  x, y
+      REAL_T  hx, hy
+      REAL_T  dist
+      REAL_T  spx, spy, cpx, cpy
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+
+      do j = lo(2), hi(2)
+         y = xlo(2) + hy*(float(j-lo(2)) + half)
+         spy = sin(Pi*y)
+         cpy = cos(Pi*y)
+
+         do i = lo(1), hi(1)
+            x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+            spx = sin(Pi*x)
+            cpx = cos(Pi*x)
+
+            vel(i,j,1) = - cpx*spy
+            vel(i,j,2) =   spx*cpy
+
+            dist = sqrt((x-xblob)**2 + (y-yblob)**2)
+
+            scal(i,j,1) = one + (denfact-one) * tanh(10.*(dist-radblob))
+            do n = 2,nscal-1
+               scal(i,j,n) = one
+            end do                  
+            scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
+
+         end do
+      end do
 
       end
 c
@@ -634,6 +716,16 @@ c     probtype = HOT SPOT
            end do
         end do
 
+
+c     probtype = VISCOUS BENCHMARK
+      else if (probtype .eq. 7) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
         stop
@@ -717,6 +809,10 @@ c         ::::: refine where there is temperature gradient
              end do
           end do
         end if
+
+
+c     probtype = VISCOUS BENCHMARK
+      else if (probtype .eq. 7) then
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
@@ -807,6 +903,14 @@ c     probtype = PERIODIC SHEAR LAYER
 c     probtype = HOT SPOT
       else if (probtype .eq. 6) then
 
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+           end do
+        end do
+
+c     probtype = VISCOUS BENCHMARK
+      else if (probtype .eq. 7) then
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
               tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
