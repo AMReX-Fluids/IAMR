@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.22 2000-10-03 20:56:22 lijewski Exp $
+# $Id: GNUmakefile,v 1.23 2001-03-28 19:35:04 car Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -8,13 +8,28 @@ TOP = $(PBOXLIB_HOME)
 # Variables for the user to set ...
 #
 PRECISION = DOUBLE
-DEBUG	  = TRUE
 DEBUG	  = FALSE
+DEBUG	  = FALSE
+DEBUG	  = TRUE
 PROFILE   = FALSE
 DIM       = 3
+COMP	  = g++
 COMP      = KCC
-USE_MPI   = TRUE
 USE_MPI   = FALSE
+USE_MPI   = TRUE
+NAMESPACE = TRUE
+NAMESPACE = FALSE
+#STRICTLY  = TRUE
+#
+# BoxLib3 Support
+#
+USE_BL3=TRUE
+USE_BL3=FALSE
+#
+# Hypre support
+#
+USE_HYPRE=TRUE
+USE_HYPRE=FALSE
 #
 # Use hgproj-serial -- only for testing.
 #
@@ -44,8 +59,14 @@ include $(TOP)/mk/Make.defs ./Make.package
 BUILD_INPLACE:=FALSE
 BUILD_INPLACE:=TRUE
 
-#CXXFLAGS += --strict --display_error_number
-#CXXFLAGS +=  --diag_suppress 450
+ifeq ($(STRICTLY),TRUE)
+  ifeq ($(COMP),KCC)
+    CXXFLAGS += --strict
+    CXXFLAGS += --display_error_number
+    CPPFLAGS += -D__KAI_STRICT
+    CXXFLAGS += --diag_suppress 450
+  endif
+endif
 
 ifeq ($(BUILD_INPLACE), TRUE)
   include $(TOP)/iamrlib/Make.package
@@ -63,6 +84,27 @@ ifeq ($(BUILD_INPLACE), TRUE)
   INCLUDE_LOCATIONS += $(TOP)/bndrylib
   INCLUDE_LOCATIONS += $(TOP)/hgproj
   INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2
+  ifeq ($(USE_HYPRE),TRUE)
+    HYPRE_DIR := $(PBOXLIB_HOME)/hypre
+    LIBRARY_LOCATIONS += $(HYPRE_DIR)/lib
+    INCLUDE_LOCATIONS += $(HYPRE_DIR)/include
+    INCLUDE_LOCATIONS += $(HYPRE_DIR)/HypreABec
+    HYPRE_LIBS :=  				\
+	 -lHYPRE_ls				\
+	 -lHYPRE_mv				\
+	 -lHYPRE_parcsr_ls			\
+	 -lHYPRE_DistributedMatrixPilutSolver 	\
+	 -lHYPRE_ParaSails 			\
+	 -lHYPRE_MatrixMatrix 			\
+	 -lHYPRE_DistributedMatrix 		\
+	 -lHYPRE_IJ_mv				\
+	 -lHYPRE_parcsr_mv			\
+	 -lHYPRE_seq_mv				\
+	 -lHYPRE_utilities
+    LIBRARIES += $(HYPRE_LIBS)
+    CPPFLAGS += -DMG_USE_HYPRE
+    include $(HYPRE_DIR)/HypreABec/Make.package
+  endif
 else
   ifeq ($(USE_HGPROJ_SERIAL),FALSE)
     INCLUDE_LOCATIONS += . .. $(TOP)/include
@@ -75,6 +117,26 @@ else
     LIBRARY_LOCATIONS += $(TOP)/hgproj-serial/lib/$(machineSuffix) $(TOP)/lib/$(machineSuffix)
     LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lmcmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
   endif
+  ifeq ($(USE_HYPRE),TRUE)
+    error hypre not here yet
+  endif
+endif
+
+ifeq ($(USE_BL3),TRUE)
+  DEFINES += -DBL3_PROFILING
+  ifeq ($(USE_MPI),TRUE)
+    DEFINES += -DBL3_USE_MPI
+    CEXE_sources += BL3Mpi.cpp
+  endif
+  ifeq ($(USE_THREADS),TRUE)
+    DEFINES += -DBL3_PTHREADS
+  endif
+  CEXE_headers += Thread.H Profiler.H BoxLib3.H Utility.H Assert.H Error.H
+  CEXE_sources += BL3Thread.cpp BL3Profiler.cpp BL3Utility.cpp 
+  CEXE_sources += BL3Error.cpp
+  CEXE_sources += BL3Parallel.cpp  BL3BoxLib3.cpp
+  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)
+  BOXLIB3_HOME := $(PBOXLIB_HOME)/BoxLib3
 endif
 
 ifeq ($(MACHINE),T3E)
@@ -127,10 +189,35 @@ endif
 
 
 ifeq ($(BUILD_INPLACE), TRUE)
-  vpath %.cpp . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
-  vpath %.H   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
-  vpath %.h   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
-  vpath %.F   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
+  vpath_cpp := . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib
+  vpath_H   := . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib
+  vpath_FH  := . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib
+  vpath_h   := . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib
+  vpath_F   := . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib
+  vpath_cpp += $(TOP)/hgproj
+  vpath_H   += $(TOP)/hgproj
+  vpath_FH  += $(TOP)/hgproj
+  vpath_h   += $(TOP)/hgproj
+  vpath_F   += $(TOP)/hgproj
+  ifeq ($(USE_HYPRE),TRUE)
+    vpath_cpp += $(HYPRE_DIR)/HypreABec
+    vpath_H   += $(HYPRE_DIR)/HypreABec
+    vpath_F   += $(HYPRE_DIR)/HypreABec
+  endif
+  ifeq ($(USE_BL3),TRUE)
+    vpath_cpp += $(BOXLIB3_HOME)
+    vpath_H   += $(BOXLIB3_HOME)
+  endif
+  vpath_cpp += $(TOP)/pBoxLib_2
+  vpath_H   += $(TOP)/pBoxLib_2
+  vpath_FH  += $(TOP)/pBoxLib_2
+  vpath_h   += $(TOP)/pBoxLib_2
+  vpath_F   += $(TOP)/pBoxLib_2
+  vpath %.cpp $(vpath_cpp)
+  vpath %.H   $(vpath_H)
+  vpath %.FH  $(vpath_FH)
+  vpath %.h   $(vpath_h)
+  vpath %.F   $(vpath_F)
 else
   vpath %.H   ..
   vpath %.cpp ..
@@ -139,7 +226,14 @@ endif
 
 all: $(executable)
 
-$(executable): $(LIBRARIES)
+ifeq ($(MACHINE),T3E)
+#
+# We don't explicity set the path of the mpi directory on the T3E.
+#
+  $(executable): $(filter-out $(HYPRE_LIBS) -lmpi, $(LIBRARIES))
+else
+  $(executable): $(filter-out $(HYPRE_LIBS), $(LIBRARIES))
+endif
 
 ifneq ($(BUILD_INPLACE), TRUE)
 
@@ -161,6 +255,9 @@ ifeq ($(USE_HGPROJ_SERIAL),FALSE)
 else
 	cd $(TOP)/hgproj-serial; $(MyMakeLine) LBASE=proj EBASE=
 endif
+ifeq ($(USE_HYPRE),TRUE)
+	cd $(HYPRE_DIR)/HypreABec; $(MyMakeLine) install
+endif
 	cd $(TOP)/mglib;     $(MyMakeLine) install
 	cd $(TOP)/tensorMG;  $(MyMakeLine) install
 	cd $(TOP)/iamrlib;   $(MyMakeLine) install
@@ -175,6 +272,9 @@ ifeq ($(USE_HGPROJ_SERIAL),FALSE)
 	cd $(TOP)/hgproj;    $(MyMakeLine) LBASE=proj EBASE= clean
 else
 	cd $(TOP)/hgproj-serial; $(MyMakeLine) LBASE=proj EBASE= clean
+endif
+ifeq ($(USE_HYPRE),TRUE)
+	cd $(HYPRE_DIR)/HypreABec; $(MyMakeLine) clean
 endif
 	cd $(TOP)/mglib;     $(MyMakeLine) clean
 	cd $(TOP)/tensorMG;  $(MyMakeLine) clean
