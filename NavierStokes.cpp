@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.170 2000-06-12 22:40:37 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.171 2000-06-12 23:41:50 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -589,7 +589,6 @@ NavierStokes::init_additional_state_types ()
 // Since the pressure solver always stores its estimate of the
 // pressure solver in Pnew, we need to copy it to Pold at the start.
 //
-
 void
 NavierStokes::initOldPress ()
 {
@@ -625,9 +624,7 @@ NavierStokes::allocOldData ()
         state[k].allocOldData();
     }
     if (init_pres)
-    {
         initOldPress();
-    }
 }
 
 void
@@ -2988,7 +2985,7 @@ NavierStokes::okToContinue ()
 // These quantities are described in comments above advance_setup.
 //
 void
-NavierStokes::post_timestep ()
+NavierStokes::post_timestep (int crse_iteration)
 {
     const int finest_level = parent->finestLevel();
 
@@ -3021,7 +3018,7 @@ NavierStokes::post_timestep ()
     }
 
     if (do_sync_proj && (level < finest_level))
-        level_sync();
+        level_sync(crse_iteration);
     //
     // Test for conservation.
     //
@@ -3283,8 +3280,12 @@ NavierStokes::post_init_press (Real&        dt_init,
     {
         getLevel(k).setTimeLevel(strt_time,dt_save[k],dt_save[k]);
         if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
+        {
           getLevel(k).state[Press_Type].setNewTimeLevel(.5*dt_init);
+          getLevel(k).get_old_data(Dpdt_Type).setVal(0);
+        }
     }
+
 
     parent->setDtLevel(dt_save);
     parent->setNCycle(nc_save);
@@ -3515,14 +3516,6 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
         const Real cur_mult_factor  = dt_to_cur_time / time_since_zero;
         const Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
 
-        if (verbose && ParallelDescriptor::IOProcessor())
-        {
-            cout << "CUR MULT FACTOR IN SYNCPROJINTERP "
-                 << cur_mult_factor << endl
-                 << "PREV MULT FACTOR IN SYNCPROJINTERP "
-                 << prev_mult_factor << endl;
-        }
-
         for (MultiFabIterator mfi(crse_phi); mfi.isValid(); ++mfi)
         {
             fine_phi.resize(P_grids[mfi.index()],1);
@@ -3667,7 +3660,7 @@ NavierStokes::avgDown_doit (const FArrayBox& fine_fab,
 }
 
 void
-NavierStokes::level_sync ()
+NavierStokes::level_sync (int crse_iteration)
 {
     const Real*   dx            = geom.CellSize();
     IntVect       ratio         = parent->refRatio(level);
@@ -3820,7 +3813,10 @@ NavierStokes::level_sync ()
                                  pres_fine,vel_fine,cc_rhs_fine,
                                  *rho_half, rho_fine, Vsync,V_corr,phi,
                                  &rhs_sync_reg,crsr_sync_ptr,
-                                 dx,dt,ratio,crse_dt_ratio, fine_geom,geom,
+                                 dx,dt,ratio,
+                                 crse_iteration,
+                                 crse_dt_ratio, 
+                                 fine_geom,geom,
                                  pressure_time_is_interval,
                                  first_crse_step_after_initial_iters,
                                   cur_crse_pres_time,
@@ -3875,7 +3871,7 @@ NavierStokes::level_sync ()
         //
         projector->syncProject(level,pres,vel,rho_half,Vsync,phi,
                                &rhs_sync_reg,crsr_sync_ptr,sync_boxes,
-                               geom,dx,dt,crse_dt_ratio);
+                               geom,dx,dt,crse_iteration,crse_dt_ratio);
         //
         // Correct pressure and velocities after the projection.
         //
@@ -5385,26 +5381,9 @@ NavierStokes::calcDpdt ()
             mfi().minus(dmfi_old(),mfi.validbox(),0,0,1);
             mfi().divide(dt_for_dpdt,mfi.validbox(),0,1);
         }
-
-        if (verbose && ParallelDescriptor::IOProcessor())
-        {
-            cout << " JUST DEFINED DPDT AT LEVEL "
-                 << level
-                 << " WITH DT "
-                 << dt_for_dpdt << endl;
-        }
     }
     else
     {
         dpdt.setVal(0);
-
-        if (verbose &&ParallelDescriptor::IOProcessor())
-            cout << " JUST SET DPDT TO ZERO AT LEVEL " << level << endl;
-    }
-
-    if (verbose &&ParallelDescriptor::IOProcessor())
-    {
-        cout << "DPDT TIME INTERVAL " ;
-        state[Dpdt_Type].printTimeInterval(cout);
     }
 }

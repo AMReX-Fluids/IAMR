@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.63 2000-06-12 14:34:12 almgren Exp $
+// $Id: NavierStokes.H,v 1.64 2000-06-12 23:41:50 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -192,7 +192,7 @@ public:
     //
     // Sync state and pressure at the end of a composite timestep.
     //
-    virtual void post_timestep ();
+    virtual void post_timestep (int iteration);
     //
     // Build any additional data structures after regrid.
     //
@@ -426,7 +426,7 @@ protected:
     //
     // Compute the level sync correction.
     //
-    virtual void level_sync ();
+    virtual void level_sync (int crse_iteration);
     //
     // Compute the mac sync correction.
     //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.125 2000-06-12 14:34:12 almgren Exp $
+// $Id: Projection.cpp,v 1.126 2000-06-12 23:41:50 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -1028,6 +1028,7 @@ Projection::syncProject (int             c_lev,
                          const Geometry& geom,
                          const Real*     dx,
                          Real            dt_crse,
+                         int             crse_iteration,
                          int             crse_dt_ratio)
 {
     static RunStats stats("sync_project");
@@ -1127,7 +1128,8 @@ Projection::syncProject (int             c_lev,
     // going into the level (c_lev-1) sync project.  Note that this must be
     // done before rho_half is scaled back.
     //
-    if (c_lev > 0) 
+    if (c_lev > 0 &&
+        (!proj_2 || crse_iteration == crse_dt_ratio) )
     {
         const Real invrat         = 1.0/(double)crse_dt_ratio;
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
@@ -1173,6 +1175,7 @@ Projection::MLsyncProject (int             c_lev,
                            const Real*     dx,
                            Real            dt_crse, 
                            IntVect&        ratio,
+                           int             crse_iteration,
                            int             crse_dt_ratio,
                            const Geometry& fine_geom,
                            const Geometry& crse_geom,
@@ -1219,7 +1222,7 @@ Projection::MLsyncProject (int             c_lev,
     // Set up crse RHS
     //
     rhs_sync_reg->InitRHS(*crse_rhs,crse_geom,phys_bc);
-    
+
     Box P_finedomain(surroundingNodes(crse_geom.Domain()));
     P_finedomain.refine(ratio);
     if (Pgrids_fine[0] == P_finedomain)
@@ -1320,7 +1323,8 @@ Projection::MLsyncProject (int             c_lev,
     // going into the level (c_lev-1) sync project.  Note that this must be
     // done before rho_half is scaled back.
     //
-    if (c_lev > 0) 
+    if (c_lev > 0 &&
+        (!proj_2 || crse_iteration == crse_dt_ratio) )
     {
         const Real invrat         = 1.0/(double)crse_dt_ratio;
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
@@ -1365,12 +1369,10 @@ Projection::MLsyncProject (int             c_lev,
         Real dt_to_cur_time  =  cur_fine_pres_time - prev_crse_pres_time;
 
         Real cur_mult_factor = dt_to_cur_time / time_since_zero;
-        cout << "NEW MULT FACTOR " << cur_mult_factor << endl;
         (*phi[c_lev+1]).mult(cur_mult_factor);
         AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
 
         Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
-        cout << "OLD MULT FACTOR " << prev_mult_factor << endl;
         (*phi[c_lev+1]).mult(prev_mult_factor);
         AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
       }

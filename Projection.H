@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.34 2000-06-12 14:34:12 almgren Exp $
+// $Id: Projection.H,v 1.35 2000-06-12 23:41:50 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -101,6 +101,7 @@ public:
                       const Geometry& geom,
                       const Real*     dx,
                       Real            dt_crse,
+                      int             crse_iteration,
                       int             crse_dt_ratio);
     //
     // A sync project involving the coarse and fine level of a 2 level system.
@@ -122,6 +123,7 @@ public:
                         const Real*     dx,
                         Real            dt_crse,
                         IntVect&        ratio,
+                        int             crse_iteration,
                         int             crse_dt_ratio,
                         const Geometry& fine_geom,
                         const Geometry& crse_geom,
