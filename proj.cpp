@@ -356,7 +356,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #ifdef USE_GRAPHICS
   fit(domain[0]);
   plot(m, ratio);
-#  ifndef CONSTANT
+#  ifndef HG_CONSTANT
   //contour(rhoinv, ratio, ncont);
 #  endif
 #endif

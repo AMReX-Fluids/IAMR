@@ -7,7 +7,7 @@
 
 #include "hg_version.H"
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 
 #if (BL_SPACEDIM == 3)
 #  define SIGMA_NODE

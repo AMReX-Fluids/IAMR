@@ -22,7 +22,7 @@ extern "C" {
 #if (BL_SPACEDIM == 1)
   ERROR, not relevant
 #elif (BL_SPACEDIM == 2 || BL_SPACEDIM == 3)
-#  ifndef CONSTANT
+#  ifndef HG_CONSTANT
   void FORT_HGSRST(RealPS, intS, intS, RealPS, intS, intRS);
 #    ifndef SIGMA_NODE
   void FORT_HGCEN(Real*, intS, RealPS, intS, intS, RealRS,
@@ -69,7 +69,7 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   h = new Real[mglev_max + 1][BL_SPACEDIM];
   for (i = 0; i < BL_SPACEDIM; i++) {
     h[mglev_max][i] = H[i];
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
     assert(H[i] == H[0]);
 #endif
     for (mglev = mglev_max - 1; mglev >= 0; mglev--) {
@@ -179,7 +179,7 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   }
 }
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 
 void holy_grail_sigma_restrictor_class::fill(Fab& patch,
 					     const Box& region,
@@ -237,7 +237,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   // sigma_split replaced by sigma_nd in more recent version, used
   // only as a local variable here
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 
   int lev, i;
   PArray<MultiFab> sigma_split;
@@ -383,7 +383,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     MultiFab& ctmp = cen[mglev];
     ctmp.setVal(0.0);
 
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
 
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       ctmp[igrid].setVal(1.0, interface[mglev].part_fine(igrid), 0);
@@ -432,7 +432,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     clear_part_interface(ctmp, interface[mglev]);
   }
 
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
   mask.resize(mglev_max + 1);
   for (mglev = 0; mglev <= mglev_max; mglev++) {
     mask.set(mglev, &cen[mglev]);
@@ -479,7 +479,7 @@ void holy_grail_amr_multigrid::clear()
   delete cgwork.remove(6);
   delete cgwork.remove(7);
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 #  ifndef SIGMA_NODE
   mglev = mglev_max;
   delete sigma.remove(mglev);
@@ -502,7 +502,7 @@ void holy_grail_amr_multigrid::clear()
 
   for (mglev = 0; mglev <= mglev_max; mglev++) {
     delete cen.remove(mglev);
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
     mask.remove(mglev);
 #endif
 #ifdef SIGMA_NODE
@@ -635,7 +635,7 @@ void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
   clear_part_interface(resid[lto], interface[lto]);
 }
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 
 void holy_grail_interpolator_class::fill(Fab& patch,
 					 const Box& region,
@@ -669,7 +669,7 @@ void holy_grail_interpolator_class::fill(Fab& patch,
 void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 {
   if (get_amr_level(lfrom) >= 0) {
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
     // multilevel interpolation, use general form
     amr_multigrid::mg_interpolate_level(lto, lfrom);
 #else
@@ -723,7 +723,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
       const Box& freg = work[lto].box(igrid);
       const Box& cbox = corr[lfrom][igrid].box();
       const Box& creg = corr[lfrom].box(igrid);
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
       FANINT2(work[lto][igrid].dataPtr(), dimlist(fbox), dimlist(freg),
 	      corr[lfrom][igrid].dataPtr(), dimlist(cbox), dimlist(creg),
 	      rat);

@@ -6,9 +6,9 @@
 c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
 #define dimdecu(a) *
 
-#ifdef CROSS_STENCIL
+#ifdef HG_CROSS_STENCIL
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 
 c variable density versions:
 
@@ -379,7 +379,7 @@ c weighting
 
 c 9-point stencil versions:
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 
 c#define TURNOFF
 
@@ -1337,7 +1337,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
 
 #endif
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 
 c NODE-based data, factor of 2 only.
       subroutine hgints(dest, dims(dest),
@@ -1450,9 +1450,9 @@ c CELL-based data only.
 
 #endif
 
-#ifdef CROSS_STENCIL
+#ifdef HG_CROSS_STENCIL
 
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
 
 c five-point constant stencils
 
@@ -1900,7 +1900,7 @@ c interface to grid at same level:
 
 #else
 
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
 
 c nine-point constant stencils
 
@@ -2791,7 +2791,7 @@ c back substitution loop:
       endif
       end
 
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
 #  define CGOPT 2
 #else
 #  define CGOPT 1
@@ -2875,7 +2875,7 @@ c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       real*8 hx, alpha, rho
       integer it, pcode
       hxm2 = 1.d0 / (hx*hx)
-#ifdef CROSS_STENCIL
+#ifdef HG_CROSS_STENCIL
       facm = -hxm2
 #else
       facm = -hxm2 / 3.d0
@@ -2904,7 +2904,7 @@ c must do this loop over entire array to initialize borders of p
      @      edge(sstart(k) + i * sstrid(k))
       do 120 k = 1, ngrids
          do 120 i = strid(k) + 1, nvals(k) - strid(k) - 2
-#ifdef CROSS_STENCIL
+#ifdef HG_CROSS_STENCIL
             w(ws(k)+i) = facm *
      @        (p(ps(k)+i-1) + p(ps(k)+i+1) +
      @         p(ps(k)+i-strid(k)) + p(ps(k)+i+strid(k)) -

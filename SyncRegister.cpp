@@ -1,6 +1,7 @@
-// $Id: SyncRegister.cpp,v 1.4 1997-07-17 23:25:38 car Exp $
+// $Id: SyncRegister.cpp,v 1.5 1997-07-23 17:46:21 car Exp $
 #include <BC_TYPES.H>
 #include <SyncRegister.H>
+#include <Tracer.H>
 
 #include <NAVIERSTOKES_F.H>
 #ifndef FORT_HGC2N
@@ -28,7 +29,7 @@ void
 SyncRegister::define(const BoxArray& fine_boxes,
 		     IntVect ref_ratio, int fine_lev)
 {
-cout << endl << "_in SyncRegister::define" << endl << endl;
+	TRACER("SyncRegister::define");
     for (int dir=0; dir < BL_SPACEDIM; dir++) assert(ratio[dir] == -1);
     assert(fine_boxes.isDisjoint());
     assert(!grids.ready());

@@ -91,7 +91,7 @@ void holy_grail_amr_projector::project(PArray<MultiFab>* u,
   if (Lev_max < 0)
     Lev_max = Lev_min;
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
   assert(Sigma.length() > 0);
 #endif
 
@@ -123,7 +123,7 @@ void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u,
   if (Lev_max < 0)
     Lev_max = Lev_min;
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
   assert(Sigma.length() > 0);
 #endif
 
@@ -157,7 +157,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
   if (Lev_max < 0)
     Lev_max = Lev_min;
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
   assert(Sigma.length() > 0);
 #endif
 
@@ -1082,7 +1082,7 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u,
 		    dimlist(gbox), hx, hy, hz);
 #endif
 	for (i = 0; i < BL_SPACEDIM; i++) {
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 	  gp[i].mult(sigma_in[lev][igrid]);
 #endif
 	  u[i][lev][igrid].minus(gp[i]);

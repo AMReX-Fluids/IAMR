@@ -15,7 +15,7 @@ void holy_grail_amr_elliptic::general(const amr_real& Dest,
   if (Lev_max < 0)
     Lev_max = Lev_min;
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
   if (Sigma.null())
     error("general---null Sigma input to variable-coefficient version");
 #endif

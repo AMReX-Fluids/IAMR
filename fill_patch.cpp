@@ -1,5 +1,6 @@
 
 #include "fill_patch.H"
+#include <Tracer.H>
 
 #ifdef BL_FORT_USE_UNDERSCORE
 #  define FIPRODC   iprodc_
@@ -33,7 +34,7 @@ void fill_borders(MultiFab& r,
                          amr_boundary bdy,
                          int w)
 {
-cout << "_in fill_patch::fill_borders" << endl;
+	TRACER("fill_patch::fill_borders");
   if (border_cache) {
     // assumes cache built properly---does not check current bdy and w
     border_cache->run();
@@ -42,7 +43,6 @@ cout << "_in fill_patch::fill_borders" << endl;
     fill_internal_borders(r, interface, w);
     bdy.fill_borders(r, interface, w);
   }
-cout << "_out fill_patch::fill_borders" << endl;
 }
 
 

@@ -21,7 +21,7 @@ HERE = .
 INCLUDE_LOCATIONS += $(HERE)
 #INCLUDE_LOCATIONS += $(GUTHAMR_HOME)/include
 INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
-LIBRARY_LOCATIONS += ./graphtools
+#LIBRARY_LOCATIONS += ./graphtools
 
 # bsp parallel locations
 ifeq ($(USE_BSP),TRUE)
@@ -71,17 +71,20 @@ endif
 #DEFINES += -DNEWUTIL
 DEFINES += -DGUTHAMR 
 
-#3RD = 1
+3RD = 1
+3RD=
 ifdef 3RD
 # FOR RUNNING 3RD ONLY
-CXXFLAGS += --link_command_prefix 3rd
+LDFLAGS += --link_command_prefix 3rd
 #CXXDEBF = +K0 --link_command_prefix 3rd -non_shared
-LIBRARIES += -ldnet_stub
-FDEBF += -automatic
+LDFLAGS += -non_shared -v
+#LIBRARIES += -ldnet_stub
+#FDEBF += -automatic
 # FOR RUNNING 3RD ONLY
 endif
 
-FC = f90  -u -extend_source
+FC = f77  -warn declarations -extend_source -check_bounds
+FC = f90  -warn declarations -extend_source -check_bounds
 
 CXXFLAGS +=
 CXXOPTF +=

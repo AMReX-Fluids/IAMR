@@ -1,6 +1,7 @@
 
 #include "boundary.H"
 #include "cache.H"
+#include <Tracer.H>
 
 #ifdef BL_FORT_USE_UNDERSCORE
 #  define FBREF    bref_
@@ -380,7 +381,7 @@ void amr_boundary_class::fill_borders(MultiFab& r,
 				      const level_interface& interface,
 				      int w) const
 {
-cout << "_in amr_boundary_class::fill_borders" << endl;
+    TRACER("amr_boundary_class::fill_borders");
   DECLARE_GEOMETRY_TYPES;
 
   w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
@@ -440,13 +441,12 @@ cout << "_in amr_boundary_class::fill_borders" << endl;
       }
     }
   }
-cout << "_out amr_boundary_class::fill_borders" << endl;
 }
 
 void mixed_boundary_class::sync_borders(MultiFab& r,
 					const level_interface& interface) const
 {
-cout << "_in mixed_boundary_class::fill_borders(...)" << endl;
+  TRACER("mixed_boundary_class::sync_borders");
   if (type(r) != nodevect) {
     BoxLib::Error("mixed_boundary_class::sync_borders---only NODE-based sync defined");
   }
@@ -469,14 +469,13 @@ cout << "_in mixed_boundary_class::fill_borders(...)" << endl;
       }
     }
   }
-cout << "_out mixed_boundary_class::fill_borders(...)" << endl;
 }
 
 void mixed_boundary_class::fill_borders(MultiFab& r,
 					const level_interface& interface,
 					int w) const
 {
-cout << "_in mixed_boundary_class::fill_borders(..., w)" << endl;
+  TRACER("mixed_boundary_class::fill_borders(..., w)");
   DECLARE_GEOMETRY_TYPES;
 
   w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
@@ -678,7 +677,6 @@ cout << "_in mixed_boundary_class::fill_borders(..., w)" << endl;
       }
     }
   }
-cout << "_out mixed_boundary_class::fill_borders(..., w)" << endl;
 }
 
 void mixed_boundary_class::set_sync_cache(copy_cache* cache,

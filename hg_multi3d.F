@@ -6,7 +6,7 @@
 c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
 #define dimdecu(a) *
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 
 #define SIGMA_NODE
 
@@ -1569,7 +1569,7 @@ c weighting
 
 #endif
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 
 #  ifndef SIGMA_NODE
 
@@ -2134,9 +2134,9 @@ c     @                                 1.d0 / srcz(i2+1,j2+1,k2+1))
 
 #endif
 
-#ifdef CROSS_STENCIL
+#ifdef HG_CROSS_STENCIL
 
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
 
 #define AVG fac * (cor(i-1) + cor(i+1) + \
                    cor(i-jdiff) + cor(i+jdiff) + \
@@ -2970,7 +2970,7 @@ c back substitution loop:
       endif
       end
 
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
 #  define CGOPT 2
 #else
 #  define CGOPT 1
@@ -3058,7 +3058,7 @@ c Works for NODE-based data.
       real*8 hx, alpha, rho
       integer it, pcode
       hxm2 = 1.d0 / (hx*hx)
-#ifdef CROSS_STENCIL
+#ifdef HG_CROSS_STENCIL
       facm = -hxm2
 #else
       facm = -hxm2 / 3.d0
@@ -3089,7 +3089,7 @@ c must do this loop over entire array to initialize borders of p
       do 120 k = 1, ngrids
          do 120 i = strid1(k) + strid2(k) + 1,
      @              nvals(k) - strid1(k) - strid2(k) - 2
-#ifdef CROSS_STENCIL
+#ifdef HG_CROSS_STENCIL
             w(ws(k)+i) = facm *
      @        (p(ps(k)+i-1) + p(ps(k)+i+1) +
      @         p(ps(k)+i-strid1(k)) + p(ps(k)+i+strid1(k)) +

@@ -1,7 +1,8 @@
 
 #include "hg_multi.H"
+#include <Tracer.H>
 
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
 #  define CGOPT 2
 #else
 #  define CGOPT 1
@@ -38,10 +39,10 @@ extern "C" {
 #if (BL_SPACEDIM == 1)
   ERROR, not relevant
 #else
-#  ifdef CONSTANT
+#  ifdef HG_CONSTANT
   void FORT_HGRES(Real*, intS, Real*, Real*, intS, Real&);
   void FORT_HGRESU(Real*, intS, Real*, Real*, intS, Real&);
-#    ifdef CROSS_STENCIL
+#    ifdef HG_CROSS_STENCIL
   void FORT_HGRLXU(Real*, Real*, intS, Real*, intS, Real&);
 #    else
   void FORT_HGRLX(Real*, Real*, intS, Real*, intS, Real&);
@@ -103,15 +104,16 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 					      int mglev,
 					      int iclear)
 {
+	TRACER("holy_grail_amr_multigrid::level_residual");
   assert(r.boxArray() == s.boxArray());
   assert(r.boxArray() == d.boxArray());
 
   int igrid;
 
-cout << "_in holy_grail_amr_multigrid::level_residual" << endl;
-cout << "about to call fill_borders(...)" << endl;
+  {
+	TRACER("wrapped call about fill_boundary(...)");
   fill_borders(d, dbc, interface[mglev], mg_boundary);
-cout << "after call fill_borders(...)" << endl;
+  }
 
 #ifdef SIGMA_NODE
 
@@ -134,7 +136,7 @@ cout << "after call fill_borders(...)" << endl;
   Real hz = h[mglev][2];
 #  endif
 
-#  ifdef CONSTANT
+#  ifdef HG_CONSTANT
 
   if (!iclear) {
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
@@ -195,7 +197,7 @@ cout << "after call fill_borders(...)" << endl;
     clear_part_interface(r, interface[mglev]);
   }
 
-#  endif // CONSTANT
+#  endif // HG_CONSTANT
 #endif // SIGMA_NODE
 }
 
@@ -226,8 +228,8 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	const Box& freg = interface[mglev].part_fine(igrid);
 	if (line_solve_dim == -1) {
 	  // Gauss-Seidel section:
-#ifdef CONSTANT
-#  ifdef CROSS_STENCIL
+#ifdef HG_CONSTANT
+#  ifdef HG_CROSS_STENCIL
 	  FORT_HGRLXU(corr[mglev][igrid].dataPtr(),
 		      resid[mglev][igrid].dataPtr(), dimlist(sbox),
 		      mask[mglev][igrid].dataPtr(),
@@ -280,7 +282,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	}
 	else {
 	  // Grid-by-grid line solve section:
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
 	  BoxLib::Error("Constant-coefficient line solves not implemented");
 #else
 	  const Box& fbox = corr[mglev][igrid].box();
@@ -339,7 +341,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	  int igrid = line_order[lev][i];
 	  const Box& sbox = resid[mglev][igrid].box();
 	  const Box& freg = corr[mglev].box(igrid);
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
 	  BoxLib::Error("Constant-coefficient line solves not implemented");
 #else
 	  const Box& fbox = corr[mglev][igrid].box();

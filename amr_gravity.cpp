@@ -46,7 +46,7 @@ void amr_gravity_module::poisson(const amr_real& Dest,
   if (Lev_max < 0)
     Lev_max = lev_max_max;
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
   error("poisson---only implemented for constant-coefficient version");
 #endif
 
