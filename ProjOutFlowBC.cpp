@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.23 2003-02-19 20:28:54 car Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.24 2003-02-19 20:57:35 car Exp $
 //
 #include <winstd.H>
 
@@ -64,9 +64,10 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
                           int               numOutFlowFaces,
                           Real              gravity)
 {
+    BL_ASSERT(numOutFlowFaces <= 2*BL_SPACEDIM);
     int i,iface;
 
-    int faces[numOutFlowFaces];
+    int faces[2*BL_SPACEDIM];
     for (i = 0; i < numOutFlowFaces; i++) faces[i] = int(outFaces[i]);
 
     const Real* dx    = geom.CellSize();
@@ -75,23 +76,23 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
     int lenx = domain.length()[0];
     int leny = domain.length()[1];
 
-    int zeroIt[numOutFlowFaces];
+    int zeroIt[2*BL_SPACEDIM];
     for (int i = 0; i < numOutFlowFaces; i++) zeroIt[i] = 0;
 
 #if (BL_SPACEDIM == 2)
-    Real* rcen[numOutFlowFaces];
-    Real* redge[numOutFlowFaces];
+    Real* rcen[2*BL_SPACEDIM];
+    Real* redge[2*BL_SPACEDIM];
 #endif
 
-    FArrayBox* ccExt = new FArrayBox[numOutFlowFaces];
+    FArrayBox ccExt[2*BL_SPACEDIM];
 
     int isPeriodic[BL_SPACEDIM];
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
         isPeriodic[dir] = geom.isPeriodic(dir);
 
     IntVect loFiltered, hiFiltered;
-    int isPeriodicFiltered[numOutFlowFaces][BL_SPACEDIM];
-    Real dxFiltered[numOutFlowFaces][BL_SPACEDIM];
+    int isPeriodicFiltered[2*BL_SPACEDIM][BL_SPACEDIM];
+    Real dxFiltered[2*BL_SPACEDIM][BL_SPACEDIM];
 
     for (int iface = 0; iface < numOutFlowFaces; iface++) {
 
@@ -237,7 +238,7 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
 
        } else {
 
-         int faces[numOutFlowFaces];
+         int faces[2*BL_SPACEDIM];
          int numOutFlowFacesInRegion;
          if (numRegions == 1)
          {
@@ -488,7 +489,6 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
                     &face,&gravity,dx);
   
     }
-    delete[] ccExt;
 }
 #endif
 

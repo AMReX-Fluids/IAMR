@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.23 2003-02-19 20:28:54 car Exp $
+// $Id: MacOutFlowBC.cpp,v 1.24 2003-02-19 20:57:35 car Exp $
 //
 #include <winstd.H>
 
@@ -55,30 +55,31 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
                          int               numOutFlowFaces,
                          Real              gravity)
 {
+    BL_ASSERT(numOutFlowFaces <= 2*BL_SPACEDIM);
     int i,iface;
 
-    int faces[numOutFlowFaces];
+    int faces[2*BL_SPACEDIM];
     for (i = 0; i < numOutFlowFaces; i++) faces[i] = int(outFaces[i]);
 
     const Real* dx     = geom.CellSize();
     const Box&  domain = geom.Domain();
 
-    int zeroIt[numOutFlowFaces];
+    int zeroIt[2*BL_SPACEDIM];
     for (i = 0; i < numOutFlowFaces; i++) zeroIt[i] = 0;
 
 #if (BL_SPACEDIM == 2)
-    Real* redge[numOutFlowFaces];
+    Real* redge[2*BL_SPACEDIM];
 #endif
 
-    FArrayBox* ccExt = new FArrayBox[numOutFlowFaces];
+    FArrayBox ccExt[2*BL_SPACEDIM];
   
     int isPeriodic[BL_SPACEDIM];
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
         isPeriodic[dir] = geom.isPeriodic(dir);
   
     IntVect loFiltered, hiFiltered;
-    int isPeriodicFiltered[numOutFlowFaces][BL_SPACEDIM];
-    Real dxFiltered[numOutFlowFaces][BL_SPACEDIM];
+    int isPeriodicFiltered[2*BL_SPACEDIM][BL_SPACEDIM];
+    Real dxFiltered[2*BL_SPACEDIM][BL_SPACEDIM];
 
     for (iface = 0; iface < numOutFlowFaces; iface++) {
 
@@ -453,8 +454,6 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
 
   // end if connected = 1
   }
-
-    delete[] ccExt;
 }
 
 #if (BL_SPACEDIM == 3)
