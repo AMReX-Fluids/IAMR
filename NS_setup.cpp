@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.28 1999-06-11 15:12:01 sstanley Exp $
+// $Id: NS_setup.cpp,v 1.29 1999-07-01 21:56:59 almgren Exp $
 //
 
 #include <NavierStokes.H>
@@ -310,6 +310,11 @@ NavierStokes::variableSetUp ()
     //
     derive_lst.add("gradpy",IndexType::TheCellType(),1,FORT_DERGRDPY,the_same_box);
     derive_lst.addComponent("gradpy",desc_lst,Press_Type,Pressure,1);
+    //
+    // magnitude of pressure gradient 
+    //
+    derive_lst.add("gradp",IndexType::TheCellType(),1,FORT_DERGRDP,the_same_box);
+    derive_lst.addComponent("gradp",desc_lst,Press_Type,Pressure,1);
 
 #if (BL_SPACEDIM == 3)
     //
