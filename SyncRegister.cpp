@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.39 1998-06-09 21:42:51 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.40 1998-06-11 17:37:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -421,27 +421,33 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                                                         0,
                                                         0,
                                                         mfi().nComp()));
+                    //
+                    // Also save the index of our FAB needed filling.
+                    //
+                    fillBoxIdList.back().FabIndex(mfi.index());
                 }
             }
         }
 
         fscd.CollectData();
 
-        vector<FillBoxId>::iterator fillBoxIdIter = fillBoxIdList.begin();
+        const int MyProc = ParallelDescriptor::MyProc();
 
-        for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
+        for (int i = 0; i < fillBoxIdList.size(); i++)
         {
-            for (int j = 0; j < grids.length(); j++)
-            {
-                if (mfi().box().intersects(bndry_mask[face()].fabbox(j)))
-                {
-                    assert(!(fillBoxIdIter == fillBoxIdList.end()));
-                    const FillBoxId& fbID = *fillBoxIdIter++;
-                    tmpfab.resize(fbID.box(), mfi().nComp());
-                    fscd.FillFab(faid, fbID, tmpfab, fbID.box());
-                    mfi().mult(tmpfab,fbID.box(),fbID.box(),0,0,mfi().nComp());
-                }
-            }
+            const FillBoxId& fbID = fillBoxIdList[i];
+
+            int fabindex = fbID.FabIndex();
+
+            assert(rhs.DistributionMap().ProcessorMap()[fabindex] == MyProc);
+
+            FArrayBox& fab = rhs[fabindex];
+
+            tmpfab.resize(fbID.box(), fab.nComp());
+
+            fscd.FillFab(faid, fbID, tmpfab, fbID.box());
+
+            fab.mult(tmpfab,fbID.box(),fbID.box(),0,0,fab.nComp());
         }
     }
 }
