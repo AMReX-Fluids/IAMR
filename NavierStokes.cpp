@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.149 1999-08-16 18:21:43 propp Exp $
+// $Id: NavierStokes.cpp,v 1.150 1999-08-16 18:31:03 propp Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2516,9 +2516,8 @@ NavierStokes::writePlotFile (const aString& dir,
     //
     // We combine all of the multifabs -- state, derived, etc -- into one
     // multifab -- plotMF.
-    // NOTE: we are assuming that each state variable and derived variable
-    // has exactly one component -- this is true for all variables we 
-    // currently have.
+    // NOTE: we are assuming that each state variable has one component,
+    // but a derived variable is allowed to have multiple components.
     int ncomp = 1;
     const int nGrow = 0;
     MultiFab plotMF(grids,n_data_items,nGrow);
