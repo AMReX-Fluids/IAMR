@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.145 1999-07-24 00:07:00 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.146 1999-07-27 17:33:11 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1906,10 +1906,12 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                        int  first_scalar,
                                        int  last_scalar)
 {
-    MultiFab** fluxSC;
+    MultiFab** fluxSCn;
+    MultiFab** fluxSCnp1;
     const int nGrow = 0;
     const int nComp = 1;
-    diffusion->allocFluxBoxesLevel(fluxSC,nGrow,nComp);
+    diffusion->allocFluxBoxesLevel(fluxSCn,  nGrow,nComp);
+    diffusion->allocFluxBoxesLevel(fluxSCnp1,nGrow,nComp);
 
     for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
     {
@@ -1938,7 +1940,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
 
             diffusion->diffuse_scalar(dt,sigma,be_cn_theta,
                                       rho_half,rho_flag,
-                                      fluxSC,
+                                      fluxSCn, fluxSCnp1,
                                       0,
                                       delta_rhs,
                                       alpha,
@@ -1959,13 +1961,18 @@ NavierStokes::scalar_diffusion_update (Real dt,
             //
             if (do_reflux)
             {
+                FArrayBox fluxtot;
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
-                    for (MultiFabIterator fmfi(*fluxSC[d]); fmfi.isValid(); ++fmfi)
+                    for (MultiFabIterator fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
                     {
+                        DependentMultiFabIterator f1mfi(fmfi, *fluxSCnp1[d]);
+                        const Box& ebox = fmfi().box();
+                        fluxtot.resize(ebox,nComp);
+                        fluxtot.copy(fmfi(),ebox,0,ebox,0,nComp);
+                        fluxtot.plus(f1mfi(),ebox,0,0,nComp);
                         if (level < parent->finestLevel())
-                            getLevel(level+1).getViscFluxReg().CrseInit(fmfi(),
-                                                                        fmfi().box(),
+                            getLevel(level+1).getViscFluxReg().CrseInit(fluxtot,ebox,
                                                                         d,0,sigma,
                                                                         nComp,-dt);
 
@@ -1979,7 +1986,8 @@ NavierStokes::scalar_diffusion_update (Real dt,
             }
         }
     }
-    diffusion->removeFluxBoxesLevel(fluxSC);
+    diffusion->removeFluxBoxesLevel(fluxSCn);
+    diffusion->removeFluxBoxesLevel(fluxSCnp1);
 }
 
 void

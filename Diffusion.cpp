@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.90 1999-05-10 18:54:12 car Exp $
+// $Id: Diffusion.cpp,v 1.91 1999-07-27 17:33:10 marc Exp $
 //
 
 //
@@ -335,7 +335,8 @@ Diffusion::diffuse_scalar (Real                   dt,
                            Real                   be_cn_theta,
                            const MultiFab*        rho_half,
                            int                    rho_flag,
-                           MultiFab* const*       flux,
+                           MultiFab* const*       fluxn,
+                           MultiFab* const*       fluxnp1,
                            int                    dataComp,
                            MultiFab*              delta_rhs, 
                            const MultiFab*        alpha, 
@@ -393,9 +394,9 @@ Diffusion::diffuse_scalar (Real                   dt,
             for (MultiFabIterator Smfi(Soln); Smfi.isValid(); ++Smfi)
                 Smfi().divide(S_old[Smfi.index()],Smfi.validbox(),Density,0,1);
         visc_op->apply(Rhs,Soln);
-        visc_op->compFlux(D_DECL(*flux[0],*flux[1],*flux[2]),Soln);
+        visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln);
         for (int i = 0; i < BL_SPACEDIM; ++i)
-            (*flux[i]).mult(-b/(dt*caller->Geom().CellSize()[i]));
+            (*fluxn[i]).mult(-b/(dt*caller->Geom().CellSize()[i]));
         delete visc_op;
         //
         // If this is a predictor step, put "explicit" updates passed via S_new
@@ -539,18 +540,12 @@ Diffusion::diffuse_scalar (Real                   dt,
         mg.solve(Soln,Rhs,S_tol,S_tol_abs);
     }
     //
-    // Add in flux contrib from new-time op
+    // Get extensivefluxes from new-time op
     //
-    MultiFab** emfSC; // Temporary single-component, edge-based multifab
-    allocFluxBoxesLevel(emfSC,0,1);
-    visc_op->compFlux(D_DECL(*emfSC[0],*emfSC[1],*emfSC[2]),Soln);
+    visc_op->compFlux(D_DECL(*fluxnp1[0],*fluxnp1[1],*fluxnp1[2]),Soln);
     for (int i = 0; i < BL_SPACEDIM; ++i)
-        (*emfSC[i]).mult(b/(dt*caller->Geom().CellSize()[i]));
+        (*fluxnp1[i]).mult(b/(dt*caller->Geom().CellSize()[i]));
     delete visc_op;
-    for (MultiFabIterator mfi(Soln); mfi.isValid(); ++mfi)
-        for (int d = 0; d < BL_SPACEDIM; ++d)
-            (*flux[d])[mfi.index()].plus((*emfSC[d])[mfi.index()],0,0,1);
-    removeFluxBoxesLevel(emfSC);
     //
     // Copy into state variable at new time, without bc's
     //
@@ -583,36 +578,46 @@ Diffusion::diffuse_velocity (Real                   dt,
 
     if (allnull)
     {
-        MultiFab* *fluxSC;
-        allocFluxBoxesLevel(fluxSC,0,1);
+        MultiFab* *fluxSCn;
+        MultiFab* *fluxSCnp1;
+        const int nGrow = 0;
+        const int nComp = 1;
+        allocFluxBoxesLevel(fluxSCn,  nGrow,nComp);
+        allocFluxBoxesLevel(fluxSCnp1,nGrow,nComp);
 
         for (int sigma = 0; sigma < BL_SPACEDIM; ++sigma)
         {
             const int state_ind = Xvel + sigma;
         
             diffuse_scalar(dt,state_ind,be_cn_theta,rho_half,rho_flag,
-                           fluxSC,sigma,delta_rhs);
+                           fluxSCn,fluxSCnp1,sigma,delta_rhs);
 
             if (do_reflux)
             {
-                const int finest_level = parent->finestLevel();
-
+                FArrayBox fluxtot;
                 for (int d = 0; d < BL_SPACEDIM; ++d)
                 {
-                    for (MultiFabIterator fmfi(*fluxSC[d]); fmfi.isValid(); ++fmfi)
+                    for (MultiFabIterator fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
                     {
-                        if (level < finest_level)
-                            finer->viscflux_reg->CrseInit(fmfi(),fmfi().box(),
-                                                          d,0,sigma,1,-dt);
+                        DependentMultiFabIterator f1mfi(fmfi, *fluxSCnp1[d]);
+                        const Box& ebox = fmfi().box();
+                        fluxtot.resize(ebox,nComp);
+                        fluxtot.copy(fmfi(),ebox,0,ebox,0,nComp);
+                        fluxtot.plus(f1mfi(),ebox,0,0,nComp);
+                        if (level < parent->finestLevel())
+                            finer->viscflux_reg->CrseInit(fluxtot,ebox,
+                                                          d,0,sigma,nComp,-dt);
                         if (level > 0)
-                            viscflux_reg->FineAdd(fmfi(),d,fmfi.index(),0,sigma,1,dt);
+                            viscflux_reg->FineAdd(fluxtot,d,fmfi.index(),
+                                                  0,sigma,nComp,dt);
                     }
                 }
-                if (level < finest_level)
+                if (level < parent->finestLevel())
                     finer->viscflux_reg->CrseInitFinish();
             }
         }
-        removeFluxBoxesLevel(fluxSC);
+        removeFluxBoxesLevel(fluxSCn);
+        removeFluxBoxesLevel(fluxSCnp1);
     }
     else
     {

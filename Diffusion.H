@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.13 1999-03-30 17:25:17 lijewski Exp $
+// $Id: Diffusion.H,v 1.14 1999-07-27 17:33:09 marc Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -88,7 +88,8 @@ public:
 			 Real                   be_cn_theta,
 			 const MultiFab*        rho_half,
 			 int                    rho_flag,
-			 MultiFab* const*       flux,
+			 MultiFab* const*       fluxn,
+			 MultiFab* const*       fluxnp1,
 			 int                    dataComp = 0,
 			 MultiFab*              delta_rhs = 0, 
 			 const MultiFab*        alpha = 0, 
