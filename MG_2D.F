@@ -1,7 +1,14 @@
-c     $Id: MG_2D.F,v 1.1 1997-07-08 23:08:04 vince Exp $
+c
+c $Id: MG_2D.F,v 1.2 1997-12-12 22:44:06 lijewski Exp $
+c
+#undef  BL_LANG_CC
+#ifndef BL_LANG_FORT
+#define BL_LANG_FORT
+#endif
+
 #include <REAL.H>
 #include "MG_F.H"
-#include "DIMS.H"
+#include "ArrayLim.H"
 
 c-----------------------------------------------------------------------
       subroutine FORT_AVERAGE (

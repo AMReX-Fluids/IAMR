@@ -1,3 +1,11 @@
+c
+c $Id: hg_proj3d.F,v 1.5 1997-12-12 22:44:17 lijewski Exp $
+c
+#undef  BL_LANG_CC
+#ifndef BL_LANG_FORT
+#define BL_LANG_FORT
+#endif
+
 #include <REAL.H>
 
 #define dims(a) a##l0,a##h0,a##l1,a##h1,a##l2,a##h2

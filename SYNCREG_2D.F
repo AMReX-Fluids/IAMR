@@ -1,9 +1,15 @@
-#define _SYNCREG_2D_F_  $Id: SYNCREG_2D.F,v 1.2 1997-09-27 02:33:51 almgren Exp $
+c
+c $Id: SYNCREG_2D.F,v 1.3 1997-12-12 22:44:11 lijewski Exp $
+c
+#undef  BL_LANG_CC
+#ifndef BL_LANG_FORT
+#define BL_LANG_FORT
+#endif
 
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "SYNCREG_F.H"
-#include "DIMS.H"
+#include "ArrayLim.H"
 
 #define SDIM 2
 

@@ -1,7 +1,10 @@
-#define _POLYNOMINTERPCOEFFS_
-/*
- * $Id: LO_UTIL.F,v 1.2 1997-07-18 20:58:25 car Exp $
-*/
+c
+c $Id: LO_UTIL.F,v 1.3 1997-12-12 22:44:04 lijewski Exp $
+c
+#undef  BL_LANG_CC
+#ifndef BL_LANG_FORT
+#define BL_LANG_FORT
+#endif
       
 #undef TESTING_POLYNOMINTERPCOEFFS
 #ifdef TESTING_POLYNOMINTERPCOEFFS

@@ -1,9 +1,16 @@
-c $Id: PROJECTION_2D.F,v 1.3 1997-07-22 21:57:07 car Exp $
+c
+c $Id: PROJECTION_2D.F,v 1.4 1997-12-12 22:44:09 lijewski Exp $
+c
+#undef  BL_LANG_CC
+#ifndef BL_LANG_FORT
+#define BL_LANG_FORT
+#endif
+
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "BC_TYPES.H"
 #include "PROJECTION_F.H"
-#include "DIMS.H"
+#include "ArrayLim.H"
 
 #define SDIM 2
 

@@ -1,8 +1,16 @@
+c
+c $Id: GODUNOV_3D.F,v 1.5 1997-12-12 22:44:01 lijewski Exp $
+c
+#undef  BL_LANG_CC
+#ifndef BL_LANG_FORT
+#define BL_LANG_FORT
+#endif
+
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "BC_TYPES.H"
 #include "GODUNOV_F.H"
-#include "DIMS.H"
+#include "ArrayLim.H"
 
 #define SDIM 3
 #define XVEL 1

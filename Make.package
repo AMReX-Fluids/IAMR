@@ -27,7 +27,7 @@ C$(BNDRYLIB_BASE)_sources += FabSet.cpp BndryRegister.cpp \
 C$(BNDRYLIB_BASE)_headers += FabSet.H BndryRegister.H \
 			     Geometry.H CoordSys.H RealBox.H
 
-F$(BNDRYLIB_BASE)_headers += COORDSYS_F.H DIMS.H
+F$(BNDRYLIB_BASE)_headers += COORDSYS_F.H
 F$(BNDRYLIB_BASE)_sources += COORDSYS_$(DIM)D.F
 #
 # boxlib sources

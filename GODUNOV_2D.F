@@ -1,9 +1,16 @@
-c $Id: GODUNOV_2D.F,v 1.4 1997-07-22 21:57:01 car Exp $
+c
+c $Id: GODUNOV_2D.F,v 1.5 1997-12-12 22:44:00 lijewski Exp $
+c
+#undef  BL_LANG_CC
+#ifndef BL_LANG_FORT
+#define BL_LANG_FORT
+#endif
+
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "BC_TYPES.H"
 #include "GODUNOV_F.H"
-#include "DIMS.H"
+#include "ArrayLim.H"
 
 #define SDIM 2
 #define XVEL 1

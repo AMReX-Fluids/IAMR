@@ -1223,10 +1223,6 @@ SOURCE=.\DIFFUSION_F.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\DIMS.H
-# End Source File
-# Begin Source File
-
 SOURCE=.\ErrorList.H
 # End Source File
 # Begin Source File

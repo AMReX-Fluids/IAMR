@@ -1,9 +1,15 @@
-c $Id: ABec_2D.F,v 1.1 1997-07-08 23:08:03 vince Exp $
+c
+c $Id: ABec_2D.F,v 1.2 1997-12-12 22:43:57 lijewski Exp $
+c
+#undef  BL_LANG_CC
+#ifndef BL_LANG_FORT
+#define BL_LANG_FORT
+#endif
 
 #include <REAL.H>
 
 #include "ABec_F.H"
-#include "DIMS.H"
+#include "ArrayLim.H"
 
 c-----------------------------------------------------------------------
 c      
