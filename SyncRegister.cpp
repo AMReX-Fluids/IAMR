@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.17 1998-03-26 18:24:55 car Exp $
+// $Id: SyncRegister.cpp,v 1.18 1998-04-01 21:45:57 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,10 +22,6 @@
 #endif
 
 #include <SYNCREG_F.H>
-
-const char NL = '\n';
-
-static void printFAB(ostream& os, const FArrayBox& f);
 
 SyncRegister::SyncRegister()
 {
@@ -1653,57 +1649,3 @@ if(ParallelDescriptor::NProcs() > 1) {
         }
     }
 }
-
-
-static void printFAB(ostream& os, const FArrayBox& f)
-{
-if(ParallelDescriptor::NProcs() > 1) {
-  ParallelDescriptor::Abort("SyncRegister::printFAB(...) not implemented in parallel.");
-} else {
-  cerr << "SyncRegister::printFAB(...) not implemented in parallel.\n";
-}
-
-    int comp = 0;
-    const Box& bx = f.box();
-    Box subbox(bx);
-    os << "[box = " << subbox << ", comp = "
-         << comp << ']' << NL;
-    const int* len = bx.length().getVect();
-    const int* lo = bx.loVect();
-    const int* s_len = subbox.length().getVect();
-    const int* s_lo = subbox.loVect();
-    const Real* d = f.dataPtr(comp);
-    char str[80];
-    for (int j = 0; j < s_len[1]; j++) {
-        int jrow = s_lo[1] + s_len[1]-1-j;
-        const Real* d_x = d + (jrow - lo[1])*len[0] + s_lo[0]-lo[0];
-        sprintf(str,"%04d : ",jrow);
-        os << str;
-        for (int i = 0; i < s_len[0]; i++) {
-            sprintf(str,"%18.12f ",d_x[i]);
-            os << str;
-        }
-        os << NL;
-    }
-}
-
-void
-SyncRegister::print(ostream &os)
-{
-  if(ParallelDescriptor::NProcs() > 1) {
-    ParallelDescriptor::Abort("SyncRegister::print(os) not implemented in parallel.");
-  } else {
-    cerr << "SyncRegister::print(os) not implemented in parallel.\n";
-  }
-    int ngrd = grids.length();
-    os << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
-    os << "SyncRegister with coarse level = " << crseLevel() << NL;
-    for (int k = 0; k < ngrd; k++) {
-        os << "  Registers surrounding coarsened box " << grids[k] << NL;
-        for (OrientationIter face; face; ++face) {
-            printFAB(os,bndry[face()][k]);
-        }
-    }
-    os << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
-}
-

@@ -2,7 +2,7 @@
 #define _SYNCREGISTER_H_
 
 //
-// $Id: SyncRegister.H,v 1.7 1997-12-11 23:30:25 lijewski Exp $
+// $Id: SyncRegister.H,v 1.8 1998-04-01 21:45:56 car Exp $
 //
 
 #include <PArray.H>
@@ -79,8 +79,6 @@ public:
       // compute sum of values (overlap values only counted once)
       // WARNING: this is a diagnostic and is not efficient
     Real sum();
-
-    void print(ostream& os);
 
 protected:
 
