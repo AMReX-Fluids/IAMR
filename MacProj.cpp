@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.18 1998-05-29 19:11:35 lijewski Exp $
+// $Id: MacProj.cpp,v 1.19 1998-06-03 15:04:58 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -331,6 +331,13 @@ MacProj::mac_project (int             level,
         {
             mr.CrseInit(u_mac[dir],area[level][dir],dir,0,0,1,-1.0);
         }
+        if (verbose && ParallelDescriptor::IOProcessor())
+        {
+            cout << "LEVEL "
+                 << level
+                 << " MACREG: CrseInit sum = "
+                 << mr.SumReg(0) << endl;
+        }
     }
     //
     // Increment in fine grid velocity to velocity registers.
@@ -341,6 +348,13 @@ MacProj::mac_project (int             level,
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             mac_reg[level].FineAdd(u_mac[dir],area[level][dir],dir,0,0,1,mult);
+        }
+        if (verbose && ParallelDescriptor::IOProcessor())
+        {
+            cout << "LEVEL "
+                 << level
+                 << " MACREG: FineAdd sum = "
+                 << mac_reg[level].SumReg(0) << endl;
         }
     }
     //
