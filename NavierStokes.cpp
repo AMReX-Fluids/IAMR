@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.114 1999-02-25 17:35:37 car Exp $
+// $Id: NavierStokes.cpp,v 1.115 1999-02-26 17:28:42 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3199,9 +3199,8 @@ NavierStokes::post_init_state ()
     //
     for (int k = 0; k <= finest_level; k++)
     {
-        NavierStokes& ns_level = getLevel(k);
-        ns_level.zeroNewPress();
-        ns_level.zeroOldPress();
+        getLevel(k).zeroNewPress();
+        getLevel(k).zeroOldPress();
     }
 }
 
@@ -3242,7 +3241,7 @@ NavierStokes::post_init_press (Real&        dt_init,
             projector->initialSyncProject(0,sig,parent->dtLevel(0),strt_time,
                                           dt_init,have_divu);
         }
-        delete sig;
+        delete [] sig;
 
         for (int k = finest_level-1; k>= 0; k--)
         {
