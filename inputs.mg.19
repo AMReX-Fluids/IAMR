@@ -1,4 +1,0 @@
-boxes = grids.19
-geometry.coord_sys = 0
-geometry.prob_lo   =   0.0    0.0
-geometry.prob_hi   = 512.0  256.0
