@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.18 2000-04-20 17:45:40 car Exp $
+c $Id: PROB_3D.F,v 1.19 2000-10-10 19:50:09 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -732,7 +732,6 @@ c
 
                scal(i,j,k,1) = one
                scal(i,j,k,2) = exp( -kappa_input * (rho_input - r_yz)**2 )
-
 
                do n = 3,nscal
                   scal(i,j,k,n) = one

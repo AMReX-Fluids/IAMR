@@ -1,7 +1,6 @@
 palette               Palette
-initialderived        density
-initialderived        vol_fraction1
-initialscale          1
+initialderived        mag_vort
+initialscale          2
 numberformat          %8.5e
 maxpixmapsize         800000
 reservesystemcolors   24
