@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.40 2001-09-21 21:46:27 lijewski Exp $
+// $Id: main.cpp,v 1.41 2001-10-16 20:00:11 lijewski Exp $
 //
 
 #include <cstdio>
@@ -173,7 +173,7 @@ main (int   argc,
     //
     HG::MPI_finish();
 
-    if (CArena* arena = dynamic_cast<CArena*>(The_FAB_Arena))
+    if (CArena* arena = dynamic_cast<CArena*>(BoxLib::The_Arena()))
     {
         //
         // We're using a CArena -- output some FAB memory stats.
