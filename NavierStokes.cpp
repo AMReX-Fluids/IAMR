@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.138 1999-06-29 17:27:48 marc Exp $
+// $Id: NavierStokes.cpp,v 1.139 1999-06-30 22:40:54 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3168,7 +3168,6 @@ NavierStokes::post_init_state ()
 	// NOTE: this assumes have_divu == 0.
 	// Only used if vorticity is used to initialize the velocity field.
         //
-	//BL_ASSERT(!have_divu);
         BL_ASSERT(!(projector == 0));
         
 	projector->initialVorticityProject(0);
@@ -4942,23 +4941,12 @@ NavierStokes::compute_grad_divu_minus_s (Real      time,
         U[Ufpi.index()].copy(Ufpi());
     }
 
-    if (is_rz)
-    {
-        for (int n = 0; n < BL_SPACEDIM; n++) 
-            projector->radMult(level,U,n);
-    }
-
     const Real* dx = geom.CellSize();
-    projector->computeDV(Dv, U, Xvel, dx, is_rz);
+    projector->computeDV(level, Dv, U, Xvel, dx);
 
-    if (is_rz)
-    {
-        for (int n = 0; n < BL_SPACEDIM; n++) 
-            projector->radDiv(level,U,n);
-    }
     //
     // Fix DV (mult by 2) at walls.
-    // Outflow, Inflow, and Symmetry should be ok already.
+    // Outflow and Inflow should be ok already.
     //
     const Box& domain      = geom.Domain();
     Box        node_domain = ::surroundingNodes(domain);
@@ -4971,7 +4959,8 @@ NavierStokes::compute_grad_divu_minus_s (Real      time,
     {
         for (MultiFabIterator Dvmfi(Dv); Dvmfi.isValid(); ++Dvmfi)
         {
-            if (phys_lo[dir] == SlipWall || phys_lo[dir] == NoSlipWall)
+            if (phys_lo[dir] == SlipWall || phys_lo[dir] == NoSlipWall ||
+                phys_lo[dir] == Symmetry)
             {
                 Box domlo(node_domain);
                 domlo.setRange(dir,dlo[dir],1);
@@ -4982,7 +4971,8 @@ NavierStokes::compute_grad_divu_minus_s (Real      time,
                     Dvmfi().mult(2.0,bx,0,1);
                 }
             }
-            if (phys_hi[dir] == SlipWall || phys_hi[dir] == NoSlipWall)
+            if (phys_hi[dir] == SlipWall || phys_hi[dir] == NoSlipWall ||
+                phys_hi[dir] == Symmetry)
             {
                 Box domhi(node_domain);
                 domhi.setRange(dir,dhi[dir],1);
