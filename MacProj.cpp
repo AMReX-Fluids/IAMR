@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.21 1998-06-05 16:24:13 lijewski Exp $
+// $Id: MacProj.cpp,v 1.22 1998-06-08 15:51:15 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -30,6 +30,7 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 Real* fabdat = (fab).dataPtr();
+
 #define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
@@ -76,14 +77,13 @@ MacProj::MacProj (Amr*   _parent,
     finest_level_allocated = finest_level;
 }
 
-MacProj::~MacProj ()
-{}
+MacProj::~MacProj () {}
 
 void
 MacProj::read_params ()
 {
     //
-    // read parameters from input file and command line.
+    // Read parameters from input file and command line.
     //
     ParmParse pp("mac");
 
@@ -200,11 +200,11 @@ MacProj::BuildPhiBC (int level)
 void
 MacProj::setup (int level)
 {
-    const BoxArray& grids = LevelData[level].boxArray();
     if (level < parent->maxLevel())
     {
         if (!mac_phi_crse.defined(level))
         {
+            const BoxArray& grids = LevelData[level].boxArray();
             mac_phi_crse.set(level, new MultiFab(grids,1,1,Fab_allocate));
             mac_phi_crse[level].setVal(0.0);
         }
@@ -220,13 +220,13 @@ MacProj::cleanup (int level)
     }
 }
 
-// -------------------------------------------------------------
-// Projection functions follow
-// -------------------------------------------------------------
+//
+// Projection functions follow ...
+//
 
-// ==================================================
-// compute the level advance mac projection
-// ==================================================
+//
+// Compute the level advance mac projection.
+//
 
 void
 MacProj::mac_project (int             level,
@@ -274,9 +274,9 @@ MacProj::mac_project (int             level,
     // Store the Dirichlet boundary condition for mac_phi in mac_bndry.
     //
     MacBndry mac_bndry(grids,1,geom);
-    int src_comp  = 0;
-    int dest_comp = 0;
-    int num_comp  = 1;
+    const int src_comp  = 0;
+    const int dest_comp = 0;
+    const int num_comp  = 1;
     if (level == 0)
     {
         mac_bndry.setBndryValues(*mac_phi,src_comp,dest_comp,num_comp,*phys_bc);
@@ -293,8 +293,7 @@ MacProj::mac_project (int             level,
         crse_br.copyFrom(CPhi,extent_rad,src_comp,dest_comp,num_comp);
 
         mac_bndry.setBndryValues(crse_br,src_comp,*mac_phi,src_comp,
-                                 dest_comp,num_comp,crse_ratio,
-                                 *phys_bc);
+                                 dest_comp,num_comp,crse_ratio,*phys_bc);
     }
     //
     // Compute the nondivergent velocities, by creating the linop
@@ -306,11 +305,9 @@ MacProj::mac_project (int             level,
     MultiFab Rhs(grids,1,0,Fab_allocate);
     Rhs.copy(divu);
 
-    mac_level_driver(mac_bndry, grids,
-                     use_cg_solve, level, Density,
+    mac_level_driver(mac_bndry, grids, use_cg_solve, level, Density,
                      dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
-                     area[level], volume[level],
-                     S, Rhs, u_mac, mac_phi);
+                     area[level], volume[level], S, Rhs, u_mac, mac_phi);
     //
     // Test that u_mac is divergence free
     //
@@ -365,9 +362,9 @@ MacProj::mac_project (int             level,
     }
 }
 
-// ==================================================
-// compute the corrective pressure used in the mac_sync
-// ==================================================
+//
+// Compute the corrective pressure used in the mac_sync.
+//
 
 void
 MacProj::mac_sync_solve (int       level,
@@ -410,14 +407,12 @@ MacProj::mac_sync_solve (int       level,
     // set scale to -1 & alloc space for Rhs.
     //
     FluxRegister& mr = mac_reg[level+1];
-    Real scale       = -1.0;
+    const Real scale = -1.0;
     mr.Reflux(Rhs,volume[level],scale,0,0,1,geom);
 
-    int nfine = fine_boxes.length();
-    for (int kf = 0; kf < nfine; kf++)
+    for (int kf = 0, nfine = fine_boxes.length(); kf < nfine; kf++)
     {
-        Box bf(fine_boxes[kf]);
-        bf.coarsen(fine_ratio);
+        Box bf = ::coarsen(fine_boxes[kf],fine_ratio);
 
         for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
         {
@@ -436,7 +431,7 @@ MacProj::mac_sync_solve (int       level,
     // Note that Rhs does not yet have the radial scaling in it for r-z
     // problems so we must do explicit volume-weighting here.
     //
-    if ( fix_mac_sync_rhs )
+    if (fix_mac_sync_rhs)
     {
         int all_neumann = 1;
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -469,12 +464,12 @@ MacProj::mac_sync_solve (int       level,
             ParallelDescriptor::ReduceRealSum(sum);
             ParallelDescriptor::ReduceRealSum(vol);
 
-            Real fix = sum / vol;
+            const Real fix = sum / vol;
             if (ParallelDescriptor::IOProcessor())
             {
                 cout << "Average correction on mac sync RHS = " << fix << NL;
             }
-            Rhs.plus( -fix, 0 );
+            Rhs.plus(-fix, 0);
         }
     }
 
@@ -483,9 +478,9 @@ MacProj::mac_sync_solve (int       level,
     // store the Dirichlet boundary condition for mac_sync_phi in mac_bndry
     //
     MacBndry mac_bndry(grids,1,geom);
-    int src_comp = 0;
-    int dest_comp = 0;
-    int num_comp = 1;
+    const int src_comp = 0;
+    const int dest_comp = 0;
+    const int num_comp = 1;
     if (level == 0)
     {
         mac_bndry.setBndryValues(*mac_sync_phi,src_comp,dest_comp,num_comp,
@@ -495,9 +490,9 @@ MacProj::mac_sync_solve (int       level,
     {
         BoxArray crse_boxes(grids);
         crse_boxes.coarsen(crse_ratio);
-        int n_ghost = 0;
+        const int n_ghost = 0;
         BndryRegister crse_br(crse_boxes,n_ghost,1,1,num_comp);
-        crse_br.setVal(0.);
+        crse_br.setVal(0);
         mac_bndry.setBndryValues(crse_br,src_comp,*mac_sync_phi,src_comp,
                                  dest_comp,num_comp,crse_ratio, *phys_bc);
     }
@@ -508,14 +503,12 @@ MacProj::mac_sync_solve (int       level,
     //
     // Solve the sync system.
     //
-    mac_sync_driver(mac_bndry,    grids,       
-                    use_cg_solve, level, 
-                    dx, dt, mac_sync_tol, mac_abs_tol, rhs_scale, 
-                    area[level],  volume[level],
-                    Rhs, rho_half, u_mac, mac_sync_phi);
+    mac_sync_driver(mac_bndry, grids, use_cg_solve, level, dx, dt,
+                    mac_sync_tol, mac_abs_tol, rhs_scale, area[level],
+                    volume[level], Rhs, rho_half, u_mac, mac_sync_phi);
 }
 
-// ================================================================
+//
 // After solving for mac_sync_phi in mac_sync_solve(), we
 // can now do the sync advect step.  This consists of two steps
 //
@@ -526,7 +519,7 @@ MacProj::mac_sync_solve (int       level,
 // If increment_sync is non-null, the (i-BL_SPACEDIM)-th component 
 // of (*Ssync) is incremented only when increment[i]==1
 // This is useful if that component gets incrmnted in a non-standard way.
-// ================================================================
+//
 
 void
 MacProj::mac_sync_compute (int           level,
@@ -590,6 +583,8 @@ MacProj::mac_sync_compute (int           level,
     //
     // Compute the mac sync correction.
     //
+    Array<int> ns_level_bc, bndry[BL_SPACEDIM];
+
     for (MultiFabIterator u_mac0mfi(u_mac[0]); u_mac0mfi.isValid(); ++u_mac0mfi)
     {
         DependentMultiFabIterator u_mac1mfi(u_mac0mfi, u_mac[1]);
@@ -653,11 +648,15 @@ MacProj::mac_sync_compute (int           level,
         //
         // Set up the workspace for the godunov Box.
         //
+        D_TERM(bndry[0] = ns_level.getBCArray(State_Type,i,0,1);,
+               bndry[1] = ns_level.getBCArray(State_Type,i,1,1);,
+               bndry[2] = ns_level.getBCArray(State_Type,i,2,1);)
+
         godunov->Setup(grids[i], dx, dt, 0,
-                       xflux, ns_level.getBCArray(State_Type,i,0,1).dataPtr(),
-                       yflux, ns_level.getBCArray(State_Type,i,1,1).dataPtr(),
+                       xflux, bndry[0].dataPtr(),
+                       yflux, bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)
-                       zflux, ns_level.getBCArray(State_Type,i,2,1).dataPtr(),
+                       zflux, bndry[2].dataPtr(),
 #endif
                        S, Rho, tvelforces);
         //
@@ -677,11 +676,11 @@ MacProj::mac_sync_compute (int           level,
             }
             if (!do_comp)
                 continue;
-            const int u_ind        = comp;
-            const int s_ind        = comp-BL_SPACEDIM;
-            const int sync_ind     = (comp < BL_SPACEDIM ? u_ind  : s_ind);
-            FArrayBox& temp        = (comp < BL_SPACEDIM ? u_sync : s_sync);
-            Array<int> ns_level_bc = ns_level.getBCArray(State_Type,i,comp,1);
+            const int u_ind    = comp;
+            const int s_ind    = comp-BL_SPACEDIM;
+            const int sync_ind = (comp < BL_SPACEDIM ? u_ind  : s_ind);
+            FArrayBox& temp    = (comp < BL_SPACEDIM ? u_sync : s_sync);
+            ns_level_bc        = ns_level.getBCArray(State_Type,i,comp,1);
 
             godunov->SyncAdvect(grids[i], dx, dt, level,
                                 area0mfi(), u_mac0mfi(),
@@ -730,22 +729,22 @@ MacProj::mac_sync_compute (int           level,
         //
     }
 
-    delete S_fp;
-    delete tforces_fp;
-    delete Gp_fp;
-    delete divu_fp;
-    delete tvelforces_fp;
     delete visc_terms;
+    delete tvelforces_fp;
+    delete divu_fp;
+    delete Gp_fp;
+    delete tforces_fp;
+    delete S_fp;
 }
 
-// ==================================================
+//
 // This routine does a sync advect step for a single 
 // scalar component. Unlike the preceding routine, the
 // half-time edge states are passed in from the calling routine.
 // This routine is useful when the edge states are computed
 // in a physics-class-specific manner. (For example, as they are
 // in the calculation of div rho U h = div U sum_l (rho Y)_l h_l(T)).
-// ==================================================
+//
 
 void
 MacProj::mac_sync_compute (int           level,
@@ -856,8 +855,9 @@ void MacProj::check_div_cond (int      level,
 
     Real sum = 0.0;
 
-    for (MultiFabIterator U_edge0mfi(U_edge[0]);
-         U_edge0mfi.isValid();
+    FArrayBox dmac;
+
+    for (MultiFabIterator U_edge0mfi(U_edge[0]); U_edge0mfi.isValid();
          ++U_edge0mfi)
     {
         DependentMultiFabIterator U_edge1mfi(U_edge0mfi, U_edge[1]);
@@ -870,7 +870,7 @@ void MacProj::check_div_cond (int      level,
         DependentMultiFabIterator area2mfi(U_edge0mfi, area[level][2]);
 #endif
 
-        FArrayBox dmac(grids[U_edge0mfi.index()],1);
+        dmac.resize(grids[U_edge0mfi.index()],1);
 
         const FArrayBox& uxedge = U_edge0mfi();
         const FArrayBox& uyedge = U_edge1mfi();
@@ -1010,25 +1010,25 @@ MacProj::set_outflow_bcs (int             level,
 
             Box destbox = Smfi.validbox();
             destbox.grow(0,1);
-            destbox &= top_rho_strip;
 
-            if (destbox.ok())
+            if (destbox.intersects(top_rho_strip))
             {
+                destbox &= top_rho_strip;
                 rho_strip.copy(Smfi(),destbox,Density,destbox,0,1);
             }
-            destbox = Smfi.validbox() & top_strip;
 
-            if (destbox.ok())
+            if (top_strip.intersects(Smfi.validbox()))
             {
+                destbox = Smfi.validbox() & top_strip;
                 divu_strip.copy(divumfi(),destbox,0,destbox,0,1);
             }
             destbox = Smfi.validbox();
             destbox.growLo(0,1);
             destbox.shiftHalf(0,1);
-            destbox &= top_vel_strip;
 
-            if (destbox.ok())
+            if (destbox.intersects(top_vel_strip))
             {
+                destbox &= top_vel_strip;
                 mac_vel_strip.copy(u_mac0mfi(),destbox,0,destbox,0,1);
             }
         }

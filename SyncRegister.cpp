@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.37 1998-05-29 00:08:19 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.38 1998-06-08 15:51:13 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -73,7 +73,7 @@ SyncRegister::define (const BoxArray& fine_boxes,
 
     for (int k = 0; k < grids.length(); k++)
     {
-        Box ndbox(::surroundingNodes(grids[k]));
+        Box ndbox = ::surroundingNodes(grids[k]);
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
@@ -208,9 +208,9 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
                         Box sbox = bndry[face()][j].box();
                         sbox.shift(pshifts[iiv]);
-                        sbox &= mfi().box();
-                        if (sbox.ok())
+                        if (sbox.intersects(mfi().box()))
                         {
+                            sbox &= mfi().box();
                             D_TERM(sbox.shift(0,-pshifts[iiv][0]);,
                                    sbox.shift(1,-pshifts[iiv][1]);,
                                    sbox.shift(2,-pshifts[iiv][2]););
@@ -240,9 +240,9 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                     {
                         Box sbox = bndry[face()][j].box();
                         sbox.shift(pshifts[iiv]);
-                        sbox &= mfi().box();
-                        if (sbox.ok())
+                        if (sbox.intersects(mfi().box()))
                         {
+                            sbox &= mfi().box();
                             assert(!(fillBoxIdIter == fillBoxIdList.end()));
                             fscd.FillFab(faid, *fillBoxIdIter++, mfi(), sbox);
                         }
@@ -576,10 +576,9 @@ SyncRegister::CrseDVInit (const MultiFab& U,
                 {
                     Box fine_shifted(grids[fine]);
                     fine_shifted.shift(pshifts[iiv]);
-                    fine_shifted &= mfi().box();
-
-                    if (fine_shifted.ok())
+                    if (fine_shifted.intersects(mfi().box()))
                     {
+                        fine_shifted &= mfi().box();
                         Nullify(grids,mfi(),mfi.validbox(),fine_shifted,bc,BL_SPACEDIM,fine);
                     }
                 }
@@ -1029,7 +1028,7 @@ NullOverlap (const BoxArray& Pgrids,
     {
         if (reglo.intersects(Pgrids[i]))
         {
-            ffablo.setVal(0,reglo & Pgrids[i],set_comp,n_comp);
+            ffablo.setVal(0,(reglo & Pgrids[i]),set_comp,n_comp);
         }
 
         fine_geom.periodicShift(reglo, Pgrids[i], pshifts);
@@ -1044,7 +1043,7 @@ NullOverlap (const BoxArray& Pgrids,
 
         if (reghi.intersects(Pgrids[i]))
         {
-            ffabhi.setVal(0,reghi & Pgrids[i],set_comp,n_comp);
+            ffabhi.setVal(0,(reghi & Pgrids[i]),set_comp,n_comp);
         }
 
         fine_geom.periodicShift(reghi, Pgrids[i], pshifts);
