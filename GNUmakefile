@@ -120,13 +120,15 @@ else
 LIBRARIES += -lbspcore_O2 -lbsplevel1_O2
 endif
 endif
-endif
-
-###### exception library (for newest bsplib)
+#
+# exception library (for newest bsplib)
+#
 ifeq ($(BSP_MACHINE), OSF1)
 LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
 LIBRARIES += -lexc 
 endif
+endif
+
 
 #CXXFLAGS = -g --diag_suppress 177
 #CXXFLAGS = --strict_warnings
