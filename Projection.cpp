@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.60 1998-11-10 23:55:35 lijewski Exp $
+// $Id: Projection.cpp,v 1.61 1998-12-09 22:21:53 sstanley Exp $
 //
 
 #ifdef BL_T3E
@@ -324,10 +324,12 @@ Projection::level_project (int             level,
     // must fill bndry cells in pressure with computable values
     // even though they are not used in calculation.
     //
+    U_old.setBndry(BogusValue,Xvel,BL_SPACEDIM);
     U_new.setBndry(BogusValue,Xvel,BL_SPACEDIM);
     P_old.setBndry(BogusValue);
     P_new.setBndry(BogusValue);
-    LevelData[level].setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM);
+    LevelData[level].setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM,0);
+    LevelData[level].setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM,1);
 
     const Real* dx          = geom.CellSize();
     const BoxArray& grids   = LevelData[level].boxArray();
