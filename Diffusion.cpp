@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.60 1999-02-11 19:14:07 marc Exp $
+// $Id: Diffusion.cpp,v 1.61 1999-02-12 00:15:32 lijewski Exp $
 //
 
 //
@@ -38,13 +38,14 @@
 #if defined(BL_OSF1)
 #if defined(BL_USE_DOUBLE)
 const Real BL_BOGUS      = DBL_QNAN;
-const Real BL_SAFE_BOGUS = -666.e30;
 #else
 const REAL BL_BOGUS      = FLT_QNAN;
-const Real BL_SAFE_BOGUS = -666.e30;
 #endif
 #else
 const REAL BL_BOGUS      = 1.e30;
+#endif
+
+#if defined(USE_TENSOR)
 const Real BL_SAFE_BOGUS = -666.e30;
 #endif
 
