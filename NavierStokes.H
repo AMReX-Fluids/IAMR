@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.82 2003-02-28 05:21:22 almgren Exp $
+// $Id: NavierStokes.H,v 1.83 2003-03-03 20:24:53 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -674,10 +674,6 @@ protected:
     // Density at time n+1/2 (used in advance).
     //
     MultiFab* rho_half;
-    //
-    // Rho at some arbitrary time between previous and current.
-    //
-    MultiFab* rho_interp;
     //
     // Density at prev_time used in advance().
     //

@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.227 2003-02-28 05:21:22 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.228 2003-03-03 20:24:53 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -418,7 +418,6 @@ NavierStokes::NavierStokes ()
 {
     rho_avg      = 0;
     rho_half     = 0;
-    rho_interp   = 0;
     rho_ptime    = 0;
     rho_ctime    = 0;
     p_avg        = 0;
@@ -467,7 +466,6 @@ NavierStokes::NavierStokes (Amr&            papa,
     }
 
     rho_half   = new MultiFab(grids,1,1);
-    rho_interp = new MultiFab(grids,1,1);
     rho_ptime  = new MultiFab(grids,1,1);
     rho_ctime  = new MultiFab(grids,1,1);
     //
@@ -558,7 +556,6 @@ NavierStokes::~NavierStokes ()
     delete rho_avg;
     delete p_avg;
     delete rho_half;
-    delete rho_interp;
     delete rho_ptime;
     delete rho_ctime;
     delete Vsync;
@@ -751,7 +748,6 @@ NavierStokes::restart (Amr&          papa,
         p_avg   = new MultiFab(P_grids,1,0);
     }
     rho_half   = new MultiFab(grids,1,1);
-    rho_interp = new MultiFab(grids,1,1);
     rho_ptime  = new MultiFab(grids,1,1);
     rho_ctime  = new MultiFab(grids,1,1);
     //
@@ -1599,34 +1595,9 @@ NavierStokes::get_rho (Real time)
     }
     else
     {
-        //
-        // Interpolate into rho_interp.
-        //
-        const Real T1 = state[State_Type].prevTime();
-        const Real T2 = state[State_Type].curTime();
+        BoxLib::Error("NavierStokes::get_rho(): bad time");
 
-        for (MFIter dest(*rho_interp); dest.isValid(); ++dest)
-        {
-            const Box& bx = (*rho_interp)[dest].box();
-
-            BL_ASSERT(bx == (*rho_ptime)[dest].box());
-            BL_ASSERT(bx == (*rho_ctime)[dest].box());
-
-            (*rho_interp)[dest].linInterp((*rho_ptime)[dest],
-                                          bx,
-                                          0,
-                                          (*rho_ctime)[dest],
-                                          bx,
-                                          0,
-                                          T1,
-                                          T2,
-                                          time,
-                                          bx,
-                                          0,
-                                          1);
-        }
-
-        return *rho_interp;
+        return *rho_ptime; // Got to return something to shut up compiler.
     }
 }
 

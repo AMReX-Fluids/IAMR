@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.91 2003-02-21 22:49:10 car Exp $
+// $Id: MacProj.cpp,v 1.92 2003-03-03 20:24:53 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -297,12 +297,13 @@ MacProj::mac_project (int             level,
     // Some of the routines we call assume that density has one valid
     // ghost cell.  We enforce that assumption by setting it here.
     //
-    for (MFIter mfi(ns.get_rho(time)); mfi.isValid(); ++mfi)
-        S[mfi].copy(ns.get_rho(time)[mfi],0,Density,1);
+    const MultiFab& rhotime = ns.get_rho(time);
+
+    for (MFIter mfi(rhotime); mfi.isValid(); ++mfi)
+        S[mfi].copy(rhotime[mfi],0,Density,1);
 
     if (OutFlowBC::HasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)
         set_outflow_bcs(level, mac_phi, u_mac, S, divu);
-
     //
     // Store the Dirichlet boundary condition for mac_phi in mac_bndry.
     //
