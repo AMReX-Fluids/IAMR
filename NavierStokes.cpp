@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.73 1998-06-24 00:02:27 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.74 1998-06-26 20:55:07 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -466,9 +466,9 @@ NavierStokes::~NavierStokes ()
     delete diffusion;
 }
 
-void NavierStokes::init_additional_state_types()
+void
+NavierStokes::init_additional_state_types ()
 {
-
     additional_state_types_initialized = 1;
     //
     // Set "Temp" from user's variable setup.
@@ -573,7 +573,11 @@ NavierStokes::initOldPress ()
     MultiFab& P_new = get_new_data(Press_Type);
     MultiFab& P_old = get_old_data(Press_Type);
 
-    P_old.copy(P_new);
+    for (MultiFabIterator mfi(P_new); mfi.isValid(false); ++mfi)
+    {
+        DependentMultiFabIterator dmfi(mfi,P_old);
+        dmfi().copy(mfi());
+    }
 }
 
 void
@@ -591,11 +595,16 @@ NavierStokes::zeroOldPress ()
 void
 NavierStokes::allocOldData ()
 {
-    int init_pres = !(state[Press_Type].hasOldData());
+    bool init_pres = !(state[Press_Type].hasOldData());
+
     for (int k = 0; k < num_state_type; k++)
+    {
         state[k].allocOldData();
+    }
     if (init_pres)
+    {
         initOldPress();
+    }
 }
 
 void
@@ -608,7 +617,9 @@ void
 NavierStokes::SetGodunov()
 {
     if (godunov == 0)
+    {
         godunov = new Godunov();
+    }
 }
 
 void
@@ -714,13 +725,17 @@ NavierStokes::buildMetrics ()
         if (CoordSys::IsCartesian())
         {
             for (int j = 0; j < len; j++)
+            {
                 rad[j] = 1.0;
+            }
         }
         else
         {
             const Real xlo = grid_loc[i].lo(0) + (0.5 - radius_grow)*dxr;
             for (int j = 0; j < len; j++)
+            {
                 rad[j] = xlo + j*dxr;
+            }
         }
     }
     //
@@ -803,12 +818,14 @@ NavierStokes::initData ()
     const Real* dx  = geom.CellSize();
     MultiFab& S_new = get_new_data(State_Type);
     MultiFab& P_new = get_new_data(Press_Type);
-    Real cur_time = state[State_Type].curTime();
+    Real cur_time   = state[State_Type].curTime();
 
     for (MultiFabIterator snewmfi(S_new); snewmfi.isValid(); ++snewmfi)
     {
         DependentMultiFabIterator pnewmfi(snewmfi, P_new);
+
         assert(grids[snewmfi.index()] == snewmfi.validbox());
+
         const int* lo   = snewmfi.validbox().loVect();
         const int* hi   = snewmfi.validbox().hiVect();
         const int* s_lo = snewmfi().loVect();
@@ -958,7 +975,12 @@ NavierStokes::init ()
     //
     FillCoarsePatch(S_new,0,cur_time,State_Type,0,NUM_STATE);
     FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
-    P_old.copy(P_new);
+
+    for (MultiFabIterator mfi(P_new); mfi.isValid(false); ++mfi)
+    {
+        DependentMultiFabIterator dmfi(mfi,P_old);
+        dmfi().copy(mfi());
+    }
     //
     // Get best coarse divU and dSdt data.
     //
@@ -2778,6 +2800,8 @@ void
 NavierStokes::post_timestep ()
 {
     const int finest_level = parent->finestLevel();
+
+    MultiFab& pres = get_new_data(Press_Type);
     //
     // Reflux .
     //
@@ -3111,6 +3135,9 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
     interpolater = (which_interp == 1) ? &pc_interp : interpolater;
     interpolater = (which_interp == 2) ? &unlimited_cc_interp : interpolater;
 
+    Array<BCRec> bc_interp(num_comp);
+    Array<IntVect> pshifts(27);
+
     FArrayBox cdata,fdata;
     //
     // Get fine parameters.
@@ -3146,7 +3173,7 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
 
         fdata.resize(grd,num_comp);
         cdata.resize(cgrd,num_comp);
-        cdata.setVal(0.);
+        cdata.setVal(0);
         CrseSync.copy(cdata,src_comp,0,num_comp);
 
         const int* clo  = cdata.loVect();
@@ -3189,22 +3216,18 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
         //
         if (cgeom.isAnyPeriodic())
         {
-            const Box& domain = cgeom.Domain();
-            Array<IntVect> pshifts(27);
-            cgeom.periodicShift(domain, cgrd, pshifts);
+            cgeom.periodicShift(cgeom.Domain(), cgrd, pshifts);
 
             for (int iiv = 0; iiv < pshifts.length(); iiv++)
             {
-                IntVect iv=pshifts[iiv];
-                cdata.shift(iv);
+                cdata.shift(pshifts[iiv]);
                 CrseSync.copy(cdata,src_comp,0,num_comp);
-                cdata.shift(-iv);
+                cdata.shift(-pshifts[iiv]);
             }
         }
         //
         // Set the boundary condition array for interpolation.
         //
-        Array<BCRec> bc_interp(num_comp);
         for (n = 0; n < num_comp; n++)
         {
             for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -3217,7 +3240,7 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
         //
         // Scale coarse interpolant for anelastic.
         //
-        ScaleCrseSyncInterp( cdata, c_lev, num_comp );
+        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
         //
         // Compute the interpolated correction.
         //
@@ -3227,7 +3250,7 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
         //
         // Rescale Fine interpolant for anelastic.
         //
-        reScaleFineSyncInterp( fdata, f_lev, num_comp );
+        reScaleFineSyncInterp(fdata, f_lev, num_comp);
         //
         // Set Fine Sync equal to the correction or add it in.
         //
@@ -3260,7 +3283,6 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
         BoxLib::Abort("NavierStokes::SyncProjInterp(): not implemented in parallel");
     //
     // Because of phi.copy(crse_phi) within multifab loop below ...
-    //
     //
     // Get fine parameters.
     //
