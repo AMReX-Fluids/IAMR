@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.19 2002-11-13 17:15:07 lijewski Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.20 2003-02-19 19:19:26 almgren Exp $
 //
 #include <winstd.H>
 
@@ -21,6 +21,7 @@ const Real* fabdat = (fab).dataPtr();
 const int* boxlo = (box).loVect();           \
 const int* boxhi = (box).hiVect();
 
+#if (BL_SPACEDIM == 3)
 Real    ProjOutFlowBC::tol     = 1.0e-10; 
 Real    ProjOutFlowBC::abs_tol = 5.0e-10;
 
@@ -31,6 +32,7 @@ Real ProjOutFlowBC_MG::cg_abs_tol        = 5.0e-12;
 Real ProjOutFlowBC_MG::cg_max_jump       = 10.0;
 int  ProjOutFlowBC_MG::cg_maxiter        = 40;
 int  ProjOutFlowBC_MG::maxIters          = 40;
+#endif
 
 static
 Box
@@ -45,40 +47,60 @@ semiSurroundingNodes (const Box& baseBox,
 ProjOutFlowBC::ProjOutFlowBC ()
 {
     ParmParse pp("projoutflow");
+#if (BL_SPACEDIM == 3)
     pp.query("tol",tol);
     pp.query("abs_tol",abs_tol);
-    solver = (BL_SPACEDIM == 2) ? BC_BACK : BC_MG;
-    int solver_type = -1;
-    pp.query("solver_type",solver_type);
-    if (solver_type != -1)
-        solver = OutFlow_Solver_Type(solver_type);
+#endif
 }
 
+#if 1
 void 
-ProjOutFlowBC::computeBC (FArrayBox*         velFab,
-                          FArrayBox&         divuFab,
-                          FArrayBox&         rhoFab,
-                          FArrayBox&         phiFab,
-                          const Geometry&    geom, 
-                          const Orientation& outFace)
+ProjOutFlowBC::computeBC (MultiFab*         velMF,
+                          MultiFab&         divuMF,
+                          MultiFab&         rhoMF,
+                          MultiFab&         phiMF,
+                          const Geometry&   geom, 
+                          Orientation*      outFaces,
+                          int               numOutFlowFaces,
+                          Real              gravity)
 {
+    int i,iface;
+
+    int faces[numOutFlowFaces];
+    for (i = 0; i < numOutFlowFaces; i++) faces[i] = int(outFaces[i]);
+
     const Real* dx    = geom.CellSize();
     const Box& domain = geom.Domain();
-    int face          = int(outFace);
-    int outDir        = outFace.coordDir();
+
+    int lenx = domain.length()[0];
+    int leny = domain.length()[1];
+
+    int zeroIt[numOutFlowFaces];
+    for (int i = 0; i < numOutFlowFaces; i++) zeroIt[i] = 0;
+
+#if (BL_SPACEDIM == 2)
+    Real* rcen[numOutFlowFaces];
+    Real* redge[numOutFlowFaces];
+#endif
+
+    FArrayBox ccExt[numOutFlowFaces];
 
     int isPeriodic[BL_SPACEDIM];
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
         isPeriodic[dir] = geom.isPeriodic(dir);
 
     IntVect loFiltered, hiFiltered;
-    int isPeriodicFiltered[BL_SPACEDIM];
-    Real dxFiltered[BL_SPACEDIM];
+    int isPeriodicFiltered[numOutFlowFaces][BL_SPACEDIM];
+    Real dxFiltered[numOutFlowFaces][BL_SPACEDIM];
+
+    for (int iface = 0; iface < numOutFlowFaces; iface++) {
+
+    int outDir        = outFaces[iface].coordDir();
     //
     // Filter out the direction we don't care about.
     //
     int ncStripWidth = 1;
-    Box origBox = BoxLib::adjCell(domain,outFace,ncStripWidth);
+    Box origBox = BoxLib::adjCell(domain,outFaces[iface],ncStripWidth);
     IntVect lo = origBox.smallEnd();
     IntVect hi = origBox.bigEnd();
     //
@@ -92,93 +114,306 @@ ProjOutFlowBC::computeBC (FArrayBox*         velFab,
 	{
             loFiltered[cnt] = lo[dir];
             hiFiltered[cnt] = hi[dir];
-            dxFiltered[cnt] = dx[dir];
-            isPeriodicFiltered[cnt] = isPeriodic[dir];
+            dxFiltered[iface][cnt] = dx[dir];
+            isPeriodicFiltered[iface][cnt] = isPeriodic[dir];
             cnt++;
 	}
         else
         {
             loFiltered[BL_SPACEDIM-1] = lo[dir];
             hiFiltered[BL_SPACEDIM-1] = hi[dir];
-            dxFiltered[BL_SPACEDIM-1] = dx[dir];
-            isPeriodicFiltered[BL_SPACEDIM-1] = isPeriodic[dir];
+            dxFiltered[iface][BL_SPACEDIM-1] = dx[dir];
+            isPeriodicFiltered[iface][BL_SPACEDIM-1] = isPeriodic[dir];
 	}
     }
 
     Box       faceBox(loFiltered,hiFiltered);
-    FArrayBox divuExt(faceBox,1);
-    FArrayBox rhoExt(faceBox,1);
-    FArrayBox uExt(faceBox,BL_SPACEDIM-1);
+    for (int dir = 0; dir < BL_SPACEDIM-1; dir++)
+      faceBox.grow(dir,1);
+
+//  One for rho, one for divu, (BL_SPACEDIM-1) for velocity.
+    ccExt[iface].resize(faceBox,BL_SPACEDIM+1);
 
 #if (BL_SPACEDIM == 2)
     //
-    // Make cc r (set = 1 if cartesian)
+    // Make edge-centered and cc r (set = 1 if cartesian)
     //
-    int R_DIR = 0;
-    int Z_DIR = 1;
-    int perpDir = (outDir == Z_DIR) ? R_DIR : Z_DIR;
-    Box region = BoxLib::adjCell(domain,outFace,1);
-    region.shift(outDir, (outFace.faceDir() == Orientation::high) ? -1 : 1);
-    int r_lo = region.smallEnd(perpDir);
-    int r_hi = region.bigEnd(perpDir);
+    int perpDir = 1 - outDir;
+    int r_len = domain.length()[perpDir]+1;
+    rcen[iface] = new Real[r_len-1];
+    redge[iface] = new Real[r_len];
 
-    Array<Real> rcen(region.length(perpDir), 1.0);
-    if (CoordSys::IsRZ() && perpDir == R_DIR) 
-        geom.GetCellLoc(rcen, region, perpDir);
+    // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
+    if (CoordSys::IsRZ()) {
+      if (faces[iface] == 0) {
+        for (i=0;i<r_len  ;i++) redge[iface][i] = geom.ProbLo()[0];
+        for (i=0;i<r_len-1;i++)  rcen[iface][i] = geom.ProbLo()[0];
+      } else if (faces[iface] == 2) {
+        for (i=0;i<r_len  ;i++) redge[iface][i] = geom.ProbHi()[0];
+        for (i=0;i<r_len-1;i++)  rcen[iface][i] = geom.ProbHi()[0];
+      } else if (faces[iface] == 1 || faces[iface]== 3) {
+        for (i=0;i<r_len  ;i++) redge[iface][i] = geom.ProbLo()[0] + i     *dx[0];
+        for (i=0;i<r_len-1;i++)  rcen[iface][i] = geom.ProbLo()[0] +(i+0.5)*dx[0];
+      }
+    } else {
+      for (i = 0; i < r_len  ; i++) redge[iface][i] = 1.;
+      for (i = 0; i < r_len-1; i++)  rcen[iface][i] = 1.;
+    }
 #else
     Array<Real> rcen;
-    int r_lo = 0;
-    int r_hi = 0;
+    int r_len = 0;
 #endif
 
     DEF_BOX_LIMITS(origBox,origLo,origHi);
-    DEF_LIMITS(uExt, uEPtr, uElo, uEhi);
-    DEF_LIMITS(divuExt,divuEPtr,divuElo,divuEhi);
-    DEF_LIMITS(rhoExt ,rhoEPtr ,rhoElo , rhoEhi );
-    DEF_LIMITS(divuFab,divuPtr,divulo,divuhi);
-    DEF_LIMITS(rhoFab ,rhoPtr ,rholo , rhohi );
-    DEF_LIMITS(*velFab , velPtr, vello, velhi);
+
+    const int* ccElo = ccExt[iface].loVect();
+    const int* ccEhi = ccExt[iface].hiVect();
+    const Real*  rhoEPtr = ccExt[iface].dataPtr(0);
+    const Real* divuEPtr = ccExt[iface].dataPtr(1);
+    const Real*    uEPtr = ccExt[iface].dataPtr(2);
+
+    DEF_LIMITS(  divuMF[iface], divuPtr, divulo, divuhi);
+    DEF_LIMITS(   rhoMF[iface],  rhoPtr,  rholo,  rhohi);
+    DEF_LIMITS((*velMF)[iface],  velPtr,  vello,  velhi);
+
     //
     // Extrapolate the velocities, divu, and rho to the outflow edge in
     // the shifted coordinate system (where the last dimension is 1).
     //
-    int zeroIt;
+    Real hx = dx[0];
     FORT_EXTRAP_PROJ(ARLIM(vello),  ARLIM(velhi), velPtr,
                      ARLIM(divulo), ARLIM(divuhi), divuPtr,
                      ARLIM(rholo),    ARLIM(rhohi),rhoPtr,
 #if (BL_SPACEDIM == 2)
-                     &r_lo,&r_hi,rcen.dataPtr(),
+                     &r_len,redge[iface],
 #endif
-                     ARLIM(uElo),ARLIM(uEhi),uEPtr,
-                     ARLIM(divuElo),ARLIM(divuEhi),divuEPtr,
-                     ARLIM(rhoElo),ARLIM(rhoEhi),rhoEPtr,
-                     origLo,origHi,&face,&zeroIt);
-
-    if (zeroIt)
-    {
-        //
-        // No perturbations, set homogeneous bc.
-        //
-        phiFab.setVal(0);
+                     ARLIM(ccElo),ARLIM(ccEhi),uEPtr,
+                     ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
+                     ARLIM(ccElo),ARLIM(ccEhi),rhoEPtr,
+                     origLo,origHi,&faces[iface],&zeroIt[iface],&hx);
     }
-    else if (solver == BC_MG)
-    {
-        Box nodeBox = semiSurroundingNodes(faceBox,BL_SPACEDIM-1);
-        FArrayBox phiFiltered(nodeBox,1);
 
-        DEF_LIMITS(phiFab,phiFabPtr,phiFab_lo,phiFab_hi);
-        DEF_LIMITS(phiFiltered,phiFilteredPtr,phiFiltered_lo,phiFiltered_hi);
-        int face = int(outFace);
-      
-        FORT_HG_SHIFT_PHI(ARLIM(phiFiltered_lo),ARLIM(phiFiltered_hi),
-                          phiFilteredPtr,
-                          ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
-                          &face);
+    int connected = 0;
+
+//  Test for whether multiple faces are touching.
+//    therefore not touching.
+    int numRegions = 1;
+    if ( (numOutFlowFaces == 2) &&
+         (outFaces[0].coordDir() == outFaces[1].coordDir()) )
+       numRegions = 2;
+
+    if (numOutFlowFaces == 2) {
+       if (outFaces[0].coordDir() != outFaces[1].coordDir()) 
+         connected = 1;
+    } else if (numOutFlowFaces > 2) {
+         connected = 1;
+    }
+
+     // Since we only use a constant dx in the Fortran,
+     //  we'll assume for now we can choose either one.
+     if (numRegions == 1 && numOutFlowFaces > 1)
+       BL_ASSERT(dx[0] == dx[1]);
+
+#endif
+
+//   Note numRegions = 1 or 2, those are the only possibilities.
+     for (int ireg = 0; ireg < numRegions; ireg++) 
+     {
+
+  // Define connected region.  In both 2-d and 3-d, if there are
+  //   multiple outflow faces and it's not just two across from
+  //   each other, then the multiple faces form a *single* 
+  //   connected region.
+
+       int zeroAll = zeroIt[ireg];
+       if (numRegions == 1)
+        for (int i = 0; i < numOutFlowFaces; i++)
+         if (zeroIt[i] == 0) zeroAll = 0;
+
+// HACK HACK
+        zeroAll = 1;
+
+       if (zeroAll) {
+
+         phiMF.setVal(0);
+
+       } else {
+
+         int faces[numOutFlowFaces];
+         int numOutFlowFacesInRegion;
+         if (numRegions == 1)
+         {
+           for (int i=0; i < numOutFlowFaces; i++) 
+             faces[i] = int(outFaces[i]);
+             numOutFlowFacesInRegion = numOutFlowFaces;
+         } else if (numRegions == 2) {
+             faces[0] = int(outFaces[ireg]);
+             numOutFlowFacesInRegion = 1;
+         }
+
+#if (BL_SPACEDIM == 2)
+         // Here we know the ordering of faces is XLO,XHI,YLO,YHI.
+
+         int length = 0;
+         Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3;
+         Real *r0,*r1,*r2,*r3;
+         for (int i=0; i < numOutFlowFacesInRegion; i++) 
+         {
+           if (faces[i] == 0) {
+             ccEptr0 = ccExt[i].dataPtr();
+                  r0 = rcen[i];
+             length = length + leny;
+           } else if (faces[i] == 1) {
+             ccEptr1 = ccExt[i].dataPtr();
+                  r1 = rcen[i];
+             length = length + lenx;
+           } else if (faces[i] == 2) {
+             ccEptr2 = ccExt[i].dataPtr();
+                  r2 = rcen[i];
+             length = length + leny;
+           } else if (faces[i] == 3) {
+             ccEptr3 = ccExt[i].dataPtr();
+                  r3 = rcen[i];
+             length = length + lenx;
+           }
+         }
+
+         IntVect loconn;
+         IntVect hiconn;
+
+         loconn[0] = 0;
+         hiconn[0] = length-1;
+         loconn[BL_SPACEDIM-1] = 0;
+         hiconn[BL_SPACEDIM-1] = 0;
+         Box connected_region(loconn,hiconn);
+         FArrayBox ccE_conn(connected_region,1);
+  
+         hiconn[0] = length;
+         Box nodal_connected_region(loconn,hiconn);
+         FArrayBox x(nodal_connected_region,1);
+         FArrayBox s(nodal_connected_region,1);
+         s.setVal(0.);
+
+         ccE_conn.setVal(1.e200);
+
+         int per = 0;
+         if ( (numOutFlowFaces == 1) || 
+              (numRegions == 2) ) per = isPeriodicFiltered[ireg][0];
+
+         FORT_FILL_ONED(&lenx,&leny,&length,faces,&numOutFlowFacesInRegion,
+                        ccEptr0, ccEptr1, ccEptr2, ccEptr3,
+                        r0,r1,r2,r3,
+                        ccE_conn.dataPtr(),s.dataPtr(),&per,
+                        &(dx[0]),&(dx[1]));
+
+         if (numOutFlowFaces == 2*BL_SPACEDIM) per = 1;
+
+         FORT_HGPHIBC(dx,
+                      ccE_conn.dataPtr(0),
+                      s.dataPtr(),
+                      x.dataPtr(),
+                      &length,&per);
+
+         Real *phiptr0,*phiptr1,*phiptr2,*phiptr3;
+
+         for (int i=0; i < numOutFlowFacesInRegion; i++) 
+         {
+           if (faces[i] == 0) {
+             phiptr0 = phiMF[i].dataPtr();
+           }
+           if (faces[i] == 1) {
+             phiptr1 = phiMF[i].dataPtr();
+           }
+           if (faces[i] == 2) {
+             phiptr2 = phiMF[i].dataPtr();
+           }
+           if (faces[i] == 3) {
+             phiptr3 = phiMF[i].dataPtr();
+           }
+         }
+
+         FORT_ALLPHI_FROM_X(&lenx,&leny,&length,faces,&numOutFlowFaces,
+                            phiptr0, phiptr1, phiptr2, phiptr3,
+                            x.dataPtr());
+#else
+
+        // Assert that, if faces are connected, one of the coordinate
+        //  directions has no outflow faces.
+        int outx = 0;
+        int outy = 0;
+        int outz = 0;
+        for (int iface = 0; iface < numOutFlowFaces; iface++) {
+          int outDir        = outFaces[iface].coordDir();
+          if (outDir == 0) outx = 1;
+          if (outDir == 1) outy = 1;
+          if (outDir == 2) outz = 1;
+        }
+        int sum_dirs = outx + outy + outz;
+        BL_ASSERT (sum_dirs > 0 && sum_dirs < 3);
+        BL_ASSERT(dx[1] == dx[2]);
+
+        // Here we know the ordering of faces is XLO,XHI,YLO,YHI,ZLO,ZHI.
+
+        // FOR NOW: ASSERT THAT NO OUTFLOW FACES IN Z-DIR!
+        BL_ASSERT (outz == 0);
+
+        int lenz = domain.length()[2];
+
+        int length = 0;
+        int  width = lenz;
+        Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3,*ccEptr4,*ccEptr5;
+        for (int i=0; i < numOutFlowFaces; i++) 
+        {
+          if (faces[i] == 0) {
+            ccEptr0 = ccExt[i].dataPtr();
+            length = length + leny;
+          } else if (faces[i] == 1) {
+            ccEptr1 = ccExt[i].dataPtr();
+            length = length + lenx;
+          } else if (faces[i] == 3) {
+            ccEptr2 = ccExt[i].dataPtr();
+            length = length + leny;
+          } else if (faces[i] == 4) {
+            ccEptr3 = ccExt[i].dataPtr();
+            length = length + lenx;
+          } else {
+            cout << "OOPS - DIDNT PROGRAM FOR Z-OUTFLOW FACES! " << i << 
+                    " " << faces[i] << endl;
+            exit(0);
+          }
+        }
+
+        IntVect loconn;
+        IntVect hiconn;
+
+        loconn[0] = 0;
+        hiconn[0] = length-1;
+        loconn[1] = 0;
+        hiconn[1] = width-1;
+        loconn[BL_SPACEDIM-1] = 0;
+        hiconn[BL_SPACEDIM-1] = 0;
+        Box connected_region(loconn,hiconn);
+        FArrayBox ccE_conn(connected_region,BL_SPACEDIM+1);
+ 
+        hiconn[0] = length;
+        hiconn[1] = width;
+        Box nodal_connected_region(loconn,hiconn);
+        FArrayBox phiFiltered(nodal_connected_region,1);
+        phiFiltered.setVal(0.);
+
+        FORT_FILL_TWOD(&lenx,&leny,&lenz,&length,&width,
+                       faces,&numOutFlowFaces,
+                       ccEptr0, ccEptr1, ccEptr2, ccEptr3, ccEptr4, ccEptr5,
+                       ccE_conn.dataPtr());
       
         FArrayBox rhs_temp, beta;
-      
-        computeCoefficients(rhs_temp,beta,uExt,divuExt,rhoExt,rcen,
-                            r_lo,r_hi,faceBox,dxFiltered,isPeriodicFiltered);
+  
+        int* per = new int[2];
+        per[0] = (numOutFlowFaces == 2*BL_SPACEDIM) ? 1 : 0;
+        per[1] = isPeriodic[BL_SPACEDIM];
+        
+        computeCoefficients(rhs_temp,beta,ccE_conn,connected_region,dxFiltered[0],per);
+
         //
         // Need phi to have ghost cells.
         //
@@ -192,85 +427,104 @@ ProjOutFlowBC::computeBC (FArrayBox*         velFab,
         rhs.setVal(0);
         rhs.copy(rhs_temp);
         FArrayBox resid(rhs.box(),1);
-        ProjOutFlowBC_MG proj_mg(faceBox,&phi,&rhs,&resid,&beta,
-                                 dxFiltered,isPeriodicFiltered);
+        ProjOutFlowBC_MG proj_mg(connected_region,&phi,&rhs,&resid,&beta,
+                                 dxFiltered[0],per);
 
         proj_mg.solve(tol,abs_tol,2,2,proj_mg.MaxIters(),proj_mg.Verbose());
       
         DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
-        DEF_BOX_LIMITS(faceBox,lo,hi);
+        DEF_BOX_LIMITS(connected_region,lo,hi);
         //
         // Subtract the average phi.
         //
-        FORT_HGSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
-#if (BL_SPACEDIM == 2)
-                              &r_lo,&r_hi,rcen.dataPtr(),
-#endif
-                              lo,hi,isPeriodicFiltered);
+//      FORT_HGSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
+//                            lo,hi,isPeriodicFiltered);
+
         //
         // Translate the solution back to the original coordinate system.
         //
-        FORT_HG_RESHIFT_PHI(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
-                            ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
-      
-#if (BL_SPACEDIM == 2)  
-    }
-    else if (solver == BC_BACK)
-    {
-        solveBackSubstitution(phiFab,divuExt,uExt,rhoExt,rcen,r_lo,r_hi,
-                              isPeriodicFiltered,dxFiltered,faceBox,outFace);
+//      FORT_HG_RESHIFT_PHI(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
+//                          ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
+
+        Real *phiptr0,*phiptr1,*phiptr2,*phiptr3,*phiptr4,*phiptr5;
+
+        for (int i=0; i < numOutFlowFaces; i++) 
+        {
+           if (faces[i] == 0) {
+             phiptr0 = phiMF[i].dataPtr();
+           } else 
+           if (faces[i] == 1) {
+             phiptr1 = phiMF[i].dataPtr();
+           } else 
+           if (faces[i] == 2) {
+             phiptr2 = phiMF[i].dataPtr();
+           } else 
+           if (faces[i] == 3) {
+             phiptr3 = phiMF[i].dataPtr();
+           } else 
+           if (faces[i] == 4) {
+             phiptr4 = phiMF[i].dataPtr();
+           } else 
+           if (faces[i] == 5) {
+             phiptr5 = phiMF[i].dataPtr();
+           }
+        }
+        FORT_ALLPHI_FROM_X(&lenx,&leny,&lenz,&length,&width,faces,&numOutFlowFaces,
+                           phiptr0, phiptr1, phiptr2, phiptr3, phiptr4, phiptr5,
+                           phi.dataPtr(),ARLIM(phi_lo),ARLIM(phi_hi));
 #endif
+       }
     }
-    else
-    {
-        BoxLib::Error("ProjOutFlowBC::unknown solver_type");
+
+    if (std::abs(gravity) > 0.) 
+     for (int iface = 0; iface < numOutFlowFaces; iface++) 
+     {
+      int face          = int(outFaces[iface]);
+      int outDir        = outFaces[iface].coordDir();
+
+      DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
+      DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
+      if (outDir != (BL_SPACEDIM-1))
+        FORT_RHOGBC(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
+                    phiPtr,ARLIM(philo),ARLIM(phihi),
+                    &face,&gravity,dx);
+  
     }
-}
-
-#if (BL_SPACEDIM == 2)
-void
-ProjOutFlowBC::solveBackSubstitution (FArrayBox&         phi,
-                                      FArrayBox&         divuExt,
-                                      FArrayBox&         uExt,
-                                      FArrayBox&         rhoExt,
-                                      Array<Real>&       rcen,
-                                      int                r_lo,
-                                      int                r_hi,
-                                      int*               isPeriodicFiltered,
-                                      Real*              dxFiltered,
-                                      Box&               faceBox,
-                                      const Orientation& outFace)
-{
-    int face   = int(outFace);
-    int outDir = outFace.coordDir();
-    int length = divuExt.length()[0];
-
-    BL_ASSERT(length == uExt.length()[0]);
-    BL_ASSERT(length == rhoExt.length()[0]);
-    BL_ASSERT(length == rcen.size());
-
-    DEF_BOX_LIMITS(faceBox,faceLo,faceHi);
-    DEF_LIMITS(uExt, uEPtr, uElo, uEhi);
-    DEF_LIMITS(divuExt,divuEPtr,divuElo,divuEhi);
-    DEF_LIMITS(rhoExt ,rhoEPtr ,rhoElo , rhoEhi );
-    DEF_LIMITS(phi, phiPtr,philo,phihi);
-
-    FORT_HGPHIBC(dxFiltered,rcen.dataPtr(),
-                 uEPtr,divuEPtr,rhoEPtr,&length,
-                 ARLIM(philo), ARLIM(phihi),phiPtr, 
-                 faceLo,faceHi,&face,isPeriodicFiltered);
 }
 #endif
 
 void 
+ProjOutFlowBC::computeRhoG (MultiFab&          rhoMF,
+                            MultiFab&          phiMF,
+                            const Geometry&    geom, 
+                            Orientation*       outFaces,
+                            int                numOutFlowFaces,
+                            Real               gravity)
+
+{
+    const Real* dx    = geom.CellSize();
+    const Box& domain = geom.Domain();
+
+    for (int iface = 0; iface < numOutFlowFaces; iface++) {
+
+      int face          = int(outFaces[iface]);
+      int outDir        = outFaces[iface].coordDir();
+
+      DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
+      DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
+
+      if (outDir != (BL_SPACEDIM-1) && std::abs(gravity) > 0.0) 
+        FORT_RHOGBC(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
+                    phiPtr,ARLIM(philo),ARLIM(phihi),
+                    &face,&gravity,dx);
+    }
+}
+
+#if (BL_SPACEDIM == 3)
+void 
 ProjOutFlowBC::computeCoefficients (FArrayBox&   rhs,
                                     FArrayBox&   beta,
-                                    FArrayBox&   uExt,
-                                    FArrayBox&   divuExt,
-                                    FArrayBox&   rhoExt,
-                                    Array<Real>& rcen,
-                                    int          r_lo,
-                                    int          r_hi,
+                                    FArrayBox&   ccExt,
                                     Box&         faceBox,
                                     Real*        dxFiltered,
                                     int*         isPeriodicFiltered)
@@ -284,18 +538,17 @@ ProjOutFlowBC::computeCoefficients (FArrayBox&   rhs,
     DEF_BOX_LIMITS(faceBox,faceLo,faceHi);
     DEF_LIMITS(beta,  betaPtr, betalo,betahi);
     DEF_LIMITS(rhs, rhsPtr, rhslo,rhshi);
-    DEF_LIMITS(uExt, uEPtr, uElo, uEhi);
-    DEF_LIMITS(divuExt,divuEPtr,divuElo,divuEhi);
-    DEF_LIMITS(rhoExt ,rhoEPtr ,rhoElo , rhoEhi );
+    const int* ccElo = ccExt.loVect();
+    const int* ccEhi = ccExt.hiVect();
+    Real*  rhoEPtr = ccExt.dataPtr(0);
+    Real* divuEPtr = ccExt.dataPtr(1);
+    Real*    uEPtr = ccExt.dataPtr(2);
 
     FORT_COMPUTE_COEFF(ARLIM(rhslo),ARLIM(rhshi),rhsPtr,
                        ARLIM(betalo),ARLIM(betahi),betaPtr,
-                       ARLIM(uElo), ARLIM(uEhi), uEPtr,
-                       ARLIM(divuElo),ARLIM(divuEhi), divuEPtr,
-                       ARLIM(rhoElo),ARLIM(rhoEhi),rhoEPtr,
-#if (BL_SPACEDIM == 2)
-                       &r_lo,&r_hi,rcen.dataPtr(),
-#endif
+                       ARLIM(ccElo),ARLIM(ccEhi),uEPtr,
+                       ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
+                       ARLIM(ccElo),ARLIM(ccEhi),rhoEPtr,
                        faceLo,faceHi,
                        dxFiltered,isPeriodicFiltered);
 }
@@ -493,3 +746,4 @@ ProjOutFlowBC_MG::gsrb (int nstep)
                  ARLIM(dglo),ARLIM(dghi),dgphiPtr,
                  lo,hi,h,isPeriodic,&nstep);
 }
+#endif
