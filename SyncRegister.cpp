@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.46 1998-09-29 20:07:48 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.47 1998-11-04 00:15:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -52,6 +52,7 @@ SyncRegister::define (const BoxArray& fine_boxes,
 
     ratio      = ref_ratio;
     fine_level = fine_lev;
+ 
     grids.define(fine_boxes);
     grids.coarsen(ratio);
 
@@ -144,7 +145,9 @@ SyncRegister::sum ()
     //
     Box bb(grids[0]);
     for (int k = 1; k < grids.length(); k++)
+    {
         bb.minBox(grids[k]);
+    }
     bb.surroundingNodes();
     FArrayBox bfab(bb,1);
     bfab.setVal(0);
@@ -189,7 +192,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     Array<IntVect>    pshifts(27);
     vector<FillBoxId> fillBoxIDs;
     //
-    // FILL RHS FROM BNDRY REGISTERS
+    // Fill Rhs From Bndry Registers.
     //
     // If periodic, copy the values from sync registers onto the nodes of the
     // rhs which are not covered by sync registers through periodic shifts.
@@ -214,12 +217,12 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
                     for (int iiv = 0; iiv < pshifts.length(); iiv++)
                     {
-                        Box sbox = bndry[face()][j].box();
-                        sbox.shift(pshifts[iiv]);
+                        Box sbox = bndry[face()][j].box() + pshifts[iiv];
+
                         if (sbox.intersects(mfi().box()))
                         {
                             sbox &= mfi().box();
-                            sbox.shift(-pshifts[iiv]);
+                            sbox -= pshifts[iiv];
 
                             fillBoxIDs.push_back(fscd.AddBox(faid,
                                                              sbox,
@@ -293,32 +296,24 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                     Box blo = mfi.validbox() & domlo;
 
                     if (phys_lo[dir] == Outflow)
-                    {
                         mfi().setVal(0.0,blo,0,1);
-                    }
                     else
-                    {
                         mfi().mult(2.0,blo,0,1);
-                    }
                 }
                 if (domhi.intersects(mfi.validbox()))
                 {
                     Box bhi = mfi.validbox() & domhi;
 
                     if (phys_hi[dir] == Outflow)
-                    {
                         mfi().setVal(0.0,bhi,0,1);
-                    }
                     else
-                    {
                         mfi().mult(2.0,bhi,0,1);
-                    }
                 }
             }
         } 
     }
     //
-    // SET UP BNDRY_MASK
+    // Set Up bndry_mask.
     //
     for (OrientationIter face; face; ++face)
     {
@@ -340,7 +335,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
             {
                 if (mask_cells.intersects(grids[n]))
                 {
-                    tmpfab.setVal(1.0,mask_cells & grids[n],0,1);
+                    tmpfab.setVal(1.0,(mask_cells & grids[n]),0,1);
                 }
             }
  
@@ -350,18 +345,19 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
                 for (int iiv = 0; iiv < pshifts.length(); iiv++)
                 {
-                    mask_cells.shift(pshifts[iiv]);
+                    mask_cells += pshifts[iiv];
 
                     for (int n = 0; n < grids.length(); n++)
                     {
                         if (mask_cells.intersects(grids[n]))
                         {
                             Box intersect = mask_cells & grids[n];
-                            intersect.shift(-pshifts[iiv]);
+                            intersect    -= pshifts[iiv];
                             tmpfab.setVal(1.0,intersect,0,1);
                         }
                     }
-                    mask_cells.shift(-pshifts[iiv]);
+
+                    mask_cells -= pshifts[iiv];
                 }
             }
             REAL* mask_dat = fsi().dataPtr();
@@ -518,9 +514,9 @@ SyncRegister::CrseDVInit (const MultiFab& U,
     //
     setVal(0);
 
-    const int n_ghost = 1;
+    const int nghost = 1;
 
-    MultiFab U_local(U.boxArray(),BL_SPACEDIM,n_ghost);
+    MultiFab U_local(U.boxArray(),BL_SPACEDIM,nghost);
     //
     // First fill all the coarse cells, including ghost cells on periodic
     // and ext_dir edges, before worrying about zeroing out the ones under
@@ -601,8 +597,8 @@ SyncRegister::CrseDVInit (const MultiFab& U,
 
                 for (int iiv = 0; iiv < pshifts.length(); iiv++)
                 {
-                    Box fine_shifted(grids[fine]);
-                    fine_shifted.shift(pshifts[iiv]);
+                    Box fine_shifted = grids[fine] + pshifts[iiv];
+
                     if (fine_shifted.intersects(mfi().box()))
                     {
                         fine_shifted &= mfi().box();
@@ -649,15 +645,13 @@ FillExtDir (FArrayBox&       dstfab,
         if (bc[bc_index] == EXT_DIR)
         {
             Box sidelo(validbox);
-            sidelo.growLo(dir,1);
-            sidelo.setRange(dir,sidelo.loVect()[dir],1);
+            sidelo.setRange(dir,sidelo.smallEnd(dir)-1,1);
             dstfab.copy(srcfab,sidelo,dir,sidelo,dir,1);
         }
         if (bc[bc_index+BL_SPACEDIM] == EXT_DIR)
         {
             Box sidehi(validbox);
-            sidehi.growHi(dir,1);
-            sidehi.setRange(dir,sidehi.hiVect()[dir],1);
+            sidehi.setRange(dir,sidehi.bigEnd(dir)+1,1);
             dstfab.copy(srcfab,sidehi,dir,sidehi,dir,1);
         }
     }
@@ -680,6 +674,7 @@ SyncRegister::incrementPeriodic (const Geometry& crse_geom,
         increment(cfablo);
         cfablo.shift(-pshifts[iiv]);
     }
+
     crse_geom.periodicShift(crse_node_domain, cboxhi, pshifts);
 
     for (int iiv = 0; iiv < pshifts.length(); iiv++)
@@ -826,9 +821,13 @@ SyncRegister::FineDVAdd (const MultiFab& U,
 
             if (crse_geom.isAnyPeriodic())
             {
-                incrementPeriodic(crse_geom,crse_node_domain,
-                                  cboxlo,cboxhi,
-                                  cfablo,cfabhi,pshifts);
+                incrementPeriodic(crse_geom,
+                                  crse_node_domain,
+                                  cboxlo,
+                                  cboxhi,
+                                  cfablo,
+                                  cfabhi,
+                                  pshifts);
             }
         }
     }
@@ -861,22 +860,59 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
                            int             hifix,
                            Real            mult)
 {
-    FArrayBox dsdtfab, divu;
+    FArrayBox divu;
 
-    for (ConstMultiFabIterator mfi(dsdt); mfi.isValid(); ++mfi)
+    Array<IntVect> pshifts(27);
+
+    const int nghost = 1;
+
+    MultiFab dsdt_local(dsdt.boxArray(),1,nghost);
+    //
+    // Fill valid region of dsdt_local from dsdt and zero out ghost cells.
+    //
+    for (MultiFabIterator mfi(dsdt_local); mfi.isValid(); ++mfi)
     {
-        dsdtfab.resize(::grow(mfi.validbox(),1),1);
-        dsdtfab.setComplement(0,mfi.validbox(),0,1);
-        dsdtfab.copy(mfi(),mfi.validbox(),0,mfi.validbox(),0,1);
+        mfi().setComplement(0,mfi.validbox(),0,1);
+        mfi().copy(dsdt[mfi.index()], mfi.validbox());
+    }
+    //
+    // Enforce periodicity of dsdt_local using extended valid boxes.
+    //
+    geom.FillPeriodicBoundary(dsdt_local, true);
 
+    for (MultiFabIterator mfi(dsdt_local); mfi.isValid(); ++mfi)
+    {
         int* bc = crse_bc[mfi.index()];
-
+        //
+        // Zero out coarse contributions under fine grid.
+        // Also, zero out contrib if dsdt box is on solid wall
+        //
         for (int fine = 0; fine < grids.length(); fine++)
         {
-            if (grids[fine].intersects(dsdtfab.box()))
+            if (grids[fine].intersects(mfi().box()))
             {
-                Box subbox = dsdtfab.box() & grids[fine];
-                Nullify(grids,dsdtfab,mfi.validbox(),subbox,bc,1,fine);
+                Box subbox = mfi().box() & grids[fine];
+
+                Nullify(grids,mfi(),mfi.validbox(),subbox,bc,1,fine);
+            }
+        }
+        //
+        // Zero ghost cells under periodic fine grid.
+        //
+        geom.periodicShift(geom.Domain(), mfi().box(), pshifts);
+
+        for (int iiv = 0; iiv < pshifts.length(); iiv++)
+        {
+            Box dsdtbox = mfi().box() + pshifts[iiv];
+
+            for (int fine = 0; fine < grids.length(); fine++)
+            {
+                if (dsdtbox.intersects(grids[fine]))
+                {
+                    Box ovlp = dsdtbox & grids[fine];
+                    ovlp    -= pshifts[iiv];
+                    mfi().setVal(0,ovlp,0,1);
+                }
             }
         }
         //
@@ -886,16 +922,16 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
 
         const int* ndlo   = divu.box().loVect();
         const int* ndhi   = divu.box().hiVect();
-        const int* dsdtlo = dsdtfab.box().loVect();
-        const int* dsdthi = dsdtfab.box().hiVect();
-        const int* rlo    = dsdtfab.box().loVect();
-        const int* rhi    = dsdtfab.box().hiVect();
+        const int* dsdtlo = mfi().box().loVect();
+        const int* dsdthi = mfi().box().hiVect();
+        const int* rlo    = mfi().box().loVect();
+        const int* rhi    = mfi().box().hiVect();
         const int* domlo  = geom.Domain().loVect();
         const int* domhi  = geom.Domain().hiVect();
 
-        Array<Real> rcen(dsdtfab.box().length(0));
+        Array<Real> rcen(mfi().box().length(0));
 
-        SetCenter(is_rz, rcen, geom, dsdtfab.box());
+        SetCenter(is_rz, rcen, geom, mfi().box());
 
 #if (BL_SPACEDIM==2)
         int nghost         = 0;
@@ -903,12 +939,15 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
         int extrap_edges   = 0;
         int extrap_corners = 0;
         FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
-                   dsdtfab.dataPtr(),
+                   mfi().dataPtr(),
                    rcen.dataPtr(), 
                    ARLIM(ndlo), ARLIM(ndhi), divu.dataPtr(), 
                    domlo, domhi, lowfix, hifix, &hx,
                    &extrap_edges, &extrap_corners, &is_rz);
 #elif (BL_SPACEDIM==3)
+        //
+        // TODO -- make 3-D work !!!
+        //
         divu.setVal(0);
 #endif
         divu.negate();
@@ -920,6 +959,7 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
 void
 SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                            const Geometry& geom,
+                           const Geometry& crse_geom,
                            int             is_rz,
                            int**           fine_bc, 
                            int             lowfix,
@@ -928,6 +968,10 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
 {
     FArrayBox dsdtfab, cfablo, cfabhi, ffablo, ffabhi;
     FArrayBox ffablo_tmp, ffabhi_tmp;
+
+    Array<IntVect> pshifts(27);
+
+    const Box& crse_node_domain = ::surroundingNodes(crse_geom.Domain());
 
     for (ConstMultiFabIterator mfi(dsdt); mfi.isValid(); ++mfi)
     {
@@ -992,6 +1036,9 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                        domlo, domhi, lowfix, hi_fix, &hx,
                        &extrap_edges, &extrap_corners, &is_rz);
 #elif (BL_SPACEDIM==3)
+            //
+            // TODO -- make 3-D work !!!
+            //
             ffablo_tmp.setVal(0);
 #endif
             ffablo_tmp.negate();
@@ -1008,6 +1055,9 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                        domlo, domhi, low_fix, hifix, &hx,
                        &extrap_edges, &extrap_corners, &is_rz);
 #elif (BL_SPACEDIM==3)
+            //
+            // TODO -- make 3-D work !!!
+            //
             ffabhi_tmp.setVal(0);
 #endif
             ffabhi_tmp.negate();
@@ -1031,6 +1081,17 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
             //
             increment(cfablo);
             increment(cfabhi);
+
+            if (crse_geom.isAnyPeriodic())
+            {
+                incrementPeriodic(crse_geom,
+                                  crse_node_domain,
+                                  cboxlo,
+                                  cboxhi,
+                                  cfablo,
+                                  cfabhi,
+                                  pshifts);
+            }
         }
     }
 }
@@ -1054,13 +1115,13 @@ NullOverlap (const BoxArray& Pgrids,
         {
             ffablo.setVal(0,(reglo & Pgrids[i]),set_comp,n_comp);
         }
+
         fine_geom.periodicShift(reglo, Pgrids[i], pshifts);
 
         for (int iiv = 0; iiv < pshifts.length(); iiv++)
         {
-            Box overlap_lo_per(Pgrids[i]);
-            overlap_lo_per.shift(pshifts[iiv]);
-            overlap_lo_per &= reglo;
+            Box overlap_lo_per = Pgrids[i] + pshifts[iiv];
+            overlap_lo_per    &= reglo;
             ffablo.setVal(0,overlap_lo_per,set_comp,n_comp);
         }
 
@@ -1068,13 +1129,13 @@ NullOverlap (const BoxArray& Pgrids,
         {
             ffabhi.setVal(0,(reghi & Pgrids[i]),set_comp,n_comp);
         }
+
         fine_geom.periodicShift(reghi, Pgrids[i], pshifts);
 
         for (int iiv = 0; iiv < pshifts.length(); iiv++)
         {
-            Box overlap_hi_per(Pgrids[i]);
-            overlap_hi_per.shift(pshifts[iiv]);
-            overlap_hi_per &= reghi;
+            Box overlap_hi_per = Pgrids[i] + pshifts[iiv];
+            overlap_hi_per    &= reghi;
             ffabhi.setVal(0,overlap_hi_per,set_comp,n_comp);
         }
     }
@@ -1165,9 +1226,13 @@ SyncRegister::CompDVAdd (const MultiFab& U,
 
             if (crse_geom.isAnyPeriodic())
             {
-                incrementPeriodic(crse_geom,crse_node_domain,
-                                  cboxlo,cboxhi,
-                                  cfablo,cfabhi,pshifts);
+                incrementPeriodic(crse_geom,
+                                  crse_node_domain,
+                                  cboxlo,
+                                  cboxhi,
+                                  cfablo,
+                                  cfabhi,
+                                  pshifts);
             }
         }
     }
@@ -1180,16 +1245,16 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
                            int             is_rz,
                            Real            mult)
 {
-    const int n_ghost = 1;
+    const int nghost = 1;
     //
     // This code assumes Sigma and Phi have same processor distribution.
     //
     assert(Phi.boxArray().length() == Sigma.boxArray().length());
 
-    MultiFab Sig_local(Sigma.boxArray(),1,n_ghost);
-    MultiFab Phi_local(Phi.boxArray(),1,n_ghost);
+    MultiFab Sig_local(Sigma.boxArray(),1,nghost);
+    MultiFab Phi_local(Phi.boxArray(),1,nghost);
     //
-    // Copy valid region of Phi into Phi_local
+    // Copy valid region of Phi into Phi_local & zero out ghost cells.
     //
     for (MultiFabIterator mfi(Phi_local); mfi.isValid(); ++mfi)
     {
@@ -1197,7 +1262,7 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
         mfi().copy(Phi[mfi.index()], mfi.validbox());
     }
     //
-    // Copy valid region of Sigma into Sig_local.
+    // Copy valid region of Sigma into Sig_local & zero out ghost cells.
     // Also, zero out region covered by fine grid.
     //
     for (MultiFabIterator mfi(Sig_local); mfi.isValid(); ++mfi)
@@ -1208,7 +1273,9 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
         for (int fine = 0; fine < grids.length(); fine++)
         {
             if (grids[fine].intersects(mfi.validbox()))
+            {
                 mfi().setVal(0,grids[fine] & mfi.validbox(),0,1);
+            }
         }
     }
     //
@@ -1337,9 +1404,13 @@ SyncRegister::FineLPhiAdd (const MultiFab& Phi,
 
             if (crse_geom.isAnyPeriodic())
             {
-                incrementPeriodic(crse_geom,crse_node_domain,
-                                  cboxlo,cboxhi,
-                                  cfablo,cfabhi,pshifts);
+                incrementPeriodic(crse_geom,
+                                  crse_node_domain,
+                                  cboxlo,
+                                  cboxhi,
+                                  cfablo,
+                                  cfabhi,
+                                  pshifts);
             }
         }
     }
@@ -1441,9 +1512,13 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
             //
             if (crse_geom.isAnyPeriodic())
             {
-                incrementPeriodic(crse_geom,crse_node_domain,
-                                  cboxlo,cboxhi,
-                                  cfablo,cfabhi,pshifts);
+                incrementPeriodic(crse_geom,
+                                  crse_node_domain,
+                                  cboxlo,
+                                  cboxhi,
+                                  cfablo,
+                                  cfabhi,
+                                  pshifts);
             }
         }
     }

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.55 1998-10-12 23:19:01 sstanley Exp $
+// $Id: Projection.cpp,v 1.56 1998-11-04 00:15:39 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -435,8 +435,8 @@ Projection::level_project (int             level,
             const Geometry& crse_geom = parent->Geom(level-1);
             fine_sync_reg->FineDVAdd(U_new,dx,crse_geom,rz_flag,bc,invrat);
             if (have_divu) 
-                fine_sync_reg->FineDsdtAdd(dsdt,geom,rz_flag,bc,lowfix,
-                                           hifix,invrat);
+                fine_sync_reg->FineDsdtAdd(dsdt,geom,crse_geom,rz_flag,
+                                           bc,lowfix,hifix,invrat);
         }
     }
     //

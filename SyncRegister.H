@@ -4,7 +4,7 @@
 #define _SYNCREGISTER_H_
 
 //
-// $Id: SyncRegister.H,v 1.11 1998-09-29 20:07:48 lijewski Exp $
+// $Id: SyncRegister.H,v 1.12 1998-11-04 00:15:39 lijewski Exp $
 //
 
 #include <PArray.H>
@@ -63,6 +63,7 @@ public:
 
     void FineDsdtAdd (const MultiFab& dsdt,
                       const Geometry& geom,
+                      const Geometry& crse_geom,
                       int             is_rz,
                       int**           fine_bc, 
                       int             lowfix,
