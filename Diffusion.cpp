@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.48 1998-11-20 16:39:38 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.49 1998-11-20 21:00:34 lijewski Exp $
 //
 
 //
@@ -2754,37 +2754,62 @@ Diffusion::getBndryData (ViscBndry& bndry,
     assert(num_comp == 1);
 
     const BCRec& bc = caller->get_desc_lst()[State_Type].getBC(src_comp);
+
     bndry.define(grids,num_comp,caller->Geom());
-    //
-    // Get state, rho, and have caller set physical bc's.
-    //
-    MultiFab& S = caller->get_data(State_Type,time);
-    assert(S.boxArray() == grids);
-    caller->setPhysBoundaryValues(State_Type,src_comp,num_comp,time);
-    if (rho_flag == 2)
-    { 
-        caller->setPhysBoundaryValues(State_Type,Density,1,time);
-    }
     //
     // Fill physical boundary values into grow cells of a tmp multifab
     // passed into bndry.  (COI+c-f+periodic handled inside solver)
     //
-    // A MultiFab is a huge amount of space in which to pass along
-    // the phys bc's. InterpBndryData needs a more efficient interface.
+    // TODO -- A MultiFab is a huge amount of space in which to pass along
+    // the phys bc's.  InterpBndryData needs a more efficient interface.
     //
     const int nGrow = 1;
-    MultiFab Stmp(grids, num_comp, nGrow, Fab_allocate);
+
+    MultiFab Stmp(grids, num_comp, nGrow);
+
     const Geometry& geom = parent->Geom(level);
-    Box grDomainNoPer = ::grow(geom.Domain(), nGrow);
     //
-    // Exclude periodic sides and corners.
+    // Make a grown box that excludes periodic sides and corners.
     //
+    Box grDomain = ::grow(geom.Domain(), nGrow);
+    Box grDomainNoPer = grDomain;
     if (geom.isAnyPeriodic())
-    {
-	for (int i = 0; i < BL_SPACEDIM; i++)
+	for (int i=0; i<BL_SPACEDIM; i++)
 	    if (geom.isPeriodic(i))
 		grDomainNoPer.grow(i,-nGrow);
+    //
+    // Get state, rho, and have caller set physical bc's.
+    // We are going to exclude periodic sides and corners, but
+    // the FilBoundary() stuff doesn't know this.  Set safe garbage
+    // values out there; not zero, so we can divide if we have to.
+    //
+    MultiFab& S = caller->get_data(State_Type,time);
+
+    assert(S.boxArray() == grids);
+
+    BoxList gval_boxes = ::boxDiff(grDomain, grDomainNoPer);
+
+    for (BoxListIterator bli(gval_boxes); bli; ++bli)
+    {
+        for (MultiFabIterator mfi(S); mfi.isValid(); ++mfi)
+	{
+            int i = mfi.index();
+
+            if (S[i].box().intersects(bli()))
+            {
+                Box ovlp = S[i].box() & bli();
+
+		S[i].setVal(BL_SAFE_BOGUS,ovlp,src_comp,num_comp);
+		if (rho_flag == 2)
+		    S[i].setVal(BL_SAFE_BOGUS,ovlp,Density,1);
+	    }
+	}
     }
+    
+    caller->setPhysBoundaryValues(State_Type,src_comp,num_comp,time);
+
+    if (rho_flag == 2)
+        caller->setPhysBoundaryValues(State_Type,Density,1,time);
 
     for (MultiFabIterator Stmpmfi(Stmp); Stmpmfi.isValid(); ++Stmpmfi)    
     {
@@ -2815,7 +2840,7 @@ Diffusion::getBndryData (ViscBndry& bndry,
 	cgrids.coarsen(crse_ratio);
 	BndryRegister crse_br(cgrids,0,1,1,num_comp);
         //
-        // interp for solvers over ALL c-f brs, need safe data
+        // interp for solvers over ALL c-f brs, need safe data.
         //
 	crse_br.setVal(BL_BOGUS);
 	coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
