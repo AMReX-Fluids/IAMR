@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOperator.cpp,v 1.20 2000-10-02 20:50:14 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.21 2000-11-01 17:52:18 lijewski Exp $
 //
 
 #include <MacBndry.H>
@@ -53,25 +53,23 @@ MacOperator::setCoefficients (MultiFab*   area,
     // Don't need to set a because alpha is set to zero.
     //
     const int n_grow = 0;
-    MultiFab bxcoef(area[0].boxArray(),area[0].nComp(),n_grow,Fab_allocate);
-    MultiFab bycoef(area[1].boxArray(),area[1].nComp(),n_grow,Fab_allocate);
-    bxcoef.setVal(0);
-    bycoef.setVal(0);
-#if (BL_SPACEDIM == 3)
-    MultiFab bzcoef(area[2].boxArray(),area[2].nComp(),n_grow,Fab_allocate);
-    bzcoef.setVal(0);
-#endif
+
+    D_TERM(MultiFab bxcoef(area[0].boxArray(),area[0].nComp(),n_grow);,
+           MultiFab bycoef(area[1].boxArray(),area[1].nComp(),n_grow);,
+           MultiFab bzcoef(area[2].boxArray(),area[2].nComp(),n_grow););
+    D_TERM(bxcoef.setVal(0);,
+           bycoef.setVal(0);,
+           bzcoef.setVal(0););
 
     for (MultiFabIterator rhomfi(rho); rhomfi.isValid(); ++rhomfi)
     {
-        DependentMultiFabIterator bxcoefmfi(rhomfi, bxcoef);
-        DependentMultiFabIterator bycoefmfi(rhomfi, bycoef);
-        DependentMultiFabIterator area0mfi(rhomfi, area[0]);
-        DependentMultiFabIterator area1mfi(rhomfi, area[1]);
-#if (BL_SPACEDIM == 3)
-        DependentMultiFabIterator bzcoefmfi(rhomfi, bzcoef);
-        DependentMultiFabIterator area2mfi(rhomfi, area[2]);
-#endif
+        D_TERM(DependentMultiFabIterator bxcoefmfi(rhomfi,bxcoef);,
+               DependentMultiFabIterator bycoefmfi(rhomfi,bycoef);,
+               DependentMultiFabIterator bzcoefmfi(rhomfi,bzcoef););
+        D_TERM(DependentMultiFabIterator area0mfi(rhomfi,area[0]);,
+               DependentMultiFabIterator area1mfi(rhomfi,area[1]);,
+               DependentMultiFabIterator area2mfi(rhomfi,area[2]););
+
         BL_ASSERT(ba[rhomfi.index()] == rhomfi.validbox());
 
         const Box& grd       = ba[rhomfi.index()];
@@ -116,11 +114,9 @@ MacOperator::setCoefficients (MultiFab*   area,
 #endif
     }
   
-    bCoefficients(bxcoef,0);
-    bCoefficients(bycoef,1);
-#if (BL_SPACEDIM == 3)
-    bCoefficients(bzcoef,2);
-#endif
+    D_TERM(bCoefficients(bxcoef,0);,
+           bCoefficients(bycoef,1);,
+           bCoefficients(bzcoef,2););
 }
 
 //
@@ -206,11 +202,9 @@ MacOperator::defRHS (MultiFab* area,
 
 void
 mac_vel_update (int              init,
-                FArrayBox&       ux,
-                FArrayBox&       uy,
-#if (BL_SPACEDIM == 3 )
-                FArrayBox&       uz,
-#endif
+                D_DECL(FArrayBox& ux,
+                       FArrayBox& uy,
+                       FArrayBox& uz),
                 const FArrayBox& phi,
                 const FArrayBox* rhoptr,
                 int              rho_comp,  
@@ -280,21 +274,17 @@ MacOperator::velUpdate (MultiFab*       Vel,
     for (MultiFabIterator Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
     {
         DependentMultiFabIterator Rhomfi(Phimfi, Rho);
-        DependentMultiFabIterator Vel0mfi(Phimfi, Vel[0]);
-        DependentMultiFabIterator Vel1mfi(Phimfi, Vel[1]);
-#if (BL_SPACEDIM == 3 )
-        DependentMultiFabIterator Vel2mfi(Phimfi, Vel[2]);
-#endif
+
+        D_TERM(DependentMultiFabIterator Vel0mfi(Phimfi,Vel[0]);,
+               DependentMultiFabIterator Vel1mfi(Phimfi,Vel[1]);,
+               DependentMultiFabIterator Vel2mfi(Phimfi,Vel[2]););
+
         BL_ASSERT(ba[Phimfi.index()] == Phimfi.validbox());
 
         const Box& grd = Phimfi.validbox();
 
         mac_vel_update(0, 
-                       Vel0mfi(),
-                       Vel1mfi(),
-#if (BL_SPACEDIM == 3 )
-                       Vel2mfi(),
-#endif
+                       D_DECL(Vel0mfi(),Vel1mfi(),Vel2mfi()),
                        Phimfi(),
                        &(Rhomfi()), rho_comp,  
                        grd, 0, Phimfi.index(), dx, scale );
@@ -383,9 +373,9 @@ mac_level_driver (const MacBndry& mac_bndry,
       hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
       hp.aCoefficients(mac_op.aCoefficients());
       for ( int i = 0; i < BL_SPACEDIM; ++i )
-	{
+      {
 	  hp.bCoefficients(mac_op.bCoefficients(i), i);
-	}
+      }
       hp.setup_solver(mac_tol, mac_abs_tol, 50);
       hp.solve(*mac_phi, Rhs, true);
       hp.clear_solver();
@@ -449,9 +439,9 @@ mac_sync_driver (const MacBndry& mac_bndry,
 	hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
 	hp.aCoefficients(mac_op.aCoefficients());
 	for ( int i = 0; i < BL_SPACEDIM; ++i )
-	  {
+        {
 	    hp.bCoefficients(mac_op.bCoefficients(i), i);
-	  }
+        }
 	hp.setup_solver(mac_sync_tol, mac_abs_tol, 50);
 	hp.solve(*mac_sync_phi, Rhs, true);
 	hp.clear_solver();

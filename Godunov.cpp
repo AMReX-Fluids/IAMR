@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.23 2000-10-02 20:50:14 lijewski Exp $
+// $Id: Godunov.cpp,v 1.24 2000-11-01 17:52:18 lijewski Exp $
 //
 
 //
@@ -91,17 +91,9 @@ Godunov::read_params ()
 void
 Godunov::ZeroScratch ()
 {
-    stxlo  = 0;
-    stxhi  = 0;
-    slxscr = 0;
-    stylo  = 0;
-    styhi  = 0;
-    slyscr = 0;
-#if (BL_SPACEDIM == 3)     
-    stzlo  = 0;
-    stzhi  = 0;
-    slzscr = 0;
-#endif
+    D_TERM(stxlo=0;,  stylo=0;,  stzlo=0;);
+    D_TERM(stxhi=0;,  styhi=0;,  stzhi=0;);
+    D_TERM(slxscr=0;, slyscr=0;, slzscr=0;);
 }
 
 //
@@ -116,17 +108,17 @@ Godunov::SetBogusScratch ()
 
     for (int i = 0 ; i < scr_size ; i++)
     {
-        stxlo[i]  = bogus_value;
-        stxhi[i]  = bogus_value;
-        slxscr[i] = bogus_value;
-        stylo[i]  = bogus_value;
-        styhi[i]  = bogus_value;
-        slyscr[i] = bogus_value;
-#if (BL_SPACEDIM == 3)     
-        stzlo[i]  = bogus_value;
-        stzhi[i]  = bogus_value;
-        slzscr[i] = bogus_value;
-#endif
+        D_TERM(stxlo[i]=bogus_value;,
+               stylo[i]=bogus_value;,
+               stzlo[i]=bogus_value;);
+
+        D_TERM(stxhi[i]=bogus_value;,
+               styhi[i]=bogus_value;,
+               stzhi[i]=bogus_value;);
+
+        D_TERM(slxscr[i]=bogus_value;,
+               slyscr[i]=bogus_value;,
+               slzscr[i]=bogus_value;);
     }
 #endif /*NDEBUG*/
 }
@@ -153,18 +145,17 @@ Godunov::SetScratch (int max_size)
     //
     // Construct arrays.
     //
-    stxlo  = new Real[scr_size];
-    stxhi  = new Real[scr_size];
-    slxscr = new Real[scr_size];
-    
-    stylo  = new Real[scr_size];
-    styhi  = new Real[scr_size];
-    slyscr = new Real[scr_size];
-#if (BL_SPACEDIM == 3)
-    stzlo  = new Real[scr_size];
-    stzhi  = new Real[scr_size];
-    slzscr = new Real[scr_size];
-#endif
+    D_TERM(stxlo  = new Real[scr_size];,
+           stylo  = new Real[scr_size];,
+           stzlo  = new Real[scr_size];);
+
+    D_TERM(stxhi  = new Real[scr_size];,
+           styhi  = new Real[scr_size];,
+           stzhi  = new Real[scr_size];);
+
+    D_TERM(slxscr = new Real[scr_size];,
+           slyscr = new Real[scr_size];,
+           slzscr = new Real[scr_size];);
 }
 
 //
@@ -174,17 +165,9 @@ Godunov::SetScratch (int max_size)
 void
 Godunov::RemScratch ()
 {
-    delete [] stxlo;
-    delete [] stxhi;
-    delete [] slxscr;
-    delete [] stylo;
-    delete [] styhi;
-    delete [] slyscr;
-#if (BL_SPACEDIM == 3)    
-    delete [] stzlo;
-    delete [] stzhi;
-    delete [] slzscr; 
-#endif
+    D_TERM(delete [] stxlo;,  delete [] stylo;,  delete [] stzlo;);
+    D_TERM(delete [] stxhi;,  delete [] styhi;,  delete [] stzhi;);
+    D_TERM(delete [] slxscr;, delete [] slyscr;, delete [] slzscr;);
 }
 
 //
@@ -228,24 +211,17 @@ Godunov::Setup (const Box&       grd,
     //
     // Compute the edge boxes.
     //
-    xflux_bx = grd;
-    xflux_bx.surroundingNodes(0);
-    yflux_bx = grd;
-    yflux_bx.surroundingNodes(1);
-#if (BL_SPACEDIM == 3)
-    zflux_bx = grd;
-    zflux_bx.surroundingNodes(2);
-#endif
+    D_TERM(xflux_bx = grd; xflux_bx.surroundingNodes(0);,
+           yflux_bx = grd; yflux_bx.surroundingNodes(1);,
+           zflux_bx = grd; zflux_bx.surroundingNodes(2););
     //
     // Create storage for fluxes.
     //
     if (!velpred)
     {
-        xflux.resize(xflux_bx,1);
-        yflux.resize(yflux_bx,1);
-#if (BL_SPACEDIM == 3)
-        zflux.resize(zflux_bx,1);
-#endif
+        D_TERM(xflux.resize(xflux_bx,1);,
+               yflux.resize(yflux_bx,1);,
+               zflux.resize(zflux_bx,1););
     }
     //
     // Ensure 1D scratch space is large enough.
@@ -256,11 +232,9 @@ Godunov::Setup (const Box&       grd,
     //
     work_bx = ::grow(grd,1);
     work.resize(work_bx,2*BL_SPACEDIM+1);
-    uad.resize(work_bx,1);
-    vad.resize(work_bx,1);
-#if (BL_SPACEDIM == 3) 
-    wad.resize(work_bx,1);
-#endif
+    D_TERM(uad.resize(work_bx,1);,
+           vad.resize(work_bx,1);,
+           wad.resize(work_bx,1););
 
     SetBogusScratch();
     //
@@ -876,11 +850,9 @@ Godunov::test_u_rho (FArrayBox&  U,
     const int *rlo = rho.loVect();
     const int *rhi = rho.hiVect();
     const Real *rh = rho.dataPtr();
-    const Real *u  = U.dataPtr(XVEL);
-    const Real *v  = U.dataPtr(YVEL);
-#if (BL_SPACEDIM == 3)
-    const Real *w  = U.dataPtr(ZVEL);
-#endif
+    D_TERM(const Real *u  = U.dataPtr(XVEL);,
+           const Real *v  = U.dataPtr(YVEL);,
+           const Real *w  = U.dataPtr(ZVEL););
 
     Real cflmax = 0;
     FORT_TEST_U_RHO(u,  ARLIM(vlo), ARLIM(vhi),
@@ -912,11 +884,10 @@ Godunov::test_umac_rho (FArrayBox&  umac,
     //
     // Test block.
     //
-    BL_ASSERT(umac.nComp() == 1);
-    BL_ASSERT(vmac.nComp() == 1);
-#if (BL_SPACEDIM == 3)
-    BL_ASSERT(wmac.nComp() == 1);
-#endif
+    D_TERM(BL_ASSERT(umac.nComp() == 1);,
+           BL_ASSERT(vmac.nComp() == 1);,
+           BL_ASSERT(wmac.nComp() == 1););
+
     BL_ASSERT(rho.nComp()  == 1);
     
     const int *lo  = grd.loVect();

@@ -1,6 +1,6 @@
 
 //
-// $Id: NavierStokes.cpp,v 1.189 2000-10-31 20:28:34 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.190 2000-11-01 17:52:19 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -4078,30 +4078,21 @@ NavierStokes::mac_sync ()
 
         if (do_mom_diff == 1)
         {
-          for (MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
-          {
-            DependentMultiFabIterator mfi(Vsyncmfi, *rho_ctime);
+            for (MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+            {
+                DependentMultiFabIterator mfi(Vsyncmfi, *rho_ctime);
 
-            Vsyncmfi().divide(mfi(),mfi.validbox(),0,Xvel,1);
-            Vsyncmfi().divide(mfi(),mfi.validbox(),0,Yvel,1);
-#if (BL_SPACEDIM == 3)
-            Vsyncmfi().divide(mfi(),mfi.validbox(),0,Zvel,1);
-#endif
-          }
+                D_TERM(Vsyncmfi().divide(mfi(),mfi.validbox(),0,Xvel,1);,
+                       Vsyncmfi().divide(mfi(),mfi.validbox(),0,Yvel,1);,
+                       Vsyncmfi().divide(mfi(),mfi.validbox(),0,Zvel,1););
+            }
         }
-
         //
         // Compute viscous sync.
         //
         if (is_diffusive[Xvel])
         {
-            int rho_flag;
-            if (do_mom_diff == 0)
-            {
-               rho_flag = 1;
-            } else {
-               rho_flag = 3;
-            }
+            int rho_flag = (do_mom_diff == 0) ? 1 : 3;
 
             MultiFab** loc_viscn = 0;
 
@@ -4299,16 +4290,14 @@ NavierStokes::reflux ()
 
     if (do_mom_diff == 0)
     {
-      for (MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
-      {
-        DependentMultiFabIterator mfi(Vsyncmfi, *Rh);
+        for (MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+        {
+            DependentMultiFabIterator mfi(Vsyncmfi, *Rh);
 
-        Vsyncmfi().divide(mfi(),mfi.validbox(),0,Xvel,1);
-        Vsyncmfi().divide(mfi(),mfi.validbox(),0,Yvel,1);
-#if (BL_SPACEDIM == 3)
-        Vsyncmfi().divide(mfi(),mfi.validbox(),0,Zvel,1);
-#endif
-      }
+            D_TERM(Vsyncmfi().divide(mfi(),mfi.validbox(),0,Xvel,1);,
+                   Vsyncmfi().divide(mfi(),mfi.validbox(),0,Yvel,1);,
+                   Vsyncmfi().divide(mfi(),mfi.validbox(),0,Zvel,1););
+        }
     }
 
     for (int istate = BL_SPACEDIM; istate < NUM_STATE; istate++)

@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.108 2000-10-02 20:50:13 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.109 2000-11-01 17:52:16 lijewski Exp $
 //
 
 //
@@ -634,12 +634,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         if (do_reflux && (level<finest_level || level>0))
         {
             allocFluxBoxesLevel(tensorflux_old,0,BL_SPACEDIM);
-            tensor_op->compFlux(*(tensorflux_old[0]),
-                                *(tensorflux_old[1]),
-#if(BL_SPACEDIM==3)
-                                *(tensorflux_old[2]),
-#endif
-                                Soln_old);
+            tensor_op->compFlux(D_DECL(*(tensorflux_old[0]),
+                                       *(tensorflux_old[1]),
+                                       *(tensorflux_old[2])),Soln_old);
             for (int d = 0; d < BL_SPACEDIM; d++)
                 tensorflux_old[d]->mult(-b/(dt*caller->Geom().CellSize()[d]),0);
         }
@@ -829,12 +826,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     {
         MultiFab** tensorflux;
         allocFluxBoxesLevel(tensorflux,0,BL_SPACEDIM);
-        tensor_op->compFlux(*(tensorflux[0]),
-                            *(tensorflux[1]),
-#if(BL_SPACEDIM==3)
-                            *(tensorflux[2]),
-#endif
-                            Soln);
+        tensor_op->compFlux(D_DECL(*(tensorflux[0]),
+                                   *(tensorflux[1]),
+                                   *(tensorflux[2])),Soln);
         for (int d = 0; d < BL_SPACEDIM; d++)
         {
             tensorflux[d]->mult(b/(dt*caller->Geom().CellSize()[d]),0);
@@ -883,19 +877,15 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                 if (level < finest_level)
                 {
                     FluxRegister& fr = *finer->viscflux_reg;
-                    fr.CrseInit(xflux,xflux_bx,0,0,sigma,1,-dt);
-                    fr.CrseInit(yflux,yflux_bx,1,0,sigma,1,-dt);
-#if (BL_SPACEDIM == 3)
-                    fr.CrseInit(zflux,zflux_bx,2,0,sigma,1,-dt);
-#endif
+                    D_TERM(fr.CrseInit(xflux,xflux_bx,0,0,sigma,1,-dt);,
+                           fr.CrseInit(yflux,yflux_bx,1,0,sigma,1,-dt);,
+                           fr.CrseInit(zflux,zflux_bx,2,0,sigma,1,-dt););
                 }
                 if (level > 0)
                 {
-                    viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,dt);
-                    viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,dt);
-#if (BL_SPACEDIM == 3)
-                    viscflux_reg->FineAdd(zflux,2,i,0,sigma,1,dt);
-#endif
+                    D_TERM(viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,dt);,
+                           viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,dt);,
+                           viscflux_reg->FineAdd(zflux,2,i,0,sigma,1,dt););
                 }
             }
             if (level < finest_level)
@@ -1092,11 +1082,10 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         {
             for (MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
             {
-                DependentMultiFabIterator area0mfi(Vsyncmfi, area[0]);
-                DependentMultiFabIterator area1mfi(Vsyncmfi, area[1]);
-#if (BL_SPACEDIM == 3)
-                DependentMultiFabIterator area2mfi(Vsyncmfi, area[2]);
-#endif
+                D_TERM(DependentMultiFabIterator area0mfi(Vsyncmfi,area[0]);,
+                       DependentMultiFabIterator area1mfi(Vsyncmfi,area[1]);,
+                       DependentMultiFabIterator area2mfi(Vsyncmfi,area[2]););
+
                 BL_ASSERT(grids[Vsyncmfi.index()] == Vsyncmfi.validbox());
 
                 const int  i      = Vsyncmfi.index();
@@ -1158,13 +1147,11 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
                                    zarea_dat,ARLIM(zarea_lo),ARLIM(zarea_hi),
                                    dx,&mult);
 #endif
-
                 Real one = 1.0;
-                viscflux_reg->FineAdd(xflux,0,i,0,comp,1,one);
-                viscflux_reg->FineAdd(yflux,1,i,0,comp,1,one);
-#if (BL_SPACEDIM == 3)
-                viscflux_reg->FineAdd(zflux,2,i,0,comp,1,one);
-#endif
+
+                D_TERM(viscflux_reg->FineAdd(xflux,0,i,0,comp,1,one);,
+                       viscflux_reg->FineAdd(yflux,1,i,0,comp,1,one);,
+                       viscflux_reg->FineAdd(zflux,2,i,0,comp,1,one););
             }
         }
     }
@@ -1284,11 +1271,9 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     {
         MultiFab** tensorflux;
         allocFluxBoxesLevel(tensorflux,0,BL_SPACEDIM);
-        tensor_op->compFlux(*(tensorflux[0]),*(tensorflux[1]),
-#if(BL_SPACEDIM==3)
-                            *(tensorflux[2]),
-#endif
-                            Soln);
+        tensor_op->compFlux(D_DECL(*(tensorflux[0]),
+                                   *(tensorflux[1]),
+                                   *(tensorflux[2])),Soln);
         //
         // The extra factor of dt comes from the fact that Vsync looks
         // like dV/dt, not just an increment to V.
@@ -1336,11 +1321,9 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
                 //  Multiply by dt^2: one to make fluxes "extensive", the other to 
                 //   convert Vsync from accel increment to velocity increment
                 //
-                viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,dt*dt);
-                viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,dt*dt);
-#if (BL_SPACEDIM == 3)
-                viscflux_reg->FineAdd(zflux,2,i,0,sigma,1,dt*dt);
-#endif
+                D_TERM(viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,dt*dt);,
+                       viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,dt*dt);,
+                       viscflux_reg->FineAdd(zflux,2,i,0,sigma,1,dt*dt););
             }
         }
         removeFluxBoxesLevel(tensorflux);
@@ -1538,11 +1521,11 @@ Diffusion::getTensorOp (Real                   a,
         {
             DependentMultiFabIterator volumemfi(alphamfi, volume);
             DependentMultiFabIterator rho_mfi(alphamfi, (*rho));
-            DependentMultiFabIterator beta0mfi(alphamfi, (*beta[0]));
-            DependentMultiFabIterator beta1mfi(alphamfi, (*beta[1]));
-#if (BL_SPACEDIM==3)
-            DependentMultiFabIterator beta2mfi(alphamfi, (*beta[2]));
-#endif
+
+            D_TERM(DependentMultiFabIterator beta0mfi(alphamfi,(*beta[0]));,
+                   DependentMultiFabIterator beta1mfi(alphamfi,(*beta[1]));,
+                   DependentMultiFabIterator beta2mfi(alphamfi,(*beta[2])););
+
             BL_ASSERT(alpha.box(alphamfi.index()) == alphamfi.validbox());
             BL_ASSERT(volume.box(alphamfi.index()) == volumemfi.validbox());
 
@@ -1646,7 +1629,7 @@ Diffusion::getTensorOp (Real                   a,
     IntVect ref_ratio = level > 0 ? parent->refRatio(level-1) : IntVect::TheUnitVector();
 
     ViscBndryTensor bndry;
-    //bndry.define(grids,2*BL_SPACEDIM,caller->Geom());
+
     bndry.define(grids,nDer,caller->Geom());
     bndry.setHomogValues(bcarray, ref_ratio[0]);
     DivVis* tensor_op = new DivVis(bndry,dx);
@@ -1667,11 +1650,10 @@ Diffusion::getTensorOp (Real                   a,
         {
             DependentMultiFabIterator volumemfi(alphamfi, volume);
             DependentMultiFabIterator rho_mfi(alphamfi, (*rho));
-            DependentMultiFabIterator beta0mfi(alphamfi, (*beta[0]));
-            DependentMultiFabIterator beta1mfi(alphamfi, (*beta[1]));
-#if (BL_SPACEDIM==3)
-            DependentMultiFabIterator beta2mfi(alphamfi, (*beta[2]));
-#endif
+
+            D_TERM(DependentMultiFabIterator beta0mfi(alphamfi,(*beta[0]));,
+                   DependentMultiFabIterator beta1mfi(alphamfi,(*beta[1]));,
+                   DependentMultiFabIterator beta2mfi(alphamfi,(*beta[2])););
 
             BL_ASSERT(alpha.box(alphamfi.index()) == alphamfi.validbox());
             BL_ASSERT(volume.box(alphamfi.index()) == volumemfi.validbox());
@@ -2272,7 +2254,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
             }
         }
 #endif
-
         MultiFab::Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,0);
     }
 }
