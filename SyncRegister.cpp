@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.50 1998-12-11 21:10:47 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.51 1999-02-09 17:50:33 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -74,8 +74,39 @@ WriteNorms (const SyncRegister& sr,
     }
 }
 #else
-inline void WriteNorms (const SyncRegister&, const char*) {}
+inline
+void
+WriteNorms (const SyncRegister&, const char*)
+{}
 #endif /*BL_SYNC_DEBUG*/
+
+//
+// Structure used by some SyncRegister functions.
+//
+
+struct SRRec
+{
+    SRRec (Orientation    face,
+           int            index,
+           const IntVect& shift)
+        :
+        m_shift(shift),
+        m_idx(index),
+        m_face(face)
+    {}
+
+    SRRec (Orientation face,
+           int         index)
+        :
+        m_idx(index),
+        m_face(face)
+    {}
+
+    FillBoxId   m_fbid;
+    IntVect     m_shift;
+    int         m_idx;
+    Orientation m_face;
+};
 
 SyncRegister::SyncRegister ()
 {
@@ -230,23 +261,17 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                             const Box&      domain,
                             MultiFab&       rhs) const
 {
-    if (!geom.isAnyPeriodic())
-        return;
+    if (!geom.isAnyPeriodic()) return;
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
+    const int            MyProc = ParallelDescriptor::MyProc();
     Array<IntVect>       pshifts(27);
-    vector<IntVect>      shifts;
-    vector<FillBoxId>    fillBoxIDs;
+    vector<SRRec>        srrec;
     FabSetCopyDescriptor fscd;
+    FabSetId             fsid[2*BL_SPACEDIM];
 
     for (OrientationIter face; face; ++face)
     {
-        fscd.clear();
-        shifts.clear();
-        fillBoxIDs.clear();
-
-        FabSetId faid = fscd.RegisterFabSet((FabSet*)&bndry[face()]);
+        fsid[face()] = fscd.RegisterFabSet((FabSet*) &bndry[face()]);
 
         for (MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi)
         {
@@ -263,63 +288,51 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                         sbox &= mfi().box();
                         sbox -= pshifts[iiv];
 
-                        fillBoxIDs.push_back(fscd.AddBox(faid,
-                                                         sbox,
-                                                         0,
-                                                         j,
-                                                         0,
-                                                         0,
-                                                         mfi().nComp()));
+                        SRRec sr(face(), mfi.index(), pshifts[iiv]);
 
-                        assert(fillBoxIDs.back().box() == sbox);
-                        //
-                        // I need to save mfi.index() and pshifts[iiv].
-                        //
-                        fillBoxIDs.back().FabIndex(mfi.index());
-                        //
-                        // I'll maintain a parallel array for the IntVects.
-                        //
-                        shifts.push_back(pshifts[iiv]);
+                        sr.m_fbid = fscd.AddBox(fsid[face()],
+                                                sbox,
+                                                0,
+                                                j,
+                                                0,
+                                                0,
+                                                mfi().nComp());
+
+                        assert(sr.m_fbid.box() == sbox);
+
+                        srrec.push_back(sr);
                     }
                 }
             }
         }
+    }
 
-        fscd.CollectData();
+    fscd.CollectData();
 
-        assert(fillBoxIDs.size() == shifts.size());
+    for (int i = 0; i < srrec.size(); i++)
+    {
+        assert(rhs.DistributionMap()[srrec[i].m_idx] == MyProc);
 
-        for (int i = 0; i < fillBoxIDs.size(); i++)
-        {
-            assert(rhs.DistributionMap()[fillBoxIDs[i].FabIndex()] == MyProc);
+        FArrayBox& fab = rhs[srrec[i].m_idx];
 
-            FArrayBox& fab = rhs[fillBoxIDs[i].FabIndex()];
+        Box dstbox = srrec[i].m_fbid.box() + srrec[i].m_shift;
 
-            Box destbox = fillBoxIDs[i].box();
-
-            destbox.shift(shifts[i]);
-
-            fscd.FillFab(faid, fillBoxIDs[i], fab, destbox);
-        }
+        fscd.FillFab(fsid[srrec[i].m_face], srrec[i].m_fbid, fab, dstbox);
     }
 }
 
 void
 SyncRegister::multByBndryMask (MultiFab& rhs) const
 {
+    const int            MyProc = ParallelDescriptor::MyProc();
     FabSetCopyDescriptor fscd;
-    vector<FillBoxId>    fillBoxIDs;
-
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    FArrayBox tmpfab;
+    FabSetId             fsid[2*BL_SPACEDIM];
+    vector<SRRec>        srrec;
+    FArrayBox            tmpfab;
 
     for (OrientationIter face; face; ++face)
     {
-        fscd.clear();
-        fillBoxIDs.clear();
-
-        FabSetId faid = fscd.RegisterFabSet((FabSet*)&bndry_mask[face()]);
+        fsid[face()] = fscd.RegisterFabSet((FabSet*) &bndry_mask[face()]);
 
         for (MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi)
         {
@@ -329,39 +342,39 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
                 {
                     Box intersect = mfi().box() & bndry_mask[face()].fabbox(j);
 
-                    fillBoxIDs.push_back(fscd.AddBox(faid,
-                                                     intersect,
-                                                     0,
-                                                     j,
-                                                     0,
-                                                     0,
-                                                     mfi().nComp()));
+                    SRRec sr(face(), mfi.index());
 
-                    assert(fillBoxIDs.back().box() == intersect);
-                    //
-                    // Also save the index of our FAB that needed filling.
-                    //
-                    fillBoxIDs.back().FabIndex(mfi.index());
+                    sr.m_fbid = fscd.AddBox(fsid[face()],
+                                            intersect,
+                                            0,
+                                            j,
+                                            0,
+                                            0,
+                                            mfi().nComp());
+
+                    assert(sr.m_fbid.box() == intersect);
+
+                    srrec.push_back(sr);
                 }
             }
         }
+    }
 
-        fscd.CollectData();
+    fscd.CollectData();
 
-        for (int i = 0; i < fillBoxIDs.size(); i++)
-        {
-            const FillBoxId& fbID = fillBoxIDs[i];
+    for (int i = 0; i < srrec.size(); i++)
+    {
+        const Box& bx = srrec[i].m_fbid.box();
 
-            assert(rhs.DistributionMap()[fbID.FabIndex()] == MyProc);
+        assert(rhs.DistributionMap()[srrec[i].m_idx] == MyProc);
 
-            FArrayBox& rhs_fab = rhs[fbID.FabIndex()];
+        FArrayBox& rhs_fab = rhs[srrec[i].m_idx];
 
-            tmpfab.resize(fbID.box(), rhs_fab.nComp());
+        tmpfab.resize(bx, rhs_fab.nComp());
 
-            fscd.FillFab(faid, fbID, tmpfab, fbID.box());
+        fscd.FillFab(fsid[srrec[i].m_face], srrec[i].m_fbid, tmpfab, bx);
 
-            rhs_fab.mult(tmpfab,fbID.box(),fbID.box(),0,0,rhs_fab.nComp());
-        }
+        rhs_fab.mult(tmpfab, bx, bx, 0, 0, rhs_fab.nComp());
     }
 }
 
@@ -806,32 +819,23 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                                  const Box&      domain,
                                  const MultiFab& mf)
 {
-    if (!geom.isAnyPeriodic())
-        return;
+    if (!geom.isAnyPeriodic()) return;
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
+    const int              MyProc = ParallelDescriptor::MyProc();
+    const BoxArray&        mfBA   = mf.boxArray();
     Array<IntVect>         pshifts(27);
-    vector<IntVect>        shifts;
-    vector<FillBoxId>      fillBoxIDs;
-    MultiFabCopyDescriptor mfcd;
-    const BoxArray&        mfBA = mf.boxArray();
+    vector<SRRec>          srrec;
     FArrayBox              tmpfab;
+    MultiFabCopyDescriptor mfcd;
+    MultiFabId             mfid = mfcd.RegisterFabArray((MultiFab*) &mf);
 
     for (OrientationIter face; face; ++face)
     {
-        mfcd.clear();
-        shifts.clear();
-        fillBoxIDs.clear();
-
-        FabSet&    fabset = bndry[face()];
-        MultiFabId mfid   = mfcd.RegisterFabArray((MultiFab*) &mf);
-
-        for (FabSetIterator fsi(fabset); fsi.isValid(); ++fsi)
+        for (FabSetIterator fsi(bndry[face()]); fsi.isValid(); ++fsi)
         {
             for (int j = 0; j < mfBA.length(); j++)
             {
-                geom.periodicShift(domain,mfBA[j],pshifts);
+                geom.periodicShift(domain, mfBA[j], pshifts);
 
                 for (int iiv = 0; iiv < pshifts.length(); iiv++)
                 {
@@ -842,46 +846,40 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                         sbox &= fsi().box();
                         sbox -= pshifts[iiv];
 
-                        fillBoxIDs.push_back(mfcd.AddBox(mfid,
-                                                         sbox,
-                                                         0,
-                                                         j,
-                                                         0,
-                                                         0,
-                                                         mf.nComp()));
+                        SRRec sr(face(), fsi.index(), pshifts[iiv]);
 
-                        assert(fillBoxIDs.back().box() == sbox);
-                        //
-                        // I need to save fsi.index() and pshifts[iiv].
-                        //
-                        fillBoxIDs.back().FabIndex(fsi.index());
-                        //
-                        // I'll maintain a parallel array for the IntVects.
-                        //
-                        shifts.push_back(pshifts[iiv]);
+                        sr.m_fbid = mfcd.AddBox(mfid,
+                                                sbox,
+                                                0,
+                                                j,
+                                                0,
+                                                0,
+                                                mf.nComp());
+
+                        assert(sr.m_fbid.box() == sbox);
+
+                        srrec.push_back(sr);
                     }
                 }
             }
         }
+    }
 
-        mfcd.CollectData();
+    mfcd.CollectData();
 
-        assert(fillBoxIDs.size() == shifts.size());
+    for (int i = 0; i < srrec.size(); i++)
+    {
+        FabSet& fabset = bndry[srrec[i].m_face];
 
-        for (int i = 0; i < fillBoxIDs.size(); i++)
-        {
-            const FillBoxId& fbid = fillBoxIDs[i];
+        assert(fabset.DistributionMap()[srrec[i].m_idx] == MyProc);
 
-            assert(fabset.DistributionMap()[fbid.FabIndex()] == MyProc);
+        tmpfab.resize(srrec[i].m_fbid.box(), mf.nComp());
 
-            tmpfab.resize(fbid.box(), mf.nComp());
+        mfcd.FillFab(mfid, srrec[i].m_fbid, tmpfab);
 
-            mfcd.FillFab(mfid, fbid, tmpfab);
+        tmpfab.shift(srrec[i].m_shift);
 
-            tmpfab.shift(shifts[i]);
-
-            fabset[fbid.FabIndex()].plus(tmpfab,0,0,mf.nComp());
-        }
+        fabset[srrec[i].m_idx].plus(tmpfab, 0, 0, mf.nComp());
     }
 }
 
