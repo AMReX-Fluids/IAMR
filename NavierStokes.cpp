@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.156 1999-11-05 18:53:33 propp Exp $
+// $Id: NavierStokes.cpp,v 1.157 2000-03-24 23:42:43 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -568,11 +568,11 @@ NavierStokes::SaveOldBoundary (Real time)
 {
     MultiFab& Sold = get_old_data(State_Type);
 
-    FillPatchIterator Sold_fpi(*this,Sold,1,time,State_Type,0,NUM_STATE);
+    FillPatchIterator Sold_fpi(*this,Sold,1,time,State_Type,Density,1);
 
     for ( ; Sold_fpi.isValid(); ++Sold_fpi)
     {
-        Sold[Sold_fpi.index()].copy(Sold_fpi(), 0, 0, NUM_STATE);
+        Sold[Sold_fpi.index()].copy(Sold_fpi(), 0, Density, 1);
     }
 }
 
@@ -1891,8 +1891,16 @@ NavierStokes::scalar_advection_update (Real dt,
             const int i = S_oldmfi.index();
             tforces.resize(grids[i],1);
             tforces.setVal(0.0);
-            godunov->Add_aofs_tf(S_oldmfi(), S_newmfi(), Density, 1, Aofsmfi(),
-                                 Density, tforces, 0, grids[i], dt);
+            godunov->Add_aofs_tf(S_oldmfi(),
+                                 S_newmfi(),
+                                 Density,
+                                 1,
+                                 Aofsmfi(),
+                                 Density,
+                                 tforces,
+                                 0,
+                                 grids[i],
+                                 dt);
         }
         ++sComp;
     }
@@ -1913,16 +1921,14 @@ NavierStokes::scalar_advection_update (Real dt,
             {
                 getForce(tforces,i,0,sigma,1,Rho_fpi());
                 
-                godunov->Add_aofs_tf(S_oldmfi(), S_newmfi(), sigma, 1, Aofsmfi(),
-                                     sigma, tforces, 0, grids[i], dt);
-                
-                if ( !(is_conservative[sigma]) )
-                {
-                    state_bc = getBCArray(State_Type,i,sigma,1);
-                    
-                    godunov->ScalMinMax(S_oldmfi(), S_newmfi(), sigma,
-                                        state_bc.dataPtr(), grids[i]);
-                }
+                godunov->Add_aofs_tf(S_oldmfi(),
+                                     S_newmfi(),
+                                     sigma,
+                                     1,
+                                     Aofsmfi(),
+                                     sigma,
+                                     tforces,0,grids[i],
+                                     dt);
             }
         }
     }
