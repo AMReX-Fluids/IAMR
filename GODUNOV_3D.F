@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.17 2002-08-29 22:14:52 car Exp $
+c $Id: GODUNOV_3D.F,v 1.18 2002-08-30 00:20:56 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -135,14 +135,14 @@ c
       jmax = hi(2)
       kmin = lo(3)
       kmax = hi(3)
-      umax = -1.e200
-      vmax = -1.e200
-      wmax = -1.e200
-      umin =  1.e200
-      vmin =  1.e200
-      wmin =  1.e200
-      rhomax = -1.e200
-      rhomin =  1.e200
+      umax = -1.d200
+      vmax = -1.d200
+      wmax = -1.d200
+      umin =  1.d200
+      vmin =  1.d200
+      wmin =  1.d200
+      rhomax = -1.d200
+      rhomin =  1.d200
 
       do k = kmin, kmax
          do j = jmin, jmax
@@ -218,14 +218,14 @@ c
       jmax = hi(2)
       kmin = lo(3)
       kmax = hi(3)
-      umax = -1.e200
-      vmax = -1.e200
-      wmax = -1.e200
-      umin =  1.e200
-      vmin =  1.e200
-      wmin =  1.e200
-      rhomax = -1.e200
-      rhomin =  1.e200
+      umax = -1.d200
+      vmax = -1.d200
+      wmax = -1.d200
+      umin =  1.d200
+      vmin =  1.d200
+      wmin =  1.d200
+      rhomax = -1.d200
+      rhomin =  1.d200
 
       do k = kmin, kmax
          do j = jmin, jmax

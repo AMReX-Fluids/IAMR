@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.18 2002-08-29 22:14:52 car Exp $
+c $Id: GODUNOV_2D.F,v 1.19 2002-08-30 00:20:56 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -123,12 +123,12 @@ c
       imax = hi(1)
       jmin = lo(2)
       jmax = hi(2)
-      umax = -1.e200
-      vmax = -1.e200
-      umin =  1.e200
-      vmin =  1.e200
-      rhomax = -1.e200
-      rhomin =  1.e200
+      umax = -1.d200
+      vmax = -1.d200
+      umin =  1.d200
+      vmin =  1.d200
+      rhomax = -1.d200
+      rhomin =  1.d200
 c
       do j = jmin, jmax
          do i = imin, imax
@@ -189,12 +189,12 @@ c
       imax = hi(1)
       jmin = lo(2)
       jmax = hi(2)
-      umax = -1.e200
-      vmax = -1.e200
-      umin =  1.e200
-      vmin =  1.e200
-      rhomax = -1.e200
-      rhomin =  1.e200
+      umax = -1.d200
+      vmax = -1.d200
+      umin =  1.d200
+      vmin =  1.d200
+      rhomax = -1.d200
+      rhomin =  1.d200
 
       do j = jmin, jmax
          do i = imin, imax+1
