@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.16 1998-11-05 23:30:18 lijewski Exp $
+// $Id: Projection.H,v 1.17 1998-11-06 18:16:35 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -172,7 +172,6 @@ public:
     void put_divu_in_node_rhs (MultiFab&       rhs,
                                int             level,
                                const int&      nghost,
-                               const BoxArray& P_grids,
                                Real            time,
                                int             user_rz = -1);
 

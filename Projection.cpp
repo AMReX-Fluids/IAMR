@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.57 1998-11-05 23:30:18 lijewski Exp $
+// $Id: Projection.cpp,v 1.58 1998-11-06 18:16:36 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -1564,14 +1564,13 @@ Projection::computeDV (MultiFab&       DV,
 }
 
 //
-// Put S in the rhs of the projector--node based version.
+// Put S in the rhs of the projector -- node based version.
 //
 
 void
 Projection::put_divu_in_node_rhs (MultiFab&       rhs,
                                   int             level,
                                   const int&      nghost,
-                                  const BoxArray& P_grids,
                                   Real            time,
                                   int             user_rz)
 {
@@ -1588,28 +1587,24 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
     int lowfix      = (isrz==1 && bcxlo!=FOEXTRAP && bcxlo!=HOEXTRAP);
     int hifix       = (isrz==1 && bcxhi!=FOEXTRAP && bcxhi!=HOEXTRAP);
     const Real* dx  = geom.CellSize();
-    Real hx = dx[0];
+    Real hx         = dx[0];
 #endif
     const Box& domain = geom.Domain();
     const int* domlo  = domain.loVect();
     const int* domhi  = domain.hiVect();
 
-    FArrayBox divu;
+    MultiFab* divu = getDivCond(level,1,time);
 
-    for (int i = 0; i < P_grids.length(); i++)
+    for (MultiFabIterator rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi)
     {
-        Box divubox = P_grids[i];
-        divubox.convert(IntVect::TheCellVector());
-        divubox.grow(1);
-        divu.resize(divubox,1);
-        getDivCond(level,divu,1,time);
+        DependentMultiFabIterator divumfi(rhsmfi,*divu);
 
 #if (BL_SPACEDIM == 2)
-        DEF_CLIMITS(divu,divudat,divulo,divuhi);
-        DEF_LIMITS(rhs[i],rhsdat,rhslo,rhshi);
-        Array<Real> rcen(divubox.length(0),1.0);
+        DEF_CLIMITS(divumfi(),divudat,divulo,divuhi);
+        DEF_LIMITS(rhsmfi(),rhsdat,rhslo,rhshi);
+        Array<Real> rcen(divumfi().box().length(0),1.0);
         if (isrz == 1) 
-            geom.GetCellLoc(rcen,divubox,0);
+            geom.GetCellLoc(rcen,divumfi().box(),0);
 
         int extrap_edges   = 0;
         int extrap_corners = 1;
@@ -1619,8 +1614,8 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
                    &extrap_edges, &extrap_corners,&isrz);
 #endif
 #if (BL_SPACEDIM == 3)
-        Real divumin = divu.min();
-        Real divumax = divu.max();
+        Real divumin = divumfi().min();
+        Real divumax = divumfi().max();
         if (divumin != divumax || divumin != 0.0) 
         {
             cout << "Projection::put_divu_in_node_rhs: not yet "
@@ -1629,6 +1624,8 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
         }
 #endif
     }
+
+    delete divu;
 }
 
 //
