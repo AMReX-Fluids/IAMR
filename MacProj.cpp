@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.30 1998-09-29 20:09:02 lijewski Exp $
+// $Id: MacProj.cpp,v 1.31 1998-11-05 18:44:26 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -915,153 +915,90 @@ MacProj::check_div_cond (int      level,
 void
 MacProj::set_outflow_bcs (int             level,
                           MultiFab*       mac_phi,
-                          MultiFab*       u_mac, 
-                          MultiFab&       S,
+                          const MultiFab* u_mac, 
+                          const MultiFab& S,
                           const MultiFab& divu)
 {
-    const BoxArray& grids = LevelData[level].boxArray();
-    const Geometry& geom  = parent->Geom(level);
     //
-    // So far only for 2-d.
+    // Warning: This code looks about right, but hasn't really been tested yet.
+    //
+    // This code is very simliar to the outflow BC stuff in the Projection
+    // class except that here the the phi to be solved for lives on the
+    // out-directed faces.  The projection equation to satisfy is
+    //
+    //   (1/r)(d/dr)[r/rho dphi/dr] = dv/dr - S
+    //
+    // Outflow here is assumed to occur only at yhi faces (should be easy to
+    // generalize, however).
     //
 #if (BL_SPACEDIM == 2)
-    Real hx = geom.CellSize()[0];
+    const Orientation outFace(1, Orientation::high);
 
-    if (level == 0 && grids.length() == 1)
+    const int rzflag  = CoordSys::IsRZ();
+    const Real* dx    = parent->Geom(level).CellSize();
+    const Box& domain = parent->Geom(level).Domain();
+    //
+    // Load cc data (rho, divu).
+    //
+    const int bndBxWdth = 1;
+    const int dir       = outFace.coordDir();
+
+    Box ccBndBox = ::adjCell(domain,outFace,bndBxWdth).shift(dir,-bndBxWdth);
+    Box phiBox   = ::adjCell(domain,outFace,1);
+
+    FArrayBox rhodat(ccBndBox,1);
+    FArrayBox divudat(ccBndBox,1);
+    FArrayBox phidat(phiBox,1);
+
+    const BoxArray& ba = S.boxArray();
+
+    assert(ba == divu.boxArray());
+    //
+    // Fill rhodat & divudat.
+    //
+    S.copy(rhodat, Density, 0, 1);
+    divu.copy(divudat, 0, 0, 1);
+    //
+    // Load ec data.
+    //
+    FArrayBox uedat[BL_SPACEDIM-1];
+
+    for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
+	if (i != dir)
+	    uedat[cnt++].resize(::surroundingNodes(ccBndBox,i), 1);
+
+    for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
+	if (i != dir)
+            umac[i].copy(uedat[cnt++]);
+    //
+    // Make cc r (set = 1 if cartesian).
+    //
+    Array<Real> rcen(ccBndBox.length(0), 1.0);
+
+    if (CoordSys::IsRZ() == 1) 
+	parent->Geom(level).GetCellLoc(rcen, ccBndBox, 0);
+    //
+    // Compute boundary solution.
+    //
+    const int isPeriodicInX = parent->Geom(level).isPeriodic(0);
+
+    FORT_MACPHIBC(ARLIM(uedat[0].loVect()),ARLIM(uedat[0].hiVect()),uedat[0].dataPtr(),
+		  ARLIM(divudat.loVect()), ARLIM(divudat.hiVect()),divudat.dataPtr(),
+		  ARLIM(rhodat.loVect()),  ARLIM(rhodat.hiVect()), rhodat.dataPtr(),
+		  ARLIM(ccBndBox.loVect()),ARLIM(ccBndBox.hiVect()),
+		  rcen.dataPtr(), &dx[0],
+		  ARLIM(phidat.loVect()),  ARLIM(phidat.hiVect()), phidat.dataPtr(),
+		  &isPeriodicInX);
+
+    for (MultiFabIterator mfi(*mac_phi); mfi.isValid(); ++mfi)
     {
-        //
-        // WORKS FOR SINGLE GRID ONLY
-        //
-        const int i     = 0;
-        const Box& rbox = grids[i];
-        const int rlen  = rbox.length(0);
-        Box redge_box(rbox);
-        redge_box.growHi(0,1);
-        Array<Real> rcen(rlen);
-        Array<Real> redge(rlen+1);
-        if (CoordSys::IsRZ() == 1)
+        if (mfi.validbox().intersects(phidat.box()))
         {
-            geom.GetCellLoc(rcen,rbox, 0);
-            geom.GetEdgeLoc(redge,rbox, 0);
-        }
-        else
-        {
-            for (int ii = 0; ii < rlen; ii++)
-            {
-                rcen[ii]  = 1.0;
-                redge[ii] = 1.0;
-            }
-            redge[rlen] = 1.0;
-        }
-        const int* rcen_lo  = rbox.loVect();
-        const int* rcen_hi  = rbox.hiVect();
-        const int* redge_lo = rbox.loVect();
-        const int* redge_hi = redge_box.hiVect();
-        DEF_CLIMITS(divu[i],divudat,divu_lo,divu_hi);
-        DEF_CLIMITS((*u_mac)[i],udat,u_lo,u_hi);
-        Real* uhalfx = u_mac[0][i].dataPtr();
-        DEF_CLIMITS(S[i],rho,rho_lo,rho_hi);
-        rho = S[i].dataPtr(Density);
-        DEF_LIMITS((*mac_phi)[i],phi,phi_lo,phi_hi);
-        FORT_MACPHIBC(ARLIM(u_lo),ARLIM(u_hi),uhalfx,
-                      ARLIM(divu_lo),ARLIM(divu_hi),divudat,
-                      ARLIM(rho_lo),ARLIM(rho_hi),rho,
-                      ARLIM(rcen_lo),ARLIM(rcen_hi),rcen.dataPtr(),
-                      ARLIM(redge_lo),ARLIM(redge_hi),redge.dataPtr(),
-                      &hx,ARLIM(phi_lo),ARLIM(phi_hi),phi);
-    }
-    else if (level == 0)
-    {
-        Real hx           = parent->Geom(0).CellSize()[0];
-        const Box& domain = parent->Geom(0).Domain();
-        IntVect smallend  = domain.smallEnd();
-        smallend.setVal(1,domain.bigEnd(1));
-        Box top_strip(smallend,domain.bigEnd(),IntVect::TheCellVector());
-
-        FArrayBox divu_strip(top_strip,1);
-        Box top_vel_strip = top_strip;
-        top_vel_strip.growLo(0,1);
-        top_vel_strip.shiftHalf(0,1);
-        FArrayBox mac_vel_strip(top_vel_strip,1);
-        Box top_rho_strip = top_strip;
-        top_rho_strip.grow(1);
-        FArrayBox rho_strip(top_rho_strip,1);
-        Box top_phi_strip = top_strip;
-        top_phi_strip.grow(0,1);
-        top_phi_strip.growHi(1,1);
-        FArrayBox mac_phi_strip(top_phi_strip,1);
-
-        mac_phi_strip.setVal(0.0);
-
-        for (MultiFabIterator Smfi(S); Smfi.isValid(); ++Smfi)
-        {
-            DependentMultiFabIterator divumfi(Smfi, divu);
-            DependentMultiFabIterator u_mac0mfi(Smfi, u_mac[0]);
-            assert(grids[Smfi.index()] == Smfi.validbox());
-
-            Box destbox = Smfi.validbox();
-            destbox.grow(0,1);
-
-            if (destbox.intersects(top_rho_strip))
-            {
-                destbox &= top_rho_strip;
-                rho_strip.copy(Smfi(),destbox,Density,destbox,0,1);
-            }
-
-            if (top_strip.intersects(Smfi.validbox()))
-            {
-                destbox = Smfi.validbox() & top_strip;
-                divu_strip.copy(divumfi(),destbox,0,destbox,0,1);
-            }
-            destbox = Smfi.validbox();
-            destbox.growLo(0,1);
-            destbox.shiftHalf(0,1);
-
-            if (destbox.intersects(top_vel_strip))
-            {
-                destbox &= top_vel_strip;
-                mac_vel_strip.copy(u_mac0mfi(),destbox,0,destbox,0,1);
-            }
-        }
-        const Box& rbox = top_strip;
-        const int rlen  = rbox.length(0);
-        Box redge_box(rbox);
-        redge_box.growHi(0,1);
-        Array<Real> rcen(rlen);
-        Array<Real> redge(rlen+1);
-        if (CoordSys::IsRZ() == 1)
-        {
-            geom.GetCellLoc(rcen,rbox, 0);
-            geom.GetEdgeLoc(redge,rbox, 0);
-        }
-        else
-        {
-            for(int i = 0; i<rlen;i++)
-            {
-                rcen[i] = 1.0;
-                redge[i] = 1.0;
-            }
-            redge[rlen] = 1.0;
-        }
-        const int* rcen_lo  = rbox.loVect();
-        const int* rcen_hi  = rbox.hiVect();
-        const int* redge_lo = rbox.loVect();
-        const int* redge_hi = redge_box.hiVect();
-        DEF_CLIMITS(rho_strip,rhodat,rho_lo,rho_hi);
-        DEF_CLIMITS(divu_strip,divudat,divu_lo,divu_hi);
-        DEF_LIMITS(mac_phi_strip,phidat,phi_lo,phi_hi);
-        DEF_CLIMITS(mac_vel_strip,udat,ulo,uhi);
-        FORT_MACPHIBC(ARLIM(ulo),ARLIM(uhi),udat,
-                      ARLIM(divu_lo),ARLIM(divu_hi),divudat,
-                      ARLIM(rho_lo),ARLIM(rho_hi),rhodat,
-                      ARLIM(rcen_lo),ARLIM(rcen_hi),rcen.dataPtr(),
-                      ARLIM(redge_lo),ARLIM(redge_hi),redge.dataPtr(),
-                      &hx,ARLIM(phi_lo),ARLIM(phi_hi),phidat);
-        for (MultiFabIterator mac_phimfi(*mac_phi); mac_phimfi.isValid();
-             ++mac_phimfi)
-        {
-            mac_phimfi().copy(mac_phi_strip);
+            Box ovlp = mfi.validbox() & phidat.box();
+	    mfi().copy(phidat,ovlp);
         }
     }
+#else
+    BoxLib::Error("MacProj::set_outflow_bcs(): not implemented yet for 3D");
 #endif
 }

@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_2D.F,v 1.5 1998-03-31 17:26:37 lijewski Exp $
+c $Id: MACPROJ_2D.F,v 1.6 1998-11-05 18:44:25 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -129,74 +129,189 @@ c ::
 
        end
 
-      subroutine FORT_MACPHIBC(
-     &     DIMS(u),uhalfx,DIMS(div),divu,DIMS(rho),rho,
-     &     DIMS(rcen),rcen,DIMS(rhalf),rhalf,hx,
-     &     DIMS(phi),phi)
+      subroutine FORT_MACPHIBC(DIMS(u),u,DIMS(div),divcor,DIMS(rho),rho,
+     &                         DIMS(r),r,hx,DIMS(phi),phi,per)
 c
-c ... compute the value of phi for mac to be used at an 
-c     upper, y-outflow face
+c     Compute the value of phi for macproj to be used at an  upper, y-outflow face,
+c     assuming that the tangential velocity on the edges of the outflow boundary
+c     are either zero or periodic.
 c
       implicit none
 
+      integer DIMDEC(phi)
       integer DIMDEC(u)
       integer DIMDEC(div)
       integer DIMDEC(rho)
-      integer DIMDEC(rcen)
-      integer DIMDEC(rhalf)
-      integer DIMDEC(phi)
+      integer DIMDEC(r)
+      integer per
       REAL_T    phi(DIMV(phi))
-      REAL_T uhalfx(DIMV(u))
-      REAL_T   divu(DIMV(div))
-      REAL_T   rho(DIMV(rho))
-      REAL_T  rcen(DIM1(rcen))
-      REAL_T rhalf(DIM1(rhalf))
+      REAL_T      u(DIMV(u))
+      REAL_T divcor(DIMV(div))
+      REAL_T    rho(DIMV(rho))
+      REAL_T      r(DIM1(r))
       REAL_T hx
+      
+c     Local variables
+      integer NstripMAX
+      parameter (NstripMAX = 500)
+      REAL_T small_udiff, small_pert
+      parameter (small_udiff = 1.d-10)
+      parameter ( small_pert = 1.d-10)
+      integer i, ii, j, neq
+      REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX), s(NstripMAX)
+      REAL_T x(NstripMAX), alpha, beta, sVal
+      logical rNormed
+      REAL_T divcor_ave, vtot
+      REAL_T rL, rR, diff
+      REAL_T max_divu, min_divu, max_pert
 
-      REAL_T fst,fstm
-      REAL_T rhoedge, divu_ave, vtot
-      integer i,j,is,ie,js,je
-      REAL_T max_divu, min_divu
-
-#if 0
-      return
+c     NOTE: Assumes that rho at edge between i, i-1 = half*(rho(i)+rho(i-1))
+c             (1) Linear fit of rho between nodes
+c             (2) rho, divcor on same boxes (box), and r(ARG_L1(rho),ARG_L2(rho))
+c             (3) phi is on box, shifted up one
+c             (4) u is edge-based, on surroundingNodes(box)
+#ifndef NDEBUG
+      if (ARG_H1(phi) - ARG_L1(phi) + 1 .gt. NstripMAX) then
+         
+         write(6,*) 'FORT_MACPHIBC: recompile with NstripMAX >',
+     &        ARG_H1(phi) - ARG_L1(phi) + 1
+         stop
+         
+      end if
+      
+c     Check assumptions on input data
+      if ( (ARG_L1(rho).ne.ARG_L1(div))   .or.
+     &     (ARG_L1(rho).ne.ARG_L1(u))     .or.
+     &     (ARG_L1(rho).ne.ARG_L1(r))     .or.
+     &     (ARG_L1(rho).ne.ARG_L1(phi))   .or.
+     &     (ARG_H1(rho).ne.ARG_H1(div))   .or.
+     &     (ARG_H1(rho).ne.ARG_H1(u)-1)   .or.
+     &     (ARG_H1(rho).ne.ARG_H1(r))     .or.
+     &     (ARG_H1(rho).ne.ARG_H1(phi))   .or.
+     &     (ARG_L2(rho).ne.ARG_L2(div))   .or.
+     &     (ARG_L2(rho).ne.ARG_L2(phi)-1) .or.
+     &     (ARG_L2(rho).ne.ARG_L2(u))     .or.
+     &     (ARG_H2(rho).ne.ARG_H2(div))   .or.
+     &     (ARG_H2(rho).ne.ARG_H2(u))     .or.
+     &     (ARG_H2(rho).ne.ARG_H2(phi)-1)  ) then
+         write(6,*) 'FORT_MACPHIBC: bad size for input data'
+         stop
+      endif
+      
 #endif
-      is = ARG_L1(phi)+1
-      ie = ARG_H1(phi)-1
-      js = ARG_L2(phi)
-      je = ARG_H2(phi)
 
-
-      divu_ave = zero
+c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu] w/periodic or
+c     Neumann BC's, using a tridiagonal solve which detects, and deals with,
+c     the singular equations.  In the Neumann case, arbitrarily set the upper right
+c     corner to zero to pin the solution.  Note that the RHS of this equation
+c     satisfies the solvability constraint that Int[RHS.dV] = 0 by construction.
+c     This implies that the normal component takes up the slack:
+c     
+c                        d/dy( 1/rho d/dy( phi ) ) = dV/dy - S_ave
+c     
+c     This information should be used to construct the normal gradient of the
+c     normal velocity, for the advective/diffusive step, for example.
+c     In this implementation, use that d/dy == 0 at top, so y-edge centered values
+c     come directly from cell-centers just inside domain
+c      
+c     Compute average of divu over outflow bc.  Set trivial solution if average
+c     is zero, or if divu is constant
+      divcor_ave = zero
       vtot = zero
-      max_divu = zero
-      min_divu = zero
-
-      do j=je-1,je-1
-         do i=is,ie 
-            divu_ave = divu_ave+rcen(i)*divu(i,j)
-            vtot = vtot+rcen(i)
-            max_divu = max(max_divu,divu(i,j))
-            min_divu = min(min_divu,divu(i,j))
-         end do
+      j = ARG_H2(rho)
+      max_divu = divcor(ARG_L1(rho),j)
+      min_divu = max_divu
+      do i = ARG_L1(rho), ARG_H1(rho)
+         divcor_ave = divcor_ave+r(i)*divcor(i,j)
+         vtot = vtot+r(i)
+         max_divu = max(max_divu,divcor(i,j))
+         min_divu = min(min_divu,divcor(i,j))
       end do
-
-      divu_ave = divu_ave/vtot
-
-      if (max_divu.eq.zero.and.min_divu.eq.zero) then
-        return
+      divcor_ave = divcor_ave/vtot
+      max_pert = ABS(divcor(ARG_L1(rho),j)-divcor_ave)
+      do i = ARG_L1(rho)+1, ARG_H1(rho)
+         max_pert = MAX(max_pert,ABS(divcor(i,j)-divcor_ave))
+      end do
+      max_pert = max_pert/(ABS(divcor_ave)+small_pert)
+      if ((max_divu.eq.zero.and.min_divu.eq.zero)
+     &     .or.(max_pert.le.small_pert)) then
+         do j = ARG_L2(phi),ARG_H2(phi)
+            do i = ARG_L1(phi),ARG_H1(phi)
+               phi(i,j) = zero
+            end do
+         end do
+         return
       end if
 
-      fstm = zero
-      phi(is,je) = zero
-
-      do i = is+1,ie 
-         fst = (rhalf(i-1)*fstm + 
-     $          hx*rcen(i-1)*(divu(i-1,je-1)-divu_ave))/ rhalf(i)
-         rhoedge = (rho(i,je-1)+rho(i-1,je-1))*half
-         phi(i,je) = phi(i-1,je) + hx * rhoedge * 
-     &                             (uhalfx(i,je-1) - fst)
-         fstm = fst
+c     Carry out non-trivial solve.  First set interior equations, then do BC's
+      neq = ARG_H1(rho) - ARG_L1(rho) + 1
+      do i = 2,neq-1
+         ii = i + ARG_L1(rho) - 1
+         rL = half*(r(ii)+r(ii-1))
+         rR = half*(r(ii)+r(ii+1))
+         a(i)=two*rL/(rho(ii,j)+rho(ii-1,j))
+         c(i)=two*rR/(rho(ii,j)+rho(ii+1,j))
+         b(i)=- a(i) - c(i)
+         s(i)=hx*(rR*u(ii+1,j)-rL*u(ii,j)-hx*(divcor(ii,j)-divcor_ave))
       end do
 
+      if (per .eq. 1) then
+
+c     Make sure u_mac is periodic
+         diff = u(ARG_L1(u),j) - u(ARG_H1(u),j)
+         if (ABS(diff) .gt. small_udiff) then
+            write(6,*) 'MACPHIBC: periodic umac screwy.  diff =',diff
+            stop
+         endif
+         
+c     Do left-side periodic BC (keep r in there to guarantee correct scaling)
+         ii = ARG_L1(rho)
+         rL = half*(r(ii)+r(ARG_H1(rho)))
+         rR = half*(r(ii)+r(ii+1))
+         beta=two*rL/(rho(ii,j)+rho(ARG_H1(rho),j))
+         c(1)=two*rR/(rho(ii,j)+rho(ii+1,j))
+         b(1)=- beta - c(1)
+         s(1)=hx*(rR*u(ii+1,j)-rL*u(ii,j)-hx*(divcor(ii,j)-divcor_ave))
+         
+c     Do right-side periodic
+         ii = ARG_H1(rho)
+         rL = half*(r(ii)+r(ii-1))
+         rR = half*(r(ARG_L1(rho))+r(ii))
+         a(neq)=two*rL/(rho(ii,j)+rho(ii-1,j))
+         alpha=two*rR/(rho(ii,j)+rho(ARG_L1(rho),j))
+         b(neq)=- a(neq) - alpha
+         s(neq)=hx*(rR*u(ii+1,j)-rL*u(ii,j)-hx*(divcor(ii,j)-divcor_ave))
+         
+c     Solve the equations
+         call cyclic(a,b,c,alpha,beta,s,x,neq)
+         
+      else
+
+c     Solid walls, Nuemann conditions (dphi/dx=u=0)
+         ii = ARG_L1(rho)
+         rR = half*(r(ii)+r(ii+1))
+         c(1) = two*rR/(rho(ii,j)+rho(ii+1,j))
+         b(1) = - c(1)
+         s(1) = hx*(rR*u(ii+1,j)-hx*(divcor(ii,j)-divcor_ave))
+
+         ii = ARG_H1(rho)
+         rL = half*(r(ii)+r(ii-1))
+         a(neq) = two*rL/(rho(ii,j)+rho(ii-1,j))
+         b(neq) = - a(neq)
+         s(neq) = hx*(-rL*u(ii,j)-hx*(divcor(ii,j)-divcor_ave))
+c     Solve the equations (we know they're singular, pass the arbitrary value, and
+c     a flag that we've already normalized the rhs, in the sense that
+c                          Int[dU/dx - (S-S_ave)] == 0
+         sVal = zero
+         rNormed = .true.
+         call tridag_sing(a,b,c,s,x,neq,sVal,rNormed)
+         
+      end if
+      
+c     Write the solution into the arg
+      j = ARG_H2(phi)
+      do i = 1,neq
+         phi(ARG_L1(phi)-1+i,j) = x(i)
+      end do
+      
       end

@@ -2,7 +2,7 @@
 #define _MACPROJ_F_H
 
 /*
-** $Id: MACPROJ_F.H,v 1.4 1997-12-14 23:35:59 lijewski Exp $
+** $Id: MACPROJ_F.H,v 1.5 1998-11-05 18:44:25 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -52,14 +52,15 @@ extern "C" {
                         const int* lo, const int* hi,
                         const Real* dmac, ARLIM_P(dmac_lo), ARLIM_P(dmac_hi),
                         const Real* mult);
-
-    void FORT_MACPHIBC(ARLIM_P(u_lo),ARLIM_P(u_hi),const Real* u,
-                       ARLIM_P(div_lo),ARLIM_P(div_hi),const Real* divcor,
-                       ARLIM_P(sig_lo),ARLIM_P(sig_hi),const Real* sigmax,
-                       ARLIM_P(rcen_lo),ARLIM_P(rcen_hi),const Real* rcen, 
-                       ARLIM_P(rhalf_lo),ARLIM_P(rhalf_hi),const Real* rhalf, 
-                       const Real* hx,
-                       ARLIM_P(phi_lo),ARLIM_P(phi_hi),const Real* phi);
+#if (BL_SPACEDIM == 2)
+    void FORT_MACPHIBC (ARLIM_P(u_lo), ARLIM_P(u_hi), const Real* u,
+                        ARLIM_P(d_lo), ARLIM_P(d_hi), const Real* divcor,
+                        ARLIM_P(rho_lo), ARLIM_P(rho_hi), const Real* rho,
+                        ARLIM_P(r_lo), ARLIM_P(r_hi), const Real* rcen,
+                        const Real* hx,
+                        ARLIM_P(phi_lo), ARLIM_P(phi_hi), const Real* phi,
+                        const int* isPeriodicInX);
+#endif
 }
 
 #endif
