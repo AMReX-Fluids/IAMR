@@ -1,0 +1,10 @@
+#
+# $Id: Make.package,v 1.1 1998-12-02 00:12:11 lijewski Exp $
+#
+CEXE_sources += NS_setup.cpp NSBld.cpp
+FEXE_headers += probdata.H PROB_F.H
+FEXE_sources += PROB_$(DIM)D.F 
+
+ifeq ($(USE_ARRAYVIEW),TRUE)
+CEXE_sources += DatasetClient.cpp
+endif
