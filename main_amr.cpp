@@ -1,6 +1,6 @@
 
 //
-// $Id: main_amr.cpp,v 1.12 1998-04-27 16:52:45 lijewski Exp $
+// $Id: main_amr.cpp,v 1.13 1998-07-29 19:07:49 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -58,10 +58,8 @@ main (int   argc,
     set_new_handler(Utility::OutOfMemory);
 #endif
 
-#ifdef BL_USE_MPI
     int nprocs = 1;
     ParallelDescriptor::StartParallel(nprocs,&argc,&argv);
-#endif
 
     cout << setprecision(10);
 
@@ -78,11 +76,6 @@ main (int   argc,
     Real stop_time;
     char* in_file = argv[1];
     ParmParse pp(argc-2,argv+2,NULL,in_file); 
-
-#ifndef BL_USE_MPI
-    int nprocs = NPROCS; pp.query("nprocs", nprocs);
-    ParallelDescriptor::StartParallel(nprocs, &argc, &argv);
-#endif
     //
     // Initialize random seed after we're running in parallel.
     //

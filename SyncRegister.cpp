@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.44 1998-07-08 16:33:18 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.45 1998-07-29 19:07:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -149,7 +149,7 @@ SyncRegister::sum ()
 
     for (OrientationIter face; face; ++face)
     {
-        for (FabSetIterator fsi(bndry[face()]); fsi.isValid(false); ++fsi)
+        for (FabSetIterator fsi(bndry[face()]); fsi.isValid(); ++fsi)
         {
             bfab.copy(fsi());
         }
@@ -164,7 +164,7 @@ SyncRegister::increment (const FArrayBox& src)
 {
     for (OrientationIter face; face; ++face)
     {
-        for (FabSetIterator fsi(bndry[face()]); fsi.isValid(false); ++fsi)
+        for (FabSetIterator fsi(bndry[face()]); fsi.isValid(); ++fsi)
         {
             fsi().plus(src);
         }
@@ -204,7 +204,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
             FabSetId faid = fscd.RegisterFabSet(&bndry[face()]);
 
-            for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
+            for (MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi)
             {
                 for (int j = 0; j < grids.length(); j++)
                 {
@@ -284,7 +284,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
             domlo.setRange(dir,dlo[dir],1);
             domhi.setRange(dir,dhi[dir],1);
 
-            for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
+            for (MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi)
             {
                 if (domlo.intersects(mfi.validbox()))
                 {
@@ -327,7 +327,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
     for (OrientationIter face; face; ++face)
     {
-        for (FabSetIterator fsi(bndry_mask[face()]); fsi.isValid(false); ++fsi)
+        for (FabSetIterator fsi(bndry_mask[face()]); fsi.isValid(); ++fsi)
         {
             Box mask_cells = ::enclosedCells(::grow(fsi().box(),1));
 
@@ -389,7 +389,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
             for (OrientationIter face; face; ++face)
             {
-                for (FabSetIterator fsi(bndry_mask[face()]); fsi.isValid(false); ++fsi)
+                for (FabSetIterator fsi(bndry_mask[face()]); fsi.isValid(); ++fsi)
                 {
                     if (domlo.intersects(fsi().box()))
                     {
@@ -408,7 +408,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     //
     for (OrientationIter face; face; ++face)
     {
-        for (FabSetIterator fsi(bndry_mask[face()]); fsi.isValid(false); ++fsi)
+        for (FabSetIterator fsi(bndry_mask[face()]); fsi.isValid(); ++fsi)
         {
             REAL* mask_dat  = fsi().dataPtr();
             const int* mlo  = fsi().loVect(); 
@@ -427,7 +427,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
         FabSetId faid = fscd.RegisterFabSet(&bndry_mask[face()]);
 
-        for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
+        for (MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi)
         {
             for (int j = 0; j < grids.length(); j++)
             {
@@ -524,7 +524,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
     // and ext_dir edges, before worrying about zeroing out the ones under
     // fine grids.
     //
-    for (MultiFabIterator mfi(U_local); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(U_local); mfi.isValid(); ++mfi)
     {
         //
         // U and U_local have same BoxArray and hence same DistributionMapping.
@@ -571,7 +571,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
     //
     Array<IntVect> pshifts(27);
 
-    for (MultiFabIterator mfi(U_local); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(U_local); mfi.isValid(); ++mfi)
     {
         assert(mfi.validbox() == U.boxArray()[mfi.index()]);
 
@@ -615,7 +615,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
     //
     FArrayBox divu;
 
-    for (MultiFabIterator mfi(U_local); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(U_local); mfi.isValid(); ++mfi)
     {
         const int* ulo  = mfi().loVect();
         const int* uhi  = mfi().hiVect();
@@ -755,7 +755,7 @@ SyncRegister::FineDVAdd (const MultiFab& U,
 
     Array<IntVect> pshifts(27);
 
-    for (ConstMultiFabIterator mfi(U); mfi.isValid(false); ++mfi)
+    for (ConstMultiFabIterator mfi(U); mfi.isValid(); ++mfi)
     {
         ufab.resize(::grow(mfi.validbox(),1),BL_SPACEDIM);
         ufab.setComplement(0,mfi.validbox(),0,BL_SPACEDIM);
@@ -861,7 +861,7 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
 {
     FArrayBox dsdtfab, divu;
 
-    for (ConstMultiFabIterator mfi(dsdt); mfi.isValid(false); ++mfi)
+    for (ConstMultiFabIterator mfi(dsdt); mfi.isValid(); ++mfi)
     {
         dsdtfab.resize(::grow(mfi.validbox(),1),1);
         dsdtfab.setComplement(0,mfi.validbox(),0,1);
@@ -927,7 +927,7 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
     FArrayBox dsdtfab, cfablo, cfabhi, ffablo, ffabhi;
     FArrayBox ffablo_tmp, ffabhi_tmp;
 
-    for (ConstMultiFabIterator mfi(dsdt); mfi.isValid(false); ++mfi)
+    for (ConstMultiFabIterator mfi(dsdt); mfi.isValid(); ++mfi)
     {
         dsdtfab.resize(::grow(mfi.validbox(),1),1);
         dsdtfab.setComplement(0,mfi.validbox(),0,1);
@@ -1094,7 +1094,7 @@ SyncRegister::CompDVAdd (const MultiFab& U,
 
     FArrayBox ufab, cfablo, cfabhi, ffablo, ffabhi;
 
-    for (ConstMultiFabIterator mfi(U); mfi.isValid(false); ++mfi)
+    for (ConstMultiFabIterator mfi(U); mfi.isValid(); ++mfi)
     {
         ufab.resize(::grow(mfi.validbox(),1),BL_SPACEDIM);
         ufab.setComplement(0,mfi.validbox(),0,BL_SPACEDIM);
@@ -1189,7 +1189,7 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
     //
     // Copy valid region of Phi into Phi_local
     //
-    for (MultiFabIterator mfi(Phi_local); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(Phi_local); mfi.isValid(); ++mfi)
     {
         mfi().setComplement(0,mfi.validbox(),0,1);
         mfi().copy(Phi[mfi.index()], mfi.validbox());
@@ -1198,7 +1198,7 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
     // Copy valid region of Sigma into Sig_local.
     // Also, zero out region covered by fine grid.
     //
-    for (MultiFabIterator mfi(Sig_local); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(Sig_local); mfi.isValid(); ++mfi)
     {
         mfi().setComplement(0,mfi.validbox(),0,1);
         mfi().copy(Sigma[mfi.index()], mfi.validbox());
@@ -1222,7 +1222,7 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
     //
     FArrayBox divgp;
 
-    for (MultiFabIterator pmfi(Phi_local); pmfi.isValid(false); ++pmfi)
+    for (MultiFabIterator pmfi(Phi_local); pmfi.isValid(); ++pmfi)
     {
         DependentMultiFabIterator smfi(pmfi, Sig_local);
 
@@ -1262,7 +1262,7 @@ SyncRegister::FineLPhiAdd (const MultiFab& Phi,
 
     Array<IntVect> pshifts(27);
 
-    for (ConstMultiFabIterator pmfi(Phi); pmfi.isValid(false); ++pmfi)
+    for (ConstMultiFabIterator pmfi(Phi); pmfi.isValid(); ++pmfi)
     {
         pfab.resize(::grow(pmfi.validbox(),1),1);
         pfab.setComplement(0,pmfi.validbox(),0,1);
@@ -1364,7 +1364,7 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
 
     Array<IntVect> pshifts(27);
 
-    for (ConstMultiFabIterator pmfi(Phi); pmfi.isValid(false); ++pmfi)
+    for (ConstMultiFabIterator pmfi(Phi); pmfi.isValid(); ++pmfi)
     {
         ConstDependentMultiFabIterator smfi(pmfi, Sigma);
 

@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.85 1998-07-24 01:23:58 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.86 1998-07-29 19:07:42 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -578,7 +578,7 @@ NavierStokes::initOldPress ()
     MultiFab& P_new = get_new_data(Press_Type);
     MultiFab& P_old = get_old_data(Press_Type);
 
-    for (MultiFabIterator mfi(P_new); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(P_new); mfi.isValid(); ++mfi)
     {
         DependentMultiFabIterator dmfi(mfi,P_old);
         dmfi().copy(mfi());
@@ -984,7 +984,7 @@ NavierStokes::init ()
     FillCoarsePatch(S_new,0,cur_time,State_Type,0,NUM_STATE);
     FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
 
-    for (MultiFabIterator mfi(P_new); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(P_new); mfi.isValid(); ++mfi)
     {
         DependentMultiFabIterator dmfi(mfi,P_old);
         dmfi().copy(mfi());
@@ -1220,7 +1220,7 @@ NavierStokes::advance (Real time,
     MultiFab* divu = getDivCond(0,time);
     MultiFab* dsdt = getDsdt(0,time);
 
-    for (MultiFabIterator mfi(*divu); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*divu); mfi.isValid(); ++mfi)
     {
         DependentMultiFabIterator dmfi(mfi,*dsdt);
         dmfi().mult(.5*dt);
@@ -1369,7 +1369,7 @@ NavierStokes::level_projector (Real dt,
 
            dsdt->minus(*divuold,0,1,1);
 
-           for (MultiFabIterator mfi(*dsdt); mfi.isValid(false); ++mfi)
+           for (MultiFabIterator mfi(*dsdt); mfi.isValid(); ++mfi)
            {
                mfi().mult(1.0/dt,0,1);
            }
@@ -2183,7 +2183,7 @@ NavierStokes::sumDerive (const aString& name, Real time)
 
     assert(!(mf == 0));
 
-    for (MultiFabIterator mfi(*mf); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*mf); mfi.isValid(); ++mfi)
     {
         if (level < parent->finestLevel())
         {
@@ -2216,7 +2216,7 @@ NavierStokes::volWgtSum (const aString& name,
     const Real* dx = geom.CellSize();
     MultiFab* mf   = derive(name,time,0);
 
-    for (MultiFabIterator mfi(*mf); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*mf); mfi.isValid(); ++mfi)
     {
         FArrayBox& fab = mfi();
 
@@ -4545,7 +4545,7 @@ NavierStokes::calc_dsdt (Real      time,
             MultiFab& Divu_new = get_new_data(Divu_Type);
             MultiFab& Divu_old = get_old_data(Divu_Type);
 
-            for (MultiFabIterator mfi(dsdt); mfi.isValid(false); ++mfi)
+            for (MultiFabIterator mfi(dsdt); mfi.isValid(); ++mfi)
             {
                 DependentMultiFabIterator dmfi_old(mfi, Divu_old);
                 DependentMultiFabIterator dmfi_new(mfi, Divu_new);

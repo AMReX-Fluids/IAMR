@@ -1,7 +1,7 @@
 #if (BL_SPACEDIM==2) && defined (USE_TENSOR)
 
 //
-// $Id: ViscBndry2D.cpp,v 1.8 1998-06-09 21:42:51 lijewski Exp $
+// $Id: ViscBndry2D.cpp,v 1.9 1998-07-29 19:07:47 lijewski Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -73,7 +73,7 @@ ViscBndry2D::setHomogValues(const Array<BCRec>& bc, int ratio)
     for (OrientationIter fi; fi; ++fi)
     {
         Orientation face(fi());
-        for (FabSetIterator fsi(bndry[face]); fsi.isValid(false); ++fsi)
+        for (FabSetIterator fsi(bndry[face]); fsi.isValid(); ++fsi)
         {
             fsi().setVal(0.);
         }

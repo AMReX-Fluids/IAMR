@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.25 1998-07-15 22:41:26 lijewski Exp $
+// $Id: main.cpp,v 1.26 1998-07-29 19:07:48 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -15,7 +15,6 @@
 #include <REAL.H>
 #include <Misc.H>
 #include <Utility.H>
-#include <Tracer.H>
 #include <IntVect.H>
 #include <Box.H>
 #include <Amr.H>
@@ -167,10 +166,8 @@ main (int   argc,
     set_new_handler(Utility::OutOfMemory);
 #endif
 
-#ifdef BL_USE_MPI
     int nprocs = 1;
     ParallelDescriptor::StartParallel(nprocs,&argc,&argv);
-#endif
 
     cout << setprecision(10);
 
@@ -187,11 +184,6 @@ main (int   argc,
     Real stop_time;
 
     ParmParse pp(argc-2,argv+2,NULL,argv[1]); 
-
-#ifndef BL_USE_MPI
-    int nprocs = 1; pp.query("nprocs", nprocs);
-    ParallelDescriptor::StartParallel(nprocs,&argc,&argv);
-#endif
     //
     // Initialize random seed after we're running in parallel.
     //
@@ -199,8 +191,6 @@ main (int   argc,
     //
     // Instantiate after we're running in Parallel.
     //
-    TRACER("amr");
-
 #ifndef WIN32
     int sleeptime = 0; pp.query("sleep", sleeptime);
     sleep(sleeptime);

@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.28 1998-07-24 01:24:01 lijewski Exp $
+// $Id: MacProj.cpp,v 1.29 1998-07-29 19:07:41 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -413,7 +413,7 @@ MacProj::mac_sync_solve (int       level,
     {
         Box bf = ::coarsen(fine_boxes[kf],fine_ratio);
 
-        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(false); ++Rhsmfi)
+        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
         {
             assert(grids[Rhsmfi.index()] == Rhsmfi.validbox());
 
@@ -440,7 +440,7 @@ MacProj::mac_sync_solve (int       level,
         }
 
         long size = 0;
-        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(false); ++Rhsmfi)
+        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
         {
             size += Rhsmfi().box().numPts();
         }
@@ -451,7 +451,7 @@ MacProj::mac_sync_solve (int       level,
             Real sum = 0.0;
             Real vol = 0.0;
             FArrayBox vol_wgted_rhs;
-            for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(false); ++Rhsmfi)
+            for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
             {
                 vol_wgted_rhs.resize(Rhsmfi().box());
                 vol_wgted_rhs.copy(Rhsmfi());
@@ -762,7 +762,7 @@ MacProj::mac_sync_compute (int           level,
     //
     // Compute the mac sync correction.
     //
-    for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(false); ++Ssyncmfi)
+    for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
     {
         DependentMultiFabIterator volumemfi(Ssyncmfi, volume[level]);
         DependentMultiFabIterator area0mfi(Ssyncmfi, area[level][0]);
@@ -848,7 +848,7 @@ MacProj::check_div_cond (int      level,
 
     FArrayBox dmac;
 
-    for (MultiFabIterator U_edge0mfi(U_edge[0]); U_edge0mfi.isValid(false);
+    for (MultiFabIterator U_edge0mfi(U_edge[0]); U_edge0mfi.isValid();
          ++U_edge0mfi)
     {
         DependentMultiFabIterator U_edge1mfi(U_edge0mfi, U_edge[1]);
@@ -991,7 +991,7 @@ MacProj::set_outflow_bcs (int             level,
 
         mac_phi_strip.setVal(0.0);
 
-        for (MultiFabIterator Smfi(S); Smfi.isValid(false); ++Smfi)
+        for (MultiFabIterator Smfi(S); Smfi.isValid(); ++Smfi)
         {
             DependentMultiFabIterator divumfi(Smfi, divu);
             DependentMultiFabIterator u_mac0mfi(Smfi, u_mac[0]);
@@ -1055,7 +1055,7 @@ MacProj::set_outflow_bcs (int             level,
                       ARLIM(rcen_lo),ARLIM(rcen_hi),rcen.dataPtr(),
                       ARLIM(redge_lo),ARLIM(redge_hi),redge.dataPtr(),
                       &hx,ARLIM(phi_lo),ARLIM(phi_hi),phidat);
-        for (MultiFabIterator mac_phimfi(*mac_phi); mac_phimfi.isValid(false);
+        for (MultiFabIterator mac_phimfi(*mac_phi); mac_phimfi.isValid();
              ++mac_phimfi)
         {
             mac_phimfi().copy(mac_phi_strip);
