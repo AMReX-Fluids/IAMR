@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: main.cpp,v 1.29 1998-11-18 21:06:14 lijewski Exp $
+// $Id: main.cpp,v 1.30 1999-04-01 18:15:17 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -24,6 +24,7 @@
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 #include <AmrLevel.H>
+#include <hgparallel.h>
 
 #ifdef BL_USE_NEW_HFILES
 #include <new>
@@ -189,6 +190,10 @@ main (int   argc,
     // Initialize random seed after we're running in parallel.
     //
     Utility::InitRandom(ParallelDescriptor::MyProc() + 1);
+    //
+    // Initialize some Holy Grail junk.
+    //
+    HG::MPI_init();
     //
     // Instantiate after we're running in Parallel.
     //
