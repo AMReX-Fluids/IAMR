@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.180 2000-07-21 17:58:06 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.181 2000-07-21 21:54:32 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1479,6 +1479,27 @@ NavierStokes::get_rho_half_time ()
     }
 
     return rho_half;
+}
+
+MultiFab*
+NavierStokes::get_rho (Real time)
+{
+    const TimeLevel whichTime = which_time(State_Type,time);
+
+    BL_ASSERT(!(whichTime == AmrOtherTime));
+
+    if (whichTime == AmrOldTime)
+    {
+        return rho_ptime;
+    }
+    else if (whichTime == AmrNewTime)
+    {
+        return rho_ctime;
+    }
+    else
+    {
+        return get_rho_half_time();
+    }
 }
 
 //
@@ -4721,40 +4742,22 @@ NavierStokes::calc_divu (Real      time,
 
         if (do_temp && visc_coef[Temp] > 0.0)
         {
-            const TimeLevel whichTime = which_time(State_Type,time);
             //
             // Compute Div(U) = Div(cond.Grad(T))/(rho.T) assuming cond = k/cp.
             //
             getViscTerms(divu,Temp,1,time);
 
-            const MultiFab& rho =
-                whichTime == AmrNewTime ? *rho_ctime : *rho_ptime;
-
-            FillPatchIterator rho_fpi(*this,divu);
-            FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);
-
-            if (whichTime == AmrLevel::AmrOtherTime)
-                rho_fpi.Initialize(0,time,State_Type,Density,1);
-
-            ConstMultiFabIterator rho_mfi(rho);
+            FillPatchIterator     temp_fpi(*this,divu,0,time,State_Type,Temp,1);
+            ConstMultiFabIterator rho_mfi(*get_rho(time));
 
             for ( ;
                   rho_mfi.isValid() && temp_fpi.isValid();
                   ++rho_mfi, ++temp_fpi)
             {
-                if (whichTime == AmrLevel::AmrOtherTime)
-                    rho_fpi.isValid();
-
                 const int i = rho_mfi.index();
 
-                const FArrayBox& Rho =
-                    whichTime == AmrOtherTime ? rho_fpi() : rho_mfi();
-
-                divu[i].divide(Rho,divu.box(i),0,0,1);
+                divu[i].divide(rho_mfi(),divu.box(i),0,0,1);
                 divu[i].divide(temp_fpi(),divu.box(i),0,0,1);
-
-                if (whichTime == AmrLevel::AmrOtherTime)
-                    ++rho_fpi;
             }
         }
     }
@@ -4941,17 +4944,17 @@ NavierStokes::calcViscosity (const Real time,
     //
     MultiFab* visc_cc;
 
-    if (which_time(State_Type,time) == AmrOldTime)               // time N
+    const TimeLevel whichTime = which_time(State_Type,time);
+
+    BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+
+    if (whichTime == AmrOldTime)               // time N
     {
         visc_cc = viscn_cc;
     }
-    else if (which_time(State_Type,time) == AmrNewTime)          // time N+1
+    else if (whichTime == AmrNewTime)          // time N+1
     {
         visc_cc = viscnp1_cc;
-    }
-    else
-    {
-        BoxLib::Abort("calcViscosity: invalid time");
     }
     //
     // Calculate viscosity
@@ -4995,17 +4998,17 @@ NavierStokes::calcDiffusivity (const Real time,
     //
     MultiFab* diff_cc;
 
-    if (which_time(State_Type,time) == AmrOldTime)               // time N
+    const TimeLevel whichTime = which_time(State_Type,time);
+
+    BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+
+    if (whichTime == AmrOldTime)               // time N
     {
         diff_cc = diffn_cc;
     }
-    else if (which_time(State_Type,time) == AmrNewTime)          // time N+1
+    else if (whichTime == AmrNewTime)          // time N+1
     {
         diff_cc = diffnp1_cc;
-    }
-    else
-    {
-        BoxLib::Abort("calcDiffusivity: invalid time");
     }
     //
     // Calculate diffusivity
@@ -5040,17 +5043,17 @@ NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
     //
     MultiFab* visc_cc;
 
-    if (which_time(State_Type,time) == AmrOldTime)               // time N
+    const TimeLevel whichTime = which_time(State_Type,time);
+
+    BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+
+    if (whichTime == AmrOldTime)               // time N
     {
         visc_cc = viscn_cc;
     }
-    else if (which_time(State_Type,time) == AmrNewTime)          // time N+1
+    else if (whichTime == AmrNewTime)          // time N+1
     {
         visc_cc = viscnp1_cc;
-    }
-    else
-    {
-        BoxLib::Abort("calcViscosity: invalid time");
     }
     //
     // Fill edge-centered viscosity
@@ -5083,17 +5086,17 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
     //
     MultiFab* diff_cc;
 
-    if (which_time(State_Type,time) == AmrOldTime)               // time N
+    const TimeLevel whichTime = which_time(State_Type,time);
+
+    BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+
+    if (whichTime == AmrOldTime)               // time N
     {
         diff_cc = diffn_cc;
     }
-    else if (which_time(State_Type,time) == AmrNewTime)          // time N+1
+    else if (whichTime == AmrNewTime)          // time N+1
     {
         diff_cc = diffnp1_cc;
-    }
-    else
-    {
-        BoxLib::Abort("calcDiffusivity: invalid time");
     }
     //
     // Fill edge-centered diffusivities

@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.67 2000-07-18 17:00:55 lijewski Exp $
+// $Id: NavierStokes.H,v 1.68 2000-07-21 21:54:32 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -294,15 +294,21 @@ protected:
     //
     // Make rho at time n.
     //
-    void make_rho_prev_time ();
+    virtual void make_rho_prev_time ();
     //
     // Make rho at time n+1.
     //
-    void make_rho_curr_time ();
+    virtual void make_rho_curr_time ();
     //
     // Get rho at time n+1/2 -- don't delete the pointer !!!
     //
     MultiFab* get_rho_half_time ();
+    //
+    // Get rho at time.
+    // Must be one of AmrOldTime, AmrHalfTime or AmrNewTime.
+    // Aborts if not one of the three above times.
+    //
+    MultiFab* get_rho (Real time);
     //
     // Update velocities after advection.
     //

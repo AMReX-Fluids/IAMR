@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.67 2000-07-14 17:15:31 lijewski Exp $
+// $Id: MacProj.cpp,v 1.68 2000-07-21 21:54:32 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -347,14 +347,9 @@ MacProj::mac_project (int             level,
     // Some of the routines we call assume that density has one valid
     // ghost cell.  We enforce that assumption by setting it here.
     //
-    const AmrLevel::TimeLevel whichTime = ns.which_time(State_Type,time);
-
-    BL_ASSERT(!(whichTime == AmrLevel::AmrOtherTime));
-
-    const MultiFab& rho =
-        whichTime == AmrLevel::AmrNewTime ? *ns.rho_ctime : *ns.rho_ptime;
-    
-    for (ConstMultiFabIterator Rho_mfi(rho); Rho_mfi.isValid(); ++Rho_mfi)
+    for (ConstMultiFabIterator Rho_mfi(*ns.get_rho(time));
+         Rho_mfi.isValid();
+         ++Rho_mfi)
     {
         S[Rho_mfi.index()].copy(Rho_mfi(),0,Density,1);
     }

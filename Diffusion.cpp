@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.96 2000-07-14 17:15:31 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.97 2000-07-21 21:54:32 lijewski Exp $
 //
 
 //
@@ -2272,12 +2272,9 @@ Diffusion::getBndryData (ViscBndry& bndry,
     // TODO -- A MultiFab is a huge amount of space in which to pass along
     // the phys bc's.  InterpBndryData needs a more efficient interface.
     //
-    const AmrLevel::TimeLevel whichTime = caller->which_time(State_Type,time);
-
-    NavierStokes&   ns  = *(NavierStokes*) &(parent->getLevel(level));
-    const int    nGrow  = 1;
-    const BCRec&    bc  = caller->get_desc_lst()[State_Type].getBC(src_comp);
-    const MultiFab& rho = whichTime == AmrLevel::AmrNewTime ? *ns.rho_ctime : *ns.rho_ptime;
+    NavierStokes& ns    = *(NavierStokes*) &(parent->getLevel(level));
+    const int     nGrow = 1;
+    const BCRec&  bc    = caller->get_desc_lst()[State_Type].getBC(src_comp);
 
     MultiFab S(grids, num_comp, nGrow);
 
@@ -2285,21 +2282,11 @@ Diffusion::getBndryData (ViscBndry& bndry,
 
     bndry.define(grids,num_comp,caller->Geom());
 
-    FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
-    FillPatchIterator Rho_fpi(*caller,S);
-
-    ConstMultiFabIterator Rho_mfi(rho);
-
-    if (rho_flag == 2 && whichTime == AmrLevel::AmrOtherTime)
-	Rho_fpi.Initialize(nGrow,time,State_Type,Density,1);
+    FillPatchIterator     Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
+    ConstMultiFabIterator Rho_mfi(*ns.get_rho(time));
 
     for ( ; Rho_mfi.isValid() && Phi_fpi.isValid(); ++Rho_mfi, ++Phi_fpi)
     {
-	if (rho_flag == 2 && whichTime == AmrLevel::AmrOtherTime)
-	    Rho_fpi.isValid();
-
-        const FArrayBox& Rho = whichTime == AmrLevel::AmrOtherTime ? Rho_fpi() : Rho_mfi();
-
         DependentMultiFabIterator S_mfi(Phi_fpi, S);
 
         const BoxList gCells = ::boxDiff(Phi_fpi().box(),Phi_fpi.validbox());
@@ -2310,11 +2297,8 @@ Diffusion::getBndryData (ViscBndry& bndry,
 
             if (rho_flag == 2)
                 for (int n = 0; n < num_comp; ++n)
-                    S_mfi().divide(Rho,bli(),0,n,1);
+                    S_mfi().divide(Rho_mfi(),bli(),0,n,1);
         }
-
-	if (rho_flag == 2 && whichTime == AmrLevel::AmrOtherTime)
-	    ++Rho_fpi;
     }
     
     if (level == 0)
@@ -2347,21 +2331,13 @@ Diffusion::FillBoundary (BndryRegister& bdry,
     // Need one grow cell filled for linear solvers.
     // We assume filPatch gets this right, where possible.
     //
-    const AmrLevel::TimeLevel whichTime = caller->which_time(State_Type,time);
-
-    const int       nGrow = 1;
-    NavierStokes&   ns    = *(NavierStokes*) &(parent->getLevel(level));
-    const MultiFab& rho   = whichTime == AmrLevel::AmrNewTime ? *ns.rho_ctime : *ns.rho_ptime;
+    const int     nGrow = 1;
+    NavierStokes& ns    = *(NavierStokes*) &(parent->getLevel(level));
 
     MultiFab S(caller->boxArray(),num_comp,nGrow);
 
-    FillPatchIterator Rho_fpi(*caller,S);
-    FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
-
-    ConstMultiFabIterator Rho_mfi(rho);
-
-    if (rho_flag == 2 && whichTime == AmrLevel::AmrOtherTime)
-	Rho_fpi.Initialize(nGrow,time,State_Type,Density,1);
+    FillPatchIterator     S_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
+    ConstMultiFabIterator Rho_mfi(*ns.get_rho(time));
 
     for ( ; Rho_mfi.isValid() && S_fpi.isValid(); ++Rho_mfi, ++S_fpi)
     {
@@ -2369,16 +2345,8 @@ Diffusion::FillBoundary (BndryRegister& bdry,
 
 	if (rho_flag == 2)
         {
-            if (whichTime == AmrLevel::AmrOtherTime)
-                Rho_fpi.isValid();
-
-            const FArrayBox& Rho = whichTime == AmrLevel::AmrOtherTime ? Rho_fpi() : Rho_mfi();
-
             for (int n = 0; n < num_comp; ++n)
-                S[S_fpi.index()].divide(Rho,0,n,1);
-
-            if (whichTime == AmrLevel::AmrOtherTime)
-                ++Rho_fpi;
+                S[S_fpi.index()].divide(Rho_mfi(),0,n,1);
         }
     }
     //
