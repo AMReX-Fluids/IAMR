@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.81 1999-03-30 17:25:18 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.82 1999-03-30 22:41:19 lijewski Exp $
 //
 
 //
@@ -2248,7 +2248,6 @@ Diffusion::getBndryData (ViscBndry& bndry,
     // TODO -- A MultiFab is a huge amount of space in which to pass along
     // the phys bc's.  InterpBndryData needs a more efficient interface.
     //
-    //
     const int    nGrow = 1;
     const BCRec& bc    = caller->get_desc_lst()[State_Type].getBC(src_comp);
 
@@ -2257,7 +2256,6 @@ Diffusion::getBndryData (ViscBndry& bndry,
     bndry.define(grids,num_comp,caller->Geom());
 
     FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
-
     FillPatchIterator Rho_fpi(*caller,S);
 
     if (rho_flag == 2)
@@ -2334,7 +2332,8 @@ Diffusion::FillBoundary (BndryRegister& bdry,
 
         for ( ; rho_fpi.isValid(); ++rho_fpi)
         {
-            S[rho_fpi.index()].divide(rho_fpi());
+            for (int n = 0; n < num_comp; ++n)
+                S[rho_fpi.index()].divide(rho_fpi(), 0, n, 1);
         }
     }
     //
