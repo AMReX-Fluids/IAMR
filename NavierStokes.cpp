@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.49 1998-05-23 03:14:00 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.50 1998-05-26 16:38:42 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -24,7 +24,11 @@
 #include <PROB_F.H>
 
 #ifdef BL_USE_NEW_HFILES
+#include <vector>
+using std::vector;
 using std::streampos;
+#else
+#include <vector.h>
 #endif
 
 #define GEOM_GROW 1
@@ -3827,83 +3831,92 @@ void NavierStokes::SyncProjInterp( MultiFab &phi,   int c_lev,
 
 
 
-//------------------------------------------------------------
+//
 // This function averages a multifab of fine data down onto
-// a multifab of coarse data
+// a multifab of coarse data.
 //
 //  This should be an Amrlevel or Multifab function
 //
-//------------------------------------------------------------
-void NavierStokes::avgDown( const BoxArray &cgrids,  const BoxArray &fgrids,
-                            MultiFab &S_crse, MultiFab &S_fine,
-                            MultiFab &cvolume, MultiFab &fvolume,
-                            int c_level,            int f_level,
-                            int strt_comp, int num_comp, IntVect& fratio )
+
+void
+NavierStokes::avgDown (const BoxArray& cgrids,
+                       const BoxArray& fgrids,
+                       MultiFab&       S_crse,
+                       MultiFab&       S_fine,
+                       MultiFab&       cvolume,
+                       MultiFab&       fvolume,
+                       int             c_level,
+                       int             f_level,
+                       int             strt_comp,
+                       int             num_comp,
+                       IntVect&        fratio)
 {
-    assert( S_crse.nComp() == S_fine.nComp() );
-    int num_crse = cgrids.length();
-    int num_fine = fgrids.length();
-    //
-    //  this needs to be optimized to communicate only the
-    //  overlap part of the fab
-    //
+    assert(S_crse.nComp() == S_fine.nComp());
+
     MultiFabCopyDescriptor mfcd;
+
     MultiFabId mfidS_fine  = mfcd.RegisterFabArray(&S_fine);
     MultiFabId mfidFineVol = mfcd.RegisterFabArray(&fvolume);
 
-    List<FillBoxId> fillBoxIdList;
-    List<FillBoxId> fillBoxIdListVol;
-
-    // loop over coarse grids, and intersect coarse with fine
-    for(ConstMultiFabIterator mfi(S_crse); mfi.isValid(); ++mfi) {
+    vector<FillBoxId> fillBoxIdList, fillBoxIdListVol;
+    //
+    // Loop over coarse grids and intersect coarse with fine.
+    //
+    for (ConstMultiFabIterator mfi(S_crse); mfi.isValid(); ++mfi)
+    {
         assert(grids[mfi.index()] == mfi.validbox());
-        const Box &cbox = mfi.validbox();
-        for(int fine = 0; fine < num_fine; fine++) {
-            const Box &fbox = fgrids[fine];
-            Box ovlp(coarsen(fbox,fratio));
-            ovlp &= cbox;
-            if(ovlp.ok()) {
-              BoxList unfilledBoxes(fbox.ixType());  // unused here
-              FillBoxId fbidFine, fbidFineVol;
-              const Box &sfineBox = S_fine.fabbox(fine);
-              fbidFine = mfcd.AddBox(mfidS_fine, sfineBox, &unfilledBoxes,
-                                       0, 0, num_comp);
 
-              const Box &fineVolBox = fvolume.fabbox(fine);
-              fbidFineVol = mfcd.AddBox(mfidFineVol, fineVolBox, &unfilledBoxes,
-                                        0, 0, 1);
-              fillBoxIdList.append(fbidFine);
-              fillBoxIdListVol.append(fbidFineVol);
+        for (int fine = 0; fine < fgrids.length(); fine++)
+        {
+            Box ovlp = ::coarsen(fgrids[fine],fratio) & mfi.validbox();
+
+            if (ovlp.ok())
+            {
+              Box fine_ovlp = ::refine(ovlp,fratio);
+
+              fillBoxIdList.push_back(mfcd.AddBox(mfidS_fine,
+                                                  fine_ovlp,
+                                                  0,
+                                                  fine,
+                                                  strt_comp,
+                                                  0,
+                                                  num_comp));
+
+              fillBoxIdListVol.push_back(mfcd.AddBox(mfidFineVol,
+                                                     fine_ovlp,
+                                                     0,
+                                                     fine,
+                                                     0,
+                                                     0,
+                                                     1));
             }
         }
     }
 
     mfcd.CollectData();
 
-    FArrayBox fine_fab;
-    FArrayBox fine_vol;
+    FArrayBox fine_fab, fine_vol;
 
-    ListIterator<FillBoxId> fbidli(fillBoxIdList);
-    ListIterator<FillBoxId> fbidlivol(fillBoxIdListVol);
+    vector<FillBoxId>::iterator fbidli    = fillBoxIdList.begin();
+    vector<FillBoxId>::iterator fbidlivol = fillBoxIdListVol.begin();
     
     for (ConstMultiFabIterator mfi(S_crse); mfi.isValid(); ++mfi)
     {
         ConstDependentMultiFabIterator mfivol(mfi, volume);
+
         assert(grids[mfi.index()] == mfi.validbox());
-        const Box &cbox = mfi.validbox();
-        for(int fine = 0; fine < num_fine; fine++)
+
+        for (int fine = 0; fine < fgrids.length(); fine++)
         {
-            const Box &fbox = fgrids[fine];
-            Box ovlp(coarsen(fbox,fratio));
-            ovlp &= cbox;
+            Box ovlp = ::coarsen(fgrids[fine],fratio) & mfi.validbox();
+
             if (ovlp.ok())
             {
-                assert(fbidli);
-                FillBoxId fbidFine = fbidli();
-                ++fbidli;
-                assert(fbidlivol);
-                FillBoxId fbidFineVol = fbidlivol();
-                ++fbidlivol;
+                assert(!(fbidli == fillBoxIdList.end()));
+                assert(!(fbidlivol == fillBoxIdListVol.end()));
+
+                FillBoxId fbidFine    = *fbidli++;
+                FillBoxId fbidFineVol = *fbidlivol++;
 
                 fine_fab.resize(fbidFine.box(), num_comp);
                 fine_vol.resize(fbidFineVol.box(), 1);
@@ -3911,46 +3924,74 @@ void NavierStokes::avgDown( const BoxArray &cgrids,  const BoxArray &fgrids,
                 mfcd.FillFab(mfidS_fine,  fbidFine,    fine_fab);
                 mfcd.FillFab(mfidFineVol, fbidFineVol, fine_vol);
 
-                avgDown( fine_fab,  mfi(), 
-                         fine_vol, mfivol(), 
-                         f_level,       c_level,      
-                         ovlp, strt_comp, num_comp, fratio );
+                const int* ovlo = ovlp.loVect();
+                const int* ovhi = ovlp.hiVect();
+                //
+                // Get the fine data.
+                //
+                const int* flo     = fine_fab.loVect();
+                const int* fhi     = fine_fab.hiVect();
+                const Real* f_dat  = fine_fab.dataPtr();
+                const int* fvlo    = fine_vol.loVect();
+                const int* fvhi    = fine_vol.hiVect();
+                const Real* fv_dat = fine_vol.dataPtr();
+                //
+                // Get the coarse data.
+                //
+                const int* clo     = mfi().loVect();
+                const int* chi     = mfi().hiVect();
+                const Real* c_dat  = mfi().dataPtr(strt_comp);
+                const int* cvlo    = mfivol().loVect();
+                const int* cvhi    = mfivol().hiVect();
+                const Real* cv_dat = mfivol().dataPtr();
+
+                FORT_AVGDOWN (c_dat,ARLIM(clo),ARLIM(chi),&num_comp,
+                              f_dat,ARLIM(flo),ARLIM(fhi),
+                              cv_dat,ARLIM(cvlo),ARLIM(cvhi),
+                              fv_dat,ARLIM(fvlo),ARLIM(fvhi),
+                              ovlo,ovhi,fratio.getVect());
             }
         }
     }
-    
-}  // end avgDown(...)
+}
 
+//
+// Average fine down to coarse in the ovlp intersection.
+//
 
-//------------------------------------------------------------
-// average fine down to coarse in the ovlp intersection
-void NavierStokes::avgDown( const FArrayBox& fine_fab, const FArrayBox& crse_fab, 
-                            const FArrayBox& fine_vol, const FArrayBox& crse_vol,
-                            int f_level,               int c_level,
-                            const Box &ovlp,
-                            int strt_comp, int num_comp, IntVect& fratio )
+void
+NavierStokes::avgDown (const FArrayBox& fine_fab,
+                       const FArrayBox& crse_fab, 
+                       const FArrayBox& fine_vol,
+                       const FArrayBox& crse_vol,
+                       int              f_level,
+                       int              c_level,
+                       const Box&       ovlp,
+                       int              strt_comp,
+                       int              num_comp,
+                       IntVect&         fratio)
 {
-    // get the bounds
     const int* ovlo = ovlp.loVect();
     const int* ovhi = ovlp.hiVect();
-    
-    // get the fine data
+    //
+    // Get the fine data.
+    //
     const int* flo            = fine_fab.loVect();
     const int* fhi            = fine_fab.hiVect();
     const Real* f_dat         = fine_fab.dataPtr(strt_comp);
     const int* fvlo           = fine_vol.loVect();
     const int* fvhi           = fine_vol.hiVect();
     const Real* fv_dat        = fine_vol.dataPtr();
-    
-    // get the coarse data
+    //
+    // Get the coarse data.
+    //
     const int* clo            = crse_fab.loVect();
     const int* chi            = crse_fab.hiVect();
     const Real* c_dat         = crse_fab.dataPtr(strt_comp);
     const int* cvlo           = crse_vol.loVect();
     const int* cvhi           = crse_vol.hiVect();
     const Real* cv_dat        = crse_vol.dataPtr();
-    
-    // call the fortran
+
     FORT_AVGDOWN (c_dat,ARLIM(clo),ARLIM(chi),&num_comp,
                   f_dat,ARLIM(flo),ARLIM(fhi),
                   cv_dat,ARLIM(cvlo),ARLIM(cvhi),
@@ -3958,11 +3999,11 @@ void NavierStokes::avgDown( const FArrayBox& fine_fab, const FArrayBox& crse_fab
                   ovlo,ovhi,fratio.getVect());
 }
 
-
-// -------------------------------------------------------------
+//
 // The Level Sync correction function
-// -------------------------------------------------------------
-void NavierStokes::level_sync()
+//
+
+void NavierStokes::level_sync ()
 {
     int i;
 
@@ -4279,36 +4320,48 @@ void NavierStokes::reflux()
     }
 }
 
+//
+// Average down a single state component.
+//
 
-// average down a single state component
-void NavierStokes::avgDown(int comp)
+void
+NavierStokes::avgDown (int comp)
 {
-    if (level == parent->finestLevel()) return;
+    if (level == parent->finestLevel())
+        return;
 
     NavierStokes& fine_lev = getLevel(level+1);
-    const BoxArray &fgrids = fine_lev.grids;
-    MultiFab &fvolume      = fine_lev.volume;
+    const BoxArray& fgrids = fine_lev.grids;
+    MultiFab& fvolume      = fine_lev.volume;
 
-    MultiFab &S_crse = get_new_data(State_Type);
-    MultiFab &S_fine = fine_lev.get_new_data(State_Type);
+    MultiFab& S_crse = get_new_data(State_Type);
+    MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
-    avgDown( grids, fgrids,
-             S_crse, S_fine,
-             volume, fvolume,
-             level,  level+1,
-             comp, 1, fine_ratio);
+    avgDown(grids, fgrids,
+            S_crse, S_fine,
+            volume, fvolume,
+            level,  level+1,
+            comp, 1, fine_ratio);
 }
 
+//
+// Inject fine pressure nodes down onto coarse nodes.
+//
 
-// inject fine pressure nodes down onto coarse nodes
-void NavierStokes::injectDown( const Box &ovlp, FArrayBox &Pcrse,
-                               const FArrayBox &Pfine, IntVect &fine_ratio )
+void
+NavierStokes::injectDown (const Box&       ovlp,
+                          FArrayBox&       Pcrse,
+                          const FArrayBox& Pfine,
+                          IntVect&         fine_ratio )
 {
-    // get the coarse intersection bounds
+    //
+    // Get the coarse intersection bounds.
+    //
     const int* ovlo = ovlp.loVect();
     const int* ovhi = ovlp.hiVect();
-
-    // get the fine and coarse pressures
+    //
+    // Get the fine and coarse pressures.
+    //
     Real* cpres       = Pcrse.dataPtr();
     const int* clo    = Pcrse.loVect();
     const int* chi    = Pcrse.hiVect();
@@ -4316,15 +4369,15 @@ void NavierStokes::injectDown( const Box &ovlp, FArrayBox &Pcrse,
     const int* flo    = Pfine.loVect();
     const int* fhi    = Pfine.hiVect();
 
-    // call the fortran
     FORT_PUTDOWN (cpres,ARLIM(clo),ARLIM(chi),
                   fpres,ARLIM(flo),ARLIM(fhi),
                   ovlo,ovhi,fine_ratio.getVect());
 }
 
+//
+// Test for consistency between fine and coarse nodes.
+//
 
-
-// test for consistency between fine and coarse nodes
 void NavierStokes::testInject( const Box &ovlp, FArrayBox &Pcrse,
                                const FArrayBox &Pfine, IntVect &fine_ratio )
 {
@@ -4346,118 +4399,99 @@ void NavierStokes::testInject( const Box &ovlp, FArrayBox &Pcrse,
                      ovlo,ovhi,fine_ratio.getVect());
 }
 
+//
+// Average fine information from the complete set of state types to coarse.
+//
 
-//-------------------------------------------------------------
-// average the fine information from the complete set of state types
-// down to coarse
-//-------------------------------------------------------------
-void NavierStokes::avgDown()
+void
+NavierStokes::avgDown ()
 {
-    if (level == parent->finestLevel()) return;
+    if (level == parent->finestLevel())
+        return;
 
     NavierStokes& fine_lev = getLevel(level+1);
-    const BoxArray &fgrids = fine_lev.grids;
-    MultiFab &fvolume      = fine_lev.volume;
+    const BoxArray& fgrids = fine_lev.grids;
+    MultiFab& fvolume      = fine_lev.volume;
+    //
+    // Average down the states at the new time.
+    //
+    MultiFab& S_crse = get_new_data(State_Type);
+    MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
-    // ********************************************************** 
-    // average down the sates at the new time
-    // ********************************************************** 
-
-    MultiFab &S_crse = get_new_data(State_Type);
-    MultiFab &S_fine = fine_lev.get_new_data(State_Type);
-
-    avgDown( grids, fgrids,
-             S_crse, S_fine,
-             volume, fvolume,
-             level,  level+1,
-             0, S_crse.nComp(), fine_ratio );
-
-    // ********************************************************** 
-    // Now average down pressure over time n-(n+1) interval      
-    // ********************************************************** 
-
-    // get objects
-    MultiFab &P_crse      = get_new_data(Press_Type);
-    MultiFab &P_fine_init = fine_lev.get_new_data(Press_Type);
-    MultiFab &P_fine_avg  = *fine_lev.p_avg;
-    MultiFab &P_fine      = ( initial_step ? P_fine_init : P_fine_avg );
+    avgDown(grids, fgrids, S_crse, S_fine, volume, fvolume,
+            level,  level+1, 0, S_crse.nComp(), fine_ratio);
+    //
+    // Now average down pressure over time n-(n+1) interval.
+    //
+    MultiFab& P_crse      = get_new_data(Press_Type);
+    MultiFab& P_fine_init = fine_lev.get_new_data(Press_Type);
+    MultiFab& P_fine_avg  = *fine_lev.p_avg;
+    MultiFab& P_fine      = initial_step ? P_fine_init : P_fine_avg;
 
     const BoxArray& P_cgrids = state[Press_Type].boxArray();
     const BoxArray& P_fgrids = fine_lev.state[Press_Type].boxArray();
-    const Geometry& fgeom    = parent->Geom(level+1);
-    Box domain               = fgeom.Domain();
-    domain.surroundingNodes();
 
-    // get looping parameters
-    Box ovlp;
-    Array<IntVect> pshifts(27);
-    int ng_pres = P_crse.nGrow();
-    int ncrse   = grids.length();
-    int nfine   = fgrids.length();
-    //
-    //  this needs to be optimized to communicate only the
-    //  overlap part of the fab
-    //
     MultiFabCopyDescriptor mfcd;
-    MultiFabId mfidP_fine  = mfcd.RegisterFabArray(&P_fine);
 
-    List<FillBoxId> fillBoxIdList;
+    MultiFabId mfidP_fine = mfcd.RegisterFabArray(&P_fine);
 
-    // inject fine pressure nodes down onto coarse nodes
-    for(MultiFabIterator mfi(P_crse); mfi.isValid(); ++mfi) {
+    vector<FillBoxId> fillBoxIdList;
+    //
+    // Inject fine pressure nodes down onto coarse nodes.
+    //
+    for (MultiFabIterator mfi(P_crse); mfi.isValid(); ++mfi)
+    {
         assert(P_cgrids[mfi.index()] == mfi.validbox());
-        const Box &cbox = mfi.validbox();
         //
         // Loop over fine grids and periodic extensions.
         //
-        for (int fine = 0; fine < nfine; fine++)
+        for (int fine = 0; fine < fgrids.length(); fine++)
         {
-            ovlp  = coarsen(P_fgrids[fine],fine_ratio);
-            ovlp &= cbox;
-            if (ovlp.ok()) {         // inject fine down to coarse
-              //injectDown( ovlp, P_crse[crse], P_fine[fine], fine_ratio );
+            Box ovlp = ::coarsen(P_fgrids[fine],fine_ratio) & mfi.validbox();
 
-              BoxList unfilledBoxes(ovlp.ixType());  // unused here
-              FillBoxId fbidFine;
-              const Box &sfineBox = P_fine.fabbox(fine);
-              fbidFine = mfcd.AddBox(mfidP_fine, sfineBox, &unfilledBoxes,
-                                     0, 0, P_fine.nComp());
-              fillBoxIdList.append(fbidFine);
+            if (ovlp.ok())
+            {
+                Box fine_ovlp = ::refine(ovlp,fine_ratio);
+
+                fillBoxIdList.push_back(mfcd.AddBox(mfidP_fine,
+                                                    fine_ovlp,
+                                                    0,
+                                                    fine,
+                                                    0,
+                                                    0,
+                                                    P_fine.nComp()));
             }
         }
     }
-
 
     mfcd.CollectData();
 
     FArrayBox fine_fab;
 
-    ListIterator<FillBoxId> fbidli(fillBoxIdList);
+    vector<FillBoxId>::iterator fbidli = fillBoxIdList.begin();
 
     for (MultiFabIterator mfi(P_crse); mfi.isValid(); ++mfi)
     {
         assert(P_cgrids[mfi.index()] == mfi.validbox());
-        const Box &cbox = mfi.validbox();
         //
         // Loop over fine grids and periodic extensions.
         //
-        for (int fine = 0; fine < nfine; fine++)
+        for (int fine = 0; fine < fgrids.length(); fine++)
         {
-            ovlp  = coarsen(P_fgrids[fine],fine_ratio);
-            ovlp &= cbox;
+            Box ovlp = ::coarsen(P_fgrids[fine],fine_ratio) & mfi.validbox();
+
             if (ovlp.ok())
             {
+                assert(!(fbidli == fillBoxIdList.end()));
                 //
                 // Inject fine down to coarse.
                 //
-                assert(fbidli);
-                FillBoxId fbidFine = fbidli();
-                ++fbidli;
+                FillBoxId fbidFine = *fbidli++;
 
                 fine_fab.resize(fbidFine.box(), P_fine.nComp());
-                mfcd.FillFab(mfidP_fine,  fbidFine,    fine_fab);
+                mfcd.FillFab(mfidP_fine, fbidFine, fine_fab);
 
-                injectDown( ovlp, mfi(), fine_fab, fine_ratio );
+                injectDown(ovlp, mfi(), fine_fab, fine_ratio);
             }
         }
     }
@@ -4466,28 +4500,27 @@ void NavierStokes::avgDown()
     //
     if (have_divu)
     {
-        MultiFab &Divu_crse = get_new_data(Divu_Type);
-        MultiFab &Divu_fine = fine_lev.get_new_data(Divu_Type);
+        MultiFab& Divu_crse = get_new_data(Divu_Type);
+        MultiFab& Divu_fine = fine_lev.get_new_data(Divu_Type);
         
-        avgDown( grids,     fgrids,
-                 Divu_crse, Divu_fine,
-                 volume,    fvolume,
-                 level,     level+1,
-                 0, 1, fine_ratio );
+        avgDown(grids,     fgrids,
+                Divu_crse, Divu_fine,
+                volume,    fvolume,
+                level,     level+1,
+                0, 1, fine_ratio );
     }
-    if(have_dsdt) {
-        MultiFab &Dsdt_crse = get_new_data(Dsdt_Type);
-        MultiFab &Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
+    if (have_dsdt)
+    {
+        MultiFab& Dsdt_crse = get_new_data(Dsdt_Type);
+        MultiFab& Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
         
-        avgDown( grids,     fgrids,
-                 Dsdt_crse, Dsdt_fine,
-                 volume,    fvolume,
-                 level,     level+1,
-                 0, 1, fine_ratio );
+        avgDown(grids,     fgrids,
+                Dsdt_crse, Dsdt_fine,
+                volume,    fvolume,
+                level,     level+1,
+                0, 1, fine_ratio );
     }
-}  // end avgDown()
-
-
+}
 
 //=================================================================
 // ACCESS FUNCTIONS FOLLOW
