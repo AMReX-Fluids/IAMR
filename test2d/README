@@ -1,0 +1,92 @@
+
+In this directory are five sets of inputs, probin and fixed_grids 
+files which are used to test different grid configurations and problem
+set-ups.  
+
+The grid configurations are in files fixed_grids_1 through fixed_grids_5.
+Associated with each is a set of inputs files, inputs_1_... through inputs_5.
+and probin files, probin_1 through probin_5.   
+
+There is also a plot file (plt0000_1 through plt0000_5) for each 
+grid configuration so you can see the grid configurations.
+
+******************************************************************************
+
+fixed_grids_1/{inputs_1_xy_xper, inputs_1_xy_xsolid, inputs_1_rz}/probin_1 :
+
+4 level 0 grids, 2 level 1 grids, 2 level 2 grids.
+
+This is the only case with multiple level 0 grids.  It also has
+level 2 grid boundaries overlaying level 1 grid boundaries overlaying
+level 0 grid boundaries.  None of the fine grids touch the physical
+boundaries.
+
+Refinement ratio: 2 and 2.
+
+The problem is based on inputs.2d.hotspot, and has nonzero divu.
+
+This can be run with x-y with solid wall or periodic in the x-direction,
+or r-z with solid in the r-direction. It uses solid wall in the 
+low-y direction and outflow in the high-y direction 
+(must use outflow because divu != 0).
+
+******************************************************************************
+
+fixed_grids_2/{inputs_2_xy_ysolid, inputs_2_xy_yinflow, 
+               inputs_2_rz_zsolid, inputs_2_rz_zinflow}/probin_2 :
+
+1 level 0 grid, 2 level 1 grids, 3 level 2 grids
+
+This is the only case set up to test inflow.  One of the level 1
+grids and two of the level 2 grids touch the low-y inflow face. This
+has a level 2 grid spanning a level 1 grid interface.
+
+Refinement ratio: 4 and 2.
+
+The problem is based on inputs.2d.hotspot, and has nonzero divu.
+
+This can be run with x-y or r-z, with solid wall in
+the x-direction.   It uses solid wall or inflow in the low-y direction and
+outflow in the high-y direction (must use outflow because divu != 0).
+
+******************************************************************************
+
+fixed_grids_3/{inputs_3}/probin_3 : 
+
+1 level 0 grid, 3 level 1 grids, 3 level 2 grids
+
+Refinement ratio: 4 and 2.
+
+The problem is based on inputs.2d.hotspot, and has nonzero divu.
+
+This should be run with x-y and periodic in the x-direction,
+solid wall in the low-y direction and outflow in the high-y direction 
+(must use outflow because divu != 0).  This is especially
+useful for the periodic grid interfaces.
+
+******************************************************************************
+
+fixed_grids_4/{inputs_4}/probin_4 : 
+
+1 level 0 grid, 5 level 1 grids
+
+Refinement ratio: 2 
+
+The problem is based on inputs.2d.viscbench, and has divu=0.
+
+This is doubly periodic, and is useful for testing periodic interfaces
+as well as different types of corners (inside, outside, diagonal).
+
+******************************************************************************
+
+fixed_grids_5/{inputs_5}/probin_5 : 
+
+1 level 0 grid, 7 level 1 grids
+
+Refinement ratio: 2 
+
+The problem is based on inputs.2d.viscbench, and has divu=0.
+
+This is doubly periodic, and is useful for testing periodic grid interfaces.
+
+******************************************************************************
