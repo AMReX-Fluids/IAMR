@@ -1,9 +1,12 @@
 
 //
-// $Id: Amr.cpp,v 1.11 1997-10-21 22:00:49 vince Exp $
+// $Id: Amr.cpp,v 1.12 1997-11-10 22:30:07 car Exp $
 //
 
+#ifdef BL_T3E
 #include <unistd.h>
+#endif
+
 #include <Array.H>
 #include <CoordSys.H>
 #include <ParmParse.H>
