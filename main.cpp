@@ -39,10 +39,10 @@ boing()
 
 
 #if BL_USE_WINDOWS&&(BL_SPACEDIM==2)
-#   define HAS_CONTOUR  1
+#   define BL_USE_CONTOUR  1
 #   include <Contour.H>
 #endif
-#if HAS_RASTER && (BL_SPACEDIM==2 || BL_SPACEDIM == 3)
+#if BL_USE_RASTER && (BL_SPACEDIM==2 || BL_SPACEDIM == 3)
 #   include <Raster.H>
 #endif
 
@@ -104,14 +104,14 @@ main(int argc, char *argv[])
     // -----   construct objects
     // -------------------------------------------------
     Amr  *amrptr = new Amr;
-#   ifdef HAS_CONTOUR
+#   ifdef BL_USE_CONTOUR
        Contour *contourptr;
        if(ParallelDescriptor::IOProcessor()) {
          contourptr = new Contour(*amrptr);
        }
        int n_contour = 0;
 #   endif
-#   ifdef HAS_RASTER
+#   ifdef BL_USE_RASTER
        Raster *rasterptr;
        if(ParallelDescriptor::IOProcessor()) {
          rasterptr = new Raster(*amrptr);
@@ -128,11 +128,11 @@ main(int argc, char *argv[])
 
 //    cout << setprecision(10);
 
-#   ifdef HAS_RASTER
+#   ifdef BL_USE_RASTER
        // dump raster plots
        n_raster = rasterptr->draw(amrptr->cumTime(),amrptr->levelSteps(0));
 #   endif
-#   ifdef HAS_CONTOUR
+#   ifdef BL_USE_CONTOUR
        // draw contour graphics on the fly
        if(ParallelDescriptor::IOProcessor()) {
          n_contour = contourptr->draw(amrptr->cumTime(),amrptr->levelSteps(0));
@@ -149,14 +149,14 @@ main(int argc, char *argv[])
         // do a timestep
         amrptr->coarseTimeStep(stop_time);
 
-#       ifdef HAS_CONTOUR
+#       ifdef BL_USE_CONTOUR
            // draw contour graphics on the fly
          if(ParallelDescriptor::IOProcessor()) {
            n_contour = contourptr->draw(amrptr->cumTime(),
 	                                amrptr->levelSteps(0));
          }
 #       endif
-#       ifdef HAS_RASTER
+#       ifdef BL_USE_RASTER
            // dump raster plots
          if(ParallelDescriptor::IOProcessor()) {
            n_raster = rasterptr->draw(amrptr->cumTime(),
@@ -169,7 +169,7 @@ main(int argc, char *argv[])
     // -------------------------------------------------
     // -----   final business
     // -------------------------------------------------
-#   ifdef HAS_CONTOUR
+#   ifdef BL_USE_CONTOUR
        // dump final contours
        if (n_contour == 0) {
          if(ParallelDescriptor::IOProcessor()) {
@@ -177,7 +177,7 @@ main(int argc, char *argv[])
 	 }
        }
 #   endif
-#   ifdef HAS_RASTER
+#   ifdef BL_USE_RASTER
        // dump final raster plots
        if (n_raster == 0) {
          if(ParallelDescriptor::IOProcessor()) {
@@ -196,12 +196,12 @@ main(int argc, char *argv[])
     // -------------------------------------------------
     // -----   delete memory
     // -------------------------------------------------
-#   ifdef HAS_CONTOUR
+#   ifdef BL_USE_CONTOUR
      if(ParallelDescriptor::IOProcessor()) {
        delete contourptr;
      }
 #   endif
-#   ifdef HAS_RASTER
+#   ifdef BL_USE_RASTER
      if(ParallelDescriptor::IOProcessor()) {
        delete rasterptr;
      }

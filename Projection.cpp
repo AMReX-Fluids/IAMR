@@ -1,4 +1,4 @@
-#define _Projection_C_ $Id: Projection.cpp,v 1.8 1997-09-08 17:52:34 vince Exp $
+#define _Projection_C_ $Id: Projection.cpp,v 1.9 1997-09-15 20:22:20 car Exp $
 #include <stdio.h>
 #ifdef BL_T3E
 #include <List.H>
@@ -1517,15 +1517,15 @@ void Projection::put_divu_in_node_rhs(MultiFab& rhs, Amr* parent, int level,
   rhs.setVal(0.0);
   const Geometry& geom = parent->Geom(level);
   const int ngrids = P_grids.length();
+  int bcxlo = phys_bc->lo(0);
+  int bcxhi = phys_bc->hi(0);
+#if (BL_SPACEDIM == 2)
   int isrz;
   if (user_rz==-1) {
     isrz = CoordSys::IsRZ();
   } else {
     isrz = user_rz;
   }
-  int bcxlo = phys_bc->lo(0);
-  int bcxhi = phys_bc->hi(0);
-#if (BL_SPACEDIM == 2)
   int lowfix = (isrz==1 && bcxlo!=EXTRAP && bcxlo!=HOEXTRAP);
   int hifix = (isrz==1 && bcxhi!=EXTRAP && bcxhi!=HOEXTRAP);
   const REAL* dx = geom.CellSize();
