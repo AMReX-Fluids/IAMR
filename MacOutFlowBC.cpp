@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.6 1999-08-20 17:58:54 propp Exp $
+// $Id: MacOutFlowBC.cpp,v 1.7 1999-10-05 23:16:57 propp Exp $
 //
 
 #include "MacOutFlowBC.H"
@@ -355,7 +355,6 @@ MacOutFlowBC_MG::MacOutFlowBC_MG(Box& Domain,
       pp.query("cg_maxiter",cg_maxiter);
       pp.query("maxIters",maxIters);
     }
-
   phi = Phi;
   rhs = Rhs;
   resid = Resid;
@@ -556,14 +555,14 @@ MacOutFlowBC_MG::solve(Real tolerance, Real abs_tolerance,int i1, int i2)
 
   if (verbose)
     {
-      cout << "Sum of Rhs is: " << rhs->sum(domain,0) << endl;
-      cout << "Initial Residual: " << rlast << endl;
+      cout << "MacOutFlowBC:Sum of Rhs is: " << rhs->sum(domain,0) << endl;
+      cout << "MacOutFlowBC:Initial Residual: " << rlast << endl;
     }
   if (rlast > goal) {
     while (((res = vcycle(i1,i2)) > goal) && (iter < maxIters)) {
       iter++;
       if (verbose)
-	cout << "Residual: " << res << " at iteration " << iter << endl;
+	cout << "MacOutFlowBC: Residual: " << res << " at iteration " << iter << endl;
     }
   }
   
@@ -575,7 +574,7 @@ MacOutFlowBC_MG::solve(Real tolerance, Real abs_tolerance,int i1, int i2)
 
   if (verbose)
     {
-      cout << "Final Residual: " << res << " after " 
+      cout << "MacOutFlowBC: Final Residual: " << res << " after " 
 	   << iter << " cycles" << endl;
       cout << " " << endl;
     }

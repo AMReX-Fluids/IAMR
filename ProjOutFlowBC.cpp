@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ProjOutFlowBC.cpp,v 1.6 1999-08-20 17:58:56 propp Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.7 1999-10-05 23:16:58 propp Exp $
 //
 
 #include "ProjOutFlowBC.H"
@@ -557,14 +557,15 @@ ProjOutFlowBC_MG::solve(Real tolerance, Real abs_tolerance,int i1, int i2)
   if (verbose)
     {
       Real rhsNorm = computeRhsNorm(*rhs,domain);
-      cout << "Sum of Rhs is: " << rhsNorm << endl;
-      cout << "Initial Residual: " << rlast << endl;
+      cout << "ProjOutFlowBC: Sum of Rhs is: " << rhsNorm << endl;
+      cout << "ProjOutFlowBC: Initial Residual: " << rlast << endl;
     }
   if (rlast > goal) {
     while (((res = vcycle(i1,i2)) > goal) && (iter < maxIters )) {
       iter++;
       if (verbose)
-	cout << "Residual: " << res << " at iteration " << iter << endl;
+	cout << "ProjOutFlowBC: Residual: " << res << " at iteration " 
+             << iter << endl;
     }
   }
   
@@ -576,7 +577,7 @@ ProjOutFlowBC_MG::solve(Real tolerance, Real abs_tolerance,int i1, int i2)
 
   if (verbose) 
     {
-      cout << "Final Residual: " << res << " after " 
+      cout << "ProjOutFlowBC: Final Residual: " << res << " after " 
 	   << iter << " cycles" << endl;
       cout << " " << endl;
     }
