@@ -2,7 +2,7 @@
 #define _DERIVE_F_H
 
 /*
-** $Id: DERIVE_F.H,v 1.11 1999-07-01 23:30:04 almgren Exp $
+** $Id: DERIVE_F.H,v 1.12 1999-07-02 16:04:40 sstanley Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -201,4 +201,5 @@ extern "C" {
                            const int* level, const int* grid_no) ;
 #endif
 }
+#endif
 #endif
