@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.34 1998-12-01 23:52:34 lijewski Exp $
+# $Id: Make.package,v 1.35 1998-12-02 00:24:34 lijewski Exp $
 #
 CLIB_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
 
@@ -28,5 +28,5 @@ CLIB_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H
 FLIB_sources += DERIVE_$(DIM)D.F GODUNOV_F.F GODUNOV_$(DIM)D.F NAVIERSTOKES_$(DIM)D.F \
 		PROJECTION_$(DIM)D.F MACPROJ_$(DIM)D.F DIFFUSION_$(DIM)D.F 
 
-FLIB_headers += DERIVE_F.H GODUNOV.FH GODUNOV_F.H PROJECTION_F.H MACPROC_F.H \
+FLIB_headers += DERIVE_F.H GODUNOV.FH GODUNOV_F.H PROJECTION_F.H MACPROJ_F.H \
 		DIFFUSION_F.H NAVIERSTOKES_F.H 
