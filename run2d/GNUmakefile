@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.18 2000-04-20 21:19:42 propp Exp $
+# $Id: GNUmakefile,v 1.19 2000-10-03 20:04:00 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -136,14 +136,7 @@ endif
 
 all: $(executable)
 
-ifeq ($(MACHINE),T3E)
-#
-# We don't explicity set the path of the mpi directory on the T3E.
-#
-$(executable): $(filter-out -lmpi, $(LIBRARIES))
-else
 $(executable): $(LIBRARIES)
-endif
 
 ifneq ($(BUILD_INPLACE), TRUE)
 
