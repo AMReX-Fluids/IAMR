@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.33 1999-03-02 01:15:16 sstanley Exp $
+// $Id: NavierStokes.H,v 1.34 1999-03-05 20:32:24 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -328,7 +328,9 @@ protected:
     void initial_velocity_diffusion_update (Real dt);
 
     void diffuse_velocity_setup (Real       dt,
-                                 MultiFab*& delta_rhs); 
+                                 MultiFab*& delta_rhs,
+                                 MultiFab**& viscn,
+                                 MultiFab**& viscnp1); 
     //
     // Compute level projection.
     //

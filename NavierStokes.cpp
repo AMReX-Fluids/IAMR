@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.119 1999-03-05 19:21:27 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.120 1999-03-05 20:32:24 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -423,6 +423,8 @@ NavierStokes::NavierStokes (Amr&            papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
+    viscn = NULL;
+    viscnp1 = NULL;
     if (variable_vel_visc) 
     {
         viscn = new MultiFab*;
@@ -432,6 +434,8 @@ NavierStokes::NavierStokes (Amr&            papa,
         diffusion->allocFluxBoxesLevel(viscnp1, 0, 1);
     }
 
+    diffn = NULL;
+    diffnp1 = NULL;
     if (variable_scal_diff) 
     {
         diffn = new MultiFab*;
@@ -727,6 +731,8 @@ NavierStokes::restart (Amr&     papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
+    viscn = NULL;
+    viscnp1 = NULL;
     if (variable_vel_visc)
     {
         viscn = new MultiFab*;
@@ -736,6 +742,8 @@ NavierStokes::restart (Amr&     papa,
         diffusion->allocFluxBoxesLevel(viscnp1, 0, 1);
     }
 
+    diffn = NULL;
+    diffnp1 = NULL;
     if (variable_scal_diff)
     {
         diffn = new MultiFab*;
@@ -2080,8 +2088,13 @@ NavierStokes::velocity_diffusion_update (Real dt)
     if (is_diffusive[Xvel])
     {
 	const int rhoflag   = 1;
-        MultiFab* delta_rhs = 0;
-        diffuse_velocity_setup(dt, delta_rhs);
+
+        MultiFab* delta_rhs = NULL;
+        if (S_in_vel_diffusion && have_divu)
+        {
+            delta_rhs = new MultiFab(grids,BL_SPACEDIM,0);
+            delta_rhs->setVal(0);
+        }
 
         MultiFab** loc_viscn = NULL;
         MultiFab** loc_viscnp1 = NULL;
@@ -2096,6 +2109,8 @@ NavierStokes::velocity_diffusion_update (Real dt)
             diffusion->allocFluxBoxesLevel(loc_viscnp1, 0, 1);
             getViscosity(loc_viscnp1, viscTime);
         }
+
+        diffuse_velocity_setup(dt, delta_rhs, viscn, viscnp1);
 
         diffusion->diffuse_velocity(dt,be_cn_theta,rho_half,
                                     rhoflag,delta_rhs,
@@ -2113,22 +2128,53 @@ NavierStokes::velocity_diffusion_update (Real dt)
 
 void
 NavierStokes::diffuse_velocity_setup (Real       dt,
-                                      MultiFab*& delta_rhs)
+                                      MultiFab*& delta_rhs,
+                                      MultiFab**& viscn,
+                                      MultiFab**& viscnp1)
 {
     if (S_in_vel_diffusion && have_divu)
     {
+        //
+        // Include div mu S*I terms in rhs
+        //  (i.e. make nonzero delta_rhs to add into RHS):
+        //
+        // The scalar and tensor solvers incorporate the relevant pieces of
+        //  of Div(tau), provided the flow is divergence-free.  Howeever, if
+        //  Div(U) =/= 0, there is an additional piece not accounted for,
+        //  which is of the form A.Div(U).  For constant viscosity, Div(tau)_i
+        //  = Lapacian(U_i) + mu/3 d[Div(U)]/dx_i.  For mu not constant,
+        //  Div(tau)_i = d[ mu(du_i/dx_j + du_j/dx_i) ]/dx_i - 2mu/3 d[Div(U)]/dx_i
+        //
+        // As a convenience, we treat this additional term as a "source" in
+        // the diffusive solve, computing Div(U) in the "normal" way we
+        // always do--via a call to calc_divu.  This routine computes delta_rhs
+        // if necessary, and stores it as an auxilliary rhs to the viscous solves.
+        // This is a little strange, but probably not bad.
+        //
         Real time = state[State_Type].prevTime();
-        delta_rhs = new MultiFab(grids,BL_SPACEDIM,0);
-      
+
         MultiFab divmusi(grids,BL_SPACEDIM,0);
 
-        diffusion->compute_divmusi(time,visc_coef[Xvel],divmusi);
-        divmusi.mult((1./3.)*(1.0-be_cn_theta),0,BL_SPACEDIM,0);
-        (*delta_rhs).copy(divmusi,0,0,BL_SPACEDIM);
+        if (!variable_vel_visc)
+        {
+            diffusion->compute_divmusi(time,visc_coef[Xvel],divmusi);
+            divmusi.mult((1./3.)*(1.0-be_cn_theta),0,BL_SPACEDIM,0);
+            (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
 
-        diffusion->compute_divmusi(time+dt,visc_coef[Xvel],divmusi);
-        divmusi.mult((1./3.)*be_cn_theta,0,BL_SPACEDIM,0);
-        (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
+            diffusion->compute_divmusi(time+dt,visc_coef[Xvel],divmusi);
+            divmusi.mult((1./3.)*be_cn_theta,0,BL_SPACEDIM,0);
+            (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
+        }
+        else
+        {
+            diffusion->compute_divmusi(time,viscn,divmusi);
+            divmusi.mult((-2./3.)*(1.0-be_cn_theta),0,BL_SPACEDIM,0);
+            (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
+
+            diffusion->compute_divmusi(time+dt,viscnp1,divmusi);
+            divmusi.mult((-2./3.)*be_cn_theta,0,BL_SPACEDIM,0);
+            (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
+        }
     }
 }
 
@@ -4755,9 +4801,10 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     //
     if (src_comp == Xvel && is_diffusive[Xvel])
     {
+        MultiFab** viscosity;
+
         if (variable_vel_visc)
         {
-            MultiFab** viscosity;
             diffusion->allocFluxBoxesLevel(viscosity, 0, 1);
             getViscosity(viscosity, time);
 
@@ -4765,13 +4812,42 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
         }
         else
         {
-        for (int icomp = Xvel; icomp < BL_SPACEDIM; icomp++)
+            for (int icomp = Xvel; icomp < BL_SPACEDIM; icomp++)
             {
                 const int rho_flag = !is_conservative[icomp] ? 1 : 2;
                 diffusion->getViscTerms(visc_terms,src_comp,icomp,time,
                                         rho_flag);
             }
         }
+
+        //
+        // Add Div(u) term if desired, if this is velocity, and if Div(u) 
+        // is nonzero.  If const-visc, term is mu.Div(u)/3, else 
+        // it's -Div(mu.Div(u).I)*2/3
+        //
+        if (have_divu && S_in_vel_diffusion)
+        {
+            MultiFab divmusi(grids,BL_SPACEDIM,1);
+
+            if (variable_vel_visc)
+            {
+                diffusion->compute_divmusi(time,viscosity,divmusi);
+                divmusi.mult((-2./3.),0,BL_SPACEDIM,0);
+            }
+            else
+            {
+                diffusion->compute_divmusi(time,visc_coef[Xvel],divmusi);
+                divmusi.mult((1./3.),0,BL_SPACEDIM,0);
+            }
+
+            visc_terms.plus(divmusi,Xvel,BL_SPACEDIM,0);
+        }
+
+        //
+        // Clean up variable viscosity arrays
+        //
+        if (variable_vel_visc)
+            diffusion->removeFluxBoxesLevel(viscosity);
     }
 
     //
@@ -4803,18 +4879,6 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
                     diffusion->removeFluxBoxesLevel(cmp_diffn);
                 }
             }
-         
-    }
-
-    if (have_divu && S_in_vel_diffusion && src_comp < BL_SPACEDIM)
-    {
-        if (src_comp != Xvel || num_comp < BL_SPACEDIM)
-            BoxLib::Error("have_divu -> getViscTerms on all v-components at once");
-
-        MultiFab divmusi(grids,BL_SPACEDIM,1);
-        diffusion->compute_divmusi(time,visc_coef[Xvel],divmusi);
-        divmusi.mult((1./3.),0,BL_SPACEDIM,0);
-        visc_terms.plus(divmusi,Xvel,BL_SPACEDIM,0);
     }
 }
 
