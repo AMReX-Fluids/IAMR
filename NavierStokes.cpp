@@ -1,6 +1,6 @@
 
 //
-// $Id: NavierStokes.cpp,v 1.191 2001-04-19 22:25:06 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.192 2001-05-09 22:42:05 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1283,19 +1283,12 @@ NavierStokes::advance (Real time,
     MultiFab& Snew  = get_new_data(State_Type);
     MultiFab& Sold  = get_old_data(State_Type);
 
-    static const aString VelPredictStr("vel_predict");
-    static const aString VelAdvectStr("vel_advect");
-    static const aString ScalAdvectStr("scal_advect");
-    static const aString VelUpdateStr("vel_update");
-    static const aString ScalUpdateStr("scal_update");
-    static const aString MacProjectStr("mac_project");
-
-    RunStats vel_pred_stats(VelPredictStr, level);
-    RunStats  vel_adv_stats(VelAdvectStr , level);
-    RunStats scal_adv_stats(ScalAdvectStr, level);
-    RunStats  vel_upd_stats(VelUpdateStr , level);
-    RunStats scal_upd_stats(ScalUpdateStr, level);
-    RunStats      mac_stats(MacProjectStr, level);
+    static RunStats vel_pred_stats("vel_predict");
+    static RunStats  vel_adv_stats("vel_advect");
+    static RunStats scal_adv_stats("scal_advect");
+    static RunStats  vel_upd_stats("vel_update");
+    static RunStats scal_upd_stats("scal_update");
+    static RunStats      mac_stats("mac_project");
     //
     // Compute traced states for normal comp of velocity at half time level.
     //
@@ -1424,9 +1417,7 @@ NavierStokes::level_projector (Real dt,
 {
     BL_ASSERT(iteration > 0);
 
-    static const aString RunstatString("level_project");
-
-    RunStats lp_stats(RunstatString,level);
+    static RunStats lp_stats("level_project");
 
     lp_stats.start();
 
@@ -2805,7 +2796,7 @@ NavierStokes::writePlotFile (const aString& dir,
     //
     aString TheFullPath = FullPath;
     TheFullPath += BaseName;
-    RunStats::addBytes(VisMF::Write(plotMF,TheFullPath,how,true));
+    VisMF::Write(plotMF,TheFullPath,how,true);
 }
 
 Real
@@ -3131,8 +3122,7 @@ NavierStokes::post_timestep (int crse_iteration)
 
     if (do_mac_proj && level < finest_level)
     {
-        static const aString RunstatString("mac_sync");
-        RunStats mac_sync_stats(RunstatString, level);
+        static RunStats mac_sync_stats("mac_sync");
         mac_sync_stats.start();
         mac_sync();
         mac_sync_stats.end();
