@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.228 2003-03-03 20:24:53 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.229 2003-03-10 20:41:12 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1451,45 +1451,67 @@ NavierStokes::create_mac_rhs (Real time, Real dt)
 }
 
 MultiFab*
-NavierStokes::create_mac_rhs_grown (int nGrow, Real time, Real dt)
+NavierStokes::create_mac_rhs_grown (int  nGrow,
+                                    Real time,
+                                    Real dt)
 {
-      // We do all this just to fill the ghost cells.
-      MultiFab* mac_rhs_grown;
-      if (nGrow > 0) 
-      {
+    //
+    // We do all this just to fill the ghost cells.
+    //
+    MultiFab* mac_rhs_grown = 0;
+
+    if (nGrow > 0) 
+    {
         mac_rhs_grown = getDivCond(nGrow,time);
-        MultiFab*    dsdt_grown = getDsdt(nGrow,time);
+        MultiFab* dsdt_grown = getDsdt(nGrow,time);
         for (MFIter mfi(*mac_rhs_grown); mfi.isValid(); ++mfi)
         {
-          (*dsdt_grown)[mfi].mult(.5*dt);
-          (*mac_rhs_grown)[mfi].plus((*dsdt_grown)[mfi]);
+            (*dsdt_grown)[mfi].mult(.5*dt);
+            (*mac_rhs_grown)[mfi].plus((*dsdt_grown)[mfi]);
         }
         delete dsdt_grown;
-      }
+    }
+    //
+    // Now we copy from the MultiFab mac_rhs which has no ghost cells.
+    //
+    for (MFIter mfi(*mac_rhs_grown); mfi.isValid(); ++mfi) 
+    {
+        (*mac_rhs_grown)[mfi].copy((*mac_rhs)[mfi],grids[mfi.index()]);
+    }
 
-      // Now we copy from the MultiFab mac_rhs which has 
-      //   no ghost cells.
-      for (MFIter mfi(*mac_rhs_grown); mfi.isValid(); ++mfi) 
-      {
-        int i = mfi.index();
-        (*mac_rhs_grown)[i].copy((*mac_rhs)[i],grids[i]);
-      }
-
-      if (nGrow > 0) 
+    if (nGrow > 0) 
         mac_rhs_grown->FillBoundary();
 
-      return mac_rhs_grown;
+    return mac_rhs_grown;
 }
 
 void
-NavierStokes::mac_project (Real time, Real dt, MultiFab& Sold, 
-                           MultiFab* divu, int have_divu)
+NavierStokes::mac_project (Real      time,
+                           Real      dt,
+                           MultiFab& Sold, 
+                           MultiFab* divu,
+                           int       have_divu)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_projection\n";
 
+    const Real strt_time = ParallelDescriptor::second();
+
     mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu);
+
     create_umac_grown();
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "NavierStokes:mac_project(): lev: "
+                  << level
+                  << ", time: " << run_time << std::endl;
+    }
 }
 
 void
@@ -3789,20 +3811,21 @@ NavierStokes::avgDown_doit (const FArrayBox& fine_fab,
 void
 NavierStokes::level_sync (int crse_iteration)
 {
-    const Real*   dx            = geom.CellSize();
-    IntVect       ratio         = parent->refRatio(level);
-    const int     finest_level  = parent->finestLevel();
-    int           crse_dt_ratio = parent->nCycle(level);
-    Real          dt            = parent->dtLevel(level);
-    const Real    half_time     = state[State_Type].prevTime() + 0.5*dt;
-    MultiFab&     pres          = get_new_data(Press_Type);
-    MultiFab&     vel           = get_new_data(State_Type);
-    SyncRegister& rhs_sync_reg  = getLevel(level+1).getSyncReg();
-    SyncRegister* crsr_sync_ptr = 0;
-    NavierStokes& fine_level    = getLevel(level+1);
-    MultiFab&     pres_fine     = fine_level.get_new_data(Press_Type);
-    MultiFab&     vel_fine      = fine_level.get_new_data(State_Type);
-    const BoxArray& finegrids   = vel_fine.boxArray();
+    const Real      strt_time     = ParallelDescriptor::second();
+    const Real*     dx            = geom.CellSize();
+    IntVect         ratio         = parent->refRatio(level);
+    const int       finest_level  = parent->finestLevel();
+    int             crse_dt_ratio = parent->nCycle(level);
+    Real            dt            = parent->dtLevel(level);
+    const Real      half_time     = state[State_Type].prevTime() + 0.5*dt;
+    MultiFab&       pres          = get_new_data(Press_Type);
+    MultiFab&       vel           = get_new_data(State_Type);
+    SyncRegister&   rhs_sync_reg  = getLevel(level+1).getSyncReg();
+    SyncRegister*   crsr_sync_ptr = 0;
+    NavierStokes&   fine_level    = getLevel(level+1);
+    MultiFab&       pres_fine     = fine_level.get_new_data(Press_Type);
+    MultiFab&       vel_fine      = fine_level.get_new_data(State_Type);
+    const BoxArray& finegrids     = vel_fine.boxArray();
     
     if (level > 0)
         crsr_sync_ptr = &(getLevel(level).getSyncReg());
@@ -3883,7 +3906,6 @@ NavierStokes::level_sync (int crse_iteration)
                                   k, k+1, 0, 1, fratio);
         }
     }
-
     //
     // Multilevel or single-level sync projection.
     //
@@ -4010,6 +4032,18 @@ NavierStokes::level_sync (int crse_iteration)
 
         if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
             calcDpdt();
+    }
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "NavierStokes:level_sync(): lev: "
+                  << level
+                  << ", time: " << run_time << std::endl;
     }
 }
 
