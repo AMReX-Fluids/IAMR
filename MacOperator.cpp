@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.24 2001-08-22 16:42:00 car Exp $
+// $Id: MacOperator.cpp,v 1.25 2002-08-29 22:14:52 car Exp $
 //
 #include <winstd.H>
 
@@ -420,7 +420,8 @@ proj_scale_var (MultiFab*       rho,
                 MultiFab*       vel,
                 const BoxArray& grids,
                 int             level)
-{}
+{
+}
 
 //
 // Unscale the variables for a projection solve.
@@ -431,6 +432,5 @@ proj_unscale_var (MultiFab*       rho,
                   MultiFab*       vel,
                   const BoxArray& grids,
                   int             level)
-{}
-
-
+{
+}

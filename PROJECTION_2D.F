@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.35 2002-04-26 21:24:30 car Exp $
+c $Id: PROJECTION_2D.F,v 1.36 2002-08-29 22:14:52 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -51,7 +51,7 @@ c
        integer    wrap_around_y
        integer i, j
 
-       if ( abs(dx(1)-dx(2)) .gt. 1.e-8 .and. fac .gt. 1.e-4 )then
+       if ( abs(dx(1)-dx(2)) .gt. 1.D-8 .and. fac .gt. 1.D-4 )then
           print *, 'is filter properly formatted for dx != dy ?'
        end if
 
@@ -434,7 +434,7 @@ c
      &                            rhi * (dat(i  ,j-1) + dat(i  ,j)))
             end do
          end do
-         factor = dr/24.0
+         factor = dr/24.0D0
          do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
             do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
                if (i .eq. imax) then

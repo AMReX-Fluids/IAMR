@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.10 2002-03-18 22:44:26 almgren Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.11 2002-08-29 22:14:52 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -152,7 +152,7 @@ c
          end do
       end do
 
-      if ( diff .gt. 1.0e-10 ) then
+      if ( diff .gt. 1.0D-10 ) then
          print *, 'mismatch between fine and coarse nodes'
          stop
       end if

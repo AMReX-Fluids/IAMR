@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_3D.F,v 1.9 2000-04-20 17:46:05 car Exp $
+c $Id: DIFFUSION_3D.F,v 1.10 2002-08-29 22:14:52 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -466,7 +466,7 @@ c
       do k=lo(3),hi(3)
          do j=lo(2),hi(2)
             do i=lo(1),hi(1)+1
-               betax(i,j,k) = .5*(beta(i-1,j,k)+beta(i,j,k))
+               betax(i,j,k) = .5D0*(beta(i-1,j,k)+beta(i,j,k))
             end do
          end do
       end do
@@ -474,7 +474,7 @@ c
       do k=lo(3),hi(3)
          do j=lo(2),hi(2)+1
             do i=lo(1),hi(1)
-               betay(i,j,k) = .5*(beta(i,j-1,k)+beta(i,j,k))
+               betay(i,j,k) = .5D0*(beta(i,j-1,k)+beta(i,j,k))
             end do
          end do
       end do
@@ -482,7 +482,7 @@ c
       do k=lo(3),hi(3)+1
          do j=lo(2),hi(2)
             do i=lo(1),hi(1)
-               betaz(i,j,k) = .5*(beta(i,j,k-1)+beta(i,j,k))
+               betaz(i,j,k) = .5D0*(beta(i,j,k-1)+beta(i,j,k))
             end do
          end do
       end do

@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.17 2001-09-10 19:55:04 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.18 2002-08-29 22:14:52 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -68,7 +68,7 @@ c            tforce2 = max(tforce2,abs(tforces(i,j,2)/rho(i,j)))
       u_max(1) = u
       u_max(2) = v
 
-      dt_start = 1.0e+20
+      dt_start = 1.0D+20
       dt = dt_start
 
       if (u .gt. small) dt = min(dt,dx(1)/u)
@@ -123,12 +123,12 @@ c
       imax = hi(1)
       jmin = lo(2)
       jmax = hi(2)
-      umax = -1.e30
-      vmax = -1.e30
-      umin =  1.e30
-      vmin =  1.e30
-      rhomax = -1.e30
-      rhomin =  1.e30
+      umax = -1.e200
+      vmax = -1.e200
+      umin =  1.e200
+      vmin =  1.e200
+      rhomax = -1.e200
+      rhomin =  1.e200
 c
       do j = jmin, jmax
          do i = imin, imax
@@ -189,12 +189,12 @@ c
       imax = hi(1)
       jmin = lo(2)
       jmax = hi(2)
-      umax = -1.e30
-      vmax = -1.e30
-      umin =  1.e30
-      vmin =  1.e30
-      rhomax = -1.e30
-      rhomin =  1.e30
+      umax = -1.e200
+      vmax = -1.e200
+      umin =  1.e200
+      vmin =  1.e200
+      rhomax = -1.e200
+      rhomin =  1.e200
 
       do j = jmin, jmax
          do i = imin, imax+1
@@ -251,7 +251,7 @@ c
       REAL_T uad,vad
       REAL_T eps
       logical ltm
-      parameter( eps = 1.0e-6 )
+      parameter( eps = 1.0D-6 )
       integer DIMDEC(s)
       integer DIMDEC(work)
       REAL_T  u(DIMV(s))
@@ -371,7 +371,7 @@ c
       REAL_T tr,stx,sty,fu,fv
       REAL_T eps
       logical ltx,lty
-      parameter( eps = 1.0e-6 )
+      parameter( eps = 1.0D-6 )
 
       integer DIMDEC(s)
       integer DIMDEC(work)
@@ -770,7 +770,7 @@ c
             end do
          else
             do j = jmin-1,jmax+1
-               ltest = abs(uad(imin,j)).le.1.0e-10
+               ltest = abs(uad(imin,j)).le.1.0D-10
                stx   = cvmgt(xhi(imin,j),s(imin-1,j),ltest)
                xhi(imin,j) = stx
                xlo(imin,j) = stx
@@ -796,7 +796,7 @@ c
             end do
          else
             do j = jmin-1,jmax+1
-               ltest = abs(uad(imax+1,j)).le.1.0e-10
+               ltest = abs(uad(imax+1,j)).le.1.0D-10
                stx   = cvmgt(xlo(imax+1,j),s(imax+1,j),ltest)
                xhi(imax+1,j) = stx
                xlo(imax+1,j) = stx
@@ -852,7 +852,7 @@ c
             end do
          else
             do i = imin-1,imax+1
-               ltest = abs(vad(i,jmin)).le.1.0e-10
+               ltest = abs(vad(i,jmin)).le.1.0D-10
                sty   = cvmgt(yhi(i,jmin),s(i,jmin-1),ltest)
                yhi(i,jmin) = sty
                ylo(i,jmin) = sty
@@ -878,7 +878,7 @@ c
             end do
          else
             do i = imin-1,imax+1
-               ltest = abs(vad(i,jmax+1)).le.1.0e-10
+               ltest = abs(vad(i,jmax+1)).le.1.0D-10
                sty   = cvmgt(ylo(i,jmax+1),s(i,jmax+1),ltest)
                yhi(i,jmax+1) = sty
                ylo(i,jmax+1) = sty
@@ -947,7 +947,7 @@ c ::: ::::: added to prevent underflow for small s values
 c
       do j = lo(2)-ng, hi(2)+ng
         do i = lo(1)-ng, hi(1)+ng
-	  s(i,j) = cvmgt(s(i,j), zero, abs(s(i,j)).gt.1.0e-20)
+	  s(i,j) = cvmgt(s(i,j), zero, abs(s(i,j)).gt.1.0D-20)
         end do
       end do
 c

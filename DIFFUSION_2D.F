@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_2D.F,v 1.7 1998-11-04 23:33:11 lijewski Exp $
+c $Id: DIFFUSION_2D.F,v 1.8 2002-08-29 22:14:52 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -580,13 +580,13 @@ c
 
       do j=lo(2),hi(2)
          do i=lo(1),hi(1)+1
-            betax(i,j) = .5*(beta(i-1,j)+beta(i,j))
+            betax(i,j) = .5D0*(beta(i-1,j)+beta(i,j))
          end do
       end do
 
       do j=lo(2),hi(2)+1
          do i=lo(1),hi(1)
-            betay(i,j) = .5*(beta(i,j-1)+beta(i,j))
+            betay(i,j) = .5D0*(beta(i,j-1)+beta(i,j))
          end do
       end do
 

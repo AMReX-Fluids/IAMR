@@ -311,7 +311,7 @@ c Local variables
       REAL_T hxsqinv
       integer niter
 
-      hxsqinv = 1.0/(h(1)*h(1))
+      hxsqinv = 1.0D0/(h(1)*h(1))
       ics = lo(1)
       ice = hi(1)
 

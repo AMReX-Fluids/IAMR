@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.12 1999-08-03 07:15:00 almgren Exp $
+c $Id: SYNCREG_3D.F,v 1.13 2002-08-29 22:14:52 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -429,7 +429,7 @@ c ::: -----------------------------------------------------------
        do j = ARG_L2(mask), ARG_H2(mask)
         do i = ARG_L1(mask), ARG_H1(mask)
  
-          if (mask(i,j,k) .gt. 7.5) then
+          if (mask(i,j,k) .gt. 7.5D0) then
              mask(i,j,k) = zero
           else
              mask(i,j,k) = one

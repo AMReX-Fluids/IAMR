@@ -498,10 +498,10 @@ c  double rhs at edges
       hxsqinv = one/(h(1)*h(1))
       hysqinv = one/(h(2)*h(2))
 
-      if (h(2). gt. 1.5*h(1)) then
+      if (h(2). gt. 1.5D0*h(1)) then
          print *, "line solve for proj_bc not yet implemented"
          stop
-      elseif (h(1) .gt. 1.5*h(2)) then
+      elseif (h(1) .gt. 1.5D0*h(2)) then
          print *, "line solve for proj_bc not yet implemented"
          stop
       endif

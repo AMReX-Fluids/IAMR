@@ -260,7 +260,7 @@ c      end do
       REAL_T hxsqinv
       integer redblack
 
-      hxsqinv = 1.0/(h(1)*h(1))
+      hxsqinv = 1.0D0/(h(1)*h(1))
 
       ins = lo(1)
       ine = hi(1)+1
@@ -994,7 +994,7 @@ c     Write the solution into the arg
       REAL_T a(n),b(n),c(n),r(n),u(n), sVal
       REAL_T eps
       PARAMETER (NMAX=1000)
-      PARAMETER (eps=1.e-12)
+      PARAMETER (eps=1.D-12)
       INTEGER j
       REAL_T bet,gam(NMAX)
       logical rNormed, singular
@@ -1036,13 +1036,13 @@ c     Write the solution into the arg
       if(n.gt.NMAX)then
          write(6,*) 'NMAX too small in tridag'
       end if
-      if(b(1).eq.0.)pause 'tridag: rewrite equations'
+      if(b(1) .eq. 0.0D0)pause 'tridag: rewrite equations'
       bet=b(1)
       u(1)=r(1)/bet
       do 11 j=2,n
         gam(j)=c(j-1)/bet
         bet=b(j)-a(j)*gam(j)
-        if(bet.eq.0.)pause 'tridag failed'
+        if(bet .eq. 0.0D0)pause 'tridag failed'
         u(j)=(r(j)-a(j)*u(j-1))/bet
 11    continue
       do 12 j=n-1,1,-1
@@ -1074,7 +1074,7 @@ c     Write the solution into the arg
       u(1)=gamma
       u(n)=alpha
       do 12 i=2,n-1
-        u(i)=0.
+        u(i)=0.0D0
 12    continue
       call tridag(a,bb,c,u,z,n)
       den=one+z(1)+beta*z(n)/gamma

@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.15 2002-06-03 21:37:20 car Exp $
+c $Id: DERIVE_3D.F,v 1.16 2002-08-29 22:14:52 car Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -95,7 +95,7 @@ c
       REAL_T     rho
       REAL_T     sml
 
-      parameter (sml = 1.0e-10)
+      parameter (sml = 1.0D-10)
 
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
@@ -224,7 +224,7 @@ c
       integer    i,j,k
       REAL_T     dust, small
 
-      parameter (small = 1.0e-10)
+      parameter (small = 1.0D-10)
 
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)

@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.16 2001-09-14 23:37:45 almgren Exp $
+c $Id: GODUNOV_3D.F,v 1.17 2002-08-29 22:14:52 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -49,7 +49,7 @@ c
       REAL_T  rho(DIMV(rho))
       REAL_T  tforces(DIMV(tf),SDIM)
 
-      small   = 1.0e-8
+      small   = 1.0D-8
       u       = zero
       v       = zero
       w       = zero
@@ -74,7 +74,7 @@ c               tforce3 = max(tforce3,abs(tforces(i,j,k,3)/rho(i,j,k)))
       u_max(2) = v
       u_max(3) = w
 
-      dt_start = 1.0e+20
+      dt_start = 1.0D+20
       dt = dt_start
 
       if (u .gt. small) dt = min(dt,dx(1)/u)
@@ -135,14 +135,14 @@ c
       jmax = hi(2)
       kmin = lo(3)
       kmax = hi(3)
-      umax = -1.e30
-      vmax = -1.e30
-      wmax = -1.e30
-      umin =  1.e30
-      vmin =  1.e30
-      wmin =  1.e30
-      rhomax = -1.e30
-      rhomin =  1.e30
+      umax = -1.e200
+      vmax = -1.e200
+      wmax = -1.e200
+      umin =  1.e200
+      vmin =  1.e200
+      wmin =  1.e200
+      rhomax = -1.e200
+      rhomin =  1.e200
 
       do k = kmin, kmax
          do j = jmin, jmax
@@ -218,14 +218,14 @@ c
       jmax = hi(2)
       kmin = lo(3)
       kmax = hi(3)
-      umax = -1.e30
-      vmax = -1.e30
-      wmax = -1.e30
-      umin =  1.e30
-      vmin =  1.e30
-      wmin =  1.e30
-      rhomax = -1.e30
-      rhomin =  1.e30
+      umax = -1.e200
+      vmax = -1.e200
+      wmax = -1.e200
+      umin =  1.e200
+      vmin =  1.e200
+      wmin =  1.e200
+      rhomax = -1.e200
+      rhomin =  1.e200
 
       do k = kmin, kmax
          do j = jmin, jmax
@@ -321,7 +321,7 @@ c
       integer use_minion
       REAL_T tforces(DIMV(work),SDIM)
 
-      eps  = 1.e-6
+      eps  = 1.D-6
       dth  = half*dt
       dthx = half*dt / dx(1)
       dthy = half*dt / dx(2)
@@ -538,7 +538,7 @@ c
 
       integer use_minion
 
-      eps  = 1.0e-6
+      eps  = 1.0D-6
       dth  = half*dt
       dthx = half*dt / dx(1)
       dthy = half*dt / dx(2)
@@ -1114,7 +1114,7 @@ c
          else
             do j = jmin-1,jmax+1
                do k = kmin-1,kmax+1
-                  ltest = (abs(uad(imin,j,k)).le.1.0e-10)
+                  ltest = (abs(uad(imin,j,k)).le.1.0D-10)
                   stx   = cvmgt(xhi(imin,j,k),s(imin-1,j,k),ltest)
                   xlo(imin,j,k) = stx
                   xhi(imin,j,k) = stx
@@ -1150,7 +1150,7 @@ c
          else
             do j = jmin-1,jmax+1
                do k = kmin-1,kmax+1
-                  ltest = (abs(uad(imax+1,j,k)).le.1.0e-10)
+                  ltest = (abs(uad(imax+1,j,k)).le.1.0D-10)
                   stx   = cvmgt(xlo(imax+1,j,k),s(imax+1,j,k),ltest)
                   xlo(imax+1,j,k) = stx
                   xhi(imax+1,j,k) = stx
@@ -1220,7 +1220,7 @@ c
          else
             do i = imin-1,imax+1
                do k = kmin-1,kmax+1
-                  ltest = (abs(vad(i,jmin,k)).le.1.0e-10)
+                  ltest = (abs(vad(i,jmin,k)).le.1.0D-10)
                   sty   = cvmgt(yhi(i,jmin,k),s(i,jmin-1,k),ltest)
                   ylo(i,jmin,k) = sty
                   yhi(i,jmin,k) = sty
@@ -1256,7 +1256,7 @@ c
          else
             do i = imin-1,imax+1
                do k = kmin-1,kmax+1
-                  ltest = (abs(vad(i,jmax+1,k)).le.1.0e-10)
+                  ltest = (abs(vad(i,jmax+1,k)).le.1.0D-10)
                   sty   = cvmgt(ylo(i,jmax+1,k),s(i,jmax+1,k),ltest)
                   ylo(i,jmax+1,k) = sty
                   yhi(i,jmax+1,k) = sty
@@ -1326,7 +1326,7 @@ c
          else
             do i = imin-1,imax+1
                do j = jmin-1,jmax+1
-                  ltest = (abs(wad(i,j,kmin)).le.1.0e-10)
+                  ltest = (abs(wad(i,j,kmin)).le.1.0D-10)
                   stz   = cvmgt(zhi(i,j,kmin),s(i,j,kmin-1),ltest)
                   zhi(i,j,kmin) = stz
                   zlo(i,j,kmin) = stz
@@ -1362,7 +1362,7 @@ c
          else
             do i = imin-1,imax+1
                do j = jmin-1,jmax+1
-                  ltest = (abs(wad(i,j,kmax+1)).le.1.0e-10)
+                  ltest = (abs(wad(i,j,kmax+1)).le.1.0D-10)
                   stz   = cvmgt(zlo(i,j,kmax+1),s(i,j,kmax+1),ltest)
                   zhi(i,j,kmax+1) = stz
                   zlo(i,j,kmax+1) = stz
@@ -1444,7 +1444,7 @@ c
       do k = lo(3)-ng, hi(3)+ng
          do j = lo(2)-ng, hi(2)+ng
             do i = lo(1)-ng, hi(1)+ng
-               s(i,j,k) = cvmgt(s(i,j,k), zero, abs(s(i,j,k)).gt.1.0e-20)
+               s(i,j,k) = cvmgt(s(i,j,k), zero, abs(s(i,j,k)).gt.1.0D-20)
             end do
          end do
       end do

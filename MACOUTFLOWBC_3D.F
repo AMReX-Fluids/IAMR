@@ -474,10 +474,10 @@ c Local variables
       jcs = lo(2)
       jce = hi(2)
 
-      if (h(2). gt. 1.5*h(1)) then
+      if (h(2). gt. 1.5D0*h(1)) then
         print *, "line solve for mac not yet implemented"
         stop
-      else if (h(1) .gt. 1.5*h(2)) then
+      else if (h(1) .gt. 1.5D0*h(2)) then
         print *, "line solve for mac not yet implemented"
         stop
       endif
