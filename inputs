@@ -113,16 +113,11 @@ mac.mac_abs_tol    = 1.0e-14
 RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update \
                    mac_project mac_sync level_project sync_project
 
-# select form of FAB output: default is IEEE
-#        ASCII  (this is very slow)
-#	 NATIVE (native binary form on machine)
-#        IEEE   (default, this is portable)
-fab.format =  IEEE
-
-# select single or double precision of FAB output data
-#        default is whatever precision code is compiled with.
-#fab.precision = FLOAT     # output in FLOAT or DOUBLE
-fab.precision = DOUBLE    # output in FLOAT or DOUBLE
+# select form of FAB output: default is NATIVE
+#   ASCII  (this is very slow)
+#   NATIVE (native binary form on machine - the default)
+#   IEEE32 (useful if you want 32bit files when running in double precision)
+fab.format = NATIVE
 
 # --------------------------------------------------------------------
 # -----       CONTOUR PLOTTING ONLY AVAILABLE IN 2-D           -------
