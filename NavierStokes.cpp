@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.101 1998-12-09 20:25:13 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.102 1998-12-11 18:37:09 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3288,16 +3288,20 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
                           int**     bc_orig_qty,
                           int       which_interp)
 {
-    assert(which_interp >= 0 && which_interp <= 2);
+    assert(which_interp >= 0 && which_interp <= 4);
 
     Interpolater* interpolater = 0;
 
-    if (which_interp == 0)
-        interpolater = &cell_cons_interp;
-    else if (which_interp == 1)
-        interpolater = &pc_interp;
-    else if (which_interp == 2)
-        interpolater = &unlimited_cc_interp;
+    switch (which_interp)
+    {
+    case 0: interpolater = &cell_cons_interp;    break;
+    case 1: interpolater = &pc_interp;           break;
+    case 2: interpolater = &unlimited_cc_interp; break;
+    case 3: interpolater = &lincc_interp;        break;
+    case 4: interpolater = &nonlincc_interp;     break;
+    default:
+        BoxLib::Abort("NavierStokes::SyncInterp(): how did this happen");
+    }
 
     NavierStokes& fine_level = getLevel(f_lev);
     const BoxArray& fgrids   = fine_level.boxArray();
