@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.65 2000-07-05 22:42:56 almgren Exp $
+// $Id: MacProj.cpp,v 1.66 2000-07-10 22:23:30 almgren Exp $
 //
 
 #include <Misc.H>
@@ -666,14 +666,16 @@ MacProj::mac_sync_compute (int                   level,
       bool do_get_visc_terms = false;
 
       for (i=0; i < BL_SPACEDIM; ++i)
-        if (increment_sync[i] == 1) do_get_visc_terms = true;
+        if (!increment_sync.ready() || increment_sync[i]==1)
+          do_get_visc_terms = true;
 
       if (do_get_visc_terms || use_forces_in_trans)
         ns_level.getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
 
       do_get_visc_terms = false;
       for (i=BL_SPACEDIM; i < increment_sync.length(); ++i)
-        if (increment_sync[i] == 1) do_get_visc_terms = true;
+        if (!increment_sync.ready() || increment_sync[i]==1)
+          do_get_visc_terms = true;
 
       if (do_get_visc_terms)
         ns_level.getViscTerms(scal_visc_terms,BL_SPACEDIM,numscal,prev_time);
@@ -919,8 +921,9 @@ MacProj::mac_sync_compute (int                   level,
 void
 MacProj::mac_sync_compute (int                    level,
                            MultiFab*              u_mac, 
-                           MultiFab*              Ssync,
+                           MultiFab*              Sync,
                            int                    comp,
+                           int                    s_ind,
                            const MultiFab* const* sync_edges,
 			   int                    eComp,
                            MultiFab*              rho_half,
@@ -928,12 +931,9 @@ MacProj::mac_sync_compute (int                    level,
                            Array<AdvectionForm>&  advectionType, 
                            Real                   dt)
 {
-    BL_ASSERT(comp >= BL_SPACEDIM);
-
     FArrayBox xflux, yflux, zflux;
     FArrayBox grad_phi[BL_SPACEDIM];
 
-    const int       s_ind        = comp - BL_SPACEDIM;    
     const BoxArray& grids        = LevelData[level].boxArray();
     const Geometry& geom         = parent->Geom(level);
     MultiFab*       mac_sync_phi = &mac_phi_crse[level];
@@ -943,26 +943,26 @@ MacProj::mac_sync_compute (int                    level,
     //
     // Compute the mac sync correction.
     //
-    for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
+    for (MultiFabIterator Syncmfi(*Sync); Syncmfi.isValid(); ++Syncmfi)
     {
-        DependentMultiFabIterator volumemfi(Ssyncmfi, volume[level]);
-        DependentMultiFabIterator area0mfi(Ssyncmfi, area[level][0]);
-        DependentMultiFabIterator area1mfi(Ssyncmfi, area[level][1]);
-        DependentMultiFabIterator sync_edges0mfi(Ssyncmfi, *sync_edges[0]);
-        DependentMultiFabIterator sync_edges1mfi(Ssyncmfi, *sync_edges[1]);
+        DependentMultiFabIterator volumemfi(Syncmfi, volume[level]);
+        DependentMultiFabIterator area0mfi(Syncmfi, area[level][0]);
+        DependentMultiFabIterator area1mfi(Syncmfi, area[level][1]);
+        DependentMultiFabIterator sync_edges0mfi(Syncmfi, *sync_edges[0]);
+        DependentMultiFabIterator sync_edges1mfi(Syncmfi, *sync_edges[1]);
 #if (BL_SPACEDIM == 3)
-        DependentMultiFabIterator area2mfi(Ssyncmfi, area[level][2]);
-        DependentMultiFabIterator sync_edges2mfi(Ssyncmfi, *sync_edges[2]);
+        DependentMultiFabIterator area2mfi(Syncmfi, area[level][2]);
+        DependentMultiFabIterator sync_edges2mfi(Syncmfi, *sync_edges[2]);
 #endif
-        DependentMultiFabIterator rho_halfmfi(Ssyncmfi, *rho_half);
-        DependentMultiFabIterator mac_sync_phimfi(Ssyncmfi, *mac_sync_phi);
+        DependentMultiFabIterator rho_halfmfi(Syncmfi, *rho_half);
+        DependentMultiFabIterator mac_sync_phimfi(Syncmfi, *mac_sync_phi);
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
-        grad_phi[0].resize(::surroundingNodes(grids[Ssyncmfi.index()],0),1);
-        grad_phi[1].resize(::surroundingNodes(grids[Ssyncmfi.index()],1),1);
+        grad_phi[0].resize(::surroundingNodes(grids[Syncmfi.index()],0),1);
+        grad_phi[1].resize(::surroundingNodes(grids[Syncmfi.index()],1),1);
 #if (BL_SPACEDIM == 3)
-        grad_phi[2].resize(::surroundingNodes(grids[Ssyncmfi.index()],2),1);
+        grad_phi[2].resize(::surroundingNodes(grids[Syncmfi.index()],2),1);
 #endif
         mac_vel_update(1,
                        grad_phi[0],
@@ -972,24 +972,24 @@ MacProj::mac_sync_compute (int                    level,
 #endif
                        mac_sync_phimfi(),
                        &rho_halfmfi(), 0,
-                       grids[Ssyncmfi.index()], level, Ssyncmfi.index(),
+                       grids[Syncmfi.index()], level, Syncmfi.index(),
                        geom.CellSize(), dt/2.0);
         //
         // Step 2: compute Mac correction by advecting the edge states.
         //
-        xflux.resize(::surroundingNodes(grids[Ssyncmfi.index()],0),1);
-        yflux.resize(::surroundingNodes(grids[Ssyncmfi.index()],1),1);
+        xflux.resize(::surroundingNodes(grids[Syncmfi.index()],0),1);
+        yflux.resize(::surroundingNodes(grids[Syncmfi.index()],1),1);
         xflux.copy(sync_edges0mfi(),eComp,0,1);
         yflux.copy(sync_edges1mfi(),eComp,0,1);
 #if (BL_SPACEDIM == 3)
-        zflux.resize(::surroundingNodes(grids[Ssyncmfi.index()],2),1);
+        zflux.resize(::surroundingNodes(grids[Syncmfi.index()],2),1);
         zflux.copy(sync_edges2mfi(),eComp,0,1);
 #endif
 
         int use_conserv_diff = (advectionType[comp] == Conservative)
                                                              ? true : false;
 
-        godunov.ComputeSyncAofs(grids[Ssyncmfi.index()],
+        godunov.ComputeSyncAofs(grids[Syncmfi.index()],
                                 area0mfi(),
                                 grad_phi[0],       xflux,
                                 
@@ -999,7 +999,7 @@ MacProj::mac_sync_compute (int                    level,
                                 area2mfi(),
                                 grad_phi[2],       zflux,
 #endif
-                                volumemfi(), Ssyncmfi(), s_ind, 
+                                volumemfi(), Syncmfi(), s_ind, 
                                 use_conserv_diff);
         //
         // NOTE: the signs here are opposite from VELGOD.
@@ -1007,10 +1007,10 @@ MacProj::mac_sync_compute (int                    level,
         //
         if (level > 0)
         {
-            adv_flux_reg->FineAdd(xflux,0,Ssyncmfi.index(),0,comp,1,-dt);
-            adv_flux_reg->FineAdd(yflux,1,Ssyncmfi.index(),0,comp,1,-dt);
+            adv_flux_reg->FineAdd(xflux,0,Syncmfi.index(),0,comp,1,-dt);
+            adv_flux_reg->FineAdd(yflux,1,Syncmfi.index(),0,comp,1,-dt);
 #if (BL_SPACEDIM == 3)
-            adv_flux_reg->FineAdd(zflux,2,Ssyncmfi.index(),0,comp,1,-dt);
+            adv_flux_reg->FineAdd(zflux,2,Syncmfi.index(),0,comp,1,-dt);
 #endif
         }
         //
@@ -1018,7 +1018,6 @@ MacProj::mac_sync_compute (int                    level,
         //
     }
 }
-
 //
 // Check the mac divergence.
 //

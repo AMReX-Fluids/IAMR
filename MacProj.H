@@ -4,7 +4,7 @@
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.16 2000-06-28 21:50:02 almgren Exp $
+// $Id: MacProj.H,v 1.17 2000-07-10 22:23:30 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -74,6 +74,7 @@ public:
                            MultiFab*             u_mac, 
                            MultiFab*             Sync,
                            int                   comp,
+                           int                   s_ind,
                            const MultiFab*       const* sync_edges,
 			   int                   eComp,
                            MultiFab*             rho_half,
