@@ -397,7 +397,40 @@ c double dgphi at edges
 
       end
 
-      subroutine FORT_HGTRANSLATE(DIMS(out),out,DIMS(in),in,face)
+      subroutine FORT_HG_SHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
+      implicit none
+      integer face
+      integer DIMDEC(in)
+      integer DIMDEC(out)
+      REAL_T in(DIMV(in))
+      REAL_T out(DIMV(out))
+      integer i,j
+#define XLO 0
+#define YLO 1
+#define XHI 2
+#define YHI 3
+
+      if (face .eq. XLO .or. face .eq. XHI) then
+         do j= ARG_L2(out),ARG_H2(out)
+            do i = ARG_L1(out),ARG_H1(out)
+               out(i,j) = in(j,i)
+            enddo
+         enddo
+      else if (face .eq. YLO .or. face .eq. YHI) then
+         do j= ARG_L2(out),ARG_H2(out)
+            do i = ARG_L1(out),ARG_H1(out)
+               out(i,j) = in(i,j)
+            enddo
+         enddo
+      endif
+#undef XLO
+#undef YLO
+#undef XHI
+#undef YHI
+
+      end
+
+      subroutine FORT_HG_RESHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
       implicit none
       integer face
       integer DIMDEC(in)
@@ -794,10 +827,9 @@ c     Local variables
       subroutine FORT_HGPHIBC(hx,r,uExt, divuExt,rhoExt,length,
      &                        DIMS(phi),phi,lo,hi,face,per)
 c
-c     Compute the value of phi for hgproj to be used at an  upper, y-outflow face,
-c     assuming that the tangential velocity on the edges of the outflow boundary
-c     are either zero or periodic.  Algorithm incorrect for stress-free side walls,
-c     or if there is outflow on any other boundary.
+c    Compute the value of phi for hgproj to be used at an outflow face,
+c    assuming that the tangential velocity on the edges of the outflow boundary
+c    are either zero or periodic.  
 c
       implicit none
 
@@ -838,13 +870,15 @@ c     Local variables
          ine = ARG_H1(phi)
       endif
 
-      
+c     This description assumes outflow at yhi; however, code works for 
+c     outflow at any face.      
 c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu if U is 
 c     zero, S = d/dt(divu) if U = (ustar - uold)/dt] with periodic or Neumann
-c     boundary conditions, using a tridiagonal solve which detects, and deals with,
-c     the singular equations.  In the Neumann case, arbitrarily set the upper right
-c     corner to zero to pin the solution.  Note that the RHS of this equation
-c     satisfies the solvability constraint that Int[RHS.dV] = 0 by construction.
+c     boundary conditions, using a tridiagonal solve which detects, and deals 
+c     with the singular equations.  In the Neumann case, arbitrarily set the 
+c     upper right corner to zero to pin the solution.  Note that the RHS of 
+c     this equation satisfies the solvability constraint that 
+c     Int[RHS.dV] = 0 by construction.
 c     This implies that the normal component takes up the slack:
 c     
 c                        d/dy( 1/rho d/dy( phi ) ) = dV/dy - S_ave
@@ -864,8 +898,8 @@ c     normal velocity, for the advective/diffusive step, for example.
 
       if (per .eq. 1) then
          
-c     Do left-side periodic BC (since first/last node coincide, use first node only
-c     (retain r-stuff here, just to be sure scaling is not destroyed)
+c     Do left-side periodic BC (since first/last node coincide, use first 
+c     node only (retain r-stuff here, just to be sure scaling is not destroyed)
          neq = ine - ins
          icL = ice
          icR = ics
@@ -906,8 +940,8 @@ c     Solid walls, Nuemann conditions
          s(neq) = -r(icL)*uExt(icL)*hx
      &        -  rnode*half*divuExt(icL)*hx*hx
          
-c     Solve the equations (we know they're singular, pass the arbitrary value, and
-c     a flag that we've already normalized the rhs, in the sense that
+c     Solve the equations (we know they're singular, pass the arbitrary value, 
+c     and a flag that we've already normalized the rhs, in the sense that
 c                          Int[dU/dx - (S-S_ave)] == 0
          sVal = zero
          rNormed = .true.

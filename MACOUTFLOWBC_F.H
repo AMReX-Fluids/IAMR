@@ -6,7 +6,8 @@
 #    define FORT_EXTRAP_MAC  extrapmac
 #    define FORT_COMPUTE_MACCOEFF computemaccoeff
 #    define FORT_MACRELAX       macrelax
-#    define FORT_MACTRANSLATE     mactranslate
+#    define FORT_MAC_RESHIFT_PHI  macreshiftphi
+#    define FORT_MAC_SHIFT_PHI   macshiftphi
 #    define FORT_MACRESID        macresid
 #    define FORT_MACSUBTRACTAVGPHI macsubtractavgphi
 #    define FORT_SOLVEMAC         solvemac
@@ -21,7 +22,8 @@
 #    define FORT_EXTRAP_MAC  EXTRAPMAC
 #    define FORT_COMPUTE_MACCOEFF COMPUTEMACCOEFF
 #    define FORT_MACRELAX       MACRELAX
-#    define FORT_MACTRANSLATE     MACTRANSLATE
+#    define FORT_MAC_RESHIFT_PHI MACRESHIFTPHI
+#    define FORT_MAC_SHIFT_PHI MACSHIFTPHI
 #    define FORT_MACRESID        MACRESID
 #    define FORT_MACSUBTRACTAVGPHI MACSUBTRACTAVGPHI
 #    define FORT_SOLVEMAC         SOLVEMAC
@@ -33,7 +35,8 @@
 #    define FORT_EXTRAP_MAC  extrapmac
 #    define FORT_COMPUTE_MACCOEFF computemaccoeff
 #    define FORT_MACRELAX       macrelax
-#    define FORT_MACTRANSLATE     mactranslate
+#    define FORT_MAC_RESHIFT_PHI  macreshiftphi
+#    define FORT_MAC_SHIFT_PHI  macshiftphi
 #    define FORT_MACRESID        macresid
 #    define FORT_MACSUBTRACTAVGPHI macsubtractavgphi
 #    define FORT_SOLVEMAC         solvemac
@@ -45,7 +48,8 @@
 #    define FORT_EXTRAP_MAC  extrapmac_
 #    define FORT_COMPUTE_MACCOEFF computemaccoeff_
 #    define FORT_MACRELAX       macrelax_
-#    define FORT_MACTRANSLATE     mactranslate_
+#    define FORT_MAC_RESHIFT_PHI     macreshiftphi_
+#    define FORT_MAC_SHIFT_PHI     macshiftphi_
 #    define FORT_MACRESID        macresid_
 #    define FORT_MACSUBTRACTAVGPHI macsubtractavgphi_
 #    define FORT_SOLVEMAC         solvemac_
@@ -115,9 +119,16 @@ extern "C" {
 			const Real* h, const int* isPeriodic, 
 			const int* niter);
 
-    void FORT_MACTRANSLATE(ARLIM_P(outlo),ARLIM_P(outhi),const Real* outPtr,
+    void FORT_MAC_RESHIFT_PHI(
+                           ARLIM_P(outlo),ARLIM_P(outhi),const Real* outPtr,
 			   ARLIM_P(inlo),ARLIM_P(inhi),const Real* inPtr,
 			   const int* face);
+
+   void FORT_MAC_SHIFT_PHI(
+                           ARLIM_P(outlo),ARLIM_P(outhi),const Real* outPtr,
+                           ARLIM_P(inlo),ARLIM_P(inhi),const Real* inPtr,
+                           const int* face);
+
 
     void FORT_MACRESID(ARLIM_P(rhslo),ARLIM_P(rhshi),const Real* rhsPtr,
 		       ARLIM_P(beta0),ARLIM_P(beta0),const Real* beta0,

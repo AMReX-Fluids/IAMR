@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ProjOutFlowBC.cpp,v 1.10 2000-05-01 17:44:04 car Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.11 2000-05-11 17:06:57 propp Exp $
 //
 
 #include "ProjOutFlowBC.H"
@@ -151,8 +151,6 @@ ProjOutFlowBC::computeProjBC(FArrayBox& velFab, FArrayBox& divuFab,
   FArrayBox rhoExt(faceBox,1);
   FArrayBox uExt(faceBox,BL_SPACEDIM-1);
 
-  int zeroIt = 0;
-
 #if (BL_SPACEDIM == 2)
   //
   // Make cc r (set = 1 if cartesian)
@@ -189,6 +187,7 @@ ProjOutFlowBC::computeProjBC(FArrayBox& velFab, FArrayBox& divuFab,
 
   // extrapolate the velocities, divu, and rho to the outflow edge in
   // the shifted coordinate system (where the last dimension is 1).
+  int zeroIt;
   FORT_EXTRAP_PROJ(ARLIM(vello),  ARLIM(velhi), velPtr,
 		   ARLIM(divulo), ARLIM(divuhi), divuPtr,
 		   ARLIM(rholo),    ARLIM(rhohi),rhoPtr,
@@ -204,62 +203,66 @@ ProjOutFlowBC::computeProjBC(FArrayBox& velFab, FArrayBox& divuFab,
     {
       // no perturbations, set homogeneous bc
       phiFab.setVal(0.0);
+      
+    } else if (proj_solver == HG_MG) {
+      
+      Box nodeBox = semiSurroundingNodes(faceBox,BL_SPACEDIM-1);
+      FArrayBox phiFiltered(nodeBox,1);
 
+      DEF_LIMITS(phiFab,phiFabPtr,phiFab_lo,phiFab_hi);
+      DEF_LIMITS(phiFiltered,phiFilteredPtr,phiFiltered_lo,phiFiltered_hi);
+      int face = int(outFace);
+      
+      FORT_HG_SHIFT_PHI(ARLIM(phiFiltered_lo),ARLIM(phiFiltered_hi),
+                        phiFilteredPtr,
+                        ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
+                        &face);
+      
+      FArrayBox rhs_temp, beta;
+      
+      computeCoefficients(rhs_temp,beta,uExt,divuExt,rhoExt,rcen,
+			  r_lo,r_hi,faceBox,dxFiltered,isPeriodicFiltered);
+      
+      // need phi to have ghost cells
+      Box phiGhostBox = semiGrow(phiFiltered.box(),1,BL_SPACEDIM-1);
+      FArrayBox phi(phiGhostBox,1);
+      phi.setVal(0.0);
+      phi.copy(phiFiltered);
+      
+      Box grownRhs = semiGrow(rhs_temp.box(),1,BL_SPACEDIM-1);
+      FArrayBox rhs(grownRhs,1);
+      rhs.setVal(0.0);
+      rhs.copy(rhs_temp);
+      FArrayBox resid(rhs.box(),1);
+      ProjOutFlowBC_MG proj_mg(faceBox,&phi,&rhs,&resid,&beta,
+			       dxFiltered,isPeriodicFiltered);
+      proj_mg.solve(tol,abs_tol,2,2);
+      
+      DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
+      DEF_BOX_LIMITS(faceBox,lo,hi);
+      
+      // subtract the average phi
+      FORT_HGSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
+#if (BL_SPACEDIM == 2)
+			    &r_lo,&r_hi,rcen.dataPtr(),
+#endif
+			    lo,hi,isPeriodicFiltered);
+      
+      // translate the solution back to the original coordinate system
+      FORT_HG_RESHIFT_PHI(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
+			  ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
+      
+      
+#if (BL_SPACEDIM == 2)  
+    } else if (proj_solver == HG_BACK) {
+      
+      solveBackSubstitution(phiFab,divuExt,uExt,rhoExt,rcen,r_lo,r_hi,
+			    isPeriodic,dxFiltered,faceBox,outFace);
+#endif
     } else {
       
-	if (proj_solver == HG_MG) {
-	  
-	  FArrayBox rhs_temp, beta;
-
-	  computeCoefficients(rhs_temp,beta,uExt,divuExt,rhoExt,rcen,
-			      r_lo,r_hi,faceBox,dxFiltered,isPeriodicFiltered);
-
-	  // need phi to have ghost cells
-	  Box phiGhostBox = semiGrow(phiFab.box(),1,BL_SPACEDIM-1);
-	  FArrayBox phi(phiGhostBox,1);
-	  phi.setVal(0.0);
-	  phi.copy(phiFab);
-	  
-	  Box grownRhs = semiGrow(rhs_temp.box(),1,BL_SPACEDIM-1);
-	  FArrayBox rhs(grownRhs,1);
-	  rhs.setVal(0.0);
-	  rhs.copy(rhs_temp);
-	  FArrayBox resid(rhs.box(),1);
-	  ProjOutFlowBC_MG proj_mg(faceBox,&phi,&rhs,&resid,&beta,
-				   dxFiltered,isPeriodicFiltered);
-	  proj_mg.solve(tol,abs_tol,2,2);
-
-	  DEF_LIMITS(phiFab,phiSmallPtr,phiSmall_lo,phiSmall_hi);
-	  DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
-	  DEF_BOX_LIMITS(faceBox,lo,hi);
-
-	  // subtract the average phi
-	  FORT_HGSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
-#if (BL_SPACEDIM == 2)
-				&r_lo,&r_hi,rcen.dataPtr(),
-#endif
-				lo,hi,isPeriodicFiltered);
-	  
-	  // translate the solution back to the original coordinate system
-	  int face = int(outFace);
-	  FORT_HGTRANSLATE(ARLIM(phiSmall_lo),ARLIM(phiSmall_hi),phiSmallPtr,
-			   ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
-	  
-
-#if (BL_SPACEDIM == 2)  
-	} else if (proj_solver == HG_BACK) {
-
-	  solveBackSubstitution(phiFab,divuExt,uExt,rhoExt,rcen,r_lo,r_hi,
-				isPeriodic,dxFiltered,faceBox,outFace);
-#endif
-	} else {
-
-	  BoxLib::Error("unknown solver_type");
-
-	}
-
+      BoxLib::Error("ProjOutFlowBC::unknown solver_type");
     }
-
 }
 
 #if (BL_SPACEDIM == 2)
@@ -574,7 +577,7 @@ ProjOutFlowBC_MG::solve(Real tolerance, Real abs_tolerance,int i1, int i2)
   
   if (iter >= maxIters)
     {
-      cout << "warning: top proj solver reached maxIter" << endl;
+      cout << "ProjOutFlowBC: solver reached maxIter" << endl;
       cout << "goal was: " << goal << " && res = " << res << endl;
     }
 

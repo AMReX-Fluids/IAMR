@@ -6,7 +6,8 @@
 #    define FORT_EXTRAP_PROJ   extrapproj
 #    define FORT_COMPUTE_COEFF computecoeff
 #    define FORT_HGRELAX       hgrelax
-#    define FORT_HGTRANSLATE   hgtranslate
+#    define FORT_HG_RESHIFT_PHI   hgreshiftphi
+#    define FORT_HG_SHIFT_PHI   hgshiftphi
 #    define FORT_HGRESID       hgresid
 #    define FORT_HGSUBTRACTAVGPHI hgsubtractavgphi
 #    define FORT_SOLVEHG        solvehg
@@ -21,7 +22,8 @@
 #    define FORT_EXTRAP_PROJ   EXTRAPPROJ
 #    define FORT_COMPUTE_COEFF COMPUTECOEFF
 #    define FORT_HGRELAX       HGRELAX
-#    define FORT_HGTRANSLATE   HGTRANSLATE
+#    define FORT_HG_SHIFT_PHI   HGSHIFTPHI
+#    define FORT_HG_RESHIFT_PHI   HGRESHIFTPHI
 #    define FORT_HGRESID       HGRESID
 #    define FORT_HGSUBTRACTAVGPHI HGSUBTRACTAVGPHI
 #    define FORT_SOLVEHG        SOLVEHG
@@ -33,7 +35,8 @@
 #    define FORT_EXTRAP_PROJ   extrapproj
 #    define FORT_COMPUTE_COEFF computecoeff
 #    define FORT_HGRELAX       hgrelax
-#    define FORT_HGTRANSLATE   hgtranslate
+#    define FORT_HG_RESHIFT_PHI  hgreshiftphi
+#    define FORT_HG_SHIFT_PHI    hgshiftphi
 #    define FORT_HGRESID       hgresid
 #    define FORT_HGSUBTRACTAVGPHI hgsubtractavgphi
 #    define FORT_SOLVEHG        solvehg
@@ -45,7 +48,8 @@
 #    define FORT_EXTRAP_PROJ   extrapproj_
 #    define FORT_COMPUTE_COEFF computecoeff_
 #    define FORT_HGRELAX       hgrelax_
-#    define FORT_HGTRANSLATE   hgtranslate_
+#    define FORT_HG_SHIFT_PHI   hgshiftphi_
+#    define FORT_HG_RESHIFT_PHI hgreshiftphi_
 #    define FORT_HGRESID       hgresid_
 #    define FORT_HGSUBTRACTAVGPHI hgsubtractavgphi_
 #    define FORT_SOLVEHG        solvehg_
@@ -97,9 +101,14 @@ extern "C" {
 		       const Real* h, const int* isPeriodic,
 		       const int* niter);
 
-    void FORT_HGTRANSLATE(ARLIM_P(outlo),ARLIM_P(outhi),const Real* outPtr,
+    void FORT_HG_RESHIFT_PHI(ARLIM_P(outlo),ARLIM_P(outhi),const Real* outPtr,
 			   ARLIM_P(inlo),ARLIM_P(inhi),const Real* inPtr,
 			   const int* face);
+
+    void FORT_HG_SHIFT_PHI(ARLIM_P(outlo),ARLIM_P(outhi),const Real* outPtr,
+                           ARLIM_P(inlo),ARLIM_P(inhi),const Real* inPtr,
+                           const int* face);
+
 
     void FORT_HGRESID (ARLIM_P(rhslo), ARLIM_P(rhshi), const Real* rhs,
                        ARLIM_P(betalo), ARLIM_P(betahi), const Real* beta,

@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.10 2000-05-01 17:44:04 car Exp $
+// $Id: MacOutFlowBC.cpp,v 1.11 2000-05-11 17:06:56 propp Exp $
 //
 
 #include "MacOutFlowBC.H"
@@ -120,15 +120,13 @@ MacOutFlowBC::computeMacBC(FArrayBox* velFab, FArrayBox& divuFab,
   FArrayBox divuExt(faceBox,1);
   FArrayBox rhoExt(faceBox,1);
   FArrayBox uExt[BL_SPACEDIM-1];
-  
+ 
   for (int dir=0; dir <BL_SPACEDIM-1; dir++)
     {
       Box tempBox(surroundingNodes(faceBox,dir));
       uExt[dir].resize(tempBox,1);
     }
   
-  int zeroIt = 0;
-
 #if (BL_SPACEDIM == 2)
   //
   // Make cc r (set = 1 if cartesian).
@@ -170,6 +168,7 @@ MacOutFlowBC::computeMacBC(FArrayBox* velFab, FArrayBox& divuFab,
 
   // extrapolate the velocities, divu, and rho to the outflow edge in
   // the shifted coordinate system (where the last dimension is 1).
+  int zeroIt;
   FORT_EXTRAP_MAC(
 		  ARLIM(velXlo), ARLIM(velXhi), velXPtr,
 		  ARLIM(velYlo), ARLIM(velYhi), velYPtr,
@@ -194,59 +193,62 @@ MacOutFlowBC::computeMacBC(FArrayBox* velFab, FArrayBox& divuFab,
       // no perturbations, set homogeneous bc
       phiFab.setVal(0.0);
       
-    } else {
-
-      if (mac_solver == MAC_MG) {
-	  
-	  FArrayBox rhs;
-	  FArrayBox* beta = new FARRAYBOX[BL_SPACEDIM-1];
-
-	  computeCoefficients(rhs,beta,uExt,divuExt,rhoExt,rcen,
-			      r_lo,r_hi,faceBox,dxFiltered,isPeriodicFiltered);
-
-	  // need phi to have ghost cells
-	  Box phiGhostBox = semiGrow(phiFab.box(),1,BL_SPACEDIM-1);
-	  FArrayBox phi(phiGhostBox,1);
-	  phi.setVal(0.0);
-	  phi.copy(phiFab);
-
-	  FArrayBox resid(rhs.box(),1);
-
-	  MacOutFlowBC_MG mac_mg(faceBox,&phi,&rhs,&resid,beta,
-				 dxFiltered,isPeriodicFiltered);
-
-	  mac_mg.solve(tol,abs_tol,2,2);
-
-	  DEF_LIMITS(phiFab,phiSmallPtr,phiSmall_lo,phiSmall_hi);
-	  DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
-	  DEF_BOX_LIMITS(faceBox,lo,hi);
-
-	  // subtract the average phi
-	  FORT_MACSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
-#if (BL_SPACEDIM == 2)
-				 &r_lo,&r_hi,rcen.dataPtr(),
-#endif
-				 lo,hi,isPeriodicFiltered);
-
-	  // translate the solution back to the original coordinate system
-	  int face = int(outFace);
-	  FORT_MACTRANSLATE(ARLIM(phiSmall_lo),ARLIM(phiSmall_hi),phiSmallPtr,
-			    ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
-
-	  delete [] beta;
-#if (BL_SPACEDIM == 2)
-	} else if (mac_solver == MAC_BACK) {
-	  
-	  solveBackSubstitution(phiFab,divuExt,uExt,rhoExt,rcen,r_lo,r_hi,
-				isPeriodic,dxFiltered,faceBox,outFace);
-#endif
-	} else {
-	  
-	  BoxLib::Error("unknown solver_type");
-	}
+    } else if (mac_solver == MAC_MG) {
       
-    }
+      FArrayBox phiFiltered(faceBox,1);
 
+      DEF_LIMITS(phiFab,phiFabPtr,phiFab_lo,phiFab_hi);
+      DEF_LIMITS(phiFiltered,phiFilteredPtr,phiFiltered_lo,phiFiltered_hi);
+      int face = int(outFace);
+      
+      FORT_MAC_SHIFT_PHI(ARLIM(phiFiltered_lo),ARLIM(phiFiltered_hi),
+			 phiFilteredPtr,
+			 ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
+			 &face);
+      FArrayBox rhs;
+      FArrayBox* beta = new FARRAYBOX[BL_SPACEDIM-1];
+      
+      computeCoefficients(rhs,beta,uExt,divuExt,rhoExt,rcen,
+			  r_lo,r_hi,faceBox,dxFiltered,isPeriodicFiltered);
+      
+      // need phi to have ghost cells
+      Box phiGhostBox = semiGrow(phiFiltered.box(),1,BL_SPACEDIM-1);
+      FArrayBox phi(phiGhostBox,1);
+      phi.setVal(0.0);
+      phi.copy(phiFiltered);
+      
+      FArrayBox resid(rhs.box(),1);
+      
+      MacOutFlowBC_MG mac_mg(faceBox,&phi,&rhs,&resid,beta,
+			     dxFiltered,isPeriodicFiltered);
+      
+      mac_mg.solve(tol,abs_tol,2,2);
+      
+      DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
+      DEF_BOX_LIMITS(faceBox,lo,hi);
+      
+      // subtract the average phi
+      FORT_MACSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
+#if (BL_SPACEDIM == 2)
+			     &r_lo,&r_hi,rcen.dataPtr(),
+#endif
+			     lo,hi,isPeriodicFiltered);
+      
+      // translate the solution back to the original coordinate system
+      FORT_MAC_RESHIFT_PHI(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
+			   ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
+      
+      delete [] beta;
+#if (BL_SPACEDIM == 2)
+    } else if (mac_solver == MAC_BACK) {
+      
+      solveBackSubstitution(phiFab,divuExt,uExt,rhoExt,rcen,r_lo,r_hi,
+			    isPeriodic,dxFiltered,faceBox,outFace);
+#endif
+    } else {
+	  
+      BoxLib::Error("MacOutFlowBC::unknown solver_type");
+    }
 }
 
 #if (BL_SPACEDIM == 2)
@@ -571,7 +573,7 @@ MacOutFlowBC_MG::solve(Real tolerance, Real abs_tolerance,int i1, int i2)
   
   if (iter >= maxIters)
     {
-      cout << "warning: top mac solver reached maxIter" << endl;
+      cout << "MacOutFlowBC: solver reached maxIter" << endl;
       cout << "goal was: " << goal << " && res = " << res << endl;
     }
 

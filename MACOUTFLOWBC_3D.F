@@ -623,8 +623,57 @@ c Local variables
 
       end
 
+      subroutine FORT_MAC_SHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
+      implicit none
+      integer face
+      integer DIMDEC(in)
+      integer DIMDEC(out)
+      REAL_T in(DIMV(in))
+      REAL_T out(DIMV(out))
+      integer i,j,k
+#define XLO 0
+#define YLO 1
+#define ZLO 2
+#define XHI 3
+#define YHI 4
+#define ZHI 5
+      if (face .eq. XLO .or. face .eq. XHI) then
+         do k = ARG_L3(out), ARG_H3(out)
+            do j= ARG_L2(out),ARG_H2(out)
+               do i = ARG_L1(out),ARG_H1(out)
+                  out(i,j,k) = in(k,i,j)
+               enddo
+            enddo
+         enddo
+      else if (face .eq. YLO .or. face .eq. YHI) then
+         do k = ARG_L3(out), ARG_H3(out)
+            do j= ARG_L2(out),ARG_H2(out)
+               do i = ARG_L1(out),ARG_H1(out)
+                  out(i,j,k) = in(i,k,j)
+               enddo
+            enddo
+         enddo
+      else if (face .eq. ZLO .or. face .eq. ZHI) then
+         do k = ARG_L3(out), ARG_H3(out)
+            do j= ARG_L2(out),ARG_H2(out)
+               do i = ARG_L1(out),ARG_H1(out)
+                  out(i,j,k) = in(i,j,k)
+               enddo
+            enddo
+         enddo
+      endif
 
-      subroutine FORT_MACTRANSLATE(DIMS(out),out,DIMS(in),in,face)
+#undef XLO
+#undef YLO
+#undef ZLO
+#undef XHI
+#undef YHI
+#undef ZHI
+
+      end
+
+
+      subroutine FORT_MAC_RESHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
       implicit none
       integer face
       integer DIMDEC(in)

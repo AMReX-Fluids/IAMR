@@ -419,8 +419,41 @@ c Local variables
 
       end
 
+      subroutine FORT_MAC_SHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
+      implicit none
+      integer face
+      integer DIMDEC(in)
+      integer DIMDEC(out)
+      REAL_T in(DIMV(in))
+      REAL_T out(DIMV(out))
+      integer i,j
+#define XLO 0
+#define YLO 1
+#define XHI 2
+#define YHI 3
 
-      subroutine FORT_MACTRANSLATE(DIMS(out),out,DIMS(in),in,face)
+      if (face .eq. XLO .or. face .eq. XHI) then
+         do j= ARG_L2(out),ARG_H2(out)
+            do i = ARG_L1(out),ARG_H1(out)
+               out(i,j) = in(j,i)
+            enddo
+         enddo
+      else if (face .eq. YLO .or. face .eq. YHI) then
+         do j= ARG_L2(out),ARG_H2(out)
+            do i = ARG_L1(out),ARG_H1(out)
+               out(i,j) = in(i,j)
+            enddo
+         enddo
+      endif
+#undef XLO
+#undef YLO
+#undef XHI
+#undef YHI
+
+      end
+
+
+      subroutine FORT_MAC_RESHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
       implicit none
       integer face
       integer DIMDEC(in)
@@ -721,9 +754,9 @@ c     Local variables
      &                         DIMS(rhoExt),rhoExt,
      &                         r_lo,r_hi,r,hx,DIMS(phi),phi,lo,hi,face,per)
 c
-c     Compute the value of phi for macproj to be used at an  upper, y-outflow face,
-c     assuming that the tangential velocity on the edges of the outflow boundary
-c     are either zero or periodic.
+c    Compute the value of phi for macproj to be used at an  outflow face,
+c    assuming that the tangential velocity on the edges of the outflow boundary
+c    are either zero or periodic.
 c
       implicit none
       integer lo(SDIM),hi(SDIM)
@@ -755,25 +788,28 @@ c     Local variables
       REAL_T phitot
       integer ics, ice
 
+c     This description assumes outflow at yhi; however, code works for 
+c     outflow at any face.
 c     NOTE: Assumes that rho at edge between i, i-1 = half*(rho(i)+rho(i-1))
 c             (1) Linear fit of rho between nodes
 c             (2) rho, divu on same boxes (box), and r(ARG_L1(rho),ARG_L2(rho))
 c             (3) phi is on box, shifted up one
 c             (4) u is edge-based, on surroundingNodes(box)
 
-c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu] w/periodic or
-c     Neumann BC's, using a tridiagonal solve which detects, and deals with,
-c     the singular equations.  In the Neumann case, arbitrarily set the upper right
-c     corner to zero to pin the solution.  Note that the RHS of this equation
-c     satisfies the solvability constraint that Int[RHS.dV] = 0 by construction.
+c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu] 
+c     w/periodic or Neumann BC's, using a tridiagonal solve which detects, 
+c     and deals with, the singular equations.  In the Neumann case, 
+c     arbitrarily set the upper right corner to zero to pin the solution.  
+c     Note that the RHS of this equation satisfies the solvability 
+c     constraint that Int[RHS.dV] = 0 by construction.
 c     This implies that the normal component takes up the slack:
 c     
 c                        d/dy( 1/rho d/dy( phi ) ) = dV/dy - S_ave
 c     
 c     This information should be used to construct the normal gradient of the
 c     normal velocity, for the advective/diffusive step, for example.
-c     In this implementation, use that d/dy == 0 at top, so y-edge centered values
-c     come directly from cell-centers just inside domain
+c     In this implementation, use that d/dy == 0 at top, so y-edge centered 
+c     values come directly from cell-centers just inside domain
 
 #define XLO 0
 #define YLO 1
@@ -839,8 +875,8 @@ c     Solid walls, Nuemann conditions (dphi/dx=u=0)
          b(neq) = - a(neq)
          s(neq)=-rL*uExt(i)*hx - r(i)*(divuExt(i))*hx*hx
          
-c     Solve the equations (we know they're singular, pass the arbitrary value, and
-c     a flag that we've already normalized the rhs, in the sense that
+c     Solve the equations (we know they're singular, pass the arbitrary value,
+c     and a flag that we've already normalized the rhs, in the sense that
 c     Int[dU/dx - (S-S_ave)] == 0
          sVal = zero
          rNormed = .true.
