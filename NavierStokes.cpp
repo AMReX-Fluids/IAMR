@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.125 1999-03-25 19:00:22 marc Exp $
+// $Id: NavierStokes.cpp,v 1.126 1999-04-02 21:23:48 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -5231,16 +5231,12 @@ NavierStokes::getViscosity(MultiFab* viscosity[BL_SPACEDIM],
     //
     // Pick correct time
     //
-    const Real old_time = state[State_Type].prevTime();
-    const Real new_time = state[State_Type].curTime();
-    const Real eps = 0.001*(new_time - old_time);
-
-    if (time > old_time-eps && time < old_time+eps)               // time N
+    if (which_time(time) == NS_OldTime)                           // time N
     {
         for (int dir=0; dir<BL_SPACEDIM; dir++)
             (*viscosity[dir]).copy(*viscn[dir], 0, 0, 1);
     }
-    else if (time > new_time-eps && time < new_time+eps)          // time N+1
+    else if (which_time(time) == NS_NewTime)                      // time N+1
     {
         for (int dir=0; dir<BL_SPACEDIM; dir++)
             (*viscosity[dir]).copy(*viscnp1[dir], 0, 0, 1);
@@ -5269,16 +5265,12 @@ NavierStokes::getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
     //
     // Pick correct time
     //
-    const Real old_time = state[State_Type].prevTime();
-    const Real new_time = state[State_Type].curTime();
-    const Real eps = 0.001*(new_time - old_time);
-
-    if (time > old_time-eps && time < old_time+eps)               // time N
+    if (which_time(time) == NS_OldTime)                           // time N
     {
         for (int dir=0; dir<BL_SPACEDIM; dir++)
             (*diffusivity[dir]).copy(*diffn[dir], diff_comp, 0, num_comp);
     }
-    else if (time > new_time-eps && time < new_time+eps)          // time N+1
+    else if (which_time(time) == NS_NewTime)                      // time N+1
     {
         for (int dir=0; dir<BL_SPACEDIM; dir++)
             (*diffusivity[dir]).copy(*diffnp1[dir], diff_comp, 0, num_comp);
@@ -5288,3 +5280,24 @@ NavierStokes::getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
         BoxLib::Abort("getDiffusivity: invalid time");
     }
 }
+
+
+NavierStokes::TimeLevel
+NavierStokes::which_time(Real time, 
+                         int  state_indx) const
+{
+    const Real old_time = state[state_indx].prevTime();
+    const Real new_time = state[state_indx].curTime();
+    const Real eps = 0.001*(new_time - old_time);
+   
+    if (time >= old_time-eps && time <= old_time+eps)
+    {
+        return NS_OldTime;
+    }
+    else if (time >= new_time-eps && time <= new_time+eps)
+    {
+        return NS_NewTime;
+    }
+    return NS_BadTime;
+}
+
