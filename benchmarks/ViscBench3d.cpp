@@ -1,6 +1,6 @@
 
 //
-// $Id: ViscBench3d.cpp,v 1.7 2002-12-19 19:03:35 almgren Exp $
+// $Id: ViscBench3d.cpp,v 1.8 2002-12-19 19:05:52 almgren Exp $
 //
 
 #include <new>
@@ -59,6 +59,8 @@ int
 main (int   argc,
       char* argv[])
 {
+    BoxLib::Initialize(argc,argv);
+
     if (argc == 1)
         PrintUsage(argv[0]);
     //
@@ -68,7 +70,7 @@ main (int   argc,
 
     ParallelDescriptor::StartParallel(&argc, &argv);
 
-    ParmParse pp(argc-1,argv+1);
+    ParmParse pp;
 
     if (pp.contains("help"))
         PrintUsage(argv[0]);
@@ -86,7 +88,7 @@ main (int   argc,
         AmrData::SetVerbose(true);
     }
     pp.query("infile", iFile);
-    if (iFile.isNull())
+    if (iFile.empty())
         BoxLib::Abort("You must specify `infile'");
 
     pp.query("exfile", exFile);
@@ -207,20 +209,17 @@ main (int   argc,
     //
     // Write Plot Files
     //
-    if (!errFile.isNull())
+    if (!errFile.empty())
         WritePlotFile(error, amrDataI, errFile, verbose);
 
-    if (!exFile.isNull())
+    if (!exFile.empty())
         WritePlotFile(dataE, amrDataI, exFile, verbose);
 
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
 	delete error[iLevel];
 
-    //
-    // This calls ParallelDescriptor::EndParallel() and exit()
-    //
-    DataServices::Dispatch(DataServices::ExitRequest, NULL);
+    BoxLib::Finalize();
 }
 
 
