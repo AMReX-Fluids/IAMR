@@ -4,7 +4,7 @@
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.19 2000-08-09 22:32:28 almgren Exp $
+// $Id: MacProj.H,v 1.20 2000-08-10 22:27:48 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -81,6 +81,7 @@ public:
                            MultiFab*             rho_half,
                            FluxRegister*         adv_flux_reg,
                            Array<AdvectionForm>& advectionType,
+                           bool		         modify_reflux_normal_vel,
                            Real                  dt);
 protected:
     //

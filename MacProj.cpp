@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.71 2000-08-09 22:32:28 almgren Exp $
+// $Id: MacProj.cpp,v 1.72 2000-08-10 22:27:48 almgren Exp $
 //
 
 #include <Misc.H>
@@ -959,6 +959,7 @@ MacProj::mac_sync_compute (int                    level,
                            MultiFab*              rho_half,
                            FluxRegister*          adv_flux_reg,
                            Array<AdvectionForm>&  advectionType, 
+			   bool                   modify_reflux_normal_vel,
                            Real                   dt)
 {
     FArrayBox xflux, yflux, zflux;
@@ -970,6 +971,14 @@ MacProj::mac_sync_compute (int                    level,
     NavierStokes&   ns_level     = *(NavierStokes*) &(parent->getLevel(level));
 
     Godunov godunov(512);
+
+    FluxRegister* temp_reg = 0;
+    if (modify_reflux_normal_vel && comp < BL_SPACEDIM)
+    {
+      temp_reg = new FluxRegister(LevelData[level+1].boxArray(),
+                                  parent->refRatio(level),level+1,BL_SPACEDIM);
+      temp_reg->setVal(0.);
+    }
     //
     // Compute the mac sync correction.
     //
@@ -1042,9 +1051,54 @@ MacProj::mac_sync_compute (int                    level,
             adv_flux_reg->FineAdd(zflux,2,Syncmfi.index(),0,comp,1,-dt);
 #endif
         }
-        //
-        // Multiply the sync term by dt -- now done in the calling routine.
-        //
+        // Fill temp_reg with the normal fluxes 
+        if (modify_reflux_normal_vel && comp < BL_SPACEDIM)
+        {
+             if (comp == 0) {
+                temp_reg->CrseInit(sync_edges0mfi(),sync_edges0mfi().box(),eComp,0,comp,1,1.0);
+             } else if (comp == 1) {
+                temp_reg->CrseInit(sync_edges1mfi(),sync_edges1mfi().box(),eComp,0,comp,1,1.0);
+#if (BL_SPACEDIM == 3)
+             } else if (comp == 2) {
+                temp_reg->CrseInit(sync_edges2mfi(),sync_edges2mfi().box(),eComp,0,comp,1,1.0);
+#endif
+             } 
+          temp_reg->CrseInitFinish();
+        }
+    }
+
+    if (modify_reflux_normal_vel && comp < BL_SPACEDIM)
+    {
+          // Multiply the fluxes (stored in temp_reg) 
+          //   by delta U (area-weighted, stored in mr) on each edge
+          //   and store the result in temp_reg.
+          // Then reflux the result into Sync (which is Vsync in this case)
+
+          FluxRegister& mr = mac_reg[level+1];
+          const Real scale =  1.0;
+
+          int dir = comp;
+          {
+              FabSet& lofabs_temp = (*temp_reg)[Orientation(dir,Orientation::low)];
+              FabSet& hifabs_temp = (*temp_reg)[Orientation(dir,Orientation::high)];
+
+              FabSet& lofabs_mr = mr[Orientation(dir,Orientation::low)];
+              FabSet& hifabs_mr = mr[Orientation(dir,Orientation::high)];
+
+              for (FabSetIterator fsi(lofabs_temp); fsi.isValid(); ++fsi)
+              {
+                  DependentFabSetIterator dfsi(fsi, lofabs_mr);
+                  fsi().mult(dfsi(),0,dir,1);
+              }
+              for (FabSetIterator fsi(hifabs_temp); fsi.isValid(); ++fsi)
+              {
+                  DependentFabSetIterator dfsi(fsi, hifabs_mr);
+                  fsi().mult(dfsi(),0,dir,1);
+              }
+          }
+
+          temp_reg->Reflux(*Sync,volume[level],scale,comp,comp,1,geom);
+          delete temp_reg;
     }
 }
 //
