@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.2 2000-06-23 18:24:29 sstanley Exp $
+c $Id: INFL_FORCE_F.F,v 1.3 2000-10-10 20:47:23 marc Exp $
 c
 
 #undef BL_LANG_CC
@@ -129,7 +129,7 @@ c
         enddo
 
         do n = 1, SDIM
-          xloFile(n) = half * (probHi(n) - probLo(n)) - half * probSizeFile(n)
+          xloFile(n) = half * (probHi(n) + probLo(n)) - half * probSizeFile(n)
           xhiFile(n) = xloFile(n) + probSizeFile(n)
           if (n .ne. strmwse_dir) then
              write(6,1001) n,probLo(n),probHi(n),xloFile(n),xhiFile(n)
