@@ -1,10 +1,6 @@
-c
-c $Id: DERIVE_3D.F,v 1.3 1997-12-12 22:43:59 lijewski Exp $
-c
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
+c $Id: DERIVE_3D.F,v 1.4 1998-01-06 23:43:04 lijewski Exp $
+#undef BL_LANG_CC
 #define BL_LANG_FORT
-#endif
 
 #include "REAL.H"
 #include "CONSTANTS.H"
@@ -40,8 +36,8 @@ c     -----------------------------------------------------------
 c=========================================================
 
       subroutine FORT_DERKENG (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,bc,
-     &                         level, grid_no)
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                         bc,level,grid_no)
 c
 c     This routine will derive kinetic energy from density
 c     and the velocity field.
@@ -52,7 +48,8 @@ c
       integer    domlo(SDIM), domhi(SDIM)
       integer    nv, ncomp
       integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -95,8 +92,8 @@ c=========================================================
 
 
       subroutine FORT_DERLOGS (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,bc,
-     &                         level, grid_no)
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                         bc,level, grid_no)
 c
 c     This routine will derive log of given scalar quantity
 c
@@ -106,7 +103,8 @@ c
       integer    domlo(SDIM), domhi(SDIM)
       integer    nv, ncomp
       integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -149,8 +147,8 @@ c
 c=========================================================
 
       subroutine FORT_DERMVEL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,bc,
-     &                         level, grid_no)
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                         bc,level, grid_no)
 c
 c ::: This routine will derive the magnitude of the velocity field
 c ::: from the velocity field
@@ -161,7 +159,8 @@ c
       integer    domlo(SDIM), domhi(SDIM)
       integer    nv, ncomp
       integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -204,8 +203,8 @@ c
 c=========================================================
 
       subroutine FORT_DERDVRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,bc,
-     &                          level, grid_no)
+     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                          bc,level, grid_no)
 c
 c ::: This routine will derive C/RHO
 c
@@ -215,7 +214,8 @@ c
       integer    domlo(SDIM), domhi(SDIM)
       integer    nv, ncomp
       integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -254,8 +254,8 @@ c
 c=========================================================
 
       subroutine FORT_DERMPRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,bc,
-     &                          level, grid_no)
+     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                          bc,level, grid_no)
 c
 c ::: This routine will derive RHO*C
 c
@@ -265,7 +265,8 @@ c
       integer    domlo(SDIM), domhi(SDIM)
       integer    nv, ncomp
       integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -305,8 +306,8 @@ c=========================================================
 
 
       subroutine FORT_DERLGRHODUST (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                              lo,hi,domlo,domhi,delta,xlo,time,bc,
-     &                              level, grid_no)
+     &                              lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                              bc,level,grid_no)
 c
 c ::: This routine will derive log(RHO*C)
 c
@@ -316,7 +317,8 @@ c
       integer    domlo(SDIM), domhi(SDIM)
       integer    nv, ncomp
       integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -357,8 +359,8 @@ c=========================================================
 
 
       subroutine FORT_DERMGVORT (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,bc,
-     &                           level, grid_no)
+     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                           bc,level,grid_no)
 c
 c ::: This routine will derive magnitude of vorticity from
 c ::: the velocity field
@@ -369,7 +371,8 @@ c
       integer    domlo(SDIM), domhi(SDIM)
       integer    nv, ncomp
       integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
       REAL_T     vort(DIMV(vort),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -381,6 +384,10 @@ c
       REAL_T    vxcen, vzcen, vxlo, vxhi, vzlo, vzhi
       REAL_T    wxcen, wycen, wxlo, wxhi, wylo, wyhi
       REAL_T    vorfun
+
+      logical   fixvlo_x, fixwlo_x, fixvhi_x, fixwhi_x
+      logical   fixulo_y, fixwlo_y, fixuhi_y, fixwhi_y
+      logical   fixulo_z, fixvlo_z, fixuhi_z, fixvhi_z
 
 c     ::::: some useful macro definitions
 #     define U(i,j,k) dat(i,j,k,1)
@@ -404,25 +411,28 @@ c     ::::: some useful macro definitions
 
 c     ::::: statement functions that implement stencil
       uycen(i,j,k) = half*(U(i,j+1,k)-U(i,j-1,k))/dy
+      uylo(i,j,k)  = (U(i,j+1,k)+three*U(i,j,k)-four*U(i,j-1,k))/(three*dy)
+      uyhi(i,j,k)  =-(U(i,j-1,k)+three*U(i,j,k)-four*U(i,j+1,k))/(three*dy)
+
       uzcen(i,j,k) = half*(U(i,j,k+1)-U(i,j,k-1))/dz
-      uylo(i,j,k) = (eight*U(i,j,k)-six*U(i,j+1,k)+U(i,j+2,k))/(three*dy)
-      uyhi(i,j,k) = (eight*U(i,j,k)-six*U(i,j-1,k)+U(i,j-2,k))/(three*dy)
-      uzlo(i,j,k) = (eight*U(i,j,k)-six*U(i,j,k+1)+U(i,j,k+2))/(three*dz)
-      uzhi(i,j,k) = (eight*U(i,j,k)-six*U(i,j,k-1)+U(i,j,k-2))/(three*dz)
+      uzlo(i,j,k)  = (U(i,j,k+1)+three*U(i,j,k)-four*U(i,j,k-1))/(three*dz)
+      uzhi(i,j,k)  =-(U(i,j,k-1)+three*U(i,j,k)-four*U(i,j,k+1))/(three*dz)
 
       vxcen(i,j,k) = half*(V(i+1,j,k)-V(i-1,j,k))/dx
+      vxlo(i,j,k)  = (V(i+1,j,k)+three*V(i,j,k)-four*V(i-1,j,k))/(three*dx)
+      vxhi(i,j,k)  =-(V(i-1,j,k)+three*V(i,j,k)-four*V(i+1,j,k))/(three*dx)
+
       vzcen(i,j,k) = half*(V(i,j,k+1)-V(i,j,k-1))/dz
-      vxlo(i,j,k) = (eight*V(i,j,k)-six*V(i+1,j,k)+V(i+2,j,k))/(three*dx)
-      vxhi(i,j,k) = (eight*V(i,j,k)-six*V(i-1,j,k)+V(i-2,j,k))/(three*dx)
-      vzlo(i,j,k) = (eight*V(i,j,k)-six*V(i,j,k+1)+V(i,j,k+2))/(three*dz)
-      vzhi(i,j,k) = (eight*V(i,j,k)-six*V(i,j,k-1)+V(i,j,k-2))/(three*dz)
+      vzlo(i,j,k)  = (V(i,j,k+1)+three*V(i,j,k)-four*V(i,j,k-1))/(three*dz)
+      vzhi(i,j,k)  =-(V(i,j,k-1)+three*V(i,j,k)-four*V(i,j,k+1))/(three*dz)
 
       wxcen(i,j,k) = half*(W(i+1,j,k)-W(i-1,j,k))/dx
+      wxlo(i,j,k)  = (W(i+1,j,k)+three*W(i,j,k)-four*W(i-1,j,k))/(three*dx)
+      wxhi(i,j,k)  =-(W(i-1,j,k)+three*W(i,j,k)-four*W(i+1,j,k))/(three*dx)
+
       wycen(i,j,k) = half*(W(i,j+1,k)-W(i,j-1,k))/dy
-      wxlo(i,j,k) = (eight*W(i,j,k)-six*W(i+1,j,k)+W(i+2,j,k))/(three*dx)
-      wxhi(i,j,k) = (eight*W(i,j,k)-six*W(i-1,j,k)+W(i-2,j,k))/(three*dx)
-      wylo(i,j,k) = (eight*W(i,j,k)-six*W(i,j+1,k)+W(i,j+2,k))/(three*dy)
-      wyhi(i,j,k) = (eight*W(i,j,k)-six*W(i,j-1,k)+W(i,j-2,k))/(three*dy)
+      wylo(i,j,k)  = (W(i,j+1,k)+three*W(i,j,k)-four*W(i,j-1,k))/(three*dy)
+      wyhi(i,j,k)  =-(W(i,j-1,k)+three*W(i,j,k)-four*W(i,j+1,k))/(three*dy)
 
       vorfun(uy,uz,vx,vz,wx,wy) = sqrt((wy-vz)**2+(uz-wx)**2+(vx-uy)**2)
 
@@ -443,114 +453,6 @@ c     ::::: lets punt if not in domain interior
 	 stop
       endif
 
-c     :: at physical bndries where an edge value is prescribed,
-c     :: set the value in the outside cell so that a central
-c     :: difference formula is equivalent to the higher order
-c     :: one sided formula
-      if (lo(1) .eq. domlo(1)) then
-         i = lo(1)
-         if (VLOX.eq.EXT_DIR .or. VLOX.eq.HOEXTRAP) then
-	   do j = lo(2), hi(2)
-	   do k = lo(3), hi(3)
-	      V(i-1,j,k) = vxlo(i,j,k)
-	   enddo
-	   enddo
-	 endif
-	 if (WLOX.eq.EXT_DIR .or. WLOX.eq.HOEXTRAP) then
-	   do j = lo(2), hi(2)
-	   do k = lo(3), hi(3)
-	      W(i-1,j,k) = wxlo(i,j,k)
-	   enddo
-	   enddo
-	 endif
-      endif
-      if (hi(1) .eq. domhi(1)) then
-         i = hi(1)
-         if (VHIX.eq.EXT_DIR .or. VHIX.eq.HOEXTRAP) then
-	   do j = lo(2), hi(2)
-	   do k = lo(3), hi(3)
-	      V(i+1,j,k) = vxhi(i,j,k)
-	   enddo
-	   enddo
-	 endif
-	 if (WHIX.eq.EXT_DIR .or. WHIX.eq.HOEXTRAP) then
-	   do j = lo(2), hi(2)
-	   do k = lo(3), hi(3)
-	      W(i+1,j,k) = wxhi(i,j,k)
-	   enddo
-	   enddo
-	 endif
-      endif
-      if (lo(2) .eq. domlo(2)) then
-         j = lo(2)
-	 if (ULOY.eq.EXT_DIR .or. ULOY.eq.HOEXTRAP) then
-	   do k = lo(3), hi(3)
-	   do i = lo(1), hi(1)
-	      U(i,j-1,k) = uylo(i,j,k)
-	   enddo
-	   enddo
-	 endif
-	 if (WLOY.eq.EXT_DIR .or. WLOY.eq.HOEXTRAP) then
-	   do k = lo(3), hi(3)
-	   do i = lo(1), hi(1)
-	      W(i,j-1,k) = wylo(i,j,k)
-	   enddo
-	   enddo
-	 endif
-      endif
-      if (hi(2) .eq. domhi(2)) then
-         j = hi(2)
-	 if (UHIY.eq.EXT_DIR .or. UHIY.eq.HOEXTRAP) then
-	   do k = lo(3), hi(3)
-	   do i = lo(1), hi(1)
-	      U(i,j+1,k) = uyhi(i,j,k)
-	   enddo
-	   enddo
-	 endif
-	 if (WHIY.eq.EXT_DIR .or. WHIY.eq.HOEXTRAP) then
-	   do k = lo(3), hi(3)
-	   do i = lo(1), hi(1)
-	      W(i,j+1,k) = wyhi(i,j,k)
-	   enddo
-	   enddo
-	 endif
-      endif
-      if (lo(3) .eq. domlo(3)) then
-         k = lo(3)
-	 if (ULOZ.eq.EXT_DIR .or. ULOZ.eq.HOEXTRAP) then
-	    do j = lo(2), hi(2)
-	    do i = lo(1), hi(1)
-	       U(i,j,k-1) = uzlo(i,j,k)
-	    enddo
-	    enddo
-	 endif
-	 if (VLOZ.eq.EXT_DIR .or. VLOZ.eq.HOEXTRAP) then
-	    do j = lo(2), hi(2)
-	    do i = lo(1), hi(1)
-	       V(i,j,k-1) = vzlo(i,j,k)
-	    enddo
-	    enddo
-	 endif
-      endif
-      if (hi(3) .eq. domhi(3)) then
-         k = hi(3)
-	 if (UHIZ.eq.EXT_DIR .or. UHIZ.eq.HOEXTRAP) then
-	    do j = lo(2), hi(2)
-	    do i = lo(1), hi(1)
-	       U(i,j,k+1) = uzhi(i,j,k)
-	    enddo
-	    enddo
-	 endif
-	 if (VHIZ.eq.EXT_DIR .or. VHIZ.eq.HOEXTRAP) then
-	    do j = lo(2), hi(2)
-	    do i = lo(1), hi(1)
-	       V(i,j,k+1) = vzhi(i,j,k)
-	    enddo
-	    enddo
-	 endif
-      endif
-
-
       do k = lo(3), hi(3)
       do j = lo(2), hi(2)
       do i = lo(1), hi(1)
@@ -564,6 +466,407 @@ c     :: one sided formula
       enddo
       enddo
       enddo
+
+      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
+      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
+
+      fixulo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
+      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
+
+      fixulo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
+      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
+      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
+      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
+
+
+c     First do all the faces
+      if (fixvlo_x .or. fixwlo_x) then
+        i = lo(1)
+        do k = lo(3),hi(3)
+        do j = lo(2),hi(2)
+	  vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+	  wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+          uy = uycen(i,j,k)
+  	  wy = wycen(i,j,k)
+	  uz = uzcen(i,j,k)
+	  vz = vzcen(i,j,k)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+        enddo
+      endif
+
+      if (fixvhi_x .or. fixwhi_x) then
+        i = hi(1)
+        do k = lo(3),hi(3)
+        do j = lo(2),hi(2)
+	  vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+	  wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+          uy = uycen(i,j,k)
+  	  wy = wycen(i,j,k)
+	  uz = uzcen(i,j,k)
+	  vz = vzcen(i,j,k)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+        enddo
+      endif
+
+      if (fixulo_y .or. fixwlo_y) then
+        j = lo(2)
+        do k = lo(3),hi(3)
+        do i = lo(1),hi(1)
+	  vx = vxcen(i,j,k)
+	  wx = wxcen(i,j,k)
+          uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+  	  wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+	  uz = uzcen(i,j,k)
+	  vz = vzcen(i,j,k)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+        enddo
+      endif
+
+      if (fixuhi_y .or. fixwhi_y) then
+        j = hi(2)
+        do k = lo(3),hi(3)
+        do i = lo(1),hi(1)
+	  vx = vxcen(i,j,k)
+	  wx = wxcen(i,j,k)
+          uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+  	  wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+	  uz = uzcen(i,j,k)
+	  vz = vzcen(i,j,k)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+        enddo
+      endif
+
+      if (fixulo_z .or. fixvlo_z) then
+        k = lo(3)
+        do j = lo(2),hi(2)
+        do i = lo(1),hi(1)
+	  vx = vxcen(i,j,k)
+	  wx = wxcen(i,j,k)
+          uy = uycen(i,j,k)
+  	  wy = wycen(i,j,k)
+	  uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+	  vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+        enddo
+      endif
+
+      if (fixuhi_z .or. fixvhi_z) then
+        k = hi(3)
+        do j = lo(2),hi(2)
+        do i = lo(1),hi(1)
+	  vx = vxcen(i,j,k)
+	  wx = wxcen(i,j,k)
+          uy = uycen(i,j,k)
+  	  wy = wycen(i,j,k)
+	  uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+	  vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+        enddo
+      endif
+
+c     Next do all the edges
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y)) then
+        i = lo(1)
+        j = lo(2)
+        do k = lo(3),hi(3)
+	  vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+	  wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+          uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+  	  wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+	  uz = uzcen(i,j,k)
+	  vz = vzcen(i,j,k)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+      endif
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y)) then
+        i = hi(1)
+        j = lo(2)
+        do k = lo(3),hi(3)
+	  vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+	  wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+          uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+  	  wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+	  uz = uzcen(i,j,k)
+	  vz = vzcen(i,j,k)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+      endif
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y)) then
+        i = lo(1)
+        j = hi(2)
+        do k = lo(3),hi(3)
+	  vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+	  wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+          uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+  	  wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+	  uz = uzcen(i,j,k)
+	  vz = vzcen(i,j,k)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+      endif
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y)) then
+        i = hi(1)
+        j = hi(2)
+        do k = lo(3),hi(3)
+	  vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+	  wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+          uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+  	  wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+	  uz = uzcen(i,j,k)
+	  vz = vzcen(i,j,k)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+      endif
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_z .or. fixvlo_z)) then
+        i = lo(1)
+        k = lo(3)
+        do j = lo(2),hi(2)
+	  vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+	  wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+          uy = uycen(i,j,k)
+  	  wy = wycen(i,j,k)
+	  uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+	  vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+      endif
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_z .or. fixvlo_z)) then
+        i = hi(1)
+        k = lo(3)
+        do j = lo(2),hi(2)
+	  vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+	  wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+          uy = uycen(i,j,k)
+  	  wy = wycen(i,j,k)
+	  uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+	  vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+      endif
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_z .or. fixvhi_z)) then
+        i = lo(1)
+        k = hi(3)
+        do j = lo(2),hi(2)
+	  vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+	  wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+          uy = uycen(i,j,k)
+  	  wy = wycen(i,j,k)
+	  uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+	  vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+      endif
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_z .or. fixvhi_z)) then
+        i = hi(1)
+        k = hi(3)
+        do j = lo(2),hi(2)
+	  vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+	  wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+          uy = uycen(i,j,k)
+  	  wy = wycen(i,j,k)
+	  uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+	  vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+      endif
+
+      if ((fixulo_y .or. fixwlo_y) .and. (fixulo_z .or. fixvlo_z)) then
+        j = lo(2)
+        k = lo(3)
+        do i = lo(1),hi(1)
+	  vx = vxcen(i,j,k)
+	  wx = wxcen(i,j,k)
+          uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+  	  wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+	  uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+	  vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+      endif
+
+      if ((fixuhi_y .or. fixwhi_y) .and. (fixulo_z .or. fixvlo_z)) then
+        j = hi(2)
+        k = lo(3)
+        do i = lo(1),hi(1)
+	  vx = vxcen(i,j,k)
+	  wx = wxcen(i,j,k)
+          uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+  	  wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+	  uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+	  vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+      endif
+
+      if ((fixulo_y .or. fixwlo_y) .and. (fixuhi_z .or. fixvhi_z)) then
+        j = lo(2)
+        k = hi(3)
+        do i = lo(1),hi(1)
+	  vx = vxcen(i,j,k)
+	  wx = wxcen(i,j,k)
+          uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+  	  wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+	  uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+	  vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+      endif
+
+      if ((fixuhi_y .or. fixwhi_y) .and. (fixuhi_z .or. fixvhi_z)) then
+        j = hi(2)
+        k = hi(3)
+        do i = lo(1),hi(1)
+	  vx = vxcen(i,j,k)
+	  wx = wxcen(i,j,k)
+          uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+  	  wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+	  uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+	  vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+        enddo
+      endif
+
+c     Finally do all the corners
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $    (fixulo_z .or. fixvlo_z)) then
+        i = lo(1)
+        j = lo(2)
+        k = lo(3)
+	vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+	wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+        uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+  	wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+	uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+	vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+        vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+      endif
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $    (fixulo_z .or. fixvlo_z)) then
+        i = hi(1)
+        j = lo(2)
+        k = lo(3)
+	vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+	wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+        uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+  	wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+	uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+	vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+        vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+      endif
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $    (fixulo_z .or. fixvlo_z)) then
+        i = lo(1)
+        j = hi(2)
+        k = lo(3)
+	vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+	wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+        uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+  	wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+	uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+	vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+        vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+      endif
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $    (fixulo_z .or. fixvlo_z)) then
+        i = hi(1)
+        j = hi(2)
+        k = lo(3)
+	vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+	wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+        uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+  	wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+	uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+	vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+        vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+      endif
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $    (fixuhi_z .or. fixvhi_z)) then
+        i = lo(1)
+        j = lo(2)
+        k = hi(3)
+	vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+	wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+        uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+  	wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+	uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+	vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+        vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+      endif
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $    (fixuhi_z .or. fixvhi_z)) then
+        i = hi(1)
+        j = lo(2)
+        k = hi(3)
+	vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+	wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+        uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+  	wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+	uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+	vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+        vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+      endif
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $    (fixuhi_z .or. fixvhi_z)) then
+        i = lo(1)
+        j = hi(2)
+        k = hi(3)
+	vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+	wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+        uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+  	wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+	uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+	vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+        vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+      endif
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $    (fixuhi_z .or. fixvhi_z)) then
+        i = hi(1)
+        j = hi(2)
+        k = hi(3)
+	vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+	wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+        uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+  	wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+	uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+	vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+        vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
+      endif
 
 #     undef U
 #     undef V      
@@ -590,8 +893,8 @@ c=========================================================
 
 
       subroutine FORT_DERMGDIVU (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,bc,
-     &                           level, grid_no)
+     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                           bc,level,grid_no)
 c
 c ::: This routine will derive magnitude of the divergence of velocity
 c
@@ -601,7 +904,8 @@ c
       integer    domlo(SDIM), domhi(SDIM)
       integer    nv, ncomp
       integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
       REAL_T     divu(DIMV(divu),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -869,8 +1173,8 @@ c
 c=========================================================
 
       subroutine FORT_DERGRDPX (grdpx,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,bc,
-     &                          level, grid_no)
+     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                          bc,level,grid_no)
 c
 c     This routine computes pressure gradient in x direciton
 c
@@ -880,7 +1184,8 @@ c
       integer    domlo(SDIM), domhi(SDIM)
       integer    nv, ncomp
       integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
       REAL_T     grdpx(DIMV(gp),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -900,8 +1205,8 @@ c=========================================================
 
 
       subroutine FORT_DERGRDPY (grdpy,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,bc,
-     &                          level, grid_no)
+     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                          bc,level,grid_no)
 c
 c     This routine computes pressure gradient in Y direciton
 c
@@ -911,7 +1216,8 @@ c
       integer    domlo(SDIM), domhi(SDIM)
       integer    nv, ncomp
       integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
       REAL_T     grdpy(DIMV(gp),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -929,8 +1235,8 @@ c=========================================================
 
 
       subroutine FORT_DERGRDPZ (grdpz,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,bc,
-     &                          level, grid_no)
+     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                          bc,level,grid_no)
 c
 c     This routine computes pressure gradient in Z direciton
 c
@@ -940,7 +1246,8 @@ c
       integer    domlo(SDIM), domhi(SDIM)
       integer    nv, ncomp
       integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM), time
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
       REAL_T     grdpz(DIMV(gp),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no

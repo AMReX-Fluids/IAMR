@@ -1,9 +1,7 @@
-c
-c $Id: DERIVE_2D.F,v 1.3 1997-12-12 22:43:58 lijewski Exp $ 
-c
-#undef  BL_LANG_CC
+c $Id: DERIVE_2D.F,v 1.4 1998-01-06 23:43:04 lijewski Exp $ 
+#undef BL_LANG_CC
 #ifndef BL_LANG_FORT
-#define BL_LANG_FORT
+#  define BL_LANG_FORT
 #endif
 
 #include "REAL.H" 
@@ -41,8 +39,8 @@ c     -----------------------------------------------------------
 c=========================================================
 
       subroutine FORT_DERKENG (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,bc,
-     $                         level,grid_no)
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                         bc,level,grid_no)
 c
 c     This routine will derive kinetic energy from density
 c     and the velocity field.
@@ -53,7 +51,7 @@ c
       integer    domlo(2), domhi(2)
       integer    nv, ncomp
       integer    bc(2,2,ncomp)
-      REAL_T     delta(2), xlo(2), time
+      REAL_T     delta(2), xlo(2), time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -91,8 +89,8 @@ c=========================================================
 
 
       subroutine FORT_DERLOGS (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,bc,
-     $                         level,grid_no)
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                         bc,level,grid_no)
 c
 c     This routine will derive log of given scalar quantity
 c
@@ -102,7 +100,7 @@ c
       integer    domlo(2), domhi(2)
       integer    nv, ncomp
       integer    bc(2,2,ncomp)
-      REAL_T     delta(2), xlo(2), time
+      REAL_T     delta(2), xlo(2), time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -142,8 +140,8 @@ c
 c=========================================================
 
       subroutine FORT_DERMVEL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,bc,
-     $                         level,grid_no)
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                         bc,level,grid_no)
 c
 c ::: This routine will derive the magnitude of the velocity field
 c ::: from the velocity field
@@ -155,7 +153,7 @@ c
       integer    domlo(2), domhi(2)
       integer    nv, ncomp
       integer    bc(2,2,ncomp)
-      REAL_T     delta(2), xlo(2), time
+      REAL_T     delta(2), xlo(2), time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -194,8 +192,8 @@ c=========================================================
 
 
       subroutine FORT_DERDVRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,bc,
-     $                         level,grid_no)
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                         bc,level,grid_no)
 c
 c ::: This routine will derive C/RHO
 c
@@ -205,7 +203,7 @@ c
       integer    domlo(2), domhi(2)
       integer    nv, ncomp
       integer    bc(2,2,ncomp)
-      REAL_T     delta(2), xlo(2), time
+      REAL_T     delta(2), xlo(2), time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -240,8 +238,8 @@ c
 c=========================================================
 
       subroutine FORT_DERMPRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,bc,
-     $                         level,grid_no)
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                         bc,level,grid_no)
 c
 c ::: This routine will derive RHO*C
 c
@@ -251,7 +249,7 @@ c
       integer    domlo(2), domhi(2)
       integer    nv, ncomp
       integer    bc(2,2,ncomp)
-      REAL_T     delta(2), xlo(2), time
+      REAL_T     delta(2), xlo(2), time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -286,8 +284,8 @@ c
 c=========================================================
 
       subroutine FORT_DERLGRHODUST (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                              lo,hi,domlo,domhi,delta,xlo,time,bc,
-     $                              level,grid_no)
+     &                              lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                              bc,level,grid_no)
 c
 c ::: This routine will derive log(RHO*C)
 c
@@ -297,7 +295,7 @@ c
       integer    domlo(2), domhi(2)
       integer    nv, ncomp
       integer    bc(2,2,ncomp)
-      REAL_T     delta(2), xlo(2), time
+      REAL_T     delta(2), xlo(2), time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -334,8 +332,8 @@ c
 c=========================================================
 
       subroutine FORT_DERMGVORT (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,bc,
-     $                           level,grid_no)
+     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                           bc,level,grid_no)
 c
 c ::: This routine will derive magnitude of vorticity from
 c ::: the velocity field
@@ -346,7 +344,7 @@ c
       integer    domlo(2), domhi(2)
       integer    nv, ncomp
       integer    bc(2,2,ncomp)
-      REAL_T     delta(2), xlo(2), time
+      REAL_T     delta(2), xlo(2), time, dt
       REAL_T     vort(DIMV(vort),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -491,8 +489,8 @@ c
 c=========================================================
 
       subroutine FORT_DERMGVORT2 (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
-     &                            lo,hi,domlo,domhi,delta,xlo,time,bc,
-     $                            level,grid_no)
+     &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                            bc,level,grid_no)
 c
 c ::: This routine will derive magnitude of vorticity from
 c ::: the velocity field
@@ -503,7 +501,7 @@ c
       integer    domlo(2), domhi(2)
       integer    nv, ncomp
       integer    bc(2,2,ncomp)
-      REAL_T     delta(2), xlo(2), time
+      REAL_T     delta(2), xlo(2), time, dt
       REAL_T     vort(DIMV(vort),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -611,8 +609,8 @@ c=========================================================
 
 
       subroutine FORT_DERMGDIVU (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,bc,
-     $                           level,grid_no)
+     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                           bc,level,grid_no)
 c
 c ::: This routine will derive magnitude of the divergence of velocity
 c
@@ -622,7 +620,7 @@ c
       integer    domlo(2), domhi(2)
       integer    nv, ncomp
       integer    bc(2,2,ncomp)
-      REAL_T     delta(2), xlo(2), time
+      REAL_T     delta(2), xlo(2), time, dt
       REAL_T     divu(DIMV(divu),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
@@ -803,9 +801,47 @@ c
 c=========================================================
 
 
+      subroutine FORT_DERAVGPRES (avgpres,DIMS(gp),nv,dat,DIMS(dat),ncomp,
+     &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                            bc,level,grid_no)
+c
+c     This routine computes cell-centered pressure as average of the four
+c       surrounding nodal values.
+c
+      integer DIMDEC(gp)
+      integer DIMDEC(dat)
+      REAL_T  avgpres(DIMV(gp))
+      REAL_T  dat(DIMV(dat))
+      integer nv, ncomp
+      integer lo(2), hi(2)
+      integer domlo(2), domhi(2)
+      REAL_T  delta(2)
+      REAL_T  xlo(2)
+      REAL_T  time, dt
+      integer bc(2,2,ncomp)
+      integer level
+      integer grid_no
+
+      integer i,j
+c
+         do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            avgpres(i,j) = fourth*( dat(i+1,j  )+dat(i,j  ) +
+     $                              dat(i+1,j+1)+dat(i,j+1) )
+         enddo
+         enddo
+c
+c     end of routine
+c
+      return
+      end
+
+c=========================================================
+
+
       subroutine FORT_DERGRDPX (grdpx,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,bc,
-     $                          level,grid_no)
+     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                          bc,level,grid_no)
 c
 c     This routine computes pressure gradient in X direction
 c
@@ -815,7 +851,7 @@ c
       integer domlo(2), domhi(2)
       integer nv, ncomp
       integer bc(2,2,ncomp)
-      REAL_T  delta(2), xlo(2), time
+      REAL_T  delta(2), xlo(2), time, dt
       REAL_T  grdpx(DIMV(gp),nv)
       REAL_T  dat(DIMV(dat),ncomp)
       integer level, grid_no
@@ -834,8 +870,8 @@ c=========================================================
 
 
       subroutine FORT_DERGRDPY (grdpy,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,bc,
-     $                          level,grid_no)
+     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                          bc,level,grid_no)
 c
 c     This routine computes pressure gradient in Y direction
 c
@@ -845,7 +881,7 @@ c
       integer domlo(2), domhi(2)
       integer nv, ncomp
       integer bc(2,2,ncomp)
-      REAL_T  delta(2), xlo(2), time
+      REAL_T  delta(2), xlo(2), time, dt
       REAL_T  grdpy(DIMV(gp),nv)
       REAL_T  dat(DIMV(dat),ncomp)
       integer level, grid_no
