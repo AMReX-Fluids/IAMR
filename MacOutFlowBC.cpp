@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.2 1999-07-29 01:35:57 marc Exp $
+// $Id: MacOutFlowBC.cpp,v 1.3 1999-07-30 18:05:42 propp Exp $
 //
 
 #include "MacOutFlowBC.H"
@@ -31,6 +31,7 @@ Real MacOutFlowBC_MG::cg_tol = 1.0e-2;
 Real MacOutFlowBC_MG::cg_abs_tol = 5.0e-12;
 Real MacOutFlowBC_MG::cg_max_jump = 10.0;
 int  MacOutFlowBC_MG::cg_maxiter = 40;
+int  MacOutFlowBC_MG::maxIters = 40;
 
 static
 Box semiGrow(const Box& baseBox,int nGrow,int direction)
@@ -54,7 +55,7 @@ MacOutFlowBC::MacOutFlowBC()
 {
   ParmParse pp("macoutflow");
   pp.query("tol",tol);
-
+  pp.query("abs_tol",abs_tol);
 #if (BL_SPACEDIM == 2)
   mac_solver = MAC_BACK;
 #else
@@ -339,15 +340,21 @@ MacOutFlowBC_MG::MacOutFlowBC_MG(Box& Domain,
 				 int* IsPeriodic):
   domain(Domain)
 {
-  ParmParse pp("mac_mg");
-  pp.query("verbose",verbose);
-  int use_cg;
-  pp.query("useCGbottomSolver",use_cg);
-  useCGbottomSolver = (use_cg > 0) ? true : false;
-  pp.query("cg_tol",cg_tol);
-  pp.query("cg_abs_tol",cg_abs_tol);
-  pp.query("cg_max_jump",cg_max_jump);
-  pp.query("cg_maxiter",cg_maxiter);
+  static int first = true;
+  if (first)
+    {
+      first = false;
+      ParmParse pp("mac_mg");
+      pp.query("verbose",verbose);
+      int use_cg;
+      pp.query("useCGbottomSolver",use_cg);
+      useCGbottomSolver = (use_cg > 0) ? true : false;
+      pp.query("cg_tol",cg_tol);
+      pp.query("cg_abs_tol",cg_abs_tol);
+      pp.query("cg_max_jump",cg_max_jump);
+      pp.query("cg_maxiter",cg_maxiter);
+      pp.query("maxIters",maxIters);
+    }
 
   phi = Phi;
   rhs = Rhs;
@@ -553,13 +560,19 @@ MacOutFlowBC_MG::solve(Real tolerance, Real abs_tolerance,int i1, int i2)
       cout << "Initial Residual: " << rlast << endl;
     }
   if (rlast > goal) {
-    while ((res = vcycle(i1,i2)) > goal) {
+    while (((res = vcycle(i1,i2)) > goal) && (iter < maxIters)) {
       iter++;
       if (verbose)
 	cout << "Residual: " << res << " at iteration " << iter << endl;
     }
   }
   
+  if (iter >= maxIters)
+    {
+      cout << "warning: top mac solver reached maxIter" << endl;
+      cout << "goal was: " << goal << " && res = " << res << endl;
+    }
+
   if (verbose)
     {
       cout << "Final Residual: " << res << " after " 

@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ProjOutFlowBC.cpp,v 1.2 1999-07-29 01:35:57 marc Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.3 1999-07-30 18:05:41 propp Exp $
 //
 
 #include "ProjOutFlowBC.H"
@@ -31,6 +31,7 @@ Real ProjOutFlowBC_MG::cg_tol = 1.0e-2;
 Real ProjOutFlowBC_MG::cg_abs_tol = 5.0e-12;
 Real ProjOutFlowBC_MG::cg_max_jump = 10.0;
 int  ProjOutFlowBC_MG::cg_maxiter = 40;
+int  ProjOutFlowBC_MG::maxIters = 40;
 
 static
 Box semiGrow(const Box& baseBox,int nGrow,int direction)
@@ -59,22 +60,23 @@ Box semiSurroundingNodes(const Box& baseBox, int direction)
 }
 
 static
-Real computeRhsNorm(FArrayBox& rhs)
+Real computeRhsNorm(FArrayBox& rhs, Box& faceBox)
 {
   // note - these manipulations are purely due to the fact that the problem --
   // the operator and the rhs -- are doubled at edges.
   
-  FArrayBox tempRhs(rhs.box(),rhs.nComp());
+  Box rhsBox = semiSurroundingNodes(faceBox,BL_SPACEDIM-1);
+  FArrayBox tempRhs(rhsBox,rhs.nComp());
+  
   tempRhs.copy(rhs);
   
   for (int dir = 0; dir < BL_SPACEDIM-1; dir++)
     {
-      Box loBox = bdryLo(rhs.box(),dir,1);
-      Box hiBox = bdryHi(rhs.box(),dir,1);
+      Box loBox = bdryLo(rhsBox,dir,1);
+      Box hiBox = bdryHi(rhsBox,dir,1);
       tempRhs.mult(0.5,loBox,0,1);
       tempRhs.mult(0.5,hiBox,0,1);
     }
-
   return tempRhs.sum(0);
 }
 
@@ -82,7 +84,7 @@ ProjOutFlowBC::ProjOutFlowBC()
 {
   ParmParse pp("projoutflow");
   pp.query("tol",tol);
-
+  pp.query("abs_tol",abs_tol);
 #if (BL_SPACEDIM == 2)
   proj_solver = HG_BACK;
 #else
@@ -327,6 +329,7 @@ ProjOutFlowBC::computeCoefficients(FArrayBox& rhs,
 #endif
 		     faceLo,faceHi,
 		     dxFiltered,isPeriodicFiltered);
+
 }
 
 ProjOutFlowBC_MG::ProjOutFlowBC_MG(const Box& Domain,
@@ -338,15 +341,21 @@ ProjOutFlowBC_MG::ProjOutFlowBC_MG(const Box& Domain,
 			       int* IsPeriodic):
   domain(Domain)
 {
-  ParmParse pp("proj_mg");
-  pp.query("verbose",verbose);
-  int use_cg;
-  pp.query("useCGbottomSolver",use_cg);
-  useCGbottomSolver = (use_cg > 0) ? true : false;
-  pp.query("cg_tol",cg_tol);
-  pp.query("cg_abs_tol",cg_abs_tol);
-  pp.query("cg_max_jump",cg_max_jump);
-  pp.query("cg_maxiter",cg_maxiter);
+  static int first = true;
+  if (first)
+    {
+      first = false;
+      ParmParse pp("proj_mg");
+      pp.query("verbose",verbose);
+      int use_cg;
+      pp.query("useCGbottomSolver",use_cg);
+      useCGbottomSolver = (use_cg > 0) ? true : false;
+      pp.query("cg_tol",cg_tol);
+      pp.query("cg_abs_tol",cg_abs_tol);
+      pp.query("cg_max_jump",cg_max_jump);
+      pp.query("cg_maxiter",cg_maxiter);
+      pp.query("maxIters",maxIters);
+    }
 
   phi = Phi;
   rhs = Rhs;
@@ -545,21 +554,26 @@ ProjOutFlowBC_MG::solve(Real tolerance, Real abs_tolerance,int i1, int i2)
   Real res = rlast;
   Real goal = Max(rlast*tolerance,abs_tolerance);
 
-
   if (verbose)
     {
-      Real rhsNorm = computeRhsNorm(*rhs);
+      Real rhsNorm = computeRhsNorm(*rhs,domain);
       cout << "Sum of Rhs is: " << rhsNorm << endl;
       cout << "Initial Residual: " << rlast << endl;
     }
   if (rlast > goal) {
-    while ((res = vcycle(i1,i2)) > goal) {
+    while (((res = vcycle(i1,i2)) > goal) && (iter < maxIters )) {
       iter++;
       if (verbose)
 	cout << "Residual: " << res << " at iteration " << iter << endl;
     }
   }
   
+  if (iter >= maxIters)
+    {
+      cout << "warning: top proj solver reached maxIter" << endl;
+      cout << "goal was: " << goal << " && res = " << res << endl;
+    }
+
   if (verbose) 
     {
       cout << "Final Residual: " << res << " after " 
