@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.29 1998-06-05 00:08:27 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.30 1998-06-08 17:36:51 lijewski Exp $
 //
 
 //
@@ -27,7 +27,6 @@
 #include <DIFFUSION_F.H>
 #include <VISCOPERATOR_F.H>
 
-
 #if (BL_SPACEDIM==2) && defined (USE_TENSOR)
 //
 // Include files for tensor solve.
@@ -45,6 +44,7 @@ const char NL = '\n';
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 Real* fabdat = (fab).dataPtr();
+
 #define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
@@ -70,8 +70,8 @@ int  Diffusion::scale_abec = 0;
 int  Diffusion::est_visc_mag = 1;
 int  Diffusion::Lphi_in_abs_tol = 0;
 
-Array<REAL> Diffusion::typical_vals;
-const REAL typical_vals_DEF = 1.0;
+Array<Real> Diffusion::typical_vals;
+const Real typical_vals_DEF = 1.0;
 
 //
 // This modules own MultiFab - MultiFab copy with ghost cells
@@ -122,7 +122,7 @@ Diffusion::Diffusion (Amr*          Parent,
     grids(caller->boxArray()),
     level(caller->Level()),
     coarser(Coarser),
-    finer(NULL),
+    finer(0),
     NUM_STATE(num_state),
     viscflux_reg(Viscflux_reg),
     volume(Volume),
@@ -247,20 +247,27 @@ Diffusion::echo_settings () const
     }
 }
 
-REAL Diffusion::get_scaled_abs_tol(int sigma, const MultiFab* rhs,
-				   REAL a, REAL b,
-				   const MultiFab* alpha,
-				   const MultiFab* const * betan,
-				   const MultiFab* const * betanp1,
-				   REAL reduction) const
+Real
+Diffusion::get_scaled_abs_tol (int                     sigma,
+                               const MultiFab*         rhs,
+                               Real                    a,
+                               Real                    b,
+                               const MultiFab*         alpha,
+                               const MultiFab* const * betan,
+                               const MultiFab* const * betanp1,
+                               Real                    reduction) const
 {
-        // Get norm of rhs
-    REAL norm_est, norm_rhs = 0;
+    //
+    // Get norm of rhs.
+    //
+    Real norm_est, norm_rhs = 0;
 
-    if (rhs != NULL) {
+    if (rhs != 0)
+    {
       assert(grids == rhs->boxArray());
-      for(ConstMultiFabIterator Rhsmfi(*rhs); Rhsmfi.isValid(); ++Rhsmfi) {
-        norm_rhs = Max(norm_rhs,Rhsmfi().norm(0));
+      for (ConstMultiFabIterator Rhsmfi(*rhs); Rhsmfi.isValid(); ++Rhsmfi)
+      {
+          norm_rhs = Max(norm_rhs,Rhsmfi().norm(0));
       }
       ParallelDescriptor::ReduceRealMax(norm_rhs);
     }
@@ -268,77 +275,80 @@ REAL Diffusion::get_scaled_abs_tol(int sigma, const MultiFab* rhs,
     if (!Lphi_in_abs_tol)
     {
 	norm_est = norm_rhs;
-	
-    } else {
-    
+    }
+    else
+    {
+        //
 	// Approximate (||A||.||x|| + ||rhs||)*reduction
-
-	// Get grid spacing
-	const REAL* dx = caller->Geom().CellSize();
-    
+        //
+	const Real* dx = caller->Geom().CellSize();
+        //
 	// Are there spatially varying coefficients?
+        //
 	int allthere_n, allthere_np1;
 	checkBeta(betan,   allthere_n);
 	checkBeta(betanp1, allthere_np1);
     
 	int do_const_visc = (!est_visc_mag) || 
                             ( (!allthere_n) && (!allthere_np1) ); 
-        REAL norm_b_div_beta_grad = 0;
+        Real norm_b_div_beta_grad = 0;
 	for (int d=0; d<BL_SPACEDIM; d++)
 	{
-	    REAL norm_visc = 0;
+	    Real norm_visc = 0;
 	    if (do_const_visc)
 	    {
 		norm_visc = Abs( visc_coef[sigma] );
-	    
-	    } else {
-
+	    }
+            else
+            {
 		if (allthere_n)
 		{
 		    assert(grids == (*betan[d]).boxArray());
-                    for(ConstMultiFabIterator Betanmfi(*betan[d]); 
-                                              Betanmfi.isValid(); 
-                                            ++Betanmfi) {
-                       norm_visc = Max(norm_visc,Betanmfi().norm(0));
+                    for (ConstMultiFabIterator Betanmfi(*betan[d]); 
+                         Betanmfi.isValid(); ++Betanmfi)
+                    {
+                        norm_visc = Max(norm_visc,Betanmfi().norm(0));
                     }
                     ParallelDescriptor::ReduceRealMax(norm_visc);
 
 		}
-	    
 		if (allthere_np1)
 		{
 		    assert(grids == (*betanp1[d]).boxArray());
-                    for(ConstMultiFabIterator Betanp1mfi(*betanp1[d]); 
-                                              Betanp1mfi.isValid(); 
-                                            ++Betanp1mfi) {
-                       norm_visc = Max(norm_visc,Betanp1mfi().norm(0));
+                    for (ConstMultiFabIterator Betanp1mfi(*betanp1[d]); 
+                         Betanp1mfi.isValid(); ++Betanp1mfi)
+                    {
+                        norm_visc = Max(norm_visc,Betanp1mfi().norm(0));
                     }
                     ParallelDescriptor::ReduceRealMax(norm_visc);
 		}
 	    }
 	
-	    norm_b_div_beta_grad = Max( norm_b_div_beta_grad,
-					Abs(b) * norm_visc / (dx[d] * dx[d]) );
+	    norm_b_div_beta_grad = Max(norm_b_div_beta_grad,
+                                       Abs(b)*norm_visc/(dx[d]*dx[d]));
 	}
-    
-	// Get norm of alpha * a (if alpha=NULL, leave this zero)
-	REAL norm_a_alpha = 0;
-	if (alpha != NULL)
+        //
+	// Get norm of alpha * a (if alpha=0, leave this zero).
+        //
+	Real norm_a_alpha = 0;
+	if (alpha != 0)
 	{
 	    assert(grids == alpha->boxArray());
-            for(ConstMultiFabIterator Alphamfi(*alpha); 
-                                      Alphamfi.isValid(); 
-                                    ++Alphamfi) {
+            for (ConstMultiFabIterator Alphamfi(*alpha); 
+                 Alphamfi.isValid(); ++Alphamfi)
+            {
                 norm_a_alpha = Max(norm_a_alpha,a * Alphamfi().norm(0));
             }
             ParallelDescriptor::ReduceRealMax(norm_a_alpha);
 	}
-    
-	// Get norm_A
-	REAL norm_A = Max( norm_a_alpha, norm_b_div_beta_grad );
-    
-	// Get norm of soln
-	REAL norm_x = typical_vals[sigma];
+        //
+	// Get norm_A.
+        //
+	Real norm_A = Max(norm_a_alpha, norm_b_div_beta_grad);
+        //
+	// Get norm of soln.
+        //
+	Real norm_x = typical_vals[sigma];
 
 	norm_est = Max( norm_A * norm_x, norm_rhs );
     }
@@ -368,7 +378,7 @@ Diffusion::diffuse_scalar (Real       dt,
     int allnull, allthere;
     checkBetas(betan, betanp1, allthere, allnull);
 
-    int finest_level = parent->finestLevel();
+    const int finest_level = parent->finestLevel();
     //
     // At this point, S_old has bndry at time N.
     //
@@ -403,22 +413,19 @@ Diffusion::diffuse_scalar (Real       dt,
     //
     MultiFab Rhs(grids,1,0,Fab_allocate);
     MultiFab Soln(grids,1,1,Fab_allocate);
-
-    { // set up Rhs
-
-        Real a = 0.0;
-        Real b;
+    {
+        //
+        // Set up Rhs.
+        //
+        const Real a = 0.0;
+        Real b       = -(1.0-be_cn_theta)*dt;
         if (allnull)
         {
-            b = -(1.0-be_cn_theta)*visc_coef[sigma]*dt;
-        }
-        else
-        {
-            b = -(1.0-be_cn_theta)*dt;
+            b *= visc_coef[sigma];
         }
         ViscBndry visc_bndry;
         ABecLaplacian *visc_op =   
-            getViscOp(sigma,a,b,prev_time,visc_bndry,rho_half,rho_flag,NULL,betan);
+            getViscOp(sigma,a,b,prev_time,visc_bndry,rho_half,rho_flag,0,betan);
         visc_op->maxOrder(max_order);
 
         if (rho_flag == 2)
@@ -472,7 +479,7 @@ Diffusion::diffuse_scalar (Real       dt,
                 S_newmfi().mult(rho_halfmfi(),S_newmfi.validbox(),0,sigma,1);
             }
 
-            if (alpha!=NULL)
+            if (alpha!=0)
             {
                 DependentMultiFabIterator alphamfi(S_newmfi, (*alpha));
                 S_newmfi().mult(alphamfi(),S_newmfi.validbox(),0,sigma,1);
@@ -482,7 +489,7 @@ Diffusion::diffuse_scalar (Real       dt,
             //
             Rhsmfi().plus(S_newmfi(),S_newmfi.validbox(),sigma,0,1);
         }
-        if (delta_rhs != NULL)
+        if (delta_rhs != 0)
         {
             for (MultiFabIterator delta_rhsmfi(*delta_rhs);
                  delta_rhsmfi.isValid(); ++delta_rhsmfi)
@@ -499,9 +506,12 @@ Diffusion::diffuse_scalar (Real       dt,
     //
     // Construct viscous operator with bndry data at time N+1.
     //
-    Real a = 1.0;
-    Real b = allnull ? be_cn_theta*dt*visc_coef[sigma] : be_cn_theta*dt;
-
+    const Real a = 1.0;
+    Real b       = be_cn_theta*dt;
+    if (allnull)
+    {
+        b *= visc_coef[sigma];
+    }
     ViscBndry visc_bndry;
     Real rhsscale = 1.0;
     ABecLaplacian *visc_op = getViscOp(sigma,a,b,cur_time,visc_bndry,
@@ -511,9 +521,9 @@ Diffusion::diffuse_scalar (Real       dt,
     //
     // Construct solver and call it.
     //
-    Real S_tol = visc_tol;
-    REAL S_tol_abs = get_scaled_abs_tol(sigma, &Rhs, a, b,
-                                        alpha, betan, betanp1, visc_abs_tol);
+    const Real S_tol     = visc_tol;
+    const Real S_tol_abs = get_scaled_abs_tol(sigma, &Rhs, a, b, alpha,
+                                              betan, betanp1, visc_abs_tol);
     if (use_cg_solve)
     {
         CGSolver cg(*visc_op,use_mg_precond_flag);
@@ -620,7 +630,7 @@ Diffusion::diffuse_scalar (Real       dt,
 #endif
             }
             //
-            // NOTE: fluxes expected to be in extensive form.
+            // Fluxes expected to be in extensive form.
             //
             if (level < finest_level)
             {
@@ -675,33 +685,37 @@ void Diffusion::diffuse_velocity(Real dt, Real be_cn_theta,
                                  MultiFab** betanp1)
 
 {
-  if (verbose && ParallelDescriptor::IOProcessor())
-  {
-      cout << "... diffuse_velocity\n";
-  }
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        cout << "... diffuse_velocity\n";
+    }
 
-  int allnull, allthere;
-  checkBetas(betan, betanp1, allthere, allnull);
+    int allnull, allthere;
+    checkBetas(betan, betanp1, allthere, allnull);
 
-  int constant_viscosity = allnull;
+    int constant_viscosity = allnull;
+    int use_dv_constant_mu = use_dv_constant_mu_def;
 
-  int use_dv_constant_mu = use_dv_constant_mu_def;
-  for (int i=0; i<BL_SPACEDIM; i++) 
-    use_dv_constant_mu = use_dv_constant_mu && visc_coef[Xvel+i] >= 0.0; 
-  if (!use_dv_constant_mu && use_dv_constant_mu_def)
-  {
-    cout << "Diffusion::diffuse_velocity() : must have velocity visc_coefs "
-         << ">= 0.0 if use_dv_constant_mu == 1\n";
-    ParallelDescriptor::Abort("Exiting.");
-  }
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        use_dv_constant_mu = use_dv_constant_mu && visc_coef[Xvel+i] >= 0.0;
+    }
 
-  if(constant_viscosity || use_dv_constant_mu)  {
-    diffuse_velocity_constant_mu(dt, be_cn_theta, rho_half,
-                                 delta_rhs);
-  } else {
-    diffuse_tensor_velocity(dt, be_cn_theta, rho_half,
-                            delta_rhs, betan, betanp1);
-  }
+    if (!use_dv_constant_mu && use_dv_constant_mu_def)
+    {
+        cout << "Diffusion::diffuse_velocity() : must have velocity visc_coefs "
+             << ">= 0.0 if use_dv_constant_mu == 1\n";
+        ParallelDescriptor::Abort("Exiting.");
+    }
+
+    if (constant_viscosity || use_dv_constant_mu)
+    {
+        diffuse_velocity_constant_mu(dt, be_cn_theta, rho_half, delta_rhs);
+    }
+    else
+    {
+        diffuse_tensor_velocity(dt,be_cn_theta,rho_half,delta_rhs,betan,betanp1);
+    }
 }
 
 void
@@ -742,8 +756,8 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
             //
             // Set up Rhs.
             //
-            Real a = 0.0;
-            Real b = -(1.0-be_cn_theta)*visc_coef[sigma]*dt;
+            const Real a = 0.0;
+            const Real b = -(1.0-be_cn_theta)*visc_coef[sigma]*dt;
 
             ViscBndry visc_bndry;
             ABecLaplacian* visc_op = 
@@ -781,7 +795,7 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
                 Rhsmfi().plus(U_newmfi(),U_newmfi.validbox(),sigma,0,1);
             }
 
-            if (delta_rhs != NULL)
+            if (delta_rhs != 0)
             {
                 for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
                 {
@@ -857,8 +871,8 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
         //
         // Construct viscous operator with bndry data at time N+1.
         //
-        Real a = 1.0;
-        Real b = be_cn_theta*dt*visc_coef[sigma];
+        const Real a = 1.0;
+        const Real b = be_cn_theta*dt*visc_coef[sigma];
        
         ViscBndry visc_bndry;
         rho_flag      = 1 ;
@@ -879,9 +893,9 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
         //
         // Construct solver and call it.
         //
-        Real S_tol = visc_tol;
-        Real S_tol_abs = get_scaled_abs_tol(sigma, &Rhs, 
-                                            a, b, alpha, beta, visc_abs_tol);
+        const Real S_tol = visc_tol;
+        const Real S_tol_abs = get_scaled_abs_tol(sigma, &Rhs, a, b, alpha,
+                                                  beta, visc_abs_tol);
         if (use_cg_solve)
         {
             CGSolver cg(*visc_op,use_mg_precond_flag);
@@ -895,7 +909,6 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
 
         int visc_op_lev = 0;
         visc_op->applyBC(Soln,visc_op_lev);
-
         delete visc_op;
         //
         // Copy into state variable at new time.
@@ -976,7 +989,7 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
                                dx,&mult,&be_cn_theta);
 #endif
                 //
-                // NOTE: fluxes expected to be in extensive form.
+                // Fluxes expected to be in extensive form.
                 //
                 if (level < parent->finestLevel())
                 {
@@ -1111,7 +1124,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
                 Rhsmfi().plus(U_newmfi(),Rhsmfi.validbox(),sigma,comp,1);
             }
 
-            if (delta_rhs != NULL)
+            if (delta_rhs != 0)
             {
                 for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
                 {
@@ -1218,7 +1231,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
     // Construct solver and call it.
     //
     Real S_tol = visc_tol;
-    REAL S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b,
+    Real S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b,
                                         alpha, betan, betanp1, visc_abs_tol);
     if (use_tensor_cg_solve)
     {
@@ -1328,251 +1341,256 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
 #endif
 }
 
-void Diffusion::diffuse_Vsync(MultiFab *Vsync, Real dt,
-                              Real be_cn_theta,
-                              MultiFab* rho_half, int rho_flag,
-                              MultiFab** beta)
-
+void
+Diffusion::diffuse_Vsync (MultiFab*  Vsync,
+                          Real       dt,
+                          Real       be_cn_theta,
+                          MultiFab*  rho_half,
+                          int        rho_flag,
+                          MultiFab** beta)
 {
-  if (verbose && ParallelDescriptor::IOProcessor())
-  {
-      cout << "Diffusion::diffuse_Vsync\n";
-  }
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        cout << "Diffusion::diffuse_Vsync\n";
+    }
 
-  int allnull, allthere;
-  checkBeta(beta, allthere, allnull);
+    int allnull, allthere;
+    checkBeta(beta, allthere, allnull);
 
-  int constant_viscosity = allnull;
+    int constant_viscosity = allnull;
+    int use_dv_constant_mu = use_dv_constant_mu_def;
 
-  int use_dv_constant_mu = use_dv_constant_mu_def;
-  for (int i=0; i<BL_SPACEDIM; i++) 
-    use_dv_constant_mu = use_dv_constant_mu && visc_coef[Xvel+i] >= 0.0; 
-  if (!use_dv_constant_mu && use_dv_constant_mu_def)
-  {
-    cout << "Diffusion::diffuse_Vsync : must have velocity visc_coefs "
-         << ">= 0.0 if use_dv_constant_mu == 1\n";
-    ParallelDescriptor::Abort("Diffusion::diffuse_Vsync");
-  }
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        use_dv_constant_mu = use_dv_constant_mu && visc_coef[Xvel+i] >= 0.0;
+    }
+    if (!use_dv_constant_mu && use_dv_constant_mu_def)
+    {
+        cout << "Diffusion::diffuse_Vsync : must have velocity visc_coefs "
+             << ">= 0.0 if use_dv_constant_mu == 1\n";
+        ParallelDescriptor::Abort("Diffusion::diffuse_Vsync");
+    }
 
-  if(constant_viscosity || use_dv_constant_mu)  {
-    diffuse_Vsync_constant_mu(Vsync, dt, be_cn_theta, rho_half,
-                              rho_flag);
-  } else {
-    diffuse_tensor_Vsync(Vsync, dt, be_cn_theta, rho_half,
-                              rho_flag, beta);
-  }
+    if (constant_viscosity || use_dv_constant_mu)
+    {
+        diffuse_Vsync_constant_mu(Vsync,dt,be_cn_theta,rho_half,rho_flag);
+    }
+    else
+    {
+        diffuse_tensor_Vsync(Vsync,dt,be_cn_theta,rho_half,rho_flag,beta);
+    }
+    //
+    // applyBC has put "incorrect" values in the ghost cells
+    // outside external Dirichlet boundaries. Reset these to zero
+    // so that syncproject and conservative interpolation works correctly.
+    //
+    Box domain = ::grow(caller->Geom().Domain(),1);
 
-// applyBC has put "incorrect" values in the ghost cells
-// outside external Dirichlet boundaries. Reset these to zero
-// so that syncproject and conservative interpolation works correctly.
+    for (int n = Xvel; n < Xvel+BL_SPACEDIM; n++)
+    {
+        const BCRec& velbc = caller->get_desc_lst()[State_Type].getBC(n);
 
-   Box domain = caller->Geom().Domain();
-   domain.grow(1);
-
-   for (int n = Xvel; n < Xvel+BL_SPACEDIM; n++) {
-     const BCRec& velbc = caller->get_desc_lst()[State_Type].getBC(n);
-
-     for (int k = 0; k < BL_SPACEDIM; k++) {
-
-       if (velbc.hi(k) == EXT_DIR) {
-         IntVect bigend   = domain.bigEnd();
-         IntVect smallend = domain.smallEnd();
-         int hi = domain.bigEnd(k);
-
-         smallend.setVal(k,hi);
-         Box top_strip(smallend,bigend,IntVect::TheCellVector());
-         Vsync->setVal(0.0,top_strip,n-Xvel,1,1);
-       }
-
-       if (velbc.lo(k) == EXT_DIR) {
-         IntVect smallend = domain.smallEnd();
-         IntVect bigend   = domain.bigEnd();
-         int lo = domain.smallEnd(k);
-
-         bigend.setVal(k,lo);
-         Box bottom_strip(smallend,bigend,IntVect::TheCellVector());
-         Vsync->setVal(0.0,bottom_strip,n-Xvel,1,1);
-       }
-
-     }
-  }
+        for (int k = 0; k < BL_SPACEDIM; k++)
+        {
+            if (velbc.hi(k) == EXT_DIR)
+            {
+                IntVect smallend = domain.smallEnd();
+                smallend.setVal(k,domain.bigEnd(k));
+                Box top_strip(smallend,domain.bigEnd(),IntVect::TheCellVector());
+                Vsync->setVal(0.0,top_strip,n-Xvel,1,1);
+            }
+            if (velbc.lo(k) == EXT_DIR)
+            {
+                IntVect bigend   = domain.bigEnd();
+                bigend.setVal(k,domain.smallEnd(k));
+                Box bottom_strip(domain.smallEnd(),bigend,IntVect::TheCellVector());
+                Vsync->setVal(0.0,bottom_strip,n-Xvel,1,1);
+            }
+        }
+    }
 }
 
-void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, Real dt,
-                              Real be_cn_theta,
-                              MultiFab* rho_half, int rho_flag)
+void
+Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
+                                      Real      dt,
+                                      Real      be_cn_theta,
+                                      MultiFab* rho_half,
+                                      int       rho_flag)
 {
-  //int i;
-
-  if (verbose && ParallelDescriptor::IOProcessor())
-  {
-      cout << "Diffusion::diffuse_Vsync\n";
-  }
-
-  int ngrds = grids.length();
-  const Real* dx = caller->Geom().CellSize();
-
-  // at this point in time we can only do decoupled scalar
-  // so we loop over components
-  for (int comp = 0; comp < BL_SPACEDIM; comp++) {
-
-    MultiFab Soln(grids,1,1,Fab_allocate);
-    Soln.setVal(0.);
-
-    MultiFab Rhs(grids,1,0,Fab_allocate);
-    Rhs.copy(*Vsync,comp,0,1);
-
-    Real r_norm = 0.0;
-    for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
-      r_norm = Max(r_norm,Rhsmfi().norm(0));
-    }
-    ParallelDescriptor::ReduceRealMax(r_norm);
-
-    if (ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
-        cout << "Original max of Vsync " << r_norm << NL;
+        cout << "Diffusion::diffuse_Vsync\n";
     }
-
-    // Multiply RHS by volume and density
-    for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
-      DependentMultiFabIterator volumemfi(Rhsmfi, volume);
-      DependentMultiFabIterator rho_halfmfi(Rhsmfi, (*rho_half));
-      Rhsmfi().mult(volumemfi()); 
-      Rhsmfi().mult(rho_halfmfi()); 
-    }
-
-    //  SET UP COEFFICIENTS FOR VISCOUS SOLVER
-    Real a = 1.0;
-
-    Real b = be_cn_theta*dt*visc_coef[comp];
-
-    Real rhsscale = 1.0;
-    ABecLaplacian * visc_op = getViscOp(comp,a,b,rho_half,rho_flag,&rhsscale);
-    visc_op->maxOrder(max_order);
-    Rhs.mult(rhsscale,0,1);
-
-      // construct solver and call it
-    Real S_tol = visc_tol;
-    const MultiFab* alpha = &(visc_op->aCoefficients());
-    MultiFab const * betan[BL_SPACEDIM];
-    MultiFab const * betanp1[BL_SPACEDIM];
-    for (int d=0; d<BL_SPACEDIM; d++) {
-        betan[d] = &visc_op->bCoefficients(d);
-        betanp1[d] = betan[d];
-    }
-    REAL S_tol_abs = get_scaled_abs_tol(comp, &Rhs, a, b, 
-                                        alpha, betan, betanp1, visc_abs_tol);
-
-    if(use_cg_solve) {
-      CGSolver cg(*visc_op,use_mg_precond_flag);
-      cg.solve(Soln,Rhs,S_tol,S_tol_abs);
-    } else {
-      MultiGrid mg(*visc_op);
-      mg.solve(Soln,Rhs,S_tol,S_tol_abs);
-    }
-
-    int visc_op_lev = 0;
-    visc_op->applyBC(Soln,visc_op_lev);
-
-    Copy(*Vsync,Soln,0,comp,1,1);
-
-    Real s_norm = 0.0;
-    for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
-      s_norm = Max(s_norm,Solnmfi().norm(0));
-    }
-    ParallelDescriptor::ReduceRealMax(s_norm);
-
-    if (ParallelDescriptor::IOProcessor())
+    const Real* dx = caller->Geom().CellSize();
+    //
+    // At this point in time we can only do decoupled scalar
+    // so we loop over components.
+    //
+    for (int comp = 0; comp < BL_SPACEDIM; comp++)
     {
-        cout << "Final max of Vsync " << s_norm << NL;
-    }
+        MultiFab Soln(grids,1,1,Fab_allocate);
+        MultiFab Rhs(grids,1,0,Fab_allocate);
 
-    delete visc_op;
+        Soln.setVal(0.);
+        Rhs.copy(*Vsync,comp,0,1);
 
-    FArrayBox xflux;
-    FArrayBox yflux;
+        Real r_norm = 0.0;
+        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+        {
+            r_norm = Max(r_norm,Rhsmfi().norm(0));
+        }
+        ParallelDescriptor::ReduceRealMax(r_norm);
 
-    if (level > 0) {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "Original max of Vsync " << r_norm << NL;
+        }
+        //
+        // Multiply RHS by volume and density.
+        //
+        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+        {
+            DependentMultiFabIterator volumemfi(Rhsmfi, volume);
+            DependentMultiFabIterator rho_halfmfi(Rhsmfi, (*rho_half));
+            Rhsmfi().mult(volumemfi()); 
+            Rhsmfi().mult(rho_halfmfi()); 
+        }
+        //
+        // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
+        //
+        const Real a  = 1.0;
+        const Real b  = be_cn_theta*dt*visc_coef[comp];
+        Real rhsscale = 1.0;
+        ABecLaplacian * visc_op = getViscOp(comp,a,b,rho_half,rho_flag,&rhsscale);
+        visc_op->maxOrder(max_order);
+        Rhs.mult(rhsscale,0,1);
+        //
+        // Construct solver and call it.
+        //
+        const Real S_tol      = visc_tol;
+        const MultiFab* alpha = &(visc_op->aCoefficients());
+        MultiFab const * betan[BL_SPACEDIM];
+        MultiFab const * betanp1[BL_SPACEDIM];
+        for (int d = 0; d < BL_SPACEDIM; d++)
+        {
+            betan[d] = &visc_op->bCoefficients(d);
+            betanp1[d] = betan[d];
+        }
+        const Real S_tol_abs = get_scaled_abs_tol(comp, &Rhs, a, b, alpha,
+                                                  betan, betanp1, visc_abs_tol);
+        if (use_cg_solve)
+        {
+            CGSolver cg(*visc_op,use_mg_precond_flag);
+            cg.solve(Soln,Rhs,S_tol,S_tol_abs);
+        }
+        else
+        {
+            MultiGrid mg(*visc_op);
+            mg.solve(Soln,Rhs,S_tol,S_tol_abs);
+        }
 
-      for(MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi) {
-        DependentMultiFabIterator area0mfi(Vsyncmfi, area[0]);
-        DependentMultiFabIterator area1mfi(Vsyncmfi, area[1]);
+        int visc_op_lev = 0;
+        visc_op->applyBC(Soln,visc_op_lev);
+
+        Copy(*Vsync,Soln,0,comp,1,1);
+
+        Real s_norm = 0.0;
+        for (MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
+        {
+            s_norm = Max(s_norm,Solnmfi().norm(0));
+        }
+        ParallelDescriptor::ReduceRealMax(s_norm);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "Final max of Vsync " << s_norm << NL;
+        }
+
+        delete visc_op;
+
+        FArrayBox xflux, yflux;
+
+        if (level > 0) {
+
+            for(MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi) {
+                DependentMultiFabIterator area0mfi(Vsyncmfi, area[0]);
+                DependentMultiFabIterator area1mfi(Vsyncmfi, area[1]);
 #if (BL_SPACEDIM == 3)
-        DependentMultiFabIterator area2mfi(Vsyncmfi, area[2]);
+                DependentMultiFabIterator area2mfi(Vsyncmfi, area[2]);
 #endif
-        assert(grids[Vsyncmfi.index()] == Vsyncmfi.validbox());
-        int i = Vsyncmfi.index();
+                assert(grids[Vsyncmfi.index()] == Vsyncmfi.validbox());
+                int i = Vsyncmfi.index();
 
-        const Box& grd = Vsyncmfi.validbox();
-        const int* lo = grd.loVect();
-        const int* hi = grd.hiVect();
+                const Box& grd = Vsyncmfi.validbox();
+                const int* lo = grd.loVect();
+                const int* hi = grd.hiVect();
 
-        FArrayBox& u_sync = Vsyncmfi();
+                FArrayBox& u_sync = Vsyncmfi();
 
-        const int* ulo = u_sync.loVect();
-        const int* uhi = u_sync.hiVect();
+                const int* ulo = u_sync.loVect();
+                const int* uhi = u_sync.hiVect();
 
-        Box xflux_bx(grd);
-        xflux_bx.surroundingNodes(0);
-        xflux.resize(xflux_bx,1);
-        DEF_LIMITS(xflux,xflux_dat,xflux_lo,xflux_hi);
+                Box xflux_bx(grd);
+                xflux_bx.surroundingNodes(0);
+                xflux.resize(xflux_bx,1);
+                DEF_LIMITS(xflux,xflux_dat,xflux_lo,xflux_hi);
 
-        Box yflux_bx(grd);
-        yflux_bx.surroundingNodes(1);
-        yflux.resize(yflux_bx,1);
-        DEF_LIMITS(yflux,yflux_dat,yflux_lo,yflux_hi);
+                Box yflux_bx(grd);
+                yflux_bx.surroundingNodes(1);
+                yflux.resize(yflux_bx,1);
+                DEF_LIMITS(yflux,yflux_dat,yflux_lo,yflux_hi);
 
-        FArrayBox& xarea = area0mfi();
-        FArrayBox& yarea = area1mfi();
+                FArrayBox& xarea = area0mfi();
+                FArrayBox& yarea = area1mfi();
 
-        DEF_CLIMITS(xarea,xarea_dat,xarea_lo,xarea_hi);
-        DEF_CLIMITS(yarea,yarea_dat,yarea_lo,yarea_hi);
-
-        //      NOTE: the extra factor of dt comes from the fact that Vsync looks
-        //            like dV/dt, not just an increment to V
-
-        Real mult = -be_cn_theta*dt*dt*visc_coef[comp];
+                DEF_CLIMITS(xarea,xarea_dat,xarea_lo,xarea_hi);
+                DEF_CLIMITS(yarea,yarea_dat,yarea_lo,yarea_hi);
+                //
+                // The extra factor of dt comes from the fact that Vsync
+                // looks like dV/dt, not just an increment to V.
+                //
+                Real mult = -be_cn_theta*dt*dt*visc_coef[comp];
 
 #if (BL_SPACEDIM == 2)
-        FORT_VISCSYNCFLUX (u_sync.dataPtr(comp), ARLIM(ulo), ARLIM(uhi),
-                           lo,hi,
-                           xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
-                           yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
-                           xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
-                           yarea_dat,ARLIM(yarea_lo),ARLIM(yarea_hi),
-                           dx,&mult);
+                FORT_VISCSYNCFLUX (u_sync.dataPtr(comp), ARLIM(ulo), ARLIM(uhi),
+                                   lo,hi,
+                                   xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
+                                   yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
+                                   xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
+                                   yarea_dat,ARLIM(yarea_lo),ARLIM(yarea_hi),
+                                   dx,&mult);
 #endif
 #if (BL_SPACEDIM == 3)
 
-        FArrayBox zflux;
-        Box zflux_bx(grd);
-        zflux_bx.surroundingNodes(2);
-        zflux.resize(zflux_bx,1);
-        DEF_LIMITS(zflux,zflux_dat,zflux_lo,zflux_hi);
+                FArrayBox zflux;
+                Box zflux_bx(grd);
+                zflux_bx.surroundingNodes(2);
+                zflux.resize(zflux_bx,1);
+                DEF_LIMITS(zflux,zflux_dat,zflux_lo,zflux_hi);
 
-        FArrayBox& zarea = area2mfi();
-        DEF_CLIMITS(zarea,zarea_dat,zarea_lo,zarea_hi);
+                FArrayBox& zarea = area2mfi();
+                DEF_CLIMITS(zarea,zarea_dat,zarea_lo,zarea_hi);
 
-        FORT_VISCSYNCFLUX (u_sync.dataPtr(comp), ARLIM(ulo), ARLIM(uhi),
-                           lo,hi,
-                           xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
-                           yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
-                           zflux_dat,ARLIM(zflux_lo),ARLIM(zflux_hi),
-                           xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
-                           yarea_dat,ARLIM(yarea_lo),ARLIM(yarea_hi),
-                           zarea_dat,ARLIM(zarea_lo),ARLIM(zarea_hi),
-                           dx,&mult);
+                FORT_VISCSYNCFLUX (u_sync.dataPtr(comp), ARLIM(ulo), ARLIM(uhi),
+                                   lo,hi,
+                                   xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
+                                   yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
+                                   zflux_dat,ARLIM(zflux_lo),ARLIM(zflux_hi),
+                                   xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
+                                   yarea_dat,ARLIM(yarea_lo),ARLIM(yarea_hi),
+                                   zarea_dat,ARLIM(zarea_lo),ARLIM(zarea_hi),
+                                   dx,&mult);
 #endif
 
-        Real one = 1.0;
-        viscflux_reg->FineAdd(xflux,0,i,0,comp,1,one);
-        viscflux_reg->FineAdd(yflux,1,i,0,comp,1,one);
+                Real one = 1.0;
+                viscflux_reg->FineAdd(xflux,0,i,0,comp,1,one);
+                viscflux_reg->FineAdd(yflux,1,i,0,comp,1,one);
 #if (BL_SPACEDIM == 3)
-        viscflux_reg->FineAdd(zflux,2,i,0,comp,1,one);
+                viscflux_reg->FineAdd(zflux,2,i,0,comp,1,one);
 #endif
-      }
+            }
+        }
     }
-  }
 }
 
 void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, Real dt,
@@ -1646,7 +1664,7 @@ void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, Real dt,
       betan[d] = &tensor_op->bCoefficients(d);
       betanp1[d] = betan[d];
   }
-  REAL S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b, 
+  Real S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b, 
                                       alpha, betan, betanp1, visc_abs_tol);
 
   if(use_tensor_cg_solve) {
@@ -1761,9 +1779,9 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
     const Real* dx = caller->Geom().CellSize();
 
     MultiFab Soln(grids,1,1,Fab_allocate);
-    Soln.setVal(0);
-
     MultiFab Rhs(grids,1,0,Fab_allocate);
+
+    Soln.setVal(0);
     Rhs.copy(*Ssync,sigma,0,1);
 
     Real r_norm = 0.0;
@@ -1793,26 +1811,21 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
     //
     // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
     //
-    Real a = 1.0;
-    Real b;
+    const Real a = 1.0;
+    Real b       = be_cn_theta*dt;
     if (allnull)
     {
-        b = be_cn_theta*dt*visc_coef[BL_SPACEDIM+sigma];
+        b *= visc_coef[BL_SPACEDIM+sigma];
     }
-    else
-    {
-        b = be_cn_theta*dt;
-    }
-
     Real rhsscale = 1.0;
-    ABecLaplacian * visc_op = getViscOp(BL_SPACEDIM+sigma,a,b,
-                                        rho_half,rho_flag,&rhsscale,beta,alpha);
+    ABecLaplacian* visc_op = getViscOp(BL_SPACEDIM+sigma,a,b,
+                                       rho_half,rho_flag,&rhsscale,beta,alpha);
     visc_op->maxOrder(max_order);
     Rhs.mult(rhsscale,0,1);
     //
     // Construct solver and call it.
     //
-    Real S_tol = visc_tol;
+    const Real S_tol = visc_tol;
     MultiFab const * betan[BL_SPACEDIM];
     MultiFab const * betanp1[BL_SPACEDIM];
     for (int d = 0; d < BL_SPACEDIM; d++)
@@ -1820,8 +1833,8 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
         betan[d]   = &visc_op->bCoefficients(d);
         betanp1[d] = betan[d];
     }
-    REAL S_tol_abs = get_scaled_abs_tol(BL_SPACEDIM+sigma, &Rhs, a, b, 
-                                        alpha, betan, betanp1, visc_abs_tol);
+    const Real S_tol_abs = get_scaled_abs_tol(BL_SPACEDIM+sigma, &Rhs, a, b,
+                                              alpha, betan, betanp1, visc_abs_tol);
     if (use_cg_solve)
     {
         CGSolver cg(*visc_op,use_mg_precond_flag);
@@ -1852,12 +1865,10 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
 
     delete visc_op;
 
-    FArrayBox xflux;
-    FArrayBox yflux;
+    FArrayBox xflux, yflux;
 
     if (level > 0 && do_viscsyncflux == 1)
     {
- 
         for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
         {
             DependentMultiFabIterator area0mfi(Ssyncmfi, area[0]);
@@ -1959,7 +1970,6 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
             Ssyncmfi().mult(Rho_newmfi(),box,0,sigma,1);
         }
     }
-
     //
     // applyBC has put "incorrect" values in the ghost cells
     // outside external Dirichlet boundaries. Reset these to zero
@@ -1969,20 +1979,21 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
     Box domain          = ::grow(caller->Geom().Domain(),1);
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
-        IntVect bigend   = domain.bigEnd();
-        IntVect smallend = domain.smallEnd();
-     
-        smallend.setVal(k,domain.bigEnd(k));
-        Box top_strip(smallend,bigend,IntVect::TheCellVector());
         if (scalbc.hi(k) == EXT_DIR)
+        {
+            IntVect smallend = domain.smallEnd();
+            smallend.setVal(k,domain.bigEnd(k));
+            Box top_strip(smallend,domain.bigEnd(),IntVect::TheCellVector());
             Ssync->setVal(0.0,top_strip,sigma,1,1);
+        }
 
-        smallend = domain.smallEnd();
-        bigend   = domain.bigEnd();
-        bigend.setVal(k,domain.smallEnd(k));
-        Box bottom_strip(smallend,bigend,IntVect::TheCellVector());
         if (scalbc.lo(k) == EXT_DIR)
+        {
+            IntVect bigend = domain.bigEnd();
+            bigend.setVal(k,domain.smallEnd(k));
+            Box bottom_strip(domain.smallEnd(),bigend,IntVect::TheCellVector());
             Ssync->setVal(0.0,bottom_strip,sigma,1,1);
+        }
     }
 }
 
@@ -2111,16 +2122,16 @@ DivVis* Diffusion::getTensorOp(Real a, Real b,
     ParallelDescriptor::Abort("Diffusion::getTensorOp");
 #else
 
-  int allthere = beta != NULL;
+  int allthere = beta != 0;
   if(allthere) {
     for (int dim=0; dim<BL_SPACEDIM; dim++) {
-      allthere = allthere && beta[dim] != NULL;
+      allthere = allthere && beta[dim] != 0;
     }
   }
   if (!allthere)
   {
     cout << "Diffusion::getTensorOp() : all betas must allocated\n";
-    cout << "  all NULL or all non-NULL\n";
+    cout << "  all 0 or all non-0\n";
     ParallelDescriptor::Abort("Diffusion::getTensorOp()");
   }
 
@@ -2220,413 +2231,466 @@ DivVis* Diffusion::getTensorOp(Real a, Real b,
 }
 #endif
 
-ABecLaplacian* Diffusion::getViscOp(int comp, Real a, Real b,
-                                    Real time, ViscBndry & visc_bndry,
-                                    MultiFab* rho_half, int rho_flag, 
-                                    Real* rhsscale,
-                                    MultiFab** beta, MultiFab* alpha_in)
+ABecLaplacian*
+Diffusion::getViscOp (int        comp,
+                      Real       a,
+                      Real       b,
+                      Real       time,
+                      ViscBndry& visc_bndry,
+                      MultiFab*  rho_half,
+                      int        rho_flag, 
+                      Real*      rhsscale,
+                      MultiFab** beta,
+                      MultiFab*  alpha_in)
 {
+    int allnull, allthere;
+    checkBeta(beta, allthere, allnull);
 
-  int allnull, allthere;
-  checkBeta(beta, allthere, allnull);
+    const Real* dx = caller->Geom().CellSize();
 
-  const Real* dx = caller->Geom().CellSize();
-
-  getBndryData(visc_bndry,comp,1,time,rho_flag);
-
-  ABecLaplacian *visc_op = new ABecLaplacian(visc_bndry,dx);
-  visc_op->maxOrder(max_order);
-
-  int usehoop=( (comp==Xvel) && (CoordSys::IsRZ())   );
-
-  int useden = (rho_flag == 1);
-
-  MultiFab alpha;  // alpha should be the same size as volume
-  alpha.define(grids,1,GEOM_GROW,Fab_allocate);
-  for(MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi) {
-    DependentMultiFabIterator volumemfi(alphamfi, volume);
-    DependentMultiFabIterator rho_halfmfi(alphamfi, (*rho_half));
-    assert(alpha.box(alphamfi.index()) == alphamfi.validbox());
-    assert(volume.box(alphamfi.index()) == volumemfi.validbox());
-
-    const Box &bx = alphamfi.validbox();
-    int rlen      = bx.length(0);
-    Array<Real> rcen;
-    rcen.resize(rlen);
-    parent->Geom(level).GetCellLoc(rcen, bx, 0);
-    const int *lo       = bx.loVect();
-    const int *hi       = bx.hiVect();
-    Real *dat           = alphamfi().dataPtr();
-    Box abx             = grow(bx,alpha.nGrow());
-    const int *alo      = abx.loVect();
-    const int *ahi      = abx.hiVect();
-    const Real *rcendat = rcen.dataPtr();
-    const Real *voli    = volumemfi().dataPtr();
-    Box vbox            = grow(volumemfi.validbox(),volume.nGrow());
-    const int *vlo      = vbox.loVect();
-    const int *vhi      = vbox.hiVect();
-
-    FArrayBox& Rh = rho_halfmfi();
-    DEF_LIMITS(Rh,rho_dat,rlo,rhi);
-
-    FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),
-                  lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
-                  voli, ARLIM(vlo), ARLIM(vhi),
-                  rho_dat,ARLIM(rlo),ARLIM(rhi),&usehoop,&useden);
-
-
-  }
-
-//  visc_op->setScalars(a,dx[0]*b);
-  if (rho_flag == 2) {
-    // note: using conservative diffing for rho*T
-    MultiFab &S_new = caller->get_new_data(State_Type);
-    for(MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi) {
-      DependentMultiFabIterator S_newmfi(alphamfi, S_new);
-      assert(grids[alphamfi.index()] == alphamfi.validbox());
-      const Box& grd = alphamfi.validbox();
-      alphamfi().mult(S_newmfi(),grd,Density,0,1);
-    }
-  }
-
- if(alpha_in!=NULL) {
-    for(MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi) {
-      DependentMultiFabIterator alpha_inmfi(alphamfi, (*alpha_in));
-      assert(grids[alphamfi.index()] == alphamfi.validbox());
-      const Box& grd = alphamfi.validbox();
-      alphamfi().mult(alpha_inmfi(),grd,0,0,1);
-    }
-  }
-
-  if(rhsscale!=NULL) {
-    if(scale_abec) {
-      *rhsscale = 1.0/alpha.max(0);
-    } else {
-      *rhsscale = 1.0;
-    }
-    visc_op->setScalars(a*(*rhsscale),b*(*rhsscale));
-  } else {
-    visc_op->setScalars(a,b);
-  }
-
-  if(allnull) {
-    visc_op->aCoefficients(alpha);
-    for (int n = 0; n < BL_SPACEDIM; n++) {
-      MultiFab bcoeffs(area[n].boxArray(),1,0);
-      bcoeffs.copy(area[n]);
-      bcoeffs.mult(dx[n]);
-      visc_op->bCoefficients(bcoeffs,n);
-    }
-  } else {
-    visc_op->aCoefficients(alpha);
-    for (int n = 0; n < BL_SPACEDIM; n++) {
-      MultiFab bcoeffs(area[n].boxArray(),1,0);
-      bcoeffs.copy(area[n]);
-      for (MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-      {
-        DependentMultiFabIterator betanmfi(bcoeffsmfi, (*beta[n]));
-        bcoeffsmfi().mult(betanmfi());
-        bcoeffsmfi().mult(dx[n]);
-      }
-      visc_op->bCoefficients(bcoeffs,n);
-    }
-  }
-
-  return visc_op;
-}
-
-ABecLaplacian* Diffusion::getViscOp(int comp, Real a, Real b,
-                                    MultiFab* rho_half, int rho_flag, Real* rhsscale,
-                                    MultiFab** beta, MultiFab* alpha_in)
-{
-  int allnull, allthere;
-  checkBeta(beta, allthere, allnull);
-
-  const Real* dx = caller->Geom().CellSize();
-  const Box& domain = caller->Geom().Domain();
-  const BCRec& bc = caller->get_desc_lst()[State_Type].getBC(comp);
-
-  IntVect ref_ratio;
-  if (level > 0) {
-    ref_ratio = parent->refRatio(level-1);
-  } else {
-    ref_ratio = IntVect::TheUnitVector();
-  }
-
-  ViscBndry bndry(grids,1,domain);
-  bndry.setHomogValues(bc, ref_ratio);
-
-  ABecLaplacian *visc_op = new ABecLaplacian(bndry,dx);
-  visc_op->maxOrder(max_order);
-
-  int usehoop=( (comp==Xvel) && (CoordSys::IsRZ())   );
-
-  int useden = (rho_flag == 1);
-
-  MultiFab alpha;  // alpha should be the same size as volume
-  alpha.define(grids,1,GEOM_GROW,Fab_allocate);
-  for(MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi) {
-    DependentMultiFabIterator volumemfi(alphamfi, volume);
-    DependentMultiFabIterator rho_halfmfi(alphamfi, (*rho_half));
-    assert(alpha.box(alphamfi.index()) == alphamfi.validbox());
-    assert(volume.box(alphamfi.index()) == volumemfi.validbox());
-
-    const Box &bx = alphamfi.validbox();
-    int rlen      = bx.length(0);
-    Array<Real> rcen;
-    rcen.resize(rlen);
-    parent->Geom(level).GetCellLoc(rcen, bx, 0);
-    const int *lo       = bx.loVect();
-    const int *hi       = bx.hiVect();
-    Real *dat           = alphamfi().dataPtr();
-    Box abx             = grow(bx,alpha.nGrow());
-    const int *alo      = abx.loVect();
-    const int *ahi      = abx.hiVect();
-    const Real *rcendat = rcen.dataPtr();
-    const Real *voli    = volumemfi().dataPtr();
-    Box vbox            = grow(volumemfi.validbox(),volume.nGrow());
-    const int *vlo      = vbox.loVect();
-    const int *vhi      = vbox.hiVect();
-
-    FArrayBox& Rh = rho_halfmfi();
-    DEF_LIMITS(Rh,rho_dat,rlo,rhi);
-
-    FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),
-                  lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
-                  voli, ARLIM(vlo), ARLIM(vhi),
-                  rho_dat,ARLIM(rlo),ARLIM(rhi),&usehoop,&useden);
-
-
-  }
-
-  if (rho_flag == 2) {
-    // note: using conservative diffing for rho*S
-    MultiFab &S_new = caller->get_new_data(State_Type);
-    for(MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi) {
-      DependentMultiFabIterator S_newmfi(alphamfi, S_new);
-      assert(grids[alphamfi.index()] == alphamfi.validbox());
-      const Box& grd = alphamfi.validbox();
-      alphamfi().mult(S_newmfi(),grd,Density,0,1);
-    }
-  }
-
-  if (alpha_in!=NULL) {
-    for(MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi) {
-      DependentMultiFabIterator alpha_inmfi(alphamfi, (*alpha_in));
-      assert(grids[alphamfi.index()] == alphamfi.validbox());
-      const Box& grd = alphamfi.validbox();
-      alphamfi().mult(alpha_inmfi(),grd,0,0,1);
-    }
-  }
-
-  if(rhsscale!=NULL) {
-    if(scale_abec) {
-      *rhsscale = 1.0/alpha.max(0);
-    } else {
-      *rhsscale = 1.0;
-    }
-    visc_op->setScalars(a*(*rhsscale),b*(*rhsscale));
-  } else {
-    visc_op->setScalars(a,b);
-  }
-
-  visc_op->aCoefficients(alpha);
-  if(allnull) {
-    for (int n = 0; n < BL_SPACEDIM; n++) {
-      MultiFab bcoeffs(area[n].boxArray(),1,0);
-      bcoeffs.copy(area[n]);
-      bcoeffs.mult(dx[n],0,1,0);
-      visc_op->bCoefficients(bcoeffs,n);
-    }
-  } else {
-    for (int n = 0; n < BL_SPACEDIM; n++) {
-      MultiFab bcoeffs(area[n].boxArray(),1,0);
-      bcoeffs.copy(area[n]);
-      for(MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-      {
-        DependentMultiFabIterator betanmfi(bcoeffsmfi, (*beta[n]));
-        bcoeffsmfi().mult(betanmfi());
-      }
-      bcoeffs.mult(dx[n],0,1,0);
-      visc_op->bCoefficients(bcoeffs,n);
-    }
-  }
-
-  return visc_op;
-}
-
-void Diffusion::getViscTerms(MultiFab& visc_terms, int src_comp, int comp, 
-                             Real time, int rho_flag, MultiFab** beta)
-{
-  int allnull, allthere;
-  checkBeta(beta, allthere, allnull);
-
-  // Before computing the godunov predicitors we may have to
-  // precompute the viscous source terms.  To do this we must
-  // construct a Laplacian operator, set the coeficients and apply
-  // it to the time N data.  First, however, we must precompute the
-  // tine N bndry values.  We will do this for each scalar that diffuses.
-  const Real* dx = caller->Geom().CellSize();
-  MultiFab& S = caller->get_data(State_Type,time);
-  visc_terms.setVal(0.0,comp-src_comp,1,1);
-  int ngrd = grids.length();
-
-  // FIXME
-  // LinOp classes cannot handle multcomponent MultiFabs yet,
-  // construct the components one at a time and copy to visc_terms.
-  MultiFab visc_tmp(grids,1,1,Fab_allocate);
-  MultiFab s_tmp(grids,1,1,Fab_allocate);
-
-  int n;
-
-  if (is_diffusive[comp]) {
-    ViscBndry visc_bndry;
     getBndryData(visc_bndry,comp,1,time,rho_flag);
 
-    // set up operator and apply to compute viscous terms
-    Real a = 0.0;
-    Real b;
-    if (allnull) {
-      b = -visc_coef[comp];
-    } else {
-      b = -1.0;
-    }
-    ABecLaplacian visc_op(visc_bndry,dx);
-//    visc_op.setScalars(a,b*dx[0]);
-    visc_op.setScalars(a,b);
-    visc_op.maxOrder(max_order);
+    ABecLaplacian* visc_op = new ABecLaplacian(visc_bndry,dx);
+    visc_op->maxOrder(max_order);
 
-    if(allnull) {
-      for (n = 0; n < BL_SPACEDIM; n++) {
-        MultiFab bcoeffs(area[n].boxArray(),1,0);
-        bcoeffs.copy(area[n]);
-        bcoeffs.mult(dx[n]);
-        visc_op.bCoefficients(bcoeffs,n);
-      }
-    } else {
-      for (n = 0; n < BL_SPACEDIM; n++) {
-        MultiFab bcoeffs(area[n].boxArray(),1,0);
-        bcoeffs.copy(area[n]);
-        for(MultiFabIterator bcoeffsmfi(bcoeffs);
-            bcoeffsmfi.isValid(); ++bcoeffsmfi)
-        {
-          DependentMultiFabIterator betanmfi(bcoeffsmfi, (*beta[n]));
-          bcoeffsmfi().mult(betanmfi());
-          bcoeffsmfi().mult(dx[n]);
-        }
-        visc_op.bCoefficients(bcoeffs,n);
-      }
-    }
+    int usehoop = ((comp==Xvel) && (CoordSys::IsRZ()));
+    int useden  = (rho_flag == 1);
+    //
+    // alpha should be the same size as volume.
+    //
+    MultiFab alpha(grids,1,GEOM_GROW,Fab_allocate);
 
-    // copy to single component multifab for operator classes
-    Copy(s_tmp,S,comp,0,1,1);
-
-    if(rho_flag==2) {
-// we want to evaluate (div beta grad) S, not rho*S
-      for(MultiFabIterator Smfi(S); Smfi.isValid(); ++Smfi) {
-        DependentMultiFabIterator s_tmpmfi(Smfi, s_tmp);
-        assert (Smfi().min(Density)>0.0);
-        s_tmpmfi().divide(Smfi(),Density,0,1);
-      }
-    }
-
-    visc_op.apply(visc_tmp,s_tmp);
-
-    // must divide by volume
-    for(MultiFabIterator visc_tmpmfi(visc_tmp);
-        visc_tmpmfi.isValid(); ++visc_tmpmfi)
+    for (MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
     {
-      DependentMultiFabIterator volumemfi(visc_tmpmfi, volume);
-      assert(grids[visc_tmpmfi.index()] == visc_tmpmfi.validbox());
-      visc_tmpmfi().divide(volumemfi(),visc_tmpmfi.validbox(),0,0,1);
-    }
+        DependentMultiFabIterator volumemfi(alphamfi, volume);
+        DependentMultiFabIterator rho_halfmfi(alphamfi, (*rho_half));
+        assert(alpha.box(alphamfi.index()) == alphamfi.validbox());
+        assert(volume.box(alphamfi.index()) == volumemfi.validbox());
 
-#if (BL_SPACEDIM == 2)
-    if(comp==Xvel && CoordSys::IsRZ()) {
-      for(MultiFabIterator visc_tmpmfi(visc_tmp);
-          visc_tmpmfi.isValid(); ++visc_tmpmfi)
-      {
-        DependentMultiFabIterator s_tmpmfi(visc_tmpmfi, s_tmp);
-        assert(visc_tmp.box(visc_tmpmfi.index()) == visc_tmpmfi.validbox());
-        assert(s_tmp.box(visc_tmpmfi.index()) == s_tmpmfi.validbox());
-        //visc_tmp[k] += -mu * u / r^2
-        const Box& bx  = visc_tmpmfi.validbox();
-        Box  vbx       = grow(bx,visc_tmp.nGrow());
-        Box  sbx       = grow(s_tmpmfi.validbox(),s_tmp.nGrow());
-        int rlen       = bx.length(0);
-        Array<Real> rcen;
-        rcen.resize(rlen);
+        const Box& bx       = alphamfi.validbox();
+        Array<Real> rcen(bx.length(0));
         parent->Geom(level).GetCellLoc(rcen, bx, 0);
         const int *lo       = bx.loVect();
         const int *hi       = bx.hiVect();
-        const int *vlo      = vbx.loVect();
-        const int *vhi      = vbx.hiVect();
-        const int *slo      = sbx.loVect();
-        const int *shi      = sbx.hiVect();
-        Real *vdat          = visc_tmpmfi().dataPtr();
-        Real *sdat          = s_tmpmfi().dataPtr();
+        Real *dat           = alphamfi().dataPtr();
+        Box abx             = grow(bx,alpha.nGrow());
+        const int *alo      = abx.loVect();
+        const int *ahi      = abx.hiVect();
         const Real *rcendat = rcen.dataPtr();
-        const Real mu       = visc_coef[comp];
-        FORT_HOOPSRC(ARLIM(lo), ARLIM(hi),
-                     vdat, ARLIM(vlo), ARLIM(vhi),
-                     sdat, ARLIM(slo), ARLIM(shi),
-                     rcendat, &mu);
+        const Real *voli    = volumemfi().dataPtr();
+        Box vbox            = grow(volumemfi.validbox(),volume.nGrow());
+        const int *vlo      = vbox.loVect();
+        const int *vhi      = vbox.hiVect();
+
+        FArrayBox& Rh = rho_halfmfi();
+        DEF_LIMITS(Rh,rho_dat,rlo,rhi);
+
+        FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),
+                      lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
+                      voli, ARLIM(vlo), ARLIM(vhi),
+                      rho_dat,ARLIM(rlo),ARLIM(rhi),&usehoop,&useden);
 
 
-      }
     }
-#endif
 
-    assert(visc_tmp.nGrow() > 0);
-    const BoxArray& ba = visc_tmp.boxArray();
-    int ngrd = ba.length();
-//    NOTE: THIS IS JUST A HACK - DONT KNOW HOW TO FILL VISC TERMS
-//          IN GHOST CELLS OUTSIDE FINE GRIDS
-    for(MultiFabIterator visc_tmpmfi(visc_tmp);
-        visc_tmpmfi.isValid(); ++visc_tmpmfi)
+    //  visc_op->setScalars(a,dx[0]*b);
+    if (rho_flag == 2)
     {
-      assert(ba[visc_tmpmfi.index()] == visc_tmpmfi.validbox());
-      const Box grd(visc_tmpmfi.validbox());
-      const int* lo = grd.loVect();
-      const int* hi = grd.hiVect();
-      FArrayBox& visc = visc_tmpmfi();
-      int ncomp = visc.nComp();
-      DEF_LIMITS(visc,vdat,vlo,vhi);
-      FORT_VISCEXTRAP(vdat,ARLIM(vlo),ARLIM(vhi),lo,hi,&ncomp);
-    }
-
-      // if periodic, copy into periodic translates of visc_tmp
-    if ( caller->Geom().isAnyPeriodic() ) {
-
-      const Box& domain = caller->Geom().Domain();
-      Array<IntVect> pshifts(27);
- 
-      FArrayBox dest;
-      for(MultiFabIterator visc_tmpmfi(visc_tmp);
-          visc_tmpmfi.isValid(); ++visc_tmpmfi)
-      {
-        assert(visc_tmp[visc_tmpmfi.index()].box() == visc_tmpmfi.fabbox());
-  
-        const Box dbox(visc_tmpmfi.fabbox());
-        dest.resize(dbox,1);
-        dest.copy(visc_tmpmfi(),dbox,0,dbox,0,1);
-        caller->Geom().periodicShift( domain, dest.box(), pshifts);
-        for( int iiv=0; iiv<pshifts.length(); iiv++) {
-          IntVect iv=pshifts[iiv];
-          dest.shift(iv);
-          if (dbox.intersects(domain))
-              visc_tmp.copy(dest);
-          dest.shift(-iv);
-          visc_tmpmfi().copy(dest,dbox,0,dbox,0,1);
+        //
+        // Using conservative diffing for rho*T.
+        //
+        MultiFab& S_new = caller->get_new_data(State_Type);
+        for (MultiFabIterator alphamfi(alpha); alphamfi.isValid();
+             ++alphamfi)
+        {
+            DependentMultiFabIterator S_newmfi(alphamfi, S_new);
+            assert(grids[alphamfi.index()] == alphamfi.validbox());
+            alphamfi().mult(S_newmfi(),alphamfi.validbox(),Density,0,1);
         }
-      }
+    }
+    if (alpha_in != 0)
+    {
+        for (MultiFabIterator alphamfi(alpha); alphamfi.isValid();
+             ++alphamfi)
+        {
+            DependentMultiFabIterator alpha_inmfi(alphamfi, (*alpha_in));
+            assert(grids[alphamfi.index()] == alphamfi.validbox());
+            alphamfi().mult(alpha_inmfi(),alphamfi.validbox(),0,0,1);
+        }
+    }
+    if (rhsscale != 0)
+    {
+        if (scale_abec)
+        {
+            *rhsscale = 1.0/alpha.max(0);
+        }
+        else
+        {
+            *rhsscale = 1.0;
+        }
+        visc_op->setScalars(a*(*rhsscale),b*(*rhsscale));
+    }
+    else
+    {
+        visc_op->setScalars(a,b);
+    }
+    if (allnull)
+    {
+        visc_op->aCoefficients(alpha);
+        for (int n = 0; n < BL_SPACEDIM; n++)
+        {
+            MultiFab bcoeffs(area[n].boxArray(),1,0);
+            bcoeffs.copy(area[n]);
+            bcoeffs.mult(dx[n]);
+            visc_op->bCoefficients(bcoeffs,n);
+        }
+    }
+    else
+    {
+        visc_op->aCoefficients(alpha);
+        for (int n = 0; n < BL_SPACEDIM; n++)
+        {
+            MultiFab bcoeffs(area[n].boxArray(),1,0);
+            bcoeffs.copy(area[n]);
+            for (MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid();
+                 ++bcoeffsmfi)
+            {
+                DependentMultiFabIterator betanmfi(bcoeffsmfi, (*beta[n]));
+                bcoeffsmfi().mult(betanmfi());
+                bcoeffsmfi().mult(dx[n]);
+            }
+            visc_op->bCoefficients(bcoeffs,n);
+        }
     }
 
-    // copy from valid regions of overlapping grids
-    visc_tmp.FillBoundary();
+    return visc_op;
+}
 
-    Copy(visc_terms,visc_tmp,0,comp-src_comp,1,1);
-  }
+ABecLaplacian*
+Diffusion::getViscOp (int        comp,
+                      Real       a,
+                      Real       b,
+                      MultiFab*  rho_half,
+                      int        rho_flag,
+                      Real*      rhsscale,
+                      MultiFab** beta,
+                      MultiFab*  alpha_in)
+{
+    int allnull, allthere;
+    checkBeta(beta, allthere, allnull);
+
+    const Real* dx    = caller->Geom().CellSize();
+    const Box& domain = caller->Geom().Domain();
+    const BCRec& bc   = caller->get_desc_lst()[State_Type].getBC(comp);
+
+    IntVect ref_ratio;
+    if (level > 0)
+    {
+        ref_ratio = parent->refRatio(level-1);
+    }
+    else
+    {
+        ref_ratio = IntVect::TheUnitVector();
+    }
+    ViscBndry bndry(grids,1,domain);
+    bndry.setHomogValues(bc, ref_ratio);
+
+    ABecLaplacian* visc_op = new ABecLaplacian(bndry,dx);
+    visc_op->maxOrder(max_order);
+
+    int usehoop = ((comp==Xvel) && (CoordSys::IsRZ()));
+    int useden  = (rho_flag == 1);
+    //
+    // alpha should be the same size as volume.
+    //
+    MultiFab alpha(grids,1,GEOM_GROW,Fab_allocate);
+
+    for (MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
+    {
+        DependentMultiFabIterator volumemfi(alphamfi, volume);
+        DependentMultiFabIterator rho_halfmfi(alphamfi, (*rho_half));
+        assert(alpha.box(alphamfi.index()) == alphamfi.validbox());
+        assert(volume.box(alphamfi.index()) == volumemfi.validbox());
+
+        const Box& bx       = alphamfi.validbox();
+        Array<Real> rcen(bx.length(0));
+        parent->Geom(level).GetCellLoc(rcen, bx, 0);
+        const int *lo       = bx.loVect();
+        const int *hi       = bx.hiVect();
+        Real *dat           = alphamfi().dataPtr();
+        Box abx             = grow(bx,alpha.nGrow());
+        const int *alo      = abx.loVect();
+        const int *ahi      = abx.hiVect();
+        const Real *rcendat = rcen.dataPtr();
+        const Real *voli    = volumemfi().dataPtr();
+        Box vbox            = grow(volumemfi.validbox(),volume.nGrow());
+        const int *vlo      = vbox.loVect();
+        const int *vhi      = vbox.hiVect();
+
+        FArrayBox& Rh = rho_halfmfi();
+        DEF_LIMITS(Rh,rho_dat,rlo,rhi);
+
+        FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),
+                      lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
+                      voli, ARLIM(vlo), ARLIM(vhi),
+                      rho_dat,ARLIM(rlo),ARLIM(rhi),&usehoop,&useden);
+    }
+
+    if (rho_flag == 2)
+    {
+        //
+        // Using conservative diffing for rho*S.
+        //
+        MultiFab& S_new = caller->get_new_data(State_Type);
+        for (MultiFabIterator alphamfi(alpha); alphamfi.isValid();
+             ++alphamfi)
+        {
+            DependentMultiFabIterator S_newmfi(alphamfi, S_new);
+            assert(grids[alphamfi.index()] == alphamfi.validbox());
+            alphamfi().mult(S_newmfi(),alphamfi.validbox(),Density,0,1);
+        }
+    }
+    if (alpha_in != 0)
+    {
+        for (MultiFabIterator alphamfi(alpha); alphamfi.isValid();
+             ++alphamfi)
+        {
+            DependentMultiFabIterator alpha_inmfi(alphamfi, (*alpha_in));
+            assert(grids[alphamfi.index()] == alphamfi.validbox());
+            alphamfi().mult(alpha_inmfi(),alphamfi.validbox(),0,0,1);
+        }
+    }
+    if (rhsscale != 0)
+    {
+        if (scale_abec)
+        {
+            *rhsscale = 1.0/alpha.max(0);
+        }
+        else
+        {
+            *rhsscale = 1.0;
+        }
+        visc_op->setScalars(a*(*rhsscale),b*(*rhsscale));
+    }
+    else
+    {
+        visc_op->setScalars(a,b);
+    }
+    visc_op->aCoefficients(alpha);
+    if (allnull)
+    {
+        for (int n = 0; n < BL_SPACEDIM; n++)
+        {
+            MultiFab bcoeffs(area[n].boxArray(),1,0);
+            bcoeffs.copy(area[n]);
+            bcoeffs.mult(dx[n],0,1,0);
+            visc_op->bCoefficients(bcoeffs,n);
+        }
+    }
+    else
+    {
+        for (int n = 0; n < BL_SPACEDIM; n++)
+        {
+            MultiFab bcoeffs(area[n].boxArray(),1,0);
+            bcoeffs.copy(area[n]);
+            for (MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid();
+                 ++bcoeffsmfi)
+            {
+                DependentMultiFabIterator betanmfi(bcoeffsmfi, (*beta[n]));
+                bcoeffsmfi().mult(betanmfi());
+            }
+            bcoeffs.mult(dx[n],0,1,0);
+            visc_op->bCoefficients(bcoeffs,n);
+        }
+    }
+
+    return visc_op;
+}
+
+void
+Diffusion::getViscTerms (MultiFab&  visc_terms,
+                         int        src_comp,
+                         int        comp, 
+                         Real       time,
+                         int        rho_flag,
+                         MultiFab** beta)
+{
+    int allnull, allthere;
+    checkBeta(beta, allthere, allnull);
+    //
+    // Before computing the godunov predicitors we may have to
+    // precompute the viscous source terms.  To do this we must
+    // construct a Laplacian operator, set the coeficients and apply
+    // it to the time N data.  First, however, we must precompute the
+    // fine N bndry values.  We will do this for each scalar that diffuses.
+    //
+    const Real* dx = caller->Geom().CellSize();
+    MultiFab& S    = caller->get_data(State_Type,time);
+    visc_terms.setVal(0.0,comp-src_comp,1,1);
+    // FIXME
+    // LinOp classes cannot handle multcomponent MultiFabs yet,
+    // construct the components one at a time and copy to visc_terms.
+    //
+    MultiFab visc_tmp(grids,1,1,Fab_allocate);
+    MultiFab s_tmp(grids,1,1,Fab_allocate);
+
+    if (is_diffusive[comp])
+    {
+        ViscBndry visc_bndry;
+        getBndryData(visc_bndry,comp,1,time,rho_flag);
+        //
+        // Set up operator and apply to compute viscous terms.
+        //
+        const Real a = 0.0;
+        const Real b = allnull ? -visc_coef[comp] : -1.0;
+        ABecLaplacian visc_op(visc_bndry,dx);
+//    visc_op.setScalars(a,b*dx[0]);
+        visc_op.setScalars(a,b);
+        visc_op.maxOrder(max_order);
+
+        if (allnull)
+        {
+            for (int n = 0; n < BL_SPACEDIM; n++)
+            {
+                MultiFab bcoeffs(area[n].boxArray(),1,0);
+                bcoeffs.copy(area[n]);
+                bcoeffs.mult(dx[n]);
+                visc_op.bCoefficients(bcoeffs,n);
+            }
+        }
+        else
+        {
+            for (int n = 0; n < BL_SPACEDIM; n++)
+            {
+                MultiFab bcoeffs(area[n].boxArray(),1,0);
+                bcoeffs.copy(area[n]);
+                for(MultiFabIterator bcoeffsmfi(bcoeffs);
+                    bcoeffsmfi.isValid(); ++bcoeffsmfi)
+                {
+                    DependentMultiFabIterator betanmfi(bcoeffsmfi, (*beta[n]));
+                    bcoeffsmfi().mult(betanmfi());
+                    bcoeffsmfi().mult(dx[n]);
+                }
+                visc_op.bCoefficients(bcoeffs,n);
+            }
+        }
+        //
+        // Copy to single component multifab for operator classes.
+        //
+        Copy(s_tmp,S,comp,0,1,1);
+
+        if (rho_flag==2)
+        {
+            //
+            // We want to evaluate (div beta grad) S, not rho*S.
+            //
+            for (MultiFabIterator Smfi(S); Smfi.isValid(); ++Smfi)
+            {
+                DependentMultiFabIterator s_tmpmfi(Smfi, s_tmp);
+                assert(Smfi().min(Density) > 0.0);
+                s_tmpmfi().divide(Smfi(),Density,0,1);
+            }
+        }
+
+        visc_op.apply(visc_tmp,s_tmp);
+        //
+        // Must divide by volume.
+        //
+        for (MultiFabIterator visc_tmpmfi(visc_tmp);
+             visc_tmpmfi.isValid(); ++visc_tmpmfi)
+        {
+            DependentMultiFabIterator volumemfi(visc_tmpmfi, volume);
+            assert(grids[visc_tmpmfi.index()] == visc_tmpmfi.validbox());
+            visc_tmpmfi().divide(volumemfi(),visc_tmpmfi.validbox(),0,0,1);
+        }
+
+#if (BL_SPACEDIM == 2)
+        if (comp==Xvel && CoordSys::IsRZ())
+        {
+            for (MultiFabIterator visc_tmpmfi(visc_tmp);
+                 visc_tmpmfi.isValid(); ++visc_tmpmfi)
+            {
+                DependentMultiFabIterator s_tmpmfi(visc_tmpmfi, s_tmp);
+                assert(visc_tmp.box(visc_tmpmfi.index()) == visc_tmpmfi.validbox());
+                assert(s_tmp.box(visc_tmpmfi.index()) == s_tmpmfi.validbox());
+                //visc_tmp[k] += -mu * u / r^2
+                const Box& bx  = visc_tmpmfi.validbox();
+                Box  vbx       = ::grow(bx,visc_tmp.nGrow());
+                Box  sbx       = ::grow(s_tmpmfi.validbox(),s_tmp.nGrow());
+                Array<Real> rcen(bx.length(0));
+                parent->Geom(level).GetCellLoc(rcen, bx, 0);
+                const int *lo       = bx.loVect();
+                const int *hi       = bx.hiVect();
+                const int *vlo      = vbx.loVect();
+                const int *vhi      = vbx.hiVect();
+                const int *slo      = sbx.loVect();
+                const int *shi      = sbx.hiVect();
+                Real *vdat          = visc_tmpmfi().dataPtr();
+                Real *sdat          = s_tmpmfi().dataPtr();
+                const Real *rcendat = rcen.dataPtr();
+                const Real mu       = visc_coef[comp];
+                FORT_HOOPSRC(ARLIM(lo), ARLIM(hi),
+                             vdat, ARLIM(vlo), ARLIM(vhi),
+                             sdat, ARLIM(slo), ARLIM(shi),
+                             rcendat, &mu);
+            }
+        }
+#endif
+        assert(visc_tmp.nGrow() > 0);
+        const BoxArray& ba = visc_tmp.boxArray();
+        //
+        // THIS IS JUST A HACK - DONT KNOW HOW TO FILL VISC TERMS
+        // IN GHOST CELLS OUTSIDE FINE GRIDS.
+        //
+        for (MultiFabIterator visc_tmpmfi(visc_tmp);
+             visc_tmpmfi.isValid(); ++visc_tmpmfi)
+        {
+            assert(ba[visc_tmpmfi.index()] == visc_tmpmfi.validbox());
+            const Box& grd  = visc_tmpmfi.validbox();
+            const int* lo   = grd.loVect();
+            const int* hi   = grd.hiVect();
+            FArrayBox& visc = visc_tmpmfi();
+            int ncomp = visc.nComp();
+            DEF_LIMITS(visc,vdat,vlo,vhi);
+            FORT_VISCEXTRAP(vdat,ARLIM(vlo),ARLIM(vhi),lo,hi,&ncomp);
+        }
+        //
+        // If periodic, copy into periodic translates of visc_tmp.
+        //
+        if (caller->Geom().isAnyPeriodic())
+        {
+            FArrayBox dest;
+            Array<IntVect> pshifts(27);
+            const Box& domain = caller->Geom().Domain();
+
+            for (MultiFabIterator visc_tmpmfi(visc_tmp);
+                 visc_tmpmfi.isValid(); ++visc_tmpmfi)
+            {
+                assert(visc_tmp[visc_tmpmfi.index()].box() == visc_tmpmfi.fabbox());
+  
+                const Box& dbox = visc_tmpmfi.fabbox();
+                dest.resize(dbox,1);
+                dest.copy(visc_tmpmfi(),dbox,0,dbox,0,1);
+                caller->Geom().periodicShift(domain, dest.box(), pshifts);
+                for (int iiv = 0; iiv < pshifts.length(); iiv++)
+                {
+                    if (dbox.intersects(domain))
+                    {
+                        dest.shift(pshifts[iiv]);
+                        visc_tmp.copy(dest);
+                        dest.shift(-pshifts[iiv]);
+                    }
+                    visc_tmpmfi().copy(dest,dbox,0,dbox,0,1);
+                }
+            }
+        }
+        //
+        // Copy from valid regions of overlapping grids.
+        //
+        visc_tmp.FillBoundary();
+
+        Copy(visc_terms,visc_tmp,0,comp-src_comp,1,1);
+    }
 }
 
 void Diffusion::getTensorViscTerms(MultiFab& visc_terms, 
@@ -2812,8 +2876,12 @@ void Diffusion::getTensorViscTerms(MultiFab& visc_terms,
 #endif
 }
 
-void Diffusion::getBndryData(ViscBndry& bndry, int src_comp,
-                             int num_comp, Real time, int rho_flag)
+void
+Diffusion::getBndryData (ViscBndry& bndry,
+                         int        src_comp,
+                         int        num_comp,
+                         Real       time,
+                         int        rho_flag)
 {
     if (num_comp != 1)
     {
@@ -2826,45 +2894,55 @@ void Diffusion::getBndryData(ViscBndry& bndry, int src_comp,
     MultiFab& S = caller->get_data(State_Type,time);
     S.FillBoundary(src_comp,num_comp);
     caller->setPhysBoundaryValues(State_Type,src_comp,num_comp,time);
-    if (rho_flag == 2) { 
-      S.FillBoundary(Density,1);
-      caller->setPhysBoundaryValues(State_Type,Density,1,time);
+    if (rho_flag == 2)
+    { 
+        S.FillBoundary(Density,1);
+        caller->setPhysBoundaryValues(State_Type,Density,1,time);
     }
 
     int use_old_code = 0; // FOR DEBUGGING ONLY
-    if(rho_flag!=2 || use_old_code) {
-      if (level == 0) {
-        bndry.setBndryValues(S,src_comp,0,num_comp,bc);
-      } else {
-        BoxArray cgrids(grids);
-        cgrids.coarsen(crse_ratio);
-        BndryRegister crse_br(cgrids,0,1,1,num_comp);
-        crse_br.setVal(1.0e30);
-        coarser->FillBoundary(crse_br,src_comp,0,num_comp,time);
-        bndry.setBndryValues(crse_br,0,S,src_comp,0,num_comp,
-                             crse_ratio,bc);
-      }
-    } else {
-// we want to fill the bndry with S, not rho*S
-      MultiFab Stmp(S.boxArray(),1,S.nGrow());
-      Copy(Stmp,S,src_comp,0,1,S.nGrow());
-      for(MultiFabIterator Smfi(S); Smfi.isValid(); ++Smfi) {
-        DependentMultiFabIterator Stmpmfi(Smfi, Stmp);
-        assert (Smfi().min(Density)>0.0);
-        Stmpmfi().divide(Smfi(),Density,0,1);
-      }
-      if (level == 0) {
-        bndry.setBndryValues(Stmp,0,0,num_comp,bc);
-      } else {
-        BoxArray cgrids(grids);
-        cgrids.coarsen(crse_ratio);
-        BndryRegister crse_br(cgrids,0,1,1,num_comp);
-        crse_br.setVal(1.0e30);
-        coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
-        bndry.setBndryValues(crse_br,0,Stmp,0,0,num_comp,
-                             crse_ratio,bc);
-      }      
-      
+    if (rho_flag!=2 || use_old_code)
+    {
+        if (level == 0)
+        {
+            bndry.setBndryValues(S,src_comp,0,num_comp,bc);
+        }
+        else
+        {
+            BoxArray cgrids(grids);
+            cgrids.coarsen(crse_ratio);
+            BndryRegister crse_br(cgrids,0,1,1,num_comp);
+            crse_br.setVal(1.0e30);
+            coarser->FillBoundary(crse_br,src_comp,0,num_comp,time);
+            bndry.setBndryValues(crse_br,0,S,src_comp,0,num_comp,crse_ratio,bc);
+        }
+    }
+    else
+    {
+        //
+        // We want to fill the bndry with S, not rho*S.
+        //
+        MultiFab Stmp(S.boxArray(),1,S.nGrow());
+        Copy(Stmp,S,src_comp,0,1,S.nGrow());
+        for (MultiFabIterator Smfi(S); Smfi.isValid(); ++Smfi)
+        {
+            DependentMultiFabIterator Stmpmfi(Smfi, Stmp);
+            assert (Smfi().min(Density)>0.0);
+            Stmpmfi().divide(Smfi(),Density,0,1);
+        }
+        if (level == 0)
+        {
+            bndry.setBndryValues(Stmp,0,0,num_comp,bc);
+        }
+        else
+        {
+            BoxArray cgrids(grids);
+            cgrids.coarsen(crse_ratio);
+            BndryRegister crse_br(cgrids,0,1,1,num_comp);
+            crse_br.setVal(1.0e30);
+            coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
+            bndry.setBndryValues(crse_br,0,Stmp,0,0,num_comp,crse_ratio,bc);
+        }
     }
 }
 
@@ -3043,85 +3121,91 @@ void Diffusion::getTensorBndryData(
 #endif
 #endif
 
-//-----------------------------------------------------------------
-
-void Diffusion::checkBetas(const MultiFab* const * beta1, 
-                           const MultiFab* const * beta2,
-                           int& allthere, int& allnull) const
+void
+Diffusion::checkBetas (const MultiFab* const* beta1, 
+                       const MultiFab* const* beta2,
+                       int&                   allthere,
+                       int&                   allnull) const
 {
-  int allnull1, allnull2, allthere1, allthere2;
-  checkBeta(beta1,allthere1,allnull1);
-  checkBeta(beta2,allthere2,allnull2);
-  allnull  = allnull1 && allnull2;
-  allthere = allthere1 && allthere2;
-  if (!(allthere || allnull))
-  {
-    cout << "Diffusion::checkBetas : all betas must either be"
-         << "  all NULL or all non-NULL\n";
-    ParallelDescriptor::Abort("Diffusion::checkBetas()");
-  }
-}
-
-//-----------------------------------------------------------------
-
-void Diffusion::checkBeta(const MultiFab* const * beta,
-                           int& allthere, int& allnull) const
-{
-  allnull = 1;
-  allthere = beta != NULL;
-  if(allthere) {
-    for (int dim=0; dim<BL_SPACEDIM; dim++) {
-      allnull = allnull && beta[dim] == NULL;
-      allthere = allthere && beta[dim] != NULL;
+    int allnull1, allnull2, allthere1, allthere2;
+    checkBeta(beta1,allthere1,allnull1);
+    checkBeta(beta2,allthere2,allnull2);
+    allnull  = allnull1 && allnull2;
+    allthere = allthere1 && allthere2;
+    if (!(allthere || allnull))
+    {
+        cout << "Diffusion::checkBetas : all betas must either be"
+             << "  all 0 or all non-0\n";
+        ParallelDescriptor::Abort("Diffusion::checkBetas()");
     }
-  }
-  if (!(allthere || allnull))
-  {
-    cout << "Diffusion::checkBeta : all betas must either be"
-         << "  all NULL or all non-NULL\n";
-    ParallelDescriptor::Abort("Diffusion::checkBeta()");
-  }
 }
 
-//-----------------------------------------------------------------
-
-void Diffusion::checkBeta(const MultiFab* const * beta,
-                           int& allthere) const
+void
+Diffusion::checkBeta (const MultiFab* const* beta,
+                      int&                   allthere,
+                      int&                   allnull) const
 {
-  allthere = beta != NULL;
-  if(allthere) {
-    for (int dim=0; dim<BL_SPACEDIM; dim++) {
-      allthere = allthere && beta[dim] != NULL;
+    allnull = 1;
+    allthere = beta != 0;
+    if (allthere)
+    {
+        for (int dim=0; dim<BL_SPACEDIM; dim++)
+        {
+            allnull = allnull && beta[dim] == 0;
+            allthere = allthere && beta[dim] != 0;
+        }
     }
-  }
-  if (!allthere)
-  {
-    cout << "Diffusion::checkBeta : all betas must be"
-         << "  all non-NULL\n";
-    ParallelDescriptor::Abort("Diffusion::checkBeta()");
-  }
+    if (!(allthere || allnull))
+    {
+        cout << "Diffusion::checkBeta : all betas must either be"
+             << "  all 0 or all non-0\n";
+        ParallelDescriptor::Abort("Diffusion::checkBeta()");
+    }
 }
 
-// -------------------------------------------------------------
-void Diffusion::allocFluxBoxesLevel(MultiFab**& fluxbox, 
-                           int nghost, int nvar)
+void
+Diffusion::checkBeta (const MultiFab* const* beta,
+                      int&                   allthere) const
+{
+    allthere = beta != 0;
+    if (allthere)
+    {
+        for (int dim=0; dim<BL_SPACEDIM; dim++)
+        {
+            allthere = allthere && beta[dim] != 0;
+        }
+    }
+    if (!allthere)
+    {
+        cout << "Diffusion::checkBeta : all betas must be"
+             << "  all non-0\n";
+        ParallelDescriptor::Abort("Diffusion::checkBeta()");
+    }
+}
+
+void
+Diffusion::allocFluxBoxesLevel (MultiFab**& fluxbox, 
+                                int         nghost,
+                                int         nvar)
 {
     fluxbox = new MultiFab*[BL_SPACEDIM];
-    for (int dir = 0; dir < BL_SPACEDIM; dir++) {
-      BoxArray edge_boxes(grids);
-      edge_boxes.surroundingNodes(dir);
-      fluxbox[dir] = new MultiFab(edge_boxes,nvar,nghost,Fab_allocate);
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        BoxArray edge_boxes(grids);
+        edge_boxes.surroundingNodes(dir);
+        fluxbox[dir] = new MultiFab(edge_boxes,nvar,nghost,Fab_allocate);
     }
 }
 
-// -------------------------------------------------------------
-void Diffusion::removeFluxBoxesLevel(MultiFab**& fluxbox) 
+void
+Diffusion::removeFluxBoxesLevel (MultiFab**& fluxbox) 
 {
-  if(fluxbox!=NULL) {
-    for (int i = 0; i<BL_SPACEDIM; i++) 
-      if (fluxbox[i] != NULL) delete fluxbox[i];
-    delete [] fluxbox;
-  }
+    if (fluxbox != 0)
+    {
+        for (int i = 0; i<BL_SPACEDIM; i++) 
+            delete fluxbox[i];
+        delete [] fluxbox;
+    }
 }
 
 #ifdef USE_NAVIERSTOKES
@@ -3129,7 +3213,6 @@ void Diffusion::removeFluxBoxesLevel(MultiFab**& fluxbox)
 // This routine computes the vector div mu SI, where I is the identity 
 // tensor, S = div U, and mu is constant.
 //
-
 void
 Diffusion::compute_divmusi (Real      time,
                             Real      mu,
@@ -3138,7 +3221,7 @@ Diffusion::compute_divmusi (Real      time,
     const Real* dx         = caller->Geom().CellSize();
     NavierStokes& ns_level = *(NavierStokes*) &(parent->getLevel(level));
 
-    if (mu>0.0)
+    if (mu > 0.0)
     {
         MultiFab* divu_fp = ns_level.getDivCond(1,time);
 
@@ -3177,7 +3260,7 @@ Diffusion::compute_divmusi (Real      time,
 }
 
 //
-// this routine computes the vector div beta SI, where I is the identity 
+// This routine computes the vector div beta SI, where I is the identity 
 // tensor, S = div U, and beta is non-constant.
 //
 
@@ -3187,9 +3270,9 @@ Diffusion::compute_divmusi (Real       time,
                             MultiFab&  divmusi)
 {
     FArrayBox divu;
-    const Real* dx = caller->Geom().CellSize();
-    NavierStokes& ns_level =  *(NavierStokes*) &(parent->getLevel(level));
-    int nghost = divmusi.nGrow();
+    const Real* dx         = caller->Geom().CellSize();
+    NavierStokes& ns_level = *(NavierStokes*) &(parent->getLevel(level));
+
     for (MultiFabIterator divmusimfi(divmusi); divmusimfi.isValid();
          ++divmusimfi)
     {
@@ -3199,12 +3282,14 @@ Diffusion::compute_divmusi (Real       time,
         DependentMultiFabIterator beta2mfi(divmusimfi, (*beta[2]));
 #endif
         assert(grids[divmusimfi.index()] == divmusimfi.validbox());
+
+        int i         = divmusimfi.index();
         const Box& bx = divmusimfi.validbox();
-        const int *lo       = bx.loVect();
-        const int *hi       = bx.hiVect();
+        const int *lo = bx.loVect();
+        const int *hi = bx.hiVect();
+
         DEF_LIMITS(divmusimfi(),divmusi_dat,divmusilo,divmusihi);
 
-        int i = divmusimfi.index();
         ns_level.getDivCond(divu,i,1,time);
         DEF_CLIMITS(beta0mfi(),betax,betaxlo,betaxhi);
         DEF_CLIMITS(beta1mfi(),betay,betaylo,betayhi);
@@ -3221,7 +3306,8 @@ Diffusion::compute_divmusi (Real       time,
                           ARLIM(betazlo), ARLIM(betazhi), betaz,
 #endif
                           ARLIM(divmusilo), ARLIM(divmusihi), divmusi_dat);
-        if (nghost>0)
+
+        if (divmusi.nGrow() > 0)
         {
             int ncomp = BL_SPACEDIM;
             FORT_VISCEXTRAP(divmusi_dat,ARLIM(divmusilo),ARLIM(divmusihi),
