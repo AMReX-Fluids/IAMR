@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.45 1998-11-18 17:48:28 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.46 1998-11-19 23:38:08 lijewski Exp $
 //
 
 //
@@ -101,29 +101,29 @@ const Real typical_vals_DEF = 1.0;
 
 static
 void
-Copy (MultiFab& dst,
-      MultiFab& src,
-      int       srccomp,
-      int       dstcomp,
-      int       numcomp,
-      int       nghost)
+Copy (MultiFab&       dst,
+      const MultiFab& src,
+      int             srccomp,
+      int             dstcomp,
+      int             numcomp,
+      int             nghost)
 {
     assert(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
-    for (MultiFabIterator mfi(src); mfi.isValid(); ++mfi)
+    for (MultiFabIterator mfi(dst); mfi.isValid(); ++mfi)
     {
-        DependentMultiFabIterator dmfi(mfi,dst);
+        DependentMultiFabIterator dmfi(mfi,src);
 
         Box bx = ::grow(mfi.validbox(),nghost) & ::grow(dmfi.validbox(),nghost);
 
         if (bx.ok())
         {
-            dmfi().copy(mfi(),
-                        bx,
-                        srccomp,
-                        bx,
-                        dstcomp,
-                        numcomp);
+            mfi().copy(dmfi(),
+                       bx,
+                       srccomp,
+                       bx,
+                       dstcomp,
+                       numcomp);
         }
     }
 }
@@ -268,14 +268,14 @@ Diffusion::echo_settings () const
 }
 
 Real
-Diffusion::get_scaled_abs_tol (int                     sigma,
-                               const MultiFab*         rhs,
-                               Real                    a,
-                               Real                    b,
-                               const MultiFab*         alpha,
-                               const MultiFab* const * betan,
-                               const MultiFab* const * betanp1,
-                               Real                    reduction) const
+Diffusion::get_scaled_abs_tol (int                    sigma,
+                               const MultiFab*        rhs,
+                               Real                   a,
+                               Real                   b,
+                               const MultiFab*        alpha,
+                               const MultiFab* const* betan,
+                               const MultiFab* const* betanp1,
+                               Real                   reduction) const
 {
     //
     // Get norm of rhs.
@@ -284,14 +284,14 @@ Diffusion::get_scaled_abs_tol (int                     sigma,
 
     if (rhs != 0)
     {
-      assert(grids == rhs->boxArray());
+        assert(grids == rhs->boxArray());
 
-      for (ConstMultiFabIterator Rhsmfi(*rhs); Rhsmfi.isValid(); ++Rhsmfi)
-      {
-          norm_rhs = Max(norm_rhs,Rhsmfi().norm(0));
-      }
+        for (ConstMultiFabIterator Rhsmfi(*rhs); Rhsmfi.isValid(); ++Rhsmfi)
+        {
+            norm_rhs = Max(norm_rhs,Rhsmfi().norm(0));
+        }
 
-      ParallelDescriptor::ReduceRealMax(norm_rhs);
+        ParallelDescriptor::ReduceRealMax(norm_rhs);
     }
 
     if (!Lphi_in_abs_tol)
@@ -317,6 +317,7 @@ Diffusion::get_scaled_abs_tol (int                     sigma,
 	for (int d = 0; d < BL_SPACEDIM; d++)
 	{
 	    Real norm_visc = 0;
+
 	    if (do_const_visc)
 	    {
 		norm_visc = Abs( visc_coef[sigma] );
@@ -326,6 +327,7 @@ Diffusion::get_scaled_abs_tol (int                     sigma,
 		if (allthere_n)
 		{
 		    assert(grids == (*betan[d]).boxArray());
+
                     for (ConstMultiFabIterator Betanmfi(*betan[d]); 
                          Betanmfi.isValid(); ++Betanmfi)
                     {
@@ -353,9 +355,11 @@ Diffusion::get_scaled_abs_tol (int                     sigma,
 	// Get norm of alpha * a (if alpha=0, leave this zero).
         //
 	Real norm_a_alpha = 0;
+
 	if (alpha != 0)
 	{
 	    assert(grids == alpha->boxArray());
+
             for (ConstMultiFabIterator Alphamfi(*alpha); Alphamfi.isValid(); ++Alphamfi)
             {
                 norm_a_alpha = Max(norm_a_alpha,a * Alphamfi().norm(0));
@@ -441,12 +445,10 @@ Diffusion::diffuse_scalar (Real       dt,
         const Real a = 0.0;
         Real b       = -(1.0-be_cn_theta)*dt;
         if (allnull)
-        {
             b *= visc_coef[sigma];
-        }
+
         ViscBndry visc_bndry;
-        ABecLaplacian *visc_op =   
-            getViscOp(sigma,a,b,prev_time,visc_bndry,rho_half,rho_flag,0,betan);
+        ABecLaplacian* visc_op = getViscOp(sigma,a,b,prev_time,visc_bndry,rho_half,rho_flag,0,betan);
         visc_op->maxOrder(max_order);
 
         if (rho_flag == 2)
@@ -529,13 +531,11 @@ Diffusion::diffuse_scalar (Real       dt,
     const Real a = 1.0;
     Real b       = be_cn_theta*dt;
     if (allnull)
-    {
         b *= visc_coef[sigma];
-    }
+
     ViscBndry visc_bndry;
     Real rhsscale = 1.0;
-    ABecLaplacian *visc_op = getViscOp(sigma,a,b,cur_time,visc_bndry,
-                                       rho_half,rho_flag,&rhsscale,betanp1,alpha);
+    ABecLaplacian* visc_op = getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,rho_flag,&rhsscale,betanp1,alpha);
     Rhs.mult(rhsscale,0,1);
     visc_op->maxOrder(max_order);
     //
@@ -663,11 +663,13 @@ Diffusion::diffuse_scalar (Real       dt,
 }
 
 void
-Diffusion::diffuse_velocity(Real dt, Real be_cn_theta,
-                            MultiFab* rho_half, int rho_flag,
-                            MultiFab* delta_rhs,
-                            MultiFab** betan, 
-                            MultiFab** betanp1)
+Diffusion::diffuse_velocity (Real       dt,
+                             Real       be_cn_theta,
+                             MultiFab*  rho_half,
+                             int        rho_flag,
+                             MultiFab*  delta_rhs,
+                             MultiFab** betan, 
+                             MultiFab** betanp1)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
     {
@@ -745,8 +747,7 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
             const Real b = -(1.0-be_cn_theta)*visc_coef[sigma]*dt;
 
             ViscBndry visc_bndry;
-            ABecLaplacian* visc_op = 
-                getViscOp(sigma,a,b,prev_time,visc_bndry,rho_half,rho_flag);
+            ABecLaplacian* visc_op = getViscOp(sigma,a,b,prev_time,visc_bndry,rho_half,rho_flag);
             visc_op->maxOrder(max_order);
             //
             // Copy to single-component multifab.
@@ -871,8 +872,7 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
         ViscBndry visc_bndry;
         rho_flag      = 1 ;
         Real rhsscale = 1.0;
-        ABecLaplacian *visc_op = getViscOp(sigma,a,b,cur_time,visc_bndry,
-                                           rho_half,rho_flag,&rhsscale);
+        ABecLaplacian* visc_op = getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,rho_flag,&rhsscale);
         visc_op->maxOrder(max_order);
         Rhs.mult(rhsscale,0,1);
         //
@@ -1187,10 +1187,8 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
         mg.solve(Soln,Rhs,S_tol,S_tol_abs);
     }
 
-#if 1
     int visc_op_lev = 0;
     tensor_op->applyBC(Soln,visc_op_lev); // This may not be needed.
-#endif
     //
     // Copy into state variable at new time.
     //
@@ -1409,8 +1407,10 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
         //
         const Real S_tol      = visc_tol;
         const MultiFab* alpha = &(visc_op->aCoefficients());
-        MultiFab const * betan[BL_SPACEDIM];
-        MultiFab const * betanp1[BL_SPACEDIM];
+
+        MultiFab const* betan[BL_SPACEDIM];
+        MultiFab const* betanp1[BL_SPACEDIM];
+
         for (int d = 0; d < BL_SPACEDIM; d++)
         {
             betan[d] = &visc_op->bCoefficients(d);
@@ -1766,8 +1766,7 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
         b *= visc_coef[BL_SPACEDIM+sigma];
     }
     Real rhsscale = 1.0;
-    ABecLaplacian* visc_op = getViscOp(BL_SPACEDIM+sigma,a,b,
-                                       rho_half,rho_flag,&rhsscale,beta,alpha);
+    ABecLaplacian* visc_op = getViscOp(BL_SPACEDIM+sigma,a,b,rho_half,rho_flag,&rhsscale,beta,alpha);
     visc_op->maxOrder(max_order);
     Rhs.mult(rhsscale,0,1);
     //
@@ -2271,14 +2270,8 @@ Diffusion::getViscOp (int        comp,
     }
     if (rhsscale != 0)
     {
-        if (scale_abec)
-        {
-            *rhsscale = 1.0/alpha.max(0);
-        }
-        else
-        {
-            *rhsscale = 1.0;
-        }
+        *rhsscale = scale_abec ? 1.0/alpha.max(0) : 1.0;
+
         visc_op->setScalars(a*(*rhsscale),b*(*rhsscale));
     }
     else
@@ -2334,15 +2327,8 @@ Diffusion::getViscOp (int        comp,
     const Box& domain = caller->Geom().Domain();
     const BCRec& bc   = caller->get_desc_lst()[State_Type].getBC(comp);
 
-    IntVect ref_ratio;
-    if (level > 0)
-    {
-        ref_ratio = parent->refRatio(level-1);
-    }
-    else
-    {
-        ref_ratio = IntVect::TheUnitVector();
-    }
+    IntVect ref_ratio = level > 0 ? parent->refRatio(level-1) : IntVect::TheUnitVector();
+
     ViscBndry bndry(grids,1,domain);
     bndry.setHomogValues(bc, ref_ratio);
 
@@ -2411,14 +2397,8 @@ Diffusion::getViscOp (int        comp,
     }
     if (rhsscale != 0)
     {
-        if (scale_abec)
-        {
-            *rhsscale = 1.0/alpha.max(0);
-        }
-        else
-        {
-            *rhsscale = 1.0;
-        }
+        *rhsscale = scale_abec ? 1.0/alpha.max(0) : 1.0;
+
         visc_op->setScalars(a*(*rhsscale),b*(*rhsscale));
     }
     else
@@ -2426,6 +2406,7 @@ Diffusion::getViscOp (int        comp,
         visc_op->setScalars(a,b);
     }
     visc_op->aCoefficients(alpha);
+
     if (allnull)
     {
         for (int n = 0; n < BL_SPACEDIM; n++)
@@ -2494,8 +2475,9 @@ Diffusion::getViscTerms (MultiFab&  visc_terms,
         //
         const Real a = 0.0;
         const Real b = allnull ? -visc_coef[comp] : -1.0;
+
         ABecLaplacian visc_op(visc_bndry,dx);
-//    visc_op.setScalars(a,b*dx[0]);
+
         visc_op.setScalars(a,b);
         visc_op.maxOrder(max_order);
 
@@ -2530,7 +2512,7 @@ Diffusion::getViscTerms (MultiFab&  visc_terms,
         //
         Copy(s_tmp,S,comp,0,1,1);
 
-        if (rho_flag==2)
+        if (rho_flag == 2)
         {
             //
             // We want to evaluate (div beta grad) S, not rho*S.
@@ -2560,7 +2542,7 @@ Diffusion::getViscTerms (MultiFab&  visc_terms,
         }
 
 #if (BL_SPACEDIM == 2)
-        if (comp==Xvel && CoordSys::IsRZ())
+        if (comp == Xvel && CoordSys::IsRZ())
         {
             for (MultiFabIterator visc_tmpmfi(visc_tmp);
                  visc_tmpmfi.isValid(); ++visc_tmpmfi)
@@ -2928,9 +2910,9 @@ Diffusion::getTensorBndryData(
     Array<BCRec> bcarray(2*BL_SPACEDIM);
     for (int idim = 0; idim < BL_SPACEDIM; idim++)
     {
-      bcarray[idim] = caller->get_desc_lst()[State_Type].getBC(src_comp+idim);
-      bcarray[idim+BL_SPACEDIM] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-                                        D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+        bcarray[idim] = caller->get_desc_lst()[State_Type].getBC(src_comp+idim);
+        bcarray[idim+BL_SPACEDIM] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+                                          D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
     }
 
     bndry.define(grids,2*num_comp,caller->Geom());
@@ -2941,17 +2923,17 @@ Diffusion::getTensorBndryData(
 
     if (level == 0)
     {
-      bndry.setBndryValues(S,src_comp,0,num_comp,bcarray);
+        bndry.setBndryValues(S,src_comp,0,num_comp,bcarray);
     }
     else
     {
-      BoxArray cgrids(grids);
-      cgrids.coarsen(crse_ratio);
-      BndryRegister crse_br(cgrids,0,1,1,num_comp);
-      crse_br.setVal(BL_BOGUS);
-      const int rho_flag = 0;
-      coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
-      bndry.setBndryValues(crse_br,0,S,src_comp,0,num_comp,crse_ratio[0],bcarray);
+        BoxArray cgrids(grids);
+        cgrids.coarsen(crse_ratio);
+        BndryRegister crse_br(cgrids,0,1,1,num_comp);
+        crse_br.setVal(BL_BOGUS);
+        const int rho_flag = 0;
+        coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
+        bndry.setBndryValues(crse_br,0,S,src_comp,0,num_comp,crse_ratio[0],bcarray);
     }
 }
 #endif
