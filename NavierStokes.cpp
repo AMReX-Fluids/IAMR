@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.102 1998-12-11 18:37:09 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.103 1998-12-23 23:00:05 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1107,28 +1107,6 @@ NavierStokes::advance_setup (Real time,
     {
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);
-    }
-
-    get_new_data(State_Type).setVal(bogus_value);
-
-    if (level > 0 || geom.isAnyPeriodic())
-    {
-        //
-        // This is neccessary so that diffusion works properly during the first
-        // time step (Diffusion can call only AmrLevel::setPhysBndryValues() to
-        // fill ghost cells.  That function does not know about ghost cells
-        // over coarse values, or periodic bc's)
-        //
-        for (int k = 0; k < num_state_type; k++)
-        {
-            if (k != Press_Type)
-            {
-                MultiFab& new_state = get_new_data(k);
-                MultiFab& old_state = get_old_data(k);
-                FillStateBndry(time,k,0,old_state.nComp());
-                FillStateBndry(time+dt,k,0,new_state.nComp());
-            }
-        }
     }
 }
 
