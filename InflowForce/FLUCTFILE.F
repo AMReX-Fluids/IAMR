@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.9 2003-12-22 23:28:22 marc Exp $
+c $Id: FLUCTFILE.F,v 1.10 2004-01-07 23:54:18 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -115,10 +115,6 @@ c
          call bl_abort('RD_SCL_FLCTHD: nCmpFile != nCompInflow')
       endif
 
-c      if (dimFile(3) .lt. 3) then
-c         call bl_abort('RD_SCL_FLCTHD: dimFile(3) must be >= 3')
-c      endif
-
       read(iunit) probSizeFile
       !
       ! Assume infl_swirl_type file until proven otherwise.
@@ -131,19 +127,29 @@ c      endif
       read(iunit,iostat=ierr) i1bc, j1bc, k1bc, dummy
       if (ierr.ne.0) infl_type = infl_periodic_type
 
-      dxFile(1) = probSizeFile(1)/FLOAT(dimFile(1)-1)
-      dxFile(2) = probSizeFile(2)/FLOAT(dimFile(2)-1)
-      if (dimFile(3) .gt. 1) then
-         dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
-      else
-         dxFile(3) = zero
-      endif
-
       if (infl_type .eq. infl_swirl_type) then
+         !
+         ! Assumes cell-centered data.
+         !
+         dxFile(1) = probSizeFile(1)/FLOAT(dimFile(1))
+         dxFile(2) = probSizeFile(2)/FLOAT(dimFile(2))
+         dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3))
+
          if (.NOT. ASSOCIATED(fluct_times)) then
-            allocate(fluct_times(1:dimFile(3)))
+            allocate(fluct_times(1:dimFile(strmwse_dir)))
          endif
-         read(iunit) (fluct_times(i),i=1,dimFile(3))
+         read(iunit) (fluct_times(i),i=1,dimFile(strmwse_dir))
+      else
+         !
+         ! Assumes node-centered data.
+         !
+         dxFile(1) = probSizeFile(1)/FLOAT(dimFile(1)-1)
+         dxFile(2) = probSizeFile(2)/FLOAT(dimFile(2)-1)
+         if (dimFile(3) .gt. 1) then
+            dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
+         else
+            dxFile(3) = zero
+         endif
       endif
 
       if (first) then

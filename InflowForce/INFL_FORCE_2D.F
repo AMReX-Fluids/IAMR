@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_2D.F,v 1.3 2003-12-19 18:32:52 lijewski Exp $
+c $Id: INFL_FORCE_2D.F,v 1.4 2004-01-07 23:54:18 lijewski Exp $
 c
 
 #undef BL_LANG_CC
@@ -78,7 +78,7 @@ c :::
       integer i, j, iloc, jloc, kloc, ixcalc, jycalc
       integer lo(SDIM), hi(SDIM), n_lev_cells(SDIM)
       integer loStorDim(3), hiStorDim(3)
-      REAL_T tm1, tp1, ctm1, ct0, ctp1, 
+      REAL_T tm1, tp1, ctm1, ct0, ctp1, coff,
      $       x, xm1, x0, xp1, cxm1, cx0, cxp1,
      $       y, ym1, y0, yp1, cym1, cy0, cyp1,
      $       valm1, val0, valp1
@@ -91,6 +91,12 @@ c :::
       do i = 1, SDIM
         n_lev_cells(i) = (probHi(i) - probLo(i)) / dx(i)
       enddo
+
+      if (infl_type .eq. infl_periodic_type) then
+         coff = one
+      else
+         coff = half
+      endif
 c
 c     ----------------------------------------------
 c     :::: Set the time interpolation constants ::::
@@ -137,7 +143,7 @@ c
             jloc = (y - xloFile(2) + half*dxFile(2))/dxFile(2) + 1
             jloc = MAX(jloc, loStorDim(2)+1)
             jloc = MIN(jloc, hiStorDim(2)-1)
-            y0 = FLOAT(jloc-1) * dxFile(2) + xloFile(2)
+            y0 = (FLOAT(jloc)-coff) * dxFile(2) + xloFile(2)
             ym1 = y0 - dxFile(2)
             yp1 = y0 + dxFile(2)
             cym1 = (y - y0)  * (y - yp1) / (ym1 - y0)  / (ym1 - yp1)
@@ -182,19 +188,12 @@ c
             iloc = (x - xloFile(1) + half*dxFile(1))/dxFile(1) + 1
             iloc = MAX(iloc, loStorDim(1)+1)
             iloc = MIN(iloc, hiStorDim(1)-1)
-            x0 = FLOAT(iloc-1) * dxFile(1) + xloFile(1)
+            x0 = (FLOAT(iloc)-coff) * dxFile(1) + xloFile(1)
             xm1 = x0 - dxFile(1)
             xp1 = x0 + dxFile(1)
             cxm1 = (x - x0)  * (x - xp1) / (xm1 - x0)  / (xm1 - xp1)
             cx0  = (x - xm1) * (x - xp1) / (x0  - xm1) / (x0  - xp1)
             cxp1 = (x - xm1) * (x - x0)  / (xp1 - xm1) / (xp1 - x0)
-
-#ifdef INFL_FRC_DIAGS
-      IF (.NOT.(x0-half*dxFile(1).LE.x.AND.x.LE.x0+half*dxFile(1))) THEN
-        WRITE(33,*) i, iloc
-        WRITE(33,*) '       ',x, x0, dxFile(1)
-      ENDIF
-#endif
 
             val0 = cxm1 * (ctm1 * storDat(iloc-1,storePnt-1,kloc,fillComp)
      $                   +  ct0 * storDat(iloc-1,storePnt,  kloc,fillComp)

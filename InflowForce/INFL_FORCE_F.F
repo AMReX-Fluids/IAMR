@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.8 2003-12-19 18:32:52 lijewski Exp $
+c $Id: INFL_FORCE_F.F,v 1.9 2004-01-07 23:54:18 lijewski Exp $
 c
 
 #undef BL_LANG_CC
@@ -205,7 +205,7 @@ c
       REAL_T inflDat(DIMV(inflDat)), probLo(SDIM), probHi(SDIM)
 
       integer lo(SDIM), hi(SDIM), nCmpFile, storePnt, shft
-      integer n, filePnt, filePntSave, FF_DIMDEC(storDat)
+      integer n, filePnt, fileBase, FF_DIMDEC(storDat)
       integer dimFile(3), loStoreDim(3), hiStoreDim(3)
       REAL_T dxFile(3), probSizeFile(3), xloFile(3), xhiFile(3), timePnt
       REAL_T storDat(:,:,:,:), dtFile
@@ -213,7 +213,7 @@ c
       allocatable storDat
 
       save loStoreDim, hiStoreDim, storDat, dimFile, xloFile, xhiFile,
-     $     dxFile, filePntSave
+     $     dxFile, fileBase
 
 #include "INFL_FORCE_F.H"
 
@@ -256,21 +256,25 @@ c
             call bl_abort('INFL_FILL_SWIRL: time is out of range')
          endif
 
-         filePnt = 1
+         filePnt = 2
          do while (fluct_times(filePnt) .lt. time)
             filePnt = filePnt + 1
          enddo
 
          if (filePnt .eq. dimFile(strmwse_dir)) then
-            filePnt = filePnt - 2
-         else
             filePnt = filePnt - 1
          endif
 
-         call FILL_FRCARRYS_SWIRL(filePnt, 1, dimFile, nCompInflow,
-     $        FF_DIMS(storDat), storDat)
+         shft = filePnt + hiStoreDim(strmwse_dir) - 2 - dimFile(strmwse_dir)
 
-         filePntSave = filePnt
+         if (shft .gt. 0) then
+            fileBase = filePnt - shft - 1
+         else
+            fileBase = filePnt - 1
+         endif
+
+         call FILL_FRCARRYS_SWIRL(fileBase, 1, dimFile, nCompInflow,
+     $        FF_DIMS(storDat), storDat)
       endif
 
       call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
@@ -283,51 +287,41 @@ c
 
 101   format('time: ',f10.5,' range: ',f10.5,' ... ',f10.5)
 
-      filePnt = 1
+      filePnt = 2
       do while (fluct_times(filePnt) .lt. time)
          filePnt = filePnt + 1
       enddo
 
       if (filePnt .eq. dimFile(strmwse_dir)) then
-         filePnt = filePnt - 2
-      else
          filePnt = filePnt - 1
       endif
 
-      if ((filePnt .ge. filePntSave) .and.
-     $     (filePnt .lt. (filePntSave + hiStoreDim(strmwse_dir) - 2))) then
+      if ((filePnt .gt. fileBase) .and.
+     $     (filePnt .lt. (fileBase + hiStoreDim(strmwse_dir) - 1))) then
          !
          ! We've got enough data in storDat to do the interpolation.
          !
-         storePnt = 2 + (filePnt - filePntSave)
+         storePnt = 1 + (filePnt - fileBase)
       else
          !
          ! Got to reload storDat.
          ! Always load exactly hiStoreDim(strmwse_dir) platters of data.
          !
-         shft = filePnt + hiStoreDim(strmwse_dir) - 1 - dimFile(strmwse_dir)
+         shft = filePnt + hiStoreDim(strmwse_dir) - 2 - dimFile(strmwse_dir)
 
          if (shft .gt. 0) then
-            filePnt = filePnt - shft
             storePnt = 2 + shft
+            fileBase = filePnt - shft - 1
          else
             storePnt = 2
+            fileBase = filePnt - 1
          endif
 
-         if (filePnt .lt. 0) then
-            call bl_abort('INFL_FILL_SWIRL: filePnt .lt. 0 ?')
-         endif
-         if (storePnt .lt. 2) then
-            call bl_abort('INFL_FILL_SWIRL: storePnt .lt. 2 ?')
-         endif
-
-         call FILL_FRCARRYS_SWIRL(filePnt, 1, dimFile, nCompInflow,
+         call FILL_FRCARRYS_SWIRL(fileBase, 1, dimFile, nCompInflow,
      $        FF_DIMS(storDat), storDat)
-
-         filePntSave = filePnt
       endif
 
-      timePnt = fluct_times(filePnt + storePnt - 1)
+      timePnt = fluct_times(filePnt)
       dtFile  = -1 ! Not used
 
       call INTRP_DATA(time, xlo, dx, storePnt, fillComp, filePnt,
