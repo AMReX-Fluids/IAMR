@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.90 1998-09-28 21:32:05 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.91 1998-09-29 19:56:01 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1537,10 +1537,9 @@ NavierStokes::test_umac_periodic ()
     //
     // Error block.
     //
-    assert(ParallelDescriptor::NProcs() == 1);
-    assert(level == 0);
     if (grids.length() != 1)
         return;
+    assert(level == 0);
     //
     // Get the bounds and grid size.
     //
