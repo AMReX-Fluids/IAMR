@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.20 1998-04-01 17:01:53 car Exp $
+// $Id: main.cpp,v 1.21 1998-04-27 16:52:44 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -8,7 +8,7 @@
 #endif
 #endif
 
-#ifndef        WIN32
+#ifndef WIN32
 #include <unistd.h>
 #endif
 
@@ -33,8 +33,6 @@ using std::set_new_handler;
 #else
 #include <new.h>
 #endif
-
-const int NPROCS = 1;
 
 static
 void 
@@ -64,10 +62,16 @@ main (int   argc,
     set_new_handler(Utility::OutOfMemory);
 #endif
 
-    TRACER("amr");
+#ifdef BL_USE_MPI
+    int nprocs = 1;
+    ParallelDescriptor::StartParallel(nprocs,&argc,&argv);
+#endif
+
     cout << setprecision(10);
 
-    if (argc < 2) print_usage(argc,argv);
+    if (argc < 2)
+        print_usage(argc,argv);
+
     if (argv[1][0] == '-')
     {
         cerr << "input file must be first argument\n";
@@ -78,22 +82,20 @@ main (int   argc,
 
     ParmParse pp(argc-2,argv+2,NULL,argv[1]); 
 
-    int nprocs = NPROCS; pp.query("nprocs", nprocs);
-#ifndef BL_USE_BSP
-    if (nprocs > 1)
-    {
-      cerr << "Error in main:  multiple processors specified with "
-           << "code compiled without a parallel library.\n";
-      exit(-1);
-    }
+#ifndef BL_USE_MPI
+    int nprocs = 1; pp.query("nprocs", nprocs);
+    ParallelDescriptor::StartParallel(nprocs,&argc,&argv);
 #endif
-    ParallelDescriptor::StartParallel(nprocs, &argc, &argv);
     //
     // Initialize random seed after we're running in parallel.
     //
     Utility::InitRandom(ParallelDescriptor::MyProc() + 1);
+    //
+    // Instantiate after we're running in Parallel.
+    //
+    TRACER("amr");
 
-#ifndef        WIN32
+#ifndef WIN32
     int sleeptime = 0; pp.query("sleep", sleeptime);
     sleep(sleeptime);
 #endif
@@ -101,10 +103,7 @@ main (int   argc,
     max_step  = 0;    pp.query("max_step",max_step);
     stop_time = 0.0;  pp.query("stop_time",stop_time);
 
-    Amr *amrptr = new Amr;
-
-    if (amrptr == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
+    Amr* amrptr = new Amr;
 
     amrptr->init();
 
