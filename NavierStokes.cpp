@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.152 1999-09-02 21:59:40 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.153 1999-09-13 15:52:49 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3582,17 +3582,17 @@ NavierStokes::level_sync ()
       MultiFab& cur_divu_crse = get_new_data(Divu_Type);
       calc_divu(cur_time,dt,cc_rhs_crse);
       MultiFab::Copy(new_divu_crse,cc_rhs_crse,0,0,1,0);
-      cc_rhs_crse.minus(cur_divu_crse,0,1,1);
+      cc_rhs_crse.minus(cur_divu_crse,0,1,0);
       MultiFab::Copy(cur_divu_crse,new_divu_crse,0,0,1,0);
-      cc_rhs_crse.mult(dt_inv,0,1,1);
+      cc_rhs_crse.mult(dt_inv,0,1,0);
 
       NavierStokes& fine_lev = getLevel(level+1);
       MultiFab& cur_divu_fine = fine_lev.get_new_data(Divu_Type);
       fine_lev.calc_divu(cur_time,dt,cc_rhs_fine);
       MultiFab::Copy(new_divu_fine,cc_rhs_fine,0,0,1,0);
-      cc_rhs_fine.minus(cur_divu_fine,0,1,1);
+      cc_rhs_fine.minus(cur_divu_fine,0,1,0);
       MultiFab::Copy(cur_divu_fine,new_divu_fine,0,0,1,0);
-      cc_rhs_fine.mult(dt_inv,0,1,1);
+      cc_rhs_fine.mult(dt_inv,0,1,0);
     }
 
     //
