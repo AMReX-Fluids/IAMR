@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.123 2000-06-09 22:12:46 almgren Exp $
+// $Id: Projection.cpp,v 1.124 2000-06-09 23:29:35 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -1346,6 +1346,7 @@ Projection::MLsyncProject (int             c_lev,
 
     if (pressure_time_is_interval) 
     {
+      // Only update the most recent pressure.
       AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
     }
     else 
@@ -1362,13 +1363,15 @@ Projection::MLsyncProject (int             c_lev,
         AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
       } 
       else if (first_crse_step_after_initial_iters &&
-               (parent->MaxRefRatio(c_lev) == 2) )
-      // Only update the most recent pressure.
+               (parent->MaxRefRatio(c_lev) == 4) )
       {
-        Real mult_factor = 4.0 / 3.0;
+        Real mult_factor = (4.0 / 3.0);
+        (*phi[c_lev+1]).mult(mult_factor);
+        AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
+
+        Real mult_factor = (3.0 / 4.0) * (6.0 / 3.0) ;
         (*phi[c_lev+1]).mult(mult_factor);
         AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
-        AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
       }
       else 
       {
