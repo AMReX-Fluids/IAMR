@@ -1,12 +1,10 @@
+//
+// $Id: Godunov.cpp,v 1.12 1998-06-08 23:10:39 lijewski Exp $
+//
 
 //
-// $Id: Godunov.cpp,v 1.11 1998-06-01 17:01:47 lijewski Exp $
+// Godunov is the object which calculates advective terms for iamr.
 //
-
-//==========================================================
-// Godunov is the object which calculates advective terms
-// for iamr
-//==========================================================
 
 #include <Misc.H>
 #include <LO_BCTYPES.H>
@@ -30,8 +28,9 @@
 #else
 #undef ADD_W
 #endif
-
-// why because, I like my macro the best.  DS
+//
+// Why ??? Because, I like my macro the best.  DS
+//
 #if (BL_SPACEDIM == 2 )
 #define GDIMS(l,h) &l[0], &l[1], &h[0], &h[1] 
 #else
@@ -42,72 +41,95 @@ int Godunov::verbose = 0;
 int Godunov::slope_order = 4;
 int Godunov::use_forces_in_trans = 0;
 
-// =============================================================
-// Setup functions follow
-// =============================================================
+//
+// Setup functions follow.
+//
 
-// initialization of static members
+//
+// Initialization of static members.
+//
 #define bogus_value 1.e20
 
-// construct the Godunov Object
-Godunov::Godunov() :
-        max_1d(0)
+//
+// Construct the Godunov Object.
+//
+
+Godunov::Godunov ()
+    :
+    max_1d(0)
 {
     read_params();
-    // set to 512 initiallly
+    //
+    // Set to 512 initiallly.
+    //
     ZeroScratch();
-    SetScratch( 512 );
+    SetScratch(512);
 }
 
-// size the 1D workspace explicitly
-Godunov::Godunov( int max_size ) :
-        max_1d(max_size)
+//
+// Size the 1D workspace explicitly.
+//
+
+Godunov::Godunov (int max_size)
+    :
+    max_1d(max_size)
 {
     read_params();
     ZeroScratch();
-    SetScratch( max_size );
+    SetScratch(max_size);
 }
 
-// read parameters from input file and command line
-void Godunov::read_params()
+//
+// Read parameters from input file and command line.
+//
+
+void
+Godunov::read_params ()
 {
-  // read parameters from input file and command line
-  ParmParse pp("godunov");
+    //
+    // Read parameters from input file and command line.
+    //
+    ParmParse pp("godunov");
 
-  pp.query("v",verbose);
+    pp.query("v",verbose);
 
-  pp.query("slope_order",slope_order);
+    pp.query("slope_order",slope_order);
 #if (BL_SPACEDIM==2)
-  assert(slope_order==1 || slope_order==2 || slope_order==4);
+    assert(slope_order==1 || slope_order==2 || slope_order==4);
 #else
-  assert(slope_order==1 || slope_order==4);
+    assert(slope_order==1 || slope_order==4);
 #endif
-  pp.query("use_forces_in_trans",use_forces_in_trans);
+    pp.query("use_forces_in_trans",use_forces_in_trans);
 
-  FORT_SET_PARAMS(slope_order);
+    FORT_SET_PARAMS(slope_order);
 }
 
+//
+// Set 1d scratch space as empty.
+//
 
-// set 1d scratch space as empty
-void Godunov::ZeroScratch()
+void
+Godunov::ZeroScratch ()
 {
-    stxlo  = NULL;
-    stxhi  = NULL;
-    slxscr = NULL;
-                 
-    stylo  = NULL;
-    styhi  = NULL;
-    slyscr = NULL;
+    stxlo  = 0;
+    stxhi  = 0;
+    slxscr = 0;
+    stylo  = 0;
+    styhi  = 0;
+    slyscr = 0;
 #ifdef ADD_W     
-    stzlo  = NULL;
-    stzhi  = NULL;
-    slzscr = NULL;
+    stzlo  = 0;
+    stzhi  = 0;
+    slzscr = 0;
 #endif
 }
 
+//
+// Initialize 1d scratch space to a bogus value.
+//
 
-// initialize 1d scratch space to a bogus value
-void Godunov::SetBogusScratch ()
+void
+Godunov::SetBogusScratch ()
 {
 #ifndef NDEBUG
     for (int i = 0 ; i < scr_size ; i++)
@@ -127,22 +149,28 @@ void Godunov::SetBogusScratch ()
 #endif /*NDEBUG*/
 }
 
+//
+// Set 1d scratch space.
+//
 
-
-// set 1d scratch space
-void Godunov::SetScratch( int max_size )
+void
+Godunov::SetScratch (int max_size)
 {
-    // set sizing parameters
-    if ( max_size < max_1d )
+    //
+    // Set sizing parameters.
+    //
+    if (max_size <= max_1d)
         return;
     else
         max_1d = Max(max_1d,max_size);
-    scr_size = ( max_size+2*HYP_GROW)*4;
-
-    // get rid of the old scratch space
+    scr_size = (max_size+2*HYP_GROW)*4;
+    //
+    // Get rid of the old scratch space.
+    //
     RemScratch();
-    
-    // construct arrays
+    //
+    // Construct arrays.
+    //
     stxlo  = new Real[scr_size];
     stxhi  = new Real[scr_size];
     slxscr = new Real[scr_size];
@@ -157,14 +185,16 @@ void Godunov::SetScratch( int max_size )
 #endif
 }
 
+//
+// Remove 1D scratch space.
+//
 
-// remove 1D scratch space
-void Godunov::RemScratch()
+void
+Godunov::RemScratch ()
 {
     delete [] stxlo;
     delete [] stxhi;
     delete [] slxscr;
-    
     delete [] stylo;
     delete [] styhi;
     delete [] slyscr;
@@ -175,61 +205,74 @@ void Godunov::RemScratch()
 #endif
 }
 
-// destructor destroys work arrays
-Godunov::~Godunov()
+//
+// Destructor destroys work arrays.
+//
+
+Godunov::~Godunov ()
 {
     RemScratch();
 }
 
-
-
-// set up the farrayboxes for computing edge states, This function
+//
+// Set up the farrayboxes for computing edge states, This function
 // returns, the Farrayboxes where the fluxes are stored as these
-// are used in NavierStokes
+// are used in NavierStokes.
 //
-// It also computes the transverse advective velocities
+// It also computes the transverse advective velocities.
 //
-// The amount of workspace needed in FArrayBox work is currently
-// 2*SDIM+1
+// The amount of workspace needed in FArrayBox work is currently 2*SDIM+1.
 //
-void Godunov::Setup( const Box &grd, const Real *dx, Real dt, int velpred,
-                     FArrayBox &xflux, const int *ubc,
-                     FArrayBox &yflux, const int *vbc,
-#ifdef ADD_W
-                     FArrayBox &zflux, const int *wbc,
-#endif
-                     FArrayBox &U, FArrayBox &rho, 
-                     const FArrayBox& tforces )
-{
-    assert( rho.nComp()  == 1           );
-    assert( U.nComp()    >= BL_SPACEDIM );
 
-    // compute the edge boxes
-    xflux_bx = Box(grd);
+void
+Godunov::Setup (const Box&       grd,
+                const Real*      dx,
+                Real             dt,
+                int              velpred,
+                FArrayBox&       xflux,
+                const int*       ubc,
+                FArrayBox&       yflux,
+                const int*       vbc,
+#ifdef ADD_W
+                FArrayBox&       zflux,
+                const int*       wbc,
+#endif
+                FArrayBox&       U,
+                FArrayBox&       rho, 
+                const FArrayBox& tforces)
+{
+    assert(rho.nComp() == 1);
+    assert(U.nComp() >= BL_SPACEDIM);
+    //
+    // Compute the edge boxes.
+    //
+    xflux_bx = grd;
     xflux_bx.surroundingNodes(0);
-    yflux_bx = Box(grd);
+    yflux_bx = grd;
     yflux_bx.surroundingNodes(1);
 #ifdef ADD_W
-    zflux_bx = Box(grd);
+    zflux_bx = grd;
     zflux_bx.surroundingNodes(2);
 #endif
-    
-    // create storage for fluxes
-    if ( !velpred ) {
+    //
+    // Create storage for fluxes.
+    //
+    if (!velpred)
+    {
         xflux.resize(xflux_bx,1);
         yflux.resize(yflux_bx,1);
 #ifdef ADD_W
         zflux.resize(zflux_bx,1);
 #endif
     }
-
-    // ensure 1D scratch space is large enough
-    Box test_bx(grow(grd,HYP_GROW));
-    SetScratch( test_bx.longside() );
-
-    // create the private advective velocities and the
-    // FAB workspace for the GODUNOV Box
-    work_bx = Box(grow(grd,1));
+    //
+    // Ensure 1D scratch space is large enough.
+    //
+    SetScratch(::grow(grd,HYP_GROW).longside());
+    //
+    // Create the advective velocities and FAB workspace for GODUNOV Box.
+    //
+    work_bx = ::grow(grd,1);
     work.resize(work_bx,2*BL_SPACEDIM+1);
     uad.resize(work_bx,1);
     vad.resize(work_bx,1);
@@ -238,18 +281,20 @@ void Godunov::Setup( const Box &grd, const Real *dx, Real dt, int velpred,
 #endif
 
     SetBogusScratch();
-    // ---------------------------- test the cell-centered velocities
+    //
+    // Test the cell-centered velocities.
+    //
     // Real u_max[3];
     // test_u_rho( S, rho, grd, dx, dt, u_max );
-    
-    // ---------------------------- create the bounds and pointers
-    const int *lo    = grd.loVect();
-    const int *hi    = grd.hiVect();
-    const int *u_lo  = U.loVect();
-    const int *u_hi  = U.hiVect();
-    const int *w_lo = work.loVect();
-    const int *w_hi = work.hiVect();
-
+    //
+    // Create the bounds and pointers.
+    //
+    const int *lo       = grd.loVect();
+    const int *hi       = grd.hiVect();
+    const int *u_lo     = U.loVect();
+    const int *u_hi     = U.hiVect();
+    const int *w_lo     = work.loVect();
+    const int *w_hi     = work.hiVect();
     const Real *u_dat   = U.dataPtr(XVEL);
     const Real *uad_dat = uad.dataPtr();
     const Real *v_dat   = U.dataPtr(YVEL);
@@ -269,116 +314,130 @@ void Godunov::Setup( const Box &grd, const Real *dx, Real dt, int velpred,
     const Real *slx_dat = work.dataPtr(3);
     const Real *sly_dat = work.dataPtr(4);
 #endif 
+    const Real* tforcedat = 0;
 
-    const Real* tforcedat = NULL;
-    if(use_forces_in_trans) {
-      tforcedat = tforces.dataPtr();
+    if (use_forces_in_trans)
+    {
+        tforcedat = tforces.dataPtr();
     }
-    
-    // ---------------------------- compute the transverse velocities
-    FORT_TRANSVEL( u_dat, uad_dat, xhi_dat, slx_dat, ubc, slxscr, 
-                   v_dat, vad_dat, yhi_dat, sly_dat, vbc, slyscr, 
+    //
+    // Compute the transverse velocities.
+    //
+    FORT_TRANSVEL(u_dat, uad_dat, xhi_dat, slx_dat, ubc, slxscr, 
+                  v_dat, vad_dat, yhi_dat, sly_dat, vbc, slyscr, 
 #ifdef ADD_W
-                   w_dat, wad_dat, zhi_dat, slz_dat, wbc, slzscr,
+                  w_dat, wad_dat, zhi_dat, slz_dat, wbc, slzscr,
 #endif    
-                   GDIMS(u_lo,u_hi),
-                   GDIMS(w_lo,w_hi), 
-                   lo, hi, &dt, dx, &use_forces_in_trans, tforcedat);
+                  GDIMS(u_lo,u_hi),
+                  GDIMS(w_lo,w_hi), 
+                  lo, hi, &dt, dx, &use_forces_in_trans, tforcedat);
 }
 
-// =============================================================
-// Advection functions follow
-// =============================================================
+//
+// Advection functions follow.
+//
 
+//
+// Compute the edge states using the advective transverse velocities
+// The amount of workspace needed in FArrayBox work is currently 2*SDIM+1.
+//
 
-// compute the edge states using the advective transverse velocities
-// The amount of workspace needed in FArrayBox work is currently
-// 2*SDIM+1
-void Godunov::edge_states( const Box &grd, const Real *dx, Real dt, int velpred,
-                           FArrayBox &uedge, FArrayBox &stx,
-                           FArrayBox &vedge, FArrayBox &sty,
+void
+Godunov::edge_states (const Box&  grd,
+                      const Real* dx,
+                      Real        dt,
+                      int         velpred,
+                      FArrayBox&  uedge,
+                      FArrayBox&  stx,
+                      FArrayBox&  vedge,
+                      FArrayBox&  sty,
 #ifdef ADD_W               
-                           FArrayBox &wedge, FArrayBox &stz,
+                      FArrayBox&  wedge,
+                      FArrayBox&  stz,
 #endif
-                           FArrayBox &U, FArrayBox &S, FArrayBox &tforces,
-                           int fab_ind, int state_ind, const int *bc )
+                      FArrayBox&  U,
+                      FArrayBox&  S,
+                      FArrayBox&  tforces,
+                      int         fab_ind,
+                      int         state_ind,
+                      const int*  bc)
 {
-    // ---------------------------- error block
-    Box tst = S.box();
-    assert( tst.contains( work_bx ) );
+    //
+    // Error block.
+    //
+    assert(S.box().contains(work_bx));
 
-    assert( U.nComp()       >= BL_SPACEDIM );
-    assert( S.nComp()       >= fab_ind     );
-    assert( tforces.nComp() >= fab_ind     );
+    assert(U.nComp()       >= BL_SPACEDIM);
+    assert(S.nComp()       >= fab_ind    );
+    assert(tforces.nComp() >= fab_ind    );
 
-    assert( uedge.box()     == xflux_bx    );
-    assert( uedge.nComp()   >= 1           );
-    assert( stx.nComp()     >= 1           );
+    assert(uedge.box()     == xflux_bx   );
+    assert(uedge.nComp()   >= 1          );
+    assert(stx.nComp()     >= 1          );
 
-    assert( vedge.box()     == yflux_bx    );
-    assert( vedge.nComp()   >= 1           );
-    assert( sty.nComp()     >= 1           );
+    assert(vedge.box()     == yflux_bx   );
+    assert(vedge.nComp()   >= 1          );
+    assert(sty.nComp()     >= 1          );
 #ifdef ADD_W
-    assert( wedge.box()     == zflux_bx    );
-    assert( wedge.nComp()   >= 1           );
-    assert( stz.nComp()     >= 1           );
+    assert(wedge.box()     == zflux_bx   );
+    assert(wedge.nComp()   >= 1          );
+    assert(stz.nComp()     >= 1          );
 #endif    
-
-    
-    // ---------------------------- create the bounds and pointers
-    const int *lo    = grd.loVect();
-    const int *hi    = grd.hiVect();
-    const int *s_lo  = S.loVect();
-    const int *s_hi  = S.hiVect();
-    const int *u_lo  = uedge.loVect();
-    const int *u_hi  = uedge.hiVect();
-    const int *v_lo  = vedge.loVect();
-    const int *v_hi  = vedge.hiVect();
-    const int *ww_lo = work.loVect();
-    const int *ww_hi = work.hiVect();
-
-    const Real *s_dat   = S.dataPtr(fab_ind);
-    const Real *u_dat   = U.dataPtr(XVEL);
-    const Real *v_dat   = U.dataPtr(YVEL);
-    
-    const Real *tfr_dat = tforces.dataPtr(fab_ind);
-    
+    //
+    // Create the bounds and pointers.
+    //
+    const int *lo         = grd.loVect();
+    const int *hi         = grd.hiVect();
+    const int *s_lo       = S.loVect();
+    const int *s_hi       = S.hiVect();
+    const int *u_lo       = uedge.loVect();
+    const int *u_hi       = uedge.hiVect();
+    const int *v_lo       = vedge.loVect();
+    const int *v_hi       = vedge.hiVect();
+    const int *ww_lo      = work.loVect();
+    const int *ww_hi      = work.hiVect();
+    const Real *s_dat     = S.dataPtr(fab_ind);
+    const Real *u_dat     = U.dataPtr(XVEL);
+    const Real *v_dat     = U.dataPtr(YVEL);
+    const Real *tfr_dat   = tforces.dataPtr(fab_ind);
     const Real *uad_dat   = uad.dataPtr();
     const Real *vad_dat   = vad.dataPtr();
     const Real *uedge_dat = uedge.dataPtr();
     const Real *vedge_dat = vedge.dataPtr();
     const Real *stx_dat   = stx.dataPtr();
     const Real *sty_dat   = sty.dataPtr();
-
-    // set work space to bogus values
+    //
+    // Set work space to bogus values.
+    //
     SetBogusScratch();
 
 #ifdef ADD_W
-    const int *w_lo = wedge.loVect();
-    const int *w_hi = wedge.hiVect();
+    const int *w_lo       = wedge.loVect();
+    const int *w_hi       = wedge.hiVect();
     const Real *w_dat     = U.dataPtr(ZVEL);
     const Real *wad_dat   = wad.dataPtr();
     const Real *wedge_dat = wedge.dataPtr();
     const Real *stz_dat   = stz.dataPtr();
-
-    const Real *xhi_dat = work.dataPtr(0);
-    const Real *yhi_dat = work.dataPtr(0);
-    const Real *zhi_dat = work.dataPtr(0);
-    const Real *xlo_dat = work.dataPtr(1);
-    const Real *ylo_dat = work.dataPtr(2);
-    const Real *zlo_dat = work.dataPtr(3);
-    const Real *slx_dat = work.dataPtr(4);
-    const Real *sly_dat = work.dataPtr(5);
-    const Real *slz_dat = work.dataPtr(6);
+    const Real *xhi_dat   = work.dataPtr(0);
+    const Real *yhi_dat   = work.dataPtr(0);
+    const Real *zhi_dat   = work.dataPtr(0);
+    const Real *xlo_dat   = work.dataPtr(1);
+    const Real *ylo_dat   = work.dataPtr(2);
+    const Real *zlo_dat   = work.dataPtr(3);
+    const Real *slx_dat   = work.dataPtr(4);
+    const Real *sly_dat   = work.dataPtr(5);
+    const Real *slz_dat   = work.dataPtr(6);
 #else
-    const Real *xhi_dat = work.dataPtr(0);
-    const Real *yhi_dat = work.dataPtr(0);
-    const Real *xlo_dat = work.dataPtr(1);
-    const Real *ylo_dat = work.dataPtr(2);
-    const Real *slx_dat = work.dataPtr(3);
-    const Real *sly_dat = work.dataPtr(4);
+    const Real *xhi_dat   = work.dataPtr(0);
+    const Real *yhi_dat   = work.dataPtr(0);
+    const Real *xlo_dat   = work.dataPtr(1);
+    const Real *ylo_dat   = work.dataPtr(2);
+    const Real *slx_dat   = work.dataPtr(3);
+    const Real *sly_dat   = work.dataPtr(4);
 #endif
+    //
     // C component indices starts from 0, Fortran from 1
+    //
     int fort_ind = state_ind+1;  
 
     FORT_ESTATE(s_dat, tfr_dat, GDIMS(s_lo,s_hi),
@@ -398,301 +457,356 @@ void Godunov::edge_states( const Box &grd, const Real *dx, Real dt, int velpred,
                 GDIMS(ww_lo,ww_hi),
                 bc, lo, hi, &dt, dx, &fort_ind, &velpred, 
                 &use_forces_in_trans);
-
 }
 
+//
+// Compute the edge states for The Mac projection.
+// FArrayBox work sized as in edge_states.
+//
 
-// compute the edge states for The Mac projection
-// FArrayBox work sized as in edge_states
-void Godunov::ComputeUmac( const Box &grd, const Real *dx, Real dt, 
-                           FArrayBox &umac, const int *ubc, 
-                           FArrayBox &vmac, const int *vbc, 
+void
+Godunov::ComputeUmac (const Box&  grd,
+                      const Real* dx,
+                      Real        dt, 
+                      FArrayBox&  umac,
+                      const int*  ubc, 
+                      FArrayBox&  vmac,
+                      const int*  vbc, 
 #ifdef ADD_W
-                           FArrayBox &wmac, const int *wbc, 
+                      FArrayBox&  wmac,
+                      const int*  wbc, 
 #endif
-                           FArrayBox &U, FArrayBox &tforces )
+                      FArrayBox&  U,
+                      FArrayBox&  tforces)
 {
     int velpred = 1;
-
-    //--------------------------- 2D calls
+    //
+    // 2D calls.
+    //
 #ifndef ADD_W                  
-    edge_states( grd, dx, dt, velpred,
-                 umac, umac,
-                 vmac, vmac,
-                 U, U, tforces, XVEL, XVEL, ubc );
-    edge_states( grd, dx, dt, velpred,
-                 umac, umac,
-                 vmac, vmac,
-                 U, U, tforces, YVEL, YVEL, vbc );
+    edge_states(grd, dx, dt, velpred,
+                umac, umac,
+                vmac, vmac,
+                U, U, tforces, XVEL, XVEL, ubc);
+    edge_states(grd, dx, dt, velpred,
+                umac, umac,
+                vmac, vmac,
+                U, U, tforces, YVEL, YVEL, vbc);
 #endif
-
-    //--------------------------- 3D calls
+    //
+    // 3D calls.
+    //
 #ifdef ADD_W                  
-    edge_states( grd, dx, dt, velpred,
-                 umac, umac,
-                 vmac, vmac,
-                 wmac, wmac,
-                 U, U, tforces, XVEL, XVEL, ubc );
-    edge_states( grd, dx, dt, velpred,
-                 umac, umac,
-                 vmac, vmac,
-                 wmac, wmac,
-                 U, U, tforces, YVEL, YVEL, vbc );
-    edge_states( grd, dx, dt, velpred,
-                 umac, umac,
-                 vmac, vmac,
-                 wmac, wmac,
-                 U, U, tforces, ZVEL, ZVEL, wbc );
+    edge_states(grd, dx, dt, velpred,
+                umac, umac,
+                vmac, vmac,
+                wmac, wmac,
+                U, U, tforces, XVEL, XVEL, ubc);
+    edge_states(grd, dx, dt, velpred,
+                umac, umac,
+                vmac, vmac,
+                wmac, wmac,
+                U, U, tforces, YVEL, YVEL, vbc);
+    edge_states(grd, dx, dt, velpred,
+                umac, umac,
+                vmac, vmac,
+                wmac, wmac,
+                U, U, tforces, ZVEL, ZVEL, wbc);
 #endif
 }
 
+//
+// Advect a state component.
+// This routine assumes uad,vad,wad have been precomputed.
+// FArrayBox work sized as in edge_states.
+//
 
-
-
-// advect a state component.
-// This routine assumes uad,vad,wad have been precomputed
-// FArrayBox work sized as in edge_states
-void Godunov::AdvectState( const Box &grd, const Real *dx, Real dt, 
-                           FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
-                           FArrayBox &areay, FArrayBox &vedge, FArrayBox &yflux,  
+void
+Godunov::AdvectState (const Box&  grd,
+                      const Real* dx,
+                      Real        dt, 
+                      FArrayBox&  areax,
+                      FArrayBox&  uedge,
+                      FArrayBox&  xflux,  
+                      FArrayBox&  areay,
+                      FArrayBox&  vedge,
+                      FArrayBox&  yflux,  
 #ifdef ADD_W                               
-                           FArrayBox &areaz, FArrayBox &wedge, FArrayBox &zflux,
+                      FArrayBox&  areaz,
+                      FArrayBox&  wedge,
+                      FArrayBox&  zflux,
 #endif
-                           FArrayBox &U,
-                           FArrayBox &S, FArrayBox &tforces, int fab_ind,
-                           FArrayBox &aofs,                  int aofs_ind,
-                           int iconserv, int state_ind, const int *bc,
-                           FArrayBox &vol )
+                      FArrayBox&  U,
+                      FArrayBox&  S,
+                      FArrayBox&  tforces,
+                      int         fab_ind,
+                      FArrayBox&  aofs,
+                      int         aofs_ind,
+                      int         iconserv,
+                      int         state_ind,
+                      const int*  bc,
+                      FArrayBox&  vol)
 {
     int velpred = 0;
-
-    // compute edge states for an advected quantity
-    edge_states( grd, dx, dt, velpred,
-                 uedge, xflux,
-                 vedge, yflux,
+    //
+    // Compute edge states for an advected quantity.
+    //
+    edge_states(grd, dx, dt, velpred,
+                uedge, xflux,
+                vedge, yflux,
 #ifdef ADD_W             
-                 wedge, zflux,
+                wedge, zflux,
 #endif
-                 U, S, tforces, fab_ind, state_ind, bc );
-
-    // compute the advective tendancy
+                U, S, tforces, fab_ind, state_ind, bc);
+    //
+    // Compute the advective tendancy.
+    //
     ComputeAofs( grd,
                  areax, uedge, xflux,  
                  areay, vedge, yflux,  
 #ifdef ADD_W                             
                  areaz, wedge, zflux,
 #endif                     
-                 vol, aofs, aofs_ind, iconserv );
-                 
+                 vol, aofs, aofs_ind, iconserv);
 }
 
+//
+// Compute the advective derivative from fluxes.
+//
 
-
-
-// compute the advective derivative from fluxes
-void Godunov::ComputeAofs( const Box &grd, 
-                           FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
-                           FArrayBox &areay, FArrayBox &vedge, FArrayBox &yflux,  
+void
+Godunov::ComputeAofs (const Box& grd, 
+                      FArrayBox& areax,
+                      FArrayBox& uedge,
+                      FArrayBox& xflux,  
+                      FArrayBox& areay,
+                      FArrayBox& vedge,
+                      FArrayBox& yflux,  
 #ifdef ADD_W                               
-                           FArrayBox &areaz, FArrayBox &wedge, FArrayBox &zflux,
+                      FArrayBox& areaz,
+                      FArrayBox& wedge,
+                      FArrayBox& zflux,
 #endif
-                           FArrayBox &vol,
-                           FArrayBox &aofs,  int aofs_ind, int iconserv )
+                      FArrayBox& vol,
+                      FArrayBox& aofs,
+                      int        aofs_ind,
+                      int        iconserv )
 {
-    // ---------------------------- create the bounds and pointers
-    const int *lo    = grd.loVect();
-    const int *hi    = grd.hiVect();
-
-    const int *a_lo  = aofs.loVect();
-    const int *a_hi  = aofs.hiVect();
-    const Real *aofs_dat = aofs.dataPtr(aofs_ind);
-
-    const int *ax_lo  = areax.loVect();
-    const int *ax_hi  = areax.hiVect();
+    //
+    // Create the bounds and pointers.
+    //
+    const int *lo         = grd.loVect();
+    const int *hi         = grd.hiVect();
+    const int *a_lo       = aofs.loVect();
+    const int *a_hi       = aofs.hiVect();
+    const Real *aofs_dat  = aofs.dataPtr(aofs_ind);
+    const int *ax_lo      = areax.loVect();
+    const int *ax_hi      = areax.hiVect();
     const Real *areax_dat = areax.dataPtr();
-
-    const int *ay_lo  = areay.loVect();
-    const int *ay_hi  = areay.hiVect();
+    const int *ay_lo      = areay.loVect();
+    const int *ay_hi      = areay.hiVect();
     const Real *areay_dat = areay.dataPtr();
-
-    const int *v_lo  = vol.loVect();
-    const int *v_hi  = vol.hiVect();
-    const Real *vol_dat  = vol.dataPtr();
-    
-    const int *xflux_lo = xflux.loVect();
-    const int *xflux_hi = xflux.hiVect();
+    const int *v_lo       = vol.loVect();
+    const int *v_hi       = vol.hiVect();
+    const Real *vol_dat   = vol.dataPtr();
+    const int *xflux_lo   = xflux.loVect();
+    const int *xflux_hi   = xflux.hiVect();
     const Real *xflux_dat = xflux.dataPtr();
     const Real *uedge_dat = uedge.dataPtr();
-    
-    const int *yflux_lo = yflux.loVect();
-    const int *yflux_hi = yflux.hiVect();
+    const int *yflux_lo   = yflux.loVect();
+    const int *yflux_hi   = yflux.hiVect();
     const Real *yflux_dat = yflux.dataPtr();
     const Real *vedge_dat = vedge.dataPtr();
-    
 #ifdef ADD_W
-    const int *az_lo  = areaz.loVect();
-    const int *az_hi  = areaz.hiVect();
+    const int *az_lo      = areaz.loVect();
+    const int *az_hi      = areaz.hiVect();
     const Real *areaz_dat = areaz.dataPtr();
-
-    const int *zflux_lo = zflux.loVect();
-    const int *zflux_hi = zflux.hiVect();
+    const int *zflux_lo   = zflux.loVect();
+    const int *zflux_hi   = zflux.hiVect();
     const Real *zflux_dat = zflux.dataPtr();
     const Real *wedge_dat = wedge.dataPtr();
 #endif
-    
-    // ---------------------------- compute the advective tendency
-    FORT_ADV_FORCING( aofs_dat, GDIMS(a_lo,a_hi),
-                      xflux_dat, uedge_dat, GDIMS(xflux_lo,xflux_hi),
-                      areax_dat, GDIMS(ax_lo,ax_hi),
-                      yflux_dat, vedge_dat, GDIMS(yflux_lo,yflux_hi),
-                      areay_dat, GDIMS(ay_lo,ay_hi),
+    //
+    // Compute the advective tendency.
+    //
+    FORT_ADV_FORCING(aofs_dat, GDIMS(a_lo,a_hi),
+                     xflux_dat, uedge_dat, GDIMS(xflux_lo,xflux_hi),
+                     areax_dat, GDIMS(ax_lo,ax_hi),
+                     yflux_dat, vedge_dat, GDIMS(yflux_lo,yflux_hi),
+                     areay_dat, GDIMS(ay_lo,ay_hi),
 #ifdef ADD_W                                                    
-                      zflux_dat, wedge_dat, GDIMS(zflux_lo,zflux_hi),
-                      areaz_dat, GDIMS(az_lo,az_hi),
+                     zflux_dat, wedge_dat, GDIMS(zflux_lo,zflux_hi),
+                     areaz_dat, GDIMS(az_lo,az_hi),
 #endif
-                      vol_dat, GDIMS(v_lo,v_hi),
-                      lo, hi, &iconserv );
+                     vol_dat, GDIMS(v_lo,v_hi),
+                     lo, hi, &iconserv);
 }
 
+//
+// Sync advect a state component.
+// This routine assumes uad,vad,wad have been precomputed.
+//
 
-
-// sync advect a state component
-// This routine assumes uad,vad,wad have been precomputed
-void Godunov::SyncAdvect( const Box &grd, const Real *dx, Real dt, int level,
-                          FArrayBox &areax, FArrayBox &uedge,
-                          FArrayBox &ucorr, FArrayBox &xflux,
-                          FArrayBox &areay, FArrayBox &vedge,
-                          FArrayBox &vcorr, FArrayBox &yflux,
+void
+Godunov::SyncAdvect (const Box&  grd,
+                     const Real* dx,
+                     Real        dt,
+                     int         level,
+                     FArrayBox& areax,
+                     FArrayBox& uedge,
+                     FArrayBox& ucorr,
+                     FArrayBox& xflux,
+                     FArrayBox& areay,
+                     FArrayBox& vedge,
+                     FArrayBox& vcorr,
+                     FArrayBox& yflux,
 #ifdef ADD_W
-                          FArrayBox &areaz, FArrayBox &wedge,
-                          FArrayBox &wcorr, FArrayBox &zflux,
+                     FArrayBox& areaz,
+                     FArrayBox& wedge,
+                     FArrayBox& wcorr,
+                     FArrayBox& zflux,
 #endif
-                          FArrayBox &S, FArrayBox &tforces, int fab_ind,
-                          FArrayBox &sync,                  int sync_ind,
-                          int iconserv, int state_ind, const int *bc,
-                          FArrayBox &vol )
+                     FArrayBox& S,
+                     FArrayBox& tforces,
+                     int        fab_ind,
+                     FArrayBox& sync,
+                     int        sync_ind,
+                     int        iconserv,
+                     int        state_ind,
+                     const int* bc,
+                     FArrayBox& vol)
 {
     int velpred = 0;
+    //
+    // Error block.
+    //
+    assert(S.box().contains(work_bx));
 
-    // ---------------------------- error block
-    Box tst = S.box();
-    assert( tst.contains( work_bx ) );
+    assert(S.nComp()       >= BL_SPACEDIM);
+    assert(S.nComp()       >= fab_ind    );
+    assert(tforces.nComp() >= fab_ind    );
+    assert(sync.nComp()    >= sync_ind   );
 
-    assert( S.nComp()       >= BL_SPACEDIM );
-    assert( S.nComp()       >= fab_ind     );
-    assert( tforces.nComp() >= fab_ind     );
-    assert( sync.nComp()    >= sync_ind    );
+    assert(ucorr.box()     == xflux_bx   );
+    assert(ucorr.nComp()   >= 1          );
 
-    assert( ucorr.box()     == xflux_bx    );
-    assert( ucorr.nComp()   >= 1           );
-
-    assert( vcorr.box()     == yflux_bx    );
-    assert( vcorr.nComp()   >= 1           );
+    assert(vcorr.box()     == yflux_bx   );
+    assert(vcorr.nComp()   >= 1          );
 #ifdef ADD_W
-    assert( wcorr.box()     == zflux_bx    );
-    assert( wcorr.nComp()   >= 1           );
+    assert(wcorr.box()     == zflux_bx   );
+    assert(wcorr.nComp()   >= 1          );
 #endif    
-
-    // ---------------------------- compute the edge states
-    edge_states( grd, dx, dt, velpred,
-                 uedge, xflux,
-                 vedge, yflux,
+    //
+    // Compute the edge states.
+    //
+    edge_states(grd, dx, dt, velpred,
+                uedge, xflux,
+                vedge, yflux,
 #ifdef ADD_W     
-                 wedge, zflux,
+                wedge, zflux,
 #endif
-                 S, S, tforces, fab_ind, state_ind, bc );
-
-    // compute the advective tendancy for the mac sync
-    ComputeSyncAofs( grd,
-                     areax, ucorr, xflux,  
-                     areay, vcorr, yflux,  
+                S, S, tforces, fab_ind, state_ind, bc);
+    //
+    // Compute the advective tendancy for the mac sync.
+    //
+    ComputeSyncAofs(grd,
+                    areax, ucorr, xflux,  
+                    areay, vcorr, yflux,  
 #ifdef ADD_W                             
-                     areaz, wcorr, zflux,
+                    areaz, wcorr, zflux,
 #endif                     
-                     vol, sync, sync_ind, iconserv );
+                    vol, sync, sync_ind, iconserv);
 }
 
+//
+// Compute the advective derivative of corrective fluxes for the mac sync.
+//
 
-
-// compute the advective derivative of corrective fluxes for the mac sync
-void Godunov::ComputeSyncAofs( const Box &grd,
-                               FArrayBox &areax, FArrayBox &ucorr, FArrayBox &xflux,  
-                               FArrayBox &areay, FArrayBox &vcorr, FArrayBox &yflux,  
+void
+Godunov::ComputeSyncAofs (const Box& grd,
+                          FArrayBox& areax,
+                          FArrayBox& ucorr,
+                          FArrayBox& xflux,  
+                          FArrayBox& areay,
+                          FArrayBox& vcorr,
+                          FArrayBox& yflux,  
 #ifdef ADD_W                             
-                               FArrayBox &areaz, FArrayBox &wcorr, FArrayBox &zflux,
+                          FArrayBox& areaz,
+                          FArrayBox& wcorr,
+                          FArrayBox& zflux,
 #endif                     
-                               FArrayBox &vol,
-                               FArrayBox &sync,
-                               int sync_ind, int iconserv )
+                          FArrayBox& vol,
+                          FArrayBox& sync,
+                          int        sync_ind,
+                          int        iconserv)
 {
-    // ---------------------------- create the bounds and pointers
-    const int *lo    = grd.loVect();
-    const int *hi    = grd.hiVect();
-    
-    const int *s_lo  = sync.loVect();
-    const int *s_hi  = sync.hiVect();
-    const Real *sync_dat = sync.dataPtr(sync_ind);
-    
-    const int *ax_lo  = areax.loVect();
-    const int *ax_hi  = areax.hiVect();
+    //
+    // Create the bounds and pointers.
+    //
+    const int *lo         = grd.loVect();
+    const int *hi         = grd.hiVect();
+    const int *s_lo       = sync.loVect();
+    const int *s_hi       = sync.hiVect();
+    const Real *sync_dat  = sync.dataPtr(sync_ind);
+    const int *ax_lo      = areax.loVect();
+    const int *ax_hi      = areax.hiVect();
     const Real *areax_dat = areax.dataPtr();
-
-    const int *ay_lo  = areay.loVect();
-    const int *ay_hi  = areay.hiVect();
+    const int *ay_lo      = areay.loVect();
+    const int *ay_hi      = areay.hiVect();
     const Real *areay_dat = areay.dataPtr();
-
-    const int *v_lo  = vol.loVect();
-    const int *v_hi  = vol.hiVect();
-    const Real *vol_dat  = vol.dataPtr();
-    
-    const int *xflux_lo = xflux.loVect();
-    const int *xflux_hi = xflux.hiVect();
+    const int *v_lo       = vol.loVect();
+    const int *v_hi       = vol.hiVect();
+    const Real *vol_dat   = vol.dataPtr();
+    const int *xflux_lo   = xflux.loVect();
+    const int *xflux_hi   = xflux.hiVect();
     const Real *xflux_dat = xflux.dataPtr();
     const Real *ucorr_dat = ucorr.dataPtr();
-    
-    const int *yflux_lo = yflux.loVect();
-    const int *yflux_hi = yflux.hiVect();
+    const int *yflux_lo   = yflux.loVect();
+    const int *yflux_hi   = yflux.hiVect();
     const Real *yflux_dat = yflux.dataPtr();
     const Real *vcorr_dat = vcorr.dataPtr();
-
 #ifdef ADD_W
-    const int *az_lo  = areaz.loVect();
-    const int *az_hi  = areaz.hiVect();
+    const int *az_lo      = areaz.loVect();
+    const int *az_hi      = areaz.hiVect();
     const Real *areaz_dat = areaz.dataPtr();
-
-    const int *zflux_lo = zflux.loVect();
-    const int *zflux_hi = zflux.hiVect();
+    const int *zflux_lo   = zflux.loVect();
+    const int *zflux_hi   = zflux.hiVect();
     const Real *zflux_dat = zflux.dataPtr();
     const Real *wcorr_dat = wcorr.dataPtr();
 #endif
-    
-    // ---------------------------- compute the corrective tendency
-    FORT_SYNC_ADV_FORCING( sync_dat, GDIMS(s_lo,s_hi),
+    //
+    // Compute the corrective tendency.
+    //
+    FORT_SYNC_ADV_FORCING(sync_dat, GDIMS(s_lo,s_hi),
                            
-                           xflux_dat, ucorr_dat, GDIMS(xflux_lo,xflux_hi),
-                           areax_dat, GDIMS(ax_lo,ax_hi),
+                          xflux_dat, ucorr_dat, GDIMS(xflux_lo,xflux_hi),
+                          areax_dat, GDIMS(ax_lo,ax_hi),
                            
-                           yflux_dat, vcorr_dat, GDIMS(yflux_lo,yflux_hi),
-                           areay_dat, GDIMS(ay_lo,ay_hi),
+                          yflux_dat, vcorr_dat, GDIMS(yflux_lo,yflux_hi),
+                          areay_dat, GDIMS(ay_lo,ay_hi),
 #ifdef ADD_W                                             
-                           zflux_dat, wcorr_dat, GDIMS(zflux_lo,zflux_hi),
-                           areaz_dat, GDIMS(az_lo,az_hi),
+                          zflux_dat, wcorr_dat, GDIMS(zflux_lo,zflux_hi),
+                          areaz_dat, GDIMS(az_lo,az_hi),
 #endif
-                           vol_dat, GDIMS(v_lo,v_hi),
-                           lo, hi, &iconserv );
+                          vol_dat, GDIMS(v_lo,v_hi),
+                          lo, hi, &iconserv);
 }    
 
+//
+// Correct a scalar for under-over shoots.
+//
 
-
-
-// correct a scalar for under-over shoots
-void Godunov::ScalMinMax( FArrayBox &Sold, FArrayBox &Snew, int ind, 
-                          const int *bc, const Box &grd )
+void
+Godunov::ScalMinMax (FArrayBox& Sold,
+                     FArrayBox& Snew,
+                     int        ind, 
+                     const int* bc,
+                     const Box& grd)
 {
-    const int *slo = Sold.loVect();
-    const int *shi = Sold.hiVect();
-    const int *lo  = grd.loVect();
-    const int *hi  = grd.hiVect();
+    const int *slo       = Sold.loVect();
+    const int *shi       = Sold.hiVect();
+    const int *lo        = grd.loVect();
+    const int *hi        = grd.hiVect();
     const Real *Sold_dat = Sold.dataPtr(ind);
     const Real *Snew_dat = Snew.dataPtr(ind);
 
@@ -715,54 +829,61 @@ void Godunov::ScalMinMax( FArrayBox &Sold, FArrayBox &Snew, int ind,
                      lo, hi, bc);
 }
 
-
-
-// =============================================================
+//
 // Diagnostic functions follow
-// =============================================================
+//
 
 //
-// estimate the maximum allowable timestep at a cell center
+// Estimate the maximum allowable timestep at a cell center.
 //
-Real Godunov::estdt( FArrayBox &U, FArrayBox &tforces, FArrayBox &rho,
-                     const Box &grd, const Real *dx, Real cfl, Real *u_max )
+
+Real
+Godunov::estdt (FArrayBox&  U,
+                FArrayBox&  tforces,
+                FArrayBox&  rho,
+                const Box&  grd,
+                const Real* dx,
+                Real        cfl,
+                Real*       u_max)
 {
     assert( U.nComp()       >= BL_SPACEDIM );
     assert( tforces.nComp() >= BL_SPACEDIM );
     assert( rho.nComp()     == 1           );
 
-    const int *lo  = grd.loVect();
-    const int *hi  = grd.hiVect();
-    const int *vlo = U.loVect();
-    const int *vhi = U.hiVect();
-    const int *tlo = tforces.loVect();
-    const int *thi = tforces.hiVect();
-    const int *rlo = rho.loVect();
-    const int *rhi = rho.hiVect();
-    
+    const int *lo     = grd.loVect();
+    const int *hi     = grd.hiVect();
+    const int *vlo    = U.loVect();
+    const int *vhi    = U.hiVect();
+    const int *tlo    = tforces.loVect();
+    const int *thi    = tforces.hiVect();
+    const int *rlo    = rho.loVect();
+    const int *rhi    = rho.hiVect();
     const Real *Udat  = U.dataPtr();
     const Real *tfdat = tforces.dataPtr();
     const Real *rdat  = rho.dataPtr();
 
     Real dt;
-    FORT_ESTDT( Udat,  GDIMS(vlo,vhi),
-                tfdat, GDIMS(tlo,thi),
-                rdat,  GDIMS(rlo,rhi),
-                lo, hi, &dt, dx, &cfl, u_max );
+    FORT_ESTDT(Udat,  GDIMS(vlo,vhi),
+               tfdat, GDIMS(tlo,thi),
+               rdat,  GDIMS(rlo,rhi),
+               lo, hi, &dt, dx, &cfl, u_max);
     return dt;
 }
 
-
-
 //
-// estimate the extrema of cell-centered us and rho
+// Estimate the extrema of cell-centered us and rho.
 //
-Real Godunov::test_u_rho( FArrayBox &U, FArrayBox &rho, 
-                          const Box &grd, const Real *dx, const Real dt,
-                          const Real *u_max )
+
+Real
+Godunov::test_u_rho (FArrayBox&  U,
+                     FArrayBox&  rho, 
+                     const Box&  grd,
+                     const Real* dx,
+                     const Real  dt,
+                     const Real* u_max)
 {
-    assert( U.nComp()   >= BL_SPACEDIM );
-    assert( rho.nComp() == 1           );
+    assert(U.nComp()   >= BL_SPACEDIM);
+    assert(rho.nComp() == 1          );
     
     const int *lo  = grd.loVect();
     const int *hi  = grd.hiVect();
@@ -770,7 +891,6 @@ Real Godunov::test_u_rho( FArrayBox &U, FArrayBox &rho,
     const int *vhi = U.hiVect();
     const int *rlo = rho.loVect();
     const int *rhi = rho.hiVect();
-
     const Real *rh = rho.dataPtr();
     const Real *u  = U.dataPtr(XVEL);
     const Real *v  = U.dataPtr(YVEL);
@@ -779,37 +899,41 @@ Real Godunov::test_u_rho( FArrayBox &U, FArrayBox &rho,
 #endif
 
     Real cflmax = 0;
-    FORT_TEST_U_RHO( u,  GDIMS(vlo,vhi),
-                     v,  GDIMS(vlo,vhi),
+    FORT_TEST_U_RHO(u,  GDIMS(vlo,vhi),
+                    v,  GDIMS(vlo,vhi),
 #ifdef ADD_W                          
-                     w,  GDIMS(vlo,vhi),
+                    w,  GDIMS(vlo,vhi),
 #endif
-                     rh, GDIMS(rlo,rhi),
-                     lo, hi, &dt, dx, &cflmax, u_max, &verbose);
+                    rh, GDIMS(rlo,rhi),
+                    lo, hi, &dt, dx, &cflmax, u_max, &verbose);
     return cflmax;
 }
 
-
-
 //
-// estimate the extrema of umac edge velocities and rho
+// Estimate the extrema of umac edge velocities and rho.
 //
-Real Godunov::test_umac_rho( FArrayBox &umac,
-                             FArrayBox &vmac,
+
+Real
+Godunov::test_umac_rho (FArrayBox&  umac,
+                        FArrayBox&  vmac,
 #ifdef ADD_W
-                             FArrayBox &wmac,
+                        FArrayBox&  wmac,
 #endif
-                             FArrayBox &rho,
-                             const Box &grd, const Real *dx, const Real dt,
-                             const Real *u_max )
+                        FArrayBox&  rho,
+                        const Box&  grd,
+                        const Real* dx,
+                        const Real  dt,
+                        const Real* u_max)
 {
-    // test block
-    assert( umac.nComp() == 1 );
-    assert( vmac.nComp() == 1 );
+    //
+    // Test block.
+    //
+    assert(umac.nComp() == 1);
+    assert(vmac.nComp() == 1);
 #ifdef ADD_W
-    assert( wmac.nComp() == 1 );
+    assert(wmac.nComp() == 1);
 #endif
-    assert( rho.nComp()  == 1 );
+    assert(rho.nComp()  == 1);
     
     const int *lo  = grd.loVect();
     const int *hi  = grd.hiVect();
@@ -830,154 +954,172 @@ Real Godunov::test_umac_rho( FArrayBox &umac,
 #endif
 
     Real cfl;
-    FORT_TEST_UMAC_RHO( um, GDIMS(ulo,uhi),
-                        vm, GDIMS(vlo,vhi),
+    FORT_TEST_UMAC_RHO(um, GDIMS(ulo,uhi),
+                       vm, GDIMS(vlo,vhi),
 #ifdef ADD_W                            
-                        wm, GDIMS(wlo,whi),
+                       wm, GDIMS(wlo,whi),
 #endif                                              
-                        rh, GDIMS(rlo,rhi),
-                        lo, hi, &dt, dx, &cfl, u_max );
+                       rh, GDIMS(rlo,rhi),
+                       lo, hi, &dt, dx, &cfl, u_max);
     return cfl;
 }
 
-
-
-
-// =============================================================
+//
 // Source term functions follow
-// =============================================================
+//
 
-
-// compute the update rule, this is useful for 1st order RK
+//
+// Compute the update rule, this is useful for 1st order RK.
 //
 // psi^n+1 = psi^n + dt*tf^n
 //
-void Godunov::Add_tf( FArrayBox &Sold,
-                      FArrayBox &Snew,    int start_ind, int num_comp, 
-                      FArrayBox &tforces, int tf_ind,
-                      const Box &grd,     Real dt )
-{
-    assert( Snew.nComp()    >= start_ind + num_comp );
-    assert( Sold.nComp()    >= start_ind + num_comp );
-    assert( tforces.nComp() >= tf_ind    + num_comp );
 
-    const int *slo = Sold.loVect();
-    const int *shi = Sold.hiVect();
-    const int *tlo = tforces.loVect();
-    const int *thi = tforces.hiVect();
-    const int *lo  = grd.loVect();
-    const int *hi  = grd.hiVect();
+void
+Godunov::Add_tf (FArrayBox& Sold,
+                 FArrayBox& Snew,
+                 int        start_ind,
+                 int        num_comp, 
+                 FArrayBox& tforces,
+                 int        tf_ind,
+                 const Box& grd,
+                 Real       dt)
+{
+    assert(Snew.nComp()    >= start_ind + num_comp);
+    assert(Sold.nComp()    >= start_ind + num_comp);
+    assert(tforces.nComp() >= tf_ind    + num_comp);
+
+    const int *slo    = Sold.loVect();
+    const int *shi    = Sold.hiVect();
+    const int *tlo    = tforces.loVect();
+    const int *thi    = tforces.hiVect();
+    const int *lo     = grd.loVect();
+    const int *hi     = grd.hiVect();
     const Real *SOdat = Sold.dataPtr(start_ind);
     const Real *SNdat = Snew.dataPtr(start_ind);
     const Real *TFdat = tforces.dataPtr(tf_ind);
     
-    FORT_UPDATE_TF( SOdat, GDIMS(slo,shi), 
-                    SNdat, GDIMS(slo,shi),
-                    TFdat, GDIMS(tlo,thi),
-                    lo, hi, &dt, &num_comp );
+    FORT_UPDATE_TF(SOdat, GDIMS(slo,shi), 
+                   SNdat, GDIMS(slo,shi),
+                   TFdat, GDIMS(tlo,thi),
+                   lo, hi, &dt, &num_comp);
 }
 
-
-// correct the 1st order RK to 2nd order via
+//
+// Correct the 1st order RK to 2nd order via
 //
 // psi^n+1 = psi^* + (dt/2)*(tf^* - tf^n)
 //
-void Godunov::Correct_tf( FArrayBox &Sstar, FArrayBox &Snp1,
-                          int start_ind, int num_comp, 
-                          FArrayBox &tfstar, FArrayBox &tfn,
-                          int tf_ind,
-                          const Box &grd,     Real dt )
-{
-    assert( Snp1.nComp()   >= start_ind + num_comp );
-    assert( Sstar.nComp()  >= start_ind + num_comp );
-    assert( tfstar.nComp() >= tf_ind    + num_comp );
-    assert( tfn.nComp()    >= tf_ind    + num_comp );
 
-    const int *slo = Sstar.loVect();
-    const int *shi = Sstar.hiVect();
-    const int *tlo = tfstar.loVect();
-    const int *thi = tfstar.hiVect();
-    const int *lo  = grd.loVect();
-    const int *hi  = grd.hiVect();
+void
+Godunov::Correct_tf (FArrayBox& Sstar,
+                     FArrayBox& Snp1,
+                     int        start_ind,
+                     int        num_comp, 
+                     FArrayBox& tfstar,
+                     FArrayBox& tfn,
+                     int        tf_ind,
+                     const Box& grd,
+                     Real       dt)
+{
+    assert(Snp1.nComp()   >= start_ind + num_comp);
+    assert(Sstar.nComp()  >= start_ind + num_comp);
+    assert(tfstar.nComp() >= tf_ind    + num_comp);
+    assert(tfn.nComp()    >= tf_ind    + num_comp);
+
+    const int *slo    = Sstar.loVect();
+    const int *shi    = Sstar.hiVect();
+    const int *tlo    = tfstar.loVect();
+    const int *thi    = tfstar.hiVect();
+    const int *lo     = grd.loVect();
+    const int *hi     = grd.hiVect();
     const Real *SSdat = Sstar.dataPtr(start_ind);
     const Real *SPdat = Snp1.dataPtr(start_ind);
     const Real *TSdat = tfstar.dataPtr(tf_ind);
     const Real *TNdat = tfn.dataPtr(tf_ind);
     
-    FORT_CORRECT_TF( SSdat, SPdat, GDIMS(slo,shi),
-                     TSdat, TNdat, GDIMS(tlo,thi),
-                     lo, hi, &dt, &num_comp );
+    FORT_CORRECT_TF(SSdat, SPdat, GDIMS(slo,shi),
+                    TSdat, TNdat, GDIMS(tlo,thi),
+                    lo, hi, &dt, &num_comp);
 }
 
-
-
-// compute the update rule
+//
+// Compute the update rule
 //
 // psi^n+1 = psi^n - dt*aofs + dt*tforces
 //
-void Godunov::Add_aofs_tf( FArrayBox &Sold,
-                           FArrayBox &Snew,    int start_ind, int num_comp,
-                           FArrayBox &Aofs,    int aofs_ind,
-                           FArrayBox &tforces, int tf_ind,
-                           const Box &grd,     Real dt )
-{
-    assert( Snew.nComp()    >= start_ind + num_comp );
-    assert( Sold.nComp()    >= start_ind + num_comp );
-    assert( Aofs.nComp()    >= aofs_ind  + num_comp );
-    assert( tforces.nComp() >= tf_ind    + num_comp );
 
-    const int *slo = Sold.loVect();
-    const int *shi = Sold.hiVect();
-    const int *alo = Aofs.loVect();
-    const int *ahi = Aofs.hiVect();
-    const int *tlo = tforces.loVect();
-    const int *thi = tforces.hiVect();
-    const int *lo  = grd.loVect();
-    const int *hi  = grd.hiVect();
+void
+Godunov::Add_aofs_tf (FArrayBox& Sold,
+                      FArrayBox& Snew,
+                      int        start_ind,
+                      int        num_comp,
+                      FArrayBox& Aofs,
+                      int        aofs_ind,
+                      FArrayBox& tforces,
+                      int        tf_ind,
+                      const Box& grd,
+                      Real       dt)
+{
+    assert(Snew.nComp()    >= start_ind + num_comp);
+    assert(Sold.nComp()    >= start_ind + num_comp);
+    assert(Aofs.nComp()    >= aofs_ind  + num_comp);
+    assert(tforces.nComp() >= tf_ind    + num_comp);
+
+    const int *slo    = Sold.loVect();
+    const int *shi    = Sold.hiVect();
+    const int *alo    = Aofs.loVect();
+    const int *ahi    = Aofs.hiVect();
+    const int *tlo    = tforces.loVect();
+    const int *thi    = tforces.hiVect();
+    const int *lo     = grd.loVect();
+    const int *hi     = grd.hiVect();
     const Real *SOdat = Sold.dataPtr(start_ind);
     const Real *SNdat = Snew.dataPtr(start_ind);
     const Real *AOdat = Aofs.dataPtr(aofs_ind);
     const Real *TFdat = tforces.dataPtr(tf_ind);
     
-    FORT_UPDATE_AOFS_TF( SOdat, GDIMS(slo,shi), 
-                         SNdat, GDIMS(slo,shi),
-                         AOdat, GDIMS(alo,ahi),
-                         TFdat, GDIMS(tlo,thi),
-                         lo, hi, &dt, &num_comp );
+    FORT_UPDATE_AOFS_TF(SOdat, GDIMS(slo,shi), 
+                        SNdat, GDIMS(slo,shi),
+                        AOdat, GDIMS(alo,ahi),
+                        TFdat, GDIMS(tlo,thi),
+                        lo, hi, &dt, &num_comp);
 }
 
-
-
-
-// compute the update rule for velocities
+//
+// Compute the update rule for velocities
 //
 // psi^n+1 = psi^n - dt*aofs - dt*gp/rho + dt*tforces
 //
-void Godunov::Add_aofs_tf_gp( FArrayBox &Uold, FArrayBox &Unew,
-                              FArrayBox &Aofs, FArrayBox &tforces,
-                              FArrayBox &gp,   FArrayBox &rho, 
-                              const Box &grd,  Real dt )
+
+void
+Godunov::Add_aofs_tf_gp (FArrayBox& Uold,
+                         FArrayBox& Unew,
+                         FArrayBox& Aofs,
+                         FArrayBox& tforces,
+                         FArrayBox& gp,
+                         FArrayBox& rho, 
+                         const Box& grd,
+                         Real       dt)
 {
-    assert( Unew.nComp()    >= BL_SPACEDIM );
-    assert( Uold.nComp()    >= BL_SPACEDIM );
-    assert( Aofs.nComp()    >= BL_SPACEDIM );
-    assert( tforces.nComp() >= BL_SPACEDIM );
-    assert( gp.nComp()      == BL_SPACEDIM );
-    assert( rho.nComp()     == 1           );
+    assert(Unew.nComp()    >= BL_SPACEDIM);
+    assert(Uold.nComp()    >= BL_SPACEDIM);
+    assert(Aofs.nComp()    >= BL_SPACEDIM);
+    assert(tforces.nComp() >= BL_SPACEDIM);
+    assert(gp.nComp()      == BL_SPACEDIM);
+    assert(rho.nComp()     == 1          );
     
-    const int *lo  = grd.loVect();
-    const int *hi  = grd.hiVect();
-    const int *ulo = Uold.loVect();
-    const int *uhi = Uold.hiVect();
-    const int *alo = Aofs.loVect();
-    const int *ahi = Aofs.hiVect();
-    const int *tlo = tforces.loVect();
-    const int *thi = tforces.hiVect();
-    const int *glo = gp.loVect();
-    const int *ghi = gp.hiVect();
-    const int *rlo = rho.loVect();
-    const int *rhi = rho.hiVect();
-    
+    const int *lo     = grd.loVect();
+    const int *hi     = grd.hiVect();
+    const int *ulo    = Uold.loVect();
+    const int *uhi    = Uold.hiVect();
+    const int *alo    = Aofs.loVect();
+    const int *ahi    = Aofs.hiVect();
+    const int *tlo    = tforces.loVect();
+    const int *thi    = tforces.hiVect();
+    const int *glo    = gp.loVect();
+    const int *ghi    = gp.hiVect();
+    const int *rlo    = rho.loVect();
+    const int *rhi    = rho.hiVect();
     const Real *UOdat = Uold.dataPtr();
     const Real *UNdat = Unew.dataPtr();
     const Real *AOdat = Aofs.dataPtr();
@@ -985,164 +1127,172 @@ void Godunov::Add_aofs_tf_gp( FArrayBox &Uold, FArrayBox &Unew,
     const Real *GPdat = gp.dataPtr();
     const Real *RHdat = rho.dataPtr();
     
-    FORT_UPDATE_AOFS_TF_GP( UOdat, GDIMS(ulo,uhi),
-                            UNdat, GDIMS(ulo,uhi),
-                            AOdat, GDIMS(alo,ahi),
-                            TFdat, GDIMS(tlo,thi),
-                            GPdat, GDIMS(glo,ghi),
-                            RHdat, GDIMS(rlo,rhi),
-                            lo, hi, &dt );
+    FORT_UPDATE_AOFS_TF_GP(UOdat, GDIMS(ulo,uhi),
+                           UNdat, GDIMS(ulo,uhi),
+                           AOdat, GDIMS(alo,ahi),
+                           TFdat, GDIMS(tlo,thi),
+                           GPdat, GDIMS(glo,ghi),
+                           RHdat, GDIMS(rlo,rhi),
+                           lo, hi, &dt);
 }
 
-
-// compute total source term for velocities,
-// weighted by rho
+//
+// Compute total source term for velocities, weighted by rho.
 //
 // tforces = (tforces - gp)/rho
 //
-void Godunov::Sum_tf_gp( FArrayBox &tforces, 
-                         FArrayBox &gp,      FArrayBox &rho )
+
+void
+Godunov::Sum_tf_gp (FArrayBox& tforces, 
+                    FArrayBox& gp,
+                    FArrayBox& rho)
 {
-    assert( rho.nComp()     == 1 );
-    assert( tforces.nComp() >= BL_SPACEDIM );
-    assert( gp.nComp()      == BL_SPACEDIM );
+    assert(rho.nComp()     == 1);
+    assert(tforces.nComp() >= BL_SPACEDIM);
+    assert(gp.nComp()      == BL_SPACEDIM);
     
-    const int *tlo = tforces.loVect();
-    const int *thi = tforces.hiVect();
-    const int *glo = gp.loVect();
-    const int *ghi = gp.hiVect();
-    const int *rlo = rho.loVect();
-    const int *rhi = rho.hiVect();
-    
+    const int *tlo    = tforces.loVect();
+    const int *thi    = tforces.hiVect();
+    const int *glo    = gp.loVect();
+    const int *ghi    = gp.hiVect();
+    const int *rlo    = rho.loVect();
+    const int *rhi    = rho.hiVect();
     const Real *TFdat = tforces.dataPtr();
     const Real *GPdat = gp.dataPtr();
     const Real *RHdat = rho.dataPtr();
      
-    FORT_SUM_TF_GP( TFdat, GDIMS(tlo,thi),
-                    GPdat, GDIMS(glo,ghi),
-                    RHdat, GDIMS(rlo,rhi),
-                    tlo, thi );
+    FORT_SUM_TF_GP(TFdat, GDIMS(tlo,thi),
+                   GPdat, GDIMS(glo,ghi),
+                   RHdat, GDIMS(rlo,rhi),
+                   tlo, thi);
 }
 
-
-// compute total source term for velocities,
-// weighted by rho
+//
+// Compute total source term for velocities, weighted by rho.
 //
 // tforces = (tforces + visc - gp)/rho
 //
-void Godunov::Sum_tf_gp_visc( FArrayBox &tforces, FArrayBox &visc, 
-                              FArrayBox &gp,      FArrayBox &rho )
+
+void
+Godunov::Sum_tf_gp_visc (FArrayBox& tforces,
+                         FArrayBox& visc, 
+                         FArrayBox& gp,
+                         FArrayBox& rho)
 {
-    assert( rho.nComp()     == 1 );
-    assert( tforces.nComp() >= BL_SPACEDIM );
-    assert( visc.nComp()    >= BL_SPACEDIM );
-    assert( gp.nComp()      == BL_SPACEDIM );
+    assert(rho.nComp()     == 1);
+    assert(tforces.nComp() >= BL_SPACEDIM);
+    assert(visc.nComp()    >= BL_SPACEDIM);
+    assert(gp.nComp()      == BL_SPACEDIM);
     
-    const int *vlo = visc.loVect();  
-    const int *vhi = visc.hiVect();
-    const int *tlo = tforces.loVect();
-    const int *thi = tforces.hiVect();
-    const int *glo = gp.loVect();
-    const int *ghi = gp.hiVect();
-    const int *rlo = rho.loVect();
-    const int *rhi = rho.hiVect();
-    
+    const int *vlo    = visc.loVect();  
+    const int *vhi    = visc.hiVect();
+    const int *tlo    = tforces.loVect();
+    const int *thi    = tforces.hiVect();
+    const int *glo    = gp.loVect();
+    const int *ghi    = gp.hiVect();
+    const int *rlo    = rho.loVect();
+    const int *rhi    = rho.hiVect();
     const Real *TFdat = tforces.dataPtr();
     const Real *VIdat = visc.dataPtr();
     const Real *GPdat = gp.dataPtr();
     const Real *RHdat = rho.dataPtr();
      
-    FORT_SUM_TF_GP_VISC( TFdat, GDIMS(tlo,thi),
-                         VIdat, GDIMS(vlo,vhi),
-                         GPdat, GDIMS(glo,ghi),
-                         RHdat, GDIMS(rlo,rhi),
-                         tlo, thi );
+    FORT_SUM_TF_GP_VISC(TFdat, GDIMS(tlo,thi),
+                        VIdat, GDIMS(vlo,vhi),
+                        GPdat, GDIMS(glo,ghi),
+                        RHdat, GDIMS(rlo,rhi),
+                        tlo, thi);
 }
 
-
-
-// compute total source term for scalars.  Note for compatibility
+//
+// Compute total source term for scalars.  Note for compatibility
 // The switch iconserv, determines the form of the total source term
 //
 // iconserv==1   => tforces = tforces - divU*S
 //
 // iconserv==0   => tforces = (tforces)/rho
 //
-void Godunov::Sum_tf_divu( FArrayBox &S, FArrayBox &tforces,
-                           int s_ind, int num_comp,
-                           FArrayBox &divu,    FArrayBox &rho,
-                           int iconserv )
+
+void
+Godunov::Sum_tf_divu (FArrayBox& S,
+                      FArrayBox& tforces,
+                      int        s_ind,
+                      int        num_comp,
+                      FArrayBox& divu,
+                      FArrayBox& rho,
+                      int        iconserv)
 {
-    assert( S.nComp()       >= s_ind+num_comp );
-    assert( tforces.nComp() >= s_ind+num_comp );
-    assert( divu.nComp()    == 1              );
-    assert( rho.nComp()     == 1              );
+    assert(S.nComp()       >= s_ind+num_comp);
+    assert(tforces.nComp() >= s_ind+num_comp);
+    assert(divu.nComp()    == 1             );
+    assert(rho.nComp()     == 1             );
     
-    const int *slo = S.loVect();
-    const int *shi = S.hiVect();
-    const int *tlo = tforces.loVect();
-    const int *thi = tforces.hiVect();
-    const int *dlo = divu.loVect();
-    const int *dhi = divu.hiVect();
-    const int *rlo = rho.loVect();
-    const int *rhi = rho.hiVect();
-    
+    const int *slo    = S.loVect();
+    const int *shi    = S.hiVect();
+    const int *tlo    = tforces.loVect();
+    const int *thi    = tforces.hiVect();
+    const int *dlo    = divu.loVect();
+    const int *dhi    = divu.hiVect();
+    const int *rlo    = rho.loVect();
+    const int *rhi    = rho.hiVect();
     const Real *Sdat  = S.dataPtr(s_ind);
     const Real *TFdat = tforces.dataPtr(s_ind);
     const Real *DUdat = divu.dataPtr();
     const Real *RHdat = rho.dataPtr();
      
-    FORT_SUM_TF_DIVU( Sdat,  GDIMS(slo,shi),
-                      TFdat, GDIMS(tlo,thi),
-                      DUdat, GDIMS(dlo,dhi),
-                      RHdat, GDIMS(rlo,rhi),
-                      tlo, thi, &num_comp, &iconserv );
+    FORT_SUM_TF_DIVU(Sdat,  GDIMS(slo,shi),
+                     TFdat, GDIMS(tlo,thi),
+                     DUdat, GDIMS(dlo,dhi),
+                     RHdat, GDIMS(rlo,rhi),
+                     tlo, thi, &num_comp, &iconserv);
 }
 
-
-
-// compute total source term for scalars.  Note for compatibility
+//
+// Compute total source term for scalars.  Note for compatibility
 // The switch iconserv, determines the form of the total source term
 //
 // iconserv==1   => tforces = tforces + visc - divU*S
 //
 // iconserv==0   => tforces = (tforces+ visc)/rho
 //
-void Godunov::Sum_tf_divu_visc( FArrayBox &S, FArrayBox &tforces,
-                                int s_ind, int num_comp,
-                                FArrayBox &visc,
-                                int v_ind,
-                                FArrayBox &divu,    FArrayBox &rho,
-                                int iconserv )
+
+void
+Godunov::Sum_tf_divu_visc (FArrayBox& S,
+                           FArrayBox& tforces,
+                           int        s_ind,
+                           int        num_comp,
+                           FArrayBox& visc,
+                           int        v_ind,
+                           FArrayBox& divu,
+                           FArrayBox& rho,
+                           int        iconserv)
 {
-    assert( S.nComp()       >= s_ind+num_comp );
-    assert( tforces.nComp() >= s_ind+num_comp );
-    assert( divu.nComp()    == 1              );
-    assert( visc.nComp()    >= v_ind+num_comp );
-    assert( rho.nComp()     == 1              );
+    assert(S.nComp()       >= s_ind+num_comp);
+    assert(tforces.nComp() >= s_ind+num_comp);
+    assert(divu.nComp()    == 1             );
+    assert(visc.nComp()    >= v_ind+num_comp);
+    assert(rho.nComp()     == 1             );
     
-    const int *slo = S.loVect();
-    const int *shi = S.hiVect();
-    const int *tlo = tforces.loVect();
-    const int *thi = tforces.hiVect();
-    const int *dlo = divu.loVect();
-    const int *dhi = divu.hiVect();
-    const int *vlo = visc.loVect();
-    const int *vhi = visc.hiVect();
-    const int *rlo = rho.loVect();
-    const int *rhi = rho.hiVect();
-    
+    const int *slo    = S.loVect();
+    const int *shi    = S.hiVect();
+    const int *tlo    = tforces.loVect();
+    const int *thi    = tforces.hiVect();
+    const int *dlo    = divu.loVect();
+    const int *dhi    = divu.hiVect();
+    const int *vlo    = visc.loVect();
+    const int *vhi    = visc.hiVect();
+    const int *rlo    = rho.loVect();
+    const int *rhi    = rho.hiVect();
     const Real *Sdat  = S.dataPtr(s_ind);
     const Real *TFdat = tforces.dataPtr(s_ind);
     const Real *DUdat = divu.dataPtr();
     const Real *VIdat = visc.dataPtr(v_ind);
     const Real *RHdat = rho.dataPtr();
      
-    FORT_SUM_TF_DIVU_VISC( Sdat,  GDIMS(slo,shi),
-                           TFdat, GDIMS(tlo,thi),
-                           DUdat, GDIMS(dlo,dhi),
-                           VIdat, GDIMS(vlo,vhi),
-                           RHdat, GDIMS(rlo,rhi),
-                           tlo, thi, &num_comp, &iconserv );
+    FORT_SUM_TF_DIVU_VISC(Sdat,  GDIMS(slo,shi),
+                          TFdat, GDIMS(tlo,thi),
+                          DUdat, GDIMS(dlo,dhi),
+                          VIdat, GDIMS(vlo,vhi),
+                          RHdat, GDIMS(rlo,rhi),
+                          tlo, thi, &num_comp, &iconserv);
 }
-
