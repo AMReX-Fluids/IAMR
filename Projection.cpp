@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.155 2003-09-11 21:10:14 almgren Exp $
+// $Id: Projection.cpp,v 1.156 2004-02-18 16:50:03 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2814,37 +2814,43 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     }
   else
     {
+        Vel_in->FillBoundary();
+        //      Build a new MultiFab for which the cells outside the domain
+        //        are in the valid region instead of being ghost cells, so that
+        //        we can copy these values into the dudt array.
+        BoxList grown_vel_bl;
+        for (int i = 0; i < Vel_in->size(); i++)
+	    grown_vel_bl.push_back(BoxLib::grow(Vel_in->boxArray()[i],1));
+        BoxArray grown_vel_ba(grown_vel_bl);
+        MultiFab grown_vel(grown_vel_ba,BL_SPACEDIM,0);
+        for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
+        {
+            grown_vel[vmfi.index()].copy((*Vel_in)[vmfi.index()]);
+        }
 
       if (have_divu)
 	{
-	  Vel_in->FillBoundary();
-
-	  //      Build a new MultiFab for which the cells outside the domain
-	  //        are in the valid region instead of being ghost cells, so that
-	  //        we can copy these values into the dudt array.
-	  BoxList grown_vel_bl;
-	  for (int i = 0; i < Vel_in->size(); i++)
-	    grown_vel_bl.push_back(BoxLib::grow(Vel_in->boxArray()[i],1));
-	  BoxArray grown_vel_ba(grown_vel_bl);
-	  MultiFab grown_vel(grown_vel_ba,BL_SPACEDIM,0);
+	  for (int iface = 0; iface < numOutFlowFaces; iface++) 
+	    {
+	      grown_vel.copy(dudt[0][iface]);
+	    }
+          // Reuse grown_vel to fill dsdt
 	  for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
 	    {
-	      grown_vel[vmfi.index()].copy((*Vel_in)[vmfi.index()]);
+	      grown_vel[vmfi.index()].copy((*Divu_in)[vmfi.index()],0,0,1);
 	    }
 
 	  for (int iface = 0; iface < numOutFlowFaces; iface++) 
 	    {
-	      grown_vel.copy(dudt[0][iface]);
-	      Divu_in->copy(dsdt[iface]);
+	      grown_vel.copy(dsdt[iface],0,0,1);
 	    }
-
 	}
       else
 	{
 	  for (int iface = 0; iface < numOutFlowFaces; iface++) 
 	    {
-	      Vel_in->copy(dudt[0][iface]);
-	      dsdt[iface].setVal(0.);
+	      grown_vel.copy(dudt[0][iface]);
+	      dsdt[iface].setVal(0);
 	    }
 	}
 
@@ -2854,7 +2860,6 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 		       parent->Geom(lev),
 		       outFacesAtThisLevel,
 		       numOutFlowFaces, lo_bc, hi_bc, gravity);
-
     }
 
   for ( int iface = 0; iface < numOutFlowFaces; iface++)
