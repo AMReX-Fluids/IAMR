@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.29 1999-07-24 00:07:01 almgren Exp $
+// $Id: Projection.H,v 1.30 1999-09-02 21:59:41 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -103,8 +103,10 @@ public:
     void MLsyncProject (int             crse_level,
                         MultiFab&       pres_crse,
                         MultiFab&       vel_crse,
+                        MultiFab&       cc_rhs_crse,
                         MultiFab&       pres_fine,
                         MultiFab&       vel_fine,
+                        MultiFab&       cc_rhs_fine,
                         MultiFab&       rho_half,
                         MultiFab&       rho_fine,
                         MultiFab*       Vsync,

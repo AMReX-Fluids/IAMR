@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.109 1999-08-19 19:27:55 lijewski Exp $
+// $Id: Projection.cpp,v 1.110 1999-09-02 21:59:41 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -369,7 +369,7 @@ Projection::level_project (int             level,
 {
     if (ParallelDescriptor::IOProcessor() && verbose)
 	cout << "... level projector at level " << level << '\n';
-    
+
     if (sync_proj == 0)
         bldSyncProject();
     //
@@ -553,12 +553,10 @@ Projection::level_project (int             level,
         sync_resid_fine = new MultiFab(P_grids,1,ngrow);
     }
 
-    const bool is_sync  = false;
     if (!have_divu) 
     {
         sync_proj->project(u_real, p_real, null_amr_real, s_real, 
-                           sync_resid_crse, sync_resid_fine, 
-                           geom, is_sync,
+                           sync_resid_crse, sync_resid_fine, geom, 
                            (Real*)dx, proj_tol, level, level, proj_abs_tol);
     }
     else 
@@ -571,9 +569,10 @@ Projection::level_project (int             level,
 
         PArray<MultiFab> rhs_real(level+1);
         rhs_real.set(level, divusource);
+        for (int i=0; i < divusource->boxArray().length(); i++)
+          cout << "LEVEL " << level << " DIVU NORM " << (*divusource)[i].norm(0) << endl;
         sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real, 
-                                  sync_resid_crse, sync_resid_fine, 
-                                  geom, is_sync,
+                                  sync_resid_crse, sync_resid_fine, geom, 
                                   use_u, (Real*)dx,
                                   proj_tol, level, level, proj_abs_tol);
     }
@@ -822,7 +821,6 @@ Projection::filterP (int             level,
     // Project ...
     //
     const bool use_u   = true;
-    const bool is_sync = false;
 
     if (level < finest_level) 
         sync_resid_crse = new MultiFab(P_grids,1,1);
@@ -834,8 +832,7 @@ Projection::filterP (int             level,
     }
 
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
-                              sync_resid_crse, sync_resid_fine, 
-                              geom, is_sync,
+                              sync_resid_crse, sync_resid_fine, geom, 
                               use_u, (Real*)dx,
                               filter_factor, level, level, proj_abs_tol);
     //
@@ -936,13 +933,11 @@ Projection::harmonic_project (int             level,
     // Project
     //
     const bool use_u          = false;
-    const bool is_sync        = false;
     MultiFab* sync_resid_crse = 0;
     MultiFab* sync_resid_fine = 0;
 
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
-                              sync_resid_crse, sync_resid_fine, 
-                              geom, is_sync, 
+                              sync_resid_crse, sync_resid_fine, geom, 
                               use_u, (Real*)dx,
                               proj_tol, level, level, proj_abs_tol);
     //
@@ -1005,6 +1000,7 @@ Projection::syncProject (int             c_lev,
     const BoxArray& P_grids = pres.boxArray();
     MultiFab  rhs(P_grids,1,1);
     MultiFab& sig = *rho_half;
+
     rhs_sync_reg->InitRHS(rhs,geom,phys_bc);
 
     phi.setVal(0);
@@ -1045,7 +1041,6 @@ Projection::syncProject (int             c_lev,
     //  both return phi and (V-Gphi) as V
     //
     const bool use_u          = true;
-    const bool is_sync        = true;
     MultiFab* sync_resid_crse = 0;
     MultiFab* sync_resid_fine = 0;
 
@@ -1056,8 +1051,7 @@ Projection::syncProject (int             c_lev,
     }
 
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
-                              sync_resid_crse, sync_resid_fine, 
-                              geom, is_sync,
+                              sync_resid_crse, sync_resid_fine, geom, 
                               use_u, (Real*)dx,
                               sync_tol, c_lev, c_lev, proj_abs_tol);
     //
@@ -1110,8 +1104,10 @@ void
 Projection::MLsyncProject (int             c_lev,
                            MultiFab&       pres_crse,
                            MultiFab&       vel_crse,
+                           MultiFab&       cc_rhs_crse,
                            MultiFab&       pres_fine,
                            MultiFab&       vel_fine,
+                           MultiFab&       cc_rhs_fine,
                            MultiFab&       rho_crse,
                            MultiFab&       rho_fine,
                            MultiFab*       Vsync,
@@ -1157,8 +1153,9 @@ Projection::MLsyncProject (int             c_lev,
     PArray<MultiFab> u_real[BL_SPACEDIM];
     PArray<MultiFab> p_real(c_lev+2,PArrayManage);
     PArray<MultiFab> s_real(c_lev+2), crse_rhs_real(c_lev+1);
+    PArray<MultiFab> rhs_real(c_lev+2);
     //
-    // Set up RHS
+    // Set up crse RHS
     //
     rhs_sync_reg->InitRHS(*crse_rhs,crse_geom,phys_bc);
     
@@ -1204,6 +1201,14 @@ Projection::MLsyncProject (int             c_lev,
     s_real.set(c_lev,   &rho_crse);
     s_real.set(c_lev+1, &rho_fine);
 
+    if (CoordSys::IsRZ()) {
+       radMult(c_lev  ,cc_rhs_crse,0);
+       radMult(c_lev+1,cc_rhs_fine,0);
+    }
+
+    rhs_real.set(c_lev  , &cc_rhs_crse);
+    rhs_real.set(c_lev+1, &cc_rhs_fine);
+
 #ifdef BL_USE_HGPROJ_SERIAL
     restrict_level(s_real[c_lev], s_real[c_lev+1], ratio);
 #else
@@ -1223,7 +1228,6 @@ Projection::MLsyncProject (int             c_lev,
     // both return phi and (V-Gphi) as V
     //
     const bool  use_u           = true;
-    const bool  is_sync         = true;
     const Real* dx_fine         = parent->Geom(c_lev+1).CellSize();
     MultiFab*   sync_resid_crse = 0;
     MultiFab*   sync_resid_fine = 0;
@@ -1233,10 +1237,9 @@ Projection::MLsyncProject (int             c_lev,
         int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
         sync_resid_fine = new MultiFab(Pgrids_crse,1,ngrow);
     }
-    sync_proj->manual_project(u_real, p_real, null_amr_real,
+    sync_proj->manual_project(u_real, p_real, rhs_real,
                               crse_rhs_real, s_real, 
-                              sync_resid_crse, sync_resid_fine, 
-                              crse_geom, is_sync,
+                              sync_resid_crse, sync_resid_fine, crse_geom, 
                               use_u, (Real*)dx_fine,
                               sync_tol, c_lev, c_lev+1, proj_abs_tol);
     delete crse_rhs;
@@ -1435,13 +1438,11 @@ Projection::initialVelocityProject (int  c_lev,
     MultiFab*   sync_resid_crse = 0;
     MultiFab*   sync_resid_fine = 0;
     const Real* dx_lev          = parent->Geom(f_lev).CellSize();
-    bool        is_sync         = false;
 
     if (!have_divu)
     {
         sync_proj->project(u_real, p_real, null_amr_real, s_real,
-                           sync_resid_crse, sync_resid_fine, 
-                           parent->Geom(c_lev), is_sync,
+                           sync_resid_crse, sync_resid_fine, parent->Geom(c_lev), 
                            (Real*)dx_lev, proj_tol, c_lev, f_lev,proj_abs_tol);
     } 
     else 
@@ -1466,7 +1467,7 @@ Projection::initialVelocityProject (int  c_lev,
 
         sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real, 
                                   sync_resid_crse, sync_resid_fine, 
-                                  parent->Geom(c_lev), is_sync,
+                                  parent->Geom(c_lev), 
                                   use_u, (Real*)dx_lev,
                                   proj_tol, c_lev, f_lev, proj_abs_tol);
     }
@@ -1681,7 +1682,6 @@ Projection::initialSyncProject (int       c_lev,
     MultiFab*   sync_resid_crse = 0;
     MultiFab*   sync_resid_fine = 0;
     const Real* dx_lev          = parent->Geom(f_lev).CellSize();
-    bool is_sync                = false;
     //
     // Project.
     //
@@ -1692,7 +1692,7 @@ Projection::initialSyncProject (int       c_lev,
         //
         sync_proj->project(u_real, p_real, null_amr_real, s_real,
                            sync_resid_crse, sync_resid_fine, 
-                           parent->Geom(c_lev), is_sync,
+                           parent->Geom(c_lev), 
                            (Real*)dx_lev, proj_tol, c_lev, f_lev,proj_abs_tol);
     } 
     else 
@@ -1711,7 +1711,7 @@ Projection::initialSyncProject (int       c_lev,
         }
         sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                                   sync_resid_crse, sync_resid_fine, 
-                                  parent->Geom(c_lev), is_sync,
+                                  parent->Geom(c_lev), 
                                   use_u, (Real*)dx_lev,
                                   proj_tol, c_lev, f_lev, proj_abs_tol);
     }
@@ -2585,10 +2585,9 @@ Projection::initialVorticityProject (int c_lev)
     //
     const Real* dx_lev = parent->Geom(f_lev).CellSize();
     const bool  use_u  = false;
-    const bool is_sync = false;
     sync_proj->manual_project(u_real,p_real,rhs_real,null_amr_real,s_real,
                               sync_resid_crse, sync_resid_fine, 
-                              parent->Geom(c_lev), is_sync,
+                              parent->Geom(c_lev), 
                               use_u,(Real*)dx_lev,
                               proj_tol,c_lev,f_lev,proj_abs_tol);
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.151 1999-08-20 17:04:47 marc Exp $
+// $Id: NavierStokes.cpp,v 1.152 1999-09-02 21:59:40 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -120,6 +120,8 @@ int  NavierStokes::S_in_vel_diffusion                 = 1;
 Real NavierStokes::divu_relax_factor   = 0.0;
      
 int  NavierStokes::num_state_type = 2;     // for backward compatibility
+
+int  NavierStokes::do_divu_sync = 1;       // for debugging new correction to MLSP
 
 
 void
@@ -251,6 +253,9 @@ NavierStokes::read_params ()
     pp.query("do_init_vort_proj",do_init_vort_proj);
     pp.query("do_init_proj",     do_init_proj     );
     pp.query("do_mac_proj",      do_mac_proj      );
+
+    pp.query("do_divu_sync",      do_divu_sync    );
+
     //
     // This test ensures that if the user toggles do_sync_proj,
     // the user has knowledge that do_MLsync_proj is meaningless.
@@ -510,6 +515,15 @@ NavierStokes::init_additional_state_types ()
     {
         cout << "divu must be 0-th, Divu_Type component in the state\n";
 
+        BoxLib::Abort("NavierStokes::init_additional_state_types()");
+    }
+
+    if (have_divu && !do_MLsync_proj) 
+    {
+        cout << "Must run the ML sync project if have_divu is true " << endl;
+        cout << "  because the divu sync is only implemented in the " << endl;
+        cout << "  multilevel sync (MLsyncProject), not in the single level " << endl;
+        cout << "  (syncProject)." << endl;
         BoxLib::Abort("NavierStokes::init_additional_state_types()");
     }
 
@@ -3519,6 +3533,9 @@ NavierStokes::level_sync ()
     SyncRegister* crsr_sync_ptr = 0;
     NavierStokes& fine_level    = getLevel(level+1);
     MultiFab&     pres_fine     = fine_level.get_new_data(Press_Type);
+    MultiFab&     vel_fine      = fine_level.get_new_data(State_Type);
+    const BoxArray& finegrids   = vel_fine.boxArray();
+
     //
     // Get rho at t^{n+1/2}.
     //
@@ -3542,6 +3559,42 @@ NavierStokes::level_sync ()
         sync_bc_array[i] = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
         sync_bc[i] = sync_bc_array[i].dataPtr();
     }
+
+    MultiFab cc_rhs_crse(grids,1,1);
+    MultiFab cc_rhs_fine(finegrids,1,1);
+    cc_rhs_crse.setVal(0.);
+    cc_rhs_fine.setVal(0.);
+
+    MultiFab new_divu_crse(grids,1,0);
+    MultiFab new_divu_fine(finegrids,1,0);
+
+    // At this point the Divu state data is what was used in the original
+    //   level project and has not been updated by avgDown or mac_sync.
+    //   We want to fill cc_rhs_crse and cc_rhs_fine with the difference
+    //   between the divu we now define using calc_divu and the divu which
+    //   is in the state data.
+    // We are also copying the new computed value of divu into the Divu state. 
+    if (do_sync_proj && have_divu && do_divu_sync == 1) 
+    {
+      const Real cur_time = state[Divu_Type].curTime();
+      const Real dt_inv = 1.0 / dt;
+
+      MultiFab& cur_divu_crse = get_new_data(Divu_Type);
+      calc_divu(cur_time,dt,cc_rhs_crse);
+      MultiFab::Copy(new_divu_crse,cc_rhs_crse,0,0,1,0);
+      cc_rhs_crse.minus(cur_divu_crse,0,1,1);
+      MultiFab::Copy(cur_divu_crse,new_divu_crse,0,0,1,0);
+      cc_rhs_crse.mult(dt_inv,0,1,1);
+
+      NavierStokes& fine_lev = getLevel(level+1);
+      MultiFab& cur_divu_fine = fine_lev.get_new_data(Divu_Type);
+      fine_lev.calc_divu(cur_time,dt,cc_rhs_fine);
+      MultiFab::Copy(new_divu_fine,cc_rhs_fine,0,0,1,0);
+      cc_rhs_fine.minus(cur_divu_fine,0,1,1);
+      MultiFab::Copy(cur_divu_fine,new_divu_fine,0,0,1,0);
+      cc_rhs_fine.mult(dt_inv,0,1,1);
+    }
+
     //
     // Multilevel Sync projection or single level.
     //
@@ -3552,7 +3605,6 @@ NavierStokes::level_sync ()
         MultiFab&       rho_fine    = *fine_level.rho_avg;
         const Geometry& fine_geom   = parent->Geom(level+1);
         const Geometry& crse_geom   = parent->Geom(level);
-        const BoxArray& finegrids   = vel_fine.boxArray();
         const BoxArray& P_finegrids = pres_fine.boxArray();
 
         MultiFab phi(P_finegrids,1,1);
@@ -3568,14 +3620,17 @@ NavierStokes::level_sync ()
         //
         SyncInterp(*Vsync, level, V_corr, level+1, ratio,
                    0, 0, BL_SPACEDIM, 0 , dt, sync_bc.dataPtr());
+
         //
         // The multilevel projection.  This computes the projection and
         // adds in its contribution to levels (level) and (level+1).
         //
-        projector->MLsyncProject(level,pres,vel, pres_fine,vel_fine,
+        projector->MLsyncProject(level,pres,vel,cc_rhs_crse,
+                                 pres_fine,vel_fine,cc_rhs_fine,
                                  *rho_half, rho_fine, Vsync,V_corr,phi,
                                  &rhs_sync_reg,crsr_sync_ptr,
                                  dx,dt,ratio,crse_dt_ratio, fine_geom,geom);
+
         //
         // Correct pressure and velocities after the projection.
         //
@@ -3609,6 +3664,7 @@ NavierStokes::level_sync ()
         MultiFab phi(pres.boxArray(),1,1);
         BoxArray sync_boxes = pres_fine.boxArray();
         sync_boxes.coarsen(ratio);
+
         //
         // The single level projection.  This computes the projection and
         // adds in its contribution to level (level).
