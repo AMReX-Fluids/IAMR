@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.121 2003-03-10 23:07:39 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.122 2004-07-20 21:41:06 almgren Exp $
 //
 
 //
@@ -146,8 +146,14 @@ Diffusion::Diffusion (Amr*               Parent,
         const int n_visc = _visc_coef.size();
         const int n_diff = _is_diffusive.size();
 
-        if (n_diff < NUM_STATE || n_visc < NUM_STATE)
-            BoxLib::Abort("Diffusion::Diffusion(): is_diffusive and/or visc_coef arrays are not long enough");
+        if (n_diff < NUM_STATE)
+            BoxLib::Abort("Diffusion::Diffusion(): is_diffusive array is not long enough");
+
+        if (n_visc < NUM_STATE)
+            BoxLib::Abort("Diffusion::Diffusion(): visc_coef array is not long enough");
+
+        if (n_visc > NUM_STATE)
+            BoxLib::Abort("Diffusion::Diffusion(): TOO MANY diffusion coeffs were given!");
 
         visc_coef.resize(NUM_STATE);
         is_diffusive.resize(NUM_STATE);
