@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.14 1999-06-07 23:47:14 almgren Exp $
+# $Id: GNUmakefile,v 1.15 1999-06-08 20:50:23 sstanley Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -46,8 +46,8 @@ endif
 
 include $(TOP)/mk/Make.defs ./Make.package
 
-BUILD_INPLACE:=TRUE
 BUILD_INPLACE:=FALSE
+BUILD_INPLACE:=TRUE
 
 ifeq ($(BUILD_INPLACE), TRUE)
   include $(TOP)/iamrlib/Make.package

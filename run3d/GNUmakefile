@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.13 1999-05-24 18:11:45 car Exp $
+# $Id: GNUmakefile,v 1.14 1999-06-08 20:50:29 sstanley Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -12,8 +12,8 @@ DEBUG	  = TRUE
 PROFILE   = FALSE
 DIM       = 3
 COMP      = KCC
-USE_MPI   = FALSE
 USE_MPI   = TRUE
+USE_MPI   = FALSE
 #
 # Use hgproj-serial -- only for testing.
 #
