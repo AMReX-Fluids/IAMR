@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.6 1997-11-18 18:31:28 car Exp $
+// $Id: Godunov.cpp,v 1.7 1997-12-11 05:02:04 lijewski Exp $
 //
 
 //==========================================================
@@ -14,6 +14,7 @@
 #include <Geometry.H>
 #include <ParmParse.H>
 #include <BoxDomain.H>
+#include <FArrayBox.H>
 #include <Godunov.H>
 #include <RunStats.H>
 #include <GODUNOV_F.H>
