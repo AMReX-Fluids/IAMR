@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.147 1999-08-08 04:23:46 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.148 1999-08-13 16:28:52 propp Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2361,74 +2361,10 @@ NavierStokes::volWgtSum (const aString& name,
     return sum;
 }
 
-int
-NavierStokes::additionalStateDataItemsCount () const
+void
+NavierStokes::setPlotVariables()
 {
-    int icount = 0;
-    const List<DeriveRec>& dlist = derive_lst.dlist();
-    for (ListIterator<DeriveRec> it(dlist); it; ++it)
-        if (parent->isDerivePlotVar(it().name()))
-           icount++;
-
-    return icount;
-}
-
-Array<aString>
-NavierStokes::additionalStateDataItemsNames () const
-{
-    Array<aString> names(additionalStateDataItemsCount());
-
-    int icount = 0;
-    const List<DeriveRec>& dlist = derive_lst.dlist();
-    for (ListIterator<DeriveRec> it(dlist); it; ++it)
-        if (parent->isDerivePlotVar(it().name()))
-            names[icount++] = it().name();
-
-    return names;
-}
-
-Array<const MultiFab*>
-NavierStokes::additionalStateDataItems ()
-{
-    Array<const MultiFab*> mfs;
-
-    const List<DeriveRec>& dlist = derive_lst.dlist();
-
-    derive_mfs.resize(dlist.length(),PArrayManage);
-
-    const Real cur_time = state[State_Type].curTime();
-    const int nGrow = 0;
-    int cnt = 0;
-    for (ListIterator<DeriveRec> it(dlist); it; ++it, ++cnt)
-    {
-        if (parent->isDerivePlotVar(it().name()))
-        {
-            derive_mfs.set(cnt,derive(it().name(),cur_time,nGrow));
-
-            mfs.resize(mfs.length() + 1);
-            mfs[mfs.length()-1] = &(derive_mfs[cnt]);
-        }
-    }
-
-    return mfs;
-}
-
-Array< vector<int> >
-NavierStokes::additionalStateDataItemsMap () const
-{
-    Array< vector<int> > map;
-
-    const List<DeriveRec>& dlist = derive_lst.dlist();
-    for (ListIterator<DeriveRec> it(dlist); it; ++it)
-    {
-        if (parent->isDerivePlotVar(it().name()))
-        {
-            map.resize(map.length() + 1);
-            map[map.length()-1].push_back(0);
-        }
-    }
-
-    return map;
+  AmrLevel::setPlotVariables();
 }
 
 aString
@@ -2449,21 +2385,26 @@ NavierStokes::writePlotFile (const aString& dir,
 {
     int i, n;
 
-    bool PlotDivu = have_divu && parent->isPlotVar(desc_lst[Divu_Type].name(0));
-    bool PlotDsdt = have_dsdt && parent->isPlotVar(desc_lst[Dsdt_Type].name(0));
     //
     // The list of indices of State to write to plotfile.
+    // first component of pair is state_type,
+    // second component of pair is component # within the state_type
     //
-    vector<int> idx_map;
+    vector<pair<int,int> > plot_var_map;
+    for (int typ = 0; typ < desc_lst.length(); typ++)
+      for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
+	if (parent->isStatePlotVar(desc_lst[typ].name(comp)) &&
+	    desc_lst[typ].getType() == IndexType::TheCellType())
+	    plot_var_map.push_back(pair<int,int>(typ,comp));
 
-    for (i = 0; i < NUM_STATE; i++)
-        if (parent->isPlotVar(desc_lst[State_Type].name(i)))
-            idx_map.push_back(i);
-
-    Array<const MultiFab*> derived_mfs = additionalStateDataItems();
-    Array< vector<int> >   derived_map = additionalStateDataItemsMap();
-
-    BL_ASSERT(derived_mfs.length() == derived_map.length());
+    List<aString> derive_names;
+    const List <DeriveRec>& dlist = derive_lst.dlist();
+    for (ListIterator<DeriveRec> it(dlist); it; ++it)
+      if (parent->isDerivePlotVar(it().name()))
+	derive_names.append(it().name());
+    
+    int n_data_items = plot_var_map.size() + derive_names.length();
+    Real cur_time = state[State_Type].curTime();
 
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
@@ -2472,33 +2413,24 @@ NavierStokes::writePlotFile (const aString& dir,
         //
         os << thePlotFileType() << '\n';
 
-        int n_data_items = idx_map.size();
-
-        if (PlotDivu) n_data_items++;
-        if (PlotDsdt) n_data_items++;
-        //
-        // Count of data items from derived classes.
-        //
-        n_data_items += additionalStateDataItemsCount();
-
         if (n_data_items == 0)
             BoxLib::Error("Must specify at least one valid data item to plot");
 
         os << n_data_items << '\n';
 
-        for (n = 0; n < idx_map.size(); n++)
-            os << desc_lst[State_Type].name(idx_map[n]) << '\n';
+	//
+	// Names of variables -- first state, then derived
+	//
+	for (i =0; i < plot_var_map.size(); i++)
+	  {
+	    int typ = plot_var_map[i].first;
+	    int comp = plot_var_map[i].second;
+	    os << desc_lst[typ].name(comp) << '\n';
+	  }
 
-        if (PlotDivu) os << desc_lst[Divu_Type].name(0) << '\n';
-        if (PlotDsdt) os << desc_lst[Dsdt_Type].name(0) << '\n';
-        //
-        // Names of additional data items from derived classes.
-        //
-        Array<aString> derived_names = additionalStateDataItemsNames();
+	for (ListIterator<aString> it(derive_names); it; ++it)
+	  os << it() << '\n';
 
-        for (i = 0; i < derived_names.length(); i++)
-            os << derived_names[i] << '\n';
- 
         os << BL_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
         int f_lev = parent->finestLevel();
@@ -2527,30 +2459,11 @@ NavierStokes::writePlotFile (const aString& dir,
         os << (int) CoordSys::Coord() << '\n';
         os << "0\n"; // Write bndry data.
     }
-    //
-    // Now write state data.
-    //
-    Real cur_time      = state[State_Type].curTime();
-    MultiFab& cell_dat = state[State_Type].newData();
-    MultiFab* divu_dat = 0;
-    MultiFab* dsdt_dat = 0;
 
-    if (PlotDivu) divu_dat = &state[Divu_Type].newData();
-    if (PlotDsdt) dsdt_dat = &state[Dsdt_Type].newData();
-    //
-    // There may be up to three MultiFabs written out at each level.
-    // Note that this doesn't include any from possibly derived classes.
-    // If there are any MultiFabs from derived classes, we'll name them
-    // Derived_0, Derived_1, ...
-    //
-    static const aString BaseName[] =
-    {
-        "/Cell", "/DivU", "/DsDt", "/Derived"
-    };
-    //
-    // Build the directory to hold the MultiFabs at this level.
+    // Build the directory to hold the MultiFab at this level.
     // The name is relative to the directory containing the Header file.
     //
+    static const aString BaseName = "/Cell";
     char buf[64];
     sprintf(buf, "Level_%d", level);
     aString Level = buf;
@@ -2577,7 +2490,7 @@ NavierStokes::writePlotFile (const aString& dir,
         os << level << ' ' << grids.length() << ' ' << cur_time << '\n';
         os << parent->levelSteps(level) << '\n';
 
-        for (i = 0; i < cell_dat.boxArray().length(); ++i)
+        for (i = 0; i < grids.length(); ++i)
         {
             for (n = 0; n < BL_SPACEDIM; n++)
                 os << grid_loc[i].lo(n) << ' ' << grid_loc[i].hi(n) << '\n';
@@ -2587,96 +2500,58 @@ NavierStokes::writePlotFile (const aString& dir,
         // The name is relative to the Header file containing this name.
         // It's the name that gets written into the Header.
         //
-        if (idx_map.size() > 0)
+        if (n_data_items > 0)
         {
             aString PathNameInHeader = Level;
-            PathNameInHeader += BaseName[0];
-            os << PathNameInHeader << '\n';
-        }
-        if (PlotDivu)
-        {
-            aString PathNameInHeader = Level;
-            PathNameInHeader += BaseName[1];
-            os << PathNameInHeader << '\n';
-        }
-        if (PlotDsdt)
-        {
-            aString PathNameInHeader = Level;
-            PathNameInHeader += BaseName[2];
-            os << PathNameInHeader << '\n';
-        }
-        if (derived_mfs.length() > 0)
-        {
-            aString PathNameInHeader = Level;
-            PathNameInHeader += BaseName[3];
+            PathNameInHeader += BaseName;
             os << PathNameInHeader << '\n';
         }
     }
+    //
+    // We combine all of the multifabs -- state, derived, etc -- into one
+    // multifab -- plotMF.
+    // NOTE: we are assuming that each state variable and derived variable
+    // has exactly one component -- this is true for all variables we 
+    // currently have.
+    const int ncomp = 1;
+    const int nGrow = 0;
+    MultiFab plotMF(grids,n_data_items,nGrow);
+    MultiFab* this_dat = NULL;
+
+    int cnt = 0;
+    
+    //
+    // cull data from state variables -- use no ghost cells
+    //
+    for (i = 0; i < plot_var_map.size(); i++)
+      {
+	int typ = plot_var_map[i].first;
+	int comp = plot_var_map[i].second;
+	this_dat = &state[typ].newData();
+	MultiFab::Copy(plotMF,*this_dat,comp,cnt,ncomp,nGrow);
+	cnt+= ncomp;
+      }
+
+    //
+    // cull data from derived variables
+    //
+    if (derive_names.length() > 0)
+      {
+	for (ListIterator<aString> it(derive_names); it; ++it) 
+	  {
+	    MultiFab* derive_dat = derive(it(),cur_time,nGrow);
+	    MultiFab::Copy(plotMF,*derive_dat,0,cnt,ncomp,nGrow);
+	    delete derive_dat;
+	    cnt += ncomp;
+	  }
+      }
+
     //
     // Use the Full pathname when naming the MultiFab.
     //
     aString TheFullPath = FullPath;
-    TheFullPath += BaseName[0];
-
-    if (idx_map.size() == NUM_STATE)
-    {
-        RunStats::addBytes(VisMF::Write(cell_dat, TheFullPath, how, true));
-    }
-    else if (idx_map.size() > 0)
-    {
-        //
-        // Make MultiFab containing copy of selected components.
-        // Note that we don't copy the ghost cells.
-        //
-        MultiFab mf(cell_dat.boxArray(), idx_map.size(), 0);
-
-        for (MultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
-        {
-            DependentMultiFabIterator dmfi(mfi,cell_dat);
-
-            for (i = 0; i < idx_map.size(); i++)
-                mfi().copy(dmfi(), idx_map[i], i, 1);
-        }
-        RunStats::addBytes(VisMF::Write(mf, TheFullPath, how));
-    }
-
-    if (PlotDivu)
-    {
-        TheFullPath = FullPath;
-        TheFullPath += BaseName[1];
-        RunStats::addBytes(VisMF::Write(*divu_dat, TheFullPath, how, true));
-    }
-
-    if (PlotDsdt)
-    {
-        TheFullPath = FullPath;
-        TheFullPath += BaseName[2];
-        RunStats::addBytes(VisMF::Write(*dsdt_dat, TheFullPath, how, true));
-    }
-    if (derived_mfs.length() > 0)
-    {
-        TheFullPath = FullPath;
-        TheFullPath += BaseName[3];
-        int derived_count = 0;
-        for (int i = 0; i < derived_mfs.length(); i++)
-            derived_count += derived_map[i].size();
-
-        const int nGrow = 0;
-        MultiFab derived_all(grids,derived_count,nGrow,Fab_allocate);
-        
-        derived_count = 0;
-        for (int i = 0; i < derived_mfs.length(); i++)
-        {
-            BL_ASSERT(derived_mfs[i]->boxArray() == grids);
-            const int nComp = derived_map[i].size();
-            MultiFab::Copy(derived_all,*derived_mfs[i],0,derived_count,nComp,nGrow);
-            derived_count += nComp;
-        }
-
-        derive_mfs.clear();
-
-        RunStats::addBytes(VisMF::Write(derived_all,TheFullPath,how,true));
-    }
+    TheFullPath += BaseName;
+    RunStats::addBytes(VisMF::Write(plotMF,TheFullPath,how,true));
 }
 
 Real
