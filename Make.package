@@ -157,18 +157,6 @@ CEXE_headers += amr_multi.H hg_multi.H hg_elliptic.H amr_gravity.H
 FEXE_sources += hg_multi$(DIM)d.F amr_grav$(DIM)d.F
 endif
 
-ifeq ($(EBASE),driver)
-CEXE_sources += driver.cpp
-endif
-
-ifeq ($(EBASE),proj)
-CEXE_sources += proj.cpp
-endif
-
-ifeq ($(EBASE),poisson)
-CEXE_sources += poisson.cpp
-endif
-
 ifeq ($(USE_ARRAYVIEW),TRUE)
 CEXE_sources += DatasetClient.cpp
 endif
