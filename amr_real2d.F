@@ -71,7 +71,7 @@ c Works for NODE-based data.
       subroutine fccpy1(dest, src, nsets, dstart, sstart,
      @                  dstrid, sstrid, nvals)
       implicit real*8(a-h,o-z), integer(i-n)
-      real*8 dest(0:1), src(0:1)
+      real*8 dest(0:*), src(0:*)
       integer nsets
       integer dstart(nsets), sstart(nsets)
       integer dstrid(nsets), sstrid(nsets), nvals(nsets)
