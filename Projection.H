@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.19 1999-03-01 18:58:33 lijewski Exp $
+// $Id: Projection.H,v 1.20 1999-03-13 01:11:29 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -68,7 +68,10 @@ public:
                  MultiFab &P_new,
                  MultiFab &U_old,
                  MultiFab * rho_half,
-                 int ** bc);
+                 int     ** bc,
+                 Real            time,
+                 Real            dt,
+                 int    have_divu);
 
     //
     // Attempt at creating better pressure fill.

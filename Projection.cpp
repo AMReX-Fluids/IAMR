@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.79 1999-03-09 20:50:45 almgren Exp $
+// $Id: Projection.cpp,v 1.80 1999-03-13 01:11:29 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -667,7 +667,7 @@ Projection::level_project (int             level,
     {
         const Real dt_inv = 1./dt;
         U_old.mult(-dt_inv,0,BL_SPACEDIM,1);
-        filterP(level,geom,P_old,P_new,U_old,rho_half,bc);
+        filterP(level,geom,P_old,P_new,U_old,rho_half,bc,time,dt,have_divu);
         U_old.mult(-dt,0,BL_SPACEDIM,1);
     }
 
@@ -681,7 +681,10 @@ Projection::filterP (int             level,
                      MultiFab&       P_new,
                      MultiFab&       U_old,
                      MultiFab*       rho_half, 
-                     int**           bc)
+                     int**           bc,
+                     Real            time,
+                     Real            dt,
+                     int             have_divu)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "... filterP at level " << level << endl;
@@ -695,16 +698,18 @@ Projection::filterP (int             level,
     const BoxArray& P_grids  = P_old.boxArray();
     const int*      phys_lo  = phys_bc->lo();
     const int*      phys_hi  = phys_bc->hi();
-    MultiFab*       rhs      = new MultiFab(P_grids,1,1,Fab_allocate);
+    MultiFab*       rhs_cc   = new MultiFab(P_grids,1,1,Fab_allocate);
     MultiFab*       temp_phi = new MultiFab(P_grids,1,1,Fab_allocate);
     MultiFab*       temp_rho = new MultiFab(grids,1,1,Fab_allocate);
     MultiFab*       temp_vel = new MultiFab(grids,BL_SPACEDIM,1,Fab_allocate);
+
+    MultiFab* divuold = 0;
 
     assert(grids.length() == P_grids.length());
     
     temp_phi->setVal(0);
     temp_rho->setVal(0);
-    rhs->setVal(0);
+    rhs_cc->setVal(0);
     //
     // Scale the projection variables.
     //
@@ -739,14 +744,14 @@ Projection::filterP (int             level,
         FArrayBox& pfab = (*temp_phi)[k];
         const int* p_lo = pfab.loVect();
         const int* p_hi = pfab.hiVect();
-        const int* r_lo = (*rhs)[k].loVect();
-        const int* r_hi = (*rhs)[k].hiVect();
+        const int* r_lo = (*rhs_cc)[k].loVect();
+        const int* r_hi = (*rhs_cc)[k].hiVect();
         const int* n_lo = P_grids[k].loVect();
         const int* n_hi = P_grids[k].hiVect();
 
         FORT_FILTRHS(pfab.dataPtr(),ARLIM(p_lo),ARLIM(p_hi),
                      sfab.dataPtr(),ARLIM(s_lo),ARLIM(s_hi),
-                     (*rhs)[k].dataPtr(),ARLIM(r_lo),ARLIM(r_hi),
+                     (*rhs_cc)[k].dataPtr(),ARLIM(r_lo),ARLIM(r_hi),
                      n_lo,n_hi,dx,&mult,&rzflag);
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -767,19 +772,37 @@ Projection::filterP (int             level,
                 if (blo.ok())
                 {
                     if (phys_lo[dir] == Outflow) 
-                        (*rhs)[k].setVal(0,blo,0,1);
+                        (*rhs_cc)[k].setVal(0,blo,0,1);
                     else
-                        (*rhs)[k].mult(2,blo,0,1);
+                        (*rhs_cc)[k].mult(2,blo,0,1);
                 }
                 if (bhi.ok())
                 {
                     if (phys_hi[dir] == Outflow) 
-                        (*rhs)[k].setVal(0,bhi,0,1);
+                        (*rhs_cc)[k].setVal(0,bhi,0,1);
                     else
-                        (*rhs)[k].mult(2,bhi,0,1);
+                        (*rhs_cc)[k].mult(2,bhi,0,1);
                 }
             } 
         }
+    }
+
+    if (have_divu)
+    {
+        NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
+
+        assert(!(ns == 0));
+
+        MultiFab* divuold = ns->getDivCond(1,time);
+
+        for (MultiFabIterator mfi(*divuold); mfi.isValid(); ++mfi)
+        {
+            mfi().mult(1.0/dt,0,1);
+        }
+
+        const int nghost = 1;
+        radMult(level,*divuold,0);
+        rhs_cc->plus(*divuold,0,1,nghost);
     }
 
     temp_phi->setVal(0);
@@ -802,14 +825,11 @@ Projection::filterP (int             level,
     }
     p_real.set(level, temp_phi);
     s_real.set(level, temp_rho);
-    rhs_real.set(level, rhs);
+    rhs_real.set(level, rhs_cc);
     //
     // Project ...
     //
-    // For divu==0 only
-    //
-
-    const int use_u = 1;
+    const bool use_u = 1;
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                               use_u, (Real*)dx,
                               filter_factor, level, level, proj_abs_tol);
@@ -828,7 +848,8 @@ Projection::filterP (int             level,
     delete temp_phi;
     delete temp_rho;
     delete temp_vel;
-    delete rhs;
+    delete divuold;
+    delete rhs_cc;
 }
 
 // 
