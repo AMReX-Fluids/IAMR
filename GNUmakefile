@@ -6,9 +6,8 @@ PROFILE = FALSE
 DIM	= 2
 DIM	= 3
 
-WHICH_HG=
 WHICH_HG=_new
-
+WHICH_HG=
 
 #
 # Holy Grail stuff ...

@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.24 1998-01-15 21:01:21 car Exp $
+// $Id: Projection.cpp,v 1.25 1998-01-26 20:56:43 car Exp $
 //
 
 #ifdef BL_T3E
@@ -172,7 +172,7 @@ Projection::setUpBcs()
       }
   }
 
-  projector_bndry = new inviscid_fluid_boundary(proj_bc);
+  projector_bndry = new inviscid_fluid_boundary_class(proj_bc);
 }
 
 // install a level of the projection
@@ -234,7 +234,7 @@ Projection::bldSyncProject()
 
   sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
                                            0, finest_level, finest_level,
-                                           *projector_bndry, P_code) /* , do_cache?true:false)*/ ;
+                                           *projector_bndry, P_code); /* , do_cache?true:false) ; */
 
 #ifdef ATMOSPHERE
   // This is not the usual way of setting parameters

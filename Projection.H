@@ -2,7 +2,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.7 1997-12-11 23:30:23 lijewski Exp $
+// $Id: Projection.H,v 1.8 1998-01-26 20:56:43 car Exp $
 //
 
 #include <BC_TYPES.H>
@@ -14,7 +14,7 @@
 #include <FluxRegister.H>
 
 class holy_grail_amr_projector;
-class inviscid_fluid_boundary;
+class inviscid_fluid_boundary_class;
 
 class Projection 
 {
@@ -236,7 +236,7 @@ protected:// ================== protected data members
 
     // boundary objects
     BCRec *phys_bc;
-    inviscid_fluid_boundary  *projector_bndry;
+    inviscid_fluid_boundary_class  *projector_bndry;
 
     //---------------- static parameters
     int  finest_level;
