@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.34 1998-05-27 15:13:34 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.35 1998-05-28 03:11:06 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -181,13 +181,15 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                        const Geometry& geom,
                        const BCRec*    phys_bc)
 {
+    cout << "*** SyncRegister::InitRHS(): CHECK!!!" << endl;
+
     rhs.setVal(0);
 
     const Box& domain = ::surroundingNodes(geom.Domain());
 
     Array<IntVect> pshifts(27);
 
-    vector<FillBoxId> fillBoxIdList;
+
     //
     // FILL RHS FROM BNDRY REGISTERS
     //
@@ -198,7 +200,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     {
         for (OrientationIter face; face; ++face)
         {
-            assert(fillBoxIdList.size() == 0);
+            vector<FillBoxId> fillBoxIdList;
 
             FabSetCopyDescriptor fscd;
 
@@ -261,10 +263,20 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     //
     // Overwrite above-set values on all nodes covered by a sync register.
     //
-    for (OrientationIter face; face; ++face)
+    for (int k = 0; k < rhs.boxArray().length(); k++)
     {
-        bndry[face()].copyTo(rhs);
+        for (int j = 0; j < grids.length(); j++)
+        {
+            for (OrientationIter face; face; ++face)
+            {
+                rhs[k].copy(bndry[face()][j]);
+            }
+        }
     }
+//    for (OrientationIter face; face; ++face)
+//    {
+//        bndry[face()].copyTo(rhs);
+//    }
     const int* dlo     = domain.loVect();
     const int* dhi     = domain.hiVect();
     const int* phys_lo = phys_bc->lo();
@@ -409,7 +421,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     //
     for (OrientationIter face; face; ++face)
     {
-        assert(fillBoxIdList.size() == 0);
+        vector<FillBoxId> fillBoxIdList;
 
         FabSetCopyDescriptor fscd;
 
@@ -848,6 +860,8 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
                            int             hifix,
                            Real            mult)
 {
+    cout << "*** SyncRegister::CrseDsdtAdd(): CHECK!!!" << endl;
+
     FArrayBox dsdtfab, divu;
 
     for (ConstMultiFabIterator mfi(dsdt); mfi.isValid(false); ++mfi)
@@ -914,6 +928,8 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                            int             hifix,
                            Real            mult)
 {
+    cout << "*** SyncRegister::FineDsdtAdd(): CHECK!!!" << endl;
+
     FArrayBox dsdtfab;
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
 
@@ -1080,6 +1096,8 @@ SyncRegister::CompDVAdd (const MultiFab& U,
                          int**           fine_bc,
                          Real            mult)
 {
+    cout << "*** SyncRegister::CompDVAdd(): CHECK!!!" << endl;
+
     const Box& crse_node_domain = ::surroundingNodes(crse_geom.Domain());
 
     Array<IntVect> pshifts(27);
@@ -1349,6 +1367,7 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
                            int             is_rz,
                            Real            mult)
 {
+    cout << "*** SyncRegister::CompLPhiAdd(): CHECK!!!" << endl;
     //
     // This code assumes Sigma and Phi have same processor distribution.
     //
