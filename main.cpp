@@ -21,7 +21,9 @@ DOUBLE PRECISION NOT ALLOWED ON CRAY
 #include <RunStats.H>
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
-//#include <unistd.h>
+#ifndef	WIN32
+#include <unistd.h>
+#endif
 
 #include <AmrLevel.H>
 
