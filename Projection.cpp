@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.50 1998-08-21 17:58:28 car Exp $
+// $Id: Projection.cpp,v 1.51 1998-09-28 22:22:10 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -1792,50 +1792,15 @@ Projection::getDivCond (int  level,
 
 
 // enforce periodicity on a multifab
-void Projection::EnforcePeriodicity( MultiFab &psi, int nvar,
-                                     const BoxArray &grids,
-                                     const Geometry &geom )
+void
+Projection::EnforcePeriodicity (MultiFab&       psi,
+                                int             nvar,
+                                const BoxArray& /*grids*/,
+                                const Geometry& geom)
 {
-    if (!geom.isAnyPeriodic())
-        return;
-
     assert(nvar <= psi.nComp());
 
-    Array<IntVect> pshifts(27);
-    FArrayBox temp;
-    const Box& domain = geom.Domain();
-    
-    // loop over all of the grids
-    for(MultiFabIterator psimfi(psi); psimfi.isValid(); ++psimfi) 
-    {
-
-        // compute available periodic shifts
-        Box dbox(psimfi().box());
-        temp.resize(dbox,nvar);
-        temp.copy(psimfi(),0,0,nvar);
-        geom.periodicShift( domain, dbox, pshifts);
-        
-        // loop over the periodic shifts
-        for (int iiv = 0; iiv < pshifts.length(); iiv++) 
-        {
-            IntVect iv = pshifts[iiv];
-
-            // copy from psi to temp
-            temp.shift(-iv);
-            if(ParallelDescriptor::NProcs() > 1) 
-            {
-              cerr << "Projection::EnforcePeriodicity not implemented in parallel." << NL;
-              cerr << "Nested MultiFab loops.\n";
-              BoxLib::Abort("Exiting.");
-            } 
-            psi.copy(temp,0,0,nvar);
-
-            // shift and copy from temp back to psi
-            temp.shift(iv);
-            psimfi().copy(temp,0,0,nvar);
-            
-        }
-    }
+    geom.FillPeriodicBoundary(psi,0,nvar);
 }
 
 
