@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.17 1999-02-16 22:02:00 sstanley Exp $
+c $Id: PROB_2D.F,v 1.18 1999-02-22 21:58:31 sstanley Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -324,7 +324,6 @@ c
       integer i, j, n
       REAL_T  x, y
       REAL_T  hx, hy
-      REAL_T  dist
       REAL_T  spx, spy, cpx, cpy
 
 #include "probdata.H"
@@ -346,13 +345,10 @@ c
             vel(i,j,1) = - cpx*spy
             vel(i,j,2) =   spx*cpy
 
-            dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-
-            scal(i,j,1) = one + (denfact-one) * tanh(10.*(dist-radblob))
-            do n = 2,nscal-1
-               scal(i,j,n) = one
+            scal(i,j,1) = one
+            do n = 2,nscal
+               scal(i,j,n) = cpx*cpy
             end do                  
-            scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
 
          end do
       end do

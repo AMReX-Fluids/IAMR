@@ -1,5 +1,5 @@
 c
-c $Id: EXACT_2D.F,v 1.1 1999-02-18 00:56:35 sstanley Exp $
+c $Id: EXACT_2D.F,v 1.2 1999-02-22 21:58:09 sstanley Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -29,21 +29,22 @@ c ::: pp. 671-674, 1923) and Ethier and Steinman
 c ::: (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give
 c ::: the pressure field.
 c
-      subroutine FORT_VISCBENCH(time, nu, lo, hi, ncomp, vel, DIMS(vel),
+      subroutine FORT_VISCBENCH(time, nu, lo, hi, 
+     &                          ncomp, state, DIMS(state),
      &                          dx, xlo, xhi)
 
       implicit none
 
       integer    ncomp
       integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(vel)
+      integer    DIMDEC(state)
       REAL_T     time, nu, dx(SDIM)
       REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     vel(DIMV(vel),ncomp)
+      REAL_T     state(DIMV(state),ncomp)
 c
 c     ::::: local variables
 c
-      integer i, j
+      integer i, j, n
       REAL_T  x, y
       REAL_T  hx, hy
       REAL_T  spx, spy, cpx, cpy
@@ -65,8 +66,12 @@ c
             spx = sin(Pi*x)
             cpx = cos(Pi*x)
 
-            vel(i,j,1) = - cpx*spy * expterm
-            vel(i,j,2) =   spx*cpy * expterm
+            state(i,j,1) = - cpx*spy * expterm
+            state(i,j,2) =   spx*cpy * expterm
+            state(i,j,3) =   one
+            do n = 4, ncomp
+               state(i,j,n) =   cpx*cpy * expterm
+            enddo
          end do
       end do
 

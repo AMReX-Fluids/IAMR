@@ -32,8 +32,9 @@ c
 extern "C"
 {
   void FORT_VISCBENCH(const Real *time, const Real *nu,
-                      const int *lo, const int *hi, const int *ncomp,
-                      const Real *vel, ARLIM_P(lo), ARLIM_P(hi),
+                      const int *lo, const int *hi, 
+                      const int *ncomp,
+                      const Real *state, ARLIM_P(lo), ARLIM_P(hi),
                       const Real *delta,
                       const Real *xlo, const Real *xhi);
 
