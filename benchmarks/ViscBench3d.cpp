@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ViscBench3d.cpp,v 1.3 1999-03-02 06:02:07 sstanley Exp $
+// $Id: ViscBench3d.cpp,v 1.4 1999-04-02 21:28:56 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -57,7 +57,7 @@ PrintUsage (const char* progName)
     cout << "Usage:" << '\n';
     cout << progName << '\n';
     cout << "     infile = inputFileName" << '\n';
-    cout << "    unifDir = uniformDirection" << '\n';
+    cout << "    unifdir = uniformDirection" << '\n';
     cout << "    errfile = ErrorFileOutputFileName" << '\n';
     cout << "     exfile = ExactSolnOutputFileName" << '\n';
     cout << "         mu = viscosity" << '\n';
@@ -111,7 +111,7 @@ main (int   argc,
     int unifDir = -1;
     pp.query("unifdir", unifDir);
     if (unifDir < 0)
-        BoxLib::Abort("You must specify `unifDir'");
+        BoxLib::Abort("You must specify `unifdir'");
 
     Real mu = -1.0;
     pp.query("mu", mu);
