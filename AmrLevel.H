@@ -132,7 +132,7 @@ public:
     virtual void initData() = 0;
 
 //  set the time levels of state data
-    virtual void setTimeLevel(REAL time, REAL dt);
+    virtual void setTimeLevel(REAL time, REAL dt_old, REAL dt_new);
 
 //  alloc space for old time data
     virtual void allocOldData();
