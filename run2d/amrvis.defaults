@@ -2,7 +2,7 @@ palette               Palette
 initialderived        density
 initialderived        vol_fraction1
 initialscale          1
-numberformat          %7.5f
+numberformat          %8.5e
 maxpixmapsize         800000
 reservesystemcolors   24
 showboxes             TRUE
