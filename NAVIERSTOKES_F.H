@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.12 2002-09-19 21:03:59 car Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.13 2003-01-30 07:16:29 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -15,6 +15,8 @@
 #    define FORT_SUMMASS     summass
 #    define FORT_SUMMASSSQ   summasssq
 #    define FORT_CEN2EDG     cen2edg
+#    define FORT_EDGE_INTERP edge_interp
+#    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
 #else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_FILCC       FILCC
@@ -26,6 +28,8 @@
 #    define FORT_SUMMASS     SUMMASS
 #    define FORT_SUMMASSSQ   SUMMASSSQ
 #    define FORT_CEN2EDG     CEN2EDG
+#    define FORT_EDGE_INTERP EDGEINTERP
+#    define FORT_PC_CF_EDGE_INTERP PCEDGEINTERP
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_FILCC       filcc
 #    define FORT_GRADP       gradp
@@ -36,6 +40,8 @@
 #    define FORT_SUMMASS     summass
 #    define FORT_SUMMASSSQ   summasssq
 #    define FORT_CEN2EDG     cen2edg
+#    define FORT_EDGE_INTERP edge_interp
+#    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
 #  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_FILCC       filcc_
 #    define FORT_GRADP       gradp_
@@ -46,6 +52,8 @@
 #    define FORT_SUMMASS     summass_
 #    define FORT_SUMMASSSQ   summasssq_
 #    define FORT_CEN2EDG     cen2edg_
+#    define FORT_EDGE_INTERP edge_interp_
+#    define FORT_PC_CF_EDGE_INTERP pc_edge_interp_
 #  endif
 
 #include <ArrayLim.H>
@@ -116,6 +124,15 @@ extern "C" {
                       ARLIM_P(clo), ARLIM_P(chi), const Real* cfabdat,
                       ARLIM_P(elo), ARLIM_P(ehi), Real* efabdat,
                       const int* nc, const int* dir, const int* isharm);
+
+    void FORT_EDGE_INTERP(const int* flo, const int* fhi,
+                          const int* nc, const int* refRatio, const int* dir,
+                          Real*       fine, ARLIM_P(flo), ARLIM_P(fhi));
+    
+    void FORT_PC_CF_EDGE_INTERP(const int* lo, const int* hi,
+                                const int* nc, const int* refRatio, const int* dir,
+                                const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
+                                Real*       fine, ARLIM_P(flo), ARLIM_P(fhi));
 }
     
 #endif

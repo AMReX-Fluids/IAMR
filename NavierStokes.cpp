@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.209 2002-12-03 17:45:04 car Exp $
+// $Id: NavierStokes.cpp,v 1.210 2003-01-30 07:16:29 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -101,6 +101,7 @@ int  NavierStokes::do_MLsync_proj             = 1;
 int  NavierStokes::do_reflux                  = 1;
 int  NavierStokes::modify_reflux_normal_vel   = 0;
 int  NavierStokes::do_mac_proj                = 1;
+bool NavierStokes::do_fillPatchUMAC           = false;
 int  NavierStokes::check_umac_periodicity     = 1;
 int  NavierStokes::do_init_vort_proj          = 0;
 int  NavierStokes::do_init_proj               = 1;
@@ -130,6 +131,49 @@ int  NavierStokes::num_state_type = 2;     // for backward compatibility
 
 int  NavierStokes::do_divu_sync = 0;       // for debugging new correction to MLSP
 
+
+static
+BoxArray
+GetBndryCells(const BoxArray& ba,
+              int             n_grow,
+              const Geometry& geom)
+{
+    const BoxList blgrids = BoxList(ba);
+
+    BoxDomain bd;
+
+    for (int i = 0; i < ba.size(); ++i)
+    {
+	BoxList gCells = BoxLib::boxDiff(BoxLib::grow(ba[i],n_grow),ba[i]);
+
+	for (BoxList::iterator bli = gCells.begin(); bli != gCells.end(); ++bli)
+	    bd.add(BoxLib::complementIn(*bli,blgrids));
+    }
+
+    BoxList bl;
+
+    Array<IntVect> pshifts(27);
+
+    for (BoxDomain::const_iterator bdi = bd.begin(); bdi != bd.end(); ++bdi)
+    {
+        bl.push_back(*bdi);
+        //
+        // Add in periodic ghost cells shifted to valid region.
+        //
+        geom.periodicShift(geom.Domain(), *bdi, pshifts);
+
+        for (int i = 0; i < pshifts.size(); i++)
+        {
+            Box shftbox = *bdi + pshifts[i];
+
+            bl.push_back(geom.Domain() & shftbox);
+        }
+    }
+
+    bl.simplify();
+
+    return BoxArray(bl);
+}
 
 void
 NavierStokes::variableCleanUp ()
@@ -269,6 +313,8 @@ NavierStokes::read_params ()
     pp.query("do_init_vort_proj",        do_init_vort_proj);
     pp.query("do_init_proj",             do_init_proj     );
     pp.query("do_mac_proj",              do_mac_proj      );
+    pp.query("do_fillPatchUMAC",         do_fillPatchUMAC );
+    std::cout << "FILLPATCH " << do_fillPatchUMAC << std::endl;
     pp.query("do_divu_sync",             do_divu_sync     );
 
     pp.query("umac_periodic_test_Tol",   umac_periodic_test_Tol);
@@ -395,6 +441,7 @@ NavierStokes::NavierStokes ()
     advflux_reg  = 0;
     viscflux_reg = 0;
     u_mac        = 0;
+    u_macG       = 0;
     aofs         = 0;
     diffusion    = 0;
 
@@ -461,10 +508,11 @@ NavierStokes::NavierStokes (Amr&            papa,
     //
     // Initialize work multifabs.
     //
-    Vsync = 0;
-    Ssync = 0;
-    u_mac = 0;
-    aofs  = 0;
+    Vsync  = 0;
+    Ssync  = 0;
+    u_mac  = 0;
+    u_macG = 0;
+    aofs   = 0;
     //
     // Set up the level projector.
     //
@@ -528,6 +576,7 @@ NavierStokes::~NavierStokes ()
     delete advflux_reg;
     delete viscflux_reg;
     delete [] u_mac;
+    delete [] u_macG;
     
     if (mac_projector != 0)
         mac_projector->cleanup(level);
@@ -1108,10 +1157,10 @@ NavierStokes::init ()
 //
 
 //
-// This function ensures that the multifab registerss and boundary
+// This function ensures that the multifab registers and boundary
 // flux registers needed for syncing the composite grid
 //
-//     u_mac, Vsync, Ssync, rhoavg, fr_adv, fr_visc
+//     u_mac, umacG, Vsync, Ssync, rhoavg, fr_adv, fr_visc
 //
 // are initialized to zero.  In general these quantities
 // along with the pressure sync registers (sync_reg) and
@@ -1182,6 +1231,17 @@ NavierStokes::advance_setup (Real time,
             BoxArray edge_grids(grids);
             edge_grids.surroundingNodes(dir);
             u_mac[dir].define(edge_grids,1,0,Fab_allocate);
+        }
+    }
+    if (u_macG == 0)
+    {
+        u_macG = new MultiFab[BL_SPACEDIM];
+
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            BoxArray edge_grids(grids);
+            edge_grids.surroundingNodes(dir).grow(1);
+            u_macG[dir].define(edge_grids,1,0,Fab_allocate);
         }
     }
     //
@@ -1255,6 +1315,9 @@ NavierStokes::advance_cleanup (Real dt,
     {
         delete [] u_mac;
         u_mac = 0;
+
+        delete [] u_macG;
+        u_macG = 0;
     }
     delete aofs;
     aofs = 0;
@@ -1304,8 +1367,16 @@ NavierStokes::advance (Real time,
     //
     // Compute mac velocities and maximum cfl number.
     //
-    if (do_mac_proj)
-        mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu);
+    if (do_mac_proj) {
+     mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu);
+     std::cout << "do_fillPatchUMAC " << do_fillPatchUMAC << std::endl;
+     if (do_fillPatchUMAC) {
+       std::cout << "CALLING CREATE UMAC " << std::endl;
+       create_umac_grown();
+     }
+    }
+
+    create_umac_grown();
 
     delete divu;
     //
@@ -5430,4 +5501,87 @@ NavierStokes::calcDpdt ()
     {
         dpdt.setVal(0);
     }
+}
+
+void
+NavierStokes::create_umac_grown ()
+{
+    for (int n=0; n<BL_SPACEDIM; ++n)
+    {
+        u_macG[n].copy(u_mac[n]);
+
+        u_macG[n].FillBoundary(0,1);
+        geom.FillPeriodicBoundary(u_macG[n],0,1);
+    }
+        
+        if (level > 0)
+        {
+            BoxArray f_bnd_ba = GetBndryCells(grids,1,geom);
+            BoxArray c_bnd_ba = BoxArray(f_bnd_ba.size());
+
+            for (int i = 0; i < f_bnd_ba.size(); ++i)
+            {
+                c_bnd_ba.set(i,Box(f_bnd_ba[i]).coarsen(crse_ratio));
+                f_bnd_ba.set(i,Box(c_bnd_ba[i]).refine(crse_ratio));
+            }
+            
+            const BoxArray& cgrids = getLevel(level-1).boxArray();
+            
+            for (int n = 0; n < BL_SPACEDIM; ++n)
+            {
+                MultiFab crseT(BoxArray(cgrids).surroundingNodes(n),1,0);
+                
+                crseT.setVal(1.e200);
+                for (MFIter mfi(crseT); mfi.isValid(); ++mfi)
+                    crseT[mfi].copy(getLevel(level-1).u_mac[n][mfi]);
+                crseT.FillBoundary(0,1);
+                getLevel(level-1).geom.FillPeriodicBoundary(crseT,0,1);
+                
+                MultiFab crse_src(BoxArray(c_bnd_ba).surroundingNodes(n),1,0);
+                crse_src.setVal(1.e200);
+                crse_src.copy(crseT);
+                crse_src.FillBoundary(0,1);
+                getLevel(level-1).geom.FillPeriodicBoundary(crse_src,0,1);
+
+                MultiFab fine_src(BoxArray(f_bnd_ba).surroundingNodes(n),1,0);
+                
+                for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
+                {
+                    const int  nComp = 1;
+                    const Box  box   = Box(c_bnd_ba[mfi.index()]).surroundingNodes(n);
+                    const int* rat   = crse_ratio.getVect();
+                    FORT_PC_CF_EDGE_INTERP(box.loVect(), box.hiVect(), &nComp, rat, &n,
+                                           crse_src[mfi].dataPtr(),
+                                           ARLIM(crse_src[mfi].loVect()),
+                                           ARLIM(crse_src[mfi].hiVect()),
+                                           fine_src[mfi].dataPtr(),
+                                           ARLIM(fine_src[mfi].loVect()),
+                                           ARLIM(fine_src[mfi].hiVect()));
+                }
+                //
+                // Replace pc-interpd fine data with preferred u_mac data at
+                // this level u_mac valid only on surrounding faces of valid
+                // region - this op will not fill grow region.
+                //
+                fine_src.copy(u_mac[n]);
+
+                for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
+                {
+                    //
+                    // Interpolate unfilled grow cells using best data from
+                    // surrounding faces of valid region, and pc-interpd data
+                    // on fine edges overlaying coarse edges.
+                    //
+                    const int  nComp = 1;
+                    const Box& fbox  = fine_src[mfi.index()].box();
+                    const int* rat   = crse_ratio.getVect();
+                    FORT_EDGE_INTERP(fbox.loVect(), fbox.hiVect(), &nComp, rat, &n,
+                                     fine_src[mfi].dataPtr(),
+                                     ARLIM(fine_src[mfi].loVect()),
+                                     ARLIM(fine_src[mfi].hiVect()));
+                }
+
+                u_macG[n].copy(fine_src);
+            }
+        }
 }

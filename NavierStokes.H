@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.76 2002-09-27 22:38:35 marc Exp $
+// $Id: NavierStokes.H,v 1.77 2003-01-30 07:16:29 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -258,6 +258,10 @@ protected:
     // Make mac velocities divergence free.
     //
     void mac_project (Real dt);
+    //
+    // Grow by 1 and fillpatch the MAC-projected velocities.
+    //
+    void create_umac_grown ();
     //
     // Advect velocities.
     //
@@ -609,6 +613,7 @@ protected:
     // Mac edge velocities.
     //
     MultiFab* u_mac;
+    MultiFab* u_macG;
     //
     // Advective tendencies.
     //
@@ -726,17 +731,18 @@ protected:
     // Internal switches.
     //
     static int Temp;
-    static int do_temp;
-    static int do_sync_proj;
-    static int do_MLsync_proj;
-    static int do_reflux;
-    static int modify_reflux_normal_vel;
-    static int do_mac_proj;
-    static int do_divu_sync;
-    static int check_umac_periodicity;
-    static int do_refine_outflow;          // The following three items control
-    static int do_derefine_outflow;        //   how grids are treated at 
-    static int Nbuf_outflow;               //   outflow boundaries.
+    static int  do_temp;
+    static int  do_sync_proj;
+    static int  do_MLsync_proj;
+    static int  do_reflux;
+    static int  modify_reflux_normal_vel;
+    static int  do_mac_proj;
+    static bool do_fillPatchUMAC;
+    static int  do_divu_sync;
+    static int  check_umac_periodicity;
+    static int  do_refine_outflow;          // The following three items control
+    static int  do_derefine_outflow;        //   how grids are treated at 
+    static int  Nbuf_outflow;               //   outflow boundaries.
     //
     // Member when pressure defined at points in time rather than interval
     //

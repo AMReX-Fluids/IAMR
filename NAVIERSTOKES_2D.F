@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.13 2002-11-14 23:04:56 lijewski Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.14 2003-01-30 07:16:29 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -450,3 +450,92 @@ c ::
          end if
       end if
       end
+
+c-----------------------------------------------------------------------
+      subroutine EDGE_INTERP(flo, fhi, nc, ratio, dir,
+     &     fine, fine_l0, fine_l1, fine_h0, fine_h1)
+      implicit none
+      integer flo(0:2-1), fhi(0:2-1), nc, ratio(0:2-1), dir
+      integer fine_l0, fine_l1, fine_h0, fine_h1
+      DOUBLE PRECISION fine(fine_l0:fine_h0,fine_l1:fine_h1,nc)
+      integer i,j,ii,jj,n,P,M,clo(0:2-1),chi(0:2-1)
+      DOUBLE PRECISION val, df
+
+c     Do linear in dir, pc transverse to dir, leave alone the fine values
+c     lining up with coarse edges--assume these have been set to hold the 
+c     values you want to interpolate to the rest.
+      if (dir.eq.0) then
+         do n=1,nc
+            do j=flo(1),fhi(1),ratio(1)
+               do i=flo(0),fhi(0)-ratio(dir),ratio(0)
+                  df = fine(i+ratio(dir),j,n)-fine(i,j,n)
+                  do M=1,ratio(dir)-1
+                     val = fine(i,j,n) + df*dble(M)/dble(ratio(dir))
+                     do P=MAX(j,flo(1)),MIN(j+ratio(1)-1,fhi(1))
+                        fine(i+M,P,n) = val
+                     enddo
+                  enddo                     
+               enddo
+            enddo
+         enddo
+      else
+         do n=1,nc
+            do j=flo(1),fhi(1)-ratio(dir),ratio(1)
+               do i=flo(0),fhi(0)
+                  df = fine(i,j+ratio(dir),n)-fine(i,j,n)
+                  do M=1,ratio(dir)-1
+                     val = fine(i,j,n) + df*dble(M)/dble(ratio(dir))
+                     do P=MAX(i,flo(0)),MIN(i+ratio(0)-1,fhi(0))
+                        fine(P,j+M,n) = val
+                     enddo
+                  enddo
+               enddo
+            enddo
+         enddo
+      endif
+
+      end
+c-----------------------------------------------------------------------
+      subroutine PC_EDGE_INTERP(lo, hi, nc, ratio, dir,
+     &     crse, crse_l0, crse_l1, crse_h0, crse_h1,
+     &     fine, fine_l0, fine_l1, fine_h0, fine_h1)
+      implicit none
+      integer lo(2),hi(2), nc, ratio(0:2-1), dir
+      integer crse_l0, crse_l1, crse_h0, crse_h1
+      integer fine_l0, fine_l1, fine_h0, fine_h1
+      DOUBLE PRECISION crse(crse_l0:crse_h0,crse_l1:crse_h1,nc)
+      DOUBLE PRECISION fine(fine_l0:fine_h0,fine_l1:fine_h1,nc)
+      integer i,j,ii,jj,n,L
+      DOUBLE PRECISION val, dc
+
+c     For edge-based data, fill fine values with piecewise-constant interp of coarse data.
+c     Operate only on faces that overlap--ie, only fill the fine faces that make up each
+c     coarse face, leave the in-between faces alone.
+      if (dir.eq.0) then
+         do n=1,nc
+            do j=lo(2),hi(2)
+               jj = ratio(1)*j
+               do i=lo(1),hi(1)
+                  ii = ratio(0)*i
+                  do L=0,ratio(1)-1
+                     fine(ii,jj+L,n) = crse(i,j,n)
+                  enddo
+               enddo
+            enddo
+         enddo
+      else
+         do n=1,nc
+            do j=lo(2),hi(2)
+               jj = ratio(1)*j
+               do i=lo(1),hi(1)
+                  ii = ratio(0)*i
+                  do L=0,ratio(0)-1
+                     fine(ii+L,jj,n) = crse(i,j,n)
+                  enddo
+               enddo
+            enddo
+         enddo
+      endif
+
+      end
+
