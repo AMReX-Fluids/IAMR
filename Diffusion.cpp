@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.67 1999-02-23 19:07:02 marc Exp $
+// $Id: Diffusion.cpp,v 1.68 1999-02-24 01:02:38 marc Exp $
 //
 
 //
@@ -1562,7 +1562,8 @@ Diffusion::getTensorOp (Real                   a,
     //
     // alpha should be the same size as volume.
     //
-    MultiFab alpha(grids,BL_SPACEDIM,nghost);
+    const int nCompAlpha = (BL_SPACEDIM==2  ?  2  :  1);
+    MultiFab alpha(grids,nCompAlpha,nghost);
     alpha.setVal(0.0,nghost);
 
     if (a != 0.0)
@@ -1674,7 +1675,8 @@ Diffusion::getTensorOp (Real                   a,
     //
     // alpha should be the same size as volume.
     //
-    MultiFab alpha(grids,BL_SPACEDIM,nghost);
+    const int nCompAlpha = (BL_SPACEDIM==2  ?  2  :  1);
+    MultiFab alpha(grids,nCompAlpha,nghost);
     alpha.setVal(0.0);
 
     if (a != 0.0)
@@ -2218,7 +2220,8 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         //
         // alpha should be the same size as volume.
         //
-        MultiFab alpha(grids,BL_SPACEDIM,nghost);
+	const int nCompAlpha = (BL_SPACEDIM==2  ?  2  :  1);
+	MultiFab alpha(grids,nCompAlpha,nghost);
         alpha.setVal(0.0);
         tensor_op.aCoefficients(alpha);
 
