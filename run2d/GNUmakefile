@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.2 1998-12-02 00:38:02 lijewski Exp $
+# $Id: GNUmakefile,v 1.3 1998-12-02 19:30:02 sstanley Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -119,7 +119,7 @@ else
 	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE=
 endif
 	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) install
 #
 # Cleanup libraries.
 #
