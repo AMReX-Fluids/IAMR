@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.205 2002-10-31 21:06:14 car Exp $
+// $Id: NavierStokes.cpp,v 1.206 2002-11-12 17:33:10 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3259,6 +3259,8 @@ NavierStokes::incrPAvg ()
 void
 NavierStokes::post_init_state ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::post_init_state()");
+
     const int finest_level = parent->finestLevel();
     const Real divu_time   = have_divu ? state[Divu_Type].curTime()
                                        : state[Press_Type].curTime();
@@ -4728,6 +4730,8 @@ MultiFab*
 NavierStokes::getDivCond (int  ngrow, 
                           Real time)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::getDivCond()");
+
     MultiFab* divu = 0;
 
     if (!have_divu)
@@ -4780,6 +4784,8 @@ NavierStokes::getState (int  ngrow,
                         int  ncomp, 
                         Real time)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::getState()");
+
     MultiFab* mf = new MultiFab(state[state_idx].boxArray(),ncomp,ngrow);
 
     FillPatchIterator fpi(*this,*mf,ngrow,time,state_idx,scomp,ncomp);
