@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.H,v 1.2 2001-02-14 19:05:44 lijewski Exp $
+c $Id: FLUCTFILE.H,v 1.3 2001-02-26 21:18:26 marc Exp $
 c
 c ::: Array dimension definitions which are always 3-d
 c
@@ -38,5 +38,6 @@ c
 #define FF_ARG_L3(a) a/**/_l3
 #define FF_ARG_H1(a) a/**/_h1
 #define FF_ARG_H2(a) a/**/_h2
+#define FF_ARG_H3(a) a/**/_h3
 
 #endif
