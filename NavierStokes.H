@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.78 2003-02-06 19:07:22 almgren Exp $
+// $Id: NavierStokes.H,v 1.79 2003-02-18 22:02:37 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -736,7 +736,6 @@ protected:
     static int  do_reflux;
     static int  modify_reflux_normal_vel;
     static int  do_mac_proj;
-    static bool do_fillPatchUMAC;
     static int  do_divu_sync;
     static int  do_refine_outflow;          // The following three items control
     static int  do_derefine_outflow;        //   how grids are treated at 
