@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.52 1998-12-02 20:21:33 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.53 1998-12-03 02:38:59 sstanley Exp $
 //
 
 //
@@ -404,15 +404,16 @@ Diffusion::diffuse_scalar (Real       dt,
     MultiFab& S_old = caller->get_old_data(State_Type);
     MultiFab& S_new = caller->get_new_data(State_Type);
 
+    const int ng_rho = 0;
     MultiFab* Rho_old = 0;
     MultiFab* Rho_new = 0;
 
     if (rho_flag == 2)
     {
-        Rho_old = new MultiFab(grids,1,1);
-        Copy(*Rho_old,S_old,Density,0,1,1);
-        Rho_new = new MultiFab(grids,1,1);
-        Copy(*Rho_new,S_new,Density,0,1,1);
+        Rho_old = new MultiFab(grids,1,ng_rho);
+        Copy(*Rho_old,S_old,Density,0,1,ng_rho);
+        Rho_new = new MultiFab(grids,1,ng_rho);
+        Copy(*Rho_new,S_new,Density,0,1,ng_rho);
     }
 
     const Box& domain    = caller->Geom().Domain();
@@ -454,7 +455,7 @@ Diffusion::diffuse_scalar (Real       dt,
             {
                 DependentMultiFabIterator Rho_oldmfi(S_oldmfi, (*Rho_old));
                 assert(grids[S_oldmfi.index()] == S_oldmfi.validbox());
-                Box box = ::grow(S_oldmfi.validbox(),1);
+                Box box = ::grow(S_oldmfi.validbox(),ng_rho);
                 S_oldmfi().divide(Rho_oldmfi(),box,0,sigma,1);
             }
         }
@@ -462,7 +463,7 @@ Diffusion::diffuse_scalar (Real       dt,
         // Copy to single-component multifab.
         // Note: use Soln as a temporary here.
         //
-        Copy(Soln,S_old,sigma,0,1,1);
+        Copy(Soln,S_old,sigma,0,1,ng_rho);
 
         visc_op->apply(Rhs,Soln);
 
@@ -645,7 +646,7 @@ Diffusion::diffuse_scalar (Real       dt,
 
             assert(grids[S_oldmfi.index()] == S_oldmfi.validbox());
 
-            Box box = ::grow(S_oldmfi.validbox(),1);
+            Box box = ::grow(S_oldmfi.validbox(),ng_rho);
 
             S_newmfi().mult(Rho_newmfi(),box,0,sigma,1);
             S_oldmfi().mult(Rho_oldmfi(),box,0,sigma,1);
@@ -901,7 +902,7 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
         n_ghost = 1;
         Copy(U_new,Soln,0,sigma,n_comp,n_ghost);
         //
-        // Modify diffusive fluxes here.
+        // create diffusive fluxes here (this really should be done by the operator...)
         //
         if (do_reflux)
         {
@@ -1896,8 +1897,9 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
         // We just solved for S -- what we want is rho*S.
         //
         MultiFab& S_new = caller->get_new_data(State_Type);
-        MultiFab Rho_new(grids,1,1);
-        Copy(Rho_new,S_new,Density,0,1,1);
+        const int ng_rho = 0;
+        MultiFab Rho_new(grids,1,ng_rho);
+        Copy(Rho_new,S_new,Density,0,1,ng_rho);
         for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
         {
             DependentMultiFabIterator Rho_newmfi(Ssyncmfi, Rho_new);
