@@ -17,6 +17,7 @@ max_step =        10  # maximum (integer) number of time steps
 stop_time =       1.0 # maximum (real) time (in same units as dt)
 
 amr.n_cell =      32 32 # indices of the domain at level 0
+amr.n_cell =      8 8 # indices of the domain at level 0
 
 # (this one is optional)
 #amr.restart =     # set if starting from a restart file, otherwise comment out
@@ -35,7 +36,7 @@ amr.regrid_int     = 2 # how often to regrid if max_level > 0
 # amr.regrid_file      # file name for specifying fixed grids
 
 # MUST SET ONLY ONE OF THE TWO BELOW (COMMENT OUT THE OTHER)
-amr.ref_ratio        = 2 4 # integer refinement ratio 
+amr.ref_ratio        = 2 2 # integer refinement ratio 
 #amr.ref_ratio_vect         # IntVect refinement ratio 
 
 #**********************************
@@ -49,9 +50,15 @@ proj.v                  = 1
 diffuse.v               = 1
 amr.v                   = 1
 
+<<<<<<< inputs.2d.periodic_shear_layer
+mg.v                    = 1
+cg.v                    = 0
+proj.Pcode              = 4
+=======
 mg.v                    = 2
 cg.v                    = 1
 proj.Pcode              = 1
+>>>>>>> 1.8
 
 #**********************************
 #OUTPUT CONTROLS

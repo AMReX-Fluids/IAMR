@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.11 1998-07-14 21:36:20 marc Exp $
+c $Id: PROB_3D.F,v 1.12 1998-07-28 17:51:50 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -44,7 +44,8 @@ c ::: -----------------------------------------------------------
      &			denfact, xblob, yblob, zblob, radblob, 
      &                  velfact, probtype, randfact, bubgrad,
      &			rhozero, tempzero, c_d, r_d, 
-     &                  adv_dir, adv_vel, axis_dir, radvort
+     &                  adv_dir, adv_vel, axis_dir, radvort,
+     &                  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag
 c
 c      Build `probin' filename -- the name of file containing fortin namelist.
 c
@@ -71,6 +72,25 @@ c
       read(untin,fortin)
 c      write(6,fortin)
       close(unit=untin)
+
+
+      if(probtype.eq.8)then
+
+      freq(1) = .219d0
+      do i=2,10
+       freq(i)=freq(1)/float(i)
+      enddo
+      mag(1) = amag
+      mag(2) = .75*amag
+      mag(3) = .55*amag
+      mag(4) = .44*amag
+
+      do i=5,10
+      mag(i)=1.7d0*mag(1)/float(i)
+      enddo
+
+      endif
+
 
       end
 
@@ -145,6 +165,18 @@ c ::: -----------------------------------------------------------
          call inithotspot(level,time,lo,hi,nscal,
      &     	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
+
+      else if (probtype .eq. 7) then
+         call initeuler(level,time,lo,hi,nscal,
+     &                    vel,scal,DIMS(state),press,DIMS(press),
+     &                    dx,xlo,xhi)
+
+      else if (probtype .eq. 8) then
+         call initbrnrsh(level,time,lo,hi,nscal,
+     &                    vel,scal,DIMS(state),press,DIMS(press),
+     &                    dx,xlo,xhi)
+
+
 
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
@@ -536,6 +568,123 @@ c     ::::: local variables
       end do
       
       end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initeuler(level,time,lo,hi,nscal,
+     &                       vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  eps_input, beta_input, rho_input, r_yz
+      REAL_T  delta_input, kappa_input
+
+#include "probdata.H"
+
+      eps_input = 0.05d0
+      rho_input = 0.15d0
+      beta_input = 15.d0
+      delta_input = 0.0333d0
+      kappa_input = 500.d0
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half) -half
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half) -half
+            r_yz = sqrt(y*y+z*z)
+            do i = lo(1), hi(1)
+
+               x = xlo(1) + hx*(float(i-lo(1)) + half) -half
+               vel(i,j,k,1) = tanh( (rho_input - r_yz) / delta_input)
+               vel(i,j,k,2) = zero
+               vel(i,j,k,3) = eps_input * exp(-beta_input * (x*x + y*y) )
+
+               scal(i,j,k,1) = one
+               scal(i,j,k,2) = exp( -kappa_input * (rho_input - r_yz)**2 )
+
+
+               do n = 3,nscal
+                  scal(i,j,k,n) = one
+               end do
+
+            end do
+         end do
+      end do
+
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initbrnrsh(level,time,lo,hi,nscal,
+     &                      vel,scal,DIMS(state),press,DIMS(press),
+     &                      dx,xlo,xhi)
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  dist
+      REAL_T  x_vel, y_vel, z_vel
+      REAL_T  umid,rmid,lamv,lamr,rfact
+
+
+#include "probdata.H"
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+
+      umid = (vel1+vel2)*half
+      rmid = (den1+den2)*half
+      lamv = (vel1-vel2)/(vel1+vel2)
+      lamr = (den1-den2)/(den1+den2)
+
+         do k = lo(3), hi(3)
+            z = xlo(3) + hz*(float(k-lo(3)) + half)
+            do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            do i = lo(1), hi(1)
+               vel(i,j,k,1) = umid*(one+lamv*tanh(two*z/delta0))
+               vel(i,j,k,2) = zero
+               vel(i,j,k,3) = zero
+               scal(i,j,k,1) = rmid*(one+lamr*tanh(two*z/delta0))
+               scal(i,j,k,2) = cvmgt(one,zero,z.gt.zero)
+            enddo
+         enddo
+         enddo
+
+
+      end
+
 c ::: -----------------------------------------------------------
 c ::: This routine will tag high error cells based on the 
 c ::: density gradient
@@ -690,6 +839,38 @@ c     probtype = HOT SPOT
               end do
            end do
         end do
+
+      else if (probtype .eq. 7) then
+
+        return
+
+      else if (probtype .eq. 8) then
+
+        if (level .eq. 0) then
+          do k = lo(3), hi(3)
+          z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
+             do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                  x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
+                  tag(i,j,k) = cvmgt(set,clear,abs(z).lt.zlev1.and.x.lt.xlev1)
+             enddo
+             enddo
+          enddo
+        else
+          do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+            x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
+            ax = abs(adv(i+1,j,k,1) - adv(i-1,j,k,1))
+            ay = abs(adv(i,j+1,k,1) - adv(i,j-1,k,1))
+            az = abs(adv(i,j,k+1,1) - adv(i,j,k-1,1))
+            aerr = max(ax,ay,az)
+            tag(i,j,k) = cvmgt(set,tag(i,j,k),aerr.gt.adverr.and. x.lt.xlev1)
+          enddo
+          enddo
+          enddo
+        endif
+
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
@@ -884,6 +1065,23 @@ c     probtype = HOT SPOT
                end do
             end do
          end do
+c     probtype = EULER
+      else if (probtype .eq. 7) then
+
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),
+     &                   abs(dx(1)*vort(i,j,k,1)).gt.vorterr)
+               end do
+            end do
+         end do
+
+c     probtype = BROWN ROSHKO
+      else if (probtype .eq. 8) then
+
+        return
+
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_MVERROR ',probtype
@@ -923,12 +1121,101 @@ c ::: -----------------------------------------------------------
       REAL_T     dx(SDIM), xlo(SDIM), time
       REAL_T     rho(DIMV(rho))
       integer    bc(SDIM,2)
+      integer    lo(SDIM), hi(SDIM)
+
 
       integer    i, j, k
+      REAL_T  umid,rmid,lamv,lamr,rfact
+      REAL_T  hx, hy, hz, gpert, z, y, ypert, magwif
 
 #include "probdata.H"
 
       call filcc(rho,DIMS(rho),domlo,domhi,dx,xlo,bc)
+
+      if(probtype .eq.8 ) then
+
+      lo(1) = ARG_L1(rho)
+      lo(2) = ARG_L2(rho)
+      lo(3) = ARG_L3(rho)
+      hi(1) = ARG_H1(rho)
+      hi(2) = ARG_H2(rho)
+      hi(3) = ARG_H3(rho)
+
+      umid = (vel1+vel2)*half
+      rmid = (den1+den2)*half
+      lamv = (vel1-vel2)/(vel1+vel2)
+      lamr = (den1-den2)/(den1+den2)
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+      magwif = .1d0
+
+
+      if (bc(1,1).eq.EXT_DIR.and.lo(1).lt.domlo(1)) then
+         do i = lo(1), domlo(1)-1
+            do k = lo(3), hi(3)
+            z = xlo(3) + hz*(float(k-lo(3)) + half)
+            do j = lo(2), hi(2)
+               y = xlo(2)+hy*(float(j-lo(2))+half)
+               ypert = magwif*sin(freq(1)*time)*sin(.22089323d0*y)
+               rho(i,j,k) =  rmid*(one+lamr*tanh(two*(z-ypert)/delta0))
+            enddo
+            enddo
+         enddo
+      endif
+
+      if (bc(1,2).eq.EXT_DIR.and.hi(1).gt.domhi(1)) then
+         do i = domhi(1)+1, hi(1)
+            do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               rho(i,j,k) = denfact
+            enddo
+            enddo
+         enddo
+      endif
+
+      if (bc(2,1).eq.EXT_DIR.and.lo(2).lt.domlo(2)) then
+           do j = lo(2), domlo(2)-1
+              do k = lo(3), hi(3)
+              do i = lo(1), hi(1)
+                 rho(i,j,k) = denfact
+              enddo
+              enddo
+           enddo
+      endif
+
+      if (bc(2,2).eq.EXT_DIR.and.hi(2).gt.domhi(2)) then
+         do j = domhi(2)+1, hi(2)
+            do k = lo(3), hi(3)
+            do i = lo(1), hi(1)
+               rho(i,j,k) = denfact
+            enddo
+            enddo
+         enddo
+      endif
+
+      if (bc(3,1).eq.EXT_DIR.and.lo(3).lt.domlo(3)) then
+           do k = lo(3), domlo(3)-1
+              do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 rho(i,j,k) = den2
+              enddo
+              enddo
+           enddo
+      endif
+
+      if (bc(3,2).eq.EXT_DIR.and.hi(2).gt.domhi(2)) then
+           do k = domhi(3)+1, hi(3)
+              do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                rho(i,j,k) = den1
+              enddo
+              enddo
+         enddo
+      endif
+
+      else
+
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(rho).lt.domlo(1)) then
          do i = ARG_L1(rho), domlo(1)-1
@@ -990,6 +1277,8 @@ c ::: -----------------------------------------------------------
          end do
       end if
 
+      endif
+
       end
 
 c ::: -----------------------------------------------------------
@@ -1023,13 +1312,91 @@ c ::: -----------------------------------------------------------
       REAL_T     dx(SDIM), xlo(SDIM), time
       REAL_T     adv(DIMV(adv))
       integer    bc(SDIM,2)
+      integer    lo(SDIM), hi(SDIM)
 
       integer    i, j, k
-      REAL_T     z
+      REAL_T  hx, hy, hz, gpert, z, y, ypert, magwif
 
 #include "probdata.H"
 
       call filcc(adv,DIMS(adv),domlo,domhi,dx,xlo,bc)
+      if( probtype .eq. 8) then
+      lo(1) = ARG_L1(adv)
+      lo(2) = ARG_L2(adv)
+      lo(3) = ARG_L3(adv)
+      hi(1) = ARG_H1(adv)
+      hi(2) = ARG_H2(adv)
+      hi(3) = ARG_H3(adv)
+
+      hy = dx(2)
+      hz = dx(3)
+      magwif = .1d0
+      if (bc(1,1).eq.EXT_DIR.and.lo(1).lt.domlo(1)) then
+         do i = lo(1), domlo(1)-1
+            do k = lo(3), hi(3)
+            z = xlo(3) + hz*(float(k-lo(3)) + half)
+            do j = lo(2), hi(2)
+               y = xlo(2)+hy*(float(j-lo(2))+half)
+               ypert = magwif*sin(freq(1)*time)*sin(.22089323d0*y)
+               adv(i,j,k) = cvmgt(one,zero,(z-ypert).gt.zero)
+            enddo
+            enddo
+         enddo
+      endif
+
+      if (bc(1,2).eq.EXT_DIR.and.hi(1).gt.domhi(1)) then
+         do i = domhi(1)+1, hi(1)
+            do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               adv(i,j,k) = cvmgt(one,zero,z.gt.zero)
+            enddo
+            enddo
+         enddo
+      endif
+
+      if (bc(2,1).eq.EXT_DIR.and.lo(2).lt.domlo(2)) then
+         do j = lo(2), domlo(2)-1
+            do k = lo(3), hi(3)
+            z = xlo(3) + hz*(float(k-lo(3)) + half)
+            do i = lo(1), hi(1)
+               adv(i,j,k) =  cvmgt(one,zero,z.gt.zero)
+            enddo
+            enddo
+         enddo
+      endif
+
+      if (bc(2,2).eq.EXT_DIR.and.hi(2).gt.domhi(2)) then
+         do j = domhi(2)+1, hi(2)
+            do k = lo(3), hi(3)
+            z = xlo(3) + hz*(float(k-lo(3)) + half)
+            do i = lo(1), hi(1)
+               adv(i,j,k) =  cvmgt(one,zero,z.gt.zero)
+            enddo
+            enddo
+         enddo
+      endif
+      if (bc(3,1).eq.EXT_DIR.and.lo(3).lt.domlo(3)) then
+         do k = lo(3), domlo(3)-1
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               adv(i,j,k) = zero
+            enddo
+            enddo
+         enddo
+      endif
+
+      if (bc(3,2).eq.EXT_DIR.and.hi(3).gt.domhi(3)) then
+         do k = domhi(3)+1, hi(3)
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               adv(i,j,k) = one
+            enddo
+            enddo
+         enddo
+      endif
+
+
+      else
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(adv).lt.domlo(1)) then
          do i = ARG_L1(adv), domlo(1)-1
@@ -1090,6 +1457,8 @@ c ::: -----------------------------------------------------------
             end do
          end do
       end if
+
+      endif
 
       end
 
@@ -1225,9 +1594,13 @@ c ::: -----------------------------------------------------------
       REAL_T     dx(SDIM), xlo(SDIM), time
       REAL_T     u(DIMV(u))
       integer    bc(SDIM,2)
+      integer    lo(SDIM),hi(SDIM)
 
       integer    i, j, k
       REAL_T     x_vel
+      REAL_T     y, ul, g_t
+      REAL_T  umid,rmid,lamv,lamr,rfact
+      REAL_T  hx, hy, hz, gpert, z,  ypert, magwif
 
 #include "probdata.H"
 
@@ -1238,6 +1611,97 @@ c ::: -----------------------------------------------------------
       end if
 
       call filcc(u,DIMS(u),domlo,domhi,dx,xlo,bc)
+      if(probtype .eq. 8) then
+
+
+      lo(1) = ARG_L1(u)
+      lo(2) = ARG_L2(u)
+      lo(3) = ARG_L3(u)
+      hi(1) = ARG_H1(u)
+      hi(2) = ARG_H2(u)
+      hi(3) = ARG_H3(u)
+
+      x_vel = one
+      magwif = .1d0
+
+      umid = (vel1+vel2)*half
+      rmid = (den1+den2)*half
+      lamv = (vel1-vel2)/(vel1+vel2)
+      lamr = (den1-den2)/(den1+den2)
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      if (bc(1,1).eq.EXT_DIR.and.lo(1).lt.domlo(1)) then
+
+         gpert = one
+         do i = 1,10
+            gpert = gpert + mag(i)*sin(freq(i)*time)
+         enddo
+
+         do i = lo(1), domlo(1)-1
+            do k = lo(3), hi(3)
+            z = xlo(3) + hz*(float(k-lo(3)) + half)
+            do j = lo(2), hi(2)
+               y = xlo(2)+hy*(float(j-lo(2))+half)
+               ypert = magwif*sin(freq(1)*time)*sin(.22089323d0*y)
+               u(i,j,k) = gpert*umid*(one+lamv*tanh(two*(z-ypert)/delta0))
+            enddo
+            enddo
+         enddo
+      endif
+
+      if (bc(1,2).eq.EXT_DIR.and.hi(1).gt.domhi(1)) then
+         do i = domhi(1)+1, hi(1)
+            do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               u(i,j,k) = x_vel
+            enddo
+            enddo
+         enddo
+      endif
+
+      if (bc(2,1).eq.EXT_DIR.and.lo(2).lt.domlo(2)) then
+         do j = lo(2), domlo(2)-1
+            do k = lo(3), hi(3)
+            do i = lo(1), hi(1)
+               u(i,j,k) = x_vel
+            enddo
+            enddo
+         enddo
+      endif
+      if (bc(2,2).eq.EXT_DIR.and.hi(2).gt.domhi(2)) then
+         do j = domhi(2)+1, hi(2)
+            do k = lo(3), hi(3)
+            do i = lo(1), hi(1)
+               u(i,j,k) = x_vel
+            enddo
+            enddo
+         enddo
+      endif
+
+      if (bc(3,1).eq.EXT_DIR.and.lo(3).lt.domlo(3)) then
+         do k = lo(3), domlo(3)-1
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               u(i,j,k) = vel2
+            enddo
+            enddo
+         enddo
+      endif
+
+      if (bc(3,2).eq.EXT_DIR.and.hi(3).gt.domhi(3)) then
+         do k = domhi(3)+1, hi(3)
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               u(i,j,k) = vel1
+            enddo
+            enddo
+         enddo
+      endif
+
+      else
+
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(u).lt.domlo(1)) then
          do i = ARG_L1(u), domlo(1)-1
@@ -1299,6 +1763,8 @@ c ::: -----------------------------------------------------------
          end do
       end if
 
+      endif
+
       end
 
 c ::: -----------------------------------------------------------
@@ -1339,11 +1805,19 @@ c ::: -----------------------------------------------------------
 
 #include "probdata.H"
 
+      if(probtype.eq.8)then
+
+         y_vel = zero
+
+      else
+
       if (adv_dir .eq. 2) then
          y_vel = adv_vel
       else  
          y_vel = zero
       end if
+
+      endif
 
       call filcc(v,DIMS(v),domlo,domhi,dx,xlo,bc)
 
@@ -1446,11 +1920,22 @@ c ::: -----------------------------------------------------------
 
 #include "probdata.H"
 
+
+      if(probtype.eq.8)then
+
+      z_vel = zero
+
+      else
+
+
+
       if (adv_dir .eq. 3) then
          z_vel = adv_vel
       else  
          z_vel = zero
       end if
+
+      endif
 
       call filcc(w,DIMS(w),domlo,domhi,dx,xlo,bc)
 

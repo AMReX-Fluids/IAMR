@@ -6,7 +6,6 @@ PROFILE = FALSE
 DIM	= 2
 DIM	= 3
 
-WHICH_HG=_new
 WHICH_HG=
 
 COMP = KCC
@@ -14,8 +13,8 @@ COMP = KCC
 USE_WINDOWS=FALSE
 USE_BSP=TRUE
 USE_BSP=FALSE
-USE_MPI=TRUE
 USE_MPI=FALSE
+USE_MPI=TRUE
 USE_NETCDF=FALSE
 USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
@@ -37,7 +36,7 @@ include ../mk/Make.defs
 
 CPPFLAGS += -DBL_USE_NEW_HFILES
 
-INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib ../bndrylib ../mglib ../hgproj$(WHICH_HG)
+INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib ../bndrylib ../mglib ../hgproj
 
 ifeq ($(USE_BSP), TRUE)
 DEFINES += -DBL_USE_BSP
@@ -156,7 +155,7 @@ include $(HERE)/Make.package
 
 FOPTF = -fast
 
-vpath %.cpp : . ../pBoxLib_2 ../amrlib ../bndrylib ../mglib ../hgproj$(WHICH_HG)
+vpath %.cpp : . ../pBoxLib_2 ../amrlib ../bndrylib ../mglib ../hgproj
 vpath %.F   : . ../amrlib ../bndrylib ../mglib ../hgproj$(WHICH_HG)
 
 all: $(executable)
