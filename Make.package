@@ -63,9 +63,6 @@ C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H
 C$(BOXLIB_BASE)_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp MultiFab.cpp
 C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H Looping.H MultiFab.H
 
-T_sources += SimpleDPtr.cpp AliasedDPtr.cpp DPtr.cpp
-T_headers += SimpleDPtr.H AliasedDPtr.H DPtr.H
-
 T_sources += Array.cpp PArray.cpp List.cpp Pointers.cpp Tuple.cpp
 T_headers += Array.H PArray.H List.H Pointers.H Tuple.H Misc.H
 
