@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.10 1999-02-18 18:22:14 sstanley Exp $
+// $Id: Diffusion.H,v 1.11 1999-02-19 16:19:52 sstanley Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -213,8 +213,6 @@ public:
                        Real           time,
                        int            rho_flag);
 
-    int useDvConstantMu () { return use_dv_constant_mu_def; }
-
     void checkBetas (const MultiFab* const* beta1,
                      const MultiFab* const* beta2,
                      int&                   allthere,
@@ -274,7 +272,6 @@ private:
     static int         max_order;
     static int         tensor_max_order;
     static bool        use_mg_precond_flag;
-    static int         use_dv_constant_mu_def;
     static int         scale_abec;
     static int         est_visc_mag;
     static int         Lphi_in_abs_tol;
