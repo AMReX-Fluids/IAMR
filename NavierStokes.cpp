@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.236 2004-02-09 23:38:46 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.237 2004-02-10 06:42:06 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1285,13 +1285,13 @@ NavierStokes::advance_setup (Real time,
     //
     // If refRatio==4 to the next level coarser, and we're going to diffuse
     // scalars as SoverRho, we're going to need rho at 1/4 and 3/4 time there.
-    // Make these things if this is the first subcycled step.
+    // Make these things if need be.
     //
     if (level > 0)
     {
         bool needs_rho4 = false;
 
-        if (iteration == 1 && parent->nCycle(level) == 4)
+        if (parent->nCycle(level) == 4)
             for (int i = 0; i < NUM_STATE && !needs_rho4; ++i)
                 needs_rho4 = (diffusionType[i] == Laplacian_SoverRho);
 
@@ -1301,8 +1301,9 @@ NavierStokes::advance_setup (Real time,
             const BoxArray& cgrids = clevel.boxArray();
             const Real      ptime  = clevel.state[State_Type].prevTime();
             const Real      ctime  = clevel.state[State_Type].curTime();
+
+            if (clevel.rho_qtime == 0)
             {
-                BL_ASSERT(clevel.rho_qtime == 0);
                 const Real qtime = ptime + 0.25*(ctime-ptime);
                 clevel.rho_qtime = new MultiFab(cgrids,1,1);
                 FillPatchIterator fpi(clevel,*(clevel.rho_qtime),
@@ -1310,8 +1311,8 @@ NavierStokes::advance_setup (Real time,
                 for ( ; fpi.isValid(); ++fpi)
                     (*clevel.rho_qtime)[fpi.index()].copy(fpi());
             }
+            if (clevel.rho_tqtime == 0)
             {
-                BL_ASSERT(clevel.rho_tqtime == 0);
                 const Real tqtime = ptime + 0.75*(ctime-ptime);
                 clevel.rho_tqtime = new MultiFab(cgrids,1,1);
                 FillPatchIterator fpi(clevel,*(clevel.rho_tqtime),
