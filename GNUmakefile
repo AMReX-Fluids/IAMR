@@ -27,12 +27,10 @@ EBASE = amr
 LBASE = 
 
 HERE = .
-GUTHAMR_HOME=/usr/people/vince/Parallel/guthamr
 
 include ../mk/Make.defs
 
 INCLUDE_LOCATIONS += $(HERE) ../pboxlib2.0
-#INCLUDE_LOCATIONS += $(GUTHAMR_HOME)/include
 INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
 #LIBRARY_LOCATIONS += ./graphtools
 
@@ -121,7 +119,6 @@ include $(HERE)/Make.package
 
 vpath %.cpp :$(HERE) ../pboxlib2.0
 vpath %.F :$(HERE)
-#vpath %.a :$(GUTHAMR_HOME)/lib/$(machineSuffix)
 
 all: $(executable)
 #all: $(objForExecs) godzillaLink
