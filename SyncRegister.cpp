@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.16 1998-03-26 18:21:53 almgren Exp $
+// $Id: SyncRegister.cpp,v 1.17 1998-03-26 18:24:55 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -205,7 +205,7 @@ if(ParallelDescriptor::NProcs() > 1) {
     int nrhs = rhs_boxes.length();
     int nreg = grids.length();
 
-    const BOX& cell_domain(geom.Domain());
+    const BOX& cell_domain = geom.Domain();
     const BOX& domain = surroundingNodes(cell_domain);
 
     Array<IntVect> pshifts(27);
