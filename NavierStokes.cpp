@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.83 1998-07-15 22:41:13 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.84 1998-07-16 23:18:01 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -4505,8 +4505,11 @@ NavierStokes::calc_divu (Real      time,
             {
                 int i = rho_fpi.index();
 
-                divu[i].divide(rho_fpi(),divu.box(i),0,0,1);
-                divu[i].divide(temp_fpi(),divu.box(i),0,0,1);
+                FArrayBox& rho  = rho_fpi();
+                FArrayBox& temp = temp_fpi();
+
+                divu[i].divide(rho,divu.box(i),0,0,1);
+                divu[i].divide(temp,divu.box(i),0,0,1);
             }
         }
     }
