@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.23 2001-08-14 21:21:34 lijewski Exp $
+# $Id: GNUmakefile,v 1.24 2001-08-21 22:52:42 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -10,19 +10,14 @@ TOP = $(PBOXLIB_HOME)
 PRECISION = DOUBLE
 DEBUG	  = TRUE
 PROFILE   = FALSE
-DIM	  = 2
+DIM	      = 2
 COMP	  = g++
 COMP      = KCC
 USE_MPI   = FALSE
 NAMESPACE = TRUE
 NAMESPACE = FALSE
-USE_THREADS	  = TRUE
-USE_THREADS	  = FALSE
-#
-# Hypre support
-#
-USE_HYPRE=TRUE
-USE_HYPRE=FALSE
+USE_THREADS	= TRUE
+USE_THREADS	= FALSE
 #
 # Use hgproj-serial -- only for testing.
 #
@@ -86,25 +81,6 @@ ifeq ($(BUILD_INPLACE), TRUE)
     INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
   endif
   INCLUDE_LOCATIONS += $(TOP)/BoxLib
-  ifeq ($(USE_HYPRE),TRUE)
-    HYPRE_DIR := $(PBOXLIB_HOME)/hypre
-    LIBRARY_LOCATIONS += $(HYPRE_DIR)/lib
-    INCLUDE_LOCATIONS += $(HYPRE_DIR)/include
-    INCLUDE_LOCATIONS += $(HYPRE_DIR)/HypreABec
-    LIBRARIES +=  -lHYPRE_ls			\
-	 -lHYPRE_mv				\
-	 -lHYPRE_parcsr_ls			\
-	 -lHYPRE_DistributedMatrixPilutSolver 	\
-	 -lHYPRE_ParaSails 			\
-	 -lHYPRE_MatrixMatrix 			\
-	 -lHYPRE_DistributedMatrix 		\
-	 -lHYPRE_IJ_mv				\
-	 -lHYPRE_parcsr_mv			\
-	 -lHYPRE_seq_mv				\
-	 -lHYPRE_utilities
-    CPPFLAGS += -DMG_USE_HYPRE
-    include $(HYPRE_DIR)/HypreABec/Make.package
-  endif
 else
   ifeq ($(USE_HGPROJ_SERIAL),FALSE)
     INCLUDE_LOCATIONS += . .. $(TOP)/include
@@ -116,9 +92,6 @@ else
     INCLUDE_LOCATIONS += $(TOP)/include
     LIBRARY_LOCATIONS += $(TOP)/hgproj-serial/lib/$(machineSuffix) $(TOP)/lib/$(machineSuffix)
     LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lmcmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
-  endif
-  ifeq ($(USE_HYPRE),TRUE)
-    error hypre not here yet
   endif
 endif
 
@@ -166,11 +139,6 @@ ifeq ($(BUILD_INPLACE), TRUE)
     vpath_h   += $(TOP)/hgproj-serial
     vpath_F   += $(TOP)/hgproj-serial
   endif
-  ifeq ($(USE_HYPRE),TRUE)
-    vpath_cpp += $(HYPRE_DIR)/HypreABec
-    vpath_H   += $(HYPRE_DIR)/HypreABec
-    vpath_F   += $(HYPRE_DIR)/HypreABec
-  endif
   ifeq ($(USE_BL3),TRUE)
     vpath_cpp += $(BOXLIB3_HOME)
     vpath_H   += $(BOXLIB3_HOME)
@@ -215,9 +183,6 @@ ifeq ($(USE_HGPROJ_SERIAL),FALSE)
 else
 	cd $(TOP)/hgproj-serial; $(MyMakeLine) LBASE=proj EBASE=
 endif
-ifeq ($(USE_HYPRE),TRUE)
-	cd $(HYPRE_DIR)/HypreABec; $(MyMakeLine) install
-endif
 	cd $(TOP)/mglib;     $(MyMakeLine) install
 	cd $(TOP)/tensorMG;  $(MyMakeLine) install
 	cd $(TOP)/iamrlib;   $(MyMakeLine) install
@@ -232,9 +197,6 @@ ifeq ($(USE_HGPROJ_SERIAL),FALSE)
 	cd $(TOP)/hgproj;    $(MyMakeLine) LBASE=proj EBASE= clean
 else
 	cd $(TOP)/hgproj-serial; $(MyMakeLine) LBASE=proj EBASE= clean
-endif
-ifeq ($(USE_HYPRE),TRUE)
-	cd $(HYPRE_DIR)/HypreABec; $(MyMakeLine) clean
 endif
 	cd $(TOP)/mglib;     $(MyMakeLine) clean
 	cd $(TOP)/tensorMG;  $(MyMakeLine) clean
