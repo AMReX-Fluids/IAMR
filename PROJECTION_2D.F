@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.13 1999-02-11 18:51:16 marc Exp $
+c $Id: PROJECTION_2D.F,v 1.14 1999-02-24 21:55:49 propp Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -364,7 +364,7 @@ c
             end do
          end if
 
-         if(ARG_L1(rhs)-nghost .eq. domhi(1)+1) then
+         if(ARG_H1(rhs)-nghost .eq. domhi(1)+1) then
             i = domhi(1)
             do j = ARG_L2(rhs)+nghost, ARG_H2(rhs)-nghost
                dat(i+1,j) = dat(i,j)
