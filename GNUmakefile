@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.64 1998-11-21 20:31:08 lijewski Exp $
+# $Id: GNUmakefile,v 1.65 1998-12-01 23:52:34 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -7,23 +7,17 @@ TOP = $(PBOXLIB_HOME)
 #
 # Where libraries and include files will be installed.
 #
-INSTALL_ROOT  = $(TOP)
+INSTALL_ROOT = $(TOP)
 #
 # Variables for the user to set ...
 #
 PRECISION     = DOUBLE
-DEBUG	      = FALSE
 DEBUG	      = TRUE
 PROFILE       = FALSE
-DIM	      = 2
 DIM	      = 3
-WHICH_HG      =
 COMP          = KCC
 USE_WINDOWS   = FALSE
-USE_MPI       = FALSE
 USE_MPI       = TRUE
-USE_NETCDF    = FALSE
-USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
 #
 # Use hgproj-serial -- only for testing.
@@ -44,117 +38,47 @@ PRVERSION = v7
 endif
 endif
 #
-# Base name of the executable.
+# The base name of the library we're building.
 #
-EBASE = amr
+LBASE = iamr
 
 include $(TOP)/mk/Make.defs ./Make.package
 
 ifeq ($(USE_HGPROJ_SERIAL),FALSE)
 INCLUDE_LOCATIONS += . $(TOP)/include
-LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
 else
 INCLUDE_LOCATIONS += . $(TOP)/hgproj-serial
 INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
 INCLUDE_LOCATIONS += $(TOP)/include
-LIBRARY_LOCATIONS += $(TOP)/hgproj-serial/lib/$(machineSuffix) $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
 endif
 
 ifeq ($(USE_MPI),TRUE)
-LIBRARIES += -lmpi
 ifeq ($(MACHINE),OSF1)
 INCLUDE_LOCATIONS += /usr/local/mpi/include
-LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
 endif
 ifeq ($(MACHINE),AIX)
 INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
-LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
 endif
 endif
 
-ifeq ($(USE_WINDOWS),TRUE)
-LIBRARIES += -lgraph
-LIBRARIES += -lX11 
-DEFINES   += -DBL_USE_WINDOWS
-endif
-
-ifeq ($(USE_ARRAYVIEW),TRUE)
-DEFINES += -DBL_USE_ARRAYVIEW
-DEFINES += -DBL_ARRAYVIEW_TAGBOX
-endif
-
-ifeq ($(USE_NETCDF),TRUE)
-LIBRARIES         += /usr/people/stevens/bin/libnetcdf.a
-INCLUDE_LOCATIONS += /usr/people/stevens/bin
-endif
-
-ifeq ($(MACHINE),OSF1)
-#
-# Some additional stuff for our preferred development/debugging environment.
-#
-ifeq ($(PRECISION),DOUBLE)
-FFLAGS += -real_size 64
-endif
-FDEBF += -C
-FDEBF += -warn argument_checking
-FDEBF += -warn declarations
-ifneq ($(FC), f90)
-FDEBF += -warn truncated_source
-FDEBF += -warn unused
-endif
+ifeq ($(KCC_VERSION),3.3)
+CXXFLAGS += --one_instantiation_per_object
 endif
 #
-# For Running 3rd Only
+# Libraries to close against.
 #
-3RD = 1
-3RD =
-ifdef 3RD
-LDFLAGS += --link_command_prefix 3rd
-LDFLAGS += -non_shared -v
-endif
-
-vpath %.a $(LIBRARY_LOCATIONS)
-
-all: $(executable)
-
-ifeq ($(MACHINE),T3E)
-#
-# We don't explicity set the path of the mpi directory on the T3E.
-#
-$(executable): $(filter-out -lmpi, $(LIBRARIES))
-else
-$(executable): $(LIBRARIES)
-endif
-#
-# Build and install all libraries needed by IAMRAll in an appropriate order.
-#
-libs:
-	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/bndrylib;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/amrlib;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+ifeq ($(COMP),KCC)
+LibsToCloseAgainst := $(TOP)/lib/$(machineSuffix)/libmg$(DIM)d.a
+LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libamr$(DIM)d.a
+LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libbndry$(DIM)d.a
 ifeq ($(USE_HGPROJ_SERIAL),FALSE)
-	cd $(TOP)/hgproj;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) LBASE=proj EBASE= install
+LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libproj$(DIM)d.a
 else
-	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE=
+LibsToCloseAgainst += $(TOP)/hgproj-serial/lib/$(machineSuffix)/libproj$(DIM)d.$(PRVERSION).a
 endif
-	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-#
-# Cleanup libraries.
-#
-cleanlibs:
-	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-	cd $(TOP)/bndrylib;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-	cd $(TOP)/amrlib;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-ifeq ($(USE_HGPROJ_SERIAL),FALSE)
-	cd $(TOP)/hgproj;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) LBASE=proj EBASE= clean
-else
-	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE= clean
+LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libbox$(DIM)d.a
 endif
-	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
 
-godzillaLink:
-	rsh godzilla 'cd $(PWD); make $(executable)
+all: $(optionsLib)
 
 include $(TOP)/mk/Make.rules
