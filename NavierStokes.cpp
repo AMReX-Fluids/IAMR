@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.66 1998-06-11 20:13:12 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.67 1998-06-14 18:34:42 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1093,7 +1093,7 @@ NavierStokes::advance_setup (Real time,
 
     get_new_data(State_Type).setVal(bogus_value);
 
-    if (level>0 || geom.isAnyPeriodic())
+    if (level > 0 || geom.isAnyPeriodic())
     {
         //
         // This is neccessary so that diffusion works properly during the first
@@ -1217,8 +1217,8 @@ NavierStokes::advance (Real time,
     //
     // Advect scalars.
     //
-    int first_scalar = Density;
-    int last_scalar  = first_scalar + NUM_SCALARS - 1;
+    const int first_scalar = Density;
+    const int last_scalar  = first_scalar + NUM_SCALARS - 1;
     scal_adv_stats.start();
     scalar_advection(dt,first_scalar,last_scalar);
     scal_adv_stats.end();
@@ -1263,7 +1263,7 @@ NavierStokes::advance (Real time,
     //
     if (!initial_step && level > 0)
     {
-        Real fratio = (Real) ncycle;
+        const Real fratio = (Real) ncycle;
         Real alpha = 1.0/fratio;
         if (iteration == ncycle)
             alpha = 0.5/fratio;
@@ -1278,14 +1278,14 @@ NavierStokes::advance (Real time,
             level_projector(dt,time,iteration);
         if (level > 0)
         {
-            Real alpha = 1.0/ (Real) ncycle;
+            const Real alpha = 1.0/ (Real) ncycle;
             incrPAvg(iteration,alpha);
         }
     }
     //
     // Relax back to continuity constraint.
     //
-    if (divu_relax_factor>0.0 && !initial_step)
+    if (divu_relax_factor > 0.0 && !initial_step)
     {
         MultiFab* delta_U = new MultiFab (grids,BL_SPACEDIM,0,Fab_allocate);
         compute_grad_divu_minus_s(time+dt, delta_U, 0);
@@ -1304,6 +1304,7 @@ NavierStokes::level_projector (Real dt,
    if (iteration > 0)
    {
        RunStats lp_stats("level_project",level);
+
        lp_stats.start();
 
        MultiFab& U_old = get_old_data(State_Type);
@@ -1314,9 +1315,13 @@ NavierStokes::level_projector (Real dt,
        SyncRegister* crse_ptr;
 
        if (level < parent->finestLevel() && do_sync_proj)
-           crse_ptr = &(getLevel(level+1).getSyncReg()); 
+       {
+           crse_ptr = &(getLevel(level+1).getSyncReg());
+       }
        else
+       {
            crse_ptr = 0;
+       }
 
        Array<int*> sync_bc(grids.length());
        Array< Array<int> > sync_bc_array(grids.length());
@@ -1327,8 +1332,7 @@ NavierStokes::level_projector (Real dt,
            sync_bc[i]       = sync_bc_array[i].dataPtr();
        }
 
-       MultiFab* dsdt    = 0;
-       MultiFab* divuold = 0;
+       MultiFab *dsdt = 0, *divuold = 0;
 
        if (have_divu)
        {
@@ -1513,7 +1517,7 @@ NavierStokes::test_umac_periodic ()
     // Error block.
     //
     assert(ParallelDescriptor::NProcs() == 1);
-    assert(level          == 0);
+    assert(level == 0);
     if (grids.length() != 1)
         return;
     //
@@ -1611,7 +1615,7 @@ NavierStokes::velocity_advection (Real dt)
     //
     MultiFab visc_terms(grids,BL_SPACEDIM,1,Fab_allocate);
     getViscTerms(visc_terms,Xvel,BL_SPACEDIM,prev_time);
-    if (be_cn_theta==1.0)
+    if (be_cn_theta == 1.0)
         visc_terms.setVal(0.0,1);
 
     Array<int> bndry[BL_SPACEDIM];
@@ -1888,9 +1892,8 @@ NavierStokes::scalar_advection_update (Real dt,
         {
             int i = mfi.index();
 
-            godunov->Add_aofs_tf(S_old[i], S_new[i], sigma, 1, 
-                                 Aofs[i],  sigma, (*tforces_fp)[i],  0,
-                                 grids[i], dt);
+            godunov->Add_aofs_tf(S_old[i], S_new[i], sigma, 1, Aofs[i],
+                                 sigma, (*tforces_fp)[i], 0, grids[i], dt);
 
 	    if (is_conservative[sigma] ? false : true)
             {
@@ -1908,7 +1911,7 @@ NavierStokes::scalar_advection_update (Real dt,
 void
 NavierStokes::scalar_diffusion_update (Real dt,
                                        int  first_scalar,
-                                       int last_scalar)
+                                       int  last_scalar)
 {
     //
     // Loop over the desired scalars.
@@ -1955,11 +1958,17 @@ NavierStokes::velocity_update (Real dt)
     {
         cout << "... update velocities\n";
     }
+
     velocity_advection_update(dt);
-    if (!initial_iter) 
+
+    if (!initial_iter)
+    {
       velocity_diffusion_update(dt);
+    }
     else
+    {
       initial_velocity_diffusion_update(dt);
+    }
 }
 
 void
@@ -2069,33 +2078,29 @@ NavierStokes::velocity_diffusion_update (Real dt)
     {
         MultiFab* delta_rhs = 0;
         diffuse_velocity_setup(dt, delta_rhs);
-        diffusion->diffuse_velocity(dt, be_cn_theta, rho_half, 1);
+        diffusion->diffuse_velocity(dt, be_cn_theta, rho_half, 1, delta_rhs);
         delete delta_rhs;
     }
 }
 
 void
-NavierStokes::diffuse_velocity_setup(Real dt,
-              MultiFab*& delta_rhs)
+NavierStokes::diffuse_velocity_setup (Real       dt,
+                                      MultiFab*& delta_rhs)
 {
-    Real time = state[State_Type].prevTime();
-
-    delta_rhs = 0;
-
-    if (S_in_vel_diffusion && have_divu) {
-      Real time = state[State_Type].prevTime();
-      delta_rhs = new MultiFab(grids,BL_SPACEDIM,0,Fab_allocate);
-      delta_rhs->setVal(0.0);
+    if (S_in_vel_diffusion && have_divu)
+    {
+        Real time = state[State_Type].prevTime();
+        delta_rhs = new MultiFab(grids,BL_SPACEDIM,0,Fab_allocate);
       
-      MultiFab divmusi(grids,BL_SPACEDIM,0,Fab_allocate);
+        MultiFab divmusi(grids,BL_SPACEDIM,0,Fab_allocate);
 
-      diffusion->compute_divmusi(time,visc_coef[Xvel],divmusi);
-      divmusi.mult((1./3.)*(1.0-be_cn_theta),0,BL_SPACEDIM,0);
-      (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
+        diffusion->compute_divmusi(time,visc_coef[Xvel],divmusi);
+        divmusi.mult((1./3.)*(1.0-be_cn_theta),0,BL_SPACEDIM,0);
+        (*delta_rhs).copy(divmusi,0,0,BL_SPACEDIM);
 
-      diffusion->compute_divmusi(time+dt,visc_coef[Xvel],divmusi);
-      divmusi.mult((1./3.)*be_cn_theta,0,BL_SPACEDIM,0);
-      (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
+        diffusion->compute_divmusi(time+dt,visc_coef[Xvel],divmusi);
+        divmusi.mult((1./3.)*be_cn_theta,0,BL_SPACEDIM,0);
+        (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
     }
 }
 
@@ -2140,6 +2145,7 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
             godunov->Add_aofs_tf(U_old[i], U_new[i], 0, BL_SPACEDIM, Aofs[i],
                                  0, (*tforces_fp)[i], 0, grids[i], dt);
         }
+
         delete Gp_fp;
         delete tforces_fp;
     }
@@ -4104,6 +4110,7 @@ NavierStokes::getForce (int  ngrow,
                         Real time)
 {
     MultiFab* force = new MultiFab(grids, num_comp, ngrow);
+
     const Real grav = Abs(gravity);
 
     for (int dc = 0; dc < num_comp; dc++)
@@ -4120,12 +4127,15 @@ NavierStokes::getForce (int  ngrow,
             // Set force to -rho*g.
             //
             MultiFab* rho = getState(ngrow,State_Type,Density,1,time);
+
             for (MultiFabIterator mfi(*force); mfi.isValid(false); ++mfi)
             {
                 DependentMultiFabIterator dmfi(mfi,*rho);
                 dmfi().mult(-grav);
                 mfi().copy(dmfi(),0,dc,1);
             }
+
+            delete rho;
         }
         else
         {
@@ -4554,6 +4564,7 @@ NavierStokes::calc_divu (Real      time,
                 mfi().divide(rho_it(),mfi.validbox(),0,0,1);
                 mfi().divide(temp_it(),mfi.validbox(),0,0,1);
             }
+
             delete rho;
             delete temp;
         }
