@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.243 2004-07-28 19:02:23 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.244 2004-07-29 15:32:46 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1220,7 +1220,7 @@ NavierStokes::advance_setup (Real time,
             BoxArray edge_grids(grids);
             edge_grids.surroundingNodes(dir).grow(1);
             u_macG[dir].define(edge_grids,1,0,Fab_allocate);
-            u_macG[dir].setVal(1.e200);
+            u_macG[dir].setVal(1.e40);
         }
     }
     if (u_corr == 0)
