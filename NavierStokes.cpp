@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.61 1998-06-05 22:32:26 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.62 1998-06-06 00:03:07 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1887,123 +1887,85 @@ NavierStokes::scalar_advection_update (Real dt,
     MultiFab& S_old = get_old_data(State_Type);
     MultiFab& S_new = get_new_data(State_Type);
     MultiFab& Aofs  = *aofs;
-    Real cur_time   = state[State_Type].curTime();
-    Real prev_time  = state[State_Type].prevTime();
-    Real half_time  = 0.5*(cur_time+prev_time);
-    FArrayBox tforces;
-    FArrayBox rho;
+    Real half_time  = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
+    //
+    // Loop over the desired scalars.
+    //
+    Array<int> state_bc;
 
+    for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
+    {
+        //
+        // Compute inviscid estimate of scalars.
+        //
+        MultiFab* tforces_fp = getForce(0,sigma,1,half_time);
 
-
-
-
-
-    
-    // loop over the desired scalars
-    for (int sigma = first_scalar; sigma <= last_scalar; sigma++) {
-
-        const int destComp = 0;
-        for(FillPatchIterator Rhofpi(*this, S_old, 0, destComp, half_time,
-                                     State_Type, Density, 1);
-            Rhofpi.isValid(); ++Rhofpi)
+        for (MultiFabIterator mfi(S_old); mfi.isValid(false); ++mfi)
         {
+            int i = mfi.index();
 
-            DependentMultiFabIterator S_oldmfi(Rhofpi, S_old);
-            DependentMultiFabIterator S_newmfi(Rhofpi, S_new);
-            DependentMultiFabIterator Aofsmfi(Rhofpi, Aofs);
-            assert(grids[S_oldmfi.index()] == S_oldmfi.validbox());
-            const Box& grd = S_oldmfi.validbox();
-            int i = S_oldmfi.index();
-            //getForce(tforces,i,0,sigma,1,half_time);
-            // from NS::getForce vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-            Real grav = Abs(gravity);
-            Box tfbox(grids[i]);
-            tfbox.grow(0);
-            tforces.resize(tfbox, BL_SPACEDIM);
+            godunov->Add_aofs_tf(S_old[i], S_new[i], sigma, 1, 
+                                 Aofs[i],  sigma, (*tforces_fp)[i],  0,
+                                 grids[i], dt);
 
-            for(int dc = 0; dc < BL_SPACEDIM; dc++) {
-              int sc = sigma + dc;
-#if (BL_SPACEDIM == 2)
-              if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001)
-#endif
-#if (BL_SPACEDIM == 3)
-              if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
-#endif
-              {
-                  // set force to -rho*g
-                FArrayBox& Rho = Rhofpi();
-                rho.resize(Rho.box());
-                //getState(rho,i,1,Density,1,half_time);
-                rho.copy(Rhofpi());
-                rho.mult(-grav);
-                tforces.copy(rho,0,dc,1);
-              } else {
-                tforces.setVal(0.0,dc);
-              }
-            }  // end for(dc...)
-            // from NS::getForce ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+	    if (is_conservative[sigma] ? false : true)
+            {
+                state_bc = getBCArray(State_Type,i,sigma,1);
 
-            godunov->Add_aofs_tf( S_oldmfi(),
-                                  S_newmfi(), sigma, 1, 
-                                  Aofsmfi(),  sigma,
-                                  tforces,  0,
-                                  grd,      dt );
+                godunov->ScalMinMax(S_old[i], S_new[i], sigma,
+                                    state_bc.dataPtr(), grids[i]);
+	    }
+	}
 
-            int do_minmax = (is_conservative[sigma] ? 0 : 1);
-            if (do_minmax) {
-                godunov->ScalMinMax(S_oldmfi(), S_newmfi(),
-                                    sigma,
-                                    getBCArray( State_Type,i,sigma,1).dataPtr(),
-                                    grd );
-            }
-        }
+        delete tforces_fp;
     }
 }
 
-//-------------------------------------------------------------
-
-void NavierStokes::scalar_diffusion_update(Real dt, int first_scalar, int last_scalar)
+void
+NavierStokes::scalar_diffusion_update (Real dt,
+                                       int  first_scalar,
+                                       int last_scalar)
 {
-
-    // loop over the desired scalars
-    for (int sigma = first_scalar; sigma <= last_scalar; sigma++) {
-        // compute diffusion
-        if (is_diffusive[sigma]) {
+    //
+    // Loop over the desired scalars.
+    //
+    for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
+    {
+        //
+        // Compute diffusion.
+        //
+        if (is_diffusive[sigma])
+        {
             int rho_flag = 0;
             diffuse_scalar_setup(sigma, &rho_flag);
-            diffusion->diffuse_scalar(dt, sigma, be_cn_theta,
-                                      rho_half, rho_flag);
-        }  
+            diffusion->diffuse_scalar(dt,sigma,be_cn_theta,rho_half,rho_flag);
+        }
     }    
 }
 
-// -------------------------------------------------------------
-void NavierStokes::diffuse_scalar_setup(int sigma, int* rho_flag) 
+void
+NavierStokes::diffuse_scalar_setup (int  sigma,
+                                    int* rho_flag) 
 {
-    if(!is_conservative[sigma]) {
-      (*rho_flag)=1;
-    } else {
-      (*rho_flag)=2;
-    }
+    (*rho_flag) = !is_conservative[sigma] ? 1 : 2;
 }
 
-//-------------------------------------------------------------
-//  This subroutine updates the velocity field before the level
-//  projection
 //
-//  AT this point in time, all we know is u^n, rho^n+1/2, and the
-//  general forcing terms at t^n, and after solving in this routine
-//  viscous forcing at t^n+1/2.  Except for a simple buoyancy term,
-//  b = -rho^n+1/2 g, it is usually not possible to estimate more
-//  general forcing terms at t^n+1/2.  Since the default getForce, handles
-//  this case automatically, F_new and F_old have been replaced by a single
-//  tforces FArrayBox
+// This subroutine updates the velocity field before the level projection.
 //
-//  we assume that if one component of velocity is viscous that
-//  all must be.
-//-------------------------------------------------------------
+// AT this point in time, all we know is u^n, rho^n+1/2, and the
+// general forcing terms at t^n, and after solving in this routine
+// viscous forcing at t^n+1/2.  Except for a simple buoyancy term,
+// b = -rho^n+1/2 g, it is usually not possible to estimate more
+// general forcing terms at t^n+1/2.  Since the default getForce, handles
+// this case automatically, F_new and F_old have been replaced by a single
+// tforces FArrayBox.
+//
+// We assume that if one component of velocity is viscous that all must be.
+//
 
-void NavierStokes::velocity_update(Real dt)
+void
+NavierStokes::velocity_update (Real dt)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
     {
@@ -2016,13 +1978,13 @@ void NavierStokes::velocity_update(Real dt)
       initial_velocity_diffusion_update(dt);
 }
 
-//-------------------------------------------------------------
-
-void NavierStokes::velocity_advection_update(Real dt)
+void
+NavierStokes::velocity_advection_update (Real dt)
 {
     FArrayBox Gp, tforces;
-
-    // simulation parameters
+    //
+    // Simulation parameters.
+    //
     int finest_level    = parent->finestLevel();
     MultiFab &U_old     = get_old_data(State_Type);
     MultiFab &U_new     = get_new_data(State_Type);
@@ -2031,9 +1993,9 @@ void NavierStokes::velocity_advection_update(Real dt)
     Real prev_time      = state[State_Type].prevTime();
     Real half_time      = 0.5*(prev_time+cur_time);
     Real pres_prev_time = state[Press_Type].prevTime();
-
-    // estimate u^n+1 and put in U_new
-
+    //
+    // Estimate u^n+1 and put in U_new.
+    //
     FArrayBox rho;
 
     const int destComp = 0;
@@ -4396,8 +4358,9 @@ NavierStokes::getGradP (int  ngrow,
                    gp_dat,ARLIM(glo),ARLIM(ghi),glo,ghi,dx);
     }
 
-    return gradp;
     delete press;
+
+    return gradp;
 }
 
 //
