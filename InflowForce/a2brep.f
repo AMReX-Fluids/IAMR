@@ -1,0 +1,63 @@
+      PROGRAM BIN2ASCII
+
+c
+c     *****************************
+c     *** Variable Declarations ***
+c     *****************************
+c
+      IMPLICIT NONE
+
+c
+c     *** Passed Variables ***
+c
+      integer imax, jmax, kmax, ibc, jbc, kbc, n, i, j, k
+      real*8 scalex, scaley, scalez, dat(131,131)
+      real*8 datRep(256,256)
+      character*80 infile, outfile
+
+
+c 
+c     *************************************
+c     *** Read Header from Restart File ***
+c     *************************************
+c
+      WRITE(*,*) 'input file?'
+      READ(*,1000) infile
+ 1000 FORMAT(A)
+      WRITE(*,*) 'output file?'
+      READ(*,1000) outfile
+
+      OPEN(1,file=outfile,form='unformatted')
+      OPEN(2,file=infile)
+
+      read(2,*) imax, jmax, kmax
+      read(2,*) scalex, scaley, scalez
+      read(2,*) ibc, jbc, kbc
+      write(1) imax*2, jmax*2, kmax
+      write(1) scalex*2, scaley*2, scalez
+      write(1) ibc, jbc, kbc
+
+      DO n=1, 3
+        DO k=1, kmax
+          DO j=1, jmax
+            DO i=1, imax
+              read(2,*) dat(i,j)
+              datRep(i,j)         = dat(i,j)
+              datRep(i+128,j)     = dat(i,j)
+              datRep(i,    j+128) = dat(i,j)
+              datRep(i+128,j+128) = dat(i,j)
+            ENDDO
+          ENDDO
+          write(1) ((datRep(i,j), i=1,2*imax), j=1,2*jmax)
+        ENDDO
+      ENDDO
+
+      CLOSE(1)
+      CLOSE(2)
+
+c
+c
+      STOP
+      END
+
+
