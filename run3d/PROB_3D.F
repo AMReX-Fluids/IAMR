@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.15 1999-02-16 22:03:35 sstanley Exp $
+c $Id: PROB_3D.F,v 1.16 1999-02-24 01:58:39 sstanley Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -47,7 +47,8 @@ c ::: -----------------------------------------------------------
      &                  velfact, probtype, randfact, bubgrad,
      &			rhozero, tempzero, c_d, r_d, 
      &                  adv_dir, adv_vel, axis_dir, radvort,
-     &                  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag
+     &                  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag,
+     &                  vb_unifdir
 c
 c      Build `probin' filename -- the name of file containing fortin namelist.
 c
@@ -187,6 +188,10 @@ c ::: -----------------------------------------------------------
      &                    vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
 
+      else if (probtype .eq. 9) then
+         call initviscbench(level,time,lo,hi,nscal,
+     &                      vel,scal,DIMS(state),press,DIMS(press),
+     &                      dx,xlo,xhi)
 
 
       else
@@ -339,6 +344,104 @@ c
          end do
       end do
 
+      end
+c
+c ::: -----------------------------------------------------------
+c ::: This case is an unsteady  viscous benchmark for which the
+c ::: exact solution is,
+c :::     u(x,y,t) = - Cos(Pi x) Sin(Pi y) Exp(-2 Pi^2 Nu t)
+c :::     v(x,y,t) =   Sin(Pi x) Cos(Pi y) Exp(-2 Pi^2 Nu t)
+c :::     p(x,y,t) = - {Cos(2 Pi x) + Cos(2 Pi y)} Exp(-4 Pi^2 Nu t) / 4
+c ::: In the utilities, iamrlib/BenchMarks, there is a
+c ::: tool ViscBench2d.cpp that reads a plot file and compares the
+c ::: solution against this exact solution.  This benchmark was
+c ::: originally derived by G.I. Taylor (Phil. Mag., Vol. 46, No. 274,
+c ::: pp. 671-674, 1923) and Ethier and Steinman
+c ::: (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give
+c ::: the pressure field.
+c
+      subroutine initviscbench(level,time,lo,hi,nscal,
+     &                         vel,scal,DIMS(state),press,DIMS(press),
+     &                         dx,xlo,xhi)
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  spx, spy, spz, cpx, cpy, cpz
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      do k = lo(3), hi(3)
+        z = xlo(3) + hz*(float(k-lo(3)) + half)
+        spz = sin(Pi*z)
+        cpz = cos(Pi*z)
+
+        do j = lo(2), hi(2)
+          y = xlo(2) + hy*(float(j-lo(2)) + half)
+          spy = sin(Pi*y)
+          cpy = cos(Pi*y)
+
+          do i = lo(1), hi(1)
+            x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+            spx = sin(Pi*x)
+            cpx = cos(Pi*x)
+
+c
+c           Uniform in the X-direction
+c
+            if (vb_unifdir .eq. 0) then
+              vel(i,j,k,1) =   zero
+              vel(i,j,k,2) =   spx*cpy
+              vel(i,j,k,3) = - cpz*spy
+              scal(i,j,k,1) =   one
+              do n = 2, nscal
+                scal(i,j,k,n) =   cpz*cpy
+              enddo
+
+c
+c           Uniform in the Y-direction
+c
+            elseif (vb_unifdir .eq. 1) then
+              vel(i,j,k,1) = - cpx*spy
+              vel(i,j,k,2) =   one
+              vel(i,j,k,3) =   spx*cpz
+              scal(i,j,k,1) =   one
+              do n = 2, nscal
+                scal(i,j,k,n) =   cpx*cpz
+              enddo
+
+c
+c           Uniform in the Z-direction
+c
+            elseif (vb_unifdir .eq. 2) then
+              vel(i,j,k,1) = - cpx*spy
+              vel(i,j,k,2) =   spx*cpy
+              vel(i,j,k,3) =   zero
+              scal(i,j,k,1) =   one
+              do n = 2, nscal
+                scal(i,j,k,n) =   cpx*cpy
+              enddo
+            endif
+            end do
+         end do
+      end do
       end
 c
 c ::: -----------------------------------------------------------
@@ -881,6 +984,17 @@ c     probtype = HOT SPOT
           enddo
         endif
 
+c     probtype = VISCOUS BENCHMARK
+      else if (probtype .eq. 9) then
+
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
@@ -970,6 +1084,11 @@ c         ::::: refine where there is temperature gradient
              end do
           end do
         end if
+
+
+c     probtype = VISCOUS BENCHMARK
+      else if (probtype .eq. 9) then
+
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
@@ -1091,6 +1210,17 @@ c     probtype = BROWN ROSHKO
       else if (probtype .eq. 8) then
 
         return
+
+
+c     probtype = VISCOUS BENCHMARK
+      else if (probtype .eq. 9) then
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+               end do
+            end do
+         end do
 
 
       else

@@ -3,7 +3,7 @@
       REAL_T  rhozero, tempzero, r_d, c_d, adv_vel, radvort
       REAL_T  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag,freq(10),mag(10)
       REAL_T f_problo(SDIM), f_probhi(SDIM)
-      integer probtype, adv_dir, axis_dir
+      integer probtype, adv_dir, axis_dir, vb_unifdir
       common /probdt1/ probtype, adv_dir, axis_dir
       common /probdt2/  den1,den2,vel1,vel2,delta0,
      &                  xlev1,zlev1,freq,mag
@@ -12,4 +12,5 @@
      &                 radblob, velfact, randfact, bubgrad
       common /probdt5/ rhozero, tempzero, r_d, c_d, adv_vel
       common /probdt6/f_problo, f_probhi
+      common /probdt7/vb_unifdir
 
