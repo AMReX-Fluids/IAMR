@@ -57,7 +57,7 @@ class ParallelDescriptor
 public:
     static void Abort(const char* str)
     {
-	cerr << "Abort" << endl;
+	cerr << "Abort:  " << str << endl;
 	abort();
     }
     static int MyProc() { return 0; }
@@ -98,7 +98,9 @@ public:
 
     static void SetMessageHeaderSize(int &messageHeaderSize) { } 
 
-    static void GetMessageHeader(int &dataSize, void *messageHeader) { } 
+    static bool GetMessageHeader(int &dataSize, void *messageHeader) {
+      return false;  // no messages waiting
+    } 
 
     static void SendData(int toproc, const FabComTag &messageHeader,
 			 const void *data, int datasizeinbytes) { }
@@ -169,8 +171,13 @@ class ParallelDescriptor
       bsp_set_tag_size(&messageHeaderSize);
     } 
 
-    static void GetMessageHeader(int &dataSize, void *messageHeader) {
+    static bool GetMessageHeader(int &dataSize, void *messageHeader) {
       bsp_get_tag(&dataSize, messageHeader);
+      if(dataSize == -1) {
+	return false;  // by bsp definition
+      } else {
+	return true;   // a message is waiting
+      }
     } 
 
     static void SendData(int toproc, const FabComTag &messageHeader,

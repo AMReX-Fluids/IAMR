@@ -481,11 +481,11 @@ TagBoxArray::mergeUnique()
    ParallelDescriptor::Synchronize();  // to guarantee messages are sent
 
    // now clear the overlaps in the TagBoxArray
-   int dataWaiting;
+   int dataWaitingSize;
    int *nullptr = NULL;
    FabComTag tbmdClear;
-   ParallelDescriptor::GetMessageHeader(dataWaiting, &tbmdClear);
-   while(dataWaiting != -1) {  // data was sent to this processor
+   while(ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tbmdClear))
+   {  // data was sent to this processor
      bool srcLocal = (distributionMap[tbmdClear.fabIndex] == myproc);
      if( ! srcLocal) {
        ParallelDescriptor::Abort("tbmdClear.fabIndex is not local");
@@ -494,7 +494,6 @@ TagBoxArray::mergeUnique()
      src.setVal(TAGBOX::CLEAR, tbmdClear.ovlpBox, 0);
 
      ParallelDescriptor::ReceiveData(nullptr, 0);  // to advance message header
-     ParallelDescriptor::GetMessageHeader(dataWaiting, &tbmdClear);
    }
    ParallelDescriptor::Synchronize();
 }  // end mergeUnique()

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabArray.C,v 1.1 1997-07-08 23:08:06 vince Exp $
+// $Id: FabArray.C,v 1.2 1997-07-12 00:09:47 vince Exp $
 //
 
 #include <Assert.H>
@@ -256,9 +256,9 @@ FabArray<T, FAB>::copy (const FabArray<T, FAB>& farray) {
     ParallelDescriptor::Synchronize();
 
     // now receive data if any was sent
-    int dataWaiting;
-    ParallelDescriptor::GetMessageHeader(dataWaiting, &fabComTag);
-    while(dataWaiting != -1) {  // data was sent to this processor
+    int dataWaitingSize;
+    while(ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
+    {  // data was sent to this processor
 
       if(myproc != fabComTag.toProc) {
 	cerr << "Error:  _in FabArray::copy(FabArray):  myproc!=fabComTag.toProc : "
@@ -266,10 +266,10 @@ FabArray<T, FAB>::copy (const FabArray<T, FAB>& farray) {
 	ParallelDescriptor::Abort("Bad fabComTag.toProc");
       }
       int shouldReceiveBytes = fabComTag.box.numPts() * fabComTag.nComp * sizeof(T);
-      if(dataWaiting != shouldReceiveBytes) {
+      if(dataWaitingSize != shouldReceiveBytes) {
 	cerr << "Error:  _in FabArray::copy(FabArray):  "
-	     << "dataWaiting != shouldReceiveBytes:  = "
-	     << dataWaiting << " != " << shouldReceiveBytes << endl;
+	     << "dataWaitingSize != shouldReceiveBytes:  = "
+	     << dataWaitingSize << " != " << shouldReceiveBytes << endl;
 	ParallelDescriptor::Abort("Bad receive nbytes");
       }
       if( ! fabComTag.box.ok()) {
@@ -283,7 +283,6 @@ FabArray<T, FAB>::copy (const FabArray<T, FAB>& farray) {
       int srcComp = 0;
       fabparray[fabComTag.fabIndex].copy(tempFab, fabComTag.box, srcComp,
 			 fabComTag.box, fabComTag.destComp, fabComTag.nComp);
-      ParallelDescriptor::GetMessageHeader(dataWaiting, &fabComTag);
     }
 
     ParallelDescriptor::Synchronize();  // do we need this here?
@@ -854,7 +853,7 @@ template <class T, class FAB>
 FabArrayCopyDescriptor<T, FAB>::FabArrayCopyDescriptor(bool cacheremotedata)
                          : nextFabArrayId(0),
                            nextFillBoxId(0),
-			   dataAvailable(false),
+			   dataAvailable(true),
 			   cacheRemoteData(cacheremotedata),
 			   completelyFilled(false),
 			   totalRemoteBoxes(0),
@@ -1077,7 +1076,7 @@ FabArrayCopyDescriptor<T, FAB>::~FabArrayCopyDescriptor() {
 template <class T, class FAB>
 void FabArrayCopyDescriptor<T, FAB>::CollectData() {
 
-  int dataWaiting;
+  int dataWaitingSize;
   int myproc = ParallelDescriptor::MyProc();
   FabComTag fabComTag;
 
@@ -1086,6 +1085,9 @@ void FabArrayCopyDescriptor<T, FAB>::CollectData() {
   int *nullptr = NULL;
 
   // go through the fabComTagList and send all fab requests
+  if(ParallelDescriptor::NProcs() == 1) {
+    assert(fabComTagList.length() == 0);
+  }
   for(ListIterator<FabComTag> fctli(fabComTagList); fctli; ++fctli) {
     ParallelDescriptor::SendData(fctli().procThatHasData, fctli(), NULL, 0);
   }
@@ -1093,18 +1095,17 @@ void FabArrayCopyDescriptor<T, FAB>::CollectData() {
 
   ParallelDescriptor::Synchronize();
 
-  ParallelDescriptor::GetMessageHeader(dataWaiting, &fabComTag);
-
   // check for consistency and correct number of received and expected messages
   if( ! dataAvailable) {
 
-    while(dataWaiting != -1) {  // data was sent to this processor
+    while(ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
+    {  // data was sent to this processor
 
       // checks
-      if(dataWaiting != 0) {
+      if(dataWaitingSize != 0) {
         cerr << "Error in FabArrayCopyDescriptor<T, FAB>::CollectData:  ";
         cerr << "data payload size for data send request is nonzero." << endl;
-        cerr << "data payload size = " << dataWaiting << endl;
+        cerr << "data payload size = " << dataWaitingSize << endl;
         ParallelDescriptor::Abort("CollectData:  bad data send request size");
       }
 
@@ -1139,15 +1140,14 @@ void FabArrayCopyDescriptor<T, FAB>::CollectData() {
 				   tempFab.box().numPts() *
 				   tempFab.nComp() * sizeof(T));
 
-      ParallelDescriptor::GetMessageHeader(dataWaiting, &fabComTag);
     }
   }
 
   ParallelDescriptor::Synchronize();
 
   // now collect all remote data into local fab data caches
-  ParallelDescriptor::GetMessageHeader(dataWaiting, &fabComTag);
-  while(dataWaiting != -1) {  // data was sent to this processor
+  while(ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
+  {  // data was sent to this processor
 
     // check for consistency and correct number of received and expected messages
     if(myproc != fabComTag.procThatNeedsData) {
@@ -1173,8 +1173,6 @@ void FabArrayCopyDescriptor<T, FAB>::CollectData() {
     if(matchFound == false) {
       ParallelDescriptor::Abort("FillFab:  match not found");
     }
-
-    ParallelDescriptor::GetMessageHeader(dataWaiting, &fabComTag);
   }
 
   dataAvailable = true;

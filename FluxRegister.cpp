@@ -836,15 +836,15 @@ void FluxRegister::CrseInitFinish() {
     int tagSize = sizeof(FabComTag);
     ParallelDescriptor::SetMessageHeaderSize(tagSize);
 
-    int dataWaiting;
-    ParallelDescriptor::GetMessageHeader(dataWaiting, &fabComTag);
-    while(dataWaiting != -1) {  // data was sent to this processor
+    int dataWaitingSize;
+    while(ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
+    {  // data was sent to this processor
       int shouldReceiveBytes =
                       fabComTag.box.numPts() * fabComTag.nComp * sizeof(Real);
-      if(dataWaiting != shouldReceiveBytes) {
+      if(dataWaitingSize != shouldReceiveBytes) {
         cerr << "Error in FluxRegister::CrseInitFinish():  "
-             << "dataWaiting != shouldReceiveBytes:  = "
-             << dataWaiting << " != " << shouldReceiveBytes << endl;
+             << "dataWaitingSize != shouldReceiveBytes:  = "
+             << dataWaitingSize << " != " << shouldReceiveBytes << endl;
         ParallelDescriptor::Abort("Bad received nbytes");
       }
       if( ! fabComTag.box.ok()) {
@@ -861,7 +861,6 @@ void FluxRegister::CrseInitFinish() {
       bndry[fabComTag.face][fabComTag.fabIndex].copy(tempFab, fabComTag.box,
                                        srcComp, fabComTag.box,
                                        fabComTag.destComp, fabComTag.nComp);
-      ParallelDescriptor::GetMessageHeader(dataWaiting, &fabComTag);
     }
 }  // end CrseInitFinish()
 
