@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.34 1999-07-27 00:09:36 propp Exp $
+c $Id: PROJECTION_2D.F,v 1.35 2002-04-26 21:24:30 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -453,7 +453,7 @@ c
             end do
          end do
 
-#elif BL_PRVERSION == 5
+#else
          do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
             do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
                if (i .eq. imax) then
@@ -521,11 +521,9 @@ c ::: -----------------------------------------------------------
 #if BL_PRVERSION==9
 c     FOR NINE-POINT STENCIL
       denom = one/(twelve*dx(1)**2) + one/(twelve*dx(2)**2) 
-#elif BL_PRVERSION==5
+#else
 c     FOR FIVE-POINT STENCIL
       denom = one/(four*dx(1)**2) + one/(four*dx(2)**2)
-#else
-#error "Unknown PRVERSION setting"
 #endif
 
       do j = lo(2), hi(2)
