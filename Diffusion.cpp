@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.19 1998-05-13 23:17:47 almgren Exp $
+// $Id: Diffusion.cpp,v 1.20 1998-05-18 16:58:36 lijewski Exp $
 //
 
 //
@@ -2705,168 +2705,126 @@ void Diffusion::getBndryData(ViscBndry& bndry, int src_comp,
     }
 }
 
-void Diffusion::FillBoundary(BndryRegister& bdry, int src_comp, int dest_comp,
-                         int num_comp, Real time, int rho_flag)
+void
+Diffusion::FillBoundary (BndryRegister& bdry,
+                         int            src_comp,
+                         int            dest_comp,
+                         int            num_comp,
+                         Real           time,
+                         int            rho_flag)
 {
-    Real old_time = caller->get_state_data(State_Type).prevTime();
-    Real new_time = caller->get_state_data(State_Type).curTime();
-    Real eps = 0.001*(new_time - old_time);
-    assert( (time > old_time-eps) && (time < new_time + eps));
+    const Real old_time = caller->get_state_data(State_Type).prevTime();
+    const Real new_time = caller->get_state_data(State_Type).curTime();
+    const Real eps      = 0.001*(new_time - old_time);
 
-    // FillBoundary can be called before old data is defined, so
+    assert((time > old_time-eps) && (time < new_time + eps));
+    //
+    // FillBoundary() can be called before old data is defined, so
     // "need_old_data" really should be "have_old_data".
     // "need_old_data" implies "have_old_data", however, so
-    // "need_old_data" is suffcient for checking for the existence
-    // of old data--rbp
-    int need_old_data = !(time > new_time - eps);
+    // "need_old_data" is sufficient for checking for the existence
+    // of old data.
+    //
+    bool need_old_data = !(time > new_time - eps);
 
     MultiFab& S_new = caller->get_new_data(State_Type);
-    // the next line is OK even if S_old is not defined yet
+    //
+    // The next line is OK even if S_old is not defined yet.
+    //
     MultiFab& S_old = caller->get_old_data(State_Type);
 
-    if (need_old_data) {
-      assert (S_old.nGrow() == S_new.nGrow());
+    if (need_old_data)
+    {
+        assert(S_old.nGrow() == S_new.nGrow());
     }
-    int n_grow = S_new.nGrow();
+    MultiFab sold_tmp, snew_tmp;
 
-    MultiFab sold_tmp;
-    MultiFab snew_tmp;
-
-    if(need_old_data) {
-      sold_tmp.define(S_old.boxArray(),num_comp,n_grow,Fab_allocate);
-      sold_tmp.copy(S_old,src_comp,0,num_comp,n_grow);
-      sold_tmp.FillBoundary();
+    if (need_old_data)
+    {
+        sold_tmp.define(S_old.boxArray(),num_comp,S_new.nGrow(),Fab_allocate);
+        sold_tmp.copy(S_old,src_comp,0,num_comp,S_new.nGrow());
+        sold_tmp.FillBoundary();
     }
 
-    snew_tmp.define(S_new.boxArray(),num_comp,n_grow,Fab_allocate);
-    snew_tmp.copy(S_new,src_comp,0,num_comp,n_grow);
+    snew_tmp.define(S_new.boxArray(),num_comp,S_new.nGrow(),Fab_allocate);
+    snew_tmp.copy(S_new,src_comp,0,num_comp,S_new.nGrow());
     snew_tmp.FillBoundary();
 
-    MultiFab rho_old;
-    MultiFab rho_new;
+    MultiFab rho_old, rho_new;
 
-    if (rho_flag == 2) {
-      if(need_old_data) {
-        rho_old.define(S_new.boxArray(),1,n_grow,Fab_allocate);
-        rho_old.copy(S_old,Density,0,1,n_grow);
-        rho_old.FillBoundary();
-      }
-      rho_new.define(S_new.boxArray(),1,n_grow,Fab_allocate);
-      rho_new.copy(S_new,Density,0,1,n_grow);
-      rho_new.FillBoundary();
+    if (rho_flag == 2)
+    {
+        if (need_old_data)
+        {
+            rho_old.define(S_new.boxArray(),1,S_new.nGrow(),Fab_allocate);
+            rho_old.copy(S_old,Density,0,1,S_new.nGrow());
+            rho_old.FillBoundary();
+        }
+        rho_new.define(S_new.boxArray(),1,S_new.nGrow(),Fab_allocate);
+        rho_new.copy(S_new,Density,0,1,S_new.nGrow());
+        rho_new.FillBoundary();
+    }
+    //
+    // Impose periodic boundary conditions if necessary on the state
+    // data before it is copied into the crse bndry registers.
+    //
+    if (need_old_data)
+    {
+        parent->Geom(level).FillPeriodicBoundary(S_old, src_comp, num_comp);
+    }
+    parent->Geom(level).FillPeriodicBoundary(S_new, src_comp, num_comp);
+
+    if (rho_flag == 2)
+    {
+        if (need_old_data)
+        {
+            parent->Geom(level).FillPeriodicBoundary(S_old, Density, 1);
+        }
+        parent->Geom(level).FillPeriodicBoundary(S_new, Density, 1);
     }
 
-    int ngrd = S_new.boxArray().length();
-
-//  Impose periodic boundary conditions if necessary on the state
-//    data before it is copied into the crse bndry registers
-    const Geometry& crse_geom  = parent->Geom(level);
-    if ( crse_geom.isAnyPeriodic() ) {
-
-      const Box& crse_domain = crse_geom.Domain();
-      Array<IntVect> pshifts(27);
-      for(MultiFabIterator snew_tmpmfi(snew_tmp);
-          snew_tmpmfi.isValid(); ++snew_tmpmfi)
-      {
-        DependentMultiFabIterator sold_tmpmfi(snew_tmpmfi, sold_tmp);
-        DependentMultiFabIterator rho_newmfi(snew_tmpmfi, rho_new);
-        DependentMultiFabIterator rho_oldmfi(snew_tmpmfi, rho_old);
-        assert(snew_tmp[snew_tmpmfi.index()].box() == snew_tmpmfi.fabbox());
-        
-        Box cgrd(snew_tmpmfi.fabbox());
-        crse_geom.periodicShift(crse_domain, cgrd, pshifts);
-
-        for( int iiv=0; iiv<pshifts.length(); iiv++) {
-            IntVect iv=pshifts[iiv];
-
-            if (need_old_data) {
-              sold_tmpmfi().shift(iv);
-              if(ParallelDescriptor::NProcs() > 1) {
-                cerr << "Diffusion::FillBoundary not implemented in parallel."
-                     << NL;
-                cerr << "Nested MultiFabIterator loops (S_old.copy)" << NL;
-                ParallelDescriptor::Abort("Exiting");
-              } else {
-                cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
-              }
-              S_old.copy(sold_tmpmfi(),src_comp,0,num_comp);
-              sold_tmpmfi().shift(-iv);
+    if (rho_flag == 2)
+    {
+        //
+        // We want to fill the bndry with S, not rho*S.
+        //
+        for (MultiFabIterator sold_tmpmfi(sold_tmp); sold_tmpmfi.isValid(); ++sold_tmpmfi)
+        {
+            DependentMultiFabIterator rho_oldmfi(sold_tmpmfi, rho_old);
+            DependentMultiFabIterator rho_newmfi(sold_tmpmfi, rho_new);
+            DependentMultiFabIterator snew_tmpmfi(sold_tmpmfi, snew_tmp);
+            if (need_old_data)
+            {
+                sold_tmpmfi().divide(rho_oldmfi(),0,0,num_comp);
             }
-
-            snew_tmpmfi().shift(iv);
-            if(ParallelDescriptor::NProcs() > 1) {
-              cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
-              cerr << "Nested MultiFabIterator loops (S_new.copy)" << NL;
-              ParallelDescriptor::Abort("Exiting");
-            } else {
-              cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
-            }
-            S_new.copy(snew_tmpmfi(),src_comp,0,num_comp);
-            snew_tmpmfi().shift(-iv);
+            assert(rho_newmfi().min()>0.0);
+            snew_tmpmfi().divide(rho_newmfi(),0,0,num_comp);
         }
-
-        if (rho_flag == 2) {
-
-         for( int iiv=0; iiv<pshifts.length(); iiv++) {
-            IntVect iv=pshifts[iiv];
-
-            if (need_old_data) {
-              rho_oldmfi().shift(iv);
-              if(ParallelDescriptor::NProcs() > 1) {
-                cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
-                cerr << "Nested MultiFabIterator loops (S_old.copy)" << NL;
-                ParallelDescriptor::Abort("Exiting");
-              } else {
-                cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
-              }
-              S_old.copy(rho_oldmfi(),Density,0,1);
-              rho_oldmfi().shift(-iv);
-            }
-
-            rho_newmfi().shift(iv);
-            if(ParallelDescriptor::NProcs() > 1) {
-              cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
-              cerr << "Nested MultiFabIterator loops (S_new.copy)" << NL;
-              ParallelDescriptor::Abort("Exiting");
-            } else {
-              cerr << "Diffusion::FillBoundary not implemented in parallel." << NL;
-            }
-            S_new.copy(rho_newmfi(),Density,0,1);
-            rho_newmfi().shift(-iv);
-         }
-        }
-      }  // end for(MultiFabIterator...)
-    }  // end if(periodic)
-
-    int n_ghost = 1;
-
-    if (rho_flag==2) {
-//    we want to fill the bndry with S, not rho*S
-      for(MultiFabIterator sold_tmpmfi(sold_tmp); sold_tmpmfi.isValid();
-          ++sold_tmpmfi)
-      {
-        DependentMultiFabIterator rho_oldmfi(sold_tmpmfi, rho_old);
-        DependentMultiFabIterator rho_newmfi(sold_tmpmfi, rho_new);
-        DependentMultiFabIterator snew_tmpmfi(sold_tmpmfi, snew_tmp);
-        if (need_old_data) {
-          sold_tmpmfi().divide(rho_oldmfi(),0,0,num_comp);
-        }
-        assert (rho_newmfi().min()>0.0);
-        snew_tmpmfi().divide(rho_newmfi(),0,0,num_comp);
-      }
     }
 
-    if (time < old_time - eps || time > new_time + eps) {
-      BoxLib::Error("FillBoundary: bad interp time");
-    } else if (time < old_time + eps) {
-      bdry.copyFrom(sold_tmp,n_ghost,0,dest_comp,num_comp);
-    } else if (time > new_time - eps) {
-      bdry.copyFrom(snew_tmp,n_ghost,0,dest_comp,num_comp);
-    } else {
-      Real a = (new_time - time)/(new_time - old_time);
-      Real b = (time - old_time)/(new_time - old_time);
-      bdry.linComb(a,sold_tmp,0,b,snew_tmp,0,
-                   dest_comp,num_comp,n_ghost);
+    if (time < old_time - eps || time > new_time + eps)
+    {
+        BoxLib::Error("Diffusion::FillBoundary(): bad interp time");
+    }
+    else if (time < old_time + eps)
+    {
+        bdry.copyFrom(sold_tmp,1,0,dest_comp,num_comp);
+    }
+    else if (time > new_time - eps)
+    {
+        bdry.copyFrom(snew_tmp,1,0,dest_comp,num_comp);
+    }
+    else
+    {
+        bdry.linComb((new_time-time)/(new_time-old_time),
+                     sold_tmp,
+                     0,
+                     (time-old_time)/(new_time-old_time),
+                     snew_tmp,
+                     0,
+                     dest_comp,
+                     num_comp,
+                     1);
     }
 }
 
