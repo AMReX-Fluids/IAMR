@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.27 2003-02-04 22:04:14 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.28 2003-02-04 22:45:39 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -249,10 +249,9 @@ c
       integer imin,jmin,imax,jmax
       REAL_T hx, hy, dt, dth, dthx, dthy,dx(SDIM)
       REAL_T uad,vad
-      REAL_T eps,eps_for_bc
+      REAL_T eps
       logical ltm
-      parameter( eps        = 1.0D-6 )
-      parameter( eps_for_bc = 1.0D-10 )
+      parameter( eps = 1.0D-6 )
       integer DIMDEC(s)
       integer DIMDEC(work)
       REAL_T  u(DIMV(s))
@@ -301,7 +300,7 @@ c
       end if
 
       call trans_xbc(u,DIMS(s),
-     &     ulo,uhi,DIMS(work),ulo,DIMS(work),lo,hi,XVEL,ubc,eps_for_bc)
+     &     ulo,uhi,DIMS(work),ulo,DIMS(work),lo,hi,XVEL,ubc)
 
       do i = imin,imax+1
          do j = jmin-1,jmax+1
@@ -334,7 +333,7 @@ c
       end if
 
       call trans_ybc(v,DIMS(s),
-     &     vlo,vhi,DIMS(work),vlo,DIMS(work),lo,hi,YVEL,vbc,eps_for_bc)
+     &     vlo,vhi,DIMS(work),vlo,DIMS(work),lo,hi,YVEL,vbc)
 
       do i = imin-1,imax+1
          do j = jmin,jmax+1
@@ -370,10 +369,9 @@ c
       REAL_T place_to_break
       REAL_T hx, hy, dt, dth, dthx, dthy, dx(SDIM)
       REAL_T tr,stx,sty,fu,fv
-      REAL_T eps,eps_for_bc
+      REAL_T eps
       logical ltx,lty
-      parameter( eps        = 1.0D-6 )
-      parameter( eps_for_bc = 1.0D-10 )
+      parameter( eps = 1.0D-6 )
 
       integer DIMDEC(s)
       integer DIMDEC(work)
@@ -431,7 +429,7 @@ c
       end if
 
       call trans_xbc(s,DIMS(s),
-     &     xlo,xhi,DIMS(work),uad,DIMS(work),lo,hi,n,bc,eps_for_bc)
+     &     xlo,xhi,DIMS(work),uad,DIMS(work),lo,hi,n,bc)
       
       do i = imin, imax+1
          do j = jmin-1,jmax+1
@@ -458,7 +456,7 @@ c
       end if
 
       call trans_ybc(s,DIMS(s),
-     &     ylo,yhi,DIMS(work),vad,DIMS(work),lo,hi,n,bc,eps_for_bc)
+     &     ylo,yhi,DIMS(work),vad,DIMS(work),lo,hi,n,bc)
 
       do j = jmin,jmax+1
          do i = imin-1,imax+1
@@ -485,11 +483,9 @@ c
      &              + dth*tforces(i,j)
             end do
 
-            if (bc(1,1).eq.EXT_DIR .and. uad(imin,j).ge.zero) then
+            if (bc(1,1).eq.EXT_DIR) then
                stxhi(imin) = s(imin-1,j)
                stxlo(imin) = s(imin-1,j)
-            else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j).lt.zero) then
-               stxlo(imin) = stxhi(imin)
             else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP
      &              .or.bc(1,1).eq.REFLECT_EVEN) then
                stxlo(imin) = stxhi(imin)
@@ -497,12 +493,9 @@ c
                stxhi(imin) = zero
                stxlo(imin) = stxhi(imin)
             end if
-
-            if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j).le.zero) then
+            if (bc(1,2).eq.EXT_DIR) then
                stxlo(imax+1) = s(imax+1,j)
                stxhi(imax+1) = s(imax+1,j)
-            else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j).gt.zero) then
-               stxhi(imax+1) = stxlo(imax+1) 
             else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP
      &              .or.bc(1,2).eq.REFLECT_EVEN) then
                stxhi(imax+1) = stxlo(imax+1)
@@ -546,11 +539,9 @@ c
      &              + dth*tforces(i,j)
             end do
 
-            if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin).ge.zero) then
+            if (bc(2,1).eq.EXT_DIR) then
                styhi(jmin) = s(i,jmin-1)
                stylo(jmin) = s(i,jmin-1)
-            else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin).lt.zero) then
-               stylo(jmin) = styhi(jmin)
             else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP
      &              .or.bc(2,1).eq.REFLECT_EVEN) then
                stylo(jmin) = styhi(jmin)
@@ -559,13 +550,14 @@ c
                stylo(jmin) = zero
             end if
             
-            if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1).le.zero) then
+            if (bc(2,2).eq.EXT_DIR) then
                stylo(jmax+1) = s(i,jmax+1)
                styhi(jmax+1) = s(i,jmax+1)
-            else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1).gt.zero) then
-               styhi(jmax+1) = stylo(jmax+1)
             else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
      &              .or.bc(2,2).eq.REFLECT_EVEN) then
+c BEGIN HACK HACK HACK 
+c              if (n.eq.YVEL) stylo(jmax+1) = max(stylo(jmax+1),zero)
+c END   HACK HACK HACK 
                styhi(jmax+1) = stylo(jmax+1)
             else if (bc(2,2).eq.REFLECT_ODD) then
                stylo(jmax+1) = zero
@@ -600,7 +592,7 @@ c
      &     vedge, DIMS(vedge), ystate, DIMS(ystate),
 
      &     DIMS(work),
-     &     bc,lo,hi,dt,dx,n,use_minion,iconserv)
+     &     bc,lo,hi,dt,dx,n,velpred, use_minion,iconserv)
 c
 c     This subroutine computes edges states, right now it uses
 c     a lot of memory, but there becomes a trade off between
@@ -608,17 +600,14 @@ c     simplicity-efficiency in the new way of computing states
 c     and complexity in the old way.  By eliminating loops over
 c     state components though, the new way uses much less memory.
 c
-      integer i,j,n
+      integer i,j,n,velpred
       integer lo(SDIM),hi(SDIM),bc(SDIM,2)
       integer imin,jmin,imax,jmax
       REAL_T place_to_break
       REAL_T hx, hy, dt, dth, dthx, dthy
       REAL_T tr,ubar,vbar,stx,sty,fu,fv,dx(SDIM)
-      REAL_T eps,eps_for_bc
+      REAL_T eps
       logical ltx,lty
-      parameter( eps        = 1.0D-6 )
-      parameter( eps_for_bc = 1.0D-10 )
-
       integer DIMDEC(s)
       integer DIMDEC(work)
       integer DIMDEC(uedge)
@@ -639,11 +628,14 @@ c
       REAL_T  sy(DIMV(work))
       REAL_T tforces(DIMV(work))
       
+      REAL_T mnx, mxx, mny, mxy, txs, tys
       REAL_T spx,smx,spy,smy,st,denom
+      integer imin1, imax1, jmin1, jmax1
 
       integer use_minion, iconserv
       integer inc
 
+      eps  = 1.0D-6
       dth  = half*dt
       dthx = half*dt / dx(1)
       dthy = half*dt / dx(2)
@@ -683,7 +675,7 @@ c
       call trans_xbc(
      &     s,DIMS(s),
      &     xlo,xhi,DIMS(work),uedge,DIMS(uedge),
-     &     lo,hi,n,bc,eps_for_bc)
+     &     lo,hi,n,bc)
 
       do j = jmin-1,jmax+1
          do i = imin,  imax+1
@@ -712,7 +704,7 @@ c
       call trans_ybc(
      &     s,DIMS(s),
      &     ylo,yhi,DIMS(work),vedge,DIMS(vedge),
-     &     lo,hi,n,bc,eps_for_bc)
+     &     lo,hi,n,bc)
 
       do j = jmin,  jmax+1
          do i = imin-1,imax+1
@@ -725,24 +717,31 @@ c
 c
 c     compute the xedge states
 c
-      do j = jmin,jmax
+      if ((velpred.ne.1) .or. (n.eq.XVEL)) then
+         do j = jmin,jmax
 
             do i = imin-1,imax+1
                spx = s(i,j) + half * sx(i,j)
                smx = s(i,j) - half * sx(i,j)
 
                if (iconserv.eq.1) then
-
                   tr = (vedge(i,j+1)*ylo(i,j+1) - vedge(i,j)*ylo(i,j))/hy
+#if 0 
+                  denom =  one + dth*(uedge(i+1,j)-uedge(i,j))/hx 
+                  st    =  -dth*tr + dth*tforces(i,j)
 
+                  stxlo(i+1) = ( spx - dthx*uedge(i+1,j))*sx(i,j) + st ) / denom
+                  stxhi(i  ) = ( smx - dthx*uedge(i  ,j))*sx(i,j) + st ) / denom
+#else 
                   st = - dth*tr + dth*tforces(i,j)
      &                 + dth*s(i,j)*(vedge(i,j+1)-vedge(i,j))/hy
 c    &                 - dth*s(i,j)*(uedge(i+1,j)-uedge(i,j))/hx
 
-
+                  stxlo(i+1)= spx -dthx*uedge(i+1,j)*sx(i,j) + st
+                  stxhi(i  )= smx -dthx*uedge(i  ,j)*sx(i,j) + st
+#endif
                else
-
-                  if (vedge(i,j)*vedge(i,j+1).le.0.d0) then
+                  if (vedge(i,j)*vedge(i,j+1).lt.0.d0) then
                      vbar = 0.5d0*(vedge(i,j)+vedge(i,j+1))
                      if (vbar.lt.0.d0) then
                         inc = 1
@@ -756,65 +755,116 @@ c    &                 - dth*s(i,j)*(uedge(i+1,j)-uedge(i,j))/hx
                   endif
 
                   st =  - dth*tr + dth*tforces(i,j)
+                  stxlo(i+1)= spx - dthx*uedge(i+1,j)*sx(i,j) + st
+                  stxhi(i  )= smx - dthx*uedge(i  ,j)*sx(i,j) + st
                endif
-
-               stxlo(i+1)= spx - dthx*uedge(i+1,j)*sx(i,j) + st
-               stxhi(i  )= smx - dthx*uedge(i  ,j)*sx(i,j) + st
-
             end do
 
-            if (bc(1,1).eq.EXT_DIR .and. uedge(imin,j).ge.zero) then
+            imin1 = imin
+            if (bc(1,1).eq.EXT_DIR) then
                stxhi(imin) = s(imin-1,j)
                stxlo(imin) = s(imin-1,j)
-            else if (bc(1,1).eq.EXT_DIR .and. uedge(imin,j).lt.zero) then
-               stxlo(imin) = stxhi(imin)
+               imin1 = imin + 1
             else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP
      &              .or.bc(1,1).eq.REFLECT_EVEN) then
                stxlo(imin) = stxhi(imin)
+               imin1 = imin + 1
             else if (bc(1,1).eq.REFLECT_ODD) then
                stxhi(imin) = zero
                stxlo(imin) = zero
+               imin1 = imin + 1
             end if
-            if (bc(1,2).eq.EXT_DIR .and. uedge(imax+1,j).le.zero) then
+            imax1 = imax
+            if (bc(1,2).eq.EXT_DIR) then
                stxlo(imax+1) = s(imax+1,j)
                stxhi(imax+1) = s(imax+1,j)
-            else if (bc(1,2).eq.EXT_DIR .and. uedge(imax+1,j).gt.zero) then
-               stxhi(imax+1) = stxlo(imax+1)
+               imax1 = imax - 1
             else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP
      &              .or.bc(1,2).eq.REFLECT_EVEN) then
                stxhi(imax+1) = stxlo(imax+1)
+               imax1 = imax - 1
             else if (bc(1,2).eq.REFLECT_ODD) then
                stxlo(imax+1) = zero
                stxhi(imax+1) = zero
+               imax1 = imax - 1
             end if
             
-            do i = imin, imax+1
-               xstate(i,j) = cvmgp(stxlo(i),stxhi(i),uedge(i,j))
-               xstate(i,j) = cvmgt(half*(stxlo(i)+stxhi(i)),xstate(i,j)
-     &              ,abs(uedge(i,j)).lt.eps)
-            end do
+            if ( velpred .eq. 1 ) then
+               do i = imin, imax+1
+                  ltx = stxlo(i) .le. zero  .and.  stxhi(i) .ge. zero
+                  ltx = ltx .or. (abs(stxlo(i)+stxhi(i)) .lt. eps)
+                  stx = cvmgp(stxlo(i),stxhi(i),stxlo(i)+stxhi(i))
+                  xstate(i,j) = cvmgt(zero,stx,ltx)
+               end do
+            else
+               do i = imin, imax+1
+                  xstate(i,j) = cvmgp(stxlo(i),stxhi(i),uedge(i,j))
+                  xstate(i,j) = cvmgt(half*(stxlo(i)+stxhi(i)),xstate(i,j)
+     &                 ,abs(uedge(i,j)).lt.eps)
+               end do
+            end if
+*     HACK
+*     For non-conservative fields (i.e, Temperature lets make sure that
+*     the computed xstate lies in the range of the input field.
+            if ( .FALSE. .and. iconserv .ne. 1 ) then
+               do i = imin1, imax1 + 1
+                  mxx = max(s(i  ,j-1),s(i  ,j),s(i  ,j+1),
+     &                      s(i-1,j-1),s(i-1,j),s(i-1,j+1))
+                  mnx = min(s(i  ,j-1),s(i  ,j),s(i  ,j+1),
+     &                      s(i-1,j-1),s(i-1,j),s(i-1,j+1))
+                  if ( abs(uedge(i,j)) .lt. eps ) then
+                     txs = 0.5D0*dth*(tforces(i-1,j)+tforces(i,j))
+                  else if ( uedge(i,j) .ge. 0.0 ) then
+                     txs = dth*tforces(i-1,j)
+                  else 
+                     txs = dth*tforces(i,j)
+                  end if
+                  mxx = mxx + txs
+                  mnx = mnx + txs
+                  if ( xstate(i,j) .gt. mxx ) then
+                     xstate(i,j) = mxx
+                  end if
+                  if ( xstate(i,j) .lt. mnx ) then
+**                   print *, 'n,i,j = ', n, i,j,
+**   &                    'x-mnx', xstate(i,j)-mnx
+                     xstate(i,j) = mnx
+                  end if
+               end do
+            end if
+*     END HACK
             place_to_break = 1
-      end do
+         end do
+      end if              
 c
 c     compute the yedge states
 c
-      do i = imin,imax
+      if ((velpred.ne.1) .or. (n.eq.YVEL)) then
+         do i = imin,imax
             
             do j = jmin-1,jmax+1
                spy = s(i,j) + half * sy(i,j)
                smy = s(i,j) - half * sy(i,j)
 
                if (iconserv.eq.1) then
-
                   tr = (uedge(i+1,j)*xlo(i+1,j) - uedge(i,j)*xlo(i,j))/hx
+#if 0 
+                  denom = one + dth*(vedge(i,j+1)-vedge(i,j))/hy 
+                  st    = -dth*tr + dth*tforces(i,j)
 
+                  stylo(j+1) = ( spy - dthy*vedge(i,j+1)*sy(i,j) + st ) / denom
+                  styhi(j  ) = ( smy - dthy*vedge(i,j  )*sy(i,j) + st ) / denom
+#else 
                   st    = -dth*tr + dth*tforces(i,j)
      &                   + dth*s(i,j)*(uedge(i+1,j)-uedge(i,j))/hx
 c    &                   - dth*s(i,j)*(vedge(i,j+1)-vedge(i,j))/hy
 
+                  stylo(j+1)= spy - dthy*vedge(i,j+1)*sy(i,j) + st
+                  styhi(j  )= smy - dthy*vedge(i,j  )*sy(i,j) + st
+#endif
+
                else
 
-                  if (uedge(i,j)*uedge(i+1,j).le.0.d0) then
+                  if (uedge(i,j)*uedge(i+1,j).lt.0.d0) then
                      ubar = 0.5d0*(uedge(i,j)+uedge(i+1,j))
                      if (ubar.lt.0.d0) then
                         inc = 1
@@ -824,50 +874,90 @@ c    &                   - dth*s(i,j)*(vedge(i,j+1)-vedge(i,j))/hy
                      tr = ubar*(s(i+inc,j)-s(i+inc-1,j))/hx
                   else
                      tr = half*(uedge(i+1,j) + uedge(i,j)) *
-     &                           (xlo(i+1,j) -   xlo(i,j)  ) / hx
+     &                    (xlo(i+1,j) - xlo(i,j)  ) / hx
                   endif
                   
-                  st = -dth*tr + dth*tforces(i,j)
-
+                  stylo(j+1)= s(i,j) + ( half - dthy*vedge(i,j))*sy(i,j)
+     &                 - dth*tr + dth*tforces(i,j)
+                  styhi(j  )= s(i,j) + (-half - dthy*vedge(i,j))*sy(i,j)
+     &                 - dth*tr + dth*tforces(i,j)
                endif
-
-               stylo(j+1)= spy - dthy*vedge(i,j+1)*sy(i,j) + st
-               styhi(j  )= smy - dthy*vedge(i,j  )*sy(i,j) + st
             end do
             
-            if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin).ge.zero) then
+            jmin1 = jmin
+            if (bc(2,1).eq.EXT_DIR) then
                styhi(jmin) = s(i,jmin-1)
                stylo(jmin) = s(i,jmin-1)
-            else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin).lt.zero) then
-               stylo(jmin) = styhi(jmin)
+               jmin1 = jmin + 1
             else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP
      &              .or.bc(2,1).eq.REFLECT_EVEN) then
                stylo(jmin) = styhi(jmin)
+               jmin1 = jmin + 1
             else if (bc(2,1).eq.REFLECT_ODD) then
                styhi(jmin) = zero
                stylo(jmin) = zero
+               jmin1 = jmin + 1
             end if
             
-            if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1).le.zero) then
+            jmax1 = jmax
+            if (bc(2,2).eq.EXT_DIR) then
                stylo(jmax+1) = s(i,jmax+1)
                styhi(jmax+1) = s(i,jmax+1)
-            else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1).gt.zero) then
-               styhi(jmax+1) = stylo(jmax+1)
+               jmax1 = jmax - 1
             else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
      &              .or.bc(2,2).eq.REFLECT_EVEN) then
                styhi(jmax+1) = stylo(jmax+1)
+               jmax1 = jmax - 1
             else if (bc(2,2).eq.REFLECT_ODD) then
                stylo(jmax+1) = zero
                styhi(jmax+1) = zero
+               jmax1 = jmax - 1
             end if
             
-            do j=jmin,jmax+1
-               ystate(i,j) = cvmgp(stylo(j),styhi(j),vedge(i,j))
-               ystate(i,j) = cvmgt(half*(stylo(j)+styhi(j)),ystate(i,j),
-     &              abs(vedge(i,j)).lt.eps)
-            end do
+            if ( velpred .eq. 1 ) then
+               do j = jmin, jmax+1
+                  lty = stylo(j) .le. zero  .and.  styhi(j) .ge. zero
+                  lty = lty .or. (abs(stylo(j)+styhi(j)) .lt. eps)
+                  sty = cvmgp(stylo(j),styhi(j),stylo(j)+styhi(j))
+                  ystate(i,j) = cvmgt(zero,sty,lty)
+               end do
+            else
+               do j=jmin,jmax+1
+                  ystate(i,j) = cvmgp(stylo(j),styhi(j),vedge(i,j))
+                  ystate(i,j) = cvmgt(half*(stylo(j)+styhi(j)),ystate(i,j),
+     &                 abs(vedge(i,j)).lt.eps)
+               end do
+            end if
+*     HACK
+*     For non-conservative fields (i.e, Temperature lets make sure that
+*     the computed xstate lies in the range of the input field.
+            if ( .FALSE. .and. iconserv .ne. 1 ) then
+               do j = jmin1, jmax1 + 1
+                  mxy = max(s(i-1,j  ),s(i  ,j  ),s(i+1,j  ),
+     &                      s(i-1,j-1),s(i  ,j-1),s(i+1,j-1))
+                  mny = min(s(i-1,j  ),s(i  ,j  ),s(i+1,j  ),
+     &                      s(i-1,j-1),s(i  ,j-1),s(i+1,j-1))
+                  if ( abs(vedge(i,j)) .lt. eps ) then
+                     tys = 0.5D0*dth*(tforces(i,j-1)+tforces(i,j))
+                  else if ( vedge(i,j) .ge. 0.0D0 ) then
+                     tys = dth*tforces(i,j-1)
+                  else 
+                     tys = dth*tforces(i,j)
+                  end if
+                  mxy = mxy + tys
+                  mny = mny + tys
+                  if ( ystate(i,j) .gt. mxy ) then
+                     ystate(i,j) = mxy
+                  end if
+                  if ( ystate(i,j) .lt. mny ) then
+                     ystate(i,j) = mny
+                  end if
+               end do
+            end if
+*     END HACK
             place_to_break = 1
-      end do
+         end do
+      end if
       end
 
       subroutine FORT_ADV_FORCING(
@@ -1025,7 +1115,7 @@ c
       subroutine trans_xbc(
      &     s,DIMS(s),
      &     xlo,xhi,DIMS(xx),uad,DIMS(uad),
-     &     lo,hi,n,xbc,eps)
+     &     lo,hi,n,xbc)
 c
 c     This subroutine processes boundary conditions on information
 c     traced to cell faces in the x direction.  This is used for
@@ -1040,7 +1130,6 @@ c
       REAL_T xlo(DIMV(xx))
       REAL_T xhi(DIMV(xx))
       REAL_T uad(DIMV(uad))
-      REAL_T eps
       integer xbc(SDIM,2)
       logical ltest
       integer j
@@ -1053,19 +1142,13 @@ c
 
       if (xbc(1,1).eq.EXT_DIR) then
          if (n .eq. XVEL) then
-            if (uad(imin,j) .ge. zero) then
-              do j = jmin-1,jmax+1
-                 xhi(imin,j) = s(imin-1,j)
-                 xlo(imin,j) = s(imin-1,j)
-              end do
-            else 
-              do j = jmin-1,jmax+1
-                 xlo(imin,j) = xhi(imin,j)
-              end do
-            end if
+            do j = jmin-1,jmax+1
+               xhi(imin,j) = s(imin-1,j)
+               xlo(imin,j) = s(imin-1,j)
+            end do
          else
             do j = jmin-1,jmax+1
-               ltest = uad(imin,j).le.eps
+               ltest = abs(uad(imin,j)).le.1.0D-10
                stx   = cvmgt(xhi(imin,j),s(imin-1,j),ltest)
                xhi(imin,j) = stx
                xlo(imin,j) = stx
@@ -1085,19 +1168,13 @@ c
 c
       if (xbc(1,2).eq.EXT_DIR) then
          if (n .eq. XVEL) then
-            if (uad(imax+1,j) .le. zero) then
-              do j = jmin-1,jmax+1
-                 xhi(imax+1,j) = s(imax+1,j)
-                 xlo(imax+1,j) = s(imax+1,j)
-              end do
-            else 
-              do j = jmin-1,jmax+1
-                 xhi(imax+1,j) = xlo(imax+1,j)
-              end do
-            end if
+            do j = jmin-1,jmax+1
+               xhi(imax+1,j) = s(imax+1,j)
+               xlo(imax+1,j) = s(imax+1,j)
+            end do
          else
             do j = jmin-1,jmax+1
-               ltest = uad(imax+1,j).ge.-eps
+               ltest = abs(uad(imax+1,j)).le.1.0D-10
                stx   = cvmgt(xlo(imax+1,j),s(imax+1,j),ltest)
                xhi(imax+1,j) = stx
                xlo(imax+1,j) = stx
@@ -1120,7 +1197,7 @@ c
       subroutine trans_ybc(
      &     s,DIMS(s),
      &     ylo,yhi,DIMS(yy),vad,DIMS(vad),
-     &     lo,hi,n,ybc,eps)
+     &     lo,hi,n,ybc)
 c
 c     This subroutine processes boundary conditions on information
 c     traced to cell faces in the y direction.  This is used for
@@ -1135,7 +1212,6 @@ c
       REAL_T ylo(DIMV(yy))
       REAL_T yhi(DIMV(yy))
       REAL_T vad(DIMV(vad))
-      REAL_T eps
       integer ybc(SDIM,2)
       logical ltest
       integer i
@@ -1148,19 +1224,13 @@ c
 
       if (ybc(2,1).eq.EXT_DIR) then
          if (n .eq. YVEL) then
-            if (vad(i,jmin).ge.zero) then
-              do i = imin-1,imax+1
-                 yhi(i,jmin) = s(i,jmin-1)
-                 ylo(i,jmin) = s(i,jmin-1)
-              end do
-            else
-              do i = imin-1,imax+1
-                 ylo(i,jmin) = yhi(i,jmin)
-              end do
-            end if
+            do i = imin-1,imax+1
+               yhi(i,jmin) = s(i,jmin-1)
+               ylo(i,jmin) = s(i,jmin-1)
+            end do
          else
             do i = imin-1,imax+1
-               ltest = vad(i,jmin).le.eps
+               ltest = abs(vad(i,jmin)).le.1.0D-10
                sty   = cvmgt(yhi(i,jmin),s(i,jmin-1),ltest)
                yhi(i,jmin) = sty
                ylo(i,jmin) = sty
@@ -1180,19 +1250,13 @@ c
 
       if (ybc(2,2).eq.EXT_DIR) then
          if (n .eq. YVEL) then
-            if (vad(i,jmax+1).le.zero) then
-              do i = imin-1,imax+1
-                 ylo(i,jmax+1) = s(i,jmax+1)
-                 yhi(i,jmax+1) = s(i,jmax+1)
-              end do
-            else
-              do i = imin-1,imax+1
-                 yhi(i,jmax+1) = ylo(i,jmax+1)
-              end do
-            end if
+            do i = imin-1,imax+1
+               ylo(i,jmax+1) = s(i,jmax+1)
+               yhi(i,jmax+1) = s(i,jmax+1)
+            end do
          else
             do i = imin-1,imax+1
-               ltest = vad(i,jmax+1).ge.-eps
+               ltest = abs(vad(i,jmax+1)).le.1.0D-10
                sty   = cvmgt(ylo(i,jmax+1),s(i,jmax+1),ltest)
                yhi(i,jmax+1) = sty
                ylo(i,jmax+1) = sty
@@ -1201,6 +1265,9 @@ c
       else if (ybc(2,2).eq.FOEXTRAP.or.ybc(2,2).eq.HOEXTRAP
      &        .or.ybc(2,2).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
+c BEGIN HACK HACK HACK 
+c           if (n.eq.YVEL) ylo(i,jmax+1) = max(ylo(i,jmax+1),zero)
+c END   HACK HACK HACK 
             yhi(i,jmax+1) = ylo(i,jmax+1)
          end do
       else if (ybc(2,2).eq.REFLECT_ODD) then

@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.212 2003-02-04 21:12:16 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.213 2003-02-04 22:46:07 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -4096,7 +4096,7 @@ NavierStokes::mac_sync ()
     if (do_reflux)
     {
         MultiFab& S_new = get_new_data(State_Type);
-        mac_projector->mac_sync_compute(level,u_mac,u_macG,Vsync,Ssync,Rh,
+        mac_projector->mac_sync_compute(level,u_mac,Vsync,Ssync,Rh,
                                         level > 0 ? &getAdvFluxReg(level) : 0,
                                         advectionType, prev_time,
                                         prev_pres_time,dt,
