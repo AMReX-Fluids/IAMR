@@ -4,7 +4,7 @@
 #define _BOOLEAN_H_
 
 //
-// $Id: Boolean.H,v 1.1 1997-07-08 23:08:05 vince Exp $
+// $Id: Boolean.H,v 1.2 1997-07-17 22:46:14 car Exp $
 //
 
 #undef TRUE
@@ -16,7 +16,7 @@
 #undef bool
 
 #if !defined(BL_LANG_FORT)
-#if !(defined(__PHOTON) || defined(__KCC) || defined(__GNUG__) || defined(BL_T3E))
+#if defined( BL_HAS_NO_BOOL )
 /*@ManDoc:
   bool is typedef'd to an int.  It is defined only for those compilers
   that do not yet support the bool type as specified in the ANSI C++ Draft
