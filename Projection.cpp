@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.95 1999-06-28 20:37:03 car Exp $
+// $Id: Projection.cpp,v 1.96 1999-06-29 17:31:05 marc Exp $
 //
 
 #ifdef BL_T3E
@@ -126,6 +126,7 @@ int       Projection::do_outflow_bcs     = 1;
 int       Projection::make_sync_solvable = 0;
 int       Projection::proj_0             = 0;
 int       Projection::proj_2             = 0;
+int       Projection::add_vort_proj      = 0;
 
 static RegType project_bc [] =
 {
@@ -207,6 +208,8 @@ Projection::read_params ()
     pp.query("rho_wgt_vel_proj",rho_wgt_vel_proj);
 
     pp.query("do_outflow_bcs",do_outflow_bcs);
+
+    pp.query("add_vort_proj",add_vort_proj);
 }
 
 void 
@@ -2679,6 +2682,7 @@ Projection::initialVorticityProject (int c_lev)
     }
     proj_bc[1][0] = outflow;
     proj_bc[1][1] = outflow;
+
     if (geom.isPeriodic(1))
     {
         proj_bc[1][0] = periodic;
@@ -2754,31 +2758,27 @@ Projection::initialVorticityProject (int c_lev)
     for (int lev = c_lev; lev <= f_lev; lev++)
     {
         vel[lev] = &LevelData[lev].get_new_data(State_Type);
-
-        int n    = 0;
-        int ninv = 1;
-
-        for (MultiFabIterator mfi(*vel[lev]); mfi.isValid(); ++mfi)
+        const int idx[2] = {1, 0};
+        //
+        // Note: Here u_real from projection is -grad(phi), but if
+        //  phi is the stream function, u=dphi/dy, v=-dphi/dx
+        //
+        (u_real[Yvel][lev]).mult(-1,0,1);
+        for (int n=0; n<BL_SPACEDIM; n++)
         {
-            DependentMultiFabIterator dmfi(mfi,u_real[n][lev]);
-
-            mfi().copy(dmfi(), 0, Xvel+ninv);
-            mfi().mult(-1, Xvel+ninv, 1);
+            for (MultiFabIterator mfi(*vel[lev]); mfi.isValid(); ++mfi)
+            {
+                DependentMultiFabIterator dmfi(mfi,u_real[n][lev]);
+                const Box& box = mfi.validbox();
+                if (add_vort_proj)
+                {
+                    mfi().plus(dmfi(), box, 0, Xvel+idx[n], 1);
+                }
+                else
+                    mfi().copy(dmfi(), box, 0, box, Xvel+idx[n], 1);
+            }
+            delete u_real[n].remove(lev);
         }
-
-        delete u_real[n].remove(lev);
-
-        n    = 1;
-        ninv = 0;
-
-        for (MultiFabIterator mfi(*vel[lev]); mfi.isValid(); ++mfi)
-        {
-            DependentMultiFabIterator dmfi(mfi,u_real[n][lev]);
-
-            mfi().copy(dmfi(), 0, Xvel+ninv);
-        }
-
-        delete u_real[n].remove(lev);
 
         delete rhs_real.remove(lev);
     }

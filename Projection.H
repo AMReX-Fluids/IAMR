@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.24 1999-06-07 17:32:17 marc Exp $
+// $Id: Projection.H,v 1.25 1999-06-29 17:31:04 marc Exp $
 //
 
 #include <BC_TYPES.H>
@@ -326,5 +326,6 @@ protected:
     static int  do_outflow_bcs;
     static int  make_sync_solvable;
     static Real divu_minus_s_factor;
+    static int  add_vort_proj;
 };
 #endif
