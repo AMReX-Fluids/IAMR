@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.57 1998-06-04 17:06:38 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.58 1998-06-04 22:45:55 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1200,7 +1200,7 @@ void NavierStokes::advance_cleanup(Real dt, int iteration, int ncycle)
 // compute a timestep at a level
 // return largest safe timestep that can be used
 // -------------------------------------------------------------
-Real NavierStokes::advance(Real time, Real dt, int iteration, int ncycle)
+Real NavierStokes::advance (Real time, Real dt, int iteration, int ncycle)
 {
     // ------------------ Advance setup
     if (verbose && ParallelDescriptor::IOProcessor())
@@ -1243,52 +1243,25 @@ Real NavierStokes::advance(Real time, Real dt, int iteration, int ncycle)
         cout << "... mac_projection\n";
     }
 
-    MultiFab divu(grids,1,0,Fab_allocate);
-    MultiFab dsdt(grids,1,0,Fab_allocate);
+    MultiFab* divu = getDivCond(0,time);
+    MultiFab* dsdt = getDsdt(0,time);
 
-    int destComp = 0;
-    int srcComp  = 0;
-    int nGrow    = 0;
-    int nComp    = 1;
-    if(have_divu && have_dsdt) {
-      FillPatchIterator divufpi(*this, divu, nGrow, destComp, time, Divu_Type,
-                                srcComp, nComp);
-      FillPatchIterator dsdtfpi(*this, dsdt, nGrow, destComp, time, Dsdt_Type,
-                                srcComp, nComp);
-      for(;
-          divufpi.isValid() &&
-          dsdtfpi.isValid();
-          ++dsdtfpi,
-          ++divufpi)
-      {
-        DependentMultiFabIterator divumfi(divufpi, divu);
-        DependentMultiFabIterator dsdtmfi(divufpi, dsdt);
-        divumfi().copy(divufpi());  // copy from the fill patch iterator
-        dsdtmfi().copy(dsdtfpi());  // copy from the fill patch iterator
-        dsdtmfi().mult(.5*dt);
-        divumfi().plus(dsdtmfi());
-      }
-    
-    } else if(have_divu &&  ! have_dsdt) {
-
-      FillPatchIterator divufpi(*this, divu, nGrow, destComp, time, Divu_Type,
-                                srcComp, nComp);
-      for(; divufpi.isValid(); ++divufpi) {
-        DependentMultiFabIterator divumfi(divufpi, divu);
-        DependentMultiFabIterator dsdtmfi(divufpi, dsdt);
-              divumfi().copy(divufpi());  // copy from the fill patch iterator
-      }
-      dsdt.setVal(0.0);
-    
-    } else {  // dont have either
-      divu.setVal(0.0);
-      dsdt.setVal(0.0);
+    for (MultiFabIterator mfi(*divu); mfi.isValid(false); ++mfi)
+    {
+        DependentMultiFabIterator dmfi(mfi,*dsdt);
+            
+        dmfi().mult(.5*dt);
+        mfi().plus(dmfi());
     }
 
+    delete dsdt;
+    
     //------------------- compute mac velocities and maximum cfl number
     if (do_mac_proj)
-        mac_projector->mac_project(level,u_mac,Sold,dt,time,divu,have_divu);
+        mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu);
     mac_stats.end();
+
+    delete divu;
     
     //------------------- advect velocities
     vel_adv_stats.start();
@@ -1313,19 +1286,19 @@ Real NavierStokes::advance(Real time, Real dt, int iteration, int ncycle)
     scalar_update(dt,first_scalar+1,last_scalar);
     scal_upd_stats.end();
 
+    // S appears in rhs of the velocity update, so we better do it now
+    if (have_divu)
+    {
+        calc_divu(time+dt, dt, get_new_data(Divu_Type));
+        if (have_dsdt)
+        {
+            calc_dsdt(time,dt,get_new_data(Dsdt_Type));
+        }
+    }
     // add the advective and other terms to get velocity at t^{n+1}
     vel_upd_stats.start();
     velocity_update(dt);
     vel_upd_stats.end();
-
-    if(have_divu) {
-      MultiFab &Divu_new = get_new_data(Divu_Type);
-      calc_divu(time+dt, dt, Divu_new);
-      if(have_dsdt) {
-        MultiFab &Dsdt_new = get_new_data(Dsdt_Type);
-        calc_dsdt(time,dt,Dsdt_new);
-      }
-    }
 
     // clean up after the predicted value at t^n+1
     // estimate new timestep from umac cfl);
@@ -1410,7 +1383,11 @@ NavierStokes::level_projector (Real dt,
            divuold = getDivCond(1,time);
 
            dsdt->minus(*divuold,0,1,1);
-           dsdt->mult(1/dt,0,1,1);
+
+           for (MultiFabIterator mfi(*dsdt); mfi.isValid(false); ++mfi)
+           {
+               mfi().mult(1.0/dt,0,1);
+           }
        }
        else
        {
@@ -2499,7 +2476,7 @@ void NavierStokes::velocity_diffusion_update(Real dt)
     // do following except at initial iteration--rbp, per jbb
 
     if (is_diffusive[Xvel]) {
-        MultiFab *delta_rhs;
+        MultiFab* delta_rhs = 0;
         diffuse_velocity_setup(dt, delta_rhs);
         diffusion->diffuse_velocity(dt, be_cn_theta, rho_half, 1);
         if (delta_rhs!=NULL) delete delta_rhs;
@@ -4123,6 +4100,11 @@ void NavierStokes::level_sync ()
             SyncProjInterp( phi, level+1, P_new, lev, ratio );
         }
 
+        for (int i = 0; i < finegrids.length(); i++)
+        {
+            delete fine_sync_bc[i];
+        }
+
         delete[] fine_sync_bc;
         
     }
@@ -4156,6 +4138,10 @@ void NavierStokes::level_sync ()
     }
     
     // garbage collection
+    for ( i = 0; i < grids.length(); i++)
+    {
+        delete sync_bc[i];
+    }
     delete[] sync_bc;
 }
 
@@ -4244,6 +4230,12 @@ NavierStokes::mac_sync ()
             SyncInterp(*Ssync, level, S_new, lev, ratio,
                        0, BL_SPACEDIM, numscal, 1 , mult, sync_bc.dataPtr());
         }
+
+        // garbage collection
+        for (int i = 0; i < sync_bc.length(); i++)
+        {
+            delete sync_bc[i];
+        }
     }
 }
 
@@ -4314,8 +4306,7 @@ void NavierStokes::reflux ()
         Box bf(fine_boxes[kf]);
         bf.coarsen(fine_ratio);
         //for (int k = 0; k < ngrids; k++)
-        for(MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid();
-            ++Vsyncmfi)
+        for(MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
         {
             DependentMultiFabIterator Ssyncmfi(Vsyncmfi, *Ssync);
             assert(grids[Vsyncmfi.index()] == Vsyncmfi.validbox());
@@ -4827,6 +4818,26 @@ NavierStokes::getDsdt (FArrayBox& fab,
              dsdt_unfilled);
 }
 
+MultiFab*
+NavierStokes::getDsdt (int  ngrow, 
+                       Real time)
+{
+    MultiFab* dsdt = 0;
+
+    if (!(have_dsdt && have_divu))
+    {
+        dsdt = new MultiFab(grids,1,ngrow);
+
+        dsdt->setVal(0);
+    }
+    else
+    {
+        dsdt = getState(ngrow,Dsdt_Type,0,1,time);
+    }
+
+    return dsdt;
+}
+
 //
 // Fill patch a state component.
 //
@@ -5057,6 +5068,31 @@ NavierStokes::calc_divu (Real      time,
     if (have_divu)
     {
         divu.setVal(0.0);
+
+        if (do_temp && visc_coef[Temp] > 0.0)
+        {
+            //
+            // Compute Div(U) = Div(cond.Grad(T))/(rho.T) assuming cond = k/cp.
+            //
+            getViscTerms(divu,Temp,1,time);
+
+            const int nGrow = 0;
+
+            MultiFab* rho  = getState(nGrow, State_Type, Density, 1, time);
+            MultiFab* temp = getState(nGrow, State_Type, Temp,    1, time);
+
+            for (MultiFabIterator mfi(divu); mfi.isValid(false); ++mfi)
+            {
+                DependentMultiFabIterator rho_it(mfi, *rho);
+                DependentMultiFabIterator temp_it(mfi, *temp);
+
+                mfi().divide(rho_it(),mfi.validbox(),0,0,1);
+                mfi().divide(temp_it(),mfi.validbox(),0,0,1);
+            }
+
+            delete rho;
+            delete temp;
+        }
     }
 }
 
@@ -5072,6 +5108,22 @@ NavierStokes::calc_dsdt (Real      time,
     if (have_divu && have_dsdt)
     {
         dsdt.setVal(0.0);
+
+        if (do_temp)
+        {
+            MultiFab& Divu_new = get_new_data(Divu_Type);
+            MultiFab& Divu_old = get_old_data(Divu_Type);
+
+            for (MultiFabIterator mfi(dsdt); mfi.isValid(false); ++mfi)
+            {
+                DependentMultiFabIterator dmfi_old(mfi, Divu_old);
+                DependentMultiFabIterator dmfi_new(mfi, Divu_new);
+
+                mfi().copy(dmfi_new(),mfi.validbox(),0,mfi.validbox(),0,1);
+                mfi().minus(dmfi_old(),mfi.validbox(),0,0,1);
+                mfi().divide(dt,mfi.validbox(),0,1);
+            }
+        }
     }
 }
 
@@ -5081,7 +5133,6 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
                             int       num_comp,
                             Real      time)
 {
-
     for (int icomp = src_comp; icomp < src_comp+num_comp; icomp++)
     {
         int rho_flag = !is_conservative[icomp] ? 1 : 2;

@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.27 1998-06-04 17:09:56 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.28 1998-06-04 22:45:56 lijewski Exp $
 //
 
 //
@@ -3080,35 +3080,42 @@ Diffusion::compute_divmusi (Real      time,
     const Real* dx         = caller->Geom().CellSize();
     NavierStokes& ns_level = *(NavierStokes*) &(parent->getLevel(level));
 
-    MultiFab* divu_fp = ns_level.getDivCond(1,time);
-
-    for (MultiFabIterator divmusimfi(divmusi); divmusimfi.isValid();
-         ++divmusimfi)
+    if (mu>0.0)
     {
-        assert(grids[divmusimfi.index()] == divmusimfi.validbox());
+        MultiFab* divu_fp = ns_level.getDivCond(1,time);
 
-        const Box& bx = divmusimfi.validbox();
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        DEF_LIMITS(divmusimfi(),divmusi_dat,divmusilo,divmusihi);
-
-        FArrayBox& divu = (*divu_fp)[divmusimfi.index()];
-
-        DEF_CLIMITS(divu,divu_dat,divulo,divuhi);
-
-        FORT_DIV_MU_SI(lo,hi,dx,&mu,
-                       ARLIM(divulo), ARLIM(divuhi), divu_dat,
-                       ARLIM(divmusilo), ARLIM(divmusihi), divmusi_dat);
-
-        if (divmusi.nGrow() > 0)
+        for (MultiFabIterator divmusimfi(divmusi); divmusimfi.isValid();
+             ++divmusimfi)
         {
-            int ncomp = BL_SPACEDIM;
-            FORT_VISCEXTRAP(divmusi_dat,ARLIM(divmusilo),ARLIM(divmusihi),
-                            lo,hi,&ncomp);
-        }
-    }
+            assert(grids[divmusimfi.index()] == divmusimfi.validbox());
 
-    delete divu_fp;
+            const Box& bx = divmusimfi.validbox();
+            const int* lo = bx.loVect();
+            const int* hi = bx.hiVect();
+            DEF_LIMITS(divmusimfi(),divmusi_dat,divmusilo,divmusihi);
+
+            FArrayBox& divu = (*divu_fp)[divmusimfi.index()];
+
+            DEF_CLIMITS(divu,divu_dat,divulo,divuhi);
+
+            FORT_DIV_MU_SI(lo,hi,dx,&mu,
+                           ARLIM(divulo), ARLIM(divuhi), divu_dat,
+                           ARLIM(divmusilo), ARLIM(divmusihi), divmusi_dat);
+
+            if (divmusi.nGrow() > 0)
+            {
+                int ncomp = BL_SPACEDIM;
+                FORT_VISCEXTRAP(divmusi_dat,ARLIM(divmusilo),ARLIM(divmusihi),
+                                lo,hi,&ncomp);
+            }
+        }
+
+        delete divu_fp;
+    }
+    else
+    {
+        divmusi.setVal(0.0,divmusi.nGrow());
+    }
 }
 
 //

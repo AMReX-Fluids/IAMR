@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.16 1998-05-28 03:12:35 lijewski Exp $
+// $Id: NavierStokes.H,v 1.17 1998-06-04 22:45:54 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -375,6 +375,8 @@ protected: // ===================== protected member functions ===
     
     // get dSdt from the state data
     void getDsdt(FArrayBox& fab, int gridno, int ngrow, Real time);
+
+    MultiFab* getDsdt (int ngrow, Real time);
 
     // fill ghost cells of state
     void FillStateBndry(Real time, int state_indx, int src_comp, 
