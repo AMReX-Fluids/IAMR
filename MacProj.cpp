@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.53 1999-05-10 18:54:13 car Exp $
+// $Id: MacProj.cpp,v 1.54 1999-05-26 19:28:54 marc Exp $
 //
 
 #include <Misc.H>
@@ -636,7 +636,7 @@ MacProj::mac_sync_compute (int               level,
     MultiFab*       mac_sync_phi        = &mac_phi_crse[level];
     NavierStokes&   ns_level            = *(NavierStokes*) &(parent->getLevel(level));
     Godunov*        godunov             = ns_level.godunov;
-    bool            use_forces_in_trans = godunov->useForcesInTrans();
+    bool            use_forces_in_trans = godunov->useForcesInTrans()?true:false;
 
     MultiFab vel_visc_terms;
 
