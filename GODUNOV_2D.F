@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.20 2002-09-19 22:24:04 jbb Exp $
+c $Id: GODUNOV_2D.F,v 1.21 2002-10-01 20:24:00 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -300,7 +300,7 @@ c
       end if
 
       call trans_xbc(u,DIMS(s),
-     &     ulo,uhi,ulo,DIMS(work),lo,hi,XVEL,ubc)
+     &     ulo,uhi,DIMS(work),ulo,DIMS(work),lo,hi,XVEL,ubc)
 
       do i = imin,imax+1
          do j = jmin-1,jmax+1
@@ -333,7 +333,7 @@ c
       end if
 
       call trans_ybc(v,DIMS(s),
-     &     vlo,vhi,vlo,DIMS(work),lo,hi,YVEL,vbc)
+     &     vlo,vhi,DIMS(work),vlo,DIMS(work),lo,hi,YVEL,vbc)
 
       do i = imin-1,imax+1
          do j = jmin,jmax+1
@@ -429,7 +429,7 @@ c
       end if
 
       call trans_xbc(s,DIMS(s),
-     &     xlo,xhi,uad,DIMS(work),lo,hi,n,bc)
+     &     xlo,xhi,DIMS(work),uad,DIMS(work),lo,hi,n,bc)
       
       do i = imin, imax+1
          do j = jmin-1,jmax+1
@@ -456,7 +456,7 @@ c
       end if
 
       call trans_ybc(s,DIMS(s),
-     &     ylo,yhi,vad,DIMS(work),lo,hi,n,bc)
+     &     ylo,yhi,DIMS(work),vad,DIMS(work),lo,hi,n,bc)
 
       do j = jmin,jmax+1
          do i = imin-1,imax+1
@@ -739,7 +739,7 @@ c
 
       subroutine trans_xbc(
      &     s,DIMS(s),
-     &     xlo,xhi,uad,DIMS(xx),
+     &     xlo,xhi,DIMS(xx),uad,DIMS(uad),
      &     lo,hi,n,xbc)
 c
 c     This subroutine processes boundary conditions on information
@@ -747,14 +747,14 @@ c     traced to cell faces in the x direction.  This is used for
 c     computing velocities and edge states used in calculating
 c     transverse derivatives
 c
-      integer DIMDEC(s), DIMDEC(xx)
+      integer DIMDEC(s), DIMDEC(xx), DIMDEC(uad)
       integer n
       integer lo(SDIM), hi(SDIM)
       REAL_T stx
       REAL_T s(DIMV(s))
       REAL_T xlo(DIMV(xx))
       REAL_T xhi(DIMV(xx))
-      REAL_T uad(DIMV(xx))
+      REAL_T uad(DIMV(uad))
       integer xbc(SDIM,2)
       logical ltest
       integer j
@@ -821,7 +821,7 @@ c
 
       subroutine trans_ybc(
      &     s,DIMS(s),
-     &     ylo,yhi,vad,DIMS(yy),
+     &     ylo,yhi,DIMS(yy),vad,DIMS(vad),
      &     lo,hi,n,ybc)
 c
 c     This subroutine processes boundary conditions on information
@@ -829,14 +829,14 @@ c     traced to cell faces in the y direction.  This is used for
 c     computing velocities and edge states used in calculating
 c     transverse derivatives
 c
-      integer DIMDEC(s), DIMDEC(yy)
+      integer DIMDEC(s), DIMDEC(yy), DIMDEC(vad)
       integer n
       integer lo(SDIM), hi(SDIM)
       REAL_T sty
       REAL_T s(DIMV(s))
       REAL_T ylo(DIMV(yy))
       REAL_T yhi(DIMV(yy))
-      REAL_T vad(DIMV(yy))
+      REAL_T vad(DIMV(vad))
       integer ybc(SDIM,2)
       logical ltest
       integer i

@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.18 2002-08-30 00:20:56 car Exp $
+c $Id: GODUNOV_3D.F,v 1.19 2002-10-01 20:24:00 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -425,17 +425,17 @@ c
 
       call trans_xbc(
      &     u,DIMS(s),
-     &     ulo,uhi,ulo,DIMS(work),
+     &     ulo,uhi,DIMS(work),ulo,DIMS(work),
      &     lo,hi,XVEL,ubc)
 
       call trans_ybc(
      &     v,DIMS(s),
-     &     vlo,vhi,vlo,DIMS(work),
+     &     vlo,vhi,DIMS(work),vlo,DIMS(work),
      &     lo,hi,YVEL,vbc)
 
       call trans_zbc(
      &     w,DIMS(s),
-     &     wlo,whi,wlo,DIMS(work),
+     &     wlo,whi,DIMS(work),wlo,DIMS(work),
      &     lo,hi,ZVEL,wbc)
 
       do k = kmin-1,kmax+1
@@ -584,7 +584,7 @@ c
 
       call trans_xbc(
      &     s,DIMS(s),
-     &     xlo,xhi,uad,DIMS(work),
+     &     xlo,xhi,DIMS(work),uad,DIMS(work),
      &     lo,hi,n,bc)
 
       do k = kmin-1,kmax+1
@@ -619,7 +619,7 @@ c
 
       call trans_ybc(
      &     s,DIMS(s),
-     &     ylo,yhi,vad,DIMS(work),
+     &     ylo,yhi,DIMS(work),vad,DIMS(work),
      &     lo,hi,n,bc)
 
       do k = kmin-1,kmax+1
@@ -654,7 +654,7 @@ c
 
       call trans_zbc(
      &     s,DIMS(s),
-     &     zlo,zhi,wad,DIMS(work),
+     &     zlo,zhi,DIMS(work),wad,DIMS(work),
      &     lo,hi,n,bc)
 
       do k = kmin,kmax+1
@@ -1071,7 +1071,7 @@ c
 
       subroutine trans_xbc(
      &     s,DIMS(s),
-     &     xlo,xhi,uad,DIMS(xx),
+     &     xlo,xhi,DIMS(xx),uad,DIMS(uad),
      &     lo,hi,n,xbc)
 c
 c     This subroutine processes boundary conditions on information
@@ -1082,9 +1082,10 @@ c
       integer DIMDEC(s)
       REAL_T s(DIMV(s))
       integer DIMDEC(xx)
+      integer DIMDEC(uad)
       REAL_T xlo(DIMV(xx))
       REAL_T xhi(DIMV(xx))
-      REAL_T uad(DIMV(xx))
+      REAL_T uad(DIMV(uad))
       integer lo(SDIM), hi(SDIM)
       integer n
       integer xbc(SDIM,2)
@@ -1177,7 +1178,7 @@ c
 
       subroutine trans_ybc(
      &     s,DIMS(s),
-     &     ylo,yhi,vad,DIMS(yy),
+     &     ylo,yhi,DIMS(yy),vad,DIMS(vad),
      &     lo,hi,n,ybc)
 c
 c     This subroutine processes boundary conditions on information
@@ -1188,9 +1189,10 @@ c
       integer DIMDEC(s)
       REAL_T s(DIMV(s))
       integer DIMDEC(yy)
+      integer DIMDEC(vad)
       REAL_T ylo(DIMV(yy))
       REAL_T yhi(DIMV(yy))
-      REAL_T vad(DIMV(yy))
+      REAL_T vad(DIMV(vad))
       integer lo(SDIM), hi(SDIM)
       integer n
       integer ybc(SDIM,2)
@@ -1283,7 +1285,7 @@ c
 
       subroutine trans_zbc(
      &     s,DIMS(s),
-     &     zlo,zhi,wad,DIMS(zz),
+     &     zlo,zhi,DIMS(zz),wad,DIMS(wad),
      &     lo,hi,n,zbc)
 c
 c     This subroutine processes boundary conditions on information
@@ -1294,9 +1296,10 @@ c
       integer DIMDEC(s)
       REAL_T s(DIMV(s))
       integer DIMDEC(zz)
+      integer DIMDEC(wad)
       REAL_T zlo(DIMV(zz))
       REAL_T zhi(DIMV(zz))
-      REAL_T wad(DIMV(zz))
+      REAL_T wad(DIMV(wad))
       integer lo(SDIM), hi(SDIM)
       integer n
       integer zbc(SDIM,2)
