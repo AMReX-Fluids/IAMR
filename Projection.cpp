@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.110 1999-09-02 21:59:41 almgren Exp $
+// $Id: Projection.cpp,v 1.111 1999-09-14 18:01:58 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -569,9 +569,7 @@ Projection::level_project (int             level,
 
         PArray<MultiFab> rhs_real(level+1);
         rhs_real.set(level, divusource);
-        for (int i=0; i < divusource->boxArray().length(); i++)
-          cout << "LEVEL " << level << " DIVU NORM " << (*divusource)[i].norm(0) << endl;
-        sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real, 
+        sync_proj->manual_project(u_real,p_real,rhs_real,null_amr_real,s_real, 
                                   sync_resid_crse, sync_resid_fine, geom, 
                                   use_u, (Real*)dx,
                                   proj_tol, level, level, proj_abs_tol);
