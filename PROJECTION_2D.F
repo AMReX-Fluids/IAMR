@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.30 1999-07-01 23:56:25 propp Exp $
+c $Id: PROJECTION_2D.F,v 1.31 1999-07-06 21:40:32 propp Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -577,7 +577,7 @@ c local variables
          max_pert = max_pert/(ABS(divu_ave)+small_pert)
          if ((max_divu.eq.zero.and.min_divu.eq.zero)
      &        .or.(max_pert.le.small_pert)) then
-            zeroIt = .true.
+            zeroIt = 1
             return
          end if
          do i = ics, ice
@@ -606,7 +606,7 @@ c local variables
          max_pert = max_pert/(ABS(divu_ave)+small_pert)
          if ((max_divu.eq.zero.and.min_divu.eq.zero)
      &        .or.(max_pert.le.small_pert)) then
-            zeroIt = .true.
+            zeroIt = 1
             return
          end if
          do j = jcs, jce
@@ -635,7 +635,7 @@ c local variables
          max_pert = max_pert/(ABS(divu_ave)+small_pert)
          if ((max_divu.eq.zero.and.min_divu.eq.zero)
      &        .or.(max_pert.le.small_pert)) then
-            zeroIt = .true.
+            zeroIt = 1
             return
          end if
          do i = ics, ice
