@@ -475,11 +475,9 @@ c Local variables
       jce = hi(2)
 
       if (h(2). gt. 1.5D0*h(1)) then
-        print *, "line solve for mac not yet implemented"
-        stop
+        call bl_abort("line solve for mac not yet implemented")
       else if (h(1) .gt. 1.5D0*h(2)) then
-        print *, "line solve for mac not yet implemented"
-        stop
+        call bl_abort("line solve for mac not yet implemented")
       endif
 
       setSingularPoint = .false.

@@ -499,11 +499,9 @@ c  double rhs at edges
       hysqinv = one/(h(2)*h(2))
 
       if (h(2). gt. 1.5D0*h(1)) then
-         print *, "line solve for proj_bc not yet implemented"
-         stop
+         call bl_abort("line solve for proj_bc not yet implemented")
       elseif (h(1) .gt. 1.5D0*h(2)) then
-         print *, "line solve for proj_bc not yet implemented"
-         stop
+         call bl_abort("line solve for proj_bc not yet implemented")
       endif
       
       setSingularPoint = .false.

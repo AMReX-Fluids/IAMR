@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.37 2002-10-19 18:33:47 car Exp $
+c $Id: PROJECTION_2D.F,v 1.38 2002-11-14 23:04:56 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -342,17 +342,11 @@ c     holy grail projection
      &    ARG_L1(nodedat) .gt. hi(1) .or. 
      &    ARG_H2(nodedat) .lt. lo(2)+1 .or. 
      &    ARG_L2(nodedat) .gt. hi(2) ) then 
-        write(6,*) "FORT_HG_CELL_TO_NODE: bad index limits"
-        stop
+        call bl_abort("FORT_HG_CELL_TO_NODE: bad index limits")
       end if
 
       if(isrz.eq.1.and.lrweighted.ne.1)then
-        write(6,*)
-     &    'FORT_HGN2C : isrz=1 and lrweighted!=1 not yet implemented'
-#ifndef	BL_NO_FORT_FLUSH
-c        call flush(6)
-#endif
-        stop
+        call bl_abort('FORT_HGN2C: isrz=1 and lrweighted!=1 not implmented')
       end if
 
       do j=lo(2),hi(2)
@@ -402,8 +396,7 @@ c
      $     ARG_H1(rhs)-1 .gt. ARG_H1(dat) .or.
      &     ARG_L2(rhs)+1 .lt. ARG_L2(dat) .or. 
      $     ARG_H2(rhs)-1 .gt. ARG_H2(dat)) then
-         write(6,*) "FORT_HG_CELL_TO_NODE: bad index limits"
-         stop
+         call bl_abort("FORT_HG_CELL_TO_NODE: bad index limits")
       end if
 
       if (is_rz.ne.1) then

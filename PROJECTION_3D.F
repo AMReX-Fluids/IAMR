@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.12 2000-06-02 17:25:51 lijewski Exp $
+c $Id: PROJECTION_3D.F,v 1.13 2002-11-14 23:04:56 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -164,8 +164,8 @@ c
      $             ARG_L3(grid)-ng:ARG_H3(grid)+ng)
       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
 
-      print *,'SHOULD NEVER BE IN RADMPY IN 3D'
-      stop
+      call bl_abort('SHOULD NEVER BE IN RADMPY IN 3D')
+
       end
 
       subroutine FORT_RADDIV(a,DIMS(grid),ng,r,nr,n)
@@ -180,8 +180,7 @@ c
      $             ARG_L3(grid)-ng:ARG_H3(grid)+ng)
       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
 
-      print *,'SHOULD NEVER BE IN RADDIV IN 3D'
-      stop
+      call bl_abort('SHOULD NEVER BE IN RADDIV IN 3D')
       end
 
       subroutine FORT_HGN2C(
@@ -215,16 +214,11 @@ c     holy grail projection
      &    ARG_L2(nodedat) .gt. hi(2) .or.
      &    ARG_H3(nodedat) .lt. lo(3)+1 .or. 
      &    ARG_L3(nodedat) .gt. hi(3) ) then 
-        write(6,*) "FORT_HG_CELL_TO_NODE: bad index limits"
-        stop
+        call bl_abort("FORT_HG_CELL_TO_NODE: bad index limits")
       end if
 
       if(isrz.eq.1.and.lrweighted.ne.1)then
-        write(6,*)
-     &    'FORT_HGN2C : isrz=1 and lrweighted!=1 not implemented in 3D'
-#ifndef	BL_NO_FORT_FLUSH
-#endif
-        stop
+        call bl_abort('FORT_HGN2C : isrz=1 and lrweighted!=1 not implemented')
       end if
 
       do k=lo(3),hi(3)
@@ -282,8 +276,7 @@ c local variables
      $    ARG_H2(rhs)-1 .gt. ARG_H2(dat) .or.
      &    ARG_L3(rhs)+1 .lt. ARG_L3(dat) .or. 
      $    ARG_H3(rhs)-1 .gt. ARG_H3(dat) ) then
-         write(6,*) "FORT_HG_CELL_TO_NODE: bad index limits"
-         stop
+         call bl_abort("FORT_HG_CELL_TO_NODE: bad index limits")
       end if
 
       do k=ARG_L3(rhs)+nghost,ARG_H3(rhs)-nghost
@@ -349,8 +342,7 @@ c           timestep on the coarse grid.  mult = 1/ratio.
 
 c check and make sure dx == dy == dz
       if ( dx(1) .NE. dx(2) .or. dx(1) .NE. dx(3) ) then
-         print *, 'FILTRHS in 3D:  code for dx != dy != dz is not implemented'
-         stop
+         call bl_abort('FILTRHS:  code for dx != dy != dz not implemented')
       endif
 
       do k = lo(3), hi(3)

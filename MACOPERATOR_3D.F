@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_3D.F,v 1.6 1999-06-14 23:51:58 almgren Exp $
+c $Id: MACOPERATOR_3D.F,v 1.7 2002-11-14 23:04:56 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -62,8 +62,7 @@ c ::
                    print *,' '
                    print *,'TESTING in MACCOEF '
                    print *,'RHO HAS GONE NEGATIVE AT ',i,j,k,rho(i,j,k)
-                   print *,' '
-                   stop
+                   call bl_abort(" ")
                 end if
              end do
           end do

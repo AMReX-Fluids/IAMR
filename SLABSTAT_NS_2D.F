@@ -1,5 +1,5 @@
 c
-c $Id: SLABSTAT_NS_2D.F,v 1.5 2000-07-19 19:22:51 sstanley Exp $
+c $Id: SLABSTAT_NS_2D.F,v 1.6 2002-11-14 23:04:56 lijewski Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -78,7 +78,7 @@ c
      $        /'FORT_NS_BASICSTATS_NCTRAC.  Should have nStats = ',I5,'and',
      $        /'nStateComp = ',I5,
      $        /'   nStats = ', I5, 5x, 'nStateComp = ', I5)
-        stop
+        call bl_abort(" ")
       endif
 
       do n = 1, SDIM
@@ -90,7 +90,7 @@ c
      $          /'   Direction = ', I2, 5x, 'nGhostExpect = ', I2,
      $          /'   loStats = ', SDIM (I2,1x), 5x, 'hiStats = ', SDIM (I2,1x),
      $          /'   loState = ', SDIM (I2,1x), 5x, 'hiState = ', SDIM (I2,1x))
-          stop
+        call bl_abort(" ")
         endif
       enddo
 #endif
@@ -230,7 +230,7 @@ c
      $        /'FORT_NS_BASICSTATS_CTRAC.  Should have nStats = ',I5,'and',
      $        /'nStateComp = ',I5,
      $        /'   nStats = ', I5, 5x, 'nStateComp = ', I5)
-        stop
+        call bl_abort(" ")
       endif
 
       do n = 1, SDIM
@@ -242,7 +242,7 @@ c
      $          /'   Direction = ', I2, 5x, 'nGhostExpect = ', I2,
      $          /'   loStats = ', SDIM (I2,1x), 5x, 'hiStats = ', SDIM (I2,1x),
      $          /'   loState = ', SDIM (I2,1x), 5x, 'hiState = ', SDIM (I2,1x))
-          stop
+        call bl_abort(" ")
         endif
       enddo
 #endif

@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_2D.F,v 1.15 2002-06-03 21:37:20 car Exp $ 
+c $Id: DERIVE_2D.F,v 1.16 2002-11-14 23:04:56 lijewski Exp $ 
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -639,8 +639,7 @@ c
             end do
          end do
       else
-         write(6,*) "FORT_GRADP_DIR: invalid dir = ",dir
-         stop
+         call bl_abort("FORT_GRADP_DIR: invalid dir")
       end if
 
       end

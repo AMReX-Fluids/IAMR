@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.24 2002-10-18 15:21:05 car Exp $
+c $Id: GODUNOV_2D.F,v 1.25 2002-11-14 23:04:56 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1256,8 +1256,7 @@ c     COMPUTE 0TH order slopes
 c
       if (slope_order.eq.1) then
         if (ng .lt. 1) then
-           write(6,*) "FORT_SLOPES: not enough bndry cells for 1st order"
-	   stop
+	   call bl_abort("FORT_SLOPES: not enough bndry cells for 1st order")
         end if
         do j = jmin-1,jmax+1
            do i = imin-1,imax+1
@@ -1271,8 +1270,7 @@ c     COMPUTE 2nd order slopes
 c
       if (slope_order.eq.2) then
          if (ng .lt. 2) then
-            write(6,*) "SLOPE_2D: not enough bndry cells for 2nd order"
-            stop
+            call bl_abort("SLOPE_2D: not enough bndry cells for 2nd order")
          end if
 c
 c     ------------------------ x slopes
@@ -1401,8 +1399,7 @@ c     COMPUTE 4TH order slopes
 c
       if (slope_order.eq.4) then
          if (ng .lt. 3) then
-            write(6,*) "SLOPE_2D: not enough bndry cells for 4th order"
-            stop
+            call bl_abort("SLOPE_2D: not enough bndry cells for 4th order")
          end if
 c         
 c     ------------------------ x slopes

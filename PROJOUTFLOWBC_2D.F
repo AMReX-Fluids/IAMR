@@ -904,7 +904,7 @@ c     Do left-side periodic BC (since first/last node coincide, use first
 c     node only (retain r-stuff here, just to be sure scaling is not destroyed)
          neq = ine - ins
          if ( neq .gt. NStripMax ) then
-            STOP 'HGPHIBC: NstripMax too small'
+            call bl_abort('HGPHIBC: NstripMax too small')
          end if
          icL = ice
          icR = ics
@@ -932,7 +932,7 @@ c     Solid walls, Nuemann conditions
          hdr = half*(r(ics+1) - r(ics))
          neq = ine - ins + 1
          if ( neq .gt. NStripMax ) then
-            STOP 'HGPHIBC: NstripMax too small'
+            call bl_abort('HGPHIBC: NstripMax too small')
          end if
          icR = ics
          c(1) = r(icR) / rhoExt(icR-ics)
@@ -1009,10 +1009,10 @@ c     Write the solution into the arg
       logical rNormed, singular
       singular = .false.
       if(n.gt.NMAX)then
-         STOP 'TRIDAG_SING: NMAX too small in tridag'
+         call bl_abort('TRIDAG_SING: NMAX too small in tridag')
       end if
       if((b(1).eq.zero).or.(ABS(b(n)).le.eps))then
-         STOP 'TRIDAG_SING: rewrite equations'
+         call bl_abort('TRIDAG_SING: rewrite equations')
       end if
       bet=b(1)
       u(1)=r(1)/bet
@@ -1023,7 +1023,7 @@ c     Write the solution into the arg
            if (rNormed .and.  (j .eq. n)) then
               singular = .true.
            else
-              STOP 'tridag failed'
+              call bl_abort('tridag failed')
            end if
         end if
         if (singular) then
@@ -1045,17 +1045,17 @@ c     Write the solution into the arg
       INTEGER j
       REAL_T bet,gam(NMAX)
       if(n.gt.NMAX)then
-         STOP 'TRIDAG: NMAX too small in tridag'
+         call bl_abort('TRIDAG: NMAX too small in tridag')
       end if
       if(b(1) .eq. 0.0D0) then
-         STOP 'TRIDAG: rewrite equations'
+         call bl_abort('TRIDAG: rewrite equations')
       end if
       bet=b(1)
       u(1)=r(1)/bet
       do 11 j=2,n
         gam(j)=c(j-1)/bet
         bet=b(j)-a(j)*gam(j)
-        if(bet .eq. 0.0D0) STOP 'tridag failed'
+        if(bet .eq. 0.0D0) call bl_abort('tridag failed')
         u(j)=(r(j)-a(j)*u(j-1))/bet
 11    continue
       do 12 j=n-1,1,-1
@@ -1071,10 +1071,10 @@ c     Write the solution into the arg
       INTEGER i
       REAL_T fact,gamma,bb(NMAX),u(NMAX),z(NMAX),den
       if(n.le.2)then
-         STOP 'CYCLIC: n too small in cyclic'
+         call bl_abort('CYCLIC: n too small in cyclic')
       end if
       if(n.gt.NMAX)then
-         STOP 'CYCLIC: NMAX too small in cyclic'
+         call bl_abort('CYCLIC: NMAX too small in cyclic')
       end if
       gamma=-b(1)
       bb(1)=b(1)-gamma

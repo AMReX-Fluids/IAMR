@@ -841,7 +841,7 @@ c     Make sure u_mac is periodic
          diff = uExt(ics) - uExt(ice+1)
          if (ABS(diff) .gt. small_udiff) then
             write(6,*) 'MACPHIBC: periodic umac screwy.  diff =',diff
-            stop
+            call bl_abort(" ")
          endif
          
 c     Do left-side periodic BC (keep r in there to guarantee correct scaling)

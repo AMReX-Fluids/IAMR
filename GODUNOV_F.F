@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_F.F,v 1.7 1999-06-07 17:30:09 marc Exp $
+c $Id: GODUNOV_F.F,v 1.8 2002-11-14 23:04:56 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -31,10 +31,8 @@ c=========================================================
      &   slope_order.ne.4)then
         write(6,*)'FORT_SET_PARAMS : illegal value of slope_order = ',
      &            slope_order
-#ifndef	BL_NO_FORT_FLUSH
-c        call flush(6)
-#endif
-        stop
+
+        call bl_abort(" ")
       end if
 
       end
