@@ -1,7 +1,7 @@
 
-#ifdef USE_BSP
+#ifdef BL_USE_BSP
 //
-// $Id: preload.cpp,v 1.6 1997-09-22 22:52:27 lijewski Exp $
+// $Id: preload.cpp,v 1.7 1997-09-22 23:44:17 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -110,4 +110,4 @@ _bsp_preload_init ()
     get_bsp_include_dir();
 }
 
-#endif /*USE_BSP*/
+#endif /*BL_USE_BSP*/
