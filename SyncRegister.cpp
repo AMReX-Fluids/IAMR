@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.60 1999-07-24 00:07:02 almgren Exp $
+// $Id: SyncRegister.cpp,v 1.61 1999-08-01 15:12:37 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -711,6 +711,8 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
     if (fine_geom.isAnyPeriodic())
       fine_geom.FillPeriodicBoundary(*Sync_resid_fine,false,false);
 
+    int is_per;
+
     //
     // Coarsen edge values.
     //
@@ -721,23 +723,40 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
+
             FArrayBox& cfablo = cloMF[dir][mfi.index()];
             const Box& cboxlo = cfablo.box();
             const int* clo = cboxlo.loVect();
             const int* chi = cboxlo.hiVect();
 
+            if (fine_geom.isPeriodic(dir) && 
+                clo[dir] == crse_node_domain.smallEnd(dir)) 
+            {
+              is_per = 1;
+            } else {
+              is_per = 0;
+            }
+
             FORT_SRCRSEREG(mfi().dataPtr(),ARLIM(resid_lo),ARLIM(resid_hi),
                            cfablo.dataPtr(),ARLIM(clo),ARLIM(chi),
-                           clo,chi,&dir,ratio.getVect());
+                           clo,chi,&dir,ratio.getVect(),&is_per);
 
             FArrayBox& cfabhi = chiMF[dir][mfi.index()];
             const Box& cboxhi = cfabhi.box();
             clo = cboxhi.loVect();
             chi = cboxhi.hiVect();
 
+            if (fine_geom.isPeriodic(dir) && 
+                clo[dir] == crse_node_domain.bigEnd(dir)) 
+            {
+              is_per = 1;
+            } else {
+              is_per = 0;
+            }
+
             FORT_SRCRSEREG(mfi().dataPtr(),ARLIM(resid_lo),ARLIM(resid_hi),
                            cfabhi.dataPtr(),ARLIM(clo),ARLIM(chi),
-                           clo,chi,&dir,ratio.getVect());
+                           clo,chi,&dir,ratio.getVect(),&is_per);
         }
     }
 

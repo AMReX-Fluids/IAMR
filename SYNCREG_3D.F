@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.10 1999-07-27 20:45:44 almgren Exp $
+c $Id: SYNCREG_3D.F,v 1.11 1999-08-01 15:12:38 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -28,13 +28,13 @@ c ::: ratios     => IntVect refinement ratio
 c ::: -----------------------------------------------------------
 
       subroutine FORT_SRCRSEREG(fine,DIMS(fine),crse,DIMS(crse),lo,hi,dir,
-     &                          ratios)
+     &                          ratios, is_per)
 
       integer    DIMDEC(fine)
       integer    DIMDEC(crse)
       integer    lo(SDIM)
       integer    hi(SDIM)
-      integer    dir
+      integer    dir, is_per
       integer    ratios(0:SDIM-1)
       REAL_T     fine(DIMV(fine))
       REAL_T     crse(DIMV(crse))

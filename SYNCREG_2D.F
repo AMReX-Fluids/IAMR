@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_2D.F,v 1.13 1999-07-24 00:07:03 almgren Exp $
+c $Id: SYNCREG_2D.F,v 1.14 1999-08-01 15:12:38 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -28,7 +28,7 @@ c ::: ratio      => refinement ratio
 c ::: -----------------------------------------------------------
 
       subroutine FORT_SRCRSEREG(fine,DIMS(fine),crse,DIMS(crse),lo,hi,dir,
-     &                          ratios)
+     &                          ratios,is_per)
 
       integer    DIMDEC(fine)
       integer    DIMDEC(crse)
@@ -41,6 +41,7 @@ c ::: -----------------------------------------------------------
       
       integer    i, j, ic, jc
       integer    ratiox, ratioy
+      integer    is_per
 
 c     NOTE: the reason that the coefficients add up to 1/ratio and NOT to 1
 c           is because the divergences and DGphi were computed using the
@@ -102,6 +103,24 @@ c        ::::: sum in j direction
          j = ratioy*hi(2)
          fine(i,j) = two*fine(i,j)
 
+         if (is_per .eq. 1) then
+            if (ratiox .eq. 2) then
+              do jc = lo(2)+1, hi(2)-1
+                j = ratioy*jc
+                crse(ic,jc) =   crse(ic,jc) + 
+     &              (fine(i+1,j)+fine(i-1,j)) / (four*ratioy)
+              end do
+            else if (ratiox .eq. 4) then
+              do jc = lo(2)+1, hi(2)-1
+                j = ratioy*jc
+                crse(ic,jc) =  crse(ic,jc) + 
+     &                      ( three*(fine(i+1,j)+fine(i-1,j))
+     &                      +   two*(fine(i+2,j)+fine(i-2,j))
+     &                      +       (fine(i+3,j)+fine(i-3,j)) ) / (sixteen*ratioy)
+              end do
+            endif
+         endif
+
       else
 
 c        ::::: sum in i direction
@@ -149,6 +168,24 @@ c        ::::: sum in i direction
 
          i = ratiox*hi(1)
          fine(i,j) = two*fine(i,j)
+
+         if (is_per .eq. 1) then
+            if (ratioy .eq. 2) then
+              do ic = lo(1)+1, hi(1)-1
+                 i = ratiox*ic
+                 crse(ic,jc) =   crse(ic,jc) + 
+     &               (fine(i,j+1)+fine(i,j-1)) / (four*ratiox)
+              end do
+            else if (ratioy .eq. 4) then
+              do ic = lo(1)+1, hi(1)-1
+                 i = ratiox*ic
+                 crse(ic,jc) =  crse(ic,jc) + 
+     &                       ( three*(fine(i,j+1)+fine(i,j-1))
+     &                       +   two*(fine(i,j+2)+fine(i,j-2))
+     &                       +       (fine(i,j+3)+fine(i,j-3)) ) / (sixteen*ratiox)
+              end do
+            endif
+         endif
 
       end if
       
