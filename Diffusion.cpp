@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.33 1998-06-18 23:26:13 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.34 1998-06-20 03:18:40 lijewski Exp $
 //
 
 //
@@ -3001,9 +3001,6 @@ Diffusion::FillBoundary (BndryRegister& bdry,
 
     snew_tmp.define(S_new.boxArray(),num_comp,S_new.nGrow(),Fab_allocate);
     Copy(snew_tmp,S_new,src_comp,0,num_comp,S_new.nGrow());
-
-//snew_tmp.setBndry(0);
-
     snew_tmp.FillBoundary();
 
     MultiFab rho_old, rho_new;
