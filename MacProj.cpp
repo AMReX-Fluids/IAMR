@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.31 1998-11-05 18:44:26 lijewski Exp $
+// $Id: MacProj.cpp,v 1.32 1998-11-10 21:58:59 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -969,7 +969,7 @@ MacProj::set_outflow_bcs (int             level,
 
     for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
 	if (i != dir)
-            umac[i].copy(uedat[cnt++]);
+            u_mac[i].copy(uedat[cnt++]);
     //
     // Make cc r (set = 1 if cartesian).
     //
