@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.183 2000-07-25 19:15:44 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.184 2000-07-25 22:25:10 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2006,6 +2006,7 @@ NavierStokes::scalar_advection_update (Real dt,
     // (do rho separate, as we do not have rho at new time yet)
     //
     int sComp = first_scalar;
+
     if (sComp == Density)
     {
         for (MultiFabIterator S_oldmfi(S_old); S_oldmfi.isValid(); ++S_oldmfi)
@@ -2024,19 +2025,19 @@ NavierStokes::scalar_advection_update (Real dt,
 
     if (sComp <= last_scalar)
     {
-        FillPatchIterator Rho_fpi(*this,S_old,0,halftime,State_Type,Density,1);
-        
-        for ( ; Rho_fpi.isValid(); ++Rho_fpi)
+        for (MultiFabIterator Rho_mfi(*get_rho_half_time());
+             Rho_mfi.isValid();
+             ++Rho_mfi)
         {
-            DependentMultiFabIterator S_oldmfi(Rho_fpi,S_old);
-            DependentMultiFabIterator S_newmfi(Rho_fpi,S_new);
-            DependentMultiFabIterator Aofsmfi(Rho_fpi,Aofs);
+            DependentMultiFabIterator S_oldmfi(Rho_mfi,S_old);
+            DependentMultiFabIterator S_newmfi(Rho_mfi,S_new);
+            DependentMultiFabIterator Aofsmfi(Rho_mfi,Aofs);
             
-            const int i = Rho_fpi.index();
-            
+            const int i = Rho_mfi.index();
+
             for (int sigma = sComp; sigma <= last_scalar; sigma++)
             {
-                getForce(tforces,i,0,sigma,1,Rho_fpi());
+                getForce(tforces,i,0,sigma,1,Rho_mfi());
                 
                 godunov->Add_aofs_tf(S_oldmfi(),S_newmfi(),sigma,1,Aofsmfi(),
                                      sigma,tforces,0,grids[i],dt);
@@ -2176,23 +2177,19 @@ NavierStokes::velocity_advection_update (Real dt)
     MultiFab&  U_new          = get_new_data(State_Type);
     MultiFab&  P_old          = get_old_data(Press_Type);
     MultiFab&  Aofs           = *aofs;
-    const Real cur_time       = state[State_Type].curTime();
-    const Real prev_time      = state[State_Type].prevTime();
-    const Real half_time      = 0.5*(prev_time+cur_time);
     const Real prev_pres_time = state[Press_Type].prevTime();
 
     MultiFab Gp(grids,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
 
+    MultiFabIterator  Rho_mfi(*get_rho_half_time());
     FillPatchIterator P_fpi(*this,P_old,0,prev_pres_time,Press_Type,0,1);
 
-    FillPatchIterator Rho_fpi(*this,U_old,0,half_time,State_Type,Density,1);
-
-    for ( ; Rho_fpi.isValid() && P_fpi.isValid(); ++Rho_fpi, ++P_fpi)
+    for ( ; Rho_mfi.isValid() && P_fpi.isValid(); ++Rho_mfi, ++P_fpi)
     {
-        const int i = Rho_fpi.index();
+        const int i = Rho_mfi.index();
 
-	getForce(tforces,i,0,Xvel,BL_SPACEDIM,Rho_fpi());
+	getForce(tforces,i,0,Xvel,BL_SPACEDIM,Rho_mfi());
         //
         // Do following only at initial iteration--per JBB.
         //
@@ -2200,7 +2197,7 @@ NavierStokes::velocity_advection_update (Real dt)
             tforces.setVal(0);
 
         godunov->Add_aofs_tf_gp(U_old[i],U_new[i],Aofs[i],tforces,
-                                 Gp[i],Rho_fpi(),grids[i],dt);
+                                 Gp[i],Rho_mfi(),grids[i],dt);
     }
 }
 
