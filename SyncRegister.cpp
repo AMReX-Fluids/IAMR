@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.40 1998-06-11 17:37:45 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.41 1998-06-12 19:45:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -180,6 +180,8 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
     const Box& domain = ::surroundingNodes(geom.Domain());
 
+    const int MyProc = ParallelDescriptor::MyProc();
+
     Array<IntVect> pshifts(27);
     //
     // FILL RHS FROM BNDRY REGISTERS
@@ -191,9 +193,9 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     {
         for (OrientationIter face; face; ++face)
         {
-            vector<FillBoxId> fillBoxIdList;
-
             FabSetCopyDescriptor fscd;
+            vector<FillBoxId>    fillBoxIDs;
+            vector<IntVect>      shifts;
 
             FabSetId faid = fscd.RegisterFabSet(&bndry[face()]);
 
@@ -205,22 +207,32 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
                     for (int iiv = 0; iiv < pshifts.length(); iiv++)
                     {
-
                         Box sbox = bndry[face()][j].box();
                         sbox.shift(pshifts[iiv]);
                         if (sbox.intersects(mfi().box()))
                         {
                             sbox &= mfi().box();
-                            D_TERM(sbox.shift(0,-pshifts[iiv][0]);,
-                                   sbox.shift(1,-pshifts[iiv][1]);,
-                                   sbox.shift(2,-pshifts[iiv][2]););
-                            fillBoxIdList.push_back(fscd.AddBox(faid,
-                                                                sbox,
-                                                                0,
-                                                                j,
-                                                                0,
-                                                                0,
-                                                                mfi().nComp()));
+                            sbox.shift(-pshifts[iiv]);
+                            fillBoxIDs.push_back(fscd.AddBox(faid,
+                                                             sbox,
+                                                             0,
+                                                             j,
+                                                             0,
+                                                             0,
+                                                             mfi().nComp()));
+                            //
+                            // I need to save mfi.index(), `j' and pshifts[iiv]
+                            // The two integers I can cram into the FillBoxId.
+                            //
+                            assert(sizeof(int) >= 4);
+                            assert(j < 0xFFFF);
+                            assert(mfi.index() < 0xFFFF);
+
+                            fillBoxIDs.back().FabIndex((j<<16) | mfi.index());
+                            //
+                            // I'll maintain a parallel array for the IntVects.
+                            //
+                            shifts.push_back(pshifts[iiv]);
                         }
                     }
                 }
@@ -228,26 +240,24 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
             fscd.CollectData();
 
-            vector<FillBoxId>::iterator fillBoxIdIter = fillBoxIdList.begin();
+            assert(fillBoxIDs.size() == shifts.size());
 
-            for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
+            for (int i = 0; i < fillBoxIDs.size(); i++)
             {
-                for (int j = 0; j < grids.length(); j++)
-                {
-                    geom.periodicShift(domain,bndry[face()][j].box(),pshifts);
+                const FillBoxId& fbID = fillBoxIDs[i];
+                const int fabindex    = fbID.FabIndex() & 0xFFFF;
+                const int gridindex   = (fbID.FabIndex() >> 16) & 0xFFFF;
+                Box sbox              = bndry[face()][gridindex].box();
 
-                    for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                    {
-                        Box sbox = bndry[face()][j].box();
-                        sbox.shift(pshifts[iiv]);
-                        if (sbox.intersects(mfi().box()))
-                        {
-                            sbox &= mfi().box();
-                            assert(!(fillBoxIdIter == fillBoxIdList.end()));
-                            fscd.FillFab(faid, *fillBoxIdIter++, mfi(), sbox);
-                        }
-                    }
-                }
+                assert(rhs.DistributionMap().ProcessorMap()[fabindex] == MyProc);
+
+                FArrayBox& fab = rhs[fabindex];
+
+                sbox.shift(shifts[i]);
+                assert(sbox.intersects(fab.box()));
+                sbox &= fab.box();
+
+                fscd.FillFab(faid, fbID, fab, sbox);
             }
         }
     }
@@ -330,19 +340,18 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
                 for (int iiv = 0; iiv < pshifts.length(); iiv++)
                 {
-                    IntVect iv = pshifts[iiv];
-                    mask_cells.shift(iv);
+                    mask_cells.shift(pshifts[iiv]);
 
                     for (int n = 0; n < grids.length(); n++)
                     {
                         if (mask_cells.intersects(grids[n]))
                         {
                             Box intersect = mask_cells & grids[n];
-                            intersect.shift(-iv);
+                            intersect.shift(-pshifts[iiv]);
                             tmpfab.setVal(1.0,intersect,0,1);
                         }
                     }
-                    mask_cells.shift(-iv);
+                    mask_cells.shift(-pshifts[iiv]);
                 }
             }
             REAL* mask_dat = fsi().dataPtr();
@@ -401,8 +410,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     //
     for (OrientationIter face; face; ++face)
     {
-        vector<FillBoxId> fillBoxIdList;
-
+        vector<FillBoxId>    fillBoxIDs;
         FabSetCopyDescriptor fscd;
 
         FabSetId faid = fscd.RegisterFabSet(&bndry_mask[face()]);
@@ -414,28 +422,26 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                 if (mfi().box().intersects(bndry_mask[face()].fabbox(j)))
                 {
                     Box intersect = mfi().box() & bndry_mask[face()].fabbox(j);
-                    fillBoxIdList.push_back(fscd.AddBox(faid,
-                                                        intersect,
-                                                        0,
-                                                        j,
-                                                        0,
-                                                        0,
-                                                        mfi().nComp()));
+                    fillBoxIDs.push_back(fscd.AddBox(faid,
+                                                     intersect,
+                                                     0,
+                                                     j,
+                                                     0,
+                                                     0,
+                                                     mfi().nComp()));
                     //
                     // Also save the index of our FAB needed filling.
                     //
-                    fillBoxIdList.back().FabIndex(mfi.index());
+                    fillBoxIDs.back().FabIndex(mfi.index());
                 }
             }
         }
 
         fscd.CollectData();
 
-        const int MyProc = ParallelDescriptor::MyProc();
-
-        for (int i = 0; i < fillBoxIdList.size(); i++)
+        for (int i = 0; i < fillBoxIDs.size(); i++)
         {
-            const FillBoxId& fbID = fillBoxIdList[i];
+            const FillBoxId& fbID = fillBoxIDs[i];
 
             int fabindex = fbID.FabIndex();
 
@@ -732,8 +738,7 @@ SyncRegister::FineDVAdd (const MultiFab& U,
 {
     const Box& crse_node_domain = ::surroundingNodes(crse_geom.Domain());
 
-    FArrayBox ufab;
-    FArrayBox cfablo, cfabhi, ffablo, ffabhi;
+    FArrayBox ufab, cfablo, cfabhi, ffablo, ffabhi;
 
     Array<IntVect> pshifts(27);
 
@@ -906,8 +911,8 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                            int             hifix,
                            Real            mult)
 {
-    FArrayBox dsdtfab;
-    FArrayBox cfablo, cfabhi, ffablo, ffabhi;
+    FArrayBox dsdtfab, cfablo, cfabhi, ffablo, ffabhi;
+    FArrayBox ffablo_tmp, ffabhi_tmp;
 
     for (ConstMultiFabIterator mfi(dsdt); mfi.isValid(false); ++mfi)
     {
@@ -957,8 +962,7 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
 
             SetCenter(is_rz, rcen, geom, dsdtfab.box());
 
-            FArrayBox ffablo_tmp(reglo,1);
-
+            ffablo_tmp.resize(reglo,1);
 #if (BL_SPACEDIM==2)
             int nghost         = 0;
             int hi_fix         = 0;
@@ -978,8 +982,7 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
             ffablo_tmp.negate();
             ffablo_tmp.mult(mult);
             ffablo.copy(ffablo_tmp);
-            FArrayBox ffabhi_tmp(reghi,1);
-
+            ffabhi_tmp.resize(reghi,1);
 #if (BL_SPACEDIM==2)
             int low_fix = 0;
             FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
@@ -1036,7 +1039,6 @@ NullOverlap (const BoxArray& Pgrids,
         {
             ffablo.setVal(0,(reglo & Pgrids[i]),set_comp,n_comp);
         }
-
         fine_geom.periodicShift(reglo, Pgrids[i], pshifts);
 
         for (int iiv = 0; iiv < pshifts.length(); iiv++)
@@ -1051,7 +1053,6 @@ NullOverlap (const BoxArray& Pgrids,
         {
             ffabhi.setVal(0,(reghi & Pgrids[i]),set_comp,n_comp);
         }
-
         fine_geom.periodicShift(reghi, Pgrids[i], pshifts);
 
         for (int iiv = 0; iiv < pshifts.length(); iiv++)
@@ -1078,8 +1079,7 @@ SyncRegister::CompDVAdd (const MultiFab& U,
 
     Array<IntVect> pshifts(27);
 
-    FArrayBox ufab;
-    FArrayBox cfablo, cfabhi, ffablo, ffabhi;
+    FArrayBox ufab, cfablo, cfabhi, ffablo, ffabhi;
 
     for (ConstMultiFabIterator mfi(U); mfi.isValid(false); ++mfi)
     {
@@ -1129,7 +1129,6 @@ SyncRegister::CompDVAdd (const MultiFab& U,
                         reghi.loVect(),reghi.hiVect(),dx_fine,&mult,&is_rz);
 
             NullOverlap(Pgrids,fine_geom,reglo,ffablo,reghi,ffabhi,pshifts);
-
             //
             // Coarsen edge values.
             //
@@ -1348,8 +1347,7 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
 
     const Box& crse_node_domain = ::surroundingNodes(crse_geom.Domain());
 
-    FArrayBox pfab, sfab;
-    FArrayBox cfablo, cfabhi, ffablo, ffabhi;
+    FArrayBox pfab, sfab, cfablo, cfabhi, ffablo, ffabhi;
 
     Array<IntVect> pshifts(27);
 
