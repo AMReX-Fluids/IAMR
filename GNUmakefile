@@ -32,6 +32,7 @@ LBASE =
 
 HERE = .
 
+PBOXLIB_HOME = ..
 include ../mk/Make.defs
 
 CPPFLAGS += -DBL_USE_NEW_HFILES
