@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.103 1999-07-01 23:56:25 propp Exp $
+// $Id: Projection.cpp,v 1.104 1999-07-03 00:02:33 propp Exp $
 //
 
 #ifdef BL_T3E
@@ -2240,7 +2240,7 @@ Projection::set_level_projector_outflow_bcs (int       level,
         rho_nph.copy(rhoFab,0,0,1);
         divu.copy(divuFab,0,0,1);
         vel.copy(velFab,0,0,BL_SPACEDIM);
-#if (BL_SPACEDIM == 2)
+
 	const Geometry& thisGeom = parent->Geom(level);
 	computeBC(velFab,divuFab,rhoFab,phiFab,thisGeom,outFace);
 
@@ -2250,16 +2250,6 @@ Projection::set_level_projector_outflow_bcs (int       level,
             if (ovlp.ok())
                 mfi().copy(phiFab,ovlp,0,ovlp,0,1);
         }
-#else
-        //
-        // check to see if divu == 0 near outflow.  If it isn't, then abort.
-        //
-        Real divu_norm = divuFab.norm(1,0,1);
-        if (divu_norm > 1.0e-7) {
-            cout << "divu_norm = " << divu_norm << endl;
-            BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
-        }
-#endif
     }
 }
 
@@ -2360,7 +2350,6 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
 
     for ( ;velFpi.isValid() && divuFpi.isValid(); ++velFpi, ++divuFpi)
     {
-#if (BL_SPACEDIM == 2)
         DependentMultiFabIterator phimfi(rhoFpi, phi_fine_strip);
         rho.resize(velFpi.validbox(), nCompRho);
         if (rho_wgt_vel_proj && rhoFpi.isValid())
@@ -2373,17 +2362,6 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
 
         if (rho_wgt_vel_proj)
             ++rhoFpi;
-#else
-    //
-    // check to see if divu == 0 near outflow.  If it isn't, then abort.
-    //
-        Real divu_norm = divuFpi().norm(1,0,1);
-        if (divu_norm > 1.0e-7) 
-        {
-            cout << "divu_norm = " << divu_norm << endl;
-            BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
-        }
-#endif
     }
     
     phi[f_lev]->copy(phi_fine_strip);
@@ -2466,15 +2444,12 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
     FillPatchIterator divuNewFpi(LevelData[f_lev],cc_MultiFab,nGrow,
                                  start_time+dt,Divu_Type,srcCompDivu,nCompDivu);
 	
-#if BL_SPACEDIM == 2
     Real dt_inv = 1./dt;
-#endif
 
     for ( ;rhoOldFpi.isValid()  &&  velOldFpi.isValid()  &&  divuOldFpi.isValid() &&
               rhoNewFpi.isValid()  &&  velNewFpi.isValid()  &&  divuNewFpi.isValid();
           ++rhoOldFpi, ++velOldFpi, ++divuOldFpi, ++rhoNewFpi, ++velNewFpi, ++divuNewFpi)
     {
-#if (BL_SPACEDIM == 2)
         DependentMultiFabIterator phimfi(rhoOldFpi, phi_fine_strip);
         //
         // Make rhonph, du/dt, and dsdt.
@@ -2501,20 +2476,6 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
 
 	const Geometry& thisGeom = parent->Geom(f_lev);
 	computeBC(dudt,dsdt,rhonph,phimfi(),thisGeom,outFace);
-#else
-    //
-    // check to see if divu == 0 near outflow.  If it isn't, then abort.
-    //
-    Real oldDivu_norm = divuOldFpi().norm(1,0,1);
-    Real newDivu_norm = divuNewFpi().norm(1,0,1);
-
-    if (oldDivu_norm > 1.0e-7 || newDivu_norm > 1.0e-7) 
-    {
-        cout << "oldDivu_norm = " << oldDivu_norm << endl;
-        cout << "newDivu_norm = " << newDivu_norm << endl;
-        BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
-    }
-#endif
     }
 
     phi[f_lev]->copy(phi_fine_strip);
@@ -2716,10 +2677,10 @@ Projection::computeBC(FArrayBox& velFab, FArrayBox& divuFab,
 		      FArrayBox& rhoFab, FArrayBox& phiFab,
 		      const Geometry& geom, const Orientation& outFace)
 {
-#if (BL_SPACEDIM == 2)
-  const Box& domain = geom.Domain();
   const Real* dx = geom.CellSize();
+  const Box& domain = geom.Domain();
 
+#if (BL_SPACEDIM == 2)
   //
   // Make r_i needed in HGPHIBC (set = 1 if cartesian).
   //
@@ -2780,9 +2741,17 @@ Projection::computeBC(FArrayBox& velFab, FArrayBox& divuFab,
 
     }
 #else
-  BoxLib::Error("computeBC not yet implemented for 3d");
+  //
+  // check to see if divu == 0 near outflow.  If it isn't, then abort.
+  //
+  Real divu_norm = divuFab.norm(1,0,1);
+  if (divu_norm > 1.0e-7) {
+    cout << "divu_norm = " << divu_norm << endl;
+    BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
+  }
 #endif
 }
+
 
 
 

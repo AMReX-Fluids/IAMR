@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.55 1999-07-01 23:56:24 propp Exp $
+// $Id: MacProj.cpp,v 1.56 1999-07-03 00:02:33 propp Exp $
 //
 
 #include <Misc.H>
@@ -270,8 +270,6 @@ MacProj::cleanup (int level)
 //
 // Projection functions follow ...
 //
-
-#if BL_SPACEDIM == 2
 static
 bool
 grids_on_side_of_domain (const BoxArray&    grids,
@@ -304,7 +302,6 @@ grids_on_side_of_domain (const BoxArray&    grids,
 
     return false;
 }
-#endif
 
 //
 // Compute the level advance mac projection.
@@ -1008,125 +1005,114 @@ MacProj::set_outflow_bcs (int             level,
     //
     //   (1/r)(d/dr)[r/rho dphi/dr] = dv/dr - S
     //
-#if (BL_SPACEDIM == 2)
-    const BoxArray&   grids = LevelData[level].boxArray();
-    const Geometry&   geom  = parent->Geom(level);
 
     bool hasOutFlow;
     Orientation outFace;
     getOutFlowFace(hasOutFlow,outFace,phys_bc);
 
+    const BoxArray&   grids = LevelData[level].boxArray();
+    const Geometry&   geom  = parent->Geom(level);
+    const Box& domain = parent->Geom(level).Domain();
+
     if (!grids_on_side_of_domain(grids,geom.Domain(),outFace)) 
       return;
-    //
-    // Make sure outflow only occurs at yhi faces.
-    //
 
-    const int rzflag  = CoordSys::IsRZ();
-    const Real* dx    = parent->Geom(level).CellSize();
-    const Box& domain = parent->Geom(level).Domain();
-    //
-    // Load cc data (rho, divu).
-    //
-    const int bndBxWdth = 1;
     const int outDir       = outFace.coordDir();
 
-    Box ccBndBox = ::adjCell(domain,outFace,bndBxWdth).shift(outDir,-bndBxWdth);
-    Box phiBox   = ::adjCell(domain,outFace,1);
+    const int bndBxWdth = 1;
+
+    Box ccBndBox= ::adjCell(domain,outFace,bndBxWdth).shift(outDir,-bndBxWdth);
+    Box phiBox  = ::adjCell(domain,outFace,1);
 
     const Box valid_ccBndBox = ccBndBox & domain;
     const BoxArray uncovered_outflow_ba = ::complementIn(valid_ccBndBox,grids);
 
-    if (uncovered_outflow_ba.ready() && ::intersect(grids,valid_ccBndBox).ready())
-    {
-        BoxLib::Error("MacProj: Cannot yet handle partially refined outflow");
-    }
-    else
-    {
-        FArrayBox rhodat(ccBndBox,1);
-        FArrayBox divudat(ccBndBox,1);
-        FArrayBox phidat(phiBox,1);
+    if (uncovered_outflow_ba.ready() && 
+	::intersect(grids,valid_ccBndBox).ready())
+      BoxLib::Error("MacProj: Cannot yet handle partially refined outflow");
+    
+    FArrayBox rhodat(ccBndBox,1);
+    FArrayBox divudat(ccBndBox,1);
+    FArrayBox phidat(phiBox,1);
+    
+    const BoxArray& ba = S.boxArray();
+    
+    BL_ASSERT(ba == divu.boxArray());
+    //
+    // Fill rhodat & divudat.
+    //
+    S.copy(rhodat, Density, 0, 1);
+    divu.copy(divudat, 0, 0, 1);
+    //
+    // Load ec data.
+    //
+    FArrayBox uedat[BL_SPACEDIM-1];
+    
+    for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
+      if (i != outDir)
+	uedat[cnt++].resize(::surroundingNodes(ccBndBox,i), 1);
+    
+    for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
+      if (i != outDir)
+	u_mac[i].copy(uedat[cnt++]);
 
-        const BoxArray& ba = S.boxArray();
-
-        BL_ASSERT(ba == divu.boxArray());
-        //
-        // Fill rhodat & divudat.
-        //
-        S.copy(rhodat, Density, 0, 1);
-        divu.copy(divudat, 0, 0, 1);
-        //
-        // Load ec data.
-        //
-        FArrayBox uedat[BL_SPACEDIM-1];
-
-        for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
-            if (i != outDir)
-                uedat[cnt++].resize(::surroundingNodes(ccBndBox,i), 1);
-
-        for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
-            if (i != outDir)
-                u_mac[i].copy(uedat[cnt++]);
-        //
-        // Make cc r (set = 1 if cartesian).
-        //
-	int R_DIR = 0;
-	int Z_DIR = 1;
-	int perpDir = (outDir == Z_DIR) ? R_DIR : Z_DIR;
-        Array<Real> rcen(ccBndBox.length(perpDir), 1.0);
-        if (CoordSys::IsRZ() && perpDir == R_DIR) 
-            parent->Geom(level).GetCellLoc(rcen, ccBndBox, perpDir);
-        //
-        // Compute boundary solution.
-        //
-        const int isPeriodic = parent->Geom(level).isPeriodic(perpDir);
-	int face = int(outFace);
-
-	int r_lo = ccBndBox.smallEnd(perpDir);
-	int r_hi = ccBndBox.bigEnd(perpDir);
-
-        FORT_MACPHIBC(ARLIM(uedat[0].loVect()),ARLIM(uedat[0].hiVect()),uedat[0].dataPtr(),
-                      ARLIM(divudat.loVect()), ARLIM(divudat.hiVect()),divudat.dataPtr(),
-                      ARLIM(rhodat.loVect()),  ARLIM(rhodat.hiVect()), rhodat.dataPtr(),
-                      &r_lo, &r_hi, rcen.dataPtr(), &dx[perpDir],
-                      ARLIM(phidat.loVect()),  ARLIM(phidat.hiVect()), phidat.dataPtr(),
-                      &face,&isPeriodic);
-
-        for (MultiFabIterator mfi(*mac_phi); mfi.isValid(); ++mfi)
-        {
-            if (mfi().box().intersects(phidat.box()))
-            {
-                Box ovlp = mfi().box() & phidat.box();
-                mfi().copy(phidat,ovlp);
-            }
-        }
-    }
+#if (BL_SPACEDIM == 2)
+    //
+    // Make cc r (set = 1 if cartesian).
+    //
+    const int rzflag  = CoordSys::IsRZ();
+    const Real* dx    = parent->Geom(level).CellSize();
+    int R_DIR = 0;
+    int Z_DIR = 1;
+    int perpDir = (outDir == Z_DIR) ? R_DIR : Z_DIR;
+    Array<Real> rcen(ccBndBox.length(perpDir), 1.0);
+    if (CoordSys::IsRZ() && perpDir == R_DIR) 
+      parent->Geom(level).GetCellLoc(rcen, ccBndBox, perpDir);
+    //
+    // Compute boundary solution.
+    //
+    const int isPeriodic = parent->Geom(level).isPeriodic(perpDir);
+    int face = int(outFace);
+    
+    int r_lo = ccBndBox.smallEnd(perpDir);
+    int r_hi = ccBndBox.bigEnd(perpDir);
+    
+    FORT_MACPHIBC(ARLIM(uedat[0].loVect()),ARLIM(uedat[0].hiVect()),uedat[0].dataPtr(),
+		  ARLIM(divudat.loVect()), ARLIM(divudat.hiVect()),divudat.dataPtr(),
+		  ARLIM(rhodat.loVect()),  ARLIM(rhodat.hiVect()), rhodat.dataPtr(),
+		  &r_lo, &r_hi, rcen.dataPtr(), &dx[perpDir],
+		  ARLIM(phidat.loVect()),  ARLIM(phidat.hiVect()), phidat.dataPtr(),
+		  &face,&isPeriodic);
+    
 #else
+    //
     // Idea is to check and see if divu == 0 near the boundary. 
     // If it is, then we can use divu = 0 bc; otherwise we must abort...
-
-    // Get 3-wide cc box, state_strip, along top,
-    bool hasOutFlow;
-    Orientation _outFace;
-    getOutFlowFace(hasOutFlow,_outFace,phys_bc);
-
-    const Box& domain = parent->Geom(level).Domain();
-    const int outDir       = _outFace.faceDir();
+    //
     const int ccStripWidth = 3;
     Box state_strip;
-    if (_outFace.isLow()) {
+    if (outFace.isLow()) {
       state_strip = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth);
     } else {
       state_strip = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth);
     }
-    const int srcCompDivu = 0,      nCompDivu = 1;
-
     FARRAYBOX divu_fab(state_strip,1);
     divu.copy(divu_fab);
-    REAL norm_divu = divu_fab.norm(1,srcCompDivu,nCompDivu);
+    REAL norm_divu = divu_fab.norm(1,0,1);
     if (norm_divu > 1.0e-7) {
       cout << "divu_norm = " << norm_divu << endl;
       BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
     }
 #endif
+
+    for (MultiFabIterator mfi(*mac_phi); mfi.isValid(); ++mfi)
+      {
+	if (mfi().box().intersects(phidat.box()))
+	  {
+	    Box ovlp = mfi().box() & phidat.box();
+	    mfi().copy(phidat,ovlp);
+	  }
+      }
+
 }
+
