@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.15 1999-02-24 23:28:06 propp Exp $
+c $Id: PROJECTION_2D.F,v 1.16 1999-02-25 01:39:10 propp Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -321,8 +321,7 @@ c     holy grail projection
       subroutine FORT_HGC2N(
      &     nghost, DIMS(dat), dat, rcen,
      &     DIMS(rhs), rhs,
-     &     domlo, domhi, lowfix, hifix, dr,
-     &     extrap_edges, extrap_corners, is_rz) 
+     &     domlo, domhi, lowfix, hifix, dr, is_rz) 
 c
 c     ----------------------------------------------------------
 c     HGC2N
@@ -344,7 +343,6 @@ c
       integer domlo(SDIM), domhi(SDIM)
       integer DIMDEC(dat)
       integer DIMDEC(rhs)
-      integer extrap_edges, extrap_corners
       REAL_T  dr
       REAL_T  rcen(DIM1(dat))
       REAL_T  dat(DIMV(dat))
@@ -352,78 +350,6 @@ c
 
       integer i, j
       REAL_T  factor, rhi, rlo
-
-      if (extrap_edges .eq. 1) then
-c
-c ... fix up bcs at domain edges
-c
-         if(ARG_L1(rhs)+nghost .eq. domlo(1)) then
-            i = domlo(1)
-            do j = ARG_L2(rhs)+nghost, ARG_H2(rhs)-nghost
-               dat(i-1,j) = dat(i,j)
-            end do
-         end if
-
-         if(ARG_H1(rhs)-nghost .eq. domhi(1)+1) then
-            i = domhi(1)
-            do j = ARG_L2(rhs)+nghost, ARG_H2(rhs)-nghost
-               dat(i+1,j) = dat(i,j)
-            end do
-         end if
-
-         if(ARG_L2(rhs)+nghost .eq. domlo(2)) then
-            j = domlo(2)
-            do i = ARG_L1(rhs)+nghost, ARG_H1(rhs)-nghost
-               dat(i,j-1) = dat(i,j)
-            end do
-         end if
-
-         if(ARG_H2(rhs)-nghost .eq. domhi(2)+1) then
-            j = domhi(2)
-            do i = ARG_L1(rhs)+nghost, ARG_H1(rhs)-nghost
-               dat(i,j+1) = dat(i,j)
-            end do
-         end if
-      end if
-
-      if (extrap_corners .eq. 1) then
-
-         if(ARG_L1(rhs)+nghost .eq. domlo(1) .and.
-     &      ARG_L2(rhs)+nghost .eq. domlo(2)) then
-            i = domlo(1)
-            j = domlo(2)
-            dat(i-1,j)   = dat(i,j)
-            dat(i,j-1)   = dat(i,j)
-            dat(i-1,j-1) = dat(i,j)
-         end if
-
-         if(ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
-     &      ARG_L2(rhs)+nghost .eq. domlo(2)) then
-            i = domhi(1)
-            j = domlo(2)
-            dat(i+1,j)   = dat(i,j)
-            dat(i,j-1)   = dat(i,j)
-            dat(i+1,j-1) = dat(i,j)
-         end if
-
-         if(ARG_L1(rhs)+nghost .eq. domlo(1) .and.
-     &      ARG_H2(rhs)-nghost .eq. domhi(2)+1) then
-            i = domlo(1)
-            j = domhi(2)
-            dat(i-1,j)   = dat(i,j)
-            dat(i,j+1)   = dat(i,j)
-            dat(i-1,j+1) = dat(i,j)
-         end if
-
-         if(ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
-     &      ARG_H2(rhs)-nghost .eq. domhi(2)+1) then
-            i = domhi(1)
-            j = domhi(2)
-            dat(i+1,j)   = dat(i,j)
-            dat(i,j+1)   = dat(i,j)
-            dat(i+1,j+1) = dat(i,j)
-         end if
-      end if
 
       if (ARG_L1(rhs)+1 .lt. ARG_L1(dat) .or. 
      $     ARG_H1(rhs)-1 .gt. ARG_H1(dat) .or.

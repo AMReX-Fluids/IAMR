@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.65 1999-02-24 18:36:41 car Exp $
+// $Id: Projection.cpp,v 1.66 1999-02-25 01:39:11 propp Exp $
 //
 
 #ifdef BL_T3E
@@ -1624,12 +1624,9 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
         if (isrz == 1) 
             geom.GetCellLoc(rcen,divumfi().box(),0);
 
-        int extrap_edges   = 0;
-        int extrap_corners = 1;
         FORT_HGC2N(&nghost,ARLIM(divulo),ARLIM(divuhi),divudat,
                    rcen.dataPtr(), ARLIM(rhslo),ARLIM(rhshi),rhsdat,
-                   domlo,domhi,lowfix,hifix,&hx,
-                   &extrap_edges, &extrap_corners,&isrz);
+                   domlo,domhi,lowfix,hifix,&hx,&isrz);
 #endif
 #if (BL_SPACEDIM == 3)
         Real divumin = divumfi().min();

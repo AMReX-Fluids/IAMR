@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.6 1998-10-06 22:53:31 lijewski Exp $
+c $Id: PROJECTION_3D.F,v 1.7 1999-02-25 01:39:10 propp Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -201,3 +201,123 @@ c
        end do
 
        end
+
+      subroutine FORT_HGN2C(
+     &     isrz,lrweighted, DIMS(nodedat), nodedat,
+     &     DIMS(ccdat), lo, hi, ccdat)
+
+c     ----------------------------------------------------------
+c     HGN2C
+c     averages node centered data to cell centers for use in 
+c     holy grail projection
+
+      implicit none
+      integer isrz,lrweighted
+      integer lo(SDIM), hi(SDIM)
+      integer DIMDEC(ccdat)
+      integer DIMDEC(nodedat)
+      REAL_T  nodedat(DIMV(nodedat))
+      REAL_T  ccdat(DIMV(ccdat))
+
+      integer i,j,k
+
+      if (ARG_H1(ccdat)   .lt. lo(1) .or. 
+     &    ARG_L1(ccdat)   .gt. hi(1) .or. 
+     &    ARG_H2(ccdat)   .lt. lo(2) .or. 
+     &    ARG_L2(ccdat)   .gt. hi(2) .or. 
+     &    ARG_H3(ccdat)   .lt. lo(3) .or. 
+     &    ARG_L3(ccdat)   .gt. hi(3) .or. 
+     &    ARG_H1(nodedat) .lt. lo(1)+1 .or. 
+     &    ARG_L1(nodedat) .gt. hi(1) .or. 
+     &    ARG_H2(nodedat) .lt. lo(2)+1 .or. 
+     &    ARG_L2(nodedat) .gt. hi(2) .or.
+     &    ARG_H3(nodedat) .lt. lo(3)+1 .or. 
+     &    ARG_L3(nodedat) .gt. hi(3) ) then 
+        write(6,*) "FORT_HG_CELL_TO_NODE: bad index limits"
+        stop
+      end if
+
+      if(isrz.eq.1.and.lrweighted.ne.1)then
+        write(6,*)
+     &    'FORT_HGN2C : isrz=1 and lrweighted!=1 not implemented in 3D'
+#ifndef	BL_NO_FORT_FLUSH
+        call flush(6)
+#endif
+        stop
+      end if
+
+
+      do k=lo(3),hi(3)
+         do j=lo(2),hi(2)
+            do i=lo(1),hi(1)
+               ccdat(i,j,k)=eighth*(nodedat(i  ,j,  k  )+nodedat(i+1,j  ,k  )+
+     &                              nodedat(i  ,j+1,k  )+nodedat(i+1,j+1,k  )+
+     &                              nodedat(i  ,j,  k+1)+nodedat(i+1,j  ,k+1)+
+     &                              nodedat(i  ,j+1,k+1)+nodedat(i+1,j+1,k+1))
+            end do
+         end do
+      end do
+
+      end
+
+
+       subroutine FORT_HGC2N(
+     &     nghost, DIMS(dat), dat, rcen,
+     &     DIMS(rhs), rhs,
+     &     domlo, domhi, lowfix, hifix, dr, is_rz) 
+c
+c     ----------------------------------------------------------
+c     HGC2N
+c     averages cell centered data to nodes for use in 
+c     holy grail projection
+c     
+c     INPUTS / OUTPUTS:
+c     nghost      => indicates buffer of rhs that does not need values
+c     dat         => cell centered array to be averaged
+c     DIMS(dat)   => index limits of dat
+c     rhslo,rhshi => index extents of rhs
+c     rhs         <= node centered array with results
+c     rcen,lowfix,hifix are artifacts of 2D r-z version and are not used
+c     ----------------------------------------------------------
+c 
+      implicit none
+      integer nghost
+      integer domlo(SDIM), domhi(SDIM)
+      integer DIMDEC(dat)
+      integer DIMDEC(rhs)
+      REAL_T  dat(DIMV(dat))
+      REAL_T  rhs(DIMV(rhs))
+
+c not used
+      integer is_rz, lowfix, hifix
+      REAL_T  rcen(DIM1(dat))
+      REAL_T  dr
+
+c local variables
+      integer i, j, k
+
+      if (ARG_L1(rhs)+1 .lt. ARG_L1(dat) .or. 
+     $    ARG_H1(rhs)-1 .gt. ARG_H1(dat) .or.
+     &    ARG_L2(rhs)+1 .lt. ARG_L2(dat) .or. 
+     $    ARG_H2(rhs)-1 .gt. ARG_H2(dat) .or.
+     &    ARG_L3(rhs)+1 .lt. ARG_L3(dat) .or. 
+     $    ARG_H3(rhs)-1 .gt. ARG_H3(dat) ) then
+         write(6,*) "FORT_HG_CELL_TO_NODE: bad index limits"
+         stop
+      end if
+
+      do k=ARG_L3(rhs)+nghost,ARG_H3(rhs)-nghost
+         do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
+            do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
+               rhs(i,j,k)=eighth*(dat(i-1,j-1,k  )+dat(i-1,j,k  )+
+     &                            dat(i  ,j-1,k  )+dat(i  ,j,k  )+
+     &                            dat(i-1,j-1,k-1)+dat(i-1,j,k-1)+
+     &                            dat(i  ,j-1,k-1)+dat(i  ,j,k-1))
+            end do
+         end do
+      end do
+
+      end
+
+
+

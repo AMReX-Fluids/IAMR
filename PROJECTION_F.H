@@ -2,7 +2,7 @@
 #define _PROJECTION_F_H_ 
 
 /*
-** $Id: PROJECTION_F.H,v 1.7 1998-05-19 00:52:24 marc Exp $
+** $Id: PROJECTION_F.H,v 1.8 1999-02-25 01:39:11 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -88,8 +88,7 @@ extern "C" {
                     const int* domlo,
                     const int* domhi, const int& lowfix,
                     const int& hifix, const Real* hr,
-                    const int* extrap_edges, 
-                    const int* extrap_corners, const int* is_rz);
+                    const int* is_rz);
     
     void FORT_HGN2C(const int* isrz, const int* rweighted, 
                     ARLIM_P(nodelo),ARLIM_P(nodehi), 

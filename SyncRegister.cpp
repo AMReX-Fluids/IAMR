@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.52 1999-02-24 16:53:06 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.53 1999-02-25 01:39:11 propp Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1039,14 +1039,11 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
 #if (BL_SPACEDIM==2)
         int nghost         = 0;
         Real hx            = geom.CellSize()[0];
-        int extrap_edges   = 0;
-        int extrap_corners = 0;
         FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
                    mfi().dataPtr(),
                    rcen.dataPtr(), 
                    ARLIM(ndlo), ARLIM(ndhi), divu.dataPtr(), 
-                   domlo, domhi, lowfix, hifix, &hx,
-                   &extrap_edges, &extrap_corners, &is_rz);
+                   domlo, domhi, lowfix, hifix, &hx, &is_rz);
 #elif (BL_SPACEDIM==3)
         //
         // TODO -- make 3-D work !!!
@@ -1134,15 +1131,12 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
             int nghost         = 0;
             int hi_fix         = 0;
             Real hx            = geom.CellSize()[0];
-            int extrap_edges   = 0;
-            int extrap_corners = 0;
             FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
                        dsdtfab.dataPtr(),
                        rcen.dataPtr(), 
                        ARLIM(reglo.loVect()), ARLIM(reglo.hiVect()), 
                        ffablo_tmp.dataPtr(),
-                       domlo, domhi, lowfix, hi_fix, &hx,
-                       &extrap_edges, &extrap_corners, &is_rz);
+                       domlo, domhi, lowfix, hi_fix, &hx,&is_rz);
 #elif (BL_SPACEDIM==3)
             //
             // TODO -- make 3-D work !!!
@@ -1161,8 +1155,7 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                        rcen.dataPtr(), 
                        ARLIM(reghi.loVect()), ARLIM(reghi.hiVect()), 
                        ffabhi_tmp.dataPtr(), 
-                       domlo, domhi, low_fix, hifix, &hx,
-                       &extrap_edges, &extrap_corners, &is_rz);
+                       domlo, domhi, low_fix, hifix, &hx,&is_rz);
 #elif (BL_SPACEDIM==3)
             //
             // TODO -- make 3-D work !!!
