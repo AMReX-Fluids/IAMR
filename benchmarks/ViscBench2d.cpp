@@ -1,6 +1,6 @@
 
 //
-// $Id: ViscBench2d.cpp,v 1.5 2002-12-18 19:27:58 almgren Exp $
+// $Id: ViscBench2d.cpp,v 1.6 2002-12-19 19:03:35 almgren Exp $
 //
 
 #include <new>
@@ -53,6 +53,8 @@ int
 main (int   argc,
       char* argv[])
 {
+    BoxLib::Initialize(argc,argv);
+
     if (argc == 1)
         PrintUsage(argv[0]);
     //
@@ -71,7 +73,7 @@ main (int   argc,
     //
     // Scan the arguments.
     //
-    aString iFile, errFile, exFile;
+    std::string iFile, errFile, exFile;
 
     bool verbose = false;
     if (pp.contains("verbose"))
@@ -110,8 +112,7 @@ main (int   argc,
     const int nComp          = amrDataI.NComp();
     const Real time = amrDataI.Time();
     const int finestLevel = amrDataI.FinestLevel();
-    const Array<aString>& derives = amrDataI.PlotVarNames();
-    
+    const Array<std::string>& derives = amrDataI.PlotVarNames();
 
     //
     // Compute the error
@@ -209,7 +210,9 @@ main (int   argc,
     //
     // This calls ParallelDescriptor::EndParallel() and exit()
     //
-    DataServices::Dispatch(DataServices::ExitRequest, NULL);
+//  DataServices::Dispatch(DataServices::ExitRequest, NULL);
+
+    BoxLib::Finalize();
 }
 
 
@@ -217,8 +220,8 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
 			const AmrData& amrd2)
 {
-    const Array<aString>& derives1 = amrd1.PlotVarNames();
-    const Array<aString>& derives2 = amrd2.PlotVarNames();
+    const Array<std::string>& derives1 = amrd1.PlotVarNames();
+    const Array<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
 	return false;

@@ -1,6 +1,6 @@
 
 //
-// $Id: ViscBench3d.cpp,v 1.6 2001-10-17 17:53:33 lijewski Exp $
+// $Id: ViscBench3d.cpp,v 1.7 2002-12-19 19:03:35 almgren Exp $
 //
 
 #include <new>
@@ -77,7 +77,7 @@ main (int   argc,
     //
     // Scan the arguments.
     //
-    aString iFile, errFile, exFile;
+    std::string iFile, errFile, exFile;
 
     bool verbose = false;
     if (pp.contains("verbose"))
@@ -121,7 +121,7 @@ main (int   argc,
     const int nComp          = amrDataI.NComp();
     const Real time = amrDataI.Time();
     const int finestLevel = amrDataI.FinestLevel();
-    const Array<aString>& derives = amrDataI.PlotVarNames();
+    const Array<std::string>& derives = amrDataI.PlotVarNames();
     
 
     //
@@ -228,8 +228,8 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
 			const AmrData& amrd2)
 {
-    const Array<aString>& derives1 = amrd1.PlotVarNames();
-    const Array<aString>& derives2 = amrd2.PlotVarNames();
+    const Array<std::string>& derives1 = amrd1.PlotVarNames();
+    const Array<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.length();
     if (length != derives2.length())
 	return false;

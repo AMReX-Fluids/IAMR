@@ -35,19 +35,19 @@ using std::set_new_handler;
 
 #include <WritePlotFile.H>
 
-aString
+std::string
 thePlotFileType ()
 {
     //
     // Increment this whenever the writePlotFile() format changes.
     //
-    static const aString the_plot_file_type("HyperCLaw-V1.1");
+    static const std::string the_plot_file_type("HyperCLaw-V1.1");
 
     return the_plot_file_type;
 }
 
 void
-writePlotFile (const aString&  dir,
+writePlotFile (const std::string&  dir,
 	       ostream&        os,
 	       int             level,
 	       const MultiFab& mf,
@@ -117,18 +117,18 @@ writePlotFile (const aString&  dir,
     //
     // There is only one MultiFab written out at each level in HyperCLaw.
     //
-    static const aString MultiFabBaseName("/MultiFab");
+    static const std::string MultiFabBaseName("/MultiFab");
     //
     // Build the directory to hold the MultiFabs at this level.
     // The name is relative to the directory containing the Header file.
     //
     char buf[64];
     sprintf(buf, "Level_%d", level);
-    aString Level = buf;
+    std::string Level = buf;
     //
     // Now for the full pathname of that directory.
     //
-    aString FullPath = dir;
+    std::string FullPath = dir;
     if (!FullPath.empty() && FullPath[FullPath.size()-1] != '/')
 	FullPath += '/';
     FullPath += Level;
@@ -214,7 +214,7 @@ writePlotFile (const aString&  dir,
 	// The name is relative to the Header file containing this name.
 	// It's the name that gets written into the Header.
 	//
-	aString PathNameInHeader = Level;
+	std::string PathNameInHeader = Level;
 	PathNameInHeader += MultiFabBaseName;
 
 	os << PathNameInHeader << '\n';
@@ -237,8 +237,8 @@ writePlotFile (const char*     name,
 {
 
     double dPlotFileTime0(ParallelDescriptor::second());
-    //aString pltfile = Concatenate(root, num);
-    aString pltfile(name);
+    //std::string pltfile = Concatenate(root, num);
+    std::string pltfile(name);
 
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
@@ -251,7 +251,7 @@ writePlotFile (const char*     name,
     //
     ParallelDescriptor::Barrier();
 
-    aString HeaderFileName = pltfile + "/Header";
+    std::string HeaderFileName = pltfile + "/Header";
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -302,10 +302,10 @@ writePlotFile (const char*     name,
 
 void WritePlotFile(const Array<MultiFab*> mfa,
 		   AmrData&               amrdToMimic,
-		   const aString&         oFile,
+		   const std::string&     oFile,
 		   bool                   verbose)
 {
-    const Array<aString>& derives = amrdToMimic.PlotVarNames();
+    const Array<std::string>& derives = amrdToMimic.PlotVarNames();
     int ntype = amrdToMimic.NComp();
     int finestLevel = amrdToMimic.FinestLevel();    
     
@@ -317,7 +317,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
     //
     ParallelDescriptor::Barrier();
 
-    aString oFileHeader(oFile);
+    std::string oFileHeader(oFile);
     oFileHeader += "/Header";
   
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -392,7 +392,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
             //
             // Build the directory to hold the MultiFabs at this level.
             //
-            aString Level(oFile);
+            std::string Level(oFile);
             Level += '/';
             Level += buf;
     
@@ -406,9 +406,9 @@ void WritePlotFile(const Array<MultiFab*> mfa,
         //
         // Now build the full relative pathname of the MultiFab.
         //
-        static const aString MultiFabBaseName("/MultiFab");
+        static const std::string MultiFabBaseName("/MultiFab");
     
-        aString PathName(oFile);
+        std::string PathName(oFile);
         PathName += '/';
         PathName += buf;
         PathName += MultiFabBaseName;
@@ -418,7 +418,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
             //
             // The full name relative to the Header file.
             //
-            aString RelativePathName(buf);
+            std::string RelativePathName(buf);
             RelativePathName += '/';
             RelativePathName += MultiFabBaseName;
             os << RelativePathName << '\n';

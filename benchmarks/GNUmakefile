@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.5 2002-12-18 19:27:58 almgren Exp $
+# $Id: GNUmakefile,v 1.6 2002-12-19 19:03:35 almgren Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -14,6 +14,7 @@ DIM	  = 2
 COMP	  = g++
 USE_MPI   = FALSE
 
+DEFINES += -DBL_PARALLEL_IO
 EBASE = ViscBench
 
 include $(TOP)/mk/Make.defs 
