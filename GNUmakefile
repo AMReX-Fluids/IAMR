@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.67 1998-12-03 18:23:51 lijewski Exp $
+# $Id: GNUmakefile,v 1.68 1999-01-04 18:14:40 marc Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -65,6 +65,9 @@ endif
 ifeq ($(KCC_VERSION),3.3)
 CXXFLAGS += --one_instantiation_per_object
 endif
+
+all: $(optionsLib)
+
 #
 # Libraries to close against.
 #
@@ -84,8 +87,7 @@ else
 LibsToCloseAgainst += $(TOP)/hgproj-serial/lib/$(machineSuffix)/libproj$(DIM)d.$(PRVERSION).a
 endif
 LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libbox$(DIM)d.a
+
+$(optionsLib): $(LibsToCloseAgainst)
 endif
-
-all: $(optionsLib)
-
 include $(TOP)/mk/Make.rules
