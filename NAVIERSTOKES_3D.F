@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.14 2003-01-30 07:17:17 almgren Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.15 2003-01-31 18:47:22 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -508,7 +508,7 @@ c
             end do
          end if
       end if
-
+      end
 c-----------------------------------------------------------------------
       subroutine EDGE_INTERP(flo, fhi, nc, ratio, dir,
      &     fine, fine_l0, fine_l1, fine_l2, fine_h0, fine_h1, fine_h2)
@@ -652,6 +652,4 @@ c     coarse face, leave the in-between faces alone.
             enddo
          enddo
       endif
-      end
-
       end
