@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.172 2000-06-13 19:32:59 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.173 2000-06-28 21:50:02 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -98,19 +98,20 @@ Array<Real> NavierStokes::visc_coef;
 //
 // Internal switches.
 //
-int  NavierStokes::do_temp                = 0;
-int  NavierStokes::Temp                   = -1;
-int  NavierStokes::do_sync_proj           = 1;
-int  NavierStokes::do_MLsync_proj         = 1;
-int  NavierStokes::do_reflux              = 1;
-int  NavierStokes::do_mac_proj            = 1;
-int  NavierStokes::check_umac_periodicity = 1;
-int  NavierStokes::do_init_vort_proj      = 0;
-int  NavierStokes::do_init_proj           = 1;
-int  NavierStokes::do_refine_outflow      = 0;
-int  NavierStokes::do_derefine_outflow    = 1;
-int  NavierStokes::Nbuf_outflow           = 1;
-int  NavierStokes::do_running_statistics  = 0;
+int  NavierStokes::do_temp                    = 0;
+int  NavierStokes::Temp                       = -1;
+int  NavierStokes::do_sync_proj               = 1;
+int  NavierStokes::do_MLsync_proj             = 1;
+int  NavierStokes::do_reflux                  = 1;
+int  NavierStokes::modify_reflux_normal_vel   = 0;
+int  NavierStokes::do_mac_proj                = 1;
+int  NavierStokes::check_umac_periodicity     = 1;
+int  NavierStokes::do_init_vort_proj          = 0;
+int  NavierStokes::do_init_proj               = 1;
+int  NavierStokes::do_refine_outflow          = 0;
+int  NavierStokes::do_derefine_outflow        = 1;
+int  NavierStokes::Nbuf_outflow               = 1;
+int  NavierStokes::do_running_statistics      = 0;
 
 int  NavierStokes::Dpdt_Type              = -1;
 
@@ -252,14 +253,15 @@ NavierStokes::read_params ()
     //
     // Get run options.
     //
-    pp.query("do_temp",          do_temp          );
-    int initial_do_sync_proj =   do_sync_proj;
-    pp.query("do_sync_proj",     do_sync_proj     );
-    pp.query("do_MLsync_proj",   do_MLsync_proj   );
-    pp.query("do_reflux",        do_reflux        );
-    pp.query("do_init_vort_proj",do_init_vort_proj);
-    pp.query("do_init_proj",     do_init_proj     );
-    pp.query("do_mac_proj",      do_mac_proj      );
+    pp.query("do_temp",                  do_temp          );
+    int initial_do_sync_proj =           do_sync_proj;
+    pp.query("do_sync_proj",             do_sync_proj     );
+    pp.query("do_MLsync_proj",           do_MLsync_proj   );
+    pp.query("do_reflux",                do_reflux        );
+    pp.query("modify_reflux_normal_vel", modify_reflux_normal_vel);
+    pp.query("do_init_vort_proj",        do_init_vort_proj);
+    pp.query("do_init_proj",             do_init_proj     );
+    pp.query("do_mac_proj",              do_mac_proj      );
 
     pp.query("do_divu_sync",      do_divu_sync    );
     // make sure we don't use divu_sync
@@ -3936,7 +3938,8 @@ NavierStokes::mac_sync ()
                                         level > 0 ? &getAdvFluxReg(level) : 0,
                                         advectionType, prev_time,
                                         prev_pres_time,dt,
-                                        NUM_STATE,be_cn_theta);
+                                        NUM_STATE,be_cn_theta, 
+                                        modify_reflux_normal_vel);
         //
         // The following used to be done in mac_sync_compute.  Ssync is
         //   the source for a rate of change to S over the time step, so
@@ -4426,18 +4429,24 @@ NavierStokes::pullFluxes (int        i,
         if (level < parent->finestLevel())
         {
             FluxRegister& fr = getAdvFluxReg(level+1);
-            fr.CrseInit(xflux,xflux.box(),0,0,start_ind,ncomp,-dt);
-            fr.CrseInit(yflux,yflux.box(),1,0,start_ind,ncomp,-dt);
+            if (!modify_reflux_normal_vel || start_ind != Xvel)
+              fr.CrseInit(xflux,xflux.box(),0,0,start_ind,ncomp,-dt);
+            if (!modify_reflux_normal_vel || start_ind != Yvel)
+              fr.CrseInit(yflux,yflux.box(),1,0,start_ind,ncomp,-dt);
 #if (BL_SPACEDIM == 3)                              
-            fr.CrseInit(zflux,zflux.box(),2,0,start_ind,ncomp,-dt);
+            if (!modify_reflux_normal_vel || start_ind != Zvel)
+              fr.CrseInit(zflux,zflux.box(),2,0,start_ind,ncomp,-dt);
 #endif
         }
         if (level > 0)
         {
-            advflux_reg->FineAdd(xflux,0,i,0,start_ind,ncomp,dt);
-            advflux_reg->FineAdd(yflux,1,i,0,start_ind,ncomp,dt);
+            if (!modify_reflux_normal_vel || start_ind != Xvel)
+              advflux_reg->FineAdd(xflux,0,i,0,start_ind,ncomp,dt);
+            if (!modify_reflux_normal_vel || start_ind != Yvel)
+              advflux_reg->FineAdd(yflux,1,i,0,start_ind,ncomp,dt);
 #if (BL_SPACEDIM == 3)                                
-            advflux_reg->FineAdd(zflux,2,i,0,start_ind,ncomp,dt);
+            if (!modify_reflux_normal_vel || start_ind != Zvel)
+              advflux_reg->FineAdd(zflux,2,i,0,start_ind,ncomp,dt);
 #endif
         }
     }

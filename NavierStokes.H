@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.64 2000-06-12 23:41:50 almgren Exp $
+// $Id: NavierStokes.H,v 1.65 2000-06-28 21:50:02 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -720,6 +720,7 @@ protected:
     static int do_sync_proj;
     static int do_MLsync_proj;
     static int do_reflux;
+    static int modify_reflux_normal_vel;
     static int do_mac_proj;
     static int do_divu_sync;
     static int check_umac_periodicity;

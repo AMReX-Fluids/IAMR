@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.63 2000-06-02 18:26:25 almgren Exp $
+// $Id: MacProj.cpp,v 1.64 2000-06-28 21:50:02 almgren Exp $
 //
 
 #include <Misc.H>
@@ -522,6 +522,7 @@ MacProj::mac_sync_solve (int       level,
             }
         }
     }
+
     //
     // Remove constant null space component from the rhs of the solve
     // when appropriate (i.e. when the grids span the whole domain AND
@@ -632,6 +633,7 @@ MacProj::mac_sync_compute (int                   level,
                            Real                  dt, 
                            int                   NUM_STATE,
                            Real                  be_cn_theta,
+                           bool                  modify_reflux_normal_vel,
                            const Array<int>&     increment_sync)
 {
     FArrayBox Rho, tforces, tvelforces;
@@ -683,6 +685,15 @@ MacProj::mac_sync_compute (int                   level,
 
     FillPatchIterator S_fpi(ns_level,visc_terms,HYP_GROW,
                             prev_time,State_Type,0,NUM_STATE);
+
+    FluxRegister* temp_reg = 0;
+    if (modify_reflux_normal_vel)
+    {
+      temp_reg = new FluxRegister(LevelData[level+1].boxArray(),
+                                  parent->refRatio(level),level+1,BL_SPACEDIM);
+      temp_reg->setVal(0.);
+    }
+
     //
     // Compute the mac sync correction.
     //
@@ -763,6 +774,7 @@ MacProj::mac_sync_compute (int                   level,
         //
         FArrayBox& u_sync = Vsyncmfi();
         FArrayBox& s_sync = Ssyncmfi();
+
         //
         // Loop over state components and compute the sync advective component.
         //
@@ -786,6 +798,7 @@ MacProj::mac_sync_compute (int                   level,
                                     S, tforces, comp, temp, sync_ind,
                                     use_conserv_diff, comp,
                                     ns_level_bc.dataPtr(), volumemfi());
+
                 //
                 // NOTE: the signs here are opposite from VELGOD.
                 // NOTE: fluxes expected to be in extensive form.
@@ -800,6 +813,35 @@ MacProj::mac_sync_compute (int                   level,
                 }
             }
         }
+
+        // Fill temp_reg with the normal fluxes 
+        int velpred = 0;
+        if (modify_reflux_normal_vel)
+        {
+          for (int comp = 0; comp < BL_SPACEDIM; comp++)
+          {
+             godunov->edge_states(grids[i], dx, dt, velpred,
+                                  u_mac0mfi(), xflux, 
+                                  u_mac1mfi(), yflux,
+#if (BL_SPACEDIM == 3)                            
+                                  u_mac2mfi(), zflux,
+#endif
+                                  S, S, tforces, comp, comp,
+                                  ns_level_bc.dataPtr());
+
+             if (comp == 0) {
+                temp_reg->CrseInit(xflux,xflux.box(),comp,0,comp,1,1.0);
+             } else if (comp == 1) {
+                temp_reg->CrseInit(yflux,yflux.box(),comp,0,comp,1,1.0);
+#if (BL_SPACEDIM == 3)
+             } else if (comp == 2) {
+                temp_reg->CrseInit(zflux,zflux.box(),comp,0,comp,1,1.0);
+#endif
+             } 
+          }
+          temp_reg->CrseInitFinish();
+        }
+
         //
         // Include grad_phi in the mac registers corresponding
         // to the next coarsest interface.
@@ -816,6 +858,40 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Multiply the sync term by dt -- now done in the calling routine.
         //
+    }
+
+    if (modify_reflux_normal_vel)
+    {
+          // Multiply the fluxes (stored in temp_reg) 
+          //   by delta U (area-weighted, stored in mr) on each edge
+          //   and store the result in temp_reg.
+          // Then reflux the result into u_sync
+
+          FluxRegister& mr = mac_reg[level+1];
+          const Real scale =  1.0;
+
+          for (int dir = 0; dir < BL_SPACEDIM; dir++)
+          {
+              FabSet& lofabs_temp = (*temp_reg)[Orientation(dir,Orientation::low)];
+              FabSet& hifabs_temp = (*temp_reg)[Orientation(dir,Orientation::high)];
+
+              FabSet& lofabs_mr = mr[Orientation(dir,Orientation::low)];
+              FabSet& hifabs_mr = mr[Orientation(dir,Orientation::high)];
+
+              for (FabSetIterator fsi(lofabs_temp); fsi.isValid(); ++fsi)
+              {
+                  DependentFabSetIterator dfsi(fsi, lofabs_mr);
+                  fsi().mult(dfsi(),0,dir,1);
+              }
+              for (FabSetIterator fsi(hifabs_temp); fsi.isValid(); ++fsi)
+              {
+                  DependentFabSetIterator dfsi(fsi, hifabs_mr);
+                  fsi().mult(dfsi(),0,dir,1);
+              }
+          }
+
+          temp_reg->Reflux(*Vsync,volume[level],scale,0,0,BL_SPACEDIM,geom);
+          delete temp_reg;
     }
 
     delete divu_fp;
