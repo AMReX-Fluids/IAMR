@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.38 2000-06-09 22:40:10 almgren Exp $
+// $Id: NS_setup.cpp,v 1.39 2000-06-12 22:40:37 lijewski Exp $
 //
 
 #include <NavierStokes.H>
@@ -246,7 +246,6 @@ NavierStokes::variableSetUp ()
     {
         BoxLib::Error("Density cannot diffuse, bad visc_coef");
     }
-
     //
     // ---- pressure
     //
@@ -254,15 +253,16 @@ NavierStokes::variableSetUp ()
     desc_lst.addDescriptor(Press_Type,IndexType::TheNodeType(),
                            StateDescriptor::Interval,1,1,
                            &node_bilinear_interp);
-#endif
-#if 0
+
+    set_pressure_bc(bc,phys_bc);
+    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,FORT_PRESFILL);
+#else
     desc_lst.addDescriptor(Press_Type,IndexType::TheNodeType(),
                            StateDescriptor::Point,1,1,
                            &node_bilinear_interp,true);
-#endif
+
     set_pressure_bc(bc,phys_bc);
     desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,FORT_PRESFILL);
-
     //
     // ---- time derivative of pressure
     //
@@ -271,7 +271,8 @@ NavierStokes::variableSetUp ()
                            StateDescriptor::Interval,1,1,
                            &node_bilinear_interp);
     set_pressure_bc(bc,phys_bc);
-    desc_lst.setComponent(Dpdt_Type,Dpdt,"dpdt",bc,BndryFunc(FORT_PRESFILL));
+    desc_lst.setComponent(Dpdt_Type,Dpdt,"dpdt",bc,FORT_PRESFILL);
+#endif
 
     if (do_temp)
     {
