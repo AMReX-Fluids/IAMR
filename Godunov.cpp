@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Godunov.cpp,v 1.14 1998-09-29 20:08:28 lijewski Exp $
+// $Id: Godunov.cpp,v 1.15 1998-11-05 00:42:54 lijewski Exp $
 //
 
 //
@@ -38,9 +38,10 @@
 #define GDIMS(l,h) &l[0], &l[1], &l[2], &h[0], &h[1], &h[2]
 #endif
 
-int Godunov::verbose             = 0;
-int Godunov::slope_order         = 4;
-int Godunov::use_forces_in_trans = 0;
+int Godunov::verbose               = 0;
+int Godunov::slope_order           = 4;
+int Godunov::use_forces_in_trans   = 0;
+const int use_unlimited_slopes_DEF = 0;
 
 //
 // Construct the Godunov Object.
@@ -92,8 +93,10 @@ Godunov::read_params ()
     assert(slope_order==1 || slope_order==4);
 #endif
     pp.query("use_forces_in_trans",use_forces_in_trans);
+    int use_unlimited_slopes=use_unlimited_slopes_DEF;
+    pp.query("use_unlimited_slopes",use_unlimited_slopes);
 
-    FORT_SET_PARAMS(slope_order);
+    FORT_SET_PARAMS(slope_order,use_unlimited_slopes);
 }
 
 //

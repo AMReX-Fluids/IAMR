@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.4 1997-12-14 23:35:58 lijewski Exp $
+** $Id: GODUNOV_F.H,v 1.5 1998-11-05 00:42:54 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -71,7 +71,6 @@
 
 extern "C"
 {
-
       // fortran argument checking disabled for now
       void FORT_TEST_U_RHO( ... );   
       void FORT_TEST_UMAC_RHO( ... );   
@@ -91,8 +90,8 @@ extern "C"
       void FORT_SUM_TF_GP( ... );   
       void FORT_SUM_TF_DIVU( ... );  
 
-      void FORT_SET_PARAMS(const int& slope_order); 
-      
+void FORT_SET_PARAMS(const int& slope_order,
+                           const int& use_unlimited_slopes);
   }
 #endif
 

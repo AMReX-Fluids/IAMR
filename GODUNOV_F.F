@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_F.F,v 1.4 1998-02-22 19:06:46 car Exp $
+c $Id: GODUNOV_F.F,v 1.5 1998-11-05 00:42:53 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -14,13 +14,15 @@ c
 
 c=========================================================
 
-      subroutine FORT_SET_PARAMS(slope_order_in)
+      subroutine FORT_SET_PARAMS(slope_order_in,use_unlim_in)
       implicit none
-      integer slope_order_in
+      integer slope_order_in,use_unlim_in
 
 #include "GODUNOV.FH"
 
       slope_order = slope_order_in
+
+      use_unlimited_slopes = (use_unlim_in .eq. 1)
 
       if(slope_order.ne.1.and.
 #if (BL_SPACEDIM==2)
@@ -34,5 +36,5 @@ c=========================================================
 #endif
         stop
       end if
-      return
+
       end
