@@ -1,7 +1,7 @@
 #ifndef _MASK_H_
 #define _MASK_H_
 //
-// $Id: Mask.H,v 1.6 1997-12-11 23:30:20 lijewski Exp $
+// $Id: Mask.H,v 1.7 1997-12-14 01:04:48 lijewski Exp $
 //
 
 #include <BaseFab.H>
@@ -22,11 +22,11 @@
         by "and", "or" operations with (the a subregion of) other Masks.
         
         This class does NOT provide a copy constructor or assignment operator.
-        
 */
 class Mask
     :
-    public BaseFab<int>
+    public ArithFab<int>,
+    public OrderedFab<int>
 {
 public:
 
@@ -84,7 +84,6 @@ public:
     Mask& Or(const Mask& src, const Box& srcbox,
              const Box& destbox,
              int srccomp, int destcomp, int numcomp=1);
-
 private:
 // Disallow copy operator
     Mask& operator=(const Mask&);
@@ -92,5 +91,4 @@ private:
     Mask(const Mask&);
 };
 
-
-#endif
+#endif /*_MASK_H_*/

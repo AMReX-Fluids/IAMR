@@ -1,5 +1,5 @@
 //
-// $Id: Mask.cpp,v 1.9 1997-12-11 23:30:20 lijewski Exp $
+// $Id: Mask.cpp,v 1.10 1997-12-14 01:04:48 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -166,5 +166,3 @@ Mask::Or(const Mask& src, const Box& srcbox,
     } EndForTX;
     return *this;
 }
-
-
