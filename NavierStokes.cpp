@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.194 2001-08-09 22:42:00 marc Exp $
+// $Id: NavierStokes.cpp,v 1.195 2001-09-10 21:05:26 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3694,6 +3694,11 @@ NavierStokes::avgDown_doit (const FArrayBox& fine_fab,
                             int              ncomp,
                             const IntVect&   fratio)
 {
+//
+//  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
+//        because the crse fab is a temporary which was made starting at comp 0, it is
+//        not the actual state data.
+//
     const int*  ovlo   = ovlp.loVect();
     const int*  ovhi   = ovlp.hiVect();
     const int*  flo    = fine_fab.loVect();
@@ -3704,7 +3709,7 @@ NavierStokes::avgDown_doit (const FArrayBox& fine_fab,
     const Real* fv_dat = fine_vol.dataPtr();
     const int*  clo    = crse_fab.loVect();
     const int*  chi    = crse_fab.hiVect();
-    const Real* c_dat  = crse_fab.dataPtr(scomp);
+    const Real* c_dat  = crse_fab.dataPtr();
     const int*  cvlo   = crse_vol.loVect();
     const int*  cvhi   = crse_vol.hiVect();
     const Real* cv_dat = crse_vol.dataPtr();
