@@ -401,7 +401,7 @@ c        Make sure u_mac is periodic
          if (per(1) .eq. 1) then
            diff = abs(u0(ics,jcs,kce)-u0(ice+1,jcs,kce))
            do j = jcs, jce
-             diff = max(diff,abs(u0(ics,j,kce)-u1(ice+1,j,kce)))
+             diff = max(diff,abs(u0(ics,j,kce)-u0(ice+1,j,kce)))
            enddo
            if (diff .gt. small_udiff) then
              write(6,*) 'EXTRAPMAC: FACE ZHI : umac not periodic'
