@@ -898,6 +898,8 @@ c     normal velocity, for the advective/diffusive step, for example.
 
       if (per .eq. 1) then
          
+         hdr = 0.0D0 ! FIXME: This wasn't set before, used below
+
 c     Do left-side periodic BC (since first/last node coincide, use first 
 c     node only (retain r-stuff here, just to be sure scaling is not destroyed)
          neq = ine - ins
@@ -957,7 +959,8 @@ c                          Int[dU/dx - (S-S_ave)] == 0
 c     Try normalizing phi to average to zero
       phitot = zero
       vtot = zero
-      do i = 1,ine-ins-1
+C     do i = 1, ine-ins-1
+      do i = 2, ine-ins-1
          rnode = r(ics+i-1) - hdr
          phitot = phitot + x(i)*rnode
          vtot = vtot + rnode
