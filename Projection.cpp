@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.72 1999-03-01 20:45:36 propp Exp $
+// $Id: Projection.cpp,v 1.73 1999-03-01 23:58:24 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -80,7 +80,7 @@ int       Projection::P_code             = 0;
 Real      Projection::proj_tol           = 1.0e-12;
 Real      Projection::sync_tol           = 1.0e-8;
 Real      Projection::proj_abs_tol       = 1.0e-16;
-Real      Projection::filter_factor      = 0.0;
+Real      Projection::filter_factor      = 0.1;
 Real      Projection::divu_minus_s_factor= 0.0;
 int       Projection::rho_wgt_vel_proj   = 0;
 int       Projection::do_outflow_bcs     = 1;
