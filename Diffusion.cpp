@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.39 1998-07-29 19:07:38 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.40 1998-08-21 17:58:27 car Exp $
 //
 
 //
@@ -162,7 +162,7 @@ Diffusion::Diffusion (Amr*          Parent,
         {
             cout << "Diffusion::Diffusion(): is_diffusive and/or visc_coef arrays are " <<
                 " not long enough\n";
-            ParallelDescriptor::Abort("Bye");
+            BoxLib::Abort("Bye");
         }
         visc_coef.resize(NUM_STATE);
         is_diffusive.resize(NUM_STATE);
@@ -704,7 +704,7 @@ void Diffusion::diffuse_velocity(Real dt, Real be_cn_theta,
     {
         cout << "Diffusion::diffuse_velocity() : must have velocity visc_coefs "
              << ">= 0.0 if use_dv_constant_mu == 1\n";
-        ParallelDescriptor::Abort("Exiting.");
+        BoxLib::Abort("Exiting.");
     }
 
     if (constant_viscosity || use_dv_constant_mu)
@@ -1026,13 +1026,13 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
          << "not yet implemented for 3-D\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
          << " and rerun\n";
-    ParallelDescriptor::Abort("Diffusion::diffuse_tensor_velocity");
+    BoxLib::Abort("Diffusion::diffuse_tensor_velocity");
 #elif !defined(USE_TENSOR)
     cout << "Diffusion::diffuse_tensor_velocity : \n";
     cout << "USE_TENSOR must be defined at compile time\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
          << " and rerun\n";
-    ParallelDescriptor::Abort("Diffusion::diffuse_tensor_velocity");
+    BoxLib::Abort("Diffusion::diffuse_tensor_velocity");
 #else
     const int finest_level = parent->finestLevel();
     //
@@ -1347,7 +1347,7 @@ Diffusion::diffuse_Vsync (MultiFab*  Vsync,
     {
         cout << "Diffusion::diffuse_Vsync : must have velocity visc_coefs "
              << ">= 0.0 if use_dv_constant_mu == 1\n";
-        ParallelDescriptor::Abort("Diffusion::diffuse_Vsync");
+        BoxLib::Abort("Diffusion::diffuse_Vsync");
     }
 
     if (constant_viscosity || use_dv_constant_mu)
@@ -1587,13 +1587,13 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*  Vsync,
          << "not yet implemented for 3-D\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
          << " and rerun\n";
-    ParallelDescriptor::Abort("Exiting.");
+    BoxLib::Abort("Exiting.");
 #elif !defined(USE_TENSOR)
     cout << "Diffusion::diffuse_tensor_Vsync :  "
          << "USE_TENSOR must be defined at compile time\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
          << " and rerun\n";
-    ParallelDescriptor::Abort("Exiting.");
+    BoxLib::Abort("Exiting.");
 #else
     const int finest_level = parent->finestLevel();
     const Real* dx         = caller->Geom().CellSize();
@@ -2003,13 +2003,13 @@ Diffusion::getTensorOp (Real         a,
          << "not yet implemented for 3-D\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
          << " and rerun\n";
-    ParallelDescriptor::Abort("Diffusion::getTensorOp");
+    BoxLib::Abort("Diffusion::getTensorOp");
 #elif !defined(USE_TENSOR)
     cout << "Diffusion::getTensorOp :  " <<
     cout << "USE_TENSOR must be defined at compile time\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
             " and rerun\n";
-    ParallelDescriptor::Abort("Diffusion::getTensorOp");
+    BoxLib::Abort("Diffusion::getTensorOp");
 #else
     int allthere;
     checkBeta(beta, allthere);
@@ -2105,13 +2105,13 @@ Diffusion::getTensorOp (Real       a,
          << "not yet implemented for 3-D\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
          << " and rerun\n";
-    ParallelDescriptor::Abort("Diffusion::getTensorOp");
+    BoxLib::Abort("Diffusion::getTensorOp");
 #elif !defined(USE_TENSOR)
     cout << "Diffusion::getTensorOp :  "
          << "USE_TENSOR must be defined at compile time\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
          << " and rerun\n";
-    ParallelDescriptor::Abort("Diffusion::getTensorOp");
+    BoxLib::Abort("Diffusion::getTensorOp");
 #else
     int allthere = beta != 0;
     if (allthere)
@@ -2125,7 +2125,7 @@ Diffusion::getTensorOp (Real       a,
     {
         cout << "Diffusion::getTensorOp() : all betas must allocated\n";
         cout << "  all 0 or all non-0\n";
-        ParallelDescriptor::Abort("Diffusion::getTensorOp()");
+        BoxLib::Abort("Diffusion::getTensorOp()");
     }
 
     const Real* dx    = caller->Geom().CellSize();
@@ -2675,13 +2675,13 @@ Diffusion::getTensorViscTerms (MultiFab&  visc_terms,
          << "not yet implemented for 3-D\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
          << " and rerun\n";
-    ParallelDescriptor::Abort("Diffusion::getTensorViscTerms");
+    BoxLib::Abort("Diffusion::getTensorViscTerms");
 #elif  !defined (USE_TENSOR)
     cout << "Diffusion::getTensorViscTerms :  "
          << "USE_TENSOR must be defined at compile time\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
          << " and rerun\n";
-    ParallelDescriptor::Abort("Diffusion::getTensorViscTerms");
+    BoxLib::Abort("Diffusion::getTensorViscTerms");
 #else
     int allthere;
     checkBeta(beta, allthere);
@@ -2692,7 +2692,7 @@ Diffusion::getTensorViscTerms (MultiFab&  visc_terms,
     {
         cout << "Diffusion::getTensorViscTerms : visc_terms must have\n";
         cout << "  at least BL_SPACEDIM components\n";
-        ParallelDescriptor::Abort("Diffusion::getTensorViscTerms");
+        BoxLib::Abort("Diffusion::getTensorViscTerms");
     }
     int vel_ncomp = BL_SPACEDIM;
     //
@@ -2842,7 +2842,7 @@ Diffusion::getBndryData (ViscBndry& bndry,
     if (num_comp != 1)
     {
        cout << "NEED NUM_COMP = 1\n";
-       ParallelDescriptor::Abort("Diffusion::getBndryData()");
+       BoxLib::Abort("Diffusion::getBndryData()");
     }
     const BCRec& bc = caller->get_desc_lst()[State_Type].getBC(src_comp);
     bndry.define(grids,num_comp,caller->Geom());
@@ -3041,7 +3041,7 @@ Diffusion::getTensorBndryData(
          << "not yet implemented for 3-D" << NL;
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
          << " and rerun" << NL;
-    ParallelDescriptor::Abort("Diffusion::getTensorBndryData()");
+    BoxLib::Abort("Diffusion::getTensorBndryData()");
 #else
     int num_comp = BL_SPACEDIM;
     int src_comp = Xvel;
@@ -3094,7 +3094,7 @@ Diffusion::checkBetas (const MultiFab* const* beta1,
     {
         cout << "Diffusion::checkBetas : all betas must either be"
              << "  all 0 or all non-0\n";
-        ParallelDescriptor::Abort("Diffusion::checkBetas()");
+        BoxLib::Abort("Diffusion::checkBetas()");
     }
 }
 
@@ -3117,7 +3117,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
     {
         cout << "Diffusion::checkBeta : all betas must either be"
              << "  all 0 or all non-0\n";
-        ParallelDescriptor::Abort("Diffusion::checkBeta()");
+        BoxLib::Abort("Diffusion::checkBeta()");
     }
 }
 
@@ -3137,7 +3137,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
     {
         cout << "Diffusion::checkBeta : all betas must be"
              << "  all non-0\n";
-        ParallelDescriptor::Abort("Diffusion::checkBeta()");
+        BoxLib::Abort("Diffusion::checkBeta()");
     }
 }
 

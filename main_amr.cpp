@@ -1,6 +1,6 @@
 
 //
-// $Id: main_amr.cpp,v 1.13 1998-07-29 19:07:49 lijewski Exp $
+// $Id: main_amr.cpp,v 1.14 1998-08-21 17:58:28 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -44,7 +44,7 @@ print_usage (int,
     cerr << "\t    <var>      =  variable name\n";
     cerr << "\t    <val_list> =  list of values\n";
 
-    ParallelDescriptor::Abort("Exiting.");
+    BoxLib::Abort("Exiting.");
 }
 
 int

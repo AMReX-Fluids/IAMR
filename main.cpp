@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.26 1998-07-29 19:07:48 lijewski Exp $
+// $Id: main.cpp,v 1.27 1998-08-21 17:58:28 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -152,7 +152,7 @@ print_usage (int,
     cerr << "\t    <var>      =  variable name\n";
     cerr << "\t    <val_list> =  list of values\n";
 
-    ParallelDescriptor::Abort("Exiting.");
+    BoxLib::Abort("Exiting.");
 }
 
 int
@@ -205,12 +205,12 @@ main (int   argc,
     pp.query("stop_time",stop_time);
 
     if ( strt_time < 0.0 ) {
-      ParallelDescriptor::Abort(
+      BoxLib::Abort(
         "MUST SPECIFY a non-negative strt_time");
     }
 
     if ( max_step < 0 && stop_time < 0.0 ) {
-      ParallelDescriptor::Abort(
+      BoxLib::Abort(
        "Exiting because neither max_step nor stop_time is non-negative.");
     }
 

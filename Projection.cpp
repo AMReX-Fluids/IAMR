@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.49 1998-07-29 19:15:38 lijewski Exp $
+// $Id: Projection.cpp,v 1.50 1998-08-21 17:58:28 car Exp $
 //
 
 #ifdef BL_T3E
@@ -479,7 +479,7 @@ Projection::level_project(int level,
               cout << "Projection::level_project: WARNING not yet "
                    << "implemented for 3-d, non-zero divu\n";
           }
-        ParallelDescriptor::Abort("Exiting.");
+        BoxLib::Abort("Exiting.");
       }
 #endif
     }
@@ -557,7 +557,7 @@ void Projection::harmonic_project(int level, Real dt, Real cur_pres_time,
 {
   if (level == 0) 
   {
-    ParallelDescriptor::Abort("NOT SUPPOSED TO BE IN HARMONIC AT LEVEL 0 \n");
+    BoxLib::Abort("NOT SUPPOSED TO BE IN HARMONIC AT LEVEL 0 \n");
   }
 
   if (verbose && ParallelDescriptor::IOProcessor()) 
@@ -1362,7 +1362,7 @@ Projection::initialSyncProject (int       c_lev,
                 cout << "Projection::initialSyncProject: WARNING not yet "
                      << "implemented for 3-d, non-zero divu\n";
             }
-            ParallelDescriptor::Abort("Bye.");
+            BoxLib::Abort("Bye.");
         }
 #endif
     }
@@ -1688,7 +1688,7 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
                 cout << "Projection::put_divu_in_node_rhs: not yet "
                      << "implemented for 3-d, non-zero divu\n";
             }
-            ParallelDescriptor::Abort("Bye");
+            BoxLib::Abort("Bye");
         }
 #endif
     }
@@ -1826,7 +1826,7 @@ void Projection::EnforcePeriodicity( MultiFab &psi, int nvar,
             {
               cerr << "Projection::EnforcePeriodicity not implemented in parallel." << NL;
               cerr << "Nested MultiFab loops.\n";
-              ParallelDescriptor::Abort("Exiting.");
+              BoxLib::Abort("Exiting.");
             } 
             psi.copy(temp,0,0,nvar);
 
@@ -2238,7 +2238,7 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
 
     if (c_lev!=0) 
     {
-	ParallelDescriptor::Abort("initialVelocityProject: clev!=0--something wrong?\n");
+	BoxLib::Abort("initialVelocityProject: clev!=0--something wrong?\n");
     } 
     else 
     {
@@ -2358,7 +2358,7 @@ void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi,
 
     if (c_lev!=0) 
     {
-	ParallelDescriptor::Abort("initialSyncProject: clev!=0--something wrong?\n");
+	BoxLib::Abort("initialSyncProject: clev!=0--something wrong?\n");
     } 
     else 
     {
