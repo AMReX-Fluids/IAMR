@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.71 1999-02-18 18:22:15 sstanley Exp $
+# $Id: GNUmakefile,v 1.72 1999-04-05 17:57:14 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -55,11 +55,11 @@ LBASE = iamr
 include $(TOP)/mk/Make.defs ./Make.package
 
 ifeq ($(USE_HGPROJ_SERIAL),FALSE)
-INCLUDE_LOCATIONS += . $(TOP)/include
+  INCLUDE_LOCATIONS += . $(TOP)/include
 else
-INCLUDE_LOCATIONS += . $(TOP)/hgproj-serial
-INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
-INCLUDE_LOCATIONS += $(TOP)/include
+  INCLUDE_LOCATIONS += . $(TOP)/hgproj-serial
+  INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
+  INCLUDE_LOCATIONS += $(TOP)/include
 endif
 
 ifeq ($(USE_MPI),TRUE)

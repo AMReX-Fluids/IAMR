@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.10 1998-11-05 00:42:53 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.11 1999-04-05 17:57:15 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1404,7 +1404,7 @@ c     one-sided derivative from the interior
 c
       implicit none
 
-#include "GODUNOV.FH"
+#include "GODCOMM_F.H"
 
       integer dir
       integer DIMDEC(s)

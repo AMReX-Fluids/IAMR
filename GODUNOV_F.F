@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_F.F,v 1.5 1998-11-05 00:42:53 lijewski Exp $
+c $Id: GODUNOV_F.F,v 1.6 1999-04-05 17:57:15 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -18,7 +18,7 @@ c=========================================================
       implicit none
       integer slope_order_in,use_unlim_in
 
-#include "GODUNOV.FH"
+#include "GODCOMM_F.H"
 
       slope_order = slope_order_in
 

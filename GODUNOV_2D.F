@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.11 1999-02-03 00:40:49 lijewski Exp $
+c $Id: GODUNOV_2D.F,v 1.12 1999-04-05 17:57:15 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -913,7 +913,7 @@ c     one-sided derivative from the interior
 c
       implicit none
 
-#include "GODUNOV.FH"
+#include "GODCOMM_F.H"
 
       integer lo(SDIM), hi(SDIM)
       integer bc(SDIM,2)

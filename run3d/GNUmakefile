@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.11 1999-04-01 21:43:10 car Exp $
+# $Id: GNUmakefile,v 1.12 1999-04-05 17:57:15 car Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -35,8 +35,8 @@ endif
 
 include $(TOP)/mk/Make.defs ./Make.package
 
-BUILD_INPLACE:=TRUE
 BUILD_INPLACE:=FALSE
+BUILD_INPLACE:=TRUE
 
 ifeq ($(BUILD_INPLACE), TRUE)
   include $(TOP)/iamrlib/Make.package
@@ -117,7 +117,6 @@ endif
 ifeq ($(BUILD_INPLACE), TRUE)
   vpath %.cpp . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
   vpath %.H   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
-  vpath %.FH   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
   vpath %.h   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
   vpath %.F   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
 else
