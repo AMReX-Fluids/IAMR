@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.29 1998-05-20 21:04:13 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.30 1998-05-20 22:45:27 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -528,28 +528,8 @@ SyncRegister::CrseDVInit (const MultiFab& U,
 
                     if (fine_shifted.ok())
                     {
-                        mfi().setVal(0,fine_shifted,0,BL_SPACEDIM);
-
-                        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-                        {
-                            int bc_index = 2*BL_SPACEDIM*dir + dir;
-
-                            if (bc[bc_index] == EXT_DIR &&
-                                fine_shifted.smallEnd(dir) == mfi.validbox().smallEnd(dir))
-                            {
-                                Box finesidelo(fine_shifted);
-                                finesidelo.setRange(dir,fine_shifted.smallEnd(dir)-1,1);
-                                mfi().setVal(0,finesidelo,0,BL_SPACEDIM);
-                            }
-
-                            if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
-                                grids[fine].bigEnd(dir) == mfi.validbox().bigEnd(dir))
-                            {
-                                Box finesidehi(fine_shifted);
-                                finesidehi.setRange(dir,fine_shifted.bigEnd(dir)+1,1);
-                                mfi().setVal(0,finesidehi,0,BL_SPACEDIM);
-                            }
-                        }
+                        Nullify(grids,mfi(),mfi.validbox(),fine_shifted,
+                                bc,BL_SPACEDIM,fine);
                     }
                 }
             }
