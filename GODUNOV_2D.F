@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.15 2001-08-17 19:23:40 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.16 2001-09-10 19:48:09 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1143,15 +1143,14 @@ c
                   slxscr(i,fromm)= slxscr(i,flag)*
      &                 min(slxscr(i,lim),abs(slxscr(i,cen)))
                end do
+
                do i = imin-1,imax+1
                   ds = two * two3rd * slxscr(i,cen) -
      &                 sixth * (slxscr(i+1,fromm) + slxscr(i-1,fromm))
                   slx(i,j) = slxscr(i,flag)*min(abs(ds),slxscr(i,lim))
                end do
-            end do
 
-            if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
-               do j = jmin-1, jmax+1
+               if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
                   del  = -sixteen/fifteen*s(imin-1,j) + half*s(imin,j) + 
      &                 two3rd*s(imin+1,j) - tenth*s(imin+2,j)
                   dmin = two*(s(imin  ,j)-s(imin-1,j))
@@ -1167,11 +1166,9 @@ c                 Recalculate the slope at imin+1 using the revised slxscr(imin,
                   ds = two * two3rd * slxscr(imin+1,cen) -
      $               sixth * (slxscr(imin+2,fromm) + slxscr(imin,fromm))
                   slx(imin+1,j) = slxscr(imin+1,flag)*min(abs(ds),slxscr(imin+1,lim))
+               end if
 
-               end do
-            end if
-            if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
-               do j = jmin-1, jmax+1
+               if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
                   del  = -( -sixteen/fifteen*s(imax+1,j) + half*s(imax,j) + 
      &                 two3rd*s(imax-1,j) - tenth*s(imax-2,j) )
                   dmin = two*(s(imax  ,j)-s(imax-1,j))
@@ -1187,8 +1184,9 @@ c                 Recalculate the slope at imax-1 using the revised slxscr(imax,
                   ds = two * two3rd * slxscr(imax-1,cen) -
      $               sixth * (slxscr(imax-2,fromm) + slxscr(imax,fromm))
                   slx(imax-1,j) = slxscr(imax-1,flag)*min(abs(ds),slxscr(imax-1,lim))
-               end do
-            end if
+               end if
+            end do
+
          end if
 c
 c     ------------------------ y slopes
@@ -1220,7 +1218,7 @@ c
             end if
          else
             do i = imin-1,imax+1
-               do j = jmin-2,jmax+2
+              do j = jmin-2,jmax+2
                   dmin           =  two*(s(i,j  )-s(i,j-1))
                   dpls           =  two*(s(i,j+1)-s(i,j  ))
                   slyscr(j,cen)  = half*(s(i,j+1)-s(i,j-1))
@@ -1235,10 +1233,9 @@ c
      &                 sixth * (slyscr(j+1,fromm) + slyscr(j-1,fromm))
                   sly(i,j) = slyscr(j,flag)*min(abs(ds),slyscr(j,lim))
                end do
-            end do
 
             if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
-               do i = imin-1, imax+1
+c              do i = imin-1, imax+1
                   del  = -sixteen/fifteen*s(i,jmin-1) + half*s(i,jmin) + 
      &                 two3rd*s(i,jmin+1) - tenth*s(i,jmin+2)
                   dmin = two*(s(i,jmin  )-s(i,jmin-1))
@@ -1254,11 +1251,12 @@ c                 Recalculate the slope at jmin+1 using the revised slyscr(jmin,
                   ds = two * two3rd * slyscr(jmin+1,cen) -
      $               sixth * (slyscr(jmin+2,fromm) + slyscr(jmin,fromm))
                   sly(i,jmin+1) = slyscr(jmin+1,flag)*min(abs(ds),slyscr(jmin+1,lim))
+c              end do
 
-               end do
             end if
+
             if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
-               do i = imin-1, imax+1
+c              do i = imin-1, imax+1
                   del  = -( -sixteen/fifteen*s(i,jmax+1) + half*s(i,jmax) + 
      &                 two3rd*s(i,jmax-1) - tenth*s(i,jmax-2) )
                   dmin = two*(s(i,jmax  )-s(i,jmax-1))
@@ -1274,8 +1272,10 @@ c                 Recalculate the slope at jmax-1 using the revised slyscr(jmax,
                   ds = two * two3rd * slyscr(jmax-1,cen) -
      $               sixth * (slyscr(jmax-2,fromm) + slyscr(jmax,fromm))
                   sly(i,jmax-1) = slyscr(jmax-1,flag)*min(abs(ds),slyscr(jmax-1,lim))
-               end do
+c              end do
             end if
+
+           end do
          end if
 c
 c ... end, if slope_order .eq. 4
