@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.53 1998-09-29 20:07:49 lijewski Exp $
+// $Id: Projection.cpp,v 1.54 1998-09-30 22:09:30 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -723,9 +723,7 @@ Projection::syncProject (int             c_lev,
 
     phi.setVal(0.0);
 
-#ifndef NDEBUG
     sig.setBndry(BogusValue);
-#endif
     //
     // Scale sync projection variables.
     //
@@ -1092,10 +1090,8 @@ Projection::initialVelocityProject (int  c_lev,
 
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
-#ifndef NDEBUG
         vel[lev]->setBndry(BogusValue,Xvel,BL_SPACEDIM);
         sig[lev]->setBndry(BogusValue,rho_comp,1);
-#endif
         //
         // Set the physical boundary values.
         //
@@ -1371,8 +1367,6 @@ Projection::initialSyncProject (int       c_lev,
         set_initial_syncproject_outflow_bcs(phi,c_lev,strt_time,dt);
     }
 #endif
-
-#ifndef NDEBUG
     //
     // Set velocity bndry values to bogus values.
     //
@@ -1383,7 +1377,6 @@ Projection::initialSyncProject (int       c_lev,
         u_o.setBndry(BogusValue,Xvel,BL_SPACEDIM);
         sig[lev]->setBndry(BogusValue);
     }
-#endif
     //
     // Convert velocities to accelerations.
     //
@@ -1732,9 +1725,7 @@ Projection::getDivCond (int        level,
 	BoxLib::Error("Projection::getDivCond(): Divu not found");
     }
 
-#ifndef NDEBUG
     fab.setVal(BogusValue);
-#endif
     
     BoxLib::Error("Projection::getDivCond(FAB): not implemented");
 
@@ -1755,9 +1746,7 @@ Projection::getDivCond (int  level,
 
     MultiFab* divu = new MultiFab(LevelData[level].boxArray(),1,ngrow);
 
-#ifndef NDEBUG
     divu->setVal(BogusValue);
-#endif
 
     FillPatchIterator fpi(LevelData[level],*divu,ngrow,time,Divu_Type,0,1);
 
@@ -1973,9 +1962,7 @@ Projection::incrPress (int  level,
         DependentMultiFabIterator P_oldmfi(P_newmfi, P_old);
 
         UpdateArg1(P_newmfi(),1.0/dt,P_oldmfi(),1,grids[P_newmfi.index()],1);
-#ifndef NDEBUG
         P_oldmfi().setVal(BogusValue);
-#endif
     }
 }
 
