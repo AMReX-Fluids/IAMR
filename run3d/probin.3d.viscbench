@@ -1,0 +1,16 @@
+ $fortin
+
+  probtype = 9
+  xblob = 0.0
+  yblob = 0.0
+  zblob = 0.0
+  radblob = 0.0
+  denfact = 0.0
+  velfact = 0.0
+  adv_dir = 0
+  adv_vel = 0.0
+  adverr  = 0.75
+  vorterr  = 100000000.0
+  vb_unifdir = 2
+
+ $end
