@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.38 1998-12-11 23:54:20 lijewski Exp $
+// $Id: MacProj.cpp,v 1.39 1998-12-12 00:07:41 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -923,15 +923,12 @@ MacProj::check_div_cond (int      level,
                     az_dat,ARLIM(azlo),ARLIM(azhi),
                     vol_dat,ARLIM(vlo),ARLIM(vhi));
 #endif
-        if (verbose && ParallelDescriptor::IOProcessor())
-        {
-            cout << "Max norm of div(U_edge) for grid  "
-                 << U_edge0mfi.index()
-                 << " = "
-                 << dmac.norm(0) << NL;
-            sum += dmac.sum(0);
-        }
+        sum += dmac.sum(0);
     }
+
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+    ParallelDescriptor::ReduceRealSum(sum,IOProc);
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
@@ -949,7 +946,7 @@ MacProj::set_outflow_bcs (int             level,
     //
     // Warning: This code looks about right, but hasn't really been tested yet.
     //
-    // This code is very simliar to the outflow BC stuff in the Projection
+    // This code is very similar to the outflow BC stuff in the Projection
     // class except that here the the phi to be solved for lives on the
     // out-directed faces.  The projection equation to satisfy is
     //
