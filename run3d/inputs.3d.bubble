@@ -121,7 +121,7 @@ ns.hi_bc             = 4 4 4  # boundary conditions on the high end of the domai
 #GRIDDING CONTROLS (these are optional)
 #**********************************
 
-amr.blocking_factor  = 4   # the factor by which every patch must be coarsenable
+amr.blocking_factor  = 8   # the factor by which every patch must be coarsenable
 amr.n_error_buf      = 2 2  # number of buffer cells around each tagged cell
 
 # necessary for multigrid convergence
