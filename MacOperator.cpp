@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOperator.cpp,v 1.15 1999-05-10 17:18:35 car Exp $
+// $Id: MacOperator.cpp,v 1.16 1999-05-10 18:54:13 car Exp $
 //
 
 #include <MacBndry.H>
@@ -42,7 +42,7 @@ MacOperator::setCoefficients (MultiFab*   area,
     // Should check that all BoxArrays are consistant.
     //
     const BoxArray& ba = gbox[0];
-    BLassert(rho.boxArray() == ba);
+    BL_ASSERT(rho.boxArray() == ba);
     //
     // First set scalar coeficients.
     //
@@ -70,7 +70,7 @@ MacOperator::setCoefficients (MultiFab*   area,
         DependentMultiFabIterator bzcoefmfi(rhomfi, bzcoef);
         DependentMultiFabIterator area2mfi(rhomfi, area[2]);
 #endif
-        BLassert(ba[rhomfi.index()] == rhomfi.validbox());
+        BL_ASSERT(ba[rhomfi.index()] == rhomfi.validbox());
 
         const Box& grd       = ba[rhomfi.index()];
         const int* lo        = grd.loVect();
@@ -136,7 +136,7 @@ MacOperator::defRHS (MultiFab* area,
     // Should check that all BoxArrays are consistant.
     //
     const BoxArray& ba = gbox[0];
-    BLassert(Rhs.boxArray() == ba);
+    BL_ASSERT(Rhs.boxArray() == ba);
 
     for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
@@ -146,7 +146,7 @@ MacOperator::defRHS (MultiFab* area,
         DependentMultiFabIterator vel0mfi(Rhsmfi, vel[0]);
         DependentMultiFabIterator vel1mfi(Rhsmfi, vel[1]);
 
-        BLassert(ba[Rhsmfi.index()] == Rhsmfi.validbox());
+        BL_ASSERT(ba[Rhsmfi.index()] == Rhsmfi.validbox());
 
         const Box& grd       = Rhsmfi.validbox();
         const int* lo        = grd.loVect();
@@ -268,7 +268,7 @@ MacOperator::velUpdate (MultiFab*       Vel,
     // Should check that all BoxArrays are consistant.
     //
     const BoxArray& ba = gbox[0];
-    BLassert(Rho.boxArray() == ba);
+    BL_ASSERT(Rho.boxArray() == ba);
     //
     // Set bndry data in ghost zones.
     //
@@ -283,7 +283,7 @@ MacOperator::velUpdate (MultiFab*       Vel,
 #if (BL_SPACEDIM == 3 )
         DependentMultiFabIterator Vel2mfi(Phimfi, Vel[2]);
 #endif
-        BLassert(ba[Phimfi.index()] == Phimfi.validbox());
+        BL_ASSERT(ba[Phimfi.index()] == Phimfi.validbox());
 
         const Box& grd = Phimfi.validbox();
 
@@ -315,7 +315,7 @@ MacOperator::syncRhs (const MultiFab& Volume,
     for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
         DependentMultiFabIterator Volumemfi(Rhsmfi, Volume);
-        BLassert(ba[Rhsmfi.index()] == Rhsmfi.validbox());
+        BL_ASSERT(ba[Rhsmfi.index()] == Rhsmfi.validbox());
 
         const Box& grd       = Rhsmfi.validbox();
         const int* lo        = grd.loVect();
