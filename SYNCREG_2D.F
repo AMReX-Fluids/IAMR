@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_2D.F,v 1.6 1998-08-10 22:31:34 almgren Exp $
+c $Id: SYNCREG_2D.F,v 1.7 1999-02-02 21:05:20 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -141,11 +141,13 @@ c ::: -----------------------------------------------------------
       REAL_T     gpy_ul,gpy_ur,gpy_ll,gpy_lr
       REAL_T     pext,vext
 
+#if 0
 c     FOR NINE-POINT STENCIL
-      denom = one/(twelve*dx(1)**2) + one/(twelve*dx(2)**2) 
-
+      denom = one/(twelve*dx(1)**2) + one/(twelve*dx(2)**2)
+#else
 c     FOR FIVE-POINT STENCIL
-c     denom = one/(four*dx(1)**2) + one/(four*dx(2)**2) 
+      denom = one/(four*dx(1)**2) + one/(four*dx(2)**2)
+#endif
 
       lenx = hi(1)-lo(1)+1
       leny = hi(2)-lo(2)+1
@@ -251,85 +253,86 @@ c     NOTE: the factor of mult here accounts for the fact that one
 c           takes ratio time steps on the fine grid for every one
 c           timestep on the coarse grid.  mult = 1/ratio. 
       
-#if 1
+#if 0
+c
 c     FOR NINE-POINT STENCIL
       denomx = -mult/(six*dx(1)**2)
       denomy = -mult/(six*dx(2)**2)
 
       if (dx(1) .eq. dx(2)) then
 
-          do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-            p1 = sigma(i-1,j-1)*( two*phi(i-1,j-1) +      phi(i  ,j-1)
-     &                          +    phi(i-1,j  ) - four*phi(i  ,j  ))
-            p2 = sigma(i-1,j  )*(two*phi(i-1,j+1) +      phi(i  ,j+1)
-     &                          +    phi(i-1,j)   - four*phi(i  ,j  ))
-            p3 = sigma(i  ,j-1)*(two*phi(i+1,j-1) +      phi(i  ,j-1)
-     &                          +    phi(i+1,j)   - four*phi(i  ,j  ))
-            p4 = sigma(i  ,j  )*(two*phi(i+1,j+1) +      phi(i  ,j+1)
-     &                          +    phi(i+1,j)   - four*phi(i  ,j  ))
-            divgp(i,j) = denomx*(p1+p2+p3+p4)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               p1 = sigma(i-1,j-1)*( two*phi(i-1,j-1) +      phi(i  ,j-1)
+     &              +    phi(i-1,j  ) - four*phi(i  ,j  ))
+               p2 = sigma(i-1,j  )*(two*phi(i-1,j+1) +      phi(i  ,j+1)
+     &              +    phi(i-1,j)   - four*phi(i  ,j  ))
+               p3 = sigma(i  ,j-1)*(two*phi(i+1,j-1) +      phi(i  ,j-1)
+     &              +    phi(i+1,j)   - four*phi(i  ,j  ))
+               p4 = sigma(i  ,j  )*(two*phi(i+1,j+1) +      phi(i  ,j+1)
+     &              +    phi(i+1,j)   - four*phi(i  ,j  ))
+               divgp(i,j) = denomx*(p1+p2+p3+p4)
 
-          end do
-          end do
-     
+            end do
+         end do
+         
       else
 
-          do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
 
-            p1 = sigma(i-1,j-1)* (
-     $             denomx * (     phi(i-1,j-1)     -     phi(i  ,j-1)
-     $                       +two*phi(i-1,j  )     - two*phi(i  ,j  ) ) +
-     $             denomy * (     phi(i-1,j-1)     -     phi(i-1,j  )
-     $                       +two*phi(i  ,j-1)     - two*phi(i  ,j  ) ) )
+               p1 = sigma(i-1,j-1)* (
+     $              denomx * (     phi(i-1,j-1)     -     phi(i  ,j-1)
+     $              +two*phi(i-1,j  )     - two*phi(i  ,j  ) ) +
+     $              denomy * (     phi(i-1,j-1)     -     phi(i-1,j  )
+     $              +two*phi(i  ,j-1)     - two*phi(i  ,j  ) ) )
 
-            p2 = sigma(i-1,j  )* (
-     $             denomx * (     phi(i-1,j+1)     -     phi(i  ,j+1)
-     $                       +two*phi(i-1,j  )     - two*phi(i  ,j  ) ) +
-     $             denomy * (     phi(i-1,j+1)     -     phi(i-1,j  )
-     $                       +two*phi(i  ,j+1)     - two*phi(i  ,j  ) ) )
+               p2 = sigma(i-1,j  )* (
+     $              denomx * (     phi(i-1,j+1)     -     phi(i  ,j+1)
+     $              +two*phi(i-1,j  )     - two*phi(i  ,j  ) ) +
+     $              denomy * (     phi(i-1,j+1)     -     phi(i-1,j  )
+     $              +two*phi(i  ,j+1)     - two*phi(i  ,j  ) ) )
 
-            p3 = sigma(i  ,j-1)* (
-     $             denomx * (     phi(i+1,j-1)     -     phi(i  ,j-1)
-     $                       +two*phi(i+1,j  )     - two*phi(i  ,j  ) ) +
-     $             denomy * (     phi(i+1,j-1)     -     phi(i+1,j  )
-     $                       +two*phi(i  ,j-1)     - two*phi(i  ,j  ) ) )
+               p3 = sigma(i  ,j-1)* (
+     $              denomx * (     phi(i+1,j-1)     -     phi(i  ,j-1)
+     $              +two*phi(i+1,j  )     - two*phi(i  ,j  ) ) +
+     $              denomy * (     phi(i+1,j-1)     -     phi(i+1,j  )
+     $              +two*phi(i  ,j-1)     - two*phi(i  ,j  ) ) )
 
-            p4 = sigma(i  ,j  )* (
-     $             denomx * (     phi(i+1,j+1)     -     phi(i  ,j+1)
-     $                       +two*phi(i+1,j  )     - two*phi(i  ,j  ) ) +
-     $             denomy * (     phi(i+1,j+1)     -     phi(i+1,j  )
-     $                       +two*phi(i  ,j+1)     - two*phi(i  ,j  ) ) )
+               p4 = sigma(i  ,j  )* (
+     $              denomx * (     phi(i+1,j+1)     -     phi(i  ,j+1)
+     $              +two*phi(i+1,j  )     - two*phi(i  ,j  ) ) +
+     $              denomy * (     phi(i+1,j+1)     -     phi(i+1,j  )
+     $              +two*phi(i  ,j+1)     - two*phi(i  ,j  ) ) )
 
-            divgp(i,j) = p1+p2+p3+p4
+               divgp(i,j) = p1+p2+p3+p4
 
-          end do
-          end do
+            end do
+         end do
       end if
 
 c     extra term added for cylindrical coordinates
       if (is_rz .eq. 1) then
 
-       do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            rp = dx(1) / (two * (dfloat(i)+half)*dx(1))
-            rm = dx(1) / (two * (dfloat(i)-half)*dx(1))
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               rp = dx(1) / (two * (dfloat(i)+half)*dx(1))
+               rm = dx(1) / (two * (dfloat(i)-half)*dx(1))
 
-            pext = ((sigma(i-1,j-1) * (phi(i,j-1) - phi(i,j)) +
-     $               sigma(i-1,j  ) * (phi(i,j+1) - phi(i,j))) * rm -
+               pext = ((sigma(i-1,j-1) * (phi(i,j-1) - phi(i,j)) +
+     $              sigma(i-1,j  ) * (phi(i,j+1) - phi(i,j))) * rm -
      $              (sigma(i  ,j-1) * (phi(i,j-1) - phi(i,j)) +
-     $               sigma(i  ,j  ) * (phi(i,j+1) - phi(i,j))) * rp)
+     $              sigma(i  ,j  ) * (phi(i,j+1) - phi(i,j))) * rp)
 
-            divgp(i,j) = divgp(i,j) + denomy*pext
+               divgp(i,j) = divgp(i,j) + denomy*pext
+            end do
          end do
-       end do
 
       end if
-#endif
-
-#if 0
+#else
+c
 c     FOR FIVE-POINT STENCIL
+c
       denomx = -mult/(two*dx(1)**2)
       denomy = -mult/(two*dx(2)**2)
 
