@@ -1,11 +1,13 @@
 # NOTE: all the values here must be set unless specifically
 #       marked as optional
 
+
 #**********************************
-#PARALLEL CONTROLS (defaults shown; these are both optional)
+#ALGORITHM CONTROLS (defaults shown; these are both optional)
 #**********************************
 
-#sleep  = 0
+proj.new_proj = 0
+proj.filter_factor = .1
 
 #**********************************
 #RUN CONTROLS  
