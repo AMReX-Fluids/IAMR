@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.30 1998-05-20 22:45:27 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.31 1998-05-22 17:45:14 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -440,10 +440,6 @@ SyncRegister::CrseDVInit (const MultiFab& U,
 
     MultiFab U_local(U.boxArray(),BL_SPACEDIM,n_ghost);
     //
-    // Nullify ghost cells.
-    //
-    U_local.setBndry(0);
-    //
     // First fill all the coarse cells, including ghost cells on periodic
     // and ext_dir edges, before worrying about zeroing out the ones under
     // fine grids.
@@ -456,6 +452,8 @@ SyncRegister::CrseDVInit (const MultiFab& U,
         DependentMultiFabIterator dmfi_U(mfi, U);
 
         assert(dmfi_U.validbox() == mfi.validbox());
+
+        mfi().setComplement(0,mfi.validbox(),0,BL_SPACEDIM);
 
         mfi().copy(dmfi_U(),dmfi_U.validbox(),0,dmfi_U.validbox(),0,BL_SPACEDIM);
 
@@ -1118,15 +1116,11 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
     MultiFab Sig_local(Sigma.boxArray(),1,n_ghost);
     MultiFab Phi_local(Phi.boxArray(),1,n_ghost);
     //
-    // Nullify ghost cells.
-    //
-    Sig_local.setBndry(0);
-    Phi_local.setBndry(0);
-    //
     // Copy valid region of Phi into Phi_local
     //
     for (MultiFabIterator mfi(Phi_local); mfi.isValid(false); ++mfi)
     {
+        mfi().setComplement(0,mfi.validbox(),0,1);
         mfi().copy(Phi[mfi.index()], mfi.validbox());
     }
     //
@@ -1135,6 +1129,7 @@ SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
     //
     for (MultiFabIterator mfi(Sig_local); mfi.isValid(false); ++mfi)
     {
+        mfi().setComplement(0,mfi.validbox(),0,1);
         mfi().copy(Sigma[mfi.index()], mfi.validbox());
 
         for (int fine = 0; fine < grids.length(); fine++)
