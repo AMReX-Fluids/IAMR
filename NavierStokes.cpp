@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.208 2002-11-26 22:40:45 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.209 2002-12-03 17:45:04 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -165,6 +165,12 @@ NavierStokes::read_geometry ()
 #endif
 }
 
+namespace
+{
+  Real umac_periodic_test_Tol    = 1.e-10;
+}
+
+
 void
 NavierStokes::read_params ()
 {
@@ -264,6 +270,9 @@ NavierStokes::read_params ()
     pp.query("do_init_proj",             do_init_proj     );
     pp.query("do_mac_proj",              do_mac_proj      );
     pp.query("do_divu_sync",             do_divu_sync     );
+
+    pp.query("umac_periodic_test_Tol",   umac_periodic_test_Tol);
+
     //
     // Make sure we don't use divu_sync.
     //
@@ -1636,7 +1645,6 @@ NavierStokes::test_umac_periodic ()
 {
     if (!geom.isAnyPeriodic()) return;
 
-    const Real              Tol    = 1.e-10;
     const int               MyProc = ParallelDescriptor::MyProc();
     FArrayBox               diff;
     Array<IntVect>          pshifts(27);
@@ -1702,7 +1710,7 @@ NavierStokes::test_umac_periodic ()
 
         const Real max_norm = diff.norm(0);
 
-        if (max_norm > Tol)
+        if (max_norm > umac_periodic_test_Tol )
         {
             std::cout << "dir = "         << dim
                       << ", diff norm = " << max_norm
