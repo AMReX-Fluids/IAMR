@@ -6,7 +6,7 @@
 #ALGORITHM CONTROLS (defaults shown; these are both optional)
 #**********************************
 
-proj.new_proj = 0
+proj.proj_2   = 1
 proj.filter_factor = .1
 
 #**********************************
