@@ -1,10 +1,4 @@
 
-#ifdef _MSC_VER
-#include <strstrea.h>
-#else
-#include <strstream.h>
-#endif
-
 #include <Array.H>
 #include <CoordSys.H>
 #include <ParmParse.H>
@@ -23,8 +17,7 @@
 
 #ifdef BL_USE_NEW_HFILES
 using std::ifstream;
-using std::ostrstream;
-using std::setw;
+using std::ios;
 #endif
 
 // ###################################################################
@@ -393,18 +386,11 @@ int Amr::blockingFactor() const {
     return blocking_factor;
 }
 
-
-// ###################################################################
-// ##### BOX ARRAY
-// ###################################################################
 const BoxArray& Amr::boxArray(int lev) const
 {
     return amr_level[lev].boxArray();
 }
 
-// ###################################################################
-// ##### OK_TO_CONTINUE
-// ###################################################################
 int Amr::okToContinue() {
     int ok = true;
     int i;
@@ -414,31 +400,50 @@ int Amr::okToContinue() {
     return ok;
 }
 
-
-// ###################################################################
-// ##### WRITE_PLOT_FILE
-// ###################################################################
-void Amr::writePlotFile() {
+void Amr::writePlotFile()
+{
     writePlotFile(plot_file_root,level_steps[0]);
 }
 
-void Amr::writePlotFile(const aString& root, int num) {
-    ostrstream c_nn;
-    c_nn.fill('0');
-    c_nn << root << setw(4) << num << ends;
-    if (trace) {
-      if(ParallelDescriptor::IOProcessor()) {
-	cout << "PLOTFILE: file = " << c_nn.str() << endl;
-      }
+static
+aString
+Concatenate (const aString& root,
+             int            num)
+{
+    aString result = root;
+
+    char buf[sizeof(int) + 1];
+
+    sprintf(buf, "%04d", num);
+
+    result += buf;
+
+    return result;
+}
+
+void
+Amr::writePlotFile (const aString& root,
+                    int            num)
+{
+    aString pltfile = Concatenate(root, num);
+
+    if (trace)
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "PLOTFILE: file = " << pltfile << endl;
+        }
     }
-    if (record_run_info) {
-      if(ParallelDescriptor::IOProcessor()) {
-	runlog << "PLOTFILE: file = " << c_nn.str() << endl;
-      }
+    if (record_run_info)
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            runlog << "PLOTFILE: file = " << pltfile << endl;
+        }
     }
 
-      // open stream
     ofstream os;
+
 #ifdef BL_T3E
     // ---------------- new buffer code
     int buffersize = 40960 * 32;
@@ -446,16 +451,18 @@ void Amr::writePlotFile(const aString& root, int num) {
     os.setbuf(iobuff, buffersize);
     // ------------ end new buffer code
 #endif
-    os.open(c_nn.str(),ios::out);
-    if(os.fail()) {
-      cerr << "Error in Amr::writePlotFile:  os failed." << endl;
-      return;
+
+    os.open(pltfile.c_str(), ios::out);
+
+    if (os.fail())
+    {
+        cerr << "Error in Amr::writePlotFile:  os failed." << endl;
+        return;
     }
-    c_nn.rdbuf()->freeze(0);
-    int k;
-    for (k = 0; k <= finest_level; k++) {
+
+    for (int k = 0; k <= finest_level; k++)
 	amr_level[k].writePlotFile(os);
-    }
+
     os.close();
 
 #ifdef BL_T3E
@@ -463,12 +470,8 @@ void Amr::writePlotFile(const aString& root, int num) {
     delete [] iobuff;
     // ------------ end new buffer code
 #endif
-
 }
 
-// ###################################################################
-// ##### CHECK_INPUT
-// ###################################################################
 void Amr::checkInput() {
     if( max_level < 0 ) {
 	BoxLib::Error("checkInput: max_level not set");
@@ -622,11 +625,14 @@ Amr::derive(const BOX& b, const aString& name, REAL time, int lev)
 // ###################################################################
 // ##### RESTART
 // ###################################################################
-void Amr::restart(const aString& filename){
+void Amr::restart(const aString& filename)
+{
     int i;
 
-    if (trace) {
-      if(ParallelDescriptor::IOProcessor()) {
+    if (trace)
+    {
+      if(ParallelDescriptor::IOProcessor())
+      {
 	cout << "restarting calculation from file " << filename << endl;
       }
     }
@@ -655,11 +661,10 @@ void Amr::restart(const aString& filename){
       // read global data
     int   spdim;
     is >> spdim;
-    if (spdim != BL_SPACEDIM) {
-	char b[128];
-	ostrstream s(b,sizeof(b));
-	s << "restart: bad spacedim = " << spdim << ends;
-	BoxLib::Error(s.str());
+    if (spdim != BL_SPACEDIM)
+    {
+	cerr << "restart: bad spacedim = " << spdim << endl;
+	BoxLib::Abort();
     }
     is >> cumtime;
     int mx_lev;
@@ -699,48 +704,42 @@ void Amr::restart(const aString& filename){
 	}
     }
 
-      // check provided values
     checkInput();
 
-      // read levels
-    int lev;
-    for (lev = 0; lev <= finest_level; lev++) {
+    for (int lev = 0; lev <= finest_level; lev++)
+    {
 	amr_level.set(lev,(*levelbld)());
 	amr_level[lev].restart(*this,is);
     }
 
-      // initialize local stats
     RunStats::readStats(is);
 
-      // build any additional data structures
-    for (lev = 0; lev <= finest_level; lev++) {
+    for (int lev = 0; lev <= finest_level; lev++)
 	amr_level[lev].post_restart();
-    }
 }
 
+void
+Amr::checkPoint ()
+{
+    aString ckfile = Concatenate(check_file_root, level_steps[0]);
 
-// ###################################################################
-// ##### CHECKPOINT
-// ###################################################################
-void Amr::checkPoint() {
-      // construct file name
-    ostrstream c_nn;
-    c_nn.fill('0');
-    c_nn << check_file_root << setw(4) << level_steps[0] << ends;
-
-    if (trace) {
-      if(ParallelDescriptor::IOProcessor()) {
-	cout << "CHECKPOINT: file = " << c_nn.str() << endl;
-      }
+    if (trace)
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "CHECKPOINT: file = " << ckfile << endl;
+        }
     }
-    if (record_run_info) {
-      if(ParallelDescriptor::IOProcessor()) {
-	runlog << "CHECKPOINT: file = " << c_nn.str() << endl;
-      }
+    if (record_run_info)
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            runlog << "CHECKPOINT: file = " << ckfile << endl;
+        }
     }
 
-      // open stream
     ofstream os;
+
 #ifdef BL_T3E
     // ---------------- new buffer code
     int buffersize = 40960 * 32;
@@ -748,39 +747,44 @@ void Amr::checkPoint() {
     os.setbuf(iobuff, buffersize);
     // ------------ end new buffer code
 #endif
-    os.open(c_nn.str(),ios::out);
-    c_nn.rdbuf()->freeze(0);
+
+    os.open(ckfile.c_str(), ios::out);
+
     os.precision(15);
 
     int i;
-  if(ParallelDescriptor::IOProcessor()) {
-    os << BL_SPACEDIM << '\n';
-    os << cumtime << '\n';
-    os << max_level << '\n';
-    os << finest_level << '\n';
+    if (ParallelDescriptor::IOProcessor())
+    {
+        os << BL_SPACEDIM  << '\n';
+        os << cumtime      << '\n';
+        os << max_level    << '\n';
+        os << finest_level << '\n';
 
-      // write out problem domain
-    for (i = 0; i <= max_level; i++) os << geom[i] << "  ";
-    os << '\n';
-    for (i = 0; i < max_level; i++) os << ref_ratio[i] << "  ";
-    os << '\n';
+        // write out problem domain
+        for (i = 0; i <= max_level; i++)
+            os << geom[i] << "  ";
+        os << '\n';
+        for (i = 0; i < max_level; i++)
+            os << ref_ratio[i] << "  ";
+        os << '\n';
 
-    for (i = 0; i <= max_level; i++) os << dt_level[i] << "  ";
-    os << '\n';
-    for (i = 0; i <= max_level; i++) os << n_cycle[i] << "  ";
-    os << '\n';
-    for (i = 0; i <= max_level; i++) os << level_steps[i] << "  ";
-    os << '\n';
-    for (i = 0; i <= max_level; i++) os << level_count[i] << "  ";
-    os << '\n';
-  }
-
-      // write grids
-    for (i = 0; i <= finest_level; i++) {
-	amr_level[i].checkPoint(os);
+        for (i = 0; i <= max_level; i++)
+            os << dt_level[i] << "  ";
+        os << '\n';
+        for (i = 0; i <= max_level; i++)
+            os << n_cycle[i] << "  ";
+        os << '\n';
+        for (i = 0; i <= max_level; i++)
+            os << level_steps[i] << "  ";
+        os << '\n';
+        for (i = 0; i <= max_level; i++)
+            os << level_count[i] << "  ";
+        os << '\n';
     }
 
-      // output cumulative stats
+    for (i = 0; i <= finest_level; i++)
+	amr_level[i].checkPoint(os);
+
     RunStats::dumpStats(os);
 
     os.close();
@@ -790,8 +794,8 @@ void Amr::checkPoint() {
     delete [] iobuff;
     // ------------ end new buffer code
 #endif
-
 }
+
 
 // ###################################################################
 // ##### TIME_STEP
