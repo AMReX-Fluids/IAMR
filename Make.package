@@ -125,11 +125,6 @@ endif
 #
 CEXE_sources += Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp NavierStokes.cpp 
 CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H 
-
-ifeq ($(USE_NETCDF),TRUE)
-CEXE_sources += netcdfIO.cpp Debug.cpp
-CEXE_headers += netcdfIO.H
-endif
 						                   
 FEXE_sources += DERIVE_$(DIM)D.F GODUNOV_F.F GODUNOV_$(DIM)D.F NAVIERSTOKES_$(DIM)D.F \
 		PROJECTION_$(DIM)D.F MACPROJ_$(DIM)D.F DIFFUSION_$(DIM)D.F 
