@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.5 1999-02-02 23:00:52 lijewski Exp $
+# $Id: GNUmakefile,v 1.6 1999-02-17 20:32:54 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -10,10 +10,13 @@ TOP = $(PBOXLIB_HOME)
 PRECISION = DOUBLE
 DEBUG	  = TRUE
 PROFILE   = FALSE
-DIM	      = 3
-PRVERSION = v9
+DIM       = 3
 COMP      = KCC
 USE_MPI   = TRUE
+#
+# What stencil do you want to use?
+#
+PRVERSION = v7
 #
 # Use hgproj-serial -- only for testing.
 #
@@ -111,7 +114,7 @@ else
 	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE=
 endif
 	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) install
+	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) PRVERSION=$(PRVERSION) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) install
 #
 # Cleanup libraries.
 #
