@@ -93,7 +93,7 @@ extern "C" {
                       const REAL* hx,
                       ARLIM_P(phi_lo), ARLIM_P(phi_hi), const REAL* phi);
     
-};
+}
 
 #endif
 #endif

@@ -77,7 +77,7 @@ extern "C"
                          const int * lo, const int * hi,
                          const int * numcomp, const REAL * mult);
 
-};
+}
 #endif
 
 #endif

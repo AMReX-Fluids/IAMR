@@ -1,5 +1,5 @@
 #ifndef _DIFFUSION_F_H
-#define _DIFFUSION_F_H  $Id: DIFFUSION_F.H,v 1.1 1997-07-08 23:08:12 vince Exp $
+#define _DIFFUSION_F_H  $Id: DIFFUSION_F.H,v 1.2 1997-07-17 22:00:58 vince Exp $
 
 #ifdef BL_LANG_FORT
 #    define FORT_VISCFLUX    viscflux
@@ -157,7 +157,7 @@ extern "C" {
 #endif
           ARLIM_P(divmusilo), ARLIM_P(divmusihi), const REAL* divmusi);
     
-};
+}
 
 #endif
 #endif

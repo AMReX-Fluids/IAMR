@@ -1,5 +1,5 @@
 #ifdef BL_LANG_FORT
-c $Id: DERIVE_F.H,v 1.1 1997-07-08 23:08:11 vince Exp $
+c $Id: DERIVE_F.H,v 1.2 1997-07-17 22:00:57 vince Exp $
 #endif
 
 #ifdef BL_LANG_FORT
@@ -173,5 +173,5 @@ c $Id: DERIVE_F.H,v 1.1 1997-07-08 23:08:11 vince Exp $
 			   const REAL* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 #endif
-  };
+  }
 #endif

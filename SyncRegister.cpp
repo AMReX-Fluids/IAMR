@@ -1,4 +1,4 @@
-// $Id: SyncRegister.cpp,v 1.2 1997-07-10 22:46:32 car Exp $
+// $Id: SyncRegister.cpp,v 1.3 1997-07-17 22:01:10 vince Exp $
 #include <BC_TYPES.H>
 #include <SyncRegister.H>
 
@@ -28,6 +28,7 @@ void
 SyncRegister::define(const BoxArray& fine_boxes,
 		     IntVect ref_ratio, int fine_lev)
 {
+cout << endl << "_in SyncRegister::define" << endl << endl;
     for (int dir=0; dir < BL_SPACEDIM; dir++) assert(ratio[dir] == -1);
     assert(fine_boxes.isDisjoint());
     assert(!grids.ready());
@@ -47,6 +48,8 @@ SyncRegister::define(const BoxArray& fine_boxes,
       // of this loop shrinks the domain in the index direction
       // just allocated so that the fabs in the other directions
       // will not overlap.
+
+/*  original code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     for (int k = 0; k < ngrds; k++) {
 	BOX ndbox(surroundingNodes(grids[k]));
 	for (int dir = 0; dir < BL_SPACEDIM; dir++) {
@@ -61,6 +64,36 @@ SyncRegister::define(const BoxArray& fine_boxes,
 	    nd_hi.setRange(dir,bhi[dir],1);
 	    FabSet &hi = bndry[Orientation(dir,Orientation::high)];
 	    hi.setFab(k,new FARRAYBOX(nd_hi,1));
+
+	    assert(ndbox.shortside() > 0);
+	}
+    }
+*/
+    int myproc = ParallelDescriptor::MyProc();
+    for (int k = 0; k < ngrds; k++) {
+	BOX ndbox(surroundingNodes(grids[k]));
+	for (int dir = 0; dir < BL_SPACEDIM; dir++) {
+  	    const int* blo = ndbox.loVect();
+	    BOX nd_lo(ndbox);
+	    nd_lo.setRange(dir,blo[dir],1);
+	    FabSet &lo = bndry[Orientation(dir,Orientation::low)];
+	    lo.setBox(k, nd_lo);
+	    if(lo.DistributionMap()[k] == myproc) {  // local
+	      assert( ! lo.defined(k) );
+	      lo.clear(k);
+	      lo.setFab(k,new FARRAYBOX(nd_lo,1));
+	    }
+
+	    const int* bhi = ndbox.hiVect();
+	    BOX nd_hi(ndbox);
+	    nd_hi.setRange(dir,bhi[dir],1);
+	    FabSet &hi = bndry[Orientation(dir,Orientation::high)];
+	    hi.setBox(k, nd_hi);
+	    if(hi.DistributionMap()[k] == myproc) {  // local
+	      assert( ! hi.defined(k) );
+	      hi.clear(k);
+	      hi.setFab(k,new FARRAYBOX(nd_hi,1));
+	    }
 
 	    assert(ndbox.shortside() > 0);
 	}
@@ -84,23 +117,38 @@ SyncRegister::sum()
     bfab.setVal(0.0);
 
       // copy registers onto FAB
+/*  original code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     for (k = 0; k < ngrds; k++) {
 	for (OrientationIter face; face; ++face) {
 	    bfab.copy(bndry[face()][k]);
 	}
     }
     return bfab.sum(0,1);
+*/
+    for(OrientationIter face; face; ++face) {
+      for(FabSetIterator fsi(bndry[face()]); fsi.isValid(); ++fsi) {
+        bfab.copy(fsi());
+      }
+    }
+    REAL tempSum = bfab.sum(0,1);
+    ParallelDescriptor::ReduceRealSum(tempSum);
+    return tempSum;
 }
 
 void
 SyncRegister::increment(const FARRAYBOX& src)
 {
-    int ngrds = grids.length();
+    //int ngrds = grids.length();
 
-    for (int k = 0; k < ngrds; k++) {
-	for (OrientationIter face; face; ++face) {
-	    bndry[face()][k].plus(src);
-	}
+    //for (int k = 0; k < ngrds; k++) {
+	//for (OrientationIter face; face; ++face) {
+	    //bndry[face()][k].plus(src);
+	//}
+    //}
+    for(OrientationIter face; face; ++face) {
+      for(FabSetIterator fsi(bndry[face()]); fsi.isValid(); ++fsi) {
+	fsi().plus(src);
+      }
     }
 }
 
@@ -108,6 +156,9 @@ void
 SyncRegister::InitRHS(MultiFab& rhs, const Geometry& geom,
                       const BCRec* phys_bc)
 {
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("SyncRegister::InitRHS(...) not implemented in parallel.");
+}
     rhs.setVal(0.0);
     const BoxArray& rhs_boxes = rhs.boxArray();
     int nrhs = rhs_boxes.length();
@@ -189,6 +240,9 @@ SyncRegister::CrseDVInit(const MultiFab& U,
                          const Geometry& geom, 
 			 int is_rz, int ** crse_bc, REAL mult)
 {
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("SyncRegister::CrseDVInit(...) not implemented in parallel.");
+}
       // first zero all registers
     setVal(0.0);
 
@@ -196,7 +250,7 @@ SyncRegister::CrseDVInit(const MultiFab& U,
     const BoxArray& U_boxes = U.boxArray();
     int ncrse = U_boxes.length();
 
-    int j, k, dir, fine;
+    int k, dir, fine;
 
     const BOX& domain = geom.Domain();
     const REAL* dx = geom.CellSize();
@@ -388,6 +442,9 @@ SyncRegister::FineDVAdd(const MultiFab& U,
                         const Geometry& crse_geom, 
 			int is_rz, int ** fine_bc, REAL mult)
 {
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("SyncRegister::FineDVAdd(...) not implemented in parallel.");
+}
     const BoxArray& U_boxes = U.boxArray();
     int ngrds = U_boxes.length();
 
@@ -523,6 +580,9 @@ SyncRegister::CrseDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
 			  int is_rz, int ** crse_bc, 
                           int lowfix, int hifix, REAL mult)
 {
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("SyncRegister::CrseDsdtAdd(...) not implemented in parallel.");
+}
     int k, dir, fine;
 
     const BOX& domain = geom.Domain();
@@ -642,6 +702,9 @@ SyncRegister::FineDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
 			  int is_rz, int ** fine_bc, 
                           int lowfix, int hifix, REAL mult)
 {
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("SyncRegister::FineDsdtAdd(...) not implemented in parallel.");
+}
     const BoxArray& dsdt_boxes = dsdt.boxArray();
     int ngrds = dsdt_boxes.length();
 
@@ -660,8 +723,8 @@ SyncRegister::FineDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
         const int* dsdtlo = dsdtbox.loVect();
         const int* dsdthi = dsdtbox.hiVect();
 
-        int * bc = fine_bc[k];
 #if 0
+        int * bc = fine_bc[k];
 // unlike dv and lphi, the following is the wrong thing to
 // do for dsdt -- rbp
 // I am leaving the code here as a reminder that it is
@@ -829,6 +892,9 @@ SyncRegister::CompDVAdd(const MultiFab& U,
                         const Geometry& crse_geom, 
                         int is_rz, int ** fine_bc, REAL mult)
 {
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("SyncRegister::CompDVAdd(...) not implemented in parallel.");
+}
     const BoxArray& U_boxes = U.boxArray();
     int ngrds = U_boxes.length();
 
@@ -996,6 +1062,9 @@ void
 SyncRegister::CrseLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
 			  const Geometry& geom, int is_rz, REAL mult)
 {
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("SyncRegister::CrseLPhiAdd(...) not implemented in parallel.");
+}
     int nfine = grids.length();
     const BoxArray& Phi_boxes = Phi.boxArray();
     int ncrse = Phi_boxes.length();
@@ -1010,7 +1079,7 @@ SyncRegister::CrseLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
     MultiFab * Sig_local = new MultiFab(sig_boxes,1,n_ghost,Fab_allocate);
     MultiFab * Phi_local = new MultiFab(Phi_boxes,1,n_ghost,Fab_allocate);
 
-    int k, dir;
+    int k;
     for (k = 0; k < ncrse; k++) {
 
         FARRAYBOX& pfab = (*Phi_local)[k];
@@ -1120,6 +1189,9 @@ SyncRegister::FineLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
 			  const REAL* dx_fine, const Geometry& crse_geom, 
                           int is_rz, REAL mult)
 {
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("SyncRegister::FineLPhiAdd(...) not implemented in parallel.");
+}
     int k, dir, idir;
 
     const BoxArray& Phi_boxes = Phi.boxArray();
@@ -1248,6 +1320,9 @@ SyncRegister::CompLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
                           const Geometry& crse_geom, 
                           int is_rz, REAL mult)
 {
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("SyncRegister::CompLPhiAdd(...) not implemented in parallel.");
+}
     int k, dir, idir;
 
     const BOX& crse_node_domain = surroundingNodes(crse_geom.Domain());
@@ -1417,6 +1492,9 @@ SyncRegister::CompLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
 #include <fstream.h>
 static void printFAB(ostream& os, const FARRAYBOX& f)
 {
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("SyncRegister::printFAB(...) not implemented in parallel.");
+}
 
     int comp = 0;
     const BOX& bx = f.box();

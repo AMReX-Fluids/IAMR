@@ -1,6 +1,61 @@
 
 #include "cache.H"
 
+// -----------------------------------------------------------------
+//  these functions are un-inlined to debug.  put them back when the
+//  code is working
+
+
+void copy_cache::run() const {
+#if (BL_SPACEDIM == 2)
+    FFCCPY1(dptr, sptr, nsets, dstart, sstart, dstrid, sstrid, nvals);
+#else
+    FFCCPY2(dptr, sptr, nsets, dstart, sstart, dstrid1, dstrid2,
+            sstrid1, sstrid2, nvals1, nvals2);
+#endif
+    if (bdy_cache) bdy_cache->run();
+  }
+
+
+#if (BL_SPACEDIM == 2)
+void copy_cache::set(int i, int Dstart, int Sstart, int Dstrid, int Sstrid, int Nvals) {
+    if (i < 0 || i >= nsets)
+      BoxLib::Error("copy_cache::set---out of range");
+    dstart[i] = Dstart;
+    sstart[i] = Sstart;
+    dstrid[i] = Dstrid;
+    sstrid[i] = Sstrid;
+    nvals[i]  = Nvals;
+}
+
+
+
+
+unroll_cache::unroll_cache(int Nsets, Real *Ptr)
+  : nsets(Nsets), ptr(Ptr) {
+#if (BL_SPACEDIM == 2)
+    start = new int[3 * nsets];
+    strid = start + nsets;
+    nvals = start + 2 * nsets;
+#else
+    start  = new int[4 * nsets];
+    strid1 = start + nsets;
+    strid2 = start + 2 * nsets;
+    nvals  = start + 3 * nsets;
+#endif
+  }
+
+void unroll_cache::set(int i, int Start, int Strid, int Nvals) {
+    if (i < 0 || i >= nsets)
+      BoxLib::Error("unroll_cache::set---out of range");
+    start[i] = Start;
+    strid[i] = Strid;
+    nvals[i] = Nvals;
+  }
+
+#endif
+// -----------------------------------------------------------------
+
 copy_cache::copy_cache(int Nsets, Real *Dptr, Real *Sptr)
   : nsets(Nsets), dptr(Dptr), sptr(Sptr), bdy_cache(NULL)
 {

@@ -36,7 +36,7 @@
                         const REAL* offset,
                         const REAL* dx, const int* dir,
                         const int* coord);
-  };
+  }
 
 #endif
 

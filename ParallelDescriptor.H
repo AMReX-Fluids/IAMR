@@ -74,15 +74,15 @@ public:
     // bool
     static void ReduceBoolAnd(bool &rvar) {}
     // Real
-    static void ReduceRealPlus(Real &rvar) {}
+    static void ReduceRealSum(Real &rvar) {}
     static void ReduceRealMax(Real &rvar) {}
     static void ReduceRealMin(Real &rvar) {}
     // int
-    static void ReduceIntPlus(int &rvar) {}
+    static void ReduceIntSum(int &rvar) {}
     static void ReduceIntMax(int &rvar) {}
     static void ReduceIntMin(int &rvar) {}
     // long
-    static void ReduceLongPlus(long &rvar) {}
+    static void ReduceLongSum(long &rvar) {}
     static void ReduceLongMax(long &rvar) {}
     static void ReduceLongMin(long &rvar) {}
 
@@ -133,15 +133,15 @@ class ParallelDescriptor
     // bool
     static void ReduceBoolAnd(bool &rvar);
     // Real
-    static void ReduceRealPlus(Real &rvar);
+    static void ReduceRealSum(Real &rvar);
     static void ReduceRealMax(Real &rvar);
     static void ReduceRealMin(Real &rvar);
     // int
-    static void ReduceIntPlus(int &rvar);
+    static void ReduceIntSum(int &rvar);
     static void ReduceIntMax(int &rvar);
     static void ReduceIntMin(int &rvar);
     // long
-    static void ReduceLongPlus(long &rvar);
+    static void ReduceLongSum(long &rvar);
     static void ReduceLongMax(long &rvar);
     static void ReduceLongMin(long &rvar);
 

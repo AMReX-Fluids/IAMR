@@ -1449,6 +1449,9 @@ AmrLevel::FillCoarsePatch(FARRAYBOX &dest,
 	cerr << "crsePatch: called at level 0" << endl;
 	ParallelDescriptor::Abort("Exiting.");
     }
+    if(ParallelDescriptor::NProcs() > 1) {
+      ParallelDescriptor::Abort("FillCoarsePatch called with nprocs > 1.");
+    }
 
     BOX dbox(dest.box());
 
@@ -1505,6 +1508,10 @@ AmrLevel::FillCoarsePatch(FARRAYBOX &dest,
 PArray<FARRAYBOX>*
 AmrLevel::derive(const aString &name, REAL time)
 {
+    if(ParallelDescriptor::NProcs() > 1) {
+      cerr << "AmrLevel::derive (PArray):  fix for parallel." << endl;
+      ParallelDescriptor::Abort("Exiting.");
+    }
     int state_indx, src_comp;
     if (isStateVariable(name,state_indx,src_comp)) {
 	const StateDescriptor &desc = desc_lst[state_indx];
@@ -1595,6 +1602,11 @@ AmrLevel::derive(const aString &name, REAL time)
 FARRAYBOX*
 AmrLevel::derive(const BOX& b, const aString &name, REAL time)
 {
+    if(ParallelDescriptor::NProcs() > 1) {
+      cerr << "AmrLevel::derive(box, name, time):  fix for parallel." << endl;
+      ParallelDescriptor::Abort("Exiting.");
+    }
+
     int state_indx, src_comp;
 
       // is it a state variable?

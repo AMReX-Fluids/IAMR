@@ -30,10 +30,10 @@ void ParallelDescriptor::ReduceBoolAnd(bool &rvar) {
 }
 
 // -----------------------------------------------------------------
-void ParallelDescriptor::ReduceRealPlus(Real &rvar) {
+void ParallelDescriptor::ReduceRealSum(Real &rvar) {
     ParallelDescriptor::ShareVar(&rvar, sizeof(Real));
     ParallelDescriptor::Synchronize();
-    bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpRealPlus,
+    bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpRealSum,
               &rvar, &rvar, sizeof(Real));
     ParallelDescriptor::UnshareVar(&rvar);
 }
@@ -57,10 +57,10 @@ void ParallelDescriptor::ReduceRealMin(Real &rvar) {
 }
 
 // -----------------------------------------------------------------
-void ParallelDescriptor::ReduceIntPlus(int &rvar) {
+void ParallelDescriptor::ReduceIntSum(int &rvar) {
     ParallelDescriptor::ShareVar(&rvar, sizeof(int));
     ParallelDescriptor::Synchronize();
-    bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpIntPlus,
+    bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpIntSum,
               &rvar, &rvar, sizeof(int));
     ParallelDescriptor::UnshareVar(&rvar);
 }
@@ -84,10 +84,10 @@ void ParallelDescriptor::ReduceIntMin(int &rvar) {
 }
 
 // -----------------------------------------------------------------
-void ParallelDescriptor::ReduceLongPlus(long &rvar) {
+void ParallelDescriptor::ReduceLongSum(long &rvar) {
     ParallelDescriptor::ShareVar(&rvar, sizeof(long));
     ParallelDescriptor::Synchronize();
-    bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpLongPlus,
+    bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpLongSum,
               &rvar, &rvar, sizeof(long));
     ParallelDescriptor::UnshareVar(&rvar);
 }

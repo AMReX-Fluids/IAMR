@@ -4,7 +4,7 @@
 #define _UTILITY_H_
 
 //
-// $Id: Utility.H,v 1.1 1997-07-08 23:08:07 vince Exp $
+// $Id: Utility.H,v 1.2 1997-07-17 22:01:11 vince Exp $
 //
 
 #include <iostream.h>
@@ -51,7 +51,7 @@ public:
       result = arg1 && arg2;
     }
 
-    static void OpRealPlus(Real &result, Real &arg1, Real &arg2, int *nbytes) {
+    static void OpRealSum(Real &result, Real &arg1, Real &arg2, int *nbytes) {
       result = arg1 + arg2;
     }
 
@@ -71,7 +71,7 @@ public:
       result = (arg1 > arg2 ? arg1 : arg2);
     }
 
-    static void OpIntPlus(int &result, int &arg1, int &arg2, int *nbytes) {
+    static void OpIntSum(int &result, int &arg1, int &arg2, int *nbytes) {
       result = arg1 + arg2;
     }
 
@@ -83,7 +83,7 @@ public:
       result = (arg1 > arg2 ? arg1 : arg2);
     }
 
-    static void OpLongPlus(long &result, long &arg1, long &arg2, int *nbytes) {
+    static void OpLongSum(long &result, long &arg1, long &arg2, int *nbytes) {
       result = arg1 + arg2;
     }
 

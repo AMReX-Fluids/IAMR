@@ -1,5 +1,5 @@
 #ifndef _NAVIERSTOKES_F_H_
-#define _NAVIERSTOKES_F_H_  $Id: NAVIERSTOKES_F.H,v 1.1 1997-07-08 23:08:13 vince Exp $
+#define _NAVIERSTOKES_F_H_  $Id: NAVIERSTOKES_F.H,v 1.2 1997-07-17 22:01:04 vince Exp $
 
 #ifdef BL_LANG_FORT
 #    define FORT_FILCC       filcc
@@ -105,7 +105,7 @@ extern "C" {
                          ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                          const REAL* delta, REAL* mass, REAL* tmp);
 #endif
-};
+}
     
 #endif
 #endif

@@ -1,4 +1,4 @@
-// $Id: LinOp.cpp,v 1.1 1997-07-08 23:08:04 vince Exp $
+// $Id: LinOp.cpp,v 1.2 1997-07-17 22:01:02 vince Exp $
 
 #include <stdlib.h>
 #include <ParmParse.H>
@@ -265,7 +265,7 @@ LinOp::norm(const MultiFab &in, int level) const
 	REAL tnorm = inmfi().norm(gbox[level]->get(gn));
 	norm += tnorm*tnorm;
     }
-    ParallelDescriptor::ReduceRealPlus(norm);
+    ParallelDescriptor::ReduceRealSum(norm);
     return norm;
 }
 

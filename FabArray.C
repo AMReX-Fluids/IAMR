@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabArray.C,v 1.2 1997-07-12 00:09:47 vince Exp $
+// $Id: FabArray.C,v 1.3 1997-07-17 22:01:00 vince Exp $
 //
 
 #include <Assert.H>
@@ -927,7 +927,7 @@ FabArrayCopyDescriptor<T, FAB>::AddBox(const FabArrayId &fabarrayid,
     if(intersectBox.isValid()) {
       filledBoxes.add(intersectBox);
       int remoteProc = fabArray->DistributionMap().ProcessorMap()[i];
-      FabCopyDescriptor *fcd = new FabCopyDescriptor;
+      FabCopyDescriptor<FAB> *fcd = new FabCopyDescriptor<FAB>;
       fcd->fabArrayId = fabarrayid.Id();
       fcd->fillBoxId  = nextFillBoxId;
       fcd->subBox = intersectBox;
@@ -1007,7 +1007,7 @@ FabArrayCopyDescriptor<T, FAB>::AddBox(const FabArrayId &fabarrayid,
     if(intersectBox.isValid()) {
       filledBoxes.add(intersectBox);
       int remoteProc = fabArray->DistributionMap().ProcessorMap()[i];
-      FabCopyDescriptor *fcd = new FabCopyDescriptor;
+      FabCopyDescriptor<FAB> *fcd = new FabCopyDescriptor<FAB>;
       fcd->fabArrayId = fabarrayid.Id();
       fcd->fillBoxId  = nextFillBoxId;
       fcd->subBox = intersectBox;
@@ -1066,7 +1066,7 @@ FabArrayCopyDescriptor<T, FAB>::AddBox(const FabArrayId &fabarrayid,
 // ----------------------------------------------------------------------------
 template <class T, class FAB>
 FabArrayCopyDescriptor<T, FAB>::~FabArrayCopyDescriptor() {
-  for(ListIterator<FabCopyDescriptor *> fli(fabCopyDescList); fli; ++fli) {
+  for(ListIterator<FabCopyDescriptor<FAB> *> fli(fabCopyDescList); fli; ++fli) {
     delete fli();
   }
 }
@@ -1156,7 +1156,7 @@ void FabArrayCopyDescriptor<T, FAB>::CollectData() {
 
     // find the box in the list and move the data
     bool matchFound = false;
-    for(ListIterator<FabCopyDescriptor *> fli(fabCopyDescList);
+    for(ListIterator<FabCopyDescriptor<FAB> *> fli(fabCopyDescList);
 	fli && ! matchFound;
 	++fli)
     {
@@ -1197,7 +1197,7 @@ void FabArrayCopyDescriptor<T, FAB>::FillFab(const FabArrayId &fabarrayid,
   }
 
   // optimize this vvvvvvvvvvvvvv
-  for(ListIterator<FabCopyDescriptor *> fli(fabCopyDescList); fli; ++fli) {
+  for(ListIterator<FabCopyDescriptor<FAB> *> fli(fabCopyDescList); fli; ++fli) {
     if(fli()->fabArrayId == fabarrayid.Id() && fli()->fillBoxId == fillboxid.Id())
     {
       int localSrcComp;
@@ -1242,5 +1242,34 @@ void FabArrayCopyDescriptor<T, FAB>::PrintStats() {
   */
 }
 // ----------------------------------------------------------------------------
+
+
+
+
+
 // ----------------------------------------------------------------------------
-// ========================================================================
+// The following should probably be inlined
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// FabCopyDescriptor
+// ----------------------------------------------------------------------------
+template <class FAB>
+FabCopyDescriptor<FAB>::FabCopyDescriptor()
+                       : myProc(-1), copyFromProc(-1), copyFromIndex(-1),
+		         fabArrayId(-1), fillBoxId(-1),
+		         srcComp(-1), destComp(-1), nComp(-1),
+		         fillType(Unfillable),
+		         cacheDataAllocated(false), localFabSource(NULL)
+{
+}
+
+// ----------------------------------------------------------------------------
+template <class FAB>
+FabCopyDescriptor<FAB>::~FabCopyDescriptor() {
+  if(cacheDataAllocated) {
+    delete localFabSource;
+  }
+}
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------

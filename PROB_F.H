@@ -132,6 +132,6 @@
                           const REAL* prob_lo, const REAL* time,
                           const int* level);
 
-  };
+  }
 #endif
 #endif

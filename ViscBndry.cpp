@@ -1,4 +1,4 @@
-// $Id: ViscBndry.cpp,v 1.1 1997-07-08 23:08:15 vince Exp $
+// $Id: ViscBndry.cpp,v 1.2 1997-07-17 22:01:12 vince Exp $
 #include <LO_BCTYPES.H>
 #include <ViscBndry.H>
 
@@ -57,6 +57,7 @@ ViscBndry::setHomogValues(const BCRec& bc, IntVect& ratio)
 
     setBndryConds(bc, geom, ratio);
 
+/*
     int ngrd = grids.length();
     for (int grd = 0; grd < ngrd; grd++) {
         const BOX& bx = grids[grd];
@@ -65,5 +66,12 @@ ViscBndry::setHomogValues(const BCRec& bc, IntVect& ratio)
             FARRAYBOX& bnd_fab = bndry[face][grd];
             bnd_fab.setVal(0.);
         }
+    }
+*/
+    for(OrientationIter fi; fi; ++fi) {
+      Orientation face(fi());
+      for(FabSetIterator fsi(bndry[face]); fsi.isValid(); ++fsi) {
+        fsi().setVal(0.);
+      }
     }
 }

@@ -65,7 +65,7 @@ ViscBndry2D::setHomogValues(const Array<BCRec>& bc, int ratio)
 {
 
     setBndryConds(bc, geom, ratio);
-
+/*
     int ngrd = grids.length();
     for (int grd = 0; grd < ngrd; grd++) {
         const BOX& bx = grids[grd];
@@ -74,6 +74,14 @@ ViscBndry2D::setHomogValues(const Array<BCRec>& bc, int ratio)
             FARRAYBOX& bnd_fab = bndry[face][grd];
             bnd_fab.setVal(0.);
         }
+    }
+*/
+
+    for(OrientationIter fi; fi; ++fi) {
+      Orientation face(fi());
+      for(FabSetIterator fsi(bndry[face]); fsi.isValid(); ++fsi) {
+        fsi().setVal(0.);
+      }
     }
 }
 #endif

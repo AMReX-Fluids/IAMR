@@ -1,5 +1,5 @@
 #ifndef _MACPROJ_F_H
-#define _MACPROJ_F_H  $Id: MACPROJ_F.H,v 1.1 1997-07-08 23:08:12 vince Exp $
+#define _MACPROJ_F_H  $Id: MACPROJ_F.H,v 1.2 1997-07-17 22:01:03 vince Exp $
 
 #ifdef BL_LANG_FORT
 #    define FORT_MACDIV      macdiv
@@ -56,7 +56,7 @@ extern "C" {
                        ARLIM_P(rhalf_lo),ARLIM_P(rhalf_hi),const REAL* rhalf, 
                        const REAL* hx,
                        ARLIM_P(phi_lo),ARLIM_P(phi_hi),const REAL* phi);
-};
+}
 
 #endif
 #endif

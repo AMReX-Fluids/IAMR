@@ -234,7 +234,7 @@ class mixed_boundary_class : public amr_boundary_class {
 // boundaries are supported.
 
 class inviscid_fluid_boundary : public amr_fluid_boundary_class {
-  friend mixed_boundary_class;
+  friend class mixed_boundary_class;
  protected:
   RegType bc[BL_SPACEDIM][2];
  public:

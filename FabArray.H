@@ -4,7 +4,7 @@
 #define _FABARRAY_H_
 
 //
-// $Id: FabArray.H,v 1.1 1997-07-08 23:08:06 vince Exp $
+// $Id: FabArray.H,v 1.2 1997-07-17 22:01:00 vince Exp $
 //
 
 #include <Assert.H>
@@ -505,11 +505,12 @@ class ConstDependentFabArrayIterator {
 
 // ========================================================================
 
+// ----------------------------------------------------------------------------
 class FabArrayId {
   public:
-    FabArrayId() : fabArrayId(-1) { }
-    FabArrayId(int newid) : fabArrayId(newid) { }
-    ~FabArrayId() { }
+    //FabArrayId();                       //  : fabArrayId(-1) { }
+    FabArrayId(int newid = -1) : fabArrayId(newid) { }
+    ~FabArrayId()  { }
     int Id() const    { return fabArrayId; }
   protected:
     void SetId(int id) { fabArrayId = id;   }
@@ -518,12 +519,14 @@ class FabArrayId {
 };
 
 
+// ----------------------------------------------------------------------------
 class FillBoxId {
   public:
     FillBoxId() : fillBoxId(-1) { }
-    FillBoxId(int newid, const Box &fillbox, const BoxList &filledboxes) :
-	     fillBoxId(newid), fillBox(fillbox), filledBoxes(filledboxes) { }
+    FillBoxId(int newid, const Box &fillbox, const BoxList &filledboxes)
+	  : fillBoxId(newid), fillBox(fillbox), filledBoxes(filledboxes) { }
     ~FillBoxId() { }
+
     int Id() const                       { return fillBoxId;   }
     const Box &box() const               { return fillBox;     }
     const BoxArray &FilledBoxes() const  { return filledBoxes; }
@@ -537,6 +540,46 @@ class FillBoxId {
 };
 
 
+
+// this enum and the FabCopyDescriptor class should really be nested
+// in FabArrayCopyDescriptor  (not done for portability reasons)
+
+enum FillType { FillLocally, FillRemotely, Unfillable };
+
+// ----------------------------------------------------------------------------
+template <class FAB>
+struct FabCopyDescriptor {
+        FabCopyDescriptor(); // : myProc(-1), copyFromProc(-1), copyFromIndex(-1),
+			     //   fabArrayId(-1), fillBoxId(-1),
+			     //   fillType(Unfillable),
+			     //   cacheDataAllocated(false)
+        //{ }
+
+        ~FabCopyDescriptor();
+	//{
+	  //if(cacheDataAllocated) {
+	    //delete localFabSource;
+	  //}
+        //}
+
+        int myProc;
+        int copyFromProc;
+        int copyFromIndex;
+        int fabArrayId;
+        int fillBoxId;
+        int srcComp;
+        int destComp;
+        int nComp;
+        Box subBox;
+        FillType fillType;
+        bool cacheDataAllocated;
+        FAB *localFabSource;  // either a local fab from this fabarray or a
+			      // temp local fab with data from a remote copy
+};
+
+
+
+// ----------------------------------------------------------------------------
 // this class orchestrates filling a destination fab of size destFabBox
 // from fabarray on the local processor (myProc)
 
@@ -545,7 +588,7 @@ class FabArrayCopyDescriptor {
 
   public:
 
-    FabArrayCopyDescriptor(bool cacheremotedata = true);
+    FabArrayCopyDescriptor(bool cacheremotedata);
     virtual ~FabArrayCopyDescriptor();
 
     FabArrayId RegisterFabArray(FabArray<T, FAB> *fabarray);
@@ -571,43 +614,13 @@ class FabArrayCopyDescriptor {
     bool DataAvailable() const      { return dataAvailable;    }
     //bool CompletelyFilled()         { return completelyFilled; }
 
-    enum FillType { FillLocally, FillRemotely, Unfillable };
 
   protected:
-
-    struct FabCopyDescriptor {
-        FabCopyDescriptor() : myProc(-1), copyFromProc(-1), copyFromIndex(-1),
-			      fabArrayId(-1), fillBoxId(-1),
-			      fillType(Unfillable),
-			      cacheDataAllocated(false)
-        {
-        }
-
-        ~FabCopyDescriptor() {
-	  if(cacheDataAllocated) {
-	    delete localFabSource;
-	  }
-        }
-
-        int fabArrayId;
-        int fillBoxId;
-        int copyFromIndex;
-        int myProc;
-        int copyFromProc;
-        int srcComp;
-        int destComp;
-        int nComp;
-        Box subBox;
-        FillType fillType;
-        bool cacheDataAllocated;
-        FAB *localFabSource;  // either a local fab from this fabarray or a
-			      // temp local fab with data from a remote copy
-    };
 
     Array< FabArray<T, FAB> * > fabArrays;
     Array<BoxList>              unfilledBoxes;     // for each fabArray
     Array<bool>                 completelyFilled;  // for each fabArray
-    List<FabCopyDescriptor *>   fabCopyDescList;
+    List<FabCopyDescriptor<FAB> *>   fabCopyDescList;
     List<FabComTag>             fabComTagList;
     int nextFabArrayId;
     int nextFillBoxId;
@@ -627,6 +640,7 @@ class FabArrayCopyDescriptor {
     FabArrayCopyDescriptor(const FabArrayCopyDescriptor<T,FAB> &);
     FabArrayCopyDescriptor<T,FAB> &operator=(const FabArrayCopyDescriptor<T,FAB> &);
 };
+// ----------------------------------------------------------------------------
 
 // ========================================================================
 

@@ -190,8 +190,6 @@ void
 StateData::FillBoundary(const REAL* dx, const REALBOX& prob_domain,
 		    int src_comp, int num_comp, int do_new)
 {
-    cout << endl << endl << "Warning in StateData::FillBoundary(const REAL* dx...:"
-	 << "  check for parallel." << endl << endl;
     REAL cur_time;
     if (desc->timeType() == Point) {
 	cur_time = new_time.start;
@@ -201,10 +199,16 @@ StateData::FillBoundary(const REAL* dx, const REALBOX& prob_domain,
 	if (!do_new) cur_time = 0.5*(old_time.start + old_time.stop);
     }
    
-    int g;
-    for (g = 0; g < grids.length(); g++) {
-	FARRAYBOX* dest = &((*new_data)[g]);
-	if (!do_new) dest = &((*old_data)[g]);
+    //int g;
+    //for (g = 0; g < grids.length(); g++) {
+    for(MultiFabIterator new_datamfi(*new_data); new_datamfi.isValid();
+	++new_datamfi)
+    {
+	DependentMultiFabIterator old_datamfi(new_datamfi, *old_data);
+	//FARRAYBOX* dest = &((*new_data)[g]);
+	//if (!do_new) dest = &((*old_data)[g]);
+	FARRAYBOX* dest = &(new_datamfi());
+	if (!do_new) dest = &(old_datamfi());
 	const BOX& bx = dest->box();
 	if (!domain.contains(bx)) {
 	    const int* dlo = bx.loVect();

@@ -1,4 +1,4 @@
-// $Id: MacProj.cpp,v 1.1 1997-07-08 23:08:12 vince Exp $
+// $Id: MacProj.cpp,v 1.2 1997-07-17 22:01:04 vince Exp $
 
 #include <stdio.h>
 #include <Misc.H>
@@ -90,7 +90,11 @@ void MacProj::read_params()
   // read parameters from input file and command line
   ParmParse pp("mac");
 
-  verbose = pp.contains("v");
+  if(ParallelDescriptor::IOProcessor()) {
+    verbose = pp.contains("v");
+  } else {
+    verbose = false;
+  }
   pp.get(   "mac_tol",          mac_tol          );
   pp.get(   "mac_sync_tol",     mac_sync_tol     );
   pp.query( "use_cg_solve",     use_cg_solve     );
@@ -249,7 +253,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
   mac_phi->setVal(0.0);
   //mac_phi->setCacheWidth(1);
 
-  REAL hx = dx[0];
+  //REAL hx = dx[0];
 
 #if (BL_SPACEDIM == 2)
   int outflow_at_top = phys_bc->lo(0) != Outflow && phys_bc->lo(1) != Outflow && 
@@ -382,11 +386,12 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
   for (int kf = 0; kf < nfine; kf++) {
       BOX bf(fine_boxes[kf]);
       bf.coarsen(fine_ratio);
-      for (int k = 0; k < ngrds; k++) {
-          BOX bx(grids[k]);
+      for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
+	  assert(grids[Rhsmfi.index()] == Rhsmfi.validbox());
+          BOX bx(Rhsmfi.validbox());
           bx &= bf;
           if (bx.ok()) {
-              Rhs[k].setVal(0.0,bx,0);
+              Rhsmfi().setVal(0.0,bx,0);
           }
       }
   }
@@ -396,19 +401,23 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
   // this code should go away when Marc makes this option
   // part of the multigrid code--rbp, 2/13/97
   if ( fix_mac_sync_rhs ) {
-    REAL sum = 0;
+    REAL sum = 0.0;
     long size = 0;
-	int i;
-    for (i = 0; i < Rhs.length(); i++ ) {
-      sum += Rhs[i].sum( 0, 1 );
-      size += Rhs[i].box().numPts();
+    //int i;
+    for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
+      sum += Rhsmfi().sum( 0, 1 );
+      size += Rhsmfi().box().numPts();
     }
+    ParallelDescriptor::ReduceRealSum(sum);
+    ParallelDescriptor::ReduceLongSum(size);
     REAL fix = sum / size;
     cout << "Average correction = " << fix << endl;
     Rhs.plus( -fix, 0 );
-    for (i = 0, sum = 0; i < Rhs.length(); i++ ) {
-      sum += Rhs[i].sum( 0, 1 );
+    sum = 0;
+    for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
+      sum += Rhsmfi().sum( 0, 1 );
     }
+    ParallelDescriptor::ReduceRealSum(sum);
     cout << "...new sum = " << sum << endl;
   }
 #endif
@@ -475,7 +484,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
                                const int* increment_sync)
 {
     // work variables
-    int i,dir,comp;
+    int comp;
     BOX b;
     FARRAYBOX S, Rho, tforces, Gp;
     FARRAYBOX xflux, yflux, zflux, divu;
@@ -513,7 +522,22 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
     }
 
     // compute the mac sync correction
-    for ( i = 0; i < grids.length(); i++) {
+    for(MultiFabIterator u_mac0mfi(u_mac[0]); u_mac0mfi.isValid(); ++u_mac0mfi) {
+	DependentMultiFabIterator u_mac1mfi(u_mac0mfi, u_mac[1]);
+	DependentMultiFabIterator volumemfi(u_mac0mfi, volume[level]);
+	DependentMultiFabIterator area0mfi(u_mac0mfi, area[level][0]);
+	DependentMultiFabIterator area1mfi(u_mac0mfi, area[level][1]);
+#if (BL_SPACEDIM == 3 )
+	DependentMultiFabIterator area2mfi(u_mac0mfi, area[level][2]);
+	DependentMultiFabIterator u_mac2mfi(u_mac0mfi, u_mac[2]);
+#endif
+	DependentMultiFabIterator Vsyncmfi(u_mac0mfi, *Vsync);
+	DependentMultiFabIterator Ssyncmfi(u_mac0mfi, *Ssync);
+	DependentMultiFabIterator rho_halfmfi(u_mac0mfi, *rho_half);
+	DependentMultiFabIterator mac_sync_phimfi(u_mac0mfi, *mac_sync_phi);
+	DependentMultiFabIterator visc_termsmfi(u_mac0mfi, *visc_terms);
+	DependentMultiFabIterator vel_visc_termsmfi(u_mac0mfi, vel_visc_terms);
+	int i = u_mac0mfi.index();
 
         // get the bounds
 	const BOX &grd = grids[i];
@@ -535,8 +559,8 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 #if (BL_SPACEDIM == 3 )
                         grad_phi[2],
 #endif
-                        (*mac_sync_phi)[i],
-                        &(*rho_half)[i], 0,
+                        mac_sync_phimfi(),
+                        &rho_halfmfi(), 0,
                         grids[i], level, i, dx, mult );
         
         // Step 2: compute Mac correction by calling GODUNOV box
@@ -552,10 +576,10 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 
         // compute total forcing terms
         if ( use_viscosity ) {
-            godunov->Sum_tf_gp_visc( tforces, (*visc_terms)[i], Gp, Rho );
+            godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rho );
             godunov->Sum_tf_divu_visc( S, tforces,
                                        BL_SPACEDIM, numscal,
-                                       (*visc_terms)[i],
+                                       visc_termsmfi(),
                                        BL_SPACEDIM,
                                        divu, Rho, 1 );
         } else {
@@ -567,7 +591,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 
         if (use_forces_in_trans) {
 	  ns_level.getForce(tvelforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
-          godunov->Sum_tf_gp_visc( tvelforces, vel_visc_terms[i], Gp, Rho );
+          godunov->Sum_tf_gp_visc( tvelforces, vel_visc_termsmfi(), Gp, Rho );
         }
         
         // set up the workspace for the godunov BOX
@@ -580,8 +604,8 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
                         S, Rho, tvelforces );
 
         // get the sync FABS
-        FARRAYBOX& u_sync = (*Vsync)[i];
-        FARRAYBOX& s_sync = (*Ssync)[i];
+        FARRAYBOX& u_sync = Vsyncmfi();
+        FARRAYBOX& s_sync = Ssyncmfi();
         
         // loop over the state components and
         // compute the sync advective component
@@ -598,13 +622,13 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
             int sync_ind    = ( comp < BL_SPACEDIM ? u_ind  : s_ind  );
             FARRAYBOX &temp = ( comp < BL_SPACEDIM ? u_sync : s_sync );
             godunov->SyncAdvect( grd, dx, dt, level,
-                                 area[level][0][i], u_mac[0][i],
+                                 area0mfi(), u_mac0mfi(),
                                  grad_phi[0],       xflux,
                                  
-                                 area[level][1][i], u_mac[1][i],
+                                 area1mfi(), u_mac1mfi(),
                                  grad_phi[1],       yflux,
 #if (BL_SPACEDIM == 3 )                            
-                                 area[level][2][i], u_mac[2][i],
+                                 area2mfi(), u_mac2mfi(),
                                  grad_phi[2],       zflux,
 #endif
                                  S, tforces, comp,
@@ -612,7 +636,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
                                  is_conservative[comp],
                                  comp,
                                  ns_level.getBCArray( State_Type,i,comp,1),
-                                 volume[level][i] );
+                                 volumemfi() );
             
             // NOTE: the signs here are opposite from VELGOD
             // NOTE: fluxes expected to be in extensive form
@@ -630,10 +654,14 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
         // to the next coarsest interface
         if (level > 0) {
             REAL mult =  -1.0/( (double) parent->MaxRefRatio(level-1));
-            for (int dir = 0; dir < BL_SPACEDIM; dir++) {
-                mac_reg[level].FineAdd(grad_phi[dir], area[level][dir][i],
-                                       dir, i, 0, 0, 1, mult );
-            }
+            mac_reg[level].FineAdd(grad_phi[0], area0mfi(),
+                                       0, i, 0, 0, 1, mult );
+            mac_reg[level].FineAdd(grad_phi[1], area1mfi(),
+                                       1, i, 0, 0, 1, mult );
+#if (BL_SPACEDIM == 3 )
+            mac_reg[level].FineAdd(grad_phi[2], area2mfi(),
+                                       2, i, 0, 0, 1, mult );
+#endif
         }
 
         // multiply the sync term by dt--this is now done in the
@@ -670,7 +698,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
     int s_ind = comp - BL_SPACEDIM;
 
     // work variables
-    int i;
+    //int i;
     FARRAYBOX xflux, yflux, zflux;
     FARRAYBOX grad_phi[BL_SPACEDIM];
     
@@ -685,7 +713,19 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
     Godunov godunov( 512 );
 
     // compute the mac sync correction
-    for ( i = 0; i < grids.length(); i++) {
+    for(MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi) {
+	DependentMultiFabIterator volumemfi(Ssyncmfi, volume[level]);
+	DependentMultiFabIterator area0mfi(Ssyncmfi, area[level][0]);
+	DependentMultiFabIterator area1mfi(Ssyncmfi, area[level][1]);
+	DependentMultiFabIterator sync_edges0mfi(Ssyncmfi, *sync_edges[0]);
+	DependentMultiFabIterator sync_edges1mfi(Ssyncmfi, *sync_edges[1]);
+#if (BL_SPACEDIM == 3 )
+	DependentMultiFabIterator area2mfi(Ssyncmfi, area[level][2]);
+	DependentMultiFabIterator sync_edges2mfi(Ssyncmfi, *sync_edges[2]);
+#endif
+	DependentMultiFabIterator rho_halfmfi(Ssyncmfi, *rho_half);
+	DependentMultiFabIterator mac_sync_phimfi(Ssyncmfi, *mac_sync_phi);
+        int i = Ssyncmfi.index();
 
         // get the bounds
 	const BOX &grd = grids[i];
@@ -707,8 +747,8 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 #if (BL_SPACEDIM == 3 )
                         grad_phi[2],
 #endif
-                        (*mac_sync_phi)[i],
-                        &(*rho_half)[i], 0,
+                        mac_sync_phimfi(),
+                        &rho_halfmfi(), 0,
                         grids[i], level, i, dx, mult );
         
         // Step 2: compute Mac correction by advecting the edge states
@@ -716,27 +756,27 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
         
         xflux.resize(surroundingNodes(grd,0),1);
         yflux.resize(surroundingNodes(grd,1),1);
-        xflux.copy((*sync_edges[0])[i]);
-        yflux.copy((*sync_edges[1])[i]);
+        xflux.copy(sync_edges0mfi());
+        yflux.copy(sync_edges1mfi());
 #if (BL_SPACEDIM == 3 )
         zflux.resize(surroundingNodes(grd,2),1);
-        zflux.copy((*sync_edges[2])[i]);
+        zflux.copy(sync_edges2mfi());
 #endif
 
         // get the sync FABS
-        FARRAYBOX& sync = (*Ssync)[i];
+        FARRAYBOX& sync = Ssyncmfi();
 
         godunov.ComputeSyncAofs( grd,
-                          area[level][0][i],
+                          area0mfi(),
                           grad_phi[0],       xflux,
                                 
-                          area[level][1][i],
+                          area1mfi(),
                           grad_phi[1],       yflux,
 #if (BL_SPACEDIM == 3 )                            
-                          area[level][2][i],
+                          area2mfi(),
                           grad_phi[2],       zflux,
 #endif
-                          volume[level][i], sync, s_ind, 
+                          volumemfi(), sync, s_ind, 
                           is_conservative[comp]);
 
             // NOTE: the signs here are opposite from VELGOD
@@ -765,13 +805,23 @@ void MacProj::check_div_cond(int level, MultiFab U_edge[]) const
   int ngrds = U_edge[0].length();
   REAL sum = 0.0;
 
-  for (int k = 0; k < ngrds; k++) {
-    FARRAYBOX dmac(grids[k],1);
-    const FARRAYBOX& uxedge = U_edge[0][k];
-    const FARRAYBOX& uyedge = U_edge[1][k];
-    const FARRAYBOX& xarea = area[level][0][k];
-    const FARRAYBOX& yarea = area[level][1][k];
-    const FARRAYBOX& vol = volume[level][k];
+  for(MultiFabIterator U_edge0mfi(U_edge[0]); U_edge0mfi.isValid(); ++U_edge0mfi) {
+    DependentMultiFabIterator U_edge1mfi(U_edge0mfi, U_edge[1]);
+    DependentMultiFabIterator volumemfi(U_edge0mfi, volume[level]);
+    DependentMultiFabIterator area0mfi(U_edge0mfi, area[level][0]);
+    DependentMultiFabIterator area1mfi(U_edge0mfi, area[level][1]);
+
+#if (BL_SPACEDIM == 3)
+    DependentMultiFabIterator U_edge2mfi(U_edge0mfi, U_edge[2]);
+    DependentMultiFabIterator area2mfi(U_edge0mfi, area[level][2]);
+#endif
+
+    FARRAYBOX dmac(grids[U_edge0mfi.index()],1);
+    const FARRAYBOX& uxedge = U_edge0mfi();
+    const FARRAYBOX& uyedge = U_edge1mfi();
+    const FARRAYBOX& xarea = area0mfi();
+    const FARRAYBOX& yarea = area1mfi();
+    const FARRAYBOX& vol = volumemfi();
 
     DEF_LIMITS(dmac,dmac_dat,dlo,dhi);
     DEF_CLIMITS(uxedge,ux_dat,uxlo,uxhi);
@@ -789,9 +839,9 @@ void MacProj::check_div_cond(int level, MultiFab U_edge[]) const
 #endif
 #if (BL_SPACEDIM == 3)
 
-    const FARRAYBOX& uzedge = U_edge[2][k];
+    const FARRAYBOX& uzedge = U_edge2mfi();
     DEF_CLIMITS(uzedge,uz_dat,uzlo,uzhi);
-    const FARRAYBOX& zarea = area[level][2][k];
+    const FARRAYBOX& zarea = area2mfi();
     DEF_CLIMITS(zarea,az_dat,azlo,azhi);
 
     FORT_MACDIV(dmac_dat,ARLIM(dlo),ARLIM(dhi),dlo,dhi,
@@ -805,7 +855,7 @@ void MacProj::check_div_cond(int level, MultiFab U_edge[]) const
 #endif
     if (verbose) {
       REAL g_norm = dmac.norm(0);
-      cout << "Max norm of div(U_edge) for grid  " << k << " = "
+      cout << "Max norm of div(U_edge) for grid  " << U_edge0mfi.index() << " = "
 	   << g_norm << endl;
       sum += dmac.sum(0);
       cout << "SUM of DIV(U_edge) = " << sum << endl;
@@ -893,29 +943,33 @@ void MacProj::set_outflow_bcs(int level,
 
     mac_phi_strip.setVal(0.0);
     int i;
-    for (i=0;i<ngrds;i++) {
-      BOX destbox = grids[i];
+    for(MultiFabIterator Smfi(S); Smfi.isValid(); ++Smfi) {
+      DependentMultiFabIterator divumfi(Smfi, divu);
+      DependentMultiFabIterator u_mac0mfi(Smfi, u_mac[0]);
+      assert(grids[Smfi.index()] == Smfi.validbox());
+
+      BOX destbox = Smfi.validbox();
       destbox.grow(0,1);
       destbox &= top_rho_strip;
       BOX srcbox = destbox;
       if(destbox.ok()) {
-	rho_strip.copy(S[i],srcbox,Density,destbox,0,1);
+	rho_strip.copy(Smfi(),srcbox,Density,destbox,0,1);
       }
 
-      destbox = grids[i];
+      destbox = Smfi.validbox();
       destbox &= top_strip;
       srcbox = destbox;
       if(destbox.ok()) {
-	divu_strip.copy(divu[i],srcbox,0,destbox,0,1);
+	divu_strip.copy(divumfi(),srcbox,0,destbox,0,1);
       }
 
-      destbox = grids[i];
+      destbox = Smfi.validbox();
       destbox.growLo(0,1);
       destbox.shiftHalf(0,1);
       destbox &= top_vel_strip;
       srcbox = destbox;
       if(destbox.ok()) {
-	mac_vel_strip.copy(u_mac[0][i],srcbox,0,destbox,0,1);
+	mac_vel_strip.copy(u_mac0mfi(),srcbox,0,destbox,0,1);
       }
     }
 
@@ -951,21 +1005,9 @@ void MacProj::set_outflow_bcs(int level,
 		  ARLIM(rcen_lo),ARLIM(rcen_hi),rcen.dataPtr(),
 		  ARLIM(redge_lo),ARLIM(redge_hi),redge.dataPtr(),
 		  &hx,ARLIM(phi_lo),ARLIM(phi_hi),phidat);
-    for (i=0;i<ngrds;i++) {
-      (*mac_phi)[i].copy(mac_phi_strip);
+    for(MultiFabIterator mac_phimfi(*mac_phi); mac_phimfi.isValid(); ++mac_phimfi) {
+      mac_phimfi().copy(mac_phi_strip);
     }
   }
 #endif
 }
-
-
-
-
-
-
-
-
-
-
-
-

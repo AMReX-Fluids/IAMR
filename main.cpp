@@ -76,7 +76,13 @@ main(int argc, char *argv[])
 
     int nprocs = NPROCS;
     pp.query("nprocs", nprocs);
-
+#ifndef BL_USE_BSP
+    if(nprocs > 1) {
+      cerr << "Error in main:  multiple processors specified with "
+	   << "code compiled without a parallel library." << endl;
+      exit(-1);
+    }
+#endif
     StartParallel(nprocs);
 
     int sleeptime = 0;

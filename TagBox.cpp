@@ -681,7 +681,7 @@ TagBoxArray::numTags() const
    for(ConstFabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
       ntag += fai().numTags();
    } 
-   ParallelDescriptor::ReduceIntPlus(ntag);
+   ParallelDescriptor::ReduceIntSum(ntag);
    return ntag;
 }
 

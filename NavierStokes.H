@@ -1,5 +1,5 @@
 #ifndef _NavierStokes_H_
-#define _NavierStokes_H_ $Id: NavierStokes.H,v 1.1 1997-07-08 23:08:13 vince Exp $
+#define _NavierStokes_H_ $Id: NavierStokes.H,v 1.2 1997-07-17 22:01:06 vince Exp $
 
 #include <LevelBld.H>
 #include <BC_TYPES.H>
@@ -354,7 +354,7 @@ protected: // ===================== protected member functions ===
     void getDsdt(FARRAYBOX& fab, int gridno, int ngrow, REAL time);
 
     // fill ghost cells of state
-    void filStateBndry(REAL time, int state_indx, int src_comp, 
+    void FillStateBndry(REAL time, int state_indx, int src_comp, 
                             int num_comp); 
 
 

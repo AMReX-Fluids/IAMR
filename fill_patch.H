@@ -160,6 +160,14 @@ inline void sync_borders(MultiFab& r,
   }
 }
 
+
+
+void fill_borders(MultiFab& r,
+			 const copy_cache* border_cache,
+			 const level_interface& interface,
+			 amr_boundary bdy = error_boundary,
+			 int w = -1);
+/*
 inline void fill_borders(MultiFab& r,
 			 const copy_cache* border_cache,
 			 const level_interface& interface,
@@ -177,6 +185,9 @@ cout << "_in fill_patch::fill_borders" << endl;
   }
 cout << "_out fill_patch::fill_borders" << endl;
 }
+*/
+
+
 
 void clear_part_interface(MultiFab& r, const level_interface& interface);
 

@@ -149,7 +149,7 @@ RunStats::report(ostream &os)
 {
     double rtime = mpCPUSeconds();
     double wtime = mpWallClockSeconds();
-    ParallelDescriptor::ReduceRealPlus(rtime);
+    ParallelDescriptor::ReduceRealSum(rtime);
     ParallelDescriptor::ReduceRealMax(wtime);
     double tot_run_time = total_run_time + rtime;
     double tot_run_wtime = total_run_wtime + wtime;
@@ -235,7 +235,7 @@ RunStats::dumpStats(ofstream &os)
 {
     double rtime = mpCPUSeconds();
     double wtime = mpWallClockSeconds();
-    ParallelDescriptor::ReduceRealPlus(rtime);
+    ParallelDescriptor::ReduceRealSum(rtime);
     ParallelDescriptor::ReduceRealMax(wtime);
     if(os.opfx() && ParallelDescriptor::IOProcessor()) {
 	os << "(ListRunStats " << ld.length() << "\n";
@@ -337,8 +337,8 @@ RunStats::end()
 	    double tmp[2];
 	    tmp[0] = time;
 	    tmp[1] = wtime;
-	    ParallelDescriptor::ReduceRealPlus(tmp[0]);
-	    ParallelDescriptor::ReduceRealPlus(tmp[1]);
+	    ParallelDescriptor::ReduceRealSum(tmp[0]);
+	    ParallelDescriptor::ReduceRealSum(tmp[1]);
 	    entry->run_time += tmp[0];
 	    entry->run_wtime += tmp[1];
 	    gentry->run_time += tmp[0];

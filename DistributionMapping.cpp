@@ -43,7 +43,7 @@ void DistributionMapping::define(int nprocessors, const BoxArray &boxes,
   boxarray = boxes;
   distributionStrategy = distributionstrategy;
   processorMap.resize(boxes.length());
-  objectsPerProcessor.resize(nprocessors);
+  objectsPerProcessor.resize(nprocessors, 0);  // init to zero
   nPtsPerProcessor.resize(nprocessors);
   CreateProcessorMap();
 }
@@ -56,6 +56,7 @@ void DistributionMapping::CreateProcessorMap() {
     case ROUNDROBIN:
       for(i = 0; i < processorMap.length(); i++) {
 	processorMap[i] = i % nProcessors;
+        ++objectsPerProcessor[processorMap[i]];
       }
     break;
     case RANDOM:

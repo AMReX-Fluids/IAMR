@@ -73,7 +73,7 @@ CGSolver::norm(const MultiFab& res)
     if (p == 0) {
       ParallelDescriptor::ReduceRealMax(restot);
     } else if (p == 2) {
-      ParallelDescriptor::ReduceRealPlus(restot);
+      ParallelDescriptor::ReduceRealSum(restot);
       restot = sqrt(restot);
     }
     return restot;
@@ -199,7 +199,7 @@ CGSolver::solve(MultiFab &sol, const MultiFab &rhs,
 		);
 	    rho += trho;
 	}
-	ParallelDescriptor::ReduceRealPlus(rho);
+	ParallelDescriptor::ReduceRealSum(rho);
 
 	if(nit == 0) {
 	      // k=1, p_1 = z_0
@@ -357,7 +357,7 @@ CGSolver::axp(MultiFab& w, MultiFab& p, BC_Mode bc_mode)
 	    );
 	pw += tpw;
     }
-    ParallelDescriptor::ReduceRealPlus(pw);
+    ParallelDescriptor::ReduceRealSum(pw);
     return pw;
 }
 

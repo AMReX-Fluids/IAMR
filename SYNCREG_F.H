@@ -1,5 +1,5 @@
 #ifndef _SYNCREG_F_H_
-#define _SYNCREG_F_H_  $Id: SYNCREG_F.H,v 1.1 1997-07-08 23:08:15 vince Exp $
+#define _SYNCREG_F_H_  $Id: SYNCREG_F.H,v 1.2 1997-07-17 22:01:09 vince Exp $
 
 #ifdef BL_LANG_FORT
 #    define FORT_SRDIVU      srdivu
@@ -47,7 +47,7 @@ extern "C"
                          const int* lo, const int* hi,
                          const int* dir, const int* ratio);
 
-};
+}
 #endif
 
 #endif

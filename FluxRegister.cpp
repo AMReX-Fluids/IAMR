@@ -72,7 +72,7 @@ Real FluxRegister::SumReg(int comp) const {
             sum -= dfsi().sum(comp);
         }
     }
-    ParallelDescriptor::ReduceRealPlus(sum);
+    ParallelDescriptor::ReduceRealSum(sum);
     return sum;
 }
 

@@ -16,7 +16,7 @@
 extern "C"
 {
      void FORT_PROBINIT (const int* init);
-};
+}
 #endif
 
 #endif

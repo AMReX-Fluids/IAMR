@@ -62,6 +62,8 @@ class copy_cache {
   }
 
 #if (BL_SPACEDIM == 2)
+  void set(int i, int Dstart, int Sstart, int Dstrid, int Sstrid, int Nvals);
+/*
   void set(int i, int Dstart, int Sstart, int Dstrid, int Sstrid, int Nvals) {
     if (i < 0 || i >= nsets)
       BoxLib::Error("copy_cache::set---out of range");
@@ -71,6 +73,7 @@ class copy_cache {
     sstrid[i] = Sstrid;
     nvals[i]  = Nvals;
   }
+*/
 #else
   void set(int i, int Dstart, int Sstart, int Dstrid1, int Dstrid2,
 	   int Sstrid1, int Sstrid2, int Nvals1, int Nvals2) {
@@ -97,6 +100,8 @@ class copy_cache {
   }
 #endif
 
+  void run() const;
+/*
   void run() const {
 #if (BL_SPACEDIM == 2)
     FFCCPY1(dptr, sptr, nsets, dstart, sstart, dstrid, sstrid, nvals);
@@ -106,6 +111,7 @@ class copy_cache {
 #endif
     if (bdy_cache) bdy_cache->run();
   }
+*/
 };
 
 class unroll_cache {
@@ -121,6 +127,8 @@ class unroll_cache {
 #endif
   int *nvals;
 
+  unroll_cache(int Nsets, Real *Ptr);
+/*
   unroll_cache(int Nsets, Real *Ptr)
   : nsets(Nsets), ptr(Ptr) {
 #if (BL_SPACEDIM == 2)
@@ -134,6 +142,7 @@ class unroll_cache {
     nvals  = start + 3 * nsets;
 #endif
   }
+*/
 
   unroll_cache(MultiFab& r);
 
@@ -142,6 +151,8 @@ class unroll_cache {
   }
 
 #if (BL_SPACEDIM == 2)
+  void set(int i, int Start, int Strid, int Nvals);
+/*
   void set(int i, int Start, int Strid, int Nvals) {
     if (i < 0 || i >= nsets)
       BoxLib::Error("unroll_cache::set---out of range");
@@ -149,6 +160,7 @@ class unroll_cache {
     strid[i] = Strid;
     nvals[i] = Nvals;
   }
+*/
 #else
   void set(int i, int Start, int Strid1, int Strid2, int Nvals) {
     if (i < 0 || i >= nsets)

@@ -76,7 +76,7 @@
 			 const int* longdir, const int* ratio,
 			 const int* nvar, REAL* strip,
 			 const int* strip_lo, const int* strip_hi);
-  };
+  }
 #endif
 
 #endif

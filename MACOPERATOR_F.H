@@ -1,5 +1,5 @@
 #ifndef _MACOPERATOR_F_H_
-#define _MACOPERATOR_F_H_  "$Id: MACOPERATOR_F.H,v 1.1 1997-07-08 23:08:14 vince Exp $"
+#define _MACOPERATOR_F_H_  "$Id: MACOPERATOR_F.H,v 1.2 1997-07-17 22:01:03 vince Exp $"
 
 #ifdef BL_LANG_FORT
 #    define FORT_MACCOEF       maccoef
@@ -87,7 +87,7 @@ extern "C"
 			  const int* lo, const int* hi,
 			  const REAL* vol, ARLIM_P(vlo), ARLIM_P(vhi),
 			  const REAL* dx, const REAL* rhs_scale);
-};
+}
 #endif
 
 #endif
