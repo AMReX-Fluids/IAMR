@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ProjOutFlowBC.cpp,v 1.9 1999-11-23 21:04:56 propp Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.10 2000-05-01 17:44:04 car Exp $
 //
 
 #include "ProjOutFlowBC.H"
@@ -470,7 +470,7 @@ ProjOutFlowBC_MG::residual()
   delete dgphi;
 
   return rnorm;
-};
+}
 
 void 
 ProjOutFlowBC_MG::step(int nGSRB)
@@ -510,7 +510,7 @@ ProjOutFlowBC_MG::step(int nGSRB)
 
   } 
 
-};
+}
 
 void 
 ProjOutFlowBC_MG::Restrict()
@@ -525,7 +525,7 @@ ProjOutFlowBC_MG::Restrict()
   FORT_RESTRICT(residPtr,ARLIM(resid_lo),ARLIM(resid_hi), 
                 rescPtr, ARLIM(resc_lo),ARLIM(resc_hi),
 		lo,hi,loc,hic,isPeriodic);
-};
+}
 
 void 
 ProjOutFlowBC_MG::interpolate()
@@ -547,7 +547,7 @@ ProjOutFlowBC_MG::interpolate()
 	      lo,hi,loc,hic,isPeriodic);
 
   delete temp;
-};
+}
 
 void 
 ProjOutFlowBC_MG::solve(Real tolerance, Real abs_tolerance,int i1, int i2)
@@ -584,7 +584,7 @@ ProjOutFlowBC_MG::solve(Real tolerance, Real abs_tolerance,int i1, int i2)
 	   << iter << " cycles" << endl;
       cout << " " << endl;
     }
-};
+}
 
 Real 
 ProjOutFlowBC_MG::vcycle(int downiter,int upiter)
@@ -602,7 +602,7 @@ ProjOutFlowBC_MG::vcycle(int downiter,int upiter)
   }
   
   return rnorm;
-};
+}
 
 void 
 ProjOutFlowBC_MG::gsrb(int nstep)

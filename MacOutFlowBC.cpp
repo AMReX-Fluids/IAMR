@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.9 1999-11-23 21:04:56 propp Exp $
+// $Id: MacOutFlowBC.cpp,v 1.10 2000-05-01 17:44:04 car Exp $
 //
 
 #include "MacOutFlowBC.H"
@@ -475,7 +475,7 @@ MacOutFlowBC_MG::residual()
 		lo,hi,h,isPeriodic,&rnorm);
   
   return rnorm;
-};
+}
 
 void 
 MacOutFlowBC_MG::step(int nGSRB)
@@ -520,7 +520,7 @@ MacOutFlowBC_MG::step(int nGSRB)
     gsrb(nGSRB);
 
   }
-};
+}
 
 void 
 MacOutFlowBC_MG::Restrict()
@@ -533,7 +533,7 @@ MacOutFlowBC_MG::Restrict()
   FORT_RESTRICT(residPtr, ARLIM(resid_lo),ARLIM(resid_hi), 
 		rescPtr, ARLIM(resc_lo),ARLIM(resc_hi), 
 		lo,hi,loc,hic);
-};
+}
 
 void 
 MacOutFlowBC_MG::interpolate()
@@ -546,7 +546,7 @@ MacOutFlowBC_MG::interpolate()
   FORT_INTERPOLATE(phiPtr, ARLIM(phi_lo),ARLIM(phi_hi), 
 		   deltacPtr,ARLIM(deltac_lo),ARLIM(deltac_hi), 
 		   lo,hi,loc,hic);
-};
+}
 
 void 
 MacOutFlowBC_MG::solve(Real tolerance, Real abs_tolerance,int i1, int i2)
@@ -581,7 +581,7 @@ MacOutFlowBC_MG::solve(Real tolerance, Real abs_tolerance,int i1, int i2)
 	   << iter << " cycles" << endl;
       cout << " " << endl;
     }
-};
+}
 
 Real 
 MacOutFlowBC_MG::vcycle(int downiter,int upiter)
@@ -599,7 +599,7 @@ MacOutFlowBC_MG::vcycle(int downiter,int upiter)
   } 
     
   return rnorm;
-};
+}
 
 
 

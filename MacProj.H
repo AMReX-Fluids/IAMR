@@ -4,7 +4,7 @@
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.14 2000-04-13 21:17:28 sstanley Exp $
+// $Id: MacProj.H,v 1.15 2000-05-01 17:44:04 car Exp $
 //
 
 #include <BC_TYPES.H>
@@ -12,7 +12,7 @@
 #include <Amr.H>
 #include <AmrLevel.H>
 #include <FluxRegister.H>
-#include "NavierStokes.H"
+#include "Godunov.H"
 
 class MacProj
 {
