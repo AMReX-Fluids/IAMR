@@ -144,7 +144,7 @@ c        Make sure u_mac is periodic
          if (per(2) .eq. 1) then
            diff = abs(u2(ics,jcs,kcs)-u2(ics,jcs,kce+1))
            do j = jcs, jce
-             diff = max(diff,abs(u1(ics,j,kcs)-u1(ics,j,kce+1)))
+             diff = max(diff,abs(u2(ics,j,kcs)-u2(ics,j,kce+1)))
            enddo
            if (diff .gt. small_udiff) then
               write(6,*) 'EXTRAPMAC: FACE XLO : wmac not periodic'
@@ -187,7 +187,7 @@ c        Make sure u_mac is periodic
          if (per(1) .eq. 1) then
            diff = abs(u0(ics,jcs,kcs)-u0(ice+1,jcs,kcs))
            do k = kcs, kce
-             diff = max(diff,abs(u0(ics,jcs,k)-u1(ice+1,jcs,k)))
+             diff = max(diff,abs(u0(ics,jcs,k)-u0(ice+1,jcs,k)))
            enddo
            if (diff .gt. small_udiff) then
              write(6,*) 'EXTRAPMAC: FACE YLO : umac not periodic'
@@ -197,7 +197,7 @@ c        Make sure u_mac is periodic
          if (per(2) .eq. 1) then
            diff = abs(u2(ics,jcs,kcs)-u2(ics,jcs,kce+1))
            do i = ics, ice
-             diff = max(diff,abs(u1(i,jcs,kcs)-u1(i,jcs,kce+1)))
+             diff = max(diff,abs(u2(i,jcs,kcs)-u2(i,jcs,kce+1)))
            enddo
            if (diff .gt. small_udiff) then
               write(6,*) 'EXTRAPMAC: FACE YLO : wmac not periodic'
@@ -240,7 +240,7 @@ c        Make sure u_mac is periodic
          if (per(1) .eq. 1) then
            diff = abs(u0(ics,jcs,kcs)-u0(ice+1,jcs,kcs))
            do j = jcs, jce
-             diff = max(diff,abs(u0(ics,j,kcs)-u1(ice+1,j,kcs)))
+             diff = max(diff,abs(u0(ics,j,kcs)-u0(ice+1,j,kcs)))
            enddo
            if (diff .gt. small_udiff) then
              write(6,*) 'EXTRAPMAC: FACE ZLO : umac not periodic'
@@ -304,7 +304,7 @@ c        Make sure u_mac is periodic
          if (per(2) .eq. 1) then
            diff = abs(u2(ice,jcs,kcs)-u2(ice,jcs,kce+1))
            do j = jcs, jce
-             diff = max(diff,abs(u1(ice,j,kcs)-u1(ice,j,kce+1)))
+             diff = max(diff,abs(u2(ice,j,kcs)-u2(ice,j,kce+1)))
            enddo
            if (diff .gt. small_udiff) then
               write(6,*) 'EXTRAPMAC: FACE XLO : umac not periodic'
@@ -347,7 +347,7 @@ c        Make sure u_mac is periodic
          if (per(1) .eq. 1) then
            diff = abs(u0(ics,jce,kcs)-u0(ice+1,jce,kcs))
            do k = kcs, kce
-             diff = max(diff,abs(u0(ics,jce,k)-u1(ice+1,jce,k)))
+             diff = max(diff,abs(u0(ics,jce,k)-u0(ice+1,jce,k)))
            enddo
            if (diff .gt. small_udiff) then
              write(6,*) 'EXTRAPMAC: FACE YLO : umac not periodic'
@@ -357,7 +357,7 @@ c        Make sure u_mac is periodic
          if (per(2) .eq. 1) then
            diff = abs(u2(ics,jce,kcs)-u2(ics,jce,kce+1))
            do i = ics, ice
-             diff = max(diff,abs(u1(i,jce,kcs)-u1(i,jce,kce+1)))
+             diff = max(diff,abs(u2(i,jce,kcs)-u2(i,jce,kce+1)))
            enddo
            if (diff .gt. small_udiff) then
               write(6,*) 'EXTRAPMAC: FACE YLO : wmac not periodic'
