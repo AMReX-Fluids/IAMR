@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.36 2003-02-28 18:35:06 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.37 2003-04-03 21:52:28 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -2096,10 +2096,12 @@ c
         enddo
 
         do i = is-1,ie+1 
-          slx(i,j) = half*(sc(i,j,4) + sc(i,j,3) - 
-     $                     sc(i,j,1) - sc(i,j,2))/hx
-          sly(i,j) = half*(sc(i,j,4) + sc(i,j,2) - 
-     $                     sc(i,j,1) - sc(i,j,3))/hy
+          slx(i,j) = half*( sc(i,j,4) + sc(i,j,3)
+     $                     -sc(i,j,1) - sc(i,j,2))/hx
+          sly(i,j) = half*( sc(i,j,4) + sc(i,j,2)
+     $                     -sc(i,j,1) - sc(i,j,3))/hy
+          slxy(i,j) = ( sc(i,j,4) + sc(i,j,1)
+     $                 -sc(i,j,2) - sc(i,j,3) ) / (hx*hy)
         enddo
       enddo
 
