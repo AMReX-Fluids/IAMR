@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.121 1999-03-10 17:46:29 marc Exp $
+// $Id: NavierStokes.cpp,v 1.122 1999-03-17 21:59:28 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -468,11 +468,6 @@ NavierStokes::~NavierStokes ()
     delete advflux_reg;
     delete viscflux_reg;
     delete [] u_mac;
-    
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        area[dir].clearUnmanaged();
-    }
     
     if (mac_projector != 0)
         mac_projector->cleanup(level);
