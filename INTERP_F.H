@@ -5,6 +5,8 @@
 #    define FORT_NBINTERP    nbinterp
 #    define FORT_CBINTERP    cbinterp
 #    define FORT_CCINTERP    ccinterp
+#    define FORT_LINCCINTERP linccinterp
+#    define FORT_CQINTERP    cqinterp
 #    define FORT_CCINTERP2   ccinterp2
 #    define FORT_PCINTERP    pcinterp
 #endif
@@ -14,12 +16,16 @@
 #    define FORT_NBINTERP    NBINTERP
 #    define FORT_CBINTERP    CBINTERP
 #    define FORT_CCINTERP    CCINTERP
+#    define FORT_LINCCINTERP LINCCINTERP
+#    define FORT_CQINTERP    CQINTERP
 #    define FORT_CCINTERP2   CCINTERP2
 #    define FORT_PCINTERP    PCINTERP
 #  else
 #    define FORT_NBINTERP    nbinterp_
 #    define FORT_CBINTERP    cbinterp_
 #    define FORT_CCINTERP    ccinterp_
+#    define FORT_LINCCINTERP linccinterp_
+#    define FORT_CQINTERP    cqinterp_
 #    define FORT_CCINTERP2   ccinterp2_
 #    define FORT_PCINTERP    pcinterp_
 #  endif
@@ -69,6 +75,37 @@
 		  D_DECL(const REAL* fvcx,const REAL* fvcy, const REAL* fvcz),
 		  D_DECL(const REAL* cvcx,const REAL* cvcy, const REAL* cvcz));
 
+     void FORT_LINCCINTERP (REAL* fine, ARLIM_P(flo), ARLIM_P(fhi),
+                         const int* fblo, const int* fbhi,
+                         ARLIM_P(fvcblo), ARLIM_P(fvcbhi),
+                         const REAL* crse, ARLIM_P(clo), ARLIM_P(chi),
+                         ARLIM_P(cvcblo), ARLIM_P(cvcbhi),
+                         REAL* ucc_xslopes, REAL* lcc_xslopes, REAL* xslope_factors,
+                         REAL* ucc_yslopes, REAL* lcc_yslopes, REAL* yslope_factors,
+#if (BL_SPACEDIM==3)
+                         REAL* ucc_zslopes, REAL* lcc_zslopes, REAL* zslope_factors,
+#endif
+                         ARLIM_P(csblo), ARLIM_P(csbhi),
+                         const int* csblo, const int* csbhi,
+			 const int* nvar, const int* lratio,
+			 const int* bc, const int* lim_limit,
+		 D_DECL(const REAL* fvcx,const REAL* fvcy, const REAL* fvcz),
+		 D_DECL(const REAL* cvcx,const REAL* cvcy, const REAL* cvcz),
+		 D_DECL(const REAL* voffx,const REAL* voffy, const REAL* voffz));
+
+     void FORT_CQINTERP (REAL* fine, ARLIM_P(flo), ARLIM_P(fhi),
+                         ARLIM_P(fblo), ARLIM_P(fbhi),
+			 const int* nvar, const int* lratio,
+			 const REAL* crse, const int* clo, const int* chi,
+                         ARLIM_P(cblo), ARLIM_P(cbhi),
+     		         const int* fslo, const int* fshi,
+			 REAL* cslope, const int* clen,
+			 REAL* fslope, REAL* fdat, const int* flen,
+			 REAL* voff,
+			 const int* bc, const int* lim_slope,
+		 D_DECL(const REAL* fvcx,const REAL* fvcy, const REAL* fvcz),
+		 D_DECL(const REAL* cvcx,const REAL* cvcy, const REAL* cvcz));
+
      void FORT_PCINTERP (const REAL* crse, ARLIM_P(clo), ARLIM_P(chi),
                          const int* cblo, const int* cbhi,
 			 REAL*  fine, ARLIM_P(flo), ARLIM_P(fhi),
@@ -76,7 +113,7 @@
 			 const int* longdir, const int* ratio,
 			 const int* nvar, REAL* strip,
 			 const int* strip_lo, const int* strip_hi);
-  }
+  };
 #endif
 
 #endif

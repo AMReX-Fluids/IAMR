@@ -4,6 +4,7 @@
 #define _NodeBilinear_H_      "%W%  %G%"
 #define _CellBilinear_H_      "%W%  %G%"
 #define _CellConservative_H_  "%W%  %G%"
+#define _CellQuadratic_H_     "%W%  %G%"
 #define _PCInterp_H_	      "%W%  %G%"
 
 #include <Box.H>
@@ -105,6 +106,61 @@ public:
 public:
 };
 
+// ------------------------------------------------------------
+// ------  "Linear" conservative interpolation on cell centered data ---
+// ------  I.e, conservative interpolation with a limiting scheme that 
+// ------  preserves the value of any linear combination  of the
+// ------  fab components--e.g.,
+// ------  if sum_ivar a(ic,jc,ivar)*fab(ic,jc,ivar) = 0, then
+// ------     sum_ivar a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied
+// ------  in all fine cells if,jf covering coarse cell ic,jc.
+//
+// If do_linear_limiting = 0, the interpolation scheme is identical to
+// the used in CellConservative for do_limited_slopes=1.
+// ------------------------------------------------------------
+class CellConservativeLinear : public Interpolater {
+private:
+    int do_linear_limiting;
+public:
+    CellConservativeLinear(int do_linear_limiting_= 1);
+    virtual ~CellConservativeLinear();
+    virtual BOX CoarseBox(const BOX& fine, int ratio);
+    virtual BOX CoarseBox(const BOX& fine, const IntVect& ratio);
+    virtual void interp(FARRAYBOX& crse, int crse_comp,
+                        FARRAYBOX& fine, int fine_comp,
+                        int ncomp,
+                        const BOX& fine_region, const IntVect & ratio,
+                        const Geometry& crse_geom,
+                        const Geometry& fine_geom,
+                        Array<BCRec> &bcr);
+public:
+};
+
+// ------------------------------------------------------------
+// ------  Quadratic interpolation on cell centered data ---
+// ------------------------------------------------------------
+class CellQuadratic : public Interpolater {
+private:
+    int do_limited_slope;
+    REAL *strip;       // temp space passed to FORTRAN
+    int   strip_len;
+    REAL *cslope;
+    int   slope_len;
+public:
+    CellQuadratic();
+    virtual ~CellQuadratic();
+    virtual BOX CoarseBox(const BOX& fine, int ratio);
+    virtual BOX CoarseBox(const BOX& fine, const IntVect& ratio);
+    virtual void interp(FARRAYBOX& crse, int crse_comp,
+                        FARRAYBOX& fine, int fine_comp,
+                        int ncomp,
+                        const BOX& fine_region, const IntVect & ratio,
+                        const Geometry& crse_geom,
+                        const Geometry& fine_geom,
+                        Array<BCRec> &bcr);
+public:
+};
+
 // -------------------------------------------------------------------
 // ------  Piecewise Constant interpolation on cell centered data  ---
 // -------------------------------------------------------------------
@@ -136,8 +192,11 @@ public:
 extern NodeBilinear     node_bilinear_interp;
 extern CellBilinear     cell_bilinear_interp;
 extern CellConservative cell_cons_interp;
+extern CellQuadratic    quadratic_interp;
 extern CellConservative unlimited_cc_interp;
 extern PCInterp         pc_interp;
+extern CellConservativeLinear lincc_interp;
+extern CellConservativeLinear nonlincc_interp;
 
 #endif
 
