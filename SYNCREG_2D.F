@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_2D.F,v 1.7 1999-02-02 21:05:20 lijewski Exp $
+c $Id: SYNCREG_2D.F,v 1.8 1999-02-17 20:33:30 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -141,12 +141,14 @@ c ::: -----------------------------------------------------------
       REAL_T     gpy_ul,gpy_ur,gpy_ll,gpy_lr
       REAL_T     pext,vext
 
-#if 0
+#if BL_PRVERSION==9
 c     FOR NINE-POINT STENCIL
       denom = one/(twelve*dx(1)**2) + one/(twelve*dx(2)**2)
-#else
+#elif BL_PRVERSION==5
 c     FOR FIVE-POINT STENCIL
       denom = one/(four*dx(1)**2) + one/(four*dx(2)**2)
+#else
+#error "Unknown PRVERSION setting"
 #endif
 
       lenx = hi(1)-lo(1)+1
@@ -253,7 +255,7 @@ c     NOTE: the factor of mult here accounts for the fact that one
 c           takes ratio time steps on the fine grid for every one
 c           timestep on the coarse grid.  mult = 1/ratio. 
       
-#if 0
+#if BL_PRVERSION==9
 c
 c     FOR NINE-POINT STENCIL
       denomx = -mult/(six*dx(1)**2)
@@ -329,7 +331,7 @@ c     extra term added for cylindrical coordinates
          end do
 
       end if
-#else
+#elif BL_PRVERSION==5
 c
 c     FOR FIVE-POINT STENCIL
 c
@@ -349,6 +351,8 @@ c
             divgp(i,j) = denomx*(p1+p2)+ denomy*(p3+p4)
          end do
       end do
+#else
+#error "Unknown PRVERSION setting"
 #endif
       
       end
