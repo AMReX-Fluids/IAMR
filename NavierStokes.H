@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.74 2002-03-18 22:44:26 almgren Exp $
+// $Id: NavierStokes.H,v 1.75 2002-09-19 21:03:59 car Exp $
 //
 
 #include <LevelBld.H>
@@ -759,6 +759,8 @@ protected:
     //
     static int  do_mom_diff;
     static int  predict_mom_together;
+    static bool def_harm_avg_cen2edge;
+
 };
 
 #endif /*_NavierStokes_H_*/

@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.11 2002-08-29 22:14:52 car Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.12 2002-09-19 21:03:59 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -390,9 +390,10 @@ c ::  dir        => direction data needs to be shifted to get to edges
 c :: ----------------------------------------------------------
 c ::
       subroutine FORT_CEN2EDG(lo, hi, 
-     &                        DIMS(cfab), cfab,
-     &                        DIMS(efab), efab, nc, dir)
-      integer lo(SDIM), hi(SDIM), nc, dir
+     &     DIMS(cfab), cfab,
+     &     DIMS(efab), efab, nc, dir,
+     &     isharm)
+      integer lo(SDIM), hi(SDIM), nc, dir, isharm
       integer DIMDEC(cfab)
       integer DIMDEC(efab)
       REAL_T  cfab(DIMV(cfab), nc)
@@ -400,22 +401,53 @@ c ::
 
       integer i,j,n
 
-      if (dir .EQ. 0) then
-         do n = 1,nc
-            do j = lo(2), hi(2)
-               do i = lo(1)+1, hi(1)
-                  efab(i,j,n) = half*(cfab(i,j,n) + cfab(i-1,j,n))
+      if ( isharm .eq. 0 ) then
+         if (dir .EQ. 0) then
+            do n = 1,nc
+               do j = lo(2), hi(2)
+                  do i = lo(1)+1, hi(1)
+                     efab(i,j,n) = half*(cfab(i,j,n) + cfab(i-1,j,n))
+                  end do
                end do
             end do
-         end do
+         else
+            do n = 1,nc
+               do j = lo(2)+1, hi(2)
+                  do i = lo(1), hi(1)
+                     efab(i,j,n) = half*(cfab(i,j,n) + cfab(i,j-1,n))
+                  end do
+               end do
+            end do
+         end if
       else
-         do n = 1,nc
-            do j = lo(2)+1, hi(2)
-               do i = lo(1), hi(1)
-                  efab(i,j,n) = half*(cfab(i,j,n) + cfab(i,j-1,n))
+         if (dir .EQ. 0) then
+            do n = 1,nc
+               do j = lo(2), hi(2)
+                  do i = lo(1)+1, hi(1)
+                     if((cfab(i,j,n) * cfab(i-1,j,n)).gt.0.d0)then
+                        efab(i,j,n)
+     &                       = 2.d0*(cfab(i,j,n) * cfab(i-1,j,n))/
+     &                       (cfab(i,j,n) + cfab(i-1,j,n))
+                     else
+                        efab(i,j,n)=0.d0
+                     endif
+                  end do
                end do
             end do
-         end do
+         else
+            do n = 1,nc
+               do j = lo(2)+1, hi(2)
+                  do i = lo(1), hi(1)
+                     if((cfab(i,j,n) * cfab(i,j-1,n)).gt.0.d0)then
+                        efab(i,j,n)
+     &                       = 2.d0*(cfab(i,j,n) * cfab(i,j-1,n))/
+     &                       (cfab(i,j,n) + cfab(i,j-1,n))
+                     else
+                        efab(i,j,n)=0.d0
+                     endif
+                  end do
+               end do
+            end do
+         end if
       end if
       end
-

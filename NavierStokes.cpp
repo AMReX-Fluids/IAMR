@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.200 2002-08-21 20:12:40 car Exp $
+// $Id: NavierStokes.cpp,v 1.201 2002-09-19 21:03:59 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -75,6 +75,9 @@ int  NavierStokes::NUM_STATE    = 0;
 
 Array<AdvectionForm> NavierStokes::advectionType;
 Array<DiffusionForm> NavierStokes::diffusionType;
+
+bool NavierStokes::def_harm_avg_cen2edge = false;
+
 
 //
 // ----------------------- viscosity parameters.
@@ -360,6 +363,9 @@ NavierStokes::read_params ()
       std::cout << "MAKES NO SENSE TO HAVE DO_MOM_DIFF=0 AND PREDICT_MOM_TOGETHER=1" << std::endl;
       exit(0);
     }
+
+    pp.query("harm_avg_cen2edge", def_harm_avg_cen2edge);
+
 }
 
 NavierStokes::NavierStokes ()
@@ -5222,12 +5228,13 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
         if (d != dir)
             fillBox.setRange(d, ecbox.smallEnd(d), ecbox.length(d));
     
+    const int isharm = def_harm_avg_cen2edge;
     FORT_CEN2EDG(fillBox.loVect(), fillBox.hiVect(),
                  ARLIM(ccfab.loVect()), ARLIM(ccfab.hiVect()),
                  ccfab.dataPtr(sComp),
                  ARLIM(ecfab.loVect()), ARLIM(ecfab.hiVect()),
                  ecfab.dataPtr(dComp),
-                 &nComp, &dir);
+                 &nComp, &dir, &isharm);
 }
 
 //

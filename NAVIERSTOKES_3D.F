@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.10 2002-08-29 22:14:52 car Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.11 2002-09-19 21:03:59 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -413,9 +413,10 @@ c ::  dir        => direction data needs to be shifted to get to edges
 c :: ----------------------------------------------------------
 c ::
       subroutine FORT_CEN2EDG(lo, hi, 
-     &                        DIMS(cfab), cfab,
-     &                        DIMS(efab), efab, nc, dir)
-      integer lo(SDIM), hi(SDIM), nc, dir
+     &     DIMS(cfab), cfab,
+     &     DIMS(efab), efab, nc, dir, isharm
+     &     )
+      integer lo(SDIM), hi(SDIM), nc, dir, isharm
       integer DIMDEC(cfab)
       integer DIMDEC(efab)
       REAL_T  cfab(DIMV(cfab), nc)
@@ -423,6 +424,8 @@ c ::
 
       integer i,j,k,n
 
+      if ( isharm .ne. 0 ) STOP 'ISHARM /= 0 not supported in 3D'
+      
       if (dir .EQ. 0) then
          do n = 1,nc
             do k = lo(3), hi(3)

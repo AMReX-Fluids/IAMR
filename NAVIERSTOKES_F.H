@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.11 2002-04-26 22:10:02 lijewski Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.12 2002-09-19 21:03:59 car Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -115,7 +115,7 @@ extern "C" {
     void FORT_CEN2EDG(const int* lo, const int* hi,
                       ARLIM_P(clo), ARLIM_P(chi), const Real* cfabdat,
                       ARLIM_P(elo), ARLIM_P(ehi), Real* efabdat,
-                      const int* nc, const int* dir);
+                      const int* nc, const int* dir, const int* isharm);
 }
     
 #endif
