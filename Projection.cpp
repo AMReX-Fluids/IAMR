@@ -1,4 +1,4 @@
-#define _Projection_C_ $Id: Projection.cpp,v 1.9 1997-09-15 20:22:20 car Exp $
+#define _Projection_C_ $Id: Projection.cpp,v 1.10 1997-09-17 21:31:50 car Exp $
 #include <stdio.h>
 #ifdef BL_T3E
 #include <List.H>
@@ -149,28 +149,16 @@ void Projection::setUpBcs()
   const int* lo_bc = phys_bc->lo();
   const int* hi_bc = phys_bc->hi();
   RegType proj_bc[BL_SPACEDIM][2];
-  proj_bc[0][0] = project_bc[lo_bc[0]];
-  proj_bc[0][1] = project_bc[hi_bc[0]];
-  if (geom.isPeriodic(0)) {
-    proj_bc[0][0] = periodic;
-    proj_bc[0][1] = periodic;
+  for(int i = 0; i < BL_SPACEDIM; ++i)
+  {
+  
+      proj_bc[i][0] = project_bc[lo_bc[i]];
+      proj_bc[i][1] = project_bc[hi_bc[i]];
+      if ( geom.isPeriodic(i) ) {
+	  proj_bc[i][0] = periodic;
+	  proj_bc[i][1] = periodic;
+      }
   }
-
-  proj_bc[1][0] = project_bc[lo_bc[1]];
-  proj_bc[1][1] = project_bc[hi_bc[1]];
-  if (geom.isPeriodic(1)) {
-    proj_bc[1][0] = periodic;
-    proj_bc[1][1] = periodic;
-  }
-
-#if (BL_SPACEDIM == 3)
-  proj_bc[2][0] = project_bc[lo_bc[2]];
-  proj_bc[2][1] = project_bc[hi_bc[2]];
-  if (geom.isPeriodic(2)) {
-    proj_bc[2][0] = periodic;
-    proj_bc[2][1] = periodic;
-  }
-#endif
 
   projector_bndry = new inviscid_fluid_boundary(proj_bc);
 }
@@ -324,7 +312,7 @@ void Projection::level_project(int level,
       //ConvertUnew( U_newmfi(), U_oldmfi(), dt, P_newmfi.validbox() );
       ConvertUnew( U_newmfi(), U_oldmfi(), dt, grids[P_newmfi.index()] );
       P_newmfi().minus( P_oldmfi() );
-      P_newmfi().setVal(0.0);
+      P_newmfi().setVal(0.0);			    // FIXME?????
     }
   } else {   // level > 0
     for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) {
