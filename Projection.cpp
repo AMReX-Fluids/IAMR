@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.112 1999-09-14 18:28:06 car Exp $
+// $Id: Projection.cpp,v 1.113 1999-09-14 22:53:07 car Exp $
 //
 
 #ifdef BL_T3E
@@ -165,10 +165,6 @@ Projection::Projection (Amr*   _parent,
     if (verbose && ParallelDescriptor::IOProcessor()) 
         cout << "Creating projector\n";
 
-#if BL_SPACEDIM == 2
-    if (CoordSys::IsRZ())
-        amr_multigrid::SetRZ();
-#endif
     projector_bndry = 0;
 
     setUpBcs();
@@ -310,6 +306,10 @@ Projection::bldSyncProject ()
     }
 
 #ifdef BL_USE_HGPROJ_SERIAL
+#if BL_SPACEDIM == 2
+    if (CoordSys::IsRZ())
+        amr_multigrid::SetRZ();
+#endif
     sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
                                              0, finest_level, finest_level,
                                              *projector_bndry, P_code);
@@ -319,6 +319,10 @@ Projection::bldSyncProject ()
                                              *projector_bndry,
 					     holy_grail_amr_multigrid::cross,
                                              P_code);
+#if BL_SPACEDIM == 2
+    if (CoordSys::IsRZ())
+        sync_proj->setCoordSys(holy_grail_amr_multigrid::rz);
+#endif
 #endif
 
 #ifdef ATMOSPHERE
