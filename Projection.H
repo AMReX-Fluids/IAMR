@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.35 2000-06-12 23:41:50 almgren Exp $
+// $Id: Projection.H,v 1.36 2000-07-21 22:43:16 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -137,6 +137,11 @@ public:
     // This projects an initial vorticity field to define a velocity field.
     //
     void initialVorticityProject (int crse_level);
+    //
+    // This computes the stream function, given the velocity field
+    //  *AND ASSUMING* no-flow boundaries on all physical boundaries.
+    //
+    void getStreamFunction (PArray<MultiFab>&);
     //
     // The initial velocity projection in post_init.
     // This function ensures that the velocities are nondivergent.

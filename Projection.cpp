@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.127 2000-07-21 17:54:56 lijewski Exp $
+// $Id: Projection.cpp,v 1.128 2000-07-21 22:43:16 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -2881,4 +2881,115 @@ Projection::computeBC (FArrayBox&         velFab,
         cout << "finishing holy-grail bc calculation" << endl;
 
     stats.end();
+}
+
+void Projection::getStreamFunction(PArray<MultiFab>& phi)
+{
+#if (BL_SPACEDIM == 2)
+    int c_lev = 0;
+    int f_lev = finest_level;
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        cout << "getStreamFunction: levels = "
+             << c_lev
+             << "  "
+             << f_lev << endl;
+    }
+    //
+    // Set up projector bndry just for this projection.
+    //
+    const int*      lo_bc = phys_bc->lo();
+    const int*      hi_bc = phys_bc->hi();
+    const Geometry& geom  = parent->Geom(0);
+
+    RegType proj_bc[BL_SPACEDIM][2];
+
+    proj_bc[0][0] = outflow;
+    proj_bc[0][1] = outflow;
+    if (geom.isPeriodic(0))
+    {
+        proj_bc[0][0] = periodic;
+        proj_bc[0][1] = periodic;
+    }
+    proj_bc[1][0] = outflow;
+    proj_bc[1][1] = outflow;
+
+    if (geom.isPeriodic(1))
+    {
+        proj_bc[1][0] = periodic;
+        proj_bc[1][1] = periodic;
+    }
+
+    delete projector_bndry;
+
+#ifdef BL_USE_HGPROJ_SERIAL
+    projector_bndry = new inviscid_fluid_boundary_class(proj_bc);
+#else
+    projector_bndry = new inviscid_fluid_boundary(proj_bc);
+#endif
+
+    bldSyncProject();
+
+    MultiFab* vel[MAX_LEV] = {0};
+
+    PArray<MultiFab> p_real(f_lev+1,PArrayManage);
+    PArray<MultiFab> s_real(f_lev+1,PArrayManage);
+
+    const int nghost = 1;
+    for (int lev = c_lev; lev <= f_lev; lev++)
+    {
+        s_real.set(lev,new MultiFab(LevelData[lev].boxArray(),1,nghost));
+        s_real[lev].setVal(1,nghost);
+        p_real.set(lev,&phi[lev]);
+    }
+    //
+    // Set up outflow bcs.
+    //
+    const Array<BoxArray>& full_mesh = sync_proj->mesh();
+
+    PArray<MultiFab> u_real[BL_SPACEDIM];
+
+    for (int n = 0; n < BL_SPACEDIM; n++)
+        u_real[n].resize(f_lev+1,PArrayManage);
+
+    //
+    // Copy the velocity field into u_real.
+    //
+    for (int lev = c_lev; lev <= f_lev; lev++) 
+    {
+      vel[lev] = &LevelData[lev].get_new_data(State_Type);
+      for (int n = 0; n < BL_SPACEDIM; n++) 
+      {
+        u_real[n].set(lev, new MultiFab(full_mesh[lev], 1, 1));
+        for (int i = 0; i < full_mesh[lev].length(); i++) 
+        {
+          vel[lev] = &LevelData[lev].get_new_data(State_Type);
+          u_real[n][lev][i].copy((*vel[lev])[i], n, 0);
+        }
+      }
+    }
+
+    //
+    // Project.
+    //
+    const Real* dx_lev = parent->Geom(f_lev).CellSize();
+    sync_proj->stream_func_project(u_real,p_real,s_real,
+                                   (Real*)dx_lev, proj_tol,
+                                   c_lev,f_lev,proj_abs_tol);
+
+    //
+    // Reset the boundary conditions for all the other projections.
+    //
+    setUpBcs();
+
+    //
+    // Remove the sync projector built with these bc's. 
+    //
+    delete sync_proj;
+    sync_proj = 0;
+
+#else
+    BoxLib::Error("Projection::getStreamFunction(): not implented yet for 3D");
+#endif
 }
