@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.72 1998-06-21 18:12:43 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.73 1998-06-24 00:02:27 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -4382,11 +4382,9 @@ NavierStokes::FillStateBndry (Real time,
     if (ngrow == 0)
         return;
 
-    MultiFab component(grids,1,ngrow,Fab_noallocate);
-
     for (int istate = src_comp; istate < src_comp+num_comp; istate++)
     {
-        FillPatchIterator fpi(*this,component,ngrow,0,time,state_idx,istate,1);
+        FillPatchIterator fpi(*this,S,ngrow,0,time,state_idx,istate,1);
 
         for ( ; fpi.isValid(); ++fpi)
         {
