@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.27 1998-02-17 23:02:16 car Exp $
+// $Id: Projection.cpp,v 1.28 1998-02-18 23:11:14 car Exp $
 //
 
 #ifdef BL_T3E
@@ -924,13 +924,13 @@ void Projection::MLsyncProject(int c_lev,
       u_realfinemfi().copy(V_corrmfi(), n, 0);
     }
 
-    restrict_level(u_real[n][c_lev], u_real[n][c_lev+1], ratio);
+    restrict_level(u_real[n][c_lev], false, u_real[n][c_lev+1], ratio, 0, default_restrictor(), level_interface(), 0);
   }
 
   s_real.set(c_lev,   &rho_crse);
   s_real.set(c_lev+1, &rho_fine);
 
-  restrict_level(s_real[c_lev], s_real[c_lev+1], ratio);
+  restrict_level(s_real[c_lev], false, s_real[c_lev+1], ratio, 0, default_restrictor(), level_interface(), 0);
 
   p_real.set(c_lev,   phi[c_lev]);
   p_real.set(c_lev+1, phi[c_lev+1]);
@@ -1153,7 +1153,7 @@ void Projection::initialVelocityProject(int c_lev,
   
   // setup alias lib
   //-------------------------------------------------------
-  Array<BoxArray>& full_mesh = sync_proj->mesh();
+  const Array<BoxArray>& full_mesh = sync_proj->mesh();
   PArray<MultiFab> u_real[BL_SPACEDIM];
   PArray<MultiFab> p_real(f_lev+1), s_real(f_lev+1);
   int n;
@@ -1425,7 +1425,7 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
 
   // build the aliaslib data structures
   //-------------------------------------------------------
-  Array<BoxArray>& full_mesh = sync_proj->mesh();
+  const Array<BoxArray>& full_mesh = sync_proj->mesh();
   PArray<MultiFab> u_real[BL_SPACEDIM];
   PArray<MultiFab> p_real(f_lev+1), s_real(f_lev+1);
   int n;
@@ -1456,8 +1456,8 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
   {
     for (lev = f_lev; lev >= c_lev+1; lev--) 
     {
-      restrict_level(u_real[n][lev-1], u_real[n][lev],
-                     parent->refRatio(lev-1));
+      restrict_level(u_real[n][lev-1], false, u_real[n][lev], parent->refRatio(lev-1),
+	  0, default_restrictor(), level_interface(), 0);
     }
   }
 
