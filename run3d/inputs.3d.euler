@@ -146,7 +146,7 @@ RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update
                    fabset_copyfrom fabset_plusfrom reflux fabarray_copy
                    collect_data mpi_wait mpi_barrier mpi_reduce 
                    mpi_broadcast mpi_gather mpi_recv mpi_send crse_init_finish
-                   regrid
+                   regrid hg_irecv hg_isend hg_test
 #
 # StationData.vars     -- Names of StateData components to output
 # StationData.coord    -- BL_SPACEDIM array of Reals
