@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.42 1998-06-21 18:12:43 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.43 1998-07-06 16:58:52 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -273,12 +273,12 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        //
-        // Any RHS point on the physical bndry must be multiplied
-        // by two (only for ref-wall and inflow) and set to zero at outflow.
-        //
         if (!geom.isPeriodic(dir))
         {
+            //
+            // Any RHS point on the physical bndry must be multiplied by two
+            // (only for ref-wall and inflow) and set to zero at outflow.
+            //
             Box domlo(domain), domhi(domain);
 
             domlo.setRange(dir,dlo[dir],1);
@@ -288,19 +288,29 @@ SyncRegister::InitRHS (MultiFab&       rhs,
             {
                 if (domlo.intersects(mfi.validbox()))
                 {
-                    Box bx = mfi.validbox() & domlo;
-                    if (phys_lo[dir] == Outflow) 
-                        mfi().setVal(0,bx,0,1);
+                    Box blo = mfi.validbox() & domlo;
+
+                    if (phys_lo[dir] == Outflow)
+                    {
+                        mfi().setVal(0.0,blo,0,1);
+                    }
                     else
-                        mfi().mult(2.0,bx,0,1);
+                    {
+                        mfi().mult(2.0,blo,0,1);
+                    }
                 }
-                if (domlo.intersects(mfi.validbox()))
+                if (domhi.intersects(mfi.validbox()))
                 {
-                    Box bx = mfi.validbox() & domhi;
+                    Box bhi = mfi.validbox() & domhi;
+
                     if (phys_hi[dir] == Outflow)
-                        mfi().setVal(0,bx,0,1);
+                    {
+                        mfi().setVal(0.0,bhi,0,1);
+                    }
                     else
-                        mfi().mult(2.0,bx,0,1);
+                    {
+                        mfi().mult(2.0,bhi,0,1);
+                    }
                 }
             }
         } 
@@ -382,9 +392,13 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                 for (FabSetIterator fsi(bndry_mask[face()]); fsi.isValid(false); ++fsi)
                 {
                     if (domlo.intersects(fsi().box()))
+                    {
                         fsi().mult(2.0,fsi().box() & domlo,0,1);
+                    }
                     if (domhi.intersects(fsi().box()))
+                    {
                         fsi().mult(2.0,fsi().box() & domhi,0,1);
+                    }
                 }
             }
         }
