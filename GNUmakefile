@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.68 1999-01-04 18:14:40 marc Exp $
+# $Id: GNUmakefile,v 1.69 1999-01-06 16:42:07 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -19,7 +19,6 @@ COMP          = KCC
 USE_TENSOR    = FALSE
 USE_WINDOWS   = FALSE
 USE_MPI       = TRUE
-USE_ARRAYVIEW = FALSE
 #
 # Use hgproj-serial -- only for testing.
 #

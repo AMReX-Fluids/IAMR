@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.22 1998-11-18 00:37:26 sstanley Exp $
+// $Id: NS_setup.cpp,v 1.23 1999-01-06 16:42:07 lijewski Exp $
 //
 
 #include <NavierStokes.H>
@@ -13,9 +13,6 @@
 #include <Misc.H>
 #include <FArrayBox.H>
 #include <CoordSys.H>
-#ifdef BL_USE_ARRAYVIEW
-#include <ArrayView.H>
-#endif
 
 static Box cell_to_cell (const Box& b) { return b;                   }
 static Box cell_grow (const Box& b)    { return grow(b,1);           }
