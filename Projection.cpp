@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.88 1999-06-03 18:17:12 almgren Exp $
+// $Id: Projection.cpp,v 1.89 1999-06-07 17:32:17 marc Exp $
 //
 
 #ifdef BL_T3E
@@ -528,7 +528,7 @@ Projection::level_project (int             level,
     //
     if(hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) 
     {
-	set_level_projector_outflow_bcs(level,time+0.5*dt,P_new,U_new,*divusource);
+        set_level_projector_outflow_bcs(level,P_new,*rho_half,U_new,*divusource);
     }
     //
     // Scale the projection variables.
@@ -1330,6 +1330,22 @@ Projection::MLsyncProject (int             c_lev,
 
     UpdateArg1(vel_crse, dt_crse, *Vsync, BL_SPACEDIM, grids,      1);
     UpdateArg1(vel_fine, dt_crse, V_corr, BL_SPACEDIM, fine_grids, 1);
+    //
+    // Add phi to p_avg on both levels as well; p_avg gets averaged down
+    //  to coarser levels, and so does not exist for level == 0;  this may
+    //  not be necessaryfor c_lev+1, since avgDown already called by now, 
+    //  but we do it anyway, in case order or ops changes someday...
+    //
+    if (c_lev > 0)
+    {
+        NavierStokes* ns_crse = dynamic_cast<NavierStokes*>(&LevelData[c_lev]);
+        BL_ASSERT(!(ns_crse==0));
+        ns_crse->p_avg->plus(*phi[c_lev],0,1,0);
+    }
+
+    NavierStokes* ns_fine = dynamic_cast<NavierStokes*>(&LevelData[c_lev+1]);
+    BL_ASSERT(!(ns_fine==0));
+    ns_fine->p_avg->plus(*phi[c_lev+1],0,1,0);
 
     for (MultiFabIterator phimfi(*phi[c_lev+1]); phimfi.isValid(); ++phimfi) 
     {
@@ -2253,8 +2269,8 @@ Projection::radDiv (int       level,
 
 void
 Projection::set_level_projector_outflow_bcs (int       level,
-                                             Real      mid_time,
                                              MultiFab& phi,
+                                             MultiFab& rho_nph,
                                              MultiFab& vel,
                                              MultiFab& divu)
 {
@@ -2262,9 +2278,7 @@ Projection::set_level_projector_outflow_bcs (int       level,
     // Do as set_initial_projection_outflow_bcs, except this one for single
     // specified level.  In this case, since the finest level has not been
     // advanced to the new time, the data there is not yet available.  We
-    // contruct the dirichlet phi values for the outflow boundary at the
-    // requested level, fill-patching in coarser data, which presumably has
-    // been advanced up to or past new_time.
+    // must compute the OFBC at this level.
     //
     // FIXME: the three outflow boundary routines should be collapsed into
     //        one, since they all do roughly the same thing.
@@ -2284,7 +2298,8 @@ Projection::set_level_projector_outflow_bcs (int       level,
     const int outDir       = 1;
     const int ccStripWidth = 3;
     const int ncStripWidth = 1;
-    const Box state_strip  = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+    const Box state_strip
+        = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
     const Box phi_strip    = ::surroundingNodes(bdryHi(domain,outDir,ncStripWidth));
     //
     // Only do this if the entire outflow face is covered by boxes at this level
@@ -2299,21 +2314,14 @@ Projection::set_level_projector_outflow_bcs (int       level,
 
     if ( !(uncovered_outflow_ba.ready()) )
     {
-        const int nGrow        = 0;
-        const int nCompPhi     = 1;
-        const int srcCompRho = Density, nCompRho = 1;
-        const BoxArray state_strip_ba(&state_strip,1);
-        const BoxArray phi_strip_ba(&phi_strip,1);
+        FArrayBox rhoFab(state_strip,1);
+        FArrayBox divuFab(state_strip,1);
+        FArrayBox velFab(state_strip,BL_SPACEDIM);
+        FArrayBox phiFab(phi_strip,1);
 
-        MultiFab cc_divu(state_strip_ba, 1, nGrow, Fab_allocate);
-        MultiFab cc_vel(state_strip_ba, BL_SPACEDIM, nGrow, Fab_allocate);
-        MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
-        //
-        // Fill Fab-like MultiFab of divu data, and initialize phi
-        //
-        cc_divu.copy(divu);
-        cc_vel.copy(vel);
-        phi_fine_strip.setVal(0);
+        rho_nph.copy(rhoFab,0,0,1);
+        divu.copy(divuFab,0,0,1);
+        vel.copy(velFab,0,0,BL_SPACEDIM);
         //
         // Make r_i needed in HGPHIBC (set = 1 if cartesian).
         //
@@ -2322,32 +2330,21 @@ Projection::set_level_projector_outflow_bcs (int       level,
         if (CoordSys::IsRZ() == 1) 
             parent->Geom(level).GetCellLoc(rcen, region, 0);
     
-        FillPatchIterator rhoFpi(LevelData[level],cc_divu,nGrow,
-                                 mid_time,State_Type,srcCompRho,nCompRho);
+        const int isPeriodicInX = parent->Geom(level).isPeriodic(0);
 
-        for ( ; rhoFpi.isValid(); ++rhoFpi)
+        FORT_HGPHIBC(ARLIM(velFab.loVect()), ARLIM(velFab.hiVect()), velFab.dataPtr(),
+                     ARLIM(divuFab.loVect()),ARLIM(divuFab.hiVect()),divuFab.dataPtr(),
+                     ARLIM(rhoFab.loVect()), ARLIM(rhoFab.hiVect()), rhoFab.dataPtr(),
+                     ARLIM(region.loVect()), ARLIM(region.hiVect()), rcen.dataPtr(),
+                     &dx[0],
+                     ARLIM(phiFab.loVect()), ARLIM(phiFab.hiVect()), phiFab.dataPtr(),
+                     &isPeriodicInX);
+        for (MultiFabIterator mfi(phi); mfi.isValid(); ++mfi)
         {
-            DependentMultiFabIterator phimfi(rhoFpi, phi_fine_strip);
-            DependentMultiFabIterator vel_mfi(rhoFpi,cc_vel);
-            DependentMultiFabIterator divu_mfi(rhoFpi,cc_divu);
-            //
-            // Fill phi_fine_strip with boundary cell values for phi, then copy
-            // into arg data Note: Though this looks like a distributed
-            // operation, the MultiFab is built on a single box.  This is
-            // necessary currently, since FORT_HGPHIBC requires a slice across
-            // the entire domain.
-            //
-            const int isPeriodicInX = parent->Geom(level).isPeriodic(0);
-
-            FORT_HGPHIBC(ARLIM(vel_mfi().loVect()), ARLIM(vel_mfi().hiVect()), vel_mfi().dataPtr(),
-                         ARLIM(divu_mfi().loVect()),ARLIM(divu_mfi().hiVect()),divu_mfi().dataPtr(),
-                         ARLIM(rhoFpi().loVect()),  ARLIM(rhoFpi().hiVect()),  rhoFpi().dataPtr(),
-                         ARLIM(region.loVect()),    ARLIM(region.hiVect()),    rcen.dataPtr(),   &dx[0],
-                         ARLIM(phimfi().loVect()),  ARLIM(phimfi().hiVect()),  phimfi().dataPtr(),
-                         &isPeriodicInX);
+            const Box ovlp = mfi.validbox() & phi_strip;
+            if (ovlp.ok())
+                mfi().copy(phiFab,ovlp,0,ovlp,0,1);
         }
-
-        phi.copy(phi_fine_strip);
     }
 #else
     // check to see if divu == 0 near outflow.  If it isn't, then abort.

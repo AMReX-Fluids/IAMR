@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.23 1999-06-03 18:17:12 almgren Exp $
+// $Id: Projection.H,v 1.24 1999-06-07 17:32:17 marc Exp $
 //
 
 #include <BC_TYPES.H>
@@ -274,10 +274,10 @@ protected:
     void setUpBcs ();
 
     void set_level_projector_outflow_bcs (int       level,
-                                          Real      cur_state_time,
-                                          MultiFab& P,
-                                          MultiFab& V,
-                                          MultiFab& S);
+                                          MultiFab& phi,
+                                          MultiFab& rho,
+                                          MultiFab& vel,
+                                          MultiFab& divu);
     
     void set_initial_projection_outflow_bcs (MultiFab** vel,
                                              MultiFab** sig,
