@@ -1,4 +1,6 @@
 #define _INTERPOLATER_C_  "%W% %G%"
+
+#include <limits.h>
 #include <math.h>
 
 #include "Interpolater.H"
@@ -230,7 +232,9 @@ CellConservative::interp(FARRAYBOX& crse, int crse_comp,
     }
 
       // alloc temp space for coarse grid slopes
-    int c_len = cslope_bx.numPts();
+    long t_long = cslope_bx.numPts();
+    assert(t_long < INT_MAX);
+    int c_len = int(t_long);
     if (slope_len < BL_SPACEDIM*c_len) {
 	slope_len = BL_SPACEDIM*c_len;
 	delete cslope;
@@ -238,6 +242,9 @@ CellConservative::interp(FARRAYBOX& crse, int crse_comp,
     }
     int loslp    = cslope_bx.index(crse_bx.smallEnd());
     int hislp    = cslope_bx.index(crse_bx.bigEnd());
+
+    t_long = cslope_bx.numPts();
+    assert(t_long < INT_MAX);
     int cslope_vol = cslope_bx.numPts();
     int clo = 1 - loslp;
     int chi = clo + cslope_vol - 1;

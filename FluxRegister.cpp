@@ -1,3 +1,6 @@
+
+#include <limits.h>
+
 #include <FluxRegister.H>
 #include <Geometry.H>
 
@@ -843,30 +846,36 @@ void FluxRegister::CrseInitFinish() {
     ParallelDescriptor::SetMessageHeaderSize(tagSize);
 
     int dataWaitingSize;
-    while(ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
-    {  // data was sent to this processor
-      int shouldReceiveBytes =
-                      fabComTag.box.numPts() * fabComTag.nComp * sizeof(Real);
-      if(dataWaitingSize != shouldReceiveBytes) {
-        cerr << "Error in FluxRegister::CrseInitFinish():  "
-             << "dataWaitingSize != shouldReceiveBytes:  = "
-             << dataWaitingSize << " != " << shouldReceiveBytes << endl;
-        ParallelDescriptor::Abort("Bad received nbytes");
-      }
-      if( ! fabComTag.box.ok()) {
-        cerr << "Error in FluxRegister::CrseInitFinish():  "
-             << "bad fabComTag.box" << endl;
-        ParallelDescriptor::Abort("Bad received box");
-      }
+    while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
+    {
+        //
+        // Data was sent to this processor.
+        //
+        long t_long = fabComTag.box.numPts() * fabComTag.nComp * sizeof(Real);
+        assert(t_long < INT_MAX);
+        int shouldReceiveBytes = int(t_long);
+        if(dataWaitingSize != shouldReceiveBytes) {
+            cerr << "Error in FluxRegister::CrseInitFinish():  "
+                 << "dataWaitingSize != shouldReceiveBytes:  = "
+                 << dataWaitingSize << " != " << shouldReceiveBytes << endl;
+            ParallelDescriptor::Abort("Bad received nbytes");
+        }
+        if( ! fabComTag.box.ok()) {
+            cerr << "Error in FluxRegister::CrseInitFinish():  "
+                 << "bad fabComTag.box" << endl;
+            ParallelDescriptor::Abort("Bad received box");
+        }
 
 
-      FArrayBox tempFab(fabComTag.box, fabComTag.nComp);
-      ParallelDescriptor::ReceiveData(tempFab.dataPtr(),
-               fabComTag.box.numPts() * fabComTag.nComp * sizeof(Real));
-      int srcComp = 0;
-      bndry[fabComTag.face][fabComTag.fabIndex].copy(tempFab, fabComTag.box,
-                                       srcComp, fabComTag.box,
-                                       fabComTag.destComp, fabComTag.nComp);
+        FArrayBox tempFab(fabComTag.box, fabComTag.nComp);
+        ParallelDescriptor::ReceiveData(tempFab.dataPtr(),
+                                        fabComTag.box.numPts()*fabComTag.nComp
+                                        * sizeof(Real)); 
+        int srcComp = 0;
+        bndry[fabComTag.face][fabComTag.fabIndex].copy(tempFab, fabComTag.box,
+                                                       srcComp, fabComTag.box,
+                                                       fabComTag.destComp,
+                                                       fabComTag.nComp);
     }
 }  // end CrseInitFinish()
 

@@ -361,10 +361,10 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #  endif
 #endif
 
-  int sum = 0;
+  long sum = 0;
   cout << "Cells by level: ";
   for (ilev = 0; ilev < m.length(); ilev++) {
-    int lsum = 0;
+    long lsum = 0;
     for (i = 0; i < m[ilev].length(); i++) {
       lsum += m[ilev][i].numPts();
     }

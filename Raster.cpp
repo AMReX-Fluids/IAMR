@@ -1,5 +1,6 @@
 #if (BL_SPACEDIM == 2) || (BL_SPACEDIM == 3)
 
+#include <limits.h>
 #include <Raster.H>
 #include <Utility.H>
 #include <ParmParse.H>
@@ -186,7 +187,9 @@ static void draw_hdf_8(FARRAYBOX& data, REAL u_min, REAL u_max, char* fname)
     BOX workbox(data.box());
     REAL u_rng = u_max - u_min;
     if (u_rng < 0.000001*(fabs(u_max)+fabs(u_min)) ) u_rng = 1.0;
-    int  size = workbox.numPts();
+    long t_long = workbox.numPts();
+    assert(t_long < INT_MAX);
+    int  size = int(t_long);
     byte *rast = new byte[size];
     REAL *dat = data.dataPtr();
     const int* len = workbox.length();
@@ -221,7 +224,9 @@ static void draw_hdf_sds(FARRAYBOX &data, REAL /*u_min*/, REAL /*u_max*/,
                          char* fname, char* var_name)
 {
     BOX workbox(data.box());
-    int  size = workbox.numPts();
+    long t_long = workbox.numPts();
+    assert(t_long < INT_MAX);
+    int size = int(t_long);
 
       // since REAL may not be 32 bit, need to make work array
     float *scidata = new float[size];

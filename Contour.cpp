@@ -1,5 +1,7 @@
 #if    (BL_USE_WINDOWS)
 
+#include <limits.h>
+
 #include <Contour.H>
 #include <Amr.H>
 #include <Geometry.H>
@@ -610,7 +612,9 @@ void Contour::draw_vector_field(const ContFrame& r, REAL time)
 	PArray<FARRAYBOX> &V = *v[lev];
 	for (i = 0; i < bs.length(); i++) {
 	      // compute max speed
-	    int npts = bs[i].numPts();
+            long t_long = bs[i].numPts();
+            assert(t_long < INT_MAX);
+	    int npts = int(t_long);
 	    const REAL* udat = U[i].dataPtr();
 	    const REAL* vdat = V[i].dataPtr();
             int k;
@@ -775,7 +779,9 @@ void Contour::draw_vector_field(const ContFrame& r, REAL time,
 	PArray<FARRAYBOX> &W = *w[lev];
 	for (i = 0; i < bs.length(); i++) {
 	      // compute max speed
-	    int npts = bs[i].numPts();
+            long t_long = bs[i].numPts();
+            assert(t_long < INT_MAX);
+	    int npts = t_long;
 	    const REAL* udat = U[i].dataPtr();
 	    const REAL* vdat = V[i].dataPtr();
 	    const REAL* wdat = W[i].dataPtr();

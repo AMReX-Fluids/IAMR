@@ -25,8 +25,8 @@ mac.v = 1
 proj.v = 1
 
 amr.n_cell    =  8 8 8
-amr.n_cell    =  16 16 16
 amr.n_cell    =  32 32 32
+amr.n_cell    =  16 16 16
 
 amr.max_level =  1            # maximum level number allowed
 amr.max_level =  0            # maximum level number allowed

@@ -186,7 +186,7 @@ void poisson_test(const amr_mesh& m)
   //cin.get();
 #endif
 
-  int sum = 0;
+  long sum = 0;
   cout << "Cells by level: ";
   for (ilev = 0; ilev < m.nlevels(); ilev++) {
     cout << " " << m[ilev].numPts();

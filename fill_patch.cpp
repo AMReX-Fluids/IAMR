@@ -1,4 +1,5 @@
 
+#include <limits.h>
 #include "fill_patch.H"
 #include <Tracer.H>
 
@@ -163,7 +164,9 @@ static int best_match(MultiFab& r, const Box& region, int& igrid, int bord)
   if (bord == r.nGrow()) {
     for (int i = 0; i < r.length(); i++) {
       if (region.intersects(r[i].box())) {
-	int overlap1 = (region & r[i].box()).numPts();
+        long t_long = (region & r[i].box()).numPts();
+        assert(t_long < INT_MAX);
+	int overlap1 = int(t_long);
 	if (overlap1 > overlap) {
 	  igrid = i;
 	  overlap = overlap1;
@@ -175,7 +178,9 @@ static int best_match(MultiFab& r, const Box& region, int& igrid, int bord)
     for (int i = 0; i < r.length(); i++) {
       Box tb = grow(r[i].box(), bord - r.nGrow());
       if (region.intersects(tb)) {
-	int overlap1 = (region & tb).numPts();
+        long t_long = (region & tb).numPts();
+        assert(t_long < INT_MAX);
+	int overlap1 = int(t_long);
 	if (overlap1 > overlap) {
 	  igrid = i;
 	  overlap = overlap1;

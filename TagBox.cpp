@@ -1,5 +1,7 @@
 #define _TagBox_C_ "%W% %G%"
 
+#include <limits.h>
+
 #include <TagBox.H>
 #include <Misc.H>
 #include <Assert.H>
@@ -274,7 +276,9 @@ int
 TAGBOX::numTags() const
 {
    int nt = 0;
-   int len = domain.numPts();
+   long t_long = domain.numPts();
+   assert(t_long < INT_MAX);
+   int len = int(t_long);
    const int* d = dataPtr();
    int n;
    for (n = 0; n < len; n++) {
@@ -291,7 +295,9 @@ TAGBOX::numTags(const Box &b) const
    tempTagBox.copy(*this);
 
    int nt = 0;
-   int len = b.numPts();
+   long t_long = b.numPts();
+   assert(t_long < INT_MAX);
+   int len = int(t_long);
    const int* d = tempTagBox.dataPtr();
    int n;
    for (n = 0; n < len; n++) {

@@ -339,7 +339,9 @@ static int best_match(const BoxArray& a, const Box& region, int& igrid)
   int overlap = 0;
   for (int i = 0; i < a.length(); i++) {
     if (region.intersects(a[i])) {
-      int overlap1 = (region & a[i]).numPts();
+      long t_long = (region & a[i]).numPts();
+      assert(t_long < INT_MAX);
+      int overlap1 = int(t_long);
       if (overlap1 > overlap) {
 	igrid = i;
 	overlap = overlap1;
