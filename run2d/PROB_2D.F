@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.18 1999-02-22 21:58:31 sstanley Exp $
+c $Id: PROB_2D.F,v 1.19 2000-05-01 17:44:30 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -28,7 +28,7 @@ c ::: INPUTS/OUTPUTS:
 c ::: 
 c ::: init      => TRUE if called at start of problem run
 c :::              FALSE if called from restart
-c ::: name      => name of `probin' file
+c ::: name      => name of "probin" file
 c ::: namlen    => length of name
 c ::: strttime <=  start problem with this time variable
 c ::: 
@@ -47,7 +47,7 @@ c ::: -----------------------------------------------------------
      &			rhozero, tempzero, c_d, r_d, 
      &                  adv_dir, adv_vel, axis_dir, radvort
 c
-c      Build `probin' filename -- the name of file containing fortin namelist.
+c      Build "probin" filename -- the name of file containing fortin namelist.
 c
       integer maxlen
       parameter (maxlen=256)
