@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.7 1998-03-31 17:26:34 lijewski Exp $
+c $Id: DERIVE_3D.F,v 1.8 1998-12-23 22:59:26 marc Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -57,22 +57,7 @@ c
       integer    level, grid_no
 
       integer    i,j,k
-      integer    nxlo, nxhi, nylo, nyhi, nzlo, nzhi
       REAL_T     rho, u, v, w
-c      
-c     ::::: lets punt if not in domain interior
-c
-      nxlo = max(0,domlo(1)-lo(1))
-      nxhi = max(0,hi(1)-domhi(1))
-      nylo = max(0,domlo(2)-lo(2))
-      nyhi = max(0,hi(2)-domhi(2))
-      nzlo = max(0,domlo(3)-lo(3))
-      nzhi = max(0,hi(3)-domhi(3))
-
-      if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
-         write(6,*) "FORT_DERKENG: outside domain"
-	 stop
-      end if
 
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
@@ -107,25 +92,10 @@ c
       integer    level, grid_no
 
       integer    i,j,k
-      integer    nxlo, nxhi, nylo, nyhi, nzlo, nzhi
       REAL_T     rho
       REAL_T     sml
 
       data sml / 1.0e-10 /
-c      
-c     ::::: lets punt if not in domain interior
-c
-      nxlo = max(0,domlo(1)-lo(1))
-      nxhi = max(0,hi(1)-domhi(1))
-      nylo = max(0,domlo(2)-lo(2))
-      nyhi = max(0,hi(2)-domhi(2))
-      nzlo = max(0,domlo(3)-lo(3))
-      nzhi = max(0,hi(3)-domhi(3))
-
-      if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
-         write(6,*) "FORT_DERLOGS: outside domain"
-	 stop
-      end if
 
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
@@ -158,22 +128,7 @@ c
       integer    level, grid_no
 
       integer    i,j,k
-      integer    nxlo, nxhi, nylo, nyhi, nzlo, nzhi
       REAL_T     u, v, w
-c      
-c     ::::: lets punt if not in domain interior
-c
-      nxlo = max(0,domlo(1)-lo(1))
-      nxhi = max(0,hi(1)-domhi(1))
-      nylo = max(0,domlo(2)-lo(2))
-      nyhi = max(0,hi(2)-domhi(2))
-      nzlo = max(0,domlo(3)-lo(3))
-      nzhi = max(0,hi(3)-domhi(3))
-
-      if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
-         write(6,*) "FORT_DERMVEL: outside domain"
-	 stop
-      end if
 
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
@@ -207,21 +162,7 @@ c
       integer    level, grid_no
 
       integer    i,j,k
-      integer    nxlo, nxhi, nylo, nyhi, nzlo, nzhi
       
-c     ::::: lets punt if not in domain interior
-      nxlo = max(0,domlo(1)-lo(1))
-      nxhi = max(0,hi(1)-domhi(1))
-      nylo = max(0,domlo(2)-lo(2))
-      nyhi = max(0,hi(2)-domhi(2))
-      nzlo = max(0,domlo(3)-lo(3))
-      nzhi = max(0,hi(3)-domhi(3))
-
-      if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
-         write(6,*) "FORT_DERDVRHO: outside domain"
-	 stop
-      end if
-
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -251,21 +192,6 @@ c
       integer    level, grid_no
 
       integer    i,j,k
-      integer    nxlo, nxhi, nylo, nyhi, nzlo, nzhi
-c      
-c     ::::: lets punt if not in domain interior
-c
-      nxlo = max(0,domlo(1)-lo(1))
-      nxhi = max(0,hi(1)-domhi(1))
-      nylo = max(0,domlo(2)-lo(2))
-      nyhi = max(0,hi(2)-domhi(2))
-      nzlo = max(0,domlo(3)-lo(3))
-      nzhi = max(0,hi(3)-domhi(3))
-
-      if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
-         write(6,*) "FORT_DERMPRHO: outside domain"
-	 stop
-      end if
 
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
@@ -296,22 +222,7 @@ c
       integer    level, grid_no
 
       integer    i,j,k
-      integer    nxlo, nxhi, nylo, nyhi, nzlo, nzhi
       REAL_T     dust, small
-c      
-c     ::::: lets punt if not in domain interior
-c
-      nxlo = max(0,domlo(1)-lo(1))
-      nxhi = max(0,hi(1)-domhi(1))
-      nylo = max(0,domlo(2)-lo(2))
-      nyhi = max(0,hi(2)-domhi(2))
-      nzlo = max(0,domlo(3)-lo(3))
-      nzhi = max(0,hi(3)-domhi(3))
-
-      if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
-         write(6,*) "FORT_DERLGRHODUST: outside domain"
-	 stop
-      end if
 
       small = 1.0e-10
 
@@ -346,7 +257,6 @@ c
       integer    level, grid_no
 
       integer   i,j,k
-      integer   nxlo, nxhi, nylo, nyhi, nzlo, nzhi
       REAL_T    uy, uz, vx, vz, wx, wy, dx, dy, dz
       REAL_T    uycen, uzcen, uylo, uyhi, uzlo, uzhi
       REAL_T    vxcen, vzcen, vxlo, vxhi, vzlo, vzhi
@@ -409,21 +319,7 @@ c
       dx = delta(1)
       dy = delta(2)
       dz = delta(3)
-c      
-c     ::::: lets punt if not in domain interior
-c
-      nxlo = max(0,domlo(1)-lo(1))
-      nxhi = max(0,hi(1)-domhi(1))
-      nylo = max(0,domlo(2)-lo(2))
-      nyhi = max(0,hi(2)-domhi(2))
-      nzlo = max(0,domlo(3)-lo(3))
-      nzhi = max(0,hi(3)-domhi(3))
-
-      if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
-         write(6,*) "FORT_DERMGVORT: outside domain"
-	 stop
-      end if
-
+      
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -878,7 +774,6 @@ c
       integer    level, grid_no
 
       integer   i,j,k
-      integer   nxlo, nxhi, nylo, nyhi, nzlo, nzhi
       REAL_T    ux, vy, wz, dx, dy, dz
       REAL_T    uxcen, uxlo, uxhi
       REAL_T    vycen, vylo, vyhi
@@ -921,20 +816,6 @@ c
       dx = delta(1)
       dy = delta(2)
       dz = delta(3)
-c      
-c     ::::: lets punt if not in domain interior
-c
-      nxlo = max(0,domlo(1)-lo(1))
-      nxhi = max(0,hi(1)-domhi(1))
-      nylo = max(0,domlo(2)-lo(2))
-      nyhi = max(0,hi(2)-domhi(2))
-      nzlo = max(0,domlo(3)-lo(3))
-      nzhi = max(0,hi(3)-domhi(3))
-
-      if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
-         write(6,*) "FORT_DERMGDIVU: outside domain"
-	 stop
-      end if
 c
 c     :: at physical bndries where an edge value is prescribed,
 c     :: set the value in the outside cell so that a central
