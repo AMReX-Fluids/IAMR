@@ -24,14 +24,10 @@
 #include <RealBox.H>
 #include <Geometry.H>
 
-#ifdef BL_USE_NEW_HFILES
 #include <new>
 using std::setprecision;
 #ifndef WIN32
 using std::set_new_handler;
-#endif
-#else
-#include <new.h>
 #endif
 
 #include <WritePlotFile.H>
@@ -255,14 +251,12 @@ writePlotFile (const char*     name,
 
     aString HeaderFileName = pltfile + "/Header";
 
-#ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-#endif
+
     ofstream HeaderFile;
 
-#ifdef BL_USE_SETBUF
-    HeaderFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
-#endif
+    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+
     int old_prec;
 
     if (ParallelDescriptor::IOProcessor())
@@ -338,11 +332,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "Opening file = " << oFileHeader << '\n';
 
-#ifdef BL_USE_NEW_HFILES
     os.open(oFileHeader.c_str(), ios::out|ios::binary);
-#else
-    os.open(oFileHeader.c_str(), ios::out);
-#endif
 
     if (os.fail())
         Utility::FileOpenFailed(oFileHeader);

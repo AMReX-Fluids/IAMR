@@ -1,25 +1,11 @@
 
 //
-// $Id: ValidTypes.H,v 1.2 2000-10-02 21:08:49 lijewski Exp $
+// $Id: ValidTypes.H,v 1.3 2001-10-17 17:53:33 lijewski Exp $
 //
 #ifndef _ValidType_
 #define _ValidType_
 
-
-
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
-
-//
-// This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
-//
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
-
 
 #include "REAL.H"
 #include "aString.H"
