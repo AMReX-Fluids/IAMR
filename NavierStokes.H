@@ -72,10 +72,10 @@ public:   // ===================== public member functions ===
     virtual void initDataOtherTypes() {return;} ;
 
     // reset time levels for the initial iterations
-    virtual void resetState( REAL time, REAL dt );
+    virtual void resetState(REAL time, REAL dt_old, REAL dt_new);
     
     // set time levels of state data
-    virtual void setTimeLevel(REAL time, REAL dt);
+    virtual void setTimeLevel(REAL time, REAL dt_old, REAL dt_new);
     
     // This function fills a new level n with the best
     // level n and coarser data available (usually during regrid)

@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.15 1997-09-25 00:15:07 vince Exp $
+// $Id: NavierStokes.cpp,v 1.16 1997-09-25 00:32:23 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -799,36 +799,36 @@ void NavierStokes::buildUnfilledRegions()
 // reset the time levels to time (time) and timestep dt.
 // This is done at the start of the timestep in the pressure
 // iteration section
-void NavierStokes::resetState(REAL time, REAL dt)
+void NavierStokes::resetState(REAL time, REAL dt_old, REAL dt_new)
 {
     // reset state and pressure types
     state[State_Type].reset();
-    state[State_Type].setTimeLevel(time,dt);
+    state[State_Type].setTimeLevel(time,dt_old,dt_new);
     initOldPress();
-    state[Press_Type].setTimeLevel(time-dt,dt);
+    state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
 
     // reset state types for divu not equal to zero
     if (have_divu) {
         state[Divu_Type].reset();
-        state[Divu_Type].setTimeLevel(time,dt);
+        state[Divu_Type].setTimeLevel(time,dt_old,dt_new);
         if ( have_dsdt ) {
             state[Dsdt_Type].reset();
-            state[Dsdt_Type].setTimeLevel(time,dt);
+            state[Dsdt_Type].setTimeLevel(time,dt_old,dt_new);
         }
     }
 }
 
 // set the time levels to time (time) and timestep dt
-void NavierStokes::setTimeLevel(REAL time, REAL dt)
+void NavierStokes::setTimeLevel(REAL time, REAL dt_old, REAL dt_new)
 {
-    state[State_Type].setTimeLevel(time,dt);
+    state[State_Type].setTimeLevel(time,dt_old,dt_new);
     if(have_divu) {
-      state[Divu_Type].setTimeLevel(time,dt);
+      state[Divu_Type].setTimeLevel(time,dt_old,dt_new);
       if(have_dsdt) {
-        state[Dsdt_Type].setTimeLevel(time,dt);
+        state[Dsdt_Type].setTimeLevel(time,dt_old,dt_new);
       }
     }
-    state[Press_Type].setTimeLevel(time-dt,dt);
+    state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
 }
 
 
@@ -871,7 +871,7 @@ void NavierStokes::initData()
       REAL cur_time = state[Divu_Type].curTime();
       MultiFab &Divu_new = get_new_data(Divu_Type);
       REAL dt = 1.0;
-      state[State_Type].setTimeLevel(cur_time,dt);
+      state[State_Type].setTimeLevel(cur_time,dt,dt);
       REAL dtin = -1.0; // dummy value denotes initialization
       calc_divu(cur_time, dtin, Divu_new);
       if(have_dsdt) {
@@ -894,9 +894,11 @@ void NavierStokes::init( AmrLevel &old)
     MultiFab &P_old = get_old_data(Press_Type);
 
     // get time information
-    REAL dt = parent->dtLevel(level);
-    REAL cur_time = oldns->state[State_Type].curTime();
-    setTimeLevel(cur_time,dt);
+    REAL dt_new = parent->dtLevel(level);
+    REAL cur_time  = oldns->state[State_Type].curTime();
+    REAL prev_time = oldns->state[State_Type].prevTime();
+    REAL dt_old = cur_time - prev_time;
+    setTimeLevel(cur_time,dt_old,dt_new);
     REAL cur_pres_time = state[Press_Type].curTime();
 
 #if (USEOLDFILLPATCH == 1)
@@ -993,12 +995,10 @@ void NavierStokes::init( AmrLevel &old)
 void NavierStokes::init()
 {
     // get data pointers
-    NavierStokes& old = getLevel(level-1);
     MultiFab &S_new = get_new_data(State_Type);
     MultiFab &P_new = get_new_data(Press_Type);
     MultiFab &P_old = get_old_data(Press_Type);
 
-    
     // get time information
     assert(level > 0);
     const Array<REAL>& dt_amr = parent->dtLevel();
@@ -1010,10 +1010,14 @@ void NavierStokes::init()
     dt_new[level] = dt;
     parent->setDtLevel(dt_new);
 
-    REAL cur_time = old.state[State_Type].curTime();
-    setTimeLevel(cur_time,dt);
-    REAL cur_pres_time = state[Press_Type].curTime();
+    NavierStokes& old = getLevel(level-1);
+    REAL cur_time  = old.state[State_Type].curTime();
+    REAL prev_time = old.state[State_Type].prevTime();
+    REAL dt_old = (cur_time - prev_time)/(REAL)parent->MaxRefRatio(level-1
 
+    setTimeLevel(cur_time,dt_old,dt);
+
+    REAL cur_pres_time = state[Press_Type].curTime();
     
     // get best coarse state and pressure data
     int i;
@@ -3596,21 +3600,26 @@ void NavierStokes::computeNewDt(int finest_level, int sub_cycle,
 	dt_0 = Min(dt_0,n_factor*dt_min[i]);
     }
 
-    REAL eps = 0.001*dt_0;
+    REAL eps = 0.0001*dt_0;
     REAL cur_time  = state[State_Type].curTime();
     if ( (cur_time + dt_0) > (stop_time - eps) ) dt_0 = stop_time - cur_time;
 
     // adjust the time step to be able to output checkpoints at specific times
+    int a,b;
     REAL check_per = parent->checkPer();
-    int a =  int(cur_time / check_per);
-    int b = int((cur_time + dt_0) / check_per);
-    if (a != b) dt_0 = b * check_per - cur_time;
+    if ( check_per > 0.0 ) {
+        a = (cur_time + eps ) / check_per;
+        b = (cur_time + dt_0) / check_per;
+        if (a != b) dt_0 = b * check_per - cur_time;
+    }
 
     // adjust the time step to be able to output plot files at specific times
     REAL plot_per = parent->plotPer();
-    a =  int(cur_time / plot_per);
-    b = int((cur_time + dt_0) / plot_per);
-    if (a != b) dt_0 = b * plot_per - cur_time;
+    if ( plot_per > 0.0 ) {
+        a = (cur_time + eps ) / plot_per;
+        b = (cur_time + dt_0) / plot_per;
+        if (a != b) dt_0 = b * plot_per - cur_time;
+    }
 
     n_factor = 1;
     for (i = 0; i <= max_level; i++) {
@@ -3703,7 +3712,7 @@ void NavierStokes::post_init_estDT( REAL &dt_init,
     parent->setDtLevel(dt_level);
     parent->setNCycle(n_cycle);
     for (k = 0; k <= finest_level; k++) {
-	getLevel(k).setTimeLevel(strt_time,dt_init);
+	getLevel(k).setTimeLevel(strt_time,dt_init,dt_init);
     }
 }
 
@@ -3991,7 +4000,7 @@ void NavierStokes::post_init_press( REAL &dt_init,
 	      // reset state variables to initial time, do not reset
 	      // pressure variable
 	    NavierStokes& ns_level = getLevel(k);
-            ns_level.resetState( strt_time, dt_save[k] );
+            ns_level.resetState(strt_time, dt_save[k], dt_save[k]);
         }
         NavierStokes::initial_iter = false;
     }
@@ -4002,7 +4011,7 @@ void NavierStokes::post_init_press( REAL &dt_init,
 
       // re-instate timestep
     for (k = 0; k <= finest_level; k++) {
-	getLevel(k).setTimeLevel(strt_time,dt_save[k]);
+	getLevel(k).setTimeLevel(strt_time,dt_save[k],dt_save[k]);
     }
     parent->setDtLevel(dt_save);
     parent->setNCycle(nc_save);
