@@ -14,8 +14,6 @@ AMR_C_HEADERS = \
 	LevelBld.H      RunStats.H \
  	StateData.H  	StateDescriptor.H 
 #AMR_C_HEADERS += Raster.H
-AMR_C_HEADERS  += Tracer.H
-AMR_C_SOURCES  += Tracer.cpp
 
 AMR_F_SOURCES = INTERP_$(DIM)D.F 	FLUXREG_$(DIM)D.F 	FILCC_$(DIM)D.F 
 AMR_F_HEADERS = INTERP_F.H BC_TYPES.H PROB_AMR_F.H FLUXREG_F.H MAKESLICE_F.H
@@ -31,7 +29,6 @@ CEXE_headers += $(AMR_H_HEADERS)
 FEXE_sources += $(AMR_F_SOURCES)
 FEXE_headers += $(AMR_F_HEADERS)
 
-
 # ------------------------------------------------------- bndrylib sources
 BNDRYLIB_BASE=EXE
 C$(BNDRYLIB_BASE)_sources += FabSet.cpp BndryRegister.cpp \
@@ -42,60 +39,38 @@ C$(BNDRYLIB_BASE)_headers += FabSet.H BndryRegister.H \
 F$(BNDRYLIB_BASE)_headers += COORDSYS_F.H DIMS.H
 F$(BNDRYLIB_BASE)_sources += COORDSYS_$(DIM)D.F
 
-
 # ------------------------------------------------------- boxlib sources
 BOXLIB_BASE=EXE
  
-C$(BOXLIB_BASE)_headers += BoxLib.H BLVERSION.H
-C$(BOXLIB_BASE)_sources += BoxLib.cpp
+C$(BOXLIB_BASE)_sources += BoxLib.cpp Tracer.cpp
+C$(BOXLIB_BASE)_headers += BoxLib.H BLVERSION.H Tracer.H
 
 C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp aString.cpp BArena.cpp
 C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H Assert.H aString.H
 
-C$(BOXLIB_BASE)_headers += ArrayLim.H REAL.H Boolean.H
-C$(BOXLIB_BASE)_headers += CONSTANTS.H SPACE.H SPACE_F.H
-C$(BOXLIB_BASE)_headers += BArena.H Arena.H UseCount.H
+C$(BOXLIB_BASE)_headers += ArrayLim.H REAL.H Boolean.H SPACE.H SPACE_F.H
+C$(BOXLIB_BASE)_headers += CONSTANTS.H BArena.H Arena.H UseCount.H
 
 C$(BOXLIB_BASE)_sources += DistributionMapping.cpp ParallelDescriptor.cpp
 C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
 
-T_sources += SimpleDPtr.cpp AliasedDPtr.cpp DPtr.cpp
-T_headers += SimpleDPtr.H AliasedDPtr.H DPtr.H
-
-T_sources += Array.cpp PArray.cpp List.cpp Pointers.cpp
-T_headers += Array.H PArray.H List.H Pointers.H
-
-T_sources += Tuple.cpp
-T_headers += Tuple.H
-
-T_headers += Misc.H
-
-C${BOXLIB_BASE}_headers += FabConv.H FPC.H
-C${BOXLIB_BASE}_sources += FabConv.cpp FPC.cpp
+C${BOXLIB_BASE}_sources += FabConv.cpp FPC.cpp BoxAssoc.cpp FArrayBox.cpp
+C${BOXLIB_BASE}_headers += FabConv.H FPC.H BoxAssoc.H FArrayBox.H
 
 C$(BOXLIB_BASE)_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp
 C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H
 
-C$(BOXLIB_BASE)_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp
-C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H
+C$(BOXLIB_BASE)_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp MultiFab.cpp
+C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H Looping.H MultiFab.H
 
-C$(BOXLIB_BASE)_sources += BoxAssoc.cpp
-C$(BOXLIB_BASE)_headers += BoxAssoc.H
+T_sources += SimpleDPtr.cpp AliasedDPtr.cpp DPtr.cpp
+T_headers += SimpleDPtr.H AliasedDPtr.H DPtr.H
 
-C$(BOXLIB_BASE)_sources += FArrayBox.cpp
-C$(BOXLIB_BASE)_headers += FArrayBox.H
+T_sources += Array.cpp PArray.cpp List.cpp Pointers.cpp Tuple.cpp
+T_headers += Array.H PArray.H List.H Pointers.H Tuple.H Misc.H
 
-C$(BOXLIB_BASE)_headers += Looping.H
-
-T_sources += BaseFab.cpp ArithFab.cpp OrderedFab.cpp NormedFab.cpp
-T_headers += BaseFab.H ArithFab.H OrderedFab.H NormedFab.H
-
-C$(BOXLIB_BASE)_sources += MultiFab.cpp
-C$(BOXLIB_BASE)_headers += MultiFab.H
-
-T_sources += FabArray.cpp
-T_headers += FabArray.H
-
+T_sources += BaseFab.cpp ArithFab.cpp OrderedFab.cpp NormedFab.cpp FabArray.cpp
+T_headers += BaseFab.H ArithFab.H OrderedFab.H NormedFab.H FabArray.H
 
 ifeq	($(USE_WINDOWS),TRUE)
 # ------------------------------------------------------- graphlib sources
@@ -104,8 +79,6 @@ C$(GRAPHTOOL_BASE)_sources += GraphTool.cpp IFrame.cpp PSfile.cpp XWindow.cpp
 C$(GRAPHTOOL_BASE)_headers += GraphTool.H IFrame.H PSfile.H XWindow.H
 C$(GRAPHTOOL_BASE)_headers += XWinExterns.H
 endif
-
-
 
 # ------------------------------------------------------- multigrid sources
 MGLIB_BASE=EXE
