@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.15 2001-09-10 19:55:04 almgren Exp $
+c $Id: GODUNOV_3D.F,v 1.16 2001-09-14 23:37:45 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1985,6 +1985,10 @@ c                      Recalculate the slope at jmax-1 using the revised slzscr(
               end do
            end if
         end if
+c
+c ... end, if slope_order .eq. 4
+c
+      end if
 
       end
 
