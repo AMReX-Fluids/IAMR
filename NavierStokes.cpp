@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.88 1998-09-15 17:25:57 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.89 1998-09-16 18:06:53 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2288,48 +2288,58 @@ NavierStokes::writePlotFile (const aString& dir,
 {
     int i, n;
 
+    bool PlotDivu = have_divu && parent->isPlotVar(desc_lst[Divu_Type].name(0));
+    bool PlotDsdt = have_dsdt && parent->isPlotVar(desc_lst[Dsdt_Type].name(0));
+    //
+    // The list of indices of State to write to plotfile.
+    //
+    vector<int> idx_map;
+
+    for (i = 0; i < NUM_STATE; i++)
+        if (parent->isPlotVar(desc_lst[State_Type].name(i)))
+            idx_map.push_back(i);
+
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
         //
         // The first thing we write out is the plotfile type.
         //
         os << thePlotFileType() << '\n';
-        //
-        // Only write out velocity and scalar data.
-        //
-        int n_var = NUM_STATE;
-        int n_data_items = n_var;
 
-        if (have_dsdt)
-            n_data_items += 2;
-        else if (have_divu)
-            n_data_items += 1;
+        int n_data_items = idx_map.size();
+
+        if (PlotDivu) n_data_items++;
+        if (PlotDsdt) n_data_items++;
+
+        if (n_data_items == 0)
+            BoxLib::Error("Must specify at least one valid data item to plot");
 
         os << n_data_items << '\n';
 
-        for (n = 0; n < NUM_STATE; n++)
-            os << desc_lst[State_Type].name(n) << '\n';
+        for (n = 0; n < idx_map.size(); n++)
+            os << desc_lst[State_Type].name(idx_map[n]) << '\n';
 
-        if (have_divu)
-        {
-            os << desc_lst[Divu_Type].name(0) << '\n';
-            if (have_dsdt)
-                os << desc_lst[Dsdt_Type].name(0) << '\n';
-        }
+        if (PlotDivu) os << desc_lst[Divu_Type].name(0) << '\n';
+        if (PlotDsdt) os << desc_lst[Dsdt_Type].name(0) << '\n';
 
         os << BL_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
         int f_lev = parent->finestLevel();
         os << f_lev << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++) os << Geometry::ProbLo(i) << ' ';
+        for (i = 0; i < BL_SPACEDIM; i++)
+            os << Geometry::ProbLo(i) << ' ';
         os << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++) os << Geometry::ProbHi(i) << ' ';
+        for (i = 0; i < BL_SPACEDIM; i++)
+            os << Geometry::ProbHi(i) << ' ';
         os << '\n';
-        for (i = 0; i < f_lev; i++) os << parent->refRatio(i)[0] << ' ';
+        for (i = 0; i < f_lev; i++)
+            os << parent->refRatio(i)[0] << ' ';
         os << '\n';
-        for (i = 0; i <= f_lev; i++) os << parent->Geom(i).Domain() << ' ';
+        for (i = 0; i <= f_lev; i++)
+            os << parent->Geom(i).Domain() << ' ';
         os << '\n';
-        for (i = 0; i <= f_lev; i++) os << parent->levelSteps(i) << ' ';
+        for (i = 0; i <= f_lev; i++)
+            os << parent->levelSteps(i) << ' ';
         os << '\n';
         for (i = 0; i <= f_lev; i++)
         {
@@ -2343,32 +2353,15 @@ NavierStokes::writePlotFile (const aString& dir,
     //
     // Now write state data.
     //
-    int ngrids = grids.length();
-    Real cur_time = state[State_Type].curTime();
+    Real cur_time      = state[State_Type].curTime();
     MultiFab& cell_dat = state[State_Type].newData();
     MultiFab* divu_dat = 0;
     MultiFab* dsdt_dat = 0;
 
-    if (have_divu)
-    {
-        divu_dat = &(state[Divu_Type].newData());
-        if (have_dsdt)
-            dsdt_dat = &(state[Dsdt_Type].newData());
-    }
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-        os << level << ' ' << ngrids << ' ' << cur_time << '\n';
-        os << parent->levelSteps(level) << '\n';
-
-        for (i = 0; i < cell_dat.boxArray().length(); ++i)
-        {
-            for (n = 0; n < BL_SPACEDIM; n++)
-                os << grid_loc[i].lo(n) << ' ' << grid_loc[i].hi(n) << '\n';
-        }
-    }
+    if (PlotDivu) divu_dat = &state[Divu_Type].newData();
+    if (PlotDsdt) dsdt_dat = &state[Dsdt_Type].newData();
     //
-    // There may be up to three MultiFab written out at each level.
+    // There may be up to three MultiFabs written out at each level.
     //
     static const aString BaseName[] =
     {
@@ -2401,27 +2394,36 @@ NavierStokes::writePlotFile (const aString& dir,
 
     if (ParallelDescriptor::IOProcessor())
     {
+        os << level << ' ' << grids.length() << ' ' << cur_time << '\n';
+        os << parent->levelSteps(level) << '\n';
+
+        for (i = 0; i < cell_dat.boxArray().length(); ++i)
+        {
+            for (n = 0; n < BL_SPACEDIM; n++)
+                os << grid_loc[i].lo(n) << ' ' << grid_loc[i].hi(n) << '\n';
+        }
         //
         // The full relative pathname of the MultiFabs at this level.
         // The name is relative to the Header file containing this name.
         // It's the name that gets written into the Header.
         //
-        aString PathNameInHeader = Level;
-        PathNameInHeader += BaseName[0];
-        os << PathNameInHeader << '\n';
-
-        if (have_divu)
+        if (idx_map.size() > 0)
         {
-            PathNameInHeader = Level;
+            aString PathNameInHeader = Level;
+            PathNameInHeader += BaseName[0];
+            os << PathNameInHeader << '\n';
+        }
+        if (PlotDivu)
+        {
+            aString PathNameInHeader = Level;
             PathNameInHeader += BaseName[1];
             os << PathNameInHeader << '\n';
-
-            if (have_dsdt)
-            {
-                PathNameInHeader = Level;
-                PathNameInHeader += BaseName[2];
-                os << PathNameInHeader << '\n';
-            }
+        }
+        if (PlotDsdt)
+        {
+            aString PathNameInHeader = Level;
+            PathNameInHeader += BaseName[2];
+            os << PathNameInHeader << '\n';
         }
     }
     //
@@ -2429,20 +2431,43 @@ NavierStokes::writePlotFile (const aString& dir,
     //
     aString TheFullPath = FullPath;
     TheFullPath += BaseName[0];
-    RunStats::addBytes(VisMF::Write(cell_dat,TheFullPath,how,true));
 
-    if (have_divu)
+    if (idx_map.size() == NUM_STATE)
+    {
+        RunStats::addBytes(VisMF::Write(cell_dat, TheFullPath, how, true));
+    }
+    else if (idx_map.size() > 0)
+    {
+        //
+        // Make MultiFab containing copy of selected components.
+        //
+        // Note that we don't copy the ghost cells.
+        //
+        MultiFab mf(cell_dat.boxArray(), idx_map.size(), 0);
+
+        for (MultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+        {
+            DependentMultiFabIterator dmfi(mfi,cell_dat);
+
+            for (i = 0; i < idx_map.size(); i++)
+            {
+                mfi().copy(dmfi(), idx_map[i], i, 1);
+            }
+        }
+        RunStats::addBytes(VisMF::Write(mf, TheFullPath, how));
+    }
+
+    if (PlotDivu)
     {
         TheFullPath = FullPath;
         TheFullPath += BaseName[1];
-        RunStats::addBytes(VisMF::Write(*divu_dat,TheFullPath,how,true));
-
-        if (have_dsdt)
-        {
-            TheFullPath = FullPath;
-            TheFullPath += BaseName[2];
-            RunStats::addBytes(VisMF::Write(*dsdt_dat,TheFullPath,how,true));
-        }
+        RunStats::addBytes(VisMF::Write(*divu_dat, TheFullPath, how, true));
+    }
+    if (PlotDsdt)
+    {
+        TheFullPath = FullPath;
+        TheFullPath += BaseName[2];
+        RunStats::addBytes(VisMF::Write(*dsdt_dat, TheFullPath, how, true));
     }
 }
 
