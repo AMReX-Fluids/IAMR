@@ -23,13 +23,18 @@ LBASE =
 HERE = .
 
 PBOXLIB_HOME = ..
+
 include ../mk/Make.defs
 
 INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib ../bndrylib ../mglib ../hgproj
 
+MPI_HOME =
+
 ifeq ($(USE_MPI), TRUE)
 DEFINES += -DBL_USE_MPI
+ifeq ($(MACHINE), OSF1)
 MPI_HOME = /usr/local/mpi
+endif
 endif
 
 ifeq ($(USE_WINDOWS),TRUE)
@@ -50,8 +55,10 @@ DEFINES += -DBL_ARRAYVIEW_TAGBOX
 endif
 
 ifeq ($(USE_MPI), TRUE)
+ifeq ($(MACHINE), OSF1)
 INCLUDE_LOCATIONS += $(MPI_HOME)/include
 LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
+endif
 LIBRARIES += -lmpi
 endif
 
