@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.51 1998-05-27 15:14:48 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.52 1998-05-27 20:23:52 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3355,26 +3355,29 @@ int NavierStokes::okToContinue()
 //=================================================================
 
 // -------------------------------------------------------------
-// integration cycle on fine level grids is complete 
-// post_timestep is responsible for syncing levels together
+// Integration cycle on fine level grids is complete 
+// post_timestep is responsible for syncing levels together.
 //
 // The registers used for level syncing are initialized in the
 // coarse level advance and incremented in the fine level advance.
 // These quantities are described in comments above advance_setup.
 // -------------------------------------------------------------
-void NavierStokes::post_timestep()
+void
+NavierStokes::post_timestep ()
 {
     int finest_level = parent->finestLevel();
-    
-    // reflux 
-    if (do_reflux && (level < finest_level)) {
+    //
+    // Reflux .
+    //
+    if (do_reflux && (level < finest_level))
         reflux();
-    }
-
-    // average down
-    if (level < finest_level) {
+    //
+    // Average down.
+    //
+    if (level < finest_level)
+    {
         avgDown();
-        Real dt = parent->dtLevel(level);
+        Real dt        = parent->dtLevel(level);
         Real prev_time = state[State_Type].prevTime();
         Real half_time = prev_time + 0.5*dt;
 
@@ -3382,51 +3385,54 @@ void NavierStokes::post_timestep()
         int destComp = 0;
         int srcComp  = Density;
         int nComp    = 1;
-        for(FillPatchIterator rho_halffpi(*this, *rho_half, boxGrow, destComp,
-                                          half_time, State_Type, srcComp, nComp
-                                          /* , mapper = NULL */);
-            rho_halffpi.isValid();
-            ++rho_halffpi)
+        for (FillPatchIterator rho_halffpi(*this,*rho_half,boxGrow,destComp,
+                                           half_time,State_Type,srcComp,nComp);
+             rho_halffpi.isValid();
+             ++rho_halffpi)
         {
-          DependentMultiFabIterator rho_halfdest(rho_halffpi, (*rho_half));
-
-          // copy from fillpatched fab to rho_half
-          rho_halfdest().copy(rho_halffpi());
+            DependentMultiFabIterator rho_halfdest(rho_halffpi, *rho_half);
+            //
+            // Copy from fillpatched fab to rho_half.
+            //
+            rho_halfdest().copy(rho_halffpi());
         }
     }
-
-    // Mac Sync Correction
-    if (do_mac_proj && (level < finest_level)) {
+    //
+    // Mac Sync Correction.
+    //
+    if (do_mac_proj && (level < finest_level))
+    {
         RunStats mac_sync_stats("mac_sync", level);
         mac_sync_stats.start();
         mac_sync();
         mac_sync_stats.end();
     }
-    
-    // level Sync Correction
-    if (do_sync_proj && (level < finest_level)) {
+    //
+    // Level Sync Correction.
+    //
+    if (do_sync_proj && (level < finest_level))
+    {
         level_sync();
     }
-
-    // Test for conservation
-    if (level == 0) {
-        int nstep = parent->levelSteps(0);
-        if ((sum_interval > 0) && (nstep%sum_interval == 0) ) {
-            sum_integrated_quantities();
-        }
+    //
+    // Test for conservation.
+    //
+    if (level == 0 &&
+        (sum_interval > 0) && (parent->levelSteps(0)%sum_interval == 0))
+    {
+        sum_integrated_quantities();
     }
-    
 }
 
-
-
-// build any additional data structures after restart
+//
+// Build any additional data structures after restart.
+//
 void NavierStokes::post_restart()
-{
-}
+{}
 
-
-// build any additional data structures after regrid
+//
+// Build any additional data structures after regrid.
+//
 void NavierStokes::post_regrid(int lbase, int new_finest)
 {
     AmrLevel & amr_level = getLevel(level);
@@ -4151,57 +4157,60 @@ void NavierStokes::level_sync ()
     delete[] sync_bc;
 }
 
-
-// -------------------------------------------------------------
+//
 // The Mac Sync correction function
-// -------------------------------------------------------------
-void NavierStokes::mac_sync()
+//
+
+void
+NavierStokes::mac_sync ()
 {
-    int i,lev,sigma;
-    int finest_level = parent->finestLevel();
-    int ngrids       = grids.length();
-    int numscal      = NUM_STATE - BL_SPACEDIM;
+    const int numscal = NUM_STATE - BL_SPACEDIM;
     
-    Real prev_time = state[State_Type].prevTime();
+    Real prev_time      = state[State_Type].prevTime();
     Real prev_pres_time = state[Press_Type].prevTime();
-    Real dt = parent->dtLevel(level);
-    
-    // compute the u_mac for the correction
+    Real dt             = parent->dtLevel(level);
+    //
+    // Compute the u_mac for the correction.
+    //
     mac_projector->mac_sync_solve(level,u_mac,dt,rho_half,fine_ratio);
-    
-    // update coarse grid state by adding correction from mac_sync solve
-    // the correction is the advective tendency of the new velocities
-    if (do_reflux) {
+    //
+    // Update coarse grid state by adding correction from mac_sync solve
+    // the correction is the advective tendency of the new velocities.
+    //
+    if (do_reflux)
+    {
         MultiFab& S_new = get_new_data(State_Type);
-        mac_projector->mac_sync_compute(level,u_mac,Vsync,Ssync,
-                                        rho_half,
-                                        (level > 0) ? &getAdvFluxReg(level) : 0,
+        mac_projector->mac_sync_compute(level,u_mac,Vsync,Ssync, rho_half,
+                                        level > 0 ? &getAdvFluxReg(level) : 0,
                                         is_conservative, prev_time,
                                         prev_pres_time,dt,
                                         NUM_STATE,be_cn_theta);
-// the following used to be done in mac_sync_compute
+        //
+        // The following used to be done in mac_sync_compute.
+        //
         Ssync->mult(dt,Ssync->nGrow());
-
-        // compute viscous sync
-        if (is_diffusive[Xvel]) {
-          diffusion->diffuse_Vsync(Vsync, dt, be_cn_theta, rho_half, 1);
+        //
+        // Compute viscous sync.
+        //
+        if (is_diffusive[Xvel])
+        {
+            diffusion->diffuse_Vsync(Vsync, dt, be_cn_theta, rho_half, 1);
         }
-        for (sigma  = 0; sigma < numscal; sigma++) {
-            int rho_flag = 0;
+        for (int sigma  = 0; sigma < numscal; sigma++)
+        {
             int do_viscsyncflux = 1;
-            if (!is_conservative[BL_SPACEDIM+sigma]) {
-              rho_flag=1;
-            } else {
-              rho_flag=2;
-            }
+            int rho_flag        = !is_conservative[BL_SPACEDIM+sigma] ? 1 : 2;
             if (is_diffusive[BL_SPACEDIM+sigma])
                 diffusion->diffuse_Ssync(Ssync, sigma, dt, be_cn_theta,
                                          rho_half, rho_flag, do_viscsyncflux);
         }
-
-        // add the sync correction to the state
-        for (sigma  = 0; sigma < numscal; sigma++) {
-            for(MultiFabIterator S_newmfi(S_new); S_newmfi.isValid(); ++S_newmfi) {
+        //
+        // Add the sync correction to the state.
+        //
+        for (int sigma  = 0; sigma < numscal; sigma++)
+        {
+            for (MultiFabIterator S_newmfi(S_new); S_newmfi.isValid(); ++S_newmfi)
+            {
                 DependentMultiFabIterator Ssyncmfi(S_newmfi, *Ssync);
                 assert(grids[S_newmfi.index()] == S_newmfi.validbox());
                 const Box& grd = S_newmfi.validbox();
@@ -4209,38 +4218,38 @@ void NavierStokes::mac_sync()
                 S_newmfi().plus(s_sync,grd,sigma,BL_SPACEDIM+sigma,1);
             }
         }
-    
-        // get boundary conditions
-        int** sync_bc =  new int*[grids.length()];
-
+        //
+        // Get boundary conditions.
+        //
+        Array< int* > sync_bc(grids.length());
         Array< Array<int> > sync_bc_array(grids.length());
 
-        for ( i = 0; i < ngrids; i++) {
+        for (int i = 0; i < grids.length(); i++)
+        {
             sync_bc_array[i] = getBCArray(State_Type,i,Density,numscal);
-            sync_bc[i] = sync_bc_array[i].dataPtr();
+            sync_bc[i]       = sync_bc_array[i].dataPtr();
         }
-
-        // interpolate the sync correction to the finer levels
+        //
+        // Interpolate the sync correction to the finer levels.
+        //
         IntVect ratio = IntVect::TheUnitVector();
-        Real mult = 1.0;
-        for ( lev = level+1; lev <= finest_level; lev++) {
+        const Real mult = 1.0;
+        for (int lev = level+1; lev <= parent->finestLevel(); lev++)
+        {
             ratio                 *= parent->refRatio(lev-1);
             NavierStokes& fine_lev = getLevel(lev);
-            MultiFab &S_new        = fine_lev.get_new_data(State_Type);
-            SyncInterp( *Ssync, level, S_new, lev, ratio,
-                        0, BL_SPACEDIM, numscal, 1 , mult, sync_bc);
+            MultiFab& S_new        = fine_lev.get_new_data(State_Type);
+            SyncInterp(*Ssync, level, S_new, lev, ratio,
+                       0, BL_SPACEDIM, numscal, 1 , mult, sync_bc.dataPtr());
         }
-
-        // garbage collection
-        delete [] sync_bc;
     }
 }
 
-
-// -------------------------------------------------------------
+//
 // The reflux function
-// -------------------------------------------------------------
-void NavierStokes::reflux()
+//
+
+void NavierStokes::reflux ()
 {
     if (level == parent->finestLevel()) return;
     assert(do_reflux);
