@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_3D.F,v 1.6 1998-11-04 23:33:12 lijewski Exp $
+c $Id: DIFFUSION_3D.F,v 1.7 1999-02-24 01:18:16 propp Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -432,8 +432,8 @@ c
                sfront = half*(divu(i,j,k)+divu(i,j,k+1))
                sback  = half*(divu(i,j,k-1)+divu(i,j,k))
 
-               divmusi(i,j,k,3) = (betay(i,j,k+1)*sfront-
-     &              betay(i,j,k)*sback)/dx(3)
+               divmusi(i,j,k,3) = (betaz(i,j,k+1)*sfront-
+     &              betaz(i,j,k)*sback)/dx(3)
 
             end do
          end do
