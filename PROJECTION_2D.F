@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.36 2002-08-29 22:14:52 car Exp $
+c $Id: PROJECTION_2D.F,v 1.37 2002-10-19 18:33:47 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -545,8 +545,8 @@ c     FOR FIVE-POINT STENCIL
 c      extra term added to DGphi for cylindrical coordinates
        do j = lo(2), hi(2)
          do i = lo(1), hi(1)
-            rpinv = half / (dfloat(i)+half)
-            rminv = half / (dfloat(i)-half)
+            rpinv = half / (dble(i)+half)
+            rminv = half / (dble(i)-half)
 
             pext = ((sigma(i-1,j-1) * (phi(i,j-1) - phi(i,j)) +
      $               sigma(i-1,j  ) * (phi(i,j+1) - phi(i,j))) * rminv -
@@ -562,8 +562,8 @@ c        here we subtract it since we want D G^perp phi
        fac = one / (twelve * dx(2)**2)
        do j = lo(2), hi(2)
        do i = lo(1), hi(1)
-           rminv = fac / (dfloat(i)-half)
-           rpinv = fac / (dfloat(i)+half)
+           rminv = fac / (dble(i)-half)
+           rpinv = fac / (dble(i)+half)
    
 	   gpy_ur = half * sigma(i  ,j  ) * ( phi(i+1,j+1) + phi(i,j+1) 
      $                                       -phi(i+1,j  ) - phi(i,j  ))

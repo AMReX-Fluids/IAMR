@@ -1020,7 +1020,7 @@ c     Write the solution into the arg
            if (rNormed .and.  (j .eq. n)) then
               singular = .true.
            else
-              pause 'tridag failed'
+              STOP 'tridag failed'
            end if
         end if
         if (singular) then
@@ -1052,7 +1052,7 @@ c     Write the solution into the arg
       do 11 j=2,n
         gam(j)=c(j-1)/bet
         bet=b(j)-a(j)*gam(j)
-        if(bet .eq. 0.0D0)pause 'tridag failed'
+        if(bet .eq. 0.0D0) STOP 'tridag failed'
         u(j)=(r(j)-a(j)*u(j-1))/bet
 11    continue
       do 12 j=n-1,1,-1
