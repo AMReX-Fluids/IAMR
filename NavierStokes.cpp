@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.219 2003-02-18 21:35:03 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.220 2003-02-18 22:01:52 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -101,7 +101,6 @@ int  NavierStokes::do_MLsync_proj             = 1;
 int  NavierStokes::do_reflux                  = 1;
 int  NavierStokes::modify_reflux_normal_vel   = 0;
 int  NavierStokes::do_mac_proj                = 1;
-bool NavierStokes::do_fillPatchUMAC           = false;
 int  NavierStokes::do_init_vort_proj          = 0;
 int  NavierStokes::do_init_proj               = 1;
 int  NavierStokes::do_refine_outflow          = 0;
@@ -305,7 +304,6 @@ NavierStokes::read_params ()
     pp.query("do_init_vort_proj",        do_init_vort_proj);
     pp.query("do_init_proj",             do_init_proj     );
     pp.query("do_mac_proj",              do_mac_proj      );
-    pp.query("do_fillPatchUMAC",         do_fillPatchUMAC );
     pp.query("do_divu_sync",             do_divu_sync     );
 
     //
@@ -1358,9 +1356,7 @@ NavierStokes::advance (Real time,
     //
     if (do_mac_proj) {
      mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu);
-     if (do_fillPatchUMAC) {
-       create_umac_grown();
-     }
+     create_umac_grown();
     }
 
     delete divu;
