@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.82 1998-07-14 21:36:19 marc Exp $
+// $Id: NavierStokes.cpp,v 1.83 1998-07-15 22:41:13 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2137,6 +2137,7 @@ NavierStokes::errorEst (TagBoxArray& tags,
 
         for (MultiFabIterator mfi(*mf); mfi.isValid(); ++mfi)
         {
+            FArrayBox& fab    = mfi();
             Array<int>  itags = tags[mfi.index()].tags();
             int*        tptr  = itags.dataPtr();
             const int*  tlo   = tags[mfi.index()].box().loVect();
