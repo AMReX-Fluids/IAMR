@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.17 2001-08-09 22:42:00 marc Exp $
+// $Id: MacOutFlowBC.cpp,v 1.18 2002-09-10 18:16:58 car Exp $
 //
 #include <winstd.H>
 
@@ -226,7 +226,7 @@ MacOutFlowBC::computeBC (FArrayBox*         velFab,
     else if (solver == BC_BACK)
     {
         solveBackSubstitution(phiFab,divuExt,uExt,rhoExt,rcen,r_lo,r_hi,
-                              isPeriodic,dxFiltered,faceBox,outFace);
+                              isPeriodicFiltered,dxFiltered,faceBox,outFace);
 #endif
     }
     else

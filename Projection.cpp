@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.141 2002-08-29 22:16:33 car Exp $
+// $Id: Projection.cpp,v 1.142 2002-09-10 18:16:58 car Exp $
 //
 #include <winstd.H>
 
@@ -538,7 +538,7 @@ Projection::level_project (int             level,
         if (is_rz == 1)
             radMult(level,*divusource,0);
         const int nghost = 0;
-        divusource->mult(-1.0,0,1,nghost);
+        divusource->mult(-1.0,0,1,nghost); // FIXME: this doesn't touch the ghost cells?
 
         PArray<MultiFab> rhs_real(level+1);
         rhs_real.set(level, divusource);
