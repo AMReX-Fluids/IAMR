@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.90 1999-06-08 20:50:10 sstanley Exp $
+// $Id: Projection.cpp,v 1.91 1999-06-16 22:02:38 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -687,7 +687,7 @@ Projection::filterP (int             level,
     const BoxArray& P_grids  = P_old.boxArray();
     const int*      phys_lo  = phys_bc->lo();
     const int*      phys_hi  = phys_bc->hi();
-    MultiFab*       rhs_cc   = new MultiFab(P_grids,1,1,Fab_allocate);
+    MultiFab*       rhs_nd   = new MultiFab(P_grids,1,0,Fab_allocate);
     MultiFab*       temp_phi = new MultiFab(P_grids,1,1,Fab_allocate);
     MultiFab*       temp_rho = new MultiFab(grids,1,1,Fab_allocate);
     MultiFab*       temp_vel = new MultiFab(grids,BL_SPACEDIM,1,Fab_allocate);
@@ -698,7 +698,7 @@ Projection::filterP (int             level,
     
     temp_phi->setVal(0);
     temp_rho->setVal(0);
-    rhs_cc->setVal(0);
+    rhs_nd->setVal(0);
     //
     // Scale the projection variables.
     //
@@ -733,14 +733,14 @@ Projection::filterP (int             level,
         FArrayBox& pfab = (*temp_phi)[k];
         const int* p_lo = pfab.loVect();
         const int* p_hi = pfab.hiVect();
-        const int* r_lo = (*rhs_cc)[k].loVect();
-        const int* r_hi = (*rhs_cc)[k].hiVect();
+        const int* r_lo = (*rhs_nd)[k].loVect();
+        const int* r_hi = (*rhs_nd)[k].hiVect();
         const int* n_lo = P_grids[k].loVect();
         const int* n_hi = P_grids[k].hiVect();
 
         FORT_FILTRHS(pfab.dataPtr(),ARLIM(p_lo),ARLIM(p_hi),
                      sfab.dataPtr(),ARLIM(s_lo),ARLIM(s_hi),
-                     (*rhs_cc)[k].dataPtr(),ARLIM(r_lo),ARLIM(r_hi),
+                     (*rhs_nd)[k].dataPtr(),ARLIM(r_lo),ARLIM(r_hi),
                      n_lo,n_hi,dx,&mult,&rzflag);
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -761,16 +761,16 @@ Projection::filterP (int             level,
                 if (blo.ok())
                 {
                     if (phys_lo[dir] == Outflow) 
-                        (*rhs_cc)[k].setVal(0,blo,0,1);
+                        (*rhs_nd)[k].setVal(0,blo,0,1);
                     else
-                        (*rhs_cc)[k].mult(2,blo,0,1);
+                        (*rhs_nd)[k].mult(2,blo,0,1);
                 }
                 if (bhi.ok())
                 {
                     if (phys_hi[dir] == Outflow) 
-                        (*rhs_cc)[k].setVal(0,bhi,0,1);
+                        (*rhs_nd)[k].setVal(0,bhi,0,1);
                     else
-                        (*rhs_cc)[k].mult(2,bhi,0,1);
+                        (*rhs_nd)[k].mult(2,bhi,0,1);
                 }
             } 
         }
@@ -778,20 +778,16 @@ Projection::filterP (int             level,
 
     if (have_divu)
     {
-        NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
-
-        BL_ASSERT(!(ns == 0));
-
-        MultiFab* divuold = ns->getDivCond(1,time);
+        const int nghost = 0;
+        MultiFab* divuold = new MultiFab(P_grids,1,nghost);
+        put_divu_in_node_rhs(*divuold,level,nghost,time,rzflag);
 
         for (MultiFabIterator mfi(*divuold); mfi.isValid(); ++mfi)
         {
             mfi().mult(1.0/dt,0,1);
         }
 
-        const int nghost = 1;
-        radMult(level,*divuold,0);
-        rhs_cc->plus(*divuold,0,1,nghost);
+        rhs_nd->plus(*divuold,0,1,nghost);
     }
 
     temp_phi->setVal(0);
@@ -814,7 +810,7 @@ Projection::filterP (int             level,
     }
     p_real.set(level, temp_phi);
     s_real.set(level, temp_rho);
-    rhs_real.set(level, rhs_cc);
+    rhs_real.set(level, rhs_nd);
     //
     // Project ...
     //
@@ -838,7 +834,7 @@ Projection::filterP (int             level,
     delete temp_rho;
     delete temp_vel;
     delete divuold;
-    delete rhs_cc;
+    delete rhs_nd;
 }
 
 // 
