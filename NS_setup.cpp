@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.45 2002-06-03 21:37:20 car Exp $
+// $Id: NS_setup.cpp,v 1.46 2002-10-17 20:33:59 marc Exp $
 //
 
 #include <NavierStokes.H>
@@ -173,6 +173,7 @@ set_dsdt_bc(BCRec& bc, const BCRec& phys_bc)
     }
 }
 
+typedef StateDescriptor::BndryFunc BndryFunc;
 
 void
 NavierStokes::variableSetUp ()
@@ -203,26 +204,26 @@ NavierStokes::variableSetUp ()
                            StateDescriptor::Point,1,NUM_STATE,
                            &cell_cons_interp);
     set_x_vel_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,FORT_XVELFILL);
+    desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,BndryFunc(FORT_XVELFILL));
     set_y_vel_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Yvel,"y_velocity",bc,FORT_YVELFILL);
+    desc_lst.setComponent(State_Type,Yvel,"y_velocity",bc,BndryFunc(FORT_YVELFILL));
 #if (BL_SPACEDIM == 3)
     set_z_vel_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Zvel,"z_velocity",bc,FORT_ZVELFILL);
+    desc_lst.setComponent(State_Type,Zvel,"z_velocity",bc,BndryFunc(FORT_ZVELFILL));
 #endif
     //
     // **************  DEFINE SCALAR VARIABLES  ********************
     //
     set_scalar_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Density,"density",bc,FORT_DENFILL);
-    desc_lst.setComponent(State_Type,Trac,"tracer",bc,FORT_ADVFILL);
+    desc_lst.setComponent(State_Type,Density,"density",bc,BndryFunc(FORT_DENFILL));
+    desc_lst.setComponent(State_Type,Trac,"tracer",bc,BndryFunc(FORT_ADVFILL));
     //
     // **************  DEFINE TEMPERATURE  ********************
     //
     if (do_temp)
     {
         set_temp_bc(bc,phys_bc);
-        desc_lst.setComponent(State_Type,Temp,"temp",bc,FORT_TEMPFILL);
+        desc_lst.setComponent(State_Type,Temp,"temp",bc,BndryFunc(FORT_TEMPFILL));
     }
 
     is_diffusive.resize(NUM_STATE);
@@ -258,14 +259,14 @@ NavierStokes::variableSetUp ()
                            &node_bilinear_interp);
 
     set_pressure_bc(bc,phys_bc);
-    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,FORT_PRESFILL);
+    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,BndryFunc(FORT_PRESFILL));
 #else
     desc_lst.addDescriptor(Press_Type,IndexType::TheNodeType(),
                            StateDescriptor::Point,1,1,
                            &node_bilinear_interp,true);
 
     set_pressure_bc(bc,phys_bc);
-    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,FORT_PRESFILL);
+    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,BndryFunc(FORT_PRESFILL));
     //
     // ---- time derivative of pressure
     //
@@ -274,7 +275,7 @@ NavierStokes::variableSetUp ()
                            StateDescriptor::Interval,1,1,
                            &node_bilinear_interp);
     set_pressure_bc(bc,phys_bc);
-    desc_lst.setComponent(Dpdt_Type,Dpdt,"dpdt",bc,FORT_PRESFILL);
+    desc_lst.setComponent(Dpdt_Type,Dpdt,"dpdt",bc,BndryFunc(FORT_PRESFILL));
 #endif
 
     if (do_temp)
@@ -286,7 +287,7 @@ NavierStokes::variableSetUp ()
                                StateDescriptor::Point,nGrowDivu,1,
 			       &cell_cons_interp);
 	set_divu_bc(bc,phys_bc);
-	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,FORT_DIVUFILL);
+	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,BndryFunc(FORT_DIVUFILL));
 	
 	// stick Dsdt_Type on the end of the descriptor list
 	Dsdt_Type = desc_lst.size();
@@ -295,7 +296,7 @@ NavierStokes::variableSetUp ()
                                StateDescriptor::Point,nGrowDsdt,1,
 			       &cell_cons_interp);
 	set_dsdt_bc(bc,phys_bc);
-	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,FORT_DSDTFILL);
+	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,BndryFunc(FORT_DSDTFILL));
     }
     //
     // **************  DEFINE DERIVED QUANTITIES ********************
