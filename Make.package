@@ -166,7 +166,12 @@ endif
 CEXE_headers += 
 CEXE_sources += NS_setup.cpp NSBld.cpp
 FEXE_headers += probdata.H PROB_F.H
+ifeq ($(DIM),2)
 FEXE_sources += PROB_2D.F 
+endif
+ifeq ($(DIM),3)
+FEXE_sources += PROB_3D.F 
+endif
 
 
 # ---------------------------------------- iamr sources:  _bndry

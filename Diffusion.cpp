@@ -1,4 +1,4 @@
-// $Id: Diffusion.cpp,v 1.5 1997-08-14 17:59:13 vince Exp $
+// $Id: Diffusion.cpp,v 1.6 1997-09-02 20:44:35 vince Exp $
 
 // comment out this line to use diffusion class outside
 // the context of NavierStokes and classes derived from it
@@ -264,6 +264,7 @@ void Diffusion::diffuse_scalar(REAL dt, int sigma, REAL be_cn_theta,
         mf_norm = Max(gr_norm,mf_norm);
       }
     }
+    ParallelDescriptor::ReduceRealMax(mf_norm);
   }
 
   // construct viscous operator with bndry data at time N+1
@@ -498,7 +499,6 @@ void Diffusion::diffuse_velocity_constant_mu(REAL dt, REAL be_cn_theta,
     MultiFab Soln(grids,1,1,Fab_allocate);
 
     REAL mf_norm = 0.;
-    int i;
     int rho_flag = 1;
 
     { // set up Rhs
@@ -547,6 +547,7 @@ void Diffusion::diffuse_velocity_constant_mu(REAL dt, REAL be_cn_theta,
           REAL gr_norm = Rhsmfi().norm(0);
           mf_norm = Max(gr_norm,mf_norm);
         }
+	ParallelDescriptor::ReduceRealMax(mf_norm);
       }
 
 //  Note: we have to add hoop stress explicitly because the hoop
@@ -592,6 +593,7 @@ void Diffusion::diffuse_velocity_constant_mu(REAL dt, REAL be_cn_theta,
 	REAL gr_norm = Rhsmfi().norm(0);
 	mf_norm = Max(gr_norm,mf_norm);
       }
+      ParallelDescriptor::ReduceRealMax(mf_norm);
     }
 
     // compute guess of solution
@@ -730,6 +732,7 @@ void Diffusion::diffuse_velocity_constant_mu(REAL dt, REAL be_cn_theta,
 #endif
 	}
 	if (level > 0) {
+	  int i = U_oldmfi.index();
 	  viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,dt);
 	  viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,dt);
 #if (BL_SPACEDIM == 3)
@@ -753,7 +756,7 @@ void Diffusion::diffuse_tensor_velocity(REAL dt, REAL be_cn_theta,
             "not yet implemented for 3-D" << endl;
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
             " and rerun" << endl;
-    ParallelDescriptor::Abort("Diffusion::diffuse_tensor_velocity);
+    ParallelDescriptor::Abort("Diffusion::diffuse_tensor_velocity");
 #elif !defined(USE_TENSOR)
     cout << "Diffusion::diffuse_tensor_velocity :  " <<
     cout << "USE_TENSOR must be defined at compile time" << endl;
@@ -899,6 +902,7 @@ void Diffusion::diffuse_tensor_velocity(REAL dt, REAL be_cn_theta,
       REAL gr_norm = Rhsmfi().norm(0);
       mf_norm = Max(gr_norm,mf_norm);
     }
+    ParallelDescriptor::ReduceRealMax(mf_norm);
   }
 
 // I am using a ghost cell in Soln even though Bill does not
@@ -1139,6 +1143,7 @@ void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, REAL dt,
       REAL gr_norm = Rhsmfi().norm(0);
       mf_norm = Max(gr_norm,mf_norm);
     }
+    ParallelDescriptor::ReduceRealMax(mf_norm);
 
     //  SET UP COEFFICIENTS FOR VISCOUS SOLVER
     REAL a = 1.0;
@@ -1293,6 +1298,8 @@ void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, REAL dt,
   for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
     r_norm = Max(r_norm,Rhsmfi().norm(0));
   }
+  ParallelDescriptor::ReduceRealMax(r_norm);
+
   cout << "Original max of Vsync " << r_norm << endl;
 
   //  Compute norm of RHS after multiplication by volume and density
@@ -1306,6 +1313,7 @@ void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, REAL dt,
       REAL gr_norm = Rhsmfi().norm(0);
       mf_norm = Max(gr_norm,mf_norm);
     }
+    ParallelDescriptor::ReduceRealMax(mf_norm);
   }
 
   //  SET UP COEFFICIENTS FOR VISCOUS SOLVER
@@ -1336,6 +1344,8 @@ void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, REAL dt,
   for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
     s_norm = Max(s_norm,Solnmfi().norm(0));
   }
+  ParallelDescriptor::ReduceRealMax(s_norm);
+
   cout << "Final max of Vsync " << s_norm << endl;
 
   FARRAYBOX xflux, yflux, zflux;
@@ -1429,10 +1439,11 @@ void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, REAL dt,
   Rhs.copy(*Ssync,sigma,0,1);
 
   REAL r_norm = 0.0;
-  //int i;
   for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
     r_norm = Max(r_norm,Rhsmfi().norm(0));
   }
+  ParallelDescriptor::ReduceRealMax(r_norm);
+
   cout << "Original max of Ssync " << r_norm << endl;
 
   //  Compute norm of RHS
@@ -1446,6 +1457,7 @@ void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, REAL dt,
     REAL gr_norm = Rhsmfi().norm(0);
     mf_norm = Max(gr_norm,mf_norm);
   }
+  ParallelDescriptor::ReduceRealMax(mf_norm);
 
   //  SET UP COEFFICIENTS FOR VISCOUS SOLVER
   REAL a = 1.0;
@@ -1465,6 +1477,7 @@ void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, REAL dt,
       // construct solver and call it
   REAL S_tol = visc_tol;
   REAL S_tol_abs = visc_abs_tol*mf_norm;
+
   if(use_cg_solve) {
     CGSolver cg(*visc_op,use_mg_precond_flag);
     cg.solve(Soln,Rhs,S_tol,S_tol_abs);
@@ -1482,6 +1495,8 @@ void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, REAL dt,
   for(MultiFabIterator Solnmfi(Rhs); Solnmfi.isValid(); ++Solnmfi) {
     s_norm = Max(s_norm,Solnmfi().norm(0));
   }
+  ParallelDescriptor::ReduceRealMax(s_norm);
+
   cout << "Final max of Ssync " << s_norm << endl;
 
   delete visc_op;

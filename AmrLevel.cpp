@@ -467,7 +467,7 @@ bool FillPatchIterator::isValid() {
 
   currentFillPatchedFab.resize(destBox, nComp);
 // should be able to delete this setVal vvvvvvvvvvvvv
-  //currentFillPatchedFab.setVal(1.e30);
+  currentFillPatchedFab.setVal(1.e30);
 
   int currentLevel;
   for(currentLevel = 0; currentLevel <= amrLevel.level; ++currentLevel) {

@@ -1,4 +1,4 @@
-#define _Projection_C_ $Id: Projection.cpp,v 1.6 1997-08-14 17:59:22 vince Exp $
+#define _Projection_C_ $Id: Projection.cpp,v 1.7 1997-09-02 20:44:39 vince Exp $
 #include <stdio.h>
 #include <Misc.H>
 #include <CoordSys.H>
@@ -1231,8 +1231,10 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], REAL dt,
   MultiFab *rhs[MAX_LEV];
   if (have_divu) {
     // set up rhs for manual project
-    //REAL mindsdt = 0.0;
-    //REAL maxdsdt = 0.0;
+#if (BL_SPACEDIM == 3)
+    REAL mindsdt = 0.0;
+    REAL maxdsdt = 0.0;
+#endif
     for (lev = c_lev; lev <= f_lev; lev++) {
       AmrLevel& amr_level   = parent->getLevel(lev);
 
@@ -1269,7 +1271,7 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], REAL dt,
         (*rhslev)[i].copy(dsdt);
 #if (BL_SPACEDIM == 3)
 	mindsdt = Min(mindsdt, dsdt.min());
-	mindsdt = Max(maxdsdt, dsdt.max());
+	maxdsdt = Max(maxdsdt, dsdt.max());
 #endif
       }
       rhslev->mult(-1.0,0,1);
@@ -1513,10 +1515,12 @@ void Projection::put_divu_in_node_rhs(MultiFab& rhs, Amr* parent, int level,
   }
   int bcxlo = phys_bc->lo(0);
   int bcxhi = phys_bc->hi(0);
+#if (BL_SPACEDIM == 2)
   int lowfix = (isrz==1 && bcxlo!=EXTRAP && bcxlo!=HOEXTRAP);
   int hifix = (isrz==1 && bcxhi!=EXTRAP && bcxhi!=HOEXTRAP);
   const REAL* dx = geom.CellSize();
   REAL hx = dx[0];
+#endif
   const BOX& domain = geom.Domain();
   const int* domlo = domain.loVect();
   const int* domhi = domain.hiVect();

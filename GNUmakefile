@@ -1,5 +1,6 @@
 PRECISION = DOUBLE
 DEBUG	= TRUE
+DEBUG	= FALSE
 PROFILE = FALSE
 #DIM	= 2
 #PRVERSION = v9
@@ -36,8 +37,8 @@ BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
 INCLUDE_LOCATIONS += $(BSP_HOME)/include
 LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1
 LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1/$(BSP_DEVICE)
-LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
-#LIBRARIES += -lbspcore_O0 -lbsplevel1_O0
+#LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
+LIBRARIES += -lbspcore_O0 -lbsplevel1_O0
 ###### exception library (for newest bsplib)
 # end bsp parallel locations
 LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
@@ -103,8 +104,8 @@ CXXOPTF +=
 CXXDEBF +=
 
 FFLAGS += 
-FOPTF += -fpe2
-FDEBF += -fpe2
+#FOPTF += -fpe2
+#FDEBF += -fpe2
 
 CFLAGS +=
 COPTF +=

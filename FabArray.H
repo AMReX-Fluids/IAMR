@@ -4,7 +4,7 @@
 #define _FABARRAY_H_
 
 //
-// $Id: FabArray.H,v 1.6 1997-08-14 17:59:15 vince Exp $
+// $Id: FabArray.H,v 1.7 1997-09-02 20:44:36 vince Exp $
 //
 
 #include <Assert.H>
@@ -1087,6 +1087,7 @@ FabArray<T, FAB>::copy (const FabArray<T, FAB>& farray) {
     ParallelDescriptor::Synchronize();  // do we need this here?
 
 
+/*
     if(myproc == 0) {
       for(i = 0; i < length(); i++) {  // loop over fabparray
         cout << "boxIntersections[" << i << "] = "
@@ -1105,6 +1106,7 @@ FabArray<T, FAB>::copy (const FabArray<T, FAB>& farray) {
              << boxNonIntersections[i] << endl;
       }
     }
+*/
 
   }  // end if(same boxarray...)
 }  // end FabArray<T, FAB>::copy (const FabArray<T, FAB>& farray)

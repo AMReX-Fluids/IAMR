@@ -1,84 +1,67 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
-max_step  =   1000     # maximum timestep
-max_step  =   20       # maximum timestep
-max_step  =   1        # maximum timestep
-max_step  =   40       # maximum timestep
-max_step  =   10       # maximum timestep
+max_step  =  10        # maximum timestep
 stop_time =  10000.0   # maximum problem time
 
 # ------------------  INPUTS TO CLASS AMR ---------------------
 # set up for bubble
 geometry.coord_sys      = 0        # 0 => cart, 1 => RZ
-geometry.prob_lo   =  0.0 0.0
-geometry.prob_hi   =  1. 1.
+geometry.prob_lo   =  0.0 0.0 0.0
+geometry.prob_hi   =  1. 1. 1.
 
 # multigrid class
 mg.usecg = 0
-mg.nu_f = 20
-mg.nu_f = 40
+mg.usecg = 1
+mg.nu_f = 10
 mg.nu_1 = 2
 mg.nu_2 = 2
-mg.v = 2
-mg.maxiter = 100
-cg.verbose = 1
+smg.eps = 1.0e-3
+mg.v = 1
+mg.maxiter = 400
+Lp.v = 0
+Lp.harmavg = 1
 
 ns.v = 1
 mac.v = 1
 proj.v = 1
 
-amr.n_cell    =  8 8
-amr.n_cell    =  32 32
-amr.n_cell    =  64 64
-amr.n_cell    =  16 16
+amr.n_cell    =  8 8 8
+amr.n_cell    =  16 16 16
+amr.n_cell    =  32 32 32
 
 amr.max_level =  1            # maximum level number allowed
 amr.max_level =  0            # maximum level number allowed
-amr.max_level =  2            # maximum level number allowed
 amr.ref_ratio       = 2 4 2 2  # refinement ratio
-amr.blocking_factor = 4       # block factor in grid generation
-amr.regrid_int      = 2       # how often to regrid
+amr.blocking_factor = 2       # block factor in grid generation
+amr.regrid_int      = 5       # how often to regrid
 amr.n_error_buf     = 2 2 2 2  # number of buffer cells in error est
 amr.grid_eff        = 0.7     # what constitutes an efficient grid
-amr.check_int       = 10      # number of timesteps between checkpoints
+amr.check_int       = 20      # number of timesteps between checkpoints
 amr.check_file      = chk     # root name of checkpoint file
 amr.plot_file_root  = plt
 amr.plot_int        = 1
 amr.grid_log        = grdlog  # name of grid logging file
-amr.max_grid_size   = 128
-amr.max_grid_size   = 32
+amr.max_grid_size   = 64
 amr.max_grid_size   = 16
-
-# ----------------  BOUNDARY CONDITIONS ---------------------
-
-ns.lo_bc          = 5 5
-ns.hi_bc          = 5 5
-
-ns.lo_bc          = 4 4
-ns.hi_bc          = 4 4
-
-# >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
-# 0 = Interior           3 = Symmetry
-# 1 = Inflow             4 = SlipWall
-# 2 = Outflow            5 = NoSlipWall
+amr.max_grid_size   = 8
 
 # ------------------  INPUTS TO PHYSICS CLASS -------------------
 ns.dt_cutoff      = 0.000001  # level 0 timestep below which we halt
 
-ns.visc_tol        = 1.0e-12  # tolerence for viscous solves
-ns.visc_abs_tol    = 1.0e-12  # tolerence for viscous solves
+ns.visc_tol        = 1.0e-10  # tolerence for viscous solves
+ns.visc_abs_tol    = 1.0e-10  # tolerence for viscous solves
 
 ns.cfl            = 0.5	     # cfl number for hyperbolic system
-ns.init_shrink    = 1.0      # scale back initial timestep
-ns.change_max     = 1.1      # fraction dt can change by in one timestep
-ns.visc_coef      =  -0.01  -0.01  -0.01  -0.01  # coef of viscosity
-ns.visc_coef      =  0.01  0.01  -0.01  0.01  # coef of viscosity
+ns.init_shrink    = 1.0      # factor to scale back initial dt with
+ns.change_max     = 1.1      # amt by which dt can change each timestep
+ns.visc_coef      =  -0.01  -0.01  -0.01  -0.01   -0.01 # coef of viscosity
+ns.visc_coef      =  0.01  0.01  0.01  -0.01   -0.01 # coef of viscosity
 ns.init_iter      = 1        # number of init iters to def pressure
-ns.init_iter      = 0        # number of init iters to def pressure
-ns.init_iter      = 4        # number of init iters to def pressure
+ns.gravity        = -9.8     # body force  (gravity in MKS units)
 ns.gravity        = 0.0      # body force  (no gravity)
 ns.anelastic      = 0        # 0 => no anelastic approx
 #ns.fixed_dt	  = 06.37755     # hardwire dt
 ns.sum_interval   = 1        # timesteps between computing mass
+ns.do_sync_proj   = 1        # 1 => do Sync Project
 ns.do_sync_proj   = 0        # 1 => do Sync Project
 ns.do_reflux      = 1        # 1 => do refluxing
 ns.do_reflux      = 0        # 1 => do refluxing
@@ -88,22 +71,34 @@ ns.do_MLsync_proj = 0        # 1 => do ML sync project
 
 ns.mem_debug = 0
 
+# ----------------  BOUNDARY CONDITIONS ---------------------------
+
+ns.lo_bc          = 5 5 4
+ns.hi_bc          = 5 5 4
+
+#ns.lo_bc          = 4 4 4
+#ns.hi_bc          = 4 4 4
+
+# >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
+# 0 = Interior           3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
 # ------------------  INPUTS TO PROJECTION CLASS -------------------
-proj.sync_tol       = 1.0e-6   # tolerance for projections
-proj.proj_tol       = 1.0e-9  # tolerance for projections
-proj.proj_abs_error = 1.0e-15  # abs error for proj multigrid iter
+proj.proj_tol       = 1.0e-14  # tolerence for projections
+proj.sync_tol       = 1.0e-12   # tolerence for projections
+proj.proj_abs_error = 1.0e-16  # abs error for proj multigrid iter
+
 proj.pres_interp    = 1
 proj.rho_wgt_vel_proj = 0      # 0 => const den proj, 1 => rho weighted
 proj.bogus_value    = 5.0e+5
-proj.Pcode          = 2
 proj.Pcode          = 1
-proj.do_cache	= 0
 
 # ------------------  INPUTS TO MACPROJ CLASS -------------------
-mac.mac_tol        = 1.0e-9  # tolerence for mac projections
-mac.mac_sync_tol   = 1.0e-6   # tolerence for mac SYNC projection
+mac.mac_tol        = 1.0e-12   # tolerence for mac projections
+mac.mac_sync_tol   = 1.0e-10   # tolerence for mac SYNC projection
 mac.mac_order      = 1        # interp type: 0 => pc 1 => quad 2 => jbb
-mac.mac_abs_tol    = 1.0e-14
+
 # turn any of these on to generate run-time timing stats
 RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update \
                    mac_project mac_sync level_project sync_project
@@ -138,25 +133,23 @@ fab.precision = DOUBLE    # output in FLOAT or DOUBLE
 #             file_name  var_name   device  freq  n_cont  sho_grd win_siz
 #             ---------  --------   ------  ----  ------  ------- -------
 contour.verbose = 1
+
+contour.xslice = 0.5
+contour.yslice = 0.5
+contour.zslice = 0.5
+
 contour.plot = density   density       1     -1     20       2      400
 contour.plot = lgden     log_den       1     -5     20       1      400
 contour.plot = xvel      x_velocity    1     -1     20       1      400
 contour.plot = yvel      y_velocity    1     -1     20       1      400
-contour.plot = trac      tracer        1     -1    20       1      400
+contour.plot = trac      tracer        1     -1     20       1      400
 contour.plot = lgtrac    log_tracer    1     -1     20       1      400
 contour.plot = lgrt     log_rho_tracer 1    -40     20       1      400
 contour.plot = energy    energy        1     -5     15       1      400
 contour.plot = mvel      mag_vel       1     -5     20       1      400
-contour.plot = vort      mag_vort      1     -1    20       1      400
+contour.plot = vort      mag_vort      1     -1     20       1      400
 contour.plot = dEdt      dEdt          1     -1     20       1      400
 contour.plot = divu      divu          1     -1     20       1      400
 contour.plot = gradpx    gradpx        1     -1     20       1      400
 contour.plot = gradpy    gradpy        1     -1     20       1      400
-
-
-
-
-
-
-
 
