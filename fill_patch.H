@@ -1,21 +1,11 @@
 #ifndef _FILL_PATCH_H_
 #define _FILL_PATCH_H_
 
-#ifndef _INTERFACE_H_
-#  include "interface.H"
-#endif
-#ifndef _BOUNDARY_H_
-#  include "boundary.H"
-#endif
-#ifndef _CACHE_H_
-#  include "cache.H"
-#endif
-#ifndef _INTERPOLATOR_H_
-#  include "interpolator.H"
-#endif
-#ifndef _RESTRICTOR_H_
-#  include "restrictor.H"
-#endif
+#include <interface.H>
+#include <boundary.H>
+#include <cache.H>
+#include <interpolator.H>
+#include <restrictor.H>
 
 #ifdef BL_FORT_USE_UNDERSCORE
 #  define FFCPY     fcpy_

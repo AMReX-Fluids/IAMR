@@ -1,4 +1,15 @@
-// $Id: SyncRegister.cpp,v 1.7 1997-09-18 22:31:01 lijewski Exp $
+//
+// $Id: SyncRegister.cpp,v 1.8 1997-09-23 19:25:52 lijewski Exp $
+//
+
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#include <cstring>
+#else
+#include <stdlib.h>
+#include <string.h>
+#endif
+
 #include <BC_TYPES.H>
 #include <SyncRegister.H>
 #include <Tracer.H>
@@ -1505,12 +1516,7 @@ if(ParallelDescriptor::NProcs() > 1) {
     }
 }
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <iostream.h>
-#include <iomanip.h>
-#include <string.h>
-#include <fstream.h>
+
 static void printFAB(ostream& os, const FARRAYBOX& f)
 {
 if(ParallelDescriptor::NProcs() > 1) {

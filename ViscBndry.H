@@ -1,5 +1,5 @@
 #ifndef _VISCBNDRYDATA_H_
-#define _VISCBNDRYDATA_H_  $Id: ViscBndry.H,v 1.1 1997-07-08 23:08:15 vince Exp $
+#define _VISCBNDRYDATA_H_
 
 #include <InterpBndryData.H>
 #include <BC_TYPES.H>

@@ -1,5 +1,5 @@
 #ifndef _VISCBNDRY2D_H_
-#define _VISCBNDRY2D_H_  "%W% %G%"
+#define _VISCBNDRY2D_H_
 
 #include <MCInterpBndryData.H>
 #include <BC_TYPES.H>

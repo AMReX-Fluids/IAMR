@@ -1,5 +1,5 @@
 #ifndef _LAPLACIAN_H_
-#define _LAPLACIAN_H_ "$Id: Laplacian.H,v 1.1 1997-07-08 23:08:04 vince Exp $"
+#define _LAPLACIAN_H_
 
 #include <LinOp.H>
 

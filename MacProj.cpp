@@ -1,6 +1,7 @@
-// $Id: MacProj.cpp,v 1.3 1997-08-14 17:59:19 vince Exp $
+//
+// $Id: MacProj.cpp,v 1.4 1997-09-23 19:25:46 lijewski Exp $
+//
 
-#include <stdio.h>
 #include <Misc.H>
 #include <LO_BCTYPES.H>
 #include <CoordSys.H>
@@ -12,7 +13,6 @@
 #include <MacBndry.H>
 #include <MacOpMacDrivers.H>
 #include <NavierStokes.H>
-
 #include <MACPROJ_F.H>
 
 #ifndef _NavierStokes_H_

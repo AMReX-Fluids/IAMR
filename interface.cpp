@@ -1,6 +1,6 @@
 
-#include "interface.H"
-#include "boundary.H"
+#include <interface.H>
+#include <boundary.H>
 
 const level_interface null_level_interface;
 

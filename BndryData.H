@@ -1,8 +1,6 @@
 #ifndef _BNDRYDATA_H_
-#define _BNDRYDATA_H_  "%W% %G%"
+#define _BNDRYDATA_H_
 
-#include <iostream.h>
-#include <Assert.H>
 #include <BoxArray.H>
 #include <FArrayBox.H>
 #include <Orientation.H>

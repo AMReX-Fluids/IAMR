@@ -1,5 +1,5 @@
 #ifndef _NavierStokes_H_
-#define _NavierStokes_H_ $Id: NavierStokes.H,v 1.3 1997-09-19 18:07:58 vince Exp $
+#define _NavierStokes_H_
 
 #include <LevelBld.H>
 #include <BC_TYPES.H>

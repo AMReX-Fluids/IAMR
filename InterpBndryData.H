@@ -1,8 +1,6 @@
 #ifndef _INTERPBNDRYDATA_H_
-#define _INTERPBNDRYDATA_H_  "%W% %G%"
+#define _INTERPBNDRYDATA_H_
 
-#include <iostream.h>
-#include <Assert.H>
 #include <BoxArray.H>
 #include <FArrayBox.H>
 #include <Orientation.H>
@@ -11,7 +9,6 @@
 #include <Geometry.H>
 #include <BoundCond.H>
 #include <BndryData.H>
-
 
 //@Man:
 /*@Memo:

@@ -1,14 +1,12 @@
 #ifndef _LINOP_H_
-#define _LINOP_H_ "$Id: LinOp.H,v 1.1 1997-07-08 23:08:04 vince Exp $"
+#define _LINOP_H_
 
-#include <Assert.H>
 #include <Array.H>
 #include <Tuple.H>
 #include <Pointers.H>
 #include <REAL.H>
 #include <BoxArray.H>
 #include <MultiFab.H>
-
 #include <BndryData.H>
 
 enum BC_Mode { Homogeneous_BC = 0, Inhomogeneous_BC };

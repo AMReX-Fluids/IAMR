@@ -1,5 +1,5 @@
 #ifndef _SYNCREGISTER_H_
-#define _SYNCREGISTER_H_  $Id: SyncRegister.H,v 1.1 1997-07-08 23:08:15 vince Exp $
+#define _SYNCREGISTER_H_
 
 #include <PArray.H>
 #include <BoxArray.H>

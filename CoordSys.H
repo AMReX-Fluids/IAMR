@@ -1,8 +1,6 @@
 #ifndef _COORDSYS_H_
 #define _COORDSYS_H_ 
 
-#include <iostream.h>
-#include <Assert.H>
 #include <REAL.H>
 #include <Array.H>
 #include <Box.H>

@@ -1,4 +1,5 @@
 #if (BL_SPACEDIM==2) && defined (USE_TENSOR)
+
 #include <LO_BCTYPES.H>
 #include <ViscBndry2D.H>
 

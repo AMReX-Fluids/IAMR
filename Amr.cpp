@@ -1,14 +1,10 @@
-#include <iostream.h>
+
 #ifdef _MSC_VER
 #include <strstrea.h>
 #else
 #include <strstream.h>
 #endif
-#include <iomanip.h>
-#include <fstream.h>
-#include <limits.h>
 
-#include <Assert.H>
 #include <Array.H>
 #include <CoordSys.H>
 #include <ParmParse.H>
@@ -24,6 +20,12 @@
 #include <Amr_auxil.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
+
+#ifdef BL_USE_NEW_HFILES
+using std::ifstream;
+using std::ostrstream;
+using std::setw;
+#endif
 
 // ###################################################################
 // #####   INLINE-able functions

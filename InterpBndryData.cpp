@@ -1,5 +1,10 @@
-#include <limits.h>
+
+#ifdef BL_USE_NEW_HFILES
+#include <cmath>
+#else
 #include <math.h>
+#endif
+
 #include <LO_BCTYPES.H>
 #include <InterpBndryData.H>
 #include <INTERPBNDRYDATA_F.H>

@@ -1,10 +1,6 @@
-#define _TagBox_C_ "%W% %G%"
-
-#include <limits.h>
 
 #include <TagBox.H>
 #include <Misc.H>
-#include <Assert.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
 

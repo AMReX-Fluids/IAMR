@@ -1,5 +1,5 @@
 
-#include "amr_multi.H"
+#include <amr_multi.H>
 
 int amr_multigrid::c_sys = 0; // default is Cartesian, 1 is RZ
 

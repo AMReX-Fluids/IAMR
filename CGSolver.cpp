@@ -3,9 +3,8 @@
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
-
-#include "CG_F.H"
-#include "CGSolver.H"
+#include <CG_F.H>
+#include <CGSolver.H>
 
 int CGSolver::initialized = 0;
 int CGSolver::def_maxiter = 40;

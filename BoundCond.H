@@ -1,5 +1,5 @@
 #ifndef _BOUNDCOND_H_
-#define _BOUNDCOND_H_ "$Id: BoundCond.H,v 1.1 1997-07-08 23:08:03 vince Exp $"
+#define _BOUNDCOND_H_
 
 #include <Assert.H>
 

@@ -1,19 +1,22 @@
 #ifndef _CGSOLVER_H_
-#define _CGSOLVER_H_ "$Id: CGSolver.H,v 1.1 1997-07-08 23:08:03 vince Exp $"
+#define _CGSOLVER_H_
 
+#ifdef BL_USE_NEW_HFILES
+#include <cmath>
+#else
 #include <math.h>
+#endif
+
 #include <Boolean.H>
 #include <Array.H>
 #include <Pointers.H>
-
 #include <MultiFab.H>
-
 #include <LinOp.H>
 #include <MultiGrid.H>
 
 //@Man:
 /*@Memo:
-	A CGColver solves the linear equation, L(phi)=rhs, for a LinOp L and
+	A CGSolver solves the linear equation, L(phi)=rhs, for a LinOp L and
 	MultiFabs rhs and phi, using the conjugate gradient algorithm, either
 	vanilla, or preconditioned via a single V-cycle of multigrid.
 */	

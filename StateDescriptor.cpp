@@ -1,9 +1,7 @@
-#define _StateDescriptor_C_  "%W% %G%"
-#include <iostream.h>
-#include <Assert.H>
-#include "StateDescriptor.H"
-#include "Interpolater.H"
-#include "BCRec.H"
+
+#include <StateDescriptor.H>
+#include <Interpolater.H>
+#include <BCRec.H>
 
 // -------------------------------------------------------------
 DescriptorList::DescriptorList()

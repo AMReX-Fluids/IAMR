@@ -1,4 +1,7 @@
-// $Id: MacOperator.cpp,v 1.3 1997-08-14 17:59:18 vince Exp $
+//
+// $Id: MacOperator.cpp,v 1.4 1997-09-23 19:25:46 lijewski Exp $
+//
+
 #include <MacBndry.H>
 #include <MacOperator.H>
 #include <MacOpMacDrivers.H>

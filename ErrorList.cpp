@@ -1,5 +1,4 @@
-#define _ErrorList_C_   "%W% %G%"
-#include <Assert.H>
+
 #include <ErrorList.H>
 
 // ------------------------------------------------------------------

@@ -1,8 +1,9 @@
-#define _Projection_C_ $Id: Projection.cpp,v 1.11 1997-09-18 17:50:01 vince Exp $
-#include <stdio.h>
+
+
 #ifdef BL_T3E
 #include <List.H>
 #endif
+
 #include <Misc.H>
 #include <CoordSys.H>
 #include <Geometry.H>
@@ -12,10 +13,8 @@
 #include <Projection.H>
 #include <RunStats.H>
 #include <SYNCREG_F.H>
-
 #include <PROJECTION_F.H>
 #include <NAVIERSTOKES_F.H>
-
 #include <hg_projector.H>
 
 #ifndef _NavierStokes_H_

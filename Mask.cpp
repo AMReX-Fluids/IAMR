@@ -1,11 +1,13 @@
 //
-// $Id: Mask.cpp,v 1.2 1997-09-16 03:43:06 lijewski Exp $
+// $Id: Mask.cpp,v 1.3 1997-09-23 19:25:47 lijewski Exp $
 //
 
-#include <limits.h>
-#include <iostream.h>
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#else
 #include <stdlib.h>
-#include <Assert.H>
+#endif
+
 #include <Looping.H>
 #include <Mask.H>
 #include <Utility.H>

@@ -1,6 +1,6 @@
 
-#include "restrictor.H"
-#include "fill_patch.H"
+#include <restrictor.H>
+#include <fill_patch.H>
 
 #ifdef BL_FORT_USE_UNDERSCORE
 #  define FACRST1  acrst1_

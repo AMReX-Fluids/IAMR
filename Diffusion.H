@@ -1,4 +1,7 @@
-// $Id: Diffusion.H,v 1.1 1997-07-08 23:08:12 vince Exp $
+//
+// $Id: Diffusion.H,v 1.2 1997-09-23 19:25:40 lijewski Exp $
+//
+
 #ifndef _Diffusion_H_
 #define _Diffusion_H_
 

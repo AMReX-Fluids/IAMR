@@ -1,14 +1,10 @@
-// $Id: NavierStokes.cpp,v 1.12 1997-09-19 18:07:58 vince Exp $
-
+//
+// $Id: NavierStokes.cpp,v 1.13 1997-09-23 19:25:48 lijewski Exp $
+//
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
+//
 
-#include <stdio.h>
-#ifdef	_MSC_VER
-#include <strstrea.h>
-#else
-#include <strstream.h>
-#endif
 #include <Misc.H>
 #include <CoordSys.H>
 #include <Geometry.H>
@@ -21,10 +17,13 @@
 #include <NavierStokes.H>
 #include <MultiGrid.H>
 #include <ArrayLim.H>
-
 #include <NAVIERSTOKES_F.H>
 #include <PROJECTION_F.H>
 #include <PROB_F.H>
+
+#ifdef BL_USE_NEW_HFILES
+using std::streampos;
+#endif
 
 #define GEOM_GROW 1
 #define HYP_GROW 3

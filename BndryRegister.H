@@ -1,11 +1,8 @@
 #ifndef _BNDRYREGISTER_H_
-#define _BNDRYREGISTER_H_  "%W% %G%"
+#define _BNDRYREGISTER_H_
 
-#include <iostream.h>
-#include <Assert.H>
 #include <BoxArray.H>
 #include <FArrayBox.H>
-//#include <MultiFab.H>
 #include <FabSet.H>
 #include <Orientation.H>
 

@@ -1,5 +1,12 @@
+
+#ifdef BL_USE_NEW_HFILES
+#include <climits>
+#include <cmath>
+#else
 #include <limits.h>
 #include <math.h>
+#endif
+
 #include <Misc.H>
 #include <Utility.H>
 #include <CoordSys.H>

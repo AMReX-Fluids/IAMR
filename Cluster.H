@@ -1,9 +1,6 @@
 #ifndef _Cluster_H_
 #define _Cluster_H_ 
 
-#include <iostream.h>
-#include <fstream.h>
-
 #include <IntVect.H>
 #include <Box.H>
 #include <Array.H>

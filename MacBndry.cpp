@@ -1,4 +1,7 @@
-// $Id: MacBndry.cpp,v 1.1 1997-07-08 23:08:14 vince Exp $
+//
+// $Id: MacBndry.cpp,v 1.2 1997-09-23 19:25:45 lijewski Exp $
+//
+
 #include <LO_BCTYPES.H>
 #include <MacBndry.H>
 

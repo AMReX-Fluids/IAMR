@@ -1,6 +1,5 @@
 
-#include <limits.h>
-#include "fill_patch.H"
+#include <fill_patch.H>
 #include <Tracer.H>
 
 #ifdef BL_FORT_USE_UNDERSCORE

@@ -1,15 +1,13 @@
 #ifndef _StateDescriptor_H_
 #define _StateDescriptor_H_ 
 
-#include <iostream.h>
-
 #include <Array.H>
 #include <PArray.H>
 #include <aString.H>
 #include <REAL.H>
 #include <Box.H>
 #include <BCRec.H>
-#include "ArrayLim.H"
+#include <ArrayLim.H>
 
 class Interpolater;
 

@@ -1,17 +1,23 @@
 #ifndef _RUNSTATS_H_
 #define _RUNSTATS_H_ 
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#include <fstream>
+#include <cstring>
+#include <cmath>
+using std::ifstream;
+using std::ofstream;
+#else
 #include <stdlib.h>
-#include <iostream.h>
-#include <iomanip.h>
 #include <fstream.h>
 #include <string.h>
 #include <math.h>
+#endif
 
 #include <aString.H>
 #include <List.H>
 #include <Array.H>
-//#include <Registry.H>
 
 class RunStatsData
 {

@@ -1,11 +1,8 @@
 #ifndef _HG_MULTI_H_
 #define _HG_MULTI_H_
 
-#ifndef _AMR_MULTI_H_
-#  include "amr_multi.H"
-#endif
-
-#include "hg_version.H"
+#include <amr_multi.H>
+#include <hg_version.H>
 
 #ifndef HG_CONSTANT
 

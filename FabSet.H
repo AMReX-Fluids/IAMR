@@ -1,10 +1,7 @@
 #ifndef _FABSET_H_
-#define _FABSET_H_  "%W% %G%"
+#define _FABSET_H_
 
-#include <iostream.h>
-#include <Assert.H>
 #include <FArrayBox.H>
-//#include <PArray.H>
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
 

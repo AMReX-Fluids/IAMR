@@ -1,10 +1,11 @@
-#ifdef BL_T3E
-#include <stdlib.h>
-#else
+
+#ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
+#else
+#include <stdlib.h>
 #endif
 
-#include "cache.H"
+#include <cache.H>
 
 // -----------------------------------------------------------------
 //  these functions are un-inlined to debug.  put them back when the

@@ -7,6 +7,11 @@
 #include <bsp.h>
 #endif
 
+#ifdef BL_USE_NEW_HFILES
+#include <fstream>
+using std::ofstream;
+#endif
+
 /*
 struct TagStruct {
   Box box;

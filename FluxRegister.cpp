@@ -1,5 +1,9 @@
 
+#ifdef BL_USE_NEW_HFILES
+#include <climits>
+#else
 #include <limits.h>
+#endif
 
 #include <FluxRegister.H>
 #include <Geometry.H>
@@ -1054,12 +1058,6 @@ FluxRegister::FineAdd(const FARRAYBOX& flux, const FARRAYBOX& area,
 
 // -------------------------------------------------------------
 /*
-#include <stdlib.h>
-#include <stdio.h>
-#include <iostream.h>
-#include <iomanip.h>
-#include <string.h>
-#include <fstream.h>
 static void printFAB(ostream& os, const FARRAYBOX& f, int comp)
 {
 

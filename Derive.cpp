@@ -1,7 +1,11 @@
-#define _Derive_C_   "%W% %G%"
+
+#ifdef BL_USE_NEW_HFILES
+#include <cstring>
+#else
 #include <string.h>
-#include <Assert.H>
-#include "Derive.H"
+#endif
+
+#include <Derive.H>
 
 // ------------------------------------------------------------------
 DeriveRec::DeriveRec()

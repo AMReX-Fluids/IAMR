@@ -1,11 +1,8 @@
-#define _RealBox_C_  "%W% %G%"
-#include <limits.h>
 
-#include <Assert.H>
 #include <aString.H>
 #include <Misc.H>
 #include <Utility.H>
-#include "RealBox.H"
+#include <RealBox.H>
 
 REAL REALBOX::eps = 1.0e-6;
 

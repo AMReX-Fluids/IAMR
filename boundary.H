@@ -1,9 +1,7 @@
 #ifndef _BOUNDARY_H_
 #define _BOUNDARY_H_
 
-#ifndef _INTERFACE_H_
-#  include "interface.H"
-#endif
+#include <interface.H>
 
 class copy_cache;
 

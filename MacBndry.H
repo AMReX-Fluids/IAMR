@@ -1,5 +1,5 @@
 #ifndef _MACBNDRYDATA_H_
-#define _MACBNDRYDATA_H_ $Id: MacBndry.H,v 1.1 1997-07-08 23:08:14 vince Exp $
+#define _MACBNDRYDATA_H_
 
 #include <InterpBndryData.H>
 

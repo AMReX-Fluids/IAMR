@@ -1,7 +1,12 @@
 #ifndef _Amr_H_
 #define _Amr_H_ 
 
+#ifdef BL_USE_NEW_HFILES
+#include <fstream>
+using std::ofstream;
+#else
 #include <fstream.h>
+#endif
 
 #include <Box.H>
 #include <BoxList.H>

@@ -1,4 +1,10 @@
+
+#ifdef BL_USE_NEW_HFILES
+#include <climits>
+#else
 #include <limits.h>
+#endif
+
 #include <BndryData.H>
 #include <Utility.H>
 

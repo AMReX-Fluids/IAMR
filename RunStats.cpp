@@ -1,14 +1,15 @@
-#define _RUNSTATS_C_ "%W% %G%"
 
-#include <iostream.h>
-#include <iomanip.h>
-#include <limits.h>
-#include <stdlib.h>
 #include <Utility.H>
 #include <Misc.H>
 #include <ParmParse.H>
-#include "RunStats.H"
+#include <RunStats.H>
 #include <ParallelDescriptor.H>
+
+#ifdef BL_USE_NEW_HFILES
+using std::setw;
+using std::ios;
+using std::setprecision;
+#endif
 
 List<RunStatsData> RunStats::ld;
 double RunStats::total_run_time;

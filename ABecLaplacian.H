@@ -1,5 +1,5 @@
 #ifndef _AABBecLAPLACIAN_H_
-#define _AABBecLAPLACIAN_H_ "$Id: ABecLaplacian.H,v 1.1 1997-07-08 23:08:02 vince Exp $"
+#define _AABBecLAPLACIAN_H_
 
 #include <Tuple.H>
 #include <Boolean.H>

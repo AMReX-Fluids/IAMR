@@ -1,17 +1,20 @@
-// $Id: MultiGrid.cpp,v 1.2 1997-09-19 18:07:57 vince Exp $
+//
+// $Id: MultiGrid.cpp,v 1.3 1997-09-23 19:25:47 lijewski Exp $
 // 
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#else
 #include <stdlib.h>
+#endif
 
 #include <ParmParse.H>
 #include <Misc.H>
 #include <Utility.H>
 #include <ParallelDescriptor.H>
-
 #include <CGSolver.H>
-
-#include "MG_F.H"
-#include "MultiGrid.H"
+#include <MG_F.H>
+#include <MultiGrid.H>
 
 bool MultiGrid::initialized = false;
 int MultiGrid::def_nu_0 = 1;

@@ -1,5 +1,5 @@
 #ifndef _Projection_H_
-#define _Projection_H_ $Id: Projection.H,v 1.2 1997-07-31 01:11:10 car Exp $
+#define _Projection_H_
 
 #include <BC_TYPES.H>
 #include <BCRec.H>

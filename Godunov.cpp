@@ -4,7 +4,6 @@
 // for iamr
 //==========================================================
 
-#include <stdio.h>
 #include <Misc.H>
 #include <LO_BCTYPES.H>
 #include <CoordSys.H>

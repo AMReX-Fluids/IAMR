@@ -1,5 +1,5 @@
 #ifndef _MacProj_H_
-#define _MacProj_H_ $Id: MacProj.H,v 1.1 1997-07-08 23:08:13 vince Exp $
+#define _MacProj_H_
 
 #include <BC_TYPES.H>
 #include <BCRec.H>

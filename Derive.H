@@ -1,8 +1,6 @@
 #ifndef _Derive_H_
 #define _Derive_H_
 
-#include <iostream.h>
-
 #include <REAL.H>
 #include <List.H>
 #include <aString.H>

@@ -1,5 +1,5 @@
 #ifndef _FLUXREGISTER_H_
-#define _FLUXREGISTER_H_  "%W% %G%"
+#define _FLUXREGISTER_H_
 
 #include <BndryRegister.H>
 

@@ -1,4 +1,7 @@
-// $Id: BuildAlias.cpp,v 1.1 1997-07-08 23:08:14 vince Exp $
+//
+// $Id: BuildAlias.cpp,v 1.2 1997-09-23 19:25:37 lijewski Exp $
+//
+
 #include <BuildAlias.H>
 
 static void error(char* message)

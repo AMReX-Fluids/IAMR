@@ -1,6 +1,5 @@
-#define _BCREC_C_  "%W% %G%"
-#include "BCRec.H"
-//#include <DPO.H>
+
+#include <BCRec.H>
 
 // -------------------------------------------------------------
 BCRec::BCRec(D_DECL(int loX, int loY, int loZ),

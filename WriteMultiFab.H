@@ -1,5 +1,7 @@
-#include <iostream.h>
-#include <fstream.h>
+
+#ifndef WRITEMULTIFAB_H
+#define WRITEMULTIFAB_H
+
 #include <REAL.H>
 #include <Box.H>
 #include <BoxList.H>
@@ -21,5 +23,4 @@ WriteMultiFab(char *filename, const MultiFab &phi,
 	      const Real* H, const BoxList& bs, const Box &container,
 	      int ratio=2, Real bgValue=0.0);
 
-
-    
+#endif /*WRITEMULTIFAB_H*/

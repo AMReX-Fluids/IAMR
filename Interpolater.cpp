@@ -1,11 +1,12 @@
-#define _INTERPOLATER_C_  "%W% %G%"
 
-#include <limits.h>
+#ifdef BL_USE_NEW_HFILES
+#include <cmath>
+#else
 #include <math.h>
+#endif
 
-#include "Interpolater.H"
-
-#include "INTERP_F.H"
+#include <Interpolater.H>
+#include <INTERP_F.H>
 
 // ------------------------------------------------------------
 // ------  CONSTRUCT A GLOBAL OBJECT OF EACH VERSION  ---------

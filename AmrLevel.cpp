@@ -1,17 +1,23 @@
 // #define ADVANCE_DEBUG 1
 
-#include <string.h>
-
-#include <Assert.H>
-#include <AmrLevel.H>
-#include <Derive.H>
-#include <BoxDomain.H>
-#include <ParallelDescriptor.H>
 #ifdef	_MSC_VER
 #include <strstrea.h>
 #else
 #include <strstream.h>
 #endif
+
+#ifdef BL_USE_NEW_HFILES
+#include <cstdio>
+#include <cstring>
+#else
+#include <stdio.h>
+#include <string.h>
+#endif
+
+#include <AmrLevel.H>
+#include <Derive.H>
+#include <BoxDomain.H>
+#include <ParallelDescriptor.H>
 
 // -------------------------------------------------------------
 // static data initialization
@@ -1815,7 +1821,7 @@ AmrLevel::getBCArray(int State_Type, int gridno, int strt_comp, int num_comp)
 
 
 // -------------------------------------------------------------
-#include <stdio.h>
+
 void
 AmrLevel::probe(ostream &os, INTVECT iv, int rad, REAL time,
 		int state_indx, int src_comp, int num_comp)

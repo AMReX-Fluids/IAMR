@@ -1,4 +1,3 @@
-#define  _Main_C_ "%W% %G%"
 
 #ifdef BL_ARCH_CRAY
 #  ifdef BL_USE_DOUBLE
@@ -6,12 +5,12 @@ DOUBLE PRECISION NOT ALLOWED ON CRAY
 #  endif
 #endif
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#else
 #include <stdlib.h>
-#include <iostream.h>
-#include <iomanip.h>
-#include <string.h>
-#include <fstream.h>
-#include <math.h>
+#endif
+
 #include <REAL.H>
 #include <Misc.H>
 #include <Utility.H>
@@ -21,17 +20,7 @@ DOUBLE PRECISION NOT ALLOWED ON CRAY
 #include <RunStats.H>
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
-#include <unistd.h>
-
 #include <AmrLevel.H>
-
-#if BL_USE_WINDOWS&&(BL_SPACEDIM==2)
-#   define HAS_CONTOUR  1
-#   include <Contour.H>
-#endif
-#if HAS_RASTER && (BL_SPACEDIM==2 || BL_SPACEDIM == 3)
-#   include <Raster.H>
-#endif
 
 // functions called
 void   print_usage(int, char **);
@@ -82,21 +71,6 @@ main(int argc, char *argv[])
     // -----   construct objects
     // -------------------------------------------------
     Amr  *amrptr = new Amr;
-#   ifdef HAS_CONTOUR
-       Contour *contourptr;
-       if(ParallelDescriptor::IOProcessor()) {
-         contourptr = new Contour(*amrptr);
-       }
-       int n_contour = 0;
-#   endif
-#   ifdef HAS_RASTER
-       Raster *rasterptr;
-       if(ParallelDescriptor::IOProcessor()) {
-         rasterptr = new Raster(*amrptr);
-       }
-       int n_raster = 0;
-#   endif
-
     // -------------------------------------------------
     // -----   initialization section
     // -------------------------------------------------
@@ -105,17 +79,6 @@ main(int argc, char *argv[])
     amrptr->init();
 
 //    cout << setprecision(10);
-
-#   ifdef HAS_RASTER
-       // dump raster plots
-       n_raster = rasterptr->draw(amrptr->cumTime(),amrptr->levelSteps(0));
-#   endif
-#   ifdef HAS_CONTOUR
-       // draw contour graphics on the fly
-       if(ParallelDescriptor::IOProcessor()) {
-         n_contour = contourptr->draw(amrptr->cumTime(),amrptr->levelSteps(0));
-       }
-#   endif
 
     // -------------------------------------------------
     // -----   loop until finished
@@ -126,43 +89,11 @@ main(int argc, char *argv[])
 
         // do a timestep
         amrptr->coarseTimeStep(stop_time);
-
-#       ifdef HAS_CONTOUR
-           // draw contour graphics on the fly
-         if(ParallelDescriptor::IOProcessor()) {
-           n_contour = contourptr->draw(amrptr->cumTime(),
-	                                amrptr->levelSteps(0));
-         }
-#       endif
-#       ifdef HAS_RASTER
-           // dump raster plots
-         if(ParallelDescriptor::IOProcessor()) {
-           n_raster = rasterptr->draw(amrptr->cumTime(),
-	                              amrptr->levelSteps(0));
-	 }
-#       endif
-
     }
 
     // -------------------------------------------------
     // -----   final business
     // -------------------------------------------------
-#   ifdef HAS_CONTOUR
-       // dump final contours
-       if (n_contour == 0) {
-         if(ParallelDescriptor::IOProcessor()) {
-          contourptr->draw(amrptr->cumTime(),amrptr->levelSteps(0), 1);
-	 }
-       }
-#   endif
-#   ifdef HAS_RASTER
-       // dump final raster plots
-       if (n_raster == 0) {
-         if(ParallelDescriptor::IOProcessor()) {
-          rasterptr->draw(amrptr->cumTime(),amrptr->levelSteps(0), 1);
-	 }
-       }
-#   endif
 
       // cout << "Local timing stats (since restart)" << endl;
       // stats.report(cout);
@@ -174,16 +105,6 @@ main(int argc, char *argv[])
     // -------------------------------------------------
     // -----   delete memory
     // -------------------------------------------------
-#   ifdef HAS_CONTOUR
-     if(ParallelDescriptor::IOProcessor()) {
-       delete contourptr;
-     }
-#   endif
-#   ifdef HAS_RASTER
-     if(ParallelDescriptor::IOProcessor()) {
-       delete rasterptr;
-     }
-#   endif
     delete amrptr;
 
     EndParallel();

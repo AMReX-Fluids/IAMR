@@ -1,5 +1,5 @@
 #ifndef _BuildAlias_H_
-#define _BuildAlias_H_ $Id: BuildAlias.H,v 1.1 1997-07-08 23:08:14 vince Exp $
+#define _BuildAlias_H_
 
 #include <BoxArray.H>
 #include <MultiFab.H>

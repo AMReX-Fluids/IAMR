@@ -1,5 +1,5 @@
 #ifndef _MACOPERATOR_H_
-#define _MACOPERATOR_H_ "$Id: MacOperator.H,v 1.1 1997-07-08 23:08:14 vince Exp $"
+#define _MACOPERATOR_H_
 
 //==========================================================================
 // This class defines how mass continuity is defined for the projection operators
@@ -8,7 +8,6 @@
 // through a few driver functions which scale variables.
 //==========================================================================
 
-#include <Assert.H>
 #include <ABecLaplacian.H>
 #include <BndryData.H>
 

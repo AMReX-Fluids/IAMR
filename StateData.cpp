@@ -1,6 +1,5 @@
-#define _StateData_C_  "%W% %G%"
-#include <Assert.H>
-#include "StateData.H"
+
+#include <StateData.H>
 #include <ParallelDescriptor.H>
 
 #if defined(BL_USE_FLOAT) && !defined(BL_ARCH_CRAY)

@@ -1,12 +1,19 @@
-// $Id: LinOp.cpp,v 1.2 1997-07-17 22:01:02 vince Exp $
+//
+// $Id: LinOp.cpp,v 1.3 1997-09-23 19:25:44 lijewski Exp $
+//
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#else
 #include <stdlib.h>
+#endif
+
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 
-#include "LO_BCTYPES.H"
-#include "LO_F.H"
-#include "LinOp.H"
+#include <LO_BCTYPES.H>
+#include <LO_F.H>
+#include <LinOp.H>
 
 bool LinOp::initialized = false;
 int LinOp::def_harmavg = 0;

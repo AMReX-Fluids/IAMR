@@ -1,12 +1,8 @@
 #ifndef _RESTRICTOR_H_
 #define _RESTRICTOR_H_
 
-#ifndef _INTERFACE_H_
-#  include "interface.H"
-#endif
-#ifndef _BOUNDARY_H_
-#  include "boundary.H"
-#endif
+#include <interface.H>
+#include <boundary.H>
 
 typedef const class amr_restrictor_class& amr_restrictor;
 

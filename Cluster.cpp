@@ -1,5 +1,4 @@
-#define _Cluster_C_  "%W% %G%"
-#include <Assert.H>
+
 #include <Cluster.H>
 
 enum CutStatus{ hole_cut=0, steep_cut, bisect_cut, invalid_cut };

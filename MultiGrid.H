@@ -1,14 +1,12 @@
 #ifndef _MULTIGRID_H_
-#define _MULTIGRID_H_ "$Id: MultiGrid.H,v 1.1 1997-07-08 23:08:04 vince Exp $"
+#define _MULTIGRID_H_
 
 #include <Boolean.H>
 #include <Array.H>
 #include <PArray.H>
 #include <Pointers.H>
-
 #include <MultiFab.H>
 #include <BndryData.H>
-
 #include <LinOp.H>
 
 //@Man:

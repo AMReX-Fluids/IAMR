@@ -1,9 +1,7 @@
 #ifndef _INTERPOLATOR_H_
 #define _INTERPOLATOR_H_
 
-#ifndef _AMR_DEFS_H_
-#  include "amr_defs.H"
-#endif
+#include <amr_defs.H>
 
 typedef const class amr_interpolator_class& amr_interpolator;
 
