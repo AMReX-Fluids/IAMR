@@ -1,6 +1,6 @@
 
 //
-// $Id: main.cpp,v 1.36 2000-10-02 20:50:17 lijewski Exp $
+// $Id: main.cpp,v 1.37 2000-11-27 18:17:53 lijewski Exp $
 //
 
 #ifdef BL3_PROFILING
@@ -187,6 +187,8 @@ main (int   argc,
 #endif
     ParallelDescriptor::StartParallel(&argc, &argv);
 
+    const Real run_strt = ParallelDescriptor::second();
+
     cout << setprecision(10);
 
     if (argc < 2)
@@ -289,6 +291,14 @@ main (int   argc,
     BL3_PROFILE_STOP(pmain);
     BoxLib3::Profiler::Finalize();
 #endif
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_stop = ParallelDescriptor::second() - run_strt;
+
+    ParallelDescriptor::ReduceRealMax(run_stop,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        cout << "Run time = " << run_stop << endl;
 
     ParallelDescriptor::EndParallel();
 
