@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.13 1997-10-16 15:29:37 lijewski Exp $
+// $Id: main.cpp,v 1.14 1997-12-05 18:32:53 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -83,11 +83,12 @@ main (int   argc,
 
     max_step  = 0;    pp.query("max_step",max_step);
     stop_time = 0.0;  pp.query("stop_time",stop_time);
-    FArrayBox::init();
 
-    Amr  *amrptr = new Amr;
+    Amr *amrptr = new Amr;
 
-    RunStats::init();
+    if (amrptr == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
+
     amrptr->init();
 
     while (amrptr->okToContinue()           &&
@@ -97,11 +98,13 @@ main (int   argc,
         amrptr->coarseTimeStep(stop_time);
     }
 
-    RunStats::report(cout);
-
     delete amrptr;
+    //
+    // This MUST follow the above delete as ~Amr() may dump files to disk.
+    //
+    RunStats::report(cout);
 
     EndParallel();
 
-    return(0);
+    return 0;
 }

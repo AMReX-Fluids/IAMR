@@ -31,8 +31,8 @@ USE_WINDOWS=FALSE
 USE_BSP=FALSE
 USE_BSP=TRUE
 USE_NETCDF=FALSE
-USE_ARRAYVIEW = FALSE
 USE_ARRAYVIEW = TRUE
+USE_ARRAYVIEW = FALSE
 
 #
 # What is the type of BSP device?
@@ -50,22 +50,25 @@ include ../mk/Make.defs
 
 CPPFLAGS += -DBL_USE_NEW_HFILES
 
-INCLUDE_LOCATIONS += $(HERE) ../pBoxLib_2
+INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib
 
-# bsp parallel locations
-ifeq ($(USE_BSP),TRUE)
+ifeq ($(USE_BSP), TRUE)
 DEFINES += -DBL_USE_BSP
+ifeq ($(BSP_MACHINE), OSF1)
 BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
-INCLUDE_LOCATIONS += $(BSP_HOME)/include
-LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1
-LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1/$(BSP_DEVICE)
-LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
-#LIBRARIES += -lbspcore_O0 -lbsplevel1_O0
-###### exception library (for newest bsplib)
-# end bsp parallel locations
-LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
-LIBRARIES += -lexc
 endif
+ifeq ($(MACHINE), T3E)
+ifeq ($(WHICHT3E), NERSC)
+DEFINES += -DBL_T3E_NERSC
+BSP_HOME = /u1/vince/BSP
+endif
+ifeq ($(WHICHT3E), NAVO)
+DEFINES += -DBL_T3E_NAVO
+BSP_HOME = /home/Cvince/BSP
+endif
+endif
+endif
+
 
 
 # FillPatch switches
@@ -76,6 +79,10 @@ DEFINES += -DUSEOLDFILLPATCH=0
 #DEFINES += -DNEWFPMINBOX=1
 DEFINES += -DNEWFPMINBOX=0
 
+#
+# Uncomment this is you want to use Parallel I/O.
+#
+#DEFINES += -DBL_PARALLEL_IO
 
 ifeq ($(USE_WINDOWS),TRUE)
 LIBRARIES += -lgraph
@@ -94,14 +101,47 @@ DEFINES += -DBL_USE_ARRAYVIEW
 DEFINES += -DBL_ARRAYVIEW_TAGBOX
 endif
 
-#--------------- netcdf library
+ifeq ($(USE_BSP), TRUE)
+INCLUDE_LOCATIONS += $(BSP_HOME)/include
+LIBRARY_LOCATIONS += $(BSP_HOME)/lib/$(BSP_MACHINE)
+LIBRARY_LOCATIONS += $(BSP_HOME)/lib/$(BSP_MACHINE)/$(BSP_DEVICE)
+endif
 
 ifeq ($(USE_NETCDF),TRUE)
 LIBRARIES += /usr/people/stevens/bin/libnetcdf.a
 INCLUDE_LOCATIONS += /usr/people/stevens/bin
 endif
 
-#DEFINES += -DNEWUTIL
+ifeq ($(USE_BSP), TRUE)
+ifeq ($(DEBUG), TRUE)
+LIBRARIES += -lbspcore_O0 -lbsplevel1_O0
+else
+ifeq ($(BSP_MACHINE), OSF1)
+LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
+else
+LIBRARIES += -lbspcore_O2 -lbsplevel1_O2
+endif
+endif
+endif
+
+###### exception library (for newest bsplib)
+ifeq ($(BSP_MACHINE), OSF1)
+LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
+LIBRARIES += -lexc 
+endif
+
+#CXXFLAGS = -g --diag_suppress 177
+#CXXFLAGS = --strict_warnings
+ifeq ($(BSP_MACHINE), OSF1)
+FFLAGS += -real_size 64
+FDEBF += -C
+FDEBF += - -warn argument_checking
+FDEBF += - -warn declarations
+FDEBF += - -warn truncated_source
+FDEBF += - -warn unused
+FOPTF  = -fast -O5 -tune ev5
+endif
+
 DEFINES += -DGUTHAMR 
 
 3RD = 1
@@ -116,19 +156,9 @@ LDFLAGS += -non_shared -v
 # FOR RUNNING 3RD ONLY
 endif
 
-#FC = f77  -warn declarations -extend_source -check_bounds
-#FC = f90  -warn declarations -extend_source -check_bounds
-FC = f77  -warn declarations -extend_source
-FC = f90  -warn declarations -extend_source
-
 CXXFLAGS +=
 CXXOPTF +=
 CXXDEBF +=
-
-#FFLAGS += -fpe0
-#FFLAGS += -fpe2
-#FOPTF += -fpe2
-#FDEBF += -fpe2
 
 CFLAGS +=
 COPTF +=
@@ -138,13 +168,10 @@ include $(HERE)/Make.package
 
 FOPTF = -fast
 
-vpath %.cpp :$(HERE) ../pBoxLib_2
-vpath %.F :$(HERE)
+vpath %.cpp : . ../pBoxLib_2 ../amrlib
+vpath %.F   : . ../amrlib
 
 all: $(executable)
-#all: $(objForExecs) godzillaLink
-
-#$(executable): $(optionsLib)
 
 godzillaLink:
 	rsh godzilla 'cd $(PWD); make $(executable)

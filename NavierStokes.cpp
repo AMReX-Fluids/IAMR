@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.20 1997-10-21 22:00:57 vince Exp $
+// $Id: NavierStokes.cpp,v 1.21 1997-12-05 18:32:49 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3187,56 +3187,76 @@ Real  NavierStokes::volWgtSum(const aString& name, Real time)
     return sum;
 }
 
-
-// --------- ----------------------------------------------------
-void NavierStokes::checkPoint(ostream& os)
+#ifdef BL_PARALLEL_IO
+aString
+HyperCLaw::thePlotFileType () const
 {
-    AmrLevel::checkPoint(os);
+    //
+    // Increment this whenever the writePlotFile() format changes.
+    //
+    static const aString the_plot_file_type("NavierStokes-V1.0");
+
+    return the_plot_file_type;
 }
 
-// -------------------------------------------------------------
-void NavierStokes::writePlotFile(ostream &os)
+void
+HyperCLaw::writePlotFile (const aString& dir,
+                          ostream&       os,
+                          VisMF::How     how)
 {
-      // this is a hack to mimic the old Hyperbolic style plotfile so
-      // we can use the graphics tools developed for that code.
-      // The new version of this code will have a better interface
+    //
+    // TODO -- finish this.
+    //
+    BoxLib::Error("Not implemented yet");
+}
+
+#else
+
+void
+NavierStokes::writePlotFile (ostream& os)
+{
+    //
+    // This is a hack to mimic the old Hyperbolic style plotfile so
+    // we can use the graphics tools developed for that code.
+    // The new version of this code will have a better interface.
+    //
     int i, n;
     List<DeriveRec*> dlist = derive_lst.dlist();
-    if (level == 0) {
-      if(ParallelDescriptor::IOProcessor()) {
-	  // only write out velocity and scalar data
+
+    if (level == 0 && ParallelDescriptor::IOProcessor())
+    {
+        //
+        // Only write out velocity and scalar data.
+        //
 	int n_var = NUM_STATE;
         int n_data_items = n_var;
-        if(have_dsdt) {
-          n_data_items = n_var + dlist.length() + 2;
-        } else if(have_divu) {
-          n_data_items = n_var + dlist.length() + 1;
-        } else {
-          n_data_items = n_var + dlist.length();
+        if (have_dsdt)
+        {
+            n_data_items = n_var + dlist.length() + 2;
         }
-
-        incrPlotFile_ndata(&n_data_items);
+        else if(have_divu)
+        {
+            n_data_items = n_var + dlist.length() + 1;
+        }
+        else
+        {
+            n_data_items = n_var + dlist.length();
+        }
 
         os << n_data_items << '\n';
-        const StateDescriptor& d_cell = desc_lst[State_Type];
-	for (n = 0; n < NUM_STATE; n++){
-	    os << d_cell.name(n) << '\n';
-	}
 
-        if(have_divu) {
-          const StateDescriptor& divu_cell = desc_lst[Divu_Type];
-	  os << divu_cell.name(0) << '\n';
-          if(have_dsdt) {
-            const StateDescriptor& dsdt_cell = desc_lst[Dsdt_Type];
-	    os << dsdt_cell.name(0) << '\n';
-          }
+	for (n = 0; n < NUM_STATE; n++)
+	    os << desc_lst[State_Type].name(n) << '\n';
+
+        if (have_divu)
+        {
+            os << desc_lst[Divu_Type].name(0) << '\n';
+            if (have_dsdt)
+                os << desc_lst[Dsdt_Type].name(0) << '\n';
         }
 
-        writeOtherPlotFileNames(os);
-
-        for(ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp) {
-          os << dlist[lidrp]->name() << '\n';
-        }
+        for (ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp)
+            os << dlist[lidrp]->name() << '\n';
 
 	os << BL_SPACEDIM << '\n';
 	os << parent->cumTime() << '\n';
@@ -3252,94 +3272,87 @@ void NavierStokes::writePlotFile(ostream &os)
         os << '\n';
 	for (i = 0; i <= f_lev; i++) os << parent->levelSteps(i) << ' ';
         os << '\n';
-	for (i = 0; i <= f_lev; i++) {
-	    const Real* dx_lev = parent->Geom(i).CellSize();
-	    for (int k = 0; k < BL_SPACEDIM; k++) {
-		os << dx_lev[k] << ' ';
-	    }
+	for (i = 0; i <= f_lev; i++)
+        {
+	    for (int k = 0; k < BL_SPACEDIM; k++)
+		os << parent->Geom(i).CellSize()[k] << ' ';
 	    os << '\n';
 	}
 	os << (int) CoordSys::Coord() << '\n';
-
-	  // write bndry data
+        //
+        // Write bndry data.
+        //
 	os << "0\n";
-      }
     }
-
-      // now write state data
+    //
+    // Now write state data.
+    //
     int ngrids = grids.length();
     Real cur_time = state[State_Type].curTime();
     MultiFab& cell_dat = state[State_Type].newData();
     MultiFab *divu_dat;
     MultiFab *dsdt_dat;
-    if(have_divu) {
-      divu_dat = &(state[Divu_Type].newData());
-      if(have_dsdt) {
-        dsdt_dat = &(state[Dsdt_Type].newData());
-      }
+    if (have_divu)
+    {
+        divu_dat = &(state[Divu_Type].newData());
+        if (have_dsdt)
+            dsdt_dat = &(state[Dsdt_Type].newData());
     }
 
-    if(ParallelDescriptor::IOProcessor()) {
-      os << level << ' ' << ngrids << '\n';
-    }
+    if (ParallelDescriptor::IOProcessor())
+        os << level << ' ' << ngrids << '\n';
 
     streampos filePosition;
     ParallelDescriptor::ShareVar(&filePosition, sizeof(streampos));
     ParallelDescriptor::Synchronize();
     int myproc = ParallelDescriptor::MyProc();
-    int fabProc;
 
-    for (i = 0; i < ngrids; i++) {
-      fabProc = cell_dat.DistributionMap()[i];
-      if(fabProc == myproc) {
-	const Box& grd = grids[i];
-	os << grd << '\n';
-	os << level << '\n';
-	os << parent->levelSteps(level) << '\n';
-	os << cur_time << '\n';
-	for (n = 0; n < BL_SPACEDIM; n++) {
-	    os << grid_loc[i].lo(n) << ' ' << grid_loc[i].hi(n) << '\n';
-	}
-	FArrayBox dat(grd,1);
-        for (n = 0; n < NUM_STATE; n++) {
-	    dat.copy(cell_dat[i],n,0,1);
-	    dat.writeOn(os,0,1);
+    for (i = 0; i < ngrids; i++)
+    {
+        int fabProc = cell_dat.DistributionMap()[i];
+        if (fabProc == myproc)
+        {
+            const Box& grd = grids[i];
+            os << grd << '\n';
+            os << level << '\n';
+            os << parent->levelSteps(level) << '\n';
+            os << cur_time << '\n';
+            for (n = 0; n < BL_SPACEDIM; n++)
+                os << grid_loc[i].lo(n) << ' ' << grid_loc[i].hi(n) << '\n';
+            FArrayBox dat(grd,1);
+            for (n = 0; n < NUM_STATE; n++)
+            {
+                dat.copy(cell_dat[i],n,0,1);
+                dat.writeOn(os,0,1);
+            }
+            if (have_divu)
+            {
+                dat.copy((*divu_dat)[i],0,0,1);
+                dat.writeOn(os,0,1);
+                if (have_dsdt)
+                {
+                    dat.copy((*dsdt_dat)[i],0,0,1);
+                    dat.writeOn(os,0,1);
+                }
+            }
+            for (ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp)
+            {
+                FArrayBox *dfab = derive(grd,dlist[lidrp]->name(),cur_time);
+                dfab->writeOn(os,0,1);
+                delete dfab;
+            }
+            filePosition = os.tellp();
         }
-
-        if(have_divu) {
-	  dat.copy((*divu_dat)[i],0,0,1);
-	  dat.writeOn(os,0,1);
-          if(have_dsdt) {
-	    dat.copy((*dsdt_dat)[i],0,0,1);
-	    dat.writeOn(os,0,1);
-          }
-        }
-
-        writeOtherPlotFileGridData(os,i);
-
-        for(ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp) {
-          FArrayBox *dfab = derive(grd,dlist[lidrp]->name(),cur_time);
-          dfab->writeOn(os,0,1);
-          delete dfab;
-        }
-	filePosition = os.tellp();
-      }
-      ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition);
-      os.seekp(filePosition);
-    }  // end for(i...)
+        ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition);
+        os.seekp(filePosition);
+    }
     ParallelDescriptor::Synchronize();
     ParallelDescriptor::UnshareVar(&filePosition);
-
 }
+#endif /*BL_PARALLEL_IO*/
 
-
-//=================================================================
-// Timestep estimation functions follow
-//=================================================================
-
-
-// -------------------------------------------------------------
-Real NavierStokes::estTimeStep()
+Real
+NavierStokes::estTimeStep ()
 {
     if (fixed_dt > 0.0) {
       Real factor;
@@ -5105,7 +5118,7 @@ void NavierStokes::getState(FArrayBox& fab, int gridno, int ngrow,
 {
 //bool canUse_getState1 = false;
 //assert(canUse_getState1);
-cerr << "\nError:  should not be in NavierStokes::getState (1)\n\n";
+    BoxLib::Error("Should not be in NavierStokes::getState (1)");
 
     getState(fab,gridno,ngrow,State_Type,strt_comp,num_comp,time);
 }
@@ -5117,8 +5130,9 @@ void NavierStokes::getState(FArrayBox& fab, int gridno, int ngrow,
 {
 //bool canUse_getState2 = false;
 //assert(canUse_getState2);
-cerr << "\nError:  should not be in NavierStokes::getState (2)\n\n";
+    BoxLib::Error("Should not be in NavierStokes::getState (2)");
 
+#if 0
     Box bx(grids[gridno]);
     bx.grow(ngrow);
     fab.resize(bx,num_comp);
@@ -5137,6 +5151,7 @@ cerr << "\nError:  should not be in NavierStokes::getState (2)\n\n";
     } else {
 	FillPatch(fab,0,time,state_indx,strt_comp,num_comp);
     }
+#endif
 }
 
 // fills ghost cells of state:
@@ -5208,8 +5223,9 @@ void NavierStokes::getState(FArrayBox& fab, int gridno, int ngrow,
 {
 //bool canUse_getState3 = false;
 //assert(canUse_getState3);
-cerr << "\nError:  should not be in NavierStokes::getState (3)\n\n";
+    BoxLib::Error("Should not be in NavierStokes::getState (3)");
 
+#if 0
     // create the storage
     Box bx(grids[gridno]);
     bx.grow(ngrow);
@@ -5238,6 +5254,7 @@ cerr << "\nError:  should not be in NavierStokes::getState (3)\n\n";
             FillPatch(fab,0,time,state_indx,strt_comp,num_comp);
         }
     }
+#endif
 }
 
 

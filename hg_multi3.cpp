@@ -1,6 +1,6 @@
 
 //
-// $Id: hg_multi3.cpp,v 1.14 1997-11-18 18:31:33 car Exp $
+// $Id: hg_multi3.cpp,v 1.15 1997-12-05 18:32:52 lijewski Exp $
 //
 
 #include <hg_multi.H>
@@ -201,7 +201,7 @@ holy_grail_amr_multigrid::level_residual(MultiFab& r,
     const Box& rbox = ri->box();
     const Box& sbox = si->box();
     const Box& dbox = di->box();
-    const Box& freg = interface[mglev].part_fine(igrid);
+    const Box& freg = interface[mglev].part_fine(ri.index());
 #    ifndef SIGMA_NODE
     // this branch is the only one that can be reached here
     DependentMultiFabIterator sigma_i(ri, sigma[mglev]);
@@ -227,11 +227,11 @@ holy_grail_amr_multigrid::level_residual(MultiFab& r,
 	       );
 #    else
     // this branch is unreachable
-    const Box& sigbox = sigma_node[mglev][igrid].box();
-    FORT_HGRES(r[igrid].dataPtr(), DIMLIST(rbox),
-               s[igrid].dataPtr(), DIMLIST(sbox),
-               d[igrid].dataPtr(), DIMLIST(dbox),
-               sigma_node[mglev][igrid].dataPtr(), DIMLIST(sigbox),
+    const Box& sigbox = sigma_node[mglev][ri.index()].box();
+    FORT_HGRES(r[ri.index()].dataPtr(), DIMLIST(rbox),
+               s[ri.index()].dataPtr(), DIMLIST(sbox),
+               d[ri.index()].dataPtr(), DIMLIST(dbox),
+               sigma_node[mglev][ri.index()].dataPtr(), DIMLIST(sigbox),
                DIMLIST(freg));
 #    endif // SIGMA_NODE
   }

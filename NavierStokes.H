@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.9 1997-10-08 20:15:41 car Exp $
+// $Id: NavierStokes.H,v 1.10 1997-12-05 18:32:48 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -106,14 +106,26 @@ public:   // ===================== public member functions ===
     Real sumDerive(const aString& name, Real time);
     Real volWgtSum(const aString& name, Real time);
 
-    virtual void checkPoint(ostream& os);
-
-    // write plot file
-    virtual void writePlotFile(ostream &os);
-    virtual void incrPlotFile_ndata(int* n_data) { return;} ;
-    virtual void writeOtherPlotFileNames(ostream &os) {return;} ;
-    virtual void writeOtherPlotFileGridData(ostream &os, int igrid) 
-      {return;} ;
+#ifdef BL_PARALLEL_IO
+    //
+    // A string written as the first item in writePlotFile() at level zero.
+    // It is so we can distinguish between different types of plot files.
+    //
+    // For NavierStokes it has the form: NavierStokes-Vnnn
+    //
+    virtual aString thePlotFileType () const;
+    //
+    // Write plot file stuff to specified directory.
+    //
+    virtual void writePlotFile (const aString& dir,
+                                ostream&       os,
+                                VisMF::How     how);
+#else
+    //
+    // Write plot file.
+    //
+    virtual void writePlotFile (ostream &os);
+#endif
 
     //=================================================================
     // Timestep estimation functions follow
