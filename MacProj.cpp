@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.37 1998-12-11 21:29:02 lijewski Exp $
+// $Id: MacProj.cpp,v 1.38 1998-12-11 23:54:20 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -923,7 +923,7 @@ MacProj::check_div_cond (int      level,
                     az_dat,ARLIM(azlo),ARLIM(azhi),
                     vol_dat,ARLIM(vlo),ARLIM(vhi));
 #endif
-        if (verbose)
+        if (verbose && ParallelDescriptor::IOProcessor())
         {
             cout << "Max norm of div(U_edge) for grid  "
                  << U_edge0mfi.index()
