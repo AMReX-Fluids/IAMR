@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.71 1999-02-25 20:16:12 propp Exp $
+// $Id: Diffusion.cpp,v 1.72 1999-02-26 17:28:12 marc Exp $
 //
 
 //
@@ -1358,7 +1358,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
 	// This is to remove the dx scaling in the coeffs
 	//
         for (int dim =0; dim <BL_SPACEDIM; dim++)
-            tensorflux[0]->mult(b/(dt*caller->Geom().CellSize()[dim]),0);
+            tensorflux[dim]->mult(b/(dt*caller->Geom().CellSize()[dim]),0);
 
         for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
         {
