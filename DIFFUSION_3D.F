@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_3D.F,v 1.8 1999-04-12 23:44:35 sstanley Exp $
+c $Id: DIFFUSION_3D.F,v 1.9 2000-04-20 17:46:05 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -22,7 +22,7 @@ c ::
 c :: NOTE:
 c ::   These are only computed for a reflux operation, and require
 c ::   that the ghost cells have been filled according to the 
-c ::   diffusion operator (maybe this isn't such a good idea...)
+c ::   diffusion operator (maybe this isnt such a good idea...)
 c :: ----------------------------------------------------------
 c ::
 
@@ -95,7 +95,7 @@ c ::
 c :: NOTE:
 c ::   These are only computed for a reflux operation, and require
 c ::   that the ghost cells have been filled according to the 
-c ::   diffusion operator (maybe this isn't such a good idea...)
+c ::   diffusion operator (maybe this isnt such a good idea...)
 c :: ----------------------------------------------------------
 c ::
 

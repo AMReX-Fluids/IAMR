@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.17 1999-03-01 22:27:28 sstanley Exp $
+c $Id: PROB_3D.F,v 1.18 2000-04-20 17:45:40 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -28,7 +28,7 @@ c ::: INPUTS/OUTPUTS:
 c ::: 
 c ::: init      => TRUE if called at start of problem run
 c :::              FALSE if called from restart
-c ::: name      => name of `probin' file
+c ::: name      => name of "probin" file
 c ::: namlen    => length of name
 c ::: strttime <=  start problem with this time variable
 c ::: 
@@ -50,7 +50,7 @@ c ::: -----------------------------------------------------------
      &                  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag,
      &                  vb_unifdir
 c
-c      Build `probin' filename -- the name of file containing fortin namelist.
+c      Build "probin" filename -- the name of file containing fortin namelist.
 c
       integer maxlen
       parameter (maxlen=256)
