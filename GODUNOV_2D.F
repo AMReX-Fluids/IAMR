@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.38 2003-04-04 17:30:55 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.39 2003-06-05 20:57:43 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -483,7 +483,10 @@ c
      &              + dth*tforces(i,j)
             end do
 
-            if (bc(1,1).eq.EXT_DIR .and. uad(imin,j).ge.zero) then
+            if (bc(1,1).eq.EXT_DIR .and. velpred.eq.1) then
+               stxhi(imin) = s(imin-1,j)
+               stxlo(imin) = s(imin-1,j)
+            else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j).ge.zero) then
                stxhi(imin) = s(imin-1,j)
                stxlo(imin) = s(imin-1,j)
             else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j).lt.zero) then
@@ -496,7 +499,10 @@ c
                stxlo(imin) = stxhi(imin)
             end if
 
-            if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j).le.zero) then
+            if (bc(1,2).eq.EXT_DIR .and. velpred.eq.1) then
+               stxlo(imax+1) = s(imax+1,j)
+               stxhi(imax+1) = s(imax+1,j)
+            else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j).le.zero) then
                stxlo(imax+1) = s(imax+1,j)
                stxhi(imax+1) = s(imax+1,j)
             else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j).gt.zero) then
@@ -544,7 +550,10 @@ c
      &              + dth*tforces(i,j)
             end do
 
-            if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin).ge.zero) then
+            if (bc(2,1).eq.EXT_DIR .and. velpred .eq. 1) then
+               styhi(jmin) = s(i,jmin-1)
+               stylo(jmin) = s(i,jmin-1)
+            else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin).ge.zero) then
                styhi(jmin) = s(i,jmin-1)
                stylo(jmin) = s(i,jmin-1)
             else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin).lt.zero) then
@@ -557,7 +566,10 @@ c
                stylo(jmin) = zero
             end if
             
-            if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1).le.zero) then
+            if (bc(2,2).eq.EXT_DIR .and. velpred .eq. 1) then
+               stylo(jmax+1) = s(i,jmax+1)
+               styhi(jmax+1) = s(i,jmax+1)
+            else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1).le.zero) then
                stylo(jmax+1) = s(i,jmax+1)
                styhi(jmax+1) = s(i,jmax+1)
             else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1).gt.zero) then
@@ -2411,21 +2423,6 @@ c
             ystate(i,je+1) = zero
         end if
       enddo
-
-#if 0
-      do j = js,je 
-      do i = is,ie+1
-          if (xstate(i,j).lt. zero) print *,'NEG XSTATE ',i,j,xstate(i,j)
-          if (abs(xstate(i,j)).gt. 1.e20) print *,'BIG XSTATE ',i,j,xstate(i,j)
-      enddo
-      enddo
-      do j = js,je+1 
-      do i = is,ie
-          if (ystate(i,j).lt. zero) print *,'NEG YSTATE ',i,j,ystate(i,j)
-          if (abs(ystate(i,j)).gt. 1.e20) print *,'BIG YSTATE ',i,j,ystate(i,j)
-      enddo
-      enddo
-#endif
 
       end
 
