@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.37 1999-04-02 21:28:33 sstanley Exp $
+// $Id: NavierStokes.H,v 1.38 1999-05-07 20:31:05 marc Exp $
 //
 
 #include <LevelBld.H>
@@ -398,16 +398,16 @@ protected:
     //
     // Average fine down to coarse in the ovlp intersection.
     //
-    virtual void avgDown (const FArrayBox& fine_fab,
-                          const FArrayBox& crse_fab, 
-                          const FArrayBox& fine_vol,
-                          const FArrayBox& crse_vol,
-                          int              f_level,
-                          int              c_level,
-                          const Box&       ovlp,
-                          int              start_comp,
-                          int              num_comp,
-                          IntVect&         fratio);
+    void avgDown (const FArrayBox& fine_fab,
+                  const FArrayBox& crse_fab, 
+                  const FArrayBox& fine_vol,
+                  const FArrayBox& crse_vol,
+                  int              f_level,
+                  int              c_level,
+                  const Box&       ovlp,
+                  int              start_comp,
+                  int              num_comp,
+                  IntVect&         fratio);
     //
     // Inject fine pressure nodes down onto coarse nodes.
     //
@@ -435,8 +435,8 @@ protected:
     //
     virtual void reflux ();
 
-    void avgDown ();         // Average down for all the state types.
-    void avgDown (int comp); // Average down forfor a single scalar.
+    virtual void avgDown (); // Average down for all the state types.
+    void avgDown (int comp); // Average down for a single StateType scalar
     //
     // Compile rho_avg in advance.
     //
