@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.73 1999-04-16 18:25:00 lijewski Exp $
+# $Id: GNUmakefile,v 1.74 1999-04-16 19:19:12 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -40,10 +40,12 @@ ifeq ($(DIM),2)
 #
 # SYNCREG_2D.F builds RHS differently for 5 and 9 point stencils.
 #
-ifeq ($(findstring 5, $(PRVERSION)), 5)
-DEFINES += -DBL_PRVERSION=5
-else
+# Note that parallel hgproj currently only implements v5.
+#
+ifeq ($(findstring 9, $(PRVERSION)), 9)
 DEFINES += -DBL_PRVERSION=9
+else
+DEFINES += -DBL_PRVERSION=5
 endif
 endif
 #
