@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.7 1998-03-31 17:26:40 lijewski Exp $
+c $Id: PROJECTION_2D.F,v 1.8 1998-05-19 00:52:24 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -478,10 +478,12 @@ c
       end
 
       subroutine FORT_HGPHIBC(DIMS(u),u,DIMS(div),divcor,DIMS(rho),rho,
-     &                        DIMS(r),r,hx,DIMS(phi),phi)
+     &                        DIMS(r),r,hx,DIMS(phi),phi,per)
 c
-c ... compute the value of phi for hgproj to be used at an 
-c     upper, y-outflow face
+c     Compute the value of phi for hgproj to be used at an  upper, y-outflow face,
+c     assuming that the tangential velocity on the edges of the outflow boundary
+c     are either zero or periodic.  Algorithm incorrect for stress-free side walls,
+c     or if there is outflow on any other boundary.
 c
       implicit none
 
@@ -490,121 +492,258 @@ c
       integer DIMDEC(div)
       integer DIMDEC(rho)
       integer DIMDEC(r)
+      integer per
       REAL_T    phi(DIMV(phi))
       REAL_T      u(DIMV(u),SDIM)
       REAL_T divcor(DIMV(div))
       REAL_T    rho(DIMV(rho))
       REAL_T      r(DIM1(r))
-      REAL_T hx,rhs,fst,fstm
-      integer i,is,ie,js,je,iend,j
-      REAL_T  divcor_ave, vtot
-      REAL_T  div_edge, rho_edge, div_edge_m1, rho_edge_m1, div_edge_m2, rho_edge_m2
-
+      REAL_T hx
+      
+c     Local variables
+      integer NstripMAX
+      parameter (NstripMAX = 500)
+      integer ics, ice, jcs, jce, ins, ine, jns, jne
+      integer ni, nj, i, j, icL, icR, neq
+      REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX), s(NstripMAX)
+      REAL_T x(NstripMAX), alpha, beta, sVal
+      logical rNormed
+      REAL_T divcor_ave, vtot
+      REAL_T div_edge, rho_edge
+      REAL_T div_edge_m1, rho_edge_m1, div_edge_m2, rho_edge_m2
       REAL_T max_divu, min_divu
 
-#if 0
-      return
+      ins = ARG_L1(phi)
+      ine = ARG_H1(phi)
+      jns = ARG_L2(phi)
+      jne = ARG_H2(phi)
+      
+      ics = ARG_L1(u)
+      ice = ARG_H1(u)
+      jcs = ARG_L2(u)
+      jce = ARG_H2(u)
+      
+c     Get average and extremes of divu.  If == 0, then boundary nodes should be set to
+c     phi = 0.  Assume that cell-centered values are given on a 3-wide strip across the
+c     entire domain--the top row of the box are cell-centered "ghost" cells.  The phi
+c     values are given along a 1-wide strip along the top of the domain.
+#ifndef NDEBUG
+      if ( (ins .ne. ics)   .or.
+     &     (ine .ne. ice+1) .or.
+     &     (jns .ne. jcs+2) .or.
+     &     (jne .ne. jce)   .or.
+     &     (jns .ne. jne) ) then
+         
+         write(6,*) 'FORT_HGPHIBC: bad bounds'
+         stop
+         
+      else if (jne - jns + 1 .gt. NstripMAX) then
+         
+         write(6,*) 'FORT_HGPHIBC: recompile with NstripMAX >',jne-jns+1
+         stop
+         
+      end if
 #endif
-
-      is = ARG_L1(phi)+1
-      ie = ARG_H1(phi)-1
-      js = ARG_L2(phi)+1
-      je = ARG_H2(phi)-1
-      iend =ie
-
-#if 0
+      
+c     In this implementation, use that d/dy == 0 at top, so y-edge centered values come
+c     directly from cell-centers just inside domain
+      
       divcor_ave = zero
       vtot = zero
-      do i=is,ie-1 
-#if 0
-         div_edge = half*(divcor(i,je-1)+divcor(i,je))
-#endif
-#if 1
-         div_edge = divcor(i,je)
-#endif
-           divcor_ave = divcor_ave+r(i)*div_edge
-           vtot = vtot+r(i)
-        end do
-        divcor_ave = divcor_ave/vtot
+      max_divu = zero
+      min_divu = zero
+      j = jcs + 1
+      do i = ics, ice
+         divcor_ave = divcor_ave+r(i)*divcor(i,j)
+         vtot = vtot+r(i)
+         max_divu = max(max_divu,divcor(i,j))
+         min_divu = min(min_divu,divcor(i,j))
+      end do
+      divcor_ave = divcor_ave/vtot
 
-        fst = zero
-#if 0
-        div_edge = half*(divcor(is,je-1)+divcor(is,je))
-        rho_edge = half*(rho(is,je-1)+rho(is,je))
-#endif
-#if 1
-        div_edge = divcor(is,je)
-        rho_edge = rho(is,je)
-#endif
-        fstm = (div_edge-divcor_ave)*hx
-        phi(is,je)   = zero
-        phi(is+1,je) = rho_edge*hx*(u(is,je-1,1) -
-     $      half*(div_edge-divcor_ave)*hx)
+      if(max_divu.eq.zero.and.min_divu.eq.zero) then
+         do i = ins,ine
+            phi(i,jns) = zero
+         end do
+         return
+      end if
+      
+c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu if U is 
+c     zero, S = d/dt(divu) if U = (ustar - uold)/dt] with periodic or Neumann
+c     boundary conditions, using a tridiagonal solve which detects, and deals with,
+c     the singular equations.  In the Neumann case, arbitrarily set the upper right
+c     corner to zero to pin the solution.  Note that the RHS of this equation
+c     satisfies the solvability constraint that Int[RHS.dV] = 0 by construction.
+c     This implies that the normal component takes up the slack:
+c     
+c                        d/dy( 1/rho d/dy( phi ) ) = dV/dy - S_ave
+c     
+c     This information should be used to construct the normal gradient of the
+c     normal velocity, for the advective/diffusive step, for example.
+      
+      j = jns
+      do i = 2,ine-ins
+         icR = ins + i - 1
+         icL = icR - 1
+         a(i) = r(icL) / rho(icL,j)
+         c(i) = r(icR) / rho(icR,j)
+         b(i) = - a(i) - c(i)
+         s(i) = hx*
+     &        (r(icR)*( u(icR,j,1)-half*hx*(divcor(icR,j)-divcor_ave))
+     &        +r(icL)*(-u(icL,j,1)-half*hx*(divcor(icL,j)-divcor_ave)))
+      end do
 
-        do i=is+2,ie 
-c          write(6,*)'rho,u,divcor=',rho(i-1,je-1),u(i-1,je-1,1),divcor(i-1,je-1)
-#if 0
-          div_edge_m1 = half*(divcor(i-1,je-1)+divcor(i-1,je))
-          div_edge_m2 = half*(divcor(i-2,je-1)+divcor(i-2,je))
-          rho_edge_m1 = half*(rho(i-1,je-1)+rho(i-1,je))
-          rho_edge_m2 = half*(rho(i-2,je-1)+rho(i-2,je))
-#endif
-#if 1
-          div_edge_m1 = divcor(i-1,je)
-          div_edge_m2 = divcor(i-2,je)
-          rho_edge_m1 = rho(i-1,je)
-          rho_edge_m2 = rho(i-2,je)
-#endif
-          fst = (r(i-2)*fstm + half*(r(i-1)*(div_edge_m1-divcor_ave) +
-     $         r(i-2)*(div_edge_m2-divcor_ave))*hx)/r(i-1)
-          rhs = r(i-2)*(phi(i-1,je)-phi(i-2,je))/(rho_edge_m2*hx) +
-     $          r(i-1)*(u(i-1,je-1,1) - fst) - 
-     &          r(i-2)*(u(i-2,je-1,1) - fstm)
-          phi(i,je) = phi(i-1,je) + hx*rho_edge_m1*rhs / r(i-1)
-          fstm = fst
-        end do
-#endif
-#if 1
-        divcor_ave = zero
-        vtot = zero
-        max_divu = zero
-        min_divu = zero
-        do j=je-1,je-1
-        do i=is,ie-1 
-           divcor_ave = divcor_ave+r(i)*divcor(i,j)
-           vtot = vtot+r(i)
-           max_divu = max(max_divu,divcor(i,j))
-           min_divu = min(min_divu,divcor(i,j))
-        end do
-        end do
-        divcor_ave = divcor_ave/vtot
+      if (per .eq. 1) then
+         
+c     Do left-side periodic BC (since first/last node coincide, use first node only
+c     (retain r-stuff here, just to be sure scaling is not destroyed)
+         neq = ine - ins
+         icL = ice
+         icR = ics
+         beta = r(icL) / rho(icL,j)
+         c(1) = r(icR) / rho(icR,j)
+         b(1) = - beta - c(1)
+         s(1) = hx*
+     &        (r(icR)*( u(icR,j,1)-half*hx*(divcor(icR,j)-divcor_ave))
+     &        +r(icL)*(-u(icL,j,1)-half*hx*(divcor(icL,j)-divcor_ave)))
+         
+c     Do right-side periodic on penultimate node
+         icL = ice - 1
+         icR = ice
+         a(neq) = r(icL) / rho(icL,j)
+         alpha  = r(icR) / rho(icR,j)
+         b(neq) = - a(neq) - alpha
+         s(neq) = hx*
+     &        (r(icR)*( u(icR,j,1)-half*hx*(divcor(icR,j)-divcor_ave))
+     &        +r(icL)*(-u(icL,j,1)-half*hx*(divcor(icL,j)-divcor_ave)))
+         
+c     Solve the equations
+         call cyclic(a,b,c,alpha,beta,s,x,neq)
+         
+      else
 
-        if(max_divu.eq.zero.and.min_divu.eq.zero) then
-          return
-        end if
-
-c        write(6,*)"divcor_ave",divcor_ave
-c        call flush(6)
-
-
-        fst = zero
-        fstm = (divcor(is,je-1)-divcor_ave)*hx
-        phi(is,je)   = zero
-c        write(6,*)'rho,u,divcor=',rho(is,je-1),u(is,je-1,1),divcor(is,je-1)
-        phi(is+1,je) = rho(is,je-1)*hx*(u(is,je-1,1) -
-     $      half*(divcor(is,je-1)-divcor_ave)*hx)
-
-        do i=is+2,ie 
-          fst = (r(i-2)*fstm + half*(r(i-1)*(divcor(i-1,je-1)-divcor_ave) +
-     $         r(i-2)*(divcor(i-2,je-1)-divcor_ave))*hx)/r(i-1)
-          rhs = r(i-2)*(phi(i-1,je)-phi(i-2,je))/(rho(i-2,je-1)*hx) +
-     $          r(i-1)*(u(i-1,je-1,1) - fst) - 
-     &          r(i-2)*(u(i-2,je-1,1) - fstm)
-          phi(i,je) = phi(i-1,je) + hx*rho(i-1,je-1)*rhs / r(i-1)
-          fstm = fst
-        end do
-#endif
-
+c     Solid walls, Nuemann conditions
+         neq = ine - ins + 1
+         icR = ics
+         c(1) = r(icR) / rho(icR,j)
+         b(1) = - c(1)
+         s(1) = hx*
+     &        r(icR)*( u(icR,j,1)-half*hx*(divcor(icR,j)-divcor_ave))
+         
+         icL = ice
+         a(neq) = r(icL) / rho(icL,j)
+         b(neq) = - a(ine-1)
+         s(neq) = hx*
+     &        r(icL)*(-u(icL,j,1)-half*hx*(divcor(icL,j)-divcor_ave))
+         
+c     Solve the equations (we know they're singular, pass the arbitrary value, and
+c     a flag that we've already normalized the rhs, in the sense that
+c                          Int[dU/dx - (S-S_ave)] == 0
+         sVal = zero
+         rNormed = .true.
+         call tridag_sing(a,b,c,s,x,neq,sVal,rNormed)
+         
+      end if
+      
+c     Write the solution into the arg
+      do i = 1,neq
+         phi(i+ins-1,jns) = x(i)
+      end do
+      if (per .eq. 1) then
+         phi(ine,jns) = phi(ins,jns)
+      endif
+      
       end
+      
+      SUBROUTINE tridag_sing(a,b,c,r,u,n,sVal,rNormed)
+      INTEGER n,NMAX
+      REAL_T a(n),b(n),c(n),r(n),u(n), sVal
+      PARAMETER (NMAX=500)
+      INTEGER j
+      REAL_T bet,gam(NMAX)
+      logical rNormed, singular
+      singular = .false.
+      if(b(1).eq.zero)then
+         write(6,*) 'tridag: rewrite equations'
+         stop
+      end if
+      bet=b(1)
+      u(1)=r(1)/bet
+      do 11 j=2,n
+        gam(j)=c(j-1)/bet
+        bet=b(j)-a(j)*gam(j)
+        if(bet.eq.0.) then
+           if (rNormed .and.  (j .eq. n)) then
+              singular = .true.
+           else
+              pause 'tridag failed'
+           endif
+        endif
+        if (singular) then
+           u(j) = sVal
+        else
+           u(j)=(r(j)-a(j)*u(j-1))/bet
+        endif
+11    continue
+      do 12 j=n-1,1,-1
+        u(j)=u(j)-gam(j+1)*u(j+1)
+12    continue
+      return
+      END
+      
+      SUBROUTINE tridag(a,b,c,r,u,n)
+      INTEGER n,NMAX
+      REAL_T a(n),b(n),c(n),r(n),u(n)
+      PARAMETER (NMAX=500)
+      INTEGER j
+      REAL_T bet,gam(NMAX)
+      if(n.gt.NMAX)then
+         write(6,*) 'NMAX too small in tridag'
+      end if
+      if(b(1).eq.0.)pause 'tridag: rewrite equations'
+      bet=b(1)
+      u(1)=r(1)/bet
+      do 11 j=2,n
+        gam(j)=c(j-1)/bet
+        bet=b(j)-a(j)*gam(j)
+        if(bet.eq.0.)pause 'tridag failed'
+        u(j)=(r(j)-a(j)*u(j-1))/bet
+11    continue
+      do 12 j=n-1,1,-1
+        u(j)=u(j)-gam(j+1)*u(j+1)
+12    continue
+      return
+      END
 
-
+      SUBROUTINE cyclic(a,b,c,alpha,beta,r,x,n)
+      INTEGER n,NMAX
+      REAL_T alpha,beta,a(n),b(n),c(n),r(n),x(n)
+      PARAMETER (NMAX=500)
+      INTEGER i
+      REAL_T fact,gamma,bb(NMAX),u(NMAX),z(NMAX)
+      if(n.le.2)then
+         write(6,*) 'n too small in cyclic'
+         stop
+      end if
+      if(n.gt.NMAX)then
+         write(6,*) 'NMAX too small in cyclic'
+      end if
+      gamma=-b(1)
+      bb(1)=b(1)-gamma
+      bb(n)=b(n)-alpha*beta/gamma
+      do 11 i=2,n-1
+        bb(i)=b(i)
+11    continue
+      call tridag(a,bb,c,r,x,n)
+      u(1)=gamma
+      u(n)=alpha
+      do 12 i=2,n-1
+        u(i)=0.
+12    continue
+      call tridag(a,bb,c,u,z,n)
+      fact=(x(1)+beta*x(n)/gamma)/(one+z(1)+beta*z(n)/gamma)
+      do 13 i=1,n
+        x(i)=x(i)-fact*z(i)
+13    continue
+      return
+      END

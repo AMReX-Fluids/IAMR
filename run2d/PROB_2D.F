@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.8 1998-05-13 23:16:57 almgren Exp $
+c $Id: PROB_2D.F,v 1.9 1998-05-19 00:52:23 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -42,7 +42,7 @@ c ::: -----------------------------------------------------------
 
       namelist /fortin/ denerr, vorterr, adverr, temperr,
      &			denfact, xblob, yblob, zblob, radblob, 
-     &                  xoffset, velfact, probtype, randfact, bubgrad,
+     &                  velfact, probtype, randfact, bubgrad,
      &			rhozero, tempzero, c_d, r_d, 
      &                  adv_dir, adv_vel, axis_dir, radvort
 c
@@ -148,6 +148,11 @@ c
      &     	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
 
+      else if (probtype .eq. 6) then
+         call inithotspot(level,time,lo,hi,nscal,
+     &     	          vel,scal,DIMS(state),press,DIMS(press),
+     &                    dx,xlo,xhi)
+
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
       end if
@@ -228,7 +233,7 @@ c
 c
 c     ::::: local variables
 c
-      integer i, j
+      integer i, j, n
       REAL_T  x, y
       REAL_T  hx, hy
       REAL_T  dist
@@ -292,7 +297,7 @@ c
 c
 c     ::::: local variables
 c
-      integer i, j
+      integer i, j, n
       REAL_T  x, y, r
       REAL_T  hx, hy
       REAL_T  c, ux, uy
@@ -324,7 +329,10 @@ c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
                vel(i,j,1) = -absu*sinth
                vel(i,j,2) = absu*costh
                scal(i,j,1) = cvmgt(denfact,one,r.lt.radblob)
-               scal(i,j,2) = cvmgt(one,zero,r.lt.radblob)
+               do n = 2,nscal-1
+                  scal(i,j,n) = one
+               enddo                  
+               scal(i,j,nscal) = cvmgt(one,zero,r.lt.radblob)
 	    end do
          end do
 
@@ -349,6 +357,7 @@ c
       integer i, j, n
       REAL_T  x, y
       REAL_T  hx, hy
+      REAL_T  dist
 
 #include "probdata.H"
 
@@ -363,7 +372,7 @@ c
             scal(i,j,1) = one
 
             do n = 2,nscal-1
-               scal(i,j,n) = zero
+               scal(i,j,n) = one
             enddo                  
 
             x = xlo(1) + hx*(float(i-lo(1)) + half)
@@ -391,7 +400,7 @@ c
 c
 c     ::::: local variables
 c
-      integer i, j
+      integer i, j, n
       REAL_T  x, y
       REAL_T  hx, hy
       REAL_T  dist
@@ -412,7 +421,7 @@ c
 
                scal(i,j,1) = one
                do n = 2,nscal-1
-                  scal(i,j,n) = zero
+                  scal(i,j,n) = one
                enddo
                   
   	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
@@ -422,6 +431,64 @@ c
 
       end
 
+      subroutine inithotspot(level,time,lo,hi,nscal,
+     &	 	             vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+
+
+c     ::::: local variables
+      integer i, j, n
+      REAL_T  x, y
+      REAL_T  hx, hy
+      REAL_T  x_vel, y_vel
+      REAL_T  dist
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+
+      if (adv_dir .eq. 1) then
+         x_vel = adv_vel
+         y_vel = zero
+      else if (adv_dir .eq. 2) then
+         x_vel = zero
+         y_vel = adv_vel
+      else 
+         write(6,*) "inithotspot: adv_dir = ",adv_dir
+         stop
+      end if
+
+      do j = lo(2), hi(2)
+         y = xlo(2) + hy*(float(j-lo(2)) + half)
+         do i = lo(1), hi(1)
+            x = xlo(1) + hx*(float(i-lo(1)) + half)
+            dist = sqrt((x-xblob)**2 + (y-yblob)**2)
+            vel(i,j,1) = x_vel
+            vel(i,j,2) = y_vel
+            scal(i,j,1) = one/denfact + (one - one/denfact)
+     &           *half*(one + tanh(40.*(dist - radblob)))
+            scal(i,j,2) = one / scal(i,j,1)
+            do n = 2,nscal-1
+               scal(i,j,n) = one
+            enddo
+            scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
+         end do
+      end do
+      
+      return
+      end
+      
 c ::: -----------------------------------------------------------
 c ::: This routine will tag high error cells based on the 
 c ::: density gradient
@@ -557,6 +624,15 @@ c     probtype = PERIODIC SHEAR LAYER
            end do
         end do
 
+c     probtype = HOT SPOT
+      else if (probtype .eq. 6) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
         stop
@@ -662,6 +738,28 @@ c     probtype = PERIODIC SHEAR LAYER
            end do
         end do
 
+c     probtype = HOT SPOT
+      else if (probtype .eq. 6) then
+
+        if (level .eq. 0) then
+c         ::::: refine around entire hot spot
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
+             end do
+          end do
+        else
+c         ::::: refine where there is temperature gradient
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                ax = abs(temperature(i+1,j,1) - temperature(i-1,j,1))
+                ay = abs(temperature(i,j+1,1) - temperature(i,j-1,1))
+                aerr = max(ax,ay)
+                tag(i,j) = cvmgt(set,tag(i,j),aerr.gt.bubgrad)
+             end do
+          end do
+        end if
+
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
         stop
@@ -742,6 +840,15 @@ c     probtype = CHANNEL
 
 c     probtype = PERIODIC SHEAR LAYER
       else if (probtype .eq. 5) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+           end do
+        end do
+
+c     probtype = HOT SPOT
+      else if (probtype .eq. 6) then
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
@@ -888,7 +995,7 @@ c ::: -----------------------------------------------------------
 
          do j = ARG_L2(adv), domlo(2)-1
             do i = ARG_L1(adv), ARG_H1(adv)
-	       adv(i,j) = one
+	       adv(i,j) = zero
 	    end do
 	 end do
 
@@ -897,7 +1004,7 @@ c ::: -----------------------------------------------------------
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(adv).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(adv)
             do i = ARG_L1(adv), ARG_H1(adv)
-	       adv(i,j) = one
+	       adv(i,j) = zero
 	    end do
 	 end do
       end if            
@@ -946,7 +1053,7 @@ c ::: -----------------------------------------------------------
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(temp).lt.domlo(1)) then
          do i = ARG_L1(temp), domlo(1)-1
            do j = ARG_L2(temp), ARG_H2(temp)
-               temperature(i,j) = zero
+               temperature(i,j) = one
            end do
          end do
       end if
@@ -954,7 +1061,7 @@ c ::: -----------------------------------------------------------
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(temp).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(temp)
            do j = ARG_L2(temp), ARG_H2(temp)
-               temperature(i,j) = zero
+               temperature(i,j) = one
            end do
          end do
       end if    
@@ -962,7 +1069,7 @@ c ::: -----------------------------------------------------------
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(temp).lt.domlo(2)) then
          do j = ARG_L2(temp), domlo(2)-1
            do i = ARG_L1(temp), ARG_H1(temp)
-               temperature(i,j) = zero
+               temperature(i,j) = one
           end do
        end do
       end if    
@@ -970,7 +1077,7 @@ c ::: -----------------------------------------------------------
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(temp).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(temp)
            do i = ARG_L1(temp), ARG_H1(temp)
-               temperature(i,j) = zero
+               temperature(i,j) = one
            end do
          end do
       end if    

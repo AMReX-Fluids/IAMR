@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.46 1998-05-14 23:55:10 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.47 1998-05-19 00:52:23 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -89,6 +89,7 @@ Array<Real> NavierStokes::visc_coef;
 
 // ----------------------- internal switches
 int  NavierStokes::do_temp         = 0;
+int  NavierStokes::Temp            = -1;
 int  NavierStokes::do_sync_proj    = 1;
 int  NavierStokes::do_MLsync_proj  = 1;
 int  NavierStokes::do_reflux       = 1;
@@ -433,6 +434,12 @@ void NavierStokes::init_additional_state_types()
 {
 
     additional_state_types_initialized = 1;
+
+    // Set "Temp" from user's variable setup
+    int dummy_State_Type;
+    bool have_temp = isStateVariable("temp", dummy_State_Type, Temp);
+    have_temp &= dummy_State_Type == State_Type;
+    assert((do_temp && have_temp)  ||  (!do_temp && !have_temp));
 
     int _Divu = -1;
     int dummy_Divu_Type;

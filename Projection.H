@@ -2,7 +2,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.12 1998-05-13 23:17:46 almgren Exp $
+// $Id: Projection.H,v 1.13 1998-05-19 00:52:25 marc Exp $
 //
 
 #include <BC_TYPES.H>
@@ -206,13 +206,9 @@ protected:  // ================== protected member functions
     //=====================================================-
 
     void setUpBcs();
-    void set_level_projector_outflow_bcs(int level, Real cur_pres_time,
-                                         Real old_state_time, Real
-                                         new_state_time,
-                                         const Geometry& geom,
-                                         MultiFab &U_new,
-                                         MultiFab &P_old, MultiFab &P_new,
-                                         MultiFab * rho_half, MultiFab& dsdt);
+    void set_level_projector_outflow_bcs(int       level,
+					 Real      cur_state_time,
+					 MultiFab& P_new);
     
     void set_initial_projection_outflow_bcs(MultiFab** vel,MultiFab** sig,
                                             MultiFab** phi,
@@ -249,7 +245,6 @@ protected:// ================== protected data members
     static Real filter_factor;
     static int filter_u;
     static int rho_wgt_vel_proj;
-    static int Divu_Type;
     static int do_outflow_bcs;
     static int make_sync_solvable;
 };

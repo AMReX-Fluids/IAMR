@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.36 1998-05-13 23:17:50 almgren Exp $
+// $Id: Projection.cpp,v 1.37 1998-05-19 00:52:25 marc Exp $
 //
 
 #ifdef BL_T3E
@@ -54,7 +54,6 @@ Real      Projection::proj_abs_tol = 1.0e-16;
 Real      Projection::filter_factor = 0.0;
 int       Projection::filter_u = 0;
 int       Projection::rho_wgt_vel_proj = 0;
-int       Projection::Divu_Type = -1;
 int       Projection::do_outflow_bcs = 1;
 int       Projection::make_sync_solvable = 0;
 
@@ -277,93 +276,75 @@ Projection::level_project(int level,
                           Real divu_minus_s_factor,
                           MultiFab &divuold, int have_divu) 
 {
-  if (verbose) 
-  {
-    cout << "... level projector at level " << level << NL;
-  }
-
-  //----------------- manipulate state + pressure data ---------------------
-
-  if (sync_proj == 0) bldSyncProject();
-
-  int rzflag = CoordSys::IsRZ();
-
-      // old time velocity has bndry values already
-      // must gen valid bndry data for new time velocity.
-      // must fill bndry cells in pressure with computable values
-      // even though they are not used in calculation
-  U_new.setBndry(bogus_value,Xvel,BL_SPACEDIM);
-  P_old.setBndry(bogus_value);
-  P_new.setBndry(bogus_value);
-  LevelData[level].setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM);
-
-  const Real* dx = geom.CellSize();
-
-  const BoxArray& grids = LevelData[level].boxArray();
-  const BoxArray& P_grids = P_old.boxArray();
-  
-  // compute (Ustar - Un)/dt as input to projector
-  int i;
-  if(level == 0) 
-  {
-    for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) 
+    if (ParallelDescriptor::IOProcessor() && verbose)
     {
-      DependentMultiFabIterator P_oldmfi(P_newmfi, P_old);
-      DependentMultiFabIterator U_newmfi(P_newmfi, U_new);
-      DependentMultiFabIterator U_oldmfi(P_newmfi, U_old);
-      // convert Unew to acceleration and Pnew to an update
-      //assert(grids[P_newmfi.index()] == P_newmfi.validbox());
-      //ConvertUnew( U_newmfi(), U_oldmfi(), dt, P_newmfi.validbox() );
-      ConvertUnew( U_newmfi(), U_oldmfi(), dt, grids[P_newmfi.index()] );
-      P_newmfi().minus( P_oldmfi() );
-      P_newmfi().setVal(0.0);                            // FIXME?????
+	cout << "... level projector at level " << level << NL;
     }
-  } 
-  else 
-  {
-      //
-      // level > 0
-      //
-      LevelData[level].FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
+    
+    if (sync_proj == 0) bldSyncProject();
+    
+    int rzflag = CoordSys::IsRZ();
+    
+    // old time velocity has bndry values already
+    // must gen valid bndry data for new time velocity.
+    // must fill bndry cells in pressure with computable values
+    // even though they are not used in calculation
+    U_new.setBndry(bogus_value,Xvel,BL_SPACEDIM);
+    P_old.setBndry(bogus_value);
+    P_new.setBndry(bogus_value);
+    LevelData[level].setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM);
 
-      for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) 
-      {
-          DependentMultiFabIterator P_oldmfi(P_newmfi, P_old);
-          DependentMultiFabIterator U_newmfi(P_newmfi, U_new);
-          DependentMultiFabIterator U_oldmfi(P_newmfi, U_old);
-          //
-          // Interpolate values for P_new from coarse grid.
-          //
-          assert(P_newmfi().box() == P_newmfi.fabbox());
-          //
-          // Convert Unew to acceleration and Pnew to an update.
-          //
-          ConvertUnew(U_newmfi(), U_oldmfi(), dt, grids[P_newmfi.index()]);
-          P_newmfi().minus(P_oldmfi());
-          Box tempbox(P_newmfi().box());
-          tempbox.grow(-2);
-          P_newmfi().setVal(0.0,tempbox,0,1);
-      }
-  }
+    const Real* dx = geom.CellSize();
+    const BoxArray& grids = LevelData[level].boxArray();
+    const BoxArray& P_grids = P_old.boxArray();
 
-  // set up outflow bcs
+    if (level != 0)
+    {
+	LevelData[level].FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
+    }
 
+    // set up outflow bcs, BEFORE manipulating state, pressure data
 #if (BL_SPACEDIM == 2)
-  int outflow_at_top = (phys_bc->lo(0) != Outflow &&
-                        phys_bc->lo(1) != Outflow &&
-                        phys_bc->hi(0) != Outflow &&
-                        phys_bc->hi(1) == Outflow);
-  if (outflow_at_top && have_divu && do_outflow_bcs) 
-  {
-    set_level_projector_outflow_bcs(level,cur_pres_time,old_state_time,
-                                    cur_state_time,geom,
-                                    U_new,P_old,P_new,rho_half,dsdt);
-  }
+    int outflow_at_top = (phys_bc->lo(0) != Outflow &&
+			  phys_bc->lo(1) != Outflow &&
+			  phys_bc->hi(0) != Outflow &&
+			  phys_bc->hi(1) == Outflow);
+    if (outflow_at_top && have_divu && do_outflow_bcs) 
+    {
+	set_level_projector_outflow_bcs(level,cur_state_time,P_new);
+    }
 #endif
-
-  // end set up outflow bcs
-
-  if(divu_minus_s_factor>0.0 && divu_minus_s_factor<=1.0 && have_divu) 
+    
+    //
+    // Convert Unew to acceleration and Pnew to an update.
+    //
+    if(level == 0) 
+    {
+	for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) 
+	{
+	    DependentMultiFabIterator U_newmfi(P_newmfi, U_new);
+	    DependentMultiFabIterator U_oldmfi(P_newmfi, U_old);
+	    ConvertUnew( U_newmfi(), U_oldmfi(), dt, grids[P_newmfi.index()] );
+	    P_newmfi().setVal(0.0);
+	}
+    } 
+    else 
+    {
+	for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) 
+	{
+	    DependentMultiFabIterator P_oldmfi(P_newmfi, P_old);
+	    DependentMultiFabIterator U_newmfi(P_newmfi, U_new);
+	    DependentMultiFabIterator U_oldmfi(P_newmfi, U_old);
+	    
+	    ConvertUnew(U_newmfi(), U_oldmfi(), dt, grids[P_newmfi.index()]);
+	    P_newmfi().minus(P_oldmfi());
+	    Box tempbox(P_newmfi().box());
+	    tempbox.grow(-2);
+	    P_newmfi().setVal(0.0,tempbox,0,1);
+	}
+    }
+    
+    if(divu_minus_s_factor>0.0 && divu_minus_s_factor<=1.0 && have_divu) 
   {
       // compute relaxation terms to account for approximate projection
       // add divu_old*divu...factor/dt to dsdt
@@ -460,7 +441,7 @@ Projection::level_project(int level,
     rhs_cc.setVal(0.0);
     rhs_cc.copy(dsdt,0,0,1,nghost);
     radMult(level,rhs_cc,0);    
-    for (i=0;i<ngrids;i++) 
+    for (int i=0;i<ngrids;i++) 
     {
 #if (BL_SPACEDIM == 3)
       Real dsdtmin=dsdt[i].min();
@@ -1077,10 +1058,10 @@ void Projection::initialVelocityProject(int c_lev,
   int outflow_at_top = (phys_bc->lo(0) != Outflow &&
                         phys_bc->lo(1) != Outflow && 
                         phys_bc->hi(0) != Outflow &&
-                        phys_bc->hi(1) == Outflow); 
-  if (outflow_at_top && have_divu && do_outflow_bcs) 
+                        phys_bc->hi(1) == Outflow);
+  if (outflow_at_top && have_divu && do_outflow_bcs)
   {
-    set_initial_projection_outflow_bcs(vel,sig,phi,c_lev,cur_divu_time);
+      set_initial_projection_outflow_bcs(vel,sig,phi,c_lev,cur_divu_time);
   }
 #endif
 
@@ -1103,20 +1084,17 @@ void Projection::initialVelocityProject(int c_lev,
 
       if (have_divu) 
       {
-        if (Divu_Type == -1) 
-        {
-          int Divu;
-          if (!LevelData[lev].isStateVariable("divu", Divu_Type, Divu)) 
-          {
-            BoxLib::Error("Projection::getDivCond(): Divu not found");
-          }
-        }
+	  int Divu_Type, Divu;
+	  if (!LevelData[lev].isStateVariable("divu", Divu_Type, Divu)) 
+	  {
+	      BoxLib::Error("Projection::initialVelocityProject(): Divu not found");
+	  }
 // make sure ghost cells are properly filled
-        MultiFab &divu_new = amr_level.get_new_data(Divu_Type);
-        divu_new.FillBoundary();
-        amr_level.setPhysBoundaryValues(Divu_Type,0,1,cur_divu_time);
+	  MultiFab &divu_new = amr_level.get_new_data(Divu_Type);
+	  divu_new.FillBoundary();
+	  amr_level.setPhysBoundaryValues(Divu_Type,0,1,cur_divu_time);
       }
-           
+      
       
       // scale the projection variables
       scaleVar(sig[lev],1,vel[lev],grids,lev);
@@ -1296,6 +1274,11 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
     {
       AmrLevel& amr_level   = parent->getLevel(lev);
 
+      int Divu_Type, Divu;
+      if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
+      {
+	  BoxLib::Error("Projection::initialSyncProject(): Divu not found");
+      }
 // make sure ghost cells are properly filled
       MultiFab &divu_new = amr_level.get_new_data(Divu_Type);
       divu_new.FillBoundary();
@@ -1718,18 +1701,15 @@ void Projection::put_divu_in_cc_rhs(MultiFab& rhs, int level,
 // fill patch to get the divU
 void Projection::getDivCond(int level, FArrayBox& fab, int ngrow, Real time)
 {
-  if (Divu_Type == -1) 
-  {
-    int Divu;
+    int Divu_Type, Divu;
     if (!LevelData[level].isStateVariable("divu", Divu_Type, Divu)) 
     {
-      BoxLib::Error("Projection::getDivCond(): Divu not found");
+	BoxLib::Error("Projection::getDivCond(): Divu not found");
     }
-  }
-  fab.setVal(1.0e30); // for debugging only
-
-  BoxLib::Error("Projection::getDivCond(FAB): not implemented");
-
+    fab.setVal(1.0e30); // for debugging only
+    
+    BoxLib::Error("Projection::getDivCond(FAB): not implemented");
+    
 //  LevelData[level].FillPatch(fab,0,time,Divu_Type,0,1);
 }
 
@@ -2077,485 +2057,354 @@ void Projection::radDiv(int level, MultiFab &mf, int comp)
 // ==================================================
 
 
-void Projection::set_level_projector_outflow_bcs(int level,
-                                 Real cur_pres_time,
-                                 Real old_time, Real new_time,
-                                 const Geometry& geom,
-                                 MultiFab &U_new,
-                                 MultiFab &P_old,
-                                 MultiFab &P_new,
-                                 MultiFab * rho_half,
-                                 MultiFab& dsdt)
+void Projection::set_level_projector_outflow_bcs(int       level,
+						 Real      cur_state_time,
+						 MultiFab& phi)
 {
-    //HACK 
-#if (BL_SPACEDIM == 2 && 0)
-  int rzflag = CoordSys::IsRZ();
-  const Real* dx = geom.CellSize();
-  Real hx = dx[0];
+    // Do as set_initial_projection_outflow_bcs, except this one for single specified level.
+    // In this case, since the finest level has not been advanced to the new time, the data
+    // there is not yet available.  We contruct the dirichlet phi values for the outflow
+    // boundary at the requested level, fill-patching in coarser data, which presumably has
+    // been advanced up to or past new_time.
 
-  const BoxArray& grids   = LevelData[level].boxArray();
-  const BoxArray& P_grids = P_old.boxArray();
+    // FIXME: the three outflow boundary routines should be collapsed into one, since they
+    //        all do roughly the same thing
+    
+#if (BL_SPACEDIM == 2)
+    const int rzflag = CoordSys::IsRZ();
 
-  // compute (Ustar - Un)/dt as input to projector
-
-  if(level==0 && grids.length()==1) 
-  {
-
-    // FOLLOWING FOR SINGLE GRID, SINGLE LEVEL ONLY
-
-    Box rbox = P_grids[0];
-    rbox.convert(IntVect::TheCellVector());
-    int rlen  = rbox.length(0);
-    Array<Real> rcen;
-    rcen.resize(rlen);
+    const Real* dx = parent->Geom(level).CellSize();
+    const Box& domain = parent->Geom(level).Domain();
+    const int outDir = 1;
+    const int ccStripWidth = 3;
+    const int ncStripWidth = 1;
+    const Box state_strip = Box(adjCellHi(domain, outDir, ccStripWidth)).shift(outDir,-ccStripWidth+1);
+    const Box phi_strip = surroundingNodes(bdryHi(domain, outDir, ncStripWidth));
+    
+    const int nGrow = 0;
+    const int dstComp = 0;
+    const int srcCompRho = Density, nCompRho = 1;
+    const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
+    const int srcCompDivu = 0,      nCompDivu = 1;
+    const BoxArray state_strip_ba(&state_strip,1);
+    MultiFab cc_MultiFab(state_strip_ba, 1, nGrow, Fab_noallocate);
+    
+    const int nCompPhi = 1;
+    const BoxArray phi_strip_ba(&phi_strip,1);
+    MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
+    phi_fine_strip.setVal(0.0);
+    
+    // Make r_i needed in HGPHIBC (set = 1 if cartesian)
+    const Box region = Box(adjCellHi(domain, outDir, 1)).shift(outDir, -1);
+    Array<Real> rcen(region.length(0), 1.0);
     if (CoordSys::IsRZ() == 1) 
     {
-      geom.GetCellLoc(rcen,rbox, 0);
-    } 
-    else 
-    {
-      for (int i=0; i<rlen; i++) rcen[i]=1.0;
+	parent->Geom(level).GetCellLoc(rcen, region, 0);
     }
-    const int* rlo = rbox.loVect();
-    const int* rhi = rbox.hiVect();
-    DEF_CLIMITS(dsdt[0],sdat,slo,shi);
-    DEF_CLIMITS(U_new[0],udat,ulo,uhi);
-    DEF_CLIMITS((*rho_half)[0],rhodat,rholo,rhohi);
-    DEF_LIMITS(P_new[0],pdat,p_lo,p_hi);
-    FORT_HGPHIBC(ARLIM(ulo),ARLIM(uhi),udat,ARLIM(slo),ARLIM(shi),sdat,
-                 ARLIM(rholo),ARLIM(rhohi),rhodat,
-                 ARLIM(rlo),ARLIM(rhi),rcen.dataPtr(),&hx,
-                 ARLIM(p_lo),ARLIM(p_hi),pdat);
-
-  } 
-  else if (level==0  && grids.length()!=1) 
-  {
-// what we do
-//  1) we define 3 cell-wide strips for
-//     rho, S, U at the top of the domain
-//     The strips are three cells wide for convenience
-//  2) we define a 2 cell-wide strips for
-//     phi at the top of the domain
-//     The strip is two cells wide for convenience.
-//  3) we fill the rho, S, and U strips
-//  4) we compute phi on the phi strip with HGPHIBC
-//  5) we copy the phi strip into the phi multifab
-    const Real* dx = parent->Geom(0).CellSize();
-    Real hx = dx[0];
-    const Box& domain = parent->Geom(0).Domain();
-    IntVect bigend = domain.bigEnd();
-    IntVect smallend = domain.smallEnd();
-    int jhi = domain.bigEnd(1);
-    smallend.setVal(1,jhi);
-    Box top_strip(smallend,bigend,IntVect::TheCellVector());
-    Box top_phi_strip = top_strip;
-    Box rbox = top_strip;
-
-    bigend.setVal(1,jhi+1);
-    smallend.setVal(1,jhi-1);
-
-    Box state_strip(smallend,bigend,IntVect::TheCellVector());
-
-    FArrayBox rho_strip(state_strip,1);
-    FArrayBox rho0_strip(state_strip,1);
-    FArrayBox divu_strip(state_strip,1);
-    FArrayBox vel_strip(state_strip,2);
-
-    top_phi_strip.convert(IntVect::TheNodeVector());
-    top_phi_strip.growLo(1,-1);
-    top_phi_strip.growHi(1,1);
-    top_phi_strip.grow(0,1);
-    FArrayBox phi_strip(top_phi_strip,1);
-    phi_strip.setVal(0.0);
-    const BoxArray& P_grids = P_old.boxArray();
-    const int ngrids = P_grids.length();
-    int i;
-    for(MultiFabIterator U_newmfi(U_new); U_newmfi.isValid(); ++U_newmfi) 
+    
+    int Divu_Type, Divu;
+    if (!LevelData[level].isStateVariable("divu", Divu_Type, Divu)) 
     {
-      DependentMultiFabIterator dsdtmfi(U_newmfi, dsdt);
-      assert(P_grids[U_newmfi.index()] == U_newmfi.validbox());
-      Box destbox = U_newmfi.validbox();
-      destbox.convert(IntVect::TheCellVector());
-      destbox &= state_strip;
-      Box srcbox = destbox;
-      if(destbox.ok()) 
-      {
-        vel_strip.copy(U_newmfi(),srcbox,0,destbox,0,2);
-        divu_strip.copy(dsdtmfi(),srcbox,0,destbox,0,1);
-      }
+	BoxLib::Error("Projection::set_level_projector_outflow_bcs(): Divu not found");
+    }
+    
+    FillPatchIterator rhoFpi(LevelData[level], cc_MultiFab, nGrow, dstComp, cur_state_time,
+			     State_Type, srcCompRho, nCompRho);
+    
+    FillPatchIterator velFpi(LevelData[level], cc_MultiFab, nGrow, dstComp, cur_state_time,
+			     State_Type, srcCompVel, nCompVel);
+    
+    FillPatchIterator divuFpi(LevelData[level], cc_MultiFab, nGrow, dstComp, cur_state_time,
+			      Divu_Type, srcCompDivu, nCompDivu);
+    
+    for ( ;rhoFpi.isValid() && velFpi.isValid() && divuFpi.isValid(); ++rhoFpi, ++velFpi, ++divuFpi)
+    {
+	DependentMultiFabIterator phimfi(rhoFpi, phi_fine_strip);
+	
+	// Fill phi_fine_strip with boundary cell values for phi, then copy into arg data
+	// Note: Though this looks like a distributed operation, the MultiFab is built
+	// on a single box...this is necesary currently, since FORT_HGPHIBC requires
+	// a slice across the entire domain
+	const int isPeriodicInX = (int) parent->Geom(level).isPeriodic(0);
+	FORT_HGPHIBC(ARLIM(velFpi().loVect()),  ARLIM(velFpi().hiVect()),  velFpi().dataPtr(),
+		     ARLIM(divuFpi().loVect()), ARLIM(divuFpi().hiVect()), divuFpi().dataPtr(),
+		     ARLIM(rhoFpi().loVect()),  ARLIM(rhoFpi().hiVect()),  rhoFpi().dataPtr(),
+		     ARLIM(region.loVect()),    ARLIM(region.hiVect()),    rcen.dataPtr(),   &dx[0],
+		     ARLIM(phimfi().loVect()),  ARLIM(phimfi().hiVect()),  phimfi().dataPtr(),
+		     &isPeriodicInX);
     }
 
-    LevelData[0].FillPatch(rho0_strip,0,old_time,State_Type,Density,1);
-    LevelData[0].FillPatch(rho_strip,0,new_time,State_Type,Density,1);
-    rho_strip.plus(rho0_strip);
-    rho_strip.divide(2.0);
-        
-    int rlen  = rbox.length(0);
-    Array<Real> rcen;
-    rcen.resize(rlen);
-    if (CoordSys::IsRZ() == 1) 
-    {
-      parent->Geom(0).GetCellLoc(rcen,rbox, 0);
-    } 
-    else 
-    {
-      for (i=0; i<rlen; i++) rcen[i]=1.0;
-    }
-    const int* rlo = rbox.loVect();
-    const int* rhi = rbox.hiVect();
-    DEF_CLIMITS(divu_strip,sdat,slo,shi);
-    DEF_CLIMITS(vel_strip,udat,ulo,uhi);
-    DEF_CLIMITS(rho_strip,rhodat,rholo,rhohi);
-    DEF_LIMITS(phi_strip,pdat,p_lo,p_hi);
-    FORT_HGPHIBC(ARLIM(ulo),ARLIM(uhi),udat,ARLIM(slo),ARLIM(shi),sdat,
-                 ARLIM(rholo),ARLIM(rhohi),rhodat,
-                 ARLIM(rlo),ARLIM(rhi),rcen.dataPtr(),&hx,
-                 ARLIM(p_lo),ARLIM(p_hi),pdat);
-    for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) 
-    {
-      P_newmfi().copy(phi_strip);
-    }
-  } 
-  else 
-  {
-// do nothing for now
-  }
+    // Copy into arg data
+    phi.copy(phi_fine_strip);
 #endif
 }
 
 void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
-   MultiFab** sig, MultiFab** phi, int c_lev, Real cur_divu_time)
+						    MultiFab** sig,
+						    MultiFab** phi, int c_lev, Real cur_divu_time)
 {
-    //HACK 
-#if (BL_SPACEDIM == 2 && 0)
-  int rho_comp = 0;
-  if (rho_wgt_vel_proj) rho_comp = Density;
-
-  int lev;
-  int f_lev = finest_level;
-  int rzflag = CoordSys::IsRZ();
-
-  const BoxArray& P_grids = phi[0]->boxArray();
-  const int ngrids = P_grids.length();
-  if(c_lev!=0) 
-  {
-    cout << "initialVelocityProject: clev!=0--something wrong?\n";
-    ParallelDescriptor::Abort("Exiting.");
-  } 
-  else if(c_lev==f_lev && ngrids==1) 
-  {
-    // FOLLOWING FOR SINGLE GRID, SINGLE LEVEL ONLY
-    lev = c_lev;
-    const Real* dx = parent->Geom(lev).CellSize();
-    Real hx = dx[0];
-    const BoxArray& P_grids = phi[lev]->boxArray();
-    const int ngrids = P_grids.length();
-    MultiFab* philev = phi[lev];
-    int i=0;
-    Box divubox = P_grids[i];
-    divubox.convert(IntVect::TheCellVector());
-    divubox.grow(1);
-    FArrayBox* divu = new FArrayBox(divubox,1);
-    getDivCond(lev,*divu,1,cur_divu_time);
-
-    Box rbox = P_grids[i];
-    rbox.convert(IntVect::TheCellVector());
-    int rlen  = rbox.length(0);
-    Array<Real> rcen;
-    rcen.resize(rlen);
-    if (CoordSys::IsRZ() == 1) 
-    {
-      parent->Geom(lev).GetCellLoc(rcen,rbox, 0);
-    } 
-    else 
-    {
-      int ii;
-      for (ii=0; ii<rlen; ii++) rcen[ii]=1.0;
-    }
-
+#if (BL_SPACEDIM == 2)
 // what we do
 //  at the finest level
 //  1) we define 3 cell-wide strips for
 //     rho, S, U at the top of the domain
 //     The strips are three cells wide for convenience
-//  2) we define a 2 cell-wide strips for
-//     phi at the top of the domain
-//     The strip is two cells wide for convenience.
+//  2) we define a 1 node-wide for phi at the top of the domain
 //  3) we fill the rho, S, and U strips
 //  4) we compute phi on the phi strip with HGPHIBC
 //  5) we copy the phi strip into the phi multifab
 //  we then "putdown" onto coarser levels
 
-    const int* rlo = rbox.loVect();
-    const int* rhi = rbox.hiVect();
-    DEF_CLIMITS((*divu),sdat,slo,shi);
-    DEF_CLIMITS((((*vel)[lev])[i]),udat,ulo,uhi);
-    const int* rholo = (((*sig)[lev])[i]).loVect();
-    const int* rhohi = (((*sig)[lev])[i]).hiVect();
-    const Real* rhodat = (((*sig)[lev])[i]).dataPtr(rho_comp);
-    DEF_LIMITS(((*philev)[i]),pdat,p_lo,p_hi);
+    // FIXME: vel and sig unused here.  We needed a filpatch operation, so pulled data from
+    //        the state (presumably is where vel, sig from anyway).  sig is poorly named, and
+    //        we need other stuff as well, so we should probably just remove sig and vel from args
+    const int f_lev = finest_level;
+    const int rzflag = CoordSys::IsRZ();
 
-    FORT_HGPHIBC(ARLIM(ulo),ARLIM(uhi),udat,ARLIM(slo),ARLIM(shi),sdat,
-                 ARLIM(rholo),ARLIM(rhohi),rhodat,
-                 ARLIM(rlo),ARLIM(rhi),rcen.dataPtr(),&hx,
-                 ARLIM(p_lo),ARLIM(p_hi),pdat);
-    delete divu;
-  } 
-  else 
-  {
-    FArrayBox *phi_crse_strip;
-    FArrayBox *phi_fine_strip;
-    const Real* dx = parent->Geom(f_lev).CellSize();
-    Real hx = dx[0];
-    const Box& domain = parent->Geom(f_lev).Domain();
-    IntVect bigend = domain.bigEnd();
-    IntVect smallend = domain.smallEnd();
-    int jhi = domain.bigEnd(1);
-    smallend.setVal(1,jhi);
-    Box top_strip(smallend,bigend,IntVect::TheCellVector());
-    Box top_phi_strip = top_strip;
-    Box rbox = top_strip;
-
-    bigend.setVal(1,jhi+1);
-    smallend.setVal(1,jhi-1);
-
-    Box state_strip(smallend,bigend,IntVect::TheCellVector());
-
-    FArrayBox rho_strip(state_strip,1);
-    FArrayBox divu_strip(state_strip,1);
-    FArrayBox vel_strip(state_strip,2);
-
-    top_phi_strip.convert(IntVect::TheNodeVector());
-    top_phi_strip.growLo(1,-1);
-    top_phi_strip.growHi(1,1);
-    top_phi_strip.grow(0,1);
-    phi_fine_strip = new FArrayBox(top_phi_strip,1);
-    phi_fine_strip->setVal(0.0);
-
-    getDivCond(f_lev,divu_strip,0,cur_divu_time);
-    LevelData[f_lev].FillPatch(vel_strip,0,cur_divu_time,State_Type,0,2);
-    if (rho_wgt_vel_proj) 
+    if(c_lev!=0) 
     {
-      LevelData[f_lev].FillPatch(rho_strip,0,cur_divu_time,
-                                State_Type,Density,1);
+	cout << "initialVelocityProject: clev!=0--something wrong?\n";
+	ParallelDescriptor::Abort("Exiting.");
     } 
     else 
     {
-      rho_strip.setVal(1.0);
-    }
+	// Get 3-wide cc box, state_strip, along top, incl. 2 rows of int and 1 row of ghosts.
+	// Get 1-wide nc box, phi_strip, along top, grown out by one tangential to face
+	const Real* dx = parent->Geom(f_lev).CellSize();
+	const Box& domain = parent->Geom(f_lev).Domain();
+	const int outDir = 1;
+	const int ccStripWidth = 3;
+	const int ncStripWidth = 1;
+	const Box state_strip = Box(adjCellHi(domain, outDir, ccStripWidth)).shift(outDir,-ccStripWidth+1);
+	const Box phi_strip = surroundingNodes(bdryHi(domain, outDir, ncStripWidth));
 
-    int rlen  = rbox.length(0);
-    Array<Real> rcen;
-    rcen.resize(rlen);
-    if (CoordSys::IsRZ() == 1) 
-    {
-      parent->Geom(f_lev).GetCellLoc(rcen,rbox, 0);
-    } 
-    else 
-    {
-      for (int i=0; i<rlen; i++) rcen[i]=1.0;
-    }
-    const int* rlo = rbox.loVect();
-    const int* rhi = rbox.hiVect();
+	const int nGrow = 0;
+	const int dstComp = 0;
+	const int srcCompRho = Density, nCompRho = 1;
+	const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
+	const int srcCompDivu = 0,      nCompDivu = 1;
+	const BoxArray state_strip_ba(&state_strip,1);
+	MultiFab cc_MultiFab(state_strip_ba, 1, nGrow, Fab_noallocate);
+	
+	const int nCompPhi = 1;
+	const BoxArray phi_strip_ba(&phi_strip,1);
+	MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
+	phi_fine_strip.setVal(0.0);
 
-    DEF_CLIMITS(divu_strip,sdat,slo,shi);
-    DEF_CLIMITS(vel_strip,udat,ulo,uhi);
-    DEF_CLIMITS(rho_strip,rhodat,rholo,rhohi);
-    DEF_LIMITS((*phi_fine_strip),pdat,p_lo,p_hi);
+	// Make r_i needed in HGPHIBC (set = 1 if cartesian)
+	const Box region = Box(adjCellHi(domain, outDir, 1)).shift(outDir, -1);
+	Array<Real> rcen(region.length(0), 1.0);
+	if (CoordSys::IsRZ() == 1) 
+	{
+	    parent->Geom(f_lev).GetCellLoc(rcen, region, 0);
+	} 
+    
+	int Divu_Type, Divu;
+	if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
+	{
+	    BoxLib::Error("Projection::set_initial_projection_outflow_bcs(): Divu not found");
+	}
+    
+	FillPatchIterator rhoFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, cur_divu_time,
+				 State_Type, srcCompRho, nCompRho);
+	
+	FillPatchIterator velFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, cur_divu_time,
+				 State_Type, srcCompVel, nCompVel);
+	
+	FillPatchIterator divuFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, cur_divu_time,
+				  Divu_Type, srcCompDivu, nCompDivu);
+	
+	for ( ; rhoFpi.isValid()  &&  velFpi.isValid()  &&  divuFpi.isValid(); ++rhoFpi, ++velFpi, ++divuFpi)
+	{
+	    DependentMultiFabIterator phimfi(rhoFpi, phi_fine_strip);
 
-    FORT_HGPHIBC(ARLIM(ulo),ARLIM(uhi),udat,ARLIM(slo),ARLIM(shi),sdat,
-                 ARLIM(rholo),ARLIM(rhohi),rhodat,
-                 ARLIM(rlo),ARLIM(rhi),rcen.dataPtr(),&hx,
-                 ARLIM(p_lo),ARLIM(p_hi),pdat);
+	    // Note: potentially wasteful FillPatch on Rho, but this seemed cleanest
+	    FArrayBox rho(rhoFpi.validbox(), nCompRho);
+	    if (rho_wgt_vel_proj)
+	    {
+		rho.copy(rhoFpi());
+		
+	    } else {
+		
+		rho.setVal(1.0);
+	    }
+	    
+	    // Fill phi_fine_strip with boundary cell values for phi, then copy into arg data
+	    // Note: Though this looks like a distributed operation, the MultiFab is built
+	    // on a single box...this is necesary currently, since FORT_HGPHIBC requires
+	    // a slice across the entire domain
+	    const int isPeriodicInX = (int) parent->Geom(f_lev).isPeriodic(0);
+	    FORT_HGPHIBC(ARLIM(velFpi().loVect()),  ARLIM(velFpi().hiVect()),  velFpi().dataPtr(),
+			 ARLIM(divuFpi().loVect()), ARLIM(divuFpi().hiVect()), divuFpi().dataPtr(),
+			 ARLIM(rho.loVect()),       ARLIM(rho.hiVect()),       rho.dataPtr(),
+			 ARLIM(region.loVect()),    ARLIM(region.hiVect()),    rcen.dataPtr(),    &dx[0],
+			 ARLIM(phimfi().loVect()),  ARLIM(phimfi().hiVect()),  phimfi().dataPtr(),
+			 &isPeriodicInX);
+	}
 
-    const BoxArray& P_grids = phi[f_lev]->boxArray();
-    const int ngrids = P_grids.length();
-    MultiFab* philev = phi[f_lev];
-    for(MultiFabIterator philevmfi(*philev); philevmfi.isValid(); ++philevmfi) 
-    {
-      philevmfi().copy((*phi_fine_strip));
+	// Copy into arg data
+	phi[f_lev]->copy(phi_fine_strip);
+
+	IntVect ratio = IntVect::TheUnitVector();
+	for (int lev=f_lev-1;lev>=c_lev;lev--) 
+	{
+	    ratio *= parent->refRatio(lev);
+	    const Box& domainC = parent->Geom(lev).Domain();
+	    const Box top_phiC_strip = surroundingNodes(bdryHi(domainC, outDir, ncStripWidth));
+	    
+	    const BoxArray top_phiC_strip_ba(&top_phiC_strip,1);
+	    MultiFab phi_crse_strip(top_phiC_strip_ba, nCompPhi, nGrow, Fab_allocate);
+	    phi_crse_strip.setVal(0.0);
+	    
+	    for (MultiFabIterator finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
+	    {
+		DependentMultiFabIterator crsemfi(finemfi, phi_crse_strip);
+		Box ovlp = Box(finemfi.validbox()).coarsen(ratio) & crsemfi.validbox();
+		FORT_PUTDOWN (crsemfi().dataPtr(),ARLIM(crsemfi().loVect()),ARLIM(crsemfi().hiVect()),
+			      finemfi().dataPtr(),ARLIM(finemfi().loVect()),ARLIM(finemfi().hiVect()),
+			      ovlp.loVect(),ovlp.hiVect(),ratio.getVect());
+	    }
+	    phi[lev]->copy(phi_crse_strip);
+	}
     }
-    if (c_lev!=f_lev) 
-    {
-      for (lev=f_lev-1;lev>=c_lev;lev--) 
-      {
-        IntVect ratio = parent->refRatio(lev);
-        const Box& domain = parent->Geom(lev).Domain();
-        IntVect bigend = domain.bigEnd();
-        IntVect smallend = domain.smallEnd();
-        int jhi = domain.bigEnd(1);
-        smallend.setVal(1,jhi);
-        Box top_strip(smallend,bigend,IntVect::TheCellVector());
-        Box top_phi_strip = top_strip;
-        top_phi_strip.convert(IntVect::TheNodeVector());
-        top_phi_strip.growLo(1,-1);
-        top_phi_strip.grow(0,1);
-        phi_crse_strip = new FArrayBox(top_phi_strip,1);
-        phi_crse_strip->setVal(0.0);
-        DEF_LIMITS((*phi_crse_strip),pcrse,clo,chi);
-        DEF_CLIMITS((*phi_fine_strip),pfine,flo,fhi);
-        int ovlo[2], ovhi[2];
-        ovlo[0] = clo[0]+1;
-        ovhi[0] = chi[0]-1;
-        ovlo[1] = clo[1];
-        ovhi[1] = chi[1];
-        FORT_PUTDOWN (pcrse,ARLIM(clo),ARLIM(chi),
-                      pfine,ARLIM(flo),ARLIM(fhi),
-                      ovlo,ovhi,ratio.getVect());
-        const BoxArray& P_grids = phi[lev]->boxArray();
-        const int ncrsegrids = P_grids.length();
-        MultiFab* philev = phi[lev];
-        //for (int i=0;i<ncrsegrids;i++)
-        for(MultiFabIterator philevmfi(*philev); philevmfi.isValid(); ++philevmfi) 
-        {
-          philevmfi().copy(*phi_crse_strip);
-        }
-        delete phi_fine_strip;
-        phi_fine_strip = phi_crse_strip;
-      }
-      delete phi_crse_strip;
-    } 
-    else 
-    {
-      delete phi_fine_strip;
-    }
-  } 
 #endif
 }
 
 void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi, 
-                 int c_lev, Real start_time, Real dt)
+						     int c_lev, Real start_time, Real dt)
 {
-    // HACK
-#if (BL_SPACEDIM == 2 && 0)
-  int lev;
-  int f_lev = finest_level;
-  int rzflag = CoordSys::IsRZ();
-
-  const BoxArray& P_grids = phi[0]->boxArray();
-  const int ngrids = P_grids.length();
-  if(c_lev!=0) 
-  {
-    cout << "initialSyncProject: clev!=0--something wrong?\n";
-    ParallelDescriptor::Abort("Exiting.");
-  } 
-  else 
-  {
+#if (BL_SPACEDIM == 2)
 // what we do is similar to what we do in set_initial_projection_outflow_bcs
-// except that we work with derivatives of U and S,
-    FArrayBox *phi_crse_strip;
-    FArrayBox *phi_fine_strip;
-    const Real* dx = parent->Geom(f_lev).CellSize();
-    Real hx = dx[0];
-    const Box& domain = parent->Geom(f_lev).Domain();
-    IntVect bigend = domain.bigEnd();
-    IntVect smallend = domain.smallEnd();
-    int jhi = domain.bigEnd(1);
-    smallend.setVal(1,jhi);
-    Box top_strip(smallend,bigend,IntVect::TheCellVector());
-    FArrayBox rho_strip(top_strip,1);
-    FArrayBox rho0_strip(top_strip,1);
-    FArrayBox divu_strip(top_strip,1);
-    FArrayBox dsdt_strip(top_strip,1);
-    FArrayBox vel_strip(top_strip,2);
-    FArrayBox vel0_strip(top_strip,2);
-    Box top_phi_strip = top_strip;
-    top_phi_strip.convert(IntVect::TheNodeVector());
-    top_phi_strip.growLo(1,-1);
-    top_phi_strip.growHi(1,1);
-    top_phi_strip.grow(0,1);
-    phi_fine_strip = new FArrayBox(top_phi_strip,1);
-    phi_fine_strip->setVal(0.0);
-    getDivCond(f_lev,divu_strip,0,start_time);
-    getDivCond(f_lev,dsdt_strip,0,start_time+dt);
-    dsdt_strip.minus(divu_strip);
-    dsdt_strip.divide(dt);
-    LevelData[f_lev].FillPatch(vel0_strip,0,start_time,State_Type,0,2);
-    LevelData[f_lev].FillPatch(vel_strip,0,start_time+dt,State_Type,0,2);
-    vel_strip.minus(vel0_strip);
-    vel_strip.divide(dt);
-    LevelData[f_lev].FillPatch(rho0_strip,0,start_time,State_Type,Density,1);
-    LevelData[f_lev].FillPatch(rho_strip,0,start_time+dt,State_Type,Density,1);
-    rho_strip.plus(rho0_strip);
-    rho_strip.divide(2.0);
-    Box rbox = top_strip;
-    int rlen  = rbox.length(0);
-    Array<Real> rcen;
-    rcen.resize(rlen);
-    int i;
-    if (CoordSys::IsRZ() == 1) 
+// except that we work with time derivatives of U and S,
+    
+    const int f_lev = finest_level;
+    const int rzflag = CoordSys::IsRZ();
+
+    if(c_lev!=0) 
     {
-      parent->Geom(f_lev).GetCellLoc(rcen,rbox, 0);
+	cout << "initialSyncProject: clev!=0--something wrong?\n";
+	ParallelDescriptor::Abort("Exiting.");
     } 
     else 
     {
-      for (i=0; i<rlen; i++) rcen[i]=1.0;
-    }
-    const int* rlo = rbox.loVect();
-    const int* rhi = rbox.hiVect();
-    DEF_CLIMITS(divu_strip,sdat,slo,shi);
-    DEF_CLIMITS(vel_strip,udat,ulo,uhi);
-    DEF_CLIMITS(rho_strip,rhodat,rholo,rhohi);
-    DEF_LIMITS((*phi_fine_strip),pdat,p_lo,p_hi);
+	const Real* dx = parent->Geom(f_lev).CellSize();
+	const Box& domain = parent->Geom(f_lev).Domain();
+	const int outDir = 1;
+	const int ccStripWidth = 3;
+	const int ncStripWidth = 1;
+	const Box state_strip = Box(adjCellHi(domain, outDir, ccStripWidth)).shift(outDir,-ccStripWidth+1);
+	const Box phi_strip = surroundingNodes(bdryHi(domain, outDir, ncStripWidth));
 
-    FORT_HGPHIBC(ARLIM(ulo),ARLIM(uhi),udat,ARLIM(slo),ARLIM(shi),sdat,
-                 ARLIM(rholo),ARLIM(rhohi),rhodat,
-                 ARLIM(rlo),ARLIM(rhi),rcen.dataPtr(),&hx,
-                 ARLIM(p_lo),ARLIM(p_hi),pdat);
+	const int nGrow = 0;
+	const int dstComp = 0;
+	const int srcCompRho = Density, nCompRho = 1;
+	const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
+	const int srcCompDivu = 0,      nCompDivu = 1;
+	const BoxArray state_strip_ba(&state_strip,1);
+	MultiFab cc_MultiFab(state_strip_ba, 1, nGrow, Fab_noallocate);
+	
+	const int nCompPhi = 1;
+	const BoxArray phi_strip_ba(&phi_strip,1);
+	MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
+	phi_fine_strip.setVal(0.0);
 
-    //const BoxArray& P_grids = phi[f_lev]->boxArray();
-    //const int ngrids = P_grids.length();
-    MultiFab* philev = phi[f_lev];
-    for(MultiFabIterator philevmfi(*philev); philevmfi.isValid(); ++philevmfi) 
-    {
-      philevmfi().copy((*phi_fine_strip));
-    } 
-    if (c_lev!=f_lev) 
-    {
-      for (lev=f_lev-1;lev>=c_lev;lev--) 
-      {
-        IntVect ratio = parent->refRatio(lev);
-        const Box& domain = parent->Geom(lev).Domain();
-        IntVect bigend = domain.bigEnd();
-        IntVect smallend = domain.smallEnd();
-        int jhi = domain.bigEnd(1);
-        smallend.setVal(1,jhi);
-        Box top_strip(smallend,bigend,IntVect::TheCellVector());
-        Box top_phi_strip = top_strip;
-        top_phi_strip.convert(IntVect::TheNodeVector());
-        top_phi_strip.growLo(1,-1);
-        top_phi_strip.grow(0,1);
-        phi_crse_strip = new FArrayBox(top_phi_strip,1);
-        phi_crse_strip->setVal(0.0);
-        DEF_LIMITS((*phi_crse_strip),pcrse,clo,chi);
-        DEF_CLIMITS((*phi_fine_strip),pfine,flo,fhi);
-        int ovlo[2], ovhi[2];
-        ovlo[0] = clo[0]+1;
-        ovhi[0] = chi[0]-1;
-        ovlo[1] = clo[1];
-        ovhi[1] = chi[1];
-        FORT_PUTDOWN (pcrse,ARLIM(clo),ARLIM(chi),
-                      pfine,ARLIM(flo),ARLIM(fhi),
-                      ovlo,ovhi,ratio.getVect());
-        //const BoxArray& P_grids = phi[lev]->boxArray();
-        //const int ncrsegrids = P_grids.length();
-        MultiFab* philev = phi[lev];
-        //int ii;
-        //for (ii=0;ii<ncrsegrids;ii++) {
-        for(MultiFabIterator philevmfi(*philev); philevmfi.isValid(); ++philevmfi) 
-        {
-          philevmfi().copy(*phi_crse_strip);
-        }
-        delete phi_fine_strip;
-        phi_fine_strip = phi_crse_strip;
-      }
-      delete phi_crse_strip;
-    } 
-    else 
-    {
-      delete phi_fine_strip;
+	// Make r_i needed in HGPHIBC (set = 1 if cartesian)
+	const Box region = Box(adjCellHi(domain, outDir, 1)).shift(outDir, -1);
+	Array<Real> rcen(region.length(0), 1.0);
+	if (CoordSys::IsRZ() == 1) 
+	{
+	    parent->Geom(f_lev).GetCellLoc(rcen, region, 0);
+	}
+    
+	int Divu_Type, Divu;
+	if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
+	{
+	    BoxLib::Error("Projection::set_syncproject_outflow_bcs(): Divu not found");
+	}
+    
+	FillPatchIterator rhoOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time,
+				    State_Type, srcCompRho, nCompRho);
+	
+	FillPatchIterator rhoNewFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time + dt,
+				    State_Type, srcCompRho, nCompRho);
+	
+	FillPatchIterator velOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time,
+				    State_Type, srcCompVel, nCompVel);
+	
+	FillPatchIterator velNewFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time + dt,
+				    State_Type, srcCompVel, nCompVel);
+	
+	FillPatchIterator divuOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time,
+				     Divu_Type, srcCompDivu, nCompDivu);
+	
+	FillPatchIterator divuNewFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time + dt,
+				     Divu_Type, srcCompDivu, nCompDivu);
+	
+	for ( ;rhoOldFpi.isValid()  &&  velOldFpi.isValid()  &&  divuOldFpi.isValid() &&
+		  rhoNewFpi.isValid()  &&  velNewFpi.isValid()  &&  divuNewFpi.isValid();
+	      ++rhoOldFpi, ++velOldFpi, ++divuOldFpi, ++rhoNewFpi, ++velNewFpi, ++divuNewFpi)
+	{
+	    DependentMultiFabIterator phimfi(rhoOldFpi, phi_fine_strip);
+
+	    // Make rhonph, du/dt, and dsdt
+	    assert(rhoOldFpi.validbox() == rhoNewFpi.validbox());
+	    FArrayBox rhonph(rhoOldFpi.validbox(),nCompRho);
+	    rhonph.copy(rhoNewFpi());
+	    rhonph.plus(rhoOldFpi());
+	    rhonph.divide(2.0);
+
+	    assert(divuOldFpi.validbox() == divuNewFpi.validbox());
+	    FArrayBox dudt(velOldFpi.validbox(),nCompVel);
+	    dudt.copy(velNewFpi());
+	    dudt.minus(velOldFpi());
+	    dudt.divide(dt);
+	    
+	    assert(velOldFpi.validbox() == velNewFpi.validbox());
+	    FArrayBox dsdt(divuOldFpi.validbox(),nCompDivu);
+	    dsdt.copy(divuNewFpi());
+	    dsdt.minus(divuOldFpi());
+	    dsdt.divide(dt);
+	    
+
+	    // Fill phi_fine_strip with boundary cell values for phi, then copy into arg data
+	    // Note: Though this looks like a distributed operation, the MultiFab is built
+	    // on a single box...this is necesary currently, since FORT_HGPHIBC requires
+	    // a slice across the entire domain
+	    const int isPeriodicInX = (int) parent->Geom(f_lev).isPeriodic(0);
+	    FORT_HGPHIBC(ARLIM(dudt.loVect()),     ARLIM(dudt.hiVect()),     dudt.dataPtr(),
+			 ARLIM(dsdt.loVect()),     ARLIM(dsdt.hiVect()),     dsdt.dataPtr(),
+			 ARLIM(rhonph.loVect()),   ARLIM(rhonph.hiVect()),   rhonph.dataPtr(),
+			 ARLIM(region.loVect()),   ARLIM(region.hiVect()),   rcen.dataPtr(),     &dx[0],
+			 ARLIM(phimfi().loVect()), ARLIM(phimfi().hiVect()), phimfi().dataPtr(),
+			 &isPeriodicInX);
+	}
+
+	// Copy into arg data
+	phi[f_lev]->copy(phi_fine_strip);
+
+	// Put down to coarser levels
+	IntVect ratio = IntVect::TheUnitVector();
+	for (int lev=f_lev-1;lev>=c_lev;lev--) 
+	{
+	    ratio *= parent->refRatio(lev);
+	    const Box& domainC = parent->Geom(lev).Domain();
+	    const Box top_phiC_strip = surroundingNodes(bdryHi(domainC, outDir, ncStripWidth));
+	    
+	    const BoxArray top_phiC_strip_ba(&top_phiC_strip,1);
+	    MultiFab phi_crse_strip(top_phiC_strip_ba, nCompPhi, nGrow, Fab_allocate);
+	    phi_crse_strip.setVal(0.0);
+	    
+	    for (MultiFabIterator finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
+	    {
+		DependentMultiFabIterator crsemfi(finemfi, phi_crse_strip);
+		Box ovlp = Box(finemfi.validbox()).coarsen(ratio) & crsemfi.validbox();
+		FORT_PUTDOWN (crsemfi().dataPtr(),ARLIM(crsemfi().loVect()),ARLIM(crsemfi().hiVect()),
+			      finemfi().dataPtr(),ARLIM(finemfi().loVect()),ARLIM(finemfi().hiVect()),
+			      ovlp.loVect(),ovlp.hiVect(),ratio.getVect());
+	    }
+	    phi[lev]->copy(phi_crse_strip);
+	}
     }
-  } 
 #endif
 }
 

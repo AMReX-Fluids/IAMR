@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.14 1998-05-13 23:17:45 almgren Exp $
+// $Id: NavierStokes.H,v 1.15 1998-05-19 00:52:22 marc Exp $
 //
 
 #include <LevelBld.H>
@@ -483,6 +483,7 @@ protected: // ===================== protected data members ===
     static Real be_cn_theta;
 
     // ----------------------- internal switches
+    static int  Temp;
     static int  do_temp;
     static int  do_sync_proj;
     static int  do_MLsync_proj;

@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.13 1998-05-13 23:17:49 almgren Exp $
+// $Id: NS_setup.cpp,v 1.14 1998-05-19 00:52:22 marc Exp $
 //
 
 #include <NavierStokes.H>
@@ -241,8 +241,8 @@ NavierStokes::variableSetUp ()
             is_diffusive[i] = true;
     }
     is_conservative[Density] = true;
-    if (do_temp) is_conservative[Temp] = true;
-    is_conservative[Trac] = true;
+    if (do_temp) is_conservative[Temp] = false;
+    is_conservative[Trac] = false;
     if (is_diffusive[Density])
     {
         BoxLib::Error("Density cannot diffuse, bad visc_coef");
@@ -295,8 +295,8 @@ NavierStokes::variableSetUp ()
     //
     // divergence of velocity field
     //
-    derive_lst.add("divu",IndexType::TheCellType(),1,FORT_DERMGDIVU,cell_grow);
-    derive_lst.addComponent("divu",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    derive_lst.add("diveru",IndexType::TheCellType(),1,FORT_DERMGDIVU,cell_grow);
+    derive_lst.addComponent("diveru",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // pressure gradient in X direction
     //
