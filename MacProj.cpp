@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.10 1997-12-11 23:30:19 lijewski Exp $
+// $Id: MacProj.cpp,v 1.11 1997-12-19 21:09:04 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -603,13 +603,13 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
         }
         
         // set up the workspace for the godunov Box
-        godunov->Setup( grd, dx, dt, 0,
-                        xflux, ns_level.getBCArray( State_Type,i,0,1),
-                        yflux, ns_level.getBCArray( State_Type,i,1,1),
+        godunov->Setup(grd, dx, dt, 0,
+                       xflux, ns_level.getBCArray(State_Type,i,0,1).dataPtr(),
+                       yflux, ns_level.getBCArray(State_Type,i,1,1).dataPtr(),
 #if (BL_SPACEDIM == 3)
-                        zflux, ns_level.getBCArray( State_Type,i,2,1),
+                       zflux, ns_level.getBCArray(State_Type,i,2,1).dataPtr(),
 #endif
-                        S, Rho, tvelforces );
+                       S, Rho, tvelforces );
 
         // get the sync FABS
         FArrayBox& u_sync = Vsyncmfi();
@@ -629,6 +629,9 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
             int s_ind       = comp-BL_SPACEDIM;
             int sync_ind    = ( comp < BL_SPACEDIM ? u_ind  : s_ind  );
             FArrayBox &temp = ( comp < BL_SPACEDIM ? u_sync : s_sync );
+
+            Array<int> ns_level_bc = ns_level.getBCArray(State_Type,i,comp,1);
+
             godunov->SyncAdvect( grd, dx, dt, level,
                                  area0mfi(), u_mac0mfi(),
                                  grad_phi[0],       xflux,
@@ -643,7 +646,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
                                  temp,       sync_ind,
                                  is_conservative[comp],
                                  comp,
-                                 ns_level.getBCArray( State_Type,i,comp,1),
+                                 ns_level_bc.dataPtr(),
                                  volumemfi() );
             
             // NOTE: the signs here are opposite from VELGOD

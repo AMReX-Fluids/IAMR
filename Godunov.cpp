@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.7 1997-12-11 05:02:04 lijewski Exp $
+// $Id: Godunov.cpp,v 1.8 1997-12-19 21:09:04 lijewski Exp $
 //
 
 //==========================================================
@@ -191,10 +191,10 @@ Godunov::~Godunov()
 // 2*SDIM+1
 //
 void Godunov::Setup( const Box &grd, const Real *dx, Real dt, int velpred,
-                     FArrayBox &xflux, int *ubc,
-                     FArrayBox &yflux, int *vbc,
+                     FArrayBox &xflux, const int *ubc,
+                     FArrayBox &yflux, const int *vbc,
 #ifdef ADD_W
-                     FArrayBox &zflux, int *wbc,
+                     FArrayBox &zflux, const int *wbc,
 #endif
                      FArrayBox &U, FArrayBox &rho, 
                      const FArrayBox& tforces )
@@ -293,14 +293,6 @@ void Godunov::Setup( const Box &grd, const Real *dx, Real dt, int velpred,
                    GDIMS(u_lo,u_hi),
                    GDIMS(w_lo,w_hi), 
                    lo, hi, &dt, dx, &use_forces_in_trans, tforcedat);
-
-    // garbage collection on bc arrays, since they are allocated in the call
-    delete ubc;
-    delete vbc;
-#if (BL_SPACEDIM == 3)             
-    delete wbc;
-#endif
-
 }
 
 // =============================================================
@@ -318,7 +310,7 @@ void Godunov::edge_states( const Box &grd, const Real *dx, Real dt, int velpred,
                            FArrayBox &wedge, FArrayBox &stz,
 #endif
                            FArrayBox &U, FArrayBox &S, FArrayBox &tforces,
-                           int fab_ind, int state_ind, int *bc )
+                           int fab_ind, int state_ind, const int *bc )
 {
     // ---------------------------- error block
     Box tst = S.box();
@@ -423,10 +415,10 @@ void Godunov::edge_states( const Box &grd, const Real *dx, Real dt, int velpred,
 // compute the edge states for The Mac projection
 // FArrayBox work sized as in edge_states
 void Godunov::ComputeUmac( const Box &grd, const Real *dx, Real dt, 
-                           FArrayBox &umac, int *ubc, 
-                           FArrayBox &vmac, int *vbc, 
+                           FArrayBox &umac, const int *ubc, 
+                           FArrayBox &vmac, const int *vbc, 
 #ifdef ADD_W
-                           FArrayBox &wmac, int *wbc, 
+                           FArrayBox &wmac, const int *wbc, 
 #endif
                            FArrayBox &U, FArrayBox &tforces )
 {
@@ -462,13 +454,6 @@ void Godunov::ComputeUmac( const Box &grd, const Real *dx, Real dt,
                  wmac, wmac,
                  U, U, tforces, ZVEL, ZVEL, wbc );
 #endif
-
-    // garbage collection on bc arrays, since they are allocated in the call
-    delete ubc;
-    delete vbc;
-#if (BL_SPACEDIM == 3)             
-    delete wbc;
-#endif
 }
 
 
@@ -486,7 +471,7 @@ void Godunov::AdvectState( const Box &grd, const Real *dx, Real dt,
                            FArrayBox &U,
                            FArrayBox &S, FArrayBox &tforces, int fab_ind,
                            FArrayBox &aofs,                  int aofs_ind,
-                           int iconserv, int state_ind, int *bc,
+                           int iconserv, int state_ind, const int *bc,
                            FArrayBox &vol )
 {
     int velpred = 0;
@@ -499,9 +484,6 @@ void Godunov::AdvectState( const Box &grd, const Real *dx, Real dt,
                  wedge, zflux,
 #endif
                  U, S, tforces, fab_ind, state_ind, bc );
-
-    // garbage collection on bc array, allocated in call
-    delete [] bc;
 
     // compute the advective tendancy
     ComputeAofs( grd,
@@ -598,7 +580,7 @@ void Godunov::SyncAdvect( const Box &grd, const Real *dx, Real dt, int level,
 #endif
                           FArrayBox &S, FArrayBox &tforces, int fab_ind,
                           FArrayBox &sync,                  int sync_ind,
-                          int iconserv, int state_ind, int *bc,
+                          int iconserv, int state_ind, const int *bc,
                           FArrayBox &vol )
 {
     int velpred = 0;
@@ -630,9 +612,6 @@ void Godunov::SyncAdvect( const Box &grd, const Real *dx, Real dt, int level,
                  wedge, zflux,
 #endif
                  S, S, tforces, fab_ind, state_ind, bc );
-
-    // garbage collection on bc array, allocated in call
-    delete [] bc;
 
     // compute the advective tendancy for the mac sync
     ComputeSyncAofs( grd,
@@ -719,7 +698,7 @@ void Godunov::ComputeSyncAofs( const Box &grd,
 
 // correct a scalar for under-over shoots
 void Godunov::ScalMinMax( FArrayBox &Sold, FArrayBox &Snew, int ind, 
-                          int *bc, const Box &grd )
+                          const int *bc, const Box &grd )
 {
     const int *slo = Sold.loVect();
     const int *shi = Sold.hiVect();
@@ -745,9 +724,6 @@ void Godunov::ScalMinMax( FArrayBox &Sold, FArrayBox &Snew, int ind,
                      GDIMS(lo,hi),
 #endif
                      lo, hi, bc);
-
-    // garbage collection on bc array, allocated in call
-    delete [] bc;
 }
 
 

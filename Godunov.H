@@ -2,7 +2,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.4 1997-10-08 20:15:30 car Exp $
+// $Id: Godunov.H,v 1.5 1997-12-19 21:09:03 lijewski Exp $
 //
 
 //===========================================================
@@ -32,10 +32,10 @@ public:      // public access functions
 
     // set up the Godunov Box
     virtual void Setup( const Box &grd, const Real *dx, Real dt, int set_fluxes, 
-                        FArrayBox &xflux, int *ubc,
-                        FArrayBox &yflux, int *vbc,
+                        FArrayBox &xflux, const int *ubc,
+                        FArrayBox &yflux, const int *vbc,
 #if (BL_SPACEDIM == 3 )
-                        FArrayBox &zflux, int *wbc,
+                        FArrayBox &zflux, const int *wbc,
 #endif
                         FArrayBox &S, FArrayBox &Rho, 
                         const FArrayBox& tforces);
@@ -59,15 +59,15 @@ public:      // public access functions
 #endif
                       FArrayBox &U,
                       FArrayBox &S, FArrayBox &tforces, int fab_ind,
-                      int state_ind, int *bc);
+                      int state_ind, const int *bc);
     
     
     // compute divergent mac velocities
     void ComputeUmac( const Box &grd, const Real *dx, Real dt, 
-                      FArrayBox &umac, int *ubc, 
-                      FArrayBox &vmac, int *vbc, 
+                      FArrayBox &umac, const int *ubc, 
+                      FArrayBox &vmac, const int *vbc, 
 #if (BL_SPACEDIM == 3 )
-                      FArrayBox &wmac, int *wbc, 
+                      FArrayBox &wmac, const int *wbc, 
 #endif
                       FArrayBox &U, FArrayBox &tforces );
     
@@ -81,7 +81,7 @@ public:      // public access functions
                               FArrayBox &U,
                               FArrayBox &S, FArrayBox &tforces, int fab_ind,
                               FArrayBox &aofs,                  int aofs_ind,
-                              int iconserv, int state_ind, int *bc,
+                              int iconserv, int state_ind, const int *bc,
                               FArrayBox &vol );
 
     // compute the advective derivative from fluxes
@@ -106,7 +106,7 @@ public:      // public access functions
 #endif
                              FArrayBox &S, FArrayBox &tforces, int ind,
                              FArrayBox &sync,                  int sync_ind,
-                             int iconserv, int state_ind, int *bc,
+                             int iconserv, int state_ind, const int *bc,
                              FArrayBox &vol );
     
     // compute the advective derivative of corrective fluxes for the mac sync
@@ -122,7 +122,7 @@ public:      // public access functions
     
     // correct a scalar for under-over shoots
     void ScalMinMax( FArrayBox &Sold, FArrayBox &Snew, int ind, 
-                     int *bc, const Box &grd );
+                     const int *bc, const Box &grd );
 
     // =============================================================
     // Diagnostic functions follow

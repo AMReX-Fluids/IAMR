@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.24 1997-12-17 23:29:28 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.25 1997-12-19 21:09:05 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1391,11 +1391,14 @@ NavierStokes::level_projector(Real dt, Real time, int iteration)
 
     Real cur_pres_time = state[Press_Type].curTime();
 
-    int** sync_bc =  new (int*[grids.length()]);
+    int** sync_bc =  new int*[grids.length()];
+
+    Array< Array<int> > sync_bc_array(grids.length());
 
     int i;
     for (i = 0; i < grids.length(); i++) {
-      sync_bc[i] = getBCArray( State_Type,i,Xvel,BL_SPACEDIM);
+        sync_bc_array[i] = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
+        sync_bc[i] = sync_bc_array[i].dataPtr();
     }
 
     MultiFab dsdt(grids,1,1,Fab_allocate);
@@ -1454,11 +1457,7 @@ NavierStokes::level_projector(Real dt, Real time, int iteration)
                              crse_ptr,sync_reg,crse_dt_ratio,sync_bc,iteration,
                              divu_minus_s_factor,divuold,have_divu);
 
-    for (i = 0; i < grids.length(); i++) {
-      delete sync_bc[i];
-    }
-
-    delete[] sync_bc;
+    delete [] sync_bc;
 
     lp_stats.end();
 
@@ -1576,23 +1575,29 @@ Real NavierStokes::predict_velocity( Real dt, Real &comp_cfl )
         // compute the total forcing
         godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rho );
 
+        Array<int> bndry[BL_SPACEDIM];
+
+        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);
+               bndry[1] = getBCArray(State_Type,i,1,1);
+               bndry[2] = getBCArray(State_Type,i,2,1);)
+        
         // set up the Godunov box
-        godunov->Setup( grd, dx, dt, 1,
-                        u_mac0mfi(), getBCArray( State_Type,i,0,1),
-                        u_mac1mfi(), getBCArray( State_Type,i,1,1),
-#if (BL_SPACEDIM == 3)                         
-                        u_mac2mfi(), getBCArray( State_Type,i,2,1),
+        godunov->Setup(grd, dx, dt, 1,
+                       u_mac0mfi(), bndry[0].dataPtr(),
+                       u_mac1mfi(), bndry[1].dataPtr(),
+#if (BL_SPACEDIM == 3)                       
+                       u_mac2mfi(), bndry[2].dataPtr(),
 #endif
-                        U, Rho, tforces);
+                       U, Rho, tforces);
 
         // predict the mac velocities
-        godunov->ComputeUmac( grd, dx, dt, 
-                              u_mac0mfi(), getBCArray( State_Type,i,0,1), 
-                              u_mac1mfi(), getBCArray( State_Type,i,1,1), 
+        godunov->ComputeUmac(grd, dx, dt, 
+                             u_mac0mfi(), bndry[0].dataPtr(),
+                             u_mac1mfi(), bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)
-                              u_mac2mfi(), getBCArray( State_Type,i,2,1),
+                             u_mac2mfi(), bndry[2].dataPtr(),
 #endif
-                              U, tforces );
+                             U, tforces);
     }  // end for(MultiFabIterator...)
 
 #else
@@ -1707,21 +1712,27 @@ Real NavierStokes::predict_velocity( Real dt, Real &comp_cfl )
         // compute the total forcing
         godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rho );
 
+        Array<int> bndry[BL_SPACEDIM];
+
+        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
+               bndry[1] = getBCArray(State_Type,i,1,1);,
+               bndry[2] = getBCArray(State_Type,i,2,1);)
+
         // set up the Godunov box
         godunov->Setup( grd, dx, dt, 1,
-                        u_mac0mfi(), getBCArray( State_Type,i,0,1),
-                        u_mac1mfi(), getBCArray( State_Type,i,1,1),
+                        u_mac0mfi(), bndry[0].dataPtr(),
+                        u_mac1mfi(), bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                         
-                        u_mac2mfi(), getBCArray( State_Type,i,2,1),
+                        u_mac2mfi(), bndry[2].dataPtr(),
 #endif
                         U, Rho, tforces);
 
         // predict the mac velocities
         godunov->ComputeUmac( grd, dx, dt, 
-                              u_mac0mfi(), getBCArray( State_Type,i,0,1), 
-                              u_mac1mfi(), getBCArray( State_Type,i,1,1), 
+                              u_mac0mfi(), bndry[0].dataPtr(),
+                              u_mac1mfi(), bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)
-                              u_mac2mfi(), getBCArray( State_Type,i,2,1),
+                              u_mac2mfi(), bndry[2].dataPtr(),
 #endif
                               U, tforces );
     }  // end for(FillPatchIterator...)
@@ -1867,12 +1878,18 @@ void NavierStokes::velocity_advection( Real dt )
         // compute the total forcing
         godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rho );
 
+        Array<int> bndry[BL_SPACEDIM];
+
+        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);
+               bndry[1] = getBCArray(State_Type,i,1,1);
+               bndry[2] = getBCArray(State_Type,i,2,1);)
+
         // set up the workspace for the godunov Box
         godunov->Setup( grd, dx, dt, 0,
-                        xflux, getBCArray( State_Type,i,0,1),
-                        yflux, getBCArray( State_Type,i,1,1),
+                        xflux, bndry[0].dataPtr(),
+                        yflux, bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                          
-                        zflux, getBCArray( State_Type,i,2,1),
+                        zflux, bndry[2].dataPtr(),
 #endif
                         U, Rho, tforces);
         
@@ -1888,7 +1905,7 @@ void NavierStokes::velocity_advection( Real dt )
                                   aofsmfi(),    comp,
                                   is_conservative[comp],
                                   comp,
-                                  getBCArray( State_Type,i,comp,1),
+                                  bndry[comp].dataPtr(),
                                   volumemfi() );
 
             // get fluxes for diagnostics and refluxing
@@ -2009,12 +2026,18 @@ void NavierStokes::velocity_advection( Real dt )
         // compute the total forcing
         godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rho );
 
+        Array<int> bndry[BL_SPACEDIM];
+
+        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
+               bndry[1] = getBCArray(State_Type,i,1,1);,
+               bndry[2] = getBCArray(State_Type,i,2,1);)
+
         // set up the workspace for the godunov Box
         godunov->Setup( grd, dx, dt, 0,
-                        xflux, getBCArray( State_Type,i,0,1),
-                        yflux, getBCArray( State_Type,i,1,1),
+                        xflux, bndry[0].dataPtr(),
+                        yflux, bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                          
-                        zflux, getBCArray( State_Type,i,2,1),
+                        zflux, bndry[2].dataPtr(),
 #endif
                         U, Rho, tforces);
         
@@ -2030,7 +2053,7 @@ void NavierStokes::velocity_advection( Real dt )
                                   aofsmfi(),    comp,
                                   is_conservative[comp],
                                   comp,
-                                  getBCArray( State_Type,i,comp,1),
+                                  bndry[comp].dataPtr(),
                                   volumemfi() );
 
             // get fluxes for diagnostics and refluxing
@@ -2115,12 +2138,18 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
           godunov->Sum_tf_gp_visc( tvelforces, vel_visc_termsmfi(), Gp, Rho );
         }
         
+        Array<int> bndry[BL_SPACEDIM];
+
+        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);
+               bndry[1] = getBCArray(State_Type,i,1,1);
+               bndry[2] = getBCArray(State_Type,i,2,1);)
+
         // set up the workspace for the godunov Box
         godunov->Setup( grd, dx, dt, 0,
-                        xflux, getBCArray( State_Type,i,0,1),
-                        yflux, getBCArray( State_Type,i,1,1),
+                        xflux, bndry[0].dataPtr(),
+                        yflux, bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                         
-                        zflux, getBCArray( State_Type,i,2,1),
+                        zflux, bndry[2].dataPtr(),
 #endif
                         U, Rho, tvelforces );
         
@@ -2134,6 +2163,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
                                        divu, Rho,
                                        is_conservative[state_ind] );
 
+            Array<int> state_bc = getBCArray(State_Type,i,state_ind,1);
             //  advect scalar
             godunov->AdvectState( grd, dx, dt, 
                                   area0mfi(), u_mac0mfi(), xflux,
@@ -2145,7 +2175,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
                                   aofsmfi(),    state_ind,
                                   is_conservative[state_ind],
                                   state_ind,
-                                  getBCArray( State_Type,i,state_ind,1),
+                                  state_bc.dataPtr(),
                                   volumemfi() );
 
             // get the fluxes for refluxing and diagnostic purposes
@@ -2331,13 +2361,19 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
 
           godunov->Sum_tf_gp_visc( tvelforces, vel_visc_termsmfi(), Gp, Rho );
         }
+
+        Array<int> bndry[BL_SPACEDIM];
+
+        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
+               bndry[1] = getBCArray(State_Type,i,1,1);,
+               bndry[2] = getBCArray(State_Type,i,2,1);)
         
         // set up the workspace for the godunov Box
         godunov->Setup( grd, dx, dt, 0,
-                        xflux, getBCArray( State_Type,i,0,1),
-                        yflux, getBCArray( State_Type,i,1,1),
+                        xflux, bndry[0].dataPtr(),
+                        yflux, bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                         
-                        zflux, getBCArray( State_Type,i,2,1),
+                        zflux, bndry[2].dataPtr(),
 #endif
                         U, Rho, tvelforces );
         
@@ -2351,6 +2387,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
                                        divu, Rho,
                                        is_conservative[state_ind] );
 
+            Array<int> state_bc = getBCArray(State_Type,i,state_ind,1);
             //  advect scalar
             godunov->AdvectState( grd, dx, dt, 
                                   area0mfi(), u_mac0mfi(), xflux,
@@ -2362,7 +2399,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
                                   aofsmfi(),    state_ind,
                                   is_conservative[state_ind],
                                   state_ind,
-                                  getBCArray( State_Type,i,state_ind,1),
+                                  state_bc.dataPtr(),
                                   volumemfi() );
 
             // get the fluxes for refluxing and diagnostic purposes
@@ -2464,10 +2501,10 @@ void NavierStokes::scalar_advection_update(Real dt, int first_scalar, int last_s
 
             int do_minmax = (is_conservative[sigma] ? 0 : 1);
             if (do_minmax) {
-                godunov->ScalMinMax( S_oldmfi(), S_newmfi(),
-                                     sigma,
-                                     getBCArray( State_Type,i,sigma,1),
-                                     grd );
+                godunov->ScalMinMax(S_oldmfi(), S_newmfi(),
+                                    sigma,
+                                    getBCArray(State_Type,i,sigma,1).dataPtr(),
+                                    grd);
             }
         }
 
@@ -2521,10 +2558,10 @@ void NavierStokes::scalar_advection_update(Real dt, int first_scalar, int last_s
 
             int do_minmax = (is_conservative[sigma] ? 0 : 1);
             if (do_minmax) {
-                godunov->ScalMinMax( S_oldmfi(), S_newmfi(),
-                                     sigma,
-                                     getBCArray( State_Type,i,sigma,1),
-                                     grd );
+                godunov->ScalMinMax(S_oldmfi(), S_newmfi(),
+                                    sigma,
+                                    getBCArray( State_Type,i,sigma,1).dataPtr(),
+                                    grd );
             }
         }
 #endif
@@ -4593,9 +4630,13 @@ void NavierStokes::level_sync()
     if (level > 0) crsr_sync_ptr = &(getLevel(level).getSyncReg());
 
     // get boundary conditions
-    int** sync_bc =  new (int*[grids.length()]);
+    int** sync_bc =  new int*[grids.length()];
+
+    Array< Array<int> > sync_bc_array(grids.length());
+
     for (i = 0; i < grids.length(); i++) {
-      sync_bc[i] = getBCArray( State_Type,i,Xvel,BL_SPACEDIM);
+        sync_bc_array[i] = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
+        sync_bc[i] = sync_bc_array[i].dataPtr();
     }
     
     
@@ -4634,11 +4675,16 @@ void NavierStokes::level_sync()
         
         // correct pressure and velocities after the projection
         ratio = IntVect::TheUnitVector();
-        int ** fine_sync_bc = new (int*[finegrids.length()]);
+        int ** fine_sync_bc = new int*[finegrids.length()];
+
+        Array< Array<int> > fine_sync_bc_array(finegrids.length());
 
         for (i = 0; i < finegrids.length(); i++) {
-          fine_sync_bc[i] = 
-            getLevel(level+1).getBCArray( State_Type,i,Xvel,BL_SPACEDIM);
+            fine_sync_bc_array[i] = getLevel(level+1).getBCArray(State_Type,
+                                                                 i,
+                                                                 Xvel,
+                                                                 BL_SPACEDIM);
+            fine_sync_bc[i] = fine_sync_bc_array[i].dataPtr();
         }
 
         for (int lev = level+2; lev <= finest_level; lev++) {
@@ -4652,9 +4698,6 @@ void NavierStokes::level_sync()
             SyncProjInterp( phi, level+1, P_new, lev, ratio );
         }
 
-        for (int i = 0; i < finegrids.length(); i++) {
-          delete fine_sync_bc[i];
-        }
         delete[] fine_sync_bc;
         
     }
@@ -4688,9 +4731,6 @@ void NavierStokes::level_sync()
     }
     
     // garbage collection
-    for ( i = 0; i < grids.length(); i++) {
-        delete sync_bc[i];
-    }
     delete[] sync_bc;
 }
 
@@ -4754,9 +4794,13 @@ void NavierStokes::mac_sync()
         }
     
         // get boundary conditions
-        int** sync_bc =  new (int*[grids.length()]);
+        int** sync_bc =  new int*[grids.length()];
+
+        Array< Array<int> > sync_bc_array(grids.length());
+
         for ( i = 0; i < ngrids; i++) {
-          sync_bc[i] = getBCArray( State_Type,i,Density,numscal );
+            sync_bc_array[i] = getBCArray(State_Type,i,Density,numscal);
+            sync_bc[i] = sync_bc_array[i].dataPtr();
         }
 
         // interpolate the sync correction to the finer levels
@@ -4771,10 +4815,7 @@ void NavierStokes::mac_sync()
         }
 
         // garbage collection
-        for ( i = 0; i < grids.length(); i++) {
-            delete sync_bc[i];
-        }
-        delete[] sync_bc;
+        delete [] sync_bc;
     }
 }
 
