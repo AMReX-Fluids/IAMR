@@ -4,7 +4,7 @@
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.13 1999-03-27 00:07:42 marc Exp $
+// $Id: MacProj.H,v 1.14 2000-04-13 21:17:28 sstanley Exp $
 //
 
 #include <BC_TYPES.H>
@@ -12,6 +12,7 @@
 #include <Amr.H>
 #include <AmrLevel.H>
 #include <FluxRegister.H>
+#include "NavierStokes.H"
 
 class MacProj
 {
@@ -54,30 +55,30 @@ public:
     //
     // Computing the sync tendency.
     //
-    void mac_sync_compute (int               level,
-                           MultiFab*         u_mac,  
-                           MultiFab*         Vsync,
-                           MultiFab*         Ssync,
-                           MultiFab*         rho_half, 
-                           FluxRegister*     adv_flux_reg,
-                           Array<int>&       is_conservative,
-                           Real              prev_time,
-                           Real              prev_pres_time,
-                           Real              dt,
-                           int               NUM_STATE,
-                           Real              be_cn_theta,
-                           const Array<int>& increment_sync = Array<int>());
+    void mac_sync_compute (int                   level,
+                           MultiFab*             u_mac,  
+                           MultiFab*             Vsync,
+                           MultiFab*             Ssync,
+                           MultiFab*             rho_half, 
+                           FluxRegister*         adv_flux_reg,
+                           Array<AdvectionForm>& advectionType,
+                           Real                  prev_time,
+                           Real                  prev_pres_time,
+                           Real                  dt,
+                           int                   NUM_STATE,
+                           Real                  be_cn_theta,
+                           const Array<int>&     increment_sync = Array<int>());
 
-    void mac_sync_compute (int           level,
-                           MultiFab*     u_mac, 
-                           MultiFab*     Sync,
-                           int           comp,
-                           const MultiFab* const* sync_edges,
-			   int           eComp,
-                           MultiFab*     rho_half,
-                           FluxRegister* adv_flux_reg,
-                           Array<int>&   is_conservative, 
-                           Real          dt);
+    void mac_sync_compute (int                   level,
+                           MultiFab*             u_mac, 
+                           MultiFab*             Sync,
+                           int                   comp,
+                           const MultiFab*       const* sync_edges,
+			   int                   eComp,
+                           MultiFab*             rho_half,
+                           FluxRegister*         adv_flux_reg,
+                           Array<AdvectionForm>& advectionType,
+                           Real                  dt);
 protected:
     //
     // Test the divergence constraint.

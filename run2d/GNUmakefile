@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.16 1999-09-15 15:17:44 car Exp $
+# $Id: GNUmakefile,v 1.17 2000-04-13 21:17:32 sstanley Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -18,8 +18,8 @@ USE_MPI   = FALSE
 #
 # Touch Projection.cpp if you want to change the state of USE_HGPROJ_SERIAL.
 #
-USE_HGPROJ_SERIAL = FALSE
 USE_HGPROJ_SERIAL = TRUE
+USE_HGPROJ_SERIAL = FALSE
 #
 # What stencil do you want to use?
 #

@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.56 2000-04-12 19:08:43 sstanley Exp $
+// $Id: NavierStokes.H,v 1.57 2000-04-13 21:17:29 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -15,9 +15,9 @@
 #include <FluxRegister.H>
 #include <ViscBndry.H>
 #include <Projection.H>
-#include <MacProj.H> 
 #include <Godunov.H>
 #include <Diffusion.H>
+#include <MacProj.H> 
 
 //
 // "Divu_Type" means S, where divergence U = S
@@ -723,7 +723,12 @@ protected:
     static Real       gravity;
     static int        NUM_SCALARS;      // number of non-velocity components
     static int        NUM_STATE;        // total number of state variables
-    static Array<int> is_conservative;  // conservative or convective?
+    //
+    // Controls over how the convective and diffusive terms are calculated
+    // for each state variable.
+    //
+    static Array<AdvectionForm> advectionType;
+    static Array<DiffusionForm> diffusionType;
     //
     // Viscosity parameters.
     //

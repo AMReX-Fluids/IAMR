@@ -4,8 +4,12 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.7 1998-09-29 20:08:27 lijewski Exp $
+// $Id: Godunov.H,v 1.8 2000-04-13 21:17:28 sstanley Exp $
 //
+//
+// A useful enumeration of the forms for the advective terms
+//
+enum AdvectionForm {Conservative = 0, NonConservative};
 
 //===========================================================
 // This header file defines the Godunov driver class.  Its

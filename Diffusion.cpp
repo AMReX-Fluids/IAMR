@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.93 1999-09-10 20:28:35 sstanley Exp $
+// $Id: Diffusion.cpp,v 1.94 2000-04-13 21:17:27 sstanley Exp $
 //
 
 //
@@ -2591,5 +2591,37 @@ Diffusion::compute_divmusi (Real                   time,
     }
 
     delete divu_fp;
+}
+
+
+//
+// SAS: The following function is a temporary fix in the migration from
+//      using is_conservative and rho_flag over to using advectionType
+//      and diffusionType.
+//
+int
+Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
+{
+    int rho_flag;
+    switch (compDiffusionType)
+    {
+        case Laplacian_S:
+            rho_flag = 0;
+            break;
+
+        case RhoInverse_Laplacian_S:
+            rho_flag = 1;
+            break;
+
+        case Laplacian_SoverRho:
+            rho_flag = 2;
+            break;
+
+        default:
+            cerr << "compDiffusionType = " << compDiffusionType << endl;
+            BoxLib::Abort("An unknown NavierStokes::DiffusionForm was used in set_rho_flag");
+    }
+
+    return rho_flag;
 }
 #endif /*USE_NAVIERSTOKES*/

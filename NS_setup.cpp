@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.36 2000-04-12 19:08:43 sstanley Exp $
+// $Id: NS_setup.cpp,v 1.37 2000-04-13 21:17:28 sstanley Exp $
 //
 
 #include <NavierStokes.H>
@@ -227,18 +227,21 @@ NavierStokes::variableSetUp ()
         desc_lst.setComponent(State_Type,Temp,"temp",bc,FORT_TEMPFILL);
     }
 
-    is_conservative.resize(NUM_STATE);
     is_diffusive.resize(NUM_STATE);
+    advectionType.resize(NUM_STATE);
+    diffusionType.resize(NUM_STATE);
     for (int i = 0; i < NUM_STATE; i++)
     {
-        is_conservative[i] = false;
+        advectionType[i] = NonConservative;
+        diffusionType[i] = RhoInverse_Laplacian_S;
         is_diffusive[i] = false;
         if (visc_coef[i] > 0.0)
             is_diffusive[i] = true;
     }
-    is_conservative[Density] = true;
-    if (do_temp) is_conservative[Temp] = false;
-    is_conservative[Trac] = false;
+    advectionType[Density] = Conservative;
+    if (do_temp) advectionType[Temp] = NonConservative;
+    advectionType[Trac] = NonConservative;
+    diffusionType[Trac] = Laplacian_S;
     if (is_diffusive[Density])
     {
         BoxLib::Error("Density cannot diffuse, bad visc_coef");

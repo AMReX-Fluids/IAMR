@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.15 1999-09-10 20:28:34 sstanley Exp $
+// $Id: Diffusion.H,v 1.16 2000-04-13 21:17:27 sstanley Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -41,6 +41,11 @@ enum StateNames  { Xvel=0, Yvel, Density};
 enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 #  endif
 #endif
+//
+// Useful enumeration of the different forms of the diffusion terms
+//
+enum DiffusionForm {RhoInverse_Laplacian_S = 0, Laplacian_SoverRho,
+                    Laplacian_S};
 
 class Diffusion 
 {
@@ -244,6 +249,8 @@ public:
 
     inline int maxOrder() const;
     inline int tensorMaxOrder() const;
+
+    static int set_rho_flag(const DiffusionForm compDiffusionType);
 
 protected:
     //

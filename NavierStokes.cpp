@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.160 2000-04-12 19:08:43 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.161 2000-04-13 21:17:29 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -80,7 +80,8 @@ int  NavierStokes::sum_interval = -1;
 int  NavierStokes::NUM_SCALARS  = 0;
 int  NavierStokes::NUM_STATE    = 0;
 
-Array<int> NavierStokes::is_conservative;
+Array<AdvectionForm> NavierStokes::advectionType;
+Array<DiffusionForm> NavierStokes::diffusionType;
 
 //
 // ----------------------- viscosity parameters.
@@ -1662,6 +1663,8 @@ NavierStokes::velocity_advection (Real dt)
         //
         for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
         {
+            int use_conserv_diff = (advectionType[comp] == Conservative) 
+                                                             ? true : false;
             godunov->AdvectState(grids[i], dx, dt, 
                                  area[0][i], u_mac[0][i], xflux,
                                  area[1][i], u_mac[1][i], yflux,
@@ -1670,7 +1673,7 @@ NavierStokes::velocity_advection (Real dt)
 #endif
                                  U_fpi(), U_fpi(), tforces, comp,
                                  (*aofs)[i],    comp,
-                                 is_conservative[comp],
+                                 use_conserv_diff,
                                  comp,
                                  bndry[comp].dataPtr(),
                                  volume[i]);
@@ -1788,10 +1791,13 @@ NavierStokes::scalar_advection (Real dt,
             //
             // Compute total forcing.
             //
+            int use_conserv_diff = (advectionType[state_ind] == Conservative)
+                                                             ? true : false;
+
             godunov->Sum_tf_divu_visc(S_fpi(), tforces, comp, 1,
                                       visc_terms[i], comp,
                                       (*divu_fp)[i], Rho_fpi(),
-                                      is_conservative[state_ind]);
+                                      use_conserv_diff);
             //
             // Advect scalar.
             //
@@ -1805,7 +1811,7 @@ NavierStokes::scalar_advection (Real dt,
 #endif
                                  U_fpi(), S_fpi(), tforces, comp,
                                  (*aofs)[i],    state_ind,
-                                 is_conservative[state_ind],
+                                 use_conserv_diff,
                                  state_ind,
                                  state_bc.dataPtr(),
                                  volume[i]);
@@ -2014,7 +2020,7 @@ NavierStokes::diffuse_scalar_setup (Real        dt,
                                     MultiFab**& diffn,
                                     MultiFab**& diffnp1)
 {
-    (*rho_flag) = !is_conservative[sigma] ? 1 : 2;
+    (*rho_flag) = Diffusion::set_rho_flag(diffusionType[sigma]);
 }
 
 //
@@ -3744,7 +3750,7 @@ NavierStokes::mac_sync ()
         MultiFab& S_new = get_new_data(State_Type);
         mac_projector->mac_sync_compute(level,u_mac,Vsync,Ssync, rho_half,
                                         level > 0 ? &getAdvFluxReg(level) : 0,
-                                        is_conservative, prev_time,
+                                        advectionType, prev_time,
                                         prev_pres_time,dt,
                                         NUM_STATE,be_cn_theta);
         //
@@ -3788,7 +3794,8 @@ NavierStokes::mac_sync ()
         for (int sigma=0; sigma<numscal; sigma++)
         {
             const int state_ind = BL_SPACEDIM + sigma;
-            const int rho_flag = !is_conservative[state_ind] ? 1 : 2;
+            const int rho_flag = 
+                             Diffusion::set_rho_flag(diffusionType[state_ind]);
             if (is_diffusive[state_ind])
             {
                 MultiFab** cmp_diffn=0;
@@ -3913,7 +3920,7 @@ NavierStokes::reflux ()
 
     for (int istate = BL_SPACEDIM; istate < NUM_STATE; istate++)
     {
-        if (!is_conservative[istate])
+        if (advectionType[istate] == NonConservative)
         {
             const int sigma = istate -  BL_SPACEDIM;
             for (MultiFabIterator rho_halfmfi(*rho_half);
@@ -4721,7 +4728,8 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
         {
             for (int icomp = Xvel; icomp < BL_SPACEDIM; icomp++)
             {
-                const int rho_flag = !is_conservative[icomp] ? 1 : 2;
+                const int rho_flag = 
+                                 Diffusion::set_rho_flag(diffusionType[icomp]);
                 diffusion->getViscTerms(visc_terms,src_comp,icomp,time,
                                         rho_flag);
             }
@@ -4769,7 +4777,8 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
         {
             if (is_diffusive[icomp])
             {
-                const int rho_flag = !is_conservative[icomp] ? 1 : 2;
+                const int rho_flag = 
+                                  Diffusion::set_rho_flag(diffusionType[icomp]);
 
                 MultiFab** cmp_diffn = 0;
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.60 2000-03-27 18:12:52 lijewski Exp $
+// $Id: MacProj.cpp,v 1.61 2000-04-13 21:17:28 sstanley Exp $
 //
 
 #include <Misc.H>
@@ -620,19 +620,19 @@ MacProj::mac_sync_solve (int       level,
 //
 
 void
-MacProj::mac_sync_compute (int               level,
-                           MultiFab*         u_mac, 
-                           MultiFab*         Vsync,
-                           MultiFab*         Ssync,
-                           MultiFab*         rho_half,
-                           FluxRegister*     adv_flux_reg,
-                           Array<int>&       is_conservative,
-                           Real              prev_time, 
-                           Real              pres_prev_time,
-                           Real              dt, 
-                           int               NUM_STATE,
-                           Real              be_cn_theta,
-                           const Array<int>& increment_sync)
+MacProj::mac_sync_compute (int                   level,
+                           MultiFab*             u_mac, 
+                           MultiFab*             Vsync,
+                           MultiFab*             Ssync,
+                           MultiFab*             rho_half,
+                           FluxRegister*         adv_flux_reg,
+                           Array<AdvectionForm>& advectionType,
+                           Real                  prev_time, 
+                           Real                  pres_prev_time,
+                           Real                  dt, 
+                           int                   NUM_STATE,
+                           Real                  be_cn_theta,
+                           const Array<int>&     increment_sync)
 {
     FArrayBox Rho, tforces, tvelforces;
     FArrayBox xflux, yflux, zflux, Gp;
@@ -772,6 +772,9 @@ MacProj::mac_sync_compute (int               level,
                 FArrayBox& temp     = comp < BL_SPACEDIM ? u_sync : s_sync;
                 ns_level_bc         = ns_level.getBCArray(State_Type,i,comp,1);
 
+                int use_conserv_diff = (advectionType[comp] == Conservative)
+                                                             ? true : false;
+
                 godunov->SyncAdvect(grids[i], dx, dt, level, area0mfi(), u_mac0mfi(),
                                     grad_phi[0], xflux, area1mfi(), u_mac1mfi(),
                                     grad_phi[1], yflux,
@@ -779,7 +782,7 @@ MacProj::mac_sync_compute (int               level,
                                     area2mfi(), u_mac2mfi(), grad_phi[2], zflux,
 #endif
                                     S, tforces, comp, temp, sync_ind,
-                                    is_conservative[comp], comp,
+                                    use_conserv_diff, comp,
                                     ns_level_bc.dataPtr(), volumemfi());
                 //
                 // NOTE: the signs here are opposite from VELGOD.
@@ -826,16 +829,16 @@ MacProj::mac_sync_compute (int               level,
 //
 
 void
-MacProj::mac_sync_compute (int           level,
-                           MultiFab*     u_mac, 
-                           MultiFab*     Ssync,
-                           int           comp,
+MacProj::mac_sync_compute (int                    level,
+                           MultiFab*              u_mac, 
+                           MultiFab*              Ssync,
+                           int                    comp,
                            const MultiFab* const* sync_edges,
-			   int           eComp,
-                           MultiFab*     rho_half,
-                           FluxRegister* adv_flux_reg,
-                           Array<int>&   is_conservative, 
-                           Real          dt)
+			   int                    eComp,
+                           MultiFab*              rho_half,
+                           FluxRegister*          adv_flux_reg,
+                           Array<AdvectionForm>&  advectionType, 
+                           Real                   dt)
 {
     BL_ASSERT(comp >= BL_SPACEDIM);
 
@@ -894,6 +897,10 @@ MacProj::mac_sync_compute (int           level,
         zflux.resize(::surroundingNodes(grids[Ssyncmfi.index()],2),1);
         zflux.copy(sync_edges2mfi(),eComp,0,1);
 #endif
+
+        int use_conserv_diff = (advectionType[comp] == Conservative)
+                                                             ? true : false;
+
         godunov.ComputeSyncAofs(grids[Ssyncmfi.index()],
                                 area0mfi(),
                                 grad_phi[0],       xflux,
@@ -905,7 +912,7 @@ MacProj::mac_sync_compute (int           level,
                                 grad_phi[2],       zflux,
 #endif
                                 volumemfi(), Ssyncmfi(), s_ind, 
-                                is_conservative[comp]);
+                                use_conserv_diff);
         //
         // NOTE: the signs here are opposite from VELGOD.
         // NOTE: fluxes expected to be in extensive form.
