@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.28 1998-05-20 20:32:39 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.29 1998-05-20 21:04:13 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -633,6 +633,59 @@ SyncRegister::incrementPeriodic (const Geometry& crse_geom,
     }
 }
 
+static
+void
+SizeTmpFabs (Box&           reglo,
+             Box&           reghi,
+             Box&           tboxlo,
+             Box&           tboxhi,
+             FArrayBox&     ffablo,
+             FArrayBox&     ffabhi,
+             Box&           cboxlo,
+             Box&           cboxhi,
+             FArrayBox&     cfablo,
+             FArrayBox&     cfabhi,
+             int            dir,
+             const IntVect& ratio)
+{
+    for (int idir = 0; idir < BL_SPACEDIM; idir++)
+    {
+        if (idir < dir)
+        {
+            //
+            // Previous direction have included these
+            // points in the stencil already, shrink.
+            //
+            reglo.grow(idir,-1);
+            reghi.grow(idir,-1);
+        }
+        if (idir != dir)
+        {
+            //
+            // Need additional room for stencil calculation.
+            //
+            tboxlo.grow(idir,ratio[idir]-1);
+            tboxhi.grow(idir,ratio[idir]-1);
+        }
+    }
+    //
+    // Define fine grid tmp fabs.
+    //
+    ffablo.resize(tboxlo,1);
+    ffabhi.resize(tboxhi,1);
+    ffablo.setVal(0);
+    ffabhi.setVal(0);
+    //
+    // Define coarsened tmp fabs.
+    //
+    cboxlo.coarsen(ratio);
+    cboxhi.coarsen(ratio);
+    cfablo.resize(cboxlo,1);
+    cfabhi.resize(cboxhi,1);
+    cfablo.setVal(0);
+    cfabhi.setVal(0);
+}
+
 void
 SyncRegister::FineDVAdd (const MultiFab& U, 
                          const Real*     dx_fine, 
@@ -676,46 +729,14 @@ SyncRegister::FineDVAdd (const MultiFab& U,
             tboxhi.setRange(dir,ndhi[dir],1);
             Box cboxlo(tboxlo), cboxhi(tboxhi);
             Box reglo(tboxlo), reghi(tboxhi);
-            for (int idir = 0; idir < BL_SPACEDIM; idir++)
-            {
-                if (idir < dir)
-                {
-                    //
-                    // Previous direction have included these
-                    // points in the stencil already, shrink.
-                    //
-                    reglo.grow(idir,-1);
-                    reghi.grow(idir,-1);
-                }
-                if (idir != dir)
-                {
-                    //
-                    // Need additional room for stencil calculation.
-                    //
-                    tboxlo.grow(idir,ratio[idir]-1);
-                    tboxhi.grow(idir,ratio[idir]-1);
-                }
-            }
-            //
-            // Define fine grid tmp fabs.
-            //
+
+            SizeTmpFabs(reglo,reghi,tboxlo,tboxhi,ffablo,ffabhi,
+                        cboxlo,cboxhi,cfablo,cfabhi,dir,ratio);
+
             const int* flo_lo = tboxlo.loVect();
             const int* flo_hi = tboxlo.hiVect();
             const int* fhi_lo = tboxhi.loVect();
             const int* fhi_hi = tboxhi.hiVect();
-            ffablo.resize(tboxlo,1);
-            ffabhi.resize(tboxhi,1);
-            ffablo.setVal(0);
-            ffabhi.setVal(0);
-            //
-            // Define coarsened tmp fabs.
-            //
-            cboxlo.coarsen(ratio);
-            cboxhi.coarsen(ratio);
-            cfablo.resize(cboxlo,1);
-            cfabhi.resize(cboxhi,1);
-            cfablo.setVal(0);
-            cfabhi.setVal(0);
             //
             // Compute divu on fine grid edges in regions defined
             // by reglo and reghi.  Fabs are set to zero outside region.
@@ -878,46 +899,14 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
             tboxhi.setRange(dir,ndhi[dir],1);
             Box cboxlo(tboxlo), cboxhi(tboxhi);
             Box reglo(tboxlo), reghi(tboxhi);
-            for (int idir = 0; idir < BL_SPACEDIM; idir++)
-            {
-                if (idir < dir)
-                {
-                    //
-                    // Previous direction have included these
-                    // points in the stencil already, shrink.
-                    //
-                    reglo.grow(idir,-1);
-                    reghi.grow(idir,-1);
-                }
-                if (idir != dir)
-                {
-                    //
-                    // Need additional room for stencil calculation.
-                    //
-                    tboxlo.grow(idir,ratio[idir]-1);
-                    tboxhi.grow(idir,ratio[idir]-1);
-                }
-            }
-            //
-            // Define fine grid tmp fabs.
-            //
+
+            SizeTmpFabs(reglo,reghi,tboxlo,tboxhi,ffablo,ffabhi,
+                        cboxlo,cboxhi,cfablo,cfabhi,dir,ratio);
+
             const int* flo_lo = tboxlo.loVect();
             const int* flo_hi = tboxlo.hiVect();
             const int* fhi_lo = tboxhi.loVect();
             const int* fhi_hi = tboxhi.hiVect();
-            ffablo.resize(tboxlo,1);
-            ffabhi.resize(tboxhi,1);
-            ffablo.setVal(0);
-            ffabhi.setVal(0);
-            //
-            // Define coarsened tmp fabs.
-            //
-            cboxlo.coarsen(ratio);
-            cboxhi.coarsen(ratio);
-            cfablo.resize(cboxlo,1);
-            cfabhi.resize(cboxhi,1);
-            cfablo.setVal(0);
-            cfabhi.setVal(0);
             //
             // Average dsdt to nodes on fine grid edges in regions defined
             // by reglo and reghi.  Fabs are set to zero outside region.
@@ -1083,37 +1072,14 @@ SyncRegister::CompDVAdd (const MultiFab& U,
             tboxhi.setRange(dir,ndhi[dir],1);
             Box cboxlo(tboxlo), cboxhi(tboxhi);
             Box reglo(tboxlo), reghi(tboxhi);
-            for (int idir = 0; idir < BL_SPACEDIM; idir++)
-            {
-                if (idir < dir)
-                {
-                    //
-                    // Previous direction have included these
-                    // points in the stencil already, shrink.
-                    //
-                    reglo.grow(idir,-1);
-                    reghi.grow(idir,-1);
-                }
-                if (idir != dir)
-                {
-                    //
-                    // Need additional room for stencil calculation.
-                    //
-                    tboxlo.grow(idir,ratio[idir]-1);
-                    tboxhi.grow(idir,ratio[idir]-1);
-                }
-            }
-            //
-            // Define fine grid tmp fabs.
-            //
+
+            SizeTmpFabs(reglo,reghi,tboxlo,tboxhi,ffablo,ffabhi,
+                        cboxlo,cboxhi,cfablo,cfabhi,dir,ratio);
+
             const int* flo_lo = tboxlo.loVect();
             const int* flo_hi = tboxlo.hiVect();
             const int* fhi_lo = tboxhi.loVect();
             const int* fhi_hi = tboxhi.hiVect();
-            ffablo.resize(tboxlo,1);
-            ffabhi.resize(tboxhi,1);
-            ffablo.setVal(0);
-            ffabhi.setVal(0);
             //
             // Compute divu on fine grid edges in regions defined
             // by reglo and reghi.  Fabs are set to zero outside region.
@@ -1126,15 +1092,7 @@ SyncRegister::CompDVAdd (const MultiFab& U,
                         reghi.loVect(),reghi.hiVect(),dx_fine,&mult,&is_rz);
 
             NullOverlap(Pgrids,fine_geom,reglo,ffablo,reghi,ffabhi,pshifts);
-            //
-            // Define coarsened tmp fabs.
-            //
-            cboxlo.coarsen(ratio);
-            cboxhi.coarsen(ratio);
-            cfablo.resize(cboxlo,1);
-            cfabhi.resize(cboxhi,1);
-            cfablo.setVal(0);
-            cfabhi.setVal(0);
+
             //
             // Coarsen edge values.
             //
@@ -1290,46 +1248,14 @@ SyncRegister::FineLPhiAdd (const MultiFab& Phi,
             tboxhi.setRange(dir,ndhi[dir],1);
             Box cboxlo(tboxlo), cboxhi(tboxhi);
             Box reglo(tboxlo), reghi(tboxhi);
-            for (int idir = 0; idir < BL_SPACEDIM; idir++)
-            {
-                if (idir < dir)
-                {
-                    //
-                    // Previous direction have included these
-                    // points in the stencil already, shrink.
-                    //
-                    reglo.grow(idir,-1);
-                    reghi.grow(idir,-1);
-                }
-                if (idir != dir)
-                {
-                    //
-                    // Need additional room for stencil calculation.
-                    //
-                    tboxlo.grow(idir,ratio[idir]-1);
-                    tboxhi.grow(idir,ratio[idir]-1);
-                }
-            }
-            //
-            // Define fine grid tmp fabs.
-            //
+
+            SizeTmpFabs(reglo,reghi,tboxlo,tboxhi,ffablo,ffabhi,
+                        cboxlo,cboxhi,cfablo,cfabhi,dir,ratio);
+
             const int* flo_lo = tboxlo.loVect();
             const int* flo_hi = tboxlo.hiVect();
             const int* fhi_lo = tboxhi.loVect();
             const int* fhi_hi = tboxhi.hiVect();
-            ffablo.resize(tboxlo,1);
-            ffabhi.resize(tboxhi,1);
-            ffablo.setVal(0);
-            ffabhi.setVal(0);
-            //
-            // Define coarsened tmp fabs.
-            //
-            cboxlo.coarsen(ratio);
-            cboxhi.coarsen(ratio);
-            cfablo.resize(cboxlo,1);
-            cfabhi.resize(cboxhi,1);
-            cfablo.setVal(0);
-            cfabhi.setVal(0);
             //
             // Compute divgp on fine grid edges in regions defined
             // by reglo and reghi.  Fabs are set to zero outside region.
@@ -1423,46 +1349,14 @@ SyncRegister::CompLPhiAdd (const MultiFab& Phi,
             tboxhi.setRange(dir,ndhi[dir],1);
             Box cboxlo(tboxlo), cboxhi(tboxhi);
             Box reglo(tboxlo), reghi(tboxhi);
-            for (int idir = 0; idir < BL_SPACEDIM; idir++)
-            {
-                if (idir < dir)
-                {
-                    //
-                    // Previous direction have included these
-                    // points in the stencil already, shrink.
-                    //
-                    reglo.grow(idir,-1);
-                    reghi.grow(idir,-1);
-                }
-                if (idir != dir)
-                {
-                    //
-                    // Need additional room for stencil calculation.
-                    //
-                    tboxlo.grow(idir,ratio[idir]-1);
-                    tboxhi.grow(idir,ratio[idir]-1);
-                }
-            }
-            //
-            // Define fine grid tmp fabs.
-            //
+
+            SizeTmpFabs(reglo,reghi,tboxlo,tboxhi,ffablo,ffabhi,
+                        cboxlo,cboxhi,cfablo,cfabhi,dir,ratio);
+
             const int* flo_lo = tboxlo.loVect();
             const int* flo_hi = tboxlo.hiVect();
             const int* fhi_lo = tboxhi.loVect();
             const int* fhi_hi = tboxhi.hiVect();
-            ffablo.resize(tboxlo,1);
-            ffabhi.resize(tboxhi,1);
-            ffablo.setVal(0);
-            ffabhi.setVal(0);
-            //
-            // Define coarsened tmp fabs.
-            //
-            cboxlo.coarsen(ratio);
-            cboxhi.coarsen(ratio);
-            cfablo.resize(cboxlo,1);
-            cfabhi.resize(cboxhi,1);
-            cfablo.setVal(0);
-            cfabhi.setVal(0);
             //
             // Compute divgp on fine grid edges in regions defined
             // by reglo and reghi.  Fabs are set to zero outside region.
