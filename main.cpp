@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.19 1998-04-01 00:29:43 car Exp $
+// $Id: main.cpp,v 1.20 1998-04-01 17:01:53 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -87,7 +87,7 @@ main (int   argc,
       exit(-1);
     }
 #endif
-    ParallelDescriptor::StartParallel(nprocs);
+    ParallelDescriptor::StartParallel(nprocs, &argc, &argv);
     //
     // Initialize random seed after we're running in parallel.
     //
