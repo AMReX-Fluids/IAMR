@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.43 1998-05-08 15:50:18 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.44 1998-05-08 21:57:47 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -198,7 +198,7 @@ NavierStokes::read_params()
     pp.get("init_shrink",init_shrink);
     pp.get("cfl",cfl);
     pp.get("init_iter",init_iter);
-    pp.get("dt_cutoff",dt_cutoff);
+    pp.query("dt_cutoff",dt_cutoff);
     pp.query("change_max",change_max);
     pp.query("fixed_dt",fixed_dt);
     pp.query("sum_interval",sum_interval);
