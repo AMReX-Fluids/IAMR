@@ -406,7 +406,7 @@ StateData::linInterpFillFab(MultiFabCopyDescriptor &multiFabCopyDesc,
 
 // -------------------------------------------------------------
 void
-StateData::checkPoint(ostream &os, int dump_old) 
+StateData::checkPoint(ostream &os, bool dump_old) 
 {
     if(dump_old == true && old_data == 0) {
 	dump_old = false;

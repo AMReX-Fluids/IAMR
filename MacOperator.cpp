@@ -1,4 +1,4 @@
-// $Id: MacOperator.cpp,v 1.1 1997-07-08 23:08:14 vince Exp $
+// $Id: MacOperator.cpp,v 1.2 1997-07-17 23:47:15 car Exp $
 #include <MacBndry.H>
 #include <MacOperator.H>
 #include <MacOpMacDrivers.H>
@@ -330,7 +330,7 @@ void mac_sync_driver( const MacBndry &mac_bndry,
     
     // now construct MultiGrid or CGSolver object to solve system
     if (use_cg_solve) {
-        int use_mg_precond = 1;
+        bool use_mg_precond = true;
         CGSolver mac_cg(mac_op,use_mg_precond);
         REAL local_mac_sync_tol = mac_sync_tol/pow(100.0, level);
         mac_cg.solve(*mac_sync_phi,Rhs,local_mac_sync_tol,mac_abs_tol);

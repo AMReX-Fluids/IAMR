@@ -898,7 +898,7 @@ void Amr::coarseTimeStep(REAL stop_time){
 
     int check_test = 0;
     if (check_per > 0.0) {
-      int num_per = (cumtime+.001*dt_level[0]) / check_per;
+      int num_per = int((cumtime+.001*dt_level[0]) / check_per);
       REAL resid = cumtime - num_per * check_per;
       if (resid < .001*dt_level[0]) check_test = 1;
     }
@@ -911,7 +911,7 @@ void Amr::coarseTimeStep(REAL stop_time){
 
     int plot_test = 0;
     if (plot_per > 0.0) {
-      int num_per = (cumtime+.001*dt_level[0]) / plot_per;
+      int num_per = int((cumtime+.001*dt_level[0]) / plot_per);
       REAL resid = cumtime - num_per * plot_per;
       if (resid < .001*dt_level[0]) plot_test = 1;
     }
@@ -1037,7 +1037,7 @@ Amr::regrid(int lbase, REAL time)
 	    int numgrids= amr_level[lev].numGrids();
 	    long ncells = amr_level[lev].countCells();
 	    long ntot = geom[lev].Domain().numPts();
-	    float frac = 100.0*(float(ncells) / float(ntot));
+	    float frac = 100.0F*(float(ncells) / float(ntot));
 	    if (!silent) {
 	      if(ParallelDescriptor::IOProcessor()) {
 		cout   << "   level " << lev << ": "
@@ -1077,7 +1077,7 @@ void Amr::printGridInfo(ostream &os, int min_lev, int max_lev) {
 	int numgrid = bs.length();
 	long ncells = amr_level[lev].countCells();
 	long ntot = geom[lev].Domain().numPts();
-	float frac = 100.0*(float(ncells) / float(ntot));
+	float frac = 100.0F*(float(ncells) / float(ntot));
 	os << "  Level " << lev << "   " << numgrid << " grids  "
 	   << ncells << " cells  " << frac << " % of domain" << '\n';
         int k;

@@ -4,7 +4,7 @@
 #define _SIMPLEDPTR_H_
 
 //
-// $Id: SimpleDPtr.H,v 1.2 1997-07-17 22:35:16 car Exp $
+// $Id: SimpleDPtr.H,v 1.3 1997-07-17 23:47:16 car Exp $
 //
 
 #include <Assert.H>
@@ -162,7 +162,7 @@ template <class T>
 T&
 SimpleDPtr<T>::operator[] (long n) const
 {
-    assert(n >= 0 && n < currentsize);
+    assert(n >= 0 && n < long(currentsize));
     return dp[n];
 }
 

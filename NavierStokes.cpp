@@ -1,4 +1,4 @@
-// $Id: NavierStokes.cpp,v 1.3 1997-07-17 23:25:37 car Exp $
+// $Id: NavierStokes.cpp,v 1.4 1997-07-17 23:47:15 car Exp $
 
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2487,14 +2487,14 @@ void NavierStokes::computeNewDt(int finest_level, int sub_cycle,
 
     // adjust the time step to be able to output checkpoints at specific times
     REAL check_per = parent->checkPer();
-    int a =  cur_time / check_per;
-    int b = (cur_time + dt_0) / check_per;
+    int a =  int(cur_time / check_per);
+    int b = int((cur_time + dt_0) / check_per);
     if (a != b) dt_0 = b * check_per - cur_time;
 
     // adjust the time step to be able to output plot files at specific times
     REAL plot_per = parent->plotPer();
-    a =  cur_time / plot_per;
-    b = (cur_time + dt_0) / plot_per;
+    a =  int(cur_time / plot_per);
+    b = int((cur_time + dt_0) / plot_per);
     if (a != b) dt_0 = b * plot_per - cur_time;
 
     n_factor = 1;

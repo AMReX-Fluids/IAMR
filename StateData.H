@@ -118,7 +118,7 @@ public:
 
 ///
 ///
-    void checkPoint(ostream &os, int dump_old = true);
+    void checkPoint(ostream &os, bool dump_old = true);
 
 /// access functions
 ///
