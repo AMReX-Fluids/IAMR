@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.220 2003-02-18 22:01:52 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.221 2003-02-19 18:28:43 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1696,6 +1696,16 @@ NavierStokes::velocity_advection (Real dt)
     Array<int> bndry[BL_SPACEDIM];
     FArrayBox xflux, yflux, zflux, divu, tforces;
 
+    MultiFab* divu_fp = getDivCond(nGrowF,prev_time);
+
+    MultiFab* dsdt = getDsdt(nGrowF,prev_time);
+    for (MFIter dsdtmfi(*dsdt); dsdtmfi.isValid(); ++dsdtmfi)
+    {
+       (*dsdt)[dsdtmfi].mult(.5*dt);
+       (*divu_fp)[dsdtmfi].plus((*dsdt)[dsdtmfi]);
+    }
+    delete dsdt;
+
     MultiFab Gp(grids,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
     //
@@ -1750,7 +1760,7 @@ NavierStokes::velocity_advection (Real dt)
 #if (BL_SPACEDIM == 3)                       
                                  area[2][i], u_mac[2][i], zflux,
 #endif
-                                 U_fpi(), S, tforces, divu_dummy, comp,
+                                 U_fpi(), S, tforces, (*divu_fp)[i], comp,
                                  (*aofs)[i],comp,use_conserv_diff,
                                  comp,bndry[comp].dataPtr(),PRE_MAC,volume[i]);
             //
@@ -1817,6 +1827,15 @@ NavierStokes::scalar_advection (Real dt,
     Array<int> state_bc, bndry[BL_SPACEDIM];
 
     MultiFab* divu_fp = getDivCond(1,prev_time);
+
+    MultiFab* dsdt = getDsdt(nGrowF,prev_time);
+    for (MFIter dsdtmfi(*dsdt); dsdtmfi.isValid(); ++dsdtmfi)
+    {
+       (*dsdt)[dsdtmfi].mult(.5*dt);
+       (*divu_fp)[dsdtmfi].plus((*dsdt)[dsdtmfi]);
+    }
+    delete dsdt;
+
     //
     // Compute the advective forcing.
     //
@@ -1859,10 +1878,19 @@ NavierStokes::scalar_advection (Real dt,
             //
             int use_conserv_diff = (advectionType[state_ind] == Conservative)
                                                              ? true : false;
+            AdvectionScheme adv_scheme = PRE_MAC;
 
-            godunov->Sum_tf_divu_visc(S_fpi(),tforces,comp,1,visc_terms[i],
-                                      comp,(*divu_fp)[i],(*rho_ptime)[i],
-                                      use_conserv_diff);
+            if (adv_scheme == PRE_MAC) {
+              godunov->Sum_tf_divu_visc(S_fpi(),tforces,comp,1,visc_terms[i],
+                                        comp,(*divu_fp)[i],(*rho_ptime)[i],
+                                        use_conserv_diff);
+            } else {
+              FArrayBox junkDivu(tforces.box(),1);
+              junkDivu.setVal(0.);
+              godunov->Sum_tf_divu_visc(S_fpi(),tforces,comp,1,visc_terms[i],
+                                        comp,junkDivu,(*rho_ptime)[i],
+                                        use_conserv_diff);
+            }
             //
             // Advect scalar.
             //
@@ -1876,7 +1904,7 @@ NavierStokes::scalar_advection (Real dt,
 #endif
                                  U_fpi(),S_fpi(),tforces,(*divu_fp)[i],comp,
                                  (*aofs)[i],state_ind,use_conserv_diff,
-                                 state_ind,state_bc.dataPtr(),PRE_MAC,volume[i]);
+                                 state_ind,state_bc.dataPtr(),adv_scheme,volume[i]);
             //
             // Get the fluxes for refluxing and diagnostic purposes.
             //
