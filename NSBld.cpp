@@ -1,5 +1,5 @@
-#define _NS_BLD_C_  $Id: NSBld.cpp,v 1.1 1997-07-08 23:08:11 vince Exp $
-#include <stdio.h>
+#define _NS_BLD_C_  $Id: NSBld.cpp,v 1.2 1997-09-19 20:08:25 car Exp $
+
 #include <NavierStokes.H>
 #include <ParmParse.H>
 
