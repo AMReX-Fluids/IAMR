@@ -1,6 +1,10 @@
 #ifndef _PROB_F_H_
 #define _PROB_F_H_
 
+/*
+** $Id: PROB_F.H,v 1.5 1997-12-14 23:36:00 lijewski Exp $
+*/
+
 #ifdef BL_LANG_FORT
 #    define FORT_INITDATA    initdata
 #    define FORT_DENFILL     denfill
@@ -134,4 +138,4 @@
 
   }
 #endif
-#endif
+#endif /*_PROB_F_H_*/

@@ -1,5 +1,9 @@
 #ifndef _AABBEC_F_H_
-#define _AABBEC_F_H_ "$Id"
+#define _AABBEC_F_H_
+
+/*
+** $Id: ABec_F.H,v 1.4 1997-12-14 23:35:56 lijewski Exp $
+*/
 
 #include <REAL.H>
 
@@ -7,14 +11,14 @@
 
 #if (BL_SPACEDIM == 2)
 #define FORT_GSRB          gsrb2daabbec
-#define FORT_CGPRECND          cgprecnd2daabbec
-#define FORT_ADOTX          adotx2daabbec
+#define FORT_CGPRECND      cgprecnd2daabbec
+#define FORT_ADOTX         adotx2daabbec
 #endif
 
 #if (BL_SPACEDIM == 3)
 #define FORT_GSRB          gsrb3daabbec
-#define FORT_CGPRECND          cgprecnd3daabbec
-#define FORT_ADOTX          adotx3daabbec
+#define FORT_CGPRECND      cgprecnd3daabbec
+#define FORT_ADOTX         adotx3daabbec
 #endif
 
 #endif
@@ -25,15 +29,15 @@
 #if (BL_SPACEDIM == 2)
 
 #ifdef BL_FORT_USE_UPPERCASE
-#define FORT_GSRB          GSRB2DAABBEC
-#define FORT_CGPRECND  CGPRECND2DAABBEC
-#define FORT_ADOTX  ADOTX2DAABBEC
+#define FORT_GSRB     GSRB2DAABBEC
+#define FORT_CGPRECND CGPRECND2DAABBEC
+#define FORT_ADOTX    ADOTX2DAABBEC
 #endif
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#define FORT_GSRB          gsrb2daabbec_
-#define FORT_CGPRECND  cgprecnd2daabbec_
-#define FORT_ADOTX  adotx2daabbec_
+#define FORT_GSRB     gsrb2daabbec_
+#define FORT_CGPRECND cgprecnd2daabbec_
+#define FORT_ADOTX    adotx2daabbec_
 #endif
 
 #endif
@@ -42,15 +46,15 @@
 #if (BL_SPACEDIM == 3)
 
 #ifdef BL_FORT_USE_UPPERCASE
-#define FORT_GSRB          GSRB3DAABBEC
-#define FORT_CGPRECND  CGPRECND3DAABBEC
-#define FORT_ADOTX  ADOTX3DAABBEC
+#define FORT_GSRB     GSRB3DAABBEC
+#define FORT_CGPRECND CGPRECND3DAABBEC
+#define FORT_ADOTX    ADOTX3DAABBEC
 #endif
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#define FORT_GSRB          gsrb3daabbec_
-#define FORT_CGPRECND  cgprecnd3daabbec_
-#define FORT_ADOTX  adotx3daabbec_
+#define FORT_GSRB     gsrb3daabbec_
+#define FORT_CGPRECND cgprecnd3daabbec_
+#define FORT_ADOTX    adotx3daabbec_
 #endif
 
 #endif
@@ -156,4 +160,4 @@ extern "C"
 }
 #endif
 
-#endif
+#endif /*_AABBEC_F_H_*/

@@ -1,5 +1,9 @@
 #ifndef _NAVIERSTOKES_F_H_
-#define _NAVIERSTOKES_F_H_  $Id: NAVIERSTOKES_F.H,v 1.4 1997-10-08 20:15:40 car Exp $
+#define _NAVIERSTOKES_F_H_
+
+/*
+** $Id: NAVIERSTOKES_F.H,v 1.5 1997-12-14 23:35:59 lijewski Exp $
+*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_FILCC       filcc
@@ -108,5 +112,4 @@ extern "C" {
 }
     
 #endif
-#endif
-
+#endif /*_NAVIERSTOKES_F_H_*/

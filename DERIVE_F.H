@@ -1,6 +1,9 @@
-#ifdef BL_LANG_FORT
-c $Id: DERIVE_F.H,v 1.4 1997-12-11 23:30:11 lijewski Exp $
-#endif
+#ifndef _DERIVE_F_H_
+#define _DERIVE_F_H_
+
+/*
+** $Id: DERIVE_F.H,v 1.5 1997-12-14 23:35:57 lijewski Exp $
+*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_DERKENG     derkeng
@@ -10,7 +13,7 @@ c $Id: DERIVE_F.H,v 1.4 1997-12-11 23:30:11 lijewski Exp $
 #    define FORT_DERLOGS     derlogs
 #    define FORT_DERDVRHO    derdvrho
 #    define FORT_DERMPRHO    dermprho
-#    define FORT_DERLGRHODUST   derlgrc
+#    define FORT_DERLGRHODUST derlgrc
 #    define FORT_DERMGDIVU   dermgdivu
 #    define FORT_GRADP_DIR   gradpdir
 #    define FORT_DERGRDPX    dergrdpx
@@ -29,7 +32,7 @@ c $Id: DERIVE_F.H,v 1.4 1997-12-11 23:30:11 lijewski Exp $
 #    define FORT_DERLOGS     DERLOGS
 #    define FORT_DERDVRHO    DERDVRHO
 #    define FORT_DERMPRHO    DERMPRHO
-#    define FORT_DERLGRHODUST   DERLGRC
+#    define FORT_DERLGRHODUST DERLGRC
 #    define FORT_DERMGDIVU   DERMGDIVU
 #    define FORT_GRADP_DIR   GRADPDIR
 #    define FORT_DERGRDPX    DERGRDPX
@@ -46,7 +49,7 @@ c $Id: DERIVE_F.H,v 1.4 1997-12-11 23:30:11 lijewski Exp $
 #    define FORT_DERLOGS     derlogs_
 #    define FORT_DERDVRHO    derdvrho_
 #    define FORT_DERMPRHO    dermprho_
-#    define FORT_DERLGRHODUST   derlgrc_
+#    define FORT_DERLGRHODUST derlgrc_
 #    define FORT_DERMGDIVU   dermgdivu_
 #    define FORT_GRADP_DIR   gradpdir_
 #    define FORT_DERGRDPX    dergrdpx_
@@ -58,7 +61,8 @@ c $Id: DERIVE_F.H,v 1.4 1997-12-11 23:30:11 lijewski Exp $
 
 #include <ArrayLim.H>
 
-  extern "C" {
+extern "C"
+{
      void FORT_DERKENG    (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const Real* compdat,
                            ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
@@ -173,5 +177,7 @@ c $Id: DERIVE_F.H,v 1.4 1997-12-11 23:30:11 lijewski Exp $
                            const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 #endif
-  }
+}
 #endif
+
+#endif /*_DERIVE_F_H_*/

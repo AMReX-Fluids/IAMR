@@ -1,24 +1,28 @@
 #ifndef _LO_F_H_
-#define _LO_F_H_ "$Id: LO_F.H,v 1.3 1997-12-11 23:30:16 lijewski Exp $"
+#define _LO_F_H_
+
+/*
+** $Id: LO_F.H,v 1.4 1997-12-14 23:35:58 lijewski Exp $
+*/
 
 #include <REAL.H>
 
 #if        defined(BL_LANG_FORT)
 
 #if (BL_SPACEDIM == 2)
-#define FORT_AVERAGECC averagecc2dgen
-#define FORT_AVERAGEEC averageec2dgen
+#define FORT_AVERAGECC          averagecc2dgen
+#define FORT_AVERAGEEC          averageec2dgen
 #define FORT_HARMONIC_AVERAGEEC haraverageec2dgen
-#define FORT_APPLYBC   applybc2dgen
-#define FORT_RESIDL    resid2dgen
+#define FORT_APPLYBC            applybc2dgen
+#define FORT_RESIDL             resid2dgen
 #endif
 
 #if (BL_SPACEDIM == 3)
-#define FORT_AVERAGECC averagecc3dgen
-#define FORT_AVERAGEEC averageec3dgen
+#define FORT_AVERAGECC          averagecc3dgen
+#define FORT_AVERAGEEC          averageec3dgen
 #define FORT_HARMONIC_AVERAGEEC haraverageec3dgen
-#define FORT_APPLYBC   applybc3dgen
-#define FORT_RESIDL    resid3dgen
+#define FORT_APPLYBC            applybc3dgen
+#define FORT_RESIDL             resid3dgen
 #endif
 
 #endif
@@ -28,35 +32,35 @@
 
 #if (BL_SPACEDIM == 2)
 #ifdef BL_FORT_USE_UPPERCASE
-#define FORT_AVERAGECC AVERAGECC2DGEN
-#define FORT_AVERAGEEC AVERAGEEC2DGEN
+#define FORT_AVERAGECC          AVERAGECC2DGEN
+#define FORT_AVERAGEEC          AVERAGEEC2DGEN
 #define FORT_HARMONIC_AVERAGEEC HARAVERAGEEC2DGEN
-#define FORT_APPLYBC   APPLYBC2DGEN
-#define FORT_RESIDL    RESID2DGEN
+#define FORT_APPLYBC            APPLYBC2DGEN
+#define FORT_RESIDL             RESID2DGEN
 #endif
 #ifdef BL_FORT_USE_UNDERSCORE
-#define FORT_AVERAGECC averagecc2dgen_
-#define FORT_AVERAGEEC averageec2dgen_
+#define FORT_AVERAGECC          averagecc2dgen_
+#define FORT_AVERAGEEC          averageec2dgen_
 #define FORT_HARMONIC_AVERAGEEC haraverageec2dgen_
-#define FORT_APPLYBC   applybc2dgen_
-#define FORT_RESIDL    resid2dgen_
+#define FORT_APPLYBC            applybc2dgen_
+#define FORT_RESIDL             resid2dgen_
 #endif
 #endif
 
 #if (BL_SPACEDIM == 3)
 #ifdef BL_FORT_USE_UPPERCASE
-#define FORT_AVERAGECC AVERAGECC3DGEN
-#define FORT_AVERAGEEC AVERAGEEC3DGEN
+#define FORT_AVERAGECC          AVERAGECC3DGEN
+#define FORT_AVERAGEEC          AVERAGEEC3DGEN
 #define FORT_HARMONIC_AVERAGEEC HARAVERAGEEC3DGEN
-#define FORT_APPLYBC   APPLYBC3DGEN
-#define FORT_RESIDL    RESID3DGEN
+#define FORT_APPLYBC            APPLYBC3DGEN
+#define FORT_RESIDL             RESID3DGEN
 #endif
 #ifdef BL_FORT_USE_UNDERSCORE
-#define FORT_AVERAGECC averagecc3dgen_
-#define FORT_AVERAGEEC averageec3dgen_
+#define FORT_AVERAGECC          averagecc3dgen_
+#define FORT_AVERAGEEC          averageec3dgen_
 #define FORT_HARMONIC_AVERAGEEC haraverageec3dgen_
-#define FORT_APPLYBC   applybc3dgen_
-#define FORT_RESIDL    resid3dgen_
+#define FORT_APPLYBC            applybc3dgen_
+#define FORT_RESIDL             resid3dgen_
 #endif
 #endif
 
@@ -106,4 +110,4 @@ extern "C"
 }
 #endif
 
-#endif
+#endif /*_LO_F_H_*/

@@ -1,5 +1,9 @@
 #ifndef _MG_F_H_
-#define _MG_F_H_ "$Id: MG_F.H,v 1.3 1997-12-11 23:30:18 lijewski Exp $"
+#define _MG_F_H_
+
+/*
+** $Id: MG_F.H,v 1.4 1997-12-14 23:35:59 lijewski Exp $
+*/
 
 #include <REAL.H>
 
@@ -67,4 +71,4 @@ extern "C"
 }
 #endif
 
-#endif
+#endif /*_MG_F_H_*/

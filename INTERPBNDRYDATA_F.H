@@ -1,5 +1,9 @@
 #ifndef _INTERPBNDRY_F_H_
-#define _INTERPBNDRY_F_H_  "%W% %G%"
+#define _INTERPBNDRY_F_H_
+
+/*
+** $Id: INTERPBNDRYDATA_F.H,v 1.4 1997-12-14 23:35:58 lijewski Exp $
+*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_BDINTERPXLO  bdintrpxlo
@@ -67,4 +71,4 @@ extern "C"
 }
 #endif
 
-#endif
+#endif /*_INTERPBNDRY_F_H_*/

@@ -1,50 +1,55 @@
 #ifndef _DIFFUSION_F_H
-#define _DIFFUSION_F_H  $Id: DIFFUSION_F.H,v 1.5 1997-12-11 23:30:11 lijewski Exp $
+#define _DIFFUSION_F_H
+
+/*
+** $Id: DIFFUSION_F.H,v 1.6 1997-12-14 23:35:57 lijewski Exp $
+*/
 
 #ifdef BL_LANG_FORT
-#    define FORT_VISCFLUX    viscflux
-#    define FORT_VISCSYNCFLUX viscsyncflux
-#    define FORT_HOOPSRC     hoopsrc
-#    define FORT_HOOPRHS     hooprhs
-#    define FORT_TENSOR_HOOPSRC     tensorhoopsrc
-#    define FORT_TENSOR_HOOPRHS     tensorhooprhs
-#    define FORT_SETALPHA    setalpha
-#    define FORT_SET_TENSOR_ALPHA    settensoralpha
-#    define FORT_DIV_VARMU_SI    divvarmusi
-#    define FORT_DIV_MU_SI    divmuusii
-#    define FORT_CCTOEDGE        cctoedge
+#    define FORT_VISCFLUX         viscflux
+#    define FORT_VISCSYNCFLUX     viscsyncflux
+#    define FORT_HOOPSRC          hoopsrc
+#    define FORT_HOOPRHS          hooprhs
+#    define FORT_TENSOR_HOOPSRC   tensorhoopsrc
+#    define FORT_TENSOR_HOOPRHS   tensorhooprhs
+#    define FORT_SETALPHA         setalpha
+#    define FORT_SET_TENSOR_ALPHA settensoralpha
+#    define FORT_DIV_VARMU_SI     divvarmusi
+#    define FORT_DIV_MU_SI        divmuusii
+#    define FORT_CCTOEDGE         cctoedge
 #endif
 
 #ifdef BL_LANG_CC
 #  ifdef BL_FORT_USE_UPPERCASE
-#    define FORT_VISCFLUX    VISCFLUX
-#    define FORT_VISCSYNCFLUX VISCSYNCFLUX
-#    define FORT_HOOPSRC     HOOPSRC
-#    define FORT_HOOPRHS     HOOPRHS
-#    define FORT_TENSOR_HOOPSRC     TENSORHOOPSRC
-#    define FORT_TENSOR_HOOPRHS     TENSORHOOPRHS
-#    define FORT_SETALPHA    SETALPHA
-#    define FORT_SET_TENSOR_ALPHA    SETTENSORALPHA
-#    define FORT_DIV_VARMU_SI    DIVVARMUSI
-#    define FORT_DIV_MU_SI    DIVMUUSII
-#    define FORT_CCTOEDGE        CCTOEDGE
+#    define FORT_VISCFLUX         VISCFLUX
+#    define FORT_VISCSYNCFLUX     VISCSYNCFLUX
+#    define FORT_HOOPSRC          HOOPSRC
+#    define FORT_HOOPRHS          HOOPRHS
+#    define FORT_TENSOR_HOOPSRC   TENSORHOOPSRC
+#    define FORT_TENSOR_HOOPRHS   TENSORHOOPRHS
+#    define FORT_SETALPHA         SETALPHA
+#    define FORT_SET_TENSOR_ALPHA SETTENSORALPHA
+#    define FORT_DIV_VARMU_SI     DIVVARMUSI
+#    define FORT_DIV_MU_SI        DIVMUUSII
+#    define FORT_CCTOEDGE         CCTOEDGE
 #  else
-#    define FORT_VISCFLUX    viscflux_
-#    define FORT_VISCSYNCFLUX viscsyncflux_
-#    define FORT_HOOPSRC     hoopsrc_
-#    define FORT_HOOPRHS     hooprhs_
-#    define FORT_TENSOR_HOOPSRC     tensorhoopsrc_
-#    define FORT_TENSOR_HOOPRHS     tensorhooprhs_
-#    define FORT_SETALPHA    setalpha_
-#    define FORT_SET_TENSOR_ALPHA    settensoralpha_
-#    define FORT_DIV_VARMU_SI    divvarmusi_
-#    define FORT_DIV_MU_SI    divmuusii_
-#    define FORT_CCTOEDGE        cctoedge_
+#    define FORT_VISCFLUX         viscflux_
+#    define FORT_VISCSYNCFLUX     viscsyncflux_
+#    define FORT_HOOPSRC          hoopsrc_
+#    define FORT_HOOPRHS          hooprhs_
+#    define FORT_TENSOR_HOOPSRC   tensorhoopsrc_
+#    define FORT_TENSOR_HOOPRHS   tensorhooprhs_
+#    define FORT_SETALPHA         setalpha_
+#    define FORT_SET_TENSOR_ALPHA settensoralpha_
+#    define FORT_DIV_VARMU_SI     divvarmusi_
+#    define FORT_DIV_MU_SI        divmuusii_
+#    define FORT_CCTOEDGE         cctoedge_
 #  endif
 
 #include <ArrayLim.H>
 
-extern "C" {
+extern "C"
+{
 #if (BL_SPACEDIM == 2)
     void FORT_VISCFLUX (const Real* s_old, const Real* s_new,
                         ARLIM_P(slo), ARLIM_P(shi),
@@ -160,5 +165,4 @@ extern "C" {
 }
 
 #endif
-#endif
-
+#endif /*_DIFFUSION_F_H*/

@@ -1,10 +1,14 @@
 #ifndef _MACPROJ_F_H
-#define _MACPROJ_F_H  $Id: MACPROJ_F.H,v 1.3 1997-10-08 20:15:35 car Exp $
+#define _MACPROJ_F_H
+
+/*
+** $Id: MACPROJ_F.H,v 1.4 1997-12-14 23:35:59 lijewski Exp $
+*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_MACDIV      macdiv
 #    define FORT_UCORUPDT    ucorupdt
-#    define FORT_MACPHIBC     macphibc
+#    define FORT_MACPHIBC    macphibc
 #endif
 
 #ifdef BL_LANG_CC
@@ -59,6 +63,4 @@ extern "C" {
 }
 
 #endif
-#endif
-
-
+#endif /*_MACPROJ_F_H*/

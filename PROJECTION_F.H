@@ -1,6 +1,10 @@
 #ifndef _PROJECTION_F_H_
 #define _PROJECTION_F_H_ 
 
+/*
+** $Id: PROJECTION_F.H,v 1.5 1997-12-14 23:36:00 lijewski Exp $
+*/
+
 #ifdef BL_LANG_FORT
 #    define FORT_FILTERP       filterp
 #    define FORT_VEL_TO_ACCEL  veltoaccel
@@ -96,5 +100,4 @@ extern "C" {
 }
 
 #endif
-#endif
-
+#endif /*_PROJECTION_F_H_*/

@@ -1,5 +1,9 @@
 #ifndef _GODUNOV_F_H_
-#define _GODUNOV_F_H_ $Id: GODUNOV_F.H,v 1.3 1997-09-29 17:06:24 lijewski Exp $
+#define _GODUNOV_F_H_
+
+/*
+** $Id: GODUNOV_F.H,v 1.4 1997-12-14 23:35:58 lijewski Exp $
+*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_TEST_U_RHO         testurho
@@ -65,7 +69,8 @@
 
 #include <ArrayLim.H>
 
-  extern "C" {
+extern "C"
+{
 
       // fortran argument checking disabled for now
       void FORT_TEST_U_RHO( ... );   
@@ -91,9 +96,4 @@
   }
 #endif
 
-#endif
-
-
-
-
-
+#endif /*_GODUNOV_F_H_*/

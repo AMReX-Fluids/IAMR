@@ -1,5 +1,9 @@
 #ifndef _LP_F_H_
-#define _LP_F_H_ "$Id: LP_F.H,v 1.3 1997-12-11 23:30:16 lijewski Exp $"
+#define _LP_F_H_
+
+/*
+** $Id: LP_F.H,v 1.4 1997-12-14 23:35:58 lijewski Exp $
+*/
 
 #include <REAL.H>
 
@@ -8,13 +12,13 @@
 #if (BL_SPACEDIM == 2)
 #define FORT_GSRB      gsrb2dsim
 #define FORT_CGPRECND  cgprecnd2dsim
-#define FORT_ADOTX adotx2dsim
+#define FORT_ADOTX     adotx2dsim
 #endif
 
 #if (BL_SPACEDIM == 3)
 #define FORT_GSRB      gsrb3dsim
 #define FORT_CGPRECND  cgprecnd3dsim
-#define FORT_ADOTX adotx3dsim
+#define FORT_ADOTX     adotx3dsim
 #endif
 
 #endif
@@ -25,12 +29,12 @@
 #ifdef BL_FORT_USE_UPPERCASE
 #define FORT_GSRB      GSRB2DSIM
 #define FORT_CGPRECND  CGPRECND2DSIM
-#define FORT_ADOTX ADOTX2DSIM
+#define FORT_ADOTX     ADOTX2DSIM
 #endif
 #ifdef BL_FORT_USE_UNDERSCORE
 #define FORT_GSRB      gsrb2dsim_
 #define FORT_CGPRECND  cgprecnd2dsim_
-#define FORT_ADOTX adotx2dsim_
+#define FORT_ADOTX     adotx2dsim_
 #endif
 #endif
 
@@ -38,12 +42,12 @@
 #ifdef BL_FORT_USE_UPPERCASE
 #define FORT_GSRB      GSRB3DSIM
 #define FORT_CGPRECND  CGPRECND3DSIM
-#define FORT_ADOTX ADOTX3DSIM
+#define FORT_ADOTX     ADOTX3DSIM
 #endif
 #ifdef BL_FORT_USE_UNDERSCORE
 #define FORT_GSRB      gsrb3dsim_
 #define FORT_CGPRECND  cgprecnd3dsim_
-#define FORT_ADOTX adotx3dsim_
+#define FORT_ADOTX     adotx3dsim_
 #endif
 
 #endif
@@ -106,4 +110,4 @@ extern "C"
 }
 #endif
 
-#endif
+#endif /*_LP_F_H_*/

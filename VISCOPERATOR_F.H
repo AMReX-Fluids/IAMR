@@ -1,5 +1,9 @@
 #ifndef _VISCOPERATOR_F_H_
-#define _VISCOPERATOR_F_H_  "$Id: VISCOPERATOR_F.H,v 1.4 1997-12-11 23:30:25 lijewski Exp $"
+#define _VISCOPERATOR_F_H_
+
+/*
+** $Id: VISCOPERATOR_F.H,v 1.5 1997-12-14 23:36:00 lijewski Exp $
+*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_VISCEXTRAP   viscextrap
@@ -22,4 +26,4 @@ extern "C"
 }
 #endif
 
-#endif
+#endif /*_VISCOPERATOR_F_H_*/
