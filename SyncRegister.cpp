@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.19 1998-05-18 22:08:55 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.20 1998-05-19 00:10:56 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -397,131 +397,78 @@ SyncRegister::CrseDVInit (const MultiFab& U,
                           int**           crse_bc,
                           Real            mult)
 {
-    cerr << "SyncRegister::CrseDVInit() not implemented in parallel.\n";
-    if (ParallelDescriptor::NProcs() > 1)
-        ParallelDescriptor::Abort("Bye");
     //
-    // First zero all registers.
+    // Zero all registers.
     //
     setVal(0);
 
-    int k, dir, fine;
+    const Box& domain = geom.Domain();
+    const int n_ghost = 1;
 
-    const int nfine         = grids.length();
-    const BoxArray& U_boxes = U.boxArray();
-    const int ncrse         = U_boxes.length();
-    const Box& domain       = geom.Domain();
-    const Real* dx          = geom.CellSize();
-    const int n_ghost       = 1;
+    MultiFab* U_local = new MultiFab(U.boxArray(),BL_SPACEDIM,n_ghost);
 
-    MultiFab* U_local = new MultiFab(U_boxes,BL_SPACEDIM,n_ghost,Fab_allocate);
-
-    U_local->setVal(0);
+    U_local->setBndry(0);
     //
     // First fill all the coarse cells, including ghost cells on periodic
     // and ext_dir edges, before worrying about zeroing out the ones under
     // fine grids.
     //
-    for (k = 0; k < ncrse; k++)
+    for (MultiFabIterator mfi(*U_local); mfi.isValid(false); ++mfi)
     {
-        FArrayBox& ufab = (*U_local)[k];
+        //
+        // U and U_local have same BoxArray and hence same DistributionMapping.
+        //
+        DependentMultiFabIterator dmfi_U(mfi, U);
 
-        ufab.copy(U[k],U_boxes[k],0,U_boxes[k],0,BL_SPACEDIM);
+        const Box& bx = dmfi_U.validbox();
 
-        int* bc = crse_bc[k];
+        assert(bx == mfi.validbox());
 
-        for (dir = 0; dir < BL_SPACEDIM; dir++)
+        mfi().copy(dmfi_U(),bx,0,bx,0,BL_SPACEDIM);
+
+        int* bc = crse_bc[mfi.index()];
+
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             int bc_index = 2*BL_SPACEDIM*dir + dir;
- 
-            if (U_boxes[k].smallEnd(dir) == domain.smallEnd(dir))
+            //
+            // Fill ghost cells outside of domain.
+            // 
+            if (bx.smallEnd(dir) == domain.smallEnd(dir))
             {
-                Box sidelo(U_boxes[k]);
+                Box sidelo(bx);
                 sidelo.setRange(dir,sidelo.smallEnd(dir)-1,1);
-                //
-                // Fill ghost cells outside of domain.
-                //
                 if (bc[bc_index] == EXT_DIR)
-                {
-                    ufab.copy(U[k],sidelo,dir,sidelo,dir,1);
-                } 
+                    mfi().copy(dmfi_U(),sidelo,dir,sidelo,dir,1);
             }
-            if (U_boxes[k].bigEnd(dir) == domain.bigEnd(dir))
+            if (bx.bigEnd(dir) == domain.bigEnd(dir))
             {
-                Box sidehi(U_boxes[k]);
+                Box sidehi(bx);
                 sidehi.setRange(dir,sidehi.bigEnd(dir)+1,1);
-                //
-                // Fill ghost cells outside of domain.
-                //
                 if (bc[bc_index+BL_SPACEDIM] == EXT_DIR)
-                {
-                    ufab.copy(U[k],sidehi,dir,sidehi,dir,1);
-                }
+                    mfi().copy(dmfi_U(),sidehi,dir,sidehi,dir,1);
             }
         }
     }
 
-    FArrayBox dest;
-    Array<IntVect> pshifts(27);
-    //
-    // Enforce periodicity of the coarse grid contributions to U_local.
-    //
-    if (geom.isAnyPeriodic())
-    {
-        for (k = 0; k < ncrse; k++)
-        {
-            FArrayBox& ufab = (*U_local)[k];
-            Box dbox(ufab.box());
-
-            for (int idir = 0; idir < BL_SPACEDIM; idir++)
-            {
-                //
-                // Shrink the box if the +/- idir direction is not a
-                // physical boundary.
-                //
-                if (U_boxes[k].smallEnd(idir) != domain.smallEnd(idir))
-                    dbox.growLo(idir,-n_ghost);
-                if (U_boxes[k].bigEnd(idir) != domain.bigEnd(idir))
-                    dbox.growHi(idir,-n_ghost);
-            }
-
-            dest.resize(dbox,BL_SPACEDIM);
-            dest.copy(ufab,0,0,BL_SPACEDIM);
-
-            geom.periodicShift(domain, dbox, pshifts);
-
-            for (int iiv = 0; iiv < pshifts.length(); iiv++)
-            {
-                IntVect iv = pshifts[iiv];
-                dest.shift(iv);
-                //
-                // Here we do FAB copies so as to copy on ghost cells.
-                //
-                for (int isrc=0; isrc < ncrse; isrc++)
-                {
-                    FArrayBox& srcfab = (*U_local)[isrc];
-                    Box intersect = srcfab.box() & dest.box();
-                    intersect &= domain;
-                    dest.copy(srcfab,intersect,0,intersect,0,BL_SPACEDIM);
-                }
-                dest.shift(-iv);
-                ufab.copy(dest,0,0,BL_SPACEDIM);
-            }
-        }
-    }
+    geom.FillPeriodicBoundary(*U_local);
     //
     // Now do all the zeroing-out associated with the fine grids, on the
     // interior and on ghost cells on periodic and ext_dir edges.
     //
-    for (k = 0; k < ncrse; k++)
+    Array<IntVect> pshifts(27);
+
+    for (MultiFabIterator mfi(*U_local); mfi.isValid(false); ++mfi)
     {
-        FArrayBox& ufab = (*U_local)[k];
+        FArrayBox& ufab = mfi();
 
-        Box ubox(U_boxes[k]);
+        const Box& ubox = mfi.validbox();
 
-        int* bc = crse_bc[k];
+        assert(ubox == U.boxArray()[mfi.index()]);
 
-        for (fine = 0; fine < nfine; fine++)
+        int* bc = crse_bc[mfi.index()];
+
+        for (int fine = 0; fine < grids.length(); fine++)
         {
             Box subbox = ubox & grids[fine];
 
@@ -529,7 +476,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
             {
                 ufab.setVal(0.0,subbox,0,BL_SPACEDIM);
 
-                for (dir = 0; dir < BL_SPACEDIM; dir++)
+                for (int dir = 0; dir < BL_SPACEDIM; dir++)
                 {
                     int bc_index = 2*BL_SPACEDIM*dir + dir;
                     if (bc[bc_index] == EXT_DIR &&
@@ -540,7 +487,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
                         ufab.setVal(0.0,finesidelo,0,BL_SPACEDIM);
                     }
                     if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
-                        grids[fine].bigEnd(dir) == U_boxes[k].bigEnd(dir))
+                        grids[fine].bigEnd(dir) == ubox.bigEnd(dir))
                     {
                         Box finesidehi(subbox);
                         finesidehi.setRange(dir,finesidehi.bigEnd(dir)+1,1);
@@ -554,7 +501,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
             if (geom.isAnyPeriodic())
             {
                 Box domain_plus(domain);
-                for (dir = 0; dir < BL_SPACEDIM; dir++) 
+                for (int dir = 0; dir < BL_SPACEDIM; dir++) 
                     if (geom.isPeriodic(dir))
                         domain_plus.grow(dir,1);
 
@@ -571,7 +518,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
                     {
                         ufab.setVal(0.0,fine_shifted,0,BL_SPACEDIM);
 
-                        for (dir = 0; dir < BL_SPACEDIM; dir++)
+                        for (int dir = 0; dir < BL_SPACEDIM; dir++)
                         {
                             int bc_index = 2*BL_SPACEDIM*dir + dir;
 
@@ -584,7 +531,7 @@ SyncRegister::CrseDVInit (const MultiFab& U,
                             }
 
                             if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
-                                grids[fine].bigEnd(dir) == U_boxes[k].bigEnd(dir))
+                                grids[fine].bigEnd(dir) == ubox.bigEnd(dir))
                             {
                                 Box finesidehi(fine_shifted);
                                 finesidehi.setRange(dir,fine_shifted.bigEnd(dir)+1,1);
@@ -601,19 +548,19 @@ SyncRegister::CrseDVInit (const MultiFab& U,
     //
     FArrayBox divu;
 
-    for (k = 0; k < ncrse; k++)
+    for (MultiFabIterator mfi(*U_local); mfi.isValid(false); ++mfi)
     {
-        FArrayBox& ufab = (*U_local)[k];
+        FArrayBox& ufab = mfi();
         const int* ulo  = ufab.loVect();
         const int* uhi  = ufab.hiVect();
-        Box ndbox       = ::surroundingNodes(U_boxes[k]);
+        Box ndbox       = ::surroundingNodes(mfi.validbox());
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
         divu.resize(ndbox,1);
 
         FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
                     divu.dataPtr(),ARLIM(ndlo),ARLIM(ndhi),
-                    ndlo,ndhi,dx,&mult,&is_rz);
+                    ndlo,ndhi,geom.CellSize(),&mult,&is_rz);
         increment(divu);
     }
 
