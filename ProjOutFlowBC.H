@@ -1,10 +1,9 @@
-// BL_COPYRIGHT_NOTICE
 
 #ifndef _PROJOUTFLOWBC_H_
 #define _PROJOUTFLOWBC_H_
 
 //
-// $Id: ProjOutFlowBC.H,v 1.3 1999-08-20 17:58:55 propp Exp $
+// $Id: ProjOutFlowBC.H,v 1.4 2000-10-02 20:50:16 lijewski Exp $
 //
 
 #include "FArrayBox.H"

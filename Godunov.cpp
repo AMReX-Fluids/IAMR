@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Godunov.cpp,v 1.22 2000-08-09 22:32:28 almgren Exp $
+// $Id: Godunov.cpp,v 1.23 2000-10-02 20:50:14 lijewski Exp $
 //
 
 //

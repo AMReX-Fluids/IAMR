@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.129 2000-08-02 16:04:42 car Exp $
+// $Id: Projection.cpp,v 1.130 2000-10-02 20:50:16 lijewski Exp $
 //
 
 #ifdef BL3_PROFILING

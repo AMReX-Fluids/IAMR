@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _MACBNDRYDATA_H_
 #define _MACBNDRYDATA_H_
 
 //
-// $Id: MacBndry.H,v 1.6 1999-01-04 18:15:17 marc Exp $
+// $Id: MacBndry.H,v 1.7 2000-10-02 20:50:14 lijewski Exp $
 //
 
 #include <InterpBndryData.H>

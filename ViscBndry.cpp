@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ViscBndry.cpp,v 1.15 1999-01-04 18:15:17 marc Exp $
+// $Id: ViscBndry.cpp,v 1.16 2000-10-02 20:50:17 lijewski Exp $
 //
 
 #include <LO_BCTYPES.H>

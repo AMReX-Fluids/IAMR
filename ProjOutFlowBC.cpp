@@ -1,7 +1,6 @@
-// BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ProjOutFlowBC.cpp,v 1.11 2000-05-11 17:06:57 propp Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.12 2000-10-02 20:50:16 lijewski Exp $
 //
 
 #include "ProjOutFlowBC.H"

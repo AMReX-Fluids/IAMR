@@ -1,10 +1,9 @@
-// BL_COPYRIGHT_NOTICE
 
 #ifndef _MACOUTFLOWBC_H_
 #define _MACOUTFLOWBC_H_
 
 //
-// $Id: MacOutFlowBC.H,v 1.3 1999-08-20 17:58:52 propp Exp $
+// $Id: MacOutFlowBC.H,v 1.4 2000-10-02 20:50:14 lijewski Exp $
 //
 
 #include "FArrayBox.H"

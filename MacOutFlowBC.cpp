@@ -1,7 +1,6 @@
-// BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.12 2000-08-22 17:33:23 almgren Exp $
+// $Id: MacOutFlowBC.cpp,v 1.13 2000-10-02 20:50:15 lijewski Exp $
 //
 
 #include "MacOutFlowBC.H"

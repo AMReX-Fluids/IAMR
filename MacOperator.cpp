@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOperator.cpp,v 1.19 2000-08-02 21:05:30 almgren Exp $
+// $Id: MacOperator.cpp,v 1.20 2000-10-02 20:50:14 lijewski Exp $
 //
 
 #include <MacBndry.H>

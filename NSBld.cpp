@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NSBld.cpp,v 1.6 1998-09-29 20:09:02 lijewski Exp $
+// $Id: NSBld.cpp,v 1.7 2000-10-02 20:50:15 lijewski Exp $
 //
 
 

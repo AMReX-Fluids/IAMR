@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: main.cpp,v 1.35 2000-08-02 16:04:43 car Exp $
+// $Id: main.cpp,v 1.36 2000-10-02 20:50:17 lijewski Exp $
 //
 
 #ifdef BL3_PROFILING

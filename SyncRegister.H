@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _SYNCREGISTER_H_
 #define _SYNCREGISTER_H_
 
 //
-// $Id: SyncRegister.H,v 1.16 2000-05-03 18:28:59 almgren Exp $
+// $Id: SyncRegister.H,v 1.17 2000-10-02 20:50:16 lijewski Exp $
 //
 
 #include <PArray.H>

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.107 2000-08-30 19:20:22 car Exp $
+// $Id: Diffusion.cpp,v 1.108 2000-10-02 20:50:13 lijewski Exp $
 //
 
 //

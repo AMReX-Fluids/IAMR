@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _MacProj_H_
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.20 2000-08-10 22:27:48 almgren Exp $
+// $Id: MacProj.H,v 1.21 2000-10-02 20:50:15 lijewski Exp $
 //
 
 #include <BC_TYPES.H>

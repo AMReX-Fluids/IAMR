@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.23 2000-08-22 21:31:15 lijewski Exp $
+// $Id: Diffusion.H,v 1.24 2000-10-02 20:50:13 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_

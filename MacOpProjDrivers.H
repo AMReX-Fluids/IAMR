@@ -1,4 +1,3 @@
-//BL_COPYRIGHT_NOTICE
 
 
 #ifndef _MACOPDRIVERS_H_

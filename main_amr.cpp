@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: main_amr.cpp,v 1.16 1998-11-18 21:06:14 lijewski Exp $
+// $Id: main_amr.cpp,v 1.17 2000-10-02 20:50:17 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY

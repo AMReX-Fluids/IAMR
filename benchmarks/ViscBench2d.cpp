@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ViscBench2d.cpp,v 1.2 1999-02-24 01:59:41 sstanley Exp $
+// $Id: ViscBench2d.cpp,v 1.3 2000-10-02 20:50:24 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

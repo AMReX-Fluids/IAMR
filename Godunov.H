@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _GODUNOV_CLASS_H_
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.10 2000-08-09 22:32:28 almgren Exp $
+// $Id: Godunov.H,v 1.11 2000-10-02 20:50:14 lijewski Exp $
 //
 //
 // A useful enumeration of the forms for the advective terms

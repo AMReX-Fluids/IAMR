@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.186 2000-08-09 22:32:29 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.187 2000-10-02 20:50:15 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
