@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.71 1998-06-17 17:04:48 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.72 1998-06-21 18:12:43 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3356,6 +3356,8 @@ NavierStokes::avgDown (const BoxArray& cgrids,
                                                   strt_comp,
                                                   0,
                                                   num_comp));
+
+              assert(fillBoxIdList.back().box() == fine_ovlp);
               //
               // Also save the index of the coarse FAB needed filling.
               //
@@ -3368,6 +3370,8 @@ NavierStokes::avgDown (const BoxArray& cgrids,
                                                      0,
                                                      0,
                                                      1));
+
+              assert(fillBoxIdListVol.back().box() == fine_ovlp);
               //
               // Here we'll save the fine index so we can reconstruct `ovlp'.
               //
@@ -3933,6 +3937,8 @@ NavierStokes::avgDown ()
                                                     0,
                                                     0,
                                                     P_fine.nComp()));
+
+                assert(fillBoxIdList.back().box() == fine_ovlp);
                 //
                 // I need to save both the fine and the coarse grid indices.
                 // I'll try to stuff'm into the single integer place available.
