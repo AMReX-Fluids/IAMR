@@ -1,8 +1,8 @@
 c
-c $Id: FLUCTFILE.F,v 1.5 2000-06-29 20:49:05 sstanley Exp $
+c $Id: FLUCTFILE.F,v 1.6 2003-10-14 19:52:39 lijewski Exp $
 c
 
-#undef BL_LANG_CC
+#undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
 #endif
@@ -12,6 +12,13 @@ c
 #include "CONSTANTS.H"
 #include "FLUCTFILE.H"
 
+      block data Inflow_Force_Data
+
+#include "INFL_FORCE_F.H"
+
+      data nCompInflow /3/
+
+      end
 
 c ::: -----------------------------------------------------------
 c ::: This routine sets the values for the lo() and hi() arrays
@@ -29,17 +36,9 @@ c ::: -----------------------------------------------------------
 
       implicit none
 
-c
-c     :::: Passed Variables ::::
-c
       integer FF_DIMDEC(holder)
       integer lo(3), hi(3)
 
-c
-c     --------------------------------------
-c     :::: Set Values for lo() and hi() ::::
-c     --------------------------------------
-c
       lo(1) = FF_ARG_L1(holder)
       hi(1) = FF_ARG_H1(holder)
       lo(2) = FF_ARG_L2(holder)
@@ -47,12 +46,7 @@ c
       lo(3) = FF_ARG_L3(holder)
       hi(3) = FF_ARG_H3(holder)
 
-c
-c
-      return
       end
-
-
 
 c ::: -----------------------------------------------------------
 c ::: This routine sets the values for the ARG_L1, ARG_H1, ... macros
@@ -70,17 +64,9 @@ c ::: -----------------------------------------------------------
 
       implicit none
 
-c
-c     :::: Passed Variables ::::
-c
       integer FF_DIMDEC(holder)
       integer lo(3), hi(3)
 
-c
-c     --------------------------------------
-c     :::: Set Values for lo() and hi() ::::
-c     --------------------------------------
-c
       FF_ARG_L1(holder) = lo(1)
       FF_ARG_H1(holder) = hi(1)
       FF_ARG_L2(holder) = lo(2)
@@ -88,13 +74,7 @@ c
       FF_ARG_L3(holder) = lo(3)
       FF_ARG_H3(holder) = hi(3)
 
-c
-c
-      return
       end
-
-
-
 c
 c ::: -----------------------------------------------------------
 c ::: This routine reads the information from the header of a
@@ -111,31 +91,26 @@ c ::: -----------------------------------------------------------
 c
       SUBROUTINE RD_SCL_FLCTHD(iunit, nCmpFile, dimFile, probSizeFile, dxFile)
 
-c
-c     *****************************
-c     *** Variable Declarations ***
-c     *****************************
-c
       IMPLICIT NONE
 
-c
-c     *** Passed Variables ***
-c
+#include "INFL_FORCE_F.H"
+
       INTEGER iunit, dimFile(3), nCmpFile
       REAL_T probSizeFile(3), dxFile(3)
 
-c
-c     *** Local Variables ***
-c
-      integer i1bc, j1bc, k1bc
-
-
+      integer i1bc, j1bc, k1bc, ierr
 c 
 c     *************************************
 c     *** Read Header from Restart File ***
 c     *************************************
 c
-      READ(iunit) dimFile, nCmpFile
+      ierr = 0
+      READ(iunit,iostat=ierr) dimFile, nCmpFile
+      if (ierr.ne.0) nCmpFile = 3
+      if (nCmpFile.ne.nCompInflow) then
+         call bl_abort('RD_SCL_FLCTHD: nCmpFile != nCompInflow')
+      endif
+
       READ(iunit) probSizeFile
       READ(iunit) i1bc, j1bc, k1bc
 
@@ -148,72 +123,8 @@ c
         dxFile(3) = zero
       endif
 
-c
-c
-      RETURN
       END
-
-
-
 c
-c ::: -----------------------------------------------------------
-c ::: This routine reads the information from the header of a
-c ::: inflow/initial conditions fluctuations file.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: iunit      => Fortran unit for the input fluctuations file
-c ::: dimFile    => Dimensions from the fluctuations file
-c ::: probSizeFile  => Domain size from the fluctuations file
-c ::: dxFile     => Grid spacing from the fluctuations file
-c ::: -----------------------------------------------------------
-c
-      SUBROUTINE RD_FLCTHD(iunit, dimFile, probSizeFile, dxFile)
-
-c
-c     *****************************
-c     *** Variable Declarations ***
-c     *****************************
-c
-      IMPLICIT NONE
-
-c
-c     *** Passed Variables ***
-c
-      INTEGER iunit, dimFile(3)
-      REAL_T probSizeFile(3), dxFile(3)
-
-c
-c     *** Local Variables ***
-c
-      integer i1bc, j1bc, k1bc
-
-
-c 
-c     *************************************
-c     *** Read Header from Restart File ***
-c     *************************************
-c
-      READ(iunit) dimFile
-      READ(iunit) probSizeFile
-      READ(iunit) i1bc, j1bc, k1bc
-
-      dxFile(1) = probSizeFile(1)/FLOAT(dimFile(1)-1)
-      dxFile(2) = probSizeFile(2)/FLOAT(dimFile(2)-1)
-
-      if (dimFile(3) .gt. 1) then
-        dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
-      else
-        dxFile(3) = zero
-      endif
-
-c
-c
-      RETURN
-      END
-
-
-
 c ::: -----------------------------------------------------------
 c ::: This routine reads a record of data from an inflow/initial
 c ::: conditions fluctuations file.
@@ -234,28 +145,15 @@ c
       SUBROUTINE RD_FLCTREC(iunit, dimFile, arrLo, arrHi, fileLo,
      $                      FF_DIMS(dat), dat)
 
-c
-c     *****************************
-c     *** Variable Declarations ***
-c     *****************************
-c
       implicit none
 
-c
-c     *** Passed Variables ***
-c
       integer iunit, dimFile(3)
       integer arrLo(3), arrHi(3), fileLo(3)
       integer FF_DIMDEC(dat)
       REAL_T dat(FF_DIMV(dat))
 
-c
-c     *** Local Variables ***
-c
       integer i, j, k, ijoff, ipad, kpad
       REAL_T dummy
-
-
 c
 c     ***********************************
 c     *** Read Data From Restart File ***
@@ -272,7 +170,6 @@ c
       do k = 1, fileLo(3)-1
         READ(iunit) dummy
       enddo
-
 c
 c     *** Read the Necessary Data ***
 c
@@ -283,9 +180,8 @@ c
         READ(iunit) (dummy, i=1, ijoff),
      $             ((dummy, i=1, fileLo(1)-1),
      $              (dat(i,j,k), i=arrLo(1),arrHi(1)),
-     $              (dummy, i=1, ipad),                 j=arrLo(2),arrHi(2))
+     $              (dummy, i=1, ipad), j=arrLo(2),arrHi(2))
       enddo
-
 c
 c     *** Skip through the remaining records for this variable ***
 c
@@ -294,8 +190,5 @@ c
         READ(iunit) dummy
       enddo
 
-c
-c
-      RETURN
       END
 

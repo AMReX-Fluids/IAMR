@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.6 2003-06-20 19:36:54 car Exp $
+c $Id: INFL_FORCE_F.F,v 1.7 2003-10-14 19:52:39 lijewski Exp $
 c
 
 #undef BL_LANG_CC
@@ -43,10 +43,7 @@ c ::: -----------------------------------------------------------
 c
       subroutine INFL_FILL(fillComp, DIMS(inflDat), inflDat, xlo, dx, time,
      $                     bc, probLo, probHi)
-      
-c
-c     :::: Passed Variables ::::
-c
+
       implicit none
       integer fillComp
       integer DIMDEC(inflDat)
@@ -57,16 +54,12 @@ c
       REAL_T inflDat(DIMV(inflDat))
       REAL_T probLo(SDIM), probHi(SDIM)
 
-c
-c     ::::: local variables
-c
-      integer lo(SDIM), hi(SDIM)
+      integer lo(SDIM), hi(SDIM), nCmpFile
       integer n, npass, filePnt, storePnt, filePntOld, filePntReqd,
      $        maxFilePntChng, npassOld
       REAL_T dtFile, timeMaxFile, timeOffset, timePnt,
      $       dtEstimate
       logical is_periodic
-
 c
 c     The arrays below are dimensioned as 3-d no matter what the 
 c     BL_SPACEDIM is.  This is to allow for the fact that the inflow forcing
@@ -81,25 +74,18 @@ c
      $     dimFile, xloFile, xhiFile, dxFile, dtFile, timeMaxFile, 
      $     storePnt, filePnt, maxFilePntChng, timePnt, timeOffset, npass
 
-c
-c     ::::: common blocks
-c
 #include "INFL_FORCE_F.H"
 
-
-c
-c     --------------------------------------------------------
-c     :::: Allocate and Fill the Arrays on the First Call ::::
-c     --------------------------------------------------------
-c
       if (.NOT. ALLOCATED(storDat)) then
+c
+c       --------------------------------------------------------
+c       :::: Allocate and Fill the Arrays on the First Call ::::
+c       --------------------------------------------------------
+c
         open(FF_UNIT, file=flct_file, form='unformatted')
-        call RD_FLCTHD(FF_UNIT, dimFile, probSizeFile, dxFile)
+        call RD_SCL_FLCTHD(FF_UNIT,nCmpFile,dimFile,probSizeFile,dxFile)
         close(FF_UNIT)
 
-c 
-c  do some size checking
-c
         call SET_LOHI(DIMS(inflDat), lo, hi)
 
 #if 0
@@ -136,12 +122,13 @@ c
              write(6,1001) n,probLo(n),probHi(n),xloFile(n),xhiFile(n)
           endif
         enddo
+
  1001   format('dir: ',i2,' problem: ',f10.5,2x,f10.5,' file:',f10.5,2x,f10.5)
+
 #if (BL_SPACEDIM==2)
         xloFile(3) = zero
         xhiFile(3) = zero
 #endif
-
 c
 c       :::: Set the Dimensions for the inflow data array and allocate space
 c
@@ -149,15 +136,14 @@ c
           loStoreDim(n) = 1
           hiStoreDim(n) = dimFile(n)
         enddo
+
         if (numInflPlanesStore .GT. 0 .AND.
      $      numInflPlanesStore .LT. hiStoreDim(strmwse_dir))
      $    hiStoreDim(strmwse_dir) = numInflPlanesStore
 
         call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
 
-        ALLOCATE(storDat(FF_DIMV(storDat),COMP_FLCTFILE))
-        
-
+        ALLOCATE(storDat(FF_DIMV(storDat),nCompInflow))
 c
 c       ::::   Convert the streamwise direction lengths to times   ::::
 c       :::: and set up the pointers into the data arrays and file ::::
@@ -173,13 +159,9 @@ c
         storePnt = 2
         maxFilePntChng = 0
 
-c
-c       ::: Fill the data Arrays :::
-c
-        call FILL_FRCARRYS(filePnt - 1, 1, dimFile, COMP_FLCTFILE,
+        call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
      $                     FF_DIMS(storDat), storDat)
       endif
-
 c
 c     ------------------------------------------
 c     :::: Find Correct Interpolation Point ::::
@@ -249,8 +231,6 @@ c
  2000 FORMAT(A1,1xE11.3,1x,3(I3,1x),E11.3,1x,3(I3,1x))
       close(12)
 #endif
-
-
 c
 c     -------------------------------------------
 c     ::: Load Data if off end of stored data :::
@@ -261,7 +241,7 @@ c
       if (storePnt + 1 .gt. hiStoreDim(strmwse_dir)) then
         filePntReqd = filePnt - maxFilePntChng
 
-        call FILL_FRCARRYS(filePntReqd - 1, 1, dimFile, COMP_FLCTFILE,
+        call FILL_FRCARRYS(filePntReqd - 1, 1, dimFile, nCompInflow,
      $                     FF_DIMS(storDat), storDat)
         storePnt = 2 - filePntReqd + filePnt
 
@@ -289,7 +269,7 @@ c
      $        /3x,'npass = ',I3,2x,'timeOffset = ',E12.4,2x,'dtFile = ',E12.4,
      $        /3x,'dimFile = ',I3,2x,'time = ',E12.4)
         close(11)
-        call FILL_FRCARRYS(filePnt - 1, 1, dimFile, COMP_FLCTFILE,
+        call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
      $                     FF_DIMS(storDat), storDat)
         storePnt = 2
 
@@ -300,21 +280,16 @@ c
  2020 FORMAT('BACK LOAD',3x,2(I3,1x))
 #endif
       endif
-
-
 c
 c     -----------------------------------------
 c     :::: Interpolate Data to Fill inflDat :::
 c     -----------------------------------------
 c
       call INTRP_DATA(time, xlo, dx, storePnt, fillComp, timePnt, dtFile,
-     $                dxFile, xloFile, xhiFile, COMP_FLCTFILE, 
+     $                dxFile, xloFile, xhiFile, nCompInflow, 
      $                FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
      $                bc, probLo, probHi)
 
-c
-c
-      return
       end
 
 c
@@ -341,37 +316,19 @@ c
       subroutine FILL_FRCARRYS(baseFilePnt, baseArrayPnt, dimFile, 
      $                         nComp, FF_DIMS(dat), dat)
 
-c
-c     *****************************
-c     *** Variable Declarations ***
-c     *****************************
-c
       implicit none
 
-c
-c     *** Passed Variables ***
-c
       integer baseFilePnt, baseArrayPnt, nComp, dimFile(3)
       integer FF_DIMDEC(dat)
       REAL_T dat(FF_DIMV(dat),nComp)
 
-c
-c     *** Local Variables ***
-c
       integer intDummy, n
       integer lo(3), hi(3), loRd(3), hiRd(3), filLo(3)
       REAL_T realDummy
 
-c
-c     ::: Common Blocks :::
-c
 #include "INFL_FORCE_F.H"
 
-c
-c     *** Define the LO and HI arrays ***
-c
       call FF_SET_LOHI(FF_DIMS(dat), lo, hi)
-
 c
 c     ------------------------------------------------------
 c     *** Wrap baseFilePnt into the box if it is outside ***
@@ -387,7 +344,6 @@ c
       if (baseFilePnt .gt. dimFile(strmwse_dir) - 1) then
         baseFilePnt = baseFilePnt - (dimFile(strmwse_dir) - 1)
       endif
-
 c
 c     ----------------------------------------------------
 c     *** If the data can be filled in one pass, do so ***
@@ -413,8 +369,6 @@ c
      $                    dat(lo(1),lo(2),lo(3),n))
         enddo
         close(FF_UNIT)
-
-
 c
 c     --------------------------------------------------------------
 c     *** If the data can not be filled in one pass, fill in two ***
@@ -449,7 +403,6 @@ c
      $                    dat(lo(1),lo(2),lo(3),n))
         enddo
         close(FF_UNIT)
-
 c
 c       Now fill the rest of the array starting from the beginning of the file
 c
@@ -471,7 +424,4 @@ c
         close(FF_UNIT)
       endif
 
-c
-c
-      RETURN
       END

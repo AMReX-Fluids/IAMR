@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_3D.F,v 1.1 2000-06-06 18:39:24 sstanley Exp $
+c $Id: INFL_FORCE_3D.F,v 1.2 2003-10-14 19:52:39 lijewski Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -59,10 +59,7 @@ c :::
      $                      dxFile, xloFile, xhiFile, nCompStorDat, 
      $                      FF_DIMS(storDat), storDat,
      $                      DIMS(inflDat), inflDat, bc, probLo, probHi)
-      
-c
-c     :::: Passed Variables ::::
-c
+
       implicit none
       integer storePnt, fillComp, nCompStorDat
       integer loStoreDim(3), hiStoreDim(3)
@@ -76,9 +73,6 @@ c
       REAL_T inflDat(DIMV(inflDat))
       REAL_T storDat(FF_DIMV(storDat),nCompStorDat)
 
-c
-c     :::: local variables ::::
-c
       integer i, j, k, iloc, jloc, kloc, ixcalc, jycalc, kzcalc
       integer lo(SDIM), hi(SDIM), n_lev_cells(SDIM)
       integer loStorDim(3), hiStorDim(3)
@@ -88,23 +82,14 @@ c
      $       z, zm1, z0, zp1, czm1, cz0, czp1,
      $       valm1, val0, valp1
 
-c
-c     :::: Common Blocks ::::
-c
 #include "INFL_FORCE_F.H"
 
-c
-c     ---------------------------------
-c     ::: Fill the LO and HI arrays :::
-c     ---------------------------------
-c
       call SET_LOHI(DIMS(inflDat), lo, hi)
       call FF_SET_LOHI(FF_DIMS(storDat), loStorDim, hiStorDim)
 
       do i = 1, SDIM
         n_lev_cells(i) = (probHi(i) - probLo(i)) / dx(i)
       enddo
-
 c
 c     ----------------------------------------------
 c     :::: Set the time interpolation constants ::::
@@ -115,7 +100,6 @@ c
       ctm1 = (time - timePnt) * (time - tp1) / (tm1 - timePnt) / (tm1 - tp1)
       ct0  = (time - tm1) * (time - tp1) / (timePnt - tm1) / (timePnt - tp1)
       ctp1 = (time - tm1) * (time - timePnt) / (tp1 - tm1) / (tp1 - timePnt)
-
 c
 c     ----------------------------------------------
 c     :::: Interpolate to fill the inflow array ::::
@@ -387,7 +371,5 @@ c
       enddo
 
       endif
-c
-c
-      return
+
       end
