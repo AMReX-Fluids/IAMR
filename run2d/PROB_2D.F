@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.11 1998-06-01 21:30:27 almgren Exp $
+c $Id: PROB_2D.F,v 1.12 1998-06-01 21:51:10 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -114,15 +114,6 @@ c ::: -----------------------------------------------------------
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
-      integer i, j
-      REAL_T  x, y
-      REAL_T  hx, hy
-      REAL_T  x_vel, y_vel, dist
-
-#include "probdata.H"
 
       if (probtype .eq. 1) then
          call initspin(level,time,lo,hi,nscal,
@@ -183,7 +174,6 @@ c
       REAL_T  hx, hy
       REAL_T  dist
       REAL_T  x_vel, y_vel
-      REAL_T  rn
 
 #include "probdata.H"
 
@@ -599,7 +589,6 @@ c     probtype = BUBBLE
       else if (probtype .eq. 2) then
 
         if (level .eq. 0) then
-c         ::::: refine around entire bubble
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
@@ -693,60 +682,17 @@ c ::: -----------------------------------------------------------
 c     probtype = SPIN
       if (probtype .eq. 1) then
 
-        do j = lo(2), hi(2)
-           do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
-           end do
-        end do
-
 c     probtype = BUBBLE
       else if (probtype .eq. 2) then
-
-        if (level .eq. 0) then
-c         ::::: refine around entire bubble
-          do j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
-             end do
-          end do
-        else
-c         ::::: refine where there is bubble gradient
-          do j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                ax = abs(temperature(i+1,j,1) - temperature(i-1,j,1))
-                ay = abs(temperature(i,j+1,1) - temperature(i,j-1,1))
-                aerr = max(ax,ay)
-                tag(i,j) = cvmgt(set,tag(i,j),aerr.gt.bubgrad)
-             end do
-          end do
-        end if
 
 c     probtype = VORTEX IN A BOX
       else if (probtype .eq. 3) then
 
-        do j = lo(2), hi(2)
-           do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
-           end do
-        end do
-
 c     probtype = CHANNEL
       else if (probtype .eq. 4) then
 
-        do j = lo(2), hi(2)
-           do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
-           end do
-        end do
-
 c     probtype = PERIODIC SHEAR LAYER
       else if (probtype .eq. 5) then
-
-        do j = lo(2), hi(2)
-           do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
-           end do
-        end do
 
 c     probtype = HOT SPOT
       else if (probtype .eq. 6) then
