@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.93 2003-06-24 17:18:22 lijewski Exp $
+// $Id: MacProj.cpp,v 1.94 2003-09-11 21:10:14 almgren Exp $
 //
 #include <winstd.H>
 
@@ -1182,8 +1182,10 @@ MacProj::set_outflow_bcs (int             level,
 
       NavierStokes* ns_level = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
       Real gravity = ns_level->getGravity();
+      const int* lo_bc = phys_bc->lo();
+      const int* hi_bc = phys_bc->hi();
       macBC.computeBC(uedat, divudat, rhodat, phidat,
-		      geom, outFaces, numOutFlowFaces, gravity);
+		      geom, outFaces, numOutFlowFaces, lo_bc, hi_bc, gravity);
 
       // Must do this kind of copy instead of mac_phi->copy(phidat);
       //   because we're copying onto the ghost cells of the FABs,

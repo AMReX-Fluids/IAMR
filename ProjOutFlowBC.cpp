@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.28 2003-02-21 22:49:10 car Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.29 2003-09-11 21:10:14 almgren Exp $
 //
 #include <winstd.H>
 
@@ -62,6 +62,8 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                           const Geometry&   geom, 
                           Orientation*      outFaces,
                           int               numOutFlowFaces,
+                          const int*        lo_bc,
+                          const int*        hi_bc,
                           Real              gravity)
 {
     BL_ASSERT(numOutFlowFaces <= 2*BL_SPACEDIM);
@@ -483,7 +485,9 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
        }
     }
 
-    if (std::abs(gravity) > 0.) 
+    if (std::abs(gravity) > 0.) {
+     const int* domlo  = domain.loVect();
+     const int* domhi  = domain.hiVect();
      for (int iface = 0; iface < numOutFlowFaces; iface++) 
      {
       int face          = int(outFaces[iface]);
@@ -494,9 +498,11 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
       if (outDir != (BL_SPACEDIM-1))
         FORT_RHOGBC(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
                     phiPtr,ARLIM(philo),ARLIM(phihi),
-                    &face,&gravity,dx);
+                    &face,&gravity,dx,domlo,domhi,
+                    lo_bc,hi_bc);
   
     }
+   }
 }
 #endif
 
@@ -506,11 +512,15 @@ ProjOutFlowBC::computeRhoG (FArrayBox*         rhoMF,
                             const Geometry&    geom, 
                             Orientation*       outFaces,
                             int                numOutFlowFaces,
-                            Real               gravity)
+                            Real               gravity,
+                            const int*         lo_bc,
+                            const int*         hi_bc)
 
 {
     const Real* dx    = geom.CellSize();
     const Box& domain = geom.Domain();
+    const int* domlo  = domain.loVect();
+    const int* domhi  = domain.hiVect();
 
     for (int iface = 0; iface < numOutFlowFaces; iface++) {
 
@@ -520,10 +530,11 @@ ProjOutFlowBC::computeRhoG (FArrayBox*         rhoMF,
       DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
       DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
 
-      if (outDir != (BL_SPACEDIM-1) && std::abs(gravity) > 0.0) 
+      if (outDir != (BL_SPACEDIM-1) && std::abs(gravity) > 0.0)
         FORT_RHOGBC(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
                     phiPtr,ARLIM(philo),ARLIM(phihi),
-                    &face,&gravity,dx);
+                    &face,&gravity,dx,domlo,domhi,
+                    lo_bc,hi_bc);
     }
 }
 

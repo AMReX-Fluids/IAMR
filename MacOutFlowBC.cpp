@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.26 2003-02-21 22:49:10 car Exp $
+// $Id: MacOutFlowBC.cpp,v 1.27 2003-09-11 21:10:14 almgren Exp $
 //
 #include <winstd.H>
 
@@ -53,6 +53,8 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
                          const Geometry&   geom, 
                          Orientation*      outFaces,
                          int               numOutFlowFaces,
+                         const int*        lo_bc,
+                         const int*        hi_bc,
                          Real              gravity)
 {
     BL_ASSERT(numOutFlowFaces <= 2*BL_SPACEDIM);

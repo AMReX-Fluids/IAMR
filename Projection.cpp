@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.154 2003-09-10 21:34:50 almgren Exp $
+// $Id: Projection.cpp,v 1.155 2003-09-11 21:10:14 almgren Exp $
 //
 #include <winstd.H>
 
@@ -1500,12 +1500,16 @@ Projection::initialPressureProject (int  c_lev)
 
         parent->getLevel(lev).setPhysBoundaryValues(State_Type,Density,1);
 
+        const Geometry& geom = parent->Geom(lev);
+
         MultiFab::Copy(*sig[lev],
                        LevelData[lev].get_new_data(State_Type),
                        Density,
                        0,
                        1,
                        nghost);
+
+        EnforcePeriodicity(*sig[lev],1,grids,geom);
     }
 
     //
@@ -2771,13 +2775,22 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
   FArrayBox phi_fine_strip[2*BL_SPACEDIM];
 
+//This is necessary to copy from the ghost cells in Sig_in into rho[iface]
+  BoxArray grown_grids(Sig_in->boxArray());
+  grown_grids.grow(1);
+  MultiFab Sig_grown(grown_grids,1,0);
+  for (MFIter mfi(Sig_grown); mfi.isValid(); ++mfi)
+     Sig_grown[mfi].copy((*Sig_in)[mfi]);
+
   for (int iface = 0; iface < numOutFlowFaces; iface++)
-    {
+  {
       dsdt[iface].resize(state_strip[iface],1);
       dudt[0][iface].resize(state_strip[iface],BL_SPACEDIM);
 
+      const int outDir    = outFacesAtThisLevel[iface].coordDir();
       rho[iface].resize(state_strip[iface],1);
-      Sig_in->copy(rho[iface]);
+
+      Sig_grown.copy(rho[iface]);
 
       Box phi_strip = 
 	BoxLib::surroundingNodes(BoxLib::bdryNode(domain,
@@ -2785,15 +2798,18 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 						  ncStripWidth));
       phi_fine_strip[iface].resize(phi_strip,1);
       phi_fine_strip[iface].setVal(0.);
-    }
+  }
 
   ProjOutFlowBC projBC;
   if (which_call == INITIAL_PRESS) 
     {
 
+      const int*      lo_bc = phys_bc->lo();
+      const int*      hi_bc = phys_bc->hi();
       projBC.computeRhoG(rho,phi_fine_strip,
                          parent->Geom(lev),
-                         outFacesAtThisLevel,numOutFlowFaces,gravity);
+                         outFacesAtThisLevel,numOutFlowFaces,gravity,
+                         lo_bc,hi_bc);
 
     }
   else
@@ -2832,10 +2848,12 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 	    }
 	}
 
+      const int*      lo_bc = phys_bc->lo();
+      const int*      hi_bc = phys_bc->hi();
       projBC.computeBC(dudt, dsdt, rho, phi_fine_strip,
 		       parent->Geom(lev),
 		       outFacesAtThisLevel,
-		       numOutFlowFaces, gravity);
+		       numOutFlowFaces, lo_bc, hi_bc, gravity);
 
     }
 

@@ -2,7 +2,7 @@
 #define _MACOUTFLOWBC_H_
 
 //
-// $Id: MacOutFlowBC.H,v 1.10 2003-02-21 22:49:10 car Exp $
+// $Id: MacOutFlowBC.H,v 1.11 2003-09-11 21:10:14 almgren Exp $
 //
 
 #include "FArrayBox.H"
@@ -33,6 +33,8 @@ public:
                     const Geometry&   geom,
                     Orientation*      outFaces,
                     int               numOutFlowFaces,
+                    const int*        lo_bc,
+                    const int*        hi_bc,
                     Real              gravity = 0.0);
 
 protected:

@@ -1096,7 +1096,7 @@ c ** RHOGBC **
 c *************************************************************************
 
       subroutine FORT_RHOGBC(rho,DIMS(rho),phi,DIMS(phi),
-     &                       face,gravity,dx)
+     &                       face,gravity,dx,domlo,domhi,lo_bc,hi_bc)
 c
 c    Compute the contribution of gravity to the boundary conditions
 c      for phi at outflow faces only.
@@ -1106,6 +1106,10 @@ c
       integer DIMDEC(rho)
       integer DIMDEC(phi)
       integer face
+      integer domlo(2)
+      integer domhi(2)
+      integer lo_bc(2)
+      integer hi_bc(2)
       REAL_T  rho(DIMV(rho))
       REAL_T  phi(DIMV(phi))
       REAL_T  dx(2)
