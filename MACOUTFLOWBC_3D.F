@@ -19,9 +19,8 @@
 
       subroutine FORT_EXTRAP_MAC(DIMS(u0),u0,DIMS(u1),u1,DIMS(u2),u2,DIMS(div),
      &                           divu,DIMS(rho),rho,
-     &                           DIMS(uExt0),uExt0,DIMS(uExt1),uExt1,
      &                           DIMS(divuExt),divuExt,DIMS(rhoExt),rhoExt,
-     &                           lo,hi,face,zeroIt)
+     &                           dx,lo,hi,face,per,zeroIt)
 c
 c     Compute the value of phi for macproj 
 c     assuming that the tangential velocity on the edges of the outflow boundary
@@ -38,8 +37,6 @@ c    compute divu_ave twice due to precision problems
       integer DIMDEC(div)
       integer DIMDEC(rho)
       integer lo(SDIM),hi(SDIM)
-      integer DIMDEC(uExt0)
-      integer DIMDEC(uExt1)
       integer DIMDEC(divuExt)
       integer DIMDEC(rhoExt)
       REAL_T      u0(DIMV(u0))
@@ -47,18 +44,22 @@ c    compute divu_ave twice due to precision problems
       REAL_T      u2(DIMV(u2))
       REAL_T divu(DIMV(div))
       REAL_T    rho(DIMV(rho))
-      REAL_T   uExt0(DIMV(uExt0))
-      REAL_T   uExt1(DIMV(uExt1))
       REAL_T   divuExt(DIMV(divuExt))
       REAL_T   rhoExt(DIMV(rhoExt))
+      REAL_T   dx(3)
+      integer per(2)
       integer zeroIt
       integer face
 
 c     Local variables
       REAL_T small_pert
+      REAL_T small_udiff
       parameter ( small_pert = SMALL)
+      parameter (small_udiff = SMALL)
       REAL_T max_divu, min_divu, max_pert
       REAL_T divu_ave1,divu_ave2
+      REAL_T hx,hy,hz  
+      REAL_T diff
       integer i,j,k,neq,n
       integer ics,ice,jcs,jce,kcs,kce
       integer ifs,ife,jfs,jfe,kfs,kfe
@@ -91,22 +92,16 @@ c     is zero, or if divu is constant
       kfs = lo(3)
       kfe = hi(3)
 
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
       zeroIt = 0
 
       if (face .eq. XLO) then
          if = ifs
          max_divu = divu(ics,jcs,kcs)
          min_divu = max_divu
-         do k = kcs, kce
-         do j = jcs, jce+1
-            uExt0(j,k,if)  = u1(ics,j,k)
-         enddo
-         enddo
-         do k = kcs, kce+1
-         do j = jcs, jce
-            uExt1(j,k,if)  = u2(ics,j,k)
-         enddo
-         enddo
          do k = kcs, kce
          do j = jcs, jce
             divuExt(j,k,if) = divu(ics,j,k)
@@ -115,28 +110,52 @@ c     is zero, or if divu is constant
             min_divu = min(min_divu,divuExt(j,k,if))
          end do
          end do
+
+c        Here we modify divuExt to include the velocity terms.
+         do k = kcs, kce
+         do j = jcs, jce
+            divuExt(j,k,if) = divuExt(j,k,if) 
+     $        - (u1(ics,j+1,k)-u1(ics,j,k))/hy 
+     $        - (u2(ics,j,k+1)-u2(ics,j,k))/hz 
+         end do
+         end do
+
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
+
          max_pert = ABS(divuExt(jcs,kcs,if))
          do k = kcs, kce
          do j = jcs, jce
             max_pert = MAX(max_pert,ABS(divuExt(j,k,if)))
          end do
          end do
+
+c        Make sure u_mac is periodic
+         if (per(1) .eq. 1) then
+           diff = abs(u1(ics,jcs,kcs)-u1(ics,jce+1,kcs))
+           do k = kcs, kce
+             diff = max(diff,abs(u1(ics,jcs,k)-u1(ics,jce+1,k)))
+           enddo
+           if (diff .gt. small_udiff) then
+             write(6,*) 'EXTRAPMAC: FACE XLO : vmac not periodic'
+             call bl_abort(" ")
+           endif
+         endif
+         if (per(2) .eq. 1) then
+           diff = abs(u2(ics,jcs,kcs)-u2(ics,jcs,kce+1))
+           do j = jcs, jce
+             diff = max(diff,abs(u1(ics,j,kcs)-u1(ics,j,kce+1)))
+           enddo
+           if (diff .gt. small_udiff) then
+              write(6,*) 'EXTRAPMAC: FACE XLO : wmac not periodic'
+              call bl_abort(" ")
+           endif
+         endif
+
       else if (face .eq. YLO) then
          jf = jfs
          max_divu = divu(ics,jcs,kcs)
          min_divu = max_divu
-         do k = kcs, kce
-         do i = ics, ice+1
-            uExt0(i,k,jf)  = u0(i,jcs,k)
-         enddo
-         enddo
-         do k = kcs, kce+1
-         do i = ics, ice
-            uExt1(i,k,jf)  = u2(i,jcs,k)
-         enddo
-         enddo
          do k = kcs, kce
          do i = ics, ice
             divuExt(i,k,jf) = divu(i,jcs,k)
@@ -145,6 +164,16 @@ c     is zero, or if divu is constant
             min_divu = min(min_divu,divuExt(i,k,jf))
          end do
          end do
+
+c        Here we modify divuExt to include the velocity terms.
+         do k = kcs, kce
+         do i = ics, ice
+            divuExt(i,k,jf) = divuExt(i,k,jf)
+     $        - (u0(i+1,jcs,k)-u0(i,jcs,k))/hx
+     $        - (u2(i,jcs,k+1)-u2(i,jcs,k))/hz
+         end do
+         end do
+
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
          max_pert = ABS(divuExt(ics,kcs,jf))
@@ -153,20 +182,33 @@ c     is zero, or if divu is constant
             max_pert = MAX(max_pert,ABS(divuExt(i,k,jf)))
          end do
          end do
+
+c        Make sure u_mac is periodic
+         if (per(1) .eq. 1) then
+           diff = abs(u0(ics,jcs,kcs)-u0(ice+1,jcs,kcs))
+           do k = kcs, kce
+             diff = max(diff,abs(u0(ics,jcs,k)-u1(ice+1,jcs,k)))
+           enddo
+           if (diff .gt. small_udiff) then
+             write(6,*) 'EXTRAPMAC: FACE YLO : umac not periodic'
+             call bl_abort(" ")
+           endif
+         endif
+         if (per(2) .eq. 1) then
+           diff = abs(u2(ics,jcs,kcs)-u2(ics,jcs,kce+1))
+           do i = ics, ice
+             diff = max(diff,abs(u1(i,jcs,kcs)-u1(i,jcs,kce+1)))
+           enddo
+           if (diff .gt. small_udiff) then
+              write(6,*) 'EXTRAPMAC: FACE YLO : wmac not periodic'
+              call bl_abort(" ")
+           endif
+         endif
+
       else if (face .eq. ZLO) then
          kf = kfs
          max_divu = divu(ics,jcs,kcs)
          min_divu = max_divu
-         do j = jcs, jce
-         do i = ics, ice+1
-            uExt0(i,j,kf)  = u0(i,j,kcs)
-         enddo
-         enddo
-         do j = jcs, jce+1
-         do i = ics, ice
-            uExt1(i,j,kf)  = u1(i,j,kcs)
-         enddo
-         enddo
          do j = jcs, jce
          do i = ics, ice
             divuExt(i,j,kf) = divu(i,j,kcs)
@@ -175,6 +217,16 @@ c     is zero, or if divu is constant
             min_divu = min(min_divu,divuExt(i,j,kf))
          end do
          end do
+
+c        Here we modify divuExt to include the velocity terms.
+         do j = jcs, jce
+         do i = ics, ice
+            divuExt(i,j,kf) = divuExt(i,j,kf)
+     $        - (u0(i+1,j,kcs)-u0(i,j,kcs))/hx
+     $        - (u1(i,j+1,kcs)-u1(i,j,kcs))/hy
+         end do
+         end do
+
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
          max_pert = ABS(divuExt(ics,jcs,kf))
@@ -184,20 +236,33 @@ c     is zero, or if divu is constant
          end do
          end do
 
+c        Make sure u_mac is periodic
+         if (per(1) .eq. 1) then
+           diff = abs(u0(ics,jcs,kcs)-u0(ice+1,jcs,kcs))
+           do j = jcs, jce
+             diff = max(diff,abs(u0(ics,j,kcs)-u1(ice+1,j,kcs)))
+           enddo
+           if (diff .gt. small_udiff) then
+             write(6,*) 'EXTRAPMAC: FACE ZLO : umac not periodic'
+             call bl_abort(" ")
+           endif
+         endif
+         if (per(2) .eq. 1) then
+           diff = abs(u1(ics,jcs,kcs)-u1(ics,jce+1,kcs))
+           do i = ics, ice
+             diff = max(diff,abs(u1(i,jcs,kcs)-u1(i,jce+1,kcs)))
+           enddo
+           if (diff .gt. small_udiff) then
+              write(6,*) 'EXTRAPMAC: FACE ZLO : vmac not periodic'
+              call bl_abort(" ")
+           endif
+         endif
+
       else if (face .eq. XHI) then
          if = ife
          max_divu = divu(ice,jcs,kcs)
          min_divu = max_divu
-         do k = kcs, kce
-         do j = jcs, jce+1
-            uExt0(j,k,if)  = u1(ice,j,k)
-         enddo
-         enddo
-         do k = kcs, kce+1
-         do j = jcs, jce
-            uExt1(j,k,if)  = u2(ice,j,k)
-         enddo
-         enddo
+
          do k = kcs, kce
          do j = jcs, jce
             divuExt(j,k,if) = divu(ice,j,k)
@@ -206,28 +271,51 @@ c     is zero, or if divu is constant
             min_divu = min(min_divu,divuExt(j,k,if))
          end do
          end do
+
+         do k = kcs, kce
+         do j = jcs, jce
+            divuExt(j,k,if) = divuExt(j,k,if) 
+     $        - (u1(ice,j+1,k)-u1(ice,j,k))/hy 
+     $        - (u2(ice,j,k+1)-u2(ice,j,k))/hz 
+         end do
+         end do
+
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
+
          max_pert = ABS(divuExt(jcs,kcs,if))
          do k = kcs, kce
          do j = jcs, jce
             max_pert = MAX(max_pert,ABS(divuExt(j,k,if)))
          end do
          end do
+
+c        Make sure u_mac is periodic
+         if (per(1) .eq. 1) then
+           diff = abs(u1(ice,jcs,kcs)-u1(ice,jce+1,kcs))
+           do k = kcs, kce
+             diff = max(diff,abs(u1(ice,jcs,k)-u1(ice,jce+1,k)))
+           enddo
+           if (diff .gt. small_udiff) then
+             write(6,*) 'EXTRAPMAC: FACE XLO : umac not periodic'
+             call bl_abort(" ")
+           endif
+         endif
+         if (per(2) .eq. 1) then
+           diff = abs(u2(ice,jcs,kcs)-u2(ice,jcs,kce+1))
+           do j = jcs, jce
+             diff = max(diff,abs(u1(ice,j,kcs)-u1(ice,j,kce+1)))
+           enddo
+           if (diff .gt. small_udiff) then
+              write(6,*) 'EXTRAPMAC: FACE XLO : umac not periodic'
+              call bl_abort(" ")
+           endif
+         endif
+
       else if (face .eq. YHI) then
          jf = jfe
          max_divu = divu(ics,jce,kcs)
          min_divu = max_divu
-         do k = kcs, kce
-         do i = ics, ice+1
-            uExt0(i,k,jf)  = u0(i,jce,k)
-         enddo
-         enddo
-         do k = kcs, kce+1
-         do i = ics, ice
-            uExt1(i,k,jf)  = u2(i,jce,k)
-         enddo
-         enddo
 
          do k = kcs, kce
          do i = ics, ice
@@ -237,6 +325,15 @@ c     is zero, or if divu is constant
             min_divu = min(min_divu,divuExt(i,k,jf))
          end do
          end do
+
+         do k = kcs, kce
+         do i = ics, ice
+            divuExt(i,k,jf) = divuExt(i,k,jf)
+     $        - (u0(i+1,jce,k)-u0(i,jce,k))/hx
+     $        - (u2(i,jce,k+1)-u2(i,jce,k))/hz
+         end do
+         end do
+
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
          max_pert = ABS(divuExt(ics,kcs,jf))
@@ -245,20 +342,33 @@ c     is zero, or if divu is constant
             max_pert = MAX(max_pert,ABS(divuExt(i,k,jf)))
          end do
          end do
+
+c        Make sure u_mac is periodic
+         if (per(1) .eq. 1) then
+           diff = abs(u0(ics,jce,kcs)-u0(ice+1,jce,kcs))
+           do k = kcs, kce
+             diff = max(diff,abs(u0(ics,jce,k)-u1(ice+1,jce,k)))
+           enddo
+           if (diff .gt. small_udiff) then
+             write(6,*) 'EXTRAPMAC: FACE YLO : umac not periodic'
+             call bl_abort(" ")
+           endif
+         endif
+         if (per(2) .eq. 1) then
+           diff = abs(u2(ics,jce,kcs)-u2(ics,jce,kce+1))
+           do i = ics, ice
+             diff = max(diff,abs(u1(i,jce,kcs)-u1(i,jce,kce+1)))
+           enddo
+           if (diff .gt. small_udiff) then
+              write(6,*) 'EXTRAPMAC: FACE YLO : wmac not periodic'
+              call bl_abort(" ")
+           endif
+         endif
+
       else if (face .eq. ZHI) then
          kf = kfe
          max_divu = divu(ics,jcs,kce)
          min_divu = max_divu
-         do j = jcs, jce
-         do i = ics, ice+1
-            uExt0(i,j,kf)  = u0(i,j,kce)
-         enddo
-         enddo
-         do j = jcs, jce+1
-         do i = ics, ice
-            uExt1(i,j,kf)  = u1(i,j,kce)
-         enddo
-         enddo
 
          do j = jcs, jce
          do i = ics, ice
@@ -268,6 +378,16 @@ c     is zero, or if divu is constant
             min_divu = min(min_divu,divuExt(i,j,kf))
          end do
          end do
+
+c        Here we modify divuExt to include the velocity terms.
+         do j = jcs, jce
+         do i = ics, ice
+            divuExt(i,j,kf) = divuExt(i,j,kf)
+     $        - (u0(i+1,j,kce)-u0(i,j,kce))/hx
+     $        - (u1(i,j+1,kce)-u1(i,j,kce))/hy
+         end do
+         end do
+
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
          max_pert = ABS(divuExt(ics,jcs,kf))
@@ -276,6 +396,29 @@ c     is zero, or if divu is constant
             max_pert = MAX(max_pert,ABS(divuExt(i,j,kf)))
          end do
          end do
+
+c        Make sure u_mac is periodic
+         if (per(1) .eq. 1) then
+           diff = abs(u0(ics,jcs,kce)-u0(ice+1,jcs,kce))
+           do j = jcs, jce
+             diff = max(diff,abs(u0(ics,j,kce)-u1(ice+1,j,kce)))
+           enddo
+           if (diff .gt. small_udiff) then
+             write(6,*) 'EXTRAPMAC: FACE ZHI : umac not periodic'
+             call bl_abort(" ")
+           endif
+         endif
+         if (per(2) .eq. 1) then
+           diff = abs(u1(ics,jcs,kce)-u1(ics,jce+1,kce))
+           do i = ics, ice
+             diff = max(diff,abs(u1(i,jcs,kce)-u1(i,jce+1,kce)))
+           enddo
+           if (diff .gt. small_udiff) then
+              write(6,*) 'EXTRAPMAC: FACE ZHI : vmac not periodic'
+              call bl_abort(" ")
+           endif
+         endif
+
       endif
 
 c  check to see if we should zero phi
@@ -359,19 +502,15 @@ c  check to see if we should zero phi
 
       subroutine FORT_COMPUTE_MACCOEFF(DIMS(rhs),rhs,
      &     DIMS(beta0),beta0,DIMS(beta1),beta1,
-     &     DIMS(uExt0),uExt0,DIMS(uExt1),uExt1,DIMS(divuExt),divuExt,
+     &     DIMS(divuExt),divuExt,
      &     DIMS(rhoExt),rhoExt,lo,hi,h,isPeriodic)
       implicit none
       integer DIMDEC(rhs)
       integer DIMDEC(beta0)
       integer DIMDEC(beta1)
-      integer DIMDEC(uExt0)
-      integer DIMDEC(uExt1)
       integer DIMDEC(divuExt)
       integer DIMDEC(rhoExt)
       integer lo(SDIM),hi(SDIM)
-      REAL_T uExt0(DIM12(uExt0))
-      REAL_T uExt1(DIM12(uExt1))
       REAL_T divuExt(DIM12(divuExt))
       REAL_T rhoExt(DIM12(rhoExt))
       REAL_T beta0(DIM12(beta0))
@@ -390,9 +529,7 @@ c  check to see if we should zero phi
 
       do j=jcs,jce
         do i=ics,ice
-           rhs(i,j) =(uExt0(i+1,j)-uExt0(i,j))/h(1) +
-     &               (uExt1(i,j+1)-uExt1(i,j))/h(2) -
-     &                divuExt(i,j)
+           rhs(i,j) = -divuExt(i,j)
         enddo
       enddo
 
@@ -1043,4 +1180,65 @@ c     Local variables
 
       return
       end
+
+c *************************************************************************
+c ** MACFILL_TWOD **
+c *************************************************************************
+
+      subroutine FORT_MACFILL_TWOD(lenx,leny,length,width,faces,numOutFlowFaces,
+     $                             cc0,cc1,cc2,cc3,cc4,cc5,conn)
+
+      integer lenx,leny,length,width
+      integer faces(4)
+      integer numOutFlowFaces
+      REAL_T cc0(lenx,leny,2)
+      REAL_T cc1(lenx,leny,2)
+      REAL_T cc2(lenx,leny,2)
+      REAL_T cc3(lenx,leny,2)
+      REAL_T cc4(lenx,leny,2)
+      REAL_T cc5(lenx,leny,2)
+      REAL_T conn(length,2)
+
+      integer xlo_outflow,ylo_outflow,zlo_outflow
+      integer xhi_outflow,yhi_outflow,zhi_outflow
+      integer i,ifinal,n
+      REAL_T sum 
+
+#define XLO 0
+#define YLO 1
+#define ZLO 2
+#define XHI 3
+#define YHI 4
+#define ZHI 5
+
+c     Want to find any non-outflow faces.
+      xlo_outflow = 0
+      ylo_outflow = 0
+      zlo_outflow = 0
+      xhi_outflow = 0
+      yhi_outflow = 0
+      zhi_outflow = 0
+
+      do i = 1, numOutFlowFaces
+        if (faces(i) .eq. XLO) xlo_outflow = 1
+        if (faces(i) .eq. YLO) ylo_outflow = 1
+        if (faces(i) .eq. ZLO) zlo_outflow = 1
+        if (faces(i) .eq. XHI) xhi_outflow = 1
+        if (faces(i) .eq. YHI) yhi_outflow = 1
+        if (faces(i) .eq. ZHI) zhi_outflow = 1
+      enddo
+
+c     Possible combinations of faces to come in here:
+c       cc0 cc1 cc2 cc3
+c       XLO YLO
+c       XLO         YHI
+c           YLO XHI
+c           YLO     YHI
+c       XLO YLO XHI
+c       XLO     XHI YHI
+c       XLO YLO     YHI
+c           YLO XHI YHI
+c       XLO YLO XHI YHI
+
+       end
 

@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.46 2002-10-17 20:33:59 marc Exp $
+// $Id: NS_setup.cpp,v 1.47 2003-02-19 21:42:35 almgren Exp $
 //
 
 #include <NavierStokes.H>
@@ -40,7 +40,7 @@ static int press_bc[] =
 
 static int temp_bc[] =
 {
-    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_EVEN, EXT_DIR, EXT_DIR
+    INT_DIR, EXT_DIR, HOEXTRAP, REFLECT_EVEN, REFLECT_EVEN, FOEXTRAP
 };
 
 static int divu_bc[] =

@@ -2,7 +2,7 @@
 #define _MACOUTFLOWBC_H_
 
 //
-// $Id: MacOutFlowBC.H,v 1.8 2003-02-19 19:15:46 almgren Exp $
+// $Id: MacOutFlowBC.H,v 1.9 2003-02-19 21:42:35 almgren Exp $
 //
 
 #include "FArrayBox.H"
@@ -40,8 +40,6 @@ protected:
 #if (BL_SPACEDIM == 3)
     void computeCoefficients (FArrayBox&   rhs,
                               FArrayBox*   beta,
-                              FArrayBox&   uExt,
-                              FArrayBox&   vExt,
                               FArrayBox&   ccExt,
                               Box&         faceBox,
                               Real*        dxFiltered,

@@ -101,16 +101,14 @@ extern "C" {
     void  FORT_COMPUTE_MACCOEFF(ARLIM_P(rhslo),ARLIM_P(rhshi),const Real* rhsPtr,
 				ARLIM_P(beta0lo),ARLIM_P(beta0hi),const Real* beta0Ptr,
 				ARLIM_P(beta1lo),ARLIM_P(beta1hi),const Real* beta1Ptr,
-				ARLIM_P(uE0lo), ARLIM_P(uE0hi), const Real* uExt0Ptr,
-				ARLIM_P(uE1lo), ARLIM_P(uE1hi), const Real* uExt1Ptr,
 				ARLIM_P(divuElo),ARLIM_P(divuEhi), 
 				const Real* divuEPtr,
 				ARLIM_P(rhoElo),ARLIM_P(rhoEhi),const Real* rhoEPtr,
 				const int* faceLo, const int* faceHi,
 				const Real* dx, const int* isPeriodicPerp);
 
-    void FORT_MACFILL_TWOD(int* lenx, int* leny, int* lenz, int* length, int* width,
-                          int * faces, int * numOutFlowFaces,
+    void FORT_MACFILL_TWOD(int* lenx, int* leny, int* length, int* width,
+                           int * faces, int * numOutFlowFaces,
                            const Real* cc0, const Real* cc1, const Real* cc2,
                            const Real* cc3, const Real* cc4, const Real* cc5,
                            Real * cc_conn);

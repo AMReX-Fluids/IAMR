@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.144 2003-02-19 18:55:42 almgren Exp $
+// $Id: Projection.cpp,v 1.145 2003-02-19 21:42:35 almgren Exp $
 //
 #include <winstd.H>
 
@@ -2731,6 +2731,8 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     const int nGrow        = 0;
     const int nCompPhi     = 1;
     const int ncStripWidth = 1;
+
+     cout << "NUM FACES " << numOutFlowFaces << endl;
 
     for (int iface = 0; iface < numOutFlowFaces; iface++) {
         Box phi_strip = 

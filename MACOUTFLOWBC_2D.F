@@ -27,11 +27,8 @@ c *************************************************************************
      &                         DIMS(rhoExt),rhoExt,dx,lo,hi,face,per,zeroIt)
 c
 c     Compute the value of phi for macproj 
-c     assuming that the tangential velocity on the edges of the outflow boundary
-c     are either zero or periodic.
-c     note that u is edge centered
-
-c subtract divu_ave twice due to precision problems
+c
+c     (subtract divu_ave twice due to precision problems)
       implicit none
 
       integer DIMDEC(u0)
@@ -181,10 +178,7 @@ c        Make sure u_mac is periodic
 
 c        Here we modify divuExt to include the velocity terms.
          do j = jcs, jce
-            divuExt(j,if) = redge(j-jcs)*hy*( divuExt(j,if)*hy 
-     $                                  - 1.5d0*(u1(ice,j+1)-u1(ice,j))
-     $                                  + 0.5d0*(u1(ice-1,j+1)-u1(ice-1,j))
-     $                                  -       (u0(ice+1,j)-u0(ice,j)) )
+            divuExt(j,if) = redge(j-jcs)*(divuExt(j,if)*hy*hy - (u1(ice,j+1)-u1(ice,j))*hy)
          end do
 
          call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave1,face)

@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.24 2003-02-19 20:57:35 car Exp $
+// $Id: MacOutFlowBC.cpp,v 1.25 2003-02-19 21:42:35 almgren Exp $
 //
 #include <winstd.H>
 
@@ -243,8 +243,6 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
         FArrayBox  beta[BL_SPACEDIM-1];
       
         computeCoefficients(rhs,beta,
-                            uExt[0][iface],
-                            uExt[1][iface],
                             ccExt[iface],
                             faceBox,dxFiltered[iface],isPeriodicFiltered[iface]);
         //
@@ -307,9 +305,11 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
          int lenx = domain.length()[0];
          int leny = domain.length()[1];
 
-         // Here we know the ordering of faces is XLO,XHI,YLO,YHI.
-
          int length = 0;
+
+#if (BL_SPACEDIM == 2)
+         // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
+
          Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3;
          for (i=0; i < numOutFlowFaces; i++)
          {
@@ -328,7 +328,6 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
            }
          }
 
-#if (BL_SPACEDIM == 2)
          Real *r0,*r1,*r2,*r3;
          for (i=0; i < numOutFlowFaces; i++)
          {
@@ -342,6 +341,35 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
                   r3 = redge[i];
            }
          }
+
+#elif (BL_SPACEDIM == 3)
+         // Here we know the ordering of faces is XLO,YLO,ZLO,XHI,YHI,ZHI.
+
+         int lenz = domain.length()[2];
+
+         Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3,*ccEptr4,*ccEptr5;
+         for (i=0; i < numOutFlowFaces; i++)
+         {
+           if (faces[i] == 0) {
+             ccEptr0 = ccExt[i].dataPtr();
+             length = length + leny*lenz;
+           } else if (faces[i] == 1) {
+             ccEptr1 = ccExt[i].dataPtr();
+             length = length + lenx*lenz;
+           } else if (faces[i] == 2) {
+             ccEptr2 = ccExt[i].dataPtr();
+             length = length + lenx*leny;
+           } else if (faces[i] == 3) {
+             ccEptr3 = ccExt[i].dataPtr();
+             length = length + leny*lenz;
+           } else if (faces[i] == 4) {
+             ccEptr4 = ccExt[i].dataPtr();
+             length = length + lenx*lenz;
+           } else if (faces[i] == 5) {
+             ccEptr5 = ccExt[i].dataPtr();
+             length = length + lenx*leny;
+           }
+         }
 #endif
 
          IntVect loconn;
@@ -350,7 +378,6 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
          loconn[0] = 0;
          hiconn[0] = length-1;
 #if (BL_SPACEDIM == 3)
-         int lenz = domain.length()[2];
          loconn[1] = 0;
          hiconn[1] = lenz-1;
 #endif
@@ -401,8 +428,9 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
 
 #elif (BL_SPACEDIM == 3)
 
-        FORT_MACFILL_TWOD(&lenx,&leny,&length,faces,&numOutFlowFaces,
-                          ccEptr0,ccEptr1,ccEptr2,ccEptr3,
+        int width = lenz;
+        FORT_MACFILL_TWOD(&lenx,&leny,&length,&width,faces,&numOutFlowFaces,
+                          ccEptr0,ccEptr1,ccEptr2,ccEptr3,ccEptr4,ccEptr5,
                           ccE_conn.dataPtr());
 
         Box faceBox(ccExt[iface].box());
@@ -416,8 +444,6 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
         FArrayBox  beta[BL_SPACEDIM-1];
       
         computeCoefficients(rhs,beta,
-                            uExt[0][iface],
-                            uExt[1][iface],
                             ccExt[iface],
                             faceBox,dxFiltered[iface],isPeriodicFiltered[iface]);
         //
@@ -460,8 +486,6 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
 void 
 MacOutFlowBC::computeCoefficients (FArrayBox&   rhs,
                                    FArrayBox*   beta,
-                                   FArrayBox&   uExt,
-                                   FArrayBox&   vExt,
                                    FArrayBox&   ccExt,
                                    Box&         faceBox,
                                    Real*        dxFiltered,
@@ -479,15 +503,11 @@ MacOutFlowBC::computeCoefficients (FArrayBox&   rhs,
     DEF_LIMITS(rhs, rhsPtr, rhslo,rhshi);
     DEF_LIMITS(beta[0],beta0Ptr, beta0lo, beta0hi);
     DEF_LIMITS(beta[1],beta1Ptr, beta1lo, beta1hi);
-    DEF_LIMITS(uExt,  uE0Ptr, uE0lo, uE0hi);
-    DEF_LIMITS(vExt,  uE1Ptr, uE1lo, uE1hi);
 
 
     FORT_COMPUTE_MACCOEFF(ARLIM(rhslo),ARLIM(rhshi),rhsPtr,
                           ARLIM(beta0lo),ARLIM(beta0hi),beta0Ptr,
                           ARLIM(beta1lo),ARLIM(beta1hi),beta1Ptr,
-                          ARLIM(uE0lo),ARLIM(uE0hi),uE0Ptr,
-                          ARLIM(uE1lo),ARLIM(uE1hi),uE1Ptr,
                           ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
                           ARLIM(ccElo),ARLIM(ccEhi),rhoEPtr,
                           faceLo,faceHi,
