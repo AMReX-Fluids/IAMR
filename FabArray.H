@@ -4,7 +4,7 @@
 #define _FABARRAY_H_
 
 //
-// $Id: FabArray.H,v 1.7 1997-09-02 20:44:36 vince Exp $
+// $Id: FabArray.H,v 1.8 1997-09-08 17:52:32 vince Exp $
 //
 
 #include <Assert.H>
@@ -852,7 +852,7 @@ FabArray<T, FAB>::ok () const
     {
         //for (i = 0, nvar = fabparray[0].nComp(); i < length() && isok; ++i)
 	// need to define nvar for check
-	for(ConstFabArrayIterator<T, FAB> fai(*this); fai.isValid() && isok; ++fai)
+	for(ConstFabArrayIterator<T, FAB> fai(*this); fai.isValid(); ++fai)
         {
             if(fabparray.defined(fai.index())) {
                 const FAB &f = fai();

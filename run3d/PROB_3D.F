@@ -151,7 +151,7 @@ c     ::::: local variables
       REAL_T  x_vel, y_vel, z_vel
       REAL_T  spx, spy, cpx, cpy, spz, cpz
 
-#ifdef BL_ARCH_CRAY
+#if defined(BL_ARCH_CRAY) || defined(BL_T3E)
 #     define RANDOM ranf()
       REAL_T ranf
 #else
@@ -943,7 +943,7 @@ c ::: -----------------------------------------------------------
       integer    i, j, k
       REAL_T     y_vel
 
-#ifdef BL_ARCH_CRAY
+#if defined(BL_ARCH_CRAY) || defined(BL_T3E)
 #     define RANDOM ranf()
       REAL_T ranf
 #else
@@ -1059,7 +1059,7 @@ c ::: -----------------------------------------------------------
       integer    i, j, k
       REAL_T     z_vel
 
-#ifdef BL_ARCH_CRAY
+#if defined(BL_ARCH_CRAY) || defined(BL_T3E)
 #     define RANDOM ranf()
       REAL_T ranf
 #else

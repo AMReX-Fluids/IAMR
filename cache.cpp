@@ -1,4 +1,9 @@
+#ifdef BL_T3E
+#include <stdlib.h>
+#else
 #include <cstdlib>
+#endif
+
 #include "cache.H"
 
 // -----------------------------------------------------------------

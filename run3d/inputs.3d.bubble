@@ -1,5 +1,5 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
-max_step  =  20        # maximum timestep
+max_step  =  2     # maximum timestep
 stop_time =  10000.0   # maximum problem time
 
 # ------------------  INPUTS TO CLASS AMR ---------------------
@@ -7,28 +7,20 @@ stop_time =  10000.0   # maximum problem time
 geometry.coord_sys      = 0        # 0 => cart, 1 => RZ
 geometry.prob_lo   =  0.0 0.0 0.0
 geometry.prob_hi   =  1. 1. 1.
+geometry.prob_hi   =  4. 4. 4.
 
 # multigrid class
 mg.usecg = 0
-mg.usecg = 1
+mg.nu_f = 20
 mg.nu_f = 10
-mg.nu_1 = 2
-mg.nu_2 = 2
 smg.eps = 1.0e-3
-mg.v = 1
-mg.maxiter = 400
+mg.v = 0
+mg.maxiter = 100
 Lp.v = 0
 Lp.harmavg = 1
 
-ns.v = 1
-mac.v = 1
-proj.v = 1
-
 amr.n_cell    =  8 8 8
-amr.n_cell    =  16 16 16
-amr.n_cell    =  32 32 32
 
-amr.max_level =  1            # maximum level number allowed
 amr.max_level =  0            # maximum level number allowed
 amr.ref_ratio       = 2 4 2 2  # refinement ratio
 amr.blocking_factor = 2       # block factor in grid generation
@@ -37,12 +29,9 @@ amr.n_error_buf     = 2 2 2 2  # number of buffer cells in error est
 amr.grid_eff        = 0.7     # what constitutes an efficient grid
 amr.check_int       = 20      # number of timesteps between checkpoints
 amr.check_file      = chk     # root name of checkpoint file
-amr.plot_file_root  = plt
-amr.plot_int        = 1
+amr.plot_file       = plt 20
 amr.grid_log        = grdlog  # name of grid logging file
 amr.max_grid_size   = 64
-amr.max_grid_size   = 8
-amr.max_grid_size   = 16
 
 # ------------------  INPUTS TO PHYSICS CLASS -------------------
 ns.dt_cutoff      = 0.000001  # level 0 timestep below which we halt
@@ -51,33 +40,27 @@ ns.visc_tol        = 1.0e-10  # tolerence for viscous solves
 ns.visc_abs_tol    = 1.0e-10  # tolerence for viscous solves
 
 ns.cfl            = 0.5	     # cfl number for hyperbolic system
-ns.init_shrink    = 1.0      # factor to scale back initial dt with
+ns.init_shrink    = 0.1      # factor to scale back initial dt with
 ns.change_max     = 1.1      # amt by which dt can change each timestep
+ns.visc_coef      =  0.01  0.01  0.01  -0.01   0.01 # coef of viscosity
 ns.visc_coef      =  -0.01  -0.01  -0.01  -0.01   -0.01 # coef of viscosity
-ns.visc_coef      =  0.01  0.01  0.01  -0.01   -0.01 # coef of viscosity
 ns.init_iter      = 1        # number of init iters to def pressure
-ns.gravity        = -9.8     # body force  (gravity in MKS units)
 ns.gravity        = 0.0      # body force  (no gravity)
+ns.gravity        = -9.8     # body force  (gravity in MKS units)
 ns.anelastic      = 0        # 0 => no anelastic approx
 #ns.fixed_dt	  = 06.37755     # hardwire dt
 ns.sum_interval   = 1        # timesteps between computing mass
 ns.do_sync_proj   = 1        # 1 => do Sync Project
-ns.do_sync_proj   = 0        # 1 => do Sync Project
 ns.do_reflux      = 1        # 1 => do refluxing
-ns.do_reflux      = 0        # 1 => do refluxing
 ns.do_mac_proj    = 1        # 1 => do MAC projection
 ns.do_radiation   = 0        # 1 => do discrete-ordinates radiation
-ns.do_MLsync_proj = 0        # 1 => do ML sync project
 
 ns.mem_debug = 0
 
 # ----------------  BOUNDARY CONDITIONS ---------------------------
 
-ns.lo_bc          = 5 5 4
-ns.hi_bc          = 5 5 4
-
-#ns.lo_bc          = 4 4 4
-#ns.hi_bc          = 4 4 4
+ns.lo_bc          = 4 4 4
+ns.hi_bc          = 4 4 4
 
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
 # 0 = Interior           3 = Symmetry
@@ -85,9 +68,9 @@ ns.hi_bc          = 5 5 4
 # 2 = Outflow            5 = NoSlipWall
 
 # ------------------  INPUTS TO PROJECTION CLASS -------------------
-proj.proj_tol       = 1.0e-14  # tolerence for projections
-proj.sync_tol       = 1.0e-12   # tolerence for projections
-proj.proj_abs_error = 1.0e-16  # abs error for proj multigrid iter
+proj.proj_tol       = 1.0e-10  # tolerence for projections
+proj.sync_tol       = 1.0e-8   # tolerence for projections
+proj.proj_abs_error = 1.0e-15  # abs error for proj multigrid iter
 
 proj.pres_interp    = 1
 proj.rho_wgt_vel_proj = 0      # 0 => const den proj, 1 => rho weighted
@@ -96,8 +79,29 @@ proj.Pcode          = 1
 
 # ------------------  INPUTS TO MACPROJ CLASS -------------------
 mac.mac_tol        = 1.0e-12   # tolerence for mac projections
-mac.mac_sync_tol   = 1.0e-10   # tolerence for mac SYNC projection
+mac.mac_sync_tol   = 1.0e-8   # tolerence for mac SYNC projection
 mac.mac_order      = 1        # interp type: 0 => pc 1 => quad 2 => jbb
+mac.mac_abs_tol    = 1.0e-12
+
+# ------------------  INPUTS TO RADIATION CLASS  -------------------
+rad.order          = 4          # ordinate set (4=S4)
+rad.tolerance      = 0.0000001    # tolerance on DO solver
+rad.iterations     = 200        # maximum DO iterations
+rad.difference     = 1          # spatial difference scheme
+                                # (1=step, 2=minmod, 3=osher, 4=muscl
+                                #  5=clam, 6=smart)
+rad.verbose        = 1          # extensive print control (1=on)
+rad.multi_level    = 1          # multi-level solution (1=on)
+rad.multigrid      = 0   
+rad.inertia        = 0.0
+
+rad.absorption     = 1.0
+rad.scattering     = 0.0
+rad.temp           = 64.804
+rad.wall_temp      = 200.0
+rad.wall_emis      = 0.5
+rad.wall_emis      = 1.0
+rad.wall_emis      = 0.0
 
 # turn any of these on to generate run-time timing stats
 RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update \
@@ -134,9 +138,9 @@ fab.precision = DOUBLE    # output in FLOAT or DOUBLE
 #             ---------  --------   ------  ----  ------  ------- -------
 contour.verbose = 1
 
-contour.xslice = 0.5
-contour.yslice = 0.5
-contour.zslice = 0.5
+contour.xslice = 2.0
+contour.yslice = 2.0
+contour.zslice = 2.0
 
 contour.plot = density   density       1     -1     20       2      400
 contour.plot = lgden     log_den       1     -5     20       1      400
@@ -152,4 +156,47 @@ contour.plot = dEdt      dEdt          1     -1     20       1      400
 contour.plot = divu      divu          1     -1     20       1      400
 contour.plot = gradpx    gradpx        1     -1     20       1      400
 contour.plot = gradpy    gradpy        1     -1     20       1      400
+
+
+# --------------------------------------------------------------------
+# -----     RASTER PLOTTING ONLY AVAILABLE IN 2-D AND 3D      --------
+# --------------------------------------------------------------------
+# uncomment to choose default region for rastplot graphics generation
+# The default for graphics_box is the entire problem domain
+# raster.region = 0 31 0 31 0 29
+#
+# uncomment to choose the graphics level for raster graphics
+# The default is the maximul amr level
+# raster.level = 1
+#
+# uncomment to output postscript file containg grid locations
+#raster.grid_loc = TRUE
+raster.verbose = TRUE
+#raster.plot_dt = 0.5
+#
+# These variables control generation of color raster files
+# file_name = root name of raster file generated
+# var_name  = name of thermodynamic variable to plot
+# interval  = timesteps between plotting (-1 = off)
+# out_type  = form of output, choices are:
+#             hdf_sds     (HDF Scientific Data Type (2-D, 3-D))
+#             hdf_8       (HDF 8-bit (2-D only))
+#             file_name  var_name  interval out_type
+#             ---------  --------  -------- --------
+raster.plot =  density   density       -5     hdf_sds
+raster.plot =  lgden     log_den      -40     hdf_sds
+raster.plot =  xvel      x_velocity    -1     hdf_sds
+raster.plot =  yvel      y_velocity    -1     hdf_sds
+raster.plot =  zvel      z_velocity    -1     hdf_sds
+raster.plot =  trac      tracer        -1     hdf_sds
+raster.plot =  lgtrac    log_tracer   -40     hdf_sds
+raster.plot =  lgrt    log_rho_tracer -40     hdf_sds
+raster.plot =  energy    energy       -50    hdf_sds
+raster.plot =  mvel      mag_vel       -1     hdf_sds
+raster.plot =  vort      mag_vort      -1     hdf_sds
+raster.plot =  dEdt      dEdt         -40     hdf_sds
+raster.plot =  divu      divu         -40     hdf_sds
+raster.plot =  gradpx    gradpx       -40     hdf_sds
+raster.plot =  gradpy    gradpy       -40     hdf_sds
+
 

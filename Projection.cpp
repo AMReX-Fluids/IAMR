@@ -1,5 +1,8 @@
-#define _Projection_C_ $Id: Projection.cpp,v 1.7 1997-09-02 20:44:39 vince Exp $
+#define _Projection_C_ $Id: Projection.cpp,v 1.8 1997-09-08 17:52:34 vince Exp $
 #include <stdio.h>
+#ifdef BL_T3E
+#include <List.H>
+#endif
 #include <Misc.H>
 #include <CoordSys.H>
 #include <Geometry.H>
@@ -70,6 +73,13 @@ Projection::Projection(Amr * _parent,
      LevelData(_finest_level+1), 
      radius(_finest_level+1)
 {
+
+#ifdef BL_T3E
+// force instantiation of List<int>::clear() for the T3E
+List<int> tempIntList;
+tempIntList.clear();
+#endif
+
   read_params();
 
   if (verbose) {
