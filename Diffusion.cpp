@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.24 1998-05-29 17:32:58 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.25 1998-05-29 19:11:34 lijewski Exp $
 //
 
 //
@@ -72,127 +72,145 @@ int  Diffusion::Lphi_in_abs_tol = 0;
 Array<REAL> Diffusion::typical_vals;
 const REAL typical_vals_DEF = 1.0;
 
-Diffusion::Diffusion(Amr* Parent, AmrLevel* Caller, Diffusion* Coarser,
-                     int num_state, FluxRegister *Viscflux_reg,
-                     MultiFab& Volume, MultiFab* Area,
-                     Array<int>  _is_diffusive,
-                     Array<Real> _visc_coef)
-  : parent(Parent), caller(Caller), grids(caller->boxArray()),
+Diffusion::Diffusion (Amr*          Parent,
+                      AmrLevel*     Caller,
+                      Diffusion*    Coarser,
+                      int           num_state,
+                      FluxRegister* Viscflux_reg,
+                      MultiFab&     Volume,
+                      MultiFab*     Area,
+                      Array<int>    _is_diffusive,
+                      Array<Real>   _visc_coef)
+  :
+    parent(Parent),
+    caller(Caller),
+    grids(caller->boxArray()),
     level(caller->Level()),
-    coarser(Coarser), finer(NULL), NUM_STATE(num_state),
-    viscflux_reg(Viscflux_reg), volume(Volume), area(Area)
+    coarser(Coarser),
+    finer(NULL),
+    NUM_STATE(num_state),
+    viscflux_reg(Viscflux_reg),
+    volume(Volume),
+    area(Area)
 {
-  if (first) {
-    first = 0;
-
-    ParmParse ppdiff("diffuse");
-
-    ppdiff.query("v",verbose);
-
-    ppdiff.query("use_cg_solve",use_cg_solve);
-    ppdiff.query("use_tensor_cg_solve",use_tensor_cg_solve);
-    ppdiff.query("use_dv_constant_mu",use_dv_constant_mu_def);
-    int use_mg_precond = 0;
-    ppdiff.query("use_mg_precond",use_mg_precond);
-    use_mg_precond_flag = (use_mg_precond ? true : false);
-    ppdiff.query("max_order",max_order);
-    ppdiff.query("tensor_max_order",tensor_max_order);
-    ppdiff.query("scale_abec",scale_abec);
-    ppdiff.query("est_visc_mag",est_visc_mag);
-    ppdiff.query("Lphi_in_abs_tol",Lphi_in_abs_tol);
-
-    ParmParse pp("ns");
-
-    pp.query("do_reflux",do_reflux);
-    do_reflux = (do_reflux ? 1 : 0);
-
-    pp.query("visc_tol",visc_tol);
-    pp.query("visc_abs_tol",visc_abs_tol);
-
-    int n_visc = _visc_coef.length();
-    int n_diff = _is_diffusive.length();
-    if (n_diff < NUM_STATE || n_visc < NUM_STATE) {
-      cout << "Diffusion::Diffusion : is_diffusive and/or visc_coef arrays are " <<
-              " not long enough\n";
-      ParallelDescriptor::Abort("Exiting.");
-    }
-    visc_coef.resize(NUM_STATE);
-    is_diffusive.resize(NUM_STATE);
-    int i;
-    for (i = 0; i < NUM_STATE; i++) {
-        is_diffusive[i] = _is_diffusive[i];
-        visc_coef[i] = _visc_coef[i];
-    }
-
-    // Read in typical state sizes
-    typical_vals.resize(NUM_STATE);
-    for (int i = 0; i < NUM_STATE; i++)
+    if (first)
     {
-        typical_vals[i] = typical_vals_DEF;
+        first = 0;
+
+        ParmParse ppdiff("diffuse");
+
+        ppdiff.query("v",verbose);
+
+        ppdiff.query("use_cg_solve",use_cg_solve);
+        ppdiff.query("use_tensor_cg_solve",use_tensor_cg_solve);
+        ppdiff.query("use_dv_constant_mu",use_dv_constant_mu_def);
+        int use_mg_precond = 0;
+        ppdiff.query("use_mg_precond",use_mg_precond);
+        use_mg_precond_flag = (use_mg_precond ? true : false);
+        ppdiff.query("max_order",max_order);
+        ppdiff.query("tensor_max_order",tensor_max_order);
+        ppdiff.query("scale_abec",scale_abec);
+        ppdiff.query("est_visc_mag",est_visc_mag);
+        ppdiff.query("Lphi_in_abs_tol",Lphi_in_abs_tol);
+
+        ParmParse pp("ns");
+
+        pp.query("do_reflux",do_reflux);
+        do_reflux = (do_reflux ? 1 : 0);
+
+        pp.query("visc_tol",visc_tol);
+        pp.query("visc_abs_tol",visc_abs_tol);
+
+        int n_visc = _visc_coef.length();
+        int n_diff = _is_diffusive.length();
+        if (n_diff < NUM_STATE || n_visc < NUM_STATE)
+        {
+            cout << "Diffusion::Diffusion(): is_diffusive and/or visc_coef arrays are " <<
+                " not long enough\n";
+            ParallelDescriptor::Abort("Bye");
+        }
+        visc_coef.resize(NUM_STATE);
+        is_diffusive.resize(NUM_STATE);
+        int i;
+        for (i = 0; i < NUM_STATE; i++) {
+            is_diffusive[i] = _is_diffusive[i];
+            visc_coef[i] = _visc_coef[i];
+        }
+        //
+        // Read in typical state sizes.
+        //
+        typical_vals.resize(NUM_STATE);
+        for (int i = 0; i < NUM_STATE; i++)
+        {
+            typical_vals[i] = typical_vals_DEF;
+        }
+
+        int n_typical_vals = Min(NUM_STATE, ppdiff.countval("typical_vals"));
+        if (n_typical_vals > 0)
+        {
+            ppdiff.queryarr("typical_vals",typical_vals,0,n_typical_vals);
+        }
+
+        echo_settings();
     }
 
-    int n_typical_vals = Min(NUM_STATE, ppdiff.countval("typical_vals"));
-    if (n_typical_vals > 0)
+    if (level > 0)
     {
-        ppdiff.queryarr("typical_vals",typical_vals,0,n_typical_vals);
+        crse_ratio = parent->refRatio(level-1);
+        coarser->finer = this;
     }
-
-    echo_settings();
-  }
-
-  if (level > 0) {
-    crse_ratio = parent->refRatio(level-1);
-    coarser->finer = this;
-  }
 }
 
 Diffusion::~Diffusion()
-{
-}
+{}
 
-void Diffusion::echo_settings() const
+void
+Diffusion::echo_settings () const
 {
-    // Print out my settings
-  if (verbose) {
-    cout << "Diffusion settings..." << NL;
-    cout << "  From diffuse:" << NL;
-    cout << "   use_cg_solve =        " << use_cg_solve << NL;
-    cout << "   use_tensor_cg_solve = "  << use_tensor_cg_solve << NL;
-    cout << "   use_dv_constant_mu =  " << use_dv_constant_mu_def << NL;
-    cout << "   use_mg_precond_flag = " << use_mg_precond_flag << NL;
-    cout << "   max_order =           " << max_order << NL;
-    cout << "   tensor_max_order =    " << tensor_max_order << NL;
-    cout << "   scale_abec =          " << scale_abec << NL;
-    cout << "   est_visc_mag =        " << est_visc_mag << NL;
-    cout << "   Lphi_in_abs_tol =     " << Lphi_in_abs_tol << NL;
-    
-    cout << "   typical_vals =";
-    for (int i=0; i<NUM_STATE; i++)
+    //
+    // Print out my settings.
+    //
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
-	cout << "  " << typical_vals[i];
-    }
-    cout << NL;
+        cout << "Diffusion settings..." << NL;
+        cout << "  From diffuse:" << NL;
+        cout << "   use_cg_solve =        " << use_cg_solve << NL;
+        cout << "   use_tensor_cg_solve = "  << use_tensor_cg_solve << NL;
+        cout << "   use_dv_constant_mu =  " << use_dv_constant_mu_def << NL;
+        cout << "   use_mg_precond_flag = " << use_mg_precond_flag << NL;
+        cout << "   max_order =           " << max_order << NL;
+        cout << "   tensor_max_order =    " << tensor_max_order << NL;
+        cout << "   scale_abec =          " << scale_abec << NL;
+        cout << "   est_visc_mag =        " << est_visc_mag << NL;
+        cout << "   Lphi_in_abs_tol =     " << Lphi_in_abs_tol << NL;
     
-    cout << NL;
-    cout << "  From ns:" << NL;
-    cout << "   do_reflux =           " << do_reflux << NL;
-    cout << "   visc_tol =            " << visc_tol << NL;
-    cout << "   visc_abs_tol =        " << visc_abs_tol << NL;
+        cout << "   typical_vals =";
+        for (int i=0; i<NUM_STATE; i++)
+        {
+            cout << "  " << typical_vals[i];
+        }
+        cout << NL;
     
-    cout << "   is_diffusive =";
-    for (int i=0; i<NUM_STATE; i++)
-    {
-	cout << "  " << is_diffusive[i];
-    }
-    cout << NL;
+        cout << NL;
+        cout << "  From ns:" << NL;
+        cout << "   do_reflux =           " << do_reflux << NL;
+        cout << "   visc_tol =            " << visc_tol << NL;
+        cout << "   visc_abs_tol =        " << visc_abs_tol << NL;
     
-    cout << "   visc_coef =";
-    for (int i=0; i<NUM_STATE; i++)
-    {
-	cout << "  " << visc_coef[i];
+        cout << "   is_diffusive =";
+        for (int i=0; i<NUM_STATE; i++)
+        {
+            cout << "  " << is_diffusive[i];
+        }
+        cout << NL;
+    
+        cout << "   visc_coef =";
+        for (int i=0; i<NUM_STATE; i++)
+        {
+            cout << "  " << visc_coef[i];
+        }
+        cout << NL;
     }
-    cout << NL;
-  }
 }
 
 REAL Diffusion::get_scaled_abs_tol(int sigma, const MultiFab* rhs,
@@ -305,8 +323,9 @@ void Diffusion::diffuse_scalar(Real dt, int sigma, Real be_cn_theta,
                                MultiFab** betanp1)
 {
 
-  if (verbose) {
-    cout << "... diffuse_scalar " << sigma << NL;
+  if (verbose && ParallelDescriptor::IOProcessor())
+  {
+      cout << "... diffuse_scalar " << sigma << NL;
   }
 
   int allnull, allthere;
@@ -598,8 +617,9 @@ void Diffusion::diffuse_velocity(Real dt, Real be_cn_theta,
                                  MultiFab** betanp1)
 
 {
-  if (verbose) {
-    cout << "... diffuse_velocity\n";
+  if (verbose && ParallelDescriptor::IOProcessor())
+  {
+      cout << "... diffuse_velocity\n";
   }
 
   int allnull, allthere;
@@ -610,8 +630,9 @@ void Diffusion::diffuse_velocity(Real dt, Real be_cn_theta,
   int use_dv_constant_mu = use_dv_constant_mu_def;
   for (int i=0; i<BL_SPACEDIM; i++) 
     use_dv_constant_mu = use_dv_constant_mu && visc_coef[Xvel+i] >= 0.0; 
-  if(!use_dv_constant_mu && use_dv_constant_mu_def) {
-    cout << "Diffusion::diffuse_velocity : must have velocity visc_coefs "
+  if (!use_dv_constant_mu && use_dv_constant_mu_def)
+  {
+    cout << "Diffusion::diffuse_velocity() : must have velocity visc_coefs "
          << ">= 0.0 if use_dv_constant_mu == 1\n";
     ParallelDescriptor::Abort("Exiting.");
   }
@@ -1227,8 +1248,9 @@ void Diffusion::diffuse_Vsync(MultiFab *Vsync, Real dt,
                               MultiFab** beta)
 
 {
-  if (verbose) {
-    cout << "Diffusion::diffuse_Vsync\n";
+  if (verbose && ParallelDescriptor::IOProcessor())
+  {
+      cout << "Diffusion::diffuse_Vsync\n";
   }
 
   int allnull, allthere;
@@ -1239,7 +1261,8 @@ void Diffusion::diffuse_Vsync(MultiFab *Vsync, Real dt,
   int use_dv_constant_mu = use_dv_constant_mu_def;
   for (int i=0; i<BL_SPACEDIM; i++) 
     use_dv_constant_mu = use_dv_constant_mu && visc_coef[Xvel+i] >= 0.0; 
-  if(!use_dv_constant_mu && use_dv_constant_mu_def) {
+  if (!use_dv_constant_mu && use_dv_constant_mu_def)
+  {
     cout << "Diffusion::diffuse_Vsync : must have velocity visc_coefs "
          << ">= 0.0 if use_dv_constant_mu == 1\n";
     ParallelDescriptor::Abort("Diffusion::diffuse_Vsync");
@@ -1295,8 +1318,10 @@ void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, Real dt,
 {
   //int i;
 
-  if (verbose)
-    cout << "Diffusion::diffuse_Vsync\n";
+  if (verbose && ParallelDescriptor::IOProcessor())
+  {
+      cout << "Diffusion::diffuse_Vsync\n";
+  }
 
   int ngrds = grids.length();
   const Real* dx = caller->Geom().CellSize();
@@ -1317,7 +1342,10 @@ void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, Real dt,
     }
     ParallelDescriptor::ReduceRealMax(r_norm);
 
-    cout << "Original max of Vsync " << r_norm << NL;
+    if (ParallelDescriptor::IOProcessor())
+    {
+        cout << "Original max of Vsync " << r_norm << NL;
+    }
 
     // Multiply RHS by volume and density
     for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
@@ -1368,7 +1396,10 @@ void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, Real dt,
     }
     ParallelDescriptor::ReduceRealMax(s_norm);
 
-    cout << "Final max of Vsync " << s_norm << NL;
+    if (ParallelDescriptor::IOProcessor())
+    {
+        cout << "Final max of Vsync " << s_norm << NL;
+    }
 
     delete visc_op;
 
@@ -1496,7 +1527,10 @@ void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, Real dt,
   }
   ParallelDescriptor::ReduceRealMax(r_norm);
 
-  cout << "Original max of Vsync " << r_norm << NL;
+  if (ParallelDescriptor::IOProcessor())
+  {
+      cout << "Original max of Vsync " << r_norm << NL;
+  }
 
   //  Multiply RHS by volume and density
   for (int comp = 0; comp < BL_SPACEDIM; comp++) {
@@ -1548,7 +1582,10 @@ void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, Real dt,
   }
   ParallelDescriptor::ReduceRealMax(s_norm);
 
-  cout << "Final max of Vsync " << s_norm << NL;
+  if (ParallelDescriptor::IOProcessor())
+  {
+      cout << "Final max of Vsync " << s_norm << NL;
+  }
 
   FArrayBox xflux, yflux, zflux;
 
@@ -1627,8 +1664,10 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
                           MultiFab** beta,
                           MultiFab*  alpha)
 {
-    if (verbose)
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
         cout << "Diffusion::diffuse_Ssync for scalar " << sigma << NL;
+    }
 
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
@@ -1648,7 +1687,10 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
     }
     ParallelDescriptor::ReduceRealMax(r_norm);
 
-    cout << "Original max of Ssync " << r_norm << NL;
+    if (ParallelDescriptor::IOProcessor())
+    {
+        cout << "Original max of Ssync " << r_norm << NL;
+    }
     //
     // Compute RHS.
     //
@@ -1717,7 +1759,10 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
     }
     ParallelDescriptor::ReduceRealMax(s_norm);
 
-    cout << "Final max of Ssync " << s_norm << NL;
+    if (ParallelDescriptor::IOProcessor())
+    {
+        cout << "Final max of Ssync " << s_norm << NL;
+    }
 
     delete visc_op;
 
@@ -1986,10 +2031,11 @@ DivVis* Diffusion::getTensorOp(Real a, Real b,
       allthere = allthere && beta[dim] != NULL;
     }
   }
-  if(!allthere) {
-    cout << "Diffusion::getTensorOp : all betas must allocated\n";
+  if (!allthere)
+  {
+    cout << "Diffusion::getTensorOp() : all betas must allocated\n";
     cout << "  all NULL or all non-NULL\n";
-    ParallelDescriptor::Abort("Diffusion::getTensorOp");
+    ParallelDescriptor::Abort("Diffusion::getTensorOp()");
   }
 
   const Real* dx = caller->Geom().CellSize();
@@ -2524,14 +2570,14 @@ void Diffusion::getTensorViscTerms(MultiFab& visc_terms,
 
   int src_comp = Xvel;
   int ncomp = visc_terms.nComp();
-  if(ncomp < BL_SPACEDIM) {
+  if (ncomp < BL_SPACEDIM)
+  {
     cout << "Diffusion::getTensorViscTerms : visc_terms must have\n";
     cout << "  at least BL_SPACEDIM components\n";
     ParallelDescriptor::Abort("Diffusion::getTensorViscTerms");
   }
   int vel_ncomp = BL_SPACEDIM;
-
-
+  //
   // Before computing the godunov predicitors we may have to
   // precompute the viscous source terms.  To do this we must
   // construct a Laplacian operator, set the coeficients and apply
@@ -2689,9 +2735,10 @@ void Diffusion::getTensorViscTerms(MultiFab& visc_terms,
 void Diffusion::getBndryData(ViscBndry& bndry, int src_comp,
                              int num_comp, Real time, int rho_flag)
 {
-    if (num_comp != 1) {
+    if (num_comp != 1)
+    {
        cout << "NEED NUM_COMP = 1\n";
-       ParallelDescriptor::Abort("Diffusion::getBndryData");
+       ParallelDescriptor::Abort("Diffusion::getBndryData()");
     }
     const BCRec& bc = caller->get_desc_lst()[State_Type].getBC(src_comp);
     bndry.define(grids,num_comp,caller->Geom());
@@ -2878,7 +2925,7 @@ void Diffusion::getTensorBndryData(
             "not yet implemented for 3-D" << NL;
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
             " and rerun" << NL;
-    ParallelDescriptor::Abort("Diffusion::getTensorBndryData");
+    ParallelDescriptor::Abort("Diffusion::getTensorBndryData()");
 #else
     int num_comp = BL_SPACEDIM;
     int src_comp = Xvel;
@@ -2927,10 +2974,11 @@ void Diffusion::checkBetas(const MultiFab* const * beta1,
   checkBeta(beta2,allthere2,allnull2);
   allnull  = allnull1 && allnull2;
   allthere = allthere1 && allthere2;
-  if(!(allthere || allnull)) {
+  if (!(allthere || allnull))
+  {
     cout << "Diffusion::checkBetas : all betas must either be"
          << "  all NULL or all non-NULL\n";
-    ParallelDescriptor::Abort("Diffusion::checkBetas");
+    ParallelDescriptor::Abort("Diffusion::checkBetas()");
   }
 }
 
@@ -2947,10 +2995,11 @@ void Diffusion::checkBeta(const MultiFab* const * beta,
       allthere = allthere && beta[dim] != NULL;
     }
   }
-  if(!(allthere || allnull)) {
+  if (!(allthere || allnull))
+  {
     cout << "Diffusion::checkBeta : all betas must either be"
          << "  all NULL or all non-NULL\n";
-    ParallelDescriptor::Abort("Diffusion::checkBeta");
+    ParallelDescriptor::Abort("Diffusion::checkBeta()");
   }
 }
 
@@ -2965,10 +3014,11 @@ void Diffusion::checkBeta(const MultiFab* const * beta,
       allthere = allthere && beta[dim] != NULL;
     }
   }
-  if(!allthere) {
+  if (!allthere)
+  {
     cout << "Diffusion::checkBeta : all betas must be"
          << "  all non-NULL\n";
-    ParallelDescriptor::Abort("Diffusion::checkBeta");
+    ParallelDescriptor::Abort("Diffusion::checkBeta()");
   }
 }
 

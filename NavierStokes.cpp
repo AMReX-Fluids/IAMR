@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.54 1998-05-29 17:32:58 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.55 1998-05-29 19:11:35 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -130,14 +130,20 @@ void NavierStokes::variableCleanUp()
 void NavierStokes::read_geometry()
 {
 #if (BL_SPACEDIM == 2)
-    // must load coord here because CoordSys hasn't read it in yet
+    //
+    // Must load coord here because CoordSys hasn't read it in yet.
+    //
     ParmParse pp("geometry");
     int coord;
     pp.get("coord_sys",coord);
-    if( (CoordSys::CoordType) coord == CoordSys::RZ &&
-            phys_bc.lo(0) != Symmetry) {
-      phys_bc.setLo(0,Symmetry);
-      cout << "\nWarning:  Setting phys_bc at xlo to Symmetry\n\n";
+    if ((CoordSys::CoordType) coord == CoordSys::RZ &&
+            phys_bc.lo(0) != Symmetry)
+    {
+        phys_bc.setLo(0,Symmetry);
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "\nWarning:  Setting phys_bc at xlo to Symmetry\n\n";
+        }
     }
 #endif
 }
@@ -219,10 +225,14 @@ NavierStokes::read_params()
 
     // this test insures if the user toggles do_sync_proj,
     // the user has knowledge that do_MLsync_proj is meaningless
-    if ( do_MLsync_proj && !do_sync_proj &&
-         initial_do_sync_proj != do_sync_proj ) {
-        cout << "mismatched options for NavierStokes\n";
-        cout << "do_MLsync_proj and do_sync_proj are inconsistent\n";
+    if (do_MLsync_proj && !do_sync_proj &&
+         initial_do_sync_proj != do_sync_proj)
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "mismatched options for NavierStokes\n";
+            cout << "do_MLsync_proj and do_sync_proj are inconsistent\n";
+        }
         BoxLib::Abort("NavierStokes::read_params()");
     }
 
@@ -237,15 +247,23 @@ NavierStokes::read_params()
     int n_temp_cond_coef  = pp.countval("temp_cond_coef");
     int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
 
-    if (n_vel_visc_coef != 1) {
-      cout << "NavierStokes::read_params: you must input only one vel_visc_coef"
-           << endl;
+    if (n_vel_visc_coef != 1)
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "NavierStokes::read_params: you must input only one vel_visc_coef"
+                 << endl;
+        }
       exit(0);
     }
 
-    if (do_temp && n_temp_cond_coef != 1) {
-      cout << "NavierStokes::read_params: you must input only one temp_cond_coef"
-           << endl;
+    if (do_temp && n_temp_cond_coef != 1)
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "NavierStokes::read_params: you must input only one temp_cond_coef"
+                 << endl;
+        }
       exit(0);
     }
 
@@ -277,12 +295,15 @@ NavierStokes::read_params()
     pp.query("divu_relax_factor",divu_relax_factor);
     pp.query("S_in_vel_diffusion",S_in_vel_diffusion);
     pp.query("be_cn_theta",be_cn_theta);
-    if(be_cn_theta > 1.0 || be_cn_theta < .5) {
-      cout << "NavierStokes::read_params: must have be_cn_theta <= 1.0 && >= .5"
-           << NL;
-      BoxLib::Abort("NavierStokes::read_params()");
+    if (be_cn_theta > 1.0 || be_cn_theta < .5)
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "NavierStokes::read_params: must have be_cn_theta <= 1.0 && >= .5"
+                 << NL;
+        }
+        BoxLib::Abort("NavierStokes::read_params()");
     }
-
 }
 
 // -------------------------------------------------------------
@@ -450,12 +471,15 @@ void NavierStokes::init_additional_state_types()
     have_divu = 0;
     have_divu = isStateVariable("divu", dummy_Divu_Type, _Divu);
     have_divu = have_divu && dummy_Divu_Type==Divu_Type;
-    if(ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor())
+    {
       cout << "NavierStokes::init_additional_state_types()::have_divu = "
            << have_divu << NL;
     }
-    if(have_divu && _Divu!=Divu) {
-      if(ParallelDescriptor::IOProcessor()) {
+    if (have_divu && _Divu!=Divu)
+    {
+      if (ParallelDescriptor::IOProcessor())
+      {
         cout << "NavierStokes::init_additional_state_types(): divu must be " <<
                 "0-th, Divu_Type component in the state\n";
       }
@@ -467,19 +491,24 @@ void NavierStokes::init_additional_state_types()
     have_dsdt = 0;
     have_dsdt = isStateVariable("dsdt", dummy_Dsdt_Type, _Dsdt);
     have_dsdt = have_dsdt && dummy_Dsdt_Type==Dsdt_Type;
-    if(ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor())
+    {
       cout << "NavierStokes::init_additional_state_types()::have_dsdt = "
            << have_dsdt << NL;
     }
-    if(have_dsdt && _Dsdt!=Dsdt) {
-      if(ParallelDescriptor::IOProcessor()) {
+    if (have_dsdt && _Dsdt!=Dsdt)
+    {
+      if (ParallelDescriptor::IOProcessor())
+      {
         cout << "NavierStokes::init_additional_state_types(): dsdt must be " <<
                 "0-th, Dsdt_Type component in the state\n";
       }
       BoxLib::Abort("NavierStokes::init_additional_state_types()");
     }
-    if(have_dsdt && !have_divu) {
-      if(ParallelDescriptor::IOProcessor()) {
+    if (have_dsdt && !have_divu)
+    {
+      if (ParallelDescriptor::IOProcessor())
+      {
         cout << "NavierStokes::init_additional_state_types(): "
              << "must have divu in order to have dsdt\n";
       }
@@ -487,12 +516,11 @@ void NavierStokes::init_additional_state_types()
     }
 
     num_state_type = desc_lst.length();
-    if(ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor())
+    {
       cout << "NavierStokes::init_additional_state_types: num_state_type = "
            << num_state_type << NL;
     }
-
-
 }
 
 // -------------------------------------------------------------
@@ -1190,11 +1218,11 @@ void NavierStokes::advance_cleanup(Real dt, int iteration, int ncycle)
 Real NavierStokes::advance(Real time, Real dt, int iteration, int ncycle)
 {
     // ------------------ Advance setup
-    if (verbose) {
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
         cout << "Advancing grids at level " << level
              << " : starting time = " << time << " with dt = " << dt << NL;
     }
-
     advance_setup(time,dt,iteration,ncycle);
 
 //     cout << "!!!!!!!!!!! we are here, reading data" << NL;
@@ -1225,7 +1253,8 @@ Real NavierStokes::advance(Real time, Real dt, int iteration, int ncycle)
 
     // do MAC projection and update edge velocities
     mac_stats.start();
-    if (verbose) {
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
         cout << "... mac_projection\n";
     }
 
@@ -1475,7 +1504,7 @@ NavierStokes::predict_velocity (Real  dt,
 {
     FArrayBox U, Rho, tforces, Gp;
 
-    if (verbose)
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "... predict edge velocities\n";
     }
@@ -1699,30 +1728,41 @@ void NavierStokes::test_umac_periodic()
 #endif
                              &level );
     
-    if ( level == 0 && udiff > 1.0e-10 ) {
-        cout << "!!!!!!!!!!!!!!!!!!!!!!!! udiff = " << udiff << NL;
+    if (level == 0 && udiff > 1.0e-10)
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "!!!!!!!!!!!!!!!!!!!!!!!! udiff = " << udiff << NL;
+        }
         BoxLib::Abort("Exiting.");
     }
-    if ( level == 0 && vdiff > 1.0e-10 ) {
-        cout << "!!!!!!!!!!!!!!!!!!!!!!!! vdiff = " << vdiff << NL;
+    if (level == 0 && vdiff > 1.0e-10)
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "!!!!!!!!!!!!!!!!!!!!!!!! vdiff = " << vdiff << NL;
+        }
         BoxLib::Abort("Exiting.");
     }
 #if (BL_SPACEDIM == 3)                                             
-    if ( level == 0 && vdiff > 1.0e-10 ) {
-        cout << "!!!!!!!!!!!!!!!!!!!!!!!! vdiff = " << vdiff << NL;
+    if (level == 0 && vdiff > 1.0e-10)
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            cout << "!!!!!!!!!!!!!!!!!!!!!!!! vdiff = " << vdiff << NL;
+        }
         BoxLib::Abort("Exiting.");
     }
 #endif
 }
-
 
 //
 // This routine advects the velocities
 //
 void NavierStokes::velocity_advection( Real dt )
 {
-
-    if (verbose) {
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
         cout << "... advect velocities\n";
     }
 
@@ -1900,8 +1940,8 @@ void NavierStokes::velocity_advection( Real dt )
 //
 void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
 {
-
-    if (verbose) {
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
         cout << "... advect scalars\n";
     }
 
@@ -2203,14 +2243,12 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
 
 void NavierStokes::scalar_update(Real dt, int first_scalar, int last_scalar)
 {
-
-    if (verbose) {
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
         cout << "... update scalars\n";
     }
-
     scalar_advection_update(dt, first_scalar, last_scalar);
     scalar_diffusion_update(dt, first_scalar, last_scalar);
-
 }
 
 //-------------------------------------------------------------
@@ -2335,7 +2373,8 @@ void NavierStokes::diffuse_scalar_setup(int sigma, int* rho_flag)
 
 void NavierStokes::velocity_update(Real dt)
 {
-    if (verbose) {
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
         cout << "... update velocities\n";
     }
     velocity_advection_update(dt);
@@ -2343,7 +2382,6 @@ void NavierStokes::velocity_update(Real dt)
       velocity_diffusion_update(dt);
     else
       initial_velocity_diffusion_update(dt);
-
 }
 
 //-------------------------------------------------------------
@@ -3112,7 +3150,8 @@ NavierStokes::estTimeStep ()
     }
     ParallelDescriptor::ReduceRealMin(estdt);
 
-    if (verbose) {
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
         cout << "estTimeStep :: \n";
         cout << "LEV = " << level << " UMAX = ";
         for (k = 0; k < BL_SPACEDIM; k++) {

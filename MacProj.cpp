@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.17 1998-05-28 03:20:30 lijewski Exp $
+// $Id: MacProj.cpp,v 1.18 1998-05-29 19:11:35 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -68,7 +68,7 @@ MacProj::MacProj (Amr*   _parent,
 {
     read_params();
 
-    if (verbose)
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "Creating mac_projector\n";
     }
@@ -104,7 +104,7 @@ MacProj::install_level (int           level,
                         MultiFab*     _area,
                         PArray<Real>* _radius )
 {
-    if (verbose)
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "Installing MacProj level " << level << NL;
     }
@@ -237,7 +237,7 @@ MacProj::mac_project (int             level,
                       const MultiFab& divu,
                       int             have_divu)
 {
-    if (verbose)
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "... mac_project at level " << level << NL;
     }
@@ -364,7 +364,7 @@ MacProj::mac_sync_solve (int       level,
                          MultiFab* rho_half,
                          IntVect&  fine_ratio)
 {
-    if (verbose)
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "... mac_sync_solve at level " << level << NL;
     }
@@ -459,7 +459,10 @@ MacProj::mac_sync_solve (int       level,
             ParallelDescriptor::ReduceRealSum(vol);
 
             Real fix = sum / vol;
-            cout << "Average correction on mac sync RHS = " << fix << NL;
+            if (ParallelDescriptor::IOProcessor())
+            {
+                cout << "Average correction on mac sync RHS = " << fix << NL;
+            }
             Rhs.plus( -fix, 0 );
 
             sum = 0;
@@ -472,7 +475,10 @@ MacProj::mac_sync_solve (int       level,
                 sum += vol_wgted_rhs.sum(0,1);
             }
             ParallelDescriptor::ReduceRealSum(sum);
-            cout << "...new sum = " << sum << NL;
+            if (ParallelDescriptor::IOProcessor())
+            {
+                cout << "...new sum = " << sum << NL;
+            }
         }
     }
 
@@ -907,7 +913,7 @@ void MacProj::check_div_cond (int      level,
                     az_dat,ARLIM(azlo),ARLIM(azhi),
                     vol_dat,ARLIM(vlo),ARLIM(vhi));
 #endif
-        if (verbose)
+        if (verbose && ParallelDescriptor::IOProcessor())
         {
             Real g_norm = dmac.norm(0);
             cout << "Max norm of div(U_edge) for grid  "
@@ -918,8 +924,6 @@ void MacProj::check_div_cond (int      level,
         }
     }
 }
-
-
 
 void
 MacProj::set_outflow_bcs (int             level,

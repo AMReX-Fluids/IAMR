@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.39 1998-05-29 17:32:59 lijewski Exp $
+// $Id: Projection.cpp,v 1.40 1998-05-29 19:11:36 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -84,9 +84,9 @@ tempIntList.clear();
 
   read_params();
 
-  if (verbose) 
+  if (verbose && ParallelDescriptor::IOProcessor()) 
   {
-    cout << "Creating projector\n";
+      cout << "Creating projector\n";
   }
 
 #if BL_SPACEDIM == 2
@@ -102,7 +102,7 @@ tempIntList.clear();
 // the destructor
 Projection::~Projection()
 {
-  if (verbose) 
+  if (verbose && ParallelDescriptor::IOProcessor()) 
   {
     cout << "Deleting projector\n";
   }
@@ -169,7 +169,7 @@ void
 Projection::install_level(int level, AmrLevel * level_data,
                           PArray<Real> * _radius )
 {
-  if (verbose) 
+  if (verbose && ParallelDescriptor::IOProcessor()) 
   {
     cout << "Installing projector level " << level << NL;
   }
@@ -215,7 +215,7 @@ Projection::bldSyncProject()
       gen_ratio.set(lev-1, ref_ratio[lev-1]);
   }
 
-  if (verbose) 
+  if (verbose && ParallelDescriptor::IOProcessor()) 
   {
     cout << "bldSyncProject:: amr_mesh = \n";
     amr_multigrid::mesh_write(amesh, gen_ratio, fdomain, cout);
@@ -446,10 +446,13 @@ Projection::level_project(int level,
 #if (BL_SPACEDIM == 3)
       Real dsdtmin=dsdt[i].min();
       Real dsdtmax=dsdt[i].max();
-      if(dsdtmin!=dsdtmax || dsdtmin!= 0.0) 
+      if (dsdtmin!=dsdtmax || dsdtmin!= 0.0) 
       {
-        cout << "Projection::level_project: WARNING not yet " <<
-          "implemented for 3-d, non-zero divu\n";
+          if (ParallelDescriptor::IOProcessor())
+          {
+              cout << "Projection::level_project: WARNING not yet "
+                   << "implemented for 3-d, non-zero divu\n";
+          }
         ParallelDescriptor::Abort("Exiting.");
       }
 #endif
@@ -528,11 +531,10 @@ void Projection::harmonic_project(int level, Real dt, Real cur_pres_time,
 {
   if (level == 0) 
   {
-    cout << "NOT SUPPOSED TO BE IN HARMONIC AT LEVEL 0 \n";
-    ParallelDescriptor::Abort("Exiting.");
+    ParallelDescriptor::Abort("NOT SUPPOSED TO BE IN HARMONIC AT LEVEL 0 \n");
   }
 
-  if (verbose) 
+  if (verbose && ParallelDescriptor::IOProcessor()) 
   {
     cout << "... harmonic projector\n";
   }
@@ -653,7 +655,7 @@ void Projection::syncProject(int c_lev, MultiFab & pres, MultiFab & vel,
 
   int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
 
-  if (verbose) 
+  if (verbose && ParallelDescriptor::IOProcessor()) 
   {
     cout << "SyncProject: level = " << c_lev
          << " correction to level " << finest_level << NL;
@@ -792,7 +794,7 @@ void Projection::MLsyncProject(int c_lev,
   proj_stats.start();
     
   int lev;
-  if (verbose) 
+  if (verbose && ParallelDescriptor::IOProcessor()) 
   {
     cout << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << NL;
   }
@@ -1005,7 +1007,7 @@ void Projection::initialVelocityProject(int c_lev,
 
   int lev;
   int f_lev = finest_level;
-  if (verbose) 
+  if (verbose && ParallelDescriptor::IOProcessor()) 
   {
     cout << "initialVelocityProject: levels = " << c_lev << "  "
          << f_lev << NL;
@@ -1247,7 +1249,7 @@ Projection::initialSyncProject (int       c_lev,
 
     int lev;
     int f_lev = finest_level;
-    if (verbose) 
+    if (verbose && ParallelDescriptor::IOProcessor()) 
     {
         cout << "SyncProject: levels = " << c_lev << "  " << f_lev << NL;
     }
@@ -1329,8 +1331,11 @@ Projection::initialSyncProject (int       c_lev,
 #if  (BL_SPACEDIM == 3)
         if (mindsdt != maxdsdt || mindsdt != 0.0) 
         {
-            cout << "Projection::initialSyncProject: WARNING not yet " <<
-                "implemented for 3-d, non-zero divu\n";
+            if (ParallelDescriptor::IOProcessor())
+            {
+                cout << "Projection::initialSyncProject: WARNING not yet "
+                     << "implemented for 3-d, non-zero divu\n";
+            }
             ParallelDescriptor::Abort("Bye.");
         }
 #endif
@@ -1653,8 +1658,11 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
         Real divumax = divu->max();
         if (divumin != divumax || divumin != 0.0) 
         {
-            cout << "Projection::put_divu_in_node_rhs: not yet "
-                 << "implemented for 3-d, non-zero divu\n";
+            if (ParallelDescriptor::IOProcessor())
+            {
+                cout << "Projection::put_divu_in_node_rhs: not yet "
+                     << "implemented for 3-d, non-zero divu\n";
+            }
             ParallelDescriptor::Abort("Bye");
         }
 #endif
@@ -1686,8 +1694,11 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
         Real divumax = divu.max();
         if (divumin != divumax || divumin != 0.0) 
         {
-            cout << "Projection::put_divu_in_cc_rhs: not yet "
-                 << "implemented for 3-d, non-zero divu\n";
+            if (ParallelDescriptor::IOProcessor())
+            {
+                cout << "Projection::put_divu_in_cc_rhs: not yet "
+                     << "implemented for 3-d, non-zero divu\n";
+            }
             BoxLib::Abort("Bye");
         }
 #endif
@@ -2196,10 +2207,9 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
     const int f_lev = finest_level;
     const int rzflag = CoordSys::IsRZ();
 
-    if(c_lev!=0) 
+    if (c_lev!=0) 
     {
-	cout << "initialVelocityProject: clev!=0--something wrong?\n";
-	ParallelDescriptor::Abort("Exiting.");
+	ParallelDescriptor::Abort("initialVelocityProject: clev!=0--something wrong?\n");
     } 
     else 
     {
@@ -2316,10 +2326,9 @@ void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi,
     const int f_lev = finest_level;
     const int rzflag = CoordSys::IsRZ();
 
-    if(c_lev!=0) 
+    if (c_lev!=0) 
     {
-	cout << "initialSyncProject: clev!=0--something wrong?\n";
-	ParallelDescriptor::Abort("Exiting.");
+	ParallelDescriptor::Abort("initialSyncProject: clev!=0--something wrong?\n");
     } 
     else 
     {
