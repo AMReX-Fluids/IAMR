@@ -278,7 +278,7 @@ c  check to see if we should zero phi
          enddo
       enddo
 
-      if (isPeriodic(1)) then
+      if (isPeriodic(1) .eq. 1) then
          do j=jcs,jce
             beta(ics-1,j) = beta(ice,j)
             beta(ice+1,j) = beta(ics,j)
@@ -317,7 +317,7 @@ c  check to see if we should zero phi
          enddo
       endif
 
-      if (isPeriodic(2)) then
+      if (isPeriodic(2) .eq. 1) then
          do i=ics,ice
             beta(i,jcs-1) = beta(i,jce)
             beta(i,jce+1) = beta(i,jcs)
@@ -353,7 +353,7 @@ c  check to see if we should zero phi
          enddo
       endif
 
-      if (isPeriodic(1) .AND. isPeriodic(2)) then
+      if (isPeriodic(1) .eq. 1 .AND. isPeriodic(2) .eq. 1) then
 
          beta(ics-1,jcs-1) = beta(ice,jce)
          beta(ics-1,jce+1) = beta(ice,jcs)
@@ -372,7 +372,7 @@ c  check to see if we should zero phi
          rhs(ine,jns) = rhs(ins,jns) 
          rhs(ine,jne) = rhs(ins,jns) 
 
-      else if (isPeriodic(1) .AND. isPeriodic(2) .NE. 1) then
+      else if (isPeriodic(1) .eq. 1 .AND. isPeriodic(2) .NE. 1) then
 
          beta(ics-1,jcs-1) = beta(ice,jcs-1)
          beta(ics-1,jce+1) = beta(ice,jce+1)
@@ -392,7 +392,7 @@ c  check to see if we should zero phi
          rhs(ine,jns) = rhs(ins,jns)
          rhs(ine,jne) = rhs(ins,jne)
 
-      else if (isPeriodic(1) .NE. 1 .AND. isPeriodic(2)) then
+      else if (isPeriodic(1) .NE. 1 .AND. isPeriodic(2) .eq. 1) then
 
          beta(ics-1,jcs-1) = beta(ics-1,jce)
          beta(ics-1,jce+1) = beta(ics-1,jcs)
@@ -637,7 +637,7 @@ c double dgphi at edges
          phi(ine,jne) = zero
       endif
 
-      if (isPeriodic(1)) then
+      if (isPeriodic(1) .eq. 1) then
          do j= jns,jne
             phi(ins-1,j) = phi(ine-1,j)
             phi(ine,j)   = phi(ins,j)
@@ -650,7 +650,7 @@ c double dgphi at edges
          enddo
       endif
 
-      if (isPeriodic(2)) then
+      if (isPeriodic(2) .eq. 1) then
          do i= ins,ine
             phi(i,jns-1) = phi(i,jne-1)
             phi(i,jne)   = phi(i,jns)
@@ -946,21 +946,21 @@ c     Local variables
       hxsqinv = one/(h(1)*h(1))
       hysqinv = one/(h(2)*h(2))
       
-      if (isPeriodic(1) ) then
+      if (isPeriodic(1) .eq. 1) then
         do j = js,je+1 
           phi(ie+2,j) = phi(is+1,j)
           phi(is-1,j) = phi(ie  ,j)
         enddo
       endif
 
-      if (isPeriodic(2)) then
+      if (isPeriodic(2) .eq. 1) then
         do i = is,ie+1 
           phi(i,je+2) = phi(i,js+1)
           phi(i,js-1) = phi(i,je  )
         enddo
       endif
 
-      if (isPeriodic(1) .and. isPeriodic(2)) then
+      if (isPeriodic(1) .eq. 1 .and. isPeriodic(2) .eq. 1) then
         phi(is-1,js-1) = phi(ie  ,je  )
         phi(is-1,je+2) = phi(ie  ,js+1)
         phi(ie+2,js-1) = phi(is+1,je  )
@@ -1027,7 +1027,7 @@ c     Local variables
         enddo
       enddo
 
-      if (isPeriodic(1)) then
+      if (isPeriodic(1) .eq. 1) then
          
          do j = loc(2)-1,hic(2)+1 
             sigmac(loc(1)-1,j) = sigmac(hic(1),j)
@@ -1040,7 +1040,7 @@ c     Local variables
          enddo
       endif
 
-      if (isPeriodic(2)) then
+      if (isPeriodic(2) .eq. 1) then
          
          do i = loc(1)-1,hic(1)+1 
             sigmac(i,loc(2)-1) = sigmac(i,hic(2))
@@ -1085,7 +1085,7 @@ c     Local variables
       jstart = loc(2)
       jend = hic(2)+1
       
-      if (isPeriodic(1)) then
+      if (isPeriodic(1) .eq. 1) then
         do j = lo(2)-1,hi(2)+2
           res(hi(1)+1,j) = res(lo(1)  ,j)
           res(hi(1)+2,j) = res(lo(1)+1,j)
@@ -1093,7 +1093,7 @@ c     Local variables
         enddo
       endif
 
-      if (isPeriodic(2)) then
+      if (isPeriodic(2) .eq. 1) then
         do i = lo(1)-1,hi(1)+2
           res(i,hi(2)+1) = res(i,lo(2)  )
           res(i,hi(2)+2) = res(i,lo(2)+1)

@@ -408,7 +408,7 @@ c  check to see if we should zero phi
          enddo
       enddo
       
-      if (isPeriodic(1)) then
+      if (isPeriodic(1) .eq. 1) then
          do j=jcs,jce
             beta0(ics  ,j) = two/(rhoExt(ics,j)+rhoExt(ice,j))
             beta0(ice+1,j) = two/(rhoExt(ics,j)+rhoExt(ice,j))
@@ -419,7 +419,7 @@ c  check to see if we should zero phi
             beta0(ice+1,j) = zero
          enddo
       endif
-      if (isPeriodic(2)) then
+      if (isPeriodic(2) .eq. 1) then
          do i=ics,ice
             beta1(i,jcs  ) = two/(rhoExt(i,jcs)+rhoExt(i,jce))
             beta1(i,jce+1) = two/(rhoExt(i,jcs)+rhoExt(i,jce))
@@ -597,7 +597,7 @@ c Local variables
          phi(ice,jce) = zero
       endif
 
-      if (isPeriodic(1)) then
+      if (isPeriodic(1) .eq. 1) then
          do j=jcs,jce
             phi(ics-1,j) = phi(ice,j)
             phi(ice+1,j) = phi(ics,j)
@@ -609,7 +609,7 @@ c Local variables
          enddo
       endif
       
-      if (isPeriodic(2)) then
+      if (isPeriodic(2) .eq. 1) then
          do i=ics,ice
             phi(i,jcs-1) = phi(i,jce)
             phi(i,jce+1) = phi(i,jcs)
