@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.61 1999-02-12 00:15:32 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.62 1999-02-12 17:43:00 marc Exp $
 //
 
 //
@@ -668,7 +668,7 @@ Diffusion::diffuse_velocity (Real                   dt,
 			    viscflux_reg->FineAdd(fmfi(),d,fmfi.index(),0,sigma,1,dt);
 		    }
 		}
-		if (level < finest_level);
+		if (level < finest_level)
 		    finer->viscflux_reg->CrseInitFinish();
 	    }
 	}
@@ -1450,14 +1450,27 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     Soln.setVal(0);
     Copy(Rhs,*Ssync,sigma,0,1,0);
 
-    Real r_norm = 0.0;
-    for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-        r_norm = Max(r_norm,Rhsmfi().norm(0));
-
-    ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
-    if (ParallelDescriptor::IOProcessor())
-        cout << "Original max of Ssync " << r_norm << '\n';
-
+    if (verbose)
+    {
+	MultiFab junk(grids,1,0,Fab_allocate);
+	Copy(junk,Rhs,0,0,1,0);
+	if (rho_flag==2)
+	{
+	    MultiFab& S_new = caller->get_new_data(State_Type);
+	    for (MultiFabIterator jmfi(junk); jmfi.isValid(); ++jmfi)
+	    {
+		DependentMultiFabIterator S_newmfi(jmfi,S_new);
+		jmfi().divide(S_newmfi(),jmfi.validbox(),Density,0,1);
+	    }
+	}
+	Real r_norm = 0.0;
+	for (MultiFabIterator jmfi(junk); jmfi.isValid(); ++jmfi)
+	    r_norm = Max(r_norm,jmfi().norm(0));
+	
+	ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
+	if (ParallelDescriptor::IOProcessor())
+	    cout << "Original max of Ssync " << r_norm << '\n';
+    }
     //
     // Compute RHS.
     //
@@ -1520,24 +1533,28 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     }
 
     Copy(*Ssync,Soln,0,sigma,1,0);
+    
+    if (verbose)
+    {
+	Real s_norm = 0.0;
+	for (MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
+	    s_norm = Max(s_norm,Solnmfi().norm(0));
+	
+	ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
+	if (ParallelDescriptor::IOProcessor())
+	    cout << "Final max of Ssync " << s_norm << '\n';
+    }
+	
     if (rho_flag == 2)
     {
-        MultiFab& S_new = caller->get_new_data(State_Type);
-        for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
-        {
-            DependentMultiFabIterator S_newmfi(Ssyncmfi,S_new);
-            Ssyncmfi().mult(S_newmfi(),Ssyncmfi.validbox(),Density,sigma,1);
-        }
+	MultiFab& S_new = caller->get_new_data(State_Type);
+	for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
+	{
+	    DependentMultiFabIterator S_newmfi(Ssyncmfi,S_new);
+	    Ssyncmfi().mult(S_newmfi(),Ssyncmfi.validbox(),Density,sigma,1);
+	}
     }
-
-    Real s_norm = 0.0;
-    for (MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
-        s_norm = Max(s_norm,Solnmfi().norm(0));
-
-    ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
-    if (ParallelDescriptor::IOProcessor())
-        cout << "Final max of Ssync " << s_norm << '\n';
-
+    
     delete visc_op;
 }
 
