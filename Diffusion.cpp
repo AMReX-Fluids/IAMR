@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.119 2002-11-09 02:23:23 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.120 2002-11-20 16:50:55 lijewski Exp $
 //
 
 //
@@ -352,7 +352,7 @@ Diffusion::diffuse_scalar (Real                   dt,
             for (MFIter Smfi(Soln); Smfi.isValid(); ++Smfi)
                 Soln[Smfi].divide(S_old[Smfi],Smfi.validbox(),Density,0,1);
         visc_op->apply(Rhs,Soln);
-        visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln);
+        visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,LinOp::Inhomogeneous_BC,false);
         for (int i = 0; i < BL_SPACEDIM; ++i)
             (*fluxn[i]).mult(-b/(dt*caller->Geom().CellSize()[i]));
         delete visc_op;
