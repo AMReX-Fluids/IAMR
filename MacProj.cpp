@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.20 1998-06-05 00:09:20 lijewski Exp $
+// $Id: MacProj.cpp,v 1.21 1998-06-05 16:24:13 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -329,7 +329,6 @@ MacProj::mac_project (int             level,
         {
             mr.CrseInit(u_mac[dir],area[level][dir],dir,0,0,1,-1.0);
         }
-        mr.CrseInitFinish();
         if (verbose && ParallelDescriptor::IOProcessor())
         {
             cout << "LEVEL "
