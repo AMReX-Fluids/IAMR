@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.15 1998-07-16 23:17:34 lijewski Exp $
+c $Id: PROB_2D.F,v 1.16 1998-12-23 22:57:02 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1233,11 +1233,16 @@ c ::: -----------------------------------------------------------
       integer    i, j
       integer    ilo, ihi, jlo, jhi
       logical    fix_xlo, fix_xhi, fix_ylo, fix_yhi
+      logical    per_xlo, per_xhi, per_ylo, per_yhi
 
       fix_xlo = (ARG_L1(p) .lt. domlo(1)) .and. (bc(1,1) .ne. INT_DIR)
+      per_xlo = (ARG_L1(p) .lt. domlo(1)) .and. (bc(1,1) .eq. INT_DIR)
       fix_xhi = (ARG_H1(p) .gt. domhi(1)) .and. (bc(1,2) .ne. INT_DIR)
+      per_xhi = (ARG_H1(p) .gt. domhi(1)) .and. (bc(1,2) .eq. INT_DIR)
       fix_ylo = (ARG_L2(p) .lt. domlo(2)) .and. (bc(2,1) .ne. INT_DIR)
+      per_ylo = (ARG_L2(p) .lt. domlo(2)) .and. (bc(2,1) .eq. INT_DIR)
       fix_yhi = (ARG_H2(p) .gt. domhi(2)) .and. (bc(2,2) .ne. INT_DIR)
+      per_yhi = (ARG_H2(p) .gt. domhi(2)) .and. (bc(2,2) .eq. INT_DIR)
 
       ilo = max(ARG_L1(p),domlo(1))
       ihi = min(ARG_H1(p),domhi(1))
@@ -1258,11 +1263,23 @@ c
                   p(i,j) = p(ilo,jlo)
                end do
             end do
+         else if (per_ylo) then
+            do i = ARG_L1(p), domlo(1)-1
+               do j = ARG_L2(p), domlo(2)-1
+                  p(i,j) = p(ilo,j)
+               end do
+            end do
          end if
          if (fix_yhi) then
             do i = ARG_L1(p), domlo(1)-1
                do j = domhi(2)+1, ARG_H2(p)
                   p(i,j) = p(ilo,jhi)
+               end do
+            end do
+         else if (per_yhi) then
+            do i = ARG_L1(p), domlo(1)-1
+               do j = domhi(2)+1, ARG_H2(p)
+                  p(i,j) = p(ilo,j)
                end do
             end do
          end if
@@ -1282,11 +1299,23 @@ c
                   p(i,j) = p(ihi,jlo)
                end do
 	    end do
+	 else if (per_ylo) then
+	    do i = domhi(1)+1, ARG_H1(p)
+               do j = ARG_L2(p), domlo(2)-1
+                  p(i,j) = p(ihi,j)
+               end do
+	    end do
          end if
 	 if (fix_yhi) then
 	    do i = domhi(1)+1, ARG_H1(p)
                do j = domhi(2)+1, ARG_H2(p)
                   p(i,j) = p(ihi,jhi)
+               end do
+	    end do
+	 else if (per_yhi) then
+	    do i = domhi(1)+1, ARG_H1(p)
+               do j = domhi(2)+1, ARG_H2(p)
+                  p(i,j) = p(ihi,j)
                end do
 	    end do
          end if
@@ -1298,6 +1327,20 @@ c
                p(i,j) = p(i,jlo)
             end do
 	 end do
+	 if (per_xlo) then
+          do j = ARG_L2(p), domlo(2)-1
+               do i = ARG_L1(p), domlo(1)-1
+                  p(i,j) = p(i,jlo)
+               end do
+	    end do
+         end if
+	 if (per_xhi) then
+           do j = ARG_L2(p), domlo(2)-1
+               do i = domhi(1)+1, ARG_H1(p)
+                  p(i,j) = p(i,jlo)
+               end do
+	    end do
+         end if
       end if
 
       if (fix_yhi) then
@@ -1306,6 +1349,20 @@ c
                p(i,j) = p(i,jhi)
             end do
 	 end do
+	 if (per_xlo) then
+	    do j = domhi(2)+1, ARG_H2(p)
+               do i = ARG_L1(p), domlo(1)-1
+                  p(i,j) = p(i,jhi)
+               end do
+	    end do
+         end if
+	 if (per_xhi) then
+	    do j = domhi(2)+1, ARG_H2(p)
+               do i = domhi(1)+1, ARG_H1(p)
+                  p(i,j) = p(i,jhi)
+               end do
+	    end do
+         end if
       end if
 
       end
