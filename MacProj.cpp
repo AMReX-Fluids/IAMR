@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.89 2003-02-19 19:30:54 almgren Exp $
+// $Id: MacProj.cpp,v 1.90 2003-02-20 19:02:20 almgren Exp $
 //
 #include <winstd.H>
 
@@ -1087,9 +1087,6 @@ MacProj::set_outflow_bcs (int             level,
                           const MultiFab& S,
                           const MultiFab& divu)
 {
-    //
-    // Warning: This code looks about right, but hasn't really been tested yet.
-    //
     // This code is very similar to the outflow BC stuff in the Projection
     // class except that here the the phi to be solved for lives on the
     // out-directed faces.  The projection equation to satisfy is
@@ -1141,47 +1138,50 @@ MacProj::set_outflow_bcs (int             level,
         BoxLib::Error("MacProj: Cannot yet handle partially refined outflow");
      }
 
-    BoxArray  ccBoxArray( ccBoxList);
-    BoxArray phiBoxArray(phiBoxList);
-    
-    MultiFab  rhodat(ccBoxArray,1,0);
-    MultiFab divudat(ccBoxArray,1,0);
-    MultiFab  phidat(phiBoxArray,1,0);
-
-     rhodat.copy(S,Density,0,1);
-    divudat.copy(divu,0,0,1);
-     phidat.setVal(0.);
-
-    //
-    // Load ec data.
-    //
-
-    MultiFab uedat[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; ++i)
+    if (!ccBoxList.isEmpty()) 
     {
-      BoxArray edgeArray(ccBoxArray);
-      edgeArray.surroundingNodes(i);
-      uedat[i].define(edgeArray,1,0,Fab_allocate);
-      uedat[i].copy(u_mac[i],0,0,1);
-    }
+      BoxArray  ccBoxArray( ccBoxList);
+      BoxArray phiBoxArray(phiBoxList);
     
-    MacOutFlowBC macBC;
-    phidat.setVal(0.0);
+      MultiFab  rhodat(ccBoxArray,1,0);
+      MultiFab divudat(ccBoxArray,1,0);
+      MultiFab  phidat(phiBoxArray,1,0);
 
-    NavierStokes* ns_level = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
-    Real gravity = ns_level->getGravity();
-    macBC.computeBC(uedat,divudat,rhodat,phidat,geom,outFaces,numOutFlowFaces,gravity);
+       rhodat.copy(S,Density,0,1);
+      divudat.copy(divu,0,0,1);
+       phidat.setVal(0.);
 
-    // Must do this kind of copy instead of mac_phi->copy(phidat);
-    //   because we're copying onto the ghost cells of the FABs,
-    //   not the valid regions.
-    for (MFIter pdmfi(phidat); pdmfi.isValid(); ++pdmfi)
-     for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
-     {
-        Box ovlp = (*mac_phi)[mfi].box() & phidat[pdmfi].box();
-        if (ovlp.ok())
-            (*mac_phi)[mfi].copy(phidat[pdmfi],ovlp);
-     }
+      //
+      // Load ec data.
+      //
+
+      MultiFab uedat[BL_SPACEDIM];
+      for (int i = 0; i < BL_SPACEDIM; ++i)
+      {
+        BoxArray edgeArray(ccBoxArray);
+        edgeArray.surroundingNodes(i);
+        uedat[i].define(edgeArray,1,0,Fab_allocate);
+        uedat[i].copy(u_mac[i],0,0,1);
+      }
+    
+      MacOutFlowBC macBC;
+      phidat.setVal(0.0);
+
+      NavierStokes* ns_level = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
+      Real gravity = ns_level->getGravity();
+      macBC.computeBC(uedat,divudat,rhodat,phidat,geom,outFaces,numOutFlowFaces,gravity);
+
+      // Must do this kind of copy instead of mac_phi->copy(phidat);
+      //   because we're copying onto the ghost cells of the FABs,
+      //   not the valid regions.
+      for (MFIter pdmfi(phidat); pdmfi.isValid(); ++pdmfi)
+       for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
+       {
+          Box ovlp = (*mac_phi)[mfi].box() & phidat[pdmfi].box();
+          if (ovlp.ok())
+              (*mac_phi)[mfi].copy(phidat[pdmfi],ovlp);
+       }
+  }
 }
 
 //
