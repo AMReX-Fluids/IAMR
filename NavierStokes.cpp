@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.171 2000-06-12 23:41:50 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.172 2000-06-13 19:32:59 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2650,7 +2650,9 @@ NavierStokes::writePlotFile (const aString& dir,
             if (it() == "avg_pressure" || it() == "gradpx" 
                                        || it() == "gradpy"
                                        || it() == "gradpz") {
-              plot_time = getLevel(0).state[Press_Type].curTime();
+//            plot_time = getLevel(0).state[Press_Type].curTime();
+              int f_lev = parent->finestLevel();
+              plot_time = getLevel(f_lev).state[Press_Type].curTime();
             } else {
               plot_time = cur_time;
             } 
