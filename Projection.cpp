@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.160 2004-09-08 20:58:54 almgren Exp $
+// $Id: Projection.cpp,v 1.161 2004-09-08 23:20:06 almgren Exp $
 //
 #include <winstd.H>
 
@@ -236,6 +236,11 @@ Projection::install_level (int                   level,
     {
         LevelData.resize(finest_level+1);
         radius.resize(finest_level+1);
+    }
+
+    if (level > anel_coeff.size()-1) {
+       anel_coeff.resize(level+1);
+       anel_coeff[level] = 0;
     }
 
     LevelData.clear(level);
