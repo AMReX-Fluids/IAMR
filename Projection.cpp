@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.23 1998-01-12 21:21:45 car Exp $
+// $Id: Projection.cpp,v 1.24 1998-01-15 21:01:21 car Exp $
 //
 
 #ifdef BL_T3E
@@ -234,7 +234,7 @@ Projection::bldSyncProject()
 
   sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
                                            0, finest_level, finest_level,
-                                           *projector_bndry, P_code, do_cache?true:false);
+                                           *projector_bndry, P_code) /* , do_cache?true:false)*/ ;
 
 #ifdef ATMOSPHERE
   // This is not the usual way of setting parameters

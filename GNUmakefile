@@ -3,8 +3,8 @@ DEBUG	= FALSE
 DEBUG	= TRUE
 PROFILE = FALSE
 
-DIM	= 3
 DIM	= 2
+DIM	= 3
 
 #
 # Holy Grail stuff ...
@@ -28,8 +28,8 @@ endif
 COMP = KCC
 
 USE_WINDOWS=FALSE
-USE_BSP=FALSE
 USE_BSP=TRUE
+USE_BSP=FALSE
 USE_NETCDF=FALSE
 USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
@@ -50,7 +50,7 @@ include ../mk/Make.defs
 
 CPPFLAGS += -DBL_USE_NEW_HFILES
 
-INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib ../bndrylib
+INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib ../bndrylib ../hgproj
 
 ifeq ($(USE_BSP), TRUE)
 DEFINES += -DBL_USE_BSP
@@ -166,10 +166,12 @@ CDEBF +=
 
 include $(HERE)/Make.package 
 
+INCLUDE_LOCATIONS += ../hgproj/include/3d.v7
+
 FOPTF = -fast
 
-vpath %.cpp : . ../pBoxLib_2 ../amrlib ../bndrylib
-vpath %.F   : . ../amrlib ../bndrylib
+vpath %.cpp : . ../pBoxLib_2 ../amrlib ../bndrylib ../hgproj
+vpath %.F   : . ../amrlib ../bndrylib ../hgproj
 
 all: $(executable)
 

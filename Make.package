@@ -30,6 +30,25 @@ C$(BNDRYLIB_BASE)_headers += FabSet.H BndryRegister.H \
 F$(BNDRYLIB_BASE)_headers += COORDSYS_F.H
 F$(BNDRYLIB_BASE)_sources += COORDSYS_$(DIM)D.F
 #
+# HGPROJ sources
+#
+HGLIB_BASE=EXE
+C$(HGLIB_BASE)_sources += cache.cpp interface.cpp boundary.cpp \
+			  interpolator.cpp \
+			  restrictor.cpp fill_patch.cpp amr_multi.cpp \
+			  hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
+			  hg_projector.cpp
+
+C$(HGLIB_BASE)_headers += cache.H interface.H boundary.H \
+			  interpolator.H \
+			  restrictor.H fill_patch.H amr_multi.H \
+			  hg_multi.H \
+			  hg_projector.H 
+
+F$(HGLIB_BASE)_sources += amr_real$(DIM)d.F hg_multi$(DIM)d.F \
+			  hg_proj$(DIM)d.F hg_avg$(DIM)d.F 
+
+#
 # boxlib sources
 #
 BOXLIB_BASE=EXE
@@ -134,24 +153,6 @@ FEXE_sources += DERIVE_$(DIM)D.F GODUNOV_F.F GODUNOV_$(DIM)D.F NAVIERSTOKES_$(DI
 
 FEXE_headers += DERIVE_F.H GODUNOV.FH GODUNOV_F.H PROJECTION_F.H MACPROC_F.H \
 		DIFFUSION_F.H NAVIERSTOKES_F.H 
-#
-# HGPROJ sources
-#
-LBASE=proj
-
-ifeq ($(LBASE),proj)
-CEXE_sources += cache.cpp interface.cpp boundary.cpp interpolator.cpp \
-       		restrictor.cpp fill_patch.cpp amr_multi.cpp \
-		hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
-		hg_projector.cpp
-
-CEXE_headers += cache.H interface.H boundary.H interpolator.H restrictor.H \
-                fill_patch.H amr_multi.H hg_multi.H hg_projector.H 
-
-FEXE_sources += amr_real$(DIM)d.F hg_multi$(DIM)d.F hg_proj$(DIM)d.F \
-                hg_avg$(DIM)d.F 
-endif
-
 ifeq ($(USE_ARRAYVIEW),TRUE)
 CEXE_sources += DatasetClient.cpp
 endif
