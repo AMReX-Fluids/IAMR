@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.26 2003-02-06 20:28:38 almgren Exp $
+c $Id: GODUNOV_3D.F,v 1.27 2003-02-06 20:43:29 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1658,20 +1658,16 @@ c     -------------- the lower x boundary
 c
       if (xbc(1,1).eq.EXT_DIR) then
          if ( n .eq. XVEL ) then
-            if (uad(imin,j,k) .ge. zero) then
-              do j = jmin-1,jmax+1
-               do k = kmin-1,kmax+1
+            do j = jmin-1,jmax+1
+             do k = kmin-1,kmax+1
+              if (uad(imin,j,k) .ge. zero) then
                   xlo(imin,j,k) = s(imin-1,j,k)
                   xhi(imin,j,k) = s(imin-1,j,k)
-               end do
-              end do
-            else
-              do j = jmin-1,jmax+1
-               do k = kmin-1,kmax+1
+              else
                   xlo(imin,j,k) = xhi(imin,j,k)
-               end do
-              end do
-            endif
+              endif
+             end do
+            end do
          else
             do j = jmin-1,jmax+1
                do k = kmin-1,kmax+1
@@ -1702,20 +1698,16 @@ c     -------------- the upper x boundary
 c
       if (xbc(1,2).eq.EXT_DIR) then
          if ( n .eq. XVEL ) then
-            if (uad(imax+1,j,k) .le. zero) then
-              do j = jmin-1,jmax+1
-               do k = kmin-1,kmax+1
+            do j = jmin-1,jmax+1
+             do k = kmin-1,kmax+1
+               if (uad(imax+1,j,k) .le. zero) then
                   xlo(imax+1,j,k) = s(imax+1,j,k)
                   xhi(imax+1,j,k) = s(imax+1,j,k)
-               end do
-              end do
-            else
-              do j = jmin-1,jmax+1
-               do k = kmin-1,kmax+1
+               else
                   xhi(imax+1,j,k) = xlo(imax+1,j,k)
-               end do
-              end do
-            endif
+               endif
+             end do
+            end do
          else
             do j = jmin-1,jmax+1
                do k = kmin-1,kmax+1
@@ -1782,20 +1774,16 @@ c     -------------- the lower y boundary
 c
       if (ybc(2,1).eq.EXT_DIR) then
          if ( n .eq. YVEL ) then
-            if (vad(i,jmin,k) .ge. zero) then
-              do i = imin-1,imax+1
-               do k = kmin-1,kmax+1
+            do i = imin-1,imax+1
+             do k = kmin-1,kmax+1
+              if (vad(i,jmin,k) .ge. zero) then
                   ylo(i,jmin,k) = s(i,jmin-1,k)
                   yhi(i,jmin,k) = s(i,jmin-1,k)
-               end do
-              end do
-            else
-              do i = imin-1,imax+1
-               do k = kmin-1,kmax+1
+              else
                   ylo(i,jmin,k) = yhi(i,jmin,k)
-               end do
-              end do
-            endif
+              endif
+             end do
+            end do
          else
             do i = imin-1,imax+1
                do k = kmin-1,kmax+1
@@ -1826,20 +1814,16 @@ c     -------------- the upper y boundary
 c
       if (ybc(2,2).eq.EXT_DIR) then
          if ( n .eq. YVEL ) then
-            if (vad(i,jmax+1,k) .le. zero) then
-              do i = imin-1,imax+1
-               do k = kmin-1,kmax+1
+            do i = imin-1,imax+1
+             do k = kmin-1,kmax+1
+               if (vad(i,jmax+1,k) .le. zero) then
                   ylo(i,jmax+1,k) = s(i,jmax+1,k)
                   yhi(i,jmax+1,k) = s(i,jmax+1,k)
-               end do
-              end do
-            else
-              do i = imin-1,imax+1
-               do k = kmin-1,kmax+1
+               else
                   yhi(i,jmax+1,k) = ylo(i,jmax+1,k)
-               end do
-              end do
-            endif
+               endif
+             end do
+            end do
          else
             do i = imin-1,imax+1
                do k = kmin-1,kmax+1
@@ -1906,20 +1890,16 @@ c     -------------- the lower z boundary
 c
       if (zbc(3,1).eq.EXT_DIR) then
          if ( n .eq. ZVEL ) then
-            if (wad(i,j,kmin) .ge. zero) then
-              do i = imin-1,imax+1
-               do j = jmin-1,jmax+1
+            do i = imin-1,imax+1
+             do j = jmin-1,jmax+1
+               if (wad(i,j,kmin) .ge. zero) then
                   zhi(i,j,kmin) = s(i,j,kmin-1)
                   zlo(i,j,kmin) = s(i,j,kmin-1)
-               end do
-              end do
-            else
-              do i = imin-1,imax+1
-               do j = jmin-1,jmax+1
+               else
                   zlo(i,j,kmin) = zhi(i,j,kmin)
-               end do
-              end do
-            endif
+               endif
+             end do
+            end do
          else
             do i = imin-1,imax+1
                do j = jmin-1,jmax+1
@@ -1950,20 +1930,16 @@ c     -------------- the upper z boundary
 c
       if (zbc(3,2).eq.EXT_DIR) then
          if ( n .eq. ZVEL ) then
-            if (wad(i,j,kmax+1) .le. zero) then
-              do i = imin-1,imax+1
-               do j = jmin-1,jmax+1
+            do i = imin-1,imax+1
+             do j = jmin-1,jmax+1
+               if (wad(i,j,kmax+1) .le. zero) then
                   zlo(i,j,kmax+1) = s(i,j,kmax+1)
                   zhi(i,j,kmax+1) = s(i,j,kmax+1)
-               end do
-              end do
-            else
-              do i = imin-1,imax+1
-               do j = jmin-1,jmax+1
+               else
                   zhi(i,j,kmax+1) = zlo(i,j,kmax+1)
-               end do
-              end do
-            endif
+               endif
+             end do
+            end do
          else
             do i = imin-1,imax+1
                do j = jmin-1,jmax+1
