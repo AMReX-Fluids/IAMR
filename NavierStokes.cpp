@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.246 2004-08-25 17:17:56 jbb Exp $
+// $Id: NavierStokes.cpp,v 1.247 2004-09-10 17:32:43 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2085,8 +2085,8 @@ NavierStokes::scalar_advection_update (Real dt,
                                  Aofs[S_oldmfi],Density,tforces,0,grids[i],dt);
 //          ADD MINMAX FOR DENSITY
 //          state_bc = getBCArray(State_Type,i,Density,1);
-//          godunov->ScalMinMax(S_old[S_oldmfi],S_new[S_oldmfi],Density,
-//                              state_bc.dataPtr(),grids[i]);
+//          godunov->ConvectiveScalMinMax(S_old[S_oldmfi],S_new[S_oldmfi],Density,
+//                                        state_bc.dataPtr(),grids[i]);
         }
         ++sComp;
     }
