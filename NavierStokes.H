@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.51 1999-10-08 23:51:27 sstanley Exp $
+// $Id: NavierStokes.H,v 1.52 1999-10-15 16:24:45 propp Exp $
 //
 
 #include <LevelBld.H>
@@ -159,7 +159,7 @@ public:
     //
     // Timestep estimation functions follow ...
     //
-    Real estTimeStep ();
+    virtual Real estTimeStep ();
 
     Real initialTimeStep ();
 
