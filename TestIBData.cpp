@@ -1,5 +1,5 @@
 //
-// $Id: TestIBData.cpp,v 1.1 1997-07-08 23:08:02 vince Exp $
+// $Id: TestIBData.cpp,v 1.2 1997-07-23 20:45:51 car Exp $
 //
 #include <LO_BCTYPES.H>
 #include <TestIBData.H>
@@ -20,7 +20,7 @@ void TestIBData::setBndryConds(const BCRec& bc,
 
 	int dir = face.coordDir();
 	REAL delta = dx[dir]*ratio[dir];
-	int problo = prob_domain.lo(dir);
+	// int problo = prob_domain.lo(dir);
 	int domlo = domain.smallEnd(dir);
 	int p_bc = (face.isLow() ? bc.lo(dir) : bc.hi(dir));
 
