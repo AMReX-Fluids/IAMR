@@ -1,5 +1,5 @@
 c
-c $Id: SLABSTAT_NS_2D.F,v 1.2 2000-05-24 18:22:11 sstanley Exp $
+c $Id: SLABSTAT_NS_2D.F,v 1.3 2000-05-25 20:18:28 sstanley Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -121,8 +121,8 @@ c     ====================================
 c
       do j = loStats(2), hiStats(2)
         do i = loStats(1), hiStats(1)
+          num = 1
           do n = 1, 4
-            num = 1
             runStats(i,j,num) = runStats(i,j,num) + dt * state(i,j,Rho)**n
             runStats(i,j,num+1) = runStats(i,j,num+1) + dt * state(i,j,xVel)**n
             runStats(i,j,num+2) = runStats(i,j,num+2) + dt * state(i,j,Rho) 
