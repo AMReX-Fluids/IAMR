@@ -256,7 +256,7 @@ c  check to see if we should zero phi
          beta(i)=two*rL/(rhoExt(i)+rhoExt(i-1))
       enddo
 
-      if (isPeriodic) then
+      if (isPeriodic.eq.1) then
          rL = half*(r(ics)+r(ice))
          rR = half*(r(ics)+r(ics+1))
          rhs(ics)=(rR*uExt(ics+1)-rL*uExt(ics))/h - r(ics)*(divuExt(ics))
@@ -409,7 +409,7 @@ c Local variables
          phi(ice)= zero
       endif
 
-      if (isPeriodic) then
+      if (isPeriodic.eq.1) then
          phi(ics-1) = phi(ice)
          phi(ice+1) = phi(ics)
       else

@@ -195,7 +195,7 @@ c check to see if we should zero phi
      &        -  rnode*half*(divuExt(i-1)+divuExt(i))
       enddo
 
-      if (isPeriodic(1)) then
+      if (isPeriodic(1).eq.1) then
           rnode = half*(r(ics)+r(ice))
 
           beta(ics-1) = beta(ice)
@@ -386,7 +386,7 @@ c double dgphi at edges
          phi(ine) = zero
       endif
 
-      if (isPeriodic(1)) then
+      if (isPeriodic(1).eq.1) then
          phi(ins-1) = phi(ine-1)
          phi(ine)   = phi(ins)
          phi(ine+1) = phi(ins+1)
@@ -625,7 +625,7 @@ c     Local variables
 
       hxsqinv = one/(h(1)*h(1))
       
-      if (isPeriodic(1) ) then
+      if (isPeriodic(1).eq.1 ) then
           phi(ie+2) = phi(is+1)
           phi(is-1) = phi(ie  )
       endif
@@ -673,7 +673,7 @@ c     Local variables
          sigmac(i) = half*(sigma(i2) +sigma(i2+1))
       enddo
 
-      if (isPeriodic(1)) then
+      if (isPeriodic(1).eq.1) then
          sigmac(loc(1)-1) = sigmac(hic(1))
          sigmac(hic(1)+1) = sigmac(loc(1))
       else
@@ -709,7 +709,7 @@ c     Local variables
       istart = loc(1)
       iend = hic(1)+1
       
-      if (isPeriodic(1)) then
+      if (isPeriodic(1).eq.1) then
           res(hi(1)+1) = res(lo(1)  )
           res(hi(1)+2) = res(lo(1)+1)
           res(lo(1)-1) = res(hi(1)  )
