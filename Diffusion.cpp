@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.102 2000-08-02 21:05:29 almgren Exp $
+// $Id: Diffusion.cpp,v 1.103 2000-08-02 21:21:51 almgren Exp $
 //
 
 //
@@ -2375,6 +2375,7 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
                                int        rho_flag)
 {
     BL_ASSERT(num_comp == 1);
+    const int     nGrow = 1;
     //
     // Fill phys bndry vals of grow cells of (tmp) multifab passed to bndry.
     //
