@@ -1,6 +1,5 @@
-
 //
-// $Id: Diffusion.cpp,v 1.26 1998-06-01 17:01:47 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.27 1998-06-04 17:09:56 lijewski Exp $
 //
 
 //
@@ -28,8 +27,11 @@
 #include <DIFFUSION_F.H>
 #include <VISCOPERATOR_F.H>
 
-// include files for tensor solve
+
 #if (BL_SPACEDIM==2) && defined (USE_TENSOR)
+//
+// Include files for tensor solve.
+//
 #include <DivVis.H>
 #include <LO_BCTYPES.H>
 #include <MCMultiGrid.H>
@@ -70,6 +72,40 @@ int  Diffusion::Lphi_in_abs_tol = 0;
 
 Array<REAL> Diffusion::typical_vals;
 const REAL typical_vals_DEF = 1.0;
+
+//
+// This modules own MultiFab - MultiFab copy with ghost cells
+// between MultiFabs with the same ProcessorMap().
+//
+
+static
+void
+Copy (MultiFab& dst,
+      MultiFab& src,
+      int       srccomp,
+      int       dstcomp,
+      int       numcomp,
+      int       nghost)
+{
+    assert(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+    for (MultiFabIterator mfi(src); mfi.isValid(false); ++mfi)
+    {
+        DependentMultiFabIterator dmfi(mfi,dst);
+
+        Box bx = ::grow(mfi.validbox(),nghost) & ::grow(dmfi.validbox(),nghost);
+
+        if (bx.ok())
+        {
+            dmfi().copy(mfi(),
+                        bx,
+                        srccomp,
+                        bx,
+                        dstcomp,
+                        numcomp);
+        }
+    }
+}
 
 Diffusion::Diffusion (Amr*          Parent,
                       AmrLevel*     Caller,
@@ -160,8 +196,7 @@ Diffusion::Diffusion (Amr*          Parent,
     }
 }
 
-Diffusion::~Diffusion()
-{}
+Diffusion::~Diffusion() {}
 
 void
 Diffusion::echo_settings () const
@@ -344,9 +379,9 @@ void Diffusion::diffuse_scalar(Real dt, int sigma, Real be_cn_theta,
 
   if (rho_flag==2) {
     Rho_old = new MultiFab(grids,1,1,Fab_allocate);
-    Rho_old->copy(S_old,Density,0,1,1);
+    Copy(*Rho_old,S_old,Density,0,1,1);
     Rho_new = new MultiFab(grids,1,1,Fab_allocate);
-    Rho_new->copy(S_new,Density,0,1,1);
+    Copy(*Rho_new,S_new,Density,0,1,1);
 
   }
 
@@ -397,7 +432,7 @@ void Diffusion::diffuse_scalar(Real dt, int sigma, Real be_cn_theta,
 
     // copy to single-component multifab
     // note: use Soln as a temporary here
-    Soln.copy(S_old,sigma,0,1,1);
+    Copy(Soln,S_old,sigma,0,1,1);
 
     visc_op->apply(Rhs,Soln);
     delete visc_op;
@@ -405,7 +440,7 @@ void Diffusion::diffuse_scalar(Real dt, int sigma, Real be_cn_theta,
     // copy back to S_old for use in creating viscous fluxes 
     // NOTE: this requires that the visc_op->apply call returns
     //       Soln with the ghost cells correctly filled
-    S_old.copy(Soln,0,sigma,1,1);
+    Copy(S_old,Soln,0,sigma,1,1);
 
     // complete Rhs by adding body sources
     for(MultiFabIterator S_newmfi(S_new); S_newmfi.isValid(); ++S_newmfi) {
@@ -480,7 +515,7 @@ void Diffusion::diffuse_scalar(Real dt, int sigma, Real be_cn_theta,
 
   // copy into state variable at new time, with bcs hopefully
 
-  S_new.copy(Soln,0,sigma,1,1);
+  Copy(S_new,Soln,0,sigma,1,1);
 
   // create diffusive fluxes here
 
@@ -694,7 +729,7 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
             // Copy to single-component multifab.
             // Note: use Soln as a temporary here.
             //
-            Soln.copy(U_old,sigma,0,1,1);
+            Copy(Soln,U_old,sigma,0,1,1);
             visc_op->apply(Rhs,Soln);
             delete visc_op;
             //
@@ -794,7 +829,7 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
         int n_ghost = 1;
         U_new.setVal(1.e30,sigma,n_comp,n_ghost);
         n_ghost = 0;
-        U_new.copy(Soln,0,sigma,n_comp,0);
+        U_new.copy(Soln,0,sigma,n_comp);
         //
         // Construct viscous operator with bndry data at time N+1.
         //
@@ -843,7 +878,7 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
         //
         n_comp  = 1;
         n_ghost = 1;
-        U_new.copy(Soln,0,sigma,n_comp,n_ghost);
+        Copy(U_new,Soln,0,sigma,n_comp,n_ghost);
         //
         // Modify diffusive fluxes here.
         //
@@ -1008,7 +1043,7 @@ void Diffusion::diffuse_tensor_velocity(Real dt, Real be_cn_theta,
 
     // copy to single-component multifab
     // note: use Soln as a temporary here
-    Soln_old.copy(U_old,Xvel,0,BL_SPACEDIM,soln_old_grow);
+    Copy(Soln_old,U_old,Xvel,0,BL_SPACEDIM,soln_old_grow);
     tensor_op->apply(Rhs,Soln_old);
     if (do_reflux && (level<finest_level || level>0)) {
       allocFluxBoxesLevel(tensorflux_old,0,BL_SPACEDIM);
@@ -1107,18 +1142,12 @@ void Diffusion::diffuse_tensor_velocity(Real dt, Real be_cn_theta,
 
     Soln.setVal(0.0);
     // compute guess of solution
-    if(level == 0) {
-      //for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
-        //DependentMultiFabIterator U_oldmfi(Solnmfi, U_old);
-          //Solnmfi().copy(U_oldmfi(),Xvel,0,BL_SPACEDIM);
-      //}
+    if (level == 0)
+    {
       Soln.copy(U_old,Xvel,0,BL_SPACEDIM);
-    } else {
-      //for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
-        // coarse grid data exists at this time
-        // use interpolated crse grid data for guess
-        //caller->FillCoarsePatch(Solnmfi(),0,cur_time,State_Type,Xvel,BL_SPACEDIM);
-      //}
+    }
+    else
+    {
       caller->FillCoarsePatch(Soln,0,cur_time,State_Type,Xvel,BL_SPACEDIM);
     }
 
@@ -1130,7 +1159,7 @@ void Diffusion::diffuse_tensor_velocity(Real dt, Real be_cn_theta,
     int n_ghost = 1;
     U_new.setVal(1.e30,Xvel,n_comp,n_ghost);
     n_ghost = 0;
-    U_new.copy(Soln,0,Xvel,n_comp,0);
+    U_new.copy(Soln,0,Xvel,n_comp);
 
     // construct viscous operator with bndry data at time N+1
     Real a = 1.0;
@@ -1164,7 +1193,7 @@ void Diffusion::diffuse_tensor_velocity(Real dt, Real be_cn_theta,
 
     // copy into state variable at new time
     n_ghost = soln_grow;
-    U_new.copy(Soln,0,Xvel,n_comp,n_ghost);
+    Copy(U_new,Soln,0,Xvel,n_comp,n_ghost);
 
     // modify diffusive fluxes here
     if (do_reflux && (level<finest_level || level>0)) {
@@ -1387,7 +1416,7 @@ void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, Real dt,
     int visc_op_lev = 0;
     visc_op->applyBC(Soln,visc_op_lev);
 
-    Vsync->copy(Soln,0,comp,1,1);
+    Copy(*Vsync,Soln,0,comp,1,1);
 
     Real s_norm = 0.0;
     for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
@@ -1749,7 +1778,7 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
     int visc_op_lev = 0;
     visc_op->applyBC(Soln,visc_op_lev);
 
-    Ssync->copy(Soln,0,sigma,1,1);
+    Copy(*Ssync,Soln,0,sigma,1,1);
 
     Real s_norm = 0.0;
     for (MultiFabIterator Solnmfi(Rhs); Solnmfi.isValid(); ++Solnmfi)
@@ -1863,7 +1892,7 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
         //
         MultiFab& S_new = caller->get_new_data(State_Type);
         MultiFab Rho_new(grids,1,1,Fab_allocate);
-        Rho_new.copy(S_new,Density,0,1,1);
+        Copy(Rho_new,S_new,Density,0,1,1);
         for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
         {
             DependentMultiFabIterator Rho_newmfi(Ssyncmfi, Rho_new);
@@ -2227,10 +2256,6 @@ ABecLaplacian* Diffusion::getViscOp(int comp, Real a, Real b,
     for (int n = 0; n < BL_SPACEDIM; n++) {
       MultiFab bcoeffs(area[n].boxArray(),1,0);
       bcoeffs.copy(area[n]);
-      //for(MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-      //{
-        //bcoeffsmfi().mult(dx[n]);
-      //}
       bcoeffs.mult(dx[n]);
       visc_op->bCoefficients(bcoeffs,n);
     }
@@ -2239,7 +2264,7 @@ ABecLaplacian* Diffusion::getViscOp(int comp, Real a, Real b,
     for (int n = 0; n < BL_SPACEDIM; n++) {
       MultiFab bcoeffs(area[n].boxArray(),1,0);
       bcoeffs.copy(area[n]);
-      for(MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
+      for (MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
       {
         DependentMultiFabIterator betanmfi(bcoeffsmfi, (*beta[n]));
         bcoeffsmfi().mult(betanmfi());
@@ -2435,9 +2460,8 @@ void Diffusion::getViscTerms(MultiFab& visc_terms, int src_comp, int comp,
       }
     }
 
-    // FIXME
     // copy to single component multifab for operator classes
-    s_tmp.copy(S,comp,0,1,1);
+    Copy(s_tmp,S,comp,0,1,1);
 
     if(rho_flag==2) {
 // we want to evaluate (div beta grad) S, not rho*S
@@ -2532,7 +2556,8 @@ void Diffusion::getViscTerms(MultiFab& visc_terms, int src_comp, int comp,
         for( int iiv=0; iiv<pshifts.length(); iiv++) {
           IntVect iv=pshifts[iiv];
           dest.shift(iv);
-          if( dbox.intersects(domain) ) visc_tmp.copy(dest);
+          if (dbox.intersects(domain))
+              visc_tmp.copy(dest);
           dest.shift(-iv);
           visc_tmpmfi().copy(dest,dbox,0,dbox,0,1);
         }
@@ -2542,8 +2567,7 @@ void Diffusion::getViscTerms(MultiFab& visc_terms, int src_comp, int comp,
     // copy from valid regions of overlapping grids
     visc_tmp.FillBoundary();
 
-    // FIXME
-    visc_terms.copy(visc_tmp,0,comp-src_comp,1,1);
+    Copy(visc_terms,visc_tmp,0,comp-src_comp,1,1);
   }
 }
 
@@ -2625,7 +2649,7 @@ void Diffusion::getTensorViscTerms(MultiFab& visc_terms,
       tensor_op.bCoefficients(bcoeffs,n);
     }
 
-    s_tmp.copy(S,Xvel,0,BL_SPACEDIM,1);
+    Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,1);
 
     tensor_op.apply(visc_tmp,s_tmp);
 
@@ -2714,7 +2738,8 @@ void Diffusion::getTensorViscTerms(MultiFab& visc_terms,
         for( int iiv=0; iiv<pshifts.length(); iiv++) {
           IntVect iv=pshifts[iiv];
           dest.shift(iv);
-          if( dbox.intersects(domain) ) visc_tmp.copy(dest);
+          if (dbox.intersects(domain))
+              visc_tmp.copy(dest);
           dest.shift(-iv);
           visc_tmpmfi().copy(dest,dbox,0,dbox,0,vel_ncomp);
         }
@@ -2724,9 +2749,7 @@ void Diffusion::getTensorViscTerms(MultiFab& visc_terms,
     // copy from valid regions of overlapping grids
     visc_tmp.FillBoundary();
 
-    // FIXME
-    visc_terms.copy(visc_tmp,0,0,BL_SPACEDIM,1);
-
+    Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,1);
   }
 #endif
 }
@@ -2766,7 +2789,7 @@ void Diffusion::getBndryData(ViscBndry& bndry, int src_comp,
     } else {
 // we want to fill the bndry with S, not rho*S
       MultiFab Stmp(S.boxArray(),1,S.nGrow());
-      Stmp.copy(S,src_comp,0,1,S.nGrow());
+      Copy(Stmp,S,src_comp,0,1,S.nGrow());
       for(MultiFabIterator Smfi(S); Smfi.isValid(); ++Smfi) {
         DependentMultiFabIterator Stmpmfi(Smfi, Stmp);
         assert (Smfi().min(Density)>0.0);
@@ -2824,12 +2847,12 @@ Diffusion::FillBoundary (BndryRegister& bdry,
     if (need_old_data)
     {
         sold_tmp.define(S_old.boxArray(),num_comp,S_new.nGrow(),Fab_allocate);
-        sold_tmp.copy(S_old,src_comp,0,num_comp,S_new.nGrow());
+        Copy(sold_tmp,S_old,src_comp,0,num_comp,S_new.nGrow());
         sold_tmp.FillBoundary();
     }
 
     snew_tmp.define(S_new.boxArray(),num_comp,S_new.nGrow(),Fab_allocate);
-    snew_tmp.copy(S_new,src_comp,0,num_comp,S_new.nGrow());
+    Copy(snew_tmp,S_new,src_comp,0,num_comp,S_new.nGrow());
     snew_tmp.FillBoundary();
 
     MultiFab rho_old, rho_new;
@@ -2839,11 +2862,11 @@ Diffusion::FillBoundary (BndryRegister& bdry,
         if (need_old_data)
         {
             rho_old.define(S_new.boxArray(),1,S_new.nGrow(),Fab_allocate);
-            rho_old.copy(S_old,Density,0,1,S_new.nGrow());
+            Copy(rho_old,S_old,Density,0,1,S_new.nGrow());
             rho_old.FillBoundary();
         }
         rho_new.define(S_new.boxArray(),1,S_new.nGrow(),Fab_allocate);
-        rho_new.copy(S_new,Density,0,1,S_new.nGrow());
+        Copy(rho_new,S_new,Density,0,1,S_new.nGrow());
         rho_new.FillBoundary();
     }
     //
@@ -3142,4 +3165,3 @@ Diffusion::compute_divmusi (Real       time,
     }
 }
 #endif
-
