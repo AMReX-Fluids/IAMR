@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.3 2000-10-10 20:47:23 marc Exp $
+c $Id: INFL_FORCE_F.F,v 1.4 2002-03-06 17:35:30 marc Exp $
 c
 
 #undef BL_LANG_CC
@@ -104,6 +104,7 @@ c  do some size checking
 c
         call SET_LOHI(DIMS(inflDat), lo, hi)
 
+#if 0
         do n= 1,SDIM
           if (n .NE. strmwse_dir) then
             is_periodic = bc(n,1) .eq. INT_DIR .and. 
@@ -127,6 +128,7 @@ c
             endif
           endif
         enddo
+#endif
 
         do n = 1, SDIM
           xloFile(n) = half * (probHi(n) + probLo(n)) - half * probSizeFile(n)
