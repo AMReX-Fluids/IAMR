@@ -86,8 +86,10 @@ LDFLAGS += -non_shared -v
 # FOR RUNNING 3RD ONLY
 endif
 
-FC = f77  -warn declarations -extend_source -check_bounds
-FC = f90  -warn declarations -extend_source -check_bounds
+#FC = f77  -warn declarations -extend_source -check_bounds
+#FC = f90  -warn declarations -extend_source -check_bounds
+FC = f77  -warn declarations -extend_source
+FC = f90  -warn declarations -extend_source
 
 CXXFLAGS +=
 CXXOPTF +=
@@ -95,7 +97,7 @@ CXXDEBF +=
 
 FFLAGS += 
 FOPTF += 
-FDEBF += -C -fpe2
+FDEBF += -fpe2
 
 CFLAGS +=
 COPTF +=

@@ -1,4 +1,4 @@
-// $Id: NavierStokes.cpp,v 1.6 1997-07-25 23:13:31 vince Exp $
+// $Id: NavierStokes.cpp,v 1.7 1997-07-28 21:39:54 vince Exp $
 
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3104,7 +3104,7 @@ void NavierStokes::writePlotFile(ostream &os)
         writeOtherPlotFileNames(os);
 
         for(ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp) {
-          os << dlist[lidrp]->name() << endl;
+          os << dlist[lidrp]->name() << '\n';
         }
 
 	os << BL_SPACEDIM << '\n';
@@ -3191,6 +3191,7 @@ void NavierStokes::writePlotFile(ostream &os)
           dfab->writeOn(os,0,1);
           delete dfab;
         }
+	filePosition = os.tellp();
       }
       ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition);
       os.seekp(filePosition);
@@ -4762,7 +4763,7 @@ cerr << endl;
 void NavierStokes::getGradP(FARRAYBOX &p_fab, FARRAYBOX& gp,
                             const BOX &grd, int ngrow )
 {
-bool canUse_getGradP2 = false;
+//bool canUse_getGradP2 = false;
 //assert(canUse_getGradP2);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getGradP (2)" << endl;
@@ -4798,7 +4799,7 @@ cerr << endl;
 void NavierStokes::getDivCond(FARRAYBOX& fab, int gridno, int ngrow, 
                          REAL time)
 {
-bool canUse_getDivCond = false;
+//bool canUse_getDivCond = false;
 //assert(canUse_getDivCond);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getDivCond (1)" << endl;
@@ -4815,7 +4816,7 @@ cerr << endl;
 void NavierStokes::getDsdt(FARRAYBOX& fab, int gridno, int ngrow, 
                          REAL time)
 {
-bool canUse_getDsDt = false;
+//bool canUse_getDsDt = false;
 //assert(canUse_getDsDt);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getDsdt" << endl;
@@ -4832,7 +4833,7 @@ cerr << endl;
 void NavierStokes::getState(FARRAYBOX& fab, int gridno, int ngrow,
 		       int strt_comp, int num_comp, REAL time)
 {
-bool canUse_getState1 = false;
+//bool canUse_getState1 = false;
 //assert(canUse_getState1);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getState (1)" << endl;
@@ -4846,7 +4847,7 @@ void NavierStokes::getState(FARRAYBOX& fab, int gridno, int ngrow,
 		        int state_indx, int strt_comp, int num_comp, 
                         REAL time)
 {
-bool canUse_getState2 = false;
+//bool canUse_getState2 = false;
 //assert(canUse_getState2);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getState (2)" << endl;
@@ -4939,7 +4940,7 @@ void NavierStokes::getState(FARRAYBOX& fab, int gridno, int ngrow,
                        Array<BOX>& unfilled, int
                        num_comp, int strt_comp)
 {
-bool canUse_getState3 = false;
+//bool canUse_getState3 = false;
 //assert(canUse_getState3);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getState (3)" << endl;
@@ -4979,7 +4980,7 @@ cerr << endl;
 // fill patch divU
 void NavierStokes::getDivCond(FARRAYBOX& fab, int ngrow, REAL time)
 {
-bool canUse_getDivCond = false;
+//bool canUse_getDivCond = false;
 //assert(canUse_getDivCond);
 cerr << endl;
 cerr << "Error:  should not be in NavierStokes::getDivCond (2)" << endl;
