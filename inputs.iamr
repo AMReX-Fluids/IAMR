@@ -91,59 +91,32 @@ mac.mac_tol        = 1.0e-9  # tolerence for mac projections
 mac.mac_sync_tol   = 1.0e-6   # tolerence for mac SYNC projection
 mac.mac_order      = 1        # interp type: 0 => pc 1 => quad 2 => jbb
 mac.mac_abs_tol    = 1.0e-14
-# turn any of these on to generate run-time timing stats
+#
+# Turn any of these on to generate run-time timing stats.
+#
 RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update \
-                   mac_project mac_sync level_project sync_project
-
-# select form of FAB output: default is IEEE
-#        ASCII  (this is very slow)
-#	 NATIVE (native binary form on machine)
-#        IEEE   (default, this is portable)
-fab.format =  IEEE
-
-# select single or double precision of FAB output data
-#        default is whatever precision code is compiled with.
-#fab.precision = FLOAT     # output in FLOAT or DOUBLE
-fab.precision = DOUBLE    # output in FLOAT or DOUBLE
-
-# --------------------------------------------------------------------
-# -----       CONTOUR PLOTTING ONLY AVAILABLE IN 2-D           -------
-# --------------------------------------------------------------------
-# uncomment the next line to set a default level for contour plotting
-# contour.level = 1
+                   mac_project mac_sync level_project sync_project \
+                   write_pltfile write_chkfile processor_map
 #
-# These variables control interactive contour plotting on UNIX systems
-# file_name   = root name of postscript file (will be appended with ".ps")
-# var_name    = name of thermodynamic variable to plot
-# device      = 1  => XWINDOW, 2 = POSTSCRIPT, 3 = both
-# freq        = intervals between plots (-1 = off)
-# n_cont      = number of contour lines per plot
-# sho_grd     = 0 => don't show grid placement, 1 => show grid placement
-#               2 => show grid placement and overlay velocity vector plot
-# win_siz     = number of pixels in max window direction
+# Select form of FAB output: default is NATIVE
 #
-#             file_name  var_name   device  freq  n_cont  sho_grd win_siz
-#             ---------  --------   ------  ----  ------  ------- -------
-contour.verbose = 1
-contour.plot = density   density       1     -1     20       2      400
-contour.plot = lgden     log_den       1     -5     20       1      400
-contour.plot = xvel      x_velocity    1     -1     20       1      400
-contour.plot = yvel      y_velocity    1     -1     20       1      400
-contour.plot = trac      tracer        1      1    20       1      400
-contour.plot = lgtrac    log_tracer    1     -1     20       1      400
-contour.plot = lgrt     log_rho_tracer 1    -40     20       1      400
-contour.plot = energy    energy        1     -5     15       1      400
-contour.plot = mvel      mag_vel       1     -5     20       1      400
-contour.plot = vort      mag_vort      1      1    20       1      400
-contour.plot = dEdt      dEdt          1     -1     20       1      400
-contour.plot = divu      divu          1     -1     20       1      400
-contour.plot = gradpx    gradpx        1     -1     20       1      400
-contour.plot = gradpy    gradpy        1     -1     20       1      400
-
-
-
-
-
-
-
-
+#   ASCII  (this is very slow)
+#   NATIVE (native binary form on machine -- the default)
+#   IEEE32 (useful if you want 32bit files when running in double precision)
+#   8BIT   (eight-bit run-length-encoded)
+#
+fab.format = NATIVE
+#
+# Initializes DistributionMapping strategy from ParmParse.
+#
+# ParmParse options are:
+#
+#   DistributionMapping.strategy = ROUNDROBIN
+#   DistributionMapping.strategy = KNAPSACK
+#   DistributionMapping.strategy = RANDOM
+#   DistributionMapping.strategy = SIZEBALANCED
+#
+# The default strategy is ROUNDROBIN.
+#
+DistributionMapping.strategy = KNAPSACK
+DistributionMapping.strategy = ROUNDROBIN

@@ -102,101 +102,34 @@ rad.wall_temp      = 200.0
 rad.wall_emis      = 0.5
 rad.wall_emis      = 1.0
 rad.wall_emis      = 0.0
-
-# turn any of these on to generate run-time timing stats
+#
+# Turn any of these on to generate run-time timing stats.
+#
 RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update \
-                   mac_project mac_sync level_project sync_project
-
-# select form of FAB output: default is IEEE
-#        ASCII  (this is very slow)
-#	 NATIVE (native binary form on machine)
-#        IEEE   (default, this is portable)
-fab.format =  IEEE
-
-# select single or double precision of FAB output data
-#        default is whatever precision code is compiled with.
-#fab.precision = FLOAT     # output in FLOAT or DOUBLE
-fab.precision = DOUBLE    # output in FLOAT or DOUBLE
-
-# --------------------------------------------------------------------
-# -----       CONTOUR PLOTTING ONLY AVAILABLE IN 2-D           -------
-# --------------------------------------------------------------------
-# uncomment the next line to set a default level for contour plotting
-# contour.level = 1
+                   mac_project mac_sync level_project sync_project \
+                   write_pltfile write_chkfile processor_map
 #
-# These variables control interactive contour plotting on UNIX systems
-# file_name   = root name of postscript file (will be appended with ".ps")
-# var_name    = name of thermodynamic variable to plot
-# device      = 1  => XWINDOW, 2 = POSTSCRIPT, 3 = both
-# freq        = intervals between plots (-1 = off)
-# n_cont      = number of contour lines per plot
-# sho_grd     = 0 => don't show grid placement, 1 => show grid placement
-#               2 => show grid placement and overlay velocity vector plot
-# win_siz     = number of pixels in max window direction
+# Select form of FAB output: default is NATIVE
 #
-#             file_name  var_name   device  freq  n_cont  sho_grd win_siz
-#             ---------  --------   ------  ----  ------  ------- -------
-contour.verbose = 1
-
-contour.xslice = 2.0
-contour.yslice = 2.0
-contour.zslice = 2.0
-
-contour.plot = density   density       1     -1     20       2      400
-contour.plot = lgden     log_den       1     -5     20       1      400
-contour.plot = xvel      x_velocity    1     -1     20       1      400
-contour.plot = yvel      y_velocity    1     -1     20       1      400
-contour.plot = trac      tracer        1     -1     20       1      400
-contour.plot = lgtrac    log_tracer    1     -1     20       1      400
-contour.plot = lgrt     log_rho_tracer 1    -40     20       1      400
-contour.plot = energy    energy        1     -5     15       1      400
-contour.plot = mvel      mag_vel       1     -5     20       1      400
-contour.plot = vort      mag_vort      1     -1     20       1      400
-contour.plot = dEdt      dEdt          1     -1     20       1      400
-contour.plot = divu      divu          1     -1     20       1      400
-contour.plot = gradpx    gradpx        1     -1     20       1      400
-contour.plot = gradpy    gradpy        1     -1     20       1      400
-
-
-# --------------------------------------------------------------------
-# -----     RASTER PLOTTING ONLY AVAILABLE IN 2-D AND 3D      --------
-# --------------------------------------------------------------------
-# uncomment to choose default region for rastplot graphics generation
-# The default for graphics_box is the entire problem domain
-# raster.region = 0 31 0 31 0 29
+#   ASCII  (this is very slow)
+#   NATIVE (native binary form on machine -- the default)
+#   IEEE32 (useful if you want 32bit files when running in double precision)
+#   8BIT   (eight-bit run-length-encoded)
 #
-# uncomment to choose the graphics level for raster graphics
-# The default is the maximul amr level
-# raster.level = 1
+fab.format = NATIVE
 #
-# uncomment to output postscript file containg grid locations
-#raster.grid_loc = TRUE
-raster.verbose = TRUE
-#raster.plot_dt = 0.5
+# Initializes DistributionMapping strategy from ParmParse.
 #
-# These variables control generation of color raster files
-# file_name = root name of raster file generated
-# var_name  = name of thermodynamic variable to plot
-# interval  = timesteps between plotting (-1 = off)
-# out_type  = form of output, choices are:
-#             hdf_sds     (HDF Scientific Data Type (2-D, 3-D))
-#             hdf_8       (HDF 8-bit (2-D only))
-#             file_name  var_name  interval out_type
-#             ---------  --------  -------- --------
-raster.plot =  density   density       -5     hdf_sds
-raster.plot =  lgden     log_den      -40     hdf_sds
-raster.plot =  xvel      x_velocity    -1     hdf_sds
-raster.plot =  yvel      y_velocity    -1     hdf_sds
-raster.plot =  zvel      z_velocity    -1     hdf_sds
-raster.plot =  trac      tracer        -1     hdf_sds
-raster.plot =  lgtrac    log_tracer   -40     hdf_sds
-raster.plot =  lgrt    log_rho_tracer -40     hdf_sds
-raster.plot =  energy    energy       -50    hdf_sds
-raster.plot =  mvel      mag_vel       -1     hdf_sds
-raster.plot =  vort      mag_vort      -1     hdf_sds
-raster.plot =  dEdt      dEdt         -40     hdf_sds
-raster.plot =  divu      divu         -40     hdf_sds
-raster.plot =  gradpx    gradpx       -40     hdf_sds
-raster.plot =  gradpy    gradpy       -40     hdf_sds
+# ParmParse options are:
+#
+#   DistributionMapping.strategy = ROUNDROBIN
+#   DistributionMapping.strategy = KNAPSACK
+#   DistributionMapping.strategy = RANDOM
+#   DistributionMapping.strategy = SIZEBALANCED
+#
+# The default strategy is ROUNDROBIN.
+#
+DistributionMapping.strategy = KNAPSACK
+DistributionMapping.strategy = ROUNDROBIN
 
 

@@ -109,16 +109,36 @@ mac.mac_tol        = 1.0e-9  # tolerence for mac projections
 mac.mac_sync_tol   = 1.0e-6   # tolerence for mac SYNC projection
 mac.mac_order      = 1        # interp type: 0 => pc 1 => quad 2 => jbb
 mac.mac_abs_tol    = 1.0e-14
-# turn any of these on to generate run-time timing stats
+#
+# Turn any of these on to generate run-time timing stats.
+#
 RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update \
-                   mac_project mac_sync level_project sync_project
-
-# select form of FAB output: default is NATIVE
+                   mac_project mac_sync level_project sync_project \
+                   write_pltfile write_chkfile processor_map
+#
+# Select form of FAB output: default is NATIVE
+#
 #   ASCII  (this is very slow)
-#   NATIVE (native binary form on machine - the default)
+#   NATIVE (native binary form on machine -- the default)
 #   IEEE32 (useful if you want 32bit files when running in double precision)
+#   8BIT   (eight-bit run-length-encoded)
+#
 fab.format = NATIVE
-
+#
+# Initializes DistributionMapping strategy from ParmParse.
+#
+# ParmParse options are:
+#
+#   DistributionMapping.strategy = ROUNDROBIN
+#   DistributionMapping.strategy = KNAPSACK
+#   DistributionMapping.strategy = RANDOM
+#   DistributionMapping.strategy = SIZEBALANCED
+#
+# The default strategy is ROUNDROBIN.
+#
+DistributionMapping.strategy = KNAPSACK
+DistributionMapping.strategy = ROUNDROBIN
+#
 # --------------------------------------------------------------------
 # -----       CONTOUR PLOTTING ONLY AVAILABLE IN 2-D           -------
 # --------------------------------------------------------------------
