@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.13 1999-06-07 17:30:09 marc Exp $
+c $Id: GODUNOV_2D.F,v 1.14 1999-08-20 17:04:17 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -60,8 +60,8 @@ c
          do i = lo(1), hi(1)
             u = max(u,abs(vel(i,j,1)))
             v = max(v,abs(vel(i,j,2)))
-            tforce1 = max(tforce1,abs(tforces(i,j,1)/rho(i,j)))
-            tforce2 = max(tforce2,abs(tforces(i,j,2)/rho(i,j)))
+c            tforce1 = max(tforce1,abs(tforces(i,j,1)/rho(i,j)))
+c            tforce2 = max(tforce2,abs(tforces(i,j,2)/rho(i,j)))
          end do
       end do
 

@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.12 1999-06-07 17:30:09 marc Exp $
+c $Id: GODUNOV_3D.F,v 1.13 1999-08-20 17:04:17 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -61,9 +61,9 @@ c
                u = max(u,abs(vel(i,j,k,1)))	
                v = max(v,abs(vel(i,j,k,2)))
                w = max(w,abs(vel(i,j,k,3)))
-               tforce1 = max(tforce1,abs(tforces(i,j,k,1)/rho(i,j,k)))
-               tforce2 = max(tforce2,abs(tforces(i,j,k,2)/rho(i,j,k)))
-               tforce3 = max(tforce3,abs(tforces(i,j,k,3)/rho(i,j,k)))
+c               tforce1 = max(tforce1,abs(tforces(i,j,k,1)/rho(i,j,k)))
+c               tforce2 = max(tforce2,abs(tforces(i,j,k,2)/rho(i,j,k)))
+c               tforce3 = max(tforce3,abs(tforces(i,j,k,3)/rho(i,j,k)))
             end do
          end do
       end do
