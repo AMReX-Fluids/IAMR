@@ -1,7 +1,8 @@
 #ifndef _Amr_H_
 #define _Amr_H_ 
 
-#include <stdio.h>
+#include <fstream.h>
+
 #include <Box.H>
 #include <BoxList.H>
 #include <RealBox.H>
