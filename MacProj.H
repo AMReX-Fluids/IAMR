@@ -1,7 +1,7 @@
 #ifndef _MacProj_H_
 #define _MacProj_H_
 //
-// $Id: MacProj.H,v 1.25 2003-02-06 19:07:22 almgren Exp $
+// $Id: MacProj.H,v 1.26 2004-02-20 18:10:27 lijewski Exp $
 //
 #include <BC_TYPES.H>
 #include <BCRec.H>
@@ -22,11 +22,11 @@ public:
     virtual ~MacProj ();
     void read_params ();
     
-    void install_level (int           level, 
-                        AmrLevel*     level_data,
-                        MultiFab&     volume,
-                        MultiFab*     area,
-                        PArray<Real>* _radius );
+    void install_level (int                   level, 
+                        AmrLevel*             level_data,
+                        MultiFab&             volume,
+                        MultiFab*             area,
+                        Array< Array<Real> >* _radius );
     
     void setup (int level);
     void cleanup (int level);
@@ -118,8 +118,8 @@ protected:
     //
     // Radius data.
     //
-    int                    radius_grow;
-    PArray< PArray<Real> > radius;
+    int                            radius_grow;
+    PArray< Array< Array<Real> > > radius;
     //
     // Parameters.
     //

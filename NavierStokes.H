@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.85 2003-10-15 18:02:03 marc Exp $
+// $Id: NavierStokes.H,v 1.86 2004-02-20 18:10:28 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -705,7 +705,7 @@ protected:
     //
     // Radii for r-z calculations.
     //
-    PArray<Real> radius;
+    Array< Array<Real> > radius;
     //
     // Flag for doing first step after regrid
     //

@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.94 2003-09-11 21:10:14 almgren Exp $
+// $Id: MacProj.cpp,v 1.95 2004-02-20 18:10:27 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -115,11 +115,11 @@ MacProj::read_params ()
 }
 
 void
-MacProj::install_level (int           level,
-                        AmrLevel*     level_data,
-                        MultiFab&     _volume,
-                        MultiFab*     _area,
-                        PArray<Real>* _radius )
+MacProj::install_level (int                   level,
+                        AmrLevel*             level_data,
+                        MultiFab&             _volume,
+                        MultiFab*             _area,
+                        Array< Array<Real> >* _radius)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Installing MacProj level " << level << '\n';

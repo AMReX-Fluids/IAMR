@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.237 2004-02-10 06:42:06 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.238 2004-02-20 18:10:28 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -413,8 +413,6 @@ NavierStokes::read_params ()
 }
 
 NavierStokes::NavierStokes ()
-    :
-    radius(PArrayManage)
 {
     rho_avg      = 0;
     rho_half     = 0;
@@ -445,8 +443,7 @@ NavierStokes::NavierStokes (Amr&            papa,
                             const BoxArray& bl,
                             Real            time)
     :
-    AmrLevel(papa,lev,level_geom,bl,time),
-    radius(PArrayManage)
+    AmrLevel(papa,lev,level_geom,bl,time)
 {
     if(!additional_state_types_initialized)
         init_additional_state_types();
@@ -514,7 +511,7 @@ NavierStokes::NavierStokes (Amr&            papa,
         projector = new Projection(parent,&phys_bc,do_sync_proj,
                                    parent->finestLevel(),radius_grow);
     }
-    projector->install_level(level,this,&radius );
+    projector->install_level(level,this,&radius);
     //
     // Set up the godunov box.
     //
@@ -552,7 +549,7 @@ NavierStokes::NavierStokes (Amr&            papa,
         mac_projector = new MacProj(parent,parent->finestLevel(),
                                     &phys_bc,radius_grow);
     }
-    mac_projector->install_level(level,this,volume,area,&radius );
+    mac_projector->install_level(level,this,volume,area,&radius);
 }
 
 NavierStokes::~NavierStokes ()
@@ -837,18 +834,19 @@ NavierStokes::buildMetrics ()
         const int ilo = grids[i].smallEnd(0)-radius_grow;
         const int ihi = grids[i].bigEnd(0)+radius_grow;
         const int len = ihi - ilo + 1;
-        Real* rad = new Real[len];
-        radius.set(i,rad);
+
+        radius[i].resize(len);
+
         if (CoordSys::IsCartesian())
         {
             for (int j = 0; j < len; j++)
-                rad[j] = 1.0;
+                radius[i][j] = 1.0;
         }
         else
         {
             const Real xlo = grid_loc[i].lo(0) + (0.5 - radius_grow)*dxr;
             for (int j = 0; j < len; j++)
-                rad[j] = xlo + j*dxr;
+                radius[i][j] = xlo + j*dxr;
         }
     }
     //
@@ -2601,7 +2599,7 @@ NavierStokes::volWgtSum (const std::string& name,
         const int*  dhi = fab.hiVect();
         const int*  lo  = grids[mfi.index()].loVect();
         const int*  hi  = grids[mfi.index()].hiVect();
-        Real*       rad = &radius[mfi.index()];
+        Real*       rad = &radius[mfi.index()][0];
 
         tmp.resize(hi[1]-lo[1]+1);
 

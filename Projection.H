@@ -3,7 +3,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.41 2003-02-21 22:49:10 car Exp $
+// $Id: Projection.H,v 1.42 2004-02-20 18:10:28 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -35,9 +35,9 @@ public:
     //
     // Set a level in the projector.
     //
-    void install_level (int           level,
-                        AmrLevel*     level_data,
-                        PArray<Real>* _radius );
+    void install_level (int                   level,
+                        AmrLevel*             level_data,
+                        Array< Array<Real> >* radius);
     //
     // Reset finest_level.
     //
@@ -328,7 +328,6 @@ protected:
     void putDown(MultiFab** phi, FArrayBox* phi_fine_strip,
 		 int c_lev, int f_lev, const Orientation* outFaces,
 		 int numOutFlowFaces, int ncStripWidth);
-
     //
     // Pointers to amrlevel and amr.
     //
@@ -337,8 +336,8 @@ protected:
     //
     // The array of Radii, and number of radii ghost cells.
     //
-    int                    radius_grow;
-    PArray< PArray<Real> > radius;
+    int                            radius_grow;
+    PArray< Array< Array<Real> > > radius;
     //
     // The aliasLib level projector.
     //

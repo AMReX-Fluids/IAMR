@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.156 2004-02-18 16:50:03 lijewski Exp $
+// $Id: Projection.cpp,v 1.157 2004-02-20 18:10:28 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -217,9 +217,9 @@ Projection::setUpBcs ()
 //
 
 void
-Projection::install_level (int           level,
-                           AmrLevel*     level_data,
-                           PArray<Real>* _radius)
+Projection::install_level (int                   level,
+                           AmrLevel*             level_data,
+                           Array< Array<Real> >* _radius)
 {
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "Installing projector level " << level << '\n';
@@ -2212,7 +2212,7 @@ Projection::radMult (int       level,
         const int* lo = mfmfi.validbox().loVect();
         const int* hi = mfmfi.validbox().hiVect();
         Real* dat     = mf[mfmfi].dataPtr(comp);
-        Real* rad     = &radius[level][mfmfi.index()];
+        Real* rad     = &radius[level][mfmfi.index()][0];
 
         FORT_RADMPY(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
                     rad,&nr,&bogus_value);
@@ -2247,7 +2247,7 @@ Projection::radDiv (int       level,
         const int* lo  = mfmfi.validbox().loVect();
         const int* hi  = mfmfi.validbox().hiVect();
         Real*      dat = mf[mfmfi].dataPtr(comp);
-        Real*      rad = &radius[level][mfmfi.index()];
+        Real*      rad = &radius[level][mfmfi.index()][0];
 
         FORT_RADDIV(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
                     rad,&nr,&bogus_value);
