@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.5 1997-10-08 20:15:30 car Exp $
+// $Id: Godunov.cpp,v 1.6 1997-11-18 18:31:28 car Exp $
 //
 
 //==========================================================
@@ -158,17 +158,17 @@ void Godunov::SetScratch( int max_size )
 // remove 1D scratch space
 void Godunov::RemScratch()
 {
-    if ( stxlo  != NULL ) delete [] stxlo;
-    if ( stxhi  != NULL ) delete [] stxhi;
-    if ( slxscr != NULL ) delete [] slxscr;
+    delete [] stxlo;
+    delete [] stxhi;
+    delete [] slxscr;
     
-    if ( stylo  != NULL ) delete [] stylo;
-    if ( styhi  != NULL ) delete [] styhi;
-    if ( slyscr != NULL ) delete [] slyscr;
+    delete [] stylo;
+    delete [] styhi;
+    delete [] slyscr;
 #ifdef ADD_W    
-    if ( stzlo  != NULL ) delete [] stzlo;
-    if ( stzhi  != NULL ) delete [] stzhi;
-    if ( slzscr != NULL ) delete [] slzscr; 
+    delete [] stzlo;
+    delete [] stzhi;
+    delete [] slzscr; 
 #endif
 }
 

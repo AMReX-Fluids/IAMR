@@ -1,6 +1,6 @@
 
 //
-// $Id: hg_multi1.cpp,v 1.14 1997-11-18 00:41:44 car Exp $
+// $Id: hg_multi1.cpp,v 1.15 1997-11-18 18:31:32 car Exp $
 //
 
 #include <Tracer.H>
@@ -47,10 +47,10 @@ extern "C"
 
 void 
 holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
-				     PArray<MultiFab>& Source,
-				     PArray<MultiFab>& Coarse_source,
-				     PArray<MultiFab>& Sigma,
-				     Real H[], int Lev_min, int Lev_max)
+				PArray<MultiFab>& Source,
+				PArray<MultiFab>& Coarse_source,
+				PArray<MultiFab>& Sigma,
+				Real H[], int Lev_min, int Lev_max)
 {
   int lev, mglev, i;
 
@@ -221,9 +221,9 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
 
 void 
 holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
-					     const Box& region,
-					     FArrayBox& fgr,
-					     const IntVect& rat) const
+					const Box& region,
+					FArrayBox& fgr,
+					const IntVect& rat) const
 {
   assert(patch.box().cellCentered());
   assert(rat[0] == 2 && rat[1] == 2 ||
@@ -236,13 +236,13 @@ holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 #if (BL_SPACEDIM == 3)
 		patch.dataPtr(2),
 #endif
-		dimlist(patch.box()),
-		dimlist(region),
+		DIMLIST(patch.box()),
+		DIMLIST(region),
 		fgr.dataPtr(), fgr.dataPtr(),
 #if (BL_SPACEDIM == 3)
 		fgr.dataPtr(),
 #endif
-		dimlist(fgr.box()),
+		DIMLIST(fgr.box()),
 		D_DECL(rat[0], rat[1], rat[2]));
   }
   else 
@@ -251,13 +251,13 @@ holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 #if (BL_SPACEDIM == 3)
 		patch.dataPtr(2),
 #endif
-		dimlist(patch.box()),
-		dimlist(region),
+		DIMLIST(patch.box()),
+		DIMLIST(region),
 		fgr.dataPtr(0), fgr.dataPtr(1),
 #if (BL_SPACEDIM == 3)
 		fgr.dataPtr(2),
 #endif
-		dimlist(fgr.box()),
+		DIMLIST(fgr.box()),
 		D_DECL(rat[0], rat[1], rat[2]));
   }
 }
@@ -426,14 +426,14 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
       const Box& snbox = sigma_mfi().box();
       const Box& reg = interface[mglev].part_fine(smfi.index());
       FORT_HGSCON(sigma_mfi().dataPtr(),
-                  dimlist(snbox),
+                  DIMLIST(snbox),
                   snd_0().dataPtr(),
                   snd_1().dataPtr(),
 #    if (BL_SPACEDIM == 3)
                   snd_2().dataPtr(),
 #    endif
-                  dimlist(scbox),
-                  dimlist(reg),
+                  DIMLIST(scbox),
+                  DIMLIST(reg),
 #    if (BL_SPACEDIM == 2)
                   hx, hy
 #    else
@@ -497,14 +497,14 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
       const Box& reg = interface[mglev].part_fine(igrid);
 #  ifndef SIGMA_NODE
       const Box& sigbox = sigma[mglev][igrid].box();
-      FORT_HGCEN(cen[mglev][igrid].dataPtr(), dimlist(cenbox),
+      FORT_HGCEN(cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
 		 sigma_nd[0][mglev][igrid].dataPtr(),
 		 sigma_nd[1][mglev][igrid].dataPtr(),
 #    if (BL_SPACEDIM == 3)
 		 sigma_nd[2][mglev][igrid].dataPtr(),
 #    endif
-                 dimlist(sigbox),
-		 dimlist(reg),
+                 DIMLIST(sigbox),
+		 DIMLIST(reg),
 #    if (BL_SPACEDIM == 2)
 		 hx, hy,
 		 IsRZ(), mg_domain[mglev].bigEnd(0) + 1
@@ -514,10 +514,10 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		 );
 #  else
       const Box& sigbox = sigma_node[mglev][igrid].box();
-      FORT_HGCEN(cen[mglev][igrid].dataPtr(), dimlist(cenbox),
+      FORT_HGCEN(cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
 		 sigma_node[mglev][igrid].dataPtr(),
-                 dimlist(sigbox),
-		 dimlist(reg));
+                 DIMLIST(sigbox),
+		 DIMLIST(reg));
 #  endif
     }
 
@@ -737,7 +737,7 @@ holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
   IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
   if (get_amr_level(lto) >= 0) 
   {
-    restrict_level(resid[lto], 0, work[lfrom], rat, 
+    restrict_level(resid[lto], false, work[lfrom], rat, 
 #ifdef HG_USE_CACHE
 	work_bcache[lfrom],
 #endif
@@ -765,8 +765,8 @@ holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
     const Box& fbox = work[lfrom][igrid].box();
     const Box& cbox = resid[lto][igrid].box();
     const Box& creg = interface[lto].part_fine(igrid);
-    FANRST2(resid[lto][igrid].dataPtr(), dimlist(cbox), dimlist(creg),
-	    work[lfrom][igrid].dataPtr(), dimlist(fbox),
+    FANRST2(resid[lto][igrid].dataPtr(), DIMLIST(cbox), DIMLIST(creg),
+	    work[lfrom][igrid].dataPtr(), DIMLIST(fbox),
 	    D_DECL(rat[0], rat[1], rat[2]));
   }
 
@@ -777,27 +777,27 @@ holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 
 void 
 holy_grail_interpolator_class::fill(FArrayBox& patch,
-					 const Box& region,
-					 FArrayBox& cgr,
-					 const Box& cb,
-					 const IntVect& rat) const
+				    const Box& region,
+				    FArrayBox& cgr,
+				    const Box& cb,
+				    const IntVect& rat) const
 {
 #ifndef SIGMA_NODE
 
-  FORT_HGINTS(patch.dataPtr(), dimlist(patch.box()), dimlist(region),
+  FORT_HGINTS(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
 	      sigptr[0], sigptr[1],
 #if (BL_SPACEDIM == 3)
               sigptr[2],
 #endif
-              dimlist(sigbox),
-	      cgr.dataPtr(), dimlist(cgr.box()), dimlist(cb),
+              DIMLIST(sigbox),
+	      cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
 	      D_DECL(rat[0], rat[1], rat[2]));
 
 #else
 
-  FORT_HGINTS(patch.dataPtr(), dimlist(patch.box()), dimlist(region),
-	      sigptr, dimlist(sigbox),
-	      cgr.dataPtr(), dimlist(cgr.box()), dimlist(cb),
+  FORT_HGINTS(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
+	      sigptr, DIMLIST(sigbox),
+	      cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
 	      D_DECL(rat[0], rat[1], rat[2]));
 
 #endif
@@ -873,8 +873,8 @@ holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
       const Box& cbox = corr[lfrom][igrid].box();
       const Box& creg = corr[lfrom].box(igrid);
 #ifdef HG_CONSTANT
-      FANINT2(work[lto][igrid].dataPtr(), dimlist(fbox), dimlist(freg),
-	      corr[lfrom][igrid].dataPtr(), dimlist(cbox), dimlist(creg),
+      FANINT2(work[lto][igrid].dataPtr(), DIMLIST(fbox), DIMLIST(freg),
+	      corr[lfrom][igrid].dataPtr(), DIMLIST(cbox), DIMLIST(creg),
 	      rat);
 #else
 #ifndef SIGMA_NODE
@@ -882,7 +882,7 @@ holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 #else
       const Box& sigbox = sigma_node[lto][igrid].box();
 #endif
-      FORT_HGINTS(work[lto][igrid].dataPtr(), dimlist(fbox), dimlist(freg),
+      FORT_HGINTS(work[lto][igrid].dataPtr(), DIMLIST(fbox), DIMLIST(freg),
 #ifndef SIGMA_NODE
 		  sigma_nd[0][lto][igrid].dataPtr(),
 		  sigma_nd[1][lto][igrid].dataPtr(),
@@ -892,8 +892,8 @@ holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 #else
 		  sigma_node[lto][igrid].dataPtr(),
 #endif
-                  dimlist(sigbox),
-		  corr[lfrom][igrid].dataPtr(), dimlist(cbox), dimlist(creg),
+                  DIMLIST(sigbox),
+		  corr[lfrom][igrid].dataPtr(), DIMLIST(cbox), DIMLIST(creg),
 		  D_DECL(rat[0], rat[1], rat[2]));
 #endif
     }

@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.15 1997-11-18 00:06:32 lijewski Exp $
+// $Id: TagBox.cpp,v 1.16 1997-11-18 18:31:29 car Exp $
 //
 
 #include <TagBox.H>
@@ -14,7 +14,8 @@ extern  void inspectTAGArray( const TagBoxArray& tba );
 extern  void inspectTAG( const TagBox& tb, int n);
 extern  void inspectFAB( FArrayBox& unfab, int n );
 
-struct TagBoxMergeDesc {
+struct TagBoxMergeDesc
+{
   bool destLocal;
   int mergeIndexSrc;
   int mergeIndexDest;
@@ -23,7 +24,8 @@ struct TagBoxMergeDesc {
   FillBoxId fillBoxId;
 };
 
-TagBox::TagBox() {
+TagBox::TagBox() 
+{
 }
 
 TagBox::TagBox(const Box &bx, int n)
@@ -32,7 +34,8 @@ TagBox::TagBox(const Box &bx, int n)
   setVal(CLEAR);
 }
 
-TagBox::~TagBox() {
+TagBox::~TagBox()
+{
 }
 
 
@@ -373,7 +376,8 @@ TagBoxArray::TagBoxArray(const BoxArray &ba, int _ngrow)
 }
 
 
-TagBoxArray::~TagBoxArray() {
+TagBoxArray::~TagBoxArray() 
+{
 }
 
 

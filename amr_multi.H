@@ -2,7 +2,7 @@
 #define _AMR_MULTI_H_
 
 //
-// $Id: amr_multi.H,v 1.9 1997-10-08 20:15:49 car Exp $
+// $Id: amr_multi.H,v 1.10 1997-11-18 18:31:30 car Exp $
 //
 
 #include <fill_patch.H>
@@ -95,6 +95,7 @@ class amr_multigrid
       c_sys = 0;
   }
 
+#if (BL_SPACEDIM == 2)
   static int IsRZ()
   {
       return c_sys; }
@@ -102,7 +103,7 @@ class amr_multigrid
   {
       return !c_sys;
   }
-
+#endif
   static void mesh_read(Array<BoxArray>& m, Array<IntVect>& r,
 			Array<Box>& d, istream& is);
 

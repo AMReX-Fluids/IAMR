@@ -1,6 +1,6 @@
 
 //
-// $Id: interpolator.cpp,v 1.5 1997-10-08 20:15:56 car Exp $
+// $Id: interpolator.cpp,v 1.6 1997-11-18 18:31:35 car Exp $
 //
 
 #include <interpolator.H>
@@ -49,8 +49,8 @@ bilinear_interpolator_class::fill(FArrayBox& patch,
   {
     for (int i = 0; i < patch.nComp(); i++) 
     {
-      FACINT2(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
-	      cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb),
+      FACINT2(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
+	      cgr.dataPtr(i), DIMLIST(cgr.box()), DIMLIST(cb),
 	      D_DECL(rat[0], rat[1], rat[2]));
     }
   }
@@ -61,8 +61,8 @@ bilinear_interpolator_class::fill(FArrayBox& patch,
     {
       for (int i = 0; i < patch.nComp(); i++) 
       {
-	FANINT2(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
-		cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb),
+	FANINT2(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
+		cgr.dataPtr(i), DIMLIST(cgr.box()), DIMLIST(cb),
 		D_DECL(rat[0], rat[1], rat[2]));
       }
     }
@@ -71,8 +71,8 @@ bilinear_interpolator_class::fill(FArrayBox& patch,
       FArrayBox epatch(eregion, patch.nComp());
       for (int i = 0; i < patch.nComp(); i++) 
       {
-	FANINT2(epatch.dataPtr(i), dimlist(epatch.box()), dimlist(eregion),
-		cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb),
+	FANINT2(epatch.dataPtr(i), DIMLIST(epatch.box()), DIMLIST(eregion),
+		cgr.dataPtr(i), DIMLIST(cgr.box()), DIMLIST(cb),
 		D_DECL(rat[0], rat[1], rat[2]));
       }
       patch.copy(epatch,region);

@@ -2,7 +2,7 @@
 #define _FILL_PATCH_H_
 
 //
-// $Id: fill_patch.H,v 1.8 1997-10-08 20:15:51 car Exp $
+// $Id: fill_patch.H,v 1.9 1997-11-18 18:31:31 car Exp $
 //
 
 #include <interface.H>
@@ -22,25 +22,6 @@ extern "C"
   void FFCPY(Real*, intS, intS, Real*, intS, const int&);
 }
 
-/*
-class alias_fab {
- protected:
-  FArrayBox* ptr;
-  int owned;
- public:
-  
-  ~alias_fab() {
-    if (owned) delete ptr;
-  }
-  FArrayBox& operator FArrayBox() {
-    return *ptr;
-  }
-
- private:
-  
-};
-*/
-
 inline void 
 internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b) 
 {
@@ -48,37 +29,22 @@ internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b)
     Real *const sptr = r[srcgrid].dataPtr();
     const Box& dbx = r[destgrid].box();
     const Box& sbx = r[srcgrid].box();
-    FFCPY(dptr, dimlist(dbx), dimlist(b), sptr, dimlist(sbx), r.nComp());
+    FFCPY(dptr, DIMLIST(dbx), DIMLIST(b), sptr, DIMLIST(sbx), r.nComp());
 }
 
 Real inner_product(MultiFab& r, MultiFab& s);
 
-/*
-const level_real&
-    initialize(Real (*f)(const Intvect&,const Intvect&,int,int)) const;
-*/
 
-  // individual bits of flags are interpreted separately:
-  // 1-bit:  action when part of patch cannot be filled
-  //   0 -> ignore (i.e., fill-on-intersect) (default)
-  //   1 -> return 0 indicating error
-  // 2-bit:  controls use of ghost cells of source level_real
-  //   0 -> ignore values in ghost cells (default)
-  //   1 -> use values from ghost cells
-  // 4-bit:  what to do with part of patch that can't be filled
-  //   0 -> ignore (default)
-  //   1 -> fill this section with zeroes to avoid floating-point errors
-
-/*
-  grid_real get_patch(const Box& region,
-		      const level_interface& interface,
-		      amr_boundary bdy = error_boundary,
-		      int flags = 0);
-  int get_patch(grid_real& patch, const Box& region,
-		const level_interface& interface,
-		amr_boundary bdy = error_boundary,
-		int flags = 0);
-*/
+// individual bits of flags are interpreted separately:
+// 1-bit:  action when part of patch cannot be filled
+//   0 -> ignore (i.e., fill-on-intersect) (default)
+//   1 -> return 0 indicating error
+// 2-bit:  controls use of ghost cells of source level_real
+//   0 -> ignore values in ghost cells (default)
+//   1 -> use values from ghost cells
+// 4-bit:  what to do with part of patch that can't be filled
+//   0 -> ignore (default)
+//   1 -> fill this section with zeroes to avoid floating-point errors
 
 // returns grid number if patch is contained in a single grid,
 // uses only 2-bit of flags
@@ -101,23 +67,6 @@ fill_patch(FArrayBox& patch,
     return fill_patch(patch, patch.box(), r, interface, bdy,
 	flags, idim, index);
 }
-
-/*
-  // fill_patch returns 1 if successful, 0 if not
-  // if (flags & 1) is 0, it may return 1 even if patch is not filled
-  int fill_patch(FArrayBox& patch, const Box& region,
-		 const Box& active,
-		 amr_boundary bdy = error_boundary,
-		 int flags = 0, int igrid = -1);
-  int fill_patch(FArrayBox& patch, const Box& region,
-		 amr_boundary bdy = error_boundary,
-		 int flags = 0, int igrid = -1)
-    { return fill_patch(patch, region, region, bdy, flags, igrid); }
-  int fill_patch(FArrayBox& patch,
-		 amr_boundary bdy = error_boundary,
-		 int flags = 0, int igrid = -1)
-    { return fill_patch(patch, patch.box(), bdy, flags, igrid); }
-*/
 
   // fills region of patch wherever it intersects interior grids
   // does not check to see if all of patch is filled, ignores boundaries
@@ -170,11 +119,11 @@ sync_borders(MultiFab& r,
 
 void fill_borders(MultiFab& r,
 #ifdef HG_USE_CACHE
-			 const copy_cache* border_cache,
+		  const copy_cache* border_cache,
 #endif
-			 const level_interface& interface,
-			 const amr_boundary_class& bdy = error_boundary,
-			 int w = -1);
+		  const level_interface& interface,
+		  const amr_boundary_class& bdy = error_boundary,
+		  int w = -1);
 
 void clear_part_interface(MultiFab& r, const level_interface& interface);
 
@@ -219,7 +168,7 @@ restrict_patch(FArrayBox& patch,
 	restric, interface, bdy);
 }
 
-void restrict_level(MultiFab& dest, int bflag,
+void restrict_level(MultiFab& dest, bool bflag,
 	       MultiFab& r, const IntVect& rat,
 #ifdef HG_USE_CACHE
 	       const copy_cache* border_cache = 0,
@@ -238,7 +187,7 @@ restrict_level(MultiFab& dest,
 	       const level_interface& interface = null_level_interface,
 	       const amr_boundary_class& bdy = error_boundary)
 {
-    restrict_level(dest, 0, r, rat, 
+    restrict_level(dest, false, r, rat, 
 #ifdef HG_USE_CACHE
 	border_cache, 
 #endif

@@ -1,6 +1,6 @@
 
 //
-// $Id: AmrLevel.cpp,v 1.17 1997-10-21 22:00:50 vince Exp $
+// $Id: AmrLevel.cpp,v 1.18 1997-11-18 18:31:28 car Exp $
 //
 
 // #define ADVANCE_DEBUG 1
@@ -37,7 +37,8 @@ DeriveList      AmrLevel::derive_lst;
 // -------------------------------------------------------------
 
 // -------------------------------------------------------------
-AmrLevel::AmrLevel() {
+AmrLevel::AmrLevel() 
+{
    parent = 0;
    level = -1;
 }
@@ -156,7 +157,8 @@ AmrLevel::countCells()
 void
 AmrLevel::checkPoint(ostream& os)
 {
-  if(ParallelDescriptor::IOProcessor()) {
+  if(ParallelDescriptor::IOProcessor()) 
+  {
     os << level << '\n';
     os << geom << '\n';
 
@@ -462,7 +464,8 @@ void FillPatchIterator::Initialize(const int boxGrow,
 
 
 // -------------------------------------------------------------
-bool FillPatchIterator::isValid() {
+bool FillPatchIterator::isValid() 
+{
 
 // if the currentIndex is valid,
 // this function will fill the currentFillPatchedFab from state
@@ -743,7 +746,8 @@ cout << "unfilled box on level " << currentLevel
 
 
 // -------------------------------------------------------------
-bool FillPatchIterator::isValid() {
+bool FillPatchIterator::isValid() 
+{
 
 // if the currentIndex is valid,
 // this function will fill the currentFillPatchedFab from state
@@ -813,7 +817,7 @@ cout << "Resizing coarse fab to " << tempCoarseBox << NL;
       // get the state data
 
 /* linInterp */
-cout << "linInterp on coarse.box() = " << coarseDestFabPtr->box() << NL;
+    cout << "linInterp on coarse.box() = " << coarseDestFabPtr->box() << NL;
       currentState.linInterpFillFab(multiFabCopyDesc,
                             stateDataMFId[currentLevel],
                             fillBoxId[currentIndex][currentLevel][currentBox],
@@ -824,8 +828,8 @@ cout << "linInterp on coarse.box() = " << coarseDestFabPtr->box() << NL;
     const RealBox &realProbDomain = amrLevels[currentLevel].geom.ProbDomain();
 
 /* FillBoundary */
-cout << "FillBoundary on coarse.box() = " << coarseDestFabPtr->box() << "  outside b
-oundary " << realProbDomain << NL;
+    cout << "FillBoundary on coarse.box() = " << coarseDestFabPtr->box() 
+	 << "  outside boundary " << realProbDomain << NL;
     currentState.FillBoundary(*coarseDestFabPtr, interpTime, dx,
                               realProbDomain, destComp, srcComp, nComp);
 
@@ -1610,7 +1614,8 @@ AmrLevel::FillCoarsePatch(MultiFab &mfdest,
     map->interp(crse,0,dest,dest_comp,ncomp,dbox,
 		crse_ratio,crse_geom,geom,bc_crse);
 
-    if( ! p_domain.contains(dbox)) {
+    if( ! p_domain.contains(dbox)) 
+    {
 	const Real *dx = geom.CellSize();
 	state[state_indx].FillBoundary(dest,time,dx,prob_domain,
 				       dest_comp,src_comp,ncomp);

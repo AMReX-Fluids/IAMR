@@ -1,6 +1,6 @@
 
 //
-// $Id: interface.cpp,v 1.8 1997-10-08 20:15:55 car Exp $
+// $Id: interface.cpp,v 1.9 1997-11-18 18:31:34 car Exp $
 //
 
 #include <interface.H>
@@ -13,20 +13,24 @@ level_interface::~level_interface()
   if (null())
     return;
 
-  if (status & 1) {
+  if (status & 1) 
+  {
     // owns boxes
     delete [] pf;
-    for (int i = 0; i < BL_SPACEDIM; i++) {
+    for (int i = 0; i < BL_SPACEDIM; i++) 
+    {
       delete [] bx[i];
       if (i > 0) delete [] nodebx[i];
     }
   }
 
-  if (status & 2) {
+  if (status & 2) 
+  {
     // owns flag arrays
     delete [] grid_ref;
     delete [] fdm;
-    for (int i = 0; i < BL_SPACEDIM; i++) {
+    for (int i = 0; i < BL_SPACEDIM; i++) 
+    {
       delete [] ge[i]; delete [] ax[i]; delete [] flg[i];
     }
 #if (BL_SPACEDIM == 3)
@@ -37,7 +41,8 @@ level_interface::~level_interface()
   }
 }
 
-void level_interface::copy(const level_interface& src)
+void 
+level_interface::copy(const level_interface& src)
 {
   if (ok())
     BoxLib::Error("level_interface::copy---this object already allocated");
@@ -51,7 +56,8 @@ void level_interface::copy(const level_interface& src)
   em = src.em;
   grid_ref = src.grid_ref;
   fdm = src.fdm;
-  for (i = 0; i < BL_SPACEDIM; i++) {
+  for (i = 0; i < BL_SPACEDIM; i++) 
+  {
     nbx[i] = src.nbx[i];
     ge[i]  = src.ge[i];
     ax[i]  = src.ax[i];
@@ -62,13 +68,15 @@ void level_interface::copy(const level_interface& src)
   cgr = src.cgr;
 
   pf = src.pf;
-  for (i = 0; i < BL_SPACEDIM; i++) {
+  for (i = 0; i < BL_SPACEDIM; i++) 
+  {
     bx[i] = src.bx[i];
     nodebx[i] = src.nodebx[i];
   }
 }
 
-void level_interface::alloc_coarsened(const BoxArray& Im,
+void
+level_interface::alloc_coarsened(const BoxArray& Im,
 				      const amr_boundary_class& /*bdy*/,
 				      const level_interface& src,
 				      const IntVect& rat)
@@ -87,7 +95,8 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
 
   grid_ref = src.grid_ref;
   fdm = src.fdm;
-  for (i = 0; i < BL_SPACEDIM; i++) {
+  for (i = 0; i < BL_SPACEDIM; i++) 
+  {
     nbx[i] = src.nbx[i];
     ge[i]  = src.ge[i];
     ax[i]  = src.ax[i];
@@ -97,36 +106,45 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
   egr = src.egr;
   cgr = src.cgr;
 
-  for (i = 0; i < BL_SPACEDIM; i++) {
+  for (i = 0; i < BL_SPACEDIM; i++) 
+  {
     bx[i] = new Box[nbx[i]];
-    for (igrid = 0; igrid < nbx[i]; igrid++) {
+    for (igrid = 0; igrid < nbx[i]; igrid++) 
+    {
       bx[i][igrid] = coarsen(src.bx[i][igrid], rat);
     }
   }
 
   nodebx[0] = bx[0];
-  for (i = 1; i < BL_SPACEDIM; i++) {
+  for (i = 1; i < BL_SPACEDIM; i++) 
+  {
     nodebx[i] = new Box[nbx[i]];
-    for (igrid = 0; igrid < nbx[i]; igrid++) {
+    for (igrid = 0; igrid < nbx[i]; igrid++) 
+    {
       nodebx[i][igrid] = coarsen(src.nodebx[i][igrid], rat);
     }
   }
 
   pf = new Box[im.length()];
 
-  for (igrid = 0; igrid < im.length(); igrid++) {
+  for (igrid = 0; igrid < im.length(); igrid++) 
+  {
     pf[igrid] = im[igrid];
     pf[igrid].convert(IntVect::TheNodeVector()).grow(-1);
   }
 
   idim = FACEDIM;
-  for (iface = 0; iface < nbx[idim]; iface++) {
-    if (ge[idim][iface] == ALL && flg[idim][iface] == 0) {
-      if ((igrid = fgr[iface][0]) >= 0) {
+  for (iface = 0; iface < nbx[idim]; iface++) 
+  {
+    if (ge[idim][iface] == ALL && flg[idim][iface] == 0) 
+    {
+      if ((igrid = fgr[iface][0]) >= 0) 
+      {
 	if (!pf[igrid].intersects(nodebx[idim][iface]))
 	  pf[igrid].growHi(fdm[iface], 1);
       }
-      if ((igrid = fgr[iface][1]) >= 0) {
+      if ((igrid = fgr[iface][1]) >= 0) 
+      {
 	if (!pf[igrid].intersects(nodebx[idim][iface]))
 	  pf[igrid].growLo(fdm[iface], 1);
       }
@@ -154,8 +172,10 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 
   // Add edges in 2D or faces in 3D:
 
-  for (igrid = 0; igrid < im.length(); igrid++) {
-    for (i = 0; i < BL_SPACEDIM; i++) {
+  for (igrid = 0; igrid < im.length(); igrid++) 
+  {
+    for (i = 0; i < BL_SPACEDIM; i++) 
+    {
       IntVect t = IntVect::TheCellVector();
       t.setVal(i, IndexType::NODE);
       add(bl, bdryLo(im[igrid], i).convert(t));
@@ -171,8 +191,10 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 
   // Add edges in 3D:
 
-  for (iface = 0; iface < nbx[2]; iface++) {
-    for (i = 0; i < BL_SPACEDIM; i++) {
+  for (iface = 0; iface < nbx[2]; iface++) 
+  {
+    for (i = 0; i < BL_SPACEDIM; i++) 
+    {
       IntVect t = bx[2][iface].type();
       if (t[i] == IndexType::NODE)
 	continue;
@@ -190,9 +212,11 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 
   // Add corners:
 
-  for (iedge = 0; iedge < nbx[1]; iedge++) {
+  for (iedge = 0; iedge < nbx[1]; iedge++) 
+  {
     IntVect t = bx[1][iedge].type();
-    for (i = 0; i < BL_SPACEDIM; i++) {
+    for (i = 0; i < BL_SPACEDIM; i++) 
+    {
       if (t[i] == IndexType::NODE)
 	continue;
       ins(bl, bdryLo(bx[1][iedge], i));
@@ -206,9 +230,11 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 
   // initialize face direction array
   fdm = new int[nbx[FACEDIM]];
-  for (iface = 0; iface < nbx[FACEDIM]; iface++) {
+  for (iface = 0; iface < nbx[FACEDIM]; iface++) 
+  {
     IntVect t = bx[FACEDIM][iface].type();
-    for (i = 0; i < BL_SPACEDIM; i++) {
+    for (i = 0; i < BL_SPACEDIM; i++) 
+    {
       if (t[i] == IndexType::NODE)
 	fdm[iface] = i;
     }
@@ -217,26 +243,35 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   // initialize face grid array
   idim = FACEDIM;
   fgr = new int[nbx[idim]][N_FACE_GRIDS];
-  for (iface = 0; iface < nbx[idim]; iface++) {
+  for (iface = 0; iface < nbx[idim]; iface++) 
+  {
     Box b = bx[idim][iface];
     int id = fdm[iface];
     b.growLo(id, 1).convert(IntVect::TheCellVector());
     int imask = 1;
     flg[idim][iface] = 0;
-    for (i = 0; i < N_FACE_GRIDS; i++) {
+    for (i = 0; i < N_FACE_GRIDS; i++) 
+    {
       fgr[iface][i] = -1;
-      if (ge[idim][iface] & imask) {
-	if (dom.contains(b)) {
-	  for (igrid = 0; igrid < im.length(); igrid++) {
-	    if (im[igrid].contains(b)) {
+      if (ge[idim][iface] & imask) 
+      {
+	if (dom.contains(b)) 
+	{
+	  for (igrid = 0; igrid < im.length(); igrid++) 
+	  {
+	    if (im[igrid].contains(b)) 
+	    {
 	      fgr[iface][i] = igrid;
 	      break;
 	    }
 	  }
 	}
-	else {
-	  for (igrid = 0; igrid < em.length(); igrid++) {
-	    if (em[igrid].contains(b)) {
+	else 
+	{
+	  for (igrid = 0; igrid < em.length(); igrid++) 
+	  {
+	    if (em[igrid].contains(b)) 
+	    {
 	      fgr[iface][i] = -2 - igrid;
 	      if (grid_ref[igrid] == -2)
 		flg[idim][iface] = 1;
@@ -256,7 +291,8 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   // initialize edge grid array
   idim = 1;
   egr = new int[nbx[idim]][N_EDGE_GRIDS];
-  for (iedge = 0; iedge < nbx[idim]; iedge++) {
+  for (iedge = 0; iedge < nbx[idim]; iedge++) 
+  {
     Box b = bx[idim][iedge];
     IntVect t = b.type();
     int id = 0;
@@ -268,20 +304,28 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
     b.growLo(id, 1).growLo(jd, 1).convert(IntVect::TheCellVector());
     int imask = 1;
     flg[idim][iedge] = 0;
-    for (i = 0; i < N_EDGE_GRIDS; i++) {
+    for (i = 0; i < N_EDGE_GRIDS; i++) 
+    {
       egr[iedge][i] = -1;
-      if (ge[idim][iedge] & imask) {
-	if (dom.contains(b)) {
-	  for (igrid = 0; igrid < im.length(); igrid++) {
-	    if (im[igrid].contains(b)) {
+      if (ge[idim][iedge] & imask) 
+      {
+	if (dom.contains(b)) 
+	{
+	  for (igrid = 0; igrid < im.length(); igrid++) 
+	  {
+	    if (im[igrid].contains(b)) 
+	    {
 	      egr[iedge][i] = igrid;
 	      break;
 	    }
 	  }
 	}
-	else {
-	  for (igrid = 0; igrid < em.length(); igrid++) {
-	    if (em[igrid].contains(b)) {
+	else 
+	{
+	  for (igrid = 0; igrid < em.length(); igrid++) 
+	  {
+	    if (em[igrid].contains(b)) 
+	    {
 	      egr[iedge][i] = -2 - igrid;
 	      if (grid_ref[igrid] == -2)
 		flg[idim][iedge] = 1;
@@ -290,11 +334,13 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 	  }
 	}
       }
-      if ((i & 1) == 1) {
+      if ((i & 1) == 1) 
+      {
 	b.shift(id, -1).shift(jd, 1);
 	imask <<= ((1 << jd) - (1 << id));
       }
-      else {
+      else 
+      {
 	b.shift(id, 1);
 	imask <<= (1 << id);
       }
@@ -305,7 +351,8 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   // initialize corner grid array
   idim = 0;
   cgr = new int[nbx[idim]][N_CORNER_GRIDS];
-  for (icor = 0; icor < nbx[idim]; icor++) {
+  for (icor = 0; icor < nbx[idim]; icor++) 
+  {
     Box b = bx[idim][icor];
 #if (BL_SPACEDIM == 3)
     b.growLo(2, 1);
@@ -313,20 +360,28 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
     b.growLo(0, 1).growLo(1, 1).convert(IntVect::TheCellVector());
     int imask = 1;
     flg[idim][icor] = 0;
-    for (i = 0; i < N_CORNER_GRIDS; i++) {
+    for (i = 0; i < N_CORNER_GRIDS; i++) 
+    {
       cgr[icor][i] = -1;
-      if (ge[idim][icor] & imask) {
-	if (dom.contains(b)) {
-	  for (igrid = 0; igrid < im.length(); igrid++) {
-	    if (im[igrid].contains(b)) {
+      if (ge[idim][icor] & imask) 
+      {
+	if (dom.contains(b)) 
+	{
+	  for (igrid = 0; igrid < im.length(); igrid++) 
+	  {
+	    if (im[igrid].contains(b)) 
+	    {
 	      cgr[icor][i] = igrid;
 	      break;
 	    }
 	  }
 	}
-	else {
-	  for (igrid = 0; igrid < em.length(); igrid++) {
-	    if (em[igrid].contains(b)) {
+	else 
+	{
+	  for (igrid = 0; igrid < em.length(); igrid++) 
+	  {
+	    if (em[igrid].contains(b)) 
+	    {
 	      cgr[icor][i] = -2 - igrid;
 	      if (grid_ref[igrid] == -2)
 		flg[idim][icor] = 1;
@@ -349,9 +404,11 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   }
 
   nodebx[0] = bx[0];
-  for (i = 1; i < BL_SPACEDIM; i++) {
+  for (i = 1; i < BL_SPACEDIM; i++) 
+  {
     nodebx[i] = new Box[nbx[i]];
-    for (iface = 0; iface < nbx[i]; iface++) {
+    for (iface = 0; iface < nbx[i]; iface++) 
+    {
       nodebx[i][iface] = bx[i][iface];
       nodebx[i][iface].convert(IntVect::TheNodeVector());
     }
@@ -359,7 +416,8 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 
   pf = new Box[im.length()];
 
-  for (igrid = 0; igrid < im.length(); igrid++) {
+  for (igrid = 0; igrid < im.length(); igrid++) 
+  {
     //pf[igrid] = im.boxn(igrid);
     //pf[igrid].grow(-1);
     pf[igrid] = im[igrid];
@@ -367,13 +425,17 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   }
 
   idim = FACEDIM;
-  for (iface = 0; iface < nbx[idim]; iface++) {
-    if (ge[idim][iface] == ALL && flg[idim][iface] == 0) {
-      if ((igrid = fgr[iface][0]) >= 0) {
+  for (iface = 0; iface < nbx[idim]; iface++) 
+  {
+    if (ge[idim][iface] == ALL && flg[idim][iface] == 0) 
+    {
+      if ((igrid = fgr[iface][0]) >= 0) 
+      {
 	if (!pf[igrid].intersects(nodebx[idim][iface]))
 	  pf[igrid].growHi(fdm[iface], 1);
       }
-      if ((igrid = fgr[iface][1]) >= 0) {
+      if ((igrid = fgr[iface][1]) >= 0) 
+      {
 	if (!pf[igrid].intersects(nodebx[idim][iface]))
 	  pf[igrid].growLo(fdm[iface], 1);
       }
@@ -381,11 +443,15 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   }
 
   ax[idim] = new int[nbx[idim]];
-  for (iface = 0; iface < nbx[idim]; iface++) {
+  for (iface = 0; iface < nbx[idim]; iface++) 
+  {
     ax[idim][iface] = -1;
-    if (ge[idim][iface] != ALL) {
-      for (i = 0; i < 2; i++) {
-	if ((igrid = fgr[iface][i]) >= 0) {
+    if (ge[idim][iface] != ALL) 
+    {
+      for (i = 0; i < 2; i++) 
+      {
+	if ((igrid = fgr[iface][i]) >= 0) 
+	{
 	  if (pf[igrid].intersects(nodebx[idim][iface]))
 	    ax[idim][iface] = igrid;
 	}
@@ -395,15 +461,22 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 
 #if (BL_SPACEDIM == 3)
   ax[1] = new int[nbx[1]];
-  for (iedge = 0; iedge < nbx[1]; iedge++) {
+  for (iedge = 0; iedge < nbx[1]; iedge++) 
+  {
     ax[1][iedge] = -1;
-    if (ge[1][iedge] != ALL) {
-      for (i = 0; i < N_EDGE_GRIDS && ax[1][iedge] == -1; i++) {
-	if ((igrid = egr[iedge][i]) >= 0) {
-	  if (pf[igrid].intersects(nodebx[1][iedge])) {
+    if (ge[1][iedge] != ALL) 
+    {
+      for (i = 0; i < N_EDGE_GRIDS && ax[1][iedge] == -1; i++) 
+      {
+	if ((igrid = egr[iedge][i]) >= 0) 
+	{
+	  if (pf[igrid].intersects(nodebx[1][iedge])) 
+	  {
 	    ax[1][iedge] = igrid;
-	    for (iface = 0; iface < nbx[2]; iface++) {
-	      if (ax[2][iface] == igrid) {
+	    for (iface = 0; iface < nbx[2]; iface++) 
+	    {
+	      if (ax[2][iface] == igrid) 
+	      {
 		if (nodebx[2][iface].contains(nodebx[1][iedge]))
 		  ax[1][iedge] = -1;
 	      }
@@ -416,23 +489,32 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 #endif
 
   ax[0] = new int[nbx[0]];
-  for (icor = 0; icor < nbx[0]; icor++) {
+  for (icor = 0; icor < nbx[0]; icor++) 
+  {
     ax[0][icor] = -1;
-    if (ge[0][icor] != ALL) {
-      for (i = 0; i < N_CORNER_GRIDS && ax[0][icor] == -1; i++) {
-	if ((igrid = cgr[icor][i]) >= 0) {
-	  if (pf[igrid].intersects(nodebx[0][icor])) {
+    if (ge[0][icor] != ALL) 
+    {
+      for (i = 0; i < N_CORNER_GRIDS && ax[0][icor] == -1; i++) 
+      {
+	if ((igrid = cgr[icor][i]) >= 0) 
+	{
+	  if (pf[igrid].intersects(nodebx[0][icor])) 
+	  {
 	    ax[0][icor] = igrid;
 #if (BL_SPACEDIM == 3)
-	    for (iface = 0; iface < nbx[2]; iface++) {
-	      if (ax[2][iface] == igrid) {
+	    for (iface = 0; iface < nbx[2]; iface++) 
+	    {
+	      if (ax[2][iface] == igrid) 
+	      {
 		if (nodebx[2][iface].contains(nodebx[0][icor]))
 		  ax[0][icor] = -1;
 	      }
 	    }
 #endif
-	    for (iedge = 0; iedge < nbx[1]; iedge++) {
-	      if (ax[1][iedge] == igrid) {
+	    for (iedge = 0; iedge < nbx[1]; iedge++) 
+	    {
+	      if (ax[1][iedge] == igrid) 
+	      {
 		if (nodebx[1][iedge].contains(nodebx[0][icor]))
 		  ax[0][icor] = -1;
 	      }
@@ -451,16 +533,19 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   cout << nbx[1] << " edges, " << nbx[0] << " corners" << '\n';
 
   cout << "Exterior grids are:" << '\n';
-  for (igrid = 0; igrid < em.length(); igrid++) {
+  for (igrid = 0; igrid < em.length(); igrid++) 
+  {
     cout << em[igrid] << ' ' << grid_ref[igrid] << '\n';
   }
   cout << "Part-fine grids are:" << '\n';
-  for (igrid = 0; igrid < im.length(); igrid++) {
+  for (igrid = 0; igrid < im.length(); igrid++) 
+  {
     cout << pf[igrid] << '\n';
   }
   cout << "box    geo   flag   aux   grids" << '\n';
   cout << "Faces are:" << '\n';
-  for (iface = 0; iface < nbx[FACEDIM]; iface++) {
+  for (iface = 0; iface < nbx[FACEDIM]; iface++) 
+  {
     cout << bx[FACEDIM][iface] << ' ' << ge[FACEDIM][iface] << ' '
 	 << flg[FACEDIM][iface] << ' ' << ax[FACEDIM][iface];
     for (i = 0; i < N_FACE_GRIDS; i++)
@@ -469,7 +554,8 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   }
 #if (BL_SPACEDIM == 3)
   cout << "Edges are:" << '\n';
-  for (iedge = 0; iedge < nbx[1]; iedge++) {
+  for (iedge = 0; iedge < nbx[1]; iedge++) 
+  {
     cout << bx[1][iedge] << ' ' << ge[1][iedge] << ' '
 	 << flg[1][iedge] << ' ' << ax[1][iedge];
     for (i = 0; i < N_EDGE_GRIDS; i++)
@@ -478,7 +564,8 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   }
 #endif
   cout << "Corners are:" << '\n';
-  for (icor = 0; icor < nbx[0]; icor++) {
+  for (icor = 0; icor < nbx[0]; icor++) 
+  {
     cout << bx[0][icor] << ' ' << ge[0][icor] << ' '
 	 << flg[0][icor] << ' ' << ax[0][icor];
     for (i = 0; i < N_CORNER_GRIDS; i++)
@@ -492,22 +579,28 @@ void level_interface::add(List<Box>& bl, Box b, int startgrid)
 {
   Box ibox;
   IntVect t = b.type();
-  for (int igrid = startgrid; igrid < im.length() + em.length(); igrid++) {
+  for (int igrid = startgrid; igrid < im.length() + em.length(); igrid++) 
+  {
     if (igrid < im.length())
       ibox = im[igrid];
     else
       ibox = em[igrid-im.length()];
     ibox.convert(t);
-    if (ibox.intersects(b) && !ibox.contains(b)) {
-      for (int i = 0; i < BL_SPACEDIM; i++) {
-	if (t[i] == IndexType::CELL) {
-	  if (ibox.smallEnd(i) > b.smallEnd(i)) {
+    if (ibox.intersects(b) && !ibox.contains(b)) 
+    {
+      for (int i = 0; i < BL_SPACEDIM; i++) 
+      {
+	if (t[i] == IndexType::CELL) 
+	{
+	  if (ibox.smallEnd(i) > b.smallEnd(i)) 
+	  {
 	    Box c = b.chop(i, ibox.smallEnd(i));
 	    add(bl, b, igrid + 1);
 	    add(bl, c, igrid);
 	    return;
 	  }
-	  if (ibox.bigEnd(i) < b.bigEnd(i)) {
+	  if (ibox.bigEnd(i) < b.bigEnd(i)) 
+	  {
 	    Box c = b.chop(i, ibox.bigEnd(i) + 1);
 	    add(bl, b, igrid);
 	    add(bl, c, igrid + 1);
@@ -535,11 +628,13 @@ void level_interface::xfer(List<Box>& bl, int idim)
   //Boxnode *bn;
   //for (bn = bl.first(); bn; bn = bl.next(bn), i++) {
   ListIterator<Box> bn(bl);
-  for ( ; bn; bn++, i++) {
+  for ( ; bn; bn++, i++) 
+  {
     bx[idim][i] = bn();
     btmp = grow(bn(), bn().type()).convert(IntVect::TheCellVector());
     IntVect tmp = btmp.smallEnd();
-    if (dom.contains(btmp)) {
+    if (dom.contains(btmp)) 
+    {
       ge[idim][i]  = im.contains(tmp);
 #if (BL_SPACEDIM == 2)
       tmp += IntVect(1,0);
@@ -565,7 +660,8 @@ void level_interface::xfer(List<Box>& bl, int idim)
       ge[idim][i] |= im.contains(tmp) << 7;
 #endif
     }
-    else {
+    else 
+    {
       int is_in = dom.contains(tmp);
       ge[idim][i]  = ( is_in && im.contains(tmp) ||
 		      !is_in && em.contains(tmp));
@@ -619,10 +715,14 @@ void level_interface::xfer(List<Box>& bl, int idim)
 
   // Sort fine-fine boxes to beginning of list
   int j = nbx[idim];
-  for (i = 0; i < j; i++) {
-    if (ge[idim][i] != ALL) {
-      while (--j > i) {
-	if (ge[idim][j] == ALL) {
+  for (i = 0; i < j; i++) 
+  {
+    if (ge[idim][i] != ALL) 
+    {
+      while (--j > i) 
+      {
+	if (ge[idim][j] == ALL) 
+	{
 	  btmp = bx[idim][j];
 	  bx[idim][j] = bx[idim][i];
 	  bx[idim][i] = btmp;
@@ -642,12 +742,17 @@ void level_interface::xfer(List<Box>& bl, int idim)
   int nff = j;
 
   // Sort interior fine-fine boxes to beginning of list
-  if (idim == 0) {
-    for (i = 0; i < j; i++) {
-      if (!bx[idim][i].intersects(idomain)) {
-	while (--j > i) {
+  if (idim == 0) 
+  {
+    for (i = 0; i < j; i++) 
+    {
+      if (!bx[idim][i].intersects(idomain)) 
+      {
+	while (--j > i) 
+	{
 	  btmp = bx[idim][j];
-	  if (btmp.intersects(idomain)) {
+	  if (btmp.intersects(idomain)) 
+	  {
 	    bx[idim][j] = bx[idim][i];
 	    bx[idim][i] = btmp;
 	    break;
@@ -656,15 +761,20 @@ void level_interface::xfer(List<Box>& bl, int idim)
       }
     }
   }
-  else {
-    for (i = 0; i < j; i++) {
+  else 
+  {
+    for (i = 0; i < j; i++) 
+    {
       btmp = bx[idim][i];
       btmp.convert(IntVect::TheNodeVector());
-      if (!btmp.intersects(idomain)) {
-	while (--j > i) {
+      if (!btmp.intersects(idomain)) 
+      {
+	while (--j > i) 
+	{
 	  btmp = bx[idim][j];
 	  btmp.convert(IntVect::TheNodeVector());
-	  if (btmp.intersects(idomain)) {
+	  if (btmp.intersects(idomain)) 
+	  {
 	    btmp = bx[idim][j];
 	    bx[idim][j] = bx[idim][i];
 	    bx[idim][i] = btmp;
@@ -675,9 +785,11 @@ void level_interface::xfer(List<Box>& bl, int idim)
     }
   }
 
-  if (idim == FACEDIM) {
+  if (idim == FACEDIM) 
+  {
     j = -1;
-    while (++j < nff) {
+    while (++j < nff) 
+    {
       btmp = bx[idim][j];
       btmp.convert(IntVect::TheNodeVector());
       if (!btmp.intersects(idomain))
@@ -686,10 +798,14 @@ void level_interface::xfer(List<Box>& bl, int idim)
     int nin = j;
 
     // Sort interior faces according to orientation, x first
-    for (i = 0; i < j; i++) {
-      if (bx[idim][i].type(0) == IndexType::CELL) {
-	while (--j > i) {
-	  if (bx[idim][j].type(0) == IndexType::NODE) {
+    for (i = 0; i < j; i++) 
+    {
+      if (bx[idim][i].type(0) == IndexType::CELL) 
+      {
+	while (--j > i) 
+	{
+	  if (bx[idim][j].type(0) == IndexType::NODE) 
+	  {
 	    btmp = bx[idim][j];
 	    bx[idim][j] = bx[idim][i];
 	    bx[idim][i] = btmp;
@@ -700,11 +816,16 @@ void level_interface::xfer(List<Box>& bl, int idim)
     }
 #if (BL_SPACEDIM == 3)
     j = nin;
-    for (i = 0; i < j; i++) {
-      if (bx[idim][i].type(0) == IndexType::CELL) {
-	if (bx[idim][i].type(1) == IndexType::CELL) {
-	  while (--j > i) {
-	    if (bx[idim][j].type(1) == IndexType::NODE) {
+    for (i = 0; i < j; i++) 
+    {
+      if (bx[idim][i].type(0) == IndexType::CELL) 
+      {
+	if (bx[idim][i].type(1) == IndexType::CELL) 
+	{
+	  while (--j > i) 
+	  {
+	    if (bx[idim][j].type(1) == IndexType::NODE) 
+	    {
 	      btmp = bx[idim][j];
 	      bx[idim][j] = bx[idim][i];
 	      bx[idim][i] = btmp;
@@ -718,10 +839,14 @@ void level_interface::xfer(List<Box>& bl, int idim)
 
     // Sort exterior faces according to orientation, x first
     j = nff;
-    for (i = nin; i < j; i++) {
-      if (bx[idim][i].type(0) == IndexType::CELL) {
-	while (--j > i) {
-	  if (bx[idim][j].type(0) == IndexType::NODE) {
+    for (i = nin; i < j; i++) 
+    {
+      if (bx[idim][i].type(0) == IndexType::CELL) 
+      {
+	while (--j > i) 
+	{
+	  if (bx[idim][j].type(0) == IndexType::NODE) 
+	  {
 	    btmp = bx[idim][j];
 	    bx[idim][j] = bx[idim][i];
 	    bx[idim][i] = btmp;
@@ -732,11 +857,16 @@ void level_interface::xfer(List<Box>& bl, int idim)
     }
 #if (BL_SPACEDIM == 3)
     j = nff;
-    for (i = nin; i < j; i++) {
-      if (bx[idim][i].type(0) == IndexType::CELL) {
-	if (bx[idim][i].type(1) == IndexType::CELL) {
-	  while (--j > i) {
-	    if (bx[idim][j].type(1) == IndexType::NODE) {
+    for (i = nin; i < j; i++) 
+    {
+      if (bx[idim][i].type(0) == IndexType::CELL) 
+      {
+	if (bx[idim][i].type(1) == IndexType::CELL) 
+	{
+	  while (--j > i) 
+	  {
+	    if (bx[idim][j].type(1) == IndexType::NODE) 
+	    {
 	      btmp = bx[idim][j];
 	      bx[idim][j] = bx[idim][i];
 	      bx[idim][i] = btmp;
@@ -753,7 +883,8 @@ void level_interface::xfer(List<Box>& bl, int idim)
 void level_interface::geo_array(int ga[], int idim, int i) const
 {
   unsigned gtmp = geo(idim, i);
-  for (int k = 0; k < N_CORNER_GRIDS; k++) {
+  for (int k = 0; k < N_CORNER_GRIDS; k++) 
+  {
     ga[k] = (gtmp & 1);
     gtmp >>= 1;
   }

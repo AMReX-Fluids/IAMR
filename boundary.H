@@ -2,7 +2,7 @@
 #define _BOUNDARY_H_
 
 //
-// $Id: boundary.H,v 1.8 1997-10-08 20:15:49 car Exp $
+// $Id: boundary.H,v 1.9 1997-11-18 18:31:31 car Exp $
 //
 
 #include <interface.H>
@@ -66,9 +66,10 @@ class amr_boundary_class
   {
     return 0;
   }
-  virtual int singular() const {
+  virtual bool singular() const 
+  {
     BoxLib::Error("amr_boundary_class::singular---boundary condition not defined.");
-    return 0;
+    return false;
   }
 };
 
@@ -76,6 +77,17 @@ inline int
 amr_boundary_class::dir(const Box& region, const Box& domain) const
 {
   int retval = 0;
+#if 0
+  for ( int i = 0; i < BL_SPACEDIM; ++i )
+  {
+      if ( region.bigEnd(i) < domain.smallEnd(i) )
+	  return -(i+1);
+      if ( region.bigEnd(1) > domain.bigEnd(i) )
+	  return +(i+1);
+  }
+  BoxLib::Error("amr_boundary_class::dir--boundary box not outside domain.");
+  return 0;
+#else
   if (region.bigEnd(0) < domain.smallEnd(0))
     retval = -1;
   else if (region.smallEnd(0) > domain.bigEnd(0))
@@ -107,6 +119,7 @@ amr_boundary_class::dir(const Box& region, const Box& domain) const
   else
     BoxLib::Error("amr_boundary_class::dir---boundary box not outside domain.");
   return retval;
+#endif
 }
 
 class reflection_boundary_class 
@@ -120,8 +133,8 @@ class reflection_boundary_class
   void fill(FArrayBox&, const Box&,
 	    MultiFab&, int, const Box&) const = 0;
     // { BoxLib::Error("reflection_boundary_class::fill---interface version not defined"); }
-  int singular() const {
-    return 1;
+  bool singular() const {
+    return true;
   }
 };
 
@@ -136,8 +149,8 @@ class negation_boundary_class
   void fill(FArrayBox&, const Box&,
 	    MultiFab&, int, const Box&) const = 0;
     // { BoxLib::Error("negation_boundary_class::fill---interface version not defined"); }
-  int singular() const {
-    return 0;
+  bool singular() const {
+    return false;
   }
 };
 
@@ -158,8 +171,8 @@ class periodic_boundary_class
 	    MultiFab&, int, const Box&) const = 0;
     // { BoxLib::Error("periodic_boundary_class::fill---interface version not defined"); }
   void duplicate(List<Box>& bl, const Box& domain) const;
-  int singular() const {
-    return 1;
+  bool singular() const {
+    return true;
   }
 };
 
@@ -250,7 +263,7 @@ class mixed_boundary_class
   void duplicate(List<Box>& bl, const Box& domain) const;
   int fill_patch_special(FArrayBox&, const Box&,
 			 MultiFab&, const Box&, int flags) const;
-  int singular() const;
+  bool singular() const;
 };
 
 // This is a simple boundary condition with slip walls.

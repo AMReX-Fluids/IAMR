@@ -2,7 +2,7 @@
 #define _INTERFACE_H_
 
 //
-// $Id: interface.H,v 1.8 1997-10-13 16:56:36 car Exp $
+// $Id: interface.H,v 1.9 1997-11-18 18:31:34 car Exp $
 //
 
 #include <amr_defs.H>
@@ -122,7 +122,8 @@ private:
     void operator=(const level_interface&);
 
  public:
-  static void ins(List<Box>& bl, const Box& b) {
+  static void ins(List<Box>& bl, const Box& b) 
+  {
     if (!bl.includes(b))
       bl.append(b);
   }

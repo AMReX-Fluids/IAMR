@@ -1,6 +1,6 @@
 
 //
-// $Id: fill_patch.cpp,v 1.14 1997-10-08 20:15:51 car Exp $
+// $Id: fill_patch.cpp,v 1.15 1997-11-18 18:31:32 car Exp $
 //
 
 #include <fill_patch.H>
@@ -47,7 +47,7 @@ fill_borders(MultiFab& r,
 	border_cache->run();
     }
 #else
-    if ( 0 );
+    if ( 0 ); // just a trick
 #endif
     else 
     {
@@ -76,9 +76,9 @@ inner_product(MultiFab& r, MultiFab& s)
 	    const Box& rbox = rmfi().box();
 	    const Box& sbox = smfi().box();
 	    const Box& reg  = rmfi.validbox();
-	    FIPRODC(rmfi().dataPtr(), dimlist(rbox),
-		smfi().dataPtr(), dimlist(sbox),
-		dimlist(reg), &sum);
+	    FIPRODC(rmfi().dataPtr(), DIMLIST(rbox),
+		smfi().dataPtr(), DIMLIST(sbox),
+		DIMLIST(reg), &sum);
 	}
     }
     else if (type(r) == IntVect::TheNodeVector()) 
@@ -91,9 +91,9 @@ inner_product(MultiFab& r, MultiFab& s)
 	    const Box& rbox = rmfi().box();
 	    const Box& sbox = smfi().box();
 	    const Box& reg  = rmfi.validbox();
-	    FIPRODN(rmfi().dataPtr(), dimlist(rbox),
-		smfi().dataPtr(), dimlist(sbox),
-		dimlist(reg), &sum);
+	    FIPRODN(rmfi().dataPtr(), DIMLIST(rbox),
+		smfi().dataPtr(), DIMLIST(sbox),
+		DIMLIST(reg), &sum);
 	}
     }
     else 
@@ -225,9 +225,7 @@ best_match(MultiFab& r, const Box& region, int& igrid, int bord)
   }
   return (overlap > 0) ? (overlap == region.numPts() ? 1 : 2) : 0;
 }
-#endif
 
-#if 0
 grid_real get_patch(const Box& region,
 		    const level_interface& interface,
 		    amr_boundary bdy, int flags)
@@ -481,9 +479,9 @@ fill_patch(FArrayBox& patch, const Box& region,
 				Box tb = r.box(igrid);
 				tb &= region;
 				const Box& rbox = r[igrid].box();
-				FFCPY(patch.dataPtr(), dimlist(patch.box()),
-				    dimlist(tb),
-				    r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
+				FFCPY(patch.dataPtr(), DIMLIST(patch.box()),
+				    DIMLIST(tb),
+				    r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
 			    }
 			    else 
 			    {
@@ -521,9 +519,9 @@ fill_patch(FArrayBox& patch, const Box& region,
 				Box tb = r.box(igrid);
 				tb &= region;
 				const Box& rbox = r[igrid].box();
-				FFCPY(patch.dataPtr(), dimlist(patch.box()),
-				    dimlist(tb),
-				    r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
+				FFCPY(patch.dataPtr(), DIMLIST(patch.box()),
+				    DIMLIST(tb),
+				    r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
 			    }
 			    else 
 			    {
@@ -561,9 +559,9 @@ fill_patch(FArrayBox& patch, const Box& region,
 				Box tb = r.box(igrid);
 				tb &= region;
 				const Box& rbox = r[igrid].box();
-				FFCPY(patch.dataPtr(), dimlist(patch.box()),
-				    dimlist(tb),
-				    r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
+				FFCPY(patch.dataPtr(), DIMLIST(patch.box()),
+				    DIMLIST(tb),
+				    r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
 			    }
 			    else 
 			    {
@@ -727,8 +725,6 @@ int fill_patch(FArrayBox& patch,
 void
 sync_internal_borders(MultiFab& r, const level_interface& interface)
 {
-    // DECLARE_GEOMETRY_TYPES;
-    
     int igrid, jgrid;
     if (type(r) == IntVect::TheNodeVector()) 
     {
@@ -841,12 +837,12 @@ fill_internal_borders(MultiFab& r, const level_interface& interface,
 	    const Box& boxa = r[igrid].box();
 	    const Box& boxb = r[jgrid].box();
 #  if (BL_SPACEDIM == 2)
-	    FFCPY2(ptra, dimlist(boxa), ptrb, dimlist(boxb),
-		dimlist(b), w, r.nComp());
+	    FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb),
+		DIMLIST(b), w, r.nComp());
 #  else
 	    const int ibord = r.nGrow();
-	    FFCPY2(ptra, dimlist(boxa), ptrb, dimlist(boxb),
-		dimlist(b), w, ibord, r.nComp());
+	    FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb),
+		DIMLIST(b), w, ibord, r.nComp());
 #  endif
 #else
 	    const int idim = interface.fdim(iface);
@@ -1041,7 +1037,7 @@ restrict_patch(FArrayBox& patch, const Box& region,
 }
 
 void
-restrict_level(MultiFab& dest, int bflag,
+restrict_level(MultiFab& dest, bool bflag,
 	       MultiFab& r, const IntVect& rat,
 #ifdef HG_USE_CACHE
 	       const copy_cache* border_cache,

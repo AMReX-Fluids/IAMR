@@ -1,6 +1,6 @@
 
 //
-// $Id: amr_multi.cpp,v 1.13 1997-11-18 00:06:34 lijewski Exp $
+// $Id: amr_multi.cpp,v 1.14 1997-11-18 18:31:30 car Exp $
 //
 
 #include <amr_multi.H>
@@ -626,7 +626,7 @@ amr_multigrid::mg_restrict_level(int lto, int lfrom)
   IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
   if (type(resid[lto]) == IntVect::TheCellVector()) 
   {
-    restrict_level(resid[lto], 0, work[lfrom], rat, 
+    restrict_level(resid[lto], false, work[lfrom], rat, 
 #ifdef HG_USE_CACHE
 	work_bcache[lfrom],
 #endif
@@ -634,7 +634,7 @@ amr_multigrid::mg_restrict_level(int lto, int lfrom)
   }
   else if (get_amr_level(lto) >= 0) 
   {
-    restrict_level(resid[lto], 0, work[lfrom], rat, 
+    restrict_level(resid[lto], false, work[lfrom], rat, 
 #ifdef HG_USE_CACHE
 	work_bcache[lfrom],
 #endif
@@ -643,7 +643,7 @@ amr_multigrid::mg_restrict_level(int lto, int lfrom)
   }
   else 
   {
-    restrict_level(resid[lto], 0, work[lfrom], rat, 
+    restrict_level(resid[lto], false, work[lfrom], rat, 
 #ifdef HG_USE_CACHE
 	work_bcache[lfrom],
 #endif

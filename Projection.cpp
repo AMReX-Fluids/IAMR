@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.20 1997-10-08 20:15:43 car Exp $
+// $Id: Projection.cpp,v 1.21 1997-11-18 18:31:29 car Exp $
 //
 
 #ifdef BL_T3E
@@ -95,7 +95,7 @@ tempIntList.clear();
   if (CoordSys::IsRZ() == 1) amr_multigrid::SetRZ();
 #endif
   setUpBcs();
-  sync_proj = NULL;
+  sync_proj = 0;
 }
 
 
@@ -199,10 +199,10 @@ Projection::install_level(int level, AmrLevel * level_data,
   radius.clear(level);
   radius.set(level, _radius);
 
-  if (sync_proj != NULL) 
+  if (sync_proj != 0) 
   {
     delete sync_proj;
-    sync_proj = NULL;
+    sync_proj = 0;
   }
 }
 
@@ -213,7 +213,7 @@ Projection::bldSyncProject()
   const Box& fdomain = parent->Geom(finest_level).Domain();
 
   // destruct if it already exists
-  if (sync_proj != NULL) delete sync_proj;
+  if (sync_proj != 0) delete sync_proj;
 
   const Array<IntVect>& ref_ratio = parent->refRatio();
 
@@ -295,7 +295,7 @@ Projection::level_project(int level,
 
   //----------------- manipulate state + pressure data ---------------------
 
-  if (sync_proj == NULL) bldSyncProject();
+  if (sync_proj == 0) bldSyncProject();
 
   int rzflag = CoordSys::IsRZ();
 
@@ -573,7 +573,7 @@ void Projection::harmonic_project(int level, Real dt, Real cur_pres_time,
 
   //----------------- manipulate state + pressure data ---------------------
 
-  if (sync_proj == NULL) bldSyncProject();
+  if (sync_proj == 0) bldSyncProject();
 
   int rzflag = CoordSys::IsRZ();
 
@@ -621,7 +621,7 @@ void Projection::harmonic_project(int level, Real dt, Real cur_pres_time,
   delete temp_phi;
 
   rho->setBndry(bogus_value);
-  scaleVar(rho,1,NULL,grids,level);
+  scaleVar(rho,1,0,grids,level);
 
   const Real* dx = geom.CellSize();
 
@@ -666,7 +666,7 @@ void Projection::harmonic_project(int level, Real dt, Real cur_pres_time,
   //----------------- reset state + pressure data ---------------------
 
   // unscale variables for harmonic projection
-  rescaleVar(rho,1,NULL,grids,level);
+  rescaleVar(rho,1,0,grids,level);
 
   // update pressure
   AddPhi( P_old, *harm_phi, grids );
@@ -707,7 +707,7 @@ void Projection::syncProject(int c_lev, MultiFab & pres, MultiFab & vel,
 
   //----------------- manipulate state + pressure data ---------------------
 
-  if (sync_proj == NULL) bldSyncProject();
+  if (sync_proj == 0) bldSyncProject();
 
   int rzflag = CoordSys::IsRZ();
 
@@ -844,7 +844,7 @@ void Projection::MLsyncProject(int c_lev,
   }
     
   int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
-  if (sync_proj == NULL) bldSyncProject();
+  if (sync_proj == 0) bldSyncProject();
 
     
   // Set up memory
@@ -1067,7 +1067,7 @@ void Projection::initialVelocityProject(int c_lev,
     }
   }
 
-  if (sync_proj == NULL) bldSyncProject();
+  if (sync_proj == 0) bldSyncProject();
 
   int rzflag = CoordSys::IsRZ();
   MultiFab *vel[MAX_LEV];
@@ -1302,7 +1302,7 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
 
   //----------------- manipulate state + pressure data ---------------------
 
-  if (sync_proj == NULL) bldSyncProject();
+  if (sync_proj == 0) bldSyncProject();
 
   // gather data
   int rzflag = CoordSys::IsRZ();
@@ -1446,7 +1446,7 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
 	  ++u_realmfi)
       {
         DependentMultiFabIterator velmfi(u_realmfi, *vel[lev]);
-	u_realmfi().copy(velmfi(), Xvel+n, 0);
+	u_realmfi->copy(*velmfi, Xvel+n, 0);
       }
     }
     p_real.set(lev, phi[lev]);
@@ -1985,22 +1985,22 @@ void Projection::scaleVar( MultiFab *sig, int sig_nghosts,
                            MultiFab *vel,
                            const BoxArray &grids, int level )
 {
-    if ( sig != NULL )
+    if ( sig != 0 )
         assert( sig->nComp() == 1 );
-    if ( vel != NULL )
+    if ( vel != 0 )
         assert( vel->nComp() >= BL_SPACEDIM );
 
     // convert sigma from rho to 1/rho
     // nghosts info needed to avoid divide by zero
-    if ( sig != NULL )
+    if ( sig != 0 )
         sig->invert(1.0,sig_nghosts);
     
     // scale by radius for RZ
     if ( CoordSys::IsRZ() ) 
     {
-        if ( sig != NULL )
+        if ( sig != 0 )
             radMult(level,*sig,0);
-        if ( vel != NULL )
+        if ( vel != 0 )
             for (int n = 0; n < BL_SPACEDIM; n++)
                 radMult(level,*vel,n);
     }
@@ -2015,24 +2015,24 @@ void Projection::rescaleVar( MultiFab *sig, int sig_nghosts,
                              MultiFab *vel,
                              const BoxArray &grids, int level )
 {
-    if ( sig != NULL )
+    if ( sig != 0 )
         assert( sig->nComp() == 1 );
-    if ( vel != NULL )
+    if ( vel != 0 )
         assert( vel->nComp() >= BL_SPACEDIM );
     
     // divide by radius to rescale for RZ coordinates
     if ( CoordSys::IsRZ() ) 
     {
-        if ( sig != NULL )
+        if ( sig != 0 )
             radDiv(level,*sig,0);
-        if ( vel != NULL )
+        if ( vel != 0 )
             for (int n = 0; n < BL_SPACEDIM; n++)
                 radDiv(level,*vel,n);
     }
 
     // convert sigma from 1/rho to rho
     // nghosts info needed to avoid divide by zero
-    if ( sig != NULL )
+    if ( sig != 0 )
         sig->invert(1.0,sig_nghosts);
     
     // unscale level projection variables for a particular projection
