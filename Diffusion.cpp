@@ -1,4 +1,4 @@
-// $Id: Diffusion.cpp,v 1.3 1997-07-17 23:25:36 car Exp $
+// $Id: Diffusion.cpp,v 1.4 1997-07-24 20:31:15 vince Exp $
 
 // comment out this line to use diffusion class outside
 // the context of NavierStokes and classes derived from it
@@ -309,11 +309,8 @@ void Diffusion::diffuse_scalar(REAL dt, int sigma, REAL be_cn_theta,
       DependentMultiFabIterator S_newmfi(S_oldmfi, S_new);
       DependentMultiFabIterator area0mfi(S_oldmfi, area[0]);
       DependentMultiFabIterator area1mfi(S_oldmfi, area[1]);
-      DependentMultiFabIterator betanp10mfi(S_oldmfi, (*betanp1[0]));
-      DependentMultiFabIterator betanp11mfi(S_oldmfi, (*betanp1[1]));
 #if (BL_SPACEDIM == 3)
       DependentMultiFabIterator area2mfi(S_oldmfi, area[2]);
-      DependentMultiFabIterator betanp12mfi(S_oldmfi, (*betanp1[2]));
 #endif
       assert(grids[S_oldmfi.index()] == S_oldmfi.validbox());
       int i = S_oldmfi.index();
@@ -382,6 +379,11 @@ void Diffusion::diffuse_scalar(REAL dt, int sigma, REAL be_cn_theta,
 		     dx,&mult,&be_cn_theta);
 #endif
       if(allthere) {
+        DependentMultiFabIterator betanp10mfi(S_oldmfi, (*betanp1[0]));
+        DependentMultiFabIterator betanp11mfi(S_oldmfi, (*betanp1[1]));
+#if (BL_SPACEDIM == 3)
+        DependentMultiFabIterator betanp12mfi(S_oldmfi, (*betanp1[2]));
+#endif
         xflux.mult(betanp10mfi());
         yflux.mult(betanp11mfi());
 #if (BL_SPACEDIM == 3)
@@ -1943,10 +1945,11 @@ ABecLaplacian* Diffusion::getViscOp(int comp, REAL a, REAL b,
     for (int n = 0; n < BL_SPACEDIM; n++) {
       MultiFab bcoeffs(area[n].boxArray(),1,0);
       bcoeffs.copy(area[n]);
-      for(MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-      {
-        bcoeffsmfi().mult(dx[n]);
-      }
+      //for(MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
+      //{
+        //bcoeffsmfi().mult(dx[n]);
+      //}
+      bcoeffs.mult(dx[n]);
       visc_op->bCoefficients(bcoeffs,n);
     }
   } else {
@@ -2109,7 +2112,7 @@ void Diffusion::getViscTerms(MultiFab& visc_terms, int src_comp, int comp,
   MultiFab visc_tmp(grids,1,1,Fab_allocate);
   MultiFab s_tmp(grids,1,1,Fab_allocate);
 
-  int k,n;
+  int n;
 
   if (is_diffusive[comp]) {
     ViscBndry visc_bndry;
@@ -2132,9 +2135,7 @@ void Diffusion::getViscTerms(MultiFab& visc_terms, int src_comp, int comp,
       for (n = 0; n < BL_SPACEDIM; n++) {
         MultiFab bcoeffs(area[n].boxArray(),1,0);
         bcoeffs.copy(area[n]);
-        //for (k = 0; k < ngrd; k++) {
-          bcoeffs[k].mult(dx[n]);
-        //}
+        bcoeffs.mult(dx[n]);
         visc_op.bCoefficients(bcoeffs,n);
       }
     } else {

@@ -233,28 +233,55 @@ AmrLevel::setPhysBoundaryValues(int state_indx, int comp, int ncomp,
 }
 
 
+
+// -------------------------------------------------------------
+// -------------------------------------------------------------
+// -------------------------------------------------------------
+FillPatchIterator::FillPatchIterator(AmrLevel &amrlevel,
+			    MultiFab &leveldata)
+                  : amrLevel(amrlevel),
+                    MultiFabIterator(leveldata),
+                    levelData(leveldata),
+                    multiFabCopyDesc(true),
+		    bIsInitialized(false)
+{
+}
+
+
 #if (NEWFPMINBOX == 0)
 // -------------------------------------------------------------
 FillPatchIterator::FillPatchIterator(AmrLevel &amrlevel,
-                            MultiFab &levelData,
+                            MultiFab &leveldata,
                             const int boxGrow,
                             int dest_comp, Real time,
                             int state_index, int src_comp, int ncomp,
                             Interpolater *mapper)
-                       : MultiFabIterator(levelData),
-                         amrLevel(amrlevel),
-                         growSize(boxGrow),
-                         stateIndex(state_index),
-                         srcComp(src_comp),
-                         destComp(dest_comp),
-                         nComp(ncomp),
-                         interpTime(time),
-                         multiFabCopyDesc(true)
+                       : amrLevel(amrlevel),
+                         MultiFabIterator(leveldata),
+                         levelData(leveldata),
+                         multiFabCopyDesc(true),
+		         bIsInitialized(false)
+{
+  Initialize(boxGrow, dest_comp, time,
+             state_index, src_comp, ncomp, mapper);
+}
+// -------------------------------------------------------------
+void FillPatchIterator::Initialize(const int boxGrow,
+                            int dest_comp, Real time,
+                            int state_index, int src_comp, int ncomp,
+                            Interpolater *mapper)
 {
 // this function sets up and performs the communication pattern for
 // filling fabs of size levelData[i].box().grow(boxGrow) from amrlevel's
 // state data, possibly interpolating between the new and old data
 // the fill is done from this level and, if necessary, coarser levels
+
+  growSize   = boxGrow;
+  stateIndex = state_index;
+  srcComp    = src_comp;
+  destComp   = dest_comp;
+  nComp      = ncomp;
+  interpTime = time;
 
   int myproc = ParallelDescriptor::MyProc();
   int currentLevel;
@@ -291,7 +318,9 @@ FillPatchIterator::FillPatchIterator(AmrLevel &amrlevel,
   }
   localMFBoxes.grow(growSize);  // these are the ones we want to fillpatch
 
-  BoxList unfilledBoxesOnThisLevel, unfillableBoxesOnThisLevel;
+  IndexType boxType(localMFBoxes[0].ixType());
+  BoxList unfilledBoxesOnThisLevel(boxType);
+  BoxList unfillableBoxesOnThisLevel(boxType);
 
   // do this for all local (grown) fab boxes
   for(int ibox = 0; ibox < localMFBoxes.length(); ++ibox) {
@@ -317,7 +346,7 @@ FillPatchIterator::FillPatchIterator(AmrLevel &amrlevel,
       int is_periodic = amrLevels[currentLevel].geom.isAnyPeriodic();
 
       if(is_periodic) {
-        BoxList tempUnfilledBoxes;
+        BoxList tempUnfilledBoxes(boxType);
         for(BoxListIterator pbli(unfilledBoxesOnThisLevel); pbli; ++pbli) {
           assert(pbli().ok());
           Box dbox(pbli());
@@ -366,7 +395,7 @@ FillPatchIterator::FillPatchIterator(AmrLevel &amrlevel,
             assert(localMFBoxes[ibox].intersects(fineTruncDestBox));
           }
 
-          BoxList tempUnfillableBoxes;
+          BoxList tempUnfillableBoxes(boxType);
           currentState.linInterpAddBox(multiFabCopyDesc,
                                stateDataMFId[currentLevel],
                                tempUnfillableBoxes,
@@ -407,6 +436,8 @@ FillPatchIterator::FillPatchIterator(AmrLevel &amrlevel,
 
   multiFabCopyDesc.CollectData();
 
+  bIsInitialized = true;
+
 }  // end FillPatchIterator(...)
 
 
@@ -419,6 +450,8 @@ bool FillPatchIterator::isValid() {
 // so it is ready to be used if requested by operator()
 // the fill is done from this level and, if necessary, coarser levels
 // with values from the FillPatchIterator constructor
+
+  assert(bIsInitialized);
 
   if( ! MultiFabIterator::isValid()) {  // this does a sync if not valid
     return false;
@@ -455,7 +488,8 @@ bool FillPatchIterator::isValid() {
                             stateDataMFId[currentLevel],
                             fillBoxId[currentIndex][currentLevel][currentBox],
                             tempCoarseDestFab,
-                            interpTime, srcComp, destComp, nComp);
+                            //interpTime, srcComp, destComp, nComp);
+                            interpTime, 0, destComp, nComp);
 
 
       Box intersectDestBox(savedFineBox[currentIndex][currentLevel][currentBox]);
@@ -612,8 +646,9 @@ FillPatchIterator::FillPatchIterator(AmrLevel &amrlevel,
   }
   localMFBoxes.grow(growSize);  // these are the ones we want to fillpatch
 
-  Box unfilledBoxOnThisLevel;
-  BoxList unfillableBoxesOnThisLevel;
+  IndexType boxType(localMFBoxes.ixType());
+  Box unfilledBoxOnThisLevel(boxType);
+  BoxList unfillableBoxesOnThisLevel(boxType);
 
   // do this for all local (grown) fab boxes
   for(int ibox = 0; ibox < localMFBoxes.length(); ++ibox) {
@@ -696,6 +731,8 @@ bool FillPatchIterator::isValid() {
 // so it is ready to be used if requested by operator()
 // the fill is done from this level and, if necessary, coarser levels
 // with values from the FillPatchIterator constructor
+
+  assert(bIsInitialized);
 
   if( ! MultiFabIterator::isValid()) {  // this does a sync if not valid
     return false;
@@ -1427,12 +1464,6 @@ AmrLevel::filPatch(FARRAYBOX &dest, int dest_comp, REAL time,
 
 
 
-
-
-// -------------------------------------------------------------
-const FArrayBox &FillPatchIterator::operator()() const {
-  return currentFillPatchedFab;
-}
 
 
 // -------------------------------------------------------------

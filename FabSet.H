@@ -218,7 +218,7 @@ typedef FabArrayId FabSetId;
 
 class FabSetCopyDescriptor : public MultiFabCopyDescriptor {
   public:
-    FabSetCopyDescriptor(bool cacheremotedata = true);
+    FabSetCopyDescriptor(bool cacheremotedata);
     ~FabSetCopyDescriptor();
     FabSetId RegisterFabSet(FabSet *fabset) {
       return RegisterMultiFab(fabset);
@@ -226,7 +226,7 @@ class FabSetCopyDescriptor : public MultiFabCopyDescriptor {
 
   private:
     // These are disallowed.
-    // FabSetCopyDescriptor(); // Already Declared FIXME 
+    FabSetCopyDescriptor();
     FabSetCopyDescriptor(const FabSetCopyDescriptor &);
     FabSetCopyDescriptor &operator=(const FabSetCopyDescriptor &);
 };

@@ -1,4 +1,4 @@
-#define _Projection_C_ $Id: Projection.cpp,v 1.2 1997-07-17 22:01:08 vince Exp $
+#define _Projection_C_ $Id: Projection.cpp,v 1.3 1997-07-24 20:31:19 vince Exp $
 #include <stdio.h>
 #include <Misc.H>
 #include <CoordSys.H>
@@ -307,8 +307,9 @@ void Projection::level_project(int level,
       DependentMultiFabIterator U_newmfi(P_newmfi, U_new);
       DependentMultiFabIterator U_oldmfi(P_newmfi, U_old);
       // convert Unew to acceleration and Pnew to an update
-      assert(grids[P_newmfi.index()] == P_newmfi.validbox());
-      ConvertUnew( U_newmfi(), U_oldmfi(), dt, P_newmfi.validbox() );
+      //assert(grids[P_newmfi.index()] == P_newmfi.validbox());
+      //ConvertUnew( U_newmfi(), U_oldmfi(), dt, P_newmfi.validbox() );
+      ConvertUnew( U_newmfi(), U_oldmfi(), dt, grids[P_newmfi.index()] );
       P_newmfi().minus( P_oldmfi() );
       P_newmfi().setVal(0.0);
     }
@@ -1424,10 +1425,11 @@ void Projection::filterUandP( MultiFab &P_new,
     for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) {
 	DependentMultiFabIterator U_newmfi(P_newmfi, U_new);
 	DependentMultiFabIterator rho_halfmfi(P_newmfi, *rho_half);
-	assert(grids[P_newmfi.index()] == P_newmfi.validbox());
         
-        const int* lo = P_newmfi.validbox().loVect();
-        const int* hi = P_newmfi.validbox().hiVect();
+	//assert(grids[P_newmfi.index()] == P_newmfi.validbox());
+	Box gridbox(grids[P_newmfi.index()]);
+        const int* lo = gridbox.loVect();
+        const int* hi = gridbox.hiVect();
         
         const int* p_lo = P_newmfi().loVect(); 
         const int* p_hi = P_newmfi().hiVect(); 
@@ -1441,7 +1443,7 @@ void Projection::filterUandP( MultiFab &P_new,
         
         if(filter_u) {
             scratch.mult(dt);
-            gradp.resize(P_newmfi.validbox(),BL_SPACEDIM);
+            gradp.resize(gridbox,BL_SPACEDIM);
             const REAL *gp_dat = gradp.dataPtr();
             FORT_GRADP(scratch.dataPtr(),ARLIM(p_lo),ARLIM(p_hi),
                        gp_dat,ARLIM(lo),ARLIM(hi),lo,hi,dx);
@@ -1807,8 +1809,9 @@ void Projection::incrPress(int level, REAL dt)
     const BoxArray& grids = LevelData[level].boxArray();
     for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) {
 	DependentMultiFabIterator P_oldmfi(P_newmfi, P_old);
-	assert(grids[P_newmfi.index()] == P_newmfi.validbox());
-        UpdateArg1( P_newmfi(), 1.0/dt, P_oldmfi(), 1, P_newmfi.validbox(), 1 );
+	//assert(grids[P_newmfi.index()] == P_newmfi.validbox());
+        //UpdateArg1( P_newmfi(), 1.0/dt, P_oldmfi(), 1, P_newmfi.validbox(), 1 );
+        UpdateArg1( P_newmfi(), 1.0/dt, P_oldmfi(), 1, grids[P_newmfi.index()], 1 );
         P_oldmfi().setVal(bogus_value);
     }
 }

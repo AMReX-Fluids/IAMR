@@ -4,7 +4,7 @@
 #define _MULTIFAB_H_
 
 //
-// $Id: MultiFab.H,v 1.2 1997-07-17 23:25:37 car Exp $
+// $Id: MultiFab.H,v 1.3 1997-07-24 20:31:18 vince Exp $
 //
 
 #include <Assert.H>
@@ -203,7 +203,7 @@ public:
                boundary region that should be modified.
     */
     void mult (Real val,
-               int  nghost);
+               int  nghost = 0);
 
     /*@ManDoc: Scales the value of each cell in the valid region of each
                component of the MultiFab by the scalar val (a[i] <- a[i]*val),
@@ -213,7 +213,7 @@ public:
     */
     void mult (Real       val,
                const Box& region,
-               int        nghost);
+               int        nghost = 0);
 
     /*@ManDoc: Replaces the value of each cell in the specified subregion of
                the MultiFab with its reciprocal multiplied by the value of

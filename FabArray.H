@@ -4,7 +4,7 @@
 #define _FABARRAY_H_
 
 //
-// $Id: FabArray.H,v 1.3 1997-07-17 22:35:12 car Exp $
+// $Id: FabArray.H,v 1.4 1997-07-24 20:31:16 vince Exp $
 //
 
 #include <Assert.H>
@@ -387,8 +387,8 @@ class FabArrayIterator {
     FabArrayIterator(FabArray<T, FAB> &fabarray, const int nghost = 0);
     virtual ~FabArrayIterator();
 
-    inline const FAB &operator()() const;
-    inline FAB &operator()();
+    virtual inline const FAB &operator()() const;
+    virtual inline FAB &operator()();
     virtual inline const Box &validbox() const;
     virtual inline const Box &fabbox() const;
     virtual inline FabArrayIterator<T, FAB> &operator++();

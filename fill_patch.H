@@ -174,7 +174,6 @@ inline void fill_borders(MultiFab& r,
 			 amr_boundary bdy = error_boundary,
 			 int w = -1)
 {
-cout << "_in fill_patch::fill_borders" << endl;
   if (border_cache) {
     // assumes cache built properly---does not check current bdy and w
     border_cache->run();
@@ -183,7 +182,6 @@ cout << "_in fill_patch::fill_borders" << endl;
     fill_internal_borders(r, interface, w);
     bdy.fill_borders(r, interface, w);
   }
-cout << "_out fill_patch::fill_borders" << endl;
 }
 */
 

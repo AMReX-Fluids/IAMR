@@ -273,3 +273,8 @@ FEXE_sources +=
 FEXE_headers +=
 endif
 
+
+# ------------------------------------------------------- arrayview sources
+ifeq ($(USE_ARRAYVIEW),TRUE)
+CEXE_sources += DatasetClient.C
+endif

@@ -6,8 +6,9 @@ PRVERSION = v9
 COMP = KCC
 
 USE_WINDOWS=FALSE
-USE_BSP=FALSE
+USE_BSP=TRUE
 USE_NETCDF=FALSE
+USE_ARRAYVIEW = TRUE
 
 EBASE = amr
 LBASE = 
@@ -54,11 +55,13 @@ DEFINES += -DBL_USE_WINDOWS
 endif
 
 ifeq ($(USE_ARRAYVIEW),TRUE)
-ARRAYVIEWDIR  = /usr/local/ccse/ArrayView
+#ARRAYVIEWDIR  = /usr/local/ccse/ArrayView
+#ARRAYVIEWDIR  = /usr/people/vince/Visualization/ArrayView
+ARRAYVIEWDIR  = .
 INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
-LIBRARY_LOCATIONS += $(ARRAYVIEWDIR) 
-LIBRARIES += -larrayview$(DIM)d.$(machineSuffix) 
-DEFINES += BL_USE_ARRAYVIEW
+#LIBRARY_LOCATIONS += $(ARRAYVIEWDIR) 
+#LIBRARIES += -larrayview$(DIM)d.$(machineSuffix) 
+DEFINES += -DBL_USE_ARRAYVIEW
 endif
 
 #--------------- netcdf library

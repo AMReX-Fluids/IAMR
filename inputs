@@ -1,5 +1,6 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
 max_step  =   1000     # maximum timestep
+max_step  =   1        # maximum timestep
 max_step  =   10       # maximum timestep
 stop_time =  10000.0   # maximum problem time
 

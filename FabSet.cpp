@@ -166,8 +166,28 @@ ParallelDescriptor::Abort("Exiting.");
 FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
 		         int dest_comp, int num_comp)
 {
-cerr << "FabSet::copyTo(MultiFab, nghost, ...) not yet implemented" << endl;
-ParallelDescriptor::Abort("Exiting.");
+if(ParallelDescriptor::NProcs() > 1) {
+  cerr << "FabSet::copyTo(MultiFab, nghost, ...) not yet implemented" << endl;
+  ParallelDescriptor::Abort("Exiting.");
+}
+
+    int slen = src.length();
+    int dlen = length();
+    assert (nghost <= src.nGrow());
+    const BoxArray& sba = src.boxArray();
+    for (int s = 0; s < slen; s++) {
+        const FARRAYBOX& sfab = src[s];
+        BOX sbox = grow(sba[s],nghost);
+        for (int d = 0; d < dlen; d++) {
+            FARRAYBOX& dfab = (*this)[d];
+            BOX ovlp = dfab.box();
+            ovlp &= sbox;
+            if (ovlp.ok()) {
+                dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
+            }
+        }
+    }
+
     return *this;
 }
 
@@ -175,8 +195,29 @@ ParallelDescriptor::Abort("Exiting.");
 const FabSet &FabSet::copyTo(MultiFab &dest, int nghost, int src_comp,
 	                     int dest_comp, int num_comp) const
 {
-cerr << "FabSet::copyFrom(MultiFab, nghost, ...) not yet implemented" << endl;
-ParallelDescriptor::Abort("Exiting.");
+if(ParallelDescriptor::NProcs() > 1) {
+  cerr << "FabSet::copyFrom(MultiFab, nghost, ...) not yet implemented" << endl;
+  ParallelDescriptor::Abort("Exiting.");
+}
+
+    int dlen = dest.length();
+    int slen = length();
+    assert (nghost <= dest.nGrow());
+    const BoxArray& dba = dest.boxArray();
+    for (int d = 0; d < dlen; d++) {
+        FARRAYBOX& dfab = dest[d];
+        BOX dbox = grow(dba[d],nghost);
+        for (int s = 0; s < slen; s++) {
+            const FARRAYBOX& sfab = (*this)[s];
+            const BOX& sbox = sfab.box();
+            BOX ovlp = dbox;
+            ovlp &= sbox;
+            if (ovlp.ok()) {
+                dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
+            }
+        }
+    }
+
     return *this;
 }
 

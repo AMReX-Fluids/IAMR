@@ -263,6 +263,7 @@ class FillPatchIterator : public MultiFabIterator {
 
     enum FillType { FillLocally, FillRemotely, FillFromBoundary, Unfillable };
 
+    FillPatchIterator(AmrLevel &amrlevel, MultiFab &leveldata);
     FillPatchIterator(AmrLevel &amrlevel,
                       MultiFab &leveldata,
                       const int boxGrow,
@@ -270,7 +271,11 @@ class FillPatchIterator : public MultiFabIterator {
                       int state_indx, int src_comp, int ncomp,
                       Interpolater *mapper = 0);
     ~FillPatchIterator();
-    inline const FArrayBox &operator()() const;
+    void Initialize(const int boxGrow,
+                      int dest_comp, REAL time,
+                      int state_indx, int src_comp, int ncomp,
+                      Interpolater *mapper = 0);
+    inline const FArrayBox &operator()() const { return currentFillPatchedFab; }
     inline FArrayBox &operator()()  { return currentFillPatchedFab; }
     //inline FabArrayIterator &operator++();
     bool isValid();
@@ -284,12 +289,8 @@ class FillPatchIterator : public MultiFabIterator {
     FillPatchIterator &operator=(const FillPatchIterator &);
 
   private:
-    struct FabCopyMap {
-      int fabIndex;
-      Box commBox;
-    };
-
     AmrLevel &amrLevel;
+    MultiFab &levelData;
     MultiFabCopyDescriptor multiFabCopyDesc;
     Array< Array<MultiFabId> > stateDataMFId;   // [level][oldnew]
     //Array<int> cumulativeRefRatios;             // [level]
@@ -307,7 +308,7 @@ class FillPatchIterator : public MultiFabIterator {
     int  nComp;
     Real interpTime;
     FArrayBox currentFillPatchedFab;
-
+    bool bIsInitialized;
 };
 
 // ----------------------------------------------------------------------------
