@@ -1,7 +1,11 @@
 // #define ADVANCE_DEBUG 1
 
 #ifdef	_MSC_VER
+#ifdef BL_USE_NEW_HFILES
+#include <sstream>
+#else
 #include <strstrea.h>
+#endif
 #else
 #include <strstream.h>
 #endif

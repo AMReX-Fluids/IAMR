@@ -145,7 +145,8 @@ void Projection::read_params()
 
 
 // set up bcs
-void Projection::setUpBcs()
+void 
+Projection::setUpBcs()
 {
   const Geometry& geom = parent->Geom(0);
 
@@ -168,13 +169,10 @@ void Projection::setUpBcs()
   projector_bndry = new inviscid_fluid_boundary(proj_bc);
 }
 
-
-
-
-
 // install a level of the projection
-void Projection::install_level(int level, AmrLevel * level_data,
-			       PArray<REAL> * _radius )
+void
+Projection::install_level(int level, AmrLevel * level_data,
+			  PArray<REAL> * _radius )
 {
   if (verbose) 
   {
@@ -270,21 +268,22 @@ void Projection::bldSyncProject()
 //         and then converted into final prssure p^{n+1/2}
 // ----------------------------------------------------
 
-void Projection::level_project(int level,
-			       REAL dt, REAL cur_pres_time,
-			       REAL old_state_time, REAL cur_state_time,
-			       const Geometry& geom, 
-			       MultiFab &U_old,
-			       MultiFab &U_new,
-			       MultiFab &P_old,
-			       MultiFab &P_new,
-			       MultiFab * rho_half, 
-			       MultiFab& dsdt, 
-			       SyncRegister * crse_sync_reg, 
-			       SyncRegister * fine_sync_reg,  
-			       int crse_dt_ratio, int ** bc, int iteration,
-			       REAL divu_minus_s_factor,
-			       MultiFab &divuold, int have_divu) 
+void
+Projection::level_project(int level,
+			  REAL dt, REAL cur_pres_time,
+			  REAL old_state_time, REAL cur_state_time,
+			  const Geometry& geom, 
+			  MultiFab &U_old,
+			  MultiFab &U_new,
+			  MultiFab &P_old,
+			  MultiFab &P_new,
+			  MultiFab * rho_half, 
+			  MultiFab& dsdt, 
+			  SyncRegister * crse_sync_reg, 
+			  SyncRegister * fine_sync_reg,  
+			  int crse_dt_ratio, int ** bc, int iteration,
+			  REAL divu_minus_s_factor,
+			  MultiFab &divuold, int have_divu) 
 {
   if (verbose) 
   {

@@ -8,8 +8,12 @@
 #endif
 
 #ifdef BL_USE_NEW_HFILES
+#include <ostream>
 #include <fstream>
 using std::ofstream;
+#else
+#include <iostream.h>
+#include <fstream.h>
 #endif
 
 /*

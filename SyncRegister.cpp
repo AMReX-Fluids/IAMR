@@ -1,13 +1,15 @@
 //
-// $Id: SyncRegister.cpp,v 1.8 1997-09-23 19:25:52 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.9 1997-09-24 16:01:49 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
 #include <cstring>
+#include <cstdio>
 #else
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #endif
 
 #include <BC_TYPES.H>
