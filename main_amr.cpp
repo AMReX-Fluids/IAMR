@@ -1,6 +1,6 @@
 
 //
-// $Id: main_amr.cpp,v 1.9 1998-04-01 00:32:26 car Exp $
+// $Id: main_amr.cpp,v 1.10 1998-04-01 00:34:06 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -119,7 +119,7 @@ main(int argc, char *argv[])
     // -------------------------------------------------
     delete amrptr;
 
-    EndParallel();
+    ParallelDescriptor::EndParallel();
 
     // stop execution
     return(0);
