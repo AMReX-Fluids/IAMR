@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.118 2002-11-08 23:31:21 car Exp $
+// $Id: Diffusion.cpp,v 1.119 2002-11-09 02:23:23 lijewski Exp $
 //
 
 //
@@ -1042,8 +1042,8 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
             cg.solve(Soln,Rhs,S_tol,S_tol_abs);
         }
 	else if ( use_hypre_solve )
-	  {
 #ifdef MG_USE_HYPRE
+	  {
 	    BoxLib::Error("HypreABec not ready");
 	    //	    Real* dx = 0;
 	    //	    HypreABec hp(Soln.boxArray(), visc_bndry, dx, 0, false);
