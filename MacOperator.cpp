@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOperator.cpp,v 1.18 2000-08-02 16:04:41 car Exp $
+// $Id: MacOperator.cpp,v 1.19 2000-08-02 21:05:30 almgren Exp $
 //
 
 #include <MacBndry.H>
@@ -276,7 +276,7 @@ MacOperator::velUpdate (MultiFab*       Vel,
     // Set bndry data in ghost zones.
     //
     int apply_lev = 0;
-    applyBC(Phi,apply_lev);
+    applyBC(Phi,0,1,apply_lev);
 
     for (MultiFabIterator Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
     {
@@ -467,7 +467,7 @@ mac_sync_driver (const MacBndry& mac_bndry,
     }
     
     int mac_op_lev = 0;
-    mac_op.applyBC(*mac_sync_phi,mac_op_lev);
+    mac_op.applyBC(*mac_sync_phi,0,1,mac_op_lev);
 }
 
 //

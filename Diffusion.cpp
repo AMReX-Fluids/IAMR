@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.101 2000-08-02 18:01:33 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.102 2000-08-02 21:05:29 almgren Exp $
 //
 
 //
@@ -1110,7 +1110,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         }
 
         int visc_op_lev = 0;
-        visc_op->applyBC(Soln,visc_op_lev);
+        visc_op->applyBC(Soln,0,1,visc_op_lev);
 
         MultiFab::Copy(*Vsync,Soln,0,comp,1,1);
 
@@ -1779,14 +1779,16 @@ Diffusion::getViscOp (int                    comp,
                       Real*                  rhsscale,
                       int                    dataComp,
                       const MultiFab* const* beta,
-                      const MultiFab*        alpha_in)
+                      const MultiFab*        alpha_in,
+                      bool		     bndry_already_filled)
 {
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
 
     const Real* dx = caller->Geom().CellSize();
 
-    getBndryData(visc_bndry,comp,1,time,rho_flag);
+    if (!bndry_already_filled)
+      getBndryData(visc_bndry,comp,1,time,rho_flag);
 
     ABecLaplacian* visc_op = new ABecLaplacian(visc_bndry,dx);
     visc_op->maxOrder(max_order);
@@ -2365,6 +2367,7 @@ Diffusion::getBndryData (ViscBndry& bndry,
 void
 Diffusion::getBndryDataGivenS (ViscBndry& bndry,
                                MultiFab&  Rho_and_spec,
+                               MultiFab&  Rho_and_spec_crse,
                                int        state_ind,
                                int        src_comp,
                                int        num_comp,
@@ -2395,7 +2398,7 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
         // interp for solvers over ALL c-f brs, need safe data.
         //
         crse_br.setVal(BL_BOGUS);
-        coarser->FillBoundary(crse_br,state_ind,0,num_comp,time,rho_flag);
+        crse_br.copyFrom(Rho_and_spec_crse,nGrow,src_comp,0,num_comp);
         bndry.setBndryValues(crse_br,0,Rho_and_spec,src_comp,0,num_comp,crse_ratio,bc);
     }
 }

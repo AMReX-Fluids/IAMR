@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.20 2000-08-02 16:04:43 car Exp $
+// $Id: Diffusion.H,v 1.21 2000-08-02 21:05:29 almgren Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -162,7 +162,8 @@ public:
                               Real*                  rhsscale = 0,
 			      int                    dataComp = 0,
                               const MultiFab* const* beta = 0,
-                              const MultiFab*        alpha_in = 0);
+                              const MultiFab*        alpha_in = 0,
+                              bool		     bndry_already_filled = false);
 
     ABecLaplacian* getViscOp (int                    src_comp,
                               const Real             a,
@@ -219,6 +220,7 @@ public:
 
     void getBndryDataGivenS (ViscBndry&         bndry,
                              MultiFab&          S,
+                             MultiFab&          S_crse,
                              int                state_ind,
                              int                src_comp,
                              int                num_comp,
