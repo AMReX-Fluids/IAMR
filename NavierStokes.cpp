@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.35 1998-03-27 20:41:26 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.36 1998-03-28 00:34:48 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -453,13 +453,6 @@ void NavierStokes::SaveOldBoundary( Real time )
 {
     MultiFab &Sold = get_old_data(State_Type);
 
-#if (USEOLDFILLPATCH == 1)
-    FArrayBox temp;
-    for(int i = 0; i < grids.length(); i++) {
-        getState(temp,i,1,0,NUM_STATE,time);
-        Sold[i].copy(temp,0,0,NUM_STATE);
-    }
-#else
     int nGrow    = 1;
     int srcComp  = 0;
     int destComp = 0;
@@ -472,7 +465,6 @@ void NavierStokes::SaveOldBoundary( Real time )
       DependentMultiFabIterator Soldmfi(Soldfpi, Sold);
       Soldmfi().copy(Soldfpi(), srcComp, destComp, nComp);
     }
-#endif
 }
 
 // -------------------------------------------------------------
@@ -480,13 +472,6 @@ void NavierStokes::SaveNewBoundary( Real time )
 {
     MultiFab &Snew = get_new_data(State_Type);
 
-#if (USEOLDFILLPATCH == 1)
-    FArrayBox temp;
-    for(int i = 0; i < grids.length(); i++) {
-        getState(temp,i,1,0,NUM_STATE,time);
-        Snew[i].copy(temp,0,0,NUM_STATE);
-    }
-#else
     int nGrow    = 1;
     int srcComp  = 0;
     int destComp = 0;
@@ -499,7 +484,6 @@ void NavierStokes::SaveNewBoundary( Real time )
       DependentMultiFabIterator Snewmfi(Snewfpi, Snew);
       Snewmfi().copy(Snewfpi(), srcComp, destComp, nComp);
     }
-#endif
 }
 
 
@@ -902,41 +886,6 @@ void NavierStokes::init( AmrLevel &old)
     setTimeLevel(cur_time,dt_old,dt_new);
     Real cur_pres_time = state[Press_Type].curTime();
 
-#if (USEOLDFILLPATCH == 1)
-    int i;
-    if(ParallelDescriptor::NProcs() > 1) {
-      cerr << "Using old FillPatch with multiple processors.\n";
-      ParallelDescriptor::Abort("NavierStokes::init( AmrLevel &old)");
-    } else {
-      cerr << "Using old FillPatch.\n";
-    }
-    // get best state and pressure data
-    for (i = 0; i < grids.length(); i++) {
-        const int* lo = grids[i].loVect();
-        const int* hi = grids[i].hiVect();
-        oldns->FillPatch(S_new[i],0,cur_time,State_Type,0,NUM_STATE);
-        oldns->FillPatch(P_new[i],0,cur_pres_time,Press_Type,0,1);
-        P_old[i].copy(P_new[i]);
-    }
-
-    // get best divu and dSdt data
-    if (have_divu) {
-      MultiFab &Divu_new = get_new_data(Divu_Type);
-      for (i = 0; i < grids.length(); i++) {
-        const int* lo = grids[i].loVect();
-        const int* hi = grids[i].hiVect();
-        oldns->FillPatch(Divu_new[i],0,cur_time,Divu_Type,0,1);
-      }
-      if (have_dsdt) {
-        MultiFab &Dsdt_new = get_new_data(Dsdt_Type);
-        for (i = 0; i < grids.length(); i++) {
-          const int* lo = grids[i].loVect();
-          const int* hi = grids[i].hiVect();
-          oldns->FillPatch(Dsdt_new[i],0,cur_time,Dsdt_Type,0,1);
-        }
-      }
-    }
-#else
     int destComp = 0;
     int srcComp  = 0;
     int boxGrow  = 0;
@@ -987,7 +936,6 @@ void NavierStokes::init( AmrLevel &old)
         }
       }
     }
-#endif
 }
 
 
@@ -1230,17 +1178,6 @@ Real NavierStokes::advance(Real time, Real dt, int iteration, int ncycle)
 
     MultiFab divu(grids,1,0,Fab_allocate);
     MultiFab dsdt(grids,1,0,Fab_allocate);
-#if (USEOLDFILLPATCH == 1)
-    for(MultiFabIterator divumfi(divu); divumfi.isValid(); ++divumfi) {
-      DependentMultiFabIterator dsdtmfi(divumfi, dsdt);
-        int k = divumfi.index();
-        getDivCond(divumfi(),k,0,time);
-        getDsdt(dsdtmfi(),k,0,time);
-        dsdtmfi().mult(.5*dt);
-        divumfi().plus(dsdtmfi());
-    }
-    
-#else
 
     int destComp = 0;
     int srcComp  = 0;
@@ -1288,8 +1225,6 @@ Real NavierStokes::advance(Real time, Real dt, int iteration, int ncycle)
       divu.setVal(0.0);
       dsdt.setVal(0.0);
     }
-
-#endif
 
     //------------------- compute mac velocities and maximum clf number
     if (do_mac_proj)
@@ -1478,14 +1413,6 @@ NavierStokes::makerhonph(Real dt)
     Real prev_time = state[State_Type].prevTime();
     Real half_time = prev_time + 0.5*dt;
 
-#if (USEOLDFILLPATCH == 1)
-    assert(ParallelDescriptor::NProcs() == 1);
-    for(MultiFabIterator rhohalfmfi(*rho_half); rhohalfmfi.isValid(); ++rhohalfmfi)
-    {
-        int k = rhohalfmfi.index();
-        getState(rhohalfmfi(),k,1,Density,1,half_time);
-    }
-#else
     int nGrow    = 1;
     int srcComp  = Density;
     int destComp = 0;
@@ -1506,11 +1433,7 @@ NavierStokes::makerhonph(Real dt)
 
       rho_halfmfi().copy(rho_halffpi());
     }
-#endif
 }
-
-
-
 
 // -------------------------------------------------------------
 // predict the edge velocities which go into forming u_mac.  This
@@ -1544,61 +1467,6 @@ Real NavierStokes::predict_velocity( Real dt, Real &comp_cfl )
     comp_cfl  = ( level == 0 ? cflmax : comp_cfl );
 
     // for each grid, fill patch source terms and predict
-    //for ( i = 0; i < grids.length(); i++)
-#if (USEOLDFILLPATCH == 1)
-    for(MultiFabIterator visc_termsmfi(visc_terms);
-        visc_termsmfi.isValid(); ++visc_termsmfi)
-    {
-      DependentMultiFabIterator u_mac0mfi(visc_termsmfi, u_mac[0]);
-      DependentMultiFabIterator u_mac1mfi(visc_termsmfi, u_mac[1]);
-#if (BL_SPACEDIM == 3)                         
-      DependentMultiFabIterator u_mac2mfi(visc_termsmfi, u_mac[2]);
-#endif
-      int i = visc_termsmfi.index();
-
-        // get grid and boundary condition info
-        const Box& grd = grids[i];
-
-        // get the relevant state data
-        getState(U,      i,HYP_GROW,Xvel,   BL_SPACEDIM,prev_time);
-        getState(Rho,    i,1,       Density,1,          prev_time);
-        getForce(tforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
-        getGradP(Gp,     i,1,                           prev_pres_time);
-
-        // test velocities, rho and cfl
-        cflgrid  = godunov->test_u_rho( U, Rho, grd, dx, dt, u_max );
-        cflmax   = Max(cflgrid,cflmax);
-        comp_cfl = Max(cflgrid,comp_cfl);
-
-        // compute the total forcing
-        godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rho );
-
-        Array<int> bndry[BL_SPACEDIM];
-
-        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);
-               bndry[1] = getBCArray(State_Type,i,1,1);
-               bndry[2] = getBCArray(State_Type,i,2,1);)
-        
-        // set up the Godunov box
-        godunov->Setup(grd, dx, dt, 1,
-                       u_mac0mfi(), bndry[0].dataPtr(),
-                       u_mac1mfi(), bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)                       
-                       u_mac2mfi(), bndry[2].dataPtr(),
-#endif
-                       U, Rho, tforces);
-
-        // predict the mac velocities
-        godunov->ComputeUmac(grd, dx, dt, 
-                             u_mac0mfi(), bndry[0].dataPtr(),
-                             u_mac1mfi(), bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)
-                             u_mac2mfi(), bndry[2].dataPtr(),
-#endif
-                             U, tforces);
-    }  // end for(MultiFabIterator...)
-
-#else
 
     int destComp = 0;
     FillPatchIterator Ufpi(*this, S_old, HYP_GROW, destComp, prev_time,
@@ -1735,9 +1603,6 @@ Real NavierStokes::predict_velocity( Real dt, Real &comp_cfl )
                               U, tforces );
     }  // end for(FillPatchIterator...)
 
-#endif
-
-
     // test for periodic u_mac
     if ( level == 0 && geom.isAnyPeriodic() ) {
         test_umac_periodic();
@@ -1847,71 +1712,6 @@ void NavierStokes::velocity_advection( Real dt )
     FArrayBox xflux, yflux, zflux, divu;
 
     // compute the advective forcing
-    //for ( i = 0; i < grids.length(); i++)
-#if (USEOLDFILLPATCH == 1)
-    for(MultiFabIterator visc_termsmfi(visc_terms);
-        visc_termsmfi.isValid(); ++visc_termsmfi)
-    {
-      DependentMultiFabIterator aofsmfi(visc_termsmfi, (*aofs));
-      DependentMultiFabIterator volumemfi(visc_termsmfi, volume);
-      DependentMultiFabIterator u_mac0mfi(visc_termsmfi, u_mac[0]);
-      DependentMultiFabIterator u_mac1mfi(visc_termsmfi, u_mac[1]);
-      DependentMultiFabIterator area0mfi(visc_termsmfi, area[0]);
-      DependentMultiFabIterator area1mfi(visc_termsmfi, area[1]);
-#if (BL_SPACEDIM == 3)
-      DependentMultiFabIterator u_mac2mfi(visc_termsmfi, u_mac[2]);
-      DependentMultiFabIterator area2mfi(visc_termsmfi, area[2]);
-#endif
-      int i = visc_termsmfi.index();
-
-        assert(grids[visc_termsmfi.index()] == visc_termsmfi.validbox());
-        const Box& grd = visc_termsmfi.validbox();
-
-        // get needed data
-        getState(U,      i,HYP_GROW,Xvel,   BL_SPACEDIM,prev_time);
-        getState(Rho,    i,1,       Density,1,          prev_time);
-        getForce(tforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
-        getGradP(Gp,     i,1,                      prev_pres_time);
-
-        // compute the total forcing
-        godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rho );
-
-        Array<int> bndry[BL_SPACEDIM];
-
-        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);
-               bndry[1] = getBCArray(State_Type,i,1,1);
-               bndry[2] = getBCArray(State_Type,i,2,1);)
-
-        // set up the workspace for the godunov Box
-        godunov->Setup( grd, dx, dt, 0,
-                        xflux, bndry[0].dataPtr(),
-                        yflux, bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)                          
-                        zflux, bndry[2].dataPtr(),
-#endif
-                        U, Rho, tforces);
-        
-        // loop over the velocity components
-        for ( comp = 0 ; comp < BL_SPACEDIM ; comp++ ) {
-            godunov->AdvectState( grd, dx, dt, 
-                                  area0mfi(), u_mac0mfi(), xflux,
-                                  area1mfi(), u_mac1mfi(), yflux,
-#if (BL_SPACEDIM == 3)                       
-                                  area2mfi(), u_mac2mfi(), zflux,
-#endif
-                                  U, U, tforces, comp,
-                                  aofsmfi(),    comp,
-                                  is_conservative[comp],
-                                  comp,
-                                  bndry[comp].dataPtr(),
-                                  volumemfi() );
-
-            // get fluxes for diagnostics and refluxing
-            pullFluxes( i, comp, 1, xflux, yflux, zflux, dt );
-        } // end of velocity loop
-    } // end of grid loop
-
-#else
 
     MultiFab &S_old = get_old_data(State_Type);
     int destComp = 0;
@@ -2058,7 +1858,6 @@ void NavierStokes::velocity_advection( Real dt )
             pullFluxes( i, comp, 1, xflux, yflux, zflux, dt );
         } // end of velocity loop
     } // end of grid loop
-#endif
 }
 
 
@@ -2102,87 +1901,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
     }
 
     // compute the advective forcing
-    //for ( i = 0; i < grids.length(); i++)
-#if (USEOLDFILLPATCH == 1)
-    for(MultiFabIterator visc_termsmfi(visc_terms);
-        visc_termsmfi.isValid(); ++visc_termsmfi)
-    {
-      DependentMultiFabIterator vel_visc_termsmfi(visc_termsmfi, vel_visc_terms);
-      DependentMultiFabIterator aofsmfi(visc_termsmfi, (*aofs));
-      DependentMultiFabIterator volumemfi(visc_termsmfi, volume);
-      DependentMultiFabIterator u_mac0mfi(visc_termsmfi, u_mac[0]);
-      DependentMultiFabIterator u_mac1mfi(visc_termsmfi, u_mac[1]);
-      DependentMultiFabIterator area0mfi(visc_termsmfi, area[0]);
-      DependentMultiFabIterator area1mfi(visc_termsmfi, area[1]);
-#if (BL_SPACEDIM == 3)
-      DependentMultiFabIterator u_mac2mfi(visc_termsmfi, u_mac[2]);
-      DependentMultiFabIterator area2mfi(visc_termsmfi, area[2]);
-#endif
-      int i = visc_termsmfi.index();
 
-        assert(grids[visc_termsmfi.index()] == visc_termsmfi.validbox());
-        const Box& grd = grids[i];
-
-        // get needed data
-        getState(U,      i,HYP_GROW,Xvel,   BL_SPACEDIM,prev_time);
-        getState(S,      i,HYP_GROW,fscalar,num_scalars,prev_time);
-        getState(Rho,    i,1,       Density,1,          prev_time);
-        getForce(tforces,i,1,       fscalar,num_scalars,prev_time);
-        getDivCond(divu, i,1,                           prev_time);
-
-        if (use_forces_in_trans) {
-          getForce(tvelforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
-          getGradP(Gp,        i,1,                           prev_pres_time);
-          godunov->Sum_tf_gp_visc( tvelforces, vel_visc_termsmfi(), Gp, Rho );
-        }
-        
-        Array<int> bndry[BL_SPACEDIM];
-
-        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);
-               bndry[1] = getBCArray(State_Type,i,1,1);
-               bndry[2] = getBCArray(State_Type,i,2,1);)
-
-        // set up the workspace for the godunov Box
-        godunov->Setup( grd, dx, dt, 0,
-                        xflux, bndry[0].dataPtr(),
-                        yflux, bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)                         
-                        zflux, bndry[2].dataPtr(),
-#endif
-                        U, Rho, tvelforces );
-        
-        // loop over the scalar components
-        for ( comp = 0 ; comp < num_scalars ; comp++ ) {
-            state_ind = fscalar + comp;
-
-            // compute total forcing
-            godunov->Sum_tf_divu_visc( S, tforces,    comp, 1,
-                                       visc_termsmfi(), comp,
-                                       divu, Rho,
-                                       is_conservative[state_ind] );
-
-            Array<int> state_bc = getBCArray(State_Type,i,state_ind,1);
-            //  advect scalar
-            godunov->AdvectState( grd, dx, dt, 
-                                  area0mfi(), u_mac0mfi(), xflux,
-                                  area1mfi(), u_mac1mfi(), yflux,
-#if (BL_SPACEDIM == 3)                        
-                                  area2mfi(), u_mac2mfi(), zflux,
-#endif
-                                  U, S, tforces, comp,
-                                  aofsmfi(),    state_ind,
-                                  is_conservative[state_ind],
-                                  state_ind,
-                                  state_bc.dataPtr(),
-                                  volumemfi() );
-
-            // get the fluxes for refluxing and diagnostic purposes
-            pullFluxes( i, state_ind, 1, xflux, yflux, zflux, dt );
-            
-        } // end of scalar loop
-    } // end of grid loop
-
-#else
     MultiFab &S_old = get_old_data(State_Type);
     int destComp = 0;
     FillPatchIterator Ufpi(*this, S_old, HYP_GROW, destComp, prev_time,
@@ -2432,7 +2151,6 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
         }
 
     } // end of while FillPatchIterator loop
-#endif
 }
 
 
@@ -2478,35 +2196,6 @@ void NavierStokes::scalar_advection_update(Real dt, int first_scalar, int last_s
     
     // loop over the desired scalars
     for (int sigma = first_scalar; sigma <= last_scalar; sigma++) {
-
-#if (USEOLDFILLPATCH == 1)
-        // compute inviscid estimate of scalars
-        //for (int i = 0; i < ngrids; i++)
-        for(MultiFabIterator S_oldmfi(S_old);
-            S_oldmfi.isValid(); ++S_oldmfi)
-        {
-            DependentMultiFabIterator S_newmfi(S_oldmfi, S_new);
-            DependentMultiFabIterator Aofsmfi(S_oldmfi, Aofs);
-            assert(grids[S_oldmfi.index()] == S_oldmfi.validbox());
-            const Box& grd = S_oldmfi.validbox();
-            int i = S_oldmfi.index();
-            getForce(tforces,i,0,sigma,1,half_time);
-            godunov->Add_aofs_tf( S_oldmfi(),
-                                  S_newmfi(), sigma, 1, 
-                                  Aofsmfi(),  sigma,
-                                  tforces,  0,
-                                  grd,      dt );
-
-            int do_minmax = (is_conservative[sigma] ? 0 : 1);
-            if (do_minmax) {
-                godunov->ScalMinMax(S_oldmfi(), S_newmfi(),
-                                    sigma,
-                                    getBCArray(State_Type,i,sigma,1).dataPtr(),
-                                    grd);
-            }
-        }
-
-#else
 
         int destComp = 0;
         for(FillPatchIterator Rhofpi(*this, S_old, 0, destComp, half_time,
@@ -2562,7 +2251,6 @@ void NavierStokes::scalar_advection_update(Real dt, int first_scalar, int last_s
                                     grd );
             }
         }
-#endif
     }
 }
 
@@ -2639,35 +2327,6 @@ void NavierStokes::velocity_advection_update(Real dt)
     Real pres_prev_time = state[Press_Type].prevTime();
 
     // estimate u^n+1 and put in U_new
-    //for (i = 0; i < grids.length(); i++)
-
-#if (USEOLDFILLPATCH == 1)
-
-    for(MultiFabIterator U_oldmfi(U_old); U_oldmfi.isValid(); ++U_oldmfi) {
-        DependentMultiFabIterator U_newmfi(U_oldmfi, U_new);
-        DependentMultiFabIterator Aofsmfi(U_oldmfi, Aofs);
-        DependentMultiFabIterator rho_halfmfi(U_oldmfi, (*rho_half));
-        int i = U_oldmfi.index();
-        
-        // get the forcing terms
-        getGradP(Gp,     i,0,            pres_prev_time);
-        getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time);
-        FArrayBox& Rh = rho_halfmfi();
-        
-#if 1   // do following only at initial iteration--per JBB
-        if (initial_iter && is_diffusive[Xvel]) {
-            tforces.setVal(0.); 
-        }
-#endif
-        assert(grids[U_oldmfi.index()] == U_oldmfi.validbox());
-        const Box& grd = U_oldmfi.validbox();
-        godunov->Add_aofs_tf_gp( U_oldmfi(), U_newmfi(),
-                                 Aofsmfi(),  tforces,
-                                 Gp,       Rh,
-                                 grd,      dt );
-    }
-
-#else
 
     int destComp = 0;
     int rhoNGrow = 0;
@@ -2769,8 +2428,6 @@ void NavierStokes::velocity_advection_update(Real dt)
                                  Gp,       Rh,
                                  grd,      dt );
     }
-#endif
-
 }
 
 //-------------------------------------------------------------
@@ -2840,32 +2497,6 @@ void NavierStokes::initial_velocity_diffusion_update(Real dt)
 
         // update U_new with viscosity
         //for (i = 0; i < grids.length(); i++)
-#if (USEOLDFILLPATCH == 1)
-        for(MultiFabIterator U_oldmfi(U_old); U_oldmfi.isValid(); ++U_oldmfi) {
-            DependentMultiFabIterator U_newmfi(U_oldmfi, U_new);
-            DependentMultiFabIterator Aofsmfi(U_oldmfi, Aofs);
-            DependentMultiFabIterator rho_halfmfi(U_oldmfi, (*rho_half));
-            assert(grids[U_oldmfi.index()] == U_oldmfi.validbox());
-
-            int i = U_oldmfi.index();
-
-            FArrayBox& Rh = rho_halfmfi();
-            const Box& grd = U_oldmfi.validbox();
-
-            // get the forcing terms
-            getGradP(Gp,     i,0,            pres_prev_time);
-            getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time);
-            godunov->Sum_tf_gp_visc( tforces, visc_terms[i], Gp, Rh );
-            
-            // compute the inviscid update
-            godunov->Add_aofs_tf( U_oldmfi(),
-                                  U_newmfi(), 0, BL_SPACEDIM, 
-                                  Aofsmfi(),  0,
-                                  tforces,  0,
-                                  grd,      dt );
-        }  // end MultiFabIterator
-#else
-
     int destComp = 0;
     int rhoNGrow = 0;
     int nComp    = 1;
@@ -2970,7 +2601,6 @@ void NavierStokes::initial_velocity_diffusion_update(Real dt)
         }  // end MultiFabIterator
 #endif
     }  // end if(is_diffusive[Xvel])
-#endif
 }
 
 void
@@ -3122,7 +2752,6 @@ Real  NavierStokes::volWgtSum(const aString& name, Real time)
     return sum;
 }
 
-#ifdef BL_PARALLEL_IO
 aString
 NavierStokes::thePlotFileType () const
 {
@@ -3299,130 +2928,6 @@ NavierStokes::writePlotFile (const aString& dir,
     }
 }
 
-#else
-
-void
-NavierStokes::writePlotFile (ostream& os)
-{
-    //
-    // This is a hack to mimic the old Hyperbolic style plotfile so
-    // we can use the graphics tools developed for that code.
-    // The new version of this code will have a better interface.
-    //
-    int i, n;
-
-    if (level == 0 && ParallelDescriptor::IOProcessor())
-    {
-        //
-        // Only write out velocity and scalar data.
-        //
-        int n_var = NUM_STATE;
-        int n_data_items = n_var;
-
-        if (have_dsdt)
-            n_data_items += 2;
-        else if (have_divu)
-            n_data_items += 1;
-
-        os << n_data_items << '\n';
-
-        for (n = 0; n < NUM_STATE; n++)
-            os << desc_lst[State_Type].name(n) << '\n';
-
-        if (have_divu)
-        {
-            os << desc_lst[Divu_Type].name(0) << '\n';
-            if (have_dsdt)
-                os << desc_lst[Dsdt_Type].name(0) << '\n';
-        }
-
-        os << BL_SPACEDIM << '\n';
-        os << parent->cumTime() << '\n';
-        int f_lev = parent->finestLevel();
-        os << f_lev << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++) os << Geometry::ProbLo(i) << ' ';
-        os << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++) os << Geometry::ProbHi(i) << ' ';
-        os << '\n';
-        for (i = 0; i < f_lev; i++) os << parent->refRatio(i)[0] << ' ';
-        os << '\n';
-        for (i = 0; i <= f_lev; i++) os << parent->Geom(i).Domain() << ' ';
-        os << '\n';
-        for (i = 0; i <= f_lev; i++) os << parent->levelSteps(i) << ' ';
-        os << '\n';
-        for (i = 0; i <= f_lev; i++)
-        {
-            for (int k = 0; k < BL_SPACEDIM; k++)
-                os << parent->Geom(i).CellSize()[k] << ' ';
-            os << '\n';
-        }
-        os << (int) CoordSys::Coord() << '\n';
-        //
-        // Write bndry data.
-        //
-        os << "0\n";
-    }
-    //
-    // Now write state data.
-    //
-    int ngrids = grids.length();
-    Real cur_time = state[State_Type].curTime();
-    MultiFab& cell_dat = state[State_Type].newData();
-    MultiFab* divu_dat = 0;
-    MultiFab* dsdt_dat = 0;
-    if (have_divu)
-    {
-        divu_dat = &(state[Divu_Type].newData());
-        if (have_dsdt)
-            dsdt_dat = &(state[Dsdt_Type].newData());
-    }
-
-    if (ParallelDescriptor::IOProcessor())
-        os << level << ' ' << ngrids << '\n';
-
-    streampos filePosition;
-    ParallelDescriptor::ShareVar(&filePosition, sizeof(streampos));
-    ParallelDescriptor::Synchronize();
-    int myproc = ParallelDescriptor::MyProc();
-
-    for (i = 0; i < ngrids; i++)
-    {
-        int fabProc = cell_dat.DistributionMap()[i];
-        if (fabProc == myproc)
-        {
-            const Box& grd = grids[i];
-            os << grd << '\n'
-               << level << '\n'
-               << parent->levelSteps(level) << '\n'
-               << cur_time << '\n';
-            for (n = 0; n < BL_SPACEDIM; n++)
-                os << grid_loc[i].lo(n) << ' ' << grid_loc[i].hi(n) << '\n';
-            FArrayBox dat(grd,1);
-            for (n = 0; n < NUM_STATE; n++)
-            {
-                dat.copy(cell_dat[i],n,0,1);
-                dat.writeOn(os,0,1);
-            }
-            if (have_divu)
-            {
-                dat.copy((*divu_dat)[i],0,0,1);
-                dat.writeOn(os,0,1);
-                if (have_dsdt)
-                {
-                    dat.copy((*dsdt_dat)[i],0,0,1);
-                    dat.writeOn(os,0,1);
-                }
-            }
-            filePosition = os.tellp();
-        }
-        ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition);
-        os.seekp(filePosition);
-    }
-    ParallelDescriptor::Synchronize();
-    ParallelDescriptor::UnshareVar(&filePosition);
-}
-#endif /*BL_PARALLEL_IO*/
-
 Real
 NavierStokes::estTimeStep ()
 {
@@ -3456,38 +2961,6 @@ NavierStokes::estTimeStep ()
         u_max[k] = 0.0;
     }
     Real estdt = 1.0e+20;
-
-#if (USEOLDFILLPATCH == 1)
-
-    for (int i = 0; i < grids.length(); i++) {
-
-        // get the pressure
-        Box p_box(surroundingNodes(grids[i]));
-        FArrayBox p_fab(p_box,1);
-        p_fab.copy(P_new[i],p_box);
-
-        // get the density and and velocities
-        getState(Rho,i,n_grow,Density,1,cur_time);
-        FArrayBox& fab_vel = U_new[i];
-
-        // get the velocity forcing
-        // for some reason no viscous forcing
-        getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time);
-        getGradP( p_fab, Gp, grids[i], 0 );
-        tforces.minus(Gp, 0,0,BL_SPACEDIM );
-
-        // estimate the maximum allowable timestep from the Godunov box
-        const Real *dx = geom.CellSize();
-        Real dt = godunov->estdt( fab_vel, tforces, Rho,
-                                  grids[i], dx, cfl, gr_max );
-
-        for (k = 0; k < BL_SPACEDIM; k++) {
-            u_max[k] = Max(u_max[k],gr_max[k]);
-        }
-        estdt = Min(estdt,dt);
-    }
-
-#else
 
     int destComp = 0;
     FillPatchIterator Ufpi(*this, U_new, n_grow, destComp, cur_time,
@@ -3593,8 +3066,6 @@ NavierStokes::estTimeStep ()
         }
         estdt = Min(estdt,dt);
     }  // end for(MultiFabIterator ...)
-
-#endif
 
     // parallel reductions
     for(k = 0; k < BL_SPACEDIM; k++) {
@@ -3827,11 +3298,7 @@ void NavierStokes::post_timestep()
         Real dt = parent->dtLevel(level);
         Real prev_time = state[State_Type].prevTime();
         Real half_time = prev_time + 0.5*dt;
-#if (USEOLDFILLPATCH == 1)
-        for (int k = 0; k < grids.length(); k++) {
-          getState((*rho_half)[k],k,1,Density,1,half_time);
-        }
-#else
+
         int boxGrow  = 1;
         int destComp = 0;
         int srcComp  = Density;
@@ -3847,7 +3314,6 @@ void NavierStokes::post_timestep()
           // copy from fillpatched fab to rho_half
           rho_halfdest().copy(rho_halffpi());
         }
-#endif
     }
 
     // Mac Sync Correction
@@ -4467,11 +3933,6 @@ void NavierStokes::level_sync()
 
     // get rho at t^{n+1/2}
 
-#if (USEOLDFILLPATCH == 1)
-    for (int k = 0; k < ngrids; k++) {
-        getState((*rho_half)[k],k,1,Density,1,half_time);
-    }
-#else
         int boxGrow  = 1;
         int destComp = 0;
         int srcComp  = Density;
@@ -4487,7 +3948,6 @@ void NavierStokes::level_sync()
           // copy from fillpatched fab to rho_half
           rho_halfdest().copy(rho_halffpi());
         }
-#endif
     
     if (level > 0) crsr_sync_ptr = &(getLevel(level).getSyncReg());
 
@@ -5229,17 +4689,7 @@ void NavierStokes::FillStateBndry(Real time, int state_indx, int src_comp,
   }
   MultiFab component(grids,1,ngrow,Fab_allocate);
   for (int istate = src_comp; istate < src_comp+num_comp; istate++) {
-#if (USEOLDFILLPATCH == 1)
-    for (int i = 0; i < grids.length(); i++) {
-      Box grd = grids[i];
-      grd.grow(ngrow);
-      int need_ghost_cells_filled = !grids.contains(grd);
-      if(need_ghost_cells_filled) {
-        getState(component[i],i,ngrow,state_indx,istate,1,time);
-        S[i].copy(component[i],0,istate,1);
-      }
-    }
-#else
+
     int srcComp  = istate;
     int destComp = 0;
     int nComp    = 1;
@@ -5257,8 +4707,7 @@ void NavierStokes::FillStateBndry(Real time, int state_indx, int src_comp,
         Smfi().copy(fpi(),0,istate,1);
       }
     }
-#endif
-  }  // end for(istate...)
+  }
   S.FillBoundary();
   setPhysBoundaryValues(state_indx,src_comp,num_comp,time);
 }
@@ -5393,14 +4842,7 @@ NavierStokes::compute_grad_divu_minus_s(Real time, MultiFab* grad_divu_minus_s,
 
     int nGrow = 1;
     MultiFab U (grids, BL_SPACEDIM, nGrow, Fab_allocate);
-#if (USEOLDFILLPATCH == 1)
-    FArrayBox Ufab;
-    int ngrids = grids.length();
-    for (int igrid = 0; igrid < ngrids; igrid++) {
-      getState(Ufab, igrid, nGrow, 0, BL_SPACEDIM, time);
-      U[igrid].copy(Ufab);
-    }
-#else
+
     int srcComp  = 0;
     int destComp = 0;
     int nComp    = BL_SPACEDIM;
@@ -5412,7 +4854,6 @@ NavierStokes::compute_grad_divu_minus_s(Real time, MultiFab* grad_divu_minus_s,
       DependentMultiFabIterator Umfi(Ufpi, U);
       Umfi().copy(Ufpi());
     }
-#endif
 
     if (is_rz) {
       for (int n = 0; n < BL_SPACEDIM; n++) 

@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.12 1998-03-26 06:40:59 almgren Exp $
+// $Id: NavierStokes.H,v 1.13 1998-03-28 00:34:47 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -105,8 +105,6 @@ public:   // ===================== public member functions ===
     // integrate derived quantities over domain
     Real sumDerive(const aString& name, Real time);
     Real volWgtSum(const aString& name, Real time);
-
-#ifdef BL_PARALLEL_IO
     //
     // A string written as the first item in writePlotFile() at level zero.
     // It is so we can distinguish between different types of plot files.
@@ -120,17 +118,9 @@ public:   // ===================== public member functions ===
     virtual void writePlotFile (const aString& dir,
                                 ostream&       os,
                                 VisMF::How     how);
-#else
     //
-    // Write plot file.
-    //
-    virtual void writePlotFile (ostream &os);
-#endif
-
-    //=================================================================
     // Timestep estimation functions follow
-    //=================================================================
-
+    //
     Real estTimeStep();
     Real initialTimeStep();
     virtual void computeInitialDt(int finest_level, int sub_cycle,
