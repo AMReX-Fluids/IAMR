@@ -164,7 +164,7 @@ DistributionMapping.strategy = ROUNDROBIN
 #**********************************
 
 # necessary for good multigrid convergence
-mg.usecg             = 0
+mg.usecg             = 1
 mg.nu_f              = 50
 mg.maxiter           = 50
 amr.blocking_factor  = 8  # factor by which every patch must be coarsenable
