@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.26 2001-08-09 22:42:00 marc Exp $
+// $Id: Godunov.cpp,v 1.27 2002-08-16 23:15:02 car Exp $
 //
 
 //
@@ -106,7 +106,7 @@ void
 Godunov::SetBogusScratch ()
 {
 #ifndef NDEBUG
-    const Real bogus_value = 1.e20;
+    const Real bogus_value = 1.e200;
 
     for (int i = 0 ; i < scr_size ; i++)
     {

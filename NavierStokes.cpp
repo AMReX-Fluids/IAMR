@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.198 2002-06-03 21:37:20 car Exp $
+// $Id: NavierStokes.cpp,v 1.199 2002-08-16 23:15:02 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -35,7 +35,6 @@
 #define PRESS_GROW  1
 #define DIVU_GROW   1
 #define DSDT_GROW   1
-#define bogus_value 1.e20
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \

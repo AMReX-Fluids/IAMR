@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.139 2002-04-26 19:08:40 car Exp $
+// $Id: Projection.cpp,v 1.140 2002-08-16 23:15:02 car Exp $
 //
 #include <winstd.H>
 
@@ -39,7 +39,7 @@ const Real* fabdat = (fab).dataPtr();
 const int* boxlo = (box).loVect();           \
 const int* boxhi = (box).hiVect();
 
-#define BogusValue 1.e20
+#define BogusValue 1.e200
 #define MAX_LEV 10
 
 //
