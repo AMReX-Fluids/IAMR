@@ -1,4 +1,4 @@
-// $Id: Diffusion.cpp,v 1.9 1997-09-24 19:47:04 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.10 1997-09-24 20:21:57 car Exp $
 
 // comment out this line to use diffusion class outside
 // the context of NavierStokes and classes derived from it
@@ -2281,7 +2281,7 @@ void Diffusion::getTensorViscTerms(MultiFab& visc_terms,
 {
 #if (BL_SPACEDIM==3)
     cout << "Diffusion::getTensorViscTerms :  " <<
-            "not yet implemented for 3-D\n"
+            "not yet implemented for 3-D\n";
     cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
             " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorViscTerms");
