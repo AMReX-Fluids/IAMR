@@ -4,7 +4,7 @@
 #define _DPTR_H_
 
 //
-// $Id: DPtr.H,v 1.1 1997-07-08 23:08:06 vince Exp $
+// $Id: DPtr.H,v 1.2 1997-07-17 22:35:12 car Exp $
 //
 
 #include <stddef.h>
@@ -296,8 +296,36 @@ DPtr<T>::operator const T* () const
     return dptr->dataPtr();
 }
 
-#ifdef BL_AUTO_INSTANTIATE
-#include <DPtr.C>
-#endif
+
+template <class T>
+DPtrRep<T>::~DPtrRep ()
+{}
+
+template <class T>
+T*
+DPtrRep<T>::dataPtr ()
+{
+    return &(*this)[0];
+}
+
+template <class T>
+void
+DPtrRep<T>::Lock ()
+{}
+
+template <class T>
+void
+DPtrRep<T>::UnLock ()
+{}
+
+template <class T>
+void
+DPtrRep<T>::Demand ()
+{}
+
+template <class T>
+void
+DPtrRep<T>::Queue ()
+{}
 
 #endif /*_DPTR_H_*/

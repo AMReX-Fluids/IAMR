@@ -4,7 +4,7 @@
 #define _PARRAY_H_
 
 //
-// $Id: PArray.H,v 1.1 1997-07-08 23:08:07 vince Exp $
+// $Id: PArray.H,v 1.2 1997-07-17 22:35:15 car Exp $
 //
 
 #include <Array.H>
@@ -277,8 +277,82 @@ PArray<T>::ready () const
     return vp.ready();
 }
 
-#ifdef BL_AUTO_INSTANTIATE
-#include <PArray.C>
-#endif
+
+#include <iostream.h>
+
+template <class T>
+PArray<T>::PArray (int    len,
+                   PArrayPolicy _managed)
+    : vp(len),
+      managed(_managed)
+{
+    for (int i = 0; i < length(); i++)
+        vp[i] = 0;
+}
+
+template <class T>
+void
+PArray<T>::clear ()
+{
+    if (managed)
+    {
+        for (int i = 0; i < length(); ++i) {
+	  if(vp[i] == 0) {
+	    //cerr << "Error in PArray<T>::clear vp[" << i << "] = 0 (fix parallel)"
+		 //<< endl;
+	  } else {
+            delete ((T*)(vp[i]));
+	  }
+	}
+    }
+    for (int i = 0; i < length(); ++i)
+        vp[i] = 0;
+}
+
+
+template <class T>
+PArray<T>::~PArray ()
+{
+    clear();
+}
+
+template <class T>
+void
+PArray<T>::resize (int newlen)
+{
+    void **ovp = vp.ready() ? &vp[0] : 0;
+    int onelem = vp.length();
+    vp.resize(newlen);
+    for (int i = onelem; i < newlen; ++i)
+        vp[i] = 0;
+    if (managed)
+    {
+        for (int i = newlen; i < onelem; i++)
+        {
+	  if(ovp[i] == 0) {
+	    //cerr << "Error in PArray<T>::clear ovp[" << i << "] = 0 (fix parallel)"
+		 //<< endl;
+	  } else {
+            delete ((T*)(ovp[i]));
+            ovp[i]  = 0;
+	  }
+        }
+    }
+}
+
+template <class T>
+void
+PArray<T>::clear (int n)
+{
+    if (managed) {
+	  if(vp[n] == 0) {
+	    //cerr << "Error in PArray<T>::clear vp[" << n << "] = 0 (fix parallel)"
+		 //<< endl;
+	  } else {
+            delete ((T*)(vp[n]));
+	  }
+    }
+    vp[n] = 0;
+}
 
 #endif /*_PARRAY_H_*/

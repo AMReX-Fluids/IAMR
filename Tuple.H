@@ -4,7 +4,7 @@
 #define _TUPLE_H_
 
 //
-// $Id: Tuple.H,v 1.1 1997-07-08 23:08:07 vince Exp $
+// $Id: Tuple.H,v 1.2 1997-07-17 22:35:16 car Exp $
 //
 
 #include <Assert.H>
@@ -108,8 +108,29 @@ Tuple<T,N>::operator const T* () const
     return &vect[0];
 }
 
-#ifdef BL_AUTO_INSTANTIATE
-#include <Tuple.C>
-#endif
+
+template <class T, size_t N>
+Tuple<T,N>::Tuple (const T* v)
+{
+    assert(v != 0);
+    for (size_t i = 0; i < N; ++i)
+        vect[i] = v[i];
+}
+
+template <class T, size_t N>
+Tuple<T,N>::Tuple (const Tuple<T,N>& rhs)
+{
+    for (size_t i = 0; i < N; ++i)
+        vect[i] = rhs.vect[i];
+}
+
+template <class T, size_t N>
+Tuple<T,N>&
+Tuple<T,N>::operator= (const Tuple<T,N>& rhs)
+{
+    for (size_t i = 0; i < N; ++i)
+        vect[i] = rhs.vect[i];
+    return *this;
+}
 
 #endif /*_TUPLE_H_*/

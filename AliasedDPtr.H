@@ -4,7 +4,7 @@
 #define _ALIASEDDPTR_H_
 
 //
-// $Id: AliasedDPtr.H,v 1.1 1997-07-08 23:08:04 vince Exp $
+// $Id: AliasedDPtr.H,v 1.2 1997-07-17 22:35:09 car Exp $
 //
 
 #include <Assert.H>
@@ -85,8 +85,75 @@ private:
     AliasedDPtr<T>& operator= (const AliasedDPtr<T>&);
 };
 
-#ifdef BL_AUTO_INSTANTIATE
-#include <AliasedDPtr.C>
-#endif 
+
+template <class T>
+AliasedDPtr<T>::AliasedDPtr (size_t _size)
+{
+    dptr        = new SimpleDPtr<T>(_size);
+    currentsize = _size;
+    offset      = 0;
+
+    if (dptr.isNull())
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
+}
+
+template <class T>
+AliasedDPtr<T>::AliasedDPtr (AliasedDPtr<T>* _asdptr,
+                             size_t          _size,
+                             int             _offset)
+{
+    dptr        = _asdptr->dptr;
+    offset      = _offset;
+    currentsize = _size;
+}
+
+template <class T>
+AliasedDPtr<T>::~AliasedDPtr ()
+{}
+
+template <class T>
+size_t
+AliasedDPtr<T>::size () const
+{
+    return currentsize;
+}
+
+template <class T>
+T&
+AliasedDPtr<T>::operator[] (long n) const
+{
+    return (*dptr)[n + offset];
+}
+
+template <class T>
+void
+AliasedDPtr<T>::define (size_t _size)
+{
+    dptr        = new SimpleDPtr<T>(_size);
+    currentsize = _size;
+    offset      = 0;
+
+    if (dptr.isNull())
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
+}
+
+template <class T>
+void
+AliasedDPtr<T>::resize (size_t _size)
+{
+    dptr        = new SimpleDPtr<T>(_size);
+    currentsize = _size;
+    offset      = 0;
+
+    if (dptr.isNull())
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
+}
+
+template <class T>
+void
+AliasedDPtr<T>::clear ()
+{
+    dptr = 0;
+}
 
 #endif /*_ALIASEDDPTR_H_*/
