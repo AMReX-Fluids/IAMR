@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_2D.F,v 1.11 1999-07-01 21:49:21 almgren Exp $ 
+c $Id: DERIVE_2D.F,v 1.12 2000-04-18 23:34:09 almgren Exp $ 
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -667,7 +667,7 @@ c
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             avgpres(i,j) = fourth*( dat(i+1,j  )+dat(i,j  ) +
-     $           dat(i+1,j+1)+dat(i,j+1) )
+     $                              dat(i+1,j+1)+dat(i,j+1) )
          end do
       end do
 
