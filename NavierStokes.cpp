@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.226 2003-02-27 05:45:53 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.227 2003-02-28 05:21:22 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -429,7 +429,8 @@ NavierStokes::NavierStokes ()
     viscflux_reg = 0;
     u_mac        = 0;
     u_macG       = 0;
-    u_macG       = 0;
+    u_corr       = 0;
+    mac_rhs      = 0;
     aofs         = 0;
     diffusion    = 0;
 
@@ -496,12 +497,13 @@ NavierStokes::NavierStokes (Amr&            papa,
     //
     // Initialize work multifabs.
     //
-    Vsync  = 0;
-    Ssync  = 0;
-    u_mac  = 0;
-    u_macG = 0;
-    u_corr = 0;
-    aofs   = 0;
+    Vsync   = 0;
+    Ssync   = 0;
+    u_mac   = 0;
+    u_macG  = 0;
+    u_corr  = 0;
+    mac_rhs = 0;
+    aofs    = 0;
     //
     // Set up the level projector.
     //
@@ -1246,10 +1248,14 @@ NavierStokes::advance_setup (Real time,
         }
     }
     //
-    // Alloc multifab to hold advective tendencies.
+    // Alloc MultiFab to hold advective update terms.
     //
     BL_ASSERT(aofs == 0);
     aofs = new MultiFab(grids,NUM_STATE,0);
+    //
+    // Alloc MultiFab to hold RHS for MAC projection.
+    //
+    BL_ASSERT(mac_rhs == 0);
     //
     // Set rho_avg.
     //
@@ -1323,6 +1329,8 @@ NavierStokes::advance_cleanup (Real dt,
         delete [] u_corr;
         u_corr = 0;
     }
+    delete mac_rhs;
+    mac_rhs = 0;
     delete aofs;
     aofs = 0;
 }
@@ -1358,19 +1366,9 @@ NavierStokes::advance (Real time,
 
     if (do_mac_proj) 
     {
-      MultiFab& Sold  = get_old_data(State_Type);
-      MultiFab* divu = getDivCond(0,time);
-      MultiFab* dsdt = getDsdt(0,time);
-
-      for (MFIter mfi(*divu); mfi.isValid(); ++mfi)
-      {
-          (*dsdt)[mfi].mult(.5*dt);
-          (*divu)[mfi].plus((*dsdt)[mfi]);
-      }
-      delete dsdt;
-
-      mac_project(time,dt,Sold,divu,have_divu);
-      delete divu;
+      mac_rhs = create_mac_rhs(time,dt);
+      MultiFab& S_old  = get_old_data(State_Type);
+      mac_project(time,dt,S_old,mac_rhs,have_divu);
     }
 
     //
@@ -1438,6 +1436,53 @@ NavierStokes::advance (Real time,
            p_avg->setVal(0);
     }
     return dt_test;  // Return estimate of best new timestep.
+}
+
+MultiFab*
+NavierStokes::create_mac_rhs (Real time, Real dt)
+{
+      MultiFab* mac_rhs = getDivCond(0,time);
+      MultiFab* dsdt = getDsdt(0,time);
+
+      for (MFIter mfi(*mac_rhs); mfi.isValid(); ++mfi)
+      {
+          (*dsdt)[mfi].mult(.5*dt);
+          (*mac_rhs)[mfi].plus((*dsdt)[mfi]);
+      }
+
+      delete dsdt;
+      return mac_rhs;
+}
+
+MultiFab*
+NavierStokes::create_mac_rhs_grown (int nGrow, Real time, Real dt)
+{
+      // We do all this just to fill the ghost cells.
+      MultiFab* mac_rhs_grown;
+      if (nGrow > 0) 
+      {
+        mac_rhs_grown = getDivCond(nGrow,time);
+        MultiFab*    dsdt_grown = getDsdt(nGrow,time);
+        for (MFIter mfi(*mac_rhs_grown); mfi.isValid(); ++mfi)
+        {
+          (*dsdt_grown)[mfi].mult(.5*dt);
+          (*mac_rhs_grown)[mfi].plus((*dsdt_grown)[mfi]);
+        }
+        delete dsdt_grown;
+      }
+
+      // Now we copy from the MultiFab mac_rhs which has 
+      //   no ghost cells.
+      for (MFIter mfi(*mac_rhs_grown); mfi.isValid(); ++mfi) 
+      {
+        int i = mfi.index();
+        (*mac_rhs_grown)[i].copy((*mac_rhs)[i],grids[i]);
+      }
+
+      if (nGrow > 0) 
+        mac_rhs_grown->FillBoundary();
+
+      return mac_rhs_grown;
 }
 
 void
@@ -1721,8 +1766,10 @@ NavierStokes::velocity_advection (Real dt)
     FArrayBox xflux, yflux, zflux, divu, tforces;
 
     int nGrowF = 1;
-    MultiFab* divu_fp = getDivCond(nGrowF,prev_time);
+    MultiFab* divu_fp = create_mac_rhs_grown(nGrowF,prev_time,dt);
 
+#if 0
+    MultiFab* divu_fp = getDivCond(nGrowF,prev_time);
     MultiFab* dsdt = getDsdt(nGrowF,prev_time);
     for (MFIter dsdtmfi(*dsdt); dsdtmfi.isValid(); ++dsdtmfi)
     {
@@ -1730,6 +1777,7 @@ NavierStokes::velocity_advection (Real dt)
        (*divu_fp)[dsdtmfi].plus((*dsdt)[dsdtmfi]);
     }
     delete dsdt;
+#endif
 
     MultiFab Gp(grids,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);

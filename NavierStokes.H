@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.81 2003-02-27 05:45:53 almgren Exp $
+// $Id: NavierStokes.H,v 1.82 2003-02-28 05:21:22 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -262,7 +262,18 @@ protected:
                            Real& comp_cfl);
 
     //
-    // Make mac velocities divergence free.
+    // Create the RHS for the MAC projection.
+    //
+    virtual MultiFab* create_mac_rhs (Real time, Real dt);
+
+    //
+    // Create a grown-by-1 RHS for the MAC projection, which
+    //   is identical to mac_rhs in all the valid regions.
+    //
+    MultiFab* create_mac_rhs_grown (int nGrow, Real time, Real dt);
+
+    //
+    // Impose divergence constraint on MAC velocities.
     //
     void mac_project (Real time, Real dt, MultiFab& S_old, 
                       MultiFab* divu, int have_divu);
@@ -624,9 +635,14 @@ protected:
     MultiFab* u_macG;
     MultiFab* u_corr;
     //
-    // Advective tendencies.
+    // Advective update terms.
     //
     MultiFab* aofs;
+
+    //
+    // RHS for the MAC projection.
+    //
+    MultiFab* mac_rhs;
 
     Diffusion* diffusion;
     //
