@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.20 2000-10-09 22:08:58 almgren Exp $
+c $Id: PROB_2D.F,v 1.21 2002-06-03 21:37:21 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -10,7 +10,7 @@ c
 #include "CONSTANTS.H"
 #include "BC_TYPES.H"
 #include "PROB_AMR_F.H"
-#include "PROB_F.H"
+#include "PROB_NS_F.H"
 #include "ArrayLim.H"
 
 #define SDIM 2

@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_2D.F,v 1.14 2002-04-26 21:24:30 car Exp $ 
+c $Id: DERIVE_2D.F,v 1.15 2002-06-03 21:37:20 car Exp $ 
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -10,7 +10,7 @@ c
 #include "CONSTANTS.H" 
 #include "BC_TYPES.H" 
 #include "DERIVE_F.H" 
-#include "PROB_F.H"
+#include "PROB_NS_F.H"
 #include "ArrayLim.H"
 
 #define SDIM 2

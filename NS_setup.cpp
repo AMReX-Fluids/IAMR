@@ -1,13 +1,13 @@
 
 //
-// $Id: NS_setup.cpp,v 1.44 2002-04-30 17:07:41 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.45 2002-06-03 21:37:20 car Exp $
 //
 
 #include <NavierStokes.H>
 #include <RegType.H>
 #include <ParmParse.H>
 #include <ErrorList.H>
-#include <PROB_F.H>
+#include <PROB_NS_F.H>
 #include <DERIVE_F.H>
 #include <FArrayBox.H>
 #include <CoordSys.H>
