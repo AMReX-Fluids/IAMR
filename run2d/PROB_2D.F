@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.13 1998-06-02 19:01:54 almgren Exp $
+c $Id: PROB_2D.F,v 1.14 1998-06-03 15:06:14 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -202,7 +202,7 @@ c
             vel(i,j,2) = y_vel
             scal(i,j,1) = cvmgt(denfact,one,dist.lt.radblob)
             do n = 2,nscal-1
-               scal(i,j,n) = zero
+               scal(i,j,n) = one
             end do                  
             scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
 	 end do
@@ -268,7 +268,7 @@ c
 
                scal(i,j,1) = one + (denfact-one) * tanh(10.*(dist-radblob))
                do n = 2,nscal-1
-                  scal(i,j,n) = zero
+                  scal(i,j,n) = one
                end do                  
 	       scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
 
