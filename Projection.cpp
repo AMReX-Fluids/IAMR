@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.61 1998-12-09 22:21:53 sstanley Exp $
+// $Id: Projection.cpp,v 1.62 1998-12-11 20:40:29 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -871,7 +871,6 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Set up RHS
     //
-    crse_rhs->setVal(0);
     rhs_sync_reg->InitRHS(*crse_rhs,crse_geom,phys_bc);
     
     Box P_finedomain(surroundingNodes(crse_geom.Domain()));
