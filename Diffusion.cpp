@@ -1,20 +1,8 @@
-// $Id: Diffusion.cpp,v 1.7 1997-09-23 19:25:40 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.8 1997-09-23 23:10:28 lijewski Exp $
 
 // comment out this line to use diffusion class outside
 // the context of NavierStokes and classes derived from it
 #define USE_NAVIERSTOKES 1
-
-#ifdef	_MSC_VER
-#include <strstrea.h>
-#else
-#include <strstream.h>
-#endif
-
-#ifdef BL_USE_NEW_HFILES
-#include <cstdio>
-#else
-#include <stdio.h>
-#endif
 
 #include <Box.H>
 #include <BoxArray.H>
