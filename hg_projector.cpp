@@ -1,5 +1,5 @@
 //
-// $Id: hg_projector.cpp,v 1.8 1997-09-26 16:57:14 lijewski Exp $
+// $Id: hg_projector.cpp,v 1.9 1997-09-26 23:30:25 car Exp $
 //
 
 #include <hg_projector.H>
@@ -84,18 +84,18 @@ PArray<MultiFab> null_amr_real;
 
 void 
 holy_grail_amr_projector::project(PArray<MultiFab>* u,
-				       PArray<MultiFab>& p,
-				       PArray<MultiFab>& Coarse_source,
-				       PArray<MultiFab>& Sigma,
-				       Real H[], Real tol,
-				       int Lev_min, int Lev_max,
-				       Real scale)
+				  PArray<MultiFab>& p,
+				  PArray<MultiFab>& Coarse_source,
+				  PArray<MultiFab>& Sigma,
+				  Real H[], Real tol,
+				  int Lev_min, int Lev_max,
+				  Real scale)
 {
-  if (Lev_min < 0)
-    Lev_min = lev_min_max;
-  if (Lev_max < 0)
-    Lev_max = Lev_min;
-
+    if (Lev_min < 0)
+	Lev_min = lev_min_max;
+    if (Lev_max < 0)
+	Lev_max = Lev_min;
+    
 #ifndef HG_CONSTANT
   assert(Sigma.length() > 0);
 #endif
@@ -339,16 +339,20 @@ holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
   int lev, igrid;
   if (singular) 
   {
-    Real adjust = 0.0;
     for (lev = lev_max; lev > lev_min; lev--) 
     {
       restrict_level(S[lev-1], 0, S[lev], gen_ratio[lev-1]);
     }
+    Real adjust = 0.0;
     // PARALLEL - REDUCTION
-    for (igrid = 0; igrid < ml_mesh[lev_min].length(); igrid++) 
+    // for (igrid = 0; igrid < ml_mesh[lev_min].length(); igrid++) 
+    for ( ConstMultiFabIterator pmfi(S[lev_min]); pmfi.isValid(); ++pmfi )
     {
-      adjust += S[lev_min][igrid].sum(S[lev_min].box(igrid), 0);
+	const FArrayBox& f = pmfi();
+	adjust += f.sum(pmfi.validbox(), 0);
+        // adjust += S[lev_min][igrid].sum(S[lev_min].box(igrid), 0);
     }
+    ParallelDescriptor::ReduceRealSum(adjust);
     adjust /= mg_domain[ml_index[lev_min]].numPts();
 
     if (pcode >= 2)
@@ -370,13 +374,15 @@ holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
     fill_borders(S[lev], 0, interface[mglev], boundary.scalar());
 
     // PARALLEL
-    for (igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
+    // for (igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
+    for( MultiFabIterator pmfi(source[lev]); pmfi.isValid(); ++pmfi )
     {
-      const Box& sbox = source[lev][igrid].box();
-      const Box& fbox = S[lev][igrid].box();
+	DependentMultiFabIterator smfi(pmfi, S[lev]);
+      const Box& sbox = pmfi().box();
+      const Box& fbox = smfi().box();
       const Box& freg = interface[mglev].part_fine(igrid);
-      Real *const sptr = source[lev][igrid].dataPtr();
-      Real *const csptr = S[lev][igrid].dataPtr();
+      Real *sptr = pmfi().dataPtr();
+      Real * csptr = smfi().dataPtr();
 #if (BL_SPACEDIM == 2)
       FORT_HGAVG(sptr, dimlist(sbox),
 		 csptr, dimlist(fbox), dimlist(freg),
@@ -411,20 +417,24 @@ holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
     }
 
     // PARALLEL
-    for (igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
+    // for (igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
+    for ( MultiFabIterator smfi(source[lev]); smfi.isValid(); ++smfi )
     {
-      const Box& sbox = source[lev][igrid].box();
-      const Box& fbox = u[0][lev][igrid].box();
+	DependentMultiFabIterator u0mfi(smfi, u[0][lev]);
+	DependentMultiFabIterator u1mfi(smfi, u[1][lev]);
+      const Box& sbox = smfi().box();
+      const Box& fbox = u0mfi().box();
       const Box& freg = interface[mglev].part_fine(igrid);
-      Real *const sptr = source[lev][igrid].dataPtr();
-      Real *const u0ptr = u[0][lev][igrid].dataPtr();
-      Real *const u1ptr = u[1][lev][igrid].dataPtr();
+      Real *const sptr = smfi().dataPtr();
+      Real *const u0ptr = u0mfi().dataPtr();
+      Real *const u1ptr = u1mfi().dataPtr();
 #if (BL_SPACEDIM == 2)
       FORT_HGDIV(sptr, dimlist(sbox),
 		 u0ptr, u1ptr, dimlist(fbox), dimlist(freg), hx, hy,
 		 IsRZ(), mg_domain[mglev].bigEnd(0) + 1);
 #else
-      Real *const u2ptr = u[2][lev][igrid].dataPtr();
+      DependentMultiFabIterator u2mfi(smfi, u[2][lev]);
+      Real *const u2ptr = u2mfi().dataPtr();
       FORT_HGDIV(sptr, dimlist(sbox),
 		 u0ptr, u1ptr, u2ptr, dimlist(fbox), dimlist(freg),
 		 hx, hy, hz);
@@ -1190,10 +1200,11 @@ holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u,
       Real hz = h[mglev][2];
 #endif
       // PARALLEL
-      for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
+      // for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
+      for ( MultiFabIterator dmfi(dest[lev]); dmfi.isValid(); ++dmfi ) 
       {
-	const Box& gbox = ml_mesh[lev][igrid];
-	const Box& dbox = dest[lev][igrid].box();
+	const Box& gbox = ml_mesh[lev][dmfi.index()];
+	const Box& dbox = dmfi().box();
 	Fab gp[BL_SPACEDIM];
 	for (i = 0; i < BL_SPACEDIM; i++) 
 	{
@@ -1201,20 +1212,22 @@ holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u,
 	}
 #if (BL_SPACEDIM == 2)
 	FORT_HGGRAD(gp[0].dataPtr(), gp[1].dataPtr(), dimlist(gbox),
-		    dest[lev][igrid].dataPtr(), dimlist(dbox),
+		    dmfi().dataPtr(), dimlist(dbox),
 		    dimlist(gbox), hx, hy, IsRZ());
 #else
 	FORT_HGGRAD(gp[0].dataPtr(), gp[1].dataPtr(), gp[2].dataPtr(),
 		    dimlist(gbox),
-		    dest[lev][igrid].dataPtr(), dimlist(dbox),
+		    dmfi().dataPtr(), dimlist(dbox),
 		    dimlist(gbox), hx, hy, hz);
 #endif
 	for (i = 0; i < BL_SPACEDIM; i++) 
 	{
 #ifndef HG_CONSTANT
-	  gp[i].mult(sigma_in[lev][igrid]);
+	    DependentMultiFabIterator smfi(dmfi, sigma_in[lev]);
+	  gp[i].mult(smfi());
 #endif
-	  u[i][lev][igrid].minus(gp[i]);
+	    DependentMultiFabIterator umfi(dmfi, u[i][lev]);
+	  umfi().minus(gp[i]);
 	}
       }
     }

@@ -1259,10 +1259,6 @@ SOURCE=.\GODUNOV_F.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\GraphTool.H
-# End Source File
-# Begin Source File
-
 SOURCE=.\hg_multi.H
 # End Source File
 # Begin Source File
@@ -2346,29 +2342,6 @@ SOURCE=.\MACOPERATOR_3D.for
 # Begin Source File
 
 SOURCE=.\MACPROJ_3D.for
-
-!IF  "$(CFG)" == "IAMRAll - Win32 Release"
-
-# PROP Exclude_From_Build 1
-# ADD F90 /iface:cref
-
-!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
-
-# PROP Exclude_From_Build 1
-# ADD F90 /browser /iface:cref /dbglibs
-
-!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
-
-# PROP BASE Exclude_From_Build 1
-# ADD BASE F90 /dbglibs
-# ADD F90 /iface:cref /dbglibs
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\MAKESLICE_3D.for
 
 !IF  "$(CFG)" == "IAMRAll - Win32 Release"
 

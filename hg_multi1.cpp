@@ -1,6 +1,6 @@
 
 //
-// $Id: hg_multi1.cpp,v 1.8 1997-09-26 16:57:12 lijewski Exp $
+// $Id: hg_multi1.cpp,v 1.9 1997-09-26 23:30:24 car Exp $
 //
 
 #include <Tracer.H>
@@ -151,10 +151,11 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   }
 
   // PARALLEL
-  for (int igrid = 0; igrid < mg_mesh[0].length(); igrid++) 
+  // for (int igrid = 0; igrid < mg_mesh[0].length(); igrid++) 
+  for ( MultiFabIterator mfi(cgwork[7]); mfi.isValid(); ++mfi)
   {
-    Fab& gtmp = cgwork[7][igrid];
-    const Box& valid = cgwork[7].box(igrid);
+    Fab& gtmp = mfi();
+    const Box& valid = mfi.validbox();
     gtmp.setVal(0.0);
     gtmp.setVal(1.0, valid, 0);
     Box b = bdryLo(valid, 1);
@@ -200,7 +201,6 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   singular = 0;
   if (mg_boundary.singular()) 
   {
-    // PARALLEL -- REDUCTION
     for (i = 0; i < mg_mesh[0].length(); i++) 
     {
       singular += mg_mesh[0][i].numPts();
@@ -317,6 +317,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 
   mglev = mglev_max;
   sigma[mglev].setVal(1.e20);
+  // PARALLEL
   for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
   {
     sigma[mglev][igrid].copy(Sigma[lev_max][igrid], mg_mesh[mglev][igrid], 0,
@@ -354,9 +355,11 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     {
       sigma_nd[i].set(mglev, new MultiFab(mg_mesh[mglev], 1, 1));
       MultiFab& d = sigma_nd[i][mglev];
-      for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+      // for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+      for ( MultiFabIterator dmfi(d); dmfi.isValid(); ++dmfi )
       {
-	d[igrid].copy(s[igrid], i, 0);
+	  DependentMultiFabIterator smfi(dmfi, s);
+	  dmfi().copy(smfi(), i, 0);
       }
     }
     delete sigma_split.remove(mglev);
@@ -388,17 +391,24 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     const Real hz = h[mglev][2];
 #    endif
     // PARALLEL
-    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    // for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    for ( MultiFabIterator smfi(sigma[mglev]); smfi.isValid(); ++smfi )
     {
-      const Box& scbox = sigma[mglev][igrid].box();
-      const Box& snbox = sigma_node[mglev][igrid].box();
-      const Box& reg = interface[mglev].part_fine(igrid);
-      FORT_HGSCON(sigma_node[mglev][igrid].dataPtr(),
+	DependentMultiFabIterator sigma_mfi(smfi, sigma_node[mglev]);
+	DependentMultiFabIterator snd_0(smfi, sigma_nd[0][mglev]);
+	DependentMultiFabIterator snd_1(smfi, sigma_nd[1][mglev]);
+#if (BL_SPACEDIM == 3)
+	DependentMultiFabIterator snd_2(smfi, sigma_nd[2][mglev]);
+#endif
+      const Box& scbox = smfi().box();
+      const Box& snbox = sigma_mfi().box();
+      const Box& reg = interface[mglev].part_fine(smfi.index());
+      FORT_HGSCON(sigma_mfi().dataPtr(),
                   dimlist(snbox),
-                  sigma_nd[0][mglev][igrid].dataPtr(),
-                  sigma_nd[1][mglev][igrid].dataPtr(),
+                  snd_0().dataPtr(),
+                  snd_1().dataPtr(),
 #    if (BL_SPACEDIM == 3)
-                  sigma_nd[2][mglev][igrid].dataPtr(),
+                  snd_2().dataPtr(),
 #    endif
                   dimlist(scbox),
                   dimlist(reg),
@@ -443,9 +453,10 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 #ifdef HG_CONSTANT
 
     // PARALLEL
-    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    // for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    for ( MultiFabIterator cmf(ctmp); cmf.isValid(); ++cmf ) 
     {
-      ctmp[igrid].setVal(1.0, interface[mglev].part_fine(igrid), 0);
+      cmf().setVal(1.0, interface[mglev].part_fine(cmf.index()), 0);
     }
 
 #else

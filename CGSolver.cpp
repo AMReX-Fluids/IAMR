@@ -1,6 +1,6 @@
 
 //
-// $Id: CGSolver.cpp,v 1.5 1997-09-26 16:56:54 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.6 1997-09-26 23:30:23 car Exp $
 //
 
 // Conjugate gradient support
@@ -64,7 +64,8 @@ CGSolver::norm(const MultiFab& res)
     REAL resk  = 0.0;
     const BoxArray &gbox = res.boxArray();
     //for(int gn = 0; gn < gbox.length(); ++gn) {
-    for(ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi) {
+    for(ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi) 
+    {
 	//resk = res[gn].norm(gbox[gn], p);
 	assert(mfi.validbox() == gbox[mfi.index()]);
 	resk = mfi().norm(mfi.validbox(), p);

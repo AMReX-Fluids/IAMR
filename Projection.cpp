@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.17 1997-09-26 16:57:04 lijewski Exp $
+// $Id: Projection.cpp,v 1.18 1997-09-26 23:30:24 car Exp $
 //
 
 #ifdef BL_T3E
@@ -206,13 +206,9 @@ Projection::install_level(int level, AmrLevel * level_data,
   }
 }
 
-
-
-
-
-
 // Build the aliasLib projection object
-void Projection::bldSyncProject()
+void
+Projection::bldSyncProject()
 {
   const Box& fdomain = parent->Geom(finest_level).Domain();
 
