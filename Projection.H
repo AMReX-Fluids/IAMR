@@ -3,7 +3,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.37 2000-10-02 20:50:16 lijewski Exp $
+// $Id: Projection.H,v 1.38 2000-10-31 20:28:34 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -76,15 +76,6 @@ public:
                  Real            time,
                  Real            dt,
                  int    have_divu);
-
-    //
-    // Attempt at creating better pressure fill.
-    //
-    void harmonic_project (int             level,
-                           Real            dt,
-                           Real            cur_pres_time,
-                           const Geometry& geom,
-                           MultiFab&       P_old);
     //
     // A sync project involving only the coarse level of a 2 level system.
     //

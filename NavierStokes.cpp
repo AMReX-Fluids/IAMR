@@ -1,6 +1,6 @@
 
 //
-// $Id: NavierStokes.cpp,v 1.188 2000-10-10 20:59:54 marc Exp $
+// $Id: NavierStokes.cpp,v 1.189 2000-10-31 20:28:34 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1427,57 +1427,49 @@ NavierStokes::level_projector (Real dt,
                                Real time,
                                int  iteration)
 {
-   if (iteration > 0)
-   {
-       static const aString RunstatString("level_project");
+    BL_ASSERT(iteration > 0);
 
-       RunStats lp_stats(RunstatString,level);
+    static const aString RunstatString("level_project");
 
-       lp_stats.start();
+    RunStats lp_stats(RunstatString,level);
 
-       MultiFab& U_old = get_old_data(State_Type);
-       MultiFab& U_new = get_new_data(State_Type);
-       MultiFab& P_old = get_old_data(Press_Type);
-       MultiFab& P_new = get_new_data(Press_Type);
+    lp_stats.start();
 
-       SyncRegister* crse_ptr = 0;
+    MultiFab& U_old = get_old_data(State_Type);
+    MultiFab& U_new = get_new_data(State_Type);
+    MultiFab& P_old = get_old_data(Press_Type);
+    MultiFab& P_new = get_new_data(Press_Type);
 
-       if (level < parent->finestLevel() && do_sync_proj)
-       {
-           crse_ptr = &(getLevel(level+1).getSyncReg());
-       }
+    SyncRegister* crse_ptr = 0;
 
-       Array<int*>         sync_bc(grids.length());
-       Array< Array<int> > sync_bc_array(grids.length());
+    if (level < parent->finestLevel() && do_sync_proj)
+    {
+        crse_ptr = &(getLevel(level+1).getSyncReg());
+    }
 
-       for (int i = 0; i < grids.length(); i++)
-       {
-           sync_bc_array[i] = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
-           sync_bc[i]       = sync_bc_array[i].dataPtr();
-       }
+    Array<int*>         sync_bc(grids.length());
+    Array< Array<int> > sync_bc_array(grids.length());
 
-       int        crse_dt_ratio  = (level > 0) ? parent->nCycle(level) : -1;
-       const Real cur_pres_time  = state[Press_Type].curTime();
-       const Real prev_pres_time = state[Press_Type].prevTime();
+    for (int i = 0; i < grids.length(); i++)
+    {
+        sync_bc_array[i] = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
+        sync_bc[i]       = sync_bc_array[i].dataPtr();
+    }
 
-       projector->level_project(level,time,dt,cur_pres_time,prev_pres_time,
-                                geom,U_old,U_new,P_old,P_new,
-                                get_rho_half_time(),crse_ptr,sync_reg,
-                                crse_dt_ratio,sync_bc.dataPtr(),iteration,
-                                have_divu,Divu_Type);
+    int        crse_dt_ratio  = (level > 0) ? parent->nCycle(level) : -1;
+    const Real cur_pres_time  = state[Press_Type].curTime();
+    const Real prev_pres_time = state[Press_Type].prevTime();
 
-       if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-           calcDpdt();
+    projector->level_project(level,time,dt,cur_pres_time,prev_pres_time,
+                             geom,U_old,U_new,P_old,P_new,
+                             get_rho_half_time(),crse_ptr,sync_reg,
+                             crse_dt_ratio,sync_bc.dataPtr(),iteration,
+                             have_divu,Divu_Type);
 
-       lp_stats.end();
-   }
-   else
-   {
-       const Real cur_pres_time = state[Press_Type].curTime();
-       MultiFab& P_old = get_old_data(Press_Type);
-       BoxLib::Abort("NavierStokes::level_projector calling harmonic_project");
-       projector->harmonic_project(level,dt,cur_pres_time,geom,P_old);
-   }
+    if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
+        calcDpdt();
+
+    lp_stats.end();
 }
 
 void

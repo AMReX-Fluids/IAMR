@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.131 2000-10-10 20:59:55 marc Exp $
+// $Id: Projection.cpp,v 1.132 2000-10-31 20:28:34 lijewski Exp $
 //
 
 #ifdef BL3_PROFILING
@@ -195,7 +195,7 @@ Projection::~Projection ()
     delete sync_proj;
     delete projector_bndry;
 
-    sync_proj = 0;
+    sync_proj       = 0;
     projector_bndry = 0;
 }
 
@@ -867,11 +867,14 @@ Projection::filterP (int             level,
             u_realmfi().copy(velmfi(), n, 0);
         }
     }
-    delete temp_vel;
 
     p_real.set(level, temp_phi);
     s_real.set(level, temp_rho);
     rhs_real.set(level, rhs_nd);
+
+    delete temp_vel;
+    delete temp_rho;
+    delete rhs_nd;
     //
     // Project ...
     //
@@ -900,119 +903,8 @@ Projection::filterP (int             level,
     rescaleVar(rho_half, 0, &U_old, grids, level);
 
     delete temp_phi;
-    delete temp_rho;
-    delete rhs_nd;
     delete sync_resid_crse;
     delete sync_resid_fine;
-}
-
-// 
-//  This function is an attempt at improving the creation of fine
-//  pressure data after regridding
-//
-
-void
-Projection::harmonic_project (int             level,
-                              Real            dt,
-                              Real            cur_pres_time,
-                              const Geometry& geom,
-                              MultiFab&       P_old)
-{
-    BL_ASSERT(level != 0);
-
-    if (verbose && ParallelDescriptor::IOProcessor()) 
-        cout << "... harmonic projector\n";
-
-    if (sync_proj == 0)
-        bldSyncProject();
-
-    const BoxArray& grids   = LevelData[level].boxArray();
-    const BoxArray& P_grids = P_old.boxArray();
-
-    MultiFab* rhs      = new MultiFab(P_grids,1,1);
-    MultiFab* harm_phi = new MultiFab(P_grids,1,1);
-    MultiFab* temp_phi = new MultiFab(P_grids,1,1);
-    MultiFab* rho      = new MultiFab(grids,1,1);
-    MultiFab* harm_vel = new MultiFab(grids,BL_SPACEDIM,1);
-
-    rhs->setVal(0);
-    harm_phi->setVal(0);
-    temp_phi->setVal(0);
-    harm_vel->setVal(0);
-    rho->setVal(1);
-
-    harm_phi->setBndry(BogusValue);
-
-    const Real prev_pres_time = cur_pres_time - dt;
-
-    LevelData[level].FillCoarsePatch(*temp_phi,0,prev_pres_time,Press_Type,0,1);
-    LevelData[level].FillCoarsePatch(*harm_phi,0,cur_pres_time,Press_Type,0,1);
-
-    for (MultiFabIterator phimfi(*temp_phi); phimfi.isValid(); ++phimfi)
-    {
-        DependentMultiFabIterator harm_phimfi(phimfi, *harm_phi);
-        harm_phimfi().minus(phimfi());
-        Box tempbox(harm_phimfi().box());
-        tempbox.grow(-2);
-        harm_phimfi().setVal(0,tempbox,0,1);
-    }
-
-    delete temp_phi;
-
-    rho->setBndry(BogusValue);
-    scaleVar(rho,1,0,grids,level);
-
-    const Real* dx = geom.CellSize();
-    //
-    // Build alias lib structures.
-    //
-    PArray<MultiFab> u_real[BL_SPACEDIM];
-    PArray<MultiFab> p_real(level+1), s_real(level+1), rhs_real(level+1);
-
-    for (int n = 0; n < BL_SPACEDIM; n++) 
-    {
-        u_real[n].resize(level+1,PArrayManage);
-        u_real[n].set(level, new MultiFab(grids, 1, 1));
-        for (MultiFabIterator u_realmfi(u_real[n][level]); u_realmfi.isValid();
-            ++u_realmfi)
-        {
-            DependentMultiFabIterator harm_velmfi(u_realmfi, *harm_vel);
-            u_realmfi().copy(harm_velmfi(), n, 0);
-        }
-    }
-    delete harm_vel;
-
-    p_real.set(level, harm_phi);
-    s_real.set(level, rho);
-    rhs_real.set(level, rhs);
-    //
-    // Project
-    //
-    const bool use_u          = false;
-    MultiFab* sync_resid_crse = 0;
-    MultiFab* sync_resid_fine = 0;
-
-    sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
-                              sync_resid_crse, sync_resid_fine, geom, 
-                              use_u, (Real*)dx,
-                              proj_tol, level, level, proj_abs_tol);
-
-    //
-    // Unscale variables for harmonic projection.
-    //
-    rescaleVar(rho,1,0,grids,level);
-    //
-    // Update pressure.
-    //
-    for (MultiFabIterator pmfi(P_old); pmfi.isValid(); ++pmfi) 
-    {
-        DependentMultiFabIterator phimfi(pmfi, (*harm_phi));
-        pmfi().plus(phimfi(),P_grids[pmfi.index()],0,0,1);
-    }
-
-    delete rhs;
-    delete harm_phi;
-    delete rho;
 }
 
 //
@@ -1144,6 +1036,8 @@ Projection::syncProject (int             c_lev,
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
         crsr_sync_reg->CompAdd(sync_resid_fine,geom,crsr_geom,phys_bc,sync_boxes,invrat);
     }
+    delete sync_resid_crse;
+    delete sync_resid_fine;
     //
     // Reset state + pressure data ...
     //
@@ -1155,9 +1049,6 @@ Projection::syncProject (int             c_lev,
     //
     AddPhi(pres, phi, grids);
     UpdateArg1(vel, dt_crse, *Vsync, BL_SPACEDIM, grids, 1);
-
-    delete sync_resid_crse;
-    delete sync_resid_fine;
 
     stats.end();
 }
@@ -1357,48 +1248,45 @@ Projection::MLsyncProject (int             c_lev,
         DependentMultiFabIterator phi_finemfi(phimfi, phi_fine);
         phi_finemfi().copy(phimfi(),0,0,1);
     }
-
     //
     // Add phi to pressure.
     //
-
-    AddPhi(pres_crse, *phi[c_lev],   grids     );
+    AddPhi(pres_crse, *phi[c_lev],   grids);
 
     if (pressure_time_is_interval) 
     {
-      // Only update the most recent pressure.
-      AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
+        //
+        // Only update the most recent pressure.
+        //
+        AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
     }
     else 
     {
-  
-      MultiFab& pres_fine_old = LevelData[c_lev+1].get_old_data(Press_Type);
+        MultiFab& pres_fine_old = LevelData[c_lev+1].get_old_data(Press_Type);
  
-      if (first_crse_step_after_initial_iters)
-      {
-        Real time_since_zero =  cur_crse_pres_time - prev_crse_pres_time;
-        Real dt_to_prev_time = prev_fine_pres_time - prev_crse_pres_time;
-        Real dt_to_cur_time  =  cur_fine_pres_time - prev_crse_pres_time;
+        if (first_crse_step_after_initial_iters)
+        {
+            Real time_since_zero =  cur_crse_pres_time - prev_crse_pres_time;
+            Real dt_to_prev_time = prev_fine_pres_time - prev_crse_pres_time;
+            Real dt_to_cur_time  =  cur_fine_pres_time - prev_crse_pres_time;
 
-        Real cur_mult_factor = dt_to_cur_time / time_since_zero;
-        (*phi[c_lev+1]).mult(cur_mult_factor);
-        AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
+            Real cur_mult_factor = dt_to_cur_time / time_since_zero;
+            (*phi[c_lev+1]).mult(cur_mult_factor);
+            AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
 
-        Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
-        (*phi[c_lev+1]).mult(prev_mult_factor);
-        AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
-      }
-      else 
-      {
-        AddPhi(pres_fine    , *phi[c_lev+1], fine_grids);
-        AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
-      }
+            Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
+            (*phi[c_lev+1]).mult(prev_mult_factor);
+            AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
+        }
+        else 
+        {
+            AddPhi(pres_fine    , *phi[c_lev+1], fine_grids);
+            AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
+        }
     }
-
     //
     // Add projected vel to new velocity.
     //
-
     UpdateArg1(vel_crse, dt_crse, *Vsync, BL_SPACEDIM, grids,      1);
     UpdateArg1(vel_fine, dt_crse, V_corr, BL_SPACEDIM, fine_grids, 1);
 
@@ -1713,7 +1601,6 @@ Projection::initialSyncProject (int       c_lev,
     {
         set_initial_syncproject_outflow_bcs(phi,c_lev,strt_time,dt);
     }
-
     //
     // Set velocity bndry values to bogus values.
     //
