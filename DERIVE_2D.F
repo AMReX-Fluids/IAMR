@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_2D.F,v 1.7 1998-12-23 22:59:25 marc Exp $ 
+c $Id: DERIVE_2D.F,v 1.8 1999-02-03 00:40:49 lijewski Exp $ 
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -14,6 +14,12 @@ c
 #include "ArrayLim.H"
 
 #define SDIM 2
+
+#if defined(BL_USE_FLOAT) || defined(BL_T3E) || defined(BL_CRAY)
+#define SMALL 1.0e-10
+#else
+#define SMALL 1.0d-10
+#endif
 
 c     -----------------------------------------------------------
 c     This file contains functions which compute derived quantities.  
@@ -88,13 +94,10 @@ c
 
       integer    i,j
       REAL_T     rho
-      REAL_T     sml
-
-      data sml / 1.0d-10 /
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
-	    rho = max(dat(i,j,1),sml)
+	    rho = max(dat(i,j,1),SMALL)
 	    e(i,j,1) = log10(rho)
 	 end do
       end do
@@ -209,7 +212,7 @@ c
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
-	    dust = max(1.0d-10,dat(i,j,2)*dat(i,j,1))
+	    dust = max(SMALL,dat(i,j,2)*dat(i,j,1))
 	    e(i,j,1) = log10(dust)
 	 end do
       end do

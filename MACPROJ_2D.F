@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_2D.F,v 1.6 1998-11-05 18:44:25 lijewski Exp $
+c $Id: MACPROJ_2D.F,v 1.7 1999-02-03 00:40:49 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -13,6 +13,12 @@ c
 #include "ArrayLim.H"
 
 #define SDIM 2
+
+#if defined(BL_USE_FLOAT) || defined(BL_T3E) || defined(BL_CRAY)
+#define SMALL 1.0e-10
+#else
+#define SMALL 1.0d-10
+#endif
 
 c :: ----------------------------------------------------------
 c :: MACDIV:  compute the MAC divergence in generalized coordinates
@@ -155,8 +161,8 @@ c     Local variables
       integer NstripMAX
       parameter (NstripMAX = 500)
       REAL_T small_udiff, small_pert
-      parameter (small_udiff = 1.d-10)
-      parameter ( small_pert = 1.d-10)
+      parameter (small_udiff = SMALL)
+      parameter ( small_pert = SMALL)
       integer i, ii, j, neq
       REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX), s(NstripMAX)
       REAL_T x(NstripMAX), alpha, beta, sVal

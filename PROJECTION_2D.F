@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.11 1998-11-19 23:37:59 lijewski Exp $
+c $Id: PROJECTION_2D.F,v 1.12 1999-02-03 00:40:49 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -13,6 +13,12 @@ c
 #include "ArrayLim.H"
 
 #define SDIM 2
+
+#if defined(BL_USE_FLOAT) || defined(BL_T3E) || defined(BL_CRAY)
+#define SMALL 1.0e-10
+#else
+#define SMALL 1.0d-10
+#endif
 
        subroutine FORT_FILTERP (
      &     pnew,scratch,DIMS(p),
@@ -508,7 +514,7 @@ c     Local variables
       REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX), s(NstripMAX)
       REAL_T x(NstripMAX), alpha, beta, sVal
       REAL_T max_pert, small_pert
-      parameter ( small_pert = 1.d-10)
+      parameter ( small_pert = SMALL)
       logical rNormed
       REAL_T divcor_ave, vtot
       REAL_T div_edge, rho_edge

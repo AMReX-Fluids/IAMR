@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.10 1998-11-05 00:42:53 lijewski Exp $
+c $Id: GODUNOV_2D.F,v 1.11 1999-02-03 00:40:49 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -46,7 +46,11 @@ c
       REAL_T  rho(DIMV(rho))
       REAL_T  tforces(DIMV(tf),SDIM)
 
+#if defined(BL_USE_FLOAT) || defined(BL_T3E) || defined(BL_CRAY)
+      small   = 1.0e-8
+#else
       small   = 1.0d-8
+#endif
       u       = zero
       v       = zero
       tforce1 = zero
