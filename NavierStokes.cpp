@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.59 1998-06-05 16:24:46 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.60 1998-06-05 19:11:23 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -44,28 +44,32 @@ const char NL = '\n';
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 Real* fabdat = (fab).dataPtr();
+
 #define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
 
-//=================================================================
+//
 // Initialization functions follow
-//=================================================================
+//
 
-// -------------------------------------------------------------
-// initialization of static members to default values
-// -------------------------------------------------------------
+//
+// Initialization of static members to default values.
+//
 
-// ----------------------- static objects
+//
+// ----------------------- static objects.
+//
 ErrorList   NavierStokes::err_list;
 BCRec       NavierStokes::phys_bc;
 Projection *NavierStokes::projector     = 0;
 MacProj    *NavierStokes::mac_projector = 0;
 Godunov    *NavierStokes::godunov       = 0;
 
-
-// ----------------------- internal parameters
+//
+// ----------------------- internal parameters.
+//
 int  NavierStokes::verbose      = 0;
 Real NavierStokes::cfl          = 0.8;
 Real NavierStokes::init_shrink  = 1.0;
@@ -82,24 +86,28 @@ int  NavierStokes::NUM_SCALARS  = 0;
 int  NavierStokes::NUM_STATE    = 0;
 Array<int> NavierStokes::is_conservative;
 
-
-// ----------------------- viscosity parameters
+//
+// ----------------------- viscosity parameters.
+//
 Real NavierStokes::be_cn_theta  = 0.5;
 Real NavierStokes::visc_tol     = 1.0e-10;  // tolerance for viscous solve
 Real NavierStokes::visc_abs_tol = 1.0e-10;  // absolute tol. for visc solve
 Array<int> NavierStokes::is_diffusive;
 Array<Real> NavierStokes::visc_coef;
 
-
-// ----------------------- internal switches
+//
+// ----------------------- internal switches.
+//
 int  NavierStokes::do_temp         = 0;
 int  NavierStokes::Temp            = -1;
 int  NavierStokes::do_sync_proj    = 1;
 int  NavierStokes::do_MLsync_proj  = 1;
 int  NavierStokes::do_reflux       = 1;
 int  NavierStokes::do_mac_proj     = 1;
-     
-// ------------------------ new members for non-zero divu
+
+//     
+// ------------------------ new members for non-zero divu.
+//
 int  NavierStokes::additional_state_types_initialized = 0;
 int  NavierStokes::Divu_Type = -1;
 int  NavierStokes::Dsdt_Type = -1;
@@ -114,8 +122,8 @@ Real NavierStokes::divu_relax_factor   = 0.0;
 int  NavierStokes::num_state_type = 2;     // for backward compatibility
 
 
-// -------------------------------------------------------------
-void NavierStokes::variableCleanUp()
+void
+NavierStokes::variableCleanUp ()
 {
     desc_lst.clear();
     delete projector;
@@ -126,8 +134,8 @@ void NavierStokes::variableCleanUp()
     godunov = 0;
 }
 
-// -------------------------------------------------------------
-void NavierStokes::read_geometry()
+void
+NavierStokes::read_geometry ()
 {
 #if (BL_SPACEDIM == 2)
     //
@@ -148,65 +156,78 @@ void NavierStokes::read_geometry()
 #endif
 }
 
-// -------------------------------------------------------------
-
 void
-NavierStokes::read_params()
+NavierStokes::read_params ()
 {
-    // read parameters from input file and command line
-
+    //
+    // Read parameters from input file and command line.
+    //
     ParmParse pp("ns");
-
-    if(ParallelDescriptor::IOProcessor()) {
-    }
 
     pp.query("v",verbose);
 
     Array<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
     pp.getarr("lo_bc",lo_bc,0,BL_SPACEDIM);
     pp.getarr("hi_bc",hi_bc,0,BL_SPACEDIM);
-    for (int i = 0; i < BL_SPACEDIM; i++) {
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
         phys_bc.setLo(i,lo_bc[i]);
         phys_bc.setHi(i,hi_bc[i]);
     }
   
     read_geometry();
-
-    // check phys_bc against possible periodic geometry
-    // if periodic, must have internal BC marked
-    if( Geometry::isAnyPeriodic() ){
-      // do idiot check.  Periodic means interior in those directions
-      for(int dir=0; dir<BL_SPACEDIM; dir++ ){
-        if( Geometry::isPeriodic(dir) ){
-          if( lo_bc[dir] != Interior ){
-            cerr << "NavierStokes::variableSetUp:periodic in direction";
-            cerr << dir << " but low BC is not Interior\n";
-            BoxLib::Abort("NavierStokes::read_params()");
-          }
-          if( hi_bc[dir] != Interior ){
-            cerr << "NavierStokes::variableSetUp:periodic in direction";
-            cerr << dir << " but high BC is not Interior\n";
-            BoxLib::Abort("NavierStokes::read_params()");
-          }
+    //
+    // Check phys_bc against possible periodic geometry
+    // if periodic, must have internal BC marked.
+    //
+    if (Geometry::isAnyPeriodic())
+    {
+        //
+        // Do idiot check.  Periodic means interior in those directions.
+        //
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            if (Geometry::isPeriodic(dir))
+            {
+                if (lo_bc[dir] != Interior)
+                {
+                    cerr << "NavierStokes::variableSetUp:periodic in direction";
+                    cerr << dir << " but low BC is not Interior\n";
+                    BoxLib::Abort("NavierStokes::read_params()");
+                }
+                if (hi_bc[dir] != Interior)
+                {
+                    cerr << "NavierStokes::variableSetUp:periodic in direction";
+                    cerr << dir << " but high BC is not Interior\n";
+                    BoxLib::Abort("NavierStokes::read_params()");
+                }
+            }
         }
-      }
-    } else {
-      // do idiot check.  If not periodic, should be no interior
-      for(int dir=0; dir<BL_SPACEDIM; dir++ ){
-        if( lo_bc[dir] == Interior ){
-          cerr << "NavierStokes::variableSetUp:interior bc in direction";
-          cerr << dir << " but no periodic\n";
-          BoxLib::Abort("NavierStokes::read_params()");
-        }
-        if( hi_bc[dir] == Interior ){
-          cerr << "NavierStokes::variableSetUp:interior bc in direction";
-          cerr << dir << " but no periodic\n";
-          BoxLib::Abort("NavierStokes::read_params()");
-        }
-      }
     }
-    
-    // get timestepping parameters
+    else
+    {
+        //
+        // Do idiot check.  If not periodic, should be no interior.
+        //
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            if (lo_bc[dir] == Interior)
+            {
+                cerr << "NavierStokes::variableSetUp:interior bc in direction";
+                cerr << dir << " but no periodic\n";
+                BoxLib::Abort("NavierStokes::read_params()");
+            }
+            if (hi_bc[dir] == Interior)
+            {
+                cerr << "NavierStokes::variableSetUp:interior bc in direction";
+                cerr << dir << " but no periodic\n";
+                BoxLib::Abort("NavierStokes::read_params()");
+            }
+        }
+    }
+    //
+    // Get timestepping parameters.
+    //
     pp.get("cfl",cfl);
     pp.query("init_iter",init_iter);
     pp.query("init_shrink",init_shrink);
@@ -215,18 +236,19 @@ NavierStokes::read_params()
     pp.query("fixed_dt",fixed_dt);
     pp.query("sum_interval",sum_interval);
     pp.query("gravity",gravity);
-
-    // get run options
+    //
+    // Get run options.
+    //
     pp.query("do_temp",        do_temp        );
     int initial_do_sync_proj = do_sync_proj;
     pp.query("do_sync_proj",   do_sync_proj   );
     pp.query("do_MLsync_proj", do_MLsync_proj );
     pp.query("do_reflux",      do_reflux      );
-
-    // this test insures if the user toggles do_sync_proj,
-    // the user has knowledge that do_MLsync_proj is meaningless
-    if (do_MLsync_proj && !do_sync_proj &&
-         initial_do_sync_proj != do_sync_proj)
+    //
+    // This test insures if the user toggles do_sync_proj,
+    // the user has knowledge that do_MLsync_proj is meaningless.
+    //
+    if (do_MLsync_proj && !do_sync_proj && initial_do_sync_proj != do_sync_proj)
     {
         if (ParallelDescriptor::IOProcessor())
         {
@@ -235,11 +257,11 @@ NavierStokes::read_params()
         }
         BoxLib::Abort("NavierStokes::read_params()");
     }
-
-
-    // read viscous/diffusive parameters and array of viscous/diffusive coeffs.
+    //
+    // Read viscous/diffusive parameters and array of viscous/diffusive coeffs.
     // NOTE: at this point, we dont know number of state variables
-    //       so just read all values listed
+    //       so just read all values listed.
+    //
     pp.query("visc_tol",visc_tol);
     pp.query("visc_abs_tol",visc_abs_tol);
 
@@ -254,7 +276,7 @@ NavierStokes::read_params()
             cout << "NavierStokes::read_params: you must input only one vel_visc_coef"
                  << endl;
         }
-      exit(0);
+        exit(0);
     }
 
     if (do_temp && n_temp_cond_coef != 1)
@@ -264,32 +286,34 @@ NavierStokes::read_params()
             cout << "NavierStokes::read_params: you must input only one temp_cond_coef"
                  << endl;
         }
-      exit(0);
+        exit(0);
     }
 
     int n_visc = BL_SPACEDIM + 1 + n_scal_diff_coefs;
-    if (do_temp) n_visc++;
+    if (do_temp)
+        n_visc++;
     visc_coef.resize(n_visc);
     is_diffusive.resize(n_visc);
  
     pp.get("vel_visc_coef",visc_coef[0]);
-    for (int i = 1; i < BL_SPACEDIM; i++) {
+    for (int i = 1; i < BL_SPACEDIM; i++)
       visc_coef[i] = visc_coef[0];
-    }
- 
+    //
     // Here we set the coefficient for density, which does not diffuse.
+    //
     visc_coef[Density] = -1;
 
-    if (do_temp) pp.get("temp_cond_coef",visc_coef[Density+1]);
+    if (do_temp)
+        pp.get("temp_cond_coef",visc_coef[Density+1]);
 
     Array<REAL> scal_diff_coefs(n_scal_diff_coefs);
     pp.getarr("scal_diff_coefs",scal_diff_coefs,0,n_scal_diff_coefs);
 
     int firstScal = Density + 1;
-    if (do_temp) firstScal++;
-    for (int i = 0; i < n_scal_diff_coefs; i++) {
+    if (do_temp)
+        firstScal++;
+    for (int i = 0; i < n_scal_diff_coefs; i++)
       visc_coef[firstScal+i] = scal_diff_coefs[i];
-    }
 
     pp.query("divu_minus_s_factor",divu_minus_s_factor);
     pp.query("divu_relax_factor",divu_relax_factor);
@@ -306,127 +330,122 @@ NavierStokes::read_params()
     }
 }
 
-// -------------------------------------------------------------
-NavierStokes::NavierStokes()
-    : AmrLevel(), radius(PArrayManage)
+NavierStokes::NavierStokes ()
+    :
+    radius(PArrayManage)
 {
-    rho_avg = 0;
-    rho_half = 0;
-    p_avg = 0;
-    Vsync = 0;
-    Ssync = 0;
-    sync_reg = 0;
-    advflux_reg = 0;
+    rho_avg      = 0;
+    rho_half     = 0;
+    p_avg        = 0;
+    Vsync        = 0;
+    Ssync        = 0;
+    sync_reg     = 0;
+    advflux_reg  = 0;
     viscflux_reg = 0;
-    u_mac = 0;
-    aofs = 0;
+    u_mac        = 0;
+    aofs         = 0;
+    diffusion    = 0;
 
-    diffusion = 0;
-
-    if(!additional_state_types_initialized)
-      init_additional_state_types();
+    if (!additional_state_types_initialized)
+        init_additional_state_types();
 }
 
-// -------------------------------------------------------------
-NavierStokes::NavierStokes(Amr& papa, int lev, const Geometry &level_geom,
-                           const BoxArray& bl, Real time)
-        : AmrLevel(papa,lev,level_geom,bl,time),
-          radius(PArrayManage)
+NavierStokes::NavierStokes (Amr&            papa,
+                            int             lev,
+                            const Geometry& level_geom,
+                            const BoxArray& bl,
+                            Real            time)
+    :
+    AmrLevel(papa,lev,level_geom,bl,time),
+    radius(PArrayManage)
 {
     if(!additional_state_types_initialized)
         init_additional_state_types();
     
     const BoxArray& P_grids = state[Press_Type].boxArray();
-    
-    // alloc old_time pressure
+    //
+    // Alloc old_time pressure.
+    //
     state[Press_Type].allocOldData();
-    
-    // alloc space for density and temporary pressure variables
-    p_avg   = NULL;
-    rho_avg = NULL;
-    if (level > 0) {
+    //
+    // Alloc space for density and temporary pressure variables.
+    //
+    p_avg   = 0;
+    rho_avg = 0;
+    if (level > 0)
+    {
         rho_avg = new MultiFab(grids,1,1,Fab_allocate);
         p_avg   = new MultiFab(P_grids,1,0,Fab_allocate);
     }
     rho_half = new MultiFab(grids,1,1,Fab_allocate);
-    
-    // build association lists
-    //hyp_assoc.define(grids,HYP_GROW);
-    //hyp_assoc.setCacheWidth(1);
-    
-    //if(have_divu) {
-        //const BoxArray& Divu_grids = state[Divu_Type].boxArray();
-        //divu_assoc.define(Divu_grids,DIVU_GROW); // needed
-        //divu_assoc.setCacheWidth(1);
-        //if(have_dsdt) {
-            //const BoxArray& Dsdt_grids = state[Dsdt_Type].boxArray();
-            //dsdt_assoc.define(Dsdt_grids,DSDT_GROW); // needed
-            //dsdt_assoc.setCacheWidth(1);
-        //}
-    //}
-    
-    // pre-determine unfilled regions for fast filpatch
-    buildUnfilledRegions();
-    
-    // build metric coeficients for RZ calculations
+    //
+    // Build metric coeficients for RZ calculations.
+    //
     buildMetrics();
-    
-    // build base state rho for atmospheric calculations
-    // this is probably an Atmosphere virtual function
+    //
+    // Build base state rho for atmospheric calculations
+    // this is probably an Atmosphere virtual function.
+    //
     buildRho0();
-
-    // set up reflux registers
+    //
+    // Set up reflux registers.
+    //
     sync_reg = 0;
-    if (level > 0 && do_sync_proj) {
+    if (level > 0 && do_sync_proj)
+    {
         sync_reg = new SyncRegister(grids,crse_ratio,level);
     }
-
-    advflux_reg = 0;
+    advflux_reg  = 0;
     viscflux_reg = 0;
-    if (level > 0 && do_reflux) {
+    if (level > 0 && do_reflux)
+    {
         advflux_reg  = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
         viscflux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
     }
-
-    // initialize work multifabs
+    //
+    // Initialize work multifabs.
+    //
     Vsync = 0;
     Ssync = 0;
     u_mac = 0;
     aofs  = 0;
-
-    // set up the level projector
-    if ( do_MLsync_proj || do_sync_proj )
+    //
+    // Set up the level projector.
+    //
+    if (do_MLsync_proj || do_sync_proj)
     {
         if (projector == 0)
         {
             projector = new Projection(parent,&phys_bc,
-                                     do_sync_proj,parent->finestLevel(),
-                                     radius_grow );
+                                       do_sync_proj,parent->finestLevel(),
+                                       radius_grow);
         }
         projector->install_level(level, this, &radius );
     }
-
-    // set up the godunov box
+    //
+    // Set up the godunov box.
+    //
     SetGodunov();
-    
-    // set up diffusion
+    //
+    // Set up diffusion.
+    //
     diffusion = new Diffusion(parent, this,
                               (level > 0) ? getLevel(level-1).diffusion
-                              : (Diffusion*)NULL,
+                              : (Diffusion*)0,
                               NUM_STATE, viscflux_reg, volume, area,
                               is_diffusive, visc_coef);
-
-    // set up the mac projector
-    if (mac_projector == 0) {
-        int finest_level = parent->finestLevel();
-        mac_projector = new MacProj( parent, finest_level,
-                                     &phys_bc, radius_grow );
+    //
+    // Set up the mac projector.
+    //
+    if (mac_projector == 0)
+    {
+        mac_projector = new MacProj(parent, parent->finestLevel(),
+                                    &phys_bc, radius_grow );
     }
-    mac_projector->install_level(level, this,
-                                 volume, area, &radius );
+    mac_projector->install_level(level, this, volume, area, &radius );
 }
 
-NavierStokes::~NavierStokes()
+NavierStokes::~NavierStokes ()
 {
     delete rho_avg;
     delete p_avg;
@@ -443,7 +462,7 @@ NavierStokes::~NavierStokes()
         area[dir].clearUnmanaged();
     }
     
-    if (mac_projector != NULL)
+    if (mac_projector != 0)
         mac_projector->cleanup(level);
     delete diffusion;
 }
@@ -452,8 +471,9 @@ void NavierStokes::init_additional_state_types()
 {
 
     additional_state_types_initialized = 1;
-
-    // Set "Temp" from user's variable setup
+    //
+    // Set "Temp" from user's variable setup.
+    //
     int dummy_State_Type;
     bool have_temp = isStateVariable("temp", dummy_State_Type, Temp);
     have_temp &= dummy_State_Type == State_Type;
@@ -635,8 +655,8 @@ NavierStokes::restart(Amr& papa, istream& is)
     mac_projector->install_level(level, this,
                                  volume, area, &radius );
 
-    rho_avg = NULL;
-    p_avg = NULL;
+    rho_avg = 0;
+    p_avg = 0;
     const BoxArray& P_grids = state[Press_Type].boxArray();
 
     // alloc space for density and temporary pressure variables
@@ -660,9 +680,6 @@ NavierStokes::restart(Amr& papa, istream& is)
         //dsdt_assoc.setCacheWidth(1);
       //}
     //}
-
-      // pre-determine unfilled regions for fast filpatch
-    buildUnfilledRegions();
 
       // build metric coeficients for RZ calculations
     buildMetrics();
@@ -695,7 +712,7 @@ NavierStokes::restart(Amr& papa, istream& is)
 
     diffusion = new Diffusion(parent, this,
                               (level > 0) ? getLevel(level-1).diffusion
-                                          : (Diffusion*)NULL,
+                                          : (Diffusion*)0,
                               NUM_STATE, viscflux_reg, volume, area,
                               is_diffusive, visc_coef);
 
@@ -741,134 +758,53 @@ NavierStokes::buildMetrics()
     }
 }
 
+//
+// Reset the time levels to time (time) and timestep dt.
+// This is done at the start of the timestep in the pressure iteration section.
+//
 
-
-// for fast filpatch, we precompute the subbox of a grid that
-// must be interpolated from coarser data.  This routine precomputes
-// these boxes and stores them in (*_unfilled) arrays
-// 
-void NavierStokes::buildUnfilledRegions()
+void
+NavierStokes::resetState (Real time,
+                          Real dt_old,
+                          Real dt_new)
 {
-    if (hyp_unfilled.ready()) {
-        BoxLib::Error("buildUnfilledRegions: already built");
-    }
-
-    int numgrids = grids.length();
-    hyp_unfilled.resize(numgrids);
-    cc1_unfilled.resize(numgrids);
-
-    int i, j;
-
-    const Box& domain = geom.Domain();
-    for (i = 0; i < numgrids; i++) {
-        BoxDomain fd;
-        Box sbox(grow(grids[i],HYP_GROW));
-        sbox &= domain;
-        fd.add(sbox);
-        for (j = 0; j < grids.length(); j++) {
-            const Box& gbox = grids[j];
-            if (sbox.intersects(gbox)) fd.rmBox(gbox);
-        }
-        hyp_unfilled.set(i,fd.minimalBox());
-        fd.clear();
-    }
-
-    for (i = 0; i < numgrids; i++) {
-        BoxDomain fd;
-        Box sbox(grow(grids[i],1));
-        sbox &= domain;
-        fd.add(sbox);
-        for (j = 0; j < grids.length(); j++) {
-            const Box& gbox = grids[j];
-            if (sbox.intersects(gbox)) fd.rmBox(gbox);
-        }
-        cc1_unfilled.set(i,fd.minimalBox());
-        fd.clear();
-    }
-
-    if(have_divu) {
-      divu_unfilled.resize(numgrids);
-      for (i = 0; i < numgrids; i++) {
-        const Box& Divu_domain = state[Divu_Type].getDomain();
-        IndexType divu_typ = Divu_domain.ixType();
-        BoxDomain fd(divu_typ);
-        const BoxArray& Divu_grids = state[Divu_Type].boxArray();
-        Box sbox(grow(Divu_grids[i],DIVU_GROW));
-        sbox &= Divu_domain;
-        fd.add(sbox);
-        for (j = 0; j < grids.length(); j++) {
-            const Box& gbox = Divu_grids[j];
-            if (sbox.intersects(gbox)) fd.rmBox(gbox);
-        }
-        divu_unfilled.set(i,fd.minimalBox());
-        fd.clear();
-      }
-      if(have_dsdt) {
-        dsdt_unfilled.resize(numgrids);
-        for (i = 0; i < numgrids; i++) {
-          const Box& Dsdt_domain = state[Dsdt_Type].getDomain();
-          IndexType dsdt_typ = Dsdt_domain.ixType();
-          BoxDomain fd(dsdt_typ);
-          const BoxArray& Dsdt_grids = state[Dsdt_Type].boxArray();
-          Box sbox(grow(Dsdt_grids[i],DSDT_GROW));
-          sbox &= Dsdt_domain;
-          fd.add(sbox);
-          for (j = 0; j < grids.length(); j++) {
-            const Box& gbox = Dsdt_grids[j];
-            if (sbox.intersects(gbox)) fd.rmBox(gbox);
-          }
-          dsdt_unfilled.set(i,fd.minimalBox());
-          fd.clear();
-        }
-      }
-    }
-
-    for (i = 0; i < numgrids; i++) {
-        const Box& P_domain = state[Press_Type].getDomain();
-        IndexType p_typ = P_domain.ixType();
-        BoxDomain fd(p_typ);
-        const BoxArray& P_grids = state[Press_Type].boxArray();
-        Box sbox(grow(P_grids[i],PRESS_GROW));
-        sbox &= P_domain;
-        fd.add(sbox);
-        for (j = 0; j < P_grids.length(); j++) {
-            const Box& gbox = P_grids[j];
-            if (sbox.intersects(gbox)) fd.rmBox(gbox);
-        }
-        fd.clear();
-    }
-}
-
-
-// reset the time levels to time (time) and timestep dt.
-// This is done at the start of the timestep in the pressure
-// iteration section
-void NavierStokes::resetState(Real time, Real dt_old, Real dt_new)
-{
-    // reset state and pressure types
+    //
+    // Reset state and pressure types.
+    //
     state[State_Type].reset();
     state[State_Type].setTimeLevel(time,dt_old,dt_new);
     initOldPress();
     state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
-
-    // reset state types for divu not equal to zero
-    if (have_divu) {
+    //
+    // Reset state types for divu not equal to zero.
+    //
+    if (have_divu)
+    {
         state[Divu_Type].reset();
         state[Divu_Type].setTimeLevel(time,dt_old,dt_new);
-        if ( have_dsdt ) {
+        if (have_dsdt)
+        {
             state[Dsdt_Type].reset();
             state[Dsdt_Type].setTimeLevel(time,dt_old,dt_new);
         }
     }
 }
 
-// set the time levels to time (time) and timestep dt
-void NavierStokes::setTimeLevel(Real time, Real dt_old, Real dt_new)
+//
+// Set the time levels to time (time) and timestep dt.
+//
+
+void
+NavierStokes::setTimeLevel (Real time,
+                            Real dt_old,
+                            Real dt_new)
 {
     state[State_Type].setTimeLevel(time,dt_old,dt_new);
-    if(have_divu) {
+    if (have_divu)
+    {
       state[Divu_Type].setTimeLevel(time,dt_old,dt_new);
-      if(have_dsdt) {
+      if (have_dsdt)
+      {
         state[Dsdt_Type].setTimeLevel(time,dt_old,dt_new);
       }
     }
@@ -939,93 +875,111 @@ NavierStokes::initData ()
     rs.end();
 }
 
-
-
+//
 // This function fills a new level n with the best
 // level n and coarser data available
-void NavierStokes::init( AmrLevel &old)
-{
-    // get data pointers
-    NavierStokes *oldns = (NavierStokes*) &old;
-    MultiFab &S_new = get_new_data(State_Type);
-    MultiFab &P_new = get_new_data(Press_Type);
-    MultiFab &P_old = get_old_data(Press_Type);
+//
 
-    // get time information
-    Real dt_new = parent->dtLevel(level);
+void
+NavierStokes::init (AmrLevel &old)
+{
+    //
+    // Get data pointers.
+    //
+    NavierStokes* oldns = (NavierStokes*) &old;
+    MultiFab &S_new     = get_new_data(State_Type);
+    MultiFab &P_new     = get_new_data(Press_Type);
+    MultiFab &P_old     = get_old_data(Press_Type);
+    //
+    // Get time information.
+    //
+    Real dt_new    = parent->dtLevel(level);
     Real cur_time  = oldns->state[State_Type].curTime();
     Real prev_time = oldns->state[State_Type].prevTime();
-    Real dt_old = cur_time - prev_time;
+    Real dt_old    = cur_time - prev_time;
     setTimeLevel(cur_time,dt_old,dt_new);
     Real cur_pres_time = state[Press_Type].curTime();
 
     int destComp = 0;
     int srcComp  = 0;
     int boxGrow  = 0;
-    for(FillPatchIterator snewfpi(old, S_new, boxGrow, destComp, cur_time,
-                              State_Type, srcComp, NUM_STATE);
+    for (FillPatchIterator snewfpi(old, S_new, boxGrow, destComp, cur_time,
+                                   State_Type, srcComp, NUM_STATE);
         snewfpi.isValid();
         ++snewfpi)
     {
-      DependentMultiFabIterator dsnewmfi(snewfpi, S_new);
-      dsnewmfi().copy(snewfpi());
+        DependentMultiFabIterator dsnewmfi(snewfpi, S_new);
+        dsnewmfi().copy(snewfpi());
     }
 
     int numComp = 1;
-    for(FillPatchIterator pnewfpi(old, P_new, boxGrow, destComp, cur_pres_time,
-                              Press_Type, srcComp, numComp);
-        pnewfpi.isValid();
-        ++pnewfpi)
+    for (FillPatchIterator pnewfpi(old, P_new, boxGrow, destComp, cur_pres_time,
+                                   Press_Type, srcComp, numComp);
+         pnewfpi.isValid();
+         ++pnewfpi)
     {
-      DependentMultiFabIterator dpnewmfi(pnewfpi, P_new);
-      DependentMultiFabIterator dpoldmfi(pnewfpi, P_old);
-      dpnewmfi().copy(pnewfpi());  // copy from the temp fill patched fab into new
-      dpoldmfi().copy(pnewfpi());  // copy from the temp fill patched fab into old
+        DependentMultiFabIterator dpnewmfi(pnewfpi, P_new);
+        DependentMultiFabIterator dpoldmfi(pnewfpi, P_old);
+        dpnewmfi().copy(pnewfpi());  // copy from temp fill patched fab to new
+        dpoldmfi().copy(pnewfpi());  // copy from temp fill patched fab to old
     }
-
-    // get best divu and dSdt data
-    if (have_divu) {
-      MultiFab &Divu_new = get_new_data(Divu_Type);
-      int numComp = 1;
-      for(FillPatchIterator divunewfpi(old, Divu_new, boxGrow, destComp, cur_time,
-                                    Divu_Type, srcComp, numComp);
-          divunewfpi.isValid();
-          ++divunewfpi)
-      {
-        DependentMultiFabIterator ddivunewmfi(divunewfpi, Divu_new);
-        ddivunewmfi().copy(divunewfpi());
-      }
-
-      if (have_dsdt) {
-        MultiFab &Dsdt_new = get_new_data(Dsdt_Type);
+    //
+    // Get best divu and dSdt data.
+    //
+    if (have_divu)
+    {
+        MultiFab& Divu_new = get_new_data(Divu_Type);
         int numComp = 1;
-        for(FillPatchIterator dsdtnewfpi(old, Dsdt_new, boxGrow, destComp, cur_time,
-                                      Dsdt_Type, srcComp, numComp);
-            dsdtnewfpi.isValid();
-            ++dsdtnewfpi)
+        for (FillPatchIterator divunewfpi(old, Divu_new, boxGrow, destComp,
+                                          cur_time,Divu_Type,srcComp,numComp);
+            divunewfpi.isValid();
+            ++divunewfpi)
         {
-          DependentMultiFabIterator ddsdtnewmfi(dsdtnewfpi, Dsdt_new);
-          ddsdtnewmfi().copy(dsdtnewfpi());
+            DependentMultiFabIterator ddivunewmfi(divunewfpi, Divu_new);
+            ddivunewmfi().copy(divunewfpi());
         }
-      }
+
+        if (have_dsdt)
+        {
+            MultiFab& Dsdt_new = get_new_data(Dsdt_Type);
+            int numComp = 1;
+            for (FillPatchIterator dsdtnewfpi(old, Dsdt_new, boxGrow, destComp,
+                                              cur_time,Dsdt_Type,srcComp,
+                                              numComp);
+                dsdtnewfpi.isValid();
+                ++dsdtnewfpi)
+            {
+                DependentMultiFabIterator ddsdtnewmfi(dsdtnewfpi, Dsdt_new);
+                ddsdtnewmfi().copy(dsdtnewfpi());
+            }
+        }
     }
 }
 
 
-// this version inits the data on a new level that did not
-// exist before regridding
-void NavierStokes::init()
+//
+// This version inits the data on a new level that did not
+// exist before regridding.
+//
+
+void
+NavierStokes::init ()
 {
-    // get data pointers
+    //
+    // Get data pointers.
+    //
     MultiFab &S_new = get_new_data(State_Type);
     MultiFab &P_new = get_new_data(Press_Type);
     MultiFab &P_old = get_old_data(Press_Type);
-
-    // get time information
+    //
+    // Get time information.
+    //
     assert(level > 0);
+
     const Array<Real>& dt_amr = parent->dtLevel();
     Array<Real> dt_new(level+1);
-    for (int lev = 0; lev < level; lev++) {
+    for (int lev = 0; lev < level; lev++)
+    {
         dt_new[lev] = dt_amr[lev];
     }
     Real dt = dt_new[level-1]/(Real)parent->MaxRefRatio(level-1);
@@ -1033,9 +987,9 @@ void NavierStokes::init()
     parent->setDtLevel(dt_new);
 
     NavierStokes& old = getLevel(level-1);
-    Real cur_time  = old.state[State_Type].curTime();
-    Real prev_time = old.state[State_Type].prevTime();
-    Real dt_old = (cur_time - prev_time)/(Real)parent->MaxRefRatio(level-1);
+    Real cur_time     = old.state[State_Type].curTime();
+    Real prev_time    = old.state[State_Type].prevTime();
+    Real dt_old       = (cur_time-prev_time)/(Real)parent->MaxRefRatio(level-1);
 
     setTimeLevel(cur_time,dt_old,dt);
 
@@ -1059,12 +1013,9 @@ void NavierStokes::init()
     }
 }
 
-
-
-
-//=================================================================
+//
 // ADVANCE FUNCTIONS
-//=================================================================
+//
 
 //
 // This function ensures that the multifab registerss and boundary
@@ -1100,73 +1051,88 @@ void NavierStokes::init()
 // the boundaries of the fine level BoxArray
 //----------------------------------------------------------------
 
-// setup for the advance function
-void NavierStokes::advance_setup( Real time, Real dt, int iteration, int ncycle)
+void
+NavierStokes::advance_setup (Real time,
+                             Real dt,
+                             int  iteration,
+                             int  ncycle)
 {
     int finest_level = parent->finestLevel();
     mac_projector->setup(level);
-
+    //
     // why are they defined here versus the constructor?
-    if (level < finest_level) {
-        if (Vsync == 0) {
-            //Vsync = new MultiFab;
-            //Vsync->define(grids,BL_SPACEDIM,1,Fab_allocate);
+    //
+    if (level < finest_level)
+    {
+        if (Vsync == 0)
+        {
             Vsync = new MultiFab(grids,BL_SPACEDIM,1,Fab_allocate);
         }
-        if (Ssync == 0) {
-            //Ssync = new MultiFab;
-            //Ssync->define(grids,NUM_STATE-BL_SPACEDIM,1,Fab_allocate);
+        if (Ssync == 0)
+        {
             Ssync = new MultiFab(grids,NUM_STATE-BL_SPACEDIM,1,Fab_allocate);
         }
         Vsync->setVal(0.0);
         Ssync->setVal(0.0);
     }
-
-    // set reflux registers to zero
-    if (do_reflux && level < finest_level) {
-        FluxRegister& fr_adv  = getAdvFluxReg(level+1);
-        fr_adv.setVal(0.0);
-        FluxRegister& fr_visc = getViscFluxReg(level+1);
-        fr_visc.setVal(0.0);
+    //
+    // Set reflux registers to zero.
+    //
+    if (do_reflux && level < finest_level)
+    {
+        getAdvFluxReg(level+1).setVal(0.0);
+        getViscFluxReg(level+1).setVal(0.0);
     }
-    
-    // alloc space for edge velocities (normal comp only)
-    if (u_mac == 0) {
+    //
+    // Alloc space for edge velocities (normal comp only).
+    //
+    if (u_mac == 0)
+    {
         u_mac = new MultiFab[BL_SPACEDIM];
-        for (int dir = 0; dir < BL_SPACEDIM; dir++) {
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
             BoxArray edge_grids(grids);
             edge_grids.surroundingNodes(dir);
             u_mac[dir].define(edge_grids,1,0,Fab_allocate);
         }
     }
-
-    // alloc multifab to hold advective tendencies
-    assert( aofs == 0 );
+    //
+    // Alloc multifab to hold advective tendencies.
+    //
+    assert(aofs == 0);
     aofs = new MultiFab(grids,NUM_STATE,0,Fab_allocate);
-    
-    // set rho_avg
-    if ( !initial_step && (level > 0) && (iteration == 1) ) {
+    //
+    // Set rho_avg.
+    //
+    if (!initial_step && (level > 0) && (iteration == 1))
+    {
         Real fratio = (Real) ncycle;
         Real alpha = 0.5/fratio;
         initRhoAvg(alpha);
     }
-
-    // set up state multifabs for the advance
-    for ( int k = 0; k < num_state_type; k++) {
+    //
+    // Set up state multifabs for the advance.
+    //
+    for (int k = 0; k < num_state_type; k++)
+    {
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);
     }
-    MultiFab& temp = get_new_data(State_Type);
 
-    temp.setVal(bogus_value);
+    get_new_data(State_Type).setVal(bogus_value);
 
-    if( level>0 || geom.isAnyPeriodic() ) {
-        // this is neccessary so that diffusion works properly during the first
+    if (level>0 || geom.isAnyPeriodic())
+    {
+        //
+        // This is neccessary so that diffusion works properly during the first
         // time step (Diffusion can call only AmrLevel::setPhysBndryValues() to
-        // fill ghost cells.  That function does not know about ghost cells over
-        // coarse values, or periodic bc's)
-        for ( int k = 0; k < num_state_type; k++) {
-            if(k!=Press_Type) {
+        // fill ghost cells.  That function does not know about ghost cells
+        // over coarse values, or periodic bc's)
+        //
+        for (int k = 0; k < num_state_type; k++)
+        {
+            if (k != Press_Type)
+            {
                 MultiFab &new_state = get_new_data(k);
                 MultiFab &old_state = get_old_data(k);
                 FillStateBndry(time,k,0,old_state.nComp());
@@ -1174,35 +1140,43 @@ void NavierStokes::advance_setup( Real time, Real dt, int iteration, int ncycle)
             }
         }
     }
-
 }
 
+//
+// Clean up after the advance function.
+//
 
-//clean up after the advance function
-void NavierStokes::advance_cleanup(Real dt, int iteration, int ncycle)
+void
+NavierStokes::advance_cleanup (Real dt,
+                               int  iteration,
+                               int  ncycle)
 {
-    
-    int finest_level = parent->finestLevel();
-    
-    // delete mac edge velocities
-    if (level == finest_level) {
+    if (level == parent->finestLevel())
+    {
+        //
+        // Delete mac edge velocities.
+        //
         delete [] u_mac;
         u_mac = 0;
     }
-    
-    // delete advective tendencies
+    //
+    // Delete advective tendencies.
+    //
     delete aofs;
     aofs = 0;
 }
 
 
-// -------------------------------------------------------------
-// compute a timestep at a level
-// return largest safe timestep that can be used
-// -------------------------------------------------------------
-Real NavierStokes::advance (Real time, Real dt, int iteration, int ncycle)
+//
+// Compute a timestep at a level. Return largest safe timestep.
+//
+
+Real
+NavierStokes::advance (Real time,
+                       Real dt,
+                       int  iteration,
+                       int  ncycle)
 {
-    // ------------------ Advance setup
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "Advancing grids at level " << level
@@ -1217,9 +1191,9 @@ Real NavierStokes::advance (Real time, Real dt, int iteration, int ncycle)
 //     fclose(dfile);
 //     cout << "!!!!!!!!!!! done reading data" << NL;
     
-    SaveOldBoundary( time ); 
-    MultiFab &Snew = get_new_data(State_Type);
-    MultiFab &Sold = get_old_data(State_Type);
+    SaveOldBoundary(time); 
+    MultiFab& Snew = get_new_data(State_Type);
+    MultiFab& Sold = get_old_data(State_Type);
 
     RunStats vel_pred_stats("vel_predict", level);
     RunStats  vel_adv_stats("vel_advect" , level);
@@ -1227,66 +1201,73 @@ Real NavierStokes::advance (Real time, Real dt, int iteration, int ncycle)
     RunStats  vel_upd_stats("vel_update" , level);
     RunStats scal_upd_stats("scal_update", level);
     RunStats      mac_stats("mac_project", level);
-
+    //
     // ------------------ Advance starts here
-    // compute traced states for normal comp of velocity
-    // at half time level
+    //
+    // Compute traced states for normal comp of velocity at half time level.
+    //
     vel_pred_stats.start();
     Real dt_test = 0.0, dummy = 0.0;
     dt_test = predict_velocity(dt,dummy);
     vel_pred_stats.end();
-
-    // do MAC projection and update edge velocities
+    //
+    // Do MAC projection and update edge velocities.
+    //
     mac_stats.start();
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "... mac_projection\n";
     }
-
     MultiFab* divu = getDivCond(0,time);
     MultiFab* dsdt = getDsdt(0,time);
 
     for (MultiFabIterator mfi(*divu); mfi.isValid(false); ++mfi)
     {
         DependentMultiFabIterator dmfi(mfi,*dsdt);
-            
         dmfi().mult(.5*dt);
         mfi().plus(dmfi());
     }
 
     delete dsdt;
-    
-    //------------------- compute mac velocities and maximum cfl number
+    //
+    // Compute mac velocities and maximum cfl number.
+    //
     if (do_mac_proj)
         mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu);
     mac_stats.end();
 
     delete divu;
-    
-    //------------------- advect velocities
+    //
+    // Advect velocities.
+    //
     vel_adv_stats.start();
     velocity_advection(dt);
     vel_adv_stats.end();
-
-    //------------------- advect scalars
+    //
+    // Advect scalars.
+    //
     int first_scalar = Density;
-    int last_scalar = first_scalar + NUM_SCALARS - 1;
+    int last_scalar  = first_scalar + NUM_SCALARS - 1;
     scal_adv_stats.start();
     scalar_advection(dt,first_scalar,last_scalar);
     scal_adv_stats.end();
-
-    // add the advective and other terms to get scalars at t^{n+1}
+    //
+    // Add the advective and other terms to get scalars at t^{n+1}.
+    //
     scal_upd_stats.start();
     scalar_update(dt,first_scalar,first_scalar);
-
-    // compute rho at half time level including 1-zone bndry values
+    //
+    // Compute rho at half time level including 1-zone bndry values.
+    //
     makerhonph(dt);
-
-    // add the advective and other terms to get scalars at t^{n+1}
+    //
+    // Add the advective and other terms to get scalars at t^{n+1}.
+    //
     scalar_update(dt,first_scalar+1,last_scalar);
     scal_upd_stats.end();
-
-    // S appears in rhs of the velocity update, so we better do it now
+    //
+    // S appears in rhs of the velocity update, so we better do it now.
+    //
     if (have_divu)
     {
         calc_divu(time+dt, dt, get_new_data(Divu_Type));
@@ -1295,35 +1276,46 @@ Real NavierStokes::advance (Real time, Real dt, int iteration, int ncycle)
             calc_dsdt(time,dt,get_new_data(Dsdt_Type));
         }
     }
-    // add the advective and other terms to get velocity at t^{n+1}
+    //
+    // Add the advective and other terms to get velocity at t^{n+1}.
+    //
     vel_upd_stats.start();
     velocity_update(dt);
     vel_upd_stats.end();
-
-    // clean up after the predicted value at t^n+1
-    // estimate new timestep from umac cfl);
+    //
+    // Clean up after the predicted value at t^n+1.
+    // Estimate new timestep from umac cfl.
+    //
     advance_cleanup(dt,iteration,ncycle);
-    
-    // increment rho average
-    if (!initial_step && level > 0) {
+    //
+    // Increment rho average.
+    //
+    if (!initial_step && level > 0)
+    {
         Real fratio = (Real) ncycle;
         Real alpha = 1.0/fratio;
-        if (iteration == ncycle) alpha = 0.5/fratio;
+        if (iteration == ncycle)
+            alpha = 0.5/fratio;
         incrRhoAvg(alpha);
     }
-    
-    // do a level project to update the pressure and velocity fields
-    if (!initial_step) {
-        if ( projector )
+    //
+    // Do a level project to update the pressure and velocity fields.
+    //
+    if (!initial_step)
+    {
+        if (projector)
             level_projector(dt,time,iteration);
-        if (level > 0) {
+        if (level > 0)
+        {
             Real alpha = 1.0/ (Real) ncycle;
             incrPAvg(iteration,alpha);
         }
     }
-
-    // relax back to continuity constraint
-    if (divu_relax_factor>0.0 && !initial_step) {
+    //
+    // Relax back to continuity constraint.
+    //
+    if (divu_relax_factor>0.0 && !initial_step)
+    {
         MultiFab* delta_U = new MultiFab (grids,BL_SPACEDIM,0,Fab_allocate);
         compute_grad_divu_minus_s(time+dt, delta_U, 0);
         Snew.plus(*delta_U, 0, BL_SPACEDIM, 0);
@@ -1430,27 +1422,27 @@ NavierStokes::makerhonph (Real dt)
     int destComp = 0;
     int nComp    = 1;
     for(FillPatchIterator rho_halffpi(*this, *rho_half, nGrow,
-                                  destComp, half_time, State_Type,
-                                  srcComp, nComp);
+                                      destComp, half_time, State_Type,
+                                      srcComp, nComp);
         rho_halffpi.isValid(); ++rho_halffpi)
     {
-      DependentMultiFabIterator rho_halfmfi(rho_halffpi, *rho_half);
+        DependentMultiFabIterator rho_halfmfi(rho_halffpi, *rho_half);
 
-      // the old getState grows the fab it is given--test rho_half for
-      // the correct size  vvvvvvvvvvvvvvvvvvvvvvv
-      Box testGrowBox(grids[rho_halfmfi.index()]);
-      testGrowBox.grow(nGrow);
-      assert(rho_halfmfi.fabbox() == testGrowBox);
-      // end box size test ^^^^^^^^^^^^^^^^^^^^^^^
+        // the old getState grows the fab it is given--test rho_half for
+        // the correct size  vvvvvvvvvvvvvvvvvvvvvvv
+        Box testGrowBox(grids[rho_halfmfi.index()]);
+        testGrowBox.grow(nGrow);
+        assert(rho_halfmfi.fabbox() == testGrowBox);
+        // end box size test ^^^^^^^^^^^^^^^^^^^^^^^
 
-      rho_halfmfi().copy(rho_halffpi());
+        rho_halfmfi().copy(rho_halffpi());
     }
 }
 
-// -------------------------------------------------------------
-// predict the edge velocities which go into forming u_mac.  This
-// function also returns an estimate of dt for use in variable timesteping
-// -------------------------------------------------------------
+//
+// Predict the edge velocities which go into forming u_mac.  This
+// function also returns an estimate of dt for use in variable timesteping.
+//
 
 Real
 NavierStokes::predict_velocity (Real  dt,
@@ -2505,7 +2497,7 @@ void NavierStokes::velocity_diffusion_update(Real dt)
         MultiFab* delta_rhs = 0;
         diffuse_velocity_setup(dt, delta_rhs);
         diffusion->diffuse_velocity(dt, be_cn_theta, rho_half, 1);
-        if (delta_rhs!=NULL) delete delta_rhs;
+        if (delta_rhs!=0) delete delta_rhs;
     }
 }
     
@@ -2517,7 +2509,7 @@ NavierStokes::diffuse_velocity_setup(Real dt,
 {
     Real time = state[State_Type].prevTime();
 
-    delta_rhs = NULL;
+    delta_rhs = 0;
 
     if (S_in_vel_diffusion && have_divu) {
       Real time = state[State_Type].prevTime();
@@ -2733,10 +2725,9 @@ NavierStokes::sumDerive (const aString& name, Real time)
 
             for (int j = 0; j < f_box.length(); j++)
             {
-                Box c_box = coarsen(f_box[j],fine_ratio);
-                c_box &= grids[mfi.index()];
-                if (c_box.ok())
-                    fab.setVal(0.0,c_box,0);
+                Box c_box = ::coarsen(f_box[j],fine_ratio);
+                if (c_box.intersects(grids[mfi.index()]))
+                    fab.setVal(0.0,(c_box & grids[mfi.index()]),0);
             }
         }
 
@@ -2771,10 +2762,9 @@ Real  NavierStokes::volWgtSum(const aString& name, Real time)
 
             for (int j = 0; j < f_box.length(); j++)
             {
-                Box c_box = coarsen(f_box[j],fine_ratio);
-                c_box &= grids[mfi.index()];
-                if (c_box.ok())
-                    fab.setVal(0.0,c_box,0);
+                Box c_box = ::coarsen(f_box[j],fine_ratio);
+                if (c_box.intersects(grids[mfi.index()]))
+                    fab.setVal(0.0,(c_box & grids[mfi.index()]),0);
             }
         }
         Real s;
@@ -3434,81 +3424,98 @@ NavierStokes::post_timestep ()
 //
 // Build any additional data structures after restart.
 //
-void NavierStokes::post_restart()
-{}
+
+void NavierStokes::post_restart() {}
 
 //
 // Build any additional data structures after regrid.
 //
-void NavierStokes::post_regrid(int lbase, int new_finest)
+void NavierStokes::post_regrid (int lbase,
+                                int new_finest)
 {
-    AmrLevel & amr_level = getLevel(level);
-    int finest_level = parent->finestLevel();
-    if ( projector )
-        if (level == lbase) projector->setFinestLevel(new_finest);
+    if (projector && level == lbase)
+        projector->setFinestLevel(new_finest);
 }
 
-// ensure state, and pressure are consistent
-void NavierStokes::post_init(REAL stop_time)
+//
+// Ensure state, and pressure are consistent.
+//
+
+void
+NavierStokes::post_init (REAL stop_time)
 {
-    // nothing to sync up at level > 0
     if (level > 0)
+        //
+        // Nothing to sync up at level > 0.
+        //
         return;
 
-    int finest_level = parent->finestLevel();
-    Real dt_init     = 0.0;
+    const int finest_level = parent->finestLevel();
+
+    Real dt_init = 0.0;
+
     Array<Real> dt_save(finest_level+1);
     Array<int>  nc_save(finest_level+1);
-
-    // ensure state is consistent, i.e. velocity field is non-divergent,
-    // coarse levels are fine level averages, pressure is zero
+    //
+    // Ensure state is consistent, i.e. velocity field is non-divergent,
+    // Coarse levels are fine level averages, pressure is zero.
+    //
     post_init_state();
-
-    // estimate the initial timestepping
+    //
+    // Estimate the initial timestepping.
+    //
     post_init_estDT( dt_init, nc_save, dt_save, stop_time );
-
-    // initialize the pressure by iterating the initial timestep
+    //
+    // Initialize the pressure by iterating the initial timestep.
+    //
     post_init_press( dt_init, nc_save, dt_save );
-    
-    // compute the initial estimate of conservation
-    if (sum_interval > 0) {
+    //
+    // Compute the initial estimate of conservation.
+    //
+    if (sum_interval > 0)
+    {
         sum_integrated_quantities();
     }
-
 }
 
-
-
-//=================================================================
+//
 // MULTILEVEL SYNC FUNCTIONS
-//=================================================================
+//
 
-// -------------------------------------------------------------
-void NavierStokes::initRhoAvg(Real alpha)
+void
+NavierStokes::initRhoAvg (Real alpha)
 {
-    MultiFab &S_new = get_new_data(State_Type);
-    rho_avg->setVal(0.);
+    MultiFab& S_new = get_new_data(State_Type);
 
-    for(MultiFabIterator rho_avgmfi(*rho_avg); rho_avgmfi.isValid(); ++rho_avgmfi) {
-      DependentMultiFabIterator S_newmfi(rho_avgmfi, S_new);
-      assert(grids[S_newmfi.index()] == S_newmfi.validbox());
-       rho_avgmfi().copy(S_newmfi(),S_newmfi.validbox(),Density,
-                         S_newmfi.validbox(),0,1);
-       rho_avgmfi().mult(alpha);
+    rho_avg->setVal(0);
+
+    for (MultiFabIterator rho_avgmfi(*rho_avg); rho_avgmfi.isValid();
+         ++rho_avgmfi)
+    {
+        DependentMultiFabIterator S_newmfi(rho_avgmfi, S_new);
+        assert(grids[S_newmfi.index()] == S_newmfi.validbox());
+        rho_avgmfi().copy(S_newmfi(),
+                          S_newmfi.validbox(),
+                          Density,
+                          S_newmfi.validbox(),
+                          0,
+                          1);
+        rho_avgmfi().mult(alpha);
     }
 }
 
-// -------------------------------------------------------------
-void NavierStokes::incrRhoAvg(Real alpha)
+void
+NavierStokes::incrRhoAvg (Real alpha)
 {
-    MultiFab &S_new = get_new_data(State_Type);
+    MultiFab& S_new = get_new_data(State_Type);
 
-    for(MultiFabIterator S_newmfi(S_new); S_newmfi.isValid(); ++S_newmfi) {
-        DependentMultiFabIterator rho_avgmfi(S_newmfi, (*rho_avg));
+    for (MultiFabIterator S_newmfi(S_new); S_newmfi.isValid(); ++S_newmfi)
+    {
+        DependentMultiFabIterator rho_avgmfi(S_newmfi,*rho_avg);
         assert(grids[S_newmfi.index()] == S_newmfi.validbox());
         const int* lo = S_newmfi.validbox().loVect();
         const int* hi = S_newmfi.validbox().hiVect();
-        const FArrayBox &rho = S_newmfi();
+        const FArrayBox& rho = S_newmfi();
         const int* rlo = rho.loVect();
         const int* rhi = rho.hiVect();
         const Real* rhodat = rho.dataPtr(Density);
@@ -3522,139 +3529,145 @@ void NavierStokes::incrRhoAvg(Real alpha)
     }
 }
 
-// -------------------------------------------------------------
-void NavierStokes::incrPAvg( int iteration, Real alpha)
+void
+NavierStokes::incrPAvg (int  iteration,
+                        Real alpha)
 {
-    // set p_avg to zero for the initial iteration
-    if (iteration == 1) p_avg->setVal(0.);
-
-    // Then increment p_avg with fine grid pressure
+    if (iteration == 1)
+        //
+        // set p_avg to zero for the initial iteration.
+        //
+        p_avg->setVal(0.);
+    //
+    // Then increment p_avg with fine grid pressure.
+    //
     const BoxArray& P_grids = state[Press_Type].boxArray();
     MultiFab &P_new = get_new_data(Press_Type);
 
-    //int i;
-    //for (i = 0; i < P_grids.length(); i++) {
-    for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) {
+    for (MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi)
+    {
         DependentMultiFabIterator p_avgmfi(P_newmfi, (*p_avg));
         assert(P_grids[P_newmfi.index()] == P_newmfi.validbox());
 
-        const int* lo = P_newmfi.validbox().loVect();
-        const int* hi = P_newmfi.validbox().hiVect();
-        const FArrayBox &p = P_newmfi();
-        const int* p_lo = p.loVect();
-        const int* p_hi = p.hiVect();
-        const Real* pdat = p.dataPtr();
-        FArrayBox& avg = p_avgmfi();
-        const int* alo = avg.loVect();
-        const int* ahi = avg.hiVect();
-        Real* avgdat = avg.dataPtr();
+        const int* lo      = P_newmfi.validbox().loVect();
+        const int* hi      = P_newmfi.validbox().hiVect();
+        const FArrayBox& p = P_newmfi();
+        const int* p_lo    = p.loVect();
+        const int* p_hi    = p.hiVect();
+        const Real* pdat   = p.dataPtr();
+        FArrayBox& avg     = p_avgmfi();
+        const int* alo     = avg.loVect();
+        const int* ahi     = avg.hiVect();
+        Real* avgdat       = avg.dataPtr();
         FORT_INCRMULT(avgdat,ARLIM(alo),ARLIM(ahi),
                       pdat,ARLIM(p_lo),ARLIM(p_hi),
                       lo,hi,&alpha);
     }
 }
 
-
-
-// -------------------------------------------------------------
+//
 // This function ensures that the state is initially consitent
 // with respect to the divergence condition and fields are initially consistent
-// -------------------------------------------------------------
-void NavierStokes::post_init_state()
+//
+
+void
+NavierStokes::post_init_state ()
 {
-    int k;
-    int finest_level = parent->finestLevel();
-    
-    // do sync project to define divergence free velocity field
-    Real divu_time;
-    Real pres_time = state[Press_Type].curTime();
-    if (have_divu) {
-        divu_time = state[Divu_Type].curTime();
-    } else {
-        divu_time = pres_time;
-    }
-    if ( projector )
+    const int finest_level = parent->finestLevel();
+    const Real divu_time   = have_divu ? state[Divu_Type].curTime()
+                                       : state[Press_Type].curTime();
+    if (projector)
+        //
+        // Do sync project to define divergence free velocity field.
+        //
         projector->initialVelocityProject(0,divu_time,have_divu);
+
     NavierStokes::initial_step = true;
-    
-    // average velocity and scalar data down from finer levels
-    // so that conserved data is consistant between levels
-    for (k = finest_level-1; k>= 0; k--) getLevel(k).avgDown();
-    
-    // zero pressure field
-    for (k = 0; k <= finest_level; k++) {
+    //
+    // Average velocity and scalar data down from finer levels
+    // so that conserved data is consistant between levels.
+    //
+    for (int k = finest_level-1; k>= 0; k--)
+        getLevel(k).avgDown();
+    //
+    // Zero pressure field.
+    //
+    for (int k = 0; k <= finest_level; k++)
+    {
         NavierStokes& ns_level = getLevel(k);
         ns_level.zeroNewPress();
         ns_level.zeroOldPress();
     }
 }
 
-
-
-// -------------------------------------------------------------
+//
 // Initialize the pressure by iterating the initial timestep
-// -------------------------------------------------------------
-void NavierStokes::post_init_press( Real &dt_init,
-                                    Array<int> &nc_save,
-                                    Array<Real> &dt_save )
+//
+
+void
+NavierStokes::post_init_press (Real&        dt_init,
+                               Array<int>&  nc_save,
+                               Array<Real>& dt_save )
 {
-    Real strt_time = state[State_Type].curTime();
-    int finest_level = parent->finestLevel();
+    const Real strt_time   = state[State_Type].curTime();
+    const int finest_level = parent->finestLevel();
+
     int iter,k; 
     NavierStokes::initial_iter = true;
-
-    // iterate over the advance function
-    for ( iter = 0; iter < init_iter; iter++ ) {
-
-        for ( k = 0; k <= finest_level; k++ ) {
+    //
+    // Iterate over the advance function.
+    //
+    for (iter = 0; iter < init_iter; iter++)
+    {
+        for ( k = 0; k <= finest_level; k++ )
             getLevel(k).advance(strt_time,dt_init,1,1);
-        }
-          // this constructs a guess at P, also sets
-          // p_old == p_new
+        //
+        // This constructs a guess at P, also sets p_old == p_new.
+        //
+        MultiFab** sig = new MultiFab*[finest_level+1];
 
-        MultiFab **sig = new MultiFab*[finest_level+1];
-        for (k = 0; k <= finest_level; k++) {
-          sig[k] = getLevel(k).rho_half;
-        }
+        for (k = 0; k <= finest_level; k++)
+            sig[k] = getLevel(k).rho_half;
 
-        Real dt_crse = parent->dtLevel(0);
-        if ( projector )
-            projector->initialSyncProject(0,sig,dt_crse,strt_time,
-                                      dt_init,have_divu);
-
+        if (projector)
+            projector->initialSyncProject(0,sig,parent->dtLevel(0),strt_time,
+                                          dt_init,have_divu);
         delete sig;
 
-        for (k = finest_level-1; k>= 0; k--) {
+        for (k = finest_level-1; k>= 0; k--)
             getLevel(k).avgDown();
-        }
-        for (k = 0; k <= finest_level; k++) {
-              // reset state variables to initial time, do not reset
-              // pressure variable
+
+        for (k = 0; k <= finest_level; k++)
+        {
+            //
+            // Reset state variables to initial time, do not reset
+            // pressure variable.
+            //
             NavierStokes& ns_level = getLevel(k);
             ns_level.resetState(strt_time, dt_save[k], dt_save[k]);
         }
         NavierStokes::initial_iter = false;
     }
 
-    if (init_iter <= 0) NavierStokes::initial_iter = false; // just being 
-                                                           // compulsive--rbp 
-    NavierStokes::initial_step = false;
+    if (init_iter <= 0)
+        NavierStokes::initial_iter = false; // just being compulsive--rbp
 
-      // re-instate timestep
-    for (k = 0; k <= finest_level; k++) {
+    NavierStokes::initial_step = false;
+    //
+    // Re-instate timestep.
+    //
+    for (k = 0; k <= finest_level; k++)
         getLevel(k).setTimeLevel(strt_time,dt_save[k],dt_save[k]);
-    }
+
     parent->setDtLevel(dt_save);
     parent->setNCycle(nc_save);
 }
 
+//
+// Interpolate A cell centered Sync correction from a
+// coarse level (c_lev) to a fine level (f_lev).
+//
 
-
-
-// ==================================================
-// interpolate A cell centered Sync correction from a
-// coarse level (c_lev) to a fine level (f_lev)
-// ==================================================
 void NavierStokes::SyncInterp( MultiFab &CrseSync, int c_lev,
                                MultiFab &FineSync, int f_lev, IntVect& ratio,
                                int src_comp, int dest_comp, int num_comp,
@@ -3673,7 +3686,7 @@ void NavierStokes::SyncInterp( MultiFab &CrseSync, int c_lev,
     //       of CrseSync
     
     assert (which_interp>=0 && which_interp<=2);
-    Interpolater *interpolater=NULL;
+    Interpolater *interpolater=0;
     interpolater = (which_interp==0) ? &cell_cons_interp : interpolater;
     interpolater = (which_interp==1) ? &pc_interp : interpolater;
     interpolater = (which_interp==2) ? &unlimited_cc_interp : interpolater;
@@ -4032,7 +4045,7 @@ void NavierStokes::level_sync ()
     MultiFab& pres              = get_new_data(Press_Type);
     MultiFab& vel               = get_new_data(State_Type);
     SyncRegister& rhs_sync_reg  = getLevel(level+1).getSyncReg();
-    SyncRegister* crsr_sync_ptr = NULL;
+    SyncRegister* crsr_sync_ptr = 0;
     const Box& P_domain         = state[Press_Type].getDomain();
     NavierStokes& fine_level    = getLevel(level+1);
     MultiFab& pres_fine         = fine_level.get_new_data(Press_Type);
@@ -4045,7 +4058,7 @@ void NavierStokes::level_sync ()
         int nComp    = 1;
         for(FillPatchIterator rho_halffpi(*this, *rho_half, boxGrow, destComp,
                                           half_time, State_Type, srcComp, nComp
-                                          /* , mapper = NULL */);
+                                          /* , mapper = 0 */);
             rho_halffpi.isValid();
             ++rho_halffpi)
         {
@@ -4269,7 +4282,8 @@ NavierStokes::mac_sync ()
 // The reflux function
 //
 
-void NavierStokes::reflux ()
+void
+NavierStokes::reflux ()
 {
     if (level == parent->finestLevel()) return;
     assert(do_reflux);
@@ -4325,24 +4339,24 @@ void NavierStokes::reflux ()
     const BoxArray& fine_boxes = getLevel(level+1).boxArray();
     int nfine = fine_boxes.length();
     int ngrids = grids.length();
+    //
+    // This is necessary in order to zero out the contribution to any
+    // coarse grid cells which underlie fine grid cells.
+    //
+    for (int kf = 0; kf < nfine; kf++)
+    {
+        Box bf = ::coarsen(fine_boxes[kf],fine_ratio);
 
-    //  This is necessary in order to zero out the contribution to any
-    //   coarse grid cells which underlie fine grid cells
-    for (int kf = 0; kf < nfine; kf++) {
-        Box bf(fine_boxes[kf]);
-        bf.coarsen(fine_ratio);
-        //for (int k = 0; k < ngrids; k++)
-        for(MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+        for (MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
         {
             DependentMultiFabIterator Ssyncmfi(Vsyncmfi, *Ssync);
             assert(grids[Vsyncmfi.index()] == Vsyncmfi.validbox());
-            Box bx(Vsyncmfi.validbox());
-            bx &= bf;
-            if (bx.ok()) {
-                FArrayBox& v_sync = Vsyncmfi();
-                v_sync.setVal(0.0,bx,0,BL_SPACEDIM);
-                FArrayBox& s_sync = Ssyncmfi();
-                s_sync.setVal(0.0,bx,0,NUM_STATE-BL_SPACEDIM);
+
+            if (bf.intersects(Vsyncmfi.validbox()))
+            {
+                Box bx = bf & Vsyncmfi.validbox();
+                Vsyncmfi().setVal(0.0,bx,0,BL_SPACEDIM);
+                Ssyncmfi().setVal(0.0,bx,0,NUM_STATE-BL_SPACEDIM);
             }
         }
     }
@@ -4801,10 +4815,11 @@ NavierStokes::getDivCond (FArrayBox& fab,
                           Real       time)
 {
     BoxLib::Error("NavierStokes::getDivCond(): not implemented");
-
+#if 0
     getState(fab, gridno, ngrow, time, have_divu, Divu_Type,
              //divu_assoc, divu_unfilled);
              divu_unfilled);
+#endif
 }
 
 MultiFab*
@@ -4838,10 +4853,11 @@ NavierStokes::getDsdt (FArrayBox& fab,
                        Real       time)
 {
     BoxLib::Error("NavierStokes::getDsdt(): not implemented");
-
+#if 0
     getState(fab, gridno, ngrow, time, (have_dsdt && have_divu), Dsdt_Type,
              //dsdt_assoc, dsdt_unfilled);
              dsdt_unfilled);
+#endif
 }
 
 MultiFab*
@@ -5175,185 +5191,205 @@ NavierStokes::compute_grad_divu_minus_s (Real      time,
     Real dt = parent->dtLevel(0);
     grad_divu_minus_s->setVal(0.0);
 #if (BL_SPACEDIM == 2)
-    MultiFab &S_new = get_new_data(State_Type);
+    MultiFab& S_new = get_new_data(State_Type);
     S_new.FillBoundary();
     setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM,time);
 
     BoxArray node_grids = grids;
     node_grids.surroundingNodes();
-    MultiFab S            (node_grids,1,0,Fab_allocate);
-    MultiFab Dv           (node_grids,1,0,Fab_allocate);
+    MultiFab S(node_grids,1,0,Fab_allocate);
+    MultiFab Dv(node_grids,1,0,Fab_allocate);
 
     int is_rz = (CoordSys::IsRZ() ? 1 : 0);
 
     int nghost = 0;
-    if(have_divu) {
-
-      projector->put_divu_in_node_rhs(S, level, nghost, node_grids, time);
-    } else {
-      S.setVal(0.0);
+    if (have_divu)
+    {
+        projector->put_divu_in_node_rhs(S, level, nghost, node_grids, time);
+    }
+    else
+    {
+        S.setVal(0.0);
     }
 
     int nGrow = 1;
-    MultiFab U (grids, BL_SPACEDIM, nGrow, Fab_allocate);
+    MultiFab U(grids, BL_SPACEDIM, nGrow, Fab_allocate);
 
     int srcComp  = 0;
     int destComp = 0;
     int nComp    = BL_SPACEDIM;
-    for(FillPatchIterator Ufpi(*this, U, nGrow,
+    for (FillPatchIterator Ufpi(*this, U, nGrow,
                                destComp, time, State_Type,
                                srcComp, nComp);
-        Ufpi.isValid(); ++Ufpi)
+         Ufpi.isValid(); ++Ufpi)
     {
-      DependentMultiFabIterator Umfi(Ufpi, U);
-      Umfi().copy(Ufpi());
+        DependentMultiFabIterator Umfi(Ufpi, U);
+        Umfi().copy(Ufpi());
     }
 
-    if (is_rz) {
-      for (int n = 0; n < BL_SPACEDIM; n++) 
-        projector->radMult(level,U,n);
+    if (is_rz)
+    {
+        for (int n = 0; n < BL_SPACEDIM; n++) 
+            projector->radMult(level,U,n);
     }
 
     const Real* dx = geom.CellSize();
     projector->computeDV(Dv, U, Xvel, dx, is_rz);
 
-    if (is_rz) {
-      for (int n = 0; n < BL_SPACEDIM; n++) 
-        projector->radDiv(level,U,n);
+    if (is_rz)
+    {
+        for (int n = 0; n < BL_SPACEDIM; n++) 
+            projector->radDiv(level,U,n);
     }
-
-// fix dv (mult by 2) at walls.
-// Outflow, Inflow, and Symmetry should be ok already.
-
-    const Box& domain = geom.Domain();
-    Box node_domain = surroundingNodes(domain);
+    //
+    // Fix DV (mult by 2) at walls.
+    // Outflow, Inflow, and Symmetry should be ok already.
+    //
+    const Box& domain  = geom.Domain();
+    Box node_domain    = surroundingNodes(domain);
     const int* phys_lo = phys_bc.lo();
     const int* phys_hi = phys_bc.hi();
-    const int* dlo = node_domain.loVect();
-    const int* dhi = node_domain.hiVect();
+    const int* dlo     = node_domain.loVect();
+    const int* dhi     = node_domain.hiVect();
 
-    int dir;
-    for (dir = 0; dir < BL_SPACEDIM; dir++) {
-      //for (i = 0; i < node_grids.length(); i++)
-      for(MultiFabIterator Dvmfi(Dv); Dvmfi.isValid(); ++Dvmfi) {
-        Box domlo(node_domain), domhi(node_domain);
-        domlo.setRange(dir,dlo[dir],1);
-        domhi.setRange(dir,dhi[dir],1);
-        Box blo(node_grids[Dvmfi.index()]);
-        Box bhi(blo);
-        blo &= domlo;
-        bhi &= domhi;
-        if(phys_lo[dir]==SlipWall || phys_lo[dir]==NoSlipWall) 
-          if (blo.ok()) Dvmfi().mult(2.0,blo,0,1);
-        if(phys_hi[dir]==SlipWall || phys_hi[dir]==NoSlipWall) 
-          if (bhi.ok()) Dvmfi().mult(2.0,bhi,0,1);
-      }
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        for (MultiFabIterator Dvmfi(Dv); Dvmfi.isValid(); ++Dvmfi)
+        {
+            Box domlo(node_domain), domhi(node_domain);
+            domlo.setRange(dir,dlo[dir],1);
+            domhi.setRange(dir,dhi[dir],1);
+
+            if (phys_lo[dir] == SlipWall || phys_lo[dir] == NoSlipWall)
+            {
+                if (domlo.intersects(node_grids[Dvmfi.index()]))
+                {
+                    Box bx = domlo & node_grids[Dvmfi.index()];
+                    Dvmfi().mult(2.0,bx,0,1);
+                }
+            }
+            if (phys_hi[dir] == SlipWall || phys_hi[dir] == NoSlipWall)
+            {
+                if (domhi.intersects(node_grids[Dvmfi.index()]))
+                {
+                    Box bx = domhi & node_grids[Dvmfi.index()];
+                    Dvmfi().mult(2.0,bx,0,1);
+                }
+            }
+        }
     }
-
-// end, dv fix
-
 #if 1
     MultiFab divu_minus_s(node_grids,1,0,Fab_allocate);
-    //for (i = 0; i < grids.length(); i++)
-    for(MultiFabIterator divu_minus_smfi(divu_minus_s);
+
+    for (MultiFabIterator divu_minus_smfi(divu_minus_s);
         divu_minus_smfi.isValid(); ++divu_minus_smfi)
     {
         DependentMultiFabIterator Dvmfi(divu_minus_smfi, Dv);
         DependentMultiFabIterator Smfi(divu_minus_smfi, S);
-
-        // compute nodal divU-S 
+        //
+        // Compute nodal divU-S.
+        //
         divu_minus_smfi().copy(Dvmfi());
         divu_minus_smfi().minus(Smfi());
     }
-
 #if 1
-    if(is_rz) {
-      Box dom_lo(node_domain);
-      dom_lo.setRange(0,dlo[0],1);
-      //for (i = 0; i < grids.length(); i++)
-      for(MultiFabIterator divu_minus_smfi(divu_minus_s);
-          divu_minus_smfi.isValid(); ++divu_minus_smfi)
-      {
-        assert(grids[divu_minus_smfi.index()] == divu_minus_smfi.validbox());
-        Box grid = divu_minus_smfi.validbox();
-        grid.surroundingNodes();
-        if(grid.intersects(dom_lo)) {
-          Box left_strip = (grid & dom_lo);
-          divu_minus_smfi().setVal(0.0,grid,0,1);
+    if (is_rz)
+    {
+        Box dom_lo(node_domain);
+        dom_lo.setRange(0,dlo[0],1);
+        for (MultiFabIterator divu_minus_smfi(divu_minus_s);
+             divu_minus_smfi.isValid(); ++divu_minus_smfi)
+        {
+            assert(grids[divu_minus_smfi.index()] == divu_minus_smfi.validbox());
+            Box grid = divu_minus_smfi.validbox();
+            grid.surroundingNodes();
+            if (grid.intersects(dom_lo))
+            {
+                //
+                // TODO -- use left_strip ???
+                //
+                Box left_strip = (grid & dom_lo);
+                divu_minus_smfi().setVal(0.0,grid,0,1);
+            }
         }
-      }
     }
 #endif
-
-    //for (i = 0; i < grids.length(); i++)
-    for(MultiFabIterator divu_minus_smfi(divu_minus_s);
-        divu_minus_smfi.isValid(); ++divu_minus_smfi)
+    for (MultiFabIterator divu_minus_smfi(divu_minus_s);
+         divu_minus_smfi.isValid(); ++divu_minus_smfi)
     {
         DependentMultiFabIterator grad_divu_minus_smfi(divu_minus_smfi,
                                                        (*grad_divu_minus_s));
         assert(grids[divu_minus_smfi.index()] == divu_minus_smfi.validbox());
-        // compute gradient of this field
+        //
+        // Compute gradient of this field.
+        //
         getGradP(divu_minus_smfi(), grad_divu_minus_smfi(), 
-                 divu_minus_smfi.validbox(), 0 );
+                 divu_minus_smfi.validbox(), 0);
     }
 #if 1
-    if (is_rz) {
-// what we just computed was grad (r * (dU - S))
-// we now compute grad (dU - S) by 
-//  grad (dU - S) = 1/r grad (r * (dU - S)) - 1/r grad (r) * (dU-S) (***)
+    if (is_rz)
+    {
+        //
+        // What we just computed was grad (r * (dU - S)).  We now compute
+        // grad (dU - S) by
+        // grad (dU - S) = 1/r grad (r * (dU - S)) - 1/r grad (r) * (dU-S) (*)
+        //
         for (int n = 0; n < BL_SPACEDIM; n++) 
             projector->radDiv(level,*grad_divu_minus_s,n);
 
         MultiFab divu_minus_s_cc(grids,1,0,Fab_allocate);
-        //for (i = 0; i < grids.length(); i++)
-        for(MultiFabIterator divu_minus_smfi(divu_minus_s);
-            divu_minus_smfi.isValid(); ++divu_minus_smfi)
+
+        for (MultiFabIterator divu_minus_smfi(divu_minus_s);
+             divu_minus_smfi.isValid(); ++divu_minus_smfi)
         {
-          DependentMultiFabIterator divu_minus_s_ccmfi(divu_minus_smfi,
-                                                       divu_minus_s_cc);
-          DEF_CLIMITS(divu_minus_smfi(),nodedat,nodelo,nodehi);
-          DEF_LIMITS(divu_minus_s_ccmfi(),ccdat,cclo,cchi);
-          int rweighted = 1;
-          FORT_HGN2C(&is_rz,&rweighted, ARLIM(nodelo), ARLIM(nodehi), nodedat,
-                     ARLIM(cclo), ARLIM(cchi), cclo, cchi, ccdat);
+            DependentMultiFabIterator divu_minus_s_ccmfi(divu_minus_smfi,
+                                                         divu_minus_s_cc);
+            DEF_CLIMITS(divu_minus_smfi(),nodedat,nodelo,nodehi);
+            DEF_LIMITS(divu_minus_s_ccmfi(),ccdat,cclo,cchi);
+            int rweighted = 1;
+            FORT_HGN2C(&is_rz,&rweighted, ARLIM(nodelo), ARLIM(nodehi),
+                       nodedat, ARLIM(cclo), ARLIM(cchi), cclo, cchi, ccdat);
         }
-// the first divide is because divu_minus_s_cc contains r*(dU-S)
-// the second divide account for the 1/r in expression (***) above
+        //
+        // The first divide is because divu_minus_s_cc contains r*(dU-S)
+        // the second divide account for the 1/r in expression (*) above.
+        //
         projector->radDiv(level,divu_minus_s_cc,0);
         projector->radDiv(level,divu_minus_s_cc,0);
-// since grad r = (1,0), we subtract  1/r * (dU-S from the first component
-        //for (i = 0; i < grids.length(); i++) 
-        for(MultiFabIterator divu_minus_s_ccmfi(divu_minus_s_cc);
-            divu_minus_s_ccmfi.isValid(); ++divu_minus_s_ccmfi)
+        //
+        // Since grad r = (1,0), we subtract  1/r * (dU-S from first component.
+        //
+        for (MultiFabIterator divu_minus_s_ccmfi(divu_minus_s_cc);
+             divu_minus_s_ccmfi.isValid(); ++divu_minus_s_ccmfi)
         {
-          DependentMultiFabIterator grad_divu_minus_smfi(divu_minus_s_ccmfi,
-                                                         (*grad_divu_minus_s));
-          grad_divu_minus_smfi().minus(divu_minus_s_ccmfi(),0,0,1);
+            DependentMultiFabIterator grad_divu_minus_smfi(divu_minus_s_ccmfi,
+                                                           (*grad_divu_minus_s));
+            grad_divu_minus_smfi().minus(divu_minus_s_ccmfi(),0,0,1);
         }
     }
 #endif
-
-    //for (i = 0; i < grids.length(); i++)
-    for(MultiFabIterator grad_divu_minus_smfi(*grad_divu_minus_s);
-        grad_divu_minus_smfi.isValid(); ++grad_divu_minus_smfi)
+    for (MultiFabIterator grad_divu_minus_smfi(*grad_divu_minus_s);
+         grad_divu_minus_smfi.isValid(); ++grad_divu_minus_smfi)
     {
         DependentMultiFabIterator rho_halfmfi(grad_divu_minus_smfi, (*rho_half));
         assert(grids[grad_divu_minus_smfi.index()] == grad_divu_minus_smfi.validbox());
-        if (scaleRhoDivDt) {
+        if (scaleRhoDivDt)
+        {
             grad_divu_minus_smfi().mult(divu_relax_factor*dx[0]*dx[1]/
                                         parent->dtLevel(0));
-            int n;
-            for (n=0; n<BL_SPACEDIM; n++)
+            for (int n = 0; n < BL_SPACEDIM; n++)
                 grad_divu_minus_smfi().mult(rho_halfmfi(),
-                                            grad_divu_minus_smfi.validbox(),0,n,1);
-        } else {
+                                            grad_divu_minus_smfi.validbox(),
+                                            0,
+                                            n,
+                                            1);
+        }
+        else
+        {
             grad_divu_minus_smfi().mult(divu_relax_factor*dx[0]*dx[1]*dt/
                                         parent->dtLevel(0));
         }
     }
-
 #endif
-
 #endif
 }
-

@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.17 1998-06-04 22:45:54 lijewski Exp $
+// $Id: NavierStokes.H,v 1.18 1998-06-05 19:11:22 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -17,40 +17,51 @@
 #include <Godunov.H>
 #include <Diffusion.H>
 
+//
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
-
+//
 // Determine what you want in the state -- Divu, Dsdt -- in
 // NavierStokes::variableSetUp in NS_setup.C. Look at the example in 
 // the _tube_flow problem dependent directory
+//
 
-enum StateType {State_Type=0, Press_Type}; 
-// note: enumerated value NUM_STATE_TYPE no longer defined
+enum StateType {State_Type=0, Press_Type};
+
+//
+// Note: enumerated value NUM_STATE_TYPE no longer defined
 // use num_state_type (static int member of NavierStokes)
+//
 
 #if (BL_SPACEDIM == 2)
 enum StateNames  { Xvel=0, Yvel, Density};
 #else
 enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 #endif
+
 enum PressureNames { Pressure=0 };
 enum DivuNames { Divu=0};
 enum DsDtNames { Dsdt=0};
 
-class NSBld : public LevelBld
+class NSBld
+    :
+    public LevelBld
 {
-    virtual void variableSetUp();
-    virtual void variableCleanUp();
-    virtual AmrLevel *operator()();
-    virtual AmrLevel *operator()(Amr &papa, int lev,
-                                 const Geometry &level_geom,
-                                 const BoxArray &ba, Real time);
+    virtual void variableSetUp ();
+    virtual void variableCleanUp ();
+    virtual AmrLevel *operator() ();
+    virtual AmrLevel *operator() (Amr&            papa,
+                                  int             lev,
+                                  const Geometry& level_geom,
+                                  const BoxArray& ba,
+                                  Real            time);
 };
 
-class NavierStokes : public AmrLevel 
+class NavierStokes
+    :
+    public AmrLevel 
 {
-
-public:   // ===================== public member functions ===
+public:
 
     friend class Projection;
     friend class MacProj;
@@ -431,44 +442,28 @@ protected: // ===================== protected data members ===
     // ======sync update quantities
     // average rho over a composite timestep
     // used only in the multlilevel sync projection
-    MultiFab *rho_avg;
+    MultiFab* rho_avg;
 
     // average p over a composite timestep
     // used only to average fine pressure data to coarse
-    MultiFab *p_avg;
+    MultiFab* p_avg;
     
-    MultiFab *Vsync;    // velocity sync update storage
-    MultiFab *Ssync;    // scalar sync update storage
+    MultiFab* Vsync;    // velocity sync update storage
+    MultiFab* Ssync;    // scalar sync update storage
     
     // density at time n+1/2 (used in advance)
-    MultiFab  *rho_half;
+    MultiFab* rho_half;
 
     // data structure used to compute RHS for sync project
-    SyncRegister *sync_reg;
+    SyncRegister* sync_reg;
     
     // data structures to store advective and viscous refluxing quantities 
     // on coarse-fine grid interfaces
-    FluxRegister *advflux_reg;
-    FluxRegister *viscflux_reg;
+    FluxRegister* advflux_reg;
+    FluxRegister* viscflux_reg;
 
     // Radii for r-z calculations
     PArray<Real> radius;
-    
-    // box associations (nearest neighbor lists) used by MultiFab
-    // for fast filpatch operations
-    //BoxAssoc hyp_assoc;       // 3 zone wide cell centered association
-    //BoxAssoc divu_assoc;     // 1 zone wide cell centered association
-    //BoxAssoc dsdt_assoc;     // 1 zone wide cell centered association
-    
-    // for fast filpatch, we precompute the subbox of a grid that
-    // must be interpolated from coarser data.
-    Array<Box>  hyp_unfilled;      // unfilled region for Godunov step
-    Array<Box>  cc1_unfilled;      // unfilled region for Godunov step
-    Array<Box>  divu_unfilled;     // unfilled region for divu fill
-    Array<Box>  dsdt_unfilled;     // unfilled region for dsdt fill
-
-    // build all the (*_unfilled) arrays
-    void buildUnfilledRegions();
 
     // ----------------------- static internal parameters for timestepping
     static Real init_shrink;   // reduction factor of first esimated timestep
@@ -480,7 +475,6 @@ protected: // ===================== protected data members ===
     static int  initial_step;  // flag for initial iterations
     static Real dt_cutoff;     // minimum dt allowed
     static int sum_interval;   // number of timesteps for conservation stats
-    
 
     // ----------------------- static internal parameters for options
     
@@ -517,4 +511,4 @@ protected: // ===================== protected data members ===
     static Real divu_relax_factor;
     static int S_in_vel_diffusion;
 };
-#endif
+#endif /*_NavierStokes_H_*/
