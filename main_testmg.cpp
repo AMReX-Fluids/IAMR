@@ -1,6 +1,6 @@
-
+f
 //
-// $Id: main_testmg.cpp,v 1.5 1997-12-11 23:30:36 lijewski Exp $
+// $Id: main_testmg.cpp,v 1.6 1997-12-14 23:35:41 lijewski Exp $
 //
 
 #include <ParmParse.H>
@@ -24,20 +24,13 @@ using std::set_new_handler;
 BoxList
 readBoxList(aString file, BOX& domain );
 
-static
-void
-OutOfMemory ()
-{
-    BoxLib::Error("Sorry, out of memory, bye ...");
-}
-
 int
 main(int argc, char **argv)
 {
     //
     // Make sure to catch new failures.
     //
-    set_new_handler(OutOfMemory);
+    set_new_handler(Utility::OutOfMemory);
 
     if(argc < 3) {
       cerr << "usage:  " << argv[0] << " inputsfile nprocs [options]" << '\n';

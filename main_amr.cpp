@@ -1,6 +1,6 @@
 
 //
-// $Id: main_amr.cpp,v 1.7 1997-12-11 23:30:36 lijewski Exp $
+// $Id: main_amr.cpp,v 1.8 1997-12-14 23:35:40 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -39,13 +39,6 @@ void   print_usage(int, char **);
 
 const int NPROCS = 1;
 
-static
-void
-OutOfMemory ()
-{
-    BoxLib::Error("Sorry, out of memory, bye ...");
-}
-
 // ###################################################################
 // ##### MAIN PROGRAM
 // ###################################################################
@@ -54,7 +47,7 @@ main(int argc, char *argv[])
     //
     // Make sure to catch new failures.
     //
-    set_new_handler(OutOfMemory);
+    set_new_handler(Utility::OutOfMemory);
 
     cout << setprecision(10);
 

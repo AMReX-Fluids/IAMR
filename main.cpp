@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.15 1997-12-11 23:30:35 lijewski Exp $
+// $Id: main.cpp,v 1.16 1997-12-14 23:35:40 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -51,13 +51,6 @@ print_usage (int,
     ParallelDescriptor::Abort("Exiting.");
 }
 
-static
-void
-OutOfMemory ()
-{
-    BoxLib::Error("Sorry, out of memory, bye ...");
-}
-
 int
 main (int   argc,
       char* argv[])
@@ -65,7 +58,7 @@ main (int   argc,
     //
     // Make sure to catch new failures.
     //
-    set_new_handler(OutOfMemory);
+    set_new_handler(Utility::OutOfMemory);
 
     TRACER("amr");
     cout << setprecision(10);
@@ -91,6 +84,10 @@ main (int   argc,
     }
 #endif
     StartParallel(nprocs);
+    //
+    // Initialize random seed after we're running in parallel.
+    //
+    Utility::InitRandom(ParallelDescriptor::MyProc() + 1);
 
 #ifndef        WIN32
     int sleeptime = 0; pp.query("sleep", sleeptime);
