@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.92 2003-03-03 20:24:53 lijewski Exp $
+// $Id: MacProj.cpp,v 1.93 2003-06-24 17:18:22 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -498,14 +498,7 @@ MacProj::mac_sync_solve (int       level,
                 all_neumann = 0;
         }
 
-        long size = 0;
-        for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-        {
-            size += Rhs[Rhsmfi].box().numPts();
-        }
-        ParallelDescriptor::ReduceLongSum(size);
-
-        if (size == geom.Domain().numPts() && all_neumann == 1)
+        if (Rhs.boxArray().contains(geom.Domain()) && all_neumann == 1)
         {
             Real sum = 0.0;
             Real vol = 0.0;
