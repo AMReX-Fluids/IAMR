@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.17 1999-09-18 01:03:23 vince Exp $
+# $Id: GNUmakefile,v 1.18 1999-10-27 18:19:09 vince Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -9,6 +9,7 @@ TOP = $(PBOXLIB_HOME)
 #
 PRECISION = DOUBLE
 DEBUG	  = TRUE
+DEBUG	  = FASLE
 PROFILE   = FALSE
 DIM       = 3
 COMP      = KCC
@@ -21,6 +22,11 @@ USE_MPI   = FALSE
 #
 USE_HGPROJ_SERIAL = TRUE
 USE_HGPROJ_SERIAL = FALSE
+
+
+USE_VAMPIRE = TRUE
+USE_VAMPIRE = FALSE
+
 
 ifeq ($(USE_HGPROJ_SERIAL),TRUE)
   #
@@ -71,6 +77,31 @@ else
   endif
 endif
 
+ifeq ($(USE_MPI),TRUE)
+  ifeq ($(MACHINE),OSF1)
+    LIBRARIES += -lmpi
+    INCLUDE_LOCATIONS += /usr/local/mpi/include
+    LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
+  endif
+  ifeq ($(MACHINE),AIX)
+    LIBRARIES += -lmpi
+    INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
+    LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
+  endif
+  ifeq ($(MACHINE), Linux)
+    LIBRARIES += -lmpich
+  endif
+endif
+
+ifeq ($(MACHINE),T3E)
+  ifeq ($(USE_VAMPIRE),TRUE)
+    #  use vampir trace
+    LIBRARY_LOCATIONS += /usr/local/pkg/acts/VT151/lib
+    LIBRARY_LOCATIONS += /opt/ctl/mpt/mpt/lib
+    XTRALIBS += -lVT -lpmpi
+  endif
+endif
+
 ifeq ($(USE_ARRAYVIEW),TRUE)
   DEFINES += -DBL_USE_ARRAYVIEW
   DEFINES += -DBL_ARRAYVIEW_TAGBOX
@@ -106,6 +137,10 @@ ifdef 3RD
   LDFLAGS += --link_command_prefix 3rd
   LDFLAGS += -non_shared -v
 endif
+
+
+XTRALIBS += --backend -lpat --backend pat.cld
+
 
 ifeq ($(BUILD_INPLACE), TRUE)
   vpath %.cpp . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
