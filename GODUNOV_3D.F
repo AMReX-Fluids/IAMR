@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.20 2002-10-17 20:36:40 marc Exp $
+c $Id: GODUNOV_3D.F,v 1.21 2002-10-18 17:12:55 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1323,7 +1323,7 @@ c     it assumes that the edge velocities are valid in a grow cell outside
 c     the box, and no *ad (unprojected) velocities are used.  This routine
 c     will fail if the UMAC coming in hasn't been "fillpatched"
 c
-      integer i,j,k,n,velpred
+      integer i,j,k,n,velpred,inc
       integer lo(SDIM),hi(SDIM),bc(SDIM,2)
       integer imin,jmin,kmin,imax,jmax,kmax
       REAL_T place_to_break
