@@ -1,6 +1,9 @@
-#ifdef BL_LANG_FORT
-c $Id: DERIVE_F.H,v 1.10 1999-07-01 21:49:21 almgren Exp $
-#endif
+#ifndef _DERIVE_F_H
+#define _DERIVE_F_H
+
+/*
+** $Id: DERIVE_F.H,v 1.11 1999-07-01 23:30:04 almgren Exp $
+*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_DERKENG     derkeng
