@@ -1,6 +1,6 @@
 
 //
-// $Id: preload.cpp,v 1.4 1997-09-22 20:47:31 lijewski Exp $
+// $Id: preload.cpp,v 1.5 1997-09-22 21:11:33 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -45,18 +45,14 @@ get_bsp_include_dir ()
     if (dir == 0 || *dir == 0)
     {
         if (BSP_INCLUDE_DIR == 0)
-        {
             bsp_abort("BSP_INCLUDE_DIR must be set");
-        }
     }
     else
     {
         if (!(BSP_INCLUDE_DIR == 0))
             free(BSP_INCLUDE_DIR);
 
-        BSP_INCLUDE_DIR = (char*) malloc(strlen(dir) + 1);
-
-        if (BSP_INCLUDE_DIR == 0)
+        if ((BSP_INCLUDE_DIR = (char*) malloc(strlen(dir) + 1)) == 0)
             bsp_abort("malloc() failed");
 
         strcpy(BSP_INCLUDE_DIR, dir);
