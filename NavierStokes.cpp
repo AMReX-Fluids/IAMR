@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.26 1998-02-05 00:39:20 car Exp $
+// $Id: NavierStokes.cpp,v 1.27 1998-02-09 21:11:58 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -12,6 +12,7 @@
 #include <RunStats.H>
 #include <ParmParse.H>
 #include <ErrorList.H>
+#include <FArrayBox.H>
 #include <Godunov.H>
 #include <Interpolater.H>
 #include <NavierStokes.H>
