@@ -163,3 +163,8 @@ mg.usecg = 1
 # USE THESE ONLY FOR TESTING
 #amr.grid_eff         = 0.9 # grid efficiency in the grid creation algorithm
 #amr.max_grid_size    = 16  # maximum linear dimension of any one grid
+
+RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update
+                   mac_project mac_sync level_project sync_project init_data
+                   write_pltfile write_chkfile processor_map fab_arena
+                   fill_patch

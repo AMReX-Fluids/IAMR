@@ -130,3 +130,8 @@ mg.nu_f = 100
 
 # USE THIS ONLY FOR TESTING
 #amr.max_grid_size = 64     # maximum linear dimension of any one grid
+
+RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update
+                   mac_project mac_sync level_project sync_project init_data
+                   write_pltfile write_chkfile processor_map fab_arena
+                   fill_patch

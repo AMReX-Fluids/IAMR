@@ -127,3 +127,8 @@ amr.blocking_factor  = 8  # factor by which every patch must be coarsenable
 #amr.max_grid_size    = 64 # maximum linear dimension of any one grid
 
 proj.use_incr_press_form = 0
+
+RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update
+                   mac_project mac_sync level_project sync_project init_data
+                   write_pltfile write_chkfile processor_map fab_arena
+                   fill_patch
