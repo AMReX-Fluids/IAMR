@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.13 2003-02-06 20:28:39 almgren Exp $
+** $Id: GODUNOV_F.H,v 1.14 2003-02-18 21:35:03 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -12,6 +12,7 @@
 #    define FORT_TRANSVEL           transvel
 #    define FORT_ESTATE             estate
 #    define FORT_ESTATE_FPU         estatefpu
+#    define FORT_ESTATE_BDS         estatebds
 #    define FORT_ADV_FORCING        advforcing
 #    define FORT_SYNC_ADV_FORCING   syncadvforcing
 #    define FORT_SCALMINMAX         scalminmax
@@ -32,6 +33,7 @@
 #    define FORT_TRANSVEL           TRANSVEL  
 #    define FORT_ESTATE             ESTATE    
 #    define FORT_ESTATE_FPU         ESTATEFPU
+#    define FORT_ESTATE_BDS         ESTATEBDS
 #    define FORT_ADV_FORCING        ADVFORCING    
 #    define FORT_SYNC_ADV_FORCING   SYNCADVFORCING   
 #    define FORT_SCALMINMAX         SCALMINMAX
@@ -51,6 +53,7 @@
 #    define FORT_TRANSVEL           transvel
 #    define FORT_ESTATE             estate
 #    define FORT_ESTATE_FPU         estatefpu
+#    define FORT_ESTATE_BDS         estatebds
 #    define FORT_ADV_FORCING        advforcing
 #    define FORT_SYNC_ADV_FORCING   syncadvforcing
 #    define FORT_SCALMINMAX         scalminmax
@@ -70,6 +73,7 @@
 #    define FORT_TRANSVEL           transvel_
 #    define FORT_ESTATE             estate_
 #    define FORT_ESTATE_FPU         estatefpu_
+#    define FORT_ESTATE_BDS         estatebds_
 #    define FORT_ADV_FORCING        advforcing_
 #    define FORT_SYNC_ADV_FORCING   syncadvforcing_
 #    define FORT_SCALMINMAX         scalminmax_
@@ -158,7 +162,31 @@ extern "C"
 		    Real* dt, const Real* dx, int* fort_ind, int* velpred, 
 		    int* use_forces_in_trans);
    
-   void FORT_ESTATE_FPU(const Real* s_dat, const Real* tfr_dat, 
+   void FORT_ESTATE_FPU(const Real* s_dat, const Real* tfr_dat, const Real* divu_dat,
+		    ARLIM_P(s_lo),ARLIM_P(s_hi),
+		    const Real* xlo_dat, 
+		    const Real* xhi_dat, const Real* slx_dat, 
+		    Real* slxscr, Real* stxlo, Real* stxhi,
+		    const Real* uedge_dat, ARLIM_P(ue_lo), ARLIM_P(ue_hi),
+                    const Real* stx,       ARLIM_P(stx_lo),ARLIM_P(stx_hi),
+		    const Real* ylo_dat, 
+		    const Real* yhi_dat, const Real* sly_dat, 
+		    Real* slyscr, Real* stylo, Real* styhi,
+		    const Real* vedge_dat, ARLIM_P(ve_lo), ARLIM_P(ve_hi),
+                    const Real* sty,       ARLIM_P(sty_lo),ARLIM_P(sty_hi),
+#if (BL_SPACEDIM == 3)
+		    const Real* zlo_dat, 
+		    const Real* zhi_dat, const Real* slz_dat, 
+		    Real* slzscr, Real* stzlo, Real* stzhi,
+		    const Real* wedge_dat, ARLIM_P(we_lo), ARLIM_P(we_hi),
+                    const Real* stz,       ARLIM_P(stz_lo),ARLIM_P(stz_hi),
+#endif
+		    ARLIM_P(ww_lo),ARLIM_P(ww_hi),
+		    const int* bc, const int* lo, const int* hi, 
+		    Real* dt, const Real* dx, int* fort_ind, 
+		    int* use_forces_in_trans, int* iconserv);
+
+   void FORT_ESTATE_BDS(const Real* s_dat, const Real* tfr_dat, const Real* divu_dat,
 		    ARLIM_P(s_lo),ARLIM_P(s_hi),
 		    const Real* xlo_dat, 
 		    const Real* xhi_dat, const Real* slx_dat, 

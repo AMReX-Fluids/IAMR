@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.32 2003-02-06 20:32:10 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.33 2003-02-18 21:35:03 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -405,6 +405,8 @@ c
 c
 c     compute the slopes
 c
+c     trace the state to the cell edges
+c
       call FORT_SLOPES(s,DIMS(s),
      &     sx,sy,DIMS(work),lo,hi,slxscr,slyscr,bc)
 c
@@ -585,10 +587,9 @@ c
             place_to_break = 1
 200      continue
       end if
-
       end
 
-      subroutine FORT_ESTATE_FPU(s, tforces, DIMS(s),
+      subroutine FORT_ESTATE_FPU(s, tforces, divu, DIMS(s),
      &     xlo, xhi, sx, slxscr, stxlo, stxhi,
      &     uedge, DIMS(uedge), xstate, DIMS(xstate),
 
@@ -634,11 +635,18 @@ c
       REAL_T  sx(DIMV(work))
       REAL_T  sy(DIMV(work))
       REAL_T tforces(DIMV(work))
+      REAL_T divu(DIMV(work))
+
+#if 0
+      REAL_T extra_work(DIMV(work),6)
+#endif
       
       REAL_T spx,smx,spy,smy,st,denom
 
       integer use_minion, iconserv
       integer inc
+
+      REAL_T umax
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -659,6 +667,10 @@ c
 c
 c     trace the state to the cell edges
 c
+c     do j = 40,80
+c       print *,'SPEC ',j,s(3,j)
+c     enddo
+c     print *,' '
 
       do j = jmin-1,jmax+1
          do i = imin,  imax+1
@@ -674,6 +686,14 @@ c
                xhi(i,j) = xhi(i,j) + dth*tforces(i,  j)
             end do
          end do
+         if (iconserv .eq. 1) then
+           do j = jmin-1,jmax+1
+            do i = imin,  imax+1
+               xlo(i,j) = xlo(i,j) - dth*s(i,j)*divu(i-1,j)
+               xhi(i,j) = xhi(i,j) - dth*s(i,j)*divu(i,  j)
+            end do
+           end do
+         end if
       end if
 
       call trans_xbc(
@@ -703,6 +723,14 @@ c
                yhi(i,j) = yhi(i,j) + dth*tforces(i,j  )
             end do
          end do
+         if (iconserv .eq. 1) then
+           do j = jmin-1,jmax+1
+            do i = imin,  imax+1
+               ylo(i,j) = ylo(i,j) - dth*s(i,j)*divu(i,j-1)
+               yhi(i,j) = yhi(i,j) - dth*s(i,j)*divu(i,j  )
+            end do
+           end do
+         end if
       end if
 
       call trans_ybc(
@@ -718,6 +746,13 @@ c
          end do
       end do
 
+#if 0
+      call bdsslope(s,lo(1),lo(2),hi(1),hi(2),
+     $              extra_work(lo(1)-1,lo(2)-1,1),
+     $              extra_work(lo(1)-1,lo(2)-1,2),
+     $              extra_work(lo(1)-1,lo(2)-1,3),
+     $              dx)
+#endif
 c
 c     compute the xedge states
 c
@@ -731,13 +766,13 @@ c
 
                   tr = (vedge(i,j+1)*ylo(i,j+1) - vedge(i,j)*ylo(i,j))/hy
 
-                  st = - dth*tr + dth*tforces(i,j)
+                  st = - dth*tr + dth*(tforces(i,j) - s(i,j)*divu(i,j))
      &                 + dth*s(i,j)*(vedge(i,j+1)-vedge(i,j))/hy
 c    &                 - dth*s(i,j)*(uedge(i+1,j)-uedge(i,j))/hx
 
-
                else
 
+#if 1
                   if (vedge(i,j)*vedge(i,j+1).le.0.d0) then
                      vbar = 0.5d0*(vedge(i,j)+vedge(i,j+1))
                      if (vbar.lt.0.d0) then
@@ -751,6 +786,9 @@ c    &                 - dth*s(i,j)*(uedge(i+1,j)-uedge(i,j))/hx
      &                    (  ylo(i,j+1) - ylo(i,j)  ) / hy
                   endif
 
+#else
+                  tr = half*(vedge(i,j+1) + vedge(i,j)) * extra_work(i,j,2)
+#endif
                   st =  - dth*tr + dth*tforces(i,j)
                endif
 
@@ -804,12 +842,13 @@ c
 
                   tr = (uedge(i+1,j)*xlo(i+1,j) - uedge(i,j)*xlo(i,j))/hx
 
-                  st    = -dth*tr + dth*tforces(i,j)
+                  st    = -dth*tr + dth*(tforces(i,j) - s(i,j)*divu(i,j))
      &                   + dth*s(i,j)*(uedge(i+1,j)-uedge(i,j))/hx
 c    &                   - dth*s(i,j)*(vedge(i,j+1)-vedge(i,j))/hy
 
                else
 
+#if 1
                   if (uedge(i,j)*uedge(i+1,j).le.0.d0) then
                      ubar = 0.5d0*(uedge(i,j)+uedge(i+1,j))
                      if (ubar.lt.0.d0) then
@@ -822,13 +861,16 @@ c    &                   - dth*s(i,j)*(vedge(i,j+1)-vedge(i,j))/hy
                      tr = half*(uedge(i+1,j) + uedge(i,j)) *
      &                           (xlo(i+1,j) -   xlo(i,j)  ) / hx
                   endif
-                  
+#else
+                  tr = half*(uedge(i+1,j) + uedge(i,j)) * extra_work(i,j,1)
+#endif
                   st = -dth*tr + dth*tforces(i,j)
 
                endif
 
                stylo(j+1)= spy - dthy*vedge(i,j+1)*sy(i,j) + st
                styhi(j  )= smy - dthy*vedge(i,j  )*sy(i,j) + st
+
             end do
             
             if (bc(2,1).eq.EXT_DIR .and. vedge(i,jmin).ge.zero) then
@@ -865,6 +907,7 @@ c    &                   - dth*s(i,j)*(vedge(i,j+1)-vedge(i,j))/hy
             place_to_break = 1
       end do
       end
+
 
       subroutine FORT_ADV_FORCING(
      &     aofs,DIMS(aofs),
@@ -1942,4 +1985,481 @@ c
 
       end
 
+
+      subroutine bdsslope(s,lo_1,lo_2,hi_1,hi_2,slx,sly,sc,dx)
+
+      integer lo_1,lo_2,hi_1,hi_2
+      REAL_T      s(lo_1-3:hi_1+3,lo_2-3:hi_2+3)
+      REAL_T    slx(lo_1-1:hi_1+1,lo_2-1:hi_2+1)
+      REAL_T    sly(lo_1-1:hi_1+1,lo_2-1:hi_2+1)
+      REAL_T   slxy(lo_1-1:hi_1+1,lo_2-1:hi_2+1)
+      REAL_T   sint(lo_1-2:hi_1+2,lo_2-2:hi_2+2)
+      REAL_T     sc(lo_1-1:hi_1+1,lo_2-1:hi_2+1,4)
+      REAL_T dx(2)     
+
+      REAL_T   diff(lo_1-1:hi_1+1,4)
+      REAL_T   smin(lo_1-1:hi_1+1,4)
+      REAL_T   smax(lo_1-1:hi_1+1,4)
+      REAL_T sumdif(lo_1-1:hi_1+1)
+      REAL_T sgndif(lo_1-1:hi_1+1)
+      integer   kdp(lo_1-1:hi_1+1)
+
+      REAL_T hx,hy,sumloc,redfac,redmax,div
+      REAL_T choice1,choice2
+      REAL_T eps
+      integer inc1, inc2, inc3, inc4
+      integer i,j,k,ll,is,ie,js,je
+
+      hx = dx(1)
+      hy = dx(2)
+      is = lo_1
+      ie = hi_1
+      js = lo_2
+      je = hi_2
+
+      eps = 1.d-8
+
+      do i = is-2,ie+1
+        do j = js-2,je+1
+          sint(i,j) = (
+     $              s(i-1,j-1) + s(i-1,j+2) + s(i+2,j-1) + s(i+2,j+2)
+     $     - seven*(s(i-1,j  ) + s(i-1,j+1) + s(i  ,j-1) + s(i+1,j-1) + 
+     $              s(i  ,j+2) + s(i+1,j+2) + s(i+2,j  ) + s(i+2,j+1)) + 
+     $       49.d0*(s(i  ,j  ) + s(i+1,j  ) + s(i  ,j+1) + s(i+1,j+1)) ) / 144.d0
+        enddo
+      enddo
+
+      do j = js-1,je+1
+        do i = is-1,ie+1 
+
+          slx(i,j) = half*(sint(i  ,j) + sint(i  ,j-1) - 
+     $                     sint(i-1,j) - sint(i-1,j-1) ) / hx
+          sly(i,j) = half*(sint(i  ,j) - sint(i  ,j-1) + 
+     $                     sint(i-1,j) - sint(i-1,j-1) ) / hy
+          slxy(i,j) = (sint(i,j  ) - sint(i  ,j-1) - 
+     $                 sint(i-1,j) + sint(i-1,j-1) ) / (hx*hy)
+        enddo
+      enddo
+
+      do j = js-1,je+1
+
+        do i = is-1,ie+1
+          smin(i,4) = min(s(i,j), s(i+1,j), s(i,j+1), s(i+1,j+1))
+          smax(i,4) = max(s(i,j), s(i+1,j), s(i,j+1), s(i+1,j+1))
+          smin(i,3) = min(s(i,j), s(i+1,j), s(i,j-1), s(i+1,j-1))
+          smax(i,3) = max(s(i,j), s(i+1,j), s(i,j-1), s(i+1,j-1))
+          smin(i,2) = min(s(i,j), s(i-1,j), s(i,j+1), s(i-1,j+1))
+          smax(i,2) = max(s(i,j), s(i-1,j), s(i,j+1), s(i-1,j+1))
+          smin(i,1) = min(s(i,j), s(i-1,j), s(i,j-1), s(i-1,j-1))
+          smax(i,1) = max(s(i,j), s(i-1,j), s(i,j-1), s(i-1,j-1))
+
+          sc(i,j,4) = s(i,j) + half*(hx*slx(i,j) + hy*sly(i,j)) 
+     $                + fourth*hx*hy*slxy(i,j)
+          sc(i,j,3) = s(i,j) + half*(hx*slx(i,j) - hy*sly(i,j)) 
+     $                - fourth*hx*hy*slxy(i,j)
+          sc(i,j,2) = s(i,j) - half*(hx*slx(i,j) - hy*sly(i,j))
+     $                - fourth*hx*hy*slxy(i,j)
+          sc(i,j,1) = s(i,j) - half*(hx*slx(i,j) + hy*sly(i,j))
+     $                + fourth*hx*hy*slxy(i,j)
+
+          sc(i,j,4) = max(min(sc(i,j,4), smax(i,4)), smin(i,4))
+          sc(i,j,3) = max(min(sc(i,j,3), smax(i,3)), smin(i,3))
+          sc(i,j,2) = max(min(sc(i,j,2), smax(i,2)), smin(i,2))
+          sc(i,j,1) = max(min(sc(i,j,1), smax(i,1)), smin(i,1))
+        enddo
+
+        do ll = 1,3 
+          do i = is-1,ie+1 
+            sumloc = fourth*(sc(i,j,4) + sc(i,j,3) + 
+     $                       sc(i,j,2) + sc(i,j,1))
+            sumdif(i) = (sumloc - s(i,j))*4.
+            sgndif(i) = sign(one,sumdif(i))
+
+            diff(i,4) = (sc(i,j,4) - s(i,j))*sgndif(i)
+            diff(i,3) = (sc(i,j,3) - s(i,j))*sgndif(i)
+            diff(i,2) = (sc(i,j,2) - s(i,j))*sgndif(i)
+            diff(i,1) = (sc(i,j,1) - s(i,j))*sgndif(i)
+
+            inc1 = cvmgp(1,0,diff(i,1) - eps)
+            inc2 = cvmgp(1,0,diff(i,2) - eps)
+            inc3 = cvmgp(1,0,diff(i,3) - eps)
+            inc4 = cvmgp(1,0,diff(i,4) - eps)
+            kdp(i) = inc1 + inc2 + inc3 + inc4
+          enddo
+
+          do k = 1,4 
+            do i = is-1,ie+1 
+              div = cvmgt(one,kdp(i),kdp(i) .lt. 1)
+	      choice1 = sumdif(i)*sgndif(i)/div
+              redfac = cvmgt(choice1,zero,diff(i,k).gt.eps)
+              kdp(i) = cvmgt(kdp(i) - 1,kdp(i),diff(i,k) .gt. eps)
+              choice1 = sc(i,j,k) - smin(i,k)
+              choice2 = smax(i,k) - sc(i,j,k)
+              redmax = cvmgp(choice1,choice2,sgndif(i))
+              redfac = min(redfac,redmax)
+              sumdif(i) = sumdif(i) - redfac*sgndif(i)
+              sc(i,j,k) = sc(i,j,k) - redfac*sgndif(i)
+            enddo
+          enddo
+        enddo
+
+        do i = is-1,ie+1 
+          slx(i,j) = half*(sc(i,j,4) + sc(i,j,3) - 
+     $                     sc(i,j,1) - sc(i,j,2))/hx
+          sly(i,j) = half*(sc(i,j,4) + sc(i,j,2) - 
+     $                     sc(i,j,1) - sc(i,j,3))/hy
+        enddo
+      enddo
+
+      return
+      end
+
+      subroutine FORT_ESTATE_BDS(s, tforces, divu, DIMS(s),
+     &     xlo, xhi, sx, slxscr, stxlo, stxhi,
+     &     uedge, DIMS(uedge), xstate, DIMS(xstate),
+
+     &     ylo, yhi, sy, slyscr, stylo, styhi,
+     &     vedge, DIMS(vedge), ystate, DIMS(ystate),
+
+     &     DIMS(work),
+     &     bc,lo,hi,dt,dx,n,use_minion,iconserv)
+c
+c     This subroutine computes edges states, right now it uses
+c     a lot of memory, but there becomes a trade off between
+c     simplicity-efficiency in the new way of computing states
+c     and complexity in the old way.  By eliminating loops over
+c     state components though, the new way uses much less memory.
+c
+      implicit none
+      integer i,j,n
+      integer lo(SDIM),hi(SDIM),bc(SDIM,2)
+      integer is,js,ie,je
+      REAL_T place_to_break
+      REAL_T hx, hy, dt, dth, dthx, dthy
+      REAL_T tr,ubar,vbar,stx,sty,fu,fv,dx(SDIM)
+      REAL_T eps,eps_for_bc
+      logical ltx,lty
+      parameter( eps        = 1.0D-6 )
+      parameter( eps_for_bc = 1.0D-10 )
+
+      integer DIMDEC(s)
+      integer DIMDEC(work)
+      integer DIMDEC(uedge)
+      integer DIMDEC(xstate)
+      integer DIMDEC(vedge)
+      integer DIMDEC(ystate)
+
+      REAL_T s(DIMV(s))
+      REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
+      REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
+
+      REAL_T uedge(DIMV(uedge)), xstate(DIMV(xstate))
+      REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate))
+
+      REAL_T xlo(DIMV(work)), xhi(DIMV(work))
+      REAL_T ylo(DIMV(work)), yhi(DIMV(work))
+      REAL_T  sx(DIMV(work))
+      REAL_T  sy(DIMV(work))
+      REAL_T tforces(DIMV(work))
+      REAL_T    divu(DIMV(work))
+      
+      REAL_T spx,smx,spy,smy,st,denom
+      REAL_T smin,smax
+
+      REAL_T   sc(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,4)
+      REAL_T gamp(lo(1)-1:hi(1)+1)
+      REAL_T gamm(lo(1)-1:hi(1)+1)
+      REAL_T   xm(lo(1)-1:hi(1)+1)
+      REAL_T   ym(lo(1)-1:hi(1)+1)
+      REAL_T    c(lo(1)-1:hi(1)+1,4)
+      REAL_T dt3rd
+
+      integer choose_hi(lo(1)-1:hi(1)+1)
+
+      integer use_minion, iconserv
+      integer inc
+      integer iup,isign,jup,jsign
+      REAL_T vtrans,vmult,vdif,stem,vaddif
+
+      dth  = half*dt
+      dthx = half*dt / dx(1)
+      dthy = half*dt / dx(2)
+      hx   = dx(1)
+      hy   = dx(2)
+      is = lo(1)
+      js = lo(2)
+      ie = hi(1)
+      je = hi(2)
+
+      dt3rd = dt * third
+c     do j = 40,80
+c       print *,'SPEC ',j,s(3,j)
+c     enddo
+c     print *,' '
+
+      smax = s(is,js)
+      smin = s(is,js)
+      do j = js,je
+        do i = is,ie
+          smax = max(smax,s(i,j))
+          smin = min(smin,s(i,j))
+        enddo
+      enddo
+
+      call bdsslope(s,lo(1),lo(2),hi(1),hi(2),sx,sy,sc,dx)
+
+      do j = js,je 
+
+        do i = is-1,ie 
+          choose_hi(i+1) = cvmgp(0,1,uedge(i+1,j))
+        end do 
+        if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP
+     &          .or.bc(1,1).eq.REFLECT_EVEN) then
+           choose_hi(is) = 1
+        endif
+        if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP
+     &          .or.bc(1,2).eq.REFLECT_EVEN) then
+           choose_hi(ie+1) = 0
+        endif
+
+        do i = is-1,ie 
+          iup   = cvmgt(i,i+1,choose_hi(i+1).eq.0)
+          isign = cvmgt(1,-1, choose_hi(i+1).eq.0)
+          vtrans = vedge(iup,j+1)
+          jup = cvmgp(j,j+1,vtrans)
+          jsign = cvmgp(1,-1,vtrans)
+          vmult = cvmgp(uedge(i+1,j),half*(uedge(i+1,j)+uedge(i+1,j+1)),vtrans)
+          xm(i) = isign*half*hx - two3rd*dt*vmult
+          xm(i) = cvmgp(xm(i), isign*min(isign*xm(i),hx*half), vtrans)
+          ym(i) = jsign*half*hy - dt3rd*vedge(iup,j+1)
+
+          c(i,1) = sc(iup,jup,1)
+          c(i,2) = sc(iup,jup,2)
+          c(i,3) = sc(iup,jup,3)
+          c(i,4) = sc(iup,jup,4)
+
+        enddo
+
+        call bilin(gamp,c,xm,ym,hx,hy,is-1,ie,lo(1),hi(1))
+
+c       Impose BCs on gamp.
+        if (j .eq. je) then
+          do i = is-1, ie  
+            if (bc(2,2).eq.EXT_DIR .and.(vedge(i,je+1).le.zero) ) then
+               gamp(i) = s(i,je+1)
+            else if (bc(2,2).eq.REFLECT_ODD) then
+               gamp(i) = zero
+            end if
+          end do
+        end if
+
+        do i = is-1,ie 
+          iup   = cvmgt(i,i+1,choose_hi(i+1).eq.0)
+          isign = cvmgt(1,-1, choose_hi(i+1).eq.0)
+          vtrans = vedge(iup,j)
+          jup = cvmgp(j-1,j,vtrans)
+          jsign = cvmgp(1,-1,vtrans)
+          vmult = cvmgp(half*(uedge(i+1,j)+uedge(i+1,j-1)),uedge(i+1,j),vtrans)
+          xm(i) = isign*half*hx - two3rd*dt*vmult
+          xm(i) = cvmgp(isign*min(isign*xm(i),hx*half), xm(i), vtrans)
+          ym(i) = jsign*half*hy - dt3rd*vedge(iup,j)
+
+          c(i,1) = sc(iup,jup,1)
+          c(i,2) = sc(iup,jup,2)
+          c(i,3) = sc(iup,jup,3)
+          c(i,4) = sc(iup,jup,4)
+
+        enddo
+
+        call bilin(gamm,c,xm,ym,hx,hy,is-1,ie,lo(1),hi(1))
+
+c       Impose BCs on gamm.
+        if (j .eq. js) then
+          do i = is-1, ie 
+            if (bc(2,1).eq.EXT_DIR .and.(vedge(i,js).ge.zero) ) then
+               gamm(i) = s(i,js-1)
+            else if (bc(2,1).eq.REFLECT_ODD) then
+               gamm(i) = zero
+            end if
+          end do
+        end if
+
+        do i = is-1, ie 
+          iup   = cvmgt(i,i+1,choose_hi(i+1).eq.0)
+          isign = cvmgt(1,-1, choose_hi(i+1).eq.0)
+          vdif   = dth*(vedge(iup,j+1)*gamp(i) - vedge(iup,j  )*gamm(i) ) / hy
+          stem   = s(iup,j) + (isign*hx - uedge(i+1,j)*dt)*half*sx(iup,j)
+
+c         vaddif = dth*stem*(uedge(iup+1,j) - uedge(iup,j))/hx
+          vaddif = dth*stem*(divu(iup,j) - (vedge(iup,j+1)-vedge(iup,j))/hy)
+
+          xstate(i+1,j) = stem - vdif - vaddif + dth*tforces(iup,j)
+
+          if (iconserv .eq. 0) 
+     $      xstate(i+1,j) = xstate(i+1,j) + dth*stem*divu(iup,j)
+
+        enddo
+      enddo
+
+      do j = js-1,je 
+
+        do i = is,ie 
+          choose_hi(i) = cvmgp(0,1,vedge(i,j+1))
+          if ( (j .eq. js-1) .and. 
+     &       (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP
+     &                           .or.bc(2,1).eq.REFLECT_EVEN) )
+     &     choose_hi(i) = 1
+          if ( (j .eq. je) .and. 
+     &       (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
+     &                           .or.bc(2,2).eq.REFLECT_EVEN) )
+     &     choose_hi(i) = 0
+        end do 
+
+        do i = is,ie 
+          jup   = cvmgt(j,j+1,choose_hi(i).eq.0)
+          jsign = cvmgt(1, -1,choose_hi(i).eq.0)
+          vtrans = uedge(i+1,jup)
+          iup = cvmgp(i,i+1,vtrans)
+          isign = cvmgp(1,-1,vtrans)
+          vmult = cvmgp(vedge(i,j+1),half*(vedge(i,j+1)+vedge(i+1,j+1)),vtrans)
+          xm(i) = isign*half*hx - dt3rd*uedge(i+1,jup)
+          ym(i) = jsign*half*hy - two3rd*dt*vmult
+          ym(i) = cvmgp(ym(i),jsign*min(jsign*ym(i),hy*half),vtrans)
+
+          c(i,1) = sc(iup,jup,1)
+          c(i,2) = sc(iup,jup,2)
+          c(i,3) = sc(iup,jup,3)
+          c(i,4) = sc(iup,jup,4)
+        enddo
+
+        call bilin(gamp,c,xm,ym,hx,hy,is,ie,lo(1),hi(1))
+
+c       Impose BCs on gamp.
+        if (bc(1,2).eq.EXT_DIR .and.(uedge(ie+1,j).le.zero) ) then
+           gamp(ie) = s(ie+1,j)
+        else if (bc(1,2).eq.REFLECT_ODD) then
+           gamp(ie) = zero
+        end if
+
+        do i = is,ie 
+          jup   = cvmgt(j,j+1,choose_hi(i).eq.0)
+          jsign = cvmgt(1, -1,choose_hi(i).eq.0)
+          vtrans = uedge(i,jup)
+          iup = cvmgp(i-1,i,vtrans)
+          isign = cvmgp(1,-1,vtrans)
+          vmult = cvmgp(half*(vedge(i,j+1)+vedge(i-1,j+1)),vedge(i,j+1),vtrans)
+          xm(i) = isign*half*hx - dt3rd*uedge(i,jup)
+          ym(i) = jsign*half*hy - two3rd*dt*vmult
+          ym(i) = cvmgp(jsign*min(jsign*ym(i),hy*half),ym(i),vtrans)
+
+          c(i,1) = sc(iup,jup,1)
+          c(i,2) = sc(iup,jup,2)
+          c(i,3) = sc(iup,jup,3)
+          c(i,4) = sc(iup,jup,4)
+        enddo
+
+        call bilin(gamm,c,xm,ym,hx,hy,is,ie,lo(1),hi(1))
+
+c       Impose BCs on gamm.
+        if (bc(1,1).eq.EXT_DIR .and.(uedge(is,j).ge.zero) ) then
+           gamm(is) = s(is,j)
+        else if (bc(1,1).eq.REFLECT_ODD) then
+           gamm(is) = zero
+        end if
+
+        do i = is,ie 
+          jup   = cvmgt(j,j+1,choose_hi(i).eq.0)
+          jsign = cvmgt(1, -1,choose_hi(i).eq.0)
+          vdif   = dth*(uedge(i+1,jup)*gamp(i)-uedge(i,jup)*gamm(i))/hx
+          stem   = s(i,jup) + (jsign*hy - vedge(i,j+1)*dt)*half*sy(i,jup)
+
+c         vaddif = dth*stem*(vedge(i,jup+1) - vedge(i,jup))/hy
+          vaddif = dth*stem*(divu(i,jup) - (uedge(i+1,jup)-uedge(i,jup))/hx)
+
+          ystate(i,j+1) = stem - vdif - vaddif + dth*tforces(i,jup)
+
+          if (iconserv .eq. 0) 
+     $      ystate(i,j+1) = ystate(i,j+1) + dth*stem*divu(i,jup)
+
+        enddo
+      enddo
+
+c     
+c     Impose BCs on xstate.
+c     
+      do j = js,je 
+        if (bc(1,1).eq.EXT_DIR .and. uedge(is,j).ge.zero) then
+           xstate(is,j) = s(is-1,j)
+        else if (bc(1,1).eq.REFLECT_ODD) then
+           xstate(is,j) = zero
+        end if
+
+        if (bc(1,2).eq.EXT_DIR .and. uedge(ie+1,j).le.zero) then
+           xstate(ie+1,j) = s(ie+1,j)
+        else if (bc(1,2).eq.REFLECT_ODD) then
+           xstate(ie+1,j) = zero
+        end if
+      enddo
+
+c     
+c     Impose BCs on ystate.
+c     
+      do i = is,ie 
+        if (bc(2,1).eq.EXT_DIR .and.(vedge(i,js).ge.zero) ) then
+           ystate(i,js) = s(i,js-1)
+        else if (bc(2,1).eq.REFLECT_ODD) then
+            ystate(i,js) = zero
+        end if
+
+        if (bc(2,2).eq.EXT_DIR .and. (vedge(i,je+1).le.zero) ) then
+           ystate(i,je+1) = s(i,je+1)
+        else if (bc(2,2).eq.REFLECT_ODD) then
+            ystate(i,je+1) = zero
+        end if
+      enddo
+
+      do j = js,je 
+      do i = is,ie+1
+          if (xstate(i,j).lt. zero) print *,'NEG XSTATE ',i,j,xstate(i,j)
+          if (abs(xstate(i,j)).gt. 1.e20) print *,'BIG XSTATE ',i,j,xstate(i,j)
+      enddo
+      enddo
+      do j = js,je+1 
+      do i = is,ie
+          if (ystate(i,j).lt. zero) print *,'NEG YSTATE ',i,j,ystate(i,j)
+          if (abs(ystate(i,j)).gt. 1.e20) print *,'BIG YSTATE ',i,j,ystate(i,j)
+      enddo
+      enddo
+
+      end
+
+      subroutine bilin(poly,c,x,y,hx,hy,istart,iend,lo_1,hi_1)
+
+      integer lo_1,hi_1
+      integer istart,iend
+      REAL_T poly(lo_1-1:hi_1+1)
+      REAL_T    x(lo_1-1:hi_1+1)
+      REAL_T    y(lo_1-1:hi_1+1)
+      REAL_T    c(lo_1-1:hi_1+1,4)
+      REAL_T hx, hy
+      REAL_T centx, centy
+      REAL_T l1,l2,l3,l4
+
+      integer i
+
+      centx = hx/2
+      centy = hy/2
+
+      do i = istart,iend
+
+        l1 = (-centx - x(i))*(-centy - y(i))
+        l2 = (-centx - x(i))*( centy - y(i))
+        l3 = ( centx - x(i))*(-centy - y(i))
+        l4 = ( centx - x(i))*( centy - y(i))
+
+        poly(i) = l2*c(i,3) + l3*c(i,2) - l1*c(i,4) - l4*c(i,1)
+        poly(i) = -poly(i)/(hx*hy)
+      enddo
+
+      end
 

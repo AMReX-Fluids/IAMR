@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.218 2003-02-13 17:04:35 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.219 2003-02-18 21:35:03 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1747,15 +1747,16 @@ NavierStokes::velocity_advection (Real dt)
                 S.mult(Rho_fpi(),S.box(),S.box(),0,comp,1);
                 tforces.mult((*rho_ptime)[i],tforces.box(),tforces.box(),0,comp,1);
             }
+            FArrayBox divu_dummy;
             godunov->AdvectState(grids[i], dx, dt, 
                                  area[0][i], u_mac[0][i], xflux,
                                  area[1][i], u_mac[1][i], yflux,
 #if (BL_SPACEDIM == 3)                       
                                  area[2][i], u_mac[2][i], zflux,
 #endif
-                                 U_fpi(), S, tforces, comp,
+                                 U_fpi(), S, tforces, divu_dummy, comp,
                                  (*aofs)[i],comp,use_conserv_diff,
-                                 comp,bndry[comp].dataPtr(),volume[i]);
+                                 comp,bndry[comp].dataPtr(),PRE_MAC,volume[i]);
             //
             // Get fluxes for diagnostics and refluxing.
             //
@@ -1877,9 +1878,9 @@ NavierStokes::scalar_advection (Real dt,
 #if (BL_SPACEDIM == 3)                        
                                  area[2][i], u_mac[2][i], zflux,
 #endif
-                                 U_fpi(),S_fpi(),tforces,comp,
+                                 U_fpi(),S_fpi(),tforces,(*divu_fp)[i],comp,
                                  (*aofs)[i],state_ind,use_conserv_diff,
-                                 state_ind,state_bc.dataPtr(),volume[i]);
+                                 state_ind,state_bc.dataPtr(),PRE_MAC,volume[i]);
             //
             // Get the fluxes for refluxing and diagnostic purposes.
             //

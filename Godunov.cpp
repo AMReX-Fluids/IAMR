@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.31 2003-02-06 20:28:39 almgren Exp $
+// $Id: Godunov.cpp,v 1.32 2003-02-18 21:35:03 almgren Exp $
 //
 
 //
@@ -301,24 +301,69 @@ Godunov::Setup (const Box&       grd,
 //
 
 void
-Godunov::edge_states (const Box&  grd,
-                      const Real* dx,
-                      Real        dt,
-                      int         velpred,
-                      FArrayBox&  uedge,
-                      FArrayBox&  stx,
-                      FArrayBox&  vedge,
-                      FArrayBox&  sty,
+Godunov::edge_states     (const Box&  grd,
+                          const Real* dx,
+                          Real        dt,
+                          int         velpred,
+                          FArrayBox&  uedge,
+                          FArrayBox&  stx,
+                          FArrayBox&  vedge,
+                          FArrayBox&  sty,
 #if (BL_SPACEDIM == 3)               
-                      FArrayBox&  wedge,
-                      FArrayBox&  stz,
+                          FArrayBox&  wedge,
+                          FArrayBox&  stz,
 #endif
-                      FArrayBox&  U,
-                      FArrayBox&  S,
-                      FArrayBox&  tforces,
-                      int         fab_ind,
-                      int         state_ind,
-                      const int*  bc)
+                          FArrayBox&  U,
+                          FArrayBox&  S,
+                          FArrayBox&  tforces,
+                          FArrayBox&  divu,
+                          int         fab_ind,
+                          int         state_ind,
+                          const int*  bc,
+                          int         iconserv,
+                          AdvectionScheme advection_scheme)
+
+{ 
+  if (advection_scheme == PRE_MAC) 
+     edge_states_orig(grd,dx,dt,velpred,uedge,stx,vedge,sty,
+#if (BL_SPACEDIM == 3)
+                     wedge,stz,
+#endif
+                     U,S,tforces,fab_ind,state_ind,bc);
+
+  if (advection_scheme == FPU) 
+     edge_states_fpu(grd,dx,dt,velpred,uedge,stx,vedge,sty,
+#if (BL_SPACEDIM == 3)
+                     wedge,stz,
+#endif
+                     S,tforces,divu,fab_ind,state_ind,bc,iconserv);
+
+  if (advection_scheme == BDS) 
+     edge_states_bds(grd,dx,dt,velpred,uedge,stx,vedge,sty,
+#if (BL_SPACEDIM == 3)
+                     wedge,stz,
+#endif
+                     S,tforces,divu,fab_ind,state_ind,bc,iconserv);
+} 
+void
+Godunov::edge_states_orig (const Box&  grd,
+                           const Real* dx,
+                           Real        dt,
+                           int         velpred,
+                           FArrayBox&  uedge,
+                           FArrayBox&  stx,
+                           FArrayBox&  vedge,
+                           FArrayBox&  sty,
+#if (BL_SPACEDIM == 3)               
+                           FArrayBox&  wedge,
+                           FArrayBox&  stz,
+#endif
+                           FArrayBox&  U,
+                           FArrayBox&  S,
+                           FArrayBox&  tforces,
+                           int         fab_ind,
+                           int         state_ind,
+                           const int*  bc)
 {
     //
     // Error block.
@@ -423,6 +468,7 @@ Godunov::edge_states_fpu (const Box&  grd,
 #endif
                           FArrayBox&  S,
                           FArrayBox&  tforces,
+                          FArrayBox&  divu,
                           int         fab_ind,
                           int         state_ind,
                           const int*  bc,
@@ -456,6 +502,7 @@ Godunov::edge_states_fpu (const Box&  grd,
     const int *ww_hi      = work.hiVect();
     const Real *s_dat     = S.dataPtr(fab_ind);
     const Real *tfr_dat   = tforces.dataPtr(fab_ind);
+    const Real *divu_dat  = divu.dataPtr();
     //
     // Set work space to bogus values.
     //
@@ -486,7 +533,109 @@ Godunov::edge_states_fpu (const Box&  grd,
 
     if (velpred == 1) BoxLib::Error("Call to ESTATE_FPU only valid for velpred = 0");
       
-    FORT_ESTATE_FPU(s_dat, tfr_dat, ARLIM(s_lo), ARLIM(s_hi),
+    FORT_ESTATE_FPU(s_dat, tfr_dat, divu_dat, ARLIM(s_lo), ARLIM(s_hi),
+                    
+                    xlo_dat, xhi_dat, slx_dat,
+                    slxscr, stxlo, stxhi,
+                    uedge.dataPtr(), ARLIM(uedge.loVect()), ARLIM(uedge.hiVect()),
+                    stx.dataPtr(),   ARLIM(stx.loVect()),   ARLIM(stx.hiVect()),
+                    
+                    ylo_dat, yhi_dat, sly_dat,
+                    slyscr, stylo, styhi,
+                    vedge.dataPtr(), ARLIM(vedge.loVect()), ARLIM(vedge.hiVect()),
+                    sty.dataPtr(),   ARLIM(sty.loVect()),   ARLIM(sty.hiVect()),
+#if (BL_SPACEDIM == 3)
+                    zlo_dat, zhi_dat, slz_dat,
+                    slzscr, stzlo, stzhi,
+                    wedge.dataPtr(), ARLIM(wedge.loVect()), ARLIM(wedge.hiVect()),
+                    stz.dataPtr(),   ARLIM(stz.loVect()),   ARLIM(stz.hiVect()),
+#endif
+                    ARLIM(ww_lo), ARLIM(ww_hi),
+                    bc, lo, hi, &dt, dx, &fort_ind,
+                    &use_forces_in_trans, &iconserv);
+}
+
+void
+Godunov::edge_states_bds (const Box&  grd,
+                          const Real* dx,
+                          Real        dt,
+                          int         velpred,
+                          FArrayBox&  uedge,
+                          FArrayBox&  stx,
+                          FArrayBox&  vedge,
+                          FArrayBox&  sty,
+#if (BL_SPACEDIM == 3)               
+                          FArrayBox&  wedge,
+                          FArrayBox&  stz,
+#endif
+                          FArrayBox&  S,
+                          FArrayBox&  tforces,
+                          FArrayBox&  divu,
+                          int         fab_ind,
+                          int         state_ind,
+                          const int*  bc,
+                          int         iconserv)
+{
+    //
+    // Error block.
+    //
+    BL_ASSERT(S.box().contains(work_bx));
+
+    BL_ASSERT(S.nComp()       >= fab_ind    );
+    BL_ASSERT(tforces.nComp() >= fab_ind    );
+
+    BL_ASSERT(uedge.nComp()   >= 1          );
+    BL_ASSERT(stx.nComp()     >= 1          );
+
+    BL_ASSERT(vedge.nComp()   >= 1          );
+    BL_ASSERT(sty.nComp()     >= 1          );
+#if (BL_SPACEDIM == 3)
+    BL_ASSERT(wedge.nComp()   >= 1          );
+    BL_ASSERT(stz.nComp()     >= 1          );
+#endif    
+    //
+    // Create the bounds and pointers.
+    //
+    const int *lo         = grd.loVect();
+    const int *hi         = grd.hiVect();
+    const int *s_lo       = S.loVect();
+    const int *s_hi       = S.hiVect();
+    const int *ww_lo      = work.loVect();
+    const int *ww_hi      = work.hiVect();
+    const Real *s_dat     = S.dataPtr(fab_ind);
+    const Real *tfr_dat   = tforces.dataPtr(fab_ind);
+    const Real *divu_dat  = divu.dataPtr();
+    //
+    // Set work space to bogus values.
+    //
+    SetBogusScratch();
+
+#if (BL_SPACEDIM == 3)
+    const Real *xhi_dat   = work.dataPtr(0);
+    const Real *yhi_dat   = work.dataPtr(0);
+    const Real *zhi_dat   = work.dataPtr(0);
+    const Real *xlo_dat   = work.dataPtr(1);
+    const Real *ylo_dat   = work.dataPtr(2);
+    const Real *zlo_dat   = work.dataPtr(3);
+    const Real *slx_dat   = work.dataPtr(4);
+    const Real *sly_dat   = work.dataPtr(5);
+    const Real *slz_dat   = work.dataPtr(6);
+#else
+    const Real *xhi_dat   = work.dataPtr(0);
+    const Real *yhi_dat   = work.dataPtr(0);
+    const Real *xlo_dat   = work.dataPtr(1);
+    const Real *ylo_dat   = work.dataPtr(2);
+    const Real *slx_dat   = work.dataPtr(3);
+    const Real *sly_dat   = work.dataPtr(4);
+#endif
+    //
+    // C component indices starts from 0, Fortran from 1
+    //
+    int fort_ind = state_ind+1;  
+
+    if (velpred == 1) BoxLib::Error("Call to ESTATE_BDS only valid for velpred = 0");
+      
+    FORT_ESTATE_BDS(s_dat, tfr_dat, divu_dat, ARLIM(s_lo), ARLIM(s_hi),
                     
                     xlo_dat, xhi_dat, slx_dat,
                     slxscr, stxlo, stxhi,
@@ -533,34 +682,34 @@ Godunov::ComputeUmac (const Box&  grd,
     // 2D calls.
     //
 #if (BL_SPACEDIM == 2)                  
-    edge_states(grd, dx, dt, velpred,
-                umac, umac,
-                vmac, vmac,
-                U, U, tforces, XVEL, XVEL, ubc);
-    edge_states(grd, dx, dt, velpred,
-                umac, umac,
-                vmac, vmac,
-                U, U, tforces, YVEL, YVEL, vbc);
+    edge_states_orig(grd, dx, dt, velpred,
+                     umac, umac,
+                     vmac, vmac,
+                     U, U, tforces, XVEL, XVEL, ubc);
+    edge_states_orig(grd, dx, dt, velpred,
+                     umac, umac,
+                     vmac, vmac,
+                     U, U, tforces, YVEL, YVEL, vbc);
 #endif
     //
     // 3D calls.
     //
 #if (BL_SPACEDIM == 3)                  
-    edge_states(grd, dx, dt, velpred,
-                umac, umac,
-                vmac, vmac,
-                wmac, wmac,
-                U, U, tforces, XVEL, XVEL, ubc);
-    edge_states(grd, dx, dt, velpred,
-                umac, umac,
-                vmac, vmac,
-                wmac, wmac,
-                U, U, tforces, YVEL, YVEL, vbc);
-    edge_states(grd, dx, dt, velpred,
-                umac, umac,
-                vmac, vmac,
-                wmac, wmac,
-                U, U, tforces, ZVEL, ZVEL, wbc);
+    edge_states_orig(grd, dx, dt, velpred,
+                     umac, umac,
+                     vmac, vmac,
+                     wmac, wmac,
+                     U, U, tforces, XVEL, XVEL, ubc);
+    edge_states_orig(grd, dx, dt, velpred,
+                     umac, umac,
+                     vmac, vmac,
+                     wmac, wmac,
+                     U, U, tforces, YVEL, YVEL, vbc);
+    edge_states_orig(grd, dx, dt, velpred,
+                     umac, umac,
+                     vmac, vmac,
+                     wmac, wmac,
+                     U, U, tforces, ZVEL, ZVEL, wbc);
 #endif
 }
 
@@ -588,12 +737,14 @@ Godunov::AdvectState (const Box&  grd,
                       FArrayBox&  U,
                       FArrayBox&  S,
                       FArrayBox&  tforces,
+                      FArrayBox&  divu,
                       int         fab_ind,
                       FArrayBox&  aofs,
                       int         aofs_ind,
                       int         iconserv,
                       int         state_ind,
                       const int*  bc,
+                      AdvectionScheme scheme,
                       FArrayBox&  vol)
 {
     int velpred = 0;
@@ -606,7 +757,8 @@ Godunov::AdvectState (const Box&  grd,
 #if (BL_SPACEDIM == 3)             
                 wedge, zflux,
 #endif
-                U, S, tforces, fab_ind, state_ind, bc);
+                U, S, tforces, divu, fab_ind, state_ind, bc, 
+                iconserv, scheme);
     //
     // Compute the advective tendency.
     //
@@ -689,12 +841,14 @@ Godunov::SyncAdvect (const Box&  grd,
                      FArrayBox& U,
                      FArrayBox& S,
                      FArrayBox& tforces,
+                     FArrayBox& divu,
                      int        fab_ind,
                      FArrayBox& sync,
                      int        sync_ind,
                      int        iconserv,
                      int        state_ind,
                      const int* bc,
+                     AdvectionScheme scheme,
                      FArrayBox& vol)
 {
     int velpred = 0;
@@ -726,7 +880,8 @@ Godunov::SyncAdvect (const Box&  grd,
 #if (BL_SPACEDIM == 3)     
                 wedge, zflux,
 #endif
-                U, S, tforces, fab_ind, state_ind, bc);
+                U, S, tforces, divu, fab_ind, state_ind, bc,
+                iconserv, scheme);
 
     //
     // Compute the advective tendency for the mac sync.

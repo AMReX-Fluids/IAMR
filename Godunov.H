@@ -3,12 +3,13 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.12 2002-10-17 20:36:40 marc Exp $
+// $Id: Godunov.H,v 1.13 2003-02-18 21:35:03 almgren Exp $
 //
 //
 // A useful enumeration of the forms for the advective terms
 //
 enum AdvectionForm {Conservative = 0, NonConservative};
+enum AdvectionScheme {PRE_MAC, FPU, BDS};
 
 //===========================================================
 // This header file defines the Godunov driver class.  Its
@@ -62,9 +63,21 @@ public:      // public access functions
 #if (BL_SPACEDIM == 3 )
                       FArrayBox &wedge, FArrayBox &stz,
 #endif
-                      FArrayBox &U,
-                      FArrayBox &S, FArrayBox &tforces, int fab_ind,
-                      int state_ind, const int *bc);
+                      FArrayBox &U, FArrayBox &S, 
+                      FArrayBox &tforces, FArrayBox& divu,
+                      int fab_ind, int state_ind, const int *bc,
+                      int use_conserv, AdvectionScheme which_scheme);
+
+    // compute the edge states
+    void edge_states_orig( const Box &grd, const Real *dx, Real dt, int velpred,
+                      FArrayBox &uedge, FArrayBox &stx,
+                      FArrayBox &vedge, FArrayBox &sty,
+#if (BL_SPACEDIM == 3 )
+                      FArrayBox &wedge, FArrayBox &stz,
+#endif
+                      FArrayBox &U, FArrayBox &S,
+                      FArrayBox &tforces, 
+                      int fab_ind, int state_ind, const int *bc);
 
     // compute the edge states, edges velocities filled in grow cells
     void edge_states_fpu( const Box &grd, const Real *dx, Real dt, int velpred,
@@ -73,7 +86,19 @@ public:      // public access functions
 #if (BL_SPACEDIM == 3 )
                           FArrayBox &wedge, FArrayBox &stz,
 #endif
-                          FArrayBox &S, FArrayBox &tforces, int fab_ind,
+                          FArrayBox &S, FArrayBox &tforces, FArrayBox& divu,
+                          int fab_ind,
+                          int state_ind, const int *bc, int inconserv );
+
+    // compute the edge states using the BDS algorithm
+    void edge_states_bds( const Box &grd, const Real *dx, Real dt, int velpred,
+                          FArrayBox &uedge, FArrayBox &stx,
+                          FArrayBox &vedge, FArrayBox &sty,
+#if (BL_SPACEDIM == 3 )
+                          FArrayBox &wedge, FArrayBox &stz,
+#endif
+                          FArrayBox &S, FArrayBox &tforces, FArrayBox& divu,
+                          int fab_ind,
                           int state_ind, const int *bc, int inconserv );
         
     // compute divergent mac velocities
@@ -93,10 +118,13 @@ public:      // public access functions
                               FArrayBox &areaz, FArrayBox &wedge, FArrayBox &zflux,
 #endif
                               FArrayBox &U,
-                              FArrayBox &S, FArrayBox &tforces, int fab_ind,
-                              FArrayBox &aofs,                  int aofs_ind,
+                              FArrayBox &S, 
+                              FArrayBox &tforces, FArrayBox& divu,
+                              int fab_ind,
+                              FArrayBox &aofs,                  
+                              int aofs_ind,
                               int iconserv, int state_ind, const int *bc,
-                              FArrayBox &vol );
+                              AdvectionScheme scheme, FArrayBox &vol );
 
     // compute the advective derivative from fluxes
     void ComputeAofs( const Box &grd, 
@@ -119,10 +147,10 @@ public:      // public access functions
                              FArrayBox &wcorr, FArrayBox &zflux,
 #endif
                              FArrayBox &U, FArrayBox &S,
-                             FArrayBox &tforces, int ind,
-                             FArrayBox &sync,                  int sync_ind,
+                             FArrayBox &tforces, FArrayBox& divu, int ind,
+                             FArrayBox &sync,                     int sync_ind,
                              int iconserv, int state_ind, const int *bc,
-                             FArrayBox &vol );
+                             AdvectionScheme scheme, FArrayBox &vol );
     
     // compute the advective derivative of corrective fluxes for the mac sync
     void ComputeSyncAofs( const Box &grd,

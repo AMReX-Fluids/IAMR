@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.87 2003-02-06 20:47:59 almgren Exp $
+// $Id: MacProj.cpp,v 1.88 2003-02-18 21:35:03 almgren Exp $
 //
 #include <winstd.H>
 
@@ -765,9 +765,9 @@ MacProj::mac_sync_compute (int                   level,
 #if (BL_SPACEDIM == 3)                            
                                     area[level][2][S_fpi], u_mac[2][S_fpi], grad_phi[2], zflux,
 #endif
-                                    U, S, tforces, comp, temp, sync_ind,
+                                    U, S, tforces, divu, comp, temp, sync_ind,
                                     use_conserv_diff, comp,
-                                    ns_level_bc.dataPtr(), volume[level][S_fpi]);
+                                    ns_level_bc.dataPtr(), PRE_MAC, volume[level][S_fpi]);
                 //
                 // NOTE: the signs here are opposite from VELGOD.
                 // NOTE: fluxes expected to be in extensive form.
@@ -788,14 +788,16 @@ MacProj::mac_sync_compute (int                   level,
         {
             for (int comp = 0; comp < BL_SPACEDIM; comp++)
             {
+                int iconserv_dummy = 0;
                 godunov->edge_states(grids[i], dx, dt, velpred,
                                      u_mac[0][S_fpi], xflux, 
                                      u_mac[1][S_fpi], yflux,
 #if (BL_SPACEDIM == 3)                            
                                      u_mac[2][S_fpi], zflux,
 #endif
-                                     U, S, tforces, comp, comp,
-                                     ns_level_bc.dataPtr());
+                                     U, S, tforces, divu, comp, comp,
+                                     ns_level_bc.dataPtr(), iconserv_dummy,
+                                     PRE_MAC);
 
                 if (comp == 0)
                 {
