@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.14 1998-05-19 00:52:22 marc Exp $
+// $Id: NS_setup.cpp,v 1.15 1998-06-03 15:04:08 lijewski Exp $
 //
 
 #include <NavierStokes.H>
@@ -241,8 +241,10 @@ NavierStokes::variableSetUp ()
             is_diffusive[i] = true;
     }
     is_conservative[Density] = true;
-    if (do_temp) is_conservative[Temp] = false;
-    is_conservative[Trac] = false;
+//    if (do_temp) is_conservative[Temp] = false;
+//    is_conservative[Trac] = false;
+    if (do_temp) is_conservative[Temp] = true;
+    is_conservative[Trac] = true;
     if (is_diffusive[Density])
     {
         BoxLib::Error("Density cannot diffuse, bad visc_coef");
