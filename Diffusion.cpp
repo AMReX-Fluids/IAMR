@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.64 1999-02-18 18:22:14 sstanley Exp $
+// $Id: Diffusion.cpp,v 1.65 1999-02-18 18:45:53 sstanley Exp $
 //
 
 //
@@ -618,9 +618,9 @@ Diffusion::diffuse_velocity (Real                   dt,
         cout << "... diffuse_velocity\n";
     }
 
-#ifndef NDEBUG
     int allnull, allthere;
     checkBetas(betan, betanp1, allthere, allnull);
+#ifndef NDEBUG
     for (int d=0; d<BL_SPACEDIM; ++d)
     {
 	if (allnull)
