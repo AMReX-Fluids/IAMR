@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.24 2003-02-19 20:57:35 car Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.25 2003-02-20 19:26:13 car Exp $
 //
 #include <winstd.H>
 
@@ -376,8 +376,8 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
             ccEptr3 = ccExt[i].dataPtr();
             length = length + lenx;
           } else {
-            cout << "OOPS - DIDNT PROGRAM FOR Z-OUTFLOW FACES! " << i << 
-                    " " << faces[i] << endl;
+            std::cout << "OOPS - DIDNT PROGRAM FOR Z-OUTFLOW FACES! " << i << 
+                    " " << faces[i] << std::endl;
             exit(0);
           }
         }
