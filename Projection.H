@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.32 1999-09-15 15:17:43 car Exp $
+// $Id: Projection.H,v 1.33 2000-06-09 22:12:46 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -50,6 +50,7 @@ public:
                         Real            time,
                         Real            dt,
                         Real            cur_pres_time,
+                        Real            prev_pres_time,
                         const Geometry& geom, 
                         MultiFab&       U_old,
                         MultiFab&       U_new,
@@ -123,7 +124,9 @@ public:
                         IntVect&        ratio,
                         int             crse_dt_ratio,
                         const Geometry& fine_geom,
-                        const Geometry& crse_geom);
+                        const Geometry& crse_geom,
+                        bool		pressure_time_is_interval,
+                        bool		first_crse_step_after_initial_iters);
     //
     // This projects an initial vorticity field to define a velocity field.
     //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.122 2000-06-05 22:38:19 lijewski Exp $
+// $Id: Projection.cpp,v 1.123 2000-06-09 22:12:46 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -398,6 +398,7 @@ Projection::level_project (int             level,
                            Real            time,
                            Real            dt,
                            Real            cur_pres_time,
+                           Real            prev_pres_time,
                            const Geometry& geom, 
                            MultiFab&       U_old,
                            MultiFab&       U_new,
@@ -454,6 +455,7 @@ Projection::level_project (int             level,
         if (!proj_0 && !proj_2)
             divuold = ns->getDivCond(1,time);
     }
+
     const Real dt_inv = 1./dt;
     if (proj_0 || proj_2)
     {
@@ -491,8 +493,6 @@ Projection::level_project (int             level,
     }
     delete divuold;
 
-    REAL prev_pres_time = cur_pres_time - dt;
-
     if (proj_2)
     {
         MultiFab Gp(grids,BL_SPACEDIM,1);
@@ -517,9 +517,14 @@ Projection::level_project (int             level,
 
         rho_half->invert(1.0,n_ghost);
     }
+
     //
     // Set boundary values for P_new, to increment, if applicable
     //
+    // Note: we don't need to worry here about using FillCoarsePatch because
+    //       it will automatically use the "new dpdt" to interpolate,
+    //       since once we get here at level > 0, we've already defined
+    //       a new pressure at level-1.
     if (level != 0)
     {
 	LevelData[level].FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
@@ -1170,7 +1175,9 @@ Projection::MLsyncProject (int             c_lev,
                            IntVect&        ratio,
                            int             crse_dt_ratio,
                            const Geometry& fine_geom,
-                           const Geometry& crse_geom)
+                           const Geometry& crse_geom,
+                           bool		   pressure_time_is_interval,
+                           bool first_crse_step_after_initial_iters)
 {
     static RunStats stats("sync_project");
 
@@ -1186,7 +1193,7 @@ Projection::MLsyncProject (int             c_lev,
     // Set up memory.
     //
     MultiFab *phi[MAXLEV];
-    
+
     const BoxArray& grids      = LevelData[c_lev].boxArray();
     const BoxArray& fine_grids = LevelData[c_lev+1].boxArray();
     const BoxArray& Pgrids_crse = pres_crse.boxArray();
@@ -1265,8 +1272,8 @@ Projection::MLsyncProject (int             c_lev,
     crse_rhs_real.set(c_lev, crse_rhs);
     //
     // The Multilevel Projection
-    // if use_u = 0, then solves DGphi = RHS
-    // if use_u = 1, then solves DGphi = RHS + DV
+    // if use_u = false, then solves DGphi = RHS
+    // if use_u = true , then solves DGphi = RHS + DV
     // both return phi and (V-Gphi) as V
     //
     const bool  use_u           = true;
@@ -1324,20 +1331,58 @@ Projection::MLsyncProject (int             c_lev,
     //
     rescaleVar(&rho_crse, 0, Vsync,   grids,      c_lev  );
     rescaleVar(&rho_fine, 0, &V_corr, fine_grids, c_lev+1);
-    //
-    // Add projected vel to new velocity and add phi to pressure .
-    //
-    AddPhi(pres_crse, *phi[c_lev],   grids     );
-    AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
-
-    UpdateArg1(vel_crse, dt_crse, *Vsync, BL_SPACEDIM, grids,      1);
-    UpdateArg1(vel_fine, dt_crse, V_corr, BL_SPACEDIM, fine_grids, 1);
 
     for (MultiFabIterator phimfi(*phi[c_lev+1]); phimfi.isValid(); ++phimfi) 
     {
         DependentMultiFabIterator phi_finemfi(phimfi, phi_fine);
         phi_finemfi().copy(phimfi(),0,0,1);
     }
+
+    //
+    // Add phi to pressure.
+    //
+
+    AddPhi(pres_crse, *phi[c_lev],   grids     );
+
+    if (pressure_time_is_interval) 
+    {
+      AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
+    }
+    else 
+    {
+  
+      MultiFab& pres_fine_old = LevelData[c_lev+1].get_old_data(Press_Type);
+ 
+      if (first_crse_step_after_initial_iters && 
+          (parent->MaxRefRatio(c_lev) == 2) )
+      // Only update the most recent pressure.
+      {
+        Real mult_factor = 2.0;
+        (*phi[c_lev+1]).mult(mult_factor);
+        AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
+      } 
+      else if (first_crse_step_after_initial_iters &&
+               (parent->MaxRefRatio(c_lev) == 2) )
+      // Only update the most recent pressure.
+      {
+        Real mult_factor = 4.0 / 3.0;
+        (*phi[c_lev+1]).mult(mult_factor);
+        AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
+        AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
+      }
+      else 
+      {
+        AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
+        AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
+      }
+    }
+
+    //
+    // Add projected vel to new velocity.
+    //
+
+    UpdateArg1(vel_crse, dt_crse, *Vsync, BL_SPACEDIM, grids,      1);
+    UpdateArg1(vel_fine, dt_crse, V_corr, BL_SPACEDIM, fine_grids, 1);
 
     stats.end();
 }

@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.61 2000-06-02 17:40:56 lijewski Exp $
+// $Id: NavierStokes.H,v 1.62 2000-06-09 22:12:45 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -42,6 +42,7 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 enum PressureNames { Pressure=0 };
 enum DivuNames { Divu=0};
 enum DsDtNames { Dsdt=0};
+enum DpDtNames { Dpdt=0};
 
 class NSBld
     :
@@ -316,8 +317,13 @@ protected:
                           Real time,
                           int  iteration);
     //
-    // Insure state is consistent, ie velocity field is nondivergent,
-    // coarse levels are fine level averages, pressure is zero.
+    // Compute dpdt
+    //
+    void calcDpdt();
+
+    //
+    // Ensure state is consistent, i.e. velocity field is nondivergent,
+    // coarse level data are averages of fine level data, pressure is zero.
     //
     virtual void post_init_state ();
     //
@@ -470,7 +476,7 @@ protected:
                             Real      dt,
                             MultiFab& fab);
     //
-    // Virtual function to allow arbitrary forcing.
+    // Get the forcing term.
     //
     void getForce (FArrayBox&       force,
                    int              gridno,
@@ -650,6 +656,15 @@ protected:
     //
     PArray<Real> radius;
     //
+    // Flag for doing first step after regrid
+    //
+    bool is_first_step_after_regrid;
+    //
+    // Intersection of current BoxArray with that from before regrid.
+    //
+    BoxArray old_intersect_new;
+
+    //
     // Static objects.
     //
     static Godunov*    godunov;
@@ -707,6 +722,10 @@ protected:
     static int do_refine_outflow;          // The following three items control
     static int do_derefine_outflow;        //   how grids are treated at 
     static int Nbuf_outflow;               //   outflow boundaries.
+    //
+    // Member when pressure defined at points in time rather than interval
+    //
+    static int  Dpdt_Type;
     //
     // Members for non-zero divu.
     //
