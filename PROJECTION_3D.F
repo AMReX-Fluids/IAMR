@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.11 1999-07-01 21:49:43 almgren Exp $
+c $Id: PROJECTION_3D.F,v 1.12 2000-06-02 17:25:51 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -61,9 +61,7 @@ c
        do k = lo(3)+1, hi(3)
           do j = lo(2)+1, hi(2)
              do i = lo(1)+1, hi(1)
-
                 pnew(i,j,k) = pnew(i,j,k) + scratch(i,j,k)
-
              end do
           end do
        end do
@@ -225,11 +223,9 @@ c     holy grail projection
         write(6,*)
      &    'FORT_HGN2C : isrz=1 and lrweighted!=1 not implemented in 3D'
 #ifndef	BL_NO_FORT_FLUSH
-c        call flush(6)
 #endif
         stop
       end if
-
 
       do k=lo(3),hi(3)
          do j=lo(2),hi(2)
@@ -342,7 +338,7 @@ c ::: -----------------------------------------------------------
       REAL_T     divgp(DIMV(divgp))
       integer    is_rz
 
-      integer    i, j, k, lenx, leny, lenz
+      integer    i, j, k
       REAL_T     p1, p2, p3, p4, p5, p6, p7, p8, denom
 
 c     NOTE: the factor of mult here accounts for the fact that one
@@ -350,9 +346,6 @@ c           takes ratio time steps on the fine grid for every one
 c           timestep on the coarse grid.  mult = 1/ratio.
       
       denom = -mult/(sixteen*dx(1)**2)
-      lenx = hi(1)-lo(1)+1
-      leny = hi(2)-lo(2)+1
-      lenz = hi(3)-lo(3)+1
 
 c check and make sure dx == dy == dz
       if ( dx(1) .NE. dx(2) .or. dx(1) .NE. dx(3) ) then
@@ -360,130 +353,46 @@ c check and make sure dx == dy == dz
          stop
       endif
 
-      if (lenx .ge. leny) then
-         do k = lo(3), hi(3)
-          do j = lo(2), hi(2)
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                p1 = sigma(i,j,k)*(
-     &          five*(phi(i+1,j,k) + phi(i,j+1,k) + phi(i,j,k+1)) 
-     &             - phi(i+1,j+1,k) - phi(i,j+1,k+1) - phi(i+1,j,k+1) 
-     &             - three*phi(i+1,j+1,k+1) - nine*phi(i,j,k) )
+     &              five*(phi(i+1,j,k) + phi(i,j+1,k) + phi(i,j,k+1)) 
+     &              - phi(i+1,j+1,k) - phi(i,j+1,k+1) - phi(i+1,j,k+1) 
+     &              - three*phi(i+1,j+1,k+1) - nine*phi(i,j,k) )
                p2 = sigma(i-1,j,k)*(
-     &          five*(phi(i-1,j,k) + phi(i,j+1,k) + phi(i,j,k+1)) 
-     &             - phi(i-1,j+1,k) - phi(i,j+1,k+1) - phi(i-1,j,k+1) 
-     &             - three*phi(i-1,j+1,k+1) - nine*phi(i,j,k) )
+     &              five*(phi(i-1,j,k) + phi(i,j+1,k) + phi(i,j,k+1)) 
+     &              - phi(i-1,j+1,k) - phi(i,j+1,k+1) - phi(i-1,j,k+1) 
+     &              - three*phi(i-1,j+1,k+1) - nine*phi(i,j,k) )
                p3 = sigma(i,j-1,k)*(
-     &          five*(phi(i+1,j,k) + phi(i,j-1,k) + phi(i,j,k+1)) 
-     &             - phi(i+1,j-1,k) - phi(i,j-1,k+1) - phi(i+1,j,k+1) 
-     &             - three*phi(i+1,j-1,k+1) - nine*phi(i,j,k) )
+     &              five*(phi(i+1,j,k) + phi(i,j-1,k) + phi(i,j,k+1)) 
+     &              - phi(i+1,j-1,k) - phi(i,j-1,k+1) - phi(i+1,j,k+1) 
+     &              - three*phi(i+1,j-1,k+1) - nine*phi(i,j,k) )
                p4 = sigma(i-1,j-1,k)*(
-     &          five*(phi(i-1,j,k) + phi(i,j-1,k) + phi(i,j,k+1)) 
-     &             - phi(i-1,j-1,k) - phi(i,j-1,k+1) - phi(i-1,j,k+1) 
-     &             - three*phi(i-1,j-1,k+1) - nine*phi(i,j,k) )
+     &              five*(phi(i-1,j,k) + phi(i,j-1,k) + phi(i,j,k+1)) 
+     &              - phi(i-1,j-1,k) - phi(i,j-1,k+1) - phi(i-1,j,k+1) 
+     &              - three*phi(i-1,j-1,k+1) - nine*phi(i,j,k) )
                p5 = sigma(i,j,k-1)*(
-     &          five*(phi(i+1,j,k) + phi(i,j+1,k) + phi(i,j,k-1)) 
-     &             - phi(i+1,j+1,k) - phi(i,j+1,k-1) - phi(i+1,j,k-1) 
-     &             - three*phi(i+1,j+1,k-1) - nine*phi(i,j,k) )
+     &              five*(phi(i+1,j,k) + phi(i,j+1,k) + phi(i,j,k-1)) 
+     &              - phi(i+1,j+1,k) - phi(i,j+1,k-1) - phi(i+1,j,k-1) 
+     &              - three*phi(i+1,j+1,k-1) - nine*phi(i,j,k) )
                p6 = sigma(i-1,j,k-1)*(
-     &          five*(phi(i-1,j,k) + phi(i,j+1,k) + phi(i,j,k-1)) 
-     &             - phi(i-1,j+1,k) - phi(i,j+1,k-1) - phi(i-1,j,k-1) 
-     &             - three*phi(i-1,j+1,k-1) - nine*phi(i,j,k) )
+     &              five*(phi(i-1,j,k) + phi(i,j+1,k) + phi(i,j,k-1)) 
+     &              - phi(i-1,j+1,k) - phi(i,j+1,k-1) - phi(i-1,j,k-1) 
+     &              - three*phi(i-1,j+1,k-1) - nine*phi(i,j,k) )
                p7 = sigma(i,j-1,k-1)*(
-     &          five*(phi(i+1,j,k) + phi(i,j-1,k) + phi(i,j,k-1)) 
-     &             - phi(i+1,j-1,k) - phi(i,j-1,k-1) - phi(i+1,j,k-1) 
-     &             - three*phi(i+1,j-1,k-1) - nine*phi(i,j,k) )
+     &              five*(phi(i+1,j,k) + phi(i,j-1,k) + phi(i,j,k-1)) 
+     &              - phi(i+1,j-1,k) - phi(i,j-1,k-1) - phi(i+1,j,k-1) 
+     &              - three*phi(i+1,j-1,k-1) - nine*phi(i,j,k) )
                p8 = sigma(i-1,j-1,k-1)*(
-     &          five*(phi(i-1,j,k) + phi(i,j-1,k) + phi(i,j,k-1)) 
-     &             - phi(i-1,j-1,k) - phi(i,j-1,k-1) - phi(i-1,j,k-1) 
-     &             - three*phi(i-1,j-1,k-1) - nine*phi(i,j,k) )
+     &              five*(phi(i-1,j,k) + phi(i,j-1,k) + phi(i,j,k-1)) 
+     &              - phi(i-1,j-1,k) - phi(i,j-1,k-1) - phi(i-1,j,k-1) 
+     &              - three*phi(i-1,j-1,k-1) - nine*phi(i,j,k) )
                divgp(i,j,k) = denom*(p1+p2+p3+p4+p5+p6+p7+p8)
 
             end do
-          end do
          end do
-      else if (leny .ge. lenx .and. leny .ge. lenz) then 
-         do k = lo(3), hi(3)
-          do i = lo(1), hi(1)
-            do j = lo(2), hi(2)
-               p1 = sigma(i,j,k)*(
-     &          five*(phi(i+1,j,k) + phi(i,j+1,k) + phi(i,j,k+1)) 
-     &             - phi(i+1,j+1,k) - phi(i,j+1,k+1) - phi(i+1,j,k+1) 
-     &             - three*phi(i+1,j+1,k+1) - nine*phi(i,j,k) )
-               p2 = sigma(i-1,j,k)*(
-     &          five*(phi(i-1,j,k) + phi(i,j+1,k) + phi(i,j,k+1)) 
-     &             - phi(i-1,j+1,k) - phi(i,j+1,k+1) - phi(i-1,j,k+1) 
-     &             - three*phi(i-1,j+1,k+1) - nine*phi(i,j,k) )
-               p3 = sigma(i,j-1,k)*(
-     &          five*(phi(i+1,j,k) + phi(i,j-1,k) + phi(i,j,k+1)) 
-     &             - phi(i+1,j-1,k) - phi(i,j-1,k+1) - phi(i+1,j,k+1) 
-     &             - three*phi(i+1,j-1,k+1) - nine*phi(i,j,k) )
-               p4 = sigma(i-1,j-1,k)*(
-     &          five*(phi(i-1,j,k) + phi(i,j-1,k) + phi(i,j,k+1)) 
-     &             - phi(i-1,j-1,k) - phi(i,j-1,k+1) - phi(i-1,j,k+1) 
-     &             - three*phi(i-1,j-1,k+1) - nine*phi(i,j,k) )
-               p5 = sigma(i,j,k-1)*(
-     &          five*(phi(i+1,j,k) + phi(i,j+1,k) + phi(i,j,k-1)) 
-     &             - phi(i+1,j+1,k) - phi(i,j+1,k-1) - phi(i+1,j,k-1) 
-     &             - three*phi(i+1,j+1,k-1) - nine*phi(i,j,k) )
-               p6 = sigma(i-1,j,k-1)*(
-     &          five*(phi(i-1,j,k) + phi(i,j+1,k) + phi(i,j,k-1)) 
-     &             - phi(i-1,j+1,k) - phi(i,j+1,k-1) - phi(i-1,j,k-1) 
-     &             - three*phi(i-1,j+1,k-1) - nine*phi(i,j,k) )
-               p7 = sigma(i,j-1,k-1)*(
-     &          five*(phi(i+1,j,k) + phi(i,j-1,k) + phi(i,j,k-1)) 
-     &             - phi(i+1,j-1,k) - phi(i,j-1,k-1) - phi(i+1,j,k-1) 
-     &             - three*phi(i+1,j-1,k-1) - nine*phi(i,j,k) )
-               p8 = sigma(i-1,j-1,k-1)*(
-     &          five*(phi(i-1,j,k) + phi(i,j-1,k) + phi(i,j,k-1)) 
-     &             - phi(i-1,j-1,k) - phi(i,j-1,k-1) - phi(i-1,j,k-1) 
-     &             - three*phi(i-1,j-1,k-1) - nine*phi(i,j,k) )
-               divgp(i,j,k) = denom*(p1+p2+p3+p4+p5+p6+p7+p8)
-
-            end do
-          end do
-         end do
-      else if (lenz .ge. lenx .and. lenz .ge. leny) then 
-         do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-           do k = lo(3), hi(3)
-               p1 = sigma(i,j,k)*(
-     &          five*(phi(i+1,j,k) + phi(i,j+1,k) + phi(i,j,k+1)) 
-     &             - phi(i+1,j+1,k) - phi(i,j+1,k+1) - phi(i+1,j,k+1) 
-     &             - three*phi(i+1,j+1,k+1) - nine*phi(i,j,k) )
-               p2 = sigma(i-1,j,k)*(
-     &          five*(phi(i-1,j,k) + phi(i,j+1,k) + phi(i,j,k+1)) 
-     &             - phi(i-1,j+1,k) - phi(i,j+1,k+1) - phi(i-1,j,k+1) 
-     &             - three*phi(i-1,j+1,k+1) - nine*phi(i,j,k) )
-               p3 = sigma(i,j-1,k)*(
-     &          five*(phi(i+1,j,k) + phi(i,j-1,k) + phi(i,j,k+1)) 
-     &             - phi(i+1,j-1,k) - phi(i,j-1,k+1) - phi(i+1,j,k+1) 
-     &             - three*phi(i+1,j-1,k+1) - nine*phi(i,j,k) )
-               p4 = sigma(i-1,j-1,k)*(
-     &          five*(phi(i-1,j,k) + phi(i,j-1,k) + phi(i,j,k+1)) 
-     &             - phi(i-1,j-1,k) - phi(i,j-1,k+1) - phi(i-1,j,k+1) 
-     &             - three*phi(i-1,j-1,k+1) - nine*phi(i,j,k) )
-               p5 = sigma(i,j,k-1)*(
-     &          five*(phi(i+1,j,k) + phi(i,j+1,k) + phi(i,j,k-1)) 
-     &             - phi(i+1,j+1,k) - phi(i,j+1,k-1) - phi(i+1,j,k-1) 
-     &             - three*phi(i+1,j+1,k-1) - nine*phi(i,j,k) )
-               p6 = sigma(i-1,j,k-1)*(
-     &          five*(phi(i-1,j,k) + phi(i,j+1,k) + phi(i,j,k-1)) 
-     &             - phi(i-1,j+1,k) - phi(i,j+1,k-1) - phi(i-1,j,k-1) 
-     &             - three*phi(i-1,j+1,k-1) - nine*phi(i,j,k) )
-               p7 = sigma(i,j-1,k-1)*(
-     &          five*(phi(i+1,j,k) + phi(i,j-1,k) + phi(i,j,k-1)) 
-     &             - phi(i+1,j-1,k) - phi(i,j-1,k-1) - phi(i+1,j,k-1) 
-     &             - three*phi(i+1,j-1,k-1) - nine*phi(i,j,k) )
-               p8 = sigma(i-1,j-1,k-1)*(
-     &          five*(phi(i-1,j,k) + phi(i,j-1,k) + phi(i,j,k-1)) 
-     &             - phi(i-1,j-1,k) - phi(i,j-1,k-1) - phi(i-1,j,k-1) 
-     &             - three*phi(i-1,j-1,k-1) - nine*phi(i,j,k) )
-               divgp(i,j,k) = denom*(p1+p2+p3+p4+p5+p6+p7+p8)
-
-            end do
-          end do
-         end do
-      end if
+      end do
 
       end
 

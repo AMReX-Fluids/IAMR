@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_3D.F,v 1.5 1998-03-31 17:26:38 lijewski Exp $
+c $Id: MACPROJ_3D.F,v 1.6 2000-06-02 17:25:51 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -102,43 +102,18 @@ c ::
        REAL_T  sold(DIMV(s),nvar)
        REAL_T  dmac(DIMV(dmac))
 
-       integer i, j, k, n, lenx, leny, lenz
+       integer i, j, k, n
 
-       lenx = hi(1)-lo(1)+1
-       leny = hi(2)-lo(2)+1
-       lenz = hi(3)-lo(3)+1
 
-       if (lenx .ge. leny .and. lenx .ge. lenz) then
-          do n = 1, nvar
-             do k = lo(3), hi(3)
-                do j = lo(2), hi(2)
-                   do i = lo(1), hi(1)
-                      snew(i,j,k,n) = snew(i,j,k,n) + mult*dmac(i,j,k)*sold(i,j,k,n)
-                   end do
-                end do
-             end do
-          end do
-       else if (leny .ge. lenx .and. leny .ge. lenz) then
-          do n = 1, nvar
-             do k = lo(3), hi(3)
-                do i = lo(1), hi(1)
-                   do j = lo(2), hi(2)
-                      snew(i,j,k,n) = snew(i,j,k,n) + mult*dmac(i,j,k)*sold(i,j,k,n)
-                   end do
-                end do
-             end do
-          end do
-       else 
-          do n = 1, nvar
+       do n = 1, nvar
+          do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
-                   do k = lo(3), hi(3)
-                      snew(i,j,k,n) = snew(i,j,k,n) + mult*dmac(i,j,k)*sold(i,j,k,n)
-                   end do
+                   snew(i,j,k,n) = snew(i,j,k,n) + mult*dmac(i,j,k)*sold(i,j,k,n)
                 end do
              end do
           end do
-       end if
+       end do
 
        end
 

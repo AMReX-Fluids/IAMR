@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.8 1999-10-08 23:51:26 sstanley Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.9 2000-06-02 17:25:51 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -207,43 +207,19 @@ c ::
       REAL_T   fine(DIMV(fine))
 
       integer  ic, jc, kc
-      integer  lenx, leny, lenz, mxlen
       integer  lratx, lraty, lratz
 
       lratx = ratios(1)
       lraty = ratios(2)
       lratz = ratios(3)
 
-      lenx = hi(1)-lo(1)+1
-      leny = hi(2)-lo(2)+1
-      lenz = hi(3)-lo(3)+1
-      mxlen = max(lenx,leny,lenz)
-
-      if (lenx .eq. mxlen) then
-         do kc = lo(3), hi(3)
-            do jc = lo(2), hi(2)
-               do ic = lo(1), hi(1)
-                  crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
-               end do
-            end do
-         end do
-      else if (leny .eq. mxlen) then
-         do kc = lo(3), hi(3)
+      do kc = lo(3), hi(3)
+         do jc = lo(2), hi(2)
             do ic = lo(1), hi(1)
-               do jc = lo(2), hi(2)
-                  crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
-               end do
+               crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
             end do
          end do
-      else
-         do ic = lo(1), hi(1)
-            do jc = lo(2), hi(2)
-               do kc = lo(3), hi(3)
-                  crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
-               end do
-            end do
-         end do
-      end if
+      end do
 
       end
 
@@ -270,38 +246,14 @@ c ::
        REAL_T     b(DIMV(b))
 
        integer i, j, k
-       integer lenx, leny, lenz, mxlen
 
-       lenx = hi(1)-lo(1)+1
-       leny = hi(2)-lo(2)+1
-       lenz = hi(3)-lo(3)+1
-       mxlen = max(lenx,leny,lenz)
-
-       if (lenx .eq. mxlen) then
-	  do i = lo(1), hi(1)
-             do j = lo(2), hi(2)
-                do k = lo(3), hi(3)
-                   a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
-                end do
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
              end do
-	  end do
-       else if (leny .eq. mxlen) then
-	  do i = lo(1), hi(1)
-             do j = lo(2), hi(2)
-                do k = lo(3), hi(3)
-                   a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
-                end do
-             end do
-	  end do
-       else
-	  do i = lo(1), hi(1)
-             do j = lo(2), hi(2)
-                do k = lo(3), hi(3)
-                   a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
-                end do
-             end do
-	  end do
-       end if
+          end do
+       end do
 
        end
 

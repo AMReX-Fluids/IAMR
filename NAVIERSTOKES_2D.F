@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.8 1999-10-08 23:51:26 sstanley Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.9 2000-06-02 17:25:51 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -175,28 +175,16 @@ c ::
       REAL_T   fine(DIMV(fine))
 
       integer  ic, jc
-      integer  lenx, leny
       integer  lratx, lraty
 
       lratx = ratios(1)
       lraty = ratios(2)
 
-      lenx = hi(1)-lo(1)+1
-      leny = hi(2)-lo(2)+1
-
-      if (lenx .ge. leny) then
-         do jc = lo(2), hi(2)
-            do ic = lo(1), hi(1)
-               crse(ic,jc) = fine(lratx*ic,lraty*jc)
-            end do
-         end do
-      else
+      do jc = lo(2), hi(2)
          do ic = lo(1), hi(1)
-            do jc = lo(2), hi(2)
-               crse(ic,jc) = fine(lratx*ic,lraty*jc)
-            end do
+            crse(ic,jc) = fine(lratx*ic,lraty*jc)
          end do
-      end if
+      end do
 
       end
 
@@ -223,24 +211,12 @@ c ::
        REAL_T     b(DIMV(b))
 
        integer i, j
-       integer lenx, leny
 
-       lenx = hi(1)-lo(1)+1
-       leny = hi(2)-lo(2)+1
-
-       if (lenx .ge. leny) then
-          do j = lo(2), hi(2)
-	     do i = lo(1), hi(1)
-	        a(i,j) = a(i,j) + alpha*b(i,j)
-	     end do
-          end do
-       else
+       do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             do j = lo(2), hi(2)
-	        a(i,j) = a(i,j) + alpha*b(i,j)
-	     end do
+             a(i,j) = a(i,j) + alpha*b(i,j)
           end do
-       end if
+       end do
 
        end
 

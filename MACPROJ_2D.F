@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_2D.F,v 1.13 1999-07-27 00:09:34 propp Exp $
+c $Id: MACPROJ_2D.F,v 1.14 2000-06-02 17:25:51 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -52,28 +52,16 @@ c ::
        REAL_T yarea(DIMV(ay))
        REAL_T   vol(DIMV(vol))
 
-       integer i, j, lenx, leny
+       integer i, j
 
-       lenx = hi(1)-lo(1)+1
-       leny = hi(2)-lo(2)+1
-       if (lenx .ge. leny) then
-          do j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                dmac(i,j) = ( xarea(i+1,j)*ux(i+1,j) - xarea(i,j)*ux(i,j)
-     &               +   yarea(i,j+1)*uy(i,j+1) - yarea(i,j)*uy(i,j)
-     &               )/vol(i,j)
-
-             end do
-          end do
-       else
+       do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             do j = lo(2), hi(2)
-                dmac(i,j) = ( xarea(i+1,j)*ux(i+1,j) - xarea(i,j)*ux(i,j)
-     &               +   yarea(i,j+1)*uy(i,j+1) - yarea(i,j)*uy(i,j)
-     &               )/vol(i,j)
-             end do
+             dmac(i,j) = ( xarea(i+1,j)*ux(i+1,j) - xarea(i,j)*ux(i,j)
+     &            +   yarea(i,j+1)*uy(i,j+1) - yarea(i,j)*uy(i,j)
+     &            )/vol(i,j)
+
           end do
-       end if
+       end do
 
        end
 
@@ -105,27 +93,15 @@ c ::
        REAL_T  dmac(DIMV(dmac))
        REAL_T  mult
 
-       integer i, j, n, lenx, leny
+       integer i, j, n
 
-       lenx = hi(1)-lo(1)+1
-       leny = hi(2)-lo(2)+1
-       if (lenx .ge. leny) then
-          do n = 1, nvar
-             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   snew(i,j,n) = snew(i,j,n) + mult*dmac(i,j)*sold(i,j,n)
-                end do
-             end do
-          end do
-       else
-          do n = 1, nvar
+       do n = 1, nvar
+          do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                do j = lo(2), hi(2)
-                   snew(i,j,n) = snew(i,j,n) + mult*dmac(i,j)*sold(i,j,n)
-                end do
+                snew(i,j,n) = snew(i,j,n) + mult*dmac(i,j)*sold(i,j,n)
              end do
           end do
-       end if
+       end do
 
        end
 
