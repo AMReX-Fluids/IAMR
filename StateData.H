@@ -2,7 +2,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.4 1997-09-26 16:57:05 lijewski Exp $
+// $Id: StateData.H,v 1.5 1997-10-01 01:03:15 car Exp $
 //
 
 #include <Box.H>
@@ -91,7 +91,7 @@ public:
                       Array<MultiFabId> &mfid);
 
 //  interpolation routine
-    void linInterp(FARRAYBOX& dest, const BOX& subbox, REAL time,
+    void linInterp(FArrayBox& dest, const BOX& subbox, REAL time,
                    int src_comp, int dest_comp, int num_comp,
                    bool extrap = false);
 
@@ -106,18 +106,18 @@ public:
     void linInterpFillFab(MultiFabCopyDescriptor &fabCopyDesc,
                    const Array<MultiFabId> &mfid,
                    const Array<FillBoxId> &fillBoxIds,
-                   FARRAYBOX &dest,
+                   FArrayBox &dest,
                    REAL time,
                    int src_comp, int dest_comp, int num_comp,
                    bool extrap = false);
 
 //  set physical bndry values for all state variables in range
-    void FillBoundary(FARRAYBOX& dest, REAL time, const REAL* dx,
-                   const REALBOX& prob_domain, int dest_comp,
+    void FillBoundary(FArrayBox& dest, REAL time, const REAL* dx,
+                   const RealBox& prob_domain, int dest_comp,
                    int src_comp, int num_comp = 1);
 
 //  set physical bndry values for all state variables in range
-    void FillBoundary(const REAL* dx, const REALBOX& prob_domain,
+    void FillBoundary(const REAL* dx, const RealBox& prob_domain,
                    int src_comp, int num_comp = 1, int do_new=1);
 
 ///
@@ -140,9 +140,9 @@ public:
 ///
     MultiFab& oldData() { return *old_data; };
 ///
-    FARRAYBOX& newGrid(int i) { return (*new_data)[i]; }
+    FArrayBox& newGrid(int i) { return (*new_data)[i]; }
 ///
-    FARRAYBOX& oldGrid(int i) { return (*old_data)[i]; }
+    FArrayBox& oldGrid(int i) { return (*old_data)[i]; }
 ///
     Array<BCRec>& getBCs(int comp) { return bc[comp]; }
 ///

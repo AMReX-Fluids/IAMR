@@ -2,14 +2,14 @@
 #define _BOUNDARY_H_
 
 //
-// $Id: boundary.H,v 1.5 1997-09-26 16:57:09 lijewski Exp $
+// $Id: boundary.H,v 1.6 1997-10-01 01:03:18 car Exp $
 //
 
 #include <interface.H>
 
 class copy_cache;
 
-typedef const class amr_boundary_class& amr_boundary;
+// typedef const class amr_boundary_class& amr_boundary;
 
 // This is the base class for all amr_boundaries.  The default function dir
 // should always be acceptable.  The default box and check_against_boundary
@@ -114,14 +114,15 @@ class reflection_boundary_class
   void fill(Fab&, const Box&,
 	    Fab&, const Box&, const Box&, int) const;
   void fill(Fab&, const Box&,
-	    MultiFab&, int, const Box&) const
-    { BoxLib::Error("reflection_boundary_class::fill---interface version not defined"); }
+	    MultiFab&, int, const Box&) const = 0;
+    // { BoxLib::Error("reflection_boundary_class::fill---interface version not defined"); }
   int singular() const {
     return 1;
   }
 };
 
-class negation_boundary_class : public amr_boundary_class 
+class negation_boundary_class 
+    : public amr_boundary_class 
 {
  public:
   negation_boundary_class() { }
@@ -129,14 +130,16 @@ class negation_boundary_class : public amr_boundary_class
   void fill(Fab&, const Box&,
 	    Fab&, const Box&, const Box&, int) const;
   void fill(Fab&, const Box&,
-	    MultiFab&, int, const Box&) const
-    { BoxLib::Error("negation_boundary_class::fill---interface version not defined"); }
+	    MultiFab&, int, const Box&) const = 0;
+    // { BoxLib::Error("negation_boundary_class::fill---interface version not defined"); }
   int singular() const {
     return 0;
   }
 };
 
-class periodic_boundary_class : public amr_boundary_class {
+class periodic_boundary_class 
+    : public amr_boundary_class 
+{
  protected:
   void check_against_boundary(BoxList& bl, List<int>& il,
 			      const Box& b, int ib,
@@ -148,8 +151,8 @@ class periodic_boundary_class : public amr_boundary_class {
   void fill(Fab&, const Box&,
 	    Fab&, const Box&, const Box&, int) const;
   void fill(Fab&, const Box&,
-	    MultiFab&, int, const Box&) const
-    { BoxLib::Error("periodic_boundary_class::fill---interface version not defined"); }
+	    MultiFab&, int, const Box&) const = 0;
+    // { BoxLib::Error("periodic_boundary_class::fill---interface version not defined"); }
   void duplicate(List<Box>& bl, const Box& domain) const;
   int singular() const {
     return 1;
@@ -157,9 +160,9 @@ class periodic_boundary_class : public amr_boundary_class {
 };
 
 const amr_boundary_class error_boundary;
-const reflection_boundary_class reflection_boundary;
-const negation_boundary_class negation_boundary;
-const periodic_boundary_class periodic_boundary;
+//const reflection_boundary_class reflection_boundary;
+//const negation_boundary_class negation_boundary;
+//const periodic_boundary_class periodic_boundary;
 
 #include "RegType.H"
 
@@ -205,7 +208,8 @@ typedef const amr_fluid_boundary_class& amr_fluid_boundary;
 
 class inviscid_fluid_boundary;
 
-class mixed_boundary_class : public amr_boundary_class 
+class mixed_boundary_class 
+    : public amr_boundary_class 
 {
  protected:
   inviscid_fluid_boundary *ptr;
@@ -214,7 +218,8 @@ class mixed_boundary_class : public amr_boundary_class
 			      const Box& b, int ib,
 			      const Box& d, int dim1) const;
  public:
-  mixed_boundary_class(inviscid_fluid_boundary *Ptr, int idim) {
+  mixed_boundary_class(inviscid_fluid_boundary *Ptr, int idim) 
+  {
     ptr = Ptr; flowdim = idim;
   }
 
@@ -247,14 +252,15 @@ class mixed_boundary_class : public amr_boundary_class
 // the domain.  Currently only periodic and refWall type
 // boundaries are supported.
 
-class inviscid_fluid_boundary : public amr_fluid_boundary_class 
+class inviscid_fluid_boundary 
+    : public amr_fluid_boundary_class 
 {
-  friend class mixed_boundary_class;
- protected:
-  RegType bc[BL_SPACEDIM][2];
- public:
-  inviscid_fluid_boundary(RegType Bc[BL_SPACEDIM][2]);
-  ~inviscid_fluid_boundary();
+    friend class mixed_boundary_class;
+protected:
+    RegType bc[BL_SPACEDIM][2];
+public:
+    inviscid_fluid_boundary(RegType Bc[BL_SPACEDIM][2]);
+    ~inviscid_fluid_boundary();
 };
 
 #endif

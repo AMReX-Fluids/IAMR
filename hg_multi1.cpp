@@ -1,6 +1,6 @@
 
 //
-// $Id: hg_multi1.cpp,v 1.9 1997-09-26 23:30:24 car Exp $
+// $Id: hg_multi1.cpp,v 1.10 1997-10-01 01:03:20 car Exp $
 //
 
 #include <Tracer.H>
@@ -666,7 +666,7 @@ holy_grail_amr_multigrid::sync_interfaces()
 	continue;
       interpolate_patch(target[igrid], interface[mglev].node_face(iface),
 			dest[lev-1], rat,
-			bilinear_interpolator, interface[mgc]);
+			bilinear_interpolator_class(), interface[mgc]);
     }
   }
 }
@@ -697,7 +697,7 @@ holy_grail_amr_multigrid::sync_periodic_interfaces()
 	  idomain.intersects(nbox))
 	continue;
       interpolate_patch(target[igrid], nbox, dest[lev-1], rat,
-			bilinear_interpolator, interface[mgc]);
+			bilinear_interpolator_class(), interface[mgc]);
     }
   }
 }
@@ -709,7 +709,7 @@ holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
   if (get_amr_level(lto) >= 0) 
   {
     restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
-		   bilinear_restrictor_coarse,
+		   bilinear_restrictor_coarse_class(),
 		   interface[lfrom], mg_boundary);
   }
   else 

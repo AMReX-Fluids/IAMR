@@ -1,6 +1,6 @@
 
 //
-// $Id: Interpolater.cpp,v 1.5 1997-09-26 16:57:00 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.6 1997-10-01 01:03:08 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -47,8 +47,8 @@ NodeBilinear::~NodeBilinear()
 
 // ------------------------------------------------------------
 void
-NodeBilinear::interp(FARRAYBOX& crse, int crse_comp,
-		     FARRAYBOX& fine, int fine_comp,
+NodeBilinear::interp(FArrayBox& crse, int crse_comp,
+		     FArrayBox& fine, int fine_comp,
 		     int ncomp,
 		     const BOX& fine_region, const IntVect & ratio,
                      const Geometry& /* crse_geom */,
@@ -133,8 +133,8 @@ CellBilinear::CoarseBox(const BOX& fine, const IntVect & ratio)
 
 // ------------------------------------------------------------
 void
-CellBilinear::interp(FARRAYBOX& crse, int crse_comp,
-		     FARRAYBOX& fine, int fine_comp,
+CellBilinear::interp(FArrayBox& crse, int crse_comp,
+		     FArrayBox& fine, int fine_comp,
 		     int ncomp,
 		     const BOX& fine_region, const IntVect & ratio,
                      const Geometry& /* crse_geom */,
@@ -213,8 +213,8 @@ CellConservative::CoarseBox(const BOX& fine, int ratio)
 
 // ------------------------------------------------------------
 void
-CellConservative::interp(FARRAYBOX& crse, int crse_comp,
-			 FARRAYBOX& fine, int fine_comp,
+CellConservative::interp(FArrayBox& crse, int crse_comp,
+			 FArrayBox& fine, int fine_comp,
 			 int ncomp,
 			 const BOX& fine_region, const IntVect & ratio,
 			 const Geometry& crse_geom,
@@ -364,8 +364,8 @@ CellConservativeLinear::CoarseBox(const BOX& fine, int ratio)
 
 // ------------------------------------------------------------
 void
-CellConservativeLinear::interp(FARRAYBOX& crse, int crse_comp,
-			 FARRAYBOX& fine, int fine_comp,
+CellConservativeLinear::interp(FArrayBox& crse, int crse_comp,
+			 FArrayBox& fine, int fine_comp,
 			 int ncomp,
 			 const BOX& fine_region, const IntVect & ratio,
 			 const Geometry& crse_geom,
@@ -403,9 +403,9 @@ CellConservativeLinear::interp(FARRAYBOX& crse, int crse_comp,
     // the number of compenents argument
     // --> there is a slope for each component in each coordinate 
     //     direction
-    FARRAYBOX ucc_slopes(cslope_bx,ncomp*BL_SPACEDIM);
-    FARRAYBOX lcc_slopes(cslope_bx,ncomp*BL_SPACEDIM);
-    FARRAYBOX slope_factors(cslope_bx,BL_SPACEDIM);
+    FArrayBox ucc_slopes(cslope_bx,ncomp*BL_SPACEDIM);
+    FArrayBox lcc_slopes(cslope_bx,ncomp*BL_SPACEDIM);
+    FArrayBox slope_factors(cslope_bx,BL_SPACEDIM);
 
     REAL* fdat       = fine.dataPtr(fine_comp);
     const REAL* cdat = crse.dataPtr(crse_comp);
@@ -509,8 +509,8 @@ CellQuadratic::CoarseBox(const BOX& fine, int ratio)
 
 // ------------------------------------------------------------
 void
-CellQuadratic::interp(FARRAYBOX& crse, int crse_comp,
-		      FARRAYBOX& fine, int fine_comp,
+CellQuadratic::interp(FArrayBox& crse, int crse_comp,
+		      FArrayBox& fine, int fine_comp,
 		      int ncomp,
 		      const BOX& fine_region, const IntVect & ratio,
 		      const Geometry& crse_geom,
@@ -635,8 +635,8 @@ PCInterp::~PCInterp()
 
 // ------------------------------------------------------------
 void
-PCInterp::interp(FARRAYBOX& crse, int crse_comp,
-		 FARRAYBOX& fine, int fine_comp,
+PCInterp::interp(FArrayBox& crse, int crse_comp,
+		 FArrayBox& fine, int fine_comp,
 		 int ncomp,
 		 const BOX& fine_region, const IntVect & ratio,
                  const Geometry& /* crse_geom */,

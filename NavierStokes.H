@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.7 1997-09-26 16:57:03 lijewski Exp $
+// $Id: NavierStokes.H,v 1.8 1997-10-01 01:03:11 car Exp $
 //
 
 #include <LevelBld.H>
@@ -171,8 +171,8 @@ public:   // ===================== public member functions ===
     void SaveNewBoundary( REAL time ); // state (old/new) multifabs
     
     // get divU from the state data
-    void getDivCond(FARRAYBOX& fab, int ngrow, REAL time);
-    void getDivCond(FARRAYBOX& fab, int gridno, int ngrow, REAL time);
+    void getDivCond(FArrayBox& fab, int ngrow, REAL time);
+    void getDivCond(FArrayBox& fab, int gridno, int ngrow, REAL time);
 
     // public so MacProj can access it
     virtual void SetGodunov();
@@ -255,9 +255,9 @@ protected: // ===================== protected member functions ===
                      int which_interp=0);
 
     // two virtual hooks for anelastic SyncInterp
-    virtual void ScaleCrseSyncInterp( FARRAYBOX &cdata,
+    virtual void ScaleCrseSyncInterp( FArrayBox &cdata,
                                       int c_lev, int num_comp ) {}
-    virtual void reScaleFineSyncInterp( FARRAYBOX &fdata,
+    virtual void reScaleFineSyncInterp( FArrayBox &fdata,
                                         int f_lev, int num_comp ) {}
 
     // bilinear interpolate nodal pressures from coarse to fine
@@ -273,19 +273,19 @@ protected: // ===================== protected member functions ===
                   int strt_comp, int num_comp, IntVect& fratio );
  
     // average fine down to coarse in the ovlp intersection
-    virtual void avgDown( const FARRAYBOX& fine_fab, const FARRAYBOX& crse_fab, 
-                          const FARRAYBOX& fine_vol, const FARRAYBOX& crse_vol,
+    virtual void avgDown( const FArrayBox& fine_fab, const FArrayBox& crse_fab, 
+                          const FArrayBox& fine_vol, const FArrayBox& crse_vol,
                           int f_level,               int c_level,
                           const BOX &ovlp,
                           int start_comp, int num_comp, IntVect& fratio );
 
     // inject fine pressure nodes down onto coarse nodes
-    void injectDown( const BOX &ovlp, FARRAYBOX &Pcrse,
-                     const FARRAYBOX &Pfine, IntVect &fine_ratio );
+    void injectDown( const BOX &ovlp, FArrayBox &Pcrse,
+                     const FArrayBox &Pfine, IntVect &fine_ratio );
 
     // test for consistency between fine dirichlet and coarse nodes
-    void testInject( const BOX &ovlp, FARRAYBOX &Pcrse,
-                     const FARRAYBOX &Pfine, IntVect &fine_ratio );
+    void testInject( const BOX &ovlp, FArrayBox &Pcrse,
+                     const FArrayBox &Pfine, IntVect &fine_ratio );
 
     // compute the level sync correction
     virtual void level_sync();
@@ -312,9 +312,9 @@ protected: // ===================== protected member functions ===
     
     // virtual function get fluxes out of the advection routines
     virtual void pullFluxes( int level, int gridno, int start_ind, int ncomp,
-                             FARRAYBOX &xflux,
-                             FARRAYBOX &yflux,
-                             FARRAYBOX &zflux, REAL dt );
+                             FArrayBox &xflux,
+                             FArrayBox &yflux,
+                             FArrayBox &zflux, REAL dt );
 
     // compute the gradient of divU - dSdt
     void compute_grad_divu_minus_s(REAL time, MultiFab* grad_divu_minus_s,
@@ -331,32 +331,32 @@ protected: // ===================== protected member functions ===
     virtual void calc_dsdt(REAL time, REAL dt, MultiFab& fab);
 
     // virtual function to allow arbitrary forcing
-    virtual void getForce(FARRAYBOX& force, int gridno, int ngrow,
+    virtual void getForce(FArrayBox& force, int gridno, int ngrow,
                           int strt_comp, int num_comp, REAL time);
     
     // get state data
-    void getState(FARRAYBOX& fab,int gridno, int ngrow,
+    void getState(FArrayBox& fab,int gridno, int ngrow,
                   int strt_comp, int num_comp, REAL time);
 
-    void getState(FARRAYBOX& fab,int gridno, int ngrow,
+    void getState(FArrayBox& fab,int gridno, int ngrow,
                   int state_indx, int strt_comp, int num_comp, REAL time);
     
-    void getState(FARRAYBOX& fab, int gridno, int ngrow, 
+    void getState(FArrayBox& fab, int gridno, int ngrow, 
                   REAL time, int have_state, int state_indx,
                   //BoxAssoc& assoc, Array<BOX>& unfilled,
                   Array<BOX>& unfilled,
                   int num_comp = 1, int start_comp = 0);
     
     // get pressure gradient data via fill-patching
-    void getGradP(FARRAYBOX& gp, int gridno, int ngrow, REAL time);
+    void getGradP(FArrayBox& gp, int gridno, int ngrow, REAL time);
 
     // given a nodal pressure P compute the pressure gradient at the
     // contained cell centers
-    void getGradP(FARRAYBOX &p_fab, FARRAYBOX& gp,
+    void getGradP(FArrayBox &p_fab, FArrayBox& gp,
                   const BOX &grd, int ngrow );
     
     // get dSdt from the state data
-    void getDsdt(FARRAYBOX& fab, int gridno, int ngrow, REAL time);
+    void getDsdt(FArrayBox& fab, int gridno, int ngrow, REAL time);
 
     // fill ghost cells of state
     void FillStateBndry(REAL time, int state_indx, int src_comp, 

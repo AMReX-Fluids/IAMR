@@ -2,7 +2,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.2 1997-09-26 16:56:59 lijewski Exp $
+// $Id: Godunov.H,v 1.3 1997-10-01 01:03:07 car Exp $
 //
 
 //===========================================================
@@ -32,13 +32,13 @@ public:      // public access functions
 
     // set up the Godunov Box
     virtual void Setup( const BOX &grd, const REAL *dx, REAL dt, int set_fluxes, 
-                        FARRAYBOX &xflux, int *ubc,
-                        FARRAYBOX &yflux, int *vbc,
+                        FArrayBox &xflux, int *ubc,
+                        FArrayBox &yflux, int *vbc,
 #if (BL_SPACEDIM == 3 )
-                        FARRAYBOX &zflux, int *wbc,
+                        FArrayBox &zflux, int *wbc,
 #endif
-                        FARRAYBOX &S, FARRAYBOX &Rho, 
-                        const FARRAYBOX& tforces);
+                        FArrayBox &S, FArrayBox &Rho, 
+                        const FArrayBox& tforces);
 
     // =============================================================
     // Data access functions
@@ -52,76 +52,76 @@ public:      // public access functions
 
     // compute the edge states
     void edge_states( const BOX &grd, const REAL *dx, REAL dt, int velpred,
-                      FARRAYBOX &uedge, FARRAYBOX &stx,
-                      FARRAYBOX &vedge, FARRAYBOX &sty,
+                      FArrayBox &uedge, FArrayBox &stx,
+                      FArrayBox &vedge, FArrayBox &sty,
 #if (BL_SPACEDIM == 3 )
-                      FARRAYBOX &wedge, FARRAYBOX &stz,
+                      FArrayBox &wedge, FArrayBox &stz,
 #endif
-                      FARRAYBOX &U,
-                      FARRAYBOX &S, FARRAYBOX &tforces, int fab_ind,
+                      FArrayBox &U,
+                      FArrayBox &S, FArrayBox &tforces, int fab_ind,
                       int state_ind, int *bc);
     
     
     // compute divergent mac velocities
     void ComputeUmac( const BOX &grd, const REAL *dx, REAL dt, 
-                      FARRAYBOX &umac, int *ubc, 
-                      FARRAYBOX &vmac, int *vbc, 
+                      FArrayBox &umac, int *ubc, 
+                      FArrayBox &vmac, int *vbc, 
 #if (BL_SPACEDIM == 3 )
-                      FARRAYBOX &wmac, int *wbc, 
+                      FArrayBox &wmac, int *wbc, 
 #endif
-                      FARRAYBOX &U, FARRAYBOX &tforces );
+                      FArrayBox &U, FArrayBox &tforces );
     
     // advect a state component
     virtual void AdvectState( const BOX &grd, const REAL *dx, REAL dt, 
-                              FARRAYBOX &areax, FARRAYBOX &uedge, FARRAYBOX &xflux,  
-                              FARRAYBOX &areay, FARRAYBOX &vedge, FARRAYBOX &yflux,  
+                              FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
+                              FArrayBox &areay, FArrayBox &vedge, FArrayBox &yflux,  
 #if (BL_SPACEDIM == 3 )                               
-                              FARRAYBOX &areaz, FARRAYBOX &wedge, FARRAYBOX &zflux,
+                              FArrayBox &areaz, FArrayBox &wedge, FArrayBox &zflux,
 #endif
-                              FARRAYBOX &U,
-                              FARRAYBOX &S, FARRAYBOX &tforces, int fab_ind,
-                              FARRAYBOX &aofs,                  int aofs_ind,
+                              FArrayBox &U,
+                              FArrayBox &S, FArrayBox &tforces, int fab_ind,
+                              FArrayBox &aofs,                  int aofs_ind,
                               int iconserv, int state_ind, int *bc,
-                              FARRAYBOX &vol );
+                              FArrayBox &vol );
 
     // compute the advective derivative from fluxes
     void ComputeAofs( const BOX &grd, 
-                      FARRAYBOX &areax, FARRAYBOX &uedge, FARRAYBOX &xflux,  
-                      FARRAYBOX &areay, FARRAYBOX &vedge, FARRAYBOX &yflux,  
+                      FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
+                      FArrayBox &areay, FArrayBox &vedge, FArrayBox &yflux,  
 #if (BL_SPACEDIM == 3 )
-                      FARRAYBOX &areaz, FARRAYBOX &wedge, FARRAYBOX &zflux,
+                      FArrayBox &areaz, FArrayBox &wedge, FArrayBox &zflux,
 #endif
-                      FARRAYBOX &vol,
-                      FARRAYBOX &aofs,  int aofs_ind, int iconserv );
+                      FArrayBox &vol,
+                      FArrayBox &aofs,  int aofs_ind, int iconserv );
 
     // sync advect a state component
     virtual void SyncAdvect( const BOX &grd, const REAL *dx, REAL dt, int level,
-                             FARRAYBOX &areax, FARRAYBOX &uedge,
-                             FARRAYBOX &ucorr, FARRAYBOX &xflux,
-                             FARRAYBOX &areay, FARRAYBOX &vedge,
-                             FARRAYBOX &vcorr, FARRAYBOX &yflux,
+                             FArrayBox &areax, FArrayBox &uedge,
+                             FArrayBox &ucorr, FArrayBox &xflux,
+                             FArrayBox &areay, FArrayBox &vedge,
+                             FArrayBox &vcorr, FArrayBox &yflux,
 #if (BL_SPACEDIM == 3 )
-                             FARRAYBOX &areaz, FARRAYBOX &wedge,
-                             FARRAYBOX &wcorr, FARRAYBOX &zflux,
+                             FArrayBox &areaz, FArrayBox &wedge,
+                             FArrayBox &wcorr, FArrayBox &zflux,
 #endif
-                             FARRAYBOX &S, FARRAYBOX &tforces, int ind,
-                             FARRAYBOX &sync,                  int sync_ind,
+                             FArrayBox &S, FArrayBox &tforces, int ind,
+                             FArrayBox &sync,                  int sync_ind,
                              int iconserv, int state_ind, int *bc,
-                             FARRAYBOX &vol );
+                             FArrayBox &vol );
     
     // compute the advective derivative of corrective fluxes for the mac sync
     void ComputeSyncAofs( const BOX &grd,
-                          FARRAYBOX &areax, FARRAYBOX &ucorr, FARRAYBOX &xflux,  
-                          FARRAYBOX &areay, FARRAYBOX &vcorr, FARRAYBOX &yflux,  
+                          FArrayBox &areax, FArrayBox &ucorr, FArrayBox &xflux,  
+                          FArrayBox &areay, FArrayBox &vcorr, FArrayBox &yflux,  
 #if (BL_SPACEDIM == 3 )
-                          FARRAYBOX &areaz, FARRAYBOX &wcorr, FARRAYBOX &zflux,
+                          FArrayBox &areaz, FArrayBox &wcorr, FArrayBox &zflux,
 #endif                     
-                          FARRAYBOX &vol,
-                          FARRAYBOX &sync,
+                          FArrayBox &vol,
+                          FArrayBox &sync,
                           int sync_ind, int iconserv );
     
     // correct a scalar for under-over shoots
-    void ScalMinMax( FARRAYBOX &Sold, FARRAYBOX &Snew, int ind, 
+    void ScalMinMax( FArrayBox &Sold, FArrayBox &Snew, int ind, 
                      int *bc, const BOX &grd );
 
     // =============================================================
@@ -129,21 +129,21 @@ public:      // public access functions
     // =============================================================
     
     // estimate the timestep from the cell-centered quantities
-    REAL estdt( FARRAYBOX &U, FARRAYBOX &tforces, FARRAYBOX &Rho,
+    REAL estdt( FArrayBox &U, FArrayBox &tforces, FArrayBox &Rho,
                 const BOX &grd, const REAL *dx, REAL cfl, REAL *u_max );
 
     // test the cell centered Courant number 
-    REAL test_u_rho( FARRAYBOX &U, FARRAYBOX &Rho, const BOX &grd,
+    REAL test_u_rho( FArrayBox &U, FArrayBox &Rho, const BOX &grd,
                      const REAL *dx, const REAL dt,
                      const REAL *u_max );
 
     // test the mac edge velocity Courant numbers 
-    REAL test_umac_rho( FARRAYBOX &umac,
-                        FARRAYBOX &vmac,
+    REAL test_umac_rho( FArrayBox &umac,
+                        FArrayBox &vmac,
 #if (BL_SPACEDIM == 3 )
-                        FARRAYBOX &wmac,
+                        FArrayBox &wmac,
 #endif
-                        FARRAYBOX &Rho,
+                        FArrayBox &Rho,
                         const BOX &grd, const REAL *dx, const REAL dt,
                         const REAL *u_max );
 
@@ -153,66 +153,66 @@ public:      // public access functions
     
     // compute the update rule, this is useful for 1st order RK
     // psi^n+1 = psi^n + dt*(tf^n)
-    void Add_tf( FARRAYBOX &Sold,
-                 FARRAYBOX &Snew,    int start_ind, int num_comp,
-                 FARRAYBOX &tforces, int tf_ind,
+    void Add_tf( FArrayBox &Sold,
+                 FArrayBox &Snew,    int start_ind, int num_comp,
+                 FArrayBox &tforces, int tf_ind,
                  const BOX &grd,     REAL dt );
 
     // correct the 1st order RK to 2nd order via
     // psi^n+1 = psi^* + (dt/2)*(tf^* - tf^n)
-    void Correct_tf( FARRAYBOX &Sstar, FARRAYBOX &Snew,
+    void Correct_tf( FArrayBox &Sstar, FArrayBox &Snew,
                      int start_ind, int num_comp, 
-                     FARRAYBOX &tfstar, FARRAYBOX &tfn,
+                     FArrayBox &tfstar, FArrayBox &tfn,
                      int tf_ind,
                      const BOX &grd,     REAL dt );
 
     // compute the update rule
     // psi^n+1 = psi^n - dt*aofs + dt*tforces
-    void Add_aofs_tf( FARRAYBOX &Sold,
-                      FARRAYBOX &Snew,    int start_ind, int num_comp,
-                      FARRAYBOX &Aofs,    int aofs_ind,
-                      FARRAYBOX &tforces, int tf_ind,
+    void Add_aofs_tf( FArrayBox &Sold,
+                      FArrayBox &Snew,    int start_ind, int num_comp,
+                      FArrayBox &Aofs,    int aofs_ind,
+                      FArrayBox &tforces, int tf_ind,
                       const BOX &grd,     REAL dt );
 
     // compute the update rule for velocities
     // psi^n+1 = psi^n - dt*aofs - dt*gp/rho + dt*tforces
-    void Add_aofs_tf_gp( FARRAYBOX &Uold, FARRAYBOX &Unew,
-                         FARRAYBOX &Aofs, FARRAYBOX &tforces,
-                         FARRAYBOX &gp,   FARRAYBOX &rho, 
+    void Add_aofs_tf_gp( FArrayBox &Uold, FArrayBox &Unew,
+                         FArrayBox &Aofs, FArrayBox &tforces,
+                         FArrayBox &gp,   FArrayBox &rho, 
                          const BOX &grd,  REAL dt );
 
     // compute total source term for velocities
     // tforces = (tforces + visc - gp)/rho
-    void Sum_tf_gp_visc( FARRAYBOX &tforces, FARRAYBOX &visc, 
-                         FARRAYBOX &gp,      FARRAYBOX &Rho );
+    void Sum_tf_gp_visc( FArrayBox &tforces, FArrayBox &visc, 
+                         FArrayBox &gp,      FArrayBox &Rho );
 
     // iconserv==1   => tforces = tforces + visc - divU*S
     // iconserv==0   => tforces = (tforces+visc)/rho
-    void Sum_tf_divu_visc( FARRAYBOX &S, FARRAYBOX &tforces,
+    void Sum_tf_divu_visc( FArrayBox &S, FArrayBox &tforces,
                            int s_ind, int num_comp,
-                           FARRAYBOX &visc,    int v_ind,
-                           FARRAYBOX &divu,    FARRAYBOX &rho,
+                           FArrayBox &visc,    int v_ind,
+                           FArrayBox &divu,    FArrayBox &rho,
                            int iconserv );
     
     // compute total source term for velocities
     // tforces = (tforces - gp)/rho
-    void Sum_tf_gp( FARRAYBOX &tforces, 
-                    FARRAYBOX &gp,      FARRAYBOX &Rho );
+    void Sum_tf_gp( FArrayBox &tforces, 
+                    FArrayBox &gp,      FArrayBox &Rho );
 
     // iconserv==1   => tforces = tforces - divU*S
     // iconserv==0   => tforces = (tforces)/rho
-    void Sum_tf_divu( FARRAYBOX &S, FARRAYBOX &tforces,
+    void Sum_tf_divu( FArrayBox &S, FArrayBox &tforces,
                       int s_ind, int num_comp,
-                      FARRAYBOX &divu,    FARRAYBOX &rho,
+                      FArrayBox &divu,    FArrayBox &rho,
                       int iconserv );
 
     //================ for debugging purposes this is made public
     // internal FABS
-    FARRAYBOX work; // work space for the Godunov Box
-    FARRAYBOX uad;  // work space for advective transverse velocities
-    FARRAYBOX vad;
+    FArrayBox work; // work space for the Godunov Box
+    FArrayBox uad;  // work space for advective transverse velocities
+    FArrayBox vad;
 #if (BL_SPACEDIM == 3 )    
-    FARRAYBOX wad;
+    FArrayBox wad;
 #endif
 
     // internal parameters

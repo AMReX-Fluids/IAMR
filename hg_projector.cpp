@@ -1,5 +1,5 @@
 //
-// $Id: hg_projector.cpp,v 1.9 1997-09-26 23:30:25 car Exp $
+// $Id: hg_projector.cpp,v 1.10 1997-10-01 01:03:21 car Exp $
 //
 
 #include <hg_projector.H>
@@ -461,7 +461,7 @@ holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
     int mglev1 = ml_index[lev_min+1];
     restrict_level(source[lev_min], 0, source[lev_min+1],
 		   gen_ratio[lev_min], 0,
-		   bilinear_restrictor_coarse,
+		   bilinear_restrictor_coarse_class(),
 		   interface[mglev1], mg_boundary);
     work[mglev0].setVal(1.0);
     Real adjustment = inner_product(source[lev_min], work[mglev0]) /
@@ -1237,7 +1237,7 @@ holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u,
     {
       const IntVect& rat = gen_ratio[lev-1];
       restrict_level(dest[lev-1], 0, dest[lev], rat,
-		     dest_bcache[lev], injection_restrictor);
+		     dest_bcache[lev], injection_restrictor_class());
       for (i = 0; i < BL_SPACEDIM; i++) 
       {
 	restrict_level(u[i][lev-1], 0, u[i][lev], rat);
@@ -1250,7 +1250,7 @@ holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u,
     for (lev = lev_max; lev > lev_min; lev--) 
     {
       restrict_level(dest[lev-1], 0, dest[lev], gen_ratio[lev-1],
-		     dest_bcache[lev], injection_restrictor);
+		     dest_bcache[lev], injection_restrictor_class());
     }
   }
 }

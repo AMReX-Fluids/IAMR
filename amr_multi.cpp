@@ -1,6 +1,6 @@
 
 //
-// $Id: amr_multi.cpp,v 1.9 1997-09-26 16:57:09 lijewski Exp $
+// $Id: amr_multi.cpp,v 1.10 1997-10-01 01:03:18 car Exp $
 //
 
 #include <amr_multi.H>
@@ -573,7 +573,7 @@ amr_multigrid::mg_interpolate_level(int lto, int lfrom)
     for (int i = 0; i < target.length(); i++) 
     {
       interpolate_patch(target[i], corr[lfrom], rat,
-			bilinear_interpolator, interface[lfrom]);
+			bilinear_interpolator_class(), interface[lfrom]);
     }
   }
   else 
@@ -581,7 +581,7 @@ amr_multigrid::mg_interpolate_level(int lto, int lfrom)
     for (int i = 0; i < target.length(); i++) 
     {
       interpolate_patch(target[i], target.box(i), corr[lfrom], rat,
-			bilinear_interpolator, interface[lfrom]);
+			bilinear_interpolator_class(), interface[lfrom]);
     }
   }
 }
@@ -593,18 +593,18 @@ amr_multigrid::mg_restrict_level(int lto, int lfrom)
   if (type(resid[lto]) == cellvect) 
   {
     restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
-		   cell_average_restrictor);
+		   cell_average_restrictor_class());
   }
   else if (get_amr_level(lto) >= 0) 
   {
     restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
-		   bilinear_restrictor_coarse,
+		   bilinear_restrictor_coarse_class(),
 		   interface[lfrom], mg_boundary);
   }
   else 
   {
     restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
-		   bilinear_restrictor,
+		   bilinear_restrictor_class(),
 		   interface[lfrom], mg_boundary);
   }
 }

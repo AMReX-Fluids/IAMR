@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.5 1997-09-26 16:56:50 lijewski Exp $
+// $Id: Amr.H,v 1.6 1997-10-01 01:03:00 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -159,12 +159,12 @@ public:
     void  coarseTimeStep(REAL stop_time);
 
 //  retrieve derived data
-    PArray<FARRAYBOX>* derive(const aString& name, REAL time, int lev);
+    PArray<FArrayBox>* derive(const aString& name, REAL time, int lev);
 
 /*   Alternate form.  Note: the user is responsible for deleting this pointer
      when done with it
 */
-    FARRAYBOX* derive(const BOX& b, const aString& name, REAL time, int lev);
+    FArrayBox* derive(const Box& b, const aString& name, REAL time, int lev);
 
 //  write the plot file to be used for visualization
     void writePlotFile(const aString& root, int num);

@@ -1,6 +1,6 @@
 
 //
-// $Id: cache.cpp,v 1.7 1997-09-26 16:57:10 lijewski Exp $
+// $Id: cache.cpp,v 1.8 1997-10-01 01:03:19 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -16,14 +16,14 @@
 //  code is working
 
 
-void copy_cache::run() const {
+void copy_cache::run() const 
+{
 #if (BL_SPACEDIM == 2)
     FFCCPY1(dptr, sptr, nsets, dstart, sstart, dstrid, sstrid, nvals);
 #else
     FFCCPY2(dptr, sptr, nsets, dstart, sstart, dstrid1, dstrid2,
             sstrid1, sstrid2, nvals1, nvals2);
 #endif
-    if (bdy_cache) bdy_cache->run();
   }
 
 
@@ -67,7 +67,7 @@ void unroll_cache::set(int i, int Start, int Strid, int Nvals) {
 // -----------------------------------------------------------------
 
 copy_cache::copy_cache(int Nsets, Real *Dptr, Real *Sptr)
-  : nsets(Nsets), dptr(Dptr), sptr(Sptr), bdy_cache(NULL)
+  : nsets(Nsets), dptr(Dptr), sptr(Sptr)
 {
 #if (BL_SPACEDIM == 2)
   dstart = new int[5 * nsets];
@@ -121,8 +121,6 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 
   Real *baseptr = r[0].dataPtr();
   dptr = sptr = baseptr;
-
-  bdy_cache = NULL;
 
 #if (BL_SPACEDIM == 2)
   dstart = new int[5 * nsets];
@@ -381,8 +379,6 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 
   Real *baseptr = r[0].dataPtr();
   dptr = sptr = baseptr;
-
-  bdy_cache = NULL;
 
 #if (BL_SPACEDIM == 2)
   dstart = new int[5 * nsets];

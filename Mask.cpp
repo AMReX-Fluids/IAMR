@@ -1,5 +1,5 @@
 //
-// $Id: Mask.cpp,v 1.5 1997-09-24 19:47:07 lijewski Exp $
+// $Id: Mask.cpp,v 1.6 1997-10-01 01:03:10 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -169,7 +169,7 @@ Mask::Or(const Mask& src, const BOX& srcbox,
 
 // --------------------  FAB comparison operators -----------------------
 Mask&
-Mask::LT(const FARRAYBOX& fab, REAL val, const BOX& subbox,
+Mask::LT(const FArrayBox& fab, REAL val, const BOX& subbox,
 	 int fab_comp, int mask_comp)
 {
     assert(0);
@@ -179,7 +179,7 @@ Mask::LT(const FARRAYBOX& fab, REAL val, const BOX& subbox,
     return *this;
 }
 Mask&
-Mask::LE(const FARRAYBOX& fab, REAL val, const BOX& subbox,
+Mask::LE(const FArrayBox& fab, REAL val, const BOX& subbox,
 	 int fab_comp, int mask_comp)
 {
     assert(0);
@@ -189,7 +189,7 @@ Mask::LE(const FARRAYBOX& fab, REAL val, const BOX& subbox,
     return *this;
 }
 Mask&
-Mask::EQ(const FARRAYBOX& fab, REAL val, const BOX& subbox,
+Mask::EQ(const FArrayBox& fab, REAL val, const BOX& subbox,
 	 int fab_comp, int mask_comp)
 {
     assert(0);
@@ -199,7 +199,7 @@ Mask::EQ(const FARRAYBOX& fab, REAL val, const BOX& subbox,
     return *this;
 }
 Mask&
-Mask::NE(const FARRAYBOX& fab, REAL val, const BOX& subbox,
+Mask::NE(const FArrayBox& fab, REAL val, const BOX& subbox,
 	 int fab_comp, int mask_comp)
 {
     assert(0);
@@ -209,7 +209,7 @@ Mask::NE(const FARRAYBOX& fab, REAL val, const BOX& subbox,
     return *this;
 }
 Mask&
-Mask::GT(const FARRAYBOX& fab, REAL val, const BOX& subbox,
+Mask::GT(const FArrayBox& fab, REAL val, const BOX& subbox,
 	 int fab_comp, int mask_comp)
 {
     assert(0);
@@ -219,7 +219,7 @@ Mask::GT(const FARRAYBOX& fab, REAL val, const BOX& subbox,
     return *this;
 }
 Mask&
-Mask::GE(const FARRAYBOX& fab, REAL val, const BOX& subbox,
+Mask::GE(const FArrayBox& fab, REAL val, const BOX& subbox,
 	 int fab_comp, int mask_comp)
 {
     assert(0);

@@ -1,6 +1,6 @@
 
 //
-// $Id: StateData.cpp,v 1.8 1997-09-26 16:57:06 lijewski Exp $
+// $Id: StateData.cpp,v 1.9 1997-10-01 01:03:15 car Exp $
 //
 
 #include <StateData.H>
@@ -190,7 +190,7 @@ StateData::reset()
 
 // -------------------------------------------------------------
 void
-StateData::FillBoundary(const REAL* dx, const REALBOX& prob_domain,
+StateData::FillBoundary(const REAL* dx, const RealBox& prob_domain,
 		    int src_comp, int num_comp, int do_new)
 {
     REAL cur_time;
@@ -208,9 +208,9 @@ StateData::FillBoundary(const REAL* dx, const REALBOX& prob_domain,
 	++new_datamfi)
     {
 	DependentMultiFabIterator old_datamfi(new_datamfi, *old_data);
-	//FARRAYBOX* dest = &((*new_data)[g]);
+	//FArrayBox* dest = &((*new_data)[g]);
 	//if (!do_new) dest = &((*old_data)[g]);
-	FARRAYBOX* dest = &(new_datamfi());
+	FArrayBox* dest = &(new_datamfi());
 	if (!do_new) dest = &(old_datamfi());
 	const BOX& bx = dest->box();
 	if (!domain.contains(bx)) {
@@ -240,8 +240,8 @@ StateData::FillBoundary(const REAL* dx, const REALBOX& prob_domain,
 
 // -------------------------------------------------------------
 void
-StateData::FillBoundary(FARRAYBOX& dest, REAL time, const REAL* dx,
-                        const REALBOX& prob_domain,
+StateData::FillBoundary(FArrayBox& dest, REAL time, const REAL* dx,
+                        const RealBox& prob_domain,
                         int dest_comp, int src_comp, int num_comp)
 {
     BOX dbox(dest.box());
@@ -274,7 +274,7 @@ StateData::FillBoundary(FARRAYBOX& dest, REAL time, const REAL* dx,
 
 // -------------------------------------------------------------
 void
-StateData::linInterp(FARRAYBOX& dest, const BOX& subbox, REAL time,
+StateData::linInterp(FArrayBox& dest, const BOX& subbox, REAL time,
 		     int src_comp, int dest_comp, int num_comp,
 		     bool extrap)
 {
@@ -370,7 +370,7 @@ void
 StateData::linInterpFillFab(MultiFabCopyDescriptor &multiFabCopyDesc,
                      const Array<MultiFabId> &mfid,
                      const Array<FillBoxId> &fillBoxIds,
-                     FARRAYBOX &dest,
+                     FArrayBox &dest,
                      REAL time, int src_comp, int dest_comp, int num_comp,
                      bool extrap)
 {

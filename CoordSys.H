@@ -2,7 +2,7 @@
 #define _COORDSYS_H_ 
 
 //
-// $Id: CoordSys.H,v 1.3 1997-09-26 16:56:55 lijewski Exp $
+// $Id: CoordSys.H,v 1.4 1997-10-01 01:03:02 car Exp $
 //
 
 #include <REAL.H>
@@ -65,64 +65,64 @@ public:
     }
 
       // Index space -> Physical space mappings
-    void CellCenter(const INTVECT& point, Array<REAL>& loc) const;
-    void CellCenter(const INTVECT& point, REAL *loc) const;
+    void CellCenter(const IntVect& point, Array<REAL>& loc) const;
+    void CellCenter(const IntVect& point, REAL *loc) const;
     REAL CellCenter(int point, int dir) const;
     REAL LoEdge(int point, int dir) const;
-    REAL LoEdge(const INTVECT& point, int dir) const;
+    REAL LoEdge(const IntVect& point, int dir) const;
     REAL HiEdge(int point, int dir) const;
-    REAL HiEdge(const INTVECT& point, int dir) const;
+    REAL HiEdge(const IntVect& point, int dir) const;
       // location of lo and hi cell faces
-    void LoFace(const INTVECT& point, int dir, Array<REAL>& loc) const;
-    void LoFace(const INTVECT& point, int dir, REAL *loc) const;
-    void HiFace(const INTVECT& point, int dir, Array<REAL>& loc) const;
-    void HiFace(const INTVECT& point, int dir, REAL *loc) const;
+    void LoFace(const IntVect& point, int dir, Array<REAL>& loc) const;
+    void LoFace(const IntVect& point, int dir, REAL *loc) const;
+    void HiFace(const IntVect& point, int dir, Array<REAL>& loc) const;
+    void HiFace(const IntVect& point, int dir, REAL *loc) const;
       // return location of lower left hand corner
-    void LoNode(const INTVECT& point, Array<REAL>& loc) const;
-    void LoNode(const INTVECT& point, REAL *loc) const;
+    void LoNode(const IntVect& point, Array<REAL>& loc) const;
+    void LoNode(const IntVect& point, REAL *loc) const;
       // return location of upper right hand corner
-    void HiNode(const INTVECT& point, Array<REAL>& loc) const;
-    void HiNode(const INTVECT& point, REAL *loc) const;
+    void HiNode(const IntVect& point, Array<REAL>& loc) const;
+    void HiNode(const IntVect& point, REAL *loc) const;
 
       // Physical Space -> index space mappings
       // WARNING:: May return undesired results if point
       //           is on a cell boundary.
       // returns cell centered index of cell containing point
-    INTVECT CellIndex(const REAL* point) const;
+    IntVect CellIndex(const REAL* point) const;
       // returns node centered index of lower left hand corner of
       // cell containing this point
-    INTVECT LowerIndex(const REAL* point) const;
+    IntVect LowerIndex(const REAL* point) const;
       // returns node centered index of upper right hand corner of
       // cell containing this point
-    INTVECT UpperIndex(const REAL* point) const;
+    IntVect UpperIndex(const REAL* point) const;
     
       // compute cell volumes in given region
       // this version resizes input FAB
-    void GetVolume( FARRAYBOX& vol, const BOX& region) const;
+    void GetVolume( FArrayBox& vol, const BOX& region) const;
 
       // this version returns volume in new FAB
-    FARRAYBOX* GetVolume( const BOX& region) const;
+    FArrayBox* GetVolume( const BOX& region) const;
     
 #if (BL_SPACEDIM == 2)
   //@ManDoc: compute d(log(A))/dr at cell centers in given region -- this version resizes input FAB
-  void GetDLogA( FARRAYBOX& dloga, const BOX& region, int dir) const;
+  void GetDLogA( FArrayBox& dloga, const BOX& region, int dir) const;
 
   //@ManDoc: this version returns dloga in new FAB
-  FARRAYBOX* GetDLogA( const BOX& region, int dir) const;
+  FArrayBox* GetDLogA( const BOX& region, int dir) const;
 #endif
 
       // these versions return volume of single cell
-    REAL Volume(const INTVECT& point) const;
+    REAL Volume(const IntVect& point) const;
     REAL Volume(const REAL xlo[BL_SPACEDIM], const REAL xhi[BL_SPACEDIM]) const;
 
       // compute area of cell faces in given region and given
       // index direction
-    void GetFaceArea( FARRAYBOX& area, const BOX& region, int dir) const;
-    FARRAYBOX* GetFaceArea(const BOX& region, int dir) const;
+    void GetFaceArea( FArrayBox& area, const BOX& region, int dir) const;
+    FArrayBox* GetFaceArea(const BOX& region, int dir) const;
     
       // these versions return face areas of given cell in direction dir
-    REAL AreaLo(const INTVECT& point, int dir) const;
-    REAL AreaHi(const INTVECT& point, int dir) const;
+    REAL AreaLo(const IntVect& point, int dir) const;
+    REAL AreaHi(const IntVect& point, int dir) const;
     
       // return array of physical locations of cell edges
       // resizes input array

@@ -1,7 +1,7 @@
 #ifndef _MASK_H_
 #define _MASK_H_
 //
-// $Id: Mask.H,v 1.2 1997-09-15 23:05:18 lijewski Exp $
+// $Id: Mask.H,v 1.3 1997-10-01 01:03:10 car Exp $
 //
 
 #include <BaseFab.H>
@@ -87,27 +87,27 @@ public:
 
 //@ManMemo: FARRYBOX analysis functions (over specified subregions, components)
 //@ManDoc: element-wise set true for if < val
-    Mask& LT(const FARRAYBOX& fab, REAL val,
+    Mask& LT(const FArrayBox& fab, REAL val,
 	     const BOX& subbox,
 	     int fab_comp = 0, int mask_comp = 0);
 //@ManDoc: element-wise set true for if <= val
-    Mask& LE(const FARRAYBOX& fab, REAL val,
+    Mask& LE(const FArrayBox& fab, REAL val,
 	     const BOX& subbox,
 	     int fab_comp = 0, int mask_comp = 0);
 //@ManDoc: element-wise set true for if = val
-    Mask& EQ(const FARRAYBOX& fab, REAL val,
+    Mask& EQ(const FArrayBox& fab, REAL val,
 	     const BOX& subbox,
 	     int fab_comp = 0, int mask_comp = 0);
 //@ManDoc: element-wise set true for if != val
-    Mask& NE(const FARRAYBOX& fab, REAL val,
+    Mask& NE(const FArrayBox& fab, REAL val,
 	     const BOX& subbox,
 	     int fab_comp = 0, int mask_comp = 0);
 //@ManDoc: element-wise set true for if > val
-    Mask& GT(const FARRAYBOX& fab, REAL val,
+    Mask& GT(const FArrayBox& fab, REAL val,
 	     const BOX& subbox,
 	     int fab_comp = 0, int mask_comp = 0);
 //@ManDoc: element-wise set true for if <= val
-    Mask& GE(const FARRAYBOX& fab, REAL val,
+    Mask& GE(const FArrayBox& fab, REAL val,
 	     const BOX& subbox,
 	     int fab_comp = 0, int mask_comp = 0);
 

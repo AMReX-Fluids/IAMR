@@ -2,7 +2,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.4 1997-09-26 16:56:51 lijewski Exp $
+// $Id: AmrLevel.H,v 1.5 1997-10-01 01:03:01 car Exp $
 //
 
 #include <REAL.H>
@@ -50,7 +50,7 @@ protected:
     BoxArray grids;
 
 //  physical locations of each grid
-    Array<REALBOX> grid_loc;
+    Array<RealBox> grid_loc;
 
 //  pointer to parent AMR structure
     Amr * parent;
@@ -165,10 +165,10 @@ public:
     int numGrids() { return grids.length(); }
 
 //  physical locations of grids at this level
-    const Array<REALBOX>& gridLocations() { return grid_loc; }
+    const Array<RealBox>& gridLocations() { return grid_loc; }
 
 //  returns the indices defining physical domain
-    const BOX& Domain() { return geom.Domain(); }
+    const Box& Domain() { return geom.Domain(); }
 
 //  timestep n at this level
     int nStep() { return parent->levelSteps(level); }
@@ -184,17 +184,17 @@ public:
                           REAL time) = 0;
 ///
  //  general fill function
-    void FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
+    void FillPatch(FArrayBox &dest, int dest_comp, REAL time,
 		   int state_indx, int src_comp, int ncomp,
 		   Interpolater *mapper = 0);
 ///
-    void FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
+    void FillPatch(FArrayBox &dest, int dest_comp, REAL time,
 		   int state_indx, int src_comp, int ncomp,
-		   const BOX& unfilled_region,
+		   const Box& unfilled_region,
 		   Interpolater *mapper = 0);
 ///
 //  interpolate up from coarse level
-    void FillCoarsePatch(FARRAYBOX &dest,
+    void FillCoarsePatch(FArrayBox &dest,
 		         int dest_comp, REAL time,
 		         int state_indx, int src_comp, int ncomp,
 		         Interpolater *mapper = 0);
@@ -213,11 +213,11 @@ public:
 
 // returns a pointer to a fab containing the derived data.  
 // Note: if you use this, you are responsible for proper memory management
-    FARRAYBOX* derive(const BOX& bx, const aString &name, REAL time);
+    FArrayBox* derive(const Box& bx, const aString &name, REAL time);
 
 //  returns a PArray to fabs containing the derived data.  
 //  Note: if you use this, you are responsible for proper memory management
-    PArray<FARRAYBOX>* derive(const aString &name, REAL time);
+    PArray<FArrayBox>* derive(const aString &name, REAL time);
 
 //  state data object
     StateData& get_state_data(int state_indx)
@@ -242,14 +242,14 @@ public:
 protected:
 
 //  FillPatch for derived quantities
-    void FillDerive(FARRAYBOX &dest, const BOX& subbox,
+    void FillDerive(FArrayBox &dest, const Box& subbox,
 		   const aString &name, REAL time);
 
 //  common code used by all constructors
     void finishConstructor();    
 
 //  pointwise state data
-    void probe(ostream &os, INTVECT iv, int radius, REAL time,
+    void probe(ostream &os, IntVect iv, int radius, REAL time,
 	       int state_indx, int src_comp, int num_comp);
 
 private:

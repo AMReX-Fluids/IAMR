@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.6 1997-09-25 00:15:06 vince Exp $
+// $Id: MacProj.cpp,v 1.7 1997-10-01 01:03:10 car Exp $
 //
 
 #include <Misc.H>
@@ -494,9 +494,9 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
     // work variables
     int comp;
     BOX b;
-    FARRAYBOX S, Rho, tforces, Gp;
-    FARRAYBOX xflux, yflux, zflux, divu;
-    FARRAYBOX grad_phi[BL_SPACEDIM];
+    FArrayBox S, Rho, tforces, Gp;
+    FArrayBox xflux, yflux, zflux, divu;
+    FArrayBox grad_phi[BL_SPACEDIM];
     
     // get parameters
     const BoxArray& grids  = LevelData[level].boxArray();
@@ -510,7 +510,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
     Godunov *godunov = ns_level.godunov;
 
     int use_forces_in_trans = godunov->useForcesInTrans();
-    FARRAYBOX tvelforces;
+    FArrayBox tvelforces;
     MultiFab vel_visc_terms;
     if(use_forces_in_trans) {
       vel_visc_terms.define(grids,BL_SPACEDIM,1,Fab_allocate);
@@ -612,8 +612,8 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
                         S, Rho, tvelforces );
 
         // get the sync FABS
-        FARRAYBOX& u_sync = Vsyncmfi();
-        FARRAYBOX& s_sync = Ssyncmfi();
+        FArrayBox& u_sync = Vsyncmfi();
+        FArrayBox& s_sync = Ssyncmfi();
         
         // loop over the state components and
         // compute the sync advective component
@@ -628,7 +628,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
             int u_ind       = comp;
             int s_ind       = comp-BL_SPACEDIM;
             int sync_ind    = ( comp < BL_SPACEDIM ? u_ind  : s_ind  );
-            FARRAYBOX &temp = ( comp < BL_SPACEDIM ? u_sync : s_sync );
+            FArrayBox &temp = ( comp < BL_SPACEDIM ? u_sync : s_sync );
             godunov->SyncAdvect( grd, dx, dt, level,
                                  area0mfi(), u_mac0mfi(),
                                  grad_phi[0],       xflux,
@@ -707,8 +707,8 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 
     // work variables
     //int i;
-    FARRAYBOX xflux, yflux, zflux;
-    FARRAYBOX grad_phi[BL_SPACEDIM];
+    FArrayBox xflux, yflux, zflux;
+    FArrayBox grad_phi[BL_SPACEDIM];
     
     // get parameters
     const BoxArray& grids  = LevelData[level].boxArray();
@@ -772,7 +772,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 #endif
 
         // get the sync FABS
-        FARRAYBOX& sync = Ssyncmfi();
+        FArrayBox& sync = Ssyncmfi();
 
         godunov.ComputeSyncAofs( grd,
                           area0mfi(),
@@ -824,12 +824,12 @@ void MacProj::check_div_cond(int level, MultiFab U_edge[]) const
     DependentMultiFabIterator area2mfi(U_edge0mfi, area[level][2]);
 #endif
 
-    FARRAYBOX dmac(grids[U_edge0mfi.index()],1);
-    const FARRAYBOX& uxedge = U_edge0mfi();
-    const FARRAYBOX& uyedge = U_edge1mfi();
-    const FARRAYBOX& xarea = area0mfi();
-    const FARRAYBOX& yarea = area1mfi();
-    const FARRAYBOX& vol = volumemfi();
+    FArrayBox dmac(grids[U_edge0mfi.index()],1);
+    const FArrayBox& uxedge = U_edge0mfi();
+    const FArrayBox& uyedge = U_edge1mfi();
+    const FArrayBox& xarea = area0mfi();
+    const FArrayBox& yarea = area1mfi();
+    const FArrayBox& vol = volumemfi();
 
     DEF_LIMITS(dmac,dmac_dat,dlo,dhi);
     DEF_CLIMITS(uxedge,ux_dat,uxlo,uxhi);
@@ -847,9 +847,9 @@ void MacProj::check_div_cond(int level, MultiFab U_edge[]) const
 #endif
 #if (BL_SPACEDIM == 3)
 
-    const FARRAYBOX& uzedge = U_edge2mfi();
+    const FArrayBox& uzedge = U_edge2mfi();
     DEF_CLIMITS(uzedge,uz_dat,uzlo,uzhi);
-    const FARRAYBOX& zarea = area2mfi();
+    const FArrayBox& zarea = area2mfi();
     DEF_CLIMITS(zarea,az_dat,azlo,azhi);
 
     FORT_MACDIV(dmac_dat,ARLIM(dlo),ARLIM(dhi),dlo,dhi,
@@ -930,24 +930,24 @@ void MacProj::set_outflow_bcs(int level,
     const REAL* dx = parent->Geom(0).CellSize();
     REAL hx = dx[0];
     const BOX& domain = parent->Geom(0).Domain();
-    INTVECT bigend = domain.bigEnd();
-    INTVECT smallend = domain.smallEnd();
+    IntVect bigend = domain.bigEnd();
+    IntVect smallend = domain.smallEnd();
     int jhi = domain.bigEnd(1);
     smallend.setVal(1,jhi);
     BOX top_strip(smallend,bigend,IntVect::TheCellVector());
 
-    FARRAYBOX divu_strip(top_strip,1);
+    FArrayBox divu_strip(top_strip,1);
     BOX top_vel_strip = top_strip;
     top_vel_strip.growLo(0,1);
     top_vel_strip.shiftHalf(0,1);
-    FARRAYBOX mac_vel_strip(top_vel_strip,1);
+    FArrayBox mac_vel_strip(top_vel_strip,1);
     BOX top_rho_strip = top_strip;
     top_rho_strip.grow(1);
-    FARRAYBOX rho_strip(top_rho_strip,1);
+    FArrayBox rho_strip(top_rho_strip,1);
     BOX top_phi_strip = top_strip;
     top_phi_strip.grow(0,1);
     top_phi_strip.growHi(1,1);
-    FARRAYBOX mac_phi_strip(top_phi_strip,1);
+    FArrayBox mac_phi_strip(top_phi_strip,1);
 
     mac_phi_strip.setVal(0.0);
     int i;

@@ -2,7 +2,7 @@
 #define _FILL_PATCH_H_
 
 //
-// $Id: fill_patch.H,v 1.5 1997-09-26 16:57:11 lijewski Exp $
+// $Id: fill_patch.H,v 1.6 1997-10-01 01:03:19 car Exp $
 //
 
 #include <interface.H>
@@ -17,7 +17,8 @@
 #  define FFCPY     FCPY
 #endif
 
-extern "C" {
+extern "C" 
+{
   void FFCPY(Real*, intS, intS, Real*, intS, const int&);
 }
 
@@ -40,13 +41,14 @@ class alias_fab {
 };
 */
 
-inline void internal_copy(MultiFab& r,
-			  int destgrid, int srcgrid, const Box& b) {
-  Real *const dptr = r[destgrid].dataPtr();
-  Real *const sptr = r[srcgrid].dataPtr();
-  const Box& dbx = r[destgrid].box();
-  const Box& sbx = r[srcgrid].box();
-  FFCPY(dptr, dimlist(dbx), dimlist(b), sptr, dimlist(sbx), r.nComp());
+inline void 
+internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b) 
+{
+    Real *const dptr = r[destgrid].dataPtr();
+    Real *const sptr = r[srcgrid].dataPtr();
+    const Box& dbx = r[destgrid].box();
+    const Box& sbx = r[srcgrid].box();
+    FFCPY(dptr, dimlist(dbx), dimlist(b), sptr, dimlist(sbx), r.nComp());
 }
 
 Real inner_product(MultiFab& r, MultiFab& s);
@@ -89,14 +91,15 @@ int fill_patch(Fab& patch, const Box& region,
 	       amr_boundary bdy = error_boundary,
 	       int flags = 0, int idim = -1, int index = -1);
 
-inline int fill_patch(Fab& patch,
-		      MultiFab& r,
-		      const level_interface& interface,
-		      amr_boundary bdy = error_boundary,
-		      int flags = 0, int idim = -1, int index = -1)
+inline int 
+fill_patch(Fab& patch,
+	   MultiFab& r,
+	   const level_interface& interface,
+	   amr_boundary bdy = error_boundary,
+	   int flags = 0, int idim = -1, int index = -1)
 {
-  return fill_patch(patch, patch.box(), r, interface, bdy,
-		    flags, idim, index);
+    return fill_patch(patch, patch.box(), r, interface, bdy,
+	flags, idim, index);
 }
 
 /*
@@ -139,19 +142,22 @@ void sync_internal_borders(MultiFab& r, const level_interface& interface);
 void fill_internal_borders(MultiFab& r, const level_interface& interface,
 			   int w = -1);
 
-inline void sync_borders(MultiFab& r,
-			 const copy_cache* sync_cache,
-			 const level_interface& interface,
-			 amr_boundary bdy = error_boundary)
+inline void
+sync_borders(MultiFab& r,
+	     const copy_cache* sync_cache,
+	     const level_interface& interface,
+	     amr_boundary bdy = error_boundary)
 {
-  if (sync_cache) {
-    // assumes cache built properly---does not check current bdy
-    sync_cache->run();
-  }
-  else {
-    sync_internal_borders(r, interface);
-    bdy.sync_borders(r, interface);
-  }
+    if (sync_cache) 
+    {
+	// assumes cache built properly---does not check current bdy
+	sync_cache->run();
+    }
+    else 
+    {
+	sync_internal_borders(r, interface);
+	bdy.sync_borders(r, interface);
+    }
 }
 
 
@@ -185,52 +191,54 @@ void clear_part_interface(MultiFab& r, const level_interface& interface);
 
 void interpolate_patch(Fab& patch, const Box& region,
 		       MultiFab& r, const IntVect& rat,
-		       amr_interpolator interp = bilinear_interpolator,
-		       const level_interface& interface = null_level_interface,
+		       amr_interpolator interp /* = bilinear_interpolator */ ,
+		       const level_interface& interface /* = null_level_interface */,
 		       amr_boundary bdy = error_boundary);
 inline
 void interpolate_patch(Fab& patch,
 		       MultiFab& r, const IntVect& rat,
-		       amr_interpolator interp = bilinear_interpolator,
-		       const level_interface& interface = null_level_interface,
+		       amr_interpolator interp /* = bilinear_interpolator */,
+		       const level_interface& interface /* = null_level_interface */,
 		       amr_boundary bdy = error_boundary)
 {
   interpolate_patch(patch, patch.box(), r, rat, interp, interface, bdy);
 }
 
 void restrict_patch(Fab& patch, const Box& region,
-		    MultiFab& r, const IntVect& rat,
-		    const copy_cache* border_cache = 0,
-		    amr_restrictor restric = default_restrictor,
-		    const level_interface& interface = null_level_interface,
-		    amr_boundary bdy = error_boundary);
-inline
-void restrict_patch(Fab& patch,
-		    MultiFab& r, const IntVect& rat,
-		    const copy_cache* border_cache = 0,
-		    amr_restrictor restric = default_restrictor,
-		    const level_interface& interface = null_level_interface,
-		    amr_boundary bdy = error_boundary)
+	       MultiFab& r, const IntVect& rat,
+	       const copy_cache* border_cache = 0,
+	       const amr_restrictor_class& restric = default_restrictor,
+	       const level_interface& interface = null_level_interface,
+	       amr_boundary bdy = error_boundary);
+
+inline void 
+restrict_patch(Fab& patch,
+	       MultiFab& r, const IntVect& rat,
+	       const copy_cache* border_cache = 0,
+	       const amr_restrictor_class& restric = default_restrictor,
+	       const level_interface& interface = null_level_interface,
+	       amr_boundary bdy = error_boundary)
 {
-  restrict_patch(patch, patch.box(), r, rat, border_cache,
-		 restric, interface, bdy);
+    restrict_patch(patch, patch.box(), r, rat, border_cache,
+	restric, interface, bdy);
 }
 
 void restrict_level(MultiFab& dest, int bflag,
-		    MultiFab& r, const IntVect& rat,
-		    const copy_cache* border_cache = 0,
-		    amr_restrictor restric = default_restrictor,
-		    const level_interface& interface = null_level_interface,
-		    amr_boundary bdy = error_boundary);
-inline
-void restrict_level(MultiFab& dest,
-		    MultiFab& r, const IntVect& rat,
-		    const copy_cache* border_cache = 0,
-		    amr_restrictor restric = default_restrictor,
-		    const level_interface& interface = null_level_interface,
-		    amr_boundary bdy = error_boundary)
+	       MultiFab& r, const IntVect& rat,
+	       const copy_cache* border_cache = 0,
+	       const amr_restrictor_class& restric = default_restrictor,
+	       const level_interface& interface = null_level_interface,
+	       amr_boundary bdy = error_boundary);
+
+inline void 
+restrict_level(MultiFab& dest,
+	       MultiFab& r, const IntVect& rat,
+	       const copy_cache* border_cache = 0,
+	       const amr_restrictor_class& restric = default_restrictor,
+	       const level_interface& interface = null_level_interface,
+	       amr_boundary bdy = error_boundary)
 {
-  restrict_level(dest, 0, r, rat, border_cache, restric, interface, bdy);
+    restrict_level(dest, 0, r, rat, border_cache, restric, interface, bdy);
 }
 
 #endif

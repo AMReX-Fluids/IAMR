@@ -1,6 +1,6 @@
 
 //
-// $Id: RealBox.cpp,v 1.5 1997-09-26 16:57:04 lijewski Exp $
+// $Id: RealBox.cpp,v 1.6 1997-10-01 01:03:14 car Exp $
 //
 
 #include <aString.H>
@@ -8,10 +8,10 @@
 #include <Utility.H>
 #include <RealBox.H>
 
-REAL REALBOX::eps = 1.0e-6;
+REAL RealBox::eps = 1.0e-6;
 
 // -----------------------------------------------------------
-REALBOX::REALBOX()
+RealBox::RealBox()
 {
     D_TERM(xlo[0] , = xlo[1] , = xlo[2] ) = 0.;
     D_TERM(xhi[0] , = xhi[1] , = xhi[2] ) = -1.;
@@ -19,7 +19,7 @@ REALBOX::REALBOX()
 }
 
 // -----------------------------------------------------------
-REALBOX::REALBOX(const REAL* lo, const REAL* hi)
+RealBox::RealBox(const REAL* lo, const REAL* hi)
 {
     D_EXPR(xlo[0] = lo[0] , xlo[1] = lo[1] , xlo[2] = lo[2]);
     D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
@@ -27,7 +27,7 @@ REALBOX::REALBOX(const REAL* lo, const REAL* hi)
 }
 
 // -----------------------------------------------------------
-REALBOX::REALBOX(const BOX& bx, const REAL* dx, const REAL* base)
+RealBox::RealBox(const BOX& bx, const REAL* dx, const REAL* base)
 {
     const int* lo = bx.loVect();
     const int* hi = bx.hiVect();
@@ -41,7 +41,7 @@ REALBOX::REALBOX(const BOX& bx, const REAL* dx, const REAL* base)
 }
 
 // -----------------------------------------------------------
-REALBOX::REALBOX(D_DECL(REAL x0, REAL y0, REAL z0),
+RealBox::RealBox(D_DECL(REAL x0, REAL y0, REAL z0),
 		 D_DECL(REAL x1, REAL y1, REAL z1))
 {
     D_EXPR(xlo[0] = x0 , xlo[1] = y0 , xlo[2] = z0);
@@ -50,26 +50,26 @@ REALBOX::REALBOX(D_DECL(REAL x0, REAL y0, REAL z0),
 }
 
 // -----------------------------------------------------------
-void REALBOX::setLo(const REAL* lo)
+void RealBox::setLo(const REAL* lo)
 {
     D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]);
     computeBoxLen();
 }
 
-void REALBOX::setLo(const Array<REAL> &lo)
+void RealBox::setLo(const Array<REAL> &lo)
 {
     D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]);
     computeBoxLen();
 }
 
 // -----------------------------------------------------------
-void REALBOX::setHi(const REAL* hi)
+void RealBox::setHi(const REAL* hi)
 {
     D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]);
     computeBoxLen();
 }
 
-void REALBOX::setHi(const Array<REAL>& hi)
+void RealBox::setHi(const Array<REAL>& hi)
 {
     D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]);
     computeBoxLen();
@@ -77,7 +77,7 @@ void REALBOX::setHi(const Array<REAL>& hi)
 
 // -----------------------------------------------------------
 void
-REALBOX::setLo(int indx, REAL lo)
+RealBox::setLo(int indx, REAL lo)
 {
    assert( indx >= 0 && indx < BL_SPACEDIM);
    xlo[indx] = lo;
@@ -86,7 +86,7 @@ REALBOX::setLo(int indx, REAL lo)
 
 // -----------------------------------------------------------
 void
-REALBOX::setHi(int indx, REAL hi)
+RealBox::setHi(int indx, REAL hi)
 {
     assert( indx >= 0 && indx < BL_SPACEDIM);
     xhi[indx] = hi;
@@ -95,7 +95,7 @@ REALBOX::setHi(int indx, REAL hi)
 
 // -----------------------------------------------------------
 int
-REALBOX::contains(const REAL* point)
+RealBox::contains(const REAL* point)
 {
     return  (xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps)
 #if (BL_SPACEDIM > 1)   
@@ -109,14 +109,14 @@ REALBOX::contains(const REAL* point)
 
 // -----------------------------------------------------------
 int
-REALBOX::contains(const REALBOX& rb)
+RealBox::contains(const RealBox& rb)
 {
     return (contains(rb.xlo) && contains(rb.xhi));
 }
 
 // -----------------------------------------------------------
 int
-REALBOX::ok() const
+RealBox::ok() const
 {
     return (len[0] > eps)
 #if (BL_SPACEDIM > 1)
@@ -130,9 +130,9 @@ REALBOX::ok() const
 
 // -----------------------------------------------------------
 ostream&
-operator << (ostream &os, const REALBOX& b)
+operator << (ostream &os, const RealBox& b)
 {
-    os << "(REALBOX ";
+    os << "(RealBox ";
     int i;
     for (i = 0; i < BL_SPACEDIM; i++) {
         os << b.xlo[i] << ' ' << b.xhi[i] << ' ';
@@ -144,12 +144,12 @@ operator << (ostream &os, const REALBOX& b)
 
 // -----------------------------------------------------------
 istream&
-operator >> (istream &is, REALBOX& b)
+operator >> (istream &is, RealBox& b)
 {
     is.ignore(BL_IGNORE_MAX,'(');
     aString s;
     is >> s;
-    if(s != "REALBOX") {
+    if(s != "RealBox") {
         cerr << "Unexpected token in RealBox: " << s << '\n';
         BoxLib::Abort();
     }

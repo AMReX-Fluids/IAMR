@@ -1,6 +1,6 @@
 
 //
-// $Id: restrictor.cpp,v 1.5 1997-09-30 20:37:26 car Exp $
+// $Id: restrictor.cpp,v 1.6 1997-10-01 01:03:23 car Exp $
 //
 
 #include <restrictor.H>
@@ -111,9 +111,9 @@ default_restrictor_class::fill(Fab& patch,
 				    const IntVect& rat) const
 {
   if (patch.box().cellCentered())
-    cell_average_restrictor.fill(patch, region, fgr, rat);
+    cell_average_restrictor_class().fill(patch, region, fgr, rat);
   else if (patch.box().type() == nodevect)
-    injection_restrictor.fill(patch, region, fgr, rat);
+    injection_restrictor_class().fill(patch, region, fgr, rat);
   else
     BoxLib::Error("default_restrictor_class::fill---No default restriction defined for mixed data");
 }

@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.12 1997-09-26 16:56:56 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.13 1997-10-01 01:03:03 car Exp $
 //
 
 //
@@ -174,7 +174,7 @@ void Diffusion::diffuse_scalar(REAL dt, int sigma, REAL be_cn_theta,
   REAL cur_time  = caller->get_state_data(State_Type).curTime();
   REAL prev_time = caller->get_state_data(State_Type).prevTime();
 
-  FARRAYBOX xflux,yflux,zflux;
+  FArrayBox xflux,yflux,zflux;
 
   // We are now at this point in NS::scalar_update:
   //if (is_diffusive[sigma]) {
@@ -237,7 +237,7 @@ void Diffusion::diffuse_scalar(REAL dt, int sigma, REAL be_cn_theta,
 
       if(rho_flag==1) {
         // multiply by density at time nph
-        FARRAYBOX& Rh = rho_halfmfi();
+        FArrayBox& Rh = rho_halfmfi();
         S_new[i].mult(Rh,S_newmfi.validbox(),0,sigma,1);
       }
 
@@ -334,8 +334,8 @@ void Diffusion::diffuse_scalar(REAL dt, int sigma, REAL be_cn_theta,
       yflux.resize(yflux_bx,1);
       DEF_LIMITS(yflux,yflux_dat,yflo,yfhi);
 
-      FARRAYBOX& xarea = area0mfi();
-      FARRAYBOX& yarea = area1mfi();
+      FArrayBox& xarea = area0mfi();
+      FArrayBox& yarea = area1mfi();
 
       DEF_CLIMITS(xarea,xarea_dat,axlo,axhi);
       DEF_CLIMITS(yarea,yarea_dat,aylo,ayhi);
@@ -365,7 +365,7 @@ void Diffusion::diffuse_scalar(REAL dt, int sigma, REAL be_cn_theta,
         zflux.resize(zflux_bx,1);
         DEF_LIMITS(zflux,zflux_dat,zflo,zfhi);
 
-        FARRAYBOX& zarea = area2mfi();
+        FArrayBox& zarea = area2mfi();
         DEF_CLIMITS(zarea,zarea_dat,azlo,azhi);
 
         FORT_VISCFLUX (S_oldmfi().dataPtr(sigma), 
@@ -486,7 +486,7 @@ void Diffusion::diffuse_velocity_constant_mu(REAL dt, REAL be_cn_theta,
   REAL cur_time  = caller->get_state_data(State_Type).curTime();
   REAL prev_time = caller->get_state_data(State_Type).prevTime();
 
-  FARRAYBOX xflux, yflux, zflux;
+  FArrayBox xflux, yflux, zflux;
 
   // at this point in time we can only do decoupled scalar
   // so we loop over components
@@ -528,7 +528,7 @@ void Diffusion::diffuse_velocity_constant_mu(REAL dt, REAL be_cn_theta,
 	U_newmfi().mult(volumemfi(),U_newmfi.validbox(),0,sigma,1);
 
 	// multiply by density at time nph
-	FARRAYBOX& Rh = rho_halfmfi();
+	FArrayBox& Rh = rho_halfmfi();
 	U_newmfi().mult(Rh,U_newmfi.validbox(),0,sigma,1);
 
 	// add to Rhs which contained mu/(2 dt) Lap(u)
@@ -683,8 +683,8 @@ void Diffusion::diffuse_velocity_constant_mu(REAL dt, REAL be_cn_theta,
 	yflux.resize(yflux_bx,1);
         DEF_LIMITS(yflux,yflux_dat,yflo,yfhi);
 
-	FARRAYBOX& xarea = area0mfi();
-	FARRAYBOX& yarea = area1mfi();
+	FArrayBox& xarea = area0mfi();
+	FArrayBox& yarea = area1mfi();
 
 	DEF_CLIMITS(xarea,xarea_dat,axlo,axhi);
 	DEF_CLIMITS(yarea,yarea_dat,aylo,ayhi);
@@ -709,7 +709,7 @@ void Diffusion::diffuse_velocity_constant_mu(REAL dt, REAL be_cn_theta,
 	zflux.resize(zflux_bx,1);
         DEF_LIMITS(zflux,zflux_dat,zflo,zfhi);
 
-	FARRAYBOX& zarea = area2mfi();
+	FArrayBox& zarea = area2mfi();
 	DEF_CLIMITS(zarea,zarea_dat,azlo,azhi);
 
         FORT_VISCFLUX (U_oldmfi().dataPtr(sigma), 
@@ -836,7 +836,7 @@ void Diffusion::diffuse_tensor_velocity(REAL dt, REAL be_cn_theta,
 	U_newmfi().mult(volumemfi(),Rhsmfi.validbox(),0,sigma,1);
 
 	// multiply by density at time nph
-	FARRAYBOX& Rh = rho_halfmfi();
+	FArrayBox& Rh = rho_halfmfi();
 	U_newmfi().mult(Rh,Rhsmfi.validbox(),0,sigma,1);
 
 	// add to Rhs which contained operator applied to U_old
@@ -885,10 +885,10 @@ void Diffusion::diffuse_tensor_velocity(REAL dt, REAL be_cn_theta,
 	const int *vlo      = vbox.loVect();
 	const int *vhi      = vbox.hiVect();
     
-        FARRAYBOX& betax = betanp10mfi();
+        FArrayBox& betax = betanp10mfi();
         DEF_CLIMITS(betax,betax_dat,betax_lo,betax_hi);
 
-        FARRAYBOX& betay = betanp11mfi();
+        FArrayBox& betay = betanp11mfi();
         DEF_CLIMITS(betay,betay_dat,betay_lo,betay_hi);
 
  	FORT_TENSOR_HOOPRHS(&fort_xvel_comp, rhs, ARLIM(lo), ARLIM(hi), 
@@ -984,7 +984,7 @@ void Diffusion::diffuse_tensor_velocity(REAL dt, REAL be_cn_theta,
       }       
       removeFluxBoxesLevel(tensorflux_old);
     
-      FARRAYBOX xflux, yflux, zflux;
+      FArrayBox xflux, yflux, zflux;
 
       for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++) {
 
@@ -1089,8 +1089,8 @@ void Diffusion::diffuse_Vsync(MultiFab *Vsync, REAL dt,
      for (int k = 0; k < BL_SPACEDIM; k++) {
 
        if (velbc.hi(k) == EXT_DIR) {
-         INTVECT bigend   = domain.bigEnd();
-         INTVECT smallend = domain.smallEnd();
+         IntVect bigend   = domain.bigEnd();
+         IntVect smallend = domain.smallEnd();
          int hi = domain.bigEnd(k);
 
          smallend.setVal(k,hi);
@@ -1099,8 +1099,8 @@ void Diffusion::diffuse_Vsync(MultiFab *Vsync, REAL dt,
        }
 
        if (velbc.lo(k) == EXT_DIR) {
-         INTVECT smallend = domain.smallEnd();
-         INTVECT bigend   = domain.bigEnd();
+         IntVect smallend = domain.smallEnd();
+         IntVect bigend   = domain.bigEnd();
          int lo = domain.smallEnd(k);
 
          bigend.setVal(k,lo);
@@ -1180,8 +1180,8 @@ void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, REAL dt,
 
     delete visc_op;
 
-    FARRAYBOX xflux;
-    FARRAYBOX yflux;
+    FArrayBox xflux;
+    FArrayBox yflux;
 
     if (level > 0) {
 
@@ -1198,7 +1198,7 @@ void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, REAL dt,
         const int* lo = grd.loVect();
         const int* hi = grd.hiVect();
 
-        FARRAYBOX& u_sync = Vsyncmfi();
+        FArrayBox& u_sync = Vsyncmfi();
 
         const int* ulo = u_sync.loVect();
         const int* uhi = u_sync.hiVect();
@@ -1213,8 +1213,8 @@ void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, REAL dt,
         yflux.resize(yflux_bx,1);
         DEF_LIMITS(yflux,yflux_dat,yflux_lo,yflux_hi);
 
-        FARRAYBOX& xarea = area0mfi();
-        FARRAYBOX& yarea = area1mfi();
+        FArrayBox& xarea = area0mfi();
+        FArrayBox& yarea = area1mfi();
 
         DEF_CLIMITS(xarea,xarea_dat,xarea_lo,xarea_hi);
         DEF_CLIMITS(yarea,yarea_dat,yarea_lo,yarea_hi);
@@ -1235,13 +1235,13 @@ void Diffusion::diffuse_Vsync_constant_mu(MultiFab *Vsync, REAL dt,
 #endif
 #if (BL_SPACEDIM == 3)
 
-        FARRAYBOX zflux;
+        FArrayBox zflux;
         BOX zflux_bx(grd);
         zflux_bx.surroundingNodes(2);
         zflux.resize(zflux_bx,1);
         DEF_LIMITS(zflux,zflux_dat,zflux_lo,zflux_hi);
 
-        FARRAYBOX& zarea = area2mfi();
+        FArrayBox& zarea = area2mfi();
         DEF_CLIMITS(zarea,zarea_dat,zarea_lo,zarea_hi);
 
         FORT_VISCSYNCFLUX (u_sync.dataPtr(comp), ARLIM(ulo), ARLIM(uhi),
@@ -1352,7 +1352,7 @@ void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, REAL dt,
 
   cout << "Final max of Vsync " << s_norm << NL;
 
-  FARRAYBOX xflux, yflux, zflux;
+  FArrayBox xflux, yflux, zflux;
 
   if (level > 0) {
 
@@ -1505,8 +1505,8 @@ void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, REAL dt,
 
   delete visc_op;
 
-  FARRAYBOX xflux;
-  FARRAYBOX yflux;
+  FArrayBox xflux;
+  FArrayBox yflux;
 
   if (level > 0 && do_viscsyncflux == 1) {
  
@@ -1526,7 +1526,7 @@ void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, REAL dt,
       const int* lo = grd.loVect();
       const int* hi = grd.hiVect();
 
-      FARRAYBOX& s_sync = Ssyncmfi();
+      FArrayBox& s_sync = Ssyncmfi();
 
       const int* slo = s_sync.loVect();
       const int* shi = s_sync.hiVect();
@@ -1541,8 +1541,8 @@ void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, REAL dt,
       yflux.resize(yflux_bx,1);
       DEF_LIMITS(yflux,yflux_dat,yflux_lo,yflux_hi);
 
-      FARRAYBOX& xarea = area0mfi();
-      FARRAYBOX& yarea = area1mfi();
+      FArrayBox& xarea = area0mfi();
+      FArrayBox& yarea = area1mfi();
 
       DEF_CLIMITS(xarea,xarea_dat,xarea_lo,xarea_hi);
       DEF_CLIMITS(yarea,yarea_dat,yarea_lo,yarea_hi);
@@ -1560,13 +1560,13 @@ void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, REAL dt,
 #endif
 #if (BL_SPACEDIM == 3)
 
-      FARRAYBOX zflux;
+      FArrayBox zflux;
       BOX zflux_bx(grd);
       zflux_bx.surroundingNodes(2);
       zflux.resize(zflux_bx,1);
       DEF_LIMITS(zflux,zflux_dat,zflux_lo,zflux_hi);
 
-      FARRAYBOX& zarea = area2mfi();
+      FArrayBox& zarea = area2mfi();
       DEF_CLIMITS(zarea,zarea_dat,zarea_lo,zarea_hi);
 
       FORT_VISCSYNCFLUX (s_sync.dataPtr(sigma), ARLIM(slo), ARLIM(shi),
@@ -1621,8 +1621,8 @@ void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, REAL dt,
    domain.grow(1);
    for (int k = 0; k<BL_SPACEDIM; k++) {
 
-     INTVECT bigend   = domain.bigEnd();
-     INTVECT smallend = domain.smallEnd();
+     IntVect bigend   = domain.bigEnd();
+     IntVect smallend = domain.smallEnd();
      
      int hi = domain.bigEnd(k);
      smallend.setVal(k,hi);
@@ -1707,13 +1707,13 @@ DivVis* Diffusion::getTensorOp(REAL a, REAL b,
       const int *vlo      = vbox.loVect();
       const int *vhi      = vbox.hiVect();
 
-      FARRAYBOX& Rh = rho_halfmfi();
+      FArrayBox& Rh = rho_halfmfi();
       DEF_LIMITS(Rh,rho_dat,rlo,rhi);
 
-      FARRAYBOX& betax = beta0mfi();
+      FArrayBox& betax = beta0mfi();
       DEF_CLIMITS(betax,betax_dat,betax_lo,betax_hi);
 
-      FARRAYBOX& betay = beta1mfi();
+      FArrayBox& betay = beta1mfi();
       DEF_CLIMITS(betay,betay_dat,betay_lo,betay_hi);
 
       FORT_SET_TENSOR_ALPHA(alpha_dat, ARLIM(alo), ARLIM(ahi),
@@ -1833,13 +1833,13 @@ DivVis* Diffusion::getTensorOp(REAL a, REAL b,
       const int *vlo      = vbox.loVect();
       const int *vhi      = vbox.hiVect();
 
-      FARRAYBOX& Rh = rho_halfmfi();
+      FArrayBox& Rh = rho_halfmfi();
       DEF_LIMITS(Rh,rho_dat,rlo,rhi);
 
-      FARRAYBOX& betax = beta0mfi();
+      FArrayBox& betax = beta0mfi();
       DEF_CLIMITS(betax,betax_dat,betax_lo,betax_hi);
 
-      FARRAYBOX& betay = beta1mfi();
+      FArrayBox& betay = beta1mfi();
       DEF_CLIMITS(betay,betay_dat,betay_lo,betay_hi);
 
       FORT_SET_TENSOR_ALPHA(alpha_dat, ARLIM(alo), ARLIM(ahi),
@@ -1916,7 +1916,7 @@ ABecLaplacian* Diffusion::getViscOp(int comp, REAL a, REAL b,
     const int *vlo      = vbox.loVect();
     const int *vhi      = vbox.hiVect();
 
-    FARRAYBOX& Rh = rho_halfmfi();
+    FArrayBox& Rh = rho_halfmfi();
     DEF_LIMITS(Rh,rho_dat,rlo,rhi);
 
     FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),
@@ -2042,7 +2042,7 @@ ABecLaplacian* Diffusion::getViscOp(int comp, REAL a, REAL b,
     const int *vlo      = vbox.loVect();
     const int *vhi      = vbox.hiVect();
 
-    FARRAYBOX& Rh = rho_halfmfi();
+    FArrayBox& Rh = rho_halfmfi();
     DEF_LIMITS(Rh,rho_dat,rlo,rhi);
 
     FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),
@@ -2256,7 +2256,7 @@ void Diffusion::getViscTerms(MultiFab& visc_terms, int src_comp, int comp,
       const BOX& domain = caller->Geom().Domain();
       Array<IntVect> pshifts(27);
  
-      FARRAYBOX dest;
+      FArrayBox dest;
       for(MultiFabIterator visc_tmpmfi(visc_tmp);
           visc_tmpmfi.isValid(); ++visc_tmpmfi)
       {
@@ -2397,10 +2397,10 @@ void Diffusion::getTensorViscTerms(MultiFab& visc_terms,
 	REAL *sdat          = s_tmp[k].dataPtr();
 	const REAL *rcendat = rcen.dataPtr();
 
-        FARRAYBOX& betax = (*beta[0])[k];
+        FArrayBox& betax = (*beta[0])[k];
         DEF_CLIMITS(betax,betax_dat,betax_lo,betax_hi);
 
-        FARRAYBOX& betay = (*beta[1])[k];
+        FArrayBox& betay = (*beta[1])[k];
         DEF_CLIMITS(betay,betay_dat,betay_lo,betay_hi);
 
         FORT_TENSOR_HOOPSRC(&fort_xvel_comp,ARLIM(lo), ARLIM(hi),
@@ -2438,7 +2438,7 @@ void Diffusion::getTensorViscTerms(MultiFab& visc_terms,
       const BOX& domain = caller->Geom().Domain();
       Array<IntVect> pshifts(27);
  
-      FARRAYBOX dest;
+      FArrayBox dest;
       for(MultiFabIterator visc_tmpmfi(visc_tmp);
           visc_tmpmfi.isValid(); ++visc_tmpmfi)
       {
@@ -2827,7 +2827,7 @@ Diffusion::compute_divmusi(REAL time, REAL mu,
               MultiFab& divmusi)
 {
 
-  FARRAYBOX divu;
+  FArrayBox divu;
   const REAL* dx = caller->Geom().CellSize();
   NavierStokes& ns_level =  *(NavierStokes*) &(parent->getLevel(level));
   int nghost = divmusi.nGrow();
@@ -2865,7 +2865,7 @@ Diffusion::compute_divmusi(REAL time,
               MultiFab** beta, MultiFab& divmusi)
 {
 
-  FARRAYBOX divu;
+  FArrayBox divu;
   const REAL* dx = caller->Geom().CellSize();
   NavierStokes& ns_level =  *(NavierStokes*) &(parent->getLevel(level));
   int nghost = divmusi.nGrow();

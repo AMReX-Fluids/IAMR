@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.10 1997-09-24 19:47:10 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.11 1997-10-01 01:03:16 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -25,7 +25,7 @@
 
 const char NL = '\n';
 
-static void printFAB(ostream& os, const FARRAYBOX& f);
+static void printFAB(ostream& os, const FArrayBox& f);
 
 SyncRegister::SyncRegister()
 {
@@ -73,13 +73,13 @@ SyncRegister::define(const BoxArray& fine_boxes,
 	    BOX nd_lo(ndbox);
 	    nd_lo.setRange(dir,blo[dir],1);
 	    FabSet &lo = bndry[Orientation(dir,Orientation::low)];
-	    lo.setFab(k,new FARRAYBOX(nd_lo,1));
+	    lo.setFab(k,new FArrayBox(nd_lo,1));
 
 	    const int* bhi = ndbox.hiVect();
 	    BOX nd_hi(ndbox);
 	    nd_hi.setRange(dir,bhi[dir],1);
 	    FabSet &hi = bndry[Orientation(dir,Orientation::high)];
-	    hi.setFab(k,new FARRAYBOX(nd_hi,1));
+	    hi.setFab(k,new FArrayBox(nd_hi,1));
 
 	    assert(ndbox.shortside() > 0);
 	}
@@ -97,7 +97,7 @@ SyncRegister::define(const BoxArray& fine_boxes,
 	    if(lo.DistributionMap()[k] == myproc) {  // local
 	      assert( ! lo.defined(k) );
 	      lo.clear(k);
-	      lo.setFab(k,new FARRAYBOX(nd_lo,1));
+	      lo.setFab(k,new FArrayBox(nd_lo,1));
 	    }
 
 	    const int* bhi = ndbox.hiVect();
@@ -108,7 +108,7 @@ SyncRegister::define(const BoxArray& fine_boxes,
 	    if(hi.DistributionMap()[k] == myproc) {  // local
 	      assert( ! hi.defined(k) );
 	      hi.clear(k);
-	      hi.setFab(k,new FARRAYBOX(nd_hi,1));
+	      hi.setFab(k,new FArrayBox(nd_hi,1));
 	    }
 
 	    assert(ndbox.shortside() > 0);
@@ -129,7 +129,7 @@ SyncRegister::sum()
     int k;
     for (k = 1; k < ngrds; k++) bb.minBox(grids[k]);
     bb.surroundingNodes();
-    FARRAYBOX bfab(bb,1);
+    FArrayBox bfab(bb,1);
     bfab.setVal(0.0);
 
       // copy registers onto FAB
@@ -152,7 +152,7 @@ SyncRegister::sum()
 }
 
 void
-SyncRegister::increment(const FARRAYBOX& src)
+SyncRegister::increment(const FArrayBox& src)
 {
     //int ngrds = grids.length();
 
@@ -225,7 +225,7 @@ if(ParallelDescriptor::NProcs() > 1) {
     const int* phys_lo = phys_bc->lo();
     const int* phys_hi = phys_bc->hi();
 
-    FARRAYBOX tmp_rhs;
+    FArrayBox tmp_rhs;
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++) {
       BOX domlo(domain), domhi(domain);
@@ -284,7 +284,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 //    fine grids.
     for (k = 0; k < ncrse; k++) {
 
-        FARRAYBOX& ufab = (*U_local)[k];
+        FArrayBox& ufab = (*U_local)[k];
         BOX ubox(U_boxes[k]);
 	ufab.copy(U[k],ubox,0,ubox,0,BL_SPACEDIM);
 
@@ -318,14 +318,14 @@ if(ParallelDescriptor::NProcs() > 1) {
         }
     }
 
-    FARRAYBOX dest;
+    FArrayBox dest;
     Array<IntVect> pshifts(27);
 
     // Enforce periodicity of the coarse grid contributions to U_local 
     if (geom.isAnyPeriodic()) {
       for (k = 0; k < ncrse; k++) {
 
-          FARRAYBOX& ufab = (*U_local)[k];
+          FArrayBox& ufab = (*U_local)[k];
           BOX dbox(ufab.box());
 
           for (int idir = 0; idir < BL_SPACEDIM; idir++) {
@@ -347,7 +347,7 @@ if(ParallelDescriptor::NProcs() > 1) {
              dest.shift(iv);
 //           Here we deliberately do FAB copies so as to copy on ghost cells
              for (int isrc=0; isrc < ncrse; isrc++) {
-               FARRAYBOX& srcfab = (*U_local)[isrc];
+               FArrayBox& srcfab = (*U_local)[isrc];
                BOX intersect(srcfab.box());
                intersect &= dest.box();
                intersect &= domain;
@@ -363,7 +363,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 //    interior and on ghost cells on periodic and ext_dir edges.
     for (k = 0; k < ncrse; k++) {
 
-        FARRAYBOX& ufab = (*U_local)[k];
+        FArrayBox& ufab = (*U_local)[k];
         BOX ubox(U_boxes[k]);
 
         int * bc = crse_bc[k];
@@ -435,10 +435,10 @@ if(ParallelDescriptor::NProcs() > 1) {
     }
 
     // now compute node-centered divergence
-    FARRAYBOX divu;
+    FArrayBox divu;
     for (k = 0; k < ncrse; k++) {
 
-        FARRAYBOX& ufab = (*U_local)[k];
+        FArrayBox& ufab = (*U_local)[k];
         const int* ulo = ufab.loVect();
         const int* uhi = ufab.hiVect();
 
@@ -474,8 +474,8 @@ if(ParallelDescriptor::NProcs() > 1) {
  
     int k, dir, idir;
 
-    FARRAYBOX ufab;
-    FARRAYBOX cfablo, cfabhi, ffablo, ffabhi;
+    FArrayBox ufab;
+    FArrayBox cfablo, cfabhi, ffablo, ffabhi;
     for (k = 0; k < ngrds; k++) {
 	BOX ubox(grow(U_boxes[k],1));
 	ufab.resize(ubox,BL_SPACEDIM);
@@ -616,7 +616,7 @@ if(ParallelDescriptor::NProcs() > 1) {
     const BoxArray& dsdt_boxes = dsdt.boxArray();
     int ncrse = dsdt_boxes.length();
 
-    FARRAYBOX dsdtfab, divu;
+    FArrayBox dsdtfab, divu;
     for (k = 0; k < ncrse; k++) {
 	BOX dsdtbox(grow(dsdt_boxes[k],1));
 	dsdtfab.resize(dsdtbox,1);
@@ -739,8 +739,8 @@ if(ParallelDescriptor::NProcs() > 1) {
  
     int k, dir, idir;
 
-    FARRAYBOX dsdtfab;
-    FARRAYBOX cfablo, cfabhi, ffablo, ffabhi;
+    FArrayBox dsdtfab;
+    FArrayBox cfablo, cfabhi, ffablo, ffabhi;
     for (k = 0; k < ngrds; k++) {
 	BOX dsdtbox(grow(dsdt_boxes[k],1));
 	dsdtfab.resize(dsdtbox,1);
@@ -848,7 +848,7 @@ if(ParallelDescriptor::NProcs() > 1) {
             const int* domlo = domain.loVect();
             const int* domhi = domain.hiVect();
 
-            FARRAYBOX ffablo_tmp(reglo,1);
+            FArrayBox ffablo_tmp(reglo,1);
 
 #if (BL_SPACEDIM==2)
             int nghost = 0;
@@ -873,7 +873,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
         ffablo.copy(ffablo_tmp);
 
-        FARRAYBOX ffabhi_tmp(reghi,1);
+        FArrayBox ffabhi_tmp(reghi,1);
 
 
 #if (BL_SPACEDIM==2)
@@ -935,8 +935,8 @@ if(ParallelDescriptor::NProcs() > 1) {
     int iiv;
     Array<IntVect> pshifts(27);
 
-    FARRAYBOX ufab;
-    FARRAYBOX cfablo, cfabhi, ffablo, ffabhi;
+    FArrayBox ufab;
+    FArrayBox cfablo, cfabhi, ffablo, ffabhi;
     for (k = 0; k < ngrds; k++) {
 	BOX ubox(grow(U_boxes[k],1));
 	ufab.resize(ubox,BL_SPACEDIM);
@@ -1114,11 +1114,11 @@ if(ParallelDescriptor::NProcs() > 1) {
     int k;
     for (k = 0; k < ncrse; k++) {
 
-        FARRAYBOX& pfab = (*Phi_local)[k];
+        FArrayBox& pfab = (*Phi_local)[k];
 	pfab.setVal(0.0);
 	pfab.copy(Phi[k],Phi_boxes[k]);
 
-        FARRAYBOX& sfab = (*Sig_local)[k];
+        FArrayBox& sfab = (*Sig_local)[k];
 	sfab.setVal(0.0);
         sfab.copy(sigma[k],sig_boxes[k]);
 
@@ -1129,7 +1129,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 	}
     }
 
-    FARRAYBOX dest;
+    FArrayBox dest;
     Array<IntVect> pshifts(27);
 
     // Enforce periodicity of Sig_local and Phi_local
@@ -1137,7 +1137,7 @@ if(ParallelDescriptor::NProcs() > 1) {
     if (geom.isAnyPeriodic()) {
       for (k = 0; k < ncrse; k++) {
 
-          FARRAYBOX& sfab = (*Sig_local)[k];
+          FArrayBox& sfab = (*Sig_local)[k];
           BOX dbox(sfab.box());
 
           for (int idir = 0; idir < BL_SPACEDIM; idir++) {
@@ -1158,7 +1158,7 @@ if(ParallelDescriptor::NProcs() > 1) {
              dest.shift(iv);
 //           Here we deliberately do FAB copies so as to copy on ghost cells
              for (int isrc=0; isrc < ncrse; isrc++) {
-               FARRAYBOX& srcfab = (*Sig_local)[isrc];
+               FArrayBox& srcfab = (*Sig_local)[isrc];
                BOX intersect(srcfab.box());
                intersect &= dest.box();
                intersect &= domain;
@@ -1168,7 +1168,7 @@ if(ParallelDescriptor::NProcs() > 1) {
              sfab.copy(dest,0,0,1);
           }
 
-          FARRAYBOX& pfab = (*Phi_local)[k];
+          FArrayBox& pfab = (*Phi_local)[k];
           BOX pbox(pfab.box());
           dest.resize(pbox,1);
           dest.copy(pfab,0,0,1);
@@ -1187,14 +1187,14 @@ if(ParallelDescriptor::NProcs() > 1) {
     }
 
 	  // now compute node centered div(sigma*grad(PHI))
-    FARRAYBOX divgp;
+    FArrayBox divgp;
     for (k = 0; k < ncrse; k++) {
 
-        FARRAYBOX& sfab = (*Sig_local)[k];
+        FArrayBox& sfab = (*Sig_local)[k];
 	const int* slo = sfab.loVect();
 	const int* shi = sfab.hiVect();
 
-        FARRAYBOX& pfab = (*Phi_local)[k];
+        FArrayBox& pfab = (*Phi_local)[k];
 	const int* p_lo = pfab.loVect();
 	const int* p_hi = pfab.hiVect();
 
@@ -1234,8 +1234,8 @@ if(ParallelDescriptor::NProcs() > 1) {
 
     const BOX& crse_node_domain = surroundingNodes(crse_geom.Domain());
 
-    FARRAYBOX pfab, sfab;
-    FARRAYBOX cfablo, cfabhi, ffablo, ffabhi;
+    FArrayBox pfab, sfab;
+    FArrayBox cfablo, cfabhi, ffablo, ffabhi;
 
     for (k = 0; k < ngrds; k++) {
 	const BOX& ndbox = Phi_boxes[k];
@@ -1246,7 +1246,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 	const int* pfab_lo = pfab.loVect();
 	const int* pfab_hi = pfab.hiVect();
 
-	const FARRAYBOX& sig = sigma[k];
+	const FArrayBox& sig = sigma[k];
 	sfab.resize(grow(Sig_boxes[k],1),1);
 	sfab.setVal(0.0);
 	sfab.copy(sig,Sig_boxes[k]);
@@ -1370,8 +1370,8 @@ if(ParallelDescriptor::NProcs() > 1) {
     int ngrds = Phi_boxes.length();
     const BoxArray& Sig_boxes = sigma.boxArray();
 
-    FARRAYBOX pfab, sfab;
-    FARRAYBOX cfablo, cfabhi, ffablo, ffabhi;
+    FArrayBox pfab, sfab;
+    FArrayBox cfablo, cfabhi, ffablo, ffabhi;
 
     for (k = 0; k < ngrds; k++) {
 	const BOX& ndbox = Phi_boxes[k];
@@ -1382,7 +1382,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 	const int* pfab_lo = pfab.loVect();
 	const int* pfab_hi = pfab.hiVect();
 
-	const FARRAYBOX& sig = sigma[k];
+	const FArrayBox& sig = sigma[k];
 	sfab.resize(grow(Sig_boxes[k],1),1);
 	sfab.setVal(0.0);
 	sfab.copy(sig,Sig_boxes[k]);
@@ -1521,7 +1521,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 }
 
 
-static void printFAB(ostream& os, const FARRAYBOX& f)
+static void printFAB(ostream& os, const FArrayBox& f)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::printFAB(...) not implemented in parallel.");

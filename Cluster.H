@@ -2,7 +2,7 @@
 #define _Cluster_H_ 
 
 //
-// $Id: Cluster.H,v 1.3 1997-09-26 16:56:54 lijewski Exp $
+// $Id: Cluster.H,v 1.4 1997-10-01 01:03:02 car Exp $
 //
 
 #include <IntVect.H>
@@ -12,22 +12,11 @@
 #include <BoxDomain.H>
 #include <REAL.H>
 
-#if !defined(BL_SPACEDIM) || (BL_SPACEDIM != 1 && BL_SPACEDIM !=2 && BL_SPACEDIM != 3)
-#error BL_SPACEDIM must be defined
-#endif
-
-#if (BL_SPACEDIM==1)
-#define CLUSTER	Cluster1d
-#elif (BL_SPACEDIM==2)
-#define CLUSTER	Cluster2d
-#elif (BL_SPACEDIM==3)
-#define CLUSTER	Cluster3d
-#endif
 
 class ClusterList;
 
 /// Utility class for tagging error cells
-class CLUSTER
+class Cluster
 {
 
 /*  This class is basically a fortran array of INTEGERSs.
@@ -36,30 +25,30 @@ The array is defined to exist for a set of points inside a box.
 
 protected:
     BOX bx;
-    Array<INTVECT> *ar;
+    Array<IntVect> *ar;
 
 public:
 /// administrative functions
 
 /// construct invalid Cluster
-    CLUSTER() : ar(0) {}
+    Cluster() : ar(0) {}
 
-//  construct a cluster from an array of INTVECTS
+//  construct a cluster from an array of IntVectS
 //  NOTE: Cluster object takes over memory management of array
-    CLUSTER(Array<INTVECT> *a);
+    Cluster(Array<IntVect> *a);
 
 //  construct new cluster by removing all points from c
 //  that lie in box b.  Cluster c is modified and may become invalid.
-    CLUSTER(CLUSTER &c,const BOX& b);
+    Cluster(Cluster &c,const BOX& b);
 
 //  destructor
-    ~CLUSTER();
+    ~Cluster();
 
 //  return minimal box containing all tagged points
     const BOX& box() const {return bx;}
 
 //  return ith tagged point in cluster
-    INTVECT operator[](int i) {
+    IntVect operator[](int i) {
 	assert(ar != 0);
 	return (*ar)[i];
     }
@@ -79,7 +68,7 @@ public:
     plane.  One cluster is returned as a new object the other
     is the modified calling object. */
 
-    CLUSTER* chop();
+    Cluster* chop();
 
 /*  constructs a list of cluster objects obtained by intersecting
     this cluster with each box in bl.  The list is retruned in the
@@ -103,25 +92,25 @@ protected:
     void minBox();
 
 private:
-    CLUSTER(const CLUSTER&);
-    CLUSTER& operator=(const CLUSTER&);
+    Cluster(const Cluster&);
+    Cluster& operator=(const Cluster&);
 
 };
 
 // --------------------------------------------------------------
-/// Container class for CLUSTER
+/// Container class for Cluster
 class ClusterList 
 {
 
 protected:
-    List<CLUSTER*> lst;
+    List<Cluster*> lst;
     
 public:
 //  constructor
     ClusterList() : lst() {};
 
 //  constructor
-    ClusterList(Array<INTVECT> *pts);
+    ClusterList(Array<IntVect> *pts);
 
 //  destructor
     ~ClusterList();
@@ -130,7 +119,7 @@ public:
     int length() const { return lst.length(); };
 
 //  add cluster to end of list
-    void append(CLUSTER* c) { lst.append(c); };
+    void append(Cluster* c) { lst.append(c); };
 
 //  return array of boxes corresponding to clusters
     BoxArray boxArray();

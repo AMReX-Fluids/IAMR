@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.18 1997-09-26 23:30:24 car Exp $
+// $Id: Projection.cpp,v 1.19 1997-10-01 01:03:13 car Exp $
 //
 
 #ifdef BL_T3E
@@ -1016,7 +1016,7 @@ void Projection::MLsyncProject(int c_lev,
   // Clean up memory
   // -------------------------------------------------------------
   //for ( i = 0; i < fine_grids.length(); i++ ) {
-    //FARRAYBOX &e = (*phi[c_lev+1])[i];
+    //FArrayBox &e = (*phi[c_lev+1])[i];
     //phi_fine[i].copy(e,0,0,1);
   //}
   for(MultiFabIterator phimfi(*phi[c_lev+1]); phimfi.isValid(); ++phimfi) 
@@ -1354,9 +1354,9 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], REAL dt,
       {
 	BOX divubox = grids[i];
 	divubox.grow(1);
-	FARRAYBOX divu(divubox,1);
+	FArrayBox divu(divubox,1);
 	getDivCond(lev,divu,1,strt_time);
-	FARRAYBOX dsdt(divubox,1);
+	FArrayBox dsdt(divubox,1);
 	getDivCond(lev,dsdt,1,strt_time+dt);
 	dsdt.minus(divu);
 	dsdt.divide(dt);
@@ -1542,8 +1542,8 @@ void Projection::filterUandP( MultiFab &P_new,
                               const REAL *dx, const REAL dt )
 {
     //int i;
-    FARRAYBOX scratch;
-    FARRAYBOX gradp;
+    FArrayBox scratch;
+    FArrayBox gradp;
     for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) 
     {
 	DependentMultiFabIterator U_newmfi(P_newmfi, U_new);
@@ -1590,7 +1590,7 @@ void Projection::computeDV(MultiFab& DV, const MultiFab& U,
   const BoxArray& U_boxes = U.boxArray();
   int ngrids = U_boxes.length();
 
-  FARRAYBOX ufab;
+  FArrayBox ufab;
   for(MultiFabIterator DVmfi(DV); DVmfi.isValid(); ++DVmfi) 
   {
     DependentMultiFabIterator Umfi(DVmfi, U);
@@ -1647,7 +1647,7 @@ void Projection::put_divu_in_node_rhs(MultiFab& rhs, Amr* parent, int level,
     BOX divubox = P_grids[i];
     divubox.convert(IntVect::TheCellVector());
     divubox.grow(1);
-    FARRAYBOX* divu = new FARRAYBOX(divubox,1);
+    FArrayBox* divu = new FArrayBox(divubox,1);
     getDivCond(level,*divu,1,time);
     if(ParallelDescriptor::NProcs() > 1) 
     {
@@ -1709,7 +1709,7 @@ void Projection::put_divu_in_cc_rhs(MultiFab& rhs, Amr* parent, int level,
   {
     BOX divubox = grids[i];
     divubox.grow(1);
-    FARRAYBOX divu(divubox,1);
+    FArrayBox divu(divubox,1);
     if(ParallelDescriptor::NProcs() > 1) 
     {
       cerr << "Projection::put_divu_in_cc_rhs not implemented in parallel" << NL;
@@ -1737,7 +1737,7 @@ void Projection::put_divu_in_cc_rhs(MultiFab& rhs, Amr* parent, int level,
 
 
 // fill patch to get the divU
-void Projection::getDivCond(int level, FARRAYBOX& fab, int ngrow, REAL time)
+void Projection::getDivCond(int level, FArrayBox& fab, int ngrow, REAL time)
 {
   if (Divu_Type == -1) 
   {
@@ -1769,7 +1769,7 @@ void Projection::EnforcePeriodicity( MultiFab &psi, int nvar,
     assert ( nvar <= psi.nComp() );
 
     Array<IntVect> pshifts(27);
-    FARRAYBOX temp;
+    FArrayBox temp;
     const BOX& domain = geom.Domain();
     
     // loop over all of the grids
@@ -1827,7 +1827,7 @@ void Projection::UnConvertUnew( MultiFab &Uold, REAL alpha, MultiFab &Unew,
 
 // convert U from an Accleration like quantity to a velocity
 // Unew = Uold + alpha*Unew
-void Projection::UnConvertUnew( FARRAYBOX &Uold, REAL alpha, FARRAYBOX &Unew,
+void Projection::UnConvertUnew( FArrayBox &Uold, REAL alpha, FArrayBox &Unew,
                                 const BOX &grd )
 {
     assert( Unew.nComp() >= BL_SPACEDIM );
@@ -1872,7 +1872,7 @@ void Projection::ConvertUnew( MultiFab &Unew,  MultiFab &Uold, REAL alpha,
 
 // convert U to an Accleration like quantity
 // Unew = (Unew - Uold)/alpha
-void Projection::ConvertUnew( FARRAYBOX &Unew, FARRAYBOX &Uold, REAL alpha,
+void Projection::ConvertUnew( FArrayBox &Unew, FArrayBox &Uold, REAL alpha,
                               const BOX &grd )
 {
     assert( Unew.nComp() >= BL_SPACEDIM );
@@ -1914,7 +1914,7 @@ void Projection::UpdateArg1( MultiFab &Unew, REAL alpha, MultiFab &Uold,
 // update a quantity U using the formula
 // currently only the velocity, but will do the pressure as well
 // Unew = Unew + alpha*Uold
-void Projection::UpdateArg1( FARRAYBOX &Unew, REAL alpha, FARRAYBOX &Uold,
+void Projection::UpdateArg1( FArrayBox &Unew, REAL alpha, FArrayBox &Uold,
                              int nvar, const BOX &grd, int ngrow )
 {
     // test for enough variables
@@ -2056,7 +2056,7 @@ void Projection::radMult(int level, MultiFab &mf, int comp)
   //int ngrid = mf.length();
   for(MultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
   {
-    FARRAYBOX& fab = mfmfi();
+    FArrayBox& fab = mfmfi();
     assert(mf.box(mfmfi.index()) == mfmfi.validbox());
     const BOX& bx = mfmfi.validbox();
     const int* lo = bx.loVect();
@@ -2082,7 +2082,7 @@ void Projection::radDiv(int level, MultiFab &mf, int comp)
   //int ngrid = mf.length();
   for(MultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
   {
-    FARRAYBOX& fab = mfmfi();
+    FArrayBox& fab = mfmfi();
     assert(mf.box(mfmfi.index()) == mfmfi.validbox());
     const BOX& bx = mfmfi.validbox();
     const int* lo = bx.loVect();
@@ -2163,8 +2163,8 @@ void Projection::set_level_projector_outflow_bcs(int level,
     const REAL* dx = parent->Geom(0).CellSize();
     REAL hx = dx[0];
     const BOX& domain = parent->Geom(0).Domain();
-    INTVECT bigend = domain.bigEnd();
-    INTVECT smallend = domain.smallEnd();
+    IntVect bigend = domain.bigEnd();
+    IntVect smallend = domain.smallEnd();
     int jhi = domain.bigEnd(1);
     smallend.setVal(1,jhi);
     BOX top_strip(smallend,bigend,IntVect::TheCellVector());
@@ -2176,16 +2176,16 @@ void Projection::set_level_projector_outflow_bcs(int level,
 
     BOX state_strip(smallend,bigend,IntVect::TheCellVector());
 
-    FARRAYBOX rho_strip(state_strip,1);
-    FARRAYBOX rho0_strip(state_strip,1);
-    FARRAYBOX divu_strip(state_strip,1);
-    FARRAYBOX vel_strip(state_strip,2);
+    FArrayBox rho_strip(state_strip,1);
+    FArrayBox rho0_strip(state_strip,1);
+    FArrayBox divu_strip(state_strip,1);
+    FArrayBox vel_strip(state_strip,2);
 
     top_phi_strip.convert(IntVect::TheNodeVector());
     top_phi_strip.growLo(1,-1);
     top_phi_strip.growHi(1,1);
     top_phi_strip.grow(0,1);
-    FARRAYBOX phi_strip(top_phi_strip,1);
+    FArrayBox phi_strip(top_phi_strip,1);
     phi_strip.setVal(0.0);
     const BoxArray& P_grids = P_old.boxArray();
     const int ngrids = P_grids.length();
@@ -2274,7 +2274,7 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
     BOX divubox = P_grids[i];
     divubox.convert(IntVect::TheCellVector());
     divubox.grow(1);
-    FARRAYBOX* divu = new FARRAYBOX(divubox,1);
+    FArrayBox* divu = new FArrayBox(divubox,1);
     getDivCond(lev,*divu,1,cur_divu_time);
 
     BOX rbox = P_grids[i];
@@ -2322,13 +2322,13 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
   } 
   else 
   {
-    FARRAYBOX *phi_crse_strip;
-    FARRAYBOX *phi_fine_strip;
+    FArrayBox *phi_crse_strip;
+    FArrayBox *phi_fine_strip;
     const REAL* dx = parent->Geom(f_lev).CellSize();
     REAL hx = dx[0];
     const BOX& domain = parent->Geom(f_lev).Domain();
-    INTVECT bigend = domain.bigEnd();
-    INTVECT smallend = domain.smallEnd();
+    IntVect bigend = domain.bigEnd();
+    IntVect smallend = domain.smallEnd();
     int jhi = domain.bigEnd(1);
     smallend.setVal(1,jhi);
     BOX top_strip(smallend,bigend,IntVect::TheCellVector());
@@ -2340,15 +2340,15 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
 
     BOX state_strip(smallend,bigend,IntVect::TheCellVector());
 
-    FARRAYBOX rho_strip(state_strip,1);
-    FARRAYBOX divu_strip(state_strip,1);
-    FARRAYBOX vel_strip(state_strip,2);
+    FArrayBox rho_strip(state_strip,1);
+    FArrayBox divu_strip(state_strip,1);
+    FArrayBox vel_strip(state_strip,2);
 
     top_phi_strip.convert(IntVect::TheNodeVector());
     top_phi_strip.growLo(1,-1);
     top_phi_strip.growHi(1,1);
     top_phi_strip.grow(0,1);
-    phi_fine_strip = new FARRAYBOX(top_phi_strip,1);
+    phi_fine_strip = new FArrayBox(top_phi_strip,1);
     phi_fine_strip->setVal(0.0);
 
     getDivCond(f_lev,divu_strip,0,cur_divu_time);
@@ -2400,8 +2400,8 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
       {
 	IntVect ratio = parent->refRatio(lev);
 	const BOX& domain = parent->Geom(lev).Domain();
-	INTVECT bigend = domain.bigEnd();
-	INTVECT smallend = domain.smallEnd();
+	IntVect bigend = domain.bigEnd();
+	IntVect smallend = domain.smallEnd();
 	int jhi = domain.bigEnd(1);
 	smallend.setVal(1,jhi);
 	BOX top_strip(smallend,bigend,IntVect::TheCellVector());
@@ -2409,7 +2409,7 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
 	top_phi_strip.convert(IntVect::TheNodeVector());
 	top_phi_strip.growLo(1,-1);
 	top_phi_strip.grow(0,1);
-	phi_crse_strip = new FARRAYBOX(top_phi_strip,1);
+	phi_crse_strip = new FArrayBox(top_phi_strip,1);
 	phi_crse_strip->setVal(0.0);
 	//int ng_pres = 0;
 	DEF_LIMITS((*phi_crse_strip),pcrse,clo,chi);
@@ -2463,28 +2463,28 @@ void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi,
   {
 // what we do is similar to what we do in set_initial_projection_outflow_bcs
 // except that we work with derivatives of U and S,
-    FARRAYBOX *phi_crse_strip;
-    FARRAYBOX *phi_fine_strip;
+    FArrayBox *phi_crse_strip;
+    FArrayBox *phi_fine_strip;
     const REAL* dx = parent->Geom(f_lev).CellSize();
     REAL hx = dx[0];
     const BOX& domain = parent->Geom(f_lev).Domain();
-    INTVECT bigend = domain.bigEnd();
-    INTVECT smallend = domain.smallEnd();
+    IntVect bigend = domain.bigEnd();
+    IntVect smallend = domain.smallEnd();
     int jhi = domain.bigEnd(1);
     smallend.setVal(1,jhi);
     BOX top_strip(smallend,bigend,IntVect::TheCellVector());
-    FARRAYBOX rho_strip(top_strip,1);
-    FARRAYBOX rho0_strip(top_strip,1);
-    FARRAYBOX divu_strip(top_strip,1);
-    FARRAYBOX dsdt_strip(top_strip,1);
-    FARRAYBOX vel_strip(top_strip,2);
-    FARRAYBOX vel0_strip(top_strip,2);
+    FArrayBox rho_strip(top_strip,1);
+    FArrayBox rho0_strip(top_strip,1);
+    FArrayBox divu_strip(top_strip,1);
+    FArrayBox dsdt_strip(top_strip,1);
+    FArrayBox vel_strip(top_strip,2);
+    FArrayBox vel0_strip(top_strip,2);
     BOX top_phi_strip = top_strip;
     top_phi_strip.convert(IntVect::TheNodeVector());
     top_phi_strip.growLo(1,-1);
     top_phi_strip.growHi(1,1);
     top_phi_strip.grow(0,1);
-    phi_fine_strip = new FARRAYBOX(top_phi_strip,1);
+    phi_fine_strip = new FArrayBox(top_phi_strip,1);
     phi_fine_strip->setVal(0.0);
     getDivCond(f_lev,divu_strip,0,start_time);
     getDivCond(f_lev,dsdt_strip,0,start_time+dt);
@@ -2536,8 +2536,8 @@ void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi,
       {
 	IntVect ratio = parent->refRatio(lev);
 	const BOX& domain = parent->Geom(lev).Domain();
-	INTVECT bigend = domain.bigEnd();
-	INTVECT smallend = domain.smallEnd();
+	IntVect bigend = domain.bigEnd();
+	IntVect smallend = domain.smallEnd();
 	int jhi = domain.bigEnd(1);
 	smallend.setVal(1,jhi);
 	BOX top_strip(smallend,bigend,IntVect::TheCellVector());
@@ -2545,7 +2545,7 @@ void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi,
 	top_phi_strip.convert(IntVect::TheNodeVector());
 	top_phi_strip.growLo(1,-1);
 	top_phi_strip.grow(0,1);
-	phi_crse_strip = new FARRAYBOX(top_phi_strip,1);
+	phi_crse_strip = new FArrayBox(top_phi_strip,1);
 	phi_crse_strip->setVal(0.0);
 	//int ng_pres = 0;
 	DEF_LIMITS((*phi_crse_strip),pcrse,clo,chi);

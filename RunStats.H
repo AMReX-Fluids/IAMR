@@ -2,7 +2,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.4 1997-09-26 16:57:05 lijewski Exp $
+// $Id: RunStats.H,v 1.5 1997-10-01 01:03:15 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -41,10 +41,12 @@ public:
 	: run_time(0.0), run_wtime(0.0),
 	  max_time(0.0), max_wtime(0.0)
     {}
-    int operator == (const RunStatsData &s1) const {
+    int operator == (const RunStatsData &s1) const 
+    {
 	return (name == s1.name) && (level == s1.level);
     }
-    int operator != (const RunStatsData &s1) const {
+    int operator != (const RunStatsData &s1) const 
+    {
 	return (name != s1.name) || (level != s1.level);
     }
     RunStatsData(aString _name, int _level) 

@@ -1,6 +1,6 @@
 
 //
-// $Id: main_amr.cpp,v 1.5 1997-09-26 16:57:15 lijewski Exp $
+// $Id: main_amr.cpp,v 1.6 1997-10-01 01:03:22 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -52,7 +52,7 @@ main(int argc, char *argv[])
         print_usage(argc, argv);
     }
     int  max_step;
-    REAL stop_time;
+    Real stop_time;
     char* in_file = argv[1];
     ParmParse pp(argc-2,argv+2,NULL,in_file); 
 
@@ -69,7 +69,7 @@ main(int argc, char *argv[])
     max_step = 0;    
     pp.query("max_step",max_step);
     stop_time =0.0;  pp.query("stop_time",stop_time);
-    FARRAYBOX::init();
+    FArrayBox::init();
 
     // -------------------------------------------------
     // -----   construct objects

@@ -1,5 +1,5 @@
 //
-// $Id: ViscBndry.cpp,v 1.3 1997-09-23 19:25:53 lijewski Exp $
+// $Id: ViscBndry.cpp,v 1.4 1997-10-01 01:03:17 car Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -14,17 +14,17 @@ void ViscBndry::setBndryConds(const BCRec& bc,
 
     const BoxArray& grids = boxes();
     int ngrds = grids.length();
-    const REAL* dx = geom.CellSize();
+    const Real* dx = geom.CellSize();
     const BOX& domain = geom.Domain();
-    const REALBOX& prob_domain = geom.ProbDomain();
+    const RealBox& prob_domain = geom.ProbDomain();
 
     for (OrientationIter fi; fi; ++fi) {
 	Orientation face(fi());
-	Array<REAL> &bloc = bcloc[face];
+	Array<Real> &bloc = bcloc[face];
 	Array<BoundCond> &bctag = bcond[face];
 
 	int dir = face.coordDir();
-	REAL delta = dx[dir]*ratio[dir];
+	Real delta = dx[dir]*ratio[dir];
 	int p_bc = (face.isLow() ? bc.lo(dir) : bc.hi(dir));
 
 	for (int i = 0; i < ngrds; i++) {
@@ -66,7 +66,7 @@ ViscBndry::setHomogValues(const BCRec& bc, IntVect& ratio)
         const BOX& bx = grids[grd];
         for (OrientationIter fi; fi; ++fi) {
             Orientation face(fi());
-            FARRAYBOX& bnd_fab = bndry[face][grd];
+            FArrayBox& bnd_fab = bndry[face][grd];
             bnd_fab.setVal(0.);
         }
     }

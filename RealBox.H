@@ -2,28 +2,18 @@
 #define _RealBox_H_ 
 
 //
-// $Id: RealBox.H,v 1.3 1997-09-26 16:57:04 lijewski Exp $
+// $Id: RealBox.H,v 1.4 1997-10-01 01:03:14 car Exp $
 //
 
 #include <Array.H>
 #include <REAL.H>
 #include <Box.H>
 
-#if (BL_SPACEDIM == 1)
-#  define REALBOX RealBox1D
-#endif
-#if (BL_SPACEDIM == 2)
-#  define REALBOX RealBox2D
-#endif
-#if (BL_SPACEDIM == 3)
-#  define REALBOX RealBox3D
-#endif
-
 // rules
 // ok  if and only if (volume > 0)
 // is zero volume intersection valid?
 
-class REALBOX
+class RealBox
 {
 protected:
     REAL xlo[BL_SPACEDIM], xhi[BL_SPACEDIM];
@@ -32,33 +22,33 @@ protected:
 
 public:
 #ifdef __GNUG__
-     bool operator== (const REALBOX& rhs) const { return true; }
+     bool operator== (const RealBox& rhs) const { return true; }
 #endif 
       // -------------------------------------------
       // ---------  I/O friend functions  ----------
       // -------------------------------------------
-    friend ostream& operator << (ostream&, const REALBOX& );
-    friend istream& operator >> (istream&, REALBOX& );
+    friend ostream& operator << (ostream&, const RealBox& );
+    friend istream& operator >> (istream&, RealBox& );
 
       // -------------------------------------------
       // ------------  constructors  ---------------
       // -------------------------------------------
 
       // construct invalid region
-    REALBOX();
+    RealBox();
 
       // construct region given diagional points
-    REALBOX(const REAL *lo, const REAL* hi);
+    RealBox(const REAL *lo, const REAL* hi);
       
       // construct region given index box, cell spacing
       // and physical location of index (0,0,0)
-    REALBOX(const BOX& bx, const REAL* dx, const REAL* base);
+    RealBox(const BOX& bx, const REAL* dx, const REAL* base);
 
       // read region from input file
-    REALBOX(istream &is);
+    RealBox(istream &is);
 
       // explicit dimension specific constructors
-    REALBOX(D_DECL(REAL x0, REAL y0, REAL z0),
+    RealBox(D_DECL(REAL x0, REAL y0, REAL z0),
 	    D_DECL(REAL x1, REAL y1, REAL z1));
 
       // -------------------------------------------
@@ -93,16 +83,17 @@ public:
       // -------------------------------------------
     int ok() const;
     int contains(const REAL* point);
-    int contains(const REALBOX &bx);
+    int contains(const RealBox &bx);
 
       // -------------------------------------------
       // ---------  conversion functions  ----------
       // -------------------------------------------
-    BOX  CCBox(const REAL *dx, const REAL *base);
-    BOX  NodeBox(const REAL *dx, const REAL* base);
+    // BOX  CCBox(const REAL *dx, const REAL *base);
+    // BOX  NodeBox(const REAL *dx, const REAL* base);
 
 protected:
-    void computeBoxLen() {
+    void computeBoxLen() 
+    {
 	D_EXPR(len[0] = xhi[0]-xlo[0],
 	       len[1] = xhi[1]-xlo[1],
 	       len[2] = xhi[2]-xlo[2]);

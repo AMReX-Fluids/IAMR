@@ -2,7 +2,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.4 1997-09-26 16:57:03 lijewski Exp $
+// $Id: Projection.H,v 1.5 1997-10-01 01:03:13 car Exp $
 //
 
 #include <BC_TYPES.H>
@@ -142,7 +142,7 @@ protected:  // ================== protected member functions
     void bldSyncProject();
 
     // fill patch to get the divU
-    void getDivCond(int level, FARRAYBOX& fab, int ngrow, REAL time);
+    void getDivCond(int level, FArrayBox& fab, int ngrow, REAL time);
 
     // ==================================================
     // Simple Update function follow
@@ -155,7 +155,7 @@ protected:  // ================== protected member functions
     
     // convert U from an Accleration like quantity to a velocity
     // Unew = Uold + alpha*Unew
-    void UnConvertUnew( FARRAYBOX &Uold, REAL alpha, FARRAYBOX &Unew,
+    void UnConvertUnew( FArrayBox &Uold, REAL alpha, FArrayBox &Unew,
                         const BOX &grd );
     
     // convert U to an Accleration like quantity
@@ -166,7 +166,7 @@ protected:  // ================== protected member functions
     
     // convert U to an Accleration like quantity
     // Unew = (Unew - Uold)/alpha
-    void ConvertUnew( FARRAYBOX &Unew, FARRAYBOX &Uold, REAL alpha,
+    void ConvertUnew( FArrayBox &Unew, FArrayBox &Uold, REAL alpha,
                       const BOX &grd );
 
     // update a quantity U using the formula
@@ -176,7 +176,7 @@ protected:  // ================== protected member functions
 
     // update a quantity U using the formula
     // Unew = Unew + alpha*Uold
-    void UpdateArg1( FARRAYBOX &Unew, REAL alpha, FARRAYBOX &Uold,
+    void UpdateArg1( FArrayBox &Unew, REAL alpha, FArrayBox &Uold,
                      int nvar, const BOX &grd, int ngrow );
 
     // add phi to P

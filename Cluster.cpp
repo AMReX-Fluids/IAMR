@@ -1,6 +1,6 @@
 
 //
-// $Id: Cluster.cpp,v 1.4 1997-09-26 16:56:54 lijewski Exp $
+// $Id: Cluster.cpp,v 1.5 1997-10-01 01:03:02 car Exp $
 //
 
 #include <Cluster.H>
@@ -10,14 +10,14 @@ enum CutStatus{ hole_cut=0, steep_cut, bisect_cut, invalid_cut };
 static int findCut(const int *hist, int lo, int hi, CutStatus &status);
 
 // ------------------------------------------------------------
-CLUSTER::CLUSTER(Array<INTVECT> *a) 
+Cluster::Cluster(Array<IntVect> *a) 
     : ar(a)
 {
     minBox();
 }
 
 // ------------------------------------------------------------
-CLUSTER::~CLUSTER()
+Cluster::~Cluster()
 {
     delete ar;
 }
@@ -25,7 +25,7 @@ CLUSTER::~CLUSTER()
 // ------------------------------------------------------------
 // construct new cluster by removing all points from c
 // that lie in box b.  
-CLUSTER::CLUSTER(CLUSTER &c,const BOX& b) 
+Cluster::Cluster(Cluster &c,const BOX& b) 
     : ar(0)
 {
     assert( b.ok() );
@@ -59,13 +59,13 @@ CLUSTER::CLUSTER(CLUSTER &c,const BOX& b)
 	c.ar = 0;
 	c.bx = BOX();
     } else {
-	ar = new Array<INTVECT>(nlen);
-	Array<INTVECT> *car = new Array<INTVECT>(len-nlen);
+	ar = new Array<IntVect>(nlen);
+	Array<IntVect> *car = new Array<IntVect>(len-nlen);
 	int i1 = 0;
 	int i2 = 0;
         int i;
 	for (i = 0; i < len; i++) {
-	    const INTVECT &p = (c.ar->get(i));
+	    const IntVect &p = (c.ar->get(i));
 	    if (owns[i] == 1) {
 		ar->set(i1++,p);
 	    } else {
@@ -84,7 +84,7 @@ CLUSTER::CLUSTER(CLUSTER &c,const BOX& b)
 // construct new cluster by removing all points from c
 // that lie in box b.  
 void
-CLUSTER::distribute(ClusterList &clst, const BoxDomain &bd)
+Cluster::distribute(ClusterList &clst, const BoxDomain &bd)
 {
     assert( bd.ok() );
     assert( ok() );
@@ -92,7 +92,7 @@ CLUSTER::distribute(ClusterList &clst, const BoxDomain &bd)
    
     BoxDomainIterator bdi(bd);
     while (bdi && ok()) {
-	CLUSTER *c = new CLUSTER(*this,bdi());
+	Cluster *c = new Cluster(*this,bdi());
 	if (c->ok()) {
 	    clst.append(c);
 	} else {
@@ -104,12 +104,12 @@ CLUSTER::distribute(ClusterList &clst, const BoxDomain &bd)
 
 // ------------------------------------------------------------
 int
-CLUSTER::numTag(const BOX& b)
+Cluster::numTag(const BOX& b)
 {
     int cnt = 0;
     int i;
     for (i = 0; i < ar->length(); i++) {
-	const INTVECT &p = (*ar)[i];
+	const IntVect &p = (*ar)[i];
 	if (b.contains(p)) cnt++;
     }
     return cnt;
@@ -117,18 +117,18 @@ CLUSTER::numTag(const BOX& b)
 
 // ------------------------------------------------------------
 void
-CLUSTER::minBox()
+Cluster::minBox()
 {
     int len = ar->length();
     if (len == 0) {
 	bx = BOX();
 	return;
     }
-    INTVECT lo = (*ar)[0];
-    INTVECT hi(lo);
+    IntVect lo = (*ar)[0];
+    IntVect hi(lo);
     int i;
     for (i = 1; i < len; i++) {
-	const INTVECT &p = (*ar)[i];
+	const IntVect &p = (*ar)[i];
 	lo.min(p);
 	hi.max(p);
     }
@@ -136,8 +136,8 @@ CLUSTER::minBox()
 }
 
 // ------------------------------------------------------------
-CLUSTER* 
-CLUSTER::chop()
+Cluster* 
+Cluster::chop()
 {
     int npts = ar->length();
     assert(npts > 1);
@@ -202,12 +202,12 @@ CLUSTER::chop()
     for (i = 0; i < BL_SPACEDIM; i++) delete hist[i];
 
       // split intvect list
-    Array<INTVECT> *alo = new Array<INTVECT>(nlo);
-    Array<INTVECT> *ahi = new Array<INTVECT>(nhi);
+    Array<IntVect> *alo = new Array<IntVect>(nlo);
+    Array<IntVect> *ahi = new Array<IntVect>(nhi);
     int ilo = 0;
     int ihi = 0;
     for (i = 0; i < npts; i++) {
-	const INTVECT &p = (*ar)[i];
+	const IntVect &p = (*ar)[i];
 	if (p[dir] < cut[dir]) {
 	    alo->set(ilo++,p);
 	} else {
@@ -218,7 +218,7 @@ CLUSTER::chop()
     ar = alo;
     minBox();
 
-    return new CLUSTER(ahi);
+    return new Cluster(ahi);
 }
 
 
@@ -289,18 +289,18 @@ findCut(const int *hist, int lo, int hi, CutStatus &status)
 // ------------------------------------------------------------------
 // ClusterList member functions
 // ------------------------------------------------------------------
-ClusterList::ClusterList(Array<INTVECT> *pts)
+ClusterList::ClusterList(Array<IntVect> *pts)
 {
-    CLUSTER *c = new CLUSTER(pts);
+    Cluster *c = new Cluster(pts);
     lst.append(c);
 }
 
 // ------------------------------------------------------------------
 ClusterList::~ClusterList()
 {
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     while (cli) {
-	CLUSTER *c = cli();
+	Cluster *c = cli();
 	delete c;
 	++cli;
     }
@@ -312,7 +312,7 @@ ClusterList::boxArray()
 {
     int len = lst.length();
     BoxArray ba(len);
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     int i;
     for(i = 0; i < len; i++) {
 	ba.set(i,(*cli++)->box());
@@ -327,7 +327,7 @@ ClusterList::boxArray(BoxArray &ba)
     ba.clear();
     int len = lst.length();
     ba.resize(len);
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     int i;
     for(i = 0; i < len; i++) {
 	ba.set(i,(*cli++)->box());
@@ -339,7 +339,7 @@ BoxList
 ClusterList::boxList()
 {
     BoxList blst;
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     while (cli) {
 	blst.append((*cli++)->box());
     }
@@ -351,7 +351,7 @@ void
 ClusterList::boxList(BoxList &blst)
 {
     blst.clear();
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     while (cli) {
 	blst.append((*cli++)->box());
     }
@@ -361,11 +361,11 @@ ClusterList::boxList(BoxList &blst)
 void
 ClusterList::chop(REAL eff)
 {
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     while (cli) {
-	CLUSTER& c = *(cli());
+	Cluster& c = *(cli());
 	if (c.eff() < eff) {
-	    CLUSTER *tmp = c.chop();
+	    Cluster *tmp = c.chop();
 	    lst.append(tmp);
 	} else {
 	    ++cli;
@@ -377,9 +377,9 @@ ClusterList::chop(REAL eff)
 void
 ClusterList::intersect(const BoxDomain& dom)
 {
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     while (cli) {
-	CLUSTER* c = cli();
+	Cluster* c = cli();
 	const BOX& cbox = c->box();
 	if (dom.contains(cbox)) {
 	    ++cli;

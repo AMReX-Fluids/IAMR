@@ -1,6 +1,6 @@
 
 //
-// $Id: AmrLevel.cpp,v 1.14 1997-09-26 16:56:51 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.15 1997-10-01 01:03:01 car Exp $
 //
 
 // #define ADVANCE_DEBUG 1
@@ -59,7 +59,7 @@ AmrLevel::AmrLevel(Amr &papa, int lev, const Geometry &level_geom,
     REAL dt = parent->dtLevel(lev);
     int ndesc = desc_lst.length();
     state.resize(ndesc);
-    const BOX& domain = geom.Domain();
+    const Box& domain = geom.Domain();
     int i;
     for (i = 0; i < ndesc; i++) {
 	state[i].define(domain,grids,desc_lst[i],time, dt);
@@ -110,7 +110,7 @@ AmrLevel::finishConstructor()
     const REAL* dx = geom.CellSize();
     int i;
     for (i = 0; i < num_grids; i++) {
-	grid_loc[i] = REALBOX(grids[i],dx,prob_lo);
+	grid_loc[i] = RealBox(grids[i],dx,prob_lo);
     }
 }
 
@@ -601,7 +601,7 @@ bool FillPatchIterator::isValid() {
   const Box &p_domain = amrLevel.state[stateIndex].getDomain();
   if( ! (p_domain.contains(destBox))) {
     const Real *dx = amrLevel.geom.CellSize();
-    const REALBOX &realProbDomain = amrLevel.geom.ProbDomain();
+    const RealBox &realProbDomain = amrLevel.geom.ProbDomain();
 
     currentState.FillBoundary(currentFillPatchedFab, interpTime, dx,
                               realProbDomain,
@@ -821,7 +821,7 @@ cout << "linInterp on coarse.box() = " << coarseDestFabPtr->box() << NL;
                             interpTime, srcComp, destComp, nComp);
 
     const Real *dx = amrLevels[currentLevel].geom.CellSize();
-    const REALBOX &realProbDomain = amrLevels[currentLevel].geom.ProbDomain();
+    const RealBox &realProbDomain = amrLevels[currentLevel].geom.ProbDomain();
 
 /* FillBoundary */
 cout << "FillBoundary on coarse.box() = " << coarseDestFabPtr->box() << "  outside b
@@ -892,7 +892,7 @@ cout << "linInterp on currentFillPatched.box() = " << currentFillPatchedFab.box(
   const Box &p_domain = amrLevel.state[stateIndex].getDomain();
   if( ! (p_domain.contains(destBox))) {
     const Real *dx = amrLevel.geom.CellSize();
-    const REALBOX &realProbDomain = amrLevel.geom.ProbDomain();
+    const RealBox &realProbDomain = amrLevel.geom.ProbDomain();
 
 /* FillBoundary */
 cout << "FillBoundary on dest.box() = " << currentFillPatchedFab.box() << "  outside
@@ -925,23 +925,23 @@ FillPatchIterator::~FillPatchIterator() {
 // old filPatch  (unraveled) vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 // old FillPatch (unraveled) vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
-void AmrLevel::FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
+void AmrLevel::FillPatch(FArrayBox &dest, int dest_comp, REAL time,
                          int stateIndex, int src_comp, int ncomp,
                          Interpolater *mapper)
 {
 cout << "\n_in old FillPatch"
      << "\ndest.box() = " << dest.box() << NL;
     dest.setVal(1.e30);
-    BOX dbox(dest.box());
-    BOX truncdbox(dbox);
+    Box dbox(dest.box());
+    Box truncdbox(dbox);
     const StateDescriptor &desc = desc_lst[stateIndex];
-    const REALBOX &prob_domain = geom.ProbDomain();
-    const BOX &p_domain = state[stateIndex].getDomain();
+    const RealBox &prob_domain = geom.ProbDomain();
+    const Box &p_domain = state[stateIndex].getDomain();
 
     int inside = p_domain.contains(dbox); // does grid intersect boundary
     if( ! inside ) truncdbox &= p_domain;
 
-    BOX unfilled_region;
+    Box unfilled_region;
     BoxDomain fd(dbox.ixType());
     fd.add(truncdbox);
 
@@ -949,7 +949,7 @@ cout << "\n_in old FillPatch"
     const BoxArray &grds = state[stateIndex].boxArray();
     int i;
     for(i = 0; i < grds.length(); i++) {
-        const BOX& gbox = grds[i];
+        const Box& gbox = grds[i];
         if(enclosing_box.intersects(gbox)) fd.rmBox(gbox);
     }
     unfilled_region = fd.minimalBox();
@@ -968,11 +968,11 @@ cout << "\n_in old FillPatch"
       // intersect unfilled_region with the domain, this is necessary
       // because the unfilled_region may contain stuff carried by
       // periodic BC to be outside the domain of dest
-      BOX int_region = unfilled_region & dbox;
+      Box int_region = unfilled_region & dbox;
       if( int_region.ok() ) {
 cout << "unfilled box on level " << level << " = " << int_region << NL;
         // coarsen unfilled region and widen if necessary
-        BOX crse_reg(map->CoarseBox(int_region,crse_ratio));
+        Box crse_reg(map->CoarseBox(int_region,crse_ratio));
 cout << "mapped->CoarseBox = " << crse_reg << NL;
 cout << "Resizing crse fab to " << crse_reg << NL;
         crse.resize(crse_reg,ncomp);         // alloc patch for crse level
@@ -980,22 +980,22 @@ cout << "Resizing crse fab to " << crse_reg << NL;
         //crse_lev.filPatch(crse,0,time,stateIndex,src_comp,ncomp,mapper);
         // ****************************************************************
         crse.setVal(1.e30);
-        BOX crse_dbox(crse.box());
-        BOX crse_truncdbox(crse_dbox);
-        const REALBOX &crse_prob_domain = crse_geom.ProbDomain();
-        const BOX &crse_p_domain = crse_lev.state[stateIndex].getDomain();
+        Box crse_dbox(crse.box());
+        Box crse_truncdbox(crse_dbox);
+        const RealBox &crse_prob_domain = crse_geom.ProbDomain();
+        const Box &crse_p_domain = crse_lev.state[stateIndex].getDomain();
         int crse_inside = crse_p_domain.contains(crse_dbox);
 
         if( ! inside ) crse_truncdbox &= crse_p_domain;
 
-        BOX crse_unfilled_region;
+        Box crse_unfilled_region;
         BoxDomain crse_fd(crse_dbox.ixType());
         crse_fd.add(crse_truncdbox);
 
         Box crse_enclosing_box = crse_fd.minimalBox();
         const BoxArray &crse_grds = crse_lev.state[stateIndex].boxArray();
         for(i = 0; i < crse_grds.length(); i++) {
-            const BOX& crse_gbox = crse_grds[i];
+            const Box& crse_gbox = crse_grds[i];
             if(crse_enclosing_box.intersects(crse_gbox)) crse_fd.rmBox(crse_gbox);
         }
         crse_unfilled_region = crse_fd.minimalBox();
@@ -1007,12 +1007,12 @@ cout << "Resizing crse fab to " << crse_reg << NL;
           const Geometry& crse0_geom = crse0_lev.geom;
           // must fill on this region on crse0 level and interpolate
 
-          BOX crse_int_region = crse_unfilled_region & crse_dbox;
+          Box crse_int_region = crse_unfilled_region & crse_dbox;
           if( crse_int_region.ok() ){
 cout << "unfilled box on level " << level-1 << " = " << crse_int_region << NL;
             // coarsen unfilled region and widen if necessary
             int crse0_ratio = 2;  // for testing
-            BOX crse0_reg(map->CoarseBox(crse_int_region,crse0_ratio));
+            Box crse0_reg(map->CoarseBox(crse_int_region,crse0_ratio));
 cout << "mapped->CoarseBox = " << crse0_reg << NL;
 cout << "Resizing crse0 fab to " << crse0_reg << NL;
             crse0.resize(crse0_reg,ncomp);         // alloc patch for crse0 level
@@ -1020,11 +1020,11 @@ cout << "Resizing crse0 fab to " << crse0_reg << NL;
             //crse0_lev.filPatch(crse0,0,time,stateIndex,src_comp,ncomp,mapper);
             // ================================================================
             crse0.setVal(1.e30);
-            BOX crse0_dbox(crse0.box());
-            BOX crse0_truncdbox(crse0_dbox);
+            Box crse0_dbox(crse0.box());
+            Box crse0_truncdbox(crse0_dbox);
 
-            const REALBOX &crse0_prob_domain = crse0_geom.ProbDomain();
-            const BOX &crse0_p_domain = crse0_lev.state[stateIndex].getDomain();
+            const RealBox &crse0_prob_domain = crse0_geom.ProbDomain();
+            const Box &crse0_p_domain = crse0_lev.state[stateIndex].getDomain();
             int crse0_inside = crse0_p_domain.contains(crse0_dbox);
 
             if( ! crse0_inside ) crse0_truncdbox &= crse0_p_domain;
@@ -1107,7 +1107,7 @@ cout << NL;
 // old filPatch  (recursive) vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 // old FillPatch (recursive) vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 void
-AmrLevel::FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
+AmrLevel::FillPatch(FArrayBox &dest, int dest_comp, REAL time,
                    int state_indx, int src_comp, int ncomp,
                    Interpolater *mapper)
 {
@@ -1126,19 +1126,19 @@ AmrLevel::FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
 
 
     dest.setVal(1.e30);
-    BOX dbox(dest.box());
+    Box dbox(dest.box());
 //cout << "box to FillPatch = " << dest.box() << NL;
-    BOX truncdbox(dbox);
+    Box truncdbox(dbox);
     int nv = dest.nComp();
     int ndesc = desc_lst.length();
     const StateDescriptor &desc = desc_lst[state_indx];
-    const REALBOX& prob_domain = geom.ProbDomain();
-    const BOX& p_domain = state[state_indx].getDomain();
+    const RealBox& prob_domain = geom.ProbDomain();
+    const Box& p_domain = state[state_indx].getDomain();
 
     int inside = p_domain.contains(dbox);
     if( ! inside ) truncdbox &= p_domain;
 
-    BOX unfilled_region;
+    Box unfilled_region;
     BoxDomain fd(dbox.ixType());
     fd.add(truncdbox);
 
@@ -1161,10 +1161,10 @@ AmrLevel::FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
       Interpolater *map = mapper;
       if (map == 0) map = desc.interp();
 
-      BOX int_region = unfilled_region & dbox;
+      Box int_region = unfilled_region & dbox;
       if( int_region.ok() ){
         // coarsen unfilled region and widen if necessary
-        BOX crse_reg(map->CoarseBox(int_region,crse_ratio));
+        Box crse_reg(map->CoarseBox(int_region,crse_ratio));
 
         // alloc patch for crse level
         crse.resize(crse_reg,ncomp);
@@ -1229,9 +1229,9 @@ fabout.close();
 
 // -------------------------------------------------------------
 void
-AmrLevel::FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
+AmrLevel::FillPatch(FArrayBox &dest, int dest_comp, REAL time,
                    int state_indx, int src_comp, int ncomp,
-                   const BOX& unfilled_region,
+                   const Box& unfilled_region,
                    Interpolater *mapper)
 {
     int is_periodic = geom.isAnyPeriodic();
@@ -1252,7 +1252,7 @@ AmrLevel::FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
     // In this version we never fill outside physical domain
 
     dest.setVal(1.e30);
-    BOX dbox(dest.box());
+    Box dbox(dest.box());
 
     int nv = dest.nComp();
     int ndesc = desc_lst.length();
@@ -1264,9 +1264,9 @@ AmrLevel::FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
     assert( desc.inRange(src_comp, ncomp) );
     assert( ncomp <= (nv-dest_comp) );
 
-    const REALBOX& prob_domain = geom.ProbDomain();
+    const RealBox& prob_domain = geom.ProbDomain();
 
-    const BOX& p_domain = state[state_indx].getDomain();
+    const Box& p_domain = state[state_indx].getDomain();
 
       // does grid intersect domain exterior?
     int inside = p_domain.contains(dbox);
@@ -1284,10 +1284,10 @@ AmrLevel::FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
         if (map == 0) map = desc.interp();
 
           // coarsen unfilled region and widen if necessary
-        BOX crse_reg(map->CoarseBox(unfilled_region,crse_ratio));
+        Box crse_reg(map->CoarseBox(unfilled_region,crse_ratio));
 
           // alloc patch for crse level
-        FARRAYBOX crse(crse_reg,ncomp);
+        FArrayBox crse(crse_reg,ncomp);
 
           // fill patch at lower level
         AmrLevel &crse_lev = parent->getLevel(level-1);
@@ -1328,13 +1328,13 @@ AmrLevel::FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
 // old FillPatch with periodic vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 /*
 void
-AmrLevel::filPatch(FARRAYBOX &dest, int dest_comp, REAL time,
+AmrLevel::filPatch(FArrayBox &dest, int dest_comp, REAL time,
 		   int state_indx, int src_comp, int ncomp,
 		   Interpolater *mapper)
 {
     dest.setVal(1.e30);
-    BOX dbox(dest.box());
-    BOX truncdbox(dbox);
+    Box dbox(dest.box());
+    Box truncdbox(dbox);
 
     int nv = dest.nComp();
     int ndesc = desc_lst.length();
@@ -1346,10 +1346,10 @@ AmrLevel::filPatch(FARRAYBOX &dest, int dest_comp, REAL time,
     assert( desc.inRange(src_comp, ncomp) );
     assert( ncomp <= (nv-dest_comp) );
 
-    const REALBOX& prob_domain = geom.ProbDomain();
+    const RealBox& prob_domain = geom.ProbDomain();
     int is_periodic = geom.isAnyPeriodic();
 
-    const BOX& p_domain = state[state_indx].getDomain();
+    const Box& p_domain = state[state_indx].getDomain();
 
       // does grid intersect domain exterior?
     int inside = p_domain.contains(dbox);
@@ -1360,7 +1360,7 @@ AmrLevel::filPatch(FARRAYBOX &dest, int dest_comp, REAL time,
       // create a FIDIL domain to keep track of what can be filled
       // at this level
     // step 1: make BoxDomain of everything needing filling
-    BOX unfilled_region;
+    Box unfilled_region;
     BoxDomain fd(dbox.ixType());
     fd.add(truncdbox);
     if( (!inside) && is_periodic ){
@@ -1385,7 +1385,7 @@ AmrLevel::filPatch(FARRAYBOX &dest, int dest_comp, REAL time,
     const BoxArray &grds = state[state_indx].boxArray();
     int i;
     for (i = 0; i < grds.length(); i++) {
-	const BOX& gbox = grds[i];
+	const Box& gbox = grds[i];
 	if (enclosing_box.intersects(gbox)) fd.rmBox(gbox);
     }
     // step 3: take minimal box containing what's left
@@ -1406,10 +1406,10 @@ AmrLevel::filPatch(FARRAYBOX &dest, int dest_comp, REAL time,
       // intersect unfilled_region with the domain, this is necessary
       // because the unfilled_region may contain stuff carried by periodic 
       // BC to be outside the domain of dest
-      BOX int_region = unfilled_region & dbox;
+      Box int_region = unfilled_region & dbox;
       if( int_region.ok() ){
 	// coarsen unfilled region and widen if necessary
-	BOX crse_reg(map->CoarseBox(int_region,crse_ratio));
+	Box crse_reg(map->CoarseBox(int_region,crse_ratio));
 	
 	// alloc patch for crse level
 	crse.resize(crse_reg,ncomp);
@@ -1522,7 +1522,7 @@ AmrLevel::FillCoarsePatch(FArrayBox &dest,
     assert( desc.inRange(src_comp, ncomp) );
     assert( ncomp <= (nv-dest_comp) );
 
-    const REALBOX &prob_domain = geom.ProbDomain();
+    const RealBox &prob_domain = geom.ProbDomain();
 
     const Box &p_domain = state[state_indx].getDomain();
 
@@ -1562,7 +1562,7 @@ AmrLevel::FillCoarsePatch(FArrayBox &dest,
 }
 
 // -------------------------------------------------------------
-PArray<FARRAYBOX>*
+PArray<FArrayBox>*
 AmrLevel::derive(const aString &name, REAL time)
 {
     if(ParallelDescriptor::NProcs() > 1) {
@@ -1576,11 +1576,11 @@ AmrLevel::derive(const aString &name, REAL time)
 	const StateDescriptor &desc = desc_lst[state_indx];
 	int nc = desc.nComp();
 	const BoxArray& grds = state[state_indx].boxArray();
-	PArray<FARRAYBOX> *df = new PArray<FARRAYBOX>(grids.length(),
+	PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),
 						      PArrayManage);
         int i;
 	for (i = 0; i < grds.length(); i++) {
-	    FARRAYBOX *dest = new FARRAYBOX(grds[i],1);
+	    FArrayBox *dest = new FArrayBox(grds[i],1);
 	    state[state_indx].linInterp(*dest,grds[i],time,src_comp,0,1);
 	    df->set(i,dest);
 	}
@@ -1590,7 +1590,7 @@ AmrLevel::derive(const aString &name, REAL time)
       // can quantity be derived?
     const DeriveRec* d;
     if (d = derive_lst.get(name)) {
-	PArray<FARRAYBOX> *df = new PArray<FARRAYBOX>(grids.length(),
+	PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),
 						      PArrayManage);
 
 	const REAL* dx = geom.CellSize();
@@ -1605,14 +1605,14 @@ AmrLevel::derive(const aString &name, REAL time)
         int i;
 	for (i = 0; i < grds.length(); i++) {
 	      // build destination FAB and install
-	    BOX dbox(grids[i]);
+	    Box dbox(grids[i]);
 	    dbox.convert(der_typ);
-	    FARRAYBOX *dest = new FARRAYBOX(dbox,n_der);
+	    FArrayBox *dest = new FArrayBox(dbox,n_der);
 	    df->set(i,dest);
 
 	      // build src fab and fill with component state data
-	    BOX sbox(d->boxMap()(dbox));
-	    FARRAYBOX src(sbox,n_state);
+	    Box sbox(d->boxMap()(dbox));
+	    FArrayBox src(sbox,n_state);
 	    int dc = 0;
             int k;
 	    for (k = 0; k < nsr; k++) {
@@ -1658,8 +1658,8 @@ AmrLevel::derive(const aString &name, REAL time)
 
 
 // -------------------------------------------------------------
-FARRAYBOX*
-AmrLevel::derive(const BOX& b, const aString &name, REAL time)
+FArrayBox*
+AmrLevel::derive(const Box& b, const aString &name, REAL time)
 {
 
 if(ParallelDescriptor::NProcs() > 1) {
@@ -1673,7 +1673,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
       // is it a state variable?
     if (isStateVariable(name,state_indx,src_comp)) {
-	FARRAYBOX *dest = new FARRAYBOX(b,1);
+	FArrayBox *dest = new FArrayBox(b,1);
 	FillPatch(*dest,0,time,state_indx,src_comp,1);
 	return dest;
     }
@@ -1687,7 +1687,7 @@ if(ParallelDescriptor::NProcs() > 1) {
           ParallelDescriptor::Abort("Exiting.");
 	}
 
-	FARRAYBOX *dest = new FARRAYBOX(b,d->numDerive());
+	FArrayBox *dest = new FArrayBox(b,d->numDerive());
 	FillDerive(*dest,b,name,time);
 	return dest;
     }
@@ -1702,7 +1702,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
 // -------------------------------------------------------------
 void
-AmrLevel::FillDerive(FARRAYBOX &dest, const BOX& subbox,
+AmrLevel::FillDerive(FArrayBox &dest, const Box& subbox,
 		     const aString &name, REAL time)
 {
     const DeriveRec* d = derive_lst.get(name);
@@ -1713,21 +1713,21 @@ AmrLevel::FillDerive(FARRAYBOX &dest, const BOX& subbox,
     int n_der = d->numDerive();
     int cell_centered = der_typ.cellCentered();
 
-    BOX dom(geom.Domain());
+    Box dom(geom.Domain());
     if (!cell_centered) dom.convert(der_typ);
 
       // only fill portion on interior of domain
-    BOX dbox(subbox);
+    Box dbox(subbox);
     dbox &= dom;
 
       // create a FIDIL domain to keep track of what can be filled
       // at this level
-    BOX unfilled_region;
+    Box unfilled_region;
     BoxDomain fd(dbox.ixType());
     fd.add(dbox);
     int i;
     for (i = 0; i < grids.length(); i++) {
-	BOX gbox(grids[i]);
+	Box gbox(grids[i]);
 	if (!cell_centered) gbox.convert(der_typ);
 	if (dbox.intersects(gbox)) fd.rmBox(gbox);
     }
@@ -1743,10 +1743,10 @@ AmrLevel::FillDerive(FARRAYBOX &dest, const BOX& subbox,
 
 	  // coarsen unfilled region and widen if necessary
 	Interpolater *mapper = d->interp();
-	BOX crse_reg(mapper->CoarseBox(unfilled_region,crse_ratio));
+	Box crse_reg(mapper->CoarseBox(unfilled_region,crse_ratio));
 
 	  // alloc patch for crse level
-	FARRAYBOX crse(crse_reg,n_der);
+	FArrayBox crse(crse_reg,n_der);
 
 	  // fill patch at lower level
 	AmrLevel &crse_lev = parent->getLevel(level-1);
@@ -1766,17 +1766,17 @@ AmrLevel::FillDerive(FARRAYBOX &dest, const BOX& subbox,
     int nsr = d->numRange();
     const REAL* dx = geom.CellSize();
     for (i = 0; i < grids.length(); i++) {
-	BOX g(grids[i]);
+	Box g(grids[i]);
 	if (!cell_centered) g.convert(der_typ);
 	g &= dbox;
 	if (g.ok()) {
-	    BOX sbox(d->boxMap()(g));
-	    FARRAYBOX src(sbox,n_state);
+	    Box sbox(d->boxMap()(g));
+	    FArrayBox src(sbox,n_state);
 	    int dc = 0;
 	    int state_indx, sc, nc;
 	    for(int k = 0; k < nsr; k++) {
 		d->getRange(k,state_indx,sc,nc);
-		const BOX& sg = state[state_indx].boxArray()[i];
+		const Box& sg = state[state_indx].boxArray()[i];
 		if (sg.contains(sbox)) {
 		      // can do copy
 		    state[state_indx].linInterp(src,sbox,time,sc,dc,nc);
@@ -1830,20 +1830,20 @@ AmrLevel::getBCArray(int State_Type, int gridno, int strt_comp, int num_comp)
 // -------------------------------------------------------------
 
 void
-AmrLevel::probe(ostream &os, INTVECT iv, int rad, REAL time,
+AmrLevel::probe(ostream &os, IntVect iv, int rad, REAL time,
 		int state_indx, int src_comp, int num_comp)
 {
-    BOX bx(iv,iv);
+    Box bx(iv,iv);
     bx.grow(rad);
-    FARRAYBOX fab(bx,num_comp);
+    FArrayBox fab(bx,num_comp);
     FillPatch(fab,0,time,state_indx,src_comp,num_comp);
     os << "\n >>>> PROBE of:";
     const StateDescriptor &desc = desc_lst[state_indx];
     desc.dumpNames(os,src_comp,num_comp);
     os << NL;
-    INTVECT lo = bx.smallEnd();
-    INTVECT hi = bx.bigEnd();
-    INTVECT point;
+    IntVect lo = bx.smallEnd();
+    IntVect hi = bx.bigEnd();
+    IntVect point;
     char buf[80];
     for( point=lo; point <= hi; bx.next(point) ){
 	os << point;

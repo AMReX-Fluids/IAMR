@@ -2,7 +2,7 @@
 #define _INTERPOLATER_H_ 
 
 //
-// $Id: Interpolater.H,v 1.3 1997-09-26 16:57:00 lijewski Exp $
+// $Id: Interpolater.H,v 1.4 1997-10-01 01:03:08 car Exp $
 //
 
 #define _NodeBilinear_H_      "%W%  %G%"
@@ -26,8 +26,8 @@ public:
     virtual ~Interpolater();
     virtual BOX  CoarseBox(const BOX& fine, int ratio) = 0;
     virtual BOX  CoarseBox(const BOX& fine, const IntVect& ratio) = 0;
-    virtual void interp(FARRAYBOX& crse, int crse_comp,
-                        FARRAYBOX& fine, int fine_comp,
+    virtual void interp(FArrayBox& crse, int crse_comp,
+                        FArrayBox& fine, int fine_comp,
                         int ncomp,
                         const BOX& fine_region, const IntVect & ratio,
                         const Geometry& crse_geom,
@@ -51,8 +51,8 @@ public:
     { return ::coarsen(fine,ratio); }
     virtual BOX CoarseBox(const BOX& fine, const IntVect& ratio)
     { return ::coarsen(fine,ratio); }
-    virtual void interp(FARRAYBOX& crse, int crse_comp,
-                        FARRAYBOX& fine, int fine_comp,
+    virtual void interp(FArrayBox& crse, int crse_comp,
+                        FArrayBox& fine, int fine_comp,
                         int ncomp,
                         const BOX& fine_region, const IntVect & ratio,
                         const Geometry& crse_geom,
@@ -75,8 +75,8 @@ public:
     virtual ~CellBilinear();
     virtual BOX CoarseBox(const BOX& fine, int ratio);
     virtual BOX CoarseBox(const BOX& fine, const IntVect& ratio);
-    virtual void interp(FARRAYBOX& crse, int crse_comp,
-                        FARRAYBOX& fine, int fine_comp,
+    virtual void interp(FArrayBox& crse, int crse_comp,
+                        FArrayBox& fine, int fine_comp,
                         int ncomp,
                         const BOX& fine_region, const IntVect & ratio,
                         const Geometry& crse_geom,
@@ -100,8 +100,8 @@ public:
     virtual ~CellConservative();
     virtual BOX CoarseBox(const BOX& fine, int ratio);
     virtual BOX CoarseBox(const BOX& fine, const IntVect& ratio);
-    virtual void interp(FARRAYBOX& crse, int crse_comp,
-                        FARRAYBOX& fine, int fine_comp,
+    virtual void interp(FArrayBox& crse, int crse_comp,
+                        FArrayBox& fine, int fine_comp,
                         int ncomp,
                         const BOX& fine_region, const IntVect & ratio,
                         const Geometry& crse_geom,
@@ -130,8 +130,8 @@ public:
     virtual ~CellConservativeLinear();
     virtual BOX CoarseBox(const BOX& fine, int ratio);
     virtual BOX CoarseBox(const BOX& fine, const IntVect& ratio);
-    virtual void interp(FARRAYBOX& crse, int crse_comp,
-                        FARRAYBOX& fine, int fine_comp,
+    virtual void interp(FArrayBox& crse, int crse_comp,
+                        FArrayBox& fine, int fine_comp,
                         int ncomp,
                         const BOX& fine_region, const IntVect & ratio,
                         const Geometry& crse_geom,
@@ -155,8 +155,8 @@ public:
     virtual ~CellQuadratic();
     virtual BOX CoarseBox(const BOX& fine, int ratio);
     virtual BOX CoarseBox(const BOX& fine, const IntVect& ratio);
-    virtual void interp(FARRAYBOX& crse, int crse_comp,
-                        FARRAYBOX& fine, int fine_comp,
+    virtual void interp(FArrayBox& crse, int crse_comp,
+                        FArrayBox& fine, int fine_comp,
                         int ncomp,
                         const BOX& fine_region, const IntVect & ratio,
                         const Geometry& crse_geom,
@@ -179,8 +179,8 @@ public:
     { return ::coarsen(fine,ratio); }
     virtual BOX CoarseBox(const BOX& fine, const IntVect& ratio)
     { return ::coarsen(fine,ratio); }
-    virtual void interp(FARRAYBOX& crse, int crse_comp,
-                        FARRAYBOX& fine, int fine_comp,
+    virtual void interp(FArrayBox& crse, int crse_comp,
+                        FArrayBox& fine, int fine_comp,
                         int ncomp,
                         const BOX& fine_region, const IntVect & ratio,
                         const Geometry& crse_geom,

@@ -1,26 +1,26 @@
 //
-// $Id: ABecLaplacian.cpp,v 1.2 1997-09-23 19:25:33 lijewski Exp $
+// $Id: ABecLaplacian.cpp,v 1.3 1997-10-01 01:02:59 car Exp $
 //
 
 #include <ABecLaplacian.H>
 #include <ABec_F.H>
 #include <ParallelDescriptor.H>
 
-REAL ABecLaplacian::a_def=0.0;
-REAL ABecLaplacian::b_def=1.0;
-REAL ABecLaplacian::alpha_def=1.0;
-REAL ABecLaplacian::beta_def=1.0;
+Real ABecLaplacian::a_def=0.0;
+Real ABecLaplacian::b_def=1.0;
+Real ABecLaplacian::alpha_def=1.0;
+Real ABecLaplacian::beta_def=1.0;
 
 
 ABecLaplacian::ABecLaplacian(const BoxArray &_ba, const BndryData &_bd,
-                             REAL _h)
+                             Real _h)
     : LinOp(_ba, _bd, _h), alpha(alpha_def), beta(beta_def)
 {
     initCoefficients(_ba);
 }
 
 ABecLaplacian::ABecLaplacian(const BoxArray &_ba, const BndryData &_bd,
-                             const REAL* _h)
+                             const Real* _h)
     : LinOp(_ba, _bd, _h), alpha(alpha_def), beta(beta_def)
 {
     initCoefficients(_ba);
@@ -32,7 +32,7 @@ ABecLaplacian::~ABecLaplacian()
 }
 
 void
-ABecLaplacian::setScalars(REAL _alpha, REAL _beta)
+ABecLaplacian::setScalars(Real _alpha, Real _beta)
 {
     alpha = _alpha;
     beta  = _beta;

@@ -1,5 +1,5 @@
 //
-// $Id: MacBndry.cpp,v 1.2 1997-09-23 19:25:45 lijewski Exp $
+// $Id: MacBndry.cpp,v 1.3 1997-10-01 01:03:08 car Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -16,7 +16,7 @@ void MacBndry::setBndryConds(const BCRec& phys_bc,
     int ngrds = grids.length();
     const REAL* dx = geom.CellSize();
     const BOX& domain = geom.Domain();
-    const REALBOX& prob_domain = geom.ProbDomain();
+    const RealBox& prob_domain = geom.ProbDomain();
 
     for (OrientationIter fi; fi; ++fi) {
 	Orientation face(fi());

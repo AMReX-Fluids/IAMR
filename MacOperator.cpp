@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.5 1997-09-24 19:47:06 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.6 1997-10-01 01:03:09 car Exp $
 //
 
 #include <MacBndry.H>
@@ -190,13 +190,13 @@ void MacOperator::defRHS( MultiFab* area, MultiFab& volume, MultiFab& Rhs,
 // apply the mac pressure gradient to a velocity field
 // init, means that velocities are initialized here
 void mac_vel_update( int init,
-                     FARRAYBOX &ux,
-                     FARRAYBOX &uy,
+                     FArrayBox &ux,
+                     FArrayBox &uy,
 #if (BL_SPACEDIM == 3 )
-                     FARRAYBOX &uz,
+                     FArrayBox &uz,
 #endif
-                     const FARRAYBOX &phi,
-                     const FARRAYBOX *rhoptr, int rho_comp,  
+                     const FArrayBox &phi,
+                     const FArrayBox *rhoptr, int rho_comp,  
                      const BOX &grd, int level, int n,
                      const REAL *dx, REAL scale )
 {

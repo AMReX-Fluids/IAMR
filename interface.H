@@ -2,7 +2,7 @@
 #define _INTERFACE_H_
 
 //
-// $Id: interface.H,v 1.5 1997-09-26 16:57:14 lijewski Exp $
+// $Id: interface.H,v 1.6 1997-10-01 01:03:21 car Exp $
 //
 
 #include <amr_defs.H>
@@ -43,7 +43,8 @@ class level_interface
 
   void alloc(const BoxArray& Im, const Box& Domain, amr_boundary Bdy);
   level_interface(const BoxArray& Im, const Box& Domain, amr_boundary Bdy)
-    : status(-1) {
+    : status(-1) 
+  {
       alloc(Im, Domain, Bdy);
   }
   void copy(const level_interface& src);
@@ -93,7 +94,7 @@ class level_interface
   unsigned cflag(int i)             const { return flg[0][i]; }
   int cgrid(int i, int j)           const { return cgr[i][j]; }
 
- protected:
+protected:
   int status;                       // tells if some arrays are shared
   Box dom;                          // BoxArray doesn't know domain
   BoxArray im, em;                  // interior and exterior BoxArray

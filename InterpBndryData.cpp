@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.6 1997-09-26 16:56:59 lijewski Exp $
+// $Id: InterpBndryData.cpp,v 1.7 1997-10-01 01:03:07 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -81,7 +81,7 @@ InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
 	    Orientation face(fi());
 	    if (bx[face] == geom.Domain()[face]) {
 		  // physical bndry, copy from grid
-                FARRAYBOX& bnd_fab = bndry[face][grd];
+                FArrayBox& bnd_fab = bndry[face][grd];
 		bnd_fab.copy(mf[grd],mf_start,bnd_start,num_comp);
 	    }
 	}
@@ -113,7 +113,7 @@ InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
 	    Orientation face(fi());
 	    if(bx[face] == geom.Domain()[face]) {
 		  // physical bndry, copy from grid
-                FARRAYBOX& bnd_fab = bndry[face][grd];
+                FArrayBox& bnd_fab = bndry[face][grd];
 		bnd_fab.copy(mf[grd],mf_start,bnd_start,num_comp);
 	    }
 	}

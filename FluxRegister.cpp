@@ -1,6 +1,6 @@
 
 //
-// $Id: FluxRegister.cpp,v 1.11 1997-09-26 16:56:58 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.12 1997-10-01 01:03:05 car Exp $
 //
 
 #include <FluxRegister.H>
@@ -100,7 +100,7 @@ void FluxRegister::copyTo(MultiFab& mflx, int dir,
 
 // -------------------------------------------------------------
 void
-FluxRegister::copyTo(FARRAYBOX& flx, int dir,
+FluxRegister::copyTo(FArrayBox& flx, int dir,
                      int src_comp, int dest_comp, int num_comp)
 {
     assert( dir >= 0 && dir < BL_SPACEDIM);
@@ -129,7 +129,7 @@ FluxRegister::addTo(MultiFab& mflx, int dir, REAL mult,
 
 // -------------------------------------------------------------
 void
-FluxRegister::addTo(FARRAYBOX& flx, int dir, REAL mult,
+FluxRegister::addTo(FArrayBox& flx, int dir, REAL mult,
 		     int src_comp, int dest_comp, int num_comp)
 {
       // flx = flx + mult*register
@@ -141,22 +141,22 @@ FluxRegister::addTo(FARRAYBOX& flx, int dir, REAL mult,
 
         Orientation face_lo(dir,Orientation::low);
         Orientation face_hi(dir,Orientation::high);
-        //FARRAYBOX& lo_fab = bndry[face_lo][k];
-        //FARRAYBOX& hi_fab = bndry[face_hi][k];
-        FARRAYBOX& lo_fab = fsi();
-        FARRAYBOX& hi_fab = dfsi();
+        //FArrayBox& lo_fab = bndry[face_lo][k];
+        //FArrayBox& hi_fab = bndry[face_hi][k];
+        FArrayBox& lo_fab = fsi();
+        FArrayBox& hi_fab = dfsi();
         BOX lo_box(lo_fab.box());
         BOX hi_box(hi_fab.box());
         lo_box &= bx;
         hi_box &= bx;
         if (lo_box.ok()) {
-            FARRAYBOX tmp(lo_box,num_comp);
+            FArrayBox tmp(lo_box,num_comp);
             tmp.copy(lo_fab,src_comp,0,num_comp);
             tmp.mult(mult);
             flx.plus(tmp,0,dest_comp,num_comp);
         }
         if (hi_box.ok()) {
-            FARRAYBOX tmp(hi_box,num_comp);
+            FArrayBox tmp(hi_box,num_comp);
             tmp.copy(hi_fab,src_comp,0,num_comp);
             tmp.mult(mult);
             flx.plus(tmp,0,dest_comp,num_comp);
@@ -181,7 +181,7 @@ FluxRegister::scaleAddTo(MultiFab& mflx, const MultiFab& area,
 
 // -------------------------------------------------------------
 void
-FluxRegister::scaleAddTo(FARRAYBOX& flx, const FARRAYBOX& area,
+FluxRegister::scaleAddTo(FArrayBox& flx, const FArrayBox& area,
                          int dir, REAL mult,
                          int src_comp, int dest_comp, int num_comp)
 {
@@ -202,12 +202,12 @@ FluxRegister::scaleAddTo(FARRAYBOX& flx, const FARRAYBOX& area,
       DependentFabSetIterator dfsi(fsi, fndry[face_hi]);
 
         Orientation lo_face(dir,Orientation::low);
-        //FARRAYBOX& lo_fab = bndry[lo_face][k];
-        FARRAYBOX& lo_fab = fsi();
+        //FArrayBox& lo_fab = bndry[lo_face][k];
+        FArrayBox& lo_fab = fsi();
 
         Orientation hi_face(dir,Orientation::high);
-        //FARRAYBOX& hi_fab = bndry[hi_face][k];
-        FARRAYBOX& hi_fab = dfsi();
+        //FArrayBox& hi_fab = bndry[hi_face][k];
+        FArrayBox& hi_fab = dfsi();
 
         BOX rlo_box(lo_fab.box());
         BOX rhi_box(hi_fab.box());
@@ -267,12 +267,12 @@ void FluxRegister::Reflux(MultiFab &S, const MultiFab &volume, Real scale,
 
     int grd;
     for (grd = 0; grd < ngrd; grd++) {
-        FARRAYBOX& s = S[grd];
+        FArrayBox& s = S[grd];
         const BOX& s_box = grd_boxes[grd];
         REAL* s_dat = s.dataPtr(dest_comp);
         const int* slo = s.loVect();
         const int* shi = s.hiVect();
-        const FARRAYBOX& vol = volume[grd];
+        const FArrayBox& vol = volume[grd];
         const REAL* vol_dat = vol.dataPtr();
         const int* vlo = vol.loVect();
         const int* vhi = vol.hiVect();
@@ -293,7 +293,7 @@ void FluxRegister::Reflux(MultiFab &S, const MultiFab &volume, Real scale,
                     BOX ovlp(s_box);
                     ovlp &= fine_face;
                     if (ovlp.ok()) {
-                        const FARRAYBOX& reg = bndry[face][k];
+                        const FArrayBox& reg = bndry[face][k];
                         const REAL* reg_dat = reg.dataPtr(src_comp);
                         const int* rlo = fine_face.loVect();
                         const int* rhi = fine_face.hiVect();
@@ -640,7 +640,7 @@ void FluxRegister::Reflux(MultiFab &S, Real scale,
     const REAL* dx = geom.CellSize();
 
     for (int grd = 0; grd < ngrd; grd++) {
-        FARRAYBOX& s = S[grd];
+        FArrayBox& s = S[grd];
         const BOX& s_box = grd_boxes[grd];
         REAL* s_dat = s.dataPtr(dest_comp);
         const int* slo = s.loVect();
@@ -662,7 +662,7 @@ void FluxRegister::Reflux(MultiFab &S, Real scale,
                     BOX ovlp(s_box);
                     ovlp &= fine_face;
                     if (ovlp.ok()) {
-                        const FARRAYBOX& reg = bndry[face][k];
+                        const FArrayBox& reg = bndry[face][k];
                         const REAL* reg_dat = reg.dataPtr(src_comp);
                         const int* rlo = fine_face.loVect();
                         const int* rhi = fine_face.hiVect();
@@ -702,7 +702,7 @@ void FluxRegister::Reflux(MultiFab &S, Real scale,
 		  BOX ovlp(s_box);
 		  ovlp &= fine_face;
 		  if (ovlp.ok()) {
-		    const FARRAYBOX& reg = bndry[face][k];
+		    const FArrayBox& reg = bndry[face][k];
 		    const REAL* reg_dat = reg.dataPtr(src_comp);
 		    const int* rlo = fine_face.loVect();
 		    const int* rhi = fine_face.hiVect();
@@ -791,7 +791,7 @@ void FluxRegister::Reflux(MultiFab &S, Real scale,
                     //assert(unfilledBoxes.isEmpty());
                     fillBoxIdList.append(tempFillBoxId);
 
-                    //const FARRAYBOX &reg = bndry[face][k];
+                    //const FArrayBox &reg = bndry[face][k];
                     //const REAL *reg_dat = reg.dataPtr(src_comp);
                     //const int *rlo = fine_face.loVect();
                     //const int *rhi = fine_face.hiVect();
@@ -900,7 +900,7 @@ if(src_comp != 0) {
                     FArrayBox reg(fbid.box(), num_comp);
                     fscd.FillFab(fsid[face], fbid, reg);
 
-                    //const FARRAYBOX &reg = bndry[face][k];
+                    //const FArrayBox &reg = bndry[face][k];
                     //const REAL *reg_dat = reg.dataPtr(src_comp);
                     const REAL *reg_dat = reg.dataPtr(0);
                     const int *rlo = fine_face.loVect();
@@ -1110,7 +1110,7 @@ FluxRegister::CrseInit(const MultiFab& mflx, const MultiFab& area,
 // working nonparallel code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 // -------------------------------------------------------------
 void
-FluxRegister::CrseInit(const FARRAYBOX& flux, const BOX& subbox, int dir,
+FluxRegister::CrseInit(const FArrayBox& flux, const BOX& subbox, int dir,
 		       int srccomp, int destcomp, int numcomp, REAL mult)
 {
     int nvf = flux.nComp();
@@ -1127,7 +1127,7 @@ FluxRegister::CrseInit(const FARRAYBOX& flux, const BOX& subbox, int dir,
     int k;
     for (k = 0; k < nreg; k++) {
 	Orientation face_lo(dir,Orientation::low);
-	FARRAYBOX& loreg = bndry[face_lo][k];
+	FArrayBox& loreg = bndry[face_lo][k];
 	BOX lobox(loreg.box());
 	lobox &= subbox;
 	if (lobox.ok()) {
@@ -1144,7 +1144,7 @@ FluxRegister::CrseInit(const FARRAYBOX& flux, const BOX& subbox, int dir,
 	  // loreg.mult(mult, lobox, destcomp, numcomp);
 	}
 	Orientation face_hi(dir,Orientation::high);
-	FARRAYBOX& hireg = bndry[face_hi][k];
+	FArrayBox& hireg = bndry[face_hi][k];
 	BOX hibox(hireg.box());
 	hibox &= subbox;
 	if (hibox.ok()) {
@@ -1293,7 +1293,7 @@ void FluxRegister::CrseInitFinish() {
 
 // -------------------------------------------------------------
 void
-FluxRegister::CrseInit(const FARRAYBOX& flux, const FARRAYBOX& area,
+FluxRegister::CrseInit(const FArrayBox& flux, const FArrayBox& area,
 		       const BOX& subbox, int dir,
 		       int srccomp, int destcomp, int numcomp, REAL mult)
 {
@@ -1319,7 +1319,7 @@ FluxRegister::CrseInit(const FARRAYBOX& flux, const FARRAYBOX& area,
     int k;
     for (k = 0; k < nreg; k++) {
 	Orientation face_lo(dir,Orientation::low);
-	FARRAYBOX& loreg = bndry[face_lo][k];
+	FArrayBox& loreg = bndry[face_lo][k];
 	BOX lobox(loreg.box());
 	lobox &= subbox;
 	if (lobox.ok()) {
@@ -1334,7 +1334,7 @@ FluxRegister::CrseInit(const FARRAYBOX& flux, const FARRAYBOX& area,
 		          lo,hi,&numcomp,&dir,&mult);
 	}
 	Orientation face_hi(dir,Orientation::high);
-	FARRAYBOX& hireg = bndry[face_hi][k];
+	FArrayBox& hireg = bndry[face_hi][k];
 	BOX hibox(hireg.box());
 	hibox &= subbox;
 	if (hibox.ok()) {
@@ -1378,7 +1378,7 @@ FluxRegister::FineAdd(const MultiFab& mflx, const MultiFab& area, int dir,
 
 // -------------------------------------------------------------
 void
-FluxRegister::FineAdd(const FARRAYBOX& flux, int dir, int boxno,
+FluxRegister::FineAdd(const FArrayBox& flux, int dir, int boxno,
 		      int srccomp, int destcomp, int numcomp, REAL mult)
 {
     assert(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
@@ -1416,7 +1416,7 @@ FluxRegister::FineAdd(const FARRAYBOX& flux, int dir, int boxno,
 
 // -------------------------------------------------------------
 void
-FluxRegister::FineAdd(const FARRAYBOX& flux, const FARRAYBOX& area,
+FluxRegister::FineAdd(const FArrayBox& flux, const FArrayBox& area,
                       int dir, int boxno,
 		      int srccomp, int destcomp, int numcomp, REAL mult)
 {
@@ -1436,7 +1436,7 @@ FluxRegister::FineAdd(const FARRAYBOX& flux, const FARRAYBOX& area,
     const REAL* flxdat = flux.dataPtr(srccomp);
 
     Orientation face_lo(dir,Orientation::low);
-    FARRAYBOX& loreg = bndry[face_lo][boxno];
+    FArrayBox& loreg = bndry[face_lo][boxno];
     const BOX& lobox = loreg.box();
     assert(cbox.contains(lobox));
     const int* rlo = lobox.loVect();
@@ -1448,7 +1448,7 @@ FluxRegister::FineAdd(const FARRAYBOX& flux, const FARRAYBOX& area,
                  &numcomp,&dir,ratio.getVect(),&mult);
 
     Orientation face_hi(dir,Orientation::high);
-    FARRAYBOX& hireg = bndry[face_hi][boxno];
+    FArrayBox& hireg = bndry[face_hi][boxno];
     const BOX& hibox = hireg.box();
     assert(cbox.contains(hibox));
     rlo = hibox.loVect();
@@ -1462,7 +1462,7 @@ FluxRegister::FineAdd(const FARRAYBOX& flux, const FARRAYBOX& area,
 
 // -------------------------------------------------------------
 /*
-static void printFAB(ostream& os, const FARRAYBOX& f, int comp)
+static void printFAB(ostream& os, const FArrayBox& f, int comp)
 {
 
     const BOX& bx = f.box();
@@ -1508,7 +1508,7 @@ FluxRegister::print(ostream &os)
         int comp;
         for (comp = 0; comp < ncomp; comp++) {
             for (OrientationIter face; face; ++face) {
-                const FARRAYBOX& reg = bndry[face()][k];
+                const FArrayBox& reg = bndry[face()][k];
                 printFAB(os,reg,comp);
             }
         }

@@ -1,6 +1,6 @@
 
 //
-// $Id: fill_patch.cpp,v 1.11 1997-09-26 16:57:11 lijewski Exp $
+// $Id: fill_patch.cpp,v 1.12 1997-10-01 01:03:20 car Exp $
 //
 
 #include <fill_patch.H>
@@ -20,8 +20,8 @@
 
 extern "C" 
 {
-  void FIPRODC(Real*, intS, Real*, intS, intS, Real&);
-  void FIPRODN(Real*, intS, Real*, intS, intS, Real&);
+  void FIPRODC(Real*, intS, Real*, intS, intS, Real*);
+  void FIPRODN(Real*, intS, Real*, intS, intS, Real*);
   void FFCPYU(Real*, Real*, intS, const int&);
 #if (BL_SPACEDIM == 2)
   void FFCPY2(Real*, intS, Real*, intS, intS, const int&, const int&);
@@ -37,62 +37,65 @@ fill_borders(MultiFab& r,
 	     amr_boundary bdy,
 	     int w)
 {
-	TRACER("fill_patch::fill_borders");
-  if (border_cache) 
-  {
-    // assumes cache built properly---does not check current bdy and w
-    border_cache->run();
-  }
-  else 
-  {
-    fill_internal_borders(r, interface, w);
-    bdy.fill_borders(r, interface, w);
-  }
+    TRACER("fill_patch::fill_borders");
+    if (border_cache) 
+    {
+	// assumes cache built properly---does not check current bdy and w
+	border_cache->run();
+    }
+    else 
+    {
+	fill_internal_borders(r, interface, w);
+	bdy.fill_borders(r, interface, w);
+    }
 }
 
 Real 
 inner_product(MultiFab& r, MultiFab& s)
 {
-  assert(r.ok() && s.ok());
-  assert(r.nComp() == 1);
-  assert(s.nComp() == 1);
-  assert(type(r) == type(s));
-
-  int igrid;
-  Real sum = 0.0;
-
-  if (type(r) == cellvect)
-  {
-      // PARALLEL -- REDUCTION
-    for (igrid = 0; igrid < r.length(); igrid++) 
+    assert(r.ok() && s.ok());
+    assert(r.nComp() == 1);
+    assert(s.nComp() == 1);
+    assert(type(r) == type(s));
+    
+    Real sum = 0.0;
+    
+    if (type(r) == cellvect)
     {
-      const Box& rbox = r[igrid].box();
-      const Box& sbox = s[igrid].box();
-      const Box& reg  = r.box(igrid);
-      FIPRODC(r[igrid].dataPtr(), dimlist(rbox),
-	      s[igrid].dataPtr(), dimlist(sbox),
-	      dimlist(reg), sum);
+	// PARALLEL -- REDUCTION
+	// for (igrid = 0; igrid < r.length(); igrid++) 
+	for ( MultiFabIterator rmfi(r); rmfi.isValid(); ++rmfi)
+	{
+	    DependentMultiFabIterator smfi(rmfi, s);
+	    const Box& rbox = rmfi().box();
+	    const Box& sbox = smfi().box();
+	    const Box& reg  = rmfi.validbox();
+	    FIPRODC(rmfi().dataPtr(), dimlist(rbox),
+		smfi().dataPtr(), dimlist(sbox),
+		dimlist(reg), &sum);
+	}
     }
-  }
-  else if (type(r) == nodevect) 
-  {
-      // PARALLEL -- REDUCTION
-    for (igrid = 0; igrid < r.length(); igrid++) 
+    else if (type(r) == nodevect) 
     {
-      const Box& rbox = r[igrid].box();
-      const Box& sbox = s[igrid].box();
-      const Box& reg  = r.box(igrid);
-      FIPRODN(r[igrid].dataPtr(), dimlist(rbox),
-	      s[igrid].dataPtr(), dimlist(sbox),
-	      dimlist(reg), sum);
+	// PARALLEL -- REDUCTION
+	// for (igrid = 0; igrid < r.length(); igrid++) 
+	for ( MultiFabIterator rmfi(r); rmfi.isValid(); ++rmfi )
+	{
+	    DependentMultiFabIterator smfi(rmfi, s);
+	    const Box& rbox = rmfi().box();
+	    const Box& sbox = smfi().box();
+	    const Box& reg  = rmfi.validbox();
+	    FIPRODN(rmfi().dataPtr(), dimlist(rbox),
+		smfi().dataPtr(), dimlist(sbox),
+		dimlist(reg), &sum);
+	}
     }
-  }
-  else 
-  {
-    BoxLib::Error("inner_product---only supported for CELL- or NODE-based data");
-  }
-
-  return sum;
+    else 
+    {
+	BoxLib::Error("inner_product---only supported for CELL- or NODE-based data");
+    }
+    ParallelDescriptor::ReduceRealSum(sum);
+    return sum;
 }
 
 #if 0
@@ -106,9 +109,7 @@ initialize(Real (*f)(const Intvect&,const Intvect&,int,int))
   }
   return *this;
 }
-#endif
 
-#if 0
 // Begin fillpatch stuff, still in unfinished state.
 // Significant optimizations possible: avoid copying patches
 // whenever an existing one will do.
@@ -220,7 +221,7 @@ best_match(MultiFab& r, const Box& region, int& igrid, int bord)
 }
 #endif
 
-/*
+#if 0
 grid_real get_patch(const Box& region,
 		    const level_interface& interface,
 		    amr_boundary bdy, int flags)
@@ -292,30 +293,30 @@ int get_patch(Fab& patch, const Box& region,
   patch.alloc(region, nComp());
   return fill_patch(patch, region, interface, bdy, flags);
 }
-*/
+#endif
 
 int 
 find_patch(const Box& region, MultiFab& r, int flags)
 {
-  int igrid;
-  if (r.nGrow() == 0 || (flags & 2)) 
-  {
-    for (igrid = 0; igrid < r.length(); igrid++) 
+    int igrid;
+    if (r.nGrow() == 0 || (flags & 2)) 
     {
-      if (r[igrid].box().contains(region))
-	return igrid;
+	for (igrid = 0; igrid < r.length(); igrid++) 
+	{
+	    if (r[igrid].box().contains(region))
+		return igrid;
+	}
     }
-  }
-  else 
-  {
-    for (igrid = 0; igrid < r.length(); igrid++) 
+    else 
     {
-      if (r.box(igrid).contains(region))
-	return igrid;
+	for (igrid = 0; igrid < r.length(); igrid++) 
+	{
+	    if (r.box(igrid).contains(region))
+		return igrid;
+	}
     }
-  }
-
-  return -1;
+    
+    return -1;
 }
 
 int 
@@ -324,48 +325,48 @@ fill_patch_blindly(Fab& patch,
 		   MultiFab& r,
 		   int flags)
 {
-  int igrid;
-  if (r.nGrow() == 0 || (flags & 2)) 
-  {
-    for (igrid = 0; igrid < r.length(); igrid++) 
+    int igrid;
+    if (r.nGrow() == 0 || (flags & 2)) 
     {
-      if (r[igrid].box().contains(region)) 
-      {
-	patch.copy(r[igrid], region, 0, region, 0, patch.nComp());
-	return 1;
-      }
+	for (igrid = 0; igrid < r.length(); igrid++) 
+	{
+	    if (r[igrid].box().contains(region)) 
+	    {
+		patch.copy(r[igrid], region, 0, region, 0, patch.nComp());
+		return 1;
+	    }
+	}
+	for (igrid = 0; igrid < r.length(); igrid++) 
+	{
+	    if (r[igrid].box().intersects(region)) 
+	    {
+		Box tb = region & r[igrid].box();
+		patch.copy(r[igrid], tb, 0, tb, 0, patch.nComp());
+	    }
+	}
     }
-    for (igrid = 0; igrid < r.length(); igrid++) 
+    else
     {
-      if (r[igrid].box().intersects(region)) 
-      {
-	Box tb = region & r[igrid].box();
-	patch.copy(r[igrid], tb, 0, tb, 0, patch.nComp());
-      }
+	for (igrid = 0; igrid < r.length(); igrid++) 
+	{
+	    Box tb = grow(r[igrid].box(), -r.nGrow());
+	    if (tb.contains(region)) 
+	    {
+		patch.copy(r[igrid], region, 0, region, 0, patch.nComp());
+		return 1;
+	    }
+	}
+	for (igrid = 0; igrid < r.length(); igrid++) 
+	{
+	    Box tb = grow(r[igrid].box(), -r.nGrow());
+	    if (tb.intersects(region)) 
+	    {
+		tb &= region;
+		patch.copy(r[igrid], tb, 0, tb, 0, patch.nComp());
+	    }
+	}
     }
-  }
-  else
-  {
-    for (igrid = 0; igrid < r.length(); igrid++) 
-    {
-      Box tb = grow(r[igrid].box(), -r.nGrow());
-      if (tb.contains(region)) 
-      {
-	patch.copy(r[igrid], region, 0, region, 0, patch.nComp());
-	return 1;
-      }
-    }
-    for (igrid = 0; igrid < r.length(); igrid++) 
-    {
-      Box tb = grow(r[igrid].box(), -r.nGrow());
-      if (tb.intersects(region)) 
-      {
-	tb &= region;
-	patch.copy(r[igrid], tb, 0, tb, 0, patch.nComp());
-      }
-    }
-  }
-  return 0;
+    return 0;
 }
 
 int 
@@ -376,213 +377,213 @@ fill_exterior_patch_blindly(Fab& patch,
 			    amr_boundary bdy,
 			    int flags)
 {
-  const BoxArray& em = interface.exterior_mesh();
-  int igrid;
-  for (igrid = 0; igrid < em.length(); igrid++) 
-  {
-    int jgrid = interface.direct_exterior_ref(igrid);
-    if (jgrid >= 0) 
+    const BoxArray& em = interface.exterior_mesh();
+    int igrid;
+    for (igrid = 0; igrid < em.length(); igrid++) 
     {
-      Box tb;
-      tb = em[igrid];
-      tb.convert(type(r));
-      if (r.nGrow() > 0 && (flags & 2))
-	tb.grow(r.nGrow());
-      if (tb.contains(region)) 
-      {
-	bdy.fill(patch, region, r, jgrid, interface.domain());
-	return 1;
-      }
-      if (tb.intersects(region)) 
-      {
-	tb &= region;
-	bdy.fill(patch, tb, r, jgrid, interface.domain());
-      }
+	int jgrid = interface.direct_exterior_ref(igrid);
+	if (jgrid >= 0) 
+	{
+	    Box tb;
+	    tb = em[igrid];
+	    tb.convert(type(r));
+	    if (r.nGrow() > 0 && (flags & 2))
+		tb.grow(r.nGrow());
+	    if (tb.contains(region)) 
+	    {
+		bdy.fill(patch, region, r, jgrid, interface.domain());
+		return 1;
+	    }
+	    if (tb.intersects(region)) 
+	    {
+		tb &= region;
+		bdy.fill(patch, tb, r, jgrid, interface.domain());
+	    }
+	}
     }
-  }
-  return 0;
+    return 0;
 }
 
 int 
 fill_patch(Fab& patch, const Box& region,
-	       MultiFab& r,
-	       const level_interface& interface,
-	       amr_boundary bdy, int flags,
-	       int idim, int index)
+	   MultiFab& r,
+	   const level_interface& interface,
+	   amr_boundary bdy, int flags,
+	   int idim, int index)
 {
-  if (!region.ok())
-    return 1;
-
-  if (flags & 4)
-    patch.setVal(0.0, region, 0, patch.nComp());
-
-  assert(patch.nComp() == r.nComp());
-  assert(type(patch) == type(r));
-  assert(interface.ok());
-
-  Box tdomain = interface.domain();
-  tdomain.convert(type(patch));
-  Box idomain = grow(tdomain, zerovect - type(r));
-
-  if ((flags & 1) == 0) 
-  {
-    if (idim == -1 || (flags & 2)) 
+    if (!region.ok())
+	return 1;
+    
+    if (flags & 4)
+	patch.setVal(0.0, region, 0, patch.nComp());
+    
+    assert(patch.nComp() == r.nComp());
+    assert(type(patch) == type(r));
+    assert(interface.ok());
+    
+    Box tdomain = interface.domain();
+    tdomain.convert(type(patch));
+    Box idomain = grow(tdomain, zerovect - type(r));
+    
+    if ((flags & 1) == 0) 
     {
-      if (idomain.contains(region) || bdy.defined() == 0) 
-      {
-	return fill_patch_blindly(patch, region, r, flags);
-      }
-      else if (!tdomain.intersects(region)) 
-      {
-	return fill_exterior_patch_blindly(patch, region, r,
-					   interface, bdy, flags);
-      }
-      else if (idomain.intersects(region)) 
-      {
-	if (fill_patch_blindly(patch, region, r, flags) == 1)
-	  return 1;
-	else
-	  return fill_exterior_patch_blindly(patch, region, r,
-					     interface, bdy, flags);
-      }
-      else 
-      {
-	if (fill_exterior_patch_blindly(patch, region, r,
-					interface, bdy, flags) == 1)
-	  return 1;
-	else
-	  return fill_patch_blindly(patch, region, r, flags);
-      }
-    }
-    else if (idim == 0) 
-    {
-      int gridnum[level_interface::N_CORNER_GRIDS+1];
-      gridnum[0] = -1;
-      for (int i = 0; i < level_interface::N_CORNER_GRIDS; i++) 
-      {
-	int igrid = interface.cgrid(index,i);
-	if (igrid != -1) 
+	if (idim == -1 || (flags & 2)) 
 	{
-	  for (int j = 0; gridnum[j] != igrid; j++) 
-	  {
-	    if (gridnum[j] == -1) 
+	    if (idomain.contains(region) || bdy.defined() == 0) 
 	    {
-	      gridnum[j] = igrid;
-	      gridnum[j+1] = -1;
-	      if (igrid >= 0) 
-	      {
-		Box tb = r.box(igrid);
-		tb &= region;
-		const Box& rbox = r[igrid].box();
-                FFCPY(patch.dataPtr(), dimlist(patch.box()),
-                      dimlist(tb),
-                      r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
-	      }
-	      else 
-	      {
-		igrid = -2 - igrid;
-		Box tb = interface.exterior_mesh()[igrid];
-		tb.convert(type(r));
-		tb &= region;
-		bdy.fill(patch, tb, r,
-			 interface.direct_exterior_ref(igrid),
-			 interface.domain());
-	      }
-	      break;
+		return fill_patch_blindly(patch, region, r, flags);
 	    }
-	  }
+	    else if (!tdomain.intersects(region)) 
+	    {
+		return fill_exterior_patch_blindly(patch, region, r,
+		    interface, bdy, flags);
+	    }
+	    else if (idomain.intersects(region)) 
+	    {
+		if (fill_patch_blindly(patch, region, r, flags) == 1)
+		    return 1;
+		else
+		    return fill_exterior_patch_blindly(patch, region, r,
+		    interface, bdy, flags);
+	    }
+	    else 
+	    {
+		if (fill_exterior_patch_blindly(patch, region, r,
+		    interface, bdy, flags) == 1)
+		    return 1;
+		else
+		    return fill_patch_blindly(patch, region, r, flags);
+	    }
 	}
-      }
-    }
+	else if (idim == 0) 
+	{
+	    int gridnum[level_interface::N_CORNER_GRIDS+1];
+	    gridnum[0] = -1;
+	    for (int i = 0; i < level_interface::N_CORNER_GRIDS; i++) 
+	    {
+		int igrid = interface.cgrid(index,i);
+		if (igrid != -1) 
+		{
+		    for (int j = 0; gridnum[j] != igrid; j++) 
+		    {
+			if (gridnum[j] == -1) 
+			{
+			    gridnum[j] = igrid;
+			    gridnum[j+1] = -1;
+			    if (igrid >= 0) 
+			    {
+				Box tb = r.box(igrid);
+				tb &= region;
+				const Box& rbox = r[igrid].box();
+				FFCPY(patch.dataPtr(), dimlist(patch.box()),
+				    dimlist(tb),
+				    r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
+			    }
+			    else 
+			    {
+				igrid = -2 - igrid;
+				Box tb = interface.exterior_mesh()[igrid];
+				tb.convert(type(r));
+				tb &= region;
+				bdy.fill(patch, tb, r,
+				    interface.direct_exterior_ref(igrid),
+				    interface.domain());
+			    }
+			    break;
+			}
+		    }
+		}
+	    }
+	}
 #if (BL_SPACEDIM == 3)
-    else if (idim == 1) 
-    {
-      int gridnum[level_interface::N_EDGE_GRIDS+1];
-      gridnum[0] = -1;
-      for (int i = 0; i < level_interface::N_EDGE_GRIDS; i++) 
-      {
-	int igrid = interface.egrid(index,i);
-	if (igrid != -1) 
+	else if (idim == 1) 
 	{
-	  for (int j = 0; gridnum[j] != igrid; j++) 
-	  {
-	    if (gridnum[j] == -1) 
+	    int gridnum[level_interface::N_EDGE_GRIDS+1];
+	    gridnum[0] = -1;
+	    for (int i = 0; i < level_interface::N_EDGE_GRIDS; i++) 
 	    {
-	      gridnum[j] = igrid;
-	      gridnum[j+1] = -1;
-	      if (igrid >= 0) {
-		Box tb = r.box(igrid);
-		tb &= region;
-		const Box& rbox = r[igrid].box();
-                FFCPY(patch.dataPtr(), dimlist(patch.box()),
-                      dimlist(tb),
-                      r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
-	      }
-	      else 
-	      {
-		igrid = -2 - igrid;
-		Box tb = interface.exterior_mesh()[igrid];
-		tb.convert(type(r));
-		tb &= region;
-		bdy.fill(patch, tb, r,
-			 interface.direct_exterior_ref(igrid),
-			 interface.domain());
-	      }
-	      break;
+		int igrid = interface.egrid(index,i);
+		if (igrid != -1) 
+		{
+		    for (int j = 0; gridnum[j] != igrid; j++) 
+		    {
+			if (gridnum[j] == -1) 
+			{
+			    gridnum[j] = igrid;
+			    gridnum[j+1] = -1;
+			    if (igrid >= 0) {
+				Box tb = r.box(igrid);
+				tb &= region;
+				const Box& rbox = r[igrid].box();
+				FFCPY(patch.dataPtr(), dimlist(patch.box()),
+				    dimlist(tb),
+				    r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
+			    }
+			    else 
+			    {
+				igrid = -2 - igrid;
+				Box tb = interface.exterior_mesh()[igrid];
+				tb.convert(type(r));
+				tb &= region;
+				bdy.fill(patch, tb, r,
+				    interface.direct_exterior_ref(igrid),
+				    interface.domain());
+			    }
+			    break;
+			}
+		    }
+		}
 	    }
-	  }
 	}
-      }
-    }
 #endif
-    else if (idim == level_interface::FACEDIM) 
-    {
-      int gridnum[level_interface::N_FACE_GRIDS+1];
-      gridnum[0] = -1;
-      for (int i = 0; i < level_interface::N_FACE_GRIDS; i++) 
-      {
-	int igrid = interface.fgrid(index,i);
-	if (igrid != -1) 
+	else if (idim == level_interface::FACEDIM) 
 	{
-	  for (int j = 0; gridnum[j] != igrid; j++) 
-	  {
-	    if (gridnum[j] == -1) 
+	    int gridnum[level_interface::N_FACE_GRIDS+1];
+	    gridnum[0] = -1;
+	    for (int i = 0; i < level_interface::N_FACE_GRIDS; i++) 
 	    {
-	      gridnum[j] = igrid;
-	      gridnum[j+1] = -1;
-	      if (igrid >= 0) {
-		Box tb = r.box(igrid);
-		tb &= region;
-		const Box& rbox = r[igrid].box();
-                FFCPY(patch.dataPtr(), dimlist(patch.box()),
-                      dimlist(tb),
-                      r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
-	      }
-	      else 
-	      {
-		igrid = -2 - igrid;
-		Box tb = interface.exterior_mesh()[igrid];
-		tb.convert(type(r));
-		tb &= region;
-		bdy.fill(patch, tb, r,
-			 interface.direct_exterior_ref(igrid),
-			 interface.domain());
-	      }
-	      break;
+		int igrid = interface.fgrid(index,i);
+		if (igrid != -1) 
+		{
+		    for (int j = 0; gridnum[j] != igrid; j++) 
+		    {
+			if (gridnum[j] == -1) 
+			{
+			    gridnum[j] = igrid;
+			    gridnum[j+1] = -1;
+			    if (igrid >= 0) {
+				Box tb = r.box(igrid);
+				tb &= region;
+				const Box& rbox = r[igrid].box();
+				FFCPY(patch.dataPtr(), dimlist(patch.box()),
+				    dimlist(tb),
+				    r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
+			    }
+			    else 
+			    {
+				igrid = -2 - igrid;
+				Box tb = interface.exterior_mesh()[igrid];
+				tb.convert(type(r));
+				tb &= region;
+				bdy.fill(patch, tb, r,
+				    interface.direct_exterior_ref(igrid),
+				    interface.domain());
+			    }
+			    break;
+			}
+		    }
+		}
 	    }
-	  }
 	}
-      }
-    }
   }
   else 
   {
-    BoxLib::Error("fill_patch---interface version only defined for blind mode");
+      BoxLib::Error("fill_patch---interface version only defined for blind mode");
   }
   return 1;
 }
 
-/*
+#if 0
 int fill_patch(Fab& patch,
 	       const Box& region, const Box& active,
 	       amr_boundary bdy, int flags,
@@ -715,89 +716,89 @@ int fill_patch(Fab& patch,
   BoxLib::Error("fill_patch---shouldn't get here");
   return 0;
 }
-*/
+#endif
 
-void 
+void
 sync_internal_borders(MultiFab& r, const level_interface& interface)
 {
-  // DECLARE_GEOMETRY_TYPES;
-
-  int igrid, jgrid;
-  if (type(r) == nodevect) 
-  {
-    for (int iface = 0; iface < interface.nfaces(); iface++) 
+    // DECLARE_GEOMETRY_TYPES;
+    
+    int igrid, jgrid;
+    if (type(r) == nodevect) 
     {
-      igrid = interface.fgrid(iface, 0);
-      jgrid = interface.fgrid(iface, 1);
-      // only do interior faces with fine grid on both sides
-      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
-	break;
-      internal_copy(r, jgrid, igrid, interface.node_face(iface));
-    }
+	for (int iface = 0; iface < interface.nfaces(); iface++) 
+	{
+	    igrid = interface.fgrid(iface, 0);
+	    jgrid = interface.fgrid(iface, 1);
+	    // only do interior faces with fine grid on both sides
+	    if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
+		break;
+	    internal_copy(r, jgrid, igrid, interface.node_face(iface));
+	}
 #if (BL_SPACEDIM == 2)
-    for (int icor = 0; icor < interface.ncorners(); icor++) 
-    {
-      igrid = interface.cgrid(icor, 0);
-      jgrid = interface.cgrid(icor, 3);
-      // only do interior corners with fine grid on all sides
-      if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != level_interface::ALL)
-	break;
-      if (jgrid == interface.cgrid(icor, 1))
-	internal_copy(r, jgrid, igrid, interface.corner(icor));
-    }
-#else
-    for (int iedge = 0; iedge < interface.nedges(); iedge++) 
-    {
-      igrid = interface.egrid(iedge, 0);
-      jgrid = interface.egrid(iedge, 3);
-      // only do interior edges with fine grid on all sides
-      if (igrid < 0 || jgrid < 0 || interface.egeo(iedge) != level_interface::ALL)
-	break;
-      if (jgrid == interface.egrid(iedge, 1))
-	internal_copy(r, jgrid, igrid, interface.node_edge(iedge));
-    }
-    for (int icor = 0; icor < interface.ncorners(); icor++) 
-    {
-      igrid = interface.cgrid(icor, 0);
-      jgrid = interface.cgrid(icor, 7);
-      // only do interior corners with fine grid on all sides
-      if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != level_interface::ALL)
-	break;
-      if (interface.cgrid(icor, 3) == interface.cgrid(icor, 1)) 
-      {
-	if (jgrid != interface.cgrid(icor, 3)) 
+	for (int icor = 0; icor < interface.ncorners(); icor++) 
 	{
-	  internal_copy(r, jgrid, igrid, interface.corner(icor));
-	  jgrid = interface.cgrid(icor, 5);
-	  if (jgrid != interface.cgrid(icor, 7))
-	    internal_copy(r, jgrid, igrid, interface.corner(icor));
-	}
-      }
-      else if (interface.cgrid(icor, 5) == interface.cgrid(icor, 1)) 
-      {
-	if (jgrid != interface.cgrid(icor, 5)) 
-	{
-	  internal_copy(r, jgrid, igrid, interface.corner(icor));
-	  jgrid = interface.cgrid(icor, 3);
-	  if (jgrid != interface.cgrid(icor, 7)) 
-	  {
-	    internal_copy(r, jgrid, igrid, interface.corner(icor));
-	    if (jgrid == interface.cgrid(icor, 2)) 
-	    {
-	      jgrid = interface.cgrid(icor, 6);
-	      if (jgrid != interface.cgrid(icor, 7))
+	    igrid = interface.cgrid(icor, 0);
+	    jgrid = interface.cgrid(icor, 3);
+	    // only do interior corners with fine grid on all sides
+	    if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != level_interface::ALL)
+		break;
+	    if (jgrid == interface.cgrid(icor, 1))
 		internal_copy(r, jgrid, igrid, interface.corner(icor));
-	    }
-	  }
 	}
-      }
-    }
+#else
+	for (int iedge = 0; iedge < interface.nedges(); iedge++) 
+	{
+	    igrid = interface.egrid(iedge, 0);
+	    jgrid = interface.egrid(iedge, 3);
+	    // only do interior edges with fine grid on all sides
+	    if (igrid < 0 || jgrid < 0 || interface.egeo(iedge) != level_interface::ALL)
+		break;
+	    if (jgrid == interface.egrid(iedge, 1))
+		internal_copy(r, jgrid, igrid, interface.node_edge(iedge));
+	}
+	for (int icor = 0; icor < interface.ncorners(); icor++) 
+	{
+	    igrid = interface.cgrid(icor, 0);
+	    jgrid = interface.cgrid(icor, 7);
+	    // only do interior corners with fine grid on all sides
+	    if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != level_interface::ALL)
+		break;
+	    if (interface.cgrid(icor, 3) == interface.cgrid(icor, 1)) 
+	    {
+		if (jgrid != interface.cgrid(icor, 3)) 
+		{
+		    internal_copy(r, jgrid, igrid, interface.corner(icor));
+		    jgrid = interface.cgrid(icor, 5);
+		    if (jgrid != interface.cgrid(icor, 7))
+			internal_copy(r, jgrid, igrid, interface.corner(icor));
+		}
+	    }
+	    else if (interface.cgrid(icor, 5) == interface.cgrid(icor, 1)) 
+	    {
+		if (jgrid != interface.cgrid(icor, 5)) 
+		{
+		    internal_copy(r, jgrid, igrid, interface.corner(icor));
+		    jgrid = interface.cgrid(icor, 3);
+		    if (jgrid != interface.cgrid(icor, 7)) 
+		    {
+			internal_copy(r, jgrid, igrid, interface.corner(icor));
+			if (jgrid == interface.cgrid(icor, 2)) 
+			{
+			    jgrid = interface.cgrid(icor, 6);
+			    if (jgrid != interface.cgrid(icor, 7))
+				internal_copy(r, jgrid, igrid, interface.corner(icor));
+			}
+		    }
+		}
+	    }
+	}
 #endif
-  }
-  else 
-  {
-    BoxLib::Error("sync_internal_borders---only NODE-based sync defined");
-  }
+    }
+    else 
+    {
+	BoxLib::Error("sync_internal_borders---only NODE-based sync defined");
+    }
 }
 
 // The sequencing used in fill_internal_borders, fcpy2 and set_border_cache
@@ -817,235 +818,235 @@ fill_internal_borders(MultiFab& r, const level_interface& interface,
 {
     // DECLARE_GEOMETRY_TYPES;
     
-  w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
-  int igrid, jgrid;
-  if (type(r) == nodevect) 
-  {
-    for (int iface = 0; iface < interface.nfaces(); iface++) 
+    w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
+    int igrid, jgrid;
+    if (type(r) == nodevect) 
     {
-      igrid = interface.fgrid(iface, 0);
-      jgrid = interface.fgrid(iface, 1);
-      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
-	break;
+	for (int iface = 0; iface < interface.nfaces(); iface++) 
+	{
+	    igrid = interface.fgrid(iface, 0);
+	    jgrid = interface.fgrid(iface, 1);
+	    if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
+		break;
 #if 1
-      const Box& b = interface.node_face(iface);
-      Real *const ptra = r[igrid].dataPtr();
-      Real *const ptrb = r[jgrid].dataPtr();
-      const Box& boxa = r[igrid].box();
-      const Box& boxb = r[jgrid].box();
+	    const Box& b = interface.node_face(iface);
+	    Real *const ptra = r[igrid].dataPtr();
+	    Real *const ptrb = r[jgrid].dataPtr();
+	    const Box& boxa = r[igrid].box();
+	    const Box& boxb = r[jgrid].box();
 #  if (BL_SPACEDIM == 2)
-      FFCPY2(ptra, dimlist(boxa), ptrb, dimlist(boxb),
-	     dimlist(b), w, r.nComp());
+	    FFCPY2(ptra, dimlist(boxa), ptrb, dimlist(boxb),
+		dimlist(b), w, r.nComp());
 #  else
-      const int ibord = r.nGrow();
-      FFCPY2(ptra, dimlist(boxa), ptrb, dimlist(boxb),
-	     dimlist(b), w, ibord, r.nComp());
+	    const int ibord = r.nGrow();
+	    FFCPY2(ptra, dimlist(boxa), ptrb, dimlist(boxb),
+		dimlist(b), w, ibord, r.nComp());
 #  endif
 #else
-      const int idim = interface.fdim(iface);
-      Box bj = interface.node_face(iface);
-      Box bi = interface.node_face(iface);
-      for (int i = 0; i < idim; i++) 
-      {
-	if (r.box(jgrid).smallEnd(i) == bj.smallEnd(i))
-	  bj.growLo(i, w);
-	if (r.box(jgrid).bigEnd(i) == bj.bigEnd(i))
-	  bj.growHi(i, w);
-	if (r.box(igrid).smallEnd(i) == bi.smallEnd(i))
-	  bi.growLo(i, w);
-	if (r.box(igrid).bigEnd(i) == bi.bigEnd(i))
-	  bi.growHi(i, w);
-      }
-      bj.shift(idim, -1).growLo(idim, w-1);
-      bi.shift(idim,  1).growHi(idim, w-1);
-      internal_copy(r, jgrid, igrid, bj);
-      internal_copy(r, igrid, jgrid, bi);
+	    const int idim = interface.fdim(iface);
+	    Box bj = interface.node_face(iface);
+	    Box bi = interface.node_face(iface);
+	    for (int i = 0; i < idim; i++) 
+	    {
+		if (r.box(jgrid).smallEnd(i) == bj.smallEnd(i))
+		    bj.growLo(i, w);
+		if (r.box(jgrid).bigEnd(i) == bj.bigEnd(i))
+		    bj.growHi(i, w);
+		if (r.box(igrid).smallEnd(i) == bi.smallEnd(i))
+		    bi.growLo(i, w);
+		if (r.box(igrid).bigEnd(i) == bi.bigEnd(i))
+		    bi.growHi(i, w);
+	    }
+	    bj.shift(idim, -1).growLo(idim, w-1);
+	    bi.shift(idim,  1).growHi(idim, w-1);
+	    internal_copy(r, jgrid, igrid, bj);
+	    internal_copy(r, igrid, jgrid, bi);
 #endif
+	}
     }
-  }
-  else if (type(r) == cellvect) 
-  {
-    for (int iface = 0; iface < interface.nfaces(); iface++) 
+    else if (type(r) == cellvect) 
     {
-      igrid = interface.fgrid(iface, 0);
-      jgrid = interface.fgrid(iface, 1);
-      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
-	break;
-      const int idim = interface.fdim(iface);
+	for (int iface = 0; iface < interface.nfaces(); iface++) 
+	{
+	    igrid = interface.fgrid(iface, 0);
+	    jgrid = interface.fgrid(iface, 1);
+	    if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
+		break;
+	    const int idim = interface.fdim(iface);
 #if (BL_SPACEDIM == 2)
-      Box b = interface.face(iface);
-      if (idim == 1)
-        b.grow(0, w);
-      b.growLo(idim, w).convert(cellvect);
-      internal_copy(r, jgrid, igrid, b);
-      internal_copy(r, igrid, jgrid, b.shift(idim, w));
+	    Box b = interface.face(iface);
+	    if (idim == 1)
+		b.grow(0, w);
+	    b.growLo(idim, w).convert(cellvect);
+	    internal_copy(r, jgrid, igrid, b);
+	    internal_copy(r, igrid, jgrid, b.shift(idim, w));
 #else
-      Box bj = interface.face(iface);
-      Box bi = interface.face(iface);
-      for (int i = 0; i < idim; i++) 
-      {
-	if (r.box(jgrid).smallEnd(i) == bj.smallEnd(i))
-	  bj.growLo(i, w);
-	if (r.box(jgrid).bigEnd(i) == bj.bigEnd(i))
-	  bj.growHi(i, w);
-	if (r.box(igrid).smallEnd(i) == bi.smallEnd(i))
-	  bi.growLo(i, w);
-	if (r.box(igrid).bigEnd(i) == bi.bigEnd(i))
-	  bi.growHi(i, w);
-      }
-      bj.growLo(idim, w).convert(cellvect);
-      bi.growHi(idim, w).convert(cellvect);
-      internal_copy(r, jgrid, igrid, bj);
-      internal_copy(r, igrid, jgrid, bi);
+	    Box bj = interface.face(iface);
+	    Box bi = interface.face(iface);
+	    for (int i = 0; i < idim; i++) 
+	    {
+		if (r.box(jgrid).smallEnd(i) == bj.smallEnd(i))
+		    bj.growLo(i, w);
+		if (r.box(jgrid).bigEnd(i) == bj.bigEnd(i))
+		    bj.growHi(i, w);
+		if (r.box(igrid).smallEnd(i) == bi.smallEnd(i))
+		    bi.growLo(i, w);
+		if (r.box(igrid).bigEnd(i) == bi.bigEnd(i))
+		    bi.growHi(i, w);
+	    }
+	    bj.growLo(idim, w).convert(cellvect);
+	    bi.growHi(idim, w).convert(cellvect);
+	    internal_copy(r, jgrid, igrid, bj);
+	    internal_copy(r, igrid, jgrid, bi);
 #endif
+	}
     }
-  }
-  else
-  {
-    for (int iface = 0; iface < interface.nfaces(); iface++) 
+    else
     {
-      igrid = interface.fgrid(iface, 0);
-      jgrid = interface.fgrid(iface, 1);
-      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
-	break;
-      const int idim = interface.fdim(iface);
-      const int a = (type(r, idim) == BOX_NODE);
+	for (int iface = 0; iface < interface.nfaces(); iface++) 
+	{
+	    igrid = interface.fgrid(iface, 0);
+	    jgrid = interface.fgrid(iface, 1);
+	    if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
+		break;
+	    const int idim = interface.fdim(iface);
+	    const int a = (type(r, idim) == BOX_NODE);
 #if (BL_SPACEDIM == 2)
-      Box b = interface.face(iface);
-      if (idim == 1)
-        b.grow(0, w);
-      b.shift(idim, -a).growLo(idim, w-a).convert(type(r));
-      internal_copy(r, jgrid, igrid, b);
-      internal_copy(r, igrid, jgrid, b.shift(idim, w+a));
+	    Box b = interface.face(iface);
+	    if (idim == 1)
+		b.grow(0, w);
+	    b.shift(idim, -a).growLo(idim, w-a).convert(type(r));
+	    internal_copy(r, jgrid, igrid, b);
+	    internal_copy(r, igrid, jgrid, b.shift(idim, w+a));
 #else
-      Box bj = interface.face(iface);
-      Box bi = interface.face(iface);
+	    Box bj = interface.face(iface);
+	    Box bi = interface.face(iface);
 #if 0
-      for (int i = 0; i < idim; i++) 
-      {
-	if (mesh().box(jgrid).smallEnd(i) == bj.smallEnd(i))
-	  bj.growLo(i, w);
-	if (mesh().box(jgrid).bigEnd(i) == bj.bigEnd(i))
-	  bj.growHi(i, w);
-	if (mesh().box(igrid).smallEnd(i) == bi.smallEnd(i))
-	  bi.growLo(i, w);
-	if (mesh().box(igrid).bigEnd(i) == bi.bigEnd(i))
-	  bi.growHi(i, w);
-      }
+	    for (int i = 0; i < idim; i++) 
+	    {
+		if (mesh().box(jgrid).smallEnd(i) == bj.smallEnd(i))
+		    bj.growLo(i, w);
+		if (mesh().box(jgrid).bigEnd(i) == bj.bigEnd(i))
+		    bj.growHi(i, w);
+		if (mesh().box(igrid).smallEnd(i) == bi.smallEnd(i))
+		    bi.growLo(i, w);
+		if (mesh().box(igrid).bigEnd(i) == bi.bigEnd(i))
+		    bi.growHi(i, w);
+	    }
 #else
-      BoxLib::Error("fill_internal_borders---check index arithmetic for mixed types in 3D");
+	    BoxLib::Error("fill_internal_borders---check index arithmetic for mixed types in 3D");
 #endif
-      bj.shift(idim, -a).growLo(idim, w-a).convert(type(r));
-      bi.shift(idim,  a).growHi(idim, w-a).convert(type(r));
-      internal_copy(r, jgrid, igrid, bj);
-      internal_copy(r, igrid, jgrid, bi);
+	    bj.shift(idim, -a).growLo(idim, w-a).convert(type(r));
+	    bi.shift(idim,  a).growHi(idim, w-a).convert(type(r));
+	    internal_copy(r, jgrid, igrid, bj);
+	    internal_copy(r, igrid, jgrid, bi);
 #endif
+	}
     }
-  }
 }
 
 void 
 clear_part_interface(MultiFab& r, const level_interface& interface)
 {
-  if (r.nComp() != 1)
-    BoxLib::Error("clear_part_interface---only single components currently supported");
-
-  // DECLARE_GEOMETRY_TYPES;
-
-  int igrid;
-  if (type(r) == nodevect) 
-  {
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    if (r.nComp() != 1)
+	BoxLib::Error("clear_part_interface---only single components currently supported");
+    
+    // DECLARE_GEOMETRY_TYPES;
+    
+    int igrid;
+    if (type(r) == nodevect) 
     {
-      for (int ibox = 0; ibox < interface.nboxes(i); ibox++) 
-      {
-	// coarse-fine face contained in part_fine grid, or orphan edge/corner
-	if ((igrid = interface.aux(i, ibox)) >= 0)
-	  r[igrid].setVal(0.0, interface.node_box(i, ibox), 0);
-      }
+	for (int i = 0; i < BL_SPACEDIM; i++) 
+	{
+	    for (int ibox = 0; ibox < interface.nboxes(i); ibox++) 
+	    {
+		// coarse-fine face contained in part_fine grid, or orphan edge/corner
+		if ((igrid = interface.aux(i, ibox)) >= 0)
+		    r[igrid].setVal(0.0, interface.node_box(i, ibox), 0);
+	    }
+	}
     }
-  }
-  else
-  {
-    BoxLib::Error("clear_part_interface---only NODE-based version defined");
-  }
+    else
+    {
+	BoxLib::Error("clear_part_interface---only NODE-based version defined");
+    }
 }
 
 void 
 interpolate_patch(Fab& patch, const Box& region,
-		       MultiFab& r, const IntVect& rat,
-		       amr_interpolator interp,
-		       const level_interface& interface,
-		       amr_boundary bdy)
+		  MultiFab& r, const IntVect& rat,
+		  amr_interpolator interp,
+		  const level_interface& interface,
+		  amr_boundary bdy)
 {
-  assert(region.sameType(patch.box()));
-
-  Box cb = interp.box(region, rat);
-  int igrid = find_patch(cb, r);
-  if (igrid == -1) 
-  {
-    Fab cgr(cb, r.nComp());
-    fill_patch(cgr, cb, r, interface, bdy);
-    interp.fill(patch, region, cgr, cb, rat);
-  }
-  else
-  {
-    interp.fill(patch, region, r[igrid], cb, rat);
-  }
+    assert(region.sameType(patch.box()));
+    
+    Box cb = interp.box(region, rat);
+    int igrid = find_patch(cb, r);
+    if (igrid == -1) 
+    {
+	Fab cgr(cb, r.nComp());
+	fill_patch(cgr, cb, r, interface, bdy);
+	interp.fill(patch, region, cgr, cb, rat);
+    }
+    else
+    {
+	interp.fill(patch, region, r[igrid], cb, rat);
+    }
 }
 
 void
 restrict_patch(Fab& patch, const Box& region,
 	       MultiFab& r, const IntVect& rat,
 	       const copy_cache* border_cache,
-	       amr_restrictor restric,
+	       const amr_restrictor_class& restric,
 	       const level_interface& interface,
 	       amr_boundary bdy)
 {
-  assert(region.sameType(patch.box()));
-  assert(region.type() == type(r));
-
-  for (int igrid = 0; igrid < r.length(); igrid++) 
-  {
-    Box cbox = r.box(igrid);
-    cbox = restric.box(cbox, rat);
-    if (region.intersects(cbox)) 
+    assert(region.sameType(patch.box()));
+    assert(region.type() == type(r));
+    
+    for (int igrid = 0; igrid < r.length(); igrid++) 
     {
-      cbox &= region;
-      restric.fill(patch, cbox, r[igrid], rat);
+	Box cbox = r.box(igrid);
+	cbox = restric.box(cbox, rat);
+	if (region.intersects(cbox)) 
+	{
+	    cbox &= region;
+	    restric.fill(patch, cbox, r[igrid], rat);
+	}
     }
-  }
-
-  // Interface restriction is sufficiently rare and specialized that
-  // we will let the restrictor handle it---at least for now.
-
-  if (!interface.null()) 
-  {
-    // This assertion difficult in BoxLib since r.mesh() is not cc:
-    //assert(r.mesh() == interface.interior_mesh());
-    restric.interface(patch, region, r, border_cache, interface, bdy, rat);
-  }
+    
+    // Interface restriction is sufficiently rare and specialized that
+    // we will let the restrictor handle it---at least for now.
+    
+    if (!interface.null()) 
+    {
+	// This assertion difficult in BoxLib since r.mesh() is not cc:
+	//assert(r.mesh() == interface.interior_mesh());
+	restric.interface(patch, region, r, border_cache, interface, bdy, rat);
+    }
 }
 
 void
 restrict_level(MultiFab& dest, int bflag,
-		    MultiFab& r, const IntVect& rat,
-		    const copy_cache* border_cache,
-		    amr_restrictor restric,
-		    const level_interface& interface,
-		    amr_boundary bdy)
+	       MultiFab& r, const IntVect& rat,
+	       const copy_cache* border_cache,
+	       const amr_restrictor_class& restric,
+	       const level_interface& interface,
+	       amr_boundary bdy)
 {
-  for (int igrid = 0; igrid < dest.length(); igrid++) 
-  {
-    if (bflag) 
+    for (int igrid = 0; igrid < dest.length(); igrid++) 
     {
-      restrict_patch(dest[igrid], r, rat, border_cache,
-		     restric, interface, bdy);
+	if (bflag) 
+	{
+	    restrict_patch(dest[igrid], r, rat, border_cache,
+		restric, interface, bdy);
+	}
+	else
+	{
+	    restrict_patch(dest[igrid], dest.box(igrid), r, rat, border_cache,
+		restric, interface, bdy);
+	}
     }
-    else
-    {
-      restrict_patch(dest[igrid], dest.box(igrid), r, rat, border_cache,
-		     restric, interface, bdy);
-    }
-  }
 }

@@ -2,7 +2,7 @@
 #define _CACHE_H_
 
 //
-// $Id: cache.H,v 1.5 1997-09-26 16:57:10 lijewski Exp $
+// $Id: cache.H,v 1.6 1997-10-01 01:03:19 car Exp $
 //
 
 #include <interface.H>
@@ -26,12 +26,14 @@ extern "C"
 #endif
 }
 
+#if 0
 class boundary_cache 
 {
  public:
   virtual ~boundary_cache() { }
   virtual void run() const = 0;
 };
+#endif
 
 class copy_cache 
 {
@@ -47,7 +49,6 @@ class copy_cache
   int *dstrid1, *dstrid2, *sstrid1, *sstrid2;
   int *nvals1, *nvals2;
 #endif
-  boundary_cache *bdy_cache;
 
   copy_cache(int Nsets, Real *Dptr, Real *Sptr);
 
@@ -61,7 +62,6 @@ class copy_cache
 
   ~copy_cache() {
     delete [] dstart;
-    if (bdy_cache) delete bdy_cache;
   }
 
 #if (BL_SPACEDIM == 2)

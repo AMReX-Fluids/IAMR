@@ -1,7 +1,7 @@
 #if (BL_SPACEDIM==2) && defined (USE_TENSOR)
 
 //
-// $Id: ViscBndry2D.cpp,v 1.4 1997-09-26 16:57:08 lijewski Exp $
+// $Id: ViscBndry2D.cpp,v 1.5 1997-10-01 01:03:17 car Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -18,7 +18,7 @@ void ViscBndry2D::setBndryConds(const Array<BCRec>& bcarray,
     int ngrds = grids.length();
     const REAL* dx = geom.CellSize();
     const BOX& domain = geom.Domain();
-    const REALBOX& prob_domain = geom.ProbDomain();
+    const RealBox& prob_domain = geom.ProbDomain();
 
     for (OrientationIter fi; fi; ++fi) {
 	Orientation face(fi());
@@ -76,7 +76,7 @@ ViscBndry2D::setHomogValues(const Array<BCRec>& bc, int ratio)
         const BOX& bx = grids[grd];
         for (OrientationIter fi; fi; ++fi) {
             Orientation face(fi());
-            FARRAYBOX& bnd_fab = bndry[face][grd];
+            FArrayBox& bnd_fab = bndry[face][grd];
             bnd_fab.setVal(0.);
         }
     }

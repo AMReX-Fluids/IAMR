@@ -1,6 +1,6 @@
 
 //
-// $Id: FabSet.cpp,v 1.6 1997-09-26 16:56:57 lijewski Exp $
+// $Id: FabSet.cpp,v 1.7 1997-10-01 01:03:04 car Exp $
 //
 
 #include <FabSet.H>
@@ -143,10 +143,10 @@ FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
     assert (nghost <= src.nGrow());
     const BoxArray& sba = src.boxArray();
     for (int s = 0; s < src.length; s++) {
-        const FARRAYBOX& sfab = src[s];
+        const FArrayBox& sfab = src[s];
         BOX sbox = grow(sba[s],nghost);
         for (int d = 0; d < length(); d++) {
-            FARRAYBOX& dfab = (*this)[d];
+            FArrayBox& dfab = (*this)[d];
             BOX ovlp = dfab.box();
             ovlp &= sbox;
             if (ovlp.ok()) {
@@ -223,10 +223,10 @@ if(ParallelDescriptor::NProcs() > 1) {
     assert (nghost <= dest.nGrow());
     const BoxArray& dba = dest.boxArray();
     for (int d = 0; d < dlen; d++) {
-        FARRAYBOX& dfab = dest[d];
+        FArrayBox& dfab = dest[d];
         BOX dbox = grow(dba[d],nghost);
         for (int s = 0; s < slen; s++) {
-            const FARRAYBOX& sfab = (*this)[s];
+            const FArrayBox& sfab = (*this)[s];
             const BOX& sbox = sfab.box();
             BOX ovlp = dbox;
             ovlp &= sbox;

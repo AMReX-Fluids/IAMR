@@ -30,13 +30,13 @@ void mac_sync_driver( const MacBndry &mac_bndry,
 // apply the mac pressure gradient to a velocity field
 // init, means that velocities are initialized here
 void mac_vel_update( int init,
-                     FARRAYBOX &uvel,
-                     FARRAYBOX &vvel,
+                     FArrayBox &uvel,
+                     FArrayBox &vvel,
 #if (BL_SPACEDIM == 3 )
-                     FARRAYBOX &wvel,
+                     FArrayBox &wvel,
 #endif
-                     const FARRAYBOX &phi,
-                     const FARRAYBOX *rho, int rho_comp,  
+                     const FArrayBox &phi,
+                     const FArrayBox *rho, int rho_comp,  
                      const BOX &grd, int level, int n,
                      const REAL *dx, REAL scale );
 

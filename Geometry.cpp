@@ -1,6 +1,6 @@
 
 //
-// $Id: Geometry.cpp,v 1.2 1997-09-26 16:56:58 lijewski Exp $
+// $Id: Geometry.cpp,v 1.3 1997-10-01 01:03:06 car Exp $
 //
 
 #include <Geometry.H>
@@ -8,7 +8,7 @@
 
 // --------------------------------------------------------------
 // static data member
-REALBOX Geometry::prob_domain;
+RealBox Geometry::prob_domain;
 bool Geometry::is_periodic[BL_SPACEDIM];
 
 // --------------------------------------------------------------

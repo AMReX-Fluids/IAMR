@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.3 1997-09-26 16:56:59 lijewski Exp $
+// $Id: Godunov.cpp,v 1.4 1997-10-01 01:03:07 car Exp $
 //
 
 //==========================================================
@@ -186,17 +186,17 @@ Godunov::~Godunov()
 //
 // It also computes the transverse advective velocities
 //
-// The amount of workspace needed in FARRAYBOX work is currently
+// The amount of workspace needed in FArrayBox work is currently
 // 2*SDIM+1
 //
 void Godunov::Setup( const BOX &grd, const REAL *dx, REAL dt, int velpred,
-                     FARRAYBOX &xflux, int *ubc,
-                     FARRAYBOX &yflux, int *vbc,
+                     FArrayBox &xflux, int *ubc,
+                     FArrayBox &yflux, int *vbc,
 #ifdef ADD_W
-                     FARRAYBOX &zflux, int *wbc,
+                     FArrayBox &zflux, int *wbc,
 #endif
-                     FARRAYBOX &U, FARRAYBOX &rho, 
-                     const FARRAYBOX& tforces )
+                     FArrayBox &U, FArrayBox &rho, 
+                     const FArrayBox& tforces )
 {
     assert( rho.nComp()  == 1           );
     assert( U.nComp()    >= BL_SPACEDIM );
@@ -308,15 +308,15 @@ void Godunov::Setup( const BOX &grd, const REAL *dx, REAL dt, int velpred,
 
 
 // compute the edge states using the advective transverse velocities
-// The amount of workspace needed in FARRAYBOX work is currently
+// The amount of workspace needed in FArrayBox work is currently
 // 2*SDIM+1
 void Godunov::edge_states( const BOX &grd, const REAL *dx, REAL dt, int velpred,
-                           FARRAYBOX &uedge, FARRAYBOX &stx,
-                           FARRAYBOX &vedge, FARRAYBOX &sty,
+                           FArrayBox &uedge, FArrayBox &stx,
+                           FArrayBox &vedge, FArrayBox &sty,
 #ifdef ADD_W               
-                           FARRAYBOX &wedge, FARRAYBOX &stz,
+                           FArrayBox &wedge, FArrayBox &stz,
 #endif
-                           FARRAYBOX &U, FARRAYBOX &S, FARRAYBOX &tforces,
+                           FArrayBox &U, FArrayBox &S, FArrayBox &tforces,
                            int fab_ind, int state_ind, int *bc )
 {
     // ---------------------------- error block
@@ -420,14 +420,14 @@ void Godunov::edge_states( const BOX &grd, const REAL *dx, REAL dt, int velpred,
 
 
 // compute the edge states for The Mac projection
-// FARRAYBOX work sized as in edge_states
+// FArrayBox work sized as in edge_states
 void Godunov::ComputeUmac( const BOX &grd, const REAL *dx, REAL dt, 
-                           FARRAYBOX &umac, int *ubc, 
-                           FARRAYBOX &vmac, int *vbc, 
+                           FArrayBox &umac, int *ubc, 
+                           FArrayBox &vmac, int *vbc, 
 #ifdef ADD_W
-                           FARRAYBOX &wmac, int *wbc, 
+                           FArrayBox &wmac, int *wbc, 
 #endif
-                           FARRAYBOX &U, FARRAYBOX &tforces )
+                           FArrayBox &U, FArrayBox &tforces )
 {
     int velpred = 1;
 
@@ -475,18 +475,18 @@ void Godunov::ComputeUmac( const BOX &grd, const REAL *dx, REAL dt,
 
 // advect a state component.
 // This routine assumes uad,vad,wad have been precomputed
-// FARRAYBOX work sized as in edge_states
+// FArrayBox work sized as in edge_states
 void Godunov::AdvectState( const BOX &grd, const REAL *dx, REAL dt, 
-                           FARRAYBOX &areax, FARRAYBOX &uedge, FARRAYBOX &xflux,  
-                           FARRAYBOX &areay, FARRAYBOX &vedge, FARRAYBOX &yflux,  
+                           FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
+                           FArrayBox &areay, FArrayBox &vedge, FArrayBox &yflux,  
 #ifdef ADD_W                               
-                           FARRAYBOX &areaz, FARRAYBOX &wedge, FARRAYBOX &zflux,
+                           FArrayBox &areaz, FArrayBox &wedge, FArrayBox &zflux,
 #endif
-                           FARRAYBOX &U,
-                           FARRAYBOX &S, FARRAYBOX &tforces, int fab_ind,
-                           FARRAYBOX &aofs,                  int aofs_ind,
+                           FArrayBox &U,
+                           FArrayBox &S, FArrayBox &tforces, int fab_ind,
+                           FArrayBox &aofs,                  int aofs_ind,
                            int iconserv, int state_ind, int *bc,
-                           FARRAYBOX &vol )
+                           FArrayBox &vol )
 {
     int velpred = 0;
 
@@ -518,13 +518,13 @@ void Godunov::AdvectState( const BOX &grd, const REAL *dx, REAL dt,
 
 // compute the advective derivative from fluxes
 void Godunov::ComputeAofs( const BOX &grd, 
-                           FARRAYBOX &areax, FARRAYBOX &uedge, FARRAYBOX &xflux,  
-                           FARRAYBOX &areay, FARRAYBOX &vedge, FARRAYBOX &yflux,  
+                           FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
+                           FArrayBox &areay, FArrayBox &vedge, FArrayBox &yflux,  
 #ifdef ADD_W                               
-                           FARRAYBOX &areaz, FARRAYBOX &wedge, FARRAYBOX &zflux,
+                           FArrayBox &areaz, FArrayBox &wedge, FArrayBox &zflux,
 #endif
-                           FARRAYBOX &vol,
-                           FARRAYBOX &aofs,  int aofs_ind, int iconserv )
+                           FArrayBox &vol,
+                           FArrayBox &aofs,  int aofs_ind, int iconserv )
 {
     // ---------------------------- create the bounds and pointers
     const int *lo    = grd.loVect();
@@ -587,18 +587,18 @@ void Godunov::ComputeAofs( const BOX &grd,
 // sync advect a state component
 // This routine assumes uad,vad,wad have been precomputed
 void Godunov::SyncAdvect( const BOX &grd, const REAL *dx, REAL dt, int level,
-                          FARRAYBOX &areax, FARRAYBOX &uedge,
-                          FARRAYBOX &ucorr, FARRAYBOX &xflux,
-                          FARRAYBOX &areay, FARRAYBOX &vedge,
-                          FARRAYBOX &vcorr, FARRAYBOX &yflux,
+                          FArrayBox &areax, FArrayBox &uedge,
+                          FArrayBox &ucorr, FArrayBox &xflux,
+                          FArrayBox &areay, FArrayBox &vedge,
+                          FArrayBox &vcorr, FArrayBox &yflux,
 #ifdef ADD_W
-                          FARRAYBOX &areaz, FARRAYBOX &wedge,
-                          FARRAYBOX &wcorr, FARRAYBOX &zflux,
+                          FArrayBox &areaz, FArrayBox &wedge,
+                          FArrayBox &wcorr, FArrayBox &zflux,
 #endif
-                          FARRAYBOX &S, FARRAYBOX &tforces, int fab_ind,
-                          FARRAYBOX &sync,                  int sync_ind,
+                          FArrayBox &S, FArrayBox &tforces, int fab_ind,
+                          FArrayBox &sync,                  int sync_ind,
                           int iconserv, int state_ind, int *bc,
-                          FARRAYBOX &vol )
+                          FArrayBox &vol )
 {
     int velpred = 0;
 
@@ -647,13 +647,13 @@ void Godunov::SyncAdvect( const BOX &grd, const REAL *dx, REAL dt, int level,
 
 // compute the advective derivative of corrective fluxes for the mac sync
 void Godunov::ComputeSyncAofs( const BOX &grd,
-                               FARRAYBOX &areax, FARRAYBOX &ucorr, FARRAYBOX &xflux,  
-                               FARRAYBOX &areay, FARRAYBOX &vcorr, FARRAYBOX &yflux,  
+                               FArrayBox &areax, FArrayBox &ucorr, FArrayBox &xflux,  
+                               FArrayBox &areay, FArrayBox &vcorr, FArrayBox &yflux,  
 #ifdef ADD_W                             
-                               FARRAYBOX &areaz, FARRAYBOX &wcorr, FARRAYBOX &zflux,
+                               FArrayBox &areaz, FArrayBox &wcorr, FArrayBox &zflux,
 #endif                     
-                               FARRAYBOX &vol,
-                               FARRAYBOX &sync,
+                               FArrayBox &vol,
+                               FArrayBox &sync,
                                int sync_ind, int iconserv )
 {
     // ---------------------------- create the bounds and pointers
@@ -717,7 +717,7 @@ void Godunov::ComputeSyncAofs( const BOX &grd,
 
 
 // correct a scalar for under-over shoots
-void Godunov::ScalMinMax( FARRAYBOX &Sold, FARRAYBOX &Snew, int ind, 
+void Godunov::ScalMinMax( FArrayBox &Sold, FArrayBox &Snew, int ind, 
                           int *bc, const BOX &grd )
 {
     const int *slo = Sold.loVect();
@@ -731,8 +731,8 @@ void Godunov::ScalMinMax( FARRAYBOX &Sold, FARRAYBOX &Snew, int ind,
     BOX flatbox(grd);
     int zlen = flatbox.length()[BL_SPACEDIM-1];
     flatbox.growHi(BL_SPACEDIM-1,3-zlen);
-    FARRAYBOX smin(flatbox,1);
-    FARRAYBOX smax(flatbox,1);
+    FArrayBox smin(flatbox,1);
+    FArrayBox smax(flatbox,1);
     const REAL *smin_dat = smin.dataPtr();
     const REAL *smax_dat = smax.dataPtr(); 
 #endif
@@ -758,7 +758,7 @@ void Godunov::ScalMinMax( FARRAYBOX &Sold, FARRAYBOX &Snew, int ind,
 //
 // estimate the maximum allowable timestep at a cell center
 //
-REAL Godunov::estdt( FARRAYBOX &U, FARRAYBOX &tforces, FARRAYBOX &rho,
+REAL Godunov::estdt( FArrayBox &U, FArrayBox &tforces, FArrayBox &rho,
                      const BOX &grd, const REAL *dx, REAL cfl, REAL *u_max )
 {
     assert( U.nComp()       >= BL_SPACEDIM );
@@ -791,7 +791,7 @@ REAL Godunov::estdt( FARRAYBOX &U, FARRAYBOX &tforces, FARRAYBOX &rho,
 //
 // estimate the extrema of cell-centered us and rho
 //
-REAL Godunov::test_u_rho( FARRAYBOX &U, FARRAYBOX &rho, 
+REAL Godunov::test_u_rho( FArrayBox &U, FArrayBox &rho, 
                           const BOX &grd, const REAL *dx, const REAL dt,
                           const REAL *u_max )
 {
@@ -829,12 +829,12 @@ REAL Godunov::test_u_rho( FARRAYBOX &U, FARRAYBOX &rho,
 //
 // estimate the extrema of umac edge velocities and rho
 //
-REAL Godunov::test_umac_rho( FARRAYBOX &umac,
-                             FARRAYBOX &vmac,
+REAL Godunov::test_umac_rho( FArrayBox &umac,
+                             FArrayBox &vmac,
 #ifdef ADD_W
-                             FARRAYBOX &wmac,
+                             FArrayBox &wmac,
 #endif
-                             FARRAYBOX &rho,
+                             FArrayBox &rho,
                              const BOX &grd, const REAL *dx, const REAL dt,
                              const REAL *u_max )
 {
@@ -887,9 +887,9 @@ REAL Godunov::test_umac_rho( FARRAYBOX &umac,
 //
 // psi^n+1 = psi^n + dt*tf^n
 //
-void Godunov::Add_tf( FARRAYBOX &Sold,
-                      FARRAYBOX &Snew,    int start_ind, int num_comp, 
-                      FARRAYBOX &tforces, int tf_ind,
+void Godunov::Add_tf( FArrayBox &Sold,
+                      FArrayBox &Snew,    int start_ind, int num_comp, 
+                      FArrayBox &tforces, int tf_ind,
                       const BOX &grd,     REAL dt )
 {
     assert( Snew.nComp()    >= start_ind + num_comp );
@@ -917,9 +917,9 @@ void Godunov::Add_tf( FARRAYBOX &Sold,
 //
 // psi^n+1 = psi^* + (dt/2)*(tf^* - tf^n)
 //
-void Godunov::Correct_tf( FARRAYBOX &Sstar, FARRAYBOX &Snp1,
+void Godunov::Correct_tf( FArrayBox &Sstar, FArrayBox &Snp1,
                           int start_ind, int num_comp, 
-                          FARRAYBOX &tfstar, FARRAYBOX &tfn,
+                          FArrayBox &tfstar, FArrayBox &tfn,
                           int tf_ind,
                           const BOX &grd,     REAL dt )
 {
@@ -950,10 +950,10 @@ void Godunov::Correct_tf( FARRAYBOX &Sstar, FARRAYBOX &Snp1,
 //
 // psi^n+1 = psi^n - dt*aofs + dt*tforces
 //
-void Godunov::Add_aofs_tf( FARRAYBOX &Sold,
-                           FARRAYBOX &Snew,    int start_ind, int num_comp,
-                           FARRAYBOX &Aofs,    int aofs_ind,
-                           FARRAYBOX &tforces, int tf_ind,
+void Godunov::Add_aofs_tf( FArrayBox &Sold,
+                           FArrayBox &Snew,    int start_ind, int num_comp,
+                           FArrayBox &Aofs,    int aofs_ind,
+                           FArrayBox &tforces, int tf_ind,
                            const BOX &grd,     REAL dt )
 {
     assert( Snew.nComp()    >= start_ind + num_comp );
@@ -988,9 +988,9 @@ void Godunov::Add_aofs_tf( FARRAYBOX &Sold,
 //
 // psi^n+1 = psi^n - dt*aofs - dt*gp/rho + dt*tforces
 //
-void Godunov::Add_aofs_tf_gp( FARRAYBOX &Uold, FARRAYBOX &Unew,
-                              FARRAYBOX &Aofs, FARRAYBOX &tforces,
-                              FARRAYBOX &gp,   FARRAYBOX &rho, 
+void Godunov::Add_aofs_tf_gp( FArrayBox &Uold, FArrayBox &Unew,
+                              FArrayBox &Aofs, FArrayBox &tforces,
+                              FArrayBox &gp,   FArrayBox &rho, 
                               const BOX &grd,  REAL dt )
 {
     assert( Unew.nComp()    >= BL_SPACEDIM );
@@ -1035,8 +1035,8 @@ void Godunov::Add_aofs_tf_gp( FARRAYBOX &Uold, FARRAYBOX &Unew,
 //
 // tforces = (tforces - gp)/rho
 //
-void Godunov::Sum_tf_gp( FARRAYBOX &tforces, 
-                         FARRAYBOX &gp,      FARRAYBOX &rho )
+void Godunov::Sum_tf_gp( FArrayBox &tforces, 
+                         FArrayBox &gp,      FArrayBox &rho )
 {
     assert( rho.nComp()     == 1 );
     assert( tforces.nComp() >= BL_SPACEDIM );
@@ -1065,8 +1065,8 @@ void Godunov::Sum_tf_gp( FARRAYBOX &tforces,
 //
 // tforces = (tforces + visc - gp)/rho
 //
-void Godunov::Sum_tf_gp_visc( FARRAYBOX &tforces, FARRAYBOX &visc, 
-                              FARRAYBOX &gp,      FARRAYBOX &rho )
+void Godunov::Sum_tf_gp_visc( FArrayBox &tforces, FArrayBox &visc, 
+                              FArrayBox &gp,      FArrayBox &rho )
 {
     assert( rho.nComp()     == 1 );
     assert( tforces.nComp() >= BL_SPACEDIM );
@@ -1103,9 +1103,9 @@ void Godunov::Sum_tf_gp_visc( FARRAYBOX &tforces, FARRAYBOX &visc,
 //
 // iconserv==0   => tforces = (tforces)/rho
 //
-void Godunov::Sum_tf_divu( FARRAYBOX &S, FARRAYBOX &tforces,
+void Godunov::Sum_tf_divu( FArrayBox &S, FArrayBox &tforces,
                            int s_ind, int num_comp,
-                           FARRAYBOX &divu,    FARRAYBOX &rho,
+                           FArrayBox &divu,    FArrayBox &rho,
                            int iconserv )
 {
     assert( S.nComp()       >= s_ind+num_comp );
@@ -1143,11 +1143,11 @@ void Godunov::Sum_tf_divu( FARRAYBOX &S, FARRAYBOX &tforces,
 //
 // iconserv==0   => tforces = (tforces+ visc)/rho
 //
-void Godunov::Sum_tf_divu_visc( FARRAYBOX &S, FARRAYBOX &tforces,
+void Godunov::Sum_tf_divu_visc( FArrayBox &S, FArrayBox &tforces,
                                 int s_ind, int num_comp,
-                                FARRAYBOX &visc,
+                                FArrayBox &visc,
                                 int v_ind,
-                                FARRAYBOX &divu,    FARRAYBOX &rho,
+                                FArrayBox &divu,    FArrayBox &rho,
                                 int iconserv )
 {
     assert( S.nComp()       >= s_ind+num_comp );

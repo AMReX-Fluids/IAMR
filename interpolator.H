@@ -2,7 +2,7 @@
 #define _INTERPOLATOR_H_
 
 //
-// $Id: interpolator.H,v 1.4 1997-09-26 16:57:14 lijewski Exp $
+// $Id: interpolator.H,v 1.5 1997-10-01 01:03:21 car Exp $
 //
 
 #include <amr_defs.H>
@@ -37,6 +37,6 @@ class bilinear_interpolator_class
 };
 
 /* const amr_interpolator_class error_interpolator; */
-const bilinear_interpolator_class bilinear_interpolator;
+// const bilinear_interpolator_class bilinear_interpolator;
 
 #endif

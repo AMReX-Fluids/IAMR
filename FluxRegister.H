@@ -2,7 +2,7 @@
 #define _FLUXREGISTER_H_
 
 //
-// $Id: FluxRegister.H,v 1.3 1997-09-26 16:56:57 lijewski Exp $
+// $Id: FluxRegister.H,v 1.4 1997-10-01 01:03:05 car Exp $
 //
 
 #include <BndryRegister.H>
@@ -59,7 +59,7 @@ public:
     REAL SumReg(int comp) const;
 
       //@ManDoc: copy from flux register to fab
-    void copyTo(FARRAYBOX& flx, int dir,
+    void copyTo(FArrayBox& flx, int dir,
 	      int src_comp, int dest_comp, int num_comp);
 
       //@ManDoc: copy from flux register to multifab
@@ -67,7 +67,7 @@ public:
 	      int src_comp, int dest_comp, int num_comp);
 
       //@ManDoc: flx = flx + mult*register
-    void addTo(FARRAYBOX& flx, int dir, REAL mult,
+    void addTo(FArrayBox& flx, int dir, REAL mult,
 	       int src_comp, int dest_comp, int num_comp);
 
       //@ManDoc: mf = fm + mult*register
@@ -75,7 +75,7 @@ public:
 	       int src_comp, int dest_comp, int num_comp);
 
       //@ManDoc: flx = flx + mult*register/area
-    void scaleAddTo(FARRAYBOX& flx, const FARRAYBOX& area,
+    void scaleAddTo(FArrayBox& flx, const FArrayBox& area,
                     int dir, REAL mult,
                     int src_comp, int dest_comp, int num_comp);
 
@@ -97,13 +97,13 @@ public:
                   REAL mult = -1.0);
 
 ///
-    void CrseInit(const FARRAYBOX& flux, const BOX& subbox, int dir,
+    void CrseInit(const FArrayBox& flux, const BOX& subbox, int dir,
                   int srccomp, int destcomp, int numcomp,
                   REAL mult = -1.0);
 
     void CrseInitFinish();
 ///
-    void CrseInit(const FARRAYBOX& flux, const FARRAYBOX& area,
+    void CrseInit(const FArrayBox& flux, const FArrayBox& area,
                   const BOX& subbox, int dir,
                   int srccomp, int destcomp, int numcomp,
                   REAL mult = -1.0);
@@ -117,11 +117,11 @@ public:
 		 int srccomp, int destcomp, int numcomp, REAL mult);
 
 ///
-    void FineAdd(const FARRAYBOX& flux, int dir, int boxno,
+    void FineAdd(const FArrayBox& flux, int dir, int boxno,
 		 int srccomp, int destcomp, int numcomp, REAL mult);
 
 ///
-    void FineAdd(const FARRAYBOX& flux, const FARRAYBOX& area,
+    void FineAdd(const FArrayBox& flux, const FArrayBox& area,
                  int dir, int boxno,
 		 int srccomp, int destcomp, int numcomp, REAL mult);
 
@@ -149,7 +149,7 @@ protected:
 
       /// helper member functions
 ///
-    void increment(const FARRAYBOX& fab, int dir);
+    void increment(const FArrayBox& fab, int dir);
 };
 
 #endif

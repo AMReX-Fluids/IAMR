@@ -2,7 +2,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.5 1997-09-26 16:56:57 lijewski Exp $
+// $Id: FabSet.H,v 1.6 1997-10-01 01:03:04 car Exp $
 //
 
 #include <FArrayBox.H>
@@ -11,7 +11,7 @@
 
 //@Man:
 /*@Memo:
-        A FabSet is a group of FARRAYBOX's.  The grouping is designed
+        A FabSet is a group of FArrayBox's.  The grouping is designed
 	specifically to represent regions along the boundary of BOX's,
 	and are used to implement boundary conditions to discretized
 	partial differential equations.
@@ -26,7 +26,7 @@
 	particular orientation (ie. the lo-i side of each grid in a list).
 
 	Since a FabSet FAB will likely be used to bound a grid box,
-	FARRAYBOX::resize operations are disallowed.  Also, to preserve
+	FArrayBox::resize operations are disallowed.  Also, to preserve
 	flexibility in applicable boundary scenarios, intersecting
 	FABs in the FabSet are not guaranteed to contain identical data--thus
 	copy operations from a FabSet to any FAB-like structure may be
@@ -74,12 +74,12 @@ public:
 
 //@ManMemo: copy-from-FAB functions
 //@ManDoc: copy from the FAB to this FabSet
-    FabSet &copyFrom(const FARRAYBOX& src);
+    FabSet &copyFrom(const FArrayBox& src);
 //@ManDoc: copy from the specified components of a source FAB to the components to this destination FabSet
-    FabSet &copyFrom(const FARRAYBOX& src, int src_comp, int dest_comp,
+    FabSet &copyFrom(const FArrayBox& src, int src_comp, int dest_comp,
 		     int num_comp);
 //@ManDoc: copy from the specified components of a source FAB to the destination components of this FabSet over the subregion
-    FabSet &copyFrom(const FARRAYBOX& src, const BOX& subbox,
+    FabSet &copyFrom(const FArrayBox& src, const BOX& subbox,
 		     int src_comp, int dest_comp,
 		     int num_comp);
 

@@ -2,7 +2,7 @@
 #define _SYNCREGISTER_H_
 
 //
-// $Id: SyncRegister.H,v 1.4 1997-09-27 02:33:51 almgren Exp $
+// $Id: SyncRegister.H,v 1.5 1997-10-01 01:03:16 car Exp $
 //
 
 #include <PArray.H>
@@ -89,7 +89,7 @@ protected:
     FabSet    bndry_mask[2*BL_SPACEDIM];
 
       // helper member functions
-    void increment(const FARRAYBOX& fab);
+    void increment(const FArrayBox& fab);
 };
 
 #endif

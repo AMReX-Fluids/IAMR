@@ -2,7 +2,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.2 1997-09-26 16:56:58 lijewski Exp $
+// $Id: Geometry.H,v 1.3 1997-10-01 01:03:06 car Exp $
 //
 
 #include <CoordSys.H>
@@ -18,7 +18,7 @@ class Geometry : public CoordSys
 {
 protected:
   static bool is_periodic[BL_SPACEDIM];// 0 means not periodic
-    static REALBOX prob_domain;
+    static RealBox prob_domain;
     BOX    domain;
 
     void   read_params();
@@ -44,7 +44,7 @@ public:
 
     void define(const BOX& dom);
 
-    static const REALBOX& ProbDomain()
+    static const RealBox& ProbDomain()
     {
 	return prob_domain;
     }
