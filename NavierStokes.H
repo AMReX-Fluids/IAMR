@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.60 2000-05-12 23:47:55 marc Exp $
+// $Id: NavierStokes.H,v 1.61 2000-06-02 17:40:56 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -214,15 +214,6 @@ public:
     //
     // Get divU from the state data.
     //
-    void getDivCond (FArrayBox& fab,
-                     int        ngrow,
-                     Real       time);
-
-    void getDivCond (FArrayBox& fab,
-                     int        gridno,
-                     int        ngrow,
-                     Real       time);
-
     MultiFab* getDivCond (int  ngrow,
                           Real time);
     //
@@ -481,13 +472,6 @@ protected:
     //
     // Virtual function to allow arbitrary forcing.
     //
-    virtual void getForce (FArrayBox& force,
-                           int        gridno,
-                           int        ngrow,
-                           int        strt_comp,
-                           int        num_comp,
-                           Real       time);
-
     void getForce (FArrayBox&       force,
                    int              gridno,
                    int              ngrow,
@@ -497,59 +481,25 @@ protected:
     //
     // Get state data.
     //
-    void getState (FArrayBox& fab,
-                   int        gridno,
-                   int        ngrow,
-                   int        strt_comp,
-                   int        num_comp,
-                   Real       time);
-
-    void getState (FArrayBox& fab,
-                   int        gridno,
-                   int        ngrow,
-                   int        state_indx,
-                   int        strt_comp,
-                   int        num_comp,
-                   Real       time);
-
     MultiFab* getState (int  ngrow,
                         int  state_indx,
                         int  strt_comp,
                         int  num_comp,
                         Real time);
-    
-    void getState (FArrayBox&  fab,
-                   int         gridno,
-                   int         ngrow, 
-                   Real        time,
-                   int         have_state,
-                   int         state_indx,
-                   Array<Box>& unfilled,
-                   int         start_comp = 0,
-                   int         num_comp = 1);
     //
     // Get pressure gradient data via fill-patching.
     //
-    void getGradP (FArrayBox& gp,
-                   int        gridno,
-                   int        ngrow,
-                   Real       time);
+    void getGradP (MultiFab& gp,
+                   Real      time);
     //
-    // Given a nodal pressure P compute the pressure gradient at the
-    // contained cell centers.
+    // Helper function for preceding getGradP().
     //
     void getGradP (FArrayBox& p_fab,
                    FArrayBox& gp,
-                   const Box& grd,
-                   int        ngrow);
+                   const Box& gpbox_to_fill);
     //
     // Get dSdt from the state data.
     //
-    void getDsdt (FArrayBox& fab,
-                  int        gridno,
-                  int        ngrow,
-                  Real       time);
-
     MultiFab* getDsdt (int  ngrow,
                        Real time);
     //

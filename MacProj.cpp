@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.61 2000-04-13 21:17:28 sstanley Exp $
+// $Id: MacProj.cpp,v 1.62 2000-06-02 17:40:56 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -635,7 +635,7 @@ MacProj::mac_sync_compute (int                   level,
                            const Array<int>&     increment_sync)
 {
     FArrayBox Rho, tforces, tvelforces;
-    FArrayBox xflux, yflux, zflux, Gp;
+    FArrayBox xflux, yflux, zflux;
     FArrayBox grad_phi[BL_SPACEDIM];
     //
     // Get parameters.
@@ -672,6 +672,10 @@ MacProj::mac_sync_compute (int                   level,
     //
     // FillPatch()d stuff allocated on heap ...
     //
+    MultiFab Gp(grids,BL_SPACEDIM,1);
+
+    ns_level.getGradP(Gp, pres_prev_time);
+
     MultiFab* divu_fp = ns_level.getDivCond(1,prev_time);
 
     FillPatchIterator P_fpi(ns_level,ns_level.get_old_data(Press_Type),1,
@@ -730,9 +734,7 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Compute total forcing terms.
         //
-        ns_level.getGradP(P_fpi(),Gp,grids[i],1);
-
-        godunov->Sum_tf_gp_visc(tforces, visc_termsmfi(), Gp, Rho);
+        godunov->Sum_tf_gp_visc(tforces, visc_termsmfi(), Gp[i], Rho);
         godunov->Sum_tf_divu_visc(S, tforces, BL_SPACEDIM, numscal,
                                   visc_termsmfi(), BL_SPACEDIM, divu, Rho, 1);
 
@@ -740,7 +742,7 @@ MacProj::mac_sync_compute (int                   level,
         {
             DependentMultiFabIterator dmfi(S_fpi, vel_visc_terms);
             ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho);
-            godunov->Sum_tf_gp_visc(tvelforces, dmfi(), Gp, Rho);
+            godunov->Sum_tf_gp_visc(tvelforces, dmfi(), Gp[i], Rho);
         }
         //
         // Set up the workspace for the godunov Box.

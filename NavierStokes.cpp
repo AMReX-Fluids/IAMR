@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.165 2000-05-12 23:47:54 marc Exp $
+// $Id: NavierStokes.cpp,v 1.166 2000-06-02 17:40:56 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1426,8 +1426,12 @@ NavierStokes::predict_velocity (Real  dt,
     Real cflmax = 1.0e-10;
     comp_cfl    = (level == 0) ? cflmax : comp_cfl;
 
-    FArrayBox tforces, Gp;
+    FArrayBox tforces;
     Array<int> bndry[BL_SPACEDIM];
+
+    MultiFab Gp(grids,BL_SPACEDIM,1);
+
+    getGradP(Gp, prev_pres_time);
 
     FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,
                             prev_pres_time,Press_Type,0,1);
@@ -1453,9 +1457,7 @@ NavierStokes::predict_velocity (Real  dt,
         //
         // Compute the total forcing.
         //
-        getGradP(P_fpi(),Gp,grids[i],1);
-
-        godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp,Rho_fpi());
+        godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],Rho_fpi());
 
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
                bndry[1] = getBCArray(State_Type,i,1,1);,
@@ -1628,7 +1630,12 @@ NavierStokes::velocity_advection (Real dt)
         visc_terms.setVal(0,1);
 
     Array<int> bndry[BL_SPACEDIM];
-    FArrayBox xflux, yflux, zflux, divu, tforces, Gp;
+
+    FArrayBox xflux, yflux, zflux, divu, tforces;
+
+    MultiFab Gp(grids,BL_SPACEDIM,1);
+
+    getGradP(Gp, prev_pres_time);
 
     FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,
                             prev_pres_time,Press_Type,0,1);
@@ -1652,9 +1659,7 @@ NavierStokes::velocity_advection (Real dt)
 
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
 
-        getGradP(P_fpi(),Gp,grids[i],1);
-
-        godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp,Rho_fpi());
+        godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],Rho_fpi());
 
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
                bndry[1] = getBCArray(State_Type,i,1,1);,
@@ -1729,7 +1734,11 @@ NavierStokes::scalar_advection (Real dt,
     //
     // Set up the grid loop.
     //
-    FArrayBox xflux, yflux, zflux, tforces, tvelforces, Gp;
+    FArrayBox xflux, yflux, zflux, tforces, tvelforces;
+
+    MultiFab Gp(grids,BL_SPACEDIM,1);
+
+    getGradP(Gp, prev_pres_time);
 
     MultiFab vel_visc_terms;
 
@@ -1775,9 +1784,7 @@ NavierStokes::scalar_advection (Real dt,
         {
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
 
-            getGradP(P_fpi(),Gp,grids[i],1);
-            
-            godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[i],Gp,Rho_fpi());
+            godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[i],Gp[i],Rho_fpi());
         }
 
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
@@ -2063,7 +2070,7 @@ NavierStokes::velocity_update (Real dt)
 void
 NavierStokes::velocity_advection_update (Real dt)
 {
-    FArrayBox Gp, tforces;
+    FArrayBox tforces;
 
     MultiFab&  U_old          = get_old_data(State_Type);
     MultiFab&  U_new          = get_new_data(State_Type);
@@ -2074,6 +2081,10 @@ NavierStokes::velocity_advection_update (Real dt)
     const Real half_time      = 0.5*(prev_time+cur_time);
     const Real pres_prev_time = state[Press_Type].prevTime();
 
+    MultiFab Gp(grids,BL_SPACEDIM,1);
+
+    getGradP(Gp, pres_prev_time);
+
     FillPatchIterator P_fpi(*this,P_old,0,pres_prev_time,Press_Type,0,1);
 
     FillPatchIterator Rho_fpi(*this,U_old,0,half_time,State_Type,Density,1);
@@ -2081,8 +2092,6 @@ NavierStokes::velocity_advection_update (Real dt)
     for ( ; Rho_fpi.isValid() && P_fpi.isValid(); ++Rho_fpi, ++P_fpi)
     {
         const int i = Rho_fpi.index();
-
-        getGradP(P_fpi(),Gp,grids[i],0);
 
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,Rho_fpi());
         //
@@ -2092,7 +2101,7 @@ NavierStokes::velocity_advection_update (Real dt)
             tforces.setVal(0);
 
         godunov->Add_aofs_tf_gp(U_old[i],U_new[i],Aofs[i],tforces,
-                                 Gp,Rho_fpi(),grids[i],dt);
+                                 Gp[i],Rho_fpi(),grids[i],dt);
     }
 }
 
@@ -2211,6 +2220,10 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
         const Real prev_time      = state[State_Type].prevTime();
         const Real pres_prev_time = state[Press_Type].prevTime();
 
+        MultiFab Gp(grids,BL_SPACEDIM,1);
+
+        getGradP(Gp, pres_prev_time);
+
 	MultiFab visc_terms(grids,nComp,1);
 
 	if (be_cn_theta != 1.0)
@@ -2222,7 +2235,7 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
 	    visc_terms.setVal(0.0);
 	}
 
-        FArrayBox tforces, Gp;
+        FArrayBox tforces;
         //
         // Update U_new with viscosity.
         //
@@ -2238,9 +2251,7 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
 
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,Rho_fpi());
 
-            getGradP(P_fpi(),Gp,grids[i],0);
-
-            godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp,(*rho_half)[i]);
+            godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*rho_half)[i]);
 
             godunov->Add_aofs_tf(U_old[i], U_new[i], 0, BL_SPACEDIM, Aofs[i],
                                  0, tforces, 0, grids[i], dt);
@@ -2611,16 +2622,21 @@ NavierStokes::estTimeStep ()
         return factor*fixed_dt;
     }
 
-    const int   n_grow   = 0;
-    Real        estdt    = 1.0e+20;
-    const Real  cur_time = state[State_Type].curTime();
-    MultiFab&   P_new    = get_new_data(Press_Type);
-    MultiFab&   U_new    = get_new_data(State_Type);
-    const Real* dx       = geom.CellSize();
+    const int   n_grow        = 0;
+    Real        estdt         = 1.0e+20;
+    const Real  cur_time      = state[State_Type].curTime();
+    const Real  cur_pres_time = state[Press_Type].curTime();
+    MultiFab&   P_new         = get_new_data(Press_Type);
+    MultiFab&   U_new         = get_new_data(State_Type);
+    const Real* dx            = geom.CellSize();
 
     Real gr_max[BL_SPACEDIM], u_max[BL_SPACEDIM] = {0};
 
-    FArrayBox p_fab, Gp, tforces;
+    FArrayBox p_fab, tforces;
+
+    MultiFab Gp(grids,BL_SPACEDIM,1);
+
+    getGradP(Gp, cur_pres_time);
 
     FillPatchIterator fpi(*this,U_new,n_grow,cur_time,State_Type,Density,1);
 
@@ -2636,13 +2652,12 @@ NavierStokes::estTimeStep ()
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,fpi());
-        getGradP(p_fab, Gp, grids[i], 0);
-        tforces.minus(Gp,0,0,BL_SPACEDIM);
+        tforces.minus(Gp[i],0,0,BL_SPACEDIM);
         //
         // Estimate the maximum allowable timestep from the Godunov box.
         //
-        Real dt = godunov->estdt(U_new[i], tforces, fpi(),
-                                 grids[i], geom.CellSize(), cfl, gr_max);
+        Real dt = godunov->estdt(U_new[i],tforces,fpi(),grids[i],
+                                 geom.CellSize(),cfl,gr_max);
 
         for (int k = 0; k < BL_SPACEDIM; k++)
         {
@@ -4272,68 +4287,6 @@ NavierStokes::pullFluxes (int        i,
     }
 }
 
-//
-// Virtual access function for getting the forcing terms for the
-// velocities and scalars.  The base version computes a buoyancy.
-//
-// As NavierStokes is currently implemented.  Velocities are integrated
-// according to the equation
-//
-//     ui_t + uj ui_j = S_ui        ===> tforces = rho S_ui
-//
-// and scalars psi where (psi = rho q) as
-//
-//     psi_t + (uj psi)_j = S_psi   ===> tforces = S_psi = rho S_q
-//
-// q is a concentration.  This function returns a rho weighted
-// source term, which requires a division by rho in the predict_velocity
-// and velocity_advection routines.
-//
-
-void
-NavierStokes::getForce (FArrayBox& force,
-                        int        gridno,
-                        int        ngrow,
-                        int        scomp,
-                        int        ncomp,
-                        Real       time)
-{
-    BoxLib::Error("NavierStokes::getForce(): not implemented");
-#if 0
-    Box bx(grids[gridno]);
-    bx.grow(ngrow);
-    force.resize(bx,ncomp);
-
-    const int* lo = bx.loVect();
-    const int* hi = bx.hiVect();
-
-    Real grav = Abs(gravity);
-    FArrayBox rho;
-    for (int dc = 0; dc < ncomp; dc++)
-    {
-        const int sc = scomp + dc;
-#if (BL_SPACEDIM == 2)
-        if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001) 
-#endif
-#if (BL_SPACEDIM == 3)
-        if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001) 
-#endif
-        {
-            //
-            // Set force to -rho*g.
-            //
-            getState(rho,gridno,ngrow,Density,1,time);
-            rho.mult(-grav);
-            force.copy(rho,0,dc,1);
-        }
-        else
-        {
-            force.setVal(0.0,dc);
-        }
-    }
-#endif
-}
-
 void
 NavierStokes::getForce (FArrayBox&       force,
                         int              gridno,
@@ -4373,25 +4326,109 @@ NavierStokes::getForce (FArrayBox&       force,
     }
 }
 
-//
-// Fill patch and then call the other GradP function.
-//
-
 void
-NavierStokes::getGradP (FArrayBox& gp,
-                        int        gridno,
-                        int        ngrow,
-                        Real       time)
+NavierStokes::getGradP (MultiFab& gp,
+                        Real      time)
 {
-    BoxLib::Error("NavierStokes::getGradP(): not implemented");
-#if 0
-    Box gpbx(grids[gridno]);
-    gpbx.grow(ngrow);
-    Box p_box(surroundingNodes(gpbx));
-    FArrayBox p_fab(p_box,1);
-    FillPatch(p_fab,0,time,Press_Type,0,1);
-    getGradP( p_fab, gp, grids[gridno], ngrow );
-#endif
+    const int NGrow = gp.nGrow();
+    MultiFab& P_old = get_old_data(Press_Type);
+
+    if (level > 0)
+    {
+        {
+            //
+            // Build MultiFab whose valid region encompasses NGrow grow cells.
+            // The valid region of the MultiFab will contain overlaps!
+            //
+            const BoxArray& pBA = state[Press_Type].boxArray();
+
+            BoxArray ovlpBA(pBA.length());
+
+            for (int j = 0; j < ovlpBA.length(); j++)
+                ovlpBA.set(j,::grow(pBA[j],NGrow));
+
+            MultiFab pMF(ovlpBA,1,0);
+
+            FillCoarsePatch(pMF,0,time,Press_Type,0,1);
+
+            for (MultiFabIterator mfi(pMF); mfi.isValid(); ++mfi) 
+            {
+                DependentMultiFabIterator dmfi(mfi,gp);
+
+                getGradP(mfi(),dmfi(),dmfi().box());
+            }
+        }
+        //
+        // We've now got good coarse data everywhere in gp.
+        // FillPatch temp version of gp having overlapping valid regions.
+        //
+        BoxArray ovlpBA(gp.boxArray().length());
+
+        for (int j = 0; j < gp.boxArray().length(); j++)
+            ovlpBA.set(j,::grow(gp.boxArray()[j],NGrow));
+
+        MultiFab gpTmp(ovlpBA,gp.nComp(),0);
+        {
+            FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
+
+            for ( ; P_fpi.isValid(); ++P_fpi) 
+            {
+                DependentMultiFabIterator dmfi(P_fpi,gpTmp);
+
+                getGradP(P_fpi(),dmfi(),dmfi().box());
+            }
+        }
+        //
+        // Now must decide which parts of gpTmp to copy to gp.
+        //
+        BoxArray fineBA(gp.boxArray().length());
+
+        for (int j = 0; j < gp.boxArray().length(); j++)
+        {
+            Box bx = gp.boxArray()[j];
+
+            for (int i = 0; i < BL_SPACEDIM; i++)
+            {
+                if (!geom.isPeriodic(i))
+                {
+                    if (bx.smallEnd(i) == geom.Domain().smallEnd(i))
+                        bx.growLo(i,NGrow);
+                    if (bx.bigEnd(i) == geom.Domain().bigEnd(i))
+                        bx.growHi(i,NGrow);
+                }
+            }
+
+            fineBA.set(j,bx);
+        }
+
+        for (MultiFabIterator mfi(gpTmp); mfi.isValid(); ++mfi) 
+        {
+            for (int j = 0; j < fineBA.length(); j++)
+            {
+                if (fineBA[j].intersects(mfi().box()))
+                {
+                    Box isect = fineBA[j] & mfi().box();
+
+                    gp[mfi.index()].copy(mfi(),isect);
+                }
+            }
+        }
+
+        geom.FillPeriodicBoundary(gp,false,true);
+    }
+    else
+    {
+        FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
+
+        for ( ; P_fpi.isValid(); ++P_fpi) 
+        {
+            DependentMultiFabIterator dmfi(P_fpi,gp);
+
+            BL_ASSERT(::grow(grids[P_fpi.index()],NGrow) == dmfi().box());
+
+            getGradP(P_fpi(),dmfi(),dmfi().box());
+        }
+    }
 }
 
 //
@@ -4405,47 +4442,30 @@ NavierStokes::getGradP (FArrayBox& gp,
 void
 NavierStokes::getGradP (FArrayBox& p_fab,
                         FArrayBox& gp,
-                        const Box& grd,
-                        int        ngrow)
+                        const Box& gpbox_to_fill)
 {
-    //
-    // Size the pressure gradient storage.
-    //
-    gp.resize(::grow(grd,ngrow),BL_SPACEDIM);
     //
     // Test to see if p_fab contains gp.box().
     //
-    BL_ASSERT(::enclosedCells(p_fab.box()).contains(gp.box()));
+    BL_ASSERT(::enclosedCells(p_fab.box()).contains(gpbox_to_fill));
 
     const int*  plo    = p_fab.loVect();
     const int*  phi    = p_fab.hiVect();
     const int*  glo    = gp.box().loVect();
     const int*  ghi    = gp.box().hiVect();
+    const int*   lo    = gpbox_to_fill.loVect();
+    const int*   hi    = gpbox_to_fill.hiVect();
     const Real* p_dat  = p_fab.dataPtr();
     const Real* gp_dat = gp.dataPtr();
     const Real* dx     = geom.CellSize();
 
     FORT_GRADP(p_dat,ARLIM(plo),ARLIM(phi),
-               gp_dat,ARLIM(glo),ARLIM(ghi),glo,ghi,dx);
+               gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx);
 }
 
 //
 // Fill patch divU.
 //
-
-void
-NavierStokes::getDivCond (FArrayBox& fab,
-                          int        gridno,
-                          int        ngrow, 
-                          Real       time)
-{
-    BoxLib::Error("NavierStokes::getDivCond(): not implemented");
-#if 0
-    getState(fab, gridno, ngrow, time, have_divu, Divu_Type,
-             //divu_assoc, divu_unfilled);
-             divu_unfilled);
-#endif
-}
 
 MultiFab*
 NavierStokes::getDivCond (int  ngrow, 
@@ -4471,20 +4491,6 @@ NavierStokes::getDivCond (int  ngrow,
 // Fill patch dSdt.
 //
 
-void
-NavierStokes::getDsdt (FArrayBox& fab,
-                       int        gridno,
-                       int        ngrow, 
-                       Real       time)
-{
-    BoxLib::Error("NavierStokes::getDsdt(): not implemented");
-#if 0
-    getState(fab, gridno, ngrow, time, (have_dsdt && have_divu), Dsdt_Type,
-             //dsdt_assoc, dsdt_unfilled);
-             dsdt_unfilled);
-#endif
-}
-
 MultiFab*
 NavierStokes::getDsdt (int  ngrow, 
                        Real time)
@@ -4503,65 +4509,6 @@ NavierStokes::getDsdt (int  ngrow,
     }
 
     return dsdt;
-}
-
-//
-// Fill patch a state component.
-//
-
-void
-NavierStokes::getState (FArrayBox& fab,
-                        int        gridno,
-                        int        ngrow,
-                        int        scomp,
-                        int        ncomp,
-                        Real       time)
-{
-    BoxLib::Error("NavierStokes::getState(1): not implemented");
-
-    getState(fab,gridno,ngrow,State_Type,scomp,ncomp,time);
-}
-
-//
-// Fill patch a state component.
-//
-
-void
-NavierStokes::getState (FArrayBox& fab,
-                        int        gridno,
-                        int        ngrow,
-                        int        state_indx,
-                        int        scomp,
-                        int        ncomp, 
-                        Real       time)
-{
-    BoxLib::Error("NavierStokes::getState(2): not implemented");
-
-#if 0
-    Box bx(grids[gridno]);
-    bx.grow(ngrow);
-    fab.resize(bx,ncomp);
-
-    if (ngrow == 1 && !Geometry::isAnyPeriodic())
-    {
-        //hyp_assoc.setCacheWidth(ngrow);
-        FillPatch(fab,0,time,state_indx,scomp,ncomp,
-                 //hyp_assoc,gridno,cc1_unfilled[gridno]);
-                 cc1_unfilled[gridno]);
-
-    }
-    else if (ngrow == HYP_GROW && !Geometry::isAnyPeriodic())
-    {
-        //hyp_assoc.setCacheWidth(ngrow);
-        FillPatch(fab,0,time,state_indx,scomp,ncomp,
-                 //hyp_assoc,gridno,hyp_unfilled[gridno]);
-                 hyp_unfilled[gridno]);
-    }
-    else
-    {
-        FillPatch(fab,0,time,state_indx,scomp,ncomp);
-    }
-#endif
 }
 
 //
@@ -4621,94 +4568,6 @@ NavierStokes::FillStateBndry (Real time,
                                 ncomp);
         }
     }
-}
-
-//
-// Fill patch a state component.  This is a driver for calling
-// the amrLevel filpatch function.  amrLevel filpatch works
-// by first interpolating coarse data (time, then space), overwriting
-// coarse data with fine data, and letting physical boundary conditions
-// take precedence over interpolated ghost cells
-//
-// NOTE:: It might be a bug to resize the fab, since it could
-// be part of a multifab with unforeseen consequences
-//
-
-void
-NavierStokes::getState (FArrayBox&  fab,
-                        int         gridno,
-                        int         ngrow, 
-                        Real        time,
-                        int         have_state,
-                        int         state_idx,
-                        Array<Box>& unfilled,
-                        int         scomp,
-                        int         ncomp)
-{
-    BoxLib::Error("NavierStokes::getState(3): not implemented");
-
-#if 0
-    //
-    // Create the storage.
-    //
-    Box bx(grids[gridno]);
-    bx.grow(ngrow);
-    fab.resize(bx,ncomp);
-    if (fab.box() != bx)
-    {
-      cout << "NavierStokes::getState : fab.box()!=bx\n"
-           << "bx        = " << bx << '\n'
-           << "fab.box() = " << fab.box() << '\n';
-      BoxLib::Abort("NavierStokes::getState()");
-    }
-    
-    if (!have_state)
-    {
-        fab.setVal(0.0);  // Can't filpatch what we don't have.
-    }
-    else
-    {
-        fab.setVal(1.0e30); // For debugging only.
-        
-        if (ngrow == 1 && !Geometry::isAnyPeriodic())
-        {
-            //assoc.setCacheWidth(ngrow);
-            FillPatch(fab,0,time,state_idx,scomp,ncomp,
-                     //assoc,gridno,unfilled[gridno]);
-                     unfilled[gridno]);
-        }
-        else
-        {
-            FillPatch(fab,0,time,state_idx,scomp,ncomp);
-        }
-    }
-#endif
-}
-
-//
-// Fill patch divU.
-//
-
-void
-NavierStokes::getDivCond (FArrayBox& fab,
-                          int        ngrow,
-                          Real       time)
-{
-    BoxLib::Error("NavierStokes::getDivCond(): not implemented");
-#if 0
-    //
-    // For NavierStokes, defaults divU = 0.
-    //
-    if (!have_divu)
-    {
-        fab.setVal(0.0);
-    }
-    else
-    {
-        fab.setVal(1.0e30); // For debugging only.
-        FillPatch(fab,0,time,Divu_Type,0,1);
-    }
-#endif
 }
 
 //

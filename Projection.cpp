@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.120 2000-05-04 17:56:46 propp Exp $
+// $Id: Projection.cpp,v 1.121 2000-06-02 17:40:58 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -492,27 +492,27 @@ Projection::level_project (int             level,
     delete divuold;
 
     REAL prev_pres_time = cur_pres_time - dt;
-    FArrayBox Gp;
 
     if (proj_2)
     {
-        FillPatchIterator P_oldfpi(LevelData[level],P_old,1,
-                                   prev_pres_time,Press_Type,0,1);
-        int n_ghost = 1;
+        MultiFab Gp(grids,BL_SPACEDIM,1);
+
+        ns->getGradP(Gp, prev_pres_time);
+
+        FillPatchIterator P_fpi(LevelData[level],P_old,1,
+                                prev_pres_time,Press_Type,0,1);
+        const int n_ghost = 1;
+
         rho_half->invert(1.0,n_ghost);
 
-        for ( ; P_oldfpi.isValid(); ++P_oldfpi)
+        for ( ; P_fpi.isValid(); ++P_fpi)
         {
-            ns->getGradP(P_oldfpi(),Gp,grids[P_oldfpi.index()],n_ghost);
+            const int idx = P_fpi.index();
 
-            Gp.mult((*rho_half)[P_oldfpi.index()],0,0,1);
-            Gp.mult((*rho_half)[P_oldfpi.index()],0,1,1);
-#if (BL_SPACEDIM==3)
-            Gp.mult((*rho_half)[P_oldfpi.index()],0,2,1);
-#endif
+            for (int i = 0; i < BL_SPACEDIM; i++)
+                Gp[idx].mult((*rho_half)[idx],0,i,1);
 
-            DependentMultiFabIterator U_newmfi(P_oldfpi, U_new);
-            U_newmfi().plus(Gp,0,0,BL_SPACEDIM);
+            U_new[idx].plus(Gp[idx],0,0,BL_SPACEDIM);
         }
 
         rho_half->invert(1.0,n_ghost);
