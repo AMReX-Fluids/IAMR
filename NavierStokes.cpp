@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.34 1998-03-27 00:17:13 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.35 1998-03-27 20:41:26 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2973,74 +2973,48 @@ void NavierStokes::initial_velocity_diffusion_update(Real dt)
 #endif
 }
 
-
-
-//=================================================================
-// Diagnostics and IO functions follow
-//=================================================================
-
-// -------------------------------------------------------------
 void
 NavierStokes::errorEst (TagBoxArray& tags,
                         int          clearval,
                         int          tagval,
                         Real         time)
 {
-    const Box& domain    = geom.Domain();
-    const int* domain_lo = domain.loVect();
-    const int* domain_hi = domain.hiVect();
-    const Real* dx       = geom.CellSize();
-    const Real* prob_lo  = geom.ProbLo();
-    //
-    // Loop over error estimation quantities, derive quantity
-    // then call user supplied error tagging function.
-    //
+    const int*  domain_lo = geom.Domain().loVect();
+    const int*  domain_hi = geom.Domain().hiVect();
+    const Real* dx        = geom.CellSize();
+    const Real* prob_lo   = geom.ProbLo();
+
     for (int j = 0; j < err_list.length(); j++)
     {
-        const ErrorRec* err = err_list[j];
-        int ngrow           = err->nGrow();
-        int state_index, src_comp;
-        if (!isStateVariable(err->name(),state_index, src_comp))
+        MultiFab* mf = derive(err_list[j]->name(), time, err_list[j]->nGrow());
+
+        assert(!(mf == 0));
+
+        for (MultiFabIterator mfi(*mf); mfi.isValid(); ++mfi)
         {
-            cerr << "Error in NavierStokes::errorEst:  "
-                 << err->name()
-                 << " is not a state variable: fix for parallel."
-                 << endl;
-            BoxLib::Error();
-        }
-        MultiFab& dataMF = get_new_data(state_index);
+            Array<int>  itags = tags[mfi.index()].tags();
+            int*        tptr  = itags.dataPtr();
+            const int*  tlo   = tags[mfi.index()].box().loVect();
+            const int*  thi   = tags[mfi.index()].box().hiVect();
+            const int*  lo    = mfi.validbox().loVect();
+            const int*  hi    = mfi.validbox().hiVect();
+            const Real* xlo   = grid_loc[mfi.index()].lo();
+            Real*      dat    = mfi().dataPtr();
+            const int* dlo    = mfi().box().loVect();
+            const int* dhi    = mfi().box().hiVect();
+            const int  ncomp  = mfi().nComp();
 
-        assert(tags.length() == dataMF.length());
-
-        for (FillPatchIterator fpi(*this, dataMF, ngrow, 0, time,
-                                   state_index, src_comp, 1);
-             fpi.isValid();
-             ++fpi)
-        {
-            Array<int> itags = tags[fpi.index()].tags();
-            int* tptr        = itags.dataPtr();
-            const int* tlo   = tags[fpi.index()].box().loVect();
-            const int* thi   = tags[fpi.index()].box().hiVect();
-            const int* lo    = grids[fpi.index()].loVect();
-            const int* hi    = grids[fpi.index()].hiVect();
-            const Real* xlo  = grid_loc[fpi.index()].lo();
-
-            assert(fpi().box() == grow(grids[fpi.index()],ngrow));
-
-            Real* dat         = fpi().dataPtr();
-            const int* dat_lo = fpi().loVect();
-            const int* dat_hi = fpi().hiVect();
-            int ncomp         = fpi().nComp();
-
-            err->errFunc()(tptr,ARLIM(tlo),ARLIM(thi),&tagval,&clearval,
-                           dat, ARLIM(dat_lo), ARLIM(dat_hi),
-                           lo, hi, &ncomp, domain_lo, domain_hi,
-                           dx, xlo, prob_lo, &time, &level);
+            err_list[j]->errFunc()(tptr, ARLIM(tlo), ARLIM(thi), &tagval,
+                                   &clearval, dat, ARLIM(dlo), ARLIM(dhi),
+                                   lo,hi, &ncomp, domain_lo, domain_hi,
+                                   dx, xlo, prob_lo, &time, &level);
             //
             // Don't forget to set the tags in the TagBox.
             //
-            tags[fpi.index()].tags(itags);
+            tags[mfi.index()].tags(itags);
         }
+
+        delete mf;
     }
 }
 
