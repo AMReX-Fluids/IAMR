@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.230 2003-05-01 18:25:53 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.231 2003-09-15 21:17:38 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3496,10 +3496,8 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
     {
     case 0: interpolater = &cell_cons_interp;    break;
     case 1: interpolater = &pc_interp;           break;
-    case 2: interpolater = &unlimited_cc_interp; break;
-    case 3: interpolater = &lincc_interp;        break;
-    case 4: interpolater = &nonlincc_interp;     break;
-    case 5: interpolater = &protected_interp;    break;
+    case 2: interpolater = &lincc_interp;        break;
+    case 3: interpolater = &protected_interp;    break;
     default:
         BoxLib::Abort("NavierStokes::SyncInterp(): how did this happen");
     }
