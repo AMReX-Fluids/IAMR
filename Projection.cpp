@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.151 2003-05-01 18:25:53 lijewski Exp $
+// $Id: Projection.cpp,v 1.152 2003-09-08 18:49:31 almgren Exp $
 //
 #include <winstd.H>
 
@@ -1366,18 +1366,8 @@ Projection::initialVelocityProject (int  c_lev,
         }
     }
 
-    if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs)
-    {
-       if (have_divu)
-         set_outflow_bcs(INITIAL_VEL,phi,vel,rhs_cc,sig,
-                        c_lev,f_lev,have_divu);
-
-       if (!have_divu) {
-          MultiFab* divu_dummy[MAX_LEV] = {0};
-          set_outflow_bcs(INITIAL_VEL,phi,vel,divu_dummy,sig,
-                        c_lev,f_lev,have_divu);
-       }
-    }
+    if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu)
+       set_outflow_bcs(INITIAL_VEL,phi,vel,rhs_cc,sig,c_lev,f_lev,have_divu);
 
      //
      // Scale the projection variables.
