@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.22 1998-05-21 15:52:48 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.23 1998-05-28 03:11:35 lijewski Exp $
 //
 
 //
@@ -1596,227 +1596,243 @@ void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, Real dt,
 #endif
 }
 
-void Diffusion::diffuse_Ssync(MultiFab *Ssync, int sigma, Real dt,
-                              Real be_cn_theta,
-                              MultiFab* rho_half, int rho_flag,
-                              int do_viscsyncflux, 
-                              MultiFab** beta,
-                              MultiFab* alpha)
-
-
+void
+Diffusion::diffuse_Ssync (MultiFab*  Ssync,
+                          int        sigma,
+                          Real       dt,
+                          Real       be_cn_theta,
+                          MultiFab*  rho_half,
+                          int        rho_flag,
+                          int        do_viscsyncflux, 
+                          MultiFab** beta,
+                          MultiFab*  alpha)
 {
-  if (verbose)
-    cout << "Diffusion::diffuse_Ssync for scalar " << sigma << NL;
+    if (verbose)
+        cout << "Diffusion::diffuse_Ssync for scalar " << sigma << NL;
 
-  int allnull, allthere;
-  checkBeta(beta, allthere, allnull);
+    int allnull, allthere;
+    checkBeta(beta, allthere, allnull);
 
-  int ngrds = grids.length();
-  const Real* dx = caller->Geom().CellSize();
+    const Real* dx = caller->Geom().CellSize();
 
-  MultiFab Soln(grids,1,1,Fab_allocate);
-  Soln.setVal(0.);
+    MultiFab Soln(grids,1,1,Fab_allocate);
+    Soln.setVal(0);
 
-  MultiFab Rhs(grids,1,0,Fab_allocate);
-  Rhs.copy(*Ssync,sigma,0,1);
+    MultiFab Rhs(grids,1,0,Fab_allocate);
+    Rhs.copy(*Ssync,sigma,0,1);
 
-  Real r_norm = 0.0;
-  for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
-    r_norm = Max(r_norm,Rhsmfi().norm(0));
-  }
-  ParallelDescriptor::ReduceRealMax(r_norm);
+    Real r_norm = 0.0;
+    for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    {
+        r_norm = Max(r_norm,Rhsmfi().norm(0));
+    }
+    ParallelDescriptor::ReduceRealMax(r_norm);
 
-  cout << "Original max of Ssync " << r_norm << NL;
+    cout << "Original max of Ssync " << r_norm << NL;
+    //
+    // Compute RHS.
+    //
+    for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    {
+        DependentMultiFabIterator volumemfi(Rhsmfi, volume);
+        Rhsmfi().mult(volumemfi()); 
+        if (rho_flag == 1)
+        {
+            DependentMultiFabIterator rho_halfmfi(Rhsmfi, *rho_half);
+            Rhsmfi().mult(rho_halfmfi());
+        }
+    }
+    //
+    // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
+    //
+    Real a = 1.0;
+    Real b;
+    if (allnull)
+    {
+        b = be_cn_theta*dt*visc_coef[BL_SPACEDIM+sigma];
+    }
+    else
+    {
+        b = be_cn_theta*dt;
+    }
 
-  //  Compute RHS
-  for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
-    DependentMultiFabIterator volumemfi(Rhsmfi, volume);
-    DependentMultiFabIterator rho_halfmfi(Rhsmfi, (*rho_half));
-    Rhsmfi().mult(volumemfi()); 
-    if (rho_flag==1) 
-      Rhsmfi().mult(rho_halfmfi());
-  }
+    Real rhsscale = 1.0;
+    ABecLaplacian * visc_op = getViscOp(BL_SPACEDIM+sigma,a,b,
+                                        rho_half,rho_flag,&rhsscale,beta,alpha);
+    visc_op->maxOrder(max_order);
+    Rhs.mult(rhsscale,0,1);
+    //
+    // Construct solver and call it.
+    //
+    Real S_tol = visc_tol;
+    MultiFab const * betan[BL_SPACEDIM];
+    MultiFab const * betanp1[BL_SPACEDIM];
+    for (int d = 0; d < BL_SPACEDIM; d++)
+    {
+        betan[d]   = &visc_op->bCoefficients(d);
+        betanp1[d] = betan[d];
+    }
+    REAL S_tol_abs = get_scaled_abs_tol(BL_SPACEDIM+sigma, &Rhs, a, b, 
+                                        alpha, betan, betanp1, visc_abs_tol);
+    if (use_cg_solve)
+    {
+        CGSolver cg(*visc_op,use_mg_precond_flag);
+        cg.solve(Soln,Rhs,S_tol,S_tol_abs);
+    }
+    else
+    {
+        MultiGrid mg(*visc_op);
+        mg.solve(Soln,Rhs,S_tol,S_tol_abs);
+    }
 
-  //  SET UP COEFFICIENTS FOR VISCOUS SOLVER
-  Real a = 1.0;
-  Real b;
-  if (allnull) {
-    b = be_cn_theta*dt*visc_coef[BL_SPACEDIM+sigma];
-  } else {
-    b = be_cn_theta*dt;
-  }
+    int visc_op_lev = 0;
+    visc_op->applyBC(Soln,visc_op_lev);
 
-  Real rhsscale = 1.0;
-  ABecLaplacian * visc_op = getViscOp(BL_SPACEDIM+sigma,a,b,
-                                      rho_half,rho_flag,&rhsscale,beta,alpha);
-  visc_op->maxOrder(max_order);
-  Rhs.mult(rhsscale,0,1);
+    Ssync->copy(Soln,0,sigma,1,1);
 
-      // construct solver and call it
-  Real S_tol = visc_tol;
-  MultiFab const * betan[BL_SPACEDIM];
-  MultiFab const * betanp1[BL_SPACEDIM];
-  for (int d=0; d<BL_SPACEDIM; d++) {
-      betan[d] = &visc_op->bCoefficients(d);
-      betanp1[d] = betan[d];
-  }
-  REAL S_tol_abs = get_scaled_abs_tol(BL_SPACEDIM+sigma, &Rhs, a, b, 
-                                      alpha, betan, betanp1, visc_abs_tol);
+    Real s_norm = 0.0;
+    for (MultiFabIterator Solnmfi(Rhs); Solnmfi.isValid(); ++Solnmfi)
+    {
+        s_norm = Max(s_norm,Solnmfi().norm(0));
+    }
+    ParallelDescriptor::ReduceRealMax(s_norm);
 
-  if(use_cg_solve) {
-    CGSolver cg(*visc_op,use_mg_precond_flag);
-    cg.solve(Soln,Rhs,S_tol,S_tol_abs);
-  } else {
-    MultiGrid mg(*visc_op);
-    mg.solve(Soln,Rhs,S_tol,S_tol_abs);
-  }
+    cout << "Final max of Ssync " << s_norm << NL;
 
-  int visc_op_lev = 0;
-  visc_op->applyBC(Soln,visc_op_lev);
+    delete visc_op;
 
-  Ssync->copy(Soln,0,sigma,1,1);
+    FArrayBox xflux;
+    FArrayBox yflux;
 
-  Real s_norm = 0.0;
-  for(MultiFabIterator Solnmfi(Rhs); Solnmfi.isValid(); ++Solnmfi) {
-    s_norm = Max(s_norm,Solnmfi().norm(0));
-  }
-  ParallelDescriptor::ReduceRealMax(s_norm);
-
-  cout << "Final max of Ssync " << s_norm << NL;
-
-  delete visc_op;
-
-  FArrayBox xflux;
-  FArrayBox yflux;
-
-  if (level > 0 && do_viscsyncflux == 1) {
+    if (level > 0 && do_viscsyncflux == 1)
+    {
  
-    for(MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi) {
-      DependentMultiFabIterator area0mfi(Ssyncmfi, area[0]);
-      DependentMultiFabIterator area1mfi(Ssyncmfi, area[1]);
-      DependentMultiFabIterator beta0mfi(Ssyncmfi, (*beta[0]));
-      DependentMultiFabIterator beta1mfi(Ssyncmfi, (*beta[1]));
+        for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
+        {
+            DependentMultiFabIterator area0mfi(Ssyncmfi, area[0]);
+            DependentMultiFabIterator area1mfi(Ssyncmfi, area[1]);
 #if (BL_SPACEDIM == 3)
-      DependentMultiFabIterator area2mfi(Ssyncmfi, area[2]);
-      DependentMultiFabIterator beta2mfi(Ssyncmfi, (*beta[2]));
+            DependentMultiFabIterator area2mfi(Ssyncmfi, area[2]);
 #endif
-      assert(grids[Ssyncmfi.index()] == Ssyncmfi.validbox());
-      int i = Ssyncmfi.index();
+            assert(grids[Ssyncmfi.index()] == Ssyncmfi.validbox());
 
-      const Box& grd = Ssyncmfi.validbox();
-      const int* lo = grd.loVect();
-      const int* hi = grd.hiVect();
+            const int i       = Ssyncmfi.index();
+            const Box& grd    = Ssyncmfi.validbox();
+            const int* lo     = grd.loVect();
+            const int* hi     = grd.hiVect();
+            FArrayBox& s_sync = Ssyncmfi();
+            const int* slo    = s_sync.loVect();
+            const int* shi    = s_sync.hiVect();
 
-      FArrayBox& s_sync = Ssyncmfi();
+            Box xflux_bx(grd);
+            xflux_bx.surroundingNodes(0);
+            xflux.resize(xflux_bx,1);
+            DEF_LIMITS(xflux,xflux_dat,xflux_lo,xflux_hi);
 
-      const int* slo = s_sync.loVect();
-      const int* shi = s_sync.hiVect();
+            Box yflux_bx(grd);
+            yflux_bx.surroundingNodes(1);
+            yflux.resize(yflux_bx,1);
+            DEF_LIMITS(yflux,yflux_dat,yflux_lo,yflux_hi);
 
-      Box xflux_bx(grd);
-      xflux_bx.surroundingNodes(0);
-      xflux.resize(xflux_bx,1);
-      DEF_LIMITS(xflux,xflux_dat,xflux_lo,xflux_hi);
+            FArrayBox& xarea = area0mfi();
+            FArrayBox& yarea = area1mfi();
 
-      Box yflux_bx(grd);
-      yflux_bx.surroundingNodes(1);
-      yflux.resize(yflux_bx,1);
-      DEF_LIMITS(yflux,yflux_dat,yflux_lo,yflux_hi);
+            DEF_CLIMITS(xarea,xarea_dat,xarea_lo,xarea_hi);
+            DEF_CLIMITS(yarea,yarea_dat,yarea_lo,yarea_hi);
 
-      FArrayBox& xarea = area0mfi();
-      FArrayBox& yarea = area1mfi();
-
-      DEF_CLIMITS(xarea,xarea_dat,xarea_lo,xarea_hi);
-      DEF_CLIMITS(yarea,yarea_dat,yarea_lo,yarea_hi);
-
-      Real mult = -b;
+            Real mult = -b;
 
 #if (BL_SPACEDIM == 2)
-      FORT_VISCSYNCFLUX (s_sync.dataPtr(sigma), ARLIM(slo), ARLIM(shi),
-                         lo,hi,
-                         xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
-                         yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
-                         xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
-                         yarea_dat,ARLIM(yarea_lo),ARLIM(yarea_hi),
-                         dx,&mult);
+            FORT_VISCSYNCFLUX (s_sync.dataPtr(sigma), ARLIM(slo), ARLIM(shi),
+                               lo,hi,
+                               xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
+                               yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
+                               xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
+                               yarea_dat,ARLIM(yarea_lo),ARLIM(yarea_hi),
+                               dx,&mult);
 #endif
 #if (BL_SPACEDIM == 3)
+            FArrayBox zflux;
+            Box zflux_bx(grd);
+            zflux_bx.surroundingNodes(2);
+            zflux.resize(zflux_bx,1);
+            DEF_LIMITS(zflux,zflux_dat,zflux_lo,zflux_hi);
 
-      FArrayBox zflux;
-      Box zflux_bx(grd);
-      zflux_bx.surroundingNodes(2);
-      zflux.resize(zflux_bx,1);
-      DEF_LIMITS(zflux,zflux_dat,zflux_lo,zflux_hi);
+            FArrayBox& zarea = area2mfi();
+            DEF_CLIMITS(zarea,zarea_dat,zarea_lo,zarea_hi);
 
-      FArrayBox& zarea = area2mfi();
-      DEF_CLIMITS(zarea,zarea_dat,zarea_lo,zarea_hi);
-
-      FORT_VISCSYNCFLUX (s_sync.dataPtr(sigma), ARLIM(slo), ARLIM(shi),
-                         lo,hi,
-                         xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
-                         yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
-                         zflux_dat,ARLIM(zflux_lo),ARLIM(zflux_hi),
-                         xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
-                         yarea_dat,ARLIM(yarea_lo),ARLIM(yarea_hi),
-                         zarea_dat,ARLIM(zarea_lo),ARLIM(zarea_hi),
-                         dx,&mult);
+            FORT_VISCSYNCFLUX (s_sync.dataPtr(sigma), ARLIM(slo), ARLIM(shi),
+                               lo,hi,
+                               xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
+                               yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
+                               zflux_dat,ARLIM(zflux_lo),ARLIM(zflux_hi),
+                               xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
+                               yarea_dat,ARLIM(yarea_lo),ARLIM(yarea_hi),
+                               zarea_dat,ARLIM(zarea_lo),ARLIM(zarea_hi),
+                               dx,&mult);
 #endif
-
-      if (allthere) {
-        xflux.mult(beta0mfi());
-        yflux.mult(beta1mfi());
+            if (allthere)
+            {
+                DependentMultiFabIterator beta0mfi(Ssyncmfi,*beta[0]);
+                DependentMultiFabIterator beta1mfi(Ssyncmfi,*beta[1]);
+                xflux.mult(beta0mfi());
+                yflux.mult(beta1mfi());
 #if (BL_SPACEDIM == 3)
-        zflux.mult(beta2mfi());
+                DependentMultiFabIterator beta2mfi(Ssyncmfi,*beta[2]);
+                zflux.mult(beta2mfi());
 #endif
-      }
+            }
 
-      Real one = 1.0;
-      viscflux_reg->FineAdd(xflux,0,i,0,BL_SPACEDIM+sigma,1,one);
-      viscflux_reg->FineAdd(yflux,1,i,0,BL_SPACEDIM+sigma,1,one);
+            Real one = 1.0;
+            viscflux_reg->FineAdd(xflux,0,i,0,BL_SPACEDIM+sigma,1,one);
+            viscflux_reg->FineAdd(yflux,1,i,0,BL_SPACEDIM+sigma,1,one);
 #if (BL_SPACEDIM == 3)
-      viscflux_reg->FineAdd(zflux,2,i,0,BL_SPACEDIM+sigma,1,one);
+            viscflux_reg->FineAdd(zflux,2,i,0,BL_SPACEDIM+sigma,1,one);
 #endif
-    }  // end for(MultiFabIterator...)
-  }
-
-  if(rho_flag==2) {
-// we just solved for S -- what we want is rho*S
-    MultiFab &S_new = caller->get_new_data(State_Type);
-    MultiFab Rho_new(grids,1,1,Fab_allocate);
-    Rho_new.copy(S_new,Density,0,1,1);
-    for(MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi) {
-      DependentMultiFabIterator Rho_newmfi(Ssyncmfi, Rho_new);
-      assert(grids[Ssyncmfi.index()] == Ssyncmfi.validbox());
-      Box box = Ssyncmfi.validbox();
-      box.grow(1); 
-      Ssyncmfi().mult(Rho_newmfi(),box,0,sigma,1);
+        }
     }
-  }
 
-// applyBC has put "incorrect" values in the ghost cells
-// outside external Dirichlet boundaries. Reset these to zero
-// so that conservative interpolation works correctly.
+    if (rho_flag == 2)
+    {
+        //
+        // We just solved for S -- what we want is rho*S.
+        //
+        MultiFab& S_new = caller->get_new_data(State_Type);
+        MultiFab Rho_new(grids,1,1,Fab_allocate);
+        Rho_new.copy(S_new,Density,0,1,1);
+        for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
+        {
+            DependentMultiFabIterator Rho_newmfi(Ssyncmfi, Rho_new);
+            assert(grids[Ssyncmfi.index()] == Ssyncmfi.validbox());
+            Box box = ::grow(Ssyncmfi.validbox(),1);
+            Ssyncmfi().mult(Rho_newmfi(),box,0,sigma,1);
+        }
+    }
 
-   const BCRec& scalbc =
-     caller->get_desc_lst()[State_Type].getBC(sigma+BL_SPACEDIM);
-   Box domain = caller->Geom().Domain();
-   domain.grow(1);
-   for (int k = 0; k<BL_SPACEDIM; k++) {
-
-     IntVect bigend   = domain.bigEnd();
-     IntVect smallend = domain.smallEnd();
+    //
+    // applyBC has put "incorrect" values in the ghost cells
+    // outside external Dirichlet boundaries. Reset these to zero
+    // so that conservative interpolation works correctly.
+    //
+    const BCRec& scalbc = caller->get_desc_lst()[State_Type].getBC(sigma+BL_SPACEDIM);
+    Box domain          = ::grow(caller->Geom().Domain(),1);
+    for (int k = 0; k < BL_SPACEDIM; k++)
+    {
+        IntVect bigend   = domain.bigEnd();
+        IntVect smallend = domain.smallEnd();
      
-     int hi = domain.bigEnd(k);
-     smallend.setVal(k,hi);
-     Box top_strip(smallend,bigend,IntVect::TheCellVector());
-     if(scalbc.hi(k)==EXT_DIR) Ssync->setVal(0.0,top_strip,sigma,1,1);
+        smallend.setVal(k,domain.bigEnd(k));
+        Box top_strip(smallend,bigend,IntVect::TheCellVector());
+        if (scalbc.hi(k) == EXT_DIR)
+            Ssync->setVal(0.0,top_strip,sigma,1,1);
 
-     smallend = domain.smallEnd();
-     bigend   = domain.bigEnd();
-     int lo = domain.smallEnd(k);
-     bigend.setVal(k,lo);
-     Box bottom_strip(smallend,bigend,IntVect::TheCellVector());
-     if(scalbc.lo(k)==EXT_DIR) Ssync->setVal(0.0,bottom_strip,sigma,1,1);
-  }
+        smallend = domain.smallEnd();
+        bigend   = domain.bigEnd();
+        bigend.setVal(k,domain.smallEnd(k));
+        Box bottom_strip(smallend,bigend,IntVect::TheCellVector());
+        if (scalbc.lo(k) == EXT_DIR)
+            Ssync->setVal(0.0,bottom_strip,sigma,1,1);
+    }
 }
 
 #if defined(USE_TENSOR)
