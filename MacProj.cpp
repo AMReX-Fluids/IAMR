@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.19 1998-06-03 15:04:58 lijewski Exp $
+// $Id: MacProj.cpp,v 1.20 1998-06-05 00:09:20 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -313,11 +313,9 @@ MacProj::mac_project (int             level,
                      S, Rhs, u_mac, mac_phi);
     //
     // Test that u_mac is divergence free
-    // if (verbose) check_div_cond(level, u_mac);
-    // for parallel, verbose is defined true on the IOProcessor, so
-    // we cannont do the above (only check_div_cond on the IOProcessor).
     //
-    check_div_cond(level, u_mac);
+    if (verbose)
+        check_div_cond(level, u_mac);
     //
     // Store advection velocities in mac registers at crse/fine boundaries.
     //
@@ -331,6 +329,7 @@ MacProj::mac_project (int             level,
         {
             mr.CrseInit(u_mac[dir],area[level][dir],dir,0,0,1,-1.0);
         }
+        mr.CrseInitFinish();
         if (verbose && ParallelDescriptor::IOProcessor())
         {
             cout << "LEVEL "
@@ -382,21 +381,20 @@ MacProj::mac_sync_solve (int       level,
     {
         cout << "... mac_sync_solve at level " << level << NL;
     }
-
     assert(level < finest_level);
+
     const BoxArray& grids = LevelData[level].boxArray();
     const Geometry& geom  = parent->Geom(level);
-    IntVect crse_ratio = (level > 0) ? 
+    IntVect crse_ratio    = (level > 0) ? 
         parent->refRatio(level-1) : IntVect::TheZeroVector();
-    const Real* dx        = geom.CellSize();
-    int ngrds             = grids.length();
+    const Real* dx             = geom.CellSize();
     const BoxArray& fine_boxes = LevelData[level+1].boxArray();
     //
     // Reusing storage here, since there should be no more need for the
     // values in mac_phi at this level and mac_sync_phi only need to last
     // into the call to mac_sync_compute.  Hope this works...  (LHH).
     //
-    MultiFab *mac_sync_phi = &mac_phi_crse[level];
+    MultiFab* mac_sync_phi = &mac_phi_crse[level];
     //
     // Alloc and define RHS by doing a reflux-like operation in coarse
     // grid cells adjacent to fine grids.  The values in these
@@ -425,10 +423,10 @@ MacProj::mac_sync_solve (int       level,
         for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
         {
             assert(grids[Rhsmfi.index()] == Rhsmfi.validbox());
-            Box bx = Rhsmfi.validbox() & bf;
-            if (bx.ok())
+
+            if (Rhsmfi.validbox().intersects(bf))
             {
-                Rhsmfi().setVal(0.0,bx,0);
+                Rhsmfi().setVal(0.0,Rhsmfi.validbox() & bf,0);
             }
         }
     }
@@ -478,27 +476,10 @@ MacProj::mac_sync_solve (int       level,
                 cout << "Average correction on mac sync RHS = " << fix << NL;
             }
             Rhs.plus( -fix, 0 );
-
-            sum = 0;
-            for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-            {
-                vol_wgted_rhs.resize(Rhsmfi().box());
-                vol_wgted_rhs.copy(Rhsmfi());
-                DependentMultiFabIterator Volmfi(Rhsmfi, volume[level]);
-                vol_wgted_rhs.mult(Volmfi());
-                sum += vol_wgted_rhs.sum(0,1);
-            }
-            ParallelDescriptor::ReduceRealSum(sum);
-            if (ParallelDescriptor::IOProcessor())
-            {
-                cout << "...new sum = " << sum << NL;
-            }
         }
     }
 
     mac_sync_phi->setVal(0.0);
-    //mac_sync_phi->setCacheWidth(1);
-
     //
     // store the Dirichlet boundary condition for mac_sync_phi in mac_bndry
     //
