@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.210 2003-01-30 07:16:29 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.211 2003-02-03 18:01:04 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1375,8 +1375,6 @@ NavierStokes::advance (Real time,
        create_umac_grown();
      }
     }
-
-    create_umac_grown();
 
     delete divu;
     //
