@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.62 1998-11-20 21:34:19 lijewski Exp $
+# $Id: GNUmakefile,v 1.63 1998-11-21 00:40:55 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -119,7 +119,14 @@ vpath %.a $(LIBRARY_LOCATIONS)
 
 all: $(executable)
 
+ifeq ($(MACHINE),T3E)
+#
+# We don't explicity set the path of the mpi directory on the T3E.
+#
+$(executable): $(filter-out -lmpi, $(LIBRARIES))
+else
 $(executable): $(LIBRARIES)
+endif
 #
 # Build and install all libraries needed by IAMRAll in an appropriate order.
 #
