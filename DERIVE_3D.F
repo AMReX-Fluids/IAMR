@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.8 1998-12-23 22:59:26 marc Exp $
+c $Id: DERIVE_3D.F,v 1.9 1999-04-06 17:26:30 marc Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1032,7 +1032,7 @@ c
 c
       call FORT_GRADP_DIR (
      &     dat,DIMS(dat),grdpx,DIMS(gp),
-     &     lo,hi,0,delta)
+     &     lo,hi,0,delta(0))
 
       end
 
@@ -1056,7 +1056,7 @@ c
 c
       call FORT_GRADP_DIR (
      &     dat,DIMS(dat),grdpy,DIMS(gp),
-     &     lo,hi,1,delta)
+     &     lo,hi,1,delta(1))
 
       end
 
@@ -1080,6 +1080,6 @@ c
 c
       call FORT_GRADP_DIR (
      &     dat,DIMS(dat),grdpz,DIMS(gp),
-     &     lo,hi,2,delta)
+     &     lo,hi,2,delta(2))
 
       end
