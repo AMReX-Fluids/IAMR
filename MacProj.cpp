@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.16 1998-05-27 20:23:52 lijewski Exp $
+// $Id: MacProj.cpp,v 1.17 1998-05-28 03:20:30 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -543,23 +543,22 @@ MacProj::mac_sync_compute (int           level,
                            Real          be_cn_theta,
                            const int*    increment_sync)
 {
-    FArrayBox S, Rho, tforces, Gp;
-    FArrayBox xflux, yflux, zflux, divu;
+    FArrayBox Rho;
+    FArrayBox xflux, yflux, zflux;
     FArrayBox grad_phi[BL_SPACEDIM];
     //
     // Get parameters.
     //
-    const BoxArray& grids   = LevelData[level].boxArray();
-    const Geometry& geom    = parent->Geom(level);
-    const Real* dx          = geom.CellSize();
-    const int numscal       = NUM_STATE - BL_SPACEDIM;
-    MultiFab* mac_sync_phi  = &mac_phi_crse[level];
-    NavierStokes& ns_level  = *(NavierStokes*) &(parent->getLevel(level));
-    Godunov* godunov        = ns_level.godunov;
+    const BoxArray& grids  = LevelData[level].boxArray();
+    const Geometry& geom   = parent->Geom(level);
+    const Real* dx         = geom.CellSize();
+    const int numscal      = NUM_STATE - BL_SPACEDIM;
+    MultiFab* mac_sync_phi = &mac_phi_crse[level];
+    NavierStokes& ns_level = *(NavierStokes*) &(parent->getLevel(level));
+    Godunov* godunov       = ns_level.godunov;
 
-    const int use_forces_in_trans = godunov->useForcesInTrans();
+    bool use_forces_in_trans = godunov->useForcesInTrans();
 
-    FArrayBox tvelforces;
     MultiFab vel_visc_terms;
     if (use_forces_in_trans)
     {
@@ -581,6 +580,14 @@ MacProj::mac_sync_compute (int           level,
         visc_terms->setVal(0.0,1);
     }
     //
+    // FillPatch()d stuff allocated on heap ...
+    //
+    MultiFab* S_fp          = ns_level.getState(HYP_GROW,State_Type,0,NUM_STATE,prev_time);
+    MultiFab* tforces_fp    = ns_level.getForce(1,0,NUM_STATE,prev_time);
+    MultiFab* Gp_fp         = ns_level.getGradP(1,pres_prev_time);
+    MultiFab* divu_fp       = ns_level.getDivCond(1,prev_time);
+    MultiFab* tvelforces_fp = ns_level.getForce(1,Xvel,BL_SPACEDIM,prev_time);
+    //
     // Compute the mac sync correction.
     //
     for (MultiFabIterator u_mac0mfi(u_mac[0]); u_mac0mfi.isValid(); ++u_mac0mfi)
@@ -600,6 +607,12 @@ MacProj::mac_sync_compute (int           level,
         DependentMultiFabIterator visc_termsmfi(u_mac0mfi, *visc_terms);
 
         int i = u_mac0mfi.index();
+
+        FArrayBox& S          = (*S_fp)[i];
+        FArrayBox& tforces    = (*tforces_fp)[i];
+        FArrayBox& Gp         = (*Gp_fp)[i];
+        FArrayBox& divu       = (*divu_fp)[i];
+        FArrayBox& tvelforces = (*tvelforces_fp)[i];
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
@@ -623,10 +636,6 @@ MacProj::mac_sync_compute (int           level,
         //
         // Get needed data.
         //
-        ns_level.getState(S,      i,HYP_GROW,0,NUM_STATE,prev_time);
-        ns_level.getForce(tforces,i,1,       0,NUM_STATE,prev_time);
-        ns_level.getGradP(Gp,     i,1,              pres_prev_time);
-        ns_level.getDivCond(divu, i,1,                   prev_time);
         Rho.resize(::grow(grids[i],1),1);
         Rho.copy(S,Density,0,1);
         //
@@ -638,9 +647,8 @@ MacProj::mac_sync_compute (int           level,
 
         if (use_forces_in_trans)
         {
-            DependentMultiFabIterator vel_visc_termsmfi(u_mac0mfi, vel_visc_terms);
-            ns_level.getForce(tvelforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
-            godunov->Sum_tf_gp_visc( tvelforces, vel_visc_termsmfi(), Gp, Rho );
+            DependentMultiFabIterator dmfi(u_mac0mfi, vel_visc_terms);
+            godunov->Sum_tf_gp_visc(tvelforces, dmfi(), Gp, Rho);
         }
         //
         // Set up the workspace for the godunov Box.
@@ -651,7 +659,7 @@ MacProj::mac_sync_compute (int           level,
 #if (BL_SPACEDIM == 3)
                        zflux, ns_level.getBCArray(State_Type,i,2,1).dataPtr(),
 #endif
-                       S, Rho, tvelforces );
+                       S, Rho, tvelforces);
         //
         // Get the sync FABS.
         //
@@ -722,6 +730,11 @@ MacProj::mac_sync_compute (int           level,
         //
     }
 
+    delete S_fp;
+    delete tforces_fp;
+    delete Gp_fp;
+    delete divu_fp;
+    delete tvelforces_fp;
     delete visc_terms;
 }
 
