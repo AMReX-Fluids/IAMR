@@ -3,7 +3,8 @@
 
 int amr_multigrid::c_sys = 0; // default is Cartesian, 1 is RZ
 
-void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r,
+void 
+amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r,
 			      Array<Box>& d, istream& is)
 {
   Box b;
@@ -12,47 +13,58 @@ void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r,
   m.resize(ilev);
   r.resize(ilev-1);
   d.resize(ilev);
-  for (ilev = 0; ilev < m.length(); ilev++) {
+  for (ilev = 0; ilev < m.length(); ilev++) 
+  {
     is >> b >> igrid;
     d.set(ilev, b);
-    if (ilev > 0) {
+    if (ilev > 0) 
+    {
       r.set(ilev-1, d[ilev].length() / d[ilev-1].length());
     }
     m[ilev].resize(igrid);
-    for (igrid = 0; igrid < m[ilev].length(); igrid++) {
+    for (igrid = 0; igrid < m[ilev].length(); igrid++) 
+    {
       is >> b;
       m[ilev].set(igrid, b);
     }
   }
 }
 
-void amr_multigrid::mesh_write(Array<BoxArray>& m,
+void 
+amr_multigrid::mesh_write(Array<BoxArray>& m,
 			       Array<Box>& d, ostream& os)
 {
   int ilev, igrid;
   os << m.length() << endl;
-  for (ilev = 0; ilev < m.length(); ilev++) {
+  for (ilev = 0; ilev < m.length(); ilev++) 
+  {
     os << "    " << d[ilev] << " " << m[ilev].length() << endl;
-    for (igrid = 0; igrid < m[ilev].length(); igrid++) {
+    for (igrid = 0; igrid < m[ilev].length(); igrid++) 
+    {
       os << '\t' << m[ilev][igrid] << endl;;
     }
   }
 }
 
-void amr_multigrid::mesh_write(Array<BoxArray>& m, Array<IntVect>& r,
+void 
+amr_multigrid::mesh_write(Array<BoxArray>& m, Array<IntVect>& r,
 			       Box fd, ostream& os)
 {
   int ilev, igrid;
-  for (ilev = m.length() - 2; ilev >= 0; ilev--) {
+  for (ilev = m.length() - 2; ilev >= 0; ilev--) 
+  {
     fd.coarsen(r[ilev]);
   }
   os << m.length() << endl;
-  for (ilev = 0; ilev < m.length(); ilev++) {
+  for (ilev = 0; ilev < m.length(); ilev++) 
+  {
     os << "    " << fd << " " << m[ilev].length() << endl;
-    for (igrid = 0; igrid < m[ilev].length(); igrid++) {
+    for (igrid = 0; igrid < m[ilev].length(); igrid++) 
+    {
       os << '\t' << m[ilev][igrid] << endl;;
     }
-    if (ilev <= m.length() - 2) {
+    if (ilev <= m.length() - 2) 
+    {
       fd.refine(r[ilev]);
     }
   }
@@ -60,24 +72,28 @@ void amr_multigrid::mesh_write(Array<BoxArray>& m, Array<IntVect>& r,
 
 amr_multigrid::~amr_multigrid()
 {
-  for (lev_min = lev_min_min; lev_min <= lev_min_max; lev_min++) {
+  for (lev_min = lev_min_min; lev_min <= lev_min_max; lev_min++) 
+  {
     delete [] interface_array[lev_min - lev_min_min];
   }
   delete [] interface_array;
 }
 
-void amr_multigrid::build_mesh(const Box& fdomain)
+void 
+amr_multigrid::build_mesh(const Box& fdomain)
 {
   mg_domain_array.resize(lev_min_max + 1);
   mg_mesh_array.resize(lev_min_max + 1);
   interface_array = new level_interface*[lev_min_max - lev_min_min + 1];
 
-  if (pcode >= 2) {
+  if (pcode >= 2) 
+  {
     mesh_write(ml_mesh, gen_ratio, fdomain, cout);
   }
 
   lev_max = lev_max_max;
-  for (lev_min = lev_min_min; lev_min <= lev_min_max; lev_min++) {
+  for (lev_min = lev_min_min; lev_min <= lev_min_max; lev_min++) 
+  {
     // first, build mg_mesh
     int nlev = build_down(ml_mesh[lev_max], fdomain,
 			  lev_max, IntVect::TheUnitVector(), 0);
@@ -87,7 +103,8 @@ void amr_multigrid::build_mesh(const Box& fdomain)
       assert(mg_mesh[i].ok());
 #endif
 
-    if (pcode >= 2) {
+    if (pcode >= 2) 
+    {
       mesh_write(mg_mesh, mg_domain, cout);
     }
 
@@ -97,7 +114,8 @@ void amr_multigrid::build_mesh(const Box& fdomain)
     // initialize interface
 
     int mglev_common = mg_mesh.length(), ldiff;
-    if (lev_min > lev_min_min) {
+    if (lev_min > lev_min_min) 
+    {
       ldiff = mg_mesh_array[lev_min - 1].length() - mg_mesh.length();
 
       // ml_index here is still the index for the previous mg_mesh:
@@ -120,19 +138,24 @@ void amr_multigrid::build_mesh(const Box& fdomain)
     interface = new level_interface[mg_mesh.length()];
 
     for (int mglev = mg_mesh.length() - 1, lev = lev_max + 1;
-	 mglev >= 0; mglev--) {
+	 mglev >= 0; mglev--) 
+	 {
       if (lev > lev_min && mglev == ml_index[lev - 1])
 	lev--;
-      if (mglev >= mglev_common) {
+      if (mglev >= mglev_common) 
+      {
 	i = mglev + ldiff;
 	interface[mglev].copy(interface_array[lev_min - 1 - lev_min_min][i]);
       }
-      else {
-	if (mglev == ml_index[lev]) {
+      else 
+      {
+	if (mglev == ml_index[lev]) 
+	{
 	  interface[mglev].alloc(mg_mesh[mglev], mg_domain[mglev],
 				 mg_boundary);
 	}
-	else {
+	else 
+	{
 	  IntVect rat =
 	    mg_domain[mglev+1].length() / mg_domain[mglev].length();
 	  interface[mglev].alloc_coarsened(mg_mesh[mglev], mg_boundary,
@@ -144,26 +167,32 @@ void amr_multigrid::build_mesh(const Box& fdomain)
   }
 }
 
-void amr_multigrid::build_index()
+void 
+amr_multigrid::build_index()
 {
   ml_index.resize(lev_max + 1);
-  for (int i = 0, lev = lev_min; lev <= lev_max; i++) {
-    if (mg_mesh[i] == ml_mesh[lev]) {
+  for (int i = 0, lev = lev_min; lev <= lev_max; i++) 
+  {
+    if (mg_mesh[i] == ml_mesh[lev]) 
+    {
       ml_index[lev] = i;
       lev++;
     }
   }
 }
 
-int amr_multigrid::build_down(const BoxArray& l_mesh, const Box& l_domain,
+int 
+amr_multigrid::build_down(const BoxArray& l_mesh, const Box& l_domain,
 			      int flev, IntVect rat, int nlev)
 {
-  if (l_mesh.length() == 0) {
+  if (l_mesh.length() == 0) 
+  {
     mg_mesh.resize(nlev);
     mg_domain.resize(nlev);
     nlev = 0;
   }
-  else {
+  else 
+  {
     nlev++;
     BoxArray c_mesh = l_mesh;
     Box c_domain = l_domain;
@@ -176,17 +205,21 @@ int amr_multigrid::build_down(const BoxArray& l_mesh, const Box& l_domain,
   return nlev;
 }
 
-void amr_multigrid::make_coarser_level(BoxArray& mesh, Box& domain,
+void 
+amr_multigrid::make_coarser_level(BoxArray& mesh, Box& domain,
 				       int& flev, IntVect& rat)
 {
-  if (flev > lev_min) {
-    if ((rat * 2) >= gen_ratio[flev-1]) {
+  if (flev > lev_min) 
+  {
+    if ((rat * 2) >= gen_ratio[flev-1]) 
+    {
       mesh = ml_mesh[flev-1];
       domain.coarsen(gen_ratio[flev-1] / rat);
       flev--;
       rat = IntVect::TheUnitVector();
     }
-    else {
+    else 
+    {
       IntVect trat = rat;
       rat *= 2;
       rat.min(gen_ratio[flev-1]);
@@ -195,17 +228,20 @@ void amr_multigrid::make_coarser_level(BoxArray& mesh, Box& domain,
       domain.coarsen(trat);
     }
   }
-  else if (can_coarsen(mesh, domain)) {
+  else if (can_coarsen(mesh, domain)) 
+  {
     rat *= 2;
     mesh.coarsen(2);
     domain.coarsen(2);
   }
-  else {
+  else 
+  {
     mesh.clear();
   }
 }
 
-void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
+void 
+amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
 			  PArray<MultiFab>& Coarse_source,
 			  int Lev_min, int Lev_max)
 {
@@ -230,7 +266,8 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
   source.resize(lev_max + 1);
   coarse_source.resize(lev_max + 1);
 
-  for (i = lev_min; i <= lev_max; i++) {
+  for (i = lev_min; i <= lev_max; i++) 
+  {
     dest.set(i, &Dest[i]);
     source.set(i, &Source[i]);
     if (i < Coarse_source.length() && Coarse_source.defined(i))
@@ -254,7 +291,8 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
   corr_bcache.resize(mglev_max + 1, (copy_cache*)0);
   work_bcache.resize(mglev_max + 1, (copy_cache*)0);
 
-  for (i = 0; i <= mglev_max; i++) {
+  for (i = 0; i <= mglev_max; i++) 
+  {
     BoxArray mesh = mg_mesh[i];
     mesh.convert(type(source[lev_min]));
     resid.set(i, new MultiFab(mesh, 1, source[lev_min].nGrow()));
@@ -274,25 +312,30 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
     work_bcache.set(i, 0);
   }
 
-  for (i = lev_min + 1; i <= lev_max - 1; i++) {
+  for (i = lev_min + 1; i <= lev_max - 1; i++) 
+  {
     save.set(i, new MultiFab(dest[i].boxArray(), 1, 0));
   }
 
-  for (i = lev_min; i <= lev_max; i++) {
+  for (i = lev_min; i <= lev_max; i++) 
+  {
     // if a cache is desired, it should be created by the derived class:
     dest_bcache.set(i, 0);
   }
 }
 
-void amr_multigrid::clear()
+void 
+amr_multigrid::clear()
 {
   int i;
-  for (i = 0; i <= mglev_max; i++) {
+  for (i = 0; i <= mglev_max; i++) 
+  {
     if (resid.defined(i)) delete resid.remove(i);
     if (corr.defined(i))  delete corr.remove(i);
     if (work.defined(i))  delete work.remove(i);
   }
-  for (i = lev_min; i <= lev_max; i++) {
+  for (i = lev_min; i <= lev_max; i++) 
+  {
     if (save.defined(i))  delete save.remove(i);
     dest.clear(i);
     source.clear(i);
@@ -301,7 +344,8 @@ void amr_multigrid::clear()
   mg_mesh.clear();
 }
 
-void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2,
+void 
+amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2,
 			  int linesolvdim)
 {
   assert(linesolvdim == -1); // line solves not supported through this arg
@@ -310,11 +354,24 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2,
     sync_interfaces();
 
   Real norm = 0.0;
-  for (int lev = lev_min; lev <= lev_max; lev++) {
+  int lev;
+  for (lev = lev_min; lev <= lev_max; lev++) 
+  {
     Real lev_norm = mfnorm(source[lev]);
     norm = (lev_norm > norm) ? lev_norm : norm;
     //if (pcode >= 2)
     //  cout << "Source norm is " << lev_norm << " at level " << lev << endl;
+  }
+  if (coarse_source.ready()) 
+  {
+    for (lev = lev_min; lev < lev_max; lev++) 
+    {
+      if (coarse_source.defined(lev)) 
+      {
+	Real crse_lev_norm = mfnorm(coarse_source[lev]);
+	norm = (crse_lev_norm > norm) ? crse_lev_norm : norm;
+      }
+    }
   }
   if (pcode >= 1)
     cout << "Source norm is " << norm << endl;
@@ -326,7 +383,8 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2,
   Real tol = reltol * norm;
   tol = (tol > abstol) ? tol : abstol;
 
-  while (err > tol) {
+  while (err > tol) 
+  {
     err = ml_cycle(lev_max, mglev_max, i1, i2, tol);
     it++;
     if (it > 100)
@@ -346,7 +404,8 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2,
   //}
 }
 
-Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
+Real 
+amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
 			     Real tol, Real res_norm_fine)
 {
   MultiFab& dtmp = dest[lev];
@@ -364,22 +423,26 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
 
   // resid now correct on this level---relax.
   ctmp.setVal(0.0); // ctmp.setBndry(0.0); // is necessary?
-  if (lev > lev_min || res_norm > tol) {
+  if (lev > lev_min || res_norm > tol) 
+  {
     //mg_cycle(mglev, i1, i2, 1);
     mg_cycle(mglev, (lev == lev_min) ? i1 : 0, i2, 1);
     dtmp.plus(ctmp, 0, 1, 0);
   }
 
-  if (lev > lev_min) {
+  if (lev > lev_min) 
+  {
     MultiFab& stmp = source[lev];
     MultiFab& rtmp = resid[mglev];
     MultiFab& wtmp = work[mglev];
-    if (lev < lev_max) {
+    if (lev < lev_max) 
+    {
       save[lev].copy(ctmp);
       level_residual(wtmp, rtmp, ctmp, corr_bcache[mglev], mglev, 0);
       rtmp.copy(wtmp);
     }
-    else {
+    else 
+    {
       level_residual(rtmp, stmp, dtmp, dest_bcache[lev], mglev, 0);
     }
     interface_residual(mglev, lev);
@@ -394,19 +457,22 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
     mg_interpolate_level(mglev, mgc);
     ctmp.copy(wtmp);
     dtmp.plus(ctmp, 0, 1, 0);
-    if (lev < lev_max) {
+    if (lev < lev_max) 
+    {
       save[lev].plus(ctmp, 0, 1, 0);
       level_residual(wtmp, rtmp, ctmp, corr_bcache[mglev], mglev, 0);
       rtmp.copy(wtmp);
     }
-    else {
+    else 
+    {
       level_residual(rtmp, stmp, dtmp, dest_bcache[lev], mglev, 0);
     }
     ctmp.setVal(0.0);
     //mg_cycle(mglev, i1, i2, 1);
     mg_cycle(mglev, 0, i2, 1);
     dtmp.plus(ctmp, 0, 1, 0);
-    if (lev < lev_max) {
+    if (lev < lev_max) 
+    {
       ctmp.plus(save[lev], 0, 1, 0);
     }
   }
@@ -414,9 +480,11 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
   return res_norm;
 }
 
-Real amr_multigrid::ml_residual(int mglev, int lev)
+Real 
+amr_multigrid::ml_residual(int mglev, int lev)
 {
-  if (lev > lev_min) {
+  if (lev > lev_min) 
+  {
     // This call is necessary to clear garbage values on outside edges that
     // will not be touched by level_residual, even with the clear flag set.
     // The restriction routine is responsible for only passing correct
@@ -429,11 +497,13 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
   // could grow exponentially.
   level_residual(resid[mglev], source[lev], dest[lev], dest_bcache[lev],
 		 mglev);
-  if (lev < lev_max) {
+  if (lev < lev_max) 
+  {
     int mgf = ml_index[lev+1];
     work[mgf].copy(resid[mgf]);
     mg_restrict_level(mglev, mgf);
-    if (coarse_source.ready() && coarse_source.defined(lev)) {
+    if (coarse_source.ready() && coarse_source.defined(lev)) 
+    {
       resid[mglev].plus(coarse_source[lev], 0, 1, 0);
     }
   }
@@ -445,24 +515,29 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
   return mfnorm(resid[mglev]);
 }
 
-void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
+void 
+amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
 {
-  if (mglev == 0) {
+  if (mglev == 0) 
+  {
     cgsolve(mglev);
   }
-  else if (get_amr_level(mglev - 1) == -1) {
+  else if (get_amr_level(mglev - 1) == -1) 
+  {
     MultiFab& ctmp = corr[mglev];
     MultiFab& wtmp = work[mglev];
 
     relax(mglev, i1, is_zero);
 
-    if (pcode >= 4) {
+    if (pcode >= 4) 
+    {
       wtmp.setVal(0.0);
       level_residual(wtmp, resid[mglev], ctmp, corr_bcache[mglev], mglev, 1);
       cout << "  Residual at multigrid level " << mglev << " is "
         << mfnorm(wtmp) << endl;
     }
-    else {
+    else 
+    {
       level_residual(wtmp, resid[mglev], ctmp, corr_bcache[mglev], mglev, 0);
     }
 
@@ -481,37 +556,46 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
 }
 
 // Should include interface points
-void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
+void 
+amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 {
   MultiFab& target = work[lto];
   IntVect rat = mg_domain[lto].length() / mg_domain[lfrom].length();
-  if (target.nGrow() == 0) {
-    for (int i = 0; i < target.length(); i++) {
+  if (target.nGrow() == 0) 
+  {
+    for (int i = 0; i < target.length(); i++) 
+    {
       interpolate_patch(target[i], corr[lfrom], rat,
 			bilinear_interpolator, interface[lfrom]);
     }
   }
-  else {
-    for (int i = 0; i < target.length(); i++) {
+  else 
+  {
+    for (int i = 0; i < target.length(); i++) 
+    {
       interpolate_patch(target[i], target.box(i), corr[lfrom], rat,
 			bilinear_interpolator, interface[lfrom]);
     }
   }
 }
 
-void amr_multigrid::mg_restrict_level(int lto, int lfrom)
+void 
+amr_multigrid::mg_restrict_level(int lto, int lfrom)
 {
   IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
-  if (type(resid[lto]) == cellvect) {
+  if (type(resid[lto]) == cellvect) 
+  {
     restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
 		   cell_average_restrictor);
   }
-  else if (get_amr_level(lto) >= 0) {
+  else if (get_amr_level(lto) >= 0) 
+  {
     restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
 		   bilinear_restrictor_coarse,
 		   interface[lfrom], mg_boundary);
   }
-  else {
+  else 
+  {
     restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
 		   bilinear_restrictor,
 		   interface[lfrom], mg_boundary);

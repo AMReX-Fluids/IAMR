@@ -12,19 +12,19 @@ typedef const class amr_interpolator_class& amr_interpolator;
 // fill the requested patch with coarse data and call fill.  How you
 // get the coarse data is your problem.
 
-class amr_interpolator_class {
+class amr_interpolator_class 
+{
  public:
   amr_interpolator_class() { }
   virtual ~amr_interpolator_class() { }
-  virtual Box box(const Box&, const IntVect&) const
-    { BoxLib::Error("amr_interpolator_class::box---Interpolation function not defined.");
-      return Box(); }
+  virtual Box box(const Box&, const IntVect&) const = 0;
   virtual void fill(Fab&, const Box&,
-		    Fab&, const Box&, const IntVect&) const
-    { BoxLib::Error("amr_interpolator_class::box---Interpolation function not defined."); }
+		    Fab&, const Box&, const IntVect&) const = 0;
 };
 
-class bilinear_interpolator_class : public amr_interpolator_class {
+class bilinear_interpolator_class
+    : public amr_interpolator_class 
+{
  public:
   bilinear_interpolator_class() { }
   Box box(const Box&, const IntVect&) const;
@@ -32,7 +32,7 @@ class bilinear_interpolator_class : public amr_interpolator_class {
 	    Fab&, const Box&, const IntVect&) const;
 };
 
-const amr_interpolator_class error_interpolator;
+/* const amr_interpolator_class error_interpolator; */
 const bilinear_interpolator_class bilinear_interpolator;
 
 #endif

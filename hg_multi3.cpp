@@ -34,7 +34,8 @@
 #  define   FORT_HGIP       HGIP
 #endif
 
-extern "C" {
+extern "C" 
+{
 
 #if (BL_SPACEDIM == 1)
   ERROR, not relevant
@@ -97,7 +98,8 @@ extern "C" {
 #endif
 }
 
-void holy_grail_amr_multigrid::level_residual(MultiFab& r,
+void 
+holy_grail_amr_multigrid::level_residual(MultiFab& r,
 					      MultiFab& s,
 					      MultiFab& d,
 					      copy_cache* dbc,
@@ -117,7 +119,8 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 
 #ifdef SIGMA_NODE
 
-  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+  {
     const Box& rbox = r[igrid].box();
     const Box& freg = interface[mglev].part_fine(igrid);
     FORT_HGRESU(r[igrid].dataPtr(), dimlist(rbox),
@@ -138,8 +141,10 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 
 #  ifdef HG_CONSTANT
 
-  if (!iclear) {
-    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+  if (!iclear) 
+  {
+    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    {
       const Box& rbox = r[igrid].box();
       const Box& freg = interface[mglev].part_fine(igrid);
       FORT_HGRESU(r[igrid].dataPtr(), dimlist(rbox),
@@ -147,8 +152,10 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 		  dimlist(freg), hx);
     }
   }
-  else {
-    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+  else 
+  {
+    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    {
       const Box& rbox = r[igrid].box();
       const Box& freg = interface[mglev].part_fine(igrid);
       FORT_HGRES(r[igrid].dataPtr(), dimlist(rbox),
@@ -160,7 +167,8 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 
 #  else
 
-  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+  {
     const Box& rbox = r[igrid].box();
     const Box& sbox = s[igrid].box();
     const Box& dbox = d[igrid].box();
@@ -193,7 +201,8 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 #    endif // SIGMA_NODE
   }
 
-  if (iclear) {
+  if (iclear) 
+  {
     clear_part_interface(r, interface[mglev]);
   }
 
@@ -201,7 +210,8 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 #endif // SIGMA_NODE
 }
 
-void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
+void 
+holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 {
 #if defined(HG_CONSTANT) || !defined(SIGMA_NODE)
   Real hx = h[mglev][0];
@@ -216,19 +226,23 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
   Box tdom = mg_domain[mglev];
   tdom.convert(nodevect);
 
-  for (int icount = 0; icount < i1; icount++) {
+  for (int icount = 0; icount < i1; icount++) 
+  {
 
-    if (smoother_mode == 0 || smoother_mode == 1 || line_solve_dim == -1) {
+    if (smoother_mode == 0 || smoother_mode == 1 || line_solve_dim == -1) 
+    {
 
       if (is_zero == 0)
 	fill_borders(corr[mglev], corr_bcache[mglev],
 		     interface[mglev], mg_boundary);
       else
 	is_zero = 0;
-      for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+      for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+      {
 	const Box& sbox = resid[mglev][igrid].box();
 	const Box& freg = interface[mglev].part_fine(igrid);
-	if (line_solve_dim == -1) {
+	if (line_solve_dim == -1) 
+	{
 	  // Gauss-Seidel section:
 #ifdef HG_CONSTANT
 #  ifdef HG_CROSS_STENCIL
@@ -244,7 +258,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 #  endif
 #else
 #ifdef SIGMA_NODE
-/*
+#if 0
 	  const Box& fbox = corr[mglev][igrid].box();
 	  const Box& cenbox = cen[mglev][igrid].box();
 	  const Box& sigbox = sigma_node[mglev][igrid].box();
@@ -253,7 +267,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 		     sigma_node[mglev][igrid].dataPtr(), dimlist(sigbox),
 		     cen[mglev][igrid].dataPtr(), dimlist(cenbox),
 		     dimlist(freg));
-*/
+#endif
 	  FORT_HGRLXU(corr[mglev][igrid].dataPtr(),
 		      resid[mglev][igrid].dataPtr(),
 		      sigma_node[mglev][igrid].dataPtr(),
@@ -282,7 +296,8 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 #endif
 #endif
 	}
-	else {
+	else 
+	{
 	  // Grid-by-grid line solve section:
 #ifdef HG_CONSTANT
 	  BoxLib::Error("Constant-coefficient line solves not implemented");
@@ -320,16 +335,19 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
       sync_borders(corr[mglev], corr_scache[mglev],
 		   interface[mglev], mg_boundary);
     }
-    else {
+    else 
+    {
       // Full-level line solve section:
-      if (line_order.length() == 0) {
+      if (line_order.length() == 0) 
+      {
 	build_line_order(line_solve_dim);
       }
       int lev = lev_min, i;
       while (ml_index[lev] < mglev)
 	lev++;
 
-      for (int ipass = 0; ipass <= 1; ipass++) {
+      for (int ipass = 0; ipass <= 1; ipass++) 
+      {
 	if (is_zero == 0)
 	  fill_borders(corr[mglev], corr_bcache[mglev],
 		       interface[mglev], mg_boundary);
@@ -337,7 +355,8 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	  is_zero = 0;
 
 	// Forward solve:
-	for (i = 0; i < mg_mesh[mglev].length(); i++) {
+	for (i = 0; i < mg_mesh[mglev].length(); i++) 
+	{
 
 	  // Do grids in order along line_solve_dim:
 	  int igrid = line_order[lev][i];
@@ -381,7 +400,8 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 
 	  // Copy work arrays to following grids:
 	  ListIterator<int> j(line_after[lev][igrid]);
-	  for ( ; j; j++) {
+	  for ( ; j; j++) 
+	  {
 	    Box b = (freg & corr[mglev].box(j()));
 	    internal_copy(corr[mglev], j(), igrid, b);
 	    internal_copy(work[mglev], j(), igrid, b);
@@ -389,7 +409,8 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	}
 
 	// Back substitution:
-	for (i = mg_mesh[mglev].length() - 1; i >= 0; i--) {
+	for (i = mg_mesh[mglev].length() - 1; i >= 0; i--) 
+	{
 
 	  // Do grids in reverse order along line_solve_dim:
 	  int igrid = line_order[lev][i];
@@ -397,7 +418,8 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 
 	  // Copy solution array from following grids:
 	  ListIterator<int> j(line_after[lev][igrid]);
-	  for ( ; j; j++) {
+	  for ( ; j; j++) 
+	  {
 	    Box b = (freg & corr[mglev].box(j()));
 	    internal_copy(corr[mglev], igrid, j(), b);
 	  }
@@ -413,54 +435,65 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
   }
 }
 
-void holy_grail_amr_multigrid::build_line_order(int lsd)
+void 
+holy_grail_amr_multigrid::build_line_order(int lsd)
 {
   line_order.resize(lev_max + 1);
   line_after.resize(lev_max + 1);
 
-  for (int lev = lev_min; lev <= lev_max; lev++) {
+  for (int lev = lev_min; lev <= lev_max; lev++) 
+  {
     int igrid, i, mglev = ml_index[lev], ngrids = mg_mesh[mglev].length();
 
     line_order[lev].resize(ngrids);
     line_after[lev].resize(ngrids);
 
-    for (igrid = 0; igrid < ngrids; igrid++) {
+    for (igrid = 0; igrid < ngrids; igrid++) 
+    {
       line_order[lev].set(igrid, igrid);
 
       // bubble sort, replace with something faster if necessary:
-      for (i = igrid; i > 0; i--) {
+      for (i = igrid; i > 0; i--) 
+      {
 	if (ml_mesh[lev][line_order[lev][i]].smallEnd(lsd) <
-	    ml_mesh[lev][line_order[lev][i-1]].smallEnd(lsd)) {
+	    ml_mesh[lev][line_order[lev][i-1]].smallEnd(lsd)) 
+	    {
 	  int tmp              = line_order[lev][i-1];
 	  line_order[lev][i-1] = line_order[lev][i];
 	  line_order[lev][i]   = tmp;
 	}
-	else {
+	else 
+	{
 	  break;
 	}
       }
 
-      for (i = 0; i < ngrids; i++) {
+      for (i = 0; i < ngrids; i++) 
+      {
 	if (bdryLo(ml_mesh[lev][i], lsd).intersects
-	      (bdryHi(ml_mesh[lev][igrid], lsd))) {
+	      (bdryHi(ml_mesh[lev][igrid], lsd))) 
+	      {
 	  line_after[lev][igrid].append(i);
 	}
       }
     }
-/*
-    for (igrid = 0; igrid < ngrids; igrid++) {
+#if 0
+    for (igrid = 0; igrid < ngrids; igrid++) 
+    {
       cout << line_order[lev][igrid] << "    ";
       ListIterator<int> j(line_after[lev][igrid]);
-      for ( ; j; j++) {
+      for ( ; j; j++) 
+      {
 	cout << " " << j();
       }
       cout << endl;
     }
-*/
+#endif
   }
 }
 
-void holy_grail_amr_multigrid::cgsolve(int mglev)
+void 
+holy_grail_amr_multigrid::cgsolve(int mglev)
 {
   assert(mglev == 0);
 
@@ -478,14 +511,16 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
   int i = 0, igrid;
 
   // x (corr[0]) should be all 0.0 at this point
-  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+  {
     r[igrid].copy(resid[mglev][igrid]);
     r[igrid].negate();
   }
   //r.copy(resid[mglev]);
   //r.negate();
 
-  if (singular) {
+  if (singular) 
+  {
     // singular systems are very sensitive to solvability
     w.setVal(1.0);
     alpha = inner_product(r, w) / mg_domain[mglev].volume();
@@ -542,7 +577,8 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	    h[0][0], alpha, rho, i, pcode);
 #elif (CGOPT == 1)
   rho = 0.0;
-  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+  {
     z[igrid].copy(r[igrid]);
     z[igrid].mult(c[igrid]);
     const Box& reg = p[igrid].box();
@@ -553,7 +589,8 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
   }
   Real tol = 1.e-3 * rho;
 
-  while (tol > 0.0) {
+  while (tol > 0.0) 
+  {
     i++;
     if (i > 250 && pcode >= 2)
       cout << "Conjugate-gradient iteration failed to converge" << endl;
@@ -562,7 +599,8 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     // into r but are cleared from z by the mask in c
     level_residual(w, zero_array, p, pbc, 0, 0);
     alpha = 0.0;
-    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    {
       const Box& reg = p[igrid].box();
       FORT_HGIP(p[igrid].dataPtr(), w[igrid].dataPtr(),
 		ipmask[igrid].dataPtr(),
@@ -570,7 +608,8 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     }
     alpha = rho / alpha;
     rho = 0.0;
-    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    {
       const Box& reg = p[igrid].box();
       FORT_HGCG1(r[igrid].dataPtr(), p[igrid].dataPtr(),
 		 z[igrid].dataPtr(), x[igrid].dataPtr(),
@@ -582,14 +621,16 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     if (rho <= tol || i > 250)
       break;
     alpha = rho / rho_old;
-    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    {
       const Box& reg = p[igrid].box();
       FORT_HGCG2(p[igrid].dataPtr(), z[igrid].dataPtr(),
 		 dimlist(reg), alpha);
     }
   }
 #else
-  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+  {
     z[igrid].copy(r[igrid]);
     z[igrid].mult(c[igrid]);
   }
@@ -597,11 +638,13 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
   rho = inner_product(z, r);
   Real tol = 1.e-3 * rho;
   //p.assign(0.0);
-  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+  {
     p[igrid].copy(z[igrid]);
   }
 
-  while (tol > 0.0) {
+  while (tol > 0.0) 
+  {
     i++;
     if (i > 250 && pcode >= 2)
       cout << "Conjugate-gradient iteration failed to converge" << endl;
@@ -610,7 +653,8 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     // into r but are cleared from z by the mask in c
     level_residual(w, zero_array, p, pbc, 0, 0);
     alpha = rho / inner_product(p, w);
-    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    {
       w[igrid].mult(alpha);
       r[igrid].minus(w[igrid]);
       w[igrid].copy(p[igrid]);
@@ -627,7 +671,8 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
       cout << i << " " << rho << endl;
     if (rho <= tol || i > 250)
       break;
-    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    {
       p[igrid].mult(rho / rho_old);
       p[igrid].plus(z[igrid]);
     }

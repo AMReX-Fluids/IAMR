@@ -12,7 +12,9 @@
 
 #  ifndef SIGMA_NODE
 
-class holy_grail_interpolator_class : public bilinear_interpolator_class {
+class holy_grail_interpolator_class 
+    : public bilinear_interpolator_class 
+{
  protected:
   Real **sigptr;
   const Box& sigbox;
@@ -25,7 +27,9 @@ class holy_grail_interpolator_class : public bilinear_interpolator_class {
 
 #  else
 
-class holy_grail_interpolator_class : public bilinear_interpolator_class {
+class holy_grail_interpolator_class 
+    : public bilinear_interpolator_class 
+{
  protected:
   Real *sigptr;
   const Box& sigbox;
@@ -38,8 +42,9 @@ class holy_grail_interpolator_class : public bilinear_interpolator_class {
 
 #  endif
 
-class holy_grail_sigma_restrictor_class :
-        public cell_average_restrictor_class {
+class holy_grail_sigma_restrictor_class 
+    : public cell_average_restrictor_class 
+{
  public:
   holy_grail_sigma_restrictor_class() { }
   void fill(Fab& patch, const Box& region,
@@ -50,7 +55,8 @@ const holy_grail_sigma_restrictor_class holy_grail_sigma_restrictor;
 
 #endif
 
-class holy_grail_amr_multigrid : public amr_multigrid
+class holy_grail_amr_multigrid 
+    : public amr_multigrid
 {
  protected:
   amr_fluid_boundary boundary;

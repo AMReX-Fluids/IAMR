@@ -17,7 +17,8 @@
 #  define   FORT_HGDRES     HGDRES
 #endif
 
-extern "C" {
+extern "C" 
+{
 
 #if (BL_SPACEDIM == 1)
   ERROR, not relevant
@@ -100,9 +101,11 @@ extern "C" {
 #endif
 }
 
-void holy_grail_amr_multigrid::alloc_sync_caches()
+void 
+holy_grail_amr_multigrid::alloc_sync_caches()
 {
-  if (lev_min < lev_max) {
+  if (lev_min < lev_max) 
+  {
     fres_fbox  = new Box*[lev_max+1];
     fres_cbox  = new Box*[lev_max+1];
     fres_creg  = new Box*[lev_max+1];
@@ -141,7 +144,8 @@ void holy_grail_amr_multigrid::alloc_sync_caches()
     cres_flag = new int*[lev_max+1];
   }
 
-  for (int lev = lev_min + 1; lev <= lev_max; lev++) {
+  for (int lev = lev_min + 1; lev <= lev_max; lev++) 
+  {
     int mglev = ml_index[lev];
     fres_fbox[lev]  = new Box[interface[mglev].nfaces()];
     fres_cbox[lev]  = new Box[interface[mglev].nfaces()];
@@ -183,10 +187,12 @@ void holy_grail_amr_multigrid::alloc_sync_caches()
   }
 }
 
-void holy_grail_amr_multigrid::delete_sync_caches()
+void 
+holy_grail_amr_multigrid::delete_sync_caches()
 {
   int i;
-  for (int lev = lev_min + 1; lev <= lev_max; lev++) {
+  for (int lev = lev_min + 1; lev <= lev_max; lev++) 
+  {
     int mglev = ml_index[lev];
     delete [] fres_fbox[lev];
     delete [] fres_cbox[lev];
@@ -194,11 +200,13 @@ void holy_grail_amr_multigrid::delete_sync_caches()
 #ifndef HG_CONSTANT
     delete [] fres_sfbox[lev];
     delete [] fres_scbox[lev];
-    for (i = 0; i < interface[mglev].nfaces(); i++) {
+    for (i = 0; i < interface[mglev].nfaces(); i++) 
+    {
       if (fres_flag[lev][i] == 0) delete fres_sc[lev].remove(i);
     }
 #endif
-    for (i = 0; i < interface[mglev].nfaces(); i++) {
+    for (i = 0; i < interface[mglev].nfaces(); i++) 
+    {
       if (fres_flag[lev][i] == 0) delete fres_dc[lev].remove(i);
     }
     delete [] fres_flag[lev];
@@ -209,12 +217,14 @@ void holy_grail_amr_multigrid::delete_sync_caches()
 #  ifndef HG_CONSTANT
     delete [] eres_sfbox[lev];
     delete [] eres_scbox[lev];
-    for (i = 0; i < interface[mglev].nedges(); i++) {
+    for (i = 0; i < interface[mglev].nedges(); i++) 
+    {
       if (eres_sf[lev].defined(i)) delete eres_sf[lev].remove(i);
       if (eres_flag[lev][i] == 0)  delete eres_sc[lev].remove(i);
     }
 #  endif
-    for (i = 0; i < interface[mglev].nedges(); i++) {
+    for (i = 0; i < interface[mglev].nedges(); i++) 
+    {
       if (eres_df[lev].defined(i)) delete eres_df[lev].remove(i);
       if (eres_flag[lev][i] == 0)  delete eres_dc[lev].remove(i);
     }
@@ -226,18 +236,21 @@ void holy_grail_amr_multigrid::delete_sync_caches()
 #ifndef HG_CONSTANT
     delete [] cres_sfbox[lev];
     delete [] cres_scbox[lev];
-    for (i = 0; i < interface[mglev].ncorners(); i++) {
+    for (i = 0; i < interface[mglev].ncorners(); i++) 
+    {
       if (cres_sf[lev].defined(i)) delete cres_sf[lev].remove(i);
       if (cres_flag[lev][i] == 0)  delete cres_sc[lev].remove(i);
     }
 #endif
-    for (i = 0; i < interface[mglev].ncorners(); i++) {
+    for (i = 0; i < interface[mglev].ncorners(); i++) 
+    {
       if (cres_df[lev].defined(i)) delete cres_df[lev].remove(i);
       if (cres_flag[lev][i] == 0)  delete cres_dc[lev].remove(i);
     }
     delete [] cres_flag[lev];
   }
-  if (lev_min < lev_max) {
+  if (lev_min < lev_max) 
+  {
     delete [] fres_fbox;
     delete [] fres_cbox;
     delete [] fres_creg;
@@ -277,7 +290,8 @@ void holy_grail_amr_multigrid::delete_sync_caches()
   }
 }
 
-void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
+void 
+holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 {
   int igrid, i;
 
@@ -286,14 +300,16 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
   const IntVect& rat = gen_ratio[lev-1];
   int mglevc = ml_index[lev-1];
 
-  for (int iface = 0; iface < interface[mglev].nfaces(); iface++) {
+  for (int iface = 0; iface < interface[mglev].nfaces(); iface++) 
+  {
     // find a fine grid touching this face
     igrid = interface[mglev].fgrid(iface, 0);
     if (igrid < 0)
       igrid = interface[mglev].fgrid(iface, 1);
     unsigned geo = interface[mglev].fgeo(iface);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].fflag(iface) == 1) {
+    if (geo == ALL || igrid < 0 || interface[mglev].fflag(iface) == 1) 
+    {
       fres_flag[lev][iface] = 1; // means "fres_dc[lev][iface] not allocated"
       continue;
     }
@@ -317,22 +333,26 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     sigmafbox = sigma[mglev][igrid].box();
     sigmacbox = cbox;
     sigmacbox.convert(cellvect);
-    if (cgrid >= 0) {
+    if (cgrid >= 0) 
+    {
       fres_sc[lev].set(iface, &sigma[mglevc][cgrid]);
       sigmacbox = fres_sc[lev][iface].box();
     }
-    else {
+    else 
+    {
       fres_sc[lev].set(iface, new Fab(sigmacbox));
       fill_patch(fres_sc[lev][iface], sigma[mglevc],
 		 interface[mglevc], boundary.scalar());
     }
 #endif
-    if (cgrid >= 0) {
+    if (cgrid >= 0) 
+    {
       fres_dc[lev].set(iface, &dest[lev-1][cgrid]);
       cbox = fres_dc[lev][iface].box();
       fres_flag[lev][iface] = 1;
     }
-    else {
+    else 
+    {
       fres_dc[lev].set(iface, new Fab(cbox));
       fres_flag[lev][iface] = 0;
     }
@@ -343,16 +363,19 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 
 #if (BL_SPACEDIM == 3)
 
-  for (int iedge = 0; iedge < interface[mglev].nedges(); iedge++) {
+  for (int iedge = 0; iedge < interface[mglev].nedges(); iedge++) 
+  {
     // find a fine grid touching this edge
-    for (i = 0; i < N_EDGE_GRIDS; i++) {
+    for (i = 0; i < N_EDGE_GRIDS; i++) 
+    {
       igrid = interface[mglev].egrid(iedge, i);
       if (igrid >= 0)
 	break;
     }
     unsigned geo = interface[mglev].egeo(iedge);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].eflag(iedge) == 1) {
+    if (geo == ALL || igrid < 0 || interface[mglev].eflag(iedge) == 1) 
+    {
       eres_flag[lev][iedge] = 1; // means "eres_dc[lev][iedge] not allocated"
       continue;
     }
@@ -375,22 +398,26 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	       boundary.scalar(), 0, 1, iedge);
     sigmacbox = cbox;
     sigmacbox.convert(cellvect);
-    if (cgrid >= 0) {
+    if (cgrid >= 0) 
+    {
       eres_sc[lev].set(iedge, &sigma[mglevc][cgrid]);
       sigmacbox = eres_sc[lev][iedge].box();
     }
-    else {
+    else 
+    {
       eres_sc[lev].set(iedge, new Fab(sigmacbox));
       fill_patch(eres_sc[lev][iedge], sigma[mglevc],
 		 interface[mglevc], boundary.scalar());
     }
 #  endif
-    if (cgrid >= 0) {
+    if (cgrid >= 0) 
+    {
       eres_dc[lev].set(iedge, &dest[lev-1][cgrid]);
       cbox = eres_dc[lev][iedge].box();
       eres_flag[lev][iedge] = 1;
     }
-    else {
+    else 
+    {
       eres_dc[lev].set(iedge, new Fab(cbox));
       eres_flag[lev][iedge] = 0;
     }
@@ -400,16 +427,19 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 
 #endif
 
-  for (int icor = 0; icor < interface[mglev].ncorners(); icor++) {
+  for (int icor = 0; icor < interface[mglev].ncorners(); icor++) 
+  {
     // find a fine grid touching this corner
-    for (i = 0; i < N_CORNER_GRIDS; i++) {
+    for (i = 0; i < N_CORNER_GRIDS; i++) 
+    {
       igrid = interface[mglev].cgrid(icor, i);
       if (igrid >= 0)
 	break;
     }
     unsigned geo = interface[mglev].cgeo(icor);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo == ALL || igrid < 0 || interface[mglev].cflag(icor) == 1) {
+    if (geo == ALL || igrid < 0 || interface[mglev].cflag(icor) == 1) 
+    {
       cres_flag[lev][icor] = 1; // means "cres_dc[lev][icor] not allocated"
       continue;
     }
@@ -432,22 +462,26 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	       boundary.scalar(), 0, 0, icor);
     sigmacbox = cbox;
     sigmacbox.convert(cellvect);
-    if (cgrid >= 0) {
+    if (cgrid >= 0) 
+    {
       cres_sc[lev].set(icor, &sigma[mglevc][cgrid]);
       sigmacbox = cres_sc[lev][icor].box();
     }
-    else {
+    else 
+    {
       cres_sc[lev].set(icor, new Fab(sigmacbox));
       fill_patch(cres_sc[lev][icor], sigma[mglevc],
 		 interface[mglevc], boundary.scalar());
     }
 #endif
-    if (cgrid >= 0) {
+    if (cgrid >= 0) 
+    {
       cres_dc[lev].set(icor, &dest[lev-1][cgrid]);
       cbox = cres_dc[lev][icor].box();
       cres_flag[lev][icor] = 1;
     }
-    else {
+    else 
+    {
       cres_dc[lev].set(icor, new Fab(cbox));
       cres_flag[lev][icor] = 0;
     }
@@ -456,7 +490,8 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
   }
 }
 
-void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
+void 
+holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 { 
   Real hx = h[mglev][0];
   Real hy = h[mglev][1];
@@ -470,7 +505,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
   const IntVect& rat = gen_ratio[lev-1];
   int mglevc = ml_index[lev-1];
 
-  for (int iface = 0; iface < interface[mglev].nfaces(); iface++) {
+  for (int iface = 0; iface < interface[mglev].nfaces(); iface++) 
+  {
     // find a fine grid touching this face
     igrid = interface[mglev].fgrid(iface, 0);
     if (igrid < 0)
@@ -493,7 +529,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #endif
     const Box& creg = fres_creg[lev][iface];
     Fab& cdst = fres_dc[lev][iface];
-    if (fres_flag[lev][iface] == 0) {
+    if (fres_flag[lev][iface] == 0) 
+    {
       fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
     }
     Real *const rptr = resid[mglev][igrid].dataPtr();
@@ -532,16 +569,19 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 
 #if (BL_SPACEDIM == 3)
 
-  for (int iedge = 0; iedge < interface[mglev].nedges(); iedge++) {
+  for (int iedge = 0; iedge < interface[mglev].nedges(); iedge++) 
+  {
     // find a fine grid touching this edge
-    for (i = 0; i < N_EDGE_GRIDS; i++) {
+    for (i = 0; i < N_EDGE_GRIDS; i++) 
+    {
       igrid = interface[mglev].egrid(iedge, i);
       if (igrid >= 0)
 	break;
     }
     unsigned geo = interface[mglev].egeo(iedge);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo != ALL && igrid >= 0 && interface[mglev].eflag(iedge) == 0) {
+    if (geo != ALL && igrid >= 0 && interface[mglev].eflag(iedge) == 0) 
+    {
       const Box& sbox = source[lev][igrid].box();
       const Box& fbox = eres_fbox[lev][iedge];
       const Box& cbox = eres_cbox[lev][iedge];
@@ -557,7 +597,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
                  0, 1, iedge);
       Fab& cdst = eres_dc[lev][iedge];
-      if (eres_flag[lev][iedge] == 0) {
+      if (eres_flag[lev][iedge] == 0) 
+      {
 	fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
       }
       Real *const rptr = resid[mglev][igrid].dataPtr();
@@ -580,7 +621,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  t.getVect(), ga);
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].node_edge(iedge);
-      for (i = 1; i < N_EDGE_GRIDS; i++) {
+      for (i = 1; i < N_EDGE_GRIDS; i++) 
+      {
 	int jgrid = interface[mglev].egrid(iedge, i);
 	if (jgrid >= 0 && jgrid != igrid)
 	  internal_copy(resid[mglev], jgrid, igrid, freg);
@@ -590,16 +632,19 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 
 #endif
 
-  for (int icor = 0; icor < interface[mglev].ncorners(); icor++) {
+  for (int icor = 0; icor < interface[mglev].ncorners(); icor++) 
+  {
     // find a fine grid touching this corner
-    for (i = 0; i < N_CORNER_GRIDS; i++) {
+    for (i = 0; i < N_CORNER_GRIDS; i++) 
+    {
       igrid = interface[mglev].cgrid(icor, i);
       if (igrid >= 0)
 	break;
     }
     unsigned geo = interface[mglev].cgeo(icor);
     // reject fine-fine interfaces and those without an interior fine grid
-    if (geo != ALL && igrid >= 0 && interface[mglev].cflag(icor) == 0) {
+    if (geo != ALL && igrid >= 0 && interface[mglev].cflag(icor) == 0) 
+    {
       const Box& sbox = source[lev][igrid].box();
       const Box& fbox = cres_fbox[lev][icor];
       const Box& cbox = cres_cbox[lev][icor];
@@ -614,7 +659,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
 		 0, 0, icor);
       Fab& cdst = cres_dc[lev][icor];
-      if (cres_flag[lev][icor] == 0) {
+      if (cres_flag[lev][icor] == 0) 
+      {
 	fill_patch(cdst, dest[lev-1], interface[mglevc],
 		   boundary.pressure());
       }
@@ -640,7 +686,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  ga);
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
-      for (i = 1; i < N_CORNER_GRIDS; i++) {
+      for (i = 1; i < N_CORNER_GRIDS; i++) 
+      {
 	int jgrid = interface[mglev].cgrid(icor, i);
 	if (jgrid >= 0 && jgrid != igrid)
 	  internal_copy(resid[mglev], jgrid, igrid, freg);
@@ -650,9 +697,11 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 
 #else
 
-  for (int icor = 0; icor < interface[mglev].ncorners(); icor++) {
+  for (int icor = 0; icor < interface[mglev].ncorners(); icor++) 
+  {
     // find a fine grid touching this corner
-    for (i = 0; i < N_CORNER_GRIDS; i++) {
+    for (i = 0; i < N_CORNER_GRIDS; i++) 
+    {
       igrid = interface[mglev].cgrid(icor, i);
       if (igrid >= 0)
 	break;
@@ -661,7 +710,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     // reject fine-fine interfaces and those without an interior fine grid
     if (geo == ALL || igrid < 0 || interface[mglev].cflag(icor) == 1)
       continue;
-    else if (geo == XL || geo == XH || geo == YL || geo == YH) {
+    else if (geo == XL || geo == XH || geo == YL || geo == YH) 
+    {
       // fine grid on two adjacent sides
       int idim = (geo == XL || geo == XH) ? 0 : 1;
       int idir = (geo & LL) ? -1 : 1;
@@ -679,7 +729,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
 		 0, 0, icor);
       Fab& cdst = cres_dc[lev][icor];
-      if (cres_flag[lev][icor] == 0) {
+      if (cres_flag[lev][icor] == 0) 
+      {
 	fill_patch(cdst, dest[lev-1], interface[mglevc],
 		   boundary.pressure());
       }
@@ -705,13 +756,15 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  );
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
-      for (i = 1; i < N_CORNER_GRIDS; i++) {
+      for (i = 1; i < N_CORNER_GRIDS; i++) 
+      {
 	int jgrid = interface[mglev].cgrid(icor, i);
 	if (jgrid >= 0 && jgrid != igrid)
 	  internal_copy(resid[mglev], jgrid, igrid, freg);
       }
     }
-    else if (geo == LL || geo == HL || geo == LH || geo == HH) {
+    else if (geo == LL || geo == HL || geo == LH || geo == HH) 
+    {
       // outside corner
       int idir0 = (geo & XL) ? -1 : 1;
       int idir1 = (geo & YL) ? -1 : 1;
@@ -725,7 +778,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #endif
       const Box& creg = cres_creg[lev][icor];
       Fab& cdst = cres_dc[lev][icor];
-      if (cres_flag[lev][icor] == 0) {
+      if (cres_flag[lev][icor] == 0) 
+      {
 	fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
       }
       Real *const rptr = resid[mglev][igrid].dataPtr();
@@ -750,7 +804,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #endif
 		  );
     }
-    else if (geo == (LL | HH) || geo == (LH | HL)) {
+    else if (geo == (LL | HH) || geo == (LH | HL)) 
+    {
       // diagonal corner
       int jdir = (geo == (LL | HH)) ? 1 : -1;
       const Box& sbox = source[lev][igrid].box();
@@ -767,7 +822,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
 		 0, 0, icor);
       Fab& cdst = cres_dc[lev][icor];
-      if (cres_flag[lev][icor] == 0) {
+      if (cres_flag[lev][icor] == 0) 
+      {
 	fill_patch(cdst, dest[lev-1], interface[mglevc],
 		   boundary.pressure());
       }
@@ -792,13 +848,15 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  );
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
-      for (i = 1; i < N_CORNER_GRIDS; i++) {
+      for (i = 1; i < N_CORNER_GRIDS; i++) 
+      {
 	int jgrid = interface[mglev].cgrid(icor, i);
 	if (jgrid >= 0 && jgrid != igrid)
 	  internal_copy(resid[mglev], jgrid, igrid, freg);
       }
     }
-    else {
+    else 
+    {
       // inside corner
       int idir0 = ((geo & XL) == XL) ? -1 : 1;
       int idir1 = ((geo & YL) == YL) ? -1 : 1;
@@ -816,7 +874,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
 		 0, 0, icor);
       Fab& cdst = cres_dc[lev][icor];
-      if (cres_flag[lev][icor] == 0) {
+      if (cres_flag[lev][icor] == 0) 
+      {
 	fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
       }
       Real *const rptr = resid[mglev][igrid].dataPtr();
@@ -841,9 +900,11 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
       int kgrid = -1;
-      for (i = 1; i < N_CORNER_GRIDS; i++) {
+      for (i = 1; i < N_CORNER_GRIDS; i++) 
+      {
 	int jgrid = interface[mglev].cgrid(icor, i);
-	if (jgrid >= 0 && jgrid != igrid && jgrid != kgrid) {
+	if (jgrid >= 0 && jgrid != igrid && jgrid != kgrid) 
+	{
 	  internal_copy(resid[mglev], jgrid, igrid, freg);
 	  kgrid = jgrid;
 	}
