@@ -26,6 +26,8 @@ c     Compute the value of phi for macproj
 c     assuming that the tangential velocity on the edges of the outflow boundary
 c     are either zero or periodic.
 c     note that u is edge centered
+
+c subtract divu_ave twice due to precision problems
       implicit none
 
       integer DIMDEC(u0)
@@ -52,7 +54,7 @@ c     Local variables
       REAL_T small_pert
       parameter ( small_pert = SMALL)
       integer i, j, neq,n
-      REAL_T divu_ave, vtot
+      REAL_T divu_ave1,divu_ave2
       REAL_T max_divu, min_divu, max_pert
       integer ics,ice,jcs,jce
       integer ifs,ife,jfs,jfe
@@ -80,8 +82,6 @@ c     is zero, or if divu is constant
       jfe = hi(2)
 
       zeroIt = 0
-      divu_ave = zero
-      vtot = zero
 
       if (face .eq. XLO) then
          if = ifs
@@ -93,17 +93,13 @@ c     is zero, or if divu is constant
          do j = jcs, jce
             divuExt(if,j) = divu(ics,j)
             rhoExt(if,j)  = rho(ics,j)
-
-            divu_ave = divu_ave+divuExt(if,j)
-            vtot = vtot+one
             max_divu = max(max_divu,divuExt(if,j))
             min_divu = min(min_divu,divuExt(if,j))
          end do
-         divu_ave = divu_ave/vtot
-
-         max_pert = ABS(divuExt(if,jcs)-divu_ave)
+         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave1,face)
+         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave2,face)
+         max_pert = ABS(divuExt(if,jcs))
          do j = jcs, jce
-            divuExt(if,j) = divuExt(if,j) - divu_ave
             max_pert = MAX(max_pert,ABS(divuExt(if,j)))
          end do
       else if (face .eq. YLO) then
@@ -116,17 +112,13 @@ c     is zero, or if divu is constant
          do i = ics, ice
             divuExt(i,jf) = divu(i,jcs)
             rhoExt(i,jf)  = rho(i,jcs)
-
-            divu_ave = divu_ave+r(i)*divuExt(i,jf)
-            vtot = vtot+r(i)
             max_divu = max(max_divu,divuExt(i,jf))
             min_divu = min(min_divu,divuExt(i,jf))
          end do
-         divu_ave = divu_ave/vtot
-
-         max_pert = ABS(divuExt(ics,jf)-divu_ave)
+         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave1,face)
+         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave2,face)
+         max_pert = ABS(divuExt(ics,jf))
          do i = ics, ice
-            divuExt(i,jf) = divuExt(i,jf) - divu_ave
             max_pert = MAX(max_pert,ABS(divuExt(i,jf)))
          end do
       else if (face .eq. XHI) then
@@ -139,17 +131,13 @@ c     is zero, or if divu is constant
          do j = jcs, jce
             divuExt(if,j) = divu(ice,j)
             rhoExt(if,j)  = rho(ice,j)
-
-            divu_ave = divu_ave+divuExt(if,j)
-            vtot = vtot+one
             max_divu = max(max_divu,divuExt(if,j))
             min_divu = min(min_divu,divuExt(if,j))
          end do
-         divu_ave = divu_ave/vtot
-
-         max_pert = ABS(divuExt(if,jcs)-divu_ave)
+         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave1,face)
+         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave2,face)
+         max_pert = ABS(divuExt(if,jcs))
          do j = jcs, jce
-            divuExt(if,j) = divuExt(if,j)-divu_ave
             max_pert = MAX(max_pert,ABS(divuExt(if,j)))
          end do
       else if (face .eq. YHI) then
@@ -162,32 +150,70 @@ c     is zero, or if divu is constant
          do i = ics, ice
             divuExt(i,jf) = divu(i,jce)
             rhoExt(i,jf)  = rho(i,jce)
-
-            divu_ave = divu_ave+r(i)*divuExt(i,jf)
-            vtot = vtot+r(i)
             max_divu = max(max_divu,divuExt(i,jf))
             min_divu = min(min_divu,divuExt(i,jf))
          end do
-         divu_ave = divu_ave/vtot
-
-         max_pert = ABS(divuExt(ics,jf)-divu_ave)
+         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave1,face)
+         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave2,face)
+         max_pert = ABS(divuExt(ics,jf))
          do i = ics, ice
-            divuExt(i,jf) = divuExt(i,jf)-divu_ave
             max_pert = MAX(max_pert,ABS(divuExt(i,jf)))
          end do
       endif
       
 c  check to see if we should zero phi
-         max_pert = max_pert/(ABS(divu_ave)+small_pert)
+         max_pert = max_pert/(ABS(divu_ave1+divu_ave2)+small_pert)
       if ((max_divu.eq.zero.and.min_divu.eq.zero)
      &     .or.(max_pert.le.small_pert)) then
          zeroIt = 1
       end if
+      end
+
+      subroutine subtractavg(DIMS(divu),divu,r,r_lo,r_hi,lo,hi,divu_ave,face)
+      implicit none
+      integer DIMDEC(divu)
+      integer lo(SDIM),hi(SDIM)
+      integer r_lo,r_hi
+      REAL_T r(r_lo:r_hi)
+      REAL_T divu_ave
+      REAL_T divu(DIMV(divu))
+      integer face
+
+      integer i,j
+      REAL_T vtot
+
+      divu_ave = zero
+      vtot = zero
+
+      if (face .eq. XLO .or. face .eq. XHI) then
+         i = lo(1)
+         do j=lo(2),hi(2)
+            vtot = vtot+one
+            divu_ave = divu_ave+divu(i,j)
+         enddo
+         divu_ave = divu_ave/vtot
+         do j=lo(2),hi(2)
+            divu(i,j) = divu(i,j) - divu_ave
+         enddo
+      elseif (face .eq. YLO .or. face .eq. YHI) then
+         j = lo(2)
+         do i=lo(1),hi(1)
+            vtot = vtot+r(i)
+            divu_ave = divu_ave+r(i)*divu(i,j)
+         enddo
+         divu_ave = divu_ave/vtot
+         do i=lo(1),hi(1)
+            divu(i,j) = divu(i,j) - divu_ave
+         enddo
+      else 
+         print*, "bad length"
+      endif
+
+      end
 #undef XLO
 #undef YLO
 #undef XHI
 #undef YHI
-      end
 
       subroutine FORT_COMPUTE_MACCOEFF(DIMS(rhs),rhs,DIMS(beta),beta,
      &                              DIMS(uExt),uExt,DIMS(divuExt),divuExt,

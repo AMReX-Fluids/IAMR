@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ProjOutFlowBC.cpp,v 1.3 1999-07-30 18:05:41 propp Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.4 1999-08-03 22:21:17 propp Exp $
 //
 
 #include "ProjOutFlowBC.H"
@@ -122,9 +122,9 @@ ProjOutFlowBC::computeProjBC(FArrayBox& velFab, FArrayBox& divuFab,
   
   // filter out the direction we don't care about.
   int ncStripWidth = 1;
-  Box mgBox1 = Box(::adjCell(domain,outFace,ncStripWidth));
-  IntVect lo = mgBox1.smallEnd();
-  IntVect hi = mgBox1.bigEnd();
+  Box origBox = Box(::adjCell(domain,outFace,ncStripWidth));
+  IntVect lo = origBox.smallEnd();
+  IntVect hi = origBox.bigEnd();
 
   // rearrange the box, dx, and isPeriodic so that the dimension that is 1
   // is the last dimension
@@ -173,7 +173,7 @@ ProjOutFlowBC::computeProjBC(FArrayBox& velFab, FArrayBox& divuFab,
   int r_hi = 0;
 #endif
 
-  DEF_BOX_LIMITS(faceBox,faceLo,faceHi);
+  DEF_BOX_LIMITS(origBox,origLo,origHi);
   DEF_LIMITS(uExt, uEPtr, uElo, uEhi);
   DEF_LIMITS(divuExt,divuEPtr,divuElo,divuEhi);
   DEF_LIMITS(rhoExt ,rhoEPtr ,rhoElo , rhoEhi );
@@ -192,7 +192,7 @@ ProjOutFlowBC::computeProjBC(FArrayBox& velFab, FArrayBox& divuFab,
 		   ARLIM(uElo),ARLIM(uEhi),uEPtr,
 		   ARLIM(divuElo),ARLIM(divuEhi),divuEPtr,
 		   ARLIM(rhoElo),ARLIM(rhoEhi),rhoEPtr,
-		   faceLo,faceHi,&face,&zeroIt);
+		   origLo,origHi,&face,&zeroIt);
 
   if (zeroIt)
     {
