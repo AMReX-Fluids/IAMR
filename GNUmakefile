@@ -5,11 +5,14 @@ DIM	= 2
 PRVERSION = v9
 COMP = KCC
 
+USE_WINDOWS=FALSE
+USE_BSP=FALSE
+USE_NETCDF=FALSE
+
 EBASE = amr
 LBASE = 
 
 GUTHAMR_HOME=/usr/people/vince/Parallel/guthamr
-ARRAYVIEWDIR  = /usr/local/ccse/ArrayView
 
 include $(GUTHAMR_HOME)/mk/Make.defs
 
@@ -21,15 +24,18 @@ INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
 LIBRARY_LOCATIONS += ./graphtools
 
 # bsp parallel locations
+ifeq ($(USE_BSP),TRUE)
+DEFINES += BL_USE_BSP
 BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
 INCLUDE_LOCATIONS += $(BSP_HOME)/include
 LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1
 LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1/$(BSP_DEVICE)
 LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
 ###### exception library (for newest bsplib)
+# end bsp parallel locations
 LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
 LIBRARIES += -lexc
-# end bsp parallel locations
+endif
 
 
 # FillPatch switches
@@ -41,21 +47,29 @@ DEFINES += -DUSEOLDFILLPATCH=1
 DEFINES += -DNEWFPMINBOX=0
 
 
+ifeq ($(USE_WINDOWS),TRUE)
 LIBRARIES += -lgraph
 LIBRARIES += -lX11 
+DEFINES += -DBL_USE_WINDOWS
+endif
 
-#ifeq ($(DEBUG),TRUE)
+ifeq ($(USE_ARRAYVIEW),TRUE)
+ARRAYVIEWDIR  = /usr/local/ccse/ArrayView
 INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
 LIBRARY_LOCATIONS += $(ARRAYVIEWDIR) 
 LIBRARIES += -larrayview$(DIM)d.$(machineSuffix) 
-#endif
+DEFINES += BL_USE_ARRAYVIEW
+endif
 
 #--------------- netcdf library
 
+ifeq ($(USE_NETCDF),TRUE)
 LIBRARIES += /usr/people/stevens/bin/libnetcdf.a
 INCLUDE_LOCATIONS += /usr/people/stevens/bin
+endif
 
-DEFINES += -DGUTHAMR -DNEWUTIL -DHAS_WINDOWS
+#DEFINES += -DNEWUTIL
+DEFINES += -DGUTHAMR 
 
 #3RD = 1
 ifdef 3RD
@@ -67,7 +81,7 @@ FDEBF += -automatic
 # FOR RUNNING 3RD ONLY
 endif
 
-CXXFLAGS += --diag_suppress 177
+CXXFLAGS +=
 CXXOPTF +=
 CXXDEBF +=
 

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef BL_USE_BSP
 extern int BSP_DO_STAT;
 extern int BSP_DO_CGPROF;
 extern int BSP_DO_PROF;
@@ -62,3 +63,4 @@ void _bsp_preload_init() {
    BSP_INCLUDE_DIR  =strcpy(BSP_INCLUDE_DIR,"/usr/people/vince/Parallel/BSP/BSP1.1/include/");
    BSP_EXEC_FILE    =strcpy(BSP_EXEC_FILE,"main");
 }
+#endif

@@ -1,7 +1,7 @@
 #ifndef  _Contour_H_
 #define  _Contour_H_ 
 
-#if    (HAS_WINDOWS)
+#if    (BL_USE_WINDOWS)
 
 #include <stdlib.h>
 #include <iostream.h>

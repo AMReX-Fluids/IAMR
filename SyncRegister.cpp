@@ -1,4 +1,4 @@
-// $Id: SyncRegister.cpp,v 1.1 1997-07-08 23:08:15 vince Exp $
+// $Id: SyncRegister.cpp,v 1.2 1997-07-10 22:46:32 car Exp $
 #include <BC_TYPES.H>
 #include <SyncRegister.H>
 
@@ -1411,7 +1411,6 @@ SyncRegister::CompLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <stream.h>
 #include <iostream.h>
 #include <iomanip.h>
 #include <string.h>

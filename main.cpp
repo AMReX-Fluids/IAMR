@@ -35,7 +35,7 @@ boing()
 }
 
 
-#if HAS_WINDOWS&&(BL_SPACEDIM==2)
+#if BL_USE_WINDOWS&&(BL_SPACEDIM==2)
 #   define HAS_CONTOUR  1
 #   include <Contour.H>
 #endif

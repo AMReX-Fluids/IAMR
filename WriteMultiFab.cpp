@@ -3,7 +3,9 @@
 #include <MultiFab.H>
 #include <aString.H>
 #include <ParallelDescriptor.H>
+#ifdef BL_USE_BSP
 #include <bsp.h>
+#endif
 
 /*
 struct TagStruct {

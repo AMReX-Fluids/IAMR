@@ -1,4 +1,4 @@
-#if    (HAS_WINDOWS)
+#if    (BL_USE_WINDOWS)
 
 #include <Contour.H>
 #include <Amr.H>

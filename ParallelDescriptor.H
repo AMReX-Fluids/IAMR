@@ -11,12 +11,23 @@
 #include <Box.H>
 #include <BaseFab.H>
 #include <FArrayBox.H>
+#ifdef BL_USE_BSP
 #include "bsp.h"
 #include "bsp_level1.h"
 
-#define StartParallel(nprocs)    bsp_begin(nprocs);
-#define StartParallelAllProcs()  bsp_begin(bsp_nprocs());
-#define EndParallel()            bsp_end();
+#define StartParallel(nprocs)    bsp_begin(nprocs)
+#define StartParallelAllProcs()  bsp_begin(bsp_nprocs())
+#define EndParallel()            bsp_end()
+
+#else
+
+#include <Utility.H>
+
+#define StartParallel(nprocs)
+#define StartParallelAllProcs() 
+#define EndParallel()
+
+#endif
 
 // some of these can be collapsed
 struct FabComTag {
@@ -39,8 +50,67 @@ struct FabComTag {
   Box subBox;
 };
 
+#ifndef BL_USE_BSP
 
-class ParallelDescriptor {
+class ParallelDescriptor
+{
+public:
+    static void Abort(const char* str)
+    {
+	cerr << "Abort" << endl;
+	abort();
+    }
+    static int MyProc() { return 0; }
+    static int NProcs() { return 1; }
+    static void Synchronize() { }
+    static void Synchronize(const char *msg) { cout << "----- " << 0 << " :  about to sync:  " << msg << endl; }
+    static bool IOProcessor() { return true; }
+    static int  IOProcessorNumber() { return 0; }
+    static double second()  { return Utility::second(); }
+
+    // reduction operations
+    template<class T> static void ReduceMin(T &rvar) {}
+
+    // bool
+    static void ReduceBoolAnd(bool &rvar) {}
+    // Real
+    static void ReduceRealPlus(Real &rvar) {}
+    static void ReduceRealMax(Real &rvar) {}
+    static void ReduceRealMin(Real &rvar) {}
+    // int
+    static void ReduceIntPlus(int &rvar) {}
+    static void ReduceIntMax(int &rvar) {}
+    static void ReduceIntMin(int &rvar) {}
+    // long
+    static void ReduceLongPlus(long &rvar) {}
+    static void ReduceLongMax(long &rvar) {}
+    static void ReduceLongMin(long &rvar) {}
+
+
+    // data transfer functions
+    static void ShareVar(const void *var, int bytes) {}
+    static void UnshareVar(const void *var) {}
+    static void WriteData(int procnum, const void *src, void *dest,
+			  int offset, int bytes) {}
+
+    static void ReadData(int procnum, const void *src, int offset,
+			 void *dest, int bytes) { }
+
+    static void SetMessageHeaderSize(int &messageHeaderSize) { } 
+
+    static void GetMessageHeader(int &dataSize, void *messageHeader) { } 
+
+    static void SendData(int toproc, const FabComTag &messageHeader,
+			 const void *data, int datasizeinbytes) { }
+
+    static void ReceiveData(void *data, int datasizeinbytes) { }
+    template<class T> static void Broadcast(int toproc, T *src, T *dest) { }
+};
+
+#else
+
+class ParallelDescriptor
+{
 
   public:
     static int MyProc() { return bsp_pid();    }
@@ -124,5 +194,7 @@ class ParallelDescriptor {
     static const int syncCount   = 0;
 
 };
+
+#endif
 
 #endif /*_PARALLELDESCRIPTOR_H_*/

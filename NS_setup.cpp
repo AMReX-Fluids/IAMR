@@ -10,7 +10,9 @@
 #include <Misc.H>
 #include <FArrayBox.H>
 #include <CoordSys.H>
+#ifdef BL_USE_ARRAYVIEW
 #include <ArrayView.H>
+#endif
 
 BOX cell_to_cell(const BOX& b) { return b; }
 BOX cell_grow(const BOX& b) { return grow(b,1); }
