@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.83 1999-04-30 17:18:10 propp Exp $
+// $Id: Projection.cpp,v 1.84 1999-05-07 20:33:56 marc Exp $
 //
 
 #ifdef BL_T3E
@@ -485,7 +485,7 @@ Projection::level_project (int             level,
     //
     if(hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) 
     {
-	set_level_projector_outflow_bcs(level,time+dt,P_new,*divusource);
+	set_level_projector_outflow_bcs(level,time+dt,P_new,U_new,*divusource);
     }
     //
     // Scale the projection variables.
@@ -1108,7 +1108,8 @@ Projection::MLsyncProject (int             c_lev,
                            IntVect&        ratio,
                            int             crse_dt_ratio,
                            const Geometry& fine_geom,
-                           const Geometry& crse_geom)
+                           const Geometry& crse_geom,
+                           int             have_divu)
 {
     static RunStats stats("sync_project");
 
@@ -1125,7 +1126,10 @@ Projection::MLsyncProject (int             c_lev,
     //
     MultiFab *phi[MAXLEV];
     
+    const BoxArray& grids      = LevelData[c_lev].boxArray();
+    const BoxArray& fine_grids = LevelData[c_lev+1].boxArray();
     const BoxArray& Pgrids_crse = pres_crse.boxArray();
+
     phi[c_lev] = new MultiFab(Pgrids_crse,1,1,Fab_allocate);
     phi[c_lev]->setVal(0);
     
@@ -1134,7 +1138,10 @@ Projection::MLsyncProject (int             c_lev,
     const BoxArray& Pgrids_fine = pres_fine.boxArray();
     phi[c_lev+1] = new MultiFab(Pgrids_fine,1,1,Fab_allocate);
     phi[c_lev+1]->setVal(0);
-    
+
+    PArray<MultiFab> u_real[BL_SPACEDIM];
+    PArray<MultiFab> p_real(c_lev+2), s_real(c_lev+2), crse_rhs_real(c_lev+1);
+
     BoxArray sync_boxes = pres_fine.boxArray();
     sync_boxes.coarsen(ratio);
     //
@@ -1146,8 +1153,6 @@ Projection::MLsyncProject (int             c_lev,
     P_finedomain.refine(ratio);
     if (Pgrids_fine[0] == P_finedomain) crse_rhs->setVal(0);
     
-    const BoxArray& grids      = LevelData[c_lev].boxArray();
-    const BoxArray& fine_grids = LevelData[c_lev+1].boxArray();
     //
     // Do necessary scaling
     //
@@ -1169,8 +1174,6 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Set up alias lib.
     //
-    PArray<MultiFab> u_real[BL_SPACEDIM];
-    PArray<MultiFab> p_real(c_lev+2), s_real(c_lev+2), crse_rhs_real(c_lev+1);
     int n;
     for (n = 0; n < BL_SPACEDIM; n++) 
     {
@@ -1541,7 +1544,7 @@ Projection::initialSyncProject (int       c_lev,
             //
             MultiFab& divu_new = amr_level.get_new_data(Divu_Type);
             divu_new.FillBoundary();
-            MultiFab& divu_old = amr_level.get_old_data(Divu_Type);
+            MultiFab& divu_old = amr_level.get_new_data(Divu_Type);
             divu_old.FillBoundary();
             amr_level.setPhysBoundaryValues(Divu_Type,0,1,strt_time);
             amr_level.setPhysBoundaryValues(Divu_Type,0,1,strt_time+dt);
@@ -2198,6 +2201,7 @@ void
 Projection::set_level_projector_outflow_bcs (int       level,
                                              Real      cur_state_time,
                                              MultiFab& phi,
+                                             MultiFab& vel,
                                              MultiFab& divu)
 {
     //
@@ -2244,16 +2248,17 @@ Projection::set_level_projector_outflow_bcs (int       level,
         const int nGrow        = 0;
         const int nCompPhi     = 1;
         const int srcCompRho = Density, nCompRho = 1;
-        const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
         const BoxArray state_strip_ba(&state_strip,1);
         const BoxArray phi_strip_ba(&phi_strip,1);
 
         MultiFab cc_divu(state_strip_ba, 1, nGrow, Fab_allocate);
+        MultiFab cc_vel(state_strip_ba, BL_SPACEDIM, nGrow, Fab_allocate);
         MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
         //
         // Fill Fab-like MultiFab of divu data, and initialize phi
         //
         cc_divu.copy(divu);
+        cc_vel.copy(vel);
         phi_fine_strip.setVal(0);
         //
         // Make r_i needed in HGPHIBC (set = 1 if cartesian).
@@ -2266,12 +2271,10 @@ Projection::set_level_projector_outflow_bcs (int       level,
         FillPatchIterator rhoFpi(LevelData[level],cc_divu,nGrow,
                                  cur_state_time,State_Type,srcCompRho,nCompRho);
 
-        FillPatchIterator velFpi(LevelData[level],cc_divu,nGrow,
-                                 cur_state_time,State_Type,srcCompVel,nCompVel);
-
-        for ( ; rhoFpi.isValid() && velFpi.isValid(); ++rhoFpi, ++velFpi)
+        for ( ; rhoFpi.isValid(); ++rhoFpi)
         {
             DependentMultiFabIterator phimfi(rhoFpi, phi_fine_strip);
+            DependentMultiFabIterator vel_mfi(rhoFpi,cc_vel);
             DependentMultiFabIterator divu_mfi(rhoFpi,cc_divu);
             //
             // Fill phi_fine_strip with boundary cell values for phi, then copy
@@ -2282,7 +2285,7 @@ Projection::set_level_projector_outflow_bcs (int       level,
             //
             const int isPeriodicInX = parent->Geom(level).isPeriodic(0);
 
-            FORT_HGPHIBC(ARLIM(velFpi().loVect()),  ARLIM(velFpi().hiVect()),  velFpi().dataPtr(),
+            FORT_HGPHIBC(ARLIM(vel_mfi().loVect()), ARLIM(vel_mfi().hiVect()), vel_mfi().dataPtr(),
                          ARLIM(divu_mfi().loVect()),ARLIM(divu_mfi().hiVect()),divu_mfi().dataPtr(),
                          ARLIM(rhoFpi().loVect()),  ARLIM(rhoFpi().hiVect()),  rhoFpi().dataPtr(),
                          ARLIM(region.loVect()),    ARLIM(region.hiVect()),    rcen.dataPtr(),   &dx[0],
@@ -2564,13 +2567,15 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
         assert(divuOldFpi.validbox() == divuNewFpi.validbox());
         dudt.resize(velOldFpi.validbox(),nCompVel);
         dudt.copy(velNewFpi());
-        dudt.minus(velOldFpi());
+        if (!new_proj)
+            dudt.minus(velOldFpi());
         dudt.divide(dt);
 	    
         assert(velOldFpi.validbox() == velNewFpi.validbox());
         dsdt.resize(divuOldFpi.validbox(),nCompDivu);
         dsdt.copy(divuNewFpi());
-        dsdt.minus(divuOldFpi());
+        if (!new_proj)
+            dsdt.minus(divuOldFpi());
         dsdt.divide(dt);
         //
         // Fill phi_fine_strip with boundary cell values for phi, then
