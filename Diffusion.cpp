@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.106 2000-08-22 21:31:15 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.107 2000-08-30 19:20:22 car Exp $
 //
 
 //
@@ -461,8 +461,12 @@ Diffusion::diffuse_scalar (Real                   dt,
     // Construct solver and call it.
     //
     const Real S_tol     = visc_tol;
+#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+    const Real S_tol_abs = -1.0;
+#else
     const Real S_tol_abs = get_scaled_abs_tol(sigma, &Rhs, a, b, alpha,
                                               betan, betanp1, visc_abs_tol);
+#endif
     if (use_cg_solve)
     {
         CGSolver cg(*visc_op,use_mg_precond_flag);
@@ -794,8 +798,12 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     // Construct solver and call it.
     //
     const Real S_tol     = visc_tol;
+#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+    const Real S_tol_abs = -1;
+#else
     const Real S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b, alpha, betan,
                                               betanp1, visc_abs_tol);
+#endif
     if (use_tensor_cg_solve)
     {
         const int use_mg_pre = 0;
@@ -1022,6 +1030,9 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         const Real      S_tol = visc_tol;
         const MultiFab* alpha = &(visc_op->aCoefficients());
 
+#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+	const Real S_tol_abs = -1;
+#else
         MultiFab const* betan[BL_SPACEDIM];
         MultiFab const* betanp1[BL_SPACEDIM];
 
@@ -1032,6 +1043,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         }
         const Real S_tol_abs = get_scaled_abs_tol(comp, &Rhs, a, b, alpha,
                                                   betan, betanp1, visc_abs_tol);
+#endif
         if (use_cg_solve)
         {
             CGSolver cg(*visc_op,use_mg_precond_flag);
@@ -1224,6 +1236,9 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     //
     const Real S_tol      = visc_tol;
     const MultiFab* alpha = &(tensor_op->aCoefficients());
+#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+    const Real S_tol_abs = -1.0;
+#else
     MultiFab const* betan[BL_SPACEDIM];
     MultiFab const* betanp1[BL_SPACEDIM];
     for (int d = 0; d < BL_SPACEDIM; d++)
@@ -1233,6 +1248,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     }
     const Real S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b, alpha, betan,
                                               betanp1, visc_abs_tol);
+#endif
 
     if (use_tensor_cg_solve)
     {
@@ -1415,6 +1431,9 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     // Construct solver and call it.
     //
     const Real S_tol = visc_tol;
+#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+    const Real S_tol_abs = -1.0;
+#else
     MultiFab const * betan[BL_SPACEDIM];
     MultiFab const * betanp1[BL_SPACEDIM];
     for (int d = 0; d < BL_SPACEDIM; d++)
@@ -1424,6 +1443,7 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     }
     const Real S_tol_abs = get_scaled_abs_tol(state_ind, &Rhs, a, b,
                                               alpha, betan, betanp1, visc_abs_tol);
+#endif
     if (use_cg_solve)
     {
         CGSolver cg(*visc_op,use_mg_precond_flag);
