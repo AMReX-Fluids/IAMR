@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.22 1999-05-07 20:35:35 marc Exp $
+// $Id: Projection.H,v 1.23 1999-06-03 18:17:12 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -319,7 +319,8 @@ protected:
     static Real sync_tol;
     static Real proj_abs_tol;
     static Real filter_factor;
-    static int  new_proj;
+    static int  proj_0;
+    static int  proj_2;
     static int  filter_u;
     static int  rho_wgt_vel_proj;
     static int  do_outflow_bcs;
