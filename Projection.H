@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.21 1999-03-25 19:00:23 marc Exp $
+// $Id: Projection.H,v 1.22 1999-05-07 20:35:35 marc Exp $
 //
 
 #include <BC_TYPES.H>
@@ -119,7 +119,8 @@ public:
                         IntVect&        ratio,
                         int             crse_dt_ratio,
                         const Geometry& fine_geom,
-                        const Geometry& crse_geom);
+                        const Geometry& crse_geom,
+                        int             have_divu);
     //
     // This projects an initial vorticity field to define a velocity field.
     //
@@ -274,8 +275,9 @@ protected:
 
     void set_level_projector_outflow_bcs (int       level,
                                           Real      cur_state_time,
-                                          MultiFab& P_new,
-                                          MultiFab& Divu_new);
+                                          MultiFab& P,
+                                          MultiFab& V,
+                                          MultiFab& S);
     
     void set_initial_projection_outflow_bcs (MultiFab** vel,
                                              MultiFab** sig,
