@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacBndry.cpp,v 1.10 1998-09-29 20:08:28 lijewski Exp $
+// $Id: MacBndry.cpp,v 1.11 1999-01-04 18:15:17 marc Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -9,14 +9,14 @@
 
 void
 MacBndry::setBndryConds (const BCRec& phys_bc,
-                         IntVect&     ratio)
+                         IntVect&     ratio,
+			 int          comp)
 {
     //
     // ALL BCLOC VALUES ARE NOW DEFINED AS A LENGTH IN PHYSICAL
     // DIMENSIONS *RELATIVE* TO THE FACE, NOT IN ABSOLUTE PHYSICAL SPACE
     //
     const BoxArray& grids      = boxes();
-    const int comp             = 0;
     const int ngrds            = grids.length();
     const Real* dx             = geom.CellSize();
     const Box& domain          = geom.Domain();

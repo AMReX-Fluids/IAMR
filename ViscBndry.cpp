@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ViscBndry.cpp,v 1.14 1998-10-12 23:19:01 sstanley Exp $
+// $Id: ViscBndry.cpp,v 1.15 1999-01-04 18:15:17 marc Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -9,7 +9,8 @@
 
 void
 ViscBndry::setBndryConds (const BCRec&   bc,
-                          /*const*/ IntVect& ratio)
+                          /*const*/ IntVect& ratio,
+			  int comp)
 {
     //
     //  NOTE: ALL BCLOC VALUES ARE NOW DEFINED AS A LENGTH IN PHYSICAL
@@ -17,8 +18,6 @@ ViscBndry::setBndryConds (const BCRec&   bc,
     //
     const Real* dx    = geom.CellSize();
     const Box& domain = geom.Domain();
-
-    int comp = 0;
 
     for (OrientationIter fi; fi; ++fi)
     {

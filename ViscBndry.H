@@ -4,7 +4,7 @@
 #define _VISCBNDRYDATA_H_
 
 //
-// $Id: ViscBndry.H,v 1.6 1998-09-29 20:07:48 lijewski Exp $
+// $Id: ViscBndry.H,v 1.7 1999-01-04 18:15:17 marc Exp $
 //
 
 #include <InterpBndryData.H>
@@ -27,7 +27,8 @@ public:
     {}
 
     virtual void setBndryConds (const BCRec&   phys_bc,
-                                /*const*/ IntVect& ratio);
+                                /*const*/ IntVect& ratio,
+				int comp=0);
 
     void setHomogValues (const BCRec& bc,
                          /*const*/ IntVect& ratio);
