@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.154 1999-10-08 23:51:27 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.155 1999-10-22 23:07:57 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -476,12 +476,14 @@ NavierStokes::~NavierStokes ()
     //
     if (variable_vel_visc)
     {
-        delete viscn_cc, viscnp1_cc;
+        delete viscn_cc;
+        delete viscnp1_cc;
     }
 
     if (variable_scal_diff)
     {
-        delete diffn_cc, diffnp1_cc;
+        delete diffn_cc;
+        delete diffnp1_cc;
     }
 
     delete diffusion;
