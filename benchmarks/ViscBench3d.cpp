@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ViscBench3d.cpp,v 1.2 1999-03-01 18:50:34 sstanley Exp $
+// $Id: ViscBench3d.cpp,v 1.3 1999-03-02 06:02:07 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -135,7 +135,6 @@ main (int   argc,
     AmrData& amrDataI = dataServicesC.AmrDataRef();
 
     const int nComp          = amrDataI.NComp();
-    const int nVel           = BL_SPACEDIM;
     const Real time = amrDataI.Time();
     const int finestLevel = amrDataI.FinestLevel();
     const Array<aString>& derives = amrDataI.PlotVarNames();

@@ -1,5 +1,5 @@
 c
-c $Id: EXACT_3D.F,v 1.1 1999-02-24 01:59:40 sstanley Exp $
+c $Id: EXACT_3D.F,v 1.2 1999-03-02 06:02:07 sstanley Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -89,7 +89,7 @@ c           Uniform in the Y-direction
 c
             elseif (unifdir .eq. 1) then
               state(i,j,k,1) = - cpx*spz * expterm
-              state(i,j,k,2) =   one
+              state(i,j,k,2) =   zero
               state(i,j,k,3) =   spx*cpz * expterm
               state(i,j,k,4) =   one
               do n = 5, ncomp
