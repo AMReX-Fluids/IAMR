@@ -1,5 +1,5 @@
 //
-// $Id: MacBndry.cpp,v 1.14 2001-08-09 22:42:00 marc Exp $
+// $Id: MacBndry.cpp,v 1.15 2001-08-22 16:42:00 car Exp $
 //
 #include <winstd.H>
 
@@ -31,7 +31,6 @@ MacBndry::setBndryConds (const BCRec& phys_bc,
     const int ngrds            = grids.size();
     const Real* dx             = geom.CellSize();
     const Box& domain          = geom.Domain();
-    const RealBox& prob_domain = geom.ProbDomain();
 
     for (OrientationIter fi; fi; ++fi)
     {
@@ -45,7 +44,6 @@ MacBndry::setBndryConds (const BCRec& phys_bc,
         for (int i = 0; i < ngrds; i++)
         {
             const Box& grd = grids[i];
-            int faceindx   = grd[fi()] + (fi().isLow() ? 0 : 1);
 
             if (domain[fi()] == grd[fi()] && !geom.isPeriodic(dir))
             {

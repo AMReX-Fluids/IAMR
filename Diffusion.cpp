@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.112 2001-08-09 22:42:00 marc Exp $
+// $Id: Diffusion.cpp,v 1.113 2001-08-22 16:42:00 car Exp $
 //
 
 //
@@ -24,9 +24,6 @@
 #include <Diffusion.H>
 #include <MultiGrid.H>
 #include <CGSolver.H>
-#ifdef MG_USE_HYPRE
-#include <HypreABec.H>
-#endif
 
 #include <DIFFUSION_F.H>
 #include <VISCOPERATOR_F.H>
@@ -75,7 +72,6 @@ Real      Diffusion::visc_abs_tol = 1.0e-10;  // absolute tol. for visc solve
 int  Diffusion::first               = 1;
 int  Diffusion::do_reflux           = 1;
 int  Diffusion::use_cg_solve        = 0;
-bool Diffusion::use_hypre_solve     = false;
 int  Diffusion::use_tensor_cg_solve = 0;
 bool Diffusion::use_mg_precond_flag = false;
 int  Diffusion::verbose             = 0;
@@ -118,7 +114,6 @@ Diffusion::Diffusion (Amr*               Parent,
         ppdiff.query("v",verbose);
 
         ppdiff.query("use_cg_solve",use_cg_solve);
-	ppdiff.query("use_hypre_solve", use_hypre_solve);
         ppdiff.query("use_tensor_cg_solve",use_tensor_cg_solve);
         int use_mg_precond = 0;
         ppdiff.query("use_mg_precond",use_mg_precond);
@@ -218,7 +213,6 @@ Diffusion::echo_settings () const
         std::cout << "Diffusion settings...\n";
         std::cout << "  From diffuse:\n";
         std::cout << "   use_cg_solve =        " << use_cg_solve << '\n';
-        std::cout << "   use_hypre_solve =     " << use_hypre_solve << '\n';
         std::cout << "   use_tensor_cg_solve = " << use_tensor_cg_solve << '\n';
         std::cout << "   use_mg_precond_flag = " << use_mg_precond_flag << '\n';
         std::cout << "   max_order =           " << max_order << '\n';
@@ -489,19 +483,6 @@ Diffusion::diffuse_scalar (Real                   dt,
     {
         CGSolver cg(*visc_op,use_mg_precond_flag);
         cg.solve(Soln,Rhs,S_tol,S_tol_abs);
-    }
-    else if ( use_hypre_solve )
-    {
-#ifdef MG_USE_HYPRE
-      BoxLib::Error("HypreABec not ready");
-      Real* dx = 0;
-      HypreABec hp(Soln.boxArray(), visc_bndry, dx, 0, false);
-      hp.setup_solver(S_tol, S_tol_abs, 50);
-      hp.solve(Soln, Rhs, true);
-      hp.clear_solver();
-#else
-      BoxLib::Error("HypreABec not in this build");
-#endif
     }
     else
     {
@@ -1033,18 +1014,6 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
             CGSolver cg(*visc_op,use_mg_precond_flag);
             cg.solve(Soln,Rhs,S_tol,S_tol_abs);
         }
-	else if ( use_hypre_solve )
-	{
-#ifdef MG_USE_HYPRE
-	  BoxLib::Error("HypreABec not ready");
-	  // FIXME: CAR HypreABec hp(Soln.boxArray(), 00, dx, 0, false);
-	  // hp.setup_solver(S_tol, S_tol_abs, 50);
-	  //hp.solve(Soln, Rhs, true);
-	  // hp.clear_solver();
-#else
-	  BoxLib::Error("HypreABec not in this build");
-#endif
-	}
 	else
         {
             MultiGrid mg(*visc_op);
@@ -1410,18 +1379,6 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     {
         CGSolver cg(*visc_op,use_mg_precond_flag);
         cg.solve(Soln,Rhs,S_tol,S_tol_abs);
-    }
-    else if ( use_hypre_solve )
-    {
-#ifdef MG_USE_HYPRE
-	  BoxLib::Error("HypreABec not ready");
-	  // FIXME: CAR HypreABec hp(Soln.boxArray(), 00, dx, 0, false);
-	  // hp.setup_solver(S_tol, S_tol_abs, 50);
-	  // hp.solve(Soln, Rhs, true);
-	  // hp.clear_solver();
-#else
-	  BoxLib::Error("HypreABec not in this build");
-#endif
     }
     else
     {

@@ -1,7 +1,7 @@
 #ifndef _MacProj_H_
 #define _MacProj_H_
 //
-// $Id: MacProj.H,v 1.22 2001-08-01 21:50:56 lijewski Exp $
+// $Id: MacProj.H,v 1.23 2001-08-22 16:42:00 car Exp $
 //
 #include <BC_TYPES.H>
 #include <BCRec.H>
@@ -128,7 +128,6 @@ protected:
 
     static int  verbose;
     static bool  use_cg_solve;
-    static bool  use_hypre_solve;
     static int  do_outflow_bcs;
     static Real mac_tol;
     static Real mac_abs_tol;

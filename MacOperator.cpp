@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.23 2001-08-09 22:42:00 marc Exp $
+// $Id: MacOperator.cpp,v 1.24 2001-08-22 16:42:00 car Exp $
 //
 #include <winstd.H>
 
@@ -10,9 +10,6 @@
 #include <MACOPERATOR_F.H>
 #include <CGSolver.H>
 #include <MultiGrid.H>
-#ifdef MG_USE_HYPRE
-#include <HypreABec.H>
-#endif
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -201,8 +198,6 @@ mac_vel_update (int              init,
                 const Real*      dx,
                 Real             scale)
 {
-    const int* lo        = grd.loVect();
-    const int* hi        = grd.hiVect();
     const FArrayBox& rho = *rhoptr;
     
     DEF_LIMITS(ux,ux_dat,uxlo,uxhi);
@@ -346,23 +341,6 @@ mac_level_driver (const MacBndry& mac_bndry,
         CGSolver mac_cg(mac_op,use_mg_precond);
         mac_cg.solve(*mac_phi,Rhs,mac_tol,mac_abs_tol);
     }
-    else if ( the_solver == 2)
-    {
-#ifdef MG_USE_HYPRE
-      HypreABec hp(mac_phi->boxArray(), mac_bndry, dx, 0, false);
-      hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
-      hp.aCoefficients(mac_op.aCoefficients());
-      for ( int i = 0; i < BL_SPACEDIM; ++i )
-      {
-	  hp.bCoefficients(mac_op.bCoefficients(i), i);
-      }
-      hp.setup_solver(mac_tol, mac_abs_tol, 50);
-      hp.solve(*mac_phi, Rhs, true);
-      hp.clear_solver();
-#else
-      BoxLib::Error("HypreABec not in this build");
-#endif
-    }
     else
     {
         MultiGrid mac_mg(mac_op);
@@ -412,23 +390,6 @@ mac_sync_driver (const MacBndry& mac_bndry,
         CGSolver mac_cg(mac_op,use_mg_precond);
         mac_cg.solve(*mac_sync_phi,Rhs,mac_sync_tol,mac_abs_tol);
     }
-    else if ( the_solver == 2)
-      {
-#ifdef  MG_USE_HYPRE
-	HypreABec hp(mac_sync_phi->boxArray(), mac_bndry, dx, 0, false);
-	hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
-	hp.aCoefficients(mac_op.aCoefficients());
-	for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-	    hp.bCoefficients(mac_op.bCoefficients(i), i);
-        }
-	hp.setup_solver(mac_sync_tol, mac_abs_tol, 50);
-	hp.solve(*mac_sync_phi, Rhs, true);
-	hp.clear_solver();
-#else
-	BoxLib::Error("HypreABec not in this build");
-#endif
-      }
     else
     {
         MultiGrid mac_mg(mac_op);
