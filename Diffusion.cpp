@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.35 1998-06-26 22:19:52 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.36 1998-07-02 23:46:28 lijewski Exp $
 //
 
 //
@@ -1841,7 +1841,7 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
     Copy(*Ssync,Soln,0,sigma,1,1);
 
     Real s_norm = 0.0;
-    for (MultiFabIterator Solnmfi(Rhs); Solnmfi.isValid(false); ++Solnmfi)
+    for (MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(false); ++Solnmfi)
     {
         s_norm = Max(s_norm,Solnmfi().norm(0));
     }
