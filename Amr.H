@@ -45,9 +45,6 @@ public:
 //  initialize amr data after construction - must be called before timestepping
     void init( );
 
-//  set initial time variables
-    void setInitialTime(REAL strt_time);
-
 /// undocumented hacks
 ///
     void setDtLevel(const Array<REAL>& dt_lev);

@@ -567,7 +567,7 @@ void Amr::initialInit() {
     amr_level[0].computeInitialDt(finest_level,sub_cycle,
 				  n_cycle,ref_ratio,dt_level);
     for (lev = 0; lev <= finest_level; lev++) {
-	amr_level[lev].setTimeLevel(strt_time,dt_level[lev]);
+	amr_level[lev].setTimeLevel(strt_time,dt_level[lev],dt_level[lev]);
     }
 
       // perform any special post_initialization operations
@@ -585,18 +585,6 @@ void Amr::initialInit() {
 	printGridInfo(gridlog,0,finest_level);
     }
 
-}
-
-// ###################################################################
-// ##### SET_INITIAL_TIME
-// ###################################################################
-void Amr::setInitialTime(REAL strt_time)
-{
-    cumtime = strt_time;
-    int lev;
-    for (lev = 0; lev <= finest_level; lev++) {
-	amr_level[lev].setTimeLevel(strt_time,dt_level[lev]);
-    }
 }
 
 // ###################################################################
@@ -1059,7 +1047,14 @@ Amr::regrid(int lbase, REAL time)
 
     if (record_grid_info) {
       if(ParallelDescriptor::IOProcessor()) {
-	gridlog << "REGRID  with lbase = " << lbase << '\n';
+        if (lbase == 0) {
+          gridlog << "STEP = " << level_steps[0] <<
+                     " TIME = " << time <<
+                     " : REGRID  with lbase = " << lbase << '\n';
+        } else {
+          gridlog << "TIME = " << time <<
+                     " : REGRID  with lbase = " << lbase << '\n';
+        }
 	printGridInfo(gridlog,lbase+1,finest_level);
       }
     }
