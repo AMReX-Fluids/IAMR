@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.29 1998-03-23 21:25:51 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.30 1998-03-24 21:46:09 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3232,7 +3232,7 @@ NavierStokes::thePlotFileType () const
     //
     // Increment this whenever the writePlotFile() format changes.
     //
-    static const aString the_plot_file_type("NavierStokes-V1.0");
+    static const aString the_plot_file_type("NavierStokes-V1.1");
 
     return the_plot_file_type;
 }
@@ -3243,7 +3243,6 @@ NavierStokes::writePlotFile (const aString& dir,
                              VisMF::How     how)
 {
     int i, n;
-    List<DeriveRec> dlist = derive_lst.dlist();
 
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
@@ -3255,7 +3254,7 @@ NavierStokes::writePlotFile (const aString& dir,
         // Only write out velocity and scalar data.
         //
         int n_var = NUM_STATE;
-        int n_data_items = n_var + dlist.length();
+        int n_data_items = n_var;
 
         if (have_dsdt)
             n_data_items += 2;
@@ -3273,9 +3272,6 @@ NavierStokes::writePlotFile (const aString& dir,
             if (have_dsdt)
                 os << desc_lst[Dsdt_Type].name(0) << '\n';
         }
-
-        for (ListIterator<DeriveRec> lidrp(dlist); lidrp; ++lidrp)
-            os << dlist[lidrp].name() << '\n';
 
         os << BL_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
@@ -3328,10 +3324,7 @@ NavierStokes::writePlotFile (const aString& dir,
         }
     }
     //
-    // There may be up to three MultiFab written out at each level,
-    // not including any derived-type MultiFabs.  These are the ones with
-    // hard-wired names.  The names of the derived-type MultiFabs will
-    // be the names of the derived types themselves.
+    // There may be up to three MultiFab written out at each level.
     //
     static const aString BaseName[] =
     {
@@ -3379,19 +3372,6 @@ NavierStokes::writePlotFile (const aString& dir,
                 os << PathNameInHeader << '\n';
             }
         }
-        //
-        // Don't forget the derived types.
-        //
-        for (ListIterator<DeriveRec> lidrp(dlist); lidrp; ++lidrp)
-        {
-            PathNameInHeader = Level;
-            //
-            // The derived-type names aren't prefixed with a '/'
-            //
-            PathNameInHeader += '/';
-            PathNameInHeader += dlist[lidrp].name();
-            os << PathNameInHeader << '\n';
-        }
     }
     //
     // Use the Full pathname when naming the MultiFab.
@@ -3413,18 +3393,6 @@ NavierStokes::writePlotFile (const aString& dir,
             RunStats::addBytes(VisMF::Write(*dsdt_dat, TheFullPath, how));
         }
     }
-
-    for (ListIterator<DeriveRec> lidrp(dlist); lidrp; ++lidrp)
-    {
-        TheFullPath = FullPath;
-        TheFullPath += dlist[lidrp].name();
-
-        MultiFab* mf = derive(dlist[lidrp].name(), cur_time);
-
-        RunStats::addBytes(VisMF::Write(*mf, TheFullPath, how));
-
-        delete mf;
-    }
 }
 
 #else
@@ -3438,7 +3406,6 @@ NavierStokes::writePlotFile (ostream& os)
     // The new version of this code will have a better interface.
     //
     int i, n;
-    List<DeriveRec> dlist = derive_lst.dlist();
 
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
@@ -3446,7 +3413,7 @@ NavierStokes::writePlotFile (ostream& os)
         // Only write out velocity and scalar data.
         //
         int n_var = NUM_STATE;
-        int n_data_items = n_var + dlist.length();
+        int n_data_items = n_var;
 
         if (have_dsdt)
             n_data_items += 2;
@@ -3464,9 +3431,6 @@ NavierStokes::writePlotFile (ostream& os)
             if (have_dsdt)
                 os << desc_lst[Dsdt_Type].name(0) << '\n';
         }
-
-        for (ListIterator<DeriveRec> lidrp(dlist); lidrp; ++lidrp)
-            os << dlist[lidrp].name() << '\n';
 
         os << BL_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
@@ -3544,12 +3508,6 @@ NavierStokes::writePlotFile (ostream& os)
                     dat.copy((*dsdt_dat)[i],0,0,1);
                     dat.writeOn(os,0,1);
                 }
-            }
-            for (ListIterator<DeriveRec> lidrp(dlist); lidrp; ++lidrp)
-            {
-                FArrayBox *dfab = derive(grd,dlist[lidrp].name(),cur_time);
-                dfab->writeOn(os,0,1);
-                delete dfab;
             }
             filePosition = os.tellp();
         }
