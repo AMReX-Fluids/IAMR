@@ -29,8 +29,7 @@ LBASE =
 HERE = .
 GUTHAMR_HOME=/usr/people/vince/Parallel/guthamr
 
-#include $(GUTHAMR_HOME)/mk/Make.defs
-include $(HERE)/Make.defs
+include ../mk/Make.defs
 
 INCLUDE_LOCATIONS += $(HERE) ../pboxlib2.0
 #INCLUDE_LOCATIONS += $(GUTHAMR_HOME)/include
@@ -132,5 +131,4 @@ all: $(executable)
 godzillaLink:
 	rsh godzilla 'cd $(PWD); make $(executable)
 
-#include $(GUTHAMR_HOME)/mk/Make.rules
-include $(HERE)/Make.rules
+include ../mk/Make.rules
