@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.36 1998-12-07 21:45:07 lijewski Exp $
+// $Id: MacProj.cpp,v 1.37 1998-12-11 21:29:02 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -884,7 +884,6 @@ MacProj::check_div_cond (int      level,
         DependentMultiFabIterator U_edge2mfi(U_edge0mfi, U_edge[2]);
         DependentMultiFabIterator area2mfi(U_edge0mfi, area[level][2]);
 #endif
-
         dmac.resize(grids[U_edge0mfi.index()],1);
 
         const FArrayBox& uxedge = U_edge0mfi();
@@ -899,6 +898,7 @@ MacProj::check_div_cond (int      level,
         DEF_CLIMITS(xarea,ax_dat,axlo,axhi);
         DEF_CLIMITS(yarea,ay_dat,aylo,ayhi);
         DEF_CLIMITS(vol,vol_dat,vlo,vhi);
+
 #if (BL_SPACEDIM == 2)
         FORT_MACDIV(dmac_dat,ARLIM(dlo),ARLIM(dhi),dlo,dhi,
                     ux_dat,ARLIM(uxlo),ARLIM(uxhi),
@@ -907,6 +907,7 @@ MacProj::check_div_cond (int      level,
                     ay_dat,ARLIM(aylo),ARLIM(ayhi), 
                     vol_dat,ARLIM(vlo),ARLIM(vhi));
 #endif
+
 #if (BL_SPACEDIM == 3)
         const FArrayBox& uzedge = U_edge2mfi();
         DEF_CLIMITS(uzedge,uz_dat,uzlo,uzhi);
@@ -922,15 +923,19 @@ MacProj::check_div_cond (int      level,
                     az_dat,ARLIM(azlo),ARLIM(azhi),
                     vol_dat,ARLIM(vlo),ARLIM(vhi));
 #endif
-        if (verbose && ParallelDescriptor::IOProcessor())
+        if (verbose)
         {
-            Real g_norm = dmac.norm(0);
             cout << "Max norm of div(U_edge) for grid  "
-                 << U_edge0mfi.index() << " = "
-                 << g_norm << NL;
+                 << U_edge0mfi.index()
+                 << " = "
+                 << dmac.norm(0) << NL;
             sum += dmac.sum(0);
-            cout << "SUM of DIV(U_edge) = " << sum << NL;
         }
+    }
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        cout << "SUM of DIV(U_edge) = " << sum << NL;
     }
 }
 
