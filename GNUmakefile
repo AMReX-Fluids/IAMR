@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.65 1998-12-01 23:52:34 lijewski Exp $
+# $Id: GNUmakefile,v 1.66 1998-12-02 21:07:23 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -16,6 +16,7 @@ DEBUG	      = TRUE
 PROFILE       = FALSE
 DIM	      = 3
 COMP          = KCC
+USE_TENSOR    = FALSE
 USE_WINDOWS   = FALSE
 USE_MPI       = TRUE
 USE_ARRAYVIEW = FALSE
@@ -68,7 +69,12 @@ endif
 # Libraries to close against.
 #
 ifeq ($(COMP),KCC)
+ifeq ($(USE_TENSOR),TRUE)
+LibsToCloseAgainst := $(TOP)/lib/$(machineSuffix)/libmcmg$(DIM)d.a
+LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libmg$(DIM)d.a
+else
 LibsToCloseAgainst := $(TOP)/lib/$(machineSuffix)/libmg$(DIM)d.a
+endif
 LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libamr$(DIM)d.a
 LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libbndry$(DIM)d.a
 ifeq ($(USE_HGPROJ_SERIAL),FALSE)
