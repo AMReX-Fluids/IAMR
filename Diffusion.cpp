@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.59 1999-02-11 18:51:14 marc Exp $
+// $Id: Diffusion.cpp,v 1.60 1999-02-11 19:14:07 marc Exp $
 //
 
 //
@@ -743,7 +743,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 #endif
                                 Soln_old);
             for (int dim = 0; dim < BL_SPACEDIM; dim++)
-                tensorflux_old[dim]->mult(-b/(dt*caller->Geom().CellSize()[i]),0);
+                tensorflux_old[dim]->mult(-b/(dt*caller->Geom().CellSize()[dim]),0);
         }
         delete tensor_op;
 
@@ -928,7 +928,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                             Soln);
         for (int dim = 0; dim < BL_SPACEDIM; dim++)
         {
-	    tensorflux[dim]->mult(b/(dt*caller->Geom().CellSize()[i]),0);
+	    tensorflux[dim]->mult(b/(dt*caller->Geom().CellSize()[dim]),0);
             tensorflux[dim]->plus(*(tensorflux_old[dim]),0,BL_SPACEDIM,0);
         }       
         removeFluxBoxesLevel(tensorflux_old);
@@ -1376,7 +1376,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
 	// This is to remove the dx scaling in the coeffs
 	//
         for (int dim =0; dim <BL_SPACEDIM; dim++)
-            tensorflux[0]->mult(b/(dt*caller->Geom().CellSize()[i]),0);
+            tensorflux[0]->mult(b/(dt*caller->Geom().CellSize()[dim]),0);
 
         for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
         {
