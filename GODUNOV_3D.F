@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.27 2003-02-06 20:43:29 almgren Exp $
+c $Id: GODUNOV_3D.F,v 1.28 2003-02-18 21:46:35 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -938,7 +938,7 @@ c
 
       end
 
-      subroutine FORT_ESTATE_FPU(s, tforces, DIMS(s),
+      subroutine FORT_ESTATE_FPU(s, tforces, divu, DIMS(s),
      &     xlo, xhi, sx, slxscr, stxlo, stxhi,
      &     uedge, DIMS(uedge), xstate, DIMS(xstate),
 
@@ -998,6 +998,7 @@ c
       REAL_T  sy(DIMV(work))
       REAL_T  sz(DIMV(work))
       REAL_T tforces(DIMV(work))
+      REAL_T    divu(DIMV(work))
 
       integer use_minion, iconserv
       REAL_T spx,smx,spy,smy,spz,smz,st,denom
@@ -1043,6 +1044,17 @@ c
                end do
             end do
          end do
+         if (iconserv .eq. 1) then
+           do k = kmin-1,kmax+1
+             do j = jmin-1,jmax+1
+               do i = imin,  imax+1
+                  xlo(i,j,k) = xlo(i,j,k) - dth*s(i-1,j,k)*divu(i-1,j,k)
+                  xhi(i,j,k) = xhi(i,j,k) - dth*s(i  ,j,k)*divu(i,  j,k)
+               end do
+             end do
+           end do
+         end if
+
       end if
 
       call trans_xbc(
@@ -1078,6 +1090,16 @@ c
                end do
             end do
          end do
+         if (iconserv .eq. 1) then
+           do k = kmin-1,kmax+1
+             do j = jmin, jmax+1
+               do i = imin-1,  imax+1
+                  ylo(i,j,k) = ylo(i,j,k) - dth*s(i,j-1,k)*divu(i,j-1,k)
+                  yhi(i,j,k) = yhi(i,j,k) - dth*s(i,j  ,k)*divu(i,j,  k)
+               end do
+             end do
+           end do
+         end if
       end if
 
       call trans_ybc(
@@ -1113,6 +1135,16 @@ c
                end do
             end do
          end do
+         if (iconserv .eq. 1) then
+           do k = kmin,kmax+1
+             do j = jmin-1,jmax+1
+               do i = imin-1,  imax+1
+                  zlo(i,j,k) = zlo(i,j,k) - dth*s(i,j,k-1)*divu(i,j,k-1)
+                  zhi(i,j,k) = zhi(i,j,k) - dth*s(i,j,k  )*divu(i,j,k  )
+               end do
+             end do
+           end do
+         end if
       end if
 
       call trans_zbc(
@@ -1138,13 +1170,14 @@ c
 
                   spx = s(i,j,k) + half*sx(i,j,k)
                   smx = s(i,j,k) - half*sx(i,j,k)
+
                   if (iconserv.eq.1) then
 
                      tr =
      &                    (vedge(i,j+1,k)*ylo(i,j+1,k) - vedge(i,j,k)*ylo(i,j,k))/hy +   
      &                    (wedge(i,j,k+1)*zlo(i,j,k+1) - wedge(i,j,k)*zlo(i,j,k))/hz   
 
-                     st = -dth*tr + dth*tforces(i,j,k)
+                     st = -dth*tr + dth*(tforces(i,j,k) - s(i,j,k)*divu(i,j,k))
      &                    + dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
      &                    + dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
 c    &                    - dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
@@ -1232,7 +1265,7 @@ c
      &                    (uedge(i+1,j,k)*xlo(i+1,j,k) - uedge(i,j,k)*xlo(i,j,k))/hx +   
      &                    (wedge(i,j,k+1)*zlo(i,j,k+1) - wedge(i,j,k)*zlo(i,j,k))/hz   
 
-                     st = -dth*tr + dth*tforces(i,j,k)
+                     st = -dth*tr + dth*(tforces(i,j,k) - s(i,j,k)*divu(i,j,k))
      &                    + dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
      &                    + dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
 c    &                    - dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
@@ -1323,7 +1356,7 @@ c
      &                    (uedge(i+1,j,k)*xlo(i+1,j,k) - uedge(i,j,k)*xlo(i,j,k))/hx +   
      &                    (vedge(i,j+1,k)*ylo(i,j+1,k) - vedge(i,j,k)*ylo(i,j,k))/hy   
                      
-                     st = - dth*tr + dth*tforces(i,j,k)
+                     st = -dth*tr + dth*(tforces(i,j,k) - s(i,j,k)*divu(i,j,k))
      &                    + dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
      &                    + dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
 c    &                    - dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz

@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.33 2003-02-18 21:35:03 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.34 2003-02-18 21:46:35 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -689,8 +689,8 @@ c     print *,' '
          if (iconserv .eq. 1) then
            do j = jmin-1,jmax+1
             do i = imin,  imax+1
-               xlo(i,j) = xlo(i,j) - dth*s(i,j)*divu(i-1,j)
-               xhi(i,j) = xhi(i,j) - dth*s(i,j)*divu(i,  j)
+               xlo(i,j) = xlo(i,j) - dth*s(i-1,j)*divu(i-1,j)
+               xhi(i,j) = xhi(i,j) - dth*s(i  ,j)*divu(i,  j)
             end do
            end do
          end if
@@ -726,8 +726,8 @@ c     print *,' '
          if (iconserv .eq. 1) then
            do j = jmin-1,jmax+1
             do i = imin,  imax+1
-               ylo(i,j) = ylo(i,j) - dth*s(i,j)*divu(i,j-1)
-               yhi(i,j) = yhi(i,j) - dth*s(i,j)*divu(i,j  )
+               ylo(i,j) = ylo(i,j) - dth*s(i,j-1)*divu(i,j-1)
+               yhi(i,j) = yhi(i,j) - dth*s(i,j  )*divu(i,j  )
             end do
            end do
          end if
