@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.45 1998-05-13 23:17:49 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.46 1998-05-14 23:55:10 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2445,7 +2445,7 @@ void NavierStokes::velocity_advection_update(Real dt)
 #endif
           {
               // set force to -rho*g
-            FArrayBox rho(Rhofpi.fabbox());
+            FArrayBox rho(Rhofpi().box());
             //getState(rho,i,1,Density,1,prev_time);
             rho.copy(Rhofpi());
             rho.mult(-grav);
@@ -2620,7 +2620,7 @@ void NavierStokes::initial_velocity_diffusion_update(Real dt)
 #endif
           {
               // set force to -rho*g
-            FArrayBox rho(Rhofpi.fabbox());
+            FArrayBox rho(Rhofpi().box());
             //getState(rho,i,1,Density,1,prev_time);
             rho.copy(Rhofpi());
             rho.mult(-grav);
