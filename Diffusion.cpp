@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.20 1998-05-18 16:58:36 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.21 1998-05-19 22:35:18 lijewski Exp $
 //
 
 //
@@ -320,11 +320,11 @@ void Diffusion::diffuse_scalar(Real dt, int sigma, Real be_cn_theta,
   MultiFab &S_new = caller->get_new_data(State_Type);
 
   int ngrd = grids.length();
-  int i;
 
-  MultiFab* Rho_old;
-  MultiFab* Rho_new;
-  if(rho_flag==2) {
+  MultiFab* Rho_old = 0;
+  MultiFab* Rho_new = 0;
+
+  if (rho_flag==2) {
     Rho_old = new MultiFab(grids,1,1,Fab_allocate);
     Rho_old->copy(S_old,Density,0,1,1);
     Rho_new = new MultiFab(grids,1,1,Fab_allocate);
@@ -402,7 +402,7 @@ void Diffusion::diffuse_scalar(Real dt, int sigma, Real be_cn_theta,
       if(rho_flag==1) {
         // multiply by density at time nph
         FArrayBox& Rh = rho_halfmfi();
-        S_new[i].mult(Rh,S_newmfi.validbox(),0,sigma,1);
+        S_newmfi().mult(Rh,S_newmfi.validbox(),0,sigma,1);
       }
 
       if(alpha!=NULL) {
