@@ -46,8 +46,11 @@ C$(HGLIB_BASE)_headers += interface.H boundary.H \
 			  hg_projector.H 
 
 F$(HGLIB_BASE)_sources += amr_real$(DIM)d.F hg_multi$(DIM)d.F \
-			  hg_proj$(DIM)d.F hg_avg$(DIM)d.F \
-			  hg_multi$(DIM)d_terrain.F
+			  hg_proj$(DIM)d.F hg_avg$(DIM)d.F
+
+ifeq ($(DIM),3)
+F$(HGLIB_BASE)_sources += hg_multi$(DIM)d_terrain.F
+endif
 
 #
 # boxlib sources
@@ -89,12 +92,11 @@ T_headers += BaseFab.H FabArray.H
 MGLIB_BASE=EXE
 C$(MGLIB_BASE)_headers += ABecLaplacian.H BndryData.H BoundCond.H \
                           CGSolver.H InterpBndryData.H LO_BCTYPES.H \
-                          Laplacian.H LinOp.H Mask.H MultiGrid.H \
-                          WriteMultiFab.H
+                          Laplacian.H LinOp.H Mask.H MultiGrid.H
 
 C$(MGLIB_BASE)_sources += ABecLaplacian.cpp BndryData.cpp CGSolver.cpp \
                           InterpBndryData.cpp Laplacian.cpp LinOp.cpp \
-                          Mask.cpp MultiGrid.cpp WriteMultiFab.cpp
+                          Mask.cpp MultiGrid.cpp
 
 F$(MGLIB_BASE)_headers += ABec_F.H CG_F.H INTERPBNDRYDATA_F.H \
                           LO_F.H LP_F.H MG_F.H

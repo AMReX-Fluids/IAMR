@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.17 1998-03-26 06:40:56 almgren Exp $
+// $Id: Diffusion.cpp,v 1.18 1998-04-15 22:25:34 marc Exp $
 //
 
 //
@@ -1862,7 +1862,7 @@ DivVis* Diffusion::getTensorOp(Real a, Real b,
 
   getTensorBndryData(visc_bndry,time);
 
-  DivVis *tensor_op = new DivVis(grids,visc_bndry,dx);
+  DivVis *tensor_op = new DivVis(visc_bndry,dx);
   tensor_op->maxOrder(tensor_max_order);
 
   int isrz = CoordSys::IsRZ();
@@ -1988,7 +1988,7 @@ DivVis* Diffusion::getTensorOp(Real a, Real b,
   ViscBndry2D bndry;
   bndry.define(grids,2*BL_SPACEDIM,caller->Geom());
   bndry.setHomogValues(bcarray, ref_ratio[0]);
-  DivVis *tensor_op = new DivVis(grids,bndry,dx);
+  DivVis *tensor_op = new DivVis(bndry,dx);
   tensor_op->maxOrder(tensor_max_order);
 
   int isrz = CoordSys::IsRZ();
@@ -2077,7 +2077,7 @@ ABecLaplacian* Diffusion::getViscOp(int comp, Real a, Real b,
 
   getBndryData(visc_bndry,comp,1,time,rho_flag);
 
-  ABecLaplacian *visc_op = new ABecLaplacian(grids,visc_bndry,dx);
+  ABecLaplacian *visc_op = new ABecLaplacian(visc_bndry,dx);
   visc_op->maxOrder(max_order);
 
   int usehoop=( (comp==Xvel) && (CoordSys::IsRZ())   );
@@ -2203,7 +2203,7 @@ ABecLaplacian* Diffusion::getViscOp(int comp, Real a, Real b,
   ViscBndry bndry(grids,1,domain);
   bndry.setHomogValues(bc, ref_ratio);
 
-  ABecLaplacian *visc_op = new ABecLaplacian(grids,bndry,dx);
+  ABecLaplacian *visc_op = new ABecLaplacian(bndry,dx);
   visc_op->maxOrder(max_order);
 
   int usehoop=( (comp==Xvel) && (CoordSys::IsRZ())   );
@@ -2338,7 +2338,7 @@ void Diffusion::getViscTerms(MultiFab& visc_terms, int src_comp, int comp,
     } else {
       b = -1.0;
     }
-    ABecLaplacian visc_op(grids,visc_bndry,dx);
+    ABecLaplacian visc_op(visc_bndry,dx);
 //    visc_op.setScalars(a,b*dx[0]);
     visc_op.setScalars(a,b);
     visc_op.maxOrder(max_order);
@@ -2533,7 +2533,7 @@ void Diffusion::getTensorViscTerms(MultiFab& visc_terms,
     Real a = 0.0;
     Real b = -1.0;
 
-    DivVis tensor_op(grids,visc_bndry,dx);
+    DivVis tensor_op(visc_bndry,dx);
     tensor_op.maxOrder(tensor_max_order);
     tensor_op.setScalars(a,b);
 

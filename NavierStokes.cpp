@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.39 1998-04-02 00:13:31 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.40 1998-04-15 22:25:37 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2718,7 +2718,6 @@ Real  NavierStokes::volWgtSum(const aString& name, Real time)
 #if (BL_SPACEDIM == 2)
         int irlo  = lo[0]-radius_grow;
         int irhi  = hi[0]+radius_grow;
-        Real* rad = &radius[i];
         //
         // Note that this routine will do a volume weighted sum of
         // whatever quantity is passed in, not strictly the "mass".

@@ -1,5 +1,5 @@
 //
-// $Id: ViscBndry.cpp,v 1.7 1998-03-26 06:40:58 almgren Exp $
+// $Id: ViscBndry.cpp,v 1.8 1998-04-15 22:25:39 marc Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -20,7 +20,7 @@ void ViscBndry::setBndryConds(const BCRec& bc, IntVect& ratio)
     for (OrientationIter fi; fi; ++fi) {
         Orientation face(fi());
         Array<Real> &bloc = bcloc[face];
-        Array<BoundCond> &bctag = bcond[face];
+        Array< BoundCond>& bctag = bcond[face][0];
 
         int dir = face.coordDir();
         Real delta = dx[dir]*ratio[dir];

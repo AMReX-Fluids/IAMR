@@ -1,5 +1,5 @@
 //
-// $Id: MacBndry.cpp,v 1.6 1998-03-26 06:40:56 almgren Exp $
+// $Id: MacBndry.cpp,v 1.7 1998-04-15 22:25:35 marc Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -20,7 +20,7 @@ void MacBndry::setBndryConds(const BCRec& phys_bc, IntVect& ratio)
     for (OrientationIter fi; fi; ++fi) {
         Orientation face(fi());
         Array<Real> &bloc = bcloc[face];
-        Array<BoundCond> &bctag = bcond[face];
+        Array<BoundCond> &bctag = bcond[face][0];
 
         int dir = face.coordDir();
         Real delta = dx[dir]*ratio[dir];

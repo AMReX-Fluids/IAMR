@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.8 1997-12-11 23:30:19 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.9 1998-04-15 22:25:36 marc Exp $
 //
 
 #include <MacBndry.H>
@@ -20,9 +20,9 @@ const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
 
 // constructor
-MacOperator::MacOperator(const BoxArray &ba, const BndryData& mgb, 
-                         const Real *h)
-    : ABecLaplacian(ba,mgb,h)
+MacOperator::MacOperator(const BndryData& mgb, 
+                         const Real*      h)
+    : ABecLaplacian(mgb,h)
 {}
 
 
@@ -33,7 +33,7 @@ void MacOperator::setCoefficients(MultiFab* area, MultiFab& rho, int rho_comp,
                              const Real* dx)
 {
     // should check that all BoxArrays are consistant
-    const BoxArray& ba = *gbox[0];
+    const BoxArray& ba = gbox[0];
     assert( rho.boxArray() == ba );
 
     // first set scalar coeficients
@@ -121,7 +121,7 @@ void MacOperator::defRHS( MultiFab* area, MultiFab& volume, MultiFab& Rhs,
                           MultiFab *vel, Real scale)
 {
       // should check that all BoxArrays are consistant
-    const BoxArray& ba = *gbox[0];
+    const BoxArray& ba = gbox[0];
     assert( Rhs.boxArray() == ba );
 
     int ngrd = ba.length();
@@ -241,7 +241,7 @@ void MacOperator::velUpdate(MultiFab* Vel, MultiFab& Phi, const MultiFab& Rho,
                             int rho_comp, const Real* dx, Real scale)
 {
       // should check that all BoxArrays are consistant
-    const BoxArray& ba = *gbox[0];
+    const BoxArray& ba = gbox[0];
     assert( Rho.boxArray() == ba );
 
       // set bndry data in ghost zones
@@ -281,7 +281,7 @@ void MacOperator::syncRhs(const MultiFab& Volume, MultiFab& Rhs,
                      Real rhs_scale, const Real* dx)
 {
 
-    const BoxArray& ba = *gbox[0];
+    const BoxArray& ba = gbox[0];
 
     //int ngrd = ba.length();
     //for(int k = 0; k < ngrd; k++)
@@ -320,7 +320,7 @@ void mac_level_driver( const MacBndry &mac_bndry,
                        MultiFab &S,     MultiFab &Rhs,
                        MultiFab *u_mac, MultiFab *mac_phi )
 {
-    MacOperator mac_op(grids,mac_bndry,dx);
+    MacOperator mac_op(mac_bndry,dx);
     mac_op.setCoefficients(area,S,Density,dx);
     mac_op.defRHS(area,volume,Rhs,u_mac,rhs_scale);
     mac_op.maxOrder(2);
@@ -353,7 +353,7 @@ void mac_sync_driver( const MacBndry &mac_bndry,
                       MultiFab &Rhs,   MultiFab *rho_half,
                       MultiFab *u_mac, MultiFab *mac_sync_phi )
 {
-    MacOperator mac_op(grids,mac_bndry,dx);
+    MacOperator mac_op(mac_bndry,dx);
     mac_op.maxOrder(2);
     mac_op.setCoefficients(area,*rho_half, 0, dx);
     mac_op.syncRhs(volume,Rhs,rhs_scale,dx);

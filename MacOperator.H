@@ -2,7 +2,7 @@
 #define _MACOPERATOR_H_
 
 //
-// $Id: MacOperator.H,v 1.5 1997-12-11 23:30:18 lijewski Exp $
+// $Id: MacOperator.H,v 1.6 1998-04-15 22:25:35 marc Exp $
 //
 
 //==========================================================================
@@ -18,7 +18,7 @@
 class MacOperator : public ABecLaplacian
 {
 public:
-    MacOperator(const BoxArray &ba, const BndryData& mgb, const Real * _h);
+    MacOperator(const BndryData& mgb, const Real * _h);
 
     virtual ~MacOperator() {}
 

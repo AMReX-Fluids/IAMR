@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.33 1998-03-30 17:30:27 lijewski Exp $
+// $Id: Projection.cpp,v 1.34 1998-04-15 22:25:38 marc Exp $
 //
 
 #ifdef BL_T3E
@@ -2095,7 +2095,8 @@ void Projection::set_level_projector_outflow_bcs(int level,
                                  MultiFab * rho_half,
                                  MultiFab& dsdt)
 {
-#if (BL_SPACEDIM == 2)
+    //HACK 
+#if (BL_SPACEDIM == 2 && 0)
   int rzflag = CoordSys::IsRZ();
   const Real* dx = geom.CellSize();
   Real hx = dx[0];
@@ -2233,7 +2234,8 @@ void Projection::set_level_projector_outflow_bcs(int level,
 void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
    MultiFab** sig, MultiFab** phi, int c_lev, Real cur_divu_time)
 {
-#if (BL_SPACEDIM == 2)
+    //HACK 
+#if (BL_SPACEDIM == 2 && 0)
   int rho_comp = 0;
   if (rho_wgt_vel_proj) rho_comp = Density;
 
@@ -2432,7 +2434,8 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
 void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi, 
                  int c_lev, Real start_time, Real dt)
 {
-#if (BL_SPACEDIM == 2)
+    // HACK
+#if (BL_SPACEDIM == 2 && 0)
   int lev;
   int f_lev = finest_level;
   int rzflag = CoordSys::IsRZ();
