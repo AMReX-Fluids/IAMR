@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_2D.F,v 1.7 1999-02-03 00:40:49 lijewski Exp $
+c $Id: MACPROJ_2D.F,v 1.8 1999-03-24 22:49:29 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -159,7 +159,7 @@ c
       
 c     Local variables
       integer NstripMAX
-      parameter (NstripMAX = 500)
+      parameter (NstripMAX = 1000)
       REAL_T small_udiff, small_pert
       parameter (small_udiff = SMALL)
       parameter ( small_pert = SMALL)

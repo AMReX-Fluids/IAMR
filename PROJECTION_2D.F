@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.18 1999-03-05 01:17:21 almgren Exp $
+c $Id: PROJECTION_2D.F,v 1.19 1999-03-24 22:49:30 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -434,7 +434,7 @@ c
       
 c     Local variables
       integer NstripMAX
-      parameter (NstripMAX = 500)
+      parameter (NstripMAX = 1000)
       integer ics, ice, jcs, jce, ins, ine, jns, jne
       integer ni, nj, i, j, icL, icR, neq
       REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX), s(NstripMAX)
@@ -601,7 +601,7 @@ c     Write the solution into the arg
       SUBROUTINE tridag_sing(a,b,c,r,u,n,sVal,rNormed)
       INTEGER n,NMAX
       REAL_T a(n),b(n),c(n),r(n),u(n), sVal
-      PARAMETER (NMAX=500)
+      PARAMETER (NMAX=1000)
       INTEGER j
       REAL_T bet,gam(NMAX)
       logical rNormed, singular
@@ -637,7 +637,7 @@ c     Write the solution into the arg
       SUBROUTINE tridag(a,b,c,r,u,n)
       INTEGER n,NMAX
       REAL_T a(n),b(n),c(n),r(n),u(n)
-      PARAMETER (NMAX=500)
+      PARAMETER (NMAX=1000)
       INTEGER j
       REAL_T bet,gam(NMAX)
       if(n.gt.NMAX)then
@@ -661,7 +661,7 @@ c     Write the solution into the arg
       SUBROUTINE cyclic(a,b,c,alpha,beta,r,x,n)
       INTEGER n,NMAX
       REAL_T alpha,beta,a(n),b(n),c(n),r(n),x(n)
-      PARAMETER (NMAX=500)
+      PARAMETER (NMAX=1000)
       INTEGER i
       REAL_T fact,gamma,bb(NMAX),u(NMAX),z(NMAX),den
       if(n.le.2)then
