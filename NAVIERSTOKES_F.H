@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.7 1999-08-25 18:04:04 propp Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.8 1999-10-08 23:51:27 sstanley Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -14,6 +14,7 @@
 #    define FORT_INCRMULT    incrmult
 #    define FORT_SUMMASS     summass
 #    define FORT_SUMMASSSQ   summasssq
+#    define FORT_CEN2EDG     cen2edg
 #endif
 
 #ifdef BL_LANG_CC
@@ -26,6 +27,7 @@
 #    define FORT_INCRMULT    INCRMULT
 #    define FORT_SUMMASS     SUMMASS
 #    define FORT_SUMMASSSQ   SUMMASSSQ
+#    define FORT_CEN2EDG     CEN2EDG
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_FILCC       filcc
 #    define FORT_GRADP       gradp
@@ -35,6 +37,7 @@
 #    define FORT_INCRMULT    incrmult
 #    define FORT_SUMMASS     summass
 #    define FORT_SUMMASSSQ   summasssq
+#    define FORT_CEN2EDG     cen2edg
 #  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_FILCC       filcc_
 #    define FORT_GRADP       gradp_
@@ -44,6 +47,7 @@
 #    define FORT_INCRMULT    incrmult_
 #    define FORT_SUMMASS     summass_
 #    define FORT_SUMMASSSQ   summasssq_
+#    define FORT_CEN2EDG     cen2edg_
 #  endif
 
 #include <ArrayLim.H>
@@ -103,6 +107,11 @@ extern "C" {
                          ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                          const Real* delta, Real* mass, Real* tmp);
 #endif
+
+    void FORT_CEN2EDG(const int* lo, const int* hi,
+                      ARLIM_P(clo), ARLIM_P(chi), const Real* cfabdat,
+                      ARLIM_P(elo), ARLIM_P(ehi), Real* efabdat,
+                      const int* nc, const int* dir);
 }
     
 #endif

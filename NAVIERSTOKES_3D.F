@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.7 1998-09-30 20:40:59 lijewski Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.8 1999-10-08 23:51:26 sstanley Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -442,3 +442,64 @@ c ::
        end do
 
        end
+
+
+c ::
+c :: ----------------------------------------------------------
+c :: This routine fills an edge-centered fab from a cell-centered
+c :: fab using simple linear interpolation.
+c ::
+c :: INPUTS / OUTPUTS:
+c ::  lo,hi      => index limits of the region of the edge-centered fab
+c ::                to be filled
+c ::  DIMS(cfab) => index limits of the cell-centered fab
+c ::  cfab       => cell-centered data
+c ::  DIMS(efab) => index limits of the edge-centered fab
+c ::  efab       => edge-centered fab to fill
+c ::  nc         => Number of components in the fab to fill
+c ::  dir        => direction data needs to be shifted to get to edges
+c :: ----------------------------------------------------------
+c ::
+      subroutine FORT_CEN2EDG(lo, hi, 
+     &                        DIMS(cfab), cfab,
+     &                        DIMS(efab), efab, nc, dir)
+      integer lo(SDIM), hi(SDIM), nc, dir
+      integer DIMDEC(cfab)
+      integer DIMDEC(efab)
+      REAL_T  cfab(DIMV(cfab), nc)
+      REAL_T  efab(DIMV(efab), nc)
+
+      integer i,j,k,n
+
+      if (dir .EQ. 0) then
+         do n = 1,nc
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  do i = lo(1)+1, hi(1)
+                     efab(i,j,k,n) = half*(cfab(i,j,k,n) + cfab(i-1,j,k,n))
+                  end do
+               end do
+            end do
+         end do
+      else if (dir .EQ. 1) then
+         do n = 1,nc
+            do k = lo(3), hi(3)
+               do j = lo(2)+1, hi(2)
+                  do i = lo(1), hi(1)
+                     efab(i,j,k,n) = half*(cfab(i,j,k,n) + cfab(i,j-1,k,n))
+                  end do
+               end do
+            end do
+         end do
+      else if (dir .EQ. 2) then
+         do n = 1,nc
+            do k = lo(3)+1, hi(3)
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     efab(i,j,k,n) = half*(cfab(i,j,k,n) + cfab(i,j,k-1,n))
+                  end do
+               end do
+            end do
+         end do
+      end if
+      end

@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.50 1999-09-02 21:59:40 almgren Exp $
+// $Id: NavierStokes.H,v 1.51 1999-10-08 23:51:27 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -580,8 +580,15 @@ protected:
 
     virtual void getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
                                 const Real time,
-                                const int src_comp,
-                                const int num_comp = 1);
+                                const int state_comp,
+                                const int dst_comp,
+                                const int num_comp);
+
+    void center_to_edge_plain(const FArrayBox& ccfab,
+                              FArrayBox&       ecfab,
+                              int              sComp,
+                              int              dComp,
+                              int              nComp);
 
     //
     // Called in grid_places after other tagging routines to modify
@@ -652,8 +659,8 @@ protected:
     //
     // MultiFab arrays for variable viscosity and diffusivity
     //
-    MultiFab **viscn, **viscnp1;
-    MultiFab **diffn, **diffnp1;
+    MultiFab *viscn_cc, *viscnp1_cc;
+    MultiFab *diffn_cc, *diffnp1_cc;
     //
     // Volume and area fractions.
     //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.153 1999-09-13 15:52:49 marc Exp $
+// $Id: NavierStokes.cpp,v 1.154 1999-10-08 23:51:27 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -430,20 +430,20 @@ NavierStokes::NavierStokes (Amr&            papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn   = 0;
-    viscnp1 = 0;
+    viscn_cc   = 0;
+    viscnp1_cc = 0;
     if (variable_vel_visc) 
     {
-        diffusion->allocFluxBoxesLevel(viscn, 0, 1);
-        diffusion->allocFluxBoxesLevel(viscnp1, 0, 1);
+        viscn_cc = new MultiFab(grids, 1, 1);
+        viscnp1_cc = new MultiFab(grids, 1, 1);
     }
 
-    diffn   = 0;
-    diffnp1 = 0;
+    diffn_cc   = 0;
+    diffnp1_cc = 0;
     if (variable_scal_diff) 
     {
-        diffusion->allocFluxBoxesLevel(diffn, 0, NUM_STATE-Density-1);
-        diffusion->allocFluxBoxesLevel(diffnp1, 0, NUM_STATE-Density-1);
+        diffn_cc = new MultiFab(grids, NUM_STATE-Density-1, 1);
+        diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1, 1);
     }
     //
     // Set up the mac projector.
@@ -476,14 +476,12 @@ NavierStokes::~NavierStokes ()
     //
     if (variable_vel_visc)
     {
-        diffusion->removeFluxBoxesLevel(viscn);
-        diffusion->removeFluxBoxesLevel(viscnp1);
+        delete viscn_cc, viscnp1_cc;
     }
 
     if (variable_scal_diff)
     {
-        diffusion->removeFluxBoxesLevel(diffn);
-        diffusion->removeFluxBoxesLevel(diffnp1);
+        delete diffn_cc, diffnp1_cc;
     }
 
     delete diffusion;
@@ -724,20 +722,20 @@ NavierStokes::restart (Amr&     papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn   = 0;
-    viscnp1 = 0;
+    viscn_cc   = 0;
+    viscnp1_cc = 0;
     if (variable_vel_visc)
     {
-        diffusion->allocFluxBoxesLevel(viscn, 0, 1);
-        diffusion->allocFluxBoxesLevel(viscnp1, 0, 1);
+        viscn_cc = new MultiFab(grids, 1, 1);
+        viscnp1_cc = new MultiFab(grids, 1, 1);
     }
 
-    diffn   = 0;
-    diffnp1 = 0;
+    diffn_cc   = 0;
+    diffnp1_cc = 0;
     if (variable_scal_diff)
     {
-        diffusion->allocFluxBoxesLevel(diffn, 0, NUM_STATE-Density-1);
-        diffusion->allocFluxBoxesLevel(diffnp1, 0, NUM_STATE-Density-1);
+        diffn_cc = new MultiFab(grids, NUM_STATE-Density-1, 1);
+        diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1, 1);
     }
 }
 
@@ -1130,8 +1128,11 @@ NavierStokes::advance_setup (Real time,
 
         calcViscosity(old_time, dt, iteration, ncycle);
 
-        for (int dir=0; dir<BL_SPACEDIM; dir++)
-            (*viscnp1[dir]).copy((*viscn[dir]), 0, 0, 1);
+        for (MultiFabIterator np1Mfi(*viscnp1_cc); np1Mfi.isValid(); ++np1Mfi)
+        {
+            DependentMultiFabIterator nMfi(np1Mfi, *viscn_cc);
+            np1Mfi().copy(nMfi(), 0, 0, 1);
+        }
     }
 
     if (variable_scal_diff)
@@ -1142,8 +1143,11 @@ NavierStokes::advance_setup (Real time,
         calcDiffusivity(old_time, dt, iteration, ncycle, 
                         Density+1, num_diff);
 
-        for (int dir=0; dir<BL_SPACEDIM; dir++)
-            (*diffnp1[dir]).copy((*diffn[dir]), 0, 0, num_diff);
+        for (MultiFabIterator np1Mfi(*diffnp1_cc); np1Mfi.isValid(); ++np1Mfi)
+        {
+            DependentMultiFabIterator nMfi(np1Mfi, *diffn_cc);
+            np1Mfi().copy(nMfi(), 0, 0, num_diff);
+        }
     }
 }
 
@@ -1942,11 +1946,11 @@ NavierStokes::scalar_diffusion_update (Real dt,
             {
                 Real diffTime = state[State_Type].prevTime();
                 diffusion->allocFluxBoxesLevel(cmp_diffn, 0, 1);
-                getDiffusivity(cmp_diffn, diffTime, sigma);
+                getDiffusivity(cmp_diffn, diffTime, sigma, 0, 1);
 
                 diffTime = state[State_Type].curTime();
                 diffusion->allocFluxBoxesLevel(cmp_diffnp1, 0, 1);
-                getDiffusivity(cmp_diffnp1, diffTime, sigma);
+                getDiffusivity(cmp_diffnp1, diffTime, sigma, 0, 1);
             }
 
             diffuse_scalar_setup(dt, sigma, &rho_flag, 
@@ -2112,7 +2116,7 @@ NavierStokes::velocity_diffusion_update (Real dt)
             getViscosity(loc_viscnp1, viscTime);
         }
 
-        diffuse_velocity_setup(dt, delta_rhs, viscn, viscnp1);
+        diffuse_velocity_setup(dt, delta_rhs, loc_viscn, loc_viscnp1);
 
         diffusion->diffuse_velocity(dt,be_cn_theta,rho_half,
                                     rhoflag,delta_rhs,
@@ -3767,7 +3771,8 @@ NavierStokes::mac_sync ()
                 {
                     Real diffTime = state[State_Type].prevTime();
                     diffusion->allocFluxBoxesLevel(cmp_diffn, 0, 1);
-                    getDiffusivity(cmp_diffn, diffTime, BL_SPACEDIM+sigma);
+                    getDiffusivity(cmp_diffn, diffTime, BL_SPACEDIM+sigma, 
+                                   0, 1);
                 }
 
                 diffusion->diffuse_Ssync(Ssync, sigma, dt, be_cn_theta,
@@ -4745,7 +4750,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
                 if (variable_scal_diff)
                 {
                     diffusion->allocFluxBoxesLevel(cmp_diffn, 0, 1);
-                    getDiffusivity(cmp_diffn, time, icomp);
+                    getDiffusivity(cmp_diffn, time, icomp, 0, 1);
                 }
 
                 diffusion->getViscTerms(visc_terms,src_comp,icomp,time,
@@ -4801,13 +4806,15 @@ NavierStokes::calcViscosity(const Real time,
     //
     // Select time level to work with (N or N+1)
     //
-    MultiFab** visc;
+    MultiFab* visc_cc;
     if (which_time(State_Type,time) == NS_OldTime)               // time N
     {
-        visc = viscn;
+        visc_cc = viscn_cc;
     }
     else if (which_time(State_Type,time) == NS_NewTime)          // time N+1
-        visc = viscnp1;
+    {
+        visc_cc = viscnp1_cc;
+    }
     else
     {
         BoxLib::Abort("calcViscosity: invalid time");
@@ -4817,14 +4824,13 @@ NavierStokes::calcViscosity(const Real time,
     //
     // Calculate viscosity
     //
+    int nGrow = visc_cc->nGrow();
+
     if (is_diffusive[Xvel]) 
     {
         if (visc_coef[Xvel] >= 0.0)
         {
-            for (int dir=0; dir<BL_SPACEDIM; dir++)
-            {
-                (*visc[dir]).setVal(visc_coef[Xvel], 0, 1, 0);
-            }
+            visc_cc->setVal(visc_coef[Xvel], 0, 1, nGrow);
         }
         else
         {
@@ -4857,14 +4863,14 @@ NavierStokes::calcDiffusivity(const Real time,
     //
     // Select time level to work with (N or N+1)
     //
-    MultiFab** diff;
+    MultiFab* diff_cc;
     if (which_time(State_Type,time) == NS_OldTime)               // time N
     {
-        diff = diffn;
+        diff_cc = diffn_cc;
     }
     else if (which_time(State_Type,time) == NS_NewTime)          // time N+1
     {
-        diff = diffnp1;
+        diff_cc = diffnp1_cc;
     }
     else
     {
@@ -4875,6 +4881,8 @@ NavierStokes::calcDiffusivity(const Real time,
     //
     // Calculate diffusivity
     //
+    int nGrow = diff_cc->nGrow();
+
     for (int comp=src_comp; comp<src_comp+ncomp; comp++)
     {
         int diff_comp = comp - Density - 1;
@@ -4883,10 +4891,7 @@ NavierStokes::calcDiffusivity(const Real time,
         {
             if (visc_coef[comp] >= 0.0)
             {
-                for (int dir=0; dir<BL_SPACEDIM; dir++)
-                {
-                    (*diff[dir]).setVal(visc_coef[comp], diff_comp, 1, 0);
-                }
+                diff_cc->setVal(visc_coef[comp], diff_comp, 1, nGrow);
             }
             else
             {
@@ -4902,21 +4907,34 @@ NavierStokes::getViscosity(MultiFab* viscosity[BL_SPACEDIM],
                            const Real time)
 {
     //
-    // Pick correct time
+    // Select time level to work with (N or N+1)
     //
-    if (which_time(State_Type,time) == NS_OldTime)                // time N
+    MultiFab* visc_cc;
+    if (which_time(State_Type,time) == NS_OldTime)               // time N
     {
-        for (int dir=0; dir<BL_SPACEDIM; dir++)
-            (*viscosity[dir]).copy(*viscn[dir], 0, 0, 1);
+        visc_cc = viscn_cc;
     }
-    else if (which_time(State_Type,time) == NS_NewTime)           // time N+1
+    else if (which_time(State_Type,time) == NS_NewTime)          // time N+1
     {
-        for (int dir=0; dir<BL_SPACEDIM; dir++)
-            (*viscosity[dir]).copy(*viscnp1[dir], 0, 0, 1);
+        visc_cc = viscnp1_cc;
     }
     else
     {
-        BoxLib::Abort("getViscosity: invalid time");
+        BoxLib::Abort("calcViscosity: invalid time");
+    }
+
+
+    //
+    // Fill edge-centered viscosity
+    //
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        for (MultiFabIterator ecMfi(*viscosity[dir]); ecMfi.isValid(); ++ecMfi)
+        {
+            DependentMultiFabIterator ccMfi(ecMfi, *visc_cc);
+
+            center_to_edge_plain(ccMfi(), ecMfi(), 0, 0, 1);
+        }
     }
 }
 
@@ -4924,33 +4942,47 @@ NavierStokes::getViscosity(MultiFab* viscosity[BL_SPACEDIM],
 void 
 NavierStokes::getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
                              const Real time,
-                             const int src_comp,
+                             const int state_comp,
+                             const int dst_comp,
                              const int ncomp)
 {
-    BL_ASSERT(src_comp > Density);
+    BL_ASSERT(state_comp > Density);
 
     //
     // Pick correct diffusivity component
     //
-    int diff_comp = src_comp - Density - 1;
+    int diff_comp = state_comp - Density - 1;
 
 
     //
-    // Pick correct time
+    // Select time level to work with (N or N+1)
     //
-    if (which_time(State_Type,time) == NS_OldTime)                // time N
+    MultiFab* diff_cc;
+    if (which_time(State_Type,time) == NS_OldTime)               // time N
     {
-        for (int dir=0; dir<BL_SPACEDIM; dir++)
-            (*diffusivity[dir]).copy(*diffn[dir], diff_comp, 0, ncomp);
+        diff_cc = diffn_cc;
     }
-    else if (which_time(State_Type,time) == NS_NewTime)           // time N+1
+    else if (which_time(State_Type,time) == NS_NewTime)          // time N+1
     {
-        for (int dir=0; dir<BL_SPACEDIM; dir++)
-            (*diffusivity[dir]).copy(*diffnp1[dir], diff_comp, 0, ncomp);
+        diff_cc = diffnp1_cc;
     }
     else
     {
-        BoxLib::Abort("getDiffusivity: invalid time");
+        BoxLib::Abort("calcDiffusivity: invalid time");
+    }
+
+
+    //
+    // Fill edge-centered diffusivities
+    //
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        for (MultiFabIterator ecMfi(*diffusivity[dir]); ecMfi.isValid(); ++ecMfi)
+        {
+            DependentMultiFabIterator ccMfi(ecMfi, *diff_cc);
+
+            center_to_edge_plain(ccMfi(), ecMfi(), diff_comp, dst_comp, ncomp);
+        }
     }
 }
 
@@ -4974,3 +5006,54 @@ NavierStokes::which_time(int  state_indx,
     return NS_BadTime;
 }
 
+
+void
+NavierStokes::center_to_edge_plain(const FArrayBox& ccfab,
+                                   FArrayBox&       ecfab,
+                                   int              sComp,
+                                   int              dComp,
+                                   int              nComp)
+{
+    //
+    // This routine fills an edge-centered FAB from a cell-centered FAB.
+    // It assumes that the data in all cells of the cell-centered FAB is
+    // valid and totally ignores any concept of boundary conditions.  
+    // It is assummed that the cell-centered FAB fully contains the 
+    // edge-centered FAB.  If anything special needs to be done at boundaries, 
+    // a varient of this routine needs to be written.  See 
+    // HeatTransfer::center_to_edge_fancy().
+    //
+    const Box&      ccbox = ccfab.box();
+    const Box&      ecbox = ecfab.box();
+    const IndexType ixt  = ecbox.ixType();
+
+    //
+    // Get direction for interpolation to edges
+    //
+    int dir = -1;
+    for (int d = 0; d < BL_SPACEDIM; d++)
+        if (ixt.test(d))
+            dir = d;
+
+    //
+    // Miscellanious checks
+    //
+    BL_ASSERT(!(ixt.cellCentered()) && !(ixt.nodeCentered()));
+    BL_ASSERT(::grow(ccbox,-BASISV(dir)).contains(enclosedCells(ecbox)));
+    BL_ASSERT(sComp+nComp <= ccfab.nComp() && dComp+nComp <= ecfab.nComp());
+
+    //
+    // Shift cell-centered data to edges
+    //
+    Box fillBox = ccbox; 
+    for (int d = 0; d < BL_SPACEDIM; d++)
+        if (d != dir)
+            fillBox.setRange(d, ecbox.smallEnd(d), ecbox.length(d));
+    
+    FORT_CEN2EDG(fillBox.loVect(), fillBox.hiVect(),
+                 ARLIM(ccfab.loVect()), ARLIM(ccfab.hiVect()),
+                   ccfab.dataPtr(sComp),
+                 ARLIM(ecfab.loVect()), ARLIM(ecfab.hiVect()),
+                   ecfab.dataPtr(dComp),
+                 &nComp, &dir);
+}
