@@ -1,5 +1,5 @@
 c
-c $Id: SLABSTAT_NS_3D.F,v 1.2 2000-05-24 18:22:11 sstanley Exp $
+c $Id: SLABSTAT_NS_3D.F,v 1.3 2000-07-19 16:48:24 sstanley Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -23,14 +23,6 @@ c ::: saved by this routine are sufficient to calculate a core set of
 c ::: statistics on these fields using both Reynolds and Favre averages.
 c ::: The state should be passed in to this routine in the order,
 c :::   Rho, U, V, W, Tr, P
-c ::: and the saved statistics are in the order,
-c :::   <Rho> <Rho^2> <Rho^3> <Rho^4> 
-c :::   <U> <U^2> <U^3> <U^4> <Rho U> <Rho U^2> <Rho U^3> <Rho U^4> 
-c :::   <V> <V^2> <V^3> <V^4> <Rho V> <Rho V^2> <Rho V^3> <Rho V^4> 
-c :::   <W> <W^2> <W^3> <W^4> <Rho W> <Rho W^2> <Rho W^3> <Rho W^4> 
-c :::   <Tr> <Tr^2> <Tr^3> <Tr^4> <Rho Tr> <Rho Tr^2> <Rho Tr^3> <Rho Tr^4> 
-c :::   <U Tr> <V Tr> <W Tr> <Rho U Tr> <Rho V Tr> <Rho W Tr> 
-c :::   <P> <P^2> <P^3> <P^4> <U P> <V P> <W P>
 c :::
 c ::: INPUTS/OUTPUTS:
 c :::
@@ -211,14 +203,6 @@ c ::: saved by this routine are sufficient to calculate a core set of
 c ::: statistics on these fields using both Reynolds and Favre averages.
 c ::: The state should be passed in to this routine in the order,
 c :::   Rho, U, V, W, Tr, P
-c ::: and the saved statistics are in the order,
-c :::   <Rho> <Rho^2> <Rho^3> <Rho^4> 
-c :::   <U> <U^2> <U^3> <U^4> <Rho U> <Rho U^2> <Rho U^3> <Rho U^4> 
-c :::   <V> <V^2> <V^3> <V^4> <Rho V> <Rho V^2> <Rho V^3> <Rho V^4> 
-c :::   <W> <W^2> <W^3> <W^4> <Rho W> <Rho W^2> <Rho W^3> <Rho W^4> 
-c :::   <Tr> <Tr^2> <Tr^3> <Tr^4> <Rho Tr> <Rho Tr^2> <Rho Tr^3> <Rho Tr^4> 
-c :::   <U Tr> <V Tr> <W Tr> <Rho U Tr> <Rho V Tr> <Rho W Tr> 
-c :::   <P> <P^2> <P^3> <P^4> <U P> <V P> <W P>
 c :::
 c ::: INPUTS/OUTPUTS:
 c :::
