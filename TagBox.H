@@ -44,11 +44,13 @@ class TAGBOX
     
     void resize(const BOX& b) {BaseFab<int>::resize(b,1);}
 
-    int& operator()(const INTVECT& p) {
-	return dptr[pdomain.index(p)];
+    int& operator()(const INTVECT& p)
+    {
+	return dptr[domain.index(p)];
     }
-    const int& operator()(const INTVECT& p) const {
-	return dptr[pdomain.index(p)];
+    const int& operator()(const INTVECT& p) const
+    {
+	return dptr[domain.index(p)];
     }
  
       // construct and return a new tagbox in which the

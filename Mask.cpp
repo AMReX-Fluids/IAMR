@@ -1,5 +1,5 @@
 //
-// $Id: Mask.cpp,v 1.1 1997-07-08 23:08:04 vince Exp $
+// $Id: Mask.cpp,v 1.2 1997-09-16 03:43:06 lijewski Exp $
 //
 
 #include <limits.h>
@@ -58,8 +58,6 @@ istream& operator >> (istream& is, Mask& m)
 void
 Mask::writeOn(ostream& os) const
 {
-      // will not work if aliased to larger mask.
-    assert( isFilled() );
     os << "(Mask: " << domain << " " << nvar << "\n";
     const int* ptr = dataPtr();
     int len = domain.numPts();
