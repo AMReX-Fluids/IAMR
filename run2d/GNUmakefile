@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.4 1998-12-02 20:13:38 lijewski Exp $
+# $Id: GNUmakefile,v 1.5 1999-01-06 21:55:40 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -13,7 +13,6 @@ PROFILE       = FALSE
 DIM	      = 2
 COMP          = KCC
 USE_MPI       = FALSE
-USE_ARRAYVIEW = FALSE
 #
 # Use hgproj-serial -- only for testing.
 #
@@ -60,11 +59,6 @@ ifeq ($(MACHINE),AIX)
 INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
 LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
 endif
-endif
-
-ifeq ($(USE_ARRAYVIEW),TRUE)
-DEFINES += -DBL_USE_ARRAYVIEW
-DEFINES += -DBL_ARRAYVIEW_TAGBOX
 endif
 
 ifeq ($(MACHINE),OSF1)
