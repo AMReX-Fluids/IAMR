@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.33 1998-03-26 23:08:58 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.34 1998-03-27 00:17:13 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3267,9 +3267,16 @@ NavierStokes::writePlotFile (const aString& dir,
     if (!FullPath.isNull() && FullPath[FullPath.length()-1] != '/')
         FullPath += '/';
     FullPath += Level;
-
-    if (!Utility::CreateDirectory(FullPath, 0755))
-        Utility::CreateDirectoryFailed(FullPath);
+    //
+    // Only the I/O processor makes the directory if it doesn't already exist.
+    //
+    if (ParallelDescriptor::IOProcessor())
+        if (!Utility::CreateDirectory(FullPath, 0755))
+            Utility::CreateDirectoryFailed(FullPath);
+    //
+    // Force other processors to wait till directory is built.
+    //
+    ParallelDescriptor::Synchronize();
 
     if (ParallelDescriptor::IOProcessor())
     {
