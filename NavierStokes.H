@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.34 1999-03-05 20:32:24 sstanley Exp $
+// $Id: NavierStokes.H,v 1.35 1999-03-18 22:22:40 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -741,5 +741,6 @@ protected:
     static Real divu_relax_factor;
     static int  S_in_vel_diffusion;
     static int  do_init_vort_proj;
+    static int  do_init_proj;
 };
 #endif /*_NavierStokes_H_*/

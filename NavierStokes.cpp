@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.123 1999-03-18 17:07:44 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.124 1999-03-18 22:22:40 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -105,6 +105,7 @@ int  NavierStokes::do_reflux              = 1;
 int  NavierStokes::do_mac_proj            = 1;
 int  NavierStokes::check_umac_periodicity = 1;
 int  NavierStokes::do_init_vort_proj      = 0;
+int  NavierStokes::do_init_proj           = 1;
 
 //     
 // New members for non-zero divu.
@@ -245,6 +246,7 @@ NavierStokes::read_params ()
     pp.query("do_MLsync_proj",   do_MLsync_proj   );
     pp.query("do_reflux",        do_reflux        );
     pp.query("do_init_vort_proj",do_init_vort_proj);
+    pp.query("do_init_proj",     do_init_proj     );
     pp.query("do_mac_proj",      do_mac_proj      );
     //
     // This test insures if the user toggles do_sync_proj,
@@ -3195,7 +3197,7 @@ NavierStokes::post_init_state ()
 	projector->initialVorticityProject(0);
     }
 
-    if (projector)
+    if (do_init_proj && projector)
         //
         // Do sync project to define divergence free velocity field.
         //
