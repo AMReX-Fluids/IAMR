@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.87 2004-02-20 22:02:20 car Exp $
+// $Id: NavierStokes.H,v 1.88 2004-07-07 22:13:05 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -233,7 +233,6 @@ public:
 protected:
 
     void buildMetrics ();      // 1-D metric arrays for RZ
-    virtual void buildRho0 (); // Build atmospheric rho0
 
     void initOldPress (); // Initialize old pressure with new
     void zeroNewPress (); // Set new pressure to zero

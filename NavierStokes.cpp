@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.240 2004-05-19 19:47:36 car Exp $
+// $Id: NavierStokes.cpp,v 1.241 2004-07-07 22:13:05 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -474,11 +474,6 @@ NavierStokes::NavierStokes (Amr&            papa,
     //
     buildMetrics();
     //
-    // Build base state rho for atmospheric calculations
-    // this is probably an Atmosphere virtual function.
-    //
-    buildRho0();
-    //
     // Set up reflux registers.
     //
     sync_reg = 0;
@@ -759,11 +754,6 @@ NavierStokes::restart (Amr&          papa,
     // Build metric coefficients for RZ calculations.
     //
     buildMetrics();
-    //
-    // Build base state rho for atmospheric calculations.
-    // This is probably an Atmosphere virtual function.
-    //
-    buildRho0();
 
     BL_ASSERT(sync_reg == 0);
     if (level > 0 && do_sync_proj)
@@ -819,8 +809,6 @@ NavierStokes::restart (Amr&          papa,
 //
 // Build rho0 arrays as ones for the base class.  Empty function for now.
 //
-
-void NavierStokes::buildRho0 () {}
 
 void
 NavierStokes::buildMetrics ()
