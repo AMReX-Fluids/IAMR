@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.65 1999-02-18 18:45:53 sstanley Exp $
+// $Id: Diffusion.cpp,v 1.66 1999-02-18 21:12:08 almgren Exp $
 //
 
 //
@@ -996,9 +996,11 @@ Diffusion::diffuse_Vsync (MultiFab*              Vsync,
     {
         cout << "Diffusion::diffuse_Vsync\n";
     }
-#ifndef NDEBUG
+
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
+
+#ifndef NDEBUG
     for (int d=0; d<BL_SPACEDIM; ++d)
     {
         if (allnull)
