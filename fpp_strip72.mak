@@ -1,6 +1,6 @@
 .SUFFIXES: .f .for
 
-DIM=2
+DIM=3
 
 !IF $(DIM) == 2
 LLIB=v9
@@ -8,7 +8,13 @@ LLIB=v9
 LLIB=v7
 !ENDIF
 
-FPP_FLAGS=/ansi /nologo /S. /S.\include\$(DIM)d.$(LLIB) /DBL_NEED_RAND /DBL_NO_FORT_FLUSH /DBL_SPACEDIM=$(DIM) /DBL_USE_DOUBLE /DBL_LANG_FORT
+FPP_FLAGS=/ansi /nologo \
+	/S. /S..\pboxlib2.0 /S.\include\$(DIM)d.$(LLIB) \
+	/DBL_NEED_RAND \
+	/DBL_NO_FORT_FLUSH \
+	/DBL_SPACEDIM=$(DIM) \
+	/DBL_USE_DOUBLE \
+	/DBL_LANG_FORT
 
 .f.for:
 	fpp $(FPP_FLAGS) $*.f | perl strip72 -c > $*.for

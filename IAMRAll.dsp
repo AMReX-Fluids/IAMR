@@ -4,7 +4,7 @@
 
 # TARGTYPE "Win32 (x86) Console Application" 0x0103
 
-CFG=IAMRAll - Win32 Debug
+CFG=IAMRAll - Win32 Debug3D
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
@@ -13,18 +13,19 @@ CFG=IAMRAll - Win32 Debug
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "IAMRAll.mak" CFG="IAMRAll - Win32 Debug"
+!MESSAGE NMAKE /f "IAMRAll.mak" CFG="IAMRAll - Win32 Debug3D"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
 !MESSAGE "IAMRAll - Win32 Release" (based on "Win32 (x86) Console Application")
 !MESSAGE "IAMRAll - Win32 Debug" (based on "Win32 (x86) Console Application")
+!MESSAGE "IAMRAll - Win32 Debug3D" (based on "Win32 (x86) Console Application")
 !MESSAGE 
 
 # Begin Project
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
-CPP=cl.exe
+CPP=xicl.exe
 F90=df.exe
 RSC=rc.exe
 
@@ -39,20 +40,19 @@ RSC=rc.exe
 # PROP Use_Debug_Libraries 0
 # PROP Output_Dir "Release"
 # PROP Intermediate_Dir "Release"
-# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE F90 /include:"Release/" /compile_only /nologo
-# ADD F90 /include:"Release/" /compile_only /nologo /iface:cref
+# ADD BASE F90 /include:"Release/" /compile_only /nologo /warn:nofileopt
+# ADD F90 /include:"Release/" /compile_only /nologo /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /vd0 /GX /O2 /I "." /I ".\include\2d.v9" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D BL_SPACEDIM=2 /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LINK32=link.exe
+LINK32=xilink.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 dfor.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib dfor.lib /nologo /subsystem:console /machine:I386
 
 !ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
 
@@ -67,18 +67,44 @@ LINK32=link.exe
 # PROP Intermediate_Dir "Debug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0
-# ADD F90 /extend_source:132 /browser /include:"Debug/" /compile_only /nologo /warn:declarations /debug:full /optimize:0 /warn:argument_checking /iface:cref /warn:stderrors
+# ADD BASE F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /warn:nofileopt
+# ADD F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /Gm /vd0 /GX /Zi /Od /I "." /I ".\include\2d.v9" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D BL_SPACEDIM=2 /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D "_CRTDBG_MAP_ALLOC" /FR /YX /FD /c
-# SUBTRACT CPP /Gy
+# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LINK32=link.exe
+LINK32=xilink.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 dfor.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Use_MFC 0
+# PROP BASE Use_Debug_Libraries 1
+# PROP BASE Output_Dir "Debug3D"
+# PROP BASE Intermediate_Dir "Debug3D"
+# PROP BASE Ignore_Export_Lib 0
+# PROP BASE Target_Dir ""
+# PROP Use_MFC 0
+# PROP Use_Debug_Libraries 1
+# PROP Output_Dir "Debug3D"
+# PROP Intermediate_Dir "Debug3D"
+# PROP Ignore_Export_Lib 0
+# PROP Target_Dir ""
+# ADD BASE F90 /include:"Debug3D/" /compile_only /nologo /debug:full /optimize:0 /warn:nofileopt
+# ADD F90 /browser /include:"Debug3D/" /compile_only /nologo /debug:full /optimize:0 /warn:nofileopt
+# ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
+# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /FR /YX /FD /c
+# ADD BASE RSC /l 0x409 /d "_DEBUG"
+# ADD RSC /l 0x409 /d "_DEBUG"
+BSC32=bscmake.exe
+# ADD BASE BSC32 /nologo
+# ADD BSC32 /nologo
+LINK32=xilink.exe
+# ADD BASE LINK32 dfor.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 dfor.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 
 !ENDIF 
@@ -87,406 +113,1049 @@ LINK32=link.exe
 
 # Name "IAMRAll - Win32 Release"
 # Name "IAMRAll - Win32 Debug"
-# Begin Group "C++ Sources"
+# Name "IAMRAll - Win32 Debug3D"
+# Begin Group "C Sources"
 
 # PROP Default_Filter "*.cpp"
 # Begin Source File
 
 SOURCE=.\ABecLaplacian.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\Amr.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\amr_graph.cpp
-# PROP Exclude_From_Build 1
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\amr_multi.cpp
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\AmrLevel.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\aString.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
 
-SOURCE=.\BArena.cpp
-# ADD CPP /D "BL_LANG_CC"
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\BCRec.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\BndryData.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\BndryRegister.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\boundary.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\Box.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
 
-SOURCE=.\BoxArray.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
-SOURCE=.\BoxAssoc.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
 
-SOURCE=.\BoxDomain.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
-SOURCE=.\BoxLib.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
 
-SOURCE=.\BoxList.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
-SOURCE=.\BuildAlias.cpp
-# PROP Exclude_From_Build 1
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\cache.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\CGSolver.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\Cluster.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\Contour.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\CoordSys.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\Derive.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\Diffusion.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\DistributionMapping.cpp
-# ADD CPP /D "BL_LANG_CC"
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\ErrorList.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\FabConv.cpp
-# ADD CPP /D "BL_LANG_CC"
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\FabSet.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\FArrayBox.cpp
-# ADD CPP /D "BL_LANG_CC"
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\fill_patch.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\FluxRegister.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\FPC.cpp
-# ADD CPP /D "BL_LANG_CC"
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\Geometry.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\Godunov.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\hg_multi1.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\hg_multi2.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\hg_multi3.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\hg_projector.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\IFrame.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
 
-SOURCE=.\IndexType.cpp
-# ADD CPP /D "BL_LANG_CC"
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\interface.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\InterpBndryData.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\Interpolater.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\interpolator.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\IntVect.cpp
-# ADD CPP /D "BL_LANG_CC"
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\Laplacian.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\LinOp.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\MacBndry.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\MacOperator.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\MacProj.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\main.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\Mask.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\MultiFab.cpp
-# ADD CPP /D "BL_LANG_CC"
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\MultiGrid.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\NavierStokes.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\NS_setup.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\NSBld.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\Orientation.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
 
-SOURCE=.\ParallelDescriptor.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
-SOURCE=.\ParmParse.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
 
-SOURCE=.\poisson.cpp
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
-SOURCE=.\preload.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
 
-SOURCE=.\proj.cpp
-# PROP Exclude_From_Build 1
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\Projection.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\PSfile.cpp
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
 
-SOURCE=.\Raster.cpp
-# PROP Exclude_From_Build 1
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\RealBox.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\restrictor.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\RunStats.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\StateData.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\StateDescriptor.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\SyncRegister.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\TagBox.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\TestIBData.cpp
-# ADD CPP /D "BL_LANG_CC"
-# End Source File
-# Begin Source File
 
-SOURCE=.\Tracer.cpp
-# End Source File
-# Begin Source File
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
 
-SOURCE=.\Utility.cpp
-# ADD CPP /D "BL_LANG_CC"
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\ViscBndry.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\ViscBndry2D.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\WriteMultiFab.cpp
-# ADD CPP /D "BL_LANG_CC"
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD CPP /I "." /I "..\pboxlib2.0" /I ".\include\2d.v9" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE CPP /I "..\pboxlib2.0" /I "." /I ".\include\2d.v9" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# ADD CPP /I "..\pboxlib2.0" /I "." /I ".\include\3d.v7" /D "BL_LANG_CC" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+
+!ENDIF 
+
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -499,10 +1168,6 @@ SOURCE=.\ABec_F.H
 # Begin Source File
 
 SOURCE=.\ABecLaplacian.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\AliasedDPtr.H
 # End Source File
 # Begin Source File
 
@@ -530,47 +1195,15 @@ SOURCE=.\AmrLevel.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Arena.H
+SOURCE=.\ArrayView.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\ArithFab.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Array.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\ArrayLim.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Assert.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\aString.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\BArena.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\BaseFab.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Bc_types.h
+SOURCE=.\BC_TYPES.H
 # End Source File
 # Begin Source File
 
 SOURCE=.\BCRec.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Blversion.h
 # End Source File
 # Begin Source File
 
@@ -582,43 +1215,11 @@ SOURCE=.\BndryRegister.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Boolean.H
-# End Source File
-# Begin Source File
-
 SOURCE=.\boundary.H
 # End Source File
 # Begin Source File
 
 SOURCE=.\BoundCond.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Box.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\BoxArray.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\BoxAssoc.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\BoxDomain.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\BoxLib.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\BoxList.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\BuildAlias.H
 # End Source File
 # Begin Source File
 
@@ -630,7 +1231,7 @@ SOURCE=.\cbasics.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Cg_f.h
+SOURCE=.\CG_F.H
 # End Source File
 # Begin Source File
 
@@ -642,10 +1243,6 @@ SOURCE=.\Cluster.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Constants.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\Contour.H
 # End Source File
 # Begin Source File
@@ -654,7 +1251,11 @@ SOURCE=.\CoordSys.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Coordsys_f.h
+SOURCE=.\COORDSYS_F.H
+# End Source File
+# Begin Source File
+
+SOURCE=.\DatasetClient.H
 # End Source File
 # Begin Source File
 
@@ -662,7 +1263,7 @@ SOURCE=.\Derive.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Derive_f.h
+SOURCE=.\DERIVE_F.H
 # End Source File
 # Begin Source File
 
@@ -670,19 +1271,11 @@ SOURCE=.\Diffusion.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Diffusion_f.h
+SOURCE=.\DIFFUSION_F.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Dims.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\DistributionMapping.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\DPtr.H
+SOURCE=.\DIMS.H
 # End Source File
 # Begin Source File
 
@@ -690,19 +1283,7 @@ SOURCE=.\ErrorList.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\FabArray.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\FabConv.H
-# End Source File
-# Begin Source File
-
 SOURCE=.\FabSet.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\FArrayBox.H
 # End Source File
 # Begin Source File
 
@@ -710,7 +1291,7 @@ SOURCE=.\fill_patch.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Fluxreg_f.h
+SOURCE=.\FLUXREG_F.H
 # End Source File
 # Begin Source File
 
@@ -718,19 +1299,23 @@ SOURCE=.\FluxRegister.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Fpc.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\Geometry.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Godunov.h
+SOURCE=.\Godunov.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Godunov_f.h
+SOURCE=.\GODUNOV_F.H
+# End Source File
+# Begin Source File
+
+SOURCE=.\GraphTool.H
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_elliptic.H
 # End Source File
 # Begin Source File
 
@@ -742,23 +1327,11 @@ SOURCE=.\hg_projector.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\2d.v9\hg_version.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\IFrame.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\IndexType.H
-# End Source File
-# Begin Source File
-
 SOURCE=.\interface.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Interp_f.h
+SOURCE=.\INTERP_F.H
 # End Source File
 # Begin Source File
 
@@ -766,7 +1339,7 @@ SOURCE=.\InterpBndryData.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Interpbndrydata_f.h
+SOURCE=.\INTERPBNDRYDATA_F.H
 # End Source File
 # Begin Source File
 
@@ -775,10 +1348,6 @@ SOURCE=.\Interpolater.H
 # Begin Source File
 
 SOURCE=.\interpolator.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\IntVect.H
 # End Source File
 # Begin Source File
 
@@ -794,23 +1363,15 @@ SOURCE=.\LinOp.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\List.H
+SOURCE=.\LO_BCTYPES.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Lo_bctypes.h
+SOURCE=.\LO_F.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Lo_f.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\Looping.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Lp_f.h
+SOURCE=.\LP_F.H
 # End Source File
 # Begin Source File
 
@@ -822,7 +1383,7 @@ SOURCE=.\MacOperator.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Macoperator_f.h
+SOURCE=.\MACOPERATOR_F.H
 # End Source File
 # Begin Source File
 
@@ -838,7 +1399,7 @@ SOURCE=.\MacProj.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Macproj_f.h
+SOURCE=.\MACPROJ_F.H
 # End Source File
 # Begin Source File
 
@@ -846,7 +1407,7 @@ SOURCE=.\mainIBD_F.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Makeslice_f.h
+SOURCE=.\MAKESLICE_F.H
 # End Source File
 # Begin Source File
 
@@ -854,15 +1415,7 @@ SOURCE=.\Mask.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Mg_f.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\Misc.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\MultiFab.H
+SOURCE=.\MG_F.H
 # End Source File
 # Begin Source File
 
@@ -874,43 +1427,19 @@ SOURCE=.\NavierStokes.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Navierstokes_f.h
+SOURCE=.\NAVIERSTOKES_F.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\NormedFab.H
+SOURCE=.\netcdfIO.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\OrderedFab.H
+SOURCE=.\PROB_AMR_F.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Orientation.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\ParallelDescriptor.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\ParmParse.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\PArray.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Pointers.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Prob_amr_f.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\Prob_f.h
+SOURCE=.\PROB_F.H
 # End Source File
 # Begin Source File
 
@@ -922,19 +1451,7 @@ SOURCE=.\Projection.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Projection_f.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\PSfile.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Raster.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Real.h
+SOURCE=.\PROJECTION_F.H
 # End Source File
 # Begin Source File
 
@@ -954,18 +1471,6 @@ SOURCE=.\RunStats.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\SimpleDPtr.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Space.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\Space_f.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\StateData.H
 # End Source File
 # Begin Source File
@@ -974,7 +1479,7 @@ SOURCE=.\StateDescriptor.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Syncreg_f.h
+SOURCE=.\SYNCREG_F.H
 # End Source File
 # Begin Source File
 
@@ -990,22 +1495,6 @@ SOURCE=.\TestIBData.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Tracer.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Tuple.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\UseCount.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Utility.H
-# End Source File
-# Begin Source File
-
 SOURCE=.\ViscBndry.H
 # End Source File
 # Begin Source File
@@ -1014,7 +1503,7 @@ SOURCE=.\ViscBndry2D.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Viscoperator_f.h
+SOURCE=.\VISCOPERATOR_F.H
 # End Source File
 # Begin Source File
 
@@ -1023,135 +1512,1134 @@ SOURCE=.\WriteMultiFab.H
 # End Group
 # Begin Group "Fortran Files"
 
+# PROP Default_Filter ""
+# Begin Group "Fortran2D"
+
 # PROP Default_Filter "*.for"
 # Begin Source File
 
 SOURCE=.\ABec_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
-SOURCE=.\amr_real2d.For
+SOURCE=.\amr_real2d.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\CG_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
-SOURCE=.\COORDSYS_2D.For
+SOURCE=.\COORDSYS_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\DERIVE_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\DIFFUSION_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
-SOURCE=.\FILCC_2D.For
+SOURCE=.\FILCC_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\FLUXREG_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\GODUNOV_2D.for
-# ADD F90 /iface:cref
-# End Source File
-# Begin Source File
 
-SOURCE=.\GODUNOV_F.For
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\hg_avg2d.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\hg_multi2d.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\hg_proj2d.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\INTERP_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\INTERPBNDRYDATA_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\LO_2D.for
-# ADD F90 /iface:cref
-# End Source File
-# Begin Source File
 
-SOURCE=.\LO_UTIL.For
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\LP_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\MACOPERATOR_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\MACPROJ_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\MG_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\NAVIERSTOKES_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
-SOURCE=.\PROB_2D.For
+SOURCE=.\PROB_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\PROJECTION_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\SYNCREG_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\VISCOPERATOR_2D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP Exclude_From_Build 1
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# End Group
+# Begin Group "Fortran3D"
+
+# PROP Default_Filter "*.for"
+# Begin Source File
+
+SOURCE=.\ABec_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\amr_real3d.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\CG_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\COORDSYS_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\DERIVE_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\DIFFUSION_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\FILCC_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\FLUXREG_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\GODUNOV_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_avg3d.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_multi3d.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_proj3d.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\INTERP_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\INTERPBNDRYDATA_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\LO_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\LP_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\MACOPERATOR_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\MACPROJ_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\MAKESLICE_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\MG_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\NAVIERSTOKES_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\PROB_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\PROJECTION_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\SYNCREG_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\VISCOPERATOR_3D.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# PROP BASE Exclude_From_Build 1
+# ADD BASE F90 /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
 # End Group
 # Begin Source File
 
-SOURCE=.\inputs
+SOURCE=.\GODUNOV_F.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
 # End Source File
+# Begin Source File
+
+SOURCE=.\LO_UTIL.for
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# ADD F90 /iface:cref
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# ADD F90 /browser /iface:cref /dbglibs
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug3D"
+
+# ADD BASE F90 /iface:cref /dbglibs
+# ADD F90 /iface:cref /dbglibs
+
+!ENDIF 
+
+# End Source File
+# End Group
 # End Target
 # End Project
