@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.31 1999-07-06 21:40:32 propp Exp $
+c $Id: PROJECTION_2D.F,v 1.32 1999-07-13 22:59:35 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -750,6 +750,17 @@ c     Solve the equations
       else
 
 c     Solid walls, Nuemann conditions
+c
+c     Note (because I always forget...):: 
+c        Can derive these expressions by integrating the FE equations directly
+c     (ignoring r-z):
+c             Int[1/rho grad(phi)]dx  = Int[du/dx.dpsi/dx dx]- Int[S.psi.dx]
+c     But, Int[du/dx.dpsi/dx.dx] = Int[du/dx.psi.dx] - Int[u.dpsi/dx]
+c                                = - u Int[dpsi/dx]
+c     And, since psi=0 on boundary of FE, and (cell-centered) u constant over FE
+c     and since S is constant, Int[psi.dx] = dx/2 (for psi=x/dx), and finally
+c     Int[dpsi/dx.dx] = 1/dx, then RHS = -u - S.dx/2...then mult all by dx
+c         
          hdr = half*(r(ics+1) - r(ics))
          neq = ine - ins + 1
          icR = ics
