@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.86 1999-05-10 18:54:15 car Exp $
+// $Id: Projection.cpp,v 1.87 1999-05-17 16:37:20 marc Exp $
 //
 
 #ifdef BL_T3E
@@ -485,7 +485,7 @@ Projection::level_project (int             level,
     //
     if(hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) 
     {
-	set_level_projector_outflow_bcs(level,time+dt,P_new,U_new,*divusource);
+	set_level_projector_outflow_bcs(level,time+0.5*dt,P_new,U_new,*divusource);
     }
     //
     // Scale the projection variables.
@@ -2199,7 +2199,7 @@ Projection::radDiv (int       level,
 
 void
 Projection::set_level_projector_outflow_bcs (int       level,
-                                             Real      cur_state_time,
+                                             Real      mid_time,
                                              MultiFab& phi,
                                              MultiFab& vel,
                                              MultiFab& divu)
@@ -2269,7 +2269,7 @@ Projection::set_level_projector_outflow_bcs (int       level,
             parent->Geom(level).GetCellLoc(rcen, region, 0);
     
         FillPatchIterator rhoFpi(LevelData[level],cc_divu,nGrow,
-                                 cur_state_time,State_Type,srcCompRho,nCompRho);
+                                 mid_time,State_Type,srcCompRho,nCompRho);
 
         for ( ; rhoFpi.isValid(); ++rhoFpi)
         {
@@ -2298,7 +2298,7 @@ Projection::set_level_projector_outflow_bcs (int       level,
 #else
     // check to see if divu == 0 near outflow.  If it isn't, then abort.
     REAL divu_norm = checkDivU(parent,LevelData,phys_bc,
-			       level,level,cur_state_time);
+			       level,level,mid_time);
     if (divu_norm > 1.0e-7) {
       cout << "divu_norm = " << divu_norm << endl;
       BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
