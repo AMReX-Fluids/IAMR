@@ -1,4 +1,4 @@
-// $Id: NavierStokes.cpp,v 1.9 1997-08-14 17:59:21 vince Exp $
+// $Id: NavierStokes.cpp,v 1.10 1997-09-17 21:30:11 car Exp $
 
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -5120,7 +5120,6 @@ NavierStokes::compute_grad_divu_minus_s(REAL time, MultiFab* grad_divu_minus_s,
                                         int scaleRhoDivDt)
 {
     REAL dt = parent->dtLevel(0);
-    int i;
     grad_divu_minus_s->setVal(0.0);
 #if (BL_SPACEDIM == 2)
     MultiFab &S_new = get_new_data(State_Type);
