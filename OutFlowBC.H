@@ -2,7 +2,7 @@
 #define _OUTFLOWBC_H_
 
 //
-// $Id: OutFlowBC.H,v 1.3 2002-10-15 17:34:43 car Exp $
+// $Id: OutFlowBC.H,v 1.4 2003-02-19 19:15:46 almgren Exp $
 //
 
 #include "FArrayBox.H"
@@ -28,12 +28,14 @@ public:
 
     virtual ~OutFlowBC ();
 
-    virtual void computeBC (FArrayBox*         velFab,
-                            FArrayBox&         divuFab,
-                            FArrayBox&         rhoFab,
-                            FArrayBox&         phiFab,
+    virtual void computeBC (MultiFab*         velMF,
+                            MultiFab&         divuMF,
+                            MultiFab&         rhoMF,
+                            MultiFab&         phiMF,
                             const Geometry&    geom,
-                            const Orientation& outFace) = 0;
+                            Orientation*       outFaces,
+                            int                numOutFlowFaces,
+                            Real               gravity = 0.0) = 0;
 
     static Box SemiGrow (const Box& baseBox,
                          int        nGrow,
@@ -43,17 +45,14 @@ public:
                             int        ref_factor,
                             int        direction);
 
-    static void GetOutFlowFace (bool&        haveOutFlow,
-                                Orientation& outFace,
-                                BCRec*       _phys_bc);
+    static void GetOutFlowFaces (bool&        haveOutFlow,
+                                 Orientation* outFaces,
+                                 BCRec*       _phys_bc,
+                                 int&         numOutFlowFaces);
 
     static bool HasOutFlowBC (BCRec* _phys_bc);
 
 protected:
-    //
-    // Per-object data.
-    //
-    OutFlow_Solver_Type solver;
 };
 
 //

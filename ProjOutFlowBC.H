@@ -2,7 +2,7 @@
 #define _PROJOUTFLOWBC_H_
 
 //
-// $Id: ProjOutFlowBC.H,v 1.6 2002-10-15 17:34:43 car Exp $
+// $Id: ProjOutFlowBC.H,v 1.7 2003-02-19 19:15:46 almgren Exp $
 //
 
 #include "FArrayBox.H"
@@ -26,37 +26,28 @@ public:
 
     ProjOutFlowBC ();
 
-    void computeBC (FArrayBox*         velFab,
-                    FArrayBox&         divuFab,
-                    FArrayBox&         rhoFab,
-                    FArrayBox&         phiFab,
-                    const Geometry&    geom,
-                    const Orientation& outFace);
+    void computeBC (MultiFab*         velFab,
+                    MultiFab&         divuFab,
+                    MultiFab&         rhoFab,
+                    MultiFab&         phiFab,
+                    const Geometry&   geom,
+                    Orientation*      outFaces,
+                    int               numOutFlowFaces,
+                    Real              gravity = 0.0);
+
+    void computeRhoG (MultiFab&          rhoFab,
+                      MultiFab&          phiFab,
+                      const Geometry&    geom,
+                      Orientation*       outFaces,
+                      int                numOutFlowFaces,
+                      Real               gravity);
 
 protected:
 
-#if (BL_SPACEDIM == 2)
-    void solveBackSubstitution (FArrayBox&         phi,
-                                FArrayBox&         divuExt,
-                                FArrayBox&         uExt,
-                                FArrayBox&         rhoExt,
-                                Array<Real>&       rcen,
-                                int                r_lo,
-                                int                r_hi,
-                                int*               isPeriodicFiltered,
-                                Real*              dxFiltered,
-                                Box&               faceBox,
-                                const Orientation& outFace);
-#endif
-
+#if (BL_SPACEDIM == 3)
     void computeCoefficients (FArrayBox&   rhs,
                               FArrayBox&   beta,
-                              FArrayBox&   uExt,
-                              FArrayBox&   divuExt,
-                              FArrayBox&   rhoExt,
-                              Array<Real>& rcen,
-                              int          r_lo,
-                              int          r_hi,
+                              FArrayBox&   ccExt,
                               Box&         faceBox,
                               Real*        dxFiltered,
                               int*         isPeriodic);
@@ -65,8 +56,10 @@ protected:
     //
     static Real tol;
     static Real abs_tol;
+#endif
 };
 
+#if (BL_SPACEDIM == 3)
 //
 // This class is a BL_SPACEDIM-1 multigrid solver for the holy grail 
 // projection.
@@ -110,6 +103,7 @@ protected:
     static int  cg_maxiter;
     static int  maxIters;
 };
+#endif
 
 #endif
 

@@ -2,7 +2,13 @@
 #define _PROJOUTFLOWBC_F_H_ 
 
 #ifdef BL_LANG_FORT
+#    define FORT_OLDHGPHIBC    oldhgphibc
 #    define FORT_HGPHIBC       hgphibc
+#    define FORT_PHI_FROM_X    phifromx
+#    define FORT_ALLPHI_FROM_X allphifromx
+#    define FORT_FILL_ONED     filloned
+#    define FORT_FILL_TWOD     filltwod
+#    define FORT_RHOGBC        rhogbc
 #    define FORT_EXTRAP_PROJ   extrapproj
 #    define FORT_COMPUTE_COEFF computecoeff
 #    define FORT_HGRELAX       hgrelax
@@ -17,6 +23,12 @@
 #else
 #  if  defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_HGPHIBC       HGPHIBC
+#    define FORT_OLDHGPHIBC    OLDHGPHIBC
+#    define FORT_RHOGBC        RHOGBC
+#    define FORT_PHI_FROM_X    PHIFROMX
+#    define FORT_ALLPHI_FROM_X ALLPHIFROMX
+#    define FORT_FILL_ONED     FILLONED
+#    define FORT_FILL_TWOD     FILLTWOD
 #    define FORT_EXTRAP_PROJ   EXTRAPPROJ
 #    define FORT_COMPUTE_COEFF COMPUTECOEFF
 #    define FORT_HGRELAX       HGRELAX
@@ -30,6 +42,12 @@
 #  define FORT_INTERP      INTERPHG
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_HGPHIBC       hgphibc
+#    define FORT_OLDHGPHIBC    oldhgphibc
+#    define FORT_PHI_FROM_X    phifromx
+#    define FORT_ALLPHI_FROM_X allphifromx
+#    define FORT_FILL_ONED     filloned
+#    define FORT_FILL_TWOD     filltwod
+#    define FORT_RHOGBC        rhogbc
 #    define FORT_EXTRAP_PROJ   extrapproj
 #    define FORT_COMPUTE_COEFF computecoeff
 #    define FORT_HGRELAX       hgrelax
@@ -43,6 +61,12 @@
 #  define FORT_INTERP      interphg
 #  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_HGPHIBC       hgphibc_
+#    define FORT_OLDHGPHIBC    oldhgphibc_
+#    define FORT_PHI_FROM_X    phifromx_
+#    define FORT_ALLPHI_FROM_X allphifromx_
+#    define FORT_FILL_ONED     filloned_
+#    define FORT_FILL_TWOD     filltwod_
+#    define FORT_RHOGBC        rhogbc_
 #    define FORT_EXTRAP_PROJ   extrapproj_
 #    define FORT_COMPUTE_COEFF computecoeff_
 #    define FORT_HGRELAX       hgrelax_
@@ -60,13 +84,52 @@
 
 extern "C" {
 #if (BL_SPACEDIM == 2)
-    void FORT_HGPHIBC(const Real* hx,
-                      const Real* rcen,const Real* uE, const Real* divE,
-		      const Real* rhoE, const int* length,
-                      ARLIM_P(phi_lo), ARLIM_P(phi_hi), const Real* phi,
-		      const int* faceLo, const int* faceHi,
-		      int* face,const int* isPeriodicInX);
+    void FORT_HGPHIBC(const Real* hx,   const Real* sigE,
+		      const Real* s, const Real* x, 
+                      const int* length, const int* isPeriodicInX);
+
+    void FORT_OLDHGPHIBC(const Real* hx,   const Real* rcen,
+                         const Real* uE,   const Real* divE,
+		         const Real* rhoE, const Real* x, 
+		         const Real* flag,
+                         const int* length, const int* isPeriodicInX);
+
+    void FORT_FILL_ONED(int* lenx, int* leny, int* length, 
+                        int * faces, int * numOutFlowFaces, 
+                        const Real* cc0, const Real* cc1, 
+                        const Real* cc2, const Real* cc3,
+                        const Real*  r0, const Real*  r1, 
+                        const Real*  r2, const Real*  r3,
+                        Real * cc_conn, Real* s, const int* isPeriodic,
+                        const Real* hx, const Real* hy);
+
+    void FORT_ALLPHI_FROM_X(int* lenx, int* leny, int* length, 
+                            int * faces, int * numOutFlowFaces,
+                            const Real* phi0, const Real* phi1, 
+                            const Real* phi2, const Real* phi3,
+                            Real * x);
+#elif (BL_SPACEDIM == 3)
+
+    void FORT_FILL_TWOD(int* lenx, int* leny, int* lenz, int* length, int* width,
+                        int * faces, int * numOutFlowFaces, 
+                        const Real* cc0, const Real* cc1, const Real* cc2,
+                        const Real* cc3, const Real* cc4, const Real* cc5,
+                        Real * cc_conn);
+
+    void FORT_ALLPHI_FROM_X(int* lenx, int* leny, int* lenz, int* length, int* width,
+                            int * faces, int * numOutFlowFaces,
+                            const Real* phi0, const Real* phi1, const Real* phi2,
+                            const Real* phi3, const Real* phi4, const Real* phi5,
+                            Real * x, ARLIM_P(x_lo), ARLIM_P(x_hi));
+
 #endif
+
+    void FORT_PHI_FROM_X(ARLIM_P(phi_lo), ARLIM_P(phi_hi), const Real* phi,
+			 int * length, Real * x, int * isPeriodicInX);
+
+    void FORT_RHOGBC(const Real* rho, ARLIM_P(rho_lo), ARLIM_P(rho_hi),
+                     const Real* phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi), 
+		     int * face, const Real* gravity, const Real* dx);
 
     void  FORT_COMPUTE_COEFF(ARLIM_P(rhslo),ARLIM_P(rhshi),const Real* rhsPtr,
 			ARLIM_P(betalo),ARLIM_P(betahi),const Real* betaPtr,
@@ -83,13 +146,13 @@ extern "C" {
 			  ARLIM_P(d_lo), ARLIM_P(d_hi), const Real* div,
 			  ARLIM_P(rho_lo), ARLIM_P(rho_hi), const Real* rho,
 #if (BL_SPACEDIM == 2)
-			  int* r_lo, int* r_hi, const Real* r,
+			  int* r_len, const Real* redge,
 #endif
 			  ARLIM_P(uE_lo), ARLIM_P(uE_hi), const Real* uE,
 			  ARLIM_P(dE_lo), ARLIM_P(dE_hi), const Real* divE,
 			  ARLIM_P(rhoE_lo), ARLIM_P(rhoE_hi), const Real* rhoE,
 			  const int* faceLo, const int* faceHi,
-			  int* face, int* zeroIt);
+			  int* face, int* zeroIt, const Real* hx);
 
     void FORT_HGRELAX (ARLIM_P(rhslo), ARLIM_P(rhshi), const Real* rhs,
                        ARLIM_P(betalo), ARLIM_P(betahi), const Real* beta,
