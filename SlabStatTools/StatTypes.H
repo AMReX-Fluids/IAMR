@@ -41,7 +41,9 @@ extern "C"
                              Real *physStn,
                        const int *vblo, const int *vbhi,
                        const Real *dx, 
-                       const Real *probLo, const Real *probHi);
+                       const Real *probLo, const Real *probHi,
+                       const int *axialDir,
+                             int *nActualStations);
 
 
   //
@@ -55,7 +57,9 @@ extern "C"
                                     Real *physStn,
                               const int *vblo, const int *vbhi,
                               const Real *dx, 
-                              const Real *probLo, const Real *probHi);
+                              const Real *probLo, const Real *probHi,
+                              const int *axialDir,
+                                    int *nActualStations);
 }
 
 

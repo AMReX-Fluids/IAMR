@@ -46,6 +46,7 @@ PrintUsage(const char* progName)
         cout << "\t   statType = Type of statistics to calculate" << endl;
         cout << "\t   begItime = Beginning integer time" << endl;
         cout << "\t   endItime = Ending integer time" << endl;
+        cout << "\t   axialDir = Streamwise direction.  (1->x, 2->y)" << endl;
         cout << endl;
         cout << "\t Available Statistic Types:" << endl;
         for (int nclc = 0; nclc < NumStatsTypes; ++nclc)
@@ -104,6 +105,11 @@ main (int   argc,
     pp.query("endItime", endItime);
     if (endItime == -1 && ParallelDescriptor::IOProcessor())
         BoxLib::Abort("You must specify `endItime'");
+
+    int axialDir = -1;
+    pp.query("axialDir", axialDir);
+    if (axialDir == -1 && ParallelDescriptor::IOProcessor())
+        BoxLib::Abort("You must specify `axialDir'");
 
 
 
@@ -174,12 +180,15 @@ main (int   argc,
         Array<Real> passStats(nStns * nStats);
         passStats = PackArrayArray(nStns, nStats, stats);
 
+        int nActualStations;
+
         StatsTypes[statIndx].func(mfi().dataPtr(), &nComp, 
                                     ARLIM(fblo), ARLIM(fbhi),
                                   &nStats, &nStns, 
                                   passStats.dataPtr(), physStn.dataPtr(),
                                   vblo, vbhi, dxLevel.dataPtr(),
-                                  probLo.dataPtr(), probHi.dataPtr());
+                                  probLo.dataPtr(), probHi.dataPtr(),
+                                  &axialDir, &nActualStations);
 
         stats = UnPackArrayArray(nStns, nStats, passStats);
 
@@ -190,14 +199,14 @@ main (int   argc,
         aString oFile = StatsTypes[statIndx].oFileBase;
 
         char* cnstDirChar = (cnstDir == 0 ? "i" : "j");
-        oFile = oFile + "_" + cnstDirChar;
+        oFile = oFile + cnstDirChar;
         oFile = Utility::Concatenate(oFile, cnstIndx);
         oFile = oFile + ".dat";
 
         ofstream ostr;
         ostr.open(oFile.c_str());
 
-        for (int stn = 0; stn < nStns; stn++)
+        for (int stn = 0; stn < nActualStations; stn++)
         {
             ostr << physStn[stn] << " ";
             for (int stat = 0; stat < nStats; stat++)

@@ -1,5 +1,5 @@
 c
-c $Id: STATS_2D.F,v 1.1 2000-07-13 18:21:06 sstanley Exp $
+c $Id: STATS_2D.F,v 1.2 2000-07-19 21:01:29 sstanley Exp $
 c
 
 #include "REAL.H"
@@ -31,14 +31,15 @@ c ::: -----------------------------------------------------------
 c
       subroutine FORT_VEL_RA_RND(ssDat, nSSComp, DIMS(ssdat),
      $                           nStats, nStns, stats, physStn,
-     $                           vblo, vbhi, dx, probLo, probHi)
+     $                           vblo, vbhi, dx, probLo, probHi,
+     $                           axialDir, nStations)
 
       implicit none
 
 c
 c     :::: Passed Variables ::::
 c
-      integer nSSComp, nStats, nStns
+      integer nSSComp, nStats, nStns, axialDir, nStations
       integer vblo(SDIM), vbhi(SDIM)
       integer DIMDEC(ssdat)
       REAL_T ssDat(DIMV(ssdat),nSSComp)
@@ -51,11 +52,11 @@ c     ::::: local variables
 c
       integer i, j, n, profDir, nSSexpect, nStatsExpect
       integer flo(SDIM), fhi(SDIM)
-      integer rho, rho2, rho3, rho4, 
-     $        u, u2, u3, u4, rhoU, rhoU2, rhoU3, rhoU4,
-     $        v, v2, v3, v4, rhoV, rhoV2, rhoV3, rhoV4,
-     $        tr, tr2, tr3, tr4, rhoTr, rhoTr2, rhoTr3, rhoTr4, 
-     $        uV, rhoUV, uTr, vTr, rhoUTr, rhoVTr, p, p2, p3, p4, uP, vP
+      integer rho, rho2,
+     $        u, u2, rhoU, rhoU2,
+     $        v, v2, rhoV, rhoV2,
+     $        tr, tr2, rhoTr, rhoTr2,
+     $        uV, rhoUV, uTr, vTr, rhoUTr, rhoVTr, p, p2, uP, vP
 
 
 c
@@ -63,7 +64,7 @@ c     ------------------------------
 c     ::: Define Local Constants :::
 c     ------------------------------
 c
-      parameter (nSSexpect = 40, nStatsExpect = 6)
+      parameter (nSSexpect = 24, nStatsExpect = 6)
 
       call SET_LOHI(DIMS(ssdat), flo, fhi)
 
@@ -97,30 +98,14 @@ c
       tr2    = 14
       rhoTr2 = 15
       p2     = 16
-      rho3   = 17
-      u3     = 18
-      rhoU3  = 19
-      v3     = 20
-      rhoV3  = 21
-      tr3    = 22
-      rhoTr3 = 23
-      p3     = 24
-      rho4   = 25
-      u4     = 26
-      rhoU4  = 27
-      v4     = 28
-      rhoV4  = 29
-      tr4    = 30
-      rhoTr4 = 31
-      p4     = 32
-      uV     = 33
-      rhoUV  = 34
-      uTr    = 35
-      vTr    = 36
-      rhoUTr = 37
-      rhoVTr = 38
-      uP     = 39
-      vP     = 40
+      uV     = 17
+      rhoUV  = 18
+      uTr    = 19
+      vTr    = 20
+      rhoUTr = 21
+      rhoVTr = 22
+      uP     = 23
+      vP     = 24
 
 
 c
@@ -128,6 +113,7 @@ c     ----------------------------
 c     ::: Calculate Statistics :::
 c     ----------------------------
 c
+      nStations = vbhi(profDir) - vblo(profDir) + 1
       do n = 1, vbhi(profDir) - vblo(profDir) + 1
         physStn(n) = (FLOAT(n) + half) * dx(profDir)
 
@@ -194,7 +180,7 @@ c     -----------------------------
 c
       profDir = -1
       do n = 1, SDIM
-        if (vbhi(n) - vblo(n) .gt. 1) then
+        if (vbhi(n) - vblo(n) + 1 .gt. 1) then
           if (profDir .ne. -1) then
             write(*,1000) vblo, vbhi
  1000       format("Error: Valid region of SlabStat data is dimensioned",
