@@ -39,6 +39,7 @@ RSC=rc.exe
 # PROP Use_Debug_Libraries 0
 # PROP Output_Dir "Release"
 # PROP Intermediate_Dir "Release"
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE F90 /include:"Release/" /compile_only /nologo /warn:nofileopt
 # ADD F90 /include:"Release/" /compile_only /nologo /iface:cref /warn:nofileopt
@@ -51,7 +52,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=xilink.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib dfor.lib /nologo /subsystem:console /machine:I386
 
 !ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
 
@@ -64,6 +65,7 @@ LINK32=xilink.exe
 # PROP Use_Debug_Libraries 1
 # PROP Output_Dir "Debug"
 # PROP Intermediate_Dir "Debug"
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /warn:nofileopt
 # ADD F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /iface:cref /warn:nofileopt
@@ -76,7 +78,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=xilink.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib dfor.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 
 !ENDIF 
 
@@ -448,90 +450,801 @@ SOURCE=.\WriteMultiFab.H
 # Begin Source File
 
 SOURCE=.\ABec_3D.For
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # PROP Exclude_From_Build 1
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\amr_real3d.For
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
 # PROP Exclude_From_Build 1
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\CG_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\DERIVE_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\DIFFUSION_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\GODUNOV_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_avg3d.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_multi3d.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_proj3d.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\INTERPBNDRYDATA_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\LO_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\LP_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\MACOPERATOR_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\MACPROJ_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\MG_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\NAVIERSTOKES_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\PROB_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\PROJECTION_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\SYNCREG_3D.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\VISCOPERATOR_3D.for
 # End Source File
 # End Group
 # Begin Source File
 
 SOURCE=.\ABec_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\ABec_3D.F
+InputName=ABec_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\ABec_3D.F
+InputName=ABec_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\amr_real3d.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\amr_real3d.F
+InputName=amr_real3d
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\amr_real3d.F
+InputName=amr_real3d
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\CG_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\CG_3D.F
+InputName=CG_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\CG_3D.F
+InputName=CG_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\DERIVE_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\DERIVE_3D.F
+InputName=DERIVE_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\DERIVE_3D.F
+InputName=DERIVE_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\DIFFUSION_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\DIFFUSION_3D.F
+InputName=DIFFUSION_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\DIFFUSION_3D.F
+InputName=DIFFUSION_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\GODUNOV_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\GODUNOV_3D.F
+InputName=GODUNOV_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\GODUNOV_3D.F
+InputName=GODUNOV_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_avg3d.F
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\hg_avg3d.F
+InputName=hg_avg3d
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_multi3d.F
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\hg_multi3d.F
+InputName=hg_multi3d
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_proj3d.F
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\hg_proj3d.F
+InputName=hg_proj3d
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\INTERPBNDRYDATA_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\INTERPBNDRYDATA_3D.F
+InputName=INTERPBNDRYDATA_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\INTERPBNDRYDATA_3D.F
+InputName=INTERPBNDRYDATA_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\LO_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\LO_3D.F
+InputName=LO_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\LO_3D.F
+InputName=LO_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\LP_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\LP_3D.F
+InputName=LP_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\LP_3D.F
+InputName=LP_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\MACOPERATOR_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\MACOPERATOR_3D.F
+InputName=MACOPERATOR_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\MACOPERATOR_3D.F
+InputName=MACOPERATOR_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\MACPROJ_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\MACPROJ_3D.F
+InputName=MACPROJ_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\MACPROJ_3D.F
+InputName=MACPROJ_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\MG_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\MG_3D.F
+InputName=MG_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\MG_3D.F
+InputName=MG_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\NAVIERSTOKES_3D.F
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\NAVIERSTOKES_3D.F
+InputName=NAVIERSTOKES_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\PROB_3D.F
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\PROB_3D.F
+InputName=PROB_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\PROJECTION_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\PROJECTION_3D.F
+InputName=PROJECTION_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\PROJECTION_3D.F
+InputName=PROJECTION_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\SYNCREG_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\SYNCREG_3D.F
+InputName=SYNCREG_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\SYNCREG_3D.F
+InputName=SYNCREG_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\VISCOPERATOR_3D.F
-# PROP Exclude_From_Build 1
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\VISCOPERATOR_3D.F
+InputName=VISCOPERATOR_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\VISCOPERATOR_3D.F
+InputName=VISCOPERATOR_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DHG_CROSS_STENCIL\
+  $(InputName).F | perl         ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # End Group
+# Begin Group "Temps No. 1"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\GODUNOV_F.for
+# End Source File
+# Begin Source File
+
+SOURCE=.\LO_UTIL.for
+# End Source File
+# End Group
+# Begin Source File
+
+SOURCE=.\GODUNOV_F.F
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\GODUNOV_F.F
+InputName=GODUNOV_F
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\LO_UTIL.F
+
+!IF  "$(CFG)" == "IAMRAll - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "IAMRAll - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\LO_UTIL.F
+InputName=LO_UTIL
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
 # End Group
 # End Target
 # End Project
