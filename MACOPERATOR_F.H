@@ -2,7 +2,7 @@
 #define _MACOPERATOR_F_H_
 
 /*
-** $Id: MACOPERATOR_F.H,v 1.8 2002-04-26 22:10:02 lijewski Exp $
+** $Id: MACOPERATOR_F.H,v 1.9 2003-02-05 22:11:42 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -55,6 +55,7 @@ extern "C"
                          Real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
                          const Real* phi, ARLIM_P(p_lo), ARLIM_P(p_hi),
                          const Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
+                         const int* lo, const int* hi,
                          const Real* dx, const Real* scale);
 #endif
 
@@ -80,13 +81,14 @@ extern "C"
                        const int* lo, const int* hi,
                        const Real* scale);
 
-    void FORT_MACUPDATE ( const int *init,
-                          Real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
-                          Real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
-                          Real* uz, ARLIM_P(uzlo), ARLIM_P(uzhi),
-                          const Real* phi, ARLIM_P(p_lo), ARLIM_P(p_hi),
-                          const Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
-                          const Real* dx, const Real* scale); 
+    void FORT_MACUPDATE (const int *init,
+                         Real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
+                         Real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
+                         Real* uz, ARLIM_P(uzlo), ARLIM_P(uzhi),
+                         const Real* phi, ARLIM_P(p_lo), ARLIM_P(p_hi),
+                         const Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
+                         const int* lo, const int* hi,
+                         const Real* dx, const Real* scale); 
 
 #endif
 

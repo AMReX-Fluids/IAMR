@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_2D.F,v 1.7 2002-11-14 23:04:56 lijewski Exp $
+c $Id: MACOPERATOR_2D.F,v 1.8 2003-02-05 22:11:42 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -153,12 +153,13 @@ c :: ----------------------------------------------------------
 c ::
        subroutine FORT_MACUPDATE(init,ux,DIMS(ux),uy,DIMS(uy),
      &                           phi,DIMS(phi),rho,DIMS(rho),
-     &                           dx,mult)
+     &                           lo,hi,dx,mult)
 
        integer DIMDEC(ux)
        integer DIMDEC(uy)
        integer DIMDEC(phi)
        integer DIMDEC(rho)
+       integer lo(SDIM), hi(SDIM)
        REAL_T  ux(DIMV(ux))
        REAL_T  uy(DIMV(uy))
        REAL_T  phi(DIMV(phi))
@@ -186,8 +187,8 @@ c
 c
 c     compute the x mac gradient
 c
-       do j = ARG_L2(ux), ARG_H2(ux)
-          do i = ARG_L1(ux), ARG_H1(ux)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)+1
              rhoavg = half*(rho(i,j) + rho(i-1,j))
              gp = (phi(i,j)-phi(i-1,j))/dx(1)
              ux(i,j) = ux(i,j) + mult * gp / rhoavg
@@ -196,8 +197,8 @@ c
 c
 c      compute the y mac gradient
 c
-       do j = ARG_L2(uy), ARG_H2(uy)
-          do i = ARG_L1(uy), ARG_H1(uy)
+       do j = lo(2),hi(2)+1
+          do i = lo(1),hi(1)
              rhoavg = half*(rho(i,j) + rho(i,j-1))
              gp = (phi(i,j)-phi(i,j-1))/dx(2)
              uy(i,j) = uy(i,j) + mult * gp / rhoavg

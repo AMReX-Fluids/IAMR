@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_3D.F,v 1.7 2002-11-14 23:04:56 lijewski Exp $
+c $Id: MACOPERATOR_3D.F,v 1.8 2003-02-05 22:11:42 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -189,13 +189,14 @@ c ::
      &     init,
      &     ux,DIMS(ux),uy,DIMS(uy),uz,DIMS(uz),
      &     phi,DIMS(phi),rho,DIMS(rho),
-     &     dx,mult)
+     &     lo,hi,dx,mult)
 
        integer DIMDEC(ux)
        integer DIMDEC(uy)
        integer DIMDEC(uz)
        integer DIMDEC(phi)
        integer DIMDEC(rho)
+       integer lo(SDIM), hi(SDIM)
        REAL_T  dx(SDIM), mult
        REAL_T  ux(DIMV(ux))
        REAL_T  uy(DIMV(uy))
@@ -235,9 +236,9 @@ c
 c
 c      compute x MAC gradient
 c
-       do k = ARG_L3(ux), ARG_H3(ux)
-          do j = ARG_L2(ux), ARG_H2(ux)
-             do i = ARG_L1(ux), ARG_H1(ux)
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+             do i = lo(1),hi(1)+1
                 rhoavg = half*(rho(i,j,k) + rho(i-1,j,k))
                 gp = (phi(i,j,k)-phi(i-1,j,k))/dx(1)
                 ux(i,j,k) = ux(i,j,k) + mult * gp / rhoavg
@@ -247,9 +248,9 @@ c
 c     
 c     compute y mac gradient
 c
-       do k = ARG_L3(uy), ARG_H3(uy)
-          do j = ARG_L2(uy), ARG_H2(uy)
-             do i = ARG_L1(uy), ARG_H1(uy)
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)+1
+             do i = lo(1),hi(1)
                 rhoavg = half*(rho(i,j,k) + rho(i,j-1,k))
                 gp = (phi(i,j,k)-phi(i,j-1,k))/dx(2)
                 uy(i,j,k) = uy(i,j,k) + mult * gp / rhoavg
@@ -259,9 +260,9 @@ c
 c       
 c     compute z mac gradient
 c
-       do k = ARG_L3(uz), ARG_H3(uz)
-          do j = ARG_L2(uz), ARG_H2(uz)
-             do i = ARG_L1(uz), ARG_H1(uz)
+       do k = lo(3),hi(3)+1
+          do j = lo(2),hi(2)
+             do i = lo(1),hi(1)
                 rhoavg = half*(rho(i,j,k) + rho(i,j,k-1))
                 gp = (phi(i,j,k)-phi(i,j,k-1))/dx(3)
                 uz(i,j,k) = uz(i,j,k) + mult * gp / rhoavg

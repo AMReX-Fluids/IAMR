@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.28 2003-02-05 22:06:20 almgren Exp $
+// $Id: MacOperator.cpp,v 1.29 2003-02-05 22:11:42 almgren Exp $
 //
 #include <winstd.H>
 
@@ -202,6 +202,9 @@ mac_vel_update (int              init,
                 const Real*      dx,
                 Real             scale)
 {
+    const int* lo        = grd.loVect();
+    const int* hi        = grd.hiVect();
+
     const FArrayBox& rho = *rhoptr;
     
     DEF_LIMITS(ux,ux_dat,uxlo,uxhi);
@@ -218,7 +221,7 @@ mac_vel_update (int              init,
                    uy_dat,ARLIM(uylo),ARLIM(uyhi),
                    phi_dat,ARLIM(p_lo),ARLIM(p_hi),
                    rho_dat,ARLIM(rlo),ARLIM(rhi),
-                   dx,&scale);
+                   lo,hi,dx,&scale);
 #endif
 #if (BL_SPACEDIM == 3)
     DEF_LIMITS(uz,uz_dat,uzlo,uzhi);
@@ -229,7 +232,7 @@ mac_vel_update (int              init,
                    uz_dat,ARLIM(uzlo),ARLIM(uzhi),
                    phi_dat,ARLIM(p_lo),ARLIM(p_hi),
                    rho_dat,ARLIM(rlo),ARLIM(rhi),
-                   dx,&scale);
+                   lo,hi,dx,&scale);
 #endif
 }
 
