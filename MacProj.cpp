@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.32 1998-11-10 21:58:59 lijewski Exp $
+// $Id: MacProj.cpp,v 1.33 1998-11-17 16:38:27 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -633,7 +633,7 @@ MacProj::mac_sync_compute (int           level,
         Rho.resize(::grow(grids[i],1),1);
         Rho.copy(S,Density,0,1);
 
-        ns_level.setForce(tforces,i,1,0,NUM_STATE,Rho);
+        ns_level.getForce(tforces,i,1,0,NUM_STATE,Rho);
         //
         // Compute total forcing terms.
         //
@@ -646,7 +646,7 @@ MacProj::mac_sync_compute (int           level,
         if (use_forces_in_trans)
         {
             DependentMultiFabIterator dmfi(S_fpi, vel_visc_terms);
-            ns_level.setForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho);
+            ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho);
             godunov->Sum_tf_gp_visc(tvelforces, dmfi(), Gp, Rho);
         }
         //

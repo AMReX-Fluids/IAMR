@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.98 1998-11-16 23:25:29 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.99 1998-11-17 16:38:28 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1505,7 +1505,7 @@ NavierStokes::predict_velocity (Real  dt,
         //
         const int i = U_fpi.index();
 
-        setForce(tforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
         //
         // Test velocities, rho and cfl.
         //
@@ -1675,7 +1675,7 @@ NavierStokes::velocity_advection (Real dt)
         //
         const int i = U_fpi.index();
 
-        setForce(tforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
         //
         // Compute the total forcing.
         //
@@ -1802,11 +1802,11 @@ NavierStokes::scalar_advection (Real dt,
         //
         const int i = U_fpi.index();
 
-        setForce(tforces,i,1,fscalar,num_scalars,Rho_fpi());
+        getForce(tforces,i,1,fscalar,num_scalars,Rho_fpi());
         
         if (use_forces_in_trans)
         {
-            setForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
+            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
 
             getGradP(P_fpi(),Gp,grids[i],1);
             
@@ -1931,7 +1931,7 @@ NavierStokes::scalar_advection_update (Real dt,
 
             int i = Rho_fpi.index();
 
-            setForce(tforces,i,0,sigma,1,Rho_fpi());
+            getForce(tforces,i,0,sigma,1,Rho_fpi());
 
             godunov->Add_aofs_tf(S_oldmfi(), S_newmfi(), sigma, 1, Aofsmfi(),
                                  sigma, tforces, 0, grids[i], dt);
@@ -2041,7 +2041,7 @@ NavierStokes::velocity_advection_update (Real dt)
         //
         getGradP(P_fpi(),Gp,grids[i],0);
 
-	setForce(tforces,i,0,Xvel,BL_SPACEDIM,Rho_fpi());
+	getForce(tforces,i,0,Xvel,BL_SPACEDIM,Rho_fpi());
         //
         // Do following only at initial iteration--per JBB.
         //
@@ -2150,7 +2150,7 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
         {
             int i = Rho_fpi.index();
 
-            setForce(tforces,i,0,Xvel,BL_SPACEDIM,Rho_fpi());
+            getForce(tforces,i,0,Xvel,BL_SPACEDIM,Rho_fpi());
 
             getGradP(P_fpi(),Gp,grids[i],0);
 
@@ -2549,7 +2549,7 @@ NavierStokes::estTimeStep ()
         //
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
-        setForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,Rho_fpi());
+        getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,Rho_fpi());
         getGradP(p_fab, Gp, grids[i], 0);
         tforces.minus(Gp,0,0,BL_SPACEDIM);
         //
@@ -4166,7 +4166,7 @@ NavierStokes::getForce (FArrayBox& force,
 }
 
 void
-NavierStokes::setForce (FArrayBox&       force,
+NavierStokes::getForce (FArrayBox&       force,
                         int              gridno,
                         int              ngrow,
                         int              strt_comp,

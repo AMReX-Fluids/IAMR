@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.26 1998-11-09 21:27:50 lijewski Exp $
+// $Id: NavierStokes.H,v 1.27 1998-11-17 16:38:28 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -470,7 +470,7 @@ protected:
                            int        num_comp,
                            Real       time);
 
-    void setForce (FArrayBox&       force,
+    void getForce (FArrayBox&       force,
                    int              gridno,
                    int              ngrow,
                    int              strt_comp,
