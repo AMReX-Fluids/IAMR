@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.27 1999-06-30 22:40:02 almgren Exp $
+c $Id: PROJECTION_2D.F,v 1.28 1999-07-01 17:23:12 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -462,12 +462,13 @@ c
                   rhi = rcen(i)
                end if
                if (i .eq. 0) then
-                 rhs(i,j) = fourth*rhi*(dat(i,j-1) + dat(i,j))
-               else
-                 rlo = rcen(i-1)
-                 rhs(i,j) = fourth*(rlo * (dat(i-1,j-1) + dat(i-1,j)) +
-     &                              rhi * (dat(i  ,j-1) + dat(i  ,j)))
-               endif
+                  rlo = rcen(i)
+               else 
+                  rlo = rcen(i-1)
+               end if
+               rhs(i,j) = fourth*(rlo * (dat(i-1,j-1) + dat(i-1,j)) +
+     &                            rhi * (dat(i  ,j-1) + dat(i  ,j)))
+               if (i .eq. 0) rhs(i,j) = half * rhs(i,j)
             end do
          end do
 #endif

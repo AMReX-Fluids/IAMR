@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_2D.F,v 1.10 1999-06-25 21:45:33 almgren Exp $
+c $Id: SYNCREG_2D.F,v 1.11 1999-07-01 17:23:12 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -70,7 +70,16 @@ c           timestep on the coarse grid.  mult = 1/ratio.
          end do
       end if
 
-#if BL_PRVERSION==9
+#if BL_PRVERSION==5
+      if (is_rz .eq. 1 .and. lo(1) .eq. 0) then
+        i = 0
+        do j = lo(2), hi(2)
+          vy = half*(u(i,j,2)-u(i,j-1,2)+u(i-1,j,2)-u(i-1,j-1,2))/dx(2)
+          divu(i,j) = divu(i,j) - half*mult*vy
+        end do
+      end if
+
+#elif BL_PRVERSION==9
       if (is_rz .eq. 1) then
 
        if (lenx .ge. leny) then
@@ -239,6 +248,17 @@ c
             divgp(i,j) = denomx*(p1+p2)+ denomy*(p3+p4)
          end do
       end do
+
+      if (lo(1) .eq. 0) then
+        i = 0
+        do j = lo(2), hi(2)
+          p3 = (sigma(i-1,j-1) + sigma(i,j-1)) * 
+     $         (  phi(i  ,j-1) -   phi(i,j  ))
+          p4 = (sigma(i-1,j  ) + sigma(i,j  )) * 
+     $         (  phi(i  ,j+1) -   phi(i,j  ))
+          divgp(i,j) = divgp(i,j) - half*denomy*(p3+p4)
+        end do
+      end if
 #else
 #error "Unknown PRVERSION setting"
 #endif
