@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ValidTypes.H,v 1.1 2000-07-13 18:21:06 sstanley Exp $
+// $Id: ValidTypes.H,v 1.2 2000-10-02 21:08:49 lijewski Exp $
 //
 #ifndef _ValidType_
 #define _ValidType_
