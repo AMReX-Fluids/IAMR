@@ -10,9 +10,9 @@ stop_time 		= 20000000.0
 amr.n_cell              = 64 64 128
 amr.n_cell              = 32 32 64
 
-amr.max_level		= 2
 amr.max_level           = 0
 amr.max_level		= 1
+amr.max_level		= 2
 
 amr.regrid_int		= 2 
 
@@ -26,8 +26,8 @@ amr.plot_int		= 5
 
 ns.cfl                  = 0.7  # CFL number used to set dt
 
-ns.init_shrink          = 100.0  # factor which multiplies the very first time step
-ns.init_iters          = 3  # factor which multiplies the very first time step
+ns.init_shrink          = 1000.0  # factor which multiplies the very first time step
+ns.init_iter          = 3  # factor which multiplies the very first time step
 
 ns.vel_visc_coef        = 0.0
 ns.scal_diff_coefs      = 0.0
