@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.99 1999-06-30 22:40:03 almgren Exp $
+// $Id: Projection.cpp,v 1.100 1999-07-01 20:07:24 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -1745,57 +1745,6 @@ Projection::initialSyncProject (int       c_lev,
         incrPress(lev, 1.0);
 
     stats.end();
-}
-
-//
-// Compute the node-centered divergence of U.
-//
-void
-Projection::computeDV (int             level,
-                       MultiFab&       DV,
-                       MultiFab& U,
-                       int             src_comp,
-                       const Real*     dx)
-{
-    int is_rz = (CoordSys::IsRZ() ? 1 : 0);
-
-    if (is_rz) 
-    {
-        for (int n = 0; n < BL_SPACEDIM; n++)
-            radMult(level,U,n);
-    }
-
-    const Real      mult    = 1.0;
-    const BoxArray& U_boxes = U.boxArray();
-
-    FArrayBox ufab;
-
-    for (MultiFabIterator DVmfi(DV); DVmfi.isValid(); ++DVmfi) 
-    {
-        DependentMultiFabIterator Umfi(DVmfi, U);
-
-        BL_ASSERT(U_boxes[Umfi.index()] == Umfi.validbox());
-
-        ufab.resize(::grow(Umfi.validbox(),1),BL_SPACEDIM);
-        ufab.copy(Umfi(),ufab.box(),src_comp,ufab.box(),0,BL_SPACEDIM);
-
-        Box ndbox = ::surroundingNodes(Umfi.validbox());
-
-        const int* ndlo = ndbox.loVect();
-        const int* ndhi = ndbox.hiVect();
-        const int* ulo  = ufab.box().loVect();
-        const int* uhi  = ufab.box().hiVect();
-
-        FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
-                    DVmfi().dataPtr(),ARLIM(ndlo),ARLIM(ndhi),
-                    ndlo,ndhi,dx,&mult,&is_rz);
-    }
-
-    if (is_rz)
-    {
-        for (int n = 0; n < BL_SPACEDIM; n++)
-            radDiv(level,U,n);
-    }
 }
 
 //

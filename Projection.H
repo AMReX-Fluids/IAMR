@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.26 1999-06-30 22:40:03 almgren Exp $
+// $Id: Projection.H,v 1.27 1999-07-01 20:07:25 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -160,14 +160,6 @@ public:
     void radDiv (int       level,
                  MultiFab& mf,
                  int       comp);
-    //
-    // Compute the node-centered divergence of U.
-    //
-    void computeDV (int             level,
-                    MultiFab&       DV,
-                    MultiFab&       U,
-                    int             src_comp,
-                    const Real*     dx);
     //
     // Put divu in the rhs of the projector.
     //
