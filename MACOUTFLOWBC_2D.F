@@ -85,11 +85,11 @@ c     is zero, or if divu is constant
 
       if (face .eq. XLO) then
          if = ifs
-         max_divu = divu(ics,jcs)
-         min_divu = max_divu
          do j = jcs, jce+1
             uExt(if,j)  = u1(ics,j)
          enddo
+         max_divu = divu(ics,jcs)
+         min_divu = max_divu
          do j = jcs, jce
             divuExt(if,j) = divu(ics,j)
             rhoExt(if,j)  = rho(ics,j)
@@ -106,14 +106,13 @@ c     is zero, or if divu is constant
             divuExt(if,j) = divuExt(if,j) - divu_ave
             max_pert = MAX(max_pert,ABS(divuExt(if,j)))
          end do
-         max_pert = max_pert/(ABS(divu_ave)+small_pert)
       else if (face .eq. YLO) then
          jf = jfs
-         max_divu = divu(ics,jcs)
-         min_divu = max_divu
          do i = ics, ice+1
             uExt(i,jf)  = u0(i,jcs)
          enddo
+         max_divu = divu(ics,jcs)
+         min_divu = max_divu
          do i = ics, ice
             divuExt(i,jf) = divu(i,jcs)
             rhoExt(i,jf)  = rho(i,jcs)
@@ -130,14 +129,13 @@ c     is zero, or if divu is constant
             divuExt(i,jf) = divuExt(i,jf) - divu_ave
             max_pert = MAX(max_pert,ABS(divuExt(i,jf)))
          end do
-         max_pert = max_pert/(ABS(divu_ave)+small_pert)
       else if (face .eq. XHI) then
          if = ife
-         max_divu = divu(ice,jcs)
-         min_divu = max_divu
          do j = jcs, jce+1
             uExt(if,j)  = u1(ice,j)
          enddo
+         max_divu = divu(ice,jcs)
+         min_divu = max_divu
          do j = jcs, jce
             divuExt(if,j) = divu(ice,j)
             rhoExt(if,j)  = rho(ice,j)
@@ -154,14 +152,13 @@ c     is zero, or if divu is constant
             divuExt(if,j) = divuExt(if,j)-divu_ave
             max_pert = MAX(max_pert,ABS(divuExt(if,j)))
          end do
-         max_pert = max_pert/(ABS(divu_ave)+small_pert)
       else if (face .eq. YHI) then
          jf = jfe
-         max_divu = divu(ics,jce)
-         min_divu = max_divu
          do i = ics, ice+1
             uExt(i,jf)  = u0(i,jce)
          enddo
+         max_divu = divu(ics,jce)
+         min_divu = max_divu
          do i = ics, ice
             divuExt(i,jf) = divu(i,jce)
             rhoExt(i,jf)  = rho(i,jce)
@@ -178,10 +175,10 @@ c     is zero, or if divu is constant
             divuExt(i,jf) = divuExt(i,jf)-divu_ave
             max_pert = MAX(max_pert,ABS(divuExt(i,jf)))
          end do
-         max_pert = max_pert/(ABS(divu_ave)+small_pert)
       endif
       
 c  check to see if we should zero phi
+         max_pert = max_pert/(ABS(divu_ave)+small_pert)
       if ((max_divu.eq.zero.and.min_divu.eq.zero)
      &     .or.(max_pert.le.small_pert)) then
          zeroIt = 1
@@ -316,8 +313,8 @@ c Local variables
       integer r_lo,r_hi
       REAL_T r(r_lo:r_hi)
       integer lo(SDIM),hi(SDIM)
-      integer isPeriodic
-      
+      integer isPeriodic(SDIM)
+
       REAL_T phitot,vtot
       integer ics,ice,ine
       integer i
@@ -337,9 +334,9 @@ c Local variables
       do i=ics,ice
          phi(i) = phi(i) - phitot
       enddo
-      
-      call setmacbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
 
+      call setmacbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
+      
       end
 
       subroutine FORT_MACRESID(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,

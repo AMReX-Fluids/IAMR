@@ -77,7 +77,7 @@ c local variables
 
       if (face .eq. XLO) then
          if=ife
-         max_divu = divu(ice-1,jcs,kcs)
+         max_divu = half*(three*divu(ice-1,jcs,kcs)-divu(ice,jcs,kcs))
          min_divu = max_divu
          do k = kcs, kce
          do j = jcs, jce
@@ -103,7 +103,7 @@ c local variables
          end do
       else if (face .eq. YLO) then
          jf = jfe
-         max_divu = divu(ics,jce-1,kcs)
+         max_divu = half*(three*divu(ics,jce-1,kcs)-divu(ics,jce,kcs))
          min_divu = max_divu
          do k = kcs, kce
          do i = ics, ice
@@ -129,7 +129,7 @@ c local variables
          end do
       else if (face .eq. ZLO) then
          kf = kfe
-         max_divu = divu(ics,jcs,kce-1)
+         max_divu = half*(three*divu(ics,jcs,kce-1)-divu(ics,jcs,kce))
          min_divu = max_divu
          do j = jcs, jce
          do i = ics, ice
@@ -155,7 +155,7 @@ c local variables
          end do
       else if (face .eq. XHI) then
          if = ife
-         max_divu = divu(ics+1,jcs,kcs)
+         max_divu = half*(three*divu(ics+1,jcs,kcs)-divu(ics,jcs,kcs))
          min_divu = max_divu
          do k = kcs, kce
          do j = jcs, jce
@@ -181,7 +181,7 @@ c local variables
          end do
       else if (face .eq. YHI) then
          jf = jfe
-         max_divu = divu(ics,jcs+1,kcs)
+         max_divu = half*(three*divu(ics,jcs+1,kcs)-divu(ics,jcs,kcs))
          min_divu = max_divu
          do k = kcs, kce
          do i = ics, ice
@@ -207,7 +207,7 @@ c local variables
          end do
       else if (face .eq. ZHI) then
          kf = kfe
-         max_divu = divu(ics,jcs,kcs+1)
+         max_divu = half*(three*divu(ics,jcs,kcs+1)-divu(ics,jcs,kcs))
          min_divu = max_divu
          do j = jcs, jce
          do i = ics, ice
@@ -597,7 +597,7 @@ c double dgphi at edges
       enddo
 
       call setprojbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
-   
+
       end
 
       subroutine FORT_HGRESID(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,

@@ -94,8 +94,6 @@ c     is zero, or if divu is constant
 
       if (face .eq. XLO) then
          if = ifs
-         max_divu = divu(ics,jcs,kcs)
-         min_divu = max_divu
          do k = kcs, kce
          do j = jcs, jce+1
             uExt0(if,j,k)  = u1(ics,j,k)
@@ -106,6 +104,8 @@ c     is zero, or if divu is constant
             uExt1(if,j,k)  = u2(ics,j,k)
          enddo
          enddo
+         max_divu = divuExt(ics,jcs,kcs)
+         min_divu = max_divu
          do k = kcs, kce
          do j = jcs, jce
             divuExt(if,j,k) = divu(ics,j,k)
@@ -126,11 +126,8 @@ c     is zero, or if divu is constant
             max_pert = MAX(max_pert,ABS(divuExt(if,j,k)))
          end do
          end do
-         max_pert = max_pert/(ABS(divu_ave)+small_pert)
       else if (face .eq. YLO) then
          jf = jfs
-         max_divu = divu(ics,jcs,kcs)
-         min_divu = max_divu
          do k = kcs, kce
          do i = ics, ice+1
             uExt0(i,jf,k)  = u0(i,jcs,k)
@@ -141,6 +138,8 @@ c     is zero, or if divu is constant
             uExt1(i,jf,k)  = u2(i,jcs,k)
          enddo
          enddo
+         max_divu = divu(ics,jcs,kcs)
+         min_divu = max_divu
          do k = kcs, kce
          do i = ics, ice
             divuExt(i,jf,k) = divu(i,jcs,k)
@@ -161,11 +160,8 @@ c     is zero, or if divu is constant
             max_pert = MAX(max_pert,ABS(divuExt(i,jf,k)))
          end do
          end do
-         max_pert = max_pert/(ABS(divu_ave)+small_pert)
       else if (face .eq. ZLO) then
          kf = kfs
-         max_divu = divu(ics,jcs,kcs)
-         min_divu = max_divu
          do j = jcs, jce
          do i = ics, ice+1
             uExt0(i,j,kf)  = u0(i,j,kcs)
@@ -176,6 +172,8 @@ c     is zero, or if divu is constant
             uExt1(i,j,kf)  = u1(i,j,kcs)
          enddo
          enddo
+         max_divu = divu(ics,jcs,kcs)
+         min_divu = max_divu
          do j = jcs, jce
          do i = ics, ice
             divuExt(i,j,kf) = divu(i,j,kcs)
@@ -196,12 +194,8 @@ c     is zero, or if divu is constant
             max_pert = MAX(max_pert,ABS(divuExt(i,j,kf)))
          end do
          end do
-         max_pert = max_pert/(ABS(divu_ave)+small_pert)
-
       else if (face .eq. XHI) then
          if = ife
-         max_divu = divu(ice,jcs,kcs)
-         min_divu = max_divu
          do k = kcs, kce
          do j = jcs, jce+1
             uExt0(if,j,k)  = u1(ice,j,k)
@@ -212,6 +206,8 @@ c     is zero, or if divu is constant
             uExt1(if,j,k)  = u2(ice,j,k)
          enddo
          enddo
+         max_divu = divu(ice,jcs,kcs)
+         min_divu = max_divu
          do k = kcs, kce
          do j = jcs, jce
             divuExt(if,j,k) = divu(ice,j,k)
@@ -232,11 +228,8 @@ c     is zero, or if divu is constant
             max_pert = MAX(max_pert,ABS(divuExt(if,j,k)))
          end do
          end do
-         max_pert = max_pert/(ABS(divu_ave)+small_pert)
       else if (face .eq. YHI) then
          jf = jfe
-         max_divu = divu(ics,jce,kcs)
-         min_divu = max_divu
          do k = kcs, kce
          do i = ics, ice+1
             uExt0(i,jf,k)  = u0(i,jce,k)
@@ -247,7 +240,8 @@ c     is zero, or if divu is constant
             uExt1(i,jf,k)  = u2(i,jce,k)
          enddo
          enddo
-
+         max_divu = divu(ics,jce,kcs)
+         min_divu = max_divu
          do k = kcs, kce
          do i = ics, ice
             divuExt(i,jf,k) = divu(i,jce,k)
@@ -268,12 +262,8 @@ c     is zero, or if divu is constant
             max_pert = MAX(max_pert,ABS(divuExt(i,jf,k)))
          end do
          end do
-         max_pert = max_pert/(ABS(divu_ave)+small_pert)
-
       else if (face .eq. ZHI) then
          kf = kfe
-         max_divu = divu(ics,jcs,kce)
-         min_divu = max_divu
          do j = jcs, jce
          do i = ics, ice+1
             uExt0(i,j,kf)  = u0(i,j,kce)
@@ -284,7 +274,8 @@ c     is zero, or if divu is constant
             uExt1(i,j,kf)  = u1(i,j,kce)
          enddo
          enddo
-
+         max_divu = divu(ics,jcs,kce)
+         min_divu = max_divu
          do j = jcs, jce
          do i = ics, ice
             divuExt(i,j,kf) = divu(i,j,kce)
@@ -305,11 +296,10 @@ c     is zero, or if divu is constant
             max_pert = MAX(max_pert,ABS(divuExt(i,j,kf)))
          end do
          end do
-         max_pert = max_pert/(ABS(divu_ave)+small_pert)
-
       endif
 
 c  check to see if we should zero phi
+         max_pert = max_pert/(ABS(divu_ave)+small_pert)
       if ((max_divu.eq.zero.and.min_divu.eq.zero)
      &     .or.(max_pert.le.small_pert)) then
          zeroIt = 1
@@ -505,7 +495,7 @@ c Local variables
       enddo
 
       call setmacbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
-
+      
       end
 
       subroutine FORT_MACRESID(DIMS(rhs),rhs,DIMS(beta0),beta0,

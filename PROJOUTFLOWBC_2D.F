@@ -71,7 +71,7 @@ c local variables
 
       if (face .eq. XLO) then
          if=ife
-         max_divu = divu(ice-1,jcs)
+         max_divu = half*(three*divu(ice-1,jcs) - divu(ice,jcs))
          min_divu = max_divu
          do j = jcs, jce
             uExt(if,j,1)    = half*(three*u(ice-1,j,2)    - u(ice,j,2))
@@ -92,7 +92,7 @@ c local variables
          end do
       else if (face .eq. YLO) then
          jf = jfe
-         max_divu = divu(ics,jce-1)
+         max_divu = half*(three*divu(ics,jce-1) - divu(ics,jce))
          min_divu = max_divu
          do i = ics, ice
             uExt(i,jf,1)    = half*(three*u(i,jce-1,1)    - u(i,jce,1))
@@ -113,7 +113,7 @@ c local variables
          end do
       else if (face .eq. XHI) then
          if = ife
-         max_divu = divu(ics+1,jcs)
+         max_divu = half*(three*divu(ics+1,jcs) - divu(ics,jcs))
          min_divu = max_divu
          do j = jcs, jce
             uExt(if,j,1)    = half*(three*u(ics+1,j,2)    - u(ics,j,2))
@@ -134,7 +134,7 @@ c local variables
          end do
       else if (face .eq. YHI) then
          jf = jfe
-         max_divu = divu(ics,jcs+1)
+         max_divu = half*(three*divu(ics,jcs+1) - divu(ics,jcs))
          min_divu = max_divu
          do i = ics, ice
             uExt(i,jf,1)    = half*(three*u(i,jcs+1,1)    - u(i,jcs,1))
@@ -313,7 +313,7 @@ c double dgphi at edges
       REAL_T r(r_lo:r_hi)
       integer lo(SDIM),hi(SDIM)
       integer isPeriodic(SDIM)
-      
+
       REAL_T phitot,vtot
       REAL_T hdr,rnode
       integer ics,ins,ine
