@@ -49,6 +49,7 @@ amr.check_file      = chk     # root name of checkpoint file
 amr.plot_file_root  = plt
 amr.plot_int        = 1
 amr.grid_log        = grdlog  # name of grid logging file
+amr.probin_file     = probin  # name of the Fortran initialization file
 amr.max_grid_size   = 128
 amr.max_grid_size   = 32
 amr.max_grid_size   = 16

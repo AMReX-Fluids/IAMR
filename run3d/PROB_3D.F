@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.7 1998-03-31 17:26:39 lijewski Exp $
+c $Id: PROB_3D.F,v 1.8 1998-05-12 22:13:29 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -24,17 +24,19 @@ c ::: problem specific data from a namelist or other input
 c ::: files and possibly store them or derived information
 c ::: in FORTRAN common blocks for later use.
 c ::: 
-c ::: 
 c ::: INPUTS/OUTPUTS:
 c ::: 
 c ::: init      => TRUE if called at start of problem run
 c :::              FALSE if called from restart
+c ::: name      => name of `probin' file
+c ::: namlen    => length of name
 c ::: strttime <=  start problem with this time variable
 c ::: 
 c ::: -----------------------------------------------------------
-      subroutine FORT_PROBINIT (init)
-      integer    init
-      integer    untin, i
+      subroutine FORT_PROBINIT (init,name,namlen)
+      integer init,namlen
+      integer name(namlen)
+      integer untin, i
 
 #include "probdata.H"
 
@@ -43,12 +45,32 @@ c ::: -----------------------------------------------------------
      &                  velfact, probtype, randfact, bubgrad,
      &			rhozero, tempzero, c_d, r_d, 
      &                  adv_dir, adv_vel, axis_dir, radvort
+c
+c      Build `probin' filename -- the name of file containing fortin namelist.
+c
+      integer maxlen
+      parameter (maxlen=256)
 
-       untin = 9
-       open(unit=untin, file='probin' ,form='formatted')
-       read(untin,fortin)
-       write(6,fortin)
-       close(unit=untin)
+      character probin*(maxlen)
+
+      if (namlen .gt. maxlen) then
+         write(6,*) 'probin file name too long'
+         stop
+      end if
+
+      do i = 1, namlen
+         probin(i:i) = char(name(i))
+      end do
+
+      untin = 9
+      if (namlen .eq. 0) then
+         open(untin,file='probin',form='formatted',status='old')
+      else
+         open(untin,file=probin(1:namlen),form='formatted',status='old')
+      end if
+      read(untin,fortin)
+c      write(6,fortin)
+      close(unit=untin)
 
       end
 
