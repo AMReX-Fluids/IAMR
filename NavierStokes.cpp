@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.148 1999-08-13 16:28:52 propp Exp $
+// $Id: NavierStokes.cpp,v 1.149 1999-08-16 18:21:43 propp Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2397,13 +2397,16 @@ NavierStokes::writePlotFile (const aString& dir,
 	    desc_lst[typ].getType() == IndexType::TheCellType())
 	    plot_var_map.push_back(pair<int,int>(typ,comp));
 
+    int num_derive = 0;
     List<aString> derive_names;
     const List <DeriveRec>& dlist = derive_lst.dlist();
     for (ListIterator<DeriveRec> it(dlist); it; ++it)
       if (parent->isDerivePlotVar(it().name()))
-	derive_names.append(it().name());
-    
-    int n_data_items = plot_var_map.size() + derive_names.length();
+	{
+	  derive_names.append(it().name());
+	  num_derive += it().numDerive();
+	}
+    int n_data_items = plot_var_map.size() + num_derive;
     Real cur_time = state[State_Type].curTime();
 
     if (level == 0 && ParallelDescriptor::IOProcessor())
@@ -2429,8 +2432,11 @@ NavierStokes::writePlotFile (const aString& dir,
 	  }
 
 	for (ListIterator<aString> it(derive_names); it; ++it)
-	  os << it() << '\n';
-
+	  {
+	    const DeriveRec* rec = derive_lst.get(it());
+	    for (i = 0; i < rec->numDerive(); i++)
+	      os << rec->variableName(i) << '\n';
+	  }
         os << BL_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
         int f_lev = parent->finestLevel();
@@ -2513,7 +2519,7 @@ NavierStokes::writePlotFile (const aString& dir,
     // NOTE: we are assuming that each state variable and derived variable
     // has exactly one component -- this is true for all variables we 
     // currently have.
-    const int ncomp = 1;
+    int ncomp = 1;
     const int nGrow = 0;
     MultiFab plotMF(grids,n_data_items,nGrow);
     MultiFab* this_dat = NULL;
@@ -2539,6 +2545,8 @@ NavierStokes::writePlotFile (const aString& dir,
       {
 	for (ListIterator<aString> it(derive_names); it; ++it) 
 	  {
+	    const DeriveRec* rec = derive_lst.get(it());
+	    ncomp = rec->numDerive();
 	    MultiFab* derive_dat = derive(it(),cur_time,nGrow);
 	    MultiFab::Copy(plotMF,*derive_dat,0,cnt,ncomp,nGrow);
 	    delete derive_dat;
