@@ -1,4 +1,4 @@
-#define _Projection_C_ $Id: Projection.cpp,v 1.10 1997-09-17 21:31:50 car Exp $
+#define _Projection_C_ $Id: Projection.cpp,v 1.11 1997-09-18 17:50:01 vince Exp $
 #include <stdio.h>
 #ifdef BL_T3E
 #include <List.H>
@@ -1874,11 +1874,6 @@ void Projection::rescaleVar( MultiFab *sig, int sig_nghosts,
         assert( sig->nComp() == 1 );
     if ( vel != NULL )
         assert( vel->nComp() >= BL_SPACEDIM );
-
-    // convert sigma from 1/rho to rho
-    // nghosts info needed to avoid divide by zero
-    if ( sig != NULL )
-        sig->invert(1.0,sig_nghosts);
     
     // divide by radius to rescale for RZ coordinates
     if ( CoordSys::IsRZ() ) {
@@ -1888,6 +1883,11 @@ void Projection::rescaleVar( MultiFab *sig, int sig_nghosts,
             for (int n = 0; n < BL_SPACEDIM; n++)
                 radDiv(level,*vel,n);
     }
+
+    // convert sigma from 1/rho to rho
+    // nghosts info needed to avoid divide by zero
+    if ( sig != NULL )
+        sig->invert(1.0,sig_nghosts);
     
     // unscale level projection variables for a particular projection
     proj_unscale_var(sig,vel,grids,level);
