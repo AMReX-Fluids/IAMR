@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.122 1999-03-17 21:59:28 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.123 1999-03-18 17:07:44 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2818,7 +2818,7 @@ NavierStokes::computeNewDt (int                   finest_level,
     int  n_factor = 1;
     for (int i = 0; i <= finest_level; i++)
     {
-        dt_min[i] = getLevel(i).estTimeStep();
+        dt_min[i] = Min(dt_min[i],getLevel(i).estTimeStep());
         dt_min[i] = Min(dt_min[i],change_max*dt_level[i]);
         n_factor *= n_cycle[i];
         dt_0      = Min(dt_0,n_factor*dt_min[i]);
