@@ -61,11 +61,16 @@ DEFINES += -DBL_USE_MPI
 MPI_HOME = /usr/local/mpi
 endif
 
+#
 # FillPatch switches
+#
 #DEFINES += -DUSEUNRAVELEDFILLPATCH=1
 DEFINES += -DUSEUNRAVELEDFILLPATCH=0
-#DEFINES += -DNEWFPMINBOX=1
-DEFINES += -DNEWFPMINBOX=0
+#
+# Uncomment this line if you want to try the new minimum box fillpatch.
+# Note that this is NOT the default.
+#
+#DEFINES += -DBL_NEWFPMINBOX
 
 ifeq ($(USE_WINDOWS),TRUE)
 LIBRARIES += -lgraph
