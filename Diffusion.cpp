@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.46 1998-11-19 23:38:08 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.47 1998-11-20 16:36:35 lijewski Exp $
 //
 
 //
@@ -58,8 +58,6 @@ const Real BL_SAFE_BOGUS = -666.e30;
 #include <MCCGSolver.H>
 #include <ViscBndry2D.H>
 #endif
-
-const char NL = '\n';
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -177,17 +175,16 @@ Diffusion::Diffusion (Amr*               Parent,
         pp.query("visc_tol",visc_tol);
         pp.query("visc_abs_tol",visc_abs_tol);
 
-        int n_visc = _visc_coef.length();
-        int n_diff = _is_diffusive.length();
+        const int n_visc = _visc_coef.length();
+        const int n_diff = _is_diffusive.length();
+
         if (n_diff < NUM_STATE || n_visc < NUM_STATE)
-        {
-            cout << "Diffusion::Diffusion(): is_diffusive and/or visc_coef arrays are " <<
-                " not long enough\n";
-            BoxLib::Abort("Bye");
-        }
+            BoxLib::Abort("Diffusion::Diffusion(): is_diffusive and/or visc_coef arrays are not long enough");
+
         visc_coef.resize(NUM_STATE);
         is_diffusive.resize(NUM_STATE);
-        for (int i = 0; i < NUM_STATE; i++) {
+        for (int i = 0; i < NUM_STATE; i++)
+        {
             is_diffusive[i] = _is_diffusive[i];
             visc_coef[i] = _visc_coef[i];
         }
@@ -226,44 +223,41 @@ Diffusion::echo_settings () const
     //
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        cout << "Diffusion settings..." << NL;
-        cout << "  From diffuse:" << NL;
-        cout << "   use_cg_solve =        " << use_cg_solve << NL;
-        cout << "   use_tensor_cg_solve = "  << use_tensor_cg_solve << NL;
-        cout << "   use_dv_constant_mu =  " << use_dv_constant_mu_def << NL;
-        cout << "   use_mg_precond_flag = " << use_mg_precond_flag << NL;
-        cout << "   max_order =           " << max_order << NL;
-        cout << "   tensor_max_order =    " << tensor_max_order << NL;
-        cout << "   scale_abec =          " << scale_abec << NL;
-        cout << "   est_visc_mag =        " << est_visc_mag << NL;
-        cout << "   Lphi_in_abs_tol =     " << Lphi_in_abs_tol << NL;
+        cout << "Diffusion settings...\n";
+        cout << "  From diffuse:\n";
+        cout << "   use_cg_solve =        " << use_cg_solve << '\n';
+        cout << "   use_tensor_cg_solve = "  << use_tensor_cg_solve << '\n';
+        cout << "   use_dv_constant_mu =  " << use_dv_constant_mu_def << '\n';
+        cout << "   use_mg_precond_flag = " << use_mg_precond_flag << '\n';
+        cout << "   max_order =           " << max_order << '\n';
+        cout << "   tensor_max_order =    " << tensor_max_order << '\n';
+        cout << "   scale_abec =          " << scale_abec << '\n';
+        cout << "   est_visc_mag =        " << est_visc_mag << '\n';
+        cout << "   Lphi_in_abs_tol =     " << Lphi_in_abs_tol << '\n';
     
         cout << "   typical_vals =";
         for (int i = 0; i <NUM_STATE; i++)
         {
             cout << "  " << typical_vals[i];
         }
-        cout << NL;
-    
-        cout << NL;
-        cout << "  From ns:" << NL;
-        cout << "   do_reflux =           " << do_reflux << NL;
-        cout << "   visc_tol =            " << visc_tol << NL;
-        cout << "   visc_abs_tol =        " << visc_abs_tol << NL;
+
+        cout << "\n\n  From ns:\n";
+        cout << "   do_reflux =           " << do_reflux << '\n';
+        cout << "   visc_tol =            " << visc_tol << '\n';
+        cout << "   visc_abs_tol =        " << visc_abs_tol << '\n';
     
         cout << "   is_diffusive =";
         for (int i =0; i < NUM_STATE; i++)
         {
             cout << "  " << is_diffusive[i];
         }
-        cout << NL;
     
-        cout << "   visc_coef =";
+        cout << "\n   visc_coef =";
         for (int i = 0; i < NUM_STATE; i++)
         {
             cout << "  " << visc_coef[i];
         }
-        cout << NL;
+        cout << '\n';
     }
 }
 
@@ -397,7 +391,7 @@ Diffusion::diffuse_scalar (Real       dt,
 {
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        cout << "... diffuse_scalar " << sigma << NL;
+        cout << "... diffuse_scalar " << sigma << '\n';
     }
 
     int allnull, allthere;
@@ -415,9 +409,9 @@ Diffusion::diffuse_scalar (Real       dt,
 
     if (rho_flag == 2)
     {
-        Rho_old = new MultiFab(grids,1,1,Fab_allocate);
+        Rho_old = new MultiFab(grids,1,1);
         Copy(*Rho_old,S_old,Density,0,1,1);
-        Rho_new = new MultiFab(grids,1,1,Fab_allocate);
+        Rho_new = new MultiFab(grids,1,1);
         Copy(*Rho_new,S_new,Density,0,1,1);
     }
 
@@ -436,8 +430,8 @@ Diffusion::diffuse_scalar (Real       dt,
     // S_new now contains s(n) - dt*aofs.  We will use
     // this as part of the RHS for the viscous solve.
     //
-    MultiFab Rhs(grids,1,0,Fab_allocate);
-    MultiFab Soln(grids,1,1,Fab_allocate);
+    MultiFab Rhs(grids,1,0);
+    MultiFab Soln(grids,1,1);
     {
         //
         // Set up Rhs.
@@ -688,11 +682,7 @@ Diffusion::diffuse_velocity (Real       dt,
     }
 
     if (!use_dv_constant_mu && use_dv_constant_mu_def)
-    {
-        cout << "Diffusion::diffuse_velocity() : must have velocity visc_coefs "
-             << ">= 0.0 if use_dv_constant_mu == 1\n";
-        BoxLib::Abort("Exiting.");
-    }
+        BoxLib::Abort("Diffusion::diffuse_velocity() : must have velocity visc_coefs >= 0.0 if use_dv_constant_mu == 1");
 
     if (constant_viscosity || use_dv_constant_mu)
     {
@@ -735,8 +725,8 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
         // U_new now contains the inviscid update of U.
         // This is part of the RHS for the viscous solve.
         //
-        MultiFab Rhs(grids,1,0,Fab_allocate);
-        MultiFab Soln(grids,1,1,Fab_allocate);
+        MultiFab Rhs(grids,1,0);
+        MultiFab Soln(grids,1,1);
 
         int rho_flag = 1;
         {
@@ -968,18 +958,18 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
                                     MultiFab** betan, 
                                     MultiFab** betanp1)
 {
-#if (BL_SPACEDIM==3) 
-    cout << "Diffusion::diffuse_tensor_velocity : "
-         << "not yet implemented for 3-D\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
+#if (BL_SPACEDIM==3)
+    cout << "Diffusion::diffuse_tensor_velocity() : "
+         << "not yet implemented for 3-D.\n"
+         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
          << " and rerun\n";
-    BoxLib::Abort("Diffusion::diffuse_tensor_velocity");
+    BoxLib::Abort();
 #elif !defined(USE_TENSOR)
-    cout << "Diffusion::diffuse_tensor_velocity : \n";
-    cout << "USE_TENSOR must be defined at compile time\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
-         << " and rerun\n";
-    BoxLib::Abort("Diffusion::diffuse_tensor_velocity");
+    cout << "Diffusion::diffuse_tensor_velocity(): "
+         << "USE_TENSOR must be defined at compile time.\n"
+         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
+         << "and rerun\n";
+    BoxLib::Abort();
 #else
     const int finest_level = parent->finestLevel();
     //
@@ -997,7 +987,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
     // U_new now contains the inviscid update of U.
     // This is part of the RHS for the viscous solve.
     //
-    MultiFab Rhs(grids,BL_SPACEDIM,0,Fab_allocate);
+    MultiFab Rhs(grids,BL_SPACEDIM,0);
     Rhs.setVal(0.0);
 
     MultiFab** tensorflux_old;
@@ -1006,7 +996,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
         // Set up Rhs.
         //
         int soln_old_grow = 1;
-        MultiFab Soln_old(grids,BL_SPACEDIM,soln_old_grow,Fab_allocate);
+        MultiFab Soln_old(grids,BL_SPACEDIM,soln_old_grow);
         const Real a = 0.0;
         const Real b = -(1.0-be_cn_theta)*dt;
 
@@ -1126,7 +1116,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
     // I am using a ghost cell in Soln even though Bill does not.
     //
     const int soln_grow = 1;
-    MultiFab Soln(grids,BL_SPACEDIM,soln_grow,Fab_allocate);
+    MultiFab Soln(grids,BL_SPACEDIM,soln_grow);
     Soln.setVal(0.0);
     //
     // Compute guess of solution.
@@ -1303,11 +1293,7 @@ Diffusion::diffuse_Vsync (MultiFab*  Vsync,
         use_dv_constant_mu = use_dv_constant_mu && visc_coef[Xvel+i] >= 0.0;
     }
     if (!use_dv_constant_mu && use_dv_constant_mu_def)
-    {
-        cout << "Diffusion::diffuse_Vsync : must have velocity visc_coefs "
-             << ">= 0.0 if use_dv_constant_mu == 1\n";
-        BoxLib::Abort("Diffusion::diffuse_Vsync");
-    }
+        BoxLib::Abort("Diffusion::diffuse_Vsync(): must have velocity visc_coefs >= 0.0 if use_dv_constant_mu == 1");
 
     if (constant_viscosity || use_dv_constant_mu)
     {
@@ -1366,8 +1352,8 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
     //
     for (int comp = 0; comp < BL_SPACEDIM; comp++)
     {
-        MultiFab Soln(grids,1,1,Fab_allocate);
-        MultiFab Rhs(grids,1,0,Fab_allocate);
+        MultiFab Soln(grids,1,1);
+        MultiFab Rhs(grids,1,0);
 
         Soln.setVal(0);
         Rhs.copy(*Vsync,comp,0,1);
@@ -1381,7 +1367,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            cout << "Original max of Vsync " << r_norm << NL;
+            cout << "Original max of Vsync " << r_norm << '\n';
         }
         //
         // Multiply RHS by volume and density.
@@ -1443,7 +1429,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            cout << "Final max of Vsync " << s_norm << NL;
+            cout << "Final max of Vsync " << s_norm << '\n';
         }
 
         delete visc_op;
@@ -1543,23 +1529,23 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*  Vsync,
                                  MultiFab** beta)
 {
 #if (BL_SPACEDIM==3) 
-    cout << "Diffusion::diffuse_tensor_Vsync : "
-         << "not yet implemented for 3-D\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
-         << " and rerun\n";
-    BoxLib::Abort("Exiting.");
+    cout << "Diffusion::diffuse_tensor_Vsync(): "
+         << "not yet implemented for 3-D.\n"
+         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
+         << "and rerun.\n";
+    BoxLib::Abort();
 #elif !defined(USE_TENSOR)
-    cout << "Diffusion::diffuse_tensor_Vsync :  "
-         << "USE_TENSOR must be defined at compile time\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
-         << " and rerun\n";
-    BoxLib::Abort("Exiting.");
+    cout << "Diffusion::diffuse_tensor_Vsync(): "
+         << "USE_TENSOR must be defined at compile time.\n"
+         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
+         << "and rerun.\n";
+    BoxLib::Abort();
 #else
     const int finest_level = parent->finestLevel();
     const Real* dx         = caller->Geom().CellSize();
 
-    MultiFab Soln(grids,BL_SPACEDIM,1,Fab_allocate);
-    MultiFab Rhs(grids,BL_SPACEDIM,0,Fab_allocate);
+    MultiFab Soln(grids,BL_SPACEDIM,1);
+    MultiFab Rhs(grids,BL_SPACEDIM,0);
 
     Soln.setVal(0);
     Rhs.copy(*Vsync,0,0,BL_SPACEDIM);
@@ -1573,7 +1559,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*  Vsync,
 
     if (ParallelDescriptor::IOProcessor())
     {
-        cout << "Original max of Vsync " << r_norm << NL;
+        cout << "Original max of Vsync " << r_norm << '\n';
     }
     //
     // Multiply RHS by volume and density.
@@ -1636,7 +1622,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*  Vsync,
 
     if (ParallelDescriptor::IOProcessor())
     {
-        cout << "Final max of Vsync " << s_norm << NL;
+        cout << "Final max of Vsync " << s_norm << '\n';
     }
 
     FArrayBox xflux, yflux, zflux;
@@ -1718,7 +1704,7 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
 {
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        cout << "Diffusion::diffuse_Ssync for scalar " << sigma << NL;
+        cout << "Diffusion::diffuse_Ssync for scalar " << sigma << '\n';
     }
 
     int allnull, allthere;
@@ -1726,8 +1712,8 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
 
     const Real* dx = caller->Geom().CellSize();
 
-    MultiFab Soln(grids,1,1,Fab_allocate);
-    MultiFab Rhs(grids,1,0,Fab_allocate);
+    MultiFab Soln(grids,1,1);
+    MultiFab Rhs(grids,1,0);
 
     Soln.setVal(0);
     Rhs.copy(*Ssync,sigma,0,1);
@@ -1741,7 +1727,7 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
 
     if (ParallelDescriptor::IOProcessor())
     {
-        cout << "Original max of Ssync " << r_norm << NL;
+        cout << "Original max of Ssync " << r_norm << '\n';
     }
     //
     // Compute RHS.
@@ -1807,7 +1793,7 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
 
     if (ParallelDescriptor::IOProcessor())
     {
-        cout << "Final max of Ssync " << s_norm << NL;
+        cout << "Final max of Ssync " << s_norm << '\n';
     }
 
     delete visc_op;
@@ -1907,7 +1893,7 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
         // We just solved for S -- what we want is rho*S.
         //
         MultiFab& S_new = caller->get_new_data(State_Type);
-        MultiFab Rho_new(grids,1,1,Fab_allocate);
+        MultiFab Rho_new(grids,1,1);
         Copy(Rho_new,S_new,Density,0,1,1);
         for (MultiFabIterator Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
         {
@@ -1957,17 +1943,16 @@ Diffusion::getTensorOp (Real         a,
                         MultiFab**   beta)
 {
 #if (BL_SPACEDIM==3) 
-    cout << "Diffusion::getTensorOp :  "
-         << "not yet implemented for 3-D\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
-         << " and rerun\n";
-    BoxLib::Abort("Diffusion::getTensorOp");
+    cout << "Diffusion::getTensorOp(): not yet implemented for 3-D\n"
+         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
+         << "and rerun.\n";
+    BoxLib::Abort();
 #elif !defined(USE_TENSOR)
-    cout << "Diffusion::getTensorOp :  " <<
-    cout << "USE_TENSOR must be defined at compile time\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun\n";
-    BoxLib::Abort("Diffusion::getTensorOp");
+    cout << "Diffusion::getTensorOp(): "
+         << "USE_TENSOR must be defined at compile time.\n"
+         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
+         << "and rerun.\n";
+    BoxLib::Abort();
 #else
     int allthere;
     checkBeta(beta, allthere);
@@ -1980,11 +1965,11 @@ Diffusion::getTensorOp (Real         a,
     tensor_op->maxOrder(tensor_max_order);
 
     int isrz   = CoordSys::IsRZ();
-    int nghost = 1; // Just like Bill.
+    const int nghost = 1; // Just like Bill.
     //
     // alpha should be the same size as volume.
     //
-    MultiFab alpha(grids,BL_SPACEDIM,nghost,Fab_allocate);
+    MultiFab alpha(grids,BL_SPACEDIM,nghost);
     alpha.setVal(0.0,nghost);
 
     if (a != 0.0)
@@ -2035,7 +2020,7 @@ Diffusion::getTensorOp (Real         a,
 
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-        MultiFab bcoeffs(area[n].boxArray(),1,nghost,Fab_allocate);
+        MultiFab bcoeffs(area[n].boxArray(),1,nghost);
         bcoeffs.setBndry(0);
         Copy(bcoeffs,area[n],0,0,1,nghost);
         for (MultiFabIterator betanmfi(*beta[n]); betanmfi.isValid(); ++betanmfi)
@@ -2058,17 +2043,16 @@ Diffusion::getTensorOp (Real       a,
                         MultiFab** beta)
 {
 #if (BL_SPACEDIM==3) 
-    cout << "Diffusion::getTensorOp :  "
-         << "not yet implemented for 3-D\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
-         << " and rerun\n";
-    BoxLib::Abort("Diffusion::getTensorOp");
+    cout << "Diffusion::getTensorOp(): not yet implemented for 3-D\n"
+         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
+         << "and rerun\n";
+    BoxLib::Abort();
 #elif !defined(USE_TENSOR)
-    cout << "Diffusion::getTensorOp :  "
-         << "USE_TENSOR must be defined at compile time\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
-         << " and rerun\n";
-    BoxLib::Abort("Diffusion::getTensorOp");
+    cout << "Diffusion::getTensorOp(): "
+         << "USE_TENSOR must be defined at compile time.\n"
+         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
+         << "and rerun.\n";
+    BoxLib::Abort();
 #else
     int allthere = beta != 0;
     if (allthere)
@@ -2079,11 +2063,7 @@ Diffusion::getTensorOp (Real       a,
         }
     }
     if (!allthere)
-    {
-        cout << "Diffusion::getTensorOp() : all betas must allocated\n";
-        cout << "  all 0 or all non-0\n";
-        BoxLib::Abort("Diffusion::getTensorOp()");
-    }
+        BoxLib::Abort("Diffusion::getTensorOp(): all betas must allocated all 0 or all non-0");
 
     const Real* dx    = caller->Geom().CellSize();
     const Box& domain = caller->Geom().Domain();
@@ -2097,15 +2077,8 @@ Diffusion::getTensorOp (Real       a,
                                           D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
     }
 
-    IntVect ref_ratio;
-    if (level > 0)
-    {
-        ref_ratio = parent->refRatio(level-1);
-    }
-    else
-    {
-        ref_ratio = IntVect::TheUnitVector();
-    }
+    IntVect ref_ratio = level > 0 ? parent->refRatio(level-1) : IntVect::TheUnitVector();
+
     ViscBndry2D bndry;
     bndry.define(grids,2*BL_SPACEDIM,caller->Geom());
     bndry.setHomogValues(bcarray, ref_ratio[0]);
@@ -2113,11 +2086,11 @@ Diffusion::getTensorOp (Real       a,
     tensor_op->maxOrder(tensor_max_order);
 
     int isrz   = CoordSys::IsRZ();
-    int nghost = 1; // Just like Bill.
+    const int nghost = 1; // Just like Bill.
     //
     // alpha should be the same size as volume.
     //
-    MultiFab alpha(grids,BL_SPACEDIM,nghost,Fab_allocate);
+    MultiFab alpha(grids,BL_SPACEDIM,nghost);
     alpha.setVal(0.0);
 
     if (a != 0.0)
@@ -2168,7 +2141,7 @@ Diffusion::getTensorOp (Real       a,
 
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-        MultiFab bcoeffs(area[n].boxArray(),1,nghost,Fab_allocate);
+        MultiFab bcoeffs(area[n].boxArray(),1,nghost);
         bcoeffs.setBndry(0);
         Copy(bcoeffs,area[n],0,0,1,nghost);
         for (MultiFabIterator betanmfi(*beta[n]); betanmfi.isValid(); ++betanmfi)
@@ -2212,7 +2185,7 @@ Diffusion::getViscOp (int        comp,
     //
     // alpha should be the same size as volume.
     //
-    MultiFab alpha(grids,1,GEOM_GROW,Fab_allocate);
+    MultiFab alpha(grids,1,GEOM_GROW);
 
     for (MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
     {
@@ -2222,8 +2195,10 @@ Diffusion::getViscOp (int        comp,
         assert(volume.box(alphamfi.index()) == volumemfi.validbox());
 
         const Box& bx       = alphamfi.validbox();
+
         Array<Real> rcen(bx.length(0));
         parent->Geom(level).GetCellLoc(rcen, bx, 0);
+
         const int *lo       = bx.loVect();
         const int *hi       = bx.hiVect();
         Real *dat           = alphamfi().dataPtr();
@@ -2252,6 +2227,7 @@ Diffusion::getViscOp (int        comp,
         // Using conservative diffing for rho*T.
         //
         MultiFab& S_new = caller->get_new_data(State_Type);
+
         for (MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
         {
             DependentMultiFabIterator S_newmfi(alphamfi, S_new);
@@ -2340,7 +2316,7 @@ Diffusion::getViscOp (int        comp,
     //
     // alpha should be the same size as volume.
     //
-    MultiFab alpha(grids,1,GEOM_GROW,Fab_allocate);
+    MultiFab alpha(grids,1,GEOM_GROW);
 
     for (MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
     {
@@ -2463,8 +2439,8 @@ Diffusion::getViscTerms (MultiFab&  visc_terms,
     // LinOp classes cannot handle multcomponent MultiFabs yet,
     // construct the components one at a time and copy to visc_terms.
     //
-    MultiFab visc_tmp(grids,1,1,Fab_allocate);
-    MultiFab s_tmp(grids,1,1,Fab_allocate);
+    MultiFab visc_tmp(grids,1,1);
+    MultiFab s_tmp(grids,1,1);
 
     if (is_diffusive[comp])
     {
@@ -2610,30 +2586,27 @@ Diffusion::getTensorViscTerms (MultiFab&  visc_terms,
                                MultiFab** beta)
 {
 #if (BL_SPACEDIM==3)
-    cout << "Diffusion::getTensorViscTerms :  "
-         << "not yet implemented for 3-D\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
-         << " and rerun\n";
-    BoxLib::Abort("Diffusion::getTensorViscTerms");
+    cout << "Diffusion::getTensorViscTerms(): not yet implemented for 3-D.\n"
+         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
+         << "and rerun\n";
+    BoxLib::Abort();
 #elif  !defined (USE_TENSOR)
-    cout << "Diffusion::getTensorViscTerms :  "
-         << "USE_TENSOR must be defined at compile time\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
-         << " and rerun\n";
-    BoxLib::Abort("Diffusion::getTensorViscTerms");
+    cout << "Diffusion::getTensorViscTerms(): "
+         << "USE_TENSOR must be defined at compile time.\n"
+         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
+         << "and rerun\n";
+    BoxLib::Abort();
 #else
     int allthere;
     checkBeta(beta, allthere);
 
-    int src_comp = Xvel;
-    int ncomp    = visc_terms.nComp();
+    const int src_comp = Xvel;
+    const int ncomp    = visc_terms.nComp();
+
     if (ncomp < BL_SPACEDIM)
-    {
-        cout << "Diffusion::getTensorViscTerms : visc_terms must have\n";
-        cout << "  at least BL_SPACEDIM components\n";
-        BoxLib::Abort("Diffusion::getTensorViscTerms");
-    }
-    int vel_ncomp = BL_SPACEDIM;
+        BoxLib::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least BL_SPACEDIM components");
+
+    const int vel_ncomp = BL_SPACEDIM;
     //
     // Before computing the godunov predicitors we may have to
     // precompute the viscous source terms.  To do this we must
@@ -2650,8 +2623,8 @@ Diffusion::getTensorViscTerms (MultiFab&  visc_terms,
     // LinOp classes cannot handle multcomponent MultiFabs yet,
     // construct the components one at a time and copy to visc_terms.
     //
-    MultiFab visc_tmp(grids,BL_SPACEDIM,1,Fab_allocate);
-    MultiFab s_tmp(grids,BL_SPACEDIM,1,Fab_allocate);
+    MultiFab visc_tmp(grids,BL_SPACEDIM,1);
+    MultiFab s_tmp(grids,BL_SPACEDIM,1);
 
     if (is_diffusive[src_comp])
     {
@@ -2667,17 +2640,17 @@ Diffusion::getTensorViscTerms (MultiFab&  visc_terms,
         tensor_op.maxOrder(tensor_max_order);
         tensor_op.setScalars(a,b);
 
-        int nghost = 1; // like bill
+        const int nghost = 1; // like bill
         //
         // alpha should be the same size as volume.
         //
-        MultiFab alpha(grids,BL_SPACEDIM,nghost,Fab_allocate);
+        MultiFab alpha(grids,BL_SPACEDIM,nghost);
         alpha.setVal(0.0);
         tensor_op.aCoefficients(alpha);
 
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            MultiFab bcoeffs(area[n].boxArray(),1,nghost,Fab_allocate);
+            MultiFab bcoeffs(area[n].boxArray(),1,nghost);
             bcoeffs.setBndry(0);
             Copy(bcoeffs,area[n],0,0,1,nghost);
             for (MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid();
@@ -2841,7 +2814,10 @@ Diffusion::getBndryData (ViscBndry& bndry,
 	BoxArray cgrids = grids;
 	cgrids.coarsen(crse_ratio);
 	BndryRegister crse_br(cgrids,0,1,1,num_comp);
-	crse_br.setVal(BL_BOGUS); // interp for solvers over ALL c-f brs, need safe data
+        //
+        // interp for solvers over ALL c-f brs, need safe data
+        //
+	crse_br.setVal(BL_BOGUS);
 	coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
 	bndry.setBndryValues(crse_br,0,Stmp,0,0,num_comp,crse_ratio,bc);
     }
@@ -2861,13 +2837,15 @@ Diffusion::FillBoundary (BndryRegister& bdry,
     //
     const int nGrow = 1;
 
-    MultiFab S(caller->boxArray(),num_comp,nGrow,Fab_allocate);
-    
-    for (FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,0,num_comp);
-         S_fpi.isValid();
-         ++S_fpi)
+    MultiFab S(caller->boxArray(),num_comp,nGrow);
+
     {
-        S[S_fpi.index()].copy(S_fpi(), 0, 0, num_comp);
+        FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,0,num_comp);
+
+        for ( ; S_fpi.isValid(); ++S_fpi)
+        {
+            S[S_fpi.index()].copy(S_fpi(), 0, 0, num_comp);
+        }
     }
 
     if (rho_flag == 2)
@@ -2882,7 +2860,7 @@ Diffusion::FillBoundary (BndryRegister& bdry,
     //
     // Copy into boundary register.
     //
-    bdry.copyFrom(S, nGrow, 0, dest_comp, num_comp);
+    bdry.copyFrom(S,nGrow,0,dest_comp,num_comp);
 }
 
 #if defined (USE_TENSOR)
@@ -2896,18 +2874,18 @@ Diffusion::getTensorBndryData(
                             Real time)
 {
 #if (BL_SPACEDIM==3)
-    cout << "Diffusion::getTensorBndryData :  "
-         << "not yet implemented for 3-D" << NL;
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
-         << " and rerun" << NL;
-    BoxLib::Abort("Diffusion::getTensorBndryData()");
+    cout << "Diffusion::getTensorBndryData(): not yet implemented for 3-D.\n"
+         << "Set use_dv_constant_mu = 1 with velocity visc_coef >=0.0 "
+         << "and rerun\n";
+    BoxLib::Abort();
 #else
-    int num_comp = BL_SPACEDIM;
-    int src_comp = Xvel;
+    const int num_comp = BL_SPACEDIM;
+    const int src_comp = Xvel;
     //
     // Create the BCRec's interpreted by ViscBndry objects
     //
     Array<BCRec> bcarray(2*BL_SPACEDIM);
+
     for (int idim = 0; idim < BL_SPACEDIM; idim++)
     {
         bcarray[idim] = caller->get_desc_lst()[State_Type].getBC(src_comp+idim);
@@ -2946,16 +2924,14 @@ Diffusion::checkBetas (const MultiFab* const* beta1,
                        int&                   allnull) const
 {
     int allnull1, allnull2, allthere1, allthere2;
+
     checkBeta(beta1,allthere1,allnull1);
     checkBeta(beta2,allthere2,allnull2);
     allnull  = allnull1 && allnull2;
     allthere = allthere1 && allthere2;
+
     if (!(allthere || allnull))
-    {
-        cout << "Diffusion::checkBetas : all betas must either be"
-             << "  all 0 or all non-0\n";
-        BoxLib::Abort("Diffusion::checkBetas()");
-    }
+        BoxLib::Abort("Diffusion::checkBetas(): betas must either be all 0 or all non-0");
 }
 
 void
@@ -2965,6 +2941,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
 {
     allnull  = 1;
     allthere = beta != 0;
+
     if (allthere)
     {
         for (int dim = 0; dim < BL_SPACEDIM; dim++)
@@ -2973,12 +2950,9 @@ Diffusion::checkBeta (const MultiFab* const* beta,
             allthere = allthere && beta[dim] != 0;
         }
     }
+
     if (!(allthere || allnull))
-    {
-        cout << "Diffusion::checkBeta : all betas must either be"
-             << "  all 0 or all non-0\n";
-        BoxLib::Abort("Diffusion::checkBeta()");
-    }
+        BoxLib::Abort("Diffusion::checkBeta(): betas must be all 0 or all non-0");
 }
 
 void
@@ -2986,6 +2960,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
                       int&                   allthere) const
 {
     allthere = beta != 0;
+
     if (allthere)
     {
         for (int dim = 0; dim < BL_SPACEDIM; dim++)
@@ -2993,12 +2968,9 @@ Diffusion::checkBeta (const MultiFab* const* beta,
             allthere = allthere && beta[dim] != 0;
         }
     }
+
     if (!allthere)
-    {
-        cout << "Diffusion::checkBeta : all betas must be"
-             << "  all non-0\n";
-        BoxLib::Abort("Diffusion::checkBeta()");
-    }
+        BoxLib::Abort("Diffusion::checkBeta(): betas must be all non-0");
 }
 
 void
@@ -3011,7 +2983,7 @@ Diffusion::allocFluxBoxesLevel (MultiFab**& fluxbox,
     {
         BoxArray edge_boxes(grids);
         edge_boxes.surroundingNodes(dir);
-        fluxbox[dir] = new MultiFab(edge_boxes,nvar,nghost,Fab_allocate);
+        fluxbox[dir] = new MultiFab(edge_boxes,nvar,nghost);
     }
 }
 
