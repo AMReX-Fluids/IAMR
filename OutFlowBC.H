@@ -2,7 +2,7 @@
 #define _OUTFLOWBC_H_
 
 //
-// $Id: OutFlowBC.H,v 1.1 2000-11-02 18:08:02 lijewski Exp $
+// $Id: OutFlowBC.H,v 1.2 2000-11-02 23:11:17 lijewski Exp $
 //
 
 #include "FArrayBox.H"
@@ -23,6 +23,10 @@ enum OutFlow_Solver_Type
 class OutFlowBC
 {
 public:
+
+    OutFlowBC ();
+
+    virtual ~OutFlowBC ();
 
     virtual void computeBC (FArrayBox*         velFab,
                             FArrayBox&         divuFab,
@@ -69,7 +73,7 @@ public:
                   int*       IsPeriodic,
                   bool       is_scalar);
 
-    ~OutFlowBC_MG ();
+    virtual ~OutFlowBC_MG ();
 
     void solve (Real tol,
                 Real abs_tol,

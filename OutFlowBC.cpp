@@ -1,9 +1,13 @@
 //
-// $Id: OutFlowBC.cpp,v 1.1 2000-11-02 18:08:02 lijewski Exp $
+// $Id: OutFlowBC.cpp,v 1.2 2000-11-02 23:11:17 lijewski Exp $
 //
 
 #include "OutFlowBC.H"
 #include "ParmParse.H"
+
+OutFlowBC::OutFlowBC () {}
+
+OutFlowBC::~OutFlowBC () {}
 
 Box
 OutFlowBC::SemiGrow (const Box& baseBox,
