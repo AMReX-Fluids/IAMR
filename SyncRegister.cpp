@@ -1,7 +1,8 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.65 2001-08-01 21:51:00 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.66 2001-08-11 00:59:23 marc Exp $
 //
+#include <winstd.H>
 
 #include <cstdlib>
 #include <cstring>
