@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.25 1997-12-19 21:09:05 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.26 1998-02-05 00:39:20 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3062,7 +3062,7 @@ void NavierStokes::errorEst(TagBoxArray &tags, int clearval, int tagval,
         //assert(tags[i] != NULL);
         TagBox &tn = tags[i];
 
-        int *tptr = tn.dataPtr();
+        int* tptr = reinterpret_cast<int*>( tn.dataPtr() );
         const Box &tbox = tn.box();
         const int *tlo = tbox.loVect();
         const int *thi = tbox.hiVect();

@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.25 1998-01-26 20:56:43 car Exp $
+// $Id: Projection.cpp,v 1.26 1998-02-05 00:39:21 car Exp $
 //
 
 #ifdef BL_T3E
@@ -91,8 +91,8 @@ tempIntList.clear();
     cout << "Creating projector\n";
   }
 
-#if BL_SPACEDIM != 2
-  if (CoordSys::IsRZ() == 1) amr_multigrid::SetRZ();
+#if BL_SPACEDIM == 2
+  if ( CoordSys::IsRZ() ) amr_multigrid::SetRZ();
 #endif
   setUpBcs();
   sync_proj = 0;
