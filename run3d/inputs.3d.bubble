@@ -43,7 +43,7 @@ amr.ref_ratio        = 4 2 # integer refinement ratio
 #**********************************
 
 ns.v                    = 1
-godunov.v               = 1
+godunov.v               = 0
 mac.v                   = 0
 proj.v                  = 0
 diffuse.v               = 0
