@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.179 2000-07-19 17:20:40 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.180 2000-07-21 17:58:06 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1936,7 +1936,13 @@ NavierStokes::scalar_update (Real dt,
         cout << "... update scalars\n";
 
     scalar_advection_update(dt, first_scalar, last_scalar);
-    scalar_diffusion_update(dt, first_scalar, last_scalar);
+
+    bool do_any_diffuse = false;
+    for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
+        if (is_diffusive[sigma]) do_any_diffuse = true;
+
+    if (do_any_diffuse)
+      scalar_diffusion_update(dt, first_scalar, last_scalar);
 }
 
 void
