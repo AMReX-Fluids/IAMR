@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.41 1999-02-11 18:51:15 marc Exp $
+// $Id: MacProj.cpp,v 1.42 1999-02-26 18:53:12 propp Exp $
 //
 
 #include <Misc.H>
@@ -225,18 +225,32 @@ MacProj::cleanup (int level)
 // Projection functions follow ...
 //
 
-#if (BL_SPACEDIM == 2)
 static
 bool
-grids_on_yhi_of_domain (const BoxArray& grids,
-                        const Box&      domain)
+grids_on_side_of_domain (const BoxArray& grids,
+                        const Box&      domain,
+			const Orientation& outFace)
 {
-    for (int i = 0; i < grids.length(); i++)
-        if (grids[i].bigEnd(1) == domain.bigEnd(1))
-            return true;
-    return false;
+  const int idir = outFace.coordDir();
+
+  if (outFace.isLow()) {
+    for (int igrid = 0; igrid < grids.length(); igrid++) { 
+      if (grids[igrid].smallEnd(idir) == domain.smallEnd(idir)) { 
+	return true;
+      }
+    }
+  }
+  
+  if (outFace.isHigh()) {
+    for (int igrid = 0; igrid < grids.length(); igrid++) {
+      if (grids[igrid].bigEnd(idir) == domain.bigEnd(idir)) {
+	return true;
+      }
+    }
+  }
+
+  return false;
 }
-#endif
 
 //
 // Compute the level advance mac projection.
@@ -279,15 +293,16 @@ MacProj::mac_project (int             level,
 #if (BL_SPACEDIM == 2)
     int outflow_at_top = phys_bc->lo(0) != Outflow && phys_bc->lo(1) != Outflow && 
         phys_bc->hi(0) != Outflow && phys_bc->hi(1) == Outflow;
-
+    const Orientation outFace(1,Orientation::high);
     if (outflow_at_top &&
         have_divu      &&
         do_outflow_bcs &&
-        grids_on_yhi_of_domain(grids,geom.Domain()))
+        grids_on_side_of_domain(grids,geom.Domain(),outFace))
     {
         set_outflow_bcs(level, mac_phi, u_mac, S, divu);
     }
 #endif
+
     //
     // Store the Dirichlet boundary condition for mac_phi in mac_bndry.
     //
