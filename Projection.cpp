@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.140 2002-08-16 23:15:02 car Exp $
+// $Id: Projection.cpp,v 1.141 2002-08-29 22:16:33 car Exp $
 //
 #include <winstd.H>
 
@@ -1410,7 +1410,7 @@ Projection::initialSyncProject (int       c_lev,
     int lev;
     int f_lev = finest_level;
     if (verbose && ParallelDescriptor::IOProcessor()) 
-        std::cout << "SyncProject: levels = " << c_lev << "  " << f_lev << '\n';
+        std::cout << "initialSyncProject: levels = " << c_lev << "  " << f_lev << '\n';
     //
     // Manipulate state + pressure data.
     //
