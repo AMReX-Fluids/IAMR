@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.14 2004-09-08 20:58:54 almgren Exp $
+c $Id: PROJECTION_3D.F,v 1.15 2004-09-08 21:01:48 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -183,9 +183,10 @@ c
       call bl_abort('SHOULD NEVER BE IN RADDIV IN 3D')
       end
 
-      subroutine FORT_ANELCOEFFMPY(a,DIMS(grid),domlo,domhi,ng,rho0,nr,bogus_value,mult)
+      subroutine FORT_ANELCOEFFMPY(a,DIMS(grid),domlo,domhi,ng,
+     $                             anel_coeff,nr,bogus_value,mult)
 c 
-c     multiply A by rho0
+c     multiply A by anel_coeff
 c
 c 
 c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
@@ -197,7 +198,7 @@ c
       REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
      $             ARG_L2(grid)-ng:ARG_H2(grid)+ng,
      $             ARG_L3(grid)-ng:ARG_H3(grid)+ng)
-      REAL_T     rho0(ARG_L3(grid)-nr:ARG_H3(grid)+nr)
+      REAL_T     anel_coeff(ARG_L3(grid)-nr:ARG_H3(grid)+nr)
       REAL_T     bogus_value
       integer    mult
 
@@ -207,7 +208,7 @@ c
          do k = ARG_L3(grid)-ng, ARG_H3(grid)+ng
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
-           a(i,j,k) = a(i,j,k) * rho0(k)
+           a(i,j,k) = a(i,j,k) * anel_coeff(k)
          end do
          end do
          end do
@@ -215,7 +216,7 @@ c
          do k = ARG_L3(grid)-ng, ARG_H3(grid)+ng
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
-           a(i,j,k) = a(i,j,k) / rho0(k)
+           a(i,j,k) = a(i,j,k) / anel_coeff(k)
          end do
          end do
          end do

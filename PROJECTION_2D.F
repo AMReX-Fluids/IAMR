@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.39 2004-09-08 20:58:54 almgren Exp $
+c $Id: PROJECTION_2D.F,v 1.40 2004-09-08 21:01:48 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -315,7 +315,7 @@ c
 
       end
 
-      subroutine FORT_ANELCOEFFMPY(a,DIMS(grid),domlo,domhi,ng,rho0,nr,bogus_value,mult)
+      subroutine FORT_ANELCOEFFMPY(a,DIMS(grid),domlo,domhi,ng,anel_coeff,nr,bogus_value,mult)
 c 
 c     multiply A by the anelastic coefficient
 c
@@ -328,7 +328,7 @@ c
       integer    domlo(2), domhi(2)
       REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
      $             ARG_L2(grid)-ng:ARG_H2(grid)+ng)
-      REAL_T     rho0(ARG_L2(grid)-nr:ARG_H2(grid)+nr)
+      REAL_T     anel_coeff(ARG_L2(grid)-nr:ARG_H2(grid)+nr)
       REAL_T     bogus_value
       integer    mult
 
@@ -337,13 +337,13 @@ c
       if (mult .eq. 1) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
-           a(i,j) = a(i,j) * rho0(j)
+           a(i,j) = a(i,j) * anel_coeff(j)
          end do
          end do
       else if (mult .eq. 0) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
-           a(i,j) = a(i,j) / rho0(j)
+           a(i,j) = a(i,j) / anel_coeff(j)
          end do
          end do
       else 
