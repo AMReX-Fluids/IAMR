@@ -129,17 +129,20 @@ LIBRARIES += -lexc
 endif
 endif
 
-
-#CXXFLAGS = -g --diag_suppress 177
-#CXXFLAGS = --strict_warnings
 ifeq ($(BSP_MACHINE), OSF1)
-#FFLAGS += -real_size 64
-#FDEBF += -C
-#FDEBF += - -warn argument_checking
-#FDEBF += - -warn declarations
-#FDEBF += - -warn truncated_source
-#FDEBF += - -warn unused
-#FOPTF  = -fast -O5 -tune ev5
+#
+# Some additional stuff for our preferred development/debugging environment.
+#
+ifeq ($(PRECISION), DOUBLE)
+FFLAGS += -real_size 64
+endif
+FDEBF += -C
+FDEBF += -warn argument_checking
+FDEBF += -warn declarations
+ifneq ($(FC), f90)
+FDEBF += -warn truncated_source
+FDEBF += -warn unused
+endif
 endif
 
 3RD = 1
