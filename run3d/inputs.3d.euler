@@ -21,7 +21,7 @@ amr.n_cell =      16 16 16 # indices of the domain at level 0
 #amr.restart =     # set if starting from a restart file, else comment out
 
 # This will default to file "probin" if not set
-amr.probin_file = probin.3d.spin
+amr.probin_file = probin.3d.euler
 
 #**********************************
 #ADAPTIVITY CONTROLS
