@@ -37,11 +37,11 @@ BOXLIB_BASE=EXE
 C$(BOXLIB_BASE)_sources += BoxLib.cpp Tracer.cpp
 C$(BOXLIB_BASE)_headers += BoxLib.H BLVERSION.H Tracer.H
 
-C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp aString.cpp BArena.cpp
+C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp aString.cpp
 C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H Assert.H aString.H
 
 C$(BOXLIB_BASE)_headers += ArrayLim.H REAL.H Boolean.H SPACE.H SPACE_F.H
-C$(BOXLIB_BASE)_headers += CONSTANTS.H BArena.H Arena.H UseCount.H
+C$(BOXLIB_BASE)_headers += CONSTANTS.H UseCount.H
 
 C$(BOXLIB_BASE)_sources += DistributionMapping.cpp ParallelDescriptor.cpp
 C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
