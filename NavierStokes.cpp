@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.127 1999-04-02 21:28:33 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.128 1999-04-02 23:07:37 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2515,7 +2515,7 @@ NavierStokes::writePlotFile (const aString& dir,
     //
     static const aString BaseName[] =
     {
-        "/Cell", "/DivU", "/DsDt", "/Derived_"
+        "/Cell", "/DivU", "/DsDt", "/Derived"
     };
     //
     // Build the directory to hold the MultiFabs at this level.
@@ -2575,15 +2575,10 @@ NavierStokes::writePlotFile (const aString& dir,
             PathNameInHeader += BaseName[2];
             os << PathNameInHeader << '\n';
         }
-        //
-        // We name MultiFabs from derived classes: Derived_0, Derived_1, ...
-        //
-        for (int i = 0; i < derived_mfs.length(); i++)
+        if (derived_mfs.length() > 0)
         {
             aString PathNameInHeader = Level;
             PathNameInHeader += BaseName[3];
-            sprintf(buf, "%d", i);
-            PathNameInHeader += buf;
             os << PathNameInHeader << '\n';
         }
     }
@@ -2628,36 +2623,27 @@ NavierStokes::writePlotFile (const aString& dir,
         TheFullPath += BaseName[2];
         RunStats::addBytes(VisMF::Write(*dsdt_dat, TheFullPath, how, true));
     }
-
-    for (int i = 0; i < derived_mfs.length(); i++)
+    if (derived_mfs.length() > 0)
     {
         TheFullPath = FullPath;
         TheFullPath += BaseName[3];
-        sprintf(buf, "%d", i);
-        TheFullPath += buf;
+        int derived_count = 0;
+        for (int i = 0; i < derived_mfs.length(); i++)
+            derived_count += derived_map[i].size();
 
-        if (derived_map[i].size() == derived_mfs[i]->nComp())
+        const int nGrow = 0;
+        MultiFab derived_all(grids,derived_count,nGrow,Fab_allocate);
+        
+        derived_count = 0;
+        for (int i = 0; i < derived_mfs.length(); i++)
         {
-            RunStats::addBytes(VisMF::Write(*derived_mfs[i],TheFullPath,how,true));
+            assert(derived_mfs[i]->boxArray() == grids);
+            const int nComp = derived_map[i].size();
+            MultiFab::Copy(derived_all,*derived_mfs[i],0,derived_count,nComp,nGrow);
+            derived_count += nComp;
         }
-        else
-        {
-            assert(derived_map[i].size() > 0);
-            //
-            // Make MultiFab containing copy of selected components.
-            // Note that we don't copy the ghost cells.
-            //
-            MultiFab mf(derived_mfs[i]->boxArray(),derived_map[i].size(),0);
 
-            for (MultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
-            {
-                DependentMultiFabIterator dmfi(mfi,*derived_mfs[i]);
-
-                for (int j = 0; j < derived_map[i].size(); j++)
-                    mfi().copy(dmfi(), derived_map[i][j], j, 1);
-            }   
-            RunStats::addBytes(VisMF::Write(mf,TheFullPath,how,true));
-        }
+        RunStats::addBytes(VisMF::Write(derived_all,TheFullPath,how,true));
     }
 }
 
