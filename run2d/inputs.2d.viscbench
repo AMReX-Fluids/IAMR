@@ -78,6 +78,9 @@ amr.check_int        = 20 # (integer) number of timesteps between checkpoint fil
 #amr.plot_per         # (real) period between plot files (in same units as dt)
 amr.plot_int         = 2 # (integer) number of timesteps between plot files
 
+#amr.plot_vars        = x_velocity y_velocity density tracer
+#amr.derive_plot_vars = mag_vort
+
 #**********************************
 #TIME STEP CONTROLS
 #**********************************
