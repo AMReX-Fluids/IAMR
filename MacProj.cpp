@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.59 1999-11-23 01:36:46 propp Exp $
+// $Id: MacProj.cpp,v 1.60 2000-03-27 18:12:52 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -329,6 +329,7 @@ MacProj::mac_project (int             level,
     const Real*     dx         = geom.CellSize();
     const int       max_level  = parent->maxLevel();
     MultiFab*       mac_phi    = 0;
+    NavierStokes&   ns         = *(NavierStokes*) &(parent->getLevel(level));
     IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
                                            : IntVect::TheZeroVector();
     //
@@ -340,6 +341,18 @@ MacProj::mac_project (int             level,
         mac_phi = &mac_phi_crse[level];
 
     mac_phi->setVal(0.0);
+    //
+    // HACK!!!
+    //
+    // Some of the routines we call assume that density has one valid
+    // ghost cell.  We enforce that assumption by setting it here.
+    //
+    FillPatchIterator S_fpi(ns,S,1,time,State_Type,Density,1);
+
+    for ( ; S_fpi.isValid(); ++S_fpi)
+    {
+        S[S_fpi.index()].copy(S_fpi(),0,Density,1);
+    }
 
     if (hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)
     {
@@ -410,10 +423,8 @@ MacProj::mac_project (int             level,
 
             if (ParallelDescriptor::IOProcessor())
             {
-                cout << "LEVEL "
-                     << level
-                     << " MACREG: CrseInit sum = "
-                     << sumreg << endl;
+                cout << "LEVEL "                   << level
+                     << " MACREG: CrseInit sum = " << sumreg << endl;
             }
         }
     }
@@ -435,10 +446,8 @@ MacProj::mac_project (int             level,
 
             if (ParallelDescriptor::IOProcessor())
             {
-                cout << "LEVEL "
-                     << level
-                     << " MACREG: FineAdd sum = "
-                     << sumreg << endl;
+                cout << "LEVEL "                  << level
+                     << " MACREG: FineAdd sum = " << sumreg << endl;
             }
         }
     }

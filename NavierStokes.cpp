@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.158 2000-03-24 23:54:33 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.159 2000-03-27 18:12:53 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -560,28 +560,6 @@ NavierStokes::init_additional_state_types ()
     {
         cout << "NavierStokes::init_additional_state_types: num_state_type = "
              << num_state_type << '\n';
-    }
-}
-
-void
-NavierStokes::SaveOldBoundary (Real time)
-{
-    //
-    // HACK!!!
-    //
-    // Note that we only update the Density ghost cells.
-    // This is because mac_project() assumes that Density has
-    // valid ghost cells at least one cell thick.
-    // Eventually, this assumption will be fixed and this routine will
-    // go the way of the dinosaur.
-    //
-    MultiFab& Sold = get_old_data(State_Type);
-
-    FillPatchIterator Sold_fpi(*this,Sold,1,time,State_Type,Density,1);
-
-    for ( ; Sold_fpi.isValid(); ++Sold_fpi)
-    {
-        Sold[Sold_fpi.index()].copy(Sold_fpi(), 0, Density, 1);
     }
 }
 
@@ -1191,8 +1169,6 @@ NavierStokes::advance (Real time,
              << " with dt = "               << dt << '\n';
     }
     advance_setup(time,dt,iteration,ncycle);
-    
-    SaveOldBoundary(time); 
 
     MultiFab& Snew  = get_new_data(State_Type);
     MultiFab& Sold  = get_old_data(State_Type);
