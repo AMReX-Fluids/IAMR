@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.34 1998-06-20 03:18:40 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.35 1998-06-26 22:19:52 lijewski Exp $
 //
 
 //
@@ -850,7 +850,7 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
         //
         if (level == 0)
         {
-            Soln.copy(U_old,sigma,0,1);
+            Copy(Soln,U_old,sigma,0,1,1);
         }
         else
         {
@@ -1178,7 +1178,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
     //
     // I am using a ghost cell in Soln even though Bill does not.
     //
-    int soln_grow = 1;
+    const int soln_grow = 1;
     MultiFab Soln(grids,BL_SPACEDIM,soln_grow,Fab_allocate);
     Soln.setVal(0.0);
     //
@@ -1186,7 +1186,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
     //
     if (level == 0)
     {
-        Soln.copy(U_old,Xvel,0,BL_SPACEDIM);
+        Copy(Soln,U_old,Xvel,0,BL_SPACEDIM,soln_grow);
     }
     else
     {
@@ -1285,7 +1285,6 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
                 yflux_bx.surroundingNodes(1);
                 yflux.resize(yflux_bx,1);
                 yflux.copy(tensorflux1mfi(),sigma,0,1);
-
 #if (BL_SPACEDIM == 3)
                 Box zflux_bx(grd);
                 zflux_bx.surroundingNodes(2);
@@ -1727,7 +1726,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*  Vsync,
                 yflux_bx.surroundingNodes(1);
                 yflux.resize(yflux_bx,1);
                 yflux.copy(tensorflux1mfi(),sigma,0,1); 
-
 #if (BL_SPACEDIM == 3)
                 Box zflux_bx(grd);
                 zflux_bx.surroundingNodes(2);
@@ -2082,7 +2080,7 @@ Diffusion::getTensorOp (Real         a,
     {
         MultiFab bcoeffs(area[n].boxArray(),1,nghost,Fab_allocate);
         bcoeffs.setBndry(0);
-        bcoeffs.copy(area[n]);
+        Copy(bcoeffs,area[n],0,0,1,nghost);
         for (MultiFabIterator betanmfi(*beta[n]); betanmfi.isValid(false);
              ++betanmfi)
         {
@@ -2216,7 +2214,7 @@ Diffusion::getTensorOp (Real       a,
     {
         MultiFab bcoeffs(area[n].boxArray(),1,nghost,Fab_allocate);
         bcoeffs.setBndry(0);
-        bcoeffs.copy(area[n]);
+        Copy(bcoeffs,area[n],0,0,1,nghost);
         for (MultiFabIterator betanmfi(*beta[n]); betanmfi.isValid(false);
              ++betanmfi)
         {
@@ -2656,35 +2654,9 @@ Diffusion::getViscTerms (MultiFab&  visc_terms,
             FORT_VISCEXTRAP(vdat,ARLIM(vlo),ARLIM(vhi),lo,hi,&ncomp);
         }
         //
-        // If periodic, copy into periodic translates of visc_tmp.
+        // Copy into periodic translates of visc_tmp.
         //
-        if (caller->Geom().isAnyPeriodic())
-        {
-            FArrayBox dest;
-            Array<IntVect> pshifts(27);
-            const Box& domain = caller->Geom().Domain();
-
-            for (MultiFabIterator visc_tmpmfi(visc_tmp);
-                 visc_tmpmfi.isValid(false); ++visc_tmpmfi)
-            {
-                assert(visc_tmp[visc_tmpmfi.index()].box() == visc_tmpmfi.fabbox());
-  
-                const Box& dbox = visc_tmpmfi.fabbox();
-                dest.resize(dbox,1);
-                dest.copy(visc_tmpmfi(),dbox,0,dbox,0,1);
-                caller->Geom().periodicShift(domain, dest.box(), pshifts);
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    if (dbox.intersects(domain))
-                    {
-                        dest.shift(pshifts[iiv]);
-                        visc_tmp.copy(dest);
-                        dest.shift(-pshifts[iiv]);
-                    }
-                    visc_tmpmfi().copy(dest,dbox,0,dbox,0,1);
-                }
-            }
-        }
+        caller->Geom().FillPeriodicBoundary(visc_tmp);
         //
         // Copy from valid regions of overlapping grids.
         //
@@ -2769,7 +2741,7 @@ Diffusion::getTensorViscTerms (MultiFab&  visc_terms,
         {
             MultiFab bcoeffs(area[n].boxArray(),1,nghost,Fab_allocate);
             bcoeffs.setBndry(0);
-            bcoeffs.copy(area[n]);
+            Copy(bcoeffs,area[n],0,0,1,nghost);
             for (MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(false);
                  ++bcoeffsmfi)
             {
@@ -2848,35 +2820,9 @@ Diffusion::getTensorViscTerms (MultiFab&  visc_terms,
             FORT_VISCEXTRAP(vdat,ARLIM(vlo),ARLIM(vhi),lo,hi,&vel_ncomp);
         }
         //
-        // If periodic, copy into periodic translates of visc_tmp.
+        // Copy into periodic translates of visc_tmp.
         //
-        if (caller->Geom().isAnyPeriodic())
-        {
-            FArrayBox dest;
-            Array<IntVect> pshifts(27);
-            const Box& domain = caller->Geom().Domain();
-
-            for (MultiFabIterator visc_tmpmfi(visc_tmp);
-                 visc_tmpmfi.isValid(false); ++visc_tmpmfi)
-            {
-                assert(visc_tmp[visc_tmpmfi.index()].box() == visc_tmpmfi.fabbox());
- 
-                const Box& dbox(visc_tmpmfi.fabbox());
-                dest.resize(dbox,1);
-                dest.copy(visc_tmpmfi(),dbox,0,dbox,0,1);
-                caller->Geom().periodicShift(domain, dest.box(), pshifts);
-                for (int iiv=0; iiv<pshifts.length(); iiv++)
-                {
-                    if (dbox.intersects(domain))
-                    {
-                        dest.shift(pshifts[iiv]);
-                        visc_tmp.copy(dest);
-                        dest.shift(-pshifts[iiv]);
-                    }
-                    visc_tmpmfi().copy(dest,dbox,0,dbox,0,vel_ncomp);
-                }
-            }
-        }
+        caller->Geom().FillPeriodicBoundary(visc_tmp);
         //
         // Copy from valid regions of overlapping grids.
         //
