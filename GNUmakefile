@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.66 1998-12-02 21:07:23 lijewski Exp $
+# $Id: GNUmakefile,v 1.67 1998-12-03 18:23:51 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -70,6 +70,7 @@ endif
 #
 ifeq ($(COMP),KCC)
 ifeq ($(USE_TENSOR),TRUE)
+DEFINES += -DUSE_TENSOR
 LibsToCloseAgainst := $(TOP)/lib/$(machineSuffix)/libmcmg$(DIM)d.a
 LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libmg$(DIM)d.a
 else
