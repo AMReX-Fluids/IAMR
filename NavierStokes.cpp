@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.28 1998-03-03 19:03:57 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.29 1998-03-23 21:25:51 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -112,7 +112,6 @@ int  NavierStokes::num_state_type = 2;     // for backward compatibility
 // -------------------------------------------------------------
 void NavierStokes::variableCleanUp()
 {
-    derive_lst.clear();
     desc_lst.clear();
     delete projector;
     projector = 0;
@@ -3244,7 +3243,7 @@ NavierStokes::writePlotFile (const aString& dir,
                              VisMF::How     how)
 {
     int i, n;
-    List<DeriveRec*> dlist = derive_lst.dlist();
+    List<DeriveRec> dlist = derive_lst.dlist();
 
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
@@ -3275,8 +3274,8 @@ NavierStokes::writePlotFile (const aString& dir,
                 os << desc_lst[Dsdt_Type].name(0) << '\n';
         }
 
-        for (ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp)
-            os << dlist[lidrp]->name() << '\n';
+        for (ListIterator<DeriveRec> lidrp(dlist); lidrp; ++lidrp)
+            os << dlist[lidrp].name() << '\n';
 
         os << BL_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
@@ -3383,14 +3382,14 @@ NavierStokes::writePlotFile (const aString& dir,
         //
         // Don't forget the derived types.
         //
-        for (ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp)
+        for (ListIterator<DeriveRec> lidrp(dlist); lidrp; ++lidrp)
         {
             PathNameInHeader = Level;
             //
             // The derived-type names aren't prefixed with a '/'
             //
             PathNameInHeader += '/';
-            PathNameInHeader += dlist[lidrp]->name();
+            PathNameInHeader += dlist[lidrp].name();
             os << PathNameInHeader << '\n';
         }
     }
@@ -3415,12 +3414,12 @@ NavierStokes::writePlotFile (const aString& dir,
         }
     }
 
-    for (ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp)
+    for (ListIterator<DeriveRec> lidrp(dlist); lidrp; ++lidrp)
     {
         TheFullPath = FullPath;
-        TheFullPath += dlist[lidrp]->name();
+        TheFullPath += dlist[lidrp].name();
 
-        MultiFab* mf = derive(dlist[lidrp]->name(), cur_time);
+        MultiFab* mf = derive(dlist[lidrp].name(), cur_time);
 
         RunStats::addBytes(VisMF::Write(*mf, TheFullPath, how));
 
@@ -3439,7 +3438,7 @@ NavierStokes::writePlotFile (ostream& os)
     // The new version of this code will have a better interface.
     //
     int i, n;
-    List<DeriveRec*> dlist = derive_lst.dlist();
+    List<DeriveRec> dlist = derive_lst.dlist();
 
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
@@ -3466,8 +3465,8 @@ NavierStokes::writePlotFile (ostream& os)
                 os << desc_lst[Dsdt_Type].name(0) << '\n';
         }
 
-        for (ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp)
-            os << dlist[lidrp]->name() << '\n';
+        for (ListIterator<DeriveRec> lidrp(dlist); lidrp; ++lidrp)
+            os << dlist[lidrp].name() << '\n';
 
         os << BL_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
@@ -3546,9 +3545,9 @@ NavierStokes::writePlotFile (ostream& os)
                     dat.writeOn(os,0,1);
                 }
             }
-            for (ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp)
+            for (ListIterator<DeriveRec> lidrp(dlist); lidrp; ++lidrp)
             {
-                FArrayBox *dfab = derive(grd,dlist[lidrp]->name(),cur_time);
+                FArrayBox *dfab = derive(grd,dlist[lidrp].name(),cur_time);
                 dfab->writeOn(os,0,1);
                 delete dfab;
             }

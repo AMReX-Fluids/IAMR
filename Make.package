@@ -33,13 +33,13 @@ F$(BNDRYLIB_BASE)_sources += COORDSYS_$(DIM)D.F
 # HGPROJ sources
 #
 HGLIB_BASE=EXE
-C$(HGLIB_BASE)_sources += cache.cpp interface.cpp boundary.cpp \
+C$(HGLIB_BASE)_sources += interface.cpp boundary.cpp \
 			  interpolator.cpp \
 			  restrictor.cpp fill_patch.cpp amr_multi.cpp \
 			  hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
 			  hg_projector.cpp
 
-C$(HGLIB_BASE)_headers += cache.H interface.H boundary.H \
+C$(HGLIB_BASE)_headers += interface.H boundary.H \
 			  interpolator.H \
 			  restrictor.H fill_patch.H amr_multi.H \
 			  hg_multi.H \
@@ -145,7 +145,7 @@ endif
 #
 # IAMR sources:  _ns_mac_new
 #
-CEXE_sources += Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp NavierStokes.cpp 
+CEXE_sources += NavierStokes.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
 CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H 
 						                   
 FEXE_sources += DERIVE_$(DIM)D.F GODUNOV_F.F GODUNOV_$(DIM)D.F NAVIERSTOKES_$(DIM)D.F \
