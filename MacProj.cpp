@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.83 2002-11-08 23:31:21 car Exp $
+// $Id: MacProj.cpp,v 1.84 2002-11-26 22:40:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -465,10 +465,10 @@ MacProj::mac_sync_solve (int       level,
         {
             BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
 
-            if (Rhsmfi.validbox().intersects(bf))
-            {
-                Box isect = Rhsmfi.validbox() & bf;
+            Box isect = Rhsmfi.validbox() & bf;
 
+            if (isect.ok())
+            {
                 Rhs[Rhsmfi].setVal(0.0,isect,0);
             }
         }

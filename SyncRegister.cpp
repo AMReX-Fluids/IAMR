@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.66 2001-08-11 00:59:23 marc Exp $
+// $Id: SyncRegister.cpp,v 1.67 2002-11-26 22:40:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -289,10 +289,10 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
         {
             for (int j = 0; j < grids.size(); j++)
             {
-                if (rhs[mfi].box().intersects(bndry_mask[face()].fabbox(j)))
-                {
-                    Box intersect = rhs[mfi].box() & bndry_mask[face()].fabbox(j);
+                Box intersect = rhs[mfi].box() & bndry_mask[face()].fabbox(j);
 
+                if (intersect.ok())
+                {
                     SRRec sr(face(), mfi.index());
 
                     sr.m_fbid = fscd.AddBox(fsid[face()],
@@ -373,19 +373,14 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
             for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
             {
-                if (domlo.intersects(mfi.validbox()))
-                {
-                  Box blo = mfi.validbox() & domlo;
-                  if (blo.ok() && phys_lo[dir] == Outflow)
-                      rhs[mfi].mult(0.0,blo,0,1);
-                }
+                Box blo = mfi.validbox() & domlo;
+                Box bhi = mfi.validbox() & domhi;
 
-                if (domhi.intersects(mfi.validbox())) 
-                {
-                  Box bhi = mfi.validbox() & domhi;
-                  if (bhi.ok() && phys_hi[dir] == Outflow) 
-                      rhs[mfi].mult(0.0,bhi,0,1);
-                }
+                if (blo.ok() && phys_lo[dir] == Outflow)
+                    rhs[mfi].mult(0.0,blo,0,1);
+
+                if (bhi.ok() && phys_hi[dir] == Outflow) 
+                    rhs[mfi].mult(0.0,bhi,0,1);
             }
         }
     }
@@ -412,9 +407,11 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
             for (int n = 0; n < grids.size(); n++)
             {
-                if (mask_cells.intersects(grids[n]))
+                Box isect = mask_cells & grids[n];
+
+                if (isect.ok())
                 {
-                    tmpfab.setVal(1.0,(mask_cells & grids[n]),0,1);
+                    tmpfab.setVal(1.0,isect,0,1);
                 }
             }
  
@@ -428,9 +425,10 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
                     for (int n = 0; n < grids.size(); n++)
                     {
-                        if (mask_cells.intersects(grids[n]))
+                        Box intersect = mask_cells & grids[n];
+
+                        if (intersect.ok())
                         {
-                            Box intersect = mask_cells & grids[n];
                             intersect    -= pshifts[iiv];
                             tmpfab.setVal(1.0,intersect,0,1);
                         }
@@ -468,17 +466,17 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
                 for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
                 {
-                    if (domlo.intersects(fs[fsi].box()))
-                    {
-                        Box isect = fs[fsi].box() & domlo;
+                    Box isect = fs[fsi].box() & domlo;
 
+                    if (isect.ok())
+                    {
                         fs[fsi].mult(2.0,isect,0,1);
                     }
 
-                    if (domhi.intersects(fs[fsi].box()))
-                    {
-                        Box isect = fs[fsi].box() & domhi;
+                    isect = fs[fsi].box() & domhi;
 
+                    if (isect.ok())
+                    {
                         fs[fsi].mult(2.0,isect,0,1);
                     }
                 }
@@ -657,10 +655,10 @@ SyncRegister::CompAdd  (MultiFab* Sync_resid_fine,
 
         for (int i = 0; i < Pgrids.size(); i++) 
         {
-            if (sync_box.intersects(Pgrids[i]))
-            {
-                Box isect = sync_box & Pgrids[i];
+            Box isect = sync_box & Pgrids[i];
 
+            if (isect.ok())
+            {
                 (*Sync_resid_fine)[mfi].setVal(0.0,isect,0,1);
             }
 
@@ -750,17 +748,25 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
                 {
                     FArrayBox& cfablo = cloMF[dir_cfab][mfi.index()];
                     const Box& cboxlo = cfablo.box();
-                    if (domlo.intersects(cboxlo))
-                        cfablo.mult(2.0,cboxlo&domlo,0,1);
-                    if (domhi.intersects(cboxlo))
-                        cfablo.mult(2.0,cboxlo&domhi,0,1);
+
+                    Box isectlo = domlo & cboxlo;
+                    Box isecthi = domhi & cboxlo;
+
+                    if (isectlo.ok())
+                        cfablo.mult(2.0,isectlo,0,1);
+                    if (isecthi.ok())
+                        cfablo.mult(2.0,isecthi,0,1);
 
                     FArrayBox& cfabhi = chiMF[dir_cfab][mfi.index()];
                     const Box& cboxhi = cfabhi.box();
-                    if (domlo.intersects(cboxhi))
-                        cfabhi.mult(2.0,cboxhi&domlo,0,1);
-                    if (domhi.intersects(cboxhi))
-                        cfabhi.mult(2.0,cboxhi&domhi,0,1);
+
+                    isectlo = domlo & cboxhi;
+                    isecthi = domhi & cboxhi;
+
+                    if (isectlo.ok())
+                        cfabhi.mult(2.0,isectlo,0,1);
+                    if (isecthi.ok())
+                        cfabhi.mult(2.0,isecthi,0,1);
                 }
             }
         }

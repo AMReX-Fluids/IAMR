@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.207 2002-11-12 19:15:19 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.208 2002-11-26 22:40:45 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2446,10 +2446,11 @@ NavierStokes::sumDerive (const std::string& name, Real time)
             for (int j = 0; j < f_box.size(); j++)
             {
                 Box c_box = BoxLib::coarsen(f_box[j],fine_ratio);
-                if (c_box.intersects(grids[mfi.index()]))
-                {
-                    Box isect = c_box & grids[mfi.index()];
 
+                Box isect = c_box & grids[mfi.index()];
+
+                if (isect.ok())
+                {
                     (*mf)[mfi].setVal(0,isect,0);
                 }
             }
@@ -2486,8 +2487,13 @@ NavierStokes::volWgtSum (const std::string& name,
             for (int j = 0; j < f_box.size(); j++)
             {
                 Box c_box = BoxLib::coarsen(f_box[j],fine_ratio);
-                if (c_box.intersects(grids[mfi.index()]))
-                    fab.setVal(0,(c_box & grids[mfi.index()]),0);
+
+                Box isect = c_box & grids[mfi.index()];
+
+                if (isect.ok())
+                {
+                    fab.setVal(0,isect,0);
+                }
             }
         }
         Real        s;
@@ -4323,9 +4329,10 @@ NavierStokes::reflux ()
 
             BL_ASSERT(grids[i] == Vsyncmfi.validbox());
 
-            if (bf.intersects(Vsyncmfi.validbox()))
+            Box bx = bf & Vsyncmfi.validbox();
+
+            if (bx.ok())
             {
-                Box bx = bf & Vsyncmfi.validbox();
                 (*Vsync)[i].setVal(0,bx,0,BL_SPACEDIM);
                 (*Ssync)[i].setVal(0,bx,0,NUM_STATE-BL_SPACEDIM);
             }
@@ -4700,10 +4707,10 @@ NavierStokes::getGradP (MultiFab& gp,
         {
             for (int j = 0; j < fineBA.size(); j++)
             {
-                if (fineBA[j].intersects(gpTmp[mfi].box()))
-                {
-                    Box isect = fineBA[j] & gpTmp[mfi].box();
+                Box isect = fineBA[j] & gpTmp[mfi].box();
 
+                if (isect.ok())
+                {
                     gp[mfi].copy(gpTmp[mfi],isect);
                 }
             }
