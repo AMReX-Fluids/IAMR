@@ -2,24 +2,21 @@
 #define _MACPROJ_F_H
 
 /*
-** $Id: MACPROJ_F.H,v 1.6 1999-07-01 23:56:24 propp Exp $
+** $Id: MACPROJ_F.H,v 1.7 1999-07-27 00:09:35 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
 #    define FORT_MACDIV      macdiv
 #    define FORT_UCORUPDT    ucorupdt
-#    define FORT_MACPHIBC    macphibc
 #endif
 
 #ifdef BL_LANG_CC
 #  ifdef BL_FORT_USE_UPPERCASE
 #    define FORT_MACDIV      MACDIV
 #    define FORT_UCORUPDT    UCORUPDT
-#    define FORT_MACPHIBC    MACPHIBC
 #  else
 #    define FORT_MACDIV      macdiv_
 #    define FORT_UCORUPDT    ucorupdt_
-#    define FORT_MACPHIBC    macphibc_
 #  endif
 
 #include <ArrayLim.H>
@@ -52,15 +49,7 @@ extern "C" {
                         const int* lo, const int* hi,
                         const Real* dmac, ARLIM_P(dmac_lo), ARLIM_P(dmac_hi),
                         const Real* mult);
-#if (BL_SPACEDIM == 2)
-    void FORT_MACPHIBC (ARLIM_P(u_lo), ARLIM_P(u_hi), const Real* u,
-                        ARLIM_P(d_lo), ARLIM_P(d_hi), const Real* divcor,
-                        ARLIM_P(rho_lo), ARLIM_P(rho_hi), const Real* rho,
-                        int* r_lo, int* r_hi, const Real* rcen,
-                        const Real* hx,
-                        ARLIM_P(phi_lo), ARLIM_P(phi_hi), const Real* phi,
-                        int* face, const int* isPeriodicInX);
-#endif
+
 }
 
 #endif

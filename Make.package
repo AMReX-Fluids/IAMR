@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.38 1999-04-05 17:57:15 car Exp $
+# $Id: Make.package,v 1.39 1999-07-27 00:09:36 propp Exp $
 #
 IAMRLIB_BASE=EXE
 ifeq ($(LBASE),iamr)
@@ -8,13 +8,17 @@ endif
 
 C$(IAMRLIB_BASE)_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
 
-C$(IAMRLIB_BASE)_sources += ViscBndryTensor.cpp
-C$(IAMRLIB_BASE)_headers += ViscBndryTensor.H
+C$(IAMRLIB_BASE)_sources += ViscBndryTensor.cpp ProjOutFlowBC.cpp \
+			     MacOutFlowBC.cpp
+C$(IAMRLIB_BASE)_headers += ViscBndryTensor.H   MacOutFlowBC.H \
+			     ProjOutFlowBC.H
 
 C$(IAMRLIB_BASE)_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H
 
-F$(IAMRLIB_BASE)_headers += SYNCREG_F.H VISCOPERATOR_F.H
-F$(IAMRLIB_BASE)_sources += SYNCREG_$(DIM)D.F VISCOPERATOR_$(DIM)D.F
+F$(IAMRLIB_BASE)_headers += SYNCREG_F.H VISCOPERATOR_F.H \
+		            PROJOUTFLOWBC_F.H MACOUTFLOWBC_F.H
+F$(IAMRLIB_BASE)_sources += SYNCREG_$(DIM)D.F VISCOPERATOR_$(DIM)D.F \
+			    PROJOUTFLOWBC_$(DIM)D.F MACOUTFLOWBC_$(DIM)D.F
 #
 # Disconnect MacOperators for different mass continuity.
 #

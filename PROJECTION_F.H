@@ -2,7 +2,7 @@
 #define _PROJECTION_F_H_ 
 
 /*
-** $Id: PROJECTION_F.H,v 1.13 1999-07-24 00:07:04 almgren Exp $
+** $Id: PROJECTION_F.H,v 1.14 1999-07-27 00:09:36 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -14,9 +14,7 @@
 #    define FORT_RADDIV        raddiv
 #    define FORT_HGC2N         hgc2n
 #    define FORT_HGN2C         hgn2c
-#    define FORT_HGPHIBC       hgphibc
 #    define FORT_FILTRHS       filtrhs
-#    define FORT_EXTRAP_PROJ   extrapproj
 #endif
 
 #ifdef BL_LANG_CC
@@ -29,9 +27,7 @@
 #    define FORT_RADDIV        RADDIV
 #    define FORT_HGC2N         HGC2N
 #    define FORT_HGN2C         HGN2C
-#    define FORT_HGPHIBC       HGPHIBC
 #    define FORT_FILTRHS       FILTRHS
-#    define FORT_EXTRAP_PROJ   EXTRAPPROJ
 #  else
 #    define FORT_FILTERP       filterp_
 #    define FORT_VEL_TO_ACCEL  veltoaccel_
@@ -41,9 +37,7 @@
 #    define FORT_RADDIV        raddiv_
 #    define FORT_HGC2N         hgc2n_
 #    define FORT_HGN2C         hgn2c_
-#    define FORT_HGPHIBC       hgphibc_
 #    define FORT_FILTRHS       filtrhs_
-#    define FORT_EXTRAP_PROJ   extrapproj_
 #  endif
 
 #include <ArrayLim.H>
@@ -103,22 +97,6 @@ extern "C" {
                     ARLIM_P(cclo), ARLIM_P(cchi), const int* lo, const int* hi,
                     Real* ccdat);
 
-#if (BL_SPACEDIM == 2)
-    void FORT_HGPHIBC(const Real* hx,
-                      const Real* rcen,const Real* uE, const Real* divE,
-		      const Real* rhoE, const int* length,
-                      ARLIM_P(phi_lo), ARLIM_P(phi_hi), const Real* phi,
-		      int* face,const int* isPeriodicInX);
-
-    void FORT_EXTRAP_PROJ(ARLIM_P(u_lo), ARLIM_P(u_hi), const Real* u,
-			  ARLIM_P(d_lo), ARLIM_P(d_hi), const Real* div,
-			  ARLIM_P(rho_lo), ARLIM_P(rho_hi), const Real* rho,
-			  int* r_lo, int* r_hi, const Real* r,
-			  ARLIM_P(uE_lo), ARLIM_P(uE_hi), const Real* uE,
-			  ARLIM_P(dE_lo), ARLIM_P(dE_hi), const Real* divE,
-			  ARLIM_P(rhoE_lo), ARLIM_P(rhoE_hi), const Real* rhoE,
-			  int* face, int* zeroIt);
-#endif    
 
     void FORT_FILTRHS (const REAL* phi , ARLIM_P(p_lo), ARLIM_P(p_hi),
                        const REAL* sig , ARLIM_P(s_lo), ARLIM_P(s_hi),

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.56 1999-07-03 00:02:33 propp Exp $
+// $Id: MacProj.cpp,v 1.57 1999-07-27 00:09:35 propp Exp $
 //
 
 #include <Misc.H>
@@ -15,6 +15,7 @@
 #include <MacOpMacDrivers.H>
 #include <NavierStokes.H>
 #include <MACPROJ_F.H>
+#include "MacOutFlowBC.H"
 
 #ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type};
@@ -34,6 +35,10 @@ Real* fabdat = (fab).dataPtr();
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
+
+#define DEF_BOX_LIMITS(box,boxlo,boxhi)   \
+const int* boxlo = (box).loVect();           \
+const int* boxhi = (box).hiVect();
 
 #define GEOM_GROW 1
 #define HYP_GROW 3
@@ -1034,7 +1039,7 @@ MacProj::set_outflow_bcs (int             level,
     FArrayBox rhodat(ccBndBox,1);
     FArrayBox divudat(ccBndBox,1);
     FArrayBox phidat(phiBox,1);
-    
+
     const BoxArray& ba = S.boxArray();
     
     BL_ASSERT(ba == divu.boxArray());
@@ -1046,64 +1051,28 @@ MacProj::set_outflow_bcs (int             level,
     //
     // Load ec data.
     //
-    FArrayBox uedat[BL_SPACEDIM-1];
+    FArrayBox uedat[BL_SPACEDIM];
     
-    for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
-      if (i != outDir)
-	uedat[cnt++].resize(::surroundingNodes(ccBndBox,i), 1);
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+      {
+	uedat[i].resize(::surroundingNodes(ccBndBox,i), 1);
+	u_mac[i].copy(uedat[i]);
+      }
     
-    for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
-      if (i != outDir)
-	u_mac[i].copy(uedat[cnt++]);
+    static RunStats stats("mac_bc");
+    stats.start();
+    
+    if (verbose && ParallelDescriptor::IOProcessor())
+      cout << "starting mac bc calculation" << endl;
+    
+    MacOutFlowBC macBC;
+    phidat.setVal(0.0);
+    macBC.computeMacBC(uedat,divudat,rhodat,phidat,geom,outFace);
 
-#if (BL_SPACEDIM == 2)
-    //
-    // Make cc r (set = 1 if cartesian).
-    //
-    const int rzflag  = CoordSys::IsRZ();
-    const Real* dx    = parent->Geom(level).CellSize();
-    int R_DIR = 0;
-    int Z_DIR = 1;
-    int perpDir = (outDir == Z_DIR) ? R_DIR : Z_DIR;
-    Array<Real> rcen(ccBndBox.length(perpDir), 1.0);
-    if (CoordSys::IsRZ() && perpDir == R_DIR) 
-      parent->Geom(level).GetCellLoc(rcen, ccBndBox, perpDir);
-    //
-    // Compute boundary solution.
-    //
-    const int isPeriodic = parent->Geom(level).isPeriodic(perpDir);
-    int face = int(outFace);
-    
-    int r_lo = ccBndBox.smallEnd(perpDir);
-    int r_hi = ccBndBox.bigEnd(perpDir);
-    
-    FORT_MACPHIBC(ARLIM(uedat[0].loVect()),ARLIM(uedat[0].hiVect()),uedat[0].dataPtr(),
-		  ARLIM(divudat.loVect()), ARLIM(divudat.hiVect()),divudat.dataPtr(),
-		  ARLIM(rhodat.loVect()),  ARLIM(rhodat.hiVect()), rhodat.dataPtr(),
-		  &r_lo, &r_hi, rcen.dataPtr(), &dx[perpDir],
-		  ARLIM(phidat.loVect()),  ARLIM(phidat.hiVect()), phidat.dataPtr(),
-		  &face,&isPeriodic);
-    
-#else
-    //
-    // Idea is to check and see if divu == 0 near the boundary. 
-    // If it is, then we can use divu = 0 bc; otherwise we must abort...
-    //
-    const int ccStripWidth = 3;
-    Box state_strip;
-    if (outFace.isLow()) {
-      state_strip = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth);
-    } else {
-      state_strip = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth);
-    }
-    FARRAYBOX divu_fab(state_strip,1);
-    divu.copy(divu_fab);
-    REAL norm_divu = divu_fab.norm(1,0,1);
-    if (norm_divu > 1.0e-7) {
-      cout << "divu_norm = " << norm_divu << endl;
-      BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
-    }
-#endif
+    if (verbose && ParallelDescriptor::IOProcessor())
+      cout << "finishing mac bc calculation" << endl;
+
+    stats.end();
 
     for (MultiFabIterator mfi(*mac_phi); mfi.isValid(); ++mfi)
       {
@@ -1113,6 +1082,6 @@ MacProj::set_outflow_bcs (int             level,
 	    mfi().copy(phidat,ovlp);
 	  }
       }
-
 }
+
 

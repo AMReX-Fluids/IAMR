@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.105 1999-07-24 00:07:01 almgren Exp $
+// $Id: Projection.cpp,v 1.106 1999-07-27 00:09:37 propp Exp $
 //
 
 #ifdef BL_T3E
@@ -21,6 +21,7 @@
 #include <PROJECTION_F.H>
 #include <NAVIERSTOKES_F.H>
 #include <hg_projector.H>
+#include "ProjOutFlowBC.H"
 
 #ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type};
@@ -35,10 +36,15 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 Real* fabdat = (fab).dataPtr();
+
 #define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
+
+#define DEF_BOX_LIMITS(box,boxlo,boxhi)   \
+const int* boxlo = (box).loVect();           \
+const int* boxhi = (box).hiVect();
 
 //
 // This is a temporary function.
@@ -2282,6 +2288,7 @@ Projection::set_level_projector_outflow_bcs (int       level,
         rho_nph.copy(rhoFab,0,0,1);
         divu.copy(divuFab,0,0,1);
         vel.copy(velFab,0,0,BL_SPACEDIM);
+	phiFab.setVal(0.0);
 
 	const Geometry& thisGeom = parent->Geom(level);
 	computeBC(velFab,divuFab,rhoFab,phiFab,thisGeom,outFace);
@@ -2726,80 +2733,17 @@ Projection::computeBC(FArrayBox& velFab, FArrayBox& divuFab,
 		      FArrayBox& rhoFab, FArrayBox& phiFab,
 		      const Geometry& geom, const Orientation& outFace)
 {
-  const Real* dx = geom.CellSize();
-  const Box& domain = geom.Domain();
+  static RunStats stats("proj_bc");
+  stats.start();
 
-#if (BL_SPACEDIM == 2)
-  //
-  // Make r_i needed in HGPHIBC (set = 1 if cartesian).
-  //
-  int R_DIR = 0;
-  int Z_DIR = 1;
-  int outDir = outFace.coordDir();
-  int perpDir = (outDir == Z_DIR) ? R_DIR : Z_DIR;
-  Box region = Box(::adjCellHi(domain,outDir,1)).shift(outDir, -1);
-  Array<Real> rcen(region.length(perpDir), 1.0);
-  if (CoordSys::IsRZ() && perpDir == R_DIR) 
-    geom.GetCellLoc(rcen, region, perpDir);
-  
-  const int isPeriodic = geom.isPeriodic(perpDir);
-  //
-  // Fill phi_fine_strip with boundary cell values for phi, then
-  // copy into arg data.  Note: Though this looks like a distributed
-  // operation, the MultiFab is built on a single box...this is
-  // necesary currently, since FORT_HGPHIBC requires a slice across
-  // the entire domain
-  //
+  if (verbose && ParallelDescriptor::IOProcessor())
+    cout << "starting holy-grail bc calculation" << endl;
 
-  // allocate memory for divu, vel, rho
-  int stripWidth = 1;
-  Box edgeBox(::adjCell(domain,outFace,stripWidth));
-  FArrayBox divuExt(edgeBox,1);
-  FArrayBox rhoExt(edgeBox,1);
-  FArrayBox uExt(edgeBox,1);
-  
-  int face = int(outFace);
-  int zeroIt;
+  ProjOutFlowBC projBC;
+  projBC.computeProjBC(velFab,divuFab,rhoFab,phiFab,geom,outFace);
 
-  int r_lo=region.smallEnd(perpDir);
-  int r_hi=region.bigEnd(perpDir);
-  
-  FORT_EXTRAP_PROJ(ARLIM(velFab.loVect()),  ARLIM(velFab.hiVect()), velFab.dataPtr(),
-		   ARLIM(divuFab.loVect()), ARLIM(divuFab.hiVect()), divuFab.dataPtr(),
-		   ARLIM(rhoFab.loVect()),    ARLIM(rhoFab.hiVect()),rhoFab.dataPtr(),
-		   &r_lo,&r_hi,rcen.dataPtr(),
-		   ARLIM(uExt.loVect()),  ARLIM(uExt.hiVect()), uExt.dataPtr(),
-		   ARLIM(divuExt.loVect()), ARLIM(divuExt.hiVect()), divuExt.dataPtr(),
-		   ARLIM(rhoExt.loVect()),    ARLIM(rhoExt.hiVect()),rhoExt.dataPtr(),
-		   &face,&zeroIt);
+  if (verbose && ParallelDescriptor::IOProcessor())
+    cout << "finishing holy-grail bc calculation" << endl;
 
-  if (zeroIt)
-    {
-
-      phiFab.setVal(0.0);
-
-    }  else {
-      int length = divuExt.length()[perpDir];
-      BL_ASSERT(length == uExt.length()[perpDir]);
-      BL_ASSERT(length == rhoExt.length()[perpDir]);
-      BL_ASSERT(length == region.length()[perpDir]);
-      FORT_HGPHIBC(&dx[perpDir],rcen.dataPtr(),
-		   uExt.dataPtr(),divuExt.dataPtr(),rhoExt.dataPtr(),&length,
-		   ARLIM(phiFab.loVect()), ARLIM(phiFab.hiVect()), phiFab.dataPtr(),
-		   &face,&isPeriodic);
-
-    }
-#else
-  //
-  // check to see if divu == 0 near outflow.  If it isn't, then abort.
-  //
-  Real divu_norm = divuFab.norm(1,0,1);
-  if (divu_norm > 1.0e-7) {
-    cout << "divu_norm = " << divu_norm << endl;
-    BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
-  }
-#endif
+  stats.end();
 }
-
-
-
