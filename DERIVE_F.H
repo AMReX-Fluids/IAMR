@@ -1,5 +1,5 @@
 #ifdef BL_LANG_FORT
-c $Id: DERIVE_F.H,v 1.6 1998-01-06 23:43:05 lijewski Exp $
+c $Id: DERIVE_F.H,v 1.7 1998-07-07 23:21:26 lijewski Exp $
 #endif
 
 #ifdef BL_LANG_FORT
@@ -58,7 +58,7 @@ c $Id: DERIVE_F.H,v 1.6 1998-01-06 23:43:05 lijewski Exp $
 
 #include <ArrayLim.H>
 
-  extern "C" {
+extern "C" {
      void FORT_DERKENG    (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const REAL* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
@@ -173,5 +173,5 @@ c $Id: DERIVE_F.H,v 1.6 1998-01-06 23:43:05 lijewski Exp $
 			   const REAL* time, const REAL* dt, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 #endif
-  };
+}
 #endif
