@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.41 1998-06-01 17:01:48 lijewski Exp $
+// $Id: Projection.cpp,v 1.42 1998-06-01 19:35:01 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -1541,7 +1541,7 @@ Projection::filterUandP (int             level,
                      lo,hi,dx,&filter_factor,
                      &wrap_around_x, &wrap_around_y
 #if (BL_SPACEDIM == 3)
-                     &wrap_around_z
+                     ,&wrap_around_z
 #endif
                      );
 
