@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.22 1997-12-11 23:30:24 lijewski Exp $
+// $Id: Projection.cpp,v 1.23 1998-01-12 21:21:45 car Exp $
 //
 
 #ifdef BL_T3E
@@ -163,7 +163,6 @@ Projection::setUpBcs()
   RegType proj_bc[BL_SPACEDIM][2];
   for(int i = 0; i < BL_SPACEDIM; ++i)
   {
-  
       proj_bc[i][0] = project_bc[lo_bc[i]];
       proj_bc[i][1] = project_bc[hi_bc[i]];
       if ( geom.isPeriodic(i) ) 
