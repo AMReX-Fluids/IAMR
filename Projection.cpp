@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.76 1999-03-05 00:54:53 almgren Exp $
+// $Id: Projection.cpp,v 1.77 1999-03-05 17:20:35 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -694,7 +694,7 @@ Projection::filterP (int             level,
     // Copy from valid regions + bcs to get inflow values.
     //
     int n_ghost = 1;
-    Copy(*temp_vel,U_old,0,0,BL_SPACEDIM,n_ghost);
+    MultiFab::Copy(*temp_vel,U_old,0,0,BL_SPACEDIM,n_ghost);
 
     Real mult = -1.;
 
@@ -776,11 +776,8 @@ Projection::filterP (int             level,
     //
     // For divu==0 only
     //
-<<<<<<< Projection.cpp
-    int use_u = 1;
-=======
-    const int use_u = 0;
->>>>>>> 1.75
+
+    const int use_u = 1;
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                               use_u, (Real*)dx,
                               filter_factor, level, level, proj_abs_tol);
