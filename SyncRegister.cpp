@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.15 1998-03-26 06:40:58 almgren Exp $
+// $Id: SyncRegister.cpp,v 1.16 1998-03-26 18:21:53 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -125,7 +125,7 @@ SyncRegister::define(const BoxArray& fine_boxes,
               hi.clear(k);
               hi.setFab(k,new FArrayBox(nd_hi,1));
             }
-            FabSet &hi_mask = bndry[Orientation(dir,Orientation::high)];
+            FabSet &hi_mask = bndry_mask[Orientation(dir,Orientation::high)];
             hi_mask.setBox(k, nd_hi);
             if(hi_mask.DistributionMap()[k] == myproc) {  // local
               assert( ! hi_mask.defined(k) );
