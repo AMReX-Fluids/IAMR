@@ -2,11 +2,10 @@
 #define _HG_MULTI_H_
 
 //
-// $Id: hg_multi.H,v 1.6 1997-09-26 16:57:12 lijewski Exp $
+// $Id: hg_multi.H,v 1.7 1997-10-01 20:58:42 lijewski Exp $
 //
 
 #include <amr_multi.H>
-#include <hg_version.H>
 
 #ifndef HG_CONSTANT
 

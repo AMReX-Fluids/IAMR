@@ -6,10 +6,24 @@ PROFILE = FALSE
 DIM	= 2
 #DIM	= 3
 
+#
+# Holy Grail stuff ...
+#
+
 ifeq ($(DIM),2)
-PRVERSION = v9
+#
+# c5: -DHG_CONSTANT -DHG_CROSS_STENCIL
+# v5: -DHG_CROSS_STENCIL
+# c9: -DHG_CONSTANT
+# v9:
+#
+CPPFLAGS +=
 else
-PRVERSION = v7
+#
+# c7: -DHG_CONSTANT -DHG_CROSS_STENCIL
+# v7: -DHG_CROSS_STENCIL
+#
+CPPFLAGS += -DHG_CROSS_STENCIL
 endif
 
 COMP = KCC
@@ -36,8 +50,6 @@ HERE = .
 include ../mk/Make.defs
 
 INCLUDE_LOCATIONS += $(HERE) ../pBoxLib_2
-INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
-#LIBRARY_LOCATIONS += ./graphtools
 
 # bsp parallel locations
 ifeq ($(USE_BSP),TRUE)

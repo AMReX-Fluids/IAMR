@@ -1,5 +1,4 @@
 #include <REAL.H>
-#include "hg_version.H"
 
 #define dims(a) a##l0, a##h0, a##l1, a##h1
 #define dimdec(a) a##l0:a##h0,a##l1:a##h1
