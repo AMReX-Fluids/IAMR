@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOperator.cpp,v 1.16 1999-05-10 18:54:13 car Exp $
+// $Id: MacOperator.cpp,v 1.17 1999-06-14 23:51:58 almgren Exp $
 //
 
 #include <MacBndry.H>
@@ -326,7 +326,7 @@ MacOperator::syncRhs (const MultiFab& Volume,
         DEF_CLIMITS(vol,vol_dat,vlo,vhi);
         DEF_LIMITS(rhs,rhs_dat,rlo,rhi);
         FORT_MACSYNCRHS(rhs_dat,ARLIM(rlo),ARLIM(rhi),lo,hi,
-                        vol_dat,ARLIM(vlo),ARLIM(vhi),dx,&rhs_scale);
+                        vol_dat,ARLIM(vlo),ARLIM(vhi),&rhs_scale);
     }
     Rhs.mult(-1.0,Rhs.nGrow());
 }

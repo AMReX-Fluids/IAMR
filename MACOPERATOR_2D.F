@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_2D.F,v 1.5 1998-03-31 17:26:37 lijewski Exp $
+c $Id: MACOPERATOR_2D.F,v 1.6 1999-06-14 23:51:57 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -216,16 +216,15 @@ c ::  rhs         <=  right hand side array
 c ::  DIMS(rhs)    => index limits for rhs
 c ::  vol          => cell centered volume array
 c ::  DIMS(vol)    => index limits of vol array
-c ::  dx           => cell size
 c ::  rhsscale     => const multiplier to rhs
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_MACSYNCRHS(rhs,DIMS(rhs),lo,hi,
-     &                            vol,DIMS(vol),dx,rhsscale)
+     &                            vol,DIMS(vol),rhsscale)
        integer DIMDEC(rhs)
        integer DIMDEC(vol)
        integer lo(SDIM), hi(SDIM)
-       REAL_T  dx(SDIM), rhsscale
+       REAL_T  rhsscale
        REAL_T  rhs(DIMV(rhs))
        REAL_T  vol(DIMV(vol))
 

@@ -2,7 +2,7 @@
 #define _MACOPERATOR_F_H_
 
 /*
-** $Id: MACOPERATOR_F.H,v 1.5 1997-12-14 23:35:58 lijewski Exp $
+** $Id: MACOPERATOR_F.H,v 1.6 1999-06-14 23:51:58 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -90,7 +90,7 @@ extern "C"
     void FORT_MACSYNCRHS (Real* rhs, ARLIM_P(rlo), ARLIM_P(rhi),
                           const int* lo, const int* hi,
                           const Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-                          const Real* dx, const Real* rhs_scale);
+                          const Real* rhs_scale);
 }
 #endif
 
