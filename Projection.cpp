@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.34 1998-04-15 22:25:38 marc Exp $
+// $Id: Projection.cpp,v 1.35 1998-04-22 22:01:55 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -57,7 +57,6 @@ int       Projection::rho_wgt_vel_proj = 0;
 int       Projection::Divu_Type = -1;
 int       Projection::do_outflow_bcs = 1;
 int       Projection::make_sync_solvable = 0;
-int Projection::do_cache = 1;
 
 static RegType project_bc[] =
 {interior, inflow, outflow, refWall, refWall, refWall};
@@ -144,8 +143,6 @@ void Projection::read_params()
   pp.query("rho_wgt_vel_proj",rho_wgt_vel_proj);
 
   pp.query("do_outflow_bcs",do_outflow_bcs);
-
-  pp.query("do_cache", do_cache);
 }
 
 
@@ -234,7 +231,7 @@ Projection::bldSyncProject()
 
   sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
                                            0, finest_level, finest_level,
-                                           *projector_bndry, false, true, false, P_code); /* , do_cache?true:false) ; */
+                                           *projector_bndry, false, true, false, P_code); 
 
 #ifdef ATMOSPHERE
   // This is not the usual way of setting parameters

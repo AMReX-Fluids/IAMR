@@ -2,7 +2,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.10 1998-03-26 06:41:00 almgren Exp $
+// $Id: Projection.H,v 1.11 1998-04-22 22:01:56 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -252,6 +252,5 @@ protected:// ================== protected data members
     static int Divu_Type;
     static int do_outflow_bcs;
     static int make_sync_solvable;
-    static int do_cache;
 };
 #endif
