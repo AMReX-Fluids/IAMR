@@ -1,5 +1,5 @@
 c
-c $Id: STATS_3D.F,v 1.2 2000-07-19 23:30:31 sstanley Exp $
+c $Id: STATS_3D.F,v 1.3 2000-07-20 17:37:17 sstanley Exp $
 c
 
 #include "REAL.H"
@@ -148,17 +148,15 @@ c     physical locations are easy.  But, for round flowfields we need to
 c     determine which radiuses are defined by the grid spacing of the domain.
 c
       if (profDir .ne. axialDir) then
-        if (axialDir .eq. 1) then
-          tol = ten**(-10) * SQRT(dx(2)**2 + dx(3)**2)
-          call CLC_RADIUS(vbhi(2) - vblo(2) + 1, vbhi(3) - vblo(3) + 1,
-     $                    dx(2), dx(3), cl(2), cl(3), tol, 
-     $                    nStns, nStations, physStn)
-        else
-          tol = ten**(-10) * SQRT(dx(1)**2 + dx(3)**2)
-          call CLC_RADIUS(vbhi(1) - vblo(1) + 1, vbhi(3) - vblo(3) + 1,
-     $                    dx(1), dx(3), cl(1), cl(3), tol, 
-     $                    nStns, nStations, physStn)
-        endif
+c
+c       NOTE: This assumes the axial direction is always 2 (y).
+c
+        tol = ten**(-10) * SQRT(dx(1)**2 + dx(3)**2)
+        call CLC_RADIUS(vblo(1), vbhi(1), vblo(3), vbhi(3),
+     $                  probLo(1), probLo(3),
+     $                  dx(1), dx(3), cl(1), cl(3), tol,
+     $                  nStns, nStations, physStn)
+
       else
         tol = ten**(-10) * dx(profDir)
         nStations = vbhi(profDir) - vblo(profDir) + 1
@@ -168,6 +166,8 @@ c
       endif
 
       do n = 1, nStations
+        stnCnt(n) = 0
+
         do i = 1, nStatsExpect
           stats(n,i) = zero
         enddo
@@ -179,13 +179,13 @@ c     ::: Calculate Statistics :::
 c     ----------------------------
 c
       do k = vblo(3), vbhi(3)
-        z = (half + FLOAT(k)) * dx(3)
+        z = probLo(3) + (half + FLOAT(k)) * dx(3)
 
         do j = vblo(2), vbhi(2)
-          y = (half + FLOAT(j)) * dx(2)
+          y = probLo(2) + (half + FLOAT(j)) * dx(2)
 
           do i = vblo(1), vbhi(1)
-            x = (half + FLOAT(i)) * dx(1)
+            x = probLo(1) + (half + FLOAT(i)) * dx(1)
 
 c
 c           ::: Calculate radius and set profile index :::
@@ -410,17 +410,15 @@ c     physical locations are easy.  But, for round flowfields we need to
 c     determine which radiuses are defined by the grid spacing of the domain.
 c
       if (profDir .ne. axialDir) then
-        if (axialDir .eq. 1) then
-          tol = ten**(-10) * SQRT(dx(2)**2 + dx(3)**2)
-          call CLC_RADIUS(vbhi(2) - vblo(2) + 1, vbhi(3) - vblo(3) + 1,
-     $                    dx(2), dx(3), cl(2), cl(3), tol, 
-     $                    nStns, nStations, physStn)
-        else
-          tol = ten**(-10) * SQRT(dx(1)**2 + dx(3)**2)
-          call CLC_RADIUS(vbhi(1) - vblo(1) + 1, vbhi(3) - vblo(3) + 1,
-     $                    dx(1), dx(3), cl(1), cl(3), tol, 
-     $                    nStns, nStations, physStn)
-        endif
+c
+c       NOTE: This assumes the axial direction is always 2 (y).
+c
+        tol = ten**(-10) * SQRT(dx(1)**2 + dx(3)**2)
+        call CLC_RADIUS(vblo(1), vbhi(1), vblo(3), vbhi(3),
+     $                  probLo(1), probLo(3),
+     $                  dx(1), dx(3), cl(1), cl(3), tol,
+     $                  nStns, nStations, physStn)
+
       else
         tol = ten**(-10) * dx(profDir)
         nStations = vbhi(profDir) - vblo(profDir) + 1
@@ -441,13 +439,13 @@ c     ::: Calculate Statistics :::
 c     ----------------------------
 c
       do k = vblo(3), vbhi(3)
-        z = (half + FLOAT(k)) * dx(3)
+        z = probLo(3) + (half + FLOAT(k)) * dx(3)
 
         do j = vblo(2), vbhi(2)
-          y = (half + FLOAT(j)) * dx(2)
+          y = probLo(2) + (half + FLOAT(j)) * dx(2)
 
           do i = vblo(1), vbhi(1)
-            x = (half + FLOAT(i)) * dx(1)
+            x = probLo(1) + (half + FLOAT(i)) * dx(1)
 
 c
 c           ::: Calculate radius and set profile index :::
@@ -644,8 +642,8 @@ c
 
 
 
-
-      SUBROUTINE CLC_RADIUS(dim1, dim2, dx1, dx2, cl1, cl2, tol,
+      SUBROUTINE CLC_RADIUS(lo1, hi1, lo2, hi2, probLo1, probLo2, 
+     $                      dx1, dx2, cl1, cl2, tol,
      $                      nAlloc, nStns, physLoc)
 
 c
@@ -658,8 +656,8 @@ c
 c
 c     *** Passed Variables ***
 c
-      INTEGER dim1, dim2, nAlloc, nStns
-      REAL_T cl1, cl2, tol, dx1, dx2
+      INTEGER lo1, lo2, hi1, hi2, nAlloc, nStns
+      REAL_T cl1, cl2, tol, dx1, dx2, probLo1, probLo2
       REAL_T physLoc(nAlloc)
 
 c
@@ -681,10 +679,10 @@ c     added to the list here and then it is sorted below from lowest to
 c     highest.
 c
       nStns = 0
-      DO n = 1, dim1
-        xyz1 = (half + FLOAT(n)) * dx1
-        DO m = 1, dim2
-          xyz2 = (half + FLOAT(m)) * dx2
+      DO n = lo1, hi1
+        xyz1 = probLo1 + (half + FLOAT(n)) * dx1
+        DO m = lo2, hi2
+          xyz2 = probLo2 + (half + FLOAT(m)) * dx2
           rad = SQRT( (xyz1 - cl1)**2 + (xyz2 - cl2)**2 )
 
           found = .FALSE.
