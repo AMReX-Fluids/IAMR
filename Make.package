@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.40 2000-05-22 19:57:43 sstanley Exp $
+# $Id: Make.package,v 1.41 2000-11-02 18:08:02 lijewski Exp $
 #
 IAMRLIB_BASE=EXE
 ifeq ($(LBASE),iamr)
@@ -9,9 +9,9 @@ endif
 C$(IAMRLIB_BASE)_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
 
 C$(IAMRLIB_BASE)_sources += ViscBndryTensor.cpp ProjOutFlowBC.cpp \
-			     MacOutFlowBC.cpp
+			     MacOutFlowBC.cpp OutFlowBC.cpp
 C$(IAMRLIB_BASE)_headers += ViscBndryTensor.H   MacOutFlowBC.H \
-			     ProjOutFlowBC.H
+			     ProjOutFlowBC.H OutFlowBC.H
 
 C$(IAMRLIB_BASE)_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H
 

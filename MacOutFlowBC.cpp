@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.14 2000-11-01 20:02:47 lijewski Exp $
+// $Id: MacOutFlowBC.cpp,v 1.15 2000-11-02 18:08:01 lijewski Exp $
 //
 
 #include "MacOutFlowBC.H"
@@ -32,47 +32,26 @@ Real MacOutFlowBC_MG::cg_max_jump       = 10.0;
 int  MacOutFlowBC_MG::cg_maxiter        = 40;
 int  MacOutFlowBC_MG::maxIters          = 40;
 
-static
-Box semiGrow (const Box& baseBox,
-              int        nGrow,
-              int        direction)
-{
-    IntVect grow_factor(D_DECL(nGrow,nGrow,nGrow));
-    grow_factor[direction] = 0;
-    return ::grow(baseBox,grow_factor);
-}
-
-static
-Box semiCoarsen (const Box& baseBox,
-                 int        ref_factor,
-                 int        direction)
-{
-    IntVect ref_ratio(D_DECL(ref_factor,ref_factor,ref_factor));
-    ref_ratio[direction] = 1;
-    return ::coarsen(baseBox,ref_ratio);
-}
-
 MacOutFlowBC::MacOutFlowBC ()
 {
     ParmParse pp("macoutflow");
+
     pp.query("tol",tol);
     pp.query("abs_tol",abs_tol);
-    mac_solver = (BL_SPACEDIM == 2) ? MAC_BACK : MAC_MG;
+    solver = (BL_SPACEDIM == 2) ? BC_BACK : BC_MG;
     int solver_type = -1;
     pp.query("solver_type",solver_type);
     if (solver_type != -1)
-        mac_solver = Mac_Solver_Type(solver_type);
+        solver = OutFlow_Solver_Type(solver_type);
 }
 
-MacOutFlowBC::~MacOutFlowBC() {}
-
 void 
-MacOutFlowBC::computeMacBC (FArrayBox*         velFab,
-                            FArrayBox&         divuFab,
-                            FArrayBox&         rhoFab,
-                            FArrayBox&         phiFab,
-                            const Geometry&    geom, 
-                            const Orientation& outFace)
+MacOutFlowBC::computeBC (FArrayBox*         velFab,
+                         FArrayBox&         divuFab,
+                         FArrayBox&         rhoFab,
+                         FArrayBox&         phiFab,
+                         const Geometry&    geom, 
+                         const Orientation& outFace)
 {
     const Real* dx     = geom.CellSize();
     const Box&  domain = geom.Domain();
@@ -189,9 +168,9 @@ MacOutFlowBC::computeMacBC (FArrayBox*         velFab,
         //
         // No perturbations, set homogeneous bc.
         //
-        phiFab.setVal(0.0);
+        phiFab.setVal(0);
     }
-    else if (mac_solver == MAC_MG)
+    else if (solver == BC_MG)
     {
         FArrayBox phiFiltered(faceBox,1);
 
@@ -211,9 +190,9 @@ MacOutFlowBC::computeMacBC (FArrayBox*         velFab,
         //
         // Need phi to have ghost cells.
         //
-        Box phiGhostBox = semiGrow(phiFiltered.box(),1,BL_SPACEDIM-1);
+        Box phiGhostBox = OutFlowBC::SemiGrow(phiFiltered.box(),1,BL_SPACEDIM-1);
         FArrayBox phi(phiGhostBox,1);
-        phi.setVal(0.0);
+        phi.setVal(0);
         phi.copy(phiFiltered);
       
         FArrayBox resid(rhs.box(),1);
@@ -221,7 +200,7 @@ MacOutFlowBC::computeMacBC (FArrayBox*         velFab,
         MacOutFlowBC_MG mac_mg(faceBox,&phi,&rhs,&resid,beta,
                                dxFiltered,isPeriodicFiltered);
       
-        mac_mg.solve(tol,abs_tol,2,2);
+        mac_mg.solve(tol,abs_tol,2,2,mac_mg.MaxIters(),mac_mg.Verbose());
       
         DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
         DEF_BOX_LIMITS(faceBox,lo,hi);
@@ -240,9 +219,10 @@ MacOutFlowBC::computeMacBC (FArrayBox*         velFab,
                              ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
       
         delete [] beta;
+
 #if (BL_SPACEDIM == 2)
     }
-    else if (mac_solver == MAC_BACK)
+    else if (solver == BC_BACK)
     {
         solveBackSubstitution(phiFab,divuExt,uExt,rhoExt,rcen,r_lo,r_hi,
                               isPeriodic,dxFiltered,faceBox,outFace);
@@ -349,33 +329,27 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
                                   Real*      H,
                                   int*       IsPeriodic)
     :
-    domain(Domain)
+    OutFlowBC_MG(Domain,Phi,Rhs,Resid,Beta,H,IsPeriodic,false)
 {
     static int first = true;
 
     if (first)
     {
         first = false;
+
         ParmParse pp("mac_mg");
+
         pp.query("v",verbose);
         int use_cg;
         pp.query("useCGbottomSolver",use_cg);
+
         useCGbottomSolver = (use_cg > 0) ? true : false;
+
         pp.query("cg_tol",cg_tol);
         pp.query("cg_abs_tol",cg_abs_tol);
         pp.query("cg_max_jump",cg_max_jump);
         pp.query("cg_maxiter",cg_maxiter);
         pp.query("maxIters",maxIters);
-    }
-    phi   = Phi;
-    rhs   = Rhs;
-    resid = Resid;
-    beta  = Beta;
-
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        h[dir] = H[dir];
-        isPeriodic[dir] = IsPeriodic[dir];
     }
 
     const IntVect& len = domain.length();
@@ -387,34 +361,29 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
 
     if (D_TERM(1 && ,test_side[0], || test_side[1]))
     {
-        next   = 0;  
-        cgwork = 0;
-      
         if (useCGbottomSolver)
             cgwork = new FArrayBox(domain,4);
     }
     else
     {
-        cgwork = 0; 
-      
         Real newh[BL_SPACEDIM];
-        for (int dir=0;dir < BL_SPACEDIM;dir++)
-            newh[dir] = 2.0*h[dir];
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+            newh[dir] = 2*h[dir];
 
-        Box newdomain = semiCoarsen(domain,2,BL_SPACEDIM-1);
-        Box grownBox  = semiGrow(newdomain,1,BL_SPACEDIM-1);
+        Box newdomain = OutFlowBC::SemiCoarsen(domain,2,BL_SPACEDIM-1);
+        Box grownBox  = OutFlowBC::SemiGrow(newdomain,1,BL_SPACEDIM-1);
       
         FArrayBox* newphi    = new FArrayBox(grownBox,1);
         FArrayBox* newresid  = new FArrayBox(newdomain,1);
         FArrayBox* newrhs    = new FArrayBox(newdomain,1);
         FArrayBox* newbeta   = new FArrayBox[BL_SPACEDIM-1];
-        newphi->setVal(0.0);
-        newresid->setVal(0.0);
+        newphi->setVal(0);
+        newresid->setVal(0);
 
         for (int dir = 0; dir < BL_SPACEDIM-1;dir++)
 	{
             newbeta[dir].resize(::surroundingNodes(newdomain,dir),1);
-            newbeta[dir].setVal(0.0);
+            newbeta[dir].setVal(0);
 	}
       
         DEF_BOX_LIMITS(domain,dom_lo,dom_hi);
@@ -436,28 +405,12 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
 #endif
                        dom_lo,dom_hi,new_lo,new_hi);
       
-        next = new MacOutFlowBC_MG(newdomain,
-                                   newphi,
-                                   newrhs,
-                                   newresid, 
-                                   newbeta,
-                                   newh,
-                                   isPeriodic);
+        next = new MacOutFlowBC_MG(newdomain,newphi,newrhs,
+                                   newresid,newbeta,newh,isPeriodic);
     }
 }
 
-MacOutFlowBC_MG::~MacOutFlowBC_MG ()
-{
-    if (next != 0)
-    {
-        delete next->phi;
-        delete next->rhs;
-        delete next->resid;
-        delete [] next->beta;
-        delete next;
-    }
-    delete cgwork;
-}
+MacOutFlowBC_MG::~MacOutFlowBC_MG () {}
 
 Real
 MacOutFlowBC_MG::residual ()
@@ -493,12 +446,12 @@ MacOutFlowBC_MG::step (int nGSRB)
     {
         Real resnorm = 0.0;
 
-        FArrayBox* dest0 = new FArrayBox(phi->box(),1);
+        FArrayBox dest0(phi->box(),1);
 
         DEF_BOX_LIMITS(domain,lo,hi);
         DEF_LIMITS(*phi,phiPtr,phi_lo,phi_hi);
         DEF_LIMITS(*resid,residPtr,resid_lo,resid_hi);
-        DEF_LIMITS(*dest0,dest0Ptr,dest0_lo,dest0_hi);
+        DEF_LIMITS(dest0,dest0Ptr,dest0_lo,dest0_hi);
         DEF_LIMITS(*rhs,rhsPtr,rhs_lo,rhs_hi);
         DEF_LIMITS(beta[0], beta0Ptr, beta0_lo,beta0_hi); 
         DEF_LIMITS(*cgwork,dummPtr,cg_lo,cg_hi);
@@ -520,8 +473,6 @@ MacOutFlowBC_MG::step (int nGSRB)
                       residPtr, ARLIM(resid_lo), ARLIM(resid_hi),
                       lo,hi,h,isPeriodic,&cg_maxiter,&cg_tol,
                       &cg_abs_tol,&cg_max_jump,&resnorm);
-    
-        delete dest0;
     }
     else
     {
@@ -530,12 +481,12 @@ MacOutFlowBC_MG::step (int nGSRB)
 }
 
 void 
-MacOutFlowBC_MG::Restrict ()
+MacOutFlowBC_MG::restrict ()
 {
     DEF_BOX_LIMITS(domain,lo,hi);
-    DEF_BOX_LIMITS(next->domain,loc,hic);
+    DEF_BOX_LIMITS(next->theDomain(),loc,hic);
     DEF_LIMITS(*resid,residPtr,resid_lo,resid_hi);
-    DEF_LIMITS(*(next->rhs),rescPtr,resc_lo,resc_hi);
+    DEF_LIMITS(*(next->theRhs()),rescPtr,resc_lo,resc_hi);
 
     FORT_RESTRICT(residPtr, ARLIM(resid_lo),ARLIM(resid_hi), 
                   rescPtr, ARLIM(resc_lo),ARLIM(resc_hi), 
@@ -546,73 +497,13 @@ void
 MacOutFlowBC_MG::interpolate ()
 {
     DEF_BOX_LIMITS(domain,lo,hi);
-    DEF_BOX_LIMITS(next->domain,loc,hic);
+    DEF_BOX_LIMITS(next->theDomain(),loc,hic);
     DEF_LIMITS(*phi,phiPtr,phi_lo,phi_hi);
-    DEF_LIMITS(*(next->phi),deltacPtr,deltac_lo,deltac_hi);
+    DEF_LIMITS(*(next->thePhi()),deltacPtr,deltac_lo,deltac_hi);
 
     FORT_INTERPOLATE(phiPtr, ARLIM(phi_lo),ARLIM(phi_hi), 
                      deltacPtr,ARLIM(deltac_lo),ARLIM(deltac_hi), 
                      lo,hi,loc,hic);
-}
-
-void 
-MacOutFlowBC_MG::solve (Real tolerance,
-                        Real abs_tolerance,
-                        int  i1,
-                        int  i2)
-{
-    int  iter  = 1;
-    Real rlast = residual();
-    Real res   = rlast;
-    Real goal  = Max(rlast*tolerance,abs_tolerance);
-
-    if (verbose)
-    {
-        cout << "MacOutFlowBC:Sum of Rhs is: " << rhs->sum(domain,0) << endl;
-        cout << "MacOutFlowBC:Initial Residual: " << rlast << endl;
-    }
-    if (rlast > goal)
-    {
-        while (((res = vcycle(i1,i2)) > goal) && (iter < maxIters))
-        {
-            iter++;
-            if (verbose)
-                cout << "MacOutFlowBC: Residual: " << res << " at iteration " << iter << endl;
-        }
-    }
-  
-    if (iter >= maxIters)
-    {
-        cout << "MacOutFlowBC: solver reached maxIter" << endl;
-        cout << "goal was: " << goal << " && res = " << res << endl;
-    }
-
-    if (verbose)
-    {
-        cout << "MacOutFlowBC: Final Residual: " << res << " after " 
-             << iter << " cycles" << endl;
-        cout << " " << endl;
-    }
-}
-
-Real 
-MacOutFlowBC_MG::vcycle (int downiter,
-                         int upiter)
-{
-    Real rnorm = residual();
-    step(downiter);
-    rnorm = residual();
-
-    if (next != 0)
-    {
-        Restrict();
-        next->phi->setVal(0.0);
-        next->vcycle(downiter,upiter);
-        interpolate();
-        step(upiter);
-    } 
-    
-    return rnorm;
 }
 
 void 

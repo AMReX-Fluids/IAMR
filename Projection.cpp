@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.132 2000-10-31 20:28:34 lijewski Exp $
+// $Id: Projection.cpp,v 1.133 2000-11-02 18:08:02 lijewski Exp $
 //
 
 #ifdef BL3_PROFILING
@@ -47,74 +47,6 @@ const Real* fabdat = (fab).dataPtr();
 #define DEF_BOX_LIMITS(box,boxlo,boxhi)   \
 const int* boxlo = (box).loVect();           \
 const int* boxhi = (box).hiVect();
-
-//
-// This is a temporary function.
-// Eventually this will be moved to a boundary condition class.
-//
-
-static
-void
-getOutFlowFace (bool&        haveOutFlow,
-                Orientation& outFace,
-                BCRec*       _phys_bc)
-{
-    haveOutFlow = false;
-
-    int numOutFlowBC = 0;
-
-    for (int idir = 0; idir < BL_SPACEDIM; idir++)
-    {
-        if (_phys_bc->lo(idir) == Outflow)
-        {
-            haveOutFlow = true;
-            outFace = Orientation(idir,Orientation::low);
-            numOutFlowBC++;
-        }
-        if (_phys_bc->hi(idir) == Outflow)
-        {
-            haveOutFlow = true;
-            outFace = Orientation(idir,Orientation::high);
-            numOutFlowBC++;
-        }
-    }
-
-    if (numOutFlowBC > 1)
-        haveOutFlow = false; //  true signals low-D solve for outflow.  false will enforce Div(U)=0
-}
-
-//
-// This is a temporary function.
-// Eventually this will be moved to a boundary condition class.
-//
-
-static
-bool
-hasOutFlowBC (BCRec* _phys_bc)
-{
-    bool has_out_flow = false;
-  
-    int numOutFlowBC = 0;
-
-    for (int idir = 0; idir < BL_SPACEDIM; idir++)
-    {
-        if (_phys_bc->lo(idir) == Outflow)
-        {
-            has_out_flow = true;
-            numOutFlowBC++;
-        }
-        if (_phys_bc->hi(idir) == Outflow)
-        {
-            has_out_flow = true;
-            numOutFlowBC++;
-        }
-    }
-  
-    if (numOutFlowBC > 1) 
-        has_out_flow = false; //true signals low-D solve for outflow. false will enforce Div(U)=0
-  
-    return has_out_flow;
-}
 
 #define BogusValue 1.e20
 #define MAX_LEV 10
@@ -548,7 +480,7 @@ Projection::level_project (int             level,
     //
     // Overwrite IC with outflow Dirichlet, if applicable
     //
-    if (hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) 
+    if (OutFlowBC::HasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) 
     {
         set_level_projector_outflow_bcs(level,P_new,*rho_half,U_new,*divusource);
     }
@@ -1368,7 +1300,7 @@ Projection::initialVelocityProject (int  c_lev,
     //
     // Set up outflow bcs.
     //
-    if (hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)
+    if (OutFlowBC::HasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)
     {
         set_initial_projection_outflow_bcs(vel,sig,phi,c_lev,cur_divu_time);
     }
@@ -1597,7 +1529,7 @@ Projection::initialSyncProject (int       c_lev,
         P_old.setVal(0);
     }
 
-    if (hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) 
+    if (OutFlowBC::HasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) 
     {
         set_initial_syncproject_outflow_bcs(phi,c_lev,strt_time,dt);
     }
@@ -2194,7 +2126,7 @@ Projection::set_level_projector_outflow_bcs (int       level,
     bool        hasOutFlow;
     Orientation outFace;
 
-    getOutFlowFace(hasOutFlow,outFace,phys_bc);
+    OutFlowBC::GetOutFlowFace(hasOutFlow,outFace,phys_bc);
 
     Box        state_strip;
     const Box& domain       = parent->Geom(level).Domain();
@@ -2276,7 +2208,7 @@ Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
     bool        hasOutFlow;
     Orientation outFace;
 
-    getOutFlowFace(hasOutFlow,outFace,phys_bc);
+    OutFlowBC::GetOutFlowFace(hasOutFlow,outFace,phys_bc);
 
     BL_ASSERT(c_lev == 0);
     //
@@ -2420,7 +2352,7 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
     bool        hasOutFlow;
     Orientation outFace;
 
-    getOutFlowFace(hasOutFlow,outFace,phys_bc);
+    OutFlowBC::GetOutFlowFace(hasOutFlow,outFace,phys_bc);
 
     const int outDir       = outFace.coordDir();
     const int ccStripWidth = 3;
@@ -2782,7 +2714,7 @@ Projection::computeBC (FArrayBox&         velFab,
         cout << "starting holy-grail bc calculation" << endl;
 
     ProjOutFlowBC projBC;
-    projBC.computeProjBC(velFab,divuFab,rhoFab,phiFab,geom,outFace);
+    projBC.computeBC(&velFab,divuFab,rhoFab,phiFab,geom,outFace);
 
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "finishing holy-grail bc calculation" << endl;

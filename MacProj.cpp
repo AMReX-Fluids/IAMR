@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.75 2000-11-01 20:02:48 lijewski Exp $
+// $Id: MacProj.cpp,v 1.76 2000-11-02 18:08:01 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -41,81 +41,6 @@ const int* boxhi = (box).hiVect();
 
 #define GEOM_GROW 1
 #define HYP_GROW 3
-
-//
-// Note: this is a temporary function.  Eventually this will be moved to a 
-// boundary condition class.
-//
-
-static
-void
-getOutFlowFace (bool&        haveOutFlow,
-                Orientation& outFace,
-                BCRec*       _phys_bc)
-{
-    haveOutFlow = false;
-    int numOutFlowBC = 0;
-
-    for (int idir = 0; idir < BL_SPACEDIM; idir++)
-    {
-        if (_phys_bc->lo(idir) == Outflow)
-        {
-            haveOutFlow = true;
-            outFace = Orientation(idir,Orientation::low);
-            numOutFlowBC++;
-        }
-
-        if (_phys_bc->hi(idir) == Outflow)
-        {
-            haveOutFlow = true;
-            outFace = Orientation(idir,Orientation::high);
-            numOutFlowBC++;
-        }
-
-    }
-
-    if (numOutFlowBC > 1)
-        //
-        // True signals low-D solve for outflow.  false will enforce Div(U)=0
-        //
-        haveOutFlow = false;
-}
-
-//
-// Note: this is a temporary function.  Eventually this will be moved to a 
-// boundary condition class.
-//
-
-static
-bool
-hasOutFlowBC (BCRec* _phys_bc)
-{
-    bool has_out_flow = false;
-    int  numOutFlowBC = 0;
-
-    for (int idir = 0; idir < BL_SPACEDIM; idir++)
-    {
-        if (_phys_bc->lo(idir) == Outflow)
-        {
-            has_out_flow = true;
-            numOutFlowBC++;
-        }
-
-        if (_phys_bc->hi(idir) == Outflow)
-        {
-            has_out_flow = true;
-            numOutFlowBC++;
-        }
-    }
-
-    if (numOutFlowBC > 1)
-        //
-        // true signals low-D solve for outflow.  false will enforce Div(U)=0
-        //
-        has_out_flow = false;
-
-    return has_out_flow;
-}
 
 int  MacProj::verbose          = 0;
 bool MacProj::use_cg_solve     = false;
@@ -359,7 +284,7 @@ MacProj::mac_project (int             level,
         S[mfi.index()].copy(mfi(),0,Density,1);
     }
 
-    if (hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)
+    if (OutFlowBC::HasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)
     {
         set_outflow_bcs(level, mac_phi, u_mac, S, divu);
     }
@@ -1197,7 +1122,7 @@ MacProj::set_outflow_bcs (int             level,
     //
     bool hasOutFlow;
     Orientation outFace;
-    getOutFlowFace(hasOutFlow,outFace,phys_bc);
+    OutFlowBC::GetOutFlowFace(hasOutFlow,outFace,phys_bc);
 
     const BoxArray&   grids  = LevelData[level].boxArray();
     const Geometry&   geom   = parent->Geom(level);
@@ -1258,7 +1183,7 @@ MacProj::set_outflow_bcs (int             level,
     
     MacOutFlowBC macBC;
     phidat.setVal(0.0);
-    macBC.computeMacBC(uedat,divudat,rhodat,phidat,geom,outFace);
+    macBC.computeBC(uedat,divudat,rhodat,phidat,geom,outFace);
 
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "finishing mac bc calculation" << endl;
