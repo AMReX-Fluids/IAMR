@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.242 2004-07-28 18:27:52 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.243 2004-07-28 19:02:23 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -805,10 +805,6 @@ NavierStokes::restart (Amr&          papa,
     is_first_step_after_regrid = false;
     old_intersect_new          = grids;
 }
-
-//
-// Build rho0 arrays as ones for the base class.  Empty function for now.
-//
 
 void
 NavierStokes::buildMetrics ()
@@ -4933,7 +4929,7 @@ NavierStokes::calc_divu (Real      time,
         if (do_temp && visc_coef[Temp] > 0.0)
         {
             //
-            // Compute Div(U) = Div(cond.Grad(T))/(rho.T) assuming cond = k/cp.
+            // Compute Div(U) = Div(visc_cond_coef * Grad(T))/(c_p*rho*T)
             //
             getViscTerms(divu,Temp,1,time);
 
@@ -4950,6 +4946,8 @@ NavierStokes::calc_divu (Real      time,
                 divu[i].divide(rhotime[i],divu.box(i),0,0,1);
                 divu[i].divide(temp_fpi(),divu.box(i),0,0,1);
             }
+            Real THERMO_cp_inv = 1.0 / 1004.6;
+            divu.mult(THERMO_cp_inv);
         }
     }
 }
