@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.146 1999-07-27 17:33:11 marc Exp $
+// $Id: NavierStokes.cpp,v 1.147 1999-08-08 04:23:46 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1292,8 +1292,8 @@ NavierStokes::advance (Real time,
     {
         if (projector)
             level_projector(dt,time,iteration);
-        if (level > 0)
-            incrPAvg(iteration,1.0/Real(ncycle));
+        if (level > 0 && iteration == 1)
+           p_avg->setVal(0.);
     }
     return dt_test;  // Return estimate of best new timestep.
 }
@@ -3025,6 +3025,8 @@ NavierStokes::post_timestep ()
     {
         sum_integrated_quantities();
     }
+
+    if (level > 0) incrPAvg();
 }
 
 //
@@ -3135,15 +3137,14 @@ NavierStokes::incrRhoAvg (Real alpha)
 }
 
 void
-NavierStokes::incrPAvg (int  iteration,
-                        Real alpha)
+NavierStokes::incrPAvg ()
 {
-    if (iteration == 1)
-        p_avg->setVal(0.);
     //
-    // Increment p_avg with fine grid pressure.
+    // Increment p_avg with 1/ncycle times current pressure
     //
     MultiFab& P_new = get_new_data(Press_Type);
+
+    Real alpha = 1.0/Real(parent->nCycle(level));
 
     for (MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi)
     {
@@ -3501,10 +3502,6 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
                                     fine_phi.box(),ratio,cgeom,fgeom,bc);
 
         P_new[mfi.index()].plus(fine_phi);
-        //
-        // Also, fix p_avg
-        //
-        (*(getLevel(f_lev).p_avg))[mfi.index()].plus(fine_phi);
     }
 }
 

@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.46 1999-07-27 17:33:10 marc Exp $
+// $Id: NavierStokes.H,v 1.47 1999-08-08 04:23:47 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -450,8 +450,7 @@ protected:
     //
     // Compile p_avg in advance.
     //
-    void incrPAvg (int  iteration,
-                   Real alpha); 
+    void incrPAvg ();
     //
     // Virtual function get fluxes out of the advection routines.
     //

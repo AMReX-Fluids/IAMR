@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.107 1999-08-01 15:12:37 almgren Exp $
+// $Id: Projection.cpp,v 1.108 1999-08-08 04:23:47 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -1314,22 +1314,6 @@ Projection::MLsyncProject (int             c_lev,
 
     UpdateArg1(vel_crse, dt_crse, *Vsync, BL_SPACEDIM, grids,      1);
     UpdateArg1(vel_fine, dt_crse, V_corr, BL_SPACEDIM, fine_grids, 1);
-    //
-    // Add phi to p_avg on both levels as well; p_avg gets averaged down
-    //  to coarser levels, and so does not exist for level == 0;  this may
-    //  not be necessaryfor c_lev+1, since avgDown already called by now, 
-    //  but we do it anyway, in case order or ops changes someday...
-    //
-    if (c_lev > 0)
-    {
-        NavierStokes* ns_crse = dynamic_cast<NavierStokes*>(&LevelData[c_lev]);
-        BL_ASSERT(!(ns_crse==0));
-        ns_crse->p_avg->plus(*phi[c_lev],0,1,0);
-    }
-
-    NavierStokes* ns_fine = dynamic_cast<NavierStokes*>(&LevelData[c_lev+1]);
-    BL_ASSERT(!(ns_fine==0));
-    ns_fine->p_avg->plus(*phi[c_lev+1],0,1,0);
 
     for (MultiFabIterator phimfi(*phi[c_lev+1]); phimfi.isValid(); ++phimfi) 
     {
