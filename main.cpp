@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.16 1997-12-14 23:35:40 lijewski Exp $
+// $Id: main.cpp,v 1.17 1997-12-22 23:12:04 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -27,7 +27,9 @@
 #ifdef BL_USE_NEW_HFILES
 #include <new>
 using std::setprecision;
+#ifndef WIN32
 using std::set_new_handler;
+#endif
 #else
 #include <new.h>
 #endif
