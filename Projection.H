@@ -3,7 +3,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.39 2002-03-18 22:44:26 almgren Exp $
+// $Id: Projection.H,v 1.40 2003-02-19 18:55:42 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -139,6 +139,12 @@ public:
     void initialVelocityProject (int  crse_level,
                                  Real divu_time,
                                  int  have_divu);
+
+    //
+    // This function creates an initially hydrostatic pressure field
+    //   in the case of nonzero gravity.
+    //
+    void initialPressureProject (int  crse_level);
     //
     // The velocity projection in post_init, which computes the initial
     // pressure used in the timestepping.
@@ -281,31 +287,44 @@ protected:
 
     void setUpBcs ();
 
-    void set_level_projector_outflow_bcs (int       level,
-                                          MultiFab& phi,
-                                          MultiFab& rho,
-                                          MultiFab& vel,
-                                          MultiFab& divu);
-    
-    void set_initial_projection_outflow_bcs (MultiFab** vel,
-                                             MultiFab** sig,
-                                             MultiFab** phi,
-                                             int        c_lev,
-                                             Real       cur_divu_time);
-    
-    void set_initial_syncproject_outflow_bcs (MultiFab** phi,
-                                              int        c_lev,
-                                              Real       start_time,
-                                              Real       dt);
+    void set_outflow_bcs (int        which_call,
+                          MultiFab** phi,
+                          MultiFab** Vel_in,
+                          MultiFab** Divu_in,
+                          MultiFab** Sig_in,
+                          int        c_lev,
+                          int        f_lev,
+                          int        have_divu);
+
+    void set_outflow_bcs_at_level (int          which_call,
+                                   int          lev,
+                                   int          c_lev,
+                                   Box*         state_strip,
+                                   Orientation* outFacesAtThisLevel,
+                                   int          numOutFlowFaces,
+                                   MultiFab**   phi,
+                                   MultiFab*    Vel_in,
+                                   MultiFab*    Divu_in,
+                                   MultiFab*    Sig_in,
+                                   int          have_divu,
+                                   Real         gravity);
+
 
     void putDown(MultiFab** phi, MultiFab& phi_fine_strip,
-		 int c_lev, int f_lev, const Orientation& outFace,
-		 int ncStripWidth);
+		 int c_lev, int f_lev, const Orientation* outFaces,
+		 int numOutFlowFaces, int ncStripWidth);
 
 
+#if 0
     void computeBC(FArrayBox& vel, FArrayBox& divu,
 		   FArrayBox& rho, FArrayBox& phi,
-		   const Geometry& geom, const Orientation& outFace);
+		   const Geometry& geom, const Orientation& outFace,
+                   Real gravity = 0.0);
+
+    void computeRhoG(FArrayBox& rho, FArrayBox& phi,
+		     const Geometry& geom, const Orientation& outFace,
+                     Real gravity);
+#endif
 
 
 protected:
