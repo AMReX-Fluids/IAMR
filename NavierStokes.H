@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.42 1999-06-11 15:12:01 sstanley Exp $
+// $Id: NavierStokes.H,v 1.43 1999-07-01 20:07:15 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -457,12 +457,6 @@ protected:
                              FArrayBox& yflux,
                              FArrayBox& zflux,
                              Real       dt);
-    //
-    // Compute the gradient of divU - dSdt.
-    //
-    void compute_grad_divu_minus_s (Real      time,
-                                    MultiFab* grad_divu_minus_s,
-                                    int       scaleRhoDivDt);
     //
     // Compute viscous terms.
     //
