@@ -1,5 +1,6 @@
+
 c
-c $Id: PROB_3D.F,v 1.20 2002-06-03 21:38:01 car Exp $
+c $Id: PROB_3D.F,v 1.21 2004-12-04 05:31:57 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -15,6 +16,11 @@ c
 
 #define SDIM 3
 
+      block data rt_common
+#include "probdata.H"
+      data rt_pertamp/0.0D0/
+      data rt_nfreq/0/
+      end
 c ::: -----------------------------------------------------------
 c ::: This routine is called at problem initialization time
 c ::: and when restarting from a checkpoint file.
@@ -34,7 +40,7 @@ c ::: strttime <=  start problem with this time variable
 c ::: 
 c ::: -----------------------------------------------------------
       subroutine FORT_PROBINIT (init,name,namlen,problo,probhi)
-
+      implicit none
       integer init,namlen
       integer name(namlen)
       integer untin, i
@@ -49,6 +55,11 @@ c ::: -----------------------------------------------------------
      &                  adv_dir, adv_vel, axis_dir, radvort,
      &                  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag,
      &                  vb_unifdir
+      namelist /fortin/ rt_splitx, rt_xfrontw
+      namelist /fortin/ rt_den_1, rt_den_2
+      namelist /fortin/ rt_pertamp
+      namelist /fortin/ rt_nfreq
+      namelist /fortin/ rt_graddenerr
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -59,6 +70,11 @@ c
       parameter (frecon=.219, onep7=1.7)
 
       character probin*(maxlen)
+
+      integer j, m, n
+      integer MAXPHASE
+      parameter (MAXPHASE = 1000)
+      DOUBLE PRECISION rn, permin, permax, xtmp, ytmp, pert
 
       if (namlen .gt. maxlen) then
          write(6,*) 'probin file name too long'
@@ -82,27 +98,70 @@ c      write(6,fortin)
 
       if(probtype.eq.8)then
 
-      freq(1) = frecon
-      do i=2,10
-       freq(i)=freq(1)/float(i)
-      enddo
-      mag(1) = amag
-      mag(2) = .75*amag
-      mag(3) = .55*amag
-      mag(4) = .44*amag
+         freq(1) = frecon
+         do i=2,10
+            freq(i)=freq(1)/float(i)
+         enddo
+         mag(1) = amag
+         mag(2) = .75*amag
+         mag(3) = .55*amag
+         mag(4) = .44*amag
 
-      do i=5,10
-      mag(i)=onep7*mag(1)/float(i)
-      enddo
+         do i=5,10
+            mag(i)=onep7*mag(1)/float(i)
+         enddo
 
       endif
 c
 c     Initialize the common blocks
 c
       do i=1, SDIM
-        f_problo(i) = problo(i)
-        f_probhi(i) = probhi(i)
+         f_problo(i) = problo(i)
+         f_probhi(i) = probhi(i)
       enddo
+
+      if ( probtype .eq. 10 ) then
+         if ( rt_max_freq < rt_nfreq ) then
+            stop 'RT_INIT broken: 1'
+         end if
+         call blutilinitrand(111397)
+         do i = 1, rt_nfreq
+            do j = 1, rt_nfreq
+               call blutilrand(rn)
+               rt_ranampl(i,j) = 2.d0*(rn-0.5d0)
+               call blutilrand(rn)
+               rt_ranphse(i,j,1) = 2.d0*rt_PI*rn
+               call blutilrand(rn)
+               rt_ranphse(i,j,2) = 2.d0*rt_PI*rn
+            end do
+         end do
+         if ( rt_nfreq .gt. 1 ) then
+            permin =  rt_nfreq**2
+            permax = -rt_nfreq**2
+            do i = 0, MAXPHASE 
+               do j = 0, MAXPHASE
+                  xtmp = 2.d0*rt_PI*dble(i)/dble(MAXPHASE)
+                  ytmp = 2.d0*rt_PI*dble(j)/dble(MAXPHASE)
+                  pert = 0.d0
+                  do n = 1, rt_nfreq
+                     do m = 1, rt_nfreq
+                        pert = pert
+     &                       + sin(
+     &                       2.0D0*rt_PI*dble(n)*xtmp + rt_ranphse(n,m,1)
+     &                       )
+     &                       * sin(
+     &                       2.0D0*rt_PI*dble(m)*ytmp + rt_ranphse(n,m,2)
+     &                       )
+     &                       *rt_ranampl(n,m)
+                     end do
+                  end do
+                  permin = min(permin, pert)
+                  permax = max(permax, pert)
+               end do
+            end do
+            rt_pertamp = 2.d0*rt_pertamp/(permax - permin)
+         end if
+      end if
 
       end
 
@@ -194,11 +253,97 @@ c ::: -----------------------------------------------------------
      &                      dx,xlo,xhi)
 
 
+      else if (probtype .eq. 10) then
+         call initrt(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
+
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
       end if
       end
 
+c----------------------------------------------------------------------
+c     A handy statement function: here blend goes from 0 to 1 in x at
+c     rad, over a width of trn
+
+      DOUBLE PRECISION function zblend1(x,rad,trn)
+      DOUBLE PRECISION x, rad, trn
+      zblend1 = 0.5D0*(1.0D0 + TANH((x-rad)/trn))
+      end
+c
+c ::: -----------------------------------------------------------
+
+
+
+
+
+c
+      subroutine initrt(level,time,lo,hi,nscal,
+     &	 	            vel,scal,DIMS(state),press,DIMS(press),
+     &                      dx,xlo,xhi)
+      implicit none
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n, m
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  pert,ztemp
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(dble(k-lo(3)) + 0.5d0)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(dble(j-lo(2)) + 0.5d0)
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx*(dble(i-lo(1)) + 0.5d0)
+               pert = 0.d0
+               do n = 1, rt_nfreq
+                  do m = 1, rt_nfreq
+                     pert = pert
+     &                    + sin(
+     &                    2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1)
+     &                    )
+     &                    * sin(
+     &                    2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2)
+     &                    )
+     &                    *rt_ranampl(n,m)
+                  end do
+               end do
+               ztemp = z + pert*rt_pertamp
+               if ( ztemp < rt_splitx ) then
+                  scal(i,j,k,1) = rt_den_1
+               else
+                  scal(i,j,k,1) = rt_den_2
+               end if
+               vel(i,j,k,1) = 0
+               vel(i,j,k,2) = 0
+               vel(i,j,k,3) = 0
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = one
+               end do                  
+               scal(i,j,k,nscal) = 0
+   	    end do
+         end do
+      end do
+
+      end
 c
 c ::: -----------------------------------------------------------
 c
@@ -797,32 +942,32 @@ c
 
       end
 
-c ::: -----------------------------------------------------------
-c ::: This routine will tag high error cells based on the 
-c ::: density gradient
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: tag      <=  integer tag array
-c ::: DIMS(tag) => index extent of tag array
-c ::: set       => integer value to tag cell for refinement
-c ::: clear     => integer value to untag cell
-c ::: rho       => density array
-c ::: DIMS(rho) => index extent of rho array
-c ::: nvar      => number of components in rho array (should be 1)
-c ::: lo,hi     => index extent of grid
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of tag array
-c ::: problo    => phys loc of lower left corner of prob domain
-c ::: time      => problem evolution time
-c ::: -----------------------------------------------------------
+c     ::: -----------------------------------------------------------
+c     ::: This routine will tag high error cells based on the 
+c     ::: density gradient
+c     ::: 
+c     ::: INPUTS/OUTPUTS:
+c     ::: 
+c     ::: tag      <=  integer tag array
+c     ::: DIMS(tag) => index extent of tag array
+c     ::: set       => integer value to tag cell for refinement
+c     ::: clear     => integer value to untag cell
+c     ::: rho       => density array
+c     ::: DIMS(rho) => index extent of rho array
+c     ::: nvar      => number of components in rho array (should be 1)
+c     ::: lo,hi     => index extent of grid
+c     ::: domlo,hi  => index extent of problem domain
+c     ::: dx        => cell spacing
+c     ::: xlo       => physical location of lower left hand
+c     :::	           corner of tag array
+c     ::: problo    => phys loc of lower left corner of prob domain
+c     ::: time      => problem evolution time
+c     ::: -----------------------------------------------------------
       subroutine FORT_DENERROR (tag,DIMS(tag),set,clear,
-     &                          rho,DIMS(rho),lo,hi,nvar,
-     &                          domlo,domhi,dx,xlo,
-     &			        problo,time,level)
-
+     &     rho,DIMS(rho),lo,hi,nvar,
+     &     domlo,domhi,dx,xlo,
+     &     problo,time,level)
+      implicit none
       integer   DIMDEC(tag)
       integer   DIMDEC(rho)
       integer   lo(SDIM), hi(SDIM)
@@ -833,8 +978,23 @@ c ::: -----------------------------------------------------------
       REAL_T    rho(DIMV(rho),nvar)
 
       integer   i, j, k
+      REAL_T    ax, ay, az, aerr
 
 #include "probdata.H"
+
+      if ( probtype .eq. 10 ) then
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  ax = ABS(rho(i+1,j,k,1) - rho(i-1,j,k,1))
+                  ay = ABS(rho(i,j+1,k,1) - rho(i,j-1,k,1))
+                  az = ABS(rho(i,j,k+1,1) - rho(i,j,k-1,1))
+                  aerr = MAX(ax,ay,az)
+                  if ( aerr .GE. rt_graddenerr ) tag(i,j,k) = set
+               end do
+            end do
+         end do
+      end if
 
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
@@ -871,7 +1031,7 @@ c ::: -----------------------------------------------------------
      &                          adv,DIMS(adv),lo,hi,nvar,
      &                          domlo,domhi,dx,xlo,
      &			        problo,time,level)
-
+      implicit none
       integer   DIMDEC(tag)
       integer   DIMDEC(adv)
       integer   lo(SDIM), hi(SDIM)
@@ -995,6 +1155,16 @@ c     probtype = VISCOUS BENCHMARK
         end do
 
 
+      else if (probtype .eq. 10) then
+
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
         stop
@@ -1088,6 +1258,8 @@ c         ::::: refine where there is temperature gradient
 c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 9) then
 
+
+      else if (probtype .eq. 10) then
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
@@ -1221,6 +1393,15 @@ c     probtype = VISCOUS BENCHMARK
             end do
          end do
 
+      else if (probtype .eq. 10) then
+
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+               end do
+            end do
+         end do
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_MVERROR ',probtype
