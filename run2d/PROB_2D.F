@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.10 1998-05-19 17:15:06 marc Exp $
+c $Id: PROB_2D.F,v 1.11 1998-06-01 21:30:27 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -68,6 +68,7 @@ c
       else
          open(untin,file=probin(1:namlen),form='formatted',status='old')
       end if
+
       read(untin,fortin)
 c      write(6,fortin)
       close(unit=untin)
@@ -200,23 +201,25 @@ c
          stop
       end if
 
-         do j = lo(2), hi(2)
-            y = xlo(2) + hy*(float(j-lo(2)) + half)
-	    do i = lo(1), hi(1)
-               x = xlo(1) + hx*(float(i-lo(1)) + half)
-  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-               vel(i,j,1) = x_vel
-               vel(i,j,2) = y_vel
-               scal(i,j,1) = cvmgt(denfact,one,dist.lt.radblob)
-               do n = 2,nscal-1
-                  scal(i,j,n) = zero
-               enddo                  
-               scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
-	    end do
-         end do
+      do j = lo(2), hi(2)
+         y = xlo(2) + hy*(float(j-lo(2)) + half)
+         do i = lo(1), hi(1)
+            x = xlo(1) + hx*(float(i-lo(1)) + half)
+            dist = sqrt((x-xblob)**2 + (y-yblob)**2)
+            vel(i,j,1) = x_vel
+            vel(i,j,2) = y_vel
+            scal(i,j,1) = cvmgt(denfact,one,dist.lt.radblob)
+            do n = 2,nscal-1
+               scal(i,j,n) = zero
+            end do                  
+            scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
+	 end do
+      end do
 
       end
-
+c
+c ::: -----------------------------------------------------------
+c
       subroutine initspin(level,time,lo,hi,nscal,
      &	 	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
@@ -274,14 +277,16 @@ c
                scal(i,j,1) = one + (denfact-one) * tanh(10.*(dist-radblob))
                do n = 2,nscal-1
                   scal(i,j,n) = zero
-               enddo                  
+               end do                  
 	       scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
 
 	    end do
          end do
 
       end
-
+c
+c ::: -----------------------------------------------------------
+c
       subroutine initvort(level,time,lo,hi,nscal,
      &	 	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
@@ -331,13 +336,15 @@ c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
                scal(i,j,1) = cvmgt(denfact,one,r.lt.radblob)
                do n = 2,nscal-1
                   scal(i,j,n) = one
-               enddo                  
+               end do                  
                scal(i,j,nscal) = cvmgt(one,zero,r.lt.radblob)
 	    end do
          end do
 
       end
-
+c
+c ::: -----------------------------------------------------------
+c
       subroutine initchannel(level,time,lo,hi,nscal,
      &	 	             vel,scal,DIMS(state),press,DIMS(press),
      &                       dx,xlo,xhi)
@@ -373,7 +380,7 @@ c
 
             do n = 2,nscal-1
                scal(i,j,n) = one
-            enddo                  
+            end do                  
 
             x = xlo(1) + hx*(float(i-lo(1)) + half)
   	    dist = sqrt((x-xblob)**2 + (y-yblob)**2)
@@ -383,7 +390,9 @@ c
       end do
 
       end
-
+c
+c ::: -----------------------------------------------------------
+c
       subroutine initpervort(level,time,lo,hi,nscal,
      &	 	             vel,scal,DIMS(state),press,DIMS(press),
      &                       dx,xlo,xhi)
@@ -422,7 +431,7 @@ c
                scal(i,j,1) = one
                do n = 2,nscal-1
                   scal(i,j,n) = one
-               enddo
+               end do
                   
   	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
 	       scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
@@ -430,7 +439,9 @@ c
          end do
 
       end
-
+c
+c ::: -----------------------------------------------------------
+c
       subroutine inithotspot(level,time,lo,hi,nscal,
      &	 	             vel,scal,DIMS(state),press,DIMS(press),
      &                       dx,xlo,xhi)
@@ -481,12 +492,11 @@ c     ::::: local variables
             scal(i,j,2) = one / scal(i,j,1)
             do n = 3,nscal-1
                scal(i,j,n) = one
-            enddo
+            end do
             scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
          end do
       end do
       
-      return
       end
       
 c ::: -----------------------------------------------------------
@@ -636,7 +646,7 @@ c     probtype = HOT SPOT
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
         stop
-      endif
+      end if
  
       end
 
@@ -763,7 +773,7 @@ c         ::::: refine where there is temperature gradient
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
         stop
-      endif
+      end if
 
       end
 
@@ -802,9 +812,8 @@ c ::: -----------------------------------------------------------
       integer   tag(DIMV(tag))
       REAL_T    vort(DIMV(vort),nvar)
 
-      REAL_T    x, y, dist
+      REAL_T    x, y
       integer   i, j
-      REAL_T    radius
 
 #include "probdata.H"
 
@@ -859,7 +868,7 @@ c     probtype = HOT SPOT
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_MVERROR ',probtype
         stop
-      endif
+      end if
 
       end
 
@@ -1501,7 +1510,6 @@ c ::: -----------------------------------------------------------
            end if
       end if            
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -1587,6 +1595,5 @@ c ::: -----------------------------------------------------------
            end do
       end if            
 
-      return
       end
 
