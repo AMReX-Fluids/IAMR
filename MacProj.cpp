@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.82 2002-09-26 16:39:31 lijewski Exp $
+// $Id: MacProj.cpp,v 1.83 2002-11-08 23:31:21 car Exp $
 //
 #include <winstd.H>
 
@@ -44,6 +44,10 @@ const int* boxhi = (box).hiVect();
 
 int  MacProj::verbose          = 0;
 bool MacProj::use_cg_solve     = false;
+namespace
+{
+  bool        use_hypre_solve  = false;
+}
 Real MacProj::mac_tol          = 1.0e-12;
 Real MacProj::mac_abs_tol      = 1.0e-16;
 Real MacProj::mac_sync_tol     = 1.0e-8;
@@ -89,9 +93,16 @@ MacProj::read_params ()
     pp.query( "mac_tol",          mac_tol          );
     pp.query( "mac_sync_tol",     mac_sync_tol     );
     pp.query( "use_cg_solve",     use_cg_solve     );
+#if MG_USE_HYPRE
+    pp.query( "use_hypre_solve",     use_hypre_solve);
+#endif
     pp.query( "mac_abs_tol",      mac_abs_tol      );
     pp.query( "do_outflow_bcs",   do_outflow_bcs   );
     pp.query( "fix_mac_sync_rhs", fix_mac_sync_rhs );
+    if ( use_cg_solve && use_hypre_solve)
+      {
+	BoxLib::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
+      }
 }
 
 void
@@ -327,6 +338,10 @@ MacProj::mac_project (int             level,
     {
 	the_solver = 1;
     }
+    else if ( use_hypre_solve )
+      {
+	the_solver = 2;
+      }
     mac_level_driver(mac_bndry, grids, the_solver, level, Density,
                      dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
                      area[level], volume[level], S, Rhs, u_mac, mac_phi);
@@ -544,6 +559,10 @@ MacProj::mac_sync_solve (int       level,
     {
 	the_solver = 1;
     }
+    else if ( use_hypre_solve )
+      {
+	the_solver = 2;
+      }
     mac_sync_driver(mac_bndry, grids, the_solver, level, dx, dt,
                     mac_sync_tol, mac_abs_tol, rhs_scale, area[level],
                     volume[level], Rhs, rho_half, u_mac, mac_sync_phi);
