@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.32 1998-03-26 06:40:57 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.33 1998-03-26 23:08:58 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2980,116 +2980,72 @@ void NavierStokes::initial_velocity_diffusion_update(Real dt)
 //=================================================================
 
 // -------------------------------------------------------------
-void NavierStokes::errorEst(TagBoxArray &tags, int clearval, int tagval,
-                            Real time)
+void
+NavierStokes::errorEst (TagBoxArray& tags,
+                        int          clearval,
+                        int          tagval,
+                        Real         time)
 {
-    const Box &domain = geom.Domain();
-    const int *domain_lo = domain.loVect();
-    const int *domain_hi = domain.hiVect();
-    const Real *dx = geom.CellSize();
-    const Real *prob_lo = geom.ProbLo();
+    const Box& domain    = geom.Domain();
+    const int* domain_lo = domain.loVect();
+    const int* domain_hi = domain.hiVect();
+    const Real* dx       = geom.CellSize();
+    const Real* prob_lo  = geom.ProbLo();
+    //
+    // Loop over error estimation quantities, derive quantity
+    // then call user supplied error tagging function.
+    //
+    for (int j = 0; j < err_list.length(); j++)
+    {
+        const ErrorRec* err = err_list[j];
+        int ngrow           = err->nGrow();
+        int state_index, src_comp;
+        if (!isStateVariable(err->name(),state_index, src_comp))
+        {
+            cerr << "Error in NavierStokes::errorEst:  "
+                 << err->name()
+                 << " is not a state variable: fix for parallel."
+                 << endl;
+            BoxLib::Error();
+        }
+        MultiFab& dataMF = get_new_data(state_index);
 
-//  original code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+        assert(tags.length() == dataMF.length());
 
-/*
-    for(FabArrayIterator<int, TagBox> tagsfai(tags); tagsfai.isValid(); ++tagsfai) {
-        TagBox &tn = tagsfai();
-        //assert(grids[tagsfai.index()] == tagsfai.validbox());
-        int i = tagsfai.index();
+        for (FillPatchIterator fpi(*this, dataMF, ngrow, 0, time,
+                                   state_index, src_comp, 1);
+             fpi.isValid();
+             ++fpi)
+        {
+            Array<int> itags = tags[fpi.index()].tags();
+            int* tptr        = itags.dataPtr();
+            const int* tlo   = tags[fpi.index()].box().loVect();
+            const int* thi   = tags[fpi.index()].box().hiVect();
+            const int* lo    = grids[fpi.index()].loVect();
+            const int* hi    = grids[fpi.index()].hiVect();
+            const Real* xlo  = grid_loc[fpi.index()].lo();
 
-        int *tptr = tn.dataPtr();
-        const Box& tbox = tn.box();
-        const int* tlo = tbox.loVect();
-        const int* thi = tbox.hiVect();
+            assert(fpi().box() == grow(grids[fpi.index()],ngrow));
 
-        const int* lo = grids[i].loVect();
-        const int* hi = grids[i].hiVect();
-        const Real* xlo = grid_loc[i].lo();
-
-          // loop over error estimation quantities, derive quantity
-          // then call user supplied error tagging function
-        for (int j = 0; j < err_list.length(); j++) {
-            const ErrorRec *err = err_list[j];
-            int ngrow = err->nGrow();
-            Box bx(grow(grids[i],ngrow));
-            FArrayBox *dfab = derive(bx,err->name(),time);
-            Real* dat = dfab->dataPtr();
-            const int* dat_lo = dfab->loVect();
-            const int* dat_hi = dfab->hiVect();
-            int ncomp = dfab->nComp();
+            Real* dat         = fpi().dataPtr();
+            const int* dat_lo = fpi().loVect();
+            const int* dat_hi = fpi().hiVect();
+            int ncomp         = fpi().nComp();
 
             err->errFunc()(tptr,ARLIM(tlo),ARLIM(thi),&tagval,&clearval,
-                           dat, ARLIM(dat_lo), ARLIM(dat_hi), 
-                           lo, hi, &ncomp,
-                           domain_lo, domain_hi,
+                           dat, ARLIM(dat_lo), ARLIM(dat_hi),
+                           lo, hi, &ncomp, domain_lo, domain_hi,
                            dx, xlo, prob_lo, &time, &level);
-
-            delete dfab;
+            //
+            // Don't forget to set the tags in the TagBox.
+            //
+            tags[fpi.index()].tags(itags);
         }
     }
-//  end original code ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-*/
+}
 
-//  new code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-
-    // loop over error estimation quantities, derive quantity
-    // then call user supplied error tagging function
-    for(int j = 0; j < err_list.length(); j++) {
-      const ErrorRec *err = err_list[j];
-      int ngrow = err->nGrow();
-      int state_index, src_comp;
-      if( ! isStateVariable(err->name(),state_index, src_comp)) {
-        cerr << "Error in NavierStokes::errorEst:  " << err->name() << " is not"
-             << " a state variable:  fix for parallel." << endl;
-        ParallelDescriptor::Abort("Exiting.");
-      }
-
-      MultiFab &dataMF = get_new_data(state_index);
-      assert(tags.length() == dataMF.length());
-
-      int destComp = 0;
-      int nComp = 1;
-      for(FillPatchIterator fpi(*this, dataMF, ngrow, destComp, time,
-                                state_index, src_comp, nComp);
-          fpi.isValid();
-          ++fpi)
-      {
-        int i = fpi.index();
-        //DependentFabArrayIterator<int, TagBox> tagsfai(fpi, tags);
-        //TagBox &tn = tagsfai();
-        //assert(tags[i] != NULL);
-        TagBox &tn = tags[i];
-
-        int* tptr = reinterpret_cast<int*>( tn.dataPtr() );
-        const Box &tbox = tn.box();
-        const int *tlo = tbox.loVect();
-        const int *thi = tbox.hiVect();
-
-        const int *lo = grids[i].loVect();
-        const int *hi = grids[i].hiVect();
-        const Real *xlo = grid_loc[i].lo();
-
-        FArrayBox &dfab = fpi();
-        assert(dfab.box() == grow(grids[i],ngrow));
-        Real *dat = dfab.dataPtr();
-        const int *dat_lo = dfab.loVect();
-        const int *dat_hi = dfab.hiVect();
-        int ncomp = dfab.nComp();
-
-        err->errFunc()(tptr,ARLIM(tlo),ARLIM(thi),&tagval,&clearval,
-                       dat, ARLIM(dat_lo), ARLIM(dat_hi),
-                       lo, hi, &ncomp,
-                       domain_lo, domain_hi,
-                       dx, xlo, prob_lo, &time, &level);
-        //delete dfab;
-      }
-    }
-
-}  // end errorEst(...)
-
-
-// ---------------------------------------------------------------
-Real NavierStokes::sumDerive(const aString& name, Real time)
+Real
+NavierStokes::sumDerive (const aString& name, Real time)
 {
     Real sum         = 0.0;
     int finest_level = parent->finestLevel();
