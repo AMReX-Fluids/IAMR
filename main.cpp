@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: main.cpp,v 1.32 1999-04-08 21:00:57 car Exp $
+// $Id: main.cpp,v 1.33 1999-04-13 00:30:38 marc Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -24,7 +24,9 @@
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 #include <AmrLevel.H>
+#ifdef BL_USE_MPI
 #include <hgparallel.H>
+#endif
 
 #ifdef BL_USE_NEW_HFILES
 #include <new>
