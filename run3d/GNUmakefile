@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.21 2000-10-03 18:03:46 lijewski Exp $
+# $Id: GNUmakefile,v 1.22 2000-10-03 20:56:22 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -123,7 +123,7 @@ ifdef 3RD
 endif
 
 
-XTRALIBS += --backend -lpat --backend pat.cld
+#XTRALIBS += --backend -lpat --backend pat.cld
 
 
 ifeq ($(BUILD_INPLACE), TRUE)
