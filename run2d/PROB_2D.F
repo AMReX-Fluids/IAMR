@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.22 2002-10-17 20:36:40 marc Exp $
+c $Id: PROB_2D.F,v 1.23 2003-06-05 17:46:59 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -211,8 +211,7 @@ c
          y = xlo(2) + hy*(float(j-lo(2)) + half)
          do i = lo(1), hi(1)
             x = xlo(1) + hx*(float(i-lo(1)) + half)
-c            dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-            dist = sqrt((x-xblob)**2)
+             dist = sqrt((x-xblob)**2 + (y-yblob)**2)
             vel(i,j,1) = x_vel
             vel(i,j,2) = y_vel
             scal(i,j,1) = one + half*(denfact-one)*(one-tanh(30.*(dist-radblob)))
