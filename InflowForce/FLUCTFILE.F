@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.8 2003-12-19 18:32:52 lijewski Exp $
+c $Id: FLUCTFILE.F,v 1.9 2003-12-22 23:28:22 marc Exp $
 c
 
 #undef  BL_LANG_CC
@@ -111,12 +111,13 @@ c
       read(iunit,iostat=ierr) dimFile, nCmpFile
       if (ierr.ne.0) nCmpFile = BL_SPACEDIM
       if (nCmpFile.ne.nCompInflow) then
+         write(6,*) 'nCmpFile=',nCmpFile,'  nCompInflow=',nCompInflow
          call bl_abort('RD_SCL_FLCTHD: nCmpFile != nCompInflow')
       endif
 
-      if (dimFile(3) .lt. 3) then
-         call bl_abort('RD_SCL_FLCTHD: dimFile(3) must be >= 3')
-      endif
+c      if (dimFile(3) .lt. 3) then
+c         call bl_abort('RD_SCL_FLCTHD: dimFile(3) must be >= 3')
+c      endif
 
       read(iunit) probSizeFile
       !
@@ -132,7 +133,11 @@ c
 
       dxFile(1) = probSizeFile(1)/FLOAT(dimFile(1)-1)
       dxFile(2) = probSizeFile(2)/FLOAT(dimFile(2)-1)
-      dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
+      if (dimFile(3) .gt. 1) then
+         dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
+      else
+         dxFile(3) = zero
+      endif
 
       if (infl_type .eq. infl_swirl_type) then
          if (.NOT. ASSOCIATED(fluct_times)) then
