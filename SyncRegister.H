@@ -4,7 +4,7 @@
 #define _SYNCREGISTER_H_
 
 //
-// $Id: SyncRegister.H,v 1.15 1999-07-24 00:07:02 almgren Exp $
+// $Id: SyncRegister.H,v 1.16 2000-05-03 18:28:59 almgren Exp $
 //
 
 #include <PArray.H>
@@ -43,6 +43,7 @@ public:
     const BoxArray& coarsenedBoxes () const { return grids; }
 
     void CrseInit (MultiFab*    Sync_resid_crse,
+                   const Geometry&    crse_geom,
                    Real               mult);
 
     void FineAdd  (MultiFab*    Sync_resid_crse,

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.62 1999-08-03 07:15:01 almgren Exp $
+// $Id: SyncRegister.cpp,v 1.63 2000-05-03 18:29:00 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -356,6 +356,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     // rhs which are not covered by sync registers through periodic shifts.
     //
     copyPeriodic(geom,domain,rhs);
+
     //
     // Overwrite above-set values on all nodes covered by a sync register.
     //
@@ -363,6 +364,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     {
         bndry[face()].copyTo(rhs);
     }
+
     const int* phys_lo = phys_bc->lo();
     const int* phys_hi = phys_bc->hi();
 
@@ -609,6 +611,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
 void
 SyncRegister::CrseInit  (MultiFab* Sync_resid_crse,
+                         const Geometry& crse_geom, 
                          Real            mult)
 {
     WriteNorms(*this,"SyncRegister::CrseInit(B)");
@@ -616,6 +619,9 @@ SyncRegister::CrseInit  (MultiFab* Sync_resid_crse,
     setVal(0.);
 
     Sync_resid_crse->mult(mult);
+
+    Box crse_node_domain = ::surroundingNodes(crse_geom.Domain());
+    incrementPeriodic(crse_geom, crse_node_domain, *Sync_resid_crse);
 
     for (OrientationIter face; face; ++face)
     {

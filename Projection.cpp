@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.118 2000-04-25 18:03:25 car Exp $
+// $Id: Projection.cpp,v 1.119 2000-05-03 18:28:59 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -615,6 +615,7 @@ Projection::level_project (int             level,
                                   use_u, (Real*)dx,
                                   proj_tol, level, level, proj_abs_tol);
     }
+
     delete divusource;
     //
     // Note: this must occur *after* the projection has been done
@@ -630,7 +631,7 @@ Projection::level_project (int             level,
           // Init sync registers between level and level+1.
           //
           const Real mult = 1.0;
-          crse_sync_reg->CrseInit(sync_resid_crse,mult);
+          crse_sync_reg->CrseInit(sync_resid_crse,geom,mult);
        }
        if ( level > 0 &&
             ( ((proj_0 || proj_2) && iteration == crse_dt_ratio) ||
