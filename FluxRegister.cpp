@@ -1,6 +1,6 @@
 
 //
-// $Id: FluxRegister.cpp,v 1.13 1997-10-08 20:15:29 car Exp $
+// $Id: FluxRegister.cpp,v 1.14 1997-10-21 22:00:54 vince Exp $
 //
 
 #include <FluxRegister.H>
@@ -411,17 +411,6 @@ void FluxRegister::Reflux(MultiFab &S, const MultiFab &volume, Real scale,
                         tempFillBoxId = fscd.AddBox(fsid[face],regBox,unfilledBoxes,
                                                     src_comp, dest_comp, num_comp);
                         fillBoxIdList.append(tempFillBoxId);
-
-                        //const FArrayBox &reg = bndry[face][k];
-                        //const Real *reg_dat = reg.dataPtr(src_comp);
-                        //const int *rlo = fine_face.loVect();
-                        //const int *rhi = fine_face.hiVect();
-                        //const int *lo = ovlp.loVect();
-                        //const int *hi = ovlp.hiVect();
-                        //FORT_FRREFLUX(s_dat,ARLIM(slo),ARLIM(shi),
-                                      //vol_dat,ARLIM(vlo),ARLIM(vhi),
-                                      //reg_dat,ARLIM(rlo),ARLIM(rhi),
-                                      //lo,hi,&num_comp,&mult);
                     }
                 }
             }
@@ -469,17 +458,6 @@ void FluxRegister::Reflux(MultiFab &S, const MultiFab &volume, Real scale,
                     tempFillBoxId = fscd.AddBox(fsid[face],regBox,unfilledBoxes,
                                                 src_comp, dest_comp, num_comp);
                     fillBoxIdList.append(tempFillBoxId);
-
-		    //const FArrayBox &reg = bndry[face][k];
-		    //const Real *reg_dat = reg.dataPtr(src_comp);
-		    //const int *rlo = fine_face.loVect();
-		    //const int *rhi = fine_face.hiVect();
-		    //const int *lo = ovlp.loVect();
-		    //const int *hi = ovlp.hiVect();
-		    //FORT_FRREFLUX(s_dat,ARLIM(slo),ARLIM(shi),
-				  //vol_dat,ARLIM(vlo),ARLIM(vhi),
-				  //reg_dat,ARLIM(rlo),ARLIM(rhi),lo,hi,
-				  //&num_comp,&mult);
 		  }
                 }
 
@@ -980,13 +958,15 @@ FluxRegister::CrseInit(const MultiFab& mflx, const MultiFab& area,
 	if(lobox.ok()) {
               BoxList unfilledBoxes(lobox.ixType());  // unused here
               FillBoxId fbid_mflx;
-              fbid_mflx = mfcd.AddBox(mfid_mflx, lobox,
+              //fbid_mflx = mfcd.AddBox(mfid_mflx, lobox,
+              fbid_mflx = mfcd.AddBox(mfid_mflx, mflx.fabbox(k),
                                       unfilledBoxes, 0, 0,
                                       mflx.nComp());
               fillBoxIdList_mflx.append(fbid_mflx);
 
               FillBoxId fbid_area;
-              fbid_area = mfcd.AddBox(mfid_area, lobox,
+              //fbid_area = mfcd.AddBox(mfid_area, lobox,
+              fbid_area = mfcd.AddBox(mfid_area, area.fabbox(k),
                                       unfilledBoxes, 0, 0,
                                       area.nComp());
               fillBoxIdList_area.append(fbid_area);
@@ -996,13 +976,15 @@ FluxRegister::CrseInit(const MultiFab& mflx, const MultiFab& area,
 	if(hibox.ok()) {
               BoxList unfilledBoxes(hibox.ixType());  // unused here
               FillBoxId fbid_mflx;
-              fbid_mflx = mfcd.AddBox(mfid_mflx, hibox,
+              //fbid_mflx = mfcd.AddBox(mfid_mflx, hibox,
+              fbid_mflx = mfcd.AddBox(mfid_mflx, mflx.fabbox(k),
                                       unfilledBoxes, 0, 0,
                                       mflx.nComp());
               fillBoxIdList_mflx.append(fbid_mflx);
 
               FillBoxId fbid_area;
-              fbid_area = mfcd.AddBox(mfid_area, hibox,
+              //fbid_area = mfcd.AddBox(mfid_area, hibox,
+              fbid_area = mfcd.AddBox(mfid_area, area.fabbox(k),
                                       unfilledBoxes, 0, 0,
                                       area.nComp());
               fillBoxIdList_area.append(fbid_area);

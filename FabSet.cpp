@@ -1,6 +1,6 @@
 
 //
-// $Id: FabSet.cpp,v 1.8 1997-10-08 20:15:28 car Exp $
+// $Id: FabSet.cpp,v 1.9 1997-10-21 22:00:54 vince Exp $
 //
 
 #include <FabSet.H>
@@ -175,8 +175,10 @@ FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
               //dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
 	      IndexType boxType(ovlp.ixType());
 	      BoxList unfilledBoxes(boxType);  // unused here
-	      FillBoxId fbid = fscd.AddBox(srcmfid, ovlp, unfilledBoxes,
-				           src_comp, dest_comp, num_comp);
+	      //FillBoxId fbid = fscd.AddBox(srcmfid, ovlp, unfilledBoxes,
+	      FillBoxId fbid = fscd.AddBox(srcmfid, src.fabbox(s), unfilledBoxes,
+				           //src_comp, dest_comp, num_comp);
+				           src_comp, dest_comp, num_comp, false);
 	      fillBoxIdList.append(fbid);
             }
         }
@@ -197,7 +199,7 @@ FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
 	      FillBoxId fbid = fbidli();
 	      ++fbidli;
 
-	      FArrayBox sfabTemp(ovlp, num_comp);
+	      FArrayBox sfabTemp(fbid.box(), num_comp);
 	      fscd.FillFab(srcmfid, fbid, sfabTemp);
 	      int srcCompTemp = 0;  // copy from temp src = 0
               dfab.copy(sfabTemp, ovlp, srcCompTemp, ovlp, dest_comp, num_comp);
@@ -280,7 +282,7 @@ FabSet &FabSet::plusFrom(const MultiFab &src, int nghost, int src_comp,
     MultiFabId mfidsrc  = mfcd.RegisterFabArray((MultiFab *) &src);
     List<FillBoxId> fillBoxIdList;
 
-    for(MultiFabIterator thismfi(*this); thismfi.isValid(); ++thismfi) {
+    for(FabSetIterator thismfi(*this); thismfi.isValid(); ++thismfi) {
       FArrayBox &dfab = thismfi();
       for(int isrc = 0; isrc < src.length(); ++isrc) {
 	Box sbox = grow(sba[isrc], nghost);
@@ -301,7 +303,7 @@ FabSet &FabSet::plusFrom(const MultiFab &src, int nghost, int src_comp,
 
     ListIterator<FillBoxId> fbidli(fillBoxIdList);
 
-    for(MultiFabIterator thismfi(*this); thismfi.isValid(); ++thismfi) {
+    for(FabSetIterator thismfi(*this); thismfi.isValid(); ++thismfi) {
       FArrayBox &dfab = thismfi();
       for(int isrc = 0; isrc < src.length(); ++isrc) {
 	Box sbox = grow(sba[isrc], nghost);
@@ -386,24 +388,26 @@ FabSet &FabSet::linComb(Real a, const MultiFab &mfa, int a_comp,
     List<FillBoxId> fillBoxIdList_mfa;
     List<FillBoxId> fillBoxIdList_mfb;
 
-    for(MultiFabIterator thismfi(*this); thismfi.isValid(); ++thismfi) {
+    for(FabSetIterator thismfi(*this); thismfi.isValid(); ++thismfi) {
       FArrayBox &reg_fab = thismfi();
       for(int grd = 0; grd < bxa.length(); grd++) {
         const Box &grd_box = grow(bxa[grd],n_ghost);
         Box ovlp(reg_fab.box());
         ovlp &= grd_box;
         if(ovlp.ok()) {
-          //reg_fab.linComb(a_fab,ovlp,a_comp,b_fab,ovlp,b_comp,
-                          //a,b,ovlp,dest_comp,num_comp);
           BoxList unfilledBoxes(ovlp.ixType());  // unused here
           FillBoxId fbid_mfa;
-          fbid_mfa = mfcd.AddBox(mfid_mfa, ovlp, unfilledBoxes,
-                                 0, 0, num_comp);
+          //fbid_mfa = mfcd.AddBox(mfid_mfa, ovlp, unfilledBoxes,
+          fbid_mfa = mfcd.AddBox(mfid_mfa, mfa.fabbox(grd), unfilledBoxes,
+                                 //0, 0, num_comp);
+                                 0, 0, num_comp, false);
           fillBoxIdList_mfa.append(fbid_mfa);
 
           FillBoxId fbid_mfb;
-          fbid_mfb = mfcd.AddBox(mfid_mfb, ovlp, unfilledBoxes,
-                                 0, 0, num_comp);
+          //fbid_mfb = mfcd.AddBox(mfid_mfb, ovlp, unfilledBoxes,
+          fbid_mfb = mfcd.AddBox(mfid_mfb, mfb.fabbox(grd), unfilledBoxes,
+                                 //0, 0, num_comp);
+                                 0, 0, num_comp, false);
           fillBoxIdList_mfb.append(fbid_mfb);
         }
       }
@@ -414,7 +418,7 @@ FabSet &FabSet::linComb(Real a, const MultiFab &mfa, int a_comp,
     ListIterator<FillBoxId> fbidli_mfa(fillBoxIdList_mfa);
     ListIterator<FillBoxId> fbidli_mfb(fillBoxIdList_mfb);
 
-    for(MultiFabIterator thismfi(*this); thismfi.isValid(); ++thismfi) {
+    for(FabSetIterator thismfi(*this); thismfi.isValid(); ++thismfi) {
       FArrayBox &reg_fab = thismfi();
       for(int grd = 0; grd < bxa.length(); grd++) {
         const Box &grd_box = grow(bxa[grd],n_ghost);
@@ -438,7 +442,6 @@ FabSet &FabSet::linComb(Real a, const MultiFab &mfa, int a_comp,
         }
       }
     }
-
 
     return *this;
 }

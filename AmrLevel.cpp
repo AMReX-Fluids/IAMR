@@ -1,6 +1,6 @@
 
 //
-// $Id: AmrLevel.cpp,v 1.16 1997-10-08 20:15:19 car Exp $
+// $Id: AmrLevel.cpp,v 1.17 1997-10-21 22:00:50 vince Exp $
 //
 
 // #define ADVANCE_DEBUG 1
@@ -1495,51 +1495,37 @@ const Box &FillPatchIterator::UngrownBox() const {
 // -------------------------------------------------------------
 void
 AmrLevel::FillCoarsePatch(FArrayBox &dest,
-		          int dest_comp, Real time,
-		          int state_indx, int src_comp, int ncomp,
-		          Interpolater *mapper)
+                          int dest_comp, Real time,
+                          int state_indx, int src_comp, int ncomp,
+                          Interpolater *mapper)
 {
+    ParallelDescriptor::Abort("FillCoarsePatch not implemented in parallel.");
+
       // must fill this region on crse level and interpolate
-    if (level == 0) {
-	cerr << "crsePatch: called at level 0\n";
-	ParallelDescriptor::Abort("Exiting.");
-    }
-    if(ParallelDescriptor::NProcs() > 1) {
-      ParallelDescriptor::Abort("FillCoarsePatch not implemented in parallel.");
-    } else {
-      cerr << "FillCoarsePatch not implemented in parallel.\n";
-    }
+    assert(level != 0);
+    assert( ncomp <= (dest.nComp() - dest_comp) );
+    assert( (0 <= state_indx) && (state_indx < desc_lst.length()) );
 
     Box dbox(dest.box());
-
-    int nv = dest.nComp();
-    int ndesc = desc_lst.length();
-
-    assert( (0<=state_indx) && (state_indx<ndesc) );
     const StateDescriptor &desc = desc_lst[state_indx];
 
     assert( dbox.ixType() == desc.getType() );
     assert( desc.inRange(src_comp, ncomp) );
-    assert( ncomp <= (nv-dest_comp) );
 
     const RealBox &prob_domain = geom.ProbDomain();
-
     const Box &p_domain = state[state_indx].getDomain();
 
-   // does grid intersect domain exterior?
-    int inside = p_domain.contains(dbox);
+    int inside = p_domain.contains(dbox);   // does grid intersect domain exterior?
 
-      // Intersect with problem domain at this level
-    dbox &= p_domain;
+    dbox &= p_domain;                // Intersect with problem domain at this level
 
     Interpolater *map = mapper;
-    if (map == 0) map = desc.interp();
+    if(map == 0) map = desc.interp();
 
       // coarsen unfilled region and widen by interpolater stencil width
     Box crse_reg(map->CoarseBox(dbox,crse_ratio));
 
-      // alloc patch for crse level
-    FArrayBox crse(crse_reg,ncomp);
+    FArrayBox crse(crse_reg,ncomp);                   // alloc patch for crse level
 
       // fill patch at lower level
     AmrLevel &crse_lev = parent->getLevel(level-1);
@@ -1550,23 +1536,95 @@ AmrLevel::FillCoarsePatch(FArrayBox &dest,
     setBC(dbox,p_domain,src_comp,0,ncomp,desc.getBCs(),bc_crse);
 
       // interpolate up to fine patch
-    const Geometry& crse_geom = crse_lev.geom;
+    const Geometry &crse_geom = crse_lev.geom;
+    map->interp(crse,0,dest,dest_comp,ncomp,dbox,
+                crse_ratio,crse_geom,geom,bc_crse);
+
+    if( ! inside) {
+        const Real *dx = geom.CellSize();
+        state[state_indx].FillBoundary(dest,time,dx,prob_domain,
+                                   dest_comp,src_comp,ncomp);
+    }
+}
+
+
+// -------------------------------------------------------------
+void
+AmrLevel::FillCoarsePatch(MultiFab &mfdest,
+		          int dest_comp, Real time,
+		          int state_indx, int src_comp, int ncomp,
+		          Interpolater *mapper)
+{
+  // must fill this region on crse level and interpolate
+  assert(level != 0);
+  assert( ncomp <= (mfdest.nComp() - dest_comp) );
+  assert( (0 <= state_indx) && (state_indx < desc_lst.length()) );
+
+  const StateDescriptor &desc = desc_lst[state_indx];
+  assert( desc.inRange(src_comp, ncomp) );
+  Interpolater *map = mapper;
+  if(map == 0) {
+    map = desc.interp();
+  }
+  const RealBox &prob_domain = geom.ProbDomain();
+  const Box &p_domain = state[state_indx].getDomain();
+  AmrLevel &crse_lev = parent->getLevel(level-1);
+
+  // build a properly coarsened boxarray
+  BoxArray mfdestBoxArray(mfdest.boxArray());
+  BoxArray crse_regBoxArray(mfdestBoxArray.length());
+  for(int ibox = 0; ibox < mfdestBoxArray.length(); ++ibox) {
+    //assert(mfdest.fabbox(ibox) == mfdest[ibox].box());
+    Box dbox(mfdest.fabbox(ibox));
+    assert( dbox.ixType() == desc.getType() );
+
+    dbox &= p_domain;                // Intersect with problem domain at this level
+
+    // coarsen unfilled region and widen by interpolater stencil width
+    Box crse_reg(map->CoarseBox(dbox,crse_ratio));
+    crse_regBoxArray.set(ibox, crse_reg);
+  }
+
+  int boxGrow = 0;
+  MultiFab mf_crse_reg(crse_regBoxArray, ncomp, boxGrow);
+
+  for( FillPatchIterator fpi(crse_lev, mf_crse_reg, boxGrow, dest_comp,
+                             time, state_indx, src_comp, ncomp, mapper);
+                         fpi.isValid();
+                         ++fpi)
+  {
+    DependentMultiFabIterator mfdest_mfi(fpi, mfdest);
+    assert(mfdest_mfi.fabbox() == mfdest_mfi().box());
+    Box dbox(mfdest_mfi().box());
+    dbox &= p_domain;                // Intersect with problem domain at this level
+
+    FArrayBox &crse = fpi();
+    FArrayBox &dest = mfdest_mfi();
+
+      // get bndry conditions for this patch
+    Array<BCRec> bc_crse(ncomp);
+    setBC(dbox,p_domain,src_comp,0,ncomp,desc.getBCs(),bc_crse);
+
+      // interpolate up to fine patch
+    const Geometry &crse_geom = crse_lev.geom;
     map->interp(crse,0,dest,dest_comp,ncomp,dbox,
 		crse_ratio,crse_geom,geom,bc_crse);
 
-    if (!inside) {
-	const Real* dx = geom.CellSize();
+    if( ! p_domain.contains(dbox)) {
+	const Real *dx = geom.CellSize();
 	state[state_indx].FillBoundary(dest,time,dx,prob_domain,
-				   dest_comp,src_comp,ncomp);
+				       dest_comp,src_comp,ncomp);
     }
-}
+  }
+}  // end FillCoarsePatch(...)
+
 
 // -------------------------------------------------------------
 PArray<FArrayBox>*
 AmrLevel::derive(const aString &name, Real time)
 {
     if(ParallelDescriptor::NProcs() > 1) {
-      cerr << "AmrLevel::derive(returning PArray *) not implemented in parallel." << NL;
+      cerr << "PArray *AmrLevel::derive(...) not implemented in parallel." << NL;
       ParallelDescriptor::Abort("Exiting.");
     } else {
       cerr << "AmrLevel::derive(returning PArray *) not implemented in parallel." << NL;

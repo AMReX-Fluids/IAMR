@@ -43,5 +43,7 @@
   velfact = 1.0
   radblob = 0.1
 
+  adverr = 0.5
+
  $end
 

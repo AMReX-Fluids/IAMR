@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.19 1997-10-08 20:15:42 car Exp $
+// $Id: NavierStokes.cpp,v 1.20 1997-10-21 22:00:57 vince Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2947,17 +2947,15 @@ void NavierStokes::initial_velocity_diffusion_update(Real dt)
 void NavierStokes::errorEst(TagBoxArray &tags, int clearval, int tagval,
                             Real time)
 {
-/*
+    const Box &domain = geom.Domain();
+    const int *domain_lo = domain.loVect();
+    const int *domain_hi = domain.hiVect();
+    const Real *dx = geom.CellSize();
+    const Real *prob_lo = geom.ProbLo();
+
 //  original code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-    const Box& domain = geom.Domain();
-    const int* domain_lo = domain.loVect();
-    const int* domain_hi = domain.hiVect();
-    const Real* dx = geom.CellSize();
-    const Real* prob_lo = geom.ProbLo();
 
-    int nerror = err_list.length();
-
-    //for (i=0; i < grids.length(); i++)
+/*
     for(FabArrayIterator<int, TagBox> tagsfai(tags); tagsfai.isValid(); ++tagsfai) {
 	TagBox &tn = tagsfai();
 	//assert(grids[tagsfai.index()] == tagsfai.validbox());
@@ -2974,7 +2972,7 @@ void NavierStokes::errorEst(TagBoxArray &tags, int clearval, int tagval,
 
 	  // loop over error estimation quantities, derive quantity
 	  // then call user supplied error tagging function
-	for (int j = 0; j < nerror; j++) {
+	for (int j = 0; j < err_list.length(); j++) {
 	    const ErrorRec *err = err_list[j];
 	    int ngrow = err->nGrow();
 	    Box bx(grow(grids[i],ngrow));
@@ -2993,14 +2991,10 @@ void NavierStokes::errorEst(TagBoxArray &tags, int clearval, int tagval,
 	    delete dfab;
 	}
     }
+//  end original code ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 */
 
-
-    const Box &domain = geom.Domain();
-    const int *domain_lo = domain.loVect();
-    const int *domain_hi = domain.hiVect();
-    const Real *dx = geom.CellSize();
-    const Real *prob_lo = geom.ProbLo();
+//  new code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
     // loop over error estimation quantities, derive quantity
     // then call user supplied error tagging function
@@ -3014,17 +3008,15 @@ void NavierStokes::errorEst(TagBoxArray &tags, int clearval, int tagval,
         ParallelDescriptor::Abort("Exiting.");
       }
 
-      //MultiFab &dataMF = get_data(state_index, time);
       MultiFab &dataMF = get_new_data(state_index);
+      assert(tags.length() == dataMF.length());
 
       int destComp = 0;
       int nComp = 1;
-
       for(FillPatchIterator fpi(*this, dataMF, ngrow, destComp, time,
 				state_index, src_comp, nComp);
 	  fpi.isValid();
 	  ++fpi)
-
       {
         int i = fpi.index();
         //DependentFabArrayIterator<int, TagBox> tagsfai(fpi, tags);
@@ -3041,9 +3033,8 @@ void NavierStokes::errorEst(TagBoxArray &tags, int clearval, int tagval,
         const int *hi = grids[i].hiVect();
         const Real *xlo = grid_loc[i].lo();
 
-        //Box bx(grow(grids[i],ngrow));
-        //FArrayBox *dfab = derive(bx,err->name(),time);
         FArrayBox &dfab = fpi();
+	assert(dfab.box() == grow(grids[i],ngrow));
         Real *dat = dfab.dataPtr();
         const int *dat_lo = dfab.loVect();
         const int *dat_hi = dfab.hiVect();
@@ -3057,7 +3048,6 @@ void NavierStokes::errorEst(TagBoxArray &tags, int clearval, int tagval,
         //delete dfab;
       }
     }
-
 
 }  // end errorEst(...)
 

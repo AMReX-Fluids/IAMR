@@ -1,8 +1,9 @@
 
 //
-// $Id: Amr.cpp,v 1.10 1997-10-01 01:03:00 car Exp $
+// $Id: Amr.cpp,v 1.11 1997-10-21 22:00:49 vince Exp $
 //
 
+#include <unistd.h>
 #include <Array.H>
 #include <CoordSys.H>
 #include <ParmParse.H>
@@ -1305,10 +1306,12 @@ Amr::grid_places(
 
 	  // coarsen the taglist by blocking_factor
 	int bl_max = 0;
-	for( int n=0; n<BL_SPACEDIM; n++ ) {
-	  bl_max = Max(bl_max,bf_lev[levc][n]);
+	for( int n = 0; n < BL_SPACEDIM; n++ ) {
+	  bl_max = Max(bl_max, bf_lev[levc][n]);
 	}
-	if (bl_max > 1) tags.coarsen(bf_lev[levc]);
+	if (bl_max > 1) {
+	  tags.coarsen(bf_lev[levc]);
+	}
 
 	// map tagged points through periodic boundaries, if any
 	Geometry tmpgeom(pc_domain[levc]);

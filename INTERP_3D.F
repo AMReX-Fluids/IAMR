@@ -1047,7 +1047,7 @@ c :::
       integer DIMDEC(cslope)
       integer fblo(3), fbhi(3)
       integer cslopelo(3), cslopehi(3)
-      integer lratio(2), nvar, lin_limit
+      integer lratio(3), nvar, lin_limit
       integer bc(3,2,nvar)
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(DIMV(crse), nvar)

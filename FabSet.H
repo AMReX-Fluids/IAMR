@@ -2,7 +2,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.7 1997-10-08 20:15:28 car Exp $
+// $Id: FabSet.H,v 1.8 1997-10-21 22:00:53 vince Exp $
 //
 
 #include <FArrayBox.H>
@@ -136,6 +136,9 @@ public:
     MultiFab::DistributionMap;
     //MultiFab::boxArray;
     const Box &box(int K) const {
+      return fabboxarray[K];
+    }
+    const Box fabbox(int K) const {
       return fabboxarray[K];
     }
 

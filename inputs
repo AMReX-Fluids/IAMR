@@ -1,9 +1,8 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
 max_step  =   1000     # maximum timestep
-max_step  =   20       # maximum timestep
-max_step  =   40       # maximum timestep
-max_step  =   10       # maximum timestep
 max_step  =   1        # maximum timestep
+max_step  =   10       # maximum timestep
+max_step  =   40       # maximum timestep
 stop_time =  10000.0   # maximum problem time
 
 # ------------------  INPUTS TO CLASS AMR ---------------------
@@ -13,33 +12,38 @@ geometry.prob_lo   =  0.0 0.0
 geometry.prob_hi   =  1. 1.
 
 # multigrid class
+mg.usecg = 1
 mg.usecg = 0
 mg.nu_f = 20
 mg.nu_f = 40
 mg.nu_1 = 2
 mg.nu_2 = 2
-mg.v = 2
-mg.maxiter = 100
-cg.verbose = 1
+mg.v = 0
+mg.maxiter = 400
+cg.maxiter = 400
+cg.maxiter = 800
+cg.verbose = 0
 
-ns.v = 1
-mac.v = 1
-proj.v = 1
+ns.v = 0
+mac.v = 0
+proj.v = 0
 
 amr.n_cell    =  8 8
 amr.n_cell    =  64 64
 amr.n_cell    =  32 32
 amr.n_cell    =  16 16
-amr.n_cell    =  24 24
 
-amr.max_level =  2            # maximum level number allowed
 amr.max_level =  0            # maximum level number allowed
 amr.max_level =  1            # maximum level number allowed
+amr.max_level =  3            # maximum level number allowed
+amr.max_level =  2            # maximum level number allowed
 amr.ref_ratio       = 2 4 2 2  # refinement ratio
+amr.ref_ratio       = 2 2 2 2  # refinement ratio
 amr.blocking_factor = 4       # block factor in grid generation
 amr.regrid_int      = 2       # how often to regrid
 amr.n_error_buf     = 2 2 2 2  # number of buffer cells in error est
 amr.grid_eff        = 0.7     # what constitutes an efficient grid
+amr.check_int       = 4      # number of timesteps between checkpoints
 amr.check_int       = 10      # number of timesteps between checkpoints
 amr.check_file      = chk     # root name of checkpoint file
 amr.plot_file_root  = plt

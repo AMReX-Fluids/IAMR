@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.8 1997-10-08 20:15:38 car Exp $
+// $Id: MacProj.cpp,v 1.9 1997-10-21 22:00:56 vince Exp $
 //
 
 #include <Misc.H>
@@ -336,8 +336,8 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
       mac_reg[level].FineAdd(u_mac[dir],area[level][dir],dir,0,0,1,mult);
     }
     //if (verbose) {
-      cout << "LEVEL " << level << " MACREG: FineAdd sum = " 
-	   << mac_reg[level].SumReg(0) << NL;
+      //cout << "LEVEL " << level << " MACREG: FineAdd sum = " 
+	   //<< mac_reg[level].SumReg(0) << NL;
     //}
   }
 

@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.12 1997-10-08 20:15:47 car Exp $
+// $Id: TagBox.cpp,v 1.13 1997-10-21 22:00:58 vince Exp $
 //
 
 #include <TagBox.H>
@@ -451,6 +451,7 @@ return;
            ++nOverlap;
          }
       }
+      ParallelDescriptor::Synchronize();    // deleteme
    }
 
    assert(this->ok());
@@ -838,9 +839,16 @@ TagBoxArray::coarsen(const IntVect & ratio)
        TagBox *tfine = fabparray.remove(fai.index());
        TagBox *tcrse = tfine->coarsen(ratio);
        fabparray.set(fai.index(),tcrse);
-       boxarray.set(fai.index(), tcrse->box());
        delete tfine;
     } 
+    boxarray.coarsen(ratio);
+
+#ifndef NDEBUG
+    for(FabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
+      assert(boxarray[fai.index()] == fai.fabbox());
+    }
+#endif
+
     border = 0;
     n_grow = 0;
 }

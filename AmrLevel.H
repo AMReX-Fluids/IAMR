@@ -2,7 +2,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.6 1997-10-08 20:15:19 car Exp $
+// $Id: AmrLevel.H,v 1.7 1997-10-21 22:00:49 vince Exp $
 //
 
 #include <REAL.H>
@@ -195,6 +195,11 @@ public:
 ///
 //  interpolate up from coarse level
     void FillCoarsePatch(FArrayBox &dest,
+		         int dest_comp, Real time,
+		         int state_indx, int src_comp, int ncomp,
+		         Interpolater *mapper = 0);
+
+    void FillCoarsePatch(MultiFab &dest,
 		         int dest_comp, Real time,
 		         int state_indx, int src_comp, int ncomp,
 		         Interpolater *mapper = 0);

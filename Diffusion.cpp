@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.14 1997-10-08 20:15:27 car Exp $
+// $Id: Diffusion.cpp,v 1.15 1997-10-21 22:00:53 vince Exp $
 //
 
 //
@@ -605,11 +605,12 @@ void Diffusion::diffuse_velocity_constant_mu(Real dt, Real be_cn_theta,
       //}
       Soln.copy(U_old,sigma,0,1);
     } else {
-      for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
+      //for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
 	// coarse grid data exists at this time
 	// use interpolated crse grid data for guess
-	caller->FillCoarsePatch(Solnmfi(),0,cur_time,State_Type,sigma,1);
-      }
+	//caller->FillCoarsePatch(Solnmfi(),0,cur_time,State_Type,sigma,1);
+      //}
+      caller->FillCoarsePatch(Soln,0,cur_time,State_Type,sigma,1);
     }
 
     // copy guess into U_new ... needed for construction of
@@ -921,11 +922,12 @@ void Diffusion::diffuse_tensor_velocity(Real dt, Real be_cn_theta,
       //}
       Soln.copy(U_old,Xvel,0,BL_SPACEDIM);
     } else {
-      for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
+      //for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
 	// coarse grid data exists at this time
 	// use interpolated crse grid data for guess
-	caller->FillCoarsePatch(Solnmfi(),0,cur_time,State_Type,Xvel,BL_SPACEDIM);
-      }
+	//caller->FillCoarsePatch(Solnmfi(),0,cur_time,State_Type,Xvel,BL_SPACEDIM);
+      //}
+      caller->FillCoarsePatch(Soln,0,cur_time,State_Type,Xvel,BL_SPACEDIM);
     }
 
     // copy guess into U_new ... needed for construction of

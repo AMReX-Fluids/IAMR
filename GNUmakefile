@@ -3,13 +3,12 @@ DEBUG	= FALSE
 DEBUG	= TRUE
 PROFILE = FALSE
 
-DIM	= 2
 DIM	= 3
+DIM	= 2
 
 #
 # Holy Grail stuff ...
 #
-
 ifeq ($(DIM),2)
 #
 # c5: -DHG_CONSTANT -DHG_CROSS_STENCIL
@@ -29,11 +28,11 @@ endif
 COMP = KCC
 
 USE_WINDOWS=FALSE
-USE_BSP=TRUE
 USE_BSP=FALSE
+USE_BSP=TRUE
 USE_NETCDF=FALSE
-USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
+USE_ARRAYVIEW = TRUE
 
 #
 # What is the type of BSP device?
@@ -60,8 +59,8 @@ BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
 INCLUDE_LOCATIONS += $(BSP_HOME)/include
 LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1
 LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1/$(BSP_DEVICE)
-#LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
-LIBRARIES += -lbspcore_O0 -lbsplevel1_O0
+LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
+#LIBRARIES += -lbspcore_O0 -lbsplevel1_O0
 ###### exception library (for newest bsplib)
 # end bsp parallel locations
 LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
@@ -92,6 +91,7 @@ INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
 #LIBRARY_LOCATIONS += $(ARRAYVIEWDIR) 
 #LIBRARIES += -larrayview$(DIM)d.$(machineSuffix) 
 DEFINES += -DBL_USE_ARRAYVIEW
+DEFINES += -DBL_ARRAYVIEW_TAGBOX
 endif
 
 #--------------- netcdf library
@@ -125,7 +125,8 @@ CXXFLAGS +=
 CXXOPTF +=
 CXXDEBF +=
 
-FFLAGS += 
+#FFLAGS += -fpe0
+#FFLAGS += -fpe2
 #FOPTF += -fpe2
 #FDEBF += -fpe2
 
@@ -134,6 +135,8 @@ COPTF +=
 CDEBF +=
 
 include $(HERE)/Make.package 
+
+FOPTF = -fast
 
 vpath %.cpp :$(HERE) ../pBoxLib_2
 vpath %.F :$(HERE)
