@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.9 1998-07-14 20:23:40 car Exp $
+c $Id: PROJECTION_2D.F,v 1.10 1998-11-05 23:30:17 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -507,6 +507,8 @@ c     Local variables
       integer ni, nj, i, j, icL, icR, neq
       REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX), s(NstripMAX)
       REAL_T x(NstripMAX), alpha, beta, sVal
+      REAL_T max_pert, small_pert
+      parameter ( small_pert = 1.d-10)
       logical rNormed
       REAL_T divcor_ave, vtot
       REAL_T div_edge, rho_edge
@@ -560,10 +562,17 @@ c     directly from cell-centers just inside domain
          min_divu = min(min_divu,divcor(i,j))
       end do
       divcor_ave = divcor_ave/vtot
-
-      if(max_divu.eq.zero.and.min_divu.eq.zero) then
-         do i = ins,ine
-            phi(i,jns) = zero
+      max_pert = ABS(divcor(ics,j)-divcor_ave)
+      do i = ics+1, ice
+         max_pert = MAX(max_pert,ABS(divcor(i,j)-divcor_ave))
+      end do
+      max_pert = max_pert/(ABS(divcor_ave)+small_pert)
+      if ((max_divu.eq.zero.and.min_divu.eq.zero)
+     &     .or.(max_pert.le.small_pert)) then
+         do j = ARG_L2(phi),ARG_H2(phi)
+            do i = ARG_L1(phi),ARG_H1(phi)
+               phi(i,j) = zero
+            end do
          end do
          return
       end if

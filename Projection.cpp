@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.56 1998-11-04 00:15:39 lijewski Exp $
+// $Id: Projection.cpp,v 1.57 1998-11-05 23:30:18 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -74,18 +74,18 @@ Copy (MultiFab& dst,
 //
 // Initialization of static members.
 //
-int       Projection::verbose = 0;
-int       Projection::P_code = 0;
-Real      Projection::proj_tol = 1.0e-12;
-Real      Projection::sync_tol = 1.0e-8;
-Real      Projection::proj_abs_tol = 1.0e-16;
-Real      Projection::filter_factor = 0.0;
-int       Projection::filter_u = 0;
-int       Projection::rho_wgt_vel_proj = 0;
-int       Projection::do_outflow_bcs = 1;
+int       Projection::verbose            = 0;
+int       Projection::P_code             = 0;
+Real      Projection::proj_tol           = 1.0e-12;
+Real      Projection::sync_tol           = 1.0e-8;
+Real      Projection::proj_abs_tol       = 1.0e-16;
+Real      Projection::filter_factor      = 0.0;
+int       Projection::filter_u           = 0;
+int       Projection::rho_wgt_vel_proj   = 0;
+int       Projection::do_outflow_bcs     = 1;
 int       Projection::make_sync_solvable = 0;
 
-static RegType project_bc[] =
+static RegType project_bc [] =
 {
     interior, inflow, outflow, refWall, refWall, refWall
 };
@@ -125,7 +125,8 @@ Projection::Projection (Amr*   _parent,
     }
 
 #if BL_SPACEDIM == 2
-    if (CoordSys::IsRZ()) amr_multigrid::SetRZ();
+    if (CoordSys::IsRZ())
+        amr_multigrid::SetRZ();
 #endif
     setUpBcs();
     sync_proj = 0;
@@ -263,9 +264,7 @@ Projection::bldSyncProject ()
 #endif
   
     if (make_sync_solvable) 
-    {
         sync_proj->make_it_so();
-    }
 }
 
 //
@@ -312,8 +311,6 @@ Projection::level_project (int             level,
     }
     
     if (sync_proj == 0) bldSyncProject();
-    
-    int rzflag = CoordSys::IsRZ();
     //
     // old time velocity has bndry values already
     // must gen valid bndry data for new time velocity.
@@ -356,7 +353,7 @@ Projection::level_project (int             level,
 	    DependentMultiFabIterator U_newmfi(P_newmfi, U_new);
 	    DependentMultiFabIterator U_oldmfi(P_newmfi, U_old);
 	    ConvertUnew(U_newmfi(), U_oldmfi(), dt, grids[P_newmfi.index()]);
-	    P_newmfi().setVal(0.0);
+	    P_newmfi().setVal(0);
 	}
     } 
     else 
@@ -371,7 +368,7 @@ Projection::level_project (int             level,
 	    P_newmfi().minus(P_oldmfi());
 	    Box tempbox(P_newmfi().box());
 	    tempbox.grow(-2);
-	    P_newmfi().setVal(0.0,tempbox,0,1);
+	    P_newmfi().setVal(0,tempbox,0,1);
 	}
     }
     
@@ -407,7 +404,7 @@ Projection::level_project (int             level,
     // Add the contribution from the un-projected V to syncregisters.
     //
     int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
-    int ngrids  = grids.length();
+
     if (do_sync_proj) 
     {
 
@@ -471,27 +468,24 @@ Projection::level_project (int             level,
     else 
     {
         bool use_u       = true;
-        const int ngrids = grids.length();
         const int nghost = 1;
         MultiFab rhs_cc(grids,1,nghost,Fab_allocate);
         Copy(rhs_cc,dsdt,0,0,1,nghost);
         radMult(level,rhs_cc,0);    
-        for (int i = 0; i < ngrids; i++) 
-        {
+
 #if (BL_SPACEDIM == 3)
-            Real dsdtmin=dsdt[i].min();
-            Real dsdtmax=dsdt[i].max();
-            if (dsdtmin!=dsdtmax || dsdtmin!= 0.0) 
+        for (MultiFabIterator dsdtmfi(dsdt); dsdtmfi.isValid(); ++dsdtmfi)
+        {
+            Real dsdtmin = dsdtmfi().min();
+            Real dsdtmax = dsdtmfi().max();
+            if (dsdtmin != dsdtmax || dsdtmin != 0.0) 
             {
-                if (ParallelDescriptor::IOProcessor())
-                {
-                    cout << "Projection::level_project: WARNING not yet "
-                         << "implemented for 3-d, non-zero divu\n";
-                }
-                BoxLib::Abort("Exiting.");
+                cout << "Projection::level_project: WARNING not yet "
+                     << "implemented for 3-d, non-zero dsdt\n";
+                BoxLib::Abort();
             }
-#endif
         }
+#endif
         rhs_cc.mult(-1.0,0,1,nghost);
 
         PArray<MultiFab> rhs_real(level+1);
@@ -573,17 +567,13 @@ Projection::harmonic_project (int             level,
                               const Geometry& geom,
                               MultiFab&       P_old)
 {
-    if (level == 0) 
-    {
-        BoxLib::Abort("NOT SUPPOSED TO BE IN HARMONIC AT LEVEL 0 \n");
-    }
+    assert(level != 0);
+
     if (verbose && ParallelDescriptor::IOProcessor()) 
     {
         cout << "... harmonic projector\n";
     }
     if (sync_proj == 0) bldSyncProject();
-
-    int rzflag = CoordSys::IsRZ();
 
     const BoxArray& grids   = LevelData[level].boxArray();
     const BoxArray& P_grids = P_old.boxArray();
@@ -594,10 +584,10 @@ Projection::harmonic_project (int             level,
     MultiFab* rho      = new MultiFab(grids,1,1,Fab_allocate);
     MultiFab* harm_vel = new MultiFab(grids,BL_SPACEDIM,1,Fab_allocate);
 
-    rhs->setVal(0.);
-    harm_phi->setVal(0.);
-    harm_vel->setVal(0.);
-    rho->setVal(1.);
+    rhs->setVal(0);
+    harm_phi->setVal(0);
+    harm_vel->setVal(0);
+    rho->setVal(1);
 
     harm_phi->setBndry(BogusValue);
 
@@ -612,7 +602,7 @@ Projection::harmonic_project (int             level,
         harm_phimfi().minus(phimfi());
         Box tempbox(harm_phimfi().box());
         tempbox.grow(-2);
-        harm_phimfi().setVal(0.,tempbox,0,1);
+        harm_phimfi().setVal(0,tempbox,0,1);
     }
 
     delete temp_phi;
@@ -703,15 +693,15 @@ Projection::syncProject (int             c_lev,
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
     {
-        cout << "SyncProject: level = " << c_lev
-             << " correction to level " << finest_level << '\n';
+        cout << "SyncProject: level = "
+             << c_lev
+             << " correction to level "
+             << finest_level << endl;
     }
     //
     //----------------- manipulate state + pressure data ---------------------
     //
     if (sync_proj == 0) bldSyncProject();
-
-    int rzflag = CoordSys::IsRZ();
     //
     // Gather data.
     //
@@ -721,7 +711,7 @@ Projection::syncProject (int             c_lev,
     MultiFab& sig = *rho_half;
     rhs_sync_reg->InitRHS(rhs,geom,phys_bc);
 
-    phi.setVal(0.0);
+    phi.setVal(0);
 
     sig.setBndry(BogusValue);
     //
@@ -859,25 +849,25 @@ Projection::MLsyncProject (int             c_lev,
     
     const BoxArray& Pgrids_crse = pres_crse.boxArray();
     phi[c_lev] = new MultiFab(Pgrids_crse,1,1,Fab_allocate);
-    phi[c_lev]->setVal(0.);
+    phi[c_lev]->setVal(0);
     
     MultiFab* crse_rhs = new MultiFab(Pgrids_crse,1,1,Fab_allocate);
     
     const BoxArray& Pgrids_fine = pres_fine.boxArray();
     phi[c_lev+1] = new MultiFab(Pgrids_fine,1,1,Fab_allocate);
-    phi[c_lev+1]->setVal(0.);
+    phi[c_lev+1]->setVal(0);
     
     BoxArray sync_boxes = pres_fine.boxArray();
     sync_boxes.coarsen(ratio);
     //
     // Set up RHS
     //
-    crse_rhs->setVal(0.);
+    crse_rhs->setVal(0);
     rhs_sync_reg->InitRHS(*crse_rhs,crse_geom,phys_bc);
     
     Box P_finedomain(surroundingNodes(crse_geom.Domain()));
     P_finedomain.refine(ratio);
-    if (Pgrids_fine[0] == P_finedomain) crse_rhs->setVal(0.);
+    if (Pgrids_fine[0] == P_finedomain) crse_rhs->setVal(0);
     
     const BoxArray& grids      = LevelData[c_lev].boxArray();
     const BoxArray& fine_grids = LevelData[c_lev+1].boxArray();
@@ -1005,9 +995,7 @@ Projection::MLsyncProject (int             c_lev,
         phi_finemfi().copy(phimfi(),0,0,1);
     }
     for (lev = c_lev; lev <= c_lev+1; lev++) 
-    {
         delete phi[lev];
-    }
 
     delete crse_rhs;
 
@@ -1025,6 +1013,7 @@ Projection::initialVelocityProject (int  c_lev,
                                     int  have_divu)
 {
     RunStats proj_stats(SyncProjStr,c_lev);
+
     proj_stats.start();
 
     int lev;
@@ -1045,7 +1034,6 @@ Projection::initialVelocityProject (int  c_lev,
 
     if (sync_proj == 0) bldSyncProject();
 
-    int rzflag = CoordSys::IsRZ();
     MultiFab *vel[MAX_LEV];
     MultiFab *phi[MAX_LEV];
     MultiFab *sig[MAX_LEV];
@@ -1055,7 +1043,7 @@ Projection::initialVelocityProject (int  c_lev,
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
         MultiFab &P_old = LevelData[lev].get_old_data(Press_Type);
-        P_old.setVal(0.0);
+        P_old.setVal(0);
     }
 
     for (lev = c_lev; lev <= f_lev; lev++) 
@@ -1071,7 +1059,7 @@ Projection::initialVelocityProject (int  c_lev,
             const BoxArray& grids = LevelData[lev].boxArray();
             const int nghost = 1;
             sig[lev] = new MultiFab(grids,1,nghost);
-            sig[lev]->setVal(1.0,nghost);
+            sig[lev]->setVal(1,nghost);
         }
     }
     //
@@ -1129,9 +1117,8 @@ Projection::initialVelocityProject (int  c_lev,
     PArray<MultiFab> p_real(f_lev+1), s_real(f_lev+1);
     int n;
     for (n = 0; n < BL_SPACEDIM; n++) 
-    {
         u_real[n].resize(f_lev+1);
-    }
+
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
         for (n = 0; n < BL_SPACEDIM; n++) 
@@ -1188,16 +1175,13 @@ Projection::initialVelocityProject (int  c_lev,
         bool use_u = true;
         PArray<MultiFab> rhs_real(f_lev+1);
         for (lev = c_lev; lev <= f_lev; lev++) 
-        {
             rhs_real.set(lev, rhs_cc[lev]);
-        }
+
         sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real,
                                   s_real, use_u, (Real*)dx_lev,
                                   proj_tol, c_lev, f_lev, proj_abs_tol);
         for (lev = c_lev; lev <= f_lev; lev++) 
-        {
             delete rhs_cc[lev];
-        }
     }
     //
     // Copy and delete u_real, delete s_real if appropriate.
@@ -1222,20 +1206,15 @@ Projection::initialVelocityProject (int  c_lev,
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
-        AmrLevel& amr_level   = parent->getLevel(lev);
-        const BoxArray& grids = amr_level.boxArray();
+        const BoxArray& grids = parent->getLevel(lev).boxArray();
         rescaleVar(sig[lev],1,vel[lev],grids,lev);
     }
     //
     // Delete sigma if not used later.
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
-    {
         if (!rho_wgt_vel_proj) 
-        {
             delete sig[lev];
-        }
-    }
 
     proj_stats.end();
 }
@@ -1270,7 +1249,6 @@ Projection::initialSyncProject (int       c_lev,
     //
     // Gather data.
     //
-    int rzflag = CoordSys::IsRZ();
     MultiFab* vel[MAX_LEV];
     MultiFab* phi[MAX_LEV];
     for (lev = c_lev; lev <= f_lev; lev++) 
@@ -1286,10 +1264,6 @@ Projection::initialSyncProject (int       c_lev,
         //
         // Set up rhs for manual project.
         //
-#if (BL_SPACEDIM == 3)
-        Real mindsdt = 0.0;
-        Real maxdsdt = 0.0;
-#endif
         for (lev = c_lev; lev <= f_lev; lev++) 
         {
             AmrLevel& amr_level = parent->getLevel(lev);
@@ -1309,11 +1283,10 @@ Projection::initialSyncProject (int       c_lev,
             amr_level.setPhysBoundaryValues(Divu_Type,0,1,strt_time);
             amr_level.setPhysBoundaryValues(Divu_Type,0,1,strt_time+dt);
 
-            const BoxArray& grids = amr_level.boxArray();
-            const int nghost      = 1;
-            rhs[lev] = new MultiFab(grids,1,nghost,Fab_allocate);
+            const int nghost = 1;
+            rhs[lev] = new MultiFab(amr_level.boxArray(),1,nghost);
             MultiFab* rhslev = rhs[lev];
-            rhslev->setVal(0.0);
+            rhslev->setVal(0);
 
             MultiFab* divu = getDivCond(lev,nghost,strt_time);
             MultiFab* dsdt = getDivCond(lev,nghost,strt_time+dt);
@@ -1326,8 +1299,14 @@ Projection::initialSyncProject (int       c_lev,
                 dsdt_it().divide(dt);
                 mfi().copy(dsdt_it());
 #if (BL_SPACEDIM == 3)
-                mindsdt = Min(mindsdt, dsdt_it().min());
-                maxdsdt = Max(maxdsdt, dsdt_it().max());
+                Real mindsdt = dsdt_it().min();
+                Real maxdsdt = dsdt_it().max();
+                if (mindsdt != maxdsdt || mindsdt != 0.0) 
+                {
+                    cout << "Projection::initialSyncProject: WARNING not yet "
+                         << "implemented for 3-d, non-zero divu\n";
+                    BoxLib::Abort();
+                }
 #endif
             }
 
@@ -1338,23 +1317,12 @@ Projection::initialSyncProject (int       c_lev,
             if (CoordSys::IsRZ()) 
                 radMult(lev,*rhslev,0);    
         }
-#if  (BL_SPACEDIM == 3)
-        if (mindsdt != maxdsdt || mindsdt != 0.0) 
-        {
-            if (ParallelDescriptor::IOProcessor())
-            {
-                cout << "Projection::initialSyncProject: WARNING not yet "
-                     << "implemented for 3-d, non-zero divu\n";
-            }
-            BoxLib::Abort("Bye.");
-        }
-#endif
     }
 
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
-        MultiFab &P_old = LevelData[lev].get_old_data(Press_Type);
-        P_old.setVal(0.0);
+        MultiFab& P_old = LevelData[lev].get_old_data(Press_Type);
+        P_old.setVal(0);
     }
 
 #if (BL_SPACEDIM == 2)
@@ -1478,17 +1446,12 @@ Projection::initialSyncProject (int       c_lev,
     // Unscale initial sync projection variables.
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
-    {
-        AmrLevel& amr_level   = parent->getLevel(lev);
-        rescaleVar(sig[lev],1,vel[lev],amr_level.boxArray(),lev);
-    }
+        rescaleVar(sig[lev],1,vel[lev],parent->getLevel(lev).boxArray(),lev);
     //
     // Add correction at coarse and fine levels.
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
-    {
         incrPress(lev, 1.0);
-    }
 
     proj_stats.end();
 }
@@ -1536,7 +1499,7 @@ Projection::filterUandP (int             level,
         const int* p_hi = P_newmfi().hiVect(); 
         
         scratch.resize(P_newmfi().box(),1);
-        scratch.setVal(0.0);
+        scratch.setVal(0);
         
         FORT_FILTERP(P_newmfi().dataPtr(), scratch.dataPtr(), 
                      ARLIM(p_lo), ARLIM(p_hi),
@@ -1554,7 +1517,7 @@ Projection::filterUandP (int             level,
             const Real* gp_dat = gradp.dataPtr();
             FORT_GRADP(scratch.dataPtr(),ARLIM(p_lo),ARLIM(p_hi),
                        gp_dat,ARLIM(lo),ARLIM(hi),lo,hi,dx);
-            for (int idim=0;idim<BL_SPACEDIM;idim++)
+            for (int idim = 0; idim < BL_SPACEDIM; idim++)
                 gradp.divide(rho_halfmfi(),0,idim,1);
             U_newmfi().minus(gradp,Xvel,Xvel,BL_SPACEDIM);
         }
@@ -1577,6 +1540,7 @@ Projection::computeDV (MultiFab&       DV,
     const BoxArray& U_boxes = U.boxArray();
 
     FArrayBox ufab;
+
     for (MultiFabIterator DVmfi(DV); DVmfi.isValid(); ++DVmfi) 
     {
         DependentMultiFabIterator Umfi(DVmfi, U);
@@ -1592,6 +1556,7 @@ Projection::computeDV (MultiFab&       DV,
         const int* ndhi = ndbox.hiVect();
         const int* ulo  = ufab.box().loVect();
         const int* uhi  = ufab.box().hiVect();
+
         FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
                     DVmfi().dataPtr(),ARLIM(ndlo),ARLIM(ndhi),
                     ndlo,ndhi,dx,&mult,&is_rz);
@@ -1612,17 +1577,17 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
 {
     assert(user_rz >= -1 && user_rz <= 1);
 
-    rhs.setVal(0.0);
+    rhs.setVal(0);
 
     const Geometry& geom = parent->Geom(level);
 
 #if (BL_SPACEDIM == 2)
-    int bcxlo      = phys_bc->lo(0);
-    int bcxhi      = phys_bc->hi(0);
-    int isrz       = (user_rz == -1) ? CoordSys::IsRZ() : user_rz;
-    int lowfix     = (isrz==1 && bcxlo!=FOEXTRAP && bcxlo!=HOEXTRAP);
-    int hifix      = (isrz==1 && bcxhi!=FOEXTRAP && bcxhi!=HOEXTRAP);
-    const Real* dx = geom.CellSize();
+    const int bcxlo = phys_bc->lo(0);
+    const int bcxhi = phys_bc->hi(0);
+    int isrz        = (user_rz == -1) ? CoordSys::IsRZ() : user_rz;
+    int lowfix      = (isrz==1 && bcxlo!=FOEXTRAP && bcxlo!=HOEXTRAP);
+    int hifix       = (isrz==1 && bcxhi!=FOEXTRAP && bcxhi!=HOEXTRAP);
+    const Real* dx  = geom.CellSize();
     Real hx = dx[0];
 #endif
     const Box& domain = geom.Domain();
@@ -1644,9 +1609,8 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
         DEF_LIMITS(rhs[i],rhsdat,rhslo,rhshi);
         Array<Real> rcen(divubox.length(0),1.0);
         if (isrz == 1) 
-        {
             geom.GetCellLoc(rcen,divubox,0);
-        } 
+
         int extrap_edges   = 0;
         int extrap_corners = 1;
         FORT_HGC2N(&nghost,ARLIM(divulo),ARLIM(divuhi),divudat,
@@ -1659,12 +1623,9 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
         Real divumax = divu.max();
         if (divumin != divumax || divumin != 0.0) 
         {
-            if (ParallelDescriptor::IOProcessor())
-            {
-                cout << "Projection::put_divu_in_node_rhs: not yet "
-                     << "implemented for 3-d, non-zero divu\n";
-            }
-            BoxLib::Abort("Bye");
+            cout << "Projection::put_divu_in_node_rhs: not yet "
+                 << "implemented for 3-d, non-zero divu\n";
+            BoxLib::Abort();
         }
 #endif
     }
@@ -1680,7 +1641,7 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
                                 const BoxArray& grids,
                                 Real            time)
 {
-    rhs.setVal(0.0);
+    rhs.setVal(0);
 
     MultiFab* divu = getDivCond(level,1,time);
 
@@ -1700,7 +1661,7 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
                 cout << "Projection::put_divu_in_cc_rhs: not yet "
                      << "implemented for 3-d, non-zero divu\n";
             }
-            BoxLib::Abort("Bye");
+            BoxLib::Abort();
         }
 #endif
     }
@@ -1721,9 +1682,7 @@ Projection::getDivCond (int        level,
     int Divu_Type, Divu;
 
     if (!LevelData[level].isStateVariable("divu", Divu_Type, Divu)) 
-    {
 	BoxLib::Error("Projection::getDivCond(): Divu not found");
-    }
 
     fab.setVal(BogusValue);
     
@@ -1740,9 +1699,7 @@ Projection::getDivCond (int  level,
     int Divu_Type, Divu;
 
     if (!LevelData[level].isStateVariable("divu", Divu_Type, Divu)) 
-    {
 	BoxLib::Error("Projection::getDivCond(): Divu not found");
-    }
 
     MultiFab* divu = new MultiFab(LevelData[level].boxArray(),1,ngrow);
 
@@ -1782,7 +1739,9 @@ Projection::UnConvertUnew (MultiFab&       Uold,
     for (MultiFabIterator Uoldmfi(Uold); Uoldmfi.isValid(); ++Uoldmfi) 
     {
         DependentMultiFabIterator Unewmfi(Uoldmfi, Unew);
+
         assert(grids[Uoldmfi.index()] == Uoldmfi.validbox());
+
         UnConvertUnew( Uoldmfi(), alpha, Unewmfi(), Uoldmfi.validbox() );
     }
 }
@@ -1803,21 +1762,19 @@ Projection::UnConvertUnew (FArrayBox& Uold,
     assert(Unew.contains(grd) == true);
     assert(Uold.contains(grd) == true);
     
-    const int* lo   = grd.loVect();
-    const int* hi   = grd.hiVect();
-
+    const int* lo    = grd.loVect();
+    const int* hi    = grd.hiVect();
     const int* uo_lo = Uold.loVect(); 
     const int* uo_hi = Uold.hiVect(); 
-    const Real *uold = Uold.dataPtr(0);
-
+    const Real* uold = Uold.dataPtr(0);
     const int* un_lo = Unew.loVect(); 
     const int* un_hi = Unew.hiVect(); 
-    const Real *unew = Unew.dataPtr(0);
+    const Real* unew = Unew.dataPtr(0);
     
-    FORT_ACCEL_TO_VEL( lo, hi,
-                       uold, ARLIM(uo_lo), ARLIM(uo_hi),
-                       &alpha,
-                       unew, ARLIM(un_lo), ARLIM(un_hi) );
+    FORT_ACCEL_TO_VEL(lo, hi,
+                      uold, ARLIM(uo_lo), ARLIM(uo_hi),
+                      &alpha,
+                      unew, ARLIM(un_lo), ARLIM(un_hi));
 }
 
 //
@@ -1833,7 +1790,9 @@ Projection::ConvertUnew (MultiFab&       Unew,
     for (MultiFabIterator Uoldmfi(Uold); Uoldmfi.isValid(); ++Uoldmfi) 
     {
         DependentMultiFabIterator Unewmfi(Uoldmfi, Unew);
+
         assert(grids[Uoldmfi.index()] == Uoldmfi.validbox());
+
         ConvertUnew( Unewmfi(), Uoldmfi(), alpha, Uoldmfi.validbox() );
     }
 }
@@ -1851,21 +1810,18 @@ Projection::ConvertUnew( FArrayBox &Unew, FArrayBox &Uold, Real alpha,
     assert(Unew.contains(grd) == true);
     assert(Uold.contains(grd) == true);
     
-    const int* lo   = grd.loVect();
-    const int* hi   = grd.hiVect();
-
+    const int* lo    = grd.loVect();
+    const int* hi    = grd.hiVect();
     const int* uo_lo = Uold.loVect(); 
     const int* uo_hi = Uold.hiVect(); 
-    const Real *uold = Uold.dataPtr(0);
-
+    const Real* uold = Uold.dataPtr(0);
     const int* un_lo = Unew.loVect(); 
     const int* un_hi = Unew.hiVect(); 
-    const Real *unew = Unew.dataPtr(0);
+    const Real* unew = Unew.dataPtr(0);
                     
-    FORT_VEL_TO_ACCEL( lo, hi, 
-                       unew, ARLIM(un_lo), ARLIM(un_hi),
-                       uold, ARLIM(uo_lo), ARLIM(uo_hi),
-                       &alpha );
+    FORT_VEL_TO_ACCEL(lo, hi, 
+                      unew, ARLIM(un_lo), ARLIM(un_hi),
+                      uold, ARLIM(uo_lo), ARLIM(uo_hi), &alpha );
 }
 
 //
@@ -1883,7 +1839,9 @@ Projection::UpdateArg1 (MultiFab&       Unew,
     for (MultiFabIterator Uoldmfi(Uold); Uoldmfi.isValid(); ++Uoldmfi) 
     {
         DependentMultiFabIterator Unewmfi(Uoldmfi, Unew);
+
         assert(grids[Uoldmfi.index()] == Uoldmfi.validbox());
+
         UpdateArg1(Unewmfi(),alpha,Uoldmfi(),nvar,Uoldmfi.validbox(),ngrow);
     }
 }
@@ -1905,10 +1863,12 @@ Projection::UpdateArg1 (FArrayBox& Unew,
     assert(nvar <= Uold.nComp());
     assert(nvar <= Unew.nComp());
 
-    Box b(::grow(grd,ngrow));
+    Box b         = ::grow(grd,ngrow);
     const Box& bb = Unew.box();
+
     if (bb.ixType() == IndexType::TheNodeType())
         b.surroundingNodes();
+
     assert(Uold.contains(b) == true);
     assert(Unew.contains(b) == true);
 
@@ -1917,15 +1877,14 @@ Projection::UpdateArg1 (FArrayBox& Unew,
     const int* uo_lo = Uold.loVect(); 
     const int* uo_hi = Uold.hiVect(); 
     const Real *uold = Uold.dataPtr(0);
-
     const int* un_lo = Unew.loVect(); 
     const int* un_hi = Unew.hiVect(); 
     const Real *unew = Unew.dataPtr(0);
                     
-    FORT_PROJ_UPDATE( lo, hi, &nvar, &ngrow,
-                      unew, ARLIM(un_lo), ARLIM(un_hi),
-                      &alpha,
-                      uold, ARLIM(uo_lo), ARLIM(uo_hi) );
+    FORT_PROJ_UPDATE(lo,hi,&nvar,&ngrow,
+                     unew, ARLIM(un_lo), ARLIM(un_hi),
+                     &alpha,
+                     uold, ARLIM(uo_lo), ARLIM(uo_hi) );
 }
 
 //
@@ -1962,6 +1921,7 @@ Projection::incrPress (int  level,
         DependentMultiFabIterator P_oldmfi(P_newmfi, P_old);
 
         UpdateArg1(P_newmfi(),1.0/dt,P_oldmfi(),1,grids[P_newmfi.index()],1);
+
         P_oldmfi().setVal(BogusValue);
     }
 }
@@ -2052,24 +2012,27 @@ Projection::radMult (int       level,
                      MultiFab& mf,
                      int       comp)
 {
-    int i;
+    assert(radius_grow >= mf.nGrow());
+    assert(comp >= 0 && comp < mf.nComp());
+
     int ngrow = mf.nGrow();
-    int ncomp = mf.nComp();
-    assert( comp >= 0 && comp < ncomp );
+
     int nr = radius_grow;
+
     int n[BL_SPACEDIM];
-    for (i = 0; i < BL_SPACEDIM; i++) n[i] = ngrow;
-    assert( radius_grow >= ngrow );
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        n[i] = ngrow;
 
     for (MultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
     {
-        FArrayBox& fab = mfmfi();
         assert(mf.box(mfmfi.index()) == mfmfi.validbox());
-        const Box& bx = mfmfi.validbox();
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        Real* dat = fab.dataPtr(comp);
-        Real* rad = &radius[level][mfmfi.index()];
+
+        const int* lo = mfmfi.validbox().loVect();
+        const int* hi = mfmfi.validbox().hiVect();
+        Real* dat     = mfmfi().dataPtr(comp);
+        Real* rad     = &radius[level][mfmfi.index()];
+
         FORT_RADMPY(dat,ARLIM(lo),ARLIM(hi),&ngrow,rad,&nr,n);
     }
 }
@@ -2083,24 +2046,26 @@ Projection::radDiv (int       level,
                     MultiFab& mf,
                     int       comp)
 {
+    assert(comp >= 0 && comp < mf.nComp());
+    assert(radius_grow >= mf.nGrow());
+
     int ngrow = mf.nGrow();
-    int ncomp = mf.nComp();
-    assert( comp >= 0 && comp < ncomp );
-    int nr = radius_grow;
+    int nr    = radius_grow;
+
     int n[BL_SPACEDIM];
-    int i;
-    for (i = 0; i < BL_SPACEDIM; i++) n[i] = ngrow;
-    assert( radius_grow >= ngrow );
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        n[i] = ngrow;
 
     for (MultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
     {
-        FArrayBox& fab = mfmfi();
         assert(mf.box(mfmfi.index()) == mfmfi.validbox());
-        const Box& bx = mfmfi.validbox();
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        Real* dat = fab.dataPtr(comp);
-        Real* rad = &radius[level][mfmfi.index()];
+
+        const int* lo = mfmfi.validbox().loVect();
+        const int* hi = mfmfi.validbox().hiVect();
+        Real* dat     = mfmfi().dataPtr(comp);
+        Real* rad     = &radius[level][mfmfi.index()];
+
         FORT_RADDIV(dat,ARLIM(lo),ARLIM(hi),&ngrow,rad,&nr,n);
     }
 }
@@ -2110,6 +2075,8 @@ Projection::set_level_projector_outflow_bcs (int       level,
                                              Real      cur_state_time,
                                              MultiFab& phi)
 {
+    //
+    // Warning: This code looks about right, but hasn't really been tested.
     //
     // Do as set_initial_projection_outflow_bcs, except this one for single
     // specified level.  In this case, since the finest level has not been
@@ -2122,52 +2089,47 @@ Projection::set_level_projector_outflow_bcs (int       level,
     //        one, since they all do roughly the same thing.
     //
 #if (BL_SPACEDIM == 2)
-    const int rzflag = CoordSys::IsRZ();
-
-    const Real* dx = parent->Geom(level).CellSize();
-    const Box& domain = parent->Geom(level).Domain();
-    const int outDir = 1;
+    const Real* dx         = parent->Geom(level).CellSize();
+    const Box& domain      = parent->Geom(level).Domain();
+    const int outDir       = 1;
     const int ccStripWidth = 3;
     const int ncStripWidth = 1;
-    const Box state_strip = Box(adjCellHi(domain, outDir, ccStripWidth)).shift(outDir,-ccStripWidth+1);
-    const Box phi_strip = surroundingNodes(bdryHi(domain, outDir, ncStripWidth));
-    
-    const int nGrow = 0;
+    const Box state_strip  = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+    const Box phi_strip    = ::surroundingNodes(bdryHi(domain,outDir,ncStripWidth));
+    const int nGrow        = 0;
+    const int nCompPhi     = 1;
+
     const int srcCompRho = Density, nCompRho = 1;
     const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
     const int srcCompDivu = 0,      nCompDivu = 1;
-    const BoxArray state_strip_ba(&state_strip,1);
+
+    BoxArray state_strip_ba(&state_strip,1);
+    BoxArray phi_strip_ba(&phi_strip,1);
+
     MultiFab cc_MultiFab(state_strip_ba, 1, nGrow, Fab_noallocate);
-    
-    const int nCompPhi = 1;
-    const BoxArray phi_strip_ba(&phi_strip,1);
     MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
-    phi_fine_strip.setVal(0.0);
+
+    phi_fine_strip.setVal(0);
     //
     // Make r_i needed in HGPHIBC (set = 1 if cartesian).
     //
-    const Box region = Box(adjCellHi(domain, outDir, 1)).shift(outDir, -1);
+    Box region = Box(::adjCellHi(domain,outDir,1)).shift(outDir, -1);
     Array<Real> rcen(region.length(0), 1.0);
     if (CoordSys::IsRZ() == 1) 
-    {
 	parent->Geom(level).GetCellLoc(rcen, region, 0);
-    }
     
     int Divu_Type, Divu;
     if (!LevelData[level].isStateVariable("divu", Divu_Type, Divu)) 
-    {
 	BoxLib::Error("Projection::set_level_projector_outflow_bcs(): Divu not found");
-    }
+
+    FillPatchIterator rhoFpi(LevelData[level],cc_MultiFab,nGrow,
+                             cur_state_time,State_Type,srcCompRho,nCompRho);
+
+    FillPatchIterator velFpi(LevelData[level],cc_MultiFab,nGrow,
+                             cur_state_time,State_Type,srcCompVel,nCompVel);
     
-    FillPatchIterator rhoFpi(LevelData[level], cc_MultiFab, nGrow, cur_state_time,
-			     State_Type, srcCompRho, nCompRho);
-    
-    FillPatchIterator velFpi(LevelData[level], cc_MultiFab, nGrow, cur_state_time,
-			     State_Type, srcCompVel, nCompVel);
-    
-    FillPatchIterator divuFpi(LevelData[level], cc_MultiFab, nGrow, cur_state_time,
-			      Divu_Type, srcCompDivu, nCompDivu);
-    
+    FillPatchIterator divuFpi(LevelData[level],cc_MultiFab,nGrow,
+                              cur_state_time,Divu_Type,srcCompDivu,nCompDivu);
     for ( ;
           rhoFpi.isValid() && velFpi.isValid() && divuFpi.isValid();
           ++rhoFpi, ++velFpi, ++divuFpi)
@@ -2175,11 +2137,13 @@ Projection::set_level_projector_outflow_bcs (int       level,
 	DependentMultiFabIterator phimfi(rhoFpi, phi_fine_strip);
 	//
 	// Fill phi_fine_strip with boundary cell values for phi, then copy
-        // into arg data Note: Though this looks like a distributed operation,
-        // the MultiFab is built on a single box...this is necesary currently,
-        // since FORT_HGPHIBC requires a slice across the entire domain.
+        // into arg data Note: Though this looks like a distributed
+        // operation, the MultiFab is built on a single box.  This is
+        // necessary currently, since FORT_HGPHIBC requires a slice across
+        // the entire domain.
         //
-	const int isPeriodicInX = (int) parent->Geom(level).isPeriodic(0);
+	const int isPeriodicInX = parent->Geom(level).isPeriodic(0);
+
 	FORT_HGPHIBC(ARLIM(velFpi().loVect()),  ARLIM(velFpi().hiVect()),  velFpi().dataPtr(),
 		     ARLIM(divuFpi().loVect()), ARLIM(divuFpi().hiVect()), divuFpi().dataPtr(),
 		     ARLIM(rhoFpi().loVect()),  ARLIM(rhoFpi().hiVect()),  rhoFpi().dataPtr(),
@@ -2189,6 +2153,8 @@ Projection::set_level_projector_outflow_bcs (int       level,
     }
 
     phi.copy(phi_fine_strip);
+#else
+    BoxLib::Error("Projection::set_level_projector_outflow_bcs not implemented yet for 3D");
 #endif
 }
 
@@ -2199,6 +2165,9 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
                                                      Real       cur_divu_time)
 {
 #if (BL_SPACEDIM == 2)
+    //
+    // Warning: This code looks about right, but hasn't really been tested.
+    //
     // what we do
     //  at the finest level
     //  1) we define 3 cell-wide strips for
@@ -2214,123 +2183,111 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
     //        the state (presumably is where vel, sig from anyway).  sig is poorly named, and
     //        we need other stuff as well, so we should probably just remove sig and vel from args
     const int f_lev  = finest_level;
-    const int rzflag = CoordSys::IsRZ();
 
-    if (c_lev != 0) 
-    {
-	BoxLib::Abort("initialVelocityProject: clev!=0--something wrong?\n");
-    } 
-    else 
-    {
-        //
-	// Get 3-wide cc box, state_strip, along top, incl. 2 rows of int and
-        // 1 row of ghosts.
-	// Get 1-wide nc box, phi_strip, along top, grown out by one
-        // tangential to face.
-        //
-	const Real* dx = parent->Geom(f_lev).CellSize();
-	const Box& domain = parent->Geom(f_lev).Domain();
-	const int outDir = 1;
-	const int ccStripWidth = 3;
-	const int ncStripWidth = 1;
-	const Box state_strip = Box(adjCellHi(domain, outDir, ccStripWidth)).shift(outDir,-ccStripWidth+1);
-	const Box phi_strip = surroundingNodes(bdryHi(domain, outDir, ncStripWidth));
+    assert(c_lev == 0);
+    //
+    // Get 3-wide cc box, state_strip, along top, incl. 2 rows of int and
+    // 1 row of ghosts.
+    // Get 1-wide nc box, phi_strip, along top, grown out by one
+    // tangential to face.
+    //
+    const Real* dx         = parent->Geom(f_lev).CellSize();
+    const Box& domain      = parent->Geom(f_lev).Domain();
+    const int outDir       = 1;
+    const int ccStripWidth = 3;
+    const int ncStripWidth = 1;
+    const Box state_strip  = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+    const Box phi_strip    = ::surroundingNodes(bdryHi(domain,outDir,ncStripWidth));
+    const int nGrow        = 0;
+    const int nCompPhi     = 1;
 
-	const int nGrow = 0;
-	const int srcCompRho = Density, nCompRho = 1;
-	const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
-	const int srcCompDivu = 0,      nCompDivu = 1;
-	const BoxArray state_strip_ba(&state_strip,1);
-	MultiFab cc_MultiFab(state_strip_ba, 1, nGrow, Fab_noallocate);
-	
-	const int nCompPhi = 1;
-	const BoxArray phi_strip_ba(&phi_strip,1);
-	MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
-	phi_fine_strip.setVal(0.0);
+    const int srcCompRho = Density, nCompRho = 1;
+    const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
+    const int srcCompDivu = 0,      nCompDivu = 1;
 
-	// Make r_i needed in HGPHIBC (set = 1 if cartesian)
-	const Box region = Box(adjCellHi(domain, outDir, 1)).shift(outDir, -1);
-	Array<Real> rcen(region.length(0), 1.0);
-	if (CoordSys::IsRZ() == 1) 
-	{
-	    parent->Geom(f_lev).GetCellLoc(rcen, region, 0);
-	} 
+    BoxArray state_strip_ba(&state_strip,1);
+    BoxArray phi_strip_ba(&phi_strip,1);
+
+    MultiFab cc_MultiFab(state_strip_ba, 1, nGrow, Fab_noallocate);
+    MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
+
+    phi_fine_strip.setVal(0);
+    //
+    // Make r_i needed in HGPHIBC (set = 1 if cartesian).
+    //
+    Box region = Box(::adjCellHi(domain,outDir,1)).shift(outDir, -1);
+    Array<Real> rcen(region.length(0), 1.0);
+    if (CoordSys::IsRZ() == 1) 
+        parent->Geom(f_lev).GetCellLoc(rcen, region, 0);
     
-	int Divu_Type, Divu;
-        FArrayBox rho;
-	if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
-	{
-	    BoxLib::Error("Projection::set_initial_projection_outflow_bcs(): Divu not found");
-	}
+    int Divu_Type, Divu;
+    FArrayBox rho;
+    if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
+        BoxLib::Error("Projection::set_initial_projection_outflow_bcs(): Divu not found");
     
-	FillPatchIterator rhoFpi(LevelData[f_lev], cc_MultiFab, nGrow, cur_divu_time,
-				 State_Type, srcCompRho, nCompRho);
+    FillPatchIterator rhoFpi(LevelData[f_lev],cc_MultiFab,nGrow,
+                             cur_divu_time,State_Type,srcCompRho,nCompRho);
 	
-	FillPatchIterator velFpi(LevelData[f_lev], cc_MultiFab, nGrow, cur_divu_time,
-				 State_Type, srcCompVel, nCompVel);
+    FillPatchIterator velFpi(LevelData[f_lev],cc_MultiFab,nGrow,
+                             cur_divu_time,State_Type,srcCompVel,nCompVel);
 	
-	FillPatchIterator divuFpi(LevelData[f_lev], cc_MultiFab, nGrow, cur_divu_time,
-				  Divu_Type, srcCompDivu, nCompDivu);
-	
-	for ( ;
-              rhoFpi.isValid() && velFpi.isValid() && divuFpi.isValid();
-              ++rhoFpi, ++velFpi, ++divuFpi)
-	{
-	    DependentMultiFabIterator phimfi(rhoFpi, phi_fine_strip);
-            //
-	    // Note: potentially wasteful FillPatch on Rho, but this seemed
-            // cleanest.
-            //
-            rho.resize(rhoFpi.validbox(), nCompRho);
-	    if (rho_wgt_vel_proj)
-	    {
-		rho.copy(rhoFpi());
-	    }
-            else
-            {
-		rho.setVal(1.0);
-	    }
-	    //
-	    // Fill phi_fine_strip with boundary cell values for phi, then
-            // copy into arg data.  Note: Though this looks like a distributed
-            // operation, the MultiFab is built on a single box...this is
-            // necesary currently, since FORT_HGPHIBC requires a slice across
-            // the entire domain.
-            //
-	    const int isPeriodicInX = (int) parent->Geom(f_lev).isPeriodic(0);
-	    FORT_HGPHIBC(ARLIM(velFpi().loVect()),  ARLIM(velFpi().hiVect()),  velFpi().dataPtr(),
-			 ARLIM(divuFpi().loVect()), ARLIM(divuFpi().hiVect()), divuFpi().dataPtr(),
-			 ARLIM(rho.loVect()),       ARLIM(rho.hiVect()),       rho.dataPtr(),
-			 ARLIM(region.loVect()),    ARLIM(region.hiVect()),    rcen.dataPtr(),    &dx[0],
-			 ARLIM(phimfi().loVect()),  ARLIM(phimfi().hiVect()),  phimfi().dataPtr(),
-			 &isPeriodicInX);
-	}
+    FillPatchIterator divuFpi(LevelData[f_lev],cc_MultiFab,nGrow,
+                              cur_divu_time,Divu_Type,srcCompDivu,nCompDivu);
+    for ( ;
+          rhoFpi.isValid() && velFpi.isValid() && divuFpi.isValid();
+          ++rhoFpi, ++velFpi, ++divuFpi)
+    {
+        DependentMultiFabIterator phimfi(rhoFpi, phi_fine_strip);
+        //
+        // Potentially wasteful FillPatch on Rho, but this seemed cleanest.
+        //
+        rho.resize(rhoFpi.validbox(), nCompRho);
+        if (rho_wgt_vel_proj)
+            rho.copy(rhoFpi());
+        else
+            rho.setVal(1);
+        //
+        // Fill phi_fine_strip with boundary cell values for phi, then
+        // copy into arg data.  Note: Though this looks like a distributed
+        // operation, the MultiFab is built on a single box...this is
+        // necesary currently, since FORT_HGPHIBC requires a slice across
+        // the entire domain.
+        //
+        const int isPeriodicInX = parent->Geom(f_lev).isPeriodic(0);
 
-	phi[f_lev]->copy(phi_fine_strip);
-
-	IntVect ratio = IntVect::TheUnitVector();
-
-	for (int lev=f_lev-1;lev>=c_lev;lev--) 
-	{
-	    ratio *= parent->refRatio(lev);
-	    const Box& domainC = parent->Geom(lev).Domain();
-	    const Box top_phiC_strip = surroundingNodes(bdryHi(domainC, outDir, ncStripWidth));
-	    
-	    const BoxArray top_phiC_strip_ba(&top_phiC_strip,1);
-	    MultiFab phi_crse_strip(top_phiC_strip_ba, nCompPhi, nGrow, Fab_allocate);
-	    phi_crse_strip.setVal(0.0);
-	    
-	    for (MultiFabIterator finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
-	    {
-		DependentMultiFabIterator crsemfi(finemfi, phi_crse_strip);
-		Box ovlp = Box(finemfi.validbox()).coarsen(ratio) & crsemfi.validbox();
-		FORT_PUTDOWN (crsemfi().dataPtr(),ARLIM(crsemfi().loVect()),ARLIM(crsemfi().hiVect()),
-			      finemfi().dataPtr(),ARLIM(finemfi().loVect()),ARLIM(finemfi().hiVect()),
-			      ovlp.loVect(),ovlp.hiVect(),ratio.getVect());
-	    }
-	    phi[lev]->copy(phi_crse_strip);
-	}
+        FORT_HGPHIBC(ARLIM(velFpi().loVect()),  ARLIM(velFpi().hiVect()),  velFpi().dataPtr(),
+                     ARLIM(divuFpi().loVect()), ARLIM(divuFpi().hiVect()), divuFpi().dataPtr(),
+                     ARLIM(rho.loVect()),       ARLIM(rho.hiVect()),       rho.dataPtr(),
+                     ARLIM(region.loVect()),    ARLIM(region.hiVect()),    rcen.dataPtr(),    &dx[0],
+                     ARLIM(phimfi().loVect()),  ARLIM(phimfi().hiVect()),  phimfi().dataPtr(),
+                     &isPeriodicInX);
     }
+
+    phi[f_lev]->copy(phi_fine_strip);
+
+    IntVect ratio = IntVect::TheUnitVector();
+
+    for (int lev = f_lev-1; lev >= c_lev; lev--) 
+    {
+        ratio *= parent->refRatio(lev);
+        const Box& domainC = parent->Geom(lev).Domain();
+        Box top_phiC_strip = ::surroundingNodes(bdryHi(domainC,outDir,ncStripWidth));
+        BoxArray top_phiC_strip_ba(&top_phiC_strip,1);
+        MultiFab phi_crse_strip(top_phiC_strip_ba,nCompPhi,nGrow,);
+        phi_crse_strip.setVal(0);
+	    
+        for (MultiFabIterator finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
+        {
+            DependentMultiFabIterator crsemfi(finemfi, phi_crse_strip);
+            Box ovlp = Box(finemfi.validbox()).coarsen(ratio) & crsemfi.validbox();
+            FORT_PUTDOWN (crsemfi().dataPtr(),ARLIM(crsemfi().loVect()),ARLIM(crsemfi().hiVect()),
+                          finemfi().dataPtr(),ARLIM(finemfi().loVect()),ARLIM(finemfi().hiVect()),
+                          ovlp.loVect(),ovlp.hiVect(),ratio.getVect());
+        }
+        phi[lev]->copy(phi_crse_strip);
+    }
+#else
+    BoxLib::Error("Projection::set_initial_projection_outflow_bcs(): not implented yet for 3D");
 #endif
 }
 
@@ -2342,141 +2299,288 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
 {
 #if (BL_SPACEDIM == 2)
     //
+    // Warning: This code looks about right, but hasn't really been tested.
+    //
     // What we do is similar to what we do in set_initial_projection_outflow_bcs
     // except that we work with time derivatives of U and S.
     //
     const int f_lev = finest_level;
-    const int rzflag = CoordSys::IsRZ();
 
-    if (c_lev != 0) 
-    {
-	BoxLib::Abort("initialSyncProject: clev!=0--something wrong?\n");
-    } 
-    else 
-    {
-	const Real* dx = parent->Geom(f_lev).CellSize();
-	const Box& domain = parent->Geom(f_lev).Domain();
-	const int outDir = 1;
-	const int ccStripWidth = 3;
-	const int ncStripWidth = 1;
-	const Box state_strip = Box(adjCellHi(domain, outDir, ccStripWidth)).shift(outDir,-ccStripWidth+1);
-	const Box phi_strip = surroundingNodes(bdryHi(domain, outDir, ncStripWidth));
+    assert(c_lev == 0);
 
-	const int nGrow = 0;
-	const int srcCompRho = Density, nCompRho = 1;
-	const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
-	const int srcCompDivu = 0,      nCompDivu = 1;
-	const BoxArray state_strip_ba(&state_strip,1);
-	MultiFab cc_MultiFab(state_strip_ba, 1, nGrow, Fab_noallocate);
-	
-	const int nCompPhi = 1;
-	const BoxArray phi_strip_ba(&phi_strip,1);
-	MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
-	phi_fine_strip.setVal(0.0);
+    const Real* dx         = parent->Geom(f_lev).CellSize();
+    const Box& domain      = parent->Geom(f_lev).Domain();
+    const int outDir       = 1;
+    const int ccStripWidth = 3;
+    const int ncStripWidth = 1;
+    const Box state_strip  = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+    const Box phi_strip    = ::surroundingNodes(bdryHi(domain,outDir,ncStripWidth));
+    const int nGrow        = 0;
+    const int nCompPhi     = 1;
 
-	// Make r_i needed in HGPHIBC (set = 1 if cartesian)
-	const Box region = Box(adjCellHi(domain, outDir, 1)).shift(outDir, -1);
-	Array<Real> rcen(region.length(0), 1.0);
-	if (CoordSys::IsRZ() == 1) 
-	{
-	    parent->Geom(f_lev).GetCellLoc(rcen, region, 0);
-	}
+    const int srcCompRho = Density, nCompRho = 1;
+    const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
+    const int srcCompDivu = 0,      nCompDivu = 1;
+
+    BoxArray state_strip_ba(&state_strip,1);
+    BoxArray phi_strip_ba(&phi_strip,1);
+
+    MultiFab cc_MultiFab(state_strip_ba, 1, nGrow, Fab_noallocate);
+    MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
+
+    phi_fine_strip.setVal(0);
+    //
+    // Make r_i needed in HGPHIBC (set = 1 if cartesian).
+    //
+    Box region = Box(::adjCellHi(domain,outDir,1)).shift(outDir, -1);
+    Array<Real> rcen(region.length(0), 1.0);
+    if (CoordSys::IsRZ() == 1) 
+        parent->Geom(f_lev).GetCellLoc(rcen, region, 0);
     
-	int Divu_Type, Divu;
-	if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
-	{
-	    BoxLib::Error("Projection::set_syncproject_outflow_bcs(): Divu not found");
-	}
+    int Divu_Type, Divu;
+    if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
+        BoxLib::Error("Projection::set_syncproject_outflow_bcs(): Divu not found");
 
-        FArrayBox rhonph;
-        FArrayBox dudt;
-        FArrayBox dsdt;
+    FArrayBox rhonph, dudt, dsdt;
     
-	FillPatchIterator rhoOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, start_time,
-				    State_Type, srcCompRho, nCompRho);
+    FillPatchIterator rhoOldFpi(LevelData[f_lev],cc_MultiFab,nGrow,
+                                start_time,State_Type,srcCompRho,nCompRho);
 	
-	FillPatchIterator rhoNewFpi(LevelData[f_lev], cc_MultiFab, nGrow, start_time + dt,
-				    State_Type, srcCompRho, nCompRho);
+    FillPatchIterator rhoNewFpi(LevelData[f_lev],cc_MultiFab,nGrow,
+                                start_time+dt,State_Type,srcCompRho,nCompRho);
 	
-	FillPatchIterator velOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, start_time,
-				    State_Type, srcCompVel, nCompVel);
+    FillPatchIterator velOldFpi(LevelData[f_lev],cc_MultiFab,nGrow,
+                                start_time,State_Type,srcCompVel,nCompVel);
 	
-	FillPatchIterator velNewFpi(LevelData[f_lev], cc_MultiFab, nGrow, start_time + dt,
-				    State_Type, srcCompVel, nCompVel);
+    FillPatchIterator velNewFpi(LevelData[f_lev],cc_MultiFab,nGrow,
+                                start_time+dt,State_Type,srcCompVel,nCompVel);
 	
-	FillPatchIterator divuOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, start_time,
-				     Divu_Type, srcCompDivu, nCompDivu);
+    FillPatchIterator divuOldFpi(LevelData[f_lev],cc_MultiFab,nGrow,
+                                 start_time,Divu_Type,srcCompDivu,nCompDivu);
 	
-	FillPatchIterator divuNewFpi(LevelData[f_lev], cc_MultiFab, nGrow, start_time + dt,
-				     Divu_Type, srcCompDivu, nCompDivu);
+    FillPatchIterator divuNewFpi(LevelData[f_lev],cc_MultiFab,nGrow,
+                                 start_time+dt,Divu_Type,srcCompDivu,nCompDivu);
 	
-	for ( ;rhoOldFpi.isValid()  &&  velOldFpi.isValid()  &&  divuOldFpi.isValid() &&
-		  rhoNewFpi.isValid()  &&  velNewFpi.isValid()  &&  divuNewFpi.isValid();
-	      ++rhoOldFpi, ++velOldFpi, ++divuOldFpi, ++rhoNewFpi, ++velNewFpi, ++divuNewFpi)
-	{
-	    DependentMultiFabIterator phimfi(rhoOldFpi, phi_fine_strip);
-            //
-	    // Make rhonph, du/dt, and dsdt.
-            //
-	    assert(rhoOldFpi.validbox() == rhoNewFpi.validbox());
-            rhonph.resize(rhoOldFpi.validbox(),nCompRho);
-	    rhonph.copy(rhoNewFpi());
-	    rhonph.plus(rhoOldFpi());
-	    rhonph.divide(2.0);
-
-	    assert(divuOldFpi.validbox() == divuNewFpi.validbox());
-            dudt.resize(velOldFpi.validbox(),nCompVel);
-	    dudt.copy(velNewFpi());
-	    dudt.minus(velOldFpi());
-	    dudt.divide(dt);
-	    
-	    assert(velOldFpi.validbox() == velNewFpi.validbox());
-            dsdt.resize(divuOldFpi.validbox(),nCompDivu);
-	    dsdt.copy(divuNewFpi());
-	    dsdt.minus(divuOldFpi());
-	    dsdt.divide(dt);
-            //
-	    // Fill phi_fine_strip with boundary cell values for phi, then
-            // copy into arg data.  Note: Though this looks like a distributed
-            // operation, the MultiFab is built on a single box...this is
-            // necesary currently, since FORT_HGPHIBC requires a slice across
-            // the entire domain
-            //
-	    const int isPeriodicInX = (int) parent->Geom(f_lev).isPeriodic(0);
-	    FORT_HGPHIBC(ARLIM(dudt.loVect()),     ARLIM(dudt.hiVect()),     dudt.dataPtr(),
-			 ARLIM(dsdt.loVect()),     ARLIM(dsdt.hiVect()),     dsdt.dataPtr(),
-			 ARLIM(rhonph.loVect()),   ARLIM(rhonph.hiVect()),   rhonph.dataPtr(),
-			 ARLIM(region.loVect()),   ARLIM(region.hiVect()),   rcen.dataPtr(),     &dx[0],
-			 ARLIM(phimfi().loVect()), ARLIM(phimfi().hiVect()), phimfi().dataPtr(),
-			 &isPeriodicInX);
-	}
-
-	phi[f_lev]->copy(phi_fine_strip);
+    for ( ;rhoOldFpi.isValid()  &&  velOldFpi.isValid()  &&  divuOldFpi.isValid() &&
+              rhoNewFpi.isValid()  &&  velNewFpi.isValid()  &&  divuNewFpi.isValid();
+          ++rhoOldFpi, ++velOldFpi, ++divuOldFpi, ++rhoNewFpi, ++velNewFpi, ++divuNewFpi)
+    {
+        DependentMultiFabIterator phimfi(rhoOldFpi, phi_fine_strip);
         //
-	// Put down to coarser levels.
+        // Make rhonph, du/dt, and dsdt.
         //
-	IntVect ratio = IntVect::TheUnitVector();
-	for (int lev=f_lev-1;lev>=c_lev;lev--) 
-	{
-	    ratio *= parent->refRatio(lev);
-	    const Box& domainC = parent->Geom(lev).Domain();
-	    const Box top_phiC_strip = surroundingNodes(bdryHi(domainC, outDir, ncStripWidth));
+        assert(rhoOldFpi.validbox() == rhoNewFpi.validbox());
+        rhonph.resize(rhoOldFpi.validbox(),nCompRho);
+        rhonph.copy(rhoNewFpi());
+        rhonph.plus(rhoOldFpi());
+        rhonph.divide(2.0);
+
+        assert(divuOldFpi.validbox() == divuNewFpi.validbox());
+        dudt.resize(velOldFpi.validbox(),nCompVel);
+        dudt.copy(velNewFpi());
+        dudt.minus(velOldFpi());
+        dudt.divide(dt);
 	    
-	    const BoxArray top_phiC_strip_ba(&top_phiC_strip,1);
-	    MultiFab phi_crse_strip(top_phiC_strip_ba, nCompPhi, nGrow, Fab_allocate);
-	    phi_crse_strip.setVal(0.0);
-	    
-	    for (MultiFabIterator finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
-	    {
-		DependentMultiFabIterator crsemfi(finemfi, phi_crse_strip);
-		Box ovlp = Box(finemfi.validbox()).coarsen(ratio) & crsemfi.validbox();
-		FORT_PUTDOWN (crsemfi().dataPtr(),ARLIM(crsemfi().loVect()),ARLIM(crsemfi().hiVect()),
-			      finemfi().dataPtr(),ARLIM(finemfi().loVect()),ARLIM(finemfi().hiVect()),
-			      ovlp.loVect(),ovlp.hiVect(),ratio.getVect());
-	    }
-	    phi[lev]->copy(phi_crse_strip);
-	}
+        assert(velOldFpi.validbox() == velNewFpi.validbox());
+        dsdt.resize(divuOldFpi.validbox(),nCompDivu);
+        dsdt.copy(divuNewFpi());
+        dsdt.minus(divuOldFpi());
+        dsdt.divide(dt);
+        //
+        // Fill phi_fine_strip with boundary cell values for phi, then
+        // copy into arg data.  Note: Though this looks like a distributed
+        // operation, the MultiFab is built on a single box...this is
+        // necesary currently, since FORT_HGPHIBC requires a slice across
+        // the entire domain
+        //
+        const int isPeriodicInX = parent->Geom(f_lev).isPeriodic(0);
+
+        FORT_HGPHIBC(ARLIM(dudt.loVect()),     ARLIM(dudt.hiVect()),     dudt.dataPtr(),
+                     ARLIM(dsdt.loVect()),     ARLIM(dsdt.hiVect()),     dsdt.dataPtr(),
+                     ARLIM(rhonph.loVect()),   ARLIM(rhonph.hiVect()),   rhonph.dataPtr(),
+                     ARLIM(region.loVect()),   ARLIM(region.hiVect()),   rcen.dataPtr(),     &dx[0],
+                     ARLIM(phimfi().loVect()), ARLIM(phimfi().hiVect()), phimfi().dataPtr(),
+                     &isPeriodicInX);
     }
+
+    phi[f_lev]->copy(phi_fine_strip);
+    //
+    // Put down to coarser levels.
+    //
+    IntVect ratio = IntVect::TheUnitVector();
+    for (int lev = f_lev-1; lev >= c_lev; lev--) 
+    {
+        ratio *= parent->refRatio(lev);
+        const Box& domainC = parent->Geom(lev).Domain();
+        Box top_phiC_strip = ::surroundingNodes(bdryHi(domainC,outDir,ncStripWidth));
+	    
+        BoxArray top_phiC_strip_ba(&top_phiC_strip,1);
+        MultiFab phi_crse_strip(top_phiC_strip_ba, nCompPhi, nGrow,);
+        phi_crse_strip.setVal(0);
+	    
+        for (MultiFabIterator finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
+        {
+            DependentMultiFabIterator crsemfi(finemfi, phi_crse_strip);
+            Box ovlp = Box(finemfi.validbox()).coarsen(ratio) & crsemfi.validbox();
+            FORT_PUTDOWN (crsemfi().dataPtr(),ARLIM(crsemfi().loVect()),ARLIM(crsemfi().hiVect()),
+                          finemfi().dataPtr(),ARLIM(finemfi().loVect()),ARLIM(finemfi().hiVect()),
+                          ovlp.loVect(),ovlp.hiVect(),ratio.getVect());
+        }
+        phi[lev]->copy(phi_crse_strip);
+    }
+#else
+    BoxLib::Error("Projection::set_initial_syncproject_outflow_bcs(): not implented yet for 3D");
 #endif
 }
 
+//
+// This projects the initial vorticity field (stored in pressure)
+// to define an initial velocity field.
+//
+
+void
+Projection::initialVorticityProject (int c_lev)
+{
+#if (BL_SPACEDIM == 2)
+    int f_lev = finest_level;
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        cout << "initialVorticityProject: levels = "
+             << c_lev
+             << "  "
+             << f_lev << endl;
+    }
+    //
+    // Set up projector bndry just for this projection.
+    //
+    const int* lo_bc     = phys_bc->lo();
+    const int* hi_bc     = phys_bc->hi();
+    const Geometry& geom = parent->Geom(0);
+
+    RegType proj_bc[BL_SPACEDIM][2];
+
+    proj_bc[0][0] = outflow;
+    proj_bc[0][1] = outflow;
+    if (geom.isPeriodic(0))
+    {
+        proj_bc[0][0] = periodic;
+        proj_bc[0][1] = periodic;
+    }
+    proj_bc[1][0] = outflow;
+    proj_bc[1][1] = outflow;
+    if (geom.isPeriodic(1))
+    {
+        proj_bc[1][0] = periodic;
+        proj_bc[1][1] = periodic;
+    }
+
+    projector_bndry = new inviscid_fluid_boundary(proj_bc);
+
+    bldSyncProject();
+
+    MultiFab* vel[MAX_LEV];
+    MultiFab* phi[MAX_LEV];
+    MultiFab* sig[MAX_LEV];
+
+    for (int lev = c_lev; lev <= f_lev; lev++)
+    {
+        MultiFab& P_new = LevelData[lev].get_new_data(Press_Type);
+
+        const int nghost = 1;
+
+        sig[lev] = new MultiFab(LevelData[lev].boxArray(),1,nghost);
+        sig[lev]->setVal(1,nghost);
+        phi[lev] = new MultiFab(P_new.boxArray(),1,nghost);
+        phi[lev]->setVal(0,nghost);
+    }
+    //
+    // Set up outflow bcs.
+    //
+    Array<BoxArray>& full_mesh = sync_proj->mesh();
+    PArray<MultiFab> u_real[BL_SPACEDIM];
+    PArray<MultiFab> p_real(f_lev+1), s_real(f_lev+1);
+    PArray<MultiFab> rhs_real(f_lev+1);
+
+    for (int n = 0; n < BL_SPACEDIM; n++)
+        u_real[n].resize(f_lev+1);
+
+    for (int lev = c_lev; lev <= f_lev; lev++)
+    {
+        for (int n = 0; n < BL_SPACEDIM; n++)
+        {
+            u_real[n].set(lev, new MultiFab(full_mesh[lev], 1, 1));
+            u_real[n][lev].setVal(0);
+        }
+        //
+        // The vorticity is stored in the new pressure variable for now.
+        //
+        MultiFab& P_new = LevelData[lev].get_new_data(Press_Type);
+
+        rhs_real.set(lev, new MultiFab(P_new.boxArray(), 1, 1));
+
+        for (MultiFabIterator mfi(rhs_real[lev]); mfi.isValid(); ++mfi)
+        {
+            DependentMultiFabIterator dmfi(mfi,P_new);
+
+            mfi().setVal(0);
+            mfi().copy(dmfi(), 0, 0);
+        }
+
+        p_real.set(lev, phi[lev]);
+        s_real.set(lev, sig[lev]);
+    }
+    //
+    // Project.
+    //
+    const Real* dx_lev = parent->Geom(f_lev).CellSize();
+    const int use_u    = 0;
+    sync_proj->manual_project(u_real,p_real,rhs_real,null_amr_real,s_real,
+                              use_u,(Real*)dx_lev,
+                              proj_tol,c_lev,f_lev,proj_abs_tol);
+    //
+    // Copy and delete u_real, delete s_real if appropriate.
+    //
+    for (int lev = c_lev; lev <= f_lev; lev++)
+    {
+        vel[lev] = &LevelData[lev].get_new_data(State_Type);
+
+        int n    = 0;
+        int ninv = 1;
+
+        for (MultiFabIterator mfi(*vel[lev]); mfi.isValid(); ++mfi)
+        {
+            DependentMultiFabIterator dmfi(mfi,u_real[n][lev]);
+
+            mfi().copy(dmfi(), 0, Xvel+ninv);
+            mfi().mult(-1, Xvel+ninv, 1);
+        }
+
+        delete u_real[n].remove(lev);
+
+        n    = 1;
+        ninv = 0;
+
+        for (MultiFabIterator mfi(*vel[lev]); mfi.isValid(); ++mfi)
+        {
+            DependentMultiFabIterator dmfi(mfi,u_real[n][lev]);
+
+            mfi().copy(dmfi(), 0, Xvel+ninv);
+        }
+
+        delete u_real[n].remove(lev);
+
+        delete rhs_real.remove(lev);
+    }
+
+    for (int lev = c_lev; lev <= f_lev; lev++)
+        delete sig[lev];
+    //
+    // Reset the boundary conditions for all the other projections.
+    //
+    delete sync_proj;
+    sync_proj = NULL;
+#else
+    BoxLib::Error("Projection::initialVorticityProject(): not implented yet for 3D");
+#endif
+}
