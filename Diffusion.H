@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.H,v 1.26 2001-08-22 16:42:00 car Exp $
+// $Id: Diffusion.H,v 1.27 2002-03-26 20:51:08 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -153,8 +153,8 @@ public:
 			const MultiFab*        alpha = 0);
 
     ABecLaplacian* getViscOp (int                    src_comp,
-                              const Real             a,
-                              const Real             b, 
+                              Real                   a,
+                              Real                   b, 
                               Real                   time,
                               ViscBndry&             visc_bndry,
                               const MultiFab*        rho_half,
@@ -166,8 +166,8 @@ public:
                               bool		     bndry_already_filled = false);
 
     ABecLaplacian* getViscOp (int                    src_comp,
-                              const Real             a,
-                              const Real             b,
+                              Real                   a,
+                              Real                   b,
                               const MultiFab*        rho_half,
                               int                    rho_flag,
                               Real*                  rhsscale = 0,
