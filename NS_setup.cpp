@@ -1,7 +1,9 @@
 
 //
-// $Id: NS_setup.cpp,v 1.47 2003-02-19 21:42:35 almgren Exp $
+// $Id: NS_setup.cpp,v 1.48 2004-07-27 17:28:57 car Exp $
 //
+
+#include <winstd.H>
 
 #include <NavierStokes.H>
 #include <RegType.H>
