@@ -1,5 +1,5 @@
 //
-// $Id: LinOp.cpp,v 1.8 1997-12-11 23:30:17 lijewski Exp $
+// $Id: LinOp.cpp,v 1.9 1998-03-04 23:41:02 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -258,8 +258,8 @@ void
 LinOp::smooth(MultiFab &solnL, const MultiFab &rhsL,
               int level, LinOp::BC_Mode bc_mode)
 {
-    applyBC(solnL, level, bc_mode);
     for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++) {
+        applyBC(solnL, level, bc_mode);
         Fsmooth(solnL, rhsL, level, redBlackFlag);
    }
 }
