@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.164 2000-04-28 22:50:01 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.165 2000-05-12 23:47:54 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3434,7 +3434,7 @@ NavierStokes::avgDown (const BoxArray& cgrids,
                        int             f_level,
                        int             scomp,
                        int             ncomp,
-                       IntVect&        fratio)
+                       const IntVect&  fratio)
 {
     BL_ASSERT(cgrids == S_crse.boxArray());
     BL_ASSERT(fgrids == S_fine.boxArray());
@@ -3490,7 +3490,7 @@ NavierStokes::avgDown (const FArrayBox& fine_fab,
                        const Box&       ovlp,
                        int              scomp,
                        int              ncomp,
-                       IntVect&         fratio)
+                       const IntVect&   fratio)
 {
     avgDown_doit(fine_fab,crse_fab,fine_vol,crse_vol,f_level,c_level,ovlp,
                  scomp,ncomp,fratio);
@@ -3510,7 +3510,7 @@ NavierStokes::avgDown_doit (const FArrayBox& fine_fab,
                             const Box&       ovlp,
                             int              scomp,
                             int              ncomp,
-                            IntVect&         fratio)
+                            const IntVect&   fratio)
 {
     const int*  ovlo   = ovlp.loVect();
     const int*  ovhi   = ovlp.hiVect();
