@@ -81,7 +81,7 @@ public:
 //
     void swapTimeLevels(REAL dt);
 //
-    void setTimeLevel(REAL t_new, REAL dt);
+    void setTimeLevel(REAL t_new, REAL dt_old, REAL dt_new);
 
     void RegisterData(MultiFabCopyDescriptor &multiFabCopyDesc,
                       Array<MultiFabId> &mfid);

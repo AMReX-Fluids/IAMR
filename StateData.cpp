@@ -127,15 +127,15 @@ StateData::~StateData()
 
 // -------------------------------------------------------------
 void
-StateData::setTimeLevel(REAL time, REAL dt)
+StateData::setTimeLevel(REAL time, REAL dt_old, REAL dt_new)
 {
     if (desc->timeType() == Point) {
 	new_time.start = new_time.stop = time;
-	old_time.start = old_time.stop = time - dt;
+	old_time.start = old_time.stop = time - dt_old;
     } else {
 	new_time.start = time;
-	new_time.stop  = time+dt;
-	old_time.start = time-dt;
+	new_time.stop  = time+dt_new;
+	old_time.start = time-dt_old;
 	old_time.stop  = time;
     }
 }
