@@ -478,7 +478,7 @@ c  double rhs at edges
             rhs(i,jne) = rhs(i,jne) * two
          enddo
       endif
-#endif 
+ 
 
       end
 
