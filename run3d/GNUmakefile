@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.4 1999-01-06 21:28:15 lijewski Exp $
+# $Id: GNUmakefile,v 1.5 1999-02-02 23:00:52 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -10,7 +10,8 @@ TOP = $(PBOXLIB_HOME)
 PRECISION = DOUBLE
 DEBUG	  = TRUE
 PROFILE   = FALSE
-DIM	  = 3
+DIM	      = 3
+PRVERSION = v9
 COMP      = KCC
 USE_MPI   = TRUE
 #
@@ -19,21 +20,13 @@ USE_MPI   = TRUE
 # Touch Projection.cpp if you want to change the state of USE_HGPROJ_SERIAL.
 #
 USE_HGPROJ_SERIAL = FALSE
-#
-# The only stencils in which we're interested when using USE_HGPROJ_SERIAL.
-#
+
 ifeq ($(USE_HGPROJ_SERIAL),TRUE)
+EBASE = amr-serial
 DEFINES += -DBL_USE_HGPROJ_SERIAL
-ifeq ($(DIM),2)
-PRVERSION = v9
 else
-PRVERSION = v7
-endif
-endif
-#
-# Base name of the executable.
-#
 EBASE = amr
+endif
 
 include $(TOP)/mk/Make.defs ./Make.package
 
