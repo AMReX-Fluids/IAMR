@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.55 1998-05-29 19:11:35 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.56 1998-06-01 17:01:48 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1172,7 +1172,8 @@ void NavierStokes::advance_setup( Real time, Real dt, int iteration, int ncycle)
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);
     }
-    MultiFab &temp = get_new_data(State_Type);
+    MultiFab& temp = get_new_data(State_Type);
+
     temp.setVal(bogus_value);
 
     if( level>0 || geom.isAnyPeriodic() ) {

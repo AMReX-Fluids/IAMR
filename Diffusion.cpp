@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.25 1998-05-29 19:11:34 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.26 1998-06-01 17:01:47 lijewski Exp $
 //
 
 //
@@ -49,7 +49,6 @@ const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
 
 #define GEOM_GROW 1
-#define bogus_value 1.e20
 
 Array<int>  Diffusion::is_diffusive;
 Array<Real> Diffusion::visc_coef;

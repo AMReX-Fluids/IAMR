@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.40 1998-05-29 19:11:36 lijewski Exp $
+// $Id: Projection.cpp,v 1.41 1998-06-01 17:01:48 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -1965,16 +1965,19 @@ void Projection::AddPhi( MultiFab &p, MultiFab &phi, const BoxArray &grids )
 // convert phi into p^n+1/2
 void Projection::incrPress(int level, Real dt)
 {
-    MultiFab &P_old = LevelData[level].get_old_data(Press_Type);
-    MultiFab &P_new = LevelData[level].get_new_data(Press_Type);
+    MultiFab& P_old = LevelData[level].get_old_data(Press_Type);
+    MultiFab& P_new = LevelData[level].get_new_data(Press_Type);
+
     const BoxArray& grids = LevelData[level].boxArray();
-    for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) 
+
+    for (MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi)
     {
         DependentMultiFabIterator P_oldmfi(P_newmfi, P_old);
-        //assert(grids[P_newmfi.index()] == P_newmfi.validbox());
-        //UpdateArg1( P_newmfi(), 1.0/dt, P_oldmfi(), 1, P_newmfi.validbox(), 1 );
+
         UpdateArg1( P_newmfi(), 1.0/dt, P_oldmfi(), 1, grids[P_newmfi.index()], 1 );
+#ifndef NDEBUG
         P_oldmfi().setVal(bogus_value);
+#endif
     }
 }
 

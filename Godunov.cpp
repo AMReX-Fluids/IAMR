@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.10 1998-05-29 23:42:06 lijewski Exp $
+// $Id: Godunov.cpp,v 1.11 1998-06-01 17:01:47 lijewski Exp $
 //
 
 //==========================================================
@@ -107,14 +107,14 @@ void Godunov::ZeroScratch()
 
 
 // initialize 1d scratch space to a bogus value
-void Godunov::SetBogusScratch()
+void Godunov::SetBogusScratch ()
 {
-    for ( int i = 0 ; i < scr_size ; i++ ) {
-        
-        stxlo[i] = bogus_value;
+#ifndef NDEBUG
+    for (int i = 0 ; i < scr_size ; i++)
+    {
+        stxlo[i]  = bogus_value;
         stxhi[i]  = bogus_value;
         slxscr[i] = bogus_value;
-        
         stylo[i]  = bogus_value;
         styhi[i]  = bogus_value;
         slyscr[i] = bogus_value;
@@ -124,6 +124,7 @@ void Godunov::SetBogusScratch()
         slzscr[i] = bogus_value;
 #endif
     }
+#endif /*NDEBUG*/
 }
 
 
