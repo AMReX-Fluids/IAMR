@@ -8,6 +8,7 @@ c  ::: Fortran Interface :::
 c  -------------------------
 c
 #  define   FORT_VEL_RA_RND       vel_ra_rnd
+#  define   FORT_VEL_FA_RND       vel_fa_rnd
 #endif
 
 
@@ -22,10 +23,13 @@ c
 
 #if defined(BL_FORT_USE_UNDERSCORE)
 #  define   FORT_VEL_RA_RND       vel_ra_rnd_
+#  define   FORT_VEL_FA_RND       vel_fa_rnd_
 #elif defined(BL_FORT_USE_LOWERCASE)
 #  define   FORT_VEL_RA_RND       vel_ra_rnd
+#  define   FORT_VEL_FA_RND       vel_fa_rnd
 #elif defined(BL_FORT_USE_UPPERCASE)
 #  define   FORT_VEL_RA_RND       VEL_RA_RND
+#  define   FORT_VEL_FA_RND       VEL_FA_RND
 #endif
 
 //
@@ -35,6 +39,17 @@ c
 extern "C"
 {
   void FORT_VEL_RA_RND(const Real *ssData, const int *nSSComp,
+                         ARLIM_P(lo), ARLIM_P(hi), 
+                       const int *nStats, const int *nStns,
+                             Real *stats,
+                             Real *physStn,
+                       const int *vblo, const int *vbhi,
+                       const Real *dx, 
+                       const Real *probLo, const Real *probHi,
+                       const int *axialDir,
+                             int *nActualStations);
+
+  void FORT_VEL_FA_RND(const Real *ssData, const int *nSSComp,
                          ARLIM_P(lo), ARLIM_P(hi), 
                        const int *nStats, const int *nStns,
                              Real *stats,
@@ -83,13 +98,15 @@ struct StatsRecord
 #if (BL_SPACEDIM == 2)
 extern const struct StatsRecord StatsTypes[] =
 {
-    { "vel_ra_rnd",      "Vel_ra_",    FORT_VEL_RA_RND,     6}
+    { "vel_ra_rnd",      "Vel_ra_",    FORT_VEL_RA_RND,     6},
+    { "vel_fa_rnd",      "Vel_fa_",    FORT_VEL_FA_RND,     6}
 };
 #endif
 #if (BL_SPACEDIM == 3)
 extern const struct StatsRecord StatsTypes[] =
 {
-    { "vel_ra_rnd",      "Vel_ra_",    FORT_VEL_RA_RND,    10}
+    { "vel_ra_rnd",      "Vel_ra_",    FORT_VEL_RA_RND,    10},
+    { "vel_fa_rnd",      "Vel_fa_",    FORT_VEL_FA_RND,    10}
 };
 #endif
 
