@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.17 2000-04-13 21:17:32 sstanley Exp $
+# $Id: GNUmakefile,v 1.18 2000-04-20 21:19:42 propp Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -146,36 +146,43 @@ $(executable): $(LIBRARIES)
 endif
 
 ifneq ($(BUILD_INPLACE), TRUE)
+
 #
 # Build and install all libraries needed in an appropriate order.
 #
+
+MyMakeLine = $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) \
+		DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) \
+		USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) PRVERSION=$(PRVERSION) \
+		DEFINES="$(DEFINES)"
+
 libs:
-	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/bndrylib;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/amrlib;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+	cd $(TOP)/pBoxLib_2; $(MyMakeLine) install
+	cd $(TOP)/bndrylib;  $(MyMakeLine) install
+	cd $(TOP)/amrlib;    $(MyMakeLine) install
 ifeq ($(USE_HGPROJ_SERIAL),FALSE)
-	cd $(TOP)/hgproj;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) LBASE=proj EBASE= install
+	cd $(TOP)/hgproj;    $(MyMakeLine) LBASE=proj EBASE= install
 else
-	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE=
+	cd $(TOP)/hgproj-serial; $(MyMakeLine) LBASE=proj EBASE=
 endif
-	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/tensorMG;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) PRVERSION=$(PRVERSION) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) install
+	cd $(TOP)/mglib;     $(MyMakeLine) install
+	cd $(TOP)/tensorMG;  $(MyMakeLine) install
+	cd $(TOP)/iamrlib;   $(MyMakeLine) install
 #
 # Cleanup libraries.
 #
 cleanlibs:
-	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-	cd $(TOP)/bndrylib;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-	cd $(TOP)/amrlib;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
+	cd $(TOP)/pBoxLib_2; $(MyMakeLine) clean
+	cd $(TOP)/bndrylib;  $(MyMakeLine) clean
+	cd $(TOP)/amrlib;    $(MyMakeLine) clean
 ifeq ($(USE_HGPROJ_SERIAL),FALSE)
-	cd $(TOP)/hgproj;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) LBASE=proj EBASE= clean
+	cd $(TOP)/hgproj;    $(MyMakeLine) LBASE=proj EBASE= clean
 else
-	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE= clean
+	cd $(TOP)/hgproj-serial; $(MyMakeLine) LBASE=proj EBASE= clean
 endif
-	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-	cd $(TOP)/tensorMG;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) clean
+	cd $(TOP)/mglib;     $(MyMakeLine) clean
+	cd $(TOP)/tensorMG;  $(MyMakeLine) clean
+	cd $(TOP)/iamrlib;   $(MyMakeLine) clean
 endif
 
 include $(TOP)/mk/Make.rules
