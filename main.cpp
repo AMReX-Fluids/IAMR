@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: main.cpp,v 1.33 1999-04-13 00:30:38 marc Exp $
+// $Id: main.cpp,v 1.34 1999-07-21 21:43:52 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -14,6 +14,7 @@
 #include <unistd.h>
 #endif
 
+#include <CArena.H>
 #include <REAL.H>
 #include <Misc.H>
 #include <Utility.H>
@@ -29,6 +30,7 @@
 #endif
 
 #ifdef BL_USE_NEW_HFILES
+#include <cstdio>
 #include <new>
 using std::setprecision;
 #ifndef WIN32
@@ -36,6 +38,7 @@ using std::set_new_handler;
 #endif
 #else
 #include <new.h>
+#include <stdio.h>
 #endif
 
 #ifndef NDEBUG
@@ -240,6 +243,29 @@ main (int   argc,
     // This MUST follow the above delete as ~Amr() may dump files to disk.
     //
     RunStats::report(cout);
+
+    if (CArena* arena = dynamic_cast<CArena*>(The_FAB_Arena))
+    {
+        //
+        // A barrier to make sure our output follows that of RunStats.
+        //
+        ParallelDescriptor::Barrier();
+        //
+        // We're using a CArena -- output some FAB memory stats.
+        //
+        // This'll output total # of bytes of heap space in the Arena.
+        //
+        // It's actually the high water mark of heap space required by FABs.
+        //
+        char buf[256];
+
+        sprintf(buf,
+                "CPU(%d): Heap Space (bytes) used by Coalescing FAB Arena: %ld",
+                ParallelDescriptor::MyProc(),
+                arena->heap_space_used());
+
+        cout << buf << endl;
+    }
 
     ParallelDescriptor::EndParallel();
 
