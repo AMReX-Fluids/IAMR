@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.72 2000-10-02 20:50:15 lijewski Exp $
+// $Id: NavierStokes.H,v 1.73 2001-08-01 21:50:56 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -77,9 +77,9 @@ public:
 
     virtual ~NavierStokes ();
 
-    virtual void restart (Amr&     papa,
-                          istream& is,
-                          bool     bReadSpecial = false);
+    virtual void restart (Amr&          papa,
+                          std::istream& is,
+                          bool          bReadSpecial = false);
     //
     // Define data descriptors.
     //
@@ -133,10 +133,10 @@ public:
     //
     // Integrate derived quantities over domain.
     //
-    Real sumDerive (const aString& name,
+    Real sumDerive (const std::string& name,
                     Real           time);
 
-    Real volWgtSum (const aString& name,
+    Real volWgtSum (const std::string& name,
                     Real           time);
     //
     // A string written as the first item in writePlotFile() at level zero.
@@ -144,13 +144,13 @@ public:
     //
     // For NavierStokes it has the form: NavierStokes-Vnnn
     //
-    virtual aString thePlotFileType () const;
+    virtual std::string thePlotFileType () const;
 
     //
     // Write plot file stuff to specified directory.
     //
-    virtual void writePlotFile (const aString& dir,
-                                ostream&       os,
+    virtual void writePlotFile (const std::string& dir,
+                                std::ostream&  os,
                                 VisMF::How     how);
     //
     // Modify list of variables to be plotted

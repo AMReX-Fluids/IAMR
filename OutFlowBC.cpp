@@ -1,6 +1,8 @@
 //
-// $Id: OutFlowBC.cpp,v 1.2 2000-11-02 23:11:17 lijewski Exp $
+// $Id: OutFlowBC.cpp,v 1.3 2001-08-01 21:50:58 lijewski Exp $
 //
+
+#include <algorithm>
 
 #include "OutFlowBC.H"
 #include "ParmParse.H"
@@ -16,7 +18,7 @@ OutFlowBC::SemiGrow (const Box& baseBox,
 {
     IntVect grow_factor(D_DECL(nGrow,nGrow,nGrow));
     grow_factor[direction] = 0;
-    return ::grow(baseBox,grow_factor);
+    return BoxLib::grow(baseBox,grow_factor);
 }
 
 Box
@@ -26,7 +28,7 @@ OutFlowBC::SemiCoarsen (const Box& baseBox,
 {
     IntVect ref_ratio(D_DECL(ref_factor,ref_factor,ref_factor));
     ref_ratio[direction] = 1;
-    return ::coarsen(baseBox,ref_ratio);
+    return BoxLib::coarsen(baseBox,ref_ratio);
 }
 
 OutFlowBC_MG::OutFlowBC_MG (const Box& Domain,
@@ -81,11 +83,11 @@ OutFlowBC_MG::solve (Real tolerance,
     int  iter  = 1;
     Real rlast = residual();
     Real res   = rlast;
-    Real goal  = Max(rlast*tolerance,abs_tolerance);
+    Real goal  = std::max(rlast*tolerance,abs_tolerance);
 
     if (verbose)
     {
-        cout << "OutFlowBC:Initial Residual: " << rlast << endl;
+        std::cout << "OutFlowBC:Initial Residual: " << rlast << std::endl;
     }
     if (rlast > goal)
     {
@@ -93,21 +95,23 @@ OutFlowBC_MG::solve (Real tolerance,
         {
             iter++;
             if (verbose)
-                cout << "OutFlowBC: Residual: " << res << " at iteration " << iter << endl;
+                std::cout << "OutFlowBC: Residual: "
+                          << res
+                          << " at iteration "
+                          << iter << std::endl;
         }
     }
   
     if (iter >= maxIters)
     {
-        cout << "OutFlowBC: solver reached maxIter" << endl;
-        cout << "goal was: " << goal << " && res = " << res << endl;
+        std::cout << "OutFlowBC: solver reached maxIter\n"
+                  << "goal was: " << goal << " && res = " << res << std::endl;
     }
 
     if (verbose)
     {
-        cout << "OutFlowBC: Final Residual: " << res << " after " 
-             << iter << " cycles" << endl;
-        cout << " " << endl;
+        std::cout << "OutFlowBC: Final Residual: " << res << " after " 
+                  << iter << " cycles\n\n";
     }
 }
 

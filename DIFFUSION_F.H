@@ -2,7 +2,7 @@
 #define _DIFFUSION_F_H
 
 /*
-** $Id: DIFFUSION_F.H,v 1.11 1999-08-25 18:04:03 propp Exp $
+** $Id: DIFFUSION_F.H,v 1.12 2001-08-01 21:50:53 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -128,7 +128,7 @@ extern "C"
                         const Real* r, ARLIM_P(r_lo), ARLIM_P(r_hi),
                         const Real* b,
                         const Real *vfab, ARLIM_P(v_lo), ARLIM_P(v_hi),
-                        Real *denfab, ARLIM_P(den_lo), ARLIM_P(den_hi),
+                        const Real *denfab, ARLIM_P(den_lo), ARLIM_P(den_hi),
                         const Real *betax, ARLIM_P(betax_lo), ARLIM_P(betax_hi),
                         const Real *betay, ARLIM_P(betay_lo), ARLIM_P(betay_hi),
 #if (BL_SPACEDIM ==3)

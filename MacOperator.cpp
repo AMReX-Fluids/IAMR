@@ -1,6 +1,5 @@
-
 //
-// $Id: MacOperator.cpp,v 1.21 2000-11-01 17:52:18 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.22 2001-08-01 21:50:55 lijewski Exp $
 //
 
 #include <MacBndry.H>
@@ -24,11 +23,13 @@ const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
 
-MacOperator::MacOperator(const BndryData& mgb,
-                         const Real*      h)
+MacOperator::MacOperator (const BndryData& mgb,
+                          const Real*      h)
     :
     ABecLaplacian(mgb,h)
 {}
+
+MacOperator::~MacOperator () {}
 
 //
 // Define the meaning of gradient for the multigrid object.
@@ -61,25 +62,18 @@ MacOperator::setCoefficients (MultiFab*   area,
            bycoef.setVal(0);,
            bzcoef.setVal(0););
 
-    for (MultiFabIterator rhomfi(rho); rhomfi.isValid(); ++rhomfi)
+    for (MFIter rhomfi(rho); rhomfi.isValid(); ++rhomfi)
     {
-        D_TERM(DependentMultiFabIterator bxcoefmfi(rhomfi,bxcoef);,
-               DependentMultiFabIterator bycoefmfi(rhomfi,bycoef);,
-               DependentMultiFabIterator bzcoefmfi(rhomfi,bzcoef););
-        D_TERM(DependentMultiFabIterator area0mfi(rhomfi,area[0]);,
-               DependentMultiFabIterator area1mfi(rhomfi,area[1]);,
-               DependentMultiFabIterator area2mfi(rhomfi,area[2]););
-
         BL_ASSERT(ba[rhomfi.index()] == rhomfi.validbox());
 
         const Box& grd       = ba[rhomfi.index()];
         const int* lo        = grd.loVect();
         const int* hi        = grd.hiVect();
-        FArrayBox& bx        = bxcoefmfi();
-        FArrayBox& by        = bycoefmfi();
-        const FArrayBox& ax  = area0mfi();
-        const FArrayBox& ay  = area1mfi();
-        const FArrayBox& den = rhomfi();
+        FArrayBox& bx        = bxcoef[rhomfi];
+        FArrayBox& by        = bycoef[rhomfi];
+        const FArrayBox& ax  = area[0][rhomfi];
+        const FArrayBox& ay  = area[1][rhomfi];
+        const FArrayBox& den = rho[rhomfi];
 
         DEF_LIMITS(bx,bx_dat,bxlo,bxhi);
         DEF_LIMITS(by,by_dat,bylo,byhi);
@@ -98,8 +92,8 @@ MacOperator::setCoefficients (MultiFab*   area,
                      den_dat,ARLIM(dlo),ARLIM(dhi),lo,hi,dx);
 #endif
 #if (BL_SPACEDIM == 3)
-        FArrayBox& bz       = bzcoefmfi();
-        const FArrayBox& az = area2mfi();
+        FArrayBox& bz       = bzcoef[rhomfi];
+        const FArrayBox& az = area[2][rhomfi];
 
         DEF_CLIMITS(az,az_dat,azlo,azhi);
         DEF_LIMITS(bz,bz_dat,bzlo,bzhi);
@@ -136,25 +130,19 @@ MacOperator::defRHS (MultiFab* area,
     const BoxArray& ba = gbox[0];
     BL_ASSERT(Rhs.boxArray() == ba);
 
-    for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
-        DependentMultiFabIterator volumemfi(Rhsmfi, volume);
-        DependentMultiFabIterator area0mfi(Rhsmfi, area[0]);
-        DependentMultiFabIterator area1mfi(Rhsmfi, area[1]);
-        DependentMultiFabIterator vel0mfi(Rhsmfi, vel[0]);
-        DependentMultiFabIterator vel1mfi(Rhsmfi, vel[1]);
-
         BL_ASSERT(ba[Rhsmfi.index()] == Rhsmfi.validbox());
 
         const Box& grd       = Rhsmfi.validbox();
         const int* lo        = grd.loVect();
         const int* hi        = grd.hiVect();
-        const FArrayBox& ax  = area0mfi();
-        const FArrayBox& ay  = area1mfi();
-        const FArrayBox& vol = volumemfi();
-        const FArrayBox& ux  = vel0mfi();
-        const FArrayBox& uy  = vel1mfi();
-        FArrayBox& rhs       = Rhsmfi();
+        const FArrayBox& ax  = area[0][Rhsmfi];
+        const FArrayBox& ay  = area[1][Rhsmfi];
+        const FArrayBox& vol = volume[Rhsmfi];
+        const FArrayBox& ux  = vel[0][Rhsmfi];
+        const FArrayBox& uy  = vel[1][Rhsmfi];
+        FArrayBox& rhs       = Rhs[Rhsmfi];
 
         DEF_CLIMITS(ux,ux_dat,uxlo,uxhi);
         DEF_CLIMITS(uy,uy_dat,uylo,uyhi);
@@ -173,12 +161,10 @@ MacOperator::defRHS (MultiFab* area,
                     lo,hi,&scale);
 #endif
 #if (BL_SPACEDIM == 3)
-        DependentMultiFabIterator area2mfi(Rhsmfi, area[2]);
-        DependentMultiFabIterator vel2mfi(Rhsmfi, vel[2]);
-        const FArrayBox& az = area2mfi();
+        const FArrayBox& az = area[2][Rhsmfi];
         DEF_CLIMITS(az,az_dat,azlo,azhi);
 
-        const FArrayBox& uz = vel2mfi();
+        const FArrayBox& uz = vel[2][Rhsmfi];
         DEF_CLIMITS(uz,uz_dat,uzlo,uzhi);
 
         FORT_MACRHS(ux_dat,ARLIM(uxlo),ARLIM(uxhi),
@@ -271,22 +257,16 @@ MacOperator::velUpdate (MultiFab*       Vel,
     int apply_lev = 0;
     applyBC(Phi,0,1,apply_lev);
 
-    for (MultiFabIterator Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
+    for (MFIter Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
     {
-        DependentMultiFabIterator Rhomfi(Phimfi, Rho);
-
-        D_TERM(DependentMultiFabIterator Vel0mfi(Phimfi,Vel[0]);,
-               DependentMultiFabIterator Vel1mfi(Phimfi,Vel[1]);,
-               DependentMultiFabIterator Vel2mfi(Phimfi,Vel[2]););
-
         BL_ASSERT(ba[Phimfi.index()] == Phimfi.validbox());
 
         const Box& grd = Phimfi.validbox();
 
         mac_vel_update(0, 
-                       D_DECL(Vel0mfi(),Vel1mfi(),Vel2mfi()),
-                       Phimfi(),
-                       &(Rhomfi()), rho_comp,  
+                       D_DECL(Vel[0][Phimfi],Vel[1][Phimfi],Vel[2][Phimfi]),
+                       Phi[Phimfi],
+                       &(Rho[Phimfi]), rho_comp,  
                        grd, 0, Phimfi.index(), dx, scale );
     }
 }
@@ -304,16 +284,15 @@ MacOperator::syncRhs (const MultiFab& Volume,
 {
     const BoxArray& ba = gbox[0];
 
-    for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
-        DependentMultiFabIterator Volumemfi(Rhsmfi, Volume);
         BL_ASSERT(ba[Rhsmfi.index()] == Rhsmfi.validbox());
 
         const Box& grd       = Rhsmfi.validbox();
         const int* lo        = grd.loVect();
         const int* hi        = grd.hiVect();
-        FArrayBox& rhs       = Rhsmfi();
-        const FArrayBox& vol = Volumemfi();
+        FArrayBox& rhs       = Rhs[Rhsmfi];
+        const FArrayBox& vol = Volume[Rhsmfi];
 
         DEF_CLIMITS(vol,vol_dat,vlo,vhi);
         DEF_LIMITS(rhs,rhs_dat,rlo,rhi);

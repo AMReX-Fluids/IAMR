@@ -1,9 +1,8 @@
-
 #ifndef _MACOPERATOR_H_
 #define _MACOPERATOR_H_
 
 //
-// $Id: MacOperator.H,v 1.8 2000-10-02 20:50:14 lijewski Exp $
+// $Id: MacOperator.H,v 1.9 2001-08-01 21:50:55 lijewski Exp $
 //
 
 //==========================================================================
@@ -16,29 +15,47 @@
 #include <ABecLaplacian.H>
 #include <BndryData.H>
 
-class MacOperator : public ABecLaplacian
+class MacOperator
+    :
+    public ABecLaplacian
 {
 public:
-    MacOperator(const BndryData& mgb, const Real * _h);
 
-    virtual ~MacOperator() {}
+    MacOperator (const BndryData& mgb,
+                 const Real*      _h);
 
-    // define the gradient coeficients used by the multigrid object.
-    void setCoefficients(MultiFab* area, MultiFab& rho, int rho_comp,
-                         const Real* dx);
-
-    // initialize the rhs for the level solves
-    void defRHS(MultiFab* area, MultiFab& vol, MultiFab& rhs,
-                MultiFab *vel, Real scale);
-
-    // apply the pressure gradient to the mac velocities
-    void velUpdate(MultiFab* vel, MultiFab& phi, const MultiFab& Rho,
-                   int rho_comp, const Real* dx, Real scale);
-
-    // scale the rhs for the sync solves
-    void syncRhs(const MultiFab& Volume, MultiFab& Rhs,
-                 Real rhs_scale, const Real* dx);
+    virtual ~MacOperator ();
+    //
+    // Define the gradient coeficients used by the multigrid object.
+    //
+    void setCoefficients (MultiFab*   area,
+                          MultiFab&   rho,
+                          int         rho_comp,
+                          const Real* dx);
+    //
+    // Initialize the rhs for the level solves.
+    //
+    void defRHS (MultiFab* area,
+                 MultiFab& vol,
+                 MultiFab& rhs,
+                 MultiFab* vel,
+                 Real      scale);
+    //
+    // Apply the pressure gradient to the mac velocities.
+    //
+    void velUpdate (MultiFab*       vel,
+                    MultiFab&       phi,
+                    const MultiFab& Rho,
+                    int             rho_comp,
+                    const Real*     dx,
+                    Real            scale);
+    //
+    // Scale the rhs for the sync solves.
+    //
+    void syncRhs (const MultiFab& Volume,
+                  MultiFab&       Rhs,
+                  Real            rhs_scale,
+                  const Real*     dx);
 };
-
 
 #endif

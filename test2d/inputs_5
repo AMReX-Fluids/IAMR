@@ -172,12 +172,6 @@ mg.nu_f = 100
 
 # USE THIS ONLY FOR TESTING
 #amr.max_grid_size = 64     # maximum linear dimension of any one grid
-
-RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update
-                   mac_project mac_sync level_project sync_project 
-                   write_pltfile write_chkfile fill_patch fill_boundary 
-                   fill_periodic_bndry fabarray_copy collect_data mpi_barrier 
-                   mpi_reduce mpi_broadcast mpi_gather
 #
 # StationData.vars     -- Names of StateData components to output
 # StationData.coord    -- BL_SPACEDIM array of Reals

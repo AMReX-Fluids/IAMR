@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.14 2000-11-02 18:08:02 lijewski Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.15 2001-08-01 21:50:59 lijewski Exp $
 //
 
 #include "ProjOutFlowBC.H"
@@ -36,7 +36,7 @@ Box
 semiSurroundingNodes (const Box& baseBox,
                       int        direction)
 {
-    Box sBox = ::surroundingNodes(baseBox);
+    Box sBox = BoxLib::surroundingNodes(baseBox);
     sBox.growHi(direction,-1);
     return sBox;
 }
@@ -77,7 +77,7 @@ ProjOutFlowBC::computeBC (FArrayBox*         velFab,
     // Filter out the direction we don't care about.
     //
     int ncStripWidth = 1;
-    Box origBox = Box(::adjCell(domain,outFace,ncStripWidth));
+    Box origBox = BoxLib::adjCell(domain,outFace,ncStripWidth);
     IntVect lo = origBox.smallEnd();
     IntVect hi = origBox.bigEnd();
     //
@@ -116,7 +116,7 @@ ProjOutFlowBC::computeBC (FArrayBox*         velFab,
     int R_DIR = 0;
     int Z_DIR = 1;
     int perpDir = (outDir == Z_DIR) ? R_DIR : Z_DIR;
-    Box region = Box(::adjCell(domain,outFace,1));
+    Box region = BoxLib::adjCell(domain,outFace,1);
     region.shift(outDir, (outFace.faceDir() == Orientation::high) ? -1 : 1);
     int r_lo = region.smallEnd(perpDir);
     int r_hi = region.bigEnd(perpDir);
@@ -246,7 +246,7 @@ ProjOutFlowBC::solveBackSubstitution (FArrayBox&         phi,
 
     BL_ASSERT(length == uExt.length()[0]);
     BL_ASSERT(length == rhoExt.length()[0]);
-    BL_ASSERT(length == rcen.length());
+    BL_ASSERT(length == rcen.size());
 
     DEF_BOX_LIMITS(faceBox,faceLo,faceHi);
     DEF_LIMITS(uExt, uEPtr, uElo, uEhi);

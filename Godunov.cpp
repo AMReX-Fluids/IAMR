@@ -1,13 +1,12 @@
 
 //
-// $Id: Godunov.cpp,v 1.24 2000-11-01 17:52:18 lijewski Exp $
+// $Id: Godunov.cpp,v 1.25 2001-08-01 21:50:55 lijewski Exp $
 //
 
 //
 // Godunov is the object which calculates advective terms for iamr.
 //
 
-#include <Misc.H>
 #include <LO_BCTYPES.H>
 #include <CoordSys.H>
 #include <Geometry.H>
@@ -16,6 +15,8 @@
 #include <FArrayBox.H>
 #include <Godunov.H>
 #include <GODUNOV_F.H>
+
+#include <algorithm>
 
 #define GEOM_GROW 1
 #define HYP_GROW  3
@@ -136,7 +137,7 @@ Godunov::SetScratch (int max_size)
     if (max_size <= max_1d)
         return;
     else
-        max_1d = Max(max_1d,max_size);
+        max_1d = std::max(max_1d,max_size);
     scr_size = (max_size+2*HYP_GROW)*4;
     //
     // Get rid of the old scratch space.
@@ -226,11 +227,11 @@ Godunov::Setup (const Box&       grd,
     //
     // Ensure 1D scratch space is large enough.
     //
-    SetScratch(::grow(grd,HYP_GROW).longside());
+    SetScratch(BoxLib::grow(grd,HYP_GROW).longside());
     //
     // Create the advective velocities and FAB workspace for GODUNOV Box.
     //
-    work_bx = ::grow(grd,1);
+    work_bx = BoxLib::grow(grd,1);
     work.resize(work_bx,2*BL_SPACEDIM+1);
     D_TERM(uad.resize(work_bx,1);,
            vad.resize(work_bx,1);,

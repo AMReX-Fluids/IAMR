@@ -177,12 +177,6 @@ mg.usecg = 1
 # USE THESE ONLY FOR TESTING
 #amr.grid_eff         = 0.9 # grid efficiency in the grid creation algorithm
 amr.max_grid_size    = 8  # maximum linear dimension of any one grid
-
-RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update
-                   mac_project mac_sync level_project sync_project 
-                   write_pltfile write_chkfile fill_patch fill_boundary 
-                   fill_periodic_bndry fabarray_copy collect_data mpi_barrier 
-                   mpi_reduce mpi_broadcast mpi_gather
 #
 # StationData.vars     -- Names of StateData components to output
 # StationData.coord    -- BL_SPACEDIM array of Reals

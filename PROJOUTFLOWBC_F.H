@@ -126,35 +126,35 @@ extern "C" {
 			       const int* faceLo, const int* faceHi,
 			       const int* isPeriodic);
 
-  void FORT_SOLVEHG(REAL * dest, ARLIM_P(dest_lo),ARLIM_P(dest_hi), 
-                    REAL * dest0, ARLIM_P(dest0_lo),ARLIM_P(dest0_hi), 
-                    REAL * source, ARLIM_P(source_lo),ARLIM_P(source_hi), 
-                    REAL * sigma,  ARLIM_P(sigma_lo),ARLIM_P(sigma_hi), 
-                    REAL * cen, ARLIM_P(cen_lo),ARLIM_P(cen_hi), 
-                    REAL * r, ARLIM_P(r_lo),ARLIM_P(r_hi), 
-                    REAL * w, ARLIM_P(w_lo),ARLIM_P(w_hi), 
-                    REAL * z, ARLIM_P(z_lo),ARLIM_P(z_hi), 
-                    REAL * x, ARLIM_P(x_lo),ARLIM_P(x_hi), 
-                    const int* lo, const int* hi, REAL * dxFiltered,
+  void FORT_SOLVEHG(Real * dest, ARLIM_P(dest_lo),ARLIM_P(dest_hi), 
+                    Real * dest0, ARLIM_P(dest0_lo),ARLIM_P(dest0_hi), 
+                    Real * source, ARLIM_P(source_lo),ARLIM_P(source_hi), 
+                    Real * sigma,  ARLIM_P(sigma_lo),ARLIM_P(sigma_hi), 
+                    Real * cen, ARLIM_P(cen_lo),ARLIM_P(cen_hi), 
+                    Real * r, ARLIM_P(r_lo),ARLIM_P(r_hi), 
+                    Real * w, ARLIM_P(w_lo),ARLIM_P(w_hi), 
+                    Real * z, ARLIM_P(z_lo),ARLIM_P(z_hi), 
+                    Real * x, ARLIM_P(x_lo),ARLIM_P(x_hi), 
+                    const int* lo, const int* hi, Real * dxFiltered,
                     int * isPeriodicFiltered, int * maxiter,
-                    REAL* tol, REAL* abs_tol, REAL* max_jump,REAL * norm);
+                    Real* tol, Real* abs_tol, Real* max_jump,Real * norm);
 
-  void FORT_RESTRICT(REAL * resid,ARLIM_P(resid_lo),ARLIM_P(resid_hi), 
-                     REAL * resid_crse, ARLIM_P(resc_lo),ARLIM_P(resc_hi),
+  void FORT_RESTRICT(Real * resid,ARLIM_P(resid_lo),ARLIM_P(resid_hi), 
+                     Real * resid_crse, ARLIM_P(resc_lo),ARLIM_P(resc_hi),
                      const int* lo, const int* hi,
                      const int* loc, const int* hic,
                      int * isPeriodic);
 
-  void FORT_COARSIG(REAL * sigma, ARLIM_P(si_lo),ARLIM_P(si_hi),
-                    REAL * sigmac,ARLIM_P(ns_lo),ARLIM_P(ns_hi),
+  void FORT_COARSIG(Real * sigma, ARLIM_P(si_lo),ARLIM_P(si_hi),
+                    Real * sigmac,ARLIM_P(ns_lo),ARLIM_P(ns_hi),
                     const int* lo, const int* hi,
                     const int* loc, const int* hic,
                     int * isPeriodic);
 
-  void FORT_INTERP(REAL* phi, ARLIM_P(phi_lo),ARLIM_P(phi_hi),
-		   REAL * temp, ARLIM_P(temp_lo),ARLIM_P(temp_hi), 
-                   REAL * phi_crse, ARLIM_P(phic_lo),ARLIM_P(phic_hi), 
-                   REAL * sig, ARLIM_P(sig_lo),ARLIM_P(sig_hi), 
+  void FORT_INTERP(Real* phi, ARLIM_P(phi_lo),ARLIM_P(phi_hi),
+		   Real * temp, ARLIM_P(temp_lo),ARLIM_P(temp_hi), 
+                   Real * phi_crse, ARLIM_P(phic_lo),ARLIM_P(phic_hi), 
+                   Real * sig, ARLIM_P(sig_lo),ARLIM_P(sig_hi), 
                    const int* lo, const int* hi,
                    const int* loc, const int* hic,
 		   const int* isPeriodic);

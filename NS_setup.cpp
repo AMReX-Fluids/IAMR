@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.41 2000-10-02 20:50:15 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.42 2001-08-01 21:50:56 lijewski Exp $
 //
 
 #include <NavierStokes.H>
@@ -9,12 +9,11 @@
 #include <ErrorList.H>
 #include <PROB_F.H>
 #include <DERIVE_F.H>
-#include <Misc.H>
 #include <FArrayBox.H>
 #include <CoordSys.H>
 
-static Box the_same_box (const Box& b)    { return b;           }
-static Box grow_box_by_one (const Box& b) { return ::grow(b,1); }
+static Box the_same_box (const Box& b)    { return b;                 }
+static Box grow_box_by_one (const Box& b) { return BoxLib::grow(b,1); }
 
 //
 // Components are  Interior, Inflow, Outflow, Symmetry, SlipWall, NoSlipWall.
@@ -372,11 +371,11 @@ NavierStokes::sum_integrated_quantities ()
 
     if (ParallelDescriptor::IOProcessor())
     {
-        int old_prec = cout.precision(12);
-        cout << '\n';
-        cout << "TIME= " << time << " MASS= " << mass << '\n';
-        cout << "TIME= " << time << " TRAC= " << trac << '\n';
-        cout.precision(old_prec);
+        int old_prec = std::cout.precision(12);
+        std::cout << '\n';
+        std::cout << "TIME= " << time << " MASS= " << mass << '\n';
+        std::cout << "TIME= " << time << " TRAC= " << trac << '\n';
+        std::cout.precision(old_prec);
     }
 }
 

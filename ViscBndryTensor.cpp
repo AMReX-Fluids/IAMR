@@ -1,5 +1,5 @@
 //
-// $Id: ViscBndryTensor.cpp,v 1.5 1999-05-10 18:54:15 car Exp $
+// $Id: ViscBndryTensor.cpp,v 1.6 2001-08-01 21:51:01 lijewski Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -24,7 +24,7 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
 	Real delta = dx[dir]*ratio;
         int p_bc = fi().isLow() ? bc.lo(dir): bc.hi(dir);
 
-        for (int i = 0; i < boxes().length(); i++)
+        for (int i = 0; i < boxes().size(); i++)
         {
             if (domain[fi()] == boxes()[i][fi()] && !geom.isPeriodic(dir))
             {
@@ -64,14 +64,14 @@ void
 ViscBndryTensor::setHomogValues (const Array<BCRec>& bc,
                                  int                 ratio)
 {
-    for (int n = 0; n < bc.length(); ++n)
+    for (int n = 0; n < bc.size(); ++n)
         setBndryConds(bc[n], ratio, n);
 
     for (OrientationIter fi; fi; ++fi)
     {
-        for (FabSetIterator fsi(bndry[fi()]); fsi.isValid(); ++fsi)
+        for (FabSetIter fsi(bndry[fi()]); fsi.isValid(); ++fsi)
         {
-            fsi().setVal(0);
+            bndry[fi()][fsi].setVal(0);
         }
     }
 }

@@ -1,11 +1,8 @@
-
 #ifndef _MacProj_H_
 #define _MacProj_H_
-
 //
-// $Id: MacProj.H,v 1.21 2000-10-02 20:50:15 lijewski Exp $
+// $Id: MacProj.H,v 1.22 2001-08-01 21:50:56 lijewski Exp $
 //
-
 #include <BC_TYPES.H>
 #include <BCRec.H>
 #include <Amr.H>

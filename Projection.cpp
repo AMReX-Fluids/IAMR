@@ -1,25 +1,15 @@
-
 //
-// $Id: Projection.cpp,v 1.134 2001-04-19 22:25:07 lijewski Exp $
+// $Id: Projection.cpp,v 1.135 2001-08-01 21:50:59 lijewski Exp $
 //
 
-#ifdef BL3_PROFILING
-#include <BoxLib3/Profiler.H>
-#endif
-
-#ifdef BL_T3E
-#include <List.H>
-#endif
-
-#include <Misc.H>
 #include <CoordSys.H>
 #include <Geometry.H>
 #include <ParmParse.H>
 #include <BoxDomain.H>
 #include <MacOpProjDrivers.H>
 #include <NavierStokes.H>
+#include <Profiler.H>
 #include <Projection.H>
-#include <RunStats.H>
 #include <PROJECTION_F.H>
 #include <NAVIERSTOKES_F.H>
 #include <hg_projector.H>
@@ -110,7 +100,7 @@ Projection::Projection (Amr*   _parent,
     read_params();
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
-        cout << "Creating projector\n";
+        std::cout << "Creating projector\n";
 
     projector_bndry = 0;
 
@@ -122,7 +112,7 @@ Projection::Projection (Amr*   _parent,
 Projection::~Projection ()
 {
     if (verbose && ParallelDescriptor::IOProcessor()) 
-        cout << "Deleting projector\n";
+        std::cout << "Deleting projector\n";
 
     delete sync_proj;
     delete projector_bndry;
@@ -166,7 +156,7 @@ Projection::read_params ()
 
     {
 #ifndef BL_USE_HGPROJ_SERIAL
-	aString stencil = "cross";
+	std::string stencil = "cross";
 	if ( pp.query("stencil", stencil) )
 	{
 	    if ( stencil == "cross" )
@@ -231,11 +221,11 @@ Projection::install_level (int           level,
                            PArray<Real>* _radius)
 {
     if (verbose && ParallelDescriptor::IOProcessor()) 
-        cout << "Installing projector level " << level << '\n';
+        std::cout << "Installing projector level " << level << '\n';
 
     finest_level = parent->finestLevel();
 
-    if (level > LevelData.length() - 1) 
+    if (level > LevelData.size() - 1) 
     {
         LevelData.resize(finest_level+1);
         radius.resize(finest_level+1);
@@ -277,8 +267,8 @@ Projection::bldSyncProject ()
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
     {
-        cout << "bldSyncProject:: amr_mesh = \n";
-        amr_multigrid::mesh_write(amesh, gen_ratio, fdomain, cout);
+        std::cout << "bldSyncProject:: amr_mesh = \n";
+        amr_multigrid::mesh_write(amesh, gen_ratio, fdomain, std::cout);
     }
 
 #ifdef BL_USE_HGPROJ_SERIAL
@@ -348,11 +338,10 @@ Projection::level_project (int             level,
                            int             have_divu, 
                            int             Divu_Type) 
 {
-#ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::level_project()");
-#endif
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::level_project()");
+
     if (ParallelDescriptor::IOProcessor() && verbose)
-	cout << "... level projector at level " << level << '\n';
+	std::cout << "... level projector at level " << level << '\n';
 
     if (sync_proj == 0)
         bldSyncProject();
@@ -403,10 +392,11 @@ Projection::level_project (int             level,
     }
     else
     {
-        for (MultiFabIterator U_newmfi(U_new); U_newmfi.isValid(); ++U_newmfi) 
+        for (MFIter U_newmfi(U_new); U_newmfi.isValid(); ++U_newmfi) 
         {
-            DependentMultiFabIterator U_oldmfi(U_newmfi, U_old);
-            ConvertUnew(U_newmfi(),U_oldmfi(),dt,U_newmfi.validbox());
+            const int i = U_newmfi.index();
+
+            ConvertUnew(U_new[i],U_old[i],dt,U_new.box(i));
         }
         if (have_divu)
         {
@@ -470,9 +460,11 @@ Projection::level_project (int             level,
             P_new.minus(P_old,0,1,0); // Care about nodes on box boundary
     }
     const int nGrow = (level == 0  ?  0  :  -1);
-    for (MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi)
+    for (MFIter P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi)
     {
-        P_newmfi().setVal(0.0,::grow(P_newmfi.validbox(),nGrow),0,1);
+        const int i = P_newmfi.index();
+
+        P_new[i].setVal(0.0,BoxLib::grow(P_new.box(i),nGrow),0,1);
         //
         // TODO -- also zero fine-fine nodes ???
         //
@@ -515,11 +507,11 @@ Projection::level_project (int             level,
     {
         u_real[n].resize(level+1,PArrayManage);
         u_real[n].set(level, new MultiFab(grids, 1, 1));
-        for (MultiFabIterator u_realmfi(u_real[n][level]); u_realmfi.isValid();
-            ++u_realmfi)
+        for (MFIter u_realmfi(u_real[n][level]); u_realmfi.isValid(); ++u_realmfi)
         {
-            DependentMultiFabIterator U_newmfi(u_realmfi, U_new);
-            u_realmfi().copy(U_newmfi(), n, 0);
+            const int i = u_realmfi.index();
+
+            u_real[n][level][i].copy(U_new[i], n, 0);
         }
     }
     p_real.set(level, &P_new);
@@ -599,11 +591,11 @@ Projection::level_project (int             level,
     //
     for (n = 0; n < BL_SPACEDIM; n++) 
     {
-        for (MultiFabIterator u_realmfi(u_real[n][level]); u_realmfi.isValid();
-            ++u_realmfi)
+        for (MFIter u_realmfi(u_real[n][level]); u_realmfi.isValid(); ++u_realmfi)
         {
-            DependentMultiFabIterator U_newmfi(u_realmfi, U_new);
-            U_newmfi().copy(u_realmfi(), 0, n);
+            const int i = u_realmfi.index();
+
+            U_new[i].copy(u_real[n][level][i], 0, n);
         }
     }
     //
@@ -664,11 +656,11 @@ Projection::filterP (int             level,
                      int             have_divu)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-        cout << "... filterP at level " << level << endl;
+        std::cout << "... filterP at level " << level << std::endl;
 
     int             rzflag   = CoordSys::IsRZ();
     const Real*     dx       = geom.CellSize();
-    Box             ndomain  = ::surroundingNodes(geom.Domain());
+    Box             ndomain  = BoxLib::surroundingNodes(geom.Domain());
     const int*      ndlo     = ndomain.loVect();
     const int*      ndhi     = ndomain.hiVect();
     const BoxArray& grids    = LevelData[level].boxArray();
@@ -682,7 +674,7 @@ Projection::filterP (int             level,
     MultiFab*       sync_resid_crse = 0;
     MultiFab*       sync_resid_fine = 0;
 
-    BL_ASSERT(grids.length() == P_grids.length());
+    BL_ASSERT(grids.size() == P_grids.size());
     
     temp_phi->setVal(0);
     temp_rho->setVal(0);
@@ -711,7 +703,7 @@ Projection::filterP (int             level,
 
     Real mult = -1.;
 
-    for (MultiFabIterator mfi(*temp_rho); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*temp_rho); mfi.isValid(); ++mfi)
     {
         const int  k    = mfi.index();
         FArrayBox& sfab = (*temp_rho)[k];
@@ -771,9 +763,9 @@ Projection::filterP (int             level,
 
         put_divu_in_node_rhs(*divuold,level,nghost,time,rzflag);
 
-        for (MultiFabIterator mfi(*divuold); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*divuold); mfi.isValid(); ++mfi)
         {
-            mfi().mult(1.0/dt,0,1);
+            (*divuold)[mfi].mult(1.0/dt,0,1);
         }
 
         rhs_nd->plus(*divuold,0,1,nghost);
@@ -792,11 +784,11 @@ Projection::filterP (int             level,
     {
         u_real[n].resize(level+1,PArrayManage);
         u_real[n].set(level, new MultiFab(grids, 1, 1));
-        for (MultiFabIterator u_realmfi(u_real[n][level]); u_realmfi.isValid();
-            ++u_realmfi)
+        for (MFIter u_realmfi(u_real[n][level]); u_realmfi.isValid(); ++u_realmfi)
         {
-            DependentMultiFabIterator velmfi(u_realmfi, *temp_vel);
-            u_realmfi().copy(velmfi(), n, 0);
+            const int i = u_realmfi.index();
+
+            u_real[n][level][i].copy((*temp_vel)[i], n, 0);
         }
     }
 
@@ -861,21 +853,16 @@ Projection::syncProject (int             c_lev,
                          int             crse_iteration,
                          int             crse_dt_ratio)
 {
-#ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::syncProject()");
-#endif
-    static RunStats stats("sync_project");
-
-    stats.start();
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::syncProject()");
 
     int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
     {
-        cout << "SyncProject: level = "
-             << c_lev
-             << " correction to level "
-             << finest_level << endl;
+        std::cout << "SyncProject: level = "
+                  << c_lev
+                  << " correction to level "
+                  << finest_level << std::endl;
     }
     //
     // Manipulate state + pressure data.
@@ -913,11 +900,11 @@ Projection::syncProject (int             c_lev,
     {
         u_real[n].resize(c_lev+1,PArrayManage);
         u_real[n].set(c_lev, new MultiFab(grids, 1, 1));
-        for (MultiFabIterator u_realmfi(u_real[n][c_lev]); u_realmfi.isValid();
-            ++u_realmfi)
+        for (MFIter u_realmfi(u_real[n][c_lev]); u_realmfi.isValid(); ++u_realmfi)
         {
-            DependentMultiFabIterator Vsyncmfi(u_realmfi, *Vsync);
-            u_realmfi().copy(Vsyncmfi(), n, 0);
+            const int i = u_realmfi.index();
+
+            u_real[n][c_lev][i].copy((*Vsync)[i], n, 0);
         }
     }
     p_real.set(c_lev, &phi);
@@ -948,11 +935,11 @@ Projection::syncProject (int             c_lev,
     //
     for (n = 0; n < BL_SPACEDIM; n++) 
     {
-        for (MultiFabIterator u_realmfi(u_real[n][c_lev]); u_realmfi.isValid();
-            ++u_realmfi)
+        for (MFIter u_realmfi(u_real[n][c_lev]); u_realmfi.isValid(); ++u_realmfi)
         {
-            DependentMultiFabIterator Vsyncmfi(u_realmfi, *Vsync);
-            Vsyncmfi().copy(u_realmfi(), 0, n);
+            const int i = u_realmfi.index();
+
+            (*Vsync)[i].copy(u_real[n][c_lev][i], 0, n);
         }
     }
     //
@@ -981,8 +968,6 @@ Projection::syncProject (int             c_lev,
     //
     AddPhi(pres, phi, grids);
     UpdateArg1(vel, dt_crse, *Vsync, BL_SPACEDIM, grids, 1);
-
-    stats.end();
 }
 
 //
@@ -1018,15 +1003,10 @@ Projection::MLsyncProject (int             c_lev,
                            Real             cur_fine_pres_time,
                            Real            prev_fine_pres_time)
 {
-#ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::MLsyncProject()");
-#endif
-    static RunStats stats("sync_project");
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::MLsyncProject()");
 
-    stats.start();
-    
     if (verbose && ParallelDescriptor::IOProcessor()) 
-        cout << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << '\n';
+        std::cout << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << '\n';
     
     int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
     if (sync_proj == 0)
@@ -1058,7 +1038,7 @@ Projection::MLsyncProject (int             c_lev,
     //
     rhs_sync_reg->InitRHS(*crse_rhs,crse_geom,phys_bc);
 
-    Box P_finedomain(surroundingNodes(crse_geom.Domain()));
+    Box P_finedomain(BoxLib::surroundingNodes(crse_geom.Domain()));
     P_finedomain.refine(ratio);
     if (Pgrids_fine[0] == P_finedomain)
         crse_rhs->setVal(0);
@@ -1077,17 +1057,18 @@ Projection::MLsyncProject (int             c_lev,
         u_real[n].set(c_lev,   new MultiFab(grids,      1, 1));
         u_real[n].set(c_lev+1, new MultiFab(fine_grids, 1, 1));
 
-        for (MultiFabIterator u_realmfi(u_real[n][c_lev]); u_realmfi.isValid();
-            ++u_realmfi)
+        for (MFIter u_realmfi(u_real[n][c_lev]); u_realmfi.isValid(); ++u_realmfi)
         {
-            DependentMultiFabIterator Vsyncmfi(u_realmfi, *Vsync);
-            u_realmfi().copy(Vsyncmfi(), n, 0);
+            const int i = u_realmfi.index();
+
+            u_real[n][c_lev][i].copy((*Vsync)[i], n, 0);
         }
-        for (MultiFabIterator u_realfinemfi(u_real[n][c_lev+1]); u_realfinemfi.isValid();
-            ++u_realfinemfi)
+        for (MFIter u_realfinemfi(u_real[n][c_lev+1]); u_realfinemfi.isValid();
+             ++u_realfinemfi)
         {
-            DependentMultiFabIterator V_corrmfi(u_realfinemfi, V_corr);
-            u_realfinemfi().copy(V_corrmfi(), n, 0);
+            const int i = u_realfinemfi.index();
+
+            u_real[n][c_lev+1][i].copy(V_corr[i], n, 0);
         }
 
         restrict_level(u_real[n][c_lev], u_real[n][c_lev+1], ratio);
@@ -1139,17 +1120,18 @@ Projection::MLsyncProject (int             c_lev,
     //
     for (n = 0; n < BL_SPACEDIM; n++) 
     {
-        for (MultiFabIterator u_realmfi(u_real[n][c_lev]); u_realmfi.isValid();
-            ++u_realmfi)
+        for (MFIter u_realmfi(u_real[n][c_lev]); u_realmfi.isValid(); ++u_realmfi)
         {
-            DependentMultiFabIterator Vsyncmfi(u_realmfi, *Vsync);
-            Vsyncmfi().copy(u_realmfi(), 0, n);
+            const int i = u_realmfi.index();
+
+            (*Vsync)[i].copy(u_real[n][c_lev][i], 0, n);
         }
-        for (MultiFabIterator u_realfinemfi(u_real[n][c_lev+1]); u_realfinemfi.isValid();
-            ++u_realfinemfi)
+        for (MFIter u_realfinemfi(u_real[n][c_lev+1]); u_realfinemfi.isValid();
+             ++u_realfinemfi)
         {
-            DependentMultiFabIterator V_corrmfi(u_realfinemfi, V_corr);
-            V_corrmfi().copy(u_realfinemfi(), 0, n);
+            const int i = u_realfinemfi.index();
+
+            V_corr[i].copy(u_real[n][c_lev+1][i], 0, n);
         }
     }
     //
@@ -1175,10 +1157,9 @@ Projection::MLsyncProject (int             c_lev,
     rescaleVar(&rho_crse, 0, Vsync,   grids,      c_lev  );
     rescaleVar(&rho_fine, 0, &V_corr, fine_grids, c_lev+1);
 
-    for (MultiFabIterator phimfi(*phi[c_lev+1]); phimfi.isValid(); ++phimfi) 
+    for (MFIter phimfi(*phi[c_lev+1]); phimfi.isValid(); ++phimfi) 
     {
-        DependentMultiFabIterator phi_finemfi(phimfi, phi_fine);
-        phi_finemfi().copy(phimfi(),0,0,1);
+        phi_fine[phimfi].copy((*phi[c_lev+1])[phimfi],0,0,1);
     }
     //
     // Add phi to pressure.
@@ -1221,8 +1202,6 @@ Projection::MLsyncProject (int             c_lev,
     //
     UpdateArg1(vel_crse, dt_crse, *Vsync, BL_SPACEDIM, grids,      1);
     UpdateArg1(vel_fine, dt_crse, V_corr, BL_SPACEDIM, fine_grids, 1);
-
-    stats.end();
 }
 
 //
@@ -1235,26 +1214,21 @@ Projection::initialVelocityProject (int  c_lev,
                                     Real cur_divu_time, 
                                     int  have_divu)
 {
-#ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::initialVelocityProject()");
-#endif
-    static RunStats stats("sync_project");
-
-    stats.start();
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::initialVelocityProject()");
 
     int lev;
     int f_lev = finest_level;
     if (verbose && ParallelDescriptor::IOProcessor()) 
     {
-        cout << "initialVelocityProject: levels = " << c_lev
-             << "  " << f_lev << '\n';
+        std::cout << "initialVelocityProject: levels = " << c_lev
+                  << "  " << f_lev << '\n';
         if (rho_wgt_vel_proj) 
         {
-            cout << "RHO WEIGHTED INITIAL VELOCITY PROJECTION\n";
+            std::cout << "RHO WEIGHTED INITIAL VELOCITY PROJECTION\n";
         } 
         else 
         {
-            cout << "CONSTANT DENSITY INITIAL VELOCITY PROJECTION\n";
+            std::cout << "CONSTANT DENSITY INITIAL VELOCITY PROJECTION\n";
         }
     }
 
@@ -1350,11 +1324,11 @@ Projection::initialVelocityProject (int  c_lev,
         {
             u_real[n].set(lev, new MultiFab(full_mesh[lev], 1, 1));
 
-            for (MultiFabIterator u_realmfi(u_real[n][lev]); u_realmfi.isValid();
-                ++u_realmfi)
+            for (MFIter u_realmfi(u_real[n][lev]); u_realmfi.isValid(); ++u_realmfi)
             {
-                DependentMultiFabIterator velmfi(u_realmfi, *vel[lev]);
-                u_realmfi().copy(velmfi(), Xvel+n, 0);
+                const int i = u_realmfi.index();
+
+                u_real[n][lev][i].copy((*vel[lev])[i], Xvel+n, 0);
             }
         }
         p_real.set(lev, phi[lev]);
@@ -1406,11 +1380,12 @@ Projection::initialVelocityProject (int  c_lev,
     {
         for (n = 0; n < BL_SPACEDIM; n++) 
         {
-            for (MultiFabIterator u_realmfi(u_real[n][lev]); u_realmfi.isValid();
-                ++u_realmfi)
+            for (MFIter u_realmfi(u_real[n][lev]); u_realmfi.isValid();
+                 ++u_realmfi)
             {
-                DependentMultiFabIterator velmfi(u_realmfi, *vel[lev]);
-                velmfi().copy(u_realmfi(), 0, Xvel+n);
+                const int i = u_realmfi.index();
+
+                (*vel[lev])[i].copy(u_real[n][lev][i], 0, Xvel+n);
             }
         }
     }
@@ -1422,8 +1397,6 @@ Projection::initialVelocityProject (int  c_lev,
         const BoxArray& grids = parent->getLevel(lev).boxArray();
         rescaleVar(sig[lev],1,vel[lev],grids,lev);
     }
-
-    stats.end();
 }
 
 //
@@ -1439,17 +1412,12 @@ Projection::initialSyncProject (int       c_lev,
                                 Real      dt_init,
                                 int       have_divu)
 {
-#ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::initialSyncProject()");
-#endif
-    static RunStats stats("sync_project");
-
-    stats.start();
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::initialSyncProject()");
 
     int lev;
     int f_lev = finest_level;
     if (verbose && ParallelDescriptor::IOProcessor()) 
-        cout << "SyncProject: levels = " << c_lev << "  " << f_lev << '\n';
+        std::cout << "SyncProject: levels = " << c_lev << "  " << f_lev << '\n';
     //
     // Manipulate state + pressure data.
     //
@@ -1504,14 +1472,12 @@ Projection::initialSyncProject (int       c_lev,
             MultiFab* divu = ns->getDivCond(nghost,strt_time);
             MultiFab* dsdt = ns->getDivCond(nghost,strt_time+dt);
 
-            for (MultiFabIterator mfi(*rhslev); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*rhslev); mfi.isValid(); ++mfi)
             {
-                DependentMultiFabIterator divu_it(mfi,*divu);
-                DependentMultiFabIterator dsdt_it(mfi,*dsdt);
                 if (!proj_0 && !proj_2) 
-                    dsdt_it().minus(divu_it());
-                dsdt_it().mult(dt_inv);
-                mfi().copy(dsdt_it());
+                    (*dsdt)[mfi].minus((*divu)[mfi]);
+                (*dsdt)[mfi].mult(dt_inv);
+                (*rhslev)[mfi].copy((*dsdt)[mfi]);
             }
 
             delete divu;
@@ -1584,11 +1550,11 @@ Projection::initialSyncProject (int       c_lev,
         for (n = 0; n < BL_SPACEDIM; n++) 
         {
             u_real[n].set(lev, new MultiFab(full_mesh[lev], 1, 1));
-            for (MultiFabIterator u_realmfi(u_real[n][lev]); u_realmfi.isValid();
-                ++u_realmfi)
+            for (MFIter u_realmfi(u_real[n][lev]); u_realmfi.isValid(); ++u_realmfi)
             {
-                DependentMultiFabIterator velmfi(u_realmfi, *vel[lev]);
-                u_realmfi->copy(*velmfi, Xvel+n, 0);
+                const int i = u_realmfi.index();
+
+                u_real[n][lev][i].copy((*vel[lev])[i], Xvel+n, 0);
             }
         }
         p_real.set(lev, phi[lev]);
@@ -1647,11 +1613,11 @@ Projection::initialSyncProject (int       c_lev,
     {
         for (n = 0; n < BL_SPACEDIM; n++) 
         {
-            for (MultiFabIterator u_realmfi(u_real[n][lev]); u_realmfi.isValid();
-                ++u_realmfi)
+            for (MFIter u_realmfi(u_real[n][lev]); u_realmfi.isValid(); ++u_realmfi)
             {
-                DependentMultiFabIterator velmfi(u_realmfi, *vel[lev]);
-                velmfi().copy(u_realmfi(), 0, Xvel+n);
+                const int i = u_realmfi.index();
+
+                (*vel[lev])[i].copy(u_real[n][lev][i], 0, Xvel+n);
             }
         }
     }
@@ -1665,8 +1631,6 @@ Projection::initialSyncProject (int       c_lev,
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
         incrPress(lev, 1.0);
-
-    stats.end();
 }
 
 //
@@ -1702,15 +1666,13 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
  
     int imax = geom.Domain().bigEnd()[0]+1;
 
-    for (MultiFabIterator rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi)
+    for (MFIter rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi)
     {
-        DependentMultiFabIterator divumfi(rhsmfi,*divu);
-
-        DEF_CLIMITS(divumfi(),divudat,divulo,divuhi);
-        DEF_LIMITS(rhsmfi(),rhsdat,rhslo,rhshi);
-        Array<Real> rcen(divumfi().box().length(0),1.0);
+        DEF_CLIMITS((*divu)[rhsmfi],divudat,divulo,divuhi);
+        DEF_LIMITS(rhs[rhsmfi],rhsdat,rhslo,rhshi);
+        Array<Real> rcen((*divu)[rhsmfi].box().length(0),1.0);
         if (isrz == 1) 
-            geom.GetCellLoc(rcen,divumfi().box(),0);
+            geom.GetCellLoc(rcen,(*divu)[rhsmfi].box(),0);
 
         FORT_HGC2N(&nghost,ARLIM(divulo),ARLIM(divuhi),divudat,
                    rcen.dataPtr(), ARLIM(rhslo),ARLIM(rhshi),rhsdat,
@@ -1738,11 +1700,9 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 
     MultiFab* divu = ns->getDivCond(1,time);
 
-    for (MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi)
+    for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
     {
-        DependentMultiFabIterator dmfi(mfi, *divu);
-
-        mfi().copy(dmfi());
+        rhs[mfi].copy((*divu)[mfi]);
     }
 
     delete divu;
@@ -1769,13 +1729,11 @@ Projection::UnConvertUnew (MultiFab&       Uold,
                            MultiFab&       Unew, 
                            const BoxArray& grids)
 {
-    for (MultiFabIterator Uoldmfi(Uold); Uoldmfi.isValid(); ++Uoldmfi) 
+    for (MFIter Uoldmfi(Uold); Uoldmfi.isValid(); ++Uoldmfi) 
     {
-        DependentMultiFabIterator Unewmfi(Uoldmfi, Unew);
-
         BL_ASSERT(grids[Uoldmfi.index()] == Uoldmfi.validbox());
 
-        UnConvertUnew( Uoldmfi(), alpha, Unewmfi(), Uoldmfi.validbox() );
+        UnConvertUnew(Uold[Uoldmfi],alpha,Unew[Uoldmfi],Uoldmfi.validbox());
     }
 }
 
@@ -1820,13 +1778,11 @@ Projection::ConvertUnew (MultiFab&       Unew,
                          Real            alpha,
                          const BoxArray& grids)
 {
-    for (MultiFabIterator Uoldmfi(Uold); Uoldmfi.isValid(); ++Uoldmfi) 
+    for (MFIter Uoldmfi(Uold); Uoldmfi.isValid(); ++Uoldmfi) 
     {
-        DependentMultiFabIterator Unewmfi(Uoldmfi, Unew);
-
         BL_ASSERT(grids[Uoldmfi.index()] == Uoldmfi.validbox());
 
-        ConvertUnew( Unewmfi(), Uoldmfi(), alpha, Uoldmfi.validbox() );
+        ConvertUnew(Unew[Uoldmfi],Uold[Uoldmfi],alpha,Uoldmfi.validbox());
     }
 }
 
@@ -1869,13 +1825,11 @@ Projection::UpdateArg1 (MultiFab&       Unew,
                         const BoxArray& grids,
                         int             ngrow)
 {
-    for (MultiFabIterator Uoldmfi(Uold); Uoldmfi.isValid(); ++Uoldmfi) 
+    for (MFIter Uoldmfi(Uold); Uoldmfi.isValid(); ++Uoldmfi) 
     {
-        DependentMultiFabIterator Unewmfi(Uoldmfi, Unew);
-
         BL_ASSERT(grids[Uoldmfi.index()] == Uoldmfi.validbox());
 
-        UpdateArg1(Unewmfi(),alpha,Uoldmfi(),nvar,Uoldmfi.validbox(),ngrow);
+        UpdateArg1(Unew[Uoldmfi],alpha,Uold[Uoldmfi],nvar,Uoldmfi.validbox(),ngrow);
     }
 }
 
@@ -1896,7 +1850,7 @@ Projection::UpdateArg1 (FArrayBox& Unew,
     BL_ASSERT(nvar <= Uold.nComp());
     BL_ASSERT(nvar <= Unew.nComp());
 
-    Box        b  = ::grow(grd,ngrow);
+    Box        b  = BoxLib::grow(grd,ngrow);
     const Box& bb = Unew.box();
 
     if (bb.ixType() == IndexType::TheNodeType())
@@ -1929,10 +1883,9 @@ Projection::AddPhi (MultiFab&        p,
                     MultiFab&       phi,
                     const BoxArray& grids)
 {
-    for (MultiFabIterator pmfi(p); pmfi.isValid(); ++pmfi) 
+    for (MFIter pmfi(p); pmfi.isValid(); ++pmfi) 
     {
-        DependentMultiFabIterator phimfi(pmfi, phi);
-        pmfi().plus(phimfi());
+        p[pmfi].plus(phi[pmfi]);
     }
 }
 
@@ -1949,13 +1902,13 @@ Projection::incrPress (int  level,
 
     const BoxArray& grids = LevelData[level].boxArray();
 
-    for (MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi)
+    for (MFIter P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi)
     {
-        DependentMultiFabIterator P_oldmfi(P_newmfi, P_old);
+        const int i = P_newmfi.index();
 
-        UpdateArg1(P_newmfi(),1.0/dt,P_oldmfi(),1,grids[P_newmfi.index()],1);
+        UpdateArg1(P_new[P_newmfi],1.0/dt,P_old[P_newmfi],1,grids[i],1);
 
-        P_oldmfi().setVal(BogusValue);
+        P_old[P_newmfi].setVal(BogusValue);
     }
 }
 
@@ -2058,13 +2011,13 @@ Projection::radMult (int       level,
 
     Real bogus_value = BogusValue;
 
-    for (MultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 
         const int* lo = mfmfi.validbox().loVect();
         const int* hi = mfmfi.validbox().hiVect();
-        Real* dat     = mfmfi().dataPtr(comp);
+        Real* dat     = mf[mfmfi].dataPtr(comp);
         Real* rad     = &radius[level][mfmfi.index()];
 
         FORT_RADMPY(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
@@ -2093,13 +2046,13 @@ Projection::radDiv (int       level,
 
     Real bogus_value = BogusValue;
 
-    for (MultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 
         const int* lo  = mfmfi.validbox().loVect();
         const int* hi  = mfmfi.validbox().hiVect();
-        Real*      dat = mfmfi().dataPtr(comp);
+        Real*      dat = mf[mfmfi].dataPtr(comp);
         Real*      rad = &radius[level][mfmfi.index()];
 
         FORT_RADDIV(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
@@ -2137,27 +2090,27 @@ Projection::set_level_projector_outflow_bcs (int       level,
     if (outFace.faceDir() == Orientation::high)
     {
 	state_strip
-            = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+            = Box(BoxLib::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
     }
     else
     {
 	state_strip
-            = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
+            = Box(BoxLib::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
     }
 
-    Box phi_strip = ::surroundingNodes(bdryNode(domain,outFace,ncStripWidth));
+    Box phi_strip = BoxLib::surroundingNodes(BoxLib::bdryNode(domain,outFace,ncStripWidth));
     //
     // Only do this if the entire outflow face is covered by boxes at this
     // level (skip if doesnt touch, and bomb if only partially covered).
     //
     const BoxArray& grids                = parent->getLevel(level).boxArray();
     const Box       valid_state_strip    = state_strip & domain;
-    const BoxArray  uncovered_outflow_ba = ::complementIn(valid_state_strip,grids);
+    const BoxArray  uncovered_outflow_ba = BoxLib::complementIn(valid_state_strip,grids);
 
-    BL_ASSERT( !(uncovered_outflow_ba.ready() &&
-              ::intersect(grids,valid_state_strip).ready()) );
+    BL_ASSERT( !(uncovered_outflow_ba.size() &&
+              BoxLib::intersect(grids,valid_state_strip).size()) );
 
-    if (!(uncovered_outflow_ba.ready()))
+    if (!(uncovered_outflow_ba.size()))
     {
         FArrayBox rhoFab(state_strip,1);
         FArrayBox divuFab(state_strip,1);
@@ -2171,11 +2124,11 @@ Projection::set_level_projector_outflow_bcs (int       level,
 
 	computeBC(velFab,divuFab,rhoFab,phiFab,parent->Geom(level),outFace);
 
-        for (MultiFabIterator mfi(phi); mfi.isValid(); ++mfi)
+        for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {
             const Box ovlp = mfi.validbox() & phi_strip;
             if (ovlp.ok())
-                mfi().copy(phiFab,ovlp,0,ovlp,0,1);
+                phi[mfi].copy(phiFab,ovlp,0,ovlp,0,1);
         }
     }
 }
@@ -2234,25 +2187,25 @@ Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
         if (outFace.faceDir() == Orientation::high)
 	{
             state_strip
-                = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+                = Box(BoxLib::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
 	}
         else
         {
             state_strip
-                = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
+                = Box(BoxLib::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
 	}
 
         const BoxArray& Lgrids               = parent->getLevel(f_lev).boxArray();
         const Box       valid_state_strip    = state_strip & domain;
-        const BoxArray  uncovered_outflow_ba = ::complementIn(valid_state_strip,Lgrids);
+        const BoxArray  uncovered_outflow_ba = BoxLib::complementIn(valid_state_strip,Lgrids);
 
-        BL_ASSERT( !(uncovered_outflow_ba.ready() &&
-                     ::intersect(Lgrids,valid_state_strip).ready()) );
+        BL_ASSERT( !(uncovered_outflow_ba.size() &&
+                     BoxLib::intersect(Lgrids,valid_state_strip).size()) );
 
-        if ( !(uncovered_outflow_ba.ready()) )
+        if ( !(uncovered_outflow_ba.size()) )
             break;
     }
-    Box phi_strip = ::surroundingNodes(bdryNode(domain,outFace,ncStripWidth));
+    Box phi_strip = BoxLib::surroundingNodes(BoxLib::bdryNode(domain,outFace,ncStripWidth));
 
     const int nGrow       = 0;
     const int nCompPhi    = 1;
@@ -2303,11 +2256,9 @@ Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
 
         MultiFab tmpRho(ba,1,0);
 
-        for (MultiFabIterator mfi(*ns->rho_ctime); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*ns->rho_ctime); mfi.isValid(); ++mfi)
         {
-            DependentMultiFabIterator tmpRhoMfi(mfi,tmpRho);
-
-            tmpRhoMfi().copy(mfi());
+            tmpRho[mfi].copy((*ns->rho_ctime)[mfi]);
         }
         //
         // Finally the MultiFab to Fab copy.
@@ -2372,25 +2323,25 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
         if (outFace.faceDir() == Orientation::high)
         {
             state_strip
-                = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+                = Box(BoxLib::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
         }
         else
         {
             state_strip
-                = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
+                = Box(BoxLib::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
         }
         const BoxArray& Lgrids               = parent->getLevel(f_lev).boxArray();
         const Box       valid_state_strip    = state_strip & domain;
-        const BoxArray  uncovered_outflow_ba = ::complementIn(valid_state_strip,Lgrids);
+        const BoxArray  uncovered_outflow_ba = BoxLib::complementIn(valid_state_strip,Lgrids);
 
-        BL_ASSERT( !(uncovered_outflow_ba.ready() &&
-                     ::intersect(Lgrids,valid_state_strip).ready()) );
+        BL_ASSERT( !(uncovered_outflow_ba.size() &&
+                     BoxLib::intersect(Lgrids,valid_state_strip).size()) );
 
-        if ( !(uncovered_outflow_ba.ready()) )
+        if ( !(uncovered_outflow_ba.size()) )
             break;
     }
 
-    Box phi_strip = ::surroundingNodes(bdryNode(domain,outFace,ncStripWidth));
+    Box phi_strip = BoxLib::surroundingNodes(BoxLib::bdryNode(domain,outFace,ncStripWidth));
 
     const int nGrow       = 0;
     const int nCompPhi    = 1;
@@ -2440,11 +2391,9 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
 
         MultiFab tmpRhoHalf(ba,1,0);
 
-        for (MultiFabIterator mfi(*RhoHalf); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*RhoHalf); mfi.isValid(); ++mfi)
         {
-            DependentMultiFabIterator tmpRhoHalfMfi(mfi,tmpRhoHalf);
-
-            tmpRhoHalfMfi().copy(mfi());
+            tmpRhoHalf[mfi].copy((*RhoHalf)[mfi]);
         }
         //
         // Finally the MultiFab to Fab copy.
@@ -2515,10 +2464,10 @@ Projection::initialVorticityProject (int c_lev)
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        cout << "initialVorticityProject: levels = "
-             << c_lev
-             << "  "
-             << f_lev << endl;
+        std::cout << "initialVorticityProject: levels = "
+                  << c_lev
+                  << "  "
+                  << f_lev << std::endl;
     }
     //
     // Set up projector bndry just for this projection.
@@ -2594,11 +2543,10 @@ Projection::initialVorticityProject (int c_lev)
 
         rhs_real.set(lev, new MultiFab(P_new.boxArray(), 1, 1));
 
-        for (MultiFabIterator mfi(rhs_real[lev]); mfi.isValid(); ++mfi)
+        for (MFIter mfi(rhs_real[lev]); mfi.isValid(); ++mfi)
         {
-            DependentMultiFabIterator dmfi(mfi,P_new);
-            mfi().setVal(0);
-            mfi().copy(dmfi(), 0, 0);
+            rhs_real[lev][mfi].setVal(0);
+            rhs_real[lev][mfi].copy(P_new[mfi], 0, 0);
         }
     }
 
@@ -2628,16 +2576,17 @@ Projection::initialVorticityProject (int c_lev)
 
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            for (MultiFabIterator mfi(*vel[lev]); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi)
             {
-                DependentMultiFabIterator dmfi(mfi,u_real[n][lev]);
                 const Box& box = mfi.validbox();
                 if (add_vort_proj)
                 {
-                    mfi().plus(dmfi(), box, 0, Xvel+idx[n], 1);
+                    (*vel[lev])[mfi].plus(u_real[n][lev][mfi],box,0,Xvel+idx[n], 1);
                 }
                 else
-                    mfi().copy(dmfi(), box, 0, box, Xvel+idx[n], 1);
+                {
+                    (*vel[lev])[mfi].copy(u_real[n][lev][mfi],box,0,box,Xvel+idx[n], 1);
+                }
             }
         }
     }
@@ -2675,20 +2624,22 @@ Projection::putDown (MultiFab**         phi,
     {
         ratio *= parent->refRatio(lev);
         const Box& domainC = parent->Geom(lev).Domain();
-        Box phiC_strip     = ::surroundingNodes(bdryNode(domainC,outFace,ncStripWidth));
+        Box phiC_strip     = BoxLib::surroundingNodes(BoxLib::bdryNode(domainC,outFace,ncStripWidth));
       
         BoxArray phiC_strip_ba(&phiC_strip,1);
         MultiFab phi_crse_strip(phiC_strip_ba, nCompPhi, nGrow);
         phi_crse_strip.setVal(0);
       
-        for (MultiFabIterator finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
+        for (MFIter finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
         {
-            DependentMultiFabIterator crsemfi(finemfi, phi_crse_strip);
-            Box ovlp = ::coarsen(finemfi.validbox(),ratio) & crsemfi.validbox();
-            FORT_PUTDOWN (crsemfi().dataPtr(),ARLIM(crsemfi().loVect()),
-                          ARLIM(crsemfi().hiVect()),
-                          finemfi().dataPtr(),ARLIM(finemfi().loVect()),
-                          ARLIM(finemfi().hiVect()),
+            const int i = finemfi.index();
+            Box ovlp = BoxLib::coarsen(finemfi.validbox(),ratio) & phi_crse_strip.box(i);
+            FORT_PUTDOWN (phi_crse_strip[i].dataPtr(),
+                          ARLIM(phi_crse_strip[i].loVect()),
+                          ARLIM(phi_crse_strip[i].hiVect()),
+                          phi_fine_strip[i].dataPtr(),
+                          ARLIM(phi_fine_strip[i].loVect()),
+                          ARLIM(phi_fine_strip[i].hiVect()),
                           ovlp.loVect(),ovlp.hiVect(),ratio.getVect());
         }
         phi[lev]->copy(phi_crse_strip);
@@ -2703,21 +2654,20 @@ Projection::computeBC (FArrayBox&         velFab,
                        const Geometry&    geom,
                        const Orientation& outFace)
 {
-#ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::computeBC()");
-#endif
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::computeBC()");
 
     if (verbose && ParallelDescriptor::IOProcessor())
-        cout << "starting holy-grail bc calculation" << endl;
+        std::cout << "starting holy-grail bc calculation" << std::endl;
 
     ProjOutFlowBC projBC;
     projBC.computeBC(&velFab,divuFab,rhoFab,phiFab,geom,outFace);
 
     if (verbose && ParallelDescriptor::IOProcessor())
-        cout << "finishing holy-grail bc calculation" << endl;
+        std::cout << "finishing holy-grail bc calculation" << std::endl;
 }
 
-void Projection::getStreamFunction(PArray<MultiFab>& phi)
+void
+Projection::getStreamFunction (PArray<MultiFab>& phi)
 {
 #if (BL_SPACEDIM == 2)
     int c_lev = 0;
@@ -2725,10 +2675,10 @@ void Projection::getStreamFunction(PArray<MultiFab>& phi)
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        cout << "getStreamFunction: levels = "
-             << c_lev
-             << "  "
-             << f_lev << endl;
+        std::cout << "getStreamFunction: levels = "
+                  << c_lev
+                  << "  "
+                  << f_lev << std::endl;
     }
     //
     // Set up projector bndry just for this projection.
@@ -2786,7 +2736,6 @@ void Projection::getStreamFunction(PArray<MultiFab>& phi)
 
     for (int n = 0; n < BL_SPACEDIM; n++)
         u_real[n].resize(f_lev+1,PArrayManage);
-
     //
     // Copy the velocity field into u_real.
     //
@@ -2796,14 +2745,13 @@ void Projection::getStreamFunction(PArray<MultiFab>& phi)
       for (int n = 0; n < BL_SPACEDIM; n++) 
       {
         u_real[n].set(lev, new MultiFab(full_mesh[lev], 1, 1));
-        for (int i = 0; i < full_mesh[lev].length(); i++) 
+        for (int i = 0; i < full_mesh[lev].size(); i++) 
         {
           vel[lev] = &LevelData[lev].get_new_data(State_Type);
           u_real[n][lev][i].copy((*vel[lev])[i], n, 0);
         }
       }
     }
-
     //
     // Project.
     //

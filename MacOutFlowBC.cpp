@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.15 2000-11-02 18:08:01 lijewski Exp $
+// $Id: MacOutFlowBC.cpp,v 1.16 2001-08-01 21:50:56 lijewski Exp $
 //
 
 #include "MacOutFlowBC.H"
@@ -69,7 +69,7 @@ MacOutFlowBC::computeBC (FArrayBox*         velFab,
     // Filter out direction we don't care about.
     //
     int ncStripWidth = 1;
-    Box origBox = Box(::adjCell(domain,outFace,ncStripWidth));
+    Box origBox = BoxLib::adjCell(domain,outFace,ncStripWidth);
     IntVect lo = origBox.smallEnd();
     IntVect hi = origBox.bigEnd();
     //
@@ -103,7 +103,7 @@ MacOutFlowBC::computeBC (FArrayBox*         velFab,
  
     for (int dir=0; dir <BL_SPACEDIM-1; dir++)
     {
-        uExt[dir].resize(::surroundingNodes(faceBox,dir),1);
+        uExt[dir].resize(BoxLib::surroundingNodes(faceBox,dir),1);
     }
   
 #if (BL_SPACEDIM == 2)
@@ -113,7 +113,7 @@ MacOutFlowBC::computeBC (FArrayBox*         velFab,
     int R_DIR = 0;
     int Z_DIR = 1;
     int perpDir = (outDir == Z_DIR) ? R_DIR : Z_DIR;
-    Box region = Box(::adjCell(domain,outFace,1));
+    Box region = BoxLib::adjCell(domain,outFace,1);
     region.shift(outDir, (outFace.faceDir() == Orientation::high) ? -1 : 1);
     int r_lo = region.smallEnd(perpDir);
     int r_hi = region.bigEnd(perpDir);
@@ -254,7 +254,7 @@ MacOutFlowBC::solveBackSubstitution (FArrayBox&         phi,
 
     BL_ASSERT(length == uExt[0].length()[0]-1);
     BL_ASSERT(length == rhoExt.length()[0]);
-    BL_ASSERT(length == rcen.length());
+    BL_ASSERT(length == rcen.size());
   
     DEF_BOX_LIMITS(faceBox,faceLo,faceHi);
     DEF_LIMITS(uExt[0],  uE0Ptr, uE0lo, uE0hi);
@@ -287,7 +287,7 @@ MacOutFlowBC::computeCoefficients (FArrayBox&   rhs,
     rhs.resize(faceBox,1);
     for (int dir = 0; dir < BL_SPACEDIM-1; dir++)
     {
-        beta[dir].resize(::surroundingNodes(faceBox,dir),1);
+        beta[dir].resize(BoxLib::surroundingNodes(faceBox,dir),1);
     }
 
     DEF_BOX_LIMITS(faceBox,faceLo,faceHi);
@@ -382,7 +382,7 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
 
         for (int dir = 0; dir < BL_SPACEDIM-1;dir++)
 	{
-            newbeta[dir].resize(::surroundingNodes(newdomain,dir),1);
+            newbeta[dir].resize(BoxLib::surroundingNodes(newdomain,dir),1);
             newbeta[dir].setVal(0);
 	}
       
@@ -408,6 +408,18 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
         next = new MacOutFlowBC_MG(newdomain,newphi,newrhs,
                                    newresid,newbeta,newh,isPeriodic);
     }
+}
+
+int
+MacOutFlowBC_MG::Verbose ()
+{
+    return verbose;
+}
+
+int
+MacOutFlowBC_MG::MaxIters ()
+{
+    return maxIters;
 }
 
 MacOutFlowBC_MG::~MacOutFlowBC_MG () {}

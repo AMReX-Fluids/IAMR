@@ -2,7 +2,7 @@
 #define _PROJECTION_F_H_ 
 
 /*
-** $Id: PROJECTION_F.H,v 1.15 1999-08-25 18:04:04 propp Exp $
+** $Id: PROJECTION_F.H,v 1.16 2001-08-01 21:50:59 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -108,11 +108,11 @@ extern "C" {
                     Real* ccdat);
 
 
-    void FORT_FILTRHS (const REAL* phi , ARLIM_P(p_lo), ARLIM_P(p_hi),
-                       const REAL* sig , ARLIM_P(s_lo), ARLIM_P(s_hi),
-                       REAL* divgp, ARLIM_P(dglo), ARLIM_P(dghi),
+    void FORT_FILTRHS (const Real* phi , ARLIM_P(p_lo), ARLIM_P(p_hi),
+                       const Real* sig , ARLIM_P(s_lo), ARLIM_P(s_hi),
+                       Real* divgp, ARLIM_P(dglo), ARLIM_P(dghi),
                        const int* lo, const int* hi,
-                       const REAL* dx, const REAL* mult, int* is_rz);
+                       const Real* dx, const Real* mult, int* is_rz);
 }
 
 #endif

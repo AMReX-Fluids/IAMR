@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.H,v 1.24 2000-10-02 20:50:13 lijewski Exp $
+// $Id: Diffusion.H,v 1.25 2001-08-01 21:50:54 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -67,7 +67,7 @@ public:
 
     void echo_settings () const;
 
-    FluxRegister* viscFluxReg () { return viscflux_reg; }
+    FluxRegister* viscFluxReg ();
 
     Real get_scaled_abs_tol (int                    sigma,
                              const MultiFab*        rhs,
@@ -183,9 +183,7 @@ public:
 			 int                    dataComp,
                          const MultiFab* const* beta);
 
-    void getTensorBndryData(
-        ViscBndryTensor& bndry, 
-        Real time);
+    void getTensorBndryData (ViscBndryTensor& bndry, Real time);
 
     DivVis* getTensorOp (Real                   a,
                          Real                   b, 
@@ -262,8 +260,8 @@ public:
 			  MultiFab& divmusi);
 #endif
 
-    inline int maxOrder () const;
-    inline int tensorMaxOrder () const;
+    int maxOrder () const;
+    int tensorMaxOrder () const;
 
     static int set_rho_flag (const DiffusionForm compDiffusionType);
 
@@ -276,7 +274,6 @@ public:
                          const DiffusionForm         testForm,
                          const int                   sComp,
                          const int                   nComp);
-
 protected:
     //
     // Data Required by Derived Classes
@@ -307,11 +304,11 @@ private:
     //
     // The data.
     //
-    Diffusion*      coarser;
-    Diffusion*      finer;
-    int             NUM_STATE;
-    IntVect         crse_ratio;
-    FluxRegister*   viscflux_reg;
+    Diffusion*    coarser;
+    Diffusion*    finer;
+    int           NUM_STATE;
+    IntVect       crse_ratio;
+    FluxRegister* viscflux_reg;
     //
     // Static data.
     //
@@ -324,33 +321,6 @@ private:
     static int         Rhs_in_abs_tol;
     static Array<Real> typical_vals;
 };
-
-inline
-Real
-Diffusion::get_scaled_abs_tol (int             sigma,
-                               const MultiFab* rhs,
-                               Real            a,
-                               Real            b,
-                               const MultiFab* alpha,
-                               const MultiFab* const * beta,
-                               Real            reduction) const
-{
-    return get_scaled_abs_tol(sigma, rhs, a, b, alpha, beta, 0, reduction);
-}
-
-inline
-int
-Diffusion::maxOrder() const
-{
-    return max_order;
-}
-
-inline
-int
-Diffusion::tensorMaxOrder() const
-{
-    return tensor_max_order;
-}
 
 #endif
 

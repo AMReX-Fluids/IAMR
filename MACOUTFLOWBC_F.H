@@ -148,41 +148,41 @@ extern "C" {
 		       const int* faceLo, const int* faceHi,
 				const int* isPeriodic);
 
-  void FORT_SOLVEMAC(REAL * dest, ARLIM_P(destlo),ARLIM_P(desthi),
-		     REAL * dest0, ARLIM_P(dest0lo),ARLIM_P(dest0hi),
-		     REAL *source, ARLIM_P(sourcelo),ARLIM_P(sourcehi),
-                     REAL * sigmax,  ARLIM_P(sigmaxlo),ARLIM_P(simgaxhi),
+  void FORT_SOLVEMAC(Real * dest, ARLIM_P(destlo),ARLIM_P(desthi),
+		     Real * dest0, ARLIM_P(dest0lo),ARLIM_P(dest0hi),
+		     Real *source, ARLIM_P(sourcelo),ARLIM_P(sourcehi),
+                     Real * sigmax,  ARLIM_P(sigmaxlo),ARLIM_P(simgaxhi),
 #if (BL_SPACEDIM == 3)
-		     REAL * sigmay, ARLIM_P(sigmaylo),ARLIM_P(sigmayhi),
+		     Real * sigmay, ARLIM_P(sigmaylo),ARLIM_P(sigmayhi),
 #endif
-		     REAL * sum, ARLIM_P(sumlo),ARLIM_P(sumhi), 
-                     REAL * r, ARLIM_P(rlo),ARLIM_P(rhi), 
-		     REAL * w, ARLIM_P(wlo),ARLIM_P(whi), 
-		     REAL * z, ARLIM_P(zlo),ARLIM_P(zhi), 
-		     REAL * work,ARLIM_P(worklo),ARLIM_P(workhi), 
+		     Real * sum, ARLIM_P(sumlo),ARLIM_P(sumhi), 
+                     Real * r, ARLIM_P(rlo),ARLIM_P(rhi), 
+		     Real * w, ARLIM_P(wlo),ARLIM_P(whi), 
+		     Real * z, ARLIM_P(zlo),ARLIM_P(zhi), 
+		     Real * work,ARLIM_P(worklo),ARLIM_P(workhi), 
                      const int* lo, const int* hi,
-                     REAL* dxFiltered, int* isPeriodicFiltered,
-                     int* maxIter, REAL* tol, 
-		     REAL* cg_abs_tol, REAL* max_jump,REAL * norm);
+                     Real* dxFiltered, int* isPeriodicFiltered,
+                     int* maxIter, Real* tol, 
+		     Real* cg_abs_tol, Real* max_jump,Real * norm);
 
-  void FORT_COARSIGMA(REAL * sigmax , ARLIM_P(sigmax_lo),ARLIM_P(sigmax_hi), 
+  void FORT_COARSIGMA(Real * sigmax , ARLIM_P(sigmax_lo),ARLIM_P(sigmax_hi), 
 #if (BL_SPACEDIM == 3)
-		      REAL * sigmay, ARLIM_P(sigmay_lo),ARLIM_P(sigmay_hi), 
+		      Real * sigmay, ARLIM_P(sigmay_lo),ARLIM_P(sigmay_hi), 
 #endif
-                      REAL * sigmaxc, ARLIM_P(sigmaxc_lo),ARLIM_P(sigmaxc_hi), 
+                      Real * sigmaxc, ARLIM_P(sigmaxc_lo),ARLIM_P(sigmaxc_hi), 
 #if (BL_SPACEDIM == 3)
-		      REAL * sigmayc,ARLIM_P(sigmayc_lo),ARLIM_P(sigmayc_hi), 
+		      Real * sigmayc,ARLIM_P(sigmayc_lo),ARLIM_P(sigmayc_hi), 
 #endif
                       const int* lo, const int* hi,
 		      const int* loc, const int* hic);
 
-  void FORT_RESTRICT(REAL * res, ARLIM_P(res_lo),ARLIM_P(res_hi), 
-		     REAL * resc, ARLIM_P(resc_lo),ARLIM_P(resc_hi), 
+  void FORT_RESTRICT(Real * res, ARLIM_P(res_lo),ARLIM_P(res_hi), 
+		     Real * resc, ARLIM_P(resc_lo),ARLIM_P(resc_hi), 
                      const int* lo, const int* hi,
 		     const int* loc, const int* hic);
 
-  void FORT_INTERPOLATE(REAL * phi, ARLIM_P(phi_lo),ARLIM_P(phi_hi), 
-			REAL * deltac,ARLIM_P(deltac_lo),ARLIM_P(deltac_hi), 
+  void FORT_INTERPOLATE(Real * phi, ARLIM_P(phi_lo),ARLIM_P(phi_hi), 
+			Real * deltac,ARLIM_P(deltac_lo),ARLIM_P(deltac_hi), 
 			const int* lo, const int* hi,
 			const int* loc, const int* hic);
 

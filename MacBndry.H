@@ -3,20 +3,26 @@
 #define _MACBNDRYDATA_H_
 
 //
-// $Id: MacBndry.H,v 1.7 2000-10-02 20:50:14 lijewski Exp $
+// $Id: MacBndry.H,v 1.8 2001-08-01 21:50:55 lijewski Exp $
 //
 
 #include <InterpBndryData.H>
 
-class MacBndry : public InterpBndryData
+class MacBndry
+    :
+    public InterpBndryData
 {
 public:
-    MacBndry() : InterpBndryData()  {}
 
-    MacBndry(const BoxArray& _grids, int _ncomp, const Geometry& _geom) :
-        InterpBndryData(_grids,_ncomp,_geom) {};
+    MacBndry ();
 
-    virtual void setBndryConds(const BCRec& phys_bc, IntVect& ratio, int comp=0);
+    MacBndry (const BoxArray& _grids,
+              int             _ncomp,
+              const Geometry& _geom);
+
+    virtual void setBndryConds (const BCRec& phys_bc,
+                                IntVect&     ratio,
+                                int          comp=0);
 };
 
 #endif

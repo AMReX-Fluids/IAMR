@@ -1,6 +1,6 @@
 
 //
-// $Id: ViscBndry.cpp,v 1.16 2000-10-02 20:50:17 lijewski Exp $
+// $Id: ViscBndry.cpp,v 1.17 2001-08-01 21:51:01 lijewski Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -27,7 +27,7 @@ ViscBndry::setBndryConds (const BCRec&   bc,
         const Real delta = dx[dir]*ratio[dir];
         int p_bc         = (fi().isLow() ? bc.lo(dir) : bc.hi(dir));
 
-        for (int i = 0; i < boxes().length(); i++)
+        for (int i = 0; i < boxes().size(); i++)
         {
             if (domain[fi()] == boxes()[i][fi()] && !geom.isPeriodic(dir))
             {
@@ -72,9 +72,9 @@ ViscBndry::setHomogValues (const BCRec& bc,
 
     for (OrientationIter fi; fi; ++fi)
     {
-        for (FabSetIterator fsi(bndry[fi()]); fsi.isValid(); ++fsi)
+        for (FabSetIter fsi(bndry[fi()]); fsi.isValid(); ++fsi)
         {
-            fsi().setVal(0.);
+            bndry[fi()][fsi].setVal(0);
         }
     }
 }

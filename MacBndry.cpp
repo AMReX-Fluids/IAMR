@@ -1,10 +1,21 @@
-
 //
-// $Id: MacBndry.cpp,v 1.12 2000-10-02 20:50:14 lijewski Exp $
+// $Id: MacBndry.cpp,v 1.13 2001-08-01 21:50:55 lijewski Exp $
 //
 
 #include <LO_BCTYPES.H>
 #include <MacBndry.H>
+
+MacBndry::MacBndry ()
+    :
+    InterpBndryData()
+{}
+
+MacBndry::MacBndry (const BoxArray& _grids,
+                    int             _ncomp,
+                    const Geometry& _geom)
+    :
+    InterpBndryData(_grids,_ncomp,_geom)
+{}
 
 void
 MacBndry::setBndryConds (const BCRec& phys_bc,
@@ -16,7 +27,7 @@ MacBndry::setBndryConds (const BCRec& phys_bc,
     // DIMENSIONS *RELATIVE* TO THE FACE, NOT IN ABSOLUTE PHYSICAL SPACE
     //
     const BoxArray& grids      = boxes();
-    const int ngrds            = grids.length();
+    const int ngrds            = grids.size();
     const Real* dx             = geom.CellSize();
     const Box& domain          = geom.Domain();
     const RealBox& prob_domain = geom.ProbDomain();

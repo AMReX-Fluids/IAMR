@@ -2,7 +2,7 @@
 #define _MACOUTFLOWBC_H_
 
 //
-// $Id: MacOutFlowBC.H,v 1.5 2000-11-02 18:08:01 lijewski Exp $
+// $Id: MacOutFlowBC.H,v 1.6 2001-08-01 21:50:56 lijewski Exp $
 //
 
 #include "FArrayBox.H"
@@ -86,9 +86,9 @@ public:
 
     ~MacOutFlowBC_MG ();
 
-    static int Verbose () { return verbose; }
+    static int Verbose ();
 
-    static int MaxIters () { return maxIters; }
+    static int MaxIters ();
 
 protected:
 
