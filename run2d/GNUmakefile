@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.25 2002-09-12 22:41:52 lijewski Exp $
+# $Id: GNUmakefile,v 1.26 2002-10-04 19:18:52 almgren Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -8,11 +8,10 @@ TOP = $(PBOXLIB_HOME)
 # Variables for the user to set ...
 #
 PRECISION = DOUBLE
-DEBUG	  = FALSE
+DEBUG	  = TRUE
 PROFILE   = FALSE
 DIM	      = 2
 COMP	  = g++
-COMP      = mpKCC
 USE_MPI   = TRUE
 NAMESPACE = TRUE
 NAMESPACE = FALSE
@@ -132,12 +131,14 @@ ifeq ($(BUILD_INPLACE), TRUE)
     vpath_FH  += $(TOP)/hgproj
     vpath_h   += $(TOP)/hgproj
     vpath_F   += $(TOP)/hgproj
+    vpath_f   += $(TOP)/hgproj
   else
     vpath_cpp += $(TOP)/hgproj-serial
     vpath_H   += $(TOP)/hgproj-serial
     vpath_FH  += $(TOP)/hgproj-serial
     vpath_h   += $(TOP)/hgproj-serial
     vpath_F   += $(TOP)/hgproj-serial
+    vpath_f   += $(TOP)/hgproj-serial
   endif
   ifeq ($(USE_BL3),TRUE)
     vpath_cpp += $(BOXLIB3_HOME)
@@ -148,6 +149,7 @@ ifeq ($(BUILD_INPLACE), TRUE)
   vpath_FH  += $(TOP)/BoxLib
   vpath_h   += $(TOP)/BoxLib
   vpath_F   += $(TOP)/BoxLib
+  vpath_f   += $(TOP)/BoxLib
   vpath %.cpp $(vpath_cpp)
   vpath %.H   $(vpath_H)
   vpath %.FH  $(vpath_FH)
