@@ -5,7 +5,6 @@
 #PARALLEL CONTROLS (defaults shown; these are both optional)
 #**********************************
 
-#nprocs = 1       # number of processors
 #sleep  = 0
 
 #**********************************
