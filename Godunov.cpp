@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Godunov.cpp,v 1.20 2000-04-20 20:50:57 sstanley Exp $
+// $Id: Godunov.cpp,v 1.21 2000-06-28 21:45:56 almgren Exp $
 //
 
 //
@@ -542,7 +542,7 @@ Godunov::AdvectState (const Box&  grd,
 #endif
                 U, S, tforces, fab_ind, state_ind, bc);
     //
-    // Compute the advective tendancy.
+    // Compute the advective tendency.
     //
     ComputeAofs( grd,
                  areax, uedge, xflux,  
@@ -689,8 +689,9 @@ Godunov::SyncAdvect (const Box&  grd,
                 wedge, zflux,
 #endif
                 S, S, tforces, fab_ind, state_ind, bc);
+
     //
-    // Compute the advective tendancy for the mac sync.
+    // Compute the advective tendency for the mac sync.
     //
     ComputeSyncAofs(grd,
                     areax, ucorr, xflux,  
