@@ -98,6 +98,7 @@ const MultiFab&
 }
 */
 
+#if 0
 // Begin fillpatch stuff, still in unfinished state.
 // Significant optimizations possible: avoid copying patches
 // whenever an existing one will do.
@@ -184,6 +185,7 @@ static int best_match(MultiFab& r, const Box& region, int& igrid, int bord)
   }
   return (overlap > 0) ? (overlap == region.numPts() ? 1 : 2) : 0;
 }
+#endif
 
 /*
 grid_real get_patch(const Box& region,
