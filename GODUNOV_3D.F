@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.14 2001-08-17 19:23:40 almgren Exp $
+c $Id: GODUNOV_3D.F,v 1.15 2001-09-10 19:55:04 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1761,12 +1761,8 @@ c
      &                      sixth * (slxscr(i+1,fromm) + slxscr(i-1,fromm))
                        slx(i,j,k) = slxscr(i,flag)*min(abs(ds),slxscr(i,lim))
                     end do
-                 end do
-              end do
 
-              if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
-                 do k = kmin-1,kmax+1
-                    do j = jmin-1,jmax+1
+                    if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
                        del  = -sixteen/fifteen*s(imin-1,j,k) + half*s(imin,j,k) + 
      &                      two3rd*s(imin+1,j,k) -  tenth*s(imin+2,j,k)
                        dmin = two*(s(imin  ,j,k)-s(imin-1,j,k))
@@ -1782,13 +1778,9 @@ c                      Recalculate the slope at imin+1 using the revised slxscr(
                        ds = two * two3rd * slxscr(imin+1,cen) -
      $                    sixth * (slxscr(imin+2,fromm) + slxscr(imin,fromm))
                        slx(imin+1,j,k) = slxscr(imin+1,flag)*min(abs(ds),slxscr(imin+1,lim))
+                    end if
 
-                    end do
-                 end do
-              end if
-              if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
-                 do k = kmin-1,kmax+1
-                    do j = jmin-1,jmax+1
+                    if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
                        del  = -( -sixteen/fifteen*s(imax+1,j,k) + half*s(imax,j,k) + 
      &                      two3rd*s(imax-1,j,k) - tenth*s(imax-2,j,k) )
                        dmin = two*(s(imax  ,j,k)-s(imax-1,j,k))
@@ -1804,10 +1796,9 @@ c                      Recalculate the slope at imax-1 using the revised slxscr(
                        ds = two * two3rd * slxscr(imax-1,cen) -
      $                    sixth * (slxscr(imax-2,fromm) + slxscr(imax,fromm))
                        slx(imax-1,j,k) = slxscr(imax-1,flag)*min(abs(ds),slxscr(imax-1,lim))
-
-                    end do
+                    end if
                  end do
-              end if
+              end do
            end if
         end if
 c
@@ -1863,12 +1854,8 @@ c
      &                      sixth * (slyscr(j+1,fromm) + slyscr(j-1,fromm))
                        sly(i,j,k) = slyscr(j,flag)*min(abs(ds),slyscr(j,lim))
                     end do
-                 end do
-              end do
 c
-              if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
-                 do k = kmin-1,kmax+1
-                    do i = imin-1,imax+1
+                    if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
                        del  = -sixteen/fifteen*s(i,jmin-1,k) + half*s(i,jmin,k) + 
      &                      two3rd*s(i,jmin+1,k) - tenth*s(i,jmin+2,k)
                        dmin = two*(s(i,jmin  ,k)-s(i,jmin-1,k))
@@ -1884,13 +1871,8 @@ c                      Recalculate the slope at jmin+1 using the revised slyscr(
                        ds = two * two3rd * slyscr(jmin+1,cen) -
      $                    sixth * (slyscr(jmin+2,fromm) + slyscr(jmin,fromm))
                        sly(i,jmin+1,k) = slyscr(jmin+1,flag)*min(abs(ds),slyscr(jmin+1,lim))
-
-                    end do
-                 end do
-              end if
-              if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
-                 do k = kmin-1,kmax+1
-                    do i = imin-1,imax+1
+                    end if
+                    if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
                        del  = -( -sixteen/fifteen*s(i,jmax+1,k) + half*s(i,jmax,k) +
      &                      two3rd*s(i,jmax-1,k) - tenth*s(i,jmax-2,k) )
                        dmin = two*(s(i,jmax  ,k)-s(i,jmax-1,k))
@@ -1906,10 +1888,9 @@ c                      Recalculate the slope at jmax-1 using the revised slyscr(
                        ds = two * two3rd * slyscr(jmax-1,cen) -
      $                    sixth * (slyscr(jmax-2,fromm) + slyscr(jmax,fromm))
                        sly(i,jmax-1,k) = slyscr(jmax-1,flag)*min(abs(ds),slyscr(jmax-1,lim))
-
-                    end do
+                    end if
                  end do
-              end if
+              end do
            end if
         end if
 c
@@ -1965,12 +1946,8 @@ c
      &                      sixth * (slzscr(k+1,fromm) + slzscr(k-1,fromm))
                        slz(i,j,k) = slzscr(k,flag)*min(abs(ds),slzscr(k,lim))
                     end do
-                 end do
-              end do
 c
-              if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
-                 do j = jmin-1,jmax+1
-                    do i = imin-1,imax+1
+                    if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
                        del  = -sixteen/fifteen*s(i,j,kmin-1) + half*s(i,j,kmin) +
      &                      two3rd*s(i,j,kmin+1) - tenth*s(i,j,kmin+2)
                        dmin = two*(s(i,j,kmin  )-s(i,j,kmin-1))
@@ -1986,13 +1963,8 @@ c                      Recalculate the slope at jmin+1 using the revised slzscr(
                        ds = two * two3rd * slzscr(kmin+1,cen) -
      $                    sixth * (slzscr(kmin+2,fromm) + slzscr(kmin,fromm))
                        slz(i,j,kmin+1) = slzscr(kmin+1,flag)*min(abs(ds),slzscr(kmin+1,lim))
-
-                    end do
-                 end do
-              end if
-              if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
-                 do j = jmin-1,jmax+1
-                    do i = imin-1,imax+1
+                    end if
+                    if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
                        del  = sixteen/fifteen*s(i,j,kmax+1) - half*s(i,j,kmax)
      &                      - two3rd*s(i,j,kmax-1) + tenth*s(i,j,kmax-2)
                        dmin = two*(s(i,j,kmax  )-s(i,j,kmax-1))
@@ -2008,12 +1980,11 @@ c                      Recalculate the slope at jmax-1 using the revised slzscr(
                        ds = two * two3rd * slzscr(kmax-1,cen) -
      $                    sixth * (slzscr(kmax-2,fromm) + slzscr(kmax,fromm))
                        slz(i,j,kmax-1) = slzscr(kmax-1,flag)*min(abs(ds),slzscr(kmax-1,lim))
-                    end do
+                    end if
                  end do
-              end if
+              end do
            end if
         end if
-      end if
 
       end
 
