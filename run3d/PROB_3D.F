@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.8 1998-05-12 22:13:29 lijewski Exp $
+c $Id: PROB_3D.F,v 1.9 1998-05-14 19:59:13 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -814,6 +814,107 @@ c :::        with valid data.
 c ::: 
 c ::: INPUTS/OUTPUTS:
 c ::: 
+c ::: temp      <= temperature array
+c ::: DIMS(temp)=> index extent of temp array
+c ::: domlo,hi  => index extent of problem domain
+c ::: dx        => cell spacing
+c ::: xlo       => physical location of lower left hand
+c :::	           corner of temp array
+c ::: time      => problem evolution time
+c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+c ::: -----------------------------------------------------------
+
+      subroutine FORT_TEMPFILL (temp,DIMS(temp),domlo,domhi,dx,
+     &                          xlo,time,bc )
+
+      integer    DIMDEC(temp)
+      integer    domlo(SDIM), domhi(SDIM)
+      REAL_T     dx(SDIM), xlo(SDIM), time
+      REAL_T     temp(DIMV(temp))
+      integer    bc(SDIM,2)
+
+      integer    i, j, k
+      REAL_T     z
+
+#include "probdata.H"
+
+      call filcc(temp,DIMS(temp),domlo,domhi,dx,xlo,bc)
+
+      if (bc(1,1).eq.EXT_DIR.and.ARG_L1(temp).lt.domlo(1)) then
+         do i = ARG_L1(temp), domlo(1)-1
+            do k = ARG_L3(temp), ARG_H3(temp)
+               do j = ARG_L2(temp), ARG_H2(temp)
+                  temp(i,j,k) = zero
+               end do
+	    end do
+	 end do
+      end if            
+
+      if (bc(1,2).eq.EXT_DIR.and.ARG_H1(temp).gt.domhi(1)) then
+         do i = domhi(1)+1, ARG_H1(temp)
+            do k = ARG_L3(temp), ARG_H3(temp)
+               do j = ARG_L2(temp), ARG_H2(temp)
+                  temp(i,j,k) = zero
+               end do
+	    end do
+	 end do
+      end if            
+
+      if (bc(2,1).eq.EXT_DIR.and.ARG_L2(temp).lt.domlo(2)) then
+         do j = ARG_L2(temp), domlo(2)-1
+            do k = ARG_L3(temp), ARG_H3(temp)
+               do i = ARG_L1(temp), ARG_H1(temp)
+                  temp(i,j,k) = zero
+               end do
+	    end do
+	 end do
+      end if            
+
+      if (bc(2,2).eq.EXT_DIR.and.ARG_H2(temp).gt.domhi(2)) then
+         do j = domhi(2)+1, ARG_H2(temp)
+            do k = ARG_L3(temp), ARG_H3(temp)
+               do i = ARG_L1(temp), ARG_H1(temp)
+                  temp(i,j,k) = zero
+               end do
+	    end do
+	 end do
+      end if            
+
+      if (bc(3,1).eq.EXT_DIR.and.ARG_L3(temp).lt.domlo(3)) then
+         do k = ARG_L3(temp), domlo(3)-1
+            do j = ARG_L2(temp), ARG_H2(temp)
+               do i = ARG_L1(temp), ARG_H1(temp)
+                  temp(i,j,k) = zero
+               end do
+            end do
+         end do
+      end if 
+
+      if (bc(3,2).eq.EXT_DIR.and.ARG_H3(temp).gt.domhi(3)) then
+         do k = domhi(3)+1, ARG_H3(temp)
+            do j = ARG_L2(temp), ARG_H2(temp)
+               do i = ARG_L1(temp), ARG_H1(temp)
+                  temp(i,j,k) = zero
+               end do
+            end do
+         end do
+      end if
+
+      end
+
+c ::: -----------------------------------------------------------
+c ::: This routine is called during a filpatch operation when
+c ::: the patch to be filled falls outside the interior
+c ::: of the problem domain.  You are requested to supply the
+c ::: data outside the problem interior in such a way that the
+c ::: data is consistant with the types of the boundary conditions
+c ::: you specified in the C++ code.  
+c ::: 
+c ::: NOTE:  you can assume all interior cells have been filled
+c :::        with valid data.
+c ::: 
+c ::: INPUTS/OUTPUTS:
+c ::: 
 c ::: u        <=  x velocity array
 c ::: DIMS(u)   => index extent of u array
 c ::: domlo,hi  => index extent of problem domain
@@ -1123,6 +1224,219 @@ c ::: -----------------------------------------------------------
 
       end
 
+c ::: -----------------------------------------------------------
+c ::: This routine is called during a filpatch operation when
+c ::: the patch to be filled falls outside the interior
+c ::: of the problem domain.  You are requested to supply the
+c ::: data outside the problem interior in such a way that the
+c ::: data is consistant with the types of the boundary conditions
+c ::: you specified in the C++ code.  
+c ::: 
+c ::: NOTE:  you can assume all interior cells have been filled
+c :::        with valid data.
+c ::: 
+c ::: INPUTS/OUTPUTS:
+c ::: 
+c ::: divu     <=  divergence of velocity array
+c ::: DIMS(divu)=> index extent of divu array
+c ::: domlo,hi  => index extent of problem domain
+c ::: dx        => cell spacing
+c ::: xlo       => physical location of lower left hand
+c :::	           corner of rho array
+c ::: time      => problem evolution time
+c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+c ::: -----------------------------------------------------------
+
+      subroutine FORT_DIVUFILL (divu,DIMS(divu),domlo,domhi,dx,
+     &                          xlo,time,bc)
+
+      integer    DIMDEC(divu)
+      integer    domlo(SDIM), domhi(SDIM)
+      REAL_T     dx(SDIM), xlo(SDIM), time
+      REAL_T     divu(DIMV(divu))
+      integer    bc(SDIM,2)
+
+      integer    i, j, k
+      REAL_T     z_vel
+
+#include "probdata.H"
+
+      if (adv_dir .eq. 3) then
+         z_vel = adv_vel
+      else  
+         z_vel = zero
+      end if
+
+      call filcc(divu,DIMS(divu),domlo,domhi,dx,xlo,bc)
+
+      if (bc(1,1).eq.EXT_DIR.and.ARG_L1(divu).lt.domlo(1)) then
+         do i = ARG_L1(divu), domlo(1)-1
+            do k = ARG_L3(divu), ARG_H3(divu)
+               do j = ARG_L2(divu), ARG_H2(divu)
+                  divu(i,j,k) = z_vel
+               end do
+	    end do
+	 end do
+      end if            
+
+      if (bc(1,2).eq.EXT_DIR.and.ARG_H1(divu).gt.domhi(1)) then
+         do i = domhi(1)+1, ARG_H1(divu)
+            do k = ARG_L3(divu), ARG_H3(divu)
+               do j = ARG_L2(divu), ARG_H2(divu)
+                  divu(i,j,k) = z_vel
+               end do
+	    end do
+	 end do
+      end if            
+
+      if (bc(2,1).eq.EXT_DIR.and.ARG_L2(divu).lt.domlo(2)) then
+         do j = ARG_L2(divu), domlo(2)-1
+            do k = ARG_L3(divu), ARG_H3(divu)
+               do i = ARG_L1(divu), ARG_H1(divu)
+                  divu(i,j,k) = z_vel
+               end do
+            end do
+	 end do
+      end if            
+
+      if (bc(2,2).eq.EXT_DIR.and.ARG_H2(divu).gt.domhi(2)) then
+         do j = domhi(2)+1, ARG_H2(divu)
+            do k = ARG_L3(divu), ARG_H3(divu)
+               do i = ARG_L1(divu), ARG_H1(divu)
+                  divu(i,j,k) = z_vel
+               end do
+            end do
+	 end do
+      end if            
+
+      if (bc(3,1).eq.EXT_DIR.and.ARG_L3(divu).lt.domlo(3)) then
+         do k = ARG_L3(divu), domlo(3)-1
+            do j = ARG_L2(divu), ARG_H2(divu)
+               do i = ARG_L1(divu), ARG_H1(divu)
+                  divu(i,j,k) = z_vel
+               end do
+            end do
+         end do
+      end if        
+
+      if (bc(3,2).eq.EXT_DIR.and.ARG_H3(divu).gt.domhi(3)) then
+         do k = domhi(3)+1, ARG_H3(divu)
+            do j = ARG_L2(divu), ARG_H2(divu)
+               do i = ARG_L1(divu), ARG_H1(divu)
+                  divu(i,j,k) = z_vel
+               end do
+            end do
+         end do
+      end if        
+
+      end
+
+c ::: -----------------------------------------------------------
+c ::: This routine is called during a filpatch operation when
+c ::: the patch to be filled falls outside the interior
+c ::: of the problem domain.  You are requested to supply the
+c ::: data outside the problem interior in such a way that the
+c ::: data is consistant with the types of the boundary conditions
+c ::: you specified in the C++ code.  
+c ::: 
+c ::: NOTE:  you can assume all interior cells have been filled
+c :::        with valid data.
+c ::: 
+c ::: INPUTS/OUTPUTS:
+c ::: 
+c ::: dsdt     <=  dsdt array
+c ::: DIMS(dsdt)=> index extent of dsdt array
+c ::: domlo,hi  => index extent of problem domain
+c ::: dx        => cell spacing
+c ::: xlo       => physical location of lower left hand
+c :::	           corner of rho array
+c ::: time      => problem evolution time
+c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+c ::: -----------------------------------------------------------
+
+      subroutine FORT_DSDTFILL (dsdt,DIMS(dsdt),domlo,domhi,dx,
+     &                          xlo,time,bc)
+
+      integer    DIMDEC(dsdt)
+      integer    domlo(SDIM), domhi(SDIM)
+      REAL_T     dx(SDIM), xlo(SDIM), time
+      REAL_T     dsdt(DIMV(dsdt))
+      integer    bc(SDIM,2)
+
+      integer    i, j, k
+      REAL_T     z_vel
+
+#include "probdata.H"
+
+      if (adv_dir .eq. 3) then
+         z_vel = adv_vel
+      else  
+         z_vel = zero
+      end if
+
+      call filcc(dsdt,DIMS(dsdt),domlo,domhi,dx,xlo,bc)
+
+      if (bc(1,1).eq.EXT_DIR.and.ARG_L1(dsdt).lt.domlo(1)) then
+         do i = ARG_L1(dsdt), domlo(1)-1
+            do k = ARG_L3(dsdt), ARG_H3(dsdt)
+               do j = ARG_L2(dsdt), ARG_H2(dsdt)
+                  dsdt(i,j,k) = z_vel
+               end do
+	    end do
+	 end do
+      end if            
+
+      if (bc(1,2).eq.EXT_DIR.and.ARG_H1(dsdt).gt.domhi(1)) then
+         do i = domhi(1)+1, ARG_H1(dsdt)
+            do k = ARG_L3(dsdt), ARG_H3(dsdt)
+               do j = ARG_L2(dsdt), ARG_H2(dsdt)
+                  dsdt(i,j,k) = z_vel
+               end do
+	    end do
+	 end do
+      end if            
+
+      if (bc(2,1).eq.EXT_DIR.and.ARG_L2(dsdt).lt.domlo(2)) then
+         do j = ARG_L2(dsdt), domlo(2)-1
+            do k = ARG_L3(dsdt), ARG_H3(dsdt)
+               do i = ARG_L1(dsdt), ARG_H1(dsdt)
+                  dsdt(i,j,k) = z_vel
+               end do
+            end do
+	 end do
+      end if            
+
+      if (bc(2,2).eq.EXT_DIR.and.ARG_H2(dsdt).gt.domhi(2)) then
+         do j = domhi(2)+1, ARG_H2(dsdt)
+            do k = ARG_L3(dsdt), ARG_H3(dsdt)
+               do i = ARG_L1(dsdt), ARG_H1(dsdt)
+                  dsdt(i,j,k) = z_vel
+               end do
+            end do
+	 end do
+      end if            
+
+      if (bc(3,1).eq.EXT_DIR.and.ARG_L3(dsdt).lt.domlo(3)) then
+         do k = ARG_L3(dsdt), domlo(3)-1
+            do j = ARG_L2(dsdt), ARG_H2(dsdt)
+               do i = ARG_L1(dsdt), ARG_H1(dsdt)
+                  dsdt(i,j,k) = z_vel
+               end do
+            end do
+         end do
+      end if        
+
+      if (bc(3,2).eq.EXT_DIR.and.ARG_H3(dsdt).gt.domhi(3)) then
+         do k = domhi(3)+1, ARG_H3(dsdt)
+            do j = ARG_L2(dsdt), ARG_H2(dsdt)
+               do i = ARG_L1(dsdt), ARG_H1(dsdt)
+                  dsdt(i,j,k) = z_vel
+               end do
+            end do
+         end do
+      end if        
+
+      end
 
 c ::: -----------------------------------------------------------
 c ::: This routine is called during a filpatch operation when
