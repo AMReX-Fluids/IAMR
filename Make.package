@@ -106,12 +106,6 @@ F$(MGLIB_BASE)_sources += ABec_$(DIM)D.F ABec_UTIL.F CG_$(DIM)D.F \
                           INTERPBNDRYDATA_$(DIM)D.F LO_$(DIM)D.F \
                           LO_UTIL.F LP_$(DIM)D.F MG_$(DIM)D.F
 #
-# BSP stuff
-#
-ifeq ($(USE_BSP),TRUE)
-CEXE_sources += preload.cpp
-endif
-#
 # IAMR sources:  _run2d
 #
 CEXE_sources += NS_setup.cpp NSBld.cpp
