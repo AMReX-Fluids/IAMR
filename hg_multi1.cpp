@@ -1,6 +1,6 @@
 
 //
-// $Id: hg_multi1.cpp,v 1.16 1997-12-11 23:30:32 lijewski Exp $
+// $Id: hg_multi1.cpp,v 1.17 1998-01-15 20:37:17 car Exp $
 //
 
 #include <Tracer.H>
@@ -52,8 +52,6 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
                                 PArray<MultiFab>& Sigma,
                                 Real H[], int Lev_min, int Lev_max)
 {
-  int lev, mglev, i;
-
   assert(Dest.length() > Lev_max);
   assert(Dest[Lev_min].nGrow() == 1);
 
@@ -67,7 +65,7 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
     source_owned = 1;
     PArray<MultiFab> Src;
     Src.resize(Lev_max + 1);
-    for (lev = Lev_min; lev <= Lev_max; lev++) 
+    for (int lev = Lev_min; lev <= Lev_max; lev++) 
     {
       const BoxArray& mesh = Dest[lev].boxArray();
       Src.set(lev, new MultiFab(mesh, 1, Dest[Lev_min].nGrow()));
@@ -77,13 +75,13 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   }
 
   h = new Real[mglev_max + 1][BL_SPACEDIM];
-  for (i = 0; i < BL_SPACEDIM; i++) 
+  for (int i = 0; i < BL_SPACEDIM; i++) 
   {
     h[mglev_max][i] = H[i];
 #ifdef HG_CONSTANT
     assert(H[i] == H[0]);
 #endif
-    for (mglev = mglev_max - 1; mglev >= 0; mglev--) 
+    for (int mglev = mglev_max - 1; mglev >= 0; mglev--) 
     {
       int rat = mg_domain[mglev+1].length(i) / mg_domain[mglev].length(i);
       h[mglev][i] = rat * h[mglev+1][i];
@@ -98,20 +96,20 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   if ( cache )
   {
       TRACER("holy_grail_amr_multigrid::alloc: building caches");
-      for (lev = lev_min; lev <= lev_max; lev++) 
+      for (int lev = lev_min; lev <= lev_max; lev++) 
       {
           mglev = ml_index[lev];
           dest_bcache.set(lev, new copy_cache(dest[lev], interface[mglev],
               mg_boundary, 1));
       }
-      for (mglev = 0; mglev <= mglev_max; mglev++)
+      for (int mglev = 0; mglev <= mglev_max; mglev++)
       {
           corr_bcache.set(mglev, new copy_cache(corr[mglev], interface[mglev],
               mg_boundary, 1));
           corr_scache.set(mglev, new copy_cache(corr[mglev], interface[mglev],
               mg_boundary));
       }
-      for (mglev = 1; mglev <= mglev_max; mglev++) 
+      for (int mglev = 1; mglev <= mglev_max; mglev++) 
       {
           work_bcache.set(mglev, new copy_cache(work[mglev], interface[mglev],
               mg_boundary, 1));
@@ -152,7 +150,7 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
 
 #ifdef HG_CONSTANT
   cgw_ucache.resize(8);
-  for (i = 0; i < 8; i++) 
+  for (int i = 0; i < 8; i++) 
   {
     cgw_ucache.set(i, new unroll_cache(cgwork[i]));
   }
@@ -209,7 +207,7 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   singular = 0;
   if (mg_boundary.singular()) 
   {
-    for (i = 0; i < mg_mesh[0].length(); i++) 
+    for (int i = 0; i < mg_mesh[0].length(); i++) 
     {
       singular += mg_mesh[0][i].numPts();
     }
@@ -267,7 +265,7 @@ holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 void 
 holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 {
-  int mglev, igrid;
+  int mglev;
 
   // Intended functionality:  sigma_split exists only at coarser levels,
   // since only after coarsening is sigma different in different directions.
@@ -281,7 +279,6 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 
 #ifndef HG_CONSTANT
 
-  int lev, i;
   PArray<MultiFab> sigma_split;
   sigma_split.resize(mglev_max);
   for (mglev = 0; mglev < mglev_max; mglev++) 
@@ -309,12 +306,14 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   {
     MultiFab& target = sigma_split[mglev];
     target.setVal(1.e20);
+    int lev;
     if ((lev = get_amr_level(mglev)) >= 0) 
     {
       MultiFab& s_comp = Sigma[lev];
-      for (i = 0; i < BL_SPACEDIM; i++) 
+      for (int i = 0; i < BL_SPACEDIM; i++) 
       {
-        for (igrid = 0; igrid < target.length(); igrid++) 
+	  // PARALLEL
+        for (int igrid = 0; igrid < target.length(); igrid++) 
         {
           target[igrid].copy(s_comp[igrid], s_comp.box(igrid), 0,
                              target.box(igrid), i, 1);
@@ -326,7 +325,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   mglev = mglev_max;
   sigma[mglev].setVal(1.e20);
   // PARALLEL
-  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+  for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
   {
     sigma[mglev][igrid].copy(Sigma[lev_max][igrid], mg_mesh[mglev][igrid], 0,
                              mg_mesh[mglev][igrid], 0, 1);
@@ -365,7 +364,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
         interface[mglev], boundary.scalar());
   }
 
-  for (i = 0; i < BL_SPACEDIM; i++) 
+  for (int i = 0; i < BL_SPACEDIM; i++) 
   {
     sigma_nd[i].resize(mglev_max + 1);
   }
@@ -373,7 +372,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   for (mglev = 0; mglev < mglev_max; mglev++) 
   {
     MultiFab& s = sigma_split[mglev];
-    for (i = 0; i < BL_SPACEDIM; i++) 
+    for (int i = 0; i < BL_SPACEDIM; i++) 
     {
       sigma_nd[i].set(mglev, new MultiFab(mg_mesh[mglev], 1, 1));
       MultiFab& d = sigma_nd[i][mglev];
@@ -389,7 +388,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   }
 
   mglev = mglev_max;
-  for (i = 0; i < BL_SPACEDIM; i++) 
+  for (int i = 0; i < BL_SPACEDIM; i++) 
   {
     sigma_nd[i].set(mglev, &sigma[mglev]);
   }
@@ -445,14 +444,14 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     if (mglev < mglev_max) 
     {
       sigma_nd[0].remove(mglev);
-      for (i = 1; i < BL_SPACEDIM; i++) 
+      for (int i = 1; i < BL_SPACEDIM; i++) 
       {
         delete sigma_nd[i].remove(mglev);
       }
     }
     else 
     {
-      for (i = 0; i < BL_SPACEDIM; i++) 
+      for (int i = 0; i < BL_SPACEDIM; i++) 
       {
         sigma_nd[i].remove(mglev);
       }
@@ -491,7 +490,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 #    endif
 #  endif
     // PARALLEL
-    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
     {
       const Box& cenbox = cen[mglev][igrid].box();
       const Box& reg = interface[mglev].part_fine(igrid);
@@ -544,7 +543,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     MultiFab& mtmp = mask[mglev];
     mtmp.setVal(0.0);
     // PARALLEL
-    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
     {
       mtmp[igrid].setVal(1.0, interface[mglev].part_fine(igrid), 0);
     }
@@ -557,7 +556,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 void 
 holy_grail_amr_multigrid::clear()
 {
-  int lev, mglev;
+  int mglev;
 
   line_order.clear();
   line_after.clear();
@@ -623,14 +622,14 @@ holy_grail_amr_multigrid::clear()
   delete [] h;
   if (source_owned) 
   {
-    for (lev = lev_min; lev <= lev_max; lev++) 
+    for (int lev = lev_min; lev <= lev_max; lev++) 
     {
       if (source.defined(lev)) delete source.remove(lev);
     }
   }
 
 #ifdef HG_USE_CACHE
-  for (lev = lev_min; lev <= lev_max; lev++) 
+  for (int lev = lev_min; lev <= lev_max; lev++) 
   {
     delete dest_bcache[lev];
     dest_bcache[lev] = 0;
@@ -753,14 +752,14 @@ holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
 void 
 holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 {
-  int igrid;
   fill_borders(work[lfrom], 
 #ifdef HG_USE_CACHE
       work_bcache[lfrom],
 #endif
       interface[lfrom], mg_boundary);
   IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
-  for (igrid = 0; igrid < resid[lto].length(); igrid++) 
+  // PARALLEL??
+  for (int igrid = 0; igrid < resid[lto].length(); igrid++) 
   {
     const Box& fbox = work[lfrom][igrid].box();
     const Box& cbox = resid[lto][igrid].box();
