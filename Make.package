@@ -60,58 +60,30 @@ T_headers += Array.H PArray.H List.H Pointers.H Tuple.H Misc.H
 
 T_sources += BaseFab.cpp ArithFab.cpp OrderedFab.cpp NormedFab.cpp FabArray.cpp
 T_headers += BaseFab.H ArithFab.H OrderedFab.H NormedFab.H FabArray.H
-
-# ------------------------------------------------------- multigrid sources
+#
+# multigrid sources
+#
 MGLIB_BASE=EXE
-C$(MGLIB_BASE)_headers += ABecLaplacian.H \
-                          BndryData.H \
-                          BoundCond.H \
-                          CGSolver.H \
-                          InterpBndryData.H \
-                          LO_BCTYPES.H \
-                          Laplacian.H \
-                          LinOp.H \
-                          Mask.H \
-                          MultiGrid.H \
+C$(MGLIB_BASE)_headers += ABecLaplacian.H BndryData.H BoundCond.H \
+                          CGSolver.H InterpBndryData.H LO_BCTYPES.H \
+                          Laplacian.H LinOp.H Mask.H MultiGrid.H \
                           WriteMultiFab.H
 
-C$(MGLIB_BASE)_sources += ABecLaplacian.cpp \
-                          BndryData.cpp \
-                          CGSolver.cpp \
-                          InterpBndryData.cpp \
-                          Laplacian.cpp \
-                          LinOp.cpp \
-                          Mask.cpp \
-                          MultiGrid.cpp \
-                          WriteMultiFab.cpp
+C$(MGLIB_BASE)_sources += ABecLaplacian.cpp BndryData.cpp CGSolver.cpp \
+                          InterpBndryData.cpp Laplacian.cpp LinOp.cpp \
+                          Mask.cpp MultiGrid.cpp WriteMultiFab.cpp
 
-F$(MGLIB_BASE)_headers += ABec_F.H \
-                          CG_F.H \
-                          INTERPBNDRYDATA_F.H \
-                          LO_F.H \
-                          LP_F.H \
-                          MG_F.H
+F$(MGLIB_BASE)_headers += ABec_F.H CG_F.H INTERPBNDRYDATA_F.H \
+                          LO_F.H LP_F.H MG_F.H
 
-F$(MGLIB_BASE)_sources += ABec_$(DIM)D.F \
-                          CG_$(DIM)D.F \
-                          INTERPBNDRYDATA_$(DIM)D.F \
-                          LO_$(DIM)D.F \
-                          LO_UTIL.F \
-                          LP_$(DIM)D.F \
-                          MG_$(DIM)D.F
-
+F$(MGLIB_BASE)_sources += ABec_$(DIM)D.F CG_$(DIM)D.F \
+                          INTERPBNDRYDATA_$(DIM)D.F LO_$(DIM)D.F \
+                          LO_UTIL.F LP_$(DIM)D.F MG_$(DIM)D.F
+#
+# BSP stuff
+#
 ifeq ($(USE_BSP),TRUE)
 CEXE_sources += preload.cpp
-endif
-
-ifeq ($(EBASE),mgIBD)
-
-CEXE_sources += mainIBD.cpp TestIBData.cpp
-CEXE_headers += TestIBData.H
-
-FEXE_sources += mainIBD_$(DIM)D.F
-FEXE_headers += mainIBD_F.H
-
 endif
 #
 # IAMR sources:  _run2d
@@ -139,7 +111,6 @@ endif
 
 FEXE_headers += SYNCREG_F.H VISCOPERATOR_F.H
 FEXE_sources += SYNCREG_$(DIM)D.F VISCOPERATOR_$(DIM)D.F
-
 #
 # Disconnect MacOperators for different mass continuity
 #
