@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.60 1998-06-05 19:11:23 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.61 1998-06-05 22:32:26 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -430,8 +430,7 @@ NavierStokes::NavierStokes (Amr&            papa,
     // Set up diffusion.
     //
     diffusion = new Diffusion(parent, this,
-                              (level > 0) ? getLevel(level-1).diffusion
-                              : (Diffusion*)0,
+                              (level > 0) ? getLevel(level-1).diffusion : 0,
                               NUM_STATE, viscflux_reg, volume, area,
                               is_diffusive, visc_coef);
     //
@@ -536,224 +535,204 @@ void NavierStokes::init_additional_state_types()
     }
 }
 
-// -------------------------------------------------------------
-void NavierStokes::SaveOldBoundary( Real time )
+void
+NavierStokes::SaveOldBoundary (Real time)
 {
-    MultiFab &Sold = get_old_data(State_Type);
+    MultiFab* state_fp = getState(1,State_Type,0,NUM_STATE,time);
 
-    int nGrow    = 1;
-    int srcComp  = 0;
-    int destComp = 0;
-    int nComp    = NUM_STATE;
-    for(FillPatchIterator Soldfpi(*this, Sold, nGrow,
-                                  destComp, time, State_Type,
-                                  srcComp, nComp);
-        Soldfpi.isValid(); ++Soldfpi)
+    for (MultiFabIterator mfi(*state_fp); mfi.isValid(false); ++mfi)
     {
-      DependentMultiFabIterator Soldmfi(Soldfpi, Sold);
-      Soldmfi().copy(Soldfpi(), srcComp, destComp, nComp);
+        DependentMultiFabIterator dmfi(mfi,get_old_data(State_Type));
+
+        dmfi().copy(mfi(),0,0,NUM_STATE);
     }
+
+    delete state_fp;
 }
 
-// -------------------------------------------------------------
-void NavierStokes::SaveNewBoundary( Real time )
+void
+NavierStokes::SaveNewBoundary (Real time)
 {
-    MultiFab &Snew = get_new_data(State_Type);
+    MultiFab* state_fp = getState(1,State_Type,0,NUM_STATE,time);
 
-    int nGrow    = 1;
-    int srcComp  = 0;
-    int destComp = 0;
-    int nComp    = NUM_STATE;
-    for(FillPatchIterator Snewfpi(*this, Snew, nGrow,
-                                  destComp, time, State_Type,
-                                  srcComp, nComp);
-        Snewfpi.isValid(); ++Snewfpi)
+    for (MultiFabIterator mfi(*state_fp); mfi.isValid(false); ++mfi)
     {
-      DependentMultiFabIterator Snewmfi(Snewfpi, Snew);
-      Snewmfi().copy(Snewfpi(), srcComp, destComp, nComp);
+        DependentMultiFabIterator dmfi(mfi,get_new_data(State_Type));
+
+        dmfi().copy(mfi(),0,0,NUM_STATE);
     }
+
+    delete state_fp;
 }
 
 
-// -------------------------------------------------------------
-// since the pressure solver always stores its estimate of the
-// pressure solver in Pnew, we need to copy it to Pold at the start
-// -------------------------------------------------------------
+//
+// Since the pressure solver always stores its estimate of the
+// pressure solver in Pnew, we need to copy it to Pold at the start.
+//
 
-void NavierStokes::initOldPress()
+void
+NavierStokes::initOldPress ()
 {
-    MultiFab &P_new = get_new_data(Press_Type);
-    MultiFab &P_old = get_old_data(Press_Type);
+    MultiFab& P_new = get_new_data(Press_Type);
+    MultiFab& P_old = get_old_data(Press_Type);
 
     P_old.copy(P_new);
 }
 
-// -------------------------------------------------------------
-void NavierStokes::zeroNewPress()
+void
+NavierStokes::zeroNewPress ()
 {
-    MultiFab &P_new = get_new_data(Press_Type);
-
-    P_new.setVal(0.0);
+    get_new_data(Press_Type).setVal(0.0);
 }
 
-// -------------------------------------------------------------
-void NavierStokes::zeroOldPress()
+void
+NavierStokes::zeroOldPress ()
 {
-    MultiFab &P_old = get_old_data(Press_Type);
-
-    P_old.setVal(0.0);
+    get_old_data(Press_Type).setVal(0.0);
 }
 
-// -------------------------------------------------------------
-void NavierStokes::allocOldData()
+void
+NavierStokes::allocOldData ()
 {
     int init_pres = !(state[Press_Type].hasOldData());
-    for (int k = 0; k < num_state_type; k++) state[k].allocOldData();
-    if (init_pres) initOldPress();
+    for (int k = 0; k < num_state_type; k++)
+        state[k].allocOldData();
+    if (init_pres)
+        initOldPress();
 }
 
-// -------------------------------------------------------------
-void NavierStokes::removeOldData()
+void
+NavierStokes::removeOldData ()
 {
     AmrLevel::removeOldData();
 }
 
-
-// create the godunov object
-void NavierStokes::SetGodunov()
+void
+NavierStokes::SetGodunov()
 {
-    if (godunov == 0) {
+    if (godunov == 0)
         godunov = new Godunov();
-    }
 }
 
-
-// -------------------------------------------------------------
 void
-NavierStokes::restart(Amr& papa, istream& is)
+NavierStokes::restart (Amr&     papa,
+                       istream& is)
 {
     AmrLevel::restart(papa,is);
 
-    if ( do_MLsync_proj || do_sync_proj )
+    if (do_MLsync_proj || do_sync_proj)
     {
-        if (projector == 0) {
-          projector = new Projection(parent,&phys_bc,
-                                     do_sync_proj,parent->finestLevel(),
-                                     radius_grow );
+        if (projector == 0)
+        {
+            projector = new Projection(parent,&phys_bc,do_sync_proj,
+                                       parent->finestLevel(),radius_grow);
         }
         projector->install_level(level, this, &radius );
     }
-
-    // set the godunov box
+    //
+    // Set the godunov box.
+    //
     SetGodunov();
     
-    if (mac_projector == 0) {
-        int finest_level = parent->finestLevel();
-        mac_projector = new MacProj( parent, finest_level,
-                                     &phys_bc, radius_grow );
+    if (mac_projector == 0)
+    {
+        mac_projector = new MacProj(parent, parent->finestLevel(),
+                                    &phys_bc, radius_grow );
     }
-    mac_projector->install_level(level, this,
-                                 volume, area, &radius );
+    mac_projector->install_level(level, this, volume, area, &radius );
 
     rho_avg = 0;
-    p_avg = 0;
+    p_avg   = 0;
     const BoxArray& P_grids = state[Press_Type].boxArray();
-
-    // alloc space for density and temporary pressure variables
-    if (level > 0) {
+    //
+    // Alloc space for density and temporary pressure variables.
+    //
+    if (level > 0)
+    {
         rho_avg = new MultiFab(grids,1,1,Fab_allocate);
         p_avg   = new MultiFab(P_grids,1,0,Fab_allocate);
     }
     rho_half = new MultiFab(grids,1,1,Fab_allocate);
-
-      // build association lists
-    //hyp_assoc.define(grids,HYP_GROW);
-    //hyp_assoc.setCacheWidth(1);
-
-    //if(have_divu) {
-      //const BoxArray& Divu_grids = state[Divu_Type].boxArray();
-      //divu_assoc.define(Divu_grids,DIVU_GROW);
-      //divu_assoc.setCacheWidth(1);
-      //if(have_dsdt) {
-        //const BoxArray& Dsdt_grids = state[Dsdt_Type].boxArray();
-        //dsdt_assoc.define(Dsdt_grids,DSDT_GROW);
-        //dsdt_assoc.setCacheWidth(1);
-      //}
-    //}
-
-      // build metric coeficients for RZ calculations
+    //
+    // Build metric coeficients for RZ calculations.
+    //
     buildMetrics();
-
-    // build base state rho for atmospheric calculations
-    // this is probably an Atmosphere virtual function
+    //
+    // Build base state rho for atmospheric calculations.
+    // This is probably an Atmosphere virtual function.
+    //
     buildRho0();
 
     assert(sync_reg == 0);
-    if (level > 0 && do_sync_proj) {
+    if (level > 0 && do_sync_proj)
+    {
         sync_reg = new SyncRegister(grids,crse_ratio,level);
     }
     assert(advflux_reg == 0);
-    if (level > 0 && do_reflux) {
+    if (level > 0 && do_reflux)
+    {
         advflux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
     }
     assert(viscflux_reg == 0);
-    if (level > 0 && do_reflux) {
+    if (level > 0 && do_reflux)
+    {
         viscflux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
     }
 
     assert(Vsync == 0);
     assert(Ssync == 0);
-    if (level < parent->finestLevel()) {
-        Vsync = new MultiFab;
-        Vsync->define(grids,BL_SPACEDIM,1,Fab_allocate);
-        Ssync = new MultiFab;
-        Ssync->define(grids,NUM_STATE-BL_SPACEDIM,1,Fab_allocate);
+    if (level < parent->finestLevel())
+    {
+        Vsync = new MultiFab(grids,BL_SPACEDIM,1,Fab_allocate);
+        Ssync = new MultiFab(grids,NUM_STATE-BL_SPACEDIM,1,Fab_allocate);
     }
 
     diffusion = new Diffusion(parent, this,
-                              (level > 0) ? getLevel(level-1).diffusion
-                                          : (Diffusion*)0,
+                              (level > 0) ? getLevel(level-1).diffusion : 0,
                               NUM_STATE, viscflux_reg, volume, area,
                               is_diffusive, visc_coef);
 
 }
 
-// -------------------------------------------------------------
-// build rho0 arrays as ones for the base class
-// empty function for now
-void NavierStokes::buildRho0()
-{
-}
+//
+// Build rho0 arrays as ones for the base class.  Empty function for now.
+//
 
+void NavierStokes::buildRho0 () {}
 
-
-// -------------------------------------------------------------
 void
-NavierStokes::buildMetrics()
+NavierStokes::buildMetrics ()
 {
-    int ngrids = grids.length();
-    radius.resize(ngrids);
-    const Real* dx = geom.CellSize();
-    Real dxr = dx[0];
-    int i;
-    for (i = 0; i < ngrids; i++) {
-        const Box& b = grids[i];
-        int ilo = b.smallEnd(0)-radius_grow;
-        int ihi = b.bigEnd(0)+radius_grow;
-        int len = ihi - ilo + 1;
-        Real *rad = new Real[len];
+    radius.resize(grids.length());
+
+    const Real dxr = geom.CellSize()[0];
+
+    for (int i = 0; i < grids.length(); i++)
+    {
+        const int ilo = grids[i].smallEnd(0)-radius_grow;
+        const int ihi = grids[i].bigEnd(0)+radius_grow;
+        const int len = ihi - ilo + 1;
+        Real* rad = new Real[len];
         radius.set(i,rad);
-        if (CoordSys::IsCartesian()) {
-            for (int j = 0; j < len; j++) rad[j] = 1.0;
-        } else {
-            Real xlo = grid_loc[i].lo(0) + (0.5 - radius_grow)*dxr;
-            for (int j = 0; j < len; j++) rad[j] = xlo + j*dxr;
+        if (CoordSys::IsCartesian())
+        {
+            for (int j = 0; j < len; j++)
+                rad[j] = 1.0;
+        }
+        else
+        {
+            const Real xlo = grid_loc[i].lo(0) + (0.5 - radius_grow)*dxr;
+            for (int j = 0; j < len; j++)
+                rad[j] = xlo + j*dxr;
         }
     }
-
-    // build volume and face area arrays
+    //
+    // Build volume and face area arrays.
+    //
     geom.GetVolume(volume,grids,GEOM_GROW);
-    for (int dir = 0; dir < BL_SPACEDIM; dir++) {
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
         geom.GetFaceArea(area[dir],grids,dir,GEOM_GROW);
     }
 }
@@ -876,8 +855,7 @@ NavierStokes::initData ()
 }
 
 //
-// This function fills a new level n with the best
-// level n and coarser data available
+// Fills a new level n with best level n and coarser data available.
 //
 
 void
@@ -899,7 +877,9 @@ NavierStokes::init (AmrLevel &old)
     Real dt_old    = cur_time - prev_time;
     setTimeLevel(cur_time,dt_old,dt_new);
     Real cur_pres_time = state[Press_Type].curTime();
-
+    //
+    // Get best state and pressure data.
+    //
     int destComp = 0;
     int srcComp  = 0;
     int boxGrow  = 0;
@@ -911,7 +891,6 @@ NavierStokes::init (AmrLevel &old)
         DependentMultiFabIterator dsnewmfi(snewfpi, S_new);
         dsnewmfi().copy(snewfpi());
     }
-
     int numComp = 1;
     for (FillPatchIterator pnewfpi(old, P_new, boxGrow, destComp, cur_pres_time,
                                    Press_Type, srcComp, numComp);
@@ -920,8 +899,8 @@ NavierStokes::init (AmrLevel &old)
     {
         DependentMultiFabIterator dpnewmfi(pnewfpi, P_new);
         DependentMultiFabIterator dpoldmfi(pnewfpi, P_old);
-        dpnewmfi().copy(pnewfpi());  // copy from temp fill patched fab to new
-        dpoldmfi().copy(pnewfpi());  // copy from temp fill patched fab to old
+        dpnewmfi().copy(pnewfpi());
+        dpoldmfi().copy(pnewfpi());
     }
     //
     // Get best divu and dSdt data.
@@ -956,10 +935,8 @@ NavierStokes::init (AmrLevel &old)
     }
 }
 
-
 //
-// This version inits the data on a new level that did not
-// exist before regridding.
+// Inits the data on a new level that did not exist before regridding.
 //
 
 void
@@ -968,9 +945,9 @@ NavierStokes::init ()
     //
     // Get data pointers.
     //
-    MultiFab &S_new = get_new_data(State_Type);
-    MultiFab &P_new = get_new_data(Press_Type);
-    MultiFab &P_old = get_old_data(Press_Type);
+    MultiFab& S_new = get_new_data(State_Type);
+    MultiFab& P_new = get_new_data(Press_Type);
+    MultiFab& P_old = get_old_data(Press_Type);
     //
     // Get time information.
     //
@@ -982,7 +959,7 @@ NavierStokes::init ()
     {
         dt_new[lev] = dt_amr[lev];
     }
-    Real dt = dt_new[level-1]/(Real)parent->MaxRefRatio(level-1);
+    const Real dt = dt_new[level-1]/(Real)parent->MaxRefRatio(level-1);
     dt_new[level] = dt;
     parent->setDtLevel(dt_new);
 
@@ -1048,8 +1025,8 @@ NavierStokes::init ()
 // boundary flux registers.  The Multifab registers are quantities
 // sized by the coarse level BoxArray and belong to the coarse level.
 // The fine levels own the boundary registers, since they are sized by
-// the boundaries of the fine level BoxArray
-//----------------------------------------------------------------
+// the boundaries of the fine level BoxArray.
+//
 
 void
 NavierStokes::advance_setup (Real time,
@@ -1057,10 +1034,11 @@ NavierStokes::advance_setup (Real time,
                              int  iteration,
                              int  ncycle)
 {
-    int finest_level = parent->finestLevel();
+    const int finest_level = parent->finestLevel();
+
     mac_projector->setup(level);
     //
-    // why are they defined here versus the constructor?
+    // Why are they defined here versus the constructor?
     //
     if (level < finest_level)
     {
@@ -1322,7 +1300,7 @@ NavierStokes::advance (Real time,
         delete delta_U;
     }
 
-    return dt_test;  // return estimate of best new timestep
+    return dt_test;  // Return estimate of best new timestep.
 }
 
 void
@@ -1347,7 +1325,7 @@ NavierStokes::level_projector (Real dt,
        else
            crse_ptr = 0;
 
-       Array< int* >       sync_bc(grids.length());
+       Array<int*> sync_bc(grids.length());
        Array< Array<int> > sync_bc_array(grids.length());
 
        for (int i = 0; i < grids.length(); i++)
@@ -1397,8 +1375,8 @@ NavierStokes::level_projector (Real dt,
                                 crse_ptr,sync_reg,crse_dt_ratio,
                                 sync_bc.dataPtr(),iteration,
                                 divu_minus_s_factor,*divuold,have_divu);
-       delete dsdt;
        delete divuold;
+       delete dsdt;
 
        lp_stats.end();
    }
@@ -1414,29 +1392,18 @@ NavierStokes::level_projector (Real dt,
 void
 NavierStokes::makerhonph (Real dt)
 {
-    Real prev_time = state[State_Type].prevTime();
-    Real half_time = prev_time + 0.5*dt;
+    const Real half_time = state[State_Type].prevTime() + 0.5*dt;
 
-    int nGrow    = 1;
-    int srcComp  = Density;
-    int destComp = 0;
-    int nComp    = 1;
-    for(FillPatchIterator rho_halffpi(*this, *rho_half, nGrow,
-                                      destComp, half_time, State_Type,
-                                      srcComp, nComp);
-        rho_halffpi.isValid(); ++rho_halffpi)
+    MultiFab* state_fp = getState(1,State_Type,Density,1,half_time);
+
+    for (MultiFabIterator mfi(*state_fp); mfi.isValid(false); ++mfi)
     {
-        DependentMultiFabIterator rho_halfmfi(rho_halffpi, *rho_half);
+        DependentMultiFabIterator dmfi(mfi,*rho_half);
 
-        // the old getState grows the fab it is given--test rho_half for
-        // the correct size  vvvvvvvvvvvvvvvvvvvvvvv
-        Box testGrowBox(grids[rho_halfmfi.index()]);
-        testGrowBox.grow(nGrow);
-        assert(rho_halfmfi.fabbox() == testGrowBox);
-        // end box size test ^^^^^^^^^^^^^^^^^^^^^^^
-
-        rho_halfmfi().copy(rho_halffpi());
+        dmfi().copy(mfi(),0,0,1);
     }
+
+    delete state_fp;
 }
 
 //
@@ -1448,8 +1415,6 @@ Real
 NavierStokes::predict_velocity (Real  dt,
                                 Real& comp_cfl)
 {
-    FArrayBox U, Rho, tforces, Gp;
-
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "... predict edge velocities\n";
@@ -1460,7 +1425,6 @@ NavierStokes::predict_velocity (Real  dt,
     const Real* dx      = geom.CellSize();
     Real prev_time      = state[State_Type].prevTime();
     Real prev_pres_time = state[Press_Type].prevTime();
-    MultiFab& S_old     = get_old_data(State_Type);
     //
     // Compute viscous terms at level n.
     //
@@ -1471,145 +1435,75 @@ NavierStokes::predict_velocity (Real  dt,
     //
     // Set up the timestep estimation.
     //
-    Real cflgrid,cflmax,u_max[3];
-    cflmax    = 1.0e-10;
-    comp_cfl  = ( level == 0 ? cflmax : comp_cfl );
+    Real cflgrid,u_max[3];
+    Real cflmax = 1.0e-10;
+    comp_cfl    = (level == 0) ? cflmax : comp_cfl;
 
-    // for each grid, fill patch source terms and predict
+    Array<int> bndry[BL_SPACEDIM];
+    //
+    // FillPatch'd state data.
+    //
+    MultiFab* U_fp       = getState(HYP_GROW,State_Type,Xvel,BL_SPACEDIM,prev_time);
+    MultiFab* Rho_fp     = getState(1,State_Type,Density,1,prev_time);
+    MultiFab* tforces_fp = getForce(1,Xvel,BL_SPACEDIM,prev_time);
+    MultiFab* Gp_fp      = getGradP(1,prev_pres_time);
 
-    FArrayBox rho;
-
-    const int destComp = 0;
-    FillPatchIterator Ufpi(*this, S_old, HYP_GROW, destComp, prev_time,
-                           State_Type, Xvel, BL_SPACEDIM);
-    FillPatchIterator Rhofpi(*this, S_old, 1, destComp, prev_time,
-                           State_Type, Density, 1);
-    MultiFab &P_old = get_old_data(Press_Type);
-    FillPatchIterator pressurefpi(*this, P_old, 1, destComp, prev_pres_time,
-                           Press_Type, 0, 1);
-    for(;
-        Ufpi.isValid()       &&
-        Rhofpi.isValid()     &&
-        pressurefpi.isValid();
-        ++Ufpi,
-        ++Rhofpi,
-        ++pressurefpi)
+    for (MultiFabIterator U_fpmfi(*U_fp); U_fpmfi.isValid(false); ++U_fpmfi)
     {
-      DependentMultiFabIterator visc_termsmfi(Ufpi, visc_terms);
-      DependentMultiFabIterator u_mac0mfi(Ufpi, u_mac[0]);
-      DependentMultiFabIterator u_mac1mfi(Ufpi, u_mac[1]);
-#if (BL_SPACEDIM == 3)                         
-      DependentMultiFabIterator u_mac2mfi(Ufpi, u_mac[2]);
-#endif
-      int i = visc_termsmfi.index();
-
-        // get grid and boundary condition info
-        const Box& grd = grids[i];
-
-        // get the relevant state data
-        //getState(U,      i,HYP_GROW,Xvel,   BL_SPACEDIM,prev_time);
-        FArrayBox& U = Ufpi();
-        //getState(Rho,    i,1,       Density,1,          prev_time);
-        FArrayBox& Rho = Rhofpi();
-        Real grav = Abs(gravity);
-        Box tfbox(grids[i]);
-        tfbox.grow(1);
-        tforces.resize(tfbox, BL_SPACEDIM);
-
-        for(int dc = 0; dc < BL_SPACEDIM; dc++) {
-          int sc = Xvel + dc;
-#if (BL_SPACEDIM == 2)
-          if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001)
-#endif
-#if (BL_SPACEDIM == 3)
-          if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
-#endif
-          {
-            // set force to -rho*g
-            rho.resize(Rho.box());
-            //getState(rho,i,1,Density,1,prev_time);
-            rho.copy(Rho);
-            rho.mult(-grav);
-            tforces.copy(rho,0,dc,1);
-          } else {
-            tforces.setVal(0.0,dc);
-          }
-        }  // end for(dc...)
-        // from NS::getForce ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-
-        //getGradP(Gp,     i,1,                           prev_pres_time);
-        // from NS::getGradP vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-        {
-        Box gpbx(grids[i]);
-        gpbx.grow(1);
-        Box p_box(surroundingNodes(gpbx));
-        //FArrayBox p_fab(p_box,1);
-        FArrayBox& p_fab = pressurefpi();
-        assert(p_fab.box() == p_box);
-        //FillPatch(p_fab,0,time,Press_Type,0,1);
-        //-----------------------  size the pressure gradient storage
-        //Box gpbx(grd);
-        //gpbx.grow(ngrow);
-        Gp.resize(gpbx,BL_SPACEDIM);
-
-        //------------------------ test to see if p_fab contains gpbx
-        Box test = p_fab.box();
-        test = test.enclosedCells();
-        assert( test.contains( gpbx ) == true );
-
-        // ----------------------- set pointers
-        const int *plo = p_fab.loVect();
-        const int *phi = p_fab.hiVect();
-        const int *glo = gpbx.loVect();
-        const int *ghi = gpbx.hiVect();
-        const Real *p_dat  = p_fab.dataPtr();
-        const Real *gp_dat = Gp.dataPtr();
-        const Real *dx     = geom.CellSize();
-
-        // ----------------------- create the pressure gradient
-        FORT_GRADP (p_dat,ARLIM(plo),ARLIM(phi),
-                    gp_dat,ARLIM(glo),ARLIM(ghi),glo,ghi,dx);
-        }
-
-        // from NS::getGradP ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-        // test velocities, rho and cfl
-        cflgrid  = godunov->test_u_rho( U, Rho, grd, dx, dt, u_max );
+        //
+        // Since all the MultiFabs are on same grid we'll just use indexes.
+        //
+        int i = U_fpmfi.index();
+        //
+        // Test velocities, rho and cfl.
+        //
+        cflgrid  = godunov->test_u_rho(U_fpmfi(),
+                                       (*Rho_fp)[i],
+                                       grids[i],
+                                       dx,
+                                       dt,
+                                       u_max);
         cflmax   = Max(cflgrid,cflmax);
         comp_cfl = Max(cflgrid,comp_cfl);
-
-        // compute the total forcing
-        godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rho );
-
-        Array<int> bndry[BL_SPACEDIM];
-
+        //
+        // Compute the total forcing.
+        //
+        godunov->Sum_tf_gp_visc((*tforces_fp)[i],
+                                visc_terms[i],
+                                (*Gp_fp)[i],
+                                (*Rho_fp)[i]);
+        //
+        // Set up the Godunov box.
+        //
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
                bndry[1] = getBCArray(State_Type,i,1,1);,
                bndry[2] = getBCArray(State_Type,i,2,1);)
 
-        // set up the Godunov box
-        godunov->Setup( grd, dx, dt, 1,
-                        u_mac0mfi(), bndry[0].dataPtr(),
-                        u_mac1mfi(), bndry[1].dataPtr(),
+        godunov->Setup(grids[i], dx, dt, 1,
+                       u_mac[0][i], bndry[0].dataPtr(),
+                       u_mac[1][i], bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                         
-                        u_mac2mfi(), bndry[2].dataPtr(),
+                       u_mac[2][i], bndry[2].dataPtr(),
 #endif
-                        U, Rho, tforces);
-
-        // predict the mac velocities
-        godunov->ComputeUmac( grd, dx, dt, 
-                              u_mac0mfi(), bndry[0].dataPtr(),
-                              u_mac1mfi(), bndry[1].dataPtr(),
+                       U_fpmfi(), (*Rho_fp)[i], (*tforces_fp)[i]);
+        //
+        // Predict the mac velocities.
+        //
+        godunov->ComputeUmac(grids[i], dx, dt, 
+                             u_mac[0][i], bndry[0].dataPtr(),
+                             u_mac[1][i], bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)
-                              u_mac2mfi(), bndry[2].dataPtr(),
+                             u_mac[2][i], bndry[2].dataPtr(),
 #endif
-                              U, tforces );
+                             U_fpmfi(), (*tforces_fp)[i]);
     }
 
-    if ( level == 0 && geom.isAnyPeriodic() )
+    delete Gp_fp;
+    delete tforces_fp;
+    delete Rho_fp;
+    delete U_fp;
+
+    if (level == 0 && geom.isAnyPeriodic())
     {
         test_umac_periodic();
     }
@@ -1617,30 +1511,35 @@ NavierStokes::predict_velocity (Real  dt,
     // Compute estimate of the timestep.
     //
     Real tempdt = Min(change_max,cfl/cflmax);
+
     ParallelDescriptor::ReduceRealMin(tempdt);
-    if (ParallelDescriptor::NProcs() > 1)
-    {
-        cout << "\n\nCheck reduction ops for zero grids on processor.\n\n\n";
-    }
+
     return dt*tempdt;
 }
 
+//
+// Test for periodic umac on a single level 0 grid.
+//
 
-// test for periodic umac on a single level 0 grid
-void NavierStokes::test_umac_periodic()
+void
+NavierStokes::test_umac_periodic ()
 {
-    // error block
-    assert( ParallelDescriptor::NProcs() == 1);
-    assert( level          == 0 );
-    if ( grids.length() != 1 )
+    //
+    // Error block.
+    //
+    assert(ParallelDescriptor::NProcs() == 1);
+    assert(level          == 0);
+    if (grids.length() != 1)
         return;
-
-    // get the bounds and grid size
+    //
+    // Get the bounds and grid size.
+    //
     const Box &grd = grids[0];
     const int *lo  = grd.loVect();
     const int *hi  = grd.hiVect();
-    
-    // get the velocities
+    //
+    // Get the velocities.
+    //
     int xperiod        = ( geom.isPeriodic(0) ? 1 : 0 );
     const int *ux_lo   = u_mac[0][0].loVect();
     const int *ux_hi   = u_mac[0][0].hiVect();
@@ -1656,8 +1555,9 @@ void NavierStokes::test_umac_periodic()
     const int *uz_hi   = u_mac[2][0].hiVect();
     const Real *uz_dat = u_mac[2][0].dataPtr();
 #endif
-
-    // call the fortran
+    //
+    // Call the fortran.
+    //
     Real udiff = 0.0;
     Real vdiff = 0.0;
 #if (BL_SPACEDIM == 3)                                             
@@ -1728,158 +1628,68 @@ NavierStokes::velocity_advection (Real dt)
     getViscTerms(visc_terms,Xvel,BL_SPACEDIM,prev_time);
     if (be_cn_theta==1.0)
         visc_terms.setVal(0.0,1);
-    //
-    // Set up the grid loop.
-    //
-    int comp;
-    FArrayBox U, Rho, tforces, Gp;
+
+    Array<int> bndry[BL_SPACEDIM];
     FArrayBox xflux, yflux, zflux, divu;
+    //
+    // FillPatch'd state data.
+    //
+    MultiFab* U_fp       = getState(HYP_GROW,State_Type,Xvel,BL_SPACEDIM,prev_time);
+    MultiFab* Rho_fp     = getState(1,State_Type,Density,1,prev_time);
+    MultiFab* tforces_fp = getForce(1,Xvel,BL_SPACEDIM,prev_time);
+    MultiFab* Gp_fp      = getGradP(1,prev_pres_time);
     //
     // Compute the advective forcing.
     //
-    FArrayBox rho;
-
-    MultiFab& S_old = get_old_data(State_Type);
-    const int destComp = 0;
-    FillPatchIterator Ufpi(*this, S_old, HYP_GROW, destComp, prev_time,
-                           State_Type, Xvel, BL_SPACEDIM);
-    FillPatchIterator Rhofpi(*this, S_old, 1, destComp, prev_time,
-                           State_Type, Density, 1);
-    MultiFab& P_old = get_old_data(Press_Type);
-    FillPatchIterator pressurefpi(*this, P_old, 1, destComp, prev_pres_time,
-                           Press_Type, 0, 1);
-    for(;
-        Ufpi.isValid()       &&
-        Rhofpi.isValid()     &&
-        pressurefpi.isValid();
-        ++Ufpi,
-        ++Rhofpi,
-        ++pressurefpi)
+    for (MultiFabIterator U_fpmfi(*U_fp); U_fpmfi.isValid(false); ++U_fpmfi)
     {
-        DependentMultiFabIterator visc_termsmfi(Ufpi, visc_terms);
-        DependentMultiFabIterator aofsmfi(Ufpi, (*aofs));
-        DependentMultiFabIterator volumemfi(Ufpi, volume);
-        DependentMultiFabIterator u_mac0mfi(Ufpi, u_mac[0]);
-        DependentMultiFabIterator u_mac1mfi(Ufpi, u_mac[1]);
-        DependentMultiFabIterator area0mfi(Ufpi, area[0]);
-        DependentMultiFabIterator area1mfi(Ufpi, area[1]);
-#if (BL_SPACEDIM == 3)
-        DependentMultiFabIterator u_mac2mfi(Ufpi, u_mac[2]);
-        DependentMultiFabIterator area2mfi(Ufpi, area[2]);
-#endif
-        int i = visc_termsmfi.index();
-
-        assert(grids[visc_termsmfi.index()] == visc_termsmfi.validbox());
-        const Box& grd = visc_termsmfi.validbox();
-
-        // get needed data
-        //getState(U,      i,HYP_GROW,Xvel,   BL_SPACEDIM,prev_time);
-        FArrayBox& U = Ufpi();
-        //getState(Rho,    i,1,       Density,1,          prev_time);
-        FArrayBox& Rho = Rhofpi();
-
-        //getForce(tforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
-        // from NS::getForce vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-        Real grav = Abs(gravity);
-        Box tfbox(grids[i]);
-        tfbox.grow(1);
-        tforces.resize(tfbox, BL_SPACEDIM);
-
-        for (int dc = 0; dc < BL_SPACEDIM; dc++)
-        {
-            int sc = Xvel + dc;
-#if (BL_SPACEDIM == 2)
-            if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001)
-#endif
-#if (BL_SPACEDIM == 3)
-                if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
-#endif
-                {
-                    // set force to -rho*g
-                    rho.resize(Rho.box());
-                    //getState(rho,i,1,Density,1,prev_time);
-                    rho.copy(Rho);
-                    rho.mult(-grav);
-                    tforces.copy(rho,0,dc,1);
-                } else {
-                    tforces.setVal(0.0,dc);
-                }
-        }  // end for(dc...)
-        // from NS::getForce ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-        //getGradP(Gp,     i,1,                      prev_pres_time);
-        // from NS::getGradP vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-        {
-            Box gpbx(grids[i]);
-            gpbx.grow(1);
-            Box p_box(surroundingNodes(gpbx));
-            //FArrayBox p_fab(p_box,1);
-            FArrayBox &p_fab = pressurefpi();
-            assert(p_fab.box() == p_box);
-            //FillPatch(p_fab,0,time,Press_Type,0,1);
-            //-----------------------  size the pressure gradient storage
-            //Box gpbx(grd);
-            //gpbx.grow(ngrow);
-            Gp.resize(gpbx,BL_SPACEDIM);
-
-            //------------------------ test to see if p_fab contains gpbx
-            Box test = p_fab.box();
-            test = test.enclosedCells();
-            assert(test.contains( gpbx ) == true);
-
-            // ----------------------- set pointers
-            const int *plo = p_fab.loVect();
-            const int *phi = p_fab.hiVect();
-            const int *glo = gpbx.loVect();
-            const int *ghi = gpbx.hiVect();
-            const Real *p_dat  = p_fab.dataPtr();
-            const Real *gp_dat = Gp.dataPtr();
-            const Real *dx     = geom.CellSize();
-
-            // ----------------------- create the pressure gradient
-            FORT_GRADP (p_dat,ARLIM(plo),ARLIM(phi),
-                        gp_dat,ARLIM(glo),ARLIM(ghi),glo,ghi,dx);
-        }
-        // from NS::getGradP ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-        // compute the total forcing
-        godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rho );
-
-        Array<int> bndry[BL_SPACEDIM];
-
+        //
+        // Since all the MultiFabs are on same grid we'll just use indexes.
+        //
+        int i = U_fpmfi.index();
+        //
+        // Compute the total forcing.
+        //
+        godunov->Sum_tf_gp_visc((*tforces_fp)[i],
+                                visc_terms[i],
+                                (*Gp_fp)[i],
+                                (*Rho_fp)[i]);
+        //
+        // Set up the workspace for the godunov Box.
+        //
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
                bndry[1] = getBCArray(State_Type,i,1,1);,
                bndry[2] = getBCArray(State_Type,i,2,1);)
 
-            // set up the workspace for the godunov Box
-            godunov->Setup(grd, dx, dt, 0,
-                           xflux, bndry[0].dataPtr(),
-                           yflux, bndry[1].dataPtr(),
+        godunov->Setup(grids[i], dx, dt, 0,
+                       xflux, bndry[0].dataPtr(),
+                       yflux, bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                          
-                           zflux, bndry[2].dataPtr(),
+                       zflux, bndry[2].dataPtr(),
 #endif
-                           U, Rho, tforces);
-        
-            // loop over the velocity components
-            for ( comp = 0 ; comp < BL_SPACEDIM ; comp++ )
-            {
-                godunov->AdvectState(grd, dx, dt, 
-                                     area0mfi(), u_mac0mfi(), xflux,
-                                     area1mfi(), u_mac1mfi(), yflux,
+                       U_fpmfi(), (*Rho_fp)[i], (*tforces_fp)[i]);
+        //
+        // Loop over the velocity components.
+        //
+        for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
+        {
+            godunov->AdvectState(grids[i], dx, dt, 
+                                 area[0][i], u_mac[0][i], xflux,
+                                 area[1][i], u_mac[1][i], yflux,
 #if (BL_SPACEDIM == 3)                       
-                                     area2mfi(), u_mac2mfi(), zflux,
+                                 area[2][i], u_mac[2][i], zflux,
 #endif
-                                     U, U, tforces, comp,
-                                     aofsmfi(),    comp,
-                                     is_conservative[comp],
-                                     comp,
-                                     bndry[comp].dataPtr(),
-                                     volumemfi() );
-                //
-                // Get fluxes for diagnostics and refluxing.
-                //
-                pullFluxes( i, comp, 1, xflux, yflux, zflux, dt);
-            }
+                                 U_fpmfi(), U_fpmfi(), (*tforces_fp)[i], comp,
+                                 (*aofs)[i],    comp,
+                                 is_conservative[comp],
+                                 comp,
+                                 bndry[comp].dataPtr(),
+                                 volume[i]);
+            //
+            // Get fluxes for diagnostics and refluxing.
+            //
+            pullFluxes(i, comp, 1, xflux, yflux, zflux, dt);
+        }
     }
     //
     // pullFluxes() contains CrseInit() calls. Got to complete the process.
@@ -1907,319 +1717,156 @@ NavierStokes::scalar_advection (Real dt,
     //
     // Get simulation parameters.
     //
-    int num_scalars  = lscalar - fscalar + 1;
-    int finest_level = parent->finestLevel();
-    const Real *dx   = geom.CellSize();
-    Real prev_time   = state[State_Type].prevTime();
+    const int num_scalars = lscalar - fscalar + 1;
+    const Real* dx        = geom.CellSize();
+    Real prev_time        = state[State_Type].prevTime();
     Real prev_pres_time   = state[Press_Type].prevTime();
     //
     // Get the viscous terms.
     //
     MultiFab visc_terms(grids,num_scalars,1,Fab_allocate);
     getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
-    if (be_cn_theta==1.0) visc_terms.setVal(0.0,1);
+    if (be_cn_theta == 1.0)
+        visc_terms.setVal(0.0,1);
     //
     // Set up the grid loop.
     //
-    int comp,state_ind;
-    FArrayBox U, S, Rho, tforces;
-    FArrayBox xflux, yflux, zflux, divu;
+    FArrayBox xflux, yflux, zflux;
+    MultiFab vel_visc_terms;
 
     int use_forces_in_trans = godunov->useForcesInTrans();
 
-    FArrayBox tvelforces, Gp;
-    MultiFab vel_visc_terms;
     if (use_forces_in_trans)
     {
       vel_visc_terms.define(grids,BL_SPACEDIM,1,Fab_allocate);
       getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
-      if (be_cn_theta==1.0)
+      if (be_cn_theta == 1.0)
           vel_visc_terms.setVal(0.0,1);
     }
     //
+    // FillPatch'd state data.
+    //
+    MultiFab* U_fp       = getState(HYP_GROW,State_Type,Xvel,BL_SPACEDIM,prev_time);
+    MultiFab* S_fp       = getState(HYP_GROW,State_Type,fscalar,num_scalars,prev_time);
+    MultiFab* Rho_fp     = getState(1,State_Type,Density,1,prev_time);
+    MultiFab* tforces_fp = getForce(1,fscalar,num_scalars,prev_time);
+    MultiFab* divu_fp    = getDivCond(1,prev_time);
+
+    MultiFab *Gp_fp = 0, *tvelforces_fp = 0;
+
+    if (use_forces_in_trans)
+    {
+        Gp_fp         = getGradP(1,prev_pres_time);
+        tvelforces_fp = getForce(1,Xvel,BL_SPACEDIM,prev_time);
+    }
+
+    Array<int> state_bc, bndry[BL_SPACEDIM];
+
+    FArrayBox dummy;
+    //
     // Compute the advective forcing.
     //
-    FArrayBox rho;
-
-    MultiFab& S_old = get_old_data(State_Type);
-    const int destComp = 0;
-    FillPatchIterator Ufpi(*this, S_old, HYP_GROW, destComp, prev_time,
-                           State_Type, Xvel, BL_SPACEDIM);
-    FillPatchIterator Sfpi(*this, S_old, HYP_GROW, destComp, prev_time,
-                           State_Type, fscalar, num_scalars);
-    FillPatchIterator Rhofpi(*this, S_old, 1, destComp, prev_time,
-                           State_Type, Density, 1);
-    FillPatchIterator tvelforcesfpi(*this, S_old, 1, destComp, prev_time,
-                           State_Type, Xvel, BL_SPACEDIM);
-    MultiFab &P_old = get_old_data(Press_Type);
-    FillPatchIterator pressurefpi(*this, P_old, 1, destComp, prev_pres_time,
-                           Press_Type, 0, 1);
-
-    FillPatchIterator divufpi(*this, S_old);
-
-    if (have_divu)
+    for (MultiFabIterator U_fpmfi(*U_fp); U_fpmfi.isValid(false); ++U_fpmfi)
     {
-      int boxGrow = 1;
-      int srcComp = 0;
-      int nComp   = 1;
-      divufpi.Initialize(boxGrow, destComp, prev_time,
-                           Divu_Type, srcComp, nComp);
-    }
+        //
+        // Since all the MultiFabs are on same grid we'll just use indexes.
+        //
+        int i = U_fpmfi.index();
 
-    bool bIteratorsValid;
-    if (have_divu)
-    {
-      bIteratorsValid = 
-          Ufpi.isValid()          &&
-          Sfpi.isValid()          &&
-          Rhofpi.isValid()        &&
-          tvelforcesfpi.isValid() &&
-          pressurefpi.isValid()   &&
-          divufpi.isValid();
-    }
-    else
-    {
-      bIteratorsValid = 
-          Ufpi.isValid()          &&
-          Sfpi.isValid()          &&
-          Rhofpi.isValid()        &&
-          tvelforcesfpi.isValid() &&
-          pressurefpi.isValid();
-    }
-
-    while (bIteratorsValid)
-    {
-      DependentMultiFabIterator visc_termsmfi(Ufpi, visc_terms);
-      DependentMultiFabIterator aofsmfi(Ufpi,*aofs);
-      DependentMultiFabIterator volumemfi(Ufpi,volume);
-      DependentMultiFabIterator u_mac0mfi(Ufpi,u_mac[0]);
-      DependentMultiFabIterator u_mac1mfi(Ufpi,u_mac[1]);
-      DependentMultiFabIterator area0mfi(Ufpi,area[0]);
-      DependentMultiFabIterator area1mfi(Ufpi,area[1]);
-#if (BL_SPACEDIM == 3)
-      DependentMultiFabIterator u_mac2mfi(Ufpi,u_mac[2]);
-      DependentMultiFabIterator area2mfi(Ufpi,area[2]);
-#endif
-      int i = visc_termsmfi.index();
-
-      assert(grids[visc_termsmfi.index()] == visc_termsmfi.validbox());
-      const Box& grd = grids[i];
-
-        // get needed data
-        //getState(U,      i,HYP_GROW,Xvel,   BL_SPACEDIM,prev_time);
-      FArrayBox& U = Ufpi();
-      //getState(S,      i,HYP_GROW,fscalar,num_scalars,prev_time);
-      FArrayBox& S = Sfpi();
-      //getState(Rho,    i,1,       Density,1,          prev_time);
-      FArrayBox& Rho = Rhofpi();
-
-      //getForce(tforces,i,1,       fscalar,num_scalars,prev_time);
-      // from NS::getForce vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-      Real grav = Abs(gravity);
-      Box tfbox(grids[i]);
-      tfbox.grow(1);
-      tforces.resize(tfbox, num_scalars);
-
-      for(int dc = 0; dc < num_scalars; dc++) {
-          int sc = fscalar + dc;
-#if (BL_SPACEDIM == 2)
-          if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001)
-#endif
-#if (BL_SPACEDIM == 3)
-              if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
-#endif
-              {
-                  // set force to -rho*g
-                  rho.resize(Rho.box());
-                  //getState(rho,i,1,Density,1,prev_time);
-                  rho.copy(Rho);
-                  rho.mult(-grav);
-                  tforces.copy(rho,0,dc,1);
-              } else {
-                  tforces.setVal(0.0,dc);
-              }
-      }  // end for(dc...)
-      // from NS::getForce ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-        //getDivCond(divu, i,1,                           prev_time);
-      Box bx(grids[i]);
-      bx.grow(1);
-      divu.resize(bx,1);
-      if(have_divu) {
-          if(divu.box() != divufpi().box()) {
-              cerr << "NavierStokes::scalar_advection:  "
-                   << "divu.box() != divufpi().box()\n";
-              cerr << "divu.box()      = " << divu.box()      << NL;
-              cerr << "divufpi().box() = " << divufpi().box() << NL;
-              BoxLib::Abort("NavierStokes::scalar_advection(...)");
-          }
-          divu.copy(divufpi());
-      } else {   // ! have_divu
-          divu.setVal(0.0);  // can't filpatch what we don't have
-      }
-
-      if (use_forces_in_trans)
-      {
-          DependentMultiFabIterator vel_visc_termsmfi(Ufpi, vel_visc_terms);
-          //getForce(tvelforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
-
-          // from NS::getForce vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-          Real grav = Abs(gravity);
-
-          for(int dc = 0; dc < BL_SPACEDIM; dc++) {
-              int sc = Xvel + dc;
-#if (BL_SPACEDIM == 2)
-              if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001)
-#endif
-#if (BL_SPACEDIM == 3)
-                  if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
-#endif
-                  {
-                      // set force to -rho*g
-                      rho.resize(Rho.box());
-                      //getState(rho,i,1,Density,1,prev_time);
-                      rho.copy(Rho);
-                      rho.mult(-grav);
-                      tvelforces.copy(rho,0,dc,1);
-                  } else {
-                      tvelforces.setVal(0.0,dc);
-                  }
-          }  // end for(dc...)
-          // from NS::getForce ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-          //getGradP(Gp,        i,1,                           prev_pres_time);
-          // from NS::getGradP vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-          {
-              Box gpbx(grids[i]);
-              gpbx.grow(1);
-              Box p_box(surroundingNodes(gpbx));
-              //FArrayBox p_fab(p_box,1);
-              FArrayBox& p_fab = pressurefpi();
-              assert(p_fab.box() == p_box);
-              //-----------------------  size the pressure gradient storage
-              Gp.resize(gpbx,BL_SPACEDIM);
-
-              //------------------------ test to see if p_fab contains gpbx
-              Box test = p_fab.box();
-              test = test.enclosedCells();
-              assert( test.contains( gpbx ) == true );
-
-              // ----------------------- set pointers
-              const int *plo = p_fab.loVect();
-              const int *phi = p_fab.hiVect();
-              const int *glo = gpbx.loVect();
-              const int *ghi = gpbx.hiVect();
-              const Real *p_dat  = p_fab.dataPtr();
-              const Real *gp_dat = Gp.dataPtr();
-              const Real *dx     = geom.CellSize();
-
-              // ----------------------- create the pressure gradient
-              FORT_GRADP (p_dat,ARLIM(plo),ARLIM(phi),
-                          gp_dat,ARLIM(glo),ARLIM(ghi),glo,ghi,dx);
-          }
-          // from NS::getGradP ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-          godunov->Sum_tf_gp_visc( tvelforces, vel_visc_termsmfi(), Gp, Rho );
-      }
-
-      Array<int> bndry[BL_SPACEDIM];
-
-      D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
-             bndry[1] = getBCArray(State_Type,i,1,1);,
-             bndry[2] = getBCArray(State_Type,i,2,1);)
+        FArrayBox* tvelforces = &dummy;
         
-          // set up the workspace for the godunov Box
-          godunov->Setup( grd, dx, dt, 0,
-                          xflux, bndry[0].dataPtr(),
-                          yflux, bndry[1].dataPtr(),
+        if (use_forces_in_trans)
+        {
+            tvelforces = &((*tvelforces_fp)[i]);
+            
+            godunov->Sum_tf_gp_visc(*tvelforces,
+                                    vel_visc_terms[i],
+                                    (*Gp_fp)[i],
+                                    (*Rho_fp)[i]);
+        }
+        //
+        // Set up the workspace for the godunov Box.
+        //
+        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
+               bndry[1] = getBCArray(State_Type,i,1,1);,
+               bndry[2] = getBCArray(State_Type,i,2,1);)
+
+        godunov->Setup(grids[i], dx, dt, 0,
+                       xflux, bndry[0].dataPtr(),
+                       yflux, bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                         
-                          zflux, bndry[2].dataPtr(),
+                       zflux, bndry[2].dataPtr(),
 #endif
-                          U, Rho, tvelforces );
-        
-          // loop over the scalar components
-          for ( comp = 0 ; comp < num_scalars ; comp++ ) {
-              state_ind = fscalar + comp;
+                       (*U_fp)[i], (*Rho_fp)[i], *tvelforces);
+        //
+        // Loop over the scalar components.
+        //
+        for (int comp = 0 ; comp < num_scalars ; comp++)
+        {
+            int state_ind = fscalar + comp;
+            //
+            // Compute total forcing.
+            //
+            godunov->Sum_tf_divu_visc((*S_fp)[i], (*tforces_fp)[i], comp, 1,
+                                      visc_terms[i], comp,
+                                      (*divu_fp)[i], (*Rho_fp)[i],
+                                      is_conservative[state_ind]);
+            //
+            // Advect scalar.
+            //
+            state_bc = getBCArray(State_Type,i,state_ind,1);
 
-              // compute total forcing
-              godunov->Sum_tf_divu_visc( S, tforces,    comp, 1,
-                                         visc_termsmfi(), comp,
-                                         divu, Rho,
-                                         is_conservative[state_ind] );
-
-              Array<int> state_bc = getBCArray(State_Type,i,state_ind,1);
-              //  advect scalar
-              godunov->AdvectState( grd, dx, dt, 
-                                    area0mfi(), u_mac0mfi(), xflux,
-                                    area1mfi(), u_mac1mfi(), yflux,
+            godunov->AdvectState(grids[i], dx, dt, 
+                                 area[0][i], u_mac[0][i], xflux,
+                                 area[1][i], u_mac[1][i], yflux,
 #if (BL_SPACEDIM == 3)                        
-                                    area2mfi(), u_mac2mfi(), zflux,
+                                 area[2][i], u_mac[2][i], zflux,
 #endif
-                                    U, S, tforces, comp,
-                                    aofsmfi(),    state_ind,
-                                    is_conservative[state_ind],
-                                    state_ind,
-                                    state_bc.dataPtr(),
-                                    volumemfi() );
+                                 (*U_fp)[i], (*S_fp)[i], (*tforces_fp)[i], comp,
+                                 (*aofs)[i],    state_ind,
+                                 is_conservative[state_ind],
+                                 state_ind,
+                                 state_bc.dataPtr(),
+                                 volume[i]);
+            //
+            // Get the fluxes for refluxing and diagnostic purposes.
+            //
+            pullFluxes(i, state_ind, 1, xflux, yflux, zflux, dt);
+        }
+    }
 
-              // get the fluxes for refluxing and diagnostic purposes
-              pullFluxes(i, state_ind, 1, xflux, yflux, zflux, dt);
-          } // end of scalar loop
-
-          ++Ufpi;
-          ++Sfpi;
-          ++Rhofpi;
-          ++tvelforcesfpi;
-          ++pressurefpi;
-          if (have_divu)
-          {
-              ++divufpi;
-          }
-          if (have_divu)
-          {
-              bIteratorsValid = 
-                  Ufpi.isValid()          &&
-                  Sfpi.isValid()          &&
-                  Rhofpi.isValid()        &&
-                  tvelforcesfpi.isValid() &&
-                  pressurefpi.isValid()   &&
-                  divufpi.isValid();
-          }
-          else
-          {
-              bIteratorsValid = 
-                  Ufpi.isValid()          &&
-                  Sfpi.isValid()          &&
-                  Rhofpi.isValid()        &&
-                  tvelforcesfpi.isValid() &&
-                  pressurefpi.isValid();
-          }
-    } // end of while FillPatchIterator loop
+    delete tvelforces_fp;
+    delete Gp_fp;
+    delete divu_fp;
+    delete tforces_fp;
+    delete Rho_fp;
+    delete S_fp;
+    delete U_fp;
     //
     // pullFluxes() contains CrseInit() calls. Got to complete the process.
     //
-    if (do_reflux && level < finest_level)
+    if (do_reflux && level < parent->finestLevel())
     {
         FluxRegister& fr = getAdvFluxReg(level+1);
         fr.CrseInitFinish();
     }
 }
 
-
-
-//-------------------------------------------------------------
-//  This subroutine updates the scalars, before the velocity update
-//  and the level projection
 //
-//  AT this point in time, all we know is psi^n, rho^n+1/2, and the
-//  general forcing terms at t^n, and after solving in this routine
-//  viscous forcing at t^n+1/2.  Note, unless more complicated logic
-//  is invoked earlier, we do not have any estimate of general forcing
-//  terms at t^n+1/2.
-//-------------------------------------------------------------
+// This subroutine updates the scalars, before the velocity update
+// and the level projection
+//
+// AT this point in time, all we know is psi^n, rho^n+1/2, and the
+// general forcing terms at t^n, and after solving in this routine
+// viscous forcing at t^n+1/2.  Note, unless more complicated logic
+// is invoked earlier, we do not have any estimate of general forcing
+// terms at t^n+1/2.
+//
 
-void NavierStokes::scalar_update(Real dt, int first_scalar, int last_scalar)
+void
+NavierStokes::scalar_update (Real dt,
+                             int  first_scalar,
+                             int  last_scalar)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
     {
@@ -2229,22 +1876,28 @@ void NavierStokes::scalar_update(Real dt, int first_scalar, int last_scalar)
     scalar_diffusion_update(dt, first_scalar, last_scalar);
 }
 
-//-------------------------------------------------------------
-
-void NavierStokes::scalar_advection_update(Real dt, int first_scalar, int last_scalar)
+void
+NavierStokes::scalar_advection_update (Real dt,
+                                       int  first_scalar,
+                                       int  last_scalar)
 {
-
-    // simulation parameters
-    int finest_level = parent->finestLevel();
-    MultiFab &S_old = get_old_data(State_Type);
-    MultiFab &S_new = get_new_data(State_Type);
-    MultiFab &Aofs  = *aofs;
-    int ngrids        = grids.length();
+    //
+    // Simulation parameters.
+    //
+    MultiFab& S_old = get_old_data(State_Type);
+    MultiFab& S_new = get_new_data(State_Type);
+    MultiFab& Aofs  = *aofs;
     Real cur_time   = state[State_Type].curTime();
     Real prev_time  = state[State_Type].prevTime();
     Real half_time  = 0.5*(cur_time+prev_time);
     FArrayBox tforces;
     FArrayBox rho;
+
+
+
+
+
+
     
     // loop over the desired scalars
     for (int sigma = first_scalar; sigma <= last_scalar; sigma++) {
@@ -2486,22 +2139,21 @@ void NavierStokes::velocity_advection_update(Real dt)
     }
 }
 
-//-------------------------------------------------------------
-
-void NavierStokes::velocity_diffusion_update(Real dt)
+void
+NavierStokes::velocity_diffusion_update (Real dt)
 {
-    // compute the viscous forcing
-    // do following except at initial iteration--rbp, per jbb
-
-    if (is_diffusive[Xvel]) {
+    //
+    // Compute the viscous forcing.
+    // Do following except at initial iteration--rbp, per jbb.
+    //
+    if (is_diffusive[Xvel])
+    {
         MultiFab* delta_rhs = 0;
         diffuse_velocity_setup(dt, delta_rhs);
         diffusion->diffuse_velocity(dt, be_cn_theta, rho_half, 1);
-        if (delta_rhs!=0) delete delta_rhs;
+        delete delta_rhs;
     }
 }
-    
-// -------------------------------------------------------------
 
 void
 NavierStokes::diffuse_velocity_setup(Real dt,
@@ -4023,14 +3675,11 @@ NavierStokes::avgDown (const FArrayBox& fine_fab,
                   ovlo,ovhi,fratio.getVect());
 }
 
-//
-// The Level Sync correction function
-//
-
-void NavierStokes::level_sync ()
+void
+NavierStokes::level_sync ()
 {
     int i;
-
+    //
     // get parameters
     const Real* dx    = geom.CellSize();
     IntVect ratio     = parent->refRatio(level);
@@ -4040,8 +3689,9 @@ void NavierStokes::level_sync ()
     Real dt           = parent->dtLevel(level);
     Real prev_time    = state[State_Type].prevTime();
     Real half_time    = prev_time + 0.5*dt;
-
-    // get objects
+    //
+    // Get objects.
+    //
     MultiFab& pres              = get_new_data(Press_Type);
     MultiFab& vel               = get_new_data(State_Type);
     SyncRegister& rhs_sync_reg  = getLevel(level+1).getSyncReg();
@@ -4049,40 +3699,40 @@ void NavierStokes::level_sync ()
     const Box& P_domain         = state[Press_Type].getDomain();
     NavierStokes& fine_level    = getLevel(level+1);
     MultiFab& pres_fine         = fine_level.get_new_data(Press_Type);
+    //
+    // get rho at t^{n+1/2}.
+    //
+    int boxGrow  = 1;
+    int destComp = 0;
+    int srcComp  = Density;
+    int nComp    = 1;
+    for(FillPatchIterator rho_halffpi(*this, *rho_half, boxGrow, destComp,
+                                      half_time, State_Type, srcComp, nComp
+                                      /* , mapper = 0 */);
+        rho_halffpi.isValid();
+        ++rho_halffpi)
+    {
+        DependentMultiFabIterator rho_halfdest(rho_halffpi, (*rho_half));
 
-    // get rho at t^{n+1/2}
-
-        int boxGrow  = 1;
-        int destComp = 0;
-        int srcComp  = Density;
-        int nComp    = 1;
-        for(FillPatchIterator rho_halffpi(*this, *rho_half, boxGrow, destComp,
-                                          half_time, State_Type, srcComp, nComp
-                                          /* , mapper = 0 */);
-            rho_halffpi.isValid();
-            ++rho_halffpi)
-        {
-          DependentMultiFabIterator rho_halfdest(rho_halffpi, (*rho_half));
-
-          // copy from fillpatched fab to rho_half
-          rho_halfdest().copy(rho_halffpi());
-        }
+        rho_halfdest().copy(rho_halffpi());
+    }
     
-    if (level > 0) crsr_sync_ptr = &(getLevel(level).getSyncReg());
-
-    // get boundary conditions
-    int** sync_bc =  new int*[grids.length()];
-
+    if (level > 0)
+        crsr_sync_ptr = &(getLevel(level).getSyncReg());
+    //
+    // Get boundary conditions.
+    //
+    Array<int*> sync_bc(grids.length());
     Array< Array<int> > sync_bc_array(grids.length());
 
-    for (i = 0; i < grids.length(); i++) {
+    for (i = 0; i < grids.length(); i++)
+    {
         sync_bc_array[i] = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
         sync_bc[i] = sync_bc_array[i].dataPtr();
     }
-    
-    
-    // ================================ Multilevel Sync projection
-    // ================================ or single level
+    //
+    // Multilevel Sync projection or single level.
+    //
     if (do_MLsync_proj)
     {
         
@@ -4092,35 +3742,40 @@ void NavierStokes::level_sync ()
         const Geometry& crse_geom   = parent->Geom(level);
         const BoxArray&   finegrids = vel_fine.boxArray();
         const BoxArray& P_finegrids = pres_fine.boxArray();
-        MultiFab    phi(P_finegrids,1,1);
-        MultiFab V_corr(  finegrids,BL_SPACEDIM,1);
-        V_corr.setVal(0.);
-            
-        // if periodic, enforce periodicity on Vsync
+
+        MultiFab phi(P_finegrids,1,1);
+        MultiFab V_corr(finegrids,BL_SPACEDIM,1);
+
+        V_corr.setVal(0);
+        //
+        // If periodic, enforce periodicity on Vsync.
+        //
         projector->EnforcePeriodicity( *Vsync, BL_SPACEDIM, grids, crse_geom );
-    
-        // interpolate Vsync to fine grid correction in Vcorr
-        SyncInterp( *Vsync, level, V_corr, level+1, ratio,
-                    0, 0, BL_SPACEDIM, 0 , dt, sync_bc);
-        
-        // the multilevel projection
-        // This computes the projection and adds in its contribution
-        // to levels (level) and (level+1)
+        //
+        // Interpolate Vsync to fine grid correction in Vcorr.
+        //
+        SyncInterp(*Vsync, level, V_corr, level+1, ratio,
+                   0, 0, BL_SPACEDIM, 0 , dt, sync_bc.dataPtr());
+        //
+        // The multilevel projection.  This computes the projection and
+        // adds in its contribution to levels (level) and (level+1).
+        //
         projector->MLsyncProject(level,pres,vel,
                                  pres_fine,vel_fine,
                                  *rho_half, rho_fine, 
                                  Vsync,V_corr,phi,
-                                 &rhs_sync_reg,crsr_sync_ptr,sync_bc,
+                                 &rhs_sync_reg,crsr_sync_ptr,sync_bc.dataPtr(),
                                  dx,dt,ratio,crse_dt_ratio,
                                  fine_geom,geom);
-        
-        // correct pressure and velocities after the projection
+        //
+        // Correct pressure and velocities after the projection.
+        //
         ratio = IntVect::TheUnitVector();
-        int ** fine_sync_bc = new int*[finegrids.length()];
-
+        Array<int*>         fine_sync_bc(finegrids.length());
         Array< Array<int> > fine_sync_bc_array(finegrids.length());
 
-        for (i = 0; i < finegrids.length(); i++) {
+        for (i = 0; i < finegrids.length(); i++)
+        {
             fine_sync_bc_array[i] = getLevel(level+1).getBCArray(State_Type,
                                                                  i,
                                                                  Xvel,
@@ -4128,60 +3783,48 @@ void NavierStokes::level_sync ()
             fine_sync_bc[i] = fine_sync_bc_array[i].dataPtr();
         }
 
-        for (int lev = level+2; lev <= finest_level; lev++) {
+        for (int lev = level+2; lev <= finest_level; lev++)
+        {
             ratio                 *= parent->refRatio(lev-1);
             NavierStokes& fine_lev = getLevel(lev);
             MultiFab &P_new        = fine_lev.get_new_data(Press_Type);
             MultiFab &U_new        = fine_lev.get_new_data(State_Type);
 
-            SyncInterp( V_corr, level+1, U_new, lev, ratio,
-                        0, 0, BL_SPACEDIM, 1 , dt, fine_sync_bc);
+            SyncInterp(V_corr, level+1, U_new, lev, ratio,
+                       0, 0, BL_SPACEDIM, 1 , dt, fine_sync_bc.dataPtr());
             SyncProjInterp( phi, level+1, P_new, lev, ratio );
         }
-
-        for (int i = 0; i < finegrids.length(); i++)
-        {
-            delete fine_sync_bc[i];
-        }
-
-        delete[] fine_sync_bc;
-        
     }
-    else if ( do_sync_proj) 
+    else if (do_sync_proj) 
     {
         
         const BoxArray& P_grids = pres.boxArray();
         BoxArray sync_boxes     = pres_fine.boxArray();
         MultiFab phi(P_grids,1,1);
         sync_boxes.coarsen(ratio);
-        
-        // the single level projection
-        // This computes the projection and adds in its contribution
-        // to level (level)
+        //
+        // The single level projection.  This computes the projection and
+        // adds in its contribution to level (level).
+        //
         projector->syncProject(level,pres,vel,rho_half,Vsync,phi,
                                &rhs_sync_reg,crsr_sync_ptr,sync_boxes,
-                               sync_bc,geom,dx,dt,crse_dt_ratio);
-
-        // correct pressure and velocities after the projection
+                               sync_bc.dataPtr(),geom,dx,dt,crse_dt_ratio);
+        //
+        // Correct pressure and velocities after the projection.
+        //
         ratio = IntVect::TheUnitVector(); 
-        for (int lev = level+1; lev <= finest_level; lev++) {
+        for (int lev = level+1; lev <= finest_level; lev++)
+        {
             ratio                 *= parent->refRatio(lev-1);
             NavierStokes& fine_lev = getLevel(lev);
             MultiFab &P_new        = fine_lev.get_new_data(Press_Type);
             MultiFab &U_new        = fine_lev.get_new_data(State_Type);
             
-            SyncInterp( *Vsync, level, U_new, lev, ratio,
-                        0, 0, BL_SPACEDIM, 1 , dt, sync_bc);
+            SyncInterp(*Vsync, level, U_new, lev, ratio,
+                       0, 0, BL_SPACEDIM, 1 , dt, sync_bc.dataPtr());
             SyncProjInterp( phi, level, P_new, lev, ratio );
         }
     }
-    
-    // garbage collection
-    for ( i = 0; i < grids.length(); i++)
-    {
-        delete sync_bc[i];
-    }
-    delete[] sync_bc;
 }
 
 //
@@ -4248,7 +3891,7 @@ NavierStokes::mac_sync ()
         //
         // Get boundary conditions.
         //
-        Array< int* > sync_bc(grids.length());
+        Array<int*> sync_bc(grids.length());
         Array< Array<int> > sync_bc_array(grids.length());
 
         for (int i = 0; i < grids.length(); i++)
@@ -4269,12 +3912,6 @@ NavierStokes::mac_sync ()
             SyncInterp(*Ssync, level, S_new, lev, ratio,
                        0, BL_SPACEDIM, numscal, 1 , mult, sync_bc.dataPtr());
         }
-
-        // garbage collection
-        for (int i = 0; i < sync_bc.length(); i++)
-        {
-            delete sync_bc[i];
-        }
     }
 }
 
@@ -4285,10 +3922,12 @@ NavierStokes::mac_sync ()
 void
 NavierStokes::reflux ()
 {
-    if (level == parent->finestLevel()) return;
+    if (level == parent->finestLevel())
+        return;
+
     assert(do_reflux);
 
-    MultiFab &S_crse = get_new_data(State_Type);
+    MultiFab& S_crse = get_new_data(State_Type);
 
       // first do refluxing step
     FluxRegister& fr_adv  = getAdvFluxReg(level+1);
@@ -4757,9 +4396,8 @@ NavierStokes::getGradP (int  ngrow,
                    gp_dat,ARLIM(glo),ARLIM(ghi),glo,ghi,dx);
     }
 
-    delete press;
-
     return gradp;
+    delete press;
 }
 
 //
@@ -5132,8 +4770,8 @@ NavierStokes::calc_divu (Real      time,
                 mfi().divide(temp_it(),mfi.validbox(),0,0,1);
             }
 
-            delete rho;
             delete temp;
+            delete rho;
         }
     }
 }
