@@ -2,7 +2,7 @@
 #define _AMR_MULTI_H_
 
 //
-// $Id: amr_multi.H,v 1.5 1997-09-26 16:57:08 lijewski Exp $
+// $Id: amr_multi.H,v 1.6 1997-09-30 20:53:14 car Exp $
 //
 
 #include <fill_patch.H>
@@ -33,7 +33,8 @@ class amr_multigrid
 
   int get_amr_level(int mglev) 
   {
-    for (int i = lev_min; i <= lev_max; i++) {
+    for (int i = lev_min; i <= lev_max; i++) 
+    {
       if (ml_index[i] == mglev)
 	return i;
     }
@@ -85,12 +86,17 @@ class amr_multigrid
 #endif
 
   static void SetCartesian()
-    { c_sys = 0; }
+  { 
+      c_sys = 0;
+  }
 
   static int IsRZ()
-    { return c_sys; }
+  {
+      return c_sys; }
   static int IsCartesian()
-    { return !c_sys; }
+  {
+      return !c_sys;
+  }
 
   static void mesh_read(Array<BoxArray>& m, Array<IntVect>& r,
 			Array<Box>& d, istream& is);

@@ -1,6 +1,6 @@
 
 //
-// $Id: hg_multi3.cpp,v 1.10 1997-09-26 16:57:13 lijewski Exp $
+// $Id: hg_multi3.cpp,v 1.11 1997-09-30 20:53:15 car Exp $
 //
 
 #include <hg_multi.H>
@@ -82,9 +82,9 @@ extern "C"
 
 #  if (CGOPT == 1)
   void FORT_HGCG1(Real*, Real*, Real*, Real*, Real*, Real*, Real*,
-		  intS, const Real&, Real&);
-  void FORT_HGCG2(Real*, Real*, intS, const Real&);
-  void FORT_HGIP(Real*, Real*, Real*, intS, Real&);
+		  intS, const Real*, Real*);
+  void FORT_HGCG2(Real*, Real*, intS, const Real*);
+  void FORT_HGIP(Real*, Real*, Real*, intS, Real*);
 #  elif (CGOPT == 2)
 #    if (BL_SPACEDIM == 2)
   void FORT_HGCG(Real*, Real*, Real*, Real*, Real*, Real*, Real*,
@@ -126,6 +126,7 @@ holy_grail_amr_multigrid::level_residual(MultiFab& r,
 
 #ifdef SIGMA_NODE
 
+  // PARALLEL
   for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
   {
     const Box& rbox = r[igrid].box();
@@ -150,6 +151,7 @@ holy_grail_amr_multigrid::level_residual(MultiFab& r,
 
   if (!iclear) 
   {
+    // PARALLEL
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
     {
       const Box& rbox = r[igrid].box();
@@ -161,6 +163,7 @@ holy_grail_amr_multigrid::level_residual(MultiFab& r,
   }
   else 
   {
+    // PARALLEL
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
     {
       const Box& rbox = r[igrid].box();
@@ -174,6 +177,7 @@ holy_grail_amr_multigrid::level_residual(MultiFab& r,
 
 #  else
 
+  // PARALLEL
   for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
   {
     const Box& rbox = r[igrid].box();
@@ -244,6 +248,7 @@ holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 		     interface[mglev], mg_boundary);
       else
 	is_zero = 0;
+      // PARALLEL
       for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
       {
 	const Box& sbox = resid[mglev][igrid].box();
@@ -344,6 +349,7 @@ holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
     }
     else 
     {
+      BoxLib::Abort("No Line Solve Yet");
       // Full-level line solve section:
       if (line_order.length() == 0) 
       {
@@ -362,6 +368,7 @@ holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	  is_zero = 0;
 
 	// Forward solve:
+	// PARALLEL
 	for (i = 0; i < mg_mesh[mglev].length(); i++) 
 	{
 
@@ -416,6 +423,7 @@ holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	}
 
 	// Back substitution:
+	// WON'T WORK PARALLEL
 	for (i = mg_mesh[mglev].length() - 1; i >= 0; i--) 
 	{
 
@@ -445,6 +453,7 @@ holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 void 
 holy_grail_amr_multigrid::build_line_order(int lsd)
 {
+  BoxLib::Abort("No Line Order");
   line_order.resize(lev_max + 1);
   line_after.resize(lev_max + 1);
 
@@ -518,6 +527,7 @@ holy_grail_amr_multigrid::cgsolve(int mglev)
   int i = 0, igrid;
 
   // x (corr[0]) should be all 0.0 at this point
+  // PARALLEL
   for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
   {
     r[igrid].copy(resid[mglev][igrid]);
@@ -584,6 +594,7 @@ holy_grail_amr_multigrid::cgsolve(int mglev)
 	    h[0][0], alpha, rho, i, pcode);
 #elif (CGOPT == 1)
   rho = 0.0;
+  // PARALLEL
   for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
   {
     z[igrid].copy(r[igrid]);
@@ -591,7 +602,7 @@ holy_grail_amr_multigrid::cgsolve(int mglev)
     const Box& reg = p[igrid].box();
     FORT_HGIP(z[igrid].dataPtr(), r[igrid].dataPtr(),
 	      ipmask[igrid].dataPtr(),
-	      dimlist(reg), rho);
+	      dimlist(reg), &rho);
     p[igrid].copy(z[igrid]);
   }
   Real tol = 1.e-3 * rho;
@@ -606,33 +617,36 @@ holy_grail_amr_multigrid::cgsolve(int mglev)
     // into r but are cleared from z by the mask in c
     level_residual(w, zero_array, p, pbc, 0, 0);
     alpha = 0.0;
+    // PARALLEL -- REDUCTION on alpha
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
     {
       const Box& reg = p[igrid].box();
       FORT_HGIP(p[igrid].dataPtr(), w[igrid].dataPtr(),
 		ipmask[igrid].dataPtr(),
-		dimlist(reg), alpha);
+		dimlist(reg), &alpha);
     }
     alpha = rho / alpha;
     rho = 0.0;
+    // PARALLEL -- REDUCTION on rho
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
     {
       const Box& reg = p[igrid].box();
       FORT_HGCG1(r[igrid].dataPtr(), p[igrid].dataPtr(),
 		 z[igrid].dataPtr(), x[igrid].dataPtr(),
 		 w[igrid].dataPtr(), c[igrid].dataPtr(),
-		 ipmask[igrid].dataPtr(), dimlist(reg), alpha, rho);
+		 ipmask[igrid].dataPtr(), dimlist(reg), &alpha, &rho);
     }
     if (pcode >= 3)
       cout << i << SP << rho << NL;
     if (rho <= tol || i > 250)
       break;
     alpha = rho / rho_old;
+    // PARALLEL
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
     {
       const Box& reg = p[igrid].box();
       FORT_HGCG2(p[igrid].dataPtr(), z[igrid].dataPtr(),
-		 dimlist(reg), alpha);
+		 dimlist(reg), &alpha);
     }
   }
 #else
@@ -678,6 +692,7 @@ holy_grail_amr_multigrid::cgsolve(int mglev)
       cout << i << SP << rho << NL;
     if (rho <= tol || i > 250)
       break;
+    // PARALLEL
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
     {
       p[igrid].mult(rho / rho_old);
