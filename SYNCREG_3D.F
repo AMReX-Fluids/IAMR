@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.9 1999-07-27 05:59:26 almgren Exp $
+c $Id: SYNCREG_3D.F,v 1.10 1999-07-27 20:45:44 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -41,9 +41,11 @@ c ::: -----------------------------------------------------------
       
       integer    i, j, k, ic, jc, kc
       integer    ratiox, ratioy, ratioz
-      REAL_T     one28
+      REAL_T     one28, fourthirds, threefourths
 
-      one28 = eight * sixteen
+      one28        = eight * sixteen
+      fourthirds   = four * third
+      threefourths = three * fourth
 
 c     NOTE: the reason that the coefficients add up to 1/ratio_norm and NOT to 1
 c           is because the divergences and DGphi were computed using the
@@ -67,40 +69,40 @@ c        ::::: sum in j and k directions
          i = ratiox*ic
 
          j = ratioy*lo(2)
-         do k = ratioz*lo(3)+1,ratioz*hi(3)-1
+         do k = fine_l3, fine_h3
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          j = ratioy*hi(2)
-         do k = ratioz*lo(3)+1,ratioz*hi(3)-1
+         do k = fine_l3, fine_h3
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          k = ratioz*lo(3)
-         do j = ratioy*lo(2)+1,ratioy*hi(2)-1
+         do j = fine_l2, fine_h2
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          k = ratioz*hi(3)
-         do j = ratioy*lo(2)+1,ratioy*hi(2)-1
+         do j = fine_l2, fine_h2
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          j = ratioy*lo(2)
          k = ratioz*lo(3)
-         fine(i,j,k) = third*fine(i,j,k)
+         fine(i,j,k) = fourthirds*fine(i,j,k)
 
          j = ratioy*hi(2)
          k = ratioz*lo(3)
-         fine(i,j,k) = third*fine(i,j,k)
+         fine(i,j,k) = fourthirds*fine(i,j,k)
 
          j = ratioy*lo(2)
          k = ratioz*hi(3)
-         fine(i,j,k) = third*fine(i,j,k)
+         fine(i,j,k) = fourthirds*fine(i,j,k)
 
          j = ratioy*hi(2)
          k = ratioz*hi(3)
-         fine(i,j,k) = third*fine(i,j,k)
+         fine(i,j,k) = fourthirds*fine(i,j,k)
 
          if (ratioy .eq. 1 .and. ratioz .eq. 1) then
 
@@ -259,40 +261,40 @@ c        ::::: sum in j and k directions
          end if
 
          j = ratioy*lo(2)
-         do k = ratioz*lo(3)+1,ratioz*hi(3)-1
+         do k = fine_l3, fine_h3
            fine(i,j,k) = two*fine(i,j,k)
          enddo
 
          j = ratioy*hi(2)
-         do k = ratioz*lo(3)+1,ratioz*hi(3)-1
+         do k = fine_l3, fine_h3
            fine(i,j,k) = two*fine(i,j,k)
          enddo
 
          k = ratioz*lo(3)
-         do j = ratioy*lo(2)+1,ratioy*hi(2)-1
+         do j = fine_l2, fine_h2
            fine(i,j,k) = two*fine(i,j,k)
          enddo
 
          k = ratioz*hi(3)
-         do j = ratioy*lo(2)+1,ratioy*hi(2)-1
+         do j = fine_l2, fine_h2
            fine(i,j,k) = two*fine(i,j,k)
          enddo
 
          j = ratioy*lo(2)
          k = ratioz*lo(3)
-         fine(i,j,k) = three*fine(i,j,k)
+         fine(i,j,k) = threefourths*fine(i,j,k)
 
          j = ratioy*hi(2)
          k = ratioz*lo(3)
-         fine(i,j,k) = three*fine(i,j,k)
+         fine(i,j,k) = threefourths*fine(i,j,k)
 
          j = ratioy*lo(2)
          k = ratioz*hi(3)
-         fine(i,j,k) = three*fine(i,j,k)
+         fine(i,j,k) = threefourths*fine(i,j,k)
 
          j = ratioy*hi(2)
          k = ratioz*hi(3)
-         fine(i,j,k) = three*fine(i,j,k)
+         fine(i,j,k) = threefourths*fine(i,j,k)
       
       else if (dir .eq. 1) then
 c
@@ -302,40 +304,48 @@ c
          j = ratioy*jc
 
          i = ratiox*lo(1)
-         do k = ratioz*lo(3)+1,ratioz*hi(3)-1
+c        do k = ratioz*lo(3)+1,ratioz*hi(3)-1
+         do k = fine_l3, fine_h3
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          i = ratiox*hi(1)
-         do k = ratioz*lo(3)+1,ratioz*hi(3)-1
+c        do k = ratioz*lo(3)+1,ratioz*hi(3)-1
+         do k = fine_l3, fine_h3
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          k = ratioz*lo(3)
-         do i = ratiox*lo(1)+1,ratiox*hi(1)-1
+c        do i = ratiox*lo(1)+1,ratiox*hi(1)-1
+         do i = fine_l1, fine_h1
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          k = ratioz*hi(3)
-         do i = ratiox*lo(1)+1,ratiox*hi(1)-1
+c        do i = ratiox*lo(1)+1,ratiox*hi(1)-1
+         do i = fine_l1, fine_h1
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          i = ratiox*lo(1)
          k = ratioz*lo(3)
-         fine(i,j,k) = third*fine(i,j,k)
+c        fine(i,j,k) = third*fine(i,j,k)
+         fine(i,j,k) = four*third*fine(i,j,k)
 
          i = ratiox*hi(1)
          k = ratioz*lo(3)
-         fine(i,j,k) = third*fine(i,j,k)
+c        fine(i,j,k) = third*fine(i,j,k)
+         fine(i,j,k) = four*third*fine(i,j,k)
 
          i = ratiox*lo(1)
          k = ratioz*hi(3)
-         fine(i,j,k) = third*fine(i,j,k)
+c        fine(i,j,k) = third*fine(i,j,k)
+         fine(i,j,k) = four*third*fine(i,j,k)
 
          i = ratiox*hi(1)
          k = ratioz*hi(3)
-         fine(i,j,k) = third*fine(i,j,k)
+c        fine(i,j,k) = third*fine(i,j,k)
+         fine(i,j,k) = four*third*fine(i,j,k)
 
          if (ratiox .eq. 1 .and. ratioz .eq. 1) then
 
@@ -493,40 +503,40 @@ c
          end if
 
          i = ratiox*lo(1)
-         do k = ratioz*lo(3)+1,ratioz*hi(3)-1
+         do k = fine_l3, fine_h3
            fine(i,j,k) = two*fine(i,j,k)
          enddo
 
          i = ratiox*hi(1)
-         do k = ratioz*lo(3)+1,ratioz*hi(3)-1
+         do k = fine_l3, fine_h3
            fine(i,j,k) = two*fine(i,j,k)
          enddo
 
          k = ratioz*lo(3)
-         do i = ratiox*lo(1)+1,ratiox*hi(1)-1
+         do i = fine_l1, fine_h1
            fine(i,j,k) = two*fine(i,j,k)
          enddo
 
          k = ratioz*hi(3)
-         do i = ratiox*lo(1)+1,ratiox*hi(1)-1
+         do i = fine_l1, fine_h1
            fine(i,j,k) = two*fine(i,j,k)
          enddo
 
          i = ratiox*lo(1)
          k = ratioz*lo(3)
-         fine(i,j,k) = three*fine(i,j,k)
+         fine(i,j,k) = threefourths*fine(i,j,k)
 
          i = ratiox*hi(1)
          k = ratioz*lo(3)
-         fine(i,j,k) = three*fine(i,j,k)
+         fine(i,j,k) = threefourths*fine(i,j,k)
 
          i = ratiox*lo(1)
          k = ratioz*hi(3)
-         fine(i,j,k) = three*fine(i,j,k)
+         fine(i,j,k) = threefourths*fine(i,j,k)
 
          i = ratiox*hi(1)
          k = ratioz*hi(3)
-         fine(i,j,k) = three*fine(i,j,k)
+         fine(i,j,k) = threefourths*fine(i,j,k)
 
        else if (dir .eq. 2) then
 
@@ -535,40 +545,40 @@ c        ::::: sum in i and j directions
          k = ratioz*kc
 
          i = ratiox*lo(1)
-         do j = ratioy*lo(2)+1,ratioy*hi(2)-1
+         do j = fine_l2, fine_h2
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          i = ratiox*hi(1)
-         do j = ratioy*lo(2)+1,ratioy*hi(2)-1
+         do j = fine_l2, fine_h2
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          j = ratioy*lo(2)
-         do i = ratiox*lo(1)+1,ratiox*hi(1)-1
+         do i = fine_l1, fine_h1
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          j = ratioy*hi(2)
-         do i = ratiox*lo(1)+1,ratiox*hi(1)-1
+         do i = fine_l1, fine_h1
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          i = ratiox*lo(1)
          j = ratioy*lo(2)
-         fine(i,j,k) = third*fine(i,j,k)
+         fine(i,j,k) = fourthirds*fine(i,j,k)
 
          i = ratiox*hi(1)
          j = ratioy*lo(2)
-         fine(i,j,k) = third*fine(i,j,k)
+         fine(i,j,k) = fourthirds*fine(i,j,k)
 
          i = ratiox*lo(1)
          j = ratioy*hi(2)
-         fine(i,j,k) = third*fine(i,j,k)
+         fine(i,j,k) = fourthirds*fine(i,j,k)
 
          i = ratiox*hi(1)
          j = ratioy*hi(2)
-         fine(i,j,k) = third*fine(i,j,k)
+         fine(i,j,k) = fourthirds*fine(i,j,k)
 
          if (ratiox .eq. 1 .and. ratioy .eq. 1) then
 
@@ -726,40 +736,40 @@ c        ::::: sum in i and j directions
          end if
 
          i = ratiox*lo(1)
-         do j = ratioy*lo(2)+1,ratioy*hi(2)-1
+         do j = fine_l2, fine_h2
            fine(i,j,k) = two*fine(i,j,k)
          enddo
 
          i = ratiox*hi(1)
-         do j = ratioy*lo(2)+1,ratioy*hi(2)-1
+         do j = fine_l2, fine_h2
            fine(i,j,k) = two*fine(i,j,k)
          enddo
 
          j = ratioy*lo(2)
-         do i = ratiox*lo(1)+1,ratiox*hi(1)-1
+         do i = fine_l1, fine_h1
            fine(i,j,k) = two*fine(i,j,k)
          enddo
 
          j = ratioy*hi(2)
-         do i = ratiox*lo(1)+1,ratiox*hi(1)-1
+         do i = fine_l1, fine_h1
            fine(i,j,k) = two*fine(i,j,k)
          enddo
 
          i = ratiox*lo(1)
          j = ratioy*lo(2)
-         fine(i,j,k) = three*fine(i,j,k)
+         fine(i,j,k) = threefourths*fine(i,j,k)
 
          i = ratiox*hi(1)
          j = ratioy*lo(2)
-         fine(i,j,k) = three*fine(i,j,k)
+         fine(i,j,k) = threefourths*fine(i,j,k)
 
          i = ratiox*lo(1)
          j = ratioy*hi(2)
-         fine(i,j,k) = three*fine(i,j,k)
+         fine(i,j,k) = threefourths*fine(i,j,k)
 
          i = ratiox*hi(1)
          j = ratioy*hi(2)
-         fine(i,j,k) = three*fine(i,j,k)
+         fine(i,j,k) = threefourths*fine(i,j,k)
 
       end if
 
