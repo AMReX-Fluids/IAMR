@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.231 2003-09-15 21:17:38 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.232 2003-09-26 19:33:43 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3474,19 +3474,19 @@ set_bc_new (int*            bc_new,
 //
 
 void
-NavierStokes::SyncInterp (MultiFab& CrseSync,
-                          int       c_lev,
-                          MultiFab& FineSync,
-                          int       f_lev,
-                          IntVect&  ratio,
-                          int       src_comp,
-                          int       dest_comp,
-                          int       num_comp,
-                          int       increment,
-                          Real      dt_clev, 
-                          int**     bc_orig_qty,
-                          int       which_interp,
-                          int       state_comp)
+NavierStokes::SyncInterp (MultiFab&      CrseSync,
+                          int            c_lev,
+                          MultiFab&      FineSync,
+                          int            f_lev,
+                          IntVect&       ratio,
+                          int            src_comp,
+                          int            dest_comp,
+                          int            num_comp,
+                          int            increment,
+                          Real           dt_clev, 
+                          int**          bc_orig_qty,
+                          SyncInterpType which_interp,
+                          int            state_comp)
 {
     BL_ASSERT(which_interp >= 0 && which_interp <= 5);
 
@@ -3494,10 +3494,10 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
 
     switch (which_interp)
     {
-    case 0: interpolater = &cell_cons_interp;    break;
-    case 1: interpolater = &pc_interp;           break;
-    case 2: interpolater = &lincc_interp;        break;
-    case 3: interpolater = &protected_interp;    break;
+    case PC_T:           interpolater = &pc_interp;           break;
+    case CellCons_T:     interpolater = &cell_cons_interp;    break;
+    case CellConsLin_T:  interpolater = &lincc_interp;        break;
+    case CellConsProt_T: interpolater = &protected_interp;    break;
     default:
         BoxLib::Abort("NavierStokes::SyncInterp(): how did this happen");
     }
