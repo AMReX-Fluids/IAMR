@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.75 1999-03-05 19:21:26 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.76 1999-03-05 21:17:42 almgren Exp $
 //
 
 //
@@ -336,13 +336,13 @@ Diffusion::diffuse_scalar (Real                   dt,
                            Real                   be_cn_theta,
                            const MultiFab*        rho_half,
                            int                    rho_flag,
-               MultiFab* const*       flux,
-               int                    dataComp,
+               		   MultiFab* const*       flux,
+               		   int                    dataComp,
                            MultiFab*              delta_rhs, 
                            const MultiFab*        alpha, 
                            const MultiFab* const* betan, 
                            const MultiFab* const* betanp1,
-               const SolveMode&       solve_mode)
+               		   const SolveMode&       solve_mode)
 {
     //
     // This routine expects that physical BC's have been loaded into
@@ -817,7 +817,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     const Real a = 1.0;
     Real b = be_cn_theta*dt;
     if (allnull)
-    b *= visc_coef[Xvel];
+        b *= visc_coef[Xvel];
        
     ViscBndryTensor visc_bndry;
     DivVis* tensor_op = getTensorOp(a,b,cur_time,visc_bndry,rho_half,dComp,betanp1);
@@ -1518,7 +1518,7 @@ Diffusion::getTensorOp (Real                   a,
     //
     // alpha should be the same size as volume.
     //
-    const int nCompAlpha = (BL_SPACEDIM == 2  ?  2  :  1);
+    const int nCompAlpha = BL_SPACEDIM == 2  ?  2  :  1;
     MultiFab alpha(grids,nCompAlpha,nghost);
     alpha.setVal(0.0,nghost);
 
@@ -1555,14 +1555,14 @@ Diffusion::getTensorOp (Real                   a,
             DEF_LIMITS(Rh,rho_dat,rlo,rhi);
 
             FArrayBox& betax = beta0mfi();
-        const Real* betax_dat = betax.dataPtr(dataComp);
-        const int* betax_lo = betax.loVect();
-        const int* betax_hi = betax.hiVect();
+            const Real* betax_dat = betax.dataPtr(dataComp);
+            const int* betax_lo = betax.loVect();
+            const int* betax_hi = betax.hiVect();
 
             FArrayBox& betay = beta1mfi();
-        const Real* betay_dat = betay.dataPtr(dataComp);
-        const int* betay_lo = betay.loVect();
-        const int* betay_hi = betay.hiVect();
+            const Real* betay_dat = betay.dataPtr(dataComp);
+            const int* betay_lo = betay.loVect();
+            const int* betay_hi = betay.hiVect();
 
 #if (BL_SPACEDIM == 3)
             FArrayBox& betaz = beta2mfi();
@@ -1578,9 +1578,9 @@ Diffusion::getTensorOp (Real                   a,
                                   betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
                                   betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),
 #if (BL_SPACEDIM == 3)
-                  betaz_dat,ARLIM(betaz_lo),ARLIM(betaz_hi),
+                                  betaz_dat,ARLIM(betaz_lo),ARLIM(betaz_hi),
 #endif
-                  &isrz);
+                                  &isrz);
         }
     }
     tensor_op->setScalars(a,b);
@@ -1647,7 +1647,7 @@ Diffusion::getTensorOp (Real                   a,
     //
     // alpha should be the same size as volume.
     //
-    const int nCompAlpha = (BL_SPACEDIM == 2  ?  2  :  1);
+    const int nCompAlpha = BL_SPACEDIM == 2  ?  2  :  1;
     MultiFab alpha(grids,nCompAlpha,nghost);
     alpha.setVal(0.0);
 
@@ -2152,7 +2152,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 void
 Diffusion::getTensorViscTerms (MultiFab&              visc_terms, 
                                Real                   time,
-                   int                    dataComp,
+                   	       int                    dataComp,
                                const MultiFab* const* beta)
 {
     int allthere;
