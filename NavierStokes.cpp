@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.112 1999-02-18 18:22:16 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.113 1999-02-23 22:59:15 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -728,6 +728,27 @@ NavierStokes::restart (Amr&     papa,
                               (level > 0) ? getLevel(level-1).diffusion : 0,
                               NUM_STATE, viscflux_reg, volume, area,
                               is_diffusive, visc_coef);
+
+    //
+    // Allocate the storage for variable viscosity and diffusivity
+    //
+    if (variable_vel_visc)
+    {
+        viscn = new MultiFab*;
+        diffusion->allocFluxBoxesLevel(viscn, 0, 1);
+
+        viscnp1 = new MultiFab*;
+        diffusion->allocFluxBoxesLevel(viscnp1, 0, 1);
+    }
+
+    if (variable_scal_diff)
+    {
+        diffn = new MultiFab*;
+        diffusion->allocFluxBoxesLevel(diffn, 0, NUM_STATE-Density-1);
+
+        diffnp1 = new MultiFab*;
+        diffusion->allocFluxBoxesLevel(diffnp1, 0, NUM_STATE-Density-1);
+    }
 
 }
 
