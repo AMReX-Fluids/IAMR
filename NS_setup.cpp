@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.19 1998-09-29 20:09:02 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.20 1998-10-12 23:19:00 sstanley Exp $
 //
 
 #include <NavierStokes.H>
@@ -26,27 +26,27 @@ static Box cell_to_node (const Box& b) { return surroundingNodes(b); }
 //
 static int norm_vel_bc[] =
 {
-    INT_DIR, EXT_DIR, EXTRAP, REFLECT_ODD, EXT_DIR, EXT_DIR
+    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_ODD, EXT_DIR, EXT_DIR
 };
 
 static int tang_vel_bc[] =
 {
-    INT_DIR, EXT_DIR, EXTRAP, REFLECT_EVEN, HOEXTRAP, EXT_DIR
+    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_EVEN, HOEXTRAP, EXT_DIR
 };
 
 static int scalar_bc[] =
 {
-    INT_DIR, EXT_DIR, EXTRAP, REFLECT_EVEN, EXTRAP, EXTRAP
+    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_EVEN, FOEXTRAP, FOEXTRAP
 };
 
 static int press_bc[] =
 {
-    INT_DIR, EXTRAP, EXTRAP, REFLECT_EVEN, EXTRAP, EXTRAP
+    INT_DIR, FOEXTRAP, FOEXTRAP, REFLECT_EVEN, FOEXTRAP, FOEXTRAP
 };
 
 static int temp_bc[] =
 {
-    INT_DIR, EXT_DIR, EXTRAP, REFLECT_EVEN, EXT_DIR, EXT_DIR
+    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_EVEN, EXT_DIR, EXT_DIR
 };
 
 static int divu_bc[] =

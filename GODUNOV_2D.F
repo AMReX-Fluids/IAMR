@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.8 1998-09-22 19:58:20 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.9 1998-10-12 23:18:59 sstanley Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -482,7 +482,7 @@ c
             if (bc(1,1).eq.EXT_DIR) then
                stxhi(imin) = s(imin-1,j)
                stxlo(imin) = s(imin-1,j)
-            else if (bc(1,1).eq.EXTRAP.or.bc(1,1).eq.HOEXTRAP
+            else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP
      &              .or.bc(1,1).eq.REFLECT_EVEN) then
                stxlo(imin) = stxhi(imin)
             else if (bc(1,1).eq.REFLECT_ODD) then
@@ -492,7 +492,7 @@ c
             if (bc(1,2).eq.EXT_DIR) then
                stxlo(imax+1) = s(imax+1,j)
                stxhi(imax+1) = s(imax+1,j)
-            else if (bc(1,2).eq.EXTRAP.or.bc(1,2).eq.HOEXTRAP
+            else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP
      &              .or.bc(1,2).eq.REFLECT_EVEN) then
                stxhi(imax+1) = stxlo(imax+1)
             else if (bc(1,2).eq.REFLECT_ODD) then
@@ -539,7 +539,7 @@ c
             if (bc(2,1).eq.EXT_DIR) then
                styhi(jmin) = s(i,jmin-1)
                stylo(jmin) = s(i,jmin-1)
-            else if (bc(2,1).eq.EXTRAP.or.bc(2,1).eq.HOEXTRAP
+            else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP
      &              .or.bc(2,1).eq.REFLECT_EVEN) then
                stylo(jmin) = styhi(jmin)
             else if (bc(2,1).eq.REFLECT_ODD) then
@@ -550,7 +550,7 @@ c
             if (bc(2,2).eq.EXT_DIR) then
                stylo(jmax+1) = s(i,jmax+1)
                styhi(jmax+1) = s(i,jmax+1)
-            else if (bc(2,2).eq.EXTRAP.or.bc(2,2).eq.HOEXTRAP
+            else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
      &              .or.bc(2,2).eq.REFLECT_EVEN) then
                styhi(jmax+1) = stylo(jmax+1)
             else if (bc(2,2).eq.REFLECT_ODD) then
@@ -772,7 +772,7 @@ c
                xlo(imin,j) = stx
             end do
          end if
-      else if (xbc(1,1).eq.EXTRAP.or.xbc(1,1).eq.HOEXTRAP
+      else if (xbc(1,1).eq.FOEXTRAP.or.xbc(1,1).eq.HOEXTRAP
      &        .or.xbc(1,1).eq.REFLECT_EVEN) then
          do j = jmin-1,jmax+1
             xlo(imin,j) = xhi(imin,j)
@@ -798,7 +798,7 @@ c
                xlo(imax+1,j) = stx
             end do
          end if
-      else if (xbc(1,2).eq.EXTRAP.or.xbc(1,2).eq.HOEXTRAP
+      else if (xbc(1,2).eq.FOEXTRAP.or.xbc(1,2).eq.HOEXTRAP
      &        .or.xbc(1,2).eq.REFLECT_EVEN) then
          do j = jmin-1,jmax+1
             xhi(imax+1,j) = xlo(imax+1,j)
@@ -854,7 +854,7 @@ c
                ylo(i,jmin) = sty
             end do
          end if
-      else if (ybc(2,1).eq.EXTRAP.or.ybc(2,1).eq.HOEXTRAP
+      else if (ybc(2,1).eq.FOEXTRAP.or.ybc(2,1).eq.HOEXTRAP
      &        .or.ybc(2,1).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
             ylo(i,jmin) = yhi(i,jmin)
@@ -880,7 +880,7 @@ c
                ylo(i,jmax+1) = sty
             end do
          end if
-      else if (ybc(2,2).eq.EXTRAP.or.ybc(2,2).eq.HOEXTRAP
+      else if (ybc(2,2).eq.FOEXTRAP.or.ybc(2,2).eq.HOEXTRAP
      &        .or.ybc(2,2).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
             yhi(i,jmax+1) = ylo(i,jmax+1)

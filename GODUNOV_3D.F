@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.8 1998-03-31 17:26:36 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.9 1998-10-12 23:18:59 sstanley Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -691,7 +691,7 @@ c
                if (bc(1,1).eq.EXT_DIR) then
                   stxhi(imin) = s(imin-1,j,k)
                   stxlo(imin) = s(imin-1,j,k)
-               else if (bc(1,1).eq.EXTRAP.or.bc(1,1).eq.HOEXTRAP
+               else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP
      &                 .or.bc(1,1).eq.REFLECT_EVEN) then
                   stxlo(imin) = stxhi(imin)
                else if (bc(1,1).eq.REFLECT_ODD) then
@@ -701,7 +701,7 @@ c
                if (bc(1,2).eq.EXT_DIR) then
                   stxlo(imax+1) = s(imax+1,j,k)
                   stxhi(imax+1) = s(imax+1,j,k)
-               else if (bc(1,2).eq.EXTRAP.or.bc(1,2).eq.HOEXTRAP
+               else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP
      &                 .or.bc(1,2).eq.REFLECT_EVEN) then
                   stxhi(imax+1) = stxlo(imax+1)
                else if (bc(1,2).eq.REFLECT_ODD) then
@@ -754,7 +754,7 @@ c
                if (bc(2,1).eq.EXT_DIR) then
                   styhi(jmin) = s(i,jmin-1,k)
                   stylo(jmin) = s(i,jmin-1,k)
-               else if (bc(2,1).eq.EXTRAP.or.bc(2,1).eq.HOEXTRAP
+               else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP
      &                 .or.bc(2,1).eq.REFLECT_EVEN) then
                   stylo(jmin) = styhi(jmin)
                else if (bc(2,1).eq.REFLECT_ODD) then
@@ -765,7 +765,7 @@ c
                if (bc(2,2).eq.EXT_DIR) then
                   stylo(jmax+1) = s(i,jmax+1,k)
                   styhi(jmax+1) = s(i,jmax+1,k)
-               else if (bc(2,2).eq.EXTRAP.or.bc(2,2).eq.HOEXTRAP
+               else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
      &                 .or.bc(2,2).eq.REFLECT_EVEN) then
                   styhi(jmax+1) = stylo(jmax+1)
                else if (bc(2,2).eq.REFLECT_ODD) then
@@ -818,7 +818,7 @@ c
                if (bc(3,1).eq.EXT_DIR) then
                   stzlo(kmin) = s(i,j,kmin-1)
                   stzhi(kmin) = s(i,j,kmin-1)
-               else if (bc(3,1).eq.EXTRAP.or.bc(3,1).eq.HOEXTRAP
+               else if (bc(3,1).eq.FOEXTRAP.or.bc(3,1).eq.HOEXTRAP
      &                 .or.bc(3,1).eq.REFLECT_EVEN) then
                   stzlo(kmin) = stzhi(kmin)
                else if (bc(3,1).eq.REFLECT_ODD) then
@@ -828,7 +828,7 @@ c
                if (bc(3,2).eq.EXT_DIR) then
                   stzlo(kmax+1) = s(i,j,kmax+1)
                   stzhi(kmax+1) = s(i,j,kmax+1)
-               else if (bc(3,2).eq.EXTRAP.or.bc(3,2).eq.HOEXTRAP
+               else if (bc(3,2).eq.FOEXTRAP.or.bc(3,2).eq.HOEXTRAP
      &                 .or.bc(3,2).eq.REFLECT_EVEN) then
                   stzhi(kmax+1) = stzlo(kmax+1)
                else if (bc(3,2).eq.REFLECT_ODD) then
@@ -1119,7 +1119,7 @@ c
                end do
             end do
          end if
-      else if (xbc(1,1).eq.EXTRAP.or.xbc(1,1).eq.HOEXTRAP
+      else if (xbc(1,1).eq.FOEXTRAP.or.xbc(1,1).eq.HOEXTRAP
      &        .or.xbc(1,1).eq.REFLECT_EVEN) then
          do j = jmin-1,jmax+1
             do k = kmin-1,kmax+1
@@ -1155,7 +1155,7 @@ c
                end do
             end do
          end if
-      else if (xbc(1,2).eq.EXTRAP.or.xbc(1,2).eq.HOEXTRAP
+      else if (xbc(1,2).eq.FOEXTRAP.or.xbc(1,2).eq.HOEXTRAP
      &        .or.xbc(1,2).eq.REFLECT_EVEN) then
          do j = jmin-1,jmax+1
             do k = kmin-1,kmax+1
@@ -1225,7 +1225,7 @@ c
                end do
             end do
          end if
-      else if (ybc(2,1).eq.EXTRAP.or.ybc(2,1).eq.HOEXTRAP
+      else if (ybc(2,1).eq.FOEXTRAP.or.ybc(2,1).eq.HOEXTRAP
      &        .or.ybc(2,1).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
             do k = kmin-1,kmax+1
@@ -1261,7 +1261,7 @@ c
                end do
             end do
          end if
-      else if (ybc(2,2).eq.EXTRAP.or.ybc(2,2).eq.HOEXTRAP
+      else if (ybc(2,2).eq.FOEXTRAP.or.ybc(2,2).eq.HOEXTRAP
      &        .or.ybc(2,2).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
             do k = kmin-1,kmax+1
@@ -1331,7 +1331,7 @@ c
                end do
             end do
          end if
-      else if (zbc(3,1).eq.EXTRAP.or.zbc(3,1).eq.HOEXTRAP
+      else if (zbc(3,1).eq.FOEXTRAP.or.zbc(3,1).eq.HOEXTRAP
      &        .or.zbc(3,1).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
             do j = jmin-1,jmax+1
@@ -1367,7 +1367,7 @@ c
                end do
             end do
          end if
-      else if (zbc(3,2).eq.EXTRAP.or.zbc(3,2).eq.HOEXTRAP
+      else if (zbc(3,2).eq.FOEXTRAP.or.zbc(3,2).eq.HOEXTRAP
      &        .or.zbc(3,2).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
             do j = jmin-1,jmax+1

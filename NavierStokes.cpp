@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.93 1998-09-30 20:41:28 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.94 1998-10-12 23:19:00 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -627,9 +627,10 @@ NavierStokes::SetGodunov()
 
 void
 NavierStokes::restart (Amr&     papa,
-                       istream& is)
+                       istream& is,
+                       bool bReadSpecial)
 {
-    AmrLevel::restart(papa,is);
+    AmrLevel::restart(papa,is,bReadSpecial);
 
     if (do_MLsync_proj || do_sync_proj)
     {
@@ -2113,7 +2114,9 @@ void
 NavierStokes::errorEst (TagBoxArray& tags,
                         int          clearval,
                         int          tagval,
-                        Real         time)
+                        Real         time,
+                        int          n_error_buf, 
+                        int          ngrow)
 {
     const int*  domain_lo = geom.Domain().loVect();
     const int*  domain_hi = geom.Domain().hiVect();
@@ -2363,7 +2366,7 @@ NavierStokes::writePlotFile (const aString& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!Utility::CreateDirectory(FullPath, 0755))
+        if (!Utility::UtilCreateDirectory(FullPath, 0755))
             Utility::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.

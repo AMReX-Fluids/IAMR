@@ -1,7 +1,7 @@
 #if (BL_SPACEDIM==2) && defined (USE_TENSOR)
 
 //
-// $Id: ViscBndry2D.cpp,v 1.9 1998-07-29 19:07:47 lijewski Exp $
+// $Id: ViscBndry2D.cpp,v 1.10 1998-10-12 23:19:02 sstanley Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -43,7 +43,7 @@ void ViscBndry2D::setBndryConds(const Array<BCRec>& bcarray, int ratio)
               if (p_bc == EXT_DIR ) {
                 bctag = LO_DIRICHLET;
                 bloc[i] = 0.0; // on face, distance to face = 0
-              } else if (p_bc == EXTRAP || p_bc == HOEXTRAP || 
+              } else if (p_bc == FOEXTRAP || p_bc == HOEXTRAP || 
                          p_bc == REFLECT_EVEN) {
                 bctag = LO_NEUMANN;
                 bloc[i] = 0.0; // on face, distance to face = 0

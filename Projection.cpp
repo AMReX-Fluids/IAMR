@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.54 1998-09-30 22:09:30 lijewski Exp $
+// $Id: Projection.cpp,v 1.55 1998-10-12 23:19:01 sstanley Exp $
 //
 
 #ifdef BL_T3E
@@ -414,8 +414,8 @@ Projection::level_project (int             level,
         int isrz   = CoordSys::IsRZ();
         int bcxlo  = phys_bc->lo(0);
         int bcxhi  = phys_bc->hi(0);
-        int lowfix = (isrz==1 && bcxlo!=EXTRAP && bcxlo!=HOEXTRAP);
-        int  hifix = (isrz==1 && bcxhi!=EXTRAP && bcxhi!=HOEXTRAP);
+        int lowfix = (isrz==1 && bcxlo!=FOEXTRAP && bcxlo!=HOEXTRAP);
+        int  hifix = (isrz==1 && bcxhi!=FOEXTRAP && bcxhi!=HOEXTRAP);
 
         if (level < finest_level) 
         {
@@ -1620,8 +1620,8 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
     int bcxlo      = phys_bc->lo(0);
     int bcxhi      = phys_bc->hi(0);
     int isrz       = (user_rz == -1) ? CoordSys::IsRZ() : user_rz;
-    int lowfix     = (isrz==1 && bcxlo!=EXTRAP && bcxlo!=HOEXTRAP);
-    int hifix      = (isrz==1 && bcxhi!=EXTRAP && bcxhi!=HOEXTRAP);
+    int lowfix     = (isrz==1 && bcxlo!=FOEXTRAP && bcxlo!=HOEXTRAP);
+    int hifix      = (isrz==1 && bcxhi!=FOEXTRAP && bcxhi!=HOEXTRAP);
     const Real* dx = geom.CellSize();
     Real hx = dx[0];
 #endif

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ViscBndry.cpp,v 1.13 1998-09-29 20:07:48 lijewski Exp $
+// $Id: ViscBndry.cpp,v 1.14 1998-10-12 23:19:01 sstanley Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -41,7 +41,7 @@ ViscBndry::setBndryConds (const BCRec&   bc,
                     bctag[i][comp] = LO_DIRICHLET;
                     bloc[i] = 0.;
                 }
-                else if (p_bc == EXTRAP        ||
+                else if (p_bc == FOEXTRAP      ||
                          p_bc == HOEXTRAP      || 
                          p_bc == REFLECT_EVEN)
                 {

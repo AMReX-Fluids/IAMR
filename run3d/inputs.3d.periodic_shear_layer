@@ -14,6 +14,7 @@
 
 # MUST SET ONE OR BOTH OF THESE.  
 stop_time =       2.0 # maximum (real) time (in same units as dt)
+max_step  =       10
 
 amr.n_cell =      32 32 32 # indices of the domain at level 0
 

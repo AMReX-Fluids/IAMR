@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.23 1998-09-30 20:41:28 lijewski Exp $
+// $Id: NavierStokes.H,v 1.24 1998-10-12 23:19:00 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -76,7 +76,8 @@ public:
                  const BoxArray& bl, Real time);
     virtual ~NavierStokes();
 
-    virtual void restart(Amr& papa, istream &is);
+    virtual void restart(Amr& papa, istream &is,
+                         bool bReadSpecial = false);
 
     // define data descriptors
     static void variableSetUp();
@@ -113,7 +114,7 @@ public:
 
     // error estimation for regridding
     virtual void errorEst(TagBoxArray &tb, int clearval, int tagval,
-                          Real time);
+                          Real time, int n_error_buf = 0, int ngrow = 0);
 
     // integrate derived quantities over domain
     Real sumDerive(const aString& name, Real time);
