@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.26 2003-02-21 19:26:26 almgren Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.27 2003-02-21 21:38:40 almgren Exp $
 //
 #include <winstd.H>
 
@@ -55,10 +55,10 @@ ProjOutFlowBC::ProjOutFlowBC ()
 
 #if 1
 void 
-ProjOutFlowBC::computeBC (MultiFab*         velMF,
-                          MultiFab&         divuMF,
-                          MultiFab&         rhoMF,
-                          MultiFab&         phiMF,
+ProjOutFlowBC::computeBC (FArrayBox*        velMF,
+                          FArrayBox*        divuMF,
+                          FArrayBox*        rhoMF,
+                          FArrayBox*        phiMF,
                           const Geometry&   geom, 
                           Orientation*      outFaces,
                           int               numOutFlowFaces,
@@ -173,9 +173,9 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
     const Real* divuEPtr = ccExt[iface].dataPtr(1);
     const Real*    uEPtr = ccExt[iface].dataPtr(2);
 
-    DEF_LIMITS(  divuMF[iface], divuPtr, divulo, divuhi);
-    DEF_LIMITS(   rhoMF[iface],  rhoPtr,  rholo,  rhohi);
-    DEF_LIMITS((*velMF)[iface],  velPtr,  vello,  velhi);
+    DEF_LIMITS(divuMF[iface], divuPtr, divulo, divuhi);
+    DEF_LIMITS( rhoMF[iface],  rhoPtr,  rholo,  rhohi);
+    DEF_LIMITS( velMF[iface],  velPtr,  vello,  velhi);
 
     //
     // Extrapolate the velocities, divu, and rho to the outflow edge in
@@ -184,7 +184,7 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
     Real hx = dx[0];
     FORT_EXTRAP_PROJ(ARLIM(vello),  ARLIM(velhi), velPtr,
                      ARLIM(divulo), ARLIM(divuhi), divuPtr,
-                     ARLIM(rholo),    ARLIM(rhohi),rhoPtr,
+                     ARLIM(rholo),  ARLIM(rhohi),rhoPtr,
 #if (BL_SPACEDIM == 2)
                      &r_len,redge[iface],
 #endif
@@ -234,7 +234,9 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
 
        if (zeroAll) {
 
-         phiMF.setVal(0);
+         for (int i=0; i < numOutFlowFaces; i++) {
+           phiMF[i].setVal(0);
+         }
 
        } else {
 
@@ -499,8 +501,8 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
 #endif
 
 void 
-ProjOutFlowBC::computeRhoG (MultiFab&          rhoMF,
-                            MultiFab&          phiMF,
+ProjOutFlowBC::computeRhoG (FArrayBox*         rhoMF,
+                            FArrayBox*         phiMF,
                             const Geometry&    geom, 
                             Orientation*       outFaces,
                             int                numOutFlowFaces,

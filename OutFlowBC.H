@@ -2,7 +2,7 @@
 #define _OUTFLOWBC_H_
 
 //
-// $Id: OutFlowBC.H,v 1.4 2003-02-19 19:15:46 almgren Exp $
+// $Id: OutFlowBC.H,v 1.5 2003-02-21 21:38:40 almgren Exp $
 //
 
 #include "FArrayBox.H"
@@ -28,10 +28,10 @@ public:
 
     virtual ~OutFlowBC ();
 
-    virtual void computeBC (MultiFab*         velMF,
-                            MultiFab&         divuMF,
-                            MultiFab&         rhoMF,
-                            MultiFab&         phiMF,
+    virtual void computeBC (FArrayBox*         velMF,
+                            FArrayBox*         divuMF,
+                            FArrayBox*         rhoMF,
+                            FArrayBox*         phiMF,
                             const Geometry&    geom,
                             Orientation*       outFaces,
                             int                numOutFlowFaces,

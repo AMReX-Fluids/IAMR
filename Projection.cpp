@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.147 2003-02-21 20:24:38 car Exp $
+// $Id: Projection.cpp,v 1.148 2003-02-21 21:38:40 almgren Exp $
 //
 #include <winstd.H>
 
@@ -2732,30 +2732,25 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     const int nCompPhi     = 1;
     const int ncStripWidth = 1;
 
+    FArrayBox  rho[2*BL_SPACEDIM];
+    FArrayBox dsdt[2*BL_SPACEDIM];
+    FArrayBox dudt[2*BL_SPACEDIM];
+
+    FArrayBox phi_fine_strip[2*BL_SPACEDIM];
+
     for (int iface = 0; iface < numOutFlowFaces; iface++) {
+        dsdt[iface].resize(state_strip[iface],1);
+        dudt[iface].resize(state_strip[iface],BL_SPACEDIM);
+
+         rho[iface].resize(state_strip[iface],1);
+         Sig_in->copy(rho[iface]);
+
         Box phi_strip = 
          BoxLib::surroundingNodes(BoxLib::bdryNode(domain,
                    outFacesAtThisLevel[iface],ncStripWidth));
-        phi_strip_bl.push_back(phi_strip);
-        state_strip_bl.push_back(state_strip[iface]);
+        phi_fine_strip[iface].resize(phi_strip,1);
+        phi_fine_strip[iface].setVal(0.);
     }
-
-    BoxArray   phi_strip_ba(  phi_strip_bl);
-    BoxArray state_strip_ba(state_strip_bl);
-
-    MultiFab phi_fine_strip(phi_strip_ba,nCompPhi,nGrow);
-    phi_fine_strip.setVal(0);
-
-    MultiFab  rho(state_strip_ba,          1,nGrow);
-    MultiFab dsdt(state_strip_ba,          1,nGrow);
-    MultiFab dudt(state_strip_ba,BL_SPACEDIM,nGrow);
-
-     rho.setVal(1.e200);
-    dudt.setVal(1.e200);
-    dsdt.setVal(1.e200);
-
-    for (MFIter mfi(rho); mfi.isValid(); ++mfi)
-       Sig_in->copy(rho[mfi.index()]);
 
     ProjOutFlowBC projBC;
     if (which_call == INITIAL_PRESS) {
@@ -2779,26 +2774,26 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         MultiFab grown_vel(grown_vel_ba,BL_SPACEDIM,0);
         for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
            grown_vel[vmfi.index()].copy((*Vel_in)[vmfi.index()]);
-        
-        for (MFIter mfi(dudt); mfi.isValid(); ++mfi)
+
+        for (int iface = 0; iface < numOutFlowFaces; iface++) 
         {
-          grown_vel.copy(dudt[mfi.index()]);
-           Divu_in->copy(dsdt[mfi.index()]);
+          grown_vel.copy(dudt[iface]);
+           Divu_in->copy(dsdt[iface]);
         }
 
       } else {
-        for (MFIter mfi(dudt); mfi.isValid(); ++mfi)
+        for (int iface = 0; iface < numOutFlowFaces; iface++) 
         {
-          Vel_in->copy(dudt[mfi.index()]);
-          dsdt[mfi.index()].setVal(0.);
+          Vel_in->copy(dudt[iface]);
+          dsdt[iface].setVal(0.);
         }
       }
 
 
-      projBC.computeBC(&dudt,dsdt,rho,phi_fine_strip,
-                     parent->Geom(lev),
-                     outFacesAtThisLevel,
-                     numOutFlowFaces,gravity);
+      projBC.computeBC(dudt,dsdt,rho,phi_fine_strip,
+                       parent->Geom(lev),
+                       outFacesAtThisLevel,
+                       numOutFlowFaces,gravity);
 
     }
 
