@@ -1,13 +1,13 @@
+//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.8 1997-09-26 16:57:05 lijewski Exp $
+// $Id: RunStats.cpp,v 1.9 1997-12-03 00:22:27 car Exp $
 //
 
 #include <Utility.H>
 #include <Misc.H>
 #include <ParmParse.H>
 #include <RunStats.H>
-#include <ParallelDescriptor.H>
 
 #ifdef BL_USE_NEW_HFILES
 using std::setw;
@@ -15,345 +15,466 @@ using std::ios;
 using std::setprecision;
 #endif
 
-const char SP = ' ';
+double RunStats::TotalCPU;
 
-List<RunStatsData> RunStats::ld;
-double RunStats::total_run_time;
-double RunStats::total_run_wtime;
-Array<long> RunStats::cells;
+double RunStats::TotalWCT;
 
-RunStats::RunStats(const char *_name, int _level)
-    : name(_name), level(_level)
-{
-    gentry = find(_name, -1);
-    entry = find(_name, _level);
-    entry->is_on = true;
-}
+double RunStats::DiskBytes;
 
-void
-RunStats::addCells(int lev, long count)
-{
-    if (lev >= cells.length()) {
-	cells.resize(lev+1);
-	cells[lev] = 0;
-    }
-    cells[lev] += count;
-}
+Array<long> RunStats::TheCells;
 
-long
-RunStats::getCells(int lev)
-{
-    return cells[lev];
-}
+Array<double> RunStats::TheNumPts;
 
-RunStatsData *
-RunStats::find(aString _name, int _level)
-{
-    ListIterator<RunStatsData> ldi(ld);
-    while(ldi) {
-	if(ldi().level == _level && ldi().name == _name) {
-	    return &ld[ldi];
-	}
-	++ldi;
-    }
-    ld.append(RunStatsData(_name, _level));
-    return &ld.lastElement();
-}
+List<RunStatsData> RunStats::TheStats;
+
+bool RunStats::Initialized = false;
 
 void
-RunStats::turnOn(const char *s, int _level)
+RunStats::init ()
 {
-    RunStatsData *e = find(s, _level);
-    e->is_on = true;
-}
+    RunStats::Initialized = true;
 
-void
-RunStats::turnOff(const char *s, int _level)
-{
-    if(_level == -1) {
-    } else {
-	RunStatsData *e = find(s, _level);
-	e->is_on = false;
-    }
-}
-
-void
-RunStats::init()
-{
     ParmParse pp("RunStats");
-    if (pp.contains("statvar")) {
-	int n = pp.countval("statvar");
-        int i; 
-	for (i = 0; i < n; i++) {
-	    aString nm;
-	    pp.get("statvar",nm,i);
+
+    if (pp.contains("statvar"))
+    {
+        aString nm;
+
+	for (int i = 0, n = pp.countval("statvar"); i < n; i++)
+        {
+	    pp.get("statvar", nm, i);
 	    turnOn(nm.c_str());
 	}
     }
 }
 
-//
-ostream &
-operator << (ostream &os, const RunStatsData &rd)
+RunStatsData *
+RunStats::find (const char* _name,
+                int         _level)
 {
-    os << "(RunStatsData "
-       << rd.name << SP
-       << rd.level << SP
-       << rd.is_on <<  SP
-       << rd.run_time << SP
-       << rd.run_wtime << SP
-       << rd.max_time << SP
-       << rd.max_wtime << ")\n";
+    for (ListIterator<RunStatsData> it(RunStats::TheStats); it; ++it)
+	if (it().level == _level && it().name == _name)
+	    return &RunStats::TheStats[it];
 
-    return os;
+    RunStats::TheStats.append(RunStatsData(_name, _level));
+
+    return &RunStats::TheStats.lastElement();
 }
 
-istream &
-operator >> (istream &is, RunStatsData &rd)
+RunStats::RunStats (const char* _name,
+                    int         _level)
+    :
+    name(_name),
+    level(_level)
 {
-    is.ignore(BL_IGNORE_MAX, '(');
-    aString s;
-    is >> s;
-    if(s != "RunStatsData") {
-        cerr << "RunStatsData: unexpected token " << s << '\n';
-        BoxLib::Abort();
-    }
-    is >> rd.name;
-    is >> rd.level;
+    if (!RunStats::Initialized)
+        RunStats::init();
+
+    gentry = find(_name, -1);
+    entry  = find(_name, _level);
+
+    entry->is_on  = true;
+}
+
+RunStats::~RunStats () {}
+
+void
+RunStats::start ()
+{
+    if (gentry->is_on && entry->is_on)
     {
-        int i_is_on;
-        is >> i_is_on;
-        rd.is_on = i_is_on?true:false;
+        time  = -Utility::second();
+        wtime = -Utility::wsecond();
     }
-    is >> rd.run_time;
-    is >> rd.run_wtime;
-    is >> rd.max_time;
-    is >> rd.max_wtime;
-    is.ignore(BL_IGNORE_MAX,')');
-
-    return is;
 }
 
-// list active stats
-ostream&
-operator << (ostream &os, const RunStats &r)
-{
-    os << "(RunStats " << r.name
-       << " level " << r.level
-       << (r.isOn()?"":"in") << "active)" << '\n';
-
-    return os;
-}
-
-#define mpCPUSeconds() Utility::second()
-#define mpWallClockSeconds() ParallelDescriptor::second()
-
-// report stats in formatted form to output stream
 void
-RunStats::report(ostream &os)
+RunStats::end ()
 {
-    double rtime = mpCPUSeconds();
-    double wtime = mpWallClockSeconds();
+    if (gentry->is_on && entry->is_on)
+    {
+        time  += Utility::second();
+        wtime += Utility::wsecond();
+
+        entry->run_time   += time;
+        gentry->run_time  += time;
+        entry->run_wtime  += wtime;
+        gentry->run_wtime += wtime;
+    }
+}
+
+void
+RunStats::addCells (int  lev,
+                    long count)
+{
+    if (lev >= RunStats::TheCells.length())
+    {
+	RunStats::TheCells.resize(lev+1, 0);
+    }
+    RunStats::TheCells[lev] += count;
+}
+
+//
+// Holds incremental increase to RunStats::DiskBytes on this CPU.
+//
+static double Incremental_Byte_Count;
+
+void
+RunStats::addBytes (long count)
+{
+    Incremental_Byte_Count += count;
+}
+
+//
+// Holds incremental increase in RunStats::TheNumPts on this CPU.
+//
+static double Incremental_Num_Pts;
+
+void
+RunStats::addNumPts (long count)
+{
+    Incremental_Num_Pts += count;
+}
+
+void
+RunStats::Print (ostream&            os,
+                 const RunStatsData& data,
+                 double              tot_run_time,
+                 double              tot_run_wtime)
+{
+    int old_prec = os.precision(4);
+
+    os << "State "
+       << data.name
+       << " time:  "
+       << data.run_time
+       << "  ("
+       << 100*(data.run_time/tot_run_time)
+       << "%)  "
+       << data.run_wtime
+       << "  ("
+       << 100*(data.run_wtime/tot_run_wtime) << ")%\n";
+
+    os.precision(old_prec);
+}
+
+void
+RunStats::report (ostream& os)
+{
+    double rtime  = Utility::second();
+    double rwtime = Utility::wsecond();
+
     ParallelDescriptor::ReduceRealSum(rtime);
-    ParallelDescriptor::ReduceRealMax(wtime);
-    double tot_run_time = total_run_time + rtime;
-    double tot_run_wtime = total_run_wtime + wtime;
+    ParallelDescriptor::ReduceRealMax(rwtime);
 
-    if (ParallelDescriptor::IOProcessor()) {
-	  // output number of cells advanced on each level
-	long tot_cells = 0;
-        int i; 
-	for (i = 0; i < cells.length(); i++) {
-	    os << "Number of cells advanced at level " << i << " = "
-	       << cells[i] << '\n';
-	    tot_cells += cells[i];
-	}
-	os << "Total cells advanced = " << tot_cells << "\n\n";
+    assert(rwtime > 0);
 
-	ListIterator<RunStatsData> ldi(ld);
-	  // determine maximimum depth
-	int maxlev = 0;
-	while(ldi) {
-	    maxlev = Max(maxlev, ldi().level);
-	    ++ldi;
-	}
+    ParallelDescriptor::ReduceRealSum(Incremental_Byte_Count);
+    RunStats::DiskBytes += Incremental_Byte_Count;
+    Incremental_Byte_Count = 0;
 
-        int lev; 
+    double tot_run_time  = RunStats::TotalCPU + rtime;
+    double tot_run_wtime = RunStats::TotalWCT + rwtime;
+    //
+    // Make a copy of the local RunStats::TheStats and reduce it.
+    //
+    List<RunStatsData> TheTotals = RunStats::TheStats;
 
+    for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
+    {
+        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time);
+        ParallelDescriptor::ReduceRealMax(TheTotals[it].run_wtime);
+    }
+
+    RunStats::CollectNumPts();
+
+    if (ParallelDescriptor::IOProcessor())
+    {
 	os.setf(ios::showpoint);
-	os << setprecision(4);
-	for (lev = 0; lev <= maxlev; ++lev) {
-	    os << "timings for level " << lev << '\n';
 
-	    ldi.rewind();
-	    while(ldi) {
-		if(ldi().level == lev) {
-		    ListIterator<RunStatsData> ldii(ld);
-		    while(ldii) {
-			if(ldii().name == ldi().name && ldii().level == -1)
+        int old_prec = os.precision(15);
+
+	long tot_cells = 0;
+	for (int i = 0; i < RunStats::TheCells.length(); i++)
+        {
+	    os << "Number of cells advanced at level "
+               << i
+               << ": "
+	       << RunStats::TheCells[i]
+               << '\n';
+	    tot_cells += RunStats::TheCells[i];
+	}
+	os << "\nTotal cells advanced: " << tot_cells << '\n';
+	os << "\nTotal bytes written to disk: " << RunStats::DiskBytes << '\n';
+
+        double tot_num_pts = 0;
+
+	for (int i = 0; i < RunStats::TheNumPts.length(); i++)
+            tot_num_pts += RunStats::TheNumPts[i];
+
+        if (tot_num_pts > 0)
+        {
+            os << '\n';
+            for (int i = 0; i < RunStats::TheNumPts.length(); i++)
+            {
+                if (RunStats::TheNumPts[i])
+                {
+                    os << "Percentage of FABs allocated on CPU #"
+                       << i
+                       << ":\t"
+                       << 100*RunStats::TheNumPts[i]/tot_num_pts
+                       << '\n';
+                }
+            }
+        }
+
+	int maxlev = 0;
+        ListIterator<RunStatsData> it(TheTotals);
+	for ( ; it; ++it)
+        {
+	    maxlev = Max(maxlev, it().level);
+        }
+
+	for (int lev = 0; lev <= maxlev; ++lev)
+        {
+	    os << "\nTimings for level " << lev << " ...\n\n";
+	    it.rewind();
+	    for ( ; it; ++it)
+            {
+		if (it().level == lev)
+                {
+                    ListIterator<RunStatsData> iti(TheTotals);
+		    for ( ; iti; ++iti)
+			if (iti().name == it().name && iti().level == -1)
 			    break;
-			ldii++;
-		    }
-		    if(ldi().is_on) {
-			os << "State " << ldi().name;
-			os << " time  = "
-			   << setw(6) << ldi().run_time << SP
-			   << setw(6) << 100.0*(ldi().run_time/tot_run_time) << "% "
-			   << setw(6) << ldi().run_wtime << SP
-			   << setw(6) << 100.0*(ldi().run_wtime/tot_run_wtime) << "% "
-			   << setw(6) << ldi().max_time << SP
-			   << setw(6) << ldi().max_wtime;
-			os << '\n';
+		    if (it().is_on)
+                    {
+                        Print(os, it(), tot_run_time, tot_run_wtime);
 		    }
 		}
-		++ldi;
+	    }
+	}
+        os << "\nTotals for all levels ...\n\n";
+
+	it.rewind();
+
+	for ( ; it; ++it)
+        {
+	    if (it().level == -1 && it().is_on == true)
+            {
+                Print(os, it(), tot_run_time, tot_run_wtime);
 	    }
 	}
 
-	  // report totals
-	ldi.rewind();
+        os << '\n'
+           << "Total CPU time        : " << tot_run_time  << '\n'
+           << "Total Wall Clock time : " << tot_run_wtime << '\n';
 
-	os << '\n';
-	while(ldi) {
-	    if(ldi().level == -1) {
-		if (ldi().is_on == true) {
-		    os << "total " << ldi().name << " time";
-		    os << "  = "
-		       << setw(6) << ldi().run_time << "  "
-		       << setw(6) << 100.0*(ldi().run_time/tot_run_time) << "% "
-		       << setw(6) << ldi().run_wtime << "  "
-		       << setw(6) << 100.0*(ldi().run_wtime/tot_run_wtime) << "% ";
-		    os << '\n';
-		}
-	    }
-	    ++ldi;
-	}
-	os << "total CPU time          = " << tot_run_time << '\n';
-	os << "total Wall Clock time   = " << tot_run_wtime << '\n';
+        if (ParallelDescriptor::NProcs() > 1 && tot_run_wtime)
+        {
+            os << "\nThe Parallel speedup  : "
+               << tot_run_time/tot_run_wtime
+               << '\n';
+        }
+
+        os.precision(old_prec);
     }
 }
 
-// unformatted write to output stream
 void
-RunStats::dumpStats(ofstream &os)
+RunStats::dumpStats (ofstream& os)
 {
-    double rtime = mpCPUSeconds();
-    double wtime = mpWallClockSeconds();
+    double rtime  = Utility::second();
+    double rwtime = Utility::wsecond();
+
     ParallelDescriptor::ReduceRealSum(rtime);
-    ParallelDescriptor::ReduceRealMax(wtime);
-    if (ParallelDescriptor::IOProcessor()) {
-	os << "(ListRunStats " << ld.length() << '\n';
-	os << rtime + total_run_time << '\n';
-	os << wtime + total_run_wtime << '\n';
-	ListIterator<RunStatsData> ldi(ld);
-	while(ldi) {
-	    os << ldi();
-	    ++ldi;
-	}
-	int nlev = cells.length();
+    ParallelDescriptor::ReduceRealMax(rwtime);
+
+    ParallelDescriptor::ReduceRealSum(Incremental_Byte_Count);
+    RunStats::DiskBytes += Incremental_Byte_Count;
+    Incremental_Byte_Count = 0;
+    //
+    // Make a copy of the local RunStats::TheStats and sum the run_time's.
+    //
+    List<RunStatsData> TheTotals = RunStats::TheStats;
+
+    for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
+    {
+        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time);
+    }
+
+    RunStats::CollectNumPts();
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+	os << "(ListRunStats "
+           << TheTotals.length()            << '\n'
+           << (RunStats::TotalCPU + rtime)  << '\n'
+           << (RunStats::TotalWCT + rwtime) << '\n'
+           << RunStats::DiskBytes           << '\n';
+
+	for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
+        {
+	    os << it();
+        }
+	long nlev = RunStats::TheNumPts.length();
         os << nlev;
-        int i; 
-	for (i = 0; i < nlev; i++) {
-	    os << SP << cells[i];
-	}
+	for (int i = 0; i < nlev; i++)
+        {
+	    os << ' ' << RunStats::TheNumPts[i];
+        }
+        os << '\n';
+        nlev = RunStats::TheCells.length();
+        os << nlev;
+	for (int i = 0; i < nlev; i++)
+        {
+	    os << ' ' << RunStats::TheCells[i];
+        }
 	os << ")\n";
     }
 }
 
-// unformated read from input file
 void
-RunStats::readStats(ifstream &is)
+RunStats::readStats (ifstream& is,
+                     bool      restart)
 {
-    ld.clear();
+    RunStats::TheStats.clear();
     is.ignore(BL_IGNORE_MAX,'(');
     aString s;
     is >> s;
-    if( s != "ListRunStats") {
-	cerr << "readStats: unexpected token " << s << '\n';
-        BoxLib::Abort();
+    if (s != "ListRunStats")
+    {
+	cerr << "unexpected token " << s << '\n';
+        BoxLib::Error();
     }
     int n;
     is >> n;
-    is >> total_run_time;
-    is >> total_run_wtime;
-    while(n--) {
+    is >> RunStats::TotalCPU;
+    is >> RunStats::TotalWCT;
+    is >> RunStats::DiskBytes;
+    while (n--)
+    {
 	RunStatsData rd;
 	is >> rd;
-	ld.append(rd);
+        if (restart && ParallelDescriptor::NProcs() > 1)
+        {
+            //
+            // We divide the run_time by NProcs() so that the sum
+            // over all the processors comes out correct.
+            //
+            rd.run_time /= ParallelDescriptor::NProcs();
+        }
+	RunStats::TheStats.append(rd);
     }
-    int nlev;
-    is >> nlev;
-    cells.resize(nlev);
-    int i; 
-    for (i = 0; i < nlev; i++) {
-	is >> cells[i];
+    long nlen;
+    is >> nlen;
+    RunStats::TheNumPts.resize(nlen);
+    int i;
+    for (i = 0; i < nlen; i++)
+    {
+	is >> RunStats::TheNumPts[i];
+    }
+    is >> nlen;
+    RunStats::TheCells.resize(nlen);
+    for (i = 0; i < nlen; i++)
+    {
+	is >> RunStats::TheCells[i];
     }
     is.ignore(BL_IGNORE_MAX,')');
 }
 
 void
-RunStats::start()
+RunStats::CollectNumPts ()
 {
-    if (gentry->is_on && entry->is_on) {
-        ParallelDescriptor::Synchronize();
-	time = -mpCPUSeconds();
-	wtime= -mpWallClockSeconds();
+    struct
+    {
+        int    m_cpu; // CPU #
+        double m_pts; // Total numPts() of FABs on that CPU.
     }
+    msg_hdr;
+
+    ParallelDescriptor::SetMessageHeaderSize(sizeof(msg_hdr));
+
+    int MyProc = ParallelDescriptor::MyProc();
+
+    if (!ParallelDescriptor::IOProcessor())
+    {
+        msg_hdr.m_cpu = MyProc;
+        msg_hdr.m_pts = Incremental_Num_Pts;
+        ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
+                                     &msg_hdr,
+                                     0,
+                                     0);
+    }
+
+    ParallelDescriptor::Synchronize();
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        if (ParallelDescriptor::NProcs() > RunStats::TheNumPts.length())
+        {
+            //
+            // Never decrease the size of RunStats::TheNumPts.
+            //
+            RunStats::TheNumPts.resize(ParallelDescriptor::NProcs(),0);
+        }
+        RunStats::TheNumPts[MyProc] += Incremental_Num_Pts;
+
+        for (int len; ParallelDescriptor::GetMessageHeader(len, &msg_hdr); )
+        {
+            assert(len == 0);
+            RunStats::TheNumPts[msg_hdr.m_cpu] += msg_hdr.m_pts;
+            ParallelDescriptor::ReceiveData(0, 0);
+        }
+    }
+
+    Incremental_Num_Pts = 0;
 }
 
-void
-RunStats::pause()
+ostream &
+operator<< (ostream&            os,
+            const RunStatsData& rd)
 {
-    if (gentry->is_on && entry->is_on) {
-	time += mpCPUSeconds();
-	wtime += mpWallClockSeconds();
-        ParallelDescriptor::Synchronize();
-    }
+	os << "(RunStatsData "
+	   << rd.name      << ' '
+	   << rd.level     << ' '
+	   << rd.is_on     << ' '
+	   << rd.run_time  << ' '
+	   << rd.run_wtime << ")\n";
+    return os;
 }
 
-void
-RunStats::resume()
+istream &
+operator>> (istream&      is,
+            RunStatsData& rd)
 {
-    if (gentry->is_on && entry->is_on) {
-        ParallelDescriptor::Synchronize();
-	time += mpCPUSeconds();
-	wtime += mpWallClockSeconds();
-    }
-}
-
-void
-RunStats::end()
-{
-    if (gentry->is_on && entry->is_on) {
-	time += mpCPUSeconds();
-	wtime += mpWallClockSeconds();
-	if(ParallelDescriptor::NProcs() == 1) {
-	    entry->run_time += time;
-	    entry->run_wtime += wtime;
-	    entry->max_time += time;
-	    entry->max_wtime += wtime;
-	    gentry->run_time += time;
-	    gentry->run_wtime += wtime;
-	    gentry->max_time += time;
-	    gentry->max_wtime += wtime;
-	} else {
-	    double tmp[2];
-	    tmp[0] = time;
-	    tmp[1] = wtime;
-	    ParallelDescriptor::ReduceRealSum(tmp[0]);
-	    ParallelDescriptor::ReduceRealSum(tmp[1]);
-	    entry->run_time += tmp[0];
-	    entry->run_wtime += tmp[1];
-	    gentry->run_time += tmp[0];
-	    gentry->run_wtime += tmp[1];
-	    tmp[0] = time;
-	    tmp[1] = wtime;
-	    ParallelDescriptor::ReduceRealMax(tmp[0]);
-	    ParallelDescriptor::ReduceRealMax(tmp[1]);
-	    entry->max_time += tmp[0];
-	    entry->max_wtime += tmp[1];
-	    gentry->max_time += tmp[0];
-	    gentry->max_wtime += tmp[1];
+	is.ignore(BL_IGNORE_MAX, '(');
+	aString s;
+	is >> s;
+	if (s != "RunStatsData")
+        {
+	    cerr << "unexpected token " << s << '\n';
+            BoxLib::Abort();
 	}
-    }
+	is >> rd.name;
+	is >> rd.level;
+	is >> rd.is_on;
+	is >> rd.run_time;
+	is >> rd.run_wtime;
+	is.ignore(BL_IGNORE_MAX,')');
+    return is;
+}
+
+ostream&
+operator<< (ostream&        os,
+            const RunStats& r)
+{
+	os << "(RunStats "
+           << r.name
+	   << " level "
+           << r.level
+	   << (r.isOn() ? "" : "in")
+           << "active)"
+           << '\n';
+    return os;
 }

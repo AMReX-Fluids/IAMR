@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _RUNSTATS_H_
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.5 1997-10-01 01:03:15 car Exp $
+// $Id: RunStats.H,v 1.6 1997-12-03 00:22:26 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,89 +24,174 @@ using std::ofstream;
 #include <aString.H>
 #include <List.H>
 #include <Array.H>
+#include <ParallelDescriptor.H>
+
+//
+// Forward declaration.
+//
 
 class RunStatsData
 {
     friend class RunStats;
-    friend ostream & operator << (ostream &, const RunStatsData&);
-    friend istream & operator >> (istream &, RunStatsData&);
+    friend ostream& operator<< (ostream &, const RunStatsData&);
+    friend istream& operator>> (istream &, RunStatsData&);
 private:
     aString name;
-    int level;
-    bool is_on;
-    double run_time;
-    double run_wtime;
-    double max_time;
-    double max_wtime;
-public:
-    RunStatsData()
-	: run_time(0.0), run_wtime(0.0),
-	  max_time(0.0), max_wtime(0.0)
+    double  run_time;
+    double  run_wtime;
+    int     level;
+    int     is_on;
+
+    RunStatsData ()
+	:
+        run_time(0.0),
+        run_wtime(0.0),
+        level(0),
+        is_on(0)
     {}
-    int operator == (const RunStatsData &s1) const 
+    int operator== (const RunStatsData &s1) const
     {
 	return (name == s1.name) && (level == s1.level);
     }
-    int operator != (const RunStatsData &s1) const 
+    int operator!= (const RunStatsData &s1) const
     {
 	return (name != s1.name) || (level != s1.level);
     }
-    RunStatsData(aString _name, int _level) 
-	: run_time(0.0), run_wtime(0.0),
-	  max_time(0.0), max_wtime(0.0),
-	  name(_name), level(_level)
+    RunStatsData (const char* _name, int _level) 
+	:
+        name(_name),
+        run_time(0.0),
+        run_wtime(0.0),
+        level(_level),
+        is_on(0)
     {}
 };
 
 class RunStats
 {
 public:
-    RunStats(const char *name, int level = 0);
-    ~RunStats() {};
+
+    RunStats (const char *name, int level = 0);
+
+    ~RunStats ();
     
-    friend ostream& operator << (ostream &os, const RunStats &r);
-
-    void start();		// start timeing given variable
-    void pause();		// pause timing
-    void resume();		// resume after a pause
-    void end();			// stop timeing given variable and record
-
-    int isOn() const {
-	return gentry->is_on && entry->is_on;
-    }
-
-      // record cells advanced
-    static void addCells(int level, long count);
-
-      // return number of cells advanced at given level 
-    static long getCells(int level);
-
-      // turn on recording of this stat
-    static void turnOn(const char * s, int level = -1);
-    static void turnOff(const char * s, int level = -1);
-
-    static void init();
-      // report stats in formatted form to output stream
-    static void report(ostream &os);
-      // unformatted write to output stream
-    static void dumpStats(ofstream &os);
-      // unformatted read from input stream
-    static void readStats(ifstream &is);
+    friend ostream& operator<< (ostream &os, const RunStats &r);
+    //
+    // Start timing given variable.
+    //
+    void start ();
+    //
+    // Stop timing given variable and record.
+    //
+    void end ();
+    //
+    // Is the variable active?
+    //
+    int isOn () const;
+    //
+    // Record cells advanced.
+    //
+    static void addCells (int level, long count);
+    //
+    // Return number of cells advanced at given level.
+    //
+    static long getCells (int level);
+    //
+    // Turn on/off recording of this stat.
+    //
+    static void turnOn (const char * s, int level = -1);
+    static void turnOff (const char * s, int level = -1);
+    //
+    // Record I/O bytes written to disk.
+    //
+    static void addBytes (long count);
+    //
+    // Record numPts() of FAB in each MultiFab on this CPU.
+    //
+    static void addNumPts (long count);
+    //
+    // Report stats in formatted form to output stream.
+    //
+    static void report (ostream &os);
+    //
+    // Unformatted write to output stream.
+    //
+    static void dumpStats (ofstream &os);
+    //
+    // Unformatted read from input stream.
+    //
+    static void readStats (ifstream &is, bool restart = false);
 
 private:
-    static RunStatsData* find(aString _name, int _level);
-    RunStatsData *entry;
-    RunStatsData *gentry;
-    aString name;
-    int level;
-    double time;
-    double wtime;
-    void resize(int level);
-    static double total_run_time;
-    static double total_run_wtime;
-    static Array<long> cells;
-    static List<RunStatsData> ld;
+    //
+    // Init from ParmParse with "RunStats" prefix.
+    //
+    static void init ();
+    //
+    // Do we have an entry by the specified name?
+    //
+    static RunStatsData* find (const char* _name, int _level);
+
+    void resize (int level);
+
+    static void Print (ostream&, const RunStatsData&, double, double);
+
+    static void CollectNumPts ();
+    //
+    // Local data.
+    //
+    RunStatsData* entry;
+    RunStatsData* gentry;
+    aString       name;
+    int           level;
+    double        time;
+    double        wtime;
+    //
+    // Static data.
+    //
+    static double             TotalCPU;    // Total CPU time.
+    static double             TotalWCT;    // Total Wall Clock time.
+    static double             DiskBytes;   // Total bytes written to disk.
+    static Array<long>        TheCells;    // Total cells advanced per level.
+    static Array<double>      TheNumPts;   // Total numPts() per CPU.
+    static List<RunStatsData> TheStats;    // List of RunStatsData.
+    static bool               Initialized; // init()'s been called?
 };
 
-#endif
+//
+// Inlines
+//
 
+inline
+int
+RunStats::isOn () const
+{
+    return gentry->is_on && entry->is_on;
+}
+
+inline
+long
+RunStats::getCells (int lev)
+{
+    return TheCells[lev];
+}
+
+inline
+void
+RunStats::turnOn (const char* s,
+                  int         _level)
+{
+    find(s, _level)->is_on = true;
+}
+
+inline
+void
+RunStats::turnOff (const char* s,
+                   int         _level)
+{
+    if (!(_level == -1))
+    {
+	find(s, _level)->is_on = false;
+    }
+}
+#endif
