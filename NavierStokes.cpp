@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.76 1998-07-01 17:42:38 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.77 1998-07-07 22:12:15 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -25,10 +25,12 @@
 
 #ifdef BL_USE_NEW_HFILES
 #include <vector>
+#include <cstdio>
 using std::vector;
 using std::streampos;
 #else
 #include <vector.h>
+#include <stdio.h>
 #endif
 
 #define GEOM_GROW 1
@@ -2633,8 +2635,8 @@ NavierStokes::computeNewDt (int                   finest_level,
     const Real check_per = parent->checkPer();
     if (check_per > 0.0)
     {
-        int a = (cur_time + eps ) / check_per;
-        int b = (cur_time + dt_0) / check_per;
+        int a = int((cur_time + eps ) / check_per);
+        int b = int((cur_time + dt_0) / check_per);
         if (a != b)
             dt_0 = b * check_per - cur_time;
     }
@@ -2644,8 +2646,8 @@ NavierStokes::computeNewDt (int                   finest_level,
     const Real plot_per = parent->plotPer();
     if (plot_per > 0.0)
     {
-        int a = (cur_time + eps ) / plot_per;
-        int b = (cur_time + dt_0) / plot_per;
+        int a = int((cur_time + eps ) / plot_per);
+        int b = int((cur_time + dt_0) / plot_per);
         if (a != b)
             dt_0 = b * plot_per - cur_time;
     }
