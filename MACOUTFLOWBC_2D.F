@@ -18,9 +18,13 @@
 #endif
 
 
+c *************************************************************************
+c ** EXTRAP_MAC
+c *************************************************************************
+
       subroutine FORT_EXTRAP_MAC(DIMS(u0),u0,DIMS(u1),u1,DIMS(div),divu,DIMS(rho),rho,
-     &                         r_lo,r_hi,r,DIMS(uExt),uExt,DIMS(divuExt),divuExt,
-     &                         DIMS(rhoExt),rhoExt,lo,hi,face,zeroIt)
+     &                         r_len,redge,DIMS(divuExt),divuExt,
+     &                         DIMS(rhoExt),rhoExt,dx,lo,hi,face,per,zeroIt)
 c
 c     Compute the value of phi for macproj 
 c     assuming that the tangential velocity on the edges of the outflow boundary
@@ -34,34 +38,38 @@ c subtract divu_ave twice due to precision problems
       integer DIMDEC(u1)
       integer DIMDEC(div)
       integer DIMDEC(rho)
-      integer r_lo,r_hi
+      integer r_len
       integer lo(SDIM),hi(SDIM)
-      integer DIMDEC(uExt)
       integer DIMDEC(divuExt)
       integer DIMDEC(rhoExt)
       REAL_T      u0(DIMV(u0))
       REAL_T      u1(DIMV(u1))
       REAL_T divu(DIMV(div))
       REAL_T    rho(DIMV(rho))
-      REAL_T      r(r_lo:r_hi)
-      REAL_T   uExt(DIMV(uExt))
+      REAL_T  redge(0:r_len-1)
       REAL_T   divuExt(DIMV(divuExt))
       REAL_T   rhoExt(DIMV(rhoExt))
-      integer zeroIt
+      REAL_T   dx(2)
       integer face
+      integer per
+      integer zeroIt
       
 c     Local variables
       REAL_T small_pert
+      REAL_T small_udiff
       parameter ( small_pert = SMALL)
+      parameter (small_udiff = SMALL)
       integer i, j, neq,n
       REAL_T divu_ave1,divu_ave2
       REAL_T max_divu, min_divu, max_pert
+      REAL_T diff
+      REAL_T rc,hx,hy
       integer ics,ice,jcs,jce
       integer ifs,ife,jfs,jfe
       integer if,jf,ic,jc
 c     NOTE: Assumes that rho at edge between i, i-1 = half*(rho(i)+rho(i-1))
 c             (1) Linear fit of rho between nodes
-c             (2) rho, divu on same boxes (box), and r(ARG_L1(rho),ARG_L2(rho))
+c             (2) rho, divu on same boxes (box)
 c             (3) phi is on box, shifted up one
 c             (4) u is edge-based, on surroundingNodes(box)
 
@@ -81,13 +89,14 @@ c     is zero, or if divu is constant
       jfs = lo(2)
       jfe = hi(2)
 
+      hx = dx(1)
+      hy = dx(2)
+
       zeroIt = 0
 
       if (face .eq. XLO) then
+
          if = ifs
-         do j = jcs, jce+1
-            uExt(j,if)  = u1(ics,j)
-         enddo
          max_divu = divu(ics,jcs)
          min_divu = max_divu
          do j = jcs, jce
@@ -96,17 +105,34 @@ c     is zero, or if divu is constant
             max_divu = max(max_divu,divuExt(j,if))
             min_divu = min(min_divu,divuExt(j,if))
          end do
-         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave1,face)
-         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave2,face)
+
+c        Here we modify divuExt to include the velocity terms.
+         do j = jcs, jce
+            divuExt(j,if) = redge(j-jcs)*(divuExt(j,if)*hy*hy - (u1(ics,j+1)-u1(ics,j))*hy)
+         end do
+
+         call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave1,face)
+         call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave2,face)
+
          max_pert = ABS(divuExt(jcs,if))
          do j = jcs, jce
             max_pert = MAX(max_pert,ABS(divuExt(j,if)))
          end do
+      
+c        Make sure u_mac is periodic
+         if (per .eq. 1) then
+           diff = u1(ics,jcs)-u1(ics,jce+1)
+           if (ABS(diff) .gt. small_udiff) then
+              write(6,*) 'EXTRAPMAC: FACE XLO : umac not periodic'
+              write(6,*) 'V AT    TOP: ',u1(ics,jce+1)
+              write(6,*) 'V AT BOTTOM: ',u1(ics,jcs  )
+              call bl_abort(" ")
+           endif
+         endif
+
       else if (face .eq. YLO) then
+
          jf = jfs
-         do i = ics, ice+1
-            uExt(i,jf)  = u0(i,jcs)
-         enddo
          max_divu = divu(ics,jcs)
          min_divu = max_divu
          do i = ics, ice
@@ -115,17 +141,35 @@ c     is zero, or if divu is constant
             max_divu = max(max_divu,divuExt(i,jf))
             min_divu = min(min_divu,divuExt(i,jf))
          end do
-         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave1,face)
-         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave2,face)
+
+c        Here we modify divuExt to include the velocity terms.
+         do i = ics, ice
+            rc = half*(redge(i+1-ics)+redge(i-ics))
+            divuExt(i,jf) = rc*divuExt(i,jf)*hx*hx - 
+     $                      (redge(i+1-ics)*u0(i+1,jcs)-redge(i-ics)*u0(i,jcs))*hx
+         end do
+
+         call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave1,face)
+         call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave2,face)
          max_pert = ABS(divuExt(ics,jf))
          do i = ics, ice
             max_pert = MAX(max_pert,ABS(divuExt(i,jf)))
          end do
+      
+c        Make sure u_mac is periodic
+         if (per .eq. 1) then
+           diff = u0(ics,jcs)-u0(ice+1,jcs)
+           if (ABS(diff) .gt. small_udiff) then
+              write(6,*) 'EXTRAPMAC: FACE YLO : umac not periodic'
+              write(6,*) 'U AT LEFT: ',u0(ics  ,jcs)
+              write(6,*) 'U AT RGHT: ',u0(ice+1,jcs)
+              call bl_abort(" ")
+           endif
+         endif
+
       else if (face .eq. XHI) then
+
          if = ife
-         do j = jcs, jce+1
-            uExt(j,if)  = u1(ice,j)
-         enddo
          max_divu = divu(ice,jcs)
          min_divu = max_divu
          do j = jcs, jce
@@ -134,17 +178,37 @@ c     is zero, or if divu is constant
             max_divu = max(max_divu,divuExt(j,if))
             min_divu = min(min_divu,divuExt(j,if))
          end do
-         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave1,face)
-         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave2,face)
+
+c        Here we modify divuExt to include the velocity terms.
+         do j = jcs, jce
+            divuExt(j,if) = redge(j-jcs)*hy*( divuExt(j,if)*hy 
+     $                                  - 1.5d0*(u1(ice,j+1)-u1(ice,j))
+     $                                  + 0.5d0*(u1(ice-1,j+1)-u1(ice-1,j))
+     $                                  -       (u0(ice+1,j)-u0(ice,j)) )
+         end do
+
+         call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave1,face)
+         call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave2,face)
+
          max_pert = ABS(divuExt(jcs,if))
          do j = jcs, jce
             max_pert = MAX(max_pert,ABS(divuExt(j,if)))
          end do
+      
+c        Make sure u_mac is periodic
+         if (per .eq. 1) then
+           diff = u1(ice,jcs)-u1(ice,jce+1)
+           if (ABS(diff) .gt. small_udiff) then
+              write(6,*) 'EXTRAPMAC: FACE XHI : umac not periodic'
+              write(6,*) 'V AT    TOP: ',u1(ice,jce+1)
+              write(6,*) 'V AT BOTTOM: ',u1(ice,jcs  )
+              call bl_abort(" ")
+           endif
+         endif
+
       else if (face .eq. YHI) then
+
          jf = jfe
-         do i = ics, ice+1
-            uExt(i,jf)  = u0(i,jce)
-         enddo
          max_divu = divu(ics,jce)
          min_divu = max_divu
          do i = ics, ice
@@ -153,12 +217,33 @@ c     is zero, or if divu is constant
             max_divu = max(max_divu,divuExt(i,jf))
             min_divu = min(min_divu,divuExt(i,jf))
          end do
-         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave1,face)
-         call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave2,face)
+
+c        Here we modify divuExt to include the velocity terms.
+         do i = ics, ice
+            rc = half*(redge(i+1-ics)+redge(i-ics))
+            divuExt(i,jf) = rc*divuExt(i,jf)*hx*hx - 
+     $                      (redge(i+1-ics)*u0(i+1,jce)-redge(i-ics)*u0(i,jce))*hx
+         end do
+
+         call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave1,face)
+         call subtractavg(DIMS(divuExt),divuExt,redge,r_len,lo,hi,divu_ave2,face)
+
          max_pert = ABS(divuExt(ics,jf))
          do i = ics, ice
             max_pert = MAX(max_pert,ABS(divuExt(i,jf)))
          end do
+      
+c        Make sure u_mac is periodic
+         if (per .eq. 1) then
+           diff = u0(ics,jce)-u0(ice+1,jce)
+           if (ABS(diff) .gt. small_udiff) then
+              write(6,*) 'EXTRAPMAC: FACE YHI : umac not periodic'
+              write(6,*) 'U AT LEFT: ',u0(ics  ,jce)
+              write(6,*) 'U AT RGHT: ',u0(ice+1,jce)
+              call bl_abort(" ")
+           endif
+         endif
+
       endif
       
 c  check to see if we should zero phi
@@ -169,17 +254,22 @@ c  check to see if we should zero phi
       end if
       end
 
-      subroutine subtractavg(DIMS(divu),divu,r,r_lo,r_hi,lo,hi,divu_ave,face)
+c *************************************************************************
+c ** SUBTRACTAVG
+c *************************************************************************
+
+      subroutine subtractavg(DIMS(divu),divu,redge,r_len,lo,hi,divu_ave,face)
       implicit none
       integer DIMDEC(divu)
+      integer r_len
       integer lo(SDIM),hi(SDIM)
-      integer r_lo,r_hi
-      REAL_T r(r_lo:r_hi)
-      REAL_T divu_ave
+      REAL_T  redge(0:r_len-1)
       REAL_T divu(DIMV(divu))
+      REAL_T divu_ave
       integer face
 
       integer i,j
+      REAL_T rcen
       REAL_T vtot
 
       divu_ave = zero
@@ -198,15 +288,16 @@ c  check to see if we should zero phi
       elseif (face .eq. YLO .or. face .eq. YHI) then
          j = lo(2)
          do i=lo(1),hi(1)
-            vtot = vtot+r(i)
-            divu_ave = divu_ave+r(i)*divu(i,j)
+            rcen = half*(redge(i)+redge(i+1))
+            vtot = vtot+rcen
+            divu_ave = divu_ave+rcen*divu(i,j)
          enddo
          divu_ave = divu_ave/vtot
          do i=lo(1),hi(1)
             divu(i,j) = divu(i,j) - divu_ave
          enddo
       else 
-         print*, "bad length"
+         print*, "bad value of face in subtractavg"
       endif
 
       end
@@ -215,74 +306,10 @@ c  check to see if we should zero phi
 #undef XHI
 #undef YHI
 
-      subroutine FORT_COMPUTE_MACCOEFF(DIMS(rhs),rhs,DIMS(beta),beta,
-     &                              DIMS(uExt),uExt,DIMS(divuExt),divuExt,
-     &                              DIMS(rhoExt),rhoExt,r_lo,r_hi,r,
-     &                              lo,hi,h,isPeriodic)
-      implicit none
-      integer DIMDEC(rhs)
-      integer DIMDEC(beta)
-      integer DIMDEC(uExt)
-      integer DIMDEC(divuExt)
-      integer DIMDEC(rhoExt)
-      integer lo(SDIM),hi(SDIM)
-      integer r_lo, r_hi
-      REAL_T uExt(DIM1(uExt))
-      REAL_T divuExt(DIM1(divuExt))
-      REAL_T rhoExt(DIM1(rhoExt))
-      REAL_T beta(DIM1(beta))
-      REAL_T rhs(DIM1(rhs))
-      REAL_T r(r_lo:r_hi)
-      REAL_T h
-      integer isPeriodic(SDIM)
 
-      REAL_T a(0:100),b(0:100),c(0:100),s(0:100)
-      integer i
-      integer ins,ine,ics,ice
-      REAL_T rR, rL
-      ins = lo(1)
-      ine = hi(1)+1
-      ics = lo(1)
-      ice = hi(1)
-
-      do i=ics+1,ice-1
-         rL = half*(r(i)+r(i-1))
-         rR = half*(r(i)+r(i+1))
-         rhs(i)=(rR*uExt(i+1)-rL*uExt(i))/h - r(i)*(divuExt(i))
-      enddo
-
-      do i=ins+1,ine-1
-         rL = half*(r(i)+r(i-1))
-         beta(i)=two*rL/(rhoExt(i)+rhoExt(i-1))
-      enddo
-
-      if (isPeriodic(1).eq.1) then
-         rL = half*(r(ics)+r(ice))
-         rR = half*(r(ics)+r(ics+1))
-         rhs(ics)=(rR*uExt(ics+1)-rL*uExt(ics))/h - r(ics)*(divuExt(ics))
-         beta(ins) = two*rL/(rhoExt(ics)+rhoExt(ice)) 
-
-         rL = half*(r(ice)+r(ice-1))
-         rR = half*(r(ics)+r(ice))
-         rhs(ice)=(rR*uExt(ice+1)-rL*uExt(ice))/h - r(ice)*(divuExt(ice))
-         beta(ine) =  two*rR/(rhoExt(ics)+rhoExt(ice))
-      else
-         rR = half*(r(ics)+r(ics+1))
-         rhs(ics)= rR*uExt(ics+1)/h - r(ics)*(divuExt(ics))
-         beta(ins) = zero
-
-         rL = half*(r(ice)+r(ice-1))
-         rhs(ice)=-rL*uExt(ice)/h - r(ice)*(divuExt(ice))
-         beta(ine) = zero
-      endif
-
-
-c      note:
-c         a(i) = beta(i)
-c         c(i) = beta(i+1)
-c         b(i) = -a(i)-c(i)
-c         s(i) = rhs(i)*h*h
-      end 
+c *************************************************************************
+c ** MACRELAX
+c *************************************************************************
 
 #define DGX (beta(i)*phi(i-1) - (beta(i)+beta(i+1))*phi(i) \
             +beta(i+1)*phi(i+1))*(hxsqinv)
@@ -331,6 +358,10 @@ c Local variables
 
       end
 
+c *************************************************************************
+c ** MACSUBTRACTAVGPHI
+c *************************************************************************
+
       subroutine FORT_MACSUBTRACTAVGPHI(DIMS(phi),phi,r_lo,r_hi,r,lo,hi,
      &                                  isPeriodic)
       implicit none
@@ -365,6 +396,10 @@ c Local variables
       
       end
 
+c *************************************************************************
+c ** MACRESID
+c *************************************************************************
+
       subroutine FORT_MACRESID(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,
      &                    DIMS(resid),resid,lo,hi,h,isPeriodic,maxnorm)
       implicit none
@@ -394,6 +429,10 @@ c Local variables
 
       end
 
+c *************************************************************************
+c ** SETMACBC
+c *************************************************************************
+
       subroutine setmacbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
       implicit none
       integer DIMDEC(phi)
@@ -418,6 +457,10 @@ c Local variables
       endif
 
       end
+
+c *************************************************************************
+c ** MAC_SHIFT_PHI
+c *************************************************************************
 
       subroutine FORT_MAC_SHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
       implicit none
@@ -451,6 +494,10 @@ c Local variables
 #undef YHI
 
       end
+
+c *************************************************************************
+c ** MAC_RESHIFT_PHI
+c *************************************************************************
 
 
       subroutine FORT_MAC_RESHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
@@ -486,6 +533,10 @@ c Local variables
 
       end
 
+
+c *************************************************************************
+c ** SOLVEMAC
+c *************************************************************************
 
       subroutine FORT_SOLVEMAC(p, DIMS(p),dest0, DIMS(dest0),
      &                         source,DIMS(source), sigma, DIMS(sigma),
@@ -750,51 +801,45 @@ c     Local variables
       end
 
 
-      subroutine FORT_MACPHIBC(DIMS(uExt),uExt,DIMS(divuExt),divuExt,
-     &                         DIMS(rhoExt),rhoExt,
-     &                         r_lo,r_hi,r,hx,DIMS(phi),phi,lo,hi,face,per)
+c *************************************************************************
+c ** MACPHIBC **
+c *************************************************************************
+
+      subroutine FORT_MACPHIBC(phi,length,divuExt,rhoExt,redge,hx,per)
 c
 c    Compute the value of phi for macproj to be used at an  outflow face,
 c    assuming that the tangential velocity on the edges of the outflow boundary
 c    are either zero or periodic.
 c
       implicit none
-      integer lo(SDIM),hi(SDIM)
-      integer DIMDEC(phi)
-      integer DIMDEC(rhoExt)
-      integer DIMDEC(divuExt)
-      integer DIMDEC(uExt)
-      integer r_lo,r_hi
+      integer length
+      integer r_len
       integer per
-      integer face
-      REAL_T    phi(DIMV(phi))
-      REAL_T      r(r_lo:r_hi)
-      REAL_T divuExt(DIM1(divuExt))
-      REAL_T    uExt(DIM1(uExt))
-      REAL_T  rhoExt(DIM1(rhoExt))
+      REAL_T     phi(length)
+      REAL_T divuExt(0:length-1)
+      REAL_T  rhoExt(0:length-1)
+      REAL_T   redge(0:length)
       REAL_T hx
 
 c     Local variables
       integer NstripMAX
       parameter (NstripMAX = 2000)
-      REAL_T small_udiff
-      parameter (small_udiff = SMALL)
       integer i, j, neq,n
       REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX), s(NstripMAX)
-      REAL_T x(NstripMAX), alpha, beta, sVal
+      REAL_T alpha, beta, sVal
       logical rNormed
       REAL_T vtot
       REAL_T rL, rR, diff
       REAL_T phitot
+      REAL_T rcen
       integer ics, ice
 
 c     This description assumes outflow at yhi; however, code works for 
 c     outflow at any face.
 c     NOTE: Assumes that rho at edge between i, i-1 = half*(rho(i)+rho(i-1))
 c             (1) Linear fit of rho between nodes
-c             (2) rho, divu on same boxes (box), and r(ARG_L1(rho),ARG_L2(rho))
+c             (2) rho, divu on same boxes (box)
 c             (3) phi is on box, shifted up one
-c             (4) u is edge-based, on surroundingNodes(box)
 
 c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu] 
 c     w/periodic or Neumann BC's, using a tridiagonal solve which detects, 
@@ -815,10 +860,10 @@ c     values come directly from cell-centers just inside domain
 #define YLO 1
 #define XHI 2
 #define YHI 3
-      
-      ics = lo(1)
-      ice = hi(1)
-      neq = ice - ics + 1
+
+      ics = 0
+      ice = length-1
+      neq = length
 
       if ( neq .gt. NStripMax ) then
          call bl_error( 'MACPHIBC: NStripMax too small' )
@@ -827,64 +872,49 @@ c     values come directly from cell-centers just inside domain
 c     Carry out non-trivial solve.  First set interior equations, then do BC's
       do n = 2,neq-1
          i = n + ics - 1
-         rL = half*(r(i)+r(i-1))
-         rR = half*(r(i)+r(i+1))
-         a(n)=two*rL/(rhoExt(i)+rhoExt(i-1))
-         c(n)=two*rR/(rhoExt(i)+rhoExt(i+1))
+         a(n)=two*redge(i  )/(rhoExt(i)+rhoExt(i-1))
+         c(n)=two*redge(i+1)/(rhoExt(i)+rhoExt(i+1))
          b(n)=- a(n) - c(n)
-         s(n)=(rR*uExt(i+1)-rL*uExt(i))*hx - r(i)*(divuExt(i))*hx*hx
+         s(n)= -divuExt(i)
       end do
       
       if (per .eq. 1) then
          
-c     Make sure u_mac is periodic
-         diff = uExt(ics) - uExt(ice+1)
-         if (ABS(diff) .gt. small_udiff) then
-            write(6,*) 'MACPHIBC: periodic umac screwy.  diff =',diff
-            call bl_abort(" ")
-         endif
-         
 c     Do left-side periodic BC (keep r in there to guarantee correct scaling)
          i = ics
-         rL = half*(r(i)+r(ice))
-         rR = half*(r(i)+r(i+1))
-         beta=two*rL/(rhoExt(i)+rhoExt(ice))
-         c(1)=two*rR/(rhoExt(i)+rhoExt(i+1))
+         beta=two*redge(i  )/(rhoExt(i)+rhoExt(ice))
+         c(1)=two*redge(i+1)/(rhoExt(i)+rhoExt(i+1))
          b(1)=- beta - c(1)
-         s(1)=(rR*uExt(i+1)-rL*uExt(i))*hx - r(i)*(divuExt(i))*hx*hx
+         s(1)= -divuExt(i)
          
 c     Do right-side periodic
          i = ice
-         rL = half*(r(i)+r(i-1))
-         rR = half*(r(ics)+r(i))
-         a(neq)=two*rL/(rhoExt(i)+rhoExt(i-1))
-         alpha=two*rR/(rhoExt(i)+rhoExt(ics))
+         a(neq)=two*redge(i  )/(rhoExt(i)+rhoExt(i-1))
+         alpha =two*redge(i+1)/(rhoExt(i)+rhoExt(ics))
          b(neq)=- a(neq) - alpha
-         s(neq)=(rR*uExt(i+1)-rL*uExt(i))*hx - r(i)*(divuExt(i))*hx*hx
+         s(neq)= -divuExt(i)
          
 c     Solve the equations
-         call cyclic(a,b,c,alpha,beta,s,x,neq)
+         call cyclic(a,b,c,alpha,beta,s,phi,neq)
          
       else
-c     Solid walls, Nuemann conditions (dphi/dx=u=0)
+c     Solid walls, Neumann conditions (dphi/dx=u=0)
          i = ics
-         rR = half*(r(i)+r(i+1))
-         c(1) = two*rR/(rhoExt(i)+rhoExt(i+1))
+         c(1) = two*redge(i+1)/(rhoExt(i)+rhoExt(i+1))
          b(1) = - c(1)
-         s(1)= rR*uExt(i+1)*hx - r(i)*(divuExt(i))*hx*hx
+         s(1)=  -divuExt(i)
          
          i = ice
-         rL = half*(r(i)+r(i-1))
-         a(neq) = two*rL/(rhoExt(i)+rhoExt(i-1))
+         a(neq) = two*redge(i)/(rhoExt(i)+rhoExt(i-1))
          b(neq) = - a(neq)
-         s(neq)=-rL*uExt(i)*hx - r(i)*(divuExt(i))*hx*hx
-         
+         s(neq)= -divuExt(i)
+
 c     Solve the equations (we know they're singular, pass the arbitrary value,
 c     and a flag that we've already normalized the rhs, in the sense that
 c     Int[dU/dx - (S-S_ave)] == 0
          sVal = zero
          rNormed = .true.
-         call tridag_sing(a,b,c,s,x,neq,sVal,rNormed)
+         call tridag_sing(a,b,c,s,phi,neq,sVal,rNormed)
          
       end if
       
@@ -892,27 +922,306 @@ c     Try normalizing phi to average to zero
       phitot = zero
       vtot = zero
       do n = 1,neq
-         phitot = phitot + x(n)*r(ics+n-1)
-         vtot = vtot + r(ics+n-1)
+         rcen = half*(redge(ics+n) + redge(ics+n-1))
+         phitot = phitot + phi(n)*rcen
+         vtot = vtot + rcen
       end do
       phitot = phitot / vtot
       do n = 1,neq
-         x(n) = x(n) - phitot
+         phi(n) = phi(n) - phitot
       end do
 
-c     Write the solution into the arg
-      if (face .eq. XLO .or. face .eq. XHI) then
-         do n = 1,neq
-            phi(ARG_H1(phi),ARG_L2(phi)-1+n) = x(n)
-         end do
-      else if (face .eq. YLO .or. face .eq. YHI) then
-         do n = 1,neq
-            phi(ARG_L1(phi)-1+n,ARG_H2(phi)) = x(n)
-         end do
-      endif
 #undef XLO
 #undef YLO
 #undef XHI
 #undef YHI
       end
 
+c *************************************************************************
+c ** MACFILL_ONED **
+c *************************************************************************
+
+      subroutine FORT_MACFILL_ONED(lenx,leny,length,faces,numOutFlowFaces,
+     $                             cc0,cc1,cc2,cc3,
+     $                             r0, r1, r2, r3 , conn, redge_conn)
+
+      integer lenx,leny,length
+      integer faces(4)
+      integer numOutFlowFaces
+      REAL_T cc0(leny,2)
+      REAL_T cc1(lenx,2)
+      REAL_T cc2(leny,2)
+      REAL_T cc3(lenx,2)
+      REAL_T conn(length,2)
+      REAL_T r0(leny+1)
+      REAL_T r1(lenx+1)
+      REAL_T r2(leny+1)
+      REAL_T r3(lenx+1)
+      REAL_T redge_conn(length+1)
+
+      integer xlo_outflow,ylo_outflow
+      integer xhi_outflow,yhi_outflow
+      integer i,ifinal,n
+      REAL_T sum
+
+#define XLO 0
+#define YLO 1
+#define XHI 2
+#define YHI 3
+
+c     Want to find the single non-outflow face.
+      xlo_outflow = 0
+      ylo_outflow = 0
+      xhi_outflow = 0
+      yhi_outflow = 0
+
+      do i = 1, numOutFlowFaces
+        if (faces(i) .eq. XLO) xlo_outflow = 1
+        if (faces(i) .eq. YLO) ylo_outflow = 1
+        if (faces(i) .eq. XHI) xhi_outflow = 1
+        if (faces(i) .eq. YHI) yhi_outflow = 1
+      enddo
+
+c     Possible combinations of faces to come in here:
+c       cc0 cc1 cc2 cc3
+c       XLO YLO 
+c       XLO         YHI 
+c           YLO XHI 
+c           YLO     YHI 
+c       XLO YLO XHI
+c       XLO     XHI YHI
+c       XLO YLO     YHI
+c           YLO XHI YHI
+c       XLO YLO XHI YHI
+
+c     We must remember here that the cc* arrays have already been
+c       ordered so that the 2nd dimension is one cell wide.
+
+      ifinal = 0
+      if (numOutFlowFaces .eq. 4 .or. 
+     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 0) ) then
+          do i = 1,leny
+            conn(i,1) = cc0(i,1)
+            conn(i,2) = cc0(i,2)
+          enddo
+          do i = 1,leny+1
+            redge_conn(i) = r0(i)
+          enddo
+          ifinal = leny
+      endif
+
+      if (yhi_outflow .eq. 1 .and. 
+     $    .not. (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+          do i = 1,lenx
+            conn(ifinal+i,1) = cc3(i,1)
+            conn(ifinal+i,2) = cc3(i,2)
+          enddo
+          do i = 1,lenx+1
+            redge_conn(ifinal+i) = r3(i)
+          enddo
+          ifinal = ifinal + lenx
+      endif
+
+      if (xhi_outflow .eq. 1) then
+          do i = 1,leny
+            conn(ifinal+i,1) = cc2(leny+1-i,1)
+            conn(ifinal+i,2) = cc2(leny+1-i,2)
+          enddo
+          do i = 1,leny+1
+            redge_conn(ifinal+i) = r2(leny+2-i)
+          enddo
+          ifinal = ifinal + leny
+      endif
+
+      if (ylo_outflow .eq. 1) then
+          do i = 1,lenx
+            conn(ifinal+i,1) = cc1(lenx+1-i,1)
+            conn(ifinal+i,2) = cc1(lenx+1-i,2)
+          enddo
+          do i = 1,lenx+1
+            redge_conn(ifinal+i) = r1(lenx+2-i)
+          enddo
+          ifinal = ifinal + lenx
+      endif
+
+      if (numOutFlowFaces .lt. 4 .and.
+     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 1) ) then
+          do i = 1,leny
+            conn(ifinal+i,1) = cc0(i,1)
+            conn(ifinal+i,2) = cc0(i,2)
+          enddo
+          do i = 1,leny+1
+            redge_conn(ifinal+i) = r0(i)
+          enddo
+          ifinal = ifinal + leny
+      endif
+
+      if (yhi_outflow .eq. 1 .and. 
+     $    (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+          do i = 1,lenx
+            conn(ifinal+i,1) = cc3(i,1)
+            conn(ifinal+i,2) = cc3(i,2)
+          enddo
+          do i = 1,lenx+1
+            redge_conn(ifinal+i) = r3(i)
+          enddo
+          ifinal = ifinal + lenx
+      endif
+
+      length = ifinal
+      sum = zero
+      do i = 1,length
+        sum = sum + conn(i,2)
+      enddo
+
+#undef XLO
+#undef YLO
+#undef XHI
+#undef YHI
+
+      end
+
+c *************************************************************************
+c ** MACPHI_FROM_X **
+c *************************************************************************
+
+      subroutine FORT_MACPHI_FROM_X(DIMS(phi),phi,length,x)
+
+      integer DIMDEC(phi)
+      integer length
+      REAL_T phi(DIMV(phi))
+      REAL_T x(length)
+
+      integer lenx, leny
+      integer i,j
+
+c     We know that the faces are ordered: XLO,XHI,YLO,YHI
+      lenx = ARG_H1(phi)-ARG_L1(phi)
+      leny = ARG_H2(phi)-ARG_L2(phi)
+
+      if (lenx .eq. 0) then
+        do j = 1,length
+          phi(ARG_L1(phi),j-1) = x(j)
+        enddo
+      elseif (leny .eq. 0) then
+        do i = 1,length
+          phi(i-1,ARG_L2(phi)) = x(i)
+        enddo
+      endif
+
+#undef XLO
+#undef YLO
+#undef XHI
+#undef YHI
+
+      end 
+
+c *************************************************************************
+c ** MACALLPHI_FROM_X **
+c *************************************************************************
+
+      subroutine FORT_MACALLPHI_FROM_X(lenx,leny,length,faces,numOutFlowFaces,
+     $                                 phi0,phi1,phi2,phi3,x)
+
+      integer lenx,leny,length
+      integer numOutFlowFaces
+      integer faces(4)
+      REAL_T phi0(0:leny-1)
+      REAL_T phi1(0:lenx-1)
+      REAL_T phi2(0:leny-1)
+      REAL_T phi3(0:lenx-1)
+      REAL_T x(0:length-1)
+
+      integer xlo_outflow,ylo_outflow
+      integer xhi_outflow,yhi_outflow
+      integer i,j,ifinal,n
+
+#define XLO 0
+#define YLO 1
+#define XHI 2
+#define YHI 3
+
+c     Possible combinations of faces to come in here:
+c       phi0 phi1 phi2 phi3
+c       XLO  YLO 
+c       XLO            YHI 
+c            YLO  XHI 
+c            YLO       YHI 
+c       XLO  YLO  XHI
+c       XLO       XHI  YHI
+c       XLO  YLO       YHI
+c            YLO  XHI  YHI
+c       XLO  YLO  XHI  YHI
+
+c     Want to find which are outflow faces.
+      xlo_outflow = 0
+      ylo_outflow = 0
+      xhi_outflow = 0
+      yhi_outflow = 0
+
+      do i = 1, numOutFlowFaces
+        if (faces(i) .eq. XLO) xlo_outflow = 1
+        if (faces(i) .eq. YLO) ylo_outflow = 1
+        if (faces(i) .eq. XHI) xhi_outflow = 1
+        if (faces(i) .eq. YHI) yhi_outflow = 1
+      enddo
+
+c     We know that the faces are ordered: XLO,XHI,YLO,YHI
+      
+      ifinal = 0
+
+      if (numOutFlowFaces .eq. 4 .or. 
+     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 0) ) then
+        do j = 0,leny-1
+          phi0(j) = x(j)
+        enddo
+        ifinal = leny
+      endif
+
+      if (yhi_outflow .eq. 1 .and. 
+     $    .not. (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+        do i = 0,lenx-1
+          phi3(i) = x(i+ifinal)
+        enddo
+        ifinal = ifinal+lenx
+      endif
+
+      if (xhi_outflow .eq. 1) then
+        do j = 0,leny-1
+     $                           x(ifinal+j)
+          phi2(leny-1-j) = x(ifinal+j)
+        enddo
+        ifinal = ifinal+leny
+      endif
+
+      if (ylo_outflow .eq. 1) then
+        if (numOutFlowFaces .eq. 4) then 
+          do i = 0,lenx-1
+            phi1(lenx-1-i) = x(ifinal+i)
+          enddo
+          phi1(0) = x(0)
+        else
+          do i = 0,lenx-1
+            phi1(lenx-1-i) = x(ifinal+i)
+          enddo
+        endif
+        ifinal = ifinal+lenx
+      endif
+
+      if (numOutFlowFaces .lt. 4 .and.
+     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 1) ) then
+        do j = 0,leny-1
+          phi0(j) = x(j+ifinal)
+        enddo
+        ifinal = ifinal+leny
+      endif
+
+      if (yhi_outflow .eq. 1 .and. 
+     $    (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+        do i = 0,lenx-1
+          phi3(i) = x(i+ifinal)
+        enddo
+        ifinal = ifinal+lenx
+      endif
+
+      end

@@ -44,7 +44,7 @@ c    compute divu_ave twice due to precision problems
 
 c local variables
       integer ics,ice,jcs,jce,kcs,kce
-      integer ifs,ife,jfs,jfe,kfs,kfe
+      integer ife,jfe,kfe
       integer if,jf,kf
       REAL_T divu_ave1,divu_ave2
       REAL_T max_divu, min_divu
@@ -66,11 +66,8 @@ c local variables
       kcs = ARG_L3(u)
       kce = ARG_H3(u)
 
-      ifs = lo(1)
       ife = hi(1)
-      jfs = lo(2)
       jfe = hi(2)
-      kfs = lo(3)
       kfe = hi(3)
 
       zeroIt = 0
@@ -135,7 +132,7 @@ c local variables
          end do
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(ics,j,kf))
+         max_pert = ABS(divuExt(ics,jcs,kf))
          do j = jcs, jce
          do i = ics, ice
             max_pert = MAX(max_pert,ABS(divuExt(i,j,kf)))
@@ -222,7 +219,6 @@ c  check to see if we should zero phi
 #undef YHI
 #undef ZHI
       end
-
 
       subroutine FORT_COMPUTE_COEFF(DIMS(rhs),rhs,DIMS(beta),beta,
      &                              DIMS(uExt),uExt,DIMS(divuExt),divuExt,
@@ -728,25 +724,19 @@ c double dgphi at edges
       if (face .eq. XLO .or. face .eq. XHI) then
          do k = ARG_L3(out), ARG_H3(out)
             do j= ARG_L2(out),ARG_H2(out)
-               do i = ARG_L1(out),ARG_H1(out)
-                  out(i,j,k) = in(j,k,i)
-               enddo
+               out(ARG_L1(out),j,k) = in(j,k,ARG_L3(in))
             enddo
          enddo
       else if (face .eq. YLO .or. face .eq. YHI) then
          do k = ARG_L3(out), ARG_H3(out)
-            do j= ARG_L2(out),ARG_H2(out)
-               do i = ARG_L1(out),ARG_H1(out)
-                  out(i,j,k) = in(i,k,j)
-               enddo
+            do i = ARG_L1(out),ARG_H1(out)
+               out(i,ARG_L2(out),k) = in(i,k,ARG_L3(in))
             enddo
          enddo
       else if (face .eq. ZLO .or. face .eq. ZHI) then
-         do k = ARG_L3(out), ARG_H3(out)
-            do j= ARG_L2(out),ARG_H2(out)
-               do i = ARG_L1(out),ARG_H1(out)
-                  out(i,j,k) = in(i,j,k)
-               enddo
+         do j= ARG_L2(out),ARG_H2(out)
+            do i = ARG_L1(out),ARG_H1(out)
+               out(i,j,ARG_L3(out)) = in(i,j,ARG_L3(in))
             enddo
          enddo
       endif
@@ -1350,4 +1340,480 @@ c     Local variables
       return
       end
 
+      subroutine FORT_RHOGBC(rho,DIMS(rho),phi,DIMS(phi),
+     &                       face,gravity,dx)
+c
+c    Compute the contribution of gravity to the boundary conditions
+c      for phi at outflow faces only.
+c
+      implicit none
 
+      integer DIMDEC(rho)
+      integer DIMDEC(phi)
+      integer face
+      REAL_T  rho(DIMV(rho))
+      REAL_T  phi(DIMV(phi))
+      REAL_T  dx(3)
+      REAL_T  gravity
+      
+c     Local variables
+      integer i,j,k
+      REAL_T rhog
+      REAL_T rho_i,rho_ip1,rho_im1
+      REAL_T rho_j,rho_jp1,rho_jm1
+      REAL_T rhoExt
+      
+#define XLO 0
+#define YLO 1
+#define ZLO 2
+#define XHI 3
+#define YHI 4
+#define ZHI 5
+
+      if (face .eq. ZLO .or. face .eq. ZHI) 
+     $   call bl_abort('SHOULDNT BE IN RHOGBC WITH FACE IN Y-DIR')
+
+c     Ok to only use low index of phi because phi is only one
+c        node wide in direction of face.
+
+      if (face .eq. XLO) then
+
+        i = ARG_L1(phi)
+
+        j = ARG_L2(phi)
+        rhog = zero
+        do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+          rho_i   = half * (three*rho(i  ,j,k) - rho(i  ,j+1,k))
+          rho_ip1 = half * (three*rho(i+1,j,k) - rho(i+1,j+1,k))
+          rhoExt  = half * (three*rho_i - rho_ip1 )
+          rhog = rhog + gravity * rhoExt * dx(3)
+          phi(i,j,k) = phi(i,j,k) + rhog
+        end do
+
+        j = ARG_H2(phi)
+        rhog = zero
+        do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+          rho_i   = half * (three*rho(i  ,j-1,k) - rho(i  ,j-2,k))
+          rho_ip1 = half * (three*rho(i+1,j-1,k) - rho(i+1,j-2,k))
+          rhoExt  = half * (three*rho_i - rho_ip1 )
+          rhog = rhog + gravity * rhoExt * dx(3)
+          phi(i,j,k) = phi(i,j,k) + rhog
+        end do
+
+        do j = ARG_L2(phi)+1,ARG_H2(phi)-1
+          rhog = zero
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = half * (rho(i  ,j,k) + rho(i  ,j-1,k))
+            rho_ip1 = half * (rho(i+1,j,k) + rho(i+1,j-1,k))
+            rhoExt  = half * (three*rho_i - rho_ip1 )
+            rhog = rhog + gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        end do
+
+      else if (face .eq. XHI) then
+
+        i = ARG_L1(phi)
+
+        j = ARG_L2(phi)
+        rhog = zero
+        do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+          rho_i   = half * (three*rho(i-1,j,k) - rho(i-1,j+1,k))
+          rho_im1 = half * (three*rho(i-2,j,k) - rho(i-2,j+1,k))
+          rhoExt  = half * (three*rho_i - rho_im1 )
+          rhog = rhog + gravity * rhoExt * dx(3)
+          phi(i,j,k) = phi(i,j,k) + rhog
+        end do
+
+        j = ARG_H2(phi)
+        rhog = zero
+        do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+          rho_i   = half * (three*rho(i-1,j-1,k) - rho(i-1,j-2,k))
+          rho_im1 = half * (three*rho(i-2,j-1,k) - rho(i-2,j-2,k))
+          rhoExt  = half * (three*rho_i - rho_im1 )
+          rhog = rhog + gravity * rhoExt * dx(3)
+          phi(i,j,k) = phi(i,j,k) + rhog
+        end do
+
+        do j = ARG_L2(phi)+1,ARG_H2(phi)-1
+          rhog = zero
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = half * (rho(i-1,j,k) + rho(i-1,j-1,k))
+            rho_im1 = half * (rho(i-2,j,k) + rho(i-2,j-1,k))
+            rhoExt  = half * (three*rho_i - rho_im1 )
+            rhog = rhog + gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        end do
+
+      else if (face .eq. YLO) then
+
+        j = ARG_L2(phi)
+
+        i = ARG_L1(phi)
+        rhog = zero
+        do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+          rho_j   = half * (three*rho(i,j  ,k) - rho(i+1,j  ,k))
+          rho_jp1 = half * (three*rho(i,j+1,k) - rho(i+1,j+1,k))
+          rhoExt  = half * (three*rho_j - rho_jp1 )
+          rhog = rhog + gravity * rhoExt * dx(3)
+          phi(i,j,k) = phi(i,j,k) + rhog
+        end do
+
+        i = ARG_H1(phi)
+        rhog = zero
+        do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+          rho_j   = half * (three*rho(i-1,j  ,k) - rho(i-2,j  ,k))
+          rho_jp1 = half * (three*rho(i-1,j+1,k) - rho(i-2,j+1,k))
+          rhoExt  = half * (three*rho_j - rho_jp1 )
+          rhog = rhog + gravity * rhoExt * dx(3)
+          phi(i,j,k) = phi(i,j,k) + rhog
+        end do
+
+        do i = ARG_L1(phi)+1,ARG_H1(phi)-1
+          rhog = zero
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = half * (rho(i,j  ,k) + rho(i-1,j  ,k))
+            rho_jp1 = half * (rho(i,j+1,k) + rho(i-1,j+1,k))
+            rhoExt  = half * (three*rho_j - rho_jp1 )
+            rhog = rhog + gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        end do
+
+      else if (face .eq. YHI) then
+
+        j = ARG_L2(phi)
+
+        i = ARG_L1(phi)
+        rhog = zero
+        do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+          rho_j   = half * (three*rho(i,j-1,k) - rho(i+1,j-1,k))
+          rho_jm1 = half * (three*rho(i,j-2,k) - rho(i+1,j-2,k))
+          rhoExt  = half * (three*rho_j - rho_jm1 )
+          rhog = rhog + gravity * rhoExt * dx(3)
+          phi(i,j,k) = phi(i,j,k) + rhog
+        end do
+
+        i = ARG_H1(phi)
+        rhog = zero
+        do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+          rho_j   = half * (three*rho(i-1,j-1,k) - rho(i-2,j-1,k))
+          rho_jm1 = half * (three*rho(i-1,j-2,k) - rho(i-2,j-2,k))
+          rhoExt  = half * (three*rho_j - rho_jm1 )
+          rhog = rhog + gravity * rhoExt * dx(3)
+          phi(i,j,k) = phi(i,j,k) + rhog
+        end do
+
+        do i = ARG_L1(phi)+1,ARG_H1(phi)-1
+          rhog = zero
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = half * (rho(i,j-1,k) + rho(i-1,j-1,k))
+            rho_jm1 = half * (rho(i,j-2,k) + rho(i-1,j-2,k))
+            rhoExt  = half * (three*rho_j - rho_jm1 )
+            rhog = rhog + gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        end do
+
+      endif
+
+#undef XLO
+#undef YLO
+#undef ZLO
+#undef XHI
+#undef YHI
+#undef ZHI
+
+      end
+
+c *************************************************************************
+c ** FILL_TWOD **
+c *************************************************************************
+
+      subroutine FORT_FILL_TWOD(lenx,leny,lenz,length,width,
+     $                          faces,numOutFlowFaces,
+     $                          cc0,cc1,cc2,cc3,cc4,cc5,conn)
+
+      integer lenx,leny,lenz
+      integer length,width
+      integer faces(6)
+      integer numOutFlowFaces
+      REAL_T cc0(leny,lenz,4)
+      REAL_T cc1(lenx,lenz,4)
+      REAL_T cc2(leny,lenz,4)
+      REAL_T cc3(lenx,lenz,4)
+      REAL_T cc4(lenx,leny,4)
+      REAL_T cc5(lenx,leny,4)
+      REAL_T conn(length,width,4)
+
+      integer xlo_outflow,ylo_outflow,zlo_outflow
+      integer xhi_outflow,yhi_outflow,zhi_outflow
+      integer i,k,ifinal,n
+
+#define XLO 0
+#define YLO 1
+#define ZLO 2
+#define XHI 3
+#define YHI 4
+#define ZHI 5
+
+c     Want to find the single non-outflow face.
+      xlo_outflow = 0
+      ylo_outflow = 0
+      zlo_outflow = 0
+      xhi_outflow = 0
+      yhi_outflow = 0
+      zhi_outflow = 0
+
+      do i = 1, numOutFlowFaces
+        if (faces(i) .eq. XLO) xlo_outflow = 1
+        if (faces(i) .eq. YLO) ylo_outflow = 1
+        if (faces(i) .eq. ZLO) zlo_outflow = 1
+        if (faces(i) .eq. XHI) xhi_outflow = 1
+        if (faces(i) .eq. YHI) yhi_outflow = 1
+        if (faces(i) .eq. ZHI) zhi_outflow = 1
+      enddo
+
+c     Possible combinations of faces to come in here:
+c       cc0 cc1 cc2 cc3 cc4 cc5
+c       XLO YLO 
+c       XLO             YHI 
+c           YLO     XHI 
+c           YLO     YHI 
+c       XLO YLO     XHI
+c       XLO         XHI YHI
+c       XLO YLO     YHI
+c           YLO     XHI YHI
+c       XLO YLO     XHI YHI
+
+c     We must remember here that the cc* arrays have already been
+c       ordered so that the 3nd dimension is one cell wide.
+
+      ifinal = 0
+      if (numOutFlowFaces .eq. 4 .or. 
+     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 0) ) then
+          do k = 1,lenz
+          do i = 1,leny
+            conn(i,k,1) = cc0(i,k,1)
+            conn(i,k,2) = cc0(i,k,2)
+            conn(i,k,3) = cc0(i,k,3)
+            conn(i,k,4) = cc0(i,k,4)
+          enddo
+          enddo
+          ifinal = leny
+      endif
+
+      if (yhi_outflow .eq. 1 .and. 
+     $    .not. (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+          do k = 1,lenz
+          do i = 1,lenx
+            conn(ifinal+i,k,1) = cc4(i,k,1)
+            conn(ifinal+i,k,2) = cc4(i,k,2)
+            conn(ifinal+i,k,3) = cc4(i,k,3)
+            conn(ifinal+i,k,4) = cc4(i,k,4)
+          enddo
+          enddo
+          ifinal = ifinal + lenx
+      endif
+
+      if (xhi_outflow .eq. 1) then
+          do k = 1,lenz
+          do i = 1,leny
+            conn(ifinal+i,k,1) = cc3(leny+1-i,k,1)
+            conn(ifinal+i,k,2) = cc3(leny+1-i,k,2)
+            conn(ifinal+i,k,3) = cc3(leny+1-i,k,3)
+            conn(ifinal+i,k,4) = cc3(leny+1-i,k,4)
+          enddo
+          enddo
+          ifinal = ifinal + leny
+      endif
+
+      if (ylo_outflow .eq. 1) then
+          do k = 1,lenz
+          do i = 1,lenx
+            conn(ifinal+i,k,1) = cc1(lenx+1-i,k,1)
+            conn(ifinal+i,k,2) = cc1(lenx+1-i,k,2)
+            conn(ifinal+i,k,3) = cc1(lenx+1-i,k,3)
+            conn(ifinal+i,k,4) = cc1(lenx+1-i,k,4)
+          enddo
+          enddo
+          ifinal = ifinal + lenx
+      endif
+
+      if (numOutFlowFaces .lt. 4 .and.
+     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 1) ) then
+          do k = 1,lenz
+          do i = 1,leny
+            conn(ifinal+i,k,1) = cc0(i,k,1)
+            conn(ifinal+i,k,2) = cc0(i,k,2)
+            conn(ifinal+i,k,3) = cc0(i,k,3)
+            conn(ifinal+i,k,4) = cc0(i,k,4)
+          enddo
+          enddo
+          ifinal = ifinal + leny
+      endif
+
+      if (yhi_outflow .eq. 1 .and. 
+     $    (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+          do k = 1,lenz
+          do i = 1,lenx
+            conn(ifinal+i,k,1) = cc4(i,k,1)
+            conn(ifinal+i,k,2) = cc4(i,k,2)
+            conn(ifinal+i,k,3) = cc4(i,k,3)
+            conn(ifinal+i,k,4) = cc4(i,k,4)
+          enddo
+          enddo
+          ifinal = ifinal + lenx
+      endif
+
+      length = ifinal
+
+#undef XLO
+#undef YLO
+#undef ZLO
+#undef XHI
+#undef YHI
+#undef ZHI
+
+      end
+
+c *************************************************************************
+c ** ALLPHI_FROM_X **
+c *************************************************************************
+
+      subroutine FORT_ALLPHI_FROM_X(lenx,leny,lenz,length,width,
+     $                              faces,numOutFlowFaces,
+     $                              phi0,phi1,phi2,phi3,phi4,phi5,x,DIMS(x))
+
+      integer DIMDEC(x)
+      integer lenx,leny,lenz,length,width
+      integer numOutFlowFaces
+      integer faces(6)
+      REAL_T phi0(0:leny,0:lenz)
+      REAL_T phi1(0:lenx,0:lenz)
+      REAL_T phi2(0:leny,0:lenz)
+      REAL_T phi3(0:lenx,0:lenz)
+      REAL_T phi4(0:lenx,0:leny)
+      REAL_T phi5(0:lenx,0:leny)
+      REAL_T x(DIMV(x))
+
+      integer xlo_outflow,ylo_outflow,zlo_outflow
+      integer xhi_outflow,yhi_outflow,zhi_outflow
+      integer i,j,k,ifinal,n
+
+#define XLO 0
+#define YLO 1
+#define ZLO 2
+#define XHI 3
+#define YHI 4
+#define ZHI 5
+
+c     Want to find the single non-outflow face.
+      xlo_outflow = 0
+      ylo_outflow = 0
+      zlo_outflow = 0
+      xhi_outflow = 0
+      yhi_outflow = 0
+      zhi_outflow = 0
+
+      do i = 1, numOutFlowFaces
+        if (faces(i) .eq. XLO) xlo_outflow = 1
+        if (faces(i) .eq. YLO) ylo_outflow = 1
+        if (faces(i) .eq. ZLO) zlo_outflow = 1
+        if (faces(i) .eq. XHI) xhi_outflow = 1
+        if (faces(i) .eq. YHI) yhi_outflow = 1
+        if (faces(i) .eq. ZHI) zhi_outflow = 1
+      enddo
+
+c     Possible combinations of faces to come in here:
+c       phi0 phi1 phi2 phi3 phi4 phi5
+c       XLO  YLO 
+c       XLO                 YHI 
+c            YLO       XHI 
+c            YLO            YHI 
+c       XLO  YLO       XHI
+c       XLO            XHI  YHI
+c       XLO  YLO            YHI
+c            YLO       XHI  YHI
+c       XLO  YLO       XHI  YHI
+
+
+c     We know that the faces are ordered: XLO,XHI,YLO,YHI
+      
+      ifinal = 0
+
+      if (numOutFlowFaces .eq. 4 .or. 
+     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 0) ) then
+        do k = 0,lenz
+        do j = 0,leny
+          phi0(j,k) = x(j,k,ARG_L3(x))
+        enddo
+        enddo
+        ifinal = leny
+      endif
+
+      if (yhi_outflow .eq. 1 .and. 
+     $    .not. (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+        do k = 0,lenz
+        do i = 0,lenx
+          phi4(i,k) = x(i+ifinal,k,ARG_L3(x))
+        enddo
+        enddo
+        ifinal = ifinal+lenx
+      endif
+
+      if (xhi_outflow .eq. 1) then
+        do k = 0,lenz
+        do j = 0,leny
+          phi3(leny-j,k) = x(ifinal+j,k,ARG_L3(x))
+        enddo
+        enddo
+        ifinal = ifinal+leny
+      endif
+
+      if (ylo_outflow .eq. 1) then
+        if (numOutFlowFaces .eq. 4) then 
+          do k = 0,lenz
+          do i = 0,lenx-1
+            phi1(lenx-i,k) = x(ifinal+i,k,ARG_L3(x))
+          enddo
+          phi1(0,k) = x(0,k,ARG_L3(x))
+          enddo
+        else
+          do k = 0,lenz
+          do i = 0,lenx
+            phi1(lenx-i,k) = x(ifinal+i,k,ARG_L3(x))
+          enddo
+          enddo
+        endif
+        ifinal = ifinal+lenx
+      endif
+
+      if (numOutFlowFaces .lt. 4 .and.
+     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 1) ) then
+        do k = 0,lenz
+        do j = 0,leny
+          phi0(j,k) = x(j+ifinal,k,ARG_L3(x))
+        enddo
+        enddo
+        ifinal = ifinal+leny
+      endif
+
+      if (yhi_outflow .eq. 1 .and. 
+     $    (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+        do k = 0,lenz
+        do i = 0,lenx
+          phi4(i,k) = x(i+ifinal,k,ARG_L3(x))
+        enddo
+        enddo
+        ifinal = ifinal+lenx
+      endif
+
+#undef XLO
+#undef YLO
+#undef ZLO
+#undef XHI
+#undef YHI
+#undef ZHI
+      end
