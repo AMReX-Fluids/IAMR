@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.80 1998-07-09 18:28:29 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.81 1998-07-09 20:39:51 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1455,9 +1455,9 @@ NavierStokes::predict_velocity (Real  dt,
           ++U_fpi, ++Rho_fpi, ++P_fpi)
     {
         //
-        // Since all the MultiFabs are based on same grid we'll use indexes.
+        // Since all the MultiFabs are based on same grid we'll use indices.
         //
-        int i = U_fpi.index();
+        const int i = U_fpi.index();
 
         setForce(tforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
         //
@@ -1645,9 +1645,9 @@ NavierStokes::velocity_advection (Real dt)
           ++U_fpi, ++Rho_fpi, ++P_fpi)
     {
         //
-        // Since all the MultiFabs are on same grid we'll just use indexes.
+        // Since all the MultiFabs are on same grid we'll just use indices.
         //
-        int i = U_fpi.index();
+        const int i = U_fpi.index();
 
         setForce(tforces,i,1,Xvel,BL_SPACEDIM,Rho_fpi());
         //
@@ -1772,9 +1772,9 @@ NavierStokes::scalar_advection (Real dt,
           ++U_fpi, ++S_fpi, ++Rho_fpi, ++P_fpi)
     {
         //
-        // Since all the MultiFabs are based on same grid just use indexes.
+        // Since all the MultiFabs are based on same grid just use indices.
         //
-        int i = U_fpi.index();
+        const int i = U_fpi.index();
 
         setForce(tforces,i,1,fscalar,num_scalars,Rho_fpi());
         
@@ -1987,94 +1987,45 @@ NavierStokes::velocity_update (Real dt)
 void
 NavierStokes::velocity_advection_update (Real dt)
 {
-    FArrayBox Gp, tforces, rho;
+    FArrayBox Gp, tforces;
     //
     // Simulation parameters.
     //
-    MultiFab& U_old     = get_old_data(State_Type);
-    MultiFab& U_new     = get_new_data(State_Type);
-    MultiFab& Aofs      = *aofs;
-    Real cur_time       = state[State_Type].curTime();
-    Real prev_time      = state[State_Type].prevTime();
-    Real half_time      = 0.5*(prev_time+cur_time);
-    Real pres_prev_time = state[Press_Type].prevTime();
-    //
-    // Estimate u^n+1 and put in U_new.
-    //
-    const int NGrow = 0;
+    MultiFab& U_old           = get_old_data(State_Type);
+    MultiFab& U_new           = get_new_data(State_Type);
+    MultiFab& P_old           = get_old_data(Press_Type);
+    MultiFab& Aofs            = *aofs;
+    const Real cur_time       = state[State_Type].curTime();
+    const Real prev_time      = state[State_Type].prevTime();
+    const Real half_time      = 0.5*(prev_time+cur_time);
+    const Real pres_prev_time = state[Press_Type].prevTime();
 
-    FillPatchIterator Rho_fpi(*this,U_old,NGrow,half_time,State_Type,Density,1);
+    FillPatchIterator P_fpi(*this,P_old,0,pres_prev_time,Press_Type,0,1);
 
-    MultiFab& P_old = get_old_data(Press_Type);
-    const int presNGrow   = 0;
-    const int presSrcComp = 0;
-
-    FillPatchIterator P_fpi(*this,P_old,presNGrow,pres_prev_time,
-                            Press_Type,presSrcComp,1);
+    FillPatchIterator Rho_fpi(*this,U_old,0,half_time,State_Type,Density,1);
 
     for ( ; Rho_fpi.isValid() && P_fpi.isValid(); ++Rho_fpi, ++P_fpi)
     {
-        DependentMultiFabIterator U_oldmfi(Rho_fpi, U_old);
-        DependentMultiFabIterator U_newmfi(Rho_fpi, U_new);
-        DependentMultiFabIterator Aofsmfi(Rho_fpi, Aofs);
-        DependentMultiFabIterator rho_halfmfi(Rho_fpi,*rho_half);
-
-        int i = U_oldmfi.index();
-
-        {
-            Gp.resize(::grow(grids[i],presNGrow),BL_SPACEDIM);
-
-            assert(::surroundingNodes(Gp.box()) == P_fpi().box());
-            assert(::enclosedCells(P_fpi().box()).contains(Gp.box()));
-
-            const int *plo     = P_fpi().loVect();
-            const int *phi     = P_fpi().hiVect();
-            const int *glo     = Gp.box().loVect();
-            const int *ghi     = Gp.box().hiVect();
-            const Real *p_dat  = P_fpi().dataPtr();
-            const Real *gp_dat = Gp.dataPtr();
-            const Real *dx     = geom.CellSize();
-
-            FORT_GRADP(p_dat,ARLIM(plo),ARLIM(phi),
-                       gp_dat,ARLIM(glo),ARLIM(ghi),glo,ghi,dx);
-        }
-
-        const Real grav = Abs(gravity);
-
-        tforces.resize(::grow(grids[i],NGrow), BL_SPACEDIM);
-
-        for (int dc = 0; dc < BL_SPACEDIM; dc++)
-        {
-            int sc = Xvel + dc;
-#if (BL_SPACEDIM == 2)
-            if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001)
-#endif
-#if (BL_SPACEDIM == 3)
-            if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
-#endif
-            {
-                rho.resize(Rho_fpi().box());
-                rho.copy(Rho_fpi());
-                rho.mult(-grav);
-                tforces.copy(rho,0,dc,1);
-            }
-            else
-            {
-                tforces.setVal(0.0,dc);
-            }
-        }
-        FArrayBox& Rh = rho_halfmfi();
         //
-        // Do following only at initial iteration -- per JBB.
+        // Since all the MultiFabs are based on same grid we'll use indices.
+        //
+        const int i = Rho_fpi.index();
+        //
+        // Get the forcing terms.
+        //
+        getGradP(P_fpi(),Gp,grids[i],0);
+
+	setForce(tforces,i,0,Xvel,BL_SPACEDIM,Rho_fpi());
+        //
+        // Do following only at initial iteration--per JBB.
         //
         if (initial_iter && is_diffusive[Xvel])
         {
-            tforces.setVal(0.); 
+            tforces.setVal(0);
         }
-        assert(grids[U_oldmfi.index()] == U_oldmfi.validbox());
 
-        godunov->Add_aofs_tf_gp(U_oldmfi(), U_newmfi(), Aofsmfi(), tforces,
-                                Gp, Rh, U_oldmfi.validbox(), dt);
+        godunov->Add_aofs_tf_gp(U_old[i],U_new[i],Aofs[i],tforces,
+                                 Gp,Rho_fpi(),grids[i],dt);
     }
 }
 
@@ -2514,7 +2465,7 @@ NavierStokes::estTimeStep ()
 
     for ( ; Rho_fpi.isValid(); ++Rho_fpi)
     {
-        int i = Rho_fpi.index();
+        const int i = Rho_fpi.index();
         //
         // Get the pressure.
         //
