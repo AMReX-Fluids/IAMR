@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.81 2001-08-22 16:42:00 car Exp $
+// $Id: MacProj.cpp,v 1.82 2002-09-26 16:39:31 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -633,13 +633,8 @@ MacProj::mac_sync_compute (int                   level,
 
     MultiFab* divu_fp = ns_level.getDivCond(1,prev_time);
 
-    FillPatchIterator P_fpi(ns_level,ns_level.get_old_data(Press_Type),1,
-                            prev_pres_time,Press_Type,0,1);
-
-    FillPatchIterator S_fpi(ns_level,vel_visc_terms,HYP_GROW,
-                            prev_time,State_Type,0,NUM_STATE);
-
     FluxRegister* temp_reg = 0;
+
     if (modify_reflux_normal_vel)
     {
         temp_reg = new FluxRegister(LevelData[level+1].boxArray(),
@@ -650,7 +645,10 @@ MacProj::mac_sync_compute (int                   level,
     //
     // Compute the mac sync correction.
     //
-    for ( ; S_fpi.isValid() && P_fpi.isValid(); ++S_fpi, ++P_fpi)
+    for (FillPatchIterator P_fpi(ns_level,ns_level.get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
+             S_fpi(ns_level,vel_visc_terms,HYP_GROW,prev_time,State_Type,0,NUM_STATE);
+         S_fpi.isValid() && P_fpi.isValid();
+         ++S_fpi, ++P_fpi)
     {
         const int i     = S_fpi.index();
         FArrayBox& S    = S_fpi();
@@ -723,8 +721,7 @@ MacProj::mac_sync_compute (int                   level,
                 FArrayBox& temp     = comp < BL_SPACEDIM ? u_sync : s_sync;
                 ns_level_bc         = ns_level.getBCArray(State_Type,i,comp,1);
 
-                int use_conserv_diff = (advectionType[comp] == Conservative)
-                                                             ? true : false;
+                int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
 
                 if (do_mom_diff == 1 && comp < BL_SPACEDIM)
                 {

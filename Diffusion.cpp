@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.115 2002-08-21 20:12:40 car Exp $
+// $Id: Diffusion.cpp,v 1.116 2002-09-26 16:39:31 lijewski Exp $
 //
 
 //
@@ -2185,11 +2185,12 @@ Diffusion::getBndryData (ViscBndry& bndry,
 
     bndry.define(grids,num_comp,caller->Geom());
 
-    const MultiFab&       rhotime = ns.get_rho(time);
-    FillPatchIterator     Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
-    MFIter                Rho_mfi(rhotime);
+    const MultiFab& rhotime = ns.get_rho(time);
+    MFIter          Rho_mfi(rhotime);
 
-    for ( ; Rho_mfi.isValid() && Phi_fpi.isValid(); ++Rho_mfi, ++Phi_fpi)
+    for (FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
+         Rho_mfi.isValid() && Phi_fpi.isValid();
+         ++Rho_mfi, ++Phi_fpi)
     {
         const BoxList gCells = BoxLib::boxDiff(Phi_fpi().box(),Phi_fpi.validbox());
 
@@ -2213,7 +2214,6 @@ Diffusion::getBndryData (ViscBndry& bndry,
     {
         BoxArray cgrids = grids;
         cgrids.coarsen(crse_ratio);
-        //BndryRegister crse_br(cgrids,0,1,1,num_comp);
         BndryRegister crse_br(cgrids,0,1,2,num_comp);
         //
         // interp for solvers over ALL c-f brs, need safe data.
@@ -2282,11 +2282,12 @@ Diffusion::FillBoundary (BndryRegister& bdry,
 
     MultiFab S(caller->boxArray(),num_comp,nGrow);
 
-    const MultiFab&   rhotime = ns.get_rho(time);
-    FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,state_ind,num_comp);
-    MFIter            Rho_mfi(rhotime);
+    const MultiFab& rhotime = ns.get_rho(time);
+    MFIter          Rho_mfi(rhotime);
 
-    for ( ; Rho_mfi.isValid() && S_fpi.isValid(); ++Rho_mfi, ++S_fpi)
+    for (FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,state_ind,num_comp);
+         Rho_mfi.isValid() && S_fpi.isValid();
+         ++Rho_mfi, ++S_fpi)
     {
         S[S_fpi.index()].copy(S_fpi(),0,0,num_comp);
 
@@ -2324,9 +2325,9 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
 
     MultiFab S(grids,num_comp,nGrow,Fab_allocate);
 
-    FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
-
-    for ( ; Phi_fpi.isValid(); ++Phi_fpi)
+    for (FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
+         Phi_fpi.isValid();
+         ++Phi_fpi)
     {
         const BoxList gCells = BoxLib::boxDiff(Phi_fpi().box(), Phi_fpi.validbox());
         

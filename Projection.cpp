@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.142 2002-09-10 18:16:58 car Exp $
+// $Id: Projection.cpp,v 1.143 2002-09-26 16:39:31 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -420,13 +420,13 @@ Projection::level_project (int             level,
 
         ns->getGradP(Gp, prev_pres_time);
 
-        FillPatchIterator P_fpi(LevelData[level],P_old,1,
-                                prev_pres_time,Press_Type,0,1);
         const int n_ghost = 1;
 
         rho_half->invert(1.0,n_ghost);
 
-        for ( ; P_fpi.isValid(); ++P_fpi)
+        for (FillPatchIterator P_fpi(LevelData[level],P_old,1,prev_pres_time,Press_Type,0,1);
+             P_fpi.isValid();
+             ++P_fpi)
         {
             const int idx = P_fpi.index();
 
@@ -2258,14 +2258,11 @@ Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
         //
         tmpRho.copy(rho);
     }
-  
-    FillPatchIterator velFpi(LevelData[f_lev],cc_MultiFab,nGrow,
-                             cur_divu_time,State_Type,srcCompVel,nCompVel);
-    
-    FillPatchIterator divuFpi(LevelData[f_lev],cc_MultiFab,nGrow,
-                              cur_divu_time,Divu_Type,srcCompDivu,nCompDivu);
 
-    for ( ; velFpi.isValid() && divuFpi.isValid(); ++velFpi, ++divuFpi)
+    for (FillPatchIterator velFpi(LevelData[f_lev],cc_MultiFab,nGrow,cur_divu_time,State_Type,srcCompVel,nCompVel),
+             divuFpi(LevelData[f_lev],cc_MultiFab,nGrow,cur_divu_time,Divu_Type,srcCompDivu,nCompDivu);
+         velFpi.isValid() && divuFpi.isValid();
+         ++velFpi, ++divuFpi)
     {
 	computeBC(velFpi(),
                   divuFpi(),
@@ -2393,24 +2390,15 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
         //
         tmpRhoHalf.copy(rhonph);
     }
-	
-    FillPatchIterator velOldFpi(LevelData[f_lev],cc_MultiFab,nGrow,
-                                start_time,State_Type,srcCompVel,nCompVel);
-	
-    FillPatchIterator velNewFpi(LevelData[f_lev],cc_MultiFab,nGrow,
-                                start_time+dt,State_Type,srcCompVel,nCompVel);
-	
-    FillPatchIterator divuOldFpi(LevelData[f_lev],cc_MultiFab,nGrow,
-                                 start_time,Divu_Type,srcCompDivu,nCompDivu);
-	
-    FillPatchIterator divuNewFpi(LevelData[f_lev],cc_MultiFab,nGrow,
-                                 start_time+dt,Divu_Type,srcCompDivu,nCompDivu);
+
     const Real dt_inv = 1./dt;
 
-    for ( ;
-          velOldFpi.isValid() && divuOldFpi.isValid() &&
-              velNewFpi.isValid() && divuNewFpi.isValid();
-          ++velOldFpi, ++divuOldFpi, ++velNewFpi, ++divuNewFpi)
+    for (FillPatchIterator velOldFpi(LevelData[f_lev],cc_MultiFab,nGrow,start_time,State_Type,srcCompVel,nCompVel),
+             velNewFpi(LevelData[f_lev],cc_MultiFab,nGrow,start_time+dt,State_Type,srcCompVel,nCompVel),
+             divuOldFpi(LevelData[f_lev],cc_MultiFab,nGrow,start_time,Divu_Type,srcCompDivu,nCompDivu),
+             divuNewFpi(LevelData[f_lev],cc_MultiFab,nGrow,start_time+dt,Divu_Type,srcCompDivu,nCompDivu);
+         velOldFpi.isValid() && divuOldFpi.isValid() && velNewFpi.isValid() && divuNewFpi.isValid();
+         ++velOldFpi, ++divuOldFpi, ++velNewFpi, ++divuNewFpi)
     {
         //
         // Make du/dt, and dsdt; we've already made rhonph.
