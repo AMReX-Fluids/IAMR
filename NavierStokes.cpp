@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.211 2003-02-03 18:01:04 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.212 2003-02-04 21:12:16 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -314,7 +314,6 @@ NavierStokes::read_params ()
     pp.query("do_init_proj",             do_init_proj     );
     pp.query("do_mac_proj",              do_mac_proj      );
     pp.query("do_fillPatchUMAC",         do_fillPatchUMAC );
-    std::cout << "FILLPATCH " << do_fillPatchUMAC << std::endl;
     pp.query("do_divu_sync",             do_divu_sync     );
 
     pp.query("umac_periodic_test_Tol",   umac_periodic_test_Tol);
@@ -1369,9 +1368,7 @@ NavierStokes::advance (Real time,
     //
     if (do_mac_proj) {
      mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu);
-     std::cout << "do_fillPatchUMAC " << do_fillPatchUMAC << std::endl;
      if (do_fillPatchUMAC) {
-       std::cout << "CALLING CREATE UMAC " << std::endl;
        create_umac_grown();
      }
     }
@@ -4099,7 +4096,7 @@ NavierStokes::mac_sync ()
     if (do_reflux)
     {
         MultiFab& S_new = get_new_data(State_Type);
-        mac_projector->mac_sync_compute(level,u_mac,Vsync,Ssync,Rh,
+        mac_projector->mac_sync_compute(level,u_mac,u_macG,Vsync,Ssync,Rh,
                                         level > 0 ? &getAdvFluxReg(level) : 0,
                                         advectionType, prev_time,
                                         prev_pres_time,dt,
