@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.117 2000-04-14 21:25:33 almgren Exp $
+// $Id: Projection.cpp,v 1.118 2000-04-25 18:03:25 car Exp $
 //
 
 #ifdef BL_T3E
@@ -133,6 +133,16 @@ int       Projection::proj_0             = 0;
 int       Projection::proj_2             = 0;
 int       Projection::add_vort_proj      = 0;
 
+#if BL_SPACEDIM == 2
+#if BL_PRVERSION == 9
+static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::full;
+#elif BL_PRVERSION == 5
+static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
+#endif
+#elif BL_SPACEDIM == 3
+static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
+#endif
+
 static RegType project_bc [] =
 {
     interior, inflow, outflow, refWall, refWall, refWall
@@ -207,7 +217,7 @@ Projection::read_params ()
     pp.query("proj_2",proj_2);
 
     if (proj_0 && proj_2)
-      BoxLib::Error("You can only set proj_0 OR proj_2");
+	BoxLib::Error("You can only set proj_0 OR proj_2");
 
     pp.query("divu_minus_s_factor",divu_minus_s_factor);
 
@@ -216,6 +226,29 @@ Projection::read_params ()
     pp.query("do_outflow_bcs",do_outflow_bcs);
 
     pp.query("add_vort_proj",add_vort_proj);
+
+    {
+	aString stencil = "cross";
+	if ( pp.query("stencil", stencil) )
+	{
+	    if ( stencil == "cross" )
+	    {
+		hg_stencil = holy_grail_amr_multigrid::cross;
+	    }
+	    else if ( stencil == "terrain" )
+	    {
+		hg_stencil = holy_grail_amr_multigrid::terrain;
+	    }
+	    else if ( stencil == "full" )
+	    {
+		hg_stencil = holy_grail_amr_multigrid::full;
+	    }
+	    else
+	    {
+		BoxLib::Error("stencil must be cross, terrain, or full");
+	    }
+	}
+    }
 }
 
 void 
@@ -318,18 +351,10 @@ Projection::bldSyncProject ()
                                              0, finest_level, finest_level,
                                              *projector_bndry, P_code);
 #else
-    holy_grail_amr_multigrid::stencil stencil = holy_grail_amr_multigrid::cross;
-#if BL_SPACEDIM == 2
-#if BL_PRVERSION == 9
-    stencil = holy_grail_amr_multigrid::full;
-#elif BL_PRVERSION == 5
-    stencil = holy_grail_amr_multigrid::cross;
-#endif
-#endif
     sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
                                              0, finest_level, finest_level,
                                              *projector_bndry,
-					     stencil,
+					     hg_stencil,
                                              P_code);
 #if BL_SPACEDIM == 2
     if (CoordSys::IsRZ())
@@ -1211,11 +1236,7 @@ Projection::MLsyncProject (int             c_lev,
             u_realfinemfi().copy(V_corrmfi(), n, 0);
         }
 
-#ifdef BL_USE_HGPROJ_SERIAL
         restrict_level(u_real[n][c_lev], u_real[n][c_lev+1], ratio);
-#else
-        restrict_level(u_real[n][c_lev], u_real[n][c_lev+1], ratio, default_restrictor(), default_level_interface, 0);
-#endif
     }
 
     s_real.set(c_lev,   &rho_crse);
@@ -1229,11 +1250,7 @@ Projection::MLsyncProject (int             c_lev,
     rhs_real.set(c_lev  , &cc_rhs_crse);
     rhs_real.set(c_lev+1, &cc_rhs_fine);
 
-#ifdef BL_USE_HGPROJ_SERIAL
     restrict_level(s_real[c_lev], s_real[c_lev+1], ratio);
-#else
-    restrict_level(s_real[c_lev], s_real[c_lev+1], ratio, default_restrictor(), default_level_interface, 0);
-#endif
 
     p_real.set(c_lev,   phi[c_lev]);
     p_real.set(c_lev+1, phi[c_lev+1]);
@@ -1689,13 +1706,8 @@ Projection::initialSyncProject (int       c_lev,
     {
         for (lev = f_lev; lev >= c_lev+1; lev--) 
         {
-#ifdef BL_USE_HGPROJ_SERIAL
             restrict_level(u_real[n][lev-1],u_real[n][lev],
                            parent->refRatio(lev-1));
-#else
-            restrict_level(u_real[n][lev-1],u_real[n][lev],parent->refRatio(lev-1),
-                           default_restrictor(),default_level_interface,0);
-#endif
         }
     }
 
