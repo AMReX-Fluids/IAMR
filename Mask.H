@@ -1,7 +1,7 @@
 #ifndef _MASK_H_
 #define _MASK_H_
 //
-// $Id: Mask.H,v 1.4 1997-10-08 20:15:38 car Exp $
+// $Id: Mask.H,v 1.5 1997-12-09 23:32:03 lijewski Exp $
 //
 
 #include <BaseFab.H>
@@ -24,9 +24,9 @@
         This class does NOT provide a copy constructor or assignment operator.
 	
 */
-class Mask :
-    public ArithFab<int>,
-    public OrderedFab<int>
+class Mask
+    :
+    public BaseFab<int>
 {
 public:
 
@@ -84,32 +84,6 @@ public:
     Mask& Or(const Mask& src, const Box& srcbox,
 	     const Box& destbox,
 	     int srccomp, int destcomp, int numcomp=1);
-
-//@ManMemo: FARRYBOX analysis functions (over specified subregions, components)
-//@ManDoc: element-wise set true for if < val
-    Mask& LT(const FArrayBox& fab, Real val,
-	     const Box& subbox,
-	     int fab_comp = 0, int mask_comp = 0);
-//@ManDoc: element-wise set true for if <= val
-    Mask& LE(const FArrayBox& fab, Real val,
-	     const Box& subbox,
-	     int fab_comp = 0, int mask_comp = 0);
-//@ManDoc: element-wise set true for if = val
-    Mask& EQ(const FArrayBox& fab, Real val,
-	     const Box& subbox,
-	     int fab_comp = 0, int mask_comp = 0);
-//@ManDoc: element-wise set true for if != val
-    Mask& NE(const FArrayBox& fab, Real val,
-	     const Box& subbox,
-	     int fab_comp = 0, int mask_comp = 0);
-//@ManDoc: element-wise set true for if > val
-    Mask& GT(const FArrayBox& fab, Real val,
-	     const Box& subbox,
-	     int fab_comp = 0, int mask_comp = 0);
-//@ManDoc: element-wise set true for if <= val
-    Mask& GE(const FArrayBox& fab, Real val,
-	     const Box& subbox,
-	     int fab_comp = 0, int mask_comp = 0);
 
 private:
 // Disallow copy operator

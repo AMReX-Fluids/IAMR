@@ -61,8 +61,8 @@ C$(BOXLIB_BASE)_headers += VisMF.H
 T_sources += Array.cpp PArray.cpp List.cpp Pointers.cpp Tuple.cpp
 T_headers += Array.H PArray.H List.H Pointers.H Tuple.H Misc.H
 
-T_sources += BaseFab.cpp ArithFab.cpp OrderedFab.cpp NormedFab.cpp FabArray.cpp
-T_headers += BaseFab.H ArithFab.H OrderedFab.H NormedFab.H FabArray.H
+T_sources += FabArray.cpp
+T_headers += BaseFab.H FabArray.H
 #
 # multigrid sources
 #

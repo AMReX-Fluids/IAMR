@@ -1,5 +1,5 @@
 //
-// $Id: Mask.cpp,v 1.7 1997-10-08 20:15:39 car Exp $
+// $Id: Mask.cpp,v 1.8 1997-12-09 23:32:03 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -164,68 +164,6 @@ Mask::Or(const Mask& src, const Box& srcbox,
     ForAllThisBNNXCBN(int,destbox,destcomp,numcomp,src,srcbox,srccomp) {
 	thisR = (thisR ? 1 : srcR);
     } EndForTX;
-    return *this;
-}
-
-// --------------------  FAB comparison operators -----------------------
-Mask&
-Mask::LT(const FArrayBox& fab, Real val, const Box& subbox,
-	 int fab_comp, int mask_comp)
-{
-    assert(0);
-      // Note: must define new looping macros to handle the
-      // fact that a Mask and a FAB have different underlying
-      // scalar types (int and Real)
-    return *this;
-}
-Mask&
-Mask::LE(const FArrayBox& fab, Real val, const Box& subbox,
-	 int fab_comp, int mask_comp)
-{
-    assert(0);
-      // Note: must define new looping macros to handle the
-      // fact that a Mask and a FAB have different underlying
-      // scalar types (int and Real)
-    return *this;
-}
-Mask&
-Mask::EQ(const FArrayBox& fab, Real val, const Box& subbox,
-	 int fab_comp, int mask_comp)
-{
-    assert(0);
-      // Note: must define new looping macros to handle the
-      // fact that a Mask and a FAB have different underlying
-      // scalar types (int and Real)
-    return *this;
-}
-Mask&
-Mask::NE(const FArrayBox& fab, Real val, const Box& subbox,
-	 int fab_comp, int mask_comp)
-{
-    assert(0);
-      // Note: must define new looping macros to handle the
-      // fact that a Mask and a FAB have different underlying
-      // scalar types (int and Real)
-    return *this;
-}
-Mask&
-Mask::GT(const FArrayBox& fab, Real val, const Box& subbox,
-	 int fab_comp, int mask_comp)
-{
-    assert(0);
-      // Note: must define new looping macros to handle the
-      // fact that a Mask and a FAB have different underlying
-      // scalar types (int and Real)
-    return *this;
-}
-Mask&
-Mask::GE(const FArrayBox& fab, Real val, const Box& subbox,
-	 int fab_comp, int mask_comp)
-{
-    assert(0);
-      // Note: must define new looping macros to handle the
-      // fact that a Mask and a FAB have different underlying
-      // scalar types (int and Real)
     return *this;
 }
 
