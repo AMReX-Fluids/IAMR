@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.204 2002-10-11 17:50:45 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.205 2002-10-31 21:06:14 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -4558,23 +4558,25 @@ NavierStokes::getForce (FArrayBox&       force,
 
     BL_ASSERT(Rho.box().contains(force.box()));
 
-    const Real grav = std::abs(gravity);
+//    const Real grav = std::abs(gravity);
+    const Real grav = gravity;
 
     for (int dc = 0; dc < ncomp; dc++)
     {
         const int sc = scomp + dc;
 #if (BL_SPACEDIM == 2)
-        if (sc == Yvel && grav > 0.001) 
+        if (sc == Yvel && std::abs(grav) > 0.001) 
 #endif
 #if (BL_SPACEDIM == 3)
-        if (sc == Zvel && grav > 0.001) 
+        if (sc == Zvel && std::abs(grav) > 0.001) 
 #endif
         {
             //
             // Set force to -rho*g.
             //
             force.copy(Rho,0,dc,1);
-            force.mult(-grav,dc,1);
+//            force.mult(-grav,dc,1);
+            force.mult(grav,dc,1);
         }
         else
         {
