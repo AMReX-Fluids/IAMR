@@ -4,7 +4,7 @@
 #define _BOOLEAN_H_
 
 //
-// $Id: Boolean.H,v 1.2 1997-07-17 22:46:14 car Exp $
+// $Id: Boolean.H,v 1.3 1997-07-17 22:59:42 car Exp $
 //
 
 #undef TRUE
@@ -39,7 +39,7 @@
   Standard.
 */
     const bool false = 0;
-#endif /*!(defined(__PHOTON || defined(__GNUG__))*/
+#endif /* defined( BL_HAS_NO_BOOL) */
 
 #else
 

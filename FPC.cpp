@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FPC.cpp,v 1.1 1997-07-08 23:08:06 vince Exp $
+// $Id: FPC.cpp,v 1.2 1997-07-17 22:59:43 car Exp $
 //
 
 #include <FPC.H>
@@ -36,7 +36,7 @@ const
 IntDescriptor&
 FPC::NativeLongDescriptor ()
 {
-#if defined(__alpha) || defined(__i486__)
+#if defined(__alpha) || defined(__i486__) || defined(WIN32)
     static const IntDescriptor nld(sizeof(long), IntDescriptor::ReverseOrder);
 #endif
 
@@ -59,7 +59,7 @@ const
 RealDescriptor&
 FPC::NativeRealDescriptor ()
 {
-#if defined(__alpha) || defined(__i486__)
+#if defined(__alpha) || defined(__i486__) || defined(WIN32)
 #ifdef BL_USE_FLOAT
     static const RealDescriptor nrd(ieee_float, reverse_float_order, 4);
 #else
@@ -121,6 +121,7 @@ FPC::Ieee64NormalRealDescriptor ()
       defined(__sun)    || \
       defined(__i486__) || \
       defined(__hpux)   || \
+      defined(_MSC_VER) || \
       defined(_AIX))
 #error We do not yet support FAB I/O on this machine
 #endif
