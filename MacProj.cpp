@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.70 2000-08-02 16:04:42 car Exp $
+// $Id: MacProj.cpp,v 1.71 2000-08-09 22:32:28 almgren Exp $
 //
 
 #include <Misc.H>
@@ -652,6 +652,7 @@ MacProj::mac_sync_compute (int                   level,
                            int                   NUM_STATE,
                            Real                  be_cn_theta,
                            bool                  modify_reflux_normal_vel,
+                           int                   do_mom_diff,
                            const Array<int>&     increment_sync)
 {
     FArrayBox Rho, tforces, tvelforces;
@@ -747,6 +748,11 @@ MacProj::mac_sync_compute (int                   level,
         const int i     = S_fpi.index();
         FArrayBox& S    = S_fpi();
         FArrayBox& divu = (*divu_fp)[i];
+
+        FArrayBox U;
+        U.resize(S.box(),BL_SPACEDIM);
+        U.copy(S_fpi(),0,0,BL_SPACEDIM);
+
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
@@ -819,13 +825,19 @@ MacProj::mac_sync_compute (int                   level,
                 int use_conserv_diff = (advectionType[comp] == Conservative)
                                                              ? true : false;
 
+                if (do_mom_diff == 1 && comp < BL_SPACEDIM)
+                {
+                        S.mult(S,      S.box(),      S.box(),Density,comp,1);
+                  tforces.mult(S,tforces.box(),tforces.box(),Density,comp,1);
+                }
+
                 godunov->SyncAdvect(grids[i], dx, dt, level, area0mfi(), u_mac0mfi(),
                                     grad_phi[0], xflux, area1mfi(), u_mac1mfi(),
                                     grad_phi[1], yflux,
 #if (BL_SPACEDIM == 3)                            
                                     area2mfi(), u_mac2mfi(), grad_phi[2], zflux,
 #endif
-                                    S, tforces, comp, temp, sync_ind,
+                                    U, S, tforces, comp, temp, sync_ind,
                                     use_conserv_diff, comp,
                                     ns_level_bc.dataPtr(), volumemfi());
 
@@ -856,7 +868,7 @@ MacProj::mac_sync_compute (int                   level,
 #if (BL_SPACEDIM == 3)                            
                                   u_mac2mfi(), zflux,
 #endif
-                                  S, S, tforces, comp, comp,
+                                  U, S, tforces, comp, comp,
                                   ns_level_bc.dataPtr());
 
              if (comp == 0) {
@@ -1006,7 +1018,6 @@ MacProj::mac_sync_compute (int                    level,
 
         int use_conserv_diff = (advectionType[comp] == Conservative)
                                                              ? true : false;
-
         godunov.ComputeSyncAofs(grids[Syncmfi.index()],
                                 area0mfi(),
                                 grad_phi[0],       xflux,

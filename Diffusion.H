@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.21 2000-08-02 21:05:29 almgren Exp $
+// $Id: Diffusion.H,v 1.22 2000-08-09 22:32:27 almgren Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -117,6 +117,7 @@ public:
     void diffuse_tensor_velocity (Real                   dt,
                                   Real                   be_cn_theta,
                                   const MultiFab*        rho_half,
+                                  int                    rho_flag,
                                   MultiFab*              delta_rhs, 
                                   const MultiFab* const* betan, 
                                   const MultiFab* const* betanp1);

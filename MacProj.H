@@ -4,7 +4,7 @@
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.18 2000-08-02 16:04:43 car Exp $
+// $Id: MacProj.H,v 1.19 2000-08-09 22:32:28 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -68,6 +68,7 @@ public:
                            int                   NUM_STATE,
                            Real                  be_cn_theta,
                            bool                  modify_reflux_normal_vel,
+                           int		         do_mom_diff,
                            const Array<int>&     increment_sync = Array<int>());
 
     void mac_sync_compute (int                   level,

@@ -4,7 +4,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.9 2000-04-20 20:50:57 sstanley Exp $
+// $Id: Godunov.H,v 1.10 2000-08-09 22:32:28 almgren Exp $
 //
 //
 // A useful enumeration of the forms for the advective terms
@@ -110,7 +110,8 @@ public:      // public access functions
                              FArrayBox &areaz, FArrayBox &wedge,
                              FArrayBox &wcorr, FArrayBox &zflux,
 #endif
-                             FArrayBox &S, FArrayBox &tforces, int ind,
+                             FArrayBox &U, FArrayBox &S,
+                             FArrayBox &tforces, int ind,
                              FArrayBox &sync,                  int sync_ind,
                              int iconserv, int state_ind, const int *bc,
                              FArrayBox &vol );
@@ -191,17 +192,17 @@ public:      // public access functions
                       FArrayBox &tforces, int tf_ind,
                       const Box &grd,     Real dt );
 
-    // compute the update rule for velocities
+    // compute the update rule for velocities or momenta
     // psi^n+1 = psi^n - dt*aofs - dt*gp/rho + dt*tforces
     void Add_aofs_tf_gp( FArrayBox &Uold, FArrayBox &Unew,
                          FArrayBox &Aofs, FArrayBox &tforces,
                          FArrayBox &gp,   FArrayBox &rho, 
-                         const Box &grd,  Real dt );
+                         const Box &grd,  Real dt);
 
     // compute total source term for velocities
     // tforces = (tforces + visc - gp)/rho
     void Sum_tf_gp_visc( FArrayBox &tforces, FArrayBox &visc, 
-                         FArrayBox &gp,      FArrayBox &Rho );
+                         FArrayBox &gp,      FArrayBox &Rho);
 
     // iconserv==1   => tforces = tforces + visc - divU*S
     // iconserv==0   => tforces = (tforces+visc)/rho

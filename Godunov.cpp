@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Godunov.cpp,v 1.21 2000-06-28 21:45:56 almgren Exp $
+// $Id: Godunov.cpp,v 1.22 2000-08-09 22:32:28 almgren Exp $
 //
 
 //
@@ -649,6 +649,7 @@ Godunov::SyncAdvect (const Box&  grd,
                      FArrayBox& wcorr,
                      FArrayBox& zflux,
 #endif
+                     FArrayBox& U,
                      FArrayBox& S,
                      FArrayBox& tforces,
                      int        fab_ind,
@@ -688,7 +689,7 @@ Godunov::SyncAdvect (const Box&  grd,
 #if (BL_SPACEDIM == 3)     
                 wedge, zflux,
 #endif
-                S, S, tforces, fab_ind, state_ind, bc);
+                U, S, tforces, fab_ind, state_ind, bc);
 
     //
     // Compute the advective tendency for the mac sync.

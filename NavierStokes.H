@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.70 2000-07-25 19:15:44 lijewski Exp $
+// $Id: NavierStokes.H,v 1.71 2000-08-09 22:32:29 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -310,7 +310,7 @@ protected:
     //
     const MultiFab& get_rho (Real time);
     //
-    // Update velocities after advection.
+    // Update velocities (or momentum) after advection.
     //
     void velocity_update (Real dt);
 
@@ -761,6 +761,11 @@ protected:
     // Running statistics controls
     //
     static int  do_running_statistics;
+    //
+    // Control velocity vs momentum update
+    //
+    static int  do_mom_diff;
+    static int  predict_mom_together;
 };
 
 #endif /*_NavierStokes_H_*/

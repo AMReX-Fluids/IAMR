@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.39 2000-06-12 22:40:37 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.40 2000-08-09 22:32:29 almgren Exp $
 //
 
 #include <NavierStokes.H>
@@ -238,6 +238,11 @@ NavierStokes::variableSetUp ()
         if (visc_coef[i] > 0.0)
             is_diffusive[i] = true;
     }
+
+    if (do_mom_diff == 1)
+      for (int d = 0; d < BL_SPACEDIM; d++)
+        advectionType[Xvel+d] = Conservative;
+
     advectionType[Density] = Conservative;
     if (do_temp) advectionType[Temp] = NonConservative;
     advectionType[Trac] = NonConservative;
