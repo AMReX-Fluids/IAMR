@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.100 2000-08-02 16:04:41 car Exp $
+// $Id: Diffusion.cpp,v 1.101 2000-08-02 18:01:33 lijewski Exp $
 //
 
 //
@@ -2378,8 +2378,7 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
     // TODO -- A MultiFab is a huge amount of space in which to pass along
     // the phys bc's.  InterpBndryData needs a more efficient interface.
     //
-    const int     nGrow = 1;
-    const BCRec&  bc    = caller->get_desc_lst()[State_Type].getBC(state_ind);
+    const BCRec& bc = caller->get_desc_lst()[State_Type].getBC(state_ind);
 
     bndry.define(grids,num_comp,caller->Geom());
 
