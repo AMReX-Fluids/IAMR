@@ -1137,7 +1137,7 @@ c        node wide in i-direction.
         rhog = zero
         do j = ARG_H2(phi)-1,ARG_L2(phi),-1
           rhoExt = half*(three*rho(i,j)-rho(i+1,j))
-          rhog = rhog + gravity * rhoExt * dx(2)
+          rhog = rhog - gravity * rhoExt * dx(2)
           phi(i,j) = phi(i,j) + rhog
         end do
 
@@ -1146,7 +1146,7 @@ c        node wide in i-direction.
         rhog = zero
         do j = ARG_H2(phi)-1,ARG_L2(phi),-1
           rhoExt  = half*(three*rho(i-1,j)-rho(i-2,j))
-          rhog = rhog + gravity * rhoExt * dx(2)
+          rhog = rhog - gravity * rhoExt * dx(2)
           phi(i,j) = phi(i,j) + rhog
         end do
 

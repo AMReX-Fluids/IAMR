@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.239 2004-02-20 22:02:19 car Exp $
+// $Id: NavierStokes.cpp,v 1.240 2004-05-19 19:47:36 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -4677,7 +4677,7 @@ NavierStokes::getForce (FArrayBox&       force,
             // Set force to -rho*g.
             //
             force.copy(Rho,0,dc,1);
-            force.mult(-grav,dc,1);
+            force.mult(grav,dc,1);
         }
         else
         {

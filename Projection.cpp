@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.157 2004-02-20 18:10:28 lijewski Exp $
+// $Id: Projection.cpp,v 1.158 2004-05-19 19:47:36 car Exp $
 //
 #include <winstd.H>
 
@@ -483,7 +483,7 @@ Projection::level_project (int             level,
     //   but before fields are scaled by r or rho is set to 1/rho.
     //
     Real gravity = ns->getGravity();
-    if (OutFlowBC::HasOutFlowBC(phys_bc) && (have_divu || gravity > 0.0) 
+    if (OutFlowBC::HasOutFlowBC(phys_bc) && (have_divu || abs(gravity) > 0.0) 
                                          && do_outflow_bcs) 
     {
         MultiFab* phi[MAX_LEV] = {0};
@@ -1560,7 +1560,7 @@ Projection::initialPressureProject (int  c_lev)
             {
                 const int i = u_realmfi.index();
                 if (n == (BL_SPACEDIM-1)) {
-                  u_real[n][lev][i].setVal(-gravity);
+                  u_real[n][lev][i].setVal(gravity);
                 } else { 
                   u_real[n][lev][i].setVal(0.);
                 }
