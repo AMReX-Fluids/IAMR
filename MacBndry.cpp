@@ -1,5 +1,7 @@
+//BL_COPYRIGHT_NOTICE
+
 //
-// $Id: MacBndry.cpp,v 1.9 1998-06-08 15:51:15 lijewski Exp $
+// $Id: MacBndry.cpp,v 1.10 1998-09-29 20:08:28 lijewski Exp $
 //
 
 #include <LO_BCTYPES.H>

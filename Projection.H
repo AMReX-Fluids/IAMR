@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _Projection_H_
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.14 1998-05-29 17:32:59 lijewski Exp $
+// $Id: Projection.H,v 1.15 1998-09-29 20:07:49 lijewski Exp $
 //
 
 #include <BC_TYPES.H>

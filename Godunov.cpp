@@ -1,5 +1,7 @@
+//BL_COPYRIGHT_NOTICE
+
 //
-// $Id: Godunov.cpp,v 1.13 1998-07-24 01:24:02 lijewski Exp $
+// $Id: Godunov.cpp,v 1.14 1998-09-29 20:08:28 lijewski Exp $
 //
 
 //

@@ -1,5 +1,7 @@
+//BL_COPYRIGHT_NOTICE
+
 //
-// $Id: MacProj.cpp,v 1.29 1998-07-29 19:07:41 lijewski Exp $
+// $Id: MacProj.cpp,v 1.30 1998-09-29 20:09:02 lijewski Exp $
 //
 
 #include <Misc.H>

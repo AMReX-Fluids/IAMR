@@ -1,5 +1,7 @@
+//BL_COPYRIGHT_NOTICE
+
 //
-// $Id: ViscBndry.cpp,v 1.12 1998-07-29 19:07:46 lijewski Exp $
+// $Id: ViscBndry.cpp,v 1.13 1998-09-29 20:07:48 lijewski Exp $
 //
 
 #include <LO_BCTYPES.H>

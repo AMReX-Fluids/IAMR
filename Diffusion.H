@@ -1,12 +1,16 @@
+//BL_COPYRIGHT_NOTICE
+
 //
-// $Id: Diffusion.H,v 1.6 1998-03-26 06:40:59 almgren Exp $
+// $Id: Diffusion.H,v 1.7 1998-09-29 20:08:27 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
 #define _Diffusion_H_
 
-// comment out this line to use diffusion class outside
-// the context of NavierStokes and classes derived from it
+//
+// Comment out this line to use diffusion class outside
+// the context of NavierStokes and classes derived from it.
+//
 #define USE_NAVIERSTOKES 1
 
 #include <Box.H>
@@ -20,7 +24,9 @@
 #include <ABecLaplacian.H>
 #include <ViscBndry.H>
 
-// include files for tensor solve
+//
+// Include files for tensor solve.
+//
 #if(BL_SPACEDIM==2) && defined (USE_TENSOR)
 #include <ViscBndry2D.H>
 #include <DivVis.H>

@@ -1,3 +1,9 @@
+//BL_COPYRIGHT_NOTICE
+
+//
+// $Id: NSBld.cpp,v 1.6 1998-09-29 20:09:02 lijewski Exp $
+//
+
 
 #include <NavierStokes.H>
 #include <ParmParse.H>

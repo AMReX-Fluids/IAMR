@@ -1,6 +1,7 @@
+//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.18 1998-07-24 01:24:00 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.19 1998-09-29 20:09:02 lijewski Exp $
 //
 
 #include <NavierStokes.H>

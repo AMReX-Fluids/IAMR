@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _VISCBNDRYDATA_H_
 #define _VISCBNDRYDATA_H_
 
 //
-// $Id: ViscBndry.H,v 1.5 1998-05-29 23:20:30 lijewski Exp $
+// $Id: ViscBndry.H,v 1.6 1998-09-29 20:07:48 lijewski Exp $
 //
 
 #include <InterpBndryData.H>

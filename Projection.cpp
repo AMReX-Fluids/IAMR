@@ -1,6 +1,7 @@
+//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.52 1998-09-29 19:56:16 lijewski Exp $
+// $Id: Projection.cpp,v 1.53 1998-09-29 20:07:49 lijewski Exp $
 //
 
 #ifdef BL_T3E

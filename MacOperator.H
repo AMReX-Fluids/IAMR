@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _MACOPERATOR_H_
 #define _MACOPERATOR_H_
 
 //
-// $Id: MacOperator.H,v 1.6 1998-04-15 22:25:35 marc Exp $
+// $Id: MacOperator.H,v 1.7 1998-09-29 20:09:02 lijewski Exp $
 //
 
 //==========================================================================

@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _NavierStokes_H_
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.21 1998-06-17 17:04:48 lijewski Exp $
+// $Id: NavierStokes.H,v 1.22 1998-09-29 20:07:50 lijewski Exp $
 //
 
 #include <LevelBld.H>

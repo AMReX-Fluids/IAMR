@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _GODUNOV_CLASS_H_
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.6 1998-05-13 23:17:45 almgren Exp $
+// $Id: Godunov.H,v 1.7 1998-09-29 20:08:27 lijewski Exp $
 //
 
 //===========================================================

@@ -1,5 +1,7 @@
+//BL_COPYRIGHT_NOTICE
+
 //
-// $Id: SyncRegister.cpp,v 1.45 1998-07-29 19:07:44 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.46 1998-09-29 20:07:48 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
