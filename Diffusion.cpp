@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.30 1998-06-08 17:36:51 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.31 1998-06-08 20:49:32 lijewski Exp $
 //
 
 //
@@ -166,8 +166,7 @@ Diffusion::Diffusion (Amr*          Parent,
         }
         visc_coef.resize(NUM_STATE);
         is_diffusive.resize(NUM_STATE);
-        int i;
-        for (i = 0; i < NUM_STATE; i++) {
+        for (int i = 0; i < NUM_STATE; i++) {
             is_diffusive[i] = _is_diffusive[i];
             visc_coef[i] = _visc_coef[i];
         }
@@ -219,7 +218,7 @@ Diffusion::echo_settings () const
         cout << "   Lphi_in_abs_tol =     " << Lphi_in_abs_tol << NL;
     
         cout << "   typical_vals =";
-        for (int i=0; i<NUM_STATE; i++)
+        for (int i = 0; i <NUM_STATE; i++)
         {
             cout << "  " << typical_vals[i];
         }
@@ -232,14 +231,14 @@ Diffusion::echo_settings () const
         cout << "   visc_abs_tol =        " << visc_abs_tol << NL;
     
         cout << "   is_diffusive =";
-        for (int i=0; i<NUM_STATE; i++)
+        for (int i =0; i < NUM_STATE; i++)
         {
             cout << "  " << is_diffusive[i];
         }
         cout << NL;
     
         cout << "   visc_coef =";
-        for (int i=0; i<NUM_STATE; i++)
+        for (int i = 0; i < NUM_STATE; i++)
         {
             cout << "  " << visc_coef[i];
         }
@@ -292,7 +291,7 @@ Diffusion::get_scaled_abs_tol (int                     sigma,
 	int do_const_visc = (!est_visc_mag) || 
                             ( (!allthere_n) && (!allthere_np1) ); 
         Real norm_b_div_beta_grad = 0;
-	for (int d=0; d<BL_SPACEDIM; d++)
+	for (int d = 0; d < BL_SPACEDIM; d++)
 	{
 	    Real norm_visc = 0;
 	    if (do_const_visc)
@@ -858,15 +857,10 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
             caller->FillCoarsePatch(Soln,0,cur_time,State_Type,sigma,1);
         }
         //
-        // Copy guess into U_new ... needed for construction of
-        // viscous operator.  We first set all of U_new to a bogus values 
-        // so that its ghost cell values are not undefined.  These values
-        // will be filled with better values later.
+        // Copy guess into U_new.
         //
         int n_comp  = 1;
-        int n_ghost = 1;
-        U_new.setVal(1.e30,sigma,n_comp,n_ghost);
-        n_ghost = 0;
+        int n_ghost = 0;
         U_new.copy(Soln,0,sigma,n_comp);
         //
         // Construct viscous operator with bndry data at time N+1.
@@ -1028,58 +1022,52 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
                                     MultiFab** betanp1)
 {
 #if (BL_SPACEDIM==3) 
-    cout << "Diffusion::diffuse_tensor_velocity : " <<
-            "not yet implemented for 3-D\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun\n";
+    cout << "Diffusion::diffuse_tensor_velocity : "
+         << "not yet implemented for 3-D\n";
+    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
+         << " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::diffuse_tensor_velocity");
 #elif !defined(USE_TENSOR)
     cout << "Diffusion::diffuse_tensor_velocity : \n";
     cout << "USE_TENSOR must be defined at compile time\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun\n";
+    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
+         << " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::diffuse_tensor_velocity");
 #else
-
-    int finest_level = parent->finestLevel();
+    const int finest_level = parent->finestLevel();
     //
     // At this point, S_old has bndry at time N S_new contains GRAD(SU).
     //
-    MultiFab& U_old = caller->get_old_data(State_Type);
-    MultiFab& U_new = caller->get_new_data(State_Type);
-
+    MultiFab& U_old      = caller->get_old_data(State_Type);
+    MultiFab& U_new      = caller->get_new_data(State_Type);
     const Box& domain    = caller->Geom().Domain();
     const int* domlo     = domain.loVect();
     const int* domhi     = domain.hiVect();
     const Real* dx       = caller->Geom().CellSize();
     const Real cur_time  = caller->get_state_data(State_Type).curTime();
     const Real prev_time = caller->get_state_data(State_Type).prevTime();
-
-    int comp;
     //
-    // U_new now contains the inviscid update of U
-    // this is part of the RHS for the viscous solve.
+    // U_new now contains the inviscid update of U.
+    // This is part of the RHS for the viscous solve.
     //
     MultiFab Rhs(grids,BL_SPACEDIM,0,Fab_allocate);
     Rhs.setVal(0.0);
 
-    int i, dim;
-
     MultiFab** tensorflux_old;
-
-    { // set up Rhs
+    {
+        //
+        // Set up Rhs.
+        //
         int soln_old_grow = 1;
         MultiFab Soln_old(grids,BL_SPACEDIM,soln_old_grow,Fab_allocate);
-        Real a = 0.0;
-        Real b = -(1.0-be_cn_theta)*dt;
+        const Real a = 0.0;
+        const Real b = -(1.0-be_cn_theta)*dt;
 
         ViscBndry2D visc_bndry;
-        DivVis *tensor_op = 
-            getTensorOp(a,b,prev_time,visc_bndry,rho_half,betan);
+        DivVis* tensor_op = getTensorOp(a,b,prev_time,visc_bndry,rho_half,betan);
         tensor_op->maxOrder(tensor_max_order);
         //
-        // Copy to single-component multifab.
-        // Note: use Soln as a temporary here.
+        // Copy to single-component multifab.  Use Soln as a temporary here.
         //
         Copy(Soln_old,U_old,Xvel,0,BL_SPACEDIM,soln_old_grow);
         tensor_op->apply(Rhs,Soln_old);
@@ -1092,12 +1080,14 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
                                 *(tensorflux_old[2]),
 #endif
                                 Soln_old);
-            for (dim=0; dim<BL_SPACEDIM; dim++)
-                tensorflux_old[dim]->mult(-(1.0-be_cn_theta),0);      
+            for (int dim = 0; dim < BL_SPACEDIM; dim++)
+            {
+                tensorflux_old[dim]->mult(-(1.0-be_cn_theta),0);
+            }
         }
         delete tensor_op;
 
-        for (comp = 0; comp < BL_SPACEDIM; comp++)
+        for (int comp = 0; comp < BL_SPACEDIM; comp++)
         {
             int sigma = Xvel + comp;
             //
@@ -1154,9 +1144,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
                 assert(volume.box(Rhsmfi.index()) == volumemfi.validbox());
                 const Box& bx = Rhsmfi.validbox();
                 Box sbx       = ::grow(U_oldmfi.validbox(),U_old.nGrow());
-                int rlen      = bx.length(0);
-                Array<Real> rcen;
-                rcen.resize(rlen);
+                Array<Real> rcen(bx.length(0));
                 parent->Geom(level).GetCellLoc(rcen, bx, 0);
                 const int *lo       = bx.loVect();
                 const int *hi       = bx.hiVect();
@@ -1167,7 +1155,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
                 const Real *rcendat = rcen.dataPtr();
                 const Real coeff    = (1.0-be_cn_theta)*dt;
                 const Real *voli    = volumemfi().dataPtr();
-                Box vbox            = grow(volumemfi.validbox(),volume.nGrow());
+                Box vbox            = ::grow(volumemfi.validbox(),volume.nGrow());
                 const int *vlo      = vbox.loVect();
                 const int *vhi      = vbox.hiVect();
     
@@ -1192,7 +1180,6 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
     //
     int soln_grow = 1;
     MultiFab Soln(grids,BL_SPACEDIM,soln_grow,Fab_allocate);
-
     Soln.setVal(0.0);
     //
     // Compute guess of solution.
@@ -1206,21 +1193,16 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
         caller->FillCoarsePatch(Soln,0,cur_time,State_Type,Xvel,BL_SPACEDIM);
     }
     //
-    // Copy guess into U_new ... needed for construction of
-    // viscous operator.  We first set all of U_new to a bogus values 
-    // so that its ghost cell values are not undefined.  These values
-    // will be filled with better values later.
+    // Copy guess into U_new.
     //
     int n_comp  = BL_SPACEDIM;
-    int n_ghost = 1;
-    U_new.setVal(1.e30,Xvel,n_comp,n_ghost);
-    n_ghost = 0;
+    int n_ghost = 0;
     U_new.copy(Soln,0,Xvel,n_comp);
     //
     // Construct viscous operator with bndry data at time N+1.
     //
-    Real a = 1.0;
-    Real b = be_cn_theta*dt;
+    const Real a = 1.0;
+    const Real b = be_cn_theta*dt;
        
     ViscBndry2D visc_bndry;
     DivVis *tensor_op = getTensorOp(a,b,cur_time,visc_bndry,
@@ -1230,9 +1212,9 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
     //
     // Construct solver and call it.
     //
-    Real S_tol = visc_tol;
-    Real S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b,
-                                        alpha, betan, betanp1, visc_abs_tol);
+    const Real S_tol = visc_tol;
+    const Real S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b, alpha, betan,
+                                              betanp1, visc_abs_tol);
     if (use_tensor_cg_solve)
     {
         int use_mg_pre = 0;
@@ -1247,8 +1229,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
 
 #if 1
     int visc_op_lev = 0;
-    tensor_op->applyBC(Soln,visc_op_lev); // this may not be needed with
-    // Bills stuff
+    tensor_op->applyBC(Soln,visc_op_lev); // This may not be needed.
 #endif
     //
     // Copy into state variable at new time.
@@ -1267,7 +1248,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
                             *(tensorflux[2]),
 #endif
                             Soln);
-        for (dim=0; dim<BL_SPACEDIM; dim++)
+        for (int dim = 0; dim < BL_SPACEDIM; dim++)
         {
             tensorflux[dim]->mult(-be_cn_theta,0);
             tensorflux[dim]->plus(*(tensorflux_old[dim]),0,BL_SPACEDIM,0);
@@ -1289,7 +1270,8 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
                                                          *(tensorflux[2]));
 #endif
                 assert(grids[tensorflux0mfi.index()] == tensorflux0mfi.validbox());
-                int i = tensorflux0mfi.index();
+
+                int i          = tensorflux0mfi.index();
                 const Box& grd = tensorflux0mfi.validbox();
                 const int* lo  = grd.loVect();
                 const int* hi  = grd.hiVect();
@@ -1310,7 +1292,6 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
                 zflux.resize(zflux_bx,1);
                 zflux.copy(tensorflux2mfi(),sigma,0,1);
 #endif
-
                 if (level < finest_level)
                 {
                     FluxRegister& fr = *finer->viscflux_reg;
@@ -1338,7 +1319,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
         removeFluxBoxesLevel(tensorflux);
     }
     delete tensor_op;
-#endif
+#endif /*defined(USE_TENSOR)*/
 }
 
 void
@@ -1401,7 +1382,7 @@ Diffusion::diffuse_Vsync (MultiFab*  Vsync,
             }
             if (velbc.lo(k) == EXT_DIR)
             {
-                IntVect bigend   = domain.bigEnd();
+                IntVect bigend = domain.bigEnd();
                 bigend.setVal(k,domain.smallEnd(k));
                 Box bottom_strip(domain.smallEnd(),bigend,IntVect::TheCellVector());
                 Vsync->setVal(0.0,bottom_strip,n-Xvel,1,1);
@@ -1431,7 +1412,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
         MultiFab Soln(grids,1,1,Fab_allocate);
         MultiFab Rhs(grids,1,0,Fab_allocate);
 
-        Soln.setVal(0.);
+        Soln.setVal(0);
         Rhs.copy(*Vsync,comp,0,1);
 
         Real r_norm = 0.0;
@@ -1461,7 +1442,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
         const Real a  = 1.0;
         const Real b  = be_cn_theta*dt*visc_coef[comp];
         Real rhsscale = 1.0;
-        ABecLaplacian * visc_op = getViscOp(comp,a,b,rho_half,rho_flag,&rhsscale);
+        ABecLaplacian* visc_op = getViscOp(comp,a,b,rho_half,rho_flag,&rhsscale);
         visc_op->maxOrder(max_order);
         Rhs.mult(rhsscale,0,1);
         //
@@ -1510,9 +1491,11 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
 
         FArrayBox xflux, yflux;
 
-        if (level > 0) {
-
-            for(MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi) {
+        if (level > 0)
+        {
+            for (MultiFabIterator Vsyncmfi(*Vsync); Vsyncmfi.isValid();
+                 ++Vsyncmfi)
+            {
                 DependentMultiFabIterator area0mfi(Vsyncmfi, area[0]);
                 DependentMultiFabIterator area1mfi(Vsyncmfi, area[1]);
 #if (BL_SPACEDIM == 3)
@@ -1593,168 +1576,176 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
     }
 }
 
-void Diffusion::diffuse_tensor_Vsync(MultiFab *Vsync, Real dt,
-                              Real be_cn_theta,
-                              MultiFab* rho_half, int rho_flag,
-                              MultiFab** beta)
+void
+Diffusion::diffuse_tensor_Vsync (MultiFab*  Vsync,
+                                 Real       dt,
+                                 Real       be_cn_theta,
+                                 MultiFab*  rho_half,
+                                 int        rho_flag,
+                                 MultiFab** beta)
 {
 #if (BL_SPACEDIM==3) 
-    cout << "Diffusion::diffuse_tensor_Vsync : " <<
-            "not yet implemented for 3-D\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun\n";
+    cout << "Diffusion::diffuse_tensor_Vsync : "
+         << "not yet implemented for 3-D\n";
+    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
+         << " and rerun\n";
     ParallelDescriptor::Abort("Exiting.");
 #elif !defined(USE_TENSOR)
-    cout << "Diffusion::diffuse_tensor_Vsync :  " <<
-    cout << "USE_TENSOR must be defined at compile time\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun\n";
+    cout << "Diffusion::diffuse_tensor_Vsync :  "
+         << "USE_TENSOR must be defined at compile time\n";
+    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
+         << " and rerun\n";
     ParallelDescriptor::Abort("Exiting.");
 #else
+    const int finest_level = parent->finestLevel();
+    const Real* dx         = caller->Geom().CellSize();
 
-  int finest_level = parent->finestLevel();
+    MultiFab Soln(grids,BL_SPACEDIM,1,Fab_allocate);
+    MultiFab Rhs(grids,BL_SPACEDIM,0,Fab_allocate);
 
-  int i;
+    Soln.setVal(0);
+    Rhs.copy(*Vsync,0,0,BL_SPACEDIM);
 
-  int ngrds = grids.length();
-  const Real* dx = caller->Geom().CellSize();
-
-  MultiFab Soln(grids,BL_SPACEDIM,1,Fab_allocate);
-  Soln.setVal(0.);
-
-  MultiFab Rhs(grids,BL_SPACEDIM,0,Fab_allocate);
-  Rhs.copy(*Vsync,0,0,BL_SPACEDIM);
-
-  Real r_norm = 0.0;
-  for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
-    r_norm = Max(r_norm,Rhsmfi().norm(0));
-  }
-  ParallelDescriptor::ReduceRealMax(r_norm);
-
-  if (ParallelDescriptor::IOProcessor())
-  {
-      cout << "Original max of Vsync " << r_norm << NL;
-  }
-
-  //  Multiply RHS by volume and density
-  for (int comp = 0; comp < BL_SPACEDIM; comp++) {
-    for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
-      DependentMultiFabIterator volumemfi(Rhsmfi, volume);
-      DependentMultiFabIterator rho_halfmfi(Rhsmfi, (*rho_half));
-      Rhsmfi().mult(volumemfi(),0,comp,1); 
-      Rhsmfi().mult(rho_halfmfi(),0,comp,1); 
+    Real r_norm = 0.0;
+    for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    {
+        r_norm = Max(r_norm,Rhsmfi().norm(0));
     }
-  }
+    ParallelDescriptor::ReduceRealMax(r_norm);
 
-  //  SET UP COEFFICIENTS FOR VISCOUS SOLVER
-  Real a = 1.0;
+    if (ParallelDescriptor::IOProcessor())
+    {
+        cout << "Original max of Vsync " << r_norm << NL;
+    }
+    //
+    // Multiply RHS by volume and density.
+    //
+    for (int comp = 0; comp < BL_SPACEDIM; comp++)
+    {
+        for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+        {
+            DependentMultiFabIterator volumemfi(Rhsmfi, volume);
+            DependentMultiFabIterator rho_halfmfi(Rhsmfi, (*rho_half));
+            Rhsmfi().mult(volumemfi(),0,comp,1); 
+            Rhsmfi().mult(rho_halfmfi(),0,comp,1); 
+        }
+    }
+    //
+    // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
+    //
+    const Real a = 1.0;
+    const Real b = be_cn_theta*dt;
 
-  Real b = be_cn_theta*dt;
+    DivVis* tensor_op = getTensorOp(a,b,rho_half,beta);
+    tensor_op->maxOrder(tensor_max_order);
+    //
+    // Construct solver and call it.
+    //
+    const Real S_tol      = visc_tol;
+    const MultiFab* alpha = &(tensor_op->aCoefficients());
+    MultiFab const * betan[BL_SPACEDIM];
+    MultiFab const * betanp1[BL_SPACEDIM];
+    for (int d = 0; d < BL_SPACEDIM; d++)
+    {
+        betan[d] = &tensor_op->bCoefficients(d);
+        betanp1[d] = betan[d];
+    }
+    const Real S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b, alpha, betan,
+                                              betanp1, visc_abs_tol);
 
-  DivVis * tensor_op = getTensorOp(a,b,rho_half,beta);
-  tensor_op->maxOrder(tensor_max_order);
+    if (use_tensor_cg_solve)
+    {
+        MCCGSolver cg(*tensor_op,use_mg_precond_flag);
+        cg.solve(Soln,Rhs,S_tol,S_tol_abs);
+    }
+    else
+    {
+        MCMultiGrid mg(*tensor_op);
+        mg.solve(Soln,Rhs,S_tol,S_tol_abs);
+    }
 
-  // construct solver and call it
-  Real S_tol = visc_tol;
+    int visc_op_lev = 0;
+    tensor_op->applyBC(Soln,visc_op_lev); 
 
-  const MultiFab* alpha = &(tensor_op->aCoefficients());
-  MultiFab const * betan[BL_SPACEDIM];
-  MultiFab const * betanp1[BL_SPACEDIM];
-  for (int d=0; d<BL_SPACEDIM; d++) {
-      betan[d] = &tensor_op->bCoefficients(d);
-      betanp1[d] = betan[d];
-  }
-  Real S_tol_abs = get_scaled_abs_tol(Xvel, &Rhs, a, b, 
-                                      alpha, betan, betanp1, visc_abs_tol);
+    Vsync->copy(Soln,0,0,BL_SPACEDIM,1);
 
-  if(use_tensor_cg_solve) {
-    MCCGSolver cg(*tensor_op,use_mg_precond_flag);
-    cg.solve(Soln,Rhs,S_tol,S_tol_abs);
-  } else {
-    MCMultiGrid mg(*tensor_op);
-    mg.solve(Soln,Rhs,S_tol,S_tol_abs);
-  }
+    Real s_norm = 0.0;
+    for (MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
+    {
+        s_norm = Max(s_norm,Solnmfi().norm(0));
+    }
+    ParallelDescriptor::ReduceRealMax(s_norm);
 
-  int visc_op_lev = 0;
-  tensor_op->applyBC(Soln,visc_op_lev); 
+    if (ParallelDescriptor::IOProcessor())
+    {
+        cout << "Final max of Vsync " << s_norm << NL;
+    }
 
-  Vsync->copy(Soln,0,0,BL_SPACEDIM,1);
+    FArrayBox xflux, yflux, zflux;
 
-  Real s_norm = 0.0;
-  for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
-    s_norm = Max(s_norm,Solnmfi().norm(0));
-  }
-  ParallelDescriptor::ReduceRealMax(s_norm);
-
-  if (ParallelDescriptor::IOProcessor())
-  {
-      cout << "Final max of Vsync " << s_norm << NL;
-  }
-
-  FArrayBox xflux, yflux, zflux;
-
-  if (level > 0) {
-
-    MultiFab **tensorflux;
-    allocFluxBoxesLevel(tensorflux,0,BL_SPACEDIM);
-    tensor_op->compFlux(*(tensorflux[0]),*(tensorflux[1]),
+    if (level > 0)
+    {
+        MultiFab** tensorflux;
+        allocFluxBoxesLevel(tensorflux,0,BL_SPACEDIM);
+        tensor_op->compFlux(*(tensorflux[0]),*(tensorflux[1]),
 #if(BL_SPACEDIM==3)
-                        *(tensorflux[2]),
+                            *(tensorflux[2]),
 #endif
-                        Soln);
-//  NOTE: the extra factor of dt comes from the fact that Vsync looks
-//        like dV/dt, not just an increment to V
+                            Soln);
+        //
+        // The extra factor of dt comes from the fact that Vsync looks
+        // like dV/dt, not just an increment to V.
+        //
+        for (int dim =0; dim <BL_SPACEDIM; dim++)
+        {
+            tensorflux[0]->mult(-be_cn_theta*dt*dt,0);
+        }
+        for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
+        {
+            for (MultiFabIterator tensorflux0mfi(*(tensorflux[0]));
+                 tensorflux0mfi.isValid(); ++tensorflux0mfi)
+            {
+                DependentMultiFabIterator tensorflux1mfi(tensorflux0mfi,
+                                                         (*(tensorflux[1])));
+#if (BL_SPACEDIM == 3)
+                DependentMultiFabIterator tensorflux2mfi(tensorflux0mfi,
+                                                         (*(tensorflux[2])));
+#endif
+                assert(grids[tensorflux0mfi.index()] == tensorflux0mfi.validbox()) ;
 
-    for (int dim=0; dim<BL_SPACEDIM; dim++) {
-      tensorflux[0]->mult(-be_cn_theta*dt*dt,0);
+                int i          = tensorflux0mfi.index();
+                const Box& grd = tensorflux0mfi.validbox();
+                const int* lo  = grd.loVect();
+                const int* hi  = grd.hiVect();
+
+                Box xflux_bx(grd);
+                xflux_bx.surroundingNodes(0);
+                xflux.resize(xflux_bx,1);
+                xflux.copy(tensorflux0mfi(),sigma,0,1);
+
+                Box yflux_bx(grd);
+                yflux_bx.surroundingNodes(1);
+                yflux.resize(yflux_bx,1);
+                yflux.copy(tensorflux1mfi(),sigma,0,1); 
+
+#if (BL_SPACEDIM == 3)
+                Box zflux_bx(grd);
+                zflux_bx.surroundingNodes(2);
+                zflux.resize(zflux_bx,1);
+                zflux.copy(tensorflux2mfi(),sigma,0,1);
+#endif
+                Real one = 1.0;
+                viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,one);
+                viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,one);
+#if (BL_SPACEDIM == 3)
+                viscflux_reg->FineAdd(zflux,2,i,0,sigma,1,one);
+#endif
+            }
+        }
+        removeFluxBoxesLevel(tensorflux);
     }
-
-    for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++) {
-      for(MultiFabIterator tensorflux0mfi(*(tensorflux[0]));
-          tensorflux0mfi.isValid(); ++tensorflux0mfi)
-      {
-        DependentMultiFabIterator tensorflux1mfi(tensorflux0mfi,
-                                                 (*(tensorflux[1])));
-#if (BL_SPACEDIM == 3)
-        DependentMultiFabIterator tensorflux2mfi(tensorflux0mfi,
-                                                 (*(tensorflux[2])));
-#endif
-        assert(grids[tensorflux0mfi.index()] == tensorflux0mfi.validbox()) ;
-        int i = tensorflux0mfi.index();
-
-        const Box& grd = tensorflux0mfi.validbox();
-        const int* lo = grd.loVect();
-        const int* hi = grd.hiVect();
-
-        Box xflux_bx(grd);
-        xflux_bx.surroundingNodes(0);
-        xflux.resize(xflux_bx,1);
-        xflux.copy(tensorflux0mfi(),sigma,0,1);
-
-        Box yflux_bx(grd);
-        yflux_bx.surroundingNodes(1);
-        yflux.resize(yflux_bx,1);
-        yflux.copy(tensorflux1mfi(),sigma,0,1); 
-
-#if (BL_SPACEDIM == 3)
-        Box zflux_bx(grd);
-        zflux_bx.surroundingNodes(2);
-        zflux.resize(zflux_bx,1);
-        zflux.copy(tensorflux2mfi(),sigma,0,1);
-#endif
-
-        Real one = 1.0;
-        viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,one);
-        viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,one);
-#if (BL_SPACEDIM == 3)
-        viscflux_reg->FineAdd(zflux,2,i,0,sigma,1,one);
-#endif
-      }  // end for(MultiFabIterator...)
-    }
-    removeFluxBoxesLevel(tensorflux);
-  }
-  delete tensor_op;
-#endif
+    delete tensor_op;
+#endif /*defined(USE_TENSOR)*/
 }
 
 void
@@ -1998,21 +1989,23 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
 }
 
 #if defined(USE_TENSOR)
-DivVis* Diffusion::getTensorOp(Real a, Real b,
-                                    Real time,
+DivVis*
+Diffusion::getTensorOp (Real         a,
+                        Real         b,
+                        Real         time,
 #if (BL_SPACEDIM==2)  
-                                    ViscBndry2D& visc_bndry,
+                        ViscBndry2D& visc_bndry,
 #else
-                                    ViscBndry3D& visc_bndry,
+                        ViscBndry3D& visc_bndry,
 #endif
-                                    MultiFab* rho_half,
-                                    MultiFab** beta)
+                        MultiFab*    rho_half,
+                        MultiFab**   beta)
 {
 #if (BL_SPACEDIM==3) 
-    cout << "Diffusion::getTensorOp :  " <<
-            "not yet implemented for 3-D\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun\n";
+    cout << "Diffusion::getTensorOp :  "
+         << "not yet implemented for 3-D\n";
+    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
+         << " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorOp");
 #elif !defined(USE_TENSOR)
     cout << "Diffusion::getTensorOp :  " <<
@@ -2021,215 +2014,223 @@ DivVis* Diffusion::getTensorOp(Real a, Real b,
             " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorOp");
 #else
+    int allthere;
+    checkBeta(beta, allthere);
 
-  int allthere;
-  checkBeta(beta, allthere);
+    const Real* dx = caller->Geom().CellSize();
 
-  const Real* dx = caller->Geom().CellSize();
+    getTensorBndryData(visc_bndry,time);
 
-  getTensorBndryData(visc_bndry,time);
+    DivVis* tensor_op = new DivVis(visc_bndry,dx);
+    tensor_op->maxOrder(tensor_max_order);
 
-  DivVis *tensor_op = new DivVis(visc_bndry,dx);
-  tensor_op->maxOrder(tensor_max_order);
+    int isrz   = CoordSys::IsRZ();
+    int nghost = 1; // Just like Bill.
+    //
+    // alpha should be the same size as volume.
+    //
+    MultiFab alpha(grids,BL_SPACEDIM,nghost,Fab_allocate);
+    alpha.setVal(0.0,nghost);
 
-  int isrz = CoordSys::IsRZ();
+    if (a != 0.0)
+    {
+        for (MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
+        {
+            DependentMultiFabIterator volumemfi(alphamfi, volume);
+            DependentMultiFabIterator rho_halfmfi(alphamfi, (*rho_half));
+            DependentMultiFabIterator beta0mfi(alphamfi, (*beta[0]));
+            DependentMultiFabIterator beta1mfi(alphamfi, (*beta[1]));
+            assert(alpha.box(alphamfi.index()) == alphamfi.validbox());
+            assert(volume.box(alphamfi.index()) == volumemfi.validbox());
 
-  int nghost = 1; // just like bill
+            const Box& bx       = alphamfi.validbox();
+            Array<Real> rcen(bx.length(0));
+            parent->Geom(level).GetCellLoc(rcen, bx, 0);
+            const int *lo       = bx.loVect();
+            const int *hi       = bx.hiVect();
+            Real* alpha_dat     = alphamfi().dataPtr();
+            Box abx             = ::grow(bx,alpha.nGrow());
+            const int *alo      = abx.loVect();
+            const int *ahi      = abx.hiVect();
+            const Real *rcendat = rcen.dataPtr();
+            const Real *voli    = volumemfi().dataPtr();
+            Box vbox            = ::grow(volumemfi.validbox(),volume.nGrow());
+            const int *vlo      = vbox.loVect();
+            const int *vhi      = vbox.hiVect();
 
-  MultiFab alpha;  // alpha should be the same size as volume
-  alpha.define(grids,BL_SPACEDIM,nghost,Fab_allocate);
-  alpha.setVal(0.0,nghost);
-  int k;
-  if (a!=0.0){
-    for(MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi) {
-      DependentMultiFabIterator volumemfi(alphamfi, volume);
-      DependentMultiFabIterator rho_halfmfi(alphamfi, (*rho_half));
-      DependentMultiFabIterator beta0mfi(alphamfi, (*beta[0]));
-      DependentMultiFabIterator beta1mfi(alphamfi, (*beta[1]));
-      assert(alpha.box(alphamfi.index()) == alphamfi.validbox());
-      assert(volume.box(alphamfi.index()) == volumemfi.validbox());
+            FArrayBox& Rh = rho_halfmfi();
+            DEF_LIMITS(Rh,rho_dat,rlo,rhi);
 
-      const Box &bx = alphamfi.validbox();
-      int rlen      = bx.length(0);
-      Array<Real> rcen;
-      rcen.resize(rlen);
-      parent->Geom(level).GetCellLoc(rcen, bx, 0);
-      const int *lo       = bx.loVect();
-      const int *hi       = bx.hiVect();
-      Real *alpha_dat     = alphamfi().dataPtr();
-      Box abx             = grow(bx,alpha.nGrow());
-      const int *alo      = abx.loVect();
-      const int *ahi      = abx.hiVect();
-      const Real *rcendat = rcen.dataPtr();
-      const Real *voli    = volumemfi().dataPtr();
-      Box vbox            = grow(volumemfi.validbox(),volume.nGrow());
-      const int *vlo      = vbox.loVect();
-      const int *vhi      = vbox.hiVect();
+            FArrayBox& betax = beta0mfi();
+            DEF_CLIMITS(betax,betax_dat,betax_lo,betax_hi);
 
-      FArrayBox& Rh = rho_halfmfi();
-      DEF_LIMITS(Rh,rho_dat,rlo,rhi);
+            FArrayBox& betay = beta1mfi();
+            DEF_CLIMITS(betay,betay_dat,betay_lo,betay_hi);
 
-      FArrayBox& betax = beta0mfi();
-      DEF_CLIMITS(betax,betax_dat,betax_lo,betax_hi);
-
-      FArrayBox& betay = beta1mfi();
-      DEF_CLIMITS(betay,betay_dat,betay_lo,betay_hi);
-
-      FORT_SET_TENSOR_ALPHA(alpha_dat, ARLIM(alo), ARLIM(ahi),
-                  lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
-                  voli, ARLIM(vlo), ARLIM(vhi),
-                  rho_dat,ARLIM(rlo),ARLIM(rhi),
-                  betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
-                  betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),&isrz);
-
+            FORT_SET_TENSOR_ALPHA(alpha_dat, ARLIM(alo), ARLIM(ahi),
+                                  lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
+                                  voli, ARLIM(vlo), ARLIM(vhi),
+                                  rho_dat,ARLIM(rlo),ARLIM(rhi),
+                                  betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
+                                  betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),&isrz);
+        }
     }
-  }
+    tensor_op->setScalars(a,b);
+    tensor_op->aCoefficients(alpha);
 
-  tensor_op->setScalars(a,b);
-
-  tensor_op->aCoefficients(alpha);
-  for (int n = 0; n < BL_SPACEDIM; n++) {
-    MultiFab bcoeffs(area[n].boxArray(),1,nghost,Fab_allocate);
-    bcoeffs.setVal(0.0);
-    bcoeffs.copy(area[n]);
-    for(MultiFabIterator betanmfi(*beta[n]); betanmfi.isValid(); ++betanmfi) {
-      DependentMultiFabIterator bcoeffsmfi(betanmfi, bcoeffs);
-      bcoeffsmfi().mult(dx[n]);
-      bcoeffsmfi().mult(betanmfi());
+    for (int n = 0; n < BL_SPACEDIM; n++)
+    {
+        MultiFab bcoeffs(area[n].boxArray(),1,nghost,Fab_allocate);
+        bcoeffs.setBndry(0);
+        bcoeffs.copy(area[n]);
+        for (MultiFabIterator betanmfi(*beta[n]); betanmfi.isValid();
+             ++betanmfi)
+        {
+            DependentMultiFabIterator bcoeffsmfi(betanmfi, bcoeffs);
+            bcoeffsmfi().mult(dx[n]);
+            bcoeffsmfi().mult(betanmfi());
+        }
+        tensor_op->bCoefficients(bcoeffs,n);
     }
-    tensor_op->bCoefficients(bcoeffs,n);
-  }
 
-  return tensor_op;
+    return tensor_op;
 #endif
 }
 
-DivVis* Diffusion::getTensorOp(Real a, Real b,
-                                    MultiFab* rho_half,
-                                    MultiFab** beta)
+DivVis*
+Diffusion::getTensorOp (Real       a,
+                        Real       b,
+                        MultiFab*  rho_half,
+                        MultiFab** beta)
 {
 #if (BL_SPACEDIM==3) 
-    cout << "Diffusion::getTensorOp :  " <<
-            "not yet implemented for 3-D\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun\n";
+    cout << "Diffusion::getTensorOp :  "
+         << "not yet implemented for 3-D\n";
+    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
+         << " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorOp");
 #elif !defined(USE_TENSOR)
-    cout << "Diffusion::getTensorOp :  " <<
-    cout << "USE_TENSOR must be defined at compile time\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun\n";
+    cout << "Diffusion::getTensorOp :  "
+         << "USE_TENSOR must be defined at compile time\n";
+    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
+         << " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorOp");
 #else
-
-  int allthere = beta != 0;
-  if(allthere) {
-    for (int dim=0; dim<BL_SPACEDIM; dim++) {
-      allthere = allthere && beta[dim] != 0;
+    int allthere = beta != 0;
+    if (allthere)
+    {
+        for (int dim = 0; dim < BL_SPACEDIM; dim++)
+        {
+            allthere = allthere && beta[dim] != 0;
+        }
     }
-  }
-  if (!allthere)
-  {
-    cout << "Diffusion::getTensorOp() : all betas must allocated\n";
-    cout << "  all 0 or all non-0\n";
-    ParallelDescriptor::Abort("Diffusion::getTensorOp()");
-  }
-
-  const Real* dx = caller->Geom().CellSize();
-  const Box& domain = caller->Geom().Domain();
-  Array<BCRec> bcarray(2*BL_SPACEDIM);
-  for (int idim=0; idim < BL_SPACEDIM; idim++) {
-    bcarray[idim] = 
-      caller->get_desc_lst()[State_Type].getBC(Xvel+idim);
-    bcarray[idim+BL_SPACEDIM] = 
-      BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-                   D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-  }
-
-  IntVect ref_ratio;
-  if (level > 0) {
-    ref_ratio = parent->refRatio(level-1);
-  } else {
-    ref_ratio = IntVect::TheUnitVector();
-  }
-
-  ViscBndry2D bndry;
-  bndry.define(grids,2*BL_SPACEDIM,caller->Geom());
-  bndry.setHomogValues(bcarray, ref_ratio[0]);
-  DivVis *tensor_op = new DivVis(bndry,dx);
-  tensor_op->maxOrder(tensor_max_order);
-
-  int isrz = CoordSys::IsRZ();
-
-  int nghost = 1; // just like bill
-
-  MultiFab alpha;  // alpha should be the same size as volume
-  alpha.define(grids,BL_SPACEDIM,nghost,Fab_allocate);
-  alpha.setVal(0.0);
-  int k;
-  if (a!=0.0) {
-    for(MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi) {
-      DependentMultiFabIterator volumemfi(alphamfi, volume);
-      DependentMultiFabIterator rho_halfmfi(alphamfi, (*rho_half));
-      DependentMultiFabIterator beta0mfi(alphamfi, (*beta[0]));
-      DependentMultiFabIterator beta1mfi(alphamfi, (*beta[1]));
-      assert(alpha.box(alphamfi.index()) == alphamfi.validbox());
-      assert(volume.box(alphamfi.index()) == volumemfi.validbox());
-
-      const Box &bx = alphamfi.validbox();
-      int rlen      = bx.length(0);
-      Array<Real> rcen;
-      rcen.resize(rlen);
-      parent->Geom(level).GetCellLoc(rcen, bx, 0);
-      const int *lo       = bx.loVect();
-      const int *hi       = bx.hiVect();
-      Real *alpha_dat     = alphamfi().dataPtr();
-      Box abx             = grow(bx,alpha.nGrow());
-      const int *alo      = abx.loVect();
-      const int *ahi      = abx.hiVect();
-      const Real *rcendat = rcen.dataPtr();
-      const Real *voli    = volumemfi().dataPtr();
-      Box vbox            = grow(volumemfi.validbox(),volume.nGrow());
-      const int *vlo      = vbox.loVect();
-      const int *vhi      = vbox.hiVect();
-
-      FArrayBox& Rh = rho_halfmfi();
-      DEF_LIMITS(Rh,rho_dat,rlo,rhi);
-
-      FArrayBox& betax = beta0mfi();
-      DEF_CLIMITS(betax,betax_dat,betax_lo,betax_hi);
-
-      FArrayBox& betay = beta1mfi();
-      DEF_CLIMITS(betay,betay_dat,betay_lo,betay_hi);
-
-      FORT_SET_TENSOR_ALPHA(alpha_dat, ARLIM(alo), ARLIM(ahi),
-                  lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
-                  voli, ARLIM(vlo), ARLIM(vhi),
-                  rho_dat,ARLIM(rlo),ARLIM(rhi),
-                  betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
-                  betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),&isrz);
+    if (!allthere)
+    {
+        cout << "Diffusion::getTensorOp() : all betas must allocated\n";
+        cout << "  all 0 or all non-0\n";
+        ParallelDescriptor::Abort("Diffusion::getTensorOp()");
     }
-  }
 
-  tensor_op->setScalars(a,b);
+    const Real* dx    = caller->Geom().CellSize();
+    const Box& domain = caller->Geom().Domain();
 
-  tensor_op->aCoefficients(alpha);
-  for (int n = 0; n < BL_SPACEDIM; n++) {
-    MultiFab bcoeffs(area[n].boxArray(),1,nghost,Fab_allocate);
-    bcoeffs.setVal(0.0);
-    bcoeffs.copy(area[n]);
-    for(MultiFabIterator betanmfi(*beta[n]); betanmfi.isValid(); ++betanmfi) {
-      DependentMultiFabIterator bcoeffsmfi(betanmfi, bcoeffs);
-      bcoeffsmfi().mult(dx[n]);
-      bcoeffsmfi().mult(betanmfi());
+    Array<BCRec> bcarray(2*BL_SPACEDIM);
+
+    for (int idim = 0; idim < BL_SPACEDIM; idim++)
+    {
+        bcarray[idim] = caller->get_desc_lst()[State_Type].getBC(Xvel+idim);
+        bcarray[idim+BL_SPACEDIM] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+                                          D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
     }
-    tensor_op->bCoefficients(bcoeffs,n);
-  }
 
-  return tensor_op;
+    IntVect ref_ratio;
+    if (level > 0)
+    {
+        ref_ratio = parent->refRatio(level-1);
+    }
+    else
+    {
+        ref_ratio = IntVect::TheUnitVector();
+    }
+    ViscBndry2D bndry;
+    bndry.define(grids,2*BL_SPACEDIM,caller->Geom());
+    bndry.setHomogValues(bcarray, ref_ratio[0]);
+    DivVis* tensor_op = new DivVis(bndry,dx);
+    tensor_op->maxOrder(tensor_max_order);
+
+    int isrz   = CoordSys::IsRZ();
+    int nghost = 1; // Just like Bill.
+    //
+    // alpha should be the same size as volume.
+    //
+    MultiFab alpha(grids,BL_SPACEDIM,nghost,Fab_allocate);
+    alpha.setVal(0.0);
+
+    if (a != 0.0)
+    {
+        for (MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
+        {
+            DependentMultiFabIterator volumemfi(alphamfi, volume);
+            DependentMultiFabIterator rho_halfmfi(alphamfi, (*rho_half));
+            DependentMultiFabIterator beta0mfi(alphamfi, (*beta[0]));
+            DependentMultiFabIterator beta1mfi(alphamfi, (*beta[1]));
+            assert(alpha.box(alphamfi.index()) == alphamfi.validbox());
+            assert(volume.box(alphamfi.index()) == volumemfi.validbox());
+
+            const Box& bx       = alphamfi.validbox();
+            Array<Real> rcen(bx.length(0));
+            parent->Geom(level).GetCellLoc(rcen, bx, 0);
+            const int *lo       = bx.loVect();
+            const int *hi       = bx.hiVect();
+            Real *alpha_dat     = alphamfi().dataPtr();
+            Box abx             = ::grow(bx,alpha.nGrow());
+            const int *alo      = abx.loVect();
+            const int *ahi      = abx.hiVect();
+            const Real *rcendat = rcen.dataPtr();
+            const Real *voli    = volumemfi().dataPtr();
+            Box vbox            = ::grow(volumemfi.validbox(),volume.nGrow());
+            const int *vlo      = vbox.loVect();
+            const int *vhi      = vbox.hiVect();
+
+            FArrayBox& Rh = rho_halfmfi();
+            DEF_LIMITS(Rh,rho_dat,rlo,rhi);
+
+            FArrayBox& betax = beta0mfi();
+            DEF_CLIMITS(betax,betax_dat,betax_lo,betax_hi);
+
+            FArrayBox& betay = beta1mfi();
+            DEF_CLIMITS(betay,betay_dat,betay_lo,betay_hi);
+
+            FORT_SET_TENSOR_ALPHA(alpha_dat, ARLIM(alo), ARLIM(ahi),
+                                  lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
+                                  voli, ARLIM(vlo), ARLIM(vhi),
+                                  rho_dat,ARLIM(rlo),ARLIM(rhi),
+                                  betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
+                                  betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),&isrz);
+        }
+    }
+    tensor_op->setScalars(a,b);
+    tensor_op->aCoefficients(alpha);
+
+    for (int n = 0; n < BL_SPACEDIM; n++)
+    {
+        MultiFab bcoeffs(area[n].boxArray(),1,nghost,Fab_allocate);
+        bcoeffs.setBndry(0);
+        bcoeffs.copy(area[n]);
+        for (MultiFabIterator betanmfi(*beta[n]); betanmfi.isValid();
+             ++betanmfi)
+        {
+            DependentMultiFabIterator bcoeffsmfi(betanmfi, bcoeffs);
+            bcoeffsmfi().mult(dx[n]);
+            bcoeffsmfi().mult(betanmfi());
+        }
+        tensor_op->bCoefficients(bcoeffs,n);
+    }
+
+    return tensor_op;
 #endif
 }
-#endif
+#endif /*defined(USE_TENSOR)*/
 
 ABecLaplacian*
 Diffusion::getViscOp (int        comp,
@@ -2273,12 +2274,12 @@ Diffusion::getViscOp (int        comp,
         const int *lo       = bx.loVect();
         const int *hi       = bx.hiVect();
         Real *dat           = alphamfi().dataPtr();
-        Box abx             = grow(bx,alpha.nGrow());
+        Box abx             = ::grow(bx,alpha.nGrow());
         const int *alo      = abx.loVect();
         const int *ahi      = abx.hiVect();
         const Real *rcendat = rcen.dataPtr();
         const Real *voli    = volumemfi().dataPtr();
-        Box vbox            = grow(volumemfi.validbox(),volume.nGrow());
+        Box vbox            = ::grow(volumemfi.validbox(),volume.nGrow());
         const int *vlo      = vbox.loVect();
         const int *vhi      = vbox.hiVect();
 
@@ -2289,8 +2290,6 @@ Diffusion::getViscOp (int        comp,
                       lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
                       voli, ARLIM(vlo), ARLIM(vhi),
                       rho_dat,ARLIM(rlo),ARLIM(rhi),&usehoop,&useden);
-
-
     }
 
     //  visc_op->setScalars(a,dx[0]*b);
@@ -2418,12 +2417,12 @@ Diffusion::getViscOp (int        comp,
         const int *lo       = bx.loVect();
         const int *hi       = bx.hiVect();
         Real *dat           = alphamfi().dataPtr();
-        Box abx             = grow(bx,alpha.nGrow());
+        Box abx             = ::grow(bx,alpha.nGrow());
         const int *alo      = abx.loVect();
         const int *ahi      = abx.hiVect();
         const Real *rcendat = rcen.dataPtr();
         const Real *voli    = volumemfi().dataPtr();
-        Box vbox            = grow(volumemfi.validbox(),volume.nGrow());
+        Box vbox            = ::grow(volumemfi.validbox(),volume.nGrow());
         const int *vlo      = vbox.loVect();
         const int *vhi      = vbox.hiVect();
 
@@ -2518,7 +2517,7 @@ Diffusion::getViscTerms (MultiFab&  visc_terms,
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
     //
-    // Before computing the godunov predicitors we may have to
+    // Before computing the godunov predictors we may have to
     // precompute the viscous source terms.  To do this we must
     // construct a Laplacian operator, set the coeficients and apply
     // it to the time N data.  First, however, we must precompute the
@@ -2526,7 +2525,9 @@ Diffusion::getViscTerms (MultiFab&  visc_terms,
     //
     const Real* dx = caller->Geom().CellSize();
     MultiFab& S    = caller->get_data(State_Type,time);
+
     visc_terms.setVal(0.0,comp-src_comp,1,1);
+    //
     // FIXME
     // LinOp classes cannot handle multcomponent MultiFabs yet,
     // construct the components one at a time and copy to visc_terms.
@@ -2564,8 +2565,8 @@ Diffusion::getViscTerms (MultiFab&  visc_terms,
             {
                 MultiFab bcoeffs(area[n].boxArray(),1,0);
                 bcoeffs.copy(area[n]);
-                for(MultiFabIterator bcoeffsmfi(bcoeffs);
-                    bcoeffsmfi.isValid(); ++bcoeffsmfi)
+                for (MultiFabIterator bcoeffsmfi(bcoeffs);
+                     bcoeffsmfi.isValid(); ++bcoeffsmfi)
                 {
                     DependentMultiFabIterator betanmfi(bcoeffsmfi, (*beta[n]));
                     bcoeffsmfi().mult(betanmfi());
@@ -2693,187 +2694,197 @@ Diffusion::getViscTerms (MultiFab&  visc_terms,
     }
 }
 
-void Diffusion::getTensorViscTerms(MultiFab& visc_terms, 
-                             Real time, MultiFab** beta)
+void
+Diffusion::getTensorViscTerms (MultiFab&  visc_terms, 
+                               Real       time,
+                               MultiFab** beta)
 {
 #if (BL_SPACEDIM==3)
-    cout << "Diffusion::getTensorViscTerms :  " <<
-            "not yet implemented for 3-D\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun\n";
+    cout << "Diffusion::getTensorViscTerms :  "
+         << "not yet implemented for 3-D\n";
+    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
+         << " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorViscTerms");
 #elif  !defined (USE_TENSOR)
-    cout << "Diffusion::getTensorViscTerms :  " <<
-            "USE_TENSOR must be defined at compile time\n";
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun\n";
+    cout << "Diffusion::getTensorViscTerms :  "
+         << "USE_TENSOR must be defined at compile time\n";
+    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
+         << " and rerun\n";
     ParallelDescriptor::Abort("Diffusion::getTensorViscTerms");
 #else
+    int allthere;
+    checkBeta(beta, allthere);
 
-  int allthere;
-  checkBeta(beta, allthere);
-
-  int src_comp = Xvel;
-  int ncomp = visc_terms.nComp();
-  if (ncomp < BL_SPACEDIM)
-  {
-    cout << "Diffusion::getTensorViscTerms : visc_terms must have\n";
-    cout << "  at least BL_SPACEDIM components\n";
-    ParallelDescriptor::Abort("Diffusion::getTensorViscTerms");
-  }
-  int vel_ncomp = BL_SPACEDIM;
-  //
-  // Before computing the godunov predicitors we may have to
-  // precompute the viscous source terms.  To do this we must
-  // construct a Laplacian operator, set the coeficients and apply
-  // it to the time N data.  First, however, we must precompute the
-  // tine N bndry values.  We will do this for each scalar that diffuses.
-  const Real* dx = caller->Geom().CellSize();
-  MultiFab& S = caller->get_data(State_Type,time);
-  visc_terms.setVal(0.0,src_comp,BL_SPACEDIM,1);
-  int ngrd = grids.length();
-
-  // FIXME
-  // LinOp classes cannot handle multcomponent MultiFabs yet,
-  // construct the components one at a time and copy to visc_terms.
-  MultiFab visc_tmp(grids,BL_SPACEDIM,1,Fab_allocate);
-  MultiFab s_tmp(grids,BL_SPACEDIM,1,Fab_allocate);
-
-  int k,n;
-
-  if (is_diffusive[src_comp]) {
-    ViscBndry2D visc_bndry;
-    getTensorBndryData(visc_bndry,time);
-
-    // set up operator and apply to compute viscous terms
-    Real a = 0.0;
-    Real b = -1.0;
-
-    DivVis tensor_op(visc_bndry,dx);
-    tensor_op.maxOrder(tensor_max_order);
-    tensor_op.setScalars(a,b);
-
-    int nghost = 1; // like bill
-    MultiFab alpha;  // alpha should be the same size as volume
-    alpha.define(grids,BL_SPACEDIM,nghost,Fab_allocate);
-    alpha.setVal(0.0);
-    tensor_op.aCoefficients(alpha);
-    for (n = 0; n < BL_SPACEDIM; n++) {
-      MultiFab bcoeffs(area[n].boxArray(),1,nghost,Fab_allocate);
-      bcoeffs.setVal(0.0);
-      bcoeffs.copy(area[n]);
-      for(MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-      {
-        DependentMultiFabIterator betanmfi(bcoeffsmfi, (*beta[n]));
-        bcoeffsmfi().mult(dx[n]);
-        bcoeffsmfi().mult(betanmfi());
-      }
-      tensor_op.bCoefficients(bcoeffs,n);
-    }
-
-    Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,1);
-
-    tensor_op.apply(visc_tmp,s_tmp);
-
-    // must divide by volume
-    for(MultiFabIterator visc_tmpmfi(visc_tmp);
-        visc_tmpmfi.isValid(); ++visc_tmpmfi)
+    int src_comp = Xvel;
+    int ncomp    = visc_terms.nComp();
+    if (ncomp < BL_SPACEDIM)
     {
-      DependentMultiFabIterator volumemfi(visc_tmpmfi, volume);
-      assert(grids[volumemfi.index()] == volumemfi.validbox());
-      visc_tmpmfi().divide(volumemfi(),volumemfi.validbox(),0,0,1);
+        cout << "Diffusion::getTensorViscTerms : visc_terms must have\n";
+        cout << "  at least BL_SPACEDIM components\n";
+        ParallelDescriptor::Abort("Diffusion::getTensorViscTerms");
     }
+    int vel_ncomp = BL_SPACEDIM;
+    //
+    // Before computing the godunov predicitors we may have to
+    // precompute the viscous source terms.  To do this we must
+    // construct a Laplacian operator, set the coeficients and apply
+    // it to the time N data.  First, however, we must precompute the
+    // fine N bndry values.  We will do this for each scalar that diffuses.
+    //
+    const Real* dx = caller->Geom().CellSize();
+    MultiFab& S    = caller->get_data(State_Type,time);
+    visc_terms.setVal(0.0,src_comp,BL_SPACEDIM,1);
+    const int ngrd = grids.length();
+    //
+    // FIXME
+    // LinOp classes cannot handle multcomponent MultiFabs yet,
+    // construct the components one at a time and copy to visc_terms.
+    //
+    MultiFab visc_tmp(grids,BL_SPACEDIM,1,Fab_allocate);
+    MultiFab s_tmp(grids,BL_SPACEDIM,1,Fab_allocate);
 
-#if (BL_SPACEDIM == 2)
-    if(CoordSys::IsRZ()) {
-      int fort_xvel_comp = Xvel+1;
-      for (k = 0; k < ngrd; k++) {
-        //visc_tmp[k] += -mu * u / r^2
-        const Box& bx  = visc_tmp.box(k);
-        Box  vbx       = grow(bx,visc_tmp.nGrow());
-        Box  sbx       = grow(s_tmp.box(k),s_tmp.nGrow());
-        int rlen       = bx.length(0);
-        Array<Real> rcen;
-        rcen.resize(rlen);
-        parent->Geom(level).GetCellLoc(rcen, bx, 0);
-        const int *lo       = bx.loVect();
-        const int *hi       = bx.hiVect();
-        const int *vlo      = vbx.loVect();
-        const int *vhi      = vbx.hiVect();
-        const int *slo      = sbx.loVect();
-        const int *shi      = sbx.hiVect();
-        Real *vdat          = visc_tmp[k].dataPtr();
-        Real *sdat          = s_tmp[k].dataPtr();
-        const Real *rcendat = rcen.dataPtr();
-
-        FArrayBox& betax = (*beta[0])[k];
-        DEF_CLIMITS(betax,betax_dat,betax_lo,betax_hi);
-
-        FArrayBox& betay = (*beta[1])[k];
-        DEF_CLIMITS(betay,betay_dat,betay_lo,betay_hi);
-
-        FORT_TENSOR_HOOPSRC(&fort_xvel_comp,ARLIM(lo), ARLIM(hi),
-                     vdat, ARLIM(vlo), ARLIM(vhi),
-                     sdat, ARLIM(slo), ARLIM(shi),
-                     rcendat, 
-                     betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
-                     betay_dat,ARLIM(betay_lo),ARLIM(betay_hi));
-
-
-      }
-    }
-#endif
-
-    assert(visc_tmp.nGrow() > 0);
-    const BoxArray& ba = visc_tmp.boxArray();
-    int ngrd = ba.length();
-//    NOTE: THIS IS JUST A HACK - DONT KNOW HOW TO FILL VISC TERMS
-//          IN GHOST CELLS OUTSIDE FINE GRIDS
-    for(MultiFabIterator visc_tmpmfi(visc_tmp);
-        visc_tmpmfi.isValid(); ++visc_tmpmfi)
+    if (is_diffusive[src_comp])
     {
-      assert(ba[visc_tmpmfi.index()] == visc_tmpmfi.validbox());
-      const Box& grd(visc_tmpmfi.validbox());
-      const int* lo = grd.loVect();
-      const int* hi = grd.hiVect();
-      FArrayBox& visc = visc_tmpmfi();
-      DEF_LIMITS(visc,vdat,vlo,vhi);
-      FORT_VISCEXTRAP(vdat,ARLIM(vlo),ARLIM(vhi),lo,hi,&vel_ncomp);
-    }
+        ViscBndry2D visc_bndry;
+        getTensorBndryData(visc_bndry,time);
+        //
+        // Set up operator and apply to compute viscous terms.
+        //
+        const Real a = 0.0;
+        const Real b = -1.0;
 
-      // if periodic, copy into periodic translates of visc_tmp
-    if ( caller->Geom().isAnyPeriodic() ) {
+        DivVis tensor_op(visc_bndry,dx);
+        tensor_op.maxOrder(tensor_max_order);
+        tensor_op.setScalars(a,b);
 
-      const Box& domain = caller->Geom().Domain();
-      Array<IntVect> pshifts(27);
- 
-      FArrayBox dest;
-      for(MultiFabIterator visc_tmpmfi(visc_tmp);
-          visc_tmpmfi.isValid(); ++visc_tmpmfi)
-      {
-        assert(visc_tmp[visc_tmpmfi.index()].box() == visc_tmpmfi.fabbox());
- 
-        const Box& dbox(visc_tmpmfi.fabbox());
-        dest.resize(dbox,1);
-        dest.copy(visc_tmpmfi(),dbox,0,dbox,0,1);
-        caller->Geom().periodicShift( domain, dest.box(), pshifts);
-        for( int iiv=0; iiv<pshifts.length(); iiv++) {
-          IntVect iv=pshifts[iiv];
-          dest.shift(iv);
-          if (dbox.intersects(domain))
-              visc_tmp.copy(dest);
-          dest.shift(-iv);
-          visc_tmpmfi().copy(dest,dbox,0,dbox,0,vel_ncomp);
+        int nghost = 1; // like bill
+        //
+        // alpha should be the same size as volume.
+        //
+        MultiFab alpha(grids,BL_SPACEDIM,nghost,Fab_allocate);
+        alpha.setVal(0.0);
+        tensor_op.aCoefficients(alpha);
+
+        for (int n = 0; n < BL_SPACEDIM; n++)
+        {
+            MultiFab bcoeffs(area[n].boxArray(),1,nghost,Fab_allocate);
+            bcoeffs.setBndry(0);
+            bcoeffs.copy(area[n]);
+            for (MultiFabIterator bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid();
+                 ++bcoeffsmfi)
+            {
+                DependentMultiFabIterator betanmfi(bcoeffsmfi, (*beta[n]));
+                bcoeffsmfi().mult(dx[n]);
+                bcoeffsmfi().mult(betanmfi());
+            }
+            tensor_op.bCoefficients(bcoeffs,n);
         }
-      }
-    }
 
-    // copy from valid regions of overlapping grids
-    visc_tmp.FillBoundary();
+        Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,1);
 
-    Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,1);
-  }
+        tensor_op.apply(visc_tmp,s_tmp);
+        //
+        // Must divide by volume.
+        //
+        for (MultiFabIterator visc_tmpmfi(visc_tmp);
+             visc_tmpmfi.isValid(); ++visc_tmpmfi)
+        {
+            DependentMultiFabIterator volumemfi(visc_tmpmfi, volume);
+            assert(grids[volumemfi.index()] == volumemfi.validbox());
+            visc_tmpmfi().divide(volumemfi(),volumemfi.validbox(),0,0,1);
+        }
+#if (BL_SPACEDIM == 2)
+        if (CoordSys::IsRZ())
+        {
+            int fort_xvel_comp = Xvel+1;
+            for (int k = 0; k < ngrd; k++)
+            {
+                //visc_tmp[k] += -mu * u / r^2
+                const Box& bx       = visc_tmp.box(k);
+                Box  vbx            = ::grow(bx,visc_tmp.nGrow());
+                Box  sbx            = ::grow(s_tmp.box(k),s_tmp.nGrow());
+                Array<Real> rcen(bx.length(0));
+                parent->Geom(level).GetCellLoc(rcen, bx, 0);
+                const int *lo       = bx.loVect();
+                const int *hi       = bx.hiVect();
+                const int *vlo      = vbx.loVect();
+                const int *vhi      = vbx.hiVect();
+                const int *slo      = sbx.loVect();
+                const int *shi      = sbx.hiVect();
+                Real *vdat          = visc_tmp[k].dataPtr();
+                Real *sdat          = s_tmp[k].dataPtr();
+                const Real *rcendat = rcen.dataPtr();
+
+                FArrayBox& betax = (*beta[0])[k];
+                DEF_CLIMITS(betax,betax_dat,betax_lo,betax_hi);
+
+                FArrayBox& betay = (*beta[1])[k];
+                DEF_CLIMITS(betay,betay_dat,betay_lo,betay_hi);
+
+                FORT_TENSOR_HOOPSRC(&fort_xvel_comp,ARLIM(lo), ARLIM(hi),
+                                    vdat, ARLIM(vlo), ARLIM(vhi),
+                                    sdat, ARLIM(slo), ARLIM(shi),
+                                    rcendat, 
+                                    betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
+                                    betay_dat,ARLIM(betay_lo),ARLIM(betay_hi));
+            }
+        }
 #endif
+        assert(visc_tmp.nGrow() > 0);
+        const BoxArray& ba = visc_tmp.boxArray();
+        //
+        // THIS IS JUST A HACK - DONT KNOW HOW TO FILL VISC TERMS
+        // IN GHOST CELLS OUTSIDE FINE GRIDS.
+        //
+        for (MultiFabIterator visc_tmpmfi(visc_tmp);
+             visc_tmpmfi.isValid(); ++visc_tmpmfi)
+        {
+            assert(ba[visc_tmpmfi.index()] == visc_tmpmfi.validbox());
+            const Box& grd(visc_tmpmfi.validbox());
+            const int* lo = grd.loVect();
+            const int* hi = grd.hiVect();
+            FArrayBox& visc = visc_tmpmfi();
+            DEF_LIMITS(visc,vdat,vlo,vhi);
+            FORT_VISCEXTRAP(vdat,ARLIM(vlo),ARLIM(vhi),lo,hi,&vel_ncomp);
+        }
+        //
+        // If periodic, copy into periodic translates of visc_tmp.
+        //
+        if (caller->Geom().isAnyPeriodic())
+        {
+            FArrayBox dest;
+            Array<IntVect> pshifts(27);
+            const Box& domain = caller->Geom().Domain();
+
+            for (MultiFabIterator visc_tmpmfi(visc_tmp);
+                 visc_tmpmfi.isValid(); ++visc_tmpmfi)
+            {
+                assert(visc_tmp[visc_tmpmfi.index()].box() == visc_tmpmfi.fabbox());
+ 
+                const Box& dbox(visc_tmpmfi.fabbox());
+                dest.resize(dbox,1);
+                dest.copy(visc_tmpmfi(),dbox,0,dbox,0,1);
+                caller->Geom().periodicShift(domain, dest.box(), pshifts);
+                for (int iiv=0; iiv<pshifts.length(); iiv++)
+                {
+                    if (dbox.intersects(domain))
+                    {
+                        dest.shift(pshifts[iiv]);
+                        visc_tmp.copy(dest);
+                        dest.shift(-pshifts[iiv]);
+                    }
+                    visc_tmpmfi().copy(dest,dbox,0,dbox,0,vel_ncomp);
+                }
+            }
+        }
+        //
+        // Copy from valid regions of overlapping grids.
+        //
+        visc_tmp.FillBoundary();
+
+        Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,1);
+    }
+#endif /*defined (USE_TENSOR)*/
 }
 
 void
@@ -2901,7 +2912,7 @@ Diffusion::getBndryData (ViscBndry& bndry,
     }
 
     int use_old_code = 0; // FOR DEBUGGING ONLY
-    if (rho_flag!=2 || use_old_code)
+    if (rho_flag != 2 || use_old_code)
     {
         if (level == 0)
         {
@@ -3070,7 +3081,8 @@ Diffusion::FillBoundary (BndryRegister& bdry,
 }
 
 #if defined (USE_TENSOR)
-void Diffusion::getTensorBndryData(
+void
+Diffusion::getTensorBndryData(
 #if (BL_SPACEDIM==2) 
                             ViscBndry2D& bndry, 
 #else 
@@ -3079,24 +3091,23 @@ void Diffusion::getTensorBndryData(
                             Real time)
 {
 #if (BL_SPACEDIM==3)
-    cout << "Diffusion::getTensorBndryData :  " <<
-            "not yet implemented for 3-D" << NL;
-    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0" <<
-            " and rerun" << NL;
+    cout << "Diffusion::getTensorBndryData :  "
+         << "not yet implemented for 3-D" << NL;
+    cout << "set use_dv_constant_mu = 1 with velocity visc_coef >=0.0"
+         << " and rerun" << NL;
     ParallelDescriptor::Abort("Diffusion::getTensorBndryData()");
 #else
     int num_comp = BL_SPACEDIM;
     int src_comp = Xvel;
-
+    //
     // Create the BCRec's interpreted by ViscBndry objects
-
+    //
     Array<BCRec> bcarray(2*BL_SPACEDIM);
-    for (int idim=0; idim < BL_SPACEDIM; idim++) {
-      bcarray[idim] = 
-        caller->get_desc_lst()[State_Type].getBC(src_comp+idim);
-      bcarray[idim+BL_SPACEDIM] = 
-        BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-                     D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    for (int idim = 0; idim < BL_SPACEDIM; idim++)
+    {
+      bcarray[idim] = caller->get_desc_lst()[State_Type].getBC(src_comp+idim);
+      bcarray[idim+BL_SPACEDIM] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+                                        D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
     }
 
     bndry.define(grids,2*num_comp,caller->Geom());
@@ -3105,21 +3116,22 @@ void Diffusion::getTensorBndryData(
     S.FillBoundary(src_comp,num_comp);
     caller->setPhysBoundaryValues(State_Type,src_comp,num_comp,time);
 
-    if (level == 0) {
+    if (level == 0)
+    {
       bndry.setBndryValues(S,src_comp,0,num_comp,bcarray);
-    } else {
+    }
+    else
+    {
       BoxArray cgrids(grids);
       cgrids.coarsen(crse_ratio);
       BndryRegister crse_br(cgrids,0,1,1,num_comp);
       crse_br.setVal(1.0e30);
       coarser->FillBoundary(crse_br,src_comp,0,num_comp,time);
-      bndry.setBndryValues(crse_br,0,S,src_comp,0,num_comp,
-                             crse_ratio[0],bcarray);
+      bndry.setBndryValues(crse_br,0,S,src_comp,0,num_comp,crse_ratio[0],bcarray);
     }
-
 }
 #endif
-#endif
+#endif /*defined (USE_TENSOR)*/
 
 void
 Diffusion::checkBetas (const MultiFab* const* beta1, 
@@ -3145,11 +3157,11 @@ Diffusion::checkBeta (const MultiFab* const* beta,
                       int&                   allthere,
                       int&                   allnull) const
 {
-    allnull = 1;
+    allnull  = 1;
     allthere = beta != 0;
     if (allthere)
     {
-        for (int dim=0; dim<BL_SPACEDIM; dim++)
+        for (int dim = 0; dim < BL_SPACEDIM; dim++)
         {
             allnull = allnull && beta[dim] == 0;
             allthere = allthere && beta[dim] != 0;
@@ -3170,7 +3182,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
     allthere = beta != 0;
     if (allthere)
     {
-        for (int dim=0; dim<BL_SPACEDIM; dim++)
+        for (int dim = 0; dim < BL_SPACEDIM; dim++)
         {
             allthere = allthere && beta[dim] != 0;
         }
@@ -3315,4 +3327,4 @@ Diffusion::compute_divmusi (Real       time,
         }
     }
 }
-#endif
+#endif /*USE_NAVIERSTOKES*/
