@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.105 2000-08-14 20:17:03 almgren Exp $
+// $Id: Diffusion.cpp,v 1.106 2000-08-22 21:31:15 lijewski Exp $
 //
 
 //
@@ -87,7 +87,6 @@ int  Diffusion::max_order           = 2;
 int  Diffusion::tensor_max_order    = 2;
 int  Diffusion::scale_abec          = 0;
 int  Diffusion::est_visc_mag        = 1;
-int  Diffusion::Lphi_in_abs_tol     = 0;
 int  Diffusion::Rhs_in_abs_tol      = 0;
 
 Array<Real> Diffusion::typical_vals;
@@ -132,7 +131,6 @@ Diffusion::Diffusion (Amr*               Parent,
         ppdiff.query("tensor_max_order",tensor_max_order);
         ppdiff.query("scale_abec",scale_abec);
         ppdiff.query("est_visc_mag",est_visc_mag);
-        ppdiff.query("Lphi_in_abs_tol",Lphi_in_abs_tol);
         ppdiff.query("Rhs_in_abs_tol",Rhs_in_abs_tol);
 
         ParmParse pp("ns");
@@ -201,7 +199,6 @@ Diffusion::echo_settings () const
         cout << "   tensor_max_order =    " << tensor_max_order << '\n';
         cout << "   scale_abec =          " << scale_abec << '\n';
         cout << "   est_visc_mag =        " << est_visc_mag << '\n';
-        cout << "   Lphi_in_abs_tol =     " << Lphi_in_abs_tol << '\n';
         cout << "   Rhs_in_abs_tol =      " << Rhs_in_abs_tol << '\n';
     
         cout << "   typical_vals =";
@@ -235,8 +232,7 @@ Diffusion::get_scaled_abs_tol (int                    sigma,
                                const MultiFab* const* betanp1,
                                Real                   reduction) const
 {
-    if (!(Rhs_in_abs_tol || Lphi_in_abs_tol))
-        return reduction;
+    if (!Rhs_in_abs_tol) return reduction;
 
     Real norm_est = 0;
 
@@ -249,85 +245,6 @@ Diffusion::get_scaled_abs_tol (int                    sigma,
             norm_est = Max(norm_est,Rhsmfi().norm(0));
         }
         ParallelDescriptor::ReduceRealMax(norm_est);
-    }
-
-    if (Lphi_in_abs_tol)
-    {
-        //
-        // Approximate (||A||.||x|| + ||rhs||)*reduction
-        //
-        const Real* dx = caller->Geom().CellSize();
-        //
-        // Are there spatially varying coefficients?
-        //
-        int allthere_n, allthere_np1;
-        checkBeta(betan,   allthere_n);
-        checkBeta(betanp1, allthere_np1);
-    
-        int do_const_visc = !est_visc_mag || (!allthere_n && !allthere_np1); 
-        Real norm_b_div_beta_grad = 0;
-        for (int d = 0; d < BL_SPACEDIM; d++)
-        {
-            Real norm_visc = 0;
-
-            if (do_const_visc)
-            {
-                norm_visc = Abs( visc_coef[sigma] );
-            }
-            else
-            {
-                if (allthere_n)
-                {
-                    BL_ASSERT(grids == (*betan[d]).boxArray());
-
-                    for (ConstMultiFabIterator Betanmfi(*betan[d]); 
-                         Betanmfi.isValid(); ++Betanmfi)
-                    {
-                        norm_visc = Max(norm_visc,Betanmfi().norm(0));
-                    }
-                    ParallelDescriptor::ReduceRealMax(norm_visc);
-
-                }
-                if (allthere_np1)
-                {
-                    BL_ASSERT(grids == (*betanp1[d]).boxArray());
-                    for (ConstMultiFabIterator Betanp1mfi(*betanp1[d]); 
-                         Betanp1mfi.isValid(); ++Betanp1mfi)
-                    {
-                        norm_visc = Max(norm_visc,Betanp1mfi().norm(0));
-                    }
-                    ParallelDescriptor::ReduceRealMax(norm_visc);
-                }
-            }
-    
-            norm_b_div_beta_grad = Max(norm_b_div_beta_grad,
-                                       Abs(b)*norm_visc/(dx[d]*dx[d]));
-        }
-        //
-        // Get norm of alpha * a (if alpha=0, leave this zero).
-        //
-        Real norm_a_alpha = 0;
-
-        if (alpha != 0)
-        {
-            BL_ASSERT(grids == alpha->boxArray());
-
-            for (ConstMultiFabIterator Alphamfi(*alpha); Alphamfi.isValid(); ++Alphamfi)
-            {
-                norm_a_alpha = Max(norm_a_alpha,a * Alphamfi().norm(0));
-            }
-            ParallelDescriptor::ReduceRealMax(norm_a_alpha);
-        }
-        //
-        // Get norm_A.
-        //
-        Real norm_A = Max(norm_a_alpha, norm_b_div_beta_grad);
-        //
-        // Get norm of soln.
-        //
-        Real norm_x = typical_vals[sigma];
-
-        norm_est = Max( norm_A * norm_x, norm_est );
     }
     
     BL_ASSERT(norm_est >= 0);

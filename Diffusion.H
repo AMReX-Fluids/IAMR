@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.22 2000-08-09 22:32:27 almgren Exp $
+// $Id: Diffusion.H,v 1.23 2000-08-22 21:31:15 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -322,7 +322,6 @@ private:
     static int         max_order;
     static int         tensor_max_order;
     static int         est_visc_mag;
-    static int         Lphi_in_abs_tol;
     static int         Rhs_in_abs_tol;
     static Array<Real> typical_vals;
 };
