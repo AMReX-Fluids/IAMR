@@ -1,0 +1,47 @@
+ $fortin
+
+  probtype = 1
+  adv_dir = 1
+  adv_vel = 0.0
+  xblob = 5.0
+  yblob = 5.0
+  denfact = 1.0
+  velfact = 1.0
+  radblob = 1.0
+
+  probtype = 2
+  adv_dir = 1
+  adv_vel = 0.0
+  xblob = 0.5
+  yblob = 0.5
+  zblob = 0.5
+  denfact = 2.0
+  velfact = 0.0
+  radblob = .125
+  randfact = 0.
+
+  probtype = 1
+  axis_dir = 3
+  adv_dir = 1
+  adv_vel = 0.0
+  xblob = 0.5
+  yblob = 0.5
+  zblob = 0.5
+  denfact = 10.0
+  velfact = 1.0
+  radblob = 0.1
+
+  probtype = 2
+  adv_dir = 1
+  axis_dir = 1
+  adv_vel = 0.0
+  xblob = 2.
+  yblob = 2.
+  zblob = 2.
+  denfact = 2.0
+  velfact = 0.0
+  radblob = 0.5
+  randfact = 0.
+
+ $end
+

@@ -1,0 +1,145 @@
+# ------------------  INPUTS TO MAIN PROGRAM  -------------------
+max_step  =  10        # maximum timestep
+stop_time =  10000.0   # maximum problem time
+
+# ------------------  INPUTS TO CLASS AMR ---------------------
+# set up for bubble
+geometry.coord_sys      = 0        # 0 => cart, 1 => RZ
+geometry.prob_lo   =  0.0 0.0 0.0
+geometry.prob_hi   =  1. 1. 1.
+
+# multigrid class
+mg.usecg = 0
+mg.nu_f = 10
+mg.nu_1 = 2
+mg.nu_2 = 2
+smg.eps = 1.0e-3
+mg.v = 0
+mg.maxiter = 100
+Lp.v = 0
+Lp.harmavg = 1
+
+ns.v = 1
+mac.v = 1
+proj.v = 1
+
+amr.n_cell    =  8 8 8
+
+amr.max_level =  1            # maximum level number allowed
+amr.ref_ratio       = 2 4 2 2  # refinement ratio
+amr.blocking_factor = 2       # block factor in grid generation
+amr.regrid_int      = 5       # how often to regrid
+amr.n_error_buf     = 2 2 2 2  # number of buffer cells in error est
+amr.grid_eff        = 0.7     # what constitutes an efficient grid
+amr.check_int       = 20      # number of timesteps between checkpoints
+amr.check_file      = chk     # root name of checkpoint file
+amr.plot_file       = plt 20
+amr.grid_log        = grdlog  # name of grid logging file
+amr.max_grid_size   = 64
+
+# ------------------  INPUTS TO PHYSICS CLASS -------------------
+ns.dt_cutoff      = 0.000001  # level 0 timestep below which we halt
+
+ns.visc_tol        = 1.0e-10  # tolerence for viscous solves
+ns.visc_abs_tol    = 1.0e-10  # tolerence for viscous solves
+
+ns.cfl            = 0.5	     # cfl number for hyperbolic system
+ns.init_shrink    = 1.0      # factor to scale back initial dt with
+ns.change_max     = 1.1      # amt by which dt can change each timestep
+ns.visc_coef      =  -0.01  -0.01  -0.01  -0.01   -0.01 # coef of viscosity
+ns.visc_coef      =  0.01  0.01  0.01  -0.01   -0.01 # coef of viscosity
+ns.init_iter      = 1        # number of init iters to def pressure
+ns.gravity        = -9.8     # body force  (gravity in MKS units)
+ns.gravity        = 0.0      # body force  (no gravity)
+ns.anelastic      = 0        # 0 => no anelastic approx
+#ns.fixed_dt	  = 06.37755     # hardwire dt
+ns.sum_interval   = 1        # timesteps between computing mass
+ns.do_sync_proj   = 1        # 1 => do Sync Project
+ns.do_reflux      = 1        # 1 => do refluxing
+ns.do_mac_proj    = 1        # 1 => do MAC projection
+ns.do_radiation   = 0        # 1 => do discrete-ordinates radiation
+
+ns.mem_debug = 0
+
+# ----------------  BOUNDARY CONDITIONS ---------------------------
+
+ns.lo_bc          = 5 5 4
+ns.hi_bc          = 5 5 4
+
+#ns.lo_bc          = 4 4 4
+#ns.hi_bc          = 4 4 4
+
+# >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
+# 0 = Interior           3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+# ------------------  INPUTS TO PROJECTION CLASS -------------------
+proj.proj_tol       = 1.0e-14  # tolerence for projections
+proj.sync_tol       = 1.0e-12   # tolerence for projections
+proj.proj_abs_error = 1.0e-16  # abs error for proj multigrid iter
+
+proj.pres_interp    = 1
+proj.rho_wgt_vel_proj = 0      # 0 => const den proj, 1 => rho weighted
+proj.bogus_value    = 5.0e+5
+proj.Pcode          = 1
+
+# ------------------  INPUTS TO MACPROJ CLASS -------------------
+mac.mac_tol        = 1.0e-12   # tolerence for mac projections
+mac.mac_sync_tol   = 1.0e-10   # tolerence for mac SYNC projection
+mac.mac_order      = 1        # interp type: 0 => pc 1 => quad 2 => jbb
+
+# turn any of these on to generate run-time timing stats
+RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update \
+                   mac_project mac_sync level_project sync_project
+
+# select form of FAB output: default is IEEE
+#        ASCII  (this is very slow)
+#	 NATIVE (native binary form on machine)
+#        IEEE   (default, this is portable)
+fab.format =  IEEE
+
+# select single or double precision of FAB output data
+#        default is whatever precision code is compiled with.
+#fab.precision = FLOAT     # output in FLOAT or DOUBLE
+fab.precision = DOUBLE    # output in FLOAT or DOUBLE
+
+# --------------------------------------------------------------------
+# -----       CONTOUR PLOTTING ONLY AVAILABLE IN 2-D           -------
+# --------------------------------------------------------------------
+# uncomment the next line to set a default level for contour plotting
+# contour.level = 1
+#
+# These variables control interactive contour plotting on UNIX systems
+# file_name   = root name of postscript file (will be appended with ".ps")
+# var_name    = name of thermodynamic variable to plot
+# device      = 1  => XWINDOW, 2 = POSTSCRIPT, 3 = both
+# freq        = intervals between plots (-1 = off)
+# n_cont      = number of contour lines per plot
+# sho_grd     = 0 => don't show grid placement, 1 => show grid placement
+#               2 => show grid placement and overlay velocity vector plot
+# win_siz     = number of pixels in max window direction
+#
+#             file_name  var_name   device  freq  n_cont  sho_grd win_siz
+#             ---------  --------   ------  ----  ------  ------- -------
+contour.verbose = 1
+
+contour.xslice = 0.5
+contour.yslice = 0.5
+contour.zslice = 0.5
+
+contour.plot = density   density       1     -1     20       2      400
+contour.plot = lgden     log_den       1     -5     20       1      400
+contour.plot = xvel      x_velocity    1     -1     20       1      400
+contour.plot = yvel      y_velocity    1     -1     20       1      400
+contour.plot = trac      tracer        1     -1     20       1      400
+contour.plot = lgtrac    log_tracer    1     -1     20       1      400
+contour.plot = lgrt     log_rho_tracer 1    -40     20       1      400
+contour.plot = energy    energy        1     -5     15       1      400
+contour.plot = mvel      mag_vel       1     -5     20       1      400
+contour.plot = vort      mag_vort      1     -1     20       1      400
+contour.plot = dEdt      dEdt          1     -1     20       1      400
+contour.plot = divu      divu          1     -1     20       1      400
+contour.plot = gradpx    gradpx        1     -1     20       1      400
+contour.plot = gradpy    gradpy        1     -1     20       1      400
+
