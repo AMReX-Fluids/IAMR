@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.29 2003-06-05 20:59:20 almgren Exp $
+c $Id: GODUNOV_3D.F,v 1.30 2004-09-10 17:32:19 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -2621,9 +2621,8 @@ c
 
       end
 
-      subroutine FORT_SCALMINMAX(s,DIMS(s),sn,DIMS(sn),
-     &     smin,smax,DIMS(smin),
-     &     lo,hi,bc)
+      subroutine FORT_CONVSCALMINMAX(s,DIMS(s),sn,DIMS(sn),
+     &                               smin,smax,DIMS(smin),lo,hi,bc)
 c
 c     correct an advected field for under/over shoots
 c
@@ -2798,6 +2797,223 @@ c
          km = mod(km+1,3)
          kk = mod(kk+1,3)
          kp = mod(kp+1,3)
+      end do
+
+      end
+
+      subroutine FORT_CONSSCALMINMAX(s,sn,rho,rhon,DIMS(s),
+     &                               smin,smax,DIMS(smin),lo,hi,bc)
+c
+c     correct an conservatively-advected field for under/over shoots
+c
+      integer  i, j, k, imin, imax, jmin, jmax, kmin, kmax
+      integer  DIMDEC(s)
+      integer  DIMDEC(smin)
+      integer  lo(SDIM), hi(SDIM)
+      integer  bc(SDIM,2), do_minmax
+      REAL_T      s(DIMV(s))
+      REAL_T     sn(DIMV(s))
+      REAL_T    rho(DIMV(s))
+      REAL_T   rhon(DIMV(s))
+      integer  km, kk, kp
+      REAL_T   smn, smx
+      REAL_T   smin(DIM12(smin),0:2)
+      REAL_T   smax(DIM12(smin),0:2)
+
+      imin = lo(1)
+      imax = hi(1)
+      jmin = lo(2)
+      jmax = hi(2)
+      kmin = lo(3)
+      kmax = hi(3)
+c
+c     correct the 8 corners
+c
+      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
+           s(imin-1,jmin-1,kmin-1) =   s(imin,jmin,kmin)
+         rho(imin-1,jmin-1,kmin-1) = rho(imin,jmin,kmin)
+      end if
+      if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
+           s(imax+1,jmin-1,kmin-1) =   s(imax,jmin,kmin)
+         rho(imax+1,jmin-1,kmin-1) = rho(imax,jmin,kmin)
+      end if
+      if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
+           s(imin-1,jmax+1,kmin-1) =   s(imin,jmax,kmin)
+         rho(imin-1,jmax+1,kmin-1) = rho(imin,jmax,kmin)
+      end if
+      if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
+           s(imax+1,jmax+1,kmin-1) =   s(imax,jmax,kmin)
+         rho(imax+1,jmax+1,kmin-1) = rho(imax,jmax,kmin)
+      end if
+      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
+           s(imin-1,jmin-1,kmax+1) =   s(imin,jmin,kmax)
+         rho(imin-1,jmin-1,kmax+1) = rho(imin,jmin,kmax)
+      end if
+      if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
+           s(imax+1,jmin-1,kmax+1) =   s(imax,jmin,kmax)
+         rho(imax+1,jmin-1,kmax+1) = rho(imax,jmin,kmax)
+      end if
+      if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
+           s(imin-1,jmax+1,kmax+1) =   s(imin,jmax,kmax)
+         rho(imin-1,jmax+1,kmax+1) = rho(imin,jmax,kmax)
+      end if
+      if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
+           s(imax+1,jmax+1,kmax+1) =   s(imax,jmax,kmax)
+         rho(imax+1,jmax+1,kmax+1) = rho(imax,jmax,kmax)
+      end if
+c
+c     correct the 12 edges
+c
+      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
+        do k = kmin,kmax
+            s(imin-1,jmin-1,k) =   s(imin,jmin,k)
+          rho(imin-1,jmin-1,k) = rho(imin,jmin,k)
+        end do
+      end if
+      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
+        do k = kmin,kmax
+            s(imax+1,jmin-1,k) =   s(imax,jmin,k)
+          rho(imax+1,jmin-1,k) = rho(imax,jmin,k)
+        end do
+      end if
+      if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
+        do k = kmin,kmax
+            s(imin-1,jmax+1,k) =   s(imin,jmax,k)
+          rho(imin-1,jmax+1,k) = rho(imin,jmax,k)
+        end do
+      end if
+      if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
+        do k = kmin,kmax
+            s(imax+1,jmax+1,k) =   s(imax,jmax,k)
+          rho(imax+1,jmax+1,k) = rho(imax,jmax,k)
+        end do
+      end if
+      if (bc(1,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
+        do j = jmin,jmax
+            s(imin-1,j,kmin-1) =   s(imin,j,kmin)
+          rho(imin-1,j,kmin-1) = rho(imin,j,kmin)
+        end do
+      end if
+      if (bc(1,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
+        do j = jmin,jmax
+            s(imax+1,j,kmin-1) =   s(imax,j,kmin)
+          rho(imax+1,j,kmin-1) = rho(imax,j,kmin)
+        end do
+      end if
+      if (bc(1,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
+        do j = jmin,jmax
+            s(imin-1,j,kmax+1) =   s(imin,j,kmax)
+          rho(imin-1,j,kmax+1) = rho(imin,j,kmax)
+        end do
+      end if
+      if (bc(1,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
+        do j = jmin,jmax
+            s(imax+1,j,kmax+1) =   s(imax,j,kmax)
+          rho(imax+1,j,kmax+1) = rho(imax,j,kmax)
+        end do
+      end if
+      if (bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
+        do i = imin,imax
+            s(i,jmin-1,kmin-1) =   s(i,jmin,kmin)
+          rho(i,jmin-1,kmin-1) = rho(i,jmin,kmin)
+        end do
+      end if
+      if (bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
+        do i = imin,imax
+            s(i,jmax+1,kmin-1) =   s(i,jmax,kmin)
+          rho(i,jmax+1,kmin-1) = rho(i,jmax,kmin)
+        end do
+      end if
+      if (bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
+        do i = imin,imax
+            s(i,jmin-1,kmax+1) =   s(i,jmin,kmax)
+          rho(i,jmin-1,kmax+1) = rho(i,jmin,kmax)
+        end do
+      end if
+      if (bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
+        do i = imin,imax
+            s(i,jmax+1,kmax+1) =   s(i,jmax,kmax)
+          rho(i,jmax+1,kmax+1) = rho(i,jmax,kmax)
+        end do
+      end if
+
+      do k = kmin-1, kmax+1
+      do j = jmin-1, jmax+1
+         do i = imin-1, imax+1
+            s(i,j,k) = s(i,j,k) / rho(i,j,k)
+         end do
+      end do
+      end do
+c
+c     ::::: compute min/max a slab at a time
+c     ::::: compute min and max of neighbors on kmin-1 slab
+c
+      km = 0
+      kk = 1
+      kp = 2
+
+      k = kmin-1
+      do j = jmin, jmax         
+         do i = imin, imax
+            smin(i,j,km) = min(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k),
+     &           s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k),
+     &           s(i-1,j+1,k),s(i,j+1,k),s(i+1,j+1,k))
+            smax(i,j,km) = max(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k),
+     &           s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k),
+     &           s(i-1,j+1,k),s(i,j+1,k),s(i+1,j+1,k)) 
+         end do         
+      end do
+c
+c     ::::: compute min and max of neighbors on kmin slab
+c
+      k = kmin
+      do j = jmin, jmax         
+         do i = imin, imax
+            smin(i,j,kk) = min(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k),
+     &           s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k),
+     &           s(i-1,j+1,k),s(i,j+1,k),s(i+1,j+1,k))
+            smax(i,j,kk) = max(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k),
+     &           s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k),
+     &           s(i-1,j+1,k),s(i,j+1,k),s(i+1,j+1,k))
+         end do         
+      end do
+
+      do k = kmin, kmax
+c
+c        ::::: compute min and max of neighbors on k+1 slab
+c
+         do j = jmin, jmax     
+            do i = imin, imax   
+               smin(i,j,kp) = min(s(i-1,j-1,k+1),s(i,j-1,k+1),s(i+1,j-1,k+1),
+     &              s(i-1,j  ,k+1),s(i,j  ,k+1),s(i+1,j  ,k+1),
+     &              s(i-1,j+1,k+1),s(i,j+1,k+1),s(i+1,j+1,k+1))
+               smax(i,j,kp) = max(s(i-1,j-1,k+1),s(i,j-1,k+1),s(i+1,j-1,k+1),
+     &              s(i-1,j  ,k+1),s(i,j  ,k+1),s(i+1,j  ,k+1),
+     &              s(i-1,j+1,k+1),s(i,j+1,k+1),s(i+1,j+1,k+1))
+c
+c        ::::: compute min/max of cell
+c
+               smn = min(smin(i,j,km),smin(i,j,kk),smin(i,j,kp))
+               smx = max(smax(i,j,km),smax(i,j,kk),smax(i,j,kp))
+               sn(i,j,k) = max(sn(i,j,k)/rhon(i,j,k),smn) * rhon(i,j,k)
+               sn(i,j,k) = min(sn(i,j,k)/rhon(i,j,k),smx) * rhon(i,j,k)
+               
+            end do
+         end do
+c
+c        ::::: roll indices for next slab
+c
+         km = mod(km+1,3)
+         kk = mod(kk+1,3)
+         kp = mod(kp+1,3)
+      end do
+
+      do k = kmin-1, kmax+1
+      do j = jmin-1, jmax+1
+         do i = imin-1, imax+1
+            s(i,j,k) = s(i,j,k) * rho(i,j,k)
+         end do
+      end do
       end do
 
       end

@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.14 2003-02-18 21:35:03 almgren Exp $
+** $Id: GODUNOV_F.H,v 1.15 2004-09-10 17:32:19 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -15,7 +15,8 @@
 #    define FORT_ESTATE_BDS         estatebds
 #    define FORT_ADV_FORCING        advforcing
 #    define FORT_SYNC_ADV_FORCING   syncadvforcing
-#    define FORT_SCALMINMAX         scalminmax
+#    define FORT_CONSSCALMINMAX     consscalminmax
+#    define FORT_CONVSCALMINMAX     convscalminmax
 #    define FORT_UPDATE_TF          updatetf
 #    define FORT_CORRECT_TF         correcttf
 #    define FORT_UPDATE_AOFS_TF     updateaofstf
@@ -36,7 +37,8 @@
 #    define FORT_ESTATE_BDS         ESTATEBDS
 #    define FORT_ADV_FORCING        ADVFORCING    
 #    define FORT_SYNC_ADV_FORCING   SYNCADVFORCING   
-#    define FORT_SCALMINMAX         SCALMINMAX
+#    define FORT_CONSSCALMINMAX     CONSSCALMINMAX
+#    define FORT_CONVSCALMINMAX     CONVSCALMINMAX
 #    define FORT_UPDATE_TF          UPDATETF 
 #    define FORT_CORRECT_TF         CORRECTTF 
 #    define FORT_UPDATE_AOFS_TF     UPDATEAOFSTF 
@@ -56,7 +58,8 @@
 #    define FORT_ESTATE_BDS         estatebds
 #    define FORT_ADV_FORCING        advforcing
 #    define FORT_SYNC_ADV_FORCING   syncadvforcing
-#    define FORT_SCALMINMAX         scalminmax
+#    define FORT_CONSSCALMINMAX     consscalminmax
+#    define FORT_CONVSCALMINMAX     convscalminmax
 #    define FORT_UPDATE_TF          updatetf
 #    define FORT_CORRECT_TF         correcttf
 #    define FORT_UPDATE_AOFS_TF     updateaofstf
@@ -76,7 +79,8 @@
 #    define FORT_ESTATE_BDS         estatebds_
 #    define FORT_ADV_FORCING        advforcing_
 #    define FORT_SYNC_ADV_FORCING   syncadvforcing_
-#    define FORT_SCALMINMAX         scalminmax_
+#    define FORT_CONSSCALMINMAX     consscalminmax_
+#    define FORT_CONVSCALMINMAX     convscalminmax_
 #    define FORT_UPDATE_TF          updatetf_
 #    define FORT_CORRECT_TF         correcttf_
 #    define FORT_UPDATE_AOFS_TF     updateaofstf_
@@ -244,13 +248,22 @@ extern "C"
 			      const Real* vol_dat, ARLIM_P(v_lo),ARLIM_P(v_hi),
 			      const int* lo, const int* hi, int* iconserv);
    
-   void FORT_SCALMINMAX (const Real* Sold_dat, ARLIM_P(slo), ARLIM_P(shi),
-			 const Real* Snew_dat, ARLIM_P(slo), ARLIM_P(shi),
+   void FORT_CONVSCALMINMAX (const Real* Sold_dat, const Real* Snew_dat, 
+                             ARLIM_P(slo), ARLIM_P(shi),
 #if (BL_SPACEDIM == 3)
-			 const Real* smin_dat, const Real* smax_dat,
-			 ARLIM_P(lo),ARLIM_P(hi),
+			     const Real* smin_dat, const Real* smax_dat,
+			     ARLIM_P(lo),ARLIM_P(hi),
 #endif
-			 const int* lo, const int* hi, const int* bc);
+			     const int* lo, const int* hi, const int* bc);
+
+   void FORT_CONSSCALMINMAX (const Real* Sold_dat, const Real* Snew_dat, 
+			     const Real*  Rho_dat, const Real* Rhon_dat,
+                             ARLIM_P(slo), ARLIM_P(shi),
+#if (BL_SPACEDIM == 3)
+			     const Real* smin_dat, const Real* smax_dat,
+			     ARLIM_P(lo),ARLIM_P(hi),
+#endif
+			     const int* lo, const int* hi, const int* bc);
    
    void  FORT_UPDATE_TF(const Real* SOdat, ARLIM_P(slo), ARLIM_P(shi), 
 			const Real* SNdat, ARLIM_P(slo), ARLIM_P(shi),

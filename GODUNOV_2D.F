@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.39 2003-06-05 20:57:43 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.40 2004-09-10 17:32:19 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -60,8 +60,8 @@ c
          do i = lo(1), hi(1)
             u = max(u,abs(vel(i,j,1)))
             v = max(v,abs(vel(i,j,2)))
-c            tforce1 = max(tforce1,abs(tforces(i,j,1)/rho(i,j)))
-c            tforce2 = max(tforce2,abs(tforces(i,j,2)/rho(i,j)))
+             tforce1 = max(tforce1,abs(tforces(i,j,1)/rho(i,j)))
+             tforce2 = max(tforce2,abs(tforces(i,j,2)/rho(i,j)))
          end do
       end do
 
@@ -1631,10 +1631,10 @@ c
 
       end
 
-      subroutine FORT_SCALMINMAX(s,DIMS(s),sn,DIMS(sn),
-     &     lo,hi,bc)
+      subroutine FORT_CONVSCALMINMAX(s,DIMS(s),sn,DIMS(sn),
+     &                               lo,hi,bc)
 c
-c     correct an advected field for under/over shoots
+c     correct an convectively-advected field for under/over shoots
 c
       integer DIMDEC(s)
       integer DIMDEC(sn)
@@ -1690,6 +1690,90 @@ c
      &           s(i-1,j+1),s(i  ,j+1),s(i+1,j+1))
             sn(i,j) = max(sn(i,j),smin)
             sn(i,j) = min(sn(i,j),smax)
+         end do
+      end do
+
+      end
+
+      subroutine FORT_CONSSCALMINMAX(s,sn,rho,rhon,DIMS(s),lo,hi,bc)
+c
+c     correct an conservatively-advected field for under/over shoots
+c
+      integer DIMDEC(s)
+      integer lo(SDIM), hi(SDIM)
+      integer bc(SDIM,2)
+      REAL_T    s(DIMV(s))
+      REAL_T   sn(DIMV(s))
+      REAL_T  rho(DIMV(s))
+      REAL_T rhon(DIMV(s))
+      integer  i, j, imin, imax, jmin, jmax
+      REAL_T   slo_min,smd_min,shi_min
+      REAL_T   slo_max,smd_max,shi_max
+      REAL_T   smin, smax
+
+      imin = lo(1)
+      imax = hi(1)
+      jmin = lo(2)
+      jmax = hi(2)
+c
+c     set corner values for s
+c
+c     :: corner ilo, jlo
+c
+      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
+           s(imin-1,jmin-1) =   s(imin,jmin)
+         rho(imin-1,jmin-1) = rho(imin,jmin)
+      end if
+c
+c     :: corner ihi, jlo
+c
+      if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
+           s(imax+1,jmin-1) =   s(imax,jmin)
+         rho(imax+1,jmin-1) = rho(imax,jmin)
+      end if
+c
+c     :: corner ilo, jhi
+c
+      if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
+           s(imin-1,jmax+1) =   s(imin,jmax)
+         rho(imin-1,jmax+1) = rho(imin,jmax)
+      end if
+c
+c     :: corner ihi, jhi
+c
+      if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
+           s(imax+1,jmax+1) =   s(imax,jmax)
+         rho(imax+1,jmax+1) = rho(imax,jmax)
+      end if
+c
+c     compute extrema of s
+c
+      do j = jmin-1, jmax+1         
+         do i = imin-1, imax+1
+            s(i,j) = s(i,j) / rho(i,j)
+         end do
+      end do
+
+      do j = jmin, jmax         
+         do i = imin, imax
+            slo_min = min(s(i-1,j-1),s(i  ,j-1),s(i+1,j-1))
+            smd_min = min(s(i-1,j  ),s(i  ,j  ),s(i+1,j  ))
+            shi_min = min(s(i-1,j+1),s(i  ,j+1),s(i+1,j+1))
+            smin = min(slo_min,smd_min,shi_min)
+
+            slo_max = max(s(i-1,j-1),s(i  ,j-1),s(i+1,j-1))
+            smd_max = max(s(i-1,j  ),s(i  ,j  ),s(i+1,j  ))
+            shi_max = max(s(i-1,j+1),s(i  ,j+1),s(i+1,j+1))
+            smax = max(slo_max,smd_max,shi_max)
+
+            sn(i,j) = max(sn(i,j)/rhon(i,j),smin) * rhon(i,j)
+            sn(i,j) = min(sn(i,j)/rhon(i,j),smax) * rhon(i,j)
+         end do
+      end do
+
+      do j = jmin-1, jmax+1         
+         do i = imin-1, imax+1
+            s(i,j) = s(i,j) * rho(i,j)
          end do
       end do
 

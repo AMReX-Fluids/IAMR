@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.34 2003-02-19 21:43:52 almgren Exp $
+// $Id: Godunov.cpp,v 1.35 2004-09-10 17:32:19 almgren Exp $
 //
 
 //
@@ -944,22 +944,23 @@ Godunov::ComputeSyncAofs (const Box& grd,
 }    
 
 //
-// Correct a scalar for under-over shoots.
+// Correct a conservatively-advected scalar for under-over shoots.
 //
-
 void
-Godunov::ScalMinMax (FArrayBox& Sold,
-                     FArrayBox& Snew,
-                     int        ind, 
-                     const int* bc,
-                     const Box& grd)
+Godunov::ConservativeScalMinMax (FArrayBox& Sold,
+                                 FArrayBox& Snew,
+                                 int        ind, 
+                                 const int* bc,
+                                 const Box& grd)
 {
-    const int *slo       = Sold.loVect();
-    const int *shi       = Sold.hiVect();
-    const int *lo        = grd.loVect();
-    const int *hi        = grd.hiVect();
-    const Real *Sold_dat = Sold.dataPtr(ind);
-    const Real *Snew_dat = Snew.dataPtr(ind);
+    const int *slo        = Sold.loVect();
+    const int *shi        = Sold.hiVect();
+    const int *lo         = grd.loVect();
+    const int *hi         = grd.hiVect();
+    const Real *Sold_dat  = Sold.dataPtr(ind);
+    const Real *Snew_dat  = Snew.dataPtr(ind);
+    const Real *Rho_dat   = Sold.dataPtr(BL_SPACEDIM);
+    const Real *Rhon_dat  = Snew.dataPtr(BL_SPACEDIM);
 
 #if (BL_SPACEDIM == 3)
     Box flatbox(grd);
@@ -971,13 +972,49 @@ Godunov::ScalMinMax (FArrayBox& Sold,
     const Real *smax_dat = smax.dataPtr(); 
 #endif
 
-    FORT_SCALMINMAX (Sold_dat, ARLIM(slo), ARLIM(shi),
-                     Snew_dat, ARLIM(slo), ARLIM(shi),
+    FORT_CONSSCALMINMAX (Sold_dat, Snew_dat, Rho_dat, Rhon_dat,
+                         ARLIM(slo), ARLIM(shi),
 #if (BL_SPACEDIM == 3)
-                     smin_dat, smax_dat,
-                     ARLIM(lo), ARLIM(hi),
+                         smin_dat, smax_dat,
+                         ARLIM(lo), ARLIM(hi),
 #endif
-                     lo, hi, bc);
+                         lo, hi, bc);
+}
+
+//
+// Correct a convectively-advected scalar for under-over shoots.
+//
+void
+Godunov::ConvectiveScalMinMax (FArrayBox& Sold,
+                               FArrayBox& Snew,
+                               int        ind, 
+                               const int* bc,
+                               const Box& grd)
+{
+    const int *slo        = Sold.loVect();
+    const int *shi        = Sold.hiVect();
+    const int *lo         = grd.loVect();
+    const int *hi         = grd.hiVect();
+    const Real *Sold_dat  = Sold.dataPtr(ind);
+    const Real *Snew_dat  = Snew.dataPtr(ind);
+
+#if (BL_SPACEDIM == 3)
+    Box flatbox(grd);
+    int zlen = flatbox.length()[BL_SPACEDIM-1];
+    flatbox.growHi(BL_SPACEDIM-1,3-zlen);
+    FArrayBox smin(flatbox,1);
+    FArrayBox smax(flatbox,1);
+    const Real *smin_dat = smin.dataPtr();
+    const Real *smax_dat = smax.dataPtr(); 
+#endif
+
+    FORT_CONVSCALMINMAX (Sold_dat, Snew_dat, 
+                         ARLIM(slo), ARLIM(shi),
+#if (BL_SPACEDIM == 3)
+                         smin_dat, smax_dat,
+                         ARLIM(lo), ARLIM(hi),
+#endif
+                         lo, hi, bc);
 }
 
 //
