@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.130 1999-04-15 22:17:34 marc Exp $
+// $Id: NavierStokes.cpp,v 1.131 1999-04-21 22:23:01 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -963,10 +963,12 @@ NavierStokes::init ()
     for (int lev = 0; lev < level; lev++)
         dt_new[lev] = dt_amr[lev];
 
+    // Guess new dt from new data (interpolated from coarser level)
     const Real dt = dt_new[level-1]/Real(parent->MaxRefRatio(level-1));
     dt_new[level] = dt;
     parent->setDtLevel(dt_new);
 
+    // Compute dt based on old data
     NavierStokes& old       = getLevel(level-1);
     const Real    cur_time  = old.state[State_Type].curTime();
     const Real    prev_time = old.state[State_Type].prevTime();
@@ -1333,7 +1335,7 @@ NavierStokes::level_projector (Real dt,
            sync_bc[i]       = sync_bc_array[i].dataPtr();
        }
 
-       int crse_dt_ratio  = (level > 0) ? parent->MaxRefRatio(level-1) : -1;
+       int crse_dt_ratio  = (level > 0) ? parent->nCycle(level) : -1;
        const Real cur_pres_time = state[Press_Type].curTime();
 
        projector->level_project(level,time,dt,cur_pres_time,geom,
@@ -2631,7 +2633,7 @@ NavierStokes::estTimeStep ()
             int ratio = 1;
             for (int lev = 1; lev <= level; lev++)
             {
-                ratio *= parent->MaxRefRatio(lev-1);
+                ratio *= parent->nCycle(lev);
             }
             factor = 1.0/double(ratio);
         }
@@ -3614,8 +3616,8 @@ NavierStokes::level_sync ()
 {
     const Real*   dx            = geom.CellSize();
     IntVect       ratio         = parent->refRatio(level);
-    int           crse_dt_ratio = parent->MaxRefRatio(level);
     const int     finest_level  = parent->finestLevel();
+    int           crse_dt_ratio = parent->nCycle(level);
     Real          dt            = parent->dtLevel(level);
     const Real    half_time     = state[State_Type].prevTime() + 0.5*dt;
     MultiFab&     pres          = get_new_data(Press_Type);
