@@ -146,10 +146,10 @@ RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update
 #
 # e.g.
 #
-#StationData.vars  = density xmom ymom zmom
+#StationData.vars  = x_velocity density pressure
 #StationData.coord = 0.1 0.1 0.1
 #StationData.coord = 0.11 0.21 0.3
 #StationData.coord = 0.5 0.5 0.5
-#StationData.coord = 1.23 1.23 1.23
-#StationData.coord = 0.23 1.53 2.83
-#StationData.coord = 2.34 2.34 2.34
+#StationData.coord = 0.23 0.23 1.23
+#StationData.coord = 0.23 0.53 1.83
+#StationData.coord = 0.34 0.34 1.34
