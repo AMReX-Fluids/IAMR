@@ -2,7 +2,7 @@
 #define _SYNCREG_F_H_
 
 /*
-** $Id: SYNCREG_F.H,v 1.8 1999-08-01 15:12:38 almgren Exp $
+** $Id: SYNCREG_F.H,v 1.9 1999-08-03 07:15:00 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -29,7 +29,7 @@ extern "C"
     void FORT_SRCRSEREG (const Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                          Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                          const int* lo, const int* hi,
-                         const int* dir, const int* ratio, const int* is_per);
+                         const int* dir, const int* ratio);
 
     void FORT_MAKEMASK (Real* mask , ARLIM_P(mlo), ARLIM_P(mhi),
                         Real* cells, ARLIM_P(clo), ARLIM_P(chi));

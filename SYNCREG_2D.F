@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_2D.F,v 1.14 1999-08-01 15:12:38 almgren Exp $
+c $Id: SYNCREG_2D.F,v 1.15 1999-08-03 07:15:00 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -28,7 +28,7 @@ c ::: ratio      => refinement ratio
 c ::: -----------------------------------------------------------
 
       subroutine FORT_SRCRSEREG(fine,DIMS(fine),crse,DIMS(crse),lo,hi,dir,
-     &                          ratios,is_per)
+     &                          ratios)
 
       integer    DIMDEC(fine)
       integer    DIMDEC(crse)
@@ -40,8 +40,9 @@ c ::: -----------------------------------------------------------
       REAL_T     crse(DIMV(crse))
       
       integer    i, j, ic, jc
+      integer    m, n
       integer    ratiox, ratioy
-      integer    is_per
+      REAL_T     coeff, denom
 
 c     NOTE: the reason that the coefficients add up to 1/ratio and NOT to 1
 c           is because the divergences and DGphi were computed using the
@@ -62,64 +63,32 @@ c        ::::: sum in j direction
          ic = lo(1)
          i = ratiox*ic
 
+         do jc = lo(2), hi(2)
+           crse(ic,jc) = zero
+         end do
+
          j = ratioy*lo(2)
          fine(i,j) = half*fine(i,j)
 
          j = ratioy*hi(2)
          fine(i,j) = half*fine(i,j)
 
-         if (ratioy .eq. 1) then
-            do jc = lo(2), hi(2)
-               crse(ic,jc) = fine(i,jc) / ratiox
-            end do
-
-         else if (ratioy .eq. 2) then
-
-            do jc = lo(2), hi(2)
-               j = ratioy*jc
-               crse(ic,jc) =   half* fine(i,j) 
-     &                     + fourth*(fine(i,j+1)+fine(i,j-1))
-               crse(ic,jc) = crse(ic,jc) / ratiox
-            end do
-
-         else if (ratioy .eq. 4) then
-
-            do jc = lo(2), hi(2)
-               j = ratioy*jc
-               crse(ic,jc) =  four* fine(i,j) 
-     &                     + three*(fine(i,j+1)+fine(i,j-1))
-     &                     +   two*(fine(i,j+2)+fine(i,j-2))
-     &                     +       (fine(i,j+3)+fine(i,j-3))
-               crse(ic,jc) = crse(ic,jc) / (sixteen * ratiox)
-            end do
-         else 
-           print *,'BOGUS RATIOY IN SRCRSEREG ',ratioy
-           stop
-         end if
+         denom = one / (ratiox * ratioy**2)
+         do m = 0, (ratioy-1)
+           coeff = (ratioy - m) * denom
+           if (m .eq. 0) coeff = half * coeff
+           do jc = lo(2), hi(2)
+             j = ratioy*jc
+             crse(ic,jc) = crse(ic,jc) + coeff *
+     $            ( fine(i,j+m) + fine(i,j-m) )
+           end do
+         end do
 
          j = ratioy*lo(2)
          fine(i,j) = two*fine(i,j)
 
          j = ratioy*hi(2)
          fine(i,j) = two*fine(i,j)
-
-         if (is_per .eq. 1) then
-            if (ratiox .eq. 2) then
-              do jc = lo(2)+1, hi(2)-1
-                j = ratioy*jc
-                crse(ic,jc) =   crse(ic,jc) + 
-     &              (fine(i+1,j)+fine(i-1,j)) / (four*ratioy)
-              end do
-            else if (ratiox .eq. 4) then
-              do jc = lo(2)+1, hi(2)-1
-                j = ratioy*jc
-                crse(ic,jc) =  crse(ic,jc) + 
-     &                      ( three*(fine(i+1,j)+fine(i-1,j))
-     &                      +   two*(fine(i+2,j)+fine(i-2,j))
-     &                      +       (fine(i+3,j)+fine(i-3,j)) ) / (sixteen*ratioy)
-              end do
-            endif
-         endif
 
       else
 
@@ -127,65 +96,32 @@ c        ::::: sum in i direction
          jc = lo(2)
          j = ratioy*jc
 
+         do ic = lo(1), hi(1)
+           crse(ic,jc) = zero
+         end do
+
          i = ratiox*lo(1)
          fine(i,j) = half*fine(i,j)
 
          i = ratiox*hi(1)
          fine(i,j) = half*fine(i,j)
 
-         if (ratiox .eq. 1) then
-
-            do ic = lo(1), hi(1)
-               crse(ic,jc) = fine(ic,j) / ratiox
-            end do
-
-         else if (ratiox .eq. 2) then
-
-            do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc) =   half* fine(i,j) 
-     &                     + fourth*(fine(i+1,j)+fine(i-1,j))
-               crse(ic,jc) = crse(ic,jc) / ratioy
-            end do
-
-         else if (ratiox .eq. 4) then
-
-            do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc) =  four* fine(i,j) 
-     &                     + three*(fine(i+1,j)+fine(i-1,j))
-     &                     +   two*(fine(i+2,j)+fine(i-2,j))
-     &                     +       (fine(i+3,j)+fine(i-3,j))
-               crse(ic,jc) = crse(ic,jc) / (sixteen * ratioy)
-            end do
-         else 
-           print *,'BOGUS RATIOX IN SRCRSEREG ',ratiox
-           stop
-         end if
+         denom = one / (ratioy * ratiox**2)
+         do m = 0, (ratiox-1)
+           coeff = (ratiox - m) * denom
+           if (m .eq. 0) coeff = half * coeff
+           do ic = lo(1), hi(1)
+             i = ratiox*ic
+             crse(ic,jc) = crse(ic,jc) + coeff *
+     $            ( fine(i+m,j) + fine(i-m,j) )
+           end do
+         end do
 
          i = ratiox*lo(1)
          fine(i,j) = two*fine(i,j)
 
          i = ratiox*hi(1)
          fine(i,j) = two*fine(i,j)
-
-         if (is_per .eq. 1) then
-            if (ratioy .eq. 2) then
-              do ic = lo(1)+1, hi(1)-1
-                 i = ratiox*ic
-                 crse(ic,jc) =   crse(ic,jc) + 
-     &               (fine(i,j+1)+fine(i,j-1)) / (four*ratiox)
-              end do
-            else if (ratioy .eq. 4) then
-              do ic = lo(1)+1, hi(1)-1
-                 i = ratiox*ic
-                 crse(ic,jc) =  crse(ic,jc) + 
-     &                       ( three*(fine(i,j+1)+fine(i,j-1))
-     &                       +   two*(fine(i,j+2)+fine(i,j-2))
-     &                       +       (fine(i,j+3)+fine(i,j-3)) ) / (sixteen*ratiox)
-              end do
-            endif
-         endif
 
       end if
       

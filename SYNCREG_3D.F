@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.11 1999-08-01 15:12:38 almgren Exp $
+c $Id: SYNCREG_3D.F,v 1.12 1999-08-03 07:15:00 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -28,20 +28,23 @@ c ::: ratios     => IntVect refinement ratio
 c ::: -----------------------------------------------------------
 
       subroutine FORT_SRCRSEREG(fine,DIMS(fine),crse,DIMS(crse),lo,hi,dir,
-     &                          ratios, is_per)
+     &                          ratios)
 
       integer    DIMDEC(fine)
       integer    DIMDEC(crse)
       integer    lo(SDIM)
       integer    hi(SDIM)
-      integer    dir, is_per
+      integer    dir
       integer    ratios(0:SDIM-1)
       REAL_T     fine(DIMV(fine))
       REAL_T     crse(DIMV(crse))
       
       integer    i, j, k, ic, jc, kc
+      integer    m, n
       integer    ratiox, ratioy, ratioz
       REAL_T     one28, fourthirds, threefourths
+      REAL_T     coeff, denom
+      REAL_T     temp
 
       one28        = eight * sixteen
       fourthirds   = four * third
@@ -68,6 +71,12 @@ c        ::::: sum in j and k directions
          ic = lo(1)
          i = ratiox*ic
 
+         do kc = lo(3), hi(3)
+           do jc = lo(2), hi(2)
+             crse(ic,jc,kc) = zero
+           end do
+         end do
+
          j = ratioy*lo(2)
          do k = fine_l3, fine_h3
            fine(i,j,k) = half*fine(i,j,k)
@@ -104,161 +113,23 @@ c        ::::: sum in j and k directions
          k = ratioz*hi(3)
          fine(i,j,k) = fourthirds*fine(i,j,k)
 
-         if (ratioy .eq. 1 .and. ratioz .eq. 1) then
-
-           do kc = lo(3), hi(3)
-             do jc = lo(2), hi(2)
-               crse(ic,jc,kc) = fine(i,jc,kc) / ratiox
-            end do
-           end do
-
-         else if (ratioy .eq. 1 .and. ratioz .eq. 2) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do jc = lo(2), hi(2)
-               j = ratioy*jc
-               crse(ic,jc,kc) =   half* fine(i,j,k)
-     &                        + fourth*(fine(i,j,k+1)+fine(i,j,k-1))
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-            end do
-           end do
-
-         else if (ratioy .eq. 1 .and. ratioz .eq. 4) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do jc = lo(2), hi(2)
-               j = ratioy*jc
-               crse(ic,jc,kc) = (four* fine(i,j,k)
-     &                        + three*(fine(i,j,k+1)+fine(i,j,k-1))
-     &                        +   two*(fine(i,j,k+2)+fine(i,j,k-2))
-     &                        +       (fine(i,j,k+3)+fine(i,j,k-3)))/sixteen
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-            end do
-           end do
-
-         else if (ratioy .eq. 2 .and. ratioz .eq. 1) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do jc = lo(2), hi(2)
-               j = ratioy*jc
-               crse(ic,jc,kc) =   half* fine(i,j  ,k)
-     &                        + fourth*(fine(i,j+1,k)+fine(i,j-1,k))
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-            end do
-           end do
-
-         else if (ratioy .eq. 4 .and. ratioz .eq. 1) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do jc = lo(2), hi(2)
-               j = ratioy*jc
-               crse(ic,jc,kc) = (four* fine(i,j,k)
-     &                        + three*(fine(i,j+1,k)+fine(i,j-1,k))
-     &                        +   two*(fine(i,j+2,k)+fine(i,j-2,k))
-     &                        +       (fine(i,j+3,k)+fine(i,j-3,k)))/sixteen
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-            end do
-           end do
-
-         else if (ratioy .eq. 2 .and. ratioz .eq. 2) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do jc = lo(2), hi(2)
-               j = ratioy*jc
-               crse(ic,jc,kc) = half*half*fine(i,j,k) 
-     &              + half  *fourth*(fine(i,j+1,k  ) + fine(i,j-1,k  )
-     &              +                fine(i,j  ,k+1) + fine(i,j  ,k-1))
-     &              + fourth*fourth*(fine(i,j+1,k+1) + fine(i,j-1,k+1)
-     &              +                fine(i,j+1,k-1) + fine(i,j-1,k-1)) 
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-            end do
-           end do
-
-         else if (ratioy .eq. 2 .and. ratioz .eq. 4) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do jc = lo(2), hi(2)
-               j = ratioy*jc
-               crse(ic,jc,kc) = ( four*four*fine(i,j,k)  +
-     &              four*three*(fine(i,j,k+1) + fine(i,j,k-1)) +
-     &              four*two  *(fine(i,j,k+2) + fine(i,j,k-2)) +
-     &              four      *(fine(i,j,k+3) + fine(i,j,k-3)) +
-     &              two *four *(fine(i,j+1,k) + fine(i,j-1,k)) +
-     &              two *three*(fine(i,j+1,k+1) + fine(i,j-1,k+1)+
-     &                          fine(i,j+1,k-1) + fine(i,j-1,k-1)) +
-     &              two *  two*(fine(i,j+1,k+2) + fine(i,j-1,k+2)+
-     &                          fine(i,j+1,k-2) + fine(i,j-1,k-2)) +
-     &              two       *(fine(i,j+1,k+3) + fine(i,j-1,k+3)+
-     &                          fine(i,j+1,k-3) + fine(i,j-1,k-3)) ) / one28
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
+         denom = one / (ratiox * ratioy**2 * ratioz**2)
+         do n = 0, (ratioz-1)
+           do m = 0, (ratioy-1)
+             coeff = (ratioy - m) * (ratioz - n) * denom
+             if (n .eq. 0) coeff = half * coeff
+             if (m .eq. 0) coeff = half * coeff
+             do kc = lo(3), hi(3)
+               k = ratioz*kc
+               do jc = lo(2), hi(2)
+                 j = ratioy*jc
+                 crse(ic,jc,kc) = crse(ic,jc,kc) + coeff * 
+     $               ( fine(i,j+m,k+n) + fine(i,j-m,k+n)
+     $                +fine(i,j+m,k-n) + fine(i,j-m,k-n) )
+               end do
              end do
            end do
-
-         else if (ratioy .eq. 4 .and. ratioz .eq. 2) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do jc = lo(2), hi(2)
-               j = ratioy*jc
-               crse(ic,jc,kc) = ( four*four*fine(i,j,k)  +
-     &              four*three*(fine(i,j+1,k) + fine(i,j-1,k)) +
-     &              four*two  *(fine(i,j+2,k) + fine(i,j-2,k)) +
-     &              four      *(fine(i,j+3,k) + fine(i,j-3,k)) +
-     &              two *four *(fine(i,j,k+1) + fine(i,j,k-1)) +
-     &              two *three*(fine(i,j+1,k+1) + fine(i,j+1,k-1)+
-     &                          fine(i,j-1,k+1) + fine(i,j-1,k-1)) +
-     &              two *  two*(fine(i,j+2,k+1) + fine(i,j+2,k-1)+
-     &                          fine(i,j-2,k+1) + fine(i,j-2,k-1)) +
-     &              two       *(fine(i,j+3,k+1) + fine(i,j+3,k-1)+
-     &                          fine(i,j-3,k+1) + fine(i,j-3,k-1)) ) / one28
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-             end do
-           end do
-
-         else if (ratioy .eq. 4 .and. ratioz .eq. 4) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do jc = lo(2), hi(2)
-               j = ratioy*jc
-               crse(ic,jc,kc) = four*four*fine(i,j,k)  +
-     &              four *three*(fine(i,j+1,k  ) + fine(i,j-1,k  )+
-     &                           fine(i,j  ,k+1) + fine(i,j  ,k-1)) +
-     &              four *two  *(fine(i,j+2,k  ) + fine(i,j-2,k  )+
-     &                           fine(i,j  ,k+2) + fine(i,j  ,k-2)) +
-     &              four       *(fine(i,j+3,k  ) + fine(i,j-3,k  )+
-     &                           fine(i,j  ,k+3) + fine(i,j  ,k-3)) +
-     &              three*three*(fine(i,j+1,k+1) + fine(i,j-1,k+1)+
-     &                           fine(i,j+1,k-1) + fine(i,j-1,k-1)) +
-     &              three*two  *(fine(i,j+1,k+2) + fine(i,j-1,k+2)+
-     &                           fine(i,j+1,k-2) + fine(i,j-1,k-2)+
-     &                           fine(i,j+2,k+1) + fine(i,j-2,k+1)+
-     &                           fine(i,j+2,k-1) + fine(i,j-2,k-1)) +
-     &              three      *(fine(i,j+1,k+3) + fine(i,j-1,k+3)+
-     &                           fine(i,j+1,k-3) + fine(i,j-1,k-3)+
-     &                           fine(i,j+3,k+1) + fine(i,j-3,k+1)+
-     &                           fine(i,j+3,k-1) + fine(i,j-3,k-1)) +
-     &              two  *two  *(fine(i,j+2,k+2) + fine(i,j-2,k+2)+
-     &                           fine(i,j+2,k-2) + fine(i,j-2,k-2)) +
-     &              two        *(fine(i,j+2,k+3) + fine(i,j-2,k+3)+
-     &                           fine(i,j+2,k-3) + fine(i,j-2,k-3)+
-     &                           fine(i,j+3,k+2) + fine(i,j-3,k+2)+
-     &                           fine(i,j+3,k-2) + fine(i,j-3,k-2)) +
-     &                          (fine(i,j+3,k+3) + fine(i,j-3,k+3)+
-     &                           fine(i,j+3,k-3) + fine(i,j-3,k-3)) 
-               crse(ic,jc,kc) = crse(ic,jc,kc) / (sixteen*sixteen*ratiox)
-             end do
-           end do
-         else
-           print *,'BOGUS RATIOY AND/OR RATIOZ IN SRCRSEREG ',ratioy,ratioz
-           stop
-         end if
+         end do
 
          j = ratioy*lo(2)
          do k = fine_l3, fine_h3
@@ -303,204 +174,65 @@ c
          jc = lo(2)
          j = ratioy*jc
 
+         do kc = lo(3), hi(3)
+           do ic = lo(1), hi(1)
+             crse(ic,jc,kc) = zero
+           end do
+         end do
+
          i = ratiox*lo(1)
-c        do k = ratioz*lo(3)+1,ratioz*hi(3)-1
          do k = fine_l3, fine_h3
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          i = ratiox*hi(1)
-c        do k = ratioz*lo(3)+1,ratioz*hi(3)-1
          do k = fine_l3, fine_h3
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          k = ratioz*lo(3)
-c        do i = ratiox*lo(1)+1,ratiox*hi(1)-1
          do i = fine_l1, fine_h1
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          k = ratioz*hi(3)
-c        do i = ratiox*lo(1)+1,ratiox*hi(1)-1
          do i = fine_l1, fine_h1
            fine(i,j,k) = half*fine(i,j,k)
          enddo
 
          i = ratiox*lo(1)
          k = ratioz*lo(3)
-c        fine(i,j,k) = third*fine(i,j,k)
          fine(i,j,k) = four*third*fine(i,j,k)
 
          i = ratiox*hi(1)
          k = ratioz*lo(3)
-c        fine(i,j,k) = third*fine(i,j,k)
          fine(i,j,k) = four*third*fine(i,j,k)
 
          i = ratiox*lo(1)
          k = ratioz*hi(3)
-c        fine(i,j,k) = third*fine(i,j,k)
          fine(i,j,k) = four*third*fine(i,j,k)
 
          i = ratiox*hi(1)
          k = ratioz*hi(3)
-c        fine(i,j,k) = third*fine(i,j,k)
          fine(i,j,k) = four*third*fine(i,j,k)
 
-         if (ratiox .eq. 1 .and. ratioz .eq. 1) then
-
-           do kc = lo(3), hi(3)
-             do ic = lo(1), hi(1)
-               crse(ic,jc,kc) = fine(ic,j,kc) / ratioy
-            end do
-           end do
-
-         else if (ratiox .eq. 1 .and. ratioz .eq. 2) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) =   half* fine(i,j,k)
-     &                        + fourth*(fine(i,j,k+1)+fine(i,j,k-1))
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy
-            end do
-           end do
-
-         else if (ratiox .eq. 1 .and. ratioz .eq. 4) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) = (four* fine(i,j,k)
-     &                        + three*(fine(i,j,k+1)+fine(i,j,k-1))
-     &                        +   two*(fine(i,j,k+2)+fine(i,j,k-2))
-     &                        +       (fine(i,j,k+3)+fine(i,j,k-3)))/sixteen
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy
-            end do
-           end do
-
-         else if (ratiox .eq. 2 .and. ratioz .eq. 1) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) =   half* fine(i  ,j,k)
-     &                        + fourth*(fine(i+1,j,k)+fine(i-1,j,k))
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy
-            end do
-           end do
-
-         else if (ratiox .eq. 4 .and. ratioz .eq. 1) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) = (four* fine(i,j,k)
-     &                        + three*(fine(i+1,j,k)+fine(i-1,j,k))
-     &                        +   two*(fine(i+2,j,k)+fine(i-2,j,k))
-     &                        +       (fine(i+3,j,k)+fine(i-3,j,k)))/sixteen
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy
-            end do
-           end do
-
-         else if (ratiox .eq. 2 .and. ratioz .eq. 2) then
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) = half*half*fine(i,j,k) 
-     &              + half  *fourth*(fine(i+1,j,k  ) + fine(i-1,j,k  )
-     &                              +fine(i  ,j,k+1) + fine(i  ,j,k-1))
-     &              + fourth*fourth*(fine(i+1,j,k+1) + fine(i-1,j,k+1)
-     &                              +fine(i+1,j,k-1) + fine(i-1,j,k-1)) 
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy
-            end do
-           end do
-
-         else if (ratiox .eq. 2 .and. ratioz .eq. 4) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) = ( four*four*fine(i,j,k)  +
-     &              four*three*(fine(i  ,j,k+1) + fine(i  ,j,k-1)) +
-     &              four*two  *(fine(i  ,j,k+2) + fine(i  ,j,k-2)) +
-     &              four      *(fine(i  ,j,k+3) + fine(i  ,j,k-3)) +
-     &              two *four *(fine(i+1,j,k  ) + fine(i-1,j,k  )) +
-     &              two *three*(fine(i+1,j,k+1) + fine(i-1,j,k+1)+
-     &                          fine(i+1,j,k-1) + fine(i-1,j,k-1)) +
-     &              two *  two*(fine(i+1,j,k+2) + fine(i-1,j,k+2)+
-     &                          fine(i+1,j,k-2) + fine(i-1,j,k-2)) +
-     &              two       *(fine(i+1,j,k+3) + fine(i-1,j,k+3)+
-     &                          fine(i+1,j,k-3) + fine(i-1,j,k-3)) ) / one28
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy 
+         denom = one / (ratioy * ratiox**2 * ratioz**2)
+         do n = 0, (ratioz-1)
+           do m = 0, (ratiox-1)
+             coeff = (ratiox - m) * (ratioz - n) * denom
+             if (n .eq. 0) coeff = half * coeff
+             if (m .eq. 0) coeff = half * coeff
+             do kc = lo(3), hi(3)
+               k = ratioz*kc
+               do ic = lo(1), hi(1)
+                 i = ratiox*ic
+                 crse(ic,jc,kc) = crse(ic,jc,kc) + coeff * 
+     $               ( fine(i+m,j,k+n) + fine(i-m,j,k+n)
+     $                +fine(i+m,j,k-n) + fine(i-m,j,k-n) )
+               end do
              end do
            end do
-
-         else if (ratiox .eq. 4 .and. ratioz .eq. 2) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) = ( four*four*fine(i,j,k)  +
-     &              four*three*(fine(i+1,j,k  ) + fine(i-1,j,k  )) +
-     &              four*two  *(fine(i+2,j,k  ) + fine(i-2,j,k    )) +
-     &              four      *(fine(i+3,j,k  ) + fine(i-3,j,k  )) +
-     &              two *four *(fine(i  ,j,k+1) + fine(i  ,j,k-1)) +
-     &              two *three*(fine(i+1,j,k+1) + fine(i+1,j,k-1)+
-     &                          fine(i-1,j,k+1) + fine(i-1,j,k-1)) +
-     &              two *  two*(fine(i+2,j,k+1) + fine(i+2,j,k-1)+
-     &                          fine(i-2,j,k+1) + fine(i-2,j,k-1)) +
-     &              two       *(fine(i+3,j,k+1) + fine(i+3,j,k-1)+
-     &                          fine(i-3,j,k+1) + fine(i-3,j,k-1)) ) / one28
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy 
-             end do
-           end do
-
-         else if (ratiox .eq. 4 .and. ratioz .eq. 4) then
-
-           do kc = lo(3), hi(3)
-             k = ratioz*kc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) = four*four*fine(i,j,k)  +
-     &              four *three*(fine(i+1,j,k  ) + fine(i-1,j,k  )+
-     &                           fine(i  ,j,k+1) + fine(i  ,j,k-1)) +
-     &              four *two  *(fine(i+2,j,k  ) + fine(i-2,j,k  )+
-     &                           fine(i  ,j,k+2) + fine(i  ,j,k-2)) +
-     &              four       *(fine(i+3,j,k  ) + fine(i-3,j,k  )+
-     &                           fine(i  ,j,k+3) + fine(i  ,j,k-3)) +
-     &              three*three*(fine(i+1,j,k+1) + fine(i-1,j,k+1)+
-     &                           fine(i+1,j,k-1) + fine(i-1,j,k-1)) +
-     &              three*two  *(fine(i+1,j,k+2) + fine(i-1,j,k+2)+
-     &                           fine(i+1,j,k-2) + fine(i-1,j,k-2)+
-     &                           fine(i+2,j,k+1) + fine(i-2,j,k+1)+
-     &                           fine(i+2,j,k-1) + fine(i-2,j,k-1)) +
-     &              three      *(fine(i+1,j,k+3) + fine(i-1,j,k+3)+
-     &                           fine(i+1,j,k-3) + fine(i-1,j,k-3)+
-     &                           fine(i+3,j,k+1) + fine(i-3,j,k+1)+
-     &                           fine(i+3,j,k-1) + fine(i-3,j,k-1)) +
-     &              two  *two  *(fine(i+2,j,k+2) + fine(i-2,j,k+2)+
-     &                           fine(i+2,j,k-2) + fine(i-2,j,k-2)) +
-     &              two        *(fine(i+2,j,k+3) + fine(i-2,j,k+3)+
-     &                           fine(i+2,j,k-3) + fine(i-2,j,k-3)+
-     &                           fine(i+3,j,k+2) + fine(i-3,j,k+2)+
-     &                           fine(i+3,j,k-2) + fine(i-3,j,k-2)) +
-     &                          (fine(i+3,j,k+3) + fine(i-3,j,k+3)+
-     &                           fine(i+3,j,k-3) + fine(i-3,j,k-3)) 
-               crse(ic,jc,kc) = crse(ic,jc,kc) / (sixteen*sixteen*ratioy)
-             end do
-           end do
-         else
-           print *,'BOGUS RATIOX AND/OR RATIOZ IN SRCRSEREG ',ratiox,ratioz
-           stop
-         end if
+         end do
 
          i = ratiox*lo(1)
          do k = fine_l3, fine_h3
@@ -544,6 +276,12 @@ c        ::::: sum in i and j directions
          kc = lo(3)
          k = ratioz*kc
 
+         do jc = lo(2), hi(2)
+           do ic = lo(1), hi(1)
+             crse(ic,jc,kc) = zero
+           end do
+         end do
+
          i = ratiox*lo(1)
          do j = fine_l2, fine_h2
            fine(i,j,k) = half*fine(i,j,k)
@@ -580,160 +318,23 @@ c        ::::: sum in i and j directions
          j = ratioy*hi(2)
          fine(i,j,k) = fourthirds*fine(i,j,k)
 
-         if (ratiox .eq. 1 .and. ratioy .eq. 1) then
-
-           do jc = lo(2), hi(2)
-             do ic = lo(1), hi(1)
-               crse(ic,jc,kc) = fine(ic,jc,k) / ratioz
-            end do
-           end do
-
-         else if (ratiox .eq. 1 .and. ratioy .eq. 2) then
-
-           do jc = lo(2), hi(2)
-             j = ratioy*jc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) =   half* fine(i,j,k)
-     &                        + fourth*(fine(i,j+1,k)+fine(i,j-1,k))
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz
-            end do
-           end do
-
-         else if (ratiox .eq. 1 .and. ratioy .eq. 4) then
-
-           do jc = lo(2), hi(2)
-             j = ratioy*jc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) = (four* fine(i,j,k)
-     &                        + three*(fine(i,j+1,k)+fine(i,j-1,k))
-     &                        +   two*(fine(i,j+2,k)+fine(i,j-2,k))
-     &                        +       (fine(i,j+3,k)+fine(i,j-3,k)))/sixteen
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz
-            end do
-           end do
-
-         else if (ratiox .eq. 2 .and. ratioy .eq. 1) then
-
-           do jc = lo(2), hi(2)
-             j = ratioy*jc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) =   half* fine(i  ,j,k)
-     &                        + fourth*(fine(i+1,j,k)+fine(i-1,j,k))
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz
-            end do
-           end do
-
-         else if (ratiox .eq. 4 .and. ratioy .eq. 1) then
-
-           do jc = lo(2), hi(2)
-             j = ratioy*jc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) = (four* fine(i,j,k)
-     &                        + three*(fine(i+1,j,k)+fine(i-1,j,k))
-     &                        +   two*(fine(i+2,j,k)+fine(i-2,j,k))
-     &                        +       (fine(i+3,j,k)+fine(i-3,j,k)))/sixteen
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz
-            end do
-           end do
-
-         else if (ratiox .eq. 2 .and. ratioy .eq. 2) then
-           do jc = lo(2), hi(2)
-             j = ratioy*jc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) = half*half*fine(i,j,k) 
-     &              + half  *fourth*(fine(i+1,j  ,k) + fine(i-1,j  ,k)
-     &                              +fine(i  ,j+1,k) + fine(i  ,j-1,k))
-     &              + fourth*fourth*(fine(i+1,j+1,k) + fine(i-1,j+1,k)
-     &                              +fine(i+1,j-1,k) + fine(i-1,j-1,k)) 
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz
-            end do
-           end do
-
-         else if (ratiox .eq. 2 .and. ratioy .eq. 4) then
-
-           do jc = lo(2), hi(2)
-             j = ratioy*jc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) = ( four*four*fine(i,j,k)  +
-     &              four*three*(fine(i  ,j+1,k) + fine(i  ,j-1,k)) +
-     &              four*two  *(fine(i  ,j+2,k) + fine(i  ,j-2,k)) +
-     &              four      *(fine(i  ,j+3,k) + fine(i  ,j-3,k)) +
-     &              two *four *(fine(i+1,j  ,k) + fine(i-1,j  ,k)) +
-     &              two *three*(fine(i+1,j+1,k) + fine(i-1,j+1,k)+
-     &                          fine(i+1,j-1,k) + fine(i-1,j-1,k)) +
-     &              two *  two*(fine(i+1,j+2,k) + fine(i-1,j+2,k)+
-     &                          fine(i+1,j-2,k) + fine(i-1,j-2,k)) +
-     &              two       *(fine(i+1,j+3,k) + fine(i-1,j+3,k)+
-     &                          fine(i+1,j-3,k) + fine(i-1,j-3,k)) ) / one28
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz 
+         denom = one / (ratioz * ratiox**2 * ratioy**2)
+         do n = 0, (ratioy-1)
+           do m = 0, (ratiox-1)
+             coeff = (ratiox - m) * (ratioy - n) * denom
+             if (n .eq. 0) coeff = half * coeff
+             if (m .eq. 0) coeff = half * coeff
+             do jc = lo(2), hi(2)
+               j = ratioy*jc
+               do ic = lo(1), hi(1)
+                 i = ratiox*ic
+                 crse(ic,jc,kc) = crse(ic,jc,kc) + coeff * 
+     $               ( fine(i+m,j+n,k) + fine(i-m,j+n,k)
+     $                +fine(i+m,j-n,k) + fine(i-m,j-n,k) )
+               end do
              end do
            end do
-
-         else if (ratiox .eq. 4 .and. ratioy .eq. 2) then
-
-           do jc = lo(2), hi(2)
-             j = ratioy*jc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) = ( four*four*fine(i,j,k)  +
-     &              four*three*(fine(i+1,j  ,k) + fine(i-1,j  ,k)) +
-     &              four*two  *(fine(i+2,j  ,k) + fine(i-2,j  ,k)) +
-     &              four      *(fine(i+3,j  ,k) + fine(i-3,j  ,k)) +
-     &              two *four *(fine(i  ,j+1,k) + fine(i  ,j-1,k)) +
-     &              two *three*(fine(i+1,j+1,k) + fine(i+1,j-1,k)+
-     &                          fine(i-1,j+1,k) + fine(i-1,j-1,k)) +
-     &              two *  two*(fine(i+2,j+1,k) + fine(i+2,j-1,k)+
-     &                          fine(i-2,j+1,k) + fine(i-2,j-1,k)) +
-     &              two       *(fine(i+3,j+1,k) + fine(i+3,j-1,k)+
-     &                          fine(i-3,j+1,k) + fine(i-3,j-1,k)) ) / one28
-               crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz 
-             end do
-           end do
-
-         else if (ratiox .eq. 4 .and. ratioy .eq. 4) then
-
-           do jc = lo(2), hi(2)
-             j = ratioy*jc
-             do ic = lo(1), hi(1)
-               i = ratiox*ic
-               crse(ic,jc,kc) = four*four*fine(i,j,k)  +
-     &              four *three*(fine(i+1,j  ,k) + fine(i-1,j  ,k)+
-     &                           fine(i  ,j+1,k) + fine(i  ,j-1,k)) +
-     &              four *two  *(fine(i+2,j  ,k) + fine(i-2,j  ,k)+
-     &                           fine(i  ,j+2,k) + fine(i  ,j-2,k)) +
-     &              four       *(fine(i+3,j  ,k) + fine(i-3,j  ,k)+
-     &                           fine(i  ,j+3,k) + fine(i  ,j-3,k)) +
-     &              three*three*(fine(i+1,j+1,k) + fine(i-1,j+1,k)+
-     &                           fine(i+1,j-1,k) + fine(i-1,j-1,k)) +
-     &              three*two  *(fine(i+1,j+2,k) + fine(i-1,j+2,k)+
-     &                           fine(i+1,j-2,k) + fine(i-1,j-2,k)+
-     &                           fine(i+2,j+1,k) + fine(i-2,j+1,k)+
-     &                           fine(i+2,j-1,k) + fine(i-2,j-1,k)) +
-     &              three      *(fine(i+1,j+3,k) + fine(i-1,j+3,k)+
-     &                           fine(i+1,j-3,k) + fine(i-1,j-3,k)+
-     &                           fine(i+3,j+1,k) + fine(i-3,j+1,k)+
-     &                           fine(i+3,j-1,k) + fine(i-3,j-1,k)) +
-     &              two  *two  *(fine(i+2,j+2,k) + fine(i-2,j+2,k)+
-     &                           fine(i+2,j-2,k) + fine(i-2,j-2,k)) +
-     &              two        *(fine(i+2,j+3,k) + fine(i-2,j+3,k)+
-     &                           fine(i+2,j-3,k) + fine(i-2,j-3,k)+
-     &                           fine(i+3,j+2,k) + fine(i-3,j+2,k)+
-     &                           fine(i+3,j-2,k) + fine(i-3,j-2,k)) +
-     &                          (fine(i+3,j+3,k) + fine(i-3,j+3,k)+
-     &                           fine(i+3,j-3,k) + fine(i-3,j-3,k)) 
-               crse(ic,jc,kc) = crse(ic,jc,kc) / (sixteen*sixteen*ratioz)
-             end do
-           end do
-         else
-           print *,'BOGUS RATIOX AND/OR RATIOY IN SRCRSEREG ',ratiox,ratioy
-           stop
-         end if
+         end do
 
          i = ratiox*lo(1)
          do j = fine_l2, fine_h2

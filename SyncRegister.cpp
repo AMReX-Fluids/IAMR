@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.61 1999-08-01 15:12:37 almgren Exp $
+// $Id: SyncRegister.cpp,v 1.62 1999-08-03 07:15:01 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -675,44 +675,6 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
     Box fine_node_domain = ::surroundingNodes(fine_geom.Domain());
     Box crse_node_domain = ::surroundingNodes(crse_geom.Domain());
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        if (!fine_geom.isPeriodic(dir))
-        {
-            //
-            // Any RHS point on the physical bndry must here be halved
-            // for any boundary but outflow or periodic.  
-            //
-            Box domlo(fine_node_domain), domhi(fine_node_domain);
-
-            domlo.setRange(dir,fine_node_domain.smallEnd(dir),1);
-            domhi.setRange(dir,fine_node_domain.bigEnd(dir),1);
-
-            for (MultiFabIterator mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
-            {
-                if (domlo.intersects(mfi.validbox()))
-                {
-                  Box blo = mfi.validbox() & domlo;
-                  if (blo.ok()) 
-                    mfi().mult(0.5,blo,0,1);
-                }
-
-                if (domhi.intersects(mfi.validbox())) 
-                {
-                  Box bhi = mfi.validbox() & domhi;
-                  if (bhi.ok()) 
-                    mfi().mult(0.5,bhi,0,1);
-                }
-
-            }
-        }
-    }
-
-    if (fine_geom.isAnyPeriodic())
-      fine_geom.FillPeriodicBoundary(*Sync_resid_fine,false,false);
-
-    int is_per;
-
     //
     // Coarsen edge values.
     //
@@ -723,40 +685,23 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
-
             FArrayBox& cfablo = cloMF[dir][mfi.index()];
             const Box& cboxlo = cfablo.box();
             const int* clo = cboxlo.loVect();
             const int* chi = cboxlo.hiVect();
 
-            if (fine_geom.isPeriodic(dir) && 
-                clo[dir] == crse_node_domain.smallEnd(dir)) 
-            {
-              is_per = 1;
-            } else {
-              is_per = 0;
-            }
-
             FORT_SRCRSEREG(mfi().dataPtr(),ARLIM(resid_lo),ARLIM(resid_hi),
                            cfablo.dataPtr(),ARLIM(clo),ARLIM(chi),
-                           clo,chi,&dir,ratio.getVect(),&is_per);
+                           clo,chi,&dir,ratio.getVect());
 
             FArrayBox& cfabhi = chiMF[dir][mfi.index()];
             const Box& cboxhi = cfabhi.box();
             clo = cboxhi.loVect();
             chi = cboxhi.hiVect();
 
-            if (fine_geom.isPeriodic(dir) && 
-                clo[dir] == crse_node_domain.bigEnd(dir)) 
-            {
-              is_per = 1;
-            } else {
-              is_per = 0;
-            }
-
             FORT_SRCRSEREG(mfi().dataPtr(),ARLIM(resid_lo),ARLIM(resid_hi),
                            cfabhi.dataPtr(),ARLIM(clo),ARLIM(chi),
-                           clo,chi,&dir,ratio.getVect(),&is_per);
+                           clo,chi,&dir,ratio.getVect());
         }
     }
 
@@ -765,7 +710,7 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
         if (!crse_geom.isPeriodic(dir))
         {
             //
-            // Any RHS point on the physical bndry must here be doubled
+            // Now points on the physical bndry must be doubled
             // for any boundary but outflow or periodic
             //
             Box domlo(crse_node_domain), domhi(crse_node_domain);
@@ -804,6 +749,8 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
             bndry[face()].plusFrom(cloMF[dir],0,0,0,1);
             bndry[face()].plusFrom(chiMF[dir],0,0,0,1);
         }
+        incrementPeriodic(crse_geom, crse_node_domain, cloMF[dir]);
+        incrementPeriodic(crse_geom, crse_node_domain, chiMF[dir]);
     }
 
     WriteNorms(*this,"SyncRegister::FineAdd(E)");
