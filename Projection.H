@@ -4,7 +4,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.28 1999-07-01 23:56:25 propp Exp $
+// $Id: Projection.H,v 1.29 1999-07-24 00:07:01 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -93,7 +93,6 @@ public:
                       SyncRegister*   rhs_sync_reg,
                       SyncRegister*   crsr_sync_reg, 
                       const BoxArray& sync_boxes,
-                      int**           bc,
                       const Geometry& geom,
                       const Real*     dx,
                       Real            dt_crse,
@@ -113,14 +112,12 @@ public:
                         MultiFab&       phi,
                         SyncRegister*   rhs_sync_reg,
                         SyncRegister*   crsr_sync_reg,
-                        int**           bc,
                         const Real*     dx,
                         Real            dt_crse,
                         IntVect&        ratio,
                         int             crse_dt_ratio,
                         const Geometry& fine_geom,
-                        const Geometry& crse_geom,
-                        int             have_divu);
+                        const Geometry& crse_geom);
     //
     // This projects an initial vorticity field to define a velocity field.
     //
@@ -281,7 +278,7 @@ protected:
                                               int        c_lev,
                                               Real       start_time,
                                               Real       dt);
-  
+
     void putDown(MultiFab** phi, MultiFab& phi_fine_strip,
 		 int c_lev, int f_lev, const Orientation& outFace,
 		 int ncStripWidth);

@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_2D.F,v 1.12 1999-07-02 18:56:13 almgren Exp $
+c $Id: SYNCREG_2D.F,v 1.13 1999-07-24 00:07:03 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -12,258 +12,6 @@ c
 #include "ArrayLim.H"
 
 #define SDIM 2
-
-c ::: -----------------------------------------------------------
-c ::: This routine will compute a node centered divergence
-c ::: from a cell centered field
-c :::
-c ::: NOTE: node (i,j) is in lower left corner of cell (i,j)      
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: u          => cell centered velocity field
-c ::: DIMS(u)    => index limits for u
-c ::: divu      <=  node centered divergence
-c ::: DIMS(divu) => index limits for divu
-c ::: lo,hi      => node centered subregion of divu to define
-c ::: dx         => cell sizes      
-c ::: mult       => scalar multiplicative factor      
-c ::: -----------------------------------------------------------
-
-      subroutine FORT_SRDIVU(u,DIMS(u),divu,DIMS(divu),
-     $                       lo,hi,dx,mult,is_rz)
-
-      integer    DIMDEC(u)
-      integer    DIMDEC(divu)
-      integer    lo(SDIM), hi(SDIM)
-      REAL_T     dx(SDIM), mult
-      REAL_T     u(DIMV(u),SDIM)
-      REAL_T     divu(DIMV(divu))
-      integer    is_rz
-      
-      integer    i, j, lenx, leny
-      REAL_T     ux, vy
-      REAL_T     rp, rm, vext
-      REAL_T     rpinv, rminv
-
-c     NOTE: the factor of mult here accounts for the fact that one
-c           takes ratio time steps on the fine grid for every one
-c           timestep on the coarse grid.  mult = 1/ratio. 
-      
-      lenx = hi(1)-lo(1)+1
-      leny = hi(2)-lo(2)+1
-
-      if (lenx .ge. leny) then
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               ux = half*(u(i,j,1)-u(i-1,j,1)+u(i,j-1,1)-u(i-1,j-1,1))/dx(1)
-               vy = half*(u(i,j,2)-u(i,j-1,2)+u(i-1,j,2)-u(i-1,j-1,2))/dx(2)
-               divu(i,j) = mult*(ux+vy)
-            end do
-         end do
-      else 
-         do i = lo(1), hi(1)
-            do j = lo(2), hi(2)
-               ux = half*(u(i,j,1)-u(i-1,j,1)+u(i,j-1,1)-u(i-1,j-1,1))/dx(1)
-               vy = half*(u(i,j,2)-u(i,j-1,2)+u(i-1,j,2)-u(i-1,j-1,2))/dx(2)
-               divu(i,j) = mult*(ux+vy)
-            end do
-         end do
-      end if
-
-#if BL_PRVERSION==5
-      if (is_rz .eq. 1 .and. lo(1) .eq. 0) then
-        i = 0
-        do j = lo(2), hi(2)
-          vy = half*(u(i,j,2)-u(i,j-1,2)+u(i-1,j,2)-u(i-1,j-1,2))/dx(2)
-          divu(i,j) = divu(i,j) - half*mult*vy
-        end do
-      end if
-
-#elif BL_PRVERSION==9
-      if (is_rz .eq. 1) then
-
-       if (lenx .ge. leny) then
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               rm = twelve*(dfloat(i)-half)*dx(1)
-               rp = twelve*(dfloat(i)+half)*dx(1)
-               rminv = dx(1) / (rm * dx(2))
-               rpinv = dx(1) / (rp * dx(2))
-               vext = (u(i,j-1,2)-u(i  ,j  ,2))*rpinv + 
-     $                (u(i-1,j,2)-u(i-1,j-1,2))*rminv
-               divu(i,j) = divu(i,j) + mult*vext
-            end do
-         end do
-       else 
-         do i = lo(1), hi(1)
-            do j = lo(2), hi(2)
-               rm = twelve*(dfloat(i)-half)*dx(1)
-               rp = twelve*(dfloat(i)+half)*dx(1)
-               rminv = dx(1) / (rm * dx(2))
-               rpinv = dx(1) / (rp * dx(2))
-               vext = (u(i,j-1,2)-u(i  ,j  ,2))*rpinv + 
-     $                (u(i-1,j,2)-u(i-1,j-1,2))*rminv
-               divu(i,j) = divu(i,j) + mult*vext
-            end do
-         end do
-       end if
-
-      end if
-#endif
-      
-      end
-
-c ::: -----------------------------------------------------------
-c ::: This routine will compute one version of DIV(sigma*GRAD(phi))
-c ::: from phi and sigma.
-c ::: This is the non-PERP version.
-c :::
-c ::: INPUTS/OUTPUTS:
-c ::: phi        => node-centered data
-c ::: DIMS(phi)  => index limits for phi
-c ::: sigma      => cell-centered coeficient array
-c ::: DIMS(sigma)=> index limits for sigma      
-c ::: divgp     <=  node-centered divergence of gradient
-c ::: DIMS(dgphi)=> index limits for divgp
-c ::: lo,hi      => node-centered subregion of divgp to define
-c ::: dx         => cell sizes      
-c ::: mult       => scalar multiplicative factor      
-c ::: -----------------------------------------------------------
-
-      subroutine FORT_SRDGPHI(phi,DIMS(phi),sigma,DIMS(sigma),
-     $                        divgp,DIMS(divgp),lo,hi,dx,mult,is_rz)
-
-      integer    DIMDEC(phi)
-      integer    DIMDEC(sigma)
-      integer    DIMDEC(divgp)
-      integer    lo(SDIM), hi(SDIM)
-      REAL_T     dx(SDIM), mult
-      REAL_T     phi(DIMV(phi))
-      REAL_T     sigma(DIMV(sigma))
-      REAL_T     divgp(DIMV(divgp))
-      integer    is_rz
-      
-      integer    i, j
-      REAL_T     p1, p2, p3, p4
-      REAL_T     denomx, denomy
-      REAL_T     rp, rm, pext
-
-c     NOTE: the factor of mult here accounts for the fact that one
-c           takes ratio time steps on the fine grid for every one
-c           timestep on the coarse grid.  mult = 1/ratio. 
-      
-#if BL_PRVERSION==9
-c
-c     FOR NINE-POINT STENCIL
-      denomx = -mult/(six*dx(1)**2)
-      denomy = -mult/(six*dx(2)**2)
-
-      if (dx(1) .eq. dx(2)) then
-
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               p1 = sigma(i-1,j-1)*( two*phi(i-1,j-1) +      phi(i  ,j-1)
-     &              +    phi(i-1,j  ) - four*phi(i  ,j  ))
-               p2 = sigma(i-1,j  )*(two*phi(i-1,j+1) +      phi(i  ,j+1)
-     &              +    phi(i-1,j)   - four*phi(i  ,j  ))
-               p3 = sigma(i  ,j-1)*(two*phi(i+1,j-1) +      phi(i  ,j-1)
-     &              +    phi(i+1,j)   - four*phi(i  ,j  ))
-               p4 = sigma(i  ,j  )*(two*phi(i+1,j+1) +      phi(i  ,j+1)
-     &              +    phi(i+1,j)   - four*phi(i  ,j  ))
-               divgp(i,j) = denomx*(p1+p2+p3+p4)
-
-            end do
-         end do
-         
-      else
-
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-
-               p1 = sigma(i-1,j-1)* (
-     $              denomx * (     phi(i-1,j-1)     -     phi(i  ,j-1)
-     $              +two*phi(i-1,j  )     - two*phi(i  ,j  ) ) +
-     $              denomy * (     phi(i-1,j-1)     -     phi(i-1,j  )
-     $              +two*phi(i  ,j-1)     - two*phi(i  ,j  ) ) )
-
-               p2 = sigma(i-1,j  )* (
-     $              denomx * (     phi(i-1,j+1)     -     phi(i  ,j+1)
-     $              +two*phi(i-1,j  )     - two*phi(i  ,j  ) ) +
-     $              denomy * (     phi(i-1,j+1)     -     phi(i-1,j  )
-     $              +two*phi(i  ,j+1)     - two*phi(i  ,j  ) ) )
-
-               p3 = sigma(i  ,j-1)* (
-     $              denomx * (     phi(i+1,j-1)     -     phi(i  ,j-1)
-     $              +two*phi(i+1,j  )     - two*phi(i  ,j  ) ) +
-     $              denomy * (     phi(i+1,j-1)     -     phi(i+1,j  )
-     $              +two*phi(i  ,j-1)     - two*phi(i  ,j  ) ) )
-
-               p4 = sigma(i  ,j  )* (
-     $              denomx * (     phi(i+1,j+1)     -     phi(i  ,j+1)
-     $              +two*phi(i+1,j  )     - two*phi(i  ,j  ) ) +
-     $              denomy * (     phi(i+1,j+1)     -     phi(i+1,j  )
-     $              +two*phi(i  ,j+1)     - two*phi(i  ,j  ) ) )
-
-               divgp(i,j) = p1+p2+p3+p4
-
-            end do
-         end do
-      end if
-
-c     extra term added for cylindrical coordinates
-      if (is_rz .eq. 1) then
-
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               rp = dx(1) / (two * (dfloat(i)+half)*dx(1))
-               rm = dx(1) / (two * (dfloat(i)-half)*dx(1))
-
-               pext = ((sigma(i-1,j-1) * (phi(i,j-1) - phi(i,j)) +
-     $              sigma(i-1,j  ) * (phi(i,j+1) - phi(i,j))) * rm -
-     $              (sigma(i  ,j-1) * (phi(i,j-1) - phi(i,j)) +
-     $              sigma(i  ,j  ) * (phi(i,j+1) - phi(i,j))) * rp)
-
-               divgp(i,j) = divgp(i,j) + denomy*pext
-            end do
-         end do
-
-      end if
-#elif BL_PRVERSION==5
-c
-c     FOR FIVE-POINT STENCIL
-c
-      denomx = -mult/(two*dx(1)**2)
-      denomy = -mult/(two*dx(2)**2)
-
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            p1 = (sigma(i-1,j-1) + sigma(i-1,j)) * 
-     $           (  phi(i-1,j  ) -   phi(i  ,j))
-            p2 = (sigma(i  ,j-1) + sigma(i  ,j)) * 
-     $           (  phi(i+1,j  ) -   phi(i  ,j))
-            p3 = (sigma(i-1,j-1) + sigma(i,j-1)) * 
-     $           (  phi(i  ,j-1) -   phi(i,j  ))
-            p4 = (sigma(i-1,j  ) + sigma(i,j  )) * 
-     $           (  phi(i  ,j+1) -   phi(i,j  ))
-            divgp(i,j) = denomx*(p1+p2)+ denomy*(p3+p4)
-         end do
-      end do
-
-      if (is_rz .eq. 1 .and. lo(1) .eq. 0) then
-        i = 0
-        do j = lo(2), hi(2)
-          p3 = (sigma(i-1,j-1) + sigma(i,j-1)) * 
-     $         (  phi(i  ,j-1) -   phi(i,j  ))
-          p4 = (sigma(i-1,j  ) + sigma(i,j  )) * 
-     $         (  phi(i  ,j+1) -   phi(i,j  ))
-          divgp(i,j) = divgp(i,j) - half*denomy*(p3+p4)
-        end do
-      end if
-#else
-#error "Unknown PRVERSION setting"
-#endif
-      
-      end
 
 c ::: -----------------------------------------------------------
 c ::: coarsen fine grid node centered data along edge of node
@@ -302,25 +50,39 @@ c           by dx_fine/dx_coarse = 1/ratio
       
       ratiox = ratios(0)
       ratioy = ratios(1)
-      
+
+c     NOTE: we halve fine on the corners since the corners are
+c           counted in both directions; later we double them to restore
+c           them to their previous values.
+
       if (dir .eq. 0) then
 
 c        ::::: sum in j direction
          ic = lo(1)
          i = ratiox*ic
 
+         j = ratioy*lo(2)
+         fine(i,j) = half*fine(i,j)
+
+         j = ratioy*hi(2)
+         fine(i,j) = half*fine(i,j)
+
          if (ratioy .eq. 1) then
             do jc = lo(2), hi(2)
                crse(ic,jc) = fine(i,jc) / ratiox
             end do
+
          else if (ratioy .eq. 2) then
+
             do jc = lo(2), hi(2)
                j = ratioy*jc
                crse(ic,jc) =   half* fine(i,j) 
      &                     + fourth*(fine(i,j+1)+fine(i,j-1))
                crse(ic,jc) = crse(ic,jc) / ratiox
             end do
+
          else if (ratioy .eq. 4) then
+
             do jc = lo(2), hi(2)
                j = ratioy*jc
                crse(ic,jc) =  four* fine(i,j) 
@@ -334,24 +96,41 @@ c        ::::: sum in j direction
            stop
          end if
 
+         j = ratioy*lo(2)
+         fine(i,j) = two*fine(i,j)
+
+         j = ratioy*hi(2)
+         fine(i,j) = two*fine(i,j)
+
       else
 
 c        ::::: sum in i direction
          jc = lo(2)
          j = ratioy*jc
 
+         i = ratiox*lo(1)
+         fine(i,j) = half*fine(i,j)
+
+         i = ratiox*hi(1)
+         fine(i,j) = half*fine(i,j)
+
          if (ratiox .eq. 1) then
+
             do ic = lo(1), hi(1)
                crse(ic,jc) = fine(ic,j) / ratiox
             end do
+
          else if (ratiox .eq. 2) then
+
             do ic = lo(1), hi(1)
                i = ratiox*ic
                crse(ic,jc) =   half* fine(i,j) 
      &                     + fourth*(fine(i+1,j)+fine(i-1,j))
                crse(ic,jc) = crse(ic,jc) / ratioy
             end do
+
          else if (ratiox .eq. 4) then
+
             do ic = lo(1), hi(1)
                i = ratiox*ic
                crse(ic,jc) =  four* fine(i,j) 
@@ -364,9 +143,17 @@ c        ::::: sum in i direction
            print *,'BOGUS RATIOX IN SRCRSEREG ',ratiox
            stop
          end if
+
+         i = ratiox*lo(1)
+         fine(i,j) = two*fine(i,j)
+
+         i = ratiox*hi(1)
+         fine(i,j) = two*fine(i,j)
+
       end if
       
       end
+
 
 c ::: -----------------------------------------------------------
 c ::: create mask at nodes using values at surrounding cells
@@ -415,7 +202,7 @@ c ::: -----------------------------------------------------------
 
       do j = ARG_L2(mask), ARG_H2(mask)
         do i = ARG_L1(mask), ARG_H1(mask)
- 
+      
           if (mask(i,j) .gt. 3.5) then
             mask(i,j) = zero
           else

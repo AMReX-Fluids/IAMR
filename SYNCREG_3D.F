@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.7 1999-06-30 22:28:41 almgren Exp $
+c $Id: SYNCREG_3D.F,v 1.8 1999-07-24 00:07:03 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -12,187 +12,6 @@ c
 #include "ArrayLim.H"
 
 #define SDIM 3
-
-c ::: -----------------------------------------------------------
-c ::: This routine will compute a node centered divergence
-c ::: from a cell centered field
-c :::
-c ::: NOTE: node (i,j,k) is in lower left corner of cell (i,j,k)
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: u          => cell centered velocity field
-c ::: DIMS(u)    => index limits for u
-c ::: divu      <=  node centered divergence
-c ::: DIMS(divu) => index limits for divu
-c ::: lo,hi      => node centered subregion of divu to define
-c ::: dx         => cell sizes      
-c ::: mult       => scalar multiplicative factor      
-c ::: -----------------------------------------------------------
-
-      subroutine FORT_SRDIVU(u,DIMS(u),divu,DIMS(divu),lo,hi,dx,mult)
-
-      integer    DIMDEC(u)
-      integer    DIMDEC(divu)
-      integer    lo(SDIM), hi(SDIM)
-      REAL_T     dx(SDIM), mult
-      REAL_T     u(DIMV(u),SDIM)
-      REAL_T     divu(DIMV(divu))
-      
-      integer    i, j, k, lenx, leny, lenz
-      REAL_T     ux, vy, wz
-
-      integer    ii, jj, kk
-
-c     NOTE: the factor of mult here accounts for the fact that one
-c           takes ratio time steps on the fine grid for every one
-c           timestep on the coarse grid.  mult = 1/ratio.
-      
-      lenx = hi(1)-lo(1)+1
-      leny = hi(2)-lo(2)+1
-      lenz = hi(3)-lo(3)+1
-
-      if (lenx .ge. leny .and. lenx .ge. lenz) then
-        do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               ux = fourth/dx(1) * (
-     $          (u(i,j,k,1) + u(i,j,k-1,1) + u(i,j-1,k,1) + u(i,j-1,k-1,1)) -
-     $          (u(i-1,j,k,1) + u(i-1,j,k-1,1) + 
-     $           u(i-1,j-1,k,1) + u(i-1,j-1,k-1,1)) )
-               vy = fourth/dx(2) * (
-     $          (u(i,j,k,2) + u(i,j,k-1,2) + u(i-1,j,k,2) + u(i-1,j,k-1,2)) -
-     $          (u(i,j-1,k,2) + u(i,j-1,k-1,2) + 
-     $           u(i-1,j-1,k,2) + u(i-1,j-1,k-1,2)) )
-               wz = fourth/dx(3) * (
-     $          (u(i,j,k,3) + u(i-1,j,k,3) + u(i,j-1,k,3) + u(i-1,j-1,k,3)) -
-     $          (u(i,j,k-1,3) + u(i-1,j,k-1,3) + 
-     $           u(i,j-1,k-1,3) + u(i-1,j-1,k-1,3)) )
-               divu(i,j,k) = mult*(ux+vy+wz)
-            end do
-           end do
-          end do
-      else if (leny .ge. lenx .and. leny .ge. lenz) then 
-         do k = lo(3), hi(3)
-          do i = lo(1), hi(1)
-            do j = lo(2), hi(2)
-               ux = fourth/dx(1) * (
-     $          (u(i,j,k,1) + u(i,j,k-1,1) + u(i,j-1,k,1) + u(i,j-1,k-1,1)) -
-     $          (u(i-1,j,k,1) + u(i-1,j,k-1,1) + 
-     $           u(i-1,j-1,k,1) + u(i-1,j-1,k-1,1)) )
-               vy = fourth/dx(2) * (
-     $          (u(i,j,k,2) + u(i,j,k-1,2) + u(i-1,j,k,2) + u(i-1,j,k-1,2)) -
-     $          (u(i,j-1,k,2) + u(i,j-1,k-1,2) + 
-     $           u(i-1,j-1,k,2) + u(i-1,j-1,k-1,2)) )
-               wz = fourth/dx(3) * (
-     $          (u(i,j,k,3) + u(i-1,j,k,3) + u(i,j-1,k,3) + u(i-1,j-1,k,3)) -
-     $          (u(i,j,k-1,3) + u(i-1,j,k-1,3) + 
-     $           u(i,j-1,k-1,3) + u(i-1,j-1,k-1,3)) )
-               divu(i,j,k) = mult*(ux+vy+wz)
-            end do
-           end do
-          end do
-      else if (lenz .ge. lenx .and. lenz .ge. leny) then 
-          do j = lo(2), hi(2)
-           do i = lo(1), hi(1)
-            do k = lo(3), hi(3)
-               ux = fourth/dx(1) * (
-     $          (u(i,j,k,1) + u(i,j,k-1,1) + u(i,j-1,k,1) + u(i,j-1,k-1,1)) -
-     $          (u(i-1,j,k,1) + u(i-1,j,k-1,1) + 
-     $           u(i-1,j-1,k,1) + u(i-1,j-1,k-1,1)) )
-               vy = fourth/dx(2) * (
-     $          (u(i,j,k,2) + u(i,j,k-1,2) + u(i-1,j,k,2) + u(i-1,j,k-1,2)) -
-     $          (u(i,j-1,k,2) + u(i,j-1,k-1,2) + 
-     $           u(i-1,j-1,k,2) + u(i-1,j-1,k-1,2)) )
-               wz = fourth/dx(3) * (
-     $          (u(i,j,k,3) + u(i-1,j,k,3) + u(i,j-1,k,3) + u(i-1,j-1,k,3)) -
-     $          (u(i,j,k-1,3) + u(i-1,j,k-1,3) + 
-     $           u(i,j-1,k-1,3) + u(i-1,j-1,k-1,3)) )
-               divu(i,j,k) = mult*(ux+vy+wz)
-            end do
-           end do
-          end do
-      end if
-      
-      end
-
-c ::: -----------------------------------------------------------
-c ::: This routine will compute one version of DIV(sigma*GRAD(phi))
-c ::: from phi and sigma.
-c ::: This is the non-PERP version.
-c :::
-c ::: NOTE: dx == dy == dz is assumed
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: phi        => node centered data
-c ::: DIMS(phi)  => index limits for phi
-c ::: sigma      => cell centered coeficient array
-c ::: DIMS(sigma)=> index limits for sigma      
-c ::: divgp     <=  node centered divergence of gradient
-c ::: DIMS(divgp)=> index limits for divgp
-c ::: lo,hi      => node centered subregion of divgp to define
-c ::: dx         => cell sizes      
-c ::: mult       => scalar multiplicative factor      
-c ::: -----------------------------------------------------------
-
-      subroutine FORT_SRDGPHI(phi,DIMS(phi),sigma,DIMS(sigma),
-     $                        divgp,DIMS(divgp),lo,hi,dx,mult)
-
-      integer    DIMDEC(phi)
-      integer    DIMDEC(sigma)
-      integer    DIMDEC(divgp)
-      integer    lo(SDIM), hi(SDIM)
-      REAL_T     dx(SDIM), mult
-      REAL_T     phi(DIMV(phi))
-      REAL_T     sigma(DIMV(sigma))
-      REAL_T     divgp(DIMV(divgp))
-      
-      integer    i, j, k
-      REAL_T     p1, p2, p3, p4, p5, p6
-      REAL_T     denomx, denomy, denomz
-
-c     NOTE: the factor of mult here accounts for the fact that one
-c           takes ratio time steps on the fine grid for every one
-c           timestep on the coarse grid.  mult = 1/ratio.
-      
-      denomx = -mult/(four*dx(1)**2)
-      denomy = -mult/(four*dx(2)**2)
-      denomz = -mult/(four*dx(3)**2)
-
-      do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-
-            p1 = (sigma(i  ,j  ,k  ) + sigma(i  ,j-1,k  ) +
-     $            sigma(i  ,j  ,k-1) + sigma(i  ,j-1,k-1) ) * 
-     $           (phi(i+1,j  ,k  ) - phi(i,j,k) )
-
-            p2 = (sigma(i-1,j  ,k  ) + sigma(i-1,j-1,k  ) +
-     $            sigma(i-1,j  ,k-1) + sigma(i-1,j-1,k-1) ) * 
-     $           (phi(i-1,j  ,k  ) - phi(i,j,k) )
-
-            p3 = (sigma(i  ,j  ,k  ) + sigma(i-1,j  ,k  ) +
-     $            sigma(i  ,j  ,k-1) + sigma(i-1,j  ,k-1) ) * 
-     $           (phi(i  ,j+1,k  ) - phi(i,j,k) )
-
-            p4 = (sigma(i  ,j-1,k  ) + sigma(i-1,j-1,k  ) +
-     $            sigma(i  ,j-1,k-1) + sigma(i-1,j-1,k-1) ) * 
-     $           (phi(i  ,j-1,k  ) - phi(i,j,k) )
-
-            p5 = (sigma(i  ,j  ,k  ) + sigma(i-1,j  ,k  ) +
-     $            sigma(i  ,j-1,k  ) + sigma(i-1,j-1,k  ) ) * 
-     $           (phi(i  ,j  ,k+1) - phi(i,j,k) )
-
-            p6 = (sigma(i  ,j  ,k-1) + sigma(i-1,j  ,k-1) +
-     $            sigma(i  ,j-1,k-1) + sigma(i-1,j-1,k-1) ) * 
-     $           (phi(i  ,j  ,k-1) - phi(i,j,k) )
-
-            divgp(i,j,k) = denomx*(p1+p2) + denomy*(p3+p4) + denomz*(p5+p6)
-
-        end do
-       end do
-      end do
-
-      end
 
 c ::: -----------------------------------------------------------
 c ::: coarsen fine grid node centered data along edge of node
@@ -235,12 +54,37 @@ c           by dx_fine/dx_coarse = 1/ratio
       ratiox = ratios(0)
       ratioy = ratios(1)
       ratioz = ratios(2)
+
+c     NOTE: we multiply fine by 1/2 on the edges and 1/4 on the corners
+c           since they are counted in all three directions; later we 
+c           multiply by 2 and 4, respectively, to restore them to their
+c           previous values.
       
       if (dir .eq. 0) then
        
 c        ::::: sum in j and k directions
          ic = lo(1)
          i = ratiox*ic
+
+         j = ratioy*lo(2)
+         do k = ratioz*lo(3),ratioz*hi(3)
+           fine(i,j,k) = half*fine(i,j,k)
+         enddo
+
+         j = ratioy*hi(2)
+         do k = ratioz*lo(3),ratioz*hi(3)
+           fine(i,j,k) = half*fine(i,j,k)
+         enddo
+
+         k = ratioz*lo(3)
+         do j = ratioy*lo(2),ratioy*hi(2)
+           fine(i,j,k) = half*fine(i,j,k)
+         enddo
+
+         k = ratioz*hi(3)
+         do j = ratioy*lo(2),ratioy*hi(2)
+           fine(i,j,k) = half*fine(i,j,k)
+         enddo
 
          if (ratioy .eq. 1 .and. ratioz .eq. 1) then
 
@@ -397,6 +241,26 @@ c        ::::: sum in j and k directions
            print *,'BOGUS RATIOY AND/OR RATIOZ IN SRCRSEREG ',ratioy,ratioz
            stop
          end if
+
+         j = ratioy*lo(2)
+         do k = ratioz*lo(3),ratioz*hi(3)
+           fine(i,j,k) = two*fine(i,j,k)
+         enddo
+
+         j = ratioy*hi(2)
+         do k = ratioz*lo(3),ratioz*hi(3)
+           fine(i,j,k) = two*fine(i,j,k)
+         enddo
+
+         k = ratioz*lo(3)
+         do j = ratioy*lo(2),ratioy*hi(2)
+           fine(i,j,k) = two*fine(i,j,k)
+         enddo
+
+         k = ratioz*hi(3)
+         do j = ratioy*lo(2),ratioy*hi(2)
+           fine(i,j,k) = two*fine(i,j,k)
+         enddo
       
       else if (dir .eq. 1) then
 c
@@ -404,6 +268,26 @@ c        ::::: sum in i and k directions
 c
          jc = lo(2)
          j = ratioy*jc
+
+         i = ratiox*lo(1)
+         do k = ratioz*lo(3),ratioz*hi(3)
+           fine(i,j,k) = half*fine(i,j,k)
+         enddo
+
+         i = ratiox*hi(1)
+         do k = ratioz*lo(3),ratioz*hi(3)
+           fine(i,j,k) = half*fine(i,j,k)
+         enddo
+
+         k = ratioz*lo(3)
+         do i = ratiox*lo(1),ratiox*hi(1)
+           fine(i,j,k) = half*fine(i,j,k)
+         enddo
+
+         k = ratioz*hi(3)
+         do i = ratiox*lo(1),ratiox*hi(1)
+           fine(i,j,k) = half*fine(i,j,k)
+         enddo
 
          if (ratiox .eq. 1 .and. ratioz .eq. 1) then
 
@@ -559,11 +443,52 @@ c
            print *,'BOGUS RATIOX AND/OR RATIOZ IN SRCRSEREG ',ratiox,ratioz
            stop
          end if
+
+         i = ratiox*lo(1)
+         do k = ratioz*lo(3),ratioz*hi(3)
+           fine(i,j,k) = two*fine(i,j,k)
+         enddo
+
+         i = ratiox*hi(1)
+         do k = ratioz*lo(3),ratioz*hi(3)
+           fine(i,j,k) = two*fine(i,j,k)
+         enddo
+
+         k = ratioz*lo(3)
+         do i = ratiox*lo(1),ratiox*hi(1)
+           fine(i,j,k) = two*fine(i,j,k)
+         enddo
+
+         k = ratioz*hi(3)
+         do i = ratiox*lo(1),ratiox*hi(1)
+           fine(i,j,k) = two*fine(i,j,k)
+         enddo
+
        else if (dir .eq. 2) then
 
 c        ::::: sum in i and j directions
          kc = lo(3)
          k = ratioz*kc
+
+         i = ratiox*lo(1)
+         do j = ratioy*lo(2),ratioy*hi(2)
+           fine(i,j,k) = half*fine(i,j,k)
+         enddo
+
+         i = ratiox*hi(1)
+         do j = ratioy*lo(2),ratioy*hi(2)
+           fine(i,j,k) = half*fine(i,j,k)
+         enddo
+
+         j = ratioy*lo(2)
+         do i = ratiox*lo(1),ratiox*hi(1)
+           fine(i,j,k) = half*fine(i,j,k)
+         enddo
+
+         j = ratioy*hi(2)
+         do i = ratiox*lo(1),ratiox*hi(1)
+           fine(i,j,k) = half*fine(i,j,k)
+         enddo
 
          if (ratiox .eq. 1 .and. ratioy .eq. 1) then
 
@@ -719,6 +644,27 @@ c        ::::: sum in i and j directions
            print *,'BOGUS RATIOX AND/OR RATIOY IN SRCRSEREG ',ratiox,ratioy
            stop
          end if
+
+         i = ratiox*lo(1)
+         do j = ratioy*lo(2),ratioy*hi(2)
+           fine(i,j,k) = two*fine(i,j,k)
+         enddo
+
+         i = ratiox*hi(1)
+         do j = ratioy*lo(2),ratioy*hi(2)
+           fine(i,j,k) = two*fine(i,j,k)
+         enddo
+
+         j = ratioy*lo(2)
+         do i = ratiox*lo(1),ratiox*hi(1)
+           fine(i,j,k) = two*fine(i,j,k)
+         enddo
+
+         j = ratioy*hi(2)
+         do i = ratiox*lo(1),ratiox*hi(1)
+           fine(i,j,k) = two*fine(i,j,k)
+         enddo
+
       end if
 
       end

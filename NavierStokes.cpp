@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.144 1999-07-16 20:35:12 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.145 1999-07-24 00:07:00 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -188,41 +188,44 @@ NavierStokes::read_params ()
             {
                 if (lo_bc[dir] != Interior)
                 {
-                    cerr << "NavierStokes::variableSetUp:periodic in direction"
+                    cerr << "NavierStokes::variableSetUp:periodic in direction "
                          << dir
                          << " but low BC is not Interior\n";
                     BoxLib::Abort("NavierStokes::read_params()");
                 }
                 if (hi_bc[dir] != Interior)
                 {
-                    cerr << "NavierStokes::variableSetUp:periodic in direction"
+                    cerr << "NavierStokes::variableSetUp:periodic in direction "
                          << dir
                          << " but high BC is not Interior\n";
                     BoxLib::Abort("NavierStokes::read_params()");
                 }
-            }
+            } 
         }
     }
-    else
+
     {
         //
         // Do idiot check.  If not periodic, should be no interior.
         //
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
-            if (lo_bc[dir] == Interior)
+            if (!Geometry::isPeriodic(dir))
             {
-                cerr << "NavierStokes::variableSetUp:interior bc in direction"
-                     << dir
-                     << " but no periodic\n";
-                BoxLib::Abort("NavierStokes::read_params()");
-            }
-            if (hi_bc[dir] == Interior)
-            {
-                cerr << "NavierStokes::variableSetUp:interior bc in direction"
-                     << dir
-                     << " but no periodic\n";
-                BoxLib::Abort("NavierStokes::read_params()");
+              if (lo_bc[dir] == Interior)
+              {
+                  cerr << "NavierStokes::variableSetUp:Interior bc in direction "
+                       << dir
+                       << " but not defined as periodic\n";
+                  BoxLib::Abort("NavierStokes::read_params()");
+              }
+              if (hi_bc[dir] == Interior)
+              {
+                  cerr << "NavierStokes::variableSetUp:Interior bc in direction "
+                       << dir
+                       << " but not defined as periodic\n";
+                  BoxLib::Abort("NavierStokes::read_params()");
+              }
             }
         }
     }
@@ -249,7 +252,7 @@ NavierStokes::read_params ()
     pp.query("do_init_proj",     do_init_proj     );
     pp.query("do_mac_proj",      do_mac_proj      );
     //
-    // This test insures if the user toggles do_sync_proj,
+    // This test ensures that if the user toggles do_sync_proj,
     // the user has knowledge that do_MLsync_proj is meaningless.
     //
     if (do_MLsync_proj && !do_sync_proj && initial_do_sync_proj != do_sync_proj)
@@ -3664,8 +3667,8 @@ NavierStokes::level_sync ()
         //
         projector->MLsyncProject(level,pres,vel, pres_fine,vel_fine,
                                  *rho_half, rho_fine, Vsync,V_corr,phi,
-                                 &rhs_sync_reg,crsr_sync_ptr,sync_bc.dataPtr(),
-                                 dx,dt,ratio,crse_dt_ratio, fine_geom,geom,have_divu);
+                                 &rhs_sync_reg,crsr_sync_ptr,
+                                 dx,dt,ratio,crse_dt_ratio, fine_geom,geom);
         //
         // Correct pressure and velocities after the projection.
         //
@@ -3705,7 +3708,7 @@ NavierStokes::level_sync ()
         //
         projector->syncProject(level,pres,vel,rho_half,Vsync,phi,
                                &rhs_sync_reg,crsr_sync_ptr,sync_boxes,
-                               sync_bc.dataPtr(),geom,dx,dt,crse_dt_ratio);
+                               geom,dx,dt,crse_dt_ratio);
         //
         // Correct pressure and velocities after the projection.
         //

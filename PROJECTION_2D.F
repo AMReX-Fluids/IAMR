@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.32 1999-07-13 22:59:35 marc Exp $
+c $Id: PROJECTION_2D.F,v 1.33 1999-07-24 00:07:04 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -231,13 +231,13 @@ c
 
       end
 
-      subroutine FORT_RADMPY(a,DIMS(grid),domlo,domhi,ng,r,nr)
+      subroutine FORT_RADMPY(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)
 c 
 c     multiply A by Radius r
 c
 c 
-c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT R IS REFLECTED AROUND
-c           R=0 AND R=RMAX.
+c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
+c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
 c
       integer    ng,nr
       integer    DIMDEC(grid)
@@ -245,6 +245,7 @@ c
       REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
      $             ARG_L2(grid)-ng:ARG_H2(grid)+ng)
       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
+      REAL_T     bogus_value
 
       integer i, j
 
@@ -257,7 +258,7 @@ c
       if (ARG_L1(grid)-ng .lt. domlo(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = ARG_L1(grid)-ng, domlo(1)-1
-           a(i,j) = -r(i)*a(i,j)
+           a(i,j) = bogus_value
          end do
          end do
       end if
@@ -265,7 +266,7 @@ c
       if (ARG_H1(grid)+ng .gt. domhi(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = domhi(1)+1, ARG_H1(grid)+ng
-           a(i,j) = r(domhi(1))*a(i,j)
+           a(i,j) = bogus_value
          end do
          end do
       end if
@@ -276,8 +277,9 @@ c
 c 
 c     divide A by Radius r
 c
-c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT R IS REFLECTED AROUND
-c           R=0 AND R=RMAX.
+c 
+c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
+c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
 c
       integer    ng,nr
       integer    DIMDEC(grid)
@@ -298,7 +300,7 @@ c
       if (ARG_L1(grid)-ng .lt. domlo(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = ARG_L1(grid)-ng, domlo(1)-1
-           a(i,j) = -a(i,j)/r(i)
+           a(i,j) = bogus_value
          end do
          end do
       end if
@@ -306,7 +308,7 @@ c
       if (ARG_H1(grid)+ng .gt. domhi(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = domhi(1)+1, ARG_H1(grid)+ng
-           a(i,j) = a(i,j)/r(domhi(1))
+           a(i,j) = bogus_value
          end do
          end do
       end if
@@ -751,7 +753,7 @@ c     Solve the equations
 
 c     Solid walls, Nuemann conditions
 c
-c     Note (because I always forget...):: 
+c     Note (because I always forget...)::
 c        Can derive these expressions by integrating the FE equations directly
 c     (ignoring r-z):
 c             Int[1/rho grad(phi)]dx  = Int[du/dx.dpsi/dx dx]- Int[S.psi.dx]
@@ -760,7 +762,7 @@ c                                = - u Int[dpsi/dx]
 c     And, since psi=0 on boundary of FE, and (cell-centered) u constant over FE
 c     and since S is constant, Int[psi.dx] = dx/2 (for psi=x/dx), and finally
 c     Int[dpsi/dx.dx] = 1/dx, then RHS = -u - S.dx/2...then mult all by dx
-c         
+c
          hdr = half*(r(ics+1) - r(ics))
          neq = ine - ins + 1
          icR = ics

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.59 1999-07-01 20:21:32 propp Exp $
+// $Id: SyncRegister.cpp,v 1.60 1999-07-24 00:07:02 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -79,6 +79,7 @@ void
 WriteNorms (const SyncRegister&, const char*)
 {}
 #endif /*BL_SYNC_DEBUG*/
+
 
 //
 // Structure used by some SyncRegister functions.
@@ -365,41 +366,32 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     const int* phys_lo = phys_bc->lo();
     const int* phys_hi = phys_bc->hi();
 
+    Box node_domain = ::surroundingNodes(geom.Domain());
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
         if (!geom.isPeriodic(dir))
         {
-            //
-            // Any RHS point on the physical bndry must be multiplied by two
-            // (only for ref-wall and inflow) and set to zero at outflow.
-            //
-            Box domlo(domain), domhi(domain);
-
-            domlo.setRange(dir,domain.smallEnd(dir),1);
-            domhi.setRange(dir,domain.bigEnd(dir),1);
+            Box domlo(node_domain), domhi(node_domain);
+            domlo.setRange(dir,node_domain.smallEnd(dir),1);
+            domhi.setRange(dir,node_domain.bigEnd(dir),1);
 
             for (MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi)
             {
                 if (domlo.intersects(mfi.validbox()))
                 {
-                    Box blo = mfi.validbox() & domlo;
-
-                    if (phys_lo[dir] == Outflow)
-                        mfi().setVal(0.0,blo,0,1);
-                    else
-                        mfi().mult(2.0,blo,0,1);
+                  Box blo = mfi.validbox() & domlo;
+                  if (blo.ok() && phys_lo[dir] == Outflow)
+                      mfi().mult(0.0,blo,0,1);
                 }
-                if (domhi.intersects(mfi.validbox()))
-                {
-                    Box bhi = mfi.validbox() & domhi;
 
-                    if (phys_hi[dir] == Outflow)
-                        mfi().setVal(0.0,bhi,0,1);
-                    else
-                        mfi().mult(2.0,bhi,0,1);
+                if (domhi.intersects(mfi.validbox())) 
+                {
+                  Box bhi = mfi.validbox() & domhi;
+                  if (bhi.ok() && phys_hi[dir] == Outflow) 
+                      mfi().mult(0.0,bhi,0,1);
                 }
             }
-        } 
+        }
     }
 
     //
@@ -423,7 +415,9 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
             for (int n = 0; n < grids.length(); n++)
                 if (mask_cells.intersects(grids[n]))
+                {
                     tmpfab.setVal(1.0,(mask_cells & grids[n]),0,1);
+                }
  
             if (geom.isAnyPeriodic())
             {
@@ -458,7 +452,6 @@ SyncRegister::InitRHS (MultiFab&       rhs,
         }
     }
 
-    Box node_domain = ::surroundingNodes(domain);
     //
     // Here double the cell contributions if at a non-periodic physical bdry.
     //
@@ -502,232 +495,6 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     multByBndryMask(rhs);
 
     WriteNorms(*this,"SyncRegister::InitRHS(E)");
-}
-
-static
-void
-Nullify (const BoxArray& grids,
-         FArrayBox&      fab,
-         const Box&      validbox,
-         const Box&      subbox,
-         int*            bc,
-         int             ncomp,
-         int             fine_index)
-{
-    fab.setVal(0,subbox,0,ncomp);
-
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        int bc_index = 2*BL_SPACEDIM*dir + dir;
-
-        if (bc[bc_index] == EXT_DIR &&
-            grids[fine_index].smallEnd(dir) == validbox.smallEnd(dir))
-        {
-            Box finesidelo(subbox);
-            finesidelo.setRange(dir,finesidelo.smallEnd(dir)-1,1);
-            fab.setVal(0,finesidelo,0,ncomp);
-        }
-        if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
-            grids[fine_index].bigEnd(dir) == validbox.bigEnd(dir))
-        {
-            Box finesidehi(subbox);
-            finesidehi.setRange(dir,finesidehi.bigEnd(dir)+1,1);
-            fab.setVal(0,finesidehi,0,ncomp);
-        }
-    }
-}
-
-void
-SyncRegister::CrseDVInit (const MultiFab& U, 
-                          const Geometry& geom, 
-                          int             is_rz,
-                          int**           crse_bc,
-                          Real            mult)
-{
-    setVal(0);
-
-    MultiFab U_local(U.boxArray(),BL_SPACEDIM,1);
-    //
-    // First fill all the coarse cells, including ghost cells on periodic
-    // and ext_dir edges, before worrying about zeroing out the ones under
-    // fine grids.
-    //
-    for (MultiFabIterator mfi(U_local); mfi.isValid(); ++mfi)
-    {
-        DependentMultiFabIterator dmfi_U(mfi, U);
-
-        mfi().setComplement(0,mfi.validbox(),0,BL_SPACEDIM);
-
-        mfi().copy(dmfi_U(),dmfi_U.validbox(),0,dmfi_U.validbox(),0,BL_SPACEDIM);
-
-        int* bc = crse_bc[mfi.index()];
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            int bc_index = 2*BL_SPACEDIM*dir + dir;
-            //
-            // Fill ghost cells outside of domain.
-            // 
-            if (bc[bc_index] == EXT_DIR &&
-                dmfi_U.validbox().smallEnd(dir) == geom.Domain().smallEnd(dir))
-            {
-                Box sidelo(dmfi_U.validbox());
-                sidelo.setRange(dir,sidelo.smallEnd(dir)-1,1);
-                mfi().copy(dmfi_U(),sidelo,dir,sidelo,dir,1);
-            }
-            if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
-                dmfi_U.validbox().bigEnd(dir) == geom.Domain().bigEnd(dir))
-            {
-                Box sidehi(dmfi_U.validbox());
-                sidehi.setRange(dir,sidehi.bigEnd(dir)+1,1);
-                mfi().copy(dmfi_U(),sidehi,dir,sidehi,dir,1);
-            }
-        }
-    }
-
-    geom.FillPeriodicBoundary(U_local,true,false);
-    //
-    // Now do all the zeroing-out associated with the fine grids, on the
-    // interior and on ghost cells on periodic and ext_dir edges.
-    //
-    Array<IntVect> pshifts(27);
-
-    for (MultiFabIterator mfi(U_local); mfi.isValid(); ++mfi)
-    {
-        BL_ASSERT(mfi.validbox() == U.boxArray()[mfi.index()]);
-
-        int* bc = crse_bc[mfi.index()];
-
-        for (int fine = 0; fine < grids.length(); fine++)
-        {
-            if (grids[fine].intersects(mfi.validbox()))
-            {
-                Box subbox = mfi.validbox() & grids[fine];
-                Nullify(grids,mfi(),mfi.validbox(),subbox,bc,BL_SPACEDIM,fine);
-            }
-            //
-            // Now zero out under periodic translations of fine grids.
-            //
-            if (geom.isAnyPeriodic())
-            {
-                Box domain_plus(geom.Domain());
-
-                for (int dir = 0; dir < BL_SPACEDIM; dir++) 
-                    if (geom.isPeriodic(dir))
-                        domain_plus.grow(dir,1);
-
-                geom.periodicShift(domain_plus, grids[fine], pshifts);
-
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
-                {
-                    Box fine_shifted = grids[fine] + pshifts[iiv];
-
-                    if (fine_shifted.intersects(mfi().box()))
-                    {
-                        fine_shifted &= mfi().box();
-                        Nullify(grids,mfi(),mfi.validbox(),fine_shifted,bc,BL_SPACEDIM,fine);
-                    }
-                }
-            }
-        }
-    }
-    //
-    // Now compute node-centered divergence.
-    //
-    // divuMF and U_local will have same distribution mapping.
-    //
-    BoxArray divuBA = U_local.boxArray();
-
-    divuBA.surroundingNodes();
-
-    MultiFab divuMF(divuBA,1,0);
-
-    for (MultiFabIterator mfi(U_local); mfi.isValid(); ++mfi)
-    {
-        const int* ulo   = mfi().loVect();
-        const int* uhi   = mfi().hiVect();
-        FArrayBox& divu  = divuMF[mfi.index()];
-        const Box& ndbox = divu.box();
-        const int* ndlo  = ndbox.loVect();
-        const int* ndhi  = ndbox.hiVect();
-
-        FORT_SRDIVU(mfi().dataPtr(),ARLIM(ulo),ARLIM(uhi),
-                    divu.dataPtr(),ARLIM(ndlo),ARLIM(ndhi),
-                    ndlo,ndhi,geom.CellSize(),&mult,&is_rz);
-    }
-
-    for (OrientationIter face; face; ++face)
-    {
-        bndry[face()].plusFrom(divuMF,0,0,0,1);
-    }
-
-    WriteNorms(*this,"SyncRegister::CrseDVInit(E)");
-}
-
-static
-void
-FillExtDir (FArrayBox&       dstfab,
-            const FArrayBox& srcfab,
-            const Box&       validbox,
-            int*             bc)
-{
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        int bc_index = 2*BL_SPACEDIM*dir + dir;
-
-        if (bc[bc_index] == EXT_DIR)
-        {
-            Box sidelo(validbox);
-            sidelo.setRange(dir,sidelo.smallEnd(dir)-1,1);
-            dstfab.copy(srcfab,sidelo,dir,sidelo,dir,1);
-        }
-        if (bc[bc_index+BL_SPACEDIM] == EXT_DIR)
-        {
-            Box sidehi(validbox);
-            sidehi.setRange(dir,sidehi.bigEnd(dir)+1,1);
-            dstfab.copy(srcfab,sidehi,dir,sidehi,dir,1);
-        }
-    }
-}
-
-static
-void
-SizeTmpFabs (Box&           reglo,
-             Box&           reghi,
-             Box&           tboxlo,
-             Box&           tboxhi,
-             FArrayBox&     ffablo,
-             FArrayBox&     ffabhi,
-             int            dir,
-             const IntVect& ratio)
-{
-    for (int idir = 0; idir < BL_SPACEDIM; idir++)
-    {
-        if (idir < dir)
-        {
-            //
-            // Previous direction have included these
-            // points in the stencil already, shrink.
-            //
-            reglo.grow(idir,-1);
-            reghi.grow(idir,-1);
-        }
-        if (idir != dir)
-        {
-            //
-            // Need additional room for stencil calculation.
-            //
-            tboxlo.grow(idir,ratio[idir]-1);
-            tboxhi.grow(idir,ratio[idir]-1);
-        }
-    }
-    //
-    // Define fine grid tmp fabs.
-    //
-    ffablo.resize(tboxlo,1);
-    ffabhi.resize(tboxhi,1);
-    ffablo.setVal(0);
-    ffabhi.setVal(0);
 }
 
 enum HowToBuild { WITH_BOX, WITH_SURROUNDING_BOX };
@@ -841,653 +608,175 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 }
 
 void
-SyncRegister::FineDVAdd (const MultiFab& U, 
-                         const Real*     dx_fine, 
-                         const Geometry& crse_geom, 
-                         int             is_rz,
-                         int**           fine_bc,
+SyncRegister::CrseInit  (MultiFab* Sync_resid_crse,
                          Real            mult)
 {
-    WriteNorms(*this,"SyncRegister::FineDVAdd(B)");
+    WriteNorms(*this,"SyncRegister::CrseInit(B)");
 
-    FArrayBox ufab, ffablo, ffabhi;
+    setVal(0.);
+
+    Sync_resid_crse->mult(mult);
+
+    for (OrientationIter face; face; ++face)
+    {
+        bndry[face()].plusFrom(*Sync_resid_crse,0,0,0,1);
+    }
+
+    WriteNorms(*this,"SyncRegister::CrseInit(E)");
+}
+
+void
+SyncRegister::CompAdd  (MultiFab* Sync_resid_fine,
+                        const Geometry& fine_geom, 
+                        const Geometry& crse_geom, 
+                        const BCRec*    phys_bc,
+                        const BoxArray& Pgrids,
+                        Real            mult)
+{
+  Array<IntVect> pshifts(27);
+  for (ConstMultiFabIterator mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
+  {
+    Box sync_box = mfi.validbox();
+    for (int i = 0; i < Pgrids.length(); i++) 
+    {
+       if (sync_box.intersects(Pgrids[i])) 
+         Sync_resid_fine->setVal(0.0,(sync_box&Pgrids[i]),0,1);
+
+       fine_geom.periodicShift(sync_box, Pgrids[i], pshifts);
+       for (int iiv = 0; iiv < pshifts.length(); iiv++)
+       {
+           Box overlap_per = Pgrids[i] + pshifts[iiv];
+           overlap_per    &= sync_box;
+           Sync_resid_fine->setVal(0.0,overlap_per,0,1);
+       }
+    }
+  }
+  FineAdd(Sync_resid_fine,fine_geom,crse_geom,phys_bc,mult);
+}
+
+void
+SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
+                        const Geometry& fine_geom, 
+                        const Geometry& crse_geom, 
+                        const BCRec*    phys_bc,
+                        Real            mult)
+{
+    WriteNorms(*this,"SyncRegister::FineAdd(B)");
 
     MultiFab cloMF[BL_SPACEDIM], chiMF[BL_SPACEDIM];
 
-    BuildMFs(U,cloMF,chiMF,ratio,WITH_SURROUNDING_BOX);
-    //
-    // Note that cloMF[dir] and chiMF[dir] have same distribution as U.
-    //
-    for (ConstMultiFabIterator mfi(U); mfi.isValid(); ++mfi)
-    {
-        ufab.resize(::grow(mfi.validbox(),1),BL_SPACEDIM);
-        ufab.setComplement(0,mfi.validbox(),0,BL_SPACEDIM);
-        ufab.copy(mfi(),mfi.validbox(),0,mfi.validbox(),0,BL_SPACEDIM);
+    BuildMFs(*Sync_resid_fine,cloMF,chiMF,ratio,WITH_BOX);
 
-        const int* ulo = ufab.box().loVect();
-        const int* uhi = ufab.box().hiVect();
-        int* bc        = fine_bc[mfi.index()];
+    Sync_resid_fine->mult(mult);
 
-        FillExtDir(ufab, mfi(), mfi.validbox(), bc);
+    const int* phys_lo = phys_bc->lo();
+    const int* phys_hi = phys_bc->hi();
 
-        Box ndbox = ::surroundingNodes(mfi.validbox());
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            Box tboxlo(ndbox), tboxhi(ndbox);
-            tboxlo.setRange(dir,ndbox.smallEnd(dir),1);
-            tboxhi.setRange(dir,ndbox.bigEnd(dir),1);
-            Box reglo(tboxlo), reghi(tboxhi);
-
-            SizeTmpFabs(reglo,reghi,tboxlo,tboxhi,ffablo,ffabhi,dir,ratio);
-
-            FArrayBox& cfablo = cloMF[dir][mfi.index()];
-            FArrayBox& cfabhi = chiMF[dir][mfi.index()];
-            const Box& cboxlo = cfablo.box();
-            const Box& cboxhi = cfabhi.box();
-            const int* flo_lo = tboxlo.loVect();
-            const int* flo_hi = tboxlo.hiVect();
-            const int* fhi_lo = tboxhi.loVect();
-            const int* fhi_hi = tboxhi.hiVect();
-            //
-            // Compute divu on fine grid edges in regions defined
-            // by reglo and reghi.  Fabs are set to zero outside region.
-            //
-            FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
-                        ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
-                        reglo.loVect(),reglo.hiVect(),
-                        dx_fine,&mult,&is_rz);
-            FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
-                        ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
-                        reghi.loVect(),reghi.hiVect(),
-                        dx_fine,&mult,&is_rz);
-            //
-            // Coarsen edge value.
-            //
-            const int* clo = cboxlo.loVect();
-            const int* chi = cboxlo.hiVect();
-            FORT_SRCRSEREG(ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
-                           cfablo.dataPtr(),ARLIM(clo),ARLIM(chi),
-                           clo,chi,&dir,ratio.getVect());
-            clo = cboxhi.loVect();
-            chi = cboxhi.hiVect();
-            FORT_SRCRSEREG(ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
-                           cfabhi.dataPtr(),ARLIM(clo),ARLIM(chi),
-                           clo,chi,&dir,ratio.getVect());
-        }
-    }
-    //
-    // Intersect and add to registers.
-    //
+    Box fine_node_domain = ::surroundingNodes(fine_geom.Domain());
     Box crse_node_domain = ::surroundingNodes(crse_geom.Domain());
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        for (OrientationIter face; face; ++face)
+        if (!fine_geom.isPeriodic(dir))
         {
-            bndry[face()].plusFrom(cloMF[dir],0,0,0,1);
-            bndry[face()].plusFrom(chiMF[dir],0,0,0,1);
-        }
-        incrementPeriodic(crse_geom, crse_node_domain, cloMF[dir]);
-        incrementPeriodic(crse_geom, crse_node_domain, chiMF[dir]);
-    }
+            //
+            // Any RHS point on the physical bndry must here be halved
+            // for any boundary but outflow or periodic.  
+            //
+            Box domlo(fine_node_domain), domhi(fine_node_domain);
 
-    WriteNorms(*this,"SyncRegister::FineDVAdd(E)");
-}
+            domlo.setRange(dir,fine_node_domain.smallEnd(dir),1);
+            domhi.setRange(dir,fine_node_domain.bigEnd(dir),1);
 
-inline
-void
-SetCenter (int             is_rz,
-           Array<Real>&    rcen,
-           const Geometry& geom,
-           const Box&      dsdtbox)
-{
-    if (is_rz)
-    {
-        geom.GetCellLoc(rcen, dsdtbox, 0);
-    }
-    else
-    {
-        for (int i = 0; i < rcen.length(); i++)
-            rcen[i] = 1.0;
-    }
-}
-
-void
-SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
-                           const Geometry& geom,
-                           int             is_rz,
-                           int**           crse_bc, 
-                           Real            mult)
-{
-    WriteNorms(*this,"SyncRegister::CrseDsdtAdd(B)");
-
-    Array<IntVect> pshifts(27);
-
-    MultiFab dsdt_local(dsdt.boxArray(),1,1);
-    //
-    // This MultiFab will parallel dsdt_local.
-    //
-    BoxArray divuBA = dsdt_local.boxArray();
-
-    divuBA.surroundingNodes();
-
-    MultiFab divuMF(divuBA,1,0);
-    //
-    // Fill valid region of dsdt_local from dsdt and zero out ghost cells.
-    //
-    for (MultiFabIterator mfi(dsdt_local); mfi.isValid(); ++mfi)
-    {
-        mfi().setComplement(0,mfi.validbox(),0,1);
-        mfi().copy(dsdt[mfi.index()], mfi.validbox());
-    }
-    geom.FillPeriodicBoundary(dsdt_local,true,false);
-
-    int imax = geom.Domain().bigEnd()[0]+1;
-
-    for (MultiFabIterator mfi(dsdt_local); mfi.isValid(); ++mfi)
-    {
-        int* bc = crse_bc[mfi.index()];
-        //
-        // Zero out coarse contributions under fine grid.
-        // Also, zero out contrib if dsdt box is on solid wall
-        //
-        for (int fine = 0; fine < grids.length(); fine++)
-        {
-            if (grids[fine].intersects(mfi().box()))
+            for (MultiFabIterator mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
             {
-                Box subbox = mfi().box() & grids[fine];
-
-                Nullify(grids,mfi(),mfi.validbox(),subbox,bc,1,fine);
-            }
-        }
-        //
-        // Zero ghost cells under periodic fine grid.
-        //
-        geom.periodicShift(geom.Domain(), mfi().box(), pshifts);
-
-        for (int iiv = 0; iiv < pshifts.length(); iiv++)
-        {
-            Box dsdtbox = mfi().box() + pshifts[iiv];
-
-            for (int fine = 0; fine < grids.length(); fine++)
-            {
-                if (dsdtbox.intersects(grids[fine]))
+                if (domlo.intersects(mfi.validbox()))
                 {
-                    Box ovlp = dsdtbox & grids[fine];
-                    ovlp    -= pshifts[iiv];
-                    mfi().setVal(0,ovlp,0,1);
+                  Box blo = mfi.validbox() & domlo;
+                  if (blo.ok()) 
+                    mfi().mult(0.5,blo,0,1);
                 }
+
+                if (domhi.intersects(mfi.validbox())) 
+                {
+                  Box bhi = mfi.validbox() & domhi;
+                  if (bhi.ok()) 
+                    mfi().mult(0.5,bhi,0,1);
+                }
+
             }
         }
-        //
-        // Average dsdt to nodes.
-        //
-        FArrayBox& divu   = divuMF[mfi.index()];
-        const int* ndlo   = divu.box().loVect();
-        const int* ndhi   = divu.box().hiVect();
-        const int* dsdtlo = mfi().box().loVect();
-        const int* dsdthi = mfi().box().hiVect();
-        const int* rlo    = mfi().box().loVect();
-        const int* rhi    = mfi().box().hiVect();
-        const int* domlo  = geom.Domain().loVect();
-        const int* domhi  = geom.Domain().hiVect();
-
-        Array<Real> rcen(mfi().box().length(0));
-
-        SetCenter(is_rz, rcen, geom, mfi().box());
-
-        int nghost         = 0;
-        Real hx            = geom.CellSize()[0];
-        FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
-                   mfi().dataPtr(),
-                   rcen.dataPtr(), 
-                   ARLIM(ndlo), ARLIM(ndhi), divu.dataPtr(), 
-                   domlo, domhi, &hx, &is_rz, &imax);
-        divu.negate();
-        divu.mult(mult);
-    }
- 
-
-    for (OrientationIter face; face; ++face)
-    {
-        bndry[face()].plusFrom(divuMF,0,0,0,1);
     }
 
-    WriteNorms(*this,"SyncRegister::CrseDsdtAdd(E)");
-}
+    if (fine_geom.isAnyPeriodic())
+      fine_geom.FillPeriodicBoundary(*Sync_resid_fine,false,false);
 
-void
-SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
-                           const Geometry& geom,
-                           const Geometry& crse_geom,
-                           int             is_rz,
-                           int**           fine_bc, 
-                           Real            mult)
-{
-    WriteNorms(*this,"SyncRegister::FineDsdtAdd(B)");
-
-    FArrayBox dsdtfab, ffablo, ffabhi, ffablo_tmp, ffabhi_tmp;
-
-    MultiFab cloMF[BL_SPACEDIM], chiMF[BL_SPACEDIM];
-
-    BuildMFs(dsdt,cloMF,chiMF,ratio,WITH_SURROUNDING_BOX);
-
-    int imax = geom.Domain().bigEnd()[0]+1;
-
-    for (ConstMultiFabIterator mfi(dsdt); mfi.isValid(); ++mfi)
+    //
+    // Coarsen edge values.
+    //
+    for (ConstMultiFabIterator mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
     {
-        dsdtfab.resize(::grow(mfi.validbox(),1),1);
-        dsdtfab.setComplement(0,mfi.validbox(),0,1);
-        dsdtfab.copy(mfi(),mfi.validbox(),0,mfi.validbox(),0,1);
-
-        const int* dsdtlo = dsdtfab.box().loVect();
-        const int* dsdthi = dsdtfab.box().hiVect();
-        //
-        // Now compute node centered surrounding box.
-        //
-        Box ndbox = ::surroundingNodes(mfi.validbox());
+        const int* resid_lo = mfi().box().loVect();
+        const int* resid_hi = mfi().box().hiVect();
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
-            Box tboxlo(ndbox), tboxhi(ndbox);
-            tboxlo.setRange(dir,ndbox.smallEnd(dir),1);
-            tboxhi.setRange(dir,ndbox.bigEnd(dir),1);
-            Box reglo(tboxlo), reghi(tboxhi);
-
-            SizeTmpFabs(reglo,reghi,tboxlo,tboxhi,ffablo,ffabhi,dir,ratio);
-
             FArrayBox& cfablo = cloMF[dir][mfi.index()];
-            FArrayBox& cfabhi = chiMF[dir][mfi.index()];
             const Box& cboxlo = cfablo.box();
-            const Box& cboxhi = cfabhi.box();
-            const int* flo_lo = tboxlo.loVect();
-            const int* flo_hi = tboxlo.hiVect();
-            const int* fhi_lo = tboxhi.loVect();
-            const int* fhi_hi = tboxhi.hiVect();
-            //
-            // Average dsdt to nodes on fine grid edges in regions defined
-            // by reglo and reghi.  Fabs are set to zero outside region.
-            //
-            const int* dsdtlo = dsdtfab.box().loVect();
-            const int* dsdthi = dsdtfab.box().hiVect();
-            const int* rlo    = dsdtfab.box().loVect();
-            const int* rhi    = dsdtfab.box().hiVect();
-            const int* domlo  = geom.Domain().loVect();
-            const int* domhi  = geom.Domain().hiVect();
-
-            Array<Real> rcen(dsdtfab.box().length(0));
-
-            SetCenter(is_rz, rcen, geom, dsdtfab.box());
-
-            ffablo_tmp.resize(reglo,1);
-            int nghost         = 0;
-            Real hx            = geom.CellSize()[0];
-            FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
-                       dsdtfab.dataPtr(),
-                       rcen.dataPtr(), 
-                       ARLIM(reglo.loVect()), ARLIM(reglo.hiVect()), 
-                       ffablo_tmp.dataPtr(),
-                       domlo, domhi, &hx, &is_rz, &imax);
-            ffablo_tmp.negate();
-            ffablo_tmp.mult(mult);
-            ffablo.copy(ffablo_tmp);
-            ffabhi_tmp.resize(reghi,1);
-
-            FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
-                       dsdtfab.dataPtr(),
-                       rcen.dataPtr(), 
-                       ARLIM(reghi.loVect()), ARLIM(reghi.hiVect()), 
-                       ffabhi_tmp.dataPtr(), 
-                       domlo, domhi, &hx, &is_rz, &imax);
-            ffabhi_tmp.negate();
-            ffabhi_tmp.mult(mult);
-            ffabhi.copy(ffabhi_tmp);
-            //
-            // Coarsen edge value.
-            //
             const int* clo = cboxlo.loVect();
             const int* chi = cboxlo.hiVect();
-            FORT_SRCRSEREG(ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
+
+            FORT_SRCRSEREG(mfi().dataPtr(),ARLIM(resid_lo),ARLIM(resid_hi),
                            cfablo.dataPtr(),ARLIM(clo),ARLIM(chi),
                            clo,chi,&dir,ratio.getVect());
+
+            FArrayBox& cfabhi = chiMF[dir][mfi.index()];
+            const Box& cboxhi = cfabhi.box();
             clo = cboxhi.loVect();
             chi = cboxhi.hiVect();
-            FORT_SRCRSEREG(ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
+
+            FORT_SRCRSEREG(mfi().dataPtr(),ARLIM(resid_lo),ARLIM(resid_hi),
                            cfabhi.dataPtr(),ARLIM(clo),ARLIM(chi),
                            clo,chi,&dir,ratio.getVect());
         }
     }
-    //
-    // Intersect and add to registers.
-    //
-    Box crse_node_domain = ::surroundingNodes(crse_geom.Domain());
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        for (OrientationIter face; face; ++face)
+        if (!crse_geom.isPeriodic(dir))
         {
-            bndry[face()].plusFrom(cloMF[dir],0,0,0,1);
-            bndry[face()].plusFrom(chiMF[dir],0,0,0,1);
-        }
-        incrementPeriodic(crse_geom, crse_node_domain, cloMF[dir]);
-        incrementPeriodic(crse_geom, crse_node_domain, chiMF[dir]);
-    }
-
-    WriteNorms(*this,"SyncRegister::FineDsdtAdd(E)");
-}
-
-static
-void
-NullOverlap (const BoxArray& Pgrids,
-             const Geometry& fine_geom,
-             const Box&      reglo,
-             FArrayBox&      ffablo,
-             const Box&      reghi,
-             FArrayBox&      ffabhi,
-             Array<IntVect>& pshifts)
-{
-    const int n_comp   = 1;
-    const int set_comp = 0;
-
-    for (int i = 0; i < Pgrids.length(); i++)
-    {
-        if (reglo.intersects(Pgrids[i]))
-        {
-            ffablo.setVal(0,(reglo & Pgrids[i]),set_comp,n_comp);
-        }
-
-        fine_geom.periodicShift(reglo, Pgrids[i], pshifts);
-
-        for (int iiv = 0; iiv < pshifts.length(); iiv++)
-        {
-            Box overlap_lo_per = Pgrids[i] + pshifts[iiv];
-            overlap_lo_per    &= reglo;
-            ffablo.setVal(0,overlap_lo_per,set_comp,n_comp);
-        }
-
-        if (reghi.intersects(Pgrids[i]))
-        {
-            ffabhi.setVal(0,(reghi & Pgrids[i]),set_comp,n_comp);
-        }
-
-        fine_geom.periodicShift(reghi, Pgrids[i], pshifts);
-
-        for (int iiv = 0; iiv < pshifts.length(); iiv++)
-        {
-            Box overlap_hi_per = Pgrids[i] + pshifts[iiv];
-            overlap_hi_per    &= reghi;
-            ffabhi.setVal(0,overlap_hi_per,set_comp,n_comp);
-        }
-    }
-}
-
-void
-SyncRegister::CompDVAdd (const MultiFab& U, 
-                         const BoxArray& Pgrids,
-                         const Real*     dx_fine, 
-                         const Geometry& fine_geom, 
-                         const Geometry& crse_geom, 
-                         int             is_rz,
-                         int**           fine_bc,
-                         Real            mult)
-{
-    WriteNorms(*this,"SyncRegister::CompDVAdd(B)");
-
-    Array<IntVect> pshifts(27);
-
-    FArrayBox ufab, ffablo, ffabhi;
-
-    MultiFab cloMF[BL_SPACEDIM], chiMF[BL_SPACEDIM];
-
-    BuildMFs(U,cloMF,chiMF,ratio,WITH_SURROUNDING_BOX);
-    //
-    // Note that cloMF[dir] and chiMF[dir] have same distribution as U.
-    //
-    for (ConstMultiFabIterator mfi(U); mfi.isValid(); ++mfi)
-    {
-        ufab.resize(::grow(mfi.validbox(),1),BL_SPACEDIM);
-        ufab.setComplement(0,mfi.validbox(),0,BL_SPACEDIM);
-        ufab.copy(mfi(),mfi.validbox(),0,mfi.validbox(),0,BL_SPACEDIM);
-
-        const int* ulo = ufab.box().loVect();
-        const int* uhi = ufab.box().hiVect();
-        int* bc        = fine_bc[mfi.index()];
-
-        FillExtDir(ufab, mfi(), mfi.validbox(), bc);
-
-        Box ndbox = ::surroundingNodes(mfi.validbox());
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            Box tboxlo(ndbox), tboxhi(ndbox);
-            tboxlo.setRange(dir,ndbox.smallEnd(dir),1);
-            tboxhi.setRange(dir,ndbox.bigEnd(dir),1);
-            Box reglo(tboxlo), reghi(tboxhi);
-
-            SizeTmpFabs(reglo,reghi,tboxlo,tboxhi,ffablo,ffabhi,dir,ratio);
-
-            FArrayBox& cfablo = cloMF[dir][mfi.index()];
-            FArrayBox& cfabhi = chiMF[dir][mfi.index()];
-            const Box& cboxlo = cfablo.box();
-            const Box& cboxhi = cfabhi.box();
-            const int* flo_lo = tboxlo.loVect();
-            const int* flo_hi = tboxlo.hiVect();
-            const int* fhi_lo = tboxhi.loVect();
-            const int* fhi_hi = tboxhi.hiVect();
             //
-            // Compute divu on fine grid edges in regions defined
-            // by reglo and reghi.  Fabs are set to zero outside region.
+            // Any RHS point on the physical bndry must here be doubled
+            // for any boundary but outflow or periodic
             //
-            FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
-                        ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
-                        reglo.loVect(),reglo.hiVect(),dx_fine,&mult,&is_rz);
-            FORT_SRDIVU(ufab.dataPtr(),ARLIM(ulo),ARLIM(uhi),
-                        ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
-                        reghi.loVect(),reghi.hiVect(),dx_fine,&mult,&is_rz);
+            Box domlo(crse_node_domain), domhi(crse_node_domain);
 
-            NullOverlap(Pgrids,fine_geom,reglo,ffablo,reghi,ffabhi,pshifts);
-            //
-            // Coarsen edge values.
-            //
-            const int* clo = cboxlo.loVect();
-            const int* chi = cboxlo.hiVect();
-            FORT_SRCRSEREG(ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
-                           cfablo.dataPtr(),ARLIM(clo),ARLIM(chi),
-                           clo,chi,&dir,ratio.getVect());
-            clo = cboxhi.loVect();
-            chi = cboxhi.hiVect();
-            FORT_SRCRSEREG(ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
-                           cfabhi.dataPtr(),ARLIM(clo),ARLIM(chi),
-                           clo,chi,&dir,ratio.getVect());
-        }
-    }
-    //
-    // Intersect and add to registers.
-    //
-    Box crse_node_domain = ::surroundingNodes(crse_geom.Domain());
+            domlo.setRange(dir,crse_node_domain.smallEnd(dir),1);
+            domhi.setRange(dir,crse_node_domain.bigEnd(dir),1);
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        for (OrientationIter face; face; ++face)
-        {
-            bndry[face()].plusFrom(cloMF[dir],0,0,0,1);
-            bndry[face()].plusFrom(chiMF[dir],0,0,0,1);
-        }
-        incrementPeriodic(crse_geom, crse_node_domain, cloMF[dir]);
-        incrementPeriodic(crse_geom, crse_node_domain, chiMF[dir]);
-    }
-
-    WriteNorms(*this,"SyncRegister::CompDVAdd(E)");
-}
-
-void
-SyncRegister::CrseLPhiAdd (const MultiFab& Phi,
-                           const MultiFab& Sigma,
-                           const Geometry& geom,
-                           int             is_rz,
-                           Real            mult)
-{
-    WriteNorms(*this,"SyncRegister::CrseLPhiAdd(B)");
-    //
-    // This code assumes Sigma and Phi have same processor distribution.
-    //
-    BL_ASSERT(Phi.boxArray().length() == Sigma.boxArray().length());
-
-    MultiFab Sig_local(Sigma.boxArray(),1,1);
-    MultiFab Phi_local(Phi.boxArray(),1,1);
-    //
-    // Copy valid region of Phi into Phi_local & zero out ghost cells.
-    //
-    for (MultiFabIterator mfi(Phi_local); mfi.isValid(); ++mfi)
-    {
-        mfi().setComplement(0,mfi.validbox(),0,1);
-        mfi().copy(Phi[mfi.index()], mfi.validbox());
-    }
-    //
-    // Copy valid region of Sigma into Sig_local & zero out ghost cells.
-    // Also, zero out region covered by fine grid.
-    //
-    for (MultiFabIterator mfi(Sig_local); mfi.isValid(); ++mfi)
-    {
-        mfi().setComplement(0,mfi.validbox(),0,1);
-        mfi().copy(Sigma[mfi.index()], mfi.validbox());
-
-        for (int fine = 0; fine < grids.length(); fine++)
-        {
-            if (grids[fine].intersects(mfi.validbox()))
+            for (MultiFabIterator mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
+              for (int dir_cfab = 0; dir_cfab < BL_SPACEDIM; dir_cfab++) 
             {
-                mfi().setVal(0,grids[fine] & mfi.validbox(),0,1);
+                FArrayBox& cfablo = cloMF[dir_cfab][mfi.index()];
+                const Box& cboxlo = cfablo.box();
+                if (domlo.intersects(cboxlo))
+                  cfablo.mult(2.0,cboxlo&domlo,0,1);
+                if (domhi.intersects(cboxlo))
+                  cfablo.mult(2.0,cboxlo&domhi,0,1);
+
+                FArrayBox& cfabhi = chiMF[dir_cfab][mfi.index()];
+                const Box& cboxhi = cfabhi.box();
+                if (domlo.intersects(cboxhi))
+                  cfabhi.mult(2.0,cboxhi&domlo,0,1);
+                if (domhi.intersects(cboxhi))
+                  cfabhi.mult(2.0,cboxhi&domhi,0,1);
             }
         }
     }
 
-    geom.FillPeriodicBoundary(Sig_local, 0, 1, true, false);
-
-    geom.FillPeriodicBoundary(Phi_local, 0, 1, false, false);
-    //
-    // Now compute node centered div(Sigma*grad(PHI)).
-    //
-    // divgpMF and Phi_local will have same distribution mapping.
-    //
-    MultiFab divgpMF(Phi_local.boxArray(),1,0);
-
-    for (MultiFabIterator pmfi(Phi_local); pmfi.isValid(); ++pmfi)
-    {
-        DependentMultiFabIterator smfi(pmfi, Sig_local);
-
-        const int* slo   = smfi().loVect();
-        const int* shi   = smfi().hiVect();
-        const int* p_lo  = pmfi().loVect();
-        const int* p_hi  = pmfi().hiVect();
-        FArrayBox& divgp = divgpMF[pmfi.index()];
-        const int* glo   = divgp.loVect();
-        const int* ghi   = divgp.hiVect();
-
-        FORT_SRDGPHI(pmfi().dataPtr(),ARLIM(p_lo),ARLIM(p_hi),
-                     smfi().dataPtr(),ARLIM(slo),ARLIM(shi),
-                     divgp.dataPtr(),ARLIM(glo),ARLIM(ghi),
-                     glo,ghi,geom.CellSize(),&mult,&is_rz);
-    }
-
-    for (OrientationIter face; face; ++face)
-    {
-        bndry[face()].plusFrom(divgpMF,0,0,0,1);
-    }
-
-    WriteNorms(*this,"SyncRegister::CrseLPhiAdd(E)");
-}
-
-void
-SyncRegister::FineLPhiAdd (const MultiFab& Phi,
-                           const MultiFab& Sigma,
-                           const Real*     dx_fine,
-                           const Geometry& crse_geom, 
-                           int             is_rz,
-                           Real            mult)
-{
-    WriteNorms(*this,"SyncRegister::FineLPhiAdd(B)");
-    //
-    // This code assumes Sigma and Phi have same processor distribution.
-    //
-    BL_ASSERT(Phi.boxArray().length() == Sigma.boxArray().length());
-
-    FArrayBox pfab, sfab, ffablo, ffabhi;
-
-    MultiFab cloMF[BL_SPACEDIM], chiMF[BL_SPACEDIM];
-
-    BuildMFs(Phi,cloMF,chiMF,ratio,WITH_BOX);
-    //
-    // Note that cloMF[dir] and chiMF[dir] have same distribution as Phi.
-    //
-    for (ConstMultiFabIterator pmfi(Phi); pmfi.isValid(); ++pmfi)
-    {
-        ConstDependentMultiFabIterator smfi(pmfi, Sigma);
-
-        pfab.resize(::grow(pmfi.validbox(),1),1);
-        sfab.resize(::grow(smfi.validbox(),1),1);
-        pfab.setComplement(0,pmfi.validbox(),0,1);
-        sfab.setComplement(0,smfi.validbox(),0,1);
-        pfab.copy(pmfi(),pmfi.validbox());
-        sfab.copy(smfi(),smfi.validbox());
-
-        const int* pfab_lo = pfab.loVect();
-        const int* pfab_hi = pfab.hiVect();
-        const int* sfab_lo = sfab.loVect();
-        const int* sfab_hi = sfab.hiVect();
-        const int* ndlo    = pmfi.validbox().loVect();
-        const int* ndhi    = pmfi.validbox().hiVect();
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            Box tboxlo(pmfi.validbox()), tboxhi(pmfi.validbox());
-            tboxlo.setRange(dir,ndlo[dir],1);
-            tboxhi.setRange(dir,ndhi[dir],1);
-            Box reglo(tboxlo), reghi(tboxhi);
-
-            SizeTmpFabs(reglo,reghi,tboxlo,tboxhi,ffablo,ffabhi,dir,ratio);
-
-            FArrayBox& cfablo = cloMF[dir][pmfi.index()];
-            FArrayBox& cfabhi = chiMF[dir][pmfi.index()];
-            const Box& cboxlo = cfablo.box();
-            const Box& cboxhi = cfabhi.box();
-            const int* flo_lo = tboxlo.loVect();
-            const int* flo_hi = tboxlo.hiVect();
-            const int* fhi_lo = tboxhi.loVect();
-            const int* fhi_hi = tboxhi.hiVect();
-            //
-            // Compute divgp on fine grid edges in regions defined
-            // by reglo and reghi.  Fabs are set to zero outside region.
-            //
-            FORT_SRDGPHI(pfab.dataPtr(),ARLIM(pfab_lo),ARLIM(pfab_hi),
-                         sfab.dataPtr(),ARLIM(sfab_lo),ARLIM(sfab_hi),
-                         ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
-                         reglo.loVect(),reglo.hiVect(),
-                         dx_fine,&mult,&is_rz);
-            FORT_SRDGPHI(pfab.dataPtr(),ARLIM(pfab_lo),ARLIM(pfab_hi),
-                         sfab.dataPtr(),ARLIM(sfab_lo),ARLIM(sfab_hi),
-                         ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
-                         reghi.loVect(),reghi.hiVect(),
-                         dx_fine,&mult,&is_rz);
-            //
-            // Coarsen edge value.
-            //
-            const int* clo = cboxlo.loVect();
-            const int* chi = cboxlo.hiVect();
-            FORT_SRCRSEREG(ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
-                           cfablo.dataPtr(),ARLIM(clo),ARLIM(chi),
-                           clo,chi,&dir,ratio.getVect());
-            clo = cboxhi.loVect();
-            chi = cboxhi.hiVect();
-            FORT_SRCRSEREG(ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
-                           cfabhi.dataPtr(),ARLIM(clo),ARLIM(chi),
-                           clo,chi,&dir,ratio.getVect());
-        }
-    }
     //
     // Intersect and add to registers.
     //
-    Box crse_node_domain = ::surroundingNodes(crse_geom.Domain());
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
@@ -1496,118 +785,8 @@ SyncRegister::FineLPhiAdd (const MultiFab& Phi,
             bndry[face()].plusFrom(cloMF[dir],0,0,0,1);
             bndry[face()].plusFrom(chiMF[dir],0,0,0,1);
         }
-        incrementPeriodic(crse_geom, crse_node_domain, cloMF[dir]);
-        incrementPeriodic(crse_geom, crse_node_domain, chiMF[dir]);
     }
 
-    WriteNorms(*this,"SyncRegister::FineLPhiAdd(E)");
+    WriteNorms(*this,"SyncRegister::FineAdd(E)");
 }
 
-void
-SyncRegister::CompLPhiAdd (const MultiFab& Phi,
-                           const MultiFab& Sigma,
-                           const BoxArray& Pgrids, 
-                           const Real*     dx_fine, 
-                           const Geometry& fine_geom, 
-                           const Geometry& crse_geom, 
-                           int             is_rz,
-                           Real            mult)
-{
-    WriteNorms(*this,"SyncRegister::CompLPhiAdd(B)");
-    //
-    // This code assumes Sigma and Phi have same processor distribution.
-    //
-    BL_ASSERT(Phi.boxArray().length() == Sigma.boxArray().length());
-
-    Array<IntVect> pshifts(27);
-
-    FArrayBox pfab, sfab, ffablo, ffabhi;
-
-    MultiFab cloMF[BL_SPACEDIM], chiMF[BL_SPACEDIM];
-
-    BuildMFs(Phi,cloMF,chiMF,ratio,WITH_BOX);
-
-    for (ConstMultiFabIterator pmfi(Phi); pmfi.isValid(); ++pmfi)
-    {
-        ConstDependentMultiFabIterator smfi(pmfi, Sigma);
-
-        pfab.resize(::grow(pmfi.validbox(),1),1);
-        sfab.resize(::grow(smfi.validbox(),1),1);
-        pfab.setComplement(0,pmfi.validbox(),0,1);
-        sfab.setComplement(0,smfi.validbox(),0,1);
-        pfab.copy(pmfi(),pmfi.validbox());
-        sfab.copy(smfi(),smfi.validbox());
-
-        const int* pfab_lo = pfab.loVect();
-        const int* pfab_hi = pfab.hiVect();
-        const int* sfab_lo = sfab.loVect();
-        const int* sfab_hi = sfab.hiVect();
-        const int* ndlo    = pmfi.validbox().loVect();
-        const int* ndhi    = pmfi.validbox().hiVect();
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            Box tboxlo(pmfi.validbox()), tboxhi(pmfi.validbox());
-            tboxlo.setRange(dir,ndlo[dir],1);
-            tboxhi.setRange(dir,ndhi[dir],1);
-            Box reglo(tboxlo), reghi(tboxhi);
-
-            SizeTmpFabs(reglo,reghi,tboxlo,tboxhi,ffablo,ffabhi,dir,ratio);
-
-            FArrayBox& cfablo = cloMF[dir][pmfi.index()];
-            FArrayBox& cfabhi = chiMF[dir][pmfi.index()];
-            const Box& cboxlo = cfablo.box();
-            const Box& cboxhi = cfabhi.box();
-            const int* flo_lo = tboxlo.loVect();
-            const int* flo_hi = tboxlo.hiVect();
-            const int* fhi_lo = tboxhi.loVect();
-            const int* fhi_hi = tboxhi.hiVect();
-            //
-            // Compute divgp on fine grid edges in regions defined
-            // by reglo and reghi.  Fabs are set to zero outside region.
-            //
-            FORT_SRDGPHI(pfab.dataPtr(),ARLIM(pfab_lo),ARLIM(pfab_hi),
-                         sfab.dataPtr(),ARLIM(sfab_lo),ARLIM(sfab_hi),
-                         ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
-                         reglo.loVect(),reglo.hiVect(),
-                         dx_fine,&mult,&is_rz);
-            FORT_SRDGPHI(pfab.dataPtr(),ARLIM(pfab_lo),ARLIM(pfab_hi),
-                         sfab.dataPtr(),ARLIM(sfab_lo),ARLIM(sfab_hi),
-                         ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
-                         reghi.loVect(),reghi.hiVect(),
-                         dx_fine,&mult,&is_rz);
-
-            NullOverlap(Pgrids,fine_geom,reglo,ffablo,reghi,ffabhi,pshifts);
-            //
-            // Coarsen edge value.
-            //
-            const int* clo = cboxlo.loVect();
-            const int* chi = cboxlo.hiVect();
-            FORT_SRCRSEREG(ffablo.dataPtr(),ARLIM(flo_lo),ARLIM(flo_hi),
-                           cfablo.dataPtr(),ARLIM(clo),ARLIM(chi),
-                           clo,chi,&dir,ratio.getVect());
-            clo = cboxhi.loVect();
-            chi = cboxhi.hiVect();
-            FORT_SRCRSEREG(ffabhi.dataPtr(),ARLIM(fhi_lo),ARLIM(fhi_hi),
-                           cfabhi.dataPtr(),ARLIM(clo),ARLIM(chi),
-                           clo,chi,&dir,ratio.getVect());
-        }
-    }
-    //
-    // Intersect and add to registers.
-    //
-    Box crse_node_domain = ::surroundingNodes(crse_geom.Domain());
-
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        for (OrientationIter face; face; ++face)
-        {
-            bndry[face()].plusFrom(cloMF[dir],0,0,0,1);
-            bndry[face()].plusFrom(chiMF[dir],0,0,0,1);
-        }
-        incrementPeriodic(crse_geom, crse_node_domain, cloMF[dir]);
-        incrementPeriodic(crse_geom, crse_node_domain, chiMF[dir]);
-    }
-
-    WriteNorms(*this,"SyncRegister::CompLPhiAdd(E)");
-}

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.104 1999-07-03 00:02:33 propp Exp $
+// $Id: Projection.cpp,v 1.105 1999-07-24 00:07:01 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -362,7 +362,7 @@ Projection::level_project (int             level,
 {
     if (ParallelDescriptor::IOProcessor() && verbose)
 	cout << "... level projector at level " << level << '\n';
-
+    
     if (sync_proj == 0)
         bldSyncProject();
     //
@@ -508,34 +508,8 @@ Projection::level_project (int             level,
     //
     // Add the contribution from the un-projected V to syncregisters.
     //
-    int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
+    int is_rz = (CoordSys::IsRZ() ? 1 : 0);
 
-    if (do_sync_proj) 
-    {
-        if (level < finest_level) 
-        {
-            //
-            // Init sync registers between level and level+1.
-            //
-            crse_sync_reg->CrseDVInit(U_new,geom,rz_flag,bc);
-            if (have_divu) 
-                crse_sync_reg->CrseDsdtAdd(*divusource,geom,rz_flag,bc);
-        } 
-        if (level > 0 && (((proj_0 || proj_2) &&
-                           iteration == crse_dt_ratio) ||
-                          (!proj_0 && !proj_2)))
-        {
-            //
-            // Increment sync registers between level and level-1.
-            //
-            const Real invrat         = 1.0/(double)crse_dt_ratio;
-            const Geometry& crse_geom = parent->Geom(level-1);
-            fine_sync_reg->FineDVAdd(U_new,dx,crse_geom,rz_flag,bc,invrat);
-            if (have_divu) 
-                fine_sync_reg->FineDsdtAdd(*divusource,geom,crse_geom,rz_flag,
-                                           bc,invrat);
-        }
-    }
     //
     // Setup projection (note that u_real is a temporary copy).
     //
@@ -560,25 +534,77 @@ Projection::level_project (int             level,
     //
     // Project
     //
+
+    MultiFab* sync_resid_crse;
+    MultiFab* sync_resid_fine;
+
+    if (level < finest_level) 
+    {
+      sync_resid_crse = new MultiFab(P_grids,1,1);
+    } else {
+      sync_resid_crse = 0;
+    }
+    if ( level > 0 &&
+         ( ((proj_0 || proj_2) && iteration == crse_dt_ratio) ||
+           (!proj_0 && !proj_2)) )
+    {
+      int ngrow = parent->MaxRefRatio(level-1) - 1;
+      sync_resid_fine = new MultiFab(P_grids,1,ngrow);
+    } else {
+      sync_resid_fine = 0;
+    }
+
+    bool is_sync  = false;
+    Box crse_domain(geom.Domain());
     if (!have_divu) 
     {
-        sync_proj->project(u_real, p_real, null_amr_real, s_real, (Real*)dx,
-                           proj_tol, level, level, proj_abs_tol);
-    } 
+        sync_proj->project(u_real, p_real, null_amr_real, s_real, 
+                           sync_resid_crse, sync_resid_fine, crse_domain, is_sync,
+                           (Real*)dx, proj_tol, level, level, proj_abs_tol);
+    }
     else 
     {
         bool      use_u  = true;
-        const int nghost = 1;
-
-        if (rz_flag == 1) radMult(level,*divusource,0);
+        if (is_rz == 1) radMult(level,*divusource,0);
+        const int nghost = 0;
         divusource->mult(-1.0,0,1,nghost);
 
         PArray<MultiFab> rhs_real(level+1);
         rhs_real.set(level, divusource);
-        sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real,
-                                  s_real, use_u, (Real*)dx,
+        sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real, 
+                                  sync_resid_crse, sync_resid_fine, crse_domain, is_sync,
+                                  use_u, (Real*)dx,
                                   proj_tol, level, level, proj_abs_tol);
     }
+
+    // Note: this must occur *after* the projection has been done
+    //       (but before the modified velocity has been copied back)
+    //       because the SyncRegister routines assume the projection
+    //       has been set up.
+
+    if (do_sync_proj) 
+    {
+       if (level < finest_level)
+       {
+          //
+          // Init sync registers between level and level+1.
+          //
+          Real mult = 1.0;
+          crse_sync_reg->CrseInit(sync_resid_crse,mult);
+       }
+       if ( level > 0 &&
+            ( ((proj_0 || proj_2) && iteration == crse_dt_ratio) ||
+              (!proj_0 && !proj_2)) )
+       {
+          //
+          // Increment sync registers between level and level-1.
+          //
+          const Real      invrat    = 1.0/(double)crse_dt_ratio;
+          const Geometry& crse_geom = parent->Geom(level-1);
+          fine_sync_reg->FineAdd(sync_resid_fine,geom,crse_geom,phys_bc,invrat);
+       }
+    }
+
     //
     // Copy and delete u_real.
     //
@@ -592,31 +618,7 @@ Projection::level_project (int             level,
         }
         delete u_real[n].remove(level);
     }
-    //
-    // Increment sync registers by adding contribution from the
-    // full D(sig Gphi)
-    //
-    if (do_sync_proj) 
-    {
-        if (level < finest_level) 
-        {
-            //
-            // Init sync registers between level and level+1.
-            //
-            crse_sync_reg->CrseLPhiAdd(P_new,*rho_half,geom,rz_flag);
-        }
-        if ( level > 0 &&
-             ( ((proj_0 || proj_2) && iteration == crse_dt_ratio) ||
-               (!proj_0 && !proj_2)) )
-        {
-            //
-            // Increment sync registers between level and level-1.
-            //
-            const Real      invrat    = 1.0/(double)crse_dt_ratio;
-            const Geometry& crse_geom = parent->Geom(level-1);
-            fine_sync_reg->FineLPhiAdd(P_new,*rho_half,dx,crse_geom,rz_flag,invrat);
-        }
-    }
+
     //
     // Reset state + pressure data.
     //
@@ -753,8 +755,8 @@ Projection::filterP (int             level,
                 ndomhi.setRange(dir,ndhi[dir],1);
                 //
                 // Any RHS point on the physical bndry must be multiplied by
-                // two (only for ref-wall, inflow and symmetry) and set to zero at
-                // outflow.
+                // two (only for ref-wall, inflow and symmetry) and set to 
+                // zero at outflow.
                 //
                 Box blo = P_grids[k] & ndomlo;
                 Box bhi = P_grids[k] & ndomhi;
@@ -815,8 +817,29 @@ Projection::filterP (int             level,
     //
     // Project ...
     //
-    const bool use_u = 1;
+    const bool use_u   = true;
+    const bool is_sync = false;
+
+    MultiFab* sync_resid_crse;
+    MultiFab* sync_resid_fine;
+
+    if (level < finest_level) 
+    {
+      sync_resid_crse = new MultiFab(P_grids,1,1);
+    } else {
+      sync_resid_crse = 0;
+    }
+    if (level > 0) 
+    {
+      int ngrow = parent->MaxRefRatio(level-1) - 1;
+      sync_resid_fine = new MultiFab(P_grids,1,ngrow);
+    } else {
+      sync_resid_fine = 0;
+    }
+
+    Box crse_domain(geom.Domain());
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
+                              sync_resid_crse, sync_resid_fine, crse_domain, is_sync,
                               use_u, (Real*)dx,
                               filter_factor, level, level, proj_abs_tol);
 
@@ -917,8 +940,15 @@ Projection::harmonic_project (int             level,
     //
     // Project
     //
-    bool use_u = false;
+    bool use_u   = false;
+    bool is_sync = false;
+
+    MultiFab* sync_resid_crse = 0;
+    MultiFab* sync_resid_fine = 0;
+
+    Box crse_domain(geom.Domain());
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
+                              sync_resid_crse, sync_resid_fine, crse_domain, is_sync, 
                               use_u, (Real*)dx,
                               proj_tol, level, level, proj_abs_tol);
     //
@@ -962,7 +992,6 @@ Projection::syncProject (int             c_lev,
                          SyncRegister*   rhs_sync_reg,
                          SyncRegister*   crsr_sync_reg,
                          const BoxArray& sync_boxes,
-                         int**           sync_bc,
                          const Geometry& geom,
                          const Real*     dx,
                          Real            dt_crse,
@@ -1003,18 +1032,6 @@ Projection::syncProject (int             c_lev,
     //
     scaleVar(&sig,1,Vsync,grids,c_lev);
     //
-    // If this sync project is not at level 0 then we need to account for
-    // the changes made here in the level c_lev velocity in the sync registers
-    // going into the level (c_lev-1) sync project.
-    //
-    if (c_lev > 0) 
-    {
-        const Real      invrat    = 1.0/crse_dt_ratio;
-        const Geometry& crsr_geom = parent->Geom(c_lev-1);
-        crsr_sync_reg->CompDVAdd(*Vsync,sync_boxes,dx,geom,crsr_geom,
-                                 rz_flag,sync_bc,invrat);
-    }
-    //
     // If periodic, copy into periodic translates of Vsync.
     //
     EnforcePeriodicity(*Vsync, BL_SPACEDIM, grids, geom);
@@ -1044,8 +1061,22 @@ Projection::syncProject (int             c_lev,
     //  if use_u = 1, then solves DGphi = RHS + DV
     //  both return phi and (V-Gphi) as V
     //
-    bool use_u = true;
+    bool use_u   = true;
+    bool is_sync = true;
+
+    MultiFab *sync_resid_crse = 0;
+    MultiFab* sync_resid_fine;
+
+    if (c_lev > 0) {
+      int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
+      sync_resid_fine = new MultiFab(P_grids,1,ngrow);
+    } else {
+      sync_resid_fine = 0;
+    }
+
+    Box crse_domain(geom.Domain());
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
+                              sync_resid_crse, sync_resid_fine, crse_domain, is_sync,
                               use_u, (Real*)dx,
                               sync_tol, c_lev, c_lev, proj_abs_tol);
     //
@@ -1071,8 +1102,7 @@ Projection::syncProject (int             c_lev,
     {
         const Real invrat = 1.0/(double)crse_dt_ratio;
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
-        crsr_sync_reg->CompLPhiAdd(phi,sig,sync_boxes,
-                                   dx,geom,crsr_geom,rz_flag,invrat);
+        crsr_sync_reg->CompAdd(sync_resid_fine,geom,crsr_geom,phys_bc,sync_boxes,invrat);
     }
     //
     //----------------- reset state + pressure data ---------------------
@@ -1106,14 +1136,12 @@ Projection::MLsyncProject (int             c_lev,
                            MultiFab&       phi_fine,
                            SyncRegister*   rhs_sync_reg,
                            SyncRegister*   crsr_sync_reg,
-                           int**           sync_bc,
                            const Real*     dx,
                            Real            dt_crse, 
                            IntVect&        ratio,
                            int             crse_dt_ratio,
                            const Geometry& fine_geom,
-                           const Geometry& crse_geom,
-                           int             have_divu)
+                           const Geometry& crse_geom)
 {
     static RunStats stats("sync_project");
 
@@ -1146,8 +1174,6 @@ Projection::MLsyncProject (int             c_lev,
     PArray<MultiFab> u_real[BL_SPACEDIM];
     PArray<MultiFab> p_real(c_lev+2), s_real(c_lev+2), crse_rhs_real(c_lev+1);
 
-    BoxArray sync_boxes = pres_fine.boxArray();
-    sync_boxes.coarsen(ratio);
     //
     // Set up RHS
     //
@@ -1162,19 +1188,7 @@ Projection::MLsyncProject (int             c_lev,
     //
     scaleVar(&rho_crse, 0, Vsync,   grids,      c_lev  );
     scaleVar(&rho_fine, 0, &V_corr, fine_grids, c_lev+1);
-    //
-    // If this sync project is not at level 0 then we need to account for
-    // the changes made here in the level c_lev velocity in the sync registers
-    // going into the level (c_lev-1) sync project.
-    //
-    if (c_lev > 0) 
-    {
-        const Real invrat = 1.0/(double)crse_dt_ratio;
-        const Geometry& crsr_geom = parent->Geom(c_lev-1);
-        crsr_sync_reg->CompDVAdd(*Vsync,sync_boxes,dx,
-                                 crse_geom,crsr_geom,
-                                 rz_flag,sync_bc,invrat);
-    }
+
     //
     // Set up alias lib.
     //
@@ -1226,11 +1240,24 @@ Projection::MLsyncProject (int             c_lev,
     // if use_u = 1, then solves DGphi = RHS + DV
     // both return phi and (V-Gphi) as V
     //
-    const bool use_u     = true;
+    const bool use_u   = true;
+    const bool is_sync = true;
     const Real* dx_fine  = parent->Geom(c_lev+1).CellSize();
 
+    MultiFab *sync_resid_crse = 0;
+    MultiFab* sync_resid_fine;
+
+    if (c_lev > 0) {
+      int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
+      sync_resid_fine = new MultiFab(Pgrids_crse,1,ngrow);
+    } else {
+      sync_resid_fine = 0;
+    }
+
+    Box crse_domain(crse_geom.Domain());
     sync_proj->manual_project(u_real, p_real, null_amr_real,
-                              crse_rhs_real, s_real,
+                              crse_rhs_real, s_real, 
+                              sync_resid_crse, sync_resid_fine, crse_domain, is_sync,
                               use_u, (Real*)dx_fine,
                               sync_tol, c_lev, c_lev+1, proj_abs_tol);
     //
@@ -1261,11 +1288,12 @@ Projection::MLsyncProject (int             c_lev,
     //
     if (c_lev > 0) 
     {
-        const Real invrat   = 1.0/(double)crse_dt_ratio;
-        MultiFab*  phi_crse = phi[c_lev];
+        const Real invrat = 1.0/(double)crse_dt_ratio;
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
-        crsr_sync_reg->CompLPhiAdd(*phi_crse,rho_crse,sync_boxes,
-                                   dx,crse_geom,crsr_geom,rz_flag,invrat);
+        BoxArray sync_boxes = pres_fine.boxArray();
+        sync_boxes.coarsen(ratio);
+        crsr_sync_reg->CompAdd(sync_resid_fine,crse_geom,crsr_geom,
+                               phys_bc,sync_boxes,invrat);
     }
     //
     // Do necessary un-scaling.
@@ -1444,11 +1472,18 @@ Projection::initialVelocityProject (int  c_lev,
     //
     // Project
     //
+
+    MultiFab* sync_resid_crse = 0;
+    MultiFab* sync_resid_fine = 0;
+
     const Real* dx_lev = parent->Geom(f_lev).CellSize();
 
+    bool is_sync  = false;
+    Box crse_domain(parent->Geom(c_lev).Domain());
     if (!have_divu)
     {
         sync_proj->project(u_real, p_real, null_amr_real, s_real,
+                           sync_resid_crse, sync_resid_fine, crse_domain, is_sync,
                            (Real*)dx_lev, proj_tol, c_lev, f_lev,proj_abs_tol);
     } 
     else 
@@ -1465,13 +1500,14 @@ Projection::initialVelocityProject (int  c_lev,
             rhslev->mult(-1.0,0,1,nghost);
             if (CoordSys::IsRZ()) radMult(lev,*rhslev,0); 
         }
-        const bool use_u = true;
+        const bool use_u   = true;
         PArray<MultiFab> rhs_real(f_lev+1);
         for (lev = c_lev; lev <= f_lev; lev++) 
             rhs_real.set(lev, rhs_cc[lev]);
 
-        sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real,
-                                  s_real, use_u, (Real*)dx_lev,
+        sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real, 
+                                  sync_resid_crse, sync_resid_fine, crse_domain, is_sync,
+                                  use_u, (Real*)dx_lev,
                                   proj_tol, c_lev, f_lev, proj_abs_tol);
         for (lev = c_lev; lev <= f_lev; lev++) 
             delete rhs_cc[lev];
@@ -1546,7 +1582,7 @@ Projection::initialSyncProject (int       c_lev,
         vel[lev] = &LevelData[lev].get_new_data(State_Type);
         phi[lev] = &LevelData[lev].get_old_data(Press_Type);
     }
-
+  
     Real dt_inv = 1./dt;
     if (have_divu) 
     {
@@ -1683,21 +1719,27 @@ Projection::initialSyncProject (int       c_lev,
                            parent->refRatio(lev-1));
 #else
             restrict_level(u_real[n][lev-1],u_real[n][lev],parent->refRatio(lev-1),
-                           default_restrictor(), default_level_interface,0);
+                           default_restrictor(),default_level_interface,0);
 #endif
         }
     }
+
+    MultiFab* sync_resid_crse = 0;
+    MultiFab* sync_resid_fine = 0;
 
     const Real* dx_lev = parent->Geom(f_lev).CellSize();
     //
     // Project.
     //
+    bool is_sync  = false;
+    Box crse_domain(parent->Geom(c_lev).Domain());
     if (!have_divu) 
     {
         //
         // Zero divu only or debugging.
         //
         sync_proj->project(u_real, p_real, null_amr_real, s_real,
+                           sync_resid_crse, sync_resid_fine, crse_domain, is_sync,
                            (Real*)dx_lev, proj_tol, c_lev, f_lev,proj_abs_tol);
     } 
     else 
@@ -1705,13 +1747,14 @@ Projection::initialSyncProject (int       c_lev,
         //
         // General divu.
         //
-        bool use_u = true;
+        bool use_u   = true;
         PArray<MultiFab> rhs_real(f_lev+1);
         for (lev = c_lev; lev <= f_lev; lev++) 
         {
             rhs_real.set(lev, rhs[lev]);
         }
         sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
+                                  sync_resid_crse, sync_resid_fine, crse_domain, is_sync,
                                   use_u, (Real*)dx_lev,
                                   proj_tol, c_lev, f_lev, proj_abs_tol);
     }
@@ -1775,7 +1818,7 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
     BL_ASSERT(!(ns == 0));
 
     MultiFab* divu = ns->getDivCond(1,time);
-
+ 
     int imax = geom.Domain().bigEnd()[0]+1;
 
     for (MultiFabIterator rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi)
@@ -2064,7 +2107,7 @@ Projection::scaleVar (MultiFab*       sig,
         if (sig != 0)
             radMult(level,*sig,0);
         if (vel != 0)
-            for (int n = 0; n < BL_SPACEDIM; n++)
+            for (int n = 0; n < BL_SPACEDIM; n++) 
                 radMult(level,*vel,n);
     }
     //
@@ -2115,12 +2158,12 @@ Projection::rescaleVar (MultiFab*       sig,
 //
 // Multiply by a radius for r-z coordinates.
 //
+
 void
 Projection::radMult (int       level,
                      MultiFab& mf,
                      int       comp)
 {
-    BL_ASSERT(mf.nGrow() <= 1);
     BL_ASSERT(radius_grow >= mf.nGrow());
     BL_ASSERT(comp >= 0 && comp < mf.nComp());
 
@@ -2148,16 +2191,15 @@ Projection::radMult (int       level,
     }
 }
 
-
 //
 // Divide by a radius for r-z coordinates.
 //
+
 void
 Projection::radDiv (int       level,
                     MultiFab& mf,
                     int       comp)
 {
-    BL_ASSERT(mf.nGrow() <= 1);
     BL_ASSERT(comp >= 0 && comp < mf.nComp());
     BL_ASSERT(radius_grow >= mf.nGrow());
 
@@ -2580,12 +2622,19 @@ Projection::initialVorticityProject (int c_lev)
         p_real.set(lev, phi[lev]);
         s_real.set(lev, sig[lev]);
     }
+
+    MultiFab* sync_resid_crse = 0;
+    MultiFab* sync_resid_fine = 0;
+
     //
     // Project.
     //
     const Real* dx_lev = parent->Geom(f_lev).CellSize();
-    const int   use_u  = 0;
+    const bool  use_u  = false;
+    const bool is_sync = false;
+    Box crse_domain(parent->Geom(c_lev).Domain());
     sync_proj->manual_project(u_real,p_real,rhs_real,null_amr_real,s_real,
+                              sync_resid_crse, sync_resid_fine, crse_domain, is_sync,
                               use_u,(Real*)dx_lev,
                               proj_tol,c_lev,f_lev,proj_abs_tol);
     //
@@ -2751,7 +2800,6 @@ Projection::computeBC(FArrayBox& velFab, FArrayBox& divuFab,
   }
 #endif
 }
-
 
 
 

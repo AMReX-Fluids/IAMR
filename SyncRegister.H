@@ -4,7 +4,7 @@
 #define _SYNCREGISTER_H_
 
 //
-// $Id: SyncRegister.H,v 1.14 1999-06-30 22:40:04 almgren Exp $
+// $Id: SyncRegister.H,v 1.15 1999-07-24 00:07:02 almgren Exp $
 //
 
 #include <PArray.H>
@@ -42,62 +42,21 @@ public:
 
     const BoxArray& coarsenedBoxes () const { return grids; }
 
-    void CrseDVInit (const MultiFab& V,
-                     const Geometry& geom, 
-                     int             is_rz,
-                     int**           crse_bc,
-                     Real            mult = 1.0);
+    void CrseInit (MultiFab*    Sync_resid_crse,
+                   Real               mult);
 
-    void FineDVAdd (const MultiFab& V, 
-                    const Real*     dx_fine,
-                    const Geometry& crse_geom,
-                    int             is_rz,
-                    int**           fine_bc,
-                    Real            mult);
+    void FineAdd  (MultiFab*    Sync_resid_crse,
+                   const Geometry&    fine_geom,
+                   const Geometry&    crse_geom,
+                   const BCRec*       phys_bc,
+                   Real               mult);
 
-    void CrseDsdtAdd (const MultiFab& dsdt,
-                      const Geometry& geom,
-                      int             is_rz,
-                      int**           crse_bc, 
-                      Real            mult = 1.0);
-
-    void FineDsdtAdd (const MultiFab& dsdt,
-                      const Geometry& geom,
-                      const Geometry& crse_geom,
-                      int             is_rz,
-                      int**           fine_bc, 
-                      Real             mult);
-
-    void CompDVAdd (const MultiFab& V, 
-                    const BoxArray& fine_boxes,
-                    const Real*     dx_fine, 
-                    const Geometry& fine_geom, 
-                    const Geometry& crse_geom, 
-                    int             is_rz,
-                    int**           fine_bc,
-                    Real            mult);
-
-    void CrseLPhiAdd (const MultiFab& Phi,
-                      const MultiFab& sigma,
-                      const Geometry& geom,
-                      int             is_rz,
-                      Real            mult = 1.0);
-
-    void FineLPhiAdd (const MultiFab& Phi,
-                      const MultiFab& sigma,
-                      const Real*     dx_fine,
-                      const Geometry& geom, 
-                      int             is_rz,
-                      Real            mult);
-
-    void CompLPhiAdd (const MultiFab& Phi,
-                      const MultiFab& sigma,
-                      const BoxArray& fine_boxes, 
-                      const Real*     dx_fine, 
-                      const Geometry& fine_geom, 
-                      const Geometry& crse_geom, 
-                      int             is_rz,
-                      Real            mult);
+    void CompAdd  (MultiFab*    Sync_resid_crse,
+                   const Geometry&    fine_geom,
+                   const Geometry&    crse_geom,
+                   const BCRec*       phys_bc,
+                   const BoxArray&    Pgrids,
+                   Real               mult);
 
     void InitRHS (MultiFab&       rhs,
                   const Geometry& geom,

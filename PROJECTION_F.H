@@ -2,7 +2,7 @@
 #define _PROJECTION_F_H_ 
 
 /*
-** $Id: PROJECTION_F.H,v 1.12 1999-07-01 23:56:25 propp Exp $
+** $Id: PROJECTION_F.H,v 1.13 1999-07-24 00:07:04 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -102,6 +102,7 @@ extern "C" {
                     const Real* nodedat,
                     ARLIM_P(cclo), ARLIM_P(cchi), const int* lo, const int* hi,
                     Real* ccdat);
+
 #if (BL_SPACEDIM == 2)
     void FORT_HGPHIBC(const Real* hx,
                       const Real* rcen,const Real* uE, const Real* divE,
@@ -124,8 +125,6 @@ extern "C" {
                        REAL* divgp, ARLIM_P(dglo), ARLIM_P(dghi),
                        const int* lo, const int* hi,
                        const REAL* dx, const REAL* mult, int* is_rz);
-
-
 }
 
 #endif
