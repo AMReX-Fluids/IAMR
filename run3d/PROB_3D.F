@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.5 1997-12-15 20:56:09 lijewski Exp $
+c $Id: PROB_3D.F,v 1.6 1998-02-22 19:06:52 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -117,7 +117,7 @@ c     ::::: local variables
      &                 dx,xlo,xhi)
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
-      endif
+      end if
 
       return
       end
@@ -167,7 +167,7 @@ c     ::::: local variables
       else 
          write(6,*) "initbubble: adv_dir = ",adv_dir
          stop
-      endif
+      end if
 
 #if 0
          do k = lo(3), hi(3)
@@ -193,9 +193,9 @@ c     ::::: local variables
 	       vel(i,j,k,3) = uz
 	       scal(i,j,k,1) = rho
                scal(i,j,k,2) = c
-	    enddo
-         enddo
-         enddo
+	    end do
+         end do
+         end do
 #endif
 
          do k = lo(3), hi(3)
@@ -204,12 +204,12 @@ c     ::::: local variables
             if (axis_dir .eq. 1) then
               y = xlo(2) + hy*(float(j-lo(2)) + half)
               dist = sqrt((z-zblob)**2 + (y-yblob)**2)
-            endif
+            end if
             do i = lo(1), hi(1)
                if (axis_dir .eq. 2) then
                  x = xlo(1) + hx*(float(i-lo(1)) + half)
                  dist = sqrt((z-zblob)**2 + (x-xblob)**2)
-               endif
+               end if
                ux = x_vel
                uy = y_vel
                uz = z_vel
@@ -222,9 +222,9 @@ c     ::::: local variables
                vel(i,j,k,3) = uz
                scal(i,j,k,1) = rho
                scal(i,j,k,2) = c
-            enddo
-         enddo
-         enddo
+            end do
+         end do
+         end do
 
 
       return
@@ -275,7 +275,7 @@ c     ::::: local variables
       else
          write(6,*) "initspin: adv_dir = ",adv_dir
          stop
-      endif
+      end if
 
       xlen = 1.d0
       ylen = 1.d0
@@ -302,9 +302,9 @@ c     ::::: local variables
                vel(i,j,k,3) = uz
                scal(i,j,k,1) = rho
 	       scal(i,j,k,2) = c
-	    enddo
-         enddo
-         enddo
+	    end do
+         end do
+         end do
       else if (axis_dir .eq. 2) then
          do j = lo(2), hi(2)
          do k = lo(3), hi(3)
@@ -326,9 +326,9 @@ c     ::::: local variables
                vel(i,j,k,3) = uz
                scal(i,j,k,1) = rho
                scal(i,j,k,2) = c
-            enddo
-         enddo
-         enddo
+            end do
+         end do
+         end do
       else if (axis_dir .eq. 1) then
          do i = lo(1), hi(1)
          do k = lo(3), hi(3)
@@ -350,13 +350,13 @@ c     ::::: local variables
                vel(i,j,k,3) = uz
                scal(i,j,k,1) = rho
                scal(i,j,k,2) = c
-            enddo
-         enddo
-         enddo
+            end do
+         end do
+         end do
       else 
          print *,'BAD AXIS_DIR IN INITSPIN ',axis_dir
          stop
-      endif
+      end if
 
       return
       end
@@ -407,9 +407,9 @@ c     ::::: local variables
                vel(i,j,k,3) = zero
                scal(i,j,k,1) = cvmgt(denfact,one,r.lt.radblob)
                scal(i,j,k,2) = cvmgt(one,zero,r.lt.radblob)
-	    enddo
-         enddo
-         enddo
+	    end do
+         end do
+         end do
 
       return
       end
@@ -457,9 +457,9 @@ c ::: -----------------------------------------------------------
       do j = lo(2), hi(2)
       do i = lo(1), hi(1)
          tag(i,j,k) = cvmgt(set,tag(i,j,k),rho(i,j,k,1).lt.denerr)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 
       return
       end
@@ -510,9 +510,9 @@ c       ::::: refine around entire bubble
         do j = lo(2), hi(2)
         do i = lo(1), hi(1)
           tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
-        enddo
-        enddo
-        enddo
+        end do
+        end do
+        end do
       else
 c       ::::: refine where there is bubble gradient
         do k = lo(3), hi(3)
@@ -523,10 +523,10 @@ c       ::::: refine where there is bubble gradient
           az = abs(adv(i,j,k+1,1) - adv(i,j,k-1,1))
           aerr = max(ax,ay,az)
           tag(i,j,k) = cvmgt(set,tag(i,j,k),aerr.gt.bubgrad)
-        enddo
-        enddo
-        enddo
-      endif
+        end do
+        end do
+        end do
+      end if
  
       return
       end
@@ -576,9 +576,9 @@ c ::: -----------------------------------------------------------
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             tag(i,j,k) = cvmgt(set,clear,abs(vort(i,j,k,1)).gt.vorterr)
-	 enddo
-      enddo
-      enddo
+	 end do
+      end do
+      end do
 
       return
       end
@@ -627,20 +627,20 @@ c ::: -----------------------------------------------------------
             do k = ARG_L3(rho), ARG_H3(rho)
             do j = ARG_L2(rho), ARG_H2(rho)
                rho(i,j,k) = denfact
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(rho).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(rho)
             do k = ARG_L3(rho), ARG_H3(rho)
             do j = ARG_L2(rho), ARG_H2(rho)
 	       rho(i,j,k) = denfact
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(rho).lt.domlo(2)) then
@@ -648,40 +648,40 @@ c ::: -----------------------------------------------------------
               do k = ARG_L3(rho), ARG_H3(rho)
               do i = ARG_L1(rho), ARG_H1(rho)
 	         rho(i,j,k) = denfact
-	      enddo
-	      enddo
-	   enddo
-      endif            
+	      end do
+	      end do
+	   end do
+      end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(rho).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(rho)
             do k = ARG_L3(rho), ARG_H3(rho)
             do i = ARG_L1(rho), ARG_H1(rho)
 	       rho(i,j,k) = denfact
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(rho).lt.domlo(3)) then
            do k = ARG_L3(rho), domlo(3)-1
               do j = ARG_L2(rho), ARG_H2(rho)
               do i = ARG_L1(rho), ARG_H1(rho)
                  rho(i,j,k) = denfact
-              enddo
-              enddo
-           enddo
-      endif
+              end do
+              end do
+           end do
+      end if
 
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(rho).gt.domhi(3)) then
            do k = domhi(3)+1, ARG_H3(rho)
               do j = ARG_L2(rho), ARG_H2(rho)
               do i = ARG_L1(rho), ARG_H1(rho)
                 rho(i,j,k) = denfact
-              enddo
-              enddo
-         enddo
-      endif
+              end do
+              end do
+         end do
+      end if
 
 
       return
@@ -731,60 +731,60 @@ c ::: -----------------------------------------------------------
             do k = ARG_L3(adv), ARG_H3(adv)
             do j = ARG_L2(adv), ARG_H2(adv)
 	       adv(i,j,k) = zero
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(adv).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(adv)
             do k = ARG_L3(adv), ARG_H3(adv)
             do j = ARG_L2(adv), ARG_H2(adv)
 	       adv(i,j,k) = zero
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(adv).lt.domlo(2)) then
          do j = ARG_L2(adv), domlo(2)-1
             do k = ARG_L3(adv), ARG_H3(adv)
             do i = ARG_L1(adv), ARG_H1(adv)
 	       adv(i,j,k) = zero
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(adv).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(adv)
             do k = ARG_L3(adv), ARG_H3(adv)
             do i = ARG_L1(adv), ARG_H1(adv)
 	       adv(i,j,k) = zero
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(adv).lt.domlo(3)) then
          do k = ARG_L3(adv), domlo(3)-1
             do j = ARG_L2(adv), ARG_H2(adv)
             do i = ARG_L1(adv), ARG_H1(adv)
                adv(i,j,k) = zero
-            enddo
-            enddo
-         enddo
-      endif 
+            end do
+            end do
+         end do
+      end if 
 
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(adv).gt.domhi(3)) then
          do k = domhi(3)+1, ARG_H3(adv)
             do j = ARG_L2(adv), ARG_H2(adv)
             do i = ARG_L1(adv), ARG_H1(adv)
                adv(i,j,k) = zero
-            enddo
-            enddo
-         enddo
-      endif
+            end do
+            end do
+         end do
+      end if
 
       return
       end
@@ -830,7 +830,7 @@ c ::: -----------------------------------------------------------
          x_vel = adv_vel
       else  
          x_vel = zero
-      endif
+      end if
 
       call filcc(u,DIMS(u),domlo,domhi,dx,xlo,bc)
 
@@ -839,60 +839,60 @@ c ::: -----------------------------------------------------------
             do k = ARG_L3(u), ARG_H3(u)
             do j = ARG_L2(u), ARG_H2(u)
                u(i,j,k) = x_vel
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(u).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(u)
             do k = ARG_L3(u), ARG_H3(u)
             do j = ARG_L2(u), ARG_H2(u)
                u(i,j,k) = x_vel
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(u).lt.domlo(2)) then
          do j = ARG_L2(u), domlo(2)-1
             do k = ARG_L3(u), ARG_H3(u)
             do i = ARG_L1(u), ARG_H1(u)
                u(i,j,k) = x_vel
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(u).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(u)
             do k = ARG_L3(u), ARG_H3(u)
             do i = ARG_L1(u), ARG_H1(u)
                u(i,j,k) = x_vel
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(u).lt.domlo(3)) then
          do k = ARG_L3(u), domlo(3)-1
             do j = ARG_L2(u), ARG_H2(u)
             do i = ARG_L1(u), ARG_H1(u)
                u(i,j,k) = x_vel
-            enddo
-            enddo
-         enddo
-      endif
+            end do
+            end do
+         end do
+      end if
 
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(u).gt.domhi(3)) then
          do k = domhi(3)+1, ARG_H3(u)
             do j = ARG_L2(u), ARG_H2(u)
             do i = ARG_L1(u), ARG_H1(u)
                u(i,j,k) = x_vel
-            enddo
-            enddo
-         enddo
-      endif
+            end do
+            end do
+         end do
+      end if
 
       return
       end
@@ -939,7 +939,7 @@ c ::: -----------------------------------------------------------
          y_vel = adv_vel
       else  
          y_vel = zero
-      endif
+      end if
 
       call filcc(v,DIMS(v),domlo,domhi,dx,xlo,bc)
 
@@ -948,60 +948,60 @@ c ::: -----------------------------------------------------------
            do k = ARG_L3(v), ARG_H3(v)
            do j = ARG_L2(v), ARG_H2(v)
 	     v(i,j,k) = y_vel
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(v).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(v)
            do k = ARG_L3(v), ARG_H3(v)
            do j = ARG_L2(v), ARG_H2(v)
 	     v(i,j,k) = y_vel
-	   enddo
-	   enddo
-	 enddo
-      endif            
+	   end do
+	   end do
+	 end do
+      end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(v).lt.domlo(2)) then
          do j = ARG_L2(v), domlo(2)-1
            do k = ARG_L3(v), ARG_H3(v)
            do i = ARG_L1(v), ARG_H1(v)
 	     v(i,j,k) = y_vel
-	   enddo
-	   enddo
-	 enddo
-      endif            
+	   end do
+	   end do
+	 end do
+      end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(v).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(v)
            do k = ARG_L3(v), ARG_H3(v)
            do i = ARG_L1(v), ARG_H1(v)
 	     v(i,j,k) = y_vel
-	   enddo
-	   enddo
-	 enddo
-      endif            
+	   end do
+	   end do
+	 end do
+      end if            
 
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(v).lt.domlo(3)) then
          do k = ARG_L3(v), domlo(3)-1
            do j = ARG_L2(v), ARG_H2(v)
            do i = ARG_L1(v), ARG_H1(v)
              v(i,j,k) = y_vel
-           enddo
-           enddo
-         enddo
-      endif        
+           end do
+           end do
+         end do
+      end if        
 
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(v).gt.domhi(3)) then
          do k = domhi(3)+1, ARG_H3(v)
            do j = ARG_L2(v), ARG_H2(v)
            do i = ARG_L1(v), ARG_H1(v)
              v(i,j,k) = y_vel
-           enddo
-           enddo
-         enddo
-      endif        
+           end do
+           end do
+         end do
+      end if        
 
       return
       end
@@ -1047,7 +1047,7 @@ c ::: -----------------------------------------------------------
          z_vel = adv_vel
       else  
          z_vel = zero
-      endif
+      end if
 
       call filcc(w,DIMS(w),domlo,domhi,dx,xlo,bc)
 
@@ -1056,60 +1056,60 @@ c ::: -----------------------------------------------------------
            do k = ARG_L3(w), ARG_H3(w)
            do j = ARG_L2(w), ARG_H2(w)
 	     w(i,j,k) = z_vel
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(w).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(w)
            do k = ARG_L3(w), ARG_H3(w)
            do j = ARG_L2(w), ARG_H2(w)
 	     w(i,j,k) = z_vel
-	    enddo
-	    enddo
-	 enddo
-      endif            
+	    end do
+	    end do
+	 end do
+      end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(w).lt.domlo(2)) then
          do j = ARG_L2(w), domlo(2)-1
            do k = ARG_L3(w), ARG_H3(w)
            do i = ARG_L1(w), ARG_H1(w)
 	     w(i,j,k) = z_vel
-	   enddo
-	   enddo
-	 enddo
-      endif            
+	   end do
+	   end do
+	 end do
+      end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(w).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(w)
            do k = ARG_L3(w), ARG_H3(w)
            do i = ARG_L1(w), ARG_H1(w)
 	     w(i,j,k) = z_vel
-	   enddo
-	   enddo
-	 enddo
-      endif            
+	   end do
+	   end do
+	 end do
+      end if            
 
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(w).lt.domlo(3)) then
          do k = ARG_L3(w), domlo(3)-1
            do j = ARG_L2(w), ARG_H2(w)
            do i = ARG_L1(w), ARG_H1(w)
              w(i,j,k) = z_vel
-           enddo
-           enddo
-         enddo
-      endif        
+           end do
+           end do
+         end do
+      end if        
 
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(w).gt.domhi(3)) then
          do k = domhi(3)+1, ARG_H3(w)
            do j = ARG_L2(w), ARG_H2(w)
            do i = ARG_L1(w), ARG_H1(w)
              w(i,j,k) = z_vel
-           enddo
-           enddo
-         enddo
-      endif        
+           end do
+           end do
+         end do
+      end if        
 
       return
       end
@@ -1173,245 +1173,245 @@ c ::: -----------------------------------------------------------
          do k = klo, khi
 	 do j = jlo,jhi
 	    p(i,j,k) = p(ilo,j,k)
-	 enddo
-	 enddo
-	 enddo
+	 end do
+	 end do
+	 end do
 
 	 if (fix_ylo) then
 	    do i = ARG_L1(p), domlo(1)-1
 	    do j = ARG_L2(p), domlo(2)-1
 	    do k = klo, khi
 	       p(i,j,k) = p(ilo,jlo,k)
-	    enddo
-	    enddo
-	    enddo
+	    end do
+	    end do
+	    end do
 
 	    if (fix_zlo) then
 	      do i = ARG_L1(p), domlo(1)-1
 	      do j = ARG_L2(p), domlo(2)-1
 	      do k = ARG_L3(p), domlo(3)-1
 	         p(i,j,k) = p(ilo,jlo,klo)
-	      enddo
-	      enddo
-	      enddo
-	    endif
+	      end do
+	      end do
+	      end do
+	    end if
 	    if (fix_zhi) then
 	      do i = ARG_L1(p), domlo(1)-1
 	      do j = ARG_L2(p), domlo(2)-1
 	      do k = domhi(3)+1, ARG_H3(p)
 	         p(i,j,k) = p(ilo,jlo,khi)
-	      enddo
-	      enddo
-	      enddo
-	    endif
-	 endif
+	      end do
+	      end do
+	      end do
+	    end if
+	 end if
 	 if (fix_yhi) then
 	    do i = ARG_L1(p), domlo(1)-1
 	    do j = domhi(2)+1, ARG_H2(p)
 	    do k = klo, khi
 	       p(i,j,k) = p(ilo,jhi,k)
-	    enddo
-	    enddo
-	    enddo
+	    end do
+	    end do
+	    end do
 	    if (fix_zlo) then
 	      do i = ARG_L1(p), domlo(1)-1
 	      do j = domhi(2)+1, ARG_H2(p)
 	      do k = ARG_L3(p), domlo(3)-1
 	         p(i,j,k) = p(ilo,jhi,klo)
-	      enddo
-	      enddo
-	      enddo
-	    endif
+	      end do
+	      end do
+	      end do
+	    end if
 	    if (fix_zhi) then
 	      do i = ARG_L1(p), domlo(1)-1
 	      do j = domhi(2)+1, ARG_H2(p)
 	      do k = domhi(3)+1, ARG_H3(p)
 	         p(i,j,k) = p(ilo,jhi,khi)
-	      enddo
-	      enddo
-	      enddo
-	    endif
-	 endif
+	      end do
+	      end do
+	      end do
+	    end if
+	 end if
 	 if (fix_zlo) then
 	    do i = ARG_L1(p), domlo(1)-1
 	    do j = jlo, jhi
 	    do k = ARG_L3(p), domlo(3)-1
 	       p(i,j,k) = p(ilo,j,klo)
-	    enddo
-	    enddo
-	    enddo
-	 endif
+	    end do
+	    end do
+	    end do
+	 end if
 	 if (fix_zhi) then
 	    do i = ARG_L1(p), domlo(1)-1
 	    do j = jlo, jhi
 	    do k = domhi(3)+1, ARG_H3(p)
 	       p(i,j,k) = p(ilo,j,khi)
-	    enddo
-	    enddo
-	    enddo
-	 endif
-      endif            
+	    end do
+	    end do
+	    end do
+	 end if
+      end if            
 
       if (fix_xhi) then
          do i = domhi(1)+1, ARG_H1(p)
          do k = klo, khi
 	 do j = jlo,jhi
 	    p(i,j,k) = p(ihi,j,k)
-	 enddo
-	 enddo
-	 enddo
+	 end do
+	 end do
+	 end do
 	 if (fix_ylo) then
 	    do i = domhi(1)+1, ARG_H1(p)
 	    do j = ARG_L2(p), domlo(2)-1
 	    do k = klo, khi
 	       p(i,j,k) = p(ihi,jlo,k)
-	    enddo
-	    enddo
-	    enddo
+	    end do
+	    end do
+	    end do
 
 	    if (fix_zlo) then
 	      do i = domhi(1)+1, ARG_H1(p)
 	      do j = ARG_L2(p), domlo(2)-1
 	      do k = ARG_L3(p), domlo(3)-1
 	         p(i,j,k) = p(ihi,jlo,klo)
-	      enddo
-	      enddo
-	      enddo
-	    endif
+	      end do
+	      end do
+	      end do
+	    end if
 	    if (fix_zhi) then
 	      do i = domhi(1)+1, ARG_H1(p)
 	      do j = ARG_L2(p), domlo(2)-1
 	      do k = domhi(3)+1, ARG_H3(p)
 	         p(i,j,k) = p(ihi,jlo,khi)
-	      enddo
-	      enddo
-	      enddo
-	    endif
-	 endif
+	      end do
+	      end do
+	      end do
+	    end if
+	 end if
 	 if (fix_yhi) then
 	    do i = domhi(1)+1, ARG_H1(p)
 	    do j = domhi(2)+1, ARG_H2(p)
 	    do k = klo, khi
 	       p(i,j,k) = p(ihi,jhi,k)
-	    enddo
-	    enddo
-	    enddo
+	    end do
+	    end do
+	    end do
 	    if (fix_zlo) then
 	      do i = domhi(1)+1, ARG_H1(p)
 	      do j = domhi(2)+1, ARG_H2(p)
 	      do k = ARG_L3(p), domlo(3)-1
 	         p(i,j,k) = p(ihi,jhi,klo)
-	      enddo
-	      enddo
-	      enddo
-	    endif
+	      end do
+	      end do
+	      end do
+	    end if
 	    if (fix_zhi) then
 	      do i = domhi(1)+1, ARG_H1(p)
 	      do j = domhi(2)+1, ARG_H2(p)
 	      do k = domhi(3)+1, ARG_H3(p)
 	         p(i,j,k) = p(ihi,jhi,khi)
-	      enddo
-	      enddo
-	      enddo
-	    endif
-	 endif
+	      end do
+	      end do
+	      end do
+	    end if
+	 end if
 	 if (fix_zlo) then
 	    do i = domhi(1)+1, ARG_H1(p)
 	    do j = jlo, jhi
 	    do k = ARG_L3(p), domlo(3)-1
 	       p(i,j,k) = p(ihi,j,klo)
-	    enddo
-	    enddo
-	    enddo
-	 endif
+	    end do
+	    end do
+	    end do
+	 end if
 	 if (fix_zhi) then
 	    do i = domhi(1)+1, ARG_H1(p)
 	    do j = jlo, jhi
 	    do k = domhi(3)+1, ARG_H3(p)
 	       p(i,j,k) = p(ihi,j,khi)
-	    enddo
-	    enddo
-	    enddo
-	 endif
-      endif            
+	    end do
+	    end do
+	    end do
+	 end if
+      end if            
 
       if (fix_ylo) then
          do j = ARG_L2(p), domlo(2)-1
          do k = klo, khi
 	 do i = ilo, ihi
 	    p(i,j,k) = p(i,jlo,k)
-	 enddo
-	 enddo
-	 enddo
+	 end do
+	 end do
+	 end do
 
 	 if (fix_zlo) then
 	    do j = ARG_L2(p), domlo(2)-1
 	    do k = ARG_L3(p), domlo(3)-1
 	    do i = ilo, ihi
 	       p(i,j,k) = p(i,jlo,klo)
-	    enddo
-	    enddo
-	    enddo
-	 endif
+	    end do
+	    end do
+	    end do
+	 end if
 	 if (fix_zhi) then
 	    do j = ARG_L2(p), domlo(2)-1
 	    do k = domhi(3)+1, ARG_H3(p)
 	    do i = ilo, ihi
 	       p(i,j,k) = p(i,jlo,khi)
-	    enddo
-	    enddo
-	    enddo
-	 endif
-      endif            
+	    end do
+	    end do
+	    end do
+	 end if
+      end if            
 
       if (fix_yhi) then
          do j = domhi(2)+1, ARG_H2(p)
          do k = klo, khi
 	 do i = ilo, ihi
 	    p(i,j,k) = p(i,jhi,k)
-	 enddo
-	 enddo
-	 enddo
+	 end do
+	 end do
+	 end do
 
 	 if (fix_zlo) then
 	    do j = domhi(2)+1, ARG_H2(p)
 	    do k = ARG_L3(p), domlo(3)-1
 	    do i = ilo, ihi
 	       p(i,j,k) = p(i,jhi,klo)
-	    enddo
-	    enddo
-	    enddo
-	 endif
+	    end do
+	    end do
+	    end do
+	 end if
 	 if (fix_zhi) then
 	    do j = domhi(2)+1, ARG_H2(p)
 	    do k = domhi(3)+1, ARG_H3(p)
 	    do i = ilo, ihi
 	       p(i,j,k) = p(i,jhi,khi)
-	    enddo
-	    enddo
-	    enddo
-	 endif
-      endif            
+	    end do
+	    end do
+	    end do
+	 end if
+      end if            
 
       if (fix_zlo) then
          do k = ARG_L3(p), domlo(3)-1
          do j = jlo, jhi
 	 do i = ilo, ihi
 	    p(i,j,k) = p(i,j,klo)
-	 enddo
-	 enddo
-	 enddo
-      endif            
+	 end do
+	 end do
+	 end do
+      end if            
 
       if (fix_zhi) then
          do k = domhi(3)+1, ARG_H3(p)
          do j = jlo, jhi
 	 do i = ilo, ihi
 	    p(i,j,k) = p(i,j,khi)
-	 enddo
-	 enddo
-	 enddo
-      endif            
+	 end do
+	 end do
+	 end do
+      end if            
 
       return
       end

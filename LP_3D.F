@@ -1,5 +1,5 @@
 c
-c $Id: LP_3D.F,v 1.2 1997-12-12 22:44:04 lijewski Exp $
+c $Id: LP_3D.F,v 1.3 1998-02-22 19:06:48 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -115,10 +115,10 @@ c
      $                 = (rhs(i,j,k,n)*h*h - rho + phi(i,j,k,n)*delta)
      $                 /             (delta - gamma)
 c                  
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c     
       end
 c-----------------------------------------------------------------------
@@ -156,10 +156,10 @@ c
                do i = lo(1), hi(1)
                   zz(i,j,k,n) = rr(i,j,k,n)*denom
                   rho = rho + zz(i,j,k,n)*rr(i,j,k,n)
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c     
       end
 c-----------------------------------------------------------------------
@@ -195,9 +195,9 @@ c
      $                 + x(i,j-1,k,n) + x(i,j+1,k,n)
      $                 + x(i,j,k-1,n) + x(i,j,k+1,n)
      $                 - 6*x(i,j,k,n) )
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c     
       end

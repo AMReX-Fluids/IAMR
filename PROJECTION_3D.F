@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.3 1997-12-12 22:44:10 lijewski Exp $
+c $Id: PROJECTION_3D.F,v 1.4 1998-02-22 19:06:53 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -57,9 +57,9 @@ c
      $       pnew(i,j,k-1) + pnew(i,j,k+1) )
          scratch(i,j,k) = - twelfth * scratch(i,j,k) * fac
 
-       enddo
-       enddo
-       enddo
+       end do
+       end do
+       end do
 
        do k = lo(3)+1, hi(3)
        do j = lo(2)+1, hi(2)
@@ -67,9 +67,9 @@ c
 
          pnew(i,j,k) = pnew(i,j,k) + scratch(i,j,k)
 
-       enddo
-       enddo
-       enddo
+       end do
+       end do
+       end do
 c
 c     end of routine
 c
@@ -100,10 +100,10 @@ c
              do j = lo(2)-1, hi(2)+1
                 do i = lo(1)-1, hi(1)+1
                    unew(i,j,k,n) = uold(i,j,k,n) + dt*unew(i,j,k,n)
-                enddo
-             enddo
-          enddo
-       enddo
+                end do
+             end do
+          end do
+       end do
 c     
 c     end of routine
 c     
@@ -134,10 +134,10 @@ c
             do j = lo(2)-1, hi(2)+1
                do i = lo(1)-1, hi(1)+1
                   unew(i,j,k,n) = (unew(i,j,k,n)-uold(i,j,k,n))/dt
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c     
 c     end of routine
 c     
@@ -169,10 +169,10 @@ c
             do j = boxlo(2), boxhi(2)
                do i = boxlo(1), boxhi(1)
                   un(i,j,k,n) = un(i,j,k,n) + alpha*uo(i,j,k,n)
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c     
 c     end of routine
 c
@@ -203,9 +203,9 @@ c
           do j = ARG_L2(grid)-n(2), ARG_H2(grid)+n(2)
              do i = ARG_L1(grid)-n(1), ARG_H1(grid)+n(1)
                 a(i,j,k) = r(i)*a(i,j,k)
-             enddo
-          enddo
-       enddo
+             end do
+          end do
+       end do
 c
 c     end of routine
 c
@@ -234,9 +234,9 @@ c
           do j = ARG_L2(grid)-n(2), ARG_H2(grid)+n(2)
              do i = ARG_L1(grid)-n(1), ARG_H1(grid)+n(1)
                 a(i,j,k) = a(i,j,k)/r(i)
-             enddo
-          enddo
-       enddo
+             end do
+          end do
+       end do
 c
 c     end of routine
 c

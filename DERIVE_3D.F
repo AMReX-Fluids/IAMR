@@ -1,4 +1,4 @@
-c $Id: DERIVE_3D.F,v 1.4 1998-01-06 23:43:04 lijewski Exp $
+c $Id: DERIVE_3D.F,v 1.5 1998-02-22 19:06:44 car Exp $
 #undef BL_LANG_CC
 #define BL_LANG_FORT
 
@@ -69,7 +69,7 @@ c     ::::: lets punt if not in domain interior
       if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
          write(6,*) "FORT_DERKENG: outside domain"
 	 stop
-      endif
+      end if
 
       do k = lo(3), hi(3)
       do j = lo(2), hi(2)
@@ -79,9 +79,9 @@ c     ::::: lets punt if not in domain interior
 	 v   = dat(i,j,k,3)
 	 w   = dat(i,j,k,4)
 	 e(i,j,k,1) = half*rho*(u**2 + v**2 + w**2)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 c
 c     end of routine
 c
@@ -127,16 +127,16 @@ c     ::::: lets punt if not in domain interior
       if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
          write(6,*) "FORT_DERLOGS: outside domain"
 	 stop
-      endif
+      end if
 
       do k = lo(3), hi(3)
       do j = lo(2), hi(2)
       do i = lo(1), hi(1)
 	    rho = max(dat(i,j,k,1),sml)
 	    e(i,j,k,1) = log10(rho)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 c
 c     end of routine
 c
@@ -180,7 +180,7 @@ c     ::::: lets punt if not in domain interior
       if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
          write(6,*) "FORT_DERMVEL: outside domain"
 	 stop
-      endif
+      end if
 
       do k = lo(3), hi(3)
       do j = lo(2), hi(2)
@@ -189,9 +189,9 @@ c     ::::: lets punt if not in domain interior
 	 v   = dat(i,j,k,2)
 	 w   = dat(i,j,k,3)
 	 e(i,j,k,1) = sqrt(u**2 + v**2 + w**2)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 c
 c     end of routine
 c
@@ -234,15 +234,15 @@ c     ::::: lets punt if not in domain interior
       if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
          write(6,*) "FORT_DERDVRHO: outside domain"
 	 stop
-      endif
+      end if
 
       do k = lo(3), hi(3)
       do j = lo(2), hi(2)
       do i = lo(1), hi(1)
 	  e(i,j,k,1) = dat(i,j,k,2)/dat(i,j,k,1)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 c
 c     end of routine
 c
@@ -285,15 +285,15 @@ c     ::::: lets punt if not in domain interior
       if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
          write(6,*) "FORT_DERMPRHO: outside domain"
 	 stop
-      endif
+      end if
 
       do k = lo(3), hi(3)
       do j = lo(2), hi(2)
       do i = lo(1), hi(1)
 	  e(i,j,k,1) = dat(i,j,k,2)*dat(i,j,k,1)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 c
 c     end of routine
 c
@@ -338,7 +338,7 @@ c     ::::: lets punt if not in domain interior
       if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
          write(6,*) "FORT_DERLGRHODUST: outside domain"
 	 stop
-      endif
+      end if
 
       small = 1.0e-10
       do k = lo(3), hi(3)
@@ -346,9 +346,9 @@ c     ::::: lets punt if not in domain interior
       do i = lo(1), hi(1)
          dust = max(small,dat(i,j,k,2)*dat(i,j,k,1))
 	 e(i,j,k,1) = log10(dust)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 c
 c     end of routine
 c
@@ -451,7 +451,7 @@ c     ::::: lets punt if not in domain interior
       if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
          write(6,*) "FORT_DERMGVORT: outside domain"
 	 stop
-      endif
+      end if
 
       do k = lo(3), hi(3)
       do j = lo(2), hi(2)
@@ -463,9 +463,9 @@ c     ::::: lets punt if not in domain interior
 	 wx = wxcen(i,j,k)
 	 wy = wycen(i,j,k)
 	 vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 
       fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
      &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
@@ -507,9 +507,9 @@ c     First do all the faces
 	  uz = uzcen(i,j,k)
 	  vz = vzcen(i,j,k)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-        enddo
-      endif
+        end do
+        end do
+      end if
 
       if (fixvhi_x .or. fixwhi_x) then
         i = hi(1)
@@ -522,9 +522,9 @@ c     First do all the faces
 	  uz = uzcen(i,j,k)
 	  vz = vzcen(i,j,k)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-        enddo
-      endif
+        end do
+        end do
+      end if
 
       if (fixulo_y .or. fixwlo_y) then
         j = lo(2)
@@ -537,9 +537,9 @@ c     First do all the faces
 	  uz = uzcen(i,j,k)
 	  vz = vzcen(i,j,k)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-        enddo
-      endif
+        end do
+        end do
+      end if
 
       if (fixuhi_y .or. fixwhi_y) then
         j = hi(2)
@@ -552,9 +552,9 @@ c     First do all the faces
 	  uz = uzcen(i,j,k)
 	  vz = vzcen(i,j,k)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-        enddo
-      endif
+        end do
+        end do
+      end if
 
       if (fixulo_z .or. fixvlo_z) then
         k = lo(3)
@@ -567,9 +567,9 @@ c     First do all the faces
 	  uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
 	  vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-        enddo
-      endif
+        end do
+        end do
+      end if
 
       if (fixuhi_z .or. fixvhi_z) then
         k = hi(3)
@@ -582,9 +582,9 @@ c     First do all the faces
 	  uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
 	  vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-        enddo
-      endif
+        end do
+        end do
+      end if
 
 c     Next do all the edges
       if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y)) then
@@ -598,8 +598,8 @@ c     Next do all the edges
 	  uz = uzcen(i,j,k)
 	  vz = vzcen(i,j,k)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-      endif
+        end do
+      end if
 
       if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y)) then
         i = hi(1)
@@ -612,8 +612,8 @@ c     Next do all the edges
 	  uz = uzcen(i,j,k)
 	  vz = vzcen(i,j,k)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-      endif
+        end do
+      end if
 
       if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y)) then
         i = lo(1)
@@ -626,8 +626,8 @@ c     Next do all the edges
 	  uz = uzcen(i,j,k)
 	  vz = vzcen(i,j,k)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-      endif
+        end do
+      end if
 
       if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y)) then
         i = hi(1)
@@ -640,8 +640,8 @@ c     Next do all the edges
 	  uz = uzcen(i,j,k)
 	  vz = vzcen(i,j,k)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-      endif
+        end do
+      end if
 
       if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_z .or. fixvlo_z)) then
         i = lo(1)
@@ -654,8 +654,8 @@ c     Next do all the edges
 	  uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
 	  vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-      endif
+        end do
+      end if
 
       if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_z .or. fixvlo_z)) then
         i = hi(1)
@@ -668,8 +668,8 @@ c     Next do all the edges
 	  uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
 	  vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-      endif
+        end do
+      end if
 
       if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_z .or. fixvhi_z)) then
         i = lo(1)
@@ -682,8 +682,8 @@ c     Next do all the edges
 	  uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
 	  vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-      endif
+        end do
+      end if
 
       if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_z .or. fixvhi_z)) then
         i = hi(1)
@@ -696,8 +696,8 @@ c     Next do all the edges
 	  uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
 	  vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-      endif
+        end do
+      end if
 
       if ((fixulo_y .or. fixwlo_y) .and. (fixulo_z .or. fixvlo_z)) then
         j = lo(2)
@@ -710,8 +710,8 @@ c     Next do all the edges
 	  uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
 	  vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-      endif
+        end do
+      end if
 
       if ((fixuhi_y .or. fixwhi_y) .and. (fixulo_z .or. fixvlo_z)) then
         j = hi(2)
@@ -724,8 +724,8 @@ c     Next do all the edges
 	  uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
 	  vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-      endif
+        end do
+      end if
 
       if ((fixulo_y .or. fixwlo_y) .and. (fixuhi_z .or. fixvhi_z)) then
         j = lo(2)
@@ -738,8 +738,8 @@ c     Next do all the edges
 	  uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
 	  vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-      endif
+        end do
+      end if
 
       if ((fixuhi_y .or. fixwhi_y) .and. (fixuhi_z .or. fixvhi_z)) then
         j = hi(2)
@@ -752,8 +752,8 @@ c     Next do all the edges
 	  uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
 	  vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
           vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-        enddo
-      endif
+        end do
+      end if
 
 c     Finally do all the corners
       if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
@@ -768,7 +768,7 @@ c     Finally do all the corners
 	uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
 	vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
         vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-      endif
+      end if
 
       if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
      $    (fixulo_z .or. fixvlo_z)) then
@@ -782,7 +782,7 @@ c     Finally do all the corners
 	uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
 	vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
         vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-      endif
+      end if
 
       if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
      $    (fixulo_z .or. fixvlo_z)) then
@@ -796,7 +796,7 @@ c     Finally do all the corners
 	uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
 	vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
         vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-      endif
+      end if
 
       if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
      $    (fixulo_z .or. fixvlo_z)) then
@@ -810,7 +810,7 @@ c     Finally do all the corners
 	uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
 	vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
         vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-      endif
+      end if
 
       if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
      $    (fixuhi_z .or. fixvhi_z)) then
@@ -824,7 +824,7 @@ c     Finally do all the corners
 	uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
 	vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
         vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-      endif
+      end if
 
       if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
      $    (fixuhi_z .or. fixvhi_z)) then
@@ -838,7 +838,7 @@ c     Finally do all the corners
 	uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
 	vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
         vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-      endif
+      end if
 
       if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
      $    (fixuhi_z .or. fixvhi_z)) then
@@ -852,7 +852,7 @@ c     Finally do all the corners
 	uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
 	vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
         vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-      endif
+      end if
 
       if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
      $    (fixuhi_z .or. fixvhi_z)) then
@@ -866,7 +866,7 @@ c     Finally do all the corners
 	uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
 	vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
         vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
-      endif
+      end if
 
 #     undef U
 #     undef V      
@@ -964,7 +964,7 @@ c     ::::: lets punt if not in domain interior
       if (nxlo+nxhi+nylo+nyhi+nzlo+nzhi .gt. 0) then
          write(6,*) "FORT_DERMGDIVU: outside domain"
 	 stop
-      endif
+      end if
 
 c     :: at physical bndries where an edge value is prescribed,
 c     :: set the value in the outside cell so that a central
@@ -976,96 +976,96 @@ c     :: one sided formula
 	   do k = lo(3), hi(3)
 	   do j = lo(2), hi(2)
 	      U(i-1,j,k) = two*U(i-1,j,k) - U(i,j,k)
-	   enddo
-	   enddo
+	   end do
+	   end do
          else if (ULOX.eq.HOEXTRAP) then
 	   do k = lo(3), hi(3)
 	   do j = lo(2), hi(2)
 	      U(i-1,j,k) = uxlo(i,j,k)
-	   enddo
-	   enddo
-	 endif
-      endif
+	   end do
+	   end do
+	 end if
+      end if
       if (hi(1) .eq. domhi(1)) then
          i = hi(1)
          if (UHIX.eq.EXT_DIR) then
 	   do k = lo(3), hi(3)
 	   do j = lo(2), hi(2)
 	      U(i+1,j,k) = two*U(i+1,j,k) - U(i,j,k)
-	   enddo
-	   enddo
+	   end do
+	   end do
          else if (UHIX.eq.HOEXTRAP) then
 	   do k = lo(3), hi(3)
 	   do j = lo(2), hi(2)
 	      U(i+1,j,k) = uxhi(i,j,k)
-	   enddo
-	   enddo
-	 endif
-      endif
+	   end do
+	   end do
+	 end if
+      end if
       if (lo(2) .eq. domlo(2)) then
          j = lo(2)
 	 if (VLOY.eq.EXT_DIR) then
 	   do k = lo(3), hi(3)
 	   do i = lo(1), hi(1)
 	      V(i,j-1,k) = two*V(i,j-1,k) - V(i,j,k)
-	   enddo
-	   enddo
+	   end do
+	   end do
          else if (VLOY.eq.HOEXTRAP) then
 	   do k = lo(3), hi(3)
 	   do i = lo(1), hi(1)
 	      V(i,j-1,k) = vylo(i,j,k)
-	   enddo
-	   enddo
-	 endif
-      endif
+	   end do
+	   end do
+	 end if
+      end if
       if (hi(2) .eq. domhi(2)) then
          j = hi(2)
 	 if (VHIY.eq.EXT_DIR) then
 	   do k = lo(3), hi(3)
 	   do i = lo(1), hi(1)
 	      V(i,j+1,k) = two*V(i,j+1,k) - V(i,j,k)
-	   enddo
-	   enddo
+	   end do
+	   end do
 	 else if (VHIY.eq.HOEXTRAP) then
 	   do k = lo(3), hi(3)
 	   do i = lo(1), hi(1)
 	      V(i,j+1,k) = vyhi(i,j,k)
-	   enddo
-	   enddo
-	 endif
-      endif
+	   end do
+	   end do
+	 end if
+      end if
       if (lo(3) .eq. domlo(3)) then
          k = lo(3)
 	 if (WLOZ.eq.EXT_DIR) then
 	   do j = lo(2), hi(2)
 	   do i = lo(1), hi(1)
 	      W(i,j,k-1) = two*W(i,j,k-1) - W(i,j,k)
-	   enddo
-	   enddo
+	   end do
+	   end do
 	 else if (WLOZ.eq.HOEXTRAP) then
 	   do j = lo(2), hi(2)
 	   do i = lo(1), hi(1)
 	      W(i,j,k-1) = wzlo(i,j,k)
-	   enddo
-	   enddo
-	 endif
-      endif
+	   end do
+	   end do
+	 end if
+      end if
       if (hi(3) .eq. domhi(3)) then
          k = hi(3)
 	 if (WHIZ.eq.EXT_DIR) then
 	   do j = lo(2), hi(2)
 	   do i = lo(1), hi(1)
 	      W(i,j,k+1) = two*W(i,j,k+1) - W(i,j,k)
-	   enddo
-	   enddo
+	   end do
+	   end do
 	 else if (WHIZ.eq.HOEXTRAP) then
 	   do j = lo(2), hi(2)
 	   do i = lo(1), hi(1)
 	      W(i,j,k+1) = wzhi(i,j,k)
-	   enddo
-	   enddo
-	 endif
-      endif
+	   end do
+	   end do
+	 end if
+      end if
 
       do k = lo(3), hi(3)
       do j = lo(2), hi(2)
@@ -1074,9 +1074,9 @@ c     :: one sided formula
 	 vy = vycen(i,j,k)
          wz = wzcen(i,j,k)
 	 divu(i,j,k,1) = ux + vy + wz
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 
 c we overwrote the ghost cells above, so set them back below
 
@@ -1136,9 +1136,9 @@ c     ::::: compute gradient on interior
            gp(i,j,k) = d*(
      &           p(i+1,j,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i,j+1,k  )+
      $           p(i+1,j,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i,j+1,k+1))
-         enddo
-         enddo
-         enddo
+         end do
+         end do
+         end do
       else if (dir .eq. 1) then
          do k = lo(3), hi(3)
          do j = lo(2), hi(2)
@@ -1146,9 +1146,9 @@ c     ::::: compute gradient on interior
            gp(i,j,k) = d*(
      &           p(i,j+1,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i+1,j,k  )+
      $           p(i,j+1,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i+1,j,k+1))
-         enddo
-         enddo
-         enddo
+         end do
+         end do
+         end do
       else if (dir .eq. 2) then
          do k = lo(3), hi(3)
          do j = lo(2), hi(2)
@@ -1156,13 +1156,13 @@ c     ::::: compute gradient on interior
            gp(i,j,k) = d*(
      &           p(i,  j,k+1)-p(i,  j,k)+p(i,  j+1,k+1)-p(i,  j+1,k)+
      $           p(i+1,j,k+1)-p(i+1,j,k)+p(i+1,j+1,k+1)-p(i+1,j+1,k))
-         enddo
-         enddo
-         enddo
+         end do
+         end do
+         end do
       else
          write(6,*) "FORT_GRADP_DIR: invalid dir = ",dir
 	 stop
-      endif
+      end if
 c
 c     end of routine
 c

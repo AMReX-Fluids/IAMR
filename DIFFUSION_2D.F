@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_2D.F,v 1.4 1997-12-12 22:43:59 lijewski Exp $
+c $Id: DIFFUSION_2D.F,v 1.5 1998-02-22 19:06:44 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -78,8 +78,8 @@ c     ::::: compute X fluxes
 	       sx1 = s_o(i,j) - s_o(i-1,j)
 	       sx2 = s_n(i,j) - s_n(i-1,j)
 	       xflux(i,j) = mult*(theta*sx1 + onemintheta*sx2)*xarea(i,j)/dx(1)
-            enddo
-         enddo
+            end do
+         end do
 
 c     ::::: compute Y fluxes
          do j = lo(2), hi(2)+1
@@ -87,8 +87,8 @@ c     ::::: compute Y fluxes
 	       sy1 = s_o(i,j) - s_o(i,j-1)
 	       sy2 = s_n(i,j) - s_n(i,j-1)
 	       yflux(i,j) = mult*(theta*sy1 + onemintheta*sy2)*yarea(i,j)/dx(2)
-	    enddo
-         enddo
+	    end do
+         end do
 
       return
       end
@@ -124,16 +124,16 @@ c     ::::: compute X fluxes
             do i = lo(1), hi(1)+1
 	       sx = ssync(i,j) - ssync(i-1,j)
                xflux(i,j) = mult*sx*xarea(i,j)/dx(1)
-            enddo
-         enddo
+            end do
+         end do
 
 c     ::::: compute Y fluxes
          do j = lo(2), hi(2)+1
             do i = lo(1), hi(1)
 	       sy = ssync(i,j) - ssync(i,j-1)
                yflux(i,j) = mult*sy*yarea(i,j)/dx(2)
-	    enddo
-         enddo
+	    end do
+         end do
 
       return
       end
@@ -165,13 +165,13 @@ c ::
 c      if (ARG_L1(u) .lt. ARG_L1(fab) .or. ARG_H1(u) .gt. ARG_H1(fab)) then
 c         write(6,*) "FORT_HOOPSRC: bad index limits"
 c         stop
-c      endif
+c      end if
 
        do j = ARG_L2(grid), ARG_H2(grid)
           do i = ARG_L1(grid), ARG_H1(grid)
              fab(i,j) = fab(i,j) - mu*u(i,j)/(r(i)*r(i))
-          enddo
-       enddo
+          end do
+       end do
 
        return
        end
@@ -210,8 +210,8 @@ c
        do j = ARG_L2(fab), ARG_H2(fab)
           do i = ARG_L1(fab), ARG_H1(fab)
              fab(i,j) = fab(i,j) - b*vol(i,j)*u(i,j)/(r(i)*r(i))
-          enddo
-       enddo
+          end do
+       end do
 
        return
        end
@@ -263,8 +263,8 @@ c
      &                           betay(i,j)+betay(i,j+1))
              fab(i,j,xvelcomp) = fab(i,j,xvelcomp) - 
      &           b*two*betacen*vol(i,j)*u(i,j,xvelcomp)/(r(i)*r(i))
-          enddo
-       enddo
+          end do
+       end do
 
        return
        end
@@ -304,8 +304,8 @@ c ::
              betacen  = fourth*(betax(i,j)+betax(i+1,j)+
      &                           betay(i,j)+betay(i,j+1))
              fab(i,j,comp) = fab(i,j,comp) - two*betacen*u(i,j,comp)/(r(i)*r(i))
-          enddo
-       enddo
+          end do
+       end do
 
        return
        end
@@ -353,18 +353,18 @@ c ::
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                fab(i,j) = vol(i,j)
-            enddo
-         enddo
+            end do
+         end do
 
         else 
 
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                fab(i,j) = vol(i,j) * denfab(i,j)
-            enddo
-         enddo
+            end do
+         end do
 
-        endif
+        end if
 
        else
 
@@ -373,20 +373,20 @@ c ::
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                fab(i,j) = vol(i,j) * (one + (b / (r(i)*r(i))))
-            enddo
-         enddo
+            end do
+         end do
 
         else
 
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                fab(i,j) = vol(i,j) * (denfab(i,j) + (b / (r(i)*r(i))))
-            enddo
-         enddo
+            end do
+         end do
 
-        endif
+        end if
 
-       endif
+       end if
 
        return
        end
@@ -441,8 +441,8 @@ c ::
             do i = lo(1), hi(1)
                alpha(i,j,1) = vol(i,j) * denfab(i,j)
                alpha(i,j,2) = vol(i,j) * denfab(i,j)
-            enddo
-         enddo
+            end do
+         end do
 
        else
 
@@ -453,10 +453,10 @@ c ::
      &                           betay(i,j)+betay(i,j+1))
                alpha(i,j,1) = vol(i,j) * (denfab(i,j)+
      &                                    b*two*betacen/(r(i)**2))
-            enddo
-         enddo
+            end do
+         end do
 
-       endif
+       end if
 
        return
        end
@@ -503,8 +503,8 @@ c           cancel with terms from tau_rr to eliminate all r dependence.
 
           divmusi(i,j,2) = mu*(stop-sbot)/dx(2)
 
-        enddo
-      enddo
+        end do
+      end do
       return
       end
 
@@ -555,8 +555,8 @@ c           cancel with terms from tau_rr to eliminate all r dependence.
           divmusi(i,j,2) = (betay(i,j+1)*stop-
      &                    betay(i,j)*sbot)/dx(2)
 
-        enddo
-      enddo
+        end do
+      end do
       return
       end
 
@@ -589,14 +589,14 @@ c----------------------- begin ---------------------------
       do j=lo(2),hi(2)
         do i=lo(1),hi(1)+1
           betax(i,j) = .5*(beta(i-1,j)+beta(i,j))
-        enddo
-      enddo
+        end do
+      end do
 
       do j=lo(2),hi(2)+1
         do i=lo(1),hi(1)
           betay(i,j) = .5*(beta(i,j-1)+beta(i,j))
-        enddo
-      enddo
+        end do
+      end do
 
       return
       end

@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_3D.F,v 1.3 1997-12-12 22:44:05 lijewski Exp $
+c $Id: MACOPERATOR_3D.F,v 1.4 1998-02-22 19:06:49 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -64,10 +64,10 @@ c ::
               print *,'RHO HAS GONE NEGATIVE AT ',i,j,k,rho(i,j,k)
               print *,' '
               stop
-            endif
-          enddo
-       enddo
-       enddo
+            end if
+          end do
+       end do
+       end do
 
 c      ::::: finish coef in X direction (part 2)
        do k = lo(3), hi(3)
@@ -76,9 +76,9 @@ c      ::::: finish coef in X direction (part 2)
            rhoavg = half * ( rho(i,j,k) + rho(i-1,j,k) )
 c          cx(i,j,k) = half*dx(1)*ax(i,j,k)*(one/rho(i,j,k) + one/rho(i-1,j,k))
            cx(i,j,k) = dx(1) * ax(i,j,k) / rhoavg 
-         enddo
-       enddo
-       enddo
+         end do
+       end do
+       end do
 
 c      ::::: finish coef in Y direction (part 2)
        do k = lo(3), hi(3)
@@ -87,9 +87,9 @@ c      ::::: finish coef in Y direction (part 2)
            rhoavg = half * ( rho(i,j,k) + rho(i,j-1,k) )
 c          cy(i,j,k) = half*dx(2)*ay(i,j,k)*(one/rho(i,j,k) + one/rho(i,j-1,k))
            cy(i,j,k) = dx(2) * ay(i,j,k) / rhoavg 
-         enddo
-       enddo
-       enddo
+         end do
+       end do
+       end do
 
 c      ::::: finish coef in Z direction (part 2)
        do k = lo(3), hi(3)+1
@@ -98,9 +98,9 @@ c      ::::: finish coef in Z direction (part 2)
            rhoavg = half * ( rho(i,j,k) + rho(i,j,k-1) )
 c          cz(i,j,k) = half*dx(3)*az(i,j,k)*(one/rho(i,j,k) + one/rho(i,j,k-1))
            cz(i,j,k) = dx(3) * az(i,j,k) / rhoavg 
-         enddo
-       enddo
-       enddo
+         end do
+       end do
+       end do
 
        return
        end
@@ -159,9 +159,9 @@ c      ::::: rhs holds the divergence condition (possibly zero)
      &            + ay(i,j+1,k)*uy(i,j+1,k) - ay(i,j,k)*uy(i,j,k)
      &            + az(i,j,k+1)*uz(i,j,k+1) - az(i,j,k)*uz(i,j,k)
              rhs(i,j,k) = scale*(divu - vol(i,j,k)*rhs(i,j,k))
-          enddo
-       enddo
-       enddo
+          end do
+       end do
+       end do
 
        return
        end
@@ -213,24 +213,24 @@ c
              do j = ARG_L2(ux), ARG_H2(ux)
                 do i = ARG_L1(ux), ARG_H1(ux)
                    ux(i,j,k) = zero
-                enddo
-             enddo
-          enddo
+                end do
+             end do
+          end do
           do k = ARG_L3(uy), ARG_H3(uy)
              do j = ARG_L2(uy), ARG_H2(uy)
                 do i = ARG_L1(uy), ARG_H1(uy)
                    uy(i,j,k) = zero
-                enddo
-             enddo
-          enddo
+                end do
+             end do
+          end do
           do k = ARG_L3(uz), ARG_H3(uz)
              do j = ARG_L2(uz), ARG_H2(uz)
                 do i = ARG_L1(uz), ARG_H1(uz)
                    uz(i,j,k) = zero
-                enddo
-             enddo
-          enddo
-       endif
+                end do
+             end do
+          end do
+       end if
 c
 c      compute x MAC gradient
 c
@@ -240,9 +240,9 @@ c
                 rhoavg = half*(rho(i,j,k) + rho(i-1,j,k))
                 gp = (phi(i,j,k)-phi(i-1,j,k))/dx(1)
                 ux(i,j,k) = ux(i,j,k) + mult * gp / rhoavg
-             enddo
-          enddo
-       enddo
+             end do
+          end do
+       end do
 c     
 c     compute y mac gradient
 c
@@ -252,9 +252,9 @@ c
                 rhoavg = half*(rho(i,j,k) + rho(i,j-1,k))
                 gp = (phi(i,j,k)-phi(i,j-1,k))/dx(2)
                 uy(i,j,k) = uy(i,j,k) + mult * gp / rhoavg
-             enddo
-          enddo
-       enddo
+             end do
+          end do
+       end do
 c       
 c     compute z mac gradient
 c
@@ -264,9 +264,9 @@ c
                 rhoavg = half*(rho(i,j,k) + rho(i,j,k-1))
                 gp = (phi(i,j,k)-phi(i,j,k-1))/dx(3)
                 uz(i,j,k) = uz(i,j,k) + mult * gp / rhoavg
-             enddo
-          enddo
-       enddo
+             end do
+          end do
+       end do
 c
 c     end of routine
 c
@@ -307,9 +307,9 @@ c      ::::: divided by volume.
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
              rhs(i,j,k) = rhsscale*vol(i,j,k)*rhs(i,j,k)
-          enddo
-       enddo
-       enddo
+          end do
+       end do
+       end do
 
        return
        end

@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_2D.F,v 1.3 1997-12-12 22:44:04 lijewski Exp $
+c $Id: MACOPERATOR_2D.F,v 1.4 1998-02-22 19:06:49 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -57,25 +57,25 @@ c ::
 	      print *,'RHO HAS GONE NEGATIVE AT ',i,j,rho(i,j)
 	      print *,' '
               stop
-            endif
-          enddo
-       enddo
+            end if
+          end do
+       end do
 
 c      ::::: finish coef in X direction (part 2)
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)+1
              rhoavg = half * (rho(i,j) + rho(i-1,j))
              cx(i,j) = dx(1) * ax(i,j) / rhoavg
-          enddo
-       enddo
+          end do
+       end do
 
 c      ::::: finish coef in Y direction (part 2)
        do j = lo(2), hi(2)+1
           do i = lo(1), hi(1)
              rhoavg = half * (rho(i,j) + rho(i,j-1))
              cy(i,j) = dx(2) * ay(i,j) / rhoavg
-          enddo
-       enddo
+          end do
+       end do
 
        return
        end
@@ -128,8 +128,8 @@ c      ::::: rhs holds the divergence condition (possibly zero)
              divu = ax(i+1,j)*ux(i+1,j) - ax(i,j)*ux(i,j)
      &            + ay(i,j+1)*uy(i,j+1) - ay(i,j)*uy(i,j)
              rhs(i,j) = scale*(divu - vol(i,j)*rhs(i,j))
-          enddo
-       enddo
+          end do
+       end do
  
        return
        end
@@ -175,14 +175,14 @@ c
           do j = ARG_L2(ux), ARG_H2(ux)
              do i = ARG_L1(ux), ARG_H1(ux)
                 ux(i,j) = zero
-             enddo
-          enddo
+             end do
+          end do
           do j = ARG_L2(uy), ARG_H2(uy)
              do i = ARG_L1(uy), ARG_H1(uy)
                 uy(i,j) = zero
-             enddo
-          enddo
-       endif
+             end do
+          end do
+       end if
 c
 c     compute the x mac gradient
 c
@@ -191,8 +191,8 @@ c
              rhoavg = half*(rho(i,j) + rho(i-1,j))
              gp = (phi(i,j)-phi(i-1,j))/dx(1)
              ux(i,j) = ux(i,j) + mult * gp / rhoavg
-          enddo
-       enddo
+          end do
+       end do
 c
 c      compute the y mac gradient
 c
@@ -201,8 +201,8 @@ c
              rhoavg = half*(rho(i,j) + rho(i,j-1))
              gp = (phi(i,j)-phi(i,j-1))/dx(2)
              uy(i,j) = uy(i,j) + mult * gp / rhoavg
-          enddo
-       enddo
+          end do
+       end do
 c
 c     end of routine
 c
@@ -239,8 +239,8 @@ c      ::::: divided by volume.
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
              rhs(i,j) = rhsscale*vol(i,j)*rhs(i,j)
-          enddo
-       enddo
+          end do
+       end do
 
        return
        end

@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.3 1997-12-12 22:44:07 lijewski Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.4 1998-02-22 19:06:51 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -50,34 +50,34 @@ c
          do k = kmin,kmax
             do j = jmin,jmax
                udiff = MAX( udiff, abs(u(imax+1,j,k)-u(imin,j,k)) )
-            enddo
-         enddo
+            end do
+         end do
          if ( udiff .gt. 1.e-10 ) then
             udiff = udiff
-         endif
-      endif
+         end if
+      end if
 c     
       if ( yper .eq. 1 ) then
          do k = kmin,kmax
             do i = imin,imax
                vdiff = MAX( vdiff, abs(v(i,jmax+1,k)-v(i,jmin,k)) )
-            enddo
-         enddo
+            end do
+         end do
          if ( vdiff .gt. 1.e-10 ) then
             vdiff = vdiff
-         endif
-      endif
+         end if
+      end if
 c     
       if ( zper .eq. 1 ) then
          do j = jmin,jmax
             do i = imin,imax
                wdiff = MAX( wdiff, abs(w(i,j,kmax+1)-w(i,j,kmin)) )
-            enddo
-         enddo
+            end do
+         end do
          if ( vdiff .gt. 1.e-10 ) then
             vdiff = vdiff
-         endif
-      endif
+         end if
+      end if
 c     
 c     end of routine
 c
@@ -128,9 +128,9 @@ c
                gp(i,j,k,3) = ddz*(
      &              p(i,  j,k+1)-p(i,  j,k)+p(i,  j+1,k+1)-p(i,  j+1,k)+
      &              p(i+1,j,k+1)-p(i+1,j,k)+p(i+1,j+1,k+1)-p(i+1,j+1,k))
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
 c     end of routine
 c     
@@ -185,9 +185,9 @@ c     set coarse grid to zero on overlap
          do jc = lo(2), hi(2)
             do ic = lo(1), hi(1)
                crse(ic,jc,kc,n) = zero
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
       
 c     sum fine data
       do koff = 0, lratz-1
@@ -201,21 +201,21 @@ c     sum fine data
                         i = ic*lratx + ioff
                         crse(ic,jc,kc,n) = crse(ic,jc,kc,n) +
      &                       fv(i,j,k)*fine(i,j,k,n)
-                     enddo
-                  enddo
-               enddo
-	    enddo
-         enddo
-      enddo
+                     end do
+                  end do
+               end do
+	    end do
+         end do
+      end do
 
 c     divide out by volume weight
       do kc = lo(3), hi(3)
          do ic = lo(1), hi(1)
             do jc = lo(2), hi(2)
                crse(ic,jc,kc,n) = crse(ic,jc,kc,n)/cv(ic,jc,kc)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
   100 continue
 c
 c     end of function
@@ -255,14 +255,14 @@ c
             do ic = lo(1), hi(1)
                diff = max( diff,
      &              abs(crse(ic,jc,kc)-fine(lratx*ic,lraty*jc,lratz*kc)))
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
       if ( diff .gt. 1.0e-10 ) then
          print *, 'mismatch between fine and coarse nodes'
          stop
-      endif
+      end if
 c
 c     end of routine
 c
@@ -315,19 +315,19 @@ c ::
           do jc = lo(2), hi(2)
 	  do ic = lo(1), hi(1)
 	    crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
-	  enddo
-	  enddo
-	  enddo
+	  end do
+	  end do
+	  end do
 
-      elseif (leny .eq. mxlen) then
+      else if (leny .eq. mxlen) then
 
           do kc = lo(3), hi(3)
 	  do ic = lo(1), hi(1)
           do jc = lo(2), hi(2)
 	    crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
-	  enddo
-	  enddo
-	  enddo
+	  end do
+	  end do
+	  end do
 
       else
 
@@ -335,11 +335,11 @@ c ::
           do jc = lo(2), hi(2)
           do kc = lo(3), hi(3)
 	    crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
-	  enddo
-	  enddo
-	  enddo
+	  end do
+	  end do
+	  end do
 
-      endif
+      end if
 
 
       return
@@ -380,26 +380,26 @@ c ::
           do j = lo(2), hi(2)
           do k = lo(3), hi(3)
 	     a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
-	  enddo
-	  enddo
-	  enddo
-       elseif (leny .eq. mxlen) then
+	  end do
+	  end do
+	  end do
+       else if (leny .eq. mxlen) then
 	  do i = lo(1), hi(1)
           do j = lo(2), hi(2)
           do k = lo(3), hi(3)
 	     a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
-	  enddo
-	  enddo
-	  enddo
+	  end do
+	  end do
+	  end do
        else
 	  do i = lo(1), hi(1)
           do j = lo(2), hi(2)
           do k = lo(3), hi(3)
 	     a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
-	  enddo
-	  enddo
-	  enddo
-       endif
+	  end do
+	  end do
+	  end do
+       end if
 
        return
        end
@@ -434,20 +434,20 @@ c ::
 
        do j = ARG_L2(grid), ARG_H2(grid)
           tmp(j) = zero
-       enddo
+       end do
 
        do k = ARG_L3(grid), ARG_H3(grid)
        do i = ARG_L1(grid), ARG_H1(grid)
        do j = ARG_L2(grid), ARG_H2(grid)
           tmp(j) = tmp(j) + vol*rho(i,j,k)
-       enddo
-       enddo
-       enddo
+       end do
+       end do
+       end do
 
        mass = zero
        do j = ARG_L2(grid), ARG_H2(grid)
           mass = mass + tmp(j)
-       enddo
+       end do
 
        return
        end
@@ -482,20 +482,20 @@ c ::
 
        do j = ARG_L2(grid), ARG_H2(grid)
           tmp(j) = zero
-       enddo
+       end do
 
        do k = ARG_L3(grid), ARG_H3(grid)
        do i = ARG_L1(grid), ARG_H1(grid)
        do j = ARG_L2(grid), ARG_H2(grid)
           tmp(j) = tmp(j) + vol*rho(i,j,k)*rho(i,j,k)
-       enddo
-       enddo
-       enddo
+       end do
+       end do
+       end do
 
        mass = zero
        do j = ARG_L2(grid), ARG_H2(grid)
           mass = mass + tmp(j)
-       enddo
+       end do
 
        return
        end

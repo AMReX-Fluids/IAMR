@@ -1,4 +1,4 @@
-c $Id: DERIVE_2D.F,v 1.4 1998-01-06 23:43:04 lijewski Exp $ 
+c $Id: DERIVE_2D.F,v 1.5 1998-02-22 19:06:43 car Exp $ 
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
 #  define BL_LANG_FORT
@@ -69,7 +69,7 @@ c     ::::: lets punt if not in domain interior
       if (nlft+nrgt+nbot+ntop .gt. 0) then
          write(6,*) "FORT_DERKENG: outside domain"
 	 stop
-      endif
+      end if
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
@@ -77,8 +77,8 @@ c     ::::: lets punt if not in domain interior
 	    u   = dat(i,j,2)
 	    v   = dat(i,j,3)
 	    e(i,j,1) = half*rho*(u**2 + v**2)
-	 enddo
-      enddo
+	 end do
+      end do
 c
 c     end of routine
 c
@@ -121,14 +121,14 @@ c     ::::: lets punt if not in domain interior
       if (nlft+nrgt+nbot+ntop .gt. 0) then
          write(6,*) "FORT_DERLOGS: outside domain"
 	 stop
-      endif
+      end if
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
 	    rho = max(dat(i,j,1),sml)
 	    e(i,j,1) = log10(rho)
-	 enddo
-      enddo
+	 end do
+      end do
 c
 c     end of routine
 c
@@ -171,15 +171,15 @@ c     ::::: lets punt if not in domain interior
       if (nlft+nrgt+nbot+ntop .gt. 0) then
          write(6,*) "FORT_DERMVEL: outside domain"
 	 stop
-      endif
+      end if
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
 	    u   = dat(i,j,1)
 	    v   = dat(i,j,2)
 	    e(i,j,1) = sqrt(u**2 + v**2)
-	 enddo
-      enddo
+	 end do
+      end do
 c
 c     end of routine
 c
@@ -220,13 +220,13 @@ c     ::::: lets punt if not in domain interior
       if (nlft+nrgt+nbot+ntop .gt. 0) then
          write(6,*) "FORT_DERDVRHO: outside domain"
 	 stop
-      endif
+      end if
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
 	    e(i,j,1) = dat(i,j,2)/dat(i,j,1)
-	 enddo
-      enddo
+	 end do
+      end do
 c
 c     end of routine
 c
@@ -266,13 +266,13 @@ c     ::::: lets punt if not in domain interior
       if (nlft+nrgt+nbot+ntop .gt. 0) then
          write(6,*) "FORT_DERMPRHO: outside domain"
 	 stop
-      endif
+      end if
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
 	    e(i,j,1) = dat(i,j,2)*dat(i,j,1)
-	 enddo
-      enddo
+	 end do
+      end do
 c
 c     end of routine
 c
@@ -313,14 +313,14 @@ c     ::::: lets punt if not in domain interior
       if (nlft+nrgt+nbot+ntop .gt. 0) then
          write(6,*) "FORT_DERLGRHODUST: outside domain"
 	 stop
-      endif
+      end if
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
 	    dust = max(1.0d-10,dat(i,j,2)*dat(i,j,1))
 	    e(i,j,1) = log10(dust)
-	 enddo
-      enddo
+	 end do
+      end do
 c
 c     end of routine
 c
@@ -384,15 +384,15 @@ c     ::::: lets punt if not in domain interior
       if (nlft+nrgt+nbot+ntop .gt. 0) then
          write(6,*) "FORT_DERMGVORT: outside domain"
 	 stop
-      endif
+      end if
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
 	    vx  = vxcen(i,j)
 	    uy  = uycen(i,j)
 	    vort(i,j,1) = vorfun(vx,uy)
-	 enddo
-      enddo
+	 end do
+      end do
 
       fixlft = ( (lo(1) .eq. domlo(1)) .and. 
      &           (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
@@ -410,8 +410,8 @@ c     ::::: handle special bndry conditions at the left edge
 	    vx  = vxlft(i,j)
 	    uy  = uycen(i,j)
     	    vort(i,j,1) = vorfun(vx,uy)
-	 enddo
-      endif
+	 end do
+      end if
 
 c     ::::: handle special bndry conditions on the right
       if (fixrgt) then
@@ -420,8 +420,8 @@ c     ::::: handle special bndry conditions on the right
 	    vx  = vxrgt(i,j)
 	    uy  = uycen(i,j)
     	    vort(i,j,1) = vorfun(vx,uy)
-	 enddo
-      endif
+	 end do
+      end if
 
 c     ::::: handle special bndry conditions on bottom
       if (fixbot) then
@@ -430,8 +430,8 @@ c     ::::: handle special bndry conditions on bottom
 	    vx  = vxcen(i,j)
 	    uy  = uybot(i,j)
     	    vort(i,j,1) = vorfun(vx,uy)
-	 enddo
-      endif
+	 end do
+      end if
 
 c     ::::: handle special bndry conditions on top
       if (fixtop) then
@@ -440,8 +440,8 @@ c     ::::: handle special bndry conditions on top
 	    vx  = vxcen(i,j)
 	    uy  = uytop(i,j)
     	    vort(i,j,1) = vorfun(vx,uy)
-	 enddo
-      endif
+	 end do
+      end if
 
 c     ::::: check corners
       if (fixlft .and. fixbot) then
@@ -450,28 +450,28 @@ c     ::::: check corners
          vx = vxlft(i,j)
 	 uy = uybot(i,j)
 	 vort(i,j,1) = vorfun(vx,uy)
-      endif
+      end if
       if (fixlft .and. fixtop) then
          i = lo(1)
 	 j = hi(2)
          vx = vxlft(i,j)
          uy = uytop(i,j)
 	 vort(i,j,1) = vorfun(vx,uy)
-      endif
+      end if
       if (fixrgt .and. fixtop) then
          i = hi(1)
 	 j = hi(2)
 	 vx = vxrgt(i,j)
          uy = uytop(i,j)
 	 vort(i,j,1) = vorfun(vx,uy)
-      endif
+      end if
       if (fixrgt .and. fixbot) then
          i = hi(1)
 	 j = lo(2)
 	 vx = vxrgt(i,j)
 	 uy = uybot(i,j)
 	 vort(i,j,1) = vorfun(vx,uy)
-      endif
+      end if
 
 #     undef U
 #     undef V      
@@ -546,7 +546,7 @@ c     ::::: lets punt if not in domain interior
       if (nxlo+nxhi+nylo+nyhi .gt. 0) then
          write(6,*) "FORT_DERMGVORT2: outside domain"
 	 stop
-      endif
+      end if
 
 c     :: at physical bndries where an edge value is prescribed,
 c     :: set the value in the outside cell so that a central
@@ -557,41 +557,41 @@ c     :: one sided formula
          if (VLOX.eq.EXT_DIR .or. VLOX.eq.HOEXTRAP) then
 	   do j = lo(2), hi(2)
 	      V(i-1,j) = vxlo(i,j)
-	   enddo
-	 endif
-      endif
+	   end do
+	 end if
+      end if
       if (hi(1) .eq. domhi(1)) then
          i = hi(1)
          if (VHIX.eq.EXT_DIR .or. VHIX.eq.HOEXTRAP) then
 	   do j = lo(2), hi(2)
 	      V(i+1,j) = vxhi(i,j)
-	   enddo
-	 endif
-      endif
+	   end do
+	 end if
+      end if
       if (lo(2) .eq. domlo(2)) then
          j = lo(2)
 	 if (ULOY.eq.EXT_DIR .or. ULOY.eq.HOEXTRAP) then
 	   do i = lo(1), hi(1)
 	      U(i,j-1) = uylo(i,j)
-	   enddo
-	 endif
-      endif
+	   end do
+	 end if
+      end if
       if (hi(2) .eq. domhi(2)) then
          j = hi(2)
 	 if (UHIY.eq.EXT_DIR .or. UHIY.eq.HOEXTRAP) then
 	   do i = lo(1), hi(1)
 	      U(i,j+1) = uyhi(i,j)
-	   enddo
-	 endif
-      endif
+	   end do
+	 end if
+      end if
 
       do j = lo(2), hi(2)
       do i = lo(1), hi(1)
          uy = uycen(i,j)
 	 vx = vxcen(i,j)
 	 vort(i,j,1) = vorfun(vx,uy)
-      enddo
-      enddo
+      end do
+      end do
 
 #     undef U
 #     undef V      
@@ -667,7 +667,7 @@ c     ::::: lets punt if not in domain interior
       if (nxlo+nxhi+nylo+nyhi .gt. 0) then
          write(6,*) "FORT_DERMGDIVU: outside domain"
 	 stop
-      endif
+      end if
 
 c     :: at physical bndries where an edge value is prescribed,
 c     :: set the value in the outside cell so that a central
@@ -681,57 +681,57 @@ c     boundaries handled by fill routines
          if (ULOX.eq.EXT_DIR) then
            do j = lo(2), hi(2)
               U(i-1,j) = two*U(i-1,j)-U(i,j)
-           enddo
+           end do
          else if (ULOX.eq.HOEXTRAP) then
            do j = lo(2), hi(2)
               U(i-1,j) = uxlo(i,j)
-           enddo
-         endif
-      endif
+           end do
+         end if
+      end if
       if (hi(1) .eq. domhi(1)) then
          i = hi(1)
          if (UHIX.eq.EXT_DIR) then
            do j = lo(2), hi(2)
               U(i+1,j) = two*U(i+1,j)-U(i,j)
-           enddo
+           end do
          else if (UHIX.eq.HOEXTRAP) then
            do j = lo(2), hi(2)
               U(i+1,j) = uxhi(i,j)
-           enddo
-         endif
-      endif
+           end do
+         end if
+      end if
       if (lo(2) .eq. domlo(2)) then
          j = lo(2)
          if (VLOY.eq.EXT_DIR) then
            do i = lo(1), hi(1)
               V(i,j-1) = two*V(i,j-1)-V(i,j)
-           enddo
+           end do
          else if (VLOY.eq.HOEXTRAP) then
            do i = lo(1), hi(1)
               V(i,j-1) = vylo(i,j)
-           enddo
-         endif
-      endif
+           end do
+         end if
+      end if
       if (hi(2) .eq. domhi(2)) then
          j = hi(2)
          if (VHIY.eq.EXT_DIR) then
            do i = lo(1), hi(1)
               V(i,j+1) = two*V(i,j+1)-V(i,j)
-           enddo
+           end do
          else if (VHIY.eq.HOEXTRAP) then
            do i = lo(1), hi(1)
               V(i,j+1) = vyhi(i,j)
-           enddo
-         endif
-      endif
+           end do
+         end if
+      end if
 
       do j = lo(2), hi(2)
       do i = lo(1), hi(1)
          ux = uxcen(i,j)
 	 vy = vycen(i,j)
 	 divu(i,j,1) = ux + vy
-      enddo
-      enddo
+      end do
+      end do
 
 c we overwrote the ghost cells above, so set them back below
 
@@ -780,18 +780,18 @@ c
          do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             gp(i,j) = d*(p(i+1,j)-p(i,j)+p(i+1,j+1)-p(i,j+1))
-         enddo
-         enddo
+         end do
+         end do
       else if (dir .eq. 1) then
          do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             gp(i,j) = d*(p(i,j+1)-p(i,j)+p(i+1,j+1)-p(i+1,j))
-         enddo
-         enddo
+         end do
+         end do
       else
          write(6,*) "FORT_GRADP_DIR: invalid dir = ",dir
          stop
-      endif
+      end if
 c
 c     end of routine
 c
@@ -828,8 +828,8 @@ c
          do i = lo(1), hi(1)
             avgpres(i,j) = fourth*( dat(i+1,j  )+dat(i,j  ) +
      $                              dat(i+1,j+1)+dat(i,j+1) )
-         enddo
-         enddo
+         end do
+         end do
 c
 c     end of routine
 c

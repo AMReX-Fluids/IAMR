@@ -1,5 +1,5 @@
 c
-c $Id: LO_UTIL.F,v 1.3 1997-12-12 22:44:04 lijewski Exp $
+c $Id: LO_UTIL.F,v 1.4 1998-02-22 19:06:48 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -41,16 +41,16 @@ c
          do i = 1,j-1
             num = num*(xInt - x(i))
             den = den*(x(j) - x(i))
-         enddo
+         end do
          do i = j+1,N
             num = num*(xInt - x(i))
             den = den*(x(j) - x(i))
-         enddo
+         end do
 #ifndef NDEBUG
          if (den .eq. zero) pause 'polyInterpCoeff::invalid data'
 #endif         
          c(j) = num/den
-      enddo
+      end do
       return
       end
 
@@ -81,7 +81,7 @@ c     Make data, locations
       do j=2,NORDER
          x(j) = j - 1.5*one
          y(j) = yfunc(x(j))
-      enddo
+      end do
 c      
 c     Set interpolation point to ghost cell location
       xInt = (x(2) - x(3))*0.5
@@ -93,7 +93,7 @@ c     Evaluate result
       yInt = zero
       do j=1,NORDER
          yInt = yInt + c(j)*y(j)
-      enddo
+      end do
 c
 c     Dump output
       write(6,*) 'x = ',x
@@ -103,5 +103,3 @@ c     Dump output
       end
 
 #endif
-
-      

@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.4 1997-12-12 22:44:09 lijewski Exp $
+c $Id: PROJECTION_2D.F,v 1.5 1998-02-22 19:06:52 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -45,21 +45,21 @@ c
 c
        if ( abs(dx(1)-dx(2)) .gt. 1.e-8 .and. fac .gt. 1.e-4 )then
           print *, 'is filter properly formatted for dx != dy ?'
-       endif
+       end if
 c
        do j = lo(2)+1, hi(2)
           do i = lo(1)+1, hi(1)
              scratch(i,j) = four * pnew(i,j) - 
      $         (pnew(i-1,j) + pnew(i+1,j) + pnew(i,j-1) + pnew(i,j+1) )
              scratch(i,j) = - eighth * scratch(i,j) * fac
-          enddo
-       enddo
+          end do
+       end do
 c
        do j = lo(2)+1, hi(2)
           do i = lo(1)+1, hi(1)
              pnew(i,j) = pnew(i,j) + scratch(i,j)
-          enddo
-       enddo
+          end do
+       end do
 c
 c     end of routine
 c
@@ -89,9 +89,9 @@ c
           do j = lo(2)-1, hi(2)+1
              do i = lo(1)-1, hi(1)+1
                 unew(i,j,n) = uold(i,j,n) + dt*unew(i,j,n)
-             enddo
-          enddo
-       enddo
+             end do
+          end do
+       end do
 c
 c     end of routine
 c
@@ -121,9 +121,9 @@ c
          do j = lo(2)-1, hi(2)+1
             do i = lo(1)-1, hi(1)+1
                unew(i,j,n) = (unew(i,j,n)-uold(i,j,n))/dt
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
 c     end of routine
 c
@@ -154,9 +154,9 @@ c
          do j = boxlo(2), boxhi(2)
             do i = boxlo(1), boxhi(1)
                un(i,j,n) = un(i,j,n) + alpha*uo(i,j,n)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
 c     end of routine
 c
@@ -182,8 +182,8 @@ c
        do j = ARG_L2(grid)-n(2), ARG_H2(grid)+n(2)
           do i = ARG_L1(grid)-n(1), ARG_H1(grid)+n(1)
 	     a(i,j) = r(i)*a(i,j)
-          enddo
-       enddo
+          end do
+       end do
 c
 c     end of routine
 c
@@ -210,8 +210,8 @@ c
        do j = ARG_L2(grid)-n(2), ARG_H2(grid)+n(2)
           do i = ARG_L1(grid)-n(1), ARG_H1(grid)+n(1)
 	    a(i,j) = a(i,j)/r(i)
-          enddo
-       enddo
+          end do
+       end do
 c
 c     end of routine
 c
@@ -252,7 +252,7 @@ c ---- begin ----------
      &    ARG_L2(nodedat) .gt. hi(2) ) then 
         write(6,*) "FORT_HG_CELL_TO_NODE: bad index limits"
         stop
-      endif
+      end if
 
       if(isrz.eq.1.and.lrweighted.ne.1)then
         write(6,*)
@@ -261,14 +261,14 @@ c ---- begin ----------
         call flush(6)
 #endif
         stop
-      endif
+      end if
 
       do j=lo(2),hi(2)
         do i=lo(1),hi(1)
           ccdat(i,j) = fourth*(nodedat(i,j)+nodedat(i+1,j)+
      &                         nodedat(i,j+1)+nodedat(i+1,j+1))
-        enddo
-      enddo
+        end do
+      end do
 
       return
       end
@@ -318,30 +318,30 @@ c ... fix up bcs at domain edges
           i = domlo(1)
           do j = ARG_L2(rhs)+nghost, ARG_H2(rhs)-nghost
              dat(i-1,j) = dat(i,j)
-          enddo
-        endif
+          end do
+        end if
 
         if(ARG_L1(rhs)-nghost .eq. domhi(1)+1) then
           i = domhi(1)
           do j = ARG_L2(rhs)+nghost, ARG_H2(rhs)-nghost
             dat(i+1,j) = dat(i,j)
-          enddo
-        endif
+          end do
+        end if
 
         if(ARG_L2(rhs)+nghost .eq. domlo(2)) then
           j = domlo(2)
           do i = ARG_L1(rhs)+nghost, ARG_H1(rhs)-nghost
             dat(i,j-1) = dat(i,j)
-          enddo
-        endif
+          end do
+        end if
 
         if(ARG_H2(rhs)-nghost .eq. domhi(2)+1) then
           j = domhi(2)
           do i = ARG_L1(rhs)+nghost, ARG_H1(rhs)-nghost
              dat(i,j+1) = dat(i,j)
-          enddo
-        endif
-      endif
+          end do
+        end if
+      end if
 
       if (extrap_corners .eq. 1) then
 
@@ -352,7 +352,7 @@ c ... fix up bcs at domain edges
           dat(i-1,j)   = dat(i,j)
           dat(i,j-1)   = dat(i,j)
           dat(i-1,j-1) = dat(i,j)
-        endif
+        end if
 
         if(ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
      &     ARG_H2(rhs)+nghost .eq. domlo(2)) then
@@ -361,7 +361,7 @@ c ... fix up bcs at domain edges
           dat(i+1,j)   = dat(i,j)
           dat(i,j-1)   = dat(i,j)
           dat(i+1,j-1) = dat(i,j)
-        endif
+        end if
 
         if(ARG_L1(rhs)+nghost .eq. domlo(1) .and.
      &     ARG_L2(rhs)-nghost .eq. domhi(2)+1) then
@@ -370,7 +370,7 @@ c ... fix up bcs at domain edges
           dat(i-1,j)   = dat(i,j)
           dat(i,j+1)   = dat(i,j)
           dat(i-1,j+1) = dat(i,j)
-        endif
+        end if
 
         if(ARG_H1(rhs)-nghost .eq. domhi(1)+1 .and.
      &     ARG_H2(rhs)-nghost .eq. domhi(2)+1) then
@@ -379,8 +379,8 @@ c ... fix up bcs at domain edges
           dat(i+1,j)   = dat(i,j)
           dat(i,j+1)   = dat(i,j)
           dat(i+1,j+1) = dat(i,j)
-        endif
-      endif
+        end if
+      end if
 
       if (ARG_L1(rhs)+1 .lt. ARG_L1(dat) .or. 
      $    ARG_H1(rhs)-1 .gt. ARG_H1(dat) .or.
@@ -388,15 +388,15 @@ c ... fix up bcs at domain edges
      $    ARG_H2(rhs)-1 .gt. ARG_H2(dat)) then
         write(6,*) "FORT_HG_CELL_TO_NODE: bad index limits"
         stop
-      endif
+      end if
 
       if (is_rz.ne.1) then
         do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
           do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
             rhs(i,j) = fourth*(dat(i-1,j-1)+dat(i-1,j)+
      &                         dat(i,j-1)+dat(i,j))
-          enddo
-        enddo
+          end do
+        end do
       else
         do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
           do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
@@ -405,17 +405,17 @@ c ... fix up bcs at domain edges
               rhi = rcen(i-1)
             else 
               rhi = rcen(i)
-            endif
+            end if
             if(lowfix.eq.1 .and. ARG_L1(rhs)+nghost .eq. domlo(1) .and.
      &          i .eq. ARG_L1(rhs)+nghost ) then
               rlo = rcen(i)
             else
               rlo = rcen(i-1)
-            endif
+            end if
             rhs(i,j) = fourth*(rlo * (dat(i-1,j-1) + dat(i-1,j)) +
      &                         rhi * (dat(i,j-1)   + dat(i,j)))
-          enddo
-        enddo
+          end do
+        end do
         factor = dr/24.0
         do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
           do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
@@ -424,19 +424,19 @@ c ... fix up bcs at domain edges
               rhi = -one
             else 
               rhi = one
-            endif
+            end if
             if(lowfix.eq.1 .and. ARG_L1(rhs)+nghost .eq. domlo(1) .and.
      &          i .eq. ARG_L1(rhs)+nghost ) then
               rlo = -one
             else
               rlo = one
-            endif
+            end if
             rhs(i,j) = rhs(i,j) + factor *
      &                    (rlo * (dat(i-1,j-1) + dat(i-1,j)) -
      &                     rhi * (dat(i  ,j-1) + dat(i  ,j)))
-          enddo
-        enddo
-      endif
+          end do
+        end do
+      end if
 
 c
 c     end of routine
@@ -497,7 +497,7 @@ c
 #endif
            divcor_ave = divcor_ave+r(i)*div_edge
            vtot = vtot+r(i)
-        enddo
+        end do
         divcor_ave = divcor_ave/vtot
 
         fst = zero
@@ -535,7 +535,7 @@ c          write(6,*)'rho,u,divcor=',rho(i-1,je-1),u(i-1,je-1,1),divcor(i-1,je-1
      &          r(i-2)*(u(i-2,je-1,1) - fstm)
           phi(i,je) = phi(i-1,je) + hx*rho_edge_m1*rhs / r(i-1)
           fstm = fst
-        enddo
+        end do
 #endif
 #if 1
         divcor_ave = zero
@@ -548,13 +548,13 @@ c          write(6,*)'rho,u,divcor=',rho(i-1,je-1),u(i-1,je-1,1),divcor(i-1,je-1
            vtot = vtot+r(i)
            max_divu = max(max_divu,divcor(i,j))
            min_divu = min(min_divu,divcor(i,j))
-        enddo
-        enddo
+        end do
+        end do
         divcor_ave = divcor_ave/vtot
 
         if(max_divu.eq.zero.and.min_divu.eq.zero) then
           return
-        endif
+        end if
 
 c        write(6,*)"divcor_ave",divcor_ave
 c        call flush(6)
@@ -575,7 +575,7 @@ c        write(6,*)'rho,u,divcor=',rho(is,je-1),u(is,je-1,1),divcor(is,je-1)
      &          r(i-2)*(u(i-2,je-1,1) - fstm)
           phi(i,je) = phi(i-1,je) + hx*rho(i-1,je-1)*rhs / r(i-1)
           fstm = fst
-        enddo
+        end do
 #endif
 c
 c     end of routine

@@ -1,5 +1,5 @@
 c
-c $Id: ABec_2D.F,v 1.2 1997-12-12 22:43:57 lijewski Exp $
+c $Id: ABec_2D.F,v 1.3 1998-02-22 19:06:42 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -105,17 +105,17 @@ c
         if (ilen .gt. 4096) then
           print *,'TOO BIG FOR LINE SOLVE IN GSRB: ilen = ',ilen
           stop
-        endif
+        end if
       else if (h(1) .gt. 1.5*h(2)) then
         do_line = 2
         jlen = hi(2)-lo(2)+1
         if (jlen .gt. 4096) then
           print *,'TOO BIG FOR LINE SOLVE IN GSRB: jlen = ',jlen
           stop
-        endif
+        end if
       else 
         do_line = 0
-      endif
+      end if
 
 c
       dhx = beta/h(1)**2
@@ -148,8 +148,8 @@ c
                phi(i,j,n) = (rhs(i,j,n) + rho - phi(i,j,n)*delta)
      $              /                (gamma - delta)
 c     
-            enddo
-         enddo
+            end do
+         end do
        else if (do_line .eq. 2) then
          do i = lo(1) + redblack,hi(1),2
              do j = lo(2), hi(2)
@@ -183,14 +183,14 @@ c
                if (j .eq. hi(2)) 
      $            r_ls(j-lo(2)) = r_ls(j-lo(2)) + dhy*bY(i,j+1)*phi(i,j+1,n)
 
-             enddo
+             end do
 
              call tridiag(a_ls,b_ls,c_ls,r_ls,u_ls,jlen)
 c     
              do j = lo(2), hi(2)
                phi(i,j,n) = u_ls(j-lo(2))
-             enddo
-         enddo
+             end do
+         end do
 
        else if (do_line .eq. 1) then
 
@@ -225,20 +225,20 @@ c
 
                if (i .eq. hi(1)) 
      $            r_ls(i-lo(1)) = r_ls(i-lo(1)) + dhx*bX(i+1,j)*phi(i+1,j,n)
-             enddo
+             end do
 
              call tridiag(a_ls,b_ls,c_ls,r_ls,u_ls,ilen)
 c     
              do i = lo(1), hi(1)
                phi(i,j,n) = u_ls(i-lo(1))
-             enddo
-         enddo
+             end do
+         end do
 
        else
          print *,'BOGUS DO_LINE '
          stop
-       endif
-      enddo
+       end if
+      end do
 
       end
       
@@ -285,9 +285,9 @@ c
      $              )
                zz(i,j,n) = rr(i,j,n)*de
                rho = rho + zz(i,j,n)*rr(i,j,n)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
       end
 c-----------------------------------------------------------------------
@@ -334,9 +334,9 @@ c
      $              - dhy*
      $              (   bY(i,j+1)*( x(i,j+1,n) - x(i,j  ,n) )
      $              -   bY(i,j  )*( x(i,j  ,n) - x(i,j-1,n) ) )
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
       end
 
 c-----------------------------------------------------------------------
@@ -370,13 +370,13 @@ c
         if (bet .eq. 0) then
           print *,'TRIDIAG FAILED '
           stop
-        endif
+        end if
         u(j) = (r(j)-a(j)*u(j-1))/bet
-      enddo
+      end do
 
       do j = n-1,1,-1
         u(j) = u(j) - gam(j+1)*u(j+1)
-      enddo
+      end do
 
       return
       end

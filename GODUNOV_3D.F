@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.5 1997-12-12 22:44:01 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.6 1998-02-22 19:06:45 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -68,9 +68,9 @@ c
          tforce1 = max(tforce1,abs(tforces(i,j,k,1)/rho(i,j,k)))
          tforce2 = max(tforce2,abs(tforces(i,j,k,2)/rho(i,j,k)))
          tforce3 = max(tforce3,abs(tforces(i,j,k,3)/rho(i,j,k)))
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 
       u_max(1) = u
       u_max(2) = v
@@ -85,15 +85,15 @@ c
 
       if (tforce1 .gt. small) then
         dt  = min(dt,sqrt(two*dx(1)/tforce1))
-      endif
+      end if
 
       if (tforce2 .gt. small) then
         dt  = min(dt,sqrt(two*dx(2)/tforce2))
-      endif
+      end if
 
       if (tforce3 .gt. small) then
         dt  = min(dt,sqrt(two*dx(3)/tforce3))
-      endif
+      end if
 
       if (dt .eq. dt_start) dt = min(dx(1),dx(2),dx(3))
 
@@ -163,9 +163,9 @@ c
          wmin = min(wmin,w(i,j,k))
          rhomax = max(rhomax,rho(i,j,k))
          rhomin = min(rhomin,rho(i,j,k))
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 
       u_max(1) = max(abs(umax), abs(umin))
       u_max(2) = max(abs(vmax), abs(vmin))
@@ -179,8 +179,8 @@ c
         write(6,1003) rhomax,rhomin
 #ifndef	BL_NO_FORT_FLUSH
         call flush(6)
-#endif
-      endif
+#end if
+      end if
 
  1000 format(' U  MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
  1001 format(' V  MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
@@ -248,36 +248,36 @@ c
       do i = imin, imax+1
          umax = max(umax,umac(i,j,k))
          umin = min(umin,umac(i,j,k))
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 c
       do k = kmin, kmax
       do j = jmin, jmax+1
       do i = imin, imax
          vmax = max(vmax,vmac(i,j,k))
          vmin = min(vmin,vmac(i,j,k))
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 c
       do k = kmin, kmax+1
       do j = jmin, jmax
       do i = imin, imax
          wmax = max(wmax,wmac(i,j,k))
          wmin = min(wmin,wmac(i,j,k))
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 c
       do k = kmin, kmax
       do j = jmin, jmax
       do i = imin, imax
          rhomax = max(rhomax,rho(i,j,k))
          rhomin = min(rhomin,rho(i,j,k))
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 
       u_max(1) = max(abs(umax), abs(umin))
       u_max(2) = max(abs(vmax), abs(vmin))
@@ -296,7 +296,7 @@ c
 
 #ifndef	BL_NO_FORT_FLUSH
       call flush(6)
-#endif
+#end if
 c
 c     end of routine
 c
@@ -381,9 +381,9 @@ c     --------------------------------------------------------------
          do i = imin,  imax+1
          ulo(i,j,k) = u(i-1,j,k) + (half  - dthx*u(i-1,j,k))*sx(i-1,j,k)
          uhi(i,j,k) = u(i,  j,k) + (-half - dthx*u(i,  j,k))*sx(i,  j,k)
-         enddo
-         enddo
-      enddo
+         end do
+         end do
+      end do
 
       if(use_minion .eq. 1 )then
         do k = kmin-1,kmax+1
@@ -391,10 +391,10 @@ c     --------------------------------------------------------------
            do i = imin,  imax+1
            ulo(i,j,k) = ulo(i,j,k) + dth*tforces(i-1,j,k,1)
            uhi(i,j,k) = uhi(i,j,k) + dth*tforces(i,  j,k,1)
-           enddo
-           enddo
-        enddo
-      endif
+           end do
+           end do
+        end do
+      end if
 
       call FORT_SLOPES(YVEL,
      &     v,DIMS(s),
@@ -406,9 +406,9 @@ c     --------------------------------------------------------------
          do i = imin-1,imax+1
          vlo(i,j,k) = v(i,j-1,k) + (half  - dthy*v(i,j-1,k))*sy(i,j-1,k)
          vhi(i,j,k) = v(i,j,  k) + (-half - dthy*v(i,j,  k))*sy(i,j,  k)
-         enddo
-         enddo
-      enddo
+         end do
+         end do
+      end do
 
       if(use_minion .eq. 1 )then
         do k = kmin-1,kmax+1
@@ -416,10 +416,10 @@ c     --------------------------------------------------------------
            do i = imin-1,  imax+1
            vlo(i,j,k) = vlo(i,j,k) + dth*tforces(i,j-1,k,2)
            vhi(i,j,k) = vhi(i,j,k) + dth*tforces(i,j,  k,2)
-           enddo
-           enddo
-        enddo
-      endif
+           end do
+           end do
+        end do
+      end if
 
       call FORT_SLOPES(ZVEL,
      &     w,DIMS(s),
@@ -431,9 +431,9 @@ c     --------------------------------------------------------------
          do i = imin-1,imax+1
          wlo(i,j,k) = w(i,j,k-1) + (half  - dthz*w(i,j,k-1))*sz(i,j,k-1)
          whi(i,j,k) = w(i,j,k  ) + (-half - dthz*w(i,j,k  ))*sz(i,j,k  )
-         enddo
-         enddo
-      enddo
+         end do
+         end do
+      end do
 
       if(use_minion .eq. 1 )then
         do k = kmin,kmax+1
@@ -441,10 +441,10 @@ c     --------------------------------------------------------------
            do i = imin-1,  imax+1
            wlo(i,j,k) = wlo(i,j,k) + dth*tforces(i,j,k-1,3)
            whi(i,j,k) = whi(i,j,k) + dth*tforces(i,j,k,  3)
-           enddo
-           enddo
-        enddo
-      endif
+           end do
+           end do
+        end do
+      end if
 
       call trans_xbc(
      &     u,DIMS(s),
@@ -471,9 +471,9 @@ c     --------------------------------------------------------------
      &           (uhi(i,j,k) .ge. zero) ) .or.
      &           (abs(tst)   .lt. eps )
             ulo(i,j,k) = cvmgt(zero,val,ltm)
-         enddo
-         enddo
-      enddo
+         end do
+         end do
+      end do
 
       do k = kmin-1,kmax+1
          do j = jmin,  jmax+1
@@ -485,9 +485,9 @@ c     --------------------------------------------------------------
      &        (vhi(i,j,k) .ge. zero) ) .or.
      &        (abs(tst)   .lt. eps )
          vlo(i,j,k) = cvmgt(zero,val,ltm)
-         enddo
-         enddo
-      enddo
+         end do
+         end do
+      end do
       
       do k = kmin,kmax+1
          do j = jmin-1,jmax+1
@@ -499,9 +499,9 @@ c     --------------------------------------------------------------
      &        (whi(i,j,k) .ge. zero) ) .or.
      &        (abs(tst)   .lt. eps )
          wlo(i,j,k) = cvmgt(zero,val,ltm)
-         enddo
-         enddo
-      enddo
+         end do
+         end do
+      end do
 c     
 c     end of routine
 c
@@ -600,9 +600,9 @@ c     --------------------------------------------------------------
          do i = imin,  imax+1
          xlo(i,j,k) = s(i-1,j,k) + (half  - dthx*u(i-1,j,k))*sx(i-1,j,k)
          xhi(i,j,k) = s(i,  j,k) + (-half - dthx*u(i,  j,k))*sx(i,  j,k)
-         enddo
-         enddo
-      enddo
+         end do
+         end do
+      end do
 
       if(use_minion.eq.1)then
         do k = kmin-1,kmax+1
@@ -610,10 +610,10 @@ c     --------------------------------------------------------------
            do i = imin,  imax+1
            xlo(i,j,k) = xlo(i,j,k) + dth*tforces(i-1,j,k)
            xhi(i,j,k) = xhi(i,j,k) + dth*tforces(i,  j,k)
-           enddo
-           enddo
-        enddo
-      endif
+           end do
+           end do
+        end do
+      end if
 
       call trans_xbc(
      &     s,DIMS(s),
@@ -626,18 +626,18 @@ c     --------------------------------------------------------------
          fu  = cvmgt(zero,one,abs(uad(i,j,k)).lt.eps)
          stx = cvmgp(xlo(i,j,k),xhi(i,j,k),uad(i,j,k))
          xlo(i,j,k) = fu*stx + (one - fu)*half*(xhi(i,j,k)+xlo(i,j,k))
-         enddo
-         enddo
-      enddo
+         end do
+         end do
+      end do
 c     --------------------------------------------------------------
       do k = kmin-1,kmax+1
          do j = jmin,  jmax+1
          do i = imin-1,imax+1
          ylo(i,j,k) = s(i,j-1,k) + (half  - dthy*v(i,j-1,k))*sy(i,j-1,k)
          yhi(i,j,k) = s(i,j, k)  + (-half - dthy*v(i,j,  k))*sy(i,j, k)
-         enddo
-         enddo
-      enddo
+         end do
+         end do
+      end do
 
       if(use_minion.eq.1)then
         do k = kmin-1,kmax+1
@@ -645,10 +645,10 @@ c     --------------------------------------------------------------
            do i = imin-1,  imax+1
            ylo(i,j,k) = ylo(i,j,k) + dth*tforces(i,j-1,k)
            yhi(i,j,k) = yhi(i,j,k) + dth*tforces(i,j,  k)
-           enddo
-           enddo
-        enddo
-      endif
+           end do
+           end do
+        end do
+      end if
 
       call trans_ybc(
      &     s,DIMS(s),
@@ -661,18 +661,18 @@ c     --------------------------------------------------------------
          fv  = cvmgt(zero,one,abs(vad(i,j,k)).lt.eps)
          sty = cvmgp(ylo(i,j,k),yhi(i,j,k),vad(i,j,k))
          ylo(i,j,k) = fv*sty + (one - fv)*half*(yhi(i,j,k)+ylo(i,j,k))
-         enddo
-         enddo
-      enddo
+         end do
+         end do
+      end do
 c     ------------------------------------------------------------
       do k = kmin,kmax+1
          do j = jmin-1,jmax+1
          do i = imin-1,imax+1
          zlo(i,j,k) = s(i,j,k-1) + (half  - dthz*w(i,j,k-1))*sz(i,j,k-1)
          zhi(i,j,k) = s(i,j,k  ) + (-half - dthz*w(i,j,k  ))*sz(i,j,k  )
-         enddo
-         enddo
-      enddo
+         end do
+         end do
+      end do
 
       if(use_minion.eq.1)then
         do k = kmin,kmax+1
@@ -680,10 +680,10 @@ c     ------------------------------------------------------------
            do i = imin-1,  imax+1
            zlo(i,j,k) = zlo(i,j,k) + dth*tforces(i,j,k-1)
            zhi(i,j,k) = zhi(i,j,k) + dth*tforces(i,j,k)
-           enddo
-           enddo
-        enddo
-      endif
+           end do
+           end do
+        end do
+      end if
 
       call trans_zbc(
      &     s,DIMS(s),
@@ -696,9 +696,9 @@ c     ------------------------------------------------------------
          fw  = cvmgt(zero,one,abs(wad(i,j,k)).lt.eps)
          stz = cvmgp(zlo(i,j,k),zhi(i,j,k),wad(i,j,k))
          zlo(i,j,k) = fw*stz + (one-fw)*half*(zhi(i,j,k)+zlo(i,j,k))
-         enddo
-         enddo
-      enddo
+         end do
+         end do
+      end do
             
 
 c     --------------------------------------------------------------
@@ -723,28 +723,28 @@ c     --------------------------------------------------------------
          stxhi(i  )= s(i,j,k) - (half+dthx*u(i,j,k))*sx(i,j,k)
      &        - dth*tr
      &        + dth*tforces(i,j,k)
-      enddo
+      end do
 
       if (bc(1,1).eq.EXT_DIR) then
          stxhi(imin) = s(imin-1,j,k)
          stxlo(imin) = s(imin-1,j,k)
-      elseif (bc(1,1).eq.EXTRAP.or.bc(1,1).eq.HOEXTRAP
+      else if (bc(1,1).eq.EXTRAP.or.bc(1,1).eq.HOEXTRAP
      &        .or.bc(1,1).eq.REFLECT_EVEN) then
          stxlo(imin) = stxhi(imin)
-      elseif (bc(1,1).eq.REFLECT_ODD) then
+      else if (bc(1,1).eq.REFLECT_ODD) then
          stxhi(imin) = zero
          stxlo(imin) = zero
-      endif
+      end if
       if (bc(1,2).eq.EXT_DIR) then
         stxlo(imax+1) = s(imax+1,j,k)
         stxhi(imax+1) = s(imax+1,j,k)
-      elseif (bc(1,2).eq.EXTRAP.or.bc(1,2).eq.HOEXTRAP
+      else if (bc(1,2).eq.EXTRAP.or.bc(1,2).eq.HOEXTRAP
      &    .or.bc(1,2).eq.REFLECT_EVEN) then
         stxhi(imax+1) = stxlo(imax+1)
-      elseif (bc(1,2).eq.REFLECT_ODD) then
+      else if (bc(1,2).eq.REFLECT_ODD) then
         stxlo(imax+1) = zero
         stxhi(imax+1) = zero
-      endif
+      end if
 
       if ( velpred .eq. 1 ) then
          do i = imin, imax+1
@@ -752,18 +752,18 @@ c     --------------------------------------------------------------
             ltx = ltx .or. (abs(stxlo(i)+stxhi(i)) .lt. eps)
             stx = cvmgp(stxlo(i),stxhi(i),stxlo(i)+stxhi(i))
             xstate(i,j,k) = cvmgt(zero,stx,ltx)
-         enddo
+         end do
       else
          do i = imin, imax+1
             xstate(i,j,k) = cvmgp(stxlo(i),stxhi(i),uedge(i,j,k))
             xstate(i,j,k) = cvmgt(half*(stxlo(i)+stxhi(i)),xstate(i,j,k)
      &           ,abs(uedge(i,j,k)).lt.eps)
-         enddo
-      endif
+         end do
+      end if
       place_to_break = 1
   100 continue
   110 continue
-      endif
+      end if
 
 c     --------------------------------------------------------------
 c     compute the yedge states
@@ -787,29 +787,29 @@ c     --------------------------------------------------------------
         styhi(j)  = s(i,j,k) - (half+dthy*v(i,j,k))*sy(i,j,k)
      &       - dth*tr
      &       + dth*tforces(i,j,k)
-      enddo
+      end do
 
       if (bc(2,1).eq.EXT_DIR) then
          styhi(jmin) = s(i,jmin-1,k)
          stylo(jmin) = s(i,jmin-1,k)
-      elseif (bc(2,1).eq.EXTRAP.or.bc(2,1).eq.HOEXTRAP
+      else if (bc(2,1).eq.EXTRAP.or.bc(2,1).eq.HOEXTRAP
      &        .or.bc(2,1).eq.REFLECT_EVEN) then
          stylo(jmin) = styhi(jmin)
-      elseif (bc(2,1).eq.REFLECT_ODD) then
+      else if (bc(2,1).eq.REFLECT_ODD) then
          styhi(jmin) = zero
          stylo(jmin) = zero
-      endif
+      end if
       
       if (bc(2,2).eq.EXT_DIR) then
          stylo(jmax+1) = s(i,jmax+1,k)
          styhi(jmax+1) = s(i,jmax+1,k)
-      elseif (bc(2,2).eq.EXTRAP.or.bc(2,2).eq.HOEXTRAP
+      else if (bc(2,2).eq.EXTRAP.or.bc(2,2).eq.HOEXTRAP
      &        .or.bc(2,2).eq.REFLECT_EVEN) then
         styhi(jmax+1) = stylo(jmax+1)
-      elseif (bc(2,2).eq.REFLECT_ODD) then
+      else if (bc(2,2).eq.REFLECT_ODD) then
         stylo(jmax+1) = zero
         styhi(jmax+1) = zero
-      endif
+      end if
 
       if ( velpred .eq. 1 ) then
          do j = jmin, jmax+1
@@ -817,18 +817,18 @@ c     --------------------------------------------------------------
 	 lty = lty .or. (abs(stylo(j)+styhi(j)) .lt. eps)
          sty = cvmgp(stylo(j),styhi(j),stylo(j)+styhi(j))
          ystate(i,j,k) = cvmgt(zero,sty,lty)
-         enddo
+         end do
       else
          do j=jmin,jmax+1
             ystate(i,j,k) = cvmgp(stylo(j),styhi(j),vedge(i,j,k))
             ystate(i,j,k) = cvmgt(half*(stylo(j)+styhi(j)),ystate(i,j,k),
      &                           abs(vedge(i,j,k)).lt.eps)
-         enddo
-      endif
+         end do
+      end if
       place_to_break = 1
   200 continue
   210 continue
-      endif
+      end if
 
 c     --------------------------------------------------------------
 c     compute the zedge states
@@ -852,28 +852,28 @@ c     --------------------------------------------------------------
          stzhi(k)  = s(i,j,k) - (half+dthz*w(i,j,k))*sz(i,j,k)
      &        - dth*tr
      &        + dth*tforces(i,j,k)
-      enddo
+      end do
 
       if (bc(3,1).eq.EXT_DIR) then
          stzlo(kmin) = s(i,j,kmin-1)
          stzhi(kmin) = s(i,j,kmin-1)
-      elseif (bc(3,1).eq.EXTRAP.or.bc(3,1).eq.HOEXTRAP
+      else if (bc(3,1).eq.EXTRAP.or.bc(3,1).eq.HOEXTRAP
      &        .or.bc(3,1).eq.REFLECT_EVEN) then
          stzlo(kmin) = stzhi(kmin)
-      elseif (bc(3,1).eq.REFLECT_ODD) then
+      else if (bc(3,1).eq.REFLECT_ODD) then
          stzlo(kmin) = zero
          stzhi(kmin) = zero
-      endif
+      end if
       if (bc(3,2).eq.EXT_DIR) then
          stzlo(kmax+1) = s(i,j,kmax+1)
          stzhi(kmax+1) = s(i,j,kmax+1)
-      elseif (bc(3,2).eq.EXTRAP.or.bc(3,2).eq.HOEXTRAP
+      else if (bc(3,2).eq.EXTRAP.or.bc(3,2).eq.HOEXTRAP
      &        .or.bc(3,2).eq.REFLECT_EVEN) then
          stzhi(kmax+1) = stzlo(kmax+1)
-      elseif (bc(3,2).eq.REFLECT_ODD) then
+      else if (bc(3,2).eq.REFLECT_ODD) then
          stzlo(kmax+1) = zero
          stzhi(kmax+1) = zero
-      endif
+      end if
 
       if ( velpred .eq. 1 ) then
          do k = kmin,kmax+1
@@ -881,18 +881,18 @@ c     --------------------------------------------------------------
             ltz = ltz .or. (abs(stzlo(k)+stzhi(k)) .lt. eps)
             stz = cvmgp(stzlo(k),stzhi(k),stzlo(k)+stzhi(k))
             zstate(i,j,k) = cvmgt(zero,stz,ltz)
-         enddo
+         end do
       else
          do k = kmin,kmax+1
             zstate(i,j,k) = cvmgp(stzlo(k),stzhi(k),wedge(i,j,k))
             zstate(i,j,k) = cvmgt(half*(stzlo(k)+stzhi(k)),zstate(i,j,k),
      &                           abs(wedge(i,j,k)).lt.eps)
-         enddo
-      endif
+         end do
+      end if
       place_to_break = 1
   300 continue
   310 continue
-      endif
+      end if
 c
 c     end of routine
 c
@@ -970,10 +970,10 @@ c
      &                 - divuy*half*(yflux(i,j+1,k)+yflux(i,j,k))
      &                 - divuz*half*(zflux(i,j,k+1)+zflux(i,j,k))
               
-               enddo
-            enddo
-         enddo
-      endif
+               end do
+            end do
+         end do
+      end if
 c
 c     convert edge states to fluxes
 c
@@ -981,23 +981,23 @@ c
          do j = jmin,jmax
             do i = imin,imax+1
                xflux(i,j,k) = xflux(i,j,k)*uedge(i,j,k)*areax(i,j,k)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
       do k = kmin,kmax
          do j = jmin,jmax+1
             do i = imin,imax
                yflux(i,j,k) = yflux(i,j,k)*vedge(i,j,k)*areay(i,j,k)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
       do k = kmin,kmax+1
          do j = jmin,jmax
             do i = imin,imax
                zflux(i,j,k) = zflux(i,j,k)*wedge(i,j,k)*areaz(i,j,k)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
 c     compute the part of the advective tendency 
 c     that depends on the flux convergence
@@ -1010,9 +1010,9 @@ c
      &                 xflux(i+1,j,k) - xflux(i,j,k) +
      &                 yflux(i,j+1,k) - yflux(i,j,k) +
      &                 zflux(i,j,k+1) - zflux(i,j,k))/vol(i,j,k)
-               enddo
-            enddo
-         enddo
+               end do
+            end do
+         end do
       else
          do k = kmin,kmax
             do j = jmin,jmax
@@ -1021,10 +1021,10 @@ c
      &                 xflux(i+1,j,k) - xflux(i,j,k) +
      &                 yflux(i,j+1,k) - yflux(i,j,k) +
      &                 zflux(i,j,k+1) - zflux(i,j,k))/vol(i,j,k)
-               enddo
-            enddo
-         enddo
-      endif
+               end do
+            end do
+         end do
+      end if
 c     
 c     end of routine
 c
@@ -1088,23 +1088,23 @@ c
          do j = jmin,jmax
             do i = imin,imax+1
                xflux(i,j,k) = xflux(i,j,k)*ucor(i,j,k)*areax(i,j,k)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
       do k = kmin,kmax
          do j = jmin,jmax+1
             do i = imin,imax
                yflux(i,j,k) = yflux(i,j,k)*vcor(i,j,k)*areay(i,j,k)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
       do k = kmin,kmax+1
          do j = jmin,jmax
             do i = imin,imax
                zflux(i,j,k) = zflux(i,j,k)*wcor(i,j,k)*areaz(i,j,k)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
       do k = kmin,kmax
          do j = jmin,jmax
@@ -1113,9 +1113,9 @@ c
      &              xflux(i+1,j,k)-xflux(i,j,k) +
      &              yflux(i,j+1,k)-yflux(i,j,k) +
      &              zflux(i,j,k+1)-zflux(i,j,k) )/vol(i,j,k)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
 c     end of routine
 c
@@ -1167,8 +1167,8 @@ c
             do k = kmin-1,kmax+1
                xlo(imin,j,k) = s(imin-1,j,k)
                xhi(imin,j,k) = s(imin-1,j,k)
-            enddo
-            enddo
+            end do
+            end do
          else
             do j = jmin-1,jmax+1
             do k = kmin-1,kmax+1
@@ -1176,24 +1176,24 @@ c
                stx   = cvmgt(xhi(imin,j,k),s(imin-1,j,k),ltest)
                xlo(imin,j,k) = stx
                xhi(imin,j,k) = stx
-            enddo
-            enddo
-         endif
-      elseif (xbc(1,1).eq.EXTRAP.or.xbc(1,1).eq.HOEXTRAP
+            end do
+            end do
+         end if
+      else if (xbc(1,1).eq.EXTRAP.or.xbc(1,1).eq.HOEXTRAP
      &        .or.xbc(1,1).eq.REFLECT_EVEN) then
          do j = jmin-1,jmax+1
          do k = kmin-1,kmax+1
             xlo(imin,j,k) = xhi(imin,j,k)
-         enddo
-         enddo
-      elseif (xbc(1,1).eq.REFLECT_ODD) then
+         end do
+         end do
+      else if (xbc(1,1).eq.REFLECT_ODD) then
          do j = jmin-1,jmax+1
          do k = kmin-1,kmax+1
             xhi(imin,j,k) = zero
             xlo(imin,j,k) = zero
-         enddo
-         enddo
-      endif
+         end do
+         end do
+      end if
 c
 c     -------------- the upper x boundary
 c
@@ -1203,8 +1203,8 @@ c
             do k = kmin-1,kmax+1
                xlo(imax+1,j,k) = s(imax+1,j,k)
                xhi(imax+1,j,k) = s(imax+1,j,k)
-            enddo
-            enddo
+            end do
+            end do
          else
             do j = jmin-1,jmax+1
             do k = kmin-1,kmax+1
@@ -1212,24 +1212,24 @@ c
                stx   = cvmgt(xlo(imax+1,j,k),s(imax+1,j,k),ltest)
                xlo(imax+1,j,k) = stx
                xhi(imax+1,j,k) = stx
-            enddo
-            enddo
-         endif
-      elseif (xbc(1,2).eq.EXTRAP.or.xbc(1,2).eq.HOEXTRAP
+            end do
+            end do
+         end if
+      else if (xbc(1,2).eq.EXTRAP.or.xbc(1,2).eq.HOEXTRAP
      &        .or.xbc(1,2).eq.REFLECT_EVEN) then
          do j = jmin-1,jmax+1
          do k = kmin-1,kmax+1
             xhi(imax+1,j,k) = xlo(imax+1,j,k)
-         enddo
-         enddo
-      elseif (xbc(1,2).eq.REFLECT_ODD) then
+         end do
+         end do
+      else if (xbc(1,2).eq.REFLECT_ODD) then
          do j = jmin-1,jmax+1
          do k = kmin-1,kmax+1
             xhi(imax+1,j,k) = zero
             xlo(imax+1,j,k) = zero
-         enddo
-         enddo
-      endif
+         end do
+         end do
+      end if
 c
 c     end of routine
 c
@@ -1281,8 +1281,8 @@ c
             do k = kmin-1,kmax+1
                ylo(i,jmin,k) = s(i,jmin-1,k)
                yhi(i,jmin,k) = s(i,jmin-1,k)
-            enddo
-            enddo
+            end do
+            end do
          else
             do i = imin-1,imax+1
             do k = kmin-1,kmax+1
@@ -1290,24 +1290,24 @@ c
                sty   = cvmgt(yhi(i,jmin,k),s(i,jmin-1,k),ltest)
                ylo(i,jmin,k) = sty
                yhi(i,jmin,k) = sty
-            enddo
-            enddo
-         endif
-      elseif (ybc(2,1).eq.EXTRAP.or.ybc(2,1).eq.HOEXTRAP
+            end do
+            end do
+         end if
+      else if (ybc(2,1).eq.EXTRAP.or.ybc(2,1).eq.HOEXTRAP
      &        .or.ybc(2,1).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
          do k = kmin-1,kmax+1
             ylo(i,jmin,k) = yhi(i,jmin,k)
-         enddo
-         enddo
-      elseif (ybc(2,1).eq.REFLECT_ODD) then
+         end do
+         end do
+      else if (ybc(2,1).eq.REFLECT_ODD) then
          do i = imin-1,imax+1
          do k = kmin-1,kmax+1
             yhi(i,jmin,k) = zero
             ylo(i,jmin,k) = zero
-         enddo
-         enddo
-      endif
+         end do
+         end do
+      end if
 c
 c     -------------- the upper y boundary
 c
@@ -1317,8 +1317,8 @@ c
             do k = kmin-1,kmax+1
                ylo(i,jmax+1,k) = s(i,jmax+1,k)
                yhi(i,jmax+1,k) = s(i,jmax+1,k)
-            enddo
-            enddo
+            end do
+            end do
          else
             do i = imin-1,imax+1
             do k = kmin-1,kmax+1
@@ -1326,24 +1326,24 @@ c
                sty   = cvmgt(ylo(i,jmax+1,k),s(i,jmax+1,k),ltest)
                ylo(i,jmax+1,k) = sty
                yhi(i,jmax+1,k) = sty
-            enddo
-            enddo
-         endif
-      elseif (ybc(2,2).eq.EXTRAP.or.ybc(2,2).eq.HOEXTRAP
+            end do
+            end do
+         end if
+      else if (ybc(2,2).eq.EXTRAP.or.ybc(2,2).eq.HOEXTRAP
      &        .or.ybc(2,2).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
          do k = kmin-1,kmax+1
             yhi(i,jmax+1,k) = ylo(i,jmax+1,k)
-         enddo
-         enddo
-      elseif (ybc(2,2).eq.REFLECT_ODD) then
+         end do
+         end do
+      else if (ybc(2,2).eq.REFLECT_ODD) then
          do i = imin-1,imax+1
          do k = kmin-1,kmax+1
             ylo(i,jmax+1,k) = zero
             yhi(i,jmax+1,k) = zero
-         enddo
-         enddo
-      endif
+         end do
+         end do
+      end if
 c
 c     end of routine
 c
@@ -1393,8 +1393,8 @@ c
             do j = jmin-1,jmax+1
                zhi(i,j,kmin) = s(i,j,kmin-1)
                zlo(i,j,kmin) = s(i,j,kmin-1)
-            enddo
-            enddo
+            end do
+            end do
          else
             do i = imin-1,imax+1
             do j = jmin-1,jmax+1
@@ -1402,24 +1402,24 @@ c
                stz   = cvmgt(zhi(i,j,kmin),s(i,j,kmin-1),ltest)
                zhi(i,j,kmin) = stz
                zlo(i,j,kmin) = stz
-            enddo
-            enddo
-         endif
-      elseif (zbc(3,1).eq.EXTRAP.or.zbc(3,1).eq.HOEXTRAP
+            end do
+            end do
+         end if
+      else if (zbc(3,1).eq.EXTRAP.or.zbc(3,1).eq.HOEXTRAP
      &        .or.zbc(3,1).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
          do j = jmin-1,jmax+1
             zlo(i,j,kmin) = zhi(i,j,kmin)
-         enddo
-         enddo
-      elseif (zbc(3,1).eq.REFLECT_ODD) then
+         end do
+         end do
+      else if (zbc(3,1).eq.REFLECT_ODD) then
          do i = imin-1,imax+1
          do j = jmin-1,jmax+1
             zhi(i,j,kmin) = zero
             zlo(i,j,kmin) = zero
-         enddo
-         enddo
-      endif
+         end do
+         end do
+      end if
 c
 c     -------------- the upper z boundary
 c
@@ -1429,8 +1429,8 @@ c
             do j = jmin-1,jmax+1
                zlo(i,j,kmax+1) = s(i,j,kmax+1)
                zhi(i,j,kmax+1) = s(i,j,kmax+1)
-            enddo
-            enddo
+            end do
+            end do
          else
             do i = imin-1,imax+1
             do j = jmin-1,jmax+1
@@ -1438,24 +1438,24 @@ c
                stz   = cvmgt(zlo(i,j,kmax+1),s(i,j,kmax+1),ltest)
                zhi(i,j,kmax+1) = stz
                zlo(i,j,kmax+1) = stz
-            enddo
-            enddo
-         endif
-      elseif (zbc(3,2).eq.EXTRAP.or.zbc(3,2).eq.HOEXTRAP
+            end do
+            end do
+         end if
+      else if (zbc(3,2).eq.EXTRAP.or.zbc(3,2).eq.HOEXTRAP
      &        .or.zbc(3,2).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
          do j = jmin-1,jmax+1
             zhi(i,j,kmax+1) = zlo(i,j,kmax+1)
-         enddo
-         enddo
-      elseif (zbc(3,2).eq.REFLECT_ODD) then
+         end do
+         end do
+      else if (zbc(3,2).eq.REFLECT_ODD) then
          do i = imin-1,imax+1
          do j = jmin-1,jmax+1
             zlo(i,j,kmax+1) = zero
             zhi(i,j,kmax+1) = zero
-         enddo
-         enddo
-      endif
+         end do
+         end do
+      end if
 c
 c     end of routine
 c
@@ -1525,18 +1525,18 @@ c     -------------------------------------------------
         if (ng .lt. 1) then
            write(6,*) "SLOPE_3D: not enough bndry cells for 1st order"
 	   stop
-        endif
+        end if
         do k = kmin-1, kmax+1
            do j = jmin-1, jmax+1 
               do i = imin-1, imax+1
                  slx(i,j,k) = zero
                  sly(i,j,k) = zero
                  slz(i,j,k) = zero
-              enddo
-           enddo
-        enddo
+              end do
+           end do
+        end do
         return
-      endif
+      end if
 
 c     -------------------------------------------------
 c     COMPUTE 4TH order slopes
@@ -1545,7 +1545,7 @@ c     -------------------------------------------------
         if (ng .lt. 3) then
            write(6,*) "SLOPE_3D: not enough bndry cells for 4th order"
 	   stop
-        endif
+        end if
 c
 c     ------------------------ x slopes
 c
@@ -1561,14 +1561,14 @@ c
               slxscr(i,flag) = sign(one,slxscr(i,cen))
               slxscr(i,fromm)= slxscr(i,flag)*
      &           min(slxscr(i,lim),abs(slxscr(i,cen)))
-           enddo
+           end do
            do i = imin-1,imax+1
               ds = two * two3rd * slxscr(i,cen) - 
      &           sixth * (slxscr(i+1,fromm) + slxscr(i-1,fromm))
               slx(i,j,k) = slxscr(i,flag)*min(abs(ds),slxscr(i,lim))
-           enddo
-        enddo
-        enddo
+           end do
+        end do
+        end do
 c
         if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
            do k = kmin-1,kmax+1
@@ -1582,9 +1582,9 @@ c
               sflg = sign(one,del)
 	      slx(imin-1,j,k) = zero
               slx(imin,  j,k) = sflg*min(slim,abs(del))
-           enddo
-           enddo
-        endif
+           end do
+           end do
+        end if
         if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
            do k = kmin-1,kmax+1
            do j = jmin-1,jmax+1
@@ -1597,10 +1597,10 @@ c
               sflg = sign(one,del)
               slx(imax,  j,k) = sflg*min(slim,abs(del))
 	      slx(imax+1,j,k) = zero
-           enddo
-           enddo
-        endif
-        endif
+           end do
+           end do
+        end if
+        end if
 c
 c     ------------------------ y slopes
 c
@@ -1616,14 +1616,14 @@ c
               slyscr(j,flag) = sign(one,slyscr(j,cen))
               slyscr(j,fromm)= slyscr(j,flag)*
      &             min(slyscr(j,lim),abs(slyscr(j,cen)))
-           enddo
+           end do
            do j = jmin-1,jmax+1
               ds = two * two3rd * slyscr(j,cen) - 
      &             sixth * (slyscr(j+1,fromm) + slyscr(j-1,fromm))
               sly(i,j,k) = slyscr(j,flag)*min(abs(ds),slyscr(j,lim))
-           enddo
-        enddo
-        enddo
+           end do
+        end do
+        end do
 c
         if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
            do k = kmin-1,kmax+1
@@ -1637,9 +1637,9 @@ c
               sflg = sign(one,del)
 	      sly(i,jmin-1,k) = zero
               sly(i,jmin,  k) = sflg*min(slim,abs(del))
-	   enddo
-           enddo
-        endif
+	   end do
+           end do
+        end if
         if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
            do k = kmin-1,kmax+1
            do i = imin-1,imax+1
@@ -1652,10 +1652,10 @@ c
               sflg = sign(one,del)
               sly(i,jmax, k)  = sflg*min(slim,abs(del))
 	      sly(i,jmax+1,k) = zero
-           enddo
-	   enddo
-        endif
-        endif
+           end do
+	   end do
+        end if
+        end if
 c
 c     ------------------------ z slopes
 c
@@ -1671,14 +1671,14 @@ c
              slzscr(k,flag) = sign(one,slzscr(k,cen))
              slzscr(k,fromm)= slzscr(k,flag)*
      &            min(slzscr(k,lim),abs(slzscr(k,cen)))
-          enddo
+          end do
           do k = kmin-1,kmax+1
              ds = two * two3rd * slzscr(k,cen) -
      &            sixth * (slzscr(k+1,fromm) + slzscr(k-1,fromm))
              slz(i,j,k) = slzscr(k,flag)*min(abs(ds),slzscr(k,lim))
-          enddo
-        enddo
-        enddo
+          end do
+        end do
+        end do
 c
         if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
            do j = jmin-1,jmax+1
@@ -1692,9 +1692,9 @@ c
               sflg = sign(one,del)
               slz(i,j,kmin-1) = zero
               slz(i,j,kmin  ) = sflg*min(slim,abs(del))
-           enddo
-           enddo
-        endif
+           end do
+           end do
+        end if
         if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
            do j = jmin-1,jmax+1
 	   do i = imin-1,imax+1
@@ -1707,11 +1707,11 @@ c
               sflg = sign(one,del)
               slz(i,j,kmax  ) = sflg*min(slim,abs(del))
               slz(i,j,kmax+1) = zero
-           enddo
-           enddo
-        endif
-        endif
-      endif
+           end do
+           end do
+        end if
+        end if
+      end if
 c
 c     end of routine
 c   
@@ -1751,91 +1751,91 @@ c     correct the 8 corners
 c
       if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
          s(imin-1,jmin-1,kmin-1) = s(imin,jmin,kmin)
-      endif
+      end if
       if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
          s(imax+1,jmin-1,kmin-1) = s(imax,jmin,kmin)
-      endif
+      end if
       if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
          s(imin-1,jmax+1,kmin-1) = s(imin,jmax,kmin)
-      endif
+      end if
       if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
          s(imax+1,jmax+1,kmin-1) = s(imax,jmax,kmin)
-      endif
+      end if
       if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
          s(imin-1,jmin-1,kmax+1) = s(imin,jmin,kmax)
-      endif
+      end if
       if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
          s(imax+1,jmin-1,kmax+1) = s(imax,jmin,kmax)
-      endif
+      end if
       if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
          s(imin-1,jmax+1,kmax+1) = s(imin,jmax,kmax)
-      endif
+      end if
       if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
          s(imax+1,jmax+1,kmax+1) = s(imax,jmax,kmax)
-      endif
+      end if
 c
 c     correct the 12 edges
 c
       if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
         do k = kmin,kmax
           s(imin-1,jmin-1,k) = s(imin,jmin,k)
-        enddo
-      endif
+        end do
+      end if
       if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
         do k = kmin,kmax
           s(imax+1,jmin-1,k) = s(imax,jmin,k)
-        enddo
-      endif
+        end do
+      end if
       if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
         do k = kmin,kmax
           s(imin-1,jmax+1,k) = s(imin,jmax,k)
-        enddo
-      endif
+        end do
+      end if
       if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
         do k = kmin,kmax
           s(imax+1,jmax+1,k) = s(imax,jmax,k)
-        enddo
-      endif
+        end do
+      end if
       if (bc(1,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
         do j = jmin,jmax
           s(imin-1,j,kmin-1) = s(imin,j,kmin)
-        enddo
-      endif
+        end do
+      end if
       if (bc(1,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
         do j = jmin,jmax
           s(imax+1,j,kmin-1) = s(imax,j,kmin)
-        enddo
-      endif
+        end do
+      end if
       if (bc(1,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
         do j = jmin,jmax
           s(imin-1,j,kmax+1) = s(imin,j,kmax)
-        enddo
-      endif
+        end do
+      end if
       if (bc(1,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
         do j = jmin,jmax
           s(imax+1,j,kmax+1) = s(imax,j,kmax)
-        enddo
-      endif
+        end do
+      end if
       if (bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
         do i = imin,imax
           s(i,jmin-1,kmin-1) = s(i,jmin,kmin)
-        enddo
-      endif
+        end do
+      end if
       if (bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
         do i = imin,imax
           s(i,jmax+1,kmin-1) = s(i,jmax,kmin)
-        enddo
-      endif
+        end do
+      end if
       if (bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
         do i = imin,imax
           s(i,jmin-1,kmax+1) = s(i,jmin,kmax)
-        enddo
-      endif
+        end do
+      end if
       if (bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
         do i = imin,imax
           s(i,jmax+1,kmax+1) = s(i,jmax,kmax)
-        enddo
-      endif
+        end do
+      end if
 
 c     ::::: compute min/max a slab at a time
 c     ::::: compute min and max of neighbors on kmin-1 slab
@@ -1852,8 +1852,8 @@ c     ::::: compute min and max of neighbors on kmin-1 slab
 	 smax(i,j,km) = max(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k),
      &                     s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k),
      &                     s(i-1,j+1,k),s(i,j+1,k),s(i+1,j+1,k))
-      enddo         
-      enddo         
+      end do         
+      end do         
 
 c     ::::: compute min and max of neighbors on kmin slab
       k = kmin
@@ -1865,8 +1865,8 @@ c     ::::: compute min and max of neighbors on kmin slab
 	 smax(i,j,kk) = max(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k),
      &                     s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k),
      &                     s(i-1,j+1,k),s(i,j+1,k),s(i+1,j+1,k))
-      enddo         
-      enddo        
+      end do         
+      end do        
 
       do k = kmin, kmax         
 c        ::::: compute min and max of neighbors on k+1 slab
@@ -1885,14 +1885,14 @@ c        ::::: compute min/max of cell
          sn(i,j,k) = max(sn(i,j,k),smn)
          sn(i,j,k) = min(sn(i,j,k),smx)
          
-         enddo
-         enddo
+         end do
+         end do
 
 c        ::::: roll indices for next slab
          km = mod(km+1,3)
          kk = mod(kk+1,3)
          kp = mod(kp+1,3)
-      enddo
+      end do
 c
 c     end of routine
 c	 
@@ -1929,10 +1929,10 @@ c
                   tforces(i,j,k,n) = (
      &            tforces(i,j,k,n) - gp(i,j,k,n)
      &                 )/rho(i,j,k)
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c     
 c     end of routine
 c     
@@ -1972,10 +1972,10 @@ c
      &                 tforces(i,j,k,n)
      &                 +  visc(i,j,k,n)
      &                 -    gp(i,j,k,n) )/rho(i,j,k)
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c     
 c     end of routine
 c     
@@ -2016,10 +2016,10 @@ c
                   do i = lo(1), hi(1)
                      tforces(i,j,k,n) = 
      &               tforces(i,j,k,n) - S(i,j,k,n)*divu(i,j,k)
-                  enddo
-               enddo
-            enddo
-         enddo
+                  end do
+               end do
+            end do
+         end do
 
       else
 
@@ -2029,12 +2029,12 @@ c
                   do i = lo(1), hi(1)
                      tforces(i,j,k,n) = 
      &               tforces(i,j,k,n)/rho(i,j,k)
-                  enddo
-               enddo
-            enddo
-         enddo
+                  end do
+               end do
+            end do
+         end do
 
-      endif
+      end if
 c     
 c     end of routine
 c     
@@ -2081,10 +2081,10 @@ c
      &                    tforces(i,j,k,n)
      &                    +  visc(i,j,k,n)
      &                    -     S(i,j,k,n)*divu(i,j,k)
-                  enddo
-               enddo
-            enddo
-         enddo
+                  end do
+               end do
+            end do
+         end do
 
       else
 
@@ -2095,12 +2095,12 @@ c
                      tforces(i,j,k,n) = (
      &                    tforces(i,j,k,n)
      &                    +  visc(i,j,k,n) )/rho(i,j,k)
-                  enddo
-               enddo
-            enddo
-         enddo
+                  end do
+               end do
+            end do
+         end do
 
-      endif
+      end if
 c     
 c     end of routine
 c     
@@ -2135,10 +2135,10 @@ c
                do i = lo(1), hi(1)
                   sn(i,j,k,n) = s(i,j,k,n)
      &                 + dt*tforces(i,j,k,n)
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c
 c     end of routine
 c
@@ -2174,10 +2174,10 @@ c
                do i = lo(1), hi(1)
                   sp(i,j,k,n) = ss(i,j,k,n)
      &                 + hdt*(tfs(i,j,k,n)-tfn(i,j,k,n))
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c
 c     end of routine
 c
@@ -2218,10 +2218,10 @@ c
                   sn(i,j,k,n) = s(i,j,k,n)
      &                 - dt*aofs(i,j,k,n)
      &                 + dt*tforces(i,j,k,n)
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c
 c     end of routine
 c
@@ -2266,10 +2266,10 @@ c
      &                 - dt*   aofs(i,j,k,n)
      &                 + dt*tforces(i,j,k,n)/rho(i,j,k)
      &                 - dt*     gp(i,j,k,n)/rho(i,j,k)
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c     
 c     end of routine
 c

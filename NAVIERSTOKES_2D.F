@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.3 1997-12-12 22:44:07 lijewski Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.4 1998-02-22 19:06:50 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -45,20 +45,20 @@ c
       if ( xper .eq. 1 ) then
          do j = jmin,jmax
             udiff = MAX( udiff, abs(u(imax+1,j)-u(imin,j)) )
-         enddo
+         end do
          if ( udiff .gt. 1.e-10 ) then
             udiff = udiff
-         endif
-      endif
+         end if
+      end if
 c
       if ( yper .eq. 1 ) then
          do i = imin,imax
             vdiff = MAX( vdiff, abs(v(i,jmax+1)-v(i,jmin)) )
-         enddo
+         end do
          if ( vdiff .gt. 1.e-10 ) then
             vdiff = vdiff
-         endif
-      endif
+         end if
+      end if
 c     
 c     end of routine
 c     
@@ -92,8 +92,8 @@ c
         do i = lo(1), hi(1)
           gp(i,j,1) = ddx*(p(i+1,j)-p(i,j)+p(i+1,j+1)-p(i,j+1))
           gp(i,j,2) = ddy*(p(i,j+1)-p(i,j)+p(i+1,j+1)-p(i+1,j))
-        enddo
-      enddo
+        end do
+      end do
 c
 c     end of routine
 c
@@ -146,8 +146,8 @@ c     set coarse grid to zero on overlap
       do jc = lo(2), hi(2)
          do ic = lo(1), hi(1)
             crse(ic,jc,n) = zero
-         enddo
-      enddo
+         end do
+      end do
 
 c     sum fine data
       do joff = 0, lraty-1
@@ -158,17 +158,17 @@ c     sum fine data
                   i = ic*lratx + ioff
                   crse(ic,jc,n) = crse(ic,jc,n) +
      &                 fv(i,j)*fine(i,j,n)
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 
 c     divide out by volume weight
       do ic = lo(1), hi(1)
          do jc = lo(2), hi(2)
             crse(ic,jc,n) = crse(ic,jc,n)/cv(ic,jc)
-         enddo
-      enddo
+         end do
+      end do
   100 continue
 c
 c     end of function
@@ -204,13 +204,13 @@ c
       do jc = lo(2), hi(2)
          do ic = lo(1), hi(1)
             diff = max(diff,abs(crse(ic,jc)-fine(lratx*ic,lraty*jc)))
-         enddo
-      enddo
+         end do
+      end do
 c
       if ( diff .gt. 1.0e-10 ) then
          print *, 'mismatch between fine and coarse nodes'
          stop
-      endif
+      end if
 c
 c     end of routine
 c
@@ -260,18 +260,18 @@ c ::
           do jc = lo(2), hi(2)
 	  do ic = lo(1), hi(1)
 	    crse(ic,jc) = fine(lratx*ic,lraty*jc)
-	  enddo
-	  enddo
+	  end do
+	  end do
 
       else
 
 	  do ic = lo(1), hi(1)
           do jc = lo(2), hi(2)
 	    crse(ic,jc) = fine(lratx*ic,lraty*jc)
-	  enddo
-	  enddo
+	  end do
+	  end do
 
-      endif
+      end if
 
       return
       end
@@ -308,15 +308,15 @@ c ::
              do j = lo(2), hi(2)
 	     do i = lo(1), hi(1)
 	        a(i,j) = a(i,j) + alpha*b(i,j)
-	     enddo
-	     enddo
+	     end do
+	     end do
        else
 	     do i = lo(1), hi(1)
              do j = lo(2), hi(2)
 	        a(i,j) = a(i,j) + alpha*b(i,j)
-	     enddo
-	     enddo
-       endif
+	     end do
+	     end do
+       end if
 
        return
        end
@@ -357,20 +357,20 @@ c ::
 
        do j = ARG_L2(grid), ARG_H2(grid)
           tmp(j) = zero
-       enddo
+       end do
 
        do i = ARG_L1(grid), ARG_H1(grid)
           vol = dr*dz
 	  if (rz_flag .eq. 1) vol = vol*two*Pi*r(i)
           do j = ARG_L2(grid), ARG_H2(grid)
 	     tmp(j) = tmp(j) + vol*rho(i,j)
-	  enddo
-       enddo
+	  end do
+       end do
 
        mass = zero
        do j = ARG_L2(grid), ARG_H2(grid)
           mass = mass + tmp(j)
-       enddo
+       end do
 
        return
        end
@@ -410,20 +410,20 @@ c ::
 
        do j = ARG_L2(grid), ARG_H2(grid)
           tmp(j) = zero
-       enddo
+       end do
 
        do i = ARG_L1(grid), ARG_H1(grid)
           vol = dr*dz
 	  if (rz_flag .eq. 1) vol = vol*two*Pi*r(i)
           do j = ARG_L2(grid), ARG_H2(grid)
              tmp(j) = tmp(j) + vol*rho(i,j)*rho(i,j)
-          enddo
-       enddo
+          end do
+       end do
 
        mass = zero
        do j = ARG_L2(grid), ARG_H2(grid)
           mass = mass + tmp(j)
-       enddo
+       end do
 
        return
        end

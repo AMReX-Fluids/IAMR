@@ -1,5 +1,5 @@
 c
-c $Id: VISCOPERATOR_2D.F,v 1.3 1997-12-12 22:44:12 lijewski Exp $
+c $Id: VISCOPERATOR_2D.F,v 1.4 1998-02-22 19:06:54 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -39,28 +39,28 @@ c         ::::: left side
           do j = lo(2), hi(2)
 c            visc(i,j,n) = two*visc(i+1,j,n) - visc(i+2,j,n)
              visc(i,j,n) = visc(i+1,j,n)
-          enddo
+          end do
 
 c         ::::: right side
           i = hi(1)+1
           do j = lo(2), hi(2)
 c            visc(i,j,n) = two*visc(i-1,j,n) - visc(i-2,j,n)
              visc(i,j,n) = visc(i-1,j,n)
-          enddo
+          end do
 
 c         ::::: bottom side
           j = lo(2)-1
           do i = lo(1), hi(1)
 c            visc(i,j,n) = two*visc(i,j+1,n) - visc(i,j+2,n)
              visc(i,j,n) = visc(i,j+1,n)
-          enddo
+          end do
 
 c         ::::: top side
           j = hi(2)+1
           do i = lo(1), hi(1)
 c            visc(i,j,n) = two*visc(i,j-1,n) - visc(i,j-2,n)
              visc(i,j,n) = visc(i,j-1,n)
-          enddo
+          end do
 
 c         ::::: corners
           i = lo(1)-1
@@ -79,7 +79,7 @@ c         visc(i,j,n) = two*visc(i-1,j-1,n) - visc(i-2,j-2,n)
           j = lo(2)-1
 c         visc(i,j,n) = two*visc(i-1,j+1,n) - visc(i-2,j+2,n)
           visc(i,j,n) = visc(i-1,j+1,n)
-       enddo
+       end do
 
        return
        end

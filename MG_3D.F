@@ -1,5 +1,5 @@
 c
-c $Id: MG_3D.F,v 1.2 1997-12-12 22:44:06 lijewski Exp $
+c $Id: MG_3D.F,v 1.3 1998-02-22 19:06:50 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -50,10 +50,10 @@ c
      $                 + f(i2p1,j2  ,k2p1,n) + f(i2,j2  ,k2p1,n)
      $                 )*denom
 c
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c
       end
 c-----------------------------------------------------------------------
@@ -96,9 +96,9 @@ c
                   f(i2p1,j2  ,k2p1,n) = c(i,j,k,n) + f(i2p1,j2  ,k2p1,n)
                   f(i2  ,j2  ,k2p1,n) = c(i,j,k,n) + f(i2  ,j2  ,k2p1,n)
 c
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c
       end

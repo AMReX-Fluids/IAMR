@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_3D.F,v 1.2 1997-12-12 22:44:02 lijewski Exp $
+c $Id: INTERPBNDRYDATA_3D.F,v 1.3 1998-02-22 19:06:46 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -88,28 +88,28 @@ c        ::::: define interp coefs
             if (mask(i,j-1,k) .ne. not_covered) then
                derives(jc,kc,XDER)  = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
                derives(jc,kc,X2DER) = zero
-            endif
+            end if
             if (mask(i,j+ratioy,k) .ne. not_covered) then
                derives(jc,kc,XDER)  = crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n)
                derives(jc,kc,X2DER) = zero
-            endif
+            end if
             if (mask(i,j-1,k)     .ne. not_covered .and.
      $          mask(i,j+ratioy,k) .ne. not_covered) then
                derives(jc,kc,XDER)  = zero
-            endif
+            end if
 
             if (mask(i,j,k-1) .ne. not_covered) then
                derives(jc,kc,YDER)  = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
                derives(jc,kc,Y2DER) = zero
-            endif
+            end if
             if (mask(i,j,k+ratioz) .ne. not_covered) then
                derives(jc,kc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n)
                derives(jc,kc,Y2DER) = zero
-            endif
+            end if
             if (mask(i,j,k-1)     .ne. not_covered .and.
      $          mask(i,j,k+ratioz) .ne. not_covered) then
                derives(jc,kc,YDER)  = zero
-            endif
+            end if
             if ( 
      $           ( mask(i,j+ratioy,k+ratioz) .ne. not_covered ) .or.
      $           ( mask(i,j-1,k+ratioz)     .ne. not_covered ) .or.
@@ -117,9 +117,9 @@ c        ::::: define interp coefs
      $           ( mask(i,j-1,k-1)         .ne. not_covered ) ) then
 
                derives(jc,kc,XYDER) = zero
-            endif
-         enddo
-         enddo
+            end if
+         end do
+         end do
 
 c        ::::: interpolate to fine grid
          do koff = 0, ratioz - 1
@@ -133,11 +133,11 @@ c        ::::: interpolate to fine grid
                      bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(jc,kc,XDER) 
      &                     + derives(jc,kc,X2DER)*xx**2 + yy*derives(jc,kc,YDER) 
      &                     + derives(jc,kc,Y2DER)*yy**2 + xx*yy*derives(jc,kc,XYDER) 
-                  enddo
-               enddo
-            enddo
-         enddo
-      enddo
+                  end do
+               end do
+            end do
+         end do
+      end do
 
       return
       end
@@ -210,28 +210,28 @@ c        ::::: define interp coefs
             if (mask(i,j-1,k) .ne. not_covered) then
                derives(jc,kc,XDER)  = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
                derives(jc,kc,X2DER) = zero
-            endif
+            end if
             if (mask(i,j+ratioy,k) .ne. not_covered) then
                derives(jc,kc,XDER)  = crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n)
                derives(jc,kc,X2DER) = zero
-            endif
+            end if
             if (mask(i,j-1,k)     .ne. not_covered .and.
      $          mask(i,j+ratioy,k) .ne. not_covered) then
                derives(jc,kc,XDER)  = zero
-            endif
+            end if
 
             if (mask(i,j,k-1) .ne. not_covered) then
                derives(jc,kc,YDER)  = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
                derives(jc,kc,Y2DER) = zero
-            endif
+            end if
             if (mask(i,j,k+ratioz) .ne. not_covered) then
                derives(jc,kc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n)
                derives(jc,kc,Y2DER) = zero
-            endif
+            end if
             if (mask(i,j,k-1)     .ne. not_covered .and.
      $          mask(i,j,k+ratioz) .ne. not_covered) then
                derives(jc,kc,YDER)  = zero
-            endif
+            end if
             if (
      $           ( mask(i,j+ratioy,k+ratioz) .ne. not_covered ) .or.
      $           ( mask(i,j-1,k+ratioz)     .ne. not_covered ) .or.
@@ -239,9 +239,9 @@ c        ::::: define interp coefs
      $           ( mask(i,j-1,k-1)         .ne. not_covered ) ) then
                
                 derives(jc,kc,XYDER) = zero
-            endif
-         enddo
-         enddo
+            end if
+         end do
+         end do
 
 c        ::::: interpolate to fine grid
          do koff = 0, ratioz - 1
@@ -255,11 +255,11 @@ c        ::::: interpolate to fine grid
                      bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(jc,kc,XDER) 
      &                     + derives(jc,kc,X2DER)*xx**2 + yy*derives(jc,kc,YDER) 
      &                     + derives(jc,kc,Y2DER)*yy**2 + xx*yy*derives(jc,kc,XYDER) 
-                  enddo
-               enddo
-            enddo
-         enddo
-      enddo
+                  end do
+               end do
+            end do
+         end do
+      end do
 
       return
       end
@@ -332,28 +332,28 @@ c        ::::: define interp coefs
             if (mask(i-1,j,k) .ne. not_covered) then
                derives(ic,kc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
                derives(ic,kc,X2DER) = zero
-            endif
+            end if
             if (mask(i+ratiox,j,k) .ne. not_covered) then
                derives(ic,kc,XDER)  = crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n)
                derives(ic,kc,X2DER) = zero
-            endif
+            end if
             if (mask(i-1,j,k)     .ne. not_covered .and.
      $          mask(i+ratiox,j,k) .ne. not_covered) then
                derives(ic,kc,XDER)  = zero
-            endif
+            end if
 
             if (mask(i,j,k-1) .ne. not_covered) then
                derives(ic,kc,YDER)  = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
                derives(ic,kc,Y2DER) = zero
-            endif
+            end if
             if (mask(i,j,k+ratioz) .ne. not_covered) then
                derives(ic,kc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n)
                derives(ic,kc,Y2DER) = zero
-            endif
+            end if
             if (mask(i,j,k-1)     .ne. not_covered .and.
      $          mask(i,j,k+ratioz) .ne. not_covered) then
                derives(ic,kc,YDER)  = zero
-            endif
+            end if
             if (
      $           ( mask(i+ratiox,j,k+ratioz) .ne. not_covered ) .or.
      $           ( mask(i-1,j,k+ratioz)     .ne. not_covered ) .or.
@@ -361,9 +361,9 @@ c        ::::: define interp coefs
      $           ( mask(i-1,j,k-1)         .ne. not_covered ) ) then
                
                 derives(ic,kc,XYDER) = zero
-            endif
-         enddo
-         enddo
+            end if
+         end do
+         end do
 
 c        ::::: interpolate to fine grid
          do koff = 0, ratioz - 1
@@ -377,11 +377,11 @@ c        ::::: interpolate to fine grid
                      bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,kc,XDER) 
      &                     + derives(ic,kc,X2DER)*xx**2 + yy*derives(ic,kc,YDER) 
      &                     + derives(ic,kc,Y2DER)*yy**2 + xx*yy*derives(ic,kc,XYDER) 
-                  enddo
-               enddo
-            enddo
-         enddo
-      enddo
+                  end do
+               end do
+            end do
+         end do
+      end do
 
       return
       end
@@ -454,28 +454,28 @@ c        ::::: define interp coefs
             if (mask(i-1,j,k) .ne. not_covered) then
                derives(ic,kc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
                derives(ic,kc,X2DER) = zero
-            endif
+            end if
             if (mask(i+ratiox,j,k) .ne. not_covered) then
                derives(ic,kc,XDER)  = crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n)
                derives(ic,kc,X2DER) = zero
-            endif
+            end if
             if (mask(i-1,j,k)     .ne. not_covered .and.
      $          mask(i+ratiox,j,k) .ne. not_covered) then
                derives(ic,kc,XDER)  = zero
-            endif
+            end if
 
             if (mask(i,j,k-1) .ne. not_covered) then
                derives(ic,kc,YDER)  = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
                derives(ic,kc,Y2DER) = zero
-            endif
+            end if
             if (mask(i,j,k+ratioz) .ne. not_covered) then
                derives(ic,kc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n)
                derives(ic,kc,Y2DER) = zero
-            endif
+            end if
             if (mask(i,j,k-1)     .ne. not_covered .and.
      $          mask(i,j,k+ratioz) .ne. not_covered) then
                derives(ic,kc,YDER)  = zero
-            endif
+            end if
 
             if ( 
      $           ( mask(i+ratiox,j,k+ratioz) .ne. not_covered ) .or.
@@ -484,9 +484,9 @@ c        ::::: define interp coefs
      $           ( mask(i-1,j,k-1)         .ne. not_covered ) ) then
 
                derives(ic,kc,XYDER) = zero
-            endif
-         enddo
-         enddo
+            end if
+         end do
+         end do
 
 c        ::::: interpolate to fine grid
          do koff = 0, ratioz - 1
@@ -500,11 +500,11 @@ c        ::::: interpolate to fine grid
                      bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,kc,XDER) 
      &                     + derives(ic,kc,X2DER)*xx**2 + yy*derives(ic,kc,YDER) 
      &                     + derives(ic,kc,Y2DER)*yy**2 + xx*yy*derives(ic,kc,XYDER) 
-                  enddo
-               enddo
-            enddo
-         enddo
-      enddo
+                  end do
+               end do
+            end do
+         end do
+      end do
 
       return
       end
@@ -576,28 +576,28 @@ c     ::::: define interp coefs
                if (mask(i-1,j,k) .ne. not_covered) then
                   derives(ic,jc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
                   derives(ic,jc,X2DER) = zero
-               endif
+               end if
                if (mask(i+ratiox,j,k) .ne. not_covered) then
                   derives(ic,jc,XDER)  = crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n)
                   derives(ic,jc,X2DER) = zero
-               endif
+               end if
                if (mask(i-1,j,k)     .ne. not_covered .and. 
      $             mask(i+ratiox,j,k) .ne. not_covered) then
                   derives(ic,jc,XDER)  = zero
-               endif
+               end if
 
                if (mask(i,j-1,k) .ne. not_covered) then
                   derives(ic,jc,YDER)  = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
                   derives(ic,jc,Y2DER) = zero
-               endif
+               end if
                if (mask(i,j+ratioy,k) .ne. not_covered) then
                   derives(ic,jc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n)
                   derives(ic,jc,Y2DER) = zero
-               endif
+               end if
                if (mask(i,j-1,k)     .ne. not_covered .and. 
      $             mask(i,j+ratioy,k) .ne. not_covered) then
                   derives(ic,jc,YDER)  = zero
-               endif
+               end if
 
                if (
      $              ( mask(i+ratiox,j+ratioy,k) .ne. not_covered ) .or.
@@ -606,9 +606,9 @@ c     ::::: define interp coefs
      $              ( mask(i-1,j-1,k)         .ne. not_covered ) ) then
                   
                   derives(ic,jc,XYDER) = zero
-               endif
-            enddo
-         enddo
+               end if
+            end do
+         end do
          
 c     ::::: interpolate to fine grid
          do joff = 0, ratioy - 1
@@ -622,11 +622,11 @@ c     ::::: interpolate to fine grid
                      bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,jc,XDER) 
      &                    + derives(ic,jc,X2DER)*xx**2 + yy*derives(ic,jc,YDER) 
      &                    + derives(ic,jc,Y2DER)*yy**2 + xx*yy*derives(ic,jc,XYDER) 
-                  enddo
-               enddo
-            enddo
-         enddo
-      enddo
+                  end do
+               end do
+            end do
+         end do
+      end do
       
       return
       end
@@ -699,28 +699,28 @@ c        ::::: define interp coefs
             if (mask(i-1,j,k) .ne. not_covered) then
                derives(ic,jc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
                derives(ic,jc,X2DER) = zero
-            endif
+            end if
             if (mask(i+ratiox,j,k) .ne. not_covered) then
                derives(ic,jc,XDER)  = crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n)
                derives(ic,jc,X2DER) = zero
-            endif
+            end if
             if (mask(i-1,j,k)     .ne. not_covered .and. 
      $          mask(i+ratiox,j,k) .ne. not_covered) then
                derives(ic,jc,XDER)  = zero
-            endif
+            end if
 
             if (mask(i,j-1,k) .ne. not_covered) then
                derives(ic,jc,YDER)  = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
                derives(ic,jc,Y2DER) = zero
-            endif
+            end if
             if (mask(i,j+ratioy,k) .ne. not_covered) then
                derives(ic,jc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n)
                derives(ic,jc,Y2DER) = zero
-            endif
+            end if
             if (mask(i,j-1,k)     .ne. not_covered .and. 
      $          mask(i,j+ratioy,k) .ne. not_covered) then
                derives(ic,jc,YDER)  = zero
-            endif
+            end if
             if (
      $           ( mask(i+ratiox,j+ratioy,k) .ne. not_covered ) .or.
      $           ( mask(i-1,j+ratioy,k)     .ne. not_covered ) .or.
@@ -728,9 +728,9 @@ c        ::::: define interp coefs
      $           ( mask(i-1,j-1,k)         .ne. not_covered ) ) then
                
                 derives(ic,jc,XYDER) = zero
-            endif
-         enddo
-         enddo
+            end if
+         end do
+         end do
 
 c        ::::: interpolate to fine grid
          do joff = 0, ratioy - 1
@@ -744,11 +744,11 @@ c        ::::: interpolate to fine grid
                      bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,jc,XDER) 
      &                     + derives(ic,jc,X2DER)*xx**2 + yy*derives(ic,jc,YDER) 
      &                     + derives(ic,jc,Y2DER)*yy**2 + xx*yy*derives(ic,jc,XYDER) 
-                  enddo
-               enddo
-            enddo
-         enddo
-      enddo
+                  end do
+               end do
+            end do
+         end do
+      end do
 
       return
       end

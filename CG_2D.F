@@ -1,5 +1,5 @@
 c
-c     $Id: CG_2D.F,v 1.2 1997-12-12 22:43:58 lijewski Exp $
+c     $Id: CG_2D.F,v 1.3 1998-02-22 19:06:43 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -52,9 +52,9 @@ c
             do i = lo(1), hi(1)
                phi(i,j,n) = phi(i,j,n) + a(n) * pp(i,j,n)
                rr(i,j,n) = rr(i,j,n) - a(n) * ww(i,j,n)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
       end
       
@@ -91,9 +91,9 @@ c
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                pp(i,j,n) = rr(i,j,n) + b(n)*pp(i,j,n)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
       end
       
@@ -130,9 +130,9 @@ c
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                pw = pw + pp(i,j,n)*ww(i,j,n)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
       end
 

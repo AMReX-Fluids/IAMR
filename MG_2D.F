@@ -1,5 +1,5 @@
 c
-c $Id: MG_2D.F,v 1.2 1997-12-12 22:44:06 lijewski Exp $
+c $Id: MG_2D.F,v 1.3 1998-02-22 19:06:50 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -36,9 +36,9 @@ c
                c(i,j,n) =  (
      $              f(2*i+1,2*j+1,n) + f(2*i  ,2*j+1,n)
      $              + f(2*i+1,2*j,n ) + f(2*i  ,2*j ,n))*denom
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
       end
 c-----------------------------------------------------------------------
@@ -67,8 +67,8 @@ cdir$   ivdep
                f(2*i  ,2*j+1,n) = c(i,j,n) + f(2*i  ,2*j+1,n)
                f(2*i+1,2*j  ,n) = c(i,j,n) + f(2*i+1,2*j  ,n)
                f(2*i  ,2*j  ,n) = c(i,j,n) + f(2*i  ,2*j  ,n)
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 c
       end

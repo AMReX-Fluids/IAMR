@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.3 1997-12-12 22:44:12 lijewski Exp $
+c $Id: SYNCREG_3D.F,v 1.4 1998-02-22 19:06:53 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -68,10 +68,10 @@ c           timestep on the coarse grid.  mult = 1/ratio.
      $          (u(i,j,k-1,3) + u(i-1,j,k-1,3) + 
      $           u(i,j-1,k-1,3) + u(i-1,j-1,k-1,3)) )
                divu(i,j,k) = mult*(ux+vy+wz)
-            enddo
-           enddo
-          enddo
-      elseif (leny .ge. lenx .and. leny .ge. lenz) then 
+            end do
+           end do
+          end do
+      else if (leny .ge. lenx .and. leny .ge. lenz) then 
          do k = lo(3), hi(3)
           do i = lo(1), hi(1)
             do j = lo(2), hi(2)
@@ -88,10 +88,10 @@ c           timestep on the coarse grid.  mult = 1/ratio.
      $          (u(i,j,k-1,3) + u(i-1,j,k-1,3) + 
      $           u(i,j-1,k-1,3) + u(i-1,j-1,k-1,3)) )
                divu(i,j,k) = mult*(ux+vy+wz)
-            enddo
-           enddo
-          enddo
-      elseif (lenz .ge. lenx .and. lenz .ge. leny) then 
+            end do
+           end do
+          end do
+      else if (lenz .ge. lenx .and. lenz .ge. leny) then 
           do j = lo(2), hi(2)
            do i = lo(1), hi(1)
             do k = lo(3), hi(3)
@@ -108,10 +108,10 @@ c           timestep on the coarse grid.  mult = 1/ratio.
      $          (u(i,j,k-1,3) + u(i-1,j,k-1,3) + 
      $           u(i,j-1,k-1,3) + u(i-1,j-1,k-1,3)) )
                divu(i,j,k) = mult*(ux+vy+wz)
-            enddo
-           enddo
-          enddo
-      endif
+            end do
+           end do
+          end do
+      end if
       
       return
       end
@@ -197,10 +197,10 @@ c           timestep on the coarse grid.  mult = 1/ratio.
      &             - phi(i-1,j-1,k) - phi(i,j-1,k-1) - phi(i-1,j,k-1) 
      &             - three*phi(i-1,j-1,k-1) - nine*phi(i,j,k) )
                divgp(i,j,k) = denom*(p1+p2+p3+p4+p5+p6+p7+p8)
-            enddo
-          enddo
-         enddo
-      elseif (leny .ge. lenx .and. leny .ge. lenz) then 
+            end do
+          end do
+         end do
+      else if (leny .ge. lenx .and. leny .ge. lenz) then 
          do k = lo(3), hi(3)
           do i = lo(1), hi(1)
             do j = lo(2), hi(2)
@@ -237,10 +237,10 @@ c           timestep on the coarse grid.  mult = 1/ratio.
      &             - phi(i-1,j-1,k) - phi(i,j-1,k-1) - phi(i-1,j,k-1) 
      &             - three*phi(i-1,j-1,k-1) - nine*phi(i,j,k) )
                divgp(i,j,k) = denom*(p1+p2+p3+p4+p5+p6+p7+p8)
-            enddo
-          enddo
-         enddo
-      elseif (lenz .ge. lenx .and. lenz .ge. leny) then 
+            end do
+          end do
+         end do
+      else if (lenz .ge. lenx .and. lenz .ge. leny) then 
          do j = lo(2), hi(2)
           do i = lo(1), hi(1)
            do k = lo(3), hi(3)
@@ -277,10 +277,10 @@ c           timestep on the coarse grid.  mult = 1/ratio.
      &             - phi(i-1,j-1,k) - phi(i,j-1,k-1) - phi(i-1,j,k-1) 
      &             - three*phi(i-1,j-1,k-1) - nine*phi(i,j,k) )
                divgp(i,j,k) = denom*(p1+p2+p3+p4+p5+p6+p7+p8)
-            enddo
-          enddo
-         enddo
-      endif
+            end do
+          end do
+         end do
+      end if
       
       return
       end
@@ -358,9 +358,9 @@ c           timestep on the coarse grid.  mult = 1/ratio.
 
             divgp(i,j,k) = denomx*(p1+p2) + denomy*(p3+p4) + denomz*(p5+p6)
 
-        enddo
-       enddo
-      enddo
+        end do
+       end do
+      end do
 
       return
       end
@@ -415,10 +415,10 @@ c        ::::: sum in j and k directions
            do kc = lo(3), hi(3)
              do jc = lo(2), hi(2)
                crse(ic,jc,kc) = fine(i,jc,kc) / ratiox
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratioy .eq. 1 .and. ratioz .eq. 2) then
+         else if (ratioy .eq. 1 .and. ratioz .eq. 2) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -427,10 +427,10 @@ c        ::::: sum in j and k directions
                crse(ic,jc,kc) =   half* fine(i,j,k)
      &                        + fourth*(fine(i,j,k+1)+fine(i,j,k-1))
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratioy .eq. 1 .and. ratioz .eq. 4) then
+         else if (ratioy .eq. 1 .and. ratioz .eq. 4) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -441,10 +441,10 @@ c        ::::: sum in j and k directions
      &                        +   two*(fine(i,j,k+2)+fine(i,j,k-2))
      &                        +       (fine(i,j,k+3)+fine(i,j,k-3)))/sixteen
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratioy .eq. 2 .and. ratioz .eq. 1) then
+         else if (ratioy .eq. 2 .and. ratioz .eq. 1) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -453,10 +453,10 @@ c        ::::: sum in j and k directions
                crse(ic,jc,kc) =   half* fine(i,j  ,k)
      &                        + fourth*(fine(i,j+1,k)+fine(i,j-1,k))
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratioy .eq. 4 .and. ratioz .eq. 1) then
+         else if (ratioy .eq. 4 .and. ratioz .eq. 1) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -467,10 +467,10 @@ c        ::::: sum in j and k directions
      &                        +   two*(fine(i,j+2,k)+fine(i,j-2,k))
      &                        +       (fine(i,j+3,k)+fine(i,j-3,k)))/sixteen
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratioy .eq. 2 .and. ratioz .eq. 2) then
+         else if (ratioy .eq. 2 .and. ratioz .eq. 2) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -482,10 +482,10 @@ c        ::::: sum in j and k directions
      &              + fourth*fourth*(fine(i,j+1,k+1) + fine(i,j-1,k+1)
      &              +                fine(i,j+1,k-1) + fine(i,j-1,k-1)) 
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratioy .eq. 2 .and. ratioz .eq. 4) then
+         else if (ratioy .eq. 2 .and. ratioz .eq. 4) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -503,10 +503,10 @@ c        ::::: sum in j and k directions
      &              two       *(fine(i,j+1,k+3) + fine(i,j-1,k+3)+
      &                          fine(i,j+1,k-3) + fine(i,j-1,k-3)) ) / 128.d0
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-             enddo
-           enddo
+             end do
+           end do
 
-         elseif (ratioy .eq. 4 .and. ratioz .eq. 2) then
+         else if (ratioy .eq. 4 .and. ratioz .eq. 2) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -524,10 +524,10 @@ c        ::::: sum in j and k directions
      &              two       *(fine(i,j+3,k+1) + fine(i,j+3,k-1)+
      &                          fine(i,j-3,k+1) + fine(i,j-3,k-1)) ) / 128.d0
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
-             enddo
-           enddo
+             end do
+           end do
 
-         elseif (ratioy .eq. 4 .and. ratioz .eq. 4) then
+         else if (ratioy .eq. 4 .and. ratioz .eq. 4) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -559,14 +559,14 @@ c        ::::: sum in j and k directions
      &                          (fine(i,j+3,k+3) + fine(i,j-3,k+3)+
      &                           fine(i,j+3,k-3) + fine(i,j-3,k-3)) 
                crse(ic,jc,kc) = crse(ic,jc,kc) / (sixteen*sixteen*ratiox)
-             enddo
-           enddo
+             end do
+           end do
          else
            print *,'BOGUS RATIOY AND/OR RATIOZ IN SRCRSEREG ',ratioy,ratioz
            stop
-         endif
+         end if
       
-      elseif (dir .eq. 1) then
+      else if (dir .eq. 1) then
 
 c        ::::: sum in i and k directions
          jc = lo(2)
@@ -577,10 +577,10 @@ c        ::::: sum in i and k directions
            do kc = lo(3), hi(3)
              do ic = lo(1), hi(1)
                crse(ic,jc,kc) = fine(ic,j,kc) / ratioy
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratiox .eq. 1 .and. ratioz .eq. 2) then
+         else if (ratiox .eq. 1 .and. ratioz .eq. 2) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -589,10 +589,10 @@ c        ::::: sum in i and k directions
                crse(ic,jc,kc) =   half* fine(i,j,k)
      &                        + fourth*(fine(i,j,k+1)+fine(i,j,k-1))
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratiox .eq. 1 .and. ratioz .eq. 4) then
+         else if (ratiox .eq. 1 .and. ratioz .eq. 4) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -603,10 +603,10 @@ c        ::::: sum in i and k directions
      &                        +   two*(fine(i,j,k+2)+fine(i,j,k-2))
      &                        +       (fine(i,j,k+3)+fine(i,j,k-3)))/sixteen
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratiox .eq. 2 .and. ratioz .eq. 1) then
+         else if (ratiox .eq. 2 .and. ratioz .eq. 1) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -615,10 +615,10 @@ c        ::::: sum in i and k directions
                crse(ic,jc,kc) =   half* fine(i  ,j,k)
      &                        + fourth*(fine(i+1,j,k)+fine(i-1,j,k))
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratiox .eq. 4 .and. ratioz .eq. 1) then
+         else if (ratiox .eq. 4 .and. ratioz .eq. 1) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -629,10 +629,10 @@ c        ::::: sum in i and k directions
      &                        +   two*(fine(i+2,j,k)+fine(i-2,j,k))
      &                        +       (fine(i+3,j,k)+fine(i-3,j,k)))/sixteen
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratiox .eq. 2 .and. ratioz .eq. 2) then
+         else if (ratiox .eq. 2 .and. ratioz .eq. 2) then
            do kc = lo(3), hi(3)
              k = ratioz*kc
              do ic = lo(1), hi(1)
@@ -643,10 +643,10 @@ c        ::::: sum in i and k directions
      &              + fourth*fourth*(fine(i+1,j,k+1) + fine(i-1,j,k+1)
      &                              +fine(i+1,j,k-1) + fine(i-1,j,k-1)) 
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratiox .eq. 2 .and. ratioz .eq. 4) then
+         else if (ratiox .eq. 2 .and. ratioz .eq. 4) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -664,10 +664,10 @@ c        ::::: sum in i and k directions
      &              two       *(fine(i+1,j,k+3) + fine(i-1,j,k+3)+
      &                          fine(i+1,j,k-3) + fine(i-1,j,k-3)) ) / 128.d0
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy 
-             enddo
-           enddo
+             end do
+           end do
 
-         elseif (ratiox .eq. 4 .and. ratioz .eq. 2) then
+         else if (ratiox .eq. 4 .and. ratioz .eq. 2) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -685,10 +685,10 @@ c        ::::: sum in i and k directions
      &              two       *(fine(i+3,j,k+1) + fine(i+3,j,k-1)+
      &                          fine(i-3,j,k+1) + fine(i-3,j,k-1)) ) / 128.d0
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy 
-             enddo
-           enddo
+             end do
+           end do
 
-         elseif (ratiox .eq. 4 .and. ratioz .eq. 4) then
+         else if (ratiox .eq. 4 .and. ratioz .eq. 4) then
 
            do kc = lo(3), hi(3)
              k = ratioz*kc
@@ -720,13 +720,13 @@ c        ::::: sum in i and k directions
      &                          (fine(i+3,j,k+3) + fine(i-3,j,k+3)+
      &                           fine(i+3,j,k-3) + fine(i-3,j,k-3)) 
                crse(ic,jc,kc) = crse(ic,jc,kc) / (sixteen*sixteen*ratioy)
-             enddo
-           enddo
+             end do
+           end do
          else
            print *,'BOGUS RATIOX AND/OR RATIOZ IN SRCRSEREG ',ratiox,ratioz
            stop
-         endif
-       elseif (dir .eq. 2) then
+         end if
+       else if (dir .eq. 2) then
 
 c        ::::: sum in i and j directions
          kc = lo(3)
@@ -737,10 +737,10 @@ c        ::::: sum in i and j directions
            do jc = lo(2), hi(2)
              do ic = lo(1), hi(1)
                crse(ic,jc,kc) = fine(ic,jc,k) / ratioz
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratiox .eq. 1 .and. ratioy .eq. 2) then
+         else if (ratiox .eq. 1 .and. ratioy .eq. 2) then
 
            do jc = lo(2), hi(2)
              j = ratioy*jc
@@ -749,10 +749,10 @@ c        ::::: sum in i and j directions
                crse(ic,jc,kc) =   half* fine(i,j,k)
      &                        + fourth*(fine(i,j+1,k)+fine(i,j-1,k))
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratiox .eq. 1 .and. ratioy .eq. 4) then
+         else if (ratiox .eq. 1 .and. ratioy .eq. 4) then
 
            do jc = lo(2), hi(2)
              j = ratioy*jc
@@ -763,10 +763,10 @@ c        ::::: sum in i and j directions
      &                        +   two*(fine(i,j+2,k)+fine(i,j-2,k))
      &                        +       (fine(i,j+3,k)+fine(i,j-3,k)))/sixteen
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratiox .eq. 2 .and. ratioy .eq. 1) then
+         else if (ratiox .eq. 2 .and. ratioy .eq. 1) then
 
            do jc = lo(2), hi(2)
              j = ratioy*jc
@@ -775,10 +775,10 @@ c        ::::: sum in i and j directions
                crse(ic,jc,kc) =   half* fine(i  ,j,k)
      &                        + fourth*(fine(i+1,j,k)+fine(i-1,j,k))
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratiox .eq. 4 .and. ratioy .eq. 1) then
+         else if (ratiox .eq. 4 .and. ratioy .eq. 1) then
 
            do jc = lo(2), hi(2)
              j = ratioy*jc
@@ -789,10 +789,10 @@ c        ::::: sum in i and j directions
      &                        +   two*(fine(i+2,j,k)+fine(i-2,j,k))
      &                        +       (fine(i+3,j,k)+fine(i-3,j,k)))/sixteen
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratiox .eq. 2 .and. ratioy .eq. 2) then
+         else if (ratiox .eq. 2 .and. ratioy .eq. 2) then
            do jc = lo(2), hi(2)
              j = ratioy*jc
              do ic = lo(1), hi(1)
@@ -803,10 +803,10 @@ c        ::::: sum in i and j directions
      &              + fourth*fourth*(fine(i+1,j+1,k) + fine(i-1,j+1,k)
      &                              +fine(i+1,j-1,k) + fine(i-1,j-1,k)) 
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz
-            enddo
-           enddo
+            end do
+           end do
 
-         elseif (ratiox .eq. 2 .and. ratioy .eq. 4) then
+         else if (ratiox .eq. 2 .and. ratioy .eq. 4) then
 
            do jc = lo(2), hi(2)
              j = ratioy*jc
@@ -824,10 +824,10 @@ c        ::::: sum in i and j directions
      &              two       *(fine(i+1,j+3,k) + fine(i-1,j+3,k)+
      &                          fine(i+1,j-3,k) + fine(i-1,j-3,k)) ) / 128.d0
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz 
-             enddo
-           enddo
+             end do
+           end do
 
-         elseif (ratiox .eq. 4 .and. ratioy .eq. 2) then
+         else if (ratiox .eq. 4 .and. ratioy .eq. 2) then
 
            do jc = lo(2), hi(2)
              j = ratioy*jc
@@ -845,10 +845,10 @@ c        ::::: sum in i and j directions
      &              two       *(fine(i+3,j+1,k) + fine(i+3,j-1,k)+
      &                          fine(i-3,j+1,k) + fine(i-3,j-1,k)) ) / 128.d0
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz 
-             enddo
-           enddo
+             end do
+           end do
 
-         elseif (ratiox .eq. 4 .and. ratioy .eq. 4) then
+         else if (ratiox .eq. 4 .and. ratioy .eq. 4) then
 
            do jc = lo(2), hi(2)
              j = ratioy*jc
@@ -880,13 +880,13 @@ c        ::::: sum in i and j directions
      &                          (fine(i+3,j+3,k) + fine(i-3,j+3,k)+
      &                           fine(i+3,j-3,k) + fine(i-3,j-3,k)) 
                crse(ic,jc,kc) = crse(ic,jc,kc) / (sixteen*sixteen*ratioz)
-             enddo
-           enddo
+             end do
+           end do
          else
            print *,'BOGUS RATIOX AND/OR RATIOY IN SRCRSEREG ',ratiox,ratioy
            stop
-         endif
-      endif
+         end if
+      end if
 
       return
       end
@@ -919,9 +919,9 @@ c ::: -----------------------------------------------------------
      $                + cells(i,j  ,k-1) + cells(i-1,j  ,k-1)
      $                + cells(i,j-1,k-1) + cells(i-1,j-1,k-1)
 
-        enddo
-       enddo
-      enddo
+        end do
+       end do
+      end do
 
       return
       end
@@ -949,11 +949,11 @@ c ::: -----------------------------------------------------------
              mask(i,j,k) = zero
           else
              mask(i,j,k) = one
-          endif
+          end if
 
-        enddo
-       enddo
-      enddo
+        end do
+       end do
+      end do
  
       return
       end

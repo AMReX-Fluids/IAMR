@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_2D.F,v 1.3 1997-12-12 22:44:05 lijewski Exp $
+c $Id: MACPROJ_2D.F,v 1.4 1998-02-22 19:06:49 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -63,17 +63,17 @@ c ::
      &                 +   yarea(i,j+1)*uy(i,j+1) - yarea(i,j)*uy(i,j)
      &                   )/vol(i,j)
 
-          enddo
-          enddo
+          end do
+          end do
        else
           do i = lo(1), hi(1)
           do j = lo(2), hi(2)
              dmac(i,j) = ( xarea(i+1,j)*ux(i+1,j) - xarea(i,j)*ux(i,j)
      &                 +   yarea(i,j+1)*uy(i,j+1) - yarea(i,j)*uy(i,j)
      &                   )/vol(i,j)
-          enddo
-          enddo
-       endif
+          end do
+          end do
+       end if
 
        return
        end
@@ -115,18 +115,18 @@ c ::
           do j = lo(2), hi(2)
           do i = lo(1), hi(1)
              snew(i,j,n) = snew(i,j,n) + mult*dmac(i,j)*sold(i,j,n)
-          enddo
-          enddo
-          enddo
+          end do
+          end do
+          end do
        else
           do n = 1, nvar
           do i = lo(1), hi(1)
           do j = lo(2), hi(2)
              snew(i,j,n) = snew(i,j,n) + mult*dmac(i,j)*sold(i,j,n)
-          enddo
-          enddo
-          enddo
-       endif
+          end do
+          end do
+          end do
+       end if
 
        return
        end
@@ -184,13 +184,13 @@ c
            vtot = vtot+rcen(i)
            max_divu = max(max_divu,divu(i,j))
            min_divu = min(min_divu,divu(i,j))
-        enddo
-        enddo
+        end do
+        end do
         divu_ave = divu_ave/vtot
 
       if(max_divu.eq.zero.and.min_divu.eq.zero) then
         return
-      endif
+      end if
 
       fstm = zero
       phi(is,je) = zero
@@ -202,9 +202,7 @@ c
          phi(i,je) = phi(i-1,je) + hx * rhoedge * 
      &                             (uhalfx(i,je-1) - fst)
          fstm = fst
-      enddo
+      end do
 
       return
       end
-
-

@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.4 1997-12-15 20:56:09 lijewski Exp $
+c $Id: PROB_2D.F,v 1.5 1998-02-22 19:06:51 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -128,7 +128,7 @@ c     ::::: local variables
 
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
-      endif
+      end if
 
       return
       end
@@ -177,7 +177,7 @@ c     ::::: local variables
       else 
          write(6,*) "initbubble: adv_dir = ",adv_dir
          stop
-      endif
+      end if
 
          do j = lo(2), hi(2)
             y = xlo(2) + hy*(float(j-lo(2)) + half)
@@ -196,8 +196,8 @@ c              rho = rhoavg + half * rhodiff *  tanh(5000.*(dist-radblob))
 	       vel(i,j,2) = uy
 	       scal(i,j,1) = rho
                scal(i,j,2) = c
-	    enddo
-         enddo
+	    end do
+         end do
 
 
       return
@@ -241,7 +241,7 @@ c     ::::: local variables
       else 
          write(6,*) "INITSPIN: adv_dir = ",adv_dir
          stop
-      endif
+      end if
 
       xlen = one
       ylen = one
@@ -265,8 +265,8 @@ c              rho = one + denfact * tanh(10.*(dist-radblob))
                vel(i,j,2) = uy
                scal(i,j,1) = rho
 	       scal(i,j,2) = c
-	    enddo
-         enddo
+	    end do
+         end do
 
       return
       end
@@ -319,8 +319,8 @@ c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
                vel(i,j,2) = absu*costh
                scal(i,j,1) = cvmgt(denfact,one,r.lt.radblob)
                scal(i,j,2) = cvmgt(one,zero,r.lt.radblob)
-	    enddo
-         enddo
+	    end do
+         end do
 
       return
       end
@@ -357,16 +357,16 @@ c     ::::: local variables
               vel(i,j,1) = zero
               vel(i,j,2) = adv_vel
               scal(i,j,1) = one
-            enddo
-         enddo
+            end do
+         end do
 
          do n = 2,nscal
           do j = lo(2), hi(2)
             do i = lo(1), hi(1)
               scal(i,j,n) = one
-            enddo
-          enddo
-         enddo
+            end do
+          end do
+         end do
 
       return
       end
@@ -412,8 +412,8 @@ c     ::::: local variables
 
   	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
 	       scal(i,j,2) = cvmgt(one,zero,dist.lt.radblob)
-	    enddo
-         enddo
+	    end do
+         end do
 
       return
       end
@@ -460,8 +460,8 @@ c ::: -----------------------------------------------------------
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             tag(i,j) = cvmgt(set,tag(i,j),rho(i,j,1).lt.denerr)
-	 enddo
-      enddo
+	 end do
+      end do
 
       return
       end
@@ -511,8 +511,8 @@ c       ::::: refine around entire bubble
         do j = lo(2), hi(2)
         do i = lo(1), hi(1)
           tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
-        enddo
-        enddo
+        end do
+        end do
 #if 0
       else
 c       ::::: refine where there is bubble gradient
@@ -522,9 +522,9 @@ c       ::::: refine where there is bubble gradient
           ay = abs(adv(i,j+1,1) - adv(i,j-1,1))
           aerr = max(ax,ay)
           tag(i,j) = cvmgt(set,tag(i,j),aerr.gt.bubgrad)
-        enddo
-        enddo
-      endif
+        end do
+        end do
+      end if
 #endif
  
       return
@@ -575,8 +575,8 @@ c       ::::: refine around entire bubble
         do j = lo(2), hi(2)
         do i = lo(1), hi(1)
           tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
-        enddo
-        enddo
+        end do
+        end do
       else
 c       ::::: refine where there is bubble gradient
         do j = lo(2), hi(2)
@@ -585,9 +585,9 @@ c       ::::: refine where there is bubble gradient
           ay = abs(temperature(i,j+1,1) - temperature(i,j-1,1))
           aerr = max(ax,ay)
           tag(i,j) = cvmgt(set,tag(i,j),aerr.gt.bubgrad)
-        enddo
-        enddo
-      endif
+        end do
+        end do
+      end if
 
       return
       end
@@ -638,8 +638,8 @@ c         y = xlo(2) + dx(2)*(j - lo(2) + 0.5)
          do i = lo(1), hi(1)
 c            x = xlo(1) + dx(1)*(i - lo(1) + 0.5)
             tag(i,j) = cvmgt(set,clear,abs(vort(i,j,1)).gt.vorterr)
-	 enddo
-      enddo
+	 end do
+      end do
 
       return
       end
@@ -688,34 +688,34 @@ c ::: -----------------------------------------------------------
          do i = ARG_L1(rho), domlo(1)-1
             do j = ARG_L2(rho), ARG_H2(rho)
 	       rho(i,j) = denfact
-	    enddo
-	 enddo
-      endif            
+	    end do
+	 end do
+      end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(rho).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(rho)
             do j = ARG_L2(rho), ARG_H2(rho)
 	       rho(i,j) = denfact
-	    enddo
-	 enddo
-      endif            
+	    end do
+	 end do
+      end if            
 
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(rho).lt.domlo(2)) then
            do j = ARG_L2(rho), domlo(2)-1
               do i = ARG_L1(rho), ARG_H1(rho)
 	         rho(i,j) = denfact
-	      enddo
-	   enddo
-      endif            
+	      end do
+	   end do
+      end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(rho).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(rho)
             do i = ARG_L1(rho), ARG_H1(rho)
 	       rho(i,j) = denfact
-	    enddo
-	 enddo
-      endif            
+	    end do
+	 end do
+      end if            
 
       return
       end
@@ -762,35 +762,35 @@ c ::: -----------------------------------------------------------
          do i = ARG_L1(adv), domlo(1)-1
             do j = ARG_L2(adv), ARG_H2(adv)
 	       adv(i,j) = zero
-	    enddo
-	 enddo
-      endif            
+	    end do
+	 end do
+      end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(adv).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(adv)
             do j = ARG_L2(adv), ARG_H2(adv)
 	       adv(i,j) = zero
-	    enddo
-	 enddo
-      endif            
+	    end do
+	 end do
+      end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(adv).lt.domlo(2)) then
 
          do j = ARG_L2(adv), domlo(2)-1
             do i = ARG_L1(adv), ARG_H1(adv)
 	       adv(i,j) = one
-	    enddo
-	 enddo
+	    end do
+	 end do
 
-      endif            
+      end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(adv).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(adv)
             do i = ARG_L1(adv), ARG_H1(adv)
 	       adv(i,j) = one
-	    enddo
-	 enddo
-      endif            
+	    end do
+	 end do
+      end if            
 
       return
       end
@@ -838,33 +838,33 @@ c ::: -----------------------------------------------------------
          do i = ARG_L1(temp), domlo(1)-1
            do j = ARG_L2(temp), ARG_H2(temp)
                temperature(i,j) = zero
-           enddo
-         enddo
-      endif
+           end do
+         end do
+      end if
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(temp).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(temp)
            do j = ARG_L2(temp), ARG_H2(temp)
                temperature(i,j) = zero
-           enddo
-         enddo
-      endif    
+           end do
+         end do
+      end if    
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(temp).lt.domlo(2)) then
          do j = ARG_L2(temp), domlo(2)-1
            do i = ARG_L1(temp), ARG_H1(temp)
                temperature(i,j) = zero
-          enddo
-       enddo
-      endif    
+          end do
+       end do
+      end if    
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(temp).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(temp)
            do i = ARG_L1(temp), ARG_H1(temp)
                temperature(i,j) = zero
-           enddo
-         enddo
-      endif    
+           end do
+         end do
+      end if    
 
       return
       end
@@ -910,7 +910,7 @@ c ::: -----------------------------------------------------------
          x_vel = adv_vel
       else  
          x_vel = zero
-      endif
+      end if
 
       call filcc(u,DIMS(u),domlo,domhi,dx,xlo,bc)
 
@@ -918,33 +918,33 @@ c ::: -----------------------------------------------------------
          do i = ARG_L1(u), domlo(1)-1
             do j = ARG_L2(u), ARG_H2(u)
 	       u(i,j) = x_vel
-	    enddo
-	 enddo
-      endif            
+	    end do
+	 end do
+      end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(u).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(u)
             do j = ARG_L2(u), ARG_H2(u)
 	       u(i,j) = x_vel
-	    enddo
-	 enddo
-      endif            
+	    end do
+	 end do
+      end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(u).lt.domlo(2)) then
          do j = ARG_L2(u), domlo(2)-1
             do i = ARG_L1(u), ARG_H1(u)
 	       u(i,j) = zero
-	    enddo
-	 enddo
-      endif            
+	    end do
+	 end do
+      end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(u).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(u)
             do i = ARG_L1(u), ARG_H1(u)
 	       u(i,j) = zero
-	    enddo
-	 enddo
-      endif            
+	    end do
+	 end do
+      end if            
 
       return
       end
@@ -990,7 +990,7 @@ c ::: -----------------------------------------------------------
          y_vel = adv_vel
       else  
          y_vel = zero
-      endif
+      end if
 
       call filcc(v,DIMS(v),domlo,domhi,dx,xlo,bc)
 
@@ -998,33 +998,33 @@ c ::: -----------------------------------------------------------
          do i = ARG_L1(v), domlo(1)-1
            do j = ARG_L2(v),ARG_H2(v)
 	     v(i,j) = zero
-	   enddo
-	 enddo
-      endif            
+	   end do
+	 end do
+      end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(v).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(v)
            do j = ARG_L2(v), ARG_H2(v)
 	     v(i,j) = zero
-	   enddo
-	 enddo
-      endif            
+	   end do
+	 end do
+      end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(v).lt.domlo(2)) then
          do j = ARG_L2(v), domlo(2)-1
            do i = ARG_L1(v), ARG_H1(v)
              v(i,j) = y_vel
-	   enddo
-	 enddo
-      endif            
+	   end do
+	 end do
+      end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(v).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(v)
            do i = ARG_L1(v), ARG_H1(v)
 	     v(i,j) = y_vel
-	   enddo
-	 enddo
-      endif            
+	   end do
+	 end do
+      end if            
 
       return
       end
@@ -1079,62 +1079,62 @@ c     ::::: left side
           do i = ARG_L1(p), domlo(1)-1
 	  do j = jlo,jhi
 	     p(i,j) = p(ilo,j)
-	  enddo
-	  enddo
+	  end do
+	  end do
 	  if (fix_ylo) then
 	     do i = ARG_L1(p), domlo(1)-1
 	     do j = ARG_L2(p), domlo(2)-1
 	        p(i,j) = p(ilo,jlo)
-	     enddo
-             enddo
-          endif
+	     end do
+             end do
+          end if
 	  if (fix_yhi) then
 	     do i = ARG_L1(p), domlo(1)-1
 	     do j = domhi(2)+1, ARG_H2(p)
 	        p(i,j) = p(ilo,jhi)
-	     enddo
-	     enddo
-          endif
-      endif            
+	     end do
+	     end do
+          end if
+      end if            
 
 c     ::::: right side
       if (fix_xhi) then
          do i = domhi(1)+1, ARG_H1(p)
 	 do j = jlo,jhi
 	    p(i,j) = p(ihi,j)
-	 enddo
-	 enddo
+	 end do
+	 end do
 	 if (fix_ylo) then
 	    do i = domhi(1)+1, ARG_H1(p)
 	    do j = ARG_L2(p), domlo(2)-1
 	       p(i,j) = p(ihi,jlo)
-	    enddo
-	    enddo
-         endif
+	    end do
+	    end do
+         end if
 	 if (fix_yhi) then
 	    do i = domhi(1)+1, ARG_H1(p)
 	    do j = domhi(2)+1, ARG_H2(p)
 	       p(i,j) = p(ihi,jhi)
-	    enddo
-	    enddo
-         endif
-      endif
+	    end do
+	    end do
+         end if
+      end if
       
       if (fix_ylo) then
          do j = ARG_L2(p), domlo(2)-1
 	 do i = ilo, ihi
 	    p(i,j) = p(i,jlo)
-	 enddo
-	 enddo
-      endif
+	 end do
+	 end do
+      end if
 
       if (fix_yhi) then
          do j = domhi(2)+1, ARG_H2(p)
 	 do i = ilo, ihi
 	    p(i,j) = p(i,jhi)
-	 enddo
-	 enddo
-      endif
+	 end do
+	 end do
+      end if
 
       return
       end

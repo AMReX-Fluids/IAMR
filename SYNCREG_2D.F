@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_2D.F,v 1.3 1997-12-12 22:44:11 lijewski Exp $
+c $Id: SYNCREG_2D.F,v 1.4 1998-02-22 19:06:53 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -58,17 +58,17 @@ c           timestep on the coarse grid.  mult = 1/ratio.
                ux = half*(u(i,j,1)-u(i-1,j,1)+u(i,j-1,1)-u(i-1,j-1,1))/dx(1)
                vy = half*(u(i,j,2)-u(i,j-1,2)+u(i-1,j,2)-u(i-1,j-1,2))/dx(2)
                divu(i,j) = mult*(ux+vy)
-            enddo
-         enddo
+            end do
+         end do
       else 
          do i = lo(1), hi(1)
             do j = lo(2), hi(2)
                ux = half*(u(i,j,1)-u(i-1,j,1)+u(i,j-1,1)-u(i-1,j-1,1))/dx(1)
                vy = half*(u(i,j,2)-u(i,j-1,2)+u(i-1,j,2)-u(i-1,j-1,2))/dx(2)
                divu(i,j) = mult*(ux+vy)
-            enddo
-         enddo
-      endif
+            end do
+         end do
+      end if
 
       if (is_rz .eq. 1) then
 
@@ -82,8 +82,8 @@ c           timestep on the coarse grid.  mult = 1/ratio.
                vext = (u(i,j-1,2)-u(i  ,j  ,2))*rpinv + 
      $                (u(i-1,j,2)-u(i-1,j-1,2))*rminv
                divu(i,j) = divu(i,j) + mult*vext
-            enddo
-         enddo
+            end do
+         end do
        else 
          do i = lo(1), hi(1)
             do j = lo(2), hi(2)
@@ -94,11 +94,11 @@ c           timestep on the coarse grid.  mult = 1/ratio.
                vext = (u(i,j-1,2)-u(i  ,j  ,2))*rpinv + 
      $                (u(i-1,j,2)-u(i-1,j-1,2))*rminv
                divu(i,j) = divu(i,j) + mult*vext
-            enddo
-         enddo
-       endif
+            end do
+         end do
+       end if
 
-      endif
+      end if
       
       return
       end
@@ -142,7 +142,7 @@ c ::: -----------------------------------------------------------
       if (is_rz.eq.1) then
          print *, "This should not be called with rz on"
          stop
-      endif
+      end if
 
 c     NOTE: the factor of mult here accounts for the fact that one
 c           takes ratio time steps on the fine grid for every one
@@ -168,8 +168,8 @@ c     denom = -mult*( one/(four*dx(1)**2) + one/(four*dx(2)**2) )
                p4 = sigma(i  ,j  )*(-phi(i+1,j+1) + phi(i  ,j+1)
      &                             + phi(i+1,j)   - phi(i  ,j  ))
                divgp(i,j) = denom*(p1+p2+p3+p4)
-            enddo
-         enddo
+            end do
+         end do
       else
          do i = lo(1), hi(1)
             do j = lo(2), hi(2)
@@ -182,9 +182,9 @@ c     denom = -mult*( one/(four*dx(1)**2) + one/(four*dx(2)**2) )
                p4 = sigma(i  ,j  )*(-phi(i+1,j+1) + phi(i  ,j+1)
      &                             + phi(i+1,j)   - phi(i  ,j  ))
                divgp(i,j) = denom*(p1+p2+p3+p4)
-            enddo
-         enddo
-      endif
+            end do
+         end do
+      end if
 
       end
 
@@ -246,8 +246,8 @@ c     FOR NINE-POINT STENCIL
      &                          +    phi(i+1,j)   - four*phi(i  ,j  ))
             divgp(i,j) = denomx*(p1+p2+p3+p4)
 
-          enddo
-          enddo
+          end do
+          end do
      
       else
 
@@ -280,9 +280,9 @@ c     FOR NINE-POINT STENCIL
 
             divgp(i,j) = p1+p2+p3+p4
 
-          enddo
-          enddo
-      endif
+          end do
+          end do
+      end if
 
 c     extra term added for cylindrical coordinates
       if (is_rz .eq. 1) then
@@ -298,10 +298,10 @@ c     extra term added for cylindrical coordinates
      $               sigma(i  ,j  ) * (phi(i,j+1) - phi(i,j))) * rp)
 
             divgp(i,j) = divgp(i,j) + denomy*pext
-         enddo
-       enddo
+         end do
+       end do
 
-      endif
+      end if
 #endif
 
 #if 0
@@ -320,8 +320,8 @@ c     FOR FIVE-POINT STENCIL
             p4 = (sigma(i-1,j  ) + sigma(i,j  )) * 
      $           (  phi(i  ,j+1) -   phi(i,j  ))
             divgp(i,j) = denomx*(p1+p2)+ denomy*(p3+p4)
-         enddo
-      enddo
+         end do
+      end do
 #endif
       
       return
@@ -374,15 +374,15 @@ c        ::::: sum in j direction
          if (ratioy .eq. 1) then
             do jc = lo(2), hi(2)
                crse(ic,jc) = fine(i,jc) / ratiox
-            enddo
-         elseif (ratioy .eq. 2) then
+            end do
+         else if (ratioy .eq. 2) then
             do jc = lo(2), hi(2)
                j = ratioy*jc
                crse(ic,jc) =   half* fine(i,j) 
      &                     + fourth*(fine(i,j+1)+fine(i,j-1))
                crse(ic,jc) = crse(ic,jc) / ratiox
-            enddo
-         elseif (ratioy .eq. 4) then
+            end do
+         else if (ratioy .eq. 4) then
             do jc = lo(2), hi(2)
                j = ratioy*jc
                crse(ic,jc) =  four* fine(i,j) 
@@ -390,11 +390,11 @@ c        ::::: sum in j direction
      &                     +   two*(fine(i,j+2)+fine(i,j-2))
      &                     +       (fine(i,j+3)+fine(i,j-3))
                crse(ic,jc) = crse(ic,jc) / (sixteen * ratiox)
-            enddo
+            end do
          else 
            print *,'BOGUS RATIOY IN SRCRSEREG ',ratioy
            stop
-         endif
+         end if
 
       else
 
@@ -405,15 +405,15 @@ c        ::::: sum in i direction
          if (ratiox .eq. 1) then
             do ic = lo(1), hi(1)
                crse(ic,jc) = fine(ic,j) / ratiox
-            enddo
-         elseif (ratiox .eq. 2) then
+            end do
+         else if (ratiox .eq. 2) then
             do ic = lo(1), hi(1)
                i = ratiox*ic
                crse(ic,jc) =   half* fine(i,j) 
      &                     + fourth*(fine(i+1,j)+fine(i-1,j))
                crse(ic,jc) = crse(ic,jc) / ratioy
-            enddo
-         elseif (ratiox .eq. 4) then
+            end do
+         else if (ratiox .eq. 4) then
             do ic = lo(1), hi(1)
                i = ratiox*ic
                crse(ic,jc) =  four* fine(i,j) 
@@ -421,12 +421,12 @@ c        ::::: sum in i direction
      &                     +   two*(fine(i+2,j)+fine(i-2,j))
      &                     +       (fine(i+3,j)+fine(i-3,j))
                crse(ic,jc) = crse(ic,jc) / (sixteen * ratioy)
-            enddo
+            end do
          else 
            print *,'BOGUS RATIOX IN SRCRSEREG ',ratiox
            stop
-         endif
-      endif
+         end if
+      end if
       
       return
       end
@@ -461,29 +461,29 @@ c     Note: double counting of corners is intended
         i = ARG_L1(dat)+nghost
         do j = ARG_L2(dat)+nghost, ARG_H2(dat)-nghost
           dat(i,j) = .5*dat(i,j)
-        enddo
-      endif
+        end do
+      end if
 
       if(ARG_H1(dat)-nghost .eq. domhi(1)+1) then
         i = ARG_H1(dat)-nghost
         do j = ARG_L2(dat)+nghost, ARG_H2(dat)-nghost
           dat(i,j) = .5*dat(i,j)
-        enddo
-      endif
+        end do
+      end if
 
       if(ARG_L2(dat)+nghost .eq. domlo(2)) then
         j = ARG_L2(dat)+nghost
         do i = ARG_L1(dat)+nghost, ARG_H1(dat)-nghost
           dat(i,j) = .5*dat(i,j)
-        enddo
-      endif
+        end do
+      end if
 
       if(ARG_H2(dat)-nghost .eq. domhi(2)+1) then
         j = ARG_H2(dat)-nghost
         do i = ARG_L1(dat)+nghost, ARG_H1(dat)-nghost
           dat(i,j) = .5*dat(i,j)
-        enddo
-      endif
+        end do
+      end if
 
       return
       end
@@ -514,8 +514,8 @@ c ::: -----------------------------------------------------------
           mask(i,j) = cells(i,j  ) + cells(i-1,j  ) 
      $              + cells(i,j-1) + cells(i-1,j-1)
 
-        enddo
-      enddo
+        end do
+      end do
       
       return
       end
@@ -542,10 +542,10 @@ c ::: -----------------------------------------------------------
             mask(i,j) = zero
           else
             mask(i,j) = one
-          endif
+          end if
 
-        enddo
-      enddo
+        end do
+      end do
       
       return
       end

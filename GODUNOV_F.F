@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_F.F,v 1.3 1997-12-12 22:44:01 lijewski Exp $
+c $Id: GODUNOV_F.F,v 1.4 1998-02-22 19:06:46 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -33,6 +33,6 @@ c=========================================================
         call flush(6)
 #endif
         stop
-      endif
+      end if
       return
       end

@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_2D.F,v 1.2 1997-12-12 22:44:02 lijewski Exp $
+c $Id: INTERPBNDRYDATA_2D.F,v 1.3 1998-02-22 19:06:46 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -77,16 +77,16 @@ c        ::::: define interp coefs
             if (mask(i,j-1) .ne. not_covered) then
                derives(jc,XDER)  = crse(ic,jc+1,n) - crse(ic,jc  ,n)
                derives(jc,X2DER) = zero
-            endif
+            end if
             if (mask(i,j+ratioy) .ne. not_covered) then
                derives(jc,XDER)  = crse(ic,jc  ,n) - crse(ic,jc-1,n)
                derives(jc,X2DER) = zero
-            endif
+            end if
             if (mask(i,j-1)     .ne. not_covered .and. 
      $          mask(i,j+ratioy) .ne. not_covered) then
                derives(jc,XDER)  = zero
-            endif
-         enddo
+            end if
+         end do
 
 c        ::::: interpolate to fine grid
          do off = 0, ratioy - 1
@@ -96,9 +96,9 @@ c        ::::: interpolate to fine grid
                bdry(i,j,n) = crse(ic,jc,n)
      &              +        derives(jc,XDER) *xx
      &              +        derives(jc,X2DER)*xx**2
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 
       return
       end
@@ -162,16 +162,16 @@ c        ::::: define interp coefs
             if (mask(i,j-1) .ne. not_covered) then
                derives(jc,XDER)  = crse(ic,jc+1,n) - crse(ic,jc  ,n)
                derives(jc,X2DER) = zero
-            endif
+            end if
             if (mask(i,j+ratioy) .ne. not_covered) then
                derives(jc,XDER)  = crse(ic,jc  ,n) - crse(ic,jc-1,n)
                derives(jc,X2DER) = zero
-            endif
+            end if
             if (mask(i,j-1) .ne. not_covered .and.
      $          mask(i,j+ratioy) .ne. not_covered) then
                derives(jc,XDER)  = zero
-            endif
-         enddo
+            end if
+         end do
 
 c        ::::: interpolate to fine grid
          do off = 0, ratioy - 1
@@ -181,9 +181,9 @@ c        ::::: interpolate to fine grid
                bdry(i,j,n) = crse(ic,jc,n)
      &              +        derives(jc,XDER) *xx
      &              +        derives(jc,X2DER)*xx**2
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 
       return
       end
@@ -245,16 +245,16 @@ c        ::::: define interp coefs
             if (mask(i-1,j) .ne. not_covered) then
                derives(ic,XDER)  = crse(ic+1,jc,n) - crse(ic  ,jc,n)
                derives(ic,X2DER) = zero
-            endif
+            end if
             if (mask(i+ratiox,j) .ne. not_covered) then
                derives(ic,XDER)  = crse(ic  ,jc,n) - crse(ic-1,jc,n)
                derives(ic,X2DER) = zero
-            endif
+            end if
             if (mask(i-1,j) .ne. not_covered .and.
      $          mask(i+ratiox,j) .ne. not_covered) then
                derives(ic,XDER)  = zero
-            endif
-         enddo
+            end if
+         end do
 
 c        ::::: interpolate to fine grid
          do off = 0, ratiox - 1
@@ -264,9 +264,9 @@ c        ::::: interpolate to fine grid
                bdry(i,j,n) = crse(ic,jc,n)
      &              +        derives(ic,XDER) *xx
      &              +        derives(ic,X2DER)*xx**2
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 
       return
       end
@@ -328,16 +328,16 @@ c        ::::: define interp coefs
             if (mask(i-1,j) .ne. not_covered) then
                derives(ic,XDER)  = crse(ic+1,jc,n) - crse(ic  ,jc,n)
                derives(ic,X2DER) = zero
-            endif
+            end if
             if (mask(i+ratiox,j) .ne. not_covered) then
                derives(ic,XDER)  = crse(ic  ,jc,n) - crse(ic-1,jc,n)
                derives(ic,X2DER) = zero
-            endif
+            end if
             if (mask(i-1,j) .ne. not_covered .and.
      $          mask(i+ratiox,j) .ne. not_covered) then
                derives(ic,XDER)  = zero
-            endif
-         enddo
+            end if
+         end do
 
 c        ::::: interpolate to fine grid
          do off = 0, ratiox - 1
@@ -347,9 +347,9 @@ c        ::::: interpolate to fine grid
                bdry(i,j,n) = crse(ic,jc,n)
      &              +        derives(ic,XDER) *xx
      &              +        derives(ic,X2DER)*xx**2
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 
       return
       end

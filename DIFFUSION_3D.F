@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_3D.F,v 1.3 1997-12-12 22:43:59 lijewski Exp $
+c $Id: DIFFUSION_3D.F,v 1.4 1998-02-22 19:06:45 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -82,9 +82,9 @@ c     ::::: compute X fluxes
          sx1 = s_o(i,j,k) - s_o(i-1,j,k)
          sx2 = s_n(i,j,k) - s_n(i-1,j,k)
          xflux(i,j,k) = mult*(theta*sx1 + onemintheta*sx2)*xarea(i,j,k)/dx(1)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
       
 c     ::::: compute Y fluxes
       do k = lo(3), hi(3)
@@ -93,9 +93,9 @@ c     ::::: compute Y fluxes
          sy1 = s_o(i,j,k) - s_o(i,j-1,k)
          sy2 = s_n(i,j,k) - s_n(i,j-1,k)
          yflux(i,j,k) = mult*(theta*sy1 + onemintheta*sy2)*yarea(i,j,k)/dx(2)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 
 c     ::::: compute Z fluxes
       do k = lo(3), hi(3)+1
@@ -104,9 +104,9 @@ c     ::::: compute Z fluxes
          sz1 = s_o(i,j,k) - s_o(i,j,k-1)
          sz2 = s_n(i,j,k) - s_n(i,j,k-1)
          zflux(i,j,k) = mult*(theta*sz1 + onemintheta*sz2)*zarea(i,j,k)/dx(3)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
       
       return
       end
@@ -149,9 +149,9 @@ c     ::::: compute X fluxes
       do i = lo(1), hi(1)+1
          sx = ssync(i,j,k) - ssync(i-1,j,k)
          xflux(i,j,k) = mult*sx*xarea(i,j,k)/dx(1)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
       
 c     ::::: compute Y fluxes
       do k = lo(3), hi(3)
@@ -159,9 +159,9 @@ c     ::::: compute Y fluxes
       do i = lo(1), hi(1)
          sy = ssync(i,j,k) - ssync(i,j-1,k)
          yflux(i,j,k) = mult*sy*yarea(i,j,k)/dx(2)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
 
 c     ::::: compute Z fluxes
       do k = lo(3), hi(3)+1
@@ -169,9 +169,9 @@ c     ::::: compute Z fluxes
       do i = lo(1), hi(1)
          sz = ssync(i,j,k) - ssync(i,j,k-1)
          zflux(i,j,k) = half*mult*sz*zarea(i,j,k)/dx(3)
-      enddo
-      enddo
-      enddo
+      end do
+      end do
+      end do
       
       return
       end
@@ -220,9 +220,9 @@ c ::
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                fab(i,j,k) = vol(i,j,k)
-            enddo
-         enddo
-         enddo
+            end do
+         end do
+         end do
 
         else 
 
@@ -230,11 +230,11 @@ c ::
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                fab(i,j,k) = vol(i,j,k) * denfab(i,j,k)
-            enddo
-         enddo
-         enddo
+            end do
+         end do
+         end do
 
-        endif
+        end if
 
        return
        end
@@ -288,9 +288,9 @@ c ::
            alpha(i,j,k,1) = vol(i,j,k) * denfab(i,j,k)
            alpha(i,j,k,2) = vol(i,j,k) * denfab(i,j,k)
            alpha(i,j,k,3) = vol(i,j,k) * denfab(i,j,k)
-         enddo
-        enddo
-       enddo
+         end do
+        end do
+       end do
 
        return
        end
@@ -342,9 +342,9 @@ c           cancel with terms from tau_rr to eliminate all r dependence.
             sback  = half*(divu(i,j,k-1)+divu(i,j,k))
 
             divmusi(i,j,k,3) = mu*(sfront-sback)/dx(2)
-          enddo
-        enddo
-      enddo
+          end do
+        end do
+      end do
       return
       end
 
@@ -402,9 +402,9 @@ c---------------------- begin here -------------------------------------
             divmusi(i,j,k,3) = (betay(i,j,k+1)*sfront-
      &                          betay(i,j,k)*sback)/dx(3)
 
-          enddo
-        enddo
-      enddo
+          end do
+        end do
+      end do
       return
       end
 
@@ -440,25 +440,25 @@ c----------------------- begin ---------------------------
         do j=lo(2),hi(2)
           do i=lo(1),hi(1)+1
             betax(i,j,k) = .5*(beta(i-1,j,k)+beta(i,j,k))
-          enddo
-        enddo
-      enddo
+          end do
+        end do
+      end do
 
       do k=lo(3),hi(3)
         do j=lo(2),hi(2)+1
           do i=lo(1),hi(1)
             betay(i,j,k) = .5*(beta(i,j-1,k)+beta(i,j,k))
-          enddo
-        enddo
-      enddo
+          end do
+        end do
+      end do
 
        do k=lo(3),hi(3)+1
         do j=lo(2),hi(2)
           do i=lo(1),hi(1)
             betaz(i,j,k) = .5*(beta(i,j,k-1)+beta(i,j,k))
-          enddo
-        enddo
-      enddo
+          end do
+        end do
+      end do
 
       return
       end

@@ -1,5 +1,5 @@
 c
-c $Id: LO_3D.F,v 1.2 1997-12-12 22:44:03 lijewski Exp $
+c $Id: LO_3D.F,v 1.3 1998-02-22 19:06:47 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -38,10 +38,10 @@ c
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   res(i,j,k,n) = rhs(i,j,k,n) - phi(i,j,k,n)
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c     
       end
 c-----------------------------------------------------------------------
@@ -81,10 +81,10 @@ c
      $                    + 1.0/f(2*i,2*j  ,2*k+1,n)
      $                    + 1.0/f(2*i,2*j+1,2*k+1,n) )
 c                     
-                  enddo
-               enddo
-            enddo
-         enddo
+                  end do
+               end do
+            end do
+         end do
       else if (cdir .eq. 1 ) then
          do n = 1, nc
             do k = lo(3), hi(3)
@@ -97,10 +97,10 @@ c
      $                    + 1.0/f(2*i  ,2*j,2*k+1,n)
      $                    + 1.0/f(2*i+1,2*j,2*k+1,n) )
 c                     
-                  enddo
-               enddo
-            enddo
-         enddo
+                  end do
+               end do
+            end do
+         end do
       else if (cdir .eq. 2 ) then
          do n = 1, nc
             do k = lo(3), hi(3)+1
@@ -113,11 +113,11 @@ c
      $                    + 1.0/f(2*i  ,2*j+1,2*k,n)
      $                    + 1.0/f(2*i+1,2*j+1,2*k,n) )
 c                     
-                  enddo
-               enddo
-            enddo
-         enddo
-      endif
+                  end do
+               end do
+            end do
+         end do
+      end if
 c
       end
 c-----------------------------------------------------------------------
@@ -156,10 +156,10 @@ c
      $                    + f(2*i,2*j  ,2*k+1,n)
      $                    + f(2*i,2*j+1,2*k+1,n) )
 c                     
-                  enddo
-               enddo
-            enddo
-         enddo
+                  end do
+               end do
+            end do
+         end do
       else if (cdir .eq. 1 ) then
          do n = 1, nc
             do k = lo(3), hi(3)
@@ -172,10 +172,10 @@ c
      $                    + f(2*i  ,2*j,2*k+1,n)
      $                    + f(2*i+1,2*j,2*k+1,n) )
 c                     
-                  enddo
-               enddo
-            enddo
-         enddo
+                  end do
+               end do
+            end do
+         end do
       else if (cdir .eq. 2 ) then
          do n = 1, nc
             do k = lo(3), hi(3)+1
@@ -188,11 +188,11 @@ c
      $                    + f(2*i  ,2*j+1,2*k,n)
      $                    + f(2*i+1,2*j+1,2*k,n) )
 c                     
-                  enddo
-               enddo
-            enddo
-         enddo
-      endif
+                  end do
+               end do
+            end do
+         end do
+      end if
 c     
       end
 c-----------------------------------------------------------------------
@@ -232,10 +232,10 @@ c
      $                 + f(2*i+1,2*j  ,2*k+1,n)
      $                 + f(2*i  ,2*j  ,2*k+1,n) )
 c                     
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c     
       end
 c-----------------------------------------------------------------------
@@ -315,7 +315,7 @@ c
          Lmaxorder = maxmaxorder
       else
          Lmaxorder = MIN(maxorder,maxmaxorder)
-      endif
+      end if
       lenx = MIN(hi(1)-lo(1), Lmaxorder-2)
       leny = MIN(hi(2)-lo(2), Lmaxorder-2)
       lenz = MIN(hi(3)-lo(3), Lmaxorder-2)
@@ -337,20 +337,20 @@ c
      $                    phi(lo(1),j,k,n),
      $                    phi(lo(1)-1,j,k,n),
      $                    mask(lo(1)-1,j,k) .gt. 0)
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      den(lo(1),j,k) = 1.0
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else if (is_dirichlet(bct)) then
             do m=0,lenx
                x(m) = m + 0.5
-            enddo
+            end do
             x(-1) = - bcl/h(1)
             xInt = - 0.5
             call polyInterpCoeff(xInt, x, lenx+2, coef)
@@ -362,8 +362,8 @@ c
      $                       bcval(lo(1)-1,j,k,n)*coef(-1),
      $                       phi(lo(1)-1, j,k, n),
      $                       mask(lo(1)-1,j,k) .gt. 0)
-                     enddo
-                  enddo
+                     end do
+                  end do
                else
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
@@ -371,9 +371,9 @@ c
      $                       0.0,
      $                       phi(lo(1)-1, j, k, n),
      $                       mask(lo(1)-1,j, k) .gt. 0)
-                     enddo
-                  enddo
-               endif
+                     end do
+                  end do
+               end if
                do m = 0, lenx
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
@@ -382,18 +382,18 @@ c
      $                       + phi(lo(1)+m, j, k, n)*coef(m),
      $                       phi(lo(1)-1,j,k,n),
      $                       mask(lo(1)-1,j,k) .gt. 0)
-                     enddo
-                  enddo
-               enddo
-            enddo
+                     end do
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      den(lo(1),j,k) = cvmgt(coef(0), 0.0,
      $                    mask(lo(1)-1,j,k) .gt. 0)
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else if ( bct .eq. LO_REFLECT_ODD ) then
             do n = 1, nc
                do k = lo(3), hi(3)
@@ -402,22 +402,22 @@ c
      $                   -phi(lo(1),j,k,n),
      $                    phi(lo(1)-1,j,k,n),
      $                    mask(lo(1)-1,j,k) .gt. 0)
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      den(lo(1),j,k) = cvmgt(-1.0, 0.0,
      $                    mask(lo(1)-1,j,k) .gt. 0)
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else
             print *,'UNKNOWN BC ON LEFT FACE IN APPLYBC'
             stop
-         endif
-      endif
+         end if
+      end if
 c
 c     The Right face of the grid
 c
@@ -430,20 +430,20 @@ c
      $                    phi(hi(1), j, k, n),
      $                    phi(hi(1)+1, j, k, n),
      $                    mask(hi(1)+1,j,k) .gt. 0)
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
 	    if ( flagden .eq. 1 ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      den(hi(1),j,k) = 1.0
-                  enddo
-               enddo
-	    endif
+                  end do
+               end do
+	    end if
          else if (is_dirichlet(bct)) then
             do m=0,lenx
                x(m) = m + 0.5
-            enddo
+            end do
             x(-1) = - bcl/h(1)
             xInt = - 0.5
             call polyInterpCoeff(xInt, x, lenx+2, coef)
@@ -455,8 +455,8 @@ c
      $                       bcval(hi(1)+1,j,k,n)*coef(-1),
      $                       phi(hi(1)+1,j,k,n),
      $                       mask(hi(1)+1,j,k) .gt. 0)
-                     enddo
-                  enddo
+                     end do
+                  end do
                else
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
@@ -464,9 +464,9 @@ c
      $                       0.0,
      $                       phi(hi(1)+1,j,k,n),
      $                       mask(hi(1)+1,j,k) .gt. 0)
-                     enddo
-                  enddo
-               endif
+                     end do
+                  end do
+               end if
                do m = 0, lenx
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
@@ -475,18 +475,18 @@ c
      $                       + phi(hi(1)-m,j,k,n)*coef(m),
      $                       phi(hi(1)+1,j,k,n),
      $                       mask(hi(1)+1,j,k) .gt. 0)
-                     enddo
-                  enddo
-               enddo
-            enddo
+                     end do
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      den(hi(1),j,k)   = cvmgt(coef(0), 0.0,
      $                    mask(hi(1)+1,j,k) .gt. 0)
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else if ( bct .eq. LO_REFLECT_ODD ) then
             do n = 1, nc
                do k = lo(3), hi(3)
@@ -495,22 +495,22 @@ c
      $                   -phi(hi(1),j,k,n),
      $                    phi(hi(1)+1,j,k,n),
      $                    mask(hi(1)+1,j,k) .gt. 0)
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      den(hi(1),j,k) = cvmgt(-1.0, 0.0,
      $                    mask(hi(1)+1,j,k) .gt. 0)
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else
             print *,'UNKNOWN BC ON RIGHT FACE IN APPLYBC'
             stop
-         endif
-      endif
+         end if
+      end if
 c
 c     The Bottom of the Grid
 c
@@ -523,20 +523,20 @@ c
      $                    phi(i,lo(2),k,n),
      $                    phi(i,lo(2)-1,k,n),
      $                    mask(i,lo(2)-1,k) .gt. 0)
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do k = lo(3), hi(3)
                   do i = lo(1),hi(1)
                      den(i,lo(2),k)   = 1.0
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else if (is_dirichlet(bct)) then
             do m=0,leny
                x(m) = m + 0.5
-            enddo
+            end do
             x(-1) = - bcl/h(2)
             xInt = - 0.5
             call polyInterpCoeff(xInt, x, leny+2, coef)
@@ -548,8 +548,8 @@ c
      $                       bcval(i,lo(2)-1,k,n)*coef(-1),
      $                       phi(i,lo(2)-1,k,n),
      $                       mask(i,lo(2)-1,k) .gt. 0)
-                     enddo
-                  enddo
+                     end do
+                  end do
                else
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
@@ -557,9 +557,9 @@ c
      $                       0.0,
      $                       phi(i,lo(2)-1,k,n),
      $                       mask(i,lo(2)-1,k) .gt. 0)
-                     enddo
-                  enddo
-               endif
+                     end do
+                  end do
+               end if
                do m = 0, leny
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
@@ -568,18 +568,18 @@ c
      $                       + phi(i, lo(2)+m, k,n)*coef(m),
      $                       phi(i, lo(2)-1, k, n),
      $                       mask(i, lo(2)-1, k) .gt. 0)
-                     enddo
-                  enddo
-               enddo
-            enddo
+                     end do
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
                      den(i, lo(2),k)   = cvmgt(coef(0), 0.0,
      $                    mask(i, lo(2)-1,k) .gt. 0)
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else if ( bct .eq. LO_REFLECT_ODD ) then
             do n = 1, nc
                do k = lo(3), hi(3)
@@ -588,22 +588,22 @@ c
      $                   -phi(i,lo(2),k,n),
      $                    phi(i,lo(2)-1,k,n),
      $                    mask(i,lo(2)-1,k) .gt. 0)
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
                      den(i,lo(2),k) = cvmgt(-1.0, 0.0,
      $                    mask(i,lo(2)-1,k) .gt. 0)
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else
             print *,'UNKNOWN BC ON BOTTOM FACE IN APPLYBC'
             stop
-         endif
-      endif
+         end if
+      end if
 c
 c     The top of the grid
 c
@@ -616,20 +616,20 @@ c
      $                    phi(i,hi(2),k,n),
      $                    phi(i,hi(2)+1,k,n),
      $                    mask(i,hi(2)+1,k) .gt. 0)
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
                      den(i,hi(2),k)   = 1.0
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else if (is_dirichlet(bct)) then
             do m=0,leny
                x(m) = m + 0.5
-            enddo
+            end do
             x(-1) = - bcl/h(2)
             xInt = - 0.5
             call polyInterpCoeff(xInt, x, leny+2, coef)
@@ -641,8 +641,8 @@ c
      $                       bcval(i,hi(2)+1,k,n)*coef(-1),
      $                       phi(i,hi(2)+1,k,n),
      $                       mask(i,hi(2)+1,k) .gt. 0)
-                     enddo
-                  enddo
+                     end do
+                  end do
                else
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
@@ -650,9 +650,9 @@ c
      $                       0.0,
      $                       phi(i,hi(2)+1,k,n),
      $                       mask(i,hi(2)+1,k) .gt. 0)
-                     enddo
-                  enddo
-               endif
+                     end do
+                  end do
+               end if
                do m = 0, leny
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
@@ -661,18 +661,18 @@ c
      $                       + phi(i, hi(2)-m,k,n)*coef(m),
      $                       phi(i,hi(2)+1,k,n),
      $                       mask(i,hi(2)+1,k) .gt. 0)
-                     enddo
-                  enddo
-               enddo
-            enddo
+                     end do
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
                      den(i,hi(2),k)   = cvmgt(coef(0), 0.0,
      $                    mask(i,hi(2)+1,k) .gt. 0)
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else if ( bct .eq. LO_REFLECT_ODD ) then
             do n = 1, nc
                do k = lo(3), hi(3)
@@ -681,22 +681,22 @@ c
      $                   -phi(i,hi(2),k,n),
      $                    phi(i,hi(2)+1,k,n),
      $                    mask(i,hi(2)+1,k) .gt. 0)
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
                      den(i,hi(2),k) = cvmgt(-1.0, 0.0,
      $                    mask(i,hi(2)+1,k) .gt. 0)
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else
             print *,'UNKNOWN BC ON TOP FACE IN APPLYBC'
             stop
-         endif
-      endif
+         end if
+      end if
 c
 c     The Front of the Grid
 c
@@ -709,20 +709,20 @@ c
      $                    phi(i,j,lo(3),n),
      $                    phi(i,j,lo(3)-1,n),
      $                    mask(i,j,lo(3)-1) .gt. 0)
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
                   do i = lo(1),hi(1)
                      den(i,j,lo(3))   = 1.0
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else if (is_dirichlet(bct)) then
             do m=0,lenz
                x(m) = m + 0.5
-            enddo
+            end do
             x(-1) = - bcl/h(3)
             xInt = - 0.5
             call polyInterpCoeff(xInt, x, lenz+2, coef)
@@ -734,8 +734,8 @@ c
      $                       bcval(i,j,lo(3)-1,n)*coef(-1),
      $                       phi(i,j,lo(3)-1,n),
      $                       mask(i,j,lo(3)-1) .gt. 0)
-                     enddo
-                  enddo
+                     end do
+                  end do
                else
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
@@ -743,9 +743,9 @@ c
      $                       0.0,
      $                       phi(i,j,lo(3)-1,n),
      $                       mask(i,j,lo(3)-1) .gt. 0)
-                     enddo
-                  enddo
-               endif
+                     end do
+                  end do
+               end if
                do m = 0, lenz
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
@@ -754,18 +754,18 @@ c
      $                       + phi(i, j, lo(3)+m, n)*coef(m),
      $                       phi(i, j, lo(3)-1,n),
      $                       mask(i, j, lo(3)-1) .gt. 0)
-                     enddo
-                  enddo
-               enddo
-            enddo
+                     end do
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      den(i, j, lo(3))   = cvmgt(coef(0), 0.0,
      $                    mask(i, j, lo(3)-1) .gt. 0)
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else if ( bct .eq. LO_REFLECT_ODD ) then
             do n = 1, nc
                do j = lo(2), hi(2)
@@ -774,22 +774,22 @@ c
      $                   -phi(i,j,lo(3),n),
      $                    phi(i,j,lo(3)-1,n),
      $                    mask(i,j,lo(3)-1) .gt. 0)
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      den(i,j,lo(3)) = cvmgt(-1.0, 0.0,
      $                    mask(i,j,lo(3)-1) .gt. 0)
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else
             print *,'UNKNOWN BC ON FRONT FACE IN APPLYBC'
             stop
-         endif
-      endif
+         end if
+      end if
 c
 c     The back of the grid
 c
@@ -802,20 +802,20 @@ c
      $                    phi(i,j, hi(3),n),
      $                    phi(i,j, hi(3)+1,n),
      $                    mask(i,j, hi(3)+1) .gt. 0)
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      den(i,j, hi(3))   = 1.0
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else if (is_dirichlet(bct)) then
             do m=0,lenz
                x(m) = m + 0.5
-            enddo
+            end do
             x(-1) = - bcl/h(3)
             xInt = - 0.5
             call polyInterpCoeff(xInt, x, lenz+2, coef)
@@ -827,8 +827,8 @@ c
      $                       bcval(i,j, hi(3)+1,n)*coef(-1),
      $                       phi(i,j, hi(3)+1,n),
      $                       mask(i,j, hi(3)+1) .gt. 0)
-                     enddo
-                  enddo
+                     end do
+                  end do
                else
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
@@ -836,9 +836,9 @@ c
      $                       0.0,
      $                       phi(i,j, hi(3)+1,n),
      $                       mask(i,j, hi(3)+1) .gt. 0)
-                     enddo
-                  enddo
-               endif
+                     end do
+                  end do
+               end if
                do m = 0, lenz
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
@@ -847,18 +847,18 @@ c
      $                       + phi(i, j, hi(3)-m,n)*coef(m),
      $                       phi(i,j, hi(3)+1,n),
      $                       mask(i,j, hi(3)+1) .gt. 0)
-                     enddo
-                  enddo
-               enddo
-            enddo
+                     end do
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      den(i,j, hi(3))   = cvmgt(coef(0), 0.0,
      $                    mask(i,j, hi(3)+1) .gt. 0)
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else if ( bct .eq. LO_REFLECT_ODD ) then
             do n = 1, nc
                do j = lo(2), hi(2)
@@ -867,21 +867,21 @@ c
      $                   -phi(i,j,hi(3),n),
      $                    phi(i,j,hi(3)+1,n),
      $                    mask(i,j,hi(3)+1) .gt. 0)
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      den(i,j,hi(3)) = cvmgt(-1.0, 0.0,
      $                    mask(i,j,hi(3)+1) .gt. 0)
-                  enddo
-               enddo
-            endif
+                  end do
+               end do
+            end if
          else
             print *,'UNKNOWN BC ON BACK FACE IN APPLYBC'
             stop
-         endif
-      endif
+         end if
+      end if
 c
       end
