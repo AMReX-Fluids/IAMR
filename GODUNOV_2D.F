@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.19 2002-08-30 00:20:56 car Exp $
+c $Id: GODUNOV_2D.F,v 1.20 2002-09-19 22:24:04 jbb Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -556,6 +556,9 @@ c
                styhi(jmax+1) = s(i,jmax+1)
             else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
      &              .or.bc(2,2).eq.REFLECT_EVEN) then
+c BEGIN HACK HACK HACK 
+c              if (n.eq.YVEL) stylo(jmax+1) = max(stylo(jmax+1),zero)
+c END   HACK HACK HACK 
                styhi(jmax+1) = stylo(jmax+1)
             else if (bc(2,2).eq.REFLECT_ODD) then
                stylo(jmax+1) = zero
@@ -887,6 +890,9 @@ c
       else if (ybc(2,2).eq.FOEXTRAP.or.ybc(2,2).eq.HOEXTRAP
      &        .or.ybc(2,2).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
+c BEGIN HACK HACK HACK 
+c           if (n.eq.YVEL) ylo(i,jmax+1) = max(ylo(i,jmax+1),zero)
+c END   HACK HACK HACK 
             yhi(i,jmax+1) = ylo(i,jmax+1)
          end do
       else if (ybc(2,2).eq.REFLECT_ODD) then
