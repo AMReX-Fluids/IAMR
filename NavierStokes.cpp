@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.131 1999-04-21 22:23:01 marc Exp $
+// $Id: NavierStokes.cpp,v 1.132 1999-05-07 20:31:54 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2923,7 +2923,6 @@ NavierStokes::okToContinue ()
 // coarse level advance and incremented in the fine level advance.
 // These quantities are described in comments above advance_setup.
 //
-
 void
 NavierStokes::post_timestep ()
 {
@@ -3682,7 +3681,7 @@ NavierStokes::level_sync ()
         projector->MLsyncProject(level,pres,vel, pres_fine,vel_fine,
                                  *rho_half, rho_fine, Vsync,V_corr,phi,
                                  &rhs_sync_reg,crsr_sync_ptr,sync_bc.dataPtr(),
-                                 dx,dt,ratio,crse_dt_ratio, fine_geom,geom);
+                                 dx,dt,ratio,crse_dt_ratio, fine_geom,geom,have_divu);
         //
         // Correct pressure and velocities after the projection.
         //
