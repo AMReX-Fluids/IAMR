@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.48 1999-08-13 16:28:51 propp Exp $
+// $Id: NavierStokes.H,v 1.49 1999-08-20 17:04:47 marc Exp $
 //
 
 #include <LevelBld.H>
@@ -399,6 +399,19 @@ protected:
                   int              start_comp,
                   int              num_comp,
                   IntVect&         fratio);
+    //
+    // Average fine down to coarse in the ovlp intersection.
+    //
+    static void avgDown_doit (const FArrayBox& fine_fab,
+                              const FArrayBox& crse_fab, 
+                              const FArrayBox& fine_vol,
+                              const FArrayBox& crse_vol,
+                              int              f_level,
+                              int              c_level,
+                              const Box&       ovlp,
+                              int              start_comp,
+                              int              num_comp,
+                              IntVect&         fratio);
     //
     // Inject fine pressure nodes down onto coarse nodes.
     //

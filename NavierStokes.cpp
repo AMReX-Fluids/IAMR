@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.150 1999-08-16 18:31:03 propp Exp $
+// $Id: NavierStokes.cpp,v 1.151 1999-08-20 17:04:47 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3461,6 +3461,26 @@ NavierStokes::avgDown (const FArrayBox& fine_fab,
                        int              scomp,
                        int              ncomp,
                        IntVect&         fratio)
+{
+    avgDown_doit(fine_fab,crse_fab,fine_vol,crse_vol,f_level,c_level,ovlp,
+                 scomp,ncomp,fratio);
+}
+
+//
+// Actually average the data down (this is static)
+//
+
+void
+NavierStokes::avgDown_doit (const FArrayBox& fine_fab,
+                            const FArrayBox& crse_fab, 
+                            const FArrayBox& fine_vol,
+                            const FArrayBox& crse_vol,
+                            int              f_level,
+                            int              c_level,
+                            const Box&       ovlp,
+                            int              scomp,
+                            int              ncomp,
+                            IntVect&         fratio)
 {
     const int*  ovlo   = ovlp.loVect();
     const int*  ovhi   = ovlp.hiVect();
