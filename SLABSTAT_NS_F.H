@@ -2,15 +2,13 @@
 #define _SLABSTAT_NS_F_H_
 
 /*
-** $Id: SLABSTAT_NS_F.H,v 1.1 2000-05-22 19:57:43 sstanley Exp $
+** $Id: SLABSTAT_NS_F.H,v 1.2 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
 #    define FORT_NS_BASICSTATS_NCTRAC    ns_basicstats_nctrac
 #    define FORT_NS_BASICSTATS_CTRAC     ns_basicstats_ctrac
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  ifdef BL_FORT_USE_UPPERCASE
 #    define FORT_NS_BASICSTATS_NCTRAC    NS_BASICSTATS_NCTRAC
 #    define FORT_NS_BASICSTATS_CTRAC     NS_BASICSTATS_CTRAC

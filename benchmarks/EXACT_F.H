@@ -8,11 +8,7 @@ c  ::: Fortran Interface :::
 c  -------------------------
 c
 #  define   FORT_VISCBENCH        viscbench
-#endif
-
-
-
-#ifdef BL_LANG_CC
+#else
 //
 // ---------------------------------------
 // ::: C Interface to Fortran Routines :::

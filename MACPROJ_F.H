@@ -2,15 +2,13 @@
 #define _MACPROJ_F_H
 
 /*
-** $Id: MACPROJ_F.H,v 1.8 1999-08-25 18:04:04 propp Exp $
+** $Id: MACPROJ_F.H,v 1.9 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
 #    define FORT_MACDIV      macdiv
 #    define FORT_UCORUPDT    ucorupdt
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_MACDIV      MACDIV
 #    define FORT_UCORUPDT    UCORUPDT

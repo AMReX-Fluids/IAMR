@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.8 1999-08-25 21:09:12 lijewski Exp $
+** $Id: GODUNOV_F.H,v 1.9 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -23,9 +23,7 @@
 #    define FORT_SUM_TF_GP          sumtfgp
 #    define FORT_SUM_TF_DIVU        sumtfdivu
 #    define FORT_SET_PARAMS         setparams
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_TEST_U_RHO         TESTURHO 
 #    define FORT_TEST_UMAC_RHO      TESTUMACRHO

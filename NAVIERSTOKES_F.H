@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.10 2002-03-26 20:51:08 lijewski Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.11 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -15,9 +15,7 @@
 #    define FORT_SUMMASS     summass
 #    define FORT_SUMMASSSQ   summasssq
 #    define FORT_CEN2EDG     cen2edg
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_FILCC       FILCC
 #    define FORT_GRADP       GRADP

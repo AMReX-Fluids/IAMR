@@ -2,14 +2,12 @@
 #define _VISCOPERATOR_F_H_
 
 /*
-** $Id: VISCOPERATOR_F.H,v 1.6 1999-08-25 18:04:05 propp Exp $
+** $Id: VISCOPERATOR_F.H,v 1.7 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
 #    define FORT_VISCEXTRAP   viscextrap
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_VISCEXTRAP    VISCEXTRAP
 #  elif defined(BL_FORT_USE_LOWERCASE)

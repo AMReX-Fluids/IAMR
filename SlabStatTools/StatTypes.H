@@ -9,12 +9,7 @@ c  -------------------------
 c
 #  define   FORT_VEL_RA_RND       vel_ra_rnd
 #  define   FORT_VEL_FA_RND       vel_fa_rnd
-#endif
-
-
-
-#ifdef BL_LANG_CC
-
+#else
 //
 // ---------------------------------------
 // ::: C Interface to Fortran Routines :::

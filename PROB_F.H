@@ -2,7 +2,7 @@
 #define _PROB_F_H_
 
 /*
-** $Id: PROB_F.H,v 1.8 1999-08-25 18:04:04 propp Exp $
+** $Id: PROB_F.H,v 1.9 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -20,10 +20,7 @@
 #    define FORT_ADVERROR    adverror
 #    define FORT_TEMPERROR   temperror
 #    define FORT_MVERROR     mverror
-
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  if  defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_INITDATA    INITDATA
 #    define FORT_DENFILL     DENFILL

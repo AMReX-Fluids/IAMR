@@ -2,7 +2,7 @@
 #define _DERIVE_F_H
 
 /*
-** $Id: DERIVE_F.H,v 1.13 1999-08-25 18:04:03 propp Exp $
+** $Id: DERIVE_F.H,v 1.14 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -23,9 +23,7 @@
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    dergrdpz
 #endif
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_DERKENG     DERKENG
 #    define FORT_DERMGVORT   DERMGVORT

@@ -14,9 +14,7 @@
 #  define FORT_COARSIGMA    coarsigma
 #  define FORT_RESTRICT     coarsres
 #  define FORT_INTERPOLATE  interp
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_MACPHIBC    MACPHIBC
 #    define FORT_EXTRAP_MAC  EXTRAPMAC

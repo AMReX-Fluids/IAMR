@@ -2,7 +2,7 @@
 #define _DIFFUSION_F_H
 
 /*
-** $Id: DIFFUSION_F.H,v 1.12 2001-08-01 21:50:53 lijewski Exp $
+** $Id: DIFFUSION_F.H,v 1.13 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -18,9 +18,7 @@
 #    define FORT_DIV_VARMU_SI     divvarmusi
 #    define FORT_DIV_MU_SI        divmuusii
 #    define FORT_CCTOEDGE         cctoedge
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  if  defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_VISCFLUX_VC      VSCFLXVC
 #    define FORT_VISCFLUX_CC      VSCFLXCC

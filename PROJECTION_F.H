@@ -2,7 +2,7 @@
 #define _PROJECTION_F_H_ 
 
 /*
-** $Id: PROJECTION_F.H,v 1.16 2001-08-01 21:50:59 lijewski Exp $
+** $Id: PROJECTION_F.H,v 1.17 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -15,9 +15,7 @@
 #    define FORT_HGC2N         hgc2n
 #    define FORT_HGN2C         hgn2c
 #    define FORT_FILTRHS       filtrhs
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_FILTERP       FILTERP
 #    define FORT_VEL_TO_ACCEL  VELTOACCEL

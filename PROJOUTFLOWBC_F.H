@@ -14,9 +14,7 @@
 #  define FORT_COARSIG     coarsigb
 #  define FORT_RESTRICT    coarsresb
 #  define FORT_INTERP      interphg
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  if  defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_HGPHIBC       HGPHIBC
 #    define FORT_EXTRAP_PROJ   EXTRAPPROJ
