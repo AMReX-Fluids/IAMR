@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.87 1998-09-09 23:37:54 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.88 1998-09-15 17:25:57 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2429,19 +2429,19 @@ NavierStokes::writePlotFile (const aString& dir,
     //
     aString TheFullPath = FullPath;
     TheFullPath += BaseName[0];
-    RunStats::addBytes(VisMF::Write(cell_dat, TheFullPath, how));
+    RunStats::addBytes(VisMF::Write(cell_dat,TheFullPath,how,true));
 
     if (have_divu)
     {
         TheFullPath = FullPath;
         TheFullPath += BaseName[1];
-        RunStats::addBytes(VisMF::Write(*divu_dat, TheFullPath, how));
+        RunStats::addBytes(VisMF::Write(*divu_dat,TheFullPath,how,true));
 
         if (have_dsdt)
         {
             TheFullPath = FullPath;
             TheFullPath += BaseName[2];
-            RunStats::addBytes(VisMF::Write(*dsdt_dat, TheFullPath, how));
+            RunStats::addBytes(VisMF::Write(*dsdt_dat,TheFullPath,how,true));
         }
     }
 }
