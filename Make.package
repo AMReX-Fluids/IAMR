@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.41 2000-11-02 18:08:02 lijewski Exp $
+# $Id: Make.package,v 1.42 2004-09-10 19:19:58 almgren Exp $
 #
 IAMRLIB_BASE=EXE
 ifeq ($(LBASE),iamr)
@@ -24,7 +24,7 @@ F$(IAMRLIB_BASE)_sources += SYNCREG_$(DIM)D.F VISCOPERATOR_$(DIM)D.F \
 #
 ifndef ATMOS_MACOP
   C$(IAMRLIB_BASE)_sources += MacOperator.cpp
-  C$(IAMRLIB_BASE)_headers += MacOperator.H MacOpProjDrivers.H MacOpMacDrivers.H
+  C$(IAMRLIB_BASE)_headers += MacOperator.H MacOpMacDrivers.H
   F$(IAMRLIB_BASE)_sources += MACOPERATOR_$(DIM)D.F
   F$(IAMRLIB_BASE)_headers += MACOPERATOR_F.H
 endif
