@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.84 1999-03-30 23:58:54 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.85 1999-03-31 16:01:31 marc Exp $
 //
 
 //
@@ -229,7 +229,10 @@ Diffusion::get_scaled_abs_tol (int                    sigma,
                                const MultiFab* const* betanp1,
                                Real                   reduction) const
 {
-    Real norm_est = 1;
+    if (!(Rhs_in_abs_tol || Lphi_in_abs_tol))
+        return reduction;
+
+    Real norm_est = 0;
 
     if (rhs != 0 && Rhs_in_abs_tol)
     {
