@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.58 1998-06-04 22:45:55 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.59 1998-06-05 16:24:46 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1714,66 +1714,68 @@ void NavierStokes::test_umac_periodic()
 //
 // This routine advects the velocities
 //
-void NavierStokes::velocity_advection( Real dt )
+
+void
+NavierStokes::velocity_advection (Real dt)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "... advect velocities\n";
     }
-
-    // get simulation parameters
+    //
+    // Get simulation parameters.
+    //
     int finest_level    = parent->finestLevel();
     const Real *dx      = geom.CellSize();
     Real prev_time      = state[State_Type].prevTime();
     Real prev_pres_time = state[Press_Type].prevTime();
-
-    // compute viscosity components
+    //
+    // Compute viscosity components.
+    //
     MultiFab visc_terms(grids,BL_SPACEDIM,1,Fab_allocate);
     getViscTerms(visc_terms,Xvel,BL_SPACEDIM,prev_time);
-    if(be_cn_theta==1.0)visc_terms.setVal(0.0,1);
-
-    // set up the grid loop
+    if (be_cn_theta==1.0)
+        visc_terms.setVal(0.0,1);
+    //
+    // Set up the grid loop.
+    //
     int comp;
     FArrayBox U, Rho, tforces, Gp;
     FArrayBox xflux, yflux, zflux, divu;
-
-    // compute the advective forcing
+    //
+    // Compute the advective forcing.
+    //
     FArrayBox rho;
 
-    MultiFab &S_old = get_old_data(State_Type);
+    MultiFab& S_old = get_old_data(State_Type);
     const int destComp = 0;
     FillPatchIterator Ufpi(*this, S_old, HYP_GROW, destComp, prev_time,
                            State_Type, Xvel, BL_SPACEDIM);
     FillPatchIterator Rhofpi(*this, S_old, 1, destComp, prev_time,
                            State_Type, Density, 1);
-    //FillPatchIterator tforcesfpi(*this, S_old, 1, destComp, prev_time,
-                           //State_Type, Xvel, BL_SPACEDIM);
-    MultiFab &P_old = get_old_data(Press_Type);
+    MultiFab& P_old = get_old_data(Press_Type);
     FillPatchIterator pressurefpi(*this, P_old, 1, destComp, prev_pres_time,
                            Press_Type, 0, 1);
     for(;
         Ufpi.isValid()       &&
         Rhofpi.isValid()     &&
-        //tforcesfpi.isValid() &&
         pressurefpi.isValid();
         ++Ufpi,
         ++Rhofpi,
-        //++tforcesfpi,
         ++pressurefpi)
     {
-
-      DependentMultiFabIterator visc_termsmfi(Ufpi, visc_terms);
-      DependentMultiFabIterator aofsmfi(Ufpi, (*aofs));
-      DependentMultiFabIterator volumemfi(Ufpi, volume);
-      DependentMultiFabIterator u_mac0mfi(Ufpi, u_mac[0]);
-      DependentMultiFabIterator u_mac1mfi(Ufpi, u_mac[1]);
-      DependentMultiFabIterator area0mfi(Ufpi, area[0]);
-      DependentMultiFabIterator area1mfi(Ufpi, area[1]);
+        DependentMultiFabIterator visc_termsmfi(Ufpi, visc_terms);
+        DependentMultiFabIterator aofsmfi(Ufpi, (*aofs));
+        DependentMultiFabIterator volumemfi(Ufpi, volume);
+        DependentMultiFabIterator u_mac0mfi(Ufpi, u_mac[0]);
+        DependentMultiFabIterator u_mac1mfi(Ufpi, u_mac[1]);
+        DependentMultiFabIterator area0mfi(Ufpi, area[0]);
+        DependentMultiFabIterator area1mfi(Ufpi, area[1]);
 #if (BL_SPACEDIM == 3)
-      DependentMultiFabIterator u_mac2mfi(Ufpi, u_mac[2]);
-      DependentMultiFabIterator area2mfi(Ufpi, area[2]);
+        DependentMultiFabIterator u_mac2mfi(Ufpi, u_mac[2]);
+        DependentMultiFabIterator area2mfi(Ufpi, area[2]);
 #endif
-      int i = visc_termsmfi.index();
+        int i = visc_termsmfi.index();
 
         assert(grids[visc_termsmfi.index()] == visc_termsmfi.validbox());
         const Box& grd = visc_termsmfi.validbox();
@@ -1791,63 +1793,62 @@ void NavierStokes::velocity_advection( Real dt )
         tfbox.grow(1);
         tforces.resize(tfbox, BL_SPACEDIM);
 
-        for(int dc = 0; dc < BL_SPACEDIM; dc++) {
-          int sc = Xvel + dc;
+        for (int dc = 0; dc < BL_SPACEDIM; dc++)
+        {
+            int sc = Xvel + dc;
 #if (BL_SPACEDIM == 2)
-          if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001)
+            if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001)
 #endif
 #if (BL_SPACEDIM == 3)
-          if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
+                if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
 #endif
-          {
-              // set force to -rho*g
-            rho.resize(Rho.box());
-            //getState(rho,i,1,Density,1,prev_time);
-            rho.copy(Rho);
-            rho.mult(-grav);
-            tforces.copy(rho,0,dc,1);
-          } else {
-            tforces.setVal(0.0,dc);
-          }
+                {
+                    // set force to -rho*g
+                    rho.resize(Rho.box());
+                    //getState(rho,i,1,Density,1,prev_time);
+                    rho.copy(Rho);
+                    rho.mult(-grav);
+                    tforces.copy(rho,0,dc,1);
+                } else {
+                    tforces.setVal(0.0,dc);
+                }
         }  // end for(dc...)
         // from NS::getForce ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 
         //getGradP(Gp,     i,1,                      prev_pres_time);
         // from NS::getGradP vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
         {
-        Box gpbx(grids[i]);
-        gpbx.grow(1);
-        Box p_box(surroundingNodes(gpbx));
-        //FArrayBox p_fab(p_box,1);
-        FArrayBox &p_fab = pressurefpi();
-        assert(p_fab.box() == p_box);
-        //FillPatch(p_fab,0,time,Press_Type,0,1);
-        //-----------------------  size the pressure gradient storage
-        //Box gpbx(grd);
-        //gpbx.grow(ngrow);
-        Gp.resize(gpbx,BL_SPACEDIM);
+            Box gpbx(grids[i]);
+            gpbx.grow(1);
+            Box p_box(surroundingNodes(gpbx));
+            //FArrayBox p_fab(p_box,1);
+            FArrayBox &p_fab = pressurefpi();
+            assert(p_fab.box() == p_box);
+            //FillPatch(p_fab,0,time,Press_Type,0,1);
+            //-----------------------  size the pressure gradient storage
+            //Box gpbx(grd);
+            //gpbx.grow(ngrow);
+            Gp.resize(gpbx,BL_SPACEDIM);
 
-        //------------------------ test to see if p_fab contains gpbx
-        Box test = p_fab.box();
-        test = test.enclosedCells();
-        assert( test.contains( gpbx ) == true );
+            //------------------------ test to see if p_fab contains gpbx
+            Box test = p_fab.box();
+            test = test.enclosedCells();
+            assert(test.contains( gpbx ) == true);
 
-        // ----------------------- set pointers
-        const int *plo = p_fab.loVect();
-        const int *phi = p_fab.hiVect();
-        const int *glo = gpbx.loVect();
-        const int *ghi = gpbx.hiVect();
-        const Real *p_dat  = p_fab.dataPtr();
-        const Real *gp_dat = Gp.dataPtr();
-        const Real *dx     = geom.CellSize();
+            // ----------------------- set pointers
+            const int *plo = p_fab.loVect();
+            const int *phi = p_fab.hiVect();
+            const int *glo = gpbx.loVect();
+            const int *ghi = gpbx.hiVect();
+            const Real *p_dat  = p_fab.dataPtr();
+            const Real *gp_dat = Gp.dataPtr();
+            const Real *dx     = geom.CellSize();
 
-        // ----------------------- create the pressure gradient
-        FORT_GRADP (p_dat,ARLIM(plo),ARLIM(phi),
-                    gp_dat,ARLIM(glo),ARLIM(ghi),glo,ghi,dx);
+            // ----------------------- create the pressure gradient
+            FORT_GRADP (p_dat,ARLIM(plo),ARLIM(phi),
+                        gp_dat,ARLIM(glo),ARLIM(ghi),glo,ghi,dx);
         }
         // from NS::getGradP ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 
         // compute the total forcing
         godunov->Sum_tf_gp_visc( tforces, visc_termsmfi(), Gp, Rho );
@@ -1858,62 +1859,76 @@ void NavierStokes::velocity_advection( Real dt )
                bndry[1] = getBCArray(State_Type,i,1,1);,
                bndry[2] = getBCArray(State_Type,i,2,1);)
 
-        // set up the workspace for the godunov Box
-        godunov->Setup( grd, dx, dt, 0,
-                        xflux, bndry[0].dataPtr(),
-                        yflux, bndry[1].dataPtr(),
+            // set up the workspace for the godunov Box
+            godunov->Setup(grd, dx, dt, 0,
+                           xflux, bndry[0].dataPtr(),
+                           yflux, bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                          
-                        zflux, bndry[2].dataPtr(),
+                           zflux, bndry[2].dataPtr(),
 #endif
-                        U, Rho, tforces);
+                           U, Rho, tforces);
         
-        // loop over the velocity components
-        for ( comp = 0 ; comp < BL_SPACEDIM ; comp++ ) {
-            godunov->AdvectState( grd, dx, dt, 
-                                  area0mfi(), u_mac0mfi(), xflux,
-                                  area1mfi(), u_mac1mfi(), yflux,
+            // loop over the velocity components
+            for ( comp = 0 ; comp < BL_SPACEDIM ; comp++ )
+            {
+                godunov->AdvectState(grd, dx, dt, 
+                                     area0mfi(), u_mac0mfi(), xflux,
+                                     area1mfi(), u_mac1mfi(), yflux,
 #if (BL_SPACEDIM == 3)                       
-                                  area2mfi(), u_mac2mfi(), zflux,
+                                     area2mfi(), u_mac2mfi(), zflux,
 #endif
-                                  U, U, tforces, comp,
-                                  aofsmfi(),    comp,
-                                  is_conservative[comp],
-                                  comp,
-                                  bndry[comp].dataPtr(),
-                                  volumemfi() );
-
-            // get fluxes for diagnostics and refluxing
-            pullFluxes( i, comp, 1, xflux, yflux, zflux, dt );
-        } // end of velocity loop
-    } // end of grid loop
+                                     U, U, tforces, comp,
+                                     aofsmfi(),    comp,
+                                     is_conservative[comp],
+                                     comp,
+                                     bndry[comp].dataPtr(),
+                                     volumemfi() );
+                //
+                // Get fluxes for diagnostics and refluxing.
+                //
+                pullFluxes( i, comp, 1, xflux, yflux, zflux, dt);
+            }
+    }
+    //
+    // pullFluxes() contains CrseInit() calls. Got to complete the process.
+    //
+    if (do_reflux && level < finest_level)
+    {
+        FluxRegister& fr = getAdvFluxReg(level+1);
+        fr.CrseInitFinish();
+    }
 }
-
-
-
 
 //
 // This routine advects the scalars
 //
-void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
+
+void
+NavierStokes::scalar_advection (Real dt,
+                                int  fscalar,
+                                int  lscalar)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "... advect scalars\n";
     }
-
-    // get simulation parameters
+    //
+    // Get simulation parameters.
+    //
     int num_scalars  = lscalar - fscalar + 1;
     int finest_level = parent->finestLevel();
     const Real *dx   = geom.CellSize();
     Real prev_time   = state[State_Type].prevTime();
     Real prev_pres_time   = state[Press_Type].prevTime();
-
-    // get the viscous terms
+    //
+    // Get the viscous terms.
+    //
     MultiFab visc_terms(grids,num_scalars,1,Fab_allocate);
     getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
-    if(be_cn_theta==1.0)visc_terms.setVal(0.0,1);
-
-    // set up the grid loop
+    if (be_cn_theta==1.0) visc_terms.setVal(0.0,1);
+    //
+    // Set up the grid loop.
+    //
     int comp,state_ind;
     FArrayBox U, S, Rho, tforces;
     FArrayBox xflux, yflux, zflux, divu;
@@ -1929,12 +1944,12 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
       if (be_cn_theta==1.0)
           vel_visc_terms.setVal(0.0,1);
     }
-
-    // compute the advective forcing
-
+    //
+    // Compute the advective forcing.
+    //
     FArrayBox rho;
 
-    MultiFab &S_old = get_old_data(State_Type);
+    MultiFab& S_old = get_old_data(State_Type);
     const int destComp = 0;
     FillPatchIterator Ufpi(*this, S_old, HYP_GROW, destComp, prev_time,
                            State_Type, Xvel, BL_SPACEDIM);
@@ -1942,8 +1957,6 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
                            State_Type, fscalar, num_scalars);
     FillPatchIterator Rhofpi(*this, S_old, 1, destComp, prev_time,
                            State_Type, Density, 1);
-    //FillPatchIterator tforcesfpi(*this, S_old, 1, destComp, prev_time,
-                           //State_Type, fscalar, num_scalars);
     FillPatchIterator tvelforcesfpi(*this, S_old, 1, destComp, prev_time,
                            State_Type, Xvel, BL_SPACEDIM);
     MultiFab &P_old = get_old_data(Press_Type);
@@ -1951,7 +1964,9 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
                            Press_Type, 0, 1);
 
     FillPatchIterator divufpi(*this, S_old);
-    if(have_divu) {
+
+    if (have_divu)
+    {
       int boxGrow = 1;
       int srcComp = 0;
       int nComp   = 1;
@@ -1960,232 +1975,243 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
     }
 
     bool bIteratorsValid;
-    if(have_divu) {
+    if (have_divu)
+    {
       bIteratorsValid = 
-        Ufpi.isValid()          &&
-        Sfpi.isValid()          &&
-        Rhofpi.isValid()        &&
-        tvelforcesfpi.isValid() &&
-        pressurefpi.isValid()   &&
-        divufpi.isValid();
-    } else {
+          Ufpi.isValid()          &&
+          Sfpi.isValid()          &&
+          Rhofpi.isValid()        &&
+          tvelforcesfpi.isValid() &&
+          pressurefpi.isValid()   &&
+          divufpi.isValid();
+    }
+    else
+    {
       bIteratorsValid = 
-        Ufpi.isValid()          &&
-        Sfpi.isValid()          &&
-        Rhofpi.isValid()        &&
-        tvelforcesfpi.isValid() &&
-        pressurefpi.isValid();
+          Ufpi.isValid()          &&
+          Sfpi.isValid()          &&
+          Rhofpi.isValid()        &&
+          tvelforcesfpi.isValid() &&
+          pressurefpi.isValid();
     }
 
-    while(bIteratorsValid)
+    while (bIteratorsValid)
     {
-
       DependentMultiFabIterator visc_termsmfi(Ufpi, visc_terms);
-      DependentMultiFabIterator aofsmfi(Ufpi, (*aofs));
-      DependentMultiFabIterator volumemfi(Ufpi, volume);
-      DependentMultiFabIterator u_mac0mfi(Ufpi, u_mac[0]);
-      DependentMultiFabIterator u_mac1mfi(Ufpi, u_mac[1]);
-      DependentMultiFabIterator area0mfi(Ufpi, area[0]);
-      DependentMultiFabIterator area1mfi(Ufpi, area[1]);
+      DependentMultiFabIterator aofsmfi(Ufpi,*aofs);
+      DependentMultiFabIterator volumemfi(Ufpi,volume);
+      DependentMultiFabIterator u_mac0mfi(Ufpi,u_mac[0]);
+      DependentMultiFabIterator u_mac1mfi(Ufpi,u_mac[1]);
+      DependentMultiFabIterator area0mfi(Ufpi,area[0]);
+      DependentMultiFabIterator area1mfi(Ufpi,area[1]);
 #if (BL_SPACEDIM == 3)
-      DependentMultiFabIterator u_mac2mfi(Ufpi, u_mac[2]);
-      DependentMultiFabIterator area2mfi(Ufpi, area[2]);
+      DependentMultiFabIterator u_mac2mfi(Ufpi,u_mac[2]);
+      DependentMultiFabIterator area2mfi(Ufpi,area[2]);
 #endif
       int i = visc_termsmfi.index();
 
-        assert(grids[visc_termsmfi.index()] == visc_termsmfi.validbox());
-        const Box& grd = grids[i];
+      assert(grids[visc_termsmfi.index()] == visc_termsmfi.validbox());
+      const Box& grd = grids[i];
 
         // get needed data
         //getState(U,      i,HYP_GROW,Xvel,   BL_SPACEDIM,prev_time);
-        FArrayBox& U = Ufpi();
-        //getState(S,      i,HYP_GROW,fscalar,num_scalars,prev_time);
-        FArrayBox& S = Sfpi();
-        //getState(Rho,    i,1,       Density,1,          prev_time);
-        FArrayBox& Rho = Rhofpi();
+      FArrayBox& U = Ufpi();
+      //getState(S,      i,HYP_GROW,fscalar,num_scalars,prev_time);
+      FArrayBox& S = Sfpi();
+      //getState(Rho,    i,1,       Density,1,          prev_time);
+      FArrayBox& Rho = Rhofpi();
 
-        //getForce(tforces,i,1,       fscalar,num_scalars,prev_time);
-        // from NS::getForce vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-        Real grav = Abs(gravity);
-        Box tfbox(grids[i]);
-        tfbox.grow(1);
-        tforces.resize(tfbox, num_scalars);
+      //getForce(tforces,i,1,       fscalar,num_scalars,prev_time);
+      // from NS::getForce vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+      Real grav = Abs(gravity);
+      Box tfbox(grids[i]);
+      tfbox.grow(1);
+      tforces.resize(tfbox, num_scalars);
 
-        for(int dc = 0; dc < num_scalars; dc++) {
+      for(int dc = 0; dc < num_scalars; dc++) {
           int sc = fscalar + dc;
 #if (BL_SPACEDIM == 2)
           if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001)
 #endif
 #if (BL_SPACEDIM == 3)
-          if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
+              if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
 #endif
-          {
-              // set force to -rho*g
-            rho.resize(Rho.box());
-            //getState(rho,i,1,Density,1,prev_time);
-            rho.copy(Rho);
-            rho.mult(-grav);
-            tforces.copy(rho,0,dc,1);
-          } else {
-            tforces.setVal(0.0,dc);
-          }
-        }  // end for(dc...)
-        // from NS::getForce ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              {
+                  // set force to -rho*g
+                  rho.resize(Rho.box());
+                  //getState(rho,i,1,Density,1,prev_time);
+                  rho.copy(Rho);
+                  rho.mult(-grav);
+                  tforces.copy(rho,0,dc,1);
+              } else {
+                  tforces.setVal(0.0,dc);
+              }
+      }  // end for(dc...)
+      // from NS::getForce ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
         //getDivCond(divu, i,1,                           prev_time);
-            Box bx(grids[i]);
-            bx.grow(1);
-            divu.resize(bx,1);
-          if(have_divu) {
-            if(divu.box() != divufpi().box()) {
+      Box bx(grids[i]);
+      bx.grow(1);
+      divu.resize(bx,1);
+      if(have_divu) {
+          if(divu.box() != divufpi().box()) {
               cerr << "NavierStokes::scalar_advection:  "
                    << "divu.box() != divufpi().box()\n";
               cerr << "divu.box()      = " << divu.box()      << NL;
               cerr << "divufpi().box() = " << divufpi().box() << NL;
               BoxLib::Abort("NavierStokes::scalar_advection(...)");
-            }
-            divu.copy(divufpi());
-          } else {   // ! have_divu
-            divu.setVal(0.0);  // can't filpatch what we don't have
           }
+          divu.copy(divufpi());
+      } else {   // ! have_divu
+          divu.setVal(0.0);  // can't filpatch what we don't have
+      }
 
-        if (use_forces_in_trans)
-        {
-            DependentMultiFabIterator vel_visc_termsmfi(Ufpi, vel_visc_terms);
+      if (use_forces_in_trans)
+      {
+          DependentMultiFabIterator vel_visc_termsmfi(Ufpi, vel_visc_terms);
           //getForce(tvelforces,i,1,       Xvel,   BL_SPACEDIM,prev_time);
 
-        // from NS::getForce vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+          // from NS::getForce vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
           Real grav = Abs(gravity);
 
           for(int dc = 0; dc < BL_SPACEDIM; dc++) {
-            int sc = Xvel + dc;
+              int sc = Xvel + dc;
 #if (BL_SPACEDIM == 2)
-            if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001)
+              if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001)
 #endif
 #if (BL_SPACEDIM == 3)
-            if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
+                  if (BL_SPACEDIM == 3 && sc == Zvel && grav > 0.001)
 #endif
-            {
-                // set force to -rho*g
-              rho.resize(Rho.box());
-              //getState(rho,i,1,Density,1,prev_time);
-              rho.copy(Rho);
-              rho.mult(-grav);
-              tvelforces.copy(rho,0,dc,1);
-            } else {
-              tvelforces.setVal(0.0,dc);
-            }
+                  {
+                      // set force to -rho*g
+                      rho.resize(Rho.box());
+                      //getState(rho,i,1,Density,1,prev_time);
+                      rho.copy(Rho);
+                      rho.mult(-grav);
+                      tvelforces.copy(rho,0,dc,1);
+                  } else {
+                      tvelforces.setVal(0.0,dc);
+                  }
           }  // end for(dc...)
-        // from NS::getForce ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+          // from NS::getForce ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
           //getGradP(Gp,        i,1,                           prev_pres_time);
-        // from NS::getGradP vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-        {
-          Box gpbx(grids[i]);
-          gpbx.grow(1);
-          Box p_box(surroundingNodes(gpbx));
-          //FArrayBox p_fab(p_box,1);
-          FArrayBox& p_fab = pressurefpi();
-          assert(p_fab.box() == p_box);
-          //-----------------------  size the pressure gradient storage
-          Gp.resize(gpbx,BL_SPACEDIM);
+          // from NS::getGradP vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+          {
+              Box gpbx(grids[i]);
+              gpbx.grow(1);
+              Box p_box(surroundingNodes(gpbx));
+              //FArrayBox p_fab(p_box,1);
+              FArrayBox& p_fab = pressurefpi();
+              assert(p_fab.box() == p_box);
+              //-----------------------  size the pressure gradient storage
+              Gp.resize(gpbx,BL_SPACEDIM);
 
-          //------------------------ test to see if p_fab contains gpbx
-          Box test = p_fab.box();
-          test = test.enclosedCells();
-          assert( test.contains( gpbx ) == true );
+              //------------------------ test to see if p_fab contains gpbx
+              Box test = p_fab.box();
+              test = test.enclosedCells();
+              assert( test.contains( gpbx ) == true );
 
-          // ----------------------- set pointers
-          const int *plo = p_fab.loVect();
-          const int *phi = p_fab.hiVect();
-          const int *glo = gpbx.loVect();
-          const int *ghi = gpbx.hiVect();
-          const Real *p_dat  = p_fab.dataPtr();
-          const Real *gp_dat = Gp.dataPtr();
-          const Real *dx     = geom.CellSize();
+              // ----------------------- set pointers
+              const int *plo = p_fab.loVect();
+              const int *phi = p_fab.hiVect();
+              const int *glo = gpbx.loVect();
+              const int *ghi = gpbx.hiVect();
+              const Real *p_dat  = p_fab.dataPtr();
+              const Real *gp_dat = Gp.dataPtr();
+              const Real *dx     = geom.CellSize();
 
-          // ----------------------- create the pressure gradient
-          FORT_GRADP (p_dat,ARLIM(plo),ARLIM(phi),
-                      gp_dat,ARLIM(glo),ARLIM(ghi),glo,ghi,dx);
-        }
-        // from NS::getGradP ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              // ----------------------- create the pressure gradient
+              FORT_GRADP (p_dat,ARLIM(plo),ARLIM(phi),
+                          gp_dat,ARLIM(glo),ARLIM(ghi),glo,ghi,dx);
+          }
+          // from NS::getGradP ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
           godunov->Sum_tf_gp_visc( tvelforces, vel_visc_termsmfi(), Gp, Rho );
-        }
+      }
 
-        Array<int> bndry[BL_SPACEDIM];
+      Array<int> bndry[BL_SPACEDIM];
 
-        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
-               bndry[1] = getBCArray(State_Type,i,1,1);,
-               bndry[2] = getBCArray(State_Type,i,2,1);)
+      D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
+             bndry[1] = getBCArray(State_Type,i,1,1);,
+             bndry[2] = getBCArray(State_Type,i,2,1);)
         
-        // set up the workspace for the godunov Box
-        godunov->Setup( grd, dx, dt, 0,
-                        xflux, bndry[0].dataPtr(),
-                        yflux, bndry[1].dataPtr(),
+          // set up the workspace for the godunov Box
+          godunov->Setup( grd, dx, dt, 0,
+                          xflux, bndry[0].dataPtr(),
+                          yflux, bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                         
-                        zflux, bndry[2].dataPtr(),
+                          zflux, bndry[2].dataPtr(),
 #endif
-                        U, Rho, tvelforces );
+                          U, Rho, tvelforces );
         
-        // loop over the scalar components
-        for ( comp = 0 ; comp < num_scalars ; comp++ ) {
-            state_ind = fscalar + comp;
+          // loop over the scalar components
+          for ( comp = 0 ; comp < num_scalars ; comp++ ) {
+              state_ind = fscalar + comp;
 
-            // compute total forcing
-            godunov->Sum_tf_divu_visc( S, tforces,    comp, 1,
-                                       visc_termsmfi(), comp,
-                                       divu, Rho,
-                                       is_conservative[state_ind] );
+              // compute total forcing
+              godunov->Sum_tf_divu_visc( S, tforces,    comp, 1,
+                                         visc_termsmfi(), comp,
+                                         divu, Rho,
+                                         is_conservative[state_ind] );
 
-            Array<int> state_bc = getBCArray(State_Type,i,state_ind,1);
-            //  advect scalar
-            godunov->AdvectState( grd, dx, dt, 
-                                  area0mfi(), u_mac0mfi(), xflux,
-                                  area1mfi(), u_mac1mfi(), yflux,
+              Array<int> state_bc = getBCArray(State_Type,i,state_ind,1);
+              //  advect scalar
+              godunov->AdvectState( grd, dx, dt, 
+                                    area0mfi(), u_mac0mfi(), xflux,
+                                    area1mfi(), u_mac1mfi(), yflux,
 #if (BL_SPACEDIM == 3)                        
-                                  area2mfi(), u_mac2mfi(), zflux,
+                                    area2mfi(), u_mac2mfi(), zflux,
 #endif
-                                  U, S, tforces, comp,
-                                  aofsmfi(),    state_ind,
-                                  is_conservative[state_ind],
-                                  state_ind,
-                                  state_bc.dataPtr(),
-                                  volumemfi() );
+                                    U, S, tforces, comp,
+                                    aofsmfi(),    state_ind,
+                                    is_conservative[state_ind],
+                                    state_ind,
+                                    state_bc.dataPtr(),
+                                    volumemfi() );
 
-            // get the fluxes for refluxing and diagnostic purposes
-            pullFluxes( i, state_ind, 1, xflux, yflux, zflux, dt );
-            
-        } // end of scalar loop
+              // get the fluxes for refluxing and diagnostic purposes
+              pullFluxes(i, state_ind, 1, xflux, yflux, zflux, dt);
+          } // end of scalar loop
 
-        ++Ufpi;
-        ++Sfpi;
-        ++Rhofpi;
-        ++tvelforcesfpi;
-        ++pressurefpi;
-        if(have_divu) {
-          ++divufpi;
-        }
-
-        if(have_divu) {
-          bIteratorsValid = 
-            Ufpi.isValid()          &&
-            Sfpi.isValid()          &&
-            Rhofpi.isValid()        &&
-            tvelforcesfpi.isValid() &&
-            pressurefpi.isValid()   &&
-            divufpi.isValid();
-        } else {
-          bIteratorsValid = 
-            Ufpi.isValid()          &&
-            Sfpi.isValid()          &&
-            Rhofpi.isValid()        &&
-            tvelforcesfpi.isValid() &&
-            pressurefpi.isValid();
-        }
-
+          ++Ufpi;
+          ++Sfpi;
+          ++Rhofpi;
+          ++tvelforcesfpi;
+          ++pressurefpi;
+          if (have_divu)
+          {
+              ++divufpi;
+          }
+          if (have_divu)
+          {
+              bIteratorsValid = 
+                  Ufpi.isValid()          &&
+                  Sfpi.isValid()          &&
+                  Rhofpi.isValid()        &&
+                  tvelforcesfpi.isValid() &&
+                  pressurefpi.isValid()   &&
+                  divufpi.isValid();
+          }
+          else
+          {
+              bIteratorsValid = 
+                  Ufpi.isValid()          &&
+                  Sfpi.isValid()          &&
+                  Rhofpi.isValid()        &&
+                  tvelforcesfpi.isValid() &&
+                  pressurefpi.isValid();
+          }
     } // end of while FillPatchIterator loop
+    //
+    // pullFluxes() contains CrseInit() calls. Got to complete the process.
+    //
+    if (do_reflux && level < finest_level)
+    {
+        FluxRegister& fr = getAdvFluxReg(level+1);
+        fr.CrseInitFinish();
+    }
 }
 
 
