@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.29 2003-02-04 21:11:13 almgren Exp $
+// $Id: Godunov.cpp,v 1.30 2003-02-06 19:38:23 almgren Exp $
 //
 
 //
@@ -329,15 +329,12 @@ Godunov::edge_states (const Box&  grd,
     BL_ASSERT(S.nComp()       >= fab_ind    );
     BL_ASSERT(tforces.nComp() >= fab_ind    );
 
-    BL_ASSERT(uedge.box()     == xflux_bx   );
     BL_ASSERT(uedge.nComp()   >= 1          );
     BL_ASSERT(stx.nComp()     >= 1          );
 
-    BL_ASSERT(vedge.box()     == yflux_bx   );
     BL_ASSERT(vedge.nComp()   >= 1          );
     BL_ASSERT(sty.nComp()     >= 1          );
 #if (BL_SPACEDIM == 3)
-    BL_ASSERT(wedge.box()     == zflux_bx   );
     BL_ASSERT(wedge.nComp()   >= 1          );
     BL_ASSERT(stz.nComp()     >= 1          );
 #endif    
@@ -348,10 +345,6 @@ Godunov::edge_states (const Box&  grd,
     const int *hi         = grd.hiVect();
     const int *s_lo       = S.loVect();
     const int *s_hi       = S.hiVect();
-    const int *u_lo       = uedge.loVect();
-    const int *u_hi       = uedge.hiVect();
-    const int *v_lo       = vedge.loVect();
-    const int *v_hi       = vedge.hiVect();
     const int *ww_lo      = work.loVect();
     const int *ww_hi      = work.hiVect();
     const Real *s_dat     = S.dataPtr(fab_ind);
@@ -370,8 +363,6 @@ Godunov::edge_states (const Box&  grd,
     SetBogusScratch();
 
 #if (BL_SPACEDIM == 3)
-    const int *w_lo       = wedge.loVect();
-    const int *w_hi       = wedge.hiVect();
     const Real *w_dat     = U.dataPtr(ZVEL);
     const Real *wad_dat   = wad.dataPtr();
     const Real *wedge_dat = wedge.dataPtr();
@@ -402,15 +393,18 @@ Godunov::edge_states (const Box&  grd,
 
                 u_dat, xlo_dat, xhi_dat, slx_dat, uad_dat,
                 slxscr, stxlo, stxhi,
-                uedge_dat, stx_dat, ARLIM(u_lo), ARLIM(u_hi), 
+                uedge.dataPtr(), ARLIM(uedge.loVect()), ARLIM(uedge.hiVect()),
+                 stx.dataPtr(),  ARLIM(  stx.loVect()), ARLIM(  stx.hiVect()),
 
                 v_dat, ylo_dat, yhi_dat, sly_dat, vad_dat,
                 slyscr, stylo, styhi,
-                vedge_dat, sty_dat, ARLIM(v_lo), ARLIM(v_hi), 
+                vedge.dataPtr(), ARLIM(vedge.loVect()), ARLIM(vedge.hiVect()),
+                 sty.dataPtr(),  ARLIM(  sty.loVect()), ARLIM(  sty.hiVect()),
 #if (BL_SPACEDIM == 3)
                 w_dat, zlo_dat, zhi_dat, slz_dat, wad_dat,
                 slzscr, stzlo, stzhi,
-                wedge_dat, stz_dat, ARLIM(w_lo), ARLIM(w_hi), 
+                wedge.dataPtr(), ARLIM(wedge.loVect()), ARLIM(wedge.hiVect()),
+                 stz.dataPtr(),  ARLIM(  stz.loVect()), ARLIM(  stz.hiVect()),
 #endif
                 ARLIM(ww_lo), ARLIM(ww_hi),
                 bc, lo, hi, &dt, dx, &fort_ind, &velpred, 

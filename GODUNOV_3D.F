@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.24 2003-02-04 22:04:14 almgren Exp $
+c $Id: GODUNOV_3D.F,v 1.25 2003-02-06 19:38:22 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -487,13 +487,13 @@ c
       subroutine FORT_ESTATE(s, tforces, DIMS(s),
 
      &     u, xlo, xhi, sx, uad, slxscr, stxlo, stxhi,
-     &     uedge, xstate, DIMS(uedge),
+     &     uedge, DIMS(uedge), xstate, DIMS(xstate),
 
      &     v, ylo, yhi, sy, vad, slyscr, stylo, styhi,
-     &     vedge, ystate, DIMS(vedge),
+     &     vedge, DIMS(vedge), ystate, DIMS(ystate),
 
      &     w, zlo, zhi, sz, wad, slzscr, stzlo, stzhi,
-     &     wedge, zstate, DIMS(wedge),
+     &     wedge, DIMS(wedge), zstate, DIMS(zstate),
 
      &     DIMS(work),
      &     bc,lo,hi,dt,dx,n,velpred, use_minion)
@@ -520,6 +520,9 @@ c
       integer DIMDEC(uedge)
       integer DIMDEC(vedge)
       integer DIMDEC(wedge)
+      integer DIMDEC(xstate)
+      integer DIMDEC(ystate)
+      integer DIMDEC(zstate)
 
       REAL_T s(DIMV(s))
       REAL_T u(DIMV(s))

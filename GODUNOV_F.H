@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.11 2003-02-04 21:11:13 almgren Exp $
+** $Id: GODUNOV_F.H,v 1.12 2003-02-06 19:38:22 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -136,22 +136,22 @@ extern "C"
 		    const Real* xhi_dat, const Real* slx_dat, 
 		    const Real* uad_dat,
 		    Real* slxscr, Real* stxlo, Real* stxhi,
-		    const Real* uedge_dat, const Real* stx_dat, 
-		    ARLIM_P(u_lo),ARLIM_P(u_hi), 
+		    const Real* uedge_dat, ARLIM_P(ue_lo), ARLIM_P(ue_hi),
+                    const Real* stx,       ARLIM_P(stx_lo),ARLIM_P(stx_hi),
 		    
 		    const Real* v_dat, const Real* ylo_dat, 
 		    const Real* yhi_dat, const Real* sly_dat, 
 		    const Real* vad_dat,
 		    Real* slyscr, Real* stylo, Real* styhi,
-		    const Real* vedge_dat, const Real* sty_dat, 
-		    ARLIM_P(v_lo),ARLIM_P(v_hi),
+		    const Real* vedge_dat, ARLIM_P(ve_lo), ARLIM_P(ve_hi),
+                    const Real* sty,       ARLIM_P(sty_lo),ARLIM_P(sty_hi),
 #if (BL_SPACEDIM == 3)
 		    const Real* w_dat, const Real* zlo_dat, 
 		    const Real* zhi_dat, const Real* slz_dat, 
 		    const Real* wad_dat,
 		    Real* slzscr, Real* stzlo, Real* stzhi,
-		    const Real* wedge_dat, const Real* stz_dat,
-		    ARLIM_P(w_lo),ARLIM_P(w_hi), 
+		    const Real* wedge_dat, ARLIM_P(we_lo), ARLIM_P(we_hi),
+                    const Real* stz,       ARLIM_P(stz_lo),ARLIM_P(stz_hi),
 #endif
 		    ARLIM_P(ww_lo),ARLIM_P(ww_hi),
 		    const int* bc, const int* lo, const int* hi, 
@@ -164,18 +164,18 @@ extern "C"
 		    const Real* xhi_dat, const Real* slx_dat, 
 		    Real* slxscr, Real* stxlo, Real* stxhi,
 		    const Real* uedge_dat, ARLIM_P(ue_lo), ARLIM_P(ue_hi),
-            const Real* stx,       ARLIM_P(stx_lo),ARLIM_P(stx_hi),
+                    const Real* stx,       ARLIM_P(stx_lo),ARLIM_P(stx_hi),
 		    const Real* ylo_dat, 
 		    const Real* yhi_dat, const Real* sly_dat, 
 		    Real* slyscr, Real* stylo, Real* styhi,
 		    const Real* vedge_dat, ARLIM_P(ve_lo), ARLIM_P(ve_hi),
-            const Real* sty,       ARLIM_P(sty_lo),ARLIM_P(sty_hi),
+                    const Real* sty,       ARLIM_P(sty_lo),ARLIM_P(sty_hi),
 #if (BL_SPACEDIM == 3)
 		    const Real* zlo_dat, 
 		    const Real* zhi_dat, const Real* slz_dat, 
 		    Real* slzscr, Real* stzlo, Real* stzhi,
 		    const Real* wedge_dat, ARLIM_P(we_lo), ARLIM_P(we_hi),
-            const Real* stz,       ARLIM_P(stz_lo),ARLIM_P(stz_hi),
+                    const Real* stz,       ARLIM_P(stz_lo),ARLIM_P(stz_hi),
 #endif
 		    ARLIM_P(ww_lo),ARLIM_P(ww_hi),
 		    const int* bc, const int* lo, const int* hi, 

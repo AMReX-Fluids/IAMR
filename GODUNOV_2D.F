@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.29 2003-02-05 02:40:42 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.30 2003-02-06 19:38:22 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -350,19 +350,13 @@ c
       subroutine FORT_ESTATE(s, tforces, DIMS(s),
 
      &     u, xlo, xhi, sx, uad, slxscr, stxlo, stxhi,
-     &     uedge, xstate, DIMS(uedge),
+     &     uedge, DIMS(uedge), xstate, DIMS(xstate),
 
      &     v, ylo, yhi, sy, vad, slyscr, stylo, styhi,
-     &     vedge, ystate, DIMS(vedge),
+     &     vedge, DIMS(vedge), ystate, DIMS(ystate),
 
      &     DIMS(work),
      &     bc,lo,hi,dt,dx,n,velpred, use_minion)
-c
-c     This subroutine computes edges states, right now it uses
-c     a lot of memory, but there becomes a trade off between
-c     simplicity-efficiency in the new way of computing states
-c     and complexity in the old way.  By eliminating loops over
-c     state components though, the new way uses much less memory.
 c
       integer i,j,n,velpred
       integer lo(SDIM),hi(SDIM),bc(SDIM,2)
@@ -379,6 +373,8 @@ c
       integer DIMDEC(work)
       integer DIMDEC(uedge)
       integer DIMDEC(vedge)
+      integer DIMDEC(xstate)
+      integer DIMDEC(ystate)
 
       REAL_T s(DIMV(s))
       REAL_T u(DIMV(s))
