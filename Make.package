@@ -81,10 +81,9 @@ C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H Looping.H MultiFab.H
 C$(BOXLIB_BASE)_sources += VisMF.cpp BArena.cpp CArena.cpp
 C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
 
-T_sources += Array.cpp PArray.cpp List.cpp Pointers.cpp Tuple.cpp
 T_headers += Array.H PArray.H List.H Pointers.H Tuple.H Misc.H
+T_headers += ccse-mpi.H
 
-T_sources += FabArray.cpp
 T_headers += BaseFab.H FabArray.H
 #
 # multigrid sources
