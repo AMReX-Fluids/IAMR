@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.203 2002-09-27 22:38:35 marc Exp $
+// $Id: NavierStokes.cpp,v 1.204 2002-10-11 17:50:45 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -4176,7 +4176,7 @@ NavierStokes::mac_sync ()
         // Update rho_ctime after rho is updated with Ssync.
         //
         make_rho_curr_time();
-        incrRhoAvg((*Ssync),Density-BL_SPACEDIM,1.0);
+        if (level > 0) incrRhoAvg((*Ssync),Density-BL_SPACEDIM,1.0);
         //
         // Get boundary conditions.
         //
@@ -4202,7 +4202,7 @@ NavierStokes::mac_sync ()
             MultiFab sync_incr(fine_grids,numscal,0);
             sync_incr.setVal(0.0);
 
-            SyncInterp(*Ssync,level,sync_incr,lev,ratio,0,BL_SPACEDIM,
+            SyncInterp(*Ssync,level,sync_incr,lev,ratio,0,0,
                        numscal,1,mult,sync_bc.dataPtr());
 
             MultiFab& S_new = fine_lev.get_new_data(State_Type);
