@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.74 1998-06-26 20:55:07 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.75 1998-06-30 03:59:57 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1174,8 +1174,10 @@ NavierStokes::advance (Real time,
 //     cout << "!!!!!!!!!!! done reading data" << NL;
     
     SaveOldBoundary(time); 
-    MultiFab& Snew = get_new_data(State_Type);
-    MultiFab& Sold = get_old_data(State_Type);
+    MultiFab& Snew  = get_new_data(State_Type);
+    MultiFab& Sold  = get_old_data(State_Type);
+    MultiFab& P_new = get_new_data(Press_Type);
+    MultiFab& P_old = get_old_data(Press_Type);
 
     RunStats vel_pred_stats("vel_predict", level);
     RunStats  vel_adv_stats("vel_advect" , level);
@@ -2886,6 +2888,9 @@ NavierStokes::post_init (Real stop_time)
         //
         return;
 
+    MultiFab& P_new = get_new_data(Press_Type);
+    MultiFab& P_old = get_old_data(Press_Type);
+
     const int finest_level = parent->finestLevel();
 
     Real dt_init = 0.0;
@@ -3044,6 +3049,9 @@ NavierStokes::post_init_press (Real&        dt_init,
     const Real strt_time   = state[State_Type].curTime();
     const int finest_level = parent->finestLevel();
 
+    MultiFab& P_new = get_new_data(Press_Type);
+    MultiFab& P_old = get_old_data(Press_Type);
+
     NavierStokes::initial_iter = true;
     //
     // Iterate over the advance function.
@@ -3064,8 +3072,10 @@ NavierStokes::post_init_press (Real&        dt_init,
             sig[k] = getLevel(k).rho_half;
         }
         if (projector)
+        {
             projector->initialSyncProject(0,sig,parent->dtLevel(0),strt_time,
                                           dt_init,have_divu);
+        }
         delete sig;
 
         for (int k = finest_level-1; k>= 0; k--)
