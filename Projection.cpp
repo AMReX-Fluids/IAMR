@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.101 1999-07-01 21:29:15 almgren Exp $
+// $Id: Projection.cpp,v 1.102 1999-07-01 21:53:05 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -512,8 +512,6 @@ Projection::level_project (int             level,
 
     if (do_sync_proj) 
     {
-        int isrz   = CoordSys::IsRZ();
-
         if (level < finest_level) 
         {
             //
@@ -572,7 +570,7 @@ Projection::level_project (int             level,
         bool      use_u  = true;
         const int nghost = 1;
 
-        radMult(level,*divusource,0);
+        if (rz_flag == 1) radMult(level,*divusource,0);
         divusource->mult(-1.0,0,1,nghost);
 
         PArray<MultiFab> rhs_real(level+1);
@@ -1465,7 +1463,7 @@ Projection::initialVelocityProject (int  c_lev,
             MultiFab* rhslev = rhs_cc[lev];
             put_divu_in_cc_rhs(*rhslev,lev,grids,cur_divu_time);
             rhslev->mult(-1.0,0,1,nghost);
-            radMult(lev,*rhslev,0); 
+            if (CoordSys::IsRZ()) radMult(lev,*rhslev,0); 
         }
         const bool use_u = true;
         PArray<MultiFab> rhs_real(f_lev+1);
