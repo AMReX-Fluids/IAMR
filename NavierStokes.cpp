@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.233 2003-10-15 18:02:03 marc Exp $
+// $Id: NavierStokes.cpp,v 1.234 2004-02-06 18:36:04 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1670,7 +1670,7 @@ NavierStokes::get_rho (Real time)
     }
     else if (whichTime == Amr3QtrTime)
     {
-        BL_ASSERT(rho_qtime);
+        BL_ASSERT(rho_tqtime);
         return *rho_tqtime;
     }
     else if (whichTime == AmrHalfTime)
