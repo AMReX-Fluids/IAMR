@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.1 2000-06-06 18:39:24 sstanley Exp $
+c $Id: FLUCTFILE.F,v 1.2 2000-06-14 21:03:45 sstanley Exp $
 c
 
 #undef BL_LANG_CC
@@ -163,14 +163,14 @@ c ::: iunit         => Fortran unit for the input fluctuations file
 c ::: dimFile       => Dimensions from the header of the fluctuations
 c ::: arrLo, arrHi  => Range of the array to fill.  This must satisfy
 c :::                    rdLgth(1) = arrHi(1) - arrLo(1) + 1
-c :::                    dimFile(1) >= filLo(1) + rdLgth(1) - 1
-c ::: filLo         => Offset into the array in the file indicating the
+c :::                    dimFile(1) >= fileLo(1) + rdLgth(1) - 1
+c ::: fileLo         => Offset into the array in the file indicating the
 c :::                    first point to be read.
 c ::: FF_DIMS(dat)  => Dimensions of the array dat
 c ::: dat          <=  Array to fill
 c ::: -----------------------------------------------------------
 c
-      SUBROUTINE RD_FLCTREC(iunit, dimFile, arrLo, arrHi, filLo,
+      SUBROUTINE RD_FLCTREC(iunit, dimFile, arrLo, arrHi, fileLo,
      $                      FF_DIMS(dat), dat)
 
 c
@@ -184,7 +184,7 @@ c
 c     *** Passed Variables ***
 c
       integer iunit, dimFile(3)
-      integer arrLo(3), arrHi(3), filLo(3)
+      integer arrLo(3), arrHi(3), fileLo(3)
       integer FF_DIMDEC(dat)
       REAL_T dat(FF_DIMV(dat))
 
@@ -193,6 +193,9 @@ c     *** Local Variables ***
 c
       integer i, j, k, ijoff, ipad, kpad
       REAL_T dummy
+      REAL_T locDat(:,:,:)
+      allocatable locDat
+      allocate (locDat(dimFile(1),dimFile(2),dimFile(3)))
 
 
 c
@@ -206,21 +209,21 @@ c     disk and stored into memory.  This should speed up the I/O as
 c     well as keep the memory usage down.
 c
 c     *** Skip through records to the K-range desired as ***
-c     ***   specified by filLo(3)                        ***
+c     ***   specified by fileLo(3)                        ***
 c
-      do k = 1, filLo(3)-1
+      do k = 1, fileLo(3)-1
         READ(iunit) dummy
       enddo
 
 c
 c     *** Read the Necessary Data ***
 c
-      ijoff = (filLo(2) - 1) * dimFile(1)
-      ipad    = dimFile(1) - (filLo(1)-1 + arrHi(1) - arrLo(1) + 1)
+      ijoff = (fileLo(2) - 1) * dimFile(1)
+      ipad    = dimFile(1) - (fileLo(1)-1 + arrHi(1) - arrLo(1) + 1)
 
       do k = arrLo(3), arrHi(3)
         READ(iunit) (dummy, i=1, ijoff),
-     $             ((dummy, i=1, filLo(1)-1),
+     $             ((dummy, i=1, fileLo(1)-1),
      $              (dat(i,j,k), i=arrLo(1),arrHi(1)),
      $              (dummy, i=1, ipad),                 j=arrLo(2),arrHi(2))
       enddo
@@ -228,7 +231,7 @@ c
 c
 c     *** Skip through the remaining records for this variable ***
 c
-      kpad    = dimFile(3) - (filLo(3)-1 + arrHi(3) - arrLo(3) + 1)
+      kpad    = dimFile(3) - (fileLo(3)-1 + arrHi(3) - arrLo(3) + 1)
       do k = 1, kpad
         READ(iunit) dummy
       enddo
