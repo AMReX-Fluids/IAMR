@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.53 1998-05-28 03:12:35 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.54 1998-05-29 17:32:58 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1354,114 +1354,90 @@ Real NavierStokes::advance(Real time, Real dt, int iteration, int ncycle)
     return dt_test;  // return estimate of best new timestep
 }
 
-// -------------------------------------------------------------
 void
-NavierStokes::level_projector(Real dt, Real time, int iteration)
+NavierStokes::level_projector (Real dt,
+                               Real time,
+                               int  iteration)
 {
-   if (iteration > 0) {
-    RunStats lp_stats("level_project",level);
-    lp_stats.start();
+   if (iteration > 0)
+   {
+       RunStats lp_stats("level_project",level);
+       lp_stats.start();
 
-    MultiFab &U_old = get_old_data(State_Type);
-    MultiFab &U_new = get_new_data(State_Type);
-    MultiFab &P_old = get_old_data(Press_Type);
-    MultiFab &P_new = get_new_data(Press_Type);
+       MultiFab& U_old = get_old_data(State_Type);
+       MultiFab& U_new = get_new_data(State_Type);
+       MultiFab& P_old = get_old_data(Press_Type);
+       MultiFab& P_new = get_new_data(Press_Type);
 
-    int finest_level = parent->finestLevel();
-    SyncRegister * crse_ptr;
-    if (level < finest_level && do_sync_proj) {
-      crse_ptr = &(getLevel(level+1).getSyncReg()); 
-    } else {
-      crse_ptr = 0;
-    }
+       SyncRegister* crse_ptr;
 
-    Real cur_pres_time = state[Press_Type].curTime();
+       if (level < parent->finestLevel() && do_sync_proj)
+           crse_ptr = &(getLevel(level+1).getSyncReg()); 
+       else
+           crse_ptr = 0;
 
-    int** sync_bc =  new int*[grids.length()];
+       Array< int* >       sync_bc(grids.length());
+       Array< Array<int> > sync_bc_array(grids.length());
 
-    Array< Array<int> > sync_bc_array(grids.length());
+       for (int i = 0; i < grids.length(); i++)
+       {
+           sync_bc_array[i] = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
+           sync_bc[i]       = sync_bc_array[i].dataPtr();
+       }
 
-    int i;
-    for (i = 0; i < grids.length(); i++) {
-        sync_bc_array[i] = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
-        sync_bc[i] = sync_bc_array[i].dataPtr();
-    }
+       MultiFab* dsdt    = 0;
+       MultiFab* divuold = 0;
 
-    MultiFab dsdt(grids,1,1,Fab_allocate);
-    MultiFab divuold(grids,1,1,Fab_allocate);
-    //int k;
-    if(have_divu) {
+       if (have_divu)
+       {
 #if 1
-      FillStateBndry(time,Divu_Type,0,1);
-      FillStateBndry(time+dt,Divu_Type,0,1);
-      int ngrids = grids.length();
-      //for (k = 0; k < ngrids; k++)
-      for(MultiFabIterator divuoldmfi(divuold); divuoldmfi.isValid(); ++divuoldmfi)
-      {
-        DependentMultiFabIterator dsdtmfi(divuoldmfi, dsdt);
-        int k = divuoldmfi.index();
-        getDivCond(divuoldmfi(),k,1,time);
-        getDivCond(dsdtmfi(),k,1,time+dt);
-      }
+           FillStateBndry(time,Divu_Type,0,1);
+           FillStateBndry(time+dt,Divu_Type,0,1);
 #else
-      MultiFab &divu_old = get_old_data(Divu_Type);
-      MultiFab &divu_new = get_new_data(Divu_Type);
-      divu_new.FillBoundary();
-      divu_old.FillBoundary();
-      setPhysBoundaryValues(Divu_Type,0,1,time+dt);
-      // use dsdt for divunp1
-      int ngrids = grids.length();
-      //for (k = 0; k < ngrids; k++)
-      for(MultiFabIterator divuoldmfi(divuold); divuoldmfi.isValid(); ++divuolmfi) {
-        DependentMultiFabIterator dsdtmfi(divuoldmfi, dsdt);
-        int k = divuoldmfi.index();
-        getDivCond(divuoldmfi(),k,1,time);
-        getDivCond(dsdtmfi(),k,1,time+dt);
-      }
+           MultiFab& divu_old = get_old_data(Divu_Type);
+           MultiFab& divu_new = get_new_data(Divu_Type);
+           divu_new.FillBoundary();
+           divu_old.FillBoundary();
+           setPhysBoundaryValues(Divu_Type,0,1,time+dt);
 #endif
-      dsdt.minus(divuold,0,1,1);
-      //for (k = 0; k < ngrids; k++) {
-      for(MultiFabIterator dsdtmfi(dsdt); dsdtmfi.isValid(); ++dsdtmfi) {
-        assert(dsdtmfi.validbox() == grids[dsdtmfi.index()]);
-        Box grid = dsdtmfi.validbox();
-        grid.grow(1);
-        dsdtmfi().divide(dt,grid,0,1);
-      }
-    } else {
-      dsdt.setVal(0.0);
-    } 
+           dsdt    = getDivCond(1,time+dt);
+           divuold = getDivCond(1,time);
 
-    int crse_dt_ratio;
-    if (level > 0) {
-      crse_dt_ratio = parent->MaxRefRatio(level-1);
-    } else {
-      crse_dt_ratio = -1;
-    }
+           dsdt->minus(*divuold,0,1,1);
+           dsdt->mult(1/dt,0,1,1);
+       }
+       else
+       {
+           dsdt    = new MultiFab(grids,1,1,Fab_allocate);
+           divuold = new MultiFab(grids,1,1,Fab_allocate);
+           dsdt->setVal(0.0);
+           divuold->setVal(0.0);
+       }
 
-    projector->level_project(level,dt,cur_pres_time,time,time+dt,geom,
-                             U_old,U_new,P_old,P_new,rho_half,dsdt,
-                             crse_ptr,sync_reg,crse_dt_ratio,sync_bc,iteration,
-                             divu_minus_s_factor,divuold,have_divu);
+       int crse_dt_ratio  = (level > 0) ? parent->MaxRefRatio(level-1) : -1;
+       Real cur_pres_time = state[Press_Type].curTime();
 
-    delete [] sync_bc;
+       projector->level_project(level,dt,cur_pres_time,time,time+dt,geom,
+                                U_old,U_new,P_old,P_new,rho_half,*dsdt,
+                                crse_ptr,sync_reg,crse_dt_ratio,
+                                sync_bc.dataPtr(),iteration,
+                                divu_minus_s_factor,*divuold,have_divu);
+       delete dsdt;
+       delete divuold;
 
-    lp_stats.end();
-
-   } else {
-
-    Real cur_pres_time = state[Press_Type].curTime();
-    MultiFab &P_old = get_old_data(Press_Type);
-
-    cout << "NavierStokes::level_projector calling harmonic_project\n";
-    BoxLib::Abort("NavierStokes::level_projector");
-    projector->harmonic_project(level,dt,cur_pres_time,geom,P_old);
-
-   } 
+       lp_stats.end();
+   }
+   else
+   {
+       Real cur_pres_time = state[Press_Type].curTime();
+       MultiFab &P_old = get_old_data(Press_Type);
+       BoxLib::Abort("NavierStokes::level_projector calling harmonic_project");
+       projector->harmonic_project(level,dt,cur_pres_time,geom,P_old);
+   }
 }
 
-// -------------------------------------------------------------
 void
-NavierStokes::makerhonph(Real dt)
+NavierStokes::makerhonph (Real dt)
 {
     Real prev_time = state[State_Type].prevTime();
     Real half_time = prev_time + 0.5*dt;
@@ -2033,7 +2009,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
         Real grav = Abs(gravity);
         Box tfbox(grids[i]);
         tfbox.grow(1);
-        tforces.resize(tfbox, BL_SPACEDIM);
+        tforces.resize(tfbox, num_scalars);
         FArrayBox rho;
         for(int dc = 0; dc < num_scalars; dc++) {
           int sc = fscalar + dc;

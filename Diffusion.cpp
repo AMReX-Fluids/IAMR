@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.23 1998-05-28 03:11:35 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.24 1998-05-29 17:32:58 lijewski Exp $
 //
 
 //
@@ -625,286 +625,306 @@ void Diffusion::diffuse_velocity(Real dt, Real be_cn_theta,
   }
 }
 
-void Diffusion::diffuse_velocity_constant_mu(Real dt, Real be_cn_theta,
-                                 MultiFab* rho_half,
-                                 MultiFab* delta_rhs)
+void
+Diffusion::diffuse_velocity_constant_mu (Real      dt,
+                                         Real      be_cn_theta,
+                                         MultiFab* rho_half,
+                                         MultiFab* delta_rhs)
 {
-  int finest_level = parent->finestLevel();
+    //
+    // At this point, S_old has bndry at time N.  S_new contains GRAD(SU).
+    //
+    MultiFab& U_old      = caller->get_old_data(State_Type);
+    MultiFab& U_new      = caller->get_new_data(State_Type);
+    const Box& domain    = caller->Geom().Domain();
+    const int* domlo     = domain.loVect();
+    const int* domhi     = domain.hiVect();
+    const Real* dx       = caller->Geom().CellSize();
+    const Real cur_time  = caller->get_state_data(State_Type).curTime();
+    const Real prev_time = caller->get_state_data(State_Type).prevTime();
 
-  // at this point, S_old has bndry at time N
-  // S_new contains GRAD(SU)
-
-  MultiFab &U_old = caller->get_old_data(State_Type);
-  MultiFab &U_new = caller->get_new_data(State_Type);
-
-  const Box& domain = caller->Geom().Domain();
-  const int* domlo = domain.loVect();
-  const int* domhi = domain.hiVect();
-  const Real* dx = caller->Geom().CellSize();
-  int ngrd = grids.length();
-
-  Real cur_time  = caller->get_state_data(State_Type).curTime();
-  Real prev_time = caller->get_state_data(State_Type).prevTime();
-
-  FArrayBox xflux, yflux, zflux;
-
-  // at this point in time we can only do decoupled scalar
-  // so we loop over components
-  int comp;
-  for (comp = 0; comp < BL_SPACEDIM; comp++) {
-    int sigma = Xvel + comp;
-    // U_new now contains the inviscid update of U
-    // this is part of the RHS for the viscous solve
-
-    MultiFab Rhs(grids,1,0,Fab_allocate);
-    MultiFab Soln(grids,1,1,Fab_allocate);
-
-    int rho_flag = 1;
-
-    { // set up Rhs
-      Real a = 0.0;
-      Real b = -(1.0-be_cn_theta)*visc_coef[sigma]*dt;
-
-      ViscBndry visc_bndry;
-      ABecLaplacian *visc_op = 
-        getViscOp(sigma,a,b,prev_time,visc_bndry,rho_half,rho_flag);
-      visc_op->maxOrder(max_order);
-
-      // copy to single-component multifab
-      // note: use Soln as a temporary here
-      Soln.copy(U_old,sigma,0,1,1);
-      visc_op->apply(Rhs,Soln);
-      delete visc_op;
-
-      // complete Rhs by adding body sources
-      for(MultiFabIterator U_newmfi(U_new); U_newmfi.isValid(); ++U_newmfi) {
-        DependentMultiFabIterator volumemfi(U_newmfi, volume);
-        DependentMultiFabIterator Rhsmfi(U_newmfi, Rhs);
-        DependentMultiFabIterator rho_halfmfi(U_newmfi, (*rho_half));
-        assert(grids[U_newmfi.index()] == U_newmfi.validbox());
-
-        // scale inviscid part by volume
-        U_newmfi().mult(volumemfi(),U_newmfi.validbox(),0,sigma,1);
-
-        // multiply by density at time nph
-        FArrayBox& Rh = rho_halfmfi();
-        U_newmfi().mult(Rh,U_newmfi.validbox(),0,sigma,1);
-
-        // add to Rhs which contained mu/(2 dt) Lap(u)
-        Rhsmfi().plus(U_newmfi(),U_newmfi.validbox(),sigma,0,1);
-      }
-
-      if (delta_rhs!=NULL) {
-        for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
-          DependentMultiFabIterator volumemfi(Rhsmfi, volume);
-          DependentMultiFabIterator delta_rhsmfi(Rhsmfi, (*delta_rhs));
-          assert(grids[Rhsmfi.index()] == Rhsmfi.validbox());
-
-          delta_rhsmfi().mult(dt,comp,1);
-          delta_rhsmfi().mult(volumemfi(),Rhsmfi.validbox(),0,comp,1);
-          Rhsmfi().plus(delta_rhsmfi(),Rhsmfi.validbox(),comp,0,1);
-        }
-      }
-
-//  Note: we have to add hoop stress explicitly because the hoop
-//        stress which is added through the operator in getViscOp
-//        is eliminated by setting a=0
-#if (BL_SPACEDIM == 2) 
-      if(sigma==Xvel && CoordSys::IsRZ()) {
-        for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
-          DependentMultiFabIterator volumemfi(Rhsmfi, volume);
-          DependentMultiFabIterator U_oldmfi(Rhsmfi, U_old);
-          DependentMultiFabIterator delta_rhsmfi(Rhsmfi, (*delta_rhs));
-          assert(Rhs.box(Rhsmfi.index()) == Rhsmfi.validbox());
-          assert(U_old.box(Rhsmfi.index()) == U_oldmfi.validbox());
-          assert(volume.box(Rhsmfi.index()) == volumemfi.validbox());
-
-          const Box &bx = Rhsmfi.validbox();
-          Box sbx       = grow(U_oldmfi.validbox(),U_old.nGrow());
-          int rlen      = bx.length(0);
-          Array<Real> rcen;
-          rcen.resize(rlen);
-          parent->Geom(level).GetCellLoc(rcen, bx, 0);
-          const int *lo       = bx.loVect();
-          const int *hi       = bx.hiVect();
-          const int *slo      = sbx.loVect();
-          const int *shi      = sbx.hiVect();
-          Real *rhs           = Rhsmfi().dataPtr();
-          Real *sdat          = U_oldmfi().dataPtr(sigma);
-          const Real *rcendat = rcen.dataPtr();
-          const Real coeff    = (1.0-be_cn_theta)*visc_coef[sigma]*dt;
-          const Real *voli    = volumemfi().dataPtr();
-          Box vbox            = grow(volumemfi.validbox(),volume.nGrow());
-          const int *vlo      = vbox.loVect();
-          const int *vhi      = vbox.hiVect();
-          FORT_HOOPRHS(rhs, ARLIM(lo), ARLIM(hi), 
-                       sdat, ARLIM(slo), ARLIM(shi),
-                       rcendat, &coeff, 
-                       voli, ARLIM(vlo), ARLIM(vhi));
-        }
-      }
-#endif
-    }
-
-    // compute guess of solution
-    if(level == 0) {
-      //for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
-        //DependentMultiFabIterator U_oldmfi(Solnmfi, U_old);
-          //Solnmfi().copy(U_oldmfi(),sigma,0,1);
-      //}
-      Soln.copy(U_old,sigma,0,1);
-    } else {
-      //for(MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi) {
-        // coarse grid data exists at this time
-        // use interpolated crse grid data for guess
-        //caller->FillCoarsePatch(Solnmfi(),0,cur_time,State_Type,sigma,1);
-      //}
-      caller->FillCoarsePatch(Soln,0,cur_time,State_Type,sigma,1);
-    }
-
-    // copy guess into U_new ... needed for construction of
-    // viscous operator.  We first set all of U_new to a bogus values 
-    // so that its ghost cell values are not undefined.  These values
-    // will be filled with better values later.
-    int n_comp = 1;
-    int n_ghost = 1;
-    U_new.setVal(1.e30,sigma,n_comp,n_ghost);
-    n_ghost = 0;
-    U_new.copy(Soln,0,sigma,n_comp,0);
-
-    // construct viscous operator with bndry data at time N+1
-    Real a = 1.0;
-    Real b = be_cn_theta*dt*visc_coef[sigma];
-       
-    ViscBndry visc_bndry;
-    rho_flag = 1 ;
-    Real rhsscale = 1.0;
-    ABecLaplacian *visc_op = getViscOp(sigma,a,b,cur_time,visc_bndry,
-                                       rho_half,rho_flag,&rhsscale);
-    visc_op->maxOrder(max_order);
-    Rhs.mult(rhsscale,0,1);
-
-    // get coefficients for scaled tolerance
-    const MultiFab* alpha = &(visc_op->aCoefficients());
-    MultiFab const* beta[BL_SPACEDIM];
-    for (int d=0; d<BL_SPACEDIM; d++)
+    FArrayBox xflux, yflux, zflux;
+    //
+    // At this point in time we can only do decoupled scalar
+    // so we loop over components.
+    //
+    for (int comp = 0; comp < BL_SPACEDIM; comp++)
     {
-        beta[d] = &(visc_op->bCoefficients(d));
-    }
+        int sigma = Xvel + comp;
+        //
+        // U_new now contains the inviscid update of U.
+        // This is part of the RHS for the viscous solve.
+        //
+        MultiFab Rhs(grids,1,0,Fab_allocate);
+        MultiFab Soln(grids,1,1,Fab_allocate);
 
-    // construct solver and call it
-    Real S_tol = visc_tol;
-    REAL S_tol_abs = get_scaled_abs_tol(sigma, &Rhs, 
-                                        a, b, alpha, beta, visc_abs_tol);
+        int rho_flag = 1;
+        {
+            //
+            // Set up Rhs.
+            //
+            Real a = 0.0;
+            Real b = -(1.0-be_cn_theta)*visc_coef[sigma]*dt;
 
-    if(use_cg_solve) {
-      CGSolver cg(*visc_op,use_mg_precond_flag);
-      cg.solve(Soln,Rhs,S_tol,S_tol_abs);
-    } else {
-      MultiGrid mg(*visc_op);
-      mg.solve(Soln,Rhs,S_tol,S_tol_abs);
-    }
+            ViscBndry visc_bndry;
+            ABecLaplacian* visc_op = 
+                getViscOp(sigma,a,b,prev_time,visc_bndry,rho_half,rho_flag);
+            visc_op->maxOrder(max_order);
+            //
+            // Copy to single-component multifab.
+            // Note: use Soln as a temporary here.
+            //
+            Soln.copy(U_old,sigma,0,1,1);
+            visc_op->apply(Rhs,Soln);
+            delete visc_op;
+            //
+            // Complete Rhs by adding body sources.
+            //
+            for (MultiFabIterator U_newmfi(U_new); U_newmfi.isValid();
+                 ++U_newmfi)
+            {
+                DependentMultiFabIterator volumemfi(U_newmfi, volume);
+                DependentMultiFabIterator Rhsmfi(U_newmfi, Rhs);
+                DependentMultiFabIterator rho_halfmfi(U_newmfi, (*rho_half));
 
-    int visc_op_lev = 0;
-    visc_op->applyBC(Soln,visc_op_lev);
+                assert(grids[U_newmfi.index()] == U_newmfi.validbox());
+                //
+                // Scale inviscid part by volume.
+                //
+                U_newmfi().mult(volumemfi(),U_newmfi.validbox(),0,sigma,1);
+                //
+                // Multiply by density at time nph.
+                //
+                U_newmfi().mult(rho_halfmfi(),U_newmfi.validbox(),0,sigma,1);
+                //
+                // Add to Rhs which contained mu/(2 dt) Lap(u).
+                //
+                Rhsmfi().plus(U_newmfi(),U_newmfi.validbox(),sigma,0,1);
+            }
 
-    delete visc_op;
+            if (delta_rhs != NULL)
+            {
+                for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+                {
+                    DependentMultiFabIterator volumemfi(Rhsmfi, volume);
+                    DependentMultiFabIterator delta_rhsmfi(Rhsmfi,(*delta_rhs));
+                    assert(grids[Rhsmfi.index()] == Rhsmfi.validbox());
+                    delta_rhsmfi().mult(dt,comp,1);
+                    delta_rhsmfi().mult(volumemfi(),Rhsmfi.validbox(),0,comp,1);
+                    Rhsmfi().plus(delta_rhsmfi(),Rhsmfi.validbox(),comp,0,1);
+                }
+            }
+            //
+            // Note: we have to add hoop stress explicitly because the hoop
+            // stress which is added through the operator in getViscOp
+            // is eliminated by setting a = 0.
+            //
+#if (BL_SPACEDIM == 2) 
+            if (sigma == Xvel && CoordSys::IsRZ())
+            {
+                for (MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+                {
+                    DependentMultiFabIterator volumemfi(Rhsmfi, volume);
+                    DependentMultiFabIterator U_oldmfi(Rhsmfi, U_old);
+                    assert(Rhs.box(Rhsmfi.index()) == Rhsmfi.validbox());
+                    assert(U_old.box(Rhsmfi.index()) == U_oldmfi.validbox());
+                    assert(volume.box(Rhsmfi.index()) == volumemfi.validbox());
 
-    // copy into state variable at new time
-    n_comp = 1;
-    n_ghost = 1;
-    U_new.copy(Soln,0,sigma,n_comp,n_ghost);
-
-    // modify diffusive fluxes here
-    if (do_reflux) {
-      for(MultiFabIterator U_oldmfi(U_old); U_oldmfi.isValid(); ++U_oldmfi) {
-        DependentMultiFabIterator U_newmfi(U_oldmfi, U_new);
-        DependentMultiFabIterator area0mfi(U_oldmfi, area[0]);
-        DependentMultiFabIterator area1mfi(U_oldmfi, area[1]);
-#if (BL_SPACEDIM == 3)
-        DependentMultiFabIterator area2mfi(U_oldmfi, area[2]);
+                    const Box& bx = Rhsmfi.validbox();
+                    Box sbx       = ::grow(U_oldmfi.validbox(),U_old.nGrow());
+                    Array<Real> rcen(bx.length(0));
+                    parent->Geom(level).GetCellLoc(rcen, bx, 0);
+                    const int* lo       = bx.loVect();
+                    const int* hi       = bx.hiVect();
+                    const int* slo      = sbx.loVect();
+                    const int* shi      = sbx.hiVect();
+                    Real* rhs           = Rhsmfi().dataPtr();
+                    Real* sdat          = U_oldmfi().dataPtr(sigma);
+                    const Real* rcendat = rcen.dataPtr();
+                    const Real coeff    = (1.0-be_cn_theta)*visc_coef[sigma]*dt;
+                    const Real* voli    = volumemfi().dataPtr();
+                    Box vbox            = ::grow(volumemfi.validbox(),volume.nGrow());
+                    const int* vlo      = vbox.loVect();
+                    const int* vhi      = vbox.hiVect();
+                    FORT_HOOPRHS(rhs, ARLIM(lo), ARLIM(hi), 
+                                 sdat, ARLIM(slo), ARLIM(shi),
+                                 rcendat, &coeff, voli, ARLIM(vlo),ARLIM(vhi));
+                }
+            }
 #endif
-        assert(grids[U_oldmfi.index()] == U_oldmfi.validbox());
+        }
+        //
+        // Compute guess of solution.
+        //
+        if (level == 0)
+        {
+            Soln.copy(U_old,sigma,0,1);
+        }
+        else
+        {
+            caller->FillCoarsePatch(Soln,0,cur_time,State_Type,sigma,1);
+        }
+        //
+        // Copy guess into U_new ... needed for construction of
+        // viscous operator.  We first set all of U_new to a bogus values 
+        // so that its ghost cell values are not undefined.  These values
+        // will be filled with better values later.
+        //
+        int n_comp  = 1;
+        int n_ghost = 1;
+        U_new.setVal(1.e30,sigma,n_comp,n_ghost);
+        n_ghost = 0;
+        U_new.copy(Soln,0,sigma,n_comp,0);
+        //
+        // Construct viscous operator with bndry data at time N+1.
+        //
+        Real a = 1.0;
+        Real b = be_cn_theta*dt*visc_coef[sigma];
+       
+        ViscBndry visc_bndry;
+        rho_flag      = 1 ;
+        Real rhsscale = 1.0;
+        ABecLaplacian *visc_op = getViscOp(sigma,a,b,cur_time,visc_bndry,
+                                           rho_half,rho_flag,&rhsscale);
+        visc_op->maxOrder(max_order);
+        Rhs.mult(rhsscale,0,1);
+        //
+        // Get coefficients for scaled tolerance.
+        //
+        const MultiFab* alpha = &(visc_op->aCoefficients());
+        const MultiFab* beta[BL_SPACEDIM];
+        for (int d = 0; d < BL_SPACEDIM; d++)
+        {
+            beta[d] = &(visc_op->bCoefficients(d));
+        }
+        //
+        // Construct solver and call it.
+        //
+        Real S_tol = visc_tol;
+        Real S_tol_abs = get_scaled_abs_tol(sigma, &Rhs, 
+                                            a, b, alpha, beta, visc_abs_tol);
+        if (use_cg_solve)
+        {
+            CGSolver cg(*visc_op,use_mg_precond_flag);
+            cg.solve(Soln,Rhs,S_tol,S_tol_abs);
+        }
+        else
+        {
+            MultiGrid mg(*visc_op);
+            mg.solve(Soln,Rhs,S_tol,S_tol_abs);
+        }
 
-        const Box& grd = U_oldmfi.validbox();
-        const int* lo = grd.loVect();
-        const int* hi = grd.hiVect();
+        int visc_op_lev = 0;
+        visc_op->applyBC(Soln,visc_op_lev);
 
-        const int* ulo = U_oldmfi().loVect();
-        const int* uhi = U_oldmfi().hiVect();
+        delete visc_op;
+        //
+        // Copy into state variable at new time.
+        //
+        n_comp  = 1;
+        n_ghost = 1;
+        U_new.copy(Soln,0,sigma,n_comp,n_ghost);
+        //
+        // Modify diffusive fluxes here.
+        //
+        if (do_reflux)
+        {
+            for (MultiFabIterator U_oldmfi(U_old); U_oldmfi.isValid();
+                 ++U_oldmfi)
+            {
+                DependentMultiFabIterator U_newmfi(U_oldmfi, U_new);
+                DependentMultiFabIterator area0mfi(U_oldmfi, area[0]);
+                DependentMultiFabIterator area1mfi(U_oldmfi, area[1]);
+#if (BL_SPACEDIM == 3)
+                DependentMultiFabIterator area2mfi(U_oldmfi, area[2]);
+#endif
+                assert(grids[U_oldmfi.index()] == U_oldmfi.validbox());
 
-        Box xflux_bx(grd);
-        xflux_bx.surroundingNodes(0);
-        xflux.resize(xflux_bx,1);
-        DEF_LIMITS(xflux,xflux_dat,xflo,xfhi);
+                const Box& grd = U_oldmfi.validbox();
+                const int* lo  = grd.loVect();
+                const int* hi  = grd.hiVect();
+                const int* ulo = U_oldmfi().loVect();
+                const int* uhi = U_oldmfi().hiVect();
 
-        Box yflux_bx(grd);
-        yflux_bx.surroundingNodes(1);
-        yflux.resize(yflux_bx,1);
-        DEF_LIMITS(yflux,yflux_dat,yflo,yfhi);
+                Box xflux_bx(grd);
+                xflux_bx.surroundingNodes(0);
+                xflux.resize(xflux_bx,1);
+                DEF_LIMITS(xflux,xflux_dat,xflo,xfhi);
 
-        FArrayBox& xarea = area0mfi();
-        FArrayBox& yarea = area1mfi();
+                Box yflux_bx(grd);
+                yflux_bx.surroundingNodes(1);
+                yflux.resize(yflux_bx,1);
+                DEF_LIMITS(yflux,yflux_dat,yflo,yfhi);
 
-        DEF_CLIMITS(xarea,xarea_dat,axlo,axhi);
-        DEF_CLIMITS(yarea,yarea_dat,aylo,ayhi);
+                FArrayBox& xarea = area0mfi();
+                FArrayBox& yarea = area1mfi();
 
-        Real mult = -visc_coef[sigma];
+                DEF_CLIMITS(xarea,xarea_dat,axlo,axhi);
+                DEF_CLIMITS(yarea,yarea_dat,aylo,ayhi);
+
+                Real mult = -visc_coef[sigma];
 
 #if (BL_SPACEDIM == 2)
-        FORT_VISCFLUX (U_oldmfi().dataPtr(sigma), 
-                         U_newmfi().dataPtr(sigma), 
-                       ARLIM(ulo), ARLIM(uhi),
-                       lo,hi,
-                       xflux_dat,ARLIM(xflo),ARLIM(xfhi),
-                       yflux_dat,ARLIM(yflo),ARLIM(yfhi),
-                       xarea_dat,ARLIM(axlo),ARLIM(axhi),
-                       yarea_dat,ARLIM(aylo),ARLIM(ayhi),
-                       dx,&mult,&be_cn_theta);
+                FORT_VISCFLUX (U_oldmfi().dataPtr(sigma), 
+                               U_newmfi().dataPtr(sigma), 
+                               ARLIM(ulo), ARLIM(uhi),
+                               lo,hi,
+                               xflux_dat,ARLIM(xflo),ARLIM(xfhi),
+                               yflux_dat,ARLIM(yflo),ARLIM(yfhi),
+                               xarea_dat,ARLIM(axlo),ARLIM(axhi),
+                               yarea_dat,ARLIM(aylo),ARLIM(ayhi),
+                               dx,&mult,&be_cn_theta);
 #endif
 #if (BL_SPACEDIM == 3)
+                Box zflux_bx(grd);
+                zflux_bx.surroundingNodes(2);
+                zflux.resize(zflux_bx,1);
+                DEF_LIMITS(zflux,zflux_dat,zflo,zfhi);
 
-        Box zflux_bx(grd);
-        zflux_bx.surroundingNodes(2);
-        zflux.resize(zflux_bx,1);
-        DEF_LIMITS(zflux,zflux_dat,zflo,zfhi);
+                FArrayBox& zarea = area2mfi();
+                DEF_CLIMITS(zarea,zarea_dat,azlo,azhi);
 
-        FArrayBox& zarea = area2mfi();
-        DEF_CLIMITS(zarea,zarea_dat,azlo,azhi);
-
-        FORT_VISCFLUX (U_oldmfi().dataPtr(sigma), 
-                       U_newmfi().dataPtr(sigma), 
-                       ARLIM(ulo), ARLIM(uhi),
-                       lo,hi,
-                       xflux_dat,ARLIM(xflo),ARLIM(xfhi),
-                       yflux_dat,ARLIM(yflo),ARLIM(yfhi),
-                       zflux_dat,ARLIM(zflo),ARLIM(zfhi),
-                       xarea_dat,ARLIM(axlo),ARLIM(axhi),
-                       yarea_dat,ARLIM(aylo),ARLIM(ayhi),
-                       zarea_dat,ARLIM(azlo),ARLIM(azhi),
-                       dx,&mult,&be_cn_theta);
+                FORT_VISCFLUX (U_oldmfi().dataPtr(sigma), 
+                               U_newmfi().dataPtr(sigma), 
+                               ARLIM(ulo), ARLIM(uhi),
+                               lo,hi,
+                               xflux_dat,ARLIM(xflo),ARLIM(xfhi),
+                               yflux_dat,ARLIM(yflo),ARLIM(yfhi),
+                               zflux_dat,ARLIM(zflo),ARLIM(zfhi),
+                               xarea_dat,ARLIM(axlo),ARLIM(axhi),
+                               yarea_dat,ARLIM(aylo),ARLIM(ayhi),
+                               zarea_dat,ARLIM(azlo),ARLIM(azhi),
+                               dx,&mult,&be_cn_theta);
 #endif
-
-        // NOTE: fluxes expected to be in extensive form
-        if (level < finest_level) {
-          FluxRegister& fr = *finer->viscflux_reg;
-          fr.CrseInit(xflux,xflux_bx,0,0,sigma,1,-dt);
-          fr.CrseInit(yflux,yflux_bx,1,0,sigma,1,-dt);
+                //
+                // NOTE: fluxes expected to be in extensive form.
+                //
+                if (level < parent->finestLevel())
+                {
+                    FluxRegister& fr = *finer->viscflux_reg;
+                    fr.CrseInit(xflux,xflux_bx,0,0,sigma,1,-dt);
+                    fr.CrseInit(yflux,yflux_bx,1,0,sigma,1,-dt);
 #if (BL_SPACEDIM == 3)
-          fr.CrseInit(zflux,zflux_bx,2,0,sigma,1,-dt);
+                    fr.CrseInit(zflux,zflux_bx,2,0,sigma,1,-dt);
 #endif
+                }
+                if (level > 0)
+                {
+                    int i = U_oldmfi.index();
+                    viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,dt);
+                    viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,dt);
+#if (BL_SPACEDIM == 3)
+                    viscflux_reg->FineAdd(zflux,2,i,0,sigma,1,dt);
+#endif
+                }
+            }
+            if (level < parent->finestLevel())
+            {
+                FluxRegister& fr = *finer->viscflux_reg;
+                fr.CrseInitFinish();
+            }
         }
-        if (level > 0) {
-          int i = U_oldmfi.index();
-          viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,dt);
-          viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,dt);
-#if (BL_SPACEDIM == 3)
-          viscflux_reg->FineAdd(zflux,2,i,0,sigma,1,dt);
-#endif
-        }
-      }
     }
-  }
 }
 
 void Diffusion::diffuse_tensor_velocity(Real dt, Real be_cn_theta,
@@ -2975,94 +2995,102 @@ void Diffusion::removeFluxBoxesLevel(MultiFab**& fluxbox)
 }
 
 #ifdef USE_NAVIERSTOKES
-// -------------------------------------------------------------
-// this routine computes the vector div mu SI, where I is the identity 
-// tensor, S = div U, and mu is constant
+//
+// This routine computes the vector div mu SI, where I is the identity 
+// tensor, S = div U, and mu is constant.
+//
 
 void
-Diffusion::compute_divmusi(Real time, Real mu,
-              MultiFab& divmusi)
+Diffusion::compute_divmusi (Real      time,
+                            Real      mu,
+                            MultiFab& divmusi)
 {
+    const Real* dx         = caller->Geom().CellSize();
+    NavierStokes& ns_level = *(NavierStokes*) &(parent->getLevel(level));
 
-  FArrayBox divu;
-  const Real* dx = caller->Geom().CellSize();
-  NavierStokes& ns_level =  *(NavierStokes*) &(parent->getLevel(level));
-  int nghost = divmusi.nGrow();
-  for(MultiFabIterator divmusimfi(divmusi); divmusimfi.isValid(); ++divmusimfi) {
-    assert(grids[divmusimfi.index()] == divmusimfi.validbox());
+    MultiFab* divu_fp = ns_level.getDivCond(1,time);
 
-    const Box& bx = divmusimfi.validbox();
-    const int *lo       = bx.loVect();
-    const int *hi       = bx.hiVect();
-    DEF_LIMITS(divmusimfi(),divmusi_dat,divmusilo,divmusihi);
+    for (MultiFabIterator divmusimfi(divmusi); divmusimfi.isValid();
+         ++divmusimfi)
+    {
+        assert(grids[divmusimfi.index()] == divmusimfi.validbox());
 
-    int i = divmusimfi.index();
-    ns_level.getDivCond(divu,i,1,time);
-    DEF_CLIMITS(divu,divu_dat,divulo,divuhi);
+        const Box& bx = divmusimfi.validbox();
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
+        DEF_LIMITS(divmusimfi(),divmusi_dat,divmusilo,divmusihi);
 
-    FORT_DIV_MU_SI(lo,hi,dx,&mu,
-        ARLIM(divulo), ARLIM(divuhi), divu_dat,
-        ARLIM(divmusilo), ARLIM(divmusihi), divmusi_dat);
+        FArrayBox& divu = (*divu_fp)[divmusimfi.index()];
 
-    if(nghost>0) {
-      int ncomp = BL_SPACEDIM;
-      FORT_VISCEXTRAP(divmusi_dat,ARLIM(divmusilo),ARLIM(divmusihi),lo,hi,
-                      &ncomp);
+        DEF_CLIMITS(divu,divu_dat,divulo,divuhi);
+
+        FORT_DIV_MU_SI(lo,hi,dx,&mu,
+                       ARLIM(divulo), ARLIM(divuhi), divu_dat,
+                       ARLIM(divmusilo), ARLIM(divmusihi), divmusi_dat);
+
+        if (divmusi.nGrow() > 0)
+        {
+            int ncomp = BL_SPACEDIM;
+            FORT_VISCEXTRAP(divmusi_dat,ARLIM(divmusilo),ARLIM(divmusihi),
+                            lo,hi,&ncomp);
+        }
     }
-  }
 
+    delete divu_fp;
 }
 
-// -------------------------------------------------------------
+//
 // this routine computes the vector div beta SI, where I is the identity 
-// tensor, S = div U, and beta is non-constant
+// tensor, S = div U, and beta is non-constant.
+//
 
 void
-Diffusion::compute_divmusi(Real time,
-              MultiFab** beta, MultiFab& divmusi)
+Diffusion::compute_divmusi (Real       time,
+                            MultiFab** beta,
+                            MultiFab&  divmusi)
 {
-
-  FArrayBox divu;
-  const Real* dx = caller->Geom().CellSize();
-  NavierStokes& ns_level =  *(NavierStokes*) &(parent->getLevel(level));
-  int nghost = divmusi.nGrow();
-  for(MultiFabIterator divmusimfi(divmusi); divmusimfi.isValid(); ++divmusimfi) {
-    DependentMultiFabIterator beta0mfi(divmusimfi, (*beta[0]));
-    DependentMultiFabIterator beta1mfi(divmusimfi, (*beta[1]));
+    FArrayBox divu;
+    const Real* dx = caller->Geom().CellSize();
+    NavierStokes& ns_level =  *(NavierStokes*) &(parent->getLevel(level));
+    int nghost = divmusi.nGrow();
+    for (MultiFabIterator divmusimfi(divmusi); divmusimfi.isValid();
+         ++divmusimfi)
+    {
+        DependentMultiFabIterator beta0mfi(divmusimfi, (*beta[0]));
+        DependentMultiFabIterator beta1mfi(divmusimfi, (*beta[1]));
 #if (BL_SPACEDIM==3)
-    DependentMultiFabIterator beta2mfi(divmusimfi, (*beta[2]));
+        DependentMultiFabIterator beta2mfi(divmusimfi, (*beta[2]));
 #endif
-    assert(grids[divmusimfi.index()] == divmusimfi.validbox());
-    const Box& bx = divmusimfi.validbox();
-    const int *lo       = bx.loVect();
-    const int *hi       = bx.hiVect();
-    DEF_LIMITS(divmusimfi(),divmusi_dat,divmusilo,divmusihi);
+        assert(grids[divmusimfi.index()] == divmusimfi.validbox());
+        const Box& bx = divmusimfi.validbox();
+        const int *lo       = bx.loVect();
+        const int *hi       = bx.hiVect();
+        DEF_LIMITS(divmusimfi(),divmusi_dat,divmusilo,divmusihi);
 
-    int i = divmusimfi.index();
-    ns_level.getDivCond(divu,i,1,time);
-    DEF_CLIMITS(beta0mfi(),betax,betaxlo,betaxhi);
-    DEF_CLIMITS(beta1mfi(),betay,betaylo,betayhi);
+        int i = divmusimfi.index();
+        ns_level.getDivCond(divu,i,1,time);
+        DEF_CLIMITS(beta0mfi(),betax,betaxlo,betaxhi);
+        DEF_CLIMITS(beta1mfi(),betay,betaylo,betayhi);
 #if (BL_SPACEDIM==3)
-    DEF_CLIMITS(beta2mfi(),betaz,betazlo,betazhi);
+        DEF_CLIMITS(beta2mfi(),betaz,betazlo,betazhi);
 #endif
-    DEF_CLIMITS(divu,divu_dat,divulo,divuhi);
+        DEF_CLIMITS(divu,divu_dat,divulo,divuhi);
 
-    FORT_DIV_VARMU_SI(lo,hi,dx,
-      ARLIM(divulo), ARLIM(divuhi), divu_dat,
-      ARLIM(betaxlo), ARLIM(betaxhi), betax,
-      ARLIM(betaylo), ARLIM(betayhi), betay,
+        FORT_DIV_VARMU_SI(lo,hi,dx,
+                          ARLIM(divulo), ARLIM(divuhi), divu_dat,
+                          ARLIM(betaxlo), ARLIM(betaxhi), betax,
+                          ARLIM(betaylo), ARLIM(betayhi), betay,
 #if (BL_SPACEDIM==3)
-      ARLIM(betazlo), ARLIM(betazhi), betaz,
+                          ARLIM(betazlo), ARLIM(betazhi), betaz,
 #endif
-      ARLIM(divmusilo), ARLIM(divmusihi), divmusi_dat);
-
-    if(nghost>0) {
-      int ncomp = BL_SPACEDIM;
-      FORT_VISCEXTRAP(divmusi_dat,ARLIM(divmusilo),ARLIM(divmusihi),lo,hi,
-                      &ncomp);
+                          ARLIM(divmusilo), ARLIM(divmusihi), divmusi_dat);
+        if (nghost>0)
+        {
+            int ncomp = BL_SPACEDIM;
+            FORT_VISCEXTRAP(divmusi_dat,ARLIM(divmusilo),ARLIM(divmusihi),
+                            lo,hi,&ncomp);
+        }
     }
-  }
-
 }
 #endif
 

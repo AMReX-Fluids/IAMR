@@ -2,7 +2,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.13 1998-05-19 00:52:25 marc Exp $
+// $Id: Projection.H,v 1.14 1998-05-29 17:32:59 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -144,6 +144,8 @@ protected:  // ================== protected member functions
 
     // fill patch to get the divU
     void getDivCond(int level, FArrayBox& fab, int ngrow, Real time);
+
+    MultiFab* getDivCond (int level, int ngrow, Real time);
 
     // ==================================================
     // Simple Update function follow
