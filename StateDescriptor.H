@@ -2,7 +2,7 @@
 #define _StateDescriptor_H_ 
 
 //
-// $Id: StateDescriptor.H,v 1.4 1997-10-01 17:55:03 lijewski Exp $
+// $Id: StateDescriptor.H,v 1.5 1997-10-01 20:42:58 car Exp $
 //
 
 #include <Array.H>
@@ -36,14 +36,14 @@ public:
     StateDescriptor();
 
 //  constructor
-    StateDescriptor(IndexType btyp, StateDescriptor::TimeCenter ttyp, int ident,
+    StateDescriptor(IndexType btyp, TimeCenter ttyp, int ident,
                     int nextra, int num_comp,
                     Interpolater *interp);
 //  destructor
     ~StateDescriptor();
 
 //  initialize data members
-    void define(IndexType btyp, StateDescriptor::TimeCenter ttyp, int ident,
+    void define(IndexType btyp, TimeCenter ttyp, int ident,
                 int nextra, int num_comp,
                 Interpolater *interp);
 
