@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.29 1999-07-01 21:56:59 almgren Exp $
+// $Id: NS_setup.cpp,v 1.30 1999-07-16 18:23:54 sstanley Exp $
 //
 
 #include <NavierStokes.H>
@@ -347,10 +347,11 @@ NavierStokes::sum_integrated_quantities ()
 
     if (ParallelDescriptor::IOProcessor())
     {
-        cout.precision(12);
+        int old_prec = cout.precision(12);
         cout << '\n';
         cout << "TIME= " << time << " MASS= " << mass << '\n';
         cout << "TIME= " << time << " TRAC= " << trac << '\n';
+        cout.precision(old_prec);
     }
 }
 
