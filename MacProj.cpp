@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.23 1998-06-09 21:42:53 lijewski Exp $
+// $Id: MacProj.cpp,v 1.24 1998-06-16 20:35:41 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -575,35 +575,38 @@ MacProj::mac_sync_compute (int           level,
     //
     // FillPatch()d stuff allocated on heap ...
     //
-    MultiFab* S_fp          = ns_level.getState(HYP_GROW,State_Type,0,NUM_STATE,prev_time);
     MultiFab* tforces_fp    = ns_level.getForce(1,0,NUM_STATE,prev_time);
     MultiFab* Gp_fp         = ns_level.getGradP(1,pres_prev_time);
     MultiFab* divu_fp       = ns_level.getDivCond(1,prev_time);
     MultiFab* tvelforces_fp = ns_level.getForce(1,Xvel,BL_SPACEDIM,prev_time);
+
+    FillPatchIterator S_fpi(ns_level,*visc_terms,HYP_GROW,0,prev_time,
+                            State_Type,0,NUM_STATE);
     //
     // Compute the mac sync correction.
     //
     Array<int> ns_level_bc, bndry[BL_SPACEDIM];
 
-    for (MultiFabIterator u_mac0mfi(u_mac[0]); u_mac0mfi.isValid(false); ++u_mac0mfi)
+    for ( ; S_fpi.isValid(); ++S_fpi)
     {
-        DependentMultiFabIterator u_mac1mfi(u_mac0mfi, u_mac[1]);
-        DependentMultiFabIterator volumemfi(u_mac0mfi, volume[level]);
-        DependentMultiFabIterator area0mfi(u_mac0mfi, area[level][0]);
-        DependentMultiFabIterator area1mfi(u_mac0mfi, area[level][1]);
+        DependentMultiFabIterator u_mac0mfi(S_fpi,u_mac[0]);
+        DependentMultiFabIterator u_mac1mfi(S_fpi, u_mac[1]);
+        DependentMultiFabIterator volumemfi(S_fpi,volume[level]);
+        DependentMultiFabIterator area0mfi(S_fpi,area[level][0]);
+        DependentMultiFabIterator area1mfi(S_fpi,area[level][1]);
 #if (BL_SPACEDIM == 3)
-        DependentMultiFabIterator area2mfi(u_mac0mfi, area[level][2]);
-        DependentMultiFabIterator u_mac2mfi(u_mac0mfi, u_mac[2]);
+        DependentMultiFabIterator area2mfi(S_fpi,area[level][2]);
+        DependentMultiFabIterator u_mac2mfi(S_fpi,u_mac[2]);
 #endif
-        DependentMultiFabIterator Vsyncmfi(u_mac0mfi, *Vsync);
-        DependentMultiFabIterator Ssyncmfi(u_mac0mfi, *Ssync);
-        DependentMultiFabIterator rho_halfmfi(u_mac0mfi, *rho_half);
-        DependentMultiFabIterator mac_sync_phimfi(u_mac0mfi, *mac_sync_phi);
-        DependentMultiFabIterator visc_termsmfi(u_mac0mfi, *visc_terms);
+        DependentMultiFabIterator Vsyncmfi(S_fpi,*Vsync);
+        DependentMultiFabIterator Ssyncmfi(S_fpi,*Ssync);
+        DependentMultiFabIterator rho_halfmfi(S_fpi,*rho_half);
+        DependentMultiFabIterator mac_sync_phimfi(S_fpi,*mac_sync_phi);
+        DependentMultiFabIterator visc_termsmfi(S_fpi,*visc_terms);
 
-        int i = u_mac0mfi.index();
+        int i = S_fpi.index();
 
-        FArrayBox& S          = (*S_fp)[i];
+        FArrayBox& S          = S_fpi();
         FArrayBox& tforces    = (*tforces_fp)[i];
         FArrayBox& Gp         = (*Gp_fp)[i];
         FArrayBox& divu       = (*divu_fp)[i];
@@ -642,7 +645,7 @@ MacProj::mac_sync_compute (int           level,
 
         if (use_forces_in_trans)
         {
-            DependentMultiFabIterator dmfi(u_mac0mfi, vel_visc_terms);
+            DependentMultiFabIterator dmfi(S_fpi, vel_visc_terms);
             godunov->Sum_tf_gp_visc(tvelforces, dmfi(), Gp, Rho);
         }
         //
@@ -729,7 +732,6 @@ MacProj::mac_sync_compute (int           level,
         //
     }
     delete visc_terms;
-    delete S_fp;
     delete tforces_fp;
     delete Gp_fp;
     delete divu_fp;
