@@ -95,6 +95,7 @@ proj.rho_wgt_vel_proj = 0      # 0 => const den proj, 1 => rho weighted
 proj.bogus_value    = 5.0e+5
 proj.Pcode          = 2
 proj.Pcode          = 1
+proj.do_cache	= 0
 
 # ------------------  INPUTS TO MACPROJ CLASS -------------------
 mac.mac_tol        = 1.0e-9  # tolerence for mac projections

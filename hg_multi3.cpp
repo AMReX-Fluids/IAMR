@@ -471,15 +471,6 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
   MultiFab& zero_array = cgwork[6];
   MultiFab& ipmask = cgwork[7];
 
-  unroll_cache& ruc = *cgw_ucache[0];
-  unroll_cache& puc = *cgw_ucache[1];
-  unroll_cache& zuc = *cgw_ucache[2];
-  unroll_cache& xuc = *cgw_ucache[3];
-  unroll_cache& wuc = *cgw_ucache[4];
-  unroll_cache& cuc = *cgw_ucache[5];
-  unroll_cache& muc = *cgw_ucache[7];
-
-  copy_cache& pbc = *cgw1_bcache;
 
   Real alpha, rho;
   int i = 0, igrid;
@@ -499,31 +490,52 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     r.plus(-alpha, 0);
   }
 
+  copy_cache* pbc = cgw1_bcache;
 #if (CGOPT == 2)
-  FORT_HGCG(ruc.ptr, puc.ptr,
-	    zuc.ptr, xuc.ptr,
-	    wuc.ptr, cuc.ptr,
+#error "Unexplored code..."
+      if ( cgw1_bcache == 0 )
+      {
+    BoxLib::Error("cgw1_bcache is zero");
+    }
+      unroll_cache* ruc = cgw_ucache[0];
+      unroll_cache* puc = cgw_ucache[1];
+      unroll_cache* zuc = cgw_ucache[2];
+      unroll_cache* xuc = cgw_ucache[3];
+      unroll_cache* wuc = cgw_ucache[4];
+      unroll_cache* cuc = cgw_ucache[5];
+      unroll_cache* muc = cgw_ucache[7];
+
+      if ( ruc == 0 || puc == 0 ||
+	   zuc == 0 || xuc == ||
+	   wuc == 0 || cuc == 0 ||
+	   muc == 0 )
+	{
+	    BoxLib::Error("an unrolled cache is zero");
+	}
+  FORT_HGCG(ruc->ptr, puc->ptr,
+	    zuc->ptr, xuc->ptr,
+	    wuc->ptr, cuc->ptr,
 	    muc.ptr, mg_mesh[0].length(),
 #  if (BL_SPACEDIM == 2)
-	    ruc.strid, ruc.nvals,
+	    ruc->strid, ruc->nvals,
 #  else
-	    ruc.strid1, ruc.strid2,
-	    ruc.nvals,
+	    ruc->strid1, ruc->strid2,
+	    ruc->nvals,
 #  endif
-	    ruc.start, puc.start,
-	    zuc.start, xuc.start,
-	    wuc.start, cuc.start,
-	    muc.start,
-	    pbc.nsets, pbc.dptr,
+	    ruc->start, puc->start,
+	    zuc->start, xuc->start,
+	    wuc->start, cuc->start,
+	    muc->start,
+	    pbc->nsets, pbc->dptr,
 #  if (BL_SPACEDIM == 2)
-	    pbc.nvals,
-	    pbc.dstart, pbc.sstart,
-	    pbc.dstrid, pbc.sstrid,
+	    pbc->nvals,
+	    pbc->dstart, pbc->sstart,
+	    pbc->dstrid, pbc->sstrid,
 #  else
-	    pbc.nvals1, pbc.nvals2,
-	    pbc.dstart, pbc.sstart,
-	    pbc.dstrid1, pbc.dstrid2,
-	    pbc.sstrid1, pbc.sstrid2,
+	    pbc->nvals1, pbc->nvals2,
+	    pbc->dstart, pbc->sstart,
+	    pbc->dstrid1, pbc->dstrid2,
+	    pbc->sstrid1, pbc->sstrid2,
 #  endif
 	    h[0][0], alpha, rho, i, pcode);
 #elif (CGOPT == 1)
@@ -546,7 +558,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     Real rho_old = rho;
     // safe to set the clear flag to 0 here---bogus values make it
     // into r but are cleared from z by the mask in c
-    level_residual(w, zero_array, p, &pbc, 0, 0);
+    level_residual(w, zero_array, p, pbc, 0, 0);
     alpha = 0.0;
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       const Box& reg = p[igrid].box();
@@ -594,7 +606,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     Real rho_old = rho;
     // safe to set the clear flag to 0 here---bogus values make it
     // into r but are cleared from z by the mask in c
-    level_residual(w, zero_array, p, &pbc, 0, 0);
+    level_residual(w, zero_array, p, pbc, 0, 0);
     alpha = rho / inner_product(p, w);
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       w[igrid].mult(alpha);

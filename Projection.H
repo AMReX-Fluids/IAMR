@@ -1,5 +1,5 @@
 #ifndef _Projection_H_
-#define _Projection_H_ $Id: Projection.H,v 1.1 1997-07-08 23:08:13 vince Exp $
+#define _Projection_H_ $Id: Projection.H,v 1.2 1997-07-31 01:11:10 car Exp $
 
 #include <BC_TYPES.H>
 #include <BCRec.H>
@@ -12,7 +12,8 @@
 class holy_grail_amr_projector;
 class inviscid_fluid_boundary;
 
-class Projection {
+class Projection 
+{
     
 public: // ================== public access functions
 
@@ -247,5 +248,6 @@ protected:// ================== protected data members
     static int Divu_Type;
     static int do_outflow_bcs;
     static int make_sync_solvable;
+    static int do_cache;
 };
 #endif

@@ -15,6 +15,7 @@ DOUBLE PRECISION NOT ALLOWED ON CRAY
 #include <REAL.H>
 #include <Misc.H>
 #include <Utility.H>
+#include <Tracer.H>
 #include <IntVect.H>
 #include <Box.H>
 #include <Amr.H>
@@ -59,6 +60,7 @@ const int NPROCS = 1;
 // ###################################################################
 main(int argc, char *argv[])
 {
+    TRACER("amr");
     cout << setprecision(10);
 
     // -------------------------------------------------

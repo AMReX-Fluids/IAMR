@@ -3,7 +3,8 @@
 
 #include "fill_patch.H"
 
-class amr_multigrid {
+class amr_multigrid
+{
  protected:
   const int lev_min_min, lev_min_max, lev_max_max;
   int lev_min, lev_max, mglev_max;

@@ -1,4 +1,4 @@
-#define _Projection_C_ $Id: Projection.cpp,v 1.4 1997-07-30 20:58:58 vince Exp $
+#define _Projection_C_ $Id: Projection.cpp,v 1.5 1997-07-31 01:11:10 car Exp $
 #include <stdio.h>
 #include <Misc.H>
 #include <CoordSys.H>
@@ -50,6 +50,7 @@ int       Projection::rho_wgt_vel_proj = 0;
 int       Projection::Divu_Type = -1;
 int       Projection::do_outflow_bcs = 1;
 int       Projection::make_sync_solvable = 0;
+int Projection::do_cache = 1;
 
 static RegType project_bc[] =
 {interior, inflow, outflow, refWall, refWall, refWall};
@@ -122,6 +123,8 @@ void Projection::read_params()
   pp.query("rho_wgt_vel_proj",rho_wgt_vel_proj);
 
   pp.query("do_outflow_bcs",do_outflow_bcs);
+
+  pp.query("do_cache", do_cache);
 }
 
 
@@ -223,7 +226,7 @@ void Projection::bldSyncProject()
 
   sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
 					   0, finest_level, finest_level,
-					   *projector_bndry, P_code);
+					   *projector_bndry, P_code, do_cache?true:false);
 
 #ifdef ATMOSPHERE
   // This is not the usual way of setting parameters

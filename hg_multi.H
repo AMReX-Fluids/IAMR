@@ -53,7 +53,8 @@ const holy_grail_sigma_restrictor_class holy_grail_sigma_restrictor;
 
 #endif
 
-class holy_grail_amr_multigrid : public amr_multigrid {
+class holy_grail_amr_multigrid : public amr_multigrid
+{
  protected:
   amr_fluid_boundary boundary;
   PArray<MultiFab> sigma, sigma_nd[BL_SPACEDIM], sigma_node, cen;
@@ -64,7 +65,7 @@ class holy_grail_amr_multigrid : public amr_multigrid {
   int singular, source_owned;
 
   // level caches which are not members of amr_multigrid:
-
+    bool cache; 
   Array<copy_cache*> corr_scache;
   Array<unroll_cache*> cgw_ucache;
   copy_cache* cgw1_bcache;
@@ -122,10 +123,12 @@ class holy_grail_amr_multigrid : public amr_multigrid {
   holy_grail_amr_multigrid(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
 			   const Box& fdomain,
 			   int Lev_min_min, int Lev_min_max, int Lev_max_max,
-			   amr_fluid_boundary Boundary, int Pcode = 2)
+			   amr_fluid_boundary Boundary, int Pcode,
+			   bool cache_)
     : amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
 		    Boundary.pressure(), Pcode),
-      boundary(Boundary), smoother_mode(2), line_solve_dim(-1)
+      boundary(Boundary), smoother_mode(2), line_solve_dim(-1),
+      cache(cache_)
   {
     build_mesh(fdomain);
   }

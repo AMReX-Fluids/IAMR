@@ -1,4 +1,4 @@
-
+#include <Tracer.H>
 #include "hg_multi.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
@@ -50,7 +50,8 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   assert(Dest.length() > Lev_max);
   assert(Dest[Lev_min].nGrow() == 1);
 
-  if (Source.ready()) {
+  if (Source.ready())
+  {
     source_owned = 0;
     amr_multigrid::alloc(Dest, Source, Coarse_source, Lev_min, Lev_max);
   }
@@ -80,25 +81,34 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
 
   corr_scache.resize(mglev_max + 1, 0);
 
-  for (lev = lev_min; lev <= lev_max; lev++) {
-    mglev = ml_index[lev];
-    dest_bcache.set(lev, new copy_cache(dest[lev], interface[mglev],
-					mg_boundary, 1));
+  if ( cache )
+  {
+      TRACER("holy_grail_amr_multigrid::alloc: building caches");
+      for (lev = lev_min; lev <= lev_max; lev++) 
+      {
+	  mglev = ml_index[lev];
+	  dest_bcache.set(lev, new copy_cache(dest[lev], interface[mglev],
+	      mg_boundary, 1));
+      }
+      for (mglev = 0; mglev <= mglev_max; mglev++)
+      {
+	  corr_bcache.set(mglev, new copy_cache(corr[mglev], interface[mglev],
+	      mg_boundary, 1));
+	  corr_scache.set(mglev, new copy_cache(corr[mglev], interface[mglev],
+	      mg_boundary));
+      }
+      for (mglev = 1; mglev <= mglev_max; mglev++) 
+      {
+	  work_bcache.set(mglev, new copy_cache(work[mglev], interface[mglev],
+	      mg_boundary, 1));
+      }
   }
-  for (mglev = 0; mglev <= mglev_max; mglev++) {
-    corr_bcache.set(mglev, new copy_cache(corr[mglev], interface[mglev],
-					  mg_boundary, 1));
-    corr_scache.set(mglev, new copy_cache(corr[mglev], interface[mglev],
-					  mg_boundary));
-  }
-  for (mglev = 1; mglev <= mglev_max; mglev++) {
-    work_bcache.set(mglev, new copy_cache(work[mglev], interface[mglev],
-					  mg_boundary, 1));
-  }
-
   build_sigma(Sigma);
 
-  alloc_sync_caches();
+  if( cache )
+  {
+      alloc_sync_caches();
+  }
 
   int ib = dest[lev_min].nGrow();
   const BoxArray& mesh0 = corr[0].boxArray();
@@ -114,7 +124,10 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   cgwork[6].setVal(0.0);
   cgwork.set(7, new MultiFab(mesh0, 1, ib));
 
-  cgw1_bcache = new copy_cache(cgwork[1], interface[0], mg_boundary, 1);
+  if( cache )
+  {
+      cgw1_bcache = new copy_cache(cgwork[1], interface[0], mg_boundary, 1);
+  }
 
   assert(cgwork[3].nGrow() == ib &&
 	 cgwork[4].nGrow() == ib &&
