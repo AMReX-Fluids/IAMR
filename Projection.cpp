@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.74 1999-03-02 01:03:43 propp Exp $
+// $Id: Projection.cpp,v 1.75 1999-03-04 22:38:20 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -41,95 +41,72 @@ const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
 
 //
-// This modules own MultiFab - MultiFab copy with ghost cells
-// between MultiFabs with the same ProcessorMap().
+// This is a temporary function.
+// Eventually this will be moved to a boundary condition class.
 //
 
 static
 void
-Copy (MultiFab& dst,
-      MultiFab& src,
-      int       srccomp,
-      int       dstcomp,
-      int       numcomp,
-      int       nghost)
+getOutFlowFace (bool&        haveOutFlow,
+                Orientation& outFace,
+                BCRec*       _phys_bc)
 {
-    assert(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+    haveOutFlow = false;
 
-    for (MultiFabIterator mfi(src); mfi.isValid(); ++mfi)
+    int numOutFlowBC = 0;
+
+    for (int idir = 0; idir < BL_SPACEDIM; idir++)
     {
-	DependentMultiFabIterator dmfi(mfi,dst);
-
-	Box bx = ::grow(mfi.validbox(),nghost) & ::grow(dmfi.validbox(),nghost);
-
-	if (bx.ok())
-	{
-	    dmfi().copy(mfi(), bx, srccomp, bx, dstcomp, numcomp);
-	}
+        if (_phys_bc->lo(idir) == Outflow)
+        {
+            haveOutFlow = true;
+            outFace = Orientation(idir,Orientation::low);
+            numOutFlowBC++;
+        }
+        if (_phys_bc->hi(idir) == Outflow)
+        {
+            haveOutFlow = true;
+            outFace = Orientation(idir,Orientation::high);
+            numOutFlowBC++;
+        }
     }
+
+    if (numOutFlowBC > 1)
+        BoxLib::Error("currently only allowed one outflow bc");
 }
 
-// note: this is a temporary function.  Eventually this will be moved to a 
-// boundary condition class.
-static
-void
-getOutFlowFace(bool& haveOutFlow, Orientation& outFace, BCRec* _phys_bc)
-{
+//
+// This is a temporary function.
+// Eventually this will be moved to a boundary condition class.
+//
 
-  haveOutFlow = false;
-  int numOutFlowBC = 0;
-  for (int idir = 0; idir < BL_SPACEDIM; idir++) {
-
-    if (_phys_bc->lo(idir) == Outflow) {
-      haveOutFlow = true;
-      outFace = Orientation(idir,Orientation::low);
-      numOutFlowBC++;
-    }
-
-    if (_phys_bc->hi(idir) == Outflow) {
-      haveOutFlow = true;
-      outFace = Orientation(idir,Orientation::high);
-      numOutFlowBC++;
-    }
-
-  }
-
-  if (numOutFlowBC > 1) {
-    BoxLib::Error("currently only allowed one outflow bc");
-  }
-
-}
-
-// note: this is a temporary function.  Eventually this will be moved to a 
-// boundary condition class.
 static
 bool
-hasOutFlowBC(BCRec* _phys_bc)
+hasOutFlowBC (BCRec* _phys_bc)
 {
+    bool has_out_flow = false;
 
-  bool has_out_flow = false;
-  int numOutFlowBC = 0;
-  for (int idir = 0; idir < BL_SPACEDIM; idir++) {
+    int numOutFlowBC = 0;
 
-    if (_phys_bc->lo(idir) == Outflow) {
-      has_out_flow = true;
-      numOutFlowBC++;
+    for (int idir = 0; idir < BL_SPACEDIM; idir++)
+    {
+        if (_phys_bc->lo(idir) == Outflow)
+        {
+            has_out_flow = true;
+            numOutFlowBC++;
+        }
+        if (_phys_bc->hi(idir) == Outflow)
+        {
+            has_out_flow = true;
+            numOutFlowBC++;
+        }
     }
 
-    if (_phys_bc->hi(idir) == Outflow) {
-      has_out_flow = true;
-      numOutFlowBC++;
-    }
+    if (numOutFlowBC > 1)
+        BoxLib::Error("currently only allowed one outflow bc");
 
-  }
-
-  if (numOutFlowBC > 1) {
-    BoxLib::Error("currently only allowed one outflow bc");
-  }
-
-  return has_out_flow;
+    return has_out_flow;
 }
-
 
 #define BogusValue 1.e20
 #define MAX_LEV 10
@@ -179,9 +156,7 @@ Projection::Projection (Amr*   _parent,
     read_params();
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
-    {
         cout << "Creating projector\n";
-    }
 
 #if BL_SPACEDIM == 2
     if (CoordSys::IsRZ())
@@ -232,13 +207,15 @@ Projection::read_params ()
 void 
 Projection::setUpBcs ()
 {
-    const Geometry& geom = parent->Geom(0);
     //
     // Set up projector bndry.
     //
-    const int* lo_bc = phys_bc->lo();
-    const int* hi_bc = phys_bc->hi();
+    const Geometry& geom  = parent->Geom(0);
+    const int*      lo_bc = phys_bc->lo();
+    const int*      hi_bc = phys_bc->hi();
+
     RegType proj_bc[BL_SPACEDIM][2];
+
     for (int i = 0; i < BL_SPACEDIM; ++i)
     {
         proj_bc[i][0] = project_bc[lo_bc[i]];
@@ -256,15 +233,14 @@ Projection::setUpBcs ()
 //
 // Install a level of the projection.
 //
+
 void
 Projection::install_level (int           level,
                            AmrLevel*     level_data,
                            PArray<Real>* _radius )
 {
     if (verbose && ParallelDescriptor::IOProcessor()) 
-    {
         cout << "Installing projector level " << level << '\n';
-    }
 
     finest_level = parent->finestLevel();
 
@@ -315,9 +291,9 @@ Projection::bldSyncProject ()
     }
 
 #ifdef BL_USE_HGPROJ_SERIAL
-  sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
-					   0, finest_level, finest_level,
-					   *projector_bndry, P_code);
+    sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
+                                             0, finest_level, finest_level,
+                                             *projector_bndry, P_code);
 #else
     sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
                                              0, finest_level, finest_level,
@@ -410,10 +386,13 @@ Projection::level_project (int             level,
     //
     // Convert Unew to Ustar/dt or (Ustar-Un)/dt and Pnew to an update.
     //
-    if (new_proj) {
-      // compute Ustar/dt instead of U_t as input to projector
-      REAL dt_inv = 1./dt;
-      U_new.mult(dt_inv,0,BL_SPACEDIM,1);
+    if (new_proj)
+    {
+        //
+        // Compute Ustar/dt instead of U_t as input to projector.
+        //
+        const Real dt_inv = 1./dt;
+        U_new.mult(dt_inv,0,BL_SPACEDIM,1);
     }
 
     if (level == 0) 
@@ -423,7 +402,7 @@ Projection::level_project (int             level,
 	    DependentMultiFabIterator U_newmfi(P_newmfi, U_new);
 	    DependentMultiFabIterator U_oldmfi(P_newmfi, U_old);
             if (!new_proj) 
-	      ConvertUnew(U_newmfi(), U_oldmfi(), dt, grids[P_newmfi.index()]);
+                ConvertUnew(U_newmfi(),U_oldmfi(),dt,grids[P_newmfi.index()]);
 	    P_newmfi().setVal(0);
 	}
     } 
@@ -436,7 +415,7 @@ Projection::level_project (int             level,
 	    DependentMultiFabIterator U_oldmfi(P_newmfi, U_old);
 	    
             if (!new_proj) 
-	      ConvertUnew(U_newmfi(), U_oldmfi(), dt, grids[P_newmfi.index()]);
+                ConvertUnew(U_newmfi(),U_oldmfi(),dt,grids[P_newmfi.index()]);
 	    P_newmfi().minus(P_oldmfi());
 	    Box tempbox(P_newmfi().box());
 	    tempbox.grow(-2);
@@ -501,7 +480,6 @@ Projection::level_project (int             level,
 
     if (do_sync_proj) 
     {
-
         int isrz   = CoordSys::IsRZ();
         int bcxlo  = phys_bc->lo(0);
         int bcxhi  = phys_bc->hi(0);
@@ -517,8 +495,7 @@ Projection::level_project (int             level,
             if (have_divu) 
                 crse_sync_reg->CrseDsdtAdd(*divusource,geom,rz_flag,bc,lowfix,hifix);
         } 
-        if ( level > 0 &&
-             ( (new_proj && iteration == crse_dt_ratio) || !new_proj) )
+        if (level > 0 && ((new_proj && iteration == crse_dt_ratio) || !new_proj))
         {
             //
             // Increment sync registers between level and level-1.
@@ -565,7 +542,7 @@ Projection::level_project (int             level,
         bool      use_u  = true;
         const int nghost = 1;
         MultiFab rhs_cc(grids,1,nghost,Fab_allocate);
-        Copy(rhs_cc,*divusource,0,0,1,nghost);
+        MultiFab::Copy(rhs_cc,*divusource,0,0,1,nghost);
         radMult(level,rhs_cc,0);    
 
 #if (BL_SPACEDIM == 3)
@@ -621,7 +598,7 @@ Projection::level_project (int             level,
             //
             // Increment sync registers between level and level-1.
             //
-            const Real invrat = 1.0/(double)crse_dt_ratio;
+            const Real      invrat    = 1.0/(double)crse_dt_ratio;
             const Geometry& crse_geom = parent->Geom(level-1);
             fine_sync_reg->FineLPhiAdd(P_new,*rho_half,dx,crse_geom,rz_flag,invrat);
         }
@@ -787,7 +764,7 @@ Projection::filterP (int             level,
     //
     // For divu==0 only
     //
-    int use_u = 0;
+    const int use_u = 0;
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                               use_u, (Real*)dx,
                               filter_factor, level, level, proj_abs_tol);
@@ -980,7 +957,7 @@ Projection::syncProject (int             c_lev,
     //
     if (c_lev > 0) 
     {
-        Real invrat = 1.0/(double)crse_dt_ratio;
+        const Real      invrat    = 1.0/crse_dt_ratio;
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
         crsr_sync_reg->CompDVAdd(*Vsync,sync_boxes,dx,geom,crsr_geom,
                                  rz_flag,sync_bc,invrat);
@@ -1091,9 +1068,7 @@ Projection::MLsyncProject (int             c_lev,
     
     int lev;
     if (verbose && ParallelDescriptor::IOProcessor()) 
-    {
         cout << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << '\n';
-    }
     
     int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
     if (sync_proj == 0) bldSyncProject();
@@ -1196,7 +1171,7 @@ Projection::MLsyncProject (int             c_lev,
     // if use_u = 1, then solves DGphi = RHS + DV
     // both return phi and (V-Gphi) as V
     //
-    bool use_u           = true;
+    const bool use_u     = true;
     const Real* dx_fine  = parent->Geom(c_lev+1).CellSize();
 
     sync_proj->manual_project(u_real, p_real, null_amr_real,
@@ -1231,8 +1206,8 @@ Projection::MLsyncProject (int             c_lev,
     //
     if (c_lev > 0) 
     {
-        const Real invrat  = 1.0/(double)crse_dt_ratio;
-        MultiFab* phi_crse = phi[c_lev];
+        const Real invrat   = 1.0/(double)crse_dt_ratio;
+        MultiFab*  phi_crse = phi[c_lev];
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
         crsr_sync_reg->CompLPhiAdd(*phi_crse,rho_crse,sync_boxes,
                                    dx,crse_geom,crsr_geom,rz_flag,invrat);
@@ -1297,11 +1272,11 @@ Projection::initialVelocityProject (int  c_lev,
     if (sync_proj == 0)
         bldSyncProject();
 
-    MultiFab *vel[MAX_LEV];
-    MultiFab *phi[MAX_LEV];
-    MultiFab *sig[MAX_LEV];
-    int rho_comp = 0;
-    if (rho_wgt_vel_proj) rho_comp = Density;
+    MultiFab* vel[MAX_LEV];
+    MultiFab* phi[MAX_LEV];
+    MultiFab* sig[MAX_LEV];
+
+    const int rho_comp = rho_wgt_vel_proj ? Density : 0;
 
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
@@ -1319,8 +1294,8 @@ Projection::initialVelocityProject (int  c_lev,
         } 
         else 
         {
-            const BoxArray& grids = LevelData[lev].boxArray();
-            const int nghost = 1;
+            const int       nghost = 1;
+            const BoxArray& grids  = LevelData[lev].boxArray();
             sig[lev] = new MultiFab(grids,1,nghost);
             sig[lev]->setVal(1,nghost);
         }
@@ -1352,9 +1327,7 @@ Projection::initialVelocityProject (int  c_lev,
         {
             int Divu_Type, Divu;
             if (!LevelData[lev].isStateVariable("divu", Divu_Type, Divu)) 
-            {
                 BoxLib::Error("Projection::initialVelocityProject(): Divu not found");
-            }
             //
             // Make sure ghost cells are properly filled.
             //
@@ -1418,8 +1391,8 @@ Projection::initialVelocityProject (int  c_lev,
     } 
     else 
     {
-        MultiFab *rhs_cc[MAX_LEV];
-        int nghost = 1; 
+        MultiFab* rhs_cc[MAX_LEV];
+        const int nghost = 1; 
         for (lev = c_lev; lev <= f_lev; lev++) 
         {
             AmrLevel& amr_level   = parent->getLevel(lev);
@@ -1430,7 +1403,7 @@ Projection::initialVelocityProject (int  c_lev,
             rhslev->mult(-1.0,0,1,nghost);
             radMult(lev,*rhslev,0); 
         }
-        bool use_u = true;
+        const bool use_u = true;
         PArray<MultiFab> rhs_real(f_lev+1);
         for (lev = c_lev; lev <= f_lev; lev++) 
             rhs_real.set(lev, rhs_cc[lev]);
@@ -1497,11 +1470,9 @@ Projection::initialSyncProject (int       c_lev,
     int lev;
     int f_lev = finest_level;
     if (verbose && ParallelDescriptor::IOProcessor()) 
-    {
         cout << "SyncProject: levels = " << c_lev << "  " << f_lev << '\n';
-    }
     //
-    //----------------- manipulate state + pressure data ---------------------
+    // Manipulate state + pressure data.
     //
     if (sync_proj == 0)
         bldSyncProject();
@@ -1510,13 +1481,12 @@ Projection::initialSyncProject (int       c_lev,
     //
     MultiFab* vel[MAX_LEV];
     MultiFab* phi[MAX_LEV];
+    MultiFab* rhs[MAX_LEV];
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
         vel[lev] = &LevelData[lev].get_new_data(State_Type);
         phi[lev] = &LevelData[lev].get_old_data(Press_Type);
     }
-
-    MultiFab* rhs[MAX_LEV];
 
     if (have_divu) 
     {
@@ -1529,9 +1499,7 @@ Projection::initialSyncProject (int       c_lev,
 
             int Divu_Type, Divu;
             if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
-            {
                 BoxLib::Error("Projection::initialSyncProject(): Divu not found");
-            }
             //
             // Make sure ghost cells are properly filled.
             //
@@ -1601,12 +1569,15 @@ Projection::initialSyncProject (int       c_lev,
     {
         LevelData[lev].setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM,1);
         LevelData[lev].setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM,0);
-        if (!new_proj) {
-          MultiFab &u_o = LevelData[lev].get_old_data(State_Type);
-          ConvertUnew(*vel[lev], u_o, dt, LevelData[lev].boxArray());
-        } else {
-          Real dt_inv = 1./dt;
-          vel[lev]->mult(dt_inv,0,BL_SPACEDIM,1);
+        if (!new_proj)
+        {
+            MultiFab& u_o = LevelData[lev].get_old_data(State_Type);
+            ConvertUnew(*vel[lev], u_o, dt, LevelData[lev].boxArray());
+        }
+        else
+        {
+            const Real dt_inv = 1./dt;
+            vel[lev]->mult(dt_inv,0,BL_SPACEDIM,1);
         }
     }
     //
@@ -1715,7 +1686,6 @@ Projection::initialSyncProject (int       c_lev,
     stats.end();
 }
 
-
 //
 // Compute the node-centered divergence of U.
 //
@@ -1727,8 +1697,7 @@ Projection::computeDV (MultiFab&       DV,
                        const Real*     dx,
                        int             is_rz)
 {
-    const Real mult = 1.0;
-    
+    const Real      mult    = 1.0;
     const BoxArray& U_boxes = U.boxArray();
 
     FArrayBox ufab;
@@ -1881,14 +1850,14 @@ Projection::UnConvertUnew (FArrayBox& Uold,
     assert(Unew.contains(grd) == true);
     assert(Uold.contains(grd) == true);
     
-    const int* lo    = grd.loVect();
-    const int* hi    = grd.hiVect();
-    const int* uo_lo = Uold.loVect(); 
-    const int* uo_hi = Uold.hiVect(); 
-    const Real* uold = Uold.dataPtr(0);
-    const int* un_lo = Unew.loVect(); 
-    const int* un_hi = Unew.hiVect(); 
-    const Real* unew = Unew.dataPtr(0);
+    const int*  lo    = grd.loVect();
+    const int*  hi    = grd.hiVect();
+    const int*  uo_lo = Uold.loVect(); 
+    const int*  uo_hi = Uold.hiVect(); 
+    const Real* uold  = Uold.dataPtr(0);
+    const int*  un_lo = Unew.loVect(); 
+    const int*  un_hi = Unew.hiVect(); 
+    const Real* unew  = Unew.dataPtr(0);
     
     FORT_ACCEL_TO_VEL(lo, hi,
                       uold, ARLIM(uo_lo), ARLIM(uo_hi),
@@ -1982,7 +1951,7 @@ Projection::UpdateArg1 (FArrayBox& Unew,
     assert(nvar <= Uold.nComp());
     assert(nvar <= Unew.nComp());
 
-    Box b         = ::grow(grd,ngrow);
+    Box        b  = ::grow(grd,ngrow);
     const Box& bb = Unew.box();
 
     if (bb.ixType() == IndexType::TheNodeType())
@@ -2208,7 +2177,9 @@ Projection::set_level_projector_outflow_bcs (int       level,
     //        one, since they all do roughly the same thing.
     //
 #if (BL_SPACEDIM == 2)
-    // make sure out flow only occurs at yhi faces
+    //
+    // Make sure out flow only occurs at yhi faces.
+    //
     const Orientation outFace(1, Orientation::high);
     bool hasOutFlow;
     Orientation _outFace;
@@ -2325,15 +2296,15 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
     // Get 1-wide nc box, phi_strip, along top, grown out by one
     // tangential to face.
     //
-    const Real* dx         = parent->Geom(f_lev).CellSize();
-    const Box& domain      = parent->Geom(f_lev).Domain();
-    const int outDir       = 1;
-    const int ccStripWidth = 3;
-    const int ncStripWidth = 1;
-    const Box state_strip  = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
-    const Box phi_strip    = ::surroundingNodes(bdryHi(domain,outDir,ncStripWidth));
-    const int nGrow        = 0;
-    const int nCompPhi     = 1;
+    const Real* dx           = parent->Geom(f_lev).CellSize();
+    const Box&  domain       = parent->Geom(f_lev).Domain();
+    const int   outDir       = 1;
+    const int   ccStripWidth = 3;
+    const int   ncStripWidth = 1;
+    Box         state_strip  = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+    Box         phi_strip    = ::surroundingNodes(bdryHi(domain,outDir,ncStripWidth));
+    const int   nGrow        = 0;
+    const int   nCompPhi     = 1;
 
     const int srcCompRho = Density, nCompRho = 1;
     const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
@@ -2450,15 +2421,15 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
 
     assert(c_lev == 0);
 
-    const Real* dx         = parent->Geom(f_lev).CellSize();
-    const Box& domain      = parent->Geom(f_lev).Domain();
-    const int outDir       = 1;
-    const int ccStripWidth = 3;
-    const int ncStripWidth = 1;
-    const Box state_strip  = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
-    const Box phi_strip    = ::surroundingNodes(bdryHi(domain,outDir,ncStripWidth));
-    const int nGrow        = 0;
-    const int nCompPhi     = 1;
+    const Real* dx           = parent->Geom(f_lev).CellSize();
+    const Box&  domain       = parent->Geom(f_lev).Domain();
+    const int   outDir       = 1;
+    const int   ccStripWidth = 3;
+    const int   ncStripWidth = 1;
+    Box         state_strip  = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+    Box         phi_strip    = ::surroundingNodes(bdryHi(domain,outDir,ncStripWidth));
+    const int   nGrow        = 0;
+    const int   nCompPhi     = 1;
 
     const int srcCompRho = Density, nCompRho = 1;
     const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
@@ -2596,9 +2567,9 @@ Projection::initialVorticityProject (int c_lev)
     //
     // Set up projector bndry just for this projection.
     //
-    const int* lo_bc     = phys_bc->lo();
-    const int* hi_bc     = phys_bc->hi();
-    const Geometry& geom = parent->Geom(0);
+    const int*      lo_bc = phys_bc->lo();
+    const int*      hi_bc = phys_bc->hi();
+    const Geometry& geom  = parent->Geom(0);
 
     RegType proj_bc[BL_SPACEDIM][2];
 
@@ -2676,7 +2647,7 @@ Projection::initialVorticityProject (int c_lev)
     // Project.
     //
     const Real* dx_lev = parent->Geom(f_lev).CellSize();
-    const int use_u    = 0;
+    const int   use_u  = 0;
     sync_proj->manual_project(u_real,p_real,rhs_real,null_amr_real,s_real,
                               use_u,(Real*)dx_lev,
                               proj_tol,c_lev,f_lev,proj_abs_tol);
@@ -2721,7 +2692,8 @@ Projection::initialVorticityProject (int c_lev)
     // Reset the boundary conditions for all the other projections.
     //
     delete sync_proj;
-    sync_proj = NULL;
+
+    sync_proj = 0;
 #else
     BoxLib::Error("Projection::initialVorticityProject(): not implented yet for 3D");
 #endif
