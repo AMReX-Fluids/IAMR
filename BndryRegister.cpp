@@ -1,5 +1,7 @@
 #include <BndryRegister.H>
 
+const char NL = '\n';
+
 // ------------------------------------------------------------------------
 BndryRegister::BndryRegister() {
 }
@@ -53,10 +55,10 @@ BndryRegister::BndryRegister(istream &is) {
 ostream &operator<<(ostream &os, const BndryRegister &br) {
     os << "(BndryRegister \n";
     for(OrientationIter face; face; ++face) {
-	os << "(" << face() << "\n";
+	os << "(" << face() << NL;
 	os << br.bndry[face()] << ")\n";
     }
-    os << ")\n" << flush;
+    os << ")\n";
     return os;
 }
 
@@ -64,7 +66,7 @@ ostream &operator<<(ostream &os, const BndryRegister &br) {
 ostream &BndryRegister::writeOn(ostream &os) const {
     grids.writeOn(os);
     for(OrientationIter face; face; ++face) {
-	os << face() << "\n";
+	os << face() << NL;
 	bndry[face()].writeOn(os);
     }
     return os;

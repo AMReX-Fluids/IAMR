@@ -1,5 +1,5 @@
 //
-// $Id: Mask.cpp,v 1.3 1997-09-23 19:25:47 lijewski Exp $
+// $Id: Mask.cpp,v 1.4 1997-09-24 17:00:48 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -12,6 +12,9 @@
 #include <Mask.H>
 #include <Utility.H>
 
+const char NL = '\n';
+const char SP = ' ';
+
 // --------------------  CONSTRUCTORS AND I/O OPERATIONS
 Mask::Mask(istream& is)
 {
@@ -22,13 +25,13 @@ ostream& operator << (ostream& os, const Mask& m)
 {
     BOX b(m.box());
     int ncomp = m.nComp();
-    os << "(Mask: " << b << " " << ncomp << "\n";
+    os << "(Mask: " << b << SP << ncomp << NL;
     IntVect sm = b.smallEnd();
     IntVect bg = b.bigEnd();
     for (IntVect p = sm; p <= bg; b.next(p)) {
 	os << p;
 	for( int k=0; k<ncomp; k++ ) os << "  " << m(p,k);
-        os << "\n";
+        os << NL;
     }
     os << ")" << endl;
     assert(os.good());
@@ -60,7 +63,7 @@ istream& operator >> (istream& is, Mask& m)
 void
 Mask::writeOn(ostream& os) const
 {
-    os << "(Mask: " << domain << " " << nvar << "\n";
+    os << "(Mask: " << domain << SP << nvar << NL;
     const int* ptr = dataPtr();
     int len = domain.numPts();
     os.write( (char*) ptr, len*sizeof(int) );

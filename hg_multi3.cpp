@@ -34,6 +34,8 @@
 #  define   FORT_HGIP       HGIP
 #endif
 
+const char SP = ' ';
+
 extern "C" 
 {
 
@@ -484,7 +486,7 @@ holy_grail_amr_multigrid::build_line_order(int lsd)
       ListIterator<int> j(line_after[lev][igrid]);
       for ( ; j; j++) 
       {
-	cout << " " << j();
+	cout << SP << j();
       }
       cout << endl;
     }
@@ -617,7 +619,7 @@ holy_grail_amr_multigrid::cgsolve(int mglev)
 		 ipmask[igrid].dataPtr(), dimlist(reg), alpha, rho);
     }
     if (pcode >= 3)
-      cout << i << " " << rho << endl;
+      cout << i << SP << rho << endl;
     if (rho <= tol || i > 250)
       break;
     alpha = rho / rho_old;
@@ -668,7 +670,7 @@ holy_grail_amr_multigrid::cgsolve(int mglev)
     //z.assign(r).mult(c);
     rho = inner_product(z, r);
     if (pcode >= 3)
-      cout << i << " " << rho << endl;
+      cout << i << SP << rho << endl;
     if (rho <= tol || i > 250)
       break;
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 

@@ -23,6 +23,8 @@
 #include <BoxDomain.H>
 #include <ParallelDescriptor.H>
 
+const char NL = '\n';
+
 // -------------------------------------------------------------
 // static data initialization
 DescriptorList  AmrLevel::desc_lst;
@@ -1834,11 +1836,10 @@ AmrLevel::probe(ostream &os, INTVECT iv, int rad, REAL time,
     bx.grow(rad);
     FARRAYBOX fab(bx,num_comp);
     FillPatch(fab,0,time,state_indx,src_comp,num_comp);
-    os << "----------------------------------------------------" << endl;
-    os << " >>>> PROBE of:";
+    os << "\n >>>> PROBE of:";
     const StateDescriptor &desc = desc_lst[state_indx];
     desc.dumpNames(os,src_comp,num_comp);
-    os << endl;
+    os << NL;
     INTVECT lo = bx.smallEnd();
     INTVECT hi = bx.bigEnd();
     INTVECT point;
@@ -1850,8 +1851,7 @@ AmrLevel::probe(ostream &os, INTVECT iv, int rad, REAL time,
 	    sprintf(buf,"    %20.14f",fab(point,k));
 	    os << buf;
 	}
-	os << "\n";
+	os << NL;
     }
-    os << endl;
-    os << "----------------------------------------------------" << endl;
+    os << "\n----------------------------------------------------" << endl;
 }

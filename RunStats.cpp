@@ -11,6 +11,9 @@ using std::ios;
 using std::setprecision;
 #endif
 
+const char NL = '\n';
+const char SP = ' ';
+
 List<RunStatsData> RunStats::ld;
 double RunStats::total_run_time;
 double RunStats::total_run_wtime;
@@ -90,44 +93,41 @@ RunStats::init()
 ostream &
 operator << (ostream &os, const RunStatsData &rd)
 {
-    if(os.opfx()) {
-	os << "(RunStatsData "
-	   << rd.name << " "
-	   << rd.level << " "
-	   << rd.is_on <<  " "
-	   << rd.run_time << " "
-	   << rd.run_wtime << " "
-	   << rd.max_time << " "
-	   << rd.max_wtime << ")\n";
-	os.osfx();
-    }
+    os << "(RunStatsData "
+       << rd.name << SP
+       << rd.level << SP
+       << rd.is_on <<  SP
+       << rd.run_time << SP
+       << rd.run_wtime << SP
+       << rd.max_time << SP
+       << rd.max_wtime << ")\n";
+
     return os;
 }
 
 istream &
 operator >> (istream &is, RunStatsData &rd)
 {
-      // if(is.ipfx()) {
-	is.ignore(BL_IGNORE_MAX, '(');
-	aString s;
-	is >> s;
-	if(s != "RunStatsData") {
-	    cerr << "unexpected token " << s ;
-            abort();
-	}
-	is >> rd.name;
-	is >> rd.level;
-	{
-	    int i_is_on;
-	    is >> i_is_on;
-	    rd.is_on = i_is_on?true:false;
-	}
-	is >> rd.run_time;
-	is >> rd.run_wtime;
-	is >> rd.max_time;
-	is >> rd.max_wtime;
-	is.ignore(BL_IGNORE_MAX,')');
-	  //}
+    is.ignore(BL_IGNORE_MAX, '(');
+    aString s;
+    is >> s;
+    if(s != "RunStatsData") {
+        cerr << "unexpected token " << s;
+        abort();
+    }
+    is >> rd.name;
+    is >> rd.level;
+    {
+        int i_is_on;
+        is >> i_is_on;
+        rd.is_on = i_is_on?true:false;
+    }
+    is >> rd.run_time;
+    is >> rd.run_wtime;
+    is >> rd.max_time;
+    is >> rd.max_wtime;
+    is.ignore(BL_IGNORE_MAX,')');
+
     return is;
 }
 
@@ -135,12 +135,9 @@ operator >> (istream &is, RunStatsData &rd)
 ostream&
 operator << (ostream &os, const RunStats &r)
 {
-    if(os.opfx()) {
-	os << "(RunStats " << r.name
-	   << " level " << r.level
-	   << (r.isOn()?"":"in") << "active)" << endl;
-	os.osfx();
-    }
+    os << "(RunStats " << r.name
+       << " level " << r.level
+       << (r.isOn()?"":"in") << "active)" << '\n';
 
     return os;
 }
@@ -159,7 +156,7 @@ RunStats::report(ostream &os)
     double tot_run_time = total_run_time + rtime;
     double tot_run_wtime = total_run_wtime + wtime;
 
-    if(os.opfx() && ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor()) {
 	  // output number of cells advanced on each level
 	long tot_cells = 0;
         int i; 
@@ -183,7 +180,7 @@ RunStats::report(ostream &os)
 	os.setf(ios::showpoint);
 	os << setprecision(4);
 	for (lev = 0; lev <= maxlev; ++lev) {
-	    os << "timings for level " << lev << endl;
+	    os << "timings for level " << lev << '\n';
 
 	    ldi.rewind();
 	    while(ldi) {
@@ -197,13 +194,13 @@ RunStats::report(ostream &os)
 		    if(ldi().is_on) {
 			os << "State " << ldi().name;
 			os << " time  = "
-			   << setw(6) << ldi().run_time << " "
+			   << setw(6) << ldi().run_time << SP
 			   << setw(6) << 100.0*(ldi().run_time/tot_run_time) << "% "
-			   << setw(6) << ldi().run_wtime << " "
+			   << setw(6) << ldi().run_wtime << SP
 			   << setw(6) << 100.0*(ldi().run_wtime/tot_run_wtime) << "% "
-			   << setw(6) << ldi().max_time << " "
+			   << setw(6) << ldi().max_time << SP
 			   << setw(6) << ldi().max_wtime;
-			os << endl;
+			os << '\n';
 		    }
 		}
 		++ldi;
@@ -213,7 +210,7 @@ RunStats::report(ostream &os)
 	  // report totals
 	ldi.rewind();
 
-	os << endl;
+	os << '\n';
 	while(ldi) {
 	    if(ldi().level == -1) {
 		if (ldi().is_on == true) {
@@ -223,14 +220,13 @@ RunStats::report(ostream &os)
 		       << setw(6) << 100.0*(ldi().run_time/tot_run_time) << "% "
 		       << setw(6) << ldi().run_wtime << "  "
 		       << setw(6) << 100.0*(ldi().run_wtime/tot_run_wtime) << "% ";
-		    os << endl;
+		    os << '\n';
 		}
 	    }
 	    ++ldi;
 	}
-	os << "total CPU time          = " << tot_run_time << endl;
+	os << "total CPU time          = " << tot_run_time << '\n';
 	os << "total Wall Clock time   = " << tot_run_wtime << endl;
-	os.osfx();
     }
 }
 
@@ -242,10 +238,10 @@ RunStats::dumpStats(ofstream &os)
     double wtime = mpWallClockSeconds();
     ParallelDescriptor::ReduceRealSum(rtime);
     ParallelDescriptor::ReduceRealMax(wtime);
-    if(os.opfx() && ParallelDescriptor::IOProcessor()) {
-	os << "(ListRunStats " << ld.length() << "\n";
-	os << rtime + total_run_time << endl;
-	os << wtime + total_run_wtime << endl;
+    if (ParallelDescriptor::IOProcessor()) {
+	os << "(ListRunStats " << ld.length() << NL;
+	os << rtime + total_run_time << NL;
+	os << wtime + total_run_wtime << NL;
 	ListIterator<RunStatsData> ldi(ld);
 	while(ldi) {
 	    os << ldi();
@@ -255,10 +251,9 @@ RunStats::dumpStats(ofstream &os)
         os << nlev;
         int i; 
 	for (i = 0; i < nlev; i++) {
-	    os << " " << cells[i];
+	    os << SP << cells[i];
 	}
 	os << ")\n";
-	os.osfx();
     }
 }
 

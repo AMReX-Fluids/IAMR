@@ -429,17 +429,16 @@ CoordSys::GetCellVolCoord( Array<REAL>& vc,
 // --------------------------------------------------------------
 ostream& operator << (ostream& os, const CoordSys& c)
 {
-    if(os.opfx()) {
-	os << '(' << (int) c.c_sys << ' ';
-	os << D_TERM( '(' << c.offset[0] , <<
-		      ',' << c.offset[1] , <<
-		      ',' << c.offset[2])  << ')';
-	os << D_TERM( '(' << c.dx[0] , <<
-		      ',' << c.dx[1] , <<
-		      ',' << c.dx[2])  << ')';
-	os << ' ' << c.ok << ")\n";
-	os.osfx();
-    }
+    os << '(' << (int) c.c_sys << ' ';
+
+    os << D_TERM( '(' << c.offset[0] , <<
+                  ',' << c.offset[1] , <<
+                  ',' << c.offset[2])  << ')';
+    os << D_TERM( '(' << c.dx[0] , <<
+                  ',' << c.dx[1] , <<
+                  ',' << c.dx[2])  << ')';
+    os << ' ' << c.ok << ")\n";
+
     return os;
 }
 

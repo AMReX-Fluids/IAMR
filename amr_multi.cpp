@@ -1,6 +1,8 @@
 
 #include <amr_multi.H>
 
+const char SP = ' ';
+
 int amr_multigrid::c_sys = 0; // default is Cartesian, 1 is RZ
 
 void 
@@ -38,7 +40,7 @@ amr_multigrid::mesh_write(Array<BoxArray>& m,
   os << m.length() << endl;
   for (ilev = 0; ilev < m.length(); ilev++) 
   {
-    os << "    " << d[ilev] << " " << m[ilev].length() << endl;
+    os << "    " << d[ilev] << SP << m[ilev].length() << endl;
     for (igrid = 0; igrid < m[ilev].length(); igrid++) 
     {
       os << '\t' << m[ilev][igrid] << endl;;
@@ -58,7 +60,7 @@ amr_multigrid::mesh_write(Array<BoxArray>& m, Array<IntVect>& r,
   os << m.length() << endl;
   for (ilev = 0; ilev < m.length(); ilev++) 
   {
-    os << "    " << fd << " " << m[ilev].length() << endl;
+    os << "    " << fd << SP << m[ilev].length() << endl;
     for (igrid = 0; igrid < m[ilev].length(); igrid++) 
     {
       os << '\t' << m[ilev][igrid] << endl;;
@@ -510,7 +512,7 @@ amr_multigrid::ml_residual(int mglev, int lev)
   //fit(mg_domain[mglev]);
   //contour(resid[mglev], 3, 1);
   //contour(resid[mglev], unitvect, 11, 1);
-  //cout << mglev << " " << mfnorm(resid[mglev]) << endl;
+  //cout << mglev << SP << mfnorm(resid[mglev]) << endl;
   //cin.get();
   return mfnorm(resid[mglev]);
 }

@@ -484,7 +484,7 @@ ParallelDescriptor::Abort("Exiting.");
     for (int i = 0; i < nfab; i++) {
 	os << mf[i] << '\n';
     }
-    os << ")" << flush;
+    os << ")";
 */
     return os;
 }

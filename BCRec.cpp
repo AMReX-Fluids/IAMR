@@ -83,14 +83,6 @@ operator << (ostream& os, const BCRec& b)
     for (i = 0; i < BL_SPACEDIM; i++) {
 	os << b.bc[i] << ":" << b.bc[i+BL_SPACEDIM] << ' ';
     }
-    os << ")" << flush;
+    os << ")";
     return os;
 }
-
-/*
-istream& operator >> (istream& strm, BCRec& b)
-{
-   cout << "BCRec operator >> not implemented" << endl;
-   mpAbort();
-}
-*/

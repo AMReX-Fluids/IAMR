@@ -8,6 +8,9 @@
 #include <BndryData.H>
 #include <Utility.H>
 
+const char NL = '\n';
+const char SP = ' ';
+
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
@@ -65,9 +68,9 @@ ParallelDescriptor::Abort("BndryData::operator<< not yet implemented in parallel
     for (int grd = 0; grd < ngrds; grd++){
 	for (OrientationIter face; face; ++face) {
 	    Orientation f = face();
-	    os << "::: face " << f << " of grid " << grds[grd] << "\n";
+	    os << "::: face " << f << " of grid " << grds[grd] << NL;
 	    os << "BC = " << mgb.bcond[f][grd]
-	       << " LOC = " << mgb.bcloc[f][grd] << "\n";
+	       << " LOC = " << mgb.bcloc[f][grd] << NL;
 	    os << mgb.masks[f][grd];
 	    os << mgb.bndry[f][grd];
 	}
@@ -85,12 +88,12 @@ ParallelDescriptor::Abort("BndryData::writeOn not yet implemented in parallel");
     for (OrientationIter fi; fi; ++fi) {
 	Orientation face = fi();
 	for (int grd = 0; grd < len; grd++) {
-	    os << face << " " << grids[grd] << " "
-	       << bcond[face][grd] << " " << bcloc[face][grd] << "\n";
+	    os << face << SP << grids[grd] << SP
+	       << bcond[face][grd] << SP << bcloc[face][grd] << NL;
 	    masks[face][grd].writeOn(os);
 	}
     }
-    os << "\n";
+    os << NL;
 }
 
 void

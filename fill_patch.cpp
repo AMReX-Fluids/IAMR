@@ -25,7 +25,7 @@ extern "C" {
 #endif
 }
 
-
+const char SP = ' ';
 
 
 void fill_borders(MultiFab& r,
@@ -566,7 +566,7 @@ int fill_patch(Fab& patch,
 //      else if (!idomain.contains(region)) {
 //	Box side1 = region;
 //	Box side2 = box_chop(side1, idomain);
-//	cout << side1 << " " << side2 << endl;
+//	cout << side1 << SP << side2 << endl;
 //	fill_patch(patch, side1, active, bdy, flags);
 //	fill_patch(patch, side2, active, bdy, flags);
 //	return 0;

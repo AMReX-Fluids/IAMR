@@ -156,15 +156,13 @@ REALBOX::operator & (const REALBOX& /*bx*/)
 ostream&
 operator << (ostream &os, const REALBOX& b)
 {
-    //if(os.opfx()) {
-	os << "(REALBOX ";
-        int i;
-	for (i = 0; i < BL_SPACEDIM; i++) {
-	    os << b.xlo[i] << ' ' << b.xhi[i] << ' ';
-	}
-	os << ")" << flush;
-	os.osfx();
-    //}
+    os << "(REALBOX ";
+    int i;
+    for (i = 0; i < BL_SPACEDIM; i++) {
+        os << b.xlo[i] << ' ' << b.xhi[i] << ' ';
+    }
+    os << ')';
+
     return os;
 }
 
@@ -172,20 +170,19 @@ operator << (ostream &os, const REALBOX& b)
 istream&
 operator >> (istream &is, REALBOX& b)
 {
-    //if(is.ipfx(0)) {
-	is.ignore(BL_IGNORE_MAX,'(');
-	aString s;
-	is >> s;
-	if(s != "REALBOX") {
-  	    cerr << "unexpected token in RealBox: " << s ;
-            abort();
-	}
-        int i;
-	for (i = 0; i < BL_SPACEDIM; i++) {
-	    is >> b.xlo[i] >> b.xhi[i];
-	}
-	is.ignore(BL_IGNORE_MAX, ')');
-	b.computeBoxLen();
-    //}
+    is.ignore(BL_IGNORE_MAX,'(');
+    aString s;
+    is >> s;
+    if(s != "REALBOX") {
+        cerr << "unexpected token in RealBox: " << s ;
+        abort();
+    }
+    int i;
+    for (i = 0; i < BL_SPACEDIM; i++) {
+        is >> b.xlo[i] >> b.xhi[i];
+    }
+    is.ignore(BL_IGNORE_MAX, ')');
+    b.computeBoxLen();
+
     return is;
 }
