@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.27 1998-11-17 16:38:28 lijewski Exp $
+// $Id: NavierStokes.H,v 1.28 1998-11-23 22:43:34 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -150,6 +150,26 @@ public:
     virtual void writePlotFile (const aString& dir,
                                 ostream&       os,
                                 VisMF::How     how);
+    //
+    // Returns count of additional components of StateData MultiFabs
+    // derived classes want to write out to plotfiles.
+    //
+    virtual int additionalStateDataItemsCount () const;
+    //
+    // Returns names of the additional components of StateData MultiFabs
+    // derived classes want to write out to plotfiles.
+    //
+    virtual Array<aString> additionalStateDataItemsNames () const;
+    //
+    // Pointers to additional StateData MultiFabs derived
+    // classes want to write out to plotfiles.
+    //
+    virtual Array<const MultiFab*> additionalStateDataItems () const;
+    //
+    // For each MultiFab in additionalStateDataItems(), this is a map
+    // of those components of the respective MultiFab that should be written.
+    //
+    virtual Array< vector<int> > additionalStateDataItemsMap () const;
     //
     // Timestep estimation functions follow ...
     //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.99 1998-11-17 16:38:28 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.100 1998-11-23 22:43:34 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2305,6 +2305,36 @@ NavierStokes::volWgtSum (const aString& name,
     return sum;
 }
 
+int
+NavierStokes::additionalStateDataItemsCount () const
+{
+    return 0;
+}
+
+Array<aString>
+NavierStokes::additionalStateDataItemsNames () const
+{
+    Array<aString> dummy;
+
+    return dummy;
+}
+
+Array<const MultiFab*>
+NavierStokes::additionalStateDataItems () const
+{
+    Array<const MultiFab*> dummy;
+
+    return dummy;
+}
+
+Array< vector<int> >
+NavierStokes::additionalStateDataItemsMap () const
+{
+    Array< vector<int> > dummy;
+
+    return dummy;
+}
+
 aString
 NavierStokes::thePlotFileType () const
 {
@@ -2334,6 +2364,11 @@ NavierStokes::writePlotFile (const aString& dir,
         if (parent->isPlotVar(desc_lst[State_Type].name(i)))
             idx_map.push_back(i);
 
+    Array<const MultiFab*> derived_mfs = additionalStateDataItems();
+    Array< vector<int> > derived_map   = additionalStateDataItemsMap();
+
+    assert(derived_mfs.length() == derived_map.length());
+
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
         //
@@ -2345,6 +2380,10 @@ NavierStokes::writePlotFile (const aString& dir,
 
         if (PlotDivu) n_data_items++;
         if (PlotDsdt) n_data_items++;
+        //
+        // Count of data items from derived classes.
+        //
+        n_data_items += additionalStateDataItemsCount();
 
         if (n_data_items == 0)
             BoxLib::Error("Must specify at least one valid data item to plot");
@@ -2356,7 +2395,14 @@ NavierStokes::writePlotFile (const aString& dir,
 
         if (PlotDivu) os << desc_lst[Divu_Type].name(0) << '\n';
         if (PlotDsdt) os << desc_lst[Dsdt_Type].name(0) << '\n';
+        //
+        // Names of additional data items from derived classes.
+        //
+        Array<aString> derived_names = additionalStateDataItemsNames();
 
+        for (i = 0; i < derived_names.length(); i++)
+            os << derived_names[i] << '\n';
+ 
         os << BL_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
         int f_lev = parent->finestLevel();
@@ -2397,10 +2443,13 @@ NavierStokes::writePlotFile (const aString& dir,
     if (PlotDsdt) dsdt_dat = &state[Dsdt_Type].newData();
     //
     // There may be up to three MultiFabs written out at each level.
+    // Note that this doesn't include any from possibly derived classes.
+    // If there are any MultiFabs from derived classes, we'll name them
+    // Derived_0, Derived_1, ...
     //
     static const aString BaseName[] =
     {
-        aString("/Cell"), aString("/DivU"), aString("/DsDt")
+        "/Cell", "/DivU", "/DsDt", "/Derived_"
     };
     //
     // Build the directory to hold the MultiFabs at this level.
@@ -2460,6 +2509,17 @@ NavierStokes::writePlotFile (const aString& dir,
             PathNameInHeader += BaseName[2];
             os << PathNameInHeader << '\n';
         }
+        //
+        // We name MultiFabs from derived classes: Derived_0, Derived_1, ...
+        //
+        for (int i = 0; i < derived_mfs.length(); i++)
+        {
+            aString PathNameInHeader = Level;
+            PathNameInHeader += BaseName[3];
+            sprintf(buf, "%d", i);
+            PathNameInHeader += buf;
+            os << PathNameInHeader << '\n';
+        }
     }
     //
     // Use the Full pathname when naming the MultiFab.
@@ -2475,7 +2535,6 @@ NavierStokes::writePlotFile (const aString& dir,
     {
         //
         // Make MultiFab containing copy of selected components.
-        //
         // Note that we don't copy the ghost cells.
         //
         MultiFab mf(cell_dat.boxArray(), idx_map.size(), 0);
@@ -2485,9 +2544,7 @@ NavierStokes::writePlotFile (const aString& dir,
             DependentMultiFabIterator dmfi(mfi,cell_dat);
 
             for (i = 0; i < idx_map.size(); i++)
-            {
                 mfi().copy(dmfi(), idx_map[i], i, 1);
-            }
         }
         RunStats::addBytes(VisMF::Write(mf, TheFullPath, how));
     }
@@ -2498,11 +2555,43 @@ NavierStokes::writePlotFile (const aString& dir,
         TheFullPath += BaseName[1];
         RunStats::addBytes(VisMF::Write(*divu_dat, TheFullPath, how, true));
     }
+
     if (PlotDsdt)
     {
         TheFullPath = FullPath;
         TheFullPath += BaseName[2];
         RunStats::addBytes(VisMF::Write(*dsdt_dat, TheFullPath, how, true));
+    }
+
+    for (int i = 0; i < derived_mfs.length(); i++)
+    {
+        TheFullPath = FullPath;
+        TheFullPath += BaseName[3];
+        sprintf(buf, "%d", i);
+        TheFullPath += buf;
+
+        if (derived_map[i].size() == derived_mfs[i]->nComp())
+        {
+            RunStats::addBytes(VisMF::Write(*derived_mfs[i],TheFullPath,how,true));
+        }
+        else
+        {
+            assert(derived_map[i].size() > 0);
+            //
+            // Make MultiFab containing copy of selected components.
+            // Note that we don't copy the ghost cells.
+            //
+            MultiFab mf(derived_mfs[i]->boxArray(),derived_map[i].size(),0);
+
+            for (MultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+            {
+                DependentMultiFabIterator dmfi(mfi,*derived_mfs[i]);
+
+                for (int j = 0; j < derived_map[i].size(); j++)
+                    mfi().copy(dmfi(), derived_map[i][j], j, 1);
+            }   
+            RunStats::addBytes(VisMF::Write(mf,TheFullPath,how,true));
+        }
     }
 }
 
