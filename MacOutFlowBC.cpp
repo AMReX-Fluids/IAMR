@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.1 1999-07-27 00:09:35 propp Exp $
+// $Id: MacOutFlowBC.cpp,v 1.2 1999-07-29 01:35:57 marc Exp $
 //
 
 #include "MacOutFlowBC.H"
@@ -367,7 +367,7 @@ MacOutFlowBC_MG::MacOutFlowBC_MG(Box& Domain,
   for (int dir = 0; dir < BL_SPACEDIM-1; dir++)
     test_side[dir] = (len[dir]&1) != 0 || len[dir] < min_length;
 
-  if (D_TERM(,test_side[0], || test_side[1])) {
+  if (D_TERM(1 && ,test_side[0], || test_side[1])) {
 
       next = NULL;  
       cgwork = NULL;
