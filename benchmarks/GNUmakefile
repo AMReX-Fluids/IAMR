@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.2 1999-02-24 01:59:41 sstanley Exp $
+# $Id: GNUmakefile,v 1.3 1999-03-01 18:50:34 sstanley Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -13,23 +13,6 @@ PROFILE       = FALSE
 DIM	      = 3
 COMP          = KCC
 USE_MPI       = FALSE
-#
-# Use hgproj-serial -- only for testing.
-#
-# Touch Projection.cpp if you want to change the state of USE_HGPROJ_SERIAL.
-#
-USE_HGPROJ_SERIAL = TRUE
-#
-# The only stencils in which we're interested when using USE_HGPROJ_SERIAL.
-#
-ifeq ($(USE_HGPROJ_SERIAL),TRUE)
-DEFINES += -DBL_USE_HGPROJ_SERIAL
-ifeq ($(DIM),2)
-PRVERSION = v5
-else
-PRVERSION = v7
-endif
-endif
 #
 # Base name of the executable.
 #
@@ -50,17 +33,9 @@ vpath %.cpp . $(TOP)/pAmrvis
 vpath %.F   . $(TOP)/pAmrvis
 
 
-ifeq ($(USE_HGPROJ_SERIAL),FALSE)
 INCLUDE_LOCATIONS += . .. $(TOP)/include
 LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
-else
-INCLUDE_LOCATIONS += . .. $(TOP)/hgproj-serial
-INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
-INCLUDE_LOCATIONS += $(TOP)/include
-LIBRARY_LOCATIONS += $(TOP)/hgproj-serial/lib/$(machineSuffix) $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
-endif
+LIBRARIES         += -lbox$(DIM)d -lbndry$(DIM)d
 
 ifeq ($(USE_MPI),TRUE)
 LIBRARIES += -lmpi
@@ -124,27 +99,12 @@ endif
 libs:
 	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 	cd $(TOP)/bndrylib;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/amrlib;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-ifeq ($(USE_HGPROJ_SERIAL),FALSE)
-	cd $(TOP)/hgproj;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) LBASE=proj EBASE= install
-else
-	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE=
-endif
-	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) install
+
 #
 # Cleanup libraries.
 #
 cleanlibs:
 	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
 	cd $(TOP)/bndrylib;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-	cd $(TOP)/amrlib;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-ifeq ($(USE_HGPROJ_SERIAL),FALSE)
-	cd $(TOP)/hgproj;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) LBASE=proj EBASE= clean
-else
-	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE= clean
-endif
-	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) clean
 
 include $(TOP)/mk/Make.rules

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ViscBench3d.cpp,v 1.1 1999-02-24 01:59:42 sstanley Exp $
+// $Id: ViscBench3d.cpp,v 1.2 1999-03-01 18:50:34 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -27,7 +27,6 @@ using std::set_new_handler;
 #include "Box.H"
 #include "FArrayBox.H"
 #include "ParmParse.H"
-#include "Boolean.H"
 #include "ParallelDescriptor.H"
 #include "DataServices.H"
 #include "Utility.H"
@@ -192,8 +191,6 @@ main (int   argc,
                            delI.dataPtr(),
                            xlo.dataPtr(), xhi.dataPtr());
 	}
-
-        (*dataE[iLevel]).copy(dataI,nVel,nVel,nComp-nVel);
 
         (*error[iLevel]).copy(dataI);
         (*error[iLevel]).minus((*dataE[iLevel]), 0, nComp, 0);
