@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.9 2004-01-07 23:54:18 lijewski Exp $
+c $Id: INFL_FORCE_F.F,v 1.10 2004-07-27 17:28:08 car Exp $
 c
 
 #undef BL_LANG_CC
@@ -18,7 +18,7 @@ c
 
 #define FF_UNIT       20
 
-#if defined(BL_T3E) || defined(BL_AIX) || defined(BL_IRIX64)
+#if defined(BL_T3E) || defined(BL_AIX) || defined(BL_IRIX64) || defined(BL_CRAYX1)
 #define OPEN_APPEND position='append'
 #else
 #define OPEN_APPEND access='append'
