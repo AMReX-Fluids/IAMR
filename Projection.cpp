@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.48 1998-07-24 02:05:18 lijewski Exp $
+// $Id: Projection.cpp,v 1.49 1998-07-29 19:15:38 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -48,7 +48,7 @@ static void Copy (MultiFab& dst, MultiFab& src, int srccomp, int dstcomp, int nu
 {
     assert(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
-    for (MultiFabIterator mfi(src); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(src); mfi.isValid(); ++mfi)
     {
 	DependentMultiFabIterator dmfi(mfi,dst);
 
@@ -1334,7 +1334,7 @@ Projection::initialSyncProject (int       c_lev,
             MultiFab* divu = getDivCond(lev,nghost,strt_time);
             MultiFab* dsdt = getDivCond(lev,nghost,strt_time+dt);
 
-            for (MultiFabIterator mfi(*rhslev); mfi.isValid(false); ++mfi)
+            for (MultiFabIterator mfi(*rhslev); mfi.isValid(); ++mfi)
             {
                 DependentMultiFabIterator divu_it(mfi,*divu);
                 DependentMultiFabIterator dsdt_it(mfi,*dsdt);
@@ -1708,7 +1708,7 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 
     MultiFab* divu = getDivCond(level,1,time);
 
-    for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi)
     {
         DependentMultiFabIterator dmfi(mfi, *divu);
 
