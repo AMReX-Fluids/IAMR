@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.23 2001-03-28 19:35:04 car Exp $
+# $Id: GNUmakefile,v 1.24 2001-08-10 20:16:01 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -75,7 +75,7 @@ ifeq ($(BUILD_INPLACE), TRUE)
   include $(TOP)/amrlib/Make.package
   include $(TOP)/bndrylib/Make.package
   include $(TOP)/hgproj/Make.package
-  include $(TOP)/pBoxLib_2/Make.package
+  include $(TOP)/BoxLib/Make.package
   INCLUDE_LOCATIONS += .
   INCLUDE_LOCATIONS += $(TOP)/iamrlib
   INCLUDE_LOCATIONS += $(TOP)/mglib
@@ -83,7 +83,7 @@ ifeq ($(BUILD_INPLACE), TRUE)
   INCLUDE_LOCATIONS += $(TOP)/amrlib
   INCLUDE_LOCATIONS += $(TOP)/bndrylib
   INCLUDE_LOCATIONS += $(TOP)/hgproj
-  INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2
+  INCLUDE_LOCATIONS += $(TOP)/BoxLib
   ifeq ($(USE_HYPRE),TRUE)
     HYPRE_DIR := $(PBOXLIB_HOME)/hypre
     LIBRARY_LOCATIONS += $(HYPRE_DIR)/lib
@@ -208,11 +208,11 @@ ifeq ($(BUILD_INPLACE), TRUE)
     vpath_cpp += $(BOXLIB3_HOME)
     vpath_H   += $(BOXLIB3_HOME)
   endif
-  vpath_cpp += $(TOP)/pBoxLib_2
-  vpath_H   += $(TOP)/pBoxLib_2
-  vpath_FH  += $(TOP)/pBoxLib_2
-  vpath_h   += $(TOP)/pBoxLib_2
-  vpath_F   += $(TOP)/pBoxLib_2
+  vpath_cpp += $(TOP)/BoxLib
+  vpath_H   += $(TOP)/BoxLib
+  vpath_FH  += $(TOP)/BoxLib
+  vpath_h   += $(TOP)/BoxLib
+  vpath_F   += $(TOP)/BoxLib
   vpath %.cpp $(vpath_cpp)
   vpath %.H   $(vpath_H)
   vpath %.FH  $(vpath_FH)
@@ -247,7 +247,7 @@ MyMakeLine = $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) \
 		DEFINES="$(DEFINES)"
 
 libs:
-	cd $(TOP)/pBoxLib_2; $(MyMakeLine) install
+	cd $(TOP)/BoxLib; $(MyMakeLine) install
 	cd $(TOP)/bndrylib;  $(MyMakeLine) install
 	cd $(TOP)/amrlib;    $(MyMakeLine) install
 ifeq ($(USE_HGPROJ_SERIAL),FALSE)
@@ -265,7 +265,7 @@ endif
 # Cleanup libraries.
 #
 cleanlibs:
-	cd $(TOP)/pBoxLib_2; $(MyMakeLine) clean
+	cd $(TOP)/BoxLib; $(MyMakeLine) clean
 	cd $(TOP)/bndrylib;  $(MyMakeLine) clean
 	cd $(TOP)/amrlib;    $(MyMakeLine) clean
 ifeq ($(USE_HGPROJ_SERIAL),FALSE)
