@@ -1,12 +1,12 @@
 # ------------------------------------------------------- amrlib sources
-AMR_C_SOURCES = 	main.C \
-	Amr.C           AmrLevel.C         BCRec.C    \
-	Cluster.C       Derive.C   	   ErrorList.C \
-	FluxRegister.C  Interpolater.C     RunStats.C \
-	StateData.C     StateDescriptor.C  TagBox.C \
-	Contour.C
+AMR_C_SOURCES = 	main.cpp \
+	Amr.cpp           AmrLevel.cpp         BCRec.cpp    \
+	Cluster.cpp       Derive.cpp   	   ErrorList.cpp \
+	FluxRegister.cpp  Interpolater.cpp     RunStats.cpp \
+	StateData.cpp     StateDescriptor.cpp  TagBox.cpp \
+	Contour.cpp
 
-#AMR_C_SOURCES += 	Raster.C
+#AMR_C_SOURCES += 	Raster.cpp
 AMR_C_HEADERS = \
 	Amr.H           AmrLevel.H	BCRec.H \
 	Cluster.H	Contour.H	Derive.H \
@@ -15,7 +15,7 @@ AMR_C_HEADERS = \
  	StateData.H  	StateDescriptor.H 
 #AMR_C_HEADERS += Raster.H
 AMR_C_HEADERS  += Tracer.H
-AMR_C_SOURCES  += Tracer.C
+AMR_C_SOURCES  += Tracer.cpp
 
 AMR_F_SOURCES = INTERP_$(DIM)D.F 	FLUXREG_$(DIM)D.F 	FILCC_$(DIM)D.F 
 AMR_F_HEADERS = INTERP_F.H BC_TYPES.H PROB_AMR_F.H FLUXREG_F.H MAKESLICE_F.H
@@ -34,8 +34,8 @@ FEXE_headers += $(AMR_F_HEADERS)
 
 # ------------------------------------------------------- bndrylib sources
 BNDRYLIB_BASE=EXE
-C$(BNDRYLIB_BASE)_sources += FabSet.C BndryRegister.C \
-			     Geometry.C CoordSys.C RealBox.C
+C$(BNDRYLIB_BASE)_sources += FabSet.cpp BndryRegister.cpp \
+			     Geometry.cpp CoordSys.cpp RealBox.cpp
 C$(BNDRYLIB_BASE)_headers += FabSet.H BndryRegister.H \
 			     Geometry.H CoordSys.H RealBox.H
 
@@ -47,60 +47,60 @@ F$(BNDRYLIB_BASE)_sources += COORDSYS_$(DIM)D.F
 BOXLIB_BASE=EXE
  
 C$(BOXLIB_BASE)_headers += BoxLib.H BLVERSION.H
-C$(BOXLIB_BASE)_sources += BoxLib.C
+C$(BOXLIB_BASE)_sources += BoxLib.cpp
 
-C$(BOXLIB_BASE)_sources += ParmParse.C Utility.C aString.C BArena.C
+C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp aString.cpp BArena.cpp
 C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H Assert.H aString.H
 
 C$(BOXLIB_BASE)_headers += ArrayLim.H REAL.H Boolean.H
 C$(BOXLIB_BASE)_headers += CONSTANTS.H SPACE.H SPACE_F.H
 C$(BOXLIB_BASE)_headers += BArena.H Arena.H UseCount.H
 
-C$(BOXLIB_BASE)_sources += DistributionMapping.C ParallelDescriptor.C
+C$(BOXLIB_BASE)_sources += DistributionMapping.cpp ParallelDescriptor.cpp
 C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
 
-T_sources += SimpleDPtr.C AliasedDPtr.C DPtr.C
+T_sources += SimpleDPtr.cpp AliasedDPtr.cpp DPtr.cpp
 T_headers += SimpleDPtr.H AliasedDPtr.H DPtr.H
 
-T_sources += Array.C PArray.C List.C Pointers.C
+T_sources += Array.cpp PArray.cpp List.cpp Pointers.cpp
 T_headers += Array.H PArray.H List.H Pointers.H
 
-T_sources += Tuple.C
+T_sources += Tuple.cpp
 T_headers += Tuple.H
 
 T_headers += Misc.H
 
 C${BOXLIB_BASE}_headers += FabConv.H FPC.H
-C${BOXLIB_BASE}_sources += FabConv.C FPC.C
+C${BOXLIB_BASE}_sources += FabConv.cpp FPC.cpp
 
-C$(BOXLIB_BASE)_sources += Box.C IntVect.C IndexType.C Orientation.C
+C$(BOXLIB_BASE)_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp
 C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H
 
-C$(BOXLIB_BASE)_sources += BoxList.C BoxArray.C BoxDomain.C
+C$(BOXLIB_BASE)_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp
 C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H
 
-C$(BOXLIB_BASE)_sources += BoxAssoc.C
+C$(BOXLIB_BASE)_sources += BoxAssoc.cpp
 C$(BOXLIB_BASE)_headers += BoxAssoc.H
 
-C$(BOXLIB_BASE)_sources += FArrayBox.C
+C$(BOXLIB_BASE)_sources += FArrayBox.cpp
 C$(BOXLIB_BASE)_headers += FArrayBox.H
 
 C$(BOXLIB_BASE)_headers += Looping.H
 
-T_sources += BaseFab.C ArithFab.C OrderedFab.C NormedFab.C
+T_sources += BaseFab.cpp ArithFab.cpp OrderedFab.cpp NormedFab.cpp
 T_headers += BaseFab.H ArithFab.H OrderedFab.H NormedFab.H
 
-C$(BOXLIB_BASE)_sources += MultiFab.C
+C$(BOXLIB_BASE)_sources += MultiFab.cpp
 C$(BOXLIB_BASE)_headers += MultiFab.H
 
-T_sources += FabArray.C
+T_sources += FabArray.cpp
 T_headers += FabArray.H
 
 
 ifeq	($(USE_WINDOWS),TRUE)
 # ------------------------------------------------------- graphlib sources
 GRAPHTOOL_BASE=EXE
-C$(GRAPHTOOL_BASE)_sources += GraphTool.C IFrame.C PSfile.C XWindow.C
+C$(GRAPHTOOL_BASE)_sources += GraphTool.cpp IFrame.cpp PSfile.cpp XWindow.cpp
 C$(GRAPHTOOL_BASE)_headers += GraphTool.H IFrame.H PSfile.H XWindow.H
 C$(GRAPHTOOL_BASE)_headers += XWinExterns.H
 endif
@@ -121,15 +121,15 @@ C$(MGLIB_BASE)_headers += ABecLaplacian.H \
                           MultiGrid.H \
                           WriteMultiFab.H
 
-C$(MGLIB_BASE)_sources += ABecLaplacian.C \
-                          BndryData.C \
-                          CGSolver.C \
-                          InterpBndryData.C \
-                          Laplacian.C \
-                          LinOp.C \
-                          Mask.C \
-                          MultiGrid.C \
-                          WriteMultiFab.C
+C$(MGLIB_BASE)_sources += ABecLaplacian.cpp \
+                          BndryData.cpp \
+                          CGSolver.cpp \
+                          InterpBndryData.cpp \
+                          Laplacian.cpp \
+                          LinOp.cpp \
+                          Mask.cpp \
+                          MultiGrid.cpp \
+                          WriteMultiFab.cpp
 
 F$(MGLIB_BASE)_headers += ABec_F.H \
                           CG_F.H \
@@ -147,12 +147,12 @@ F$(MGLIB_BASE)_sources += ABec_$(DIM)D.F \
                           MG_$(DIM)D.F
 
 
-CEXE_sources += preload.C
+CEXE_sources += preload.cpp
 
 
 ifeq ($(EBASE),mgIBD)
 
-CEXE_sources += mainIBD.C TestIBData.C
+CEXE_sources += mainIBD.cpp TestIBData.cpp
 CEXE_headers += TestIBData.H
 
 FEXE_sources += mainIBD_$(DIM)D.F
@@ -164,15 +164,15 @@ endif
 # ------------------------------------------------------- iamr sources
 # ---------------------------------------- iamr sources:  _run2d
 CEXE_headers += 
-CEXE_sources += NS_setup.C NSBld.C
+CEXE_sources += NS_setup.cpp NSBld.cpp
 FEXE_headers += probdata.H PROB_F.H
 FEXE_sources += PROB_2D.F 
 
 
 # ---------------------------------------- iamr sources:  _bndry
-CEXE_sources += SyncRegister.C  ViscBndry.C  MacBndry.C 
+CEXE_sources += SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
 ifeq ($(DIM),2)
-CEXE_sources += ViscBndry2D.C
+CEXE_sources += ViscBndry2D.cpp
 endif
 
 CEXE_headers += SyncRegister.H  RegType.H  ViscBndry.H  MacBndry.H 
@@ -187,7 +187,7 @@ FEXE_sources += SYNCREG_$(DIM)D.F VISCOPERATOR_$(DIM)D.F
 # 	Disconnect MacOperators for different mass continuity
 #
 ifndef ATMOS_MACOP
-CEXE_sources += MacOperator.C
+CEXE_sources += MacOperator.cpp
 CEXE_headers += MacOperator.H
 FEXE_sources += MACOPERATOR_$(DIM)D.F
 FEXE_headers += MACOPERATOR_F.H
@@ -195,11 +195,11 @@ endif
 
 
 # ---------------------------------------- iamr sources:  _ns_mac_new
-CEXE_sources += Projection.C MacProj.C Godunov.C Diffusion.C NavierStokes.C 
+CEXE_sources += Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp NavierStokes.cpp 
 CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H 
 
 ifeq ($(USE_NETCDF),TRUE)
-CEXE_sources += netcdfIO.C Debug.C
+CEXE_sources += netcdfIO.cpp Debug.cpp
 CEXE_headers += netcdfIO.H
 endif
 						                   
@@ -220,12 +220,12 @@ LBASE=proj
 #LBASE=ell
 
 ifeq ($(LBASE),proj)
-CEXE_sources += mall_info.C cache.C interface.C boundary.C interpolator.C \
-       		restrictor.C fill_patch.C amr_multi.C \
-		hg_multi1.C hg_multi2.C hg_multi3.C \
-		hg_projector.C
+CEXE_sources += mall_info.cpp cache.cpp interface.cpp boundary.cpp interpolator.cpp \
+       		restrictor.cpp fill_patch.cpp amr_multi.cpp \
+		hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
+		hg_projector.cpp
 ifeq	($(USE_WINDOWS),TRUE)
-CEXE_sources +=	amr_graph.C
+CEXE_sources +=	amr_graph.cpp
 FEXE_sources += cont$(DIM)d.F
 endif
 CEXE_headers += cache.H interface.H boundary.H interpolator.H restrictor.H \
@@ -238,8 +238,8 @@ endif
 
 
 ifeq ($(LBASE),ell)
-CEXE_sources += amr_multi.C hg_multi1.C hg_multi2.C hg_multi3.C \
-		hg_elliptic.C amr_gravity.C
+CEXE_sources += amr_multi.cpp hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
+		hg_elliptic.cpp amr_gravity.cpp
 CEXE_headers += amr_multi.H hg_multi.H hg_elliptic.H amr_gravity.H
 FEXE_sources += hg_multi$(DIM)d.F amr_grav$(DIM)d.F
 FEXE_headers +=
@@ -251,7 +251,7 @@ endif
 #EBASE=poisson
 
 ifeq ($(EBASE),driver)
-CEXE_sources += driver.C
+CEXE_sources += driver.cpp
 CEXE_headers +=
 FEXE_sources +=
 FEXE_headers +=
@@ -259,7 +259,7 @@ endif
 
 
 ifeq ($(EBASE),proj)
-CEXE_sources += proj.C
+CEXE_sources += proj.cpp
 CEXE_headers +=
 FEXE_sources +=
 FEXE_headers +=
@@ -267,7 +267,7 @@ endif
 
 
 ifeq ($(EBASE),poisson)
-CEXE_sources += poisson.C
+CEXE_sources += poisson.cpp
 CEXE_headers +=
 FEXE_sources +=
 FEXE_headers +=
@@ -276,5 +276,5 @@ endif
 
 # ------------------------------------------------------- arrayview sources
 ifeq ($(USE_ARRAYVIEW),TRUE)
-CEXE_sources += DatasetClient.C
+CEXE_sources += DatasetClient.cpp
 endif

@@ -13,11 +13,11 @@ USE_ARRAYVIEW = TRUE
 EBASE = amr
 LBASE = 
 
+HERE = .
 GUTHAMR_HOME=/usr/people/vince/Parallel/guthamr
 
-include $(GUTHAMR_HOME)/mk/Make.defs
-
-HERE = .
+#include $(GUTHAMR_HOME)/mk/Make.defs
+include $(HERE)/Make.defs
 
 INCLUDE_LOCATIONS += $(HERE)
 #INCLUDE_LOCATIONS += $(GUTHAMR_HOME)/include
@@ -115,4 +115,5 @@ all: $(executable)
 godzillaLink:
 	rsh godzilla 'cd $(PWD); make $(executable)
 
-include $(GUTHAMR_HOME)/mk/Make.rules
+#include $(GUTHAMR_HOME)/mk/Make.rules
+include $(HERE)/Make.rules
