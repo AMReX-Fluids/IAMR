@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.81 1998-07-09 20:39:51 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.82 1998-07-14 21:36:19 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -300,23 +300,26 @@ NavierStokes::read_params ()
     pp.get("vel_visc_coef",visc_coef[0]);
     for (int i = 1; i < BL_SPACEDIM; i++)
       visc_coef[i] = visc_coef[0];
-    //
+
     // Here we set the coefficient for density, which does not diffuse.
-    //
     visc_coef[Density] = -1;
 
-    if (do_temp)
-        pp.get("temp_cond_coef",visc_coef[Density+1]);
-
-    Array<Real> scal_diff_coefs(n_scal_diff_coefs);
+    // Set the coefficients for the scalars, but temperature
+    Array<REAL> scal_diff_coefs(n_scal_diff_coefs);
     pp.getarr("scal_diff_coefs",scal_diff_coefs,0,n_scal_diff_coefs);
 
-    int firstScal = Density + 1;
-    if (do_temp)
-        firstScal++;
-    for (int i = 0; i < n_scal_diff_coefs; i++)
-      visc_coef[firstScal+i] = scal_diff_coefs[i];
+    int scalId = Density;
+    for (int i = 0; i < n_scal_diff_coefs; i++) {
+      visc_coef[++scalId] = scal_diff_coefs[i];
+    }
 
+    // Set the coefficient for temperature
+    if (do_temp)
+    {
+	Temp = ++scalId;
+	pp.get("temp_cond_coef",visc_coef[Temp]);
+    }
+    
     pp.query("divu_minus_s_factor",divu_minus_s_factor);
     pp.query("divu_relax_factor",divu_relax_factor);
     pp.query("S_in_vel_diffusion",S_in_vel_diffusion);

@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.16 1998-06-03 22:18:57 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.17 1998-07-14 21:36:19 marc Exp $
 //
 
 #include <NavierStokes.H>
@@ -198,8 +198,8 @@ NavierStokes::variableSetUp ()
     // Set number of state variables.
     //
     NUM_STATE = Density + 1;
-    int Temp = (do_temp  ?  NUM_STATE++  :  -1);
     int Trac = NUM_STATE++;
+    if (do_temp) NUM_STATE++;
     NUM_SCALARS = NUM_STATE - Density;
 
     //

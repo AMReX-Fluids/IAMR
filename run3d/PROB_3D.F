@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.10 1998-06-01 22:15:38 almgren Exp $
+c $Id: PROB_3D.F,v 1.11 1998-07-14 21:36:20 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -211,7 +211,7 @@ c
                vel(i,j,k,3) = z_vel
                scal(i,j,k,1) = cvmgt(denfact,one,dist.lt.radblob)
                do n = 2,nscal-1
-                  scal(i,j,k,n) = zero
+                  scal(i,j,k,n) = one
                end do                  
                scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
    	    end do
@@ -288,7 +288,7 @@ c
 
                scal(i,j,k,1) = one + (denfact-one) * tanh(10.*(dist-radblob))
                do n = 2,nscal-1
-                  scal(i,j,k,n) = zero
+                  scal(i,j,k,n) = one
                end do                  
 	       scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
 
@@ -526,11 +526,11 @@ c     ::::: local variables
                vel(i,j,k,3) = z_vel
                scal(i,j,k,1) = one/denfact + (one - one/denfact)
      &              *half*(one + tanh(40.*(dist - radblob)))
-               scal(i,j,k,2) = one / scal(i,j,k,1)
+               scal(i,j,k,2) = cvmgt(one,zero,dist.lt.radblob)
                do n = 3,nscal-1
                   scal(i,j,k,n) = one
                end do
-               scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+               scal(i,j,k,nscal) = one / scal(i,j,k,1)
             end do
          end do
       end do
@@ -1136,7 +1136,7 @@ c ::: -----------------------------------------------------------
          do i = ARG_L1(temp), domlo(1)-1
             do k = ARG_L3(temp), ARG_H3(temp)
                do j = ARG_L2(temp), ARG_H2(temp)
-                  temp(i,j,k) = zero
+                  temp(i,j,k) = one
                end do
 	    end do
 	 end do
@@ -1146,7 +1146,7 @@ c ::: -----------------------------------------------------------
          do i = domhi(1)+1, ARG_H1(temp)
             do k = ARG_L3(temp), ARG_H3(temp)
                do j = ARG_L2(temp), ARG_H2(temp)
-                  temp(i,j,k) = zero
+                  temp(i,j,k) = one
                end do
 	    end do
 	 end do
@@ -1156,7 +1156,7 @@ c ::: -----------------------------------------------------------
          do j = ARG_L2(temp), domlo(2)-1
             do k = ARG_L3(temp), ARG_H3(temp)
                do i = ARG_L1(temp), ARG_H1(temp)
-                  temp(i,j,k) = zero
+                  temp(i,j,k) = one
                end do
 	    end do
 	 end do
@@ -1166,7 +1166,7 @@ c ::: -----------------------------------------------------------
          do j = domhi(2)+1, ARG_H2(temp)
             do k = ARG_L3(temp), ARG_H3(temp)
                do i = ARG_L1(temp), ARG_H1(temp)
-                  temp(i,j,k) = zero
+                  temp(i,j,k) = one
                end do
 	    end do
 	 end do
@@ -1176,7 +1176,7 @@ c ::: -----------------------------------------------------------
          do k = ARG_L3(temp), domlo(3)-1
             do j = ARG_L2(temp), ARG_H2(temp)
                do i = ARG_L1(temp), ARG_H1(temp)
-                  temp(i,j,k) = zero
+                  temp(i,j,k) = one
                end do
             end do
          end do
@@ -1186,7 +1186,7 @@ c ::: -----------------------------------------------------------
          do k = domhi(3)+1, ARG_H3(temp)
             do j = ARG_L2(temp), ARG_H2(temp)
                do i = ARG_L1(temp), ARG_H1(temp)
-                  temp(i,j,k) = zero
+                  temp(i,j,k) = one
                end do
             end do
          end do
@@ -1263,7 +1263,7 @@ c ::: -----------------------------------------------------------
          do j = ARG_L2(u), domlo(2)-1
             do k = ARG_L3(u), ARG_H3(u)
                do i = ARG_L1(u), ARG_H1(u)
-                  u(i,j,k) = x_vel
+                  u(i,j,k) = zero
                end do
 	    end do
 	 end do
@@ -1273,7 +1273,7 @@ c ::: -----------------------------------------------------------
          do j = domhi(2)+1, ARG_H2(u)
             do k = ARG_L3(u), ARG_H3(u)
                do i = ARG_L1(u), ARG_H1(u)
-                  u(i,j,k) = x_vel
+                  u(i,j,k) = zero
                end do
 	    end do
 	 end do
@@ -1283,7 +1283,7 @@ c ::: -----------------------------------------------------------
          do k = ARG_L3(u), domlo(3)-1
             do j = ARG_L2(u), ARG_H2(u)
                do i = ARG_L1(u), ARG_H1(u)
-                  u(i,j,k) = x_vel
+                  u(i,j,k) = zero
                end do
             end do
          end do
@@ -1293,7 +1293,7 @@ c ::: -----------------------------------------------------------
          do k = domhi(3)+1, ARG_H3(u)
             do j = ARG_L2(u), ARG_H2(u)
                do i = ARG_L1(u), ARG_H1(u)
-                  u(i,j,k) = x_vel
+                  u(i,j,k) = zero
                end do
             end do
          end do
@@ -1351,7 +1351,7 @@ c ::: -----------------------------------------------------------
          do i = ARG_L1(v), domlo(1)-1
             do k = ARG_L3(v), ARG_H3(v)
                do j = ARG_L2(v), ARG_H2(v)
-                  v(i,j,k) = y_vel
+                  v(i,j,k) = zero
                end do
 	    end do
 	 end do
@@ -1361,7 +1361,7 @@ c ::: -----------------------------------------------------------
          do i = domhi(1)+1, ARG_H1(v)
             do k = ARG_L3(v), ARG_H3(v)
                do j = ARG_L2(v), ARG_H2(v)
-                  v(i,j,k) = y_vel
+                  v(i,j,k) = zero
                end do
             end do
 	 end do
@@ -1391,7 +1391,7 @@ c ::: -----------------------------------------------------------
          do k = ARG_L3(v), domlo(3)-1
             do j = ARG_L2(v), ARG_H2(v)
                do i = ARG_L1(v), ARG_H1(v)
-                  v(i,j,k) = y_vel
+                  v(i,j,k) = zero
                end do
             end do
          end do
@@ -1401,7 +1401,7 @@ c ::: -----------------------------------------------------------
          do k = domhi(3)+1, ARG_H3(v)
             do j = ARG_L2(v), ARG_H2(v)
                do i = ARG_L1(v), ARG_H1(v)
-                  v(i,j,k) = y_vel
+                  v(i,j,k) = zero
                end do
             end do
          end do
@@ -1458,7 +1458,7 @@ c ::: -----------------------------------------------------------
          do i = ARG_L1(w), domlo(1)-1
             do k = ARG_L3(w), ARG_H3(w)
                do j = ARG_L2(w), ARG_H2(w)
-                  w(i,j,k) = z_vel
+                  w(i,j,k) = zero
                end do
 	    end do
 	 end do
@@ -1468,7 +1468,7 @@ c ::: -----------------------------------------------------------
          do i = domhi(1)+1, ARG_H1(w)
             do k = ARG_L3(w), ARG_H3(w)
                do j = ARG_L2(w), ARG_H2(w)
-                  w(i,j,k) = z_vel
+                  w(i,j,k) = zero
                end do
 	    end do
 	 end do
@@ -1478,7 +1478,7 @@ c ::: -----------------------------------------------------------
          do j = ARG_L2(w), domlo(2)-1
             do k = ARG_L3(w), ARG_H3(w)
                do i = ARG_L1(w), ARG_H1(w)
-                  w(i,j,k) = z_vel
+                  w(i,j,k) = zero
                end do
             end do
 	 end do
@@ -1488,7 +1488,7 @@ c ::: -----------------------------------------------------------
          do j = domhi(2)+1, ARG_H2(w)
             do k = ARG_L3(w), ARG_H3(w)
                do i = ARG_L1(w), ARG_H1(w)
-                  w(i,j,k) = z_vel
+                  w(i,j,k) = zero
                end do
             end do
 	 end do
@@ -1656,15 +1656,6 @@ c ::: -----------------------------------------------------------
       integer    bc(SDIM,2)
 
       integer    i, j, k
-      REAL_T     z_vel
-
-#include "probdata.H"
-
-      if (adv_dir .eq. 3) then
-         z_vel = adv_vel
-      else  
-         z_vel = zero
-      end if
 
       call filcc(dsdt,DIMS(dsdt),domlo,domhi,dx,xlo,bc)
 
@@ -1672,7 +1663,7 @@ c ::: -----------------------------------------------------------
          do i = ARG_L1(dsdt), domlo(1)-1
             do k = ARG_L3(dsdt), ARG_H3(dsdt)
                do j = ARG_L2(dsdt), ARG_H2(dsdt)
-                  dsdt(i,j,k) = z_vel
+                  dsdt(i,j,k) = zero
                end do
 	    end do
 	 end do
@@ -1682,7 +1673,7 @@ c ::: -----------------------------------------------------------
          do i = domhi(1)+1, ARG_H1(dsdt)
             do k = ARG_L3(dsdt), ARG_H3(dsdt)
                do j = ARG_L2(dsdt), ARG_H2(dsdt)
-                  dsdt(i,j,k) = z_vel
+                  dsdt(i,j,k) = zero
                end do
 	    end do
 	 end do
@@ -1692,7 +1683,7 @@ c ::: -----------------------------------------------------------
          do j = ARG_L2(dsdt), domlo(2)-1
             do k = ARG_L3(dsdt), ARG_H3(dsdt)
                do i = ARG_L1(dsdt), ARG_H1(dsdt)
-                  dsdt(i,j,k) = z_vel
+                  dsdt(i,j,k) = zero
                end do
             end do
 	 end do
@@ -1702,7 +1693,7 @@ c ::: -----------------------------------------------------------
          do j = domhi(2)+1, ARG_H2(dsdt)
             do k = ARG_L3(dsdt), ARG_H3(dsdt)
                do i = ARG_L1(dsdt), ARG_H1(dsdt)
-                  dsdt(i,j,k) = z_vel
+                  dsdt(i,j,k) = zero
                end do
             end do
 	 end do
@@ -1712,7 +1703,7 @@ c ::: -----------------------------------------------------------
          do k = ARG_L3(dsdt), domlo(3)-1
             do j = ARG_L2(dsdt), ARG_H2(dsdt)
                do i = ARG_L1(dsdt), ARG_H1(dsdt)
-                  dsdt(i,j,k) = z_vel
+                  dsdt(i,j,k) = zero
                end do
             end do
          end do
@@ -1722,7 +1713,7 @@ c ::: -----------------------------------------------------------
          do k = domhi(3)+1, ARG_H3(dsdt)
             do j = ARG_L2(dsdt), ARG_H2(dsdt)
                do i = ARG_L1(dsdt), ARG_H1(dsdt)
-                  dsdt(i,j,k) = z_vel
+                  dsdt(i,j,k) = zero
                end do
             end do
          end do
