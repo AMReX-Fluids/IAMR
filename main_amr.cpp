@@ -1,6 +1,6 @@
 
 //
-// $Id: main_amr.cpp,v 1.8 1997-12-14 23:35:40 lijewski Exp $
+// $Id: main_amr.cpp,v 1.9 1998-04-01 00:32:26 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -69,7 +69,7 @@ main(int argc, char *argv[])
     int nprocs = NPROCS;
     pp.query("nprocs", nprocs);
 
-    StartParallel(nprocs);
+    ParallelDescriptor::StartParallel(nprocs);
 
     int sleeptime = 0;
     pp.query("sleep", sleeptime);
