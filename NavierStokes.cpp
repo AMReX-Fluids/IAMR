@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.223 2003-02-19 18:43:52 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.224 2003-02-19 18:50:05 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1696,6 +1696,7 @@ NavierStokes::velocity_advection (Real dt)
     Array<int> bndry[BL_SPACEDIM];
     FArrayBox xflux, yflux, zflux, divu, tforces;
 
+    int nGrowF = 1;
     MultiFab* divu_fp = getDivCond(nGrowF,prev_time);
 
     MultiFab* dsdt = getDsdt(nGrowF,prev_time);
