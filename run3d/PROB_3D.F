@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.22 2004-12-06 18:06:02 car Exp $
+c $Id: PROB_3D.F,v 1.23 2004-12-06 19:06:35 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -335,7 +335,7 @@ c
      &                 *rt_ranampl(n,m)
                end do
             end do
-            ztemp = rt_splitx + pert*rt_pertamp
+            ztemp = rt_splitx - pert*rt_pertamp
             do k = lo(3), hi(3)
                z = xlo(3) + hz*(dble(k-lo(3)) + 0.5d0)
                scal(i,j,k,1) = 
