@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.25 2001-08-14 21:21:11 lijewski Exp $
+# $Id: GNUmakefile,v 1.26 2002-10-04 19:19:32 almgren Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -14,9 +14,8 @@ DEBUG	  = TRUE
 PROFILE   = FALSE
 DIM       = 3
 COMP	  = g++
-COMP      = KCC
-USE_MPI   = FALSE
 USE_MPI   = TRUE
+USE_MPI   = FALSE
 NAMESPACE = TRUE
 NAMESPACE = FALSE
 #STRICTLY  = TRUE
@@ -177,6 +176,7 @@ ifeq ($(BUILD_INPLACE), TRUE)
   vpath_FH  += $(TOP)/hgproj
   vpath_h   += $(TOP)/hgproj
   vpath_F   += $(TOP)/hgproj
+  vpath_f   += $(TOP)/hgproj
   ifeq ($(USE_HYPRE),TRUE)
     vpath_cpp += $(HYPRE_DIR)/HypreABec
     vpath_H   += $(HYPRE_DIR)/HypreABec
@@ -191,11 +191,13 @@ ifeq ($(BUILD_INPLACE), TRUE)
   vpath_FH  += $(TOP)/BoxLib
   vpath_h   += $(TOP)/BoxLib
   vpath_F   += $(TOP)/BoxLib
+  vpath_f   += $(TOP)/BoxLib
   vpath %.cpp $(vpath_cpp)
   vpath %.H   $(vpath_H)
   vpath %.FH  $(vpath_FH)
   vpath %.h   $(vpath_h)
   vpath %.F   $(vpath_F)
+  vpath %.f   $(vpath_f)
 else
   vpath %.H   ..
   vpath %.cpp ..
