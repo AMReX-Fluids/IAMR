@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.7 1999-02-18 18:22:36 sstanley Exp $
+# $Id: GNUmakefile,v 1.8 1999-02-24 18:37:04 car Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -23,6 +23,7 @@ PRVERSION = v7
 # Touch Projection.cpp if you want to change the state of USE_HGPROJ_SERIAL.
 #
 USE_HGPROJ_SERIAL = TRUE
+USE_HGPROJ_SERIAL = FALSE
 
 ifeq ($(USE_HGPROJ_SERIAL),TRUE)
 EBASE = amr-serial
