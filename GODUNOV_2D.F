@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.34 2003-02-18 21:46:35 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.35 2003-02-19 19:36:23 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -2166,15 +2166,15 @@ c
       REAL_T spx,smx,spy,smy,st,denom
       REAL_T smin,smax
 
-      REAL_T   sc(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,4)
-      REAL_T gamp(lo(1)-1:hi(1)+1)
-      REAL_T gamm(lo(1)-1:hi(1)+1)
-      REAL_T   xm(lo(1)-1:hi(1)+1)
-      REAL_T   ym(lo(1)-1:hi(1)+1)
-      REAL_T    c(lo(1)-1:hi(1)+1,4)
+      REAL_T   sc(DIMV(work),4)
+      REAL_T gamp(DIM1(work))
+      REAL_T gamm(DIM1(work))
+      REAL_T   xm(DIM1(work))
+      REAL_T   ym(DIM1(work))
+      REAL_T    c(DIM1(work),4)
       REAL_T dt3rd
 
-      integer choose_hi(lo(1)-1:hi(1)+1)
+      integer choose_hi(DIM1(work))
 
       integer use_minion, iconserv
       integer inc
@@ -2192,10 +2192,6 @@ c
       je = hi(2)
 
       dt3rd = dt * third
-c     do j = 40,80
-c       print *,'SPEC ',j,s(3,j)
-c     enddo
-c     print *,' '
 
       smax = s(is,js)
       smin = s(is,js)
@@ -2418,6 +2414,7 @@ c
         end if
       enddo
 
+#if 0
       do j = js,je 
       do i = is,ie+1
           if (xstate(i,j).lt. zero) print *,'NEG XSTATE ',i,j,xstate(i,j)
@@ -2430,6 +2427,7 @@ c
           if (abs(ystate(i,j)).gt. 1.e20) print *,'BIG YSTATE ',i,j,ystate(i,j)
       enddo
       enddo
+#endif
 
       end
 
