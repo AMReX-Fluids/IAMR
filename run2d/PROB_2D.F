@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.12 1998-06-01 21:51:10 almgren Exp $
+c $Id: PROB_2D.F,v 1.13 1998-06-02 19:01:54 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -114,6 +114,8 @@ c ::: -----------------------------------------------------------
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
+
+#include "probdata.H"
 
       if (probtype .eq. 1) then
          call initspin(level,time,lo,hi,nscal,
