@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.52 1998-11-02 20:50:05 lijewski Exp $
+# $Id: GNUmakefile,v 1.53 1998-11-09 21:04:50 lijewski Exp $
 #
 PRECISION     = DOUBLE
 DEBUG	      = FALSE
@@ -28,7 +28,7 @@ TOP = $(PBOXLIB_HOME)
 #
 INSTALL_ROOT = $(TOP)
 
-include ../mk/Make.defs ./Make.package
+include $(TOP)/mk/Make.defs ./Make.package
 
 INCLUDE_LOCATIONS += . $(TOP)/include
 
@@ -92,8 +92,17 @@ LDFLAGS += -non_shared -v
 endif
 
 all: $(executable)
+#
+# Build and install all libraries needed by IAMRAll in an appropriate order.
+#
+libs:
+	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+	cd $(TOP)/bndrylib;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+	cd $(TOP)/amrlib;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+	cd $(TOP)/hgproj;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 
 godzillaLink:
 	rsh godzilla 'cd $(PWD); make $(executable)
 
-include ../mk/Make.rules
+include $(TOP)/mk/Make.rules
