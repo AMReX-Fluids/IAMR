@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.18 1999-10-27 18:19:09 vince Exp $
+# $Id: GNUmakefile,v 1.19 2000-04-05 18:29:29 sstanley Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -9,7 +9,7 @@ TOP = $(PBOXLIB_HOME)
 #
 PRECISION = DOUBLE
 DEBUG	  = TRUE
-DEBUG	  = FASLE
+DEBUG	  = FALSE
 PROFILE   = FALSE
 DIM       = 3
 COMP      = KCC
