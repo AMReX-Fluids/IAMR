@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.11 2000-05-11 17:06:56 propp Exp $
+// $Id: MacOutFlowBC.cpp,v 1.12 2000-08-22 17:33:23 almgren Exp $
 //
 
 #include "MacOutFlowBC.H"
@@ -446,7 +446,7 @@ MacOutFlowBC_MG::~MacOutFlowBC_MG()
     delete next->phi;
     delete next->rhs;
     delete next->resid;
-    delete next->beta;
+    delete [] next->beta;
     delete next;
   }
     delete cgwork;
