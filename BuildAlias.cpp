@@ -1,13 +1,12 @@
 //
-// $Id: BuildAlias.cpp,v 1.2 1997-09-23 19:25:37 lijewski Exp $
+// $Id: BuildAlias.cpp,v 1.3 1997-09-24 17:45:44 lijewski Exp $
 //
 
 #include <BuildAlias.H>
 
 static void error(char* message)
 {
-  cerr << message << endl;
-  abort();
+  BoxLib::Error(message);
 }
 
 static int compatible(const level_mesh& mesh, const BoxArray& bs)

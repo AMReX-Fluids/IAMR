@@ -124,34 +124,6 @@ REALBOX::ok() const
    ;
 }
 
-#if 0
-// -----------------------------------------------------------
-int REALBOX::intersects(const REALBOX& /*rb*/) 
-{
-   // can realboxes intersect in zero volume areas?
-   cerr << "REALBOX::intersects not implemented" << endl;
-   mpAbort();
-   return 0;
-}
-
-// -----------------------------------------------------------
-REALBOX& REALBOX::operator &= (const REALBOX& /*bx*/)
-{
-   cerr << "REALBOX::op &= not implemented" << endl;
-   mpAbort();
-   return *this;
-}
-
-// -----------------------------------------------------------
-REALBOX
-REALBOX::operator & (const REALBOX& /*bx*/)
-{
-   cerr << "REALBOX::op & not implemented" << endl;
-   mpAbort();
-   return *this;
-}
-#endif 
-
 // -----------------------------------------------------------
 ostream&
 operator << (ostream &os, const REALBOX& b)
@@ -174,8 +146,8 @@ operator >> (istream &is, REALBOX& b)
     aString s;
     is >> s;
     if(s != "REALBOX") {
-        cerr << "unexpected token in RealBox: " << s ;
-        abort();
+        cerr << "Unexpected token in RealBox: " << s << '\n';
+        BoxLib::Abort();
     }
     int i;
     for (i = 0; i < BL_SPACEDIM; i++) {

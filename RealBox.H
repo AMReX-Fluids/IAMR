@@ -90,13 +90,6 @@ public:
     int ok() const;
     int contains(const REAL* point);
     int contains(const REALBOX &bx);
-    int intersects(const REALBOX &bx);
-
-      // -------------------------------------------
-      // -------  intersection functions  ----------
-      // -------------------------------------------
-    REALBOX& operator &= (const REALBOX& bx);
-    REALBOX  operator &  (const REALBOX& bx);
 
       // -------------------------------------------
       // ---------  conversion functions  ----------

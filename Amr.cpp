@@ -304,8 +304,8 @@ void Amr::setRecordGridInfo( const aString& filename ){
     record_grid_info= true;
     gridlog.open(filename.c_str(),ios::out);
     if (!gridlog) {
-	cerr << "cant open file: " << filename << endl;
-	abort();
+	cerr << "can't open file: " << filename << '\n';
+	BoxLib::Abort();
     }
 }
 
@@ -316,8 +316,8 @@ void Amr::setRecordRunInfo( const aString& filename ){
     record_run_info= true;
     runlog.open(filename.c_str(),ios::out);
     if (!runlog) {
-	cerr << "cant open file: " << filename << endl;
-	abort();
+	cerr << "can't open file: " << filename << '\n';
+	BoxLib::Abort();
     }
 }
 
@@ -663,7 +663,7 @@ void Amr::restart(const aString& filename)
     is >> spdim;
     if (spdim != BL_SPACEDIM)
     {
-	cerr << "restart: bad spacedim = " << spdim << endl;
+	cerr << "restart: bad spacedim = " << spdim << '\n';
 	BoxLib::Abort();
     }
     is >> cumtime;
@@ -1174,8 +1174,8 @@ Amr::grid_places(
 #define STRIP while( is.get() != '\n' )
 	ifstream is(grids_file.c_str(),ios::in);
 	if (is.fail()) {
-	    cout << "cannot open file " << grids_file << endl;
-	    abort();
+	    cerr << "can't open file: " << grids_file << '\n';
+	    BoxLib::Abort();
 	}
 	new_finest = Min(max_level,(finest_level+1));
 	int in_finest;
@@ -1195,8 +1195,8 @@ Amr::grid_places(
 		if (lev > lbase) {
 		    bx.refine(ref_ratio[lev-1]);
 		    if (bx.longside() > max_grid_size) {
-			cout << "Grid " << bx << " too large" << endl;
-			abort();
+			cerr << "Grid " << bx << " too large" << '\n';
+			BoxLib::Abort();
 		    }
 		    bl.append(bx);
 		}

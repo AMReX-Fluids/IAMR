@@ -1274,8 +1274,7 @@ AmrLevel::FillPatch(FARRAYBOX &dest, int dest_comp, REAL time,
     if (unfilled_region.ok()) {
           // must fill on this region on crse level and interpolate
         if (level == 0) {
-            cerr << "FillPatch: unfilled region at level 0" << endl;
-            abort();
+            BoxLib::Error("FillPatch: unfilled region at level 0");
         }
 
         Interpolater *map = mapper;

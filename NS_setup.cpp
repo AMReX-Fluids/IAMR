@@ -153,10 +153,9 @@ void NavierStokes::variableSetUp()
 //  desc_lst.setComponent(State_Type,Temp,"temp",bc,FORT_TEMPFILL);
 
     if (visc_coef.length() < NUM_STATE) {
-	cerr << "ERROR: not enough visc_coef values specified" << endl;
-	abort();
+	BoxLib::Error("Not enough visc_coef values specified");
     } else if (visc_coef.length() > NUM_STATE) {
-	cerr << "WARN: too many visc_coef values specified" << endl;
+	BoxLib::Warning("Too many visc_coef values specified");
     }
 
     is_conservative.resize(NUM_STATE);
@@ -171,8 +170,7 @@ void NavierStokes::variableSetUp()
     is_conservative[Trac] = true;
 //  is_conservative[Temp] = true;
     if (is_diffusive[Density]) {
-	cerr << "ERROR: density cannot diffuse, bad visc_coef" << endl;
-	abort();
+	BoxLib::Error("Density cannot diffuse, bad visc_coef");
     }
       // ---- pressure
     desc_lst.addDescriptor(Press_Type,IndexType::TheNodeType(),Interval,1,1,

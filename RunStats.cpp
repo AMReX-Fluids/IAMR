@@ -112,8 +112,8 @@ operator >> (istream &is, RunStatsData &rd)
     aString s;
     is >> s;
     if(s != "RunStatsData") {
-        cerr << "unexpected token " << s;
-        abort();
+        cerr << "RunStatsData: unexpected token " << s << '\n';
+        BoxLib::Abort();
     }
     is >> rd.name;
     is >> rd.level;
@@ -266,8 +266,8 @@ RunStats::readStats(ifstream &is)
     aString s;
     is >> s;
     if( s != "ListRunStats") {
-	cerr << "unexpected token " << s ;
-        abort();
+	cerr << "readStats: unexpected token " << s << '\n';
+        BoxLib::Abort();
     }
     int n;
     is >> n;

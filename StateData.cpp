@@ -296,8 +296,7 @@ StateData::linInterp(FARRAYBOX& dest, const BOX& subbox, REAL time,
                  time < old_time.stop+teps) {
          old_data->copy(dest,subbox,src_comp,dest_comp,num_comp);
       } else {
-         cerr << "StateData::linInterp: cannot interp" << endl;
-	 abort();
+          BoxLib::Error("StateData::linInterp: cannot interp");
       }
    }
 }
@@ -356,8 +355,7 @@ StateData::linInterpAddBox(MultiFabCopyDescriptor &multiFabCopyDesc,
                                      unfillableBoxes,
                                      src_comp, dest_comp, num_comp);
       } else {
-         cerr << "StateData::linInterp: cannot interp" << endl;
-         abort();
+         BoxLib::Error("StateData::linInterp: cannot interp");
       }
    }
 }
@@ -396,8 +394,7 @@ StateData::linInterpFillFab(MultiFabCopyDescriptor &multiFabCopyDesc,
                  time < old_time.stop+teps) {
          multiFabCopyDesc.FillFab(mfid[MFOLDDATA], fillBoxIds[0], dest);
       } else {
-         cerr << "StateData::linInterp: cannot interp" << endl;
-         abort();
+         BoxLib::Error("StateData::linInterp: cannot interp");
       }
    }
 }
