@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.104 2000-08-09 22:32:28 almgren Exp $
+// $Id: Diffusion.cpp,v 1.105 2000-08-14 20:17:03 almgren Exp $
 //
 
 //
@@ -2084,7 +2084,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     const Real* dx = caller->Geom().CellSize();
     MultiFab&   S  = caller->get_data(State_Type,time);
 
-    visc_terms.setVal(0.0,comp-src_comp,1,1);
+    int ngrow = visc_terms.nGrow();
+    visc_terms.setVal(0.0,comp-src_comp,1,ngrow);
     //
     // FIXME
     // LinOp classes cannot handle multcomponent MultiFabs yet,
