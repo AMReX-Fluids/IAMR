@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.128 1999-04-02 23:07:37 marc Exp $
+// $Id: NavierStokes.cpp,v 1.129 1999-04-12 23:16:19 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -425,29 +425,21 @@ NavierStokes::NavierStokes (Amr&            papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn = NULL;
-    viscnp1 = NULL;
+    viscn   = 0;
+    viscnp1 = 0;
     if (variable_vel_visc) 
     {
-        viscn = new MultiFab*;
         diffusion->allocFluxBoxesLevel(viscn, 0, 1);
-
-        viscnp1 = new MultiFab*;
         diffusion->allocFluxBoxesLevel(viscnp1, 0, 1);
     }
 
-    diffn = NULL;
-    diffnp1 = NULL;
+    diffn   = 0;
+    diffnp1 = 0;
     if (variable_scal_diff) 
     {
-        diffn = new MultiFab*;
         diffusion->allocFluxBoxesLevel(diffn, 0, NUM_STATE-Density-1);
-
-        diffnp1 = new MultiFab*;
         diffusion->allocFluxBoxesLevel(diffnp1, 0, NUM_STATE-Density-1);
     }
-
-
     //
     // Set up the mac projector.
     //
@@ -473,7 +465,6 @@ NavierStokes::~NavierStokes ()
     
     if (mac_projector != 0)
         mac_projector->cleanup(level);
-
     //
     // Remove the arrays for variable viscosity and diffusivity
     // and delete the Diffusion object
@@ -481,19 +472,13 @@ NavierStokes::~NavierStokes ()
     if (variable_vel_visc)
     {
         diffusion->removeFluxBoxesLevel(viscn);
-        delete viscn;
-
         diffusion->removeFluxBoxesLevel(viscnp1);
-        delete viscnp1;
     }
 
     if (variable_scal_diff)
     {
         diffusion->removeFluxBoxesLevel(diffn);
-        delete diffn;
-
         diffusion->removeFluxBoxesLevel(diffnp1);
-        delete diffnp1;
     }
 
     delete diffusion;
@@ -728,28 +713,21 @@ NavierStokes::restart (Amr&     papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn = NULL;
-    viscnp1 = NULL;
+    viscn   = 0;
+    viscnp1 = 0;
     if (variable_vel_visc)
     {
-        viscn = new MultiFab*;
         diffusion->allocFluxBoxesLevel(viscn, 0, 1);
-
-        viscnp1 = new MultiFab*;
         diffusion->allocFluxBoxesLevel(viscnp1, 0, 1);
     }
 
-    diffn = NULL;
-    diffnp1 = NULL;
+    diffn   = 0;
+    diffnp1 = 0;
     if (variable_scal_diff)
     {
-        diffn = new MultiFab*;
         diffusion->allocFluxBoxesLevel(diffn, 0, NUM_STATE-Density-1);
-
-        diffnp1 = new MultiFab*;
         diffusion->allocFluxBoxesLevel(diffnp1, 0, NUM_STATE-Density-1);
     }
-
 }
 
 //
@@ -1936,7 +1914,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                        int  last_scalar)
 {
     MultiFab** fluxSC;
-    const int nGrow=0;
+    const int nGrow = 0;
     const int nComp = 1;
     diffusion->allocFluxBoxesLevel(fluxSC,nGrow,nComp);
 
@@ -1948,8 +1926,8 @@ NavierStokes::scalar_diffusion_update (Real dt,
 
             diffuse_scalar_setup(sigma, &rho_flag);
 
-            MultiFab** cmp_diffn = NULL;
-            MultiFab** cmp_diffnp1 = NULL;
+            MultiFab** cmp_diffn   = 0;
+            MultiFab** cmp_diffnp1 = 0;
 
             if (variable_scal_diff)
             {
@@ -1966,8 +1944,8 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                       rho_half,rho_flag,
                                       fluxSC,
                                       0,
-                                      NULL,
-                                      NULL,
+                                      0,
+                                      0,
                                       cmp_diffn,
                                       cmp_diffnp1);
 
@@ -2087,15 +2065,15 @@ NavierStokes::velocity_diffusion_update (Real dt)
     {
 	const int rhoflag   = 1;
 
-        MultiFab* delta_rhs = NULL;
+        MultiFab* delta_rhs = 0;
         if (S_in_vel_diffusion && have_divu)
         {
             delta_rhs = new MultiFab(grids,BL_SPACEDIM,0);
             delta_rhs->setVal(0);
         }
 
-        MultiFab** loc_viscn = NULL;
-        MultiFab** loc_viscnp1 = NULL;
+        MultiFab** loc_viscn   = 0;
+        MultiFab** loc_viscnp1 = 0;
 
         if (variable_vel_visc)
         {
@@ -3805,7 +3783,7 @@ NavierStokes::mac_sync ()
         //
         if (is_diffusive[Xvel])
         {
-            MultiFab** loc_viscn = NULL;
+            MultiFab** loc_viscn = 0;
 
             if (variable_vel_visc)
             {
@@ -3838,7 +3816,7 @@ NavierStokes::mac_sync ()
             const int rho_flag = !is_conservative[state_ind] ? 1 : 2;
             if (is_diffusive[state_ind])
             {
-                MultiFab** cmp_diffn=NULL;
+                MultiFab** cmp_diffn=0;
 
                 if (variable_scal_diff)
                 {
@@ -4836,7 +4814,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
             {
                 const int rho_flag = !is_conservative[icomp] ? 1 : 2;
 
-                MultiFab** cmp_diffn = NULL;
+                MultiFab** cmp_diffn = 0;
 
                 if (variable_scal_diff)
                 {
