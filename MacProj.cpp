@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.74 2000-10-10 20:59:54 marc Exp $
+// $Id: MacProj.cpp,v 1.75 2000-11-01 20:02:48 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -18,11 +18,11 @@
 
 #ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type};
-#  if (BL_SPACEDIM == 2)
+#if (BL_SPACEDIM == 2)
 enum StateNames  { Xvel=0, Yvel, Density};
-#  else
+#else
 enum StateNames  { Xvel=0, Yvel, Zvel, Density};
-#  endif
+#endif
 #endif
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
@@ -35,71 +35,86 @@ const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
 
-#define DEF_BOX_LIMITS(box,boxlo,boxhi)   \
+#define DEF_BOX_LIMITS(box,boxlo,boxhi)      \
 const int* boxlo = (box).loVect();           \
 const int* boxhi = (box).hiVect();
 
 #define GEOM_GROW 1
 #define HYP_GROW 3
 
-// note: this is a temporary function.  Eventually this will be moved to a 
+//
+// Note: this is a temporary function.  Eventually this will be moved to a 
 // boundary condition class.
+//
+
 static
 void
-getOutFlowFace(bool& haveOutFlow, Orientation& outFace, BCRec* _phys_bc)
+getOutFlowFace (bool&        haveOutFlow,
+                Orientation& outFace,
+                BCRec*       _phys_bc)
 {
+    haveOutFlow = false;
+    int numOutFlowBC = 0;
 
-  haveOutFlow = false;
-  int numOutFlowBC = 0;
-  for (int idir = 0; idir < BL_SPACEDIM; idir++) {
+    for (int idir = 0; idir < BL_SPACEDIM; idir++)
+    {
+        if (_phys_bc->lo(idir) == Outflow)
+        {
+            haveOutFlow = true;
+            outFace = Orientation(idir,Orientation::low);
+            numOutFlowBC++;
+        }
 
-    if (_phys_bc->lo(idir) == Outflow) {
-      haveOutFlow = true;
-      outFace = Orientation(idir,Orientation::low);
-      numOutFlowBC++;
+        if (_phys_bc->hi(idir) == Outflow)
+        {
+            haveOutFlow = true;
+            outFace = Orientation(idir,Orientation::high);
+            numOutFlowBC++;
+        }
+
     }
 
-    if (_phys_bc->hi(idir) == Outflow) {
-      haveOutFlow = true;
-      outFace = Orientation(idir,Orientation::high);
-      numOutFlowBC++;
-    }
-
-  }
-
-  if (numOutFlowBC > 1)
-      haveOutFlow = false; // true signals low-D solve for outflow.  false will enforce Div(U)=0
-
+    if (numOutFlowBC > 1)
+        //
+        // True signals low-D solve for outflow.  false will enforce Div(U)=0
+        //
+        haveOutFlow = false;
 }
 
-
-// note: this is a temporary function.  Eventually this will be moved to a 
+//
+// Note: this is a temporary function.  Eventually this will be moved to a 
 // boundary condition class.
+//
+
 static
 bool
-hasOutFlowBC(BCRec* _phys_bc)
+hasOutFlowBC (BCRec* _phys_bc)
 {
+    bool has_out_flow = false;
+    int  numOutFlowBC = 0;
 
-  bool has_out_flow = false;
-  int numOutFlowBC = 0;
-  for (int idir = 0; idir < BL_SPACEDIM; idir++) {
+    for (int idir = 0; idir < BL_SPACEDIM; idir++)
+    {
+        if (_phys_bc->lo(idir) == Outflow)
+        {
+            has_out_flow = true;
+            numOutFlowBC++;
+        }
 
-    if (_phys_bc->lo(idir) == Outflow) {
-      has_out_flow = true;
-      numOutFlowBC++;
+        if (_phys_bc->hi(idir) == Outflow)
+        {
+            has_out_flow = true;
+            numOutFlowBC++;
+        }
     }
 
-    if (_phys_bc->hi(idir) == Outflow) {
-      has_out_flow = true;
-      numOutFlowBC++;
-    }
+    if (numOutFlowBC > 1)
+        //
+        // true signals low-D solve for outflow.  false will enforce Div(U)=0
+        //
+        has_out_flow = false;
 
-  }
-
-  if (numOutFlowBC > 1) 
-      has_out_flow = false;//  true signals low-D solve for outflow.  false will enforce Div(U)=0
-
-  return has_out_flow;
+    return has_out_flow;
 }
 
 int  MacProj::verbose          = 0;
@@ -197,9 +212,8 @@ MacProj::install_level (int           level,
     if (level > 0)
     {
         mac_reg.clear(level);
-        mac_reg.set(level, new FluxRegister(LevelData[level].boxArray(),
-                                            parent->refRatio(level-1),
-                                            level,1));
+        mac_reg.set(level,new FluxRegister(LevelData[level].boxArray(),
+                                           parent->refRatio(level-1),level,1));
     }
 }
 
@@ -226,10 +240,7 @@ MacProj::BuildPhiBC (int level)
         {
             if (lo[dir] == domlo[dir])
             {
-                if (phys_lo[dir] == Outflow)
-                    bc.setLo(dir,LO_DIRICHLET);
-                else
-                    bc.setLo(dir,LO_NEUMANN);
+                bc.setLo(dir,phys_lo[dir]==Outflow ? LO_DIRICHLET : LO_NEUMANN);
             }
             else
             {
@@ -237,10 +248,7 @@ MacProj::BuildPhiBC (int level)
             }
             if (hi[dir] == domhi[dir])
             {
-                if (phys_hi[dir] == Outflow)
-                    bc.setHi(dir,LO_DIRICHLET);
-                else
-                    bc.setHi(dir,LO_NEUMANN);
+                bc.setHi(dir,phys_hi[dir]==Outflow ? LO_DIRICHLET : LO_NEUMANN);
             }
             else
             {
@@ -391,14 +399,14 @@ MacProj::mac_project (int             level,
     Rhs.copy(divu);
 
     int the_solver = 0;
-    if ( use_cg_solve )
-      {
+    if (use_cg_solve)
+    {
 	the_solver = 1;
-      }
-    else if ( use_hypre_solve )
-      {
+    }
+    else if (use_hypre_solve)
+    {
 	the_solver = 2;
-      }
+    }
     mac_level_driver(mac_bndry, grids, the_solver, level, Density,
                      dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
                      area[level], volume[level], S, Rhs, u_mac, mac_phi);
@@ -609,14 +617,14 @@ MacProj::mac_sync_solve (int       level,
     // Solve the sync system.
     //
     int the_solver = 0;
-    if ( use_cg_solve )
-      {
+    if (use_cg_solve)
+    {
 	the_solver = 1;
-      }
-    else if ( use_hypre_solve )
-      {
+    }
+    else if (use_hypre_solve)
+    {
 	the_solver = 2;
-      }
+    }
     mac_sync_driver(mac_bndry, grids, the_solver, level, dx, dt,
                     mac_sync_tol, mac_abs_tol, rhs_scale, area[level],
                     volume[level], Rhs, rho_half, u_mac, mac_sync_phi);
@@ -670,31 +678,30 @@ MacProj::mac_sync_compute (int                   level,
     MultiFab vel_visc_terms(grids,BL_SPACEDIM,1);
     MultiFab scal_visc_terms(grids,numscal,1);
 
-     vel_visc_terms.setVal(0,1); // Initialize to make calls below safe
+    vel_visc_terms.setVal(0,1);  // Initialize to make calls below safe
     scal_visc_terms.setVal(0,1); // Initialize to make calls below safe
-
     //
     // Get viscous forcing.
     //
     if (be_cn_theta != 1.0) 
     {
-      int i;
-      bool do_get_visc_terms = false;
+        int i;
+        bool do_get_visc_terms = false;
 
-      for (i=0; i < BL_SPACEDIM; ++i)
-        if (!increment_sync.ready() || increment_sync[i]==1)
-          do_get_visc_terms = true;
+        for (i=0; i < BL_SPACEDIM; ++i)
+            if (!increment_sync.ready() || increment_sync[i]==1)
+                do_get_visc_terms = true;
 
-      if (do_get_visc_terms || use_forces_in_trans)
-        ns_level.getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
+        if (do_get_visc_terms || use_forces_in_trans)
+            ns_level.getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
 
-      do_get_visc_terms = false;
-      for (i=BL_SPACEDIM; i < increment_sync.length(); ++i)
-        if (!increment_sync.ready() || increment_sync[i]==1)
-          do_get_visc_terms = true;
+        do_get_visc_terms = false;
+        for (i=BL_SPACEDIM; i < increment_sync.length(); ++i)
+            if (!increment_sync.ready() || increment_sync[i]==1)
+                do_get_visc_terms = true;
 
-      if (do_get_visc_terms)
-        ns_level.getViscTerms(scal_visc_terms,BL_SPACEDIM,numscal,prev_time);
+        if (do_get_visc_terms)
+            ns_level.getViscTerms(scal_visc_terms,BL_SPACEDIM,numscal,prev_time);
     }
 
     Array<int> ns_level_bc, bndry[BL_SPACEDIM];
@@ -726,15 +733,16 @@ MacProj::mac_sync_compute (int                   level,
     //
     for ( ; S_fpi.isValid() && P_fpi.isValid(); ++S_fpi, ++P_fpi)
     {
-        DependentMultiFabIterator u_mac0mfi(S_fpi,u_mac[0]);
-        DependentMultiFabIterator u_mac1mfi(S_fpi, u_mac[1]);
+        D_TERM(DependentMultiFabIterator u_mac0mfi(S_fpi,u_mac[0]);,
+               DependentMultiFabIterator u_mac1mfi(S_fpi,u_mac[1]);,
+               DependentMultiFabIterator u_mac2mfi(S_fpi,u_mac[2]););
+
         DependentMultiFabIterator volumemfi(S_fpi,volume[level]);
-        DependentMultiFabIterator area0mfi(S_fpi,area[level][0]);
-        DependentMultiFabIterator area1mfi(S_fpi,area[level][1]);
-#if (BL_SPACEDIM == 3)
-        DependentMultiFabIterator area2mfi(S_fpi,area[level][2]);
-        DependentMultiFabIterator u_mac2mfi(S_fpi,u_mac[2]);
-#endif
+
+        D_TERM(DependentMultiFabIterator area0mfi(S_fpi,area[level][0]);,
+               DependentMultiFabIterator area1mfi(S_fpi,area[level][1]);,
+               DependentMultiFabIterator area2mfi(S_fpi,area[level][2]););
+
         DependentMultiFabIterator Vsyncmfi(S_fpi,*Vsync);
         DependentMultiFabIterator Ssyncmfi(S_fpi,*Ssync);
         DependentMultiFabIterator rho_halfmfi(S_fpi,*rho_half);
@@ -749,21 +757,16 @@ MacProj::mac_sync_compute (int                   level,
         FArrayBox U;
         U.resize(S.box(),BL_SPACEDIM);
         U.copy(S_fpi(),0,0,BL_SPACEDIM);
-
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
         // Create storage for corrective velocities.
         //
-        grad_phi[0].resize(::surroundingNodes(grids[i],0),1);
-        grad_phi[1].resize(::surroundingNodes(grids[i],1),1);
-#if (BL_SPACEDIM == 3)
-        grad_phi[2].resize(::surroundingNodes(grids[i],2),1);
-#endif
-        mac_vel_update(1, grad_phi[0], grad_phi[1],
-#if (BL_SPACEDIM == 3)
-                       grad_phi[2],
-#endif
+        D_TERM(grad_phi[0].resize(::surroundingNodes(grids[i],0),1);,
+               grad_phi[1].resize(::surroundingNodes(grids[i],1),1);,
+               grad_phi[2].resize(::surroundingNodes(grids[i],2),1););
+
+        mac_vel_update(1,D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
                        mac_sync_phimfi(), &rho_halfmfi(),
                        0, grids[i], level, i, dx, dt/2.0);
         //
@@ -807,7 +810,6 @@ MacProj::mac_sync_compute (int                   level,
         //
         FArrayBox& u_sync = Vsyncmfi();
         FArrayBox& s_sync = Ssyncmfi();
-
         //
         // Loop over state components and compute the sync advective component.
         //
@@ -837,62 +839,62 @@ MacProj::mac_sync_compute (int                   level,
                                     U, S, tforces, comp, temp, sync_ind,
                                     use_conserv_diff, comp,
                                     ns_level_bc.dataPtr(), volumemfi());
-
                 //
                 // NOTE: the signs here are opposite from VELGOD.
                 // NOTE: fluxes expected to be in extensive form.
                 //
                 if (level > 0)
                 {
-                    adv_flux_reg->FineAdd(xflux,0,i,0,comp,1,-dt);
-                    adv_flux_reg->FineAdd(yflux,1,i,0,comp,1,-dt);
-#if (BL_SPACEDIM == 3)
-                    adv_flux_reg->FineAdd(zflux,2,i,0,comp,1,-dt);
-#endif
+                    D_TERM(adv_flux_reg->FineAdd(xflux,0,i,0,comp,1,-dt);,
+                           adv_flux_reg->FineAdd(yflux,1,i,0,comp,1,-dt);,
+                           adv_flux_reg->FineAdd(zflux,2,i,0,comp,1,-dt););
                 }
             }
         }
-
-        // Fill temp_reg with the normal fluxes 
+        //
+        // Fill temp_reg with the normal fluxes.
+        //
         int velpred = 0;
         if (modify_reflux_normal_vel)
         {
-          for (int comp = 0; comp < BL_SPACEDIM; comp++)
-          {
-             godunov->edge_states(grids[i], dx, dt, velpred,
-                                  u_mac0mfi(), xflux, 
-                                  u_mac1mfi(), yflux,
+            for (int comp = 0; comp < BL_SPACEDIM; comp++)
+            {
+                godunov->edge_states(grids[i], dx, dt, velpred,
+                                     u_mac0mfi(), xflux, 
+                                     u_mac1mfi(), yflux,
 #if (BL_SPACEDIM == 3)                            
-                                  u_mac2mfi(), zflux,
+                                     u_mac2mfi(), zflux,
 #endif
-                                  U, S, tforces, comp, comp,
-                                  ns_level_bc.dataPtr());
+                                     U, S, tforces, comp, comp,
+                                     ns_level_bc.dataPtr());
 
-             if (comp == 0) {
-                temp_reg->CrseInit(xflux,xflux.box(),comp,0,comp,1,1.0);
-             } else if (comp == 1) {
-                temp_reg->CrseInit(yflux,yflux.box(),comp,0,comp,1,1.0);
+                if (comp == 0)
+                {
+                    temp_reg->CrseInit(xflux,xflux.box(),comp,0,comp,1,1.0);
+                }
+                else if (comp == 1)
+                {
+                    temp_reg->CrseInit(yflux,yflux.box(),comp,0,comp,1,1.0);
 #if (BL_SPACEDIM == 3)
-             } else if (comp == 2) {
-                temp_reg->CrseInit(zflux,zflux.box(),comp,0,comp,1,1.0);
+                }
+                else if (comp == 2)
+                {
+                    temp_reg->CrseInit(zflux,zflux.box(),comp,0,comp,1,1.0);
 #endif
-             } 
-          }
-          temp_reg->CrseInitFinish();
+                } 
+            }
+            temp_reg->CrseInitFinish();
         }
-
         //
         // Include grad_phi in the mac registers corresponding
         // to the next coarsest interface.
         //
         if (level > 0)
         {
-            const Real mult =  -1.0/( (double) parent->nCycle(level));
-            mac_reg[level].FineAdd(grad_phi[0],area0mfi(),0,i,0,0,1,mult);
-            mac_reg[level].FineAdd(grad_phi[1],area1mfi(),1,i,0,0,1,mult);
-#if (BL_SPACEDIM == 3)
-            mac_reg[level].FineAdd(grad_phi[2],area2mfi(),2,i,0,0,1,mult);
-#endif
+            const Real mlt =  -1.0/( (double) parent->nCycle(level));
+            D_TERM(mac_reg[level].FineAdd(grad_phi[0],area0mfi(),0,i,0,0,1,mlt);,
+                   mac_reg[level].FineAdd(grad_phi[1],area1mfi(),1,i,0,0,1,mlt);,
+                   mac_reg[level].FineAdd(grad_phi[2],area2mfi(),2,i,0,0,1,mlt););
         }
         //
         // Multiply the sync term by dt -- now done in the calling routine.
@@ -913,9 +915,8 @@ MacProj::mac_sync_compute (int                   level,
           {
               FabSet& lofabs_temp = (*temp_reg)[Orientation(dir,Orientation::low)];
               FabSet& hifabs_temp = (*temp_reg)[Orientation(dir,Orientation::high)];
-
-              FabSet& lofabs_mr = mr[Orientation(dir,Orientation::low)];
-              FabSet& hifabs_mr = mr[Orientation(dir,Orientation::high)];
+              FabSet& lofabs_mr   = mr[Orientation(dir,Orientation::low)];
+              FabSet& hifabs_mr   = mr[Orientation(dir,Orientation::high)];
 
               for (FabSetIterator fsi(lofabs_temp); fsi.isValid(); ++fsi)
               {
@@ -930,6 +931,7 @@ MacProj::mac_sync_compute (int                   level,
           }
 
           temp_reg->Reflux(*Vsync,volume[level],scale,0,0,BL_SPACEDIM,geom);
+
           delete temp_reg;
     }
 
@@ -972,9 +974,9 @@ MacProj::mac_sync_compute (int                    level,
     FluxRegister* temp_reg = 0;
     if (modify_reflux_normal_vel && comp < BL_SPACEDIM)
     {
-      temp_reg = new FluxRegister(LevelData[level+1].boxArray(),
-                                  parent->refRatio(level),level+1,BL_SPACEDIM);
-      temp_reg->setVal(0.);
+        temp_reg = new FluxRegister(LevelData[level+1].boxArray(),
+                                    parent->refRatio(level),level+1,BL_SPACEDIM);
+        temp_reg->setVal(0.);
     }
     //
     // Compute the mac sync correction.
@@ -982,30 +984,26 @@ MacProj::mac_sync_compute (int                    level,
     for (MultiFabIterator Syncmfi(*Sync); Syncmfi.isValid(); ++Syncmfi)
     {
         DependentMultiFabIterator volumemfi(Syncmfi, volume[level]);
-        DependentMultiFabIterator area0mfi(Syncmfi, area[level][0]);
-        DependentMultiFabIterator area1mfi(Syncmfi, area[level][1]);
-        DependentMultiFabIterator sync_edges0mfi(Syncmfi, *sync_edges[0]);
-        DependentMultiFabIterator sync_edges1mfi(Syncmfi, *sync_edges[1]);
-#if (BL_SPACEDIM == 3)
-        DependentMultiFabIterator area2mfi(Syncmfi, area[level][2]);
-        DependentMultiFabIterator sync_edges2mfi(Syncmfi, *sync_edges[2]);
-#endif
+
+        D_TERM(DependentMultiFabIterator area0mfi(Syncmfi, area[level][0]);,
+               DependentMultiFabIterator area1mfi(Syncmfi, area[level][1]);,
+               DependentMultiFabIterator area2mfi(Syncmfi, area[level][2]););
+
+        D_TERM(DependentMultiFabIterator sync_edges0mfi(Syncmfi, *sync_edges[0]);,
+               DependentMultiFabIterator sync_edges1mfi(Syncmfi, *sync_edges[1]);,
+               DependentMultiFabIterator sync_edges2mfi(Syncmfi, *sync_edges[2]););
+
         DependentMultiFabIterator rho_halfmfi(Syncmfi, *rho_half);
         DependentMultiFabIterator mac_sync_phimfi(Syncmfi, *mac_sync_phi);
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
-        grad_phi[0].resize(::surroundingNodes(grids[Syncmfi.index()],0),1);
-        grad_phi[1].resize(::surroundingNodes(grids[Syncmfi.index()],1),1);
-#if (BL_SPACEDIM == 3)
-        grad_phi[2].resize(::surroundingNodes(grids[Syncmfi.index()],2),1);
-#endif
+        D_TERM(grad_phi[0].resize(::surroundingNodes(grids[Syncmfi.index()],0),1);,
+               grad_phi[1].resize(::surroundingNodes(grids[Syncmfi.index()],1),1);,
+               grad_phi[2].resize(::surroundingNodes(grids[Syncmfi.index()],2),1););
+
         mac_vel_update(1,
-                       grad_phi[0],
-                       grad_phi[1],
-#if (BL_SPACEDIM == 3)
-                       grad_phi[2],
-#endif
+                       D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
                        mac_sync_phimfi(),
                        &rho_halfmfi(), 0,
                        grids[Syncmfi.index()], level, Syncmfi.index(),
@@ -1013,14 +1011,13 @@ MacProj::mac_sync_compute (int                    level,
         //
         // Step 2: compute Mac correction by advecting the edge states.
         //
-        xflux.resize(::surroundingNodes(grids[Syncmfi.index()],0),1);
-        yflux.resize(::surroundingNodes(grids[Syncmfi.index()],1),1);
-        xflux.copy(sync_edges0mfi(),eComp,0,1);
-        yflux.copy(sync_edges1mfi(),eComp,0,1);
-#if (BL_SPACEDIM == 3)
-        zflux.resize(::surroundingNodes(grids[Syncmfi.index()],2),1);
-        zflux.copy(sync_edges2mfi(),eComp,0,1);
-#endif
+        D_TERM(xflux.resize(::surroundingNodes(grids[Syncmfi.index()],0),1);,
+               yflux.resize(::surroundingNodes(grids[Syncmfi.index()],1),1);,
+               zflux.resize(::surroundingNodes(grids[Syncmfi.index()],2),1););
+
+        D_TERM(xflux.copy(sync_edges0mfi(),eComp,0,1);,
+               yflux.copy(sync_edges1mfi(),eComp,0,1);,
+               zflux.copy(sync_edges2mfi(),eComp,0,1););
 
         int use_conserv_diff = (advectionType[comp] == Conservative)
                                                              ? true : false;
@@ -1042,25 +1039,30 @@ MacProj::mac_sync_compute (int                    level,
         //
         if (level > 0)
         {
-            adv_flux_reg->FineAdd(xflux,0,Syncmfi.index(),0,comp,1,-dt);
-            adv_flux_reg->FineAdd(yflux,1,Syncmfi.index(),0,comp,1,-dt);
-#if (BL_SPACEDIM == 3)
-            adv_flux_reg->FineAdd(zflux,2,Syncmfi.index(),0,comp,1,-dt);
-#endif
+            D_TERM(adv_flux_reg->FineAdd(xflux,0,Syncmfi.index(),0,comp,1,-dt);,
+                   adv_flux_reg->FineAdd(yflux,1,Syncmfi.index(),0,comp,1,-dt);,
+                   adv_flux_reg->FineAdd(zflux,2,Syncmfi.index(),0,comp,1,-dt););
         }
-        // Fill temp_reg with the normal fluxes 
+        //
+        // Fill temp_reg with the normal fluxes.
+        //
         if (modify_reflux_normal_vel && comp < BL_SPACEDIM)
         {
-             if (comp == 0) {
+             if (comp == 0)
+             {
                 temp_reg->CrseInit(sync_edges0mfi(),sync_edges0mfi().box(),eComp,0,comp,1,1.0);
-             } else if (comp == 1) {
+             }
+             else if (comp == 1)
+             {
                 temp_reg->CrseInit(sync_edges1mfi(),sync_edges1mfi().box(),eComp,0,comp,1,1.0);
 #if (BL_SPACEDIM == 3)
-             } else if (comp == 2) {
+             }
+             else if (comp == 2)
+             {
                 temp_reg->CrseInit(sync_edges2mfi(),sync_edges2mfi().box(),eComp,0,comp,1,1.0);
 #endif
              } 
-          temp_reg->CrseInitFinish();
+             temp_reg->CrseInitFinish();
         }
     }
 
@@ -1078,9 +1080,8 @@ MacProj::mac_sync_compute (int                    level,
           {
               FabSet& lofabs_temp = (*temp_reg)[Orientation(dir,Orientation::low)];
               FabSet& hifabs_temp = (*temp_reg)[Orientation(dir,Orientation::high)];
-
-              FabSet& lofabs_mr = mr[Orientation(dir,Orientation::low)];
-              FabSet& hifabs_mr = mr[Orientation(dir,Orientation::high)];
+              FabSet& lofabs_mr   = mr[Orientation(dir,Orientation::low)];
+              FabSet& hifabs_mr   = mr[Orientation(dir,Orientation::high)];
 
               for (FabSetIterator fsi(lofabs_temp); fsi.isValid(); ++fsi)
               {
@@ -1095,6 +1096,7 @@ MacProj::mac_sync_compute (int                    level,
           }
 
           temp_reg->Reflux(*Sync,volume[level],scale,comp,comp,1,geom);
+
           delete temp_reg;
     }
 }
@@ -1193,34 +1195,32 @@ MacProj::set_outflow_bcs (int             level,
     //
     //   (1/r)(d/dr)[r/rho dphi/dr] = dv/dr - S
     //
-
     bool hasOutFlow;
     Orientation outFace;
     getOutFlowFace(hasOutFlow,outFace,phys_bc);
 
-    const BoxArray&   grids = LevelData[level].boxArray();
-    const Geometry&   geom  = parent->Geom(level);
-    const Box& domain = parent->Geom(level).Domain();
+    const BoxArray&   grids  = LevelData[level].boxArray();
+    const Geometry&   geom   = parent->Geom(level);
+    const Box&        domain = parent->Geom(level).Domain();
 
     if (!grids_on_side_of_domain(grids,geom.Domain(),outFace)) 
       return;
 
-    const int outDir       = outFace.coordDir();
-
+    const int outDir    = outFace.coordDir();
     const int bndBxWdth = 1;
 
     Box ccBndBox;
     if (outFace.faceDir() == Orientation::high)
-      {
+    {
 	ccBndBox = 
-	  Box(::adjCellHi(domain,outDir,bndBxWdth)).shift(outDir,-bndBxWdth);
-      } else {
+            Box(::adjCellHi(domain,outDir,bndBxWdth)).shift(outDir,-bndBxWdth);
+    } else {
 	ccBndBox = 
-	  Box(::adjCellLo(domain,outDir,bndBxWdth)).shift(outDir,bndBxWdth);
-      }
+            Box(::adjCellLo(domain,outDir,bndBxWdth)).shift(outDir,bndBxWdth);
+    }
     Box phiBox  = ::adjCell(domain,outFace,1);
 
-    const Box valid_ccBndBox = ccBndBox & domain;
+    const Box      valid_ccBndBox       = ccBndBox & domain;
     const BoxArray uncovered_outflow_ba = ::complementIn(valid_ccBndBox,grids);
 
     if (uncovered_outflow_ba.ready() && 
@@ -1245,34 +1245,34 @@ MacProj::set_outflow_bcs (int             level,
     FArrayBox uedat[BL_SPACEDIM];
     
     for (int i = 0; i < BL_SPACEDIM; ++i)
-      {
+    {
 	uedat[i].resize(::surroundingNodes(ccBndBox,i), 1);
 	u_mac[i].copy(uedat[i]);
-      }
+    }
     
     static RunStats stats("mac_bc");
     stats.start();
     
     if (verbose && ParallelDescriptor::IOProcessor())
-      cout << "starting mac bc calculation" << endl;
+        cout << "starting mac bc calculation" << endl;
     
     MacOutFlowBC macBC;
     phidat.setVal(0.0);
     macBC.computeMacBC(uedat,divudat,rhodat,phidat,geom,outFace);
 
     if (verbose && ParallelDescriptor::IOProcessor())
-      cout << "finishing mac bc calculation" << endl;
+        cout << "finishing mac bc calculation" << endl;
 
     stats.end();
 
     for (MultiFabIterator mfi(*mac_phi); mfi.isValid(); ++mfi)
-      {
+    {
 	if (mfi().box().intersects(phidat.box()))
-	  {
+        {
 	    Box ovlp = mfi().box() & phidat.box();
 	    mfi().copy(phidat,ovlp);
-	  }
-      }
+        }
+    }
 }
 
 
