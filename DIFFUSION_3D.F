@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_3D.F,v 1.7 1999-02-24 01:18:16 propp Exp $
+c $Id: DIFFUSION_3D.F,v 1.8 1999-04-12 23:44:35 sstanley Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -312,7 +312,7 @@ c ::
        integer DIMDEC(betay)
        integer DIMDEC(betaz)
        integer DIMDEC(r)
-       REAL_T  alpha(DIMV(alpha),3)
+       REAL_T  alpha(DIMV(alpha),1)
        REAL_T  vol(DIMV(vol))
        REAL_T  denfab(DIMV(den))
        REAL_T  betax(DIMV(betax))
@@ -328,8 +328,6 @@ c ::
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 alpha(i,j,k,1) = vol(i,j,k) * denfab(i,j,k)
-                alpha(i,j,k,2) = vol(i,j,k) * denfab(i,j,k)
-                alpha(i,j,k,3) = vol(i,j,k) * denfab(i,j,k)
              end do
           end do
        end do
