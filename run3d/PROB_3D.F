@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.14 1999-01-06 00:15:16 lijewski Exp $
+c $Id: PROB_3D.F,v 1.15 1999-02-16 22:03:35 sstanley Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -33,11 +33,12 @@ c ::: namlen    => length of name
 c ::: strttime <=  start problem with this time variable
 c ::: 
 c ::: -----------------------------------------------------------
-      subroutine FORT_PROBINIT (init,name,namlen)
+      subroutine FORT_PROBINIT (init,name,namlen,problo,probhi)
 
       integer init,namlen
       integer name(namlen)
       integer untin, i
+      REAL_T  problo(SDIM), probhi(SDIM)
 
 #include "probdata.H"
 
@@ -94,7 +95,13 @@ c      write(6,fortin)
       enddo
 
       endif
-
+c
+c     Initialize the common blocks
+c
+      do i=1, SDIM
+        f_problo(i) = problo(i)
+        f_probhi(i) = probhi(i)
+      enddo
 
       end
 
