@@ -1,6 +1,6 @@
 
 //
-// $Id: NavierStokes.cpp,v 1.190 2000-11-01 17:52:19 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.191 2001-04-19 22:25:06 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -894,9 +894,6 @@ NavierStokes::initData ()
 #ifdef BL3_PROFILING
   BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::initData()");
 #endif
-    static RunStats stats("init_data");
-
-    stats.start();
     //
     // Initialize the state and the pressure.
     //
@@ -962,8 +959,6 @@ NavierStokes::initData ()
 
     is_first_step_after_regrid = false;
     old_intersect_new          = grids;
-
-    stats.end();
 }
 
 //

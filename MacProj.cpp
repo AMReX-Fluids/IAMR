@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.77 2001-01-19 22:56:58 marc Exp $
+// $Id: MacProj.cpp,v 1.78 2001-04-19 22:25:06 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -1179,9 +1179,6 @@ MacProj::set_outflow_bcs (int             level,
 	u_mac[i].copy(uedat[i]);
     }
     
-    static RunStats stats("mac_bc");
-    stats.start();
-    
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "starting mac bc calculation" << endl;
     
@@ -1191,8 +1188,6 @@ MacProj::set_outflow_bcs (int             level,
 
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "finishing mac bc calculation" << endl;
-
-    stats.end();
 
     for (MultiFabIterator mfi(*mac_phi); mfi.isValid(); ++mfi)
     {

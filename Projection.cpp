@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.133 2000-11-02 18:08:02 lijewski Exp $
+// $Id: Projection.cpp,v 1.134 2001-04-19 22:25:07 lijewski Exp $
 //
 
 #ifdef BL3_PROFILING
@@ -2706,9 +2706,6 @@ Projection::computeBC (FArrayBox&         velFab,
 #ifdef BL3_PROFILING
   BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::computeBC()");
 #endif
-    static RunStats stats("proj_bc");
-
-    stats.start();
 
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "starting holy-grail bc calculation" << endl;
@@ -2718,8 +2715,6 @@ Projection::computeBC (FArrayBox&         velFab,
 
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "finishing holy-grail bc calculation" << endl;
-
-    stats.end();
 }
 
 void Projection::getStreamFunction(PArray<MultiFab>& phi)
