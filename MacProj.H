@@ -4,7 +4,7 @@
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.11 1999-02-11 18:51:15 marc Exp $
+// $Id: MacProj.H,v 1.12 1999-03-25 19:00:21 marc Exp $
 //
 
 #include <BC_TYPES.H>
@@ -54,19 +54,19 @@ public:
     //
     // Computing the sync tendency.
     //
-    void mac_sync_compute (int           level,
-                           MultiFab*     u_mac,  
-                           MultiFab*     Vsync,
-                           MultiFab*     Ssync,
-                           MultiFab*     rho_half, 
-                           FluxRegister* adv_flux_reg,
-                           Array<int>    is_conservative,
-                           Real          prev_time,
-                           Real          prev_pres_time,
-                           Real          dt,
-                           int           NUM_STATE,
-                           Real          be_cn_theta,
-                           const int*    increment_sync = 0);
+    void mac_sync_compute (int               level,
+                           MultiFab*         u_mac,  
+                           MultiFab*         Vsync,
+                           MultiFab*         Ssync,
+                           MultiFab*         rho_half, 
+                           FluxRegister*     adv_flux_reg,
+                           Array<int>        is_conservative,
+                           Real              prev_time,
+                           Real              prev_pres_time,
+                           Real              dt,
+                           int               NUM_STATE,
+                           Real              be_cn_theta,
+                           const Array<int>& increment_sync = Array<int>());
 
     void mac_sync_compute (int           level,
                            MultiFab*     u_mac, 

@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.19 1999-03-24 22:49:30 almgren Exp $
+c $Id: PROJECTION_2D.F,v 1.20 1999-03-25 19:00:23 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -447,6 +447,8 @@ c     Local variables
       REAL_T div_edge_m1, rho_edge_m1, div_edge_m2, rho_edge_m2
       REAL_T max_divu, min_divu
       REAL_T uExt(0:NstripMAX-1)
+      REAL_T divuExt(0:NstripMAX-1)
+      REAL_T rhoExt(0:NstripMAX-1)
 
       ins = ARG_L1(phi)
       ine = ARG_H1(phi)
@@ -480,25 +482,25 @@ c     values are given along a 1-wide strip along the top of the domain.
       end if
 #endif
       
-c     In this implementation, use that d/dy == 0 at top, so y-edge centered values come
-c     directly from cell-centers just inside domain
-      
       divcor_ave = zero
       vtot = zero
       j = jcs + 1
       max_divu = divcor(ics,j)
       min_divu = max_divu
       do i = ics, ice
-         divcor_ave = divcor_ave+r(i)*divcor(i,j)
+         uExt(i-ics)    = half*(three*u(i,jcs+1,1)    - u(i,jcs,1))
+         divuExt(i-ics) = half*(three*divcor(i,jcs+1) - divcor(i,jcs))
+         rhoExt(i-ics)  = half*(three*rho(i,jcs+1)    - rho(i,jcs))
+         
+         divcor_ave = divcor_ave+r(i)*divuExt(i-ics)
          vtot = vtot+r(i)
-         max_divu = max(max_divu,divcor(i,j))
-         min_divu = min(min_divu,divcor(i,j))
-         uExt(i-ics) = half*(three*u(i,jcs+1,1) - u(i,jcs,1))
+         max_divu = max(max_divu,divuExt(i-ics))
+         min_divu = min(min_divu,divuExt(i-ics))
       end do
       divcor_ave = divcor_ave/vtot
-      max_pert = ABS(divcor(ics,j)-divcor_ave)
+      max_pert = ABS(divuExt(0)-divcor_ave)
       do i = ics+1, ice
-         max_pert = MAX(max_pert,ABS(divcor(i,j)-divcor_ave))
+         max_pert = MAX(max_pert,ABS(divuExt(ics-i)-divcor_ave))
       end do
       max_pert = max_pert/(ABS(divcor_ave)+small_pert)
       if ((max_divu.eq.zero.and.min_divu.eq.zero)
@@ -510,6 +512,9 @@ c     directly from cell-centers just inside domain
          end do
          return
       end if
+      do i = ics, ice
+         divuExt(i-ics) = divuExt(i-ics) - divcor_ave
+      end do
       
 c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu if U is 
 c     zero, S = d/dt(divu) if U = (ustar - uold)/dt] with periodic or Neumann
@@ -528,12 +533,11 @@ c     normal velocity, for the advective/diffusive step, for example.
       do i = 2,ine-ins
          icR = ins + i - 1
          icL = icR - 1
-         a(i) = r(icL) / rho(icL,j)
-         c(i) = r(icR) / rho(icR,j)
+         a(i) = r(icL) / rhoExt(icL-ics)
+         c(i) = r(icR) / rhoExt(icR-ics)
          b(i) = - a(i) - c(i)
-         s(i) = hx*
-     &        (r(icR)*( uExt(icR-ics)-half*hx*(divcor(icR,j)-divcor_ave))
-     &        +r(icL)*(-uExt(icL-ics)-half*hx*(divcor(icL,j)-divcor_ave)))
+         s(i) = hx*(r(icR)*( uExt(icR-ics)-half*hx*divuExt(icR-ics))
+     &        +     r(icL)*(-uExt(icL-ics)-half*hx*divuExt(icL-ics)))
       end do
 
       if (per .eq. 1) then
@@ -543,22 +547,20 @@ c     (retain r-stuff here, just to be sure scaling is not destroyed)
          neq = ine - ins
          icL = ice
          icR = ics
-         beta = r(icL) / rho(icL,j)
-         c(1) = r(icR) / rho(icR,j)
+         beta = r(icL) / rhoExt(icL-ics)
+         c(1) = r(icR) / rhoExt(icR-ics)
          b(1) = - beta - c(1)
-         s(1) = hx*
-     &        (r(icR)*( uExt(icR-ics)-half*hx*(divcor(icR,j)-divcor_ave))
-     &        +r(icL)*(-uExt(icL-ics)-half*hx*(divcor(icL,j)-divcor_ave)))
+         s(1) = hx*(r(icR)*( uExt(icR-ics)-half*hx*divuExt(icR-ics))
+     &        +     r(icL)*(-uExt(icL-ics)-half*hx*divuExt(icL-ics)))
          
 c     Do right-side periodic on penultimate node
          icL = ice - 1
          icR = ice
-         a(neq) = r(icL) / rho(icL,j)
-         alpha  = r(icR) / rho(icR,j)
+         a(neq) = r(icL) / rhoExt(icL-ics)
+         alpha  = r(icR) / rhoExt(icR-ics)
          b(neq) = - a(neq) - alpha
-         s(neq) = hx*
-     &        (r(icR)*( uExt(icR-ics)-half*hx*(divcor(icR,j)-divcor_ave))
-     &        +r(icL)*(-uExt(icL-ics)-half*hx*(divcor(icL,j)-divcor_ave)))
+         s(neq) = hx*(r(icR)*( uExt(icR-ics)-half*hx*divuExt(icR-ics))
+     &        +       r(icL)*(-uExt(icL-ics)-half*hx*divuExt(icL-ics)))
          
 c     Solve the equations
          call cyclic(a,b,c,alpha,beta,s,x,neq)
@@ -568,16 +570,14 @@ c     Solve the equations
 c     Solid walls, Nuemann conditions
          neq = ine - ins + 1
          icR = ics
-         c(1) = r(icR) / rho(icR,j)
-         b(1) = - c(1)
-         s(1) = hx*
-     &        r(icR)*( uExt(icR-ics)-half*hx*(divcor(icR,j)-divcor_ave))
+         c(1)   = r(icR) / rhoExt(icR-ics)
+         b(1)   = - c(1)
+         s(1)   = hx*r(icR)*( uExt(icR-ics)-half*hx*divuExt(icR-ics))
          
          icL = ice
-         a(neq) = r(icL) / rho(icL,j)
-         b(neq) = - a(ine-1)
-         s(neq) = hx*
-     &        r(icL)*(-uExt(icL-ics)-half*hx*(divcor(icL,j)-divcor_ave))
+         a(neq) = r(icL) / rhoExt(icL-ics)
+         b(neq) = - a(neq)
+         s(neq) = hx*r(icL)*(-uExt(icL-ics)-half*hx*divuExt(icL-ics))
          
 c     Solve the equations (we know they're singular, pass the arbitrary value, and
 c     a flag that we've already normalized the rhs, in the sense that
@@ -601,7 +601,9 @@ c     Write the solution into the arg
       SUBROUTINE tridag_sing(a,b,c,r,u,n,sVal,rNormed)
       INTEGER n,NMAX
       REAL_T a(n),b(n),c(n),r(n),u(n), sVal
+      REAL_T eps
       PARAMETER (NMAX=1000)
+      PARAMETER (eps=1.e-12)
       INTEGER j
       REAL_T bet,gam(NMAX)
       logical rNormed, singular
@@ -615,7 +617,7 @@ c     Write the solution into the arg
       do 11 j=2,n
         gam(j)=c(j-1)/bet
         bet=b(j)-a(j)*gam(j)
-        if(bet.eq.0.) then
+        if(ABS(bet).le.eps) then
            if (rNormed .and.  (j .eq. n)) then
               singular = .true.
            else

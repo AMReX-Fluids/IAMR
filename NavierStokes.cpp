@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.124 1999-03-18 22:22:40 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.125 1999-03-25 19:00:22 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1424,23 +1424,6 @@ NavierStokes::predict_velocity (Real  dt,
     if (be_cn_theta != 1.0)
     {
 	getViscTerms(visc_terms,Xvel,nComp,prev_time);
-    
-        for (MultiFabIterator mfi(visc_terms); mfi.isValid(); ++mfi)
-	{
-	    FArrayBox& vt  = mfi();
-	    const Box& box = mfi.validbox();
-	    FORT_VISCEXTRAP(vt.dataPtr(),ARLIM(vt.loVect()),ARLIM(vt.hiVect()),
-			    box.loVect(),box.hiVect(),&nComp);
-	}
-	
-	visc_terms.FillBoundary();
-	//
-	// Note: this is a special periodic fill in that we want to
-        // preserve the extrapolated grow values when periodic --
-        // usually we preserve only valid data.  The scheme relies on
-        // the fact that there is good data in the "non-periodic" grow cells.
-        //
-        geom.FillPeriodicBoundary(visc_terms,false,true);
     }
     else
     {
@@ -2213,18 +2196,6 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
 	if (be_cn_theta != 1.0)
         {
 	    getViscTerms(visc_terms,Xvel,nComp,prev_time);
-	
-            for (MultiFabIterator mfi(visc_terms); mfi.isValid(); ++mfi)
-            {
-                FArrayBox& vt  = mfi();
-                const Box& box = mfi.validbox();
-                FORT_VISCEXTRAP(vt.dataPtr(),ARLIM(vt.loVect()),ARLIM(vt.hiVect()),
-                                box.loVect(),box.hiVect(),&nComp);
-            }
-	    
-	    visc_terms.FillBoundary();
-
-            geom.FillPeriodicBoundary(visc_terms,false,true);
         }
         else
 	{
@@ -4808,8 +4779,8 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     // 
     // Initialize all viscous terms to zero
     //
-    visc_terms.setVal(0.0,0,num_comp,1);
-
+    const int nGrow = visc_terms.nGrow();
+    visc_terms.setVal(0.0,0,num_comp,nGrow);
     //
     // 
     // Get Velocity Viscous Terms
@@ -4874,6 +4845,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     if (num_scal > 0)
     {
         for (int icomp = first_scal; icomp < first_scal+num_scal; icomp++)
+        {
             if (is_diffusive[icomp])
             {
                 const int rho_flag = !is_conservative[icomp] ? 1 : 2;
@@ -4894,6 +4866,29 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
                     diffusion->removeFluxBoxesLevel(cmp_diffn);
                 }
             }
+        }
+    }
+    //
+    // Ensure consistent grow cells
+    //    
+    if (nGrow > 0)
+    {
+        for (MultiFabIterator mfi(visc_terms); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& vt  = mfi();
+            const Box& box = mfi.validbox();
+            FORT_VISCEXTRAP(vt.dataPtr(),ARLIM(vt.loVect()),ARLIM(vt.hiVect()),
+                            box.loVect(),box.hiVect(),&num_comp);
+        }
+        visc_terms.FillBoundary(0,num_comp);
+        //
+        // Note: this is a special periodic fill in that we want to
+        // preserve the extrapolated grow values when periodic --
+        // usually we preserve only valid data.  The scheme relies on
+        // the fact that there is good data in the "non-periodic" grow cells.
+        // ("good" data produced via VISCEXTRAP above)
+        //
+        geom.FillPeriodicBoundary(visc_terms,0,num_comp,false,true);
     }
 }
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.45 1999-03-06 00:01:27 propp Exp $
+// $Id: MacProj.cpp,v 1.46 1999-03-25 19:00:22 marc Exp $
 //
 
 #include <Misc.H>
@@ -607,19 +607,19 @@ MacProj::mac_sync_solve (int       level,
 //
 
 void
-MacProj::mac_sync_compute (int           level,
-                           MultiFab*     u_mac, 
-                           MultiFab*     Vsync,
-                           MultiFab*     Ssync,
-                           MultiFab*     rho_half,
-                           FluxRegister* adv_flux_reg,
-                           Array<int>    is_conservative,
-                           Real          prev_time, 
-                           Real          pres_prev_time,
-                           Real          dt, 
-                           int           NUM_STATE,
-                           Real          be_cn_theta,
-                           const int*    increment_sync)
+MacProj::mac_sync_compute (int               level,
+                           MultiFab*         u_mac, 
+                           MultiFab*         Vsync,
+                           MultiFab*         Ssync,
+                           MultiFab*         rho_half,
+                           FluxRegister*     adv_flux_reg,
+                           Array<int>        is_conservative,
+                           Real              prev_time, 
+                           Real              pres_prev_time,
+                           Real              dt, 
+                           int               NUM_STATE,
+                           Real              be_cn_theta,
+                           const Array<int>& increment_sync)
 {
     FArrayBox Rho, tforces, tvelforces;
     FArrayBox xflux, yflux, zflux, Gp;
@@ -651,11 +651,9 @@ MacProj::mac_sync_compute (int           level,
     // Get viscous forcing.
     //
     MultiFab visc_terms(grids,NUM_STATE,1);
-
+    visc_terms.setVal(0,1); // Initialize to make calls below safe
     if (be_cn_theta != 1.0)
         ns_level.getViscTerms(visc_terms,Xvel,NUM_STATE,prev_time);
-    else
-        visc_terms.setVal(0,1);
 
     Array<int> ns_level_bc, bndry[BL_SPACEDIM];
     //
@@ -755,39 +753,33 @@ MacProj::mac_sync_compute (int           level,
         //
         for (int comp = 0; comp < NUM_STATE; comp++)
         {
-            bool do_comp = increment_sync == 0;
-            if (!do_comp)
+            if (!increment_sync.ready() || increment_sync[comp]==1)
             {
-                do_comp = comp < BL_SPACEDIM || increment_sync[comp] == 1;
-            }
-            if (!do_comp)
-                continue;
-            const int  u_ind    = comp;
-            const int  s_ind    = comp-BL_SPACEDIM;
-            const int  sync_ind = comp < BL_SPACEDIM ? u_ind  : s_ind;
-            FArrayBox& temp     = comp < BL_SPACEDIM ? u_sync : s_sync;
-            ns_level_bc         = ns_level.getBCArray(State_Type,i,comp,1);
+                const int  sync_ind = comp < BL_SPACEDIM ? comp  : comp-BL_SPACEDIM;
+                FArrayBox& temp     = comp < BL_SPACEDIM ? u_sync : s_sync;
+                ns_level_bc         = ns_level.getBCArray(State_Type,i,comp,1);
 
-            godunov->SyncAdvect(grids[i], dx, dt, level, area0mfi(), u_mac0mfi(),
-                                grad_phi[0], xflux, area1mfi(), u_mac1mfi(),
-                                grad_phi[1], yflux,
+                godunov->SyncAdvect(grids[i], dx, dt, level, area0mfi(), u_mac0mfi(),
+                                    grad_phi[0], xflux, area1mfi(), u_mac1mfi(),
+                                    grad_phi[1], yflux,
 #if (BL_SPACEDIM == 3)                            
-                                area2mfi(), u_mac2mfi(), grad_phi[2], zflux,
+                                    area2mfi(), u_mac2mfi(), grad_phi[2], zflux,
 #endif
-                                S, tforces, comp, temp, sync_ind,
-                                is_conservative[comp], comp,
-                                ns_level_bc.dataPtr(), volumemfi());
-            //
-            // NOTE: the signs here are opposite from VELGOD.
-            // NOTE: fluxes expected to be in extensive form.
-            //
-            if (level > 0)
-            {
-                adv_flux_reg->FineAdd(xflux,0,i,0,comp,1,-dt);
-                adv_flux_reg->FineAdd(yflux,1,i,0,comp,1,-dt);
+                                    S, tforces, comp, temp, sync_ind,
+                                    is_conservative[comp], comp,
+                                    ns_level_bc.dataPtr(), volumemfi());
+                //
+                // NOTE: the signs here are opposite from VELGOD.
+                // NOTE: fluxes expected to be in extensive form.
+                //
+                if (level > 0)
+                {
+                    adv_flux_reg->FineAdd(xflux,0,i,0,comp,1,-dt);
+                    adv_flux_reg->FineAdd(yflux,1,i,0,comp,1,-dt);
 #if (BL_SPACEDIM == 3)
-                adv_flux_reg->FineAdd(zflux,2,i,0,comp,1,-dt);
+                    adv_flux_reg->FineAdd(zflux,2,i,0,comp,1,-dt);
 #endif
+                }
             }
         }
         //
@@ -1043,63 +1035,67 @@ MacProj::set_outflow_bcs (int             level,
 
     Box ccBndBox = ::adjCell(domain,outFace,bndBxWdth).shift(dir,-bndBxWdth);
     Box phiBox   = ::adjCell(domain,outFace,1);
-    //
-    // Note: this code assumes that we can fill ccBndBox from S.
-    //
-    // TODO -- how to generalize this ???
-    //
-    assert(::complementIn(ccBndBox,BoxList(S.boxArray())).isEmpty());
 
-    FArrayBox rhodat(ccBndBox,1);
-    FArrayBox divudat(ccBndBox,1);
-    FArrayBox phidat(phiBox,1);
+    const Box valid_ccBndBox = ccBndBox & domain;
+    const BoxArray uncovered_outflow_ba = ::complementIn(valid_ccBndBox,grids);
 
-    const BoxArray& ba = S.boxArray();
-
-    assert(ba == divu.boxArray());
-    //
-    // Fill rhodat & divudat.
-    //
-    S.copy(rhodat, Density, 0, 1);
-    divu.copy(divudat, 0, 0, 1);
-    //
-    // Load ec data.
-    //
-    FArrayBox uedat[BL_SPACEDIM-1];
-
-    for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
-	if (i != dir)
-	    uedat[cnt++].resize(::surroundingNodes(ccBndBox,i), 1);
-
-    for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
-	if (i != dir)
-            u_mac[i].copy(uedat[cnt++]);
-    //
-    // Make cc r (set = 1 if cartesian).
-    //
-    Array<Real> rcen(ccBndBox.length(0), 1.0);
-
-    if (CoordSys::IsRZ() == 1) 
-	parent->Geom(level).GetCellLoc(rcen, ccBndBox, 0);
-    //
-    // Compute boundary solution.
-    //
-    const int isPeriodicInX = parent->Geom(level).isPeriodic(0);
-
-    FORT_MACPHIBC(ARLIM(uedat[0].loVect()),ARLIM(uedat[0].hiVect()),uedat[0].dataPtr(),
-		  ARLIM(divudat.loVect()), ARLIM(divudat.hiVect()),divudat.dataPtr(),
-		  ARLIM(rhodat.loVect()),  ARLIM(rhodat.hiVect()), rhodat.dataPtr(),
-		  ARLIM(ccBndBox.loVect()),ARLIM(ccBndBox.hiVect()),
-		  rcen.dataPtr(), &dx[0],
-		  ARLIM(phidat.loVect()),  ARLIM(phidat.hiVect()), phidat.dataPtr(),
-		  &isPeriodicInX);
-
-    for (MultiFabIterator mfi(*mac_phi); mfi.isValid(); ++mfi)
+    if (uncovered_outflow_ba.ready() && ::intersect(grids,valid_ccBndBox).ready())
     {
-        if (mfi.validbox().intersects(phidat.box()))
+        BoxLib::Error("MacProj: Cannot yet handle partially refined outflow");
+    }
+    else
+    {
+        FArrayBox rhodat(ccBndBox,1);
+        FArrayBox divudat(ccBndBox,1);
+        FArrayBox phidat(phiBox,1);
+
+        const BoxArray& ba = S.boxArray();
+
+        assert(ba == divu.boxArray());
+        //
+        // Fill rhodat & divudat.
+        //
+        S.copy(rhodat, Density, 0, 1);
+        divu.copy(divudat, 0, 0, 1);
+        //
+        // Load ec data.
+        //
+        FArrayBox uedat[BL_SPACEDIM-1];
+
+        for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
+            if (i != dir)
+                uedat[cnt++].resize(::surroundingNodes(ccBndBox,i), 1);
+
+        for (int i = 0, cnt = 0; i < BL_SPACEDIM; ++i)
+            if (i != dir)
+                u_mac[i].copy(uedat[cnt++]);
+        //
+        // Make cc r (set = 1 if cartesian).
+        //
+        Array<Real> rcen(ccBndBox.length(0), 1.0);
+
+        if (CoordSys::IsRZ() == 1) 
+            parent->Geom(level).GetCellLoc(rcen, ccBndBox, 0);
+        //
+        // Compute boundary solution.
+        //
+        const int isPeriodicInX = parent->Geom(level).isPeriodic(0);
+
+        FORT_MACPHIBC(ARLIM(uedat[0].loVect()),ARLIM(uedat[0].hiVect()),uedat[0].dataPtr(),
+                      ARLIM(divudat.loVect()), ARLIM(divudat.hiVect()),divudat.dataPtr(),
+                      ARLIM(rhodat.loVect()),  ARLIM(rhodat.hiVect()), rhodat.dataPtr(),
+                      ARLIM(ccBndBox.loVect()),ARLIM(ccBndBox.hiVect()),
+                      rcen.dataPtr(), &dx[0],
+                      ARLIM(phidat.loVect()),  ARLIM(phidat.hiVect()), phidat.dataPtr(),
+                      &isPeriodicInX);
+
+        for (MultiFabIterator mfi(*mac_phi); mfi.isValid(); ++mfi)
         {
-            Box ovlp = mfi.validbox() & phidat.box();
-	    mfi().copy(phidat,ovlp);
+            if (mfi.validbox().intersects(phidat.box()))
+            {
+                Box ovlp = mfi.validbox() & phidat.box();
+                mfi().copy(phidat,ovlp);
+            }
         }
     }
 #else
