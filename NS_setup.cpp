@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NS_setup.cpp,v 1.35 2000-04-11 16:35:55 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.36 2000-04-12 19:08:43 sstanley Exp $
 //
 
 #include <NavierStokes.H>
@@ -352,10 +352,5 @@ NavierStokes::sum_integrated_quantities ()
         cout << "TIME= " << time << " TRAC= " << trac << '\n';
         cout.precision(old_prec);
     }
-}
-
-void
-NavierStokes::manual_tags_placement(TagBoxArray& tags, Array<IntVect>& bf_lev)
-{
 }
 

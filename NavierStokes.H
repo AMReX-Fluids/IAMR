@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.55 2000-03-27 18:12:53 lijewski Exp $
+// $Id: NavierStokes.H,v 1.56 2000-04-12 19:08:43 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -589,7 +589,8 @@ protected:
     // Called in grid_places after other tagging routines to modify
     //   the list of tagged points
     //
-    virtual void manual_tags_placement(TagBoxArray& tags, Array<IntVect>& bf_lev);
+    virtual void manual_tags_placement(TagBoxArray&    tags, 
+                                       Array<IntVect>& bf_lev);
 
     //
     // Determine whether a time corresponds to the New or Old
@@ -744,6 +745,9 @@ protected:
     static int do_mac_proj;
     static int do_divu_sync;
     static int check_umac_periodicity;
+    static int do_refine_outflow;          // The following three items control
+    static int do_derefine_outflow;        //   how grids are treated at 
+    static int Nbuf_outflow;               //   outflow boundaries.
     //
     // Members for non-zero divu.
     //
