@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.138 2002-03-18 22:44:26 almgren Exp $
+// $Id: Projection.cpp,v 1.139 2002-04-26 19:08:40 car Exp $
 //
 #include <winstd.H>
 
@@ -63,7 +63,7 @@ int       Projection::add_vort_proj      = 0;
 #if BL_SPACEDIM == 2
 #if BL_PRVERSION == 9
 static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::full;
-#elif BL_PRVERSION == 5
+#else
 static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
 #endif
 #elif BL_SPACEDIM == 3
