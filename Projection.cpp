@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.114 1999-09-14 23:01:56 car Exp $
+// $Id: Projection.cpp,v 1.115 1999-09-15 23:50:29 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -321,7 +321,11 @@ Projection::bldSyncProject ()
     sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
                                              0, finest_level, finest_level,
                                              *projector_bndry,
+#if (BL_PRVERSION == 9)
+					     holy_grail_amr_multigrid::full,
+#elif (BL_PRVERSION == 5)
 					     holy_grail_amr_multigrid::cross,
+#endif
                                              P_code);
 #if BL_SPACEDIM == 2
     if (CoordSys::IsRZ())
