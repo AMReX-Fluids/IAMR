@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.89 1998-09-16 18:06:53 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.90 1998-09-28 21:32:05 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -246,6 +246,7 @@ NavierStokes::read_params ()
     pp.query("do_sync_proj",   do_sync_proj   );
     pp.query("do_MLsync_proj", do_MLsync_proj );
     pp.query("do_reflux",      do_reflux      );
+    pp.query("do_mac_proj",    do_mac_proj    );
     //
     // This test insures if the user toggles do_sync_proj,
     // the user has knowledge that do_MLsync_proj is meaningless.
