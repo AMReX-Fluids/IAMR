@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.20 2001-03-28 18:51:09 car Exp $
+# $Id: GNUmakefile,v 1.21 2001-03-28 18:57:42 car Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -142,7 +142,7 @@ ifeq ($(USE_BL3),TRUE)
   CEXE_sources += BL3Error.cpp
   CEXE_sources += BL3Parallel.cpp  BL3BoxLib3.cpp
   INCLUDE_LOCATIONS += $(PBOXLIB_HOME)
-  MySrcDirs += $(PBOXLIB_HOME)/BoxLib3
+  BOXLIB3_HOME := $(PBOXLIB_HOME)/BoxLib3
 endif
 
 ifeq ($(MACHINE),OSF1)
@@ -201,8 +201,8 @@ ifeq ($(BUILD_INPLACE), TRUE)
     vpath_F   += $(HYPRE_DIR)/HypreABec
   endif
   ifeq ($(USE_BL3),TRUE)
-    vpath_cpp += $(MySrcDirs)
-    vpath_H   += $(MySrcDirs)
+    vpath_cpp += $(BOXLIB3_HOME)
+    vpath_H   += $(BOXLIB3_HOME)
   endif
   vpath_cpp += $(TOP)/pBoxLib_2
   vpath_H   += $(TOP)/pBoxLib_2
