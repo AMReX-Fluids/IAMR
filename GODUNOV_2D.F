@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.23 2002-10-17 21:16:00 marc Exp $
+c $Id: GODUNOV_2D.F,v 1.24 2002-10-18 15:21:05 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -630,6 +630,7 @@ c
       REAL_T tforces(DIMV(work))
 
       integer use_minion, iconserv
+      integer inc
 
       eps  = 1.0D-6
       dth  = half*dt
