@@ -118,6 +118,7 @@ ns.gravity              = 9.8  # forcing term is rho * abs(gravity) "down"
 geometry.coord_sys   =  0 # 0 for x-y (x-y-z), 1 for r-z
 geometry.prob_lo     =  0. 0. # physical dimensions of the low end of the domain
 geometry.prob_hi     =  1. 1. # physical dimensions of the high end of the domain
+geometry.is_periodic = 0 0
 
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
 # 0 = Interior/Periodic  3 = Symmetry
@@ -126,11 +127,6 @@ geometry.prob_hi     =  1. 1. # physical dimensions of the high end of the domai
 
 ns.lo_bc             = 5 1  # boundary conditions on the low end of the domain
 ns.hi_bc             = 5 2  # boundary conditions on the high end of the domain
-
-#-geometry.period_0    # uncomment if periodic in the x-dir, else comment out
-#-geometry.period_1    # uncomment if periodic in the y-dir, else comment out
-#-geometry.period_2    # uncomment if periodic in the z-dir, else comment out
-
 
 #**********************************
 #MORE OUTPUT CONTROLS

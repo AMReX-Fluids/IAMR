@@ -96,6 +96,11 @@ geometry.prob_hi     =  1. 2.
 
 #*******************************************************************************
 
+#Set to 1 if periodic in that direction
+geometry.is_periodic =  0 0
+
+#*******************************************************************************
+
 # Boundary conditions on the low end of the domain.
 ns.lo_bc             = 3 4  
 
@@ -105,12 +110,6 @@ ns.hi_bc             = 4 4
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
-
-# Uncomment if periodic in the x-dir, else comment out.
-#-geometry.period_0    
-
-# Uncomment if periodic in the y-dir, else comment out.
-#-geometry.period_1    
 
 #*******************************************************************************
 
