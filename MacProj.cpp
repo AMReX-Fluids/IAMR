@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.11 1997-12-19 21:09:04 lijewski Exp $
+// $Id: MacProj.cpp,v 1.12 1998-03-06 16:33:17 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -261,7 +261,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
   int outflow_at_top = phys_bc->lo(0) != Outflow && phys_bc->lo(1) != Outflow && 
     phys_bc->hi(0) != Outflow && phys_bc->hi(1) == Outflow; 
   if (outflow_at_top && have_divu && do_outflow_bcs) {
-    set_outflow_bcs(level, mac_phi, parent, u_mac, S, divu);
+    set_outflow_bcs(level, mac_phi, u_mac, S, divu);
   }
 #endif
 
@@ -877,7 +877,7 @@ void MacProj::check_div_cond(int level, MultiFab U_edge[]) const
 
 
 void MacProj::set_outflow_bcs(int level,
-                              MultiFab* mac_phi, Amr* parent, MultiFab* u_mac, 
+                              MultiFab* mac_phi, MultiFab* u_mac, 
                               MultiFab & S, const  MultiFab& divu)
 {
   const BoxArray& grids = LevelData[level].boxArray();

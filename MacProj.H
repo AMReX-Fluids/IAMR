@@ -2,7 +2,7 @@
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.6 1997-12-11 23:30:19 lijewski Exp $
+// $Id: MacProj.H,v 1.7 1998-03-06 16:33:16 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -73,7 +73,7 @@ protected: // ======================== protected member functions
     //------------ boundary conditions
     void BuildPhiBC(int level);
     void set_outflow_bcs(int level,
-                         MultiFab* mac_phi, Amr* parent, MultiFab* u_mac, 
+                         MultiFab* mac_phi, MultiFab* u_mac, 
                          MultiFab& S, const  MultiFab& divu);
     
 protected: // ======================== protected data members
