@@ -39,7 +39,7 @@
   xblob = 0.75
   yblob = 0.25
   zblob = 0.5
-  denfact = 10.0
+  denfact = 1.5
   velfact = 1.0
   radblob = 0.1
 
