@@ -74,8 +74,8 @@ C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H
 C$(BOXLIB_BASE)_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp MultiFab.cpp
 C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H Looping.H MultiFab.H
 
-C$(BOXLIB_BASE)_sources += VisMF.cpp
-C$(BOXLIB_BASE)_headers += VisMF.H
+C$(BOXLIB_BASE)_sources += VisMF.cpp BArena.cpp CArena.cpp
+C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
 
 T_sources += Array.cpp PArray.cpp List.cpp Pointers.cpp Tuple.cpp
 T_headers += Array.H PArray.H List.H Pointers.H Tuple.H Misc.H
