@@ -993,15 +993,17 @@ c     Write the solution into the arg
       INTEGER n,NMAX
       REAL_T a(n),b(n),c(n),r(n),u(n), sVal
       REAL_T eps
-      PARAMETER (NMAX=1000)
+      PARAMETER (NMAX=2000)
       PARAMETER (eps=1.D-12)
       INTEGER j
       REAL_T bet,gam(NMAX)
       logical rNormed, singular
       singular = .false.
+      if(n.gt.NMAX)then
+         STOP 'TRIDAG_SING: NMAX too small in tridag'
+      end if
       if((b(1).eq.zero).or.(ABS(b(n)).le.eps))then
-         write(6,*) 'tridag: rewrite equations'
-         stop
+         STOP 'TRIDAG_SING: rewrite equations'
       end if
       bet=b(1)
       u(1)=r(1)/bet
@@ -1030,13 +1032,15 @@ c     Write the solution into the arg
       SUBROUTINE tridag(a,b,c,r,u,n)
       INTEGER n,NMAX
       REAL_T a(n),b(n),c(n),r(n),u(n)
-      PARAMETER (NMAX=1000)
+      PARAMETER (NMAX=2000)
       INTEGER j
       REAL_T bet,gam(NMAX)
       if(n.gt.NMAX)then
-         write(6,*) 'NMAX too small in tridag'
+         STOP 'TRIDAG: NMAX too small in tridag'
       end if
-      if(b(1) .eq. 0.0D0)pause 'tridag: rewrite equations'
+      if(b(1) .eq. 0.0D0) then
+         STOP 'TRIDAG: rewrite equations'
+      end if
       bet=b(1)
       u(1)=r(1)/bet
       do 11 j=2,n
@@ -1054,15 +1058,14 @@ c     Write the solution into the arg
       SUBROUTINE cyclic(a,b,c,alpha,beta,r,x,n)
       INTEGER n,NMAX
       REAL_T alpha,beta,a(n),b(n),c(n),r(n),x(n)
-      PARAMETER (NMAX=1000)
+      PARAMETER (NMAX=2000)
       INTEGER i
       REAL_T fact,gamma,bb(NMAX),u(NMAX),z(NMAX),den
       if(n.le.2)then
-         write(6,*) 'n too small in cyclic'
-         stop
+         STOP 'CYCLIC: n too small in cyclic'
       end if
       if(n.gt.NMAX)then
-         write(6,*) 'NMAX too small in cyclic'
+         STOP 'CYCLIC: NMAX too small in cyclic'
       end if
       gamma=-b(1)
       bb(1)=b(1)-gamma
