@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.120 1999-03-05 20:32:24 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.121 1999-03-10 17:46:29 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1130,9 +1130,6 @@ NavierStokes::advance_setup (Real time,
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);
     }
-
-    get_new_data(State_Type).copy(get_old_data(State_Type),Density,Density,1);
-
     //
     // Calculate the time N viscosity and diffusivity
     //   Note: The viscosity and diffusivity at time N+1 are 
@@ -1903,31 +1900,52 @@ NavierStokes::scalar_advection_update (Real dt,
     FArrayBox  tforces;
     //
     // Compute inviscid estimate of scalars.
+    // (do rho separate, as we do not have rho at new time yet)
     //
-    FillPatchIterator Rho_fpi(*this,S_old,0,halftime,State_Type,Density,1);
-
-    for ( ; Rho_fpi.isValid(); ++Rho_fpi)
+    int sComp = first_scalar;
+    if (sComp == Density)
     {
-        DependentMultiFabIterator S_oldmfi(Rho_fpi,S_old);
-        DependentMultiFabIterator S_newmfi(Rho_fpi,S_new);
-        DependentMultiFabIterator Aofsmfi(Rho_fpi,Aofs);
-
-        const int i = Rho_fpi.index();
-
-        for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
+        for (MultiFabIterator S_oldmfi(S_old); S_oldmfi.isValid(); ++S_oldmfi)
         {
-            getForce(tforces,i,0,sigma,1,Rho_fpi());
+            DependentMultiFabIterator S_newmfi(S_oldmfi,S_new);
+            DependentMultiFabIterator Aofsmfi(S_oldmfi,Aofs);
+            
+            const int i = S_oldmfi.index();
+            tforces.resize(grids[i],1);
+            tforces.setVal(0.0);
+            godunov->Add_aofs_tf(S_oldmfi(), S_newmfi(), Density, 1, Aofsmfi(),
+                                 Density, tforces, 0, grids[i], dt);
+        }
+        ++sComp;
+    }
 
-            godunov->Add_aofs_tf(S_oldmfi(), S_newmfi(), sigma, 1, Aofsmfi(),
-                                 sigma, tforces, 0, grids[i], dt);
-
-	    if (is_conservative[sigma] ? false : true)
+    if (sComp <= last_scalar)
+    {
+        FillPatchIterator Rho_fpi(*this,S_old,0,halftime,State_Type,Density,1);
+        
+        for ( ; Rho_fpi.isValid(); ++Rho_fpi)
+        {
+            DependentMultiFabIterator S_oldmfi(Rho_fpi,S_old);
+            DependentMultiFabIterator S_newmfi(Rho_fpi,S_new);
+            DependentMultiFabIterator Aofsmfi(Rho_fpi,Aofs);
+            
+            const int i = Rho_fpi.index();
+            
+            for (int sigma = sComp; sigma <= last_scalar; sigma++)
             {
-                state_bc = getBCArray(State_Type,i,sigma,1);
-
-                godunov->ScalMinMax(S_oldmfi(), S_newmfi(), sigma,
-                                    state_bc.dataPtr(), grids[i]);
-	    }
+                getForce(tforces,i,0,sigma,1,Rho_fpi());
+                
+                godunov->Add_aofs_tf(S_oldmfi(), S_newmfi(), sigma, 1, Aofsmfi(),
+                                     sigma, tforces, 0, grids[i], dt);
+                
+                if ( !(is_conservative[sigma]) )
+                {
+                    state_bc = getBCArray(State_Type,i,sigma,1);
+                    
+                    godunov->ScalMinMax(S_oldmfi(), S_newmfi(), sigma,
+                                        state_bc.dataPtr(), grids[i]);
+                }
+            }
         }
     }
 }
