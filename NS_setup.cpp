@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.11 1998-03-25 22:40:34 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.12 1998-03-27 00:07:28 lijewski Exp $
 //
 
 #include <NavierStokes.H>
@@ -231,45 +231,38 @@ NavierStokes::variableSetUp ()
     //
     // kinetic energy
     //
-    derive_lst.add("energy",IndexType::TheCellType(),1,FORT_DERKENG,
-                   cell_to_cell,IndexType::TheCellType());
+    derive_lst.add("energy",IndexType::TheCellType(),1,FORT_DERKENG,cell_to_cell);
     derive_lst.addComponent("energy",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("energy",desc_lst,State_Type,Xvel,BL_SPACEDIM);
 
-    derive_lst.add("mag_vel",IndexType::TheCellType(),1,FORT_DERMVEL,
-                   cell_to_cell,IndexType::TheCellType());
+    derive_lst.add("mag_vel",IndexType::TheCellType(),1,FORT_DERMVEL,cell_to_cell);
     derive_lst.addComponent("mag_vel",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // magnitude of vorticity
     //
-    derive_lst.add("mag_vort",IndexType::TheCellType(),1,FORT_DERMGVORT,
-                   cell_grow,IndexType::TheCellType());
+    derive_lst.add("mag_vort",IndexType::TheCellType(),1,FORT_DERMGVORT,cell_grow);
     derive_lst.addComponent("mag_vort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // divergence of velocity field
     //
-    derive_lst.add("divu",IndexType::TheCellType(),1,FORT_DERMGDIVU,
-                   cell_grow,IndexType::TheCellType());
+    derive_lst.add("divu",IndexType::TheCellType(),1,FORT_DERMGDIVU,cell_grow);
     derive_lst.addComponent("divu",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // pressure gradient in X direction
     //
-    derive_lst.add("gradpx",IndexType::TheCellType(),1,FORT_DERGRDPX,
-                   cell_to_node,IndexType::TheNodeType());
+    derive_lst.add("gradpx",IndexType::TheCellType(),1,FORT_DERGRDPX,cell_to_node);
     derive_lst.addComponent("gradpx",desc_lst,Press_Type,Pressure,1);
     //
     // pressure gradient in Y direction
     //
-    derive_lst.add("gradpy",IndexType::TheCellType(),1,FORT_DERGRDPY,
-                   cell_to_node,IndexType::TheNodeType());
+    derive_lst.add("gradpy",IndexType::TheCellType(),1,FORT_DERGRDPY,cell_to_node);
     derive_lst.addComponent("gradpy",desc_lst,Press_Type,Pressure,1);
 
 #if (BL_SPACEDIM == 3)
     //
     // pressure gradient in Z direction
     //
-    derive_lst.add("gradpz",IndexType::TheCellType(),1,FORT_DERGRDPZ,
-                   cell_to_node,IndexType::TheNodeType());
+    derive_lst.add("gradpz",IndexType::TheCellType(),1,FORT_DERGRDPZ,cell_to_node);
     derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
 #endif
     //
