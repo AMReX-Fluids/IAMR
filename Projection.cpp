@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.136 2001-08-09 22:42:00 marc Exp $
+// $Id: Projection.cpp,v 1.137 2002-02-20 17:49:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -90,14 +90,6 @@ Projection::Projection (Amr*   _parent,
     LevelData(_finest_level+1), 
     radius(_finest_level+1)
 {
-#ifdef BL_T3E
-    //
-    // Force instantiation of List<int>::clear() for the T3E.
-    //
-    List<int> tempIntList;
-    tempIntList.clear();
-#endif
-
     read_params();
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
