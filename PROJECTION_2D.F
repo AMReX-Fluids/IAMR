@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.22 1999-04-16 18:17:19 propp Exp $
+c $Id: PROJECTION_2D.F,v 1.23 1999-05-07 20:29:47 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -445,7 +445,7 @@ c     Local variables
       REAL_T divcor_ave, vtot
       REAL_T div_edge, rho_edge
       REAL_T div_edge_m1, rho_edge_m1, div_edge_m2, rho_edge_m2
-      REAL_T max_divu, min_divu
+      REAL_T max_divu, min_divu, phitot, hxsq
       REAL_T uExt(0:NstripMAX-1)
       REAL_T divuExt(0:NstripMAX-1)
       REAL_T rhoExt(0:NstripMAX-1)
@@ -528,7 +528,8 @@ c                        d/dy( 1/rho d/dy( phi ) ) = dV/dy - S_ave
 c     
 c     This information should be used to construct the normal gradient of the
 c     normal velocity, for the advective/diffusive step, for example.
-      
+
+      hxsq = hx*hx
       j = jns
       do i = 2,ine-ins
          icR = ins + i - 1
@@ -536,8 +537,8 @@ c     normal velocity, for the advective/diffusive step, for example.
          a(i) = r(icL) / rhoExt(icL-ics)
          c(i) = r(icR) / rhoExt(icR-ics)
          b(i) = - a(i) - c(i)
-         s(i) = hx*(r(icR)*( uExt(icR-ics)-half*hx*divuExt(icR-ics))
-     &        +     r(icL)*(-uExt(icL-ics)-half*hx*divuExt(icL-ics)))
+         s(i) = half*(r(icL)+r(icR))*( (uExt(icR-ics)-uExt(icL-ics))/hx
+     &        -               half*(divuExt(icL-ics)+divuExt(icR-ics)) )*hxsq
       end do
 
       if (per .eq. 1) then
@@ -550,8 +551,8 @@ c     (retain r-stuff here, just to be sure scaling is not destroyed)
          beta = r(icL) / rhoExt(icL-ics)
          c(1) = r(icR) / rhoExt(icR-ics)
          b(1) = - beta - c(1)
-         s(1) = hx*(r(icR)*( uExt(icR-ics)-half*hx*divuExt(icR-ics))
-     &        +     r(icL)*(-uExt(icL-ics)-half*hx*divuExt(icL-ics)))
+         s(1) = r(icR)*( uExt(icR-ics)/hx-half*divuExt(icR-ics) )*hxsq
+     &        + r(icL)*(-uExt(icL-ics)/hx-half*divuExt(icL-ics) )*hxsq
          
 c     Do right-side periodic on penultimate node
          icL = ice - 1
@@ -559,8 +560,8 @@ c     Do right-side periodic on penultimate node
          a(neq) = r(icL) / rhoExt(icL-ics)
          alpha  = r(icR) / rhoExt(icR-ics)
          b(neq) = - a(neq) - alpha
-         s(neq) = hx*(r(icR)*( uExt(icR-ics)-half*hx*divuExt(icR-ics))
-     &        +       r(icL)*(-uExt(icL-ics)-half*hx*divuExt(icL-ics)))
+         s(neq) = r(icR)*( uExt(icR-ics)/hx-half*divuExt(icR-ics) )*hxsq
+     &        +   r(icL)*(-uExt(icL-ics)/hx-half*divuExt(icL-ics) )*hxsq
          
 c     Solve the equations
          call cyclic(a,b,c,alpha,beta,s,x,neq)
@@ -572,12 +573,12 @@ c     Solid walls, Nuemann conditions
          icR = ics
          c(1)   = r(icR) / rhoExt(icR-ics)
          b(1)   = - c(1)
-         s(1)   = hx*r(icR)*( uExt(icR-ics)-half*hx*divuExt(icR-ics))
+         s(1) = half*(3*r(icR)-r(icR+1))*( uExt(icR-ics)/hx-half*divuExt(icR-ics) )*hxsq
          
          icL = ice
          a(neq) = r(icL) / rhoExt(icL-ics)
          b(neq) = - a(neq)
-         s(neq) = hx*r(icL)*(-uExt(icL-ics)-half*hx*divuExt(icL-ics))
+         s(neq) = half*(3*r(icL)-r(icL-1))*(-uExt(icL-ics)/hx-half*divuExt(icL-ics) )*hxsq
          
 c     Solve the equations (we know they're singular, pass the arbitrary value, and
 c     a flag that we've already normalized the rhs, in the sense that
@@ -588,6 +589,16 @@ c                          Int[dU/dx - (S-S_ave)] == 0
          
       end if
       
+c     Try normalizing phi to average to zero
+      phitot = zero
+      do i = 1,neq
+         phitot = phitot + x(i)
+      end do
+      phitot = phitot / neq
+      do i = 1,neq
+         x(i) = x(i) - phitot
+      end do
+
 c     Write the solution into the arg
       do i = 1,neq
          phi(i+ins-1,jns) = x(i)
