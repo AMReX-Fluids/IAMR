@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.7 1998-09-29 20:08:27 lijewski Exp $
+// $Id: Diffusion.H,v 1.8 1998-11-04 23:33:13 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -46,178 +46,251 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 
 class Diffusion 
 {
-
-  Amr* parent;
-  AmrLevel* caller;
-  Diffusion *coarser, *finer;
-  const BoxArray& grids;
-  int level, NUM_STATE;
-  IntVect crse_ratio;
-  FluxRegister *viscflux_reg;
-
-  // volume and area fractions
-  MultiFab& volume;
-  MultiFab* area;
-
-  static int first;
-  static int do_reflux;
-  static int use_cg_solve;
-  static int use_tensor_cg_solve;
-  static int max_order;
-  static int tensor_max_order;
-  static bool use_mg_precond_flag;
-  static int use_dv_constant_mu_def;
-  static int scale_abec;
-  static int est_visc_mag;
-  static int Lphi_in_abs_tol;
-  static Array<int> is_diffusive;     // does variable diffuse?
-  static Array<Real> visc_coef;       // const coef viscosity terms
-  static Real visc_tol;
-  static Real visc_abs_tol;
-  static int verbose;
-  static Array<REAL> typical_vals;
-
 public:
 
-  Diffusion();
-  Diffusion(Amr* Parent, AmrLevel* Caller, Diffusion* coarser,
-            int num_state, FluxRegister* Viscflux_reg,
-            MultiFab& Volume, MultiFab* Area,
-            Array<int>  _is_diffusive,
-            Array<Real> _visc_coef);
+    Diffusion ();
 
-  virtual ~Diffusion();
+    Diffusion (Amr*               Parent,
+               AmrLevel*          Caller,
+               Diffusion*         coarser,
+               int                num_state,
+               FluxRegister*      Viscflux_reg,
+               MultiFab&          Volume,
+               MultiFab*          Area,
+               const Array<int>&  _is_diffusive,
+               const Array<Real>& _visc_coef);
 
-  void echo_settings() const;
+    virtual ~Diffusion ();
 
+    void echo_settings () const;
 
-  inline REAL get_scaled_abs_tol(int sigma, const MultiFab* rhs,
-                                 REAL a, REAL b,
-                                 const MultiFab* alpha,
-                                 const MultiFab* const * beta,
-                                 REAL reduction) const;
+    FluxRegister* viscFluxReg () { return viscflux_reg; }
 
-  REAL get_scaled_abs_tol(int sigma, const MultiFab* rhs,
-                          REAL a, REAL b,
-                          const MultiFab* alpha,
-                          const MultiFab* const * betan,
-                          const MultiFab* const * betanp1,
-                          REAL reduction) const;
+    REAL get_scaled_abs_tol (int                    sigma,
+                             const MultiFab*        rhs,
+                             REAL                   a,
+                             REAL                   b,
+                             const MultiFab*        alpha,
+                             const MultiFab* const* beta,
+                             REAL                   reduction) const;
 
-  void diffuse_scalar(Real dt, int sigma, Real be_cn_theta,
-                      MultiFab* rho_half, int rho_flag,
-                      int do_viscreflux=1,
-                      MultiFab* delta_rhs=NULL, MultiFab* alpha=NULL, 
-                      MultiFab** betan = NULL, 
-                      MultiFab** betanp1=NULL);
+    REAL get_scaled_abs_tol (int                    sigma,
+                             const MultiFab*        rhs,
+                             REAL                   a,
+                             REAL                   b,
+                             const MultiFab*        alpha,
+                             const MultiFab* const* betan,
+                             const MultiFab* const* betanp1,
+                             REAL                   reduction) const;
 
-  void diffuse_velocity(Real dt, Real be_cn_theta,
-                        MultiFab* rho_half, int rho_flag,
-                        MultiFab*  delta_rhs = NULL, 
-                        MultiFab** betan = NULL, 
-                        MultiFab** betanp1 = NULL);
+    void diffuse_scalar (Real       dt,
+                         int        sigma,
+                         Real       be_cn_theta,
+                         MultiFab*  rho_half,
+                         int        rho_flag,
+                         int        do_viscreflux = 1,
+                         MultiFab*  delta_rhs = 0,
+                         MultiFab*  alpha = 0, 
+                         MultiFab** betan = 0, 
+                         MultiFab** betanp1 = 0);
 
-  void diffuse_velocity_constant_mu(Real dt, Real be_cn_theta,
-                        MultiFab* rho_half,
-                        MultiFab* delta_rhs); 
+    void diffuse_velocity (Real       dt,
+                           Real       be_cn_theta,
+                           MultiFab*  rho_half,
+                           int        rho_flag,
+                           MultiFab*  delta_rhs = 0, 
+                           MultiFab** betan = 0, 
+                           MultiFab** betanp1 = 0);
 
-  void diffuse_tensor_velocity(Real dt, Real be_cn_theta,
-                        MultiFab* rho_half,
-                        MultiFab* delta_rhs, 
-                        MultiFab** betan, 
-                        MultiFab** betanp1);
+    void diffuse_velocity_constant_mu (Real      dt,
+                                       Real      be_cn_theta,
+                                       MultiFab* rho_half,
+                                       MultiFab* delta_rhs);
 
-  void diffuse_Vsync(MultiFab *Vsync, Real dt, Real be_cn_theta,
-                     MultiFab* rho_half, int rho_flag,
-                     MultiFab** beta=NULL);
+    void diffuse_tensor_velocity (Real       dt,
+                                  Real       be_cn_theta,
+                                  MultiFab*  rho_half,
+                                  MultiFab*  delta_rhs, 
+                                  MultiFab** betan, 
+                                  MultiFab** betanp1);
 
-  void diffuse_Vsync_constant_mu(MultiFab *Vsync, Real dt, Real be_cn_theta,
-                     MultiFab* rho_half, int rho_flag);
+    void diffuse_Vsync (MultiFab*  Vsync,
+                        Real       dt,
+                        Real       be_cn_theta,
+                        MultiFab*  rho_half,
+                        int        rho_flag,
+                        MultiFab** beta = 0);
 
-  void diffuse_tensor_Vsync(MultiFab *Vsync, Real dt, Real be_cn_theta,
-                     MultiFab* rho_half, int rho_flag,
-                     MultiFab** beta);
+    void diffuse_Vsync_constant_mu (MultiFab* Vsync,
+                                    Real      dt,
+                                    Real      be_cn_theta,
+                                    MultiFab* rho_half,
+                                    int       rho_flag);
 
-  void diffuse_Ssync(MultiFab *Ssync, int sigma, Real dt, Real be_cn_theta,
-                     MultiFab* rho_half, int rho_flag,
-                     int do_viscsyncflux, 
-                     MultiFab** beta=NULL, MultiFab* alpha=NULL);
+    void diffuse_tensor_Vsync (MultiFab*  Vsync,
+                               Real       dt,
+                               Real       be_cn_theta,
+                               MultiFab*  rho_half,
+                               int        rho_flag,
+                               MultiFab** beta);
 
-  ABecLaplacian* getViscOp(int src_comp, Real a, Real b, 
-                           Real time, ViscBndry & visc_bndry,
-                           MultiFab* rho_half, int rho_flag, Real* rhsscale=NULL,
-                           MultiFab** beta=NULL, MultiFab* alpha_in=NULL);
+    void diffuse_Ssync (MultiFab*  Ssync,
+                        int        sigma,
+                        Real       dt,
+                        Real       be_cn_theta,
+                        MultiFab*  rho_half,
+                        int        rho_flag,
+                        int        do_viscsyncflux, 
+                        MultiFab** beta = 0,
+                        MultiFab*  alpha = 0);
 
-  ABecLaplacian* getViscOp(int src_comp, Real a, Real b,
-                           MultiFab* rho_half, int rho_flag, Real* rhsscale=NULL,
-                           MultiFab** beta=NULL, MultiFab* alpha_in=NULL);
+    ABecLaplacian* getViscOp (int        src_comp,
+                              Real       a,
+                              Real       b, 
+                              Real       time,
+                              ViscBndry& visc_bndry,
+                              MultiFab*  rho_half,
+                              int        rho_flag,
+                              Real*      rhsscale = 0,
+                              MultiFab** beta = 0,
+                              MultiFab*  alpha_in = 0);
+
+    ABecLaplacian* getViscOp (int        src_comp,
+                              Real       a,
+                              Real       b,
+                              MultiFab*  rho_half,
+                              int        rho_flag,
+                              Real*      rhsscale = 0,
+                              MultiFab** beta = 0,
+                              MultiFab*  alpha_in = 0);
 
 #if defined(USE_TENSOR)
-  DivVis* getTensorOp(Real a, Real b, 
-                           Real time, 
+    DivVis* getTensorOp (Real         a,
+                         Real         b, 
+                         Real         time, 
 #if (BL_SPACEDIM==2) 
-                           ViscBndry2D& visc_bndry,
+                         ViscBndry2D& visc_bndry,
 #else 
-                           ViscBndry3D& visc_bndry,
+                         ViscBndry3D& visc_bndry,
 #endif
-                           MultiFab* rho_half,
-                           MultiFab** beta);
-  void getTensorBndryData(
+                         MultiFab*    rho_half,
+                         MultiFab**   beta);
+
+    void getTensorBndryData(
 #if (BL_SPACEDIM==2) 
-                          ViscBndry2D& bndry, 
+        ViscBndry2D& bndry, 
 #else 
-                          ViscBndry3D& bndry, 
+        ViscBndry3D& bndry, 
 #endif
-                          Real time);
-  DivVis* getTensorOp(Real a, Real b, 
-                           MultiFab* rho_half,
-                           MultiFab** beta);
+        Real time);
+
+    DivVis* getTensorOp (Real       a,
+                         Real       b, 
+                         MultiFab*  rho_half,
+                         MultiFab** beta);
 #endif
 
-  void getViscTerms(MultiFab& visc_terms, int src_comp, int comp,
-                    Real time, int rho_flag=0, MultiFab**beta=NULL);
+    void getViscTerms (MultiFab&  visc_terms,
+                       int        src_comp,
+                       int        comp,
+                       Real       time,
+                       int        rho_flag,
+                       MultiFab** beta = 0);
 
-  void getTensorViscTerms(MultiFab& visc_terms, 
-                             Real time, MultiFab** beta);
+    void getTensorViscTerms (MultiFab&  visc_terms, 
+                             Real       time,
+                             MultiFab** beta);
 
-  void getBndryData(ViscBndry& bndry, int src_comp,
-                    int num_comp, Real time, int rho_flag=0);
+    void getBndryData (ViscBndry& bndry,
+                       int        src_comp,
+                       int        num_comp,
+                       Real       time,
+                       int        rho_flag);
 
-  void FillBoundary(BndryRegister& bdry, int src_comp, int dest_comp,
-                int num_comp, Real time, int rho_flag=0);
+    void FillBoundary (BndryRegister& bdry,
+                       int            src_comp,
+                       int            dest_comp,
+                       int            num_comp,
+                       Real           time,
+                       int            rho_flag);
 
-  int useDvConstantMu() { return use_dv_constant_mu_def; }
+    int useDvConstantMu () { return use_dv_constant_mu_def; }
 
-  void checkBetas(const MultiFab* const * beta1,
-                  const MultiFab* const * beta2,
-                  int& allthere, int& allnull) const;
+    void checkBetas (const MultiFab* const* beta1,
+                     const MultiFab* const* beta2,
+                     int&                   allthere,
+                     int&                   allnull) const;
 
-  void checkBeta(const MultiFab* const * beta,
-                 int& allthere, int& allnull) const;
+    void checkBeta (const MultiFab* const* beta,
+                    int&                   allthere,
+                    int&                   allnull) const;
 
-  void checkBeta(const MultiFab* const * beta,
-                 int& allthere) const;
+    void checkBeta (const MultiFab* const* beta,
+                    int&                   allthere) const;
 
-  void allocFluxBoxesLevel(MultiFab**& fluxbox, 
-                           int nghost=0, int nvar=1);
+    void allocFluxBoxesLevel (MultiFab**& fluxbox, 
+                              int         nghost = 0,
+                              int         nvar = 1);
 
-  void removeFluxBoxesLevel(MultiFab**& fluxbox);
+    void removeFluxBoxesLevel (MultiFab**& fluxbox);
 
 #ifdef USE_NAVIERSTOKES
-  void compute_divmusi(Real time, MultiFab** beta, MultiFab& divmusi);
+    void compute_divmusi (Real time, MultiFab** beta, MultiFab& divmusi);
 
-  void compute_divmusi(Real time, Real mu, MultiFab& divmusi);
+    void compute_divmusi (Real time, Real mu, MultiFab& divmusi);
 #endif
+
+private:
+    //
+    // The data.
+    //
+    Amr*            parent;
+    AmrLevel*       caller;
+    Diffusion*      coarser;
+    Diffusion*      finer;
+    const BoxArray& grids;
+    int             level;
+    int             NUM_STATE;
+    IntVect         crse_ratio;
+    FluxRegister*   viscflux_reg;
+    //
+    // Volume and area fractions.
+    //
+    MultiFab& volume;
+    MultiFab* area;
+    //
+    // Static data.
+    //
+    static int         first;
+    static int         do_reflux;
+    static int         use_cg_solve;
+    static int         use_tensor_cg_solve;
+    static int         max_order;
+    static int         tensor_max_order;
+    static bool        use_mg_precond_flag;
+    static int         use_dv_constant_mu_def;
+    static int         scale_abec;
+    static int         est_visc_mag;
+    static int         Lphi_in_abs_tol;
+    static Array<int>  is_diffusive;    // Does variable diffuse?
+    static Array<Real> visc_coef;       // Const coef viscosity terms
+    static Real        visc_tol;
+    static Real        visc_abs_tol;
+    static int         verbose;
+    static Array<REAL> typical_vals;
 };
 
 inline
-REAL Diffusion::get_scaled_abs_tol(int sigma, const MultiFab* rhs,
-                                   REAL a, REAL b,
-                                   const MultiFab* alpha,
-                                   const MultiFab* const * beta,
-                                   REAL reduction) const
+REAL
+Diffusion::get_scaled_abs_tol (int             sigma,
+                               const MultiFab* rhs,
+                               REAL            a,
+                               REAL            b,
+                               const MultiFab* alpha,
+                               const MultiFab* const * beta,
+                               REAL            reduction) const
 {
-    return get_scaled_abs_tol(sigma, rhs, a, b, alpha, beta, NULL, reduction);
+    return get_scaled_abs_tol(sigma, rhs, a, b, alpha, beta, 0, reduction);
 }
 
 #endif

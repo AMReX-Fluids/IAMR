@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_2D.F,v 1.6 1998-03-31 17:26:35 lijewski Exp $
+c $Id: DIFFUSION_2D.F,v 1.7 1998-11-04 23:33:11 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -16,83 +16,114 @@ c
 
 c ::
 c :: ----------------------------------------------------------
-c :: compute the time averaged derivative of the given scalar
-c :: field at the indicated edges.
-c ::
-c :: INPUTS
-c :: s_o      =>  scalar array at old time
-c :: s_n      =>  scalar array at new time
-c :: nx,ny    =>  number of cells in grid interior
-c :: ng       =>  number of ghost cells for arrays
-c :: nv       =>  number of components in each array
-c :: flag     =>  controls action:
-c ::              -1 compute both X and Y fluxes
-c ::               0 compute X fluxes
-c ::               1 compute Y fluxes
-c ::
-c :: OUTPUTS
-c :: sedgex  <=   time averaged derivative in X direction
-c :: sedgey  <=   time averaged derivative in Y direction
+c :: compute the time averaged viscous flux at the given edge
+c ::  for variable transport coefficients
 c ::
 c :: NOTE:
-c ::   These are only computed for a reflux operation.  We
-c ::   need not worry about special stencils at physical
-c ::   bndries since refluxing is only performed in interior
-c ::   coarse/fine grid interfaces.
-c ::   The only requirement is that s_o and s_n have reasonable
-c ::   values so that the arithmetic does not blow up.
-c ::
-c ::   IMPORTANT:  if only one of the flux directions is specified
-c ::   the memory for the other may not be allocated.  Dont use
-c ::   it as a temporary.
+c ::   These are only computed for a reflux operation, and require
+c ::   that the ghost cells have been filled according to the 
+c ::   diffusion operator (maybe this isn't such a good idea...)
 c :: ----------------------------------------------------------
 c ::
 
-      subroutine FORT_VISCFLUX (s_o,s_n,DIMS(s),lo,hi,
-     $                          xflux,DIMS(xf),yflux,DIMS(yf),
-     $                          xarea,DIMS(ax),yarea,DIMS(ay),dx,mult,theta)
+      subroutine FORT_VISCFLUX_VC (s_o,s_n,DIMS(s),lo,hi,
+     $                             flux, DIMS(flux), area, DIMS(area),
+     $                             bn, bnp1, DIMS(b),
+     $                             dx,mult,theta,dir)
 
-      integer lo(2), hi(2)
+      integer lo(SDIM), hi(SDIM)
       integer DIMDEC(s)
-      integer DIMDEC(xf)
-      integer DIMDEC(yf)
-      integer DIMDEC(ax)
-      integer DIMDEC(ay)
+      integer DIMDEC(flux)
+      integer DIMDEC(area)
+      integer DIMDEC(b)
       REAL_T  s_o(DIMV(s))
       REAL_T  s_n(DIMV(s))
-      REAL_T  xflux(DIMV(xf))
-      REAL_T  yflux(DIMV(yf))
-      REAL_T  xarea(DIMV(ax))
-      REAL_T  yarea(DIMV(ay))
-      REAL_T  dx(2)
+      REAL_T  flux(DIMV(flux))
+      REAL_T  area(DIMV(area))
+      REAL_T  bn(DIMV(b))
+      REAL_T  bnp1(DIMV(b))
+      REAL_T  dx
       REAL_T  mult,theta
+      integer dir
 
       integer i, j
       REAL_T  sx1, sx2, sy1, sy2
       REAL_T  onemintheta
 
       onemintheta = one-theta
-c
+      if (dir .EQ. 0) then
 c     ::::: compute X fluxes
-c
          do j = lo(2), hi(2)
-            do i = lo(1), hi(1)+1
-	       sx1 = s_o(i,j) - s_o(i-1,j)
-	       sx2 = s_n(i,j) - s_n(i-1,j)
-	       xflux(i,j) = mult*(theta*sx1 + onemintheta*sx2)*xarea(i,j)/dx(1)
-            end do
+         do i = lo(1), hi(1)+1
+            sx1 = (s_o(i,j) - s_o(i-1,j))*bn(i,j)
+            sx2 = (s_n(i,j) - s_n(i-1,j))*bnp1(i,j)
+            flux(i,j) = mult*(onemintheta*sx1 + theta*sx2)*area(i,j)/dx
          end do
-c
+         end do
+      else
 c     ::::: compute Y fluxes
-c
          do j = lo(2), hi(2)+1
-            do i = lo(1), hi(1)
-	       sy1 = s_o(i,j) - s_o(i,j-1)
-	       sy2 = s_n(i,j) - s_n(i,j-1)
-	       yflux(i,j) = mult*(theta*sy1 + onemintheta*sy2)*yarea(i,j)/dx(2)
-	    end do
+         do i = lo(1), hi(1)
+            sy1 = (s_o(i,j) - s_o(i,j-1))*bn(i,j)
+            sy2 = (s_n(i,j) - s_n(i,j-1))*bnp1(i,j)
+            flux(i,j) = mult*(onemintheta*sy1 + theta*sy2)*area(i,j)/dx
          end do
+         end do
+      end if
+      end
 
+c ::
+c :: ----------------------------------------------------------
+c :: compute the time averaged viscous flux at the given edge
+c ::  for constant transport coefficients
+c ::
+c :: NOTE:
+c ::   These are only computed for a reflux operation, and require
+c ::   that the ghost cells have been filled according to the 
+c ::   diffusion operator (maybe this isn't such a good idea...)
+c :: ----------------------------------------------------------
+c ::
+
+      subroutine FORT_VISCFLUX_CC (s_o,s_n,DIMS(s),lo,hi,
+     $                             flux, DIMS(flux), area, DIMS(area),
+     $                             dx,mult,theta,dir)
+
+      integer lo(SDIM), hi(SDIM)
+      integer DIMDEC(s)
+      integer DIMDEC(flux)
+      integer DIMDEC(area)
+      REAL_T  s_o(DIMV(s))
+      REAL_T  s_n(DIMV(s))
+      REAL_T  flux(DIMV(flux))
+      REAL_T  area(DIMV(area))
+      REAL_T  dx
+      REAL_T  mult,theta
+      integer dir
+
+      integer i, j
+      REAL_T  sx1, sx2, sy1, sy2
+      REAL_T  onemintheta
+
+      onemintheta = one-theta
+      if (dir .EQ. 0) then
+c     ::::: compute X fluxes
+         do j = lo(2), hi(2)
+         do i = lo(1), hi(1)+1
+            sx1 = s_o(i,j) - s_o(i-1,j)
+            sx2 = s_n(i,j) - s_n(i-1,j)
+            flux(i,j) = mult*(onemintheta*sx1 + theta*sx2)*area(i,j)/dx
+         end do
+         end do
+      else
+c     ::::: compute Y fluxes
+         do j = lo(2), hi(2)+1
+         do i = lo(1), hi(1)
+            sy1 = s_o(i,j) - s_o(i,j-1)
+            sy2 = s_n(i,j) - s_n(i,j-1)
+            flux(i,j) = mult*(onemintheta*sy1 + theta*sy2)*area(i,j)/dx
+         end do
+         end do
+      end if
       end
 
       subroutine FORT_VISCSYNCFLUX (ssync,DIMS(ssync),lo,hi,
