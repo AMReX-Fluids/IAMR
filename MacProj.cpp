@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.66 2000-07-10 22:23:30 almgren Exp $
+// $Id: MacProj.cpp,v 1.67 2000-07-14 17:15:31 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -347,11 +347,16 @@ MacProj::mac_project (int             level,
     // Some of the routines we call assume that density has one valid
     // ghost cell.  We enforce that assumption by setting it here.
     //
-    FillPatchIterator S_fpi(ns,S,1,time,State_Type,Density,1);
+    const AmrLevel::TimeLevel whichTime = ns.which_time(State_Type,time);
 
-    for ( ; S_fpi.isValid(); ++S_fpi)
+    BL_ASSERT(!(whichTime == AmrLevel::AmrOtherTime));
+
+    const MultiFab& rho =
+        whichTime == AmrLevel::AmrNewTime ? *ns.rho_ctime : *ns.rho_ptime;
+    
+    for (ConstMultiFabIterator Rho_mfi(rho); Rho_mfi.isValid(); ++Rho_mfi)
     {
-        S[S_fpi.index()].copy(S_fpi(),0,Density,1);
+        S[Rho_mfi.index()].copy(Rho_mfi(),0,Density,1);
     }
 
     if (hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)

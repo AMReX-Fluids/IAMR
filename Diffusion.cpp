@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.95 2000-04-20 20:50:58 sstanley Exp $
+// $Id: Diffusion.cpp,v 1.96 2000-07-14 17:15:31 lijewski Exp $
 //
 
 //
@@ -381,10 +381,10 @@ Diffusion::diffuse_scalar (Real                   dt,
             b *= visc_coef[sigma];
 
         ViscBndry visc_bndry;
-        const Real prev_time = caller->get_state_data(State_Type).prevTime();
-        ABecLaplacian* visc_op =
-            getViscOp(sigma,a,b,prev_time,visc_bndry,rho_half,rho_flag,
-                      0,dataComp,betan);
+
+        const Real prev_time   = caller->get_state_data(State_Type).prevTime();
+        ABecLaplacian* visc_op = getViscOp(sigma,a,b,prev_time,visc_bndry,
+                                           rho_half,rho_flag,0,dataComp,betan);
         visc_op->maxOrder(max_order);
         //
         // Copy to single-component multifab, then apply op to rho-scaled state
@@ -513,11 +513,12 @@ Diffusion::diffuse_scalar (Real                   dt,
     if (allnull)
         b *= visc_coef[sigma];
 
-    ViscBndry visc_bndry;
-    Real rhsscale = 1.0;
-    const Real cur_time = caller->get_state_data(State_Type).curTime();
-    ABecLaplacian* visc_op = getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,
-                                       rho_flag,&rhsscale,dataComp,betanp1,alpha);
+    ViscBndry      visc_bndry;
+    const Real     cur_time = caller->get_state_data(State_Type).curTime();
+    Real           rhsscale = 1.0;
+    ABecLaplacian* visc_op  = getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,
+                                        rho_flag,&rhsscale,dataComp,betanp1,
+                                        alpha);
     Rhs.mult(rhsscale,0,1);
     visc_op->maxOrder(max_order);
     //
@@ -1043,16 +1044,17 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         //
         // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
         //
-        const Real a  = 1.0;
-        const Real b  = be_cn_theta*dt*visc_coef[comp];
-        Real rhsscale = 1.0;
-        ABecLaplacian* visc_op = getViscOp(comp,a,b,rho_half,rho_flag,&rhsscale);
+        const Real     a        = 1.0;
+        const Real     b        = be_cn_theta*dt*visc_coef[comp];
+        Real           rhsscale = 1.0;
+        ABecLaplacian* visc_op  = getViscOp(comp,a,b,rho_half,rho_flag,&rhsscale);
+
         visc_op->maxOrder(max_order);
         Rhs.mult(rhsscale,0,1);
         //
         // Construct solver and call it.
         //
-        const Real S_tol      = visc_tol;
+        const Real      S_tol = visc_tol;
         const MultiFab* alpha = &(visc_op->aCoefficients());
 
         MultiFab const* betan[BL_SPACEDIM];
@@ -1419,9 +1421,9 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     Real       b = be_cn_theta*dt;
     if (allnull)
         b *= visc_coef[state_ind];
-    Real rhsscale = 1.0;
-    ABecLaplacian* visc_op =
-        getViscOp(state_ind,a,b,rho_half,rho_flag,&rhsscale,dataComp,beta,alpha);
+    Real           rhsscale = 1.0;
+    ABecLaplacian* visc_op  = getViscOp(state_ind,a,b,rho_half,rho_flag,
+                                        &rhsscale,dataComp,beta,alpha);
     visc_op->maxOrder(max_order);
     Rhs.mult(rhsscale,0,1);
     //
@@ -2132,7 +2134,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 
     if (ncomp < BL_SPACEDIM)
         BoxLib::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least BL_SPACEDIM components");
-
     //
     // Before computing the godunov predicitors we may have to
     // precompute the viscous source terms.  To do this we must
@@ -2271,8 +2272,12 @@ Diffusion::getBndryData (ViscBndry& bndry,
     // TODO -- A MultiFab is a huge amount of space in which to pass along
     // the phys bc's.  InterpBndryData needs a more efficient interface.
     //
-    const int    nGrow = 1;
-    const BCRec& bc    = caller->get_desc_lst()[State_Type].getBC(src_comp);
+    const AmrLevel::TimeLevel whichTime = caller->which_time(State_Type,time);
+
+    NavierStokes&   ns  = *(NavierStokes*) &(parent->getLevel(level));
+    const int    nGrow  = 1;
+    const BCRec&    bc  = caller->get_desc_lst()[State_Type].getBC(src_comp);
+    const MultiFab& rho = whichTime == AmrLevel::AmrNewTime ? *ns.rho_ctime : *ns.rho_ptime;
 
     MultiFab S(grids, num_comp, nGrow);
 
@@ -2283,17 +2288,21 @@ Diffusion::getBndryData (ViscBndry& bndry,
     FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
     FillPatchIterator Rho_fpi(*caller,S);
 
-    if (rho_flag == 2)
+    ConstMultiFabIterator Rho_mfi(rho);
+
+    if (rho_flag == 2 && whichTime == AmrLevel::AmrOtherTime)
 	Rho_fpi.Initialize(nGrow,time,State_Type,Density,1);
 
-    for ( ; Phi_fpi.isValid(); ++Phi_fpi)
+    for ( ; Rho_mfi.isValid() && Phi_fpi.isValid(); ++Rho_mfi, ++Phi_fpi)
     {
-	if (rho_flag == 2)
+	if (rho_flag == 2 && whichTime == AmrLevel::AmrOtherTime)
 	    Rho_fpi.isValid();
+
+        const FArrayBox& Rho = whichTime == AmrLevel::AmrOtherTime ? Rho_fpi() : Rho_mfi();
 
         DependentMultiFabIterator S_mfi(Phi_fpi, S);
 
-        const BoxList gCells = ::boxDiff(Phi_fpi().box(), Phi_fpi.validbox());
+        const BoxList gCells = ::boxDiff(Phi_fpi().box(),Phi_fpi.validbox());
 
         for (BoxListIterator bli(gCells); bli; ++bli)
         {
@@ -2301,10 +2310,10 @@ Diffusion::getBndryData (ViscBndry& bndry,
 
             if (rho_flag == 2)
                 for (int n = 0; n < num_comp; ++n)
-                    S_mfi().divide(Rho_fpi(),bli(),0,n,1);
+                    S_mfi().divide(Rho,bli(),0,n,1);
         }
 
-	if (rho_flag == 2)
+	if (rho_flag == 2 && whichTime == AmrLevel::AmrOtherTime)
 	    ++Rho_fpi;
     }
     
@@ -2338,28 +2347,38 @@ Diffusion::FillBoundary (BndryRegister& bdry,
     // Need one grow cell filled for linear solvers.
     // We assume filPatch gets this right, where possible.
     //
-    const int nGrow = 1;
+    const AmrLevel::TimeLevel whichTime = caller->which_time(State_Type,time);
+
+    const int       nGrow = 1;
+    NavierStokes&   ns    = *(NavierStokes*) &(parent->getLevel(level));
+    const MultiFab& rho   = whichTime == AmrLevel::AmrNewTime ? *ns.rho_ctime : *ns.rho_ptime;
 
     MultiFab S(caller->boxArray(),num_comp,nGrow);
 
     FillPatchIterator Rho_fpi(*caller,S);
     FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
 
-    if (rho_flag == 2)
+    ConstMultiFabIterator Rho_mfi(rho);
+
+    if (rho_flag == 2 && whichTime == AmrLevel::AmrOtherTime)
 	Rho_fpi.Initialize(nGrow,time,State_Type,Density,1);
 
-    for ( ; S_fpi.isValid(); ++S_fpi)
+    for ( ; Rho_mfi.isValid() && S_fpi.isValid(); ++Rho_mfi, ++S_fpi)
     {
-        S[S_fpi.index()].copy(S_fpi(), 0, 0, num_comp);
+        S[S_fpi.index()].copy(S_fpi(),0,0,num_comp);
 
 	if (rho_flag == 2)
         {
-	    Rho_fpi.isValid();
+            if (whichTime == AmrLevel::AmrOtherTime)
+                Rho_fpi.isValid();
+
+            const FArrayBox& Rho = whichTime == AmrLevel::AmrOtherTime ? Rho_fpi() : Rho_mfi();
 
             for (int n = 0; n < num_comp; ++n)
-                S[S_fpi.index()].divide(Rho_fpi(), 0, n, 1);
+                S[S_fpi.index()].divide(Rho,0,n,1);
 
-	    ++Rho_fpi;
+            if (whichTime == AmrLevel::AmrOtherTime)
+                ++Rho_fpi;
         }
     }
     //
@@ -2387,8 +2406,11 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
     bndry.define(grids,nDer,caller->Geom());
 
     const int nGrow = 1;
+
     MultiFab S(grids,num_comp,nGrow,Fab_allocate);
+
     FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
+
     for ( ; Phi_fpi.isValid(); ++Phi_fpi)
     {
         DependentMultiFabIterator S_mfi(Phi_fpi, S);

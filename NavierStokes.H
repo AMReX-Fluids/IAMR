@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.65 2000-06-28 21:50:02 almgren Exp $
+// $Id: NavierStokes.H,v 1.66 2000-07-14 17:15:31 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -66,6 +66,7 @@ public:
 
     friend class Projection;
     friend class MacProj;
+    friend class Diffusion;
 
     NavierStokes ();
 
@@ -290,11 +291,18 @@ protected:
                                        MultiFab*&  alpha,
                                        MultiFab**& diffn,
                                        MultiFab**& diffnp1); 
-
+    //
+    // Make rho at time n.
+    //
+    void make_rho_prev_time ();
+    //
+    // Make rho at time n+1.
+    //
+    void make_rho_curr_time ();
     //
     // Make rho at time n+1/2.
     //
-    void makerhonph (Real dt);
+    void make_rho_half_time (Real dt);
     //
     // Update velocities after advection.
     //
@@ -522,50 +530,38 @@ protected:
     //
     // Calculate nonuniform viscosity and diffusivity
     //
-    virtual void calcViscosity(const Real time,
-                               const Real dt,
-                               const int  iteration,
-                               const int  ncycle);
+    virtual void calcViscosity (const Real time,
+                                const Real dt,
+                                const int  iteration,
+                                const int  ncycle);
 
-    virtual void calcDiffusivity(const Real time,
-                                 const Real dt,
-                                 const int  iteration,
-                                 const int  ncycle,
-                                 const int  src_comp = 0,
-                                 const int  num_comp = 1);
+    virtual void calcDiffusivity (const Real time,
+                                  const Real dt,
+                                  const int  iteration,
+                                  const int  ncycle,
+                                  const int  src_comp = 0,
+                                  const int  num_comp = 1);
 
-    virtual void getViscosity(MultiFab* viscosity[BL_SPACEDIM],
-                              const Real time);
+    virtual void getViscosity (MultiFab*  viscosity[BL_SPACEDIM],
+                               const Real time);
 
-    virtual void getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
-                                const Real time,
-                                const int state_comp,
-                                const int dst_comp,
-                                const int num_comp);
+    virtual void getDiffusivity (MultiFab*  diffusivity[BL_SPACEDIM],
+                                 const Real time,
+                                 const int  state_comp,
+                                 const int  dst_comp,
+                                 const int  num_comp);
 
-    void center_to_edge_plain(const FArrayBox& ccfab,
-                              FArrayBox&       ecfab,
-                              int              sComp,
-                              int              dComp,
-                              int              nComp);
-
+    void center_to_edge_plain (const FArrayBox& ccfab,
+                               FArrayBox&       ecfab,
+                               int              sComp,
+                               int              dComp,
+                               int              nComp);
     //
     // Called in grid_places after other tagging routines to modify
     //   the list of tagged points
     //
-    virtual void manual_tags_placement(TagBoxArray&    tags, 
-                                       Array<IntVect>& bf_lev);
-
-    //
-    // Determine whether a time corresponds to the New or Old
-    // time in the state
-    //
-    enum TimeLevel { NS_OldTime, NS_NewTime, NS_BadTime };
-    NavierStokes::TimeLevel which_time(int  state_indx,
-                                       Real time) const;
-
-
-
+    virtual void manual_tags_placement (TagBoxArray&    tags, 
+                                        Array<IntVect>& bf_lev);
     NavierStokes& getLevel (int lev)
     {
         return *(NavierStokes*) &parent->getLevel(lev);
@@ -646,6 +642,14 @@ protected:
     //
     MultiFab* rho_half;
     //
+    // Density at prev_time used in advance().
+    //
+    MultiFab* rho_ptime;
+    //
+    // Density at cur_time used in advance().
+    //
+    MultiFab* rho_ctime;
+    //
     // Data structure used to compute RHS for sync project.
     //
     SyncRegister* sync_reg;
@@ -667,7 +671,6 @@ protected:
     // Intersection of current BoxArray with that from before regrid.
     //
     BoxArray old_intersect_new;
-
     //
     // Static objects.
     //

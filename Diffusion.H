@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.17 2000-04-20 20:50:57 sstanley Exp $
+// $Id: Diffusion.H,v 1.18 2000-07-14 17:15:30 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -44,8 +44,7 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 //
 // Useful enumeration of the different forms of the diffusion terms
 //
-enum DiffusionForm {RhoInverse_Laplacian_S = 0, Laplacian_SoverRho,
-                    Laplacian_S};
+enum DiffusionForm { RhoInverse_Laplacian_S, Laplacian_SoverRho, Laplacian_S };
 
 class Diffusion 
 {
@@ -156,7 +155,7 @@ public:
     ABecLaplacian* getViscOp (int                    src_comp,
                               const Real             a,
                               const Real             b, 
-                              const Real             time,
+                              Real                   time,
                               ViscBndry&             visc_bndry,
                               const MultiFab*        rho_half,
                               int                    rho_flag,
@@ -206,18 +205,24 @@ public:
 			     int                    dataComp,
                              const MultiFab* const* beta);
 
-    void getBndryData (ViscBndry& bndry,
-                       int        src_comp,
-                       int        num_comp,
-                       Real       time,
-                       int        rho_flag);
+    void getBndryData (ViscBndry&         bndry,
+                       int                src_comp,
+                       int                num_comp,
+                       Real               time,
+                       int                rho_flag);
 
-    void FillBoundary (BndryRegister& bdry,
-                       int            src_comp,
-                       int            dest_comp,
-                       int            num_comp,
-                       Real           time,
-                       int            rho_flag);
+    void getBndryData (ViscBndry&          bndry,
+                       int                 src_comp,
+                       int                 num_comp,
+                       AmrLevel::TimeLevel the_time,
+                       int                 rho_flag);
+
+    void FillBoundary (BndryRegister&     bdry,
+                       int                src_comp,
+                       int                dest_comp,
+                       int                num_comp,
+                       Real               time,
+                       int                rho_flag);
 
     void checkBetas (const MultiFab* const* beta1,
                      const MultiFab* const* beta2,
@@ -247,27 +252,27 @@ public:
 			  MultiFab& divmusi);
 #endif
 
-    inline int maxOrder() const;
-    inline int tensorMaxOrder() const;
+    inline int maxOrder () const;
+    inline int tensorMaxOrder () const;
 
-    static int set_rho_flag(const DiffusionForm compDiffusionType);
+    static int set_rho_flag (const DiffusionForm compDiffusionType);
 
-    static bool are_any(const Array<DiffusionForm>& diffusionType,
-                        const DiffusionForm         testForm,
-                        const int                   sComp,
-                        const int                   nComp);
+    static bool are_any (const Array<DiffusionForm>& diffusionType,
+                         const DiffusionForm         testForm,
+                         const int                   sComp,
+                         const int                   nComp);
 
-    static int how_many(const Array<DiffusionForm>& diffusionType,
-                        const DiffusionForm         testForm,
-                        const int                   sComp,
-                        const int                   nComp);
+    static int how_many (const Array<DiffusionForm>& diffusionType,
+                         const DiffusionForm         testForm,
+                         const int                   sComp,
+                         const int                   nComp);
 
 protected:
     //
     // Data Required by Derived Classes
     //
-          Amr*      parent;
-          AmrLevel* caller;
+    Amr*            parent;
+    AmrLevel*       caller;
     const BoxArray& grids;
     const int       level;
     //
