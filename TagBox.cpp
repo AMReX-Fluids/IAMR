@@ -403,6 +403,7 @@ TagBoxArray::mergeUnique()
 	 }
       }
    }
+return;
 */
 
    FabArrayCopyDescriptor<int, TAGBOX> facd(true);
@@ -418,6 +419,13 @@ TagBoxArray::mergeUnique()
    for(int idest = 0; idest < fabparray.length(); ++idest) {
       bool destLocal = (distributionMap[idest] == myproc);
       for(int isrc = idest + 1; isrc < fabparray.length(); ++isrc) {
+	 if(boxarray[idest] != fabparray[idest].box()) {
+	   cerr << "boxarray[idest] != fabparray[idest].box()" << endl;
+	   cerr << "boxarray[" << idest << "] = " << boxarray[idest] << endl;
+	   cerr << "fabparray[" << idest << "].box() = " << fabparray[idest].box() << endl;
+	   cerr << endl;
+	 }
+	 //assert(boxarray[idest] == fabparray[idest].box());
          Box ovlp(boxarray[idest]);
          ovlp &= boxarray[isrc];
          if(ovlp.ok()) {
@@ -436,6 +444,9 @@ TagBoxArray::mergeUnique()
          }
       }
    }
+
+   assert(this->ok());
+
    facd.CollectData();
 
    int listIndex = 0;
@@ -819,6 +830,7 @@ TagBoxArray::coarsen(const IntVect & ratio)
        TAGBOX *tfine = fabparray.remove(fai.index());
        TAGBOX *tcrse = tfine->coarsen(ratio);
        fabparray.set(fai.index(),tcrse);
+       boxarray.set(fai.index(), tcrse->box());
        delete tfine;
     } 
     border = 0;

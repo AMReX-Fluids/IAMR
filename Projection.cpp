@@ -1,4 +1,4 @@
-#define _Projection_C_ $Id: Projection.cpp,v 1.3 1997-07-24 20:31:19 vince Exp $
+#define _Projection_C_ $Id: Projection.cpp,v 1.4 1997-07-30 20:58:58 vince Exp $
 #include <stdio.h>
 #include <Misc.H>
 #include <CoordSys.H>
@@ -324,11 +324,11 @@ void Projection::level_project(int level,
 	     << endl;
 	ParallelDescriptor::Abort("Exiting.");
       }
-      LevelData[level].FillCoarsePatch(P_new[i],0,cur_pres_time,Press_Type,0,1);
-      assert(grids[P_newmfi.index()] == P_newmfi.validbox());
+      LevelData[level].FillCoarsePatch(P_newmfi(),0,cur_pres_time,Press_Type,0,1);
+      //assert(grids[P_newmfi.index()] == P_newmfi.validbox());
       assert(P_newmfi().box() == P_newmfi.fabbox());
       // convert Unew to acceleration and Pnew to an update
-      ConvertUnew( U_newmfi(), U_oldmfi(), dt, P_newmfi.validbox() );
+      ConvertUnew( U_newmfi(), U_oldmfi(), dt, grids[P_newmfi.index()] );
       P_newmfi().minus( P_oldmfi() );
       BOX tempbox(P_newmfi().box());
       tempbox.grow(-2);

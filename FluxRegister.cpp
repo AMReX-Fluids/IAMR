@@ -253,8 +253,9 @@ void FluxRegister::Reflux(MultiFab &S, const MultiFab &volume, Real scale,
                           int src_comp, int dest_comp, int num_comp, 
                           const Geometry&geom)
 {
-ParallelDescriptor::Abort("FluxRegister::Reflux(MultiFab &S, const MultiFab &volume, ...) not implemented in parallel");
-/*
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("FluxRegister::Reflux(MultiFab &S, const MultiFab &volume, ...) not implemented in parallel");
+}
     int nreg = grids.length();
     const BoxArray& grd_boxes = S.boxArray();
     int ngrd = grd_boxes.length();
@@ -358,7 +359,6 @@ ParallelDescriptor::Abort("FluxRegister::Reflux(MultiFab &S, const MultiFab &vol
 #endif
         }
     }
-*/
 }
 
 // -------------------------------------------------------------
@@ -657,14 +657,14 @@ void
 FluxRegister::CrseInit(const MultiFab& mflx, int dir,
 		       int srccomp, int destcomp, int numcomp, REAL mult)
 {
-ParallelDescriptor::Abort("CrseInit(multifab, ...) not implemented in parallel.");
-/*
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("CrseInit(multifab, ...) not implemented in parallel.");
+}
     const BoxArray& bxa = mflx.boxArray();
     for(ConstMultiFabIterator mfi(mflx); mfi.isValid(); ++mfi) {
-        assert(mfi.box() == bxa[mfi.index()]);
-	CrseInit(mfi(),mfi.box(),dir,srccomp,destcomp,numcomp,mult);
+        assert(mfi.validbox() == bxa[mfi.index()]);
+	CrseInit(mfi(),mfi.validbox(),dir,srccomp,destcomp,numcomp,mult);
     }
-*/
 }
 
 // -------------------------------------------------------------
@@ -673,15 +673,15 @@ FluxRegister::CrseInit(const MultiFab& mflx, const MultiFab& area,
 		       int dir, int srccomp, int destcomp,
 		       int numcomp, REAL mult)
 {
-ParallelDescriptor::Abort("CrseInit(multifab, multifab, ...) not implemented in parallel.");
-/*
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("CrseInit(multifab, multifab, ...) not implemented in parallel.");
+}
     const BoxArray& bxa = mflx.boxArray();
     for(ConstMultiFabIterator mfi(mflx); mfi.isValid(); ++mfi) {
-        ConstDependentMultiFabIterator dmfi(area); dmfi.isValid(); ++dmfi);
-        assert(mfi.box() == bxa[mfi.index()]);
-	CrseInit(mfi(),dmfi(),mfi.box(),dir,srccomp,destcomp,numcomp,mult);
+        ConstDependentMultiFabIterator dmfi(mfi, area);
+        assert(mfi.validbox() == bxa[mfi.index()]);
+	CrseInit(mfi(),dmfi(),mfi.validbox(),dir,srccomp,destcomp,numcomp,mult);
     }
-*/
 }
 
 
@@ -872,8 +872,9 @@ FluxRegister::CrseInit(const FARRAYBOX& flux, const FARRAYBOX& area,
 		       const BOX& subbox, int dir,
 		       int srccomp, int destcomp, int numcomp, REAL mult)
 {
-ParallelDescriptor::Abort("CrseInit(fab, fab, ...) not implemented in parallel.");
-/*
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("CrseInit(fab, fab, ...) not implemented in parallel.");
+}
     int nvf = flux.nComp();
     assert(srccomp >= 0 && srccomp+numcomp <= nvf);
     assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
@@ -924,7 +925,6 @@ ParallelDescriptor::Abort("CrseInit(fab, fab, ...) not implemented in parallel."
 			  &dir,&mult);
 	}
     }
-*/
 }
 
 // -------------------------------------------------------------
@@ -932,15 +932,15 @@ void
 FluxRegister::FineAdd(const MultiFab& mflx, int dir,
 		      int srccomp, int destcomp, int numcomp, REAL mult)
 {
-ParallelDescriptor::Abort("FineAdd(multifab, ...) not implemented in parallel.");
-/*
+if(ParallelDescriptor::NProcs() > 1) {
+  ParallelDescriptor::Abort("FineAdd(multifab, ...) not implemented in parallel.");
+}
     const BoxArray& bxa = mflx.boxArray();
     int ngrd = bxa.length();
     int k;
     for (k = 0; k < ngrd; k++) {
 	FineAdd(mflx[k],dir,k,srccomp,destcomp,numcomp,mult);
     }
-*/
 }
 
 // -------------------------------------------------------------
@@ -948,15 +948,15 @@ void
 FluxRegister::FineAdd(const MultiFab& mflx, const MultiFab& area, int dir,
 		      int srccomp, int destcomp, int numcomp, REAL mult)
 {
+if(ParallelDescriptor::NProcs() > 1) {
 ParallelDescriptor::Abort("FineAdd(multifab, multifab, ...) not implemented in parallel.");
-/*
+}
     const BoxArray& bxa = mflx.boxArray();
     int ngrd = bxa.length();
     int k;
     for (k = 0; k < ngrd; k++) {
 	FineAdd(mflx[k],area[k],dir,k,srccomp,destcomp,numcomp,mult);
     }
-*/
 }
 
 // -------------------------------------------------------------
@@ -1003,8 +1003,9 @@ FluxRegister::FineAdd(const FARRAYBOX& flux, const FARRAYBOX& area,
                       int dir, int boxno,
 		      int srccomp, int destcomp, int numcomp, REAL mult)
 {
+if(ParallelDescriptor::NProcs() > 1) {
 ParallelDescriptor::Abort("FineAdd(flux, area, ..., boxno, ...) not implemented in parallel.");
-/*
+}
     int nvf = flux.nComp();
     assert(srccomp >= 0 && srccomp+numcomp <= nvf);
     assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
@@ -1043,7 +1044,6 @@ ParallelDescriptor::Abort("FineAdd(flux, area, ..., boxno, ...) not implemented 
                  flxdat,ARLIM(flo),ARLIM(fhi),
                  area_dat,ARLIM(alo),ARLIM(ahi),
                  &numcomp,&dir,ratio.getVect(),&mult);
-*/
 }
 
 // -------------------------------------------------------------
@@ -1087,7 +1087,9 @@ static void printFAB(ostream& os, const FARRAYBOX& f, int comp)
 void
 FluxRegister::print(ostream &os)
 {
-ParallelDescriptor::Abort("FluxRegister::print() not implemented in parallel.");
+//if(ParallelDescriptor::NProcs() > 1 ) {
+  ParallelDescriptor::Abort("FluxRegister::print() not implemented in parallel.");
+//}
 /*
     int ngrd = grids.length();
     os << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
