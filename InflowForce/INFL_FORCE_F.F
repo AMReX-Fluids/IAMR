@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.1 2000-06-06 18:39:24 sstanley Exp $
+c $Id: INFL_FORCE_F.F,v 1.2 2000-06-23 18:24:29 sstanley Exp $
 c
 
 #undef BL_LANG_CC
@@ -105,25 +105,27 @@ c
         call SET_LOHI(DIMS(inflDat), lo, hi)
 
         do n= 1,SDIM
-           if (n .NE. strmwse_dir) then
-              if (probHi(n) - probLo(n) .lt. probSizeFile(n)) then
-                 print *, "turbFile is too big in dir ",n,probSizeFile(n),
-     &                     probHi(n)-probLo(n)
-                 call BL_PD_ABORT()
-              endif
+          if (n .NE. strmwse_dir) then
+            is_periodic = bc(n,1) .eq. INT_DIR .and. 
+     $                    xlo(n) + dx(n)*half .lt. probLo(n)
+            is_periodic = is_periodic .or. (bc(n,2) .eq. INT_DIR .and.
+     $             xlo(n) + dx(n)*(float(hi(n)-lo(n)) + half) .gt. probHi(n))
 
-              is_periodic = bc(n,1) .eq. INT_DIR .and. 
-     $                      xlo(n) + dx(n)*half .lt. probLo(n)
-              is_periodic = is_periodic .or. (bc(n,2) .eq. INT_DIR .and.
-     $               xlo(n) + dx(n)*(float(hi(n)-lo(n)) + half) .gt. probHi(n))
+            if (.NOT.is_periodic .AND.
+     $          (probHi(n) - probLo(n) .lt. probSizeFile(n))) then
+              print *, "turbFile is too big in dir ",n,probSizeFile(n),
+     $                     probHi(n)-probLo(n)
+              call BL_PD_ABORT()
+            endif
 
-              if (is_periodic .and. 
-     $            probHi(n) - probLo(n) .ne. probSizeFile(n)) then
-                print *, "size wrong in periodic dir",n,probSizeFile(n),
-     &                                                     probHi(n)-probLo(n)
-                call BL_PD_ABORT()
-              endif
-           endif
+            if (is_periodic .and. 
+     $          probHi(n)-probLo(n) - (probSizeFile(n)-two*dxFile(n)) 
+     $                                             .gt. 0.001d0*dxFile(n)) then
+              print *, "size wrong in periodic dir",n,
+     $                      probSizeFile(n)-two*dxFile(n), probHi(n)-probLo(n)
+              call BL_PD_ABORT()
+            endif
+          endif
         enddo
 
         do n = 1, SDIM
