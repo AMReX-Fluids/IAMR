@@ -1,5 +1,5 @@
 c
-c $Id: SLABSTAT_NS_2D.F,v 1.1 2000-05-22 19:57:43 sstanley Exp $
+c $Id: SLABSTAT_NS_2D.F,v 1.2 2000-05-24 18:22:11 sstanley Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -79,8 +79,8 @@ c
       call SET_LOHI(DIMS(state), loState, hiState)
 
 #ifndef NDEBUG
-      if (nStats .NE. nStatsExpect .or. nStateComp .ne. nStateExp) then
-        write(*,1000) nStatsExpect, nStateExp, nStats, nStateComp
+      if (nStats .NE. nStatsExpect .or. nStateComp .ne. nStateExpect) then
+        write(*,1000) nStatsExpect, nStateExpect, nStats, nStateComp
  1000   format('Incorrect number of statistic and/or state components',
      $        /'FORT_NS_BASICSTATS_NCTRAC.  Should have nStats = ',I5,'and',
      $        /'nStateComp = ',I5,
@@ -238,8 +238,8 @@ c
       call SET_LOHI(DIMS(state), loState, hiState)
 
 #ifndef NDEBUG
-      if (nStats .NE. nStatsExpect .or. nStateComp .ne. nStateExp)
-        write(*,1000) nStatsExpect, nStateExp, nStats, nStateComp
+      if (nStats .NE. nStatsExpect .or. nStateComp .ne. nStateExpect) then
+        write(*,1000) nStatsExpect, nStateExpect, nStats, nStateComp
  1000   format('Incorrect number of statistic and/or state components',
      $        /'FORT_NS_BASICSTATS_CTRAC.  Should have nStats = ',I5,'and',
      $        /'nStateComp = ',I5,
