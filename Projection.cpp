@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.100 1999-07-01 20:07:24 almgren Exp $
+// $Id: Projection.cpp,v 1.101 1999-07-01 21:29:15 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -2122,6 +2122,7 @@ Projection::radMult (int       level,
                      MultiFab& mf,
                      int       comp)
 {
+    BL_ASSERT(mf.nGrow() <= 1);
     BL_ASSERT(radius_grow >= mf.nGrow());
     BL_ASSERT(comp >= 0 && comp < mf.nComp());
 
@@ -2158,6 +2159,7 @@ Projection::radDiv (int       level,
                     MultiFab& mf,
                     int       comp)
 {
+    BL_ASSERT(mf.nGrow() <= 1);
     BL_ASSERT(comp >= 0 && comp < mf.nComp());
     BL_ASSERT(radius_grow >= mf.nGrow());
 
