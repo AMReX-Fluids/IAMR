@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.136 1999-05-27 19:16:38 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.137 1999-06-07 17:32:43 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3779,6 +3779,10 @@ NavierStokes::level_sync ()
                        0, 0, BL_SPACEDIM, 1 , dt, sync_bc.dataPtr());
             SyncProjInterp(phi, level, P_new, lev, ratio);
         }
+        //
+        // Also, fix p_avg
+        //
+        p_avg->plus(phi,0,1,0);
     }
 }
 
