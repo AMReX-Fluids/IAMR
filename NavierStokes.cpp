@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.36 1998-03-28 00:34:48 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.37 1998-03-30 17:30:27 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -169,12 +169,12 @@ NavierStokes::read_params()
           if( lo_bc[dir] != Interior ){
             cerr << "NavierStokes::variableSetUp:periodic in direction";
             cerr << dir << " but low BC is not Interior\n";
-            ParallelDescriptor::Abort("NavierStokes::read_params()");
+            BoxLib::Abort("NavierStokes::read_params()");
           }
           if( hi_bc[dir] != Interior ){
             cerr << "NavierStokes::variableSetUp:periodic in direction";
             cerr << dir << " but high BC is not Interior\n";
-            ParallelDescriptor::Abort("NavierStokes::read_params()");
+            BoxLib::Abort("NavierStokes::read_params()");
           }
         }
       }
@@ -184,12 +184,12 @@ NavierStokes::read_params()
         if( lo_bc[dir] == Interior ){
           cerr << "NavierStokes::variableSetUp:interior bc in direction";
           cerr << dir << " but no periodic\n";
-          ParallelDescriptor::Abort("NavierStokes::read_params()");
+          BoxLib::Abort("NavierStokes::read_params()");
         }
         if( hi_bc[dir] == Interior ){
           cerr << "NavierStokes::variableSetUp:interior bc in direction";
           cerr << dir << " but no periodic\n";
-          ParallelDescriptor::Abort("NavierStokes::read_params()");
+          BoxLib::Abort("NavierStokes::read_params()");
         }
       }
     }
@@ -217,7 +217,7 @@ NavierStokes::read_params()
          initial_do_sync_proj != do_sync_proj ) {
         cout << "mismatched options for NavierStokes\n";
         cout << "do_MLsync_proj and do_sync_proj are inconsistent\n";
-        ParallelDescriptor::Abort("NavierStokes::read_params()");
+        BoxLib::Abort("NavierStokes::read_params()");
     }
 
 
@@ -239,7 +239,7 @@ NavierStokes::read_params()
     if(be_cn_theta > 1.0 || be_cn_theta < .5) {
       cout << "NavierStokes::read_params: must have be_cn_theta <= 1.0 && >= .5"
            << NL;
-      ParallelDescriptor::Abort("NavierStokes::read_params()");
+      BoxLib::Abort("NavierStokes::read_params()");
     }
 
 }
@@ -412,7 +412,7 @@ void NavierStokes::init_additional_state_types()
         cout << "NavierStokes::init_additional_state_types(): divu must be " <<
                 "0-th, Divu_Type component in the state\n";
       }
-      ParallelDescriptor::Abort("NavierStokes::init_additional_state_types()");
+      BoxLib::Abort("NavierStokes::init_additional_state_types()");
     }
 
     int _Dsdt = -1;
@@ -429,14 +429,14 @@ void NavierStokes::init_additional_state_types()
         cout << "NavierStokes::init_additional_state_types(): dsdt must be " <<
                 "0-th, Dsdt_Type component in the state\n";
       }
-      ParallelDescriptor::Abort("NavierStokes::init_additional_state_types()");
+      BoxLib::Abort("NavierStokes::init_additional_state_types()");
     }
     if(have_dsdt && !have_divu) {
       if(ParallelDescriptor::IOProcessor()) {
         cout << "NavierStokes::init_additional_state_types(): "
              << "must have divu in order to have dsdt\n";
       }
-      ParallelDescriptor::Abort("NavierStokes::init_additional_state_types()");
+      BoxLib::Abort("NavierStokes::init_additional_state_types()");
     }
 
     num_state_type = desc_lst.length();
@@ -967,28 +967,22 @@ void NavierStokes::init()
     setTimeLevel(cur_time,dt_old,dt);
 
     Real cur_pres_time = state[Press_Type].curTime();
-    
-    // get best coarse state and pressure data
-    int i;
-    for (i = 0; i < grids.length(); i++) {
-        FillCoarsePatch(S_new[i],0,cur_time,State_Type,0,NUM_STATE);
-        FillCoarsePatch(P_new[i],0,cur_pres_time,Press_Type,0,1);
-        P_old[i].copy(P_new[i]);
-    }
-
-    
-    // get best coarse divU and dSdt data
-    if (have_divu) {
-      MultiFab &Divu_new = get_new_data(Divu_Type);
-      for (i = 0; i < grids.length(); i++) {
-        FillCoarsePatch(Divu_new[i],0,cur_time,Divu_Type,0,1);
-      }
-      if (have_dsdt) {
-        MultiFab &Dsdt_new = get_new_data(Dsdt_Type);
-        for (i = 0; i < grids.length(); i++) {
-          FillCoarsePatch(Dsdt_new[i],0,cur_time,Dsdt_Type,0,1);
+    //
+    // Get best coarse state and pressure data.
+    //
+    FillCoarsePatch(S_new,0,cur_time,State_Type,0,NUM_STATE);
+    FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
+    P_old.copy(P_new);
+    //
+    // Get best coarse divU and dSdt data.
+    //
+    if (have_divu)
+    {
+        FillCoarsePatch(get_new_data(Divu_Type),0,cur_time,Divu_Type,0,1);
+        if (have_dsdt)
+        {
+            FillCoarsePatch(get_new_data(Dsdt_Type),0,cur_time,Dsdt_Type,0,1);
         }
-      }
     }
 }
 
@@ -1400,7 +1394,7 @@ NavierStokes::level_projector(Real dt, Real time, int iteration)
     MultiFab &P_old = get_old_data(Press_Type);
 
     cout << "NavierStokes::level_projector calling harmonic_project\n";
-    ParallelDescriptor::Abort("NavierStokes::level_projector");
+    BoxLib::Abort("NavierStokes::level_projector");
     projector->harmonic_project(level,dt,cur_pres_time,geom,P_old);
 
    } 
@@ -1670,16 +1664,16 @@ void NavierStokes::test_umac_periodic()
     
     if ( level == 0 && udiff > 1.0e-10 ) {
         cout << "!!!!!!!!!!!!!!!!!!!!!!!! udiff = " << udiff << NL;
-        ParallelDescriptor::Abort("Exiting.");
+        BoxLib::Abort("Exiting.");
     }
     if ( level == 0 && vdiff > 1.0e-10 ) {
         cout << "!!!!!!!!!!!!!!!!!!!!!!!! vdiff = " << vdiff << NL;
-        ParallelDescriptor::Abort("Exiting.");
+        BoxLib::Abort("Exiting.");
     }
 #if (BL_SPACEDIM == 3)                                             
     if ( level == 0 && vdiff > 1.0e-10 ) {
         cout << "!!!!!!!!!!!!!!!!!!!!!!!! vdiff = " << vdiff << NL;
-        ParallelDescriptor::Abort("Exiting.");
+        BoxLib::Abort("Exiting.");
     }
 #endif
 }
@@ -2010,7 +2004,7 @@ void NavierStokes::scalar_advection( Real dt, int fscalar, int lscalar)
                    << "divu.box() != divufpi().box()\n";
               cerr << "divu.box()      = " << divu.box()      << NL;
               cerr << "divufpi().box() = " << divufpi().box() << NL;
-              ParallelDescriptor::Abort("NavierStokes::scalar_advection(...)");
+              BoxLib::Abort("NavierStokes::scalar_advection(...)");
             }
             divu.copy(divufpi());
           } else {   // ! have_divu
@@ -3573,12 +3567,9 @@ void NavierStokes::SyncInterp( MultiFab &CrseSync, int c_lev,
 {
     int i,n,dir;
 
-    if(ParallelDescriptor::NProcs() > 1) {  // punt
-      ParallelDescriptor::Abort("NavierStokes::SyncInterp not implemented in parallel");
-    } else {
-      cerr << "NavierStokes::SyncInterp not implemented in parallel\n";
-    }
-
+    if (ParallelDescriptor::NProcs() > 1)
+      BoxLib::Abort("NavierStokes::SyncInterp(): not implemented in parallel");
+    //
     // This routine interpolates the num_comp components of CrseSync
     // (starting at src_comp) and either increments or puts the result into
     // the num_comp components of FineSync (starting at dest_comp)
@@ -3709,12 +3700,12 @@ void NavierStokes::SyncProjInterp( MultiFab &phi,   int c_lev,
                                    MultiFab &P_new, int f_lev,
                                    IntVect& ratio )
 {
-    if(ParallelDescriptor::NProcs() > 1) {  // punt
-      ParallelDescriptor::Abort("NavierStokes::SyncProjInterp not implemented in parallel");
-      // because of phi.copy(crse_phi) within multifab loop below
-    } else {
-      cerr << "NavierStokes::SyncProjInterp not implemented in parallel\n";
-    }
+    if (ParallelDescriptor::NProcs() > 1)
+        BoxLib::Abort("NavierStokes::SyncProjInterp(): not implemented in parallel");
+    //
+    // Because of phi.copy(crse_phi) within multifab loop below ...
+    //
+
     // get fine parameters
     NavierStokes& fine_level = getLevel(f_lev);
     const BoxArray& fgrids   = fine_level.boxArray();
@@ -4510,7 +4501,7 @@ void NavierStokes::getForce( FArrayBox& force, int gridno, int ngrow,
 {
 //bool canUse_getForce = false;
 //assert(canUse_getForce);
-cerr << "\nError:  should not be in NavierStokes::getForce\n\n";
+    BoxLib::Error("NavierStokes::getForce(): not implemented");
 
     Box bx(grids[gridno]);
     bx.grow(ngrow);
@@ -4547,13 +4538,13 @@ void NavierStokes::getGradP(FArrayBox& gp, int gridno, int ngrow, Real time)
 {
 //bool canUse_getGradP1 = false;
 //assert(canUse_getGradP1);
-cerr << "\nError:  should not be in NavierStokes::getGradP\n\n";
+    BoxLib::Error("NavierStokes::getGradP(): not implemented");
 
     Box gpbx(grids[gridno]);
     gpbx.grow(ngrow);
     Box p_box(surroundingNodes(gpbx));
     FArrayBox p_fab(p_box,1);
-    FillPatch(p_fab,0,time,Press_Type,0,1);
+//    FillPatch(p_fab,0,time,Press_Type,0,1);
 
     getGradP( p_fab, gp, grids[gridno], ngrow );
 }
@@ -4572,7 +4563,7 @@ void NavierStokes::getGradP(FArrayBox &p_fab, FArrayBox& gp,
 {
 //bool canUse_getGradP2 = false;
 //assert(canUse_getGradP2);
-cerr << "\nError:  should not be in NavierStokes::getGradP (2)\n\n";
+    BoxLib::Error("NavierStokes::getGradP(): not implemented");
 
     //-----------------------  size the pressure gradient storage
     Box gpbx(grd);
@@ -4606,7 +4597,7 @@ void NavierStokes::getDivCond(FArrayBox& fab, int gridno, int ngrow,
 {
 //bool canUse_getDivCond = false;
 //assert(canUse_getDivCond);
-cerr << "\nError:  should not be in NavierStokes::getDivCond (1)\n\n";
+    BoxLib::Error("NavierStokes::getDivCond(): not implemented");
 
     getState(fab, gridno, ngrow, time, have_divu, Divu_Type,
              //divu_assoc, divu_unfilled);
@@ -4621,7 +4612,7 @@ void NavierStokes::getDsdt(FArrayBox& fab, int gridno, int ngrow,
 {
 //bool canUse_getDsDt = false;
 //assert(canUse_getDsDt);
-cerr << "\nError:  should not be in NavierStokes::getDsdt\n\n";
+    BoxLib::Error("NavierStokes::getDsdt(): not implemented");
 
     getState(fab, gridno, ngrow, time, (have_dsdt && have_divu), Dsdt_Type,
              //dsdt_assoc, dsdt_unfilled);
@@ -4636,7 +4627,7 @@ void NavierStokes::getState(FArrayBox& fab, int gridno, int ngrow,
 {
 //bool canUse_getState1 = false;
 //assert(canUse_getState1);
-    BoxLib::Error("Should not be in NavierStokes::getState (1)");
+    BoxLib::Error("NavierStokes::getState(): not implemented");
 
     getState(fab,gridno,ngrow,State_Type,strt_comp,num_comp,time);
 }
@@ -4648,7 +4639,7 @@ void NavierStokes::getState(FArrayBox& fab, int gridno, int ngrow,
 {
 //bool canUse_getState2 = false;
 //assert(canUse_getState2);
-    BoxLib::Error("Should not be in NavierStokes::getState (2)");
+    BoxLib::Error("NavierStokes::getState(): not implemented");
 
 #if 0
     Box bx(grids[gridno]);
@@ -4730,7 +4721,7 @@ void NavierStokes::getState(FArrayBox& fab, int gridno, int ngrow,
 {
 //bool canUse_getState3 = false;
 //assert(canUse_getState3);
-    BoxLib::Error("Should not be in NavierStokes::getState (3)");
+    BoxLib::Error("NavierStokes::getState(): not implemented");
 
 #if 0
     // create the storage
@@ -4741,7 +4732,7 @@ void NavierStokes::getState(FArrayBox& fab, int gridno, int ngrow,
       cout << "NavierStokes::getState : fab.box()!=bx\n";
       cout << "bx        = " << bx << NL;
       cout << "fab.box() = " << fab.box() << NL;
-      ParallelDescriptor::Abort("NavierStokes::getState(...)");
+      BoxLib::Abort("NavierStokes::getState(...)");
     }
     
     if(!have_state) {
@@ -4770,14 +4761,14 @@ void NavierStokes::getDivCond(FArrayBox& fab, int ngrow, Real time)
 {
 //bool canUse_getDivCond = false;
 //assert(canUse_getDivCond);
-cerr << "\nError:  should not be in NavierStokes::getDivCond (2)\n\n";
+    BoxLib::Error("NavierStokes::getDivCond(): not implemented");
 
     // for NavierStokes, defaults divU = 0
     if(!have_divu) {
         fab.setVal(0.0);
     } else {
         fab.setVal(1.0e30); // for debugging only
-        FillPatch(fab,0,time,Divu_Type,0,1);
+//        FillPatch(fab,0,time,Divu_Type,0,1);
     }
 }
 

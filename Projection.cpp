@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.32 1998-03-26 06:40:58 almgren Exp $
+// $Id: Projection.cpp,v 1.33 1998-03-30 17:30:27 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -330,33 +330,30 @@ Projection::level_project(int level,
     }
   } 
   else 
-  {   // level > 0
-    for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) 
-    {
-      DependentMultiFabIterator P_oldmfi(P_newmfi, P_old);
-      DependentMultiFabIterator U_newmfi(P_newmfi, U_new);
-      DependentMultiFabIterator U_oldmfi(P_newmfi, U_old);
-      // interpolate values for P_new from coarse grid
-      if(ParallelDescriptor::NProcs() > 1) 
-      {
-        cerr << "Projection::level_project not implemented in parallel.\n";
-        ParallelDescriptor::Abort("Exiting.");
-      } 
-      else 
-      {
-        cerr << "Projection::level_project not implemented in parallel.\n";
-      }
+  {
+      //
+      // level > 0
+      //
+      LevelData[level].FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
 
-      LevelData[level].FillCoarsePatch(P_newmfi(),0,cur_pres_time,Press_Type,0,1);
-      //assert(grids[P_newmfi.index()] == P_newmfi.validbox());
-      assert(P_newmfi().box() == P_newmfi.fabbox());
-      // convert Unew to acceleration and Pnew to an update
-      ConvertUnew( U_newmfi(), U_oldmfi(), dt, grids[P_newmfi.index()] );
-      P_newmfi().minus( P_oldmfi() );
-      Box tempbox(P_newmfi().box());
-      tempbox.grow(-2);
-      P_newmfi().setVal(0.,tempbox,0,1);
-    }
+      for(MultiFabIterator P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi) 
+      {
+          DependentMultiFabIterator P_oldmfi(P_newmfi, P_old);
+          DependentMultiFabIterator U_newmfi(P_newmfi, U_new);
+          DependentMultiFabIterator U_oldmfi(P_newmfi, U_old);
+          //
+          // Interpolate values for P_new from coarse grid.
+          //
+          assert(P_newmfi().box() == P_newmfi.fabbox());
+          //
+          // Convert Unew to acceleration and Pnew to an update.
+          //
+          ConvertUnew(U_newmfi(), U_oldmfi(), dt, grids[P_newmfi.index()]);
+          P_newmfi().minus(P_oldmfi());
+          Box tempbox(P_newmfi().box());
+          tempbox.grow(-2);
+          P_newmfi().setVal(0.0,tempbox,0,1);
+      }
   }
 
   // set up outflow bcs
@@ -575,12 +572,11 @@ void Projection::harmonic_project(int level, Real dt, Real cur_pres_time,
 
   const BoxArray& grids = LevelData[level].boxArray();
   const BoxArray& P_grids = P_old.boxArray();
-  MultiFab * rhs      = new MultiFab(P_grids,1,1,Fab_allocate);
-  MultiFab * harm_phi = new MultiFab(P_grids,1,1,Fab_allocate);
-  MultiFab * temp_phi = new MultiFab(P_grids,1,1,Fab_allocate);
-
-  MultiFab * rho      = new MultiFab(grids,1,1,Fab_allocate);
-  MultiFab * harm_vel = new MultiFab(grids,BL_SPACEDIM,1,Fab_allocate);
+  MultiFab* rhs      = new MultiFab(P_grids,1,1,Fab_allocate);
+  MultiFab* harm_phi = new MultiFab(P_grids,1,1,Fab_allocate);
+  MultiFab* temp_phi = new MultiFab(P_grids,1,1,Fab_allocate);
+  MultiFab* rho      = new MultiFab(grids,1,1,Fab_allocate);
+  MultiFab* harm_vel = new MultiFab(grids,BL_SPACEDIM,1,Fab_allocate);
 
   rhs->setVal(0.);
   harm_phi->setVal(0.);
@@ -591,23 +587,12 @@ void Projection::harmonic_project(int level, Real dt, Real cur_pres_time,
 
   Real prev_pres_time = cur_pres_time - dt;
 
-  //int i;
-  //for (i = 0; i < grids.length(); i++)
+  LevelData[level].FillCoarsePatch(*temp_phi,0, prev_pres_time,Press_Type,0,1);
+  LevelData[level].FillCoarsePatch(*harm_phi,0, cur_pres_time,Press_Type,0,1);
+
   for(MultiFabIterator temp_phimfi(*temp_phi); temp_phimfi.isValid(); ++temp_phimfi)
   {
     DependentMultiFabIterator harm_phimfi(temp_phimfi, *harm_phi);
-    if(ParallelDescriptor::NProcs() > 1) 
-    {
-      ParallelDescriptor::Abort("Projection::harmonic_project not implemented in parallel");
-    } 
-    else 
-    {
-      cerr << "Projection::harmonic_project not implemented in parallel\n";
-    }
-    LevelData[level].FillCoarsePatch(temp_phimfi(),0,
-                                  prev_pres_time,Press_Type,0,1);
-    LevelData[level].FillCoarsePatch(harm_phimfi(),0,
-                                  cur_pres_time,Press_Type,0,1);
     harm_phimfi().minus(temp_phimfi());
     Box tempbox(harm_phimfi().box());
     tempbox.grow(-2);
@@ -1333,16 +1318,12 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
       rhs[lev]  = new MultiFab(grids,1,nghost,Fab_allocate);
       MultiFab* rhslev = rhs[lev];
       rhslev->setVal(0.0);
-      if(ParallelDescriptor::NProcs() > 1) 
+      if (ParallelDescriptor::NProcs() > 1) 
       {
         cerr << "Projection::initialSyncProject not implemented in parallel." << NL;
         cerr << "This loop contains a call to FillPatch (in getDivCond).\n";
         ParallelDescriptor::Abort("Exiting.");
       } 
-      else 
-      {
-        cerr << "Projection::initialSyncProject not implemented in parallel." << NL;
-      }
       for (int i=0;i<ngrids;i++) 
       {
         Box divubox = grids[i];
@@ -1669,10 +1650,6 @@ void Projection::put_divu_in_node_rhs(MultiFab& rhs, int level,
       cerr << "Nested MultiFab loops.\n";
       ParallelDescriptor::Abort("Exiting.");
     } 
-    else 
-    {
-      cerr << "Projection::put_divu_in_node_rhs not implemented in parallel." << NL;
-    }
 
 #if (BL_SPACEDIM == 2)
     DEF_CLIMITS((*divu),divudat,divulo,divuhi);
@@ -1730,10 +1707,6 @@ void Projection::put_divu_in_cc_rhs(MultiFab& rhs, int level,
       cerr << "Nested MultiFab loops.\n";
       ParallelDescriptor::Abort("Exiting.");
     } 
-    else 
-    {
-      cerr << "Projection::put_divu_in_cc_rhs not implemented in parallel" << NL;
-    }
     getDivCond(level,divu,1,time);
     rhs[i].copy(divu);
 #if (BL_SPACEDIM == 3)
@@ -1762,7 +1735,10 @@ void Projection::getDivCond(int level, FArrayBox& fab, int ngrow, Real time)
     }
   }
   fab.setVal(1.0e30); // for debugging only
-  LevelData[level].FillPatch(fab,0,time,Divu_Type,0,1);
+
+  BoxLib::Error("Projection::getDivCond(FAB): not implemented");
+
+//  LevelData[level].FillPatch(fab,0,time,Divu_Type,0,1);
 }
 
 
@@ -1809,10 +1785,6 @@ void Projection::EnforcePeriodicity( MultiFab &psi, int nvar,
               cerr << "Nested MultiFab loops.\n";
               ParallelDescriptor::Abort("Exiting.");
             } 
-            else 
-            {
-              cerr << "Projection::EnforcePeriodicity not implemented in parallel." << NL;
-            }
             psi.copy(temp,0,0,nvar);
 
             // shift and copy from temp back to psi
