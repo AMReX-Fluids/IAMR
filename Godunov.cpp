@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.27 2002-08-16 23:15:02 car Exp $
+// $Id: Godunov.cpp,v 1.28 2002-10-17 20:36:40 marc Exp $
 //
 
 //
@@ -415,6 +415,104 @@ Godunov::edge_states (const Box&  grd,
                 ARLIM(ww_lo), ARLIM(ww_hi),
                 bc, lo, hi, &dt, dx, &fort_ind, &velpred, 
                 &use_forces_in_trans);
+}
+
+void
+Godunov::edge_states_fpu (const Box&  grd,
+                          const Real* dx,
+                          Real        dt,
+                          int         velpred,
+                          FArrayBox&  uedge,
+                          FArrayBox&  stx,
+                          FArrayBox&  vedge,
+                          FArrayBox&  sty,
+#if (BL_SPACEDIM == 3)               
+                          FArrayBox&  wedge,
+                          FArrayBox&  stz,
+#endif
+                          FArrayBox&  S,
+                          FArrayBox&  tforces,
+                          int         fab_ind,
+                          int         state_ind,
+                          const int*  bc,
+                          int         iconserv)
+{
+    //
+    // Error block.
+    //
+    BL_ASSERT(S.box().contains(work_bx));
+
+    BL_ASSERT(S.nComp()       >= fab_ind    );
+    BL_ASSERT(tforces.nComp() >= fab_ind    );
+
+    BL_ASSERT(uedge.nComp()   >= 1          );
+    BL_ASSERT(stx.nComp()     >= 1          );
+
+    BL_ASSERT(vedge.nComp()   >= 1          );
+    BL_ASSERT(sty.nComp()     >= 1          );
+#if (BL_SPACEDIM == 3)
+    BL_ASSERT(wedge.nComp()   >= 1          );
+    BL_ASSERT(stz.nComp()     >= 1          );
+#endif    
+    //
+    // Create the bounds and pointers.
+    //
+    const int *lo         = grd.loVect();
+    const int *hi         = grd.hiVect();
+    const int *s_lo       = S.loVect();
+    const int *s_hi       = S.hiVect();
+    const int *ww_lo      = work.loVect();
+    const int *ww_hi      = work.hiVect();
+    const Real *s_dat     = S.dataPtr(fab_ind);
+    const Real *tfr_dat   = tforces.dataPtr(fab_ind);
+    //
+    // Set work space to bogus values.
+    //
+    SetBogusScratch();
+
+#if (BL_SPACEDIM == 3)
+    const Real *xhi_dat   = work.dataPtr(0);
+    const Real *yhi_dat   = work.dataPtr(0);
+    const Real *zhi_dat   = work.dataPtr(0);
+    const Real *xlo_dat   = work.dataPtr(1);
+    const Real *ylo_dat   = work.dataPtr(2);
+    const Real *zlo_dat   = work.dataPtr(3);
+    const Real *slx_dat   = work.dataPtr(4);
+    const Real *sly_dat   = work.dataPtr(5);
+    const Real *slz_dat   = work.dataPtr(6);
+#else
+    const Real *xhi_dat   = work.dataPtr(0);
+    const Real *yhi_dat   = work.dataPtr(0);
+    const Real *xlo_dat   = work.dataPtr(1);
+    const Real *ylo_dat   = work.dataPtr(2);
+    const Real *slx_dat   = work.dataPtr(3);
+    const Real *sly_dat   = work.dataPtr(4);
+#endif
+    //
+    // C component indices starts from 0, Fortran from 1
+    //
+    int fort_ind = state_ind+1;  
+
+    FORT_ESTATE_FPU(s_dat, tfr_dat, ARLIM(s_lo), ARLIM(s_hi),
+                    
+                    xlo_dat, xhi_dat, slx_dat,
+                    slxscr, stxlo, stxhi,
+                    uedge.dataPtr(), ARLIM(uedge.loVect()), ARLIM(uedge.hiVect()),
+                    stx.dataPtr(),   ARLIM(stx.loVect()),   ARLIM(stx.hiVect()),
+                    
+                    ylo_dat, yhi_dat, sly_dat,
+                    slyscr, stylo, styhi,
+                    vedge.dataPtr(), ARLIM(vedge.loVect()), ARLIM(vedge.hiVect()),
+                    sty.dataPtr(),   ARLIM(sty.loVect()),   ARLIM(sty.hiVect()),
+#if (BL_SPACEDIM == 3)
+                    zlo_dat, zhi_dat, slz_dat,
+                    slzscr, stzlo, stzhi,
+                    wedge.dataPtr(), ARLIM(wedge.loVect()), ARLIM(wedge.hiVect()),
+                    stz.dataPtr(),   ARLIM(stz.loVect()),   ARLIM(stz.hiVect()),
+#endif
+                    ARLIM(ww_lo), ARLIM(ww_hi),
+                    bc, lo, hi, &dt, dx, &fort_ind, &velpred, 
+                    &use_forces_in_trans, &iconserv);
 }
 
 //

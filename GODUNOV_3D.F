@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.19 2002-10-01 20:24:00 almgren Exp $
+c $Id: GODUNOV_3D.F,v 1.20 2002-10-17 20:36:40 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -482,6 +482,7 @@ c
 
       end
 
+#if 0
       subroutine FORT_ESTATE(s, tforces, DIMS(s),
 
      &     u, xlo, xhi, sx, uad, slxscr, stxlo, stxhi,
@@ -857,6 +858,936 @@ c
          end do
       end if
 
+      end
+
+#else
+      subroutine FORT_ESTATE(s, tforces, DIMS(s),
+
+     &     u, xlo, xhi, sx, uad, slxscr, stxlo, stxhi,
+     &     uedge, xstate, DIMS(uedge),
+
+     &     v, ylo, yhi, sy, vad, slyscr, stylo, styhi,
+     &     vedge, ystate, DIMS(vedge),
+
+     &     w, zlo, zhi, sz, wad, slzscr, stzlo, stzhi,
+     &     wedge, zstate, DIMS(wedge),
+
+     &     DIMS(work),
+     &     bc,lo,hi,dt,dx,n,velpred, use_minion)
+c
+c     This subroutine computes edges states, right now it uses
+c     a lot of memory, but there becomes a trade off between
+c     simplicity-efficiency in the new way of computing states
+c     and complexity in the old way.  By eliminating loops over
+c     state components though, the new way uses much less memory.
+c
+      integer i,j,k,n,velpred
+      integer lo(SDIM),hi(SDIM),bc(SDIM,2)
+      integer imin,jmin,kmin,imax,jmax,kmax,inc
+      REAL_T place_to_break
+      REAL_T hx, hy, hz, dt, dth, dthx, dthy, dthz
+      REAL_T tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw,dx(SDIM)
+      REAL_T eps
+      logical ltx,lty,ltz
+      integer DIMDEC(s)
+      integer DIMDEC(work)
+      integer DIMDEC(uedge)
+      integer DIMDEC(vedge)
+      integer DIMDEC(wedge)
+
+      REAL_T s(DIMV(s))
+      REAL_T u(DIMV(s))
+      REAL_T v(DIMV(s))
+      REAL_T w(DIMV(s))
+      REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
+      REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
+      REAL_T stzlo(DIM3(s)),stzhi(DIM3(s)),slzscr(DIM3(s),4)
+
+      REAL_T uedge(DIMV(uedge)), xstate(DIMV(uedge))
+      REAL_T vedge(DIMV(vedge)), ystate(DIMV(vedge))
+      REAL_T wedge(DIMV(wedge)), zstate(DIMV(wedge))
+
+      REAL_T xlo(DIMV(work)), xhi(DIMV(work))
+      REAL_T ylo(DIMV(work)), yhi(DIMV(work))
+      REAL_T zlo(DIMV(work)), zhi(DIMV(work))
+      REAL_T  sx(DIMV(work)), uad(DIMV(work))
+      REAL_T  sy(DIMV(work)), vad(DIMV(work))
+      REAL_T  sz(DIMV(work)), wad(DIMV(work))
+      REAL_T tforces(DIMV(work))
+
+      integer use_minion
+
+      eps  = 1.0D-6
+      dth  = half*dt
+      dthx = half*dt / dx(1)
+      dthy = half*dt / dx(2)
+      dthz = half*dt / dx(3)
+      hx   = dx(1)
+      hy   = dx(2)
+      hz   = dx(3)
+      imin = lo(1)
+      jmin = lo(2)
+      kmin = lo(3)
+      imax = hi(1)
+      jmax = hi(2)
+      kmax = hi(3)
+c
+c     compute the slopes
+c
+      call FORT_SLOPES(ALL,
+     &     s,DIMS(s),
+     &     sx,sy,sz,DIMS(work),
+     &     lo,hi,slxscr,slyscr,slzscr,bc)
+c
+c     trace the state to the cell edges
+c
+      do k = kmin-1,kmax+1
+         do j = jmin-1,jmax+1
+            do i = imin,  imax+1
+               xlo(i,j,k) = s(i-1,j,k) + (half  - dthx*u(i-1,j,k))*sx(i-1,j,k)
+               xhi(i,j,k) = s(i,  j,k) + (-half - dthx*u(i,  j,k))*sx(i,  j,k)
+            end do
+         end do
+      end do
+
+      if(use_minion.eq.1)then
+         do k = kmin-1,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin,  imax+1
+                  xlo(i,j,k) = xlo(i,j,k) + dth*tforces(i-1,j,k)
+                  xhi(i,j,k) = xhi(i,j,k) + dth*tforces(i,  j,k)
+               end do
+            end do
+         end do
+      end if
+
+      call trans_xbc(
+     &     s,DIMS(s),
+     &     xlo,xhi,DIMS(work),uad,DIMS(work),
+     &     lo,hi,n,bc)
+
+      do k = kmin-1,kmax+1
+         do j = jmin-1,jmax+1
+            do i = imin,  imax+1
+               fu  = cvmgt(zero,one,abs(uad(i,j,k)).lt.eps)
+               stx = cvmgp(xlo(i,j,k),xhi(i,j,k),uad(i,j,k))
+               xlo(i,j,k) = fu*stx + (one - fu)*half*(xhi(i,j,k)+xlo(i,j,k))
+            end do
+         end do
+      end do
+
+      do k = kmin-1,kmax+1
+         do j = jmin,  jmax+1
+            do i = imin-1,imax+1
+               ylo(i,j,k) = s(i,j-1,k) + (half  - dthy*v(i,j-1,k))*sy(i,j-1,k)
+               yhi(i,j,k) = s(i,j, k)  + (-half - dthy*v(i,j,  k))*sy(i,j, k)
+            end do
+         end do
+      end do
+
+      if (use_minion.eq.1)then
+         do k = kmin-1,kmax+1
+            do j = jmin, jmax+1
+               do i = imin-1,  imax+1
+                  ylo(i,j,k) = ylo(i,j,k) + dth*tforces(i,j-1,k)
+                  yhi(i,j,k) = yhi(i,j,k) + dth*tforces(i,j,  k)
+               end do
+            end do
+         end do
+      end if
+
+      call trans_ybc(
+     &     s,DIMS(s),
+     &     ylo,yhi,DIMS(work),vad,DIMS(work),
+     &     lo,hi,n,bc)
+
+      do k = kmin-1,kmax+1
+         do j = jmin,  jmax+1
+            do i = imin-1,imax+1
+               fv  = cvmgt(zero,one,abs(vad(i,j,k)).lt.eps)
+               sty = cvmgp(ylo(i,j,k),yhi(i,j,k),vad(i,j,k))
+               ylo(i,j,k) = fv*sty + (one - fv)*half*(yhi(i,j,k)+ylo(i,j,k))
+            end do
+         end do
+      end do
+
+      do k = kmin,kmax+1
+         do j = jmin-1,jmax+1
+            do i = imin-1,imax+1
+               zlo(i,j,k) = s(i,j,k-1) + (half  - dthz*w(i,j,k-1))*sz(i,j,k-1)
+               zhi(i,j,k) = s(i,j,k  ) + (-half - dthz*w(i,j,k  ))*sz(i,j,k  )
+            end do
+         end do
+      end do
+
+      if (use_minion.eq.1)then
+         do k = kmin,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin-1,  imax+1
+                  zlo(i,j,k) = zlo(i,j,k) + dth*tforces(i,j,k-1)
+                  zhi(i,j,k) = zhi(i,j,k) + dth*tforces(i,j,k)
+               end do
+            end do
+         end do
+      end if
+
+      call trans_zbc(
+     &     s,DIMS(s),
+     &     zlo,zhi,DIMS(work),wad,DIMS(work),
+     &     lo,hi,n,bc)
+
+      do k = kmin,kmax+1
+         do j = jmin-1,jmax+1
+            do i = imin-1,imax+1
+               fw  = cvmgt(zero,one,abs(wad(i,j,k)).lt.eps)
+               stz = cvmgp(zlo(i,j,k),zhi(i,j,k),wad(i,j,k))
+               zlo(i,j,k) = fw*stz + (one-fw)*half*(zhi(i,j,k)+zlo(i,j,k))
+            end do
+         end do
+      end do
+c
+c     compute the xedge states
+c
+      if ((velpred.ne.1) .or. (n.eq.XVEL)) then
+         do k = kmin,kmax
+            do j = jmin,jmax
+
+               do i = imin-1,imax+1
+                  if (vad(i,j,k)*vad(i,j+1,k).lt.0.d0) then
+                      vbar = 0.5d0*(vad(i,j,k)+vad(i,j+1,k))
+                      if (vbar.lt.0.d0) then
+                          inc = 1
+                      else
+                          inc = 0
+                      endif
+                      tr1 = vbar*(s(i,j+inc,k)-s(i,j+inc-1,k))/hy
+                  else
+                      tr1 = half*
+     &                 (vad(i,j+1,k) + vad(i,j,k)) *
+     &                 (ylo(i,j+1,k) - ylo(i,j,k)) / hy
+                  endif
+
+                  if (wad(i,j,k)*wad(i,j,k+1).lt.0.d0) then
+                      wbar = 0.5d0*(wad(i,j,k)+wad(i,j,k+1))
+                      if (wbar.lt.0.d0) then
+                          inc = 1
+                      else
+                          inc = 0
+                      endif
+                      tr2 = wbar*(s(i,j,k+inc)-s(i,j,k+inc-1))/hz
+                  else
+                      tr2 = half*
+     &                 (wad(i,j,k+1) + wad(i,j,k)) *
+     &                 (zlo(i,j,k+1) - zlo(i,j,k)) / hz
+                  endif
+
+                  stxlo(i+1)= s(i,j,k) + (half-dthx*u(i,j,k))*sx(i,j,k)
+     &                 - dth*tr1 - dth*tr2
+     &                 + dth*tforces(i,j,k)
+                  stxhi(i  )= s(i,j,k) - (half+dthx*u(i,j,k))*sx(i,j,k)
+     &                 - dth*tr1 - dth*tr2
+     &                 + dth*tforces(i,j,k)
+               end do
+
+               if (bc(1,1).eq.EXT_DIR) then
+                  stxhi(imin) = s(imin-1,j,k)
+                  stxlo(imin) = s(imin-1,j,k)
+               else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP
+     &                 .or.bc(1,1).eq.REFLECT_EVEN) then
+                  stxlo(imin) = stxhi(imin)
+               else if (bc(1,1).eq.REFLECT_ODD) then
+                  stxhi(imin) = zero
+                  stxlo(imin) = zero
+               end if
+               if (bc(1,2).eq.EXT_DIR) then
+                  stxlo(imax+1) = s(imax+1,j,k)
+                  stxhi(imax+1) = s(imax+1,j,k)
+               else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP
+     &                 .or.bc(1,2).eq.REFLECT_EVEN) then
+                  stxhi(imax+1) = stxlo(imax+1)
+               else if (bc(1,2).eq.REFLECT_ODD) then
+                  stxlo(imax+1) = zero
+                  stxhi(imax+1) = zero
+               end if
+
+               if ( velpred .eq. 1 ) then
+                  do i = imin, imax+1
+                     ltx = stxlo(i) .le. zero  .and.  stxhi(i) .ge. zero
+                     ltx = ltx .or. (abs(stxlo(i)+stxhi(i)) .lt. eps)
+                     stx = cvmgp(stxlo(i),stxhi(i),stxlo(i)+stxhi(i))
+                     xstate(i,j,k) = cvmgt(zero,stx,ltx)
+                  end do
+               else
+                  do i = imin, imax+1
+                     xstate(i,j,k) = cvmgp(stxlo(i),stxhi(i),uedge(i,j,k))
+                     xstate(i,j,k) = cvmgt(half*(stxlo(i)+stxhi(i)),xstate(i,j,k)
+     &                    ,abs(uedge(i,j,k)).lt.eps)
+                  end do
+               end if
+               place_to_break = 1
+            end do
+         end do
+      end if
+c
+c     compute the yedge states
+c
+      if ((velpred.ne.1) .or. (n.eq.YVEL)) then
+         do k = kmin,kmax
+            do i = imin,imax
+               
+               do j = jmin-1,jmax+1
+                  if (uad(i,j,k)*uad(i+1,j,k).lt.0.d0) then
+                      ubar = 0.5d0*(uad(i,j,k)+uad(i+1,j,k))
+                      if (ubar.lt.0.d0) then
+                          inc = 1
+                      else
+                          inc = 0
+                      endif
+                      tr1 = ubar*(s(i+inc,j,k)-s(i+inc-1,j,k))/hx
+                  else
+                      tr1 = half*
+     &                 (uad(i+1,j,k) + uad(i,j,k)) *
+     &                 (xlo(i+1,j,k) - xlo(i,j,k)) / hx
+                  endif
+
+                  if (wad(i,j,k)*wad(i,j,k+1).lt.0.d0) then
+                      wbar = 0.5d0*(wad(i,j,k)+wad(i,j,k+1))
+                      if (wbar.lt.0.d0) then
+                          inc = 1
+                      else
+                          inc = 0
+                      endif
+                      tr2 = wbar*(s(i,j,k+inc)-s(i,j,k+inc-1))/hz
+                  else
+                      tr2 = half*
+     &                 (wad(i,j,k+1) + wad(i,j,k)) *
+     &                 (zlo(i,j,k+1) - zlo(i,j,k)) / hz
+                  endif
+
+                  stylo(j+1)= s(i,j,k) + (half-dthy*v(i,j,k))*sy(i,j,k)
+     &                 - dth*tr1 - dth*tr2
+     &                 + dth*tforces(i,j,k)
+                  styhi(j)  = s(i,j,k) - (half+dthy*v(i,j,k))*sy(i,j,k)
+     &                 - dth*tr1 - dth*tr2
+     &                 + dth*tforces(i,j,k)
+               end do
+
+               if (bc(2,1).eq.EXT_DIR) then
+                  styhi(jmin) = s(i,jmin-1,k)
+                  stylo(jmin) = s(i,jmin-1,k)
+               else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP
+     &                 .or.bc(2,1).eq.REFLECT_EVEN) then
+                  stylo(jmin) = styhi(jmin)
+               else if (bc(2,1).eq.REFLECT_ODD) then
+                  styhi(jmin) = zero
+                  stylo(jmin) = zero
+               end if
+               
+               if (bc(2,2).eq.EXT_DIR) then
+                  stylo(jmax+1) = s(i,jmax+1,k)
+                  styhi(jmax+1) = s(i,jmax+1,k)
+               else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
+     &                 .or.bc(2,2).eq.REFLECT_EVEN) then
+                  styhi(jmax+1) = stylo(jmax+1)
+               else if (bc(2,2).eq.REFLECT_ODD) then
+                  stylo(jmax+1) = zero
+                  styhi(jmax+1) = zero
+               end if
+
+               if ( velpred .eq. 1 ) then
+                  do j = jmin, jmax+1
+                     lty = stylo(j) .le. zero  .and.  styhi(j) .ge. zero
+                     lty = lty .or. (abs(stylo(j)+styhi(j)) .lt. eps)
+                     sty = cvmgp(stylo(j),styhi(j),stylo(j)+styhi(j))
+                     ystate(i,j,k) = cvmgt(zero,sty,lty)
+                  end do
+               else
+                  do j=jmin,jmax+1
+                     ystate(i,j,k) = cvmgp(stylo(j),styhi(j),vedge(i,j,k))
+                     ystate(i,j,k) = cvmgt(half*(stylo(j)+styhi(j)),ystate(i,j,k),
+     &                    abs(vedge(i,j,k)).lt.eps)
+                  end do
+               end if
+               place_to_break = 1
+            end do
+         end do
+      end if
+c
+c     compute the zedge states
+c
+      if ((velpred.ne.1) .or. (n.eq.ZVEL)) then
+         do j = jmin,jmax
+            do i = imin,imax
+               
+               do k = kmin-1,kmax+1
+                  if (uad(i,j,k)*uad(i+1,j,k).lt.0.d0) then
+                      ubar = 0.5d0*(uad(i,j,k)+uad(i+1,j,k))
+                      if (ubar.lt.0.d0) then
+                          inc = 1
+                      else
+                          inc = 0
+                      endif
+                      tr1 = ubar*(s(i+inc,j,k)-s(i+inc-1,j,k))/hx
+                  else
+                      tr1 = half*
+     &                 (uad(i+1,j,k) + uad(i,j,k)) *
+     &                 (xlo(i+1,j,k) - xlo(i,j,k)) / hx
+                  endif
+
+                  if (vad(i,j,k)*vad(i,j+1,k).lt.0.d0) then
+                      vbar = 0.5d0*(vad(i,j,k)+vad(i,j+1,k))
+                      if (vbar.lt.0.d0) then
+                          inc = 1
+                      else
+                          inc = 0
+                      endif
+                      tr2 = vbar*(s(i,j+inc,k)-s(i,j+inc-1,k))/hy
+                  else
+                      tr2 = half*
+     &                 (vad(i,j+1,k) + vad(i,j,k)) *
+     &                 (ylo(i,j+1,k) - ylo(i,j,k)) / hy
+                  endif
+
+                  stzlo(k+1)= s(i,j,k) + (half-dthz*w(i,j,k))*sz(i,j,k)
+     &                 - dth*tr1 - dth*tr2
+     &                 + dth*tforces(i,j,k)
+                  stzhi(k)  = s(i,j,k) - (half+dthz*w(i,j,k))*sz(i,j,k)
+     &                 - dth*tr1 - dth*tr2
+     &                 + dth*tforces(i,j,k)
+               end do
+
+               if (bc(3,1).eq.EXT_DIR) then
+                  stzlo(kmin) = s(i,j,kmin-1)
+                  stzhi(kmin) = s(i,j,kmin-1)
+               else if (bc(3,1).eq.FOEXTRAP.or.bc(3,1).eq.HOEXTRAP
+     &                 .or.bc(3,1).eq.REFLECT_EVEN) then
+                  stzlo(kmin) = stzhi(kmin)
+               else if (bc(3,1).eq.REFLECT_ODD) then
+                  stzlo(kmin) = zero
+                  stzhi(kmin) = zero
+               end if
+               if (bc(3,2).eq.EXT_DIR) then
+                  stzlo(kmax+1) = s(i,j,kmax+1)
+                  stzhi(kmax+1) = s(i,j,kmax+1)
+               else if (bc(3,2).eq.FOEXTRAP.or.bc(3,2).eq.HOEXTRAP
+     &                 .or.bc(3,2).eq.REFLECT_EVEN) then
+                  stzhi(kmax+1) = stzlo(kmax+1)
+               else if (bc(3,2).eq.REFLECT_ODD) then
+                  stzlo(kmax+1) = zero
+                  stzhi(kmax+1) = zero
+               end if
+
+               if ( velpred .eq. 1 ) then
+                  do k = kmin,kmax+1
+                     ltz = stzlo(k) .le. zero  .and.  stzhi(k) .ge. zero
+                     ltz = ltz .or. (abs(stzlo(k)+stzhi(k)) .lt. eps)
+                     stz = cvmgp(stzlo(k),stzhi(k),stzlo(k)+stzhi(k))
+                     zstate(i,j,k) = cvmgt(zero,stz,ltz)
+                  end do
+               else
+                  do k = kmin,kmax+1
+                     zstate(i,j,k) = cvmgp(stzlo(k),stzhi(k),wedge(i,j,k))
+                     zstate(i,j,k) = cvmgt(half*(stzlo(k)+stzhi(k)),zstate(i,j,k),
+     &                    abs(wedge(i,j,k)).lt.eps)
+                  end do
+               end if
+               place_to_break = 1
+            end do
+         end do
+      end if
+
+      end
+#endif
+
+      subroutine FORT_ESTATE_FPU(s, tforces, DIMS(s),
+     &     xlo, xhi, sx, slxscr, stxlo, stxhi,
+     &     uedge, DIMS(uedge), xstate, DIMS(xstate),
+
+     &     ylo, yhi, sy, slyscr, stylo, styhi,
+     &     vedge, DIMS(vedge), ystate, DIMS(ystate),
+
+     &     zlo, zhi, sz, slzscr, stzlo, stzhi,
+     &     wedge, DIMS(wedge), zstate, DIMS(zstate),
+
+     &     DIMS(work),
+     &     bc,lo,hi,dt,dx,n,velpred,use_minion,iconserv)
+c
+c     This subroutine computes edges states, right now it uses
+c     a lot of memory, but there becomes a trade off between
+c     simplicity-efficiency in the new way of computing states
+c     and complexity in the old way.  By eliminating loops over
+c     state components though, the new way uses much less memory.
+c
+c     This routine differs from the default ESTATE function above in that
+c     it assumes that the edge velocities are valid in a grow cell outside
+c     the box, and no *ad (unprojected) velocities are used.  This routine
+c     will fail if the UMAC coming in hasn't been "fillpatched"
+c
+      integer i,j,k,n,velpred
+      integer lo(SDIM),hi(SDIM),bc(SDIM,2)
+      integer imin,jmin,kmin,imax,jmax,kmax
+      REAL_T place_to_break
+      REAL_T hx, hy, hz, dt, dth, dthx, dthy, dthz
+      REAL_T tr,tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw,dx(SDIM)
+      REAL_T eps
+      logical ltx,lty,ltz
+      integer DIMDEC(s)
+      integer DIMDEC(work)
+      integer DIMDEC(uedge)
+      integer DIMDEC(xstate)
+      integer DIMDEC(vedge)
+      integer DIMDEC(ystate)
+      integer DIMDEC(wedge)
+      integer DIMDEC(zstate)
+
+      REAL_T s(DIMV(s))
+      REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
+      REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
+      REAL_T stzlo(DIM3(s)),stzhi(DIM3(s)),slzscr(DIM3(s),4)
+
+      REAL_T uedge(DIMV(uedge)), xstate(DIMV(xstate))
+      REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate))
+      REAL_T wedge(DIMV(wedge)), zstate(DIMV(zstate))
+
+      REAL_T xlo(DIMV(work)), xhi(DIMV(work))
+      REAL_T ylo(DIMV(work)), yhi(DIMV(work))
+      REAL_T zlo(DIMV(work)), zhi(DIMV(work))
+      REAL_T  sx(DIMV(work))
+      REAL_T  sy(DIMV(work))
+      REAL_T  sz(DIMV(work))
+      REAL_T tforces(DIMV(work))
+
+      integer use_minion, iconserv
+
+      eps  = 1.0D-6
+      dth  = half*dt
+      dthx = half*dt / dx(1)
+      dthy = half*dt / dx(2)
+      dthz = half*dt / dx(3)
+      hx   = dx(1)
+      hy   = dx(2)
+      hz   = dx(3)
+      imin = lo(1)
+      jmin = lo(2)
+      kmin = lo(3)
+      imax = hi(1)
+      jmax = hi(2)
+      kmax = hi(3)
+c
+c     compute the slopes
+c
+      call FORT_SLOPES(ALL,
+     &     s,DIMS(s),
+     &     sx,sy,sz,DIMS(work),
+     &     lo,hi,slxscr,slyscr,slzscr,bc)
+c
+c     trace the state to the cell edges
+c
+      do k = kmin-1,kmax+1
+         do j = jmin-1,jmax+1
+            do i = imin,  imax+1
+               xlo(i,j,k) = s(i-1,j,k) + (half  - dthx*uedge(i,j,k))*sx(i-1,j,k)
+               xhi(i,j,k) = s(i,  j,k) + (-half - dthx*uedge(i,j,k))*sx(i,  j,k)
+            end do
+         end do
+      end do
+
+      if(use_minion.eq.1)then
+         do k = kmin-1,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin,  imax+1
+                  xlo(i,j,k) = xlo(i,j,k) + dth*tforces(i-1,j,k)
+                  xhi(i,j,k) = xhi(i,j,k) + dth*tforces(i,  j,k)
+               end do
+            end do
+         end do
+      end if
+
+      call trans_xbc(
+     &     s,DIMS(s),
+     &     xlo,xhi,DIMS(work),uedge,DIMS(uedge),
+     &     lo,hi,n,bc)
+
+      do k = kmin-1,kmax+1
+         do j = jmin-1,jmax+1
+            do i = imin,  imax+1
+               fu  = cvmgt(zero,one,abs(uedge(i,j,k)).lt.eps)
+               stx = cvmgp(xlo(i,j,k),xhi(i,j,k),uedge(i,j,k))
+               xlo(i,j,k) = fu*stx + (one - fu)*half*(xhi(i,j,k)+xlo(i,j,k))
+            end do
+         end do
+      end do
+
+      do k = kmin-1,kmax+1
+         do j = jmin,  jmax+1
+            do i = imin-1,imax+1
+               ylo(i,j,k) = s(i,j-1,k) + (half  - dthy*vedge(i,j,k))*sy(i,j-1,k)
+               yhi(i,j,k) = s(i,j, k)  + (-half - dthy*vedge(i,j,k))*sy(i,j, k)
+            end do
+         end do
+      end do
+
+      if (use_minion.eq.1)then
+         do k = kmin-1,kmax+1
+            do j = jmin, jmax+1
+               do i = imin-1,  imax+1
+                  ylo(i,j,k) = ylo(i,j,k) + dth*tforces(i,j-1,k)
+                  yhi(i,j,k) = yhi(i,j,k) + dth*tforces(i,j,  k)
+               end do
+            end do
+         end do
+      end if
+
+      call trans_ybc(
+     &     s,DIMS(s),
+     &     ylo,yhi,DIMS(work),vedge,DIMS(vedge),
+     &     lo,hi,n,bc)
+
+      do k = kmin-1,kmax+1
+         do j = jmin,  jmax+1
+            do i = imin-1,imax+1
+               fv  = cvmgt(zero,one,abs(vedge(i,j,k)).lt.eps)
+               sty = cvmgp(ylo(i,j,k),yhi(i,j,k),vedge(i,j,k))
+               ylo(i,j,k) = fv*sty + (one - fv)*half*(yhi(i,j,k)+ylo(i,j,k))
+            end do
+         end do
+      end do
+
+      do k = kmin,kmax+1
+         do j = jmin-1,jmax+1
+            do i = imin-1,imax+1
+               zlo(i,j,k) = s(i,j,k-1) + (half  - dthz*wedge(i,j,k))*sz(i,j,k-1)
+               zhi(i,j,k) = s(i,j,k  ) + (-half - dthz*wedge(i,j,k))*sz(i,j,k  )
+            end do
+         end do
+      end do
+
+      if (use_minion.eq.1)then
+         do k = kmin,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin-1,  imax+1
+                  zlo(i,j,k) = zlo(i,j,k) + dth*tforces(i,j,k-1)
+                  zhi(i,j,k) = zhi(i,j,k) + dth*tforces(i,j,k)
+               end do
+            end do
+         end do
+      end if
+
+      call trans_zbc(
+     &     s,DIMS(s),
+     &     zlo,zhi,DIMS(work),wedge,DIMS(wedge),
+     &     lo,hi,n,bc)
+
+      do k = kmin,kmax+1
+         do j = jmin-1,jmax+1
+            do i = imin-1,imax+1
+               fw  = cvmgt(zero,one,abs(wedge(i,j,k)).lt.eps)
+               stz = cvmgp(zlo(i,j,k),zhi(i,j,k),wedge(i,j,k))
+               zlo(i,j,k) = fw*stz + (one-fw)*half*(zhi(i,j,k)+zlo(i,j,k))
+            end do
+         end do
+      end do
+c
+c     compute the xedge states
+c
+      if ((velpred.ne.1) .or. (n.eq.XVEL)) then
+         do k = kmin,kmax
+            do j = jmin,jmax
+
+               do i = imin-1,imax+1
+                  if (iconserv.eq.1) then
+                     tr =
+     &                    (vedge(i,j+1,k)*ylo(i,j+1,k) - vedge(i,j,k)*ylo(i,j,k))/hy +   
+     &                    (wedge(i,j,k+1)*zlo(i,j,k+1) - wedge(i,j,k)*zlo(i,j,k))/hz   
+#if 1
+                     stxlo(i+1)= ( s(i,j,k) + ( half - dthx*uedge(i+1,j,k))*sx(i,j,k)
+     &                    - dth*tr + dth*tforces(i,j,k) ) /
+     &                    ( one + dth*(uedge(i+1,j,k)-uedge(i,j,k))/hx )
+                     stxhi(i  )= ( s(i,j,k) + (-half - dthx*uedge(i,j,k))*sx(i,j,k)
+     &                    - dth*tr + dth*tforces(i,j,k) ) /
+     &                    ( one + dth*(uedge(i+1,j,k)-uedge(i,j,k))/hx )
+#else 
+                     stxlo(i+1)= s(i,j,k) + ( half - dthx*uedge(i+1,j,k))*sx(i,j,k)
+     &                    - dth*tr + dth*tforces(i,j,k)
+     &                    - dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
+                     stxhi(i  )= s(i,j,k) + (-half - dthx*uedge(i,j,k))*sx(i,j,k)
+     &                    - dth*tr + dth*tforces(i,j,k)
+     &                    - dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
+#endif
+                  else
+                     if (vedge(i,j,k)*vedge(i,j+1,k).lt.0.d0) then
+                        vbar = 0.5d0*(vedge(i,j,k)+vedge(i,j+1,k))
+                        if (vbar.lt.0.d0) then
+                           inc = 1
+                        else
+                           inc = 0
+                        endif
+                        tr1 = vbar*(s(i,j+inc,k)-s(i,j+inc-1,k))/hy
+                     else
+                        tr1 = half*(vedge(i,j+1,k) + vedge(i,j,k)) *
+     &                       (ylo(i,j+1,k) - ylo(i,j,k)  ) / hy
+                     endif
+                     if (wedge(i,j,k)*wedge(i,j,k+1).lt.0.d0) then
+                        wbar = 0.5d0*(wedge(i,j,k)+wedge(i,j,k+1))
+                        if (wbar.lt.0.d0) then
+                           inc = 1
+                        else
+                           inc = 0
+                        endif
+                        tr2 = wbar*(s(i,j,k+inc)-s(i,j,k+inc-1))/hz
+                     else
+                        tr2 = half*(wedge(i,j,k+1) + wedge(i,j,k)) *
+     &                       (zlo(i,j,k+1) - zlo(i,j,k)  ) / hz
+                     endif
+
+                     stxlo(i+1)= s(i,j,k) + ( half - dthx*uedge(i+1,j,k))*sx(i,j,k)
+     &                    - dth*(tr1 + tr2) + dth*tforces(i,j,k)
+                     stxhi(i  )= s(i,j,k) + (-half - dthx*uedge(i,j,k))*sx(i,j,k)
+     &                    - dth*(tr1 + tr2) + dth*tforces(i,j,k)
+                  endif
+               end do
+
+               if (bc(1,1).eq.EXT_DIR) then
+                  stxhi(imin) = s(imin-1,j,k)
+                  stxlo(imin) = s(imin-1,j,k)
+               else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP
+     &                 .or.bc(1,1).eq.REFLECT_EVEN) then
+                  stxlo(imin) = stxhi(imin)
+               else if (bc(1,1).eq.REFLECT_ODD) then
+                  stxhi(imin) = zero
+                  stxlo(imin) = zero
+               end if
+               if (bc(1,2).eq.EXT_DIR) then
+                  stxlo(imax+1) = s(imax+1,j,k)
+                  stxhi(imax+1) = s(imax+1,j,k)
+               else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP
+     &                 .or.bc(1,2).eq.REFLECT_EVEN) then
+                  stxhi(imax+1) = stxlo(imax+1)
+               else if (bc(1,2).eq.REFLECT_ODD) then
+                  stxlo(imax+1) = zero
+                  stxhi(imax+1) = zero
+               end if
+
+               if ( velpred .eq. 1 ) then
+                  do i = imin, imax+1
+                     ltx = stxlo(i) .le. zero  .and.  stxhi(i) .ge. zero
+                     ltx = ltx .or. (abs(stxlo(i)+stxhi(i)) .lt. eps)
+                     stx = cvmgp(stxlo(i),stxhi(i),stxlo(i)+stxhi(i))
+                     xstate(i,j,k) = cvmgt(zero,stx,ltx)
+                  end do
+               else
+                  do i = imin, imax+1
+                     xstate(i,j,k) = cvmgp(stxlo(i),stxhi(i),uedge(i,j,k))
+                     xstate(i,j,k) = cvmgt(half*(stxlo(i)+stxhi(i)),xstate(i,j,k)
+     &                    ,abs(uedge(i,j,k)).lt.eps)
+                  end do
+               end if
+               place_to_break = 1
+            end do
+         end do
+      end if              
+c
+c     compute the yedge states
+c
+      if ((velpred.ne.1) .or. (n.eq.YVEL)) then
+         do k = kmin,kmax
+            do i = imin,imax
+               
+               do j = jmin-1,jmax+1
+                  if (iconserv.eq.1) then
+                     tr =
+     &                    (uedge(i+1,j,k)*xlo(i+1,j,k) - uedge(i,j,k)*xlo(i,j,k))/hx +   
+     &                    (wedge(i,j,k+1)*zlo(i,j,k+1) - wedge(i,j,k)*zlo(i,j,k))/hz   
+#if 1 
+                     stylo(j+1)= ( s(i,j,k) + ( half - dthy*vedge(i,j+1,k))*sy(i,j,k)
+     &                    - dth*tr + dth*tforces(i,j,k) ) /
+     &                    ( one + dth*(vedge(i,j+1,k)-vedge(i,j,k))/hy )
+                     styhi(j  )= ( s(i,j,k) + (-half - dthy*vedge(i,j,k))*sy(i,j,k)
+     &                    - dth*tr + dth*tforces(i,j,k) ) /
+     &                    ( one + dth*(vedge(i,j+1,k)-vedge(i,j,k))/hy )
+#else 
+                     stylo(j+1)= s(i,j,k) + ( half - dthy*vedge(i,j+1,k))*sy(i,j,k)
+     &                    - dth*tr + dth*tforces(i,j,k)
+     &                    - dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
+                     styhi(j  )= s(i,j,k) + (-half - dthy*vedge(i,j,k))*sy(i,j,k)
+     &                    - dth*tr + dth*tforces(i,j,k)
+     &                    - dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
+#endif
+                  else
+                     if (uedge(i,j,k)*uedge(i+1,j,k).lt.0.d0) then
+                        ubar = 0.5d0*(uedge(i,j,k)+uedge(i+1,j,k))
+                        if (ubar.lt.0.d0) then
+                           inc = 1
+                        else
+                           inc = 0
+                        endif
+                        tr1 = ubar*(s(i+inc,j,k)-s(i+inc-1,j,k))/hx
+                     else
+                        tr1 = half*(uedge(i+1,j,k) + uedge(i,j,k)) *
+     &                       (xlo(i+1,j,k) - xlo(i,j,k)  ) / hx
+                     endif
+                     if (wedge(i,j,k)*wedge(i,j,k+1).lt.0.d0) then
+                        wbar = 0.5d0*(wedge(i,j,k)+wedge(i,j,k+1))
+                        if (wbar.lt.0.d0) then
+                           inc = 1
+                        else
+                           inc = 0
+                        endif
+                        tr2 = wbar*(s(i,j,k+inc)-s(i,j,k+inc-1))/hz
+                     else
+                        tr2 = half*(wedge(i,j,k+1) + wedge(i,j,k)) *
+     &                       (zlo(i,j,k+1) - zlo(i,j,k)  ) / hz
+                     endif
+
+                     stylo(j+1)= s(i,j,k) + ( half - dthy*vedge(i,j,k))*sy(i,j,k)
+     &                    - dth*(tr1 + tr2) + dth*tforces(i,j,k)
+                     styhi(j  )= s(i,j,k) + (-half - dthy*vedge(i,j,k))*sy(i,j,k)
+     &                    - dth*(tr1 + tr2) + dth*tforces(i,j,k)
+                  endif
+               end do
+
+               if (bc(2,1).eq.EXT_DIR) then
+                  styhi(jmin) = s(i,jmin-1,k)
+                  stylo(jmin) = s(i,jmin-1,k)
+               else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP
+     &                 .or.bc(2,1).eq.REFLECT_EVEN) then
+                  stylo(jmin) = styhi(jmin)
+               else if (bc(2,1).eq.REFLECT_ODD) then
+                  styhi(jmin) = zero
+                  stylo(jmin) = zero
+               end if
+               
+               if (bc(2,2).eq.EXT_DIR) then
+                  stylo(jmax+1) = s(i,jmax+1,k)
+                  styhi(jmax+1) = s(i,jmax+1,k)
+               else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
+     &                 .or.bc(2,2).eq.REFLECT_EVEN) then
+                  styhi(jmax+1) = stylo(jmax+1)
+               else if (bc(2,2).eq.REFLECT_ODD) then
+                  stylo(jmax+1) = zero
+                  styhi(jmax+1) = zero
+               end if
+
+               if ( velpred .eq. 1 ) then
+                  do j = jmin, jmax+1
+                     lty = stylo(j) .le. zero  .and.  styhi(j) .ge. zero
+                     lty = lty .or. (abs(stylo(j)+styhi(j)) .lt. eps)
+                     sty = cvmgp(stylo(j),styhi(j),stylo(j)+styhi(j))
+                     ystate(i,j,k) = cvmgt(zero,sty,lty)
+                  end do
+               else
+                  do j=jmin,jmax+1
+                     ystate(i,j,k) = cvmgp(stylo(j),styhi(j),vedge(i,j,k))
+                     ystate(i,j,k) = cvmgt(half*(stylo(j)+styhi(j)),ystate(i,j,k),
+     &                    abs(vedge(i,j,k)).lt.eps)
+                  end do
+               end if
+               place_to_break = 1
+            end do
+         end do
+      end if
+c
+c     compute the zedge states
+c
+      if ((velpred.ne.1) .or. (n.eq.ZVEL)) then
+         do j = jmin,jmax
+            do i = imin,imax
+               
+               do k = kmin-1,kmax+1
+                  
+                  if (iconserv.eq.1) then
+                     tr =
+     &                    (uedge(i+1,j,k)*xlo(i+1,j,k) - uedge(i,j,k)*xlo(i,j,k))/hx +   
+     &                    (vedge(i,j+1,k)*ylo(i,j+1,k) - vedge(i,j,k)*ylo(i,j,k))/hy   
+                     
+#if 1 
+                     stzlo(k+1)= ( s(i,j,k) + ( half - dthz*wedge(i,j,k+1))*sz(i,j,k)
+     &                    - dth*tr + dth*tforces(i,j,k) ) /
+     &                    ( one + dth*(wedge(i,j,k+1)-wedge(i,j,k))/hz )
+                     stzhi(k  )= ( s(i,j,k) + (-half - dthz*wedge(i,j,k))*sz(i,j,k)
+     &                    - dth*tr + dth*tforces(i,j,k) ) /
+     &                    ( one + dth*(wedge(i,j,k+1)-wedge(i,j,k))/hz )
+#else 
+                     stzlo(k+1)= s(i,j,k) + ( half - dthz*wedge(i,j,k+1))*sz(i,j,k)
+     &                    - dth*tr + dth*tforces(i,j,k)
+     &                    - dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
+                     stzhi(k  )= s(i,j,k) + (-half - dthz*wedge(i,j,k))*sz(i,j,k)
+     &                    - dth*tr + dth*tforces(i,j,k)
+     &                    - dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
+#endif
+                  else
+                     if (uedge(i,j,k)*uedge(i+1,j,k).lt.0.d0) then
+                        ubar = 0.5d0*(uedge(i,j,k)+uedge(i+1,j,k))
+                        if (ubar.lt.0.d0) then
+                           inc = 1
+                        else
+                           inc = 0
+                        endif
+                        tr1 = ubar*(s(i+inc,j,k)-s(i+inc-1,j,k))/hx
+                     else
+                        tr1 = half*(uedge(i+1,j,k) + uedge(i,j,k)) *
+     &                       (xlo(i+1,j,k) - xlo(i,j,k)  ) / hx
+                     endif
+                     if (vedge(i,j,k)*vedge(i,j+1,k).lt.0.d0) then
+                        vbar = 0.5d0*(vedge(i,j,k)+vedge(i,j+1,k))
+                        if (vbar.lt.0.d0) then
+                           inc = 1
+                        else
+                           inc = 0
+                        endif
+                        tr2 = vbar*(s(i,j+inc,k)-s(i,j+inc-1,k))/hy
+                     else
+                        tr2 = half*(vedge(i,j+1,k) + vedge(i,j,k)) *
+     &                       (ylo(i,j+1,k) - ylo(i,j,k)  ) / hy
+                     endif
+
+                     stzlo(k+1)= s(i,j,k) + ( half - dthz*wedge(i,j,k))*sz(i,j,k)
+     &                    - dth*(tr1 + tr2) + dth*tforces(i,j,k)
+                     stzhi(k  )= s(i,j,k) + (-half - dthz*wedge(i,j,k))*sz(i,j,k)
+     &                    - dth*(tr1 + tr2) + dth*tforces(i,j,k)
+                  endif
+               end do
+
+               if (bc(3,1).eq.EXT_DIR) then
+                  stzlo(kmin) = s(i,j,kmin-1)
+                  stzhi(kmin) = s(i,j,kmin-1)
+               else if (bc(3,1).eq.FOEXTRAP.or.bc(3,1).eq.HOEXTRAP
+     &                 .or.bc(3,1).eq.REFLECT_EVEN) then
+                  stzlo(kmin) = stzhi(kmin)
+               else if (bc(3,1).eq.REFLECT_ODD) then
+                  stzlo(kmin) = zero
+                  stzhi(kmin) = zero
+               end if
+               if (bc(3,2).eq.EXT_DIR) then
+                  stzlo(kmax+1) = s(i,j,kmax+1)
+                  stzhi(kmax+1) = s(i,j,kmax+1)
+               else if (bc(3,2).eq.FOEXTRAP.or.bc(3,2).eq.HOEXTRAP
+     &                 .or.bc(3,2).eq.REFLECT_EVEN) then
+                  stzhi(kmax+1) = stzlo(kmax+1)
+               else if (bc(3,2).eq.REFLECT_ODD) then
+                  stzlo(kmax+1) = zero
+                  stzhi(kmax+1) = zero
+               end if
+
+               if ( velpred .eq. 1 ) then
+                  do k = kmin,kmax+1
+                     ltz = stzlo(k) .le. zero  .and.  stzhi(k) .ge. zero
+                     ltz = ltz .or. (abs(stzlo(k)+stzhi(k)) .lt. eps)
+                     stz = cvmgp(stzlo(k),stzhi(k),stzlo(k)+stzhi(k))
+                     zstate(i,j,k) = cvmgt(zero,stz,ltz)
+                  end do
+               else
+                  do k = kmin,kmax+1
+                     zstate(i,j,k) = cvmgp(stzlo(k),stzhi(k),wedge(i,j,k))
+                     zstate(i,j,k) = cvmgt(half*(stzlo(k)+stzhi(k)),zstate(i,j,k),
+     &                    abs(wedge(i,j,k)).lt.eps)
+                  end do
+               end if
+               place_to_break = 1
+            end do
+         end do
+
+      end if
       end
 
       subroutine FORT_ADV_FORCING(

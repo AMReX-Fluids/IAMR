@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.4 2002-03-06 17:35:30 marc Exp $
+c $Id: INFL_FORCE_F.F,v 1.5 2002-10-17 20:36:40 marc Exp $
 c
 
 #undef BL_LANG_CC
@@ -128,6 +128,7 @@ c
             endif
           endif
         enddo
+
 #endif
 
         do n = 1, SDIM

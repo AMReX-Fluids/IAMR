@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.26 2002-10-04 19:18:52 almgren Exp $
+# $Id: GNUmakefile,v 1.27 2002-10-17 20:36:40 marc Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -13,6 +13,7 @@ PROFILE   = FALSE
 DIM	      = 2
 COMP	  = g++
 USE_MPI   = TRUE
+USE_MPI   = FALSE
 NAMESPACE = TRUE
 NAMESPACE = FALSE
 USE_THREADS	= TRUE
@@ -205,5 +206,23 @@ endif
 	cd $(TOP)/tensorMG;  $(MyMakeLine) clean
 	cd $(TOP)/iamrlib;   $(MyMakeLine) clean
 endif
+
+#
+# Create MS-IDE dsp file to build this project
+#
+DspOlevel = 1
+DspFileRoot = $(EBASE)$(DIM)d
+ifeq ($(DEBUG), TRUE)
+  DspOlevel := 0
+endif
+dsp: $(DspFileRoot).dsp
+.dspDepends: $(FEXE_sources) $(FEXE_headers) $(fEXE_sources) $(CEXE_headers) $(CEXE_sources) $(INCLUDE_LOCATIONS)
+	@echo $^ > .dspDepends
+
+$(DspFileRoot).dsp: .dspDepends
+	@(echo Building DSP file = $(DspFileRoot).dsp;\
+	$(TOP)/scripts/dsp.mak -p $(DspFileRoot) -t $(TOP) -d $(DIM) -o $(DspFileRoot).dsp -O $(DspOlevel) -f $^)
+
+.PHONY: dsp .dspDepends libs cleanlibs nodata touch_hg
 
 include $(TOP)/mk/Make.rules

@@ -3,7 +3,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.11 2000-10-02 20:50:14 lijewski Exp $
+// $Id: Godunov.H,v 1.12 2002-10-17 20:36:40 marc Exp $
 //
 //
 // A useful enumeration of the forms for the advective terms
@@ -65,8 +65,17 @@ public:      // public access functions
                       FArrayBox &U,
                       FArrayBox &S, FArrayBox &tforces, int fab_ind,
                       int state_ind, const int *bc);
-    
-    
+
+    // compute the edge states, edges velocities filled in grow cells
+    void edge_states_fpu( const Box &grd, const Real *dx, Real dt, int velpred,
+                          FArrayBox &uedge, FArrayBox &stx,
+                          FArrayBox &vedge, FArrayBox &sty,
+#if (BL_SPACEDIM == 3 )
+                          FArrayBox &wedge, FArrayBox &stz,
+#endif
+                          FArrayBox &S, FArrayBox &tforces, int fab_ind,
+                          int state_ind, const int *bc, int inconserv );
+        
     // compute divergent mac velocities
     void ComputeUmac( const Box &grd, const Real *dx, Real dt, 
                       FArrayBox &umac, const int *ubc, 
