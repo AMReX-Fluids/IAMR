@@ -111,12 +111,12 @@ AmrLevel::finishConstructor()
 
 // -------------------------------------------------------------
 void
-AmrLevel::setTimeLevel(REAL time, REAL dt)
+AmrLevel::setTimeLevel(REAL time, REAL dt_old, REAL dt_new)
 {
     int ndesc = desc_lst.length();
     int k;
     for (k = 0; k < ndesc; k++)
-	state[k].setTimeLevel(time,dt);
+	state[k].setTimeLevel(time,dt_old,dt_new);
 }
 
 
