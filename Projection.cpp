@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.96 1999-06-29 17:31:05 marc Exp $
+// $Id: Projection.cpp,v 1.97 1999-06-29 18:04:37 jbb Exp $
 //
 
 #ifdef BL_T3E
@@ -2788,8 +2788,12 @@ Projection::initialVorticityProject (int c_lev)
     //
     // Reset the boundary conditions for all the other projections.
     //
-    delete sync_proj;
+    setUpBcs();
 
+    //
+    // Remove the sync projector built with these bc's. 
+    //
+    delete sync_proj;
     sync_proj = 0;
 #else
     BoxLib::Error("Projection::initialVorticityProject(): not implented yet for 3D");
