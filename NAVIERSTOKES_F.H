@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.13 2003-01-30 07:16:29 almgren Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.14 2003-03-04 17:51:36 car Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -28,8 +28,8 @@
 #    define FORT_SUMMASS     SUMMASS
 #    define FORT_SUMMASSSQ   SUMMASSSQ
 #    define FORT_CEN2EDG     CEN2EDG
-#    define FORT_EDGE_INTERP EDGEINTERP
-#    define FORT_PC_CF_EDGE_INTERP PCEDGEINTERP
+#    define FORT_EDGE_INTERP EDGE_INTERP
+#    define FORT_PC_CF_EDGE_INTERP PC_EDGE_INTERP
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_FILCC       filcc
 #    define FORT_GRADP       gradp
