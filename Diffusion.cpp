@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.78 1999-03-09 23:30:20 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.79 1999-03-10 17:47:28 marc Exp $
 //
 
 //
@@ -2330,13 +2330,18 @@ Diffusion::getBndryData (ViscBndry& bndry,
 	if (rho_flag == 2)
 	    Rho_fpi.isValid();
 
-        const int i = Phi_fpi.index();
+        DependentMultiFabIterator S_mfi(Phi_fpi, S);
 
-        S[i].copy(Phi_fpi());
+        const BoxList gCells = ::boxDiff(Phi_fpi().box(), Phi_fpi.validbox());
 
-        if (rho_flag == 2)
-            for (int n = 0; n < num_comp; ++n)
-                S[i].divide(Rho_fpi(),0,n,1);
+        for (BoxListIterator bli(gCells); bli; ++bli)
+        {
+            S_mfi().copy(Phi_fpi(),bli(),0,bli(),0,num_comp);
+
+            if (rho_flag == 2)
+                for (int n = 0; n < num_comp; ++n)
+                    S_mfi().divide(Rho_fpi(),bli(),0,n,1);
+        }
 
 	if (rho_flag == 2)
 	    ++Rho_fpi;
@@ -2423,10 +2428,14 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
     FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
     for ( ; Phi_fpi.isValid(); ++Phi_fpi)
     {
-	const int i = Phi_fpi.index();
-	BoxList gCells = ::boxDiff(Phi_fpi().box(), Phi_fpi.validbox());
-	for (BoxListIterator bli(gCells); bli; ++bli)
-	    S[i].copy(Phi_fpi(),bli(),0,bli(),0,num_comp);
+        DependentMultiFabIterator S_mfi(Phi_fpi, S);
+        
+        const BoxList gCells = ::boxDiff(Phi_fpi().box(), Phi_fpi.validbox());
+        
+        for (BoxListIterator bli(gCells); bli; ++bli)
+        {
+            S_mfi().copy(Phi_fpi(),bli(),0,bli(),0,num_comp);
+        }
     }
     
     if (level == 0)
