@@ -1,22 +1,28 @@
-
+#include <REAL.H>
 #include "hg_version.H"
 
 #define dims(a) a##l0,a##h0,a##l1,a##h1,a##l2,a##h2
 #define dimdec(a) a##l0:a##h0,a##l1:a##h1,a##l2:a##h2
 c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
 #define dimdecu(a) *
-
+c
+c
+c
       subroutine hgavg(src,
      @ dims(src),
      @ rf,
      @ dims(f),
      @ dims(freg))
-      implicit real*8(a-h,o-z), integer(i-n)
+c     implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(f)
       integer dims(freg)
-      real*8 src(dimdec(src))
-      real*8 rf(dimdec(f))
+      REAL_T src(dimdec(src))
+      REAL_T rf(dimdec(f))
+c
+      REAL_T fac
+      integer k, j, i
+c
       fac = 0.125d0
       do 10 k = fregl2, fregh2
          do 10 j = fregl1, fregh1
@@ -27,8 +33,9 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
      @               rf(i,j-1,k-1)   + rf(i,j-1,k) +
      @               rf(i,j,k-1)     + rf(i,j,k))
       end
-
+c
 c Note---only generates values at coarse points along edge of fine grid
+c
       subroutine hgfavg(src,
      @ dims(src),
      @ rc,
@@ -37,15 +44,20 @@ c Note---only generates values at coarse points along edge of fine grid
      @ dims(f),
      @ dims(creg),
      @ ir, jr, kr, idim, idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c     implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
       integer dims(f)
       integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 rc(dimdec(c))
-      real*8 rf(dimdec(f))
+      REAL_T src(dimdec(src))
+      REAL_T rc(dimdec(c))
+      REAL_T rf(dimdec(f))
       integer ir, jr, kr, idim, idir
+c
+      integer irc, irf, jrc, jrf, krf, krc
+      integer k, j, i, n, l, m
+      REAL_T fac0, fac1, fac
+c
       if (idim .eq. 0) then
          i = cregl0
          if (idir .eq. 1) then
@@ -153,8 +165,9 @@ c Note---only generates values at coarse points along edge of fine grid
      @                  rf(i+m,j+n-1,krf) + rf(i+m-1,j+n-1,krf))
       endif
       end
-
+c
 c Note---only generates values at coarse points along edge of fine grid
+c
       subroutine hgeavg(src,
      @ dims(src),
      @ rc,
@@ -163,15 +176,22 @@ c Note---only generates values at coarse points along edge of fine grid
      @ dims(f),
      @ dims(creg),
      @ ir, jr, kr, ivect, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+c     implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
       integer dims(f)
       integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 rc(dimdec(c))
-      real*8 rf(dimdec(f))
+      REAL_T src(dimdec(src))
+      REAL_T rc(dimdec(c))
+      REAL_T rf(dimdec(f))
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
+c
+      REAL_T rm3, center, ffac, cfac, fac1, fac, fac0
+      integer ic, jc, kc, if, jf, kf, ki, ii, ji
+      integer krf, jrf, irf, krc, jrc
+      integer m, n, l
+      integer idir, jdir, kdir, irc
+c
       rm3 = 1.d0 / (ir * jr * kr)
       ic = cregl0
       jc = cregl1
@@ -434,8 +454,9 @@ c each face is two faces and two sides of an edge
  280           continue
       endif
       end
-
+c
 c Note---only generates values at coarse points along edge of fine grid
+c
       subroutine hgcavg(src,
      @ dims(src),
      @ rc,
@@ -444,15 +465,24 @@ c Note---only generates values at coarse points along edge of fine grid
      @ dims(f),
      @ dims(creg),
      @ ir, jr, kr, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+c     implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
       integer dims(f)
       integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 rc(dimdec(c))
-      real*8 rf(dimdec(f))
+      REAL_T src(dimdec(src))
+      REAL_T rc(dimdec(c))
+      REAL_T rf(dimdec(f))
       integer ir, jr, kr, ga(0:1,0:1,0:1)
+c
+      integer ic, jc, kc, if, jf, kf
+      integer ki, ji, ii
+      integer krc, jrk, jrc, irk, irc
+      REAL_T sum, center, rm3, fac, ffac, cfac, fac0, fac1
+      integer idir, jdir, kdir
+      integer irf, jrf, krf
+      integer m, n, l
+c
       rm3 = 1.d0 / (ir * jr * kr)
       ic = cregl0
       jc = cregl1

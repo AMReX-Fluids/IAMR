@@ -1,23 +1,28 @@
+#include <REAL.H>
 
 #define dims(a) a##l0,a##h0,a##l1,a##h1,a##l2,a##h2
 #define dimdec(a) a##l0:a##h0,a##l1:a##h1,a##l2:a##h2
 c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
 #define dimdecu(a) *
-
+c
 c Works for CELL- or NODE-based data.
+c
       subroutine fcpy(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src), ncomp)
-      implicit real*8(a-h,o-z), integer(i-n)
+c     implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-c      real*8 dest(dimdec(dest), ncomp)
-c      real*8 src(dimdec(src), ncomp)
-      real*8 dest(dimdec(dest), *)
-      real*8 src(dimdec(src), *)
+c      REAL_T dest(dimdec(dest), ncomp)
+c      REAL_T src(dimdec(src), ncomp)
+      REAL_T dest(dimdec(dest), *)
+      REAL_T src(dimdec(src), *)
       integer ncomp
+c
+      integer ic, j, i, k
+c
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
      @    regh2 - regl2 .gt. regh0 - regl0) then
          do 10 ic = 1, ncomp
@@ -39,16 +44,20 @@ c      real*8 src(dimdec(src), ncomp)
  30                  dest(i,j,k,ic) = src(i,j,k,ic)
       endif
       end
-
+c
 c Unrolled copy---works for CELL- or NODE-based data.
+c
       subroutine fcpyu(dest, src,
      @ dims(reg),
      @ ncomp)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(reg)
-      real*8 dest(*)
-      real*8 src(*)
+      REAL_T dest(*)
+      REAL_T src(*)
       integer ncomp
+c
+      integer nvals, i
+c
       nvals = (regh0-regl0+1) * (regh1-regl1+1) * (regh2-regl2+1) * ncomp
       do 10 i = 1, nvals
  10      dest(i) = src(i)
@@ -61,13 +70,16 @@ c Works for NODE-based data.
      @ dims(da),
      @ db,  dims(db),
      @ dims(reg), w, ncomp)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(da)
       integer dims(db)
       integer dims(reg)
-      real*8 da(dimdec(da), ncomp)
-      real*8 db(dimdec(db), ncomp)
+      REAL_T da(dimdec(da), ncomp)
+      REAL_T db(dimdec(db), ncomp)
       integer w, ncomp
+c
+      integer ic, i, k, j
+c
       if (regl0 .eq. regh0) then
          do 10 ic = 1, ncomp
             do 10 i = 1, w
@@ -95,19 +107,26 @@ c               do 20 k = regl2 - w, regh2 + w
       endif
       end
 #endif
-
+c
 c Works for NODE-based data.
+c
       subroutine fcpy2(da,
      @ dims(da),
      @ db,  dims(db),
      @ dims(reg), w, b, ncomp)
-      implicit real*8(a-h,o-z), integer(i-n)
+c     implicit REAL_T(a-h,o-z), integer(i-n)
+      integer ncomp
       integer dims(da)
       integer dims(db)
       integer dims(reg)
-      real*8 da(dimdec(da), ncomp)
-      real*8 db(dimdec(db), ncomp)
-      integer w, b, ncomp
+      REAL_T da(dimdec(da), ncomp)
+      REAL_T db(dimdec(db), ncomp)
+      integer w, b
+c
+      integer ic, i, k, j
+      integer ial, iah, ibl, ibh, jal, jah
+      integer jbl, jbh
+c
       if (regl0 .eq. regh0) then
          do 10 ic = 1, ncomp
             do 10 i = 1, w
@@ -158,37 +177,47 @@ c Works for NODE-based data.
  50                  db(i,j,regl2-k,ic) = da(i,j,regl2-k,ic)
       endif
       end
-
+c
+c
+c
       subroutine fccpy2(dest, src, nsets, dstart, sstart,
      @                  dstrd1, dstrd2, sstrd1, sstrd2,
      @                  nvals1, nvals2)
-      implicit real*8(a-h,o-z), integer(i-n)
-      real*8 dest(0:1), src(0:1)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
+      REAL_T dest(0:1), src(0:1)
       integer nsets
       integer dstart(nsets), sstart(nsets)
       integer dstrd1(nsets), dstrd2(nsets)
       integer sstrd1(nsets), sstrd2(nsets)
       integer nvals1(nsets), nvals2(nsets)
+c
+      integer i, k, j
+c
       do 10 k = 1, nsets
          do 10 j = 0, nvals2(k) - 1
             do 10 i = 0, nvals1(k) - 1
  10            dest(dstart(k) + j * dstrd2(k) + i * dstrd1(k)) =
      @          src(sstart(k) + j * sstrd2(k) + i * sstrd1(k))
       end
-
+c
 c Works for CELL- or NODE-based data.
+c
       subroutine mxnorm(src,
      @ dims(src),
      @ dims(reg),
      @ retval)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(reg)
-      real*8 src(dimdec(src))
-      real*8 retval
+      REAL_T src(dimdec(src))
+      REAL_T retval
       integer bufsiz
       parameter(bufsiz = 128)
-      real*8 buf(0:bufsiz-1)
+      REAL_T buf(0:bufsiz-1)
+c
+      integer idif, jdif, kdif, nbuf
+      integer i, j, k, ii, jj, kk
+c
       idif = regh0 - regl0
       jdif = regh1 - regl1
       kdif = regh2 - regl2
@@ -227,44 +256,56 @@ c Works for CELL- or NODE-based data.
  90         retval = max(retval, buf(i))
       endif
       end
-
+c
 c Works for CELL- or NODE-based data.
+c
       subroutine fassnu(v, x,
      @ dims(reg),
      @ ncomp)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(reg)
-      real*8 v(*)
-      real*8 x
+      REAL_T v(*)
+      REAL_T x
       integer ncomp
+c
+      integer nvals, i
+c
       nvals = (regh0-regl0+1) * (regh1-regl1+1) * (regh2-regl2+1) * ncomp
       do 10 i = 1, nvals
  10      v(i) = x
       end
-
+c
 c Works for CELL- or NODE-based data.
+c
       subroutine fplusu(v0, v1,
      @ dims(reg))
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(reg)
-      real*8 v0(dimdecu(reg))
-      real*8 v1(dimdecu(reg))
+      REAL_T v0(dimdecu(reg))
+      REAL_T v1(dimdecu(reg))
+c
+      integer i
+c
       do 10 i = 1, (regh0-regl0+1) * (regh1-regl1+1) * (regh2-regl2+1)
  10      v0(i) = v0(i) + v1(i)
       end
-
+c
 c Works for CELL-based data.
+c
       subroutine iprodc(v0,
      @ dims(v0),
      @ v1, dims(v1),
      @ dims(reg), sum)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(v0)
       integer dims(v1)
       integer dims(reg)
-      real*8 v0(dimdec(v0))
-      real*8 v1(dimdec(v1))
-      real*8 sum
+      REAL_T v0(dimdec(v0))
+      REAL_T v1(dimdec(v1))
+      REAL_T sum
+c
+      integer i, j, k
+c
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
      @    regh2 - regl2 .gt. regh0 - regl0) then
          do 10 j = regl1, regh1
@@ -283,19 +324,23 @@ c Works for CELL-based data.
  30               sum = sum + v0(i,j,k) * v1(i,j,k)
       endif
       end
-
+c
 c Works for CELL- or NODE-based data.
+c
       subroutine iprodn(v0,
      @ dims(v0),
      @ v1, dims(v1),
      @ dims(reg), sum)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(v0)
       integer dims(v1)
       integer dims(reg)
-      real*8 v0(dimdec(v0))
-      real*8 v1(dimdec(v1))
-      real*8 sum
+      REAL_T v0(dimdec(v0))
+      REAL_T v1(dimdec(v1))
+      REAL_T sum
+c
+      integer i, j, k
+c
       sum = sum + 0.125d0 *
      @            (v0(regl0,regl1,regl2) * v1(regl0,regl1,regl2) +
      @             v0(regl0,regl1,regh2) * v1(regl0,regl1,regh2) +
@@ -356,21 +401,25 @@ c Works for CELL- or NODE-based data.
  90               sum = sum + v0(i,j,k) * v1(i,j,k)
       endif
       end
-
+c
 c Works for CELL- or NODE-based data.
+c
       subroutine bref(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb), idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer dims(bb)
       integer idir
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+c
       if (idir .eq. 0) then
          do 10 i = regl0, regh0
             do 10 k = regl2, regh2
@@ -388,21 +437,25 @@ c Works for CELL- or NODE-based data.
  30               dest(i,j,k) = src(i,j,bbh2-(k-regl2))
       endif
       end
-
+c
 c Works for CELL- or NODE-based data.
+c
       subroutine brefm(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb), ra)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer dims(bb)
       integer ra(0:2)
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+c
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
          if (regh2 - regl2 .gt. max(regh0 - regl0, regh1 - regl1)) then
             do 10 j = regl1, regh1
@@ -467,21 +520,25 @@ c Works for CELL- or NODE-based data.
      @                              bbh1-(j-regl1), bbh2-(k-regl2))
       endif
       end
-
+c
 c Works for CELL- or NODE-based data.
+c
       subroutine bneg(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb), idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer dims(bb)
       integer idir
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+c
       if (idir .eq. 0) then
          do 10 i = regl0, regh0
             do 10 k = regl2, regh2
@@ -499,21 +556,25 @@ c Works for CELL- or NODE-based data.
  30               dest(i,j,k) = -src(i,j,bbh2-(k-regl2))
       endif
       end
-
+c
 c Works for CELL- or NODE-based data.
+c
       subroutine bnegm(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb), ra)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer dims(bb)
       integer ra(0:2)
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+c
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
          if (regh2 - regl2 .gt. max(regh0 - regl0, regh1 - regl1)) then
             do 10 j = regl1, regh1
@@ -578,24 +639,28 @@ c Works for CELL- or NODE-based data.
      @                               bbh1-(j-regl1), bbh2-(k-regl2))
       endif
       end
-
+c
 c Works for CELL-based velocity data.
 c This routine assumes that the inflow face velocity data has not yet
 c been altered.  Running fill_borders should call this routine on every
 c inflow face, so that binfil can be run for subsequent fills
+c
       subroutine binflo(dest, dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb),
      @ idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer dims(bb)
       integer idir
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+c
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
             do 10 i = regl0, regh0
@@ -640,23 +705,27 @@ c inflow face, so that binfil can be run for subsequent fills
          endif
       endif
       end
-
+c
 c Works for CELL-based velocity data.
 c This routine is called when the inflow face velocity data has already
 c been altered by a call to fill_borders.
+c
       subroutine binfil(dest, dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb),
      @ idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer dims(bb)
       integer idir
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+c
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
             do 10 i = regl0, regh0
@@ -701,21 +770,27 @@ c been altered by a call to fill_borders.
          endif
       endif
       end
-
+c
 c CELL-based data only.
+c
       subroutine acint2(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb), ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer dims(bb)
       integer ir, jr, kr
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+      integer kc, jc, ic
+      REAL_T zoff, yoff, xoff, sz, sy, sx
+c
       do 10 k = regl2, regh2
          kc = k/kr
          zoff = (mod(k,kr) + 0.5) / kr - 0.5
@@ -730,21 +805,28 @@ c CELL-based data only.
                sx = 0.5 * (src(ic+1,jc,kc) - src(ic-1,jc,kc))
  10         dest(i,j,k) = src(ic,jc,kc) + xoff*sx + yoff*sy + zoff*sz
       end
-
+c
 c NODE-based data only.
+c
       subroutine anint2(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb), ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer dims(bb)
       integer ir, jr, kr
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+      integer kc, jc, ic
+      integer m
+      REAL_T q, p
+c
       do 10 kc = bbl2, bbh2
          do 10 jc = bbl1, bbh1
             do 10 ic = bbl0, bbh0
@@ -872,20 +954,26 @@ cdir$ ivdep
          endif
       endif
       end
-
+c
 c CELL-based data only.
+c
       subroutine acrst1(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer ir, jr, kr
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+      integer l, m, n
+      REAL_T fac
+c
       do 10 k = regl2, regh2
          do 10 j = regl1, regh1
             do 10 i = regl0, regh0
@@ -904,20 +992,24 @@ c CELL-based data only.
             do 30 i = regl0, regh0
  30            dest(i,j,k) = dest(i,j,k) * fac
       end
-
+c
 c NODE-based data only.
+c
       subroutine anrst1(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer ir, jr, kr
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+c
       do 10 k = regl2, regh2
          do 10 j = regl1, regh1
             do 10 i = regl0, regh0
@@ -966,20 +1058,26 @@ c NODE-based data only.
 #define REST4C  0.001953125d0 * (RS0(2,3) + RS0(3,2))
 #define REST4D  0.005859375d0 * (RS0(1,2) + RS0(2,1))
 #define REST4E  0.0029296875d0 * (RS0(1,3) + RS0(3,1))
-
+c
 c NODE-based data only.
+c
       subroutine anrst2(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer ir, jr, kr
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+      integer m, n, l
+      REAL_T fac0, fac2, fac1, fac
+c
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
          if (regh2 - regl2 .gt. regh1 - regl1 .and.
      @       regh2 - regl2 .gt. regh0 - regl0) then
@@ -1184,21 +1282,28 @@ c NODE-based data only.
       endif
       end
 
+c
 c NODE-based data only.
 c Fills coarse region defined by reg.
 c Handles coarse-fine face, with orientation determined by idim and idir
+c
       subroutine anfr2(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ ir, jr, kr, idim, idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer ir, jr, kr, idim, idir
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+      REAL_T fac0, fac1, fac2, fac
+      integer m, n, l
+c
       if (idim .eq. 0) then
          i = regl0
          do 10 k = regl2, regh2
@@ -1268,21 +1373,30 @@ c Handles coarse-fine face, with orientation determined by idim and idir
       endif
       end
 
+c
 c NODE-based data only.
 c Fills coarse region defined by reg.
 c Handles any edge geometry except all-coarse or all-fine.
+c
       subroutine aner2(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ ir, jr, kr, ivect, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+      integer ki, ji, ii
+      REAL_T cube, center, fac0, fac1, fac2, fac, cfac
+      integer idir, kdir, jdir
+      integer m, n, l
+c
       cube = ir * jr * kr
       if (ivect(0) .eq. 0) then
          j = regl1
@@ -1506,21 +1620,30 @@ c center
       endif
       end
 
+c
 c NODE-based data only.
 c Fills coarse region defined by reg.
 c Handles any corner geometry except all-coarse.
+c
       subroutine ancr2(dest,
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
      @ ir, jr, kr, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer ir, jr, kr, ga(0:1,0:1,0:1)
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+      integer ki, ji, ii
+      REAL_T cube, center, fac0, cfac, fac2, fac1, fac
+      integer idir, jdir, kdir
+      integer m, n, l
+c
       i = regl0
       j = regl1
       k = regl2

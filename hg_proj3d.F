@@ -1,26 +1,32 @@
-
+#include <REAL.H>
 #include "hg_version.H"
 
 #define dims(a) a##l0,a##h0,a##l1,a##h1,a##l2,a##h2
 #define dimdec(a) a##l0:a##h0,a##l1:a##h1,a##l2:a##h2
 c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
 #define dimdecu(a) *
-
+c
+c
+c
       subroutine hggrad(gpx, gpy, gpz,
      @ dims(gp),
      @ dest,
      @ dims(dest),
      @ dims(freg),
      @ hx, hy, hz)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(gp)
       integer dims(dest)
       integer dims(freg)
-      real*8 gpx(dimdec(gp))
-      real*8 gpy(dimdec(gp))
-      real*8 gpz(dimdec(gp))
-      real*8 dest(dimdec(dest))
-      real*8 hx, hy, hz
+      REAL_T gpx(dimdec(gp))
+      REAL_T gpy(dimdec(gp))
+      REAL_T gpz(dimdec(gp))
+      REAL_T dest(dimdec(dest))
+      REAL_T hx, hy, hz
+c
+      integer k, j, i
+      REAL_T hxm1h, hym1h, hzm1h
+c
       hxm1h = 0.25d0 / hx
       hym1h = 0.25d0 / hy
       hzm1h = 0.25d0 / hz
@@ -40,22 +46,29 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
      @                           dest(i,j,k) - dest(i+1,j,k) -
      @                           dest(i,j+1,k) - dest(i+1,j+1,k))
       end
-
+c
+c
+c
       subroutine hgdiv(src,
      @ dims(src),
      @ uf, vf, wf,
      @ dims(f),
      @ dims(freg),
      @ hx, hy, hz)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(f)
       integer dims(freg)
-      real*8 src(dimdec(src))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 wf(dimdec(f))
-      real*8 hx, hy, hz
+      REAL_T src(dimdec(src))
+      REAL_T uf(dimdec(f))
+      REAL_T vf(dimdec(f))
+      REAL_T wf(dimdec(f))
+      REAL_T hx, hy, hz
+c
+      integer k, j, i
+      REAL_T hxm1h, hym1h, hzm1h, fac
+      REAL_T hxm1, hym1, hzm1
+c
       hxm1 = 1.d0 / hx
       hym1 = 1.d0 / hy
       hzm1 = 1.d0 / hz
@@ -77,8 +90,9 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
      @                       wf(i,j-1,k)   - wf(i,j-1,k-1) +
      @                       wf(i,j,k)     - wf(i,j,k-1)))
       end
-
+c
 c Note---only generates values at coarse points along edge of fine grid
+c
       subroutine hgfdiv(src,
      @ dims(src),
      @ uc, vc, wc,
@@ -87,20 +101,29 @@ c Note---only generates values at coarse points along edge of fine grid
      @ dims(f),
      @ dims(creg),
      @ hx, hy, hz, ir, jr, kr, idim, idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
       integer dims(f)
       integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 wc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 wf(dimdec(f))
-      real*8 hx, hy, hz
+      REAL_T src(dimdec(src))
+      REAL_T uc(dimdec(c))
+      REAL_T vc(dimdec(c))
+      REAL_T wc(dimdec(c))
+      REAL_T uf(dimdec(f))
+      REAL_T vf(dimdec(f))
+      REAL_T wf(dimdec(f))
+      REAL_T hx, hy, hz
       integer ir, jr, kr, idim, idir
+c
+      integer iuc, iuf
+      integer k, j, i
+      integer l, m, n
+      integer juc, juf
+      integer kuc, kuf
+      REAL_T hym1, hxm1, hzm1
+      REAL_T fac1, fac, fac0, tmp
+c
       if (idim .eq. 0) then
          i = cregl0
          if (idir .eq. 1) then
@@ -289,8 +312,9 @@ c Note---only generates values at coarse points along edge of fine grid
      @                  wf(i+m-1,j+n,kuf) + wf(i+m-1,j+n-1,kuf)))
       endif
       end
-
+c
 c Note---only generates values at coarse points along edge of fine grid
+c
       subroutine hgediv(src,
      @ dims(src),
      @ uc, vc, wc,
@@ -299,20 +323,32 @@ c Note---only generates values at coarse points along edge of fine grid
      @ dims(f),
      @ dims(creg),
      @ hx, hy, hz, ir, jr, kr, ivect, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
       integer dims(f)
       integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 wc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 wf(dimdec(f))
-      real*8 hx, hy, hz
+      REAL_T src(dimdec(src))
+      REAL_T uc(dimdec(c))
+      REAL_T vc(dimdec(c))
+      REAL_T wc(dimdec(c))
+      REAL_T uf(dimdec(f))
+      REAL_T vf(dimdec(f))
+      REAL_T wf(dimdec(f))
+      REAL_T hx, hy, hz
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
+c
+      integer k, j, i
+      REAL_T r3, hxm1c, hym1c, hzm1c, hxm1, hym1, hzm1
+      integer ic, jc, kc, if, jf, kf
+      REAL_T fac1, ffac, cfac, fac0, fac2, fac
+      REAL_T center
+      integer idir, kdir, jdir
+      integer m, n, l
+      integer kuf, juf, iuf
+      integer kuc, juc, iuc
+      integer ki, ji, ii
+c
       r3 = ir * jr * kr
       hxm1c = 1.d0 / (ir * hx)
       hym1c = 1.d0 / (jr * hy)
@@ -653,8 +689,9 @@ c weighting
  280        src(if,jf,kf) = src(if,jf,kf) / center
       endif
       end
-
+c
 c Note---only generates values at coarse points along edge of fine grid
+c
       subroutine hgcdiv(src,
      @ dims(src),
      @ uc, vc, wc,
@@ -663,20 +700,30 @@ c Note---only generates values at coarse points along edge of fine grid
      @ dims(f),
      @ dims(creg),
      @ hx, hy, hz, ir, jr, kr, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
       integer dims(f)
       integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 wc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 wf(dimdec(f))
-      real*8 hx, hy, hz
+      REAL_T src(dimdec(src))
+      REAL_T uc(dimdec(c))
+      REAL_T vc(dimdec(c))
+      REAL_T wc(dimdec(c))
+      REAL_T uf(dimdec(f))
+      REAL_T vf(dimdec(f))
+      REAL_T wf(dimdec(f))
+      REAL_T hx, hy, hz
       integer ir, jr, kr, ga(0:1,0:1,0:1)
+c
+      integer k, j, i
+      REAL_T r3, hxm1c, hym1c, hzm1c, hxm1, hym1, hzm1
+      integer ic, jc, kc, if, jf, kf
+      REAL_T sum, center, fac, ffac, cfac, fac0, fac1
+      integer kuf, kuc, juf, juc, iuf, iuc
+      integer idir, jdir, kdir
+      integer ki, ji, ii
+      integer m, n, l
+c
       r3 = ir * jr * kr
       hxm1c = 1.d0 / (ir * hx)
       hym1c = 1.d0 / (jr * hy)

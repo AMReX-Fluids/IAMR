@@ -1,4 +1,4 @@
-
+#include <REAL.H>
 #include "hg_version.H"
 
 #define dims(a) a##l0,a##h0,a##l1,a##h1,a##l2,a##h2
@@ -11,8 +11,9 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
 #define SIGMA_NODE
 
 c variable density versions:
-
+c
 c Note---assumes fdst linearly interpolated from cdst along face
+c
       subroutine hgfres(res, dims(res),
      @ src,  dims(src),
      @ fdst, dims(fdst),
@@ -21,7 +22,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @ sigmac, dims(sc),
      @ dims(reg),
      @ hx, hy, hz, ir, jr, kr, idim, idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -29,14 +30,20 @@ c Note---assumes fdst linearly interpolated from cdst along face
       integer dims(sf)
       integer dims(sc)
       integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
-      real*8 sigmaf(dimdec(sf))
-      real*8 sigmac(dimdec(sc))
-      real*8 hx, hy, hz
+      REAL_T res(dimdec(res))
+      REAL_T src(dimdec(src))
+      REAL_T fdst(dimdec(fdst))
+      REAL_T cdst(dimdec(cdst))
+      REAL_T sigmaf(dimdec(sf))
+      REAL_T sigmac(dimdec(sc))
+      REAL_T hx, hy, hz
       integer ir, jr, kr, idim, idir
+c
+      integer i, j, k
+      integer is, js, ks
+      REAL_T fac0, hxm2, hym2, hzm2, fac2, fac1, tmp
+      integer m, n, l
+c
       if (idim .eq. 0) then
          i = regl0
          if (idir .eq. 1) then
@@ -321,8 +328,9 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @                   (fdst(i+m,j+n,k+idir) - fdst(i+m,j+n,k))))
       endif
       end
-
+c
 c Note---assumes fdst linearly interpolated from cdst along face
+c
       subroutine hgeres(res, dims(res),
      @ src,  dims(src),
      @ fdst, dims(fdst),
@@ -331,7 +339,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @ sigmac, dims(sc),
      @ dims(reg),
      @ hx, hy, hz, ir, jr, kr, ivect, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -339,14 +347,24 @@ c Note---assumes fdst linearly interpolated from cdst along face
       integer dims(sf)
       integer dims(sc)
       integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
-      real*8 sigmaf(dimdec(sf))
-      real*8 sigmac(dimdec(sc))
-      real*8 hx, hy, hz
+      REAL_T res(dimdec(res))
+      REAL_T src(dimdec(src))
+      REAL_T fdst(dimdec(fdst))
+      REAL_T cdst(dimdec(cdst))
+      REAL_T sigmaf(dimdec(sf))
+      REAL_T sigmac(dimdec(sc))
+      REAL_T hx, hy, hz
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
+c
+      integer i, j, k
+      REAL_T r3, hxm2c, hym2c, hzm2c, hxm2, hym2, hzm2, tmp
+      REAL_T fac0, fac1, fac2, fac, ffac, cfac
+      integer ic, jc, kc, if, jf, kf
+      REAL_T center
+      integer ki, ji, ii
+      integer m, n, l
+      integer idir, kdir, jdir
+c
       r3 = ir * jr * kr
       hxm2c = 1.d0 / (ir * ir * hx * hx)
       hym2c = 1.d0 / (jr * jr * hy * hy)
@@ -777,8 +795,9 @@ c weighting
  280        res(if,jf,kf) = src(if,jf,kf) - res(if,jf,kf) / center
       endif
       end
-
+c
 c Note---assumes fdst linearly interpolated from cdst along face
+c
       subroutine hgcres(res, dims(res),
      @ src,  dims(src),
      @ fdst, dims(fdst),
@@ -787,7 +806,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @ sigmac, dims(sc),
      @ dims(reg),
      @ hx, hy, hz, ir, jr, kr, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -795,14 +814,23 @@ c Note---assumes fdst linearly interpolated from cdst along face
       integer dims(sf)
       integer dims(sc)
       integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
-      real*8 sigmaf(dimdec(sf))
-      real*8 sigmac(dimdec(sc))
-      real*8 hx, hy, hz
+      REAL_T res(dimdec(res))
+      REAL_T src(dimdec(src))
+      REAL_T fdst(dimdec(fdst))
+      REAL_T cdst(dimdec(cdst))
+      REAL_T sigmaf(dimdec(sf))
+      REAL_T sigmac(dimdec(sc))
+      REAL_T hx, hy, hz
       integer ir, jr, kr, ga(0:1,0:1,0:1)
+c
+      integer i, j, k
+      REAL_T r3, hxm2c, hym2c, hzm2c, hxm2, hym2, hzm2
+      REAL_T sum, center, fac, ffac, cfac, fac0, fac1, fac2
+      integer kdir, idir, jdir
+      integer m, n, l
+      integer ic, jc, kc, if, jf, kf
+      integer ki, ji, ii
+c
       r3 = ir * jr * kr
       hxm2c = 1.d0 / (ir * ir * hx * hx)
       hym2c = 1.d0 / (jr * jr * hy * hy)
@@ -1000,26 +1028,30 @@ c weighting
 #else
 
 c constant density versions:
-
+c
 c Note---assumes fdst linearly interpolated from cdst along face
+c
       subroutine hgfres(res, dims(res),
      @ src,  dims(src),
      @ fdst, dims(fdst),
      @ cdst, dims(cdst),
      @ dims(reg),
      @ hx, irat, idim, idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
       integer dims(cdst)
       integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
-      real*8 hx
+      REAL_T res(dimdec(res))
+      REAL_T src(dimdec(src))
+      REAL_T fdst(dimdec(fdst))
+      REAL_T cdst(dimdec(cdst))
+      REAL_T hx
       integer irat, idim, idir
+c
+      integer i, j, k
+c
       hm2 = 1.d0 / (hx*hx)
       fac0 = 0.5d0 / (irat*irat+irat)
       if (idim .eq. 0) then
@@ -1129,26 +1161,33 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @                  fdst(i+m,j-n,k) + fdst(i+m,j+n,k)))
       endif
       end
-
+c
 c Note---assumes fdst linearly interpolated from cdst along face
+c
       subroutine hgeres(res, dims(res),
      @ src,  dims(src),
      @ fdst, dims(fdst),
      @ cdst, dims(cdst),
      @ dims(reg),
      @ hx, irat, ivect, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
       integer dims(cdst)
       integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
-      real*8 hx
+      REAL_T res(dimdec(res))
+      REAL_T src(dimdec(src))
+      REAL_T fdst(dimdec(fdst))
+      REAL_T cdst(dimdec(cdst))
+      REAL_T hx
       integer irat, ivect(0:2), ga(0:1,0:1,0:1)
+c
+      integer i, j, k
+      REAL_T r2, rm1, rm2, hm2
+      integer ic, jc, kc, if, jf, kf
+      REAL_T center, fac0, ffac, cfac, fac1, fac2
+c
       r2 = irat * irat
       rm1 = 1.d0 / irat
       rm2 = rm1 * rm1
@@ -1417,26 +1456,30 @@ c weighting
  280        res(if,jf,kf) = src(if,jf,kf) - res(if,jf,kf) / center
       endif
       end
-
+c
 c Note---assumes fdst linearly interpolated from cdst along face
+c
       subroutine hgcres(res, dims(res),
      @ src,  dims(src),
      @ fdst, dims(fdst),
      @ cdst, dims(cdst),
      @ dims(reg),
      @ hx, irat, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
       integer dims(cdst)
       integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
-      real*8 hx
+      REAL_T res(dimdec(res))
+      REAL_T src(dimdec(src))
+      REAL_T fdst(dimdec(fdst))
+      REAL_T cdst(dimdec(cdst))
+      REAL_T hx
       integer irat, ga(0:1,0:1,0:1)
+c
+      integer i, j, k
+c
       r2 = irat * irat
       rm1 = 1.d0 / irat
       rm2 = rm1 * rm1
@@ -1572,8 +1615,9 @@ c weighting
 #ifndef HG_CONSTANT
 
 #  ifndef SIGMA_NODE
-
+c
 c NODE-based data, factor of 2 only.
+c
       subroutine hgints(dest,
      @ dims(dest),
      @ dims(reg),
@@ -1582,18 +1626,22 @@ c NODE-based data, factor of 2 only.
      @ src,
      @ dims(src),
      @ dims(bb), ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(sb)
       integer dims(src)
       integer dims(bb)
       integer ir, jr, kr
-      real*8 dest(dimdec(dest))
-      real*8 sigx(dimdec(sb))
-      real*8 sigy(dimdec(sb))
-      real*8 sigz(dimdec(sb))
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T sigx(dimdec(sb))
+      REAL_T sigy(dimdec(sb))
+      REAL_T sigz(dimdec(sb))
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+      integer kc, jc, ic
+c
       do 10 kc = bbl2, bbh2
          do 10 jc = bbl1, bbh1
             do 10 ic = bbl0, bbh0
@@ -1782,8 +1830,9 @@ cdir$ ivdep
       end
 
 #  else
-
+c
 c NODE-based data, factor of 2 only.
+c
       subroutine hgints(dest,
      @ dims(dest),
      @ dims(reg),
@@ -1792,16 +1841,20 @@ c NODE-based data, factor of 2 only.
      @ src,
      @ dims(src),
      @ dims(bb), ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(sn)
       integer dims(src)
       integer dims(bb)
       integer ir, jr, kr
-      real*8 dest(dimdec(dest))
-      real*8 signd(dimdec(sn), 3)
-      real*8 src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T signd(dimdec(sn), 3)
+      REAL_T src(dimdec(src))
+c
+      integer i, j, k
+      integer kc, jc, ic
+c
       do 10 kc = bbl2, bbh2
          do 10 jc = bbl1, bbh1
             do 10 ic = bbl0, bbh0
@@ -1907,24 +1960,29 @@ cdir$ ivdep
 #  endif
 
 #  ifndef SIGMA_NODE_ALL
-
+c
 c CELL-based data only.
+c
       subroutine hgsrst(destx, desty, destz,
      @ dims(dest),
      @ dims(reg),
      @ srcx, srcy, srcz,
      @ dims(src), ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer ir, jr, kr
-      real*8 destx(dimdec(dest))
-      real*8 desty(dimdec(dest))
-      real*8 destz(dimdec(dest))
-      real*8 srcx(dimdec(src))
-      real*8 srcy(dimdec(src))
-      real*8 srcz(dimdec(src))
+      REAL_T destx(dimdec(dest))
+      REAL_T desty(dimdec(dest))
+      REAL_T destz(dimdec(dest))
+      REAL_T srcx(dimdec(src))
+      REAL_T srcy(dimdec(src))
+      REAL_T srcz(dimdec(src))
+c
+      integer i, j, k
+      integer i2, j2, k2
+c
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
          do 10 k = regl2, regh2
             do 10 j = regl1, regh1
@@ -2054,23 +2112,28 @@ c CELL-based data only.
       end
 
 #  else
-
+c
 c NODE(EDGE)-based data only.
+c
       subroutine hgsrst(destx, desty, destz,
      @ dims(dest),
      @ dims(reg),
      @ srcx, srcy, srcz,
      @ dims(src))
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      real*8 destx(dimdec(dest))
-      real*8 desty(dimdec(dest))
-      real*8 destz(dimdec(dest))
-      real*8 srcx(dimdec(src))
-      real*8 srcy(dimdec(src))
-      real*8 srcz(dimdec(src))
+      REAL_T destx(dimdec(dest))
+      REAL_T desty(dimdec(dest))
+      REAL_T destz(dimdec(dest))
+      REAL_T srcx(dimdec(src))
+      REAL_T srcy(dimdec(src))
+      REAL_T srcz(dimdec(src))
+c
+      integer i, j, k
+      integer i2, j2, k2
+c
       print *, "Warning:  Don't use this routine.  Not modified for "
       print *, "          IntVect refinement ratios"
       do 10 k = regl2, regh2
@@ -2141,20 +2204,27 @@ c     @                                 1.d0 / srcz(i2+1,j2+1,k2+1))
 #define AVG fac * (cor(i-1) + cor(i+1) + \
                    cor(i-jdiff) + cor(i+jdiff) + \
                    cor(i-kdiff) + cor(i+kdiff))
-
+c
+c
+c
       subroutine hgrlxu(cor,
+
      @ res,
      @ dims(res),
      @ mask,
      @ dims(reg),
      @ hx)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
-      real*8 cor(dimdecu(res))
-      real*8 res(dimdecu(res))
-      real*8 mask(dimdecu(res))
-      real*8 hx
+      REAL_T cor(dimdecu(res))
+      REAL_T res(dimdecu(res))
+      REAL_T mask(dimdecu(res))
+      REAL_T hx
+c
+      integer i, j, k
+      integer jdiff, kdiff
+c
 #if 0
       avg() = fac * (cor(i-1) + cor(i+1) +
      @               cor(i-jdiff) + cor(i+jdiff) +
@@ -2178,19 +2248,21 @@ cdir$ ivdep
      @          (regh0 - resl0) + 1, 2
  20      cor(i) = cor(i) + mask(i) * ((AVG - res(i)) * cen - cor(i))
       end
-
+c
+c
+c
       subroutine hgres(res,
      @ dims(res),
      @ src, dest,
      @ dims(reg),
      @ hx)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(res))
-      real*8 dest(dimdec(res))
-      real*8 hx
+      REAL_T res(dimdec(res))
+      REAL_T src(dimdec(res))
+      REAL_T dest(dimdec(res))
+      REAL_T hx
       hxm2 = 1.d0 / (hx*hx)
       fac = hxm2
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
@@ -2223,19 +2295,26 @@ cdir$ ivdep
      @            6.d0 * dest(i,j,k))
       endif
       end
-
+c
+c
+c
       subroutine hgresu(res,
      @ dims(res),
      @ src, dest,
      @ dims(reg),
      @ hx)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
-      real*8 res(dimdecu(res))
-      real*8 src(dimdecu(res))
-      real*8 dest(dimdecu(res))
-      real*8 hx
+      REAL_T res(dimdecu(res))
+      REAL_T src(dimdecu(res))
+      REAL_T dest(dimdecu(res))
+      REAL_T hx
+c
+      integer i, j, k
+      REAL_T fac, hxm2
+      integer jdiff, kdiff
+c
       hxm2 = 1.d0 / (hx*hx)
       fac = hxm2
       jdiff = resh0 - resl0 + 1
@@ -2256,18 +2335,23 @@ cdir$ ivdep
 c seven-point variable stencils
 
 #ifdef SIGMA_NODE
-
+c
+c
+c
       subroutine hgcen(cen,
      @ dims(cen),
      @ signd,
      @ dims(sn),
      @ dims(reg))
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(cen)
       integer dims(sn)
       integer dims(reg)
-      real*8 cen(dimdec(cen))
-      real*8 signd(dimdec(sn), 3)
+      REAL_T cen(dimdec(cen))
+      REAL_T signd(dimdec(sn), 3)
+c
+      integer i, j, k
+c
       do 10 k = regl2, regh2
          do 10 j = regl1, regh1
             do 10 i = regl0, regh0
@@ -2282,20 +2366,25 @@ c seven-point variable stencils
               sig(i+ly)       * cor(i+jdiff) + \
               sig(i+lz-kdiff) * cor(i-kdiff) + \
               sig(i+lz)       * cor(i+kdiff))
-
+c
 c sig here contains three different directions all stored on "nodes"
+c
       subroutine hgrlxu(cor, res, sig, cen,
      @ dims(res),
      @ mask,
      @ dims(reg))
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
-      real*8 cor(dimdecu(res))
-      real*8 res(dimdecu(res))
-      real*8 sig(dimdecu(res))
-      real*8 cen(dimdecu(res))
-      real*8 mask(dimdecu(res))
+      REAL_T cor(dimdecu(res))
+      REAL_T res(dimdecu(res))
+      REAL_T sig(dimdecu(res))
+      REAL_T cen(dimdecu(res))
+      REAL_T mask(dimdecu(res))
+c
+      integer i, j, k
+      integer jdiff, kdiff, ly, lz
+c
 #if 0
       avg() = (sig(i-1)        * cor(i-1) +
      @         sig(i)          * cor(i+1) +
@@ -2328,7 +2417,9 @@ cdir$ ivdep
              signd(i,j,k,2)   * cor(i,j+1,k) + \
              signd(i,j,k-1,3) * cor(i,j,k-1) + \
              signd(i,j,k,3)   * cor(i,j,k+1))
-
+c
+c
+c
       subroutine hgrlx(cor,
      @ dims(cor),
      @ res,
@@ -2338,16 +2429,20 @@ cdir$ ivdep
      @ cen,
      @ dims(cen),
      @ dims(reg))
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(cor)
       integer dims(res)
       integer dims(sn)
       integer dims(cen)
       integer dims(reg)
-      real*8 cor(dimdec(cor))
-      real*8 res(dimdec(res))
-      real*8 signd(dimdec(sn), 3)
-      real*8 cen(dimdec(cen))
+      REAL_T cor(dimdec(cor))
+      REAL_T res(dimdec(res))
+      REAL_T signd(dimdec(sn), 3)
+      REAL_T cen(dimdec(cen))
+c
+      integer i, j, k
+      integer ipar0, ipar, ipass
+c
 #if 0
       avg() = (signd(i-1,j,k,1) * cor(i-1,j,k) +
      @         signd(i,j,k,1)   * cor(i+1,j,k) +
@@ -2400,7 +2495,9 @@ cdir$ ivdep
                             signd(i,j,k,1)   * cor(i+1,j,k) + \
                             signd(i,j-1,k,2) * cor(i,j-1,k) + \
                             signd(i,j,k,2)   * cor(i,j+1,k)))
-
+c
+c
+c
       subroutine hgrlxl(cor,
      @ dims(cor),
      @ res,
@@ -2412,19 +2509,24 @@ cdir$ ivdep
      @ dims(reg),
      @ dims(dom),
      @ lsd)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(cor)
       integer dims(res)
       integer dims(sn)
       integer dims(cen)
       integer dims(reg)
       integer dims(dom)
-      real*8 cor(dimdec(cor))
-      real*8 res(dimdec(res))
-      real*8 signd(dimdec(sn), 3)
-      real*8 cen(dimdec(cen))
-      real*8 wrk(256)
+      REAL_T cor(dimdec(cor))
+      REAL_T res(dimdec(res))
+      REAL_T signd(dimdec(sn), 3)
+      REAL_T cen(dimdec(cen))
+      REAL_T wrk(256)
       integer lsd
+c
+      integer i, j, k
+      REAL_T betm, aj
+      integer ipass, ipar, kw
+c
       if (lsd .eq. 2) then
          do 20 ipass = 1, 0, -1
          ipar = ipass
@@ -2487,7 +2589,9 @@ c back substitution loop:
          print *, "Line solve not implemented in dimension", lsd
       endif
       end
-
+c
+c
+c
       subroutine hgrlnf(cor,
      @ dims(cor),
      @ res, dims(res),
@@ -2497,7 +2601,7 @@ c back substitution loop:
      @ dims(reg),
      @ dims(dom),
      @ lsd, ipass)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(cor)
       integer dims(res)
       integer dims(wrk)
@@ -2505,12 +2609,17 @@ c back substitution loop:
       integer dims(cen)
       integer dims(reg)
       integer dims(dom)
-      real*8 cor(dimdec(cor))
-      real*8 res(dimdec(res))
-      real*8 wrk(dimdec(wrk))
-      real*8 signd(dimdec(sn), 3)
-      real*8 cen(dimdec(cen))
+      REAL_T cor(dimdec(cor))
+      REAL_T res(dimdec(res))
+      REAL_T wrk(dimdec(wrk))
+      REAL_T signd(dimdec(sn), 3)
+      REAL_T cen(dimdec(cen))
       integer lsd, ipass
+c
+      integer i, j, k
+      integer ioff, ipar
+      REAL_T betm, aj
+c
       if (lsd .eq. 2) then
          if (mod(regl0 + regl1, 2) .eq. 0) then
             ioff = 1 - ipass
@@ -2573,7 +2682,9 @@ c interface to grid at same level:
          print *, "Line solve not implemented in dimension", lsd
       endif
       end
-
+c
+c
+c
       subroutine hgres(res,
      @ dims(res),
      @ src,
@@ -2583,16 +2694,19 @@ c interface to grid at same level:
      @ signd,
      @ dims(sn),
      @ dims(reg))
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(dest)
       integer dims(sn)
       integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 dest(dimdec(dest))
-      real*8 signd(dimdec(sn), 3)
+      REAL_T res(dimdec(res))
+      REAL_T src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T signd(dimdec(sn), 3)
+c
+      integer i, j, k
+c
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
      @    regh2 - regl2 .gt. regh0 - regl0) then
          do 10 j = regl1, regh1
@@ -2629,19 +2743,25 @@ c interface to grid at same level:
      @               signd(i,j,k,3)   * (dest(i,j,k+1) - dest(i,j,k)))
       endif
       end
-
+c
+c
+c
       subroutine hgresu(res,
      @ dims(res),
      @ src, dest, signd, mask,
      @ dims(reg))
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
-      real*8 res(dimdecu(res))
-      real*8 src(dimdecu(res))
-      real*8 dest(dimdecu(res))
-      real*8 signd(dimdecu(res))
-      real*8 mask(dimdecu(res))
+      REAL_T res(dimdecu(res))
+      REAL_T src(dimdecu(res))
+      REAL_T dest(dimdecu(res))
+      REAL_T signd(dimdecu(res))
+      REAL_T mask(dimdecu(res))
+c
+      integer i, j, k
+      integer jdiff, kdiff, ly, lz
+c
       jdiff = resh0 - resl0 + 1
       kdiff = (resh1 - resl1 + 1) * jdiff
       ly    = (resh2 - resl2 + 1) * kdiff
@@ -2658,22 +2778,28 @@ c interface to grid at same level:
      @      signd(i+lz-kdiff) * (dest(i-kdiff) - dest(i)) +
      @      signd(i+lz)       * (dest(i+kdiff) - dest(i))))
       end
-
+c
+c
+c
       subroutine hgscon(signd,
      @ dims(sn),
      @ sigx, sigy, sigz,
      @ dims(sc),
      @ dims(reg),
      @ hx, hy, hz)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(sn)
       integer dims(sc)
       integer dims(reg)
-      real*8 signd(dimdec(sn), 3)
-      real*8 sigx(dimdec(sc))
-      real*8 sigy(dimdec(sc))
-      real*8 sigz(dimdec(sc))
-      real*8 hx, hy, hz
+      REAL_T signd(dimdec(sn), 3)
+      REAL_T sigx(dimdec(sc))
+      REAL_T sigy(dimdec(sc))
+      REAL_T sigz(dimdec(sc))
+      REAL_T hx, hy, hz
+c
+      integer i, j, k
+      REAL_T facx, facy, facz
+c
       facx = 0.25d0 / (hx*hx)
       facy = 0.25d0 / (hy*hy)
       facz = 0.25d0 / (hz*hz)
@@ -2695,22 +2821,27 @@ c interface to grid at same level:
       end
 
 #else
-
+c
+c
+c
       subroutine hgcen(cen,
      @ dims(cen),
      @ sigx, sigy, sigz,
      @ dims(sb),
      @ dims(reg),
      @ hx, hy, hz)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(cen)
       integer dims(sb)
       integer dims(reg)
-      real*8 cen(dimdec(cen))
-      real*8 sigx(dimdec(sb))
-      real*8 sigy(dimdec(sb))
-      real*8 sigz(dimdec(sb))
-      real*8 hx, hy, hz
+      REAL_T cen(dimdec(cen))
+      REAL_T sigx(dimdec(sb))
+      REAL_T sigy(dimdec(sb))
+      REAL_T sigz(dimdec(sb))
+      REAL_T hx, hy, hz
+c
+      integer i, j, k
+c
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       hzm2 = 1.d0 / (hz*hz)
@@ -2747,7 +2878,9 @@ c interface to grid at same level:
                  sigz(i,j-1,k-1)   + sigz(i,j,k-1)) * cor(i,j,k-1) + \
                 (sigz(i-1,j-1,k)   + sigz(i-1,j,k) + \
                  sigz(i,j-1,k)     + sigz(i,j,k)) * cor(i,j,k+1)))
-
+c
+c
+c
       subroutine hgrlx(cor,
      @ dims(cor),
      @ res,
@@ -2758,19 +2891,22 @@ c interface to grid at same level:
      @ dims(cen),
      @ dims(reg),
      @ hx, hy, hz)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(cor)
       integer dims(res)
       integer dims(sf)
       integer dims(cen)
       integer dims(reg)
-      real*8 cor(dimdec(cor))
-      real*8 res(dimdec(res))
-      real*8 sigx(dimdec(sf))
-      real*8 sigy(dimdec(sf))
-      real*8 sigz(dimdec(sf))
-      real*8 cen(dimdec(cen))
-      real*8 hx, hy, hz
+      REAL_T cor(dimdec(cor))
+      REAL_T res(dimdec(res))
+      REAL_T sigx(dimdec(sf))
+      REAL_T sigy(dimdec(sf))
+      REAL_T sigz(dimdec(sf))
+      REAL_T cen(dimdec(cen))
+      REAL_T hx, hy, hz
+c
+      integer i, j, k
+c
 #if 0
       avg() = 0.25d0 * (hxm2 *
      @          ((sigx(i-1,j-1,k-1) + sigx(i-1,j-1,k) +
@@ -2830,7 +2966,9 @@ cdir$ ivdep
  30                  continue
       endif
       end
-
+c
+c
+c
       subroutine hgres(res,
      @ dims(res),
      @ src,
@@ -2841,19 +2979,22 @@ cdir$ ivdep
      @ dims(sf),
      @ dims(reg),
      @ hx, hy, hz)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(dest)
       integer dims(sf)
       integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 dest(dimdec(dest))
-      real*8 sigx(dimdec(sf))
-      real*8 sigy(dimdec(sf))
-      real*8 sigz(dimdec(sf))
-      real*8 hx, hy, hz
+      REAL_T res(dimdec(res))
+      REAL_T src(dimdec(src))
+      REAL_T dest(dimdec(dest))
+      REAL_T sigx(dimdec(sf))
+      REAL_T sigy(dimdec(sf))
+      REAL_T sigz(dimdec(sf))
+      REAL_T hx, hy, hz
+c
+      integer i, j, k
+c
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       hzm2 = 1.d0 / (hz*hz)
@@ -2939,18 +3080,24 @@ cdir$ ivdep
 c twenty-seven-point stencils not implemented
 
 #endif
-
+c
+c
+c
       subroutine hgrlnb(cor, dims(cor),
      @ wrk, dims(wrk),
      @ dims(reg),
      @ lsd, ipass)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(cor)
       integer dims(wrk)
       integer dims(reg)
-      real*8 cor(dimdec(cor))
-      real*8 wrk(dimdec(wrk))
+      REAL_T cor(dimdec(cor))
+      REAL_T wrk(dimdec(wrk))
       integer lsd, ipass
+c
+      integer i, j, k
+      integer ioff, ipar
+c
       if (lsd .eq. 2) then
          if (mod(regl0 + regl1, 2) .eq. 0) then
             ioff = 1 - ipass
@@ -2981,35 +3128,47 @@ c back substitution loop:
 c Unrolled indexing in these 3 routines uses the fact that each array
 c has a border of width 1
 
+c
 c Works for NODE-based data.
+c
       subroutine hgip(v0, v1, mask,
      @ dims(reg),
      @ sum)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(reg)
-      real*8 v0(dimdecu(reg))
-      real*8 v1(dimdecu(reg))
-      real*8 mask(dimdecu(reg))
-      real*8 sum
+      REAL_T v0(dimdecu(reg))
+      REAL_T v1(dimdecu(reg))
+      REAL_T mask(dimdecu(reg))
+      REAL_T sum
+c
+      integer i
+      integer jdiff, kdiff
+c
       jdiff = regh0 - regl0 + 1
       kdiff = (regh1 - regl1 + 1) * jdiff
       do 10 i = kdiff + jdiff + 2, kdiff * (regh2 - regl2) - jdiff - 1
  10      sum = sum + mask(i) * v0(i) * v1(i)
       end
-
+c
+c
+c
       subroutine hgcg1(r, p, z, x, w, c, mask,
      @ dims(reg),
      @ alpha, rho)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(reg)
-      real*8 r(dimdecu(reg))
-      real*8 p(dimdecu(reg))
-      real*8 z(dimdecu(reg))
-      real*8 x(dimdecu(reg))
-      real*8 w(dimdecu(reg))
-      real*8 c(dimdecu(reg))
-      real*8 mask(dimdecu(reg))
-      real*8 alpha, rho
+      REAL_T r(dimdecu(reg))
+      REAL_T p(dimdecu(reg))
+      REAL_T z(dimdecu(reg))
+      REAL_T x(dimdecu(reg))
+      REAL_T w(dimdecu(reg))
+      REAL_T c(dimdecu(reg))
+      REAL_T mask(dimdecu(reg))
+      REAL_T alpha, rho
+c
+      integer i
+      integer jdiff, kdiff
+c
       jdiff = regh0 - regl0 + 1
       kdiff = (regh1 - regl1 + 1) * jdiff
       do 10 i = kdiff + jdiff + 2, kdiff * (regh2 - regl2) - jdiff - 1
@@ -3018,15 +3177,21 @@ c Works for NODE-based data.
          z(i) = r(i) * c(i)
  10      rho = rho + mask(i) * z(i) * r(i)
       end
-
+c
+c
+c
       subroutine hgcg2(p, z,
      @ dims(reg),
      @ alpha)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(reg)
-      real*8 p(dimdecu(reg))
-      real*8 z(dimdecu(reg))
-      real*8 alpha
+      REAL_T p(dimdecu(reg))
+      REAL_T z(dimdecu(reg))
+      REAL_T alpha
+c
+      integer i
+      integer jdiff, kdiff
+c
       jdiff = regh0 - regl0 + 1
       kdiff = (regh1 - regl1 + 1) * jdiff
       do 10 i = kdiff + jdiff + 2, kdiff * (regh2 - regl2) - jdiff - 1
@@ -3035,28 +3200,33 @@ c Works for NODE-based data.
 
 #endif
 #if (CGOPT == 2)
-
+c
+c
+c
       subroutine hgcg(r, p, z, x, w, c, mask,
      @ ngrids, strid1, strid2, nvals,
      @ rs, ps, zs, xs, ws, cs, ms,
      @ nsets, edge, nvals1, nvals2, dstart, sstart,
      @ dstrd1, dstrd2, sstrd1, sstrd2,
      @ hx, alpha, rho, it, pcode)
-      implicit real*8(a-h,o-z), integer(i-n)
-      real*8 r(0:1), p(0:1), z(0:1)
-      real*8 x(0:1), w(0:1), c(0:1), mask(0:1)
+c      implicit REAL_T(a-h,o-z), integer(i-n)
+      REAL_T r(0:1), p(0:1), z(0:1)
+      REAL_T x(0:1), w(0:1), c(0:1), mask(0:1)
       integer ngrids
       integer strid1(ngrids), strid2(ngrids), nvals(ngrids)
       integer rs(ngrids), ps(ngrids), zs(ngrids)
       integer xs(ngrids), ws(ngrids), cs(ngrids), ms(ngrids)
-      real*8 edge(0:1)
+      REAL_T edge(0:1)
       integer nsets
       integer nvals1(nsets), nvals2(nsets)
       integer dstart(nsets), sstart(nsets)
       integer dstrd1(nsets), dstrd2(nsets)
       integer sstrd1(nsets), sstrd2(nsets)
-      real*8 hx, alpha, rho
+      REAL_T hx, alpha, rho
       integer it, pcode
+c
+      integer i, j, k
+c
       hxm2 = 1.d0 / (hx*hx)
 #ifdef HG_CROSS_STENCIL
       facm = -hxm2
