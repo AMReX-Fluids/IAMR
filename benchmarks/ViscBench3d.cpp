@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ViscBench2d.cpp,v 1.2 1999-02-24 01:59:41 sstanley Exp $
+// $Id: ViscBench3d.cpp,v 1.1 1999-02-24 01:59:42 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -50,9 +50,15 @@ void
 PrintUsage (const char* progName)
 {
     cout << '\n';
+    cout << "This program reads a plot file and compares the results\n"
+         << "against a 3-d analog to the 2-d viscous benchmark of\n"
+         << "G.I. Taylor.  Essentially, this is a 2-d solution that\n"
+         << "is uniform in the third-dimension.  But, the uniform\n"
+         << "direction can be in any of the three coordinate directions\n";
     cout << "Usage:" << '\n';
     cout << progName << '\n';
-    cout << "    infile  = inputFileName" << '\n';
+    cout << "     infile = inputFileName" << '\n';
+    cout << "    unifDir = uniformDirection" << '\n';
     cout << "    errfile = ErrorFileOutputFileName" << '\n';
     cout << "     exfile = ExactSolnOutputFileName" << '\n';
     cout << "         mu = viscosity" << '\n';
@@ -103,6 +109,11 @@ main (int   argc,
     pp.query("exfile", exFile);
     pp.query("errfile", errFile);
 
+    int unifDir = -1;
+    pp.query("unifdir", unifDir);
+    if (unifDir < 0)
+        BoxLib::Abort("You must specify `unifDir'");
+
     Real mu = -1.0;
     pp.query("mu", mu);
     if (mu < 0.0) 
@@ -125,6 +136,7 @@ main (int   argc,
     AmrData& amrDataI = dataServicesC.AmrDataRef();
 
     const int nComp          = amrDataI.NComp();
+    const int nVel           = BL_SPACEDIM;
     const Real time = amrDataI.Time();
     const int finestLevel = amrDataI.FinestLevel();
     const Array<aString>& derives = amrDataI.PlotVarNames();
@@ -173,13 +185,15 @@ main (int   argc,
             Array<Real> xlo = amrDataI.GridLocLo()[iLevel][iGrid];
             Array<Real> xhi = amrDataI.GridLocHi()[iLevel][iGrid];
 
-            FORT_VISCBENCH(&time, &mu,
+            FORT_VISCBENCH(&time, &mu, &unifDir,
                            lo, hi, &nComp,
                            ((*dataE[iLevel])[iGrid]).dataPtr(), 
                            ARLIM(lo), ARLIM(hi),
                            delI.dataPtr(),
                            xlo.dataPtr(), xhi.dataPtr());
 	}
+
+        (*dataE[iLevel]).copy(dataI,nVel,nVel,nComp-nVel);
 
         (*error[iLevel]).copy(dataI);
         (*error[iLevel]).minus((*dataE[iLevel]), 0, nComp, 0);
