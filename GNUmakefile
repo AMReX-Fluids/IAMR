@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.55 1998-11-13 21:04:28 sstanley Exp $
+# $Id: GNUmakefile,v 1.56 1998-11-18 20:35:47 lijewski Exp $
 #
 PRECISION     = DOUBLE
 DEBUG	      = FALSE
@@ -61,7 +61,6 @@ LIBRARIES         += -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRV
 endif
 
 ifeq ($(USE_MPI),TRUE)
-DEFINES   += -DBL_USE_MPI
 LIBRARIES += -lmpi
 ifeq ($(MACHINE),OSF1)
 INCLUDE_LOCATIONS += /usr/local/mpi/include
