@@ -1,9 +1,9 @@
-
+#include <REAL.H>
 #include "hg_version.H"
 
-#define dims(a) a l0, a h0, a l1, a h1
-#define dimdec(a) a l0:a h0,a l1:a h1
-c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
+#define dims(a) a##l0, a##h0, a##l1, a##h1
+#define dimdec(a) a##l0:a##h0,a##l1:a##h1
+c#define dimdecu(a) (a##h0-a##l0+1)*(a##h1-a##l1+1)
 #define dimdecu(a) *
 
 #ifdef HG_CROSS_STENCIL
@@ -21,7 +21,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      @ sigmac, dims(sc),
      @ dims(reg),
      @ hx, hy, ir, jr, idim, idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -37,6 +37,11 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       real*8 sigmac(dimdec(sc))
       real*8 hx, hy
       integer ir, jr, idim, idir
+c
+      integer i, j, is, js, m
+      REAL_T hxm2, hym2, r, rfac, fac1, rfac0
+      REAL_T rfac0m, rfac0p, rfac1p, rfac1m
+c
       if (idim .eq. 0) then
          i = regl0
          if (idir .eq. 1) then
@@ -143,7 +148,7 @@ c Note---assumes fdst linearly interpolated from cdst along edges
      @ sigmac, dims(sc),
      @ dims(reg),
      @ hx, hy, ir, jr, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -159,6 +164,10 @@ c Note---assumes fdst linearly interpolated from cdst along edges
       real*8 sigmac(dimdec(sc))
       real*8 hx, hy
       integer ir, jr, ga(0:1,0:1)
+c
+      integer ic, jc, if, jf
+      REAL_T hxm2, hym2, hxm2c, hym2c
+c
       hxm2c = 1.d0 / (ir * ir * hx * hx)
       hym2c = 1.d0 / (jr * jr * hy * hy)
       hxm2 = ir * ir * hxm2c
@@ -239,7 +248,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      @ cdst, dims(cdst),
      @ dims(reg),
      @ hx, irat, idim, idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -251,6 +260,10 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       real*8 cdst(dimdec(cdst))
       real*8 hx
       integer irat, idim, idir
+c
+      integer ir, jr
+      REAL_T fac0, hm2
+c
       ir = irat
       jr = irat
       hm2 = 1.d0 / (hx*hx)
@@ -305,7 +318,7 @@ c Note---assumes fdst linearly interpolated from cdst along edges
      @ cdst, dims(cdst),
      @ dims(reg),
      @ hx, irat, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -317,6 +330,10 @@ c Note---assumes fdst linearly interpolated from cdst along edges
       real*8 cdst(dimdec(cdst))
       real*8 hx, hy
       integer irat, ga(0:1,0:1)
+c
+      integer ji, ic, jc, jf
+      REAL_T sum, center
+c
       hm2 = 1.d0 / (hx*hx)
       ic = regl0
       jc = regl1
@@ -398,7 +415,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
 #else
      @ hx, hy, ir, jr, idim, idir, irz, imax)
 #endif
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -414,6 +431,10 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       real*8 sigmac(dimdec(sc))
       real*8 hx, hy
       integer ir, jr, idim, idir, irz, imax
+c
+      integer i, is, n, js, m, j
+      REAL_T fac0, hxm2, hym2, r, rfac, fac1, tmp, rfac0, rfac1
+      REAL_T rfac0m, rfac1m, rfac0p, rfac1p
 #ifdef TURNOFF
       irz = 0
 #endif
@@ -633,7 +654,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
 #else
      @ hx, hy, ir, jr, idir, jdir, irz)
 #endif
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -649,6 +670,11 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       real*8 sigmac(dimdec(sc))
       real*8 hx, hy
       integer ir, jr, idir, jdir, irz
+c
+      integer i, j, is, js, m, n
+      REAL_T hxm2, hym2, fac0, r, rfac0, rfac1, rfac
+      REAL_T tmp, fac1, rfac0p, rfac1p 
+c
 #ifdef TURNOFF
       irz = 0
 #endif
@@ -773,8 +799,9 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          endif
  20      continue
       end
-
+c
 c Note---assumes fdst linearly interpolated from cdst along edge
+c
       subroutine hgires(res, dims(res),
      @ src,  dims(src),
      @ fdst, dims(fdst),
@@ -787,7 +814,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
 #else
      @ hx, hy, ir, jr, idir, jdir, irz)
 #endif
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -803,6 +830,10 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       real*8 sigmac(dimdec(sc))
       real*8 hx, hy
       integer ir, jr, idir, jdir, irz
+c
+      integer i, j, is, js, m, n
+      REAL_T hxm2, hym2, fac0, r, rfac, rfac0, rfac1
+      REAL_T tmp, fac1, rfac0m, rfac1m
 #ifdef TURNOFF
       irz = 0
 #endif
@@ -927,8 +958,9 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          endif
  20      continue
       end
-
+c
 c Note---assumes fdst linearly interpolated from cdst along edge
+c
       subroutine hgdres(res, dims(res),
      @ src,  dims(src),
      @ fdst, dims(fdst),
@@ -941,7 +973,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
 #else
      @ hx, hy, ir, jr, jdir, irz)
 #endif
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -957,6 +989,10 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       real*8 sigmac(dimdec(sc))
       real*8 hx, hy
       integer ir, jr, jdir, irz
+c
+      integer i, j, js, n, m
+      REAL_T hxm2, hym2, fac0, r, rfac0, rfac1, fac1, tmp, rfac0m
+      REAL_T rfac1m, rfac0p, rfac1p
 #ifdef TURNOFF
       irz = 0
 #endif
@@ -1118,7 +1154,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      @ cdst, dims(cdst),
      @ dims(reg),
      @ hx, irat, idim, idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -1186,7 +1222,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      @ cdst, dims(cdst),
      @ dims(reg),
      @ hx, irat, idir, jdir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -1236,7 +1272,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      @ cdst, dims(cdst),
      @ dims(reg),
      @ hx, irat, idir, jdir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -1286,7 +1322,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      @ cdst, dims(cdst),
      @ dims(reg),
      @ hx, irat, jdir)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(fdst)
@@ -1345,7 +1381,7 @@ c NODE-based data, factor of 2 only.
      @ sigx, sigy, dims(sb),
      @ src,  dims(src),
      @ dims(bb), ir, jr)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(sb)
@@ -1356,6 +1392,9 @@ c NODE-based data, factor of 2 only.
       real*8 sigx(dimdec(sb))
       real*8 sigy(dimdec(sb))
       real*8 src(dimdec(src))
+c
+      integer jc, ic, i, j
+c
       do 10 jc = bbl1, bbh1
          do 10 ic = bbl0, bbh0
  10         dest(ir*ic,jr*jc) = src(ic,jc)
@@ -1401,14 +1440,15 @@ cdir$ ivdep
      @                          sigy(i,j+1) + sigy(i+1,j+1))
       endif
       end
-
+c
 c CELL-based data only.
+c
       subroutine hgsrst(destx, desty,
      @ dims(dest),
      @ dims(reg),
      @ srcx, srcy, dims(src),
      @ ir, jr)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
@@ -1417,6 +1457,10 @@ c CELL-based data only.
       real*8 desty(dimdec(dest))
       real*8 srcx(dimdec(src))
       real*8 srcy(dimdec(src))
+c
+      integer i, j, i2, j2
+      REAL_T hxm2, hym2
+c
       if (ir .eq. 2 .and. jr .eq. 2) then
          do 10 j = regl1, regh1
             do 10 i = regl0, regh0
@@ -1463,7 +1507,7 @@ c five-point constant stencils
      @ mask,
      @ dims(reg),
      @ hx)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
       real*8 cor(dimdecu(res))
@@ -1492,7 +1536,7 @@ cdir$ ivdep
      @ src, dest,
      @ dims(reg),
      @ hx)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
       real*8 res(dimdec(res))
@@ -1522,7 +1566,7 @@ cdir$ ivdep
      @ src, dest,
      @ dims(reg),
      @ hx)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
       real*8 res(dimdecu(res))
@@ -1548,7 +1592,7 @@ c five-point variable stencils
      @ sigx, sigy, dims(sb),
      @ dims(reg),
      @ hx, hy)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(cen)
       integer dims(sb)
       integer dims(reg)
@@ -1579,7 +1623,7 @@ c five-point variable stencils
      @ cen, dims(cen),
      @ dims(reg),
      @ hx, hy, irz, imax)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(cor)
       integer dims(res)
       integer dims(sf)
@@ -1638,7 +1682,7 @@ cdir$ ivdep
      @ dims(reg),
      @ dims(dom),
      @ hx, hy, irz, imax, lsd)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(cor)
       integer dims(res)
       integer dims(sf)
@@ -1724,7 +1768,7 @@ c back substitution loop:
      @ dims(reg),
      @ dims(dom),
      @ hx, hy, irz, imax, lsd, ipass)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(cor)
       integer dims(res)
       integer dims(wrk)
@@ -1853,7 +1897,7 @@ c interface to grid at same level:
      @ sigx, sigy, dims(sf),
      @ dims(reg),
      @ hx, hy)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(dest)
@@ -1913,7 +1957,7 @@ c nine-point constant stencils
      @ mask,
      @ dims(reg),
      @ hx)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
       real*8 cor(dimdec(res))
@@ -1947,7 +1991,7 @@ cdir$ ivdep
      @ src, dest,
      @ dims(reg),
      @ hx)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
       real*8 res(dimdec(res))
@@ -1979,7 +2023,7 @@ cdir$ ivdep
      @ src, dest,
      @ dims(reg),
      @ hx)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
       real*8 res(dimdecu(res))
@@ -2010,7 +2054,7 @@ c nine-point variable stencils
 #else
      @ hx, hy, irz, imax)
 #endif
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(cen)
       integer dims(sb)
       integer dims(reg)
@@ -2019,6 +2063,10 @@ c nine-point variable stencils
       real*8 sigy(dimdec(sb))
       real*8 hx, hy
       integer irz, imax
+c
+      integer i, j
+      REAL_T hxm2, hym2, facrz, r1, r0
+c
 #ifdef TURNOFF
       irz = 0
 #endif
@@ -2048,7 +2096,9 @@ c nine-point variable stencils
      @                                     (sigy(i,j-1)   + sigy(i,j))   / r1))
       endif
       end
-
+c
+c
+c
 #define AVG fac * (hxm2 * \
                (sigx(i-1,j-1) * \
                  (cor(i-1,j-1) - cor(i,j-1) + 2.d0 * cor(i-1,j)) + \
@@ -2082,7 +2132,7 @@ c nine-point variable stencils
 #else
      @ hx, hy, irz, imax)
 #endif
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(cor)
       integer dims(res)
       integer dims(sf)
@@ -2095,6 +2145,11 @@ c nine-point variable stencils
       real*8 cen(dimdec(cen))
       real*8 hx, hy
       integer irz, imax
+c
+      integer i, j
+      REAL_T facrz, r0, r1
+      REAL_T hxm2, hym2, fac0, fac
+c
 #if 0
       avg() = fac * (hxm2 *
      @          (sigx(i-1,j-1) *
@@ -2165,7 +2220,9 @@ cdir$ ivdep
          endif
       endif
       end
-
+c
+c
+c
 #define RHSL0 (res(i,j) - fac * (hxm2 * \
                 (sigx(i-1,j-1) * \
                   (cor(i-1,j-1) - cor(i,j-1)) + \
@@ -2221,7 +2278,7 @@ cdir$ ivdep
 #else
      @ hx, hy, irz, imax, lsd)
 #endif
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(cor)
       integer dims(res)
       integer dims(sf)
@@ -2236,6 +2293,10 @@ cdir$ ivdep
       real*8 hx, hy
       real*8 wrk(256)
       integer irz, imax, lsd
+c
+      integer ipass, i, j, jw
+      REAL_T hxm2, hym2, fac, betm, aj, r1, facrz, r0
+c
 #ifdef TURNOFF
       irz = 0
 #endif
@@ -2348,7 +2409,9 @@ cdir$ ivdep
          endif
       endif
       end
-
+c
+c
+c
       subroutine hgrlnf(cor, dims(cor),
      @ res, dims(res),
      @ wrk, dims(wrk),
@@ -2361,7 +2424,7 @@ cdir$ ivdep
 #else
      @ hx, hy, irz, imax, lsd, ipass)
 #endif
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(cor)
       integer dims(res)
       integer dims(wrk)
@@ -2377,6 +2440,10 @@ cdir$ ivdep
       real*8 cen(dimdec(cen))
       real*8 hx, hy
       integer irz, imax, lsd, ipass
+c
+      integer i, j, jw, ioff
+      REAL_T hxm2, hym2, betm, fac, aj, r1, r0, facrz
+c
 #ifdef TURNOFF
       irz = 0
 #endif
@@ -2656,7 +2723,7 @@ c interface to grid at same level:
 #else
      @ hx, hy, irz, imax)
 #endif
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
       integer dims(dest)
@@ -2669,6 +2736,10 @@ c interface to grid at same level:
       real*8 sigy(dimdec(sf))
       real*8 hx, hy
       integer irz, imax
+c
+      integer i, j
+      REAL_T tmp, hxm2, hym2, fac, r1, r0
+c
 #ifdef TURNOFF
       irz = 0
 #endif
@@ -2754,18 +2825,23 @@ c interface to grid at same level:
 #endif
 
 #endif
-
+c
+c
+c
       subroutine hgrlnb(cor, dims(cor),
      @ wrk, dims(wrk),
      @ dims(reg),
      @ lsd, ipass)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(cor)
       integer dims(wrk)
       integer dims(reg)
       real*8 cor(dimdec(cor))
       real*8 wrk(dimdec(wrk))
       integer lsd, ipass
+c
+      integer ioff, i, j
+c
       if (lsd .eq. 0) then
          if (mod(regl1,2) .eq. 0) then
             ioff = ipass
@@ -2805,12 +2881,15 @@ c has a border of width 1
 c Works for NODE-based data.
       subroutine hgip(v0, v1, mask,
      @ dims(reg), sum)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(reg)
       real*8 v0(dimdecu(reg))
       real*8 v1(dimdecu(reg))
       real*8 mask(dimdecu(reg))
       real*8 sum
+c
+      integer idiff, i
+c
 c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       idiff = regh0 - regl0 + 1
       do 10 i = idiff + 2, idiff * (regh1 - regl1) - 1
@@ -2820,7 +2899,7 @@ c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       subroutine hgcg1(r, p, z, x, w, c, mask,
      @ dims(reg),
      @ alpha, rho)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(reg)
       real*8 r(dimdecu(reg))
       real*8 p(dimdecu(reg))
@@ -2830,6 +2909,9 @@ c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       real*8 c(dimdecu(reg))
       real*8 mask(dimdecu(reg))
       real*8 alpha, rho
+c
+      integer i, idiff
+c
 c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       idiff = regh0 - regl0 + 1
       do 10 i = idiff + 2, idiff * (regh1 - regl1) - 1
@@ -2838,15 +2920,20 @@ c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
          z(i) = r(i) * c(i)
  10      rho = rho + mask(i) * z(i) * r(i)
       end
-
+c
+c
+c
       subroutine hgcg2(p, z,
      @ dims(reg),
      @ alpha)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(reg)
       real*8 p(dimdecu(reg))
       real*8 z(dimdecu(reg))
       real*8 alpha
+c
+      integer i, idiff
+c
 c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       idiff = regh0 - regl0 + 1
       do 10 i = idiff + 2, idiff * (regh1 - regl1) - 1
@@ -2861,7 +2948,7 @@ c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
      @ rs, ps, zs, xs, ws, cs, ms,
      @ nsets, edge, nevals, dstart, sstart, dstrid, sstrid,
      @ hx, alpha, rho, it, pcode)
-      implicit real*8(a-h,o-z), integer(i-n)
+c      implicit real*8(a-h,o-z), integer(i-n)
       real*8 r(0:*), p(0:*), z(0:*)
       real*8 x(0:*), w(0:*), c(0:*), mask(0:*)
       integer ngrids
