@@ -1,30 +1,35 @@
 #
-# $Id: Make.package,v 1.36 1999-02-18 18:22:15 sstanley Exp $
+# $Id: Make.package,v 1.37 1999-04-01 21:43:10 car Exp $
 #
-CLIB_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
+IAMRLIB_BASE=EXE
+ifeq ($(LBASE),iamr)
+  IAMRLIB_BASE=LIB
+endif
 
-CLIB_sources += ViscBndryTensor.cpp
-CLIB_headers += ViscBndryTensor.H
+C$(IAMRLIB_BASE)_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
 
-CLIB_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H
+C$(IAMRLIB_BASE)_sources += ViscBndryTensor.cpp
+C$(IAMRLIB_BASE)_headers += ViscBndryTensor.H
 
-FLIB_headers += SYNCREG_F.H VISCOPERATOR_F.H
-FLIB_sources += SYNCREG_$(DIM)D.F VISCOPERATOR_$(DIM)D.F
+C$(IAMRLIB_BASE)_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H
+
+F$(IAMRLIB_BASE)_headers += SYNCREG_F.H VISCOPERATOR_F.H
+F$(IAMRLIB_BASE)_sources += SYNCREG_$(DIM)D.F VISCOPERATOR_$(DIM)D.F
 #
 # Disconnect MacOperators for different mass continuity.
 #
 ifndef ATMOS_MACOP
-CLIB_sources += MacOperator.cpp
-CLIB_headers += MacOperator.H MacOpProjDrivers.H MacOpMacDrivers.H
-FLIB_sources += MACOPERATOR_$(DIM)D.F
-FLIB_headers += MACOPERATOR_F.H
+  C$(IAMRLIB_BASE)_sources += MacOperator.cpp
+  C$(IAMRLIB_BASE)_headers += MacOperator.H MacOpProjDrivers.H MacOpMacDrivers.H
+  F$(IAMRLIB_BASE)_sources += MACOPERATOR_$(DIM)D.F
+  F$(IAMRLIB_BASE)_headers += MACOPERATOR_F.H
 endif
 
-CLIB_sources += NavierStokes.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
-CLIB_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H 
-						                   
-FLIB_sources += DERIVE_$(DIM)D.F GODUNOV_F.F GODUNOV_$(DIM)D.F NAVIERSTOKES_$(DIM)D.F \
+C$(IAMRLIB_BASE)_sources += NavierStokes.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
+C$(IAMRLIB_BASE)_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H 
+
+F$(IAMRLIB_BASE)_sources += DERIVE_$(DIM)D.F GODUNOV_F.F GODUNOV_$(DIM)D.F NAVIERSTOKES_$(DIM)D.F \
 		PROJECTION_$(DIM)D.F MACPROJ_$(DIM)D.F DIFFUSION_$(DIM)D.F 
 
-FLIB_headers += DERIVE_F.H GODUNOV.FH GODUNOV_F.H PROJECTION_F.H MACPROJ_F.H \
+F$(IAMRLIB_BASE)_headers += DERIVE_F.H GODUNOV.FH GODUNOV_F.H PROJECTION_F.H MACPROJ_F.H \
 		DIFFUSION_F.H NAVIERSTOKES_F.H 

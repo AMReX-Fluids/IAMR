@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.10 1999-03-31 22:52:27 car Exp $
+# $Id: GNUmakefile,v 1.11 1999-04-01 21:43:10 car Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -15,10 +15,6 @@ COMP      = KCC
 USE_MPI   = FALSE
 USE_MPI   = TRUE
 #
-# What stencil do you want to use?
-#
-PRVERSION = v7
-#
 # Use hgproj-serial -- only for testing.
 #
 # Touch Projection.cpp if you want to change the state of USE_HGPROJ_SERIAL.
@@ -27,61 +23,86 @@ USE_HGPROJ_SERIAL = TRUE
 USE_HGPROJ_SERIAL = FALSE
 
 ifeq ($(USE_HGPROJ_SERIAL),TRUE)
-EBASE = amr-serial
-DEFINES += -DBL_USE_HGPROJ_SERIAL
+  #
+  # What stencil do you want to use?
+  #
+  PRVERSION = v7
+  EBASE = amr-serial
+  DEFINES += -DBL_USE_HGPROJ_SERIAL
 else
-EBASE = amr
+  EBASE = amr
 endif
 
 include $(TOP)/mk/Make.defs ./Make.package
 
-ifeq ($(USE_HGPROJ_SERIAL),FALSE)
-INCLUDE_LOCATIONS += . .. $(TOP)/include
-LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lmcmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
+BUILD_INPLACE:=TRUE
+BUILD_INPLACE:=FALSE
+
+ifeq ($(BUILD_INPLACE), TRUE)
+  include $(TOP)/iamrlib/Make.package
+  include $(TOP)/mglib/Make.package
+  include $(TOP)/tensorMG/Make.package
+  include $(TOP)/amrlib/Make.package
+  include $(TOP)/bndrylib/Make.package
+  include $(TOP)/hgproj/Make.package
+  include $(TOP)/pBoxLib_2/Make.package
+  INCLUDE_LOCATIONS += .
+  INCLUDE_LOCATIONS += $(TOP)/iamrlib
+  INCLUDE_LOCATIONS += $(TOP)/mglib
+  INCLUDE_LOCATIONS += $(TOP)/tensorMG
+  INCLUDE_LOCATIONS += $(TOP)/amrlib
+  INCLUDE_LOCATIONS += $(TOP)/bndrylib
+  INCLUDE_LOCATIONS += $(TOP)/hgproj
+  INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2
 else
-INCLUDE_LOCATIONS += . .. $(TOP)/hgproj-serial
-INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
-INCLUDE_LOCATIONS += $(TOP)/include
-LIBRARY_LOCATIONS += $(TOP)/hgproj-serial/lib/$(machineSuffix) $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lmcmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
+  ifeq ($(USE_HGPROJ_SERIAL),FALSE)
+    INCLUDE_LOCATIONS += . .. $(TOP)/include
+    LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
+    LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lmcmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
+  else
+    INCLUDE_LOCATIONS += . .. $(TOP)/hgproj-serial
+    INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
+    INCLUDE_LOCATIONS += $(TOP)/include
+    LIBRARY_LOCATIONS += $(TOP)/hgproj-serial/lib/$(machineSuffix) $(TOP)/lib/$(machineSuffix)
+    LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lmcmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
+  endif
 endif
 
 ifeq ($(USE_MPI),TRUE)
-ifeq ($(MACHINE),OSF1)
-LIBRARIES += -lmpi
-INCLUDE_LOCATIONS += /usr/local/mpi/include
-LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
-endif
-ifeq ($(MACHINE),AIX)
-LIBRARIES += -lmpi
-INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
-LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
-endif
-ifeq ($(MACHINE), Linux)
-LIBRARIES += -lmpich
-endif
+  ifeq ($(MACHINE),OSF1)
+    LIBRARIES += -lmpi
+    INCLUDE_LOCATIONS += /usr/local/mpi/include
+    LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
+  endif
+  ifeq ($(MACHINE),AIX)
+    LIBRARIES += -lmpi
+    INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
+    LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
+  endif
+  ifeq ($(MACHINE), Linux)
+    LIBRARIES += -lmpich
+  endif
 endif
 
 ifeq ($(USE_ARRAYVIEW),TRUE)
-DEFINES += -DBL_USE_ARRAYVIEW
-DEFINES += -DBL_ARRAYVIEW_TAGBOX
+  DEFINES += -DBL_USE_ARRAYVIEW
+  DEFINES += -DBL_ARRAYVIEW_TAGBOX
 endif
 
 ifeq ($(MACHINE),OSF1)
 #
 # Some additional stuff for our preferred development/debugging environment.
 #
-ifeq ($(PRECISION),DOUBLE)
-FFLAGS += -real_size 64
-endif
-FDEBF += -C
-FDEBF += -warn argument_checking
-FDEBF += -warn declarations
-ifneq ($(FC), f90)
-FDEBF += -warn truncated_source
-FDEBF += -warn unused
-endif
+  ifeq ($(PRECISION),DOUBLE)
+    FFLAGS += -real_size 64
+  endif
+  FDEBF += -C
+  FDEBF += -warn argument_checking
+  FDEBF += -warn declarations
+  ifneq ($(FC), f90)
+    FDEBF += -warn truncated_source
+    FDEBF += -warn unused
+  endif
 endif
 #
 # For Running 3rd Only
@@ -89,13 +110,21 @@ endif
 3RD = 1
 3RD =
 ifdef 3RD
-LDFLAGS += --link_command_prefix 3rd
-LDFLAGS += -non_shared -v
+  LDFLAGS += --link_command_prefix 3rd
+  LDFLAGS += -non_shared -v
 endif
 
-vpath %.H   ..
-vpath %.cpp ..
-vpath %.a   $(LIBRARY_LOCATIONS)
+ifeq ($(BUILD_INPLACE), TRUE)
+  vpath %.cpp . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
+  vpath %.H   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
+  vpath %.FH   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
+  vpath %.h   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
+  vpath %.F   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
+else
+  vpath %.H   ..
+  vpath %.cpp ..
+  vpath %.a   $(LIBRARY_LOCATIONS)
+endif
 
 all: $(executable)
 
@@ -103,10 +132,12 @@ ifeq ($(MACHINE),T3E)
 #
 # We don't explicity set the path of the mpi directory on the T3E.
 #
-$(executable): $(filter-out -lmpi, $(LIBRARIES))
+  $(executable): $(filter-out -lmpi, $(LIBRARIES))
 else
-$(executable): $(LIBRARIES)
+  $(executable): $(LIBRARIES)
 endif
+
+ifneq ($(BUILD_INPLACE), TRUE)
 #
 # Build and install all libraries needed in an appropriate order.
 #
@@ -137,5 +168,6 @@ endif
 	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
 	cd $(TOP)/tensorMG;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
 	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) clean
+endif
 
 include $(TOP)/mk/Make.rules
