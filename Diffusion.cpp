@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.76 1999-03-05 21:17:42 almgren Exp $
+// $Id: Diffusion.cpp,v 1.77 1999-03-09 21:49:46 marc Exp $
 //
 
 //
@@ -97,7 +97,7 @@ Diffusion::Diffusion (Amr*               Parent,
                       MultiFab*          Area,
                       const Array<int>&  _is_diffusive,
                       const Array<Real>& _visc_coef)
-  :
+    :
     parent(Parent),
     caller(Caller),
     grids(caller->boxArray()),
@@ -336,13 +336,13 @@ Diffusion::diffuse_scalar (Real                   dt,
                            Real                   be_cn_theta,
                            const MultiFab*        rho_half,
                            int                    rho_flag,
-               		   MultiFab* const*       flux,
-               		   int                    dataComp,
+                           MultiFab* const*       flux,
+                           int                    dataComp,
                            MultiFab*              delta_rhs, 
                            const MultiFab*        alpha, 
                            const MultiFab* const* betan, 
                            const MultiFab* const* betanp1,
-               		   const SolveMode&       solve_mode)
+                           const SolveMode&       solve_mode)
 {
     //
     // This routine expects that physical BC's have been loaded into
@@ -1626,7 +1626,7 @@ Diffusion::getTensorOp (Real                   a,
     const int nDer = MCLinOp::bcComponentsNeeded();
 
     Array<BCRec> bcarray(nDer,BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-                    D_DECL(EXT_DIR,EXT_DIR,EXT_DIR)));
+                                    D_DECL(EXT_DIR,EXT_DIR,EXT_DIR)));
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++)
     {
@@ -1707,9 +1707,9 @@ Diffusion::getTensorOp (Real                   a,
                                   betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
                                   betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),
 #if (BL_SPACEDIM == 3)
-                  betaz_dat,ARLIM(betaz_lo),ARLIM(betaz_hi),
+                                  betaz_dat,ARLIM(betaz_lo),ARLIM(betaz_hi),
 #endif
-                  &isrz);
+                                  &isrz);
         }
     }
     tensor_op->setScalars(a,b);
@@ -1863,7 +1863,7 @@ Diffusion::getViscOp (int                    comp,
                       const MultiFab*        rho_half,
                       int                    rho_flag,
                       Real*                  rhsscale,
-              int                    dataComp,
+                      int                    dataComp,
                       const MultiFab* const* beta,
                       const MultiFab*        alpha_in)
 {
@@ -1990,7 +1990,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
                          int                    comp, 
                          Real                   time,
                          int                    rho_flag,
-             int                    dataComp,
+                         int                    dataComp,
                          const MultiFab* const* beta)
 {
     int allnull, allthere;
@@ -2152,7 +2152,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 void
 Diffusion::getTensorViscTerms (MultiFab&              visc_terms, 
                                Real                   time,
-                   	       int                    dataComp,
+                               int                    dataComp,
                                const MultiFab* const* beta)
 {
     int allthere;
@@ -2321,48 +2321,41 @@ Diffusion::getBndryData (ViscBndry& bndry,
     //
     const BCRec& bc    = caller->get_desc_lst()[State_Type].getBC(src_comp);
     const int    nGrow = 1;
-    int          sComp = src_comp;
-    MultiFab*    S     = &caller->get_data(State_Type,time);
 
-    if (rho_flag == 2)
-    {
-        sComp = 0;
-        S     = new MultiFab(grids, num_comp, nGrow);
-    }
+    MultiFab S(grids, num_comp, nGrow);
 
     bndry.define(grids,num_comp,caller->Geom());
 
-    FillPatchIterator Rho_fpi(*caller,*S);
-    FillPatchIterator Phi_fpi(*caller,*S,nGrow,time,State_Type,src_comp,num_comp);
-    
+    FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
+
+    FillPatchIterator Rho_fpi(*caller,S);
     if (rho_flag == 2)
-        Rho_fpi.Initialize(nGrow,time,State_Type,Density,1);
-    
+	Rho_fpi.Initialize(nGrow,time,State_Type,Density,1);
+
     for ( ; Phi_fpi.isValid(); ++Phi_fpi)
     {
-        if (rho_flag == 2)
-            Rho_fpi.isValid();
+	if (rho_flag == 2)
+	    Rho_fpi.isValid();
 
-        const int i = Phi_fpi.index();
+	const int i = Phi_fpi.index();
+	BoxList gCells = ::boxDiff(Phi_fpi().box(), Phi_fpi.validbox());
+	
+	for (BoxListIterator bli(gCells); bli; ++bli)
+	{
+	    S[i].copy(Phi_fpi(),bli(),0,bli(),0,num_comp);
+		
+	    if (rho_flag==2)
+		for (int n = 0; n < num_comp; ++n)
+		    S[i].divide(Rho_fpi(),bli(),0,n,1);
+	}
 
-        BoxList gCells = ::boxDiff(Phi_fpi().box(), Phi_fpi.validbox());
-    
-        for (BoxListIterator bli(gCells); bli; ++bli)
-        {
-            (*S)[i].copy(Phi_fpi(),bli(),0,bli(),sComp,num_comp);
-
-            if (rho_flag == 2)
-                for (int n = 0; n < num_comp; ++n)
-                    (*S)[i].divide(Rho_fpi(),bli(),0,sComp+n,1);
-        }
-
-        if (rho_flag == 2)
-            ++Rho_fpi;
+	if (rho_flag==2)
+	    ++Rho_fpi;
     }
     
     if (level == 0)
     {
-        bndry.setBndryValues(*S,sComp,0,num_comp,bc);
+        bndry.setBndryValues(S,0,0,num_comp,bc);
     }
     else
     {
@@ -2374,11 +2367,8 @@ Diffusion::getBndryData (ViscBndry& bndry,
         //
         crse_br.setVal(BL_BOGUS);
         coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
-        bndry.setBndryValues(crse_br,0,*S,sComp,0,num_comp,crse_ratio,bc);
+        bndry.setBndryValues(crse_br,0,S,0,0,num_comp,crse_ratio,bc);
     }
-    
-    if (rho_flag == 2)
-        delete S;
 }
 
 void
@@ -2432,22 +2422,27 @@ Diffusion::getTensorBndryData(ViscBndryTensor& bndry,
     // Create the BCRec's interpreted by ViscBndry objects
     //
     Array<BCRec> bcarray(nDer, BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-                     D_DECL(EXT_DIR,EXT_DIR,EXT_DIR)));
+                                     D_DECL(EXT_DIR,EXT_DIR,EXT_DIR)));
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++)
-    {
         bcarray[idim] = caller->get_desc_lst()[State_Type].getBC(src_comp+idim);
-    }
-    //bndry.define(grids,2*num_comp,caller->Geom());
+
     bndry.define(grids,nDer,caller->Geom());
 
-    MultiFab& S = caller->get_data(State_Type,time);
-    S.FillBoundary(src_comp,num_comp);
-    caller->setPhysBoundaryValues(State_Type,src_comp,num_comp,time);
-
+    const int nGrow = 1;
+    MultiFab S(grids,num_comp,nGrow,Fab_allocate);
+    FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
+    for ( ; Phi_fpi.isValid(); ++Phi_fpi)
+    {
+	const int i = Phi_fpi.index();
+	BoxList gCells = ::boxDiff(Phi_fpi().box(), Phi_fpi.validbox());
+	for (BoxListIterator bli(gCells); bli; ++bli)
+	    S[i].copy(Phi_fpi(),bli(),0,bli(),0,num_comp);
+    }
+    
     if (level == 0)
     {
-        bndry.setBndryValues(S,src_comp,0,num_comp,bcarray);
+        bndry.setBndryValues(S,0,0,num_comp,bcarray);
     }
     else
     {
@@ -2457,7 +2452,7 @@ Diffusion::getTensorBndryData(ViscBndryTensor& bndry,
         crse_br.setVal(BL_BOGUS);
         const int rho_flag = 0;
         coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
-        bndry.setBndryValues(crse_br,0,S,src_comp,0,num_comp,crse_ratio[0],bcarray);
+        bndry.setBndryValues(crse_br,0,S,0,0,num_comp,crse_ratio[0],bcarray);
     }
 }
 
@@ -2624,16 +2619,16 @@ Diffusion::compute_divmusi (Real                   time,
 #endif
         assert(grids[divmusimfi.index()] == divmusimfi.validbox());
 
-    FORT_DIV_VARMU_SI(box.loVect(),box.hiVect(), dx,
-                      ARLIM(divu.loVect()), ARLIM(divu.hiVect()),
-                      divu.dataPtr(),
-                      ARLIM(betaxlo), ARLIM(betaxhi), betax,
-                      ARLIM(betaylo), ARLIM(betayhi), betay,
+        FORT_DIV_VARMU_SI(box.loVect(),box.hiVect(), dx,
+                          ARLIM(divu.loVect()), ARLIM(divu.hiVect()),
+                          divu.dataPtr(),
+                          ARLIM(betaxlo), ARLIM(betaxhi), betax,
+                          ARLIM(betaylo), ARLIM(betayhi), betay,
 #if (BL_SPACEDIM==3)
-                      ARLIM(betazlo), ARLIM(betazhi), betaz,
+                          ARLIM(betazlo), ARLIM(betazhi), betaz,
 #endif
-                      ARLIM(divmusi[i].loVect()), ARLIM(divmusi[i].hiVect()),
-                      divmusi[i].dataPtr());
+                          ARLIM(divmusi[i].loVect()), ARLIM(divmusi[i].hiVect()),
+                          divmusi[i].dataPtr());
     }
 
     delete divu_fp;
