@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.103 1998-12-23 23:00:05 marc Exp $
+// $Id: NavierStokes.cpp,v 1.104 1998-12-25 19:02:10 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1108,6 +1108,8 @@ NavierStokes::advance_setup (Real time,
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);
     }
+
+    get_new_data(State_Type).setVal(bogus_value);
 }
 
 //
