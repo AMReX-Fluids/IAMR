@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_2D.F,v 1.9 1999-06-03 18:17:45 almgren Exp $
+c $Id: SYNCREG_2D.F,v 1.10 1999-06-25 21:45:33 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -102,122 +102,6 @@ c           timestep on the coarse grid.  mult = 1/ratio.
       end if
 #endif
       
-      end
-
-c ::: -----------------------------------------------------------
-c ::: This routine will compute one version of DIV(sigma*GRAD(phi))
-c ::: from phi and sigma.
-c ::: This version uses GRAD-PERP.      
-c :::
-c ::: NOTE: phi is node-centered
-c :::       sigma is cell-centered      
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: phi        => node centered data
-c ::: DIMS(phi)  => index limits for phi
-c ::: sigma      => cell-centered coeficient array
-c ::: DIMS(sigma)=> index limits for sigma      
-c ::: divgp     <=  node-centered divergence of gradient
-c ::: DIMS(divgp)=> index limits for divgp
-c ::: lo,hi      => node-centered subregion of divgp to define
-c ::: dx         => cell sizes      
-c ::: mult       => scalar multiplicative factor      
-c ::: -----------------------------------------------------------
-
-      subroutine FORT_SRDGPPHI(phi,DIMS(phi),sigma,DIMS(sigma),
-     &                         divgp,DIMS(divgp),lo,hi,dx,mult,is_rz)
-
-      integer    DIMDEC(phi)
-      integer    DIMDEC(sigma)
-      integer    DIMDEC(divgp)
-      integer    lo(SDIM), hi(SDIM)
-      REAL_T     dx(SDIM), mult
-      REAL_T     phi(DIMV(phi))
-      REAL_T     sigma(DIMV(sigma))
-      REAL_T     divgp(DIMV(divgp))
-      integer    is_rz
-      
-      integer    i, j, lenx, leny
-      REAL_T     p1, p2, p3, p4, denom
-      REAL_T     rm,rp,rminv,rpinv
-      REAL_T     gpy_ul,gpy_ur,gpy_ll,gpy_lr
-      REAL_T     pext,vext
-
-#if BL_PRVERSION==9
-c     FOR NINE-POINT STENCIL
-      denom = one/(twelve*dx(1)**2) + one/(twelve*dx(2)**2)
-#elif BL_PRVERSION==5
-c     FOR FIVE-POINT STENCIL
-      denom = one/(four*dx(1)**2) + one/(four*dx(2)**2)
-#else
-#error "Unknown PRVERSION setting"
-#endif
-
-      lenx = hi(1)-lo(1)+1
-      leny = hi(2)-lo(2)+1
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            p1 = sigma(i-1,j-1)*(-phi(i-1,j-1) + phi(i  ,j-1)
-     &                           +phi(i-1,j  ) - phi(i  ,j  ))
-            p2 = sigma(i-1,j  )*(-phi(i-1,j+1) + phi(i  ,j+1)
-     &                           +phi(i-1,j)   - phi(i  ,j  ))
-            p3 = sigma(i  ,j-1)*(-phi(i+1,j-1) + phi(i  ,j-1)
-     &                           +phi(i+1,j)   - phi(i  ,j  ))
-            p4 = sigma(i  ,j  )*(-phi(i+1,j+1) + phi(i  ,j+1)
-     &                           +phi(i+1,j)   - phi(i  ,j  ))
-            divgp(i,j) = denom*(p1+p2+p3+p4)
-         end do
-      end do
-
-#if BL_PRVERSION==9
-      if (is_rz .eq. 1) then
-
-c      extra term added to DGphi for cylindrical coordinates
-       do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            rp = dx(1) / (two * (dfloat(i)+half)*dx(1))
-            rm = dx(1) / (two * (dfloat(i)-half)*dx(1))
-
-            pext = ((sigma(i-1,j-1) * (phi(i,j-1) - phi(i,j)) +
-     $               sigma(i-1,j  ) * (phi(i,j+1) - phi(i,j))) * rm -
-     $              (sigma(i  ,j-1) * (phi(i,j-1) - phi(i,j)) +
-     $               sigma(i  ,j  ) * (phi(i,j+1) - phi(i,j))) * rp)
-
-            divgp(i,j) = divgp(i,j) + denom*pext
-         end do
-       end do
-
-c      extra term added to DGbarphi for cylindrical coordinates --
-c        here we subtract it since we want D G^perp phi
-       do j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-           rm = twelve*(dfloat(i)-half)*dx(1)
-           rp = twelve*(dfloat(i)+half)*dx(1)
-           rminv = dx(1) / (rm * dx(2)**2)
-           rpinv = dx(1) / (rp * dx(2)**2)
-   
-	   gpy_ur = half * sigma(i  ,j  ) * ( phi(i+1,j+1) + phi(i,j+1) 
-     $                                       -phi(i+1,j  ) - phi(i,j  ))
-	   gpy_ul = half * sigma(i-1,j  ) * ( phi(i-1,j+1) + phi(i,j+1) 
-     $                                       -phi(i-1,j  ) - phi(i,j  ))
-	   gpy_lr = half * sigma(i  ,j-1) * ( phi(i+1,j  ) + phi(i,j  ) 
-     $                                       -phi(i+1,j-1) - phi(i,j-1))
-	   gpy_ll = half * sigma(i-1,j-1) * ( phi(i-1,j  ) + phi(i,j  ) 
-     $                                       -phi(i-1,j-1) - phi(i,j-1))
-           vext =  (gpy_lr - gpy_ur)*rpinv 
-     $            +(gpy_ul - gpy_ll)*rminv
-           divgp(i,j) = divgp(i,j) - vext
-        end do
-        end do
-      endif
-#endif
-
-      do j = lo(2), hi(2)
-      do i = lo(1), hi(1)
-           divgp(i,j) = divgp(i,j) * mult
-      end do
-      end do
-
       end
 
 c ::: -----------------------------------------------------------
@@ -463,63 +347,6 @@ c        ::::: sum in i direction
       end if
       
       end
-
-#if 0
-// legacy code that could prove useful for debugging
-c :: ----------------------------------------------------------
-c :: FIX_SYNC_FINE_CORNER_DSDT
-c ::  fixes domain corner nodes for use in sync projection
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  nghost      => number of ghost nodes
-c ::  DIMS(dat)   => index limits of dat
-c ::  dat        <=> sync register values
-c ::  domlo,domhi => index limits of domain
-c :: ----------------------------------------------------------
-c ::
-      subroutine FORT_FIX_SYNC_FINE_DSDT(nghost, DIMS(dat), dat, 
-     &                                   domlo, domhi) 
-
-      implicit none
-      integer nghost
-      integer DIMDEC(dat)
-      integer domlo(SDIM), domhi(SDIM)
-      REAL_T  dat(DIMV(dat))
-      integer i,j
-
-c ... fix up sides
-c     Note: double counting of corners is intended
-
-      if(ARG_L1(dat)+nghost .eq. domlo(1)) then
-        i = ARG_L1(dat)+nghost
-        do j = ARG_L2(dat)+nghost, ARG_H2(dat)-nghost
-          dat(i,j) = .5*dat(i,j)
-        end do
-      end if
-
-      if(ARG_H1(dat)-nghost .eq. domhi(1)+1) then
-        i = ARG_H1(dat)-nghost
-        do j = ARG_L2(dat)+nghost, ARG_H2(dat)-nghost
-          dat(i,j) = .5*dat(i,j)
-        end do
-      end if
-
-      if(ARG_L2(dat)+nghost .eq. domlo(2)) then
-        j = ARG_L2(dat)+nghost
-        do i = ARG_L1(dat)+nghost, ARG_H1(dat)-nghost
-          dat(i,j) = .5*dat(i,j)
-        end do
-      end if
-
-      if(ARG_H2(dat)-nghost .eq. domhi(2)+1) then
-        j = ARG_H2(dat)-nghost
-        do i = ARG_L1(dat)+nghost, ARG_H1(dat)-nghost
-          dat(i,j) = .5*dat(i,j)
-        end do
-      end if
-
-      end
-#endif
 
 c ::: -----------------------------------------------------------
 c ::: create mask at nodes using values at surrounding cells
