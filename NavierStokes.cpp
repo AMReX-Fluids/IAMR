@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.143 1999-07-14 20:59:17 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.144 1999-07-16 20:35:12 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3512,115 +3512,48 @@ NavierStokes::avgDown (const BoxArray& cgrids,
                        MultiFab&       fvolume,
                        int             c_level,
                        int             f_level,
-                       int             strt_comp,
-                       int             num_comp,
+                       int             scomp,
+                       int             ncomp,
                        IntVect&        fratio)
 {
+    BL_ASSERT(cgrids == S_crse.boxArray());
+    BL_ASSERT(fgrids == S_fine.boxArray());
+    BL_ASSERT(cvolume.boxArray() == cgrids);
+    BL_ASSERT(fvolume.boxArray() == fgrids);
     BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-
-    MultiFabCopyDescriptor mfcd;
-
-    MultiFabId mfidS_fine  = mfcd.RegisterFabArray(&S_fine);
-    MultiFabId mfidFineVol = mfcd.RegisterFabArray(&fvolume);
-
-    vector<FillBoxId> fillBoxIdList, fillBoxIdListVol;
+    BL_ASSERT(fvolume.nComp() == 1 && cvolume.nComp() == 1);
     //
-    // Loop over coarse grids and intersect coarse with fine.
+    // Coarsen() the fine stuff on processors owning the fine data.
     //
-    for (ConstMultiFabIterator mfi(S_crse); mfi.isValid(); ++mfi)
+    BoxArray crse_S_fine_BA(fgrids.length());
+
+    for (int i = 0; i < fgrids.length(); ++i)
     {
-        BL_ASSERT(grids[mfi.index()] == mfi.validbox());
-
-        for (int fine = 0; fine < fgrids.length(); fine++)
-        {
-            Box ovlp = ::coarsen(fgrids[fine],fratio) & mfi.validbox();
-
-            if (ovlp.ok())
-            {
-              Box fine_ovlp = ::refine(ovlp,fratio);
-
-              fillBoxIdList.push_back(mfcd.AddBox(mfidS_fine,
-                                                  fine_ovlp,
-                                                  0,
-                                                  fine,
-                                                  strt_comp,
-                                                  0,
-                                                  num_comp));
-
-              BL_ASSERT(fillBoxIdList.back().box() == fine_ovlp);
-              //
-              // Also save the index of the coarse FAB needed filling.
-              //
-              fillBoxIdList.back().FabIndex(mfi.index());
-
-              fillBoxIdListVol.push_back(mfcd.AddBox(mfidFineVol,
-                                                     fine_ovlp,
-                                                     0,
-                                                     fine,
-                                                     0,
-                                                     0,
-                                                     1));
-
-              BL_ASSERT(fillBoxIdListVol.back().box() == fine_ovlp);
-              //
-              // Here we'll save the fine index so we can reconstruct `ovlp'.
-              //
-              fillBoxIdListVol.back().FabIndex(fine);
-            }
-        }
+        crse_S_fine_BA.set(i,::coarsen(fgrids[i],fratio));
     }
 
-    mfcd.CollectData();
+    MultiFab crse_S_fine(crse_S_fine_BA,ncomp,0);
+    MultiFab crse_fvolume(crse_S_fine_BA,1,0);
 
-    BL_ASSERT(fillBoxIdList.size() == fillBoxIdListVol.size());
+    crse_fvolume.copy(cvolume);
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    FArrayBox fine_fab, fine_vol;
-
-    for (int i = 0; i < fillBoxIdList.size(); i++)
+    for (MultiFabIterator mfi(S_fine); mfi.isValid(); ++mfi)
     {
-        int c_idx = fillBoxIdList[i].FabIndex();
-        int f_idx = fillBoxIdListVol[i].FabIndex();
+        const int i = mfi.index();
 
-        Box ovlp = ::coarsen(fgrids[f_idx],fratio) & cgrids[c_idx];
-
-        BL_ASSERT(ovlp.ok());
-        BL_ASSERT(S_crse.DistributionMap()[c_idx] == MyProc);
-        BL_ASSERT(cvolume.DistributionMap()[c_idx] == MyProc);
-
-        const FillBoxId& fbidFine    = fillBoxIdList[i];
-        const FillBoxId& fbidFineVol = fillBoxIdListVol[i];
-
-        fine_fab.resize(fbidFine.box(), num_comp);
-        fine_vol.resize(fbidFineVol.box(), 1);
-
-        mfcd.FillFab(mfidS_fine,  fbidFine,    fine_fab);
-        mfcd.FillFab(mfidFineVol, fbidFineVol, fine_vol);
-
-        const int*  ovlo    = ovlp.loVect();
-        const int*  ovhi    = ovlp.hiVect();
-        const int*  flo     = fine_fab.loVect();
-        const int*  fhi     = fine_fab.hiVect();
-        const Real* f_dat   = fine_fab.dataPtr();
-        const int*  fvlo    = fine_vol.loVect();
-        const int*  fvhi    = fine_vol.hiVect();
-        const Real* fv_dat  = fine_vol.dataPtr();
-        FArrayBox&  cfab    = S_crse[c_idx];
-        FArrayBox&  cfabvol = cvolume[c_idx];
-        const int*  clo     = cfab.loVect();
-        const int*  chi     = cfab.hiVect();
-        const Real* c_dat   = cfab.dataPtr(strt_comp);
-        const int*  cvlo    = cfabvol.loVect();
-        const int*  cvhi    = cfabvol.hiVect();
-        const Real* cv_dat  = cfabvol.dataPtr();
-
-        FORT_AVGDOWN (c_dat,ARLIM(clo),ARLIM(chi),&num_comp,
-                      f_dat,ARLIM(flo),ARLIM(fhi),
-                      cv_dat,ARLIM(cvlo),ARLIM(cvhi),
-                      fv_dat,ARLIM(fvlo),ARLIM(fvhi),
-                      ovlo,ovhi,fratio.getVect());
+        avgDown(S_fine[i],
+                crse_S_fine[i],
+                fvolume[i],
+                crse_fvolume[i],
+                f_level,
+                c_level,
+                crse_S_fine_BA[i],
+                scomp,
+                ncomp,
+                fratio);
     }
+
+    S_crse.copy(crse_S_fine,0,scomp,ncomp);
 }
 
 //
@@ -3635,26 +3568,26 @@ NavierStokes::avgDown (const FArrayBox& fine_fab,
                        int              f_level,
                        int              c_level,
                        const Box&       ovlp,
-                       int              strt_comp,
-                       int              num_comp,
+                       int              scomp,
+                       int              ncomp,
                        IntVect&         fratio)
 {
     const int*  ovlo   = ovlp.loVect();
     const int*  ovhi   = ovlp.hiVect();
     const int*  flo    = fine_fab.loVect();
     const int*  fhi    = fine_fab.hiVect();
-    const Real* f_dat  = fine_fab.dataPtr(strt_comp);
+    const Real* f_dat  = fine_fab.dataPtr(scomp);
     const int*  fvlo   = fine_vol.loVect();
     const int*  fvhi   = fine_vol.hiVect();
     const Real* fv_dat = fine_vol.dataPtr();
     const int*  clo    = crse_fab.loVect();
     const int*  chi    = crse_fab.hiVect();
-    const Real* c_dat  = crse_fab.dataPtr(strt_comp);
+    const Real* c_dat  = crse_fab.dataPtr(scomp);
     const int*  cvlo   = crse_vol.loVect();
     const int*  cvhi   = crse_vol.hiVect();
     const Real* cv_dat = crse_vol.dataPtr();
 
-    FORT_AVGDOWN(c_dat,ARLIM(clo),ARLIM(chi),&num_comp,
+    FORT_AVGDOWN(c_dat,ARLIM(clo),ARLIM(chi),&ncomp,
                  f_dat,ARLIM(flo),ARLIM(fhi),
                  cv_dat,ARLIM(cvlo),ARLIM(cvhi),
                  fv_dat,ARLIM(fvlo),ARLIM(fvhi),
@@ -4040,8 +3973,17 @@ NavierStokes::avgDown (int comp)
     MultiFab&       S_crse   = get_new_data(State_Type);
     MultiFab&       S_fine   = fine_lev.get_new_data(State_Type);
 
-    avgDown(grids, fgrids, S_crse, S_fine, volume, fvolume,
-            level,  level+1, comp, 1, fine_ratio);
+    avgDown(grids,
+            fgrids,
+            S_crse,
+            S_fine,
+            volume,
+            fvolume,
+            level,
+            level+1,
+            comp,
+            1,
+            fine_ratio);
 }
 
 //
@@ -4111,8 +4053,17 @@ NavierStokes::avgDown ()
     MultiFab& S_crse = get_new_data(State_Type);
     MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
-    avgDown(grids, fgrids, S_crse, S_fine, volume, fvolume,
-            level,  level+1, 0, S_crse.nComp(), fine_ratio);
+    avgDown(grids,
+            fgrids,
+            S_crse,
+            S_fine,
+            volume,
+            fvolume,
+            level,
+            level+1,
+            0,
+            S_crse.nComp(),
+            fine_ratio);
     //
     // Now average down pressure over time n-(n+1) interval.
     //
@@ -4123,78 +4074,23 @@ NavierStokes::avgDown ()
     const BoxArray& P_cgrids    = state[Press_Type].boxArray();
     const BoxArray& P_fgrids    = fine_lev.state[Press_Type].boxArray();
 
-    MultiFabCopyDescriptor mfcd;
+    BoxArray crse_P_fine_BA(P_fgrids.length());
 
-    MultiFabId mfidP_fine = mfcd.RegisterFabArray(&P_fine);
-
-    vector<FillBoxId> fillBoxIdList;
-    //
-    // Inject fine pressure nodes down onto coarse nodes.
-    //
-    for (MultiFabIterator mfi(P_crse); mfi.isValid(); ++mfi)
+    for (int i = 0; i < P_fgrids.length(); ++i)
     {
-        BL_ASSERT(P_cgrids[mfi.index()] == mfi.validbox());
-        //
-        // Loop over fine grids and periodic extensions.
-        //
-        for (int fine = 0; fine < fgrids.length(); fine++)
-        {
-            Box ovlp = ::coarsen(P_fgrids[fine],fine_ratio) & mfi.validbox();
-
-            if (ovlp.ok())
-            {
-                Box fine_ovlp = ::refine(ovlp,fine_ratio);
-
-                fillBoxIdList.push_back(mfcd.AddBox(mfidP_fine,
-                                                    fine_ovlp,
-                                                    0,
-                                                    fine,
-                                                    0,
-                                                    0,
-                                                    P_fine.nComp()));
-
-                BL_ASSERT(fillBoxIdList.back().box() == fine_ovlp);
-                //
-                // I need to save both the fine and the coarse grid indices.
-                // I'll try to stuff'm into the single integer place available.
-                // This assumes that integers are >= 4 bytes in size.
-                //
-                BL_ASSERT(sizeof(int) >= 4);
-                BL_ASSERT(fine < 0xFFFF);
-                BL_ASSERT(mfi.index() < 0xFFFF);
-
-                fillBoxIdList.back().FabIndex((fine << 16) | mfi.index());
-            }
-        }
+        crse_P_fine_BA.set(i,::coarsen(P_fgrids[i],fine_ratio));
     }
 
-    mfcd.CollectData();
+    MultiFab crse_P_fine(crse_P_fine_BA,1,0);
 
-    FArrayBox fine_fab;
-
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    for (int i = 0; i < fillBoxIdList.size(); i++)
+    for (MultiFabIterator mfi(P_fine); mfi.isValid(); ++mfi)
     {
-        const FillBoxId& fbidFine = fillBoxIdList[i];
+        const int i = mfi.index();
 
-        int c_idx = fbidFine.FabIndex() & 0xFFFF;
-        int f_idx = (fbidFine.FabIndex() >> 16) & 0xFFFF;
-
-        BL_ASSERT(c_idx >= 0 && c_idx < P_cgrids.length());
-        BL_ASSERT(f_idx >= 0 && f_idx < P_fgrids.length());
-
-        Box ovlp = ::coarsen(P_fgrids[f_idx],fine_ratio) & P_cgrids[c_idx];
-
-        BL_ASSERT(ovlp.ok());
-        BL_ASSERT(P_crse.DistributionMap()[c_idx] == MyProc);
-        //
-        // Inject fine down to coarse.
-        //
-        fine_fab.resize(fbidFine.box(), P_fine.nComp());
-        mfcd.FillFab(mfidP_fine, fbidFine, fine_fab);
-        injectDown(ovlp, P_crse[c_idx], fine_fab, fine_ratio);
+        injectDown(crse_P_fine_BA[i],crse_P_fine[i],P_fine[i],fine_ratio);
     }
+
+    P_crse.copy(crse_P_fine);
     //
     // Next average down divu and dSdT at new time.
     //
@@ -4203,16 +4099,34 @@ NavierStokes::avgDown ()
         MultiFab& Divu_crse = get_new_data(Divu_Type);
         MultiFab& Divu_fine = fine_lev.get_new_data(Divu_Type);
         
-        avgDown(grids, fgrids, Divu_crse, Divu_fine,
-                volume, fvolume, level, level+1, 0, 1, fine_ratio );
+        avgDown(grids,
+                fgrids,
+                Divu_crse,
+                Divu_fine,
+                volume,
+                fvolume,
+                level,
+                level+1,
+                0,
+                1,
+                fine_ratio);
     }
     if (have_dsdt)
     {
         MultiFab& Dsdt_crse = get_new_data(Dsdt_Type);
         MultiFab& Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
         
-        avgDown(grids, fgrids, Dsdt_crse, Dsdt_fine,
-                volume, fvolume, level, level+1, 0, 1, fine_ratio );
+        avgDown(grids,
+                fgrids,
+                Dsdt_crse,
+                Dsdt_fine,
+                volume,
+                fvolume,
+                level,
+                level+1,
+                0,
+                1,
+                fine_ratio);
     }
 }
 
@@ -4281,24 +4195,24 @@ void
 NavierStokes::getForce (FArrayBox& force,
                         int        gridno,
                         int        ngrow,
-                        int        strt_comp,
-                        int        num_comp,
+                        int        scomp,
+                        int        ncomp,
                         Real       time)
 {
     BoxLib::Error("NavierStokes::getForce(): not implemented");
 #if 0
     Box bx(grids[gridno]);
     bx.grow(ngrow);
-    force.resize(bx,num_comp);
+    force.resize(bx,ncomp);
 
     const int* lo = bx.loVect();
     const int* hi = bx.hiVect();
 
     Real grav = Abs(gravity);
     FArrayBox rho;
-    for (int dc = 0; dc < num_comp; dc++)
+    for (int dc = 0; dc < ncomp; dc++)
     {
-        const int sc = strt_comp + dc;
+        const int sc = scomp + dc;
 #if (BL_SPACEDIM == 2)
         if (BL_SPACEDIM == 2 && sc == Yvel && grav > 0.001) 
 #endif
@@ -4325,21 +4239,21 @@ void
 NavierStokes::getForce (FArrayBox&       force,
                         int              gridno,
                         int              ngrow,
-                        int              strt_comp,
-                        int              num_comp,
+                        int              scomp,
+                        int              ncomp,
                         const FArrayBox& Rho)
 {
     BL_ASSERT(Rho.nComp() == 1);
 
-    force.resize(::grow(grids[gridno],ngrow),num_comp);
+    force.resize(::grow(grids[gridno],ngrow),ncomp);
 
     BL_ASSERT(Rho.box().contains(force.box()));
 
     const Real grav = Abs(gravity);
 
-    for (int dc = 0; dc < num_comp; dc++)
+    for (int dc = 0; dc < ncomp; dc++)
     {
-        const int sc = strt_comp + dc;
+        const int sc = scomp + dc;
 #if (BL_SPACEDIM == 2)
         if (sc == Yvel && grav > 0.001) 
 #endif
@@ -4500,13 +4414,13 @@ void
 NavierStokes::getState (FArrayBox& fab,
                         int        gridno,
                         int        ngrow,
-                        int        strt_comp,
-                        int        num_comp,
+                        int        scomp,
+                        int        ncomp,
                         Real       time)
 {
     BoxLib::Error("NavierStokes::getState(1): not implemented");
 
-    getState(fab,gridno,ngrow,State_Type,strt_comp,num_comp,time);
+    getState(fab,gridno,ngrow,State_Type,scomp,ncomp,time);
 }
 
 //
@@ -4518,8 +4432,8 @@ NavierStokes::getState (FArrayBox& fab,
                         int        gridno,
                         int        ngrow,
                         int        state_indx,
-                        int        strt_comp,
-                        int        num_comp, 
+                        int        scomp,
+                        int        ncomp, 
                         Real       time)
 {
     BoxLib::Error("NavierStokes::getState(2): not implemented");
@@ -4527,12 +4441,12 @@ NavierStokes::getState (FArrayBox& fab,
 #if 0
     Box bx(grids[gridno]);
     bx.grow(ngrow);
-    fab.resize(bx,num_comp);
+    fab.resize(bx,ncomp);
 
     if (ngrow == 1 && !Geometry::isAnyPeriodic())
     {
         //hyp_assoc.setCacheWidth(ngrow);
-        FillPatch(fab,0,time,state_indx,strt_comp,num_comp,
+        FillPatch(fab,0,time,state_indx,scomp,ncomp,
                  //hyp_assoc,gridno,cc1_unfilled[gridno]);
                  cc1_unfilled[gridno]);
 
@@ -4540,13 +4454,13 @@ NavierStokes::getState (FArrayBox& fab,
     else if (ngrow == HYP_GROW && !Geometry::isAnyPeriodic())
     {
         //hyp_assoc.setCacheWidth(ngrow);
-        FillPatch(fab,0,time,state_indx,strt_comp,num_comp,
+        FillPatch(fab,0,time,state_indx,scomp,ncomp,
                  //hyp_assoc,gridno,hyp_unfilled[gridno]);
                  hyp_unfilled[gridno]);
     }
     else
     {
-        FillPatch(fab,0,time,state_indx,strt_comp,num_comp);
+        FillPatch(fab,0,time,state_indx,scomp,ncomp);
     }
 #endif
 }
@@ -4558,13 +4472,13 @@ NavierStokes::getState (FArrayBox& fab,
 MultiFab*
 NavierStokes::getState (int  ngrow,
                         int  state_idx,
-                        int  strt_comp,
-                        int  num_comp, 
+                        int  scomp,
+                        int  ncomp, 
                         Real time)
 {
-    MultiFab* mf = new MultiFab(state[state_idx].boxArray(),num_comp,ngrow);
+    MultiFab* mf = new MultiFab(state[state_idx].boxArray(),ncomp,ngrow);
 
-    FillPatchIterator fpi(*this,*mf,ngrow,time,state_idx,strt_comp,num_comp);
+    FillPatchIterator fpi(*this,*mf,ngrow,time,state_idx,scomp,ncomp);
 
     for ( ; fpi.isValid(); ++fpi)
     {
@@ -4582,14 +4496,14 @@ void
 NavierStokes::FillStateBndry (Real time,
                               int  state_idx,
                               int  src_comp, 
-                              int  num_comp) 
+                              int  ncomp) 
 {
     MultiFab& S = get_data(state_idx,time);
 
     if (S.nGrow() == 0)
         return;
 
-    FillPatchIterator fpi(*this,S,S.nGrow(),time,state_idx,src_comp,num_comp);
+    FillPatchIterator fpi(*this,S,S.nGrow(),time,state_idx,src_comp,ncomp);
 
     for ( ; fpi.isValid(); ++fpi)
     {
@@ -4605,7 +4519,7 @@ NavierStokes::FillStateBndry (Real time,
                                 0,
                                 bli(),
                                 src_comp,
-                                num_comp);
+                                ncomp);
         }
     }
 }
@@ -4629,8 +4543,8 @@ NavierStokes::getState (FArrayBox&  fab,
                         int         have_state,
                         int         state_idx,
                         Array<Box>& unfilled,
-                        int         strt_comp,
-                        int         num_comp)
+                        int         scomp,
+                        int         ncomp)
 {
     BoxLib::Error("NavierStokes::getState(3): not implemented");
 
@@ -4640,7 +4554,7 @@ NavierStokes::getState (FArrayBox&  fab,
     //
     Box bx(grids[gridno]);
     bx.grow(ngrow);
-    fab.resize(bx,num_comp);
+    fab.resize(bx,ncomp);
     if (fab.box() != bx)
     {
       cout << "NavierStokes::getState : fab.box()!=bx\n"
@@ -4660,13 +4574,13 @@ NavierStokes::getState (FArrayBox&  fab,
         if (ngrow == 1 && !Geometry::isAnyPeriodic())
         {
             //assoc.setCacheWidth(ngrow);
-            FillPatch(fab,0,time,state_idx,strt_comp,num_comp,
+            FillPatch(fab,0,time,state_idx,scomp,ncomp,
                      //assoc,gridno,unfilled[gridno]);
                      unfilled[gridno]);
         }
         else
         {
-            FillPatch(fab,0,time,state_idx,strt_comp,num_comp);
+            FillPatch(fab,0,time,state_idx,scomp,ncomp);
         }
     }
 #endif
@@ -4770,7 +4684,7 @@ NavierStokes::calc_dsdt (Real      time,
 void
 NavierStokes::getViscTerms (MultiFab& visc_terms,
                             int       src_comp, 
-                            int       num_comp,
+                            int       ncomp,
                             Real      time)
 {
     //
@@ -4779,9 +4693,9 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     // or Zvel
     //
 #ifndef NDEBUG
-    if (src_comp<BL_SPACEDIM && (src_comp!=Xvel || num_comp<BL_SPACEDIM))
+    if (src_comp<BL_SPACEDIM && (src_comp!=Xvel || ncomp<BL_SPACEDIM))
     {
-        cout << "src_comp=" << src_comp << "   num_comp=" << num_comp << endl;
+        cout << "src_comp=" << src_comp << "   ncomp=" << ncomp << endl;
         BoxLib::Error("must call NavierStokes::getViscTerms with all three velocity components");
     }
 #endif
@@ -4790,7 +4704,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     // Initialize all viscous terms to zero
     //
     const int nGrow = visc_terms.nGrow();
-    visc_terms.setVal(0.0,0,num_comp,nGrow);
+    visc_terms.setVal(0.0,0,ncomp,nGrow);
     //
     // 
     // Get Velocity Viscous Terms
@@ -4850,7 +4764,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     // Get Scalar Diffusive Terms
     //
     const int first_scal = (src_comp==Xvel) ? BL_SPACEDIM : src_comp;
-    const int num_scal = (src_comp==Xvel) ? num_comp-BL_SPACEDIM : num_comp;
+    const int num_scal = (src_comp==Xvel) ? ncomp-BL_SPACEDIM : ncomp;
 
     if (num_scal > 0)
     {
@@ -4888,9 +4802,9 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
             FArrayBox& vt  = mfi();
             const Box& box = mfi.validbox();
             FORT_VISCEXTRAP(vt.dataPtr(),ARLIM(vt.loVect()),ARLIM(vt.hiVect()),
-                            box.loVect(),box.hiVect(),&num_comp);
+                            box.loVect(),box.hiVect(),&ncomp);
         }
-        visc_terms.FillBoundary(0,num_comp);
+        visc_terms.FillBoundary(0,ncomp);
         //
         // Note: this is a special periodic fill in that we want to
         // preserve the extrapolated grow values when periodic --
@@ -4898,7 +4812,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
         // the fact that there is good data in the "non-periodic" grow cells.
         // ("good" data produced via VISCEXTRAP above)
         //
-        geom.FillPeriodicBoundary(visc_terms,0,num_comp,false,true);
+        geom.FillPeriodicBoundary(visc_terms,0,ncomp,false,true);
     }
 }
 
@@ -4959,7 +4873,7 @@ NavierStokes::calcDiffusivity(const Real time,
                               const int  iteration,
                               const int  ncycle,
                               const int  src_comp, 
-                              const int  num_comp)
+                              const int  ncomp)
 {
     //
     // NOTE:  The component numbers passed into NavierStokes::calcDiffusivity
@@ -4995,7 +4909,7 @@ NavierStokes::calcDiffusivity(const Real time,
     //
     // Calculate diffusivity
     //
-    for (int comp=src_comp; comp<src_comp+num_comp; comp++)
+    for (int comp=src_comp; comp<src_comp+ncomp; comp++)
     {
         int diff_comp = comp - Density - 1;
 
@@ -5045,7 +4959,7 @@ void
 NavierStokes::getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
                              const Real time,
                              const int src_comp,
-                             const int num_comp)
+                             const int ncomp)
 {
     BL_ASSERT(src_comp > Density);
 
@@ -5061,12 +4975,12 @@ NavierStokes::getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
     if (which_time(State_Type,time) == NS_OldTime)                // time N
     {
         for (int dir=0; dir<BL_SPACEDIM; dir++)
-            (*diffusivity[dir]).copy(*diffn[dir], diff_comp, 0, num_comp);
+            (*diffusivity[dir]).copy(*diffn[dir], diff_comp, 0, ncomp);
     }
     else if (which_time(State_Type,time) == NS_NewTime)           // time N+1
     {
         for (int dir=0; dir<BL_SPACEDIM; dir++)
-            (*diffusivity[dir]).copy(*diffnp1[dir], diff_comp, 0, num_comp);
+            (*diffusivity[dir]).copy(*diffnp1[dir], diff_comp, 0, ncomp);
     }
     else
     {
