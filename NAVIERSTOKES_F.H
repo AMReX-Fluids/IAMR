@@ -1,5 +1,5 @@
 #ifndef _NAVIERSTOKES_F_H_
-#define _NAVIERSTOKES_F_H_  $Id: NAVIERSTOKES_F.H,v 1.3 1997-09-29 17:06:25 lijewski Exp $
+#define _NAVIERSTOKES_F_H_  $Id: NAVIERSTOKES_F.H,v 1.4 1997-10-08 20:15:40 car Exp $
 
 #ifdef BL_LANG_FORT
 #    define FORT_FILCC       filcc
@@ -39,71 +39,71 @@
 #include <ArrayLim.H>
 
 extern "C" {
-    void FORT_FILCC (const REAL * q, ARLIM_P(q_lo), ARLIM_P(q_hi),
+    void FORT_FILCC (const Real * q, ARLIM_P(q_lo), ARLIM_P(q_hi),
                      const int * domlo, const int * domhi,
-                     const REAL * dx_crse, const REAL * xlo, 
+                     const Real * dx_crse, const Real * xlo, 
                      const int * bc);
 
-    void FORT_GRADP (const REAL* p, ARLIM_P(p_lo), ARLIM_P(p_hi),
-                     const REAL* gp, ARLIM_P(gp_lo), ARLIM_P(gp_hi),
-                     const int* lo, const int* hi, const REAL* dx );
+    void FORT_GRADP (const Real* p, ARLIM_P(p_lo), ARLIM_P(p_hi),
+                     const Real* gp, ARLIM_P(gp_lo), ARLIM_P(gp_hi),
+                     const int* lo, const int* hi, const Real* dx );
     
-    void FORT_AVGDOWN (const REAL* crse, ARLIM_P(clo),     ARLIM_P(chi),
+    void FORT_AVGDOWN (const Real* crse, ARLIM_P(clo),     ARLIM_P(chi),
                        const int* nvar,
-                       const REAL* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
-                       const REAL* cvol, ARLIM_P(cv_lo),   ARLIM_P(cv_hi), 
-                       const REAL* fvol, ARLIM_P(fv_lo),   ARLIM_P(fv_hi),
+                       const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+                       const Real* cvol, ARLIM_P(cv_lo),   ARLIM_P(cv_hi), 
+                       const Real* fvol, ARLIM_P(fv_lo),   ARLIM_P(fv_hi),
                        const int* lo, const int* hi, const int* ratio);
     
-    void FORT_PUTDOWN (REAL* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
-                       const REAL* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+    void FORT_PUTDOWN (Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
+                       const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
                        const int* lo, const int* hi,
                        const int* ratio);
     
-    void FORT_TESTINJECT (REAL* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
-                          const REAL* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+    void FORT_TESTINJECT (Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
+                          const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
                           const int* lo, const int* hi,
                           const int* ratio);
     
-    void FORT_INCRMULT (REAL* a, ARLIM_P(a_lo), ARLIM_P(a_hi),
-                        const REAL* b, ARLIM_P(b_lo), ARLIM_P(b_hi),
+    void FORT_INCRMULT (Real* a, ARLIM_P(a_lo), ARLIM_P(a_hi),
+                        const Real* b, ARLIM_P(b_lo), ARLIM_P(b_hi),
                         const int* lo, const int* hi,
-                        const REAL* alpha);
+                        const Real* alpha);
 
     void FORT_TEST_UMAC_PERIODIC( const int* lo, const int* hi,
-                                  const REAL* u, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                                  int *xper, REAL *udiff,
-                                  const REAL* v, ARLIM_P(v_lo), ARLIM_P(v_hi),
-                                  int *yper, REAL *vdiff,
+                                  const Real* u, ARLIM_P(u_lo), ARLIM_P(u_hi),
+                                  int *xper, Real *udiff,
+                                  const Real* v, ARLIM_P(v_lo), ARLIM_P(v_hi),
+                                  int *yper, Real *vdiff,
 #if (BL_SPACEDIM == 3)                                                   
-                                  const REAL* w, ARLIM_P(w_lo), ARLIM_P(w_hi),
-                                  int *zper, REAL *wdiff,
+                                  const Real* w, ARLIM_P(w_lo), ARLIM_P(w_hi),
+                                  int *zper, Real *wdiff,
 #endif
                                   int *level );
     
     
 #if (BL_SPACEDIM == 2)
-    void FORT_SUMMASS (const REAL* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+    void FORT_SUMMASS (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                        ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                       const REAL* delta, REAL* mass,
-                       const REAL* radius,
+                       const Real* delta, Real* mass,
+                       const Real* radius,
                        const int* irlo, const int* irhi,
-                       const int* rz_flag, REAL* tmp);
+                       const int* rz_flag, Real* tmp);
 
-    void FORT_SUMMASS (const REAL* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+    void FORT_SUMMASS (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                        ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                       const REAL* delta, REAL* mass,
-                       const REAL* radius,
+                       const Real* delta, Real* mass,
+                       const Real* radius,
                        const int* irlo, const int* irhi,
-                       const int* rz_flag, REAL* tmp);
+                       const int* rz_flag, Real* tmp);
 #else
-    void FORT_SUMMASS (const REAL* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+    void FORT_SUMMASS (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                        ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                       const REAL* delta, REAL* mass, REAL* tmp);
+                       const Real* delta, Real* mass, Real* tmp);
 
-    void FORT_SUMMASSSQ (const REAL* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+    void FORT_SUMMASSSQ (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                          ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                         const REAL* delta, REAL* mass, REAL* tmp);
+                         const Real* delta, Real* mass, Real* tmp);
 #endif
 }
     

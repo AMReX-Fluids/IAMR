@@ -1,6 +1,6 @@
 
 //
-// $Id: hg_multi3.cpp,v 1.12 1997-10-03 23:37:36 car Exp $
+// $Id: hg_multi3.cpp,v 1.13 1997-10-08 20:15:53 car Exp $
 //
 
 #include <hg_multi.H>
@@ -241,7 +241,7 @@ holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
   // DECLARE_GEOMETRY_TYPES;
 
   Box tdom = mg_domain[mglev];
-  tdom.convert(nodevect);
+  tdom.convert(IntVect::TheNodeVector());
 
   for (int icount = 0; icount < i1; icount++) 
   {

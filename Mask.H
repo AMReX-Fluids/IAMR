@@ -1,7 +1,7 @@
 #ifndef _MASK_H_
 #define _MASK_H_
 //
-// $Id: Mask.H,v 1.3 1997-10-01 01:03:10 car Exp $
+// $Id: Mask.H,v 1.4 1997-10-08 20:15:38 car Exp $
 //
 
 #include <BaseFab.H>
@@ -35,7 +35,7 @@ public:
     Mask()
 	: BaseFab<int>() {};
 //@ManDoc: allocating constructor (nc=number of components)
-    Mask(const BOX& bx, int nc = 1)
+    Mask(const Box& bx, int nc = 1)
 	: BaseFab<int>(bx,nc) {};
 //@ManDoc: construct from input stream
     Mask(istream &is);
@@ -62,11 +62,11 @@ public:
     Mask& And(const Mask& src,
 	      int srccomp, int destcomp, int numcomp=1);
 //@ManDoc: as above, and specify subregion
-    Mask& And(const Mask& src, const BOX& subbox,
+    Mask& And(const Mask& src, const Box& subbox,
 	      int srccomp, int destcomp, int numcomp=1);
 //@ManDoc: in-pace And, over source components to destination components, and on intersection of source and destination boxes
-    Mask& And(const Mask& src, const BOX& srcbox,
-	      const BOX& destbox,
+    Mask& And(const Mask& src, const Box& srcbox,
+	      const Box& destbox,
 	      int srccomp, int destcomp, int numcomp=1);
 
 //@ManMemo: logical Or functions
@@ -78,37 +78,37 @@ public:
     Mask& Or(const Mask& src,
 	     int srccomp, int destcomp, int numcomp=1);
 //@ManDoc: as above, and specify subregion
-    Mask& Or(const Mask& src, const BOX& subbox,
+    Mask& Or(const Mask& src, const Box& subbox,
 	     int srccomp, int destcomp, int numcomp=1);
 //@ManDoc: in-pace Or, over source components to destination components, and on intersection of source and destination boxes
-    Mask& Or(const Mask& src, const BOX& srcbox,
-	     const BOX& destbox,
+    Mask& Or(const Mask& src, const Box& srcbox,
+	     const Box& destbox,
 	     int srccomp, int destcomp, int numcomp=1);
 
 //@ManMemo: FARRYBOX analysis functions (over specified subregions, components)
 //@ManDoc: element-wise set true for if < val
-    Mask& LT(const FArrayBox& fab, REAL val,
-	     const BOX& subbox,
+    Mask& LT(const FArrayBox& fab, Real val,
+	     const Box& subbox,
 	     int fab_comp = 0, int mask_comp = 0);
 //@ManDoc: element-wise set true for if <= val
-    Mask& LE(const FArrayBox& fab, REAL val,
-	     const BOX& subbox,
+    Mask& LE(const FArrayBox& fab, Real val,
+	     const Box& subbox,
 	     int fab_comp = 0, int mask_comp = 0);
 //@ManDoc: element-wise set true for if = val
-    Mask& EQ(const FArrayBox& fab, REAL val,
-	     const BOX& subbox,
+    Mask& EQ(const FArrayBox& fab, Real val,
+	     const Box& subbox,
 	     int fab_comp = 0, int mask_comp = 0);
 //@ManDoc: element-wise set true for if != val
-    Mask& NE(const FArrayBox& fab, REAL val,
-	     const BOX& subbox,
+    Mask& NE(const FArrayBox& fab, Real val,
+	     const Box& subbox,
 	     int fab_comp = 0, int mask_comp = 0);
 //@ManDoc: element-wise set true for if > val
-    Mask& GT(const FArrayBox& fab, REAL val,
-	     const BOX& subbox,
+    Mask& GT(const FArrayBox& fab, Real val,
+	     const Box& subbox,
 	     int fab_comp = 0, int mask_comp = 0);
 //@ManDoc: element-wise set true for if <= val
-    Mask& GE(const FArrayBox& fab, REAL val,
-	     const BOX& subbox,
+    Mask& GE(const FArrayBox& fab, Real val,
+	     const Box& subbox,
 	     int fab_comp = 0, int mask_comp = 0);
 
 private:

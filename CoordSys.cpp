@@ -1,6 +1,6 @@
 
 //
-// $Id: CoordSys.cpp,v 1.6 1997-10-01 01:03:03 car Exp $
+// $Id: CoordSys.cpp,v 1.7 1997-10-08 20:15:25 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -18,17 +18,17 @@
 const double RZFACTOR = 2*4*atan(1.0);
 
 CoordSys::CoordType  CoordSys::c_sys = CoordSys::undef;
-REAL CoordSys::offset[BL_SPACEDIM];
+Real CoordSys::offset[BL_SPACEDIM];
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
-REAL* fabdat = (fab).dataPtr();
+Real* fabdat = (fab).dataPtr();
 
 #define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
-const REAL* fabdat = (fab).dataPtr();
+const Real* fabdat = (fab).dataPtr();
 
 // ---------------------------------------------------------------
 // Static functions
@@ -40,7 +40,7 @@ CoordSys::SetCoord(CoordType coord)
 }
 // ---------------------------------------------------------------
 void
-CoordSys::SetOffset( const REAL* x_lo )
+CoordSys::SetOffset( const Real* x_lo )
 {
     int k;
     for (k = 0; k < BL_SPACEDIM; k++) {
@@ -77,14 +77,14 @@ CoordSys::CoordSys()
     ok = 0;
 }
 // ---------------------------------------------------------------
-CoordSys::CoordSys( const REAL* cell_dx)
+CoordSys::CoordSys( const Real* cell_dx)
 {
     define(cell_dx);
 }
 
 // ---------------------------------------------------------------
 void
-CoordSys::define( const REAL* cell_dx)
+CoordSys::define( const Real* cell_dx)
 {
     assert(c_sys != undef);
     ok = 1;
@@ -96,7 +96,7 @@ CoordSys::define( const REAL* cell_dx)
 
 // ---------------------------------------------------------------
 void
-CoordSys::CellCenter(const IntVect& point, Array<REAL>& loc) const
+CoordSys::CellCenter(const IntVect& point, Array<Real>& loc) const
 {
     assert(ok);
     loc.resize(BL_SPACEDIM);
@@ -105,25 +105,25 @@ CoordSys::CellCenter(const IntVect& point, Array<REAL>& loc) const
 
 // ---------------------------------------------------------------
 void
-CoordSys::CellCenter(const IntVect& point, REAL *loc) const
+CoordSys::CellCenter(const IntVect& point, Real *loc) const
 {
     assert(ok);
     int k;
     for (k = 0; k < BL_SPACEDIM; k++) {
-	loc[k] = offset[k] + dx[k]*(0.5+ (REAL)point[k]);
+	loc[k] = offset[k] + dx[k]*(0.5+ (Real)point[k]);
     }
 }
 
 // ---------------------------------------------------------------
-REAL
+Real
 CoordSys::CellCenter(int point, int dir) const
 {
     assert(ok);
-    return offset[dir] + dx[dir]*(0.5+ (REAL)point);
+    return offset[dir] + dx[dir]*(0.5+ (Real)point);
 }
 
 // ---------------------------------------------------------------
-REAL
+Real
 CoordSys::LoEdge(int point, int dir) const
 {
     assert(ok);
@@ -131,7 +131,7 @@ CoordSys::LoEdge(int point, int dir) const
 }
 
 // ---------------------------------------------------------------
-REAL
+Real
 CoordSys::LoEdge(const IntVect& point, int dir) const
 {
     assert(ok);
@@ -139,7 +139,7 @@ CoordSys::LoEdge(const IntVect& point, int dir) const
 }
 
 // ---------------------------------------------------------------
-REAL
+Real
 CoordSys::HiEdge(int point, int dir) const
 {
     assert(ok);
@@ -147,7 +147,7 @@ CoordSys::HiEdge(int point, int dir) const
 }
 
 // ---------------------------------------------------------------
-REAL
+Real
 CoordSys::HiEdge(const IntVect& point, int dir) const
 {
     assert(ok);
@@ -156,7 +156,7 @@ CoordSys::HiEdge(const IntVect& point, int dir) const
 
 // ---------------------------------------------------------------
 void
-CoordSys::LoFace(const IntVect& point, int dir, Array<REAL>& loc) const
+CoordSys::LoFace(const IntVect& point, int dir, Array<Real>& loc) const
 {
     loc.resize(BL_SPACEDIM);
     LoFace(point,dir,&(loc[0]));
@@ -164,20 +164,20 @@ CoordSys::LoFace(const IntVect& point, int dir, Array<REAL>& loc) const
 
 // ---------------------------------------------------------------
 void
-CoordSys::LoFace(const IntVect& point, int dir, REAL *loc) const
+CoordSys::LoFace(const IntVect& point, int dir, Real *loc) const
 {
     assert(ok);
     int k;
     for (k = 0; k < BL_SPACEDIM; k++) {
-	REAL off = 0.5;
+	Real off = 0.5;
 	if (k == dir) off = 0.0;
-	loc[k] = offset[k] + dx[k]*(off + (REAL)point[k]);
+	loc[k] = offset[k] + dx[k]*(off + (Real)point[k]);
     }
 }
 
 // ---------------------------------------------------------------
 void
-CoordSys::HiFace(const IntVect& point, int dir, Array<REAL>& loc) const
+CoordSys::HiFace(const IntVect& point, int dir, Array<Real>& loc) const
 {
     loc.resize(BL_SPACEDIM);
     HiFace(point,dir,&(loc[0]));
@@ -185,20 +185,20 @@ CoordSys::HiFace(const IntVect& point, int dir, Array<REAL>& loc) const
 
 // ---------------------------------------------------------------
 void
-CoordSys::HiFace(const IntVect& point, int dir, REAL *loc) const
+CoordSys::HiFace(const IntVect& point, int dir, Real *loc) const
 {
     assert(ok);
     int k;
     for (k = 0; k < BL_SPACEDIM; k++) {
-	REAL off = 0.5;
+	Real off = 0.5;
 	if (k == dir) off = 1.0;
-	loc[k] = offset[k] + dx[k]*(off + (REAL)point[k]);
+	loc[k] = offset[k] + dx[k]*(off + (Real)point[k]);
     }
 }
 
 // ---------------------------------------------------------------
 void
-CoordSys::LoNode(const IntVect& point, Array<REAL>& loc) const
+CoordSys::LoNode(const IntVect& point, Array<Real>& loc) const
 {
     loc.resize(BL_SPACEDIM);
     LoNode(point,&(loc[0]));
@@ -206,7 +206,7 @@ CoordSys::LoNode(const IntVect& point, Array<REAL>& loc) const
 
 // ---------------------------------------------------------------
 void
-CoordSys::LoNode(const IntVect& point, REAL *loc) const
+CoordSys::LoNode(const IntVect& point, Real *loc) const
 {
     assert(ok);
     int k;
@@ -217,7 +217,7 @@ CoordSys::LoNode(const IntVect& point, REAL *loc) const
 
 // ---------------------------------------------------------------
 void
-CoordSys::HiNode(const IntVect& point, Array<REAL>& loc) const
+CoordSys::HiNode(const IntVect& point, Array<Real>& loc) const
 {
     loc.resize(BL_SPACEDIM);
     HiNode(point,&(loc[0]));
@@ -225,7 +225,7 @@ CoordSys::HiNode(const IntVect& point, Array<REAL>& loc) const
 
 // ---------------------------------------------------------------
 void
-CoordSys::HiNode(const IntVect& point, REAL *loc) const
+CoordSys::HiNode(const IntVect& point, Real *loc) const
 {
     assert(ok);
     int k;
@@ -236,7 +236,7 @@ CoordSys::HiNode(const IntVect& point, REAL *loc) const
 
 // ---------------------------------------------------------------
 IntVect
-CoordSys::CellIndex(const REAL* point) const
+CoordSys::CellIndex(const Real* point) const
 {
     assert(ok);
     IntVect ix;
@@ -249,7 +249,7 @@ CoordSys::CellIndex(const REAL* point) const
 
 // ---------------------------------------------------------------
 IntVect
-CoordSys::LowerIndex(const REAL* point) const
+CoordSys::LowerIndex(const Real* point) const
 {
     assert(ok);
     IntVect ix;
@@ -262,7 +262,7 @@ CoordSys::LowerIndex(const REAL* point) const
 
 // ---------------------------------------------------------------
 IntVect
-CoordSys::UpperIndex(const REAL* point) const
+CoordSys::UpperIndex(const Real* point) const
 {
     assert(ok);
     IntVect ix;
@@ -276,7 +276,7 @@ CoordSys::UpperIndex(const REAL* point) const
     
 // ---------------------------------------------------------------
 FArrayBox*
-CoordSys::GetVolume (const BOX& region) const 
+CoordSys::GetVolume (const Box& region) const 
 {
     FArrayBox *vol = new FArrayBox();
     GetVolume(*vol,region);
@@ -285,7 +285,7 @@ CoordSys::GetVolume (const BOX& region) const
 
 // ---------------------------------------------------------------
 void
-CoordSys::GetVolume (FArrayBox& vol, const BOX& region) const 
+CoordSys::GetVolume (FArrayBox& vol, const Box& region) const 
 {
     assert(ok);
     assert(region.cellCentered());
@@ -299,7 +299,7 @@ CoordSys::GetVolume (FArrayBox& vol, const BOX& region) const
 // ---------------------------------------------------------------
 #if (BL_SPACEDIM == 2)
 FArrayBox*
-CoordSys::GetDLogA (const BOX& region, int dir) const
+CoordSys::GetDLogA (const Box& region, int dir) const
 {
     FArrayBox *dloga = new FArrayBox();
     GetDLogA(*dloga,region,dir);
@@ -308,7 +308,7 @@ CoordSys::GetDLogA (const BOX& region, int dir) const
 
 // ---------------------------------------------------------------
 void
-CoordSys::GetDLogA (FArrayBox& dloga, const BOX& region, int dir) const
+CoordSys::GetDLogA (FArrayBox& dloga, const Box& region, int dir) const
 {
     assert(ok);
     assert(region.cellCentered());
@@ -322,7 +322,7 @@ CoordSys::GetDLogA (FArrayBox& dloga, const BOX& region, int dir) const
 
 // ---------------------------------------------------------------
 FArrayBox*
-CoordSys::GetFaceArea (const BOX& region, int dir) const 
+CoordSys::GetFaceArea (const Box& region, int dir) const 
 {
     FArrayBox *area = new FArrayBox();
     GetFaceArea(*area,region,dir);
@@ -332,12 +332,12 @@ CoordSys::GetFaceArea (const BOX& region, int dir) const
 // ---------------------------------------------------------------
 void
 CoordSys::GetFaceArea (FArrayBox& area, 
-		       const BOX& region, int dir) const
+		       const Box& region, int dir) const
 {
     assert(ok);
     assert(region.cellCentered());
     
-    BOX reg(region);
+    Box reg(region);
     reg.surroundingNodes(dir);
 
     area.resize(reg,1);
@@ -348,8 +348,8 @@ CoordSys::GetFaceArea (FArrayBox& area,
 
 // ---------------------------------------------------------------
 void
-CoordSys::GetEdgeLoc( Array<REAL>& loc, 
-		      const BOX& region, int dir) const 
+CoordSys::GetEdgeLoc( Array<Real>& loc, 
+		      const Box& region, int dir) const 
 {
     assert(ok);
     assert(region.cellCentered());
@@ -358,7 +358,7 @@ CoordSys::GetEdgeLoc( Array<REAL>& loc,
     const int* hi = region.hiVect();
     int len = hi[dir] - lo[dir] + 2;
     loc.resize(len);
-    REAL off = offset[dir] + dx[dir]*lo[dir];
+    Real off = offset[dir] + dx[dir]*lo[dir];
     int i;
     for (i = 0; i < len; i++) {
 	loc[i] = off + dx[dir]*i;
@@ -367,8 +367,8 @@ CoordSys::GetEdgeLoc( Array<REAL>& loc,
 
 // ---------------------------------------------------------------
 void
-CoordSys::GetCellLoc( Array<REAL>& loc, 
-		      const BOX& region, int dir) const
+CoordSys::GetCellLoc( Array<Real>& loc, 
+		      const Box& region, int dir) const
 {
     assert(ok);
     assert(region.cellCentered());
@@ -377,7 +377,7 @@ CoordSys::GetCellLoc( Array<REAL>& loc,
     const int* hi = region.hiVect();
     int len = hi[dir] - lo[dir] + 1;
     loc.resize(len);
-    REAL off = offset[dir] + dx[dir]*(0.5 + (REAL)lo[dir]);
+    Real off = offset[dir] + dx[dir]*(0.5 + (Real)lo[dir]);
     int i;
     for (i = 0; i < len; i++) {
 	loc[i] = off + dx[dir]*i;
@@ -386,8 +386,8 @@ CoordSys::GetCellLoc( Array<REAL>& loc,
 
 // ---------------------------------------------------------------
 void
-CoordSys::GetEdgeVolCoord( Array<REAL>& vc,
-			   const BOX& region, int dir) const
+CoordSys::GetEdgeVolCoord( Array<Real>& vc,
+			   const Box& region, int dir) const
 {
       // in cartesian and Z direction of RZ volume coordinates
       // are idential to physical distance from axis
@@ -399,7 +399,7 @@ CoordSys::GetEdgeVolCoord( Array<REAL>& vc,
 	int len = vc.length();
         int i;
 	for (i = 0; i < len; i++) {
-	    REAL r = vc[i];
+	    Real r = vc[i];
 	    vc[i] = 0.5*r*r;
 	}
     }
@@ -408,8 +408,8 @@ CoordSys::GetEdgeVolCoord( Array<REAL>& vc,
 
 // ---------------------------------------------------------------
 void
-CoordSys::GetCellVolCoord( Array<REAL>& vc,
-			   const BOX& region, int dir) const
+CoordSys::GetCellVolCoord( Array<Real>& vc,
+			   const Box& region, int dir) const
 {
       // in cartesian and Z direction of RZ volume coordinates
       // are idential to physical distance from axis
@@ -421,7 +421,7 @@ CoordSys::GetCellVolCoord( Array<REAL>& vc,
 	int len = vc.length();
         int i;
 	for (i = 0; i < len; i++) {
-	    REAL r = vc[i];
+	    Real r = vc[i];
 	    vc[i] = 0.5*r*r;
 	}
     }
@@ -464,18 +464,18 @@ istream& operator >> (istream& is, CoordSys& c)
 }
 
 // functions to return geometric information about a single cell
-REAL CoordSys::Volume(const IntVect& point) const
+Real CoordSys::Volume(const IntVect& point) const
 {
-    REAL xhi[BL_SPACEDIM];
-    REAL xlo[BL_SPACEDIM];
+    Real xhi[BL_SPACEDIM];
+    Real xlo[BL_SPACEDIM];
     HiNode(point,xhi);
     LoNode(point,xlo);
     return Volume(xlo,xhi);
 }
 
-REAL 
-CoordSys::Volume(const REAL xlo[BL_SPACEDIM], 
-		 const REAL xhi[BL_SPACEDIM]) const
+Real 
+CoordSys::Volume(const Real xlo[BL_SPACEDIM], 
+		 const Real xhi[BL_SPACEDIM]) const
 {
     switch(c_sys){
     case cartesian:
@@ -497,10 +497,10 @@ CoordSys::Volume(const REAL xlo[BL_SPACEDIM],
     return 0;
 }                      
 
-REAL CoordSys::AreaLo(const IntVect& point, int dir) const
+Real CoordSys::AreaLo(const IntVect& point, int dir) const
 {
 #if (BL_SPACEDIM==2)
-    REAL xlo[BL_SPACEDIM];
+    Real xlo[BL_SPACEDIM];
     switch( c_sys ){
     case cartesian:
         switch(dir){
@@ -536,10 +536,10 @@ REAL CoordSys::AreaLo(const IntVect& point, int dir) const
 }
 
 
-REAL CoordSys::AreaHi(const IntVect& point, int dir) const
+Real CoordSys::AreaHi(const IntVect& point, int dir) const
 {
 #if (BL_SPACEDIM==2)
-    REAL xhi[BL_SPACEDIM];
+    Real xhi[BL_SPACEDIM];
     switch( c_sys ){
     case cartesian:
         switch(dir){

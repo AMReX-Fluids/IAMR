@@ -2,7 +2,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.3 1997-10-01 01:03:07 car Exp $
+// $Id: Godunov.H,v 1.4 1997-10-08 20:15:30 car Exp $
 //
 
 //===========================================================
@@ -31,7 +31,7 @@ public:      // public access functions
     ~Godunov();
 
     // set up the Godunov Box
-    virtual void Setup( const BOX &grd, const REAL *dx, REAL dt, int set_fluxes, 
+    virtual void Setup( const Box &grd, const Real *dx, Real dt, int set_fluxes, 
                         FArrayBox &xflux, int *ubc,
                         FArrayBox &yflux, int *vbc,
 #if (BL_SPACEDIM == 3 )
@@ -51,7 +51,7 @@ public:      // public access functions
     // =============================================================
 
     // compute the edge states
-    void edge_states( const BOX &grd, const REAL *dx, REAL dt, int velpred,
+    void edge_states( const Box &grd, const Real *dx, Real dt, int velpred,
                       FArrayBox &uedge, FArrayBox &stx,
                       FArrayBox &vedge, FArrayBox &sty,
 #if (BL_SPACEDIM == 3 )
@@ -63,7 +63,7 @@ public:      // public access functions
     
     
     // compute divergent mac velocities
-    void ComputeUmac( const BOX &grd, const REAL *dx, REAL dt, 
+    void ComputeUmac( const Box &grd, const Real *dx, Real dt, 
                       FArrayBox &umac, int *ubc, 
                       FArrayBox &vmac, int *vbc, 
 #if (BL_SPACEDIM == 3 )
@@ -72,7 +72,7 @@ public:      // public access functions
                       FArrayBox &U, FArrayBox &tforces );
     
     // advect a state component
-    virtual void AdvectState( const BOX &grd, const REAL *dx, REAL dt, 
+    virtual void AdvectState( const Box &grd, const Real *dx, Real dt, 
                               FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
                               FArrayBox &areay, FArrayBox &vedge, FArrayBox &yflux,  
 #if (BL_SPACEDIM == 3 )                               
@@ -85,7 +85,7 @@ public:      // public access functions
                               FArrayBox &vol );
 
     // compute the advective derivative from fluxes
-    void ComputeAofs( const BOX &grd, 
+    void ComputeAofs( const Box &grd, 
                       FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
                       FArrayBox &areay, FArrayBox &vedge, FArrayBox &yflux,  
 #if (BL_SPACEDIM == 3 )
@@ -95,7 +95,7 @@ public:      // public access functions
                       FArrayBox &aofs,  int aofs_ind, int iconserv );
 
     // sync advect a state component
-    virtual void SyncAdvect( const BOX &grd, const REAL *dx, REAL dt, int level,
+    virtual void SyncAdvect( const Box &grd, const Real *dx, Real dt, int level,
                              FArrayBox &areax, FArrayBox &uedge,
                              FArrayBox &ucorr, FArrayBox &xflux,
                              FArrayBox &areay, FArrayBox &vedge,
@@ -110,7 +110,7 @@ public:      // public access functions
                              FArrayBox &vol );
     
     // compute the advective derivative of corrective fluxes for the mac sync
-    void ComputeSyncAofs( const BOX &grd,
+    void ComputeSyncAofs( const Box &grd,
                           FArrayBox &areax, FArrayBox &ucorr, FArrayBox &xflux,  
                           FArrayBox &areay, FArrayBox &vcorr, FArrayBox &yflux,  
 #if (BL_SPACEDIM == 3 )
@@ -122,30 +122,30 @@ public:      // public access functions
     
     // correct a scalar for under-over shoots
     void ScalMinMax( FArrayBox &Sold, FArrayBox &Snew, int ind, 
-                     int *bc, const BOX &grd );
+                     int *bc, const Box &grd );
 
     // =============================================================
     // Diagnostic functions follow
     // =============================================================
     
     // estimate the timestep from the cell-centered quantities
-    REAL estdt( FArrayBox &U, FArrayBox &tforces, FArrayBox &Rho,
-                const BOX &grd, const REAL *dx, REAL cfl, REAL *u_max );
+    Real estdt( FArrayBox &U, FArrayBox &tforces, FArrayBox &Rho,
+                const Box &grd, const Real *dx, Real cfl, Real *u_max );
 
     // test the cell centered Courant number 
-    REAL test_u_rho( FArrayBox &U, FArrayBox &Rho, const BOX &grd,
-                     const REAL *dx, const REAL dt,
-                     const REAL *u_max );
+    Real test_u_rho( FArrayBox &U, FArrayBox &Rho, const Box &grd,
+                     const Real *dx, const Real dt,
+                     const Real *u_max );
 
     // test the mac edge velocity Courant numbers 
-    REAL test_umac_rho( FArrayBox &umac,
+    Real test_umac_rho( FArrayBox &umac,
                         FArrayBox &vmac,
 #if (BL_SPACEDIM == 3 )
                         FArrayBox &wmac,
 #endif
                         FArrayBox &Rho,
-                        const BOX &grd, const REAL *dx, const REAL dt,
-                        const REAL *u_max );
+                        const Box &grd, const Real *dx, const Real dt,
+                        const Real *u_max );
 
     // =============================================================
     // Source term functions follow
@@ -156,7 +156,7 @@ public:      // public access functions
     void Add_tf( FArrayBox &Sold,
                  FArrayBox &Snew,    int start_ind, int num_comp,
                  FArrayBox &tforces, int tf_ind,
-                 const BOX &grd,     REAL dt );
+                 const Box &grd,     Real dt );
 
     // correct the 1st order RK to 2nd order via
     // psi^n+1 = psi^* + (dt/2)*(tf^* - tf^n)
@@ -164,7 +164,7 @@ public:      // public access functions
                      int start_ind, int num_comp, 
                      FArrayBox &tfstar, FArrayBox &tfn,
                      int tf_ind,
-                     const BOX &grd,     REAL dt );
+                     const Box &grd,     Real dt );
 
     // compute the update rule
     // psi^n+1 = psi^n - dt*aofs + dt*tforces
@@ -172,14 +172,14 @@ public:      // public access functions
                       FArrayBox &Snew,    int start_ind, int num_comp,
                       FArrayBox &Aofs,    int aofs_ind,
                       FArrayBox &tforces, int tf_ind,
-                      const BOX &grd,     REAL dt );
+                      const Box &grd,     Real dt );
 
     // compute the update rule for velocities
     // psi^n+1 = psi^n - dt*aofs - dt*gp/rho + dt*tforces
     void Add_aofs_tf_gp( FArrayBox &Uold, FArrayBox &Unew,
                          FArrayBox &Aofs, FArrayBox &tforces,
                          FArrayBox &gp,   FArrayBox &rho, 
-                         const BOX &grd,  REAL dt );
+                         const Box &grd,  Real dt );
 
     // compute total source term for velocities
     // tforces = (tforces + visc - gp)/rho
@@ -216,21 +216,21 @@ public:      // public access functions
 #endif
 
     // internal parameters
-    static REAL bogus_value;  // bogus value for debugging
+    static Real bogus_value;  // bogus value for debugging
     int max_1d;    // largest dimension size allowed
     int scr_size;  // actual length of the scratch space
     
     // 1D arrays used in computing slopes and edges states
-    REAL *stxlo; 
-    REAL *stxhi; 
-    REAL *slxscr;
-    REAL *stylo;
-    REAL *styhi;
-    REAL *slyscr;
+    Real *stxlo; 
+    Real *stxhi; 
+    Real *slxscr;
+    Real *stylo;
+    Real *styhi;
+    Real *slyscr;
 #if (BL_SPACEDIM == 3 )    
-    REAL *stzlo;
-    REAL *stzhi;
-    REAL *slzscr;
+    Real *stzlo;
+    Real *stzhi;
+    Real *slzscr;
 #endif
     
 protected:   // protected work functions
@@ -244,11 +244,11 @@ protected:   // protected work functions
 protected:   // protected data members
 
     // sizing boxes
-    BOX work_bx;
-    BOX xflux_bx;
-    BOX yflux_bx;
+    Box work_bx;
+    Box xflux_bx;
+    Box yflux_bx;
 #if (BL_SPACEDIM == 3 )    
-    BOX zflux_bx;
+    Box zflux_bx;
 #endif
 
 // flags

@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.11 1997-10-01 01:03:17 car Exp $
+// $Id: TagBox.cpp,v 1.12 1997-10-08 20:15:47 car Exp $
 //
 
 #include <TagBox.H>
@@ -26,7 +26,7 @@ struct TagBoxMergeDesc {
 TagBox::TagBox() {
 }
 
-TagBox::TagBox(const BOX &bx, int n)
+TagBox::TagBox(const Box &bx, int n)
        : BaseFab<int>(bx,n)
 {
   setVal(CLEAR);
@@ -40,11 +40,11 @@ TagBox::~TagBox() {
 TagBox*
 TagBox::coarsen(const IntVect & ratio)
 {
-   BOX cbx(domain);
+   Box cbx(domain);
    cbx.coarsen(ratio);
    TagBox* crse = new TagBox(cbx);
-   const BOX& cbox = crse->box();
-   BOX b1(::refine(cbox,ratio));
+   const Box& cbox = crse->box();
+   Box b1(::refine(cbox,ratio));
 
    const int* flo = domain.loVect();
    const int* fhi = domain.hiVect();
@@ -186,7 +186,7 @@ TagBox::buffer(int nbuff, int nwid)
 {
    // note: this routine assumes cell with SET tag are in
    // interior of tagbox (region = grow(domain,-nwid))
-   BOX inside(domain);
+   Box inside(domain);
    inside.grow(-nwid);
    const int* inlo = inside.loVect();
    const int* inhi = inside.hiVect();
@@ -236,7 +236,7 @@ void
 TagBox::merge(const TagBox& src)
 {
    // compute intersections
-   BOX bx(domain);
+   Box bx(domain);
    bx &= src.domain;
    if (bx.ok()) {
       const int* dlo = domain.loVect();
@@ -346,7 +346,7 @@ TagBoxArray::TagBoxArray(const BoxArray &ba, int _ngrow,
    // parallel loop
    int i;
    for (i = 0; i < fabparray.length(); i++) {
-      BOX bx(ba[i]);
+      Box bx(ba[i]);
       bx.grow(ngrow);
       fabparray.set(i,new TagBox(bx,1));
    } 

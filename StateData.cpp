@@ -1,15 +1,15 @@
 
 //
-// $Id: StateData.cpp,v 1.10 1997-10-01 17:55:02 lijewski Exp $
+// $Id: StateData.cpp,v 1.11 1997-10-08 20:15:45 car Exp $
 //
 
 #include <StateData.H>
 #include <ParallelDescriptor.H>
 
 #if defined(BL_USE_FLOAT) && !defined(BL_ARCH_CRAY)
-const REAL INVALID_TIME = -1.0e30;
+const Real INVALID_TIME = -1.0e30;
 #else
-const REAL INVALID_TIME = -1.0e100;
+const Real INVALID_TIME = -1.0e100;
 #endif
 
 const int MFNEWDATA = 0;
@@ -38,16 +38,16 @@ StateData::StateData()
 }
 
 // -------------------------------------------------------------
-StateData::StateData(const BOX& p_domain, const BoxArray& grds,
-                     const StateDescriptor* d, REAL time, REAL dt)
+StateData::StateData(const Box& p_domain, const BoxArray& grds,
+                     const StateDescriptor* d, Real time, Real dt)
 {
     define(p_domain, grds, *d, time, dt);
 }
 
 // -------------------------------------------------------------
 void
-StateData::define(const BOX& p_domain, const BoxArray& grds,
-		  const StateDescriptor &d, REAL time, REAL dt)
+StateData::define(const Box& p_domain, const BoxArray& grds,
+		  const StateDescriptor &d, Real time, Real dt)
 {
     domain = p_domain;
     desc = &d;
@@ -131,7 +131,7 @@ StateData::~StateData()
 
 // -------------------------------------------------------------
 void
-StateData::setTimeLevel(REAL time, REAL dt_old, REAL dt_new)
+StateData::setTimeLevel(Real time, Real dt_old, Real dt_new)
 {
     if (desc->timeType() == StateDescriptor::Point) {
 	new_time.start = new_time.stop = time;
@@ -146,7 +146,7 @@ StateData::setTimeLevel(REAL time, REAL dt_old, REAL dt_new)
 
 // -------------------------------------------------------------
 void
-StateData::swapTimeLevels(REAL dt)
+StateData::swapTimeLevels(Real dt)
 {
     old_time = new_time;
     if (desc->timeType() == StateDescriptor::Point) {
@@ -190,10 +190,10 @@ StateData::reset()
 
 // -------------------------------------------------------------
 void
-StateData::FillBoundary(const REAL* dx, const RealBox& prob_domain,
+StateData::FillBoundary(const Real* dx, const RealBox& prob_domain,
 		    int src_comp, int num_comp, int do_new)
 {
-    REAL cur_time;
+    Real cur_time;
     if (desc->timeType() == StateDescriptor::Point) {
 	cur_time = new_time.start;
 	if (!do_new) cur_time = old_time.start;
@@ -212,22 +212,22 @@ StateData::FillBoundary(const REAL* dx, const RealBox& prob_domain,
 	//if (!do_new) dest = &((*old_data)[g]);
 	FArrayBox* dest = &(new_datamfi());
 	if (!do_new) dest = &(old_datamfi());
-	const BOX& bx = dest->box();
+	const Box& bx = dest->box();
 	if (!domain.contains(bx)) {
 	    const int* dlo = bx.loVect();
 	    const int* dhi = bx.hiVect();
 	    const int* plo = domain.loVect();
 	    const int* phi = domain.hiVect();
-	    REAL xlo[BL_SPACEDIM];
+	    Real xlo[BL_SPACEDIM];
 	    BCRec bcr;
-	    const REAL* problo = prob_domain.lo();
+	    const Real* problo = prob_domain.lo();
             int i;
 	    for (i = 0; i < BL_SPACEDIM; i++) {
 		xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
 	    }
 	    for (i = 0; i < num_comp; i++) {
 		int sc = src_comp+i;
-		REAL* dat = dest->dataPtr(sc);
+		Real* dat = dest->dataPtr(sc);
 		setBC(bx,domain,desc->getBC(sc),bcr);
                 desc->bndryFill(sc)(dat,ARLIM(dlo),ARLIM(dhi),
                                     plo,phi,dx,xlo,
@@ -240,24 +240,24 @@ StateData::FillBoundary(const REAL* dx, const RealBox& prob_domain,
 
 // -------------------------------------------------------------
 void
-StateData::FillBoundary(FArrayBox& dest, REAL time, const REAL* dx,
+StateData::FillBoundary(FArrayBox& dest, Real time, const Real* dx,
                         const RealBox& prob_domain,
                         int dest_comp, int src_comp, int num_comp)
 {
-    BOX dbox(dest.box());
+    Box dbox(dest.box());
     assert( dbox.ixType() == desc->getType() );
    
     if (domain.contains(dbox)) return;
 
     dbox &= domain;
-    const BOX& bx = dest.box();
+    const Box& bx = dest.box();
     const int* dlo = dest.loVect();
     const int* dhi = dest.hiVect();
     const int* plo = domain.loVect();
     const int* phi = domain.hiVect();
-    REAL xlo[BL_SPACEDIM];
+    Real xlo[BL_SPACEDIM];
     BCRec bcr;
-    const REAL* problo = prob_domain.lo();
+    const Real* problo = prob_domain.lo();
     int i;
     for (i = 0; i < BL_SPACEDIM; i++) {
 	xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
@@ -265,7 +265,7 @@ StateData::FillBoundary(FArrayBox& dest, REAL time, const REAL* dx,
     for (i = 0; i < num_comp; i++) {
 	int dc = dest_comp+i;
 	int sc = src_comp+i;
-	REAL* dat = dest.dataPtr(dc);
+	Real* dat = dest.dataPtr(dc);
 	setBC(bx,domain,desc->getBC(sc),bcr);
 	desc->bndryFill(sc)(dat,ARLIM(dlo),ARLIM(dhi),
                             plo,phi,dx,xlo,&time,bcr.vect());
@@ -274,15 +274,15 @@ StateData::FillBoundary(FArrayBox& dest, REAL time, const REAL* dx,
 
 // -------------------------------------------------------------
 void
-StateData::linInterp(FArrayBox& dest, const BOX& subbox, REAL time,
+StateData::linInterp(FArrayBox& dest, const Box& subbox, Real time,
 		     int src_comp, int dest_comp, int num_comp,
 		     bool extrap)
 {
-    REAL teps = (new_time.start - old_time.start)/1000.0;
+    Real teps = (new_time.start - old_time.start)/1000.0;
     if (desc->timeType() == StateDescriptor::Point) {
 	if (old_data == 0) {
 	    teps = new_time.start/10000.0;
-	    REAL dt = time - new_time.start;
+	    Real dt = time - new_time.start;
 	    if (dt < 0.0) dt = -dt;
 	    if (extrap || dt < teps);
 	    new_data->copy(dest,subbox,src_comp,dest_comp,num_comp);
@@ -323,15 +323,15 @@ StateData::linInterpAddBox(MultiFabCopyDescriptor &multiFabCopyDesc,
                      Array<MultiFabId> &mfid,
                      BoxList &unfillableBoxes,
                      Array<FillBoxId>  &returnedFillBoxIds,
-                     const BOX &subbox,
-                     REAL time, int src_comp, int dest_comp, int num_comp,
+                     const Box &subbox,
+                     Real time, int src_comp, int dest_comp, int num_comp,
                      bool extrap)
 {
-    REAL teps = (new_time.start - old_time.start)/1000.0;
+    Real teps = (new_time.start - old_time.start)/1000.0;
     if (desc->timeType() == StateDescriptor::Point) {
         if (old_data == 0) {
             teps = new_time.start/10000.0;
-            REAL dt = time - new_time.start;
+            Real dt = time - new_time.start;
             if (dt < 0.0) dt = -dt;
             returnedFillBoxIds.resize(1);
             returnedFillBoxIds[0] = multiFabCopyDesc.AddBox(mfid[MFNEWDATA],subbox,
@@ -371,14 +371,14 @@ StateData::linInterpFillFab(MultiFabCopyDescriptor &multiFabCopyDesc,
                      const Array<MultiFabId> &mfid,
                      const Array<FillBoxId> &fillBoxIds,
                      FArrayBox &dest,
-                     REAL time, int src_comp, int dest_comp, int num_comp,
+                     Real time, int src_comp, int dest_comp, int num_comp,
                      bool extrap)
 {
-    REAL teps = (new_time.start - old_time.start)/1000.0;
+    Real teps = (new_time.start - old_time.start)/1000.0;
     if (desc->timeType() == StateDescriptor::Point) {
         if (old_data == 0) {
             teps = new_time.start/10000.0;
-            REAL dt = time - new_time.start;
+            Real dt = time - new_time.start;
             if (dt < 0.0) dt = -dt;
             multiFabCopyDesc.FillFab(mfid[MFNEWDATA], fillBoxIds[0], dest);
 

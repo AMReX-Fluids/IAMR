@@ -2,7 +2,7 @@
 #define _BNDRYDATA_H_
 
 //
-// $Id: BndryData.H,v 1.3 1997-09-26 16:56:52 lijewski Exp $
+// $Id: BndryData.H,v 1.4 1997-10-08 20:15:22 car Exp $
 //
 
 #include <BoxArray.H>
@@ -96,7 +96,7 @@ protected:
 //@ManDoc: Array (on orientation) of boundary condition type specifiers
     Array<BoundCond>   bcond[BL_SPACEDIM_x_2];
 //@ManDoc: Array (on orientation) of boundary condition locations
-    Array<REAL>        bcloc[BL_SPACEDIM_x_2];
+    Array<Real>        bcloc[BL_SPACEDIM_x_2];
 //@ManDoc: Array (on orientation) of boundary condition mask arrays (FAB-like)
     PArray<Mask>       masks[BL_SPACEDIM_x_2];
 //@ManDoc: Domain used for mask defintions
@@ -139,7 +139,7 @@ public:
 	return bndry[_face];
     }
 //@ManDoc: return boundary location on given face
-    const Array<REAL>& bndryLocs(const Orientation& _face) const
+    const Array<Real>& bndryLocs(const Orientation& _face) const
     {
 	return bcloc[_face];
     }

@@ -1,6 +1,6 @@
 
 //
-// $Id: amr_multi.cpp,v 1.11 1997-10-03 23:37:32 car Exp $
+// $Id: amr_multi.cpp,v 1.12 1997-10-08 20:15:49 car Exp $
 //
 
 #include <amr_multi.H>
@@ -306,7 +306,7 @@ amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
     mesh.convert(type(source[lev_min]));
     resid.set(i, new MultiFab(mesh, 1, source[lev_min].nGrow()));
     corr.set(i, new MultiFab(mesh, 1, dest[lev_min].nGrow()));
-    if (type(dest[lev_min]) == cellvect)
+    if (type(dest[lev_min]) == IntVect::TheCellVector())
       work.set(i, new MultiFab(mesh, 1, 0));
     else
       work.set(i, new MultiFab(mesh, 1, 1));
@@ -624,7 +624,7 @@ void
 amr_multigrid::mg_restrict_level(int lto, int lfrom)
 {
   IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
-  if (type(resid[lto]) == cellvect) 
+  if (type(resid[lto]) == IntVect::TheCellVector()) 
   {
     restrict_level(resid[lto], 0, work[lfrom], rat, 
 #ifdef HG_USE_CACHE

@@ -1,6 +1,6 @@
 
 //
-// $Id: hg_multi1.cpp,v 1.12 1997-10-06 16:35:36 lijewski Exp $
+// $Id: hg_multi1.cpp,v 1.13 1997-10-08 20:15:52 car Exp $
 //
 
 #include <Tracer.H>
@@ -162,7 +162,7 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   // for (int igrid = 0; igrid < mg_mesh[0].length(); igrid++) 
   for ( MultiFabIterator mfi(cgwork[7]); mfi.isValid(); ++mfi)
   {
-    Fab& gtmp = mfi();
+    FArrayBox& gtmp = mfi();
     const Box& valid = mfi.validbox();
     gtmp.setVal(0.0);
     gtmp.setVal(1.0, valid, 0);
@@ -220,9 +220,9 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
 #ifndef HG_CONSTANT
 
 void 
-holy_grail_sigma_restrictor_class::fill(Fab& patch,
+holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 					     const Box& region,
-					     Fab& fgr,
+					     FArrayBox& fgr,
 					     const IntVect& rat) const
 {
   assert(patch.box().cellCentered());
@@ -400,7 +400,7 @@ holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   for (mglev = 0; mglev <= mglev_max; mglev++) 
   {
     BoxArray mesh = mg_mesh[mglev];
-    mesh.convert(nodevect);
+    mesh.convert(IntVect::TheNodeVector());
     sigma_node.set(mglev, new MultiFab(mesh, BL_SPACEDIM, 1));
     sigma_node[mglev].setVal(1.e20);
   }
@@ -776,9 +776,9 @@ holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 #ifndef HG_CONSTANT
 
 void 
-holy_grail_interpolator_class::fill(Fab& patch,
+holy_grail_interpolator_class::fill(FArrayBox& patch,
 					 const Box& region,
-					 Fab& cgr,
+					 FArrayBox& cgr,
 					 const Box& cb,
 					 const IntVect& rat) const
 {

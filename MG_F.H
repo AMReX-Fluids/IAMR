@@ -1,5 +1,5 @@
 #ifndef _MG_F_H_
-#define _MG_F_H_ "$Id: MG_F.H,v 1.1 1997-07-08 23:08:04 vince Exp $"
+#define _MG_F_H_ "$Id: MG_F.H,v 1.2 1997-10-08 20:15:36 car Exp $"
 
 #include <REAL.H>
 
@@ -54,14 +54,14 @@
 extern "C"
 {
     void FORT_AVERAGE (
-	REAL* crse,       ARLIM_P(crse_lo), ARLIM_P(crse_hi),
-	const REAL* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+	Real* crse,       ARLIM_P(crse_lo), ARLIM_P(crse_hi),
+	const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
 	const int *tlo, const int *thi,
 	const int *nc);
 
     void FORT_INTERP (
-	REAL* fine,       ARLIM_P(fine_lo), ARLIM_P(fine_hi),
-	const REAL* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
+	Real* fine,       ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+	const Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
 	const int *tlo, const int *thi,
 	const int *nc);
 }

@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.8 1997-10-01 17:55:02 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.9 1997-10-08 20:15:41 car Exp $
 //
 
 #include <NavierStokes.H>
@@ -17,9 +17,9 @@
 #include <ArrayView.H>
 #endif
 
-BOX cell_to_cell(const BOX& b) { return b; }
-BOX cell_grow(const BOX& b) { return grow(b,1); }
-BOX cell_to_node(const BOX& b) { return surroundingNodes(b); }
+Box cell_to_cell(const Box& b) { return b; }
+Box cell_grow(const Box& b) { return grow(b,1); }
+Box cell_to_node(const Box& b) { return surroundingNodes(b); }
 
 // components are  Interior, Inflow, Outflow, Symmetry, SlipWall, NoSlipWall
 static int norm_vel_bc[] =
@@ -235,9 +235,9 @@ void
 NavierStokes::sum_integrated_quantities()
 {
     int finest_level = parent->finestLevel();
-    REAL time = state[State_Type].curTime();
-    REAL mass = 0.0;
-    REAL trac = 0.0;
+    Real time = state[State_Type].curTime();
+    Real mass = 0.0;
+    Real trac = 0.0;
     int lev;
     for (lev = 0; lev <= finest_level; lev++) {
         NavierStokes& ns_level = getLevel(lev);

@@ -2,7 +2,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.3 1997-10-01 01:03:06 car Exp $
+// $Id: Geometry.H,v 1.4 1997-10-08 20:15:29 car Exp $
 //
 
 #include <CoordSys.H>
@@ -19,7 +19,7 @@ class Geometry : public CoordSys
 protected:
   static bool is_periodic[BL_SPACEDIM];// 0 means not periodic
     static RealBox prob_domain;
-    BOX    domain;
+    Box    domain;
 
     void   read_params();
     
@@ -34,7 +34,7 @@ public:
     friend istream& operator >> (istream&, Geometry& );
 
     Geometry();
-    Geometry(const BOX& dom);
+    Geometry(const Box& dom);
     Geometry(const Geometry& g);
     
     ~Geometry() {};
@@ -42,21 +42,21 @@ public:
       // read static values from ParmParse database.
     static void Setup();
 
-    void define(const BOX& dom);
+    void define(const Box& dom);
 
     static const RealBox& ProbDomain()
     {
 	return prob_domain;
     }
     
-    static const REAL* ProbLo();
-    static const REAL* ProbHi();
-    static REAL ProbLo(int dir);
-    static REAL ProbHi(int dir);
-    static const REAL* ProbLength();
-    static REAL ProbLength(int dir);
+    static const Real* ProbLo();
+    static const Real* ProbHi();
+    static Real ProbLo(int dir);
+    static Real ProbHi(int dir);
+    static const Real* ProbLength();
+    static Real ProbLength(int dir);
 
-    const BOX& Domain() const {
+    const Box& Domain() const {
 	return domain;
     }
 

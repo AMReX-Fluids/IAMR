@@ -1,6 +1,6 @@
 
 //
-// $Id: Geometry.cpp,v 1.3 1997-10-01 01:03:06 car Exp $
+// $Id: Geometry.cpp,v 1.4 1997-10-08 20:15:30 car Exp $
 //
 
 #include <Geometry.H>
@@ -18,7 +18,7 @@ Geometry::Geometry()
 }
 
 // --------------------------------------------------------------
-Geometry::Geometry(const BOX& dom)
+Geometry::Geometry(const Box& dom)
     : CoordSys()
 {
     define(dom);
@@ -33,14 +33,14 @@ Geometry::Geometry(const Geometry& g)
 
 // --------------------------------------------------------------
 void
-Geometry::define(const BOX& dom)
+Geometry::define(const Box& dom)
 {
     if (c_sys == undef) Setup();
     domain = dom;
     ok = 1;
     int k;
     for (k = 0; k < BL_SPACEDIM; k++) {
-	dx[k] = prob_domain.length(k)/( REAL (domain.length(k)) );
+	dx[k] = prob_domain.length(k)/( Real (domain.length(k)) );
     }
 }
 
@@ -54,10 +54,10 @@ Geometry::Setup()
     pp.get("coord_sys",coord);
     SetCoord( (CoordType) coord );
 
-    Array<REAL> prob_lo(BL_SPACEDIM);
+    Array<Real> prob_lo(BL_SPACEDIM);
     pp.getarr("prob_lo",prob_lo,0,BL_SPACEDIM);
     assert(prob_lo.length() == BL_SPACEDIM);
-    Array<REAL> prob_hi(BL_SPACEDIM);
+    Array<Real> prob_hi(BL_SPACEDIM);
     pp.getarr("prob_hi",prob_hi,0,BL_SPACEDIM);
     assert(prob_lo.length() == BL_SPACEDIM);
     prob_domain.setLo(prob_lo);
@@ -81,42 +81,42 @@ Geometry::Setup()
 }
 
 // --------------------------------------------------------------
-const REAL*
+const Real*
 Geometry::ProbLo()
 {
     return prob_domain.lo();
 }
 
 // --------------------------------------------------------------
-const REAL*
+const Real*
 Geometry::ProbHi()
 {
     return prob_domain.hi();
 }
 
 // --------------------------------------------------------------
-REAL
+Real
 Geometry::ProbLo(int dir)
 {
     return prob_domain.lo(dir);
 }
 
 // --------------------------------------------------------------
-REAL
+Real
 Geometry::ProbHi(int dir)
 {
     return prob_domain.hi(dir);
 }
 
 // --------------------------------------------------------------
-const REAL*
+const Real*
 Geometry::ProbLength()
 {
     return prob_domain.length();
 }
 
 // --------------------------------------------------------------
-REAL
+Real
 Geometry::ProbLength(int dir)
 {
     return prob_domain.length(dir);
@@ -174,7 +174,7 @@ Geometry::GetFaceArea(MultiFab& area, const BoxArray& grds,
     edge_boxes.surroundingNodes(dir);
     area.define(edge_boxes,1,ngrow,Fab_noallocate);
     for(MultiFabIterator mfi(area); mfi.isValid(); ++mfi) {
-	BOX gbx(grow(grds[mfi.index()],ngrow));
+	Box gbx(grow(grds[mfi.index()],ngrow));
 	area.setFab(mfi.index(),CoordSys::GetFaceArea(gbx,dir));
     }
 }

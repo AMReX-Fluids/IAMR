@@ -1,6 +1,6 @@
 
 //
-// $Id: AmrLevel.cpp,v 1.15 1997-10-01 01:03:01 car Exp $
+// $Id: AmrLevel.cpp,v 1.16 1997-10-08 20:15:19 car Exp $
 //
 
 // #define ADVANCE_DEBUG 1
@@ -44,7 +44,7 @@ AmrLevel::AmrLevel() {
 
 // -------------------------------------------------------------
 AmrLevel::AmrLevel(Amr &papa, int lev, const Geometry &level_geom,
-                   const BoxArray& ba, REAL time)
+                   const BoxArray& ba, Real time)
     : geom(level_geom),grids(ba)
 {
     level = lev;
@@ -56,7 +56,7 @@ AmrLevel::AmrLevel(Amr &papa, int lev, const Geometry &level_geom,
     if (level > 0) crse_ratio = parent->refRatio(level-1);
     if (level < parent->maxLevel()) fine_ratio = parent->refRatio(level);
 
-    REAL dt = parent->dtLevel(lev);
+    Real dt = parent->dtLevel(lev);
     int ndesc = desc_lst.length();
     state.resize(ndesc);
     const Box& domain = geom.Domain();
@@ -106,8 +106,8 @@ AmrLevel::finishConstructor()
    // set physical locations of grids
     int num_grids = grids.length();
     grid_loc.resize(num_grids);
-    const REAL* prob_lo = geom.ProbLo();
-    const REAL* dx = geom.CellSize();
+    const Real* prob_lo = geom.ProbLo();
+    const Real* dx = geom.CellSize();
     int i;
     for (i = 0; i < num_grids; i++) {
 	grid_loc[i] = RealBox(grids[i],dx,prob_lo);
@@ -116,7 +116,7 @@ AmrLevel::finishConstructor()
 
 // -------------------------------------------------------------
 void
-AmrLevel::setTimeLevel(REAL time, REAL dt_old, REAL dt_new)
+AmrLevel::setTimeLevel(Real time, Real dt_old, Real dt_new)
 {
     int ndesc = desc_lst.length();
     int k;
@@ -213,11 +213,11 @@ AmrLevel::reset()
 
 // -------------------------------------------------------------
 MultiFab&
-AmrLevel::get_data(int state_indx, REAL time)
+AmrLevel::get_data(int state_indx, Real time)
 {
-    REAL old_time = state[state_indx].prevTime();
-    REAL new_time = state[state_indx].curTime();
-    REAL eps = 0.001*(new_time - old_time);
+    Real old_time = state[state_indx].prevTime();
+    Real new_time = state[state_indx].curTime();
+    Real eps = 0.001*(new_time - old_time);
     if (time > old_time-eps && time < old_time+eps) {
 	return get_old_data(state_indx);
     } else if (time > new_time-eps && time < new_time+eps) {
@@ -232,11 +232,11 @@ AmrLevel::get_data(int state_indx, REAL time)
 // -------------------------------------------------------------
 void
 AmrLevel::setPhysBoundaryValues(int state_indx, int comp, int ncomp,
-			     REAL time)
+			     Real time)
 {
-    REAL old_time = state[state_indx].prevTime();
-    REAL new_time = state[state_indx].curTime();
-    REAL eps = 0.001*(new_time - old_time);
+    Real old_time = state[state_indx].prevTime();
+    Real new_time = state[state_indx].curTime();
+    Real eps = 0.001*(new_time - old_time);
     int do_new;
     if (time > old_time-eps && time < old_time+eps) {
 	do_new = 0;
@@ -925,7 +925,7 @@ FillPatchIterator::~FillPatchIterator() {
 // old filPatch  (unraveled) vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 // old FillPatch (unraveled) vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
-void AmrLevel::FillPatch(FArrayBox &dest, int dest_comp, REAL time,
+void AmrLevel::FillPatch(FArrayBox &dest, int dest_comp, Real time,
                          int stateIndex, int src_comp, int ncomp,
                          Interpolater *mapper)
 {
@@ -1032,7 +1032,7 @@ cout << "linInterp on crse0.box() = " << crse0.box() << NL;
             crse0_lev.state[stateIndex].linInterp(crse0,crse0.box(),time,
                                                  src_comp,0,ncomp);
             if( ! crse0_inside) {
-              const REAL* crse0_dx = crse0_geom.CellSize();
+              const Real* crse0_dx = crse0_geom.CellSize();
 cout << "FillBoundary on crse0.box() = " << crse0.box() << "  outside boundary " <<
 crse0_prob_domain << NL;
               crse0_lev.state[stateIndex].FillBoundary(crse0, time, crse0_dx,
@@ -1061,7 +1061,7 @@ cout << "linInterp on crse.box() = " << crse.box() << NL;
                                              src_comp,dest_comp,ncomp);
 
         if( ! inside) {              // do non-periodic BC's on this level
-          const REAL* crse_dx = crse_geom.CellSize();
+          const Real* crse_dx = crse_geom.CellSize();
 cout << "FillBoundary on crse.box() = " << crse.box() << "  outside boundary " << cr
 se_prob_domain << NL;
           crse_lev.state[stateIndex].FillBoundary(crse,time,crse_dx,
@@ -1088,7 +1088,7 @@ for(int ibc=0; ibc < ncomp; ++ibc) {
   state[stateIndex].linInterp(dest,dest.box(),time,src_comp,dest_comp,ncomp);
 
   if( ! inside) {              // do non-periodic BC's on this level
-    const REAL* dx = geom.CellSize();
+    const Real* dx = geom.CellSize();
 cout << "FillBoundary on dest.box() = " << dest.box() << "  outside boundary " << pr
 ob_domain << NL;
     state[stateIndex].FillBoundary(dest,time,dx,prob_domain,
@@ -1107,7 +1107,7 @@ cout << NL;
 // old filPatch  (recursive) vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 // old FillPatch (recursive) vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 void
-AmrLevel::FillPatch(FArrayBox &dest, int dest_comp, REAL time,
+AmrLevel::FillPatch(FArrayBox &dest, int dest_comp, Real time,
                    int state_indx, int src_comp, int ncomp,
                    Interpolater *mapper)
 {
@@ -1196,7 +1196,7 @@ AmrLevel::FillPatch(FArrayBox &dest, int dest_comp, REAL time,
 
     // do non-periodic BC's on this level
     if (!inside) {
-        const REAL* dx = geom.CellSize();
+        const Real* dx = geom.CellSize();
         state[state_indx].FillBoundary(dest,time,dx,prob_domain,
                                    dest_comp,src_comp,ncomp);
     }
@@ -1229,7 +1229,7 @@ fabout.close();
 
 // -------------------------------------------------------------
 void
-AmrLevel::FillPatch(FArrayBox &dest, int dest_comp, REAL time,
+AmrLevel::FillPatch(FArrayBox &dest, int dest_comp, Real time,
                    int state_indx, int src_comp, int ncomp,
                    const Box& unfilled_region,
                    Interpolater *mapper)
@@ -1309,7 +1309,7 @@ AmrLevel::FillPatch(FArrayBox &dest, int dest_comp, REAL time,
                                 src_comp,dest_comp,ncomp);
 
     if (!inside) {
-        const REAL* dx = geom.CellSize();
+        const Real* dx = geom.CellSize();
         state[state_indx].FillBoundary(dest,time,dx,prob_domain,
                                    dest_comp,src_comp,ncomp);
     }
@@ -1328,7 +1328,7 @@ AmrLevel::FillPatch(FArrayBox &dest, int dest_comp, REAL time,
 // old FillPatch with periodic vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 /*
 void
-AmrLevel::filPatch(FArrayBox &dest, int dest_comp, REAL time,
+AmrLevel::filPatch(FArrayBox &dest, int dest_comp, Real time,
 		   int state_indx, int src_comp, int ncomp,
 		   Interpolater *mapper)
 {
@@ -1470,7 +1470,7 @@ AmrLevel::filPatch(FArrayBox &dest, int dest_comp, REAL time,
 
     // do non-periodic BC's on this level
     if (!inside) {
-	const REAL* dx = geom.CellSize();
+	const Real* dx = geom.CellSize();
 	state[state_indx].FillBoundary(dest,time,dx,prob_domain,
 				   dest_comp,src_comp,ncomp);
     }
@@ -1555,7 +1555,7 @@ AmrLevel::FillCoarsePatch(FArrayBox &dest,
 		crse_ratio,crse_geom,geom,bc_crse);
 
     if (!inside) {
-	const REAL* dx = geom.CellSize();
+	const Real* dx = geom.CellSize();
 	state[state_indx].FillBoundary(dest,time,dx,prob_domain,
 				   dest_comp,src_comp,ncomp);
     }
@@ -1563,7 +1563,7 @@ AmrLevel::FillCoarsePatch(FArrayBox &dest,
 
 // -------------------------------------------------------------
 PArray<FArrayBox>*
-AmrLevel::derive(const aString &name, REAL time)
+AmrLevel::derive(const aString &name, Real time)
 {
     if(ParallelDescriptor::NProcs() > 1) {
       cerr << "AmrLevel::derive(returning PArray *) not implemented in parallel." << NL;
@@ -1593,7 +1593,7 @@ AmrLevel::derive(const aString &name, REAL time)
 	PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),
 						      PArrayManage);
 
-	const REAL* dx = geom.CellSize();
+	const Real* dx = geom.CellSize();
 	int state_indx, src_comp, num_comp;
 	d->getRange(0,state_indx,src_comp,num_comp);
 	const BoxArray& grds = state[state_indx].boxArray();
@@ -1630,16 +1630,16 @@ AmrLevel::derive(const aString &name, REAL time)
 	    }
 
 	      // call deriving function
-	    REAL *ddat = dest->dataPtr();
+	    Real *ddat = dest->dataPtr();
 	    const int* dlo = dest->loVect();
 	    const int* dhi = dest->hiVect();
-	    REAL *cdat = src.dataPtr();
+	    Real *cdat = src.dataPtr();
 	    const int* clo = src.loVect();
 	    const int* chi = src.hiVect();
 	    const int* dom_lo = state[state_indx].getDomain().loVect();
 	    const int* dom_hi = state[state_indx].getDomain().hiVect();
 	    const int* bcr = d->getBC();
-	    const REAL* xlo = grid_loc[i].lo();
+	    const Real* xlo = grid_loc[i].lo();
 	    d->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
                          cdat,ARLIM(clo),ARLIM(chi),&n_state,
 			 dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,bcr,
@@ -1659,7 +1659,7 @@ AmrLevel::derive(const aString &name, REAL time)
 
 // -------------------------------------------------------------
 FArrayBox*
-AmrLevel::derive(const Box& b, const aString &name, REAL time)
+AmrLevel::derive(const Box& b, const aString &name, Real time)
 {
 
 if(ParallelDescriptor::NProcs() > 1) {
@@ -1703,7 +1703,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 // -------------------------------------------------------------
 void
 AmrLevel::FillDerive(FArrayBox &dest, const Box& subbox,
-		     const aString &name, REAL time)
+		     const aString &name, Real time)
 {
     const DeriveRec* d = derive_lst.get(name);
     assert (d != 0);
@@ -1764,7 +1764,7 @@ AmrLevel::FillDerive(FArrayBox &dest, const Box& subbox,
       // walk through grids, deriving on intersect
     int n_state = d->numState();
     int nsr = d->numRange();
-    const REAL* dx = geom.CellSize();
+    const Real* dx = geom.CellSize();
     for (i = 0; i < grids.length(); i++) {
 	Box g(grids[i]);
 	if (!cell_centered) g.convert(der_typ);
@@ -1788,18 +1788,18 @@ AmrLevel::FillDerive(FArrayBox &dest, const Box& subbox,
 	    }
 
 	      // now derive
-	    REAL *ddat = dest.dataPtr();
+	    Real *ddat = dest.dataPtr();
 	    const int* dlo = dest.loVect();
 	    const int* dhi = dest.hiVect();
 	    const int* lo = g.loVect();
 	    const int* hi = g.hiVect();
-	    REAL *cdat = src.dataPtr();
+	    Real *cdat = src.dataPtr();
 	    const int* clo = src.loVect();
 	    const int* chi = src.hiVect();
 	    const int* dom_lo = dom.loVect();
 	    const int* dom_hi = dom.hiVect();
 	    const int* bcr = d->getBC();
-	    REAL xlo[BL_SPACEDIM];
+	    Real xlo[BL_SPACEDIM];
 	    geom.LoNode(dest.smallEnd(),xlo);
 	    d->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
                          cdat,ARLIM(clo),ARLIM(chi),&n_state,
@@ -1830,7 +1830,7 @@ AmrLevel::getBCArray(int State_Type, int gridno, int strt_comp, int num_comp)
 // -------------------------------------------------------------
 
 void
-AmrLevel::probe(ostream &os, IntVect iv, int rad, REAL time,
+AmrLevel::probe(ostream &os, IntVect iv, int rad, Real time,
 		int state_indx, int src_comp, int num_comp)
 {
     Box bx(iv,iv);

@@ -2,7 +2,7 @@
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.5 1997-10-01 01:03:16 car Exp $
+// $Id: TagBox.H,v 1.6 1997-10-08 20:15:47 car Exp $
 //
 
 #include <IntVect.H>
@@ -25,12 +25,12 @@ class TagBox
       // construct an invalid FAB with no memory
     TagBox();
 
-    TagBox(const BOX &bx, int n = 1);
+    TagBox(const Box &bx, int n = 1);
 
       // destructor
     virtual ~TagBox();
     
-    void resize(const BOX& b) {BaseFab<int>::resize(b,1);}
+    void resize(const Box& b) {BaseFab<int>::resize(b,1);}
 
     int& operator()(const IntVect& p)
     {
@@ -61,12 +61,12 @@ class TagBox
 
 #if 0
     void setVal(TagVal val) { BaseFab<int>::setVal(val,0); }
-    void setVal(TagVal val, const BOX& bx) {
+    void setVal(TagVal val, const Box& bx) {
 	BaseFab<int>::setVal(val,bx,0);
     }
 #endif
 
-    int numTags(const BOX& bx) const;
+    int numTags(const Box& bx) const;
     int numTags() const;
   private:
     TagBox(const TagBox &);

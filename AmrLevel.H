@@ -2,7 +2,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.5 1997-10-01 01:03:01 car Exp $
+// $Id: AmrLevel.H,v 1.6 1997-10-08 20:15:19 car Exp $
 //
 
 #include <REAL.H>
@@ -77,7 +77,7 @@ protected:
 
 //  full constructor
     AmrLevel(Amr &papa, int lev, const Geometry &level_geom,
-	     const BoxArray& bl, REAL time);
+	     const BoxArray& bl, Real time);
 
 public:
 //  destructor
@@ -100,25 +100,25 @@ public:
     virtual void computeInitialDt(int finest_level, int sub_cycle,
 				  Array<int> &n_cycle,
 				  const Array<IntVect> &ref_ratio,
-				  Array<REAL> &dt_level) = 0;
+				  Array<Real> &dt_level) = 0;
 
 //  compute the next time step
     virtual void computeNewDt(int finest_level, int sub_cycle,
 			      Array<int> &n_cycle,
 			      const Array<IntVect> &ref_ratio,
-			      Array<REAL> &dt_min,
-			      Array<REAL> &dt_level,
-			      REAL stop_time) = 0;
+			      Array<Real> &dt_min,
+			      Array<Real> &dt_level,
+			      Real stop_time) = 0;
 
 
 //  do an integration step on this level - returns maximum safe time step
-    virtual  REAL advance(REAL time, REAL dt, int iteration, int ncycle) = 0;
+    virtual  Real advance(Real time, Real dt, int iteration, int ncycle) = 0;
 
 //  contains operations to be done after a timestep (e.g. refluxing)  -- must be    defined in derived class
     virtual  void post_timestep() = 0;
 
 //  contains operations to be done only after a full coarse timestep 
-    virtual void postCoarseTimeStep(REAL time) {};
+    virtual void postCoarseTimeStep(Real time) {};
 
 //  operations to be done after restart -- must be defined in derived class
     virtual  void post_restart() = 0;
@@ -136,7 +136,7 @@ public:
     virtual void initData() = 0;
 
 //  set the time levels of state data
-    virtual void setTimeLevel(REAL time, REAL dt_old, REAL dt_new);
+    virtual void setTimeLevel(Real time, Real dt_old, Real dt_new);
 
 //  alloc space for old time data
     virtual void allocOldData();
@@ -181,21 +181,21 @@ public:
 
 //  error estimation for regridding
     virtual void errorEst(TagBoxArray &tb, int clearval, int tagval,
-                          REAL time) = 0;
+                          Real time) = 0;
 ///
  //  general fill function
-    void FillPatch(FArrayBox &dest, int dest_comp, REAL time,
+    void FillPatch(FArrayBox &dest, int dest_comp, Real time,
 		   int state_indx, int src_comp, int ncomp,
 		   Interpolater *mapper = 0);
 ///
-    void FillPatch(FArrayBox &dest, int dest_comp, REAL time,
+    void FillPatch(FArrayBox &dest, int dest_comp, Real time,
 		   int state_indx, int src_comp, int ncomp,
 		   const Box& unfilled_region,
 		   Interpolater *mapper = 0);
 ///
 //  interpolate up from coarse level
     void FillCoarsePatch(FArrayBox &dest,
-		         int dest_comp, REAL time,
+		         int dest_comp, Real time,
 		         int state_indx, int src_comp, int ncomp,
 		         Interpolater *mapper = 0);
 
@@ -207,17 +207,17 @@ public:
 				 comp,ncomp,do_new); }
 
     void setPhysBoundaryValues(int state_indx, int comp, int ncomp,
-			       REAL time);
+			       Real time);
 
 /// functions to derive specific quantities
 
 // returns a pointer to a fab containing the derived data.  
 // Note: if you use this, you are responsible for proper memory management
-    FArrayBox* derive(const Box& bx, const aString &name, REAL time);
+    FArrayBox* derive(const Box& bx, const aString &name, Real time);
 
 //  returns a PArray to fabs containing the derived data.  
 //  Note: if you use this, you are responsible for proper memory management
-    PArray<FArrayBox>* derive(const aString &name, REAL time);
+    PArray<FArrayBox>* derive(const aString &name, Real time);
 
 //  state data object
     StateData& get_state_data(int state_indx)
@@ -237,19 +237,19 @@ public:
 //  boundary condition access function
     int* getBCArray(int State_Type, int gridno, int strt_comp, int num_comp);
 
-    MultiFab& get_data(int state_indx, REAL time);
+    MultiFab& get_data(int state_indx, Real time);
 
 protected:
 
 //  FillPatch for derived quantities
     void FillDerive(FArrayBox &dest, const Box& subbox,
-		   const aString &name, REAL time);
+		   const aString &name, Real time);
 
 //  common code used by all constructors
     void finishConstructor();    
 
 //  pointwise state data
-    void probe(ostream &os, IntVect iv, int radius, REAL time,
+    void probe(ostream &os, IntVect iv, int radius, Real time,
 	       int state_indx, int src_comp, int num_comp);
 
 private:
@@ -271,12 +271,12 @@ class FillPatchIterator : public MultiFabIterator {
     FillPatchIterator(AmrLevel &amrlevel,
                       MultiFab &leveldata,
                       const int boxGrow,
-                      int dest_comp, REAL time,
+                      int dest_comp, Real time,
                       int state_indx, int src_comp, int ncomp,
                       Interpolater *mapper = 0);
     ~FillPatchIterator();
     void Initialize(const int boxGrow,
-                      int dest_comp, REAL time,
+                      int dest_comp, Real time,
                       int state_indx, int src_comp, int ncomp,
                       Interpolater *mapper = 0);
     inline const FArrayBox &operator()() const { return currentFillPatchedFab; }

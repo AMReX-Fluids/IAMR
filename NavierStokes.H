@@ -2,7 +2,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.8 1997-10-01 01:03:11 car Exp $
+// $Id: NavierStokes.H,v 1.9 1997-10-08 20:15:41 car Exp $
 //
 
 #include <LevelBld.H>
@@ -44,7 +44,7 @@ class NSBld : public LevelBld
     virtual AmrLevel *operator()();
     virtual AmrLevel *operator()(Amr &papa, int lev,
                                  const Geometry &level_geom,
-                                 const BoxArray &ba, REAL time);
+                                 const BoxArray &ba, Real time);
 };
 
 class NavierStokes : public AmrLevel 
@@ -60,7 +60,7 @@ public:   // ===================== public member functions ===
     //=================================================================
     NavierStokes();
     NavierStokes(Amr& papa, int lev, const Geometry &level_geom,
-		 const BoxArray& bl, REAL time);
+		 const BoxArray& bl, Real time);
     virtual ~NavierStokes();
 
     virtual void restart(Amr& papa, istream &is);
@@ -76,10 +76,10 @@ public:   // ===================== public member functions ===
     virtual void initDataOtherTypes() {return;} ;
 
     // reset time levels for the initial iterations
-    virtual void resetState(REAL time, REAL dt_old, REAL dt_new);
+    virtual void resetState(Real time, Real dt_old, Real dt_new);
     
     // set time levels of state data
-    virtual void setTimeLevel(REAL time, REAL dt_old, REAL dt_new);
+    virtual void setTimeLevel(Real time, Real dt_old, Real dt_new);
     
     // This function fills a new level n with the best
     // level n and coarser data available (usually during regrid)
@@ -100,11 +100,11 @@ public:   // ===================== public member functions ===
 
     // error estimation for regridding
     virtual void errorEst(TagBoxArray &tb, int clearval, int tagval,
-			  REAL time);
+			  Real time);
 
     // integrate derived quantities over domain
-    REAL sumDerive(const aString& name, REAL time);
-    REAL volWgtSum(const aString& name, REAL time);
+    Real sumDerive(const aString& name, Real time);
+    Real volWgtSum(const aString& name, Real time);
 
     virtual void checkPoint(ostream& os);
 
@@ -119,23 +119,23 @@ public:   // ===================== public member functions ===
     // Timestep estimation functions follow
     //=================================================================
 
-    REAL estTimeStep();
-    REAL initialTimeStep();
+    Real estTimeStep();
+    Real initialTimeStep();
     virtual void computeInitialDt(int finest_level, int sub_cycle,
 				  Array<int>& n_cycle,
 				  const Array<IntVect>& ref_ratio,
-				  Array<REAL>& dt_level);
+				  Array<Real>& dt_level);
     virtual void computeNewDt(int finest_level, int sub_cycle,
 			      Array<int>& n_cycle,
 			      const Array<IntVect>& ref_ratio,
-			      Array<REAL>& dt_min,
-			      Array<REAL>& dt_level,
-	                      REAL stop_time);
+			      Array<Real>& dt_min,
+			      Array<Real>& dt_level,
+	                      Real stop_time);
 
     // this function estimates the initial timesteping used by the model
-    void post_init_estDT( REAL &dt_init,
+    void post_init_estDT( Real &dt_init,
                           Array<int> &nc_save,
-                          Array<REAL> &dt_save );
+                          Array<Real> &dt_save );
 
     // estimate the end of the simulation for amrLevel
     virtual int okToContinue();
@@ -157,7 +157,7 @@ public:   // ===================== public member functions ===
     virtual void post_init();
 
     // advance grids at this level in time
-    virtual REAL advance(REAL time, REAL dt, int iteration, int ncycle);
+    virtual Real advance(Real time, Real dt, int iteration, int ncycle);
 
     //============ public for debugging purposes
     // mac edge velocities
@@ -167,12 +167,12 @@ public:   // ===================== public member functions ===
     MultiFab *aofs;
 
     // boundary condition functions
-    void SaveOldBoundary( REAL time ); // save ghost cells back into 
-    void SaveNewBoundary( REAL time ); // state (old/new) multifabs
+    void SaveOldBoundary( Real time ); // save ghost cells back into 
+    void SaveNewBoundary( Real time ); // state (old/new) multifabs
     
     // get divU from the state data
-    void getDivCond(FArrayBox& fab, int ngrow, REAL time);
-    void getDivCond(FArrayBox& fab, int gridno, int ngrow, REAL time);
+    void getDivCond(FArrayBox& fab, int ngrow, Real time);
+    void getDivCond(FArrayBox& fab, int gridno, int ngrow, Real time);
 
     // public so MacProj can access it
     virtual void SetGodunov();
@@ -197,42 +197,42 @@ protected: // ===================== protected member functions ===
     //=================================================================
 
     // setup, clean up for a level timestep
-    virtual void advance_setup( REAL time, REAL dt, int iteration, int ncycle);
-    void advance_cleanup(REAL dt, int iteration, int ncycle);
+    virtual void advance_setup( Real time, Real dt, int iteration, int ncycle);
+    void advance_cleanup(Real dt, int iteration, int ncycle);
     
     // compute divergent mac velocities, estimate best timestep
     // from t^n data, and compile cfl number
-    REAL predict_velocity(REAL dt, REAL &comp_cfl );
+    Real predict_velocity(Real dt, Real &comp_cfl );
     void test_umac_periodic();  // make sure level 0 periodic umac are
                                 // periodic
     
     // make mac velocities divergence free
-    void mac_project(REAL dt);
+    void mac_project(Real dt);
 
     // advect velocities
-    void velocity_advection(REAL dt);
+    void velocity_advection(Real dt);
 
     // advect scalars
-    void scalar_advection(REAL dt, int first_scalar, int last_scalar);
+    void scalar_advection(Real dt, int first_scalar, int last_scalar);
 
     // update scalars, (viscous solve in scalar_update)
-    void scalar_update(REAL dt, int first_scalar, int last_scalar);
-    void scalar_advection_update(REAL dt, int first_scalar, int last_scalar);
-    void scalar_diffusion_update(REAL dt, int first_scalar, int last_scalar);
+    void scalar_update(Real dt, int first_scalar, int last_scalar);
+    void scalar_advection_update(Real dt, int first_scalar, int last_scalar);
+    void scalar_diffusion_update(Real dt, int first_scalar, int last_scalar);
     void diffuse_scalar_setup(int sigma, int* rho_flag); 
 
     // make rho at time n+1/2
-    void makerhonph(REAL dt);
+    void makerhonph(Real dt);
     
     // update velocities after advection
-    void velocity_update(REAL dt);
-    void velocity_advection_update(REAL dt);
-    virtual void velocity_diffusion_update(REAL dt);
-    void initial_velocity_diffusion_update(REAL dt);
-    void diffuse_velocity_setup(REAL dt, MultiFab*& delta_rhs); 
+    void velocity_update(Real dt);
+    void velocity_advection_update(Real dt);
+    virtual void velocity_diffusion_update(Real dt);
+    void initial_velocity_diffusion_update(Real dt);
+    void diffuse_velocity_setup(Real dt, MultiFab*& delta_rhs); 
 
     // compute level projection
-    void level_projector(REAL dt, REAL time, int iteration);
+    void level_projector(Real dt, Real time, int iteration);
 
     //=================================================================
     // MULTILEVEL SYNC FUNCTIONS
@@ -243,15 +243,15 @@ protected: // ===================== protected member functions ===
     virtual void post_init_state();
     
     // initialize the pressure by iterating the initial timestep
-    virtual void post_init_press( REAL &dt_init,
+    virtual void post_init_press( Real &dt_init,
                                   Array<int> &nc_save,
-                                  Array<REAL> &dt_save );
+                                  Array<Real> &dt_save );
 
     // interpolate cell-centered cync correction from coarse to fine
     void SyncInterp( MultiFab &CrseSync, int c_lev,
                      MultiFab &FineSync, int f_lev, IntVect& ratio,
                      int src_comp, int dest_comp, int num_comp,
-                     int increment, REAL dt_clev, int** bc_orig_qty,
+                     int increment, Real dt_clev, int** bc_orig_qty,
                      int which_interp=0);
 
     // two virtual hooks for anelastic SyncInterp
@@ -276,15 +276,15 @@ protected: // ===================== protected member functions ===
     virtual void avgDown( const FArrayBox& fine_fab, const FArrayBox& crse_fab, 
                           const FArrayBox& fine_vol, const FArrayBox& crse_vol,
                           int f_level,               int c_level,
-                          const BOX &ovlp,
+                          const Box &ovlp,
                           int start_comp, int num_comp, IntVect& fratio );
 
     // inject fine pressure nodes down onto coarse nodes
-    void injectDown( const BOX &ovlp, FArrayBox &Pcrse,
+    void injectDown( const Box &ovlp, FArrayBox &Pcrse,
                      const FArrayBox &Pfine, IntVect &fine_ratio );
 
     // test for consistency between fine dirichlet and coarse nodes
-    void testInject( const BOX &ovlp, FArrayBox &Pcrse,
+    void testInject( const Box &ovlp, FArrayBox &Pcrse,
                      const FArrayBox &Pfine, IntVect &fine_ratio );
 
     // compute the level sync correction
@@ -300,11 +300,11 @@ protected: // ===================== protected member functions ===
     void avgDown(int comp); // for a single scalar
 
     // compile rho_avg in advance
-    void initRhoAvg(REAL alpha);
-    void incrRhoAvg(REAL alpha);
+    void initRhoAvg(Real alpha);
+    void incrRhoAvg(Real alpha);
 
     // compile p_avg in advance
-    void incrPAvg( int iteration, REAL alpha); 
+    void incrPAvg( int iteration, Real alpha); 
 
     //=================================================================
     // ACCESS FUNCTIONS FOLLOW
@@ -314,52 +314,52 @@ protected: // ===================== protected member functions ===
     virtual void pullFluxes( int level, int gridno, int start_ind, int ncomp,
                              FArrayBox &xflux,
                              FArrayBox &yflux,
-                             FArrayBox &zflux, REAL dt );
+                             FArrayBox &zflux, Real dt );
 
     // compute the gradient of divU - dSdt
-    void compute_grad_divu_minus_s(REAL time, MultiFab* grad_divu_minus_s,
+    void compute_grad_divu_minus_s(Real time, MultiFab* grad_divu_minus_s,
                                    int scaleRhoDivDt);
     
     // compute viscous terms
     virtual void getViscTerms(MultiFab& visc_terms, int src_comp, 
-                              int num_comp, REAL time);
+                              int num_comp, Real time);
 
     // calculate divU, which sets them to zero by default
-    virtual void calc_divu(REAL time, REAL dt, MultiFab& fab);
+    virtual void calc_divu(Real time, Real dt, MultiFab& fab);
 
     // calculate dSdT, which sets them to zero by default
-    virtual void calc_dsdt(REAL time, REAL dt, MultiFab& fab);
+    virtual void calc_dsdt(Real time, Real dt, MultiFab& fab);
 
     // virtual function to allow arbitrary forcing
     virtual void getForce(FArrayBox& force, int gridno, int ngrow,
-                          int strt_comp, int num_comp, REAL time);
+                          int strt_comp, int num_comp, Real time);
     
     // get state data
     void getState(FArrayBox& fab,int gridno, int ngrow,
-                  int strt_comp, int num_comp, REAL time);
+                  int strt_comp, int num_comp, Real time);
 
     void getState(FArrayBox& fab,int gridno, int ngrow,
-                  int state_indx, int strt_comp, int num_comp, REAL time);
+                  int state_indx, int strt_comp, int num_comp, Real time);
     
     void getState(FArrayBox& fab, int gridno, int ngrow, 
-                  REAL time, int have_state, int state_indx,
-                  //BoxAssoc& assoc, Array<BOX>& unfilled,
-                  Array<BOX>& unfilled,
+                  Real time, int have_state, int state_indx,
+                  //BoxAssoc& assoc, Array<Box>& unfilled,
+                  Array<Box>& unfilled,
                   int num_comp = 1, int start_comp = 0);
     
     // get pressure gradient data via fill-patching
-    void getGradP(FArrayBox& gp, int gridno, int ngrow, REAL time);
+    void getGradP(FArrayBox& gp, int gridno, int ngrow, Real time);
 
     // given a nodal pressure P compute the pressure gradient at the
     // contained cell centers
     void getGradP(FArrayBox &p_fab, FArrayBox& gp,
-                  const BOX &grd, int ngrow );
+                  const Box &grd, int ngrow );
     
     // get dSdt from the state data
-    void getDsdt(FArrayBox& fab, int gridno, int ngrow, REAL time);
+    void getDsdt(FArrayBox& fab, int gridno, int ngrow, Real time);
 
     // fill ghost cells of state
-    void FillStateBndry(REAL time, int state_indx, int src_comp, 
+    void FillStateBndry(Real time, int state_indx, int src_comp, 
                             int num_comp); 
 
 
@@ -432,7 +432,7 @@ protected: // ===================== protected data members ===
     FluxRegister *viscflux_reg;
 
     // Radii for r-z calculations
-    PArray<REAL> radius;
+    PArray<Real> radius;
     
     // box associations (nearest neighbor lists) used by MultiFab
     // for fast filpatch operations
@@ -442,23 +442,23 @@ protected: // ===================== protected data members ===
     
     // for fast filpatch, we precompute the subbox of a grid that
     // must be interpolated from coarser data.
-    Array<BOX>  hyp_unfilled;      // unfilled region for Godunov step
-    Array<BOX>  cc1_unfilled;      // unfilled region for Godunov step
-    Array<BOX>  divu_unfilled;     // unfilled region for divu fill
-    Array<BOX>  dsdt_unfilled;     // unfilled region for dsdt fill
+    Array<Box>  hyp_unfilled;      // unfilled region for Godunov step
+    Array<Box>  cc1_unfilled;      // unfilled region for Godunov step
+    Array<Box>  divu_unfilled;     // unfilled region for divu fill
+    Array<Box>  dsdt_unfilled;     // unfilled region for dsdt fill
 
     // build all the (*_unfilled) arrays
     void buildUnfilledRegions();
 
     // ----------------------- static internal parameters for timestepping
-    static REAL init_shrink;   // reduction factor of first esimated timestep
+    static Real init_shrink;   // reduction factor of first esimated timestep
     static int  init_iter;     // # of timestep iterations for initial pressure
-    static REAL cfl;           // desired maximum cfl
-    static REAL change_max;    // maximum change in dt over a timestep
-    static REAL fixed_dt;      // set > 0 to specify dt
+    static Real cfl;           // desired maximum cfl
+    static Real change_max;    // maximum change in dt over a timestep
+    static Real fixed_dt;      // set > 0 to specify dt
     static int  initial_iter;  // flag for initial pressure iterations
     static int  initial_step;  // flag for initial iterations
-    static REAL dt_cutoff;     // minimum dt allowed
+    static Real dt_cutoff;     // minimum dt allowed
     static int sum_interval;   // number of timesteps for conservation stats
     
 
@@ -466,17 +466,17 @@ protected: // ===================== protected data members ===
     
     static int radius_grow;
     static int  verbose;
-    static REAL gravity;
+    static Real gravity;
     static int  NUM_SCALARS;       // number of non-velocity components
     static int  NUM_STATE;         // total number of state variables
     static Array<int> is_conservative;  // conservative or convective?
 
     // ----------------------- viscosity parameters
     static Array<int> is_diffusive;     // does variable diffuse?
-    static Array<REAL> visc_coef;       // const coef viscosity terms
-    static REAL visc_tol;
-    static REAL visc_abs_tol;
-    static REAL be_cn_theta;
+    static Array<Real> visc_coef;       // const coef viscosity terms
+    static Real visc_tol;
+    static Real visc_abs_tol;
+    static Real be_cn_theta;
 
     // ----------------------- internal switches
     static int  do_sync_proj;
@@ -492,8 +492,8 @@ protected: // ===================== protected data members ===
     static int num_state_type;
     static int have_divu;
     static int have_dsdt;
-    static REAL divu_minus_s_factor;
-    static REAL divu_relax_factor;
+    static Real divu_minus_s_factor;
+    static Real divu_relax_factor;
     static int S_in_vel_diffusion;
 };
 #endif

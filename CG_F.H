@@ -1,5 +1,5 @@
 #ifndef _CG_F_H_
-#define _CG_F_H_ "$Id: CG_F.H,v 1.1 1997-07-08 23:08:03 vince Exp $"
+#define _CG_F_H_ "$Id: CG_F.H,v 1.2 1997-10-08 20:15:23 car Exp $"
 
 #include <REAL.H>
 
@@ -57,27 +57,27 @@
 extern "C"
 {
     void FORT_CGUPDATE (
-	REAL* phi,  ARLIM_P(phi_lo),  ARLIM_P(phi_hi),
-	REAL* tmpr, ARLIM_P(tmpr_lo), ARLIM_P(tmpr_hi),
-	const REAL *h,
-	const REAL* tmpw, ARLIM_P(tmpw_lo), ARLIM_P(tmpw_hi),
-	const REAL* tmpp, ARLIM_P(tmpp_lo), ARLIM_P(tmpp_hi),
+	Real* phi,  ARLIM_P(phi_lo),  ARLIM_P(phi_hi),
+	Real* tmpr, ARLIM_P(tmpr_lo), ARLIM_P(tmpr_hi),
+	const Real *h,
+	const Real* tmpw, ARLIM_P(tmpw_lo), ARLIM_P(tmpw_hi),
+	const Real* tmpp, ARLIM_P(tmpp_lo), ARLIM_P(tmpp_hi),
 	const int* lo, const int* hi,
 	const int* nc
 	);
 
     void FORT_CGADVCP (
-	REAL* tmpp,       ARLIM_P(tmpp_lo), ARLIM_P(tmpp_hi),
-	const REAL* tmpr, ARLIM_P(tmpr_lo), ARLIM_P(tmpr_hi),
-	const REAL *b,
+	Real* tmpp,       ARLIM_P(tmpp_lo), ARLIM_P(tmpp_hi),
+	const Real* tmpr, ARLIM_P(tmpr_lo), ARLIM_P(tmpr_hi),
+	const Real *b,
 	const int* lo, const int* hi,
 	const int* nc
 	);
 
     void FORT_CGXDOTY (
-	REAL *pw,
-	const REAL* phi,  ARLIM_P(phi_lo),  ARLIM_P(phi_hi),
-	const REAL* tmpw, ARLIM_P(tmpw_lo), ARLIM_P(tmpw_hi),
+	Real *pw,
+	const Real* phi,  ARLIM_P(phi_lo),  ARLIM_P(phi_hi),
+	const Real* tmpw, ARLIM_P(tmpw_lo), ARLIM_P(tmpw_hi),
 	const int* lo, const int* hi,
 	const int* nc
 	);

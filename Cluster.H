@@ -2,7 +2,7 @@
 #define _Cluster_H_ 
 
 //
-// $Id: Cluster.H,v 1.5 1997-10-03 23:37:30 car Exp $
+// $Id: Cluster.H,v 1.6 1997-10-08 20:15:24 car Exp $
 //
 
 #include <IntVect.H>
@@ -24,7 +24,7 @@ The array is defined to exist for a set of points inside a box.
 */
 
 protected:
-    BOX bx;
+    Box bx;
     Array<IntVect> *ar;
 
 public:
@@ -39,13 +39,13 @@ public:
 
 //  construct new cluster by removing all points from c
 //  that lie in box b.  Cluster c is modified and may become invalid.
-    Cluster(Cluster &c,const BOX& b);
+    Cluster(Cluster &c,const Box& b);
 
 //  destructor
     ~Cluster();
 
 //  return minimal box containing all tagged points
-    const BOX& box() const {return bx;}
+    const Box& box() const {return bx;}
 
 //  return ith tagged point in cluster
     IntVect operator[](int i) {
@@ -59,8 +59,8 @@ public:
 //  returns number of tagged points in cluster
     int numTag() const {return ar->length();}
 
-//  return number of tagged points in intersection of cluster and BOX b.
-    int numTag(const BOX& b);
+//  return number of tagged points in intersection of cluster and Box b.
+    int numTag(const Box& b);
 
 /*  This operation splits a cluster into two pieces by selecting
     a cutting plane with certain optimal characteristics then

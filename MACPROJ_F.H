@@ -1,5 +1,5 @@
 #ifndef _MACPROJ_F_H
-#define _MACPROJ_F_H  $Id: MACPROJ_F.H,v 1.2 1997-07-17 22:01:03 vince Exp $
+#define _MACPROJ_F_H  $Id: MACPROJ_F.H,v 1.3 1997-10-08 20:15:35 car Exp $
 
 #ifdef BL_LANG_FORT
 #    define FORT_MACDIV      macdiv
@@ -22,40 +22,40 @@
 
 extern "C" {
 #if (BL_SPACEDIM == 2)
-    void FORT_MACDIV (REAL* dmac, ARLIM_P(dlo), ARLIM_P(dhi),
+    void FORT_MACDIV (Real* dmac, ARLIM_P(dlo), ARLIM_P(dhi),
                       const int* lo, const int* hi,
-                      const REAL* ux, ARLIM_P(ux_lo), ARLIM_P(ux_hi),
-                      const REAL* uy, ARLIM_P(uy_lo), ARLIM_P(uy_hi),
-                      const REAL* ax, ARLIM_P(ax_lo), ARLIM_P(ax_hi),
-                      const REAL* ay, ARLIM_P(ay_lo), ARLIM_P(ay_hi),
-                      const REAL* vol,ARLIM_P(vol_lo), ARLIM_P(vol_hi));
+                      const Real* ux, ARLIM_P(ux_lo), ARLIM_P(ux_hi),
+                      const Real* uy, ARLIM_P(uy_lo), ARLIM_P(uy_hi),
+                      const Real* ax, ARLIM_P(ax_lo), ARLIM_P(ax_hi),
+                      const Real* ay, ARLIM_P(ay_lo), ARLIM_P(ay_hi),
+                      const Real* vol,ARLIM_P(vol_lo), ARLIM_P(vol_hi));
 #endif
 #if (BL_SPACEDIM == 3)
-    void FORT_MACDIV (REAL* dmac, ARLIM_P(dlo), ARLIM_P(dhi),
+    void FORT_MACDIV (Real* dmac, ARLIM_P(dlo), ARLIM_P(dhi),
                       const int* lo, const int* hi,
-                      const REAL* ux, ARLIM_P(ux_lo), ARLIM_P(ux_hi),
-                      const REAL* uy, ARLIM_P(uy_lo), ARLIM_P(uy_hi),
-                      const REAL* uz, ARLIM_P(uz_lo), ARLIM_P(uz_hi),
-                      const REAL* ax, ARLIM_P(ax_lo), ARLIM_P(ax_hi),
-                      const REAL* ay, ARLIM_P(ay_lo), ARLIM_P(ay_hi),
-                      const REAL* az, ARLIM_P(az_lo), ARLIM_P(az_hi),
-                      const REAL* vol,ARLIM_P(vol_lo), ARLIM_P(vol_hi));
+                      const Real* ux, ARLIM_P(ux_lo), ARLIM_P(ux_hi),
+                      const Real* uy, ARLIM_P(uy_lo), ARLIM_P(uy_hi),
+                      const Real* uz, ARLIM_P(uz_lo), ARLIM_P(uz_hi),
+                      const Real* ax, ARLIM_P(ax_lo), ARLIM_P(ax_hi),
+                      const Real* ay, ARLIM_P(ay_lo), ARLIM_P(ay_hi),
+                      const Real* az, ARLIM_P(az_lo), ARLIM_P(az_hi),
+                      const Real* vol,ARLIM_P(vol_lo), ARLIM_P(vol_hi));
 #endif
 
-    void FORT_UCORUPDT (REAL* snew, const REAL* sold,
+    void FORT_UCORUPDT (Real* snew, const Real* sold,
                         ARLIM_P(s_lo), ARLIM_P(s_hi),
                         const int* nvar,
                         const int* lo, const int* hi,
-                        const REAL* dmac, ARLIM_P(dmac_lo), ARLIM_P(dmac_hi),
-                        const REAL* mult);
+                        const Real* dmac, ARLIM_P(dmac_lo), ARLIM_P(dmac_hi),
+                        const Real* mult);
 
-    void FORT_MACPHIBC(ARLIM_P(u_lo),ARLIM_P(u_hi),const REAL* u,
-                       ARLIM_P(div_lo),ARLIM_P(div_hi),const REAL* divcor,
-                       ARLIM_P(sig_lo),ARLIM_P(sig_hi),const REAL* sigmax,
-                       ARLIM_P(rcen_lo),ARLIM_P(rcen_hi),const REAL* rcen, 
-                       ARLIM_P(rhalf_lo),ARLIM_P(rhalf_hi),const REAL* rhalf, 
-                       const REAL* hx,
-                       ARLIM_P(phi_lo),ARLIM_P(phi_hi),const REAL* phi);
+    void FORT_MACPHIBC(ARLIM_P(u_lo),ARLIM_P(u_hi),const Real* u,
+                       ARLIM_P(div_lo),ARLIM_P(div_hi),const Real* divcor,
+                       ARLIM_P(sig_lo),ARLIM_P(sig_hi),const Real* sigmax,
+                       ARLIM_P(rcen_lo),ARLIM_P(rcen_hi),const Real* rcen, 
+                       ARLIM_P(rhalf_lo),ARLIM_P(rhalf_hi),const Real* rhalf, 
+                       const Real* hx,
+                       ARLIM_P(phi_lo),ARLIM_P(phi_hi),const Real* phi);
 }
 
 #endif

@@ -21,20 +21,20 @@
 #include "ArrayLim.H"
 
   extern "C" {
-     void FORT_SETVOL (REAL* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-                       const REAL* offset,
-                       const REAL* dx, const int* coord);
+     void FORT_SETVOL (Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+                       const Real* offset,
+                       const Real* dx, const int* coord);
 
 #if (BL_SPACEDIM == 2)
-     void FORT_SETDLOGA (REAL* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-			 const REAL* offset,
-			 const REAL* dx, const int* dir,
+     void FORT_SETDLOGA (Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+			 const Real* offset,
+			 const Real* dx, const int* dir,
 			 const int* coord);
 #endif
 
-     void FORT_SETAREA (REAL* area,  ARLIM_P(alo), ARLIM_P(ahi),
-                        const REAL* offset,
-                        const REAL* dx, const int* dir,
+     void FORT_SETAREA (Real* area,  ARLIM_P(alo), ARLIM_P(ahi),
+                        const Real* offset,
+                        const Real* dx, const int* dir,
                         const int* coord);
   }
 

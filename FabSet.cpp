@@ -1,6 +1,6 @@
 
 //
-// $Id: FabSet.cpp,v 1.7 1997-10-01 01:03:04 car Exp $
+// $Id: FabSet.cpp,v 1.8 1997-10-08 20:15:28 car Exp $
 //
 
 #include <FabSet.H>
@@ -144,10 +144,10 @@ FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
     const BoxArray& sba = src.boxArray();
     for (int s = 0; s < src.length; s++) {
         const FArrayBox& sfab = src[s];
-        BOX sbox = grow(sba[s],nghost);
+        Box sbox = grow(sba[s],nghost);
         for (int d = 0; d < length(); d++) {
             FArrayBox& dfab = (*this)[d];
-            BOX ovlp = dfab.box();
+            Box ovlp = dfab.box();
             ovlp &= sbox;
             if (ovlp.ok()) {
                 dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
@@ -224,11 +224,11 @@ if(ParallelDescriptor::NProcs() > 1) {
     const BoxArray& dba = dest.boxArray();
     for (int d = 0; d < dlen; d++) {
         FArrayBox& dfab = dest[d];
-        BOX dbox = grow(dba[d],nghost);
+        Box dbox = grow(dba[d],nghost);
         for (int s = 0; s < slen; s++) {
             const FArrayBox& sfab = (*this)[s];
-            const BOX& sbox = sfab.box();
-            BOX ovlp = dbox;
+            const Box& sbox = sfab.box();
+            Box ovlp = dbox;
             ovlp &= sbox;
             if (ovlp.ok()) {
                 dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);

@@ -2,7 +2,7 @@
 #define _StateDescriptor_H_ 
 
 //
-// $Id: StateDescriptor.H,v 1.5 1997-10-01 20:42:58 car Exp $
+// $Id: StateDescriptor.H,v 1.6 1997-10-08 20:15:46 car Exp $
 //
 
 #include <Array.H>
@@ -16,10 +16,10 @@
 class Interpolater;
 
 /// Function called by BCRec for user-supplied boundary data
-typedef void (*BndryFunc)(REAL* data, ARLIM_P(lo), ARLIM_P(hi),
+typedef void (*BndryFunc)(Real* data, ARLIM_P(lo), ARLIM_P(hi),
                           const int* dom_lo, const int* dom_hi,
-			  const REAL* dx, const REAL* grd_lo,
-			  const REAL* time, const int* bc);
+			  const Real* dx, const Real* grd_lo,
+			  const Real* time, const int* bc);
 
 /// Attributes of state at this level
 class StateDescriptor

@@ -40,58 +40,58 @@
 
 extern "C" {
     
-    void FORT_FILTERP(REAL * pnew, REAL * scratch, ARLIM_P(p_lo), ARLIM_P(p_hi),
-                      const int* lo, const int* hi, const REAL * dx,
-                      const REAL * fac);
+    void FORT_FILTERP(Real * pnew, Real * scratch, ARLIM_P(p_lo), ARLIM_P(p_hi),
+                      const int* lo, const int* hi, const Real * dx,
+                      const Real * fac);
 
     void FORT_VEL_TO_ACCEL (const int* lo, const int* hi,
-                            const REAL* unew, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                            const REAL* uold, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                            const REAL* dt );
+                            const Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi),
+                            const Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi),
+                            const Real* dt );
     
     void FORT_ACCEL_TO_VEL (const int* lo, const int* hi,
-                            const REAL* uold, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                            const REAL* dt,
-                            const REAL* unew, ARLIM_P(u_lo), ARLIM_P(u_hi) );
+                            const Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi),
+                            const Real* dt,
+                            const Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi) );
     
     void FORT_PROJ_UPDATE (const int* lo,   const int* hi,
                            const int *nvar, const int *ngrow, 
-                           const REAL* unew, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                           const  REAL* dt,
-                           const REAL* uold, ARLIM_P(u_lo), ARLIM_P(u_hi) );
+                           const Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi),
+                           const  Real* dt,
+                           const Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi) );
     
-    void FORT_RADMPY (REAL*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+    void FORT_RADMPY (Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                       const int* nghost,
-                      const REAL* row, const int* nrow,
+                      const Real* row, const int* nrow,
                       const int* n);
     
-    void FORT_RADDIV (REAL*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+    void FORT_RADDIV (Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                        const int* nghost,
-                      const REAL* row, const int* nrow,
+                      const Real* row, const int* nrow,
                       const int* n);
     
     void FORT_HGC2N(const int* nghost, 
                     ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                    const REAL* dat, const REAL* rcen,
+                    const Real* dat, const Real* rcen,
                     ARLIM_P(rhs_lo), ARLIM_P(rhs_hi),
-                    REAL* rhsdat,
+                    Real* rhsdat,
                     const int* domlo,
                     const int* domhi, const int& lowfix,
-                    const int& hifix, const REAL* hr,
+                    const int& hifix, const Real* hr,
                     const int* extrap_edges, 
                     const int* extrap_corners, const int* is_rz);
     
     void FORT_HGN2C(const int* isrz, const int* rweighted, ARLIM_P(nodelo),ARLIM_P(nodehi), 
-                    const REAL* nodedat,
+                    const Real* nodedat,
                     ARLIM_P(cclo), ARLIM_P(cchi), const int* lo, const int* hi,
-                    REAL* ccdat);
+                    Real* ccdat);
 
-    void FORT_HGPHIBC(ARLIM_P(u_lo), ARLIM_P(u_hi), const REAL* u,
-                      ARLIM_P(d_lo), ARLIM_P(d_hi), const REAL* divcor,
-                      ARLIM_P(rho_lo), ARLIM_P(rho_hi), const REAL* rho,
-                      ARLIM_P(r_lo), ARLIM_P(r_hi), const REAL* rcen,
-                      const REAL* hx,
-                      ARLIM_P(phi_lo), ARLIM_P(phi_hi), const REAL* phi);
+    void FORT_HGPHIBC(ARLIM_P(u_lo), ARLIM_P(u_hi), const Real* u,
+                      ARLIM_P(d_lo), ARLIM_P(d_hi), const Real* divcor,
+                      ARLIM_P(rho_lo), ARLIM_P(rho_hi), const Real* rho,
+                      ARLIM_P(r_lo), ARLIM_P(r_hi), const Real* rcen,
+                      const Real* hx,
+                      ARLIM_P(phi_lo), ARLIM_P(phi_hi), const Real* phi);
     
 }
 

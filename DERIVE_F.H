@@ -1,5 +1,5 @@
 #ifdef BL_LANG_FORT
-c $Id: DERIVE_F.H,v 1.2 1997-07-17 22:00:57 vince Exp $
+c $Id: DERIVE_F.H,v 1.3 1997-10-08 20:15:25 car Exp $
 #endif
 
 #ifdef BL_LANG_FORT
@@ -59,118 +59,118 @@ c $Id: DERIVE_F.H,v 1.2 1997-07-17 22:00:57 vince Exp $
 #include <ArrayLim.H>
 
   extern "C" {
-     void FORT_DERKENG    (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                           const int* nvar, const REAL* compdat,
+     void FORT_DERKENG    (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec, 
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 
-     void FORT_DERMGVORT  (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                           const int* nvar, const REAL* compdat,
+     void FORT_DERMGVORT  (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec, 
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 
-     void FORT_DERVORT    (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                           const int* nvar, const REAL* compdat,
+     void FORT_DERVORT    (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec, 
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 
-     void FORT_DERMVEL    (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                           const int* nvar, const REAL* compdat,
+     void FORT_DERMVEL    (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec, 
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 
-     void FORT_DERLOGS   (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                           const int* nvar, const REAL* compdat,
+     void FORT_DERLOGS   (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec, 
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 
-     void FORT_DERMPRHO   (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                           const int* nvar, const REAL* compdat,
+     void FORT_DERMPRHO   (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec, 
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 
-     void FORT_DERDVRHO   (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                           const int* nvar, const REAL* compdat,
+     void FORT_DERDVRHO   (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec, 
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 
-     void FORT_DERLGRHODUST   (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                           const int* nvar, const REAL* compdat,
+     void FORT_DERLGRHODUST   (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec, 
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 
-     void FORT_DERMGDIVU  (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                           const int* nvar, const REAL* compdat,
+     void FORT_DERMGDIVU  (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec, 
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 
-     void FORT_GRADP_DIR (const REAL* p, ARLIM_P(p_lo), ARLIM_P(p_hi),
-                          const REAL* gp, ARLIM_P(gp_lo), ARLIM_P(gp_hi),
+     void FORT_GRADP_DIR (const Real* p, ARLIM_P(p_lo), ARLIM_P(p_hi),
+                          const Real* gp, ARLIM_P(gp_lo), ARLIM_P(gp_hi),
                           const int* lo, const int* hi, const int* dir,
-                          const REAL* dx );
+                          const Real* dx );
 
-     void FORT_DERGRDPX   (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                           const int* nvar, const REAL* compdat,
+     void FORT_DERGRDPX   (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec, 
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 
-     void FORT_DERGRDPY   (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                           const int* nvar, const REAL* compdat,
+     void FORT_DERGRDPY   (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec, 
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 
 #if (BL_SPACEDIM == 3)
-     void FORT_DERGRDPZ   (REAL* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                           const int* nvar, const REAL* compdat,
+     void FORT_DERGRDPZ   (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec, 
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 #endif
   }

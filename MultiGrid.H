@@ -2,7 +2,7 @@
 #define _MULTIGRID_H_
 
 //
-// $Id: MultiGrid.H,v 1.4 1997-10-01 17:55:01 lijewski Exp $
+// $Id: MultiGrid.H,v 1.5 1997-10-08 20:15:39 car Exp $
 //
 
 #include <Boolean.H>
@@ -106,7 +106,7 @@ public:
 
 //@ManDoc: solve the system to relative err eps\_rel, absolute err eps\_abs
     virtual void solve(MultiFab &solution, const MultiFab &rhs,
-	               REAL eps_rel = -1.0, REAL eps_abs = -1.0,
+	               Real eps_rel = -1.0, Real eps_abs = -1.0,
 	               LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
 
 //@ManMemo: Access members
@@ -187,13 +187,13 @@ public:
 //@ManDoc: Return the number of smoothing passes at bottom of MG (if no cg)
     int finalSmooth() const {return nu_f;}
 //@ManDoc: set the maximum permitted absolute tolerance (<0 bypasses test)
-    void set_atol_b(REAL atol) { atol_b = atol; }
+    void set_atol_b(Real atol) { atol_b = atol; }
 //@ManDoc: get the maximum permitted absolute tolerance
-    REAL get_atol_b() const { return atol_b; }
+    Real get_atol_b() const { return atol_b; }
 //@ManDoc: set the maximum permitted relative tolerance (<0 bypasses test)
-    void set_rtol_b(REAL rtol) { rtol_b = rtol; }
+    void set_rtol_b(Real rtol) { rtol_b = rtol; }
 //@ManDoc: get the maximum permitted relative tolerance
-    REAL get_rtol_b() const { return rtol_b; }
+    Real get_rtol_b() const { return rtol_b; }
 //@ManDoc: set the number of post-cg relax passes
     void set_nu_b(int _nu_b) { nu_b = _nu_b; }
 //@ManDoc: set the number of post-cg relax passes
@@ -203,7 +203,7 @@ protected:
 //@ManMemo: Internal members
 //@ManDoc: Solve the linear system to relative and absolute tolerance
     virtual int solve_(MultiFab& _sol,
-		       REAL _eps_rel, REAL _eps_abs, LinOp::BC_Mode bc_mode,
+		       Real _eps_rel, Real _eps_abs, LinOp::BC_Mode bc_mode,
 		       int level);
 //@ManDoc: Put the system in r-c form
     void residualCorrectionForm(MultiFab& newrhs,
@@ -217,17 +217,17 @@ protected:
 //@ManDoc: Compute the number of multigrid levels, assuming ratio=2
     int numLevels() const;
 //@ManDoc: Return scalar estimate of error
-    virtual REAL errorEstimate(int level, LinOp::BC_Mode bc_mode);
+    virtual Real errorEstimate(int level, LinOp::BC_Mode bc_mode);
 //@ManDoc: Transfer MultiFab from fine to coarse level
     void average(MultiFab &c, const MultiFab &f);
 //@ManDoc: Transfer MultiFab from coarse to fine level
     void interpolate(MultiFab &f, const MultiFab &c);
 //@ManDoc: Perform a MG V-cycle
     void relax(MultiFab& solL, MultiFab& rhsL, int level,
-	       REAL eps_rel, REAL eps_abs, LinOp::BC_Mode bc_mode);
+	       Real eps_rel, Real eps_abs, LinOp::BC_Mode bc_mode);
 //@ManDoc: Perform relaxation at bottom of V-cycle
     virtual void coarsestSmooth(MultiFab& solL, MultiFab& rhsL, int level,
-				REAL eps_rel, REAL eps_abs, LinOp::BC_Mode bc_mode);
+				Real eps_rel, Real eps_abs, LinOp::BC_Mode bc_mode);
 protected:
 //@ManDoc: default flag, whether to use CG at bottom of MG cycle
     static int def_usecg;
@@ -250,9 +250,9 @@ protected:
 //@ManDoc: default verbosity
     static int def_verbose;
 //@ManDoc: default relative tolerance for cg solve
-    static REAL def_rtol_b;
+    static Real def_rtol_b;
 //@ManDoc: default absolute tolerance for cg solve
-    static REAL def_atol_b;
+    static Real def_atol_b;
 //@ManDoc: default maximum number of mg levels
     static int def_numLevelsMAX;
 //@ManDoc: verbosity
@@ -276,9 +276,9 @@ protected:
 //@ManDoc: current flag, whether to use CG at bottom of MG cycle
     int usecg;
 //@ManDoc: relative tolerance
-    REAL rtol_b;
+    Real rtol_b;
 //@ManDoc: absolute tolerance
-    REAL atol_b;
+    Real atol_b;
 //@ManDoc: maximum number of mg levels
     int numLevelsMAX;
 //@ManDoc: internal temp data to store initial guess of solution

@@ -1,5 +1,5 @@
 //
-// $Id: ViscBndry.cpp,v 1.4 1997-10-01 01:03:17 car Exp $
+// $Id: ViscBndry.cpp,v 1.5 1997-10-08 20:15:48 car Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -15,7 +15,7 @@ void ViscBndry::setBndryConds(const BCRec& bc,
     const BoxArray& grids = boxes();
     int ngrds = grids.length();
     const Real* dx = geom.CellSize();
-    const BOX& domain = geom.Domain();
+    const Box& domain = geom.Domain();
     const RealBox& prob_domain = geom.ProbDomain();
 
     for (OrientationIter fi; fi; ++fi) {
@@ -28,7 +28,7 @@ void ViscBndry::setBndryConds(const BCRec& bc,
 	int p_bc = (face.isLow() ? bc.lo(dir) : bc.hi(dir));
 
 	for (int i = 0; i < ngrds; i++) {
-	    const BOX& grd = grids[i];
+	    const Box& grd = grids[i];
 
 	    if (domain[face] == grd[face] && !geom.isPeriodic(dir)) {
 		  // All physical bc values are located on face
@@ -63,7 +63,7 @@ ViscBndry::setHomogValues(const BCRec& bc, IntVect& ratio)
 /*
     int ngrd = grids.length();
     for (int grd = 0; grd < ngrd; grd++) {
-        const BOX& bx = grids[grd];
+        const Box& bx = grids[grd];
         for (OrientationIter fi; fi; ++fi) {
             Orientation face(fi());
             FArrayBox& bnd_fab = bndry[face][grd];

@@ -41,14 +41,14 @@
 
 #include <ArrayLim.H>
 
-typedef void BDInterpFunc(REAL* bndr, ARLIM_P(blo), ARLIM_P(bhi),
+typedef void BDInterpFunc(Real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
 			  const int* lo, const int* hi,
 			  ARLIM_P(cblo), ARLIM_P(cbhi),
 			  const int* nvar, const int* ratio,
 			  const int* not_covered,
 			  const int* mask,  ARLIM_P(mlo), ARLIM_P(mhi),
-			  const REAL* crse, ARLIM_P(clo), ARLIM_P(chi),
-			  REAL* derives);
+			  const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
+			  Real* derives);
 extern "C"
 {
     BDInterpFunc FORT_BDINTERPXLO;

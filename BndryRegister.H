@@ -2,7 +2,7 @@
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.3 1997-09-26 16:56:53 lijewski Exp $
+// $Id: BndryRegister.H,v 1.4 1997-10-08 20:15:22 car Exp $
 //
 
 #include <BoxArray.H>
@@ -89,7 +89,7 @@ public:
 
 //@ManMemo: linear algebra functions on member data (over all orientations)
 //@ManDoc: set all boundary FABs to given value
-    void setVal(REAL v);
+    void setVal(Real v);
 //@ManDoc: fill the boundary FABs on intersect with given MultiFab
     BndryRegister& copyFrom(const MultiFab& src, int nghost, int src_comp,
 			    int dest_comp, int num_comp);
@@ -100,8 +100,8 @@ public:
     const BndryRegister& copyTo(MultiFab& dest, int nghost, int src_comp,
 				int dest_comp, int num_comp) const;
 //@ManDoc: Linear combination: this := a*mfa + b*mfb on intersection of MultiFabs with the boundary FABs
-    BndryRegister& linComb(REAL a, const MultiFab& mfa, int a_comp,
-			   REAL b, const MultiFab& mfb, int b_comp,
+    BndryRegister& linComb(Real a, const MultiFab& mfa, int a_comp,
+			   Real b, const MultiFab& mfb, int b_comp,
 			   int dest_comp, int num_comp, int n_ghost=0);
 
 //@ManMemo: internal administrative functions

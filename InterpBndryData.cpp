@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.7 1997-10-01 01:03:07 car Exp $
+// $Id: InterpBndryData.cpp,v 1.8 1997-10-08 20:15:32 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -47,11 +47,11 @@ static void bdfunc_init()
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
-REAL* fabdat = (fab).dataPtr();
+Real* fabdat = (fab).dataPtr();
 #define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
-const REAL* fabdat = (fab).dataPtr();
+const Real* fabdat = (fab).dataPtr();
 
 InterpBndryData::InterpBndryData(const BoxArray& _grids, int _ncomp,
                                  const Geometry& geom)
@@ -76,7 +76,7 @@ InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
 
     int ngrd = grids.length();
     for (int grd = 0; grd < ngrd; grd++) {
-	const BOX& bx = grids[grd];
+	const Box& bx = grids[grd];
 	for (OrientationIter fi; fi; ++fi) {
 	    Orientation face(fi());
 	    if (bx[face] == geom.Domain()[face]) {
@@ -108,7 +108,7 @@ InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
     {
 	assert(grids[mfi.index()] == mfi.validbox());
 	int grd = mfi.index();
-	const BOX& bx = grids[grd];
+	const Box& bx = grids[grd];
 	for(OrientationIter fi; fi; ++fi) {
 	    Orientation face(fi());
 	    if(bx[face] == geom.Domain()[face]) {
@@ -166,9 +166,9 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
     int ngrd = grids.length();
 
       // first interpolate from coarse to fine on bndry
-    const BOX& fine_domain = geom.Domain();
+    const Box& fine_domain = geom.Domain();
       // mask turned off if covered by fine grid
-    REAL *derives = 0;
+    Real *derives = 0;
     int  tmplen = 0;
     //for (int grd = 0; grd < ngrd; grd++)
     for(ConstMultiFabIterator fine_mfi(fine); fine_mfi.isValid(); ++fine_mfi)

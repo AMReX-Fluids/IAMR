@@ -1,6 +1,6 @@
 
 //
-// $Id: BndryData.cpp,v 1.5 1997-09-26 16:56:52 lijewski Exp $
+// $Id: BndryData.cpp,v 1.6 1997-10-08 20:15:22 car Exp $
 //
 
 #include <BndryData.H>
@@ -12,11 +12,11 @@ const char SP = ' ';
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
-REAL* fabdat = (fab).dataPtr();
+Real* fabdat = (fab).dataPtr();
 #define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
-const REAL* fabdat = (fab).dataPtr();
+const Real* fabdat = (fab).dataPtr();
 
 BndryData::BndryData(const BoxArray& _grids, int _ncomp, 
                      const ProxyGeometry& _geom)
@@ -168,7 +168,7 @@ BndryData::define(const BoxArray& _grids, int _ncomp, const ProxyGeometry& _geom
 
 	  // alloc mask and set to quad_interp value
 	for (int k = 0; k < len; k++) {
-	    BOX face_box = adjCell(grids[k],face,1);
+	    Box face_box = adjCell(grids[k],face,1);
 	      // extend box in directions orthogonal to face normal
 	    for (int dir = 0; dir < BL_SPACEDIM; dir++) {
 		if (dir == coord_dir) continue;
@@ -176,7 +176,7 @@ BndryData::define(const BoxArray& _grids, int _ncomp, const ProxyGeometry& _geom
 	    }
 	    Mask *m = new Mask(face_box);
 	    m->setVal(outside_domain,0);
-            BOX dbox(geom.Domain());
+            Box dbox(geom.Domain());
             dbox &= face_box;
 	    m->setVal(not_covered,dbox,0);
 	    // now have to set as not_covered the periodic translates as well
@@ -196,7 +196,7 @@ BndryData::define(const BoxArray& _grids, int _ncomp, const ProxyGeometry& _geom
 	    masks[face].set(k,m);
 	      // turn mask off on intersection with grids at this level
 	    for (int g = 0; g < len; g++) {
-		BOX ovlp(grids[g]);
+		Box ovlp(grids[g]);
 		ovlp &= face_box;
 		if (ovlp.ok()) m->setVal(covered,ovlp,0);
 	    }

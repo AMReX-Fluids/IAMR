@@ -2,7 +2,7 @@
 #define _RESTRICTOR_H_
 
 //
-// $Id: restrictor.H,v 1.6 1997-10-03 23:37:37 car Exp $
+// $Id: restrictor.H,v 1.7 1997-10-08 20:15:57 car Exp $
 //
 
 #include <interface.H>
@@ -23,8 +23,8 @@ class amr_restrictor_class
   amr_restrictor_class() { }
   virtual ~amr_restrictor_class() { }
   virtual Box box(const Box&, const IntVect&) const = 0;
-  virtual void fill(Fab&, const Box&, Fab&, const IntVect&) const = 0;
-  virtual void interface(Fab&, const Box&, MultiFab&,
+  virtual void fill(FArrayBox&, const Box&, FArrayBox&, const IntVect&) const = 0;
+  virtual void interface(FArrayBox&, const Box&, MultiFab&,
 #ifdef HG_USE_CACHE
 			 const copy_cache*, 
 #endif
@@ -37,8 +37,8 @@ class cell_average_restrictor_class : public amr_restrictor_class
  public:
   cell_average_restrictor_class() { }
   Box box(const Box& fb, const IntVect& rat) const;
-  void fill(Fab& patch, const Box& region,
-	    Fab& fgr, const IntVect& rat) const;
+  void fill(FArrayBox& patch, const Box& region,
+	    FArrayBox& fgr, const IntVect& rat) const;
 };
 
 class injection_restrictor_class 
@@ -47,8 +47,8 @@ class injection_restrictor_class
  public:
   injection_restrictor_class() { }
   Box box(const Box& fb, const IntVect& rat) const;
-  void fill(Fab& patch, const Box& region,
-	    Fab& fgr, const IntVect& rat) const;
+  void fill(FArrayBox& patch, const Box& region,
+	    FArrayBox& fgr, const IntVect& rat) const;
 };
 
 class default_restrictor_class 
@@ -57,8 +57,8 @@ class default_restrictor_class
  public:
   default_restrictor_class() { }
   Box box(const Box& fb, const IntVect& rat) const;
-  void fill(Fab& patch, const Box& region,
-	    Fab& fgr, const IntVect& rat) const;
+  void fill(FArrayBox& patch, const Box& region,
+	    FArrayBox& fgr, const IntVect& rat) const;
 };
 
 // Vanilla bilinear (full-weighting) restrictor class.
@@ -70,9 +70,9 @@ class bilinear_restrictor_class
  public:
   bilinear_restrictor_class() { }
   Box box(const Box& fb, const IntVect& rat) const;
-  void fill(Fab& patch, const Box& region,
-	    Fab& fgr, const IntVect& rat) const;
-  void interface(Fab& patch, const Box& region,
+  void fill(FArrayBox& patch, const Box& region,
+	    FArrayBox& fgr, const IntVect& rat) const;
+  void interface(FArrayBox& patch, const Box& region,
 	         MultiFab& fine, 
 #ifdef HG_USE_CACHE
 		 const copy_cache*,
@@ -88,7 +88,7 @@ class bilinear_restrictor_coarse_class
 {
  public:
   bilinear_restrictor_coarse_class() { }
-  void interface(Fab& patch, const Box& region,
+  void interface(FArrayBox& patch, const Box& region,
 	         MultiFab& fine, 
 #ifdef HG_USE_CACHE
 		 const copy_cache*,

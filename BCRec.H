@@ -2,7 +2,7 @@
 #define _BCREC_H_ 
 
 //
-// $Id: BCRec.H,v 1.2 1997-09-26 16:56:52 lijewski Exp $
+// $Id: BCRec.H,v 1.3 1997-10-08 20:15:20 car Exp $
 //
 
 #include <Misc.H>
@@ -40,7 +40,7 @@ public:
 /*  inherits bndry types from bc_domain when bx lies on edge of
     domain otherwise gets interior Dirchlet
 */
-    BCRec(const BOX& bx, const BOX& domain, const BCRec &bc_domain);
+    BCRec(const Box& bx, const Box& domain, const BCRec &bc_domain);
     
 //  Explicitly set bndry value
     void setLo(int dir, int bc_val) { bc[dir] = bc_val; }
@@ -71,14 +71,14 @@ public:
 };
 
 ///  function for setting a BC
-void setBC(const BOX & bx, 
-           const BOX & domain,
+void setBC(const Box & bx, 
+           const Box & domain,
 	   const BCRec & bc_dom, 
            BCRec & bcr);
 
 ///  function for setting array of BCs
-void setBC(const BOX & bx, 
-           const BOX & domain, 
+void setBC(const Box & bx, 
+           const Box & domain, 
 	   int src_comp, 
            int dest_comp, 
            int ncomp,

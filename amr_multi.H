@@ -2,7 +2,7 @@
 #define _AMR_MULTI_H_
 
 //
-// $Id: amr_multi.H,v 1.8 1997-10-06 17:35:08 car Exp $
+// $Id: amr_multi.H,v 1.9 1997-10-08 20:15:49 car Exp $
 //
 
 #include <fill_patch.H>
@@ -18,7 +18,7 @@ class amr_multigrid
   Array<BoxArray> ml_mesh, mg_mesh;
   Array< Array<Box> > mg_domain_array;
   Array< Array<BoxArray> > mg_mesh_array;
-  amr_boundary mg_boundary;
+  const amr_boundary_class& mg_boundary;
   level_interface* interface;
   level_interface** interface_array;
   PArray<MultiFab> source, dest;       // live on active levels of ml_mesh
@@ -74,7 +74,7 @@ class amr_multigrid
 
   amr_multigrid(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
 		int Lev_min_min, int Lev_min_max, int Lev_max_max,
-		amr_boundary Boundary, int Pcode) :
+		const amr_boundary_class& Boundary, int Pcode) :
     ml_mesh(Mesh), gen_ratio(Gen_ratio),
     lev_min_min(Lev_min_min), lev_min_max(Lev_min_max),
     lev_max_max(Lev_max_max), mg_boundary(Boundary), pcode(Pcode)

@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.6 1997-10-01 01:03:09 car Exp $
+// $Id: MacOperator.cpp,v 1.7 1997-10-08 20:15:37 car Exp $
 //
 
 #include <MacBndry.H>
@@ -13,15 +13,15 @@
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
-REAL* fabdat = (fab).dataPtr();
+Real* fabdat = (fab).dataPtr();
 #define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
-const REAL* fabdat = (fab).dataPtr();
+const Real* fabdat = (fab).dataPtr();
 
 // constructor
 MacOperator::MacOperator(const BoxArray &ba, const BndryData& mgb, 
-                         const REAL *h)
+                         const Real *h)
     : ABecLaplacian(ba,mgb,h)
 {}
 
@@ -30,7 +30,7 @@ MacOperator::MacOperator(const BoxArray &ba, const BndryData& mgb,
 // define the meaning of gradient for the multigrid object
 //
 void MacOperator::setCoefficients(MultiFab* area, MultiFab& rho, int rho_comp,
-			     const REAL* dx)
+			     const Real* dx)
 {
     // should check that all BoxArrays are consistant
     const BoxArray& ba = *gbox[0];
@@ -63,7 +63,7 @@ void MacOperator::setCoefficients(MultiFab* area, MultiFab& rho, int rho_comp,
 	DependentMultiFabIterator area2mfi(rhomfi, area[2]);
 #endif
 	assert(ba[rhomfi.index()] == rhomfi.validbox());
-	const BOX& grd = ba[rhomfi.index()];
+	const Box& grd = ba[rhomfi.index()];
         const int* lo = grd.loVect();
         const int* hi = grd.hiVect();
 	FArrayBox& bx = bxcoefmfi();
@@ -78,7 +78,7 @@ void MacOperator::setCoefficients(MultiFab* area, MultiFab& rho, int rho_comp,
         DEF_CLIMITS(ay,ay_dat,aylo,ayhi);
 	const int* dlo = den.loVect();
 	const int* dhi = den.hiVect();
-	const REAL* den_dat = den.dataPtr(rho_comp);
+	const Real* den_dat = den.dataPtr(rho_comp);
 
 #if (BL_SPACEDIM == 2)
 	FORT_MACCOEF(bx_dat,ARLIM(bxlo),ARLIM(bxhi),
@@ -118,7 +118,7 @@ void MacOperator::setCoefficients(MultiFab* area, MultiFab& rho, int rho_comp,
 // solve
 //
 void MacOperator::defRHS( MultiFab* area, MultiFab& volume, MultiFab& Rhs,
-                          MultiFab *vel, REAL scale)
+                          MultiFab *vel, Real scale)
 {
       // should check that all BoxArrays are consistant
     const BoxArray& ba = *gbox[0];
@@ -135,7 +135,7 @@ void MacOperator::defRHS( MultiFab* area, MultiFab& volume, MultiFab& Rhs,
 	DependentMultiFabIterator vel1mfi(Rhsmfi, vel[1]);
 
 	assert(ba[Rhsmfi.index()] == Rhsmfi.validbox());
-	const BOX& grd = Rhsmfi.validbox();
+	const Box& grd = Rhsmfi.validbox();
         const int* lo = grd.loVect();
         const int* hi = grd.hiVect();
 	const FArrayBox& ax = area0mfi();
@@ -197,8 +197,8 @@ void mac_vel_update( int init,
 #endif
                      const FArrayBox &phi,
                      const FArrayBox *rhoptr, int rho_comp,  
-                     const BOX &grd, int level, int n,
-                     const REAL *dx, REAL scale )
+                     const Box &grd, int level, int n,
+                     const Real *dx, Real scale )
 {
     const int* lo = grd.loVect();
     const int* hi = grd.hiVect();
@@ -209,7 +209,7 @@ void mac_vel_update( int init,
     DEF_CLIMITS(phi,phi_dat,p_lo,p_hi);
     const int* rlo = rho.loVect();
     const int* rhi = rho.hiVect();
-    const REAL* rho_dat = rho.dataPtr(rho_comp);
+    const Real* rho_dat = rho.dataPtr(rho_comp);
     
 #if (BL_SPACEDIM == 2)
     FORT_MACUPDATE(&init,
@@ -238,7 +238,7 @@ void mac_vel_update( int init,
 // the resultant velocity field is nondivergent
 //
 void MacOperator::velUpdate(MultiFab* Vel, MultiFab& Phi, const MultiFab& Rho,
-                            int rho_comp, const REAL* dx, REAL scale)
+                            int rho_comp, const Real* dx, Real scale)
 {
       // should check that all BoxArrays are consistant
     const BoxArray& ba = *gbox[0];
@@ -259,7 +259,7 @@ void MacOperator::velUpdate(MultiFab* Vel, MultiFab& Phi, const MultiFab& Rho,
 	DependentMultiFabIterator Vel2mfi(Phimfi, Vel[2]);
 #endif
 	assert(ba[Phimfi.index()] == Phimfi.validbox());
-	const BOX& grd = Phimfi.validbox();
+	const Box& grd = Phimfi.validbox();
 
         mac_vel_update( 0, 
                         Vel0mfi(),
@@ -278,7 +278,7 @@ void MacOperator::velUpdate(MultiFab* Vel, MultiFab& Phi, const MultiFab& Rho,
 // divided by volume.
 //
 void MacOperator::syncRhs(const MultiFab& Volume, MultiFab& Rhs,
-		     REAL rhs_scale, const REAL* dx)
+		     Real rhs_scale, const Real* dx)
 {
 
     const BoxArray& ba = *gbox[0];
@@ -289,7 +289,7 @@ void MacOperator::syncRhs(const MultiFab& Volume, MultiFab& Rhs,
     {
 	DependentMultiFabIterator Volumemfi(Rhsmfi, Volume);
 	assert(ba[Rhsmfi.index()] == Rhsmfi.validbox());
-	const BOX& grd = Rhsmfi.validbox();
+	const Box& grd = Rhsmfi.validbox();
 
         const int* lo = grd.loVect();
         const int* hi = grd.hiVect();
@@ -314,8 +314,8 @@ void MacOperator::syncRhs(const MultiFab& Volume, MultiFab& Rhs,
 void mac_level_driver( const MacBndry &mac_bndry,
                        const BoxArray &grids,
                        int use_cg_solve, int level, int Density,
-                       const REAL *dx, REAL dt,
-                       REAL mac_tol, REAL mac_abs_tol, REAL rhs_scale,
+                       const Real *dx, Real dt,
+                       Real mac_tol, Real mac_abs_tol, Real rhs_scale,
                        MultiFab *area,  MultiFab &volume,
                        MultiFab &S,     MultiFab &Rhs,
                        MultiFab *u_mac, MultiFab *mac_phi )
@@ -347,8 +347,8 @@ void mac_level_driver( const MacBndry &mac_bndry,
 void mac_sync_driver( const MacBndry &mac_bndry,
                       const BoxArray &grids,
                       int use_cg_solve, int level, 
-                      const REAL *dx, REAL dt,
-                      REAL mac_sync_tol, REAL mac_abs_tol, REAL rhs_scale,
+                      const Real *dx, Real dt,
+                      Real mac_sync_tol, Real mac_abs_tol, Real rhs_scale,
                       MultiFab *area,  MultiFab &volume,
                       MultiFab &Rhs,   MultiFab *rho_half,
                       MultiFab *u_mac, MultiFab *mac_sync_phi )
@@ -365,11 +365,11 @@ void mac_sync_driver( const MacBndry &mac_bndry,
     if (use_cg_solve) {
         bool use_mg_precond = true;
         CGSolver mac_cg(mac_op,use_mg_precond);
-        REAL local_mac_sync_tol = mac_sync_tol/pow(100.0, level);
+        Real local_mac_sync_tol = mac_sync_tol/pow(100.0, level);
         mac_cg.solve(*mac_sync_phi,Rhs,local_mac_sync_tol,mac_abs_tol);
     } else {
         MultiGrid mac_mg(mac_op);
-        REAL local_mac_sync_tol = mac_sync_tol/pow(100.0, level);
+        Real local_mac_sync_tol = mac_sync_tol/pow(100.0, level);
         mac_mg.solve(*mac_sync_phi,Rhs,local_mac_sync_tol,mac_abs_tol);
     }
     

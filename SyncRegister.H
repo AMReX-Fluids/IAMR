@@ -2,7 +2,7 @@
 #define _SYNCREGISTER_H_
 
 //
-// $Id: SyncRegister.H,v 1.5 1997-10-01 01:03:16 car Exp $
+// $Id: SyncRegister.H,v 1.6 1997-10-08 20:15:46 car Exp $
 //
 
 #include <PArray.H>
@@ -39,46 +39,46 @@ public:
     }
 
     void CrseDVInit(const MultiFab& V, const Geometry& geom, 
-		    int is_rz, int ** crse_bc, REAL mult = 1.0);
+		    int is_rz, int ** crse_bc, Real mult = 1.0);
 
     void FineDVAdd(const MultiFab& V, 
-                   const REAL* dx_fine, const Geometry& crse_geom,
-		   int is_rz, int ** fine_bc, REAL mult);
+                   const Real* dx_fine, const Geometry& crse_geom,
+		   int is_rz, int ** fine_bc, Real mult);
 
     void CrseDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
 			 int is_rz, int ** crse_bc, 
-                         int lowfix, int hifix, REAL mult = 1.0);
+                         int lowfix, int hifix, Real mult = 1.0);
 
     void FineDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
 		   int is_rz, int ** fine_bc, 
-                   int lowfix, int hifix,REAL mult);
+                   int lowfix, int hifix,Real mult);
 
     void CompDVAdd(const MultiFab& V, 
                    const BoxArray& fine_boxes,
-                   const REAL* dx_fine, 
+                   const Real* dx_fine, 
                    const Geometry& fine_geom, 
                    const Geometry& crse_geom, 
-                   int is_rz, int ** fine_bc, REAL mult);
+                   int is_rz, int ** fine_bc, Real mult);
 
     void CrseLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
-		     const Geometry& geom, int is_rz, REAL mult = 1.0);
+		     const Geometry& geom, int is_rz, Real mult = 1.0);
 
     void FineLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
-		     const REAL* dx_fine, const Geometry& geom, 
-                     int is_rz, REAL mult);
+		     const Real* dx_fine, const Geometry& geom, 
+                     int is_rz, Real mult);
 
     void CompLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
 		     const BoxArray& fine_boxes, 
-                     const REAL* dx_fine, 
+                     const Real* dx_fine, 
                      const Geometry& fine_geom, 
                      const Geometry& crse_geom, 
-                     int is_rz, REAL mult);
+                     int is_rz, Real mult);
 
     void InitRHS(MultiFab& rhs, const Geometry& geom, const BCRec* phys_bc);
 
       // compute sum of values (overlap values only counted once)
       // WARNING: this is a diagnostic and is not efficient
-    REAL sum();
+    Real sum();
 
     void print(ostream& os);
 

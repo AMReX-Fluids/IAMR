@@ -2,13 +2,13 @@
 #define _INTERFACE_H_
 
 //
-// $Id: interface.H,v 1.6 1997-10-01 01:03:21 car Exp $
+// $Id: interface.H,v 1.7 1997-10-08 20:15:55 car Exp $
 //
 
 #include <amr_defs.H>
 
 class amr_boundary_class;
-typedef const amr_boundary_class& amr_boundary;
+//typedef const amr_boundary_class& amr_boundary;
 
 extern const class level_interface null_level_interface;
 
@@ -41,14 +41,14 @@ class level_interface
   level_interface() : status(-1) { }
   ~level_interface();
 
-  void alloc(const BoxArray& Im, const Box& Domain, amr_boundary Bdy);
-  level_interface(const BoxArray& Im, const Box& Domain, amr_boundary Bdy)
+  void alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class& Bdy);
+  level_interface(const BoxArray& Im, const Box& Domain, const amr_boundary_class& Bdy)
     : status(-1) 
   {
       alloc(Im, Domain, Bdy);
   }
   void copy(const level_interface& src);
-  void alloc_coarsened(const BoxArray& Im, amr_boundary Bdy,
+  void alloc_coarsened(const BoxArray& Im, const amr_boundary_class& Bdy,
 		       const level_interface& src, const IntVect& rat);
 
   int ok()                          const { return (status >= 0); }

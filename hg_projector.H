@@ -2,7 +2,7 @@
 #define _HG_PROJECTOR_H_
 
 //
-// $Id: hg_projector.H,v 1.6 1997-09-26 16:57:13 lijewski Exp $
+// $Id: hg_projector.H,v 1.7 1997-10-08 20:15:53 car Exp $
 //
 
 #include <Boolean.H>
@@ -35,7 +35,7 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid
   holy_grail_amr_projector(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
 			   const Box& fdomain,
 			   int Lev_min_min, int Lev_min_max, int Lev_max_max,
-			   amr_fluid_boundary Boundary, int Pcode,
+			   const amr_fluid_boundary_class& Boundary, int Pcode,
 			   bool cache_)
     : holy_grail_amr_multigrid(Mesh, Gen_ratio, fdomain,
 			       Lev_min_min, Lev_min_max, Lev_max_max,

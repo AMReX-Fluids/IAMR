@@ -1,6 +1,6 @@
 
 //
-// $Id: RealBox.cpp,v 1.6 1997-10-01 01:03:14 car Exp $
+// $Id: RealBox.cpp,v 1.7 1997-10-08 20:15:44 car Exp $
 //
 
 #include <aString.H>
@@ -8,7 +8,7 @@
 #include <Utility.H>
 #include <RealBox.H>
 
-REAL RealBox::eps = 1.0e-6;
+Real RealBox::eps = 1.0e-6;
 
 // -----------------------------------------------------------
 RealBox::RealBox()
@@ -19,7 +19,7 @@ RealBox::RealBox()
 }
 
 // -----------------------------------------------------------
-RealBox::RealBox(const REAL* lo, const REAL* hi)
+RealBox::RealBox(const Real* lo, const Real* hi)
 {
     D_EXPR(xlo[0] = lo[0] , xlo[1] = lo[1] , xlo[2] = lo[2]);
     D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
@@ -27,7 +27,7 @@ RealBox::RealBox(const REAL* lo, const REAL* hi)
 }
 
 // -----------------------------------------------------------
-RealBox::RealBox(const BOX& bx, const REAL* dx, const REAL* base)
+RealBox::RealBox(const Box& bx, const Real* dx, const Real* base)
 {
     const int* lo = bx.loVect();
     const int* hi = bx.hiVect();
@@ -41,8 +41,8 @@ RealBox::RealBox(const BOX& bx, const REAL* dx, const REAL* base)
 }
 
 // -----------------------------------------------------------
-RealBox::RealBox(D_DECL(REAL x0, REAL y0, REAL z0),
-		 D_DECL(REAL x1, REAL y1, REAL z1))
+RealBox::RealBox(D_DECL(Real x0, Real y0, Real z0),
+		 D_DECL(Real x1, Real y1, Real z1))
 {
     D_EXPR(xlo[0] = x0 , xlo[1] = y0 , xlo[2] = z0);
     D_EXPR(xhi[0] = x1 , xhi[1] = y1 , xhi[2] = z1);
@@ -50,26 +50,26 @@ RealBox::RealBox(D_DECL(REAL x0, REAL y0, REAL z0),
 }
 
 // -----------------------------------------------------------
-void RealBox::setLo(const REAL* lo)
+void RealBox::setLo(const Real* lo)
 {
     D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]);
     computeBoxLen();
 }
 
-void RealBox::setLo(const Array<REAL> &lo)
+void RealBox::setLo(const Array<Real> &lo)
 {
     D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]);
     computeBoxLen();
 }
 
 // -----------------------------------------------------------
-void RealBox::setHi(const REAL* hi)
+void RealBox::setHi(const Real* hi)
 {
     D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]);
     computeBoxLen();
 }
 
-void RealBox::setHi(const Array<REAL>& hi)
+void RealBox::setHi(const Array<Real>& hi)
 {
     D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]);
     computeBoxLen();
@@ -77,7 +77,7 @@ void RealBox::setHi(const Array<REAL>& hi)
 
 // -----------------------------------------------------------
 void
-RealBox::setLo(int indx, REAL lo)
+RealBox::setLo(int indx, Real lo)
 {
    assert( indx >= 0 && indx < BL_SPACEDIM);
    xlo[indx] = lo;
@@ -86,7 +86,7 @@ RealBox::setLo(int indx, REAL lo)
 
 // -----------------------------------------------------------
 void
-RealBox::setHi(int indx, REAL hi)
+RealBox::setHi(int indx, Real hi)
 {
     assert( indx >= 0 && indx < BL_SPACEDIM);
     xhi[indx] = hi;
@@ -95,7 +95,7 @@ RealBox::setHi(int indx, REAL hi)
 
 // -----------------------------------------------------------
 int
-RealBox::contains(const REAL* point)
+RealBox::contains(const Real* point)
 {
     return  (xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps)
 #if (BL_SPACEDIM > 1)   

@@ -2,7 +2,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.4 1997-10-01 17:55:00 lijewski Exp $
+// $Id: CGSolver.H,v 1.5 1997-10-08 20:15:22 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -93,7 +93,7 @@ public:
 //@ManMemo: Callable members
 //@ManDoc: solve the system, Lp(solnL)=rhsL to relative err, tolerance
     virtual void solve(MultiFab &solnL, const MultiFab &rhsL,
-	               REAL eps_rel = -1.0, REAL eps_abs = -1.0,
+	               Real eps_rel = -1.0, Real eps_abs = -1.0,
 	               LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
 //@ManMemo: Access members
 //@ManDoc: set maximum allowed number of CG iterations
@@ -134,14 +134,14 @@ protected:
 //@ManDoc: if (use\_mg\_precond == 1) then define the MultiGrid * mg\_precond
     void set_mg_precond();
 //@ManDoc: compute p = z  +  beta p in the CG algorithm
-    void advance(MultiFab& p, REAL beta, const MultiFab& z);
+    void advance(MultiFab& p, Real beta, const MultiFab& z);
 //@ManDoc: compute x =+ alpha p  and  r -= alpha w in the CG algorithm
-    void update(MultiFab &sol, REAL alpha, MultiFab& r,
+    void update(MultiFab &sol, Real alpha, MultiFab& r,
 		const MultiFab& p, const MultiFab& w);
 //@ManDoc: compute w = A.p, and return Transpose(p).w in the CG algorithm
-    REAL axp(MultiFab& w, MultiFab& p, LinOp::BC_Mode bc_mode);
+    Real axp(MultiFab& w, MultiFab& p, LinOp::BC_Mode bc_mode);
 //@ManDoc: compute a suitable norm of the residual, used to check stopping criteria
-    REAL norm(const MultiFab& res);
+    Real norm(const MultiFab& res);
 //@ManDoc: MultiGrid solver to be used as preconditioner
     MultiGrid * mg_precond;
 //@ManDoc: flag, whether initialized yet

@@ -1,6 +1,6 @@
 
 //
-// $Id: CGSolver.cpp,v 1.7 1997-10-01 17:55:00 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.8 1997-10-08 20:15:23 car Exp $
 //
 
 // Conjugate gradient support
@@ -55,13 +55,13 @@ CGSolver::~CGSolver()
     delete mg_precond;
 }
 
-REAL
+Real
 CGSolver::norm(const MultiFab& res)
 {
       // Compute max-norm
     int p = 0;
-    REAL restot = 0.0;
-    REAL resk  = 0.0;
+    Real restot = 0.0;
+    Real resk  = 0.0;
     const BoxArray &gbox = res.boxArray();
     //for(int gn = 0; gn < gbox.length(); ++gn) {
     for(ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi) 
@@ -88,7 +88,7 @@ CGSolver::norm(const MultiFab& res)
 
 void
 CGSolver::solve(MultiFab &sol, const MultiFab &rhs,
-		REAL eps_rel, REAL eps_abs, LinOp::BC_Mode bc_mode)
+		Real eps_rel, Real eps_abs, LinOp::BC_Mode bc_mode)
 {
       // algorithm:
       //   k=0;r=rhs-A*soln_0;
@@ -147,8 +147,8 @@ CGSolver::solve(MultiFab &sol, const MultiFab &rhs,
 
       // Set bc_mode=homogeneous
     LinOp::BC_Mode temp_bc_mode=LinOp::Homogeneous_BC;
-    REAL rnorm = norm(*r);
-    REAL rnorm0 = rnorm;
+    Real rnorm = norm(*r);
+    Real rnorm0 = rnorm;
     if(  verbose > 0 ) {
       if(ParallelDescriptor::IOProcessor()) {
 	for (int k=0; k<lev; k++) cout << "   ";
@@ -157,7 +157,7 @@ CGSolver::solve(MultiFab &sol, const MultiFab &rhs,
     }
 
 
-    REAL beta, rho, rhoold=0.0;
+    Real beta, rho, rhoold=0.0;
     int nghost_hack=0;
       /* WARNING:
 	 The MultiFab copies used below to update z and p require nghost=0
@@ -186,7 +186,7 @@ CGSolver::solve(MultiFab &sol, const MultiFab &rhs,
 	//for(int gn = 0; gn < r->length(); ++gn) {
 	for(MultiFabIterator rmfi(*r); rmfi.isValid(); ++rmfi) {
 	  DependentMultiFabIterator zmfi(rmfi, (*z));
-	    REAL trho;
+	    Real trho;
 	    //FORT_CGXDOTY(
 		//&trho,
 		//(*z)[gn].dataPtr(), 
@@ -218,10 +218,10 @@ CGSolver::solve(MultiFab &sol, const MultiFab &rhs,
 	    advance( (*p), beta, (*z) );
 	}
 	  //  w = Ap, and compute Transpose(p).w
-	REAL pw = axp( (*w), (*p), temp_bc_mode );
+	Real pw = axp( (*w), (*p), temp_bc_mode );
 	
 	  // alpha = rho_k-1/p^tw
-	REAL alpha = rho/pw;
+	Real alpha = rho/pw;
 	
 	if (verbose > 2) {
 	  if(ParallelDescriptor::IOProcessor()) {
@@ -275,7 +275,7 @@ CGSolver::solve(MultiFab &sol, const MultiFab &rhs,
 }
 
 void
-CGSolver::advance(MultiFab& p, REAL beta, const MultiFab& z)
+CGSolver::advance(MultiFab& p, Real beta, const MultiFab& z)
 {
       // Compute p = z  +  beta p
     const BoxArray &gbox = Lp.boxArray(lev);
@@ -302,7 +302,7 @@ CGSolver::advance(MultiFab& p, REAL beta, const MultiFab& z)
 }
 
 void
-CGSolver::update(MultiFab &sol, REAL alpha, MultiFab& r,
+CGSolver::update(MultiFab &sol, Real alpha, MultiFab& r,
 		 const MultiFab& p, const MultiFab& w)
 {
       // compute x =+ alpha p  and  r -= alpha w
@@ -335,18 +335,18 @@ CGSolver::update(MultiFab &sol, REAL alpha, MultiFab& r,
     }
 }
 
-REAL
+Real
 CGSolver::axp(MultiFab& w, MultiFab& p, LinOp::BC_Mode bc_mode)
 {
       // Compute w = A.p, and return Transpose(p).w
-    REAL pw = 0.0;
+    Real pw = 0.0;
     const BoxArray &gbox = Lp.boxArray(lev);
     Lp.apply(w, p, lev, bc_mode);
     int ncomp = p.nComp();
     //for(int gn = 0; gn < p.length(); ++gn) {
     for(MultiFabIterator pmfi(p); pmfi.isValid(); ++pmfi) {
       DependentMultiFabIterator wmfi(pmfi, w);
-	REAL tpw;
+	Real tpw;
 	//FORT_CGXDOTY(
 	    //&tpw,
 	    //p[gn].dataPtr(), ARLIM(p[gn].loVect()), ARLIM(p[gn].hiVect()),

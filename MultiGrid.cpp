@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.5 1997-10-01 17:55:02 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.6 1997-10-08 20:15:40 car Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -27,8 +27,8 @@ int MultiGrid::def_maxiter = 40;
 int MultiGrid::def_numiter = -1;
 int MultiGrid::def_verbose = 0;
 int MultiGrid::def_usecg = 1;
-REAL MultiGrid::def_rtol_b = 0.01;
-REAL MultiGrid::def_atol_b = -1.0;
+Real MultiGrid::def_rtol_b = 0.01;
+Real MultiGrid::def_atol_b = -1.0;
 int MultiGrid::def_nu_b = 0;
 int MultiGrid::def_numLevelsMAX = 1024;
 
@@ -98,20 +98,20 @@ MultiGrid::~MultiGrid()
     }
 }
 
-REAL
+Real
 MultiGrid::errorEstimate(int level, LinOp::BC_Mode bc_mode)
 {
       // Get inf-norm of residual
     int p = 0;
     Lp.residual(*res[level], *rhs[level], *cor[level], level, bc_mode);
-    REAL restot = 0.0;
-    REAL resk  = 0.0;
+    Real restot = 0.0;
+    Real resk  = 0.0;
     const BoxArray &gbox = Lp.boxArray(0);
     //int gn;
     //for(gn = 0; gn < res[level]->length(); ++gn) {
     for(MultiFabIterator resmfi(*res[level]); resmfi.isValid(); ++resmfi) {
 	assert(gbox[resmfi.index()] == resmfi.validbox());
-	BOX tmp(resmfi.validbox());
+	Box tmp(resmfi.validbox());
 	resk = (resmfi().norm(tmp, p));
 	restot = Max(restot, resk);
     }
@@ -159,7 +159,7 @@ MultiGrid::residualCorrectionForm(MultiFab& resL, const MultiFab& rhsL,
 
 void
 MultiGrid::solve(MultiFab &_sol, const MultiFab &_rhs,
-		 REAL _eps_rel, REAL _eps_abs,
+		 Real _eps_rel, Real _eps_abs,
 		 LinOp::BC_Mode bc_mode)
 {
       // Prepare memory for new level, and solve the general boundary
@@ -175,14 +175,14 @@ MultiGrid::solve(MultiFab &_sol, const MultiFab &_rhs,
 }
 
 int
-MultiGrid::solve_(MultiFab &_sol, REAL eps_rel, REAL eps_abs,
+MultiGrid::solve_(MultiFab &_sol, Real eps_rel, Real eps_abs,
                   LinOp::BC_Mode bc_mode, int level)
 {
       // Relax system maxiter times, stop if relative error <= _eps_rel or
       // if absolute err <= _abs_eps
     long returnVal = 0;  // should use bool for return value from this function
-    REAL error0 = errorEstimate(level, bc_mode);
-    REAL error  = error0;
+    Real error0 = errorEstimate(level, bc_mode);
+    Real error  = error0;
     if( verbose ) {
       if(ParallelDescriptor::IOProcessor()) {
 	for (int k=0; k<level; k++) cout << "   ";
@@ -266,10 +266,10 @@ MultiGrid::numLevels() const
     int i;
     for(i = 0; i < ng; ++i) {
 	int llv = 0;
-	BOX tmp = bs[i];
+	Box tmp = bs[i];
 	for(;;) {
-	    BOX ctmp = tmp; ctmp.coarsen(2);
-	    BOX rctmp = ctmp; rctmp.refine(2);
+	    Box ctmp = tmp; ctmp.coarsen(2);
+	    Box rctmp = ctmp; rctmp.refine(2);
 	    if (tmp != rctmp) {
 		break;
 	    }
@@ -286,7 +286,7 @@ MultiGrid::numLevels() const
 
 void
 MultiGrid::relax(MultiFab& solL, MultiFab& rhsL, int level,
-		 REAL eps_rel, REAL eps_abs, LinOp::BC_Mode bc_mode)
+		 Real eps_rel, Real eps_abs, LinOp::BC_Mode bc_mode)
 {
       // Recursively relax system.  Equivalent to multigrid V-cycle.
       // At coarsest grid, call coarsestSmooth
@@ -314,7 +314,7 @@ MultiGrid::relax(MultiFab& solL, MultiFab& rhsL, int level,
 
 void
 MultiGrid::coarsestSmooth(MultiFab& solL, MultiFab& rhsL, int level,
-			  REAL eps_rel, REAL eps_abs, LinOp::BC_Mode bc_mode)
+			  Real eps_rel, Real eps_abs, LinOp::BC_Mode bc_mode)
 {
     prepareForLevel(level);
     if (usecg == 0) {
@@ -340,7 +340,7 @@ MultiGrid::average(MultiFab &c, const MultiFab &f)
     for(MultiFabIterator cmfi(c); cmfi.isValid(); ++cmfi) {
       DependentMultiFabIterator fmfi(cmfi, f);
 	assert(c.boxArray().get(cmfi.index()) == cmfi.validbox());
-	BOX bx(cmfi.validbox());
+	Box bx(cmfi.validbox());
 	int nc = c.nComp();
 	FORT_AVERAGE(
 	    cmfi().dataPtr(), ARLIM(cmfi().loVect()), ARLIM(cmfi().hiVect()),
@@ -360,7 +360,7 @@ MultiGrid::interpolate(MultiFab &f, const MultiFab &c)
     for(MultiFabIterator fmfi(f); fmfi.isValid(); ++fmfi) {
       DependentMultiFabIterator cmfi(fmfi, c);
 	assert(c.boxArray().get(cmfi.index()) == cmfi.validbox());
-	BOX bx(cmfi.validbox());
+	Box bx(cmfi.validbox());
 	int nc = f.nComp();
 	FORT_INTERP(
 	    fmfi().dataPtr(), ARLIM(fmfi().loVect()), ARLIM(fmfi().hiVect()),

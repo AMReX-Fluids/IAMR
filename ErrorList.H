@@ -2,7 +2,7 @@
 #define _ErrorList_H_
 
 //
-// $Id: ErrorList.H,v 1.4 1997-10-01 17:55:00 lijewski Exp $
+// $Id: ErrorList.H,v 1.5 1997-10-08 20:15:27 car Exp $
 //
 
 #include <REAL.H>
@@ -14,11 +14,11 @@
 
 typedef void (*ErrorFunc)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
 			  const int* tagval, const int* clearval,
-			  REAL* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+			  Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                           const int* lo, const int * hi, const int* nvar,
 			  const int* domain_lo, const int* domain_hi,
-			  const REAL* dx, const REAL* xlo,
-                          const REAL* prob_lo, const REAL* time,
+			  const Real* dx, const Real* xlo,
+                          const Real* prob_lo, const Real* time,
 			  const int* level);
 
 

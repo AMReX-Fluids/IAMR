@@ -2,7 +2,7 @@
 #define _FILL_PATCH_H_
 
 //
-// $Id: fill_patch.H,v 1.7 1997-10-03 23:37:34 car Exp $
+// $Id: fill_patch.H,v 1.8 1997-10-08 20:15:51 car Exp $
 //
 
 #include <interface.H>
@@ -25,14 +25,14 @@ extern "C"
 /*
 class alias_fab {
  protected:
-  Fab* ptr;
+  FArrayBox* ptr;
   int owned;
  public:
   
   ~alias_fab() {
     if (owned) delete ptr;
   }
-  Fab& operator Fab() {
+  FArrayBox& operator FArrayBox() {
     return *ptr;
   }
 
@@ -85,17 +85,17 @@ const level_real&
 
 int find_patch(const Box& region, MultiFab& r, int flags = 0);
 
-int fill_patch(Fab& patch, const Box& region,
+int fill_patch(FArrayBox& patch, const Box& region,
 	       MultiFab& r,
 	       const level_interface& interface,
-	       amr_boundary bdy = error_boundary,
+	       const amr_boundary_class& bdy = error_boundary,
 	       int flags = 0, int idim = -1, int index = -1);
 
 inline int 
-fill_patch(Fab& patch,
+fill_patch(FArrayBox& patch,
 	   MultiFab& r,
 	   const level_interface& interface,
-	   amr_boundary bdy = error_boundary,
+	   const amr_boundary_class& bdy = error_boundary,
 	   int flags = 0, int idim = -1, int index = -1)
 {
     return fill_patch(patch, patch.box(), r, interface, bdy,
@@ -105,15 +105,15 @@ fill_patch(Fab& patch,
 /*
   // fill_patch returns 1 if successful, 0 if not
   // if (flags & 1) is 0, it may return 1 even if patch is not filled
-  int fill_patch(Fab& patch, const Box& region,
+  int fill_patch(FArrayBox& patch, const Box& region,
 		 const Box& active,
 		 amr_boundary bdy = error_boundary,
 		 int flags = 0, int igrid = -1);
-  int fill_patch(Fab& patch, const Box& region,
+  int fill_patch(FArrayBox& patch, const Box& region,
 		 amr_boundary bdy = error_boundary,
 		 int flags = 0, int igrid = -1)
     { return fill_patch(patch, region, region, bdy, flags, igrid); }
-  int fill_patch(Fab& patch,
+  int fill_patch(FArrayBox& patch,
 		 amr_boundary bdy = error_boundary,
 		 int flags = 0, int igrid = -1)
     { return fill_patch(patch, patch.box(), bdy, flags, igrid); }
@@ -121,16 +121,16 @@ fill_patch(Fab& patch,
 
   // fills region of patch wherever it intersects interior grids
   // does not check to see if all of patch is filled, ignores boundaries
-int fill_patch_blindly(Fab& patch, const Box& region,
+int fill_patch_blindly(FArrayBox& patch, const Box& region,
 		       MultiFab& r,
 		       int flags = 0);
 
   // fills region of patch wherever it intersects interior grids
   // does not check to see if all of patch is filled, ignores boundaries
-int fill_exterior_patch_blindly(Fab& patch, const Box& region,
+int fill_exterior_patch_blindly(FArrayBox& patch, const Box& region,
 				MultiFab& r,
 				const level_interface& interface,
-				amr_boundary bdy,
+				const amr_boundary_class& bdy,
 				int flags = 0);
 
   // Fills all ghost cells that can be obtained from other grids or
@@ -148,7 +148,7 @@ sync_borders(MultiFab& r,
 	     const copy_cache* sync_cache,
 #endif
 	     const level_interface& interface,
-	     amr_boundary bdy = error_boundary)
+	     const amr_boundary_class& bdy = error_boundary)
 {
 #ifdef HG_USE_CACHE
     if (sync_cache) 
@@ -173,44 +173,44 @@ void fill_borders(MultiFab& r,
 			 const copy_cache* border_cache,
 #endif
 			 const level_interface& interface,
-			 amr_boundary bdy = error_boundary,
+			 const amr_boundary_class& bdy = error_boundary,
 			 int w = -1);
 
 void clear_part_interface(MultiFab& r, const level_interface& interface);
 
-void interpolate_patch(Fab& patch, const Box& region,
+void interpolate_patch(FArrayBox& patch, const Box& region,
 		       MultiFab& r, const IntVect& rat,
-		       amr_interpolator interp /* = bilinear_interpolator */ ,
+		       const amr_interpolator_class& interp /* = bilinear_interpolator */ ,
 		       const level_interface& interface /* = null_level_interface */,
-		       amr_boundary bdy = error_boundary);
+		       const amr_boundary_class& bdy = error_boundary);
 inline
-void interpolate_patch(Fab& patch,
+void interpolate_patch(FArrayBox& patch,
 		       MultiFab& r, const IntVect& rat,
-		       amr_interpolator interp /* = bilinear_interpolator */,
+		       const amr_interpolator_class& interp /* = bilinear_interpolator */,
 		       const level_interface& interface /* = null_level_interface */,
-		       amr_boundary bdy = error_boundary)
+		       const amr_boundary_class& bdy = error_boundary)
 {
   interpolate_patch(patch, patch.box(), r, rat, interp, interface, bdy);
 }
 
-void restrict_patch(Fab& patch, const Box& region,
+void restrict_patch(FArrayBox& patch, const Box& region,
 	       MultiFab& r, const IntVect& rat,
 #ifdef HG_USE_CACHE
 	       const copy_cache* border_cache = 0,
 #endif
 	       const amr_restrictor_class& restric = default_restrictor,
 	       const level_interface& interface = null_level_interface,
-	       amr_boundary bdy = error_boundary);
+	       const amr_boundary_class& bdy = error_boundary);
 
 inline void 
-restrict_patch(Fab& patch,
+restrict_patch(FArrayBox& patch,
 	       MultiFab& r, const IntVect& rat,
 #ifdef HG_USE_CACHE
 	       const copy_cache* border_cache = 0,
 #endif
 	       const amr_restrictor_class& restric = default_restrictor,
 	       const level_interface& interface = null_level_interface,
-	       amr_boundary bdy = error_boundary)
+	       const amr_boundary_class& bdy = error_boundary)
 {
     restrict_patch(patch, patch.box(), r, rat, 
 #ifdef HG_USE_CACHE
@@ -226,7 +226,7 @@ void restrict_level(MultiFab& dest, int bflag,
 #endif
 	       const amr_restrictor_class& restric = default_restrictor,
 	       const level_interface& interface = null_level_interface,
-	       amr_boundary bdy = error_boundary);
+	       const amr_boundary_class& bdy = error_boundary);
 
 inline void 
 restrict_level(MultiFab& dest,
@@ -236,7 +236,7 @@ restrict_level(MultiFab& dest,
 #endif
 	       const amr_restrictor_class& restric = default_restrictor,
 	       const level_interface& interface = null_level_interface,
-	       amr_boundary bdy = error_boundary)
+	       const amr_boundary_class& bdy = error_boundary)
 {
     restrict_level(dest, 0, r, rat, 
 #ifdef HG_USE_CACHE

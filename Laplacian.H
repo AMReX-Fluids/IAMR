@@ -2,7 +2,7 @@
 #define _LAPLACIAN_H_
 
 //
-// $Id: Laplacian.H,v 1.3 1997-09-26 16:57:00 lijewski Exp $
+// $Id: Laplacian.H,v 1.4 1997-10-08 20:15:34 car Exp $
 //
 
 #include <LinOp.H>
@@ -44,7 +44,7 @@ class Laplacian
 public:
 //@ManMemo: administrative functions
 //@ManDoc: constructor (merely falls through to LinOp constructor)
-    Laplacian(const BoxArray &ba, const BndryData& bd, REAL _h)
+    Laplacian(const BoxArray &ba, const BndryData& bd, Real _h)
 	: LinOp(ba,bd,_h) {}
 //@ManDoc: destructor
     ~Laplacian() {}

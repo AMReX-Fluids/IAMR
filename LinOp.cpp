@@ -1,5 +1,5 @@
 //
-// $Id: LinOp.cpp,v 1.5 1997-10-01 17:55:01 lijewski Exp $
+// $Id: LinOp.cpp,v 1.6 1997-10-08 20:15:35 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -47,7 +47,7 @@ LinOp::initialize()
     initialized = true;
 }
 
-LinOp::LinOp(const BoxArray &ba, const BndryData &_bgb, const REAL _h)
+LinOp::LinOp(const BoxArray &ba, const BndryData &_bgb, const Real _h)
     : bgb(_bgb)
 {
     if(!initialized)
@@ -85,7 +85,7 @@ LinOp::LinOp(const BoxArray &ba, const BndryData &_bgb, const REAL _h)
     }
 }
 
-LinOp::LinOp(const BoxArray &ba, const BndryData &_bgb, const REAL* _h)
+LinOp::LinOp(const BoxArray &ba, const BndryData &_bgb, const Real* _h)
     : bgb(_bgb)
 {
     if(!initialized)
@@ -200,7 +200,7 @@ LinOp::applyBC(MultiFab &inout, int level, LinOp::BC_Mode bc_mode)
     OrientationIter oitr;
     while( oitr ) {
 	const Array<BoundCond> &b = bgb.bndryConds(oitr());
-	const Array<REAL> &r = bgb.bndryLocs(oitr());
+	const Array<Real> &r = bgb.bndryLocs(oitr());
 	FabSet &f = (*undrrelxr[level])[oitr()];
 	int cdr(oitr());
 	const FabSet& fs = bgb.bndryValues(oitr());
@@ -211,7 +211,7 @@ LinOp::applyBC(MultiFab &inout, int level, LinOp::BC_Mode bc_mode)
 	    int gn = inoutmfi.index();
             assert(gbox[level]->get(inoutmfi.index()) == inoutmfi.validbox());
 	    const Mask& m = *maskvals[level][gn][oitr()];
-	    REAL bcl(r[gn]);
+	    Real bcl(r[gn]);
 	    int bct(b[gn]);
 	    FORT_APPLYBC(
 		&flagden, &flagbc, &maxorder,
@@ -262,14 +262,14 @@ LinOp::smooth(MultiFab &solnL, const MultiFab &rhsL,
    }
 }
 
-REAL
+Real
 LinOp::norm(const MultiFab &in, int level) const
 {
-    REAL norm = 0.0;
+    Real norm = 0.0;
     //for(int gn = 0; gn < in.length(); ++gn) {
     for(ConstMultiFabIterator inmfi(in); inmfi.isValid(); ++inmfi) {
 	int gn = inmfi.index();
-	REAL tnorm = inmfi().norm(gbox[level]->get(gn));
+	Real tnorm = inmfi().norm(gbox[level]->get(gn));
 	norm += tnorm*tnorm;
     }
     ParallelDescriptor::ReduceRealSum(norm);
@@ -367,11 +367,11 @@ LinOp::prepareForLevel(int level)
     	int m = 0;
     	OrientationIter oitr;
     	while ( oitr ) {
-	    BOX bx_k = adjCell((*gbox[level])[i], oitr(), 1);
+	    Box bx_k = adjCell((*gbox[level])[i], oitr(), 1);
     	    maskvals[level][i][m] = new Mask(bx_k, 1);
     	    maskvals[level][i][m]->setVal(BndryData::not_covered);
 	    for(int gn = 0; gn < gbox[level]->length(); ++gn) {
-		BOX btmp = (*gbox[level])[gn];
+		Box btmp = (*gbox[level])[gn];
 		btmp &= bx_k;
 		maskvals[level][i][m]->setVal(BndryData::covered, btmp,0);
 	    }
@@ -386,7 +386,7 @@ LinOp::prepareForLevel(int level)
 		curmask.shift(iv);
 
 		for(int gn=0; gn<gbox[level]->length(); ++gn){
-		  BOX btmp = (*gbox[level])[gn];
+		  Box btmp = (*gbox[level])[gn];
 		  btmp &= curmask.box();
 		  curmask.setVal(BndryData::covered, btmp,0);
 		}

@@ -1,5 +1,5 @@
 //
-// $Id: MacBndry.cpp,v 1.3 1997-10-01 01:03:08 car Exp $
+// $Id: MacBndry.cpp,v 1.4 1997-10-08 20:15:36 car Exp $
 //
 
 #include <LO_BCTYPES.H>
@@ -14,21 +14,21 @@ void MacBndry::setBndryConds(const BCRec& phys_bc,
 
     const BoxArray& grids = boxes();
     int ngrds = grids.length();
-    const REAL* dx = geom.CellSize();
-    const BOX& domain = geom.Domain();
+    const Real* dx = geom.CellSize();
+    const Box& domain = geom.Domain();
     const RealBox& prob_domain = geom.ProbDomain();
 
     for (OrientationIter fi; fi; ++fi) {
 	Orientation face(fi());
-	Array<REAL> &bloc = bcloc[face];
+	Array<Real> &bloc = bcloc[face];
 	Array<BoundCond> &bctag = bcond[face];
 
 	int dir = face.coordDir();
-	REAL delta = dx[dir]*ratio[dir];
+	Real delta = dx[dir]*ratio[dir];
 	int p_bc = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
 
 	for (int i = 0; i < ngrds; i++) {
-	    const BOX& grd = grids[i];
+	    const Box& grd = grids[i];
 	    int faceindx = grd[face] + (face.isLow() ? 0 : 1);
 
 	    if (domain[face] == grd[face] && !geom.isPeriodic(dir)) {

@@ -1,6 +1,6 @@
 
 //
-// $Id: interpolator.cpp,v 1.4 1997-09-26 16:57:15 lijewski Exp $
+// $Id: interpolator.cpp,v 1.5 1997-10-08 20:15:56 car Exp $
 //
 
 #include <interpolator.H>
@@ -27,7 +27,7 @@ bilinear_interpolator_class::box(const Box& region,
   {
     return grow(coarsen(region, rat), 1);
   }
-  else if (region.type() == nodevect) 
+  else if (region.type() == IntVect::TheNodeVector()) 
   {
     return coarsen(region, rat);
   }
@@ -39,9 +39,9 @@ bilinear_interpolator_class::box(const Box& region,
 }
 
 void 
-bilinear_interpolator_class::fill(Fab& patch,
+bilinear_interpolator_class::fill(FArrayBox& patch,
 				       const Box& region,
-				       Fab& cgr,
+				       FArrayBox& cgr,
 				       const Box& cb,
 				       const IntVect& rat) const
 {
@@ -54,7 +54,7 @@ bilinear_interpolator_class::fill(Fab& patch,
 	      D_DECL(rat[0], rat[1], rat[2]));
     }
   }
-  else if (patch.box().type() == nodevect) 
+  else if (patch.box().type() == IntVect::TheNodeVector()) 
   {
     Box eregion = refine(cb, rat);
     if (eregion == region) 
@@ -68,7 +68,7 @@ bilinear_interpolator_class::fill(Fab& patch,
     }
     else 
     {
-      Fab epatch(eregion, patch.nComp());
+      FArrayBox epatch(eregion, patch.nComp());
       for (int i = 0; i < patch.nComp(); i++) 
       {
 	FANINT2(epatch.dataPtr(i), dimlist(epatch.box()), dimlist(eregion),

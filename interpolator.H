@@ -2,12 +2,12 @@
 #define _INTERPOLATOR_H_
 
 //
-// $Id: interpolator.H,v 1.5 1997-10-01 01:03:21 car Exp $
+// $Id: interpolator.H,v 1.6 1997-10-08 20:15:56 car Exp $
 //
 
 #include <amr_defs.H>
 
-typedef const class amr_interpolator_class& amr_interpolator;
+//typedef const class amr_interpolator_class& amr_interpolator;
 
 // This is the base class for all amr_interpolators.  Currently these
 // are self-contained, i.e., they don't need to talk to boundary conditions
@@ -22,8 +22,8 @@ class amr_interpolator_class
   amr_interpolator_class() { }
   virtual ~amr_interpolator_class() { }
   virtual Box box(const Box&, const IntVect&) const = 0;
-  virtual void fill(Fab&, const Box&,
-		    Fab&, const Box&, const IntVect&) const = 0;
+  virtual void fill(FArrayBox&, const Box&,
+		    FArrayBox&, const Box&, const IntVect&) const = 0;
 };
 
 class bilinear_interpolator_class
@@ -32,8 +32,8 @@ class bilinear_interpolator_class
  public:
   bilinear_interpolator_class() { }
   Box box(const Box&, const IntVect&) const;
-  void fill(Fab&, const Box&,
-	    Fab&, const Box&, const IntVect&) const;
+  void fill(FArrayBox&, const Box&,
+	    FArrayBox&, const Box&, const IntVect&) const;
 };
 
 /* const amr_interpolator_class error_interpolator; */

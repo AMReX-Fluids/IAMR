@@ -1,5 +1,5 @@
 //
-// $Id: Mask.cpp,v 1.6 1997-10-01 01:03:10 car Exp $
+// $Id: Mask.cpp,v 1.7 1997-10-08 20:15:39 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -23,7 +23,7 @@ Mask::Mask(istream& is)
 
 ostream& operator << (ostream& os, const Mask& m)
 {
-    BOX b(m.box());
+    Box b(m.box());
     int ncomp = m.nComp();
     os << "(Mask: " << b << SP << ncomp << NL;
     IntVect sm = b.smallEnd();
@@ -41,7 +41,7 @@ ostream& operator << (ostream& os, const Mask& m)
 istream& operator >> (istream& is, Mask& m)
 {
     is.ignore(BL_IGNORE_MAX,':');
-    BOX b;
+    Box b;
     int ncomp;
     is >> b >> ncomp;
     is.ignore(BL_IGNORE_MAX, '\n');
@@ -74,7 +74,7 @@ void
 Mask::readFrom(istream& is)
 {
     is.ignore(BL_IGNORE_MAX,':');
-    BOX b;
+    Box b;
     int ncomp;
     is >> b >> ncomp;
     is.ignore(BL_IGNORE_MAX, '\n');
@@ -98,7 +98,7 @@ Mask::And(const Mask& src)
 Mask&
 Mask::And(const Mask& src, int srccomp, int destcomp, int numcomp)
 {
-    BOX domain(box());
+    Box domain(box());
     ForAllThisBNNXC(int,domain,destcomp,numcomp,src,srccomp) {
 	thisR = (thisR ? srcR : 0);
     } EndForTX;
@@ -106,7 +106,7 @@ Mask::And(const Mask& src, int srccomp, int destcomp, int numcomp)
 }
 
 Mask&
-Mask::And(const Mask& src, const BOX& subbox,
+Mask::And(const Mask& src, const Box& subbox,
 	  int srccomp, int destcomp, int numcomp)
 {
     ForAllThisBNNXC(int,subbox,destcomp,numcomp,src,srccomp) {
@@ -116,8 +116,8 @@ Mask::And(const Mask& src, const BOX& subbox,
 }
 
 Mask&
-Mask::And(const Mask& src, const BOX& srcbox,
-	  const BOX& destbox,
+Mask::And(const Mask& src, const Box& srcbox,
+	  const Box& destbox,
 	  int srccomp, int destcomp, int numcomp)
 {
     ForAllThisBNNXCBN(int,destbox,destcomp,numcomp,src,srcbox,srccomp) {
@@ -139,7 +139,7 @@ Mask::Or(const Mask& src)
 Mask&
 Mask::Or(const Mask& src, int srccomp, int destcomp, int numcomp)
 {
-    BOX domain(box());
+    Box domain(box());
     ForAllThisBNNXC(int,domain,destcomp,numcomp,src,srccomp) {
 	thisR = (thisR ? 1 : srcR);
     } EndForTX;
@@ -147,7 +147,7 @@ Mask::Or(const Mask& src, int srccomp, int destcomp, int numcomp)
 }
 
 Mask&
-Mask::Or(const Mask& src, const BOX& subbox,
+Mask::Or(const Mask& src, const Box& subbox,
 	 int srccomp, int destcomp, int numcomp)
 {
     ForAllThisBNNXC(int,subbox,destcomp,numcomp,src,srccomp) {
@@ -157,8 +157,8 @@ Mask::Or(const Mask& src, const BOX& subbox,
 }
 
 Mask&
-Mask::Or(const Mask& src, const BOX& srcbox,
-	 const BOX& destbox,
+Mask::Or(const Mask& src, const Box& srcbox,
+	 const Box& destbox,
 	 int srccomp, int destcomp, int numcomp)
 {
     ForAllThisBNNXCBN(int,destbox,destcomp,numcomp,src,srcbox,srccomp) {
@@ -169,63 +169,63 @@ Mask::Or(const Mask& src, const BOX& srcbox,
 
 // --------------------  FAB comparison operators -----------------------
 Mask&
-Mask::LT(const FArrayBox& fab, REAL val, const BOX& subbox,
+Mask::LT(const FArrayBox& fab, Real val, const Box& subbox,
 	 int fab_comp, int mask_comp)
 {
     assert(0);
       // Note: must define new looping macros to handle the
       // fact that a Mask and a FAB have different underlying
-      // scalar types (int and REAL)
+      // scalar types (int and Real)
     return *this;
 }
 Mask&
-Mask::LE(const FArrayBox& fab, REAL val, const BOX& subbox,
+Mask::LE(const FArrayBox& fab, Real val, const Box& subbox,
 	 int fab_comp, int mask_comp)
 {
     assert(0);
       // Note: must define new looping macros to handle the
       // fact that a Mask and a FAB have different underlying
-      // scalar types (int and REAL)
+      // scalar types (int and Real)
     return *this;
 }
 Mask&
-Mask::EQ(const FArrayBox& fab, REAL val, const BOX& subbox,
+Mask::EQ(const FArrayBox& fab, Real val, const Box& subbox,
 	 int fab_comp, int mask_comp)
 {
     assert(0);
       // Note: must define new looping macros to handle the
       // fact that a Mask and a FAB have different underlying
-      // scalar types (int and REAL)
+      // scalar types (int and Real)
     return *this;
 }
 Mask&
-Mask::NE(const FArrayBox& fab, REAL val, const BOX& subbox,
+Mask::NE(const FArrayBox& fab, Real val, const Box& subbox,
 	 int fab_comp, int mask_comp)
 {
     assert(0);
       // Note: must define new looping macros to handle the
       // fact that a Mask and a FAB have different underlying
-      // scalar types (int and REAL)
+      // scalar types (int and Real)
     return *this;
 }
 Mask&
-Mask::GT(const FArrayBox& fab, REAL val, const BOX& subbox,
+Mask::GT(const FArrayBox& fab, Real val, const Box& subbox,
 	 int fab_comp, int mask_comp)
 {
     assert(0);
       // Note: must define new looping macros to handle the
       // fact that a Mask and a FAB have different underlying
-      // scalar types (int and REAL)
+      // scalar types (int and Real)
     return *this;
 }
 Mask&
-Mask::GE(const FArrayBox& fab, REAL val, const BOX& subbox,
+Mask::GE(const FArrayBox& fab, Real val, const Box& subbox,
 	 int fab_comp, int mask_comp)
 {
     assert(0);
       // Note: must define new looping macros to handle the
       // fact that a Mask and a FAB have different underlying
-      // scalar types (int and REAL)
+      // scalar types (int and Real)
     return *this;
 }
 

@@ -2,7 +2,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.6 1997-10-01 01:03:04 car Exp $
+// $Id: FabSet.H,v 1.7 1997-10-08 20:15:28 car Exp $
 //
 
 #include <FArrayBox.H>
@@ -12,7 +12,7 @@
 //@Man:
 /*@Memo:
         A FabSet is a group of FArrayBox's.  The grouping is designed
-	specifically to represent regions along the boundary of BOX's,
+	specifically to represent regions along the boundary of Box's,
 	and are used to implement boundary conditions to discretized
 	partial differential equations.
 */	
@@ -79,7 +79,7 @@ public:
     FabSet &copyFrom(const FArrayBox& src, int src_comp, int dest_comp,
 		     int num_comp);
 //@ManDoc: copy from the specified components of a source FAB to the destination components of this FabSet over the subregion
-    FabSet &copyFrom(const FArrayBox& src, const BOX& subbox,
+    FabSet &copyFrom(const FArrayBox& src, const Box& subbox,
 		     int src_comp, int dest_comp,
 		     int num_comp);
 
@@ -90,7 +90,7 @@ public:
     FabSet &copyFrom(const FabSet& src, int src_comp, int dest_comp,
 		     int num_comp);
 //@ManDoc: copy from the specified components of a source FabSet to the component of this destination FabSet over a subregion
-    FabSet &copyFrom(const FabSet& src, const BOX& subbox,
+    FabSet &copyFrom(const FabSet& src, const Box& subbox,
 		     int src_comp, int dest_comp,
 		     int num_comp);
 
@@ -104,25 +104,25 @@ public:
 
 //@ManMemo: Scalar arithmetic functions
 //@ManDoc: Componentwise multiply each datum in this FabSet for specified components
-    FabSet &mult(REAL v, int comp, int num_comp);
+    FabSet &mult(Real v, int comp, int num_comp);
 //@ManDoc: Componentwise multiply each datum in this FabSet for specified components in the subregion
-    FabSet &mult(REAL v, const BOX& subreg, int comp, int num_comp);
+    FabSet &mult(Real v, const Box& subreg, int comp, int num_comp);
 //@ManDoc: Componentwise add scalar to each datum in this FabSet for specified components
-    FabSet &plus(REAL v, int comp, int num_comp);
+    FabSet &plus(Real v, int comp, int num_comp);
 //@ManDoc: Componentwise add scalar to each datum in this FabSet for specified components in the subregion
-    FabSet &plus(REAL v, const BOX& subreg, int comp, int num_comp);
+    FabSet &plus(Real v, const Box& subreg, int comp, int num_comp);
 
 //@ManDoc: Add each datum in MultiFab to each in this FabSet for specified components in the subregion, including ghost cells specified
     FabSet &plusFrom(const MultiFab& src, int nghost, int src_comp,
 		     int dest_comp, int num_comp);
 
 //@ManDoc: Linear combination: this := a*this + b*src (FabSets must be commensurate)
-    FabSet &linComb(REAL a, REAL b, const FabSet& src, int src_comp,
+    FabSet &linComb(Real a, Real b, const FabSet& src, int src_comp,
 		    int dest_comp, int num_comp);
 
 //@ManDoc: Linear combination: this := a*mfa + b*mfb on intersection with valid region
-    FabSet &linComb(REAL a, const MultiFab& mfa, int a_comp,
-		    REAL b, const MultiFab& mfb, int b_comp,
+    FabSet &linComb(Real a, const MultiFab& mfa, int a_comp,
+		    Real b, const MultiFab& mfb, int b_comp,
 		    int dest_comp, int num_comp, int n_ghost=0);
 
     friend class FabSetIterator;

@@ -2,30 +2,29 @@
 #define _AMR_DEFS_H_
 
 //
-// $Id: amr_defs.H,v 1.4 1997-09-26 16:57:08 lijewski Exp $
+// $Id: amr_defs.H,v 1.5 1997-10-08 20:15:48 car Exp $
 //
 
+#if 0
 #if (defined BL_IRIX || defined BL_OSF1 || \
      defined BL_Linux || defined BL_ARCH_CRAY)
 #  ifndef SYSV
 #    define SYSV
 #  endif
 #endif
+#endif
 
 #include <MultiFab.H>
 
-#undef SPACEDIM
+//#undef SPACEDIM
 
-typedef IntVect   Iv;
-typedef FArrayBox Fab;
+//#define BOX_NODE IndexType::NODE
+//#define BOX_CELL IndexType::CELL
 
-#define BOX_NODE IndexType::NODE
-#define BOX_CELL IndexType::CELL
-
-#define zerovect   IntVect::TheZeroVector()
-#define unitvect   IntVect::TheUnitVector()
-#define nodevect   IntVect::TheNodeVector()
-#define cellvect   IntVect::TheCellVector()
+//#define zerovect   IntVect::TheZeroVector()
+//#define unitvect   IntVect::TheUnitVector()
+//#define nodevect   IntVect::TheNodeVector()
+//#define cellvect   IntVect::TheCellVector()
 
 #if (BL_SPACEDIM == 1)
 #  define intRS const int&
@@ -51,60 +50,78 @@ typedef FArrayBox Fab;
 
 // index type helper functions:
 
-inline IntVect type(const Fab& f) {
+inline IntVect
+type(const FArrayBox& f) 
+{
   return f.box().type();
 }
 
-inline IndexType::CellIndex type(const Fab& f, int idir) {
+inline IndexType::CellIndex 
+type(const FArrayBox& f, int idir) 
+{
   return f.box().type(idir);
 }
 
-inline IntVect type(const FabArray<Real,Fab>& r) {
+inline IntVect 
+type(const FabArray<Real,FArrayBox>& r) 
+{
   assert(r.length() > 0 && r.boxArray().ok());
   return r.box(0).type();
 }
 
-inline IndexType::CellIndex type(const FabArray<Real,Fab>& r, int idir) {
+inline IndexType::CellIndex 
+type(const FabArray<Real,FArrayBox>& r, int idir) 
+{
   assert(r.length() > 0 && r.boxArray().ok());
   return r.box(0).type(idir);
 }
 
 // norm helper functions:
 
-inline Real mfnorm(MultiFab& mf) {
-  Real r = 0;
-  int i;
-  for (i = 0; i < mf.length(); i++) {
-    Real s = mf[i].norm(0);
-    r = (r > s) ? r : s;
-  }
-  return r;
+inline Real
+mfnorm(const MultiFab& mf)
+{
+    Real r = 0;
+    // PARALLEL -- REDUCTION
+    // for (i = 0; i < mf.length(); i++) 
+    for ( ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi ) 
+    {
+	Real s = mfi().norm(0);
+	r = (r > s) ? r : s;
+    }
+    ParallelDescriptor::ReduceRealMax(r);
+    return r;
 }
 
-inline Real pmfnorm(PArray<MultiFab>& pmf) {
+inline Real 
+pmfnorm(const PArray<MultiFab>& pmf) 
+{
   Real r = 0;
-  int i;
-  for (i = 0; i < pmf.length(); i++) {
+  for (int i = 0; i < pmf.length(); i++) 
+  {
     Real s = mfnorm(pmf[i]);
     r = (r > s) ? r : s;
   }
   return r;
 }
 
-inline Real pmfmin(PArray<MultiFab>& pmf) {
+inline Real
+pmfmin(const PArray<MultiFab>& pmf) 
+{
   Real r = pmf[0].min(0);
-  int i;
-  for (i = 1; i < pmf.length(); i++) {
+  for (int i = 1; i < pmf.length(); i++) 
+  {
     Real s = pmf[i].min(0);
     r = (r < s) ? r : s;
   }
   return r;
 }
 
-inline Real pmfmax(PArray<MultiFab>& pmf) {
+inline Real 
+pmfmax(const PArray<MultiFab>& pmf) 
+{
   Real r = pmf[0].max(0);
-  int i;
-  for (i = 1; i < pmf.length(); i++) {
+  for (int i = 1; i < pmf.length(); i++) {
     Real s = pmf[i].max(0);
     r = (r > s) ? r : s;
   }

@@ -2,7 +2,7 @@
 #define _AABBecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.3 1997-09-26 16:56:50 lijewski Exp $
+// $Id: ABecLaplacian.H,v 1.4 1997-10-08 20:15:18 car Exp $
 //
 
 #include <Tuple.H>
@@ -70,23 +70,23 @@ class ABecLaplacian
 public:
 //@ManMemo: administrative functions
 //@ManDoc: constructor for box array, boundary data and scalar mesh spacing
-    ABecLaplacian(const BoxArray &ba, const BndryData& bd, REAL _h);
+    ABecLaplacian(const BoxArray &ba, const BndryData& bd, Real _h);
 //@ManDoc: constructor for box array, boundary data and vector mesh spacing
-    ABecLaplacian(const BoxArray &ba, const BndryData& bd, const REAL * _h);
+    ABecLaplacian(const BoxArray &ba, const BndryData& bd, const Real * _h);
 
 //@ManDoc: destructor
     virtual ~ABecLaplacian();
 
 //@ManMemo: access functions
 //@ManDoc: set scalar coefficients
-    void setScalars(REAL _alpha, REAL _beta);
+    void setScalars(Real _alpha, Real _beta);
 //@ManDoc: get scalar alpha coefficient
-    REAL get_alpha() const
+    Real get_alpha() const
     {
 	return alpha;
     }
 //@ManDoc: get scalar beta coefficient
-    REAL get_beta() const
+    Real get_beta() const
     {
 	return beta;
     }
@@ -139,22 +139,22 @@ protected:
 //@ManDoc: Array (on level) of Tuple (on dimension) of "b" coefficients
     Array< Tuple< MultiFab*, BL_SPACEDIM> > bcoefs;
 //@ManDoc: Scalar "alpha" coefficient
-    REAL alpha;
+    Real alpha;
 //@ManDoc: Scalar "beta" coefficient
-    REAL beta;
+    Real beta;
 private:
 // Flag, can a coeffs be trusted at a level
     Array< bool > a_valid;
 // Flag, can b coeffs be trusted at a level
     Array< bool > b_valid;
 // Default value for a (MultiFab) coeficient
-    static REAL a_def;
+    static Real a_def;
 // Default value for b (MultiFab) coeficient
-    static REAL b_def;
+    static Real b_def;
 // Default value for alpha (scalar) coeficient
-    static REAL alpha_def;
+    static Real alpha_def;
 // Default value for beta (scalar) coeficient
-    static REAL beta_def;
+    static Real beta_def;
 // Disallow copy constructors (for now...to be fixed)
     ABecLaplacian(const ABecLaplacian&);
     ABecLaplacian& operator =(const ABecLaplacian);

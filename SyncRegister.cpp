@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.11 1997-10-01 01:03:16 car Exp $
+// $Id: SyncRegister.cpp,v 1.12 1997-10-08 20:15:47 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -67,16 +67,16 @@ SyncRegister::define(const BoxArray& fine_boxes,
 
 /*  original code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     for (int k = 0; k < ngrds; k++) {
-	BOX ndbox(surroundingNodes(grids[k]));
+	Box ndbox(surroundingNodes(grids[k]));
 	for (int dir = 0; dir < BL_SPACEDIM; dir++) {
   	    const int* blo = ndbox.loVect();
-	    BOX nd_lo(ndbox);
+	    Box nd_lo(ndbox);
 	    nd_lo.setRange(dir,blo[dir],1);
 	    FabSet &lo = bndry[Orientation(dir,Orientation::low)];
 	    lo.setFab(k,new FArrayBox(nd_lo,1));
 
 	    const int* bhi = ndbox.hiVect();
-	    BOX nd_hi(ndbox);
+	    Box nd_hi(ndbox);
 	    nd_hi.setRange(dir,bhi[dir],1);
 	    FabSet &hi = bndry[Orientation(dir,Orientation::high)];
 	    hi.setFab(k,new FArrayBox(nd_hi,1));
@@ -87,10 +87,10 @@ SyncRegister::define(const BoxArray& fine_boxes,
 */
     int myproc = ParallelDescriptor::MyProc();
     for (int k = 0; k < ngrds; k++) {
-	BOX ndbox(surroundingNodes(grids[k]));
+	Box ndbox(surroundingNodes(grids[k]));
 	for (int dir = 0; dir < BL_SPACEDIM; dir++) {
   	    const int* blo = ndbox.loVect();
-	    BOX nd_lo(ndbox);
+	    Box nd_lo(ndbox);
 	    nd_lo.setRange(dir,blo[dir],1);
 	    FabSet &lo = bndry[Orientation(dir,Orientation::low)];
 	    lo.setBox(k, nd_lo);
@@ -101,7 +101,7 @@ SyncRegister::define(const BoxArray& fine_boxes,
 	    }
 
 	    const int* bhi = ndbox.hiVect();
-	    BOX nd_hi(ndbox);
+	    Box nd_hi(ndbox);
 	    nd_hi.setRange(dir,bhi[dir],1);
 	    FabSet &hi = bndry[Orientation(dir,Orientation::high)];
 	    hi.setBox(k, nd_hi);
@@ -119,13 +119,13 @@ SyncRegister::define(const BoxArray& fine_boxes,
 SyncRegister::~SyncRegister()
 {}
 
-REAL
+Real
 SyncRegister::sum()
 {
       // sum values in all registers
       // NOTE: overlap counted twice
     int ngrds = grids.length();
-    BOX bb(grids[0]);
+    Box bb(grids[0]);
     int k;
     for (k = 1; k < ngrds; k++) bb.minBox(grids[k]);
     bb.surroundingNodes();
@@ -146,7 +146,7 @@ SyncRegister::sum()
         bfab.copy(fsi());
       }
     }
-    REAL tempSum = bfab.sum(0,1);
+    Real tempSum = bfab.sum(0,1);
     ParallelDescriptor::ReduceRealSum(tempSum);
     return tempSum;
 }
@@ -182,8 +182,8 @@ if(ParallelDescriptor::NProcs() > 1) {
     int nrhs = rhs_boxes.length();
     int nreg = grids.length();
 
-    const BOX cell_domain(geom.Domain());
-    const BOX domain = surroundingNodes(cell_domain);
+    const Box cell_domain(geom.Domain());
+    const Box domain = surroundingNodes(cell_domain);
 
     Array<IntVect> pshifts(27);
 
@@ -196,7 +196,7 @@ if(ParallelDescriptor::NProcs() > 1) {
       for (k = 0; k < nrhs; k++) {
 	for (j = 0; j < nreg; j++) {
 	    for (OrientationIter face; face; ++face) {
-                  BOX regbox(bndry[face()][j].box());
+                  Box regbox(bndry[face()][j].box());
                   geom.periodicShift(domain,regbox,pshifts);
                   for (int iiv = 0; iiv < pshifts.length(); iiv++) {
                     IntVect iv = pshifts[iiv];
@@ -228,7 +228,7 @@ if(ParallelDescriptor::NProcs() > 1) {
     FArrayBox tmp_rhs;
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++) {
-      BOX domlo(domain), domhi(domain);
+      Box domlo(domain), domhi(domain);
       domlo.setRange(dir,dlo[dir],1);
       domhi.setRange(dir,dhi[dir],1);
 
@@ -237,8 +237,8 @@ if(ParallelDescriptor::NProcs() > 1) {
       // at outflow
       if (!geom.isPeriodic(dir)) {
 	for (k = 0; k < nrhs; k++) {
-	    BOX blo(rhs_boxes[k]);
-	    BOX bhi(blo);
+	    Box blo(rhs_boxes[k]);
+	    Box bhi(blo);
 	    blo &= domlo;
 	    bhi &= domhi;
 	    if (blo.ok()) rhs[k].mult(2.0,blo,0,1);
@@ -256,7 +256,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 void
 SyncRegister::CrseDVInit(const MultiFab& U, 
                          const Geometry& geom, 
-			 int is_rz, int ** crse_bc, REAL mult)
+			 int is_rz, int ** crse_bc, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CrseDVInit(...) not implemented in parallel.");
@@ -272,8 +272,8 @@ if(ParallelDescriptor::NProcs() > 1) {
 
     int k, dir, fine;
 
-    const BOX& domain = geom.Domain();
-    const REAL* dx = geom.CellSize();
+    const Box& domain = geom.Domain();
+    const Real* dx = geom.CellSize();
 
     int n_ghost = 1;
     MultiFab * U_local = new MultiFab(U_boxes,BL_SPACEDIM,n_ghost,Fab_allocate);
@@ -285,7 +285,7 @@ if(ParallelDescriptor::NProcs() > 1) {
     for (k = 0; k < ncrse; k++) {
 
         FArrayBox& ufab = (*U_local)[k];
-        BOX ubox(U_boxes[k]);
+        Box ubox(U_boxes[k]);
 	ufab.copy(U[k],ubox,0,ubox,0,BL_SPACEDIM);
 
         int * bc = crse_bc[k];
@@ -295,7 +295,7 @@ if(ParallelDescriptor::NProcs() > 1) {
  
           if (ubox.smallEnd(dir) == domain.smallEnd(dir)) {
 
-            BOX sidelo(ubox);
+            Box sidelo(ubox);
             sidelo.setRange(dir,sidelo.smallEnd(dir)-1,1);
 
             // Fill ghost cells outside of domain
@@ -306,7 +306,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
           if (ubox.bigEnd(dir) == domain.bigEnd(dir)) {
 
-            BOX sidehi(ubox);
+            Box sidehi(ubox);
             sidehi.setRange(dir,sidehi.bigEnd(dir)+1,1);
 
             // Fill ghost cells outside of domain
@@ -326,7 +326,7 @@ if(ParallelDescriptor::NProcs() > 1) {
       for (k = 0; k < ncrse; k++) {
 
           FArrayBox& ufab = (*U_local)[k];
-          BOX dbox(ufab.box());
+          Box dbox(ufab.box());
 
           for (int idir = 0; idir < BL_SPACEDIM; idir++) {
 //          Shrink the box if the +/- idir direction is not a physical boudnary
@@ -348,7 +348,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 //           Here we deliberately do FAB copies so as to copy on ghost cells
              for (int isrc=0; isrc < ncrse; isrc++) {
                FArrayBox& srcfab = (*U_local)[isrc];
-               BOX intersect(srcfab.box());
+               Box intersect(srcfab.box());
                intersect &= dest.box();
                intersect &= domain;
                dest.copy(srcfab,intersect,0,intersect,0,BL_SPACEDIM);
@@ -364,12 +364,12 @@ if(ParallelDescriptor::NProcs() > 1) {
     for (k = 0; k < ncrse; k++) {
 
         FArrayBox& ufab = (*U_local)[k];
-        BOX ubox(U_boxes[k]);
+        Box ubox(U_boxes[k]);
 
         int * bc = crse_bc[k];
 
 	for (fine = 0; fine < nfine; fine++) {
-	    BOX subbox(ubox);
+	    Box subbox(ubox);
 	    subbox &= grids[fine];
 
 	    if (subbox.ok()) {
@@ -380,13 +380,13 @@ if(ParallelDescriptor::NProcs() > 1) {
               int bc_index = 2*BL_SPACEDIM*dir + dir;
               if (bc[bc_index] == EXT_DIR &&
                   grids[fine].smallEnd(dir) == ubox.smallEnd(dir)) {
-                BOX finesidelo(subbox);
+                Box finesidelo(subbox);
                 finesidelo.setRange(dir,finesidelo.smallEnd(dir)-1,1);
                 ufab.setVal(0.0,finesidelo,0,BL_SPACEDIM);
               }
               if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
                   grids[fine].bigEnd(dir) == U_boxes[k].bigEnd(dir)) {
-                BOX finesidehi(subbox);
+                Box finesidehi(subbox);
                 finesidehi.setRange(dir,finesidehi.bigEnd(dir)+1,1);
                 ufab.setVal(0.0,finesidehi,0,BL_SPACEDIM);
               }
@@ -395,7 +395,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 //      Now zero out under periodic translations of fine grids
         if (geom.isAnyPeriodic()) {
 
-          BOX domain_plus(domain);
+          Box domain_plus(domain);
           for (dir = 0; dir < BL_SPACEDIM; dir++) 
             if (geom.isPeriodic(dir)) domain_plus.grow(dir,1);
 
@@ -403,7 +403,7 @@ if(ParallelDescriptor::NProcs() > 1) {
           for (int iiv = 0; iiv < pshifts.length(); iiv++) {
    
              IntVect iv = pshifts[iiv];
-             BOX fine_shifted(grids[fine]);
+             Box fine_shifted(grids[fine]);
              fine_shifted.shift(iv);
              fine_shifted &= ufab.box();
 
@@ -416,14 +416,14 @@ if(ParallelDescriptor::NProcs() > 1) {
 
                 if (bc[bc_index] == EXT_DIR &&
                     fine_shifted.smallEnd(dir) == ubox.smallEnd(dir)) {
-                  BOX finesidelo(fine_shifted);
+                  Box finesidelo(fine_shifted);
                   finesidelo.setRange(dir,fine_shifted.smallEnd(dir)-1,1);
                   ufab.setVal(0.0,finesidelo,0,BL_SPACEDIM);
                 }
 
                 if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
                     grids[fine].bigEnd(dir) == U_boxes[k].bigEnd(dir)) {
-                  BOX finesidehi(fine_shifted);
+                  Box finesidehi(fine_shifted);
                   finesidehi.setRange(dir,fine_shifted.bigEnd(dir)+1,1);
                   ufab.setVal(0.0,finesidehi,0,BL_SPACEDIM);
                 }
@@ -442,7 +442,7 @@ if(ParallelDescriptor::NProcs() > 1) {
         const int* ulo = ufab.loVect();
         const int* uhi = ufab.hiVect();
 
-	BOX ndbox(surroundingNodes(U_boxes[k]));
+	Box ndbox(surroundingNodes(U_boxes[k]));
 	divu.resize(ndbox,1);
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
@@ -458,9 +458,9 @@ if(ParallelDescriptor::NProcs() > 1) {
 
 void
 SyncRegister::FineDVAdd(const MultiFab& U, 
-                        const REAL* dx_fine, 
+                        const Real* dx_fine, 
                         const Geometry& crse_geom, 
-			int is_rz, int ** fine_bc, REAL mult)
+			int is_rz, int ** fine_bc, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::FineDVAdd(...) not implemented in parallel.");
@@ -470,14 +470,14 @@ if(ParallelDescriptor::NProcs() > 1) {
     const BoxArray& U_boxes = U.boxArray();
     int ngrds = U_boxes.length();
 
-    const BOX& crse_node_domain = surroundingNodes(crse_geom.Domain());
+    const Box& crse_node_domain = surroundingNodes(crse_geom.Domain());
  
     int k, dir, idir;
 
     FArrayBox ufab;
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
     for (k = 0; k < ngrds; k++) {
-	BOX ubox(grow(U_boxes[k],1));
+	Box ubox(grow(U_boxes[k],1));
 	ufab.resize(ubox,BL_SPACEDIM);
 	ufab.setVal(0.0);
 	ufab.copy(U[k],U_boxes[k],0,U_boxes[k],0,BL_SPACEDIM);
@@ -488,14 +488,14 @@ if(ParallelDescriptor::NProcs() > 1) {
         for (dir = 0; dir < BL_SPACEDIM; dir++) {
           int bc_index = 2*BL_SPACEDIM*dir + dir;
           if (bc[bc_index] == EXT_DIR) {
-            BOX sidelo(U_boxes[k]);
+            Box sidelo(U_boxes[k]);
             sidelo.growLo(dir,1);
             const int* dlo = sidelo.loVect();
             sidelo.setRange(dir,dlo[dir],1);
             ufab.copy(U[k],sidelo,dir,sidelo,dir,1);
           }
           if (bc[bc_index+BL_SPACEDIM] == EXT_DIR) {
-            BOX sidehi(U_boxes[k]);
+            Box sidehi(U_boxes[k]);
             sidehi.growHi(dir,1);
             const int* dhi = sidehi.hiVect();
             sidehi.setRange(dir,dhi[dir],1);
@@ -504,17 +504,17 @@ if(ParallelDescriptor::NProcs() > 1) {
         }
 
 	  // now compute node centered surrounding box
-	BOX ndbox(surroundingNodes(U_boxes[k]));
+	Box ndbox(surroundingNodes(U_boxes[k]));
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
 
 	for (dir = 0; dir < BL_SPACEDIM; dir++) {
 	      // determine region of interest, and size of tmp fabs
-	    BOX tboxlo(ndbox), tboxhi(ndbox);
+	    Box tboxlo(ndbox), tboxhi(ndbox);
 	    tboxlo.setRange(dir,ndlo[dir],1);
 	    tboxhi.setRange(dir,ndhi[dir],1);
-	    BOX cboxlo(tboxlo), cboxhi(tboxhi);
-	    BOX reglo(tboxlo), reghi(tboxhi);
+	    Box cboxlo(tboxlo), cboxhi(tboxhi);
+	    Box reglo(tboxlo), reghi(tboxhi);
 	    for (idir = 0; idir < BL_SPACEDIM; idir++) {
 		if (idir < dir) {
 		      // previous direction have included these
@@ -600,7 +600,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 void
 SyncRegister::CrseDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
 			  int is_rz, int ** crse_bc, 
-                          int lowfix, int hifix, REAL mult)
+                          int lowfix, int hifix, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CrseDsdtAdd(...) not implemented in parallel.");
@@ -609,8 +609,8 @@ if(ParallelDescriptor::NProcs() > 1) {
 }
     int k, dir, fine;
 
-    const BOX& domain = geom.Domain();
-    const REAL* dx = geom.CellSize();
+    const Box& domain = geom.Domain();
+    const Real* dx = geom.CellSize();
 
     int nfine = grids.length();
     const BoxArray& dsdt_boxes = dsdt.boxArray();
@@ -618,7 +618,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
     FArrayBox dsdtfab, divu;
     for (k = 0; k < ncrse; k++) {
-	BOX dsdtbox(grow(dsdt_boxes[k],1));
+	Box dsdtbox(grow(dsdt_boxes[k],1));
 	dsdtfab.resize(dsdtbox,1);
 	dsdtfab.setVal(0.0);
 	dsdtfab.copy(dsdt[k],dsdt_boxes[k],0,dsdt_boxes[k],0,1);
@@ -633,14 +633,14 @@ if(ParallelDescriptor::NProcs() > 1) {
         for (dir = 0; dir < BL_SPACEDIM; dir++) {
           int bc_index = 2*BL_SPACEDIM*dir + dir;
           if (bc[bc_index] == EXT_DIR) {
-            BOX sidelo(dsdt_boxes[k]);
+            Box sidelo(dsdt_boxes[k]);
             sidelo.growLo(dir,1);
             const int* dlo = sidelo.loVect();
             sidelo.setRange(dir,dlo[dir],1);
             dsdtfab.copy(dsdt[k],sidelo,0,sidelo,0,1);
           }
           if (bc[bc_index+BL_SPACEDIM] == EXT_DIR) {
-            BOX sidehi(dsdt_boxes[k]);
+            Box sidehi(dsdt_boxes[k]);
             sidehi.growHi(dir,1);
             const int* dhi = sidehi.hiVect();
             sidehi.setRange(dir,dhi[dir],1);
@@ -650,7 +650,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 #endif
 
 	for (fine = 0; fine < nfine; fine++) {
-	    BOX subbox(dsdtbox);
+	    Box subbox(dsdtbox);
 	    subbox &= grids[fine];
 	    if (subbox.ok()) dsdtfab.setVal(0.0,subbox,0,1);
 
@@ -659,7 +659,7 @@ if(ParallelDescriptor::NProcs() > 1) {
               int bc_index = 2*BL_SPACEDIM*dir + dir;
               if (bc[bc_index] == EXT_DIR &&
                   grids[fine].loVect()[dir] == dsdt_boxes[k].loVect()[dir]) {
-                BOX finesidelo(subbox);
+                Box finesidelo(subbox);
                 finesidelo.growLo(dir,1);
                 const int* dlo = finesidelo.loVect();
                 finesidelo.setRange(dir,dlo[dir],1);
@@ -667,7 +667,7 @@ if(ParallelDescriptor::NProcs() > 1) {
               }
               if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
                   grids[fine].hiVect()[dir] == dsdt_boxes[k].hiVect()[dir]) {
-                BOX finesidehi(subbox);
+                Box finesidehi(subbox);
                 finesidehi.growHi(dir,1);
                 const int* dhi = finesidehi.hiVect();
                 finesidehi.setRange(dir,dhi[dir],1);
@@ -679,7 +679,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 	}
 
 	  // average dsdt to nodes
-	BOX ndbox(surroundingNodes(dsdt_boxes[k]));
+	Box ndbox(surroundingNodes(dsdt_boxes[k]));
 	divu.resize(ndbox,1);
 
         const int* ndlo = ndbox.loVect();
@@ -688,7 +688,7 @@ if(ParallelDescriptor::NProcs() > 1) {
         const int* dsdthi = dsdtbox.hiVect();
 
         int rlen  = dsdtbox.length(0);
-        Array<REAL> rcen;
+        Array<Real> rcen;
         rcen.resize(rlen);
         if (is_rz) {
           geom.GetCellLoc(rcen,dsdtbox, 0);
@@ -702,7 +702,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
 #if (BL_SPACEDIM==2)
         int nghost = 0;
-        REAL hx = dx[0];
+        Real hx = dx[0];
         int extrap_edges = 0;
         int extrap_corners = 0;
 	FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
@@ -724,7 +724,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 void
 SyncRegister::FineDsdtAdd(const MultiFab& dsdt, const Geometry& geom,
 			  int is_rz, int ** fine_bc, 
-                          int lowfix, int hifix, REAL mult)
+                          int lowfix, int hifix, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::FineDsdtAdd(...) not implemented in parallel.");
@@ -734,15 +734,15 @@ if(ParallelDescriptor::NProcs() > 1) {
     const BoxArray& dsdt_boxes = dsdt.boxArray();
     int ngrds = dsdt_boxes.length();
 
-    const BOX& domain = geom.Domain();
-    const REAL* dx = geom.CellSize();
+    const Box& domain = geom.Domain();
+    const Real* dx = geom.CellSize();
  
     int k, dir, idir;
 
     FArrayBox dsdtfab;
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
     for (k = 0; k < ngrds; k++) {
-	BOX dsdtbox(grow(dsdt_boxes[k],1));
+	Box dsdtbox(grow(dsdt_boxes[k],1));
 	dsdtfab.resize(dsdtbox,1);
 	dsdtfab.setVal(0.0);
 	dsdtfab.copy(dsdt[k],dsdt_boxes[k],0,dsdt_boxes[k],0,1);
@@ -758,7 +758,7 @@ if(ParallelDescriptor::NProcs() > 1) {
         for (dir = 0; dir < BL_SPACEDIM; dir++) {
           int bc_index = 2*BL_SPACEDIM*dir + dir;
           if (bc[bc_index] == EXT_DIR) {
-            BOX sidelo(dsdt_boxes[k]);
+            Box sidelo(dsdt_boxes[k]);
             sidelo.growLo(dir,1);
             const int* dlo = sidelo.loVect();
             sidelo.setRange(dir,dlo[dir],1);
@@ -771,7 +771,7 @@ if(ParallelDescriptor::NProcs() > 1) {
             dsdtfab.copy(dsdt[k],sidelo,0,sidelo,0,1);
           }
           if (bc[bc_index+BL_SPACEDIM] == EXT_DIR) {
-            BOX sidehi(dsdt_boxes[k]);
+            Box sidehi(dsdt_boxes[k]);
             sidehi.growHi(dir,1);
             const int* dhi = sidehi.hiVect();
             sidehi.setRange(dir,dhi[dir],1);
@@ -787,17 +787,17 @@ if(ParallelDescriptor::NProcs() > 1) {
 #endif
 
 	  // now compute node centered surrounding box
-	BOX ndbox(surroundingNodes(dsdt_boxes[k]));
+	Box ndbox(surroundingNodes(dsdt_boxes[k]));
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
 
 	for (dir = 0; dir < BL_SPACEDIM; dir++) {
 	      // determine region of interest, and size of tmp fabs
-	    BOX tboxlo(ndbox), tboxhi(ndbox);
+	    Box tboxlo(ndbox), tboxhi(ndbox);
 	    tboxlo.setRange(dir,ndlo[dir],1);
 	    tboxhi.setRange(dir,ndhi[dir],1);
-	    BOX cboxlo(tboxlo), cboxhi(tboxhi);
-	    BOX reglo(tboxlo), reghi(tboxhi);
+	    Box cboxlo(tboxlo), cboxhi(tboxhi);
+	    Box reglo(tboxlo), reghi(tboxhi);
 	    for (idir = 0; idir < BL_SPACEDIM; idir++) {
 		if (idir < dir) {
 		      // previous direction have included these
@@ -836,7 +836,7 @@ if(ParallelDescriptor::NProcs() > 1) {
             const int* dsdthi = dsdtbox.hiVect();
 
             int rlen  = dsdtbox.length(0);
-            Array<REAL> rcen;
+            Array<Real> rcen;
             rcen.resize(rlen);
             if (is_rz) {
               geom.GetCellLoc(rcen,dsdtbox, 0);
@@ -853,7 +853,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 #if (BL_SPACEDIM==2)
             int nghost = 0;
             int hi_fix = 0;
-            REAL hx = dx[0];
+            Real hx = dx[0];
             int extrap_edges = 0;
             int extrap_corners = 0;
 	FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
@@ -915,10 +915,10 @@ if(ParallelDescriptor::NProcs() > 1) {
 void
 SyncRegister::CompDVAdd(const MultiFab& U, 
                         const BoxArray & Pgrids,
-                        const REAL* dx_fine, 
+                        const Real* dx_fine, 
                         const Geometry& fine_geom, 
                         const Geometry& crse_geom, 
-                        int is_rz, int ** fine_bc, REAL mult)
+                        int is_rz, int ** fine_bc, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CompDVAdd(...) not implemented in parallel.");
@@ -928,7 +928,7 @@ if(ParallelDescriptor::NProcs() > 1) {
     const BoxArray& U_boxes = U.boxArray();
     int ngrds = U_boxes.length();
 
-    const BOX& crse_node_domain = surroundingNodes(crse_geom.Domain());
+    const Box& crse_node_domain = surroundingNodes(crse_geom.Domain());
 
     int k, dir, idir;
 
@@ -938,7 +938,7 @@ if(ParallelDescriptor::NProcs() > 1) {
     FArrayBox ufab;
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
     for (k = 0; k < ngrds; k++) {
-	BOX ubox(grow(U_boxes[k],1));
+	Box ubox(grow(U_boxes[k],1));
 	ufab.resize(ubox,BL_SPACEDIM);
 	ufab.setVal(0.0);
 	ufab.copy(U[k],U_boxes[k],0,U_boxes[k],0,BL_SPACEDIM);
@@ -949,14 +949,14 @@ if(ParallelDescriptor::NProcs() > 1) {
         for (dir = 0; dir < BL_SPACEDIM; dir++) {
           int bc_index = 2*BL_SPACEDIM*dir + dir;
           if (bc[bc_index] == EXT_DIR) {
-            BOX sidelo(U_boxes[k]);
+            Box sidelo(U_boxes[k]);
             sidelo.growLo(dir,1);
             const int* dlo = sidelo.loVect();
             sidelo.setRange(dir,dlo[dir],1);
             ufab.copy(U[k],sidelo,dir,sidelo,dir,1);
           }
           if (bc[bc_index+BL_SPACEDIM] == EXT_DIR) {
-            BOX sidehi(U_boxes[k]);
+            Box sidehi(U_boxes[k]);
             sidehi.growHi(dir,1);
             const int* dhi = sidehi.hiVect();
             sidehi.setRange(dir,dhi[dir],1);
@@ -965,17 +965,17 @@ if(ParallelDescriptor::NProcs() > 1) {
         }
 
 	  // now compute node centered surrounding box
-	BOX ndbox(surroundingNodes(U_boxes[k]));
+	Box ndbox(surroundingNodes(U_boxes[k]));
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
 
 	for (dir = 0; dir < BL_SPACEDIM; dir++) {
 	      // determine region of interest, and size of tmp fabs
-	    BOX tboxlo(ndbox), tboxhi(ndbox);
+	    Box tboxlo(ndbox), tboxhi(ndbox);
 	    tboxlo.setRange(dir,ndlo[dir],1);
 	    tboxhi.setRange(dir,ndhi[dir],1);
-	    BOX cboxlo(tboxlo), cboxhi(tboxhi);
-	    BOX reglo(tboxlo), reghi(tboxhi);
+	    Box cboxlo(tboxlo), cboxhi(tboxhi);
+	    Box reglo(tboxlo), reghi(tboxhi);
 	    for (idir = 0; idir < BL_SPACEDIM; idir++) {
 		if (idir < dir) {
 		      // previous direction have included these
@@ -1012,7 +1012,7 @@ if(ParallelDescriptor::NProcs() > 1) {
             int set_comp = 0;
             for (int i = 0; i < Pgrids.length(); i++) {
 
-              BOX overlap_lo(reglo);
+              Box overlap_lo(reglo);
               overlap_lo &= Pgrids[i];
               if (overlap_lo.ok())
                 ffablo.setVal(0.,overlap_lo,set_comp,n_comp);
@@ -1020,14 +1020,14 @@ if(ParallelDescriptor::NProcs() > 1) {
               fine_geom.periodicShift( reglo, Pgrids[i], pshifts);
               for (iiv = 0; iiv < pshifts.length(); iiv++) {
                  IntVect iv = pshifts[iiv];
-                 BOX overlap_lo_per(Pgrids[i]);
+                 Box overlap_lo_per(Pgrids[i]);
                  overlap_lo_per.shift(iv);
                  overlap_lo_per &= reglo;
                  ffablo.setVal(0.,overlap_lo_per,set_comp,n_comp);
 
               }
 
-              BOX overlap_hi(reghi);
+              Box overlap_hi(reghi);
               overlap_hi &= Pgrids[i];
               if (overlap_hi.ok())
                 ffabhi.setVal(0.,overlap_hi,set_comp,n_comp);
@@ -1035,7 +1035,7 @@ if(ParallelDescriptor::NProcs() > 1) {
               fine_geom.periodicShift( reghi, Pgrids[i], pshifts);
               for (iiv = 0; iiv < pshifts.length(); iiv++) {
                  IntVect iv = pshifts[iiv];
-                 BOX overlap_hi_per(Pgrids[i]);
+                 Box overlap_hi_per(Pgrids[i]);
                  overlap_hi_per.shift(iv);
                  overlap_hi_per &= reghi;
                  ffabhi.setVal(0.,overlap_hi_per,set_comp,n_comp);
@@ -1090,7 +1090,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
 void
 SyncRegister::CrseLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
-			  const Geometry& geom, int is_rz, REAL mult)
+			  const Geometry& geom, int is_rz, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CrseLPhiAdd(...) not implemented in parallel.");
@@ -1102,10 +1102,10 @@ if(ParallelDescriptor::NProcs() > 1) {
     int ncrse = Phi_boxes.length();
     const BoxArray& sig_boxes = sigma.boxArray();
 
-    const BOX& domain = geom.Domain();
-    const REAL* dx = geom.CellSize();
+    const Box& domain = geom.Domain();
+    const Real* dx = geom.CellSize();
 
-    BOX p_domain(surroundingNodes(domain));
+    Box p_domain(surroundingNodes(domain));
 
     int n_ghost = 1;
     MultiFab * Sig_local = new MultiFab(sig_boxes,1,n_ghost,Fab_allocate);
@@ -1123,7 +1123,7 @@ if(ParallelDescriptor::NProcs() > 1) {
         sfab.copy(sigma[k],sig_boxes[k]);
 
 	for (int fine = 0; fine < nfine; fine++) {
-	    BOX subbox(grids[fine]);
+	    Box subbox(grids[fine]);
 	    subbox &= sig_boxes[k];
 	    if (subbox.ok()) sfab.setVal(0.0,subbox,0,1);
 	}
@@ -1138,7 +1138,7 @@ if(ParallelDescriptor::NProcs() > 1) {
       for (k = 0; k < ncrse; k++) {
 
           FArrayBox& sfab = (*Sig_local)[k];
-          BOX dbox(sfab.box());
+          Box dbox(sfab.box());
 
           for (int idir = 0; idir < BL_SPACEDIM; idir++) {
 //          Shrink the box if the +/- idir direction is not a physical boudnary
@@ -1159,7 +1159,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 //           Here we deliberately do FAB copies so as to copy on ghost cells
              for (int isrc=0; isrc < ncrse; isrc++) {
                FArrayBox& srcfab = (*Sig_local)[isrc];
-               BOX intersect(srcfab.box());
+               Box intersect(srcfab.box());
                intersect &= dest.box();
                intersect &= domain;
                dest.copy(srcfab,intersect,0,intersect,0,1);
@@ -1169,7 +1169,7 @@ if(ParallelDescriptor::NProcs() > 1) {
           }
 
           FArrayBox& pfab = (*Phi_local)[k];
-          BOX pbox(pfab.box());
+          Box pbox(pfab.box());
           dest.resize(pbox,1);
           dest.copy(pfab,0,0,1);
 
@@ -1198,7 +1198,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 	const int* p_lo = pfab.loVect();
 	const int* p_hi = pfab.hiVect();
 
-	BOX ndbox(Phi_boxes[k]);
+	Box ndbox(Phi_boxes[k]);
 	divgp.resize(ndbox,1);
 	const int* glo = divgp.loVect();
 	const int* ghi = divgp.hiVect();
@@ -1218,8 +1218,8 @@ if(ParallelDescriptor::NProcs() > 1) {
 
 void
 SyncRegister::FineLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
-			  const REAL* dx_fine, const Geometry& crse_geom, 
-                          int is_rz, REAL mult)
+			  const Real* dx_fine, const Geometry& crse_geom, 
+                          int is_rz, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::FineLPhiAdd(...) not implemented in parallel.");
@@ -1232,14 +1232,14 @@ if(ParallelDescriptor::NProcs() > 1) {
     int ngrds = Phi_boxes.length();
     const BoxArray& Sig_boxes = sigma.boxArray();
 
-    const BOX& crse_node_domain = surroundingNodes(crse_geom.Domain());
+    const Box& crse_node_domain = surroundingNodes(crse_geom.Domain());
 
     FArrayBox pfab, sfab;
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
 
     for (k = 0; k < ngrds; k++) {
-	const BOX& ndbox = Phi_boxes[k];
-	BOX pbox(grow(ndbox,1));
+	const Box& ndbox = Phi_boxes[k];
+	Box pbox(grow(ndbox,1));
 	pfab.resize(pbox,1);
 	pfab.setVal(0.0);
 	pfab.copy(Phi[k],Phi_boxes[k]);
@@ -1258,11 +1258,11 @@ if(ParallelDescriptor::NProcs() > 1) {
 
 	for (dir = 0; dir < BL_SPACEDIM; dir++) {
 	      // determine region of interest, and size of tmp fabs
-	    BOX tboxlo(ndbox), tboxhi(ndbox);
+	    Box tboxlo(ndbox), tboxhi(ndbox);
 	    tboxlo.setRange(dir,ndlo[dir],1);
 	    tboxhi.setRange(dir,ndhi[dir],1);
-	    BOX cboxlo(tboxlo), cboxhi(tboxhi);
-	    BOX reglo(tboxlo), reghi(tboxhi);
+	    Box cboxlo(tboxlo), cboxhi(tboxhi);
+	    Box reglo(tboxlo), reghi(tboxhi);
 	    for (idir = 0; idir < BL_SPACEDIM; idir++) {
 		if (idir < dir) {
 		      // previous direction have included these
@@ -1349,10 +1349,10 @@ if(ParallelDescriptor::NProcs() > 1) {
 void
 SyncRegister::CompLPhiAdd(const MultiFab& Phi, const MultiFab& sigma,
                           const BoxArray & Pgrids, 
-                          const REAL* dx_fine, 
+                          const Real* dx_fine, 
                           const Geometry& fine_geom, 
                           const Geometry& crse_geom, 
-                          int is_rz, REAL mult)
+                          int is_rz, Real mult)
 {
 if(ParallelDescriptor::NProcs() > 1) {
   ParallelDescriptor::Abort("SyncRegister::CompLPhiAdd(...) not implemented in parallel.");
@@ -1361,7 +1361,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 }
     int k, dir, idir;
 
-    const BOX& crse_node_domain = surroundingNodes(crse_geom.Domain());
+    const Box& crse_node_domain = surroundingNodes(crse_geom.Domain());
 
     int iiv;
     Array<IntVect> pshifts(27);
@@ -1374,8 +1374,8 @@ if(ParallelDescriptor::NProcs() > 1) {
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
 
     for (k = 0; k < ngrds; k++) {
-	const BOX& ndbox = Phi_boxes[k];
-	BOX pbox(grow(ndbox,1));
+	const Box& ndbox = Phi_boxes[k];
+	Box pbox(grow(ndbox,1));
 	pfab.resize(pbox,1);
 	pfab.setVal(0.0);
 	pfab.copy(Phi[k],Phi_boxes[k]);
@@ -1394,11 +1394,11 @@ if(ParallelDescriptor::NProcs() > 1) {
 
 	for (dir = 0; dir < BL_SPACEDIM; dir++) {
 	      // determine region of interest, and size of tmp fabs
-	    BOX tboxlo(ndbox), tboxhi(ndbox);
+	    Box tboxlo(ndbox), tboxhi(ndbox);
 	    tboxlo.setRange(dir,ndlo[dir],1);
 	    tboxhi.setRange(dir,ndhi[dir],1);
-	    BOX cboxlo(tboxlo), cboxhi(tboxhi);
-	    BOX reglo(tboxlo), reghi(tboxhi);
+	    Box cboxlo(tboxlo), cboxhi(tboxhi);
+	    Box reglo(tboxlo), reghi(tboxhi);
 	    for (idir = 0; idir < BL_SPACEDIM; idir++) {
 		if (idir < dir) {
 		      // previous direction have included these
@@ -1448,7 +1448,7 @@ if(ParallelDescriptor::NProcs() > 1) {
 
             for (int i = 0; i < Pgrids.length(); i++) {
 
-              BOX overlap_lo(reglo);
+              Box overlap_lo(reglo);
               overlap_lo &= Pgrids[i];
               if (overlap_lo.ok())
                 ffablo.setVal(0.,overlap_lo,set_comp,n_comp);
@@ -1456,14 +1456,14 @@ if(ParallelDescriptor::NProcs() > 1) {
               fine_geom.periodicShift( reglo, Pgrids[i], pshifts);
               for (iiv = 0; iiv < pshifts.length(); iiv++) {
                  IntVect iv = pshifts[iiv];
-                 BOX overlap_lo_per(Pgrids[i]);
+                 Box overlap_lo_per(Pgrids[i]);
                  overlap_lo_per.shift(iv);
                  overlap_lo_per &= reglo;
                  ffablo.setVal(0.,overlap_lo_per,set_comp,n_comp);
 
               }
 
-              BOX overlap_hi(reghi);
+              Box overlap_hi(reghi);
               overlap_hi &= Pgrids[i];
               if (overlap_hi.ok())
                 ffabhi.setVal(0.,overlap_hi,set_comp,n_comp);
@@ -1471,7 +1471,7 @@ if(ParallelDescriptor::NProcs() > 1) {
               fine_geom.periodicShift( reghi, Pgrids[i], pshifts);
               for (iiv = 0; iiv < pshifts.length(); iiv++) {
                  IntVect iv = pshifts[iiv];
-                 BOX overlap_hi_per(Pgrids[i]);
+                 Box overlap_hi_per(Pgrids[i]);
                  overlap_hi_per.shift(iv);
                  overlap_hi_per &= reghi;
                  ffabhi.setVal(0.,overlap_hi_per,set_comp,n_comp);
@@ -1530,19 +1530,19 @@ if(ParallelDescriptor::NProcs() > 1) {
 }
 
     int comp = 0;
-    const BOX& bx = f.box();
-    BOX subbox(bx);
+    const Box& bx = f.box();
+    Box subbox(bx);
     os << "[box = " << subbox << ", comp = "
          << comp << ']' << NL;
     const int* len = bx.length();
     const int* lo = bx.loVect();
     const int* s_len = subbox.length();
     const int* s_lo = subbox.loVect();
-    const REAL* d = f.dataPtr(comp);
+    const Real* d = f.dataPtr(comp);
     char str[80];
     for (int j = 0; j < s_len[1]; j++) {
         int jrow = s_lo[1] + s_len[1]-1-j;
-        const REAL* d_x = d + (jrow - lo[1])*len[0] + s_lo[0]-lo[0];
+        const Real* d_x = d + (jrow - lo[1])*len[0] + s_lo[0]-lo[0];
         sprintf(str,"%04d : ",jrow);
         os << str;
         for (int i = 0; i < s_len[0]; i++) {

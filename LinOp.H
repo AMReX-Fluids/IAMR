@@ -2,7 +2,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.4 1997-10-01 17:55:01 lijewski Exp $
+// $Id: LinOp.H,v 1.5 1997-10-08 20:15:35 car Exp $
 //
 
 #include <Array.H>
@@ -90,9 +90,9 @@ public:
 
 //@ManMemo: administrative functions
 //@ManDoc: allocate a LinOp for this box array, boundary and (uniform) spacing info
-    LinOp(const BoxArray &ba, const BndryData& mgb, const REAL _h);
+    LinOp(const BoxArray &ba, const BndryData& mgb, const Real _h);
 //@ManDoc: allocate a LinOp for this box array, boundary data and spacing array info
-    LinOp(const BoxArray &ba, const BndryData& mgb, const REAL* _h);
+    LinOp(const BoxArray &ba, const BndryData& mgb, const Real* _h);
 //@ManDoc: alocate a LinOp w/level structure beginning at the specified level of this LinOp
     LinOp(const LinOp& _Lp, int level);
 //@ManDoc: destructor
@@ -125,7 +125,7 @@ public:
 
 //@ManMemo: utility functions
 //@ManDoc: Compute the norm of "in"
-    REAL norm(const MultiFab &in, int level = 0) const;
+    Real norm(const MultiFab &in, int level = 0) const;
 
 //@ManMemo: access functions
 //@ManDoc: return the boundary data object
@@ -199,7 +199,7 @@ protected:
 //@ManDoc: initialize LinOp internal data
     static void initialize();
 //@ManDoc: Array (on level) of Tuples (on dimension) of grid spacings
-    Array< Tuple<REAL, SPACEDIM> > h;
+    Array< Tuple<Real, SPACEDIM> > h;
 //@ManDoc: Array (on level) of pointers to BoxArray's of LinOp's domain
     Array< LnClassPtr<BoxArray> > gbox;
 //@ManDoc: Array (on level) of pointers to BndryRegisters along each grid for scratch data required to modify internal stencil on boundary

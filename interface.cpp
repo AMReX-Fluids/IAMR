@@ -1,6 +1,6 @@
 
 //
-// $Id: interface.cpp,v 1.7 1997-09-26 16:57:14 lijewski Exp $
+// $Id: interface.cpp,v 1.8 1997-10-08 20:15:55 car Exp $
 //
 
 #include <interface.H>
@@ -69,7 +69,7 @@ void level_interface::copy(const level_interface& src)
 }
 
 void level_interface::alloc_coarsened(const BoxArray& Im,
-				      amr_boundary /*bdy*/,
+				      const amr_boundary_class& /*bdy*/,
 				      const level_interface& src,
 				      const IntVect& rat)
 {
@@ -116,7 +116,7 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
 
   for (igrid = 0; igrid < im.length(); igrid++) {
     pf[igrid] = im[igrid];
-    pf[igrid].convert(nodevect).grow(-1);
+    pf[igrid].convert(IntVect::TheNodeVector()).grow(-1);
   }
 
   idim = FACEDIM;
@@ -135,7 +135,7 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
 }
 
 void level_interface::alloc(const BoxArray& Im, const Box& Domain,
-			    amr_boundary bdy)
+			    const amr_boundary_class& bdy)
 {
   if (ok())
     BoxLib::Error("level_interface::alloc---this object already allocated");
@@ -156,8 +156,8 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 
   for (igrid = 0; igrid < im.length(); igrid++) {
     for (i = 0; i < BL_SPACEDIM; i++) {
-      IntVect t = cellvect;
-      t.setVal(i, BOX_NODE);
+      IntVect t = IntVect::TheCellVector();
+      t.setVal(i, IndexType::NODE);
       add(bl, bdryLo(im[igrid], i).convert(t));
       add(bl, bdryHi(im[igrid], i).convert(t));
     }
@@ -174,10 +174,10 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   for (iface = 0; iface < nbx[2]; iface++) {
     for (i = 0; i < BL_SPACEDIM; i++) {
       IntVect t = bx[2][iface].type();
-      if (t[i] == BOX_NODE)
+      if (t[i] == IndexType::NODE)
 	continue;
       else
-	t.setVal(i, BOX_NODE);
+	t.setVal(i, IndexType::NODE);
       add(bl, bdryLo(bx[2][iface], i).convert(t));
       add(bl, bdryHi(bx[2][iface], i).convert(t));
     }
@@ -193,7 +193,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   for (iedge = 0; iedge < nbx[1]; iedge++) {
     IntVect t = bx[1][iedge].type();
     for (i = 0; i < BL_SPACEDIM; i++) {
-      if (t[i] == BOX_NODE)
+      if (t[i] == IndexType::NODE)
 	continue;
       ins(bl, bdryLo(bx[1][iedge], i));
       ins(bl, bdryHi(bx[1][iedge], i));
@@ -209,7 +209,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   for (iface = 0; iface < nbx[FACEDIM]; iface++) {
     IntVect t = bx[FACEDIM][iface].type();
     for (i = 0; i < BL_SPACEDIM; i++) {
-      if (t[i] == BOX_NODE)
+      if (t[i] == IndexType::NODE)
 	fdm[iface] = i;
     }
   }
@@ -220,7 +220,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
   for (iface = 0; iface < nbx[idim]; iface++) {
     Box b = bx[idim][iface];
     int id = fdm[iface];
-    b.growLo(id, 1).convert(cellvect);
+    b.growLo(id, 1).convert(IntVect::TheCellVector());
     int imask = 1;
     flg[idim][iface] = 0;
     for (i = 0; i < N_FACE_GRIDS; i++) {
@@ -260,12 +260,12 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
     Box b = bx[idim][iedge];
     IntVect t = b.type();
     int id = 0;
-    if (t[id] == BOX_CELL)
+    if (t[id] == IndexType::CELL)
       id++;
     int jd = id + 1;
-    if (t[jd] == BOX_CELL)
+    if (t[jd] == IndexType::CELL)
       jd++;
-    b.growLo(id, 1).growLo(jd, 1).convert(cellvect);
+    b.growLo(id, 1).growLo(jd, 1).convert(IntVect::TheCellVector());
     int imask = 1;
     flg[idim][iedge] = 0;
     for (i = 0; i < N_EDGE_GRIDS; i++) {
@@ -310,7 +310,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
 #if (BL_SPACEDIM == 3)
     b.growLo(2, 1);
 #endif
-    b.growLo(0, 1).growLo(1, 1).convert(cellvect);
+    b.growLo(0, 1).growLo(1, 1).convert(IntVect::TheCellVector());
     int imask = 1;
     flg[idim][icor] = 0;
     for (i = 0; i < N_CORNER_GRIDS; i++) {
@@ -353,7 +353,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
     nodebx[i] = new Box[nbx[i]];
     for (iface = 0; iface < nbx[i]; iface++) {
       nodebx[i][iface] = bx[i][iface];
-      nodebx[i][iface].convert(nodevect);
+      nodebx[i][iface].convert(IntVect::TheNodeVector());
     }
   }
 
@@ -363,7 +363,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain,
     //pf[igrid] = im.boxn(igrid);
     //pf[igrid].grow(-1);
     pf[igrid] = im[igrid];
-    pf[igrid].convert(nodevect).grow(-1);
+    pf[igrid].convert(IntVect::TheNodeVector()).grow(-1);
   }
 
   idim = FACEDIM;
@@ -500,7 +500,7 @@ void level_interface::add(List<Box>& bl, Box b, int startgrid)
     ibox.convert(t);
     if (ibox.intersects(b) && !ibox.contains(b)) {
       for (int i = 0; i < BL_SPACEDIM; i++) {
-	if (t[i] == BOX_CELL) {
+	if (t[i] == IndexType::CELL) {
 	  if (ibox.smallEnd(i) > b.smallEnd(i)) {
 	    Box c = b.chop(i, ibox.smallEnd(i));
 	    add(bl, b, igrid + 1);
@@ -537,31 +537,31 @@ void level_interface::xfer(List<Box>& bl, int idim)
   ListIterator<Box> bn(bl);
   for ( ; bn; bn++, i++) {
     bx[idim][i] = bn();
-    btmp = grow(bn(), bn().type()).convert(cellvect);
+    btmp = grow(bn(), bn().type()).convert(IntVect::TheCellVector());
     IntVect tmp = btmp.smallEnd();
     if (dom.contains(btmp)) {
       ge[idim][i]  = im.contains(tmp);
 #if (BL_SPACEDIM == 2)
-      tmp += Iv(1,0);
+      tmp += IntVect(1,0);
       ge[idim][i] |= im.contains(tmp) << 1;
-      tmp += Iv(-1,1);
+      tmp += IntVect(-1,1);
       ge[idim][i] |= im.contains(tmp) << 2;
-      tmp += Iv(1,0);
+      tmp += IntVect(1,0);
       ge[idim][i] |= im.contains(tmp) << 3;
 #else
-      tmp += Iv(1,0,0);
+      tmp += IntVect(1,0,0);
       ge[idim][i] |= im.contains(tmp) << 1;
-      tmp += Iv(-1,1,0);
+      tmp += IntVect(-1,1,0);
       ge[idim][i] |= im.contains(tmp) << 2;
-      tmp += Iv(1,0,0);
+      tmp += IntVect(1,0,0);
       ge[idim][i] |= im.contains(tmp) << 3;
-      tmp += Iv(-1,-1,1);
+      tmp += IntVect(-1,-1,1);
       ge[idim][i] |= im.contains(tmp) << 4;
-      tmp += Iv(1,0,0);
+      tmp += IntVect(1,0,0);
       ge[idim][i] |= im.contains(tmp) << 5;
-      tmp += Iv(-1,1,0);
+      tmp += IntVect(-1,1,0);
       ge[idim][i] |= im.contains(tmp) << 6;
-      tmp += Iv(1,0,0);
+      tmp += IntVect(1,0,0);
       ge[idim][i] |= im.contains(tmp) << 7;
 #endif
     }
@@ -570,44 +570,44 @@ void level_interface::xfer(List<Box>& bl, int idim)
       ge[idim][i]  = ( is_in && im.contains(tmp) ||
 		      !is_in && em.contains(tmp));
 #if (BL_SPACEDIM == 2)
-      tmp += Iv(1,0);
+      tmp += IntVect(1,0);
       is_in = dom.contains(tmp);
       ge[idim][i] |= ( is_in && im.contains(tmp) ||
 		      !is_in && em.contains(tmp)) << 1;
-      tmp += Iv(-1,1);
+      tmp += IntVect(-1,1);
       is_in = dom.contains(tmp);
       ge[idim][i] |= ( is_in && im.contains(tmp) ||
 		      !is_in && em.contains(tmp)) << 2;
-      tmp += Iv(1,0);
+      tmp += IntVect(1,0);
       is_in = dom.contains(tmp);
       ge[idim][i] |= ( is_in && im.contains(tmp) ||
 		      !is_in && em.contains(tmp)) << 3;
 #else
-      tmp += Iv(1,0,0);
+      tmp += IntVect(1,0,0);
       is_in = dom.contains(tmp);
       ge[idim][i] |= ( is_in && im.contains(tmp) ||
 		      !is_in && em.contains(tmp)) << 1;
-      tmp += Iv(-1,1,0);
+      tmp += IntVect(-1,1,0);
       is_in = dom.contains(tmp);
       ge[idim][i] |= ( is_in && im.contains(tmp) ||
 		      !is_in && em.contains(tmp)) << 2;
-      tmp += Iv(1,0,0);
+      tmp += IntVect(1,0,0);
       is_in = dom.contains(tmp);
       ge[idim][i] |= ( is_in && im.contains(tmp) ||
 		      !is_in && em.contains(tmp)) << 3;
-      tmp += Iv(-1,-1,1);
+      tmp += IntVect(-1,-1,1);
       is_in = dom.contains(tmp);
       ge[idim][i] |= ( is_in && im.contains(tmp) ||
 		      !is_in && em.contains(tmp)) << 4;
-      tmp += Iv(1,0,0);
+      tmp += IntVect(1,0,0);
       is_in = dom.contains(tmp);
       ge[idim][i] |= ( is_in && im.contains(tmp) ||
 		      !is_in && em.contains(tmp)) << 5;
-      tmp += Iv(-1,1,0);
+      tmp += IntVect(-1,1,0);
       is_in = dom.contains(tmp);
       ge[idim][i] |= ( is_in && im.contains(tmp) ||
 		      !is_in && em.contains(tmp)) << 6;
-      tmp += Iv(1,0,0);
+      tmp += IntVect(1,0,0);
       is_in = dom.contains(tmp);
       ge[idim][i] |= ( is_in && im.contains(tmp) ||
 		      !is_in && em.contains(tmp)) << 7;
@@ -635,7 +635,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
   }
 
   Box idomain = dom;
-  idomain.convert(nodevect).grow(-1);
+  idomain.convert(IntVect::TheNodeVector()).grow(-1);
 
   j = -1;
   while (++j < nbx[idim] && ge[idim][j] == ALL);
@@ -659,11 +659,11 @@ void level_interface::xfer(List<Box>& bl, int idim)
   else {
     for (i = 0; i < j; i++) {
       btmp = bx[idim][i];
-      btmp.convert(nodevect);
+      btmp.convert(IntVect::TheNodeVector());
       if (!btmp.intersects(idomain)) {
 	while (--j > i) {
 	  btmp = bx[idim][j];
-	  btmp.convert(nodevect);
+	  btmp.convert(IntVect::TheNodeVector());
 	  if (btmp.intersects(idomain)) {
 	    btmp = bx[idim][j];
 	    bx[idim][j] = bx[idim][i];
@@ -679,7 +679,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
     j = -1;
     while (++j < nff) {
       btmp = bx[idim][j];
-      btmp.convert(nodevect);
+      btmp.convert(IntVect::TheNodeVector());
       if (!btmp.intersects(idomain))
 	break;
     }
@@ -687,9 +687,9 @@ void level_interface::xfer(List<Box>& bl, int idim)
 
     // Sort interior faces according to orientation, x first
     for (i = 0; i < j; i++) {
-      if (bx[idim][i].type(0) == BOX_CELL) {
+      if (bx[idim][i].type(0) == IndexType::CELL) {
 	while (--j > i) {
-	  if (bx[idim][j].type(0) == BOX_NODE) {
+	  if (bx[idim][j].type(0) == IndexType::NODE) {
 	    btmp = bx[idim][j];
 	    bx[idim][j] = bx[idim][i];
 	    bx[idim][i] = btmp;
@@ -701,10 +701,10 @@ void level_interface::xfer(List<Box>& bl, int idim)
 #if (BL_SPACEDIM == 3)
     j = nin;
     for (i = 0; i < j; i++) {
-      if (bx[idim][i].type(0) == BOX_CELL) {
-	if (bx[idim][i].type(1) == BOX_CELL) {
+      if (bx[idim][i].type(0) == IndexType::CELL) {
+	if (bx[idim][i].type(1) == IndexType::CELL) {
 	  while (--j > i) {
-	    if (bx[idim][j].type(1) == BOX_NODE) {
+	    if (bx[idim][j].type(1) == IndexType::NODE) {
 	      btmp = bx[idim][j];
 	      bx[idim][j] = bx[idim][i];
 	      bx[idim][i] = btmp;
@@ -719,9 +719,9 @@ void level_interface::xfer(List<Box>& bl, int idim)
     // Sort exterior faces according to orientation, x first
     j = nff;
     for (i = nin; i < j; i++) {
-      if (bx[idim][i].type(0) == BOX_CELL) {
+      if (bx[idim][i].type(0) == IndexType::CELL) {
 	while (--j > i) {
-	  if (bx[idim][j].type(0) == BOX_NODE) {
+	  if (bx[idim][j].type(0) == IndexType::NODE) {
 	    btmp = bx[idim][j];
 	    bx[idim][j] = bx[idim][i];
 	    bx[idim][i] = btmp;
@@ -733,10 +733,10 @@ void level_interface::xfer(List<Box>& bl, int idim)
 #if (BL_SPACEDIM == 3)
     j = nff;
     for (i = nin; i < j; i++) {
-      if (bx[idim][i].type(0) == BOX_CELL) {
-	if (bx[idim][i].type(1) == BOX_CELL) {
+      if (bx[idim][i].type(0) == IndexType::CELL) {
+	if (bx[idim][i].type(1) == IndexType::CELL) {
 	  while (--j > i) {
-	    if (bx[idim][j].type(1) == BOX_NODE) {
+	    if (bx[idim][j].type(1) == IndexType::NODE) {
 	      btmp = bx[idim][j];
 	      bx[idim][j] = bx[idim][i];
 	      bx[idim][i] = btmp;

@@ -2,7 +2,7 @@
 #define _HG_MULTI_H_
 
 //
-// $Id: hg_multi.H,v 1.8 1997-10-03 23:37:35 car Exp $
+// $Id: hg_multi.H,v 1.9 1997-10-08 20:15:52 car Exp $
 //
 
 #include <amr_multi.H>
@@ -24,8 +24,8 @@ class holy_grail_interpolator_class
  public:
   holy_grail_interpolator_class(Real **Sigptr, const Box& Sigbox)
     : sigptr(Sigptr), sigbox(Sigbox) { }
-  void fill(Fab& patch, const Box& region,
-	    Fab& cgr, const Box& cb, const IntVect& rat) const;
+  void fill(FArrayBox& patch, const Box& region,
+	    FArrayBox& cgr, const Box& cb, const IntVect& rat) const;
 };
 
 #  else
@@ -39,8 +39,8 @@ class holy_grail_interpolator_class
  public:
   holy_grail_interpolator_class(Real *Sigptr, const Box& Sigbox)
     : sigptr(Sigptr), sigbox(Sigbox) { }
-  void fill(Fab& patch, const Box& region,
-	    Fab& cgr, const Box& cb, const IntVect&) const;
+  void fill(FArrayBox& patch, const Box& region,
+	    FArrayBox& cgr, const Box& cb, const IntVect&) const;
 };
 
 #  endif
@@ -50,8 +50,8 @@ class holy_grail_sigma_restrictor_class
 {
  public:
   holy_grail_sigma_restrictor_class() { }
-  void fill(Fab& patch, const Box& region,
-	    Fab& fgr, const IntVect& rat) const;
+  void fill(FArrayBox& patch, const Box& region,
+	    FArrayBox& fgr, const IntVect& rat) const;
 };
 
 const holy_grail_sigma_restrictor_class holy_grail_sigma_restrictor;
@@ -62,7 +62,7 @@ class holy_grail_amr_multigrid
     : public amr_multigrid
 {
  protected:
-  amr_fluid_boundary boundary;
+  const amr_fluid_boundary_class& boundary;
   PArray<MultiFab> sigma, sigma_nd[BL_SPACEDIM], sigma_node, cen;
   Real (*h)[BL_SPACEDIM];
 
@@ -83,15 +83,15 @@ class holy_grail_amr_multigrid
   // sync caches:
 
   Box **fres_fbox, **fres_cbox, **fres_sfbox, **fres_scbox, **fres_creg;
-  PArray<Fab> *fres_sc, *fres_dc;
+  PArray<FArrayBox> *fres_sc, *fres_dc;
   int **fres_flag;
 #if (BL_SPACEDIM == 3)
   Box **eres_fbox, **eres_cbox, **eres_sfbox, **eres_scbox, **eres_creg;
-  PArray<Fab> *eres_sf, *eres_sc, *eres_df, *eres_dc;
+  PArray<FArrayBox> *eres_sf, *eres_sc, *eres_df, *eres_dc;
   int **eres_flag;
 #endif
   Box **cres_fbox, **cres_cbox, **cres_sfbox, **cres_scbox, **cres_creg;
-  PArray<Fab> *cres_sf, *cres_sc, *cres_df, *cres_dc;
+  PArray<FArrayBox> *cres_sf, *cres_sc, *cres_df, *cres_dc;
   int **cres_flag;
 
   // orderings for full-level line solves:
@@ -135,7 +135,7 @@ class holy_grail_amr_multigrid
   holy_grail_amr_multigrid(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
 			   const Box& fdomain,
 			   int Lev_min_min, int Lev_min_max, int Lev_max_max,
-			   amr_fluid_boundary Boundary, int Pcode,
+			   const amr_fluid_boundary_class& Boundary, int Pcode,
 			   bool cache_)
     : amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
 		    Boundary.pressure(), Pcode),

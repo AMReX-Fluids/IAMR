@@ -2,7 +2,7 @@
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.4 1997-09-26 16:57:02 lijewski Exp $
+// $Id: MacProj.H,v 1.5 1997-10-08 20:15:38 car Exp $
 //
 
 #include <BC_TYPES.H>
@@ -30,7 +30,7 @@ public:
                        AmrLevel * level_data,
                        MultiFab &volume,
                        MultiFab *area,
-                       PArray<REAL> * _radius );
+                       PArray<Real> * _radius );
     
     void setup(int level);
     void cleanup(int level);
@@ -40,11 +40,11 @@ public:
     // -------------------------------------------------------------
     
     // the level advance mac projection
-    void mac_project(int level, MultiFab * u_mac, MultiFab & S, REAL dt,
-                     REAL prev_time, const MultiFab& divu, int have_divu);
+    void mac_project(int level, MultiFab * u_mac, MultiFab & S, Real dt,
+                     Real prev_time, const MultiFab& divu, int have_divu);
     
     // the sync solve
-    void mac_sync_solve(int level, MultiFab * u_mac, REAL dt, 
+    void mac_sync_solve(int level, MultiFab * u_mac, Real dt, 
                         MultiFab * rho_half, IntVect& fine_ratio);
     
     // computing the sync tendency
@@ -53,8 +53,8 @@ public:
                           MultiFab * rho_half, 
 			  FluxRegister* adv_flux_reg,
                           Array<int> is_conservative,
-                          REAL prev_time, REAL prev_pres_time, REAL dt,
-                          int NUM_STATE, REAL be_cn_theta,
+                          Real prev_time, Real prev_pres_time, Real dt,
+                          int NUM_STATE, Real be_cn_theta,
                           const int* increment_sync=NULL);
     
     void mac_sync_compute(int level, MultiFab * u_mac, 
@@ -63,7 +63,7 @@ public:
 			  MultiFab * rho_half,
 			  FluxRegister* adv_flux_reg,
 			  Array<int> is_conservative, 
-			  REAL dt);
+			  Real dt);
 
 protected: // ======================== protected member functions
 
@@ -97,7 +97,7 @@ protected: // ======================== protected data members
     
     //-------------- radius data
     int  radius_grow;
-    PArray< PArray<REAL> > radius;
+    PArray< PArray<Real> > radius;
 
     //-------------- parameters
     int  finest_level;
@@ -106,9 +106,9 @@ protected: // ======================== protected data members
     static int use_cg_solve;
     static int use_viscosity;
     
-    static REAL mac_tol;
-    static REAL mac_abs_tol;
-    static REAL mac_sync_tol;
+    static Real mac_tol;
+    static Real mac_abs_tol;
+    static Real mac_sync_tol;
     static int do_outflow_bcs;
 
 #if 1

@@ -2,7 +2,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.5 1997-10-01 01:03:15 car Exp $
+// $Id: StateData.H,v 1.6 1997-10-08 20:15:45 car Exp $
 //
 
 #include <Box.H>
@@ -22,7 +22,7 @@ for the current and previous time step
 */
 
     struct TimeInterval {
-	REAL start, stop;
+	Real start, stop;
     };
 
 protected:
@@ -31,7 +31,7 @@ protected:
     const StateDescriptor  *desc;
 
 //  problem domain
-    BOX        domain;
+    Box        domain;
 
 //  grids defined at this level
     BoxArray           grids;
@@ -62,16 +62,16 @@ public:
     StateData();
 
 //  constructor
-    StateData(const BOX& p_domain, const BoxArray& grds,
+    StateData(const Box& p_domain, const BoxArray& grds,
               const StateDescriptor* d,
-              REAL cur_time, REAL dt);
+              Real cur_time, Real dt);
 //  destructor
     ~StateData();
 
 //  initialize data members
-    void define(const BOX& p_domain, const BoxArray& grds,
+    void define(const Box& p_domain, const BoxArray& grds,
                 const StateDescriptor &d, 
-                REAL cur_time, REAL dt);
+                Real cur_time, Real dt);
 //
     void restart( istream &is, const StateDescriptor &d);
 //
@@ -83,15 +83,15 @@ public:
 //
     void reset();
 //
-    void swapTimeLevels(REAL dt);
+    void swapTimeLevels(Real dt);
 //
-    void setTimeLevel(REAL t_new, REAL dt_old, REAL dt_new);
+    void setTimeLevel(Real t_new, Real dt_old, Real dt_new);
 
     void RegisterData(MultiFabCopyDescriptor &multiFabCopyDesc,
                       Array<MultiFabId> &mfid);
 
 //  interpolation routine
-    void linInterp(FArrayBox& dest, const BOX& subbox, REAL time,
+    void linInterp(FArrayBox& dest, const Box& subbox, Real time,
                    int src_comp, int dest_comp, int num_comp,
                    bool extrap = false);
 
@@ -99,25 +99,25 @@ public:
                    Array<MultiFabId> &mfid,
                    BoxList &returnedUnfillableBoxes,
                    Array<FillBoxId> &returnedFillBoxIds,
-                   const BOX &subbox,
-                   REAL time, int src_comp, int dest_comp, int num_comp,
+                   const Box &subbox,
+                   Real time, int src_comp, int dest_comp, int num_comp,
                    bool extrap = false);
 
     void linInterpFillFab(MultiFabCopyDescriptor &fabCopyDesc,
                    const Array<MultiFabId> &mfid,
                    const Array<FillBoxId> &fillBoxIds,
                    FArrayBox &dest,
-                   REAL time,
+                   Real time,
                    int src_comp, int dest_comp, int num_comp,
                    bool extrap = false);
 
 //  set physical bndry values for all state variables in range
-    void FillBoundary(FArrayBox& dest, REAL time, const REAL* dx,
+    void FillBoundary(FArrayBox& dest, Real time, const Real* dx,
                    const RealBox& prob_domain, int dest_comp,
                    int src_comp, int num_comp = 1);
 
 //  set physical bndry values for all state variables in range
-    void FillBoundary(const REAL* dx, const RealBox& prob_domain,
+    void FillBoundary(const Real* dx, const RealBox& prob_domain,
                    int src_comp, int num_comp = 1, int do_new=1);
 
 ///
@@ -128,13 +128,13 @@ public:
 ///
     const StateDescriptor* descriptor() {return desc; }
 ///
-    const BOX& getDomain() { return domain; }
+    const Box& getDomain() { return domain; }
 ///
     const BoxArray& boxArray() { return grids; }
 ///
-    REAL curTime() { return 0.5*(new_time.start + new_time.stop); }
+    Real curTime() { return 0.5*(new_time.start + new_time.stop); }
 ///
-    REAL prevTime() { return 0.5*(old_time.start + old_time.stop); }
+    Real prevTime() { return 0.5*(old_time.start + old_time.stop); }
 ///
     MultiFab& newData() { return *new_data; };
 ///

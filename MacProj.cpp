@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.7 1997-10-01 01:03:10 car Exp $
+// $Id: MacProj.cpp,v 1.8 1997-10-08 20:15:38 car Exp $
 //
 
 #include <Misc.H>
@@ -29,11 +29,11 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
-REAL* fabdat = (fab).dataPtr();
+Real* fabdat = (fab).dataPtr();
 #define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
-const REAL* fabdat = (fab).dataPtr();
+const Real* fabdat = (fab).dataPtr();
 
 #define GEOM_GROW 1
 #define HYP_GROW 3
@@ -48,9 +48,9 @@ const REAL* fabdat = (fab).dataPtr();
 int  MacProj::use_viscosity    = 1;
 int  MacProj::verbose          = false;
 int  MacProj::use_cg_solve     = 0;
-REAL MacProj::mac_tol          = 1.0e-8;
-REAL MacProj::mac_abs_tol      = 1.0e-15;
-REAL MacProj::mac_sync_tol     = 1.0e-8;
+Real MacProj::mac_tol          = 1.0e-8;
+Real MacProj::mac_abs_tol      = 1.0e-15;
+Real MacProj::mac_sync_tol     = 1.0e-8;
 int  MacProj::do_outflow_bcs   = 1;
 int  MacProj::fix_mac_sync_rhs = 0;
 
@@ -110,7 +110,7 @@ void MacProj::read_params()
 
 void MacProj::install_level(int level, AmrLevel * level_data,
 			    MultiFab &_volume, MultiFab *_area,
-			    PArray<REAL> * _radius )
+			    PArray<Real> * _radius )
 {
   if (verbose) {
     cout << "Installing MacProj level " << level << NL;
@@ -162,7 +162,7 @@ void MacProj::BuildPhiBC(int level)
 
   int ngrds = grids.length();
   phi_bcs[level].resize(ngrds);
-  const BOX& domain = geom.Domain();
+  const Box& domain = geom.Domain();
   const int* domlo = domain.loVect();
   const int* domhi = domain.hiVect();
 
@@ -228,7 +228,7 @@ void MacProj::cleanup(int level)
 // ==================================================
 
 void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
-			  REAL dt, REAL time,
+			  Real dt, Real time,
 			  const MultiFab& divu, int have_divu)
 {
   if (verbose) {
@@ -239,7 +239,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
   const Geometry& geom  = parent->Geom(level);
   IntVect crse_ratio = (level > 0) ? 
        parent->refRatio(level-1) : IntVect::TheZeroVector();
-  const REAL* dx = geom.CellSize();
+  const Real* dx = geom.CellSize();
 
   MultiFab *mac_phi;
   int max_level=parent->maxLevel();
@@ -255,7 +255,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
   mac_phi->setVal(0.0);
   //mac_phi->setCacheWidth(1);
 
-  //REAL hx = dx[0];
+  //Real hx = dx[0];
 
 #if (BL_SPACEDIM == 2)
   int outflow_at_top = phys_bc->lo(0) != Outflow && phys_bc->lo(1) != Outflow && 
@@ -293,7 +293,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
   //-----------------------------------------------------------------
 
   // initialize the rhs with divu
-  REAL rhs_scale = 2.0/dt;
+  Real rhs_scale = 2.0/dt;
   MultiFab Rhs(grids,1,0,Fab_allocate);
   Rhs.copy(divu);
 
@@ -317,7 +317,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
   if (level < finest_level) {
     FluxRegister& mr = mac_reg[level+1];
     mr.setVal(0.0);
-    REAL mult = -1.0;
+    Real mult = -1.0;
     for (int dir = 0; dir < BL_SPACEDIM; dir++) {
       mr.CrseInit(u_mac[dir],area[level][dir],dir,0,0,1,mult);
     }
@@ -331,7 +331,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
 
   // increment in fine grid velocity to velocity registers
   if (level > 0) {
-    REAL mult = 1.0/( (double) parent->MaxRefRatio(level-1) );
+    Real mult = 1.0/( (double) parent->MaxRefRatio(level-1) );
     for (int dir = 0; dir < BL_SPACEDIM; dir++) {
       mac_reg[level].FineAdd(u_mac[dir],area[level][dir],dir,0,0,1,mult);
     }
@@ -353,7 +353,7 @@ void MacProj::mac_project(int level, MultiFab* u_mac, MultiFab & S,
 // ==================================================
 
 void MacProj::mac_sync_solve(int level, MultiFab* u_mac, 
-			     REAL dt, MultiFab * rho_half, IntVect& fine_ratio)
+			     Real dt, MultiFab * rho_half, IntVect& fine_ratio)
 {
   if (verbose) {
     cout << "... mac_sync_solve at level " << level << NL;
@@ -364,7 +364,7 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
   const Geometry& geom  = parent->Geom(level);
   IntVect crse_ratio = (level > 0) ? 
        parent->refRatio(level-1) : IntVect::TheZeroVector();
-  const REAL* dx        = geom.CellSize();
+  const Real* dx        = geom.CellSize();
   int ngrds             = grids.length();
   const BoxArray& fine_boxes = LevelData[level+1].boxArray();
 
@@ -387,16 +387,16 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
   // set scale to -1
   // alloc space for Rhs
   FluxRegister& mr = mac_reg[level+1];
-  REAL scale       = -1.0;
+  Real scale       = -1.0;
   mr.Reflux(Rhs,volume[level],scale,0,0,1,geom);
 
   int nfine = fine_boxes.length();
   for (int kf = 0; kf < nfine; kf++) {
-      BOX bf(fine_boxes[kf]);
+      Box bf(fine_boxes[kf]);
       bf.coarsen(fine_ratio);
       for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
 	  assert(grids[Rhsmfi.index()] == Rhsmfi.validbox());
-          BOX bx(Rhsmfi.validbox());
+          Box bx(Rhsmfi.validbox());
           bx &= bf;
           if (bx.ok()) {
               Rhsmfi().setVal(0.0,bx,0);
@@ -409,7 +409,7 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
   // this code should go away when Marc makes this option
   // part of the multigrid code--rbp, 2/13/97
   if ( fix_mac_sync_rhs ) {
-    REAL sum = 0.0;
+    Real sum = 0.0;
     long size = 0;
     //int i;
     for(MultiFabIterator Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi) {
@@ -418,7 +418,7 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
     }
     ParallelDescriptor::ReduceRealSum(sum);
     ParallelDescriptor::ReduceLongSum(size);
-    REAL fix = sum / size;
+    Real fix = sum / size;
     cout << "Average correction = " << fix << NL;
     Rhs.plus( -fix, 0 );
     sum = 0;
@@ -455,7 +455,7 @@ void MacProj::mac_sync_solve(int level, MultiFab* u_mac,
 
   // now define edge centered coefficients and adjust RHS
   // for MAC solve
-  REAL rhs_scale = 2.0/dt;
+  Real rhs_scale = 2.0/dt;
 
   // solve the sync system
   //-----------------------------------------------------------------
@@ -486,14 +486,14 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 			       MultiFab * Vsync,  MultiFab * Ssync,
 			       MultiFab * rho_half,
 			       FluxRegister* adv_flux_reg,
-			       Array<int> is_conservative, REAL prev_time, 
-			       REAL pres_prev_time, REAL dt, 
-                               int NUM_STATE, REAL be_cn_theta,
+			       Array<int> is_conservative, Real prev_time, 
+			       Real pres_prev_time, Real dt, 
+                               int NUM_STATE, Real be_cn_theta,
                                const int* increment_sync)
 {
     // work variables
     int comp;
-    BOX b;
+    Box b;
     FArrayBox S, Rho, tforces, Gp;
     FArrayBox xflux, yflux, zflux, divu;
     FArrayBox grad_phi[BL_SPACEDIM];
@@ -501,7 +501,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
     // get parameters
     const BoxArray& grids  = LevelData[level].boxArray();
     const Geometry& geom   = parent->Geom(level);
-    const REAL *dx         = geom.CellSize();
+    const Real *dx         = geom.CellSize();
     int numscal            = NUM_STATE - BL_SPACEDIM;
     MultiFab *mac_sync_phi = &mac_phi_crse[level];
     NavierStokes& ns_level =  *(NavierStokes*) &(parent->getLevel(level));
@@ -548,7 +548,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 	int i = u_mac0mfi.index();
 
         // get the bounds
-	const BOX &grd = grids[i];
+	const Box &grd = grids[i];
 
         // Step 1: compute ucorr = grad(phi)/rhonph
         //---------------------------------------------------
@@ -560,7 +560,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
         grad_phi[2].resize(surroundingNodes(grd,2),1);
 #endif
 
-        REAL mult = dt/2.0;
+        Real mult = dt/2.0;
         mac_vel_update( 1,
                         grad_phi[0],
                         grad_phi[1],
@@ -602,7 +602,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
           godunov->Sum_tf_gp_visc( tvelforces, vel_visc_termsmfi(), Gp, Rho );
         }
         
-        // set up the workspace for the godunov BOX
+        // set up the workspace for the godunov Box
         godunov->Setup( grd, dx, dt, 0,
                         xflux, ns_level.getBCArray( State_Type,i,0,1),
                         yflux, ns_level.getBCArray( State_Type,i,1,1),
@@ -661,7 +661,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
         // include grad_phi in the mac registers corresponding
         // to the next coarsest interface
         if (level > 0) {
-            REAL mult =  -1.0/( (double) parent->MaxRefRatio(level-1));
+            Real mult =  -1.0/( (double) parent->MaxRefRatio(level-1));
             mac_reg[level].FineAdd(grad_phi[0], area0mfi(),
                                        0, i, 0, 0, 1, mult );
             mac_reg[level].FineAdd(grad_phi[1], area1mfi(),
@@ -699,7 +699,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
 			       MultiFab * rho_half,
 			       FluxRegister* adv_flux_reg,
 			       Array<int> is_conservative, 
-			       REAL dt)
+			       Real dt)
 {
     assert (comp>=BL_SPACEDIM);
 
@@ -713,7 +713,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
     // get parameters
     const BoxArray& grids  = LevelData[level].boxArray();
     const Geometry& geom   = parent->Geom(level);
-    const REAL *dx         = geom.CellSize();
+    const Real *dx         = geom.CellSize();
     MultiFab *mac_sync_phi = &mac_phi_crse[level];
     NavierStokes& ns_level =  *(NavierStokes*) &(parent->getLevel(level));
 
@@ -736,7 +736,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
         int i = Ssyncmfi.index();
 
         // get the bounds
-	const BOX &grd = grids[i];
+	const Box &grd = grids[i];
 
         // Step 1: compute ucorr = grad(phi)/rhonph
         //---------------------------------------------------
@@ -748,7 +748,7 @@ void MacProj::mac_sync_compute(int level, MultiFab * u_mac,
         grad_phi[2].resize(surroundingNodes(grd,2),1);
 #endif
 
-        REAL mult = dt/2.0;
+        Real mult = dt/2.0;
         mac_vel_update( 1,
                         grad_phi[0],
                         grad_phi[1],
@@ -811,7 +811,7 @@ void MacProj::check_div_cond(int level, MultiFab U_edge[]) const
   const BoxArray& grids = LevelData[level].boxArray();
 
   int ngrds = U_edge[0].length();
-  REAL sum = 0.0;
+  Real sum = 0.0;
 
   for(MultiFabIterator U_edge0mfi(U_edge[0]); U_edge0mfi.isValid(); ++U_edge0mfi) {
     DependentMultiFabIterator U_edge1mfi(U_edge0mfi, U_edge[1]);
@@ -862,7 +862,7 @@ void MacProj::check_div_cond(int level, MultiFab U_edge[]) const
 		vol_dat,ARLIM(vlo),ARLIM(vhi));
 #endif
     if (verbose) {
-      REAL g_norm = dmac.norm(0);
+      Real g_norm = dmac.norm(0);
       cout << "Max norm of div(U_edge) for grid  " << U_edge0mfi.index() << " = "
 	   << g_norm << NL;
       sum += dmac.sum(0);
@@ -884,20 +884,20 @@ void MacProj::set_outflow_bcs(int level,
 #if (BL_SPACEDIM == 2)
   int ngrds = grids.length();
 
-  const REAL* dx = geom.CellSize();
-  REAL hx = dx[0];
+  const Real* dx = geom.CellSize();
+  Real hx = dx[0];
   if(level==0 && ngrds==1) {
 
     // WORKS FOR SINGLE GRID ONLY
 
     int i = 0;
-    BOX rbox = grids[i];
+    Box rbox = grids[i];
     int rlen  = rbox.length(0);
-    BOX redge_box(rbox);
+    Box redge_box(rbox);
     redge_box.growHi(0,1);
-    Array<REAL> rcen;
+    Array<Real> rcen;
     rcen.resize(rlen);
-    Array<REAL> redge;
+    Array<Real> redge;
     redge.resize(rlen+1);
     if (CoordSys::IsRZ() == 1) {
       geom.GetCellLoc(rcen,rbox, 0);
@@ -916,7 +916,7 @@ void MacProj::set_outflow_bcs(int level,
     const int* redge_hi = redge_box.hiVect();
     DEF_CLIMITS(divu[i],divudat,divu_lo,divu_hi);
     DEF_CLIMITS((*u_mac)[i],udat,u_lo,u_hi);
-    REAL* uhalfx = u_mac[0][i].dataPtr();
+    Real* uhalfx = u_mac[0][i].dataPtr();
     DEF_CLIMITS(S[i],rho,rho_lo,rho_hi);
     rho = S[i].dataPtr(Density);
     DEF_LIMITS((*mac_phi)[i],phi,phi_lo,phi_hi);
@@ -927,24 +927,24 @@ void MacProj::set_outflow_bcs(int level,
 		  ARLIM(redge_lo),ARLIM(redge_hi),redge.dataPtr(),
 		  &hx,ARLIM(phi_lo),ARLIM(phi_hi),phi);
   } else if(level==0) {
-    const REAL* dx = parent->Geom(0).CellSize();
-    REAL hx = dx[0];
-    const BOX& domain = parent->Geom(0).Domain();
+    const Real* dx = parent->Geom(0).CellSize();
+    Real hx = dx[0];
+    const Box& domain = parent->Geom(0).Domain();
     IntVect bigend = domain.bigEnd();
     IntVect smallend = domain.smallEnd();
     int jhi = domain.bigEnd(1);
     smallend.setVal(1,jhi);
-    BOX top_strip(smallend,bigend,IntVect::TheCellVector());
+    Box top_strip(smallend,bigend,IntVect::TheCellVector());
 
     FArrayBox divu_strip(top_strip,1);
-    BOX top_vel_strip = top_strip;
+    Box top_vel_strip = top_strip;
     top_vel_strip.growLo(0,1);
     top_vel_strip.shiftHalf(0,1);
     FArrayBox mac_vel_strip(top_vel_strip,1);
-    BOX top_rho_strip = top_strip;
+    Box top_rho_strip = top_strip;
     top_rho_strip.grow(1);
     FArrayBox rho_strip(top_rho_strip,1);
-    BOX top_phi_strip = top_strip;
+    Box top_phi_strip = top_strip;
     top_phi_strip.grow(0,1);
     top_phi_strip.growHi(1,1);
     FArrayBox mac_phi_strip(top_phi_strip,1);
@@ -956,10 +956,10 @@ void MacProj::set_outflow_bcs(int level,
       DependentMultiFabIterator u_mac0mfi(Smfi, u_mac[0]);
       assert(grids[Smfi.index()] == Smfi.validbox());
 
-      BOX destbox = Smfi.validbox();
+      Box destbox = Smfi.validbox();
       destbox.grow(0,1);
       destbox &= top_rho_strip;
-      BOX srcbox = destbox;
+      Box srcbox = destbox;
       if(destbox.ok()) {
 	rho_strip.copy(Smfi(),srcbox,Density,destbox,0,1);
       }
@@ -981,13 +981,13 @@ void MacProj::set_outflow_bcs(int level,
       }
     }
 
-    BOX rbox = top_strip;
+    Box rbox = top_strip;
     int rlen  = rbox.length(0);
-    BOX redge_box(rbox);
+    Box redge_box(rbox);
     redge_box.growHi(0,1);
-    Array<REAL> rcen;
+    Array<Real> rcen;
     rcen.resize(rlen);
-    Array<REAL> redge;
+    Array<Real> redge;
     redge.resize(rlen+1);
     if (CoordSys::IsRZ() == 1) {
       geom.GetCellLoc(rcen,rbox, 0);

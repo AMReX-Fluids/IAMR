@@ -1,6 +1,6 @@
 
 //
-// $Id: Cluster.cpp,v 1.6 1997-10-03 23:37:31 car Exp $
+// $Id: Cluster.cpp,v 1.7 1997-10-08 20:15:24 car Exp $
 //
 
 #include <Cluster.H>
@@ -25,7 +25,7 @@ Cluster::~Cluster()
 // ------------------------------------------------------------
 // construct new cluster by removing all points from c
 // that lie in box b.  
-Cluster::Cluster(Cluster &c,const BOX& b) 
+Cluster::Cluster(Cluster &c,const Box& b) 
     : ar(0)
 {
     assert( b.ok() );
@@ -34,7 +34,7 @@ Cluster::Cluster(Cluster &c,const BOX& b)
 	bx = c.bx;
 	ar = c.ar;
 	c.ar = 0;
-	c.bx = BOX();
+	c.bx = Box();
 	return;
     }
     int len = c.ar->length();
@@ -52,12 +52,12 @@ Cluster::Cluster(Cluster &c,const BOX& b)
     }
     if (nlen == 0) {
 	ar = 0;
-	bx = BOX();
+	bx = Box();
     } else if (nlen == len) {
 	bx = c.bx;
 	ar = c.ar;
 	c.ar = 0;
-	c.bx = BOX();
+	c.bx = Box();
     } else {
 	ar = new Array<IntVect>(nlen);
 	Array<IntVect> *car = new Array<IntVect>(len-nlen);
@@ -104,7 +104,7 @@ Cluster::distribute(ClusterList &clst, const BoxDomain &bd)
 
 // ------------------------------------------------------------
 int
-Cluster::numTag(const BOX& b)
+Cluster::numTag(const Box& b)
 {
     int cnt = 0;
     int i;
@@ -121,7 +121,7 @@ Cluster::minBox()
 {
     int len = ar->length();
     if (len == 0) {
-	bx = BOX();
+	bx = Box();
 	return;
     }
     IntVect lo = (*ar)[0];
@@ -132,7 +132,7 @@ Cluster::minBox()
 	lo.min(p);
 	hi.max(p);
     }
-    bx = BOX(lo,hi);
+    bx = Box(lo,hi);
 }
 
 // ------------------------------------------------------------
@@ -380,7 +380,7 @@ ClusterList::intersect(const BoxDomain& dom)
     ListIterator<Cluster*> cli(lst);
     while (cli) {
 	Cluster* c = cli();
-	const BOX& cbox = c->box();
+	const Box& cbox = c->box();
 	if (dom.contains(cbox)) {
 	    ++cli;
 	} else {

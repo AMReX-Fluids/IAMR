@@ -10,8 +10,8 @@
 void mac_level_driver( const MacBndry &mac_bndry,
                        const BoxArray &grids,
                        int use_cg_solve, int level, int Density,
-                       const REAL *dx, REAL dt,
-                       REAL mac_tol, REAL mac_abs_tol, REAL rhs_scale,
+                       const Real *dx, Real dt,
+                       Real mac_tol, Real mac_abs_tol, Real rhs_scale,
                        MultiFab *area,  MultiFab &volume,
                        MultiFab &S,     MultiFab &Rhs,
                        MultiFab *u_mac, MultiFab *mac_phi );
@@ -20,8 +20,8 @@ void mac_level_driver( const MacBndry &mac_bndry,
 void mac_sync_driver( const MacBndry &mac_bndry,
                       const BoxArray &grids,
                       int use_cg_solve, int level, 
-                      const REAL *dx, REAL dt,
-                      REAL mac_sync_tol, REAL mac_abs_tol, REAL rhs_scale,
+                      const Real *dx, Real dt,
+                      Real mac_sync_tol, Real mac_abs_tol, Real rhs_scale,
                       MultiFab *area,  MultiFab &volume,
                       MultiFab &Rhs,   MultiFab *rho_half,
                       MultiFab *u_mac, MultiFab *mac_sync_phi );
@@ -37,7 +37,7 @@ void mac_vel_update( int init,
 #endif
                      const FArrayBox &phi,
                      const FArrayBox *rho, int rho_comp,  
-                     const BOX &grd, int level, int n,
-                     const REAL *dx, REAL scale );
+                     const Box &grd, int level, int n,
+                     const Real *dx, Real scale );
 
 #endif

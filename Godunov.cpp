@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.4 1997-10-01 01:03:07 car Exp $
+// $Id: Godunov.cpp,v 1.5 1997-10-08 20:15:30 car Exp $
 //
 
 //==========================================================
@@ -46,7 +46,7 @@ int Godunov::use_forces_in_trans = 0;
 // =============================================================
 
 // initialization of static members
-REAL Godunov::bogus_value = 5000000;
+Real Godunov::bogus_value = 5000000;
 
 // construct the Godunov Object
 Godunov::Godunov() :
@@ -140,17 +140,17 @@ void Godunov::SetScratch( int max_size )
     RemScratch();
     
     // construct arrays
-    stxlo  = new REAL[scr_size];
-    stxhi  = new REAL[scr_size];
-    slxscr = new REAL[scr_size];
+    stxlo  = new Real[scr_size];
+    stxhi  = new Real[scr_size];
+    slxscr = new Real[scr_size];
     
-    stylo  = new REAL[scr_size];
-    styhi  = new REAL[scr_size];
-    slyscr = new REAL[scr_size];
+    stylo  = new Real[scr_size];
+    styhi  = new Real[scr_size];
+    slyscr = new Real[scr_size];
 #ifdef ADD_W
-    stzlo  = new REAL[scr_size];
-    stzhi  = new REAL[scr_size];
-    slzscr = new REAL[scr_size];
+    stzlo  = new Real[scr_size];
+    stzhi  = new Real[scr_size];
+    slzscr = new Real[scr_size];
 #endif
 }
 
@@ -189,7 +189,7 @@ Godunov::~Godunov()
 // The amount of workspace needed in FArrayBox work is currently
 // 2*SDIM+1
 //
-void Godunov::Setup( const BOX &grd, const REAL *dx, REAL dt, int velpred,
+void Godunov::Setup( const Box &grd, const Real *dx, Real dt, int velpred,
                      FArrayBox &xflux, int *ubc,
                      FArrayBox &yflux, int *vbc,
 #ifdef ADD_W
@@ -202,12 +202,12 @@ void Godunov::Setup( const BOX &grd, const REAL *dx, REAL dt, int velpred,
     assert( U.nComp()    >= BL_SPACEDIM );
 
     // compute the edge boxes
-    xflux_bx = BOX(grd);
+    xflux_bx = Box(grd);
     xflux_bx.surroundingNodes(0);
-    yflux_bx = BOX(grd);
+    yflux_bx = Box(grd);
     yflux_bx.surroundingNodes(1);
 #ifdef ADD_W
-    zflux_bx = BOX(grd);
+    zflux_bx = Box(grd);
     zflux_bx.surroundingNodes(2);
 #endif
     
@@ -221,12 +221,12 @@ void Godunov::Setup( const BOX &grd, const REAL *dx, REAL dt, int velpred,
     }
 
     // ensure 1D scratch space is large enough
-    BOX test_bx(grow(grd,HYP_GROW));
+    Box test_bx(grow(grd,HYP_GROW));
     SetScratch( test_bx.longside() );
 
     // create the private advective velocities and the
-    // FAB workspace for the GODUNOV BOX
-    work_bx = BOX(grow(grd,1));
+    // FAB workspace for the GODUNOV Box
+    work_bx = Box(grow(grd,1));
     work.resize(work_bx,2*BL_SPACEDIM+1);
     uad.resize(work_bx,1);
     vad.resize(work_bx,1);
@@ -247,7 +247,7 @@ void Godunov::Setup( const BOX &grd, const REAL *dx, REAL dt, int velpred,
     work.setVal(  bogus_value );
     
     // ---------------------------- test the cell-centered velocities
-    // REAL u_max[3];
+    // Real u_max[3];
     // test_u_rho( S, rho, grd, dx, dt, u_max );
     
     // ---------------------------- create the bounds and pointers
@@ -258,27 +258,27 @@ void Godunov::Setup( const BOX &grd, const REAL *dx, REAL dt, int velpred,
     const int *w_lo = work.loVect();
     const int *w_hi = work.hiVect();
 
-    const REAL *u_dat   = U.dataPtr(XVEL);
-    const REAL *uad_dat = uad.dataPtr();
-    const REAL *v_dat   = U.dataPtr(YVEL);
-    const REAL *vad_dat = vad.dataPtr();
+    const Real *u_dat   = U.dataPtr(XVEL);
+    const Real *uad_dat = uad.dataPtr();
+    const Real *v_dat   = U.dataPtr(YVEL);
+    const Real *vad_dat = vad.dataPtr();
 #ifdef ADD_W
-    const REAL *w_dat   = U.dataPtr(ZVEL);
-    const REAL *wad_dat = wad.dataPtr();
-    const REAL *xhi_dat = work.dataPtr(1);
-    const REAL *yhi_dat = work.dataPtr(2);
-    const REAL *zhi_dat = work.dataPtr(3);
-    const REAL *slx_dat = work.dataPtr(4);
-    const REAL *sly_dat = work.dataPtr(5);
-    const REAL *slz_dat = work.dataPtr(6);
+    const Real *w_dat   = U.dataPtr(ZVEL);
+    const Real *wad_dat = wad.dataPtr();
+    const Real *xhi_dat = work.dataPtr(1);
+    const Real *yhi_dat = work.dataPtr(2);
+    const Real *zhi_dat = work.dataPtr(3);
+    const Real *slx_dat = work.dataPtr(4);
+    const Real *sly_dat = work.dataPtr(5);
+    const Real *slz_dat = work.dataPtr(6);
 #else
-    const REAL *xhi_dat = work.dataPtr(1);
-    const REAL *yhi_dat = work.dataPtr(2);
-    const REAL *slx_dat = work.dataPtr(3);
-    const REAL *sly_dat = work.dataPtr(4);
+    const Real *xhi_dat = work.dataPtr(1);
+    const Real *yhi_dat = work.dataPtr(2);
+    const Real *slx_dat = work.dataPtr(3);
+    const Real *sly_dat = work.dataPtr(4);
 #endif 
 
-    const REAL* tforcedat = NULL;
+    const Real* tforcedat = NULL;
     if(use_forces_in_trans) {
       tforcedat = tforces.dataPtr();
     }
@@ -310,7 +310,7 @@ void Godunov::Setup( const BOX &grd, const REAL *dx, REAL dt, int velpred,
 // compute the edge states using the advective transverse velocities
 // The amount of workspace needed in FArrayBox work is currently
 // 2*SDIM+1
-void Godunov::edge_states( const BOX &grd, const REAL *dx, REAL dt, int velpred,
+void Godunov::edge_states( const Box &grd, const Real *dx, Real dt, int velpred,
                            FArrayBox &uedge, FArrayBox &stx,
                            FArrayBox &vedge, FArrayBox &sty,
 #ifdef ADD_W               
@@ -320,7 +320,7 @@ void Godunov::edge_states( const BOX &grd, const REAL *dx, REAL dt, int velpred,
                            int fab_ind, int state_ind, int *bc )
 {
     // ---------------------------- error block
-    BOX tst = S.box();
+    Box tst = S.box();
     assert( tst.contains( work_bx ) );
 
     assert( U.nComp()       >= BL_SPACEDIM );
@@ -353,18 +353,18 @@ void Godunov::edge_states( const BOX &grd, const REAL *dx, REAL dt, int velpred,
     const int *ww_lo = work.loVect();
     const int *ww_hi = work.hiVect();
 
-    const REAL *s_dat   = S.dataPtr(fab_ind);
-    const REAL *u_dat   = U.dataPtr(XVEL);
-    const REAL *v_dat   = U.dataPtr(YVEL);
+    const Real *s_dat   = S.dataPtr(fab_ind);
+    const Real *u_dat   = U.dataPtr(XVEL);
+    const Real *v_dat   = U.dataPtr(YVEL);
     
-    const REAL *tfr_dat = tforces.dataPtr(fab_ind);
+    const Real *tfr_dat = tforces.dataPtr(fab_ind);
     
-    const REAL *uad_dat   = uad.dataPtr();
-    const REAL *vad_dat   = vad.dataPtr();
-    const REAL *uedge_dat = uedge.dataPtr();
-    const REAL *vedge_dat = vedge.dataPtr();
-    const REAL *stx_dat   = stx.dataPtr();
-    const REAL *sty_dat   = sty.dataPtr();
+    const Real *uad_dat   = uad.dataPtr();
+    const Real *vad_dat   = vad.dataPtr();
+    const Real *uedge_dat = uedge.dataPtr();
+    const Real *vedge_dat = vedge.dataPtr();
+    const Real *stx_dat   = stx.dataPtr();
+    const Real *sty_dat   = sty.dataPtr();
 
     // set work space to bogus values
     work.setVal(  bogus_value );
@@ -373,27 +373,27 @@ void Godunov::edge_states( const BOX &grd, const REAL *dx, REAL dt, int velpred,
 #ifdef ADD_W
     const int *w_lo = wedge.loVect();
     const int *w_hi = wedge.hiVect();
-    const REAL *w_dat     = U.dataPtr(ZVEL);
-    const REAL *wad_dat   = wad.dataPtr();
-    const REAL *wedge_dat = wedge.dataPtr();
-    const REAL *stz_dat   = stz.dataPtr();
+    const Real *w_dat     = U.dataPtr(ZVEL);
+    const Real *wad_dat   = wad.dataPtr();
+    const Real *wedge_dat = wedge.dataPtr();
+    const Real *stz_dat   = stz.dataPtr();
 
-    const REAL *xhi_dat = work.dataPtr(0);
-    const REAL *yhi_dat = work.dataPtr(0);
-    const REAL *zhi_dat = work.dataPtr(0);
-    const REAL *xlo_dat = work.dataPtr(1);
-    const REAL *ylo_dat = work.dataPtr(2);
-    const REAL *zlo_dat = work.dataPtr(3);
-    const REAL *slx_dat = work.dataPtr(4);
-    const REAL *sly_dat = work.dataPtr(5);
-    const REAL *slz_dat = work.dataPtr(6);
+    const Real *xhi_dat = work.dataPtr(0);
+    const Real *yhi_dat = work.dataPtr(0);
+    const Real *zhi_dat = work.dataPtr(0);
+    const Real *xlo_dat = work.dataPtr(1);
+    const Real *ylo_dat = work.dataPtr(2);
+    const Real *zlo_dat = work.dataPtr(3);
+    const Real *slx_dat = work.dataPtr(4);
+    const Real *sly_dat = work.dataPtr(5);
+    const Real *slz_dat = work.dataPtr(6);
 #else
-    const REAL *xhi_dat = work.dataPtr(0);
-    const REAL *yhi_dat = work.dataPtr(0);
-    const REAL *xlo_dat = work.dataPtr(1);
-    const REAL *ylo_dat = work.dataPtr(2);
-    const REAL *slx_dat = work.dataPtr(3);
-    const REAL *sly_dat = work.dataPtr(4);
+    const Real *xhi_dat = work.dataPtr(0);
+    const Real *yhi_dat = work.dataPtr(0);
+    const Real *xlo_dat = work.dataPtr(1);
+    const Real *ylo_dat = work.dataPtr(2);
+    const Real *slx_dat = work.dataPtr(3);
+    const Real *sly_dat = work.dataPtr(4);
 #endif
     // C component indices starts from 0, Fortran from 1
     int fort_ind = state_ind+1;  
@@ -421,7 +421,7 @@ void Godunov::edge_states( const BOX &grd, const REAL *dx, REAL dt, int velpred,
 
 // compute the edge states for The Mac projection
 // FArrayBox work sized as in edge_states
-void Godunov::ComputeUmac( const BOX &grd, const REAL *dx, REAL dt, 
+void Godunov::ComputeUmac( const Box &grd, const Real *dx, Real dt, 
                            FArrayBox &umac, int *ubc, 
                            FArrayBox &vmac, int *vbc, 
 #ifdef ADD_W
@@ -476,7 +476,7 @@ void Godunov::ComputeUmac( const BOX &grd, const REAL *dx, REAL dt,
 // advect a state component.
 // This routine assumes uad,vad,wad have been precomputed
 // FArrayBox work sized as in edge_states
-void Godunov::AdvectState( const BOX &grd, const REAL *dx, REAL dt, 
+void Godunov::AdvectState( const Box &grd, const Real *dx, Real dt, 
                            FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
                            FArrayBox &areay, FArrayBox &vedge, FArrayBox &yflux,  
 #ifdef ADD_W                               
@@ -517,7 +517,7 @@ void Godunov::AdvectState( const BOX &grd, const REAL *dx, REAL dt,
 
 
 // compute the advective derivative from fluxes
-void Godunov::ComputeAofs( const BOX &grd, 
+void Godunov::ComputeAofs( const Box &grd, 
                            FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
                            FArrayBox &areay, FArrayBox &vedge, FArrayBox &yflux,  
 #ifdef ADD_W                               
@@ -533,39 +533,39 @@ void Godunov::ComputeAofs( const BOX &grd,
     aofs.setVal(bogus_value,aofs_ind);
     const int *a_lo  = aofs.loVect();
     const int *a_hi  = aofs.hiVect();
-    const REAL *aofs_dat = aofs.dataPtr(aofs_ind);
+    const Real *aofs_dat = aofs.dataPtr(aofs_ind);
 
     const int *ax_lo  = areax.loVect();
     const int *ax_hi  = areax.hiVect();
-    const REAL *areax_dat = areax.dataPtr();
+    const Real *areax_dat = areax.dataPtr();
 
     const int *ay_lo  = areay.loVect();
     const int *ay_hi  = areay.hiVect();
-    const REAL *areay_dat = areay.dataPtr();
+    const Real *areay_dat = areay.dataPtr();
 
     const int *v_lo  = vol.loVect();
     const int *v_hi  = vol.hiVect();
-    const REAL *vol_dat  = vol.dataPtr();
+    const Real *vol_dat  = vol.dataPtr();
     
     const int *xflux_lo = xflux.loVect();
     const int *xflux_hi = xflux.hiVect();
-    const REAL *xflux_dat = xflux.dataPtr();
-    const REAL *uedge_dat = uedge.dataPtr();
+    const Real *xflux_dat = xflux.dataPtr();
+    const Real *uedge_dat = uedge.dataPtr();
     
     const int *yflux_lo = yflux.loVect();
     const int *yflux_hi = yflux.hiVect();
-    const REAL *yflux_dat = yflux.dataPtr();
-    const REAL *vedge_dat = vedge.dataPtr();
+    const Real *yflux_dat = yflux.dataPtr();
+    const Real *vedge_dat = vedge.dataPtr();
     
 #ifdef ADD_W
     const int *az_lo  = areaz.loVect();
     const int *az_hi  = areaz.hiVect();
-    const REAL *areaz_dat = areaz.dataPtr();
+    const Real *areaz_dat = areaz.dataPtr();
 
     const int *zflux_lo = zflux.loVect();
     const int *zflux_hi = zflux.hiVect();
-    const REAL *zflux_dat = zflux.dataPtr();
-    const REAL *wedge_dat = wedge.dataPtr();
+    const Real *zflux_dat = zflux.dataPtr();
+    const Real *wedge_dat = wedge.dataPtr();
 #endif
     
     // ---------------------------- compute the advective tendency
@@ -586,7 +586,7 @@ void Godunov::ComputeAofs( const BOX &grd,
 
 // sync advect a state component
 // This routine assumes uad,vad,wad have been precomputed
-void Godunov::SyncAdvect( const BOX &grd, const REAL *dx, REAL dt, int level,
+void Godunov::SyncAdvect( const Box &grd, const Real *dx, Real dt, int level,
                           FArrayBox &areax, FArrayBox &uedge,
                           FArrayBox &ucorr, FArrayBox &xflux,
                           FArrayBox &areay, FArrayBox &vedge,
@@ -603,7 +603,7 @@ void Godunov::SyncAdvect( const BOX &grd, const REAL *dx, REAL dt, int level,
     int velpred = 0;
 
     // ---------------------------- error block
-    BOX tst = S.box();
+    Box tst = S.box();
     assert( tst.contains( work_bx ) );
 
     assert( S.nComp()       >= BL_SPACEDIM );
@@ -646,7 +646,7 @@ void Godunov::SyncAdvect( const BOX &grd, const REAL *dx, REAL dt, int level,
 
 
 // compute the advective derivative of corrective fluxes for the mac sync
-void Godunov::ComputeSyncAofs( const BOX &grd,
+void Godunov::ComputeSyncAofs( const Box &grd,
                                FArrayBox &areax, FArrayBox &ucorr, FArrayBox &xflux,  
                                FArrayBox &areay, FArrayBox &vcorr, FArrayBox &yflux,  
 #ifdef ADD_W                             
@@ -662,39 +662,39 @@ void Godunov::ComputeSyncAofs( const BOX &grd,
     
     const int *s_lo  = sync.loVect();
     const int *s_hi  = sync.hiVect();
-    const REAL *sync_dat = sync.dataPtr(sync_ind);
+    const Real *sync_dat = sync.dataPtr(sync_ind);
     
     const int *ax_lo  = areax.loVect();
     const int *ax_hi  = areax.hiVect();
-    const REAL *areax_dat = areax.dataPtr();
+    const Real *areax_dat = areax.dataPtr();
 
     const int *ay_lo  = areay.loVect();
     const int *ay_hi  = areay.hiVect();
-    const REAL *areay_dat = areay.dataPtr();
+    const Real *areay_dat = areay.dataPtr();
 
     const int *v_lo  = vol.loVect();
     const int *v_hi  = vol.hiVect();
-    const REAL *vol_dat  = vol.dataPtr();
+    const Real *vol_dat  = vol.dataPtr();
     
     const int *xflux_lo = xflux.loVect();
     const int *xflux_hi = xflux.hiVect();
-    const REAL *xflux_dat = xflux.dataPtr();
-    const REAL *ucorr_dat = ucorr.dataPtr();
+    const Real *xflux_dat = xflux.dataPtr();
+    const Real *ucorr_dat = ucorr.dataPtr();
     
     const int *yflux_lo = yflux.loVect();
     const int *yflux_hi = yflux.hiVect();
-    const REAL *yflux_dat = yflux.dataPtr();
-    const REAL *vcorr_dat = vcorr.dataPtr();
+    const Real *yflux_dat = yflux.dataPtr();
+    const Real *vcorr_dat = vcorr.dataPtr();
 
 #ifdef ADD_W
     const int *az_lo  = areaz.loVect();
     const int *az_hi  = areaz.hiVect();
-    const REAL *areaz_dat = areaz.dataPtr();
+    const Real *areaz_dat = areaz.dataPtr();
 
     const int *zflux_lo = zflux.loVect();
     const int *zflux_hi = zflux.hiVect();
-    const REAL *zflux_dat = zflux.dataPtr();
-    const REAL *wcorr_dat = wcorr.dataPtr();
+    const Real *zflux_dat = zflux.dataPtr();
+    const Real *wcorr_dat = wcorr.dataPtr();
 #endif
     
     // ---------------------------- compute the corrective tendency
@@ -718,23 +718,23 @@ void Godunov::ComputeSyncAofs( const BOX &grd,
 
 // correct a scalar for under-over shoots
 void Godunov::ScalMinMax( FArrayBox &Sold, FArrayBox &Snew, int ind, 
-                          int *bc, const BOX &grd )
+                          int *bc, const Box &grd )
 {
     const int *slo = Sold.loVect();
     const int *shi = Sold.hiVect();
     const int *lo  = grd.loVect();
     const int *hi  = grd.hiVect();
-    const REAL *Sold_dat = Sold.dataPtr(ind);
-    const REAL *Snew_dat = Snew.dataPtr(ind);
+    const Real *Sold_dat = Sold.dataPtr(ind);
+    const Real *Snew_dat = Snew.dataPtr(ind);
 
 #ifdef ADD_W
-    BOX flatbox(grd);
+    Box flatbox(grd);
     int zlen = flatbox.length()[BL_SPACEDIM-1];
     flatbox.growHi(BL_SPACEDIM-1,3-zlen);
     FArrayBox smin(flatbox,1);
     FArrayBox smax(flatbox,1);
-    const REAL *smin_dat = smin.dataPtr();
-    const REAL *smax_dat = smax.dataPtr(); 
+    const Real *smin_dat = smin.dataPtr();
+    const Real *smax_dat = smax.dataPtr(); 
 #endif
 
     FORT_SCALMINMAX (Sold_dat, GDIMS(slo,shi),
@@ -758,8 +758,8 @@ void Godunov::ScalMinMax( FArrayBox &Sold, FArrayBox &Snew, int ind,
 //
 // estimate the maximum allowable timestep at a cell center
 //
-REAL Godunov::estdt( FArrayBox &U, FArrayBox &tforces, FArrayBox &rho,
-                     const BOX &grd, const REAL *dx, REAL cfl, REAL *u_max )
+Real Godunov::estdt( FArrayBox &U, FArrayBox &tforces, FArrayBox &rho,
+                     const Box &grd, const Real *dx, Real cfl, Real *u_max )
 {
     assert( U.nComp()       >= BL_SPACEDIM );
     assert( tforces.nComp() >= BL_SPACEDIM );
@@ -774,11 +774,11 @@ REAL Godunov::estdt( FArrayBox &U, FArrayBox &tforces, FArrayBox &rho,
     const int *rlo = rho.loVect();
     const int *rhi = rho.hiVect();
     
-    const REAL *Udat  = U.dataPtr();
-    const REAL *tfdat = tforces.dataPtr();
-    const REAL *rdat  = rho.dataPtr();
+    const Real *Udat  = U.dataPtr();
+    const Real *tfdat = tforces.dataPtr();
+    const Real *rdat  = rho.dataPtr();
 
-    REAL dt;
+    Real dt;
     FORT_ESTDT( Udat,  GDIMS(vlo,vhi),
                 tfdat, GDIMS(tlo,thi),
                 rdat,  GDIMS(rlo,rhi),
@@ -791,9 +791,9 @@ REAL Godunov::estdt( FArrayBox &U, FArrayBox &tforces, FArrayBox &rho,
 //
 // estimate the extrema of cell-centered us and rho
 //
-REAL Godunov::test_u_rho( FArrayBox &U, FArrayBox &rho, 
-                          const BOX &grd, const REAL *dx, const REAL dt,
-                          const REAL *u_max )
+Real Godunov::test_u_rho( FArrayBox &U, FArrayBox &rho, 
+                          const Box &grd, const Real *dx, const Real dt,
+                          const Real *u_max )
 {
     assert( U.nComp()   >= BL_SPACEDIM );
     assert( rho.nComp() == 1           );
@@ -805,14 +805,14 @@ REAL Godunov::test_u_rho( FArrayBox &U, FArrayBox &rho,
     const int *rlo = rho.loVect();
     const int *rhi = rho.hiVect();
 
-    const REAL *rh = rho.dataPtr();
-    const REAL *u  = U.dataPtr(XVEL);
-    const REAL *v  = U.dataPtr(YVEL);
+    const Real *rh = rho.dataPtr();
+    const Real *u  = U.dataPtr(XVEL);
+    const Real *v  = U.dataPtr(YVEL);
 #ifdef ADD_W
-    const REAL *w  = U.dataPtr(ZVEL);
+    const Real *w  = U.dataPtr(ZVEL);
 #endif
 
-    REAL cflmax = 0;
+    Real cflmax = 0;
     int  verbose = printMinMax;
     FORT_TEST_U_RHO( u,  GDIMS(vlo,vhi),
                      v,  GDIMS(vlo,vhi),
@@ -829,14 +829,14 @@ REAL Godunov::test_u_rho( FArrayBox &U, FArrayBox &rho,
 //
 // estimate the extrema of umac edge velocities and rho
 //
-REAL Godunov::test_umac_rho( FArrayBox &umac,
+Real Godunov::test_umac_rho( FArrayBox &umac,
                              FArrayBox &vmac,
 #ifdef ADD_W
                              FArrayBox &wmac,
 #endif
                              FArrayBox &rho,
-                             const BOX &grd, const REAL *dx, const REAL dt,
-                             const REAL *u_max )
+                             const Box &grd, const Real *dx, const Real dt,
+                             const Real *u_max )
 {
     // test block
     assert( umac.nComp() == 1 );
@@ -854,17 +854,17 @@ REAL Godunov::test_umac_rho( FArrayBox &umac,
     const int *vhi = vmac.hiVect();
     const int *rlo = rho.loVect();
     const int *rhi = rho.hiVect();
-    const REAL *um = umac.dataPtr();
-    const REAL *vm = vmac.dataPtr();
-    const REAL *rh = rho.dataPtr();
+    const Real *um = umac.dataPtr();
+    const Real *vm = vmac.dataPtr();
+    const Real *rh = rho.dataPtr();
     
 #ifdef ADD_W
     const int *wlo = wmac.loVect();
     const int *whi = wmac.hiVect();
-    const REAL *wm = wmac.dataPtr();
+    const Real *wm = wmac.dataPtr();
 #endif
 
-    REAL cfl;
+    Real cfl;
     FORT_TEST_UMAC_RHO( um, GDIMS(ulo,uhi),
                         vm, GDIMS(vlo,vhi),
 #ifdef ADD_W                            
@@ -890,7 +890,7 @@ REAL Godunov::test_umac_rho( FArrayBox &umac,
 void Godunov::Add_tf( FArrayBox &Sold,
                       FArrayBox &Snew,    int start_ind, int num_comp, 
                       FArrayBox &tforces, int tf_ind,
-                      const BOX &grd,     REAL dt )
+                      const Box &grd,     Real dt )
 {
     assert( Snew.nComp()    >= start_ind + num_comp );
     assert( Sold.nComp()    >= start_ind + num_comp );
@@ -902,9 +902,9 @@ void Godunov::Add_tf( FArrayBox &Sold,
     const int *thi = tforces.hiVect();
     const int *lo  = grd.loVect();
     const int *hi  = grd.hiVect();
-    const REAL *SOdat = Sold.dataPtr(start_ind);
-    const REAL *SNdat = Snew.dataPtr(start_ind);
-    const REAL *TFdat = tforces.dataPtr(tf_ind);
+    const Real *SOdat = Sold.dataPtr(start_ind);
+    const Real *SNdat = Snew.dataPtr(start_ind);
+    const Real *TFdat = tforces.dataPtr(tf_ind);
     
     FORT_UPDATE_TF( SOdat, GDIMS(slo,shi), 
                     SNdat, GDIMS(slo,shi),
@@ -921,7 +921,7 @@ void Godunov::Correct_tf( FArrayBox &Sstar, FArrayBox &Snp1,
                           int start_ind, int num_comp, 
                           FArrayBox &tfstar, FArrayBox &tfn,
                           int tf_ind,
-                          const BOX &grd,     REAL dt )
+                          const Box &grd,     Real dt )
 {
     assert( Snp1.nComp()   >= start_ind + num_comp );
     assert( Sstar.nComp()  >= start_ind + num_comp );
@@ -934,10 +934,10 @@ void Godunov::Correct_tf( FArrayBox &Sstar, FArrayBox &Snp1,
     const int *thi = tfstar.hiVect();
     const int *lo  = grd.loVect();
     const int *hi  = grd.hiVect();
-    const REAL *SSdat = Sstar.dataPtr(start_ind);
-    const REAL *SPdat = Snp1.dataPtr(start_ind);
-    const REAL *TSdat = tfstar.dataPtr(tf_ind);
-    const REAL *TNdat = tfn.dataPtr(tf_ind);
+    const Real *SSdat = Sstar.dataPtr(start_ind);
+    const Real *SPdat = Snp1.dataPtr(start_ind);
+    const Real *TSdat = tfstar.dataPtr(tf_ind);
+    const Real *TNdat = tfn.dataPtr(tf_ind);
     
     FORT_CORRECT_TF( SSdat, SPdat, GDIMS(slo,shi),
                      TSdat, TNdat, GDIMS(tlo,thi),
@@ -954,7 +954,7 @@ void Godunov::Add_aofs_tf( FArrayBox &Sold,
                            FArrayBox &Snew,    int start_ind, int num_comp,
                            FArrayBox &Aofs,    int aofs_ind,
                            FArrayBox &tforces, int tf_ind,
-                           const BOX &grd,     REAL dt )
+                           const Box &grd,     Real dt )
 {
     assert( Snew.nComp()    >= start_ind + num_comp );
     assert( Sold.nComp()    >= start_ind + num_comp );
@@ -969,10 +969,10 @@ void Godunov::Add_aofs_tf( FArrayBox &Sold,
     const int *thi = tforces.hiVect();
     const int *lo  = grd.loVect();
     const int *hi  = grd.hiVect();
-    const REAL *SOdat = Sold.dataPtr(start_ind);
-    const REAL *SNdat = Snew.dataPtr(start_ind);
-    const REAL *AOdat = Aofs.dataPtr(aofs_ind);
-    const REAL *TFdat = tforces.dataPtr(tf_ind);
+    const Real *SOdat = Sold.dataPtr(start_ind);
+    const Real *SNdat = Snew.dataPtr(start_ind);
+    const Real *AOdat = Aofs.dataPtr(aofs_ind);
+    const Real *TFdat = tforces.dataPtr(tf_ind);
     
     FORT_UPDATE_AOFS_TF( SOdat, GDIMS(slo,shi), 
                          SNdat, GDIMS(slo,shi),
@@ -991,7 +991,7 @@ void Godunov::Add_aofs_tf( FArrayBox &Sold,
 void Godunov::Add_aofs_tf_gp( FArrayBox &Uold, FArrayBox &Unew,
                               FArrayBox &Aofs, FArrayBox &tforces,
                               FArrayBox &gp,   FArrayBox &rho, 
-                              const BOX &grd,  REAL dt )
+                              const Box &grd,  Real dt )
 {
     assert( Unew.nComp()    >= BL_SPACEDIM );
     assert( Uold.nComp()    >= BL_SPACEDIM );
@@ -1013,12 +1013,12 @@ void Godunov::Add_aofs_tf_gp( FArrayBox &Uold, FArrayBox &Unew,
     const int *rlo = rho.loVect();
     const int *rhi = rho.hiVect();
     
-    const REAL *UOdat = Uold.dataPtr();
-    const REAL *UNdat = Unew.dataPtr();
-    const REAL *AOdat = Aofs.dataPtr();
-    const REAL *TFdat = tforces.dataPtr();
-    const REAL *GPdat = gp.dataPtr();
-    const REAL *RHdat = rho.dataPtr();
+    const Real *UOdat = Uold.dataPtr();
+    const Real *UNdat = Unew.dataPtr();
+    const Real *AOdat = Aofs.dataPtr();
+    const Real *TFdat = tforces.dataPtr();
+    const Real *GPdat = gp.dataPtr();
+    const Real *RHdat = rho.dataPtr();
     
     FORT_UPDATE_AOFS_TF_GP( UOdat, GDIMS(ulo,uhi),
                             UNdat, GDIMS(ulo,uhi),
@@ -1049,9 +1049,9 @@ void Godunov::Sum_tf_gp( FArrayBox &tforces,
     const int *rlo = rho.loVect();
     const int *rhi = rho.hiVect();
     
-    const REAL *TFdat = tforces.dataPtr();
-    const REAL *GPdat = gp.dataPtr();
-    const REAL *RHdat = rho.dataPtr();
+    const Real *TFdat = tforces.dataPtr();
+    const Real *GPdat = gp.dataPtr();
+    const Real *RHdat = rho.dataPtr();
      
     FORT_SUM_TF_GP( TFdat, GDIMS(tlo,thi),
                     GPdat, GDIMS(glo,ghi),
@@ -1082,10 +1082,10 @@ void Godunov::Sum_tf_gp_visc( FArrayBox &tforces, FArrayBox &visc,
     const int *rlo = rho.loVect();
     const int *rhi = rho.hiVect();
     
-    const REAL *TFdat = tforces.dataPtr();
-    const REAL *VIdat = visc.dataPtr();
-    const REAL *GPdat = gp.dataPtr();
-    const REAL *RHdat = rho.dataPtr();
+    const Real *TFdat = tforces.dataPtr();
+    const Real *VIdat = visc.dataPtr();
+    const Real *GPdat = gp.dataPtr();
+    const Real *RHdat = rho.dataPtr();
      
     FORT_SUM_TF_GP_VISC( TFdat, GDIMS(tlo,thi),
                          VIdat, GDIMS(vlo,vhi),
@@ -1122,10 +1122,10 @@ void Godunov::Sum_tf_divu( FArrayBox &S, FArrayBox &tforces,
     const int *rlo = rho.loVect();
     const int *rhi = rho.hiVect();
     
-    const REAL *Sdat  = S.dataPtr(s_ind);
-    const REAL *TFdat = tforces.dataPtr(s_ind);
-    const REAL *DUdat = divu.dataPtr();
-    const REAL *RHdat = rho.dataPtr();
+    const Real *Sdat  = S.dataPtr(s_ind);
+    const Real *TFdat = tforces.dataPtr(s_ind);
+    const Real *DUdat = divu.dataPtr();
+    const Real *RHdat = rho.dataPtr();
      
     FORT_SUM_TF_DIVU( Sdat,  GDIMS(slo,shi),
                       TFdat, GDIMS(tlo,thi),
@@ -1167,11 +1167,11 @@ void Godunov::Sum_tf_divu_visc( FArrayBox &S, FArrayBox &tforces,
     const int *rlo = rho.loVect();
     const int *rhi = rho.hiVect();
     
-    const REAL *Sdat  = S.dataPtr(s_ind);
-    const REAL *TFdat = tforces.dataPtr(s_ind);
-    const REAL *DUdat = divu.dataPtr();
-    const REAL *VIdat = visc.dataPtr(v_ind);
-    const REAL *RHdat = rho.dataPtr();
+    const Real *Sdat  = S.dataPtr(s_ind);
+    const Real *TFdat = tforces.dataPtr(s_ind);
+    const Real *DUdat = divu.dataPtr();
+    const Real *VIdat = visc.dataPtr(v_ind);
+    const Real *RHdat = rho.dataPtr();
      
     FORT_SUM_TF_DIVU_VISC( Sdat,  GDIMS(slo,shi),
                            TFdat, GDIMS(tlo,thi),
