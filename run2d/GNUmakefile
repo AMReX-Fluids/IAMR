@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.13 1999-05-27 19:13:26 sstanley Exp $
+# $Id: GNUmakefile,v 1.14 1999-06-07 23:47:14 almgren Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -31,6 +31,19 @@ else
   EBASE = amr
 endif
 
+ifeq ($(DIM),2)
+#
+# SYNCREG_2D.F builds RHS differently for 5 and 9 point stencils.
+#
+# Note that parallel hgproj currently only implements v5.
+#
+ifeq ($(findstring 9, $(PRVERSION)), 9)
+DEFINES += -DBL_PRVERSION=9
+else
+DEFINES += -DBL_PRVERSION=5
+endif
+endif
+
 include $(TOP)/mk/Make.defs ./Make.package
 
 BUILD_INPLACE:=TRUE
@@ -42,7 +55,11 @@ ifeq ($(BUILD_INPLACE), TRUE)
   include $(TOP)/tensorMG/Make.package
   include $(TOP)/amrlib/Make.package
   include $(TOP)/bndrylib/Make.package
+ ifeq ($(USE_HGPROJ_SERIAL),FALSE)
   include $(TOP)/hgproj/Make.package
+ else
+  include $(TOP)/hgproj-serial/Make.package
+ endif
   include $(TOP)/pBoxLib_2/Make.package
   INCLUDE_LOCATIONS += .
   INCLUDE_LOCATIONS += $(TOP)/iamrlib
@@ -50,7 +67,12 @@ ifeq ($(BUILD_INPLACE), TRUE)
   INCLUDE_LOCATIONS += $(TOP)/tensorMG
   INCLUDE_LOCATIONS += $(TOP)/amrlib
   INCLUDE_LOCATIONS += $(TOP)/bndrylib
+ ifeq ($(USE_HGPROJ_SERIAL),FALSE)
   INCLUDE_LOCATIONS += $(TOP)/hgproj
+ else
+  INCLUDE_LOCATIONS += $(TOP)/hgproj-serial
+  INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
+ endif
   INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2
 else
   ifeq ($(USE_HGPROJ_SERIAL),FALSE)
@@ -92,11 +114,19 @@ LDFLAGS += -non_shared -v
 endif
 
 ifeq ($(BUILD_INPLACE), TRUE)
+ ifeq ($(USE_HGPROJ_SERIAL),FALSE)
   vpath %.cpp . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
   vpath %.H   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
   vpath %.FH   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
   vpath %.h   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
   vpath %.F   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
+ else
+  vpath %.cpp . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj-serial $(TOP)/pBoxLib_2
+  vpath %.H   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj-serial $(TOP)/pBoxLib_2
+  vpath %.FH   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj-serial $(TOP)/pBoxLib_2
+  vpath %.h   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj-serial $(TOP)/pBoxLib_2
+  vpath %.F   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/hgproj-serial $(TOP)/pBoxLib_2
+ endif
 else
   vpath %.H   ..
   vpath %.cpp ..
