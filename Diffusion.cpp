@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.98 2000-07-25 19:15:43 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.99 2000-07-27 17:57:11 almgren Exp $
 //
 
 //
@@ -2320,8 +2320,47 @@ Diffusion::getBndryData (ViscBndry& bndry,
 }
 
 void
+Diffusion::getBndryDataGivenS (ViscBndry& bndry,
+                               MultiFab&  Rho_and_spec,
+                               int        state_ind,
+                               int        src_comp,
+                               int        num_comp,
+                               Real       time,
+                               int        rho_flag)
+{
+    BL_ASSERT(num_comp == 1);
+    //
+    // Fill phys bndry vals of grow cells of (tmp) multifab passed to bndry.
+    //
+    // TODO -- A MultiFab is a huge amount of space in which to pass along
+    // the phys bc's.  InterpBndryData needs a more efficient interface.
+    //
+    const int     nGrow = 1;
+    const BCRec&  bc    = caller->get_desc_lst()[State_Type].getBC(state_ind);
+
+    bndry.define(grids,num_comp,caller->Geom());
+
+    if (level == 0)
+    {
+        bndry.setBndryValues(Rho_and_spec,src_comp,0,num_comp,bc);
+    }
+    else
+    {
+        BoxArray cgrids = grids;
+        cgrids.coarsen(crse_ratio);
+        BndryRegister crse_br(cgrids,0,1,1,num_comp);
+        //
+        // interp for solvers over ALL c-f brs, need safe data.
+        //
+        crse_br.setVal(BL_BOGUS);
+        coarser->FillBoundary(crse_br,state_ind,0,num_comp,time,rho_flag);
+        bndry.setBndryValues(crse_br,0,Rho_and_spec,src_comp,0,num_comp,crse_ratio,bc);
+    }
+}
+
+void
 Diffusion::FillBoundary (BndryRegister& bdry,
-                         int            src_comp,
+                         int            state_ind,
                          int            dest_comp,
                          int            num_comp,
                          Real           time,
@@ -2336,7 +2375,7 @@ Diffusion::FillBoundary (BndryRegister& bdry,
 
     MultiFab S(caller->boxArray(),num_comp,nGrow);
 
-    FillPatchIterator     S_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
+    FillPatchIterator     S_fpi(*caller,S,nGrow,time,State_Type,state_ind,num_comp);
     ConstMultiFabIterator Rho_mfi(ns.get_rho(time));
 
     for ( ; Rho_mfi.isValid() && S_fpi.isValid(); ++Rho_mfi, ++S_fpi)

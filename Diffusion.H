@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.18 2000-07-14 17:15:30 lijewski Exp $
+// $Id: Diffusion.H,v 1.19 2000-07-27 17:57:10 almgren Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -206,16 +206,24 @@ public:
                              const MultiFab* const* beta);
 
     void getBndryData (ViscBndry&         bndry,
-                       int                src_comp,
+                       int                state_ind,
                        int                num_comp,
                        Real               time,
                        int                rho_flag);
 
     void getBndryData (ViscBndry&          bndry,
-                       int                 src_comp,
+                       int                 state_ind,
                        int                 num_comp,
                        AmrLevel::TimeLevel the_time,
                        int                 rho_flag);
+
+    void getBndryDataGivenS (ViscBndry&         bndry,
+                             MultiFab&          S,
+                             int                state_ind,
+                             int                src_comp,
+                             int                num_comp,
+                             Real               time,
+                             int                rho_flag);
 
     void FillBoundary (BndryRegister&     bdry,
                        int                src_comp,
