@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.75 1999-03-04 22:38:20 lijewski Exp $
+// $Id: Projection.cpp,v 1.76 1999-03-05 00:54:53 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -634,9 +634,9 @@ Projection::level_project (int             level,
     if (new_proj)
     {
         const Real dt_inv = 1./dt;
-        U_old.mult(dt_inv,0,BL_SPACEDIM,0);
+        U_old.mult(-dt_inv,0,BL_SPACEDIM,1);
         filterP(level,geom,P_old,P_new,U_old,rho_half,bc);
-        U_old.mult(dt,0,BL_SPACEDIM,0);
+        U_old.mult(-dt,0,BL_SPACEDIM,1);
     }
 
     delete divusource;
@@ -672,27 +672,35 @@ Projection::filterP (int             level,
     
     temp_phi->setVal(0);
     temp_rho->setVal(0);
-    temp_vel->setVal(0);
     rhs->setVal(0);
     //
     // Scale the projection variables.
     //
     scaleVar(rho_half, 0, &U_old, grids, level);
     //
-    // Copy to valid region.
+    // Copy from valid regions only.
     //
     temp_rho->copy(*rho_half,0,0,1);
-    temp_vel->copy(U_old,0,0,BL_SPACEDIM);
+    temp_rho->FillBoundary();
+    
     temp_phi->copy(P_old,0,0,1);
+    temp_phi->FillBoundary();
+
+    EnforcePeriodicity(*temp_vel, BL_SPACEDIM, grids, geom);
+    EnforcePeriodicity(*temp_rho, 1,           grids, geom);
+    EnforcePeriodicity(*temp_phi, 1,           P_grids, geom);
+
+    //
+    // Copy from valid regions + bcs to get inflow values.
+    //
+    int n_ghost = 1;
+    Copy(*temp_vel,U_old,0,0,BL_SPACEDIM,n_ghost);
 
     Real mult = -1.;
 
-    for (MultiFabIterator mfi(*temp_vel); mfi.isValid(); ++mfi)
+    for (MultiFabIterator mfi(*temp_rho); mfi.isValid(); ++mfi)
     {
         const int  k    = mfi.index();
-        FArrayBox& ufab = (*temp_vel)[k];
-        const int* u_lo = ufab.loVect();
-        const int* u_hi = ufab.hiVect();
         FArrayBox& sfab = (*temp_rho)[k];
         const int* s_lo = sfab.loVect();
         const int* s_hi = sfab.hiVect();
@@ -706,7 +714,6 @@ Projection::filterP (int             level,
 
         FORT_FILTRHS(pfab.dataPtr(),ARLIM(p_lo),ARLIM(p_hi),
                      sfab.dataPtr(),ARLIM(s_lo),ARLIM(s_hi),
-                     ufab.dataPtr(),ARLIM(u_lo),ARLIM(u_hi),
                      (*rhs)[k].dataPtr(),ARLIM(r_lo),ARLIM(r_hi),
                      n_lo,n_hi,dx,&mult,&rzflag);
 
@@ -754,7 +761,12 @@ Projection::filterP (int             level,
     {
         u_real[n].resize(level+1);
         u_real[n].set(level, new MultiFab(grids, 1, 1));
-        u_real[n][level].setVal(0);
+        for (MultiFabIterator u_realmfi(u_real[n][level]); u_realmfi.isValid();
+            ++u_realmfi)
+        {
+            DependentMultiFabIterator velmfi(u_realmfi, *temp_vel);
+            u_realmfi().copy(velmfi(), n, 0);
+        }
     }
     p_real.set(level, temp_phi);
     s_real.set(level, temp_rho);
@@ -764,7 +776,11 @@ Projection::filterP (int             level,
     //
     // For divu==0 only
     //
+<<<<<<< Projection.cpp
+    int use_u = 1;
+=======
     const int use_u = 0;
+>>>>>>> 1.75
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                               use_u, (Real*)dx,
                               filter_factor, level, level, proj_abs_tol);
