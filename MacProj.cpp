@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.33 1998-11-17 16:38:27 lijewski Exp $
+// $Id: MacProj.cpp,v 1.34 1998-12-02 23:21:29 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -225,6 +225,17 @@ MacProj::cleanup (int level)
 // Projection functions follow ...
 //
 
+static
+bool
+grids_on_yhi_of_domain (const BoxArray& grids,
+                        const Box&      domain)
+{
+    for (int i = 0; i < grids.length(); i++)
+        if (grids[i].bigEnd(1) == domain.bigEnd(1))
+            return true;
+    return false;
+}
+
 //
 // Compute the level advance mac projection.
 //
@@ -265,8 +276,12 @@ MacProj::mac_project (int             level,
 
 #if (BL_SPACEDIM == 2)
     int outflow_at_top = phys_bc->lo(0) != Outflow && phys_bc->lo(1) != Outflow && 
-        phys_bc->hi(0) != Outflow && phys_bc->hi(1) == Outflow; 
-    if (outflow_at_top && have_divu && do_outflow_bcs)
+        phys_bc->hi(0) != Outflow && phys_bc->hi(1) == Outflow;
+
+    if (outflow_at_top &&
+        have_divu      &&
+        do_outflow_bcs &&
+        grids_on_yhi_of_domain(grids,geom.Domain()))
     {
         set_outflow_bcs(level, mac_phi, u_mac, S, divu);
     }
@@ -945,6 +960,12 @@ MacProj::set_outflow_bcs (int             level,
 
     Box ccBndBox = ::adjCell(domain,outFace,bndBxWdth).shift(dir,-bndBxWdth);
     Box phiBox   = ::adjCell(domain,outFace,1);
+    //
+    // Note: this code assumes that we can fill ccBndBox from S.
+    //
+    // TODO -- how to generalize this ???
+    //
+    assert(::complementIn(ccBndBox,BoxList(S.boxArray())).isEmpty());
 
     FArrayBox rhodat(ccBndBox,1);
     FArrayBox divudat(ccBndBox,1);
