@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.43 1998-06-01 19:45:39 lijewski Exp $
+// $Id: Projection.cpp,v 1.44 1998-06-08 20:41:30 car Exp $
 //
 
 #ifdef BL_T3E
@@ -39,6 +39,28 @@ Real* fabdat = (fab).dataPtr();
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
+//
+// This modules own MultiFab - MultiFab copy with ghost cells
+// between MultiFabs with the same ProcessorMap().
+//
+
+static void Copy (MultiFab& dst, MultiFab& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    assert(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+    for (MultiFabIterator mfi(src); mfi.isValid(false); ++mfi)
+    {
+	DependentMultiFabIterator dmfi(mfi,dst);
+
+	Box bx = ::grow(mfi.validbox(),nghost) & ::grow(dmfi.validbox(),nghost);
+
+	if (bx.ok())
+	{
+	    dmfi().copy(mfi(), bx, srccomp, bx, dstcomp, numcomp);
+	}
+    }
+}
+
 
 #define SET_BOGUS_BNDRY 1
 #define bogus_value 1.e20
@@ -439,7 +461,7 @@ Projection::level_project(int level,
     int nghost = 1; // required by aliaslib--rbp
     MultiFab rhs_cc(grids,1,nghost,Fab_allocate);
     rhs_cc.setVal(0.0);
-    rhs_cc.copy(dsdt,0,0,1,nghost);
+    Copy(rhs_cc,dsdt,0,0,1,nghost);
     radMult(level,rhs_cc,0);    
     for (int i=0;i<ngrids;i++) 
     {
