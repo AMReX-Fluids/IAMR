@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.62 2000-06-02 17:40:56 lijewski Exp $
+// $Id: MacProj.cpp,v 1.63 2000-06-02 18:26:25 almgren Exp $
 //
 
 #include <Misc.H>
@@ -628,7 +628,7 @@ MacProj::mac_sync_compute (int                   level,
                            FluxRegister*         adv_flux_reg,
                            Array<AdvectionForm>& advectionType,
                            Real                  prev_time, 
-                           Real                  pres_prev_time,
+                           Real                  prev_pres_time,
                            Real                  dt, 
                            int                   NUM_STATE,
                            Real                  be_cn_theta,
@@ -674,12 +674,12 @@ MacProj::mac_sync_compute (int                   level,
     //
     MultiFab Gp(grids,BL_SPACEDIM,1);
 
-    ns_level.getGradP(Gp, pres_prev_time);
+    ns_level.getGradP(Gp, prev_pres_time);
 
     MultiFab* divu_fp = ns_level.getDivCond(1,prev_time);
 
     FillPatchIterator P_fpi(ns_level,ns_level.get_old_data(Press_Type),1,
-                            pres_prev_time,Press_Type,0,1);
+                            prev_pres_time,Press_Type,0,1);
 
     FillPatchIterator S_fpi(ns_level,visc_terms,HYP_GROW,
                             prev_time,State_Type,0,NUM_STATE);
