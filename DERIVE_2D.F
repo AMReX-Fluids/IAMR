@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_2D.F,v 1.10 1999-04-06 20:46:58 marc Exp $ 
+c $Id: DERIVE_2D.F,v 1.11 1999-07-01 21:49:21 almgren Exp $ 
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -719,5 +719,37 @@ c
       call FORT_GRADP_DIR (
      &     dat,DIMS(dat),grdpy,DIMS(gp),
      &     lo,hi,1,delta(2))
+
+      end
+
+c=========================================================
+
+      subroutine FORT_DERGRDP (grdp,DIMS(gp),nv,p,DIMS(p),ncomp,
+     &                         lo,hi,domlo,domhi,dx,xlo,time,dt,
+     $                         bc,level,grid_no)
+c
+c     This routine computes the magnitude of pressure gradient 
+c
+      integer lo(2), hi(2)
+      integer DIMDEC(gp)
+      integer DIMDEC(p)
+      integer domlo(2), domhi(2)
+      integer nv, ncomp
+      integer bc(2,2,ncomp)
+      REAL_T  dx(2), xlo(2), time, dt
+      REAL_T  grdp(DIMV(gp),nv)
+      REAL_T  p(DIMV(p),ncomp)
+      integer level, grid_no
+
+      REAL_T     gpx, gpy
+      integer    i,j
+c
+      do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            gpx = half * (p(i+1,j,1)-p(i,j,1)+p(i+1,j+1,1)-p(i,j+1,1)) / dx(1)
+            gpy = half * (p(i,j+1,1)-p(i,j,1)+p(i+1,j+1,1)-p(i+1,j,1)) / dx(2)
+            grdp(i,j,1) = sqrt(gpx**2 + gpy**2)      
+         end do
+      end do
 
       end

@@ -1,5 +1,5 @@
 #ifdef BL_LANG_FORT
-c $Id: DERIVE_F.H,v 1.9 1999-05-27 20:42:57 sstanley Exp $
+c $Id: DERIVE_F.H,v 1.10 1999-07-01 21:49:21 almgren Exp $
 #endif
 
 #ifdef BL_LANG_FORT
@@ -14,6 +14,7 @@ c $Id: DERIVE_F.H,v 1.9 1999-05-27 20:42:57 sstanley Exp $
 #    define FORT_DERMGDIVU   dermgdivu
 #    define FORT_GRADP_DIR   gradpdir
 #    define FORT_DERAVGPRES  deravgpres
+#    define FORT_DERGRDP     dergrdp
 #    define FORT_DERGRDPX    dergrdpx
 #    define FORT_DERGRDPY    dergrdpy
 #if (BL_SPACEDIM == 3)
@@ -34,6 +35,7 @@ c $Id: DERIVE_F.H,v 1.9 1999-05-27 20:42:57 sstanley Exp $
 #    define FORT_DERMGDIVU   DERMGDIVU
 #    define FORT_GRADP_DIR   GRADPDIR
 #    define FORT_DERAVGPRES  DERAVGPRES
+#    define FORT_DERGRDP    DERGRDP
 #    define FORT_DERGRDPX    DERGRDPX
 #    define FORT_DERGRDPY    DERGRDPY
 #if (BL_SPACEDIM == 3)
@@ -52,6 +54,7 @@ c $Id: DERIVE_F.H,v 1.9 1999-05-27 20:42:57 sstanley Exp $
 #    define FORT_DERMGDIVU   dermgdivu_
 #    define FORT_GRADP_DIR   gradpdir_
 #    define FORT_DERAVGPRES  deravgpres_
+#    define FORT_DERGRDP     dergrdp_
 #    define FORT_DERGRDPX    dergrdpx_
 #    define FORT_DERGRDPY    dergrdpy_
 #if (BL_SPACEDIM == 3)
@@ -149,6 +152,15 @@ extern "C" {
                           const Real* dx );
 
      void FORT_DERAVGPRES (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
+
+     void FORT_DERGRDP    (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,

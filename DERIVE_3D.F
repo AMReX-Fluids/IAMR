@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.12 1999-05-27 19:16:37 sstanley Exp $
+c $Id: DERIVE_3D.F,v 1.13 1999-07-01 21:49:21 almgren Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1122,3 +1122,40 @@ c
 
       end
 
+c=========================================================
+
+      subroutine FORT_DERGRDP (grdp,DIMS(gp),nv,p,DIMS(p),ncomp,
+     &                         lo,hi,domlo,domhi,dx,xlo,time,dt,
+     $                         bc,level,grid_no)
+c
+c     This routine computes the magnitude of pressure gradient 
+c
+      integer lo(SDIM), hi(SDIM)
+      integer DIMDEC(gp)
+      integer DIMDEC(p)
+      integer domlo(SDIM), domhi(SDIM)
+      integer nv, ncomp
+      integer bc(SDIM,2,ncomp)
+      REAL_T  dx(SDIM), xlo(SDIM), time, dt
+      REAL_T  grdp(DIMV(gp),nv)
+      REAL_T  p(DIMV(p),ncomp)
+      integer level, grid_no
+
+      REAL_T     gpx, gpy, gpz
+      integer    i,j,k
+c
+      do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+            gpx = fourth * (p(i+1,j,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i,j+1,k  )+
+     $                      p(i+1,j,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i,j+1,k+1))/dx(1)
+            gpy = fourth * (p(i,j+1,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i+1,j,k  )+
+     $                      p(i,j+1,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i+1,j,k+1))/dx(2)
+            gpz = fourth * (p(i,  j,k+1)-p(i,  j,k)+p(i,  j+1,k+1)-p(i,  j+1,k)+
+     $                      p(i+1,j,k+1)-p(i+1,j,k)+p(i+1,j+1,k+1)-p(i+1,j+1,k))/dx(3)
+            grdp(i,j,1) = sqrt(gpx**2 + gpy**2 + gpz**2)
+          end do
+        end do
+      end do
+
+      end
