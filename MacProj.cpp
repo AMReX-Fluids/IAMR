@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.50 1999-04-19 20:07:37 marc Exp $
+// $Id: MacProj.cpp,v 1.51 1999-04-21 22:21:39 marc Exp $
 //
 
 #include <Misc.H>
@@ -420,7 +420,7 @@ MacProj::mac_project (int             level,
     //
     if (level > 0)
     {
-        const Real mult = 1.0/parent->MaxRefRatio(level-1);
+        const Real mult = 1.0/parent->nCycle(level);
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
@@ -790,7 +790,7 @@ MacProj::mac_sync_compute (int               level,
         //
         if (level > 0)
         {
-            const Real mult =  -1.0/( (double) parent->MaxRefRatio(level-1));
+            const Real mult =  -1.0/( (double) parent->nCycle(level));
             mac_reg[level].FineAdd(grad_phi[0],area0mfi(),0,i,0,0,1,mult);
             mac_reg[level].FineAdd(grad_phi[1],area1mfi(),1,i,0,0,1,mult);
 #if (BL_SPACEDIM == 3)
