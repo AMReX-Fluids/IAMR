@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.25 2003-02-20 19:26:13 car Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.26 2003-02-21 19:26:26 almgren Exp $
 //
 #include <winstd.H>
 
@@ -351,7 +351,7 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
         BL_ASSERT (sum_dirs > 0 && sum_dirs < 3);
         BL_ASSERT(dx[1] == dx[2]);
 
-        // Here we know the ordering of faces is XLO,XHI,YLO,YHI,ZLO,ZHI.
+        // Here we know the ordering of faces is XLO,YLO,ZLO,XHI,YHI,ZHI.
 
         // FOR NOW: ASSERT THAT NO OUTFLOW FACES IN Z-DIR!
         BL_ASSERT (outz == 0);
@@ -365,16 +365,22 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
         {
           if (faces[i] == 0) {
             ccEptr0 = ccExt[i].dataPtr();
-            length = length + leny;
+            length = length + leny*lenz;
           } else if (faces[i] == 1) {
             ccEptr1 = ccExt[i].dataPtr();
-            length = length + lenx;
-          } else if (faces[i] == 3) {
+            length = length + lenx*lenz;
+          } else if (faces[i] == 2) {
             ccEptr2 = ccExt[i].dataPtr();
-            length = length + leny;
-          } else if (faces[i] == 4) {
+            length = length + lenx*leny;
+          } else if (faces[i] == 3) {
             ccEptr3 = ccExt[i].dataPtr();
-            length = length + lenx;
+            length = length + leny*lenz;
+          } else if (faces[i] == 4) {
+            ccEptr4 = ccExt[i].dataPtr();
+            length = length + lenx*lenz;
+          } else if (faces[i] == 5) {
+            ccEptr5 = ccExt[i].dataPtr();
+            length = length + lenx*leny;
           } else {
             std::cout << "OOPS - DIDNT PROGRAM FOR Z-OUTFLOW FACES! " << i << 
                     " " << faces[i] << std::endl;
@@ -409,7 +415,7 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
   
         int* per = new int[2];
         per[0] = (numOutFlowFaces == 2*BL_SPACEDIM) ? 1 : 0;
-        per[1] = isPeriodic[BL_SPACEDIM];
+        per[1] = isPeriodic[BL_SPACEDIM-1];
         
         computeCoefficients(rhs_temp,beta,ccE_conn,connected_region,dxFiltered[0],per);
 
