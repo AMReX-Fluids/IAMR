@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.53 1998-11-09 21:04:50 lijewski Exp $
+# $Id: GNUmakefile,v 1.54 1998-11-10 23:55:34 lijewski Exp $
 #
 PRECISION     = DOUBLE
 DEBUG	      = FALSE
@@ -16,6 +16,24 @@ USE_NETCDF    = FALSE
 USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
 #
+# Use hgproj-serial -- only for testing.
+#
+# Touch Projection.cpp if you want to change the state of USE_HGPROJ_SERIAL.
+#
+USE_HGPROJ_SERIAL = TRUE
+USE_HGPROJ_SERIAL = FALSE
+#
+# The only stencils in which we're interested when using USE_HGPROJ_SERIAL.
+#
+ifeq ($(USE_HGPROJ_SERIAL),TRUE)
+DEFINES += -DBL_USE_HGPROJ_SERIAL
+ifeq ($(DIM),2)
+PRVERSION = v9
+else
+PRVERSION = v7
+endif
+endif
+#
 # Base name of the executable.
 #
 EBASE = amr
@@ -30,20 +48,26 @@ INSTALL_ROOT = $(TOP)
 
 include $(TOP)/mk/Make.defs ./Make.package
 
+ifeq ($(USE_HGPROJ_SERIAL),FALSE)
 INCLUDE_LOCATIONS += . $(TOP)/include
-
 LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
+LIBRARIES         += -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
+else
+INCLUDE_LOCATIONS += . $(TOP)/hgproj-serial
+INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
+INCLUDE_LOCATIONS += $(TOP)/include
+LIBRARY_LOCATIONS += $(TOP)/hgproj-serial/lib/$(machineSuffix) $(TOP)/lib/$(machineSuffix)
+LIBRARIES         += -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
+endif
 
-LIBRARIES += -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
-
-ifeq ($(USE_MPI), TRUE)
-DEFINES += -DBL_USE_MPI
+ifeq ($(USE_MPI),TRUE)
+DEFINES   += -DBL_USE_MPI
 LIBRARIES += -lmpi
-ifeq ($(MACHINE), OSF1)
+ifeq ($(MACHINE),OSF1)
 INCLUDE_LOCATIONS += /usr/local/mpi/include
 LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
 endif
-ifeq ($(MACHINE), AIX)
+ifeq ($(MACHINE),AIX)
 INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
 LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
 endif
@@ -52,25 +76,24 @@ endif
 ifeq ($(USE_WINDOWS),TRUE)
 LIBRARIES += -lgraph
 LIBRARIES += -lX11 
-DEFINES += -DBL_USE_WINDOWS
+DEFINES   += -DBL_USE_WINDOWS
 endif
 
 ifeq ($(USE_ARRAYVIEW),TRUE)
-INCLUDE_LOCATIONS += .
 DEFINES += -DBL_USE_ARRAYVIEW
 DEFINES += -DBL_ARRAYVIEW_TAGBOX
 endif
 
 ifeq ($(USE_NETCDF),TRUE)
-LIBRARIES += /usr/people/stevens/bin/libnetcdf.a
+LIBRARIES         += /usr/people/stevens/bin/libnetcdf.a
 INCLUDE_LOCATIONS += /usr/people/stevens/bin
 endif
 
-ifeq ($(MACHINE), OSF1)
+ifeq ($(MACHINE),OSF1)
 #
 # Some additional stuff for our preferred development/debugging environment.
 #
-ifeq ($(PRECISION), DOUBLE)
+ifeq ($(PRECISION),DOUBLE)
 FFLAGS += -real_size 64
 endif
 FDEBF += -C
@@ -99,7 +122,11 @@ libs:
 	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 	cd $(TOP)/bndrylib;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 	cd $(TOP)/amrlib;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+ifeq ($(USE_HGPROJ_SERIAL),FALSE)
 	cd $(TOP)/hgproj;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+else
+	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) libproj
+endif
 	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 
 godzillaLink:

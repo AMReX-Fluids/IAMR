@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.59 1998-11-07 03:09:30 lijewski Exp $
+// $Id: Projection.cpp,v 1.60 1998-11-10 23:55:35 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -252,10 +252,17 @@ Projection::bldSyncProject ()
         amr_multigrid::mesh_write(amesh, gen_ratio, fdomain, cout);
     }
 
+#ifdef BL_USE_HGPROJ_SERIAL
+  sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
+					   0, finest_level, finest_level,
+					   *projector_bndry, P_code);
+#else
     sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
                                              0, finest_level, finest_level,
                                              *projector_bndry, false, true,
-                                             false, P_code); 
+                                             false, P_code);
+#endif
+
 #ifdef ATMOSPHERE
     //
     // This is not the usual way of setting parameters.
@@ -914,13 +921,21 @@ Projection::MLsyncProject (int             c_lev,
             u_realfinemfi().copy(V_corrmfi(), n, 0);
         }
 
+#ifdef BL_USE_HGPROJ_SERIAL
+        restrict_level(u_real[n][c_lev], u_real[n][c_lev+1], ratio);
+#else
         restrict_level(u_real[n][c_lev], u_real[n][c_lev+1], ratio, default_restrictor(), level_interface(), 0);
+#endif
     }
 
     s_real.set(c_lev,   &rho_crse);
     s_real.set(c_lev+1, &rho_fine);
 
+#ifdef BL_USE_HGPROJ_SERIAL
+    restrict_level(s_real[c_lev], s_real[c_lev+1], ratio);
+#else
     restrict_level(s_real[c_lev], s_real[c_lev+1], ratio, default_restrictor(), level_interface(), 0);
+#endif
 
     p_real.set(c_lev,   phi[c_lev]);
     p_real.set(c_lev+1, phi[c_lev+1]);
@@ -1394,8 +1409,13 @@ Projection::initialSyncProject (int       c_lev,
     {
         for (lev = f_lev; lev >= c_lev+1; lev--) 
         {
-            restrict_level(u_real[n][lev-1], u_real[n][lev], parent->refRatio(lev-1),
-                           default_restrictor(), level_interface(), 0);
+#ifdef BL_USE_HGPROJ_SERIAL
+            restrict_level(u_real[n][lev-1],u_real[n][lev],
+                           parent->refRatio(lev-1));
+#else
+            restrict_level(u_real[n][lev-1],u_real[n][lev],parent->refRatio(lev-1),
+                           default_restrictor(),level_interface(),0);
+#endif
         }
     }
 
@@ -2270,7 +2290,7 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
         const Box& domainC = parent->Geom(lev).Domain();
         Box top_phiC_strip = ::surroundingNodes(bdryHi(domainC,outDir,ncStripWidth));
         BoxArray top_phiC_strip_ba(&top_phiC_strip,1);
-        MultiFab phi_crse_strip(top_phiC_strip_ba,nCompPhi,nGrow,);
+        MultiFab phi_crse_strip(top_phiC_strip_ba,nCompPhi,nGrow);
         phi_crse_strip.setVal(0);
 	    
         for (MultiFabIterator finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
@@ -2412,7 +2432,7 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
         Box top_phiC_strip = ::surroundingNodes(bdryHi(domainC,outDir,ncStripWidth));
 	    
         BoxArray top_phiC_strip_ba(&top_phiC_strip,1);
-        MultiFab phi_crse_strip(top_phiC_strip_ba, nCompPhi, nGrow,);
+        MultiFab phi_crse_strip(top_phiC_strip_ba, nCompPhi, nGrow);
         phi_crse_strip.setVal(0);
 	    
         for (MultiFabIterator finemfi(phi_fine_strip); finemfi.isValid(); ++finemfi)
@@ -2472,7 +2492,7 @@ Projection::initialVorticityProject (int c_lev)
         proj_bc[1][1] = periodic;
     }
 
-    projector_bndry = new inviscid_fluid_boundary(proj_bc);
+    projector_bndry = new inviscid_fluid_boundary_class(proj_bc);
 
     bldSyncProject();
 
@@ -2494,7 +2514,7 @@ Projection::initialVorticityProject (int c_lev)
     //
     // Set up outflow bcs.
     //
-    Array<BoxArray>& full_mesh = sync_proj->mesh();
+    const Array<BoxArray>& full_mesh = sync_proj->mesh();
     PArray<MultiFab> u_real[BL_SPACEDIM];
     PArray<MultiFab> p_real(f_lev+1), s_real(f_lev+1);
     PArray<MultiFab> rhs_real(f_lev+1);
