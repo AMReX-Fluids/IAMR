@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.86 2003-02-06 19:07:22 almgren Exp $
+// $Id: MacProj.cpp,v 1.87 2003-02-06 20:47:59 almgren Exp $
 //
 #include <winstd.H>
 
@@ -1279,12 +1279,12 @@ MacProj::test_umac_periodic (int level,MultiFab* u_mac)
 
         const Real max_norm = diff.norm(0);
 
-//      if (max_norm > umac_periodic_test_Tol )
+        if (max_norm > umac_periodic_test_Tol )
         {
             std::cout << "dir = "         << dim
                       << ", diff norm = " << max_norm
                       << " for region: "  << pirm[i].m_dstBox << std::endl;
-//          BoxLib::Error("Periodic bust in u_mac");
+            BoxLib::Error("Periodic bust in u_mac");
         }
     }
 }
