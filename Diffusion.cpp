@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.50 1998-11-24 01:02:09 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.51 1998-12-02 19:28:51 sstanley Exp $
 //
 
 //
@@ -1364,7 +1364,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
         {
             r_norm = Max(r_norm,Rhsmfi().norm(0));
         }
-        ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
+        ParallelDescriptor::ReduceRealMax(r_norm);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1426,7 +1426,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab* Vsync,
         {
             s_norm = Max(s_norm,Solnmfi().norm(0));
         }
-        ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
+        ParallelDescriptor::ReduceRealMax(s_norm);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1620,7 +1620,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*  Vsync,
     {
         s_norm = Max(s_norm,Solnmfi().norm(0));
     }
-    ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
+    ParallelDescriptor::ReduceRealMax(s_norm);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1726,7 +1726,7 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
     {
         r_norm = Max(r_norm,Rhsmfi().norm(0));
     }
-    ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
+    ParallelDescriptor::ReduceRealMax(r_norm);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1792,7 +1792,7 @@ Diffusion::diffuse_Ssync (MultiFab*  Ssync,
     {
         s_norm = Max(s_norm,Solnmfi().norm(0));
     }
-    ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
+    ParallelDescriptor::ReduceRealMax(s_norm);
 
     if (ParallelDescriptor::IOProcessor())
     {
