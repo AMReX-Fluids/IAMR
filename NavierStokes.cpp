@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.206 2002-11-12 17:33:10 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.207 2002-11-12 19:15:19 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -249,6 +249,8 @@ NavierStokes::read_params ()
     pp.query("fixed_dt",fixed_dt);
     pp.query("sum_interval",sum_interval);
     pp.query("gravity",gravity);
+
+    pp.query("check_umac_periodicity",check_umac_periodicity);
     //
     // Get run options.
     //
