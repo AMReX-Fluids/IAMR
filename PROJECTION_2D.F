@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_2D.F,v 1.8 1998-05-19 00:52:24 marc Exp $
+c $Id: PROJECTION_2D.F,v 1.9 1998-07-14 20:23:40 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -651,7 +651,7 @@ c     Write the solution into the arg
       end do
       if (per .eq. 1) then
          phi(ine,jns) = phi(ins,jns)
-      endif
+      end if
       
       end
       
@@ -677,13 +677,13 @@ c     Write the solution into the arg
               singular = .true.
            else
               pause 'tridag failed'
-           endif
-        endif
+           end if
+        end if
         if (singular) then
            u(j) = sVal
         else
            u(j)=(r(j)-a(j)*u(j-1))/bet
-        endif
+        end if
 11    continue
       do 12 j=n-1,1,-1
         u(j)=u(j)-gam(j+1)*u(j+1)
