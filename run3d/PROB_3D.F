@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.16 1999-02-24 01:58:39 sstanley Exp $
+c $Id: PROB_3D.F,v 1.17 1999-03-01 22:27:28 sstanley Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -408,7 +408,7 @@ c           Uniform in the X-direction
 c
             if (vb_unifdir .eq. 0) then
               vel(i,j,k,1) =   zero
-              vel(i,j,k,2) =   spx*cpy
+              vel(i,j,k,2) =   spz*cpy
               vel(i,j,k,3) = - cpz*spy
               scal(i,j,k,1) =   one
               do n = 2, nscal
@@ -419,8 +419,8 @@ c
 c           Uniform in the Y-direction
 c
             elseif (vb_unifdir .eq. 1) then
-              vel(i,j,k,1) = - cpx*spy
-              vel(i,j,k,2) =   one
+              vel(i,j,k,1) = - cpx*spz
+              vel(i,j,k,2) =   zero
               vel(i,j,k,3) =   spx*cpz
               scal(i,j,k,1) =   one
               do n = 2, nscal
