@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.H,v 1.19 2000-07-27 17:57:10 almgren Exp $
+// $Id: Diffusion.H,v 1.20 2000-08-02 16:04:43 car Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -293,6 +293,7 @@ protected:
     //
     static bool        use_mg_precond_flag;
     static int         use_cg_solve;
+    static bool        use_hypre_solve;
     static int         scale_abec;
     static Array<int>  is_diffusive;    // Does variable diffuse?
     static Array<Real> visc_coef;       // Const coef viscosity terms

@@ -1,8 +1,12 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.128 2000-07-21 22:43:16 almgren Exp $
+// $Id: Projection.cpp,v 1.129 2000-08-02 16:04:42 car Exp $
 //
+
+#ifdef BL3_PROFILING
+#include <BoxLib3/Profiler.H>
+#endif
 
 #ifdef BL_T3E
 #include <List.H>
@@ -413,6 +417,9 @@ Projection::level_project (int             level,
                            int             have_divu, 
                            int             Divu_Type) 
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::level_project()");
+#endif
     if (ParallelDescriptor::IOProcessor() && verbose)
 	cout << "... level projector at level " << level << '\n';
 
@@ -1031,6 +1038,9 @@ Projection::syncProject (int             c_lev,
                          int             crse_iteration,
                          int             crse_dt_ratio)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::syncProject()");
+#endif
     static RunStats stats("sync_project");
 
     stats.start();
@@ -1186,6 +1196,9 @@ Projection::MLsyncProject (int             c_lev,
                            Real             cur_fine_pres_time,
                            Real            prev_fine_pres_time)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::MLsyncProject()");
+#endif
     static RunStats stats("sync_project");
 
     stats.start();
@@ -1403,6 +1416,9 @@ Projection::initialVelocityProject (int  c_lev,
                                     Real cur_divu_time, 
                                     int  have_divu)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::initialVelocityProject()");
+#endif
     static RunStats stats("sync_project");
 
     stats.start();
@@ -1604,6 +1620,9 @@ Projection::initialSyncProject (int       c_lev,
                                 Real      dt_init,
                                 int       have_divu)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::initialSyncProject()");
+#endif
     static RunStats stats("sync_project");
 
     stats.start();
@@ -2542,7 +2561,6 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
             state_strip
                 = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
         }
-
         const BoxArray& Lgrids               = parent->getLevel(f_lev).boxArray();
         const Box       valid_state_strip    = state_strip & domain;
         const BoxArray  uncovered_outflow_ba = ::complementIn(valid_state_strip,Lgrids);
@@ -2867,6 +2885,9 @@ Projection::computeBC (FArrayBox&         velFab,
                        const Geometry&    geom,
                        const Orientation& outFace)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::computeBC()");
+#endif
     static RunStats stats("proj_bc");
 
     stats.start();

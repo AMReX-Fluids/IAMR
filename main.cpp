@@ -1,8 +1,14 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: main.cpp,v 1.34 1999-07-21 21:43:52 lijewski Exp $
+// $Id: main.cpp,v 1.35 2000-08-02 16:04:43 car Exp $
 //
+
+#ifdef BL3_PROFILING
+#include <BoxLib3/BoxLib3.H>
+#include <BoxLib3/Profiler.H>
+#include <BoxLib3/Parallel.H>
+#endif
 
 #ifdef BL_ARCH_CRAY
 #ifdef BL_USE_DOUBLE
@@ -174,7 +180,13 @@ main (int   argc,
     set_new_handler(Utility::OutOfMemory);
 #endif
 
-    ParallelDescriptor::StartParallel(&argc,&argv);
+#ifdef BL3_PROFILING
+    BL3_PROFILE_TIMER(pmain, "main()");
+    BL3_PROFILE_START(pmain);
+    BoxLib3::Profiler::Initialize(argc, argv);
+    BoxLib3::Initialize(argc, argv);
+#endif
+    ParallelDescriptor::StartParallel(&argc, &argv);
 
     cout << setprecision(10);
 
@@ -242,7 +254,14 @@ main (int   argc,
     //
     // This MUST follow the above delete as ~Amr() may dump files to disk.
     //
+#ifdef BL3_PROFILING
+    BL3_PROFILE_TIMER(rs_main, "main():RunStats::report()");
+    BL3_PROFILE_START(rs_main);
+#endif
     RunStats::report(cout);
+#ifdef BL3_PROFILING
+    BL3_PROFILE_STOP(rs_main);
+#endif
 
     if (CArena* arena = dynamic_cast<CArena*>(The_FAB_Arena))
     {
@@ -266,6 +285,11 @@ main (int   argc,
 
         cout << buf << endl;
     }
+
+#ifdef BL3_PROFILING
+    BL3_PROFILE_STOP(pmain);
+    BoxLib3::Profiler::Finalize();
+#endif
 
     ParallelDescriptor::EndParallel();
 

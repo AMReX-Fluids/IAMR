@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOperator.cpp,v 1.17 1999-06-14 23:51:58 almgren Exp $
+// $Id: MacOperator.cpp,v 1.18 2000-08-02 16:04:41 car Exp $
 //
 
 #include <MacBndry.H>
@@ -11,6 +11,9 @@
 #include <MACOPERATOR_F.H>
 #include <CGSolver.H>
 #include <MultiGrid.H>
+#ifdef MG_USE_HYPRE
+#include <HypreABec.H>
+#endif
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -342,7 +345,7 @@ MacOperator::syncRhs (const MultiFab& Volume,
 void
 mac_level_driver (const MacBndry& mac_bndry,
                   const BoxArray& grids,
-                  int             use_cg_solve,
+                  int             the_solver,
                   int             level,
                   int             Density,
                   const Real*     dx,
@@ -361,18 +364,35 @@ mac_level_driver (const MacBndry& mac_bndry,
     mac_op.setCoefficients(area,S,Density,dx);
     mac_op.defRHS(area,volume,Rhs,u_mac,rhs_scale);
     mac_op.maxOrder(2);
-    if (use_cg_solve && mac_op.maxOrder() != 2)
+    if (the_solver == 1 && mac_op.maxOrder() != 2)
     {
         BoxLib::Error("Can't use CGSolver with maxorder > 2");
     }
     //
     // Construct MultiGrid or CGSolver object and solve system.
     //
-    if (use_cg_solve)
+    if (the_solver == 1)
     {
         bool use_mg_precond = true;
         CGSolver mac_cg(mac_op,use_mg_precond);
         mac_cg.solve(*mac_phi,Rhs,mac_tol,mac_abs_tol);
+    }
+    else if ( the_solver == 2)
+    {
+#ifdef MG_USE_HYPRE
+      HypreABec hp(mac_phi->boxArray(), mac_bndry, dx, 0, false);
+      hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
+      hp.aCoefficients(mac_op.aCoefficients());
+      for ( int i = 0; i < BL_SPACEDIM; ++i )
+	{
+	  hp.bCoefficients(mac_op.bCoefficients(i), i);
+	}
+      hp.setup_solver(mac_tol, mac_abs_tol, 50);
+      hp.solve(*mac_phi, Rhs, true);
+      hp.clear_solver();
+#else
+      BoxLib::Error("HypreABec not in this build");
+#endif
     }
     else
     {
@@ -392,7 +412,7 @@ mac_level_driver (const MacBndry& mac_bndry,
 void
 mac_sync_driver (const MacBndry& mac_bndry,
                  const BoxArray& grids,
-                 int             use_cg_solve,
+                 int             the_solver,
                  int             level, 
                  const Real*     dx,
                  Real            dt,
@@ -410,19 +430,36 @@ mac_sync_driver (const MacBndry& mac_bndry,
     mac_op.maxOrder(2);
     mac_op.setCoefficients(area,*rho_half, 0, dx);
     mac_op.syncRhs(volume,Rhs,rhs_scale,dx);
-    if (use_cg_solve && mac_op.maxOrder() != 2)
+    if (the_solver == 1 && mac_op.maxOrder() != 2)
     {
         BoxLib::Error("Can't use CGSolver with maxorder > 2");
     }
     //
     // Now construct MultiGrid or CGSolver object to solve system.
     //
-    if (use_cg_solve)
+    if (the_solver == 1)
     {
         bool use_mg_precond = true;
         CGSolver mac_cg(mac_op,use_mg_precond);
         mac_cg.solve(*mac_sync_phi,Rhs,mac_sync_tol,mac_abs_tol);
     }
+    else if ( the_solver == 2)
+      {
+#ifdef  MG_USE_HYPRE
+	HypreABec hp(mac_sync_phi->boxArray(), mac_bndry, dx, 0, false);
+	hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
+	hp.aCoefficients(mac_op.aCoefficients());
+	for ( int i = 0; i < BL_SPACEDIM; ++i )
+	  {
+	    hp.bCoefficients(mac_op.bCoefficients(i), i);
+	  }
+	hp.setup_solver(mac_sync_tol, mac_abs_tol, 50);
+	hp.solve(*mac_sync_phi, Rhs, true);
+	hp.clear_solver();
+#else
+	BoxLib::Error("HypreABec not in this build");
+#endif
+      }
     else
     {
         MultiGrid mac_mg(mac_op);

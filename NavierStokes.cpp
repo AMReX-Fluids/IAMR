@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.184 2000-07-25 22:25:10 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.185 2000-08-02 16:04:42 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -34,6 +34,10 @@ using std::streampos;
 #else
 #include <vector.h>
 #include <stdio.h>
+#endif
+
+#ifdef BL3_PROFILING
+#include <BoxLib3/Profiler.H>
 #endif
 
 #define GEOM_GROW   1
@@ -873,6 +877,9 @@ NavierStokes::setTimeLevel (Real time,
 void
 NavierStokes::initData ()
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::initData()");
+#endif
     static RunStats stats("init_data");
 
     stats.start();

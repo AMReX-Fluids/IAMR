@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.69 2000-07-25 19:15:44 lijewski Exp $
+// $Id: MacProj.cpp,v 1.70 2000-08-02 16:04:42 car Exp $
 //
 
 #include <Misc.H>
@@ -106,7 +106,8 @@ hasOutFlowBC(BCRec* _phys_bc)
 }
 
 int  MacProj::verbose          = 0;
-int  MacProj::use_cg_solve     = 0;
+bool MacProj::use_cg_solve     = false;
+bool MacProj::use_hypre_solve  = false;
 Real MacProj::mac_tol          = 1.0e-12;
 Real MacProj::mac_abs_tol      = 1.0e-16;
 Real MacProj::mac_sync_tol     = 1.0e-8;
@@ -152,6 +153,7 @@ MacProj::read_params ()
     pp.query( "mac_tol",          mac_tol          );
     pp.query( "mac_sync_tol",     mac_sync_tol     );
     pp.query( "use_cg_solve",     use_cg_solve     );
+    pp.query( "use_hypre_solve",  use_hypre_solve  );
     pp.query( "mac_abs_tol",      mac_abs_tol      );
     pp.query( "do_outflow_bcs",   do_outflow_bcs   );
     pp.query( "fix_mac_sync_rhs", fix_mac_sync_rhs );
@@ -391,7 +393,16 @@ MacProj::mac_project (int             level,
     MultiFab Rhs(grids,1,0);
     Rhs.copy(divu);
 
-    mac_level_driver(mac_bndry, grids, use_cg_solve, level, Density,
+    int the_solver = 0;
+    if ( use_cg_solve )
+      {
+	the_solver = 1;
+      }
+    else if ( use_hypre_solve )
+      {
+	the_solver = 2;
+      }
+    mac_level_driver(mac_bndry, grids, the_solver, level, Density,
                      dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
                      area[level], volume[level], S, Rhs, u_mac, mac_phi);
     //
@@ -600,7 +611,16 @@ MacProj::mac_sync_solve (int       level,
     //
     // Solve the sync system.
     //
-    mac_sync_driver(mac_bndry, grids, use_cg_solve, level, dx, dt,
+    int the_solver = 0;
+    if ( use_cg_solve )
+      {
+	the_solver = 1;
+      }
+    else if ( use_hypre_solve )
+      {
+	the_solver = 2;
+      }
+    mac_sync_driver(mac_bndry, grids, the_solver, level, dx, dt,
                     mac_sync_tol, mac_abs_tol, rhs_scale, area[level],
                     volume[level], Rhs, rho_half, u_mac, mac_sync_phi);
 }

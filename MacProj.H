@@ -4,7 +4,7 @@
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.17 2000-07-10 22:23:30 almgren Exp $
+// $Id: MacProj.H,v 1.18 2000-08-02 16:04:43 car Exp $
 //
 
 #include <BC_TYPES.H>
@@ -129,7 +129,8 @@ protected:
     int        finest_level_allocated;
 
     static int  verbose;
-    static int  use_cg_solve;
+    static bool  use_cg_solve;
+    static bool  use_hypre_solve;
     static int  do_outflow_bcs;
     static Real mac_tol;
     static Real mac_abs_tol;
