@@ -80,9 +80,12 @@ main (int   argc,
         usage();
     }
 
-    pp.queryarr("ifiles",ifiles);
-
-    if (ifiles.empty()) usage();
+    switch(pp.countval("ifiles"))
+    {
+    case 0:  usage();                                      break;
+    case 1:  ifiles.resize(1); pp.get("ifiles",ifiles[0]); break;
+    default: pp.queryarr("ifiles",ifiles);                 break;
+    }
 
     pp.query("ofile",ofile);
 
