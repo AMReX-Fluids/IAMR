@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.222 2003-02-19 18:29:58 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.223 2003-02-19 18:43:52 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3273,14 +3273,12 @@ NavierStokes::post_init_state ()
         getLevel(k).avgDown();
     }
     make_rho_curr_time();
-    //
-    // Zero pressure field.
-    //
-    for (int k = 0; k <= finest_level; k++)
-    {
-        getLevel(k).zeroNewPress();
-        getLevel(k).zeroOldPress();
-    }
+
+    if (do_init_proj && projector && (std::abs(gravity)) > 0.)
+        //
+        // Do projection to establish initially hydrostatic pressure field.
+        //
+        projector->initialPressureProject(0);
 }
 
 //
@@ -4543,7 +4541,6 @@ NavierStokes::getForce (FArrayBox&       force,
 
     BL_ASSERT(Rho.box().contains(force.box()));
 
-//    const Real grav = std::abs(gravity);
     const Real grav = gravity;
 
     for (int dc = 0; dc < ncomp; dc++)
@@ -4560,8 +4557,7 @@ NavierStokes::getForce (FArrayBox&       force,
             // Set force to -rho*g.
             //
             force.copy(Rho,0,dc,1);
-//            force.mult(-grav,dc,1);
-            force.mult(grav,dc,1);
+            force.mult(-grav,dc,1);
         }
         else
         {
