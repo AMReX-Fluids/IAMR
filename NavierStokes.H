@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.25 1998-11-07 03:09:29 lijewski Exp $
+// $Id: NavierStokes.H,v 1.26 1998-11-09 21:27:50 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -206,14 +206,6 @@ public:
                           int  iteration,
                           int  ncycle);
     //
-    // Mac edge velocities.
-    //
-    MultiFab* u_mac;
-    //
-    // Advective tendencies.
-    //
-    MultiFab* aofs;
-    //
     // Boundary condition functions.
     //
     void SaveOldBoundary (Real time); // Save ghost cells back into.
@@ -236,8 +228,6 @@ public:
     // Public so MacProj can access it.
     //
     virtual void SetGodunov ();
-
-    static Godunov* godunov;
 
 protected:
 
@@ -592,6 +582,14 @@ protected:
     }
 
 protected:
+    //
+    // Mac edge velocities.
+    //
+    MultiFab* u_mac;
+    //
+    // Advective tendencies.
+    //
+    MultiFab* aofs;
 
     Diffusion* diffusion;
     //
@@ -635,6 +633,7 @@ protected:
     //
     // Static objects.
     //
+    static Godunov*    godunov;
     static ErrorList   err_list;
     static BCRec       phys_bc;
     static Projection* projector;
