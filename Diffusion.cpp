@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.57 1999-01-21 00:32:43 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.58 1999-01-22 18:17:42 lijewski Exp $
 //
 
 //
@@ -2199,22 +2199,22 @@ Diffusion::getViscOp (int        comp,
         assert(alpha.box(alphamfi.index()) == alphamfi.validbox());
         assert(volume.box(alphamfi.index()) == volumemfi.validbox());
 
-        const Box& bx       = alphamfi.validbox();
+        const Box& bx = alphamfi.validbox();
 
         Array<Real> rcen(bx.length(0));
         parent->Geom(level).GetCellLoc(rcen, bx, 0);
 
-        const int *lo       = bx.loVect();
-        const int *hi       = bx.hiVect();
-        Real *dat           = alphamfi().dataPtr();
-        Box abx             = ::grow(bx,alpha.nGrow());
-        const int *alo      = abx.loVect();
-        const int *ahi      = abx.hiVect();
-        const Real *rcendat = rcen.dataPtr();
-        const Real *voli    = volumemfi().dataPtr();
-        Box vbox            = ::grow(volumemfi.validbox(),volume.nGrow());
-        const int *vlo      = vbox.loVect();
-        const int *vhi      = vbox.hiVect();
+        const int*  lo      = bx.loVect();
+        const int*  hi      = bx.hiVect();
+        Real*       dat     = alphamfi().dataPtr();
+        Box         abx     = ::grow(bx,alpha.nGrow());
+        const int*  alo     = abx.loVect();
+        const int*  ahi     = abx.hiVect();
+        const Real* rcendat = rcen.dataPtr();
+        const Real* voli    = volumemfi().dataPtr();
+        Box         vbox    = ::grow(volumemfi.validbox(),volume.nGrow());
+        const int*  vlo     = vbox.loVect();
+        const int*  vhi     = vbox.hiVect();
 
         FArrayBox& Rh = rho_halfmfi();
         DEF_LIMITS(Rh,rho_dat,rlo,rhi);
@@ -2225,19 +2225,18 @@ Diffusion::getViscOp (int        comp,
                       rho_dat,ARLIM(rlo),ARLIM(rhi),&usehoop,&useden);
     }
 
-    //  visc_op->setScalars(a,dx[0]*b);
     if (rho_flag == 2)
     {
         //
         // Using conservative diffing for rho*T.
         //
-        MultiFab& S_new = caller->get_new_data(State_Type);
+        MultiFab& S = caller->get_data(State_Type,time);
 
         for (MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
         {
-            DependentMultiFabIterator S_newmfi(alphamfi, S_new);
+            DependentMultiFabIterator Smfi(alphamfi, S);
             assert(grids[alphamfi.index()] == alphamfi.validbox());
-            alphamfi().mult(S_newmfi(),alphamfi.validbox(),Density,0,1);
+            alphamfi().mult(Smfi(),alphamfi.validbox(),Density,0,1);
         }
     }
     if (alpha_in != 0)
@@ -2301,12 +2300,14 @@ Diffusion::getViscOp (int        comp,
                       MultiFab** beta,
                       MultiFab*  alpha_in)
 {
+    assert(rho_flag != 2);
+
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
 
-    const Real* dx    = caller->Geom().CellSize();
-    const Box& domain = caller->Geom().Domain();
-    const BCRec& bc   = caller->get_desc_lst()[State_Type].getBC(comp);
+    const Real*  dx     = caller->Geom().CellSize();
+    const Box&   domain = caller->Geom().Domain();
+    const BCRec& bc     = caller->get_desc_lst()[State_Type].getBC(comp);
 
     IntVect ref_ratio = level > 0 ? parent->refRatio(level-1) : IntVect::TheUnitVector();
 
@@ -2354,19 +2355,6 @@ Diffusion::getViscOp (int        comp,
                       rho_dat,ARLIM(rlo),ARLIM(rhi),&usehoop,&useden);
     }
 
-    if (rho_flag == 2)
-    {
-        //
-        // Using conservative diffing for rho*S.
-        //
-        MultiFab& S_new = caller->get_new_data(State_Type);
-        for (MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
-        {
-            DependentMultiFabIterator S_newmfi(alphamfi, S_new);
-            assert(grids[alphamfi.index()] == alphamfi.validbox());
-            alphamfi().mult(S_newmfi(),alphamfi.validbox(),Density,0,1);
-        }
-    }
     if (alpha_in != 0)
     {
         for (MultiFabIterator alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
