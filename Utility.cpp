@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.2 1997-07-17 23:25:39 car Exp $
+// $Id: Utility.cpp,v 1.3 1997-07-18 21:27:17 car Exp $
 //
 
 #include <stdlib.h>
@@ -9,7 +9,9 @@
 #include <string.h>
 #include <fstream.h>
 #include <ctype.h>
-//#include <unistd.h>
+#ifndef	WIN32
+#include <unistd.h>
+#endif
 
 #include <REAL.H>
 #include <Misc.H>
