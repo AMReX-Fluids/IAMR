@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.36 1998-07-02 23:46:28 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.37 1998-07-09 17:58:03 lijewski Exp $
 //
 
 //
@@ -854,7 +854,7 @@ Diffusion::diffuse_velocity_constant_mu (Real      dt,
         }
         else
         {
-            caller->FillCoarsePatch(Soln,0,cur_time,State_Type,sigma,1);
+            caller->FillCoarsePatch(Soln,cur_time,State_Type,sigma,1);
         }
         //
         // Copy guess into U_new.
@@ -1190,7 +1190,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
     }
     else
     {
-        caller->FillCoarsePatch(Soln,0,cur_time,State_Type,Xvel,BL_SPACEDIM);
+        caller->FillCoarsePatch(Soln,cur_time,State_Type,Xvel,BL_SPACEDIM);
     }
     //
     // Copy guess into U_new.
@@ -1205,8 +1205,7 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
     const Real b = be_cn_theta*dt;
        
     ViscBndry2D visc_bndry;
-    DivVis *tensor_op = getTensorOp(a,b,cur_time,visc_bndry,
-                                    rho_half,betanp1);
+    DivVis* tensor_op = getTensorOp(a,b,cur_time,visc_bndry,rho_half,betanp1);
     tensor_op->maxOrder(tensor_max_order);
     const MultiFab* alpha = &(tensor_op->aCoefficients());
     //

@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.78 1998-07-08 16:33:19 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.79 1998-07-09 17:58:04 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -542,7 +542,7 @@ NavierStokes::SaveOldBoundary (Real time)
 {
     MultiFab& Sold = get_old_data(State_Type);
 
-    FillPatchIterator Sold_fpi(*this,Sold,1,0,time,State_Type,0,NUM_STATE);
+    FillPatchIterator Sold_fpi(*this,Sold,1,time,State_Type,0,NUM_STATE);
 
     for ( ; Sold_fpi.isValid(); ++Sold_fpi)
     {
@@ -555,7 +555,7 @@ NavierStokes::SaveNewBoundary (Real time)
 {
     MultiFab& Snew = get_new_data(State_Type);
 
-    FillPatchIterator Snew_fpi(*this,Snew,1,0,time,State_Type,0,NUM_STATE);
+    FillPatchIterator Snew_fpi(*this,Snew,1,time,State_Type,0,NUM_STATE);
 
     for ( ; Snew_fpi.isValid(); ++Snew_fpi)
     {
@@ -894,16 +894,16 @@ NavierStokes::init (AmrLevel &old)
     //
     // Get best state and pressure data.
     //
-    for (FillPatchIterator snewfpi(old,S_new,0,0,cur_time,
-                                   State_Type,0,NUM_STATE);
-        snewfpi.isValid(); ++snewfpi)
+    for (FillPatchIterator snewfpi(old,S_new,0,cur_time,State_Type,0,NUM_STATE);
+        snewfpi.isValid();
+         ++snewfpi)
     {
         S_new[snewfpi.index()].copy(snewfpi());
     }
 
-    for (FillPatchIterator pnewfpi(old,P_new,0,0,cur_pres_time,
-                                   Press_Type,0,1);
-         pnewfpi.isValid(); ++pnewfpi)
+    for (FillPatchIterator pnewfpi(old,P_new,0,cur_pres_time,Press_Type,0,1);
+         pnewfpi.isValid();
+         ++pnewfpi)
     {
         P_new[pnewfpi.index()].copy(pnewfpi());
         P_old[pnewfpi.index()].copy(pnewfpi());
@@ -915,9 +915,9 @@ NavierStokes::init (AmrLevel &old)
     {
         MultiFab& Divu_new = get_new_data(Divu_Type);
         
-        for (FillPatchIterator divunewfpi(old,Divu_new,0,0,cur_time,
-                                          Divu_Type,0,1);
-             divunewfpi.isValid(); ++divunewfpi)
+        for (FillPatchIterator divunewfpi(old,Divu_new,0,cur_time,Divu_Type,0,1);
+             divunewfpi.isValid();
+             ++divunewfpi)
         {
             Divu_new[divunewfpi.index()].copy(divunewfpi());
         }
@@ -926,9 +926,10 @@ NavierStokes::init (AmrLevel &old)
         {
             MultiFab& Dsdt_new = get_new_data(Dsdt_Type);
 
-            for (FillPatchIterator dsdtnewfpi(old,Dsdt_new,0,0,cur_time,
+            for (FillPatchIterator dsdtnewfpi(old,Dsdt_new,0,cur_time,
                                               Dsdt_Type,0,1);
-                 dsdtnewfpi.isValid(); ++dsdtnewfpi)
+                 dsdtnewfpi.isValid();
+                 ++dsdtnewfpi)
             {
                 Dsdt_new[dsdtnewfpi.index()].copy(dsdtnewfpi());
             }
@@ -975,8 +976,8 @@ NavierStokes::init ()
     //
     // Get best coarse state and pressure data.
     //
-    FillCoarsePatch(S_new,0,cur_time,State_Type,0,NUM_STATE);
-    FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
+    FillCoarsePatch(S_new,cur_time,State_Type,0,NUM_STATE);
+    FillCoarsePatch(P_new,cur_pres_time,Press_Type,0,1);
 
     for (MultiFabIterator mfi(P_new); mfi.isValid(false); ++mfi)
     {
@@ -988,10 +989,10 @@ NavierStokes::init ()
     //
     if (have_divu)
     {
-        FillCoarsePatch(get_new_data(Divu_Type),0,cur_time,Divu_Type,0,1);
+        FillCoarsePatch(get_new_data(Divu_Type),cur_time,Divu_Type,0,1);
         if (have_dsdt)
         {
-            FillCoarsePatch(get_new_data(Dsdt_Type),0,cur_time,Dsdt_Type,0,1);
+            FillCoarsePatch(get_new_data(Dsdt_Type),cur_time,Dsdt_Type,0,1);
         }
     }
 }
@@ -1393,8 +1394,7 @@ NavierStokes::makerhonph (Real dt)
 {
     const Real half_time = state[State_Type].prevTime() + 0.5*dt;
 
-    FillPatchIterator rho_fpi(*this,*rho_half,1,0,half_time,
-                              State_Type,Density,1);
+    FillPatchIterator rho_fpi(*this,*rho_half,1,half_time,State_Type,Density,1);
 
     for ( ; rho_fpi.isValid(); ++rho_fpi)
     {
@@ -1441,13 +1441,13 @@ NavierStokes::predict_velocity (Real  dt,
     //
     // FillPatch'd state data.
     //
-    FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,0,
+    FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,
                             prev_pres_time,Press_Type,0,1);
 
-    FillPatchIterator U_fpi(*this,visc_terms,HYP_GROW,0,prev_time,
+    FillPatchIterator U_fpi(*this,visc_terms,HYP_GROW,prev_time,
                             State_Type,Xvel,BL_SPACEDIM);
 
-    FillPatchIterator Rho_fpi(*this,visc_terms,1,0,prev_time,
+    FillPatchIterator Rho_fpi(*this,visc_terms,1,prev_time,
                               State_Type,Density,1);
 
     for ( ;
@@ -1629,13 +1629,13 @@ NavierStokes::velocity_advection (Real dt)
     //
     // FillPatch'd state data.
     //
-    FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,0,
+    FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,
                             prev_pres_time,Press_Type,0,1);
 
-    FillPatchIterator U_fpi(*this,visc_terms,HYP_GROW,0,prev_time,
+    FillPatchIterator U_fpi(*this,visc_terms,HYP_GROW,prev_time,
                             State_Type,Xvel,BL_SPACEDIM);
 
-    FillPatchIterator Rho_fpi(*this,visc_terms,1,0,prev_time,
+    FillPatchIterator Rho_fpi(*this,visc_terms,1,prev_time,
                               State_Type,Density,1);
     //
     // Compute the advective forcing.
@@ -1752,16 +1752,16 @@ NavierStokes::scalar_advection (Real dt,
     //
     MultiFab* divu_fp = getDivCond(1,prev_time);
 
-    FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,0,
+    FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,
                             prev_pres_time,Press_Type,0,1);
 
-    FillPatchIterator U_fpi(*this,visc_terms,HYP_GROW,0,prev_time,
+    FillPatchIterator U_fpi(*this,visc_terms,HYP_GROW,prev_time,
                             State_Type,Xvel,BL_SPACEDIM);
 
-    FillPatchIterator S_fpi(*this,visc_terms,HYP_GROW,0,prev_time,
+    FillPatchIterator S_fpi(*this,visc_terms,HYP_GROW,prev_time,
                             State_Type,fscalar,num_scalars);
 
-    FillPatchIterator Rho_fpi(*this,visc_terms,1,0,prev_time,
+    FillPatchIterator Rho_fpi(*this,visc_terms,1,prev_time,
                               State_Type,Density,1);
     //
     // Compute the advective forcing.
@@ -1895,8 +1895,7 @@ NavierStokes::scalar_advection_update (Real dt,
         //
         // Compute inviscid estimate of scalars.
         //
-        FillPatchIterator Rho_fpi(*this,S_old,0,0,half_time,
-                                  State_Type,Density,1);
+        FillPatchIterator Rho_fpi(*this,S_old,0,half_time,State_Type,Density,1);
 
         for ( ; Rho_fpi.isValid(); ++Rho_fpi)
         {
@@ -1992,9 +1991,9 @@ NavierStokes::velocity_advection_update (Real dt)
     //
     // Simulation parameters.
     //
-    MultiFab &U_old     = get_old_data(State_Type);
-    MultiFab &U_new     = get_new_data(State_Type);
-    MultiFab &Aofs      = *aofs;
+    MultiFab& U_old     = get_old_data(State_Type);
+    MultiFab& U_new     = get_new_data(State_Type);
+    MultiFab& Aofs      = *aofs;
     Real cur_time       = state[State_Type].curTime();
     Real prev_time      = state[State_Type].prevTime();
     Real half_time      = 0.5*(prev_time+cur_time);
@@ -2002,17 +2001,16 @@ NavierStokes::velocity_advection_update (Real dt)
     //
     // Estimate u^n+1 and put in U_new.
     //
-    const int rhoNGrow = 0;
+    const int NGrow = 0;
 
-    FillPatchIterator Rho_fpi(*this, U_old, rhoNGrow, 0, half_time,
-                              State_Type, Density, 1);
+    FillPatchIterator Rho_fpi(*this,U_old,NGrow,half_time,State_Type,Density,1);
 
     MultiFab& P_old = get_old_data(Press_Type);
     const int presNGrow   = 0;
     const int presSrcComp = 0;
 
-    FillPatchIterator P_fpi(*this, P_old, presNGrow, 0, pres_prev_time,
-                            Press_Type, presSrcComp, 1);
+    FillPatchIterator P_fpi(*this,P_old,presNGrow,pres_prev_time,
+                            Press_Type,presSrcComp,1);
 
     for ( ; Rho_fpi.isValid() && P_fpi.isValid(); ++Rho_fpi, ++P_fpi)
     {
@@ -2043,7 +2041,7 @@ NavierStokes::velocity_advection_update (Real dt)
 
         const Real grav = Abs(gravity);
 
-        tforces.resize(::grow(grids[i],rhoNGrow), BL_SPACEDIM);
+        tforces.resize(::grow(grids[i],NGrow), BL_SPACEDIM);
 
         for (int dc = 0; dc < BL_SPACEDIM; dc++)
         {
@@ -2144,10 +2142,10 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
         //
         // Update U_new with viscosity.
         //
-        FillPatchIterator P_fpi(*this,get_old_data(Press_Type),0,0,
+        FillPatchIterator P_fpi(*this,get_old_data(Press_Type),0,
                                 pres_prev_time,Press_Type,0,1);
 
-        FillPatchIterator Rho_fpi(*this,visc_terms,0,0,prev_time,
+        FillPatchIterator Rho_fpi(*this,visc_terms,0,prev_time,
                                   State_Type,Density,1);
 
         for ( ; Rho_fpi.isValid() && P_fpi.isValid(); ++Rho_fpi, ++P_fpi)
@@ -2512,8 +2510,7 @@ NavierStokes::estTimeStep ()
 
     FArrayBox p_fab, Gp, tforces;
 
-    FillPatchIterator Rho_fpi(*this,U_new,n_grow,0,cur_time,
-                              State_Type,Density,1);
+    FillPatchIterator Rho_fpi(*this,U_new,n_grow,cur_time,State_Type,Density,1);
 
     for ( ; Rho_fpi.isValid(); ++Rho_fpi)
     {
@@ -2812,8 +2809,8 @@ NavierStokes::post_timestep ()
         const Real prev_time = state[State_Type].prevTime();
         const Real half_time = prev_time + 0.5*dt;
 
-        FillPatchIterator rho_halffpi(*this,*rho_half,1,0,
-                                      half_time,State_Type,Density,1);
+        FillPatchIterator rho_halffpi(*this,*rho_half,1,half_time,
+                                      State_Type,Density,1);
 
         for ( ; rho_halffpi.isValid(); ++rho_halffpi)
         {
@@ -3531,7 +3528,7 @@ NavierStokes::level_sync ()
     //
     // Get rho at t^{n+1/2}.
     //
-    for (FillPatchIterator rho_halffpi(*this,*rho_half,1,0,half_time,
+    for (FillPatchIterator rho_halffpi(*this,*rho_half,1,half_time,
                                        State_Type,Density,1);
         rho_halffpi.isValid(); ++rho_halffpi)
     {
@@ -4372,7 +4369,7 @@ NavierStokes::getState (int  ngrow,
 {
     MultiFab* mf = new MultiFab(state[state_idx].boxArray(),num_comp,ngrow);
 
-    FillPatchIterator fpi(*this,*mf,ngrow,0,time,state_idx,strt_comp,num_comp);
+    FillPatchIterator fpi(*this,*mf,ngrow,time,state_idx,strt_comp,num_comp);
 
     for ( ; fpi.isValid(); ++fpi)
     {
@@ -4406,7 +4403,7 @@ NavierStokes::FillStateBndry (Real time,
 
     for (int istate = src_comp; istate < src_comp+num_comp; istate++)
     {
-        FillPatchIterator fpi(*this,S,S.nGrow(),0,time,state_idx,istate,1);
+        FillPatchIterator fpi(*this,S,S.nGrow(),time,state_idx,istate,1);
 
         for ( ; fpi.isValid(); ++fpi)
         {
@@ -4544,10 +4541,11 @@ NavierStokes::calc_divu (Real      time,
             //
             getViscTerms(divu,Temp,1,time);
 
-            FillPatchIterator rho_fpi(*this,divu,0,0,time,State_Type,Density,1);
-            FillPatchIterator temp_fpi(*this,divu,0,0,time,State_Type,Temp,1);
+            FillPatchIterator rho_fpi(*this,divu,0,time,State_Type,Density,1);
+            FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);
 
-            for ( ; rho_fpi.isValid() && temp_fpi.isValid();
+            for ( ;
+                  rho_fpi.isValid() && temp_fpi.isValid();
                   ++rho_fpi, ++temp_fpi)
             {
                 int i = rho_fpi.index();
@@ -4637,9 +4635,9 @@ NavierStokes::compute_grad_divu_minus_s (Real      time,
 
     MultiFab U(grids, BL_SPACEDIM, nGrow, Fab_allocate);
 
-    for (FillPatchIterator Ufpi(*this,U,nGrow,0,time,State_Type,
-                                0,BL_SPACEDIM);
-         Ufpi.isValid(); ++Ufpi)
+    for (FillPatchIterator Ufpi(*this,U,nGrow,time,State_Type,0,BL_SPACEDIM);
+         Ufpi.isValid();
+         ++Ufpi)
     {
         U[Ufpi.index()].copy(Ufpi());
     }

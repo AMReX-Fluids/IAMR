@@ -1,5 +1,5 @@
 //
-// $Id: MacProj.cpp,v 1.26 1998-06-17 17:04:48 lijewski Exp $
+// $Id: MacProj.cpp,v 1.27 1998-07-09 17:58:04 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -580,9 +580,9 @@ MacProj::mac_sync_compute (int           level,
     MultiFab* divu_fp = ns_level.getDivCond(1,prev_time);
 
     FillPatchIterator P_fpi(ns_level,ns_level.get_old_data(Press_Type),1,
-                            0,pres_prev_time,Press_Type,0,1);
+                            pres_prev_time,Press_Type,0,1);
 
-    FillPatchIterator S_fpi(ns_level,*visc_terms,HYP_GROW,0,
+    FillPatchIterator S_fpi(ns_level,*visc_terms,HYP_GROW,
                             prev_time,State_Type,0,NUM_STATE);
     //
     // Compute the mac sync correction.

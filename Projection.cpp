@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.45 1998-07-06 17:28:00 lijewski Exp $
+// $Id: Projection.cpp,v 1.46 1998-07-09 17:58:05 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -322,7 +322,7 @@ Projection::level_project(int level,
 
     if (level != 0)
     {
-	LevelData[level].FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
+	LevelData[level].FillCoarsePatch(P_new,cur_pres_time,Press_Type,0,1);
     }
 
     // set up outflow bcs, BEFORE manipulating state, pressure data
@@ -583,13 +583,13 @@ void Projection::harmonic_project(int level, Real dt, Real cur_pres_time,
 
   Real prev_pres_time = cur_pres_time - dt;
 
-  LevelData[level].FillCoarsePatch(*temp_phi,0, prev_pres_time,Press_Type,0,1);
-  LevelData[level].FillCoarsePatch(*harm_phi,0, cur_pres_time,Press_Type,0,1);
+  LevelData[level].FillCoarsePatch(*temp_phi,prev_pres_time,Press_Type,0,1);
+  LevelData[level].FillCoarsePatch(*harm_phi,cur_pres_time,Press_Type,0,1);
 
-  for(MultiFabIterator temp_phimfi(*temp_phi); temp_phimfi.isValid(); ++temp_phimfi)
+  for (MultiFabIterator phimfi(*temp_phi); phimfi.isValid(); ++phimfi)
   {
-    DependentMultiFabIterator harm_phimfi(temp_phimfi, *harm_phi);
-    harm_phimfi().minus(temp_phimfi());
+    DependentMultiFabIterator harm_phimfi(phimfi, *harm_phi);
+    harm_phimfi().minus(phimfi());
     Box tempbox(harm_phimfi().box());
     tempbox.grow(-2);
     harm_phimfi().setVal(0.,tempbox,0,1);
@@ -1771,7 +1771,7 @@ Projection::getDivCond (int  level,
     divu->setVal(bogus_value);
 #endif
 
-    FillPatchIterator fpi(LevelData[level],*divu,ngrow,0,time,Divu_Type,0,1);
+    FillPatchIterator fpi(LevelData[level],*divu,ngrow,time,Divu_Type,0,1);
 
     for ( ; fpi.isValid(); ++fpi)
     {
@@ -2151,7 +2151,6 @@ void Projection::set_level_projector_outflow_bcs(int       level,
     const Box phi_strip = surroundingNodes(bdryHi(domain, outDir, ncStripWidth));
     
     const int nGrow = 0;
-    const int dstComp = 0;
     const int srcCompRho = Density, nCompRho = 1;
     const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
     const int srcCompDivu = 0,      nCompDivu = 1;
@@ -2177,16 +2176,18 @@ void Projection::set_level_projector_outflow_bcs(int       level,
 	BoxLib::Error("Projection::set_level_projector_outflow_bcs(): Divu not found");
     }
     
-    FillPatchIterator rhoFpi(LevelData[level], cc_MultiFab, nGrow, dstComp, cur_state_time,
+    FillPatchIterator rhoFpi(LevelData[level], cc_MultiFab, nGrow, cur_state_time,
 			     State_Type, srcCompRho, nCompRho);
     
-    FillPatchIterator velFpi(LevelData[level], cc_MultiFab, nGrow, dstComp, cur_state_time,
+    FillPatchIterator velFpi(LevelData[level], cc_MultiFab, nGrow, cur_state_time,
 			     State_Type, srcCompVel, nCompVel);
     
-    FillPatchIterator divuFpi(LevelData[level], cc_MultiFab, nGrow, dstComp, cur_state_time,
+    FillPatchIterator divuFpi(LevelData[level], cc_MultiFab, nGrow, cur_state_time,
 			      Divu_Type, srcCompDivu, nCompDivu);
     
-    for ( ;rhoFpi.isValid() && velFpi.isValid() && divuFpi.isValid(); ++rhoFpi, ++velFpi, ++divuFpi)
+    for ( ;
+          rhoFpi.isValid() && velFpi.isValid() && divuFpi.isValid();
+          ++rhoFpi, ++velFpi, ++divuFpi)
     {
 	DependentMultiFabIterator phimfi(rhoFpi, phi_fine_strip);
 	
@@ -2247,7 +2248,6 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
 	const Box phi_strip = surroundingNodes(bdryHi(domain, outDir, ncStripWidth));
 
 	const int nGrow = 0;
-	const int dstComp = 0;
 	const int srcCompRho = Density, nCompRho = 1;
 	const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
 	const int srcCompDivu = 0,      nCompDivu = 1;
@@ -2274,16 +2274,18 @@ void Projection::set_initial_projection_outflow_bcs(MultiFab** vel,
 	    BoxLib::Error("Projection::set_initial_projection_outflow_bcs(): Divu not found");
 	}
     
-	FillPatchIterator rhoFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, cur_divu_time,
+	FillPatchIterator rhoFpi(LevelData[f_lev], cc_MultiFab, nGrow, cur_divu_time,
 				 State_Type, srcCompRho, nCompRho);
 	
-	FillPatchIterator velFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, cur_divu_time,
+	FillPatchIterator velFpi(LevelData[f_lev], cc_MultiFab, nGrow, cur_divu_time,
 				 State_Type, srcCompVel, nCompVel);
 	
-	FillPatchIterator divuFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, cur_divu_time,
+	FillPatchIterator divuFpi(LevelData[f_lev], cc_MultiFab, nGrow, cur_divu_time,
 				  Divu_Type, srcCompDivu, nCompDivu);
 	
-	for ( ; rhoFpi.isValid()  &&  velFpi.isValid()  &&  divuFpi.isValid(); ++rhoFpi, ++velFpi, ++divuFpi)
+	for ( ;
+              rhoFpi.isValid() && velFpi.isValid() && divuFpi.isValid();
+              ++rhoFpi, ++velFpi, ++divuFpi)
 	{
 	    DependentMultiFabIterator phimfi(rhoFpi, phi_fine_strip);
 
@@ -2364,7 +2366,6 @@ void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi,
 	const Box phi_strip = surroundingNodes(bdryHi(domain, outDir, ncStripWidth));
 
 	const int nGrow = 0;
-	const int dstComp = 0;
 	const int srcCompRho = Density, nCompRho = 1;
 	const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
 	const int srcCompDivu = 0,      nCompDivu = 1;
@@ -2394,22 +2395,22 @@ void Projection::set_initial_syncproject_outflow_bcs(MultiFab** phi,
         FArrayBox dudt;
         FArrayBox dsdt;
     
-	FillPatchIterator rhoOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time,
+	FillPatchIterator rhoOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, start_time,
 				    State_Type, srcCompRho, nCompRho);
 	
-	FillPatchIterator rhoNewFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time + dt,
+	FillPatchIterator rhoNewFpi(LevelData[f_lev], cc_MultiFab, nGrow, start_time + dt,
 				    State_Type, srcCompRho, nCompRho);
 	
-	FillPatchIterator velOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time,
+	FillPatchIterator velOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, start_time,
 				    State_Type, srcCompVel, nCompVel);
 	
-	FillPatchIterator velNewFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time + dt,
+	FillPatchIterator velNewFpi(LevelData[f_lev], cc_MultiFab, nGrow, start_time + dt,
 				    State_Type, srcCompVel, nCompVel);
 	
-	FillPatchIterator divuOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time,
+	FillPatchIterator divuOldFpi(LevelData[f_lev], cc_MultiFab, nGrow, start_time,
 				     Divu_Type, srcCompDivu, nCompDivu);
 	
-	FillPatchIterator divuNewFpi(LevelData[f_lev], cc_MultiFab, nGrow, dstComp, start_time + dt,
+	FillPatchIterator divuNewFpi(LevelData[f_lev], cc_MultiFab, nGrow, start_time + dt,
 				     Divu_Type, srcCompDivu, nCompDivu);
 	
 	for ( ;rhoOldFpi.isValid()  &&  velOldFpi.isValid()  &&  divuOldFpi.isValid() &&
