@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.48 1998-11-07 03:09:31 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.49 1998-12-09 23:10:05 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -213,11 +213,11 @@ SyncRegister::InitRHS (MultiFab&       rhs,
             {
                 for (int j = 0; j < grids.length(); j++)
                 {
-                    geom.periodicShift(domain,bndry[face()][j].box(),pshifts);
+                    geom.periodicShift(domain,bndry[face()].fabbox(j),pshifts);
 
                     for (int iiv = 0; iiv < pshifts.length(); iiv++)
                     {
-                        Box sbox = bndry[face()][j].box() + pshifts[iiv];
+                        Box sbox = bndry[face()].fabbox(j) + pshifts[iiv];
 
                         if (sbox.intersects(mfi().box()))
                         {
