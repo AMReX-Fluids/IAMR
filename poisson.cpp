@@ -3,8 +3,6 @@
 #include "hg_elliptic.H"
 #include "amr_gravity.H"
 
-void malloc_info();
-
 #ifndef UNICOS
 #  define USE_GRAPHICS
 #endif
@@ -33,9 +31,7 @@ main(int argc, char **argv)
   //cout << m << endl;
   //cin.get();
 
-  //malloc_info();
   poisson_test(m);
-  //malloc_info();
 
 #ifdef USE_GRAPHICS
   gclose();

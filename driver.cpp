@@ -2,8 +2,6 @@
 #include "amr_real.H"
 #include "amr_graph.H"
 
-void malloc_info();
-
 Real fct(const Intvect& it, const Intvect& t, int sig, int)
 {
 #if (SPACEDIM == 2)
@@ -98,9 +96,6 @@ void graphtest(const amr_mesh& m)
     r.mult(r);
     contour(r, ncont, 2, 0.0, 0.0, 1.0);
     cin.get();
-    //malloc_info();
     r.detach();
-    //malloc_info();
   }
-  //malloc_info();
 }

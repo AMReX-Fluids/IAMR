@@ -9,8 +9,6 @@
 
 #include "hg_projector.H"
 
-void malloc_info();
-
 #if (BL_SPACEDIM == 2)
 /*
 Real fct(const IntVect& it, const IntVect& t, int sig, int)
@@ -49,13 +47,10 @@ main(int argc, char **argv)
 
   //amr_multigrid::mesh_write(m, domain, cout);
 
-  //malloc_info();
   projtest(m, ratio, domain);
 /*
-  malloc_info();
   for (int i = 0; i < 20; i++) {
     projtest(m, ratio, domain);
-    malloc_info();
   }
 */
 #ifdef USE_GRAPHICS
