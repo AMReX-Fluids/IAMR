@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.96 2004-09-08 21:02:25 almgren Exp $
+// $Id: MacProj.cpp,v 1.97 2004-09-09 17:08:30 almgren Exp $
 //
 #include <winstd.H>
 
@@ -160,6 +160,11 @@ MacProj::install_level (int                   level,
         mac_reg.clear(level);
         mac_reg.set(level,new FluxRegister(LevelData[level].boxArray(),
                                            parent->refRatio(level-1),level,1));
+    }
+
+    if (level > anel_coeff.size()-1) {
+       anel_coeff.resize(level+1);
+       anel_coeff[level] = 0;
     }
 }
 void
