@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.7 1998-03-31 17:26:36 lijewski Exp $
+c $Id: GODUNOV_2D.F,v 1.8 1998-09-22 19:58:20 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -874,7 +874,7 @@ c
             end do
          else
             do i = imin-1,imax+1
-               ltest = abs(vad(i,jmax)).le.1.0e-10
+               ltest = abs(vad(i,jmax+1)).le.1.0e-10
                sty   = cvmgt(ylo(i,jmax+1),s(i,jmax+1),ltest)
                yhi(i,jmax+1) = sty
                ylo(i,jmax+1) = sty
