@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.65 1998-06-09 21:42:52 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.66 1998-06-11 20:13:12 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3349,6 +3349,10 @@ NavierStokes::avgDown (const BoxArray& cgrids,
                                                   strt_comp,
                                                   0,
                                                   num_comp));
+              //
+              // Also save the index of the coarse FAB needed filling.
+              //
+              fillBoxIdList.back().FabIndex(mfi.index());
 
               fillBoxIdListVol.push_back(mfcd.AddBox(mfidFineVol,
                                                      fine_ovlp,
@@ -3357,69 +3361,70 @@ NavierStokes::avgDown (const BoxArray& cgrids,
                                                      0,
                                                      0,
                                                      1));
+              //
+              // Here we'll save the fine index so we can reconstruct `ovlp'.
+              //
+              fillBoxIdListVol.back().FabIndex(fine);
             }
         }
     }
 
     mfcd.CollectData();
 
+    assert(fillBoxIdList.size() == fillBoxIdListVol.size());
+
+    const int MyProc = ParallelDescriptor::MyProc();
+
     FArrayBox fine_fab, fine_vol;
 
-    vector<FillBoxId>::iterator fbidli    = fillBoxIdList.begin();
-    vector<FillBoxId>::iterator fbidlivol = fillBoxIdListVol.begin();
-    
-    for (ConstMultiFabIterator mfi(S_crse); mfi.isValid(); ++mfi)
+    for (int i = 0; i < fillBoxIdList.size(); i++)
     {
-        ConstDependentMultiFabIterator mfivol(mfi, volume);
+        int c_idx = fillBoxIdList[i].FabIndex();
+        int f_idx = fillBoxIdListVol[i].FabIndex();
 
-        assert(grids[mfi.index()] == mfi.validbox());
+        Box ovlp = ::coarsen(fgrids[f_idx],fratio) & cgrids[c_idx];
 
-        for (int fine = 0; fine < fgrids.length(); fine++)
-        {
-            Box ovlp = ::coarsen(fgrids[fine],fratio) & mfi.validbox();
+        assert(ovlp.ok());
+        assert(S_crse.DistributionMap().ProcessorMap()[c_idx] == MyProc);
+        assert(cvolume.DistributionMap().ProcessorMap()[c_idx] == MyProc);
 
-            if (ovlp.ok())
-            {
-                assert(!(fbidli == fillBoxIdList.end()));
-                assert(!(fbidlivol == fillBoxIdListVol.end()));
+        const FillBoxId& fbidFine    = fillBoxIdList[i];
+        const FillBoxId& fbidFineVol = fillBoxIdListVol[i];
 
-                const FillBoxId& fbidFine    = *fbidli++;
-                const FillBoxId& fbidFineVol = *fbidlivol++;
+        fine_fab.resize(fbidFine.box(), num_comp);
+        fine_vol.resize(fbidFineVol.box(), 1);
 
-                fine_fab.resize(fbidFine.box(), num_comp);
-                fine_vol.resize(fbidFineVol.box(), 1);
+        mfcd.FillFab(mfidS_fine,  fbidFine,    fine_fab);
+        mfcd.FillFab(mfidFineVol, fbidFineVol, fine_vol);
 
-                mfcd.FillFab(mfidS_fine,  fbidFine,    fine_fab);
-                mfcd.FillFab(mfidFineVol, fbidFineVol, fine_vol);
+        const int* ovlo = ovlp.loVect();
+        const int* ovhi = ovlp.hiVect();
+        //
+        // Get the fine data.
+        //
+        const int* flo     = fine_fab.loVect();
+        const int* fhi     = fine_fab.hiVect();
+        const Real* f_dat  = fine_fab.dataPtr();
+        const int* fvlo    = fine_vol.loVect();
+        const int* fvhi    = fine_vol.hiVect();
+        const Real* fv_dat = fine_vol.dataPtr();
+        //
+        // Get the coarse data.
+        //
+        FArrayBox& cfab    = S_crse[c_idx];
+        FArrayBox& cfabvol = cvolume[c_idx];
+        const int* clo     = cfab.loVect();
+        const int* chi     = cfab.hiVect();
+        const Real* c_dat  = cfab.dataPtr(strt_comp);
+        const int* cvlo    = cfabvol.loVect();
+        const int* cvhi    = cfabvol.hiVect();
+        const Real* cv_dat = cfabvol.dataPtr();
 
-                const int* ovlo = ovlp.loVect();
-                const int* ovhi = ovlp.hiVect();
-                //
-                // Get the fine data.
-                //
-                const int* flo     = fine_fab.loVect();
-                const int* fhi     = fine_fab.hiVect();
-                const Real* f_dat  = fine_fab.dataPtr();
-                const int* fvlo    = fine_vol.loVect();
-                const int* fvhi    = fine_vol.hiVect();
-                const Real* fv_dat = fine_vol.dataPtr();
-                //
-                // Get the coarse data.
-                //
-                const int* clo     = mfi().loVect();
-                const int* chi     = mfi().hiVect();
-                const Real* c_dat  = mfi().dataPtr(strt_comp);
-                const int* cvlo    = mfivol().loVect();
-                const int* cvhi    = mfivol().hiVect();
-                const Real* cv_dat = mfivol().dataPtr();
-
-                FORT_AVGDOWN (c_dat,ARLIM(clo),ARLIM(chi),&num_comp,
-                              f_dat,ARLIM(flo),ARLIM(fhi),
-                              cv_dat,ARLIM(cvlo),ARLIM(cvhi),
-                              fv_dat,ARLIM(fvlo),ARLIM(fvhi),
-                              ovlo,ovhi,fratio.getVect());
-            }
-        }
+        FORT_AVGDOWN (c_dat,ARLIM(clo),ARLIM(chi),&num_comp,
+                      f_dat,ARLIM(flo),ARLIM(fhi),
+                      cv_dat,ARLIM(cvlo),ARLIM(cvhi),
+                      fv_dat,ARLIM(fvlo),ARLIM(fvhi),
+                      ovlo,ovhi,fratio.getVect());
     }
 }
 
@@ -3746,8 +3751,7 @@ NavierStokes::reflux ()
         {
             const int sigma = istate -  BL_SPACEDIM;
             for (MultiFabIterator rho_halfmfi(*rho_half);
-                 rho_halfmfi.isValid();
-                ++rho_halfmfi)
+                 rho_halfmfi.isValid(); ++rho_halfmfi)
             {
                 DependentMultiFabIterator Ssyncmfi(rho_halfmfi, *Ssync);
 
@@ -3926,6 +3930,16 @@ NavierStokes::avgDown ()
                                                     0,
                                                     0,
                                                     P_fine.nComp()));
+                //
+                // I need to save both the fine and the coarse grid indices.
+                // I'll try to stuff'm into the single integer place available.
+                // This assumes that integers are >= 4 bytes in size.
+                //
+                assert(sizeof(int) >= 4);
+                assert(fine < 0xFFFF);
+                assert(mfi.index() < 0xFFFF);
+
+                fillBoxIdList.back().FabIndex((fine << 16) | mfi.index());
             }
         }
     }
@@ -3934,32 +3948,28 @@ NavierStokes::avgDown ()
 
     FArrayBox fine_fab;
 
-    vector<FillBoxId>::iterator fbidli = fillBoxIdList.begin();
+    const int MyProc = ParallelDescriptor::MyProc();
 
-    for (MultiFabIterator mfi(P_crse); mfi.isValid(); ++mfi)
+    for (int i = 0; i < fillBoxIdList.size(); i++)
     {
-        assert(P_cgrids[mfi.index()] == mfi.validbox());
+        const FillBoxId& fbidFine = fillBoxIdList[i];
+
+        int c_idx = fbidFine.FabIndex() & 0xFFFF;
+        int f_idx = (fbidFine.FabIndex() >> 16) & 0xFFFF;
+
+        assert(c_idx >= 0 && c_idx < P_cgrids.length());
+        assert(f_idx >= 0 && f_idx < P_fgrids.length());
+
+        Box ovlp = ::coarsen(P_fgrids[f_idx],fine_ratio) & P_cgrids[c_idx];
+
+        assert(ovlp.ok());
+        assert(P_crse.DistributionMap().ProcessorMap()[c_idx] == MyProc);
         //
-        // Loop over fine grids and periodic extensions.
+        // Inject fine down to coarse.
         //
-        for (int fine = 0; fine < fgrids.length(); fine++)
-        {
-            Box ovlp = ::coarsen(P_fgrids[fine],fine_ratio) & mfi.validbox();
-
-            if (ovlp.ok())
-            {
-                assert(!(fbidli == fillBoxIdList.end()));
-                //
-                // Inject fine down to coarse.
-                //
-                const FillBoxId& fbidFine = *fbidli++;
-
-                fine_fab.resize(fbidFine.box(), P_fine.nComp());
-                mfcd.FillFab(mfidP_fine, fbidFine, fine_fab);
-
-                injectDown(ovlp, mfi(), fine_fab, fine_ratio);
-            }
-        }
+        fine_fab.resize(fbidFine.box(), P_fine.nComp());
+        mfcd.FillFab(mfidP_fine, fbidFine, fine_fab);
+        injectDown(ovlp, P_crse[c_idx], fine_fab, fine_ratio);
     }
     //
     // Next average down divu and dSdT at new time.
@@ -3969,22 +3979,16 @@ NavierStokes::avgDown ()
         MultiFab& Divu_crse = get_new_data(Divu_Type);
         MultiFab& Divu_fine = fine_lev.get_new_data(Divu_Type);
         
-        avgDown(grids,     fgrids,
-                Divu_crse, Divu_fine,
-                volume,    fvolume,
-                level,     level+1,
-                0, 1, fine_ratio );
+        avgDown(grids, fgrids, Divu_crse, Divu_fine,
+                volume, fvolume, level, level+1, 0, 1, fine_ratio );
     }
     if (have_dsdt)
     {
         MultiFab& Dsdt_crse = get_new_data(Dsdt_Type);
         MultiFab& Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
         
-        avgDown(grids,     fgrids,
-                Dsdt_crse, Dsdt_fine,
-                volume,    fvolume,
-                level,     level+1,
-                0, 1, fine_ratio );
+        avgDown(grids, fgrids, Dsdt_crse, Dsdt_fine,
+                volume, fvolume, level, level+1, 0, 1, fine_ratio );
     }
 }
 
