@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.54 1998-12-09 22:16:55 sstanley Exp $
+// $Id: Diffusion.cpp,v 1.55 1998-12-11 01:14:03 marc Exp $
 //
 
 //
@@ -1219,10 +1219,10 @@ Diffusion::diffuse_tensor_velocity (Real       dt,
                 DependentMultiFabIterator tensorflux2mfi(tensorflux0mfi,
                                                          *(tensorflux[2]));
 #endif
-                assert(grids[tensorflux0mfi.index()] == tensorflux0mfi.validbox());
 
                 int i          = tensorflux0mfi.index();
-                const Box& grd = tensorflux0mfi.validbox();
+                const Box& grd = ::enclosedCells(tensorflux0mfi.validbox());
+		assert(grd==grids[tensorflux0mfi.index()]);
                 const int* lo  = grd.loVect();
                 const int* hi  = grd.hiVect();
 
