@@ -371,7 +371,7 @@ c  check to see if we should zero phi
             j = jne
             rhs(i,j) = half*
      @           (hxm1 * (uExt(i  ,j-1,1) - uExt(i-1,j-1,1)) +
-     @            hym1 * (uExt(i-1,j-1,2) - uExt(i  ,j-1,2))) 
+     @            hym1 * (-uExt(i-1,j-1,2) - uExt(i  ,j-1,2))) 
      &           - fourth * ( divuExt(i-1,j-1) + divuExt(i  ,j-1)) 
          enddo
       endif
