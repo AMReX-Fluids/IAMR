@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.20 2000-04-20 21:19:44 propp Exp $
+# $Id: GNUmakefile,v 1.21 2000-10-03 18:03:46 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -77,22 +77,6 @@ else
   endif
 endif
 
-ifeq ($(USE_MPI),TRUE)
-  ifeq ($(MACHINE),OSF1)
-    LIBRARIES += -lmpi
-    INCLUDE_LOCATIONS += /usr/local/mpi/include
-    LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
-  endif
-  ifeq ($(MACHINE),AIX)
-    LIBRARIES += -lmpi
-    INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
-    LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
-  endif
-  ifeq ($(MACHINE), Linux)
-    LIBRARIES += -lmpich
-  endif
-endif
-
 ifeq ($(MACHINE),T3E)
   ifeq ($(USE_VAMPIRE),TRUE)
     #  use vampir trace
@@ -155,14 +139,7 @@ endif
 
 all: $(executable)
 
-ifeq ($(MACHINE),T3E)
-#
-# We don't explicity set the path of the mpi directory on the T3E.
-#
-  $(executable): $(filter-out -lmpi, $(LIBRARIES))
-else
-  $(executable): $(LIBRARIES)
-endif
+$(executable): $(LIBRARIES)
 
 ifneq ($(BUILD_INPLACE), TRUE)
 
