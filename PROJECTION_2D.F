@@ -1,7 +1,4 @@
-c $Id: PROJECTION_2D.F,v 1.2 1997-07-18 20:58:26 car Exp $
-#undef BL_LANG_CC
-#define BL_LANG_FORT
-
+c $Id: PROJECTION_2D.F,v 1.3 1997-07-22 21:57:07 car Exp $
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "BC_TYPES.H"

@@ -1,7 +1,4 @@
-c $Id: DERIVE_2D.F,v 1.1 1997-07-08 23:08:11 vince Exp $ 
-#undef BL_LANG_CC 
-#define BL_LANG_FORT 
-
+c $Id: DERIVE_2D.F,v 1.2 1997-07-22 21:56:56 car Exp $ 
 #include "REAL.H" 
 #include "CONSTANTS.H" 
 #include "BC_TYPES.H" 

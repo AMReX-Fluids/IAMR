@@ -1,6 +1,3 @@
-#undef BL_LANG_CC         
-#define BL_LANG_FORT
-        
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "MAKESLICE_F.H"

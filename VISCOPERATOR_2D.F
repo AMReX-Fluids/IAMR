@@ -1,7 +1,4 @@
-c $Id: VISCOPERATOR_2D.F,v 1.1 1997-07-08 23:08:15 vince Exp $
-#undef BL_LANG_CC
-#define LANG_FORT
-
+c $Id: VISCOPERATOR_2D.F,v 1.2 1997-07-22 21:57:08 car Exp $
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "VISCOPERATOR_F.H"

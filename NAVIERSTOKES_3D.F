@@ -1,7 +1,4 @@
-c $Id: NAVIERSTOKES_3D.F,v 1.1 1997-07-08 23:08:13 vince Exp $
-#undef BL_LANG_CC
-#define BL_LANG_FORT
-
+c $Id: NAVIERSTOKES_3D.F,v 1.2 1997-07-22 21:57:06 car Exp $
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "BC_TYPES.H"

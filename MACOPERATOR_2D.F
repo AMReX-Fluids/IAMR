@@ -1,7 +1,4 @@
-c $Id: MACOPERATOR_2D.F,v 1.1 1997-07-08 23:08:14 vince Exp $
-#undef BL_LANG_CC
-#define BL_LANG_FORT
-
+c $Id: MACOPERATOR_2D.F,v 1.2 1997-07-22 21:57:04 car Exp $
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "MACOPERATOR_F.H"
