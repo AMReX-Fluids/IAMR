@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.221 2003-02-19 18:28:43 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.222 2003-02-19 18:29:58 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1769,6 +1769,7 @@ NavierStokes::velocity_advection (Real dt)
             pullFluxes(i,comp,1,xflux,yflux,zflux,dt);
         }
     }
+    delete divu_fp;
     //
     // pullFluxes() contains CrseInit() calls -- complete the process.
     //
