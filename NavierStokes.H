@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.75 2002-09-19 21:03:59 car Exp $
+// $Id: NavierStokes.H,v 1.76 2002-09-27 22:38:35 marc Exp $
 //
 
 #include <LevelBld.H>
@@ -359,7 +359,8 @@ protected:
                      int       increment,
                      Real      dt_clev,
                      int**     bc_orig_qty,
-                     int       which_interp = 0);
+                     int       which_interp = 0,
+                     int       state_comp = -1);
     //
     // Two virtual hooks for anelastic SyncInterp.
     //
@@ -459,6 +460,9 @@ protected:
     //
     void initRhoAvg (Real alpha);
     void incrRhoAvg (Real alpha);
+    void incrRhoAvg (const MultiFab& rho_incr,
+                     int             sComp,
+                     Real            alpha);
     //
     // Compile p_avg in advance.
     //

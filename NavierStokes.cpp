@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.202 2002-09-26 16:39:31 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.203 2002-09-27 22:38:35 marc Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3198,24 +3198,31 @@ NavierStokes::initRhoAvg (Real alpha)
 }
 
 void
-NavierStokes::incrRhoAvg (Real alpha)
+NavierStokes::incrRhoAvg(const MultiFab& rho_incr,
+                         int             sComp,
+                         Real            alpha)
 {
-    MultiFab& S_new = get_new_data(State_Type);
-
-    for (MFIter S_newmfi(S_new); S_newmfi.isValid(); ++S_newmfi)
+    for (MFIter mfi(rho_incr); mfi.isValid(); ++mfi)
     {
-        const int* lo      = S_newmfi.validbox().loVect();
-        const int* hi      = S_newmfi.validbox().hiVect();
-        const int* rlo     = S_new[S_newmfi].loVect();
-        const int* rhi     = S_new[S_newmfi].hiVect();
-        const Real* rhodat = S_new[S_newmfi].dataPtr(Density);
-        const int* alo     = (*rho_avg)[S_newmfi].loVect();
-        const int* ahi     = (*rho_avg)[S_newmfi].hiVect();
-        Real* avgdat       = (*rho_avg)[S_newmfi].dataPtr();
+        const int* lo      = mfi.validbox().loVect();
+        const int* hi      = mfi.validbox().hiVect();
+        const int* rlo     = rho_incr[mfi].loVect();
+        const int* rhi     = rho_incr[mfi].hiVect();
+        const Real* rhodat = rho_incr[mfi].dataPtr(sComp);
+        const int* alo     = (*rho_avg)[mfi].loVect();
+        const int* ahi     = (*rho_avg)[mfi].hiVect();
+        Real* avgdat       = (*rho_avg)[mfi].dataPtr();
 
         FORT_INCRMULT(avgdat,ARLIM(alo),ARLIM(ahi),
                       rhodat,ARLIM(rlo),ARLIM(rhi),lo,hi,&alpha);
     }
+}
+
+void
+NavierStokes::incrRhoAvg (Real alpha)
+{
+    const MultiFab& S_new = get_new_data(State_Type);
+    incrRhoAvg(S_new,Density,alpha);
 }
 
 void
@@ -3429,9 +3436,10 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
                           int       increment,
                           Real      dt_clev, 
                           int**     bc_orig_qty,
-                          int       which_interp)
+                          int       which_interp,
+                          int       state_comp)
 {
-    BL_ASSERT(which_interp >= 0 && which_interp <= 4);
+    BL_ASSERT(which_interp >= 0 && which_interp <= 5);
 
     Interpolater* interpolater = 0;
 
@@ -3442,6 +3450,7 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
     case 2: interpolater = &unlimited_cc_interp; break;
     case 3: interpolater = &lincc_interp;        break;
     case 4: interpolater = &nonlincc_interp;     break;
+    case 5: interpolater = &protected_interp;    break;
     default:
         BoxLib::Abort("NavierStokes::SyncInterp(): how did this happen");
     }
@@ -3500,6 +3509,10 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
     FArrayBox    fdata;
     Array<BCRec> bc_interp(num_comp);
 
+    MultiFab* fine_stateMF;
+    if (interpolater == &protected_interp)
+        fine_stateMF = &(getLevel(f_lev).get_new_data(State_Type));
+
     for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
     {
         int        i     = mfi.index();
@@ -3536,9 +3549,20 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
         if (increment)
         {
             fdata.mult(dt_clev);
+
+            if (interpolater == &protected_interp) {
+
+              cdata.mult(dt_clev);
+              FArrayBox& fine_state = (*fine_stateMF)[i];
+              interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
+                                    num_comp,fgrids[i],ratio,
+                                    cgeom,fgeom,bc_interp);
+              Real dt_clev_inv = 1./dt_clev;
+              cdata.mult(dt_clev_inv);
+
+            }
+            
             FineSync[i].plus(fdata,0,dest_comp,num_comp);
-            if (dest_comp == Density) 
-              (*fine_level.rho_avg)[i].plus(fdata,0,0,1);
         }
         else
         {
@@ -4152,6 +4176,7 @@ NavierStokes::mac_sync ()
         // Update rho_ctime after rho is updated with Ssync.
         //
         make_rho_curr_time();
+        incrRhoAvg((*Ssync),Density-BL_SPACEDIM,1.0);
         //
         // Get boundary conditions.
         //
@@ -4165,19 +4190,27 @@ NavierStokes::mac_sync ()
         }
         //
         // Interpolate the sync correction to the finer levels,
-        //  and update rho_ctime at those levels.
+        //  and update rho_ctime, rhoAvg at those levels.
         //
         IntVect    ratio = IntVect::TheUnitVector();
         const Real mult  = 1.0;
         for (int lev = level+1; lev <= parent->finestLevel(); lev++)
         {
-            ratio                 *= parent->refRatio(lev-1);
-            NavierStokes& fine_lev = getLevel(lev);
-            MultiFab& S_new        = fine_lev.get_new_data(State_Type);
+            ratio                     *= parent->refRatio(lev-1);
+            NavierStokes&     fine_lev = getLevel(lev);
+            const BoxArray& fine_grids = fine_lev.boxArray();
+            MultiFab sync_incr(fine_grids,numscal,0);
+            sync_incr.setVal(0.0);
 
-            SyncInterp(*Ssync,level,S_new,lev,ratio,0,BL_SPACEDIM,
+            SyncInterp(*Ssync,level,sync_incr,lev,ratio,0,BL_SPACEDIM,
                        numscal,1,mult,sync_bc.dataPtr());
+
+            MultiFab& S_new = fine_lev.get_new_data(State_Type);
+            for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+                S_new[mfi].plus(sync_incr[mfi],fine_grids[mfi.index()],0,Density,numscal);
+
             fine_lev.make_rho_curr_time();
+            fine_lev.incrRhoAvg(sync_incr,Density-BL_SPACEDIM,1.0);
         }
     }
 
