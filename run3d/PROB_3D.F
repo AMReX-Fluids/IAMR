@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.13 1998-10-06 22:53:31 lijewski Exp $
+c $Id: PROB_3D.F,v 1.14 1999-01-06 00:15:16 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -2249,29 +2249,41 @@ c ::: -----------------------------------------------------------
       integer    jlo, jhi, ilo, ihi, klo, khi
       logical    fix_xlo, fix_ylo, fix_zlo
       logical    fix_xhi, fix_yhi, fix_zhi
+      logical    per_xlo, per_ylo, per_zlo
+      logical    per_xhi, per_yhi, per_zhi
 
 #include "probdata.H"
 
       fix_xlo = (ARG_L1(p) .lt. domlo(1)) .and. (bc(1,1) .ne. INT_DIR)
+      per_xlo = (ARG_L1(p) .lt. domlo(1)) .and. (bc(1,1) .eq. INT_DIR)
       fix_xhi = (ARG_H1(p) .gt. domhi(1)) .and. (bc(1,2) .ne. INT_DIR)
+      per_xhi = (ARG_H1(p) .gt. domhi(1)) .and. (bc(1,2) .eq. INT_DIR)
       fix_ylo = (ARG_L2(p) .lt. domlo(2)) .and. (bc(2,1) .ne. INT_DIR)
+      per_ylo = (ARG_L2(p) .lt. domlo(2)) .and. (bc(2,1) .eq. INT_DIR)
       fix_yhi = (ARG_H2(p) .gt. domhi(2)) .and. (bc(2,2) .ne. INT_DIR)
+      per_yhi = (ARG_H2(p) .gt. domhi(2)) .and. (bc(2,2) .eq. INT_DIR)
       fix_zlo = (ARG_L3(p) .lt. domlo(3)) .and. (bc(3,1) .ne. INT_DIR)
+      per_zlo = (ARG_L3(p) .lt. domlo(3)) .and. (bc(3,1) .eq. INT_DIR)
       fix_zhi = (ARG_H3(p) .gt. domhi(3)) .and. (bc(3,2) .ne. INT_DIR)
+      per_zhi = (ARG_H3(p) .gt. domhi(3)) .and. (bc(3,2) .eq. INT_DIR)
 
       ilo = max(ARG_L1(p),domlo(1))
       ihi = min(ARG_H1(p),domhi(1))
       jlo = max(ARG_L2(p),domlo(2))
       jhi = min(ARG_H2(p),domhi(2))
-      klo = max(ARG_L3(p),domlo(3))
+      Klo = max(ARG_L3(p),domlo(3))
       khi = min(ARG_H3(p),domhi(3))
+
+c*****************************************************************************
+c SETTING XLO 
+c*****************************************************************************
 
       if (fix_xlo) then
          do i = ARG_L1(p), domlo(1)-1
             do k = klo, khi
                do j = jlo,jhi
                   p(i,j,k) = p(ilo,j,k)
-               end do
+               end do 
             end do
 	 end do
 
@@ -2292,6 +2304,14 @@ c ::: -----------------------------------------------------------
                      end do
                   end do
                end do
+	    else if (per_zlo) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ilo,jlo,k)
+                     end do
+                  end do
+               end do
 	    end if
 	    if (fix_zhi) then
                do i = ARG_L1(p), domlo(1)-1
@@ -2301,8 +2321,17 @@ c ::: -----------------------------------------------------------
                      end do
                   end do
                end do
+	    else if (per_zhi) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ilo,jlo,k)
+                     end do
+                  end do
+               end do
 	    end if
 	 end if
+
 	 if (fix_yhi) then
 	    do i = ARG_L1(p), domlo(1)-1
                do j = domhi(2)+1, ARG_H2(p)
@@ -2319,6 +2348,14 @@ c ::: -----------------------------------------------------------
                      end do
                   end do
                end do
+	    else if (per_zlo) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ilo,jhi,k)
+                     end do
+                  end do
+               end do
 	    end if
 	    if (fix_zhi) then
                do i = ARG_L1(p), domlo(1)-1
@@ -2328,8 +2365,17 @@ c ::: -----------------------------------------------------------
                      end do
                   end do
                end do
+	    else if (per_zhi) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ilo,jhi,k)
+                     end do
+                  end do
+               end do
 	    end if
 	 end if
+
 	 if (fix_zlo) then
 	    do i = ARG_L1(p), domlo(1)-1
                do j = jlo, jhi
@@ -2338,7 +2384,27 @@ c ::: -----------------------------------------------------------
                   end do
                end do
 	    end do
+            if (per_ylo) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ilo,j,klo)
+                     end do
+                  end do
+               end do
+            end if
+            if (per_yhi) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ilo,j,klo)
+                     end do
+                  end do
+               end do
+            end if
+
 	 end if
+
 	 if (fix_zhi) then
 	    do i = ARG_L1(p), domlo(1)-1
                do j = jlo, jhi
@@ -2347,8 +2413,109 @@ c ::: -----------------------------------------------------------
                   end do
                end do
 	    end do
+            if (per_ylo) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ilo,j,khi)
+                     end do
+                  end do
+               end do
+            end if
+            if (per_yhi) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ilo,j,khi)
+                     end do
+                  end do
+               end do
+            end if
 	 end if
+ 
+         if (per_ylo) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do k = klo,khi
+                     do j = ARG_L2(p), domlo(2)-1
+                        p(i,j,k) = p(ilo,j,k)
+                     end do
+                  end do
+               end do
+         end if
+         if (per_yhi) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do k = klo,khi
+                     do j = domhi(2)+1, ARG_H2(p)
+                        p(i,j,k) = p(ilo,j,k)
+                     end do
+                  end do
+               end do
+         end if
+ 
+         if (per_zlo) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = jlo,jhi
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ilo,j,k)
+                     end do
+                  end do
+               end do
+         end if
+         if (per_zhi) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = jlo,jhi
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ilo,j,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_ylo .and. per_zlo) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ilo,j,k)
+                     end do
+                  end do
+               end do
+	 end if
+
+         if (per_ylo .and. per_zhi) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ilo,j,k)
+                     end do
+                  end do
+               end do
+	 end if
+
+         if (per_yhi .and. per_zlo) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ilo,j,k)
+                     end do
+                  end do
+               end do
+	 end if
+
+         if (per_yhi .and. per_zhi) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ilo,j,k)
+                     end do
+                  end do
+               end do
+	 end if
+
       end if            
+
+c*****************************************************************************
+c SETTING XHI
+c*****************************************************************************
 
       if (fix_xhi) then
          do i = domhi(1)+1, ARG_H1(p)
@@ -2358,6 +2525,7 @@ c ::: -----------------------------------------------------------
                end do
             end do
 	 end do
+
 	 if (fix_ylo) then
 	    do i = domhi(1)+1, ARG_H1(p)
                do j = ARG_L2(p), domlo(2)-1
@@ -2375,12 +2543,28 @@ c ::: -----------------------------------------------------------
                      end do
                   end do
                end do
+	    else if (per_zlo) then
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ihi,jlo,k)
+                     end do
+                  end do
+               end do
 	    end if
 	    if (fix_zhi) then
                do i = domhi(1)+1, ARG_H1(p)
                   do j = ARG_L2(p), domlo(2)-1
                      do k = domhi(3)+1, ARG_H3(p)
                         p(i,j,k) = p(ihi,jlo,khi)
+                     end do
+                  end do
+               end do
+	    else if (per_zhi) then
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ihi,jlo,k)
                      end do
                   end do
                end do
@@ -2402,6 +2586,14 @@ c ::: -----------------------------------------------------------
                      end do
                   end do
                end do
+	    else if (per_zlo) then
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ihi,jhi,k)
+                     end do
+                  end do
+               end do
 	    end if
 	    if (fix_zhi) then
                do i = domhi(1)+1, ARG_H1(p)
@@ -2411,8 +2603,17 @@ c ::: -----------------------------------------------------------
                      end do
                   end do
                end do
+	    else if (per_zhi) then
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ihi,jhi,k)
+                     end do
+                  end do
+               end do
 	    end if
 	 end if
+
 	 if (fix_zlo) then
 	    do i = domhi(1)+1, ARG_H1(p)
                do j = jlo, jhi
@@ -2421,7 +2622,27 @@ c ::: -----------------------------------------------------------
                   end do
                end do
 	    end do
+            if (per_ylo) then
+	       do i = domhi(1)+1, ARG_H1(p)
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ihi,j,klo)
+                     end do
+                  end do
+               end do
+            end if
+            if (per_yhi) then
+	       do i = domhi(1)+1, ARG_H1(p)
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ihi,j,klo)
+                     end do
+                  end do
+               end do
+            end if
+
 	 end if
+
 	 if (fix_zhi) then
 	    do i = domhi(1)+1, ARG_H1(p)
                do j = jlo, jhi
@@ -2430,8 +2651,110 @@ c ::: -----------------------------------------------------------
                   end do
                end do
 	    end do
+            if (per_ylo) then
+	       do i = domhi(1)+1, ARG_H1(p)
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ihi,j,khi)
+                     end do
+                  end do
+               end do
+            end if
+            if (per_yhi) then
+	       do i = domhi(1)+1, ARG_H1(p)
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ihi,j,khi)
+                     end do
+                  end do
+               end do
+            end if
 	 end if
+
+         if (per_ylo) then
+	       do i = domhi(1)+1, ARG_H1(p)
+                  do k = klo,khi
+                     do j = ARG_L2(p), domlo(2)-1
+                        p(i,j,k) = p(ihi,j,k)
+                     end do
+                  end do
+               end do
+         end if
+         if (per_yhi) then
+	       do i = domhi(1)+1, ARG_H1(p)
+                  do k = klo,khi
+                     do j = domhi(2)+1, ARG_H2(p)
+                        p(i,j,k) = p(ihi,j,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_zlo) then
+	       do i = domhi(1)+1, ARG_H1(p)
+                  do j = jlo,jhi
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ihi,j,k)
+                     end do
+                  end do
+               end do
+         end if
+         if (per_zhi) then
+	       do i = domhi(1)+1, ARG_H1(p)
+                  do j = jlo,jhi
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ihi,j,k)
+                     end do
+                  end do
+               end do
+         end if
+
+
+         if (per_ylo .and. per_zlo) then
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ihi,j,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_ylo .and. per_zhi) then
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ihi,j,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_yhi .and. per_zlo) then
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(ihi,j,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_yhi .and. per_zhi) then
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = domhi(2)+1, ARG_H2(p)
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(ihi,j,k)
+                     end do
+                  end do
+               end do
+         end if
+
       end if            
+
+c*****************************************************************************
+c SETTING YLO
+c*****************************************************************************
 
       if (fix_ylo) then
          do j = ARG_L2(p), domlo(2)-1
@@ -2450,7 +2773,26 @@ c ::: -----------------------------------------------------------
                   end do
                end do
 	    end do
+            if (per_xlo) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(i,jlo,klo)
+                     end do
+                  end do
+               end do
+            end if
+            if (per_xhi) then
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(i,jlo,klo)
+                     end do
+                  end do
+               end do
+            end if
 	 end if
+
 	 if (fix_zhi) then
 	    do j = ARG_L2(p), domlo(2)-1
                do k = domhi(3)+1, ARG_H3(p)
@@ -2459,8 +2801,110 @@ c ::: -----------------------------------------------------------
                   end do
                end do
 	    end do
+            if (per_xlo) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(i,jlo,khi)
+                     end do
+                  end do
+               end do
+            end if
+            if (per_xhi) then
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(i,jlo,khi)
+                     end do
+                  end do
+               end do
+            end if
 	 end if
+
+         if (per_xlo) then
+               do j = ARG_L2(p), domlo(2)-1
+                  do k = klo,khi
+                     do i = ARG_L1(p), domlo(1)-1
+                        p(i,j,k) = p(i,jlo,k)
+                     end do
+                  end do
+               end do
+         end if
+         if (per_xhi) then
+               do j = ARG_L2(p), domlo(2)-1
+                  do k = klo,khi
+                     do i = domhi(1)+1, ARG_H1(p)
+                        p(i,j,k) = p(i,jlo,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_zlo) then
+               do j = ARG_L2(p), domlo(2)-1
+                  do i = ilo,ihi
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(i,jlo,k)
+                     end do
+                  end do
+               end do
+         end if
+         if (per_zhi) then
+               do j = ARG_L2(p), domlo(2)-1
+                  do i = ilo,ihi
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(i,jlo,k)
+                     end do
+                  end do
+               end do
+         end if
+
+
+         if (per_xlo .and. per_zlo) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(i,jlo,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xlo .and. per_zhi) then
+               do i = ARG_L1(p), domlo(1)-1
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(i,jlo,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xhi .and. per_zlo) then
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(i,jlo,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xhi .and. per_zhi) then
+               do i = domhi(1)+1, ARG_H1(p)
+                  do j = ARG_L2(p), domlo(2)-1
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(i,jlo,k)
+                     end do
+                  end do
+               end do
+         end if
+
       end if            
+ 
+c*****************************************************************************
+c SETTING YHI
+c*****************************************************************************
 
       if (fix_yhi) then
          do j = domhi(2)+1, ARG_H2(p)
@@ -2479,7 +2923,26 @@ c ::: -----------------------------------------------------------
                   end do
                end do
 	    end do
+            if (per_xlo) then
+               do i = ARG_L1(p), domlo(1)-1
+	          do j = domhi(2)+1, ARG_H2(p)
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(i,jhi,klo)
+                     end do
+                  end do
+               end do
+            end if
+            if (per_xhi) then
+               do i = domhi(1)+1, ARG_H1(p)
+	          do j = domhi(2)+1, ARG_H2(p)
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(i,jhi,klo)
+                     end do
+                  end do
+               end do
+            end if
 	 end if
+
 	 if (fix_zhi) then
 	    do j = domhi(2)+1, ARG_H2(p)
                do k = domhi(3)+1, ARG_H3(p)
@@ -2488,8 +2951,109 @@ c ::: -----------------------------------------------------------
                   end do
                end do
 	    end do
+            if (per_xlo) then
+               do i = ARG_L1(p), domlo(1)-1
+	          do j = domhi(2)+1, ARG_H2(p)
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(i,jhi,khi)
+                     end do
+                  end do
+               end do
+            end if
+            if (per_xhi) then
+               do i = domhi(1)+1, ARG_H1(p)
+	          do j = domhi(2)+1, ARG_H2(p)
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(i,jhi,khi)
+                     end do
+                  end do
+               end do
+            end if
 	 end if
+
+         if (per_xlo) then
+               do j = domhi(2)+1, ARG_H2(p)
+                  do k = klo,khi
+                     do i = ARG_L1(p), domlo(1)-1
+                        p(i,j,k) = p(i,jhi,k)
+                     end do
+                  end do
+               end do
+         end if
+         if (per_xhi) then
+               do j = domhi(2)+1, ARG_H2(p)
+                  do k = klo,khi
+                     do i = domhi(1)+1, ARG_H1(p)
+                        p(i,j,k) = p(i,jhi,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_zlo) then
+               do j = domhi(2)+1, ARG_H2(p)
+                  do i = ilo,ihi
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(i,jhi,k)
+                     end do
+                  end do
+               end do
+         end if
+         if (per_zhi) then
+               do j = domhi(2)+1, ARG_H2(p)
+                  do i = ilo,ihi
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(i,jhi,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xlo .and. per_zlo) then
+               do i = ARG_L1(p), domlo(1)-1
+	          do j = domhi(2)+1, ARG_H2(p)
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(i,jhi,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xlo .and. per_zhi) then
+               do i = ARG_L1(p), domlo(1)-1
+	          do j = domhi(2)+1, ARG_H2(p)
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(i,jhi,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xhi .and. per_zlo) then
+               do i = domhi(1)+1, ARG_H1(p)
+	          do j = domhi(2)+1, ARG_H2(p)
+                     do k = ARG_L3(p), domlo(3)-1
+                        p(i,j,k) = p(i,jhi,k)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xhi .and. per_zhi) then
+               do i = domhi(1)+1, ARG_H1(p)
+	          do j = domhi(2)+1, ARG_H2(p)
+                     do k = domhi(3)+1, ARG_H3(p)
+                        p(i,j,k) = p(i,jhi,k)
+                     end do
+                  end do
+               end do
+         end if
+
       end if            
+
+c*****************************************************************************
+c SETTING ZLO
+c*****************************************************************************
 
       if (fix_zlo) then
          do k = ARG_L3(p), domlo(3)-1
@@ -2499,7 +3063,90 @@ c ::: -----------------------------------------------------------
                end do
             end do
 	 end do
+
+         if (per_xlo) then
+               do k = ARG_L3(p), domlo(3)-1
+                  do j = jlo,jhi
+                     do i = ARG_L1(p), domlo(1)-1
+                        p(i,j,k) = p(i,j,klo)
+                     end do
+                  end do
+               end do
+         end if
+         if (per_xhi) then
+               do k = ARG_L3(p), domlo(3)-1
+                  do j = jlo,jhi
+                     do i = domhi(1)+1, ARG_H1(p)
+                        p(i,j,k) = p(i,j,klo)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_ylo) then
+               do k = ARG_L3(p), domlo(3)-1
+                  do i = ilo,ihi
+                     do j = ARG_L2(p), domlo(2)-1
+                        p(i,j,k) = p(i,j,klo)
+                     end do
+                  end do
+               end do
+         end if
+         if (per_yhi) then
+               do k = ARG_L3(p), domlo(3)-1
+                  do i = ilo,ihi
+                     do j = domhi(2)+1, ARG_H2(p)
+                        p(i,j,k) = p(i,j,klo)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xlo .and. per_ylo) then
+               do k = ARG_L3(p), domlo(3)-1
+                  do i = ARG_L1(p), domlo(1)-1
+                     do j = ARG_L2(p), domlo(2)-1
+                        p(i,j,k) = p(i,j,klo)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xlo .and. per_yhi) then
+               do k = ARG_L3(p), domlo(3)-1
+                  do i = ARG_L1(p), domlo(1)-1
+                     do j = domhi(2)+1, ARG_H2(p)
+                        p(i,j,k) = p(i,j,klo)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xhi .and. per_ylo) then
+               do k = ARG_L3(p), domlo(3)-1
+                  do i = domhi(1)+1, ARG_H1(p)
+                     do j = ARG_L2(p), domlo(2)-1
+                        p(i,j,k) = p(i,j,klo)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xhi .and. per_yhi) then
+               do k = ARG_L3(p), domlo(3)-1
+                  do i = domhi(1)+1, ARG_H1(p)
+                     do j = domhi(2)+1, ARG_H2(p)
+                        p(i,j,k) = p(i,j,klo)
+                     end do
+                  end do
+               end do
+         end if
+
       end if            
+
+c*****************************************************************************
+c SETTING ZHI
+c*****************************************************************************
 
       if (fix_zhi) then
          do k = domhi(3)+1, ARG_H3(p)
@@ -2509,9 +3156,88 @@ c ::: -----------------------------------------------------------
                end do
             end do
 	 end do
+
+         if (per_xlo) then
+               do k = domhi(3)+1, ARG_H3(p)
+                  do j = jlo,jhi
+                     do i = ARG_L1(p), domlo(1)-1
+                        p(i,j,k) = p(i,j,khi)
+                     end do
+                  end do
+               end do
+         end if
+         if (per_xhi) then
+               do k = domhi(3)+1, ARG_H3(p)
+                  do j = jlo,jhi
+                     do i = domhi(1)+1, ARG_H1(p)
+                        p(i,j,k) = p(i,j,khi)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_ylo) then
+               do k = domhi(3)+1, ARG_H3(p)
+                  do i = ilo,ihi
+                     do j = ARG_L2(p), domlo(2)-1
+                        p(i,j,k) = p(i,j,khi)
+                     end do
+                  end do
+               end do
+         end if
+         if (per_yhi) then
+               do k = domhi(3)+1, ARG_H3(p)
+                  do i = ilo,ihi
+                     do j = domhi(2)+1, ARG_H2(p)
+                        p(i,j,k) = p(i,j,khi)
+                     end do
+                  end do
+               end do
+         end if
+
+
+         if (per_xlo .and. per_ylo) then
+               do k = domhi(3)+1, ARG_H3(p)
+                  do i = ARG_L1(p), domlo(1)-1
+                     do j = ARG_L2(p), domlo(2)-1
+                        p(i,j,k) = p(i,j,khi)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xlo .and. per_yhi) then
+               do k = domhi(3)+1, ARG_H3(p)
+                  do i = ARG_L1(p), domlo(1)-1
+                     do j = domhi(2)+1, ARG_H2(p)
+                        p(i,j,k) = p(i,j,khi)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xhi .and. per_ylo) then
+               do k = domhi(3)+1, ARG_H3(p)
+                  do i = domhi(1)+1, ARG_H1(p)
+                     do j = ARG_L2(p), domlo(2)-1
+                        p(i,j,k) = p(i,j,khi)
+                     end do
+                  end do
+               end do
+         end if
+
+         if (per_xhi .and. per_yhi) then
+               do k = domhi(3)+1, ARG_H3(p)
+                  do i = domhi(1)+1, ARG_H1(p)
+                     do j = domhi(2)+1, ARG_H2(p)
+                        p(i,j,k) = p(i,j,khi)
+                     end do
+                  end do
+               end do
+         end if
+
       end if            
 
+c*****************************************************************************
+
       end
-
-
-      
