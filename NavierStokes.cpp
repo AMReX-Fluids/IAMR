@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.163 2000-04-21 22:27:31 sstanley Exp $
+// $Id: NavierStokes.cpp,v 1.164 2000-04-28 22:50:01 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3746,7 +3746,7 @@ NavierStokes::mac_sync ()
     const Real prev_time      = state[State_Type].prevTime();
     const Real prev_pres_time = state[Press_Type].prevTime();
     const Real dt             = parent->dtLevel(level);
-    MultiFab*  DeltaSsync;      // hold (Delta rho)*q for conserved quantities
+    MultiFab*  DeltaSsync     = 0;// hold (Delta rho)*q for conserved quantities
 
     sync_setup(DeltaSsync);
 
