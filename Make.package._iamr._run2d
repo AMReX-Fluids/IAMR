@@ -1,9 +1,0 @@
-
-CEXE_sources += NS_setup.C NSBld.C
-
-FEXE_sources += PROB_2D.F 
-
-CEXE_headers += 
-
-FEXE_headers += probdata.H PROB_F.H
-
