@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.44 1999-03-05 19:21:26 lijewski Exp $
+// $Id: MacProj.cpp,v 1.45 1999-03-06 00:01:27 propp Exp $
 //
 
 #include <Misc.H>
@@ -1103,6 +1103,31 @@ MacProj::set_outflow_bcs (int             level,
         }
     }
 #else
-    BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
+    // Idea is to check and see if divu == 0 near the boundary. 
+    // If it is, then we can use divu = 0 bc; otherwise we must abort...
+
+    // Get 3-wide cc box, state_strip, along top,
+    bool hasOutFlow;
+    Orientation _outFace;
+    getOutFlowFace(hasOutFlow,_outFace,phys_bc);
+
+    const Box& domain = parent->Geom(level).Domain();
+    const int outDir       = _outFace.faceDir();
+    const int ccStripWidth = 3;
+    Box state_strip;
+    if (_outFace.isLow()) {
+      state_strip = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth);
+    } else {
+      state_strip = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth);
+    }
+    const int srcCompDivu = 0,      nCompDivu = 1;
+
+    FARRAYBOX divu_fab(state_strip,1);
+    divu.copy(divu_fab);
+    REAL norm_divu = divu_fab.norm(1,srcCompDivu,nCompDivu);
+    if (norm_divu > 1.0e-7) {
+      cout << "divu_norm = " << norm_divu << endl;
+      BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
+    }
 #endif
 }

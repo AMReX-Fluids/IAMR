@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.77 1999-03-05 17:20:35 almgren Exp $
+// $Id: Projection.cpp,v 1.78 1999-03-06 00:01:26 propp Exp $
 //
 
 #ifdef BL_T3E
@@ -84,28 +84,73 @@ static
 bool
 hasOutFlowBC (BCRec* _phys_bc)
 {
-    bool has_out_flow = false;
+  bool has_out_flow = false;
+  
+  int numOutFlowBC = 0;
 
-    int numOutFlowBC = 0;
-
-    for (int idir = 0; idir < BL_SPACEDIM; idir++)
+  for (int idir = 0; idir < BL_SPACEDIM; idir++)
     {
-        if (_phys_bc->lo(idir) == Outflow)
+      if (_phys_bc->lo(idir) == Outflow)
         {
-            has_out_flow = true;
-            numOutFlowBC++;
+	  has_out_flow = true;
+	  numOutFlowBC++;
         }
-        if (_phys_bc->hi(idir) == Outflow)
+      if (_phys_bc->hi(idir) == Outflow)
         {
-            has_out_flow = true;
-            numOutFlowBC++;
+	  has_out_flow = true;
+	  numOutFlowBC++;
         }
     }
+  
+  if (numOutFlowBC > 1) 
+    BoxLib::Error("currently only allowed one outflow bc");
+  
+  return has_out_flow;
+}
 
-    if (numOutFlowBC > 1)
-        BoxLib::Error("currently only allowed one outflow bc");
+// this is a temporary function. it will go away when the bc are generalized.
+static 
+Real
+checkDivU(Amr* parent,
+	  PArray<AmrLevel>& LevelData,
+	  BCRec* phys_bc,
+	  int f_lev,
+	  int c_lev,
+	  Real cur_divu_time)
+{
+    // Get 3-wide cc box, state_strip, along top,
+    bool hasOutFlow;
+    Orientation _outFace;
+    getOutFlowFace(hasOutFlow,_outFace,phys_bc);
 
-    return has_out_flow;
+    const Box& domain      = parent->Geom(f_lev).Domain();
+    const int outDir       = _outFace.faceDir();
+    const int ccStripWidth = 3;
+    Box state_strip;
+    if (_outFace.isLow()) {
+      state_strip = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth);
+    } else {
+      state_strip = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth);
+    }
+    const int nGrow       = 0;
+    const int srcCompDivu = 0,      nCompDivu = 1;
+
+    BoxArray state_strip_ba(&state_strip,1);
+    MultiFab cc_MultiFab(state_strip_ba, 1, nGrow, Fab_noallocate);
+
+    int Divu_Type, Divu;
+    if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
+        BoxLib::Error("Projection::set_initial_projection_outflow_bcs(): Divu not found");
+    
+    FillPatchIterator divuFpi(LevelData[f_lev],cc_MultiFab,nGrow,
+                          cur_divu_time,Divu_Type,srcCompDivu,nCompDivu);
+    FARRAYBOX divu_fab(state_strip,1);
+    for ( ; divuFpi.isValid(); ++divuFpi)
+    {
+      divu_fab.copy(divuFpi());
+    }
+    REAL norm_divu = divu_fab.norm(1,srcCompDivu,nCompDivu);
+    return norm_divu;
 }
 
 #define BogusValue 1.e20
@@ -545,19 +590,6 @@ Projection::level_project (int             level,
         MultiFab::Copy(rhs_cc,*divusource,0,0,1,nghost);
         radMult(level,rhs_cc,0);    
 
-#if (BL_SPACEDIM == 3)
-        for (MultiFabIterator dumfi(*divusource); dumfi.isValid(); ++dumfi)
-        {
-            Real dumin = dumfi().min();
-            Real dumax = dumfi().max();
-            if (dumin != dumax || dumin != 0.0) 
-            {
-                cout << "Projection::level_project: WARNING not yet "
-                     << "implemented for 3-d, non-zero div u\n";
-                BoxLib::Abort();
-            }
-        }
-#endif
         rhs_cc.mult(-1.0,0,1,nghost);
 
         PArray<MultiFab> rhs_real(level+1);
@@ -2264,7 +2296,13 @@ Projection::set_level_projector_outflow_bcs (int       level,
 
     phi.copy(phi_fine_strip);
 #else
-    BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
+    // check to see if divu == 0 near outflow.  If it isn't, then abort.
+    REAL divu_norm = checkDivU(parent,LevelData,phys_bc,
+			       level,level,cur_state_time);
+    if (divu_norm > 1.0e-7) {
+      cout << "divu_norm = " << divu_norm << endl;
+      BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
+    }
 #endif
 }
 
@@ -2405,7 +2443,12 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
         phi[lev]->copy(phi_crse_strip);
     }
 #else
-    BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
+    // check to see if divu == 0 near outflow.  If it isn't, then abort.
+    REAL divu_norm = checkDivU(parent,LevelData,phys_bc,finest_level,c_lev,cur_divu_time);
+    if (divu_norm > 1.0e-7) {
+      cout << "divu_norm = " << divu_norm << endl;
+      BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
+    }
 #endif
 }
 
@@ -2555,7 +2598,16 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
         phi[lev]->copy(phi_crse_strip);
     }
 #else
-    BoxLib::Error("outflow bc not implemented in 3D");
+    // check to see if divu == 0 near outflow.  If it isn't, then abort.
+    REAL oldDivu_norm = checkDivU(parent,LevelData,phys_bc,
+				  finest_level,c_lev,start_time);
+    // check on both norms?
+    REAL newDivu_norm = checkDivU(parent,LevelData,phys_bc,
+				  finest_level,c_lev,start_time+dt);
+    if (oldDivu_norm > 1.0e-7) {
+      cout << "divu_norm = " << oldDivu_norm << endl;
+      BoxLib::Error("outflow bc for divu != 0 not implemented in 3D");
+    }
 #endif
 }
 
