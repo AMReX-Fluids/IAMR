@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.84 2002-11-26 22:40:45 lijewski Exp $
+// $Id: MacProj.cpp,v 1.85 2003-02-05 22:06:20 almgren Exp $
 //
 #include <winstd.H>
 
@@ -416,7 +416,6 @@ MacProj::mac_project (int             level,
 
 void
 MacProj::mac_sync_solve (int       level,
-                         MultiFab* u_mac, 
                          Real      dt,
                          MultiFab* rho_half,
                          IntVect&  fine_ratio)
@@ -565,7 +564,7 @@ MacProj::mac_sync_solve (int       level,
       }
     mac_sync_driver(mac_bndry, grids, the_solver, level, dx, dt,
                     mac_sync_tol, mac_abs_tol, rhs_scale, area[level],
-                    volume[level], Rhs, rho_half, u_mac, mac_sync_phi);
+                    volume[level], Rhs, rho_half, mac_sync_phi);
 }
 
 //
@@ -865,7 +864,6 @@ MacProj::mac_sync_compute (int                   level,
 
 void
 MacProj::mac_sync_compute (int                    level,
-                           MultiFab*              u_mac, 
                            MultiFab*              Sync,
                            int                    comp,
                            int                    s_ind,

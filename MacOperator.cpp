@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.27 2002-11-12 22:24:14 car Exp $
+// $Id: MacOperator.cpp,v 1.28 2003-02-05 22:06:20 almgren Exp $
 //
 #include <winstd.H>
 
@@ -392,7 +392,6 @@ mac_sync_driver (const MacBndry& mac_bndry,
                  MultiFab&       volume,
                  MultiFab&       Rhs,
                  MultiFab*       rho_half,
-                 MultiFab*       u_mac,
                  MultiFab*       mac_sync_phi)
 {
   BL_PROFILE("mac_sync_driver");

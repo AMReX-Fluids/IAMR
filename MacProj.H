@@ -1,7 +1,7 @@
 #ifndef _MacProj_H_
 #define _MacProj_H_
 //
-// $Id: MacProj.H,v 1.23 2001-08-22 16:42:00 car Exp $
+// $Id: MacProj.H,v 1.24 2003-02-05 22:06:20 almgren Exp $
 //
 #include <BC_TYPES.H>
 #include <BCRec.H>
@@ -44,7 +44,6 @@ public:
     // The sync solve.
     //
     void mac_sync_solve (int       level,
-                         MultiFab* u_mac,
                          Real      dt, 
                          MultiFab* rho_half,
                          IntVect&  fine_ratio);
@@ -52,7 +51,7 @@ public:
     // Computing the sync tendency.
     //
     void mac_sync_compute (int                   level,
-                           MultiFab*             u_mac,  
+                           MultiFab*             u_mac, 
                            MultiFab*             Vsync,
                            MultiFab*             Ssync,
                            MultiFab*             rho_half, 
@@ -68,7 +67,6 @@ public:
                            const Array<int>&     increment_sync = Array<int>());
 
     void mac_sync_compute (int                   level,
-                           MultiFab*             u_mac, 
                            MultiFab*             Sync,
                            int                   comp,
                            int                   s_ind,

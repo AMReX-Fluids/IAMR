@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.213 2003-02-04 22:46:07 car Exp $
+// $Id: NavierStokes.cpp,v 1.214 2003-02-05 22:06:20 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -4088,7 +4088,7 @@ NavierStokes::mac_sync ()
     //
     // Compute the u_mac for the correction.
     //
-    mac_projector->mac_sync_solve(level,u_mac,dt,Rh,fine_ratio);
+    mac_projector->mac_sync_solve(level,dt,Rh,fine_ratio);
     //
     // Update coarse grid state by adding correction from mac_sync solve
     // the correction is the advective tendency of the new velocities.

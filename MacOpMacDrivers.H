@@ -25,7 +25,7 @@ void mac_sync_driver( const MacBndry &mac_bndry,
                       Real mac_sync_tol, Real mac_abs_tol, Real rhs_scale,
                       MultiFab *area,  MultiFab &volume,
                       MultiFab &Rhs,   MultiFab *rho_half,
-                      MultiFab *u_mac, MultiFab *mac_sync_phi );
+                      MultiFab *mac_sync_phi );
 
 
 // apply the mac pressure gradient to a velocity field
