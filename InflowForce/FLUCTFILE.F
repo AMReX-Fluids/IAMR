@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.2 2000-06-14 21:03:45 sstanley Exp $
+c $Id: FLUCTFILE.F,v 1.3 2000-06-20 16:52:29 sstanley Exp $
 c
 
 #undef BL_LANG_CC
@@ -92,6 +92,65 @@ c
 c
       return
       end
+
+
+
+c
+c ::: -----------------------------------------------------------
+c ::: This routine reads the information from the header of a
+c ::: inflow/initial conditions fluctuations file.
+c ::: 
+c ::: INPUTS/OUTPUTS:
+c ::: 
+c ::: iunit      => Fortran unit for the input fluctuations file
+c ::: nCmpFile   => Number of components in the file
+c ::: dimFile    => Dimensions from the fluctuations file
+c ::: probSizeFile  => Domain size from the fluctuations file
+c ::: dxFile     => Grid spacing from the fluctuations file
+c ::: -----------------------------------------------------------
+c
+      SUBROUTINE RD_SCL_FLCTHD(iunit, nCmpFile, dimFile, probSizeFile, dxFile)
+
+c
+c     *****************************
+c     *** Variable Declarations ***
+c     *****************************
+c
+      IMPLICIT NONE
+
+c
+c     *** Passed Variables ***
+c
+      INTEGER iunit, dimFile(3), nCmpFile
+      REAL_T probSizeFile(3), dxFile(3)
+
+c
+c     *** Local Variables ***
+c
+      integer i1bc, j1bc, k1bc
+
+
+c 
+c     *************************************
+c     *** Read Header from Restart File ***
+c     *************************************
+c
+      READ(iunit) dimFile, nCmpFile
+      READ(iunit) probSizeFile
+      READ(iunit) i1bc, j1bc, k1bc
+
+      dxFile(1) = probSizeFile(1)/FLOAT(dimFile(1)-1)
+      dxFile(2) = probSizeFile(2)/FLOAT(dimFile(2)-1)
+#if (BL_SPACEDIM==3)
+      dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
+#else
+      dxFile(3) = zero
+#endif
+
+c
+c
+      RETURN
+      END
 
 
 
