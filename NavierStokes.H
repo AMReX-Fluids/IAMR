@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.80 2003-02-19 18:39:36 almgren Exp $
+// $Id: NavierStokes.H,v 1.81 2003-02-27 05:45:53 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -264,7 +264,8 @@ protected:
     //
     // Make mac velocities divergence free.
     //
-    void mac_project (Real dt);
+    void mac_project (Real time, Real dt, MultiFab& S_old, 
+                      MultiFab* divu, int have_divu);
     //
     // Grow by 1 and fillpatch the MAC-projected velocities.
     //
@@ -617,10 +618,11 @@ protected:
 
 protected:
     //
-    // Mac edge velocities.
+    // MAC edge velocities.
     //
     MultiFab* u_mac;
     MultiFab* u_macG;
+    MultiFab* u_corr;
     //
     // Advective tendencies.
     //

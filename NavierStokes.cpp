@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.225 2003-02-19 18:52:12 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.226 2003-02-27 05:45:53 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -429,6 +429,7 @@ NavierStokes::NavierStokes ()
     viscflux_reg = 0;
     u_mac        = 0;
     u_macG       = 0;
+    u_macG       = 0;
     aofs         = 0;
     diffusion    = 0;
 
@@ -499,6 +500,7 @@ NavierStokes::NavierStokes (Amr&            papa,
     Ssync  = 0;
     u_mac  = 0;
     u_macG = 0;
+    u_corr = 0;
     aofs   = 0;
     //
     // Set up the level projector.
@@ -564,6 +566,7 @@ NavierStokes::~NavierStokes ()
     delete viscflux_reg;
     delete [] u_mac;
     delete [] u_macG;
+    delete [] u_corr;
     
     if (mac_projector != 0)
         mac_projector->cleanup(level);
@@ -1231,6 +1234,17 @@ NavierStokes::advance_setup (Real time,
             u_macG[dir].define(edge_grids,1,0,Fab_allocate);
         }
     }
+    if (u_corr == 0)
+    {
+        u_corr = new MultiFab[BL_SPACEDIM];
+
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            BoxArray edge_grids(grids);
+            edge_grids.surroundingNodes(dir).grow(1);
+            u_corr[dir].define(edge_grids,1,0,Fab_allocate);
+        }
+    }
     //
     // Alloc multifab to hold advective tendencies.
     //
@@ -1305,6 +1319,9 @@ NavierStokes::advance_cleanup (Real dt,
 
         delete [] u_macG;
         u_macG = 0;
+
+        delete [] u_corr;
+        u_corr = 0;
     }
     delete aofs;
     aofs = 0;
@@ -1329,37 +1346,33 @@ NavierStokes::advance (Real time,
     }
     advance_setup(time,dt,iteration,ncycle);
 
-    MultiFab& Snew  = get_new_data(State_Type);
-    MultiFab& Sold  = get_old_data(State_Type);
     //
     // Compute traced states for normal comp of velocity at half time level.
     //
     Real dummy   = 0.0;
     Real dt_test = predict_velocity(dt,dummy);
+
     //
     // Do MAC projection and update edge velocities.
     //
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "... mac_projection\n";
 
-    MultiFab* divu = getDivCond(0,time);
-    MultiFab* dsdt = getDsdt(0,time);
-
-    for (MFIter mfi(*divu); mfi.isValid(); ++mfi)
+    if (do_mac_proj) 
     {
-        (*dsdt)[mfi].mult(.5*dt);
-        (*divu)[mfi].plus((*dsdt)[mfi]);
-    }
-    delete dsdt;
-    //
-    // Compute mac velocities and maximum cfl number.
-    //
-    if (do_mac_proj) {
-     mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu);
-     create_umac_grown();
+      MultiFab& Sold  = get_old_data(State_Type);
+      MultiFab* divu = getDivCond(0,time);
+      MultiFab* dsdt = getDsdt(0,time);
+
+      for (MFIter mfi(*divu); mfi.isValid(); ++mfi)
+      {
+          (*dsdt)[mfi].mult(.5*dt);
+          (*divu)[mfi].plus((*dsdt)[mfi]);
+      }
+      delete dsdt;
+
+      mac_project(time,dt,Sold,divu,have_divu);
+      delete divu;
     }
 
-    delete divu;
     //
     // Advect velocities.
     //
@@ -1425,6 +1438,17 @@ NavierStokes::advance (Real time,
            p_avg->setVal(0);
     }
     return dt_test;  // Return estimate of best new timestep.
+}
+
+void
+NavierStokes::mac_project (Real time, Real dt, MultiFab& Sold, 
+                           MultiFab* divu, int have_divu)
+{
+    if (verbose && ParallelDescriptor::IOProcessor())
+        std::cout << "... mac_projection\n";
+
+    mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu);
+    create_umac_grown();
 }
 
 void
