@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: main_amr.cpp,v 1.15 1998-09-29 20:07:48 lijewski Exp $
+// $Id: main_amr.cpp,v 1.16 1998-11-18 21:06:14 lijewski Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -59,8 +59,7 @@ main (int   argc,
     set_new_handler(Utility::OutOfMemory);
 #endif
 
-    int nprocs = 1;
-    ParallelDescriptor::StartParallel(nprocs,&argc,&argv);
+    ParallelDescriptor::StartParallel(&argc,&argv);
 
     cout << setprecision(10);
 
