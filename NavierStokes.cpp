@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.21 1997-12-05 18:32:49 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.22 1997-12-08 23:12:00 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3189,7 +3189,7 @@ Real  NavierStokes::volWgtSum(const aString& name, Real time)
 
 #ifdef BL_PARALLEL_IO
 aString
-HyperCLaw::thePlotFileType () const
+NavierStokes::thePlotFileType () const
 {
     //
     // Increment this whenever the writePlotFile() format changes.
@@ -3200,14 +3200,193 @@ HyperCLaw::thePlotFileType () const
 }
 
 void
-HyperCLaw::writePlotFile (const aString& dir,
-                          ostream&       os,
-                          VisMF::How     how)
+NavierStokes::writePlotFile (const aString& dir,
+                             ostream&       os,
+                             VisMF::How     how)
 {
+    int i, n;
+    List<DeriveRec*> dlist = derive_lst.dlist();
+
+    if (level == 0 && ParallelDescriptor::IOProcessor())
+    {
+        //
+        // The first thing we write out is the plotfile type.
+        //
+        os << thePlotFileType() << '\n';
+        //
+        // Only write out velocity and scalar data.
+        //
+	int n_var = NUM_STATE;
+        int n_data_items = n_var + dlist.length();
+
+        if (have_dsdt)
+            n_data_items += 2;
+        else if (have_divu)
+            n_data_items += 1;
+
+        os << n_data_items << '\n';
+
+	for (n = 0; n < NUM_STATE; n++)
+	    os << desc_lst[State_Type].name(n) << '\n';
+
+        if (have_divu)
+        {
+            os << desc_lst[Divu_Type].name(0) << '\n';
+            if (have_dsdt)
+                os << desc_lst[Dsdt_Type].name(0) << '\n';
+        }
+
+        for (ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp)
+            os << dlist[lidrp]->name() << '\n';
+
+	os << BL_SPACEDIM << '\n';
+	os << parent->cumTime() << '\n';
+	int f_lev = parent->finestLevel();
+	os << f_lev << '\n';
+	for (i = 0; i < BL_SPACEDIM; i++) os << Geometry::ProbLo(i) << ' ';
+        os << '\n';
+	for (i = 0; i < BL_SPACEDIM; i++) os << Geometry::ProbHi(i) << ' ';
+        os << '\n';
+	for (i = 0; i < f_lev; i++) os << parent->refRatio(i)[0] << ' ';
+        os << '\n';
+	for (i = 0; i <= f_lev; i++) os << parent->Geom(i).Domain() << ' ';
+        os << '\n';
+	for (i = 0; i <= f_lev; i++) os << parent->levelSteps(i) << ' ';
+        os << '\n';
+	for (i = 0; i <= f_lev; i++)
+        {
+	    for (int k = 0; k < BL_SPACEDIM; k++)
+		os << parent->Geom(i).CellSize()[k] << ' ';
+	    os << '\n';
+	}
+	os << (int) CoordSys::Coord() << '\n';
+	os << "0\n"; // Write bndry data.
+    }
     //
-    // TODO -- finish this.
+    // Now write state data.
     //
-    BoxLib::Error("Not implemented yet");
+    int ngrids = grids.length();
+    Real cur_time = state[State_Type].curTime();
+    MultiFab& cell_dat = state[State_Type].newData();
+    MultiFab* divu_dat = 0;
+    MultiFab* dsdt_dat = 0;
+
+    if (have_divu)
+    {
+        divu_dat = &(state[Divu_Type].newData());
+        if (have_dsdt)
+            dsdt_dat = &(state[Dsdt_Type].newData());
+    }
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        os << level << ' ' << ngrids << ' ' << cur_time << '\n';
+        os << parent->levelSteps(level) << '\n';
+
+        for (i = 0; i < cell_dat.boxArray().length(); ++i)
+        {
+            for (n = 0; n < BL_SPACEDIM; n++)
+                os << grid_loc[i].lo(n) << ' ' << grid_loc[i].hi(n) << '\n';
+        }
+    }
+    //
+    // There may be up to three MultiFab written out at each level,
+    // not including any derived-type MultiFabs.  These are the ones with
+    // hard-wired names.  The names of the derived-type MultiFabs will
+    // be the names of the derived types themselves.
+    //
+    static const aString BaseName[] =
+    {
+        aString("/Cell"), aString("/DivU"), aString("/DsDt")
+    };
+    //
+    // Build the directory to hold the MultiFabs at this level.
+    // The name is relative to the directory containing the Header file.
+    //
+    char buf[64];
+    sprintf(buf, "Level_%d", level);
+    aString Level = buf;
+    //
+    // Now for the full pathname of that directory.
+    //
+    aString FullPath = dir;
+    if (!FullPath.isNull() && FullPath[FullPath.length()-1] != '/')
+        FullPath += '/';
+    FullPath += Level;
+
+    if (!Utility::CreateDirectory(FullPath, 0755))
+        Utility::CreateDirectoryFailed(FullPath);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        //
+        // The full relative pathname of the MultiFabs at this level.
+        // The name is relative to the Header file containing this name.
+        // It's the name that gets written into the Header.
+        //
+        aString PathNameInHeader = Level;
+        PathNameInHeader += BaseName[0];
+        os << PathNameInHeader << '\n';
+
+        if (have_divu)
+        {
+            PathNameInHeader = Level;
+            PathNameInHeader += BaseName[1];
+            os << PathNameInHeader << '\n';
+
+            if (have_dsdt)
+            {
+                PathNameInHeader = Level;
+                PathNameInHeader += BaseName[2];
+                os << PathNameInHeader << '\n';
+            }
+        }
+        //
+        // Don't forget the derived types.
+        //
+        for (ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp)
+        {
+            PathNameInHeader = Level;
+            //
+            // The derived-type names aren't prefixed with a '/'
+            //
+            PathNameInHeader += '/';
+            PathNameInHeader += dlist[lidrp]->name();
+            os << PathNameInHeader << '\n';
+        }
+    }
+    //
+    // Use the Full pathname when naming the MultiFab.
+    //
+    aString TheFullPath = FullPath;
+    TheFullPath += BaseName[0];
+    RunStats::addBytes(VisMF::Write(cell_dat, TheFullPath, how));
+
+    if (have_divu)
+    {
+        TheFullPath = FullPath;
+        TheFullPath += BaseName[1];
+        RunStats::addBytes(VisMF::Write(*divu_dat, TheFullPath, how));
+
+        if (have_dsdt)
+        {
+            TheFullPath = FullPath;
+            TheFullPath += BaseName[2];
+            RunStats::addBytes(VisMF::Write(*dsdt_dat, TheFullPath, how));
+        }
+    }
+
+    for (ListIterator<DeriveRec*> lidrp(dlist); lidrp; ++lidrp)
+    {
+        TheFullPath = FullPath;
+        TheFullPath += dlist[lidrp]->name();
+
+        MultiFab* mf = derive(dlist[lidrp]->name(), cur_time);
+
+        RunStats::addBytes(VisMF::Write(*mf, TheFullPath, how));
+
+        delete mf;
+    }
 }
 
 #else
@@ -3229,19 +3408,12 @@ NavierStokes::writePlotFile (ostream& os)
         // Only write out velocity and scalar data.
         //
 	int n_var = NUM_STATE;
-        int n_data_items = n_var;
+        int n_data_items = n_var + dlist.length();
+
         if (have_dsdt)
-        {
-            n_data_items = n_var + dlist.length() + 2;
-        }
-        else if(have_divu)
-        {
-            n_data_items = n_var + dlist.length() + 1;
-        }
-        else
-        {
-            n_data_items = n_var + dlist.length();
-        }
+            n_data_items += 2;
+        else if (have_divu)
+            n_data_items += 1;
 
         os << n_data_items << '\n';
 
@@ -3290,8 +3462,8 @@ NavierStokes::writePlotFile (ostream& os)
     int ngrids = grids.length();
     Real cur_time = state[State_Type].curTime();
     MultiFab& cell_dat = state[State_Type].newData();
-    MultiFab *divu_dat;
-    MultiFab *dsdt_dat;
+    MultiFab* divu_dat = 0;
+    MultiFab* dsdt_dat = 0;
     if (have_divu)
     {
         divu_dat = &(state[Divu_Type].newData());
@@ -3313,10 +3485,10 @@ NavierStokes::writePlotFile (ostream& os)
         if (fabProc == myproc)
         {
             const Box& grd = grids[i];
-            os << grd << '\n';
-            os << level << '\n';
-            os << parent->levelSteps(level) << '\n';
-            os << cur_time << '\n';
+            os << grd << '\n'
+               << level << '\n'
+               << parent->levelSteps(level) << '\n'
+               << cur_time << '\n';
             for (n = 0; n < BL_SPACEDIM; n++)
                 os << grid_loc[i].lo(n) << ' ' << grid_loc[i].hi(n) << '\n';
             FArrayBox dat(grd,1);

@@ -82,7 +82,7 @@ DEFINES += -DNEWFPMINBOX=0
 #
 # Uncomment this is you want to use Parallel I/O.
 #
-#DEFINES += -DBL_PARALLEL_IO
+DEFINES += -DBL_PARALLEL_IO
 
 ifeq ($(USE_WINDOWS),TRUE)
 LIBRARIES += -lgraph

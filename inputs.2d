@@ -28,8 +28,8 @@ proj.v = 1
 
 amr.n_cell    =  8 8
 amr.n_cell    =  64 64
-amr.n_cell    =  16 16
 amr.n_cell    =  32 32
+amr.n_cell    =  16 16
 
 amr.max_level =  1            # maximum level number allowed
 amr.max_level =  2            # maximum level number allowed
@@ -42,7 +42,7 @@ amr.grid_eff        = 0.7     # what constitutes an efficient grid
 amr.check_int       = 10      # number of timesteps between checkpoints
 amr.check_file      = chk     # root name of checkpoint file
 amr.plot_file_root  = plt
-amr.plot_int        = 1
+amr.plot_int        = 5
 amr.grid_log        = grdlog  # name of grid logging file
 amr.max_grid_size   = 128
 amr.max_grid_size   = 32
