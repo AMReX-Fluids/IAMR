@@ -1,5 +1,5 @@
 c
-c $Id: PROB_3D.F,v 1.12 1998-07-28 17:51:50 almgren Exp $
+c $Id: PROB_3D.F,v 1.13 1998-10-06 22:53:31 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -34,6 +34,7 @@ c ::: strttime <=  start problem with this time variable
 c ::: 
 c ::: -----------------------------------------------------------
       subroutine FORT_PROBINIT (init,name,namlen)
+
       integer init,namlen
       integer name(namlen)
       integer untin, i
@@ -51,6 +52,9 @@ c      Build `probin' filename -- the name of file containing fortin namelist.
 c
       integer maxlen
       parameter (maxlen=256)
+
+      REAL_T frecon, onep7
+      parameter (frecon=.219, onep7=1.7)
 
       character probin*(maxlen)
 
@@ -76,7 +80,7 @@ c      write(6,fortin)
 
       if(probtype.eq.8)then
 
-      freq(1) = .219d0
+      freq(1) = frecon
       do i=2,10
        freq(i)=freq(1)/float(i)
       enddo
@@ -86,7 +90,7 @@ c      write(6,fortin)
       mag(4) = .44*amag
 
       do i=5,10
-      mag(i)=1.7d0*mag(1)/float(i)
+      mag(i)=onep7*mag(1)/float(i)
       enddo
 
       endif
@@ -589,18 +593,17 @@ c     ::::: local variables
 c
       integer i, j, k, n
       REAL_T  x, y, z
-      REAL_T  hx, hy, hz
-      REAL_T  eps_input, beta_input, rho_input, r_yz
+      REAL_T  hx, hy, hz, r_yz
+
+      REAL_T  eps_input, beta_input, rho_input
       REAL_T  delta_input, kappa_input
 
+      parameter (eps_input=0.05, rho_input=0.15)
+      parameter (beta_input=15., delta_input=0.0333)
+      parameter (kappa_input=500.)
+
 #include "probdata.H"
-
-      eps_input = 0.05d0
-      rho_input = 0.15d0
-      beta_input = 15.d0
-      delta_input = 0.0333d0
-      kappa_input = 500.d0
-
+      
       hx = dx(1)
       hy = dx(2)
       hz = dx(3)
@@ -1123,10 +1126,11 @@ c ::: -----------------------------------------------------------
       integer    bc(SDIM,2)
       integer    lo(SDIM), hi(SDIM)
 
-
       integer    i, j, k
       REAL_T  umid,rmid,lamv,lamr,rfact
-      REAL_T  hx, hy, hz, gpert, z, y, ypert, magwif
+      REAL_T  hx, hy, hz, gpert, z, y, ypert, magwif, constn
+
+      parameter (constn=.22089323)
 
 #include "probdata.H"
 
@@ -1148,8 +1152,7 @@ c ::: -----------------------------------------------------------
       hx = dx(1)
       hy = dx(2)
       hz = dx(3)
-      magwif = .1d0
-
+      magwif = one/ten
 
       if (bc(1,1).eq.EXT_DIR.and.lo(1).lt.domlo(1)) then
          do i = lo(1), domlo(1)-1
@@ -1157,7 +1160,7 @@ c ::: -----------------------------------------------------------
             z = xlo(3) + hz*(float(k-lo(3)) + half)
             do j = lo(2), hi(2)
                y = xlo(2)+hy*(float(j-lo(2))+half)
-               ypert = magwif*sin(freq(1)*time)*sin(.22089323d0*y)
+               ypert = magwif*sin(freq(1)*time)*sin(constn*y)
                rho(i,j,k) =  rmid*(one+lamr*tanh(two*(z-ypert)/delta0))
             enddo
             enddo
@@ -1315,7 +1318,9 @@ c ::: -----------------------------------------------------------
       integer    lo(SDIM), hi(SDIM)
 
       integer    i, j, k
-      REAL_T  hx, hy, hz, gpert, z, y, ypert, magwif
+      REAL_T  hx, hy, hz, gpert, z, y, ypert, magwif, constn
+
+      parameter (constn=.22089323)
 
 #include "probdata.H"
 
@@ -1330,14 +1335,14 @@ c ::: -----------------------------------------------------------
 
       hy = dx(2)
       hz = dx(3)
-      magwif = .1d0
+      magwif = one/ten
       if (bc(1,1).eq.EXT_DIR.and.lo(1).lt.domlo(1)) then
          do i = lo(1), domlo(1)-1
             do k = lo(3), hi(3)
             z = xlo(3) + hz*(float(k-lo(3)) + half)
             do j = lo(2), hi(2)
                y = xlo(2)+hy*(float(j-lo(2))+half)
-               ypert = magwif*sin(freq(1)*time)*sin(.22089323d0*y)
+               ypert = magwif*sin(freq(1)*time)*sin(constn*y)
                adv(i,j,k) = cvmgt(one,zero,(z-ypert).gt.zero)
             enddo
             enddo
@@ -1600,7 +1605,9 @@ c ::: -----------------------------------------------------------
       REAL_T     x_vel
       REAL_T     y, ul, g_t
       REAL_T  umid,rmid,lamv,lamr,rfact
-      REAL_T  hx, hy, hz, gpert, z,  ypert, magwif
+      REAL_T  hx, hy, hz, gpert, z,  ypert, magwif, constn
+
+      parameter (constn=.22089323)
 
 #include "probdata.H"
 
@@ -1622,7 +1629,7 @@ c ::: -----------------------------------------------------------
       hi(3) = ARG_H3(u)
 
       x_vel = one
-      magwif = .1d0
+      magwif = one/ten
 
       umid = (vel1+vel2)*half
       rmid = (den1+den2)*half
@@ -1644,7 +1651,7 @@ c ::: -----------------------------------------------------------
             z = xlo(3) + hz*(float(k-lo(3)) + half)
             do j = lo(2), hi(2)
                y = xlo(2)+hy*(float(j-lo(2))+half)
-               ypert = magwif*sin(freq(1)*time)*sin(.22089323d0*y)
+               ypert = magwif*sin(freq(1)*time)*sin(constn*y)
                u(i,j,k) = gpert*umid*(one+lamv*tanh(two*(z-ypert)/delta0))
             enddo
             enddo

@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.5 1998-03-31 17:26:41 lijewski Exp $
+c $Id: SYNCREG_3D.F,v 1.6 1998-10-06 22:53:31 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -390,6 +390,9 @@ c ::: -----------------------------------------------------------
       
       integer    i, j, k, ic, jc, kc
       integer    ratiox, ratioy, ratioz
+      REAL_T     one28
+
+      one28 = eight * sixteen
 
 c     NOTE: the reason that the coefficients add up to 1/ratio_norm and NOT to 1
 c           is because the divergences and DGphi were computed using the
@@ -498,7 +501,7 @@ c        ::::: sum in j and k directions
      &              two *  two*(fine(i,j+1,k+2) + fine(i,j-1,k+2)+
      &                          fine(i,j+1,k-2) + fine(i,j-1,k-2)) +
      &              two       *(fine(i,j+1,k+3) + fine(i,j-1,k+3)+
-     &                          fine(i,j+1,k-3) + fine(i,j-1,k-3)) ) / 128.d0
+     &                          fine(i,j+1,k-3) + fine(i,j-1,k-3)) ) / one28
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
              end do
            end do
@@ -519,7 +522,7 @@ c        ::::: sum in j and k directions
      &              two *  two*(fine(i,j+2,k+1) + fine(i,j+2,k-1)+
      &                          fine(i,j-2,k+1) + fine(i,j-2,k-1)) +
      &              two       *(fine(i,j+3,k+1) + fine(i,j+3,k-1)+
-     &                          fine(i,j-3,k+1) + fine(i,j-3,k-1)) ) / 128.d0
+     &                          fine(i,j-3,k+1) + fine(i,j-3,k-1)) ) / one28
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratiox
              end do
            end do
@@ -660,7 +663,7 @@ c
      &              two *  two*(fine(i+1,j,k+2) + fine(i-1,j,k+2)+
      &                          fine(i+1,j,k-2) + fine(i-1,j,k-2)) +
      &              two       *(fine(i+1,j,k+3) + fine(i-1,j,k+3)+
-     &                          fine(i+1,j,k-3) + fine(i-1,j,k-3)) ) / 128.d0
+     &                          fine(i+1,j,k-3) + fine(i-1,j,k-3)) ) / one28
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy 
              end do
            end do
@@ -681,7 +684,7 @@ c
      &              two *  two*(fine(i+2,j,k+1) + fine(i+2,j,k-1)+
      &                          fine(i-2,j,k+1) + fine(i-2,j,k-1)) +
      &              two       *(fine(i+3,j,k+1) + fine(i+3,j,k-1)+
-     &                          fine(i-3,j,k+1) + fine(i-3,j,k-1)) ) / 128.d0
+     &                          fine(i-3,j,k+1) + fine(i-3,j,k-1)) ) / one28
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioy 
              end do
            end do
@@ -820,7 +823,7 @@ c        ::::: sum in i and j directions
      &              two *  two*(fine(i+1,j+2,k) + fine(i-1,j+2,k)+
      &                          fine(i+1,j-2,k) + fine(i-1,j-2,k)) +
      &              two       *(fine(i+1,j+3,k) + fine(i-1,j+3,k)+
-     &                          fine(i+1,j-3,k) + fine(i-1,j-3,k)) ) / 128.d0
+     &                          fine(i+1,j-3,k) + fine(i-1,j-3,k)) ) / one28
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz 
              end do
            end do
@@ -841,7 +844,7 @@ c        ::::: sum in i and j directions
      &              two *  two*(fine(i+2,j+1,k) + fine(i+2,j-1,k)+
      &                          fine(i-2,j+1,k) + fine(i-2,j-1,k)) +
      &              two       *(fine(i+3,j+1,k) + fine(i+3,j-1,k)+
-     &                          fine(i-3,j+1,k) + fine(i-3,j-1,k)) ) / 128.d0
+     &                          fine(i-3,j+1,k) + fine(i-3,j-1,k)) ) / one28
                crse(ic,jc,kc) = crse(ic,jc,kc) / ratioz 
              end do
            end do

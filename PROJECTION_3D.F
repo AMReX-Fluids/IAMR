@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.5 1998-03-31 17:26:40 lijewski Exp $
+c $Id: PROJECTION_3D.F,v 1.6 1998-10-06 22:53:31 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -42,7 +42,7 @@ c
        integer i, j, k
        REAL_T     twelfth
 
-       twelfth = one / 12.d0
+       twelfth = one / twelve
 
        do k = lo(3)+1, hi(3)
           do j = lo(2)+1, hi(2)
