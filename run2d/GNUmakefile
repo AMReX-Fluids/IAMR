@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.10 1999-04-01 21:43:10 car Exp $
+# $Id: GNUmakefile,v 1.11 1999-04-16 19:18:47 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -19,12 +19,12 @@ USE_MPI   = FALSE
 # Touch Projection.cpp if you want to change the state of USE_HGPROJ_SERIAL.
 #
 USE_HGPROJ_SERIAL = TRUE
+#
+# What stencil do you want to use?
+#
+PRVERSION = v5
 
 ifeq ($(USE_HGPROJ_SERIAL),TRUE)
-  #
-  # What stencil do you want to use?
-  #
-  PRVERSION = v5
   DEFINES += -DBL_USE_HGPROJ_SERIAL
   EBASE = amr-serial
 else
