@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.97 2000-07-21 21:54:32 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.98 2000-07-25 19:15:43 lijewski Exp $
 //
 
 //
@@ -2283,7 +2283,7 @@ Diffusion::getBndryData (ViscBndry& bndry,
     bndry.define(grids,num_comp,caller->Geom());
 
     FillPatchIterator     Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
-    ConstMultiFabIterator Rho_mfi(*ns.get_rho(time));
+    ConstMultiFabIterator Rho_mfi(ns.get_rho(time));
 
     for ( ; Rho_mfi.isValid() && Phi_fpi.isValid(); ++Rho_mfi, ++Phi_fpi)
     {
@@ -2337,7 +2337,7 @@ Diffusion::FillBoundary (BndryRegister& bdry,
     MultiFab S(caller->boxArray(),num_comp,nGrow);
 
     FillPatchIterator     S_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
-    ConstMultiFabIterator Rho_mfi(*ns.get_rho(time));
+    ConstMultiFabIterator Rho_mfi(ns.get_rho(time));
 
     for ( ; Rho_mfi.isValid() && S_fpi.isValid(); ++Rho_mfi, ++S_fpi)
     {

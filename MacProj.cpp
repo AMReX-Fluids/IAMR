@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.68 2000-07-21 21:54:32 lijewski Exp $
+// $Id: MacProj.cpp,v 1.69 2000-07-25 19:15:44 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -347,11 +347,9 @@ MacProj::mac_project (int             level,
     // Some of the routines we call assume that density has one valid
     // ghost cell.  We enforce that assumption by setting it here.
     //
-    for (ConstMultiFabIterator Rho_mfi(*ns.get_rho(time));
-         Rho_mfi.isValid();
-         ++Rho_mfi)
+    for (ConstMultiFabIterator mfi(ns.get_rho(time)); mfi.isValid(); ++mfi)
     {
-        S[Rho_mfi.index()].copy(Rho_mfi(),0,Density,1);
+        S[mfi.index()].copy(mfi(),0,Density,1);
     }
 
     if (hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)

@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.69 2000-07-24 22:39:48 lijewski Exp $
+// $Id: NavierStokes.H,v 1.70 2000-07-25 19:15:44 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -308,7 +308,7 @@ protected:
     // Must be one of AmrOldTime, AmrHalfTime or AmrNewTime.
     // Aborts if not one of the three above times.
     //
-    MultiFab* get_rho (Real time);
+    const MultiFab& get_rho (Real time);
     //
     // Update velocities after advection.
     //
