@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.22 2002-10-17 20:36:40 marc Exp $
+c $Id: GODUNOV_2D.F,v 1.23 2002-10-17 21:16:00 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -644,7 +644,7 @@ c
 c
 c     compute the slopes
 c
-      call FORT_SLOPES(ALL,
+      call FORT_SLOPES(
      &     s,DIMS(s),
      &     sx,sy,DIMS(work),
      &     lo,hi,slxscr,slyscr,bc)
