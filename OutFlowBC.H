@@ -2,7 +2,7 @@
 #define _OUTFLOWBC_H_
 
 //
-// $Id: OutFlowBC.H,v 1.2 2000-11-02 23:11:17 lijewski Exp $
+// $Id: OutFlowBC.H,v 1.3 2002-10-15 17:34:43 car Exp $
 //
 
 #include "FArrayBox.H"
@@ -92,7 +92,7 @@ public:
 
 protected:
 
-    virtual void restrict ()       = 0;
+    virtual void Restrict ()       = 0;
     virtual void interpolate ()    = 0;
     virtual Real residual ()       = 0;
     virtual void step (int nSteps) = 0;

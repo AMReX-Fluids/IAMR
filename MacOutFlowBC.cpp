@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.18 2002-09-10 18:16:58 car Exp $
+// $Id: MacOutFlowBC.cpp,v 1.19 2002-10-15 17:34:43 car Exp $
 //
 #include <winstd.H>
 
@@ -494,7 +494,7 @@ MacOutFlowBC_MG::step (int nGSRB)
 }
 
 void 
-MacOutFlowBC_MG::restrict ()
+MacOutFlowBC_MG::Restrict ()
 {
     DEF_BOX_LIMITS(domain,lo,hi);
     DEF_BOX_LIMITS(next->theDomain(),loc,hic);

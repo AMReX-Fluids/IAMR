@@ -1,5 +1,5 @@
 //
-// $Id: OutFlowBC.cpp,v 1.4 2001-08-09 22:42:00 marc Exp $
+// $Id: OutFlowBC.cpp,v 1.5 2002-10-15 17:34:43 car Exp $
 //
 #include <winstd.H>
 
@@ -126,7 +126,7 @@ OutFlowBC_MG::vcycle (int downiter,
 
     if (next != 0)
     {
-        restrict();
+        Restrict();
         next->phi->setVal(0);
         next->vcycle(downiter,upiter);
         interpolate();

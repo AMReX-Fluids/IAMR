@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.17 2002-09-10 18:16:58 car Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.18 2002-10-15 17:34:43 car Exp $
 //
 #include <winstd.H>
 
@@ -445,7 +445,7 @@ ProjOutFlowBC_MG::step (int nGSRB)
 }
 
 void 
-ProjOutFlowBC_MG::restrict ()
+ProjOutFlowBC_MG::Restrict ()
 {
     DEF_BOX_LIMITS(domain,lo,hi);
     DEF_BOX_LIMITS(next->theDomain(),loc,hic);

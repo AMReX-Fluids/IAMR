@@ -2,7 +2,7 @@
 #define _MACOUTFLOWBC_H_
 
 //
-// $Id: MacOutFlowBC.H,v 1.6 2001-08-01 21:50:56 lijewski Exp $
+// $Id: MacOutFlowBC.H,v 1.7 2002-10-15 17:34:43 car Exp $
 //
 
 #include "FArrayBox.H"
@@ -92,7 +92,7 @@ public:
 
 protected:
 
-    void restrict ();
+    void Restrict ();
     void interpolate ();
     Real residual ();
     void step (int nSteps);

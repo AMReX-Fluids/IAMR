@@ -2,7 +2,7 @@
 #define _PROJOUTFLOWBC_H_
 
 //
-// $Id: ProjOutFlowBC.H,v 1.5 2000-11-02 18:08:02 lijewski Exp $
+// $Id: ProjOutFlowBC.H,v 1.6 2002-10-15 17:34:43 car Exp $
 //
 
 #include "FArrayBox.H"
@@ -94,7 +94,7 @@ public:
 
 protected:
 
-    void restrict ();
+    void Restrict ();
     void interpolate ();
     Real residual ();
     void step (int nSteps);
