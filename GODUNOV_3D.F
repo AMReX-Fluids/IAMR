@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.28 2003-02-18 21:46:35 almgren Exp $
+c $Id: GODUNOV_3D.F,v 1.29 2003-06-05 20:59:20 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -717,7 +717,10 @@ c
      &                 + dth*tforces(i,j,k)
                end do
 
-               if (bc(1,1).eq.EXT_DIR .and. uad(imin,j,k).ge.zero) then
+               if (bc(1,1).eq.EXT_DIR .and. velpred.eq.1) then
+                  stxhi(imin) = s(imin-1,j,k)
+                  stxlo(imin) = s(imin-1,j,k)
+               else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j,k).ge.zero) then
                   stxhi(imin) = s(imin-1,j,k)
                   stxlo(imin) = s(imin-1,j,k)
                else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j,k).lt.zero) then
@@ -729,7 +732,10 @@ c
                   stxhi(imin) = zero
                   stxlo(imin) = zero
                end if
-               if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j,k).le.zero) then
+               if (bc(1,2).eq.EXT_DIR .and. velpred.eq.1) then
+                  stxlo(imax+1) = s(imax+1,j,k)
+                  stxhi(imax+1) = s(imax+1,j,k)
+               else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j,k).le.zero) then
                   stxlo(imax+1) = s(imax+1,j,k)
                   stxhi(imax+1) = s(imax+1,j,k)
                else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j,k).gt.zero) then
@@ -804,7 +810,10 @@ c
      &                 + dth*tforces(i,j,k)
                end do
 
-               if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin,k).ge.zero) then
+               if (bc(2,1).eq.EXT_DIR .and. velpred.eq.1) then
+                  styhi(jmin) = s(i,jmin-1,k)
+                  stylo(jmin) = s(i,jmin-1,k)
+               else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin,k).ge.zero) then
                   styhi(jmin) = s(i,jmin-1,k)
                   stylo(jmin) = s(i,jmin-1,k)
                else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin,k).lt.zero) then
@@ -817,7 +826,10 @@ c
                   stylo(jmin) = zero
                end if
                
-               if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1,k).le.zero) then
+               if (bc(2,2).eq.EXT_DIR .and. velpred.eq.1) then
+                  stylo(jmax+1) = s(i,jmax+1,k)
+                  styhi(jmax+1) = s(i,jmax+1,k)
+               else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1,k).le.zero) then
                   stylo(jmax+1) = s(i,jmax+1,k)
                   styhi(jmax+1) = s(i,jmax+1,k)
                else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1,k).gt.zero) then
@@ -892,7 +904,10 @@ c
      &                 + dth*tforces(i,j,k)
                end do
 
-               if (bc(3,1).eq.EXT_DIR .and. wad(i,j,kmin).ge.zero) then
+               if (bc(3,1).eq.EXT_DIR .and. velpred.eq.1) then
+                  stzlo(kmin) = s(i,j,kmin-1)
+                  stzhi(kmin) = s(i,j,kmin-1)
+               else if (bc(3,1).eq.EXT_DIR .and. wad(i,j,kmin).ge.zero) then
                   stzlo(kmin) = s(i,j,kmin-1)
                   stzhi(kmin) = s(i,j,kmin-1)
                else if (bc(3,1).eq.EXT_DIR .and. wad(i,j,kmin).lt.zero) then
@@ -904,7 +919,10 @@ c
                   stzlo(kmin) = zero
                   stzhi(kmin) = zero
                end if
-               if (bc(3,2).eq.EXT_DIR .and. wad(i,j,kmax+1).le.zero) then
+               if (bc(3,2).eq.EXT_DIR .and. velpred.eq.1) then
+                  stzlo(kmax+1) = s(i,j,kmax+1)
+                  stzhi(kmax+1) = s(i,j,kmax+1)
+               else if (bc(3,2).eq.EXT_DIR .and. wad(i,j,kmax+1).le.zero) then
                   stzlo(kmax+1) = s(i,j,kmax+1)
                   stzhi(kmax+1) = s(i,j,kmax+1)
                else if (bc(3,2).eq.EXT_DIR .and. wad(i,j,kmax+1).gt.zero) then
