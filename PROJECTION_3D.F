@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.10 1999-06-07 17:30:54 marc Exp $
+c $Id: PROJECTION_3D.F,v 1.11 1999-07-01 21:49:43 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -152,55 +152,39 @@ c
          end do
       end do
 
-       end
+      end
 
-       subroutine FORT_RADMPY(a,DIMS(grid),ng,r,nr,n)
+      subroutine FORT_RADMPY(a,DIMS(grid),ng,r,nr,n)
 c 
 c     multiply A by a Radius r
 c
-       integer    ng,nr
-       integer    n(SDIM)
-       integer    DIMDEC(grid)
-       REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng,
-     $              ARG_L2(grid)-ng:ARG_H2(grid)+ng,
-     $              ARG_L3(grid)-ng:ARG_H3(grid)+ng)
-       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
+      integer    ng,nr
+      integer    n(SDIM)
+      integer    DIMDEC(grid)
+      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng,
+     $             ARG_L2(grid)-ng:ARG_H2(grid)+ng,
+     $             ARG_L3(grid)-ng:ARG_H3(grid)+ng)
+      REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
 
-       integer i, j, k
+      print *,'SHOULD NEVER BE IN RADMPY IN 3D'
+      stop
+      end
 
-       do k = ARG_L3(grid)-n(3), ARG_H3(grid)+n(3)
-          do j = ARG_L2(grid)-n(2), ARG_H2(grid)+n(2)
-             do i = ARG_L1(grid)-n(1), ARG_H1(grid)+n(1)
-                a(i,j,k) = r(i)*a(i,j,k)
-             end do
-          end do
-       end do
-
-       end
-
-       subroutine FORT_RADDIV(a,DIMS(grid),ng,r,nr,n)
+      subroutine FORT_RADDIV(a,DIMS(grid),ng,r,nr,n)
 c 
 c     divide A by a Radius r
 c
-       integer    ng,nr
-       integer    n(SDIM)
-       integer    DIMDEC(grid)
-       REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng,
-     $              ARG_L2(grid)-ng:ARG_H2(grid)+ng,
-     $              ARG_L3(grid)-ng:ARG_H3(grid)+ng)
-       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
+      integer    ng,nr
+      integer    n(SDIM)
+      integer    DIMDEC(grid)
+      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng,
+     $             ARG_L2(grid)-ng:ARG_H2(grid)+ng,
+     $             ARG_L3(grid)-ng:ARG_H3(grid)+ng)
+      REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
 
-       integer i, j, k
-
-       do k = ARG_L3(grid)-n(3), ARG_H3(grid)+n(3)
-          do j = ARG_L2(grid)-n(2), ARG_H2(grid)+n(2)
-             do i = ARG_L1(grid)-n(1), ARG_H1(grid)+n(1)
-                a(i,j,k) = a(i,j,k)/r(i)
-             end do
-          end do
-       end do
-
-       end
+      print *,'SHOULD NEVER BE IN RADDIV IN 3D'
+      stop
+      end
 
       subroutine FORT_HGN2C(
      &     isrz,lrweighted, DIMS(nodedat), nodedat,
