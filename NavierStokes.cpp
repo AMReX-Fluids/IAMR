@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.96 1998-11-07 03:09:30 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.97 1998-11-07 03:47:34 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2066,7 +2066,8 @@ NavierStokes::velocity_diffusion_update (Real dt)
     {
         MultiFab* delta_rhs = 0;
         diffuse_velocity_setup(dt, delta_rhs);
-        diffusion->diffuse_velocity(dt, be_cn_theta, rho_half, 1, delta_rhs);
+	const int rho_flag = 1;
+        diffusion->diffuse_velocity(dt,be_cn_theta,rho_half,rho_flag,delta_rhs);
         delete delta_rhs;
     }
 }
@@ -2111,10 +2112,30 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
         //
         // Get viscous forcing terms.
         //
-        MultiFab visc_terms(grids,BL_SPACEDIM,1,Fab_allocate);
-        getViscTerms(visc_terms,Xvel,BL_SPACEDIM,prev_time);
-        if (be_cn_theta == 1.0)
-            visc_terms.setVal(0.0,1);
+	const int nGrow = 1;
+	const int nComp = BL_SPACEDIM;
+	MultiFab visc_terms(grids,nComp,nGrow,Fab_allocate);
+	if (be_cn_theta==1.0)
+	{
+	    visc_terms.setVal(0.0);
+	}
+        else
+        {
+	    getViscTerms(visc_terms,Xvel,nComp,prev_time);
+	
+            for (MultiFabIterator mfi(visc_terms); mfi.isValid(); ++mfi)
+            {
+                FArrayBox& vt  = mfi();
+                const Box& box = mfi.validbox();
+                FORT_VISCEXTRAP(vt.dataPtr(),ARLIM(vt.loVect()),ARLIM(vt.hiVect()),
+                                box.loVect(),box.hiVect(),&nComp);
+            }
+	    
+	    visc_terms.FillBoundary();
+
+            geom.FillPeriodicBoundary(visc_terms,false,true);
+        }
+
         FArrayBox tforces, Gp;
         //
         // Update U_new with viscosity.
@@ -4599,9 +4620,20 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 {
     for (int icomp = src_comp; icomp < src_comp+num_comp; icomp++)
     {
-        int rho_flag = !is_conservative[icomp] ? 1 : 2;
+        const int rho_flag = !is_conservative[icomp] ? 1 : 2;
 
         diffusion->getViscTerms(visc_terms,src_comp,icomp,time,rho_flag);
+    }
+
+    if (have_divu && S_in_vel_diffusion && src_comp < BL_SPACEDIM)
+    {
+        if (src_comp != Xvel || num_comp < BL_SPACEDIM)
+            BoxLib::Error("have_divu -> getViscTerms on all v-components at once");
+
+        MultiFab divmusi(grids,BL_SPACEDIM,1,Fab_allocate);
+        diffusion->compute_divmusi(time,visc_coef[Xvel],divmusi);
+        divmusi.mult((1./3.),0,BL_SPACEDIM,0);
+        visc_terms.plus(divmusi,Xvel,BL_SPACEDIM,0);
     }
 }
 
