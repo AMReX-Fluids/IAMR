@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.119 2000-05-03 18:28:59 almgren Exp $
+// $Id: Projection.cpp,v 1.120 2000-05-04 17:56:46 propp Exp $
 //
 
 #ifdef BL_T3E
@@ -133,6 +133,7 @@ int       Projection::proj_0             = 0;
 int       Projection::proj_2             = 0;
 int       Projection::add_vort_proj      = 0;
 
+#ifndef BL_USE_HGPROJ_SERIAL
 #if BL_SPACEDIM == 2
 #if BL_PRVERSION == 9
 static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::full;
@@ -142,6 +143,7 @@ static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::
 #elif BL_SPACEDIM == 3
 static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
 #endif
+#endif // BL_USE_HGPROJ_SERIAL
 
 static RegType project_bc [] =
 {
@@ -228,6 +230,7 @@ Projection::read_params ()
     pp.query("add_vort_proj",add_vort_proj);
 
     {
+#ifndef BL_USE_HGPROJ_SERIAL
 	aString stencil = "cross";
 	if ( pp.query("stencil", stencil) )
 	{
@@ -248,6 +251,7 @@ Projection::read_params ()
 		BoxLib::Error("stencil must be cross, terrain, or full");
 	    }
 	}
+#endif
     }
 }
 
