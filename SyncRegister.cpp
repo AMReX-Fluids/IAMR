@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.23 1998-05-19 23:59:17 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.24 1998-05-20 16:10:56 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -748,31 +748,19 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
                            int             hifix,
                            Real            mult)
 {
-    cerr << "SyncRegister::CrseDsdtAdd() not implemented in parallel.\n";
-    if (ParallelDescriptor::NProcs() > 1)
-        ParallelDescriptor::Abort("Bye");
-
-    const Box& domain          = geom.Domain();
-    const Real* dx             = geom.CellSize();
-    const int nfine            = grids.length();
-    const BoxArray& dsdt_boxes = dsdt.boxArray();
-    const int ncrse            = dsdt_boxes.length();
-
     FArrayBox dsdtfab, divu;
 
-    for (int k = 0; k < ncrse; k++)
+    for (ConstMultiFabIterator mfi(dsdt); mfi.isValid(false); ++mfi)
     {
-        Box dsdtbox = ::grow(dsdt_boxes[k],1);
+        dsdtfab.resize(::grow(mfi.validbox(),1),1);
+        dsdtfab.setComplement(0,mfi.validbox(),0,1);
+        dsdtfab.copy(mfi(),mfi.validbox(),0,mfi.validbox(),0,1);
 
-        dsdtfab.resize(dsdtbox,1);
-        dsdtfab.setVal(0.0);
-        dsdtfab.copy(dsdt[k],dsdt_boxes[k],0,dsdt_boxes[k],0,1);
+        int* bc = crse_bc[mfi.index()];
 
-        int* bc = crse_bc[k];
-
-        for (int fine = 0; fine < nfine; fine++)
+        for (int fine = 0; fine < grids.length(); fine++)
         {
-            Box subbox = dsdtbox & grids[fine];
+            Box subbox = dsdtfab.box() & grids[fine];
 
             if (subbox.ok())
             {
@@ -781,22 +769,21 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
                 for (int dir = 0; dir < BL_SPACEDIM; dir++)
                 {
                     int bc_index = 2*BL_SPACEDIM*dir + dir;
+
                     if (bc[bc_index] == EXT_DIR &&
-                        grids[fine].loVect()[dir] == dsdt_boxes[k].loVect()[dir])
+                        grids[fine].loVect()[dir] == mfi.validbox().loVect()[dir])
                     {
                         Box finesidelo(subbox);
                         finesidelo.growLo(dir,1);
-                        const int* dlo = finesidelo.loVect();
-                        finesidelo.setRange(dir,dlo[dir],1);
+                        finesidelo.setRange(dir,finesidelo.loVect()[dir],1);
                         dsdtfab.setVal(0.0,finesidelo,0,1);
                     }
                     if (bc[bc_index+BL_SPACEDIM] == EXT_DIR &&
-                        grids[fine].hiVect()[dir] == dsdt_boxes[k].hiVect()[dir])
+                        grids[fine].hiVect()[dir] == mfi.validbox().hiVect()[dir])
                     {
                         Box finesidehi(subbox);
                         finesidehi.growHi(dir,1);
-                        const int* dhi = finesidehi.hiVect();
-                        finesidehi.setRange(dir,dhi[dir],1);
+                        finesidehi.setRange(dir,finesidehi.hiVect()[dir],1);
                         dsdtfab.setVal(0.0,finesidehi,0,1);
                     }
                 }
@@ -805,25 +792,24 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
         //
         // Average dsdt to nodes.
         //
-        Box ndbox = ::surroundingNodes(dsdt_boxes[k]);
-        divu.resize(ndbox,1);
+        divu.resize(::surroundingNodes(mfi.validbox()),1);
 
-        const int* ndlo   = ndbox.loVect();
-        const int* ndhi   = ndbox.hiVect();
-        const int* dsdtlo = dsdtbox.loVect();
-        const int* dsdthi = dsdtbox.hiVect();
-        const int* rlo    = dsdtbox.loVect();
-        const int* rhi    = dsdtbox.hiVect();
-        const int* domlo  = domain.loVect();
-        const int* domhi  = domain.hiVect();
+        const int* ndlo   = divu.box().loVect();
+        const int* ndhi   = divu.box().hiVect();
+        const int* dsdtlo = dsdtfab.box().loVect();
+        const int* dsdthi = dsdtfab.box().hiVect();
+        const int* rlo    = dsdtfab.box().loVect();
+        const int* rhi    = dsdtfab.box().hiVect();
+        const int* domlo  = geom.Domain().loVect();
+        const int* domhi  = geom.Domain().hiVect();
 
-        Array<Real> rcen(dsdtbox.length(0));
+        Array<Real> rcen(dsdtfab.box().length(0));
 
-        SetCenter(is_rz, rcen, geom, dsdtbox);
+        SetCenter(is_rz, rcen, geom, dsdtfab.box());
 
 #if (BL_SPACEDIM==2)
         int nghost         = 0;
-        Real hx            = dx[0];
+        Real hx            = geom.CellSize()[0];
         int extrap_edges   = 0;
         int extrap_corners = 0;
         FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
@@ -832,8 +818,7 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
                    ARLIM(ndlo), ARLIM(ndhi), divu.dataPtr(), 
                    domlo, domhi, lowfix, hifix, &hx,
                    &extrap_edges, &extrap_corners, &is_rz);
-#endif
-#if (BL_SPACEDIM==3)
+#elif (BL_SPACEDIM==3)
         divu.setVal(0.0);
 #endif
         divu.negate();
@@ -851,32 +836,21 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                            int             hifix,
                            Real            mult)
 {
-    cerr << "SyncRegister::FineDsdtAdd() not implemented in parallel.\n";
-    if (ParallelDescriptor::NProcs() > 1)
-        ParallelDescriptor::Abort("Bye");
-
-    const BoxArray& dsdt_boxes = dsdt.boxArray();
-    const int ngrds            = dsdt_boxes.length();
-    const Box& domain          = geom.Domain();
-    const Real* dx             = geom.CellSize();
-
     FArrayBox dsdtfab;
     FArrayBox cfablo, cfabhi, ffablo, ffabhi;
 
-    for (int k = 0; k < ngrds; k++)
+    for (ConstMultiFabIterator mfi(dsdt); mfi.isValid(false); ++mfi)
     {
-        Box dsdtbox = ::grow(dsdt_boxes[k],1);
+        dsdtfab.resize(::grow(mfi.validbox(),1),1);
+        dsdtfab.setComplement(0,mfi.validbox(),0,1);
+        dsdtfab.copy(mfi(),mfi.validbox(),0,mfi.validbox(),0,1);
 
-        dsdtfab.resize(dsdtbox,1);
-        dsdtfab.setVal(0.0);
-        dsdtfab.copy(dsdt[k],dsdt_boxes[k],0,dsdt_boxes[k],0,1);
-
-        const int* dsdtlo = dsdtbox.loVect();
-        const int* dsdthi = dsdtbox.hiVect();
+        const int* dsdtlo = dsdtfab.box().loVect();
+        const int* dsdthi = dsdtfab.box().hiVect();
         //
         // Now compute node centered surrounding box.
         //
-        Box ndbox       = ::surroundingNodes(dsdt_boxes[k]);
+        Box ndbox       = ::surroundingNodes(mfi.validbox());
         const int* ndlo = ndbox.loVect();
         const int* ndhi = ndbox.hiVect();
 
@@ -934,24 +908,24 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
             // Average dsdt to nodes on fine grid edges in regions defined
             // by reglo and reghi.  Fabs are set to zero outside region.
             //
-            const int* dsdtlo = dsdtbox.loVect();
-            const int* dsdthi = dsdtbox.hiVect();
-            const int* rlo    = dsdtbox.loVect();
-            const int* rhi    = dsdtbox.hiVect();
-            const int* domlo  = domain.loVect();
-            const int* domhi  = domain.hiVect();
+            const int* dsdtlo = dsdtfab.box().loVect();
+            const int* dsdthi = dsdtfab.box().hiVect();
+            const int* rlo    = dsdtfab.box().loVect();
+            const int* rhi    = dsdtfab.box().hiVect();
+            const int* domlo  = geom.Domain().loVect();
+            const int* domhi  = geom.Domain().hiVect();
 
-            Array<Real> rcen(dsdtbox.length(0));
+            Array<Real> rcen(dsdtfab.box().length(0));
 
-            SetCenter(is_rz, rcen, geom, dsdtbox);
+            SetCenter(is_rz, rcen, geom, dsdtfab.box());
 
             FArrayBox ffablo_tmp(reglo,1);
 
 #if (BL_SPACEDIM==2)
-            int nghost = 0;
-            int hi_fix = 0;
-            Real hx = dx[0];
-            int extrap_edges = 0;
+            int nghost         = 0;
+            int hi_fix         = 0;
+            Real hx            = geom.CellSize()[0];
+            int extrap_edges   = 0;
             int extrap_corners = 0;
             FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
                        dsdtfab.dataPtr(),
@@ -960,8 +934,7 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                        ffablo_tmp.dataPtr(),
                        domlo, domhi, lowfix, hi_fix, &hx,
                        &extrap_edges, &extrap_corners, &is_rz);
-#endif
-#if (BL_SPACEDIM==3)
+#elif (BL_SPACEDIM==3)
             ffablo_tmp.setVal(0.0);
 #endif
             ffablo_tmp.negate();
@@ -978,8 +951,7 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                        ffabhi_tmp.dataPtr(), 
                        domlo, domhi, low_fix, hifix, &hx,
                        &extrap_edges, &extrap_corners, &is_rz);
-#endif
-#if (BL_SPACEDIM==3)
+#elif (BL_SPACEDIM==3)
             ffabhi_tmp.setVal(0.0);
 #endif
             ffabhi_tmp.negate();
@@ -1199,7 +1171,7 @@ SyncRegister::CompDVAdd (const MultiFab& U,
                     increment(cfabhi);
                     cfabhi.shift(-pshifts[iiv]);
                 }
-           }
+            }
         }
     }
 }
