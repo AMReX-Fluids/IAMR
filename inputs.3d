@@ -17,7 +17,7 @@ mg.nu_2 = 2
 smg.eps = 1.0e-3
 mg.v = 2
 mg.maxiter = 400
-Lp.v = 0
+Lp.v = 1
 Lp.harmavg = 1
 
 ns.v = 1
@@ -40,9 +40,9 @@ amr.check_file      = chk     # root name of checkpoint file
 amr.plot_file_root  = plt
 amr.plot_int        = 1
 amr.grid_log        = grdlog  # name of grid logging file
-amr.max_grid_size   = 64
 amr.max_grid_size   = 8
 amr.max_grid_size   = 16
+amr.max_grid_size   = 64
 
 # ------------------  INPUTS TO PHYSICS CLASS -------------------
 ns.dt_cutoff      = 0.000001  # level 0 timestep below which we halt
