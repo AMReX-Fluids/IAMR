@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.40 1998-04-15 22:25:37 marc Exp $
+// $Id: NavierStokes.cpp,v 1.41 1998-05-01 18:23:57 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3784,11 +3784,11 @@ void NavierStokes::avgDown( const BoxArray &cgrids,  const BoxArray &fgrids,
               BoxList unfilledBoxes(fbox.ixType());  // unused here
               FillBoxId fbidFine, fbidFineVol;
               const Box &sfineBox = S_fine.fabbox(fine);
-              fbidFine = mfcd.AddBox(mfidS_fine, sfineBox, unfilledBoxes,
+              fbidFine = mfcd.AddBox(mfidS_fine, sfineBox, &unfilledBoxes,
                                        0, 0, num_comp);
 
               const Box &fineVolBox = fvolume.fabbox(fine);
-              fbidFineVol = mfcd.AddBox(mfidFineVol, fineVolBox, unfilledBoxes,
+              fbidFineVol = mfcd.AddBox(mfidFineVol, fineVolBox, &unfilledBoxes,
                                         0, 0, 1);
               fillBoxIdList.append(fbidFine);
               fillBoxIdListVol.append(fbidFineVol);
@@ -4331,7 +4331,7 @@ void NavierStokes::avgDown()
               BoxList unfilledBoxes(ovlp.ixType());  // unused here
               FillBoxId fbidFine;
               const Box &sfineBox = P_fine.fabbox(fine);
-              fbidFine = mfcd.AddBox(mfidP_fine, sfineBox, unfilledBoxes,
+              fbidFine = mfcd.AddBox(mfidP_fine, sfineBox, &unfilledBoxes,
                                      0, 0, P_fine.nComp());
               fillBoxIdList.append(fbidFine);
             }
