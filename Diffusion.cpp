@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.47 1998-11-20 16:36:35 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.48 1998-11-20 16:39:38 lijewski Exp $
 //
 
 //
@@ -2840,7 +2840,7 @@ Diffusion::FillBoundary (BndryRegister& bdry,
     MultiFab S(caller->boxArray(),num_comp,nGrow);
 
     {
-        FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,0,num_comp);
+        FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
 
         for ( ; S_fpi.isValid(); ++S_fpi)
         {
