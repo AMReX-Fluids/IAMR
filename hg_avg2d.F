@@ -1,9 +1,9 @@
-
+#include <REAL.H>
 #include "hg_version.H"
 
-#define dims(a) a l0,a h0,a l1,a h1
-#define dimdec(a) a l0:a h0,a l1:a h1
-c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
+#define dims(a) a##l0,a##h0,a##l1,a##h1
+#define dimdec(a) a##l0:a##h0,a##l1:a##h1
+c#define dimdecu(a) (a##h0-a##l0+1)*(a##h1-a##l1+1)
 #define dimdecu(a) *
 
       subroutine hgavg(src,
@@ -11,14 +11,18 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
      @ rf,
      @ dims(f),
      @ dims(freg), hx, irz, imax)
-      implicit real*8(a-h,o-z), integer(i-n)
+c     implicit REAL_T (a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(f)
       integer dims(freg)
-      real*8 src(dimdec(src))
-      real*8 rf(dimdec(f))
-      real*8 hx
+      REAL_T src(dimdec(src))
+      REAL_T rf(dimdec(f))
+      REAL_T hx
       integer irz, imax
+c
+      integer i, j
+      REAL_T fac, r0m, r1, r1m
+c
       fac = 0.25d0
       do 10 j = fregl1, fregh1
          do 10 i = fregl0, fregh0
@@ -42,8 +46,9 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
      @             r1m * (rf(i,j-1) + rf(i,j)))
       endif
       end
-
+c
 c Note---only generates values at coarse points along edge of fine grid
+c
       subroutine hgfavg(src,
      @ dims(src),
      @ rc,
@@ -52,16 +57,21 @@ c Note---only generates values at coarse points along edge of fine grid
      @ dims(f),
      @ dims(creg),
      @ ir, jr, idim, idir, hx, irz, imax)
-      implicit real*8(a-h,o-z), integer(i-n)
+c     implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
       integer dims(f)
       integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 rc(dimdec(c))
-      real*8 rf(dimdec(f))
-      real*8 hx
+      REAL_T src(dimdec(src))
+      REAL_T rc(dimdec(c))
+      REAL_T rf(dimdec(f))
+      REAL_T hx
       integer ir, jr, idim, idir, irz, imax
+c
+      integer i, j, irc, irf, n, jrc, jrf, m
+      REAL_T fac0, rfac, fac, r, rfac0, rfac1
+      REAL_T rfac0m, rfac1m, rfac0p, rfac1p
+c
       if (idim .eq. 0) then
          i = cregl0
          if (idir .eq. 1) then
@@ -169,8 +179,9 @@ c should be handled by the cavg routine instead:
  100        continue
       endif
       end
-
+c
 c Note---only generates values at coarse points along edge of fine grid
+c
       subroutine hgcavg(src,
      @ dims(src),
      @ rc,
@@ -179,16 +190,22 @@ c Note---only generates values at coarse points along edge of fine grid
      @ dims(f),
      @ dims(creg),
      @ ir, jr, ga, hx, irz, imax)
-      implicit real*8(a-h,o-z), integer(i-n)
+c     implicit REAL_T(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
       integer dims(f)
       integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 rc(dimdec(c))
-      real*8 rf(dimdec(f))
-      real*8 hx
+      REAL_T src(dimdec(src))
+      REAL_T rc(dimdec(c))
+      REAL_T rf(dimdec(f))
+      REAL_T hx
       integer ir, jr, ga(0:1,0:1), irz, imax
+c
+      integer ic, jc, if, jf, ji, jrf, jrc, irf, irc
+      integer idir, n, m, jdir, ii
+      REAL_T rfac, rfac0, fac1, rfac1
+      REAL_T rm2, sum, center, fac, ffac, cfac, r
+c
       rm2 = 1.d0 / (ir * jr)
       ic = cregl0
       jc = cregl1

@@ -10,17 +10,22 @@ c Slice stuff uses 2D version:
 #include "cont2d.F"
 
 c Routines to cut slice:
-
+c
+c
+c
       subroutine getsl0(a,mlo,mhi,nlo,nhi,olo,ohi,
      @  ilo,ihi,jlo,jhi,klo,khi,b,islice)
       implicit real*8 (a-h,l,p-z), integer(i-k,m-o)
       real*8 a(mlo:mhi,nlo:nhi,olo:ohi)
       real*8 b(jlo:jhi,klo:khi)
+c
       do 10 k = klo, khi
          do 10 j = jlo, jhi
  10         b(j,k) = a(islice,j,k)
       end
-
+c
+c
+c
       subroutine getsl1(a,mlo,mhi,nlo,nhi,olo,ohi,
      @  ilo,ihi,jlo,jhi,klo,khi,b,jslice)
       implicit real*8 (a-h,l,p-z), integer(i-k,m-o)
@@ -30,7 +35,9 @@ c Routines to cut slice:
          do 10 i = ilo, ihi
  10         b(i,k) = a(i,jslice,k)
       end
-
+c
+c
+c
       subroutine getsl2(a,mlo,mhi,nlo,nhi,olo,ohi,
      @  ilo,ihi,jlo,jhi,klo,khi,b,kslice)
       implicit real*8 (a-h,l,p-z), integer(i-k,m-o)
@@ -40,9 +47,9 @@ c Routines to cut slice:
          do 10 i = ilo, ihi
  10         b(i,j) = a(i,j,kslice)
       end
-
+c
 c Begin full 3D version:
-
+c
       subroutine cont3d(a,mlo,mhi,nlo,nhi,olo,ohi,
      @  ilo,ihi,jlo,jhi,klo,khi,rx,ry,rz,
      @  xo,yo,zo,theta,phi,value,ifail)
@@ -125,7 +132,9 @@ c Begin full 3D version:
  30            continue
       return
       end
-
+c
+c
+c
       subroutine face(xlb,xlt,xrb,xrt,ylb,ylt,yrb,yrt,
      @                lb,lt,rb,rt,value,ifail)
       implicit real*8 (a-h,l,p-z), integer(i-k,m-o)

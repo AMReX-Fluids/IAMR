@@ -55,9 +55,10 @@ c for more information.  A single precision version of this subroutine, scont,
 c is also available.
       subroutine cont2d(a,mlo,mhi,nlo,nhi,ilo,ihi,jlo,jhi,
      @                  x1,x2,y1,y2,idir,value,ifail)
-      implicit real*8(a-h,l,o-z), integer(i-k,m-n)
+c     implicit real*8(a-h,l,o-z), integer(i-k,m-n)
       real*8 a(mlo:mhi,nlo:nhi)
       logical left,right,top,bottom,btwn
+c
       ifail=0
       if (idir .eq. 0)then
          xstep=(x2-x1)/(jhi-jlo)
