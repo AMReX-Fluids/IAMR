@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.3 2000-06-20 16:52:29 sstanley Exp $
+c $Id: FLUCTFILE.F,v 1.4 2000-06-27 16:05:04 sstanley Exp $
 c
 
 #undef BL_LANG_CC
@@ -141,11 +141,12 @@ c
 
       dxFile(1) = probSizeFile(1)/FLOAT(dimFile(1)-1)
       dxFile(2) = probSizeFile(2)/FLOAT(dimFile(2)-1)
-#if (BL_SPACEDIM==3)
-      dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
-#else
-      dxFile(3) = zero
-#endif
+
+      if (dimFile(3) .gt. 1) then
+        dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
+      else
+        dxFile(3) = zero
+      endif
 
 c
 c
@@ -199,11 +200,12 @@ c
 
       dxFile(1) = probSizeFile(1)/FLOAT(dimFile(1)-1)
       dxFile(2) = probSizeFile(2)/FLOAT(dimFile(2)-1)
-#if (BL_SPACEDIM==3)
-      dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
-#else
-      dxFile(3) = zero
-#endif
+
+      if (dimFile(3) .gt. 1) then
+        dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
+      else
+        dxFile(3) = zero
+      endif
 
 c
 c
