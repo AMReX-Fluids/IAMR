@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.6 1999-02-02 22:58:45 lijewski Exp $
+# $Id: GNUmakefile,v 1.7 1999-02-02 23:01:43 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -23,11 +23,6 @@ USE_HGPROJ_SERIAL = TRUE
 
 ifeq ($(USE_HGPROJ_SERIAL),TRUE)
 DEFINES += -DBL_USE_HGPROJ_SERIAL
-endif
-#
-# Base name of the executable.
-#
-ifeq ($(USE_HGPROJ_SERIAL),TRUE)
 EBASE = amr-serial
 else
 EBASE = amr
