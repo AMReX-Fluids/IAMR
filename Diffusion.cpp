@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.cpp,v 1.109 2000-11-01 17:52:16 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.110 2001-01-19 22:56:57 marc Exp $
 //
 
 //
@@ -2309,7 +2309,8 @@ Diffusion::getBndryData (ViscBndry& bndry,
     {
         BoxArray cgrids = grids;
         cgrids.coarsen(crse_ratio);
-        BndryRegister crse_br(cgrids,0,1,1,num_comp);
+        //BndryRegister crse_br(cgrids,0,1,1,num_comp);
+        BndryRegister crse_br(cgrids,0,1,2,num_comp);
         //
         // interp for solvers over ALL c-f brs, need safe data.
         //
@@ -2349,7 +2350,8 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
     {
         BoxArray cgrids = grids;
         cgrids.coarsen(crse_ratio);
-        BndryRegister crse_br(cgrids,0,1,1,num_comp);
+        //BndryRegister crse_br(cgrids,0,1,1,num_comp);
+        BndryRegister crse_br(cgrids,0,1,2,num_comp);
         //
         // interp for solvers over ALL c-f brs, need safe data.
         //

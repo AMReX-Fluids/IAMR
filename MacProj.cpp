@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.76 2000-11-02 18:08:01 lijewski Exp $
+// $Id: MacProj.cpp,v 1.77 2001-01-19 22:56:58 marc Exp $
 //
 
 #include <Misc.H>
@@ -306,7 +306,8 @@ MacProj::mac_project (int             level,
         crse_boxes.coarsen(crse_ratio);
         const int in_rad     = 0;
         const int out_rad    = 1;
-        const int extent_rad = 1;
+        //const int extent_rad = 1;
+        const int extent_rad = 2;
         BndryRegister crse_br(crse_boxes,in_rad,out_rad,extent_rad,num_comp);
         crse_br.copyFrom(CPhi,extent_rad,src_comp,dest_comp,num_comp);
 
@@ -528,8 +529,11 @@ MacProj::mac_sync_solve (int       level,
     {
         BoxArray crse_boxes(grids);
         crse_boxes.coarsen(crse_ratio);
-        const int n_ghost = 0;
-        BndryRegister crse_br(crse_boxes,n_ghost,1,1,num_comp);
+        const int in_rad     = 0;
+        const int out_rad    = 1;
+        //const int extent_rad = 1;
+        const int extent_rad = 2;
+        BndryRegister crse_br(crse_boxes,in_rad,out_rad,extent_rad,num_comp);
         crse_br.setVal(0);
         mac_bndry.setBndryValues(crse_br,src_comp,*mac_sync_phi,src_comp,
                                  dest_comp,num_comp,crse_ratio, *phys_bc);
