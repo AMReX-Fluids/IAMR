@@ -1,5 +1,9 @@
 #include <iostream.h>
+#ifdef _MSC_VER
+#include <strstrea.h>
+#else
 #include <strstream.h>
+#endif
 #include <iomanip.h>
 #include <fstream.h>
 #include <limits.h>

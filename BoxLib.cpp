@@ -1,14 +1,18 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxLib.cpp,v 1.1 1997-07-08 23:08:05 vince Exp $
+// $Id: BoxLib.cpp,v 1.2 1997-07-17 23:25:36 car Exp $
 //
 
+#ifdef _MSC_VER
+#include <strstrea.h>
+#else
 #include <strstream.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+//#include <unistd.h>
 
 #include <BoxLib.H>
 #include <BLVERSION.H>

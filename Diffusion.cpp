@@ -1,11 +1,15 @@
-// $Id: Diffusion.cpp,v 1.2 1997-07-17 22:00:58 vince Exp $
+// $Id: Diffusion.cpp,v 1.3 1997-07-17 23:25:36 car Exp $
 
 // comment out this line to use diffusion class outside
 // the context of NavierStokes and classes derived from it
 #define USE_NAVIERSTOKES 1
 
 #include <stdio.h>
+#ifdef	_MSC_VER
+#include <strstrea.h>
+#else
 #include <strstream.h>
+#endif
 #include <Box.H>
 #include <BoxArray.H>
 #include <Geometry.H>
@@ -2217,7 +2221,7 @@ void Diffusion::getViscTerms(MultiFab& visc_terms, int src_comp, int comp,
         visc_tmpmfi.isValid(); ++visc_tmpmfi)
     {
       assert(ba[visc_tmpmfi.index()] == visc_tmpmfi.validbox());
-      const BOX& grd(visc_tmpmfi.validbox());
+      const BOX grd(visc_tmpmfi.validbox());
       const int* lo = grd.loVect();
       const int* hi = grd.hiVect();
       FArrayBox& visc = visc_tmpmfi();
@@ -2238,7 +2242,7 @@ void Diffusion::getViscTerms(MultiFab& visc_terms, int src_comp, int comp,
       {
         assert(visc_tmp[visc_tmpmfi.index()].box() == visc_tmpmfi.fabbox());
   
-        const BOX& dbox(visc_tmpmfi.fabbox());
+        const BOX dbox(visc_tmpmfi.fabbox());
         dest.resize(dbox,1);
         dest.copy(visc_tmpmfi(),dbox,0,dbox,0,1);
         caller->Geom().periodicShift( domain, dest.box(), pshifts);

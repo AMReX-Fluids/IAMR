@@ -21,7 +21,7 @@ DOUBLE PRECISION NOT ALLOWED ON CRAY
 #include <RunStats.H>
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
-#include <unistd.h>
+//#include <unistd.h>
 
 #include <AmrLevel.H>
 
@@ -85,9 +85,11 @@ main(int argc, char *argv[])
 #endif
     StartParallel(nprocs);
 
+#ifndef	WIN32
     int sleeptime = 0;
     pp.query("sleep", sleeptime);
     sleep(sleeptime);
+#endif
 
     max_step = 0;    
     pp.query("max_step",max_step);

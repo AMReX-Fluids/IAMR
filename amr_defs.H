@@ -8,9 +8,9 @@
 #  endif
 #endif
 
-#ifndef BL_OSF1
-#  include <libc.h>
-#endif
+//#ifndef BL_OSF1
+//#  include <libc.h>
+//#endif
 
 #include <iostream.h>
 #include <iomanip.h>

@@ -6,7 +6,7 @@
 #include <ParmParse.H>
 #include <COORDSYS_F.H>
 
-#define RZFACTOR  (2*M_PI)
+const double RZFACTOR = 2*4*atan(1.0);
 
 CoordSys::CoordType  CoordSys::c_sys = CoordSys::undef;
 REAL CoordSys::offset[BL_SPACEDIM];

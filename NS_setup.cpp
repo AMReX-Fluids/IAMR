@@ -1,5 +1,9 @@
 #include <stdio.h>
+#ifdef	_MSC_VER
+#include <strstrea.h>
+#else
 #include <strstream.h>
+#endif
 #include <NavierStokes.H>
 #include <RegType.H>
 #include <RunStats.H>

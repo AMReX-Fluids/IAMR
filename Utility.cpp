@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.1 1997-07-08 23:08:07 vince Exp $
+// $Id: Utility.cpp,v 1.2 1997-07-17 23:25:39 car Exp $
 //
 
 #include <stdlib.h>
@@ -9,14 +9,14 @@
 #include <string.h>
 #include <fstream.h>
 #include <ctype.h>
-#include <unistd.h>
+//#include <unistd.h>
 
 #include <REAL.H>
 #include <Misc.H>
 #include <BoxLib.H>
 #include <Utility.H>
 
-#if !defined(BL_ARCH_CRAY)
+#if !defined(BL_ARCH_CRAY) && !defined(WIN32)
 //
 // ------------------------------------------------------------
 // Return current run-time.
@@ -78,8 +78,7 @@ Utility::wsecond (double* t)
     return dt;
 }
 
-#else
-
+#elif defined(BL_ARCH_CRAY)
 extern "C" double SECOND();
 extern "C" double RTC();
 
@@ -105,6 +104,39 @@ Utility::wsecond (double* t_)
         *t_ = t;
     return t;
 }
+
+#else
+
+#include <time.h>
+
+double
+Utility::second (double* r)
+{
+    static clock_t start = -1;
+    clock_t finish = clock();
+    if ( start == -1 )
+    {
+	start = finish;
+    }
+    double rr = double(finish - start)/CLOCKS_PER_SEC;
+    if ( r ) *r = rr;
+    return rr;
+}
+double
+Utility::wsecond (double* r)
+{
+    static time_t start = -1;
+    time_t finish;
+    time(&finish);
+    if ( start == -1 )
+    {
+	start = finish;
+    }
+    double rr = double(finish - start);
+    if ( r ) *r = rr;
+    return rr;
+}
+
 #endif /*!defined(BL_ARCH_CRAY)*/
 
 //

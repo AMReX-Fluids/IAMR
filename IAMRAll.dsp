@@ -43,7 +43,7 @@ RSC=rc.exe
 # ADD BASE F90 /include:"Release/" /compile_only /nologo /fpp
 # ADD F90 /include:"Release/" /compile_only /nologo /fpp
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "." /I ".\include\2d.v9" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D BL_SPACEDIM=2 /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_AUTO_INSTANTIATE" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "." /I ".\include\2d.v9" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D BL_SPACEDIM=2 /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -68,7 +68,7 @@ LINK32=link.exe
 # ADD BASE F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /fpp
 # ADD F90 /extend_source:132 /browser /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /fpp="/ansi /DBL_SPACEDIM=2 /DBL_USE_DOUBLE /DBL_LANG_FORT /I.\include\2d.v9"
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "." /I ".\include\2d.v9" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D BL_SPACEDIM=2 /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_AUTO_INSTANTIATE" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "." /I ".\include\2d.v9" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D BL_SPACEDIM=2 /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe

@@ -226,7 +226,7 @@ class FabSetCopyDescriptor : public MultiFabCopyDescriptor {
 
   private:
     // These are disallowed.
-    FabSetCopyDescriptor();
+    // FabSetCopyDescriptor(); // Already Declared FIXME 
     FabSetCopyDescriptor(const FabSetCopyDescriptor &);
     FabSetCopyDescriptor &operator=(const FabSetCopyDescriptor &);
 };

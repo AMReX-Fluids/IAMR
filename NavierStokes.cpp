@@ -1,10 +1,14 @@
-// $Id: NavierStokes.cpp,v 1.2 1997-07-17 22:01:05 vince Exp $
+// $Id: NavierStokes.cpp,v 1.3 1997-07-17 23:25:37 car Exp $
 
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
 
 #include <stdio.h>
+#ifdef	_MSC_VER
+#include <strstrea.h>
+#else
 #include <strstream.h>
+#endif
 #include <Misc.H>
 #include <CoordSys.H>
 #include <Geometry.H>
@@ -2932,7 +2936,7 @@ void NavierStokes::SyncInterp( MultiFab &CrseSync, int c_lev,
     const Geometry& cgeom    = parent->Geom(c_lev);
     const REAL* dx_crse      = cgeom.CellSize();
 
-    const BOX& cdomain(coarsen(domain,ratio));
+    const BOX cdomain(coarsen(domain,ratio));
     const int* cdomlo = cdomain.loVect();
     const int* cdomhi = cdomain.hiVect();
 

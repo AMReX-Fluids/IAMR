@@ -4,7 +4,7 @@
 #define _MULTIFAB_H_
 
 //
-// $Id: MultiFab.H,v 1.1 1997-07-08 23:08:07 vince Exp $
+// $Id: MultiFab.H,v 1.2 1997-07-17 23:25:37 car Exp $
 //
 
 #include <Assert.H>
@@ -500,7 +500,7 @@ class MultiFabCopyDescriptor
 
   private:
     // These are disallowed.
-    MultiFabCopyDescriptor();
+    // MultiFabCopyDescriptor(); // FIXME Already declared!!!
     MultiFabCopyDescriptor(const MultiFabCopyDescriptor &);
     MultiFabCopyDescriptor &operator=(const MultiFabCopyDescriptor &);
 };

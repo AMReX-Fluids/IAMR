@@ -1,4 +1,4 @@
-// $Id: SyncRegister.cpp,v 1.3 1997-07-17 22:01:10 vince Exp $
+// $Id: SyncRegister.cpp,v 1.4 1997-07-17 23:25:38 car Exp $
 #include <BC_TYPES.H>
 #include <SyncRegister.H>
 
@@ -164,8 +164,8 @@ if(ParallelDescriptor::NProcs() > 1) {
     int nrhs = rhs_boxes.length();
     int nreg = grids.length();
 
-    const BOX& cell_domain(geom.Domain());
-    const BOX& domain = surroundingNodes(cell_domain);
+    const BOX cell_domain(geom.Domain());
+    const BOX domain = surroundingNodes(cell_domain);
 
     Array<IntVect> pshifts(27);
 
