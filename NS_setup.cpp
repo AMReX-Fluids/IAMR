@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.48 2004-07-27 17:28:57 car Exp $
+// $Id: NS_setup.cpp,v 1.49 2004-12-04 17:35:37 car Exp $
 //
 
 #include <winstd.H>
@@ -353,6 +353,7 @@ NavierStokes::variableSetUp ()
     //
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
     //
+    err_list.add("density", 1, ErrorRec::Special, FORT_DENERROR);
     err_list.add("tracer",1,ErrorRec::Special,FORT_ADVERROR);
     err_list.add("mag_vort",0,ErrorRec::Special,FORT_MVERROR);
 }
