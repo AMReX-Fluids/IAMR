@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.78 1999-03-06 00:01:26 propp Exp $
+// $Id: Projection.cpp,v 1.79 1999-03-09 20:50:45 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -718,15 +718,15 @@ Projection::filterP (int             level,
     temp_phi->copy(P_old,0,0,1);
     temp_phi->FillBoundary();
 
-    EnforcePeriodicity(*temp_vel, BL_SPACEDIM, grids, geom);
-    EnforcePeriodicity(*temp_rho, 1,           grids, geom);
-    EnforcePeriodicity(*temp_phi, 1,           P_grids, geom);
-
     //
     // Copy from valid regions + bcs to get inflow values.
     //
     int n_ghost = 1;
     MultiFab::Copy(*temp_vel,U_old,0,0,BL_SPACEDIM,n_ghost);
+
+    EnforcePeriodicity(*temp_vel, BL_SPACEDIM, grids, geom);
+    EnforcePeriodicity(*temp_rho, 1,           grids, geom);
+    EnforcePeriodicity(*temp_phi, 1,           P_grids, geom);
 
     Real mult = -1.;
 
