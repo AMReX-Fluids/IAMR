@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.166 2000-06-02 17:40:56 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.167 2000-06-05 22:38:18 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -3331,7 +3331,7 @@ NavierStokes::SyncInterp (MultiFab& CrseSync,
                        &(bc_new[2*BL_SPACEDIM*(n+src_comp)]));
         }
     }
-    cgeom.FillPeriodicBoundary(cdataMF, 0, num_comp, false, false);
+    cgeom.FillPeriodicBoundary(cdataMF,0,num_comp);
     //
     // Interpolate from cdataMF to fdata and update FineSync.
     // Note that FineSync and cdataMF will have the same distribution
@@ -4414,7 +4414,7 @@ NavierStokes::getGradP (MultiFab& gp,
             }
         }
 
-        geom.FillPeriodicBoundary(gp,false,true);
+        geom.FillPeriodicBoundary(gp,true);
     }
     else
     {
@@ -4772,7 +4772,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
         // the fact that there is good data in the "non-periodic" grow cells.
         // ("good" data produced via VISCEXTRAP above)
         //
-        geom.FillPeriodicBoundary(visc_terms,0,ncomp,false,true);
+        geom.FillPeriodicBoundary(visc_terms,0,ncomp,true);
     }
 }
 

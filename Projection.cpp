@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.121 2000-06-02 17:40:58 lijewski Exp $
+// $Id: Projection.cpp,v 1.122 2000-06-05 22:38:19 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -1868,7 +1868,7 @@ Projection::EnforcePeriodicity (MultiFab&       psi,
 {
     BL_ASSERT(nvar <= psi.nComp());
 
-    geom.FillPeriodicBoundary(psi,0,nvar,false,false);
+    geom.FillPeriodicBoundary(psi,0,nvar);
 }
 
 //
