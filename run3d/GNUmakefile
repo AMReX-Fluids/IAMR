@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.16 1999-06-28 20:38:23 car Exp $
+# $Id: GNUmakefile,v 1.17 1999-09-18 01:03:23 vince Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -74,6 +74,12 @@ endif
 ifeq ($(USE_ARRAYVIEW),TRUE)
   DEFINES += -DBL_USE_ARRAYVIEW
   DEFINES += -DBL_ARRAYVIEW_TAGBOX
+endif
+
+ifeq ($(MACHINE),IRIX64)
+  ifeq ($(WHICHIRIX64),ESCHER)
+    XTRALIBS += -IPA
+  endif
 endif
 
 ifeq ($(MACHINE),OSF1)
