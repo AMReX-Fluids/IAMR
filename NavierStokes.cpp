@@ -1,4 +1,4 @@
-// $Id: NavierStokes.cpp,v 1.10 1997-09-17 21:30:11 car Exp $
+// $Id: NavierStokes.cpp,v 1.11 1997-09-18 18:03:20 vince Exp $
 
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -5196,7 +5196,7 @@ NavierStokes::compute_grad_divu_minus_s(REAL time, MultiFab* grad_divu_minus_s,
 	BOX domlo(node_domain), domhi(node_domain);
 	domlo.setRange(dir,dlo[dir],1);
 	domhi.setRange(dir,dhi[dir],1);
-	BOX blo(node_grids[i]);
+	BOX blo(node_grids[Dvmfi.index()]);
 	BOX bhi(blo);
 	blo &= domlo;
 	bhi &= domhi;
@@ -5305,8 +5305,14 @@ NavierStokes::compute_grad_divu_minus_s(REAL time, MultiFab* grad_divu_minus_s,
         projector->radDiv(level,divu_minus_s_cc,0);
         projector->radDiv(level,divu_minus_s_cc,0);
 // since grad r = (1,0), we subtract  1/r * (dU-S from the first component
-        for (i = 0; i < grids.length(); i++) 
-          (*grad_divu_minus_s)[i].minus(divu_minus_s_cc[i],0,0,1);
+        //for (i = 0; i < grids.length(); i++) 
+        for(MultiFabIterator divu_minus_s_ccmfi(divu_minus_s_cc);
+            divu_minus_s_ccmfi.isValid(); ++divu_minus_s_ccmfi)
+	{
+          DependentMultiFabIterator grad_divu_minus_smfi(divu_minus_s_ccmfi,
+						         (*grad_divu_minus_s));
+          grad_divu_minus_smfi().minus(divu_minus_s_ccmfi(),0,0,1);
+	}
     }
 #endif
 
