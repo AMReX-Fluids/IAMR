@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.7 1999-10-05 23:16:57 propp Exp $
+// $Id: MacOutFlowBC.cpp,v 1.8 1999-11-17 23:13:35 propp Exp $
 //
 
 #include "MacOutFlowBC.H"
@@ -258,12 +258,9 @@ MacOutFlowBC::solveBackSubstitution(FArrayBox& phi,
 {
   int face = int(outFace);
   int outDir = outFace.coordDir();
-  int R_DIR = 0;
-  int Z_DIR = 1;
-  int perpDir = (outDir == Z_DIR) ? R_DIR : Z_DIR;
-  int length = divuExt.length()[perpDir];
-  BL_ASSERT(length == uExt[0].length()[perpDir]-1);
-  BL_ASSERT(length == rhoExt.length()[perpDir]);
+  int length = divuExt.length()[0];
+  BL_ASSERT(length == uExt[0].length()[0]-1);
+  BL_ASSERT(length == rhoExt.length()[0]);
   BL_ASSERT(length == rcen.length());
   
   DEF_BOX_LIMITS(faceBox,faceLo,faceHi);

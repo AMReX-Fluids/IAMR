@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ProjOutFlowBC.cpp,v 1.7 1999-10-05 23:16:58 propp Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.8 1999-11-17 23:13:35 propp Exp $
 //
 
 #include "ProjOutFlowBC.H"
@@ -271,12 +271,9 @@ ProjOutFlowBC::solveBackSubstitution(FArrayBox& phi,
 {
   int face = int(outFace);
   int outDir = outFace.coordDir();
-  int R_DIR = 0;
-  int Z_DIR = 1;
-  int perpDir = (outDir == Z_DIR) ? R_DIR : Z_DIR;
-  int length = divuExt.length()[perpDir];
-  BL_ASSERT(length == uExt.length()[perpDir]);
-  BL_ASSERT(length == rhoExt.length()[perpDir]);
+  int length = divuExt.length()[0];
+  BL_ASSERT(length == uExt.length()[0]);
+  BL_ASSERT(length == rhoExt.length()[0]);
   BL_ASSERT(length == rcen.length());
 
   DEF_BOX_LIMITS(faceBox,faceLo,faceHi);
