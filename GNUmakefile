@@ -25,8 +25,6 @@ HERE = .
 PBOXLIB_HOME = ..
 include ../mk/Make.defs
 
-CPPFLAGS += -DBL_USE_NEW_HFILES
-
 INCLUDE_LOCATIONS += . ../pBoxLib_2 ../amrlib ../bndrylib ../mglib ../hgproj
 
 ifeq ($(USE_MPI), TRUE)
