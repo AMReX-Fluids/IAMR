@@ -106,7 +106,7 @@ rad.wall_emis      = 0.0
 # Turn any of these on to generate run-time timing stats.
 #
 RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update
-                   mac_project mac_sync level_project sync_project
+                   mac_project mac_sync level_project sync_project init_data
                    write_pltfile write_chkfile processor_map fab_arena
 #
 # Select form of FAB output: default is NATIVE

@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.42 1998-05-06 20:48:35 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.43 1998-05-08 15:50:18 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -816,23 +816,31 @@ void NavierStokes::setTimeLevel(Real time, Real dt_old, Real dt_new)
     state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
 }
 
+//
+// This function initializes the State and Pressure with data.
+//
 
-
-// This function initializes the State and Pressure with data
-void NavierStokes::initData()
+void
+NavierStokes::initData ()
 {
-    // initialize the state and the pressure
-    int ns = NUM_STATE - BL_SPACEDIM;
-    const Real* dx = geom.CellSize();
-    MultiFab &S_new = get_new_data(State_Type);
-    MultiFab &P_new = get_new_data(Press_Type);
+    RunStats rs("init_data", Level());
+
+    rs.start();
+    //
+    // Initialize the state and the pressure.
+    //
+    int ns          = NUM_STATE - BL_SPACEDIM;
+    const Real* dx  = geom.CellSize();
+    MultiFab& S_new = get_new_data(State_Type);
+    MultiFab& P_new = get_new_data(Press_Type);
     Real cur_time = state[State_Type].curTime();
-    //for (int i = 0; i < grids.length(); i++) {
-    for(MultiFabIterator snewmfi(S_new); snewmfi.isValid(); ++snewmfi) {
-      DependentMultiFabIterator pnewmfi(snewmfi, P_new);
-      assert(grids[snewmfi.index()] == snewmfi.validbox());
-        const int* lo = snewmfi.validbox().loVect();
-        const int* hi = snewmfi.validbox().hiVect();
+
+    for (MultiFabIterator snewmfi(S_new); snewmfi.isValid(); ++snewmfi)
+    {
+        DependentMultiFabIterator pnewmfi(snewmfi, P_new);
+        assert(grids[snewmfi.index()] == snewmfi.validbox());
+        const int* lo   = snewmfi.validbox().loVect();
+        const int* hi   = snewmfi.validbox().hiVect();
         const int* s_lo = snewmfi().loVect();
         const int* s_hi = snewmfi().hiVect();
         const int* p_lo = pnewmfi().loVect();
@@ -847,23 +855,29 @@ void NavierStokes::initData()
                        ARLIM(p_lo), ARLIM(p_hi),
                        dx,grid_loc[i].lo(),grid_loc[i].hi() );
     }
-
-    // initialize other types
+    //
+    // Initialize other types.
+    //
     initDataOtherTypes();
-
-    // initialize divU and dSdt
-    if(have_divu) {
-      Real cur_time = state[Divu_Type].curTime();
-      MultiFab &Divu_new = get_new_data(Divu_Type);
-      Real dt = 1.0;
-      state[State_Type].setTimeLevel(cur_time,dt,dt);
-      Real dtin = -1.0; // dummy value denotes initialization
-      calc_divu(cur_time, dtin, Divu_new);
-      if(have_dsdt) {
-        MultiFab &Dsdt_new = get_new_data(Dsdt_Type);
-        Dsdt_new.setVal(0.0);
-      }
+    //
+    // Initialize divU and dSdt.
+    //
+    if (have_divu)
+    {
+        Real cur_time      = state[Divu_Type].curTime();
+        MultiFab &Divu_new = get_new_data(Divu_Type);
+        Real dt            = 1.0;
+        state[State_Type].setTimeLevel(cur_time,dt,dt);
+        Real dtin = -1.0; // dummy value denotes initialization
+        calc_divu(cur_time, dtin, Divu_new);
+        if (have_dsdt)
+        {
+            MultiFab &Dsdt_new = get_new_data(Dsdt_Type);
+            Dsdt_new.setVal(0.0);
+        }
     }
+
+    rs.end();
 }
 
 
