@@ -163,4 +163,4 @@ RunStats.statvar = vel_predict vel_advect scal_advect vel_update scal_update
                    fill_patch fill_boundary fill_periodic_bndry fabset_lincomb
                    fabset_copyfrom fabset_plusfrom reflux fabarray_copy
                    collect_data mpi_waitall mpi_barrier mpi_reduce 
-                   mpi_broadcast mpi_gather mpi_recv mpi_send
+                   mpi_broadcast mpi_gather mpi_recv mpi_send crse_init_finish
