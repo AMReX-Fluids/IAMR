@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.53 1999-12-02 07:43:08 sstanley Exp $
+// $Id: NavierStokes.H,v 1.54 2000-03-24 23:54:33 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -215,7 +215,6 @@ public:
     // Boundary condition functions.
     //
     void SaveOldBoundary (Real time); // Save ghost cells back into.
-    void SaveNewBoundary (Real time); // State (old/new) multifabs.
     //
     // Get divU from the state data.
     //
