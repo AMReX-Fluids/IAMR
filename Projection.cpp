@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.126 2000-06-12 23:41:50 almgren Exp $
+// $Id: Projection.cpp,v 1.127 2000-07-21 17:54:56 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -737,10 +737,10 @@ Projection::filterP (int             level,
     const BoxArray& P_grids  = P_old.boxArray();
     const int*      phys_lo  = phys_bc->lo();
     const int*      phys_hi  = phys_bc->hi();
-    MultiFab*       rhs_nd   = new MultiFab(P_grids,1,0,Fab_allocate);
-    MultiFab*       temp_phi = new MultiFab(P_grids,1,1,Fab_allocate);
-    MultiFab*       temp_rho = new MultiFab(grids,1,1,Fab_allocate);
-    MultiFab*       temp_vel = new MultiFab(grids,BL_SPACEDIM,1,Fab_allocate);
+    MultiFab*       rhs_nd   = new MultiFab(P_grids,1,0);
+    MultiFab*       temp_phi = new MultiFab(P_grids,1,1);
+    MultiFab*       temp_rho = new MultiFab(grids,1,1);
+    MultiFab*       temp_vel = new MultiFab(grids,BL_SPACEDIM,1);
     MultiFab*       sync_resid_crse = 0;
     MultiFab*       sync_resid_fine = 0;
 
@@ -1205,13 +1205,13 @@ Projection::MLsyncProject (int             c_lev,
     const BoxArray& fine_grids = LevelData[c_lev+1].boxArray();
     const BoxArray& Pgrids_crse = pres_crse.boxArray();
 
-    phi[c_lev] = new MultiFab(Pgrids_crse,1,1,Fab_allocate);
+    phi[c_lev] = new MultiFab(Pgrids_crse,1,1);
     phi[c_lev]->setVal(0);
     
-    MultiFab* crse_rhs = new MultiFab(Pgrids_crse,1,1,Fab_allocate);
+    MultiFab* crse_rhs = new MultiFab(Pgrids_crse,1,1);
     
     const BoxArray& Pgrids_fine = pres_fine.boxArray();
-    phi[c_lev+1] = new MultiFab(Pgrids_fine,1,1,Fab_allocate);
+    phi[c_lev+1] = new MultiFab(Pgrids_fine,1,1);
     phi[c_lev+1]->setVal(0);
 
     PArray<MultiFab> u_real[BL_SPACEDIM];
@@ -1546,7 +1546,7 @@ Projection::initialVelocityProject (int  c_lev,
         {
             AmrLevel&       amr_level = parent->getLevel(lev);
             const BoxArray& grids     = amr_level.boxArray();
-            rhs_cc[lev]  = new MultiFab(grids,1,nghost,Fab_allocate);
+            rhs_cc[lev]  = new MultiFab(grids,1,nghost);
             MultiFab* rhslev = rhs_cc[lev];
             put_divu_in_cc_rhs(*rhslev,lev,grids,cur_divu_time);
             rhslev->mult(-1.0,0,1,nghost);
@@ -2286,37 +2286,41 @@ Projection::set_level_projector_outflow_bcs (int       level,
     // FIXME: the three outflow boundary routines should be collapsed into
     //        one, since they all do roughly the same thing.
     //
-    bool hasOutFlow;
+    bool        hasOutFlow;
     Orientation outFace;
+
     getOutFlowFace(hasOutFlow,outFace,phys_bc);
 
-    const Box& domain      = parent->Geom(level).Domain();
-    const int outDir       = outFace.coordDir();
-    const int ccStripWidth = 3;
-    const int ncStripWidth = 1;
+    Box        state_strip;
+    const Box& domain       = parent->Geom(level).Domain();
+    const int  outDir       = outFace.coordDir();
+    const int  ccStripWidth = 3;
+    const int  ncStripWidth = 1;
 
-    Box state_strip;
     if (outFace.faceDir() == Orientation::high)
-      {
+    {
 	state_strip
             = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
-      } else {
+    }
+    else
+    {
 	state_strip
             = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
-      }
+    }
+
     Box phi_strip = ::surroundingNodes(bdryNode(domain,outFace,ncStripWidth));
     //
-    // Only do this if the entire outflow face is covered by boxes at this level
-    // (skip if doesnt touch, and bomb if only partially covered)
+    // Only do this if the entire outflow face is covered by boxes at this
+    // level (skip if doesnt touch, and bomb if only partially covered).
     //
-    const BoxArray& grids = parent->getLevel(level).boxArray();
-    const Box valid_state_strip = state_strip & domain;
-    const BoxArray uncovered_outflow_ba = ::complementIn(valid_state_strip,grids);
+    const BoxArray& grids                = parent->getLevel(level).boxArray();
+    const Box       valid_state_strip    = state_strip & domain;
+    const BoxArray  uncovered_outflow_ba = ::complementIn(valid_state_strip,grids);
 
     BL_ASSERT( !(uncovered_outflow_ba.ready() &&
               ::intersect(grids,valid_state_strip).ready()) );
 
-    if ( !(uncovered_outflow_ba.ready()) )
+    if (!(uncovered_outflow_ba.ready()))
     {
         FArrayBox rhoFab(state_strip,1);
         FArrayBox divuFab(state_strip,1);
@@ -2328,8 +2332,7 @@ Projection::set_level_projector_outflow_bcs (int       level,
         vel.copy(velFab,0,0,BL_SPACEDIM);
 	phiFab.setVal(0.0);
 
-	const Geometry& thisGeom = parent->Geom(level);
-	computeBC(velFab,divuFab,rhoFab,phiFab,thisGeom,outFace);
+	computeBC(velFab,divuFab,rhoFab,phiFab,parent->Geom(level),outFace);
 
         for (MultiFabIterator mfi(phi); mfi.isValid(); ++mfi)
         {
@@ -2340,40 +2343,41 @@ Projection::set_level_projector_outflow_bcs (int       level,
     }
 }
 
-void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
-                                                     MultiFab** sig,
-                                                     MultiFab** phi,
-                                                     int        c_lev,
-                                                     Real       cur_divu_time)
+void
+Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
+                                                MultiFab** sig,
+                                                MultiFab** phi,
+                                                int        c_lev,
+                                                Real       cur_divu_time)
 {
     //
     // Warning: This code looks about right, but hasn't really been tested.
     //
-    // what we do
-    //  at the finest level covering the entire outflow boundary
-    //  1) we define 3 cell-wide strips for
-    //     rho, S, U at the top of the domain
-    //     The strips are three cells wide for convenience
-    //  2) we define a 1 node-wide for phi at the top of the domain
-    //  3) we fill the rho, S, and U strips
-    //  4) we compute phi on the phi strip with HGPHIBC
-    //  5) we copy the phi strip into the phi multifab
-    //  we then "putdown" onto coarser levels
+    // At the finest level covering the entire outflow boundary:
     //
-    // FIXME: vel and sig unused here.  We needed a filpatch operation, so pulled
-    //        data from the state (presumably is where vel, sig from anyway).  sig
-    //        is poorly named, and we need other stuff as well, so we should
-    //        probably just remove sig and vel from args
-    bool hasOutFlow;
+    //  1) Define 3 cell-wide strips for  rho, S, U at the top of the domain.
+    //     The strips are three cells wide for convenience.
+    //  2) Define a 1 node-wide for phi at the top of the domain.
+    //  3) Fill the rho, S, and U strips.
+    //  4) Compute phi on the phi strip with HGPHIBC.
+    //  5) Copy the phi strip into the phi multifab and then "putdown"
+    //     onto coarser levels.
+    //
+    // FIXME: vel and sig unused here.  We needed a filpatch operation, so
+    //        pulled data from the state (presumably is where vel, sig from
+    //        anyway).  sig is poorly named, and we need other stuff as well,
+    //        so we should probably just remove sig and vel from args.
+    //
+    bool        hasOutFlow;
     Orientation outFace;
+
     getOutFlowFace(hasOutFlow,outFace,phys_bc);
 
     BL_ASSERT(c_lev == 0);
     //
     // Get 3-wide cc box, state_strip, along top, incl. 2 rows of int and
-    // 1 row of ghosts.
-    // Get 1-wide nc box, phi_strip, along top, grown out by one
-    // tangential to face.
+    // 1 row of ghosts.  Get 1-wide nc box, phi_strip, along top, grown out
+    // by one tangential to face.
     //
     const int outDir       = outFace.coordDir();
     const int ccStripWidth = 3;
@@ -2381,74 +2385,113 @@ void Projection::set_initial_projection_outflow_bcs (MultiFab** vel,
     //
     // Determine the finest level such that the entire outflow face is covered
     // by boxes at this level (skip if doesnt touch, and bomb if only partially
-    // covered)
+    // covered).
     //
     Box state_strip, domain;
     int f_lev = finest_level;
-    for ( ; f_lev>=c_lev; --f_lev)
+
+    for ( ; f_lev >= c_lev; --f_lev)
     {
         domain = parent->Geom(f_lev).Domain();
-      if (outFace.faceDir() == Orientation::high)
+
+        if (outFace.faceDir() == Orientation::high)
 	{
-	  state_strip
-	    = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
-	} else {
-	  state_strip
-	    = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
+            state_strip
+                = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
 	}
-        const BoxArray& Lgrids = parent->getLevel(f_lev).boxArray();
-        const Box valid_state_strip = state_strip & domain;
-        const BoxArray uncovered_outflow_ba = ::complementIn(valid_state_strip,Lgrids);
+        else
+        {
+            state_strip
+                = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
+	}
+
+        const BoxArray& Lgrids               = parent->getLevel(f_lev).boxArray();
+        const Box       valid_state_strip    = state_strip & domain;
+        const BoxArray  uncovered_outflow_ba = ::complementIn(valid_state_strip,Lgrids);
+
         BL_ASSERT( !(uncovered_outflow_ba.ready() &&
-                  ::intersect(Lgrids,valid_state_strip).ready()) );
+                     ::intersect(Lgrids,valid_state_strip).ready()) );
+
         if ( !(uncovered_outflow_ba.ready()) )
             break;
     }
     Box phi_strip = ::surroundingNodes(bdryNode(domain,outFace,ncStripWidth));
 
-    const int   nGrow    = 0;
-    const int   nCompPhi = 1;
-    const int srcCompRho = Density, nCompRho = 1;
-    const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
-    const int srcCompDivu = 0,      nCompDivu = 1;
+    const int nGrow       = 0;
+    const int nCompPhi    = 1;
+    const int srcCompVel  = Xvel;
+    const int nCompVel    = BL_SPACEDIM;
+    const int srcCompDivu = 0;
+    const int nCompDivu   = 1;
     
     BoxArray state_strip_ba(&state_strip,1);
     BoxArray phi_strip_ba(&phi_strip,1);
     
-    MultiFab cc_MultiFab(state_strip_ba, 1, nGrow, Fab_noallocate);
-    MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
+    MultiFab cc_MultiFab(state_strip_ba,1,nGrow,Fab_noallocate);
+    MultiFab phi_fine_strip(phi_strip_ba,nCompPhi,nGrow);
     
     phi_fine_strip.setVal(0);
     
     int Divu_Type, Divu;
-    FArrayBox rho;
+
     if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
         BoxLib::Error("Projection::set_initial_projection_outflow_bcs(): no Divu");
-    
-    FillPatchIterator rhoFpi(LevelData[f_lev],cc_MultiFab);
+
+    FArrayBox rho(state_strip,1);
+
+    rho.setVal(1.0);
+
     if (rho_wgt_vel_proj)
-        rhoFpi.Initialize(nGrow,cur_divu_time,State_Type,srcCompRho,nCompRho);
-    
+    {
+        BL_ASSERT(LevelData[f_lev].which_time(State_Type,cur_divu_time) == AmrLevel::AmrNewTime);
+
+        NavierStokes* ns = dynamic_cast<NavierStokes*>(&LevelData[f_lev]);
+
+        BL_ASSERT(!(ns == 0));
+        //
+        // We now want to do a MultiFab -> Fab copy.  We have to do it in
+        // a couple stages since our MultiFab -> Fab copy doesn't do ghost
+        // cells.  What we have to do is build a tmp MultiFab that covers
+        // the same area as the one we want to copy from, but that doesn't
+        // have any ghost cells.
+        //
+        // The whole point of this is to avoid doing a FillPatch of Density.
+        // We're trying to isolate Density FillPatch()s to a few routines.
+        //
+        BoxArray ba(ns->rho_ctime->boxArray());
+
+        ba.grow(1);
+
+        BL_ASSERT(ba.contains(rho.box()));
+
+        MultiFab tmpRho(ba,1,0);
+
+        for (MultiFabIterator mfi(*ns->rho_ctime); mfi.isValid(); ++mfi)
+        {
+            DependentMultiFabIterator tmpRhoMfi(mfi,tmpRho);
+
+            tmpRhoMfi().copy(mfi());
+        }
+        //
+        // Finally the MultiFab to Fab copy.
+        //
+        tmpRho.copy(rho);
+    }
+  
     FillPatchIterator velFpi(LevelData[f_lev],cc_MultiFab,nGrow,
                              cur_divu_time,State_Type,srcCompVel,nCompVel);
     
     FillPatchIterator divuFpi(LevelData[f_lev],cc_MultiFab,nGrow,
                               cur_divu_time,Divu_Type,srcCompDivu,nCompDivu);
 
-    for ( ;velFpi.isValid() && divuFpi.isValid(); ++velFpi, ++divuFpi)
+    for ( ; velFpi.isValid() && divuFpi.isValid(); ++velFpi, ++divuFpi)
     {
-        DependentMultiFabIterator phimfi(rhoFpi, phi_fine_strip);
-        rho.resize(velFpi.validbox(), nCompRho);
-        if (rho_wgt_vel_proj && rhoFpi.isValid())
-            rho.copy(rhoFpi());
-        else
-            rho.setVal(1.0);
-
-	const Geometry& thisGeom = parent->Geom(f_lev);
-	computeBC(velFpi(),divuFpi(),rho,phimfi(),thisGeom,outFace);
-
-        if (rho_wgt_vel_proj)
-            ++rhoFpi;
+	computeBC(velFpi(),
+                  divuFpi(),
+                  rho,
+                  phi_fine_strip[velFpi.index()],
+                  parent->Geom(f_lev),
+                  outFace);
     }
     
     phi[f_lev]->copy(phi_fine_strip);
@@ -2462,48 +2505,69 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
                                                  Real       start_time,
                                                  Real       dt)
 {
+    BL_ASSERT(c_lev == 0);
     //
     // Warning: This code looks about right, but hasn't really been tested.
     //
     // What we do is similar to what we do in set_initial_projection_outflow_bcs
     // except that we work with time derivatives of U and S.
     //
-
-    bool hasOutFlow;
+    bool        hasOutFlow;
     Orientation outFace;
+
     getOutFlowFace(hasOutFlow,outFace,phys_bc);
 
-    const int f_lev = finest_level;
+    const int outDir       = outFace.coordDir();
+    const int ccStripWidth = 3;
+    const int ncStripWidth = 1;
+    //
+    // Determine the finest level such that the entire outflow face is covered
+    // by boxes at this level (skip if doesnt touch, and bomb if only partially
+    // covered).
+    //
+    Box state_strip, domain;
+    int f_lev = finest_level;
 
-    BL_ASSERT(c_lev == 0);
+    for ( ; f_lev >= c_lev; --f_lev)
+    {
+        domain = parent->Geom(f_lev).Domain();
 
-    const Box&  domain       = parent->Geom(f_lev).Domain();
-    const int   outDir       = outFace.coordDir();
-    const int   ccStripWidth = 3;
-    const int   ncStripWidth = 1;
+        if (outFace.faceDir() == Orientation::high)
+        {
+            state_strip
+                = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
+        }
+        else
+        {
+            state_strip
+                = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
+        }
 
-    Box state_strip;
-    if (outFace.faceDir() == Orientation::high)
-      {
-	state_strip
-	  = Box(::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth+1);
-      } else {
-	state_strip
-	  = Box(::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth-1);
-      }
+        const BoxArray& Lgrids               = parent->getLevel(f_lev).boxArray();
+        const Box       valid_state_strip    = state_strip & domain;
+        const BoxArray  uncovered_outflow_ba = ::complementIn(valid_state_strip,Lgrids);
+
+        BL_ASSERT( !(uncovered_outflow_ba.ready() &&
+                     ::intersect(Lgrids,valid_state_strip).ready()) );
+
+        if ( !(uncovered_outflow_ba.ready()) )
+            break;
+    }
+
     Box phi_strip = ::surroundingNodes(bdryNode(domain,outFace,ncStripWidth));
-    const int   nGrow        = 0;
-    const int   nCompPhi     = 1;
 
-    const int srcCompRho = Density, nCompRho = 1;
-    const int srcCompVel = Xvel,    nCompVel = BL_SPACEDIM;
-    const int srcCompDivu = 0,      nCompDivu = 1;
+    const int nGrow       = 0;
+    const int nCompPhi    = 1;
+    const int srcCompVel  = Xvel;
+    const int nCompVel    = BL_SPACEDIM;
+    const int srcCompDivu = 0;
+    const int nCompDivu   = 1;
 
     BoxArray state_strip_ba(&state_strip,1);
     BoxArray phi_strip_ba(&phi_strip,1);
 
-    MultiFab cc_MultiFab(state_strip_ba, 1, nGrow, Fab_noallocate);
-    MultiFab phi_fine_strip(phi_strip_ba, nCompPhi, nGrow, Fab_allocate);
+    MultiFab cc_MultiFab(state_strip_ba,1,nGrow,Fab_noallocate);
+    MultiFab phi_fine_strip(phi_strip_ba,nCompPhi,nGrow);
 
     phi_fine_strip.setVal(0);
     
@@ -2511,13 +2575,46 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
     if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu)) 
         BoxLib::Error("Projection::set_syncproject_outflow_bcs(): Divu not found");
 
-    FArrayBox rhonph, dudt, dsdt;
-    
-    FillPatchIterator rhoOldFpi(LevelData[f_lev],cc_MultiFab,nGrow,
-                                start_time,State_Type,srcCompRho,nCompRho);
-	
-    FillPatchIterator rhoNewFpi(LevelData[f_lev],cc_MultiFab,nGrow,
-                                start_time+dt,State_Type,srcCompRho,nCompRho);
+    FArrayBox dudt(state_strip,nCompVel);
+    FArrayBox dsdt(state_strip,nCompDivu);
+    FArrayBox rhonph(state_strip,1);
+
+    {
+        //
+        // We now want to do a MultiFab -> Fab copy.  We have to do it in
+        // a couple stages since our MultiFab -> Fab copy doesn't do ghost
+        // cells.  What we have to do is build a tmp MultiFab that covers
+        // the same area as the one we want to copy from, but that doesn't
+        // have any ghost cells.
+        //
+        // The whole point of this is to avoid doing a FillPatch of Density.
+        // We're trying to isolate Density FillPatch()s to a few routines.
+        //
+        NavierStokes* ns = dynamic_cast<NavierStokes*>(&LevelData[f_lev]);
+
+        BL_ASSERT(!(ns == 0));
+
+        MultiFab* RhoHalf = ns->get_rho_half_time();
+
+        BoxArray ba(RhoHalf->boxArray());
+
+        ba.grow(1);
+
+        BL_ASSERT(ba.contains(rhonph.box()));
+
+        MultiFab tmpRhoHalf(ba,1,0);
+
+        for (MultiFabIterator mfi(*RhoHalf); mfi.isValid(); ++mfi)
+        {
+            DependentMultiFabIterator tmpRhoHalfMfi(mfi,tmpRhoHalf);
+
+            tmpRhoHalfMfi().copy(mfi());
+        }
+        //
+        // Finally the MultiFab to Fab copy.
+        //
+        tmpRhoHalf.copy(rhonph);
+    }
 	
     FillPatchIterator velOldFpi(LevelData[f_lev],cc_MultiFab,nGrow,
                                 start_time,State_Type,srcCompVel,nCompVel);
@@ -2530,39 +2627,38 @@ Projection::set_initial_syncproject_outflow_bcs (MultiFab** phi,
 	
     FillPatchIterator divuNewFpi(LevelData[f_lev],cc_MultiFab,nGrow,
                                  start_time+dt,Divu_Type,srcCompDivu,nCompDivu);
-	
-    Real dt_inv = 1./dt;
+    const Real dt_inv = 1./dt;
 
-    for ( ;rhoOldFpi.isValid()  &&  velOldFpi.isValid()  &&  divuOldFpi.isValid() &&
-              rhoNewFpi.isValid()  &&  velNewFpi.isValid()  &&  divuNewFpi.isValid();
-          ++rhoOldFpi, ++velOldFpi, ++divuOldFpi, ++rhoNewFpi, ++velNewFpi, ++divuNewFpi)
+    for ( ;
+          velOldFpi.isValid() && divuOldFpi.isValid() &&
+              velNewFpi.isValid() && divuNewFpi.isValid();
+          ++velOldFpi, ++divuOldFpi, ++velNewFpi, ++divuNewFpi)
     {
-        DependentMultiFabIterator phimfi(rhoOldFpi, phi_fine_strip);
         //
-        // Make rhonph, du/dt, and dsdt.
+        // Make du/dt, and dsdt; we've already made rhonph.
         //
-        BL_ASSERT(rhoOldFpi.validbox() == rhoNewFpi.validbox());
-        rhonph.resize(rhoOldFpi.validbox(),nCompRho);
-        rhonph.copy(rhoNewFpi());
-        rhonph.plus(rhoOldFpi());
-        rhonph.divide(2.0);
+        BL_ASSERT(dudt.box() == velOldFpi.validbox());
+        BL_ASSERT(dsdt.box() == divuOldFpi.validbox());
 
         BL_ASSERT(velOldFpi.validbox() == velNewFpi.validbox());
-        dudt.resize(velOldFpi.validbox(),nCompVel);
+        BL_ASSERT(divuOldFpi.validbox() == divuNewFpi.validbox());
+
         dudt.copy(velNewFpi());
         if (!proj_0 && !proj_2)
             dudt.minus(velOldFpi());
         dudt.mult(dt_inv);
-	    
-        BL_ASSERT(divuOldFpi.validbox() == divuNewFpi.validbox());
-        dsdt.resize(divuOldFpi.validbox(),nCompDivu);
+
         dsdt.copy(divuNewFpi());
         if (!proj_0 && !proj_2)
             dsdt.minus(divuOldFpi());
         dsdt.mult(dt_inv);
 
-	const Geometry& thisGeom = parent->Geom(f_lev);
-	computeBC(dudt,dsdt,rhonph,phimfi(),thisGeom,outFace);
+	computeBC(dudt,
+                  dsdt,
+                  rhonph,
+                  phi_fine_strip[velOldFpi.index()],
+                  parent->Geom(f_lev),
+                  outFace);
     }
 
     phi[f_lev]->copy(phi_fine_strip);
