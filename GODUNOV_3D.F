@@ -1477,7 +1477,7 @@ c     by setting them to zero outside of the domain and using a
 c     one-sided derivative from the interior
 c
       implicit none
-#include "GODUNOV.H"
+#include "GODUNOV.FH"
       integer dir
       integer DIMDEC(s)
       REAL_T     s(DIMV(s))

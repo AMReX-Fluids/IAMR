@@ -1,4 +1,4 @@
-c $Id: GODUNOV_2D.F,v 1.1 1997-07-08 23:08:12 vince Exp $
+c $Id: GODUNOV_2D.F,v 1.2 1997-07-17 22:05:00 car Exp $
 #undef BL_LANG_CC
 #define BL_LANG_FORT
 
@@ -975,7 +975,7 @@ c     by setting them to zero outside of the domain and using a
 c     one-sided derivative from the interior
 c
       implicit none
-#include "GODUNOV.H"
+#include "GODUNOV.FH"
       integer lo(SDIM), hi(SDIM)
       integer bc(SDIM,2)
       integer DIMDEC(s)
