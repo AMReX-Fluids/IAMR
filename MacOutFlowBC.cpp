@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.22 2003-02-19 20:18:59 almgren Exp $
+// $Id: MacOutFlowBC.cpp,v 1.23 2003-02-19 20:28:54 car Exp $
 //
 #include <winstd.H>
 
@@ -70,7 +70,7 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
     Real* redge[numOutFlowFaces];
 #endif
 
-    FArrayBox * ccExt[numOutFlowFaces];
+    FArrayBox* ccExt = new FArrayBox[numOutFlowFaces];
   
     int isPeriodic[BL_SPACEDIM];
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -117,7 +117,7 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
 
     Box       faceBox(loFiltered,hiFiltered);
 //  One for rho, one for divu.
-    ccExt[iface] = new FArrayBox(faceBox,2);
+    ccExt[iface].resize(faceBox,2);
   
 #if (BL_SPACEDIM == 2)
     //
@@ -146,10 +146,10 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
    
     DEF_BOX_LIMITS(origBox,origLo,origHi);
 
-    const int* ccElo = ccExt[iface]->loVect();
-    const int* ccEhi = ccExt[iface]->hiVect();
-    const Real*  rhoEPtr = ccExt[iface]->dataPtr(0);
-    const Real* divuEPtr = ccExt[iface]->dataPtr(1);
+    const int* ccElo = ccExt[iface].loVect();
+    const int* ccEhi = ccExt[iface].hiVect();
+    const Real*  rhoEPtr = ccExt[iface].dataPtr(0);
+    const Real* divuEPtr = ccExt[iface].dataPtr(1);
 
     DEF_LIMITS(divuMF[iface],divuPtr,divulo, divuhi);
     DEF_LIMITS( rhoMF[iface], rhoPtr, rholo, rhohi);
@@ -208,14 +208,14 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
 #if (BL_SPACEDIM == 2)
         int face   = int(outFaces[iface]);
         int outDir = outFaces[iface].coordDir();
-        int length = ccExt[iface]->length()[0];
+        int length = ccExt[iface].length()[0];
 
-        const int* ccElo = ccExt[iface]->loVect();
-        const int* ccEhi = ccExt[iface]->hiVect();
-        const Real*  rhoEPtr = ccExt[iface]->dataPtr(0);
-        const Real* divuEPtr = ccExt[iface]->dataPtr(1);
+        const int* ccElo = ccExt[iface].loVect();
+        const int* ccEhi = ccExt[iface].hiVect();
+        const Real*  rhoEPtr = ccExt[iface].dataPtr(0);
+        const Real* divuEPtr = ccExt[iface].dataPtr(1);
   
-        Box faceBox(ccExt[iface]->box());
+        Box faceBox(ccExt[iface].box());
         DEF_BOX_LIMITS(faceBox,faceLo,faceHi);
         DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
 
@@ -231,7 +231,7 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
 
 #elif (BL_SPACEDIM == 3)
 
-        Box faceBox(ccExt[iface]->box());
+        Box faceBox(ccExt[iface].box());
         FArrayBox phiFiltered(faceBox,1);
         phiFiltered.setVal(0.);
 
@@ -244,7 +244,7 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
         computeCoefficients(rhs,beta,
                             uExt[0][iface],
                             uExt[1][iface],
-                            *(ccExt[iface]),
+                            ccExt[iface],
                             faceBox,dxFiltered[iface],isPeriodicFiltered[iface]);
         //
         // Need phi to have ghost cells.
@@ -313,16 +313,16 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
          for (i=0; i < numOutFlowFaces; i++)
          {
            if (faces[i] == 0) {
-             ccEptr0 = ccExt[i]->dataPtr();
+             ccEptr0 = ccExt[i].dataPtr();
              length = length + leny;
            } else if (faces[i] == 1) {
-             ccEptr1 = ccExt[i]->dataPtr();
+             ccEptr1 = ccExt[i].dataPtr();
              length = length + lenx;
            } else if (faces[i] == 2) {
-             ccEptr2 = ccExt[i]->dataPtr();
+             ccEptr2 = ccExt[i].dataPtr();
              length = length + leny;
            } else if (faces[i] == 3) {
-             ccEptr3 = ccExt[i]->dataPtr();
+             ccEptr3 = ccExt[i].dataPtr();
              length = length + lenx;
            }
          }
@@ -404,7 +404,7 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
                           ccEptr0,ccEptr1,ccEptr2,ccEptr3,
                           ccE_conn.dataPtr());
 
-        Box faceBox(ccExt[iface]->box());
+        Box faceBox(ccExt[iface].box());
         FArrayBox phiFiltered(faceBox,1);
         phiFiltered.setVal(0.);
 
@@ -417,7 +417,7 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
         computeCoefficients(rhs,beta,
                             uExt[0][iface],
                             uExt[1][iface],
-                            *(ccExt[iface]),
+                            ccExt[iface],
                             faceBox,dxFiltered[iface],isPeriodicFiltered[iface]);
         //
         // Need phi to have ghost cells.
@@ -454,8 +454,7 @@ MacOutFlowBC::computeBC (MultiFab*         velMF,
   // end if connected = 1
   }
 
-  for (i = 0; i < numOutFlowFaces; i++) 
-    delete ccExt[i];
+    delete[] ccExt;
 }
 
 #if (BL_SPACEDIM == 3)
