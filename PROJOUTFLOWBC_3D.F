@@ -81,20 +81,20 @@ c local variables
          min_divu = max_divu
          do k = kcs, kce
          do j = jcs, jce
-            uExt(if,j,k,1)  = half*(three*u(ice-1,j,k,2)   -  u(ice,j,k,2))
-            uExt(if,j,k,2)  = half*(three*u(ice-1,j,k,3)   -  u(ice,j,k,3))
-            divuExt(if,j,k) = half*(three*divu(ice-1,j,k)  - divu(ice,j,k))
-            rhoExt(if,j,k)  = half*(three*rho(ice-1,j,k)   -  rho(ice,j,k))
-            max_divu = max(max_divu,divuExt(if,j,k))
-            min_divu = min(min_divu,divuExt(if,j,k))
+            uExt(j,k,if,1)  = half*(three*u(ice-1,j,k,2)   -  u(ice,j,k,2))
+            uExt(j,k,if,2)  = half*(three*u(ice-1,j,k,3)   -  u(ice,j,k,3))
+            divuExt(j,k,if) = half*(three*divu(ice-1,j,k)  - divu(ice,j,k))
+            rhoExt(j,k,if)  = half*(three*rho(ice-1,j,k)   -  rho(ice,j,k))
+            max_divu = max(max_divu,divuExt(j,k,if))
+            min_divu = min(min_divu,divuExt(j,k,if))
          end do
          end do
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(if,jcs,kcs))
+         max_pert = ABS(divuExt(jcs,kcs,if))
          do k = kcs, kce
          do j = jcs, jce
-            max_pert = MAX(max_pert,ABS(divuExt(if,j,k)))
+            max_pert = MAX(max_pert,ABS(divuExt(j,k,if)))
          end do
          end do
       else if (face .eq. YLO) then
@@ -103,20 +103,20 @@ c local variables
          min_divu = max_divu
          do k = kcs, kce
          do i = ics, ice
-            uExt(i,jf,k,1)    = half*(three*u(i,jce-1,k,1)    - u(i,jce,k,1))
-            uExt(i,jf,k,2)    = half*(three*u(i,jce-1,k,3)    - u(i,jce,k,3))
-            divuExt(i,jf,k) = half*(three*divu(i,jce-1,k) - divu(i,jce,k))
-            rhoExt(i,jf,k)  = half*(three*rho(i,jce-1,k)    - rho(i,jce,k))
-            max_divu = max(max_divu,divuExt(i,jf,k))
-            min_divu = min(min_divu,divuExt(i,jf,k))
+            uExt(i,k,jf,1)    = half*(three*u(i,jce-1,k,1)    - u(i,jce,k,1))
+            uExt(i,k,jf,2)    = half*(three*u(i,jce-1,k,3)    - u(i,jce,k,3))
+            divuExt(i,k,jf) = half*(three*divu(i,jce-1,k) - divu(i,jce,k))
+            rhoExt(i,k,jf)  = half*(three*rho(i,jce-1,k)    - rho(i,jce,k))
+            max_divu = max(max_divu,divuExt(i,k,jf))
+            min_divu = min(min_divu,divuExt(i,k,jf))
          end do
          end do
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(ics,jf,kcs))
+         max_pert = ABS(divuExt(ics,kcs,jf))
          do k = kcs, kce
          do i = ics, ice
-            max_pert = MAX(max_pert,ABS(divuExt(i,jf,k)))
+            max_pert = MAX(max_pert,ABS(divuExt(i,k,jf)))
          end do
          end do
       else if (face .eq. ZLO) then
@@ -147,20 +147,20 @@ c local variables
          min_divu = max_divu
          do k = kcs, kce
          do j = jcs, jce
-            uExt(if,j,k,1)    = half*(three*u(ics+1,j,k,2)    - u(ics,j,k,2))
-            uExt(if,j,k,2)    = half*(three*u(ics+1,j,k,3)    - u(ics,j,k,3))
-            divuExt(if,j,k) = half*(three*divu(ics+1,j,k) - divu(ics,j,k))
-            rhoExt(if,j,k)  = half*(three*rho(ics+1,j,k)    - rho(ics,j,k))
-            max_divu = max(max_divu,divuExt(if,j,k))
-            min_divu = min(min_divu,divuExt(if,j,k))
+            uExt(j,k,if,1)    = half*(three*u(ics+1,j,k,2)    - u(ics,j,k,2))
+            uExt(j,k,if,2)    = half*(three*u(ics+1,j,k,3)    - u(ics,j,k,3))
+            divuExt(j,k,if) = half*(three*divu(ics+1,j,k) - divu(ics,j,k))
+            rhoExt(j,k,if)  = half*(three*rho(ics+1,j,k)    - rho(ics,j,k))
+            max_divu = max(max_divu,divuExt(j,k,if))
+            min_divu = min(min_divu,divuExt(j,k,if))
          end do
          end do
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(if,jcs,kcs))
+         max_pert = ABS(divuExt(jcs,kcs,if))
          do k = kcs, kce
          do j = jcs, jce
-            max_pert = MAX(max_pert,ABS(divuExt(if,j,k)))
+            max_pert = MAX(max_pert,ABS(divuExt(j,k,if)))
          end do
          end do
       else if (face .eq. YHI) then
@@ -169,20 +169,20 @@ c local variables
          min_divu = max_divu
          do k = kcs, kce
          do i = ics, ice
-            uExt(i,jf,k,1)    = half*(three*u(i,jcs+1,k,1)    - u(i,jcs,k,1))
-            uExt(i,jf,k,2)    = half*(three*u(i,jcs+1,k,3)    - u(i,jcs,k,3))
-            divuExt(i,jf,k) = half*(three*divu(i,jcs+1,k) - divu(i,jcs,k))
-            rhoExt(i,jf,k)  = half*(three*rho(i,jcs+1,k)    - rho(i,jcs,k))
-            max_divu = max(max_divu,divuExt(i,jf,k))
-            min_divu = min(min_divu,divuExt(i,jf,k))
+            uExt(i,k,jf,1)    = half*(three*u(i,jcs+1,k,1)    - u(i,jcs,k,1))
+            uExt(i,k,jf,2)    = half*(three*u(i,jcs+1,k,3)    - u(i,jcs,k,3))
+            divuExt(i,k,jf) = half*(three*divu(i,jcs+1,k) - divu(i,jcs,k))
+            rhoExt(i,k,jf)  = half*(three*rho(i,jcs+1,k)    - rho(i,jcs,k))
+            max_divu = max(max_divu,divuExt(i,k,jf))
+            min_divu = min(min_divu,divuExt(i,k,jf))
          end do
          end do
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(ics,jf,kcs))
+         max_pert = ABS(divuExt(ics,kcs,jf))
          do k = kcs, kce
          do i = ics, ice
-            max_pert = MAX(max_pert,ABS(divuExt(i,jf,k)))
+            max_pert = MAX(max_pert,ABS(divuExt(i,k,jf)))
          end do
          end do
       else if (face .eq. ZHI) then

@@ -74,17 +74,17 @@ c local variables
          max_divu = half*(three*divu(ice-1,jcs) - divu(ice,jcs))
          min_divu = max_divu
          do j = jcs, jce
-            uExt(if,j,1)    = half*(three*u(ice-1,j,2)    - u(ice,j,2))
-            divuExt(if,j) = half*(three*divu(ice-1,j) - divu(ice,j))
-            rhoExt(if,j)  = half*(three*rho(ice-1,j)    - rho(ice,j))
-            max_divu = max(max_divu,divuExt(if,j))
-            min_divu = min(min_divu,divuExt(if,j))
+            uExt(j,if,1)    = half*(three*u(ice-1,j,2)    - u(ice,j,2))
+            divuExt(j,if) = half*(three*divu(ice-1,j) - divu(ice,j))
+            rhoExt(j,if)  = half*(three*rho(ice-1,j)    - rho(ice,j))
+            max_divu = max(max_divu,divuExt(j,if))
+            min_divu = min(min_divu,divuExt(j,if))
          end do
          call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(if,jcs))
+         max_pert = ABS(divuExt(jcs,if))
          do j = jcs, jce
-            max_pert = MAX(max_pert,ABS(divuExt(if,j)))
+            max_pert = MAX(max_pert,ABS(divuExt(j,if)))
          end do
       else if (face .eq. YLO) then
          jf = jfe
@@ -108,17 +108,17 @@ c local variables
          max_divu = half*(three*divu(ics+1,jcs) - divu(ics,jcs))
          min_divu = max_divu
          do j = jcs, jce
-            uExt(if,j,1)    = half*(three*u(ics+1,j,2)    - u(ics,j,2))
-            divuExt(if,j) = half*(three*divu(ics+1,j) - divu(ics,j))
-            rhoExt(if,j)  = half*(three*rho(ics+1,j)    - rho(ics,j))
-            max_divu = max(max_divu,divuExt(if,j))
-            min_divu = min(min_divu,divuExt(if,j))
+            uExt(j,if,1)    = half*(three*u(ics+1,j,2)    - u(ics,j,2))
+            divuExt(j,if) = half*(three*divu(ics+1,j) - divu(ics,j))
+            rhoExt(j,if)  = half*(three*rho(ics+1,j)    - rho(ics,j))
+            max_divu = max(max_divu,divuExt(j,if))
+            min_divu = min(min_divu,divuExt(j,if))
          end do
          call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(if,jcs))
+         max_pert = ABS(divuExt(jcs,if))
          do j = jcs, jce
-            max_pert = MAX(max_pert,ABS(divuExt(if,j)))
+            max_pert = MAX(max_pert,ABS(divuExt(j,if)))
          end do
       else if (face .eq. YHI) then
          jf = jfe

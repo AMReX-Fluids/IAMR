@@ -86,21 +86,21 @@ c     is zero, or if divu is constant
       if (face .eq. XLO) then
          if = ifs
          do j = jcs, jce+1
-            uExt(if,j)  = u1(ics,j)
+            uExt(j,if)  = u1(ics,j)
          enddo
          max_divu = divu(ics,jcs)
          min_divu = max_divu
          do j = jcs, jce
-            divuExt(if,j) = divu(ics,j)
-            rhoExt(if,j)  = rho(ics,j)
-            max_divu = max(max_divu,divuExt(if,j))
-            min_divu = min(min_divu,divuExt(if,j))
+            divuExt(j,if) = divu(ics,j)
+            rhoExt(j,if)  = rho(ics,j)
+            max_divu = max(max_divu,divuExt(j,if))
+            min_divu = min(min_divu,divuExt(j,if))
          end do
          call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(if,jcs))
+         max_pert = ABS(divuExt(jcs,if))
          do j = jcs, jce
-            max_pert = MAX(max_pert,ABS(divuExt(if,j)))
+            max_pert = MAX(max_pert,ABS(divuExt(j,if)))
          end do
       else if (face .eq. YLO) then
          jf = jfs
@@ -124,21 +124,21 @@ c     is zero, or if divu is constant
       else if (face .eq. XHI) then
          if = ife
          do j = jcs, jce+1
-            uExt(if,j)  = u1(ice,j)
+            uExt(j,if)  = u1(ice,j)
          enddo
          max_divu = divu(ice,jcs)
          min_divu = max_divu
          do j = jcs, jce
-            divuExt(if,j) = divu(ice,j)
-            rhoExt(if,j)  = rho(ice,j)
-            max_divu = max(max_divu,divuExt(if,j))
-            min_divu = min(min_divu,divuExt(if,j))
+            divuExt(j,if) = divu(ice,j)
+            rhoExt(j,if)  = rho(ice,j)
+            max_divu = max(max_divu,divuExt(j,if))
+            min_divu = min(min_divu,divuExt(j,if))
          end do
          call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,r,r_lo,r_hi,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(if,jcs))
+         max_pert = ABS(divuExt(jcs,if))
          do j = jcs, jce
-            max_pert = MAX(max_pert,ABS(divuExt(if,j)))
+            max_pert = MAX(max_pert,ABS(divuExt(j,if)))
          end do
       else if (face .eq. YHI) then
          jf = jfe
@@ -189,11 +189,11 @@ c  check to see if we should zero phi
          i = lo(1)
          do j=lo(2),hi(2)
             vtot = vtot+one
-            divu_ave = divu_ave+divu(i,j)
+            divu_ave = divu_ave+divu(j,i)
          enddo
          divu_ave = divu_ave/vtot
          do j=lo(2),hi(2)
-            divu(i,j) = divu(i,j) - divu_ave
+            divu(j,i) = divu(j,i) - divu_ave
          enddo
       elseif (face .eq. YLO .or. face .eq. YHI) then
          j = lo(2)

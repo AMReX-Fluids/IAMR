@@ -99,28 +99,28 @@ c     is zero, or if divu is constant
          min_divu = max_divu
          do k = kcs, kce
          do j = jcs, jce+1
-            uExt0(if,j,k)  = u1(ics,j,k)
+            uExt0(j,k,if)  = u1(ics,j,k)
          enddo
          enddo
          do k = kcs, kce+1
          do j = jcs, jce
-            uExt1(if,j,k)  = u2(ics,j,k)
+            uExt1(j,k,if)  = u2(ics,j,k)
          enddo
          enddo
          do k = kcs, kce
          do j = jcs, jce
-            divuExt(if,j,k) = divu(ics,j,k)
-            rhoExt(if,j,k)  = rho(ics,j,k)
-            max_divu = max(max_divu,divuExt(if,j,k))
-            min_divu = min(min_divu,divuExt(if,j,k))
+            divuExt(j,k,if) = divu(ics,j,k)
+            rhoExt(j,k,if)  = rho(ics,j,k)
+            max_divu = max(max_divu,divuExt(j,k,if))
+            min_divu = min(min_divu,divuExt(j,k,if))
          end do
          end do
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(if,jcs,k))
+         max_pert = ABS(divuExt(jcs,kcs,if))
          do k = kcs, kce
          do j = jcs, jce
-            max_pert = MAX(max_pert,ABS(divuExt(if,j,k)))
+            max_pert = MAX(max_pert,ABS(divuExt(j,k,if)))
          end do
          end do
       else if (face .eq. YLO) then
@@ -129,28 +129,28 @@ c     is zero, or if divu is constant
          min_divu = max_divu
          do k = kcs, kce
          do i = ics, ice+1
-            uExt0(i,jf,k)  = u0(i,jcs,k)
+            uExt0(i,k,jf)  = u0(i,jcs,k)
          enddo
          enddo
          do k = kcs, kce+1
          do i = ics, ice
-            uExt1(i,jf,k)  = u2(i,jcs,k)
+            uExt1(i,k,jf)  = u2(i,jcs,k)
          enddo
          enddo
          do k = kcs, kce
          do i = ics, ice
-            divuExt(i,jf,k) = divu(i,jcs,k)
-            rhoExt(i,jf,k)  = rho(i,jcs,k)
-            max_divu = max(max_divu,divuExt(i,jf,k))
-            min_divu = min(min_divu,divuExt(i,jf,k))
+            divuExt(i,k,jf) = divu(i,jcs,k)
+            rhoExt(i,k,jf)  = rho(i,jcs,k)
+            max_divu = max(max_divu,divuExt(i,k,jf))
+            min_divu = min(min_divu,divuExt(i,k,jf))
          end do
          end do
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(ics,jf,kcs))
+         max_pert = ABS(divuExt(ics,kcs,jf))
          do k = kcs, kce
          do i = ics, ice
-            max_pert = MAX(max_pert,ABS(divuExt(i,jf,k)))
+            max_pert = MAX(max_pert,ABS(divuExt(i,k,jf)))
          end do
          end do
       else if (face .eq. ZLO) then
@@ -190,28 +190,28 @@ c     is zero, or if divu is constant
          min_divu = max_divu
          do k = kcs, kce
          do j = jcs, jce+1
-            uExt0(if,j,k)  = u1(ice,j,k)
+            uExt0(j,k,if)  = u1(ice,j,k)
          enddo
          enddo
          do k = kcs, kce+1
          do j = jcs, jce
-            uExt1(if,j,k)  = u2(ice,j,k)
+            uExt1(j,k,if)  = u2(ice,j,k)
          enddo
          enddo
          do k = kcs, kce
          do j = jcs, jce
-            divuExt(if,j,k) = divu(ice,j,k)
-            rhoExt(if,j,k)  = rho(ice,j,k)
-            max_divu = max(max_divu,divuExt(if,j,k))
-            min_divu = min(min_divu,divuExt(if,j,k))
+            divuExt(j,k,if) = divu(ice,j,k)
+            rhoExt(j,k,if)  = rho(ice,j,k)
+            max_divu = max(max_divu,divuExt(j,k,if))
+            min_divu = min(min_divu,divuExt(j,k,if))
          end do
          end do
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(if,jcs,kcs))
+         max_pert = ABS(divuExt(jcs,kcs,if))
          do k = kcs, kce
          do j = jcs, jce
-            max_pert = MAX(max_pert,ABS(divuExt(if,j,k)))
+            max_pert = MAX(max_pert,ABS(divuExt(j,k,if)))
          end do
          end do
       else if (face .eq. YHI) then
@@ -220,29 +220,29 @@ c     is zero, or if divu is constant
          min_divu = max_divu
          do k = kcs, kce
          do i = ics, ice+1
-            uExt0(i,jf,k)  = u0(i,jce,k)
+            uExt0(i,k,jf)  = u0(i,jce,k)
          enddo
          enddo
          do k = kcs, kce+1
          do i = ics, ice
-            uExt1(i,jf,k)  = u2(i,jce,k)
+            uExt1(i,k,jf)  = u2(i,jce,k)
          enddo
          enddo
 
          do k = kcs, kce
          do i = ics, ice
-            divuExt(i,jf,k) = divu(i,jce,k)
-            rhoExt(i,jf,k)  = rho(i,jce,k)
-            max_divu = max(max_divu,divuExt(i,jf,k))
-            min_divu = min(min_divu,divuExt(i,jf,k))
+            divuExt(i,k,jf) = divu(i,jce,k)
+            rhoExt(i,k,jf)  = rho(i,jce,k)
+            max_divu = max(max_divu,divuExt(i,k,jf))
+            min_divu = min(min_divu,divuExt(i,k,jf))
          end do
          end do
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave1,face)
          call subtractavg(DIMS(divuExt),divuExt,lo,hi,divu_ave2,face)
-         max_pert = ABS(divuExt(ics,jf,kcs))
+         max_pert = ABS(divuExt(ics,kcs,jf))
          do k = kcs, kce
          do i = ics, ice
-            max_pert = MAX(max_pert,ABS(divuExt(i,jf,k)))
+            max_pert = MAX(max_pert,ABS(divuExt(i,k,jf)))
          end do
          end do
       else if (face .eq. ZHI) then
@@ -307,13 +307,13 @@ c  check to see if we should zero phi
          do k = lo(3),hi(3)
             do j=lo(2),hi(2)
                vtot = vtot+one
-               divu_ave = divu_ave+divu(i,j,k)
+               divu_ave = divu_ave+divu(j,k,i)
             enddo
          enddo
          divu_ave = divu_ave/vtot
          do k = lo(3),hi(3)
             do j=lo(2),hi(2)
-               divu(i,j,k) = divu(i,j,k) - divu_ave
+               divu(j,k,i) = divu(j,k,i) - divu_ave
             enddo
          enddo
       elseif (face .eq. YLO .or. face .eq. YHI) then
@@ -321,13 +321,13 @@ c  check to see if we should zero phi
          do k = lo(3),hi(3)
             do i=lo(1),hi(1)
                vtot = vtot+one
-               divu_ave = divu_ave+divu(i,j,k)
+               divu_ave = divu_ave+divu(i,k,j)
             enddo
          enddo
          divu_ave = divu_ave/vtot
          do k = lo(3),hi(3)
             do i=lo(1),hi(1)
-               divu(i,j,k) = divu(i,j,k) - divu_ave
+               divu(i,k,j) = divu(i,k,j) - divu_ave
             enddo
          enddo
       elseif(face .eq. ZLO .or. face .eq. ZHI) then
