@@ -1,5 +1,5 @@
 //
-// $Id: SyncRegister.cpp,v 1.32 1998-05-23 03:14:02 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.33 1998-05-26 16:39:05 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -192,12 +192,18 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     // If periodic, copy the values from sync registers onto the nodes of the
     // rhs which are not covered by sync registers through periodic shifts.
     //
-    // TODO -- finish this!!!
-    //
     if (geom.isAnyPeriodic())
     {
+        vector<FillBoxId> fillBoxIdList;
+
         for (OrientationIter face; face; ++face)
         {
+            assert(fillBoxIdList.size() == 0);
+
+            FabSetCopyDescriptor fscd;
+
+            FabSetId faid = fscd.RegisterFabSet(&bndry[face()]);
+
             for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
             {
                 for (int j = 0; j < grids.length(); j++)
@@ -206,19 +212,59 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
                     for (int iiv = 0; iiv < pshifts.length(); iiv++)
                     {
-                        bndry[face()][j].shift(pshifts[iiv]);
-                        Box intersect = bndry[face()][j].box() & mfi().box();
-                        if (intersect.ok())
-                            mfi().copy(bndry[face()][j],
-                                       intersect,
-                                       0,
-                                       intersect,
-                                       0,
-                                       mfi().nComp());
-                        bndry[face()][j].shift(-pshifts[iiv]);
+
+                        Box sbox = bndry[face()][j].box();
+                        sbox.shift(pshifts[iiv]);
+                        sbox &= mfi().box();
+                        if (sbox.ok())
+                        {
+                            D_TERM(sbox.shift(0,-pshifts[iiv][0]);,
+                                   sbox.shift(1,-pshifts[iiv][1]);,
+                                   sbox.shift(2,-pshifts[iiv][2]););
+                            fillBoxIdList.push_back(fscd.AddBox(faid,
+                                                                sbox,
+                                                                0,
+                                                                j,
+                                                                0,
+                                                                0,
+                                                                mfi().nComp()));
+                        }
                     }
                 }
             }
+
+            fscd.CollectData();
+
+            vector<FillBoxId>::iterator fillBoxIdIter = fillBoxIdList.begin();
+
+            for (MultiFabIterator mfi(rhs); mfi.isValid(false); ++mfi)
+            {
+                for (int j = 0; j < grids.length(); j++)
+                {
+                    geom.periodicShift(domain,bndry[face()][j].box(),pshifts);
+
+                    for (int iiv = 0; iiv < pshifts.length(); iiv++)
+                    {
+                        Box sbox = bndry[face()][j].box();
+                        sbox.shift(pshifts[iiv]);
+                        sbox &= mfi().box();
+                        if (sbox.ok())
+                        {
+                            //
+                            // Shift the FAB, directly FillFab() & shift back.
+                            //
+                            D_TERM(mfi().shift(0,-pshifts[iiv][0]);,
+                                   mfi().shift(1,-pshifts[iiv][1]);,
+                                   mfi().shift(2,-pshifts[iiv][2]););
+                            assert(fillBoxIdIter != fillBoxIdList.end());
+                            FillBoxId fillboxid = *fillBoxIdIter++;
+                            fscd.FillFab(faid, fillboxid, mfi());
+                            mfi().shift(pshifts[iiv]);
+                        }
+                    }
+                }
+            }
+
         }
     }
     //
