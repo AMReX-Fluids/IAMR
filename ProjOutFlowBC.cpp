@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.21 2003-02-19 19:23:34 almgren Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.22 2003-02-19 20:18:59 almgren Exp $
 //
 #include <winstd.H>
 
@@ -83,7 +83,7 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
     Real* redge[numOutFlowFaces];
 #endif
 
-    FArrayBox ccExt[numOutFlowFaces];
+    FArrayBox * ccExt[numOutFlowFaces];
 
     int isPeriodic[BL_SPACEDIM];
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -132,7 +132,7 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
       faceBox.grow(dir,1);
 
 //  One for rho, one for divu, (BL_SPACEDIM-1) for velocity.
-    ccExt[iface].resize(faceBox,BL_SPACEDIM+1);
+    ccExt[iface] = new FArrayBox(faceBox,BL_SPACEDIM+1);
 
 #if (BL_SPACEDIM == 2)
     //
@@ -166,11 +166,11 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
 
     DEF_BOX_LIMITS(origBox,origLo,origHi);
 
-    const int* ccElo = ccExt[iface].loVect();
-    const int* ccEhi = ccExt[iface].hiVect();
-    const Real*  rhoEPtr = ccExt[iface].dataPtr(0);
-    const Real* divuEPtr = ccExt[iface].dataPtr(1);
-    const Real*    uEPtr = ccExt[iface].dataPtr(2);
+    const int* ccElo = ccExt[iface]->loVect();
+    const int* ccEhi = ccExt[iface]->hiVect();
+    const Real*  rhoEPtr = ccExt[iface]->dataPtr(0);
+    const Real* divuEPtr = ccExt[iface]->dataPtr(1);
+    const Real*    uEPtr = ccExt[iface]->dataPtr(2);
 
     DEF_LIMITS(  divuMF[iface], divuPtr, divulo, divuhi);
     DEF_LIMITS(   rhoMF[iface],  rhoPtr,  rholo,  rhohi);
@@ -258,19 +258,19 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
          for (int i=0; i < numOutFlowFacesInRegion; i++) 
          {
            if (faces[i] == 0) {
-             ccEptr0 = ccExt[i].dataPtr();
+             ccEptr0 = ccExt[i]->dataPtr();
                   r0 = rcen[i];
              length = length + leny;
            } else if (faces[i] == 1) {
-             ccEptr1 = ccExt[i].dataPtr();
+             ccEptr1 = ccExt[i]->dataPtr();
                   r1 = rcen[i];
              length = length + lenx;
            } else if (faces[i] == 2) {
-             ccEptr2 = ccExt[i].dataPtr();
+             ccEptr2 = ccExt[i]->dataPtr();
                   r2 = rcen[i];
              length = length + leny;
            } else if (faces[i] == 3) {
-             ccEptr3 = ccExt[i].dataPtr();
+             ccEptr3 = ccExt[i]->dataPtr();
                   r3 = rcen[i];
              length = length + lenx;
            }
@@ -363,16 +363,16 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
         for (int i=0; i < numOutFlowFaces; i++) 
         {
           if (faces[i] == 0) {
-            ccEptr0 = ccExt[i].dataPtr();
+            ccEptr0 = ccExt[i]->dataPtr();
             length = length + leny;
           } else if (faces[i] == 1) {
-            ccEptr1 = ccExt[i].dataPtr();
+            ccEptr1 = ccExt[i]->dataPtr();
             length = length + lenx;
           } else if (faces[i] == 3) {
-            ccEptr2 = ccExt[i].dataPtr();
+            ccEptr2 = ccExt[i]->dataPtr();
             length = length + leny;
           } else if (faces[i] == 4) {
-            ccEptr3 = ccExt[i].dataPtr();
+            ccEptr3 = ccExt[i]->dataPtr();
             length = length + lenx;
           } else {
             cout << "OOPS - DIDNT PROGRAM FOR Z-OUTFLOW FACES! " << i << 
@@ -488,6 +488,8 @@ ProjOutFlowBC::computeBC (MultiFab*         velMF,
                     &face,&gravity,dx);
   
     }
+    for (i = 0; i < numOutFlowFaces; i++) 
+      delete ccExt[i];
 }
 #endif
 
