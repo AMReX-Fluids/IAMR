@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.91 1999-06-16 22:02:38 almgren Exp $
+// $Id: Projection.cpp,v 1.92 1999-06-21 22:00:30 propp Exp $
 //
 
 #ifdef BL_T3E
@@ -1563,7 +1563,7 @@ Projection::initialSyncProject (int       c_lev,
             //
             MultiFab& divu_new = amr_level.get_new_data(Divu_Type);
             divu_new.FillBoundary();
-            MultiFab& divu_old = amr_level.get_new_data(Divu_Type);
+            MultiFab& divu_old = amr_level.get_old_data(Divu_Type);
             divu_old.FillBoundary();
             amr_level.setPhysBoundaryValues(Divu_Type,0,1,strt_time);
             amr_level.setPhysBoundaryValues(Divu_Type,0,1,strt_time+dt);
