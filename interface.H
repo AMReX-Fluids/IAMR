@@ -2,7 +2,7 @@
 #define _INTERFACE_H_
 
 //
-// $Id: interface.H,v 1.7 1997-10-08 20:15:55 car Exp $
+// $Id: interface.H,v 1.8 1997-10-13 16:56:36 car Exp $
 //
 
 #include <amr_defs.H>
@@ -115,6 +115,11 @@ protected:
 
   void  add(List<Box>& bl, Box b, int startgrid = 0);
   void xfer(List<Box>& bl, int idim);
+private:
+    // Don't want them to be constructed since Louis didn't implement
+    // copy semantics for member data.
+    level_interface(const level_interface&);
+    void operator=(const level_interface&);
 
  public:
   static void ins(List<Box>& bl, const Box& b) {
