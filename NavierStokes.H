@@ -4,7 +4,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.32 1999-02-26 22:22:04 almgren Exp $
+// $Id: NavierStokes.H,v 1.33 1999-03-02 01:15:16 sstanley Exp $
 //
 
 #include <LevelBld.H>
@@ -564,22 +564,25 @@ protected:
     //
     // Calculate nonuniform viscosity and diffusivity
     //
-    void calcViscosity(Real time,
-                       const MultiFab& state,
-                       MultiFab* visc[BL_SPACEDIM]);
+    virtual void calcViscosity(const Real time,
+                               const Real dt,
+                               const int  iteration,
+                               const int  ncycle);
 
-    void calcDiffusivity(Real time,
-                         const MultiFab& state,
-                         MultiFab* diff[BL_SPACEDIM],
-                         int sComp = 0,
-                         int num_comp = 1);
+    virtual void calcDiffusivity(const Real time,
+                                 const Real dt,
+                                 const int  iteration,
+                                 const int  ncycle,
+                                 const int  src_comp = 0,
+                                 const int  num_comp = 1);
 
-    void getViscosity(MultiFab* viscosity[BL_SPACEDIM],
-                      Real time);
+    virtual void getViscosity(MultiFab* viscosity[BL_SPACEDIM],
+                              const Real time);
 
-    void getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
-                        Real time,
-                        int sComp);
+    virtual void getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
+                                const Real time,
+                                const int src_comp,
+                                const int num_comp = 1);
 
 
     NavierStokes& getLevel (int lev)

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: NavierStokes.cpp,v 1.117 1999-03-02 01:03:42 propp Exp $
+// $Id: NavierStokes.cpp,v 1.118 1999-03-02 01:15:16 sstanley Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1136,19 +1136,23 @@ NavierStokes::advance_setup (Real time,
     if (variable_vel_visc)
     {
         Real old_time = get_state_data(State_Type).prevTime();
-        const MultiFab& Sold = get_old_data(State_Type);
 
-        calcViscosity(old_time, Sold, viscn);
-        calcViscosity(old_time, Sold, viscnp1);
+        calcViscosity(old_time, dt, iteration, ncycle);
+
+        for (int dir=0; dir<BL_SPACEDIM; dir++)
+            (*viscnp1[dir]).copy((*viscn[dir]), 0, 0, 1);
     }
 
     if (variable_scal_diff)
     {
         Real old_time = get_state_data(State_Type).prevTime();
-        const MultiFab& Sold = get_old_data(State_Type);
+        int num_diff = NUM_STATE-Density-1;
 
-        calcDiffusivity(old_time, Sold, diffn, Density+1, NUM_STATE-Density-1);
-        calcDiffusivity(old_time, Sold, diffnp1, Density+1, NUM_STATE-Density-1);
+        calcDiffusivity(old_time, dt, iteration, ncycle, 
+                        Density+1, num_diff);
+
+        for (int dir=0; dir<BL_SPACEDIM; dir++)
+            (*diffnp1[dir]).copy((*diffn[dir]), 0, 0, num_diff);
     }
 }
 
@@ -5049,9 +5053,37 @@ NavierStokes::compute_grad_divu_minus_s (Real      time,
 // wants variable coefficients.
 //
 void 
-NavierStokes::calcViscosity(Real time, const MultiFab& state, 
-                            MultiFab* visc[BL_SPACEDIM])
+NavierStokes::calcViscosity(const Real time, 
+                            const Real dt,
+                            const int  iteration,
+                            const int  ncycle)
 {
+    const MultiFab& S = get_data(State_Type, time);
+
+
+    //
+    // Select time level to work with (N or N+1)
+    //
+    const Real old_time = state[State_Type].prevTime();
+    const Real new_time = state[State_Type].curTime();
+    const Real eps = 0.001*(new_time - old_time);
+
+    MultiFab** visc;
+    if (time > old_time-eps && time < old_time+eps)               // time N
+    {
+        visc = viscn;
+    }
+    else if (time > new_time-eps && time < new_time+eps)          // time N+1
+        visc = viscnp1;
+    else
+    {
+        BoxLib::Abort("calcViscosity: invalid time");
+    }
+
+
+    //
+    // Calculate viscosity
+    //
     if (is_diffusive[Xvel]) 
     {
         if (visc_coef[Xvel] >= 0.0)
@@ -5069,15 +5101,54 @@ NavierStokes::calcViscosity(Real time, const MultiFab& state,
 }
 
 void 
-NavierStokes::calcDiffusivity(Real time, const MultiFab& state, 
-                              MultiFab* diff[BL_SPACEDIM],
-                              int src_comp, int num_comp)
+NavierStokes::calcDiffusivity(const Real time, 
+                              const Real dt,
+                              const int  iteration,
+                              const int  ncycle,
+                              const int  src_comp, 
+                              const int  num_comp)
 {
+    //
+    // NOTE:  The component numbers passed into NavierStokes::calcDiffusivity
+    //        correspond to the components in the state.  In the diffusivity 
+    //        arrays, there is an offset since no diffusivity array
+    //        is kept for the velocities or the density.  So, the scalar
+    //        component Density+1 in the state corresponds to component
+    //        0 in the arrays diffn and diffnp1.
+    //
     assert(src_comp > Density);
 
+    const MultiFab& S = get_data(State_Type, time);
+
+
+    //
+    // Select time level to work with (N or N+1)
+    //
+    const Real old_time = state[State_Type].prevTime();
+    const Real new_time = state[State_Type].curTime();
+    const Real eps = 0.001*(new_time - old_time);
+
+    MultiFab** diff;
+    if (time > old_time-eps && time < old_time+eps)               // time N
+    {
+        diff = diffn;
+    }
+    else if (time > new_time-eps && time < new_time+eps)          // time N+1
+    {
+        diff = diffnp1;
+    }
+    else
+    {
+        BoxLib::Abort("calcDiffusivity: invalid time");
+    }
+
+
+    //
+    // Calculate diffusivity
+    //
     for (int comp=src_comp; comp<src_comp+num_comp; comp++)
     {
-        int scl_comp = comp - Density - 1;
+        int diff_comp = comp - Density - 1;
 
         if (is_diffusive[comp])
         {
@@ -5085,7 +5156,7 @@ NavierStokes::calcDiffusivity(Real time, const MultiFab& state,
             {
                 for (int dir=0; dir<BL_SPACEDIM; dir++)
                 {
-                    (*diff[dir]).setVal(visc_coef[comp], scl_comp, 1, 0);
+                    (*diff[dir]).setVal(visc_coef[comp], diff_comp, 1, 0);
                 }
             }
             else
@@ -5099,7 +5170,7 @@ NavierStokes::calcDiffusivity(Real time, const MultiFab& state,
 
 void 
 NavierStokes::getViscosity(MultiFab* viscosity[BL_SPACEDIM],
-                           Real time)
+                           const Real time)
 {
     //
     // Pick correct time
@@ -5127,15 +5198,16 @@ NavierStokes::getViscosity(MultiFab* viscosity[BL_SPACEDIM],
 
 void 
 NavierStokes::getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
-                             Real time,
-                             int src_comp)
+                             const Real time,
+                             const int src_comp,
+                             const int num_comp)
 {
     assert(src_comp > Density);
 
     //
     // Pick correct diffusivity component
     //
-    int scl_comp = src_comp - Density - 1;
+    int diff_comp = src_comp - Density - 1;
 
 
     //
@@ -5148,12 +5220,12 @@ NavierStokes::getDiffusivity(MultiFab* diffusivity[BL_SPACEDIM],
     if (time > old_time-eps && time < old_time+eps)               // time N
     {
         for (int dir=0; dir<BL_SPACEDIM; dir++)
-            (*diffusivity[dir]).copy(*diffn[dir], scl_comp, 0, 1);
+            (*diffusivity[dir]).copy(*diffn[dir], diff_comp, 0, num_comp);
     }
     else if (time > new_time-eps && time < new_time+eps)          // time N+1
     {
         for (int dir=0; dir<BL_SPACEDIM; dir++)
-            (*diffusivity[dir]).copy(*diffnp1[dir], scl_comp, 0, 1);
+            (*diffusivity[dir]).copy(*diffnp1[dir], diff_comp, 0, num_comp);
     }
     else
     {
