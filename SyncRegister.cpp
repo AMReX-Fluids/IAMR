@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SyncRegister.cpp,v 1.54 1999-02-25 17:35:38 car Exp $
+// $Id: SyncRegister.cpp,v 1.55 1999-02-25 20:20:43 propp Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1036,7 +1036,6 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
 
         SetCenter(is_rz, rcen, geom, mfi().box());
 
-#if (BL_SPACEDIM==2)
         int nghost         = 0;
         Real hx            = geom.CellSize()[0];
         FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
@@ -1044,13 +1043,6 @@ SyncRegister::CrseDsdtAdd (const MultiFab& dsdt,
                    rcen.dataPtr(), 
                    ARLIM(ndlo), ARLIM(ndhi), divu.dataPtr(), 
                    domlo, domhi, lowfix, hifix, &hx, &is_rz);
-#elif (BL_SPACEDIM==3)
-        //
-        // TODO -- make 3-D work !!!
-        //
-        divu.setVal(0);
-        BoxLib::Abort("SyncRegister::CrseDsdtAdd(): not implemented in 3-D");
-#endif
         divu.negate();
         divu.mult(mult);
     }
@@ -1127,7 +1119,6 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
             SetCenter(is_rz, rcen, geom, dsdtfab.box());
 
             ffablo_tmp.resize(reglo,1);
-#if (BL_SPACEDIM==2)
             int nghost         = 0;
             int hi_fix         = 0;
             Real hx            = geom.CellSize()[0];
@@ -1137,18 +1128,11 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                        ARLIM(reglo.loVect()), ARLIM(reglo.hiVect()), 
                        ffablo_tmp.dataPtr(),
                        domlo, domhi, lowfix, hi_fix, &hx,&is_rz);
-#elif (BL_SPACEDIM==3)
-            //
-            // TODO -- make 3-D work !!!
-            //
-            ffablo_tmp.setVal(0);
-            BoxLib::Abort("SyncRegister::FineDsdtAdd(): not implemented in 3-D");
-#endif
             ffablo_tmp.negate();
             ffablo_tmp.mult(mult);
             ffablo.copy(ffablo_tmp);
             ffabhi_tmp.resize(reghi,1);
-#if (BL_SPACEDIM==2)
+
             int low_fix = 0;
             FORT_HGC2N(&nghost, ARLIM(dsdtlo), ARLIM(dsdthi), 
                        dsdtfab.dataPtr(),
@@ -1156,13 +1140,6 @@ SyncRegister::FineDsdtAdd (const MultiFab& dsdt,
                        ARLIM(reghi.loVect()), ARLIM(reghi.hiVect()), 
                        ffabhi_tmp.dataPtr(), 
                        domlo, domhi, low_fix, hifix, &hx,&is_rz);
-#elif (BL_SPACEDIM==3)
-            //
-            // TODO -- make 3-D work !!!
-            //
-            ffabhi_tmp.setVal(0);
-            BoxLib::Abort("SyncRegister::FineDsdtAdd(): not implemented in 3-D");
-#endif
             ffabhi_tmp.negate();
             ffabhi_tmp.mult(mult);
             ffabhi.copy(ffabhi_tmp);

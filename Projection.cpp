@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.67 1999-02-25 17:35:38 car Exp $
+// $Id: Projection.cpp,v 1.68 1999-02-25 20:20:43 propp Exp $
 //
 
 #ifdef BL_T3E
@@ -1598,7 +1598,6 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
 
     const Geometry& geom = parent->Geom(level);
 
-#if (BL_SPACEDIM == 2)
     const int bcxlo = phys_bc->lo(0);
     const int bcxhi = phys_bc->hi(0);
     int isrz        = (user_rz == -1) ? CoordSys::IsRZ() : user_rz;
@@ -1606,7 +1605,6 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
     int hifix       = (isrz==1 && bcxhi!=FOEXTRAP && bcxhi!=HOEXTRAP);
     const Real* dx  = geom.CellSize();
     Real hx         = dx[0];
-#endif
     const Box& domain = geom.Domain();
     const int* domlo  = domain.loVect();
     const int* domhi  = domain.hiVect();
@@ -1617,7 +1615,6 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
     {
         DependentMultiFabIterator divumfi(rhsmfi,*divu);
 
-#if (BL_SPACEDIM == 2)
         DEF_CLIMITS(divumfi(),divudat,divulo,divuhi);
         DEF_LIMITS(rhsmfi(),rhsdat,rhslo,rhshi);
         Array<Real> rcen(divumfi().box().length(0),1.0);
@@ -1627,17 +1624,6 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
         FORT_HGC2N(&nghost,ARLIM(divulo),ARLIM(divuhi),divudat,
                    rcen.dataPtr(), ARLIM(rhslo),ARLIM(rhshi),rhsdat,
                    domlo,domhi,lowfix,hifix,&hx,&isrz);
-#endif
-#if (BL_SPACEDIM == 3)
-        Real divumin = divumfi().min();
-        Real divumax = divumfi().max();
-        if (divumin != divumax || divumin != 0.0) 
-        {
-            cout << "Projection::put_divu_in_node_rhs: not yet "
-                 << "implemented for 3-d, non-zero divu\n";
-            BoxLib::Abort();
-        }
-#endif
     }
 
     delete divu;
