@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.69 1999-02-26 22:22:03 almgren Exp $
+// $Id: Projection.cpp,v 1.70 1999-03-01 17:36:00 sstanley Exp $
 //
 
 #ifdef BL_T3E
@@ -513,7 +513,7 @@ Projection::level_project (int             level,
         radMult(level,rhs_cc,0);    
 
 #if (BL_SPACEDIM == 3)
-        for (MultiFabIterator dumfi(divusource); dumfi.isValid(); ++dumfi)
+        for (MultiFabIterator dumfi(*divusource); dumfi.isValid(); ++dumfi)
         {
             Real dumin = dumfi().min();
             Real dumax = dumfi().max();
