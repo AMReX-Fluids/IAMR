@@ -4,7 +4,7 @@
 #define _MACOUTFLOWBC_H_
 
 //
-// $Id: MacOutFlowBC.H,v 1.2 1999-07-30 18:05:42 propp Exp $
+// $Id: MacOutFlowBC.H,v 1.3 1999-08-20 17:58:52 propp Exp $
 //
 
 #include "FArrayBox.H"
@@ -98,7 +98,7 @@ protected:
 
   Real residual();
   void step(int nSteps);
-  void restrict();
+  void Restrict();
   void interpolate();
   void gsrb(int nSteps);
 

@@ -4,7 +4,7 @@
 #define _PROJOUTFLOWBC_H_
 
 //
-// $Id: ProjOutFlowBC.H,v 1.2 1999-07-30 18:05:41 propp Exp $
+// $Id: ProjOutFlowBC.H,v 1.3 1999-08-20 17:58:55 propp Exp $
 //
 
 #include "FArrayBox.H"
@@ -97,7 +97,7 @@ protected:
   static int cg_maxiter;
   static int maxIters;
 
-  void restrict();
+  void Restrict();
   void interpolate();
   Real residual();
   void step(int nSteps);

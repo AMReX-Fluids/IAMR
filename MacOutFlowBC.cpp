@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.5 1999-08-06 21:48:41 propp Exp $
+// $Id: MacOutFlowBC.cpp,v 1.6 1999-08-20 17:58:54 propp Exp $
 //
 
 #include "MacOutFlowBC.H"
@@ -521,7 +521,7 @@ MacOutFlowBC_MG::step(int nGSRB)
 };
 
 void 
-MacOutFlowBC_MG::restrict()
+MacOutFlowBC_MG::Restrict()
 {
   DEF_BOX_LIMITS(domain,lo,hi);
   DEF_BOX_LIMITS(next->domain,loc,hic);
@@ -589,7 +589,7 @@ MacOutFlowBC_MG::vcycle(int downiter,int upiter)
   rnorm = residual();
 
   if (next != NULL) {
-    restrict();
+    Restrict();
     next->phi->setVal(0.0);
     next->vcycle(downiter,upiter);
     interpolate();

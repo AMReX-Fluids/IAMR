@@ -1,7 +1,7 @@
 // BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ProjOutFlowBC.cpp,v 1.5 1999-08-06 21:48:42 propp Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.6 1999-08-20 17:58:56 propp Exp $
 //
 
 #include "ProjOutFlowBC.H"
@@ -510,7 +510,7 @@ ProjOutFlowBC_MG::step(int nGSRB)
 };
 
 void 
-ProjOutFlowBC_MG::restrict()
+ProjOutFlowBC_MG::Restrict()
 {
   DEF_BOX_LIMITS(domain,lo,hi);
   DEF_BOX_LIMITS(next->domain,loc,hic);
@@ -590,7 +590,7 @@ ProjOutFlowBC_MG::vcycle(int downiter,int upiter)
   rnorm = residual();
 
   if (next != NULL) {
-    restrict();
+    Restrict();
     next->phi->setVal(0.0);
     next->vcycle(downiter,upiter);
     interpolate();
