@@ -4,7 +4,7 @@
 #define _MacProj_H_
 
 //
-// $Id: MacProj.H,v 1.12 1999-03-25 19:00:21 marc Exp $
+// $Id: MacProj.H,v 1.13 1999-03-27 00:07:42 marc Exp $
 //
 
 #include <BC_TYPES.H>
@@ -60,7 +60,7 @@ public:
                            MultiFab*         Ssync,
                            MultiFab*         rho_half, 
                            FluxRegister*     adv_flux_reg,
-                           Array<int>        is_conservative,
+                           Array<int>&       is_conservative,
                            Real              prev_time,
                            Real              prev_pres_time,
                            Real              dt,
@@ -76,7 +76,7 @@ public:
 			   int           eComp,
                            MultiFab*     rho_half,
                            FluxRegister* adv_flux_reg,
-                           Array<int>    is_conservative, 
+                           Array<int>&   is_conservative, 
                            Real          dt);
 protected:
     //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MacProj.cpp,v 1.46 1999-03-25 19:00:22 marc Exp $
+// $Id: MacProj.cpp,v 1.47 1999-03-27 00:07:44 marc Exp $
 //
 
 #include <Misc.H>
@@ -613,7 +613,7 @@ MacProj::mac_sync_compute (int               level,
                            MultiFab*         Ssync,
                            MultiFab*         rho_half,
                            FluxRegister*     adv_flux_reg,
-                           Array<int>        is_conservative,
+                           Array<int>&       is_conservative,
                            Real              prev_time, 
                            Real              pres_prev_time,
                            Real              dt, 
@@ -821,7 +821,7 @@ MacProj::mac_sync_compute (int           level,
 			   int           eComp,
                            MultiFab*     rho_half,
                            FluxRegister* adv_flux_reg,
-                           Array<int>    is_conservative, 
+                           Array<int>&   is_conservative, 
                            Real          dt)
 {
     assert(comp >= BL_SPACEDIM);
