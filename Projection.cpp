@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.116 1999-09-21 20:07:43 car Exp $
+// $Id: Projection.cpp,v 1.117 2000-04-14 21:25:33 almgren Exp $
 //
 
 #ifdef BL_T3E
@@ -896,6 +896,7 @@ Projection::harmonic_project (int             level,
 
     rhs->setVal(0);
     harm_phi->setVal(0);
+    temp_phi->setVal(0);
     harm_vel->setVal(0);
     rho->setVal(1);
 
@@ -954,6 +955,7 @@ Projection::harmonic_project (int             level,
                               sync_resid_crse, sync_resid_fine, geom, 
                               use_u, (Real*)dx,
                               proj_tol, level, level, proj_abs_tol);
+
     //
     // Unscale variables for harmonic projection.
     //
@@ -961,7 +963,11 @@ Projection::harmonic_project (int             level,
     //
     // Update pressure.
     //
-    AddPhi(P_old, *harm_phi, grids);
+    for (MultiFabIterator pmfi(P_old); pmfi.isValid(); ++pmfi) 
+    {
+        DependentMultiFabIterator phimfi(pmfi, (*harm_phi));
+        pmfi().plus(phimfi(),P_grids[pmfi.index()],0,0,1);
+    }
 
     delete rhs;
     delete harm_phi;
