@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Diffusion.cpp,v 1.44 1998-11-09 21:22:42 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.45 1998-11-18 17:48:28 lijewski Exp $
 //
 
 //
@@ -1625,7 +1625,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*  Vsync,
     int visc_op_lev = 0;
     tensor_op->applyBC(Soln,visc_op_lev); 
 
-    Vsync->copy(Soln,0,0,BL_SPACEDIM,1);
+    Copy(*Vsync,Soln,0,0,BL_SPACEDIM,1);
 
     Real s_norm = 0.0;
     for (MultiFabIterator Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
