@@ -1,4 +1,4 @@
- $fortin
+&fortin
 
   probtype = 2
   xblob = 0.0
@@ -10,4 +10,4 @@
   adverr  = 0.1
   vorterr  = 1.0
 
- $end
+/
