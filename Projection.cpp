@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Projection.cpp,v 1.80 1999-03-13 01:11:29 almgren Exp $
+// $Id: Projection.cpp,v 1.81 1999-03-24 23:42:11 lijewski Exp $
 //
 
 #ifdef BL_T3E
@@ -144,7 +144,7 @@ checkDivU(Amr* parent,
     
     FillPatchIterator divuFpi(LevelData[f_lev],cc_MultiFab,nGrow,
                           cur_divu_time,Divu_Type,srcCompDivu,nCompDivu);
-    FARRAYBOX divu_fab(state_strip,1);
+    FArrayBox divu_fab(state_strip,1);
     for ( ; divuFpi.isValid(); ++divuFpi)
     {
       divu_fab.copy(divuFpi());
@@ -1342,34 +1342,41 @@ Projection::initialVelocityProject (int  c_lev,
     MultiFab* phi[MAX_LEV];
     MultiFab* sig[MAX_LEV];
 
-    const int rho_comp = rho_wgt_vel_proj ? Density : 0;
-
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
-        MultiFab &P_old = LevelData[lev].get_old_data(Press_Type);
-        P_old.setVal(0);
+        LevelData[lev].get_old_data(Press_Type).setVal(0);
     }
 
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
         vel[lev] = &LevelData[lev].get_new_data(State_Type);
         phi[lev] = &LevelData[lev].get_old_data(Press_Type);
+
+        const int       nghost = 1;
+        const BoxArray& grids  = LevelData[lev].boxArray();
+        sig[lev]               = new MultiFab(grids,1,nghost);
+
         if (rho_wgt_vel_proj) 
         {
-            sig[lev] = &LevelData[lev].get_new_data(State_Type);
-        } 
+            LevelData[lev].get_new_data(State_Type).setBndry(BogusValue,Density,1);
+
+            parent->getLevel(lev).setPhysBoundaryValues(State_Type,Density,1);
+
+            MultiFab::Copy(*sig[lev],
+                           LevelData[lev].get_new_data(State_Type),
+                           Density,
+                           0,
+                           1,
+                           nghost);
+        }
         else 
         {
-            const int       nghost = 1;
-            const BoxArray& grids  = LevelData[lev].boxArray();
-            sig[lev] = new MultiFab(grids,1,nghost);
             sig[lev]->setVal(1,nghost);
         }
     }
     //
     // Set up outflow bcs.
     //
-
     if (hasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)
     {
         set_initial_projection_outflow_bcs(vel,sig,phi,c_lev,cur_divu_time);
@@ -1378,17 +1385,14 @@ Projection::initialVelocityProject (int  c_lev,
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
         vel[lev]->setBndry(BogusValue,Xvel,BL_SPACEDIM);
-        sig[lev]->setBndry(BogusValue,rho_comp,1);
         //
         // Set the physical boundary values.
         //
-        AmrLevel& amr_level   = parent->getLevel(lev);
-        const BoxArray& grids = amr_level.boxArray();
+        AmrLevel&       amr_level = parent->getLevel(lev);
+        const BoxArray& grids     = amr_level.boxArray();
+
         amr_level.setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM);
-        if (rho_wgt_vel_proj) 
-        {
-            amr_level.setPhysBoundaryValues(State_Type,Density,1);
-        }
+
         if (have_divu) 
         {
             int Divu_Type, Divu;
@@ -1410,8 +1414,8 @@ Projection::initialVelocityProject (int  c_lev,
     // Setup alias lib.
     //
     const Array<BoxArray>& full_mesh = sync_proj->mesh();
-    PArray<MultiFab> u_real[BL_SPACEDIM];
-    PArray<MultiFab> p_real(f_lev+1), s_real(f_lev+1);
+    PArray<MultiFab> u_real[BL_SPACEDIM], p_real(f_lev+1), s_real(f_lev+1);
+
     int n;
     for (n = 0; n < BL_SPACEDIM; n++) 
         u_real[n].resize(f_lev+1);
@@ -1430,27 +1434,14 @@ Projection::initialVelocityProject (int  c_lev,
             }
         }
         p_real.set(lev, phi[lev]);
-        if (rho_comp == 0) 
-        {
-            s_real.set(lev, sig[lev]);
-        }
-        else 
-        {
-            s_real.set(lev, new MultiFab(full_mesh[lev], 1, 1));
-
-            for (MultiFabIterator s_realmfi(s_real[lev]); s_realmfi.isValid();
-                ++s_realmfi)
-            {
-                DependentMultiFabIterator sigmfi(s_realmfi, *sig[lev]);
-                s_realmfi().copy(sigmfi(), rho_comp, 0);
-            }
-        }
+        s_real.set(lev, sig[lev]);
     }
     //
     // Project
     //
     const Real* dx_lev = parent->Geom(f_lev).CellSize();
-    if (!have_divu) 
+
+    if (!have_divu)
     {
         sync_proj->project(u_real, p_real, null_amr_real, s_real,
                            (Real*)dx_lev, proj_tol, c_lev, f_lev,proj_abs_tol);
@@ -1461,8 +1452,8 @@ Projection::initialVelocityProject (int  c_lev,
         const int nghost = 1; 
         for (lev = c_lev; lev <= f_lev; lev++) 
         {
-            AmrLevel& amr_level   = parent->getLevel(lev);
-            const BoxArray& grids = amr_level.boxArray();
+            AmrLevel&       amr_level = parent->getLevel(lev);
+            const BoxArray& grids     = amr_level.boxArray();
             rhs_cc[lev]  = new MultiFab(grids,1,nghost,Fab_allocate);
             MultiFab* rhslev = rhs_cc[lev];
             put_divu_in_cc_rhs(*rhslev,lev,grids,cur_divu_time);
@@ -1495,8 +1486,6 @@ Projection::initialVelocityProject (int  c_lev,
             }
             delete u_real[n].remove(lev);
         }
-        if (rho_comp != 0)
-            delete s_real.remove(lev);
     }
     //
     // Unscale initial projection variables.
@@ -1510,8 +1499,7 @@ Projection::initialVelocityProject (int  c_lev,
     // Delete sigma if not used later.
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
-        if (!rho_wgt_vel_proj) 
-            delete sig[lev];
+        delete sig[lev];
 
     stats.end();
 }
