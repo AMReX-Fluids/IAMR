@@ -19,13 +19,13 @@ include $(GUTHAMR_HOME)/mk/Make.defs
 HERE = .
 
 INCLUDE_LOCATIONS += $(HERE)
-INCLUDE_LOCATIONS += $(GUTHAMR_HOME)/include
+#INCLUDE_LOCATIONS += $(GUTHAMR_HOME)/include
 INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
 LIBRARY_LOCATIONS += ./graphtools
 
 # bsp parallel locations
 ifeq ($(USE_BSP),TRUE)
-DEFINES += BL_USE_BSP
+DEFINES += -DBL_USE_BSP
 BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
 INCLUDE_LOCATIONS += $(BSP_HOME)/include
 LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1
@@ -75,11 +75,13 @@ DEFINES += -DGUTHAMR
 ifdef 3RD
 # FOR RUNNING 3RD ONLY
 CXXFLAGS += --link_command_prefix 3rd
-CXXDEBF = +K0 --link_command_prefix 3rd
+#CXXDEBF = +K0 --link_command_prefix 3rd -non_shared
 LIBRARIES += -ldnet_stub
 FDEBF += -automatic
 # FOR RUNNING 3RD ONLY
 endif
+
+FC = f90  -u -extend_source
 
 CXXFLAGS +=
 CXXOPTF +=
@@ -97,7 +99,7 @@ include $(HERE)/Make.package
 
 vpath %.C :$(HERE)
 vpath %.F :$(HERE)
-vpath %.a :$(GUTHAMR_HOME)/lib/$(machineSuffix)
+#vpath %.a :$(GUTHAMR_HOME)/lib/$(machineSuffix)
 
 all: $(executable)
 #all: $(objForExecs) godzillaLink
