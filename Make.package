@@ -143,18 +143,10 @@ CEXE_sources += cache.cpp interface.cpp boundary.cpp interpolator.cpp \
 		hg_projector.cpp
 
 CEXE_headers += cache.H interface.H boundary.H interpolator.H restrictor.H \
-                fill_patch.H amr_graph.H amr_multi.H hg_multi.H \
-                hg_projector.H 
+                fill_patch.H amr_multi.H hg_multi.H hg_projector.H 
 
 FEXE_sources += amr_real$(DIM)d.F hg_multi$(DIM)d.F hg_proj$(DIM)d.F \
                 hg_avg$(DIM)d.F 
-endif
-
-ifeq ($(LBASE),ell)
-CEXE_sources += amr_multi.cpp hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
-		hg_elliptic.cpp amr_gravity.cpp
-CEXE_headers += amr_multi.H hg_multi.H hg_elliptic.H amr_gravity.H
-FEXE_sources += hg_multi$(DIM)d.F amr_grav$(DIM)d.F
 endif
 
 ifeq ($(USE_ARRAYVIEW),TRUE)

@@ -414,8 +414,6 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
   return res_norm;
 }
 
-//#include "amr_graph.H"
-
 Real amr_multigrid::ml_residual(int mglev, int lev)
 {
   if (lev > lev_min) {
