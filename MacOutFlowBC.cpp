@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.19 2002-10-15 17:34:43 car Exp $
+// $Id: MacOutFlowBC.cpp,v 1.20 2002-11-13 17:15:07 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -341,11 +341,7 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
         ParmParse pp("mac_mg");
 
         pp.query("v",verbose);
-        int use_cg;
-        pp.query("useCGbottomSolver",use_cg);
-
-        useCGbottomSolver = (use_cg > 0) ? true : false;
-
+        pp.query("useCGbottomSolver",useCGbottomSolver);
         pp.query("cg_tol",cg_tol);
         pp.query("cg_abs_tol",cg_abs_tol);
         pp.query("cg_max_jump",cg_max_jump);

@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.18 2002-10-15 17:34:43 car Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.19 2002-11-13 17:15:07 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -319,11 +319,7 @@ ProjOutFlowBC_MG::ProjOutFlowBC_MG (const Box& Domain,
         ParmParse pp("proj_mg");
 
         pp.query("v",verbose);
-        int use_cg;
-        pp.query("useCGbottomSolver",use_cg);
-
-        useCGbottomSolver = (use_cg > 0) ? true : false;
-
+        pp.query("useCGbottomSolver",useCGbottomSolver);
         pp.query("cg_tol",cg_tol);
         pp.query("cg_abs_tol",cg_abs_tol);
         pp.query("cg_max_jump",cg_max_jump);
