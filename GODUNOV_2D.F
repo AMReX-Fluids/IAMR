@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.37 2003-04-03 21:52:28 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.38 2003-04-04 17:30:55 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -2281,7 +2281,9 @@ c       Impose BCs on gamm.
           stem   = s(iup,j) + (isign*hx - uedge(i+1,j)*dt)*half*sx(iup,j)
 
 c         vaddif = dth*stem*(uedge(iup+1,j) - uedge(iup,j))/hx
-          vaddif = dth*stem*(divu(iup,j) - (vedge(iup,j+1)-vedge(iup,j))/hy)
+c         vaddif = dth*stem*(divu(iup,j) - (vedge(iup,j+1)-vedge(iup,j))/hy)
+c         Change per JBB - dont use stem here!
+          vaddif = dth*s(iup,j)*(divu(iup,j) - (vedge(iup,j+1)-vedge(iup,j))/hy)
 
           xstate(i+1,j) = stem - vdif - vaddif + dth*tforces(iup,j)
 
@@ -2364,7 +2366,9 @@ c       Impose BCs on gamm.
           stem   = s(i,jup) + (jsign*hy - vedge(i,j+1)*dt)*half*sy(i,jup)
 
 c         vaddif = dth*stem*(vedge(i,jup+1) - vedge(i,jup))/hy
-          vaddif = dth*stem*(divu(i,jup) - (uedge(i+1,jup)-uedge(i,jup))/hx)
+c         vaddif = dth*stem*(divu(i,jup) - (uedge(i+1,jup)-uedge(i,jup))/hx)
+c         Change per JBB - dont use stem here!
+          vaddif = dth*s(i,jup)*(divu(i,jup) - (uedge(i+1,jup)-uedge(i,jup))/hx)
 
           ystate(i,j+1) = stem - vdif - vaddif + dth*tforces(i,jup)
 
