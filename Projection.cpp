@@ -1,6 +1,6 @@
 
 //
-// $Id: Projection.cpp,v 1.26 1998-02-05 00:39:21 car Exp $
+// $Id: Projection.cpp,v 1.27 1998-02-17 23:02:16 car Exp $
 //
 
 #ifdef BL_T3E
@@ -467,7 +467,7 @@ Projection::level_project(int level,
   else 
   {
     // for general divu
-    int use_u = 1;
+    bool use_u = true;
     const int ngrids = grids.length();
     int nghost = 1; // required by aliaslib--rbp
     MultiFab rhs_cc(grids,1,nghost,Fab_allocate);
@@ -648,7 +648,7 @@ void Projection::harmonic_project(int level, Real dt, Real cur_pres_time,
 
   // project
   //----------------------------------------------------------
-  int use_u = 0;
+  bool use_u = false;
   sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                             use_u, (Real*)dx,
                             proj_tol, level, level, proj_abs_error);
@@ -767,7 +767,7 @@ void Projection::syncProject(int c_lev, MultiFab & pres, MultiFab & vel,
   //  if use_u = 1, then solves DGphi = RHS + DV
   //  both return phi and (V-Gphi) as V
   //----------------------------------------------------------
-  int use_u = 1;
+  bool use_u = true;
   sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                             use_u, (Real*)dx,
                             sync_tol, c_lev, c_lev, proj_abs_error);
@@ -944,7 +944,7 @@ void Projection::MLsyncProject(int c_lev,
   //  if use_u = 1, then solves DGphi = RHS + DV
   //  both return phi and (V-Gphi) as V
   // -------------------------------------------------------------
-  int use_u            = 1;
+  bool use_u            = true;
   Real local_sync_tol  = sync_tol/pow(10.0,c_lev);
   Real local_abs_error = proj_abs_error/pow(10.0,c_lev);
   const Real* dx_fine  = parent->Geom(c_lev+1).CellSize();
@@ -1221,7 +1221,7 @@ void Projection::initialVelocityProject(int c_lev,
       rhslev->mult(-1.0,0,1,nghost);
       radMult(lev,*rhslev,0); 
     }
-    int use_u = 1;
+    bool use_u = true;
     PArray<MultiFab> rhs_real(f_lev+1);
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
@@ -1476,7 +1476,7 @@ void Projection::initialSyncProject(int c_lev, MultiFab *sig[], Real dt,
   {
     // general divu
 
-    int use_u = 1;
+    bool use_u = true;
     PArray<MultiFab> rhs_real(f_lev+1);
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
