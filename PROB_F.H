@@ -2,7 +2,7 @@
 #define _PROB_F_H_
 
 /*
-** $Id: PROB_F.H,v 1.7 1999-02-25 17:35:38 car Exp $
+** $Id: PROB_F.H,v 1.8 1999-08-25 18:04:04 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -24,7 +24,7 @@
 #endif
 
 #ifdef BL_LANG_CC
-#  ifdef BL_FORT_USE_UPPERCASE
+#  if  defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_INITDATA    INITDATA
 #    define FORT_DENFILL     DENFILL
 #    define FORT_ADVFILL     ADVFILL
@@ -39,7 +39,22 @@
 #    define FORT_ADVERROR    ADVERROR
 #    define FORT_TEMPERROR   TEMPERROR
 #    define FORT_MVERROR     MVERROR
-#  else
+#  elif defined(BL_FORT_USE_LOWERCASE)
+#    define FORT_INITDATA    initdata
+#    define FORT_DENFILL     denfill
+#    define FORT_ADVFILL     advfill
+#    define FORT_XVELFILL    xvelfill
+#    define FORT_YVELFILL    yvelfill
+#    define FORT_ZVELFILL    zvelfill
+#    define FORT_PRESFILL    presfill
+#    define FORT_TEMPFILL    tempfill
+#    define FORT_DIVUFILL    divufill
+#    define FORT_DSDTFILL    dsdtfill
+#    define FORT_DENERROR    denerror
+#    define FORT_ADVERROR    adverror
+#    define FORT_TEMPERROR   temperror
+#    define FORT_MVERROR     mverror
+#  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_INITDATA    initdata_
 #    define FORT_DENFILL     denfill_
 #    define FORT_ADVFILL     advfill_

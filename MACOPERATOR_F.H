@@ -2,7 +2,7 @@
 #define _MACOPERATOR_F_H_
 
 /*
-** $Id: MACOPERATOR_F.H,v 1.6 1999-06-14 23:51:58 almgren Exp $
+** $Id: MACOPERATOR_F.H,v 1.7 1999-08-25 18:04:04 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -13,12 +13,17 @@
 #endif
 
 #ifdef BL_LANG_CC
-#  ifdef BL_FORT_USE_UPPERCASE
+#  if  defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_MACCOEF       MACCOEF
 #    define FORT_MACRHS        MACRHS
 #    define FORT_MACUPDATE     MACUPDATE
 #    define FORT_MACSYNCRHS    MACSYNCRHS
-#  else
+#  elif defined(BL_FORT_USE_LOWERCASE)
+#    define FORT_MACCOEF       maccoef
+#    define FORT_MACRHS        macrhs
+#    define FORT_MACUPDATE     macupdate
+#    define FORT_MACSYNCRHS    macsyncrhs
+#  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_MACCOEF       maccoef_
 #    define FORT_MACRHS        macrhs_
 #    define FORT_MACUPDATE     macupdate_

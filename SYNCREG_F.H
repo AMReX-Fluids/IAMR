@@ -2,7 +2,7 @@
 #define _SYNCREG_F_H_
 
 /*
-** $Id: SYNCREG_F.H,v 1.9 1999-08-03 07:15:00 almgren Exp $
+** $Id: SYNCREG_F.H,v 1.10 1999-08-25 18:04:05 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -12,11 +12,15 @@
 #endif
 
 #ifdef BL_LANG_CC
-#  ifdef BL_FORT_USE_UPPERCASE
+#  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_SRCRSEREG   SRCRSEREG
 #    define FORT_MAKEMASK    MAKEMASK
 #    define FORT_CONVERTMASK CONVMASK
-#  else
+#  elif defined(BL_FORT_USE_LOWERCASE)
+#    define FORT_SRCRSEREG   srcrsereg
+#    define FORT_MAKEMASK    makemask
+#    define FORT_CONVERTMASK convmask
+#  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_SRCRSEREG   srcrsereg_
 #    define FORT_MAKEMASK    makemask_
 #    define FORT_CONVERTMASK convmask_

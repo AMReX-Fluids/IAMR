@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.6 1998-09-30 20:40:59 lijewski Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.7 1999-08-25 18:04:04 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -17,7 +17,7 @@
 #endif
 
 #ifdef BL_LANG_CC
-#  ifdef BL_FORT_USE_UPPERCASE
+#  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_FILCC       FILCC
 #    define FORT_GRADP       GRADP
 #    define FORT_AVGDOWN     AVGDOWN
@@ -26,7 +26,16 @@
 #    define FORT_INCRMULT    INCRMULT
 #    define FORT_SUMMASS     SUMMASS
 #    define FORT_SUMMASSSQ   SUMMASSSQ
-#  else
+#  elif defined(BL_FORT_USE_LOWERCASE)
+#    define FORT_FILCC       filcc
+#    define FORT_GRADP       gradp
+#    define FORT_AVGDOWN     avgdown
+#    define FORT_PUTDOWN     putdown
+#    define FORT_TESTINJECT  testinject
+#    define FORT_INCRMULT    incrmult
+#    define FORT_SUMMASS     summass
+#    define FORT_SUMMASSSQ   summasssq
+#  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_FILCC       filcc_
 #    define FORT_GRADP       gradp_
 #    define FORT_AVGDOWN     avgdown_

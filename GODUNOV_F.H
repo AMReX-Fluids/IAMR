@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.6 1999-06-30 23:18:41 propp Exp $
+** $Id: GODUNOV_F.H,v 1.7 1999-08-25 18:04:04 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -26,7 +26,7 @@
 #endif
 
 #ifdef BL_LANG_CC
-#  ifdef BL_FORT_USE_UPPERCASE
+#  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_TEST_U_RHO         TESTURHO 
 #    define FORT_TEST_UMAC_RHO      TESTUMACRHO
 #    define FORT_ESTDT              ESTDT 
@@ -44,7 +44,25 @@
 #    define FORT_SUM_TF_GP          SUMTFGP 
 #    define FORT_SUM_TF_DIVU        SUMTFDIVU 
 #    define FORT_SET_PARAMS         SETPARAMS
-#  else
+#  elif defined(BL_FORT_USE_LOWERCASE)
+#    define FORT_TEST_U_RHO         testurho
+#    define FORT_TEST_UMAC_RHO      testumacrho
+#    define FORT_ESTDT              estdt
+#    define FORT_TRANSVEL           transvel
+#    define FORT_ESTATE             estate
+#    define FORT_ADV_FORCING        advforcing
+#    define FORT_SYNC_ADV_FORCING   syncadvforcing
+#    define FORT_SCALMINMAX         scalminmax
+#    define FORT_UPDATE_TF          updatetf
+#    define FORT_CORRECT_TF         correcttf
+#    define FORT_UPDATE_AOFS_TF     updateaofstf
+#    define FORT_UPDATE_AOFS_TF_GP  updateaofstfgp
+#    define FORT_SUM_TF_GP_VISC     sumtfgpvisc
+#    define FORT_SUM_TF_DIVU_VISC   sumtfdivuvisc
+#    define FORT_SUM_TF_GP          sumtfgp
+#    define FORT_SUM_TF_DIVU        sumtfdivu
+#    define FORT_SET_PARAMS         setparams
+#  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_TEST_U_RHO         testurho_
 #    define FORT_TEST_UMAC_RHO      testumacrho_
 #    define FORT_ESTDT              estdt_

@@ -2,7 +2,7 @@
 #define _DERIVE_F_H
 
 /*
-** $Id: DERIVE_F.H,v 1.12 1999-07-02 16:04:40 sstanley Exp $
+** $Id: DERIVE_F.H,v 1.13 1999-08-25 18:04:03 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -26,7 +26,7 @@
 #endif
 
 #ifdef BL_LANG_CC
-#  ifdef BL_FORT_USE_UPPERCASE
+#  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_DERKENG     DERKENG
 #    define FORT_DERMGVORT   DERMGVORT
 #    define FORT_DERVORT     DERVORT
@@ -44,7 +44,26 @@
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    DERGRDPZ
 #endif
-#  else
+#  elif defined (BL_FORT_USE_LOWERCASE)
+#    define FORT_GRADP_DIR   gradpdir
+#    define FORT_DERKENG     derkeng
+#    define FORT_DERMGVORT   dermgvort
+#    define FORT_DERVORT     dervort
+#    define FORT_DERMVEL     dermvel
+#    define FORT_DERLOGS     derlogs
+#    define FORT_DERDVRHO    derdvrho
+#    define FORT_DERMPRHO    dermprho
+#    define FORT_DERLGRHODUST   derlgrc
+#    define FORT_DERMGDIVU   dermgdivu
+#    define FORT_GRADP_DIR   gradpdir
+#    define FORT_DERAVGPRES  deravgpres
+#    define FORT_DERGRDP     dergrdp
+#    define FORT_DERGRDPX    dergrdpx
+#    define FORT_DERGRDPY    dergrdpy
+#if (BL_SPACEDIM == 3)
+#    define FORT_DERGRDPZ    dergrdpz
+#endif
+#  elif defined (BL_FORT_USE_UNDERSCORE)
 #    define FORT_GRADP_DIR   gradpdir_
 #    define FORT_DERKENG     derkeng_
 #    define FORT_DERMGVORT   dermgvort_

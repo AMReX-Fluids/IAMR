@@ -2,7 +2,7 @@
 #define _DIFFUSION_F_H
 
 /*
-** $Id: DIFFUSION_F.H,v 1.10 1999-02-25 20:16:12 propp Exp $
+** $Id: DIFFUSION_F.H,v 1.11 1999-08-25 18:04:03 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -21,7 +21,7 @@
 #endif
 
 #ifdef BL_LANG_CC
-#  ifdef BL_FORT_USE_UPPERCASE
+#  if  defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_VISCFLUX_VC      VSCFLXVC
 #    define FORT_VISCFLUX_CC      VSCFLXCC
 #    define FORT_VISCSYNCFLUX     VISCSYNCFLUX
@@ -34,7 +34,20 @@
 #    define FORT_DIV_VARMU_SI     DIVVARMUSI
 #    define FORT_DIV_MU_SI        DIVMUUSII
 #    define FORT_CCTOEDGE         CCTOEDGE
-#  else
+#  elif defined(BL_FORT_USE_LOWERCASE)
+#    define FORT_VISCFLUX_VC      vscflxvc
+#    define FORT_VISCFLUX_CC      vscflxcc
+#    define FORT_VISCSYNCFLUX     viscsyncflux
+#    define FORT_HOOPSRC          hoopsrc
+#    define FORT_HOOPRHS          hooprhs
+#    define FORT_TENSOR_HOOPSRC   tensorhoopsrc
+#    define FORT_TENSOR_HOOPRHS   tensorhooprhs
+#    define FORT_SETALPHA         setalpha
+#    define FORT_SET_TENSOR_ALPHA settensoralpha
+#    define FORT_DIV_VARMU_SI     divvarmusi
+#    define FORT_DIV_MU_SI        divmuusii
+#    define FORT_CCTOEDGE         cctoedge
+#  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_VISCFLUX_VC      vscflxvc_
 #    define FORT_VISCFLUX_CC      vscflxcc_
 #    define FORT_VISCSYNCFLUX     viscsyncflux_

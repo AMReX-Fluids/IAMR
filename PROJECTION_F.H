@@ -2,7 +2,7 @@
 #define _PROJECTION_F_H_ 
 
 /*
-** $Id: PROJECTION_F.H,v 1.14 1999-07-27 00:09:36 propp Exp $
+** $Id: PROJECTION_F.H,v 1.15 1999-08-25 18:04:04 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -18,7 +18,7 @@
 #endif
 
 #ifdef BL_LANG_CC
-#  ifdef BL_FORT_USE_UPPERCASE
+#  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_FILTERP       FILTERP
 #    define FORT_VEL_TO_ACCEL  VELTOACCEL
 #    define FORT_ACCEL_TO_VEL  ACCELTOVEL
@@ -28,7 +28,17 @@
 #    define FORT_HGC2N         HGC2N
 #    define FORT_HGN2C         HGN2C
 #    define FORT_FILTRHS       FILTRHS
-#  else
+#  elif defined(BL_FORT_USE_LOWERCASE)
+#    define FORT_FILTERP       filterp
+#    define FORT_VEL_TO_ACCEL  veltoaccel
+#    define FORT_ACCEL_TO_VEL  acceltovel
+#    define FORT_PROJ_UPDATE   projupdate
+#    define FORT_RADMPY        radmpy
+#    define FORT_RADDIV        raddiv
+#    define FORT_HGC2N         hgc2n
+#    define FORT_HGN2C         hgn2c
+#    define FORT_FILTRHS       filtrhs
+#  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_FILTERP       filterp_
 #    define FORT_VEL_TO_ACCEL  veltoaccel_
 #    define FORT_ACCEL_TO_VEL  acceltovel_

@@ -16,7 +16,7 @@
 #endif
 
 #ifdef BL_LANG_CC
-#  ifdef BL_FORT_USE_UPPERCASE
+#  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_MACPHIBC    MACPHIBC
 #    define FORT_EXTRAP_MAC  EXTRAPMAC
 #    define FORT_COMPUTE_MACCOEFF COMPUTEMACCOEFF
@@ -28,7 +28,19 @@
 #  define FORT_COARSIGMA    COARSIGMA
 #  define FORT_RESTRICT     COARSRES
 #  define FORT_INTERPOLATE  INTERP
-#  else
+#  elif defined(BL_FORT_USE_LOWERCASE)
+#    define FORT_MACPHIBC    macphibc
+#    define FORT_EXTRAP_MAC  extrapmac
+#    define FORT_COMPUTE_MACCOEFF computemaccoeff
+#    define FORT_MACRELAX       macrelax
+#    define FORT_MACTRANSLATE     mactranslate
+#    define FORT_MACRESID        macresid
+#    define FORT_MACSUBTRACTAVGPHI macsubtractavgphi
+#    define FORT_SOLVEMAC         solvemac
+#  define FORT_COARSIGMA    coarsigma
+#  define FORT_RESTRICT     coarsres
+#  define FORT_INTERPOLATE  interp
+#  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_MACPHIBC    macphibc_
 #    define FORT_EXTRAP_MAC  extrapmac_
 #    define FORT_COMPUTE_MACCOEFF computemaccoeff_

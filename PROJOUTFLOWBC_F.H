@@ -16,7 +16,7 @@
 #endif
 
 #ifdef BL_LANG_CC
-#  ifdef BL_FORT_USE_UPPERCASE
+#  if  defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_HGPHIBC       HGPHIBC
 #    define FORT_EXTRAP_PROJ   EXTRAPPROJ
 #    define FORT_COMPUTE_COEFF COMPUTECOEFF
@@ -28,7 +28,19 @@
 #  define FORT_COARSIG     COARSIGB
 #  define FORT_RESTRICT    COARSRESB
 #  define FORT_INTERP      INTERPHG
-#  else
+#  elif defined(BL_FORT_USE_LOWERCASE)
+#    define FORT_HGPHIBC       hgphibc
+#    define FORT_EXTRAP_PROJ   extrapproj
+#    define FORT_COMPUTE_COEFF computecoeff
+#    define FORT_HGRELAX       hgrelax
+#    define FORT_HGTRANSLATE   hgtranslate
+#    define FORT_HGRESID       hgresid
+#    define FORT_HGSUBTRACTAVGPHI hgsubtractavgphi
+#    define FORT_SOLVEHG        solvehg
+#  define FORT_COARSIG     coarsigb
+#  define FORT_RESTRICT    coarsresb
+#  define FORT_INTERP      interphg
+#  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_HGPHIBC       hgphibc_
 #    define FORT_EXTRAP_PROJ   extrapproj_
 #    define FORT_COMPUTE_COEFF computecoeff_
