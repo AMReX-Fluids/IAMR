@@ -1,5 +1,5 @@
 c
-c $Id: SLABSTAT_NS_2D.F,v 1.4 2000-07-19 16:48:24 sstanley Exp $
+c $Id: SLABSTAT_NS_2D.F,v 1.5 2000-07-19 19:22:51 sstanley Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -61,7 +61,7 @@ c
       integer loStats(SDIM), hiStats(SDIM)
       integer loState(SDIM), hiState(SDIM)
 
-      PARAMETER (nStateExpect = 5, nStatsExpect = 40, nGhostExpect = 0)
+      PARAMETER (nStateExpect = 5, nStatsExpect = 24, nGhostExpect = 0)
 
 c
 c     ===================================
@@ -115,7 +115,7 @@ c
       do j = loStats(2), hiStats(2)
         do i = loStats(1), hiStats(1)
           num = 1
-          do n = 1, 4
+          do n = 1, 2
             runStats(i,j,num) = runStats(i,j,num) + dt * state(i,j,Rho)**n
             runStats(i,j,num+1) = runStats(i,j,num+1) + dt * state(i,j,xVel)**n
             runStats(i,j,num+2) = runStats(i,j,num+2) + dt * state(i,j,Rho) 
@@ -213,7 +213,7 @@ c
       integer loState(SDIM), hiState(SDIM)
       REAL_T tracer
 
-      PARAMETER (nStateExpect = 5, nStatsExpect = 40, nGhostExpect = 0)
+      PARAMETER (nStateExpect = 5, nStatsExpect = 24, nGhostExpect = 0)
 
 c
 c     ===================================
@@ -269,7 +269,7 @@ c
           num = 1
 
           tracer = state(i,j,RhoTrac) / state(i,j,Rho)
-          do n = 1, 4
+          do n = 1, 2
             runStats(i,j,num) = runStats(i,j,num) + dt * state(i,j,Rho)**n
             runStats(i,j,num+1) = runStats(i,j,num+1) + dt * state(i,j,xVel)**n
             runStats(i,j,num+2) = runStats(i,j,num+2) + dt * state(i,j,Rho)
