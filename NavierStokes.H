@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.79 2003-02-18 22:02:37 almgren Exp $
+// $Id: NavierStokes.H,v 1.80 2003-02-19 18:39:36 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -221,6 +221,14 @@ public:
     // Public so MacProj can access it.
     //
     virtual void SetGodunov ();
+
+    //
+    // Returns the value of "gravity" for use in the projection outflow bcs.
+    //
+    Real getGravity () 
+    {
+      return gravity;
+    }
 
 protected:
 
