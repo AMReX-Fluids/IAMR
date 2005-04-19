@@ -3,7 +3,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.14 2004-09-10 17:32:19 almgren Exp $
+// $Id: Godunov.H,v 1.15 2005-04-19 21:22:58 almgren Exp $
 //
 //
 // A useful enumeration of the forms for the advective terms
@@ -164,11 +164,14 @@ public:      // public access functions
                           int sync_ind, int iconserv );
     
     // correct a conservatively-advected scalar for under-over shoots
-    void ConservativeScalMinMax( FArrayBox &Sold, FArrayBox &Snew, int ind, 
+    void ConservativeScalMinMax( FArrayBox &Sold, FArrayBox &Snew, 
+                                 int ind_old_s, int ind_old_rho,
+                                 int ind_new_s, int ind_new_rho,
                                  const int *bc, const Box &grd );
 
     // correct a convectively-advected scalar for under-over shoots
-    void ConvectiveScalMinMax( FArrayBox &Sold, FArrayBox &Snew, int ind, 
+    void ConvectiveScalMinMax( FArrayBox &Sold, FArrayBox &Snew, 
+                               int ind_old, int ind_new,
                                const int *bc, const Box &grd );
 
     // =============================================================

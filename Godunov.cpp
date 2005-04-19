@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.36 2005-04-19 19:45:03 almgren Exp $
+// $Id: Godunov.cpp,v 1.37 2005-04-19 21:22:58 almgren Exp $
 //
 
 //
@@ -949,7 +949,10 @@ Godunov::ComputeSyncAofs (const Box& grd,
 void
 Godunov::ConservativeScalMinMax (FArrayBox& Sold,
                                  FArrayBox& Snew,
-                                 int        ind, 
+                                 int        ind_old_s, 
+                                 int        ind_old_rho, 
+                                 int        ind_new_s, 
+                                 int        ind_new_rho, 
                                  const int* bc,
                                  const Box& grd)
 {
@@ -957,10 +960,10 @@ Godunov::ConservativeScalMinMax (FArrayBox& Sold,
     const int *shi        = Sold.hiVect();
     const int *lo         = grd.loVect();
     const int *hi         = grd.hiVect();
-    const Real *Sold_dat  = Sold.dataPtr(ind);
-    const Real *Snew_dat  = Snew.dataPtr(ind);
-    const Real *Rho_dat   = Sold.dataPtr(BL_SPACEDIM);
-    const Real *Rhon_dat  = Snew.dataPtr(BL_SPACEDIM);
+    const Real *Sold_dat  = Sold.dataPtr(ind_old_s);
+    const Real *Snew_dat  = Snew.dataPtr(ind_new_s);
+    const Real *Rho_dat   = Sold.dataPtr(ind_old_rho);
+    const Real *Rhon_dat  = Snew.dataPtr(ind_new_rho);
 
 #if (BL_SPACEDIM == 3)
     Box flatbox(grd);
@@ -987,7 +990,8 @@ Godunov::ConservativeScalMinMax (FArrayBox& Sold,
 void
 Godunov::ConvectiveScalMinMax (FArrayBox& Sold,
                                FArrayBox& Snew,
-                               int        ind, 
+                               int        ind_old, 
+                               int        ind_new, 
                                const int* bc,
                                const Box& grd)
 {
@@ -997,8 +1001,8 @@ Godunov::ConvectiveScalMinMax (FArrayBox& Sold,
     const int *snhi       = Snew.hiVect();
     const int *lo         = grd.loVect();
     const int *hi         = grd.hiVect();
-    const Real *Sold_dat  = Sold.dataPtr(ind);
-    const Real *Snew_dat  = Snew.dataPtr(ind);
+    const Real *Sold_dat  = Sold.dataPtr(ind_old);
+    const Real *Snew_dat  = Snew.dataPtr(ind_new);
 
 #if (BL_SPACEDIM == 3)
     Box flatbox(grd);
@@ -1012,7 +1016,7 @@ Godunov::ConvectiveScalMinMax (FArrayBox& Sold,
 
     FORT_CONVSCALMINMAX (Sold_dat, 
                          ARLIM(slo), ARLIM(shi),
-                         Snew_dat, 
+                         Snew_dat,
                          ARLIM(snlo), ARLIM(snhi),
 #if (BL_SPACEDIM == 3)
                          smin_dat, smax_dat,

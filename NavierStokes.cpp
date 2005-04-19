@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.248 2005-01-26 23:02:52 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.249 2005-04-19 21:22:58 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2083,31 +2083,87 @@ NavierStokes::scalar_advection_update (Real dt,
             tforces.setVal(0);
             godunov->Add_aofs_tf(S_old[S_oldmfi],S_new[S_oldmfi],Density,1,
                                  Aofs[S_oldmfi],Density,tforces,0,grids[i],dt);
-//          ADD MINMAX FOR DENSITY
-//          state_bc = getBCArray(State_Type,i,Density,1);
-//          godunov->ConvectiveScalMinMax(S_old[S_oldmfi],S_new[S_oldmfi],Density,
-//                                        state_bc.dataPtr(),grids[i]);
         }
+#if 0
+        // Call ScalMinMax to avoid overshoots in density
+        if (do_denminmax) {
+
+          // Must do FillPatch here instead of MF iterator because we need the
+          //  boundary values in the old data (especially at inflow)
+
+          int index_new_s   = Density;
+          int index_new_rho = Density;
+          int index_old_s   = index_new_s   - Density;
+          int index_old_rho = index_new_rho - Density;
+
+          for (FillPatchIterator
+               S_fpi(*this,S_old,1,prev_time,State_Type,Density,1);
+               S_fpi.isValid(); ++S_fpi)
+           {
+              const int i = S_fpi.index();
+              state_bc = getBCArray(State_Type,i,Density,1);
+              godunov->ConservativeScalMinMax(S_fpi(),S_new[S_fpi],
+                                              index_old_s, index_old_rho,
+                                              index_new_s, index_new_rho,
+                                              state_bc.dataPtr(),grids[i]);
+           }
+        }
+#endif
         ++sComp;
     }
 
     if (sComp <= last_scalar)
     {
         const MultiFab& halftime = *get_rho_half_time();
-
         for (MFIter Rho_mfi(halftime); Rho_mfi.isValid(); ++Rho_mfi)
         {
             const int i = Rho_mfi.index();
-
             for (int sigma = sComp; sigma <= last_scalar; sigma++)
             {
                 getForce(tforces,i,0,sigma,1,halftime[Rho_mfi]);
-                
                 godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
                                      Aofs[Rho_mfi],sigma,tforces,0,grids[i],dt);
             }
         }
     }
+
+#if 0
+    // Call ScalMinMax to avoid overshoots in the scalars 
+    if ( do_scalminmax && (sComp <= last_scalar) )
+    {
+        int num_scalars = last_scalar - Density + 1;
+
+        // Must do FillPatch here instead of MF iterator because we need the
+        //  boundary values in the old data (especially at inflow)
+
+        for (FillPatchIterator
+             S_fpi(*this,S_old,1,prev_time,State_Type,Density,num_scalars);
+             S_fpi.isValid(); ++S_fpi)
+        {
+            const int i = S_fpi.index();
+            for (int sigma = sComp; sigma <= last_scalar; sigma++)
+            {
+              int index_new_s   = sigma;
+              int index_new_rho = Density;
+              int index_old_s   = index_new_s   - Density;
+              int index_old_rho = index_new_rho - Density;
+              state_bc = getBCArray(State_Type,i,sigma,1);
+              if (advectionType[sigma] == Conservative)
+              {
+                  godunov->ConservativeScalMinMax(S_fpi(),S_new[S_fpi],
+                                                  index_old_s, index_old_rho,
+                                                  index_new_s, index_new_rho,
+                                                  state_bc.dataPtr(),grids[i]);
+              }
+              else if (advectionType[sigma] == NonConservative)
+              {
+                  godunov->ConvectiveScalMinMax(S_fpi(),S_new[S_fpi],index_old_s,sigma,
+                                                state_bc.dataPtr(),grids[i]);
+              }
+            }
+        }
+    }
+#endif
 }
 
 void
