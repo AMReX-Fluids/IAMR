@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.15 2004-09-10 17:32:19 almgren Exp $
+** $Id: GODUNOV_F.H,v 1.16 2005-04-19 19:45:03 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -248,8 +248,10 @@ extern "C"
 			      const Real* vol_dat, ARLIM_P(v_lo),ARLIM_P(v_hi),
 			      const int* lo, const int* hi, int* iconserv);
    
-   void FORT_CONVSCALMINMAX (const Real* Sold_dat, const Real* Snew_dat, 
+   void FORT_CONVSCALMINMAX (const Real* Sold_dat, 
                              ARLIM_P(slo), ARLIM_P(shi),
+                             const Real* Snew_dat, 
+                             ARLIM_P(snlo), ARLIM_P(snhi),
 #if (BL_SPACEDIM == 3)
 			     const Real* smin_dat, const Real* smax_dat,
 			     ARLIM_P(lo),ARLIM_P(hi),

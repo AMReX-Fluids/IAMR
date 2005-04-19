@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.35 2004-09-10 17:32:19 almgren Exp $
+// $Id: Godunov.cpp,v 1.36 2005-04-19 19:45:03 almgren Exp $
 //
 
 //
@@ -993,6 +993,8 @@ Godunov::ConvectiveScalMinMax (FArrayBox& Sold,
 {
     const int *slo        = Sold.loVect();
     const int *shi        = Sold.hiVect();
+    const int *snlo       = Snew.loVect();
+    const int *snhi       = Snew.hiVect();
     const int *lo         = grd.loVect();
     const int *hi         = grd.hiVect();
     const Real *Sold_dat  = Sold.dataPtr(ind);
@@ -1008,8 +1010,10 @@ Godunov::ConvectiveScalMinMax (FArrayBox& Sold,
     const Real *smax_dat = smax.dataPtr(); 
 #endif
 
-    FORT_CONVSCALMINMAX (Sold_dat, Snew_dat, 
+    FORT_CONVSCALMINMAX (Sold_dat, 
                          ARLIM(slo), ARLIM(shi),
+                         Snew_dat, 
+                         ARLIM(snlo), ARLIM(snhi),
 #if (BL_SPACEDIM == 3)
                          smin_dat, smax_dat,
                          ARLIM(lo), ARLIM(hi),
