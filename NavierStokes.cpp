@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.249 2005-04-19 21:22:58 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.250 2005-05-20 17:03:35 almgren Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -2989,12 +2989,8 @@ NavierStokes::estTimeStep ()
 	estdt = std::min(estdt,dt);
     }
     //
-    // Parallel reductions.
+    // Parallel reduction.
     //
-    for (int k = 0; k < BL_SPACEDIM; k++)
-    {
-        ParallelDescriptor::ReduceRealMax(u_max[k]);
-    }
     ParallelDescriptor::ReduceRealMin(estdt);
 
     if (verbose && ParallelDescriptor::IOProcessor())
@@ -3005,21 +3001,6 @@ NavierStokes::estTimeStep ()
             std::cout << u_max[k] << "  ";
         std::cout << '\n';
     }
-    Real vel_max = u_max[0];
-    for (int k = 1; k < BL_SPACEDIM; k++)
-    {
-        vel_max = std::max(vel_max,u_max[k]);
-    }
-    if (vel_max < 1.0e-10)
-    {
-        const Real grav   = std::abs(gravity);
-        Real       dx_min = dx[0];
-        vel_max           = (grav > 1.0e-5) ? grav : 1.0;
-        for (int k = 1; k < BL_SPACEDIM; k++)
-            dx_min = std::min(dx_min,dx[k]);
-        estdt = cfl*dx_min/vel_max;
-    }
-
     return estdt;
 }
 
