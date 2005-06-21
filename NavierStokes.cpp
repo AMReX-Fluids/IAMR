@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.250 2005-05-20 17:03:35 almgren Exp $
+// $Id: NavierStokes.cpp,v 1.251 2005-06-21 21:42:52 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -128,7 +128,6 @@ Real NavierStokes::divu_relax_factor   = 0.0;
 int  NavierStokes::num_state_type = 2;     // for backward compatibility
 
 int  NavierStokes::do_divu_sync = 0;       // for debugging new correction to MLSP
-
 
 static
 BoxArray
@@ -2725,6 +2724,8 @@ NavierStokes::writePlotFile (const std::string& dir,
                              std::ostream&  os,
                              VisMF::How     how)
 {
+    if ( ! Amr::Plot_Files_Output() ) return;
+
     int i, n;
     //
     // The list of indices of State to write to plotfile.
