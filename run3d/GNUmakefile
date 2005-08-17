@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.27 2004-12-04 05:31:57 car Exp $
+# $Id: GNUmakefile,v 1.28 2005-08-17 17:13:40 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -20,6 +20,8 @@ USE_MPI   = TRUE
 USE_MPI   = FALSE
 NAMESPACE = TRUE
 NAMESPACE = FALSE
+USE_FLCTS = TRUE
+USE_FLCTS = FALSE
 #STRICTLY  = TRUE
 #
 # Hypre support
@@ -34,10 +36,12 @@ USE_HYPRE=FALSE
 USE_HGPROJ_SERIAL = TRUE
 USE_HGPROJ_SERIAL = FALSE
 
-
 USE_VAMPIRE = TRUE
 USE_VAMPIRE = FALSE
 
+ifeq (${USE_FLCTS}, TRUE)
+  DEFINES += -DBL_DO_FLCT
+endif
 
 ifeq ($(USE_HGPROJ_SERIAL),TRUE)
   #
@@ -73,6 +77,7 @@ ifeq ($(BUILD_INPLACE), TRUE)
   include $(TOP)/hgproj/Make.package
   include $(TOP)/BoxLib/Make.package
   INCLUDE_LOCATIONS += .
+  INCLUDE_LOCATIONS += $(TOP)/iamrlib/InflowForce
   INCLUDE_LOCATIONS += $(TOP)/iamrlib
   INCLUDE_LOCATIONS += $(TOP)/mglib
   INCLUDE_LOCATIONS += $(TOP)/tensorMG
@@ -195,10 +200,10 @@ ifeq ($(BUILD_INPLACE), TRUE)
   vpath_F   += $(TOP)/BoxLib
   vpath_f   += $(TOP)/BoxLib
   vpath %.cpp $(vpath_cpp)
-  vpath %.H   $(vpath_H)
+  vpath %.H   $(vpath_H) $(TOP)/iamrlib/InflowForce
   vpath %.FH  $(vpath_FH)
   vpath %.h   $(vpath_h)
-  vpath %.F   $(vpath_F)
+  vpath %.F   $(vpath_F) $(TOP)/iamrlib/InflowForce
   vpath %.f   $(vpath_f)
 else
   vpath %.H   ..
