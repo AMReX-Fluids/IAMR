@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.29 2005-09-07 19:03:12 car Exp $
+# $Id: GNUmakefile,v 1.30 2005-09-07 19:23:37 car Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -64,6 +64,18 @@ ifeq ($(USE_HGPROJ_SERIAL),TRUE)
 else
   Bdirs += hgproj
 endif
+ifeq ($(USE_HYPRE),TRUE)
+  Bdirs   += HypreABec
+  HYPRE_DIR=$(HOME)/amr/hypre
+  INCLUDE_LOCATIONS += $(HYPRE_DIR)/include
+  LIBRARY_LOCATIONS += $(HYPRE_DIR)/lib
+  LIBRARIES += -lHYPRE_struct_ls -lHYPRE_struct_mv -lHYPRE_blas -lHYPRE_utilities
+  DEFINES += -DMG_USE_HYPRE
+endif
+ifeq ($(USE_METIS),TRUE)
+  Bdirs += metis-4.0/Lib
+  DEFINES += -DBL_USE_METIS
+endif
 
 Bpack	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
@@ -93,23 +105,5 @@ vpath %.f90 $(VPATH_LOCATIONS)
 all: $(executable)
 
 $(executable): $(LIBRARIES)
-
-#
-# Create MS-IDE dsp file to build this project
-#
-DspOlevel = 1
-DspFileRoot = $(EBASE)$(DIM)d
-ifeq ($(DEBUG), TRUE)
-  DspOlevel := 0
-endif
-dsp: $(DspFileRoot).dsp
-.dspDepends: $(FEXE_sources) $(FEXE_headers) $(fEXE_sources) $(CEXE_headers) $(CEXE_sources) $(INCLUDE_LOCATIONS)
-	@echo $^ > .dspDepends
-
-$(DspFileRoot).dsp: .dspDepends
-	@(echo Building DSP file = $(DspFileRoot).dsp;\
-	$(TOP)/scripts/dsp.mak -p $(DspFileRoot) -t $(TOP) -d $(DIM) -o $(DspFileRoot).dsp -O $(DspOlevel) -f $^)
-
-.PHONY: dsp .dspDepends libs cleanlibs nodata touch_hg
 
 include $(TOP)/mk/Make.rules
