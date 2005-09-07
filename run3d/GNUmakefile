@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.29 2005-09-07 19:03:12 car Exp $
+# $Id: GNUmakefile,v 1.30 2005-09-07 19:24:12 car Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -22,6 +22,9 @@ USE_MPI   = TRUE
 USE_MPI   = FALSE
 USE_FLCTS = TRUE
 USE_FLCTS = FALSE
+
+USE_HYPRE = FALSE
+USE_METIS = FALSE
 
 #
 # Use hgproj-serial -- only for testing.
@@ -64,6 +67,18 @@ ifeq ($(USE_HGPROJ_SERIAL),TRUE)
   Bdirs += hgproj-serial
 else
   Bdirs += hgproj
+endif
+ifeq ($(USE_HYPRE),TRUE)
+  Bdirs   += HypreABec
+  HYPRE_DIR=$(HOME)/amr/hypre
+  INCLUDE_LOCATIONS += $(HYPRE_DIR)/include
+  LIBRARY_LOCATIONS += $(HYPRE_DIR)/lib
+  LIBRARIES += -lHYPRE_struct_ls -lHYPRE_struct_mv -lHYPRE_blas -lHYPRE_utilities
+  DEFINES += -DMG_USE_HYPRE
+endif
+ifeq ($(USE_METIS),TRUE)
+  Bdirs += metis-4.0/Lib
+  DEFINES += -DBL_USE_METIS
 endif
 
 Bpack	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
