@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.30 2005-09-07 19:24:12 car Exp $
+# $Id: GNUmakefile,v 1.31 2005-09-09 20:35:50 car Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -37,10 +37,6 @@ USE_HGPROJ_SERIAL = FALSE
 USE_VAMPIRE = TRUE
 USE_VAMPIRE = FALSE
 
-ifeq (${USE_FLCTS}, TRUE)
-  DEFINES += -DBL_DO_FLCT
-endif
-
 ifeq ($(USE_HGPROJ_SERIAL),TRUE)
   #
   # What stencil do you want to use?
@@ -52,6 +48,11 @@ else
   EBASE = amr
 endif
 
+ifeq (${USE_FLCTS}, TRUE)
+  DEFINES += -DBL_DO_FLCT
+endif
+
+o
 include $(TOP)/mk/Make.defs ./Make.package
 
 ifeq ($(USE_ARRAYVIEW),TRUE)

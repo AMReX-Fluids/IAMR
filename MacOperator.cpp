@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.30 2004-09-09 20:12:11 almgren Exp $
+// $Id: MacOperator.cpp,v 1.31 2005-09-09 20:35:50 car Exp $
 //
 #include <winstd.H>
 
@@ -12,6 +12,10 @@
 
 #ifdef MG_USE_HYPRE
 #include <HypreABec.H>
+#endif
+
+#ifdef MG_USE_FBOXLIB
+#include <MGT_Solver.H>
 #endif
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
@@ -314,6 +318,7 @@ MacOperator::syncRhs (const MultiFab& Volume,
 
 void
 mac_level_driver (const MacBndry& mac_bndry,
+		  const BCRec&    phys_bc,
                   const BoxArray& grids,
                   int             the_solver,
                   int             level,
@@ -363,6 +368,19 @@ mac_level_driver (const MacBndry& mac_bndry,
       hp.clear_solver();
 #else
       BoxLib::Error("mac_level_driver::HypreABec not in this build");
+#endif
+    }
+  else if (the_solver == 3 ) 
+    {
+#ifdef MG_USE_FBOXLIB
+      const Geometry& geom = mac_bndry.getGeom();
+      MGT_Solver mgt_solver(1, mac_phi->boxArray(), geom.Domain(), 
+			    phys_bc, dx, Rhs.DistributionMap(), geom);
+      mgt_solver.solve(*mac_phi, Rhs);
+      std::cout << "DEALLOC OK" << std::endl;
+      std::exit(0);
+#else
+      BoxLib::Error("mac_level_driver::mg_cpp not in this build");
 #endif
     }
   else

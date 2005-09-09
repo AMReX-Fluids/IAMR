@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.97 2004-09-09 17:08:30 almgren Exp $
+// $Id: MacProj.cpp,v 1.98 2005-09-09 20:35:50 car Exp $
 //
 #include <winstd.H>
 
@@ -47,6 +47,7 @@ bool MacProj::use_cg_solve     = false;
 namespace
 {
   bool        use_hypre_solve  = false;
+  bool        use_fboxlib_mg   = false;
 }
 Real MacProj::mac_tol          = 1.0e-12;
 Real MacProj::mac_abs_tol      = 1.0e-16;
@@ -105,15 +106,22 @@ MacProj::read_params ()
 #if MG_USE_HYPRE
     pp.query( "use_hypre_solve",     use_hypre_solve);
 #endif
+#if MG_USE_FBOXLIB
+    pp.query( "use_fboxlib_mg",     use_fboxlib_mg);
+#endif
     pp.query( "mac_abs_tol",      mac_abs_tol      );
     pp.query( "do_outflow_bcs",   do_outflow_bcs   );
     pp.query( "fix_mac_sync_rhs", fix_mac_sync_rhs );
     pp.query("check_umac_periodicity",check_umac_periodicity);
     pp.query("umac_periodic_test_Tol",   umac_periodic_test_Tol);
 
-    if ( use_cg_solve && use_hypre_solve)
+    if ( use_cg_solve && use_hypre_solve )
       {
 	BoxLib::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
+      }
+    if ( use_cg_solve && use_fboxlib_mg )
+      {
+	BoxLib::Error("MacProj::read_params: cg_solve && .not. fboxlib_solve");
       }
 }
 
@@ -367,10 +375,14 @@ MacProj::mac_project (int             level,
       {
 	the_solver = 2;
       }
+    else if ( use_fboxlib_mg )
+      {
+	the_solver = 3;
+      }
 
     if (anel_coeff[level] != 0) scaleArea(level,area[level],anel_coeff[level]);
 
-    mac_level_driver(mac_bndry, grids, the_solver, level, Density,
+    mac_level_driver(mac_bndry, *phys_bc, grids, the_solver, level, Density,
                      dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
                      area[level], volume[level], S, Rhs, u_mac, mac_phi);
     //

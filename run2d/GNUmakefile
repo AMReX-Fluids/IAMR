@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.30 2005-09-07 19:23:37 car Exp $
+# $Id: GNUmakefile,v 1.31 2005-09-09 20:35:50 car Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -19,6 +19,9 @@ COMP	  = Intel
 FCOMP	  = Intel
 USE_MPI   = TRUE
 USE_MPI   = FALSE
+
+USE_FLCTS = TRUE
+USE_FLCTS = FALSE
 
 USE_THREADS	= TRUE
 USE_THREADS	= FALSE
@@ -53,6 +56,10 @@ ifeq ($(DIM),2)
   endif
 endif
 
+ifeq (${USE_FLCTS}, TRUE)
+  DEFINES += -DBL_DO_FLCT
+endif
+
 include $(TOP)/mk/Make.defs 
 include ./Make.package
 
@@ -75,6 +82,9 @@ endif
 ifeq ($(USE_METIS),TRUE)
   Bdirs += metis-4.0/Lib
   DEFINES += -DBL_USE_METIS
+endif
+ifeq ($(USE_FLCTS),TRUE)
+  Bdirs += iamrlib/InflowForce
 endif
 
 Bpack	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)

@@ -15,6 +15,8 @@ stop_time 		= 1.0
 
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 		= 16 32 
+amr.n_cell 		= 64 128
+amr.max_grid_size	= 16
 
 #*******************************************************************************
 
@@ -114,7 +116,7 @@ ns.hi_bc             = 4 4
 #*******************************************************************************
 
 # For solver reasons, use multigrid iterations as the bottom solve.
-mg_usecg = 0
+# mg.usecg = 1
 
 #*******************************************************************************
 

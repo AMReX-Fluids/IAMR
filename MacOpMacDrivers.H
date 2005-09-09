@@ -8,7 +8,7 @@
 
 
 // the driver functions for the MAC solves
-void mac_level_driver( const MacBndry &mac_bndry,
+void mac_level_driver( const MacBndry &mac_bndry, const BCRec& phys_bc,
                        const BoxArray &grids,
                        int use_cg_solve, int level, int Density,
                        const Real *dx, Real dt,
