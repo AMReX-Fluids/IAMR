@@ -1,5 +1,28 @@
 #include <MGT_Solver.H>
 
+typedef void (*mgt_get)(const int* mgt, const int* lev, const int* n, double* uu, 
+			const int* plo, const int* phi, 
+			const int* lo, const int* hi);
+typedef void (*mgt_set)(const int* mgt, const int* lev, const int* n, const double* uu, 
+			const int* plo, const int* phi, 
+			const int* lo, const int* hi);
+#if BL_SPACEDIM == 1
+mgt_get mgt_get_uu = mgt_get_uu_1d;
+mgt_set mgt_set_uu = mgt_set_uu_1d;
+mgt_get mgt_get_rh = mgt_get_rh_1d;
+mgt_set mgt_set_rh = mgt_set_rh_1d;
+#elif BL_SPACEDIM == 2
+mgt_get mgt_get_uu = mgt_get_uu_2d;
+mgt_set mgt_set_uu = mgt_set_uu_2d;
+mgt_get mgt_get_rh = mgt_get_rh_2d;
+mgt_set mgt_set_rh = mgt_set_rh_2d;
+#elif BL_SPACEDIM == 3
+mgt_get mgt_get_uu = mgt_get_uu_3d;
+mgt_set mgt_set_uu = mgt_set_uu_3d;
+mgt_get mgt_get_rh = mgt_get_rh_3d;
+mgt_set mgt_set_rh = mgt_set_rh_3d;
+#endif
+  
 MGT_Solver::MGT_Solver(int nlevel, const BoxArray& ba, const Box& domain, const BCRec& phys_bc, const double* dx,
 		       const DistributionMapping& dmap, const Geometry& geom)
   : m_dm(BL_SPACEDIM),
@@ -67,16 +90,8 @@ MGT_Solver::solve(MultiFab& uu, MultiFab& rh)
       const int* phi = rhs.box().hiVect();
       const int* splo = sol.box().loVect();
       const int* sphi = sol.box().hiVect();
-      if ( BL_SPACEDIM == 2 ) 
-	{
-	  mgt_set_rh_2d(&m_mgt, &lev, &n, rd, plo, phi, lo, hi);
-	  mgt_set_uu_2d(&m_mgt, &lev, &n, sd, plo, phi, lo, hi);
-	}
-      else if ( BL_SPACEDIM == 3 )
-	{
-	  mgt_set_rh_3d(&m_mgt, &lev, &n, rd, plo, phi, lo, hi);
-	  mgt_set_uu_3d(&m_mgt, &lev, &n, sd, plo, phi, lo, hi);
-	}
+      mgt_set_rh(&m_mgt, &lev, &n, rd, plo, phi, lo, hi);
+      mgt_set_uu(&m_mgt, &lev, &n, sd, plo, phi, lo, hi);
     }
   mgt_finalize(&m_mgt);
   double xa[BL_SPACEDIM], xb[BL_SPACEDIM];
@@ -97,14 +112,7 @@ MGT_Solver::solve(MultiFab& uu, MultiFab& rh)
       const int* hi = umfi.validbox().hiVect();
       const int* plo = sol.box().loVect();
       const int* phi = sol.box().hiVect();
-      if ( BL_SPACEDIM == 2 ) 
-	{
-	  mgt_get_uu_2d(&m_mgt, &lev, &n, sd, plo, phi, lo, hi);
-	}
-      else if ( BL_SPACEDIM == 3 )
-	{
-	  mgt_get_uu_3d(&m_mgt, &lev, &n, sd, plo, phi, lo, hi);
-	}
+      mgt_get_uu(&m_mgt, &lev, &n, sd, plo, phi, lo, hi);
     }
 }
 
