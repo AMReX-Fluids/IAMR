@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.98 2005-09-09 20:35:50 car Exp $
+// $Id: MacProj.cpp,v 1.99 2005-10-05 22:46:17 car Exp $
 //
 #include <winstd.H>
 
@@ -297,6 +297,8 @@ MacProj::mac_project (int             level,
                       const MultiFab& divu,
                       int             have_divu)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::mac_project()");
+
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_project at level " << level << '\n';
 

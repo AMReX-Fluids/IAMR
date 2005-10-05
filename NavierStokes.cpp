@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.252 2005-08-30 18:07:15 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.253 2005-10-05 22:46:26 car Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1173,6 +1173,8 @@ NavierStokes::advance_setup (Real time,
                              int  iteration,
                              int  ncycle)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::advance_setup()");
+
     const int finest_level = parent->finestLevel();
 
     mac_projector->setup(level);
@@ -1372,6 +1374,8 @@ NavierStokes::advance (Real time,
                        int  iteration,
                        int  ncycle)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::advance()");
+
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         std::cout << "Advancing grids at level " << level
@@ -1522,6 +1526,7 @@ NavierStokes::mac_project (Real      time,
                            MultiFab* divu,
                            int       have_divu)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::mac_project()");
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_projection\n";
 
@@ -1549,6 +1554,8 @@ NavierStokes::level_projector (Real dt,
                                Real time,
                                int  iteration)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::level_projector()");
+
     BL_ASSERT(iteration > 0);
 
     MultiFab& U_old = get_old_data(State_Type);
@@ -1672,6 +1679,8 @@ Real
 NavierStokes::predict_velocity (Real  dt,
                                 Real& comp_cfl)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::predict_velocity()");
+
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... predict edge velocities\n";
     //
@@ -1764,6 +1773,8 @@ NavierStokes::predict_velocity (Real  dt,
 void
 NavierStokes::velocity_advection (Real dt)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::velocity_advection()");
+
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         if (do_mom_diff == 0) 
@@ -1892,6 +1903,8 @@ NavierStokes::scalar_advection (Real dt,
                                 int  fscalar,
                                 int  lscalar)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::scalar_advection()");
+
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... advect scalars\n";
     //
@@ -2061,6 +2074,8 @@ NavierStokes::scalar_advection_update (Real dt,
                                        int  first_scalar,
                                        int  last_scalar)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::scalar_advection_update()");
+
     MultiFab&  S_old    = get_old_data(State_Type);
     MultiFab&  S_new    = get_new_data(State_Type);
     MultiFab&  Aofs     = *aofs;
@@ -2170,6 +2185,8 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                        int  first_scalar,
                                        int  last_scalar)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::scalar_diffusion_update()");
+
     MultiFab** fluxSCn;
     MultiFab** fluxSCnp1;
     const int nGrow = 0;
@@ -2299,6 +2316,8 @@ NavierStokes::velocity_update (Real dt)
 void
 NavierStokes::velocity_advection_update (Real dt)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::velocity_advection_update()");
+
     FArrayBox  tforces;
     MultiFab&  U_old          = get_old_data(State_Type);
     MultiFab&  U_new          = get_new_data(State_Type);
@@ -2354,6 +2373,8 @@ NavierStokes::velocity_advection_update (Real dt)
 void
 NavierStokes::velocity_diffusion_update (Real dt)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::velocity_diffusion_update()");
+
     //
     // Compute the viscous forcing.
     // Do following except at initial iteration.
@@ -3227,6 +3248,8 @@ NavierStokes::okToContinue ()
 void
 NavierStokes::post_timestep (int crse_iteration)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::post_timestep()");
+
     const int finest_level = parent->finestLevel();
 
     if (do_reflux && level < finest_level)
@@ -3272,6 +3295,7 @@ void
 NavierStokes::post_regrid (int lbase,
                                 int new_finest)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::post_regrid()");
     if (projector && level == lbase)
         projector->setFinestLevel(new_finest);
 }
@@ -3283,6 +3307,8 @@ NavierStokes::post_regrid (int lbase,
 void
 NavierStokes::post_init (Real stop_time)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::post_init()");
+
     if (level > 0)
         //
         // Nothing to sync up at level > 0.
@@ -3445,6 +3471,8 @@ NavierStokes::post_init_press (Real&        dt_init,
                                Array<int>&  nc_save,
                                Array<Real>& dt_save)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::post_init_press()");
+
     const Real strt_time       = state[State_Type].curTime();
     const int  finest_level    = parent->finestLevel();
     MultiFab&  P_new           = get_new_data(Press_Type);
@@ -5351,6 +5379,8 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
                                     int              dComp,
                                     int              nComp)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::center_to_edge_plain()");
+
     //
     // This routine fills an edge-centered FAB from a cell-centered FAB.
     // It assumes that the data in all cells of the cell-centered FAB is
@@ -5551,6 +5581,7 @@ NavierStokes::calcDpdt ()
 void
 NavierStokes::create_umac_grown ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::create_umac_grown()");
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
         u_macG[n].copy(u_mac[n]);
