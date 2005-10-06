@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.253 2005-10-05 22:46:26 car Exp $
+// $Id: NavierStokes.cpp,v 1.254 2005-10-06 20:11:24 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -1527,6 +1527,7 @@ NavierStokes::mac_project (Real      time,
                            int       have_divu)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::mac_project()");
+
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_projection\n";
 
@@ -5582,6 +5583,9 @@ void
 NavierStokes::create_umac_grown ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::create_umac_grown()");
+
+    const Real strt_time = ParallelDescriptor::second();
+
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
         u_macG[n].copy(u_mac[n]);
@@ -5661,5 +5665,17 @@ NavierStokes::create_umac_grown ()
             u_macG[n].FillBoundary(0,1);
             geom.FillPeriodicBoundary(u_macG[n],0,1);
         }
+    }
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "NavierStokes:create_umac_grown(): lev: "
+                  << level
+                  << ", time: " << run_time << std::endl;
     }
 }
