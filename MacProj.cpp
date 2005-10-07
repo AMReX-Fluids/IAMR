@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.101 2005-10-07 17:02:30 car Exp $
+// $Id: MacProj.cpp,v 1.102 2005-10-07 17:40:41 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -302,8 +302,6 @@ MacProj::mac_project (int             level,
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_project at level " << level << '\n';
 
-    Real strt_time = ParallelDescriptor::second();
-
     const BoxArray& grids      = LevelData[level].boxArray();
     const Geometry& geom       = parent->Geom(level);
     const Real*     dx         = geom.CellSize();
@@ -386,42 +384,9 @@ MacProj::mac_project (int             level,
 
     if (anel_coeff[level] != 0) scaleArea(level,area[level],anel_coeff[level]);
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
-
-    if (verbose)
-    {
-        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-        
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "MacProject:mac_project():pre_solve: lev: "
-                      << level
-                      << ", time: " << run_time << std::endl;
-        }
-    }
-
-    strt_time = ParallelDescriptor::second();
-
     mac_level_driver(mac_bndry, *phys_bc, grids, the_solver, level, Density,
                      dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
                      area[level], volume[level], S, Rhs, u_mac, mac_phi);
-
-    run_time = ParallelDescriptor::second() - strt_time;
-
-    if (verbose)
-    {
-        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-        
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "MacProject:mac_project():solve: lev: "
-                      << level
-                      << ", time: " << run_time << std::endl;
-        }
-    }
-
-    strt_time = ParallelDescriptor::second();
     //
     // Test that u_mac is divergence free
     //
@@ -490,20 +455,6 @@ MacProj::mac_project (int             level,
         test_umac_periodic(level,u_mac);
 
     if (anel_coeff[level] != 0) rescaleArea(level,area[level],anel_coeff[level]);
-
-    run_time = ParallelDescriptor::second() - strt_time;
-
-    if (verbose)
-    {
-        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-        
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "MacProject:mac_project():post_solve: lev: "
-                      << level
-                      << ", time: " << run_time << std::endl;
-        }
-    }
 }
 
 //
@@ -1329,10 +1280,11 @@ MacProj::test_umac_periodic (int level,MultiFab* u_mac)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::test_umac_periodic()");
 
-    const Geometry& geom    = parent->Geom(level);
-    const BoxArray& grids   = LevelData[level].boxArray();
+    const Geometry& geom = parent->Geom(level);
+
     if (!geom.isAnyPeriodic()) return;
 
+    const BoxArray&         grids  = LevelData[level].boxArray();
     const int               MyProc = ParallelDescriptor::MyProc();
     FArrayBox               diff;
     Array<IntVect>          pshifts(27);
@@ -1358,20 +1310,16 @@ MacProj::test_umac_periodic (int level,MultiFab* u_mac)
                 {
                     eBox += pshifts[iiv];
 
-                    for (int j = 0; j < grids.size(); j++)
+                    std::vector< std::pair<int,Box> > isects = u_mac[dim].boxArray().intersections(eBox);
+
+                    for (int i = 0; i < isects.size(); i++)
                     {
-                        Box srcBox = u_mac[dim].boxArray()[j] & eBox;
-
-                        if (srcBox.ok())
-                        {
-                            Box dstBox = srcBox - pshifts[iiv];
-
-                            TURec r(mfi.index(),dim,srcBox,dstBox);
-
-                            r.m_fbid = mfcd.AddBox(mfid[dim],srcBox,0,j,0,0,1);
-
-                            pirm.push_back(r);
-                        }
+                        const int j      = isects[i].first;
+                        const Box srcBox = isects[i].second;
+                        const Box dstBox = srcBox - pshifts[iiv];
+                        TURec r(mfi.index(),dim,srcBox,dstBox);
+                        r.m_fbid = mfcd.AddBox(mfid[dim],srcBox,0,j,0,0,1);
+                        pirm.push_back(r);
                     }
 
                     eBox -= pshifts[iiv];
