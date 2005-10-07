@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.100 2005-10-06 22:12:26 lijewski Exp $
+// $Id: MacProj.cpp,v 1.101 2005-10-07 17:02:30 car Exp $
 //
 #include <winstd.H>
 
@@ -1327,6 +1327,8 @@ struct TURec
 void
 MacProj::test_umac_periodic (int level,MultiFab* u_mac)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::test_umac_periodic()");
+
     const Geometry& geom    = parent->Geom(level);
     const BoxArray& grids   = LevelData[level].boxArray();
     if (!geom.isAnyPeriodic()) return;

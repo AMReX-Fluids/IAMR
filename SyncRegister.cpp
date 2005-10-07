@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.67 2002-11-26 22:40:45 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.68 2005-10-07 17:02:30 car Exp $
 //
 #include <winstd.H>
 
@@ -212,6 +212,8 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                             const Box&      domain,
                             MultiFab&       rhs) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copyPeriodic()");
+
     if (!geom.isAnyPeriodic()) return;
 
     const int            MyProc = ParallelDescriptor::MyProc();
@@ -275,6 +277,8 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 void
 SyncRegister::multByBndryMask (MultiFab& rhs) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::multByBndryMask()");
+
     const int            MyProc = ParallelDescriptor::MyProc();
     FabSetCopyDescriptor fscd;
     FabSetId             fsid[2*BL_SPACEDIM];
@@ -551,6 +555,8 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                                  const Box&      domain,
                                  const MultiFab& mf)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::incrementPeriodic()");
+
     if (!geom.isAnyPeriodic()) return;
 
     const int              MyProc = ParallelDescriptor::MyProc();
