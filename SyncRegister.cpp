@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.68 2005-10-07 17:02:30 car Exp $
+// $Id: SyncRegister.cpp,v 1.69 2005-10-07 19:05:53 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -180,7 +180,9 @@ SyncRegister::sum ()
     Box bb = grids[0];
 
     for (int k = 1; k < grids.size(); k++)
+    {
         bb.minBox(grids[k]);
+    }
 
     bb.surroundingNodes();
 
@@ -236,9 +238,10 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                 {
                     Box sbox = bndry[face()].fabbox(j) + pshifts[iiv];
 
-                    if (sbox.intersects(rhs[mfi].box()))
+                    sbox &= rhs[mfi].box();
+
+                    if (sbox.ok())
                     {
-                        sbox &= rhs[mfi].box();
                         sbox -= pshifts[iiv];
 
                         SRRec sr(face(), mfi.index(), pshifts[iiv]);
@@ -291,26 +294,23 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 
         for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
         {
-            for (int j = 0; j < grids.size(); j++)
+            std::vector< std::pair<int,Box> > isects = bndry_mask[face()].boxArray().intersections(rhs[mfi].box());
+
+            for (int i = 0; i < isects.size(); i++)
             {
-                Box intersect = rhs[mfi].box() & bndry_mask[face()].fabbox(j);
+                SRRec sr(face(), mfi.index());
 
-                if (intersect.ok())
-                {
-                    SRRec sr(face(), mfi.index());
+                sr.m_fbid = fscd.AddBox(fsid[face()],
+                                        isects[i].second,
+                                        0,
+                                        isects[i].first,
+                                        0,
+                                        0,
+                                        rhs[mfi].nComp());
 
-                    sr.m_fbid = fscd.AddBox(fsid[face()],
-                                            intersect,
-                                            0,
-                                            j,
-                                            0,
-                                            0,
-                                            rhs[mfi].nComp());
+                BL_ASSERT(sr.m_fbid.box() == bx);
 
-                    BL_ASSERT(sr.m_fbid.box() == intersect);
-
-                    srrec.push_back(sr);
-                }
+                srrec.push_back(sr);
             }
         }
     }
@@ -354,7 +354,6 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     // rhs which are not covered by sync registers through periodic shifts.
     //
     copyPeriodic(geom,domain,rhs);
-
     //
     // Overwrite above-set values on all nodes covered by a sync register.
     //
@@ -367,6 +366,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     const int* phys_hi = phys_bc->hi();
 
     Box node_domain = BoxLib::surroundingNodes(geom.Domain());
+
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
         if (!geom.isPeriodic(dir))
@@ -409,14 +409,11 @@ SyncRegister::InitRHS (MultiFab&       rhs,
             tmpfab.resize(mask_cells,1);
             tmpfab.setVal(0);
 
-            for (int n = 0; n < grids.size(); n++)
-            {
-                Box isect = mask_cells & grids[n];
+            std::vector< std::pair<int,Box> > isects = grids.intersections(mask_cells);
 
-                if (isect.ok())
-                {
-                    tmpfab.setVal(1.0,isect,0,1);
-                }
+            for (int i = 0; i < isects.size(); i++)
+            {
+                tmpfab.setVal(1.0,isects[i].second,0,1);
             }
  
             if (geom.isAnyPeriodic())
@@ -427,15 +424,13 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                 {
                     mask_cells += pshifts[iiv];
 
-                    for (int n = 0; n < grids.size(); n++)
-                    {
-                        Box intersect = mask_cells & grids[n];
+                    std::vector< std::pair<int,Box> > isects = grids.intersections(mask_cells);
 
-                        if (intersect.ok())
-                        {
-                            intersect    -= pshifts[iiv];
-                            tmpfab.setVal(1.0,intersect,0,1);
-                        }
+                    for (int i = 0; i < isects.size(); i++)
+                    {
+                        Box intersect = isects[i].second;
+                        intersect    -= pshifts[iiv];
+                        tmpfab.setVal(1.0,intersect,0,1);
                     }
 
                     mask_cells -= pshifts[iiv];
@@ -581,9 +576,10 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                 {
                     Box sbox = mfBA[j] + pshifts[iiv];
 
-                    if (sbox.intersects(fs[fsi].box()))
+                    sbox &= fs[fsi].box();
+
+                    if (sbox.ok())
                     {
-                        sbox &= fs[fsi].box();
                         sbox -= pshifts[iiv];
 
                         SRRec sr(face(), fsi.index(), pshifts[iiv]);
@@ -646,7 +642,7 @@ SyncRegister::CrseInit  (MultiFab* Sync_resid_crse,
 }
 
 void
-SyncRegister::CompAdd  (MultiFab* Sync_resid_fine,
+SyncRegister::CompAdd  (MultiFab*       Sync_resid_fine,
                         const Geometry& fine_geom, 
                         const Geometry& crse_geom, 
                         const BCRec*    phys_bc,
@@ -659,21 +655,21 @@ SyncRegister::CompAdd  (MultiFab* Sync_resid_fine,
     {
         Box sync_box = mfi.validbox();
 
-        for (int i = 0; i < Pgrids.size(); i++) 
-        {
-            Box isect = sync_box & Pgrids[i];
+        std::vector< std::pair<int,Box> > isects = Pgrids.intersections(sync_box);
 
-            if (isect.ok())
-            {
-                (*Sync_resid_fine)[mfi].setVal(0.0,isect,0,1);
-            }
+        for (int ii = 0; ii < isects.size(); ii++)
+        {
+            const int i     = isects[ii].first;
+            Box       isect = isects[ii].second;
+
+            (*Sync_resid_fine)[mfi].setVal(0.0,isect,0,1);
 
             fine_geom.periodicShift(sync_box, Pgrids[i], pshifts);
 
             for (int iiv = 0; iiv < pshifts.size(); iiv++)
             {
-                Box isect = Pgrids[i] + pshifts[iiv];
-                isect    &= sync_box;
+                isect  = Pgrids[i] + pshifts[iiv];
+                isect &= sync_box;
                 (*Sync_resid_fine)[mfi].setVal(0.0,isect,0,1);
             }
         }
