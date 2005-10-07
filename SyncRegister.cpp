@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.69 2005-10-07 19:05:53 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.70 2005-10-07 21:41:36 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -307,9 +307,6 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
                                         0,
                                         0,
                                         rhs[mfi].nComp());
-
-                BL_ASSERT(sr.m_fbid.box() == bx);
-
                 srrec.push_back(sr);
             }
         }
