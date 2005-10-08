@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.255 2005-10-07 17:40:55 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.256 2005-10-08 03:10:01 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -135,39 +135,56 @@ GetBndryCells(const BoxArray& ba,
               int             n_grow,
               const Geometry& geom)
 {
-    const BoxList blgrids = BoxList(ba);
+    const Real strt_time = ParallelDescriptor::second();
 
     BoxDomain bd;
 
-    for (int i = 0; i < ba.size(); ++i)
     {
-	BoxList gCells = BoxLib::boxDiff(BoxLib::grow(ba[i],n_grow),ba[i]);
+        const BoxList blgrids = BoxList(ba);
 
-	for (BoxList::iterator bli = gCells.begin(); bli != gCells.end(); ++bli)
-	    bd.add(BoxLib::complementIn(*bli,blgrids));
+        for (int i = 0; i < ba.size(); ++i)
+        {
+            BoxList gCells = BoxLib::boxDiff(BoxLib::grow(ba[i],n_grow),ba[i]);
+
+            for (BoxList::iterator bli = gCells.begin(); bli != gCells.end(); ++bli)
+                bd.add(BoxLib::complementIn(*bli, blgrids));
+        }
     }
 
-    BoxList bl;
-
+    BoxList        bl;
     Array<IntVect> pshifts(27);
+    const Box      domain      = geom.Domain();
+    const bool     is_periodic = geom.isAnyPeriodic();
 
     for (BoxDomain::const_iterator bdi = bd.begin(); bdi != bd.end(); ++bdi)
     {
         bl.push_back(*bdi);
-        //
-        // Add in periodic ghost cells shifted to valid region.
-        //
-        geom.periodicShift(geom.Domain(), *bdi, pshifts);
 
-        for (int i = 0; i < pshifts.size(); i++)
+        if (is_periodic && !domain.contains(*bdi))
         {
-            Box shftbox = *bdi + pshifts[i];
+            //
+            // Add in periodic ghost cells shifted to valid region.
+            //
+            geom.periodicShift(domain, *bdi, pshifts);
 
-            bl.push_back(geom.Domain() & shftbox);
+            for (int i = 0; i < pshifts.size(); i++)
+            {
+                const Box shftbox = *bdi + pshifts[i];
+
+                bl.push_back(domain & shftbox);
+            }
         }
     }
 
     bl.simplify();
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time, IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "NavierStokes::GetBndryCells(): time: " << run_time << std::endl;
 
     return BoxArray(bl);
 }
