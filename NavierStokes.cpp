@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.257 2005-10-09 05:12:23 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.258 2005-10-09 15:54:48 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -137,42 +137,41 @@ GetBndryCells(const BoxArray& ba,
 {
     const Real strt_time = ParallelDescriptor::second();
 
-    BoxList bl;
-    BoxList blgrids = BoxList(ba);
+    BoxDomain bd;
 
-    for (int i = 0; i < ba.size(); ++i)
     {
-        BoxList gCells = BoxLib::boxDiff(BoxLib::grow(ba[i],n_grow),ba[i]);
+        const BoxList blgrids = BoxList(ba);
 
-        for (BoxList::iterator bli = gCells.begin(); bli != gCells.end(); ++bli)
+        for (int i = 0; i < ba.size(); ++i)
         {
-            bl.join(BoxLib::complementIn(*bli, blgrids));
+            BoxList gCells = BoxLib::boxDiff(BoxLib::grow(ba[i],n_grow),ba[i]);
+
+            for (BoxList::iterator bli = gCells.begin(); bli != gCells.end(); ++bli)
+                bd.add(BoxLib::complementIn(*bli, blgrids));
         }
     }
 
-    blgrids.clear();
+    BoxList        bl;
+    Array<IntVect> pshifts(27);
+    const Box      domain      = geom.Domain();
+    const bool     is_periodic = geom.isAnyPeriodic();
 
-    if (geom.isAnyPeriodic())
+    for (BoxDomain::const_iterator bdi = bd.begin(); bdi != bd.end(); ++bdi)
     {
-        Array<IntVect> pshifts(27);
+        bl.push_back(*bdi);
 
-        const Box domain = geom.Domain();
-
-        for (BoxList::const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
+        if (is_periodic && !domain.contains(*bdi))
         {
-            if (!domain.contains(*bli))
+            //
+            // Add in periodic ghost cells shifted to valid region.
+            //
+            geom.periodicShift(domain, *bdi, pshifts);
+
+            for (int i = 0; i < pshifts.size(); i++)
             {
-                //
-                // Add in periodic ghost cells shifted to valid region.
-                //
-                geom.periodicShift(domain, *bli, pshifts);
+                const Box shftbox = *bdi + pshifts[i];
 
-                for (int i = 0; i < pshifts.size(); i++)
-                {
-                    const Box shftbox = *bli + pshifts[i];
-
-                    bl.push_back(domain & shftbox);
-                }
+                bl.push_back(domain & shftbox);
             }
         }
     }
@@ -5616,8 +5615,8 @@ NavierStokes::create_umac_grown ()
 
         for (int i = 0; i < f_bnd_ba.size(); ++i)
         {
-            c_bnd_ba.set(i, BoxLib::coarsen(f_bnd_ba[i],crse_ratio));
-            f_bnd_ba.set(i, BoxLib::refine(c_bnd_ba[i],crse_ratio));
+            c_bnd_ba.set(i,Box(f_bnd_ba[i]).coarsen(crse_ratio));
+            f_bnd_ba.set(i,Box(c_bnd_ba[i]).refine(crse_ratio));
         }
             
         const BoxArray& cgrids = getLevel(level-1).boxArray();
@@ -5643,7 +5642,7 @@ NavierStokes::create_umac_grown ()
             for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
-                const Box& box   = crse_src[mfi].box();
+                const Box  box   = Box(c_bnd_ba[mfi.index()]).surroundingNodes(n);
                 const int* rat   = crse_ratio.getVect();
                 FORT_PC_CF_EDGE_INTERP(box.loVect(), box.hiVect(), &nComp, rat, &n,
                                        crse_src[mfi].dataPtr(),
@@ -5668,7 +5667,7 @@ NavierStokes::create_umac_grown ()
                 // on fine edges overlaying coarse edges.
                 //
                 const int  nComp = 1;
-                const Box& fbox  = fine_src[mfi].box();
+                const Box& fbox  = fine_src[mfi.index()].box();
                 const int* rat   = crse_ratio.getVect();
                 FORT_EDGE_INTERP(fbox.loVect(), fbox.hiVect(), &nComp, rat, &n,
                                  fine_src[mfi].dataPtr(),
