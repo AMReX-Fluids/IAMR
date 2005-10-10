@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.102 2005-10-07 17:40:41 lijewski Exp $
+// $Id: MacProj.cpp,v 1.103 2005-10-10 18:19:49 car Exp $
 //
 #include <winstd.H>
 
@@ -8,7 +8,6 @@
 #include <CoordSys.H>
 #include <Geometry.H>
 #include <ParmParse.H>
-#include <BoxDomain.H>
 #include <MacProj.H>
 #include <MacBndry.H>
 #include <MacOpMacDrivers.H>

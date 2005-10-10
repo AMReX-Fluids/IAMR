@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.37 2005-04-19 21:22:58 almgren Exp $
+// $Id: Godunov.cpp,v 1.38 2005-10-10 18:19:49 car Exp $
 //
 
 //
@@ -12,7 +12,6 @@
 #include <CoordSys.H>
 #include <Geometry.H>
 #include <ParmParse.H>
-#include <BoxDomain.H>
 #include <FArrayBox.H>
 #include <Godunov.H>
 #include <GODUNOV_F.H>

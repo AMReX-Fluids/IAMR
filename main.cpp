@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.41 2001-10-16 20:00:11 lijewski Exp $
+// $Id: main.cpp,v 1.42 2005-10-10 18:19:49 car Exp $
 //
 
 #include <cstdio>
@@ -21,7 +21,7 @@
 extern "C"
 {
     void PrintBoxArray (const BoxArray& ba);
-    void PrintBoxDomain (const BoxDomain& bd);
+  //    void PrintBoxDomain (const BoxDomain& bd);
     void PrintTagBox (const TagBox& tb);
     void PrintTagBoxArray (const TagBoxArray& tba);
     void TagBoxCount (const TagBox& tb);
@@ -30,7 +30,7 @@ extern "C"
 
 void PrintBoxArray (const BoxArray& ba) { std::cout << ba << std::endl; }
 
-void PrintBoxDomain (const BoxDomain& bd) { std::cout << bd << std::endl; }
+//void PrintBoxDomain (const BoxDomain& bd) { std::cout << bd << std::endl; }
 
 void
 PrintTagBox (const TagBox& tb)

@@ -1,12 +1,11 @@
 //
-// $Id: Projection.cpp,v 1.162 2004-09-09 20:12:11 almgren Exp $
+// $Id: Projection.cpp,v 1.163 2005-10-10 18:19:49 car Exp $
 //
 #include <winstd.H>
 
 #include <CoordSys.H>
 #include <Geometry.H>
 #include <ParmParse.H>
-#include <BoxDomain.H>
 #include <NavierStokes.H>
 #include <Profiler.H>
 #include <Projection.H>

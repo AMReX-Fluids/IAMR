@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.122 2004-07-20 21:41:06 almgren Exp $
+// $Id: Diffusion.cpp,v 1.123 2005-10-10 18:19:49 car Exp $
 //
 
 //
@@ -15,7 +15,6 @@
 #include <Geometry.H>
 #include <CoordSys.H>
 #include <Geometry.H>
-#include <BoxDomain.H>
 #include <ParmParse.H>
 #include <ErrorList.H>
 #ifdef USE_NAVIERSTOKES
