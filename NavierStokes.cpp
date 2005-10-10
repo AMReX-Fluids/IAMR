@@ -1,5 +1,5 @@
 //
-// $Id: NavierStokes.cpp,v 1.258 2005-10-09 15:54:48 lijewski Exp $
+// $Id: NavierStokes.cpp,v 1.259 2005-10-10 03:19:32 lijewski Exp $
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -5601,6 +5601,8 @@ NavierStokes::create_umac_grown ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::create_umac_grown()");
 
+    const Real strt_time = ParallelDescriptor::second();
+
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
         u_macG[n].copy(u_mac[n]);
@@ -5681,4 +5683,12 @@ NavierStokes::create_umac_grown ()
             geom.FillPeriodicBoundary(u_macG[n],0,1);
         }
     }
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time, IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "NavierStokes::create_umac_grown(): time: " << run_time << std::endl;
 }
