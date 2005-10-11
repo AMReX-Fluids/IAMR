@@ -1,6 +1,4 @@
 //
-// $Id: NavierStokes.cpp,v 1.259 2005-10-10 03:19:32 lijewski Exp $
-//
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
 //
@@ -131,52 +129,74 @@ int  NavierStokes::do_divu_sync = 0;       // for debugging new correction to ML
 
 static
 BoxArray
-GetBndryCells(const BoxArray& ba,
-              int             n_grow,
-              const Geometry& geom)
+GetBndryCells (const BoxArray& ba,
+               int             ngrow,
+               const Geometry& geom)
 {
     const Real strt_time = ParallelDescriptor::second();
+    //
+    // First get list of all ghost cells.
+    //
+    BoxList gcells, bcells;
 
-    BoxDomain bd;
-
+    for (int i = 0; i < ba.size(); ++i)
+	gcells.join(BoxLib::boxDiff(BoxLib::grow(ba[i],ngrow),ba[i]));
+    //
+    // Now strip out intersections with original BoxArray.
+    //
+    for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
     {
-        const BoxList blgrids = BoxList(ba);
+        std::vector< std::pair<int,Box> > isects = ba.intersections(*it);
 
-        for (int i = 0; i < ba.size(); ++i)
+        if (isects.empty())
+            bcells.push_back(*it);
+        else
         {
-            BoxList gCells = BoxLib::boxDiff(BoxLib::grow(ba[i],n_grow),ba[i]);
-
-            for (BoxList::iterator bli = gCells.begin(); bli != gCells.end(); ++bli)
-                bd.add(BoxLib::complementIn(*bli, blgrids));
+            //
+            // Collect all the intersection pieces.
+            //
+            BoxList pieces;
+            for (int i = 0; i < isects.size(); i++)
+                pieces.push_back(isects[i].second);
+            BoxList leftover = BoxLib::complementIn(*it,pieces);
+            bcells.catenate(leftover);
         }
     }
+    //
+    // Now strip out overlaps.  Also does a crude simplify().
+    //
+    gcells.clear();
+    gcells = BoxLib::removeOverlap(bcells);
+    bcells.clear();
 
-    BoxList        bl;
-    Array<IntVect> pshifts(27);
-    const Box      domain      = geom.Domain();
-    const bool     is_periodic = geom.isAnyPeriodic();
-
-    for (BoxDomain::const_iterator bdi = bd.begin(); bdi != bd.end(); ++bdi)
+    if (geom.isAnyPeriodic())
     {
-        bl.push_back(*bdi);
+        Array<IntVect> pshifts(27);
 
-        if (is_periodic && !domain.contains(*bdi))
+        const Box domain = geom.Domain();
+
+        for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
         {
-            //
-            // Add in periodic ghost cells shifted to valid region.
-            //
-            geom.periodicShift(domain, *bdi, pshifts);
-
-            for (int i = 0; i < pshifts.size(); i++)
+            if (!domain.contains(*it))
             {
-                const Box shftbox = *bdi + pshifts[i];
+                //
+                // Add in periodic ghost cells shifted to valid region.
+                //
+                geom.periodicShift(domain, *it, pshifts);
 
-                bl.push_back(domain & shftbox);
+                for (int i = 0; i < pshifts.size(); i++)
+                {
+                    const Box shftbox = *it + pshifts[i];
+
+                    bcells.push_back(domain & shftbox);
+                }
             }
         }
+
+        gcells.catenate(bcells);
     }
 
-    bl.simplify();
+    gcells.simplify();
 
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      run_time = ParallelDescriptor::second() - strt_time;
@@ -184,9 +204,9 @@ GetBndryCells(const BoxArray& ba,
     ParallelDescriptor::ReduceRealMax(run_time, IOProc);
 
     if (ParallelDescriptor::IOProcessor())
-        std::cout << "NavierStokes::GetBndryCells(): time: " << run_time << std::endl;
+        std::cout << "NavierStokes::GetBndryCells(): size: " << gcells.size() << ", time: " << run_time << std::endl;
 
-    return BoxArray(bl);
+    return BoxArray(gcells);
 }
 
 void
