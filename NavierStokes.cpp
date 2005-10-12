@@ -5616,6 +5616,63 @@ NavierStokes::calcDpdt ()
     }
 }
 
+//
+// This function assumes that gcells are the boundary cells (of size ngrow) around ba.
+// It also assumes that dm is a DistributionMapping from a MultiFab with associated BoxArray ba.
+//
+static
+DistributionMapping
+GetDM (const BoxArray&            gcells,
+       const BoxArray&            ba,
+       const DistributionMapping& dm,
+       int                        ngrow)
+{
+    //
+    // ProcMaps must be one larger than number of boxes & have special sentinal value.
+    //
+    Array<int> pmap(gcells.size()+1);
+
+    pmap[pmap.size()-1] = ParallelDescriptor::MyProc();
+    //
+    // This BoxArray is guaranteed to cover all Boxes in gcells, except those
+    // that were added due to periodic shifts.
+    //
+    BoxArray gba(ba.size());
+    for (int i = 0; i < gba.size(); i++)
+        gba.set(i, BoxLib::grow(ba[i],ngrow));
+    //
+    // Most Every box in gcells must intersect at least one box in gba.
+    // Associate gcells[i] to the same CPU as the Box with which it has the
+    // largest intersection.  Only boxes added via periodicity will not necessarily
+    // be in gba.  Put all those boxes on processor zero.
+    //
+    for (int i = 0; i < gcells.size(); i++)
+    {
+        std::vector< std::pair<int,Box> > isects = gba.intersections(gcells[i]);
+
+        if (isects.empty())
+        {
+            pmap[i] = 0;
+        }
+        else
+        {
+            std::vector<long> volume(isects.size());
+
+            for (int j = 0; j < isects.size(); j++)
+                volume[j] = isects[j].second.volume();
+
+            int max_vol_idx = 0;
+            for (int j = 1; j < volume.size(); j++)
+                if (volume[max_vol_idx] < volume[j])
+                    max_vol_idx = j;
+
+            pmap[i] = dm[isects[max_vol_idx].first];
+        }
+    }
+
+    return DistributionMapping(pmap);
+}
+
 void
 NavierStokes::create_umac_grown ()
 {
@@ -5633,6 +5690,11 @@ NavierStokes::create_umac_grown ()
     if (level > 0)
     {
         BoxArray f_bnd_ba = GetBndryCells(grids,1,geom);
+        //
+        // Let's get a DM attempting to minimize communication at the finest level.
+        //
+        DistributionMapping dm = GetDM(f_bnd_ba, grids, u_mac[0].DistributionMap(), 1);
+
         BoxArray c_bnd_ba = BoxArray(f_bnd_ba.size());
 
         for (int i = 0; i < f_bnd_ba.size(); ++i)
@@ -5652,19 +5714,23 @@ NavierStokes::create_umac_grown ()
                 crseT[mfi].copy(getLevel(level-1).u_mac[n][mfi]);
             crseT.FillBoundary(0,1);
             getLevel(level-1).geom.FillPeriodicBoundary(crseT,0,1);
-                
-            MultiFab crse_src(BoxArray(c_bnd_ba).surroundingNodes(n),1,0);
+            //
+            // crse_src & fine_src must have same parallel distribution.
+            //
+            MultiFab crse_src, fine_src;
+
+            fine_src.define(BoxArray(f_bnd_ba).surroundingNodes(n), 1, 0, dm, Fab_allocate);
+            crse_src.define(BoxArray(c_bnd_ba).surroundingNodes(n), 1, 0, dm, Fab_allocate);
+
             crse_src.setVal(1.e200);
             crse_src.copy(crseT);
             crse_src.FillBoundary(0,1);
             getLevel(level-1).geom.FillPeriodicBoundary(crse_src,0,1);
 
-            MultiFab fine_src(BoxArray(f_bnd_ba).surroundingNodes(n),1,0);
-                
             for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
-                const Box  box   = Box(c_bnd_ba[mfi.index()]).surroundingNodes(n);
+                const Box  box   = crse_src[mfi].box();
                 const int* rat   = crse_ratio.getVect();
                 FORT_PC_CF_EDGE_INTERP(box.loVect(), box.hiVect(), &nComp, rat, &n,
                                        crse_src[mfi].dataPtr(),
