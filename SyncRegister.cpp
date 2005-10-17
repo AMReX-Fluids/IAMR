@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.70 2005-10-07 21:41:36 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.71 2005-10-17 17:47:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -218,7 +218,8 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
     if (!geom.isAnyPeriodic()) return;
 
-    const int            MyProc = ParallelDescriptor::MyProc();
+    const Real           strt_time = ParallelDescriptor::second();
+    const int            MyProc    = ParallelDescriptor::MyProc();
     Array<IntVect>       pshifts(27);
     std::vector<SRRec>   srrec;
     FabSetCopyDescriptor fscd;
@@ -275,6 +276,14 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
         fscd.FillFab(fsid[srrec[i].m_face], srrec[i].m_fbid, fab, dstbox);
     }
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "SyncRegister::copyPeriodic(): time: " << run_time << std::endl;
 }
 
 void
@@ -335,6 +344,8 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                        const Geometry& geom,
                        const BCRec*    phys_bc)
 {
+    const Real strt_time = ParallelDescriptor::second();
+
     rhs.setVal(0);
 
     Box domain = BoxLib::surroundingNodes(geom.Domain());
@@ -440,8 +451,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
             const int* clo = tmpfab.loVect(); 
             const int* chi = tmpfab.hiVect();
         
-            FORT_MAKEMASK(mask_dat,ARLIM(mlo),ARLIM(mhi),
-                          cell_dat,ARLIM(clo),ARLIM(chi));
+            FORT_MAKEMASK(mask_dat,ARLIM(mlo),ARLIM(mhi), cell_dat,ARLIM(clo),ARLIM(chi));
         }
     }
     //
@@ -465,16 +475,12 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                     Box isect = fs[fsi].box() & domlo;
 
                     if (isect.ok())
-                    {
                         fs[fsi].mult(2.0,isect,0,1);
-                    }
 
                     isect = fs[fsi].box() & domhi;
 
                     if (isect.ok())
-                    {
                         fs[fsi].mult(2.0,isect,0,1);
-                    }
                 }
             }
         }
@@ -499,6 +505,14 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     multByBndryMask(rhs);
 
     WriteNorms(*this,"SyncRegister::InitRHS(E)");
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "SyncRegister::InitRHS(): time: " << run_time << std::endl;
 }
 
 enum HowToBuild { WITH_BOX, WITH_SURROUNDING_BOX };
@@ -551,8 +565,9 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
     if (!geom.isAnyPeriodic()) return;
 
-    const int              MyProc = ParallelDescriptor::MyProc();
-    const BoxArray&        mfBA   = mf.boxArray();
+    const Real             strt_time = ParallelDescriptor::second();
+    const int              MyProc    = ParallelDescriptor::MyProc();
+    const BoxArray&        mfBA      = mf.boxArray();
     Array<IntVect>         pshifts(27);
     std::vector<SRRec>     srrec;
     FArrayBox              tmpfab;
@@ -614,6 +629,14 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
         fabset[srrec[i].m_idx].plus(tmpfab, 0, 0, mf.nComp());
     }
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "SyncRegister::incrementPeriodic(): time: " << run_time << std::endl;
 }
 
 void
@@ -621,6 +644,8 @@ SyncRegister::CrseInit  (MultiFab* Sync_resid_crse,
                          const Geometry& crse_geom, 
                          Real            mult)
 {
+    const Real strt_time = ParallelDescriptor::second();
+
     WriteNorms(*this,"SyncRegister::CrseInit(B)");
 
     setVal(0.);
@@ -636,6 +661,14 @@ SyncRegister::CrseInit  (MultiFab* Sync_resid_crse,
     }
 
     WriteNorms(*this,"SyncRegister::CrseInit(E)");
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "SyncRegister::CrseInit(): time: " << run_time << std::endl;
 }
 
 void
@@ -646,6 +679,8 @@ SyncRegister::CompAdd  (MultiFab*       Sync_resid_fine,
                         const BoxArray& Pgrids,
                         Real            mult)
 {
+    const Real strt_time = ParallelDescriptor::second();
+
     Array<IntVect> pshifts(27);
 
     for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
@@ -673,6 +708,14 @@ SyncRegister::CompAdd  (MultiFab*       Sync_resid_fine,
     }
 
     FineAdd(Sync_resid_fine,fine_geom,crse_geom,phys_bc,mult);
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "SyncRegister::CompAdd(): time: " << run_time << std::endl;
 }
 
 void
@@ -695,7 +738,6 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
 
     Box fine_node_domain = BoxLib::surroundingNodes(fine_geom.Domain());
     Box crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());
-
     //
     // Coarsen edge values.
     //
