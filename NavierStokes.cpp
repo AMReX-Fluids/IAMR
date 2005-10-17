@@ -133,7 +133,6 @@ GetBndryCells (const BoxArray& ba,
                int             ngrow,
                const Geometry& geom)
 {
-    const Real strt_time = ParallelDescriptor::second();
     //
     // First get list of all ghost cells.
     //
@@ -197,14 +196,6 @@ GetBndryCells (const BoxArray& ba,
     }
 
     gcells.simplify();
-
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
-
-    ParallelDescriptor::ReduceRealMax(run_time, IOProc);
-
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "NavierStokes::GetBndryCells(): size: " << gcells.size() << ", time: " << run_time << std::endl;
 
     return BoxArray(gcells);
 }
@@ -5678,8 +5669,6 @@ NavierStokes::create_umac_grown ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::create_umac_grown()");
 
-    const Real strt_time = ParallelDescriptor::second();
-
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
         u_macG[n].copy(u_mac[n]);
@@ -5769,12 +5758,4 @@ NavierStokes::create_umac_grown ()
             geom.FillPeriodicBoundary(u_macG[n],0,1);
         }
     }
-
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
-
-    ParallelDescriptor::ReduceRealMax(run_time, IOProc);
-
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "NavierStokes::create_umac_grown(): time: " << run_time << std::endl;
 }
