@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.1 2005-10-21 23:08:27 mzingale Exp $
+c $Id: PROB_3D.F,v 1.2 2005-10-22 00:18:46 jbb Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -96,7 +96,7 @@ c
 
       forceInflow = .FALSE.
       numInflPlanesStore = -1
-      numInflPlanesStore = 30
+      numInflPlanesStore = 16
       forceLo = .TRUE.
       forceHi = .FALSE.
       strmwse_dir = FLCT_ZVEL
@@ -136,9 +136,9 @@ c      write(6,fortin)
 
 
 
-       print *,(dimFile(i),i=1,3)
-       print *,(probSizeFile(i),i=1,3)
-       print *,(dxFile(i),i=1,3)
+c      print *,(dimFile(i),i=1,3)
+c      print *,(probSizeFile(i),i=1,3)
+c      print *,(dxFile(i),i=1,3)
       domnlo(1) = problo(1)
       domnlo(2) = problo(2)
       domnlo(3) = problo(3) 
@@ -2064,7 +2064,7 @@ c         #include "infl_frc.fi"
 
 
 
-       print *,"entering xvelfill"
+c      print *,"entering xvelfill"
 
       if (forceInflow) then
          do i = 1, 3
@@ -2083,11 +2083,11 @@ c         #include "infl_frc.fi"
 c     Note that we are 'scaling time' here to step into the fluct file to the
 c     correct depth.  This requires that time is not further scaled inside the
 c     the INFL_FILL routine.  Just to be sure, we set convVel = 1 here again.
-         convVel = adv_vel
+         convVel = one
          t_flct = adv_vel*time
-         print *,t_flct,uflct_l1, uflct_l2, uflct_l3,uflct_h1, uflct_h2, uflct_h3
+c        print *,t_flct,uflct_l1, uflct_l2, uflct_l3,uflct_h1, uflct_h2, uflct_h3
 
-         print*," fill uflct"
+c        print*," fill uflct"
          call INFL_FILL(
      &        FLCT_XVEL,
      &        uflct_l1, uflct_l2, uflct_l3,
@@ -2096,7 +2096,7 @@ c     the INFL_FILL routine.  Just to be sure, we set convVel = 1 here again.
      $        bc, domnlo, domnhi)
 
       end if
-         print*," done with fill uflct"
+c        print*," done with fill uflct"
 
 
       if (adv_dir .eq. 1) then
@@ -2231,7 +2231,7 @@ c   #include "infl_frc.fi"
 
 
 
-       print *,"entering yvelfill"
+c      print *,"entering yvelfill"
 
       if (forceInflow) then
          do i = 1, 3
@@ -2247,9 +2247,9 @@ c   #include "infl_frc.fi"
          allocate(vflct(vflct_l1:vflct_h1, vflct_l2:vflct_h2,
      &        vflct_l3:vflct_h3))
 
-         convVel = adv_vel
-         t_flct = convVel*time
-         print*,"  fill vflct"
+         convVel = one
+         t_flct = adv_vel*time
+c        print*,"  fill vflct"
 
          call INFL_FILL(
      &        FLCT_YVEL,
@@ -2258,7 +2258,7 @@ c   #include "infl_frc.fi"
      $        bc, domnlo, domnhi)
       end if
 
-         print*," done with fill vflct"
+c        print*," done with fill vflct"
 
 
       if (adv_dir .eq. 2) then
@@ -2391,7 +2391,7 @@ c    #include "infl_frc.fi"
       hi(3) = ARG_H3(w)
 
 
-       print *,"entering zvelfill"
+c      print *,"entering zvelfill"
 
       if (forceInflow) then
          do i = 1, 3
@@ -2407,9 +2407,9 @@ c    #include "infl_frc.fi"
          allocate(wflct(wflct_l1:wflct_h1, wflct_l2:wflct_h2,
      &        wflct_l3:wflct_h3))
 
-         convVel = adv_vel
-         t_flct = convVel*time
-         print*,"  fill wflct"
+         convVel = one
+         t_flct = adv_vel*time
+c        print*,"  fill wflct"
 
          call INFL_FILL(
      &        FLCT_ZVEL,
@@ -2418,7 +2418,7 @@ c    #include "infl_frc.fi"
      $        bc, domnlo, domnhi)
       end if
 
-         print *," done with fill wflct"
+c        print *," done with fill wflct"
 
 
 

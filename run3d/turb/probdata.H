@@ -12,7 +12,7 @@
       common /probdt4/ denfact, xblob, yblob, zblob, radvort,
      &                 radblob, velfact, randfact, bubgrad
       common /probdt5/ rhozero, tempzero, r_d, c_d, adv_vel
-      common /probdt6/f_problo, f_probhi,domnlo,domnhi
+      common /probdt6/f_problo, f_probhi,domnlo,domnhi,turb_scale
       common /probdt7/vb_unifdir
 
       integer rt_max_freq
