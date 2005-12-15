@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.23 2004-12-06 19:06:35 car Exp $
+c $Id: PROB_3D.F,v 1.24 2005-12-15 17:08:29 jbb Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -13,6 +13,7 @@ c
 #include "PROB_AMR_F.H"
 #include "PROB_NS_F.H"
 #include "ArrayLim.H"
+#include "infl_frc.H"
 
 #define SDIM 3
 
@@ -48,6 +49,11 @@ c ::: -----------------------------------------------------------
       REAL_T  problo(SDIM), probhi(SDIM)
 
 #include "probdata.H"
+#include "INFL_FORCE_F.H"
+      INTEGER dimFile(3)
+      integer nCompFile
+      parameter (nCompFile = 3)
+      REAL_T dxFile(3)
 
       namelist /fortin/ denerr, vorterr, adverr, temperr,
      &			denfact, xblob, yblob, zblob, radblob, 
@@ -55,7 +61,9 @@ c ::: -----------------------------------------------------------
      &			rhozero, tempzero, c_d, r_d, 
      &                  adv_dir, adv_vel, axis_dir, radvort,
      &                  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag,
-     &                  vb_unifdir
+     &                  vb_unifdir,
+     &                  forceInflow, numInflPlanesStore, strmwse_dir,
+     $                  forceLo, forceHi, flct_file, turb_scale
       namelist /fortin/ rt_splitx, rt_xfrontw
       namelist /fortin/ rt_den_1, rt_den_2
       namelist /fortin/ rt_pertamp
@@ -86,6 +94,16 @@ c
          probin(i:i) = char(name(i))
       end do
 
+      forceInflow = .FALSE.
+      numInflPlanesStore = -1
+      numInflPlanesStore = 16
+      forceLo = .TRUE.
+      forceHi = .FALSE.
+      strmwse_dir = FLCT_ZVEL
+      flct_file = ""
+      turb_scale = 1
+
+
       untin = 9
       if (namlen .eq. 0) then
          open(untin,file='probin',form='formatted',status='old')
@@ -95,6 +113,39 @@ c
       read(untin,fortin)
 c      write(6,fortin)
       close(unit=untin)
+
+      if (forceInflow .eqv. .FALSE.) then
+         forceLo = .FALSE.
+         forceHi = .FALSE.
+      else
+#if defined(BL_DO_FLCT)
+         if (flct_file.ne."") then
+#define FF_UNIT 20
+            write(6,*) '...initializing turbulence, reading header info'
+            open(FF_UNIT, file=flct_file, form='unformatted')
+            call RD_SCL_FLCTHD(FF_UNIT,nCompFile, dimFile, probSizeFile, dxFile)
+            close(FF_UNIT)
+         endif
+#endif
+       endif
+         print *, 'done with flct_file for now...'
+         print *, 'note -- assuming that the lower boundary is inflow'
+         if (strmwse_dir .NE. 3) then
+            call bl_error('ERROR: turbulent inflow needs strmwse_dir=3')
+         endif
+
+
+
+c      print *,(dimFile(i),i=1,3)
+c      print *,(probSizeFile(i),i=1,3)
+c      print *,(dxFile(i),i=1,3)
+      domnlo(1) = problo(1)
+      domnlo(2) = problo(2)
+      domnlo(3) = problo(3) 
+      domnhi(1) = probhi(1)
+      domnhi(2) = probhi(2)
+      domnhi(3) = probhi(3)
+
 
 
       if(probtype.eq.8)then
@@ -259,6 +310,11 @@ c ::: -----------------------------------------------------------
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
 
+
+      else if (probtype .eq. 11) then
+         call inflowt(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
 
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
@@ -950,6 +1006,59 @@ c
 
 
       end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine inflowt(level,time,lo,hi,nscal,
+     &                       vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz, r_yz
+
+      REAL_T  eps_input, beta_input, rho_input
+      REAL_T  delta_input, kappa_input
+
+
+#include "probdata.H"
+      
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+
+               vel(i,j,k,1) = zero
+               vel(i,j,k,2) = zero
+               vel(i,j,k,3) = adv_vel
+
+               scal(i,j,k,1) = denfact
+               scal(i,j,k,2) = zero
+
+               do n = 3,nscal
+                  scal(i,j,k,n) = one
+               end do
+
+            end do
+         end do
+      end do
+
+      end
 
 c     ::: -----------------------------------------------------------
 c     ::: This routine will tag high error cells based on the 
@@ -1164,7 +1273,7 @@ c     probtype = VISCOUS BENCHMARK
         end do
 
 
-      else if (probtype .eq. 10) then
+      else if (probtype .eq. 10.or.probtype.eq.11) then
 
         do k = lo(3), hi(3)
            do j = lo(2), hi(2)
@@ -1268,7 +1377,7 @@ c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 9) then
 
 
-      else if (probtype .eq. 10) then
+      else if (probtype .eq. 10.or. probtype .eq. 11) then
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
@@ -1402,7 +1511,7 @@ c     probtype = VISCOUS BENCHMARK
             end do
          end do
 
-      else if (probtype .eq. 10) then
+      else if (probtype .eq. 10 .or. probtype .eq. 11) then
 
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
@@ -1932,19 +2041,18 @@ c ::: -----------------------------------------------------------
       REAL_T     y, ul, g_t
       REAL_T  umid,rmid,lamv,lamr,rfact
       REAL_T  hx, hy, hz, gpert, z,  ypert, magwif, constn
+      integer loFlctArray(SDIM), hiFlctArray(SDIM)
+      integer DIMDEC(uflct)
+
+      REAL_T  t_flct
+
+      REAL_T, allocatable :: uflct(:,:,:)
 
       parameter (constn=.22089323)
 
 #include "probdata.H"
-
-      if (adv_dir .eq. 1) then
-         x_vel = adv_vel
-      else  
-         x_vel = zero
-      end if
-
-      call filcc(u,DIMS(u),domlo,domhi,dx,xlo,bc)
-      if(probtype .eq. 8) then
+#include "INFL_FORCE_F.H"
+c         #include "infl_frc.fi"
 
 
       lo(1) = ARG_L1(u)
@@ -1954,86 +2062,50 @@ c ::: -----------------------------------------------------------
       hi(2) = ARG_H2(u)
       hi(3) = ARG_H3(u)
 
-      x_vel = one
-      magwif = one/ten
 
-      umid = (vel1+vel2)*half
-      rmid = (den1+den2)*half
-      lamv = (vel1-vel2)/(vel1+vel2)
-      lamr = (den1-den2)/(den1+den2)
-      hx = dx(1)
-      hy = dx(2)
-      hz = dx(3)
 
-      if (bc(1,1).eq.EXT_DIR.and.lo(1).lt.domlo(1)) then
+c      print *,"entering xvelfill"
 
-         gpert = one
-         do i = 1,10
-            gpert = gpert + mag(i)*sin(freq(i)*time)
-         enddo
+      if (forceInflow) then
+         do i = 1, 3
+            loFlctArray(i) = lo(i)
+            hiFlctArray(i) = hi(i)
+         end do
+         loFlctArray(adv_dir) = 1
+         hiFlctArray(adv_dir) = 1
+         call SET_ARGS(
+     &        uflct_l1, uflct_l2, uflct_l3,
+     &        uflct_h1, uflct_h2, uflct_h3,
+     &        loFlctArray, hiFlctArray)
+         allocate(uflct(uflct_l1:uflct_h1, uflct_l2:uflct_h2,
+     &        uflct_l3:uflct_h3))
 
-         do i = lo(1), domlo(1)-1
-            do k = lo(3), hi(3)
-            z = xlo(3) + hz*(float(k-lo(3)) + half)
-            do j = lo(2), hi(2)
-               y = xlo(2)+hy*(float(j-lo(2))+half)
-               ypert = magwif*sin(freq(1)*time)*sin(constn*y)
-               u(i,j,k) = gpert*umid*(one+lamv*tanh(two*(z-ypert)/delta0))
-            enddo
-            enddo
-         enddo
-      endif
+c     Note that we are 'scaling time' here to step into the fluct file to the
+c     correct depth.  This requires that time is not further scaled inside the
+c     the INFL_FILL routine.  Just to be sure, we set convVel = 1 here again.
+         convVel = one
+         t_flct = adv_vel*time
+c        print *,t_flct,uflct_l1, uflct_l2, uflct_l3,uflct_h1, uflct_h2, uflct_h3
 
-      if (bc(1,2).eq.EXT_DIR.and.hi(1).gt.domhi(1)) then
-         do i = domhi(1)+1, hi(1)
-            do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               u(i,j,k) = x_vel
-            enddo
-            enddo
-         enddo
-      endif
+c        print*," fill uflct"
+         call INFL_FILL(
+     &        FLCT_XVEL,
+     &        uflct_l1, uflct_l2, uflct_l3,
+     &        uflct_h1, uflct_h2, uflct_h3,
+     &        uflct, xlo, dx, t_flct,
+     $        bc, domnlo, domnhi)
 
-      if (bc(2,1).eq.EXT_DIR.and.lo(2).lt.domlo(2)) then
-         do j = lo(2), domlo(2)-1
-            do k = lo(3), hi(3)
-            do i = lo(1), hi(1)
-               u(i,j,k) = x_vel
-            enddo
-            enddo
-         enddo
-      endif
-      if (bc(2,2).eq.EXT_DIR.and.hi(2).gt.domhi(2)) then
-         do j = domhi(2)+1, hi(2)
-            do k = lo(3), hi(3)
-            do i = lo(1), hi(1)
-               u(i,j,k) = x_vel
-            enddo
-            enddo
-         enddo
-      endif
+      end if
+c        print*," done with fill uflct"
 
-      if (bc(3,1).eq.EXT_DIR.and.lo(3).lt.domlo(3)) then
-         do k = lo(3), domlo(3)-1
-            do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               u(i,j,k) = vel2
-            enddo
-            enddo
-         enddo
-      endif
 
-      if (bc(3,2).eq.EXT_DIR.and.hi(3).gt.domhi(3)) then
-         do k = domhi(3)+1, hi(3)
-            do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               u(i,j,k) = vel1
-            enddo
-            enddo
-         enddo
-      endif
+      if (adv_dir .eq. 1) then
+         x_vel = adv_vel
+      else  
+         x_vel = zero
+      end if
 
-      else
+      call filcc(u,DIMS(u),domlo,domhi,dx,xlo,bc)
 
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(u).lt.domlo(1)) then
@@ -2080,10 +2152,15 @@ c ::: -----------------------------------------------------------
          do k = ARG_L3(u), domlo(3)-1
             do j = ARG_L2(u), ARG_H2(u)
                do i = ARG_L1(u), ARG_H1(u)
-                  u(i,j,k) = zero
+                  if (forceLo .and. adv_dir .eq. 3) then
+                     u(i,j,k) = uflct(i,j,1)*turb_scale
+                  else
+                     u(i,j,k) = zero
+                  end if
                end do
             end do
          end do
+
       end if
 
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(u).gt.domhi(3)) then
@@ -2096,7 +2173,6 @@ c ::: -----------------------------------------------------------
          end do
       end if
 
-      endif
 
       end
 
@@ -2131,18 +2207,59 @@ c ::: -----------------------------------------------------------
       REAL_T     dx(SDIM), xlo(SDIM), time
       REAL_T     v(DIMV(v))
       integer    bc(SDIM,2)
+      integer    lo(SDIM),hi(SDIM)
 
       integer    i, j, k
       REAL_T     y_vel
       REAL_T     rn
+      integer loFlctArray(SDIM), hiFlctArray(SDIM)
+      integer DIMDEC(vflct)
+      REAL_T  t_flct
 
 #include "probdata.H"
+#include "INFL_FORCE_F.H"
+c   #include "infl_frc.fi"
 
-      if(probtype.eq.8)then
+      REAL_T, allocatable :: vflct(:,:,:)
 
-         y_vel = zero
+      lo(1) = ARG_L1(v)
+      lo(2) = ARG_L2(v)
+      lo(3) = ARG_L3(v)
+      hi(1) = ARG_H1(v)
+      hi(2) = ARG_H2(v)
+      hi(3) = ARG_H3(v)
 
-      else
+
+
+c      print *,"entering yvelfill"
+
+      if (forceInflow) then
+         do i = 1, 3
+            loFlctArray(i) = lo(i)
+            hiFlctArray(i) = hi(i)
+         end do
+         loFlctArray(adv_dir) = 1
+         hiFlctArray(adv_dir) = 1
+         call SET_ARGS(
+     &        vflct_l1, vflct_l2, vflct_l3,
+     &        vflct_h1, vflct_h2, vflct_h3,
+     &        loFlctArray, hiFlctArray)
+         allocate(vflct(vflct_l1:vflct_h1, vflct_l2:vflct_h2,
+     &        vflct_l3:vflct_h3))
+
+         convVel = one
+         t_flct = adv_vel*time
+c        print*,"  fill vflct"
+
+         call INFL_FILL(
+     &        FLCT_YVEL,
+     &        vflct_l1, vflct_l2, vflct_l3,
+     &        vflct_h1, vflct_h2, vflct_h3, vflct, xlo, dx, t_flct,
+     $        bc, domnlo, domnhi)
+      end if
+
+c        print*," done with fill vflct"
+
 
       if (adv_dir .eq. 2) then
          y_vel = adv_vel
@@ -2150,7 +2267,6 @@ c ::: -----------------------------------------------------------
          y_vel = zero
       end if
 
-      endif
 
       call filcc(v,DIMS(v),domlo,domhi,dx,xlo,bc)
 
@@ -2198,7 +2314,12 @@ c ::: -----------------------------------------------------------
          do k = ARG_L3(v), domlo(3)-1
             do j = ARG_L2(v), ARG_H2(v)
                do i = ARG_L1(v), ARG_H1(v)
-                  v(i,j,k) = zero
+                  if (forceLo .and. adv_dir .eq. 3) then
+                     v(i,j,k) = zero + vflct(i,j,1)*turb_scale
+                  else
+                     v(i,j,k) = zero
+                  end if
+
                end do
             end do
          end do
@@ -2247,18 +2368,58 @@ c ::: -----------------------------------------------------------
       REAL_T     dx(SDIM), xlo(SDIM), time
       REAL_T     w(DIMV(w))
       integer    bc(SDIM,2)
+      integer    lo(SDIM),hi(SDIM)
+      REAL_T t_flct
 
       integer    i, j, k
       REAL_T     z_vel
+      integer loFlctArray(SDIM), hiFlctArray(SDIM)
+      integer DIMDEC(wflct)
 
 #include "probdata.H"
+#include "INFL_FORCE_F.H"
+c    #include "infl_frc.fi"
 
 
-      if(probtype.eq.8)then
+      REAL_T, allocatable :: wflct(:,:,:)
 
-      z_vel = zero
+      lo(1) = ARG_L1(w)
+      lo(2) = ARG_L2(w)
+      lo(3) = ARG_L3(w)
+      hi(1) = ARG_H1(w)
+      hi(2) = ARG_H2(w)
+      hi(3) = ARG_H3(w)
 
-      else
+
+c      print *,"entering zvelfill"
+
+      if (forceInflow) then
+         do i = 1, 3
+            loFlctArray(i) = lo(i)
+            hiFlctArray(i) = hi(i)
+         end do
+         loFlctArray(adv_dir) = 1
+         hiFlctArray(adv_dir) = 1
+         call SET_ARGS(
+     &        wflct_l1, wflct_l2, wflct_l3,
+     &        wflct_h1, wflct_h2, wflct_h3,
+     &        loFlctArray, hiFlctArray)
+         allocate(wflct(wflct_l1:wflct_h1, wflct_l2:wflct_h2,
+     &        wflct_l3:wflct_h3))
+
+         convVel = one
+         t_flct = adv_vel*time
+c        print*,"  fill wflct"
+
+         call INFL_FILL(
+     &        FLCT_ZVEL,
+     &        wflct_l1, wflct_l2, wflct_l3,
+     &        wflct_h1, wflct_h2, wflct_h3, wflct, xlo, dx, t_flct,
+     $        bc, domnlo, domnhi)
+      end if
+
+c        print *," done with fill wflct"
+
 
 
 
@@ -2268,7 +2429,6 @@ c ::: -----------------------------------------------------------
          z_vel = zero
       end if
 
-      endif
 
       call filcc(w,DIMS(w),domlo,domhi,dx,xlo,bc)
 
@@ -2316,7 +2476,11 @@ c ::: -----------------------------------------------------------
          do k = ARG_L3(w), domlo(3)-1
             do j = ARG_L2(w), ARG_H2(w)
                do i = ARG_L1(w), ARG_H1(w)
-                  w(i,j,k) = z_vel
+                  if (forceLo .and. adv_dir .eq. 3) then
+                     w(i,j,k) = adv_vel + wflct(i,j,1)*turb_scale
+                  else
+                     w(i,j,k) = adv_vel
+                  endif
                end do
             end do
          end do
