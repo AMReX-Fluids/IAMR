@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.10 2004-01-07 23:54:18 lijewski Exp $
+c $Id: FLUCTFILE.F,v 1.11 2005-12-15 20:47:46 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -110,10 +110,8 @@ c
       ierr = 0
       read(iunit,iostat=ierr) dimFile, nCmpFile
       if (ierr.ne.0) nCmpFile = BL_SPACEDIM
-      if (nCmpFile.ne.nCompInflow) then
-         write(6,*) 'nCmpFile=',nCmpFile,'  nCompInflow=',nCompInflow
-         call bl_abort('RD_SCL_FLCTHD: nCmpFile != nCompInflow')
-      endif
+
+      nCompInflow = nCmpFile
 
       read(iunit) probSizeFile
       !
