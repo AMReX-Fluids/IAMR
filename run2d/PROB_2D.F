@@ -1,6 +1,4 @@
-c
-c $Id: PROB_2D.F,v 1.24 2005-12-15 21:52:16 lijewski Exp $
-c
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
@@ -64,15 +62,14 @@ c
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
-      integer maxlen
+      integer maxlen, isioproc
       parameter (maxlen=256)
 
       character probin*(maxlen)
 
-      if (namlen .gt. maxlen) then
-         write(6,*) 'probin file name too long'
-         stop
-      end if
+      call bl_pd_is_ioproc(isioproc)
+
+      if (namlen .gt. maxlen) call bl_error('probin file name too long')
 
       do i = 1, namlen
          probin(i:i) = char(name(i))
@@ -94,7 +91,7 @@ c
       turb_scale = 1
 
       read(untin,fortin)
-c      write(6,fortin)
+      if (isioproc .eq. 1) write(6,fortin)
       close(unit=untin)
 
       if (forceInflow .eqv. .FALSE.) then
@@ -102,19 +99,19 @@ c      write(6,fortin)
          forceHi = .FALSE.
       else
          if (flct_file .ne. "") then
-#define FF_UNIT 20
-            print*, '...initializing turbulence, reading header info'
-            open(FF_UNIT, file=flct_file, form='unformatted')
-            call RD_SCL_FLCTHD(FF_UNIT,nCompFile,dimFile,probSizeFile,dxFile)
-            close(FF_UNIT)
-#undef  FF_UNIT
+            if (isioproc .eq. 1) print*, 'Initializing turbulence ...'
+            open(20, file=flct_file, form='unformatted')
+            call RD_SCL_FLCTHD(20,nCompFile,dimFile,probSizeFile,dxFile)
+            close(20)
          endif
          if (strmwse_dir .NE. 2) then
-            call bl_error('ERROR: turbulent inflow needs strmwse_dir=3')
-         endif
-c        print *,(dimFile(i),i=1,3)
-c        print *,(probSizeFile(i),i=1,3)
-c        print *,(dxFile(i),i=1,3)
+            call bl_error('turbulent inflow needs strmwse_dir=2')
+         end if
+         if (isioproc .eq. 1) then
+            print *, 'dimFile: ',      (dimFile(i),i=1,3)
+            print *, 'probSizeFile: ', (probSizeFile(i),i=1,3)
+            print *, 'dxFile: ',       (dxFile(i),i=1,3)
+         end if
       endif
 
       do i=1, SDIM
@@ -203,6 +200,7 @@ c ::: -----------------------------------------------------------
 
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
+         stop
       end if
 
       end
@@ -1245,7 +1243,7 @@ c     the INFL_FILL routine.  Just to be sure, we set convVel = 1 here again.
 c
          convVel = one
          t_flct = adv_vel*time
-         call INFL_FILL(FLCT_XVEL,DIMS(uflct),uflct,xlo,dx,t_flct,bc,domnlo,domnhi)
+         call INFL_FILL(FLCT_XVEL,DIMS(uflct),uflct,xlo,dx,t_flct,bc,f_problo,f_probhi)
       end if
 
       if (adv_dir .eq. 1)then
@@ -1356,7 +1354,7 @@ c ::: -----------------------------------------------------------
          allocate(vflct(DIMV(vflct)))
          convVel = one
          t_flct = adv_vel*time
-         call INFL_FILL(FLCT_YVEL,DIMS(vflct),vflct,xlo,dx,t_flct,bc,domnlo,domnhi)
+         call INFL_FILL(FLCT_YVEL,DIMS(vflct),vflct,xlo,dx,t_flct,bc,f_problo,f_probhi)
       end if
 
       if (adv_dir .eq. 2) then

@@ -32,7 +32,8 @@ c
       read(2,*) imax, jmax, kmax
       read(2,*) scalex, scaley, scalez
       read(2,*) ibc, jbc, kbc
-      write(1) imax+3, jmax, kmax
+c     write(1) imax+3, jmax, kmax
+      write(1) imax+3, jmax+1, kmax
       write(1) scalex*dfloat(imax+2)/dfloat(imax),
      &    scaley, scalez
       write(1) ibc, jbc, 0
