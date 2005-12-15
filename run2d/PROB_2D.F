@@ -1,5 +1,5 @@
 c
-c $Id: PROB_2D.F,v 1.23 2003-06-05 17:46:59 lijewski Exp $
+c $Id: PROB_2D.F,v 1.24 2005-12-15 21:52:16 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -34,18 +34,33 @@ c ::: strttime <=  start problem with this time variable
 c ::: 
 c ::: -----------------------------------------------------------
       subroutine FORT_PROBINIT (init,name,namlen,problo,probhi)
+
+      implicit none
+
       integer init,namlen
       integer name(namlen)
       integer untin, i
       REAL_T  problo(SDIM), probhi(SDIM)
 
 #include "probdata.H"
+#include "INFL_FORCE_F.H"
+#include "infl_frc.H"
+
+c
+c Dimensions of the Inflow file.
+c
+      INTEGER dimFile(3)
+      integer nCompFile
+      parameter (nCompFile = 2)
+      REAL_T dxFile(3)
 
       namelist /fortin/ denerr, vorterr, adverr, temperr,
      &			denfact, xblob, yblob, zblob, radblob, 
      &                  velfact, probtype, randfact, bubgrad,
      &			rhozero, tempzero, c_d, r_d, 
-     &                  adv_dir, adv_vel, axis_dir, radvort
+     &                  adv_dir, adv_vel, axis_dir, radvort,
+     &                  forceInflow, numInflPlanesStore, strmwse_dir,
+     $                  forceLo, forceHi, flct_file, turb_scale
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -70,13 +85,38 @@ c
          open(untin,file=probin(1:namlen),form='formatted',status='old')
       end if
 
+      forceInflow = .FALSE.
+      numInflPlanesStore = 16
+      forceLo = .TRUE.
+      forceHi = .FALSE.
+      strmwse_dir = FLCT_YVEL
+      flct_file = ""
+      turb_scale = 1
+
       read(untin,fortin)
 c      write(6,fortin)
       close(unit=untin)
 
-c
-c     Initialize the common blocks
-c
+      if (forceInflow .eqv. .FALSE.) then
+         forceLo = .FALSE.
+         forceHi = .FALSE.
+      else
+         if (flct_file .ne. "") then
+#define FF_UNIT 20
+            print*, '...initializing turbulence, reading header info'
+            open(FF_UNIT, file=flct_file, form='unformatted')
+            call RD_SCL_FLCTHD(FF_UNIT,nCompFile,dimFile,probSizeFile,dxFile)
+            close(FF_UNIT)
+#undef  FF_UNIT
+         endif
+         if (strmwse_dir .NE. 2) then
+            call bl_error('ERROR: turbulent inflow needs strmwse_dir=3')
+         endif
+c        print *,(dimFile(i),i=1,3)
+c        print *,(probSizeFile(i),i=1,3)
+c        print *,(dxFile(i),i=1,3)
+      endif
+
       do i=1, SDIM
         f_problo(i) = problo(i)
         f_probhi(i) = probhi(i)
@@ -1168,16 +1208,45 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_XVELFILL (u,DIMS(u),domlo,domhi,dx,xlo,time,bc)
 
+      implicit none
+
       integer    DIMDEC(u)
       integer    domlo(SDIM), domhi(SDIM)
       REAL_T     dx(SDIM), xlo(SDIM), time
-      REAL_T     u(DIMV(u))
-      integer    bc(SDIM,2)
+      REAL_T     u(DIMV(u)), x_vel
+      integer    lo(SDIM),hi(SDIM), bc(SDIM,2), i, j
 
-      integer    i, j
-      REAL_T     x_vel
+      integer loFlctArray(SDIM), hiFlctArray(SDIM)
+      integer DIMDEC(uflct)
+      REAL_T  t_flct
+      REAL_T, allocatable :: uflct(:,:)
 
 #include "probdata.H"
+#include "INFL_FORCE_F.H"
+
+      lo(1) = ARG_L1(u)
+      lo(2) = ARG_L2(u)
+      hi(1) = ARG_H1(u)
+      hi(2) = ARG_H2(u)
+
+      if (forceInflow) then
+         do i = 1, SDIM
+            loFlctArray(i) = lo(i)
+            hiFlctArray(i) = hi(i)
+         end do
+         loFlctArray(adv_dir) = 1
+         hiFlctArray(adv_dir) = 1
+         call SET_ARGS(DIMS(uflct), loFlctArray, hiFlctArray)
+         allocate(uflct(DIMV(uflct)))
+c
+c     Note that we are 'scaling time' here to step into the fluct file to the
+c     correct depth.  This requires that time is not further scaled inside the
+c     the INFL_FILL routine.  Just to be sure, we set convVel = 1 here again.
+c
+         convVel = one
+         t_flct = adv_vel*time
+         call INFL_FILL(FLCT_XVEL,DIMS(uflct),uflct,xlo,dx,t_flct,bc,domnlo,domnhi)
+      end if
 
       if (adv_dir .eq. 1)then
          x_vel = adv_vel
@@ -1206,7 +1275,11 @@ c ::: -----------------------------------------------------------
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(u).lt.domlo(2)) then
          do j = ARG_L2(u), domlo(2)-1
             do i = ARG_L1(u), ARG_H1(u)
-	       u(i,j) = zero
+               if (forceLo .and. adv_dir .eq. 2) then
+                  u(i,j) = zero + uflct(i,1)*turb_scale
+               else
+                  u(i,j) = zero
+               end if
 	    end do
 	 end do
       end if            
@@ -1217,7 +1290,9 @@ c ::: -----------------------------------------------------------
 	       u(i,j) = zero
 	    end do
 	 end do
-      end if            
+      end if    
+        
+      if (forceInflow) deallocate(uflct)
 
       end
 
@@ -1247,16 +1322,42 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_YVELFILL (v,DIMS(v),domlo,domhi,dx,xlo,time,bc)
 
+      implicit none
+
       integer    DIMDEC(v)
       integer    domlo(SDIM), domhi(SDIM)
       REAL_T     dx(SDIM), xlo(SDIM), time
       REAL_T     v(DIMV(v))
-      integer    bc(SDIM,2)
-
-      integer    i, j
+      integer    bc(SDIM,2), i, j
       REAL_T     y_vel
 
+      integer lo(SDIM),hi(SDIM)
+      integer loFlctArray(SDIM), hiFlctArray(SDIM)
+      integer DIMDEC(vflct)
+      REAL_T, allocatable :: vflct(:,:)
+      REAL_T  t_flct
+
 #include "probdata.H"
+#include "INFL_FORCE_F.H"
+
+      lo(1) = ARG_L1(v)
+      lo(2) = ARG_L2(v)
+      hi(1) = ARG_H1(v)
+      hi(2) = ARG_H2(v)
+
+      if (forceInflow) then
+         do i = 1, SDIM
+            loFlctArray(i) = lo(i)
+            hiFlctArray(i) = hi(i)
+         end do
+         loFlctArray(adv_dir) = 1
+         hiFlctArray(adv_dir) = 1
+         call SET_ARGS(DIMS(vflct), loFlctArray, hiFlctArray)
+         allocate(vflct(DIMV(vflct)))
+         convVel = one
+         t_flct = adv_vel*time
+         call INFL_FILL(FLCT_YVEL,DIMS(vflct),vflct,xlo,dx,t_flct,bc,domnlo,domnhi)
+      end if
 
       if (adv_dir .eq. 2) then
          y_vel = adv_vel
@@ -1285,7 +1386,12 @@ c ::: -----------------------------------------------------------
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(v).lt.domlo(2)) then
          do j = ARG_L2(v), domlo(2)-1
            do i = ARG_L1(v), ARG_H1(v)
-             v(i,j) = y_vel
+              if (forceLo .and. adv_dir .eq. 2) then
+                 v(i,j) = y_vel + vflct(i,1)*turb_scale
+c                 if (j ==  domlo(2)-1) print*, i, j, vflct(i,1)
+              else
+                 v(i,j) = y_vel
+              end if
 	   end do
 	 end do
       end if            
@@ -1297,6 +1403,8 @@ c ::: -----------------------------------------------------------
 	   end do
 	 end do
       end if            
+
+      if (forceInflow) deallocate(vflct)
 
       end
 
