@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.31 2005-09-09 20:35:50 car Exp $
+# $Id: GNUmakefile,v 1.32 2005-12-16 23:08:18 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -16,15 +16,19 @@ DEBUG	  = TRUE
 PROFILE   = FALSE
 DIM       = 3
 COMP	  = g++
-COMP	  = Intel
-FCOMP	  = Intel
-USE_MPI   = TRUE
+COMP	  = blrts_xlC
+FCOMP	  = blrts_xlf
 USE_MPI   = FALSE
+USE_MPI   = TRUE
 USE_FLCTS = TRUE
 USE_FLCTS = FALSE
 
 USE_HYPRE = FALSE
 USE_METIS = FALSE
+#
+# A "trick" to make the BGL frontend compile CGL code.
+#
+USE_BGL = FALSE
 
 #
 # Use hgproj-serial -- only for testing.
@@ -52,8 +56,26 @@ ifeq (${USE_FLCTS}, TRUE)
   DEFINES += -DBL_DO_FLCT
 endif
 
-o
-include $(TOP)/mk/Make.defs ./Make.package
+ifeq ($(USE_BGL),TRUE)
+  NEEDS_FLUSH_F := TRUE
+endif
+
+include $(TOP)/mk/Make.defs
+
+ifeq ($(USE_BGL),TRUE)
+  MACHINE=BGL
+  CXX=blrts_xlC
+  FC=blrts_xlf
+  fC=blrts_xlf
+  CPPFLAGS+=-I/bgl/BlueLight/ppcfloor/bglsys/include
+  CPPFLAGS+= -DMPICH_SKIP_MPICXX
+  LDFLAGS+=-L/bgl/BlueLight/ppcfloor/bglsys/lib
+  LDFLAGS+=-L/opt/ibmcmp/xlf/9.1/blrts_lib
+  BL_MPI_LIBS=-lxlf90 -lxlfmath -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
+  FORTLINK:=LOWERCASE
+endif
+
+include ./Make.package
 
 ifeq ($(USE_ARRAYVIEW),TRUE)
   DEFINES += -DBL_USE_ARRAYVIEW
@@ -108,14 +130,5 @@ vpath %.f   $(VPATH_LOCATIONS)
 vpath %.f90 $(VPATH_LOCATIONS)
 
 all: $(executable)
-
-ifeq ($(MACHINE),T3E)
-
-  # We don't explicity set the path of the mpi directory on the T3E.
-
-  $(executable): $(filter-out $(HYPRE_LIBS) -lmpi, $(LIBRARIES))
-else
-  $(executable): $(filter-out $(HYPRE_LIBS), $(LIBRARIES))
-endif
 
 include $(TOP)/mk/Make.rules
