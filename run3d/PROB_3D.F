@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.25 2005-12-16 00:09:01 lijewski Exp $
+c $Id: PROB_3D.F,v 1.26 2006-01-10 18:01:33 jbb Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -314,6 +314,12 @@ c ::: -----------------------------------------------------------
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
 
+      else if (probtype .eq. 12) then
+         call taylorgreen(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
+
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
       end if
@@ -478,6 +484,63 @@ c
 c
 c ::: -----------------------------------------------------------
 c
+      subroutine initpervort(level,time,lo,hi,nscal,
+     &                       vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  dist
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            do i = lo(1), hi(1)
+
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+               vel(i,j,k,1) = tanh(30.*(.25-abs(y-.5)))
+               vel(i,j,k,2) = .05*sin(two*Pi*x)
+               vel(i,j,k,3) = zero
+
+               scal(i,j,k,1) = one
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = one
+               end do
+
+               dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+               scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+            end do
+         end do
+      end do
+
+      end
+c
+
+c
+c ::: -----------------------------------------------------------
+c
+
       subroutine initspin(level,time,lo,hi,nscal,
      &	 	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
@@ -766,61 +829,6 @@ c
       end do
 
       end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initpervort(level,time,lo,hi,nscal,
-     &	 	             vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
-
-      integer    level, nscal
-      integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(state)
-      integer    DIMDEC(press)
-      REAL_T     time, dx(SDIM)
-      REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     vel(DIMV(state),SDIM)
-      REAL_T    scal(DIMV(state),nscal)
-      REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
-      integer i, j, k, n
-      REAL_T  x, y, z
-      REAL_T  hx, hy, hz
-      REAL_T  dist
-
-#include "probdata.H"
-
-      hx = dx(1)
-      hy = dx(2)
-      hz = dx(3)
-
-      do k = lo(3), hi(3)
-         z = xlo(3) + hz*(float(k-lo(3)) + half)
-         do j = lo(2), hi(2)
-            y = xlo(2) + hy*(float(j-lo(2)) + half)
-	    do i = lo(1), hi(1)
-
-               x = xlo(1) + hx*(float(i-lo(1)) + half)
-
-               vel(i,j,k,1) = tanh(30.*(.25-abs(y-.5)))
-               vel(i,j,k,2) = .05*sin(two*Pi*x)
-               vel(i,j,k,3) = zero
-
-               scal(i,j,k,1) = one
-               do n = 2,nscal-1
-                  scal(i,j,k,n) = one
-               end do
-                  
-  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
-	       scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
-	    end do
-         end do
-      end do
-
-      end
-c
 c ::: -----------------------------------------------------------
 c
       subroutine inithotspot(level,time,lo,hi,nscal,
@@ -1057,6 +1065,61 @@ c
       end do
 
       end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine taylorgreen(level,time,lo,hi,nscal,
+     &	 	             vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  dist
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+	    do i = lo(1), hi(1)
+
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+               vel(i,j,k,1) = sin(x)*cos(y)*cos(z)
+               vel(i,j,k,2) = -cos(x)*sin(y)*cos(z)
+               vel(i,j,k,3) = zero
+
+               scal(i,j,k,1) = one
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = one
+               end do
+                  
+c 	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+c	       scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+	    end do
+         end do
+      end do
+
+      end
+c
 
 c     ::: -----------------------------------------------------------
 c     ::: This routine will tag high error cells based on the 
@@ -1281,6 +1344,9 @@ c     probtype = VISCOUS BENCHMARK
            end do
         end do
 
+      else if (probtype .eq. 12) then
+
+      return
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
         stop
@@ -1375,7 +1441,7 @@ c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 9) then
 
 
-      else if (probtype .eq. 10.or. probtype .eq. 11) then
+      else if (probtype .eq. 10.or. probtype .eq. 11 .or.probtype.eq.12) then
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
@@ -1509,7 +1575,7 @@ c     probtype = VISCOUS BENCHMARK
             end do
          end do
 
-      else if (probtype .eq. 10 .or. probtype .eq. 11) then
+      else if (probtype .eq. 10 .or. probtype .eq. 11 .or.probtype.eq.12) then
 
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
