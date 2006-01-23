@@ -2085,6 +2085,8 @@ NavierStokes::scalar_update (Real dt,
                              int  first_scalar,
                              int  last_scalar)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::scalar_update()");
+
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... update scalars\n";
 
@@ -2322,6 +2324,8 @@ NavierStokes::diffuse_scalar_setup (Real        dt,
 void
 NavierStokes::velocity_update (Real dt)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::velocity_update()");
+
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         if (do_mom_diff == 0) 
@@ -3954,6 +3958,8 @@ NavierStokes::avgDown_doit (const FArrayBox& fine_fab,
 void
 NavierStokes::level_sync (int crse_iteration)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::level_sync()");
+
     const Real*     dx            = geom.CellSize();
     IntVect         ratio         = parent->refRatio(level);
     const int       finest_level  = parent->finestLevel();
@@ -4184,6 +4190,8 @@ NavierStokes::level_sync (int crse_iteration)
 void
 NavierStokes::mac_sync ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::mac_sync()");
+
     const int  numscal        = NUM_STATE - BL_SPACEDIM;
     const Real prev_time      = state[State_Type].prevTime();
     const Real prev_pres_time = state[Press_Type].prevTime();
@@ -4442,6 +4450,8 @@ NavierStokes::reflux ()
     if (level == parent->finestLevel())
         return;
 
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::reflux()");
+
     BL_ASSERT(do_reflux);
 
     MultiFab& S_crse = get_new_data(State_Type);
@@ -4530,6 +4540,8 @@ NavierStokes::avgDown (int comp)
 {
     if (level == parent->finestLevel())
         return;
+
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::avgDown()");
 
     NavierStokes&   fine_lev = getLevel(level+1);
     const BoxArray& fgrids   = fine_lev.grids;
@@ -5026,6 +5038,8 @@ NavierStokes::calc_divu (Real      time,
                          Real      dt,
                          MultiFab& divu)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::calc_divu()");
+
     if (have_divu)
     {
         divu.setVal(0);
@@ -5065,6 +5079,8 @@ NavierStokes::calc_dsdt (Real      time,
                          Real      dt,
                          MultiFab& dsdt)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::calc_dsdt()");
+
     if (have_divu && have_dsdt)
     {
         dsdt.setVal(0);
