@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.72 2005-10-20 05:55:29 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.73 2006-01-25 16:58:26 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -554,16 +554,16 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
     MultiFabCopyDescriptor mfcd;
     MultiFabId             mfid = mfcd.RegisterFabArray((MultiFab*) &mf);
 
-    for (OrientationIter face; face; ++face)
+    for (int j = 0; j < mfBA.size(); j++)
     {
-        FabSet& fs = bndry[face()];
+        geom.periodicShift(domain, mfBA[j], pshifts);
 
-        for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
+        for (OrientationIter face; face; ++face)
         {
-            for (int j = 0; j < mfBA.size(); j++)
-            {
-                geom.periodicShift(domain, mfBA[j], pshifts);
+            FabSet& fs = bndry[face()];
 
+            for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
+            {
                 for (int iiv = 0; iiv < pshifts.size(); iiv++)
                 {
                     Box sbox = mfBA[j] + pshifts[iiv];
