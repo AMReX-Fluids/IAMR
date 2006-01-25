@@ -3866,6 +3866,8 @@ NavierStokes::avgDown (const BoxArray& cgrids,
     BL_ASSERT(fvolume.boxArray() == fgrids);
     BL_ASSERT(S_crse.nComp() == S_fine.nComp());
     BL_ASSERT(fvolume.nComp() == 1 && cvolume.nComp() == 1);
+
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::avgDown()");
     //
     // Coarsen() the fine stuff on processors owning the fine data.
     //
