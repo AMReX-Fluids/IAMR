@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.32 2005-12-16 23:08:18 lijewski Exp $
+# $Id: GNUmakefile,v 1.33 2006-02-08 21:38:47 car Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -11,13 +11,15 @@ TOP = $(PBOXLIB_HOME)
 #
 PRECISION = DOUBLE
 DEBUG	  = FALSE
-DEBUG	  = FALSE
 DEBUG	  = TRUE
+DEBUG	  = FALSE
 PROFILE   = FALSE
 DIM       = 3
 COMP	  = g++
 COMP	  = blrts_xlC
 FCOMP	  = blrts_xlf
+COMP      = pgCC
+FCOMP     = pgf95
 USE_MPI   = FALSE
 USE_MPI   = TRUE
 USE_FLCTS = TRUE
@@ -74,6 +76,20 @@ ifeq ($(USE_BGL),TRUE)
   BL_MPI_LIBS=-lxlf90 -lxlfmath -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
   FORTLINK:=LOWERCASE
 endif
+
+USE_XT3=TRUE
+
+ifeq ($(USE_XT3),TRUE)
+  LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
+  DEFINES += -DBL_PGI -DMPICH_SKIP_MPICXX -DBL_XT3
+  CXX := CC -target=catamount
+  FC  := ftn -target=catamount
+  fC  := ftn -target=catamount
+  CXXOPTF += -O
+  FOPTF   += -O
+  fOPTF   += -O
+endif
+
 
 include ./Make.package
 
