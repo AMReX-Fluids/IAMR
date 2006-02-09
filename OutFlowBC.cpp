@@ -1,8 +1,9 @@
 //
-// $Id: OutFlowBC.cpp,v 1.6 2003-02-19 19:13:09 almgren Exp $
+// $Id: OutFlowBC.cpp,v 1.7 2006-02-09 21:07:07 car Exp $
 //
 #include <winstd.H>
 
+#include <iostream>
 #include <algorithm>
 
 #include "OutFlowBC.H"
