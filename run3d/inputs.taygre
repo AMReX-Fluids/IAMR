@@ -19,26 +19,30 @@ stop_time 		= 6.0
 
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 		= 32 32 32
+amr.n_cell 		= 64 64 64 
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 1 # maximum number of levels of refinement
+amr.max_level		= 2 # maximum number of levels of refinement
 
 #*******************************************************************************
 
 # Interval (in number of level l timesteps) between regridding
-amr.regrid_int		= 2 
+amr.regrid_int		= 2 2 2 2 2 2 2 
 
 #*******************************************************************************
 
 # Refinement ratio as a function of level
-amr.ref_ratio		= 2
+amr.ref_ratio		= 2 2 2 2
+amr.n_error_buff        = 2 2 2 2 2 2 2
 
 #*******************************************************************************
 
 # Sets the "NavierStokes" code to be verbose
 ns.v                    = 1
+ns.sum_interval         = 1
+ns.init_iter            = 4
 
 #*******************************************************************************
 
@@ -48,14 +52,14 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_int		= 10 
-amr.check_file          = chkf
+amr.check_int		= 5 
+amr.check_file          = chk
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 10
-amr.plot_file           = pltf
+amr.plot_int		= 5
+amr.plot_file           = plt
 
 #*******************************************************************************
 

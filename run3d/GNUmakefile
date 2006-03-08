@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.33 2006-02-08 21:38:47 car Exp $
+# $Id: GNUmakefile,v 1.34 2006-03-08 18:56:53 jbb Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -10,23 +10,21 @@ TOP = $(PBOXLIB_HOME)
 # Variables for the user to set ...
 #
 PRECISION = DOUBLE
-DEBUG	  = FALSE
 DEBUG	  = TRUE
 DEBUG	  = FALSE
 PROFILE   = FALSE
 DIM       = 3
 COMP	  = g++
-COMP	  = blrts_xlC
-FCOMP	  = blrts_xlf
-COMP      = pgCC
-FCOMP     = pgf95
+COMP	  = mpiCC
+FCOMP     = g95
 USE_MPI   = FALSE
 USE_MPI   = TRUE
-USE_FLCTS = TRUE
 USE_FLCTS = FALSE
 
 USE_HYPRE = FALSE
 USE_METIS = FALSE
+USE_XT3   = FALSE
+USE_BGL   = FALSE
 #
 # A "trick" to make the BGL frontend compile CGL code.
 #
@@ -77,7 +75,6 @@ ifeq ($(USE_BGL),TRUE)
   FORTLINK:=LOWERCASE
 endif
 
-USE_XT3=TRUE
 
 ifeq ($(USE_XT3),TRUE)
   LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
@@ -92,6 +89,8 @@ endif
 
 
 include ./Make.package
+
+CXX = mpiCC
 
 ifeq ($(USE_ARRAYVIEW),TRUE)
   DEFINES += -DBL_USE_ARRAYVIEW
@@ -133,6 +132,8 @@ ifdef FBOXLIB_HOME
   Fdirs   := boxlib mg extern/SPARSKIT extern/LAPACK
   Flocs   := $(foreach dir, $(Fdirs), $(FBOXLIB_HOME)/$(dir))
 endif
+
+CXX = mpiCC
 
 VPATH_LOCATIONS   += . $(Blocs) $(Flocs)
 INCLUDE_LOCATIONS += . $(Blocs) $(Flocs)

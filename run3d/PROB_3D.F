@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.26 2006-01-10 18:01:33 jbb Exp $
+c $Id: PROB_3D.F,v 1.27 2006-03-08 18:56:53 jbb Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1580,7 +1580,7 @@ c     probtype = VISCOUS BENCHMARK
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1))*dx(1).gt.vorterr)
                end do
             end do
          end do
