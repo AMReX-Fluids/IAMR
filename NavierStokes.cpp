@@ -2736,22 +2736,25 @@ NavierStokes::sum_integrated_quantities ()
     const int finest_level = parent->finestLevel();
 
     Real time = state[State_Type].curTime();
-    Real mass = 0.0;
-    Real trac = 0.0;
+//    Real mass = 0.0;
+//    Real trac = 0.0;
+    Real energy = 0.0;
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
         NavierStokes& ns_level = getLevel(lev);
-        mass += ns_level.volWgtSum("density",time);
-        trac += ns_level.volWgtSum("tracer",time);
+//        mass += ns_level.volWgtSum("density",time);
+//        trac += ns_level.volWgtSum("tracer",time);
+        energy += ns_level.volWgtSum("energy",time);
     }
 
     if (ParallelDescriptor::IOProcessor())
     {
         const int old_prec = std::cout.precision(12);
         std::cout << '\n';
-        std::cout << "TIME= " << time << " MASS= " << mass << '\n';
-        std::cout << "TIME= " << time << " TRAC= " << trac << '\n';
+//        std::cout << "TIME= " << time << " MASS= " << mass << '\n';
+//        std::cout << "TIME= " << time << " TRAC= " << trac << '\n';
+        std::cout << "TIME= " << time << " KENG= " << energy << '\n';
         std::cout.precision(old_prec);
     }
 }

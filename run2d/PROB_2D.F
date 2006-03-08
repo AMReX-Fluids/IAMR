@@ -913,7 +913,7 @@ c     probtype = BUBBLE
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr*2.d0**level)
            end do
         end do
 

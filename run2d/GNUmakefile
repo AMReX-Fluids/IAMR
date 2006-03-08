@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.31 2005-09-09 20:35:50 car Exp $
+# $Id: GNUmakefile,v 1.32 2006-03-08 18:57:13 jbb Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -10,18 +10,20 @@ TOP = $(PBOXLIB_HOME)
 # Variables for the user to set ...
 #
 PRECISION = DOUBLE
-DEBUG	  = TRUE
+DEBUG	  = FALSE
 PROFILE   = FALSE
 DIM	  = 2
 COMP	  = g++
 FCOMP     = g77
+COMP	  = mpiCC
+FCOMP	  = g95
 COMP	  = Intel
 FCOMP	  = Intel
 USE_MPI   = TRUE
 USE_MPI   = FALSE
 
-USE_FLCTS = TRUE
 USE_FLCTS = FALSE
+USE_FLCTS = TRUE
 
 USE_THREADS	= TRUE
 USE_THREADS	= FALSE
@@ -62,6 +64,8 @@ endif
 
 include $(TOP)/mk/Make.defs 
 include ./Make.package
+
+# CXX = mpiCC
 
 fincludes=$(includes)
 
