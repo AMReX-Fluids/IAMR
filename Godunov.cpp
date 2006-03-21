@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.38 2005-10-10 18:19:49 car Exp $
+// $Id: Godunov.cpp,v 1.39 2006-03-21 00:07:00 lijewski Exp $
 //
 
 //
@@ -634,11 +634,11 @@ Godunov::edge_states_bds (const Box&  grd,
     //
     // C component indices starts from 0, Fortran from 1
     //
-    int fort_ind = state_ind+1;  
 
     if (velpred == 1) BoxLib::Error("Call to ESTATE_BDS only valid for velpred = 0");
       
 #if (BL_SPACEDIM == 2)
+    int fort_ind = state_ind+1;  
     FORT_ESTATE_BDS(s_dat, tfr_dat, divu_dat, ARLIM(s_lo), ARLIM(s_hi),
                     
                     xlo_dat, xhi_dat, slx_dat,

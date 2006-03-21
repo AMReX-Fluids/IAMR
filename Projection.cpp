@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.163 2005-10-10 18:19:49 car Exp $
+// $Id: Projection.cpp,v 1.164 2006-03-21 00:07:00 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2746,11 +2746,11 @@ Projection::set_outflow_bcs (int        which_call,
     //
     const int ccStripWidth = 2;
 
-    const int nCompPhi    = 1;
-    const int srcCompVel  = Xvel;
-    const int srcCompDivu = 0;
-    const int   nCompVel  = BL_SPACEDIM;
-    const int   nCompDivu = 1;
+//    const int nCompPhi    = 1;
+//    const int srcCompVel  = Xvel;
+//    const int srcCompDivu = 0;
+//    const int   nCompVel  = BL_SPACEDIM;
+//    const int   nCompDivu = 1;
 
     //
     // Determine the finest level such that the entire outflow face is covered

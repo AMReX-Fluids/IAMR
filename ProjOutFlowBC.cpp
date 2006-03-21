@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.30 2006-02-09 21:07:07 car Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.31 2006-03-21 00:07:00 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -34,7 +34,6 @@ Real ProjOutFlowBC_MG::cg_abs_tol        = 5.0e-12;
 Real ProjOutFlowBC_MG::cg_max_jump       = 10.0;
 int  ProjOutFlowBC_MG::cg_maxiter        = 40;
 int  ProjOutFlowBC_MG::maxIters          = 40;
-#endif
 
 static
 Box
@@ -45,6 +44,7 @@ semiSurroundingNodes (const Box& baseBox,
     sBox.growHi(direction,-1);
     return sBox;
 }
+#endif
 
 ProjOutFlowBC::ProjOutFlowBC ()
 {
@@ -69,7 +69,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                           Real              gravity)
 {
     BL_ASSERT(numOutFlowFaces <= 2*BL_SPACEDIM);
-    int i,iface;
+    int i;
 
     int faces[2*BL_SPACEDIM];
     for (i = 0; i < numOutFlowFaces; i++) faces[i] = int(outFaces[i]);
@@ -95,8 +95,12 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         isPeriodic[dir] = geom.isPeriodic(dir);
 
     IntVect loFiltered, hiFiltered;
+#if (BL_SPACEDIM == 2)
     int isPeriodicFiltered[2*BL_SPACEDIM][BL_SPACEDIM];
+#endif
+#if (BL_SPACEDIM == 3)
     Real dxFiltered[2*BL_SPACEDIM][BL_SPACEDIM];
+#endif
 
     for (int iface = 0; iface < numOutFlowFaces; iface++) {
 
@@ -119,16 +123,24 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
 	{
             loFiltered[cnt] = lo[dir];
             hiFiltered[cnt] = hi[dir];
+#if (BL_SPACEDIM == 3)
             dxFiltered[iface][cnt] = dx[dir];
+#endif
+#if (BL_SPACEDIM == 2)
             isPeriodicFiltered[iface][cnt] = isPeriodic[dir];
+#endif
             cnt++;
 	}
         else
         {
             loFiltered[BL_SPACEDIM-1] = lo[dir];
             hiFiltered[BL_SPACEDIM-1] = hi[dir];
+#if (BL_SPACEDIM == 3)
             dxFiltered[iface][BL_SPACEDIM-1] = dx[dir];
+#endif
+#if (BL_SPACEDIM == 2)
             isPeriodicFiltered[iface][BL_SPACEDIM-1] = isPeriodic[dir];
+#endif
 	}
     }
 
@@ -166,7 +178,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
     }
 #else
     Array<Real> rcen;
-    int r_len = 0;
+//    int r_len = 0;
 #endif
 
     DEF_BOX_LIMITS(origBox,origLo,origHi);
@@ -198,21 +210,12 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                      origLo,origHi,&faces[iface],&zeroIt[iface],&hx);
     }
 
-    int connected = 0;
-
 //  Test for whether multiple faces are touching.
 //    therefore not touching.
     int numRegions = 1;
     if ( (numOutFlowFaces == 2) &&
          (outFaces[0].coordDir() == outFaces[1].coordDir()) )
        numRegions = 2;
-
-    if (numOutFlowFaces == 2) {
-       if (outFaces[0].coordDir() != outFaces[1].coordDir()) 
-         connected = 1;
-    } else if (numOutFlowFaces > 2) {
-         connected = 1;
-    }
 
      // Since we only use a constant dx in the Fortran,
      //  we'll assume for now we can choose either one.
@@ -245,15 +248,21 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
        } else {
 
          int faces[2*BL_SPACEDIM];
+#if (BL_SPACEDIM == 2)
          int numOutFlowFacesInRegion;
+#endif
          if (numRegions == 1)
          {
            for (int i=0; i < numOutFlowFaces; i++) 
              faces[i] = int(outFaces[i]);
+#if (BL_SPACEDIM == 2)
              numOutFlowFacesInRegion = numOutFlowFaces;
+#endif
          } else if (numRegions == 2) {
              faces[0] = int(outFaces[ireg]);
+#if (BL_SPACEDIM == 2)
              numOutFlowFacesInRegion = 1;
+#endif
          }
 
 #if (BL_SPACEDIM == 2)

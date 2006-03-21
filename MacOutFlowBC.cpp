@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.27 2003-09-11 21:10:14 almgren Exp $
+// $Id: MacOutFlowBC.cpp,v 1.28 2006-03-21 00:07:00 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -144,7 +144,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
     }
 #else
     Array<Real> redge;
-    int r_len = 0;
+//    int r_len = 0;
 #endif
    
     DEF_BOX_LIMITS(origBox,origLo,origHi);
@@ -393,9 +393,9 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
          FArrayBox x(connected_region,1);
          ccE_conn.setVal(1.e200);
 
-         int per = (numOutFlowFaces == 2*BL_SPACEDIM) ? 1 : 0;
-
 #if (BL_SPACEDIM == 2)
+
+         int per = (numOutFlowFaces == 2*BL_SPACEDIM) ? 1 : 0;
 
         Real * redge_conn = new Real[length+1];
 
