@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.34 2006-03-08 18:56:53 jbb Exp $
+# $Id: GNUmakefile,v 1.35 2006-04-01 16:08:39 car Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -14,8 +14,8 @@ DEBUG	  = TRUE
 DEBUG	  = FALSE
 PROFILE   = FALSE
 DIM       = 3
-COMP	  = g++
 COMP	  = mpiCC
+COMP	  = g++
 FCOMP     = g95
 USE_MPI   = FALSE
 USE_MPI   = TRUE
