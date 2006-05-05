@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.35 2006-04-01 16:08:39 car Exp $
+# $Id: GNUmakefile,v 1.36 2006-05-05 19:53:22 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -90,8 +90,6 @@ endif
 
 include ./Make.package
 
-CXX = mpiCC
-
 ifeq ($(USE_ARRAYVIEW),TRUE)
   DEFINES += -DBL_USE_ARRAYVIEW
   DEFINES += -DBL_ARRAYVIEW_TAGBOX
@@ -132,8 +130,6 @@ ifdef FBOXLIB_HOME
   Fdirs   := boxlib mg extern/SPARSKIT extern/LAPACK
   Flocs   := $(foreach dir, $(Fdirs), $(FBOXLIB_HOME)/$(dir))
 endif
-
-CXX = mpiCC
 
 VPATH_LOCATIONS   += . $(Blocs) $(Flocs)
 INCLUDE_LOCATIONS += . $(Blocs) $(Flocs)
