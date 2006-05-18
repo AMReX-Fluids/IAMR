@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.43 2005-09-09 20:35:50 car Exp $
+# $Id: Make.package,v 1.44 2006-05-18 21:15:08 car Exp $
 #
 
 CEXE_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
@@ -10,11 +10,6 @@ CEXE_headers += ViscBndryTensor.H   MacOutFlowBC.H \
 			     ProjOutFlowBC.H OutFlowBC.H
 
 CEXE_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H
-
-ifdef FBOXLIB_HOME
-  CEXE_sources += MGT_Solver.cpp
-  CEXE_headers += MGT_Solver.H
-endif
 
 FEXE_headers += SYNCREG_F.H VISCOPERATOR_F.H \
 		            PROJOUTFLOWBC_F.H MACOUTFLOWBC_F.H

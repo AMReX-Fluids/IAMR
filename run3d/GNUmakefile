@@ -1,9 +1,9 @@
 #
-# $Id: GNUmakefile,v 1.36 2006-05-05 19:53:22 lijewski Exp $
+# $Id: GNUmakefile,v 1.37 2006-05-18 21:15:08 car Exp $
 #
 PBOXLIB_HOME = ../..
-FBOXLIB_HOME = ../../../fParallel
 FBOXLIB_HOME =
+FBOXLIB_HOME = ../../../fParallel
 
 TOP = $(PBOXLIB_HOME)
 #
@@ -17,8 +17,8 @@ DIM       = 3
 COMP	  = mpiCC
 COMP	  = g++
 FCOMP     = g95
-USE_MPI   = FALSE
 USE_MPI   = TRUE
+USE_MPI   = FALSE
 USE_FLCTS = FALSE
 
 USE_HYPRE = FALSE
@@ -122,17 +122,22 @@ Blocs	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
 
 include $(Bpack)
 
-# If We are using the f90 solvers then must define Flocs, and include
-
 ifdef FBOXLIB_HOME
-  include $(FBOXLIB_HOME)/mg/FParallelMG.mak
   DEFINES += -DMG_USE_FBOXLIB
+
+  include $(PBOXLIB_HOME)/MGT_Solver/Make.package
+  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/MGT_Solver
+  VPATH_LOCATIONS += $(PBOXLIB_HOME)/MGT_Solver
+
+  include $(FBOXLIB_HOME)/mg/FParallelMG.mak
+  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/mg/
   Fdirs   := boxlib mg extern/SPARSKIT extern/LAPACK
   Flocs   := $(foreach dir, $(Fdirs), $(FBOXLIB_HOME)/$(dir))
+  VPATH_LOCATIONS += $(Flocs)
 endif
 
-VPATH_LOCATIONS   += . $(Blocs) $(Flocs)
-INCLUDE_LOCATIONS += . $(Blocs) $(Flocs)
+VPATH_LOCATIONS   += . $(Blocs)
+INCLUDE_LOCATIONS += . $(Blocs)
 
 vpath %.c   $(VPATH_LOCATIONS)
 vpath %.cpp $(VPATH_LOCATIONS)
