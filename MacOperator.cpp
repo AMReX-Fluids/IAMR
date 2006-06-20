@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.31 2005-09-09 20:35:50 car Exp $
+// $Id: MacOperator.cpp,v 1.32 2006-06-20 16:42:36 car Exp $
 //
 #include <winstd.H>
 
@@ -372,11 +372,19 @@ mac_level_driver (const MacBndry& mac_bndry,
     }
   else if (the_solver == 3 ) 
     {
-#ifdef MG_USE_FBOXLIB
-      const Geometry& geom = mac_bndry.getGeom();
-      MGT_Solver mgt_solver(1, mac_phi->boxArray(), geom.Domain(), 
-			    phys_bc, dx, Rhs.DistributionMap(), geom);
-      mgt_solver.solve(*mac_phi, Rhs);
+      // FIXME !!!
+#if 0 && defined(MG_USE_FBOXLIB)
+      std::vector<BoxArray> bav(1);
+      bav[0] = mac_phi->boxArray();
+      std::vector<DistributionMapping> dmv(1);
+      dmv[0] = Rhs.DistributionMap();
+      bool nodal = false;
+      MGT_Solver mgt_solver(mac_bndry, dx, bav, dmv, nodal);
+      MultiFab* mac_phi_p[1];
+      MultiFab* Rhs_p[1];
+      mac_phi_p[0] = mac_phi;
+      Rhs_p[0] = &Rhs;
+      mgt_solver.solve(mac_phi_p, Rhs_p);
       std::cout << "DEALLOC OK" << std::endl;
       std::exit(0);
 #else

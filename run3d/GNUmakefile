@@ -1,9 +1,9 @@
 #
-# $Id: GNUmakefile,v 1.37 2006-05-18 21:15:08 car Exp $
+# $Id: GNUmakefile,v 1.38 2006-06-20 16:42:36 car Exp $
 #
 PBOXLIB_HOME = ../..
-FBOXLIB_HOME =
 FBOXLIB_HOME = ../../../fParallel
+FBOXLIB_HOME =
 
 TOP = $(PBOXLIB_HOME)
 #
