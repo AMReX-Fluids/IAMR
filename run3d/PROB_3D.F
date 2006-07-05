@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.27 2006-03-08 18:56:53 jbb Exp $
+c $Id: PROB_3D.F,v 1.28 2006-07-05 19:23:00 jbb Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -209,7 +209,7 @@ c
                   permax = max(permax, pert)
                end do
             end do
-            rt_pertamp = 2.d0*rt_pertamp/(permax - permin)
+c           rt_pertamp = 2.d0*rt_pertamp/(permax - permin)
          end if
       end if
 
@@ -367,10 +367,13 @@ c
 c
 c     ::::: local variables
 c
-      integer i, j, k, n, m
+      integer i, j, k, n, m, numint
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
-      REAL_T  pert,ztemp
+      REAL_T  pert,ztemp,zint1,hdz
+      REAL_T  hloc
+      REAL_T  xloc,yloc,zloc
+      integer iloc,jloc,kloc
 
 #include "probdata.H"
 
@@ -378,29 +381,118 @@ c
       hy = dx(2)
       hz = dx(3)
 
+#if 1
+
+      numint = 10
+      hloc = hx/dfloat(numint)
       do j = lo(2), hi(2)
-         y = xlo(2) + hy*(dble(j-lo(2)) + 0.5d0)
+c        y = xlo(2) + hy*(dble(j-lo(2)) + 0.5d0)
+         y = xlo(2) + hy*(dble(j-lo(2)) )
          do i = lo(1), hi(1)
-            x = xlo(1) + hx*(dble(i-lo(1)) + 0.5d0)
-            pert = 0.d0
-            do n = 1, rt_nfreq
-               do m = 1, rt_nfreq
-                  pert = pert
-     &                 + sin(
-     &                 2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1)
-     &                 )
-     &                 * sin(
-     &                 2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2)
-     &                 )
-     &                 *rt_ranampl(n,m)
-               end do
-            end do
-            ztemp = rt_splitx - pert*rt_pertamp
+c           x = xlo(1) + hx*(dble(i-lo(1)) + 0.5d0)
+            x = xlo(1) + hx*(dble(i-lo(1)) )
+c           pert = 0.d0
+c           do n = 1, rt_nfreq
+c              do m = 1, rt_nfreq
+c                 pert = pert
+c    &                 + sin(
+c    &                 2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1)
+c    &                 )
+c    &                 * sin(
+c    &                 2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2)
+c    &                 )
+c    &                 *rt_ranampl(n,m)
+c              end do
+c           end do
+
+c           pert = rt_pertamp*(cos( 2.0D0*rt_PI*x/f_probhi(1)  )
+c    &                 * cos( 2.0D0*rt_PI*y/f_probhi(2) )
+c    &                 )
+
+c           ztemp = rt_splitx - pert
+            hdz = 0.5d0*hz
             do k = lo(3), hi(3)
                z = xlo(3) + hz*(dble(k-lo(3)) + 0.5d0)
-               scal(i,j,k,1) = 
-     &              rt_den_1 
-     &              + (rt_den_2-rt_den_1)*zblend1(z,ztemp,rt_xfrontw)
+
+               scal(i,j,k,1) = 0.d0
+               do jloc=1,numint
+               do iloc=1,numint
+
+                 xloc = x+hloc*(dfloat(iloc)-0.5d0)
+                 yloc = y+hloc*(dfloat(jloc)-0.5d0)
+
+                pert = rt_pertamp*(cos( 2.0D0*rt_PI*xloc/f_probhi(1)  )
+     &                 + cos( 2.0D0*rt_PI*yloc/f_probhi(2) )
+     &                 )
+                zint1 = rt_splitx - pert
+
+
+ 
+               if(z-hdz.gt.zint1)then
+                    scal(i,j,k,1) = scal(i,j,k,1)+ rt_den_1
+               elseif(z+hdz.gt.zint1)then
+                    scal(i,j,k,1) = scal(i,j,k,1)+ (rt_den_2 * (zint1-z+hdz)
+     &                  + rt_den_1* ( z+hdz-zint1))/hz
+               else
+                    scal(i,j,k,1) =  scal(i,j,k,1)+rt_den_2
+               endif
+               enddo
+               enddo
+               scal(i,j,k,1) = scal(i,j,k,1)/dfloat(numint**2)
+#endif
+#if 0
+
+      numint = 10
+      hloc = hx/dfloat(numint)
+
+      do j = lo(2), hi(2)
+c        y = xlo(2) + hy*(dble(j-lo(2)) + 0.5d0)
+         y = xlo(2) + hy*(dble(j-lo(2)) )
+         do i = lo(1), hi(1)
+c           x = xlo(1) + hx*(dble(i-lo(1)) + 0.5d0)
+            x = xlo(1) + hx*(dble(i-lo(1)) )
+c           pert = 0.d0
+c           do n = 1, rt_nfreq
+c              do m = 1, rt_nfreq
+c                 pert = pert
+c    &                 + sin(
+c    &                 2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1)
+c    &                 )
+c    &                 * sin(
+c    &                 2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2)
+c    &                 )
+c    &                 *rt_ranampl(n,m)
+c              end do
+c           end do
+            hdz = 0.5d0*hz
+            do k = lo(3), hi(3)
+               z = xlo(3) + hz*(dble(k-lo(3)) )
+               scal(i,j,k,1) = 0.d0
+               do kloc=1,numint
+               do jloc=1,numint
+               do iloc=1,numint
+
+                 zint1 = rt_splitx - pert
+                 xloc = x+hloc*(dfloat(iloc)-0.5d0)
+                 yloc = y+hloc*(dfloat(jloc)-0.5d0)
+                 zloc = z+hloc*(dfloat(kloc)-0.5d0)
+
+                pert = rt_pertamp*(cos( 2.0D0*rt_PI*xloc/f_probhi(1)  )
+     &                 + cos( 2.0D0*rt_PI*yloc/f_probhi(2) )
+     &                 )
+                ztemp = rt_splitx - pert
+
+
+               scal(i,j,k,1) = scal(i,j,k,1)+
+     &              rt_den_2
+     &              + (rt_den_1-rt_den_2)*zblend1(z,ztemp,rt_xfrontw)
+ 
+               enddo
+               enddo
+               enddo
+               scal(i,j,k,1) = scal(i,j,k,1)/dfloat(numint**3)
+
+#endif
                vel(i,j,k,1) = 0
                vel(i,j,k,2) = 0
                vel(i,j,k,3) = 0
@@ -944,10 +1036,16 @@ c
                x = xlo(1) + hx*(float(i-lo(1)) + half) -half
                vel(i,j,k,1) = tanh( (rho_input - r_yz) / delta_input)
                vel(i,j,k,2) = zero
-               vel(i,j,k,3) = eps_input * exp(-beta_input * (x*x + y*y) )
+               vel(i,j,k,3) = eps_input * exp(-beta_input * (x*x + y*y
+     1                  +.01*abs(x*y)) )
 
                scal(i,j,k,1) = one
-               scal(i,j,k,2) = exp( -kappa_input * (rho_input - r_yz)**2 )
+c              scal(i,j,k,2) = exp( -kappa_input * (rho_input - r_yz)**2 )
+               if(rho_input .gt. r_yz)then
+                 scal(i,j,k,2) = one
+               else
+                 scal(i,j,k,2) = zero
+               endif
 
                do n = 3,nscal
                   scal(i,j,k,n) = one
@@ -1292,6 +1390,15 @@ c     probtype = HOT SPOT
         end do
 
       else if (probtype .eq. 7) then
+
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+
 
         return
 

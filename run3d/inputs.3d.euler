@@ -18,22 +18,25 @@ stop_time 		= 2.0
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
+amr.n_cell 		= 8 8 8
 amr.n_cell 		= 16 16 16
+amr.n_cell 		= 32 32 32
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 1 # maximum number of levels of refinement
+amr.max_level		= 2  # maximum number of levels of refinement
 
 #*******************************************************************************
 
 # Interval (in number of level l timesteps) between regridding
-amr.regrid_int		= 2 
+amr.regrid_int		= 2 2
+amr.n_error_buf     = 1 1 1 
 
 #*******************************************************************************
 
 # Refinement ratio as a function of level
-amr.ref_ratio		= 2
+amr.ref_ratio		= 2 2
 
 #*******************************************************************************
 
