@@ -1,9 +1,10 @@
 #
-# $Id: GNUmakefile,v 1.38 2006-06-20 16:42:36 car Exp $
+# $Id: GNUmakefile,v 1.39 2006-07-19 22:20:22 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
 FBOXLIB_HOME =
+#FBOXLIB_HOME = ../../../fParallel
 
 TOP = $(PBOXLIB_HOME)
 #
@@ -13,14 +14,12 @@ PRECISION = DOUBLE
 DEBUG	  = TRUE
 DEBUG	  = FALSE
 PROFILE   = FALSE
+PROFILE   = TRUE
 DIM       = 3
-COMP	  = mpiCC
-COMP	  = g++
-FCOMP     = g95
+COMP      = mpicxx.ibm
+FCOMP     = blrts_xlf
 USE_MPI   = TRUE
-USE_MPI   = FALSE
 USE_FLCTS = FALSE
-
 USE_HYPRE = FALSE
 USE_METIS = FALSE
 USE_XT3   = FALSE
@@ -28,7 +27,13 @@ USE_BGL   = FALSE
 #
 # A "trick" to make the BGL frontend compile CGL code.
 #
-USE_BGL = FALSE
+#USE_BGL = TRUE
+
+ifeq ($(USE_BGL),TRUE)
+  CXXOPTF += -O2 -qmaxmem=-1
+  FOPTF   += -O2 -qmaxmem=-1
+  fOPTF   += -O2 -qmaxmem=-1
+endif
 
 #
 # Use hgproj-serial -- only for testing.
@@ -64,17 +69,17 @@ include $(TOP)/mk/Make.defs
 
 ifeq ($(USE_BGL),TRUE)
   MACHINE=BGL
-  CXX=blrts_xlC
+  CXX=mpicxx.ibm
   FC=blrts_xlf
   fC=blrts_xlf
-  CPPFLAGS+=-I/bgl/BlueLight/ppcfloor/bglsys/include
   CPPFLAGS+= -DMPICH_SKIP_MPICXX
   LDFLAGS+=-L/bgl/BlueLight/ppcfloor/bglsys/lib
-  LDFLAGS+=-L/opt/ibmcmp/xlf/9.1/blrts_lib
-  BL_MPI_LIBS=-lxlf90 -lxlfmath -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
+  LDFLAGS+=-L/opt/ibmcmp/xlf/bg/10.1/blrts_lib
+  BL_MPI_LIBS=-lxlf90 -lxlfmath
   FORTLINK:=LOWERCASE
 endif
 
+#USE_XT3=TRUE
 
 ifeq ($(USE_XT3),TRUE)
   LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
@@ -136,8 +141,8 @@ ifdef FBOXLIB_HOME
   VPATH_LOCATIONS += $(Flocs)
 endif
 
-VPATH_LOCATIONS   += . $(Blocs)
 INCLUDE_LOCATIONS += . $(Blocs)
+VPATH_LOCATIONS   += . $(Blocs)
 
 vpath %.c   $(VPATH_LOCATIONS)
 vpath %.cpp $(VPATH_LOCATIONS)
