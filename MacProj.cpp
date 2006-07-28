@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.103 2005-10-10 18:19:49 car Exp $
+// $Id: MacProj.cpp,v 1.104 2006-07-28 21:28:33 almgren Exp $
 //
 #include <winstd.H>
 
@@ -601,8 +601,12 @@ MacProj::mac_sync_solve (int       level,
       {
 	the_solver = 2;
       }
+    else if ( use_fboxlib_mg )
+    {
+	the_solver = 3;
+    }
     if (anel_coeff[level] != 0) scaleArea(level,area[level],anel_coeff[level]);
-    mac_sync_driver(mac_bndry, grids, the_solver, level, dx, dt,
+    mac_sync_driver(mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
                     mac_sync_tol, mac_abs_tol, rhs_scale, area[level],
                     volume[level], Rhs, rho_half, mac_sync_phi);
     if (anel_coeff[level] != 0) rescaleArea(level,area[level],anel_coeff[level]);

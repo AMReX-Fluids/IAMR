@@ -18,7 +18,7 @@ void mac_level_driver( const MacBndry &mac_bndry, const BCRec& phys_bc,
                        MultiFab *u_mac, MultiFab *mac_phi );
 
 // a driver function for computing a sync MAC solve
-void mac_sync_driver( const MacBndry &mac_bndry,
+void mac_sync_driver( const MacBndry &mac_bndry, const BCRec& phys_bc,
                       const BoxArray &grids,
                       int use_cg_solve, int level, 
                       const Real *dx, Real dt,

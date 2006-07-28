@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.33 2006-07-27 20:59:40 almgren Exp $
+// $Id: MacOperator.cpp,v 1.34 2006-07-28 21:28:33 almgren Exp $
 //
 #include <winstd.H>
 
@@ -396,7 +396,7 @@ mac_level_driver (const MacBndry& mac_bndry,
       mac_phi_p[0] = mac_phi;
       Rhs_p[0] = &Rhs;
 
-      mgt_solver.solve(mac_phi_p, Rhs_p);
+      mgt_solver.solve(mac_phi_p, Rhs_p, mac_tol, mac_abs_tol);
 #else
       BoxLib::Error("mac_level_driver::mg_cpp not in this build");
 #endif
@@ -418,6 +418,7 @@ mac_level_driver (const MacBndry& mac_bndry,
 
 void
 mac_sync_driver (const MacBndry& mac_bndry,
+	         const BCRec&    phys_bc,
                  const BoxArray& grids,
                  int             the_solver,
                  int             level, 
@@ -465,6 +466,37 @@ mac_sync_driver (const MacBndry& mac_bndry,
       hp.clear_solver();
 #else
       BoxLib::Error("mac_sync_driver: HypreABec not in this build");
+#endif
+    }
+  else if (the_solver == 3 )
+    {
+#ifdef MG_USE_FBOXLIB
+      std::vector<BoxArray> bav(1);
+      bav[0] = mac_sync_phi->boxArray();
+      std::vector<DistributionMapping> dmv(1);
+      dmv[0] = Rhs.DistributionMap();
+      bool nodal = false;
+      std::vector<int> ipar = MGT_Solver::ipar_defaults();
+      std::vector<double> rpar = MGT_Solver::rpar_defaults();
+      MGT_Solver mgt_solver(mac_bndry, phys_bc, dx, bav, dmv, ipar, rpar, nodal);
+
+      const MultiFab* aa_p[1];
+      aa_p[0] = &(mac_op.aCoefficients());
+      const MultiFab* bb_p[1][BL_SPACEDIM];
+      for ( int i = 0; i < BL_SPACEDIM; ++i )
+      {
+          bb_p[0][i] = &(mac_op.bCoefficients(i));
+      }
+      mgt_solver.set_coefficients(aa_p, bb_p);
+
+      MultiFab* mac_phi_p[1];
+      MultiFab* Rhs_p[1];
+      mac_phi_p[0] = mac_sync_phi;
+      Rhs_p[0] = &Rhs;
+
+      mgt_solver.solve(mac_phi_p, Rhs_p, mac_sync_tol, mac_abs_tol);
+#else
+      BoxLib::Error("mac_sync_driver::mg_cpp not in this build");
 #endif
     }
   else
