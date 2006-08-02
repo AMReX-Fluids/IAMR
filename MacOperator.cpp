@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.34 2006-07-28 21:28:33 almgren Exp $
+// $Id: MacOperator.cpp,v 1.35 2006-08-02 18:02:30 almgren Exp $
 //
 #include <winstd.H>
 
@@ -378,9 +378,7 @@ mac_level_driver (const MacBndry& mac_bndry,
       std::vector<DistributionMapping> dmv(1);
       dmv[0] = Rhs.DistributionMap();
       bool nodal = false;
-      std::vector<int> ipar = MGT_Solver::ipar_defaults();
-      std::vector<double> rpar = MGT_Solver::rpar_defaults();
-      MGT_Solver mgt_solver(mac_bndry, phys_bc, dx, bav, dmv, ipar, rpar, nodal);
+      MGT_Solver mgt_solver(mac_bndry, phys_bc, dx, bav, dmv, nodal);
 
       const MultiFab* aa_p[1]; 
       aa_p[0] = &(mac_op.aCoefficients());
@@ -476,9 +474,7 @@ mac_sync_driver (const MacBndry& mac_bndry,
       std::vector<DistributionMapping> dmv(1);
       dmv[0] = Rhs.DistributionMap();
       bool nodal = false;
-      std::vector<int> ipar = MGT_Solver::ipar_defaults();
-      std::vector<double> rpar = MGT_Solver::rpar_defaults();
-      MGT_Solver mgt_solver(mac_bndry, phys_bc, dx, bav, dmv, ipar, rpar, nodal);
+      MGT_Solver mgt_solver(mac_bndry, phys_bc, dx, bav, dmv, nodal);
 
       const MultiFab* aa_p[1];
       aa_p[0] = &(mac_op.aCoefficients());
