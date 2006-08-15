@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.40 2006-08-15 15:34:32 lijewski Exp $
+# $Id: GNUmakefile,v 1.41 2006-08-15 16:54:13 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -24,6 +24,7 @@ USE_HYPRE = FALSE
 USE_METIS = FALSE
 USE_XT3   = FALSE
 USE_BGL   = FALSE
+EBASE     = amr
 
 ifeq ($(USE_BGL),TRUE)
   CXXOPTF += -O2 -qmaxmem=-1

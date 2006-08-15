@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.35 2006-08-15 15:37:29 lijewski Exp $
+# $Id: GNUmakefile,v 1.36 2006-08-15 16:50:00 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -10,19 +10,20 @@ TOP = $(PBOXLIB_HOME)
 # Variables for the user to set ...
 #
 PRECISION = DOUBLE
-DEBUG	  = TRUE
 DEBUG	  = FALSE
+DEBUG	  = TRUE
 PROFILE   = FALSE
 DIM	  = 2
-COMP	  = Intel
+COMP	  = g++
 FCOMP	  = Intel
-USE_MPI   = FALSE
 USE_MPI   = TRUE
+USE_MPI   = FALSE
 USE_FLCTS = TRUE
 USE_FLCTS = FALSE
 USE_THREADS = TRUE
 USE_THREADS = FALSE
 PRVERSION = v5
+EBASE     = amr
 
 ifeq ($(DIM),2)
   #
