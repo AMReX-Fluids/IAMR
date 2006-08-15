@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.35 2006-08-02 18:02:30 almgren Exp $
+// $Id: MacOperator.cpp,v 1.36 2006-08-15 02:19:25 almgren Exp $
 //
 #include <winstd.H>
 
@@ -378,7 +378,9 @@ mac_level_driver (const MacBndry& mac_bndry,
       std::vector<DistributionMapping> dmv(1);
       dmv[0] = Rhs.DistributionMap();
       bool nodal = false;
-      MGT_Solver mgt_solver(mac_bndry, phys_bc, dx, bav, dmv, nodal);
+      std::vector<Geometry> geom(1);
+      geom[0] = mac_bndry.getGeom();
+      MGT_Solver mgt_solver(geom, phys_bc, bav, dmv, nodal);
 
       const MultiFab* aa_p[1]; 
       aa_p[0] = &(mac_op.aCoefficients());
@@ -387,14 +389,14 @@ mac_level_driver (const MacBndry& mac_bndry,
       {
           bb_p[0][i] = &(mac_op.bCoefficients(i));
       }
-      mgt_solver.set_coefficients(aa_p, bb_p);
+      mgt_solver.set_coefficients(aa_p, bb_p, mac_bndry);
 
       MultiFab* mac_phi_p[1];
       MultiFab* Rhs_p[1];
       mac_phi_p[0] = mac_phi;
       Rhs_p[0] = &Rhs;
 
-      mgt_solver.solve(mac_phi_p, Rhs_p, mac_tol, mac_abs_tol);
+      mgt_solver.solve(mac_phi_p, Rhs_p, mac_tol, mac_abs_tol, mac_bndry);
 #else
       BoxLib::Error("mac_level_driver::mg_cpp not in this build");
 #endif
@@ -474,7 +476,10 @@ mac_sync_driver (const MacBndry& mac_bndry,
       std::vector<DistributionMapping> dmv(1);
       dmv[0] = Rhs.DistributionMap();
       bool nodal = false;
-      MGT_Solver mgt_solver(mac_bndry, phys_bc, dx, bav, dmv, nodal);
+      std::vector<Geometry> geom(1);
+      geom[0] = mac_bndry.getGeom();
+
+      MGT_Solver mgt_solver(geom, phys_bc, bav, dmv, nodal);
 
       const MultiFab* aa_p[1];
       aa_p[0] = &(mac_op.aCoefficients());
@@ -483,14 +488,14 @@ mac_sync_driver (const MacBndry& mac_bndry,
       {
           bb_p[0][i] = &(mac_op.bCoefficients(i));
       }
-      mgt_solver.set_coefficients(aa_p, bb_p);
+      mgt_solver.set_coefficients(aa_p, bb_p, mac_bndry);
 
       MultiFab* mac_phi_p[1];
       MultiFab* Rhs_p[1];
       mac_phi_p[0] = mac_sync_phi;
       Rhs_p[0] = &Rhs;
 
-      mgt_solver.solve(mac_phi_p, Rhs_p, mac_sync_tol, mac_abs_tol);
+      mgt_solver.solve(mac_phi_p, Rhs_p, mac_sync_tol, mac_abs_tol, mac_bndry);
 #else
       BoxLib::Error("mac_sync_driver::mg_cpp not in this build");
 #endif
