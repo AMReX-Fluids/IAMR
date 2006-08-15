@@ -1,10 +1,10 @@
 #
-# $Id: GNUmakefile,v 1.39 2006-07-19 22:20:22 lijewski Exp $
+# $Id: GNUmakefile,v 1.40 2006-08-15 15:34:32 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
+FBOXLIB_HOME = ../../../fParallel
 FBOXLIB_HOME =
-#FBOXLIB_HOME = ../../../fParallel
 
 TOP = $(PBOXLIB_HOME)
 #
@@ -16,18 +16,14 @@ DEBUG	  = FALSE
 PROFILE   = FALSE
 PROFILE   = TRUE
 DIM       = 3
-COMP      = mpicxx.ibm
-FCOMP     = blrts_xlf
+COMP      = Intel
+FCOMP     = Intel
 USE_MPI   = TRUE
 USE_FLCTS = FALSE
 USE_HYPRE = FALSE
 USE_METIS = FALSE
 USE_XT3   = FALSE
 USE_BGL   = FALSE
-#
-# A "trick" to make the BGL frontend compile CGL code.
-#
-#USE_BGL = TRUE
 
 ifeq ($(USE_BGL),TRUE)
   CXXOPTF += -O2 -qmaxmem=-1
@@ -35,27 +31,8 @@ ifeq ($(USE_BGL),TRUE)
   fOPTF   += -O2 -qmaxmem=-1
 endif
 
-#
-# Use hgproj-serial -- only for testing.
-#
-# Touch Projection.cpp if you want to change the state of USE_HGPROJ_SERIAL.
-#
-USE_HGPROJ_SERIAL = TRUE
-USE_HGPROJ_SERIAL = FALSE
-
 USE_VAMPIRE = TRUE
 USE_VAMPIRE = FALSE
-
-ifeq ($(USE_HGPROJ_SERIAL),TRUE)
-  #
-  # What stencil do you want to use?
-  #
-  PRVERSION = v7
-  EBASE = amr-serial
-  DEFINES += -DBL_USE_HGPROJ_SERIAL
-else
-  EBASE = amr
-endif
 
 ifeq (${USE_FLCTS}, TRUE)
   DEFINES += -DBL_DO_FLCT
@@ -153,5 +130,10 @@ vpath %.f   $(VPATH_LOCATIONS)
 vpath %.f90 $(VPATH_LOCATIONS)
 
 all: $(executable)
+
+ifeq ($(WHICHLINUX), COLUMBIA)
+o/3d.Linux.Intel.Intel.PROF.MPI.EXE/amr_real3d.2.o:
+	ifort -module o/3d.Linux.Intel.Intel.PROF.MPI.EXE -O3 -hlo0 -ip  -I. -I.. -I. -I../../LMC/ -I../../iamrlib/ -I../../tensorMG/ -I../../hgproj/ -I../../mglib/ -I../../amrlib/ -I../../bndrylib/ -I../../BoxLib/ -I../../iamrlib/InflowForce -I../../pAmrvis -I../../iamrlib/InflowForce -c  ../../hgproj/amr_real3d.2.f -o o/3d.Linux.Intel.Intel.PROF.MPI.EXE/amr_real3d.2.o
+endif
 
 include $(TOP)/mk/Make.rules

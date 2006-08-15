@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.34 2006-06-20 16:42:36 car Exp $
+# $Id: GNUmakefile,v 1.35 2006-08-15 15:37:29 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -10,41 +10,19 @@ TOP = $(PBOXLIB_HOME)
 # Variables for the user to set ...
 #
 PRECISION = DOUBLE
+DEBUG	  = TRUE
 DEBUG	  = FALSE
 PROFILE   = FALSE
 DIM	  = 2
-COMP	  = g++
-FCOMP     = g77
-COMP	  = mpiCC
-FCOMP	  = g95
 COMP	  = Intel
 FCOMP	  = Intel
-USE_MPI   = TRUE
 USE_MPI   = FALSE
-
-USE_FLCTS = FALSE
+USE_MPI   = TRUE
 USE_FLCTS = TRUE
-
-USE_THREADS	= TRUE
-USE_THREADS	= FALSE
-#
-# Use hgproj-serial -- only for testing.
-#
-# Touch Projection.cpp if you want to change the state of USE_HGPROJ_SERIAL.
-#
-USE_HGPROJ_SERIAL = TRUE
-USE_HGPROJ_SERIAL = FALSE
-#
-# What stencil do you want to use?
-#
+USE_FLCTS = FALSE
+USE_THREADS = TRUE
+USE_THREADS = FALSE
 PRVERSION = v5
-
-ifeq ($(USE_HGPROJ_SERIAL),TRUE)
-  DEFINES += -DBL_USE_HGPROJ_SERIAL
-  EBASE = amr-serial
-else
-  EBASE = amr
-endif
 
 ifeq ($(DIM),2)
   #
@@ -65,16 +43,10 @@ endif
 include $(TOP)/mk/Make.defs 
 include ./Make.package
 
-# CXX = mpiCC
-
 fincludes=$(includes)
 
-Bdirs := BoxLib iamrlib amrlib tensorMG mglib bndrylib
-ifeq ($(USE_HGPROJ_SERIAL),TRUE)
-  Bdirs += hgproj-serial
-else
-  Bdirs += hgproj
-endif
+Bdirs := BoxLib iamrlib amrlib tensorMG mglib bndrylib hgproj
+
 ifeq ($(USE_HYPRE),TRUE)
   Bdirs   += HypreABec
   HYPRE_DIR=$(HOME)/amr/hypre
@@ -83,10 +55,12 @@ ifeq ($(USE_HYPRE),TRUE)
   LIBRARIES += -lHYPRE_struct_ls -lHYPRE_struct_mv -lHYPRE_blas -lHYPRE_utilities
   DEFINES += -DMG_USE_HYPRE
 endif
+
 ifeq ($(USE_METIS),TRUE)
   Bdirs += metis-4.0/Lib
   DEFINES += -DBL_USE_METIS
 endif
+
 ifeq ($(USE_FLCTS),TRUE)
   Bdirs += iamrlib/InflowForce
 endif
@@ -95,8 +69,6 @@ Bpack	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
 
 include $(Bpack)
-
-# If We are using the f90 solvers then must define Flocs, and include
 
 ifdef FBOXLIB_HOME
   DEFINES += -DMG_USE_FBOXLIB
@@ -124,6 +96,11 @@ vpath %.f   $(VPATH_LOCATIONS)
 vpath %.f90 $(VPATH_LOCATIONS)
 
 all: $(executable)
+
+ifeq ($(WHICHLINUX), COLUMBIA)
+o/2d.Linux.Intel.Intel.MPI.EXE/amr_real2d.2.o:
+	ifort -module o/2d.Linux.Intel.Intel.MPI.EXE -O3 -hlo0 -ip  -I. -I.. -I. -I../../LMC/ -I../../iamrlib/ -I../../tensorMG/ -I../../hgproj/ -I../../mglib/ -I../../amrlib/ -I../../bndrylib/ -I../../BoxLib/ -I../../iamrlib/InflowForce -I../../pAmrvis -I../../iamrlib/InflowForce -c  ../../hgproj/amr_real2d.2.f -o o/2d.Linux.Intel.Intel.MPI.EXE/amr_real2d.2.o
+endif
 
 $(executable): $(LIBRARIES)
 
