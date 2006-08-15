@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.123 2005-10-10 18:19:49 car Exp $
+// $Id: Diffusion.cpp,v 1.124 2006-08-15 16:50:19 lijewski Exp $
 //
 
 //
@@ -618,6 +618,8 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                                     const MultiFab* const* betan, 
                                     const MultiFab* const* betanp1)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::diffuse_tensor_velocity()");
+
     BL_ASSERT(rho_flag == 1 || rho_flag == 3);
     const int finest_level = parent->finestLevel();
     NavierStokes& ns    = *(NavierStokes*) &(parent->getLevel(level));
@@ -917,6 +919,8 @@ Diffusion::diffuse_Vsync (MultiFab*              Vsync,
                           int                    rho_flag,
                           const MultiFab* const* beta)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::diffuse_Vsync()");
+
     BL_ASSERT(rho_flag == 1|| rho_flag == 3);
 
     int allnull, allthere;
@@ -969,6 +973,8 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
                                       const MultiFab* rho_half,
                                       int             rho_flag)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::diffuse_Vsync_constant_mu()");
+
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Diffusion::diffuse_Vsync_constant_mu ...\n";
 
@@ -1167,6 +1173,8 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
                                  int                    rho_flag,
                                  const MultiFab* const* beta)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::diffuse_tensor_Vsync()");
+
     BL_ASSERT(rho_flag == 1 || rho_flag == 3);
 
     if (verbose && ParallelDescriptor::IOProcessor())
@@ -1341,6 +1349,8 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
                           const MultiFab* const* beta,
                           const MultiFab*        alpha)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::diffuse_Ssync()");
+
     const int state_ind = sigma + BL_SPACEDIM;
     const int IOProc    = ParallelDescriptor::IOProcessorNumber();
 
@@ -2226,6 +2236,8 @@ Diffusion::getBndryData (ViscBndry& bndry,
                          Real       time,
                          int        rho_flag)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::getBndryData()");
+
     BL_ASSERT(num_comp == 1);
     //
     // Fill phys bndry vals of grow cells of (tmp) multifab passed to bndry.
