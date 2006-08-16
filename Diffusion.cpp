@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.124 2006-08-15 16:50:19 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.125 2006-08-16 18:12:34 lijewski Exp $
 //
 
 //
@@ -2295,14 +2295,14 @@ Diffusion::getBndryData (ViscBndry& bndry,
 }
 
 void
-Diffusion::getBndryDataGivenS (ViscBndry& bndry,
-                               MultiFab&  Rho_and_spec,
-                               MultiFab&  Rho_and_spec_crse,
-                               int        state_ind,
-                               int        src_comp,
-                               int        num_comp,
-                               Real       time,
-                               int        rho_flag)
+Diffusion::getBndryDataGivenS (ViscBndry&      bndry,
+                               const MultiFab& Rho_and_spec,
+                               const MultiFab& Rho_and_spec_crse,
+                               int             state_ind,
+                               int             src_comp,
+                               int             num_comp,
+                               Real            time,
+                               int             rho_flag)
 {
     BL_ASSERT(num_comp == 1);
     const int     nGrow = 1;

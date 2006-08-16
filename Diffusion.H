@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.H,v 1.27 2002-03-26 20:51:08 lijewski Exp $
+// $Id: Diffusion.H,v 1.28 2006-08-16 18:12:34 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -217,8 +217,8 @@ public:
                        int                 rho_flag);
 
     void getBndryDataGivenS (ViscBndry&         bndry,
-                             MultiFab&          S,
-                             MultiFab&          S_crse,
+                             const MultiFab&    S,
+                             const MultiFab&    S_crse,
                              int                state_ind,
                              int                src_comp,
                              int                num_comp,
