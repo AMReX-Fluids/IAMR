@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.36 2006-08-15 02:19:25 almgren Exp $
+// $Id: MacOperator.cpp,v 1.37 2006-08-18 20:28:32 almgren Exp $
 //
 #include <winstd.H>
 
@@ -16,6 +16,11 @@
 
 #ifdef MG_USE_FBOXLIB
 #include <MGT_Solver.H>
+#include <mg_cpp_f.h>
+#endif
+
+#ifndef _NavierStokes_H_
+enum StateType {State_Type=0, Press_Type};
 #endif
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
@@ -380,7 +385,22 @@ mac_level_driver (const MacBndry& mac_bndry,
       bool nodal = false;
       std::vector<Geometry> geom(1);
       geom[0] = mac_bndry.getGeom();
-      MGT_Solver mgt_solver(geom, phys_bc, bav, dmv, nodal);
+
+      int mg_bc[2*BL_SPACEDIM];
+      for ( int i = 0; i < BL_SPACEDIM; ++i )
+      { 
+        if ( geom[0].isPeriodic(i) )
+        {
+          mg_bc[i*2 + 0] = 0;
+          mg_bc[i*2 + 1] = 0;
+        }
+      else
+        {
+          mg_bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+          mg_bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+        }
+      }
+      MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
 
       const MultiFab* aa_p[1]; 
       aa_p[0] = &(mac_op.aCoefficients());
@@ -389,7 +409,7 @@ mac_level_driver (const MacBndry& mac_bndry,
       {
           bb_p[0][i] = &(mac_op.bCoefficients(i));
       }
-      mgt_solver.set_coefficients(aa_p, bb_p, mac_bndry);
+      mgt_solver.set_mac_coefficients(aa_p, bb_p, mac_bndry);
 
       MultiFab* mac_phi_p[1];
       MultiFab* Rhs_p[1];
@@ -479,7 +499,22 @@ mac_sync_driver (const MacBndry& mac_bndry,
       std::vector<Geometry> geom(1);
       geom[0] = mac_bndry.getGeom();
 
-      MGT_Solver mgt_solver(geom, phys_bc, bav, dmv, nodal);
+      int mg_bc[2*BL_SPACEDIM];
+      for ( int i = 0; i < BL_SPACEDIM; ++i )
+      { 
+        if ( geom[0].isPeriodic(i) )
+        {
+          mg_bc[i*2 + 0] = 0;
+          mg_bc[i*2 + 1] = 0;
+        }
+      else
+        {
+          mg_bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+          mg_bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+        }
+      }
+
+      MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
 
       const MultiFab* aa_p[1];
       aa_p[0] = &(mac_op.aCoefficients());
@@ -488,7 +523,7 @@ mac_sync_driver (const MacBndry& mac_bndry,
       {
           bb_p[0][i] = &(mac_op.bCoefficients(i));
       }
-      mgt_solver.set_coefficients(aa_p, bb_p, mac_bndry);
+      mgt_solver.set_mac_coefficients(aa_p, bb_p, mac_bndry);
 
       MultiFab* mac_phi_p[1];
       MultiFab* Rhs_p[1];
