@@ -1,5 +1,5 @@
 //
-// $Id: Diffusion.cpp,v 1.125 2006-08-16 18:12:34 lijewski Exp $
+// $Id: Diffusion.cpp,v 1.126 2006-08-18 20:57:55 almgren Exp $
 //
 
 //
@@ -2351,25 +2351,37 @@ Diffusion::FillBoundary (BndryRegister& bdry,
 
     MultiFab S(caller->boxArray(),num_comp,nGrow);
 
-    const MultiFab& rhotime = ns.get_rho(time);
-    MFIter          Rho_mfi(rhotime);
-
-    for (FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,state_ind,num_comp);
-         Rho_mfi.isValid() && S_fpi.isValid();
-         ++Rho_mfi, ++S_fpi)
+    if (rho_flag == 2) 
     {
-        S[S_fpi.index()].copy(S_fpi(),0,0,num_comp);
+       const MultiFab& rhotime = ns.get_rho(time);
+       MFIter          Rho_mfi(rhotime);
 
-	if (rho_flag == 2)
-        {
+       for (FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,state_ind,num_comp);
+            Rho_mfi.isValid() && S_fpi.isValid();
+            ++Rho_mfi, ++S_fpi)
+       {
+           S[S_fpi.index()].copy(S_fpi(),0,0,num_comp);
+   
+   	if (rho_flag == 2)
+           {
             for (int n = 0; n < num_comp; ++n)
-                S[S_fpi.index()].divide(rhotime[Rho_mfi],0,n,1);
-        }
-    }
+                   S[S_fpi.index()].divide(rhotime[Rho_mfi],0,n,1);
+           }
+       }
+    } 
+    else
+    {
+       for (FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,state_ind,num_comp);
+            S_fpi.isValid(); ++S_fpi)
+       {
+           S[S_fpi.index()].copy(S_fpi(),0,0,num_comp);
+       }
+    } 
     //
     // Copy into boundary register.
     //
     bdry.copyFrom(S,nGrow,0,dest_comp,num_comp);
+    
 }
 
 void
