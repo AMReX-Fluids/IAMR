@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.H,v 1.28 2006-08-16 18:12:34 lijewski Exp $
+// $Id: Diffusion.H,v 1.29 2006-08-18 22:23:01 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -69,22 +69,8 @@ public:
 
     FluxRegister* viscFluxReg ();
 
-    Real get_scaled_abs_tol (int                    sigma,
-                             const MultiFab*        rhs,
-                             Real                   a,
-                             Real                   b,
-                             const MultiFab*        alpha,
-                             const MultiFab* const* beta,
-                             Real                   reduction) const;
-
-    Real get_scaled_abs_tol (int                    sigma,
-                             const MultiFab*        rhs,
-                             Real                   a,
-                             Real                   b,
-                             const MultiFab*        alpha,
-                             const MultiFab* const* betan,
-                             const MultiFab* const* betanp1,
-                             Real                   reduction) const;
+    Real get_scaled_abs_tol (const MultiFab& rhs,
+                             Real            reduction) const;
 
     void diffuse_scalar (Real                   dt,
 			 int                    sigma,
@@ -217,8 +203,8 @@ public:
                        int                 rho_flag);
 
     void getBndryDataGivenS (ViscBndry&         bndry,
-                             const MultiFab&    S,
-                             const MultiFab&    S_crse,
+                             MultiFab&          S,
+                             MultiFab&          S_crse,
                              int                state_ind,
                              int                src_comp,
                              int                num_comp,
