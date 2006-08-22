@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.H,v 1.29 2006-08-18 22:23:01 lijewski Exp $
+// $Id: Diffusion.H,v 1.30 2006-08-22 17:24:06 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -283,7 +283,6 @@ protected:
     static Array<Real> visc_coef;       // Const coef viscosity terms
     static int         verbose;
     static Real        visc_tol;
-    static Real        visc_abs_tol;
 
 private:
     //
@@ -302,8 +301,6 @@ private:
     static int         use_tensor_cg_solve;
     static int         max_order;
     static int         tensor_max_order;
-    static int         est_visc_mag;
-    static int         Rhs_in_abs_tol;
     static Array<Real> typical_vals;
 };
 

@@ -71,7 +71,6 @@ const Real* fabdat = (fab).dataPtr();
 Array<int>  Diffusion::is_diffusive;
 Array<Real> Diffusion::visc_coef;
 Real      Diffusion::visc_tol = 1.0e-10;      // tolerance for viscous solve
-Real      Diffusion::visc_abs_tol = 1.0e-10;  // absolute tol. for visc solve
 
 int  Diffusion::first               = 1;
 int  Diffusion::do_reflux           = 1;
@@ -87,8 +86,6 @@ int  Diffusion::verbose             = 0;
 int  Diffusion::max_order           = 2;
 int  Diffusion::tensor_max_order    = 2;
 int  Diffusion::scale_abec          = 0;
-int  Diffusion::est_visc_mag        = 1;
-int  Diffusion::Rhs_in_abs_tol      = 0;
 
 Array<Real> Diffusion::typical_vals;
 const Real typical_vals_DEF = 1.0;
@@ -144,8 +141,6 @@ Diffusion::Diffusion (Amr*               Parent,
         ppdiff.query("max_order",max_order);
         ppdiff.query("tensor_max_order",tensor_max_order);
         ppdiff.query("scale_abec",scale_abec);
-        ppdiff.query("est_visc_mag",est_visc_mag);
-        ppdiff.query("Rhs_in_abs_tol",Rhs_in_abs_tol);
 
         ppdiff.query("v",verbose);
 
@@ -155,7 +150,6 @@ Diffusion::Diffusion (Amr*               Parent,
         do_reflux = (do_reflux ? 1 : 0);
 
         pp.query("visc_tol",visc_tol);
-        pp.query("visc_abs_tol",visc_abs_tol);
 
         const int n_visc = _visc_coef.size();
         const int n_diff = _is_diffusive.size();
@@ -237,8 +231,6 @@ Diffusion::echo_settings () const
         std::cout << "   max_order =           " << max_order << '\n';
         std::cout << "   tensor_max_order =    " << tensor_max_order << '\n';
         std::cout << "   scale_abec =          " << scale_abec << '\n';
-        std::cout << "   est_visc_mag =        " << est_visc_mag << '\n';
-        std::cout << "   Rhs_in_abs_tol =      " << Rhs_in_abs_tol << '\n';
     
         std::cout << "   typical_vals =";
         for (int i = 0; i <NUM_STATE; i++)
@@ -247,7 +239,6 @@ Diffusion::echo_settings () const
         std::cout << "\n\n  From ns:\n";
         std::cout << "   do_reflux =           " << do_reflux << '\n';
         std::cout << "   visc_tol =            " << visc_tol << '\n';
-        std::cout << "   visc_abs_tol =        " << visc_abs_tol << '\n';
     
         std::cout << "   is_diffusive =";
         for (int i =0; i < NUM_STATE; i++)
@@ -469,7 +460,6 @@ Diffusion::diffuse_scalar (Real                   dt,
     //
     const Real S_tol     = visc_tol;
     const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
-
     if (use_cg_solve)
     {
         CGSolver cg(*visc_op,use_mg_precond_flag);
@@ -832,9 +822,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     // Construct solver and call it.
     //
     const Real S_tol     = visc_tol;
-//    const Real S_tol_abs = -1;
-    const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_abs_tol);
-
+    const Real S_tol_abs = -1;
     if (use_tensor_cg_solve)
     {
         const int use_mg_pre = 0;
@@ -1042,9 +1030,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         //
         const Real      S_tol     = visc_tol;
         const MultiFab* alpha     = &(visc_op->aCoefficients());
-//        const Real      S_tol_abs = -1;
-        const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_abs_tol);
-
+        const Real      S_tol_abs = -1;
         if (use_cg_solve)
         {
             CGSolver cg(*visc_op,use_mg_precond_flag);
@@ -1229,9 +1215,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     // Construct solver and call it.
     //
     const Real S_tol     = visc_tol;
-//    const Real S_tol_abs = -1;
-    const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_abs_tol);
-
+    const Real S_tol_abs = -1;
     if (use_tensor_cg_solve)
     {
         MCCGSolver cg(*tensor_op,use_mg_precond_flag);
@@ -1393,7 +1377,7 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     // Construct solver and call it.
     //
     const Real S_tol     = visc_tol;
-    const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_abs_tol);
+    const Real S_tol_abs = -1;
     if (use_cg_solve)
     {
         CGSolver cg(*visc_op,use_mg_precond_flag);
