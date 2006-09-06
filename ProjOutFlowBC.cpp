@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.31 2006-03-21 00:07:00 lijewski Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.32 2006-09-06 17:31:04 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -77,8 +77,8 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
     const Real* dx    = geom.CellSize();
     const Box& domain = geom.Domain();
 
-    int lenx = domain.length()[0];
-    int leny = domain.length()[1];
+    int lenx = domain.length(0);
+    int leny = domain.length(1);
 
     int zeroIt[2*BL_SPACEDIM];
     for (int i = 0; i < numOutFlowFaces; i++) zeroIt[i] = 0;
@@ -156,7 +156,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
     // Make edge-centered and cc r (set = 1 if cartesian)
     //
     int perpDir = 1 - outDir;
-    int r_len = domain.length()[perpDir]+1;
+    int r_len = domain.length(perpDir)+1;
     rcen[iface] = new Real[r_len-1];
     redge[iface] = new Real[r_len];
 
@@ -371,7 +371,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         // FOR NOW: ASSERT THAT NO OUTFLOW FACES IN Z-DIR!
         BL_ASSERT (outz == 0);
 
-        int lenz = domain.length()[2];
+        int lenz = domain.length(2);
 
         int length = 0;
         int  width = lenz;
@@ -609,7 +609,7 @@ ProjOutFlowBC_MG::ProjOutFlowBC_MG (const Box& Domain,
         pp.query("maxIters",maxIters);
     }
 
-    const IntVect& len = domain.length();
+    IntVect len = domain.size();
 
     int min_length = 4;
     bool test_side[BL_SPACEDIM-1];

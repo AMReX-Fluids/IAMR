@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.28 2006-03-21 00:07:00 lijewski Exp $
+// $Id: MacOutFlowBC.cpp,v 1.29 2006-09-06 17:31:04 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -127,7 +127,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
     // Make edge-centered r (set = 1 if cartesian).
     //
     int perpDir = 1 - outDir;
-    int r_len = domain.length()[perpDir]+1;
+    int r_len = domain.length(perpDir)+1;
     redge[iface] = new Real[r_len];
 
     // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
@@ -307,8 +307,8 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
          //  we'll assume for now we can choose either one.
          BL_ASSERT(dx[0] == dx[1]);
 
-         int lenx = domain.length()[0];
-         int leny = domain.length()[1];
+         int lenx = domain.length(0);
+         int leny = domain.length(1);
 
          int length = 0;
 
@@ -350,7 +350,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
 #elif (BL_SPACEDIM == 3)
          // Here we know the ordering of faces is XLO,YLO,ZLO,XHI,YHI,ZHI.
 
-         int lenz = domain.length()[2];
+         int lenz = domain.length(2);
 
          Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3,*ccEptr4,*ccEptr5;
          for (i=0; i < numOutFlowFaces; i++)
@@ -546,7 +546,7 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
         pp.query("maxIters",maxIters);
     }
 
-    const IntVect& len = domain.length();
+    IntVect len = domain.size();
 
     int min_length = 4;
     bool test_side[BL_SPACEDIM-1];

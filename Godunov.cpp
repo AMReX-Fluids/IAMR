@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.39 2006-03-21 00:07:00 lijewski Exp $
+// $Id: Godunov.cpp,v 1.40 2006-09-06 17:31:04 lijewski Exp $
 //
 
 //
@@ -966,7 +966,7 @@ Godunov::ConservativeScalMinMax (FArrayBox& Sold,
 
 #if (BL_SPACEDIM == 3)
     Box flatbox(grd);
-    int zlen = flatbox.length()[BL_SPACEDIM-1];
+    int zlen = flatbox.length(BL_SPACEDIM-1);
     flatbox.growHi(BL_SPACEDIM-1,3-zlen);
     FArrayBox smin(flatbox,1);
     FArrayBox smax(flatbox,1);
@@ -1005,7 +1005,7 @@ Godunov::ConvectiveScalMinMax (FArrayBox& Sold,
 
 #if (BL_SPACEDIM == 3)
     Box flatbox(grd);
-    int zlen = flatbox.length()[BL_SPACEDIM-1];
+    int zlen = flatbox.length(BL_SPACEDIM-1);
     flatbox.growHi(BL_SPACEDIM-1,3-zlen);
     FArrayBox smin(flatbox,1);
     FArrayBox smax(flatbox,1);
