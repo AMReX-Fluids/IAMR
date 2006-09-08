@@ -2,7 +2,7 @@
 #define _DIFFUSION_F_H
 
 /*
-** $Id: DIFFUSION_F.H,v 1.13 2002-04-26 22:10:02 lijewski Exp $
+** $Id: DIFFUSION_F.H,v 1.14 2006-09-08 21:21:02 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -11,10 +11,7 @@
 #    define FORT_VISCSYNCFLUX     viscsyncflux
 #    define FORT_HOOPSRC          hoopsrc
 #    define FORT_HOOPRHS          hooprhs
-#    define FORT_TENSOR_HOOPSRC   tensorhoopsrc
-#    define FORT_TENSOR_HOOPRHS   tensorhooprhs
 #    define FORT_SETALPHA         setalpha
-#    define FORT_SET_TENSOR_ALPHA settensoralpha
 #    define FORT_DIV_VARMU_SI     divvarmusi
 #    define FORT_DIV_MU_SI        divmuusii
 #    define FORT_CCTOEDGE         cctoedge
@@ -25,10 +22,7 @@
 #    define FORT_VISCSYNCFLUX     VISCSYNCFLUX
 #    define FORT_HOOPSRC          HOOPSRC
 #    define FORT_HOOPRHS          HOOPRHS
-#    define FORT_TENSOR_HOOPSRC   TENSORHOOPSRC
-#    define FORT_TENSOR_HOOPRHS   TENSORHOOPRHS
 #    define FORT_SETALPHA         SETALPHA
-#    define FORT_SET_TENSOR_ALPHA SETTENSORALPHA
 #    define FORT_DIV_VARMU_SI     DIVVARMUSI
 #    define FORT_DIV_MU_SI        DIVMUUSII
 #    define FORT_CCTOEDGE         CCTOEDGE
@@ -38,10 +32,7 @@
 #    define FORT_VISCSYNCFLUX     viscsyncflux
 #    define FORT_HOOPSRC          hoopsrc
 #    define FORT_HOOPRHS          hooprhs
-#    define FORT_TENSOR_HOOPSRC   tensorhoopsrc
-#    define FORT_TENSOR_HOOPRHS   tensorhooprhs
 #    define FORT_SETALPHA         setalpha
-#    define FORT_SET_TENSOR_ALPHA settensoralpha
 #    define FORT_DIV_VARMU_SI     divvarmusi
 #    define FORT_DIV_MU_SI        divmuusii
 #    define FORT_CCTOEDGE         cctoedge
@@ -51,10 +42,7 @@
 #    define FORT_VISCSYNCFLUX     viscsyncflux_
 #    define FORT_HOOPSRC          hoopsrc_
 #    define FORT_HOOPRHS          hooprhs_
-#    define FORT_TENSOR_HOOPSRC   tensorhoopsrc_
-#    define FORT_TENSOR_HOOPRHS   tensorhooprhs_
 #    define FORT_SETALPHA         setalpha_
-#    define FORT_SET_TENSOR_ALPHA settensoralpha_
 #    define FORT_DIV_VARMU_SI     divvarmusi_
 #    define FORT_DIV_MU_SI        divmuusii_
 #    define FORT_CCTOEDGE         cctoedge_
@@ -117,38 +105,7 @@ extern "C"
                         const int* lo, const int* hi,
                         const Real* r, ARLIM_P(r_lo), ARLIM_P(r_hi),
                         const Real* b,
-                        const Real *vfab, ARLIM_P(v_lo), ARLIM_P(v_hi),
-                        const Real *denfab, ARLIM_P(den_lo), ARLIM_P(den_hi),
-                        int* usehoop, int* useden);
-    
-    void FORT_SET_TENSOR_ALPHA (Real *fab, ARLIM_P(fab_lo), ARLIM_P(fab_hi),
-                        const int* lo, const int* hi,
-                        const Real* r, ARLIM_P(r_lo), ARLIM_P(r_hi),
-                        const Real* b,
-                        const Real *vfab, ARLIM_P(v_lo), ARLIM_P(v_hi),
-                        const Real *denfab, ARLIM_P(den_lo), ARLIM_P(den_hi),
-                        const Real *betax, ARLIM_P(betax_lo), ARLIM_P(betax_hi),
-                        const Real *betay, ARLIM_P(betay_lo), ARLIM_P(betay_hi),
-#if (BL_SPACEDIM ==3)
-                        const Real *betaz, ARLIM_P(betaz_lo), ARLIM_P(betaz_hi),
-#endif
-                        const int* isrz);
-    
-    void FORT_TENSOR_HOOPRHS (const int* xvel_comp, 
-                       Real *fab, ARLIM_P(fab_lo), ARLIM_P(fab_hi),
-                       const Real *u,   ARLIM_P(u_lo), ARLIM_P(u_hi),
-                       const Real* r, const Real* b, 
-                       const Real *vol, ARLIM_P(vol_lo), ARLIM_P(vol_hi),
-                       const Real *betax, ARLIM_P(betax_lo), ARLIM_P(betax_hi),
-                       const Real *betay, ARLIM_P(betay_lo), ARLIM_P(betay_hi));
-
-    void FORT_TENSOR_HOOPSRC (const int* xvel_comp,
-                       ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                       Real *fab, ARLIM_P(fab_lo), ARLIM_P(fab_hi),
-                       const Real *u, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                       const Real *r,
-                       const Real *betax, ARLIM_P(betax_lo), ARLIM_P(betax_hi),
-                       const Real *betay, ARLIM_P(betay_lo), ARLIM_P(betay_hi));
+                        const Real *vfab, ARLIM_P(v_lo), ARLIM_P(v_hi));
     
     void FORT_CCTOEDGE(const int* lo, const int* hi,
         ARLIM_P(blo), ARLIM_P(bhi), const Real* betadat,

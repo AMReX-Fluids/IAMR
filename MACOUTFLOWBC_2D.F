@@ -1218,3 +1218,102 @@ c     We know that the faces are ordered: XLO,XHI,YLO,YHI
       endif
 
       end
+
+      SUBROUTINE tridag_sing(a,b,c,r,u,n,sVal,rNormed)
+      INTEGER n,NMAX
+      REAL_T a(n),b(n),c(n),r(n),u(n), sVal
+      REAL_T eps
+      PARAMETER (NMAX=2000)
+      PARAMETER (eps=1.D-12)
+      INTEGER j
+      REAL_T bet,gam(NMAX)
+      logical rNormed, singular
+      singular = .false.
+      if(n.gt.NMAX)then
+         call bl_abort('TRIDAG_SING: NMAX too small in tridag')
+      end if
+      if((b(1).eq.zero).or.(ABS(b(n)).le.eps))then
+         call bl_abort('TRIDAG_SING: rewrite equations')
+      end if
+      bet=b(1)
+      u(1)=r(1)/bet
+      do 11 j=2,n
+        gam(j)=c(j-1)/bet
+        bet=b(j)-a(j)*gam(j)
+        if(ABS(bet).le.eps) then
+           if (rNormed .and.  (j .eq. n)) then
+              singular = .true.
+           else
+              call bl_abort('tridag failed')
+           end if
+        end if
+        if (singular) then
+           u(j) = sVal
+        else
+           u(j)=(r(j)-a(j)*u(j-1))/bet
+        end if
+11    continue
+      do 12 j=n-1,1,-1
+        u(j)=u(j)-gam(j+1)*u(j+1)
+12    continue
+      return
+      END
+      
+      SUBROUTINE tridag(a,b,c,r,u,n)
+      INTEGER n,NMAX
+      REAL_T a(n),b(n),c(n),r(n),u(n)
+      PARAMETER (NMAX=2000)
+      INTEGER j
+      REAL_T bet,gam(NMAX)
+      if(n.gt.NMAX)then
+         call bl_abort('TRIDAG: NMAX too small in tridag')
+      end if
+      if(b(1) .eq. 0.0D0) then
+         call bl_abort('TRIDAG: rewrite equations')
+      end if
+      bet=b(1)
+      u(1)=r(1)/bet
+      do 11 j=2,n
+        gam(j)=c(j-1)/bet
+        bet=b(j)-a(j)*gam(j)
+        if(bet .eq. 0.0D0) call bl_abort('tridag failed')
+        u(j)=(r(j)-a(j)*u(j-1))/bet
+11    continue
+      do 12 j=n-1,1,-1
+        u(j)=u(j)-gam(j+1)*u(j+1)
+12    continue
+      return
+      END
+
+      SUBROUTINE cyclic(a,b,c,alpha,beta,r,x,n)
+      INTEGER n,NMAX
+      REAL_T alpha,beta,a(n),b(n),c(n),r(n),x(n)
+      PARAMETER (NMAX=2000)
+      INTEGER i
+      REAL_T fact,gamma,bb(NMAX),u(NMAX),z(NMAX),den
+      if(n.le.2)then
+         call bl_abort('CYCLIC: n too small in cyclic')
+      end if
+      if(n.gt.NMAX)then
+         call bl_abort('CYCLIC: NMAX too small in cyclic')
+      end if
+      gamma=-b(1)
+      bb(1)=b(1)-gamma
+      bb(n)=b(n)-alpha*beta/gamma
+      do 11 i=2,n-1
+        bb(i)=b(i)
+11    continue
+      call tridag(a,bb,c,r,x,n)
+      u(1)=gamma
+      u(n)=alpha
+      do 12 i=2,n-1
+        u(i)=0.0D0
+12    continue
+      call tridag(a,bb,c,u,z,n)
+      den=one+z(1)+beta*z(n)/gamma
+      fact=cvmgt(zero,(x(1)+beta*x(n)/gamma)/den,den.eq.zero)
+      do 13 i=1,n
+        x(i)=x(i)-fact*z(i)
+13    continue
+      return
+      END

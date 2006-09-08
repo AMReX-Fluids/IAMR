@@ -1,7 +1,7 @@
 #ifndef _MacProj_H_
 #define _MacProj_H_
 //
-// $Id: MacProj.H,v 1.27 2004-09-08 21:02:25 almgren Exp $
+// $Id: MacProj.H,v 1.28 2006-09-08 21:21:02 almgren Exp $
 //
 #include <BC_TYPES.H>
 #include <BCRec.H>
@@ -50,14 +50,13 @@ public:
     //
     void mac_sync_solve (int       level,
                          Real      dt, 
-                         MultiFab* rho_half,
+                         MultiFab* mac_coef,
                          IntVect&  fine_ratio);
     //
     // Computing the sync tendency.
     //
     void mac_sync_compute (int                   level,
                            MultiFab*             u_mac, 
-                           MultiFab*             Vsync,
                            MultiFab*             Ssync,
                            MultiFab*             rho_half, 
                            FluxRegister*         adv_flux_reg,
@@ -67,8 +66,6 @@ public:
                            Real                  dt,
                            int                   NUM_STATE,
                            Real                  be_cn_theta,
-                           bool                  modify_reflux_normal_vel,
-                           int		         do_mom_diff,
                            const Array<int>&     increment_sync = Array<int>());
 
     void mac_sync_compute (int                   level,
@@ -80,7 +77,6 @@ public:
                            MultiFab*             rho_half,
                            FluxRegister*         adv_flux_reg,
                            Array<AdvectionForm>& advectionType,
-                           bool		         modify_reflux_normal_vel,
                            Real                  dt);
 
     void   scaleArea (int level, MultiFab* area, Real** anel_coeff);
@@ -97,11 +93,6 @@ protected:
     //
     void BuildPhiBC (int level);
 
-    void set_outflow_bcs (int level,
-                          MultiFab* mac_phi,
-                          const MultiFab* u_mac, 
-                          const MultiFab& S,
-                          const  MultiFab& divu);
     //
     // Pointers to amr,amrlevel.
     //

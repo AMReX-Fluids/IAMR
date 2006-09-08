@@ -10,11 +10,11 @@
 // the driver functions for the MAC solves
 void mac_level_driver( const MacBndry &mac_bndry, const BCRec& phys_bc,
                        const BoxArray &grids,
-                       int use_cg_solve, int level, int Density,
+                       int use_cg_solve, int level, 
                        const Real *dx, Real dt,
                        Real mac_tol, Real mac_abs_tol, Real rhs_scale,
                        MultiFab *area,  MultiFab &volume,
-                       MultiFab &S,     MultiFab &Rhs,
+                       MultiFab &mac_coef,     MultiFab &Rhs,
                        MultiFab *u_mac, MultiFab *mac_phi );
 
 // a driver function for computing a sync MAC solve
@@ -24,7 +24,7 @@ void mac_sync_driver( const MacBndry &mac_bndry, const BCRec& phys_bc,
                       const Real *dx, Real dt,
                       Real mac_sync_tol, Real mac_abs_tol, Real rhs_scale,
                       MultiFab *area,  MultiFab &volume,
-                      MultiFab &Rhs,   MultiFab *rho_half,
+                      MultiFab &Rhs,   MultiFab *mac_coef,
                       MultiFab *mac_sync_phi );
 
 
@@ -37,7 +37,7 @@ void mac_vel_update( int init,
                      FArrayBox &wvel,
 #endif
                      const FArrayBox &phi,
-                     const FArrayBox *rho, int rho_comp,  
+                     const FArrayBox *mac_coef, 
                      const Box &grd, int level, int n,
                      const Real *dx, Real scale );
 

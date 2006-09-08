@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.40 2006-09-06 17:31:04 lijewski Exp $
+// $Id: Godunov.cpp,v 1.41 2006-09-08 21:21:02 almgren Exp $
 //
 
 //
@@ -183,7 +183,7 @@ Godunov::~Godunov ()
 //
 // Set up the farrayboxes for computing edge states, This function
 // returns, the Farrayboxes where the fluxes are stored as these
-// are used in NavierStokes.
+// are used in PorousMedia.
 //
 // It also computes the transverse advective velocities.
 //
@@ -198,17 +198,14 @@ Godunov::Setup (const Box&       grd,
                 FArrayBox&       xflux,
                 const int*       ubc,
                 FArrayBox&       yflux,
+#if (BL_SPACEDIM == 2)
+                const int*       vbc)
+#elif (BL_SPACEDIM == 3)
                 const int*       vbc,
-#if (BL_SPACEDIM == 3)
                 FArrayBox&       zflux,
-                const int*       wbc,
+                const int*       wbc)
 #endif
-                FArrayBox&       U,
-                FArrayBox&       rho, 
-                const FArrayBox& tforces)
 {
-    BL_ASSERT(rho.nComp() == 1);
-    BL_ASSERT(U.nComp() >= BL_SPACEDIM);
     //
     // Compute the edge boxes.
     //
@@ -242,22 +239,16 @@ Godunov::Setup (const Box&       grd,
     // Test the cell-centered velocities.
     //
     // Real u_max[3];
-    // test_u_rho( S, rho, grd, dx, dt, u_max );
     //
     // Create the bounds and pointers.
     //
     const int *lo       = grd.loVect();
     const int *hi       = grd.hiVect();
-    const int *u_lo     = U.loVect();
-    const int *u_hi     = U.hiVect();
     const int *w_lo     = work.loVect();
     const int *w_hi     = work.hiVect();
-    const Real *u_dat   = U.dataPtr(XVEL);
     const Real *uad_dat = uad.dataPtr();
-    const Real *v_dat   = U.dataPtr(YVEL);
     const Real *vad_dat = vad.dataPtr();
 #if (BL_SPACEDIM == 3)
-    const Real *w_dat   = U.dataPtr(ZVEL);
     const Real *wad_dat = wad.dataPtr();
     const Real *xhi_dat = work.dataPtr(1);
     const Real *yhi_dat = work.dataPtr(2);
@@ -271,23 +262,6 @@ Godunov::Setup (const Box&       grd,
     const Real *slx_dat = work.dataPtr(3);
     const Real *sly_dat = work.dataPtr(4);
 #endif 
-    const Real* tforcedat = 0;
-
-    if (use_forces_in_trans)
-    {
-        tforcedat = tforces.dataPtr();
-    }
-    //
-    // Compute the transverse velocities.
-    //
-    FORT_TRANSVEL(u_dat, uad_dat, xhi_dat, slx_dat, ubc, slxscr, 
-                  v_dat, vad_dat, yhi_dat, sly_dat, vbc, slyscr, 
-#if (BL_SPACEDIM == 3)
-                  w_dat, wad_dat, zhi_dat, slz_dat, wbc, slzscr,
-#endif    
-                  ARLIM(u_lo), ARLIM(u_hi),
-                  ARLIM(w_lo), ARLIM(w_hi), 
-                  lo, hi, &dt, dx, &use_forces_in_trans, tforcedat);
 }
 
 //
@@ -312,7 +286,6 @@ Godunov::edge_states     (const Box&  grd,
                           FArrayBox&  wedge,
                           FArrayBox&  stz,
 #endif
-                          FArrayBox&  U,
                           FArrayBox&  S,
                           FArrayBox&  tforces,
                           FArrayBox&  divu,
@@ -333,7 +306,7 @@ Godunov::edge_states     (const Box&  grd,
 #if (BL_SPACEDIM == 3)
                      wedge,stz,
 #endif
-                     U,S,tforces,fab_ind,state_ind,bc);
+                     S,tforces,fab_ind,state_ind,bc);
 
   if (advection_scheme == FPU) 
      edge_states_fpu(grd,dx,dt,velpred,uedge,stx,vedge,sty,
@@ -361,7 +334,6 @@ Godunov::edge_states_orig (const Box&  grd,
                            FArrayBox&  wedge,
                            FArrayBox&  stz,
 #endif
-                           FArrayBox&  U,
                            FArrayBox&  S,
                            FArrayBox&  tforces,
                            int         fab_ind,
@@ -373,7 +345,6 @@ Godunov::edge_states_orig (const Box&  grd,
     //
     BL_ASSERT(S.box().contains(work_bx));
 
-    BL_ASSERT(U.nComp()       >= BL_SPACEDIM);
     BL_ASSERT(S.nComp()       >= fab_ind    );
     BL_ASSERT(tforces.nComp() >= fab_ind    );
 
@@ -396,8 +367,6 @@ Godunov::edge_states_orig (const Box&  grd,
     const int *ww_lo      = work.loVect();
     const int *ww_hi      = work.hiVect();
     const Real *s_dat     = S.dataPtr(fab_ind);
-    const Real *u_dat     = U.dataPtr(XVEL);
-    const Real *v_dat     = U.dataPtr(YVEL);
     const Real *tfr_dat   = tforces.dataPtr(fab_ind);
     const Real *uad_dat   = uad.dataPtr();
     const Real *vad_dat   = vad.dataPtr();
@@ -434,6 +403,7 @@ Godunov::edge_states_orig (const Box&  grd,
     //
     int fort_ind = state_ind+1;  
 
+#if 0
     FORT_ESTATE(s_dat, tfr_dat, ARLIM(s_lo), ARLIM(s_hi),
 
                 u_dat, xlo_dat, xhi_dat, slx_dat, uad_dat,
@@ -454,6 +424,7 @@ Godunov::edge_states_orig (const Box&  grd,
                 ARLIM(ww_lo), ARLIM(ww_hi),
                 bc, lo, hi, &dt, dx, &fort_ind, &velpred, 
                 &use_forces_in_trans);
+#endif
 }
 
 void
@@ -667,57 +638,6 @@ Godunov::edge_states_bds (const Box&  grd,
 // FArrayBox work sized as in edge_states.
 //
 
-void
-Godunov::ComputeUmac (const Box&  grd,
-                      const Real* dx,
-                      Real        dt, 
-                      FArrayBox&  umac,
-                      const int*  ubc, 
-                      FArrayBox&  vmac,
-                      const int*  vbc, 
-#if (BL_SPACEDIM == 3)
-                      FArrayBox&  wmac,
-                      const int*  wbc, 
-#endif
-                      FArrayBox&  U,
-                      FArrayBox&  tforces)
-{
-    int velpred = 1;
-    //
-    // 2D calls.
-    //
-#if (BL_SPACEDIM == 2)                  
-    edge_states_orig(grd, dx, dt, velpred,
-                     umac, umac,
-                     vmac, vmac,
-                     U, U, tforces, XVEL, XVEL, ubc);
-    edge_states_orig(grd, dx, dt, velpred,
-                     umac, umac,
-                     vmac, vmac,
-                     U, U, tforces, YVEL, YVEL, vbc);
-#endif
-    //
-    // 3D calls.
-    //
-#if (BL_SPACEDIM == 3)                  
-    edge_states_orig(grd, dx, dt, velpred,
-                     umac, umac,
-                     vmac, vmac,
-                     wmac, wmac,
-                     U, U, tforces, XVEL, XVEL, ubc);
-    edge_states_orig(grd, dx, dt, velpred,
-                     umac, umac,
-                     vmac, vmac,
-                     wmac, wmac,
-                     U, U, tforces, YVEL, YVEL, vbc);
-    edge_states_orig(grd, dx, dt, velpred,
-                     umac, umac,
-                     vmac, vmac,
-                     wmac, wmac,
-                     U, U, tforces, ZVEL, ZVEL, wbc);
-#endif
-}
-
 //
 // Advect a state component.
 // This routine assumes uad,vad,wad have been precomputed.
@@ -739,7 +659,6 @@ Godunov::AdvectState (const Box&  grd,
                       FArrayBox&  wedge,
                       FArrayBox&  zflux,
 #endif
-                      FArrayBox&  U,
                       FArrayBox&  S,
                       FArrayBox&  tforces,
                       FArrayBox&  divu,
@@ -762,7 +681,7 @@ Godunov::AdvectState (const Box&  grd,
 #if (BL_SPACEDIM == 3)             
                 wedge, zflux,
 #endif
-                U, S, tforces, divu, fab_ind, state_ind, bc, 
+                S, tforces, divu, fab_ind, state_ind, bc, 
                 iconserv, scheme);
     //
     // Compute the advective tendency.
@@ -843,7 +762,6 @@ Godunov::SyncAdvect (const Box&  grd,
                      FArrayBox& wcorr,
                      FArrayBox& zflux,
 #endif
-                     FArrayBox& U,
                      FArrayBox& S,
                      FArrayBox& tforces,
                      FArrayBox& divu,
@@ -885,7 +803,7 @@ Godunov::SyncAdvect (const Box&  grd,
 #if (BL_SPACEDIM == 3)     
                 wedge, zflux,
 #endif
-                U, S, tforces, divu, fab_ind, state_ind, bc,
+                S, tforces, divu, fab_ind, state_ind, bc,
                 iconserv, scheme);
 
     //
@@ -949,9 +867,7 @@ void
 Godunov::ConservativeScalMinMax (FArrayBox& Sold,
                                  FArrayBox& Snew,
                                  int        ind_old_s, 
-                                 int        ind_old_rho, 
                                  int        ind_new_s, 
-                                 int        ind_new_rho, 
                                  const int* bc,
                                  const Box& grd)
 {
@@ -961,8 +877,6 @@ Godunov::ConservativeScalMinMax (FArrayBox& Sold,
     const int *hi         = grd.hiVect();
     const Real *Sold_dat  = Sold.dataPtr(ind_old_s);
     const Real *Snew_dat  = Snew.dataPtr(ind_new_s);
-    const Real *Rho_dat   = Sold.dataPtr(ind_old_rho);
-    const Real *Rhon_dat  = Snew.dataPtr(ind_new_rho);
 
 #if (BL_SPACEDIM == 3)
     Box flatbox(grd);
@@ -974,7 +888,7 @@ Godunov::ConservativeScalMinMax (FArrayBox& Sold,
     const Real *smax_dat = smax.dataPtr(); 
 #endif
 
-    FORT_CONSSCALMINMAX (Sold_dat, Snew_dat, Rho_dat, Rhon_dat,
+    FORT_CONSSCALMINMAX (Sold_dat, Snew_dat, 
                          ARLIM(slo), ARLIM(shi),
 #if (BL_SPACEDIM == 3)
                          smin_dat, smax_dat,
@@ -1033,74 +947,33 @@ Godunov::ConvectiveScalMinMax (FArrayBox& Sold,
 //
 
 Real
-Godunov::estdt (FArrayBox&  U,
-                FArrayBox&  tforces,
-                FArrayBox&  rho,
+Godunov::estdt (FArrayBox&  state,
+                FArrayBox&  gp,
                 const Box&  grd,
                 const Real* dx,
-                Real        cfl,
-                Real*       u_max)
+                Real        cfl)
 {
-    BL_ASSERT( U.nComp()       >= BL_SPACEDIM );
-    BL_ASSERT( tforces.nComp() >= BL_SPACEDIM );
-    BL_ASSERT( rho.nComp()     == 1           );
-
     const int *lo     = grd.loVect();
     const int *hi     = grd.hiVect();
-    const int *vlo    = U.loVect();
-    const int *vhi    = U.hiVect();
-    const int *tlo    = tforces.loVect();
-    const int *thi    = tforces.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
-    const Real *Udat  = U.dataPtr();
-    const Real *tfdat = tforces.dataPtr();
-    const Real *rdat  = rho.dataPtr();
+
+    const int  *slo   = state.loVect();
+    const int  *shi   = state.hiVect();
+    const Real *sdat  = state.dataPtr();
+
+    const int  *gplo  = gp.loVect();
+    const int  *gphi  = gp.hiVect();
+    const Real *gpdat = gp.dataPtr();
 
     Real dt;
-    FORT_ESTDT(Udat,  ARLIM(vlo), ARLIM(vhi),
-               tfdat, ARLIM(tlo), ARLIM(thi),
-               rdat,  ARLIM(rlo), ARLIM(rhi),
-               lo, hi, &dt, dx, &cfl, u_max);
+    FORT_ESTDT(sdat,  ARLIM(slo) , ARLIM(shi),
+               gpdat, ARLIM(gplo), ARLIM(gphi),
+               lo, hi, &dt, dx, &cfl);
     return dt;
 }
 
 //
 // Estimate the extrema of cell-centered us and rho.
 //
-
-Real
-Godunov::test_u_rho (FArrayBox&  U,
-                     FArrayBox&  rho, 
-                     const Box&  grd,
-                     const Real* dx,
-                     const Real  dt,
-                     const Real* u_max)
-{
-    BL_ASSERT(U.nComp()   >= BL_SPACEDIM);
-    BL_ASSERT(rho.nComp() == 1          );
-    
-    const int *lo  = grd.loVect();
-    const int *hi  = grd.hiVect();
-    const int *vlo = U.loVect();
-    const int *vhi = U.hiVect();
-    const int *rlo = rho.loVect();
-    const int *rhi = rho.hiVect();
-    const Real *rh = rho.dataPtr();
-    D_TERM(const Real *u  = U.dataPtr(XVEL);,
-           const Real *v  = U.dataPtr(YVEL);,
-           const Real *w  = U.dataPtr(ZVEL););
-
-    Real cflmax = 0;
-    FORT_TEST_U_RHO(u,  ARLIM(vlo), ARLIM(vhi),
-                    v,  ARLIM(vlo), ARLIM(vhi),
-#if (BL_SPACEDIM == 3)                          
-                    w,  ARLIM(vlo), ARLIM(vhi),
-#endif
-                    rh, ARLIM(rlo), ARLIM(rhi),
-                    lo, hi, &dt, dx, &cflmax, u_max, &verbose);
-    return cflmax;
-}
 
 //
 // Estimate the extrema of umac edge velocities and rho.
@@ -1146,13 +1019,13 @@ Godunov::test_umac_rho (FArrayBox&  umac,
 #endif
 
     Real cfl;
-    FORT_TEST_UMAC_RHO(um, ARLIM(ulo), ARLIM(uhi),
-                       vm, ARLIM(vlo), ARLIM(vhi),
+    FORT_TEST_UMAC(um, ARLIM(ulo), ARLIM(uhi),
+                   vm, ARLIM(vlo), ARLIM(vhi),
 #if (BL_SPACEDIM == 3)                            
-                       wm, ARLIM(wlo), ARLIM(whi),
+                   wm, ARLIM(wlo), ARLIM(whi),
 #endif                                              
-                       rh, ARLIM(rlo), ARLIM(rhi),
-                       lo, hi, &dt, dx, &cfl, u_max);
+                   rh, ARLIM(rlo), ARLIM(rhi),
+                   lo, hi, &dt, dx, &cfl, u_max);
     return cfl;
 }
 
@@ -1289,7 +1162,6 @@ Godunov::Add_aofs_tf_gp (FArrayBox& Uold,
                          FArrayBox& Aofs,
                          FArrayBox& tforces,
                          FArrayBox& gp,
-                         FArrayBox& rho, 
                          const Box& grd,
                          Real       dt)
 {
@@ -1298,7 +1170,6 @@ Godunov::Add_aofs_tf_gp (FArrayBox& Uold,
     BL_ASSERT(Aofs.nComp()    >= BL_SPACEDIM);
     BL_ASSERT(tforces.nComp() >= BL_SPACEDIM);
     BL_ASSERT(gp.nComp()      == BL_SPACEDIM);
-    BL_ASSERT(rho.nComp()     == 1          );
     
     const int *lo     = grd.loVect();
     const int *hi     = grd.hiVect();
@@ -1310,36 +1181,30 @@ Godunov::Add_aofs_tf_gp (FArrayBox& Uold,
     const int *thi    = tforces.hiVect();
     const int *glo    = gp.loVect();
     const int *ghi    = gp.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
     const Real *UOdat = Uold.dataPtr();
     const Real *UNdat = Unew.dataPtr();
     const Real *AOdat = Aofs.dataPtr();
     const Real *TFdat = tforces.dataPtr();
     const Real *GPdat = gp.dataPtr();
-    const Real *RHdat = rho.dataPtr();
     
     FORT_UPDATE_AOFS_TF_GP(UOdat, ARLIM(ulo), ARLIM(uhi),
                            UNdat, ARLIM(ulo), ARLIM(uhi),
                            AOdat, ARLIM(alo), ARLIM(ahi),
                            TFdat, ARLIM(tlo), ARLIM(thi),
                            GPdat, ARLIM(glo), ARLIM(ghi),
-                           RHdat, ARLIM(rlo), ARLIM(rhi),
                            lo, hi, &dt);
 }
 
 //
-// Compute total source term for velocities, weighted by rho.
+// Compute total source term for velocities
 //
-// tforces = (tforces - gp)/rho
+// tforces = (tforces - gp)
 //
 
 void
 Godunov::Sum_tf_gp (FArrayBox& tforces, 
-                    FArrayBox& gp,
-                    FArrayBox& rho)
+                    FArrayBox& gp)
 {
-    BL_ASSERT(rho.nComp()     == 1);
     BL_ASSERT(tforces.nComp() >= BL_SPACEDIM);
     BL_ASSERT(gp.nComp()      == BL_SPACEDIM);
     
@@ -1347,31 +1212,25 @@ Godunov::Sum_tf_gp (FArrayBox& tforces,
     const int *thi    = tforces.hiVect();
     const int *glo    = gp.loVect();
     const int *ghi    = gp.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
     const Real *TFdat = tforces.dataPtr();
     const Real *GPdat = gp.dataPtr();
-    const Real *RHdat = rho.dataPtr();
      
     FORT_SUM_TF_GP(TFdat, ARLIM(tlo), ARLIM(thi),
                    GPdat, ARLIM(glo), ARLIM(ghi),
-                   RHdat, ARLIM(rlo), ARLIM(rhi),
                    tlo, thi);
 }
 
 //
-// Compute total source term for velocities, weighted by rho.
+// Compute total source term for velocities
 //
-// tforces = (tforces + visc - gp)/rho
+// tforces = (tforces + visc - gp)
 //
 
 void
 Godunov::Sum_tf_gp_visc (FArrayBox& tforces,
                          FArrayBox& visc, 
-                         FArrayBox& gp,
-                         FArrayBox& rho)
+                         FArrayBox& gp)
 {
-    BL_ASSERT(rho.nComp()     == 1);
     BL_ASSERT(tforces.nComp() >= BL_SPACEDIM);
     BL_ASSERT(visc.nComp()    >= BL_SPACEDIM);
     BL_ASSERT(gp.nComp()      == BL_SPACEDIM);
@@ -1382,17 +1241,13 @@ Godunov::Sum_tf_gp_visc (FArrayBox& tforces,
     const int *thi    = tforces.hiVect();
     const int *glo    = gp.loVect();
     const int *ghi    = gp.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
     const Real *TFdat = tforces.dataPtr();
     const Real *VIdat = visc.dataPtr();
     const Real *GPdat = gp.dataPtr();
-    const Real *RHdat = rho.dataPtr();
      
     FORT_SUM_TF_GP_VISC(TFdat, ARLIM(tlo), ARLIM(thi),
                         VIdat, ARLIM(vlo), ARLIM(vhi),
                         GPdat, ARLIM(glo), ARLIM(ghi),
-                        RHdat, ARLIM(rlo), ARLIM(rhi),
                         tlo, thi);
 }
 
@@ -1402,7 +1257,7 @@ Godunov::Sum_tf_gp_visc (FArrayBox& tforces,
 //
 // iconserv==1   => tforces = tforces - divU*S
 //
-// iconserv==0   => tforces = (tforces)/rho
+// iconserv==0   => tforces = (tforces)
 //
 
 void
@@ -1411,13 +1266,11 @@ Godunov::Sum_tf_divu (FArrayBox& S,
                       int        s_ind,
                       int        num_comp,
                       FArrayBox& divu,
-                      FArrayBox& rho,
                       int        iconserv)
 {
     BL_ASSERT(S.nComp()       >= s_ind+num_comp);
     BL_ASSERT(tforces.nComp() >= s_ind+num_comp);
     BL_ASSERT(divu.nComp()    == 1             );
-    BL_ASSERT(rho.nComp()     == 1             );
     
     const int *slo    = S.loVect();
     const int *shi    = S.hiVect();
@@ -1425,17 +1278,13 @@ Godunov::Sum_tf_divu (FArrayBox& S,
     const int *thi    = tforces.hiVect();
     const int *dlo    = divu.loVect();
     const int *dhi    = divu.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
     const Real *Sdat  = S.dataPtr(s_ind);
     const Real *TFdat = tforces.dataPtr(s_ind);
     const Real *DUdat = divu.dataPtr();
-    const Real *RHdat = rho.dataPtr();
      
     FORT_SUM_TF_DIVU(Sdat,  ARLIM(slo), ARLIM(shi),
                      TFdat, ARLIM(tlo), ARLIM(thi),
                      DUdat, ARLIM(dlo), ARLIM(dhi),
-                     RHdat, ARLIM(rlo), ARLIM(rhi),
                      tlo, thi, &num_comp, &iconserv);
 }
 
@@ -1445,7 +1294,7 @@ Godunov::Sum_tf_divu (FArrayBox& S,
 //
 // iconserv==1   => tforces = tforces + visc - divU*S
 //
-// iconserv==0   => tforces = (tforces+ visc)/rho
+// iconserv==0   => tforces = (tforces+ visc)
 //
 
 void
@@ -1456,14 +1305,12 @@ Godunov::Sum_tf_divu_visc (FArrayBox& S,
                            FArrayBox& visc,
                            int        v_ind,
                            FArrayBox& divu,
-                           FArrayBox& rho,
                            int        iconserv)
 {
     BL_ASSERT(S.nComp()       >= s_ind+num_comp);
     BL_ASSERT(tforces.nComp() >= s_ind+num_comp);
     BL_ASSERT(divu.nComp()    == 1             );
     BL_ASSERT(visc.nComp()    >= v_ind+num_comp);
-    BL_ASSERT(rho.nComp()     == 1             );
     
     const int *slo    = S.loVect();
     const int *shi    = S.hiVect();
@@ -1473,19 +1320,15 @@ Godunov::Sum_tf_divu_visc (FArrayBox& S,
     const int *dhi    = divu.hiVect();
     const int *vlo    = visc.loVect();
     const int *vhi    = visc.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
     const Real *Sdat  = S.dataPtr(s_ind);
     const Real *TFdat = tforces.dataPtr(s_ind);
     const Real *DUdat = divu.dataPtr();
     const Real *VIdat = visc.dataPtr(v_ind);
-    const Real *RHdat = rho.dataPtr();
      
     FORT_SUM_TF_DIVU_VISC(Sdat,  ARLIM(slo), ARLIM(shi),
                           TFdat, ARLIM(tlo), ARLIM(thi),
                           DUdat, ARLIM(dlo), ARLIM(dhi),
                           VIdat, ARLIM(vlo), ARLIM(vhi),
-                          RHdat, ARLIM(rlo), ARLIM(rhi),
                           tlo, thi, &num_comp, &iconserv);
 }
 

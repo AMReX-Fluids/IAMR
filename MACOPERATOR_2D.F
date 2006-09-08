@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_2D.F,v 1.8 2003-02-05 22:11:42 almgren Exp $
+c $Id: MACOPERATOR_2D.F,v 1.9 2006-09-08 21:21:02 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -25,36 +25,36 @@ c ::  lo,hi        => index limits for rhs
 c ::  ax,ay        => edge based area arrays
 c ::  DIMS(ax)     => index limits for ax
 c ::  DIMS(ay)     => index limits for ay
-c ::  rho          => cell centered density array
-c ::  DIMS(rho)    => index limits for rho
+c ::  coef         => cell centered density array
+c ::  DIMS(coef)   => index limits for coef
 c ::  dx           => cell size
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_MACCOEF (cx,DIMS(cx),cy,DIMS(cy),
      &                          ax,DIMS(ax),ay,DIMS(ay),
-     &                          rho,DIMS(rho),lo,hi,dx)
+     &                          coef,DIMS(coef),lo,hi,dx)
        integer DIMDEC(cx)
        integer DIMDEC(cy)
        integer DIMDEC(ax)
        integer DIMDEC(ay)
-       integer DIMDEC(rho)
+       integer DIMDEC(coef)
        integer lo(SDIM), hi(SDIM)
        REAL_T  dx(SDIM)
        REAL_T  cx(DIMV(cx))
        REAL_T  cy(DIMV(cy))
        REAL_T  ax(DIMV(ax))
        REAL_T  ay(DIMV(ay))
-       REAL_T  rho(DIMV(rho))
+       REAL_T  coef(DIMV(coef))
 
        integer i, j
-       REAL_T rhoavg
+       REAL_T coef_avg
 
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-            if (rho(i,j) .lt. zero) then
+            if (coef(i,j) .lt. zero) then
 	      print *,' '
 	      print *,'TESTING in MACCOEF '
-	      print *,'RHO HAS GONE NEGATIVE AT ',i,j,rho(i,j)
+	      print *,'MAC COEF HAS GONE NEGATIVE AT ',i,j,coef(i,j)
               call bl_abort(" ")
             end if
           end do
@@ -64,8 +64,8 @@ c      ::::: finish coef in X direction (part 2)
 c
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)+1
-             rhoavg = half * (rho(i,j) + rho(i-1,j))
-             cx(i,j) = dx(1) * ax(i,j) / rhoavg
+             coef_avg = half * (coef(i,j) + coef(i-1,j))
+             cx(i,j) = dx(1) * ax(i,j) * coef_avg
           end do
        end do
 c
@@ -73,8 +73,8 @@ c      ::::: finish coef in Y direction (part 2)
 c
        do j = lo(2), hi(2)+1
           do i = lo(1), hi(1)
-             rhoavg = half * (rho(i,j) + rho(i,j-1))
-             cy(i,j) = dx(2) * ay(i,j) / rhoavg
+             coef_avg = half * (coef(i,j) + coef(i,j-1))
+             cy(i,j) = dx(2) * ay(i,j) * coef_avg
           end do
        end do
 
@@ -145,30 +145,30 @@ c ::  DIMS(ux)     => index limits for ux
 c ::  DIMS(uy)     => index limits for uy
 c ::  phi          => soln from MAC project
 c ::  DIMS(phi)    => index limits for phi
-c ::  rho          => density at time N
-c ::  DIMS(rho)    => index limits for rho
+c ::  coef         => MAC coefficient at time N
+c ::  DIMS(coef)   => index limits for coef
 c ::  dx           => cell size
 c ::  mult         => scalar multiplier
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_MACUPDATE(init,ux,DIMS(ux),uy,DIMS(uy),
-     &                           phi,DIMS(phi),rho,DIMS(rho),
+     &                           phi,DIMS(phi),coef,DIMS(coef),
      &                           lo,hi,dx,mult)
 
        integer DIMDEC(ux)
        integer DIMDEC(uy)
        integer DIMDEC(phi)
-       integer DIMDEC(rho)
+       integer DIMDEC(coef)
        integer lo(SDIM), hi(SDIM)
        REAL_T  ux(DIMV(ux))
        REAL_T  uy(DIMV(uy))
        REAL_T  phi(DIMV(phi))
-       REAL_T  rho(DIMV(rho))
+       REAL_T  coef(DIMV(coef))
        REAL_T  dx(SDIM), mult
        integer init
 
        integer i, j
-       REAL_T  rhoavg, gp
+       REAL_T  coef_avg, gp
 c
 c     set values to 0.0 if initializing
 c
@@ -189,9 +189,9 @@ c     compute the x mac gradient
 c
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)+1
-             rhoavg = half*(rho(i,j) + rho(i-1,j))
+             coef_avg = half*(coef(i,j) + coef(i-1,j))
              gp = (phi(i,j)-phi(i-1,j))/dx(1)
-             ux(i,j) = ux(i,j) + mult * gp / rhoavg
+             ux(i,j) = ux(i,j) + mult * gp * coef_avg
           end do
        end do
 c
@@ -199,9 +199,9 @@ c      compute the y mac gradient
 c
        do j = lo(2),hi(2)+1
           do i = lo(1),hi(1)
-             rhoavg = half*(rho(i,j) + rho(i,j-1))
+             coef_avg = half*(coef(i,j) + coef(i,j-1))
              gp = (phi(i,j)-phi(i,j-1))/dx(2)
-             uy(i,j) = uy(i,j) + mult * gp / rhoavg
+             uy(i,j) = uy(i,j) + mult * gp * coef_avg
           end do
        end do
 

@@ -1,10 +1,6 @@
 #
-# $Id: Make.package,v 1.3 2005-12-15 16:56:03 lijewski Exp $
+# $Id: Make.package,v 1.4 2006-09-08 21:21:02 almgren Exp $
 #
-CEXE_sources += NS_setup.cpp NSBld.cpp
+CEXE_sources += PM_setup.cpp PMBld.cpp
 FEXE_headers += probdata.H PROB_F.H
 FEXE_sources += PROB_$(DIM)D.F 
-
-ifeq (${USE_FLCTS}, TRUE)
-  FEXE_sources += FLUCTFILE.F INFL_FORCE_$(DIM)D.F INFL_FORCE_F.F
-endif

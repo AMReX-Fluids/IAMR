@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_2D.F,v 1.8 2002-08-29 22:14:52 car Exp $
+c $Id: DIFFUSION_2D.F,v 1.9 2006-09-08 21:21:02 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -334,7 +334,7 @@ c ::
 
 c :: ----------------------------------------------------------
 c :: SETALPHA
-c ::             alpha(i,j) = vol*(1+b/(r(i)^2)) / density
+c ::             alpha(i,j) = vol*(1+b/(r(i)^2))
 c ::
 c :: INPUTS / OUTPUTS:
 c ::  fab       <=  array to be modified
@@ -351,8 +351,7 @@ c ::  useden    => do we divide by density? (only if velocity component)
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_SETALPHA (fab, DIMS(fab), lo, hi, r, DIMS(r),
-     $                           b, vol, DIMS(vol),
-     &                           denfab,DIMS(den),usehoop,useden)
+     $                           b, vol, DIMS(vol))
 
        integer DIMDEC(fab)
        integer lo(SDIM), hi(SDIM)
@@ -361,109 +360,19 @@ c ::
        integer DIMDEC(r)
        REAL_T  fab(DIMV(fab))
        REAL_T  vol(DIMV(vol))
-       REAL_T  denfab(DIMV(den))
        REAL_T  r(DIM1(r))
        REAL_T  b
-       integer usehoop,useden
 
        integer i, j
 
-       if (usehoop .eq. 0) then
-          if (useden .eq. 0) then
-             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   fab(i,j) = vol(i,j)
-                end do
-             end do
-          else 
-             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   fab(i,j) = vol(i,j) * denfab(i,j)
-                end do
-             end do
-          end if
-       else
-          if (useden .eq. 0) then
-             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   fab(i,j) = vol(i,j) * (one + (b / (r(i)*r(i))))
-                end do
-             end do
-          else
-             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   fab(i,j) = vol(i,j) * (denfab(i,j) + (b / (r(i)*r(i))))
-                end do
-             end do
-          end if
-       end if
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             fab(i,j) = vol(i,j)
+          end do
+       end do
 
        end
 
-c :: ----------------------------------------------------------
-c :: SET_TENSOR_ALPHA
-c ::             alpha(i,j) = vol*density+b*dr*dz*two*mu_cen/r(i)
-c ::                        = vol*(density+b*two*mu_cen*r(i)**2)
-c ::                                         ^^^ yes, that is correct
-c ::                                             for variable mu
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  fab       <=  array to be modified
-c ::  DIMS(fab) => index limits of fab
-c ::  lo,hi     => index limits of box
-c ::  r         =>  1-d array of radius
-c ::  b         =>  theta*dt or -(1-theta)*dt
-c ::  vol       =>  volume array
-c ::  DIMS(vol) => index limits of fab
-c ::  denfab    => array of density at time n+1/2
-c ::  DIMS(den) => index limits of fab
-c ::  usehoop   => do we add hoop stress?   (only if x-vel component)
-c ::  useden    => do we divide by density? (only if velocity component)
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_SET_TENSOR_ALPHA (alpha, DIMS(alpha), lo, hi, r, DIMS(r),
-     $                           b, vol, DIMS(vol),
-     &                           denfab,DIMS(den),betax,DIMS(betax),
-     &                           betay,DIMS(betay),isrz)
-
-       integer DIMDEC(alpha)
-       integer lo(SDIM), hi(SDIM)
-       integer DIMDEC(vol)
-       integer DIMDEC(den)
-       integer DIMDEC(betax)
-       integer DIMDEC(betay)
-       integer DIMDEC(r)
-       REAL_T  alpha(DIMV(alpha),2)
-       REAL_T  vol(DIMV(vol))
-       REAL_T  denfab(DIMV(den))
-       REAL_T  betax(DIMV(betax))
-       REAL_T  betay(DIMV(betay))
-       REAL_T  r(DIM1(r))
-       REAL_T  b, betacen
-       integer isrz
-
-       integer i, j
-
-       if (isrz .eq. 0) then
-          do j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                alpha(i,j,1) = vol(i,j) * denfab(i,j)
-                alpha(i,j,2) = vol(i,j) * denfab(i,j)
-             end do
-          end do
-       else
-          do j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                alpha(i,j,2) = vol(i,j) * denfab(i,j)
-                betacen = fourth*(betax(i,j)+betax(i+1,j)+
-     &               betay(i,j)+betay(i,j+1))
-                alpha(i,j,1) = vol(i,j) * (denfab(i,j)+
-     &               b*two*betacen/(r(i)**2))
-             end do
-          end do
-       end if
-
-       end
 
       subroutine FORT_DIV_MU_SI(lo, hi, dx, mu, DIMS(divu), divu,
      &     DIMS(divmusi), divmusi)

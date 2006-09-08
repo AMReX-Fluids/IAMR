@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.104 2006-07-28 21:28:33 almgren Exp $
+// $Id: MacProj.cpp,v 1.105 2006-09-08 21:21:02 almgren Exp $
 //
 #include <winstd.H>
 
@@ -11,17 +11,13 @@
 #include <MacProj.H>
 #include <MacBndry.H>
 #include <MacOpMacDrivers.H>
-#include <NavierStokes.H>
+#include <PorousMedia.H>
 #include <MACPROJ_F.H>
 #include <MacOutFlowBC.H>
 
-#ifndef _NavierStokes_H_
+#ifndef _PorousMedia_H_
 enum StateType {State_Type=0, Press_Type};
-#if (BL_SPACEDIM == 2)
-enum StateNames  { Xvel=0, Yvel, Density};
-#else
-enum StateNames  { Xvel=0, Yvel, Zvel, Density};
-#endif
+enum StateNames  { N_w, N_o, Enthalpy};
 #endif
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
@@ -290,7 +286,7 @@ grids_on_side_of_domain (const BoxArray&    grids,
 void
 MacProj::mac_project (int             level,
                       MultiFab*       u_mac,
-                      MultiFab&       S,
+                      MultiFab&       mac_coef,
                       Real            dt,
                       Real            time,
                       const MultiFab& divu,
@@ -306,7 +302,7 @@ MacProj::mac_project (int             level,
     const Real*     dx         = geom.CellSize();
     const int       max_level  = parent->maxLevel();
     MultiFab*       mac_phi    = 0;
-    NavierStokes&   ns         = *(NavierStokes*) &(parent->getLevel(level));
+    PorousMedia&    ns        = *(PorousMedia*) &(parent->getLevel(level));
     IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
                                            : IntVect::TheZeroVector();
     //
@@ -320,17 +316,6 @@ MacProj::mac_project (int             level,
     mac_phi->setVal(0.0);
     //
     // HACK!!!
-    //
-    // Some of the routines we call assume that density has one valid
-    // ghost cell.  We enforce that assumption by setting it here.
-    //
-    const MultiFab& rhotime = ns.get_rho(time);
-
-    for (MFIter mfi(rhotime); mfi.isValid(); ++mfi)
-        S[mfi].copy(rhotime[mfi],0,Density,1);
-
-    if (OutFlowBC::HasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)
-        set_outflow_bcs(level, mac_phi, u_mac, S, divu);
     //
     // Store the Dirichlet boundary condition for mac_phi in mac_bndry.
     //
@@ -372,10 +357,6 @@ MacProj::mac_project (int             level,
     {
 	the_solver = 1;
     }
-    else if ( use_hypre_solve )
-    {
-	the_solver = 2;
-    }
     else if ( use_fboxlib_mg )
     {
 	the_solver = 3;
@@ -383,9 +364,9 @@ MacProj::mac_project (int             level,
 
     if (anel_coeff[level] != 0) scaleArea(level,area[level],anel_coeff[level]);
 
-    mac_level_driver(mac_bndry, *phys_bc, grids, the_solver, level, Density,
+    mac_level_driver(mac_bndry, *phys_bc, grids, the_solver, level, 
                      dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
-                     area[level], volume[level], S, Rhs, u_mac, mac_phi);
+                     area[level], volume[level], mac_coef, Rhs, u_mac, mac_phi);
     //
     // Test that u_mac is divergence free
     //
@@ -463,7 +444,7 @@ MacProj::mac_project (int             level,
 void
 MacProj::mac_sync_solve (int       level,
                          Real      dt,
-                         MultiFab* rho_half,
+                         MultiFab* mac_coef,
                          IntVect&  fine_ratio)
 {
     BL_ASSERT(level < finest_level);
@@ -597,10 +578,6 @@ MacProj::mac_sync_solve (int       level,
     {
 	the_solver = 1;
     }
-    else if ( use_hypre_solve )
-      {
-	the_solver = 2;
-      }
     else if ( use_fboxlib_mg )
     {
 	the_solver = 3;
@@ -608,7 +585,7 @@ MacProj::mac_sync_solve (int       level,
     if (anel_coeff[level] != 0) scaleArea(level,area[level],anel_coeff[level]);
     mac_sync_driver(mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
                     mac_sync_tol, mac_abs_tol, rhs_scale, area[level],
-                    volume[level], Rhs, rho_half, mac_sync_phi);
+                    volume[level], Rhs, mac_coef, mac_sync_phi);
     if (anel_coeff[level] != 0) rescaleArea(level,area[level],anel_coeff[level]);
 }
 
@@ -618,7 +595,7 @@ MacProj::mac_sync_solve (int       level,
 //
 // 1. compute u_corr as the gradient of mac_sync_phi
 // 2. compute advective tendency of u_corr and
-//    add into Vsync or Ssync
+//    add into Ssync
 //
 // If increment_sync is non-null, the (i-BL_SPACEDIM)-th component 
 // of (*Ssync) is incremented only when increment[i]==1
@@ -628,9 +605,8 @@ MacProj::mac_sync_solve (int       level,
 void
 MacProj::mac_sync_compute (int                   level,
                            MultiFab*             u_mac, 
-                           MultiFab*             Vsync,
                            MultiFab*             Ssync,
-                           MultiFab*             rho_half,
+                           MultiFab*             mac_coef,
                            FluxRegister*         adv_flux_reg,
                            Array<AdvectionForm>& advectionType,
                            Real                  prev_time, 
@@ -638,11 +614,9 @@ MacProj::mac_sync_compute (int                   level,
                            Real                  dt, 
                            int                   NUM_STATE,
                            Real                  be_cn_theta,
-                           bool                  modify_reflux_normal_vel,
-                           int                   do_mom_diff,
                            const Array<int>&     increment_sync)
 {
-    FArrayBox Rho, tforces, tvelforces;
+    FArrayBox tforces;
     FArrayBox xflux, yflux, zflux;
     FArrayBox grad_phi[BL_SPACEDIM];
     //
@@ -653,14 +627,12 @@ MacProj::mac_sync_compute (int                   level,
     const Real*     dx                  = geom.CellSize();
     const int       numscal             = NUM_STATE - BL_SPACEDIM;
     MultiFab*       mac_sync_phi        = &mac_phi_crse[level];
-    NavierStokes&   ns_level            = *(NavierStokes*) &(parent->getLevel(level));
+    PorousMedia&   ns_level            = *(PorousMedia*) &(parent->getLevel(level));
     Godunov*        godunov             = ns_level.godunov;
     bool            use_forces_in_trans = godunov->useForcesInTrans()?true:false;
 
-    MultiFab vel_visc_terms(grids,BL_SPACEDIM,1);
     MultiFab scal_visc_terms(grids,numscal,1);
 
-    vel_visc_terms.setVal(0,1);  // Initialize to make calls below safe
     scal_visc_terms.setVal(0,1); // Initialize to make calls below safe
     //
     // Get viscous forcing.
@@ -673,9 +645,6 @@ MacProj::mac_sync_compute (int                   level,
         for (i=0; i < BL_SPACEDIM; ++i)
             if (!increment_sync.size() || increment_sync[i]==1)
                 do_get_visc_terms = true;
-
-        if (do_get_visc_terms || use_forces_in_trans)
-            ns_level.getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
 
         do_get_visc_terms = false;
         for (i=BL_SPACEDIM; i < increment_sync.size(); ++i)
@@ -698,18 +667,11 @@ MacProj::mac_sync_compute (int                   level,
 
     FluxRegister* temp_reg = 0;
 
-    if (modify_reflux_normal_vel)
-    {
-        temp_reg = new FluxRegister(LevelData[level+1].boxArray(),
-                                    parent->refRatio(level),level+1,
-                                    BL_SPACEDIM);
-        temp_reg->setVal(0);
-    }
     //
     // Compute the mac sync correction.
     //
     for (FillPatchIterator P_fpi(ns_level,ns_level.get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
-             S_fpi(ns_level,vel_visc_terms,HYP_GROW,prev_time,State_Type,0,NUM_STATE);
+                           S_fpi(ns_level,scal_visc_terms,HYP_GROW,prev_time,State_Type,0,NUM_STATE);
          S_fpi.isValid() && P_fpi.isValid();
          ++S_fpi, ++P_fpi)
     {
@@ -731,29 +693,17 @@ MacProj::mac_sync_compute (int                   level,
                grad_phi[2].resize(BoxLib::surroundingNodes(grids[i],2),1););
 
         mac_vel_update(1,D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
-                       (*mac_sync_phi)[S_fpi], &(*rho_half)[S_fpi],
-                       0, grids[i], level, i, dx, dt/2.0);
+                       (*mac_sync_phi)[S_fpi], &(*mac_coef)[S_fpi],
+                       grids[i], level, i, dx, dt/2.0);
         //
         // Step 2: compute Mac correction by calling GODUNOV box
-        //
-        // Get needed data.
-        //
-        Rho.resize(BoxLib::grow(grids[i],1),1);
-        Rho.copy(S,Density,0,1);
-
-        ns_level.getForce(tforces,i,1,0,NUM_STATE,Rho);
+        ns_level.getForce(tforces,i,1,0,NUM_STATE);
         //
         // Compute total forcing terms.
         //
-        godunov->Sum_tf_gp_visc(tforces, vel_visc_terms[S_fpi], Gp[i], Rho);
-        godunov->Sum_tf_divu_visc(S, tforces, BL_SPACEDIM, numscal,
-                                  scal_visc_terms[S_fpi], 0, divu, Rho, 1);
+        godunov->Sum_tf_divu_visc(S, tforces, 0, numscal,
+                                  scal_visc_terms[S_fpi], 0, divu, 1);
 
-        if (use_forces_in_trans)
-        {
-            ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho);
-            godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[S_fpi],Gp[i],Rho);
-        }
         //
         // Set up the workspace for the godunov Box.
         //
@@ -763,15 +713,15 @@ MacProj::mac_sync_compute (int                   level,
 
         godunov->Setup(grids[i], dx, dt, 0,
                        xflux, bndry[0].dataPtr(),
+#if (BL_SPACEDIM == 2)
+                       yflux, bndry[1].dataPtr());
+#elif (BL_SPACEDIM == 3)
                        yflux, bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)
-                       zflux, bndry[2].dataPtr(),
+                       zflux, bndry[2].dataPtr());
 #endif
-                       S, Rho, tvelforces);
         //
         // Get the sync FABS.
         //
-        FArrayBox& u_sync = (*Vsync)[S_fpi];
         FArrayBox& s_sync = (*Ssync)[S_fpi];
         //
         // Loop over state components and compute the sync advective component.
@@ -780,17 +730,11 @@ MacProj::mac_sync_compute (int                   level,
         {
             if (!increment_sync.size() || increment_sync[comp]==1)
             {
-                const int  sync_ind = comp < BL_SPACEDIM ? comp  : comp-BL_SPACEDIM;
-                FArrayBox& temp     = comp < BL_SPACEDIM ? u_sync : s_sync;
+                const int  sync_ind = comp;
+                FArrayBox& temp     = s_sync;
                 ns_level_bc         = ns_level.getBCArray(State_Type,i,comp,1);
 
                 int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
-
-                if (do_mom_diff == 1 && comp < BL_SPACEDIM)
-                {
-                        S.mult(S,      S.box(),      S.box(),Density,comp,1);
-                  tforces.mult(S,tforces.box(),tforces.box(),Density,comp,1);
-                }
 
                 godunov->SyncAdvect(grids[i], dx, dt, level, 
                                     area[level][0][S_fpi], u_mac[0][S_fpi], grad_phi[0], xflux, 
@@ -798,7 +742,7 @@ MacProj::mac_sync_compute (int                   level,
 #if (BL_SPACEDIM == 3)                            
                                     area[level][2][S_fpi], u_mac[2][S_fpi], grad_phi[2], zflux,
 #endif
-                                    U, S, tforces, divu, comp, temp, sync_ind,
+                                    S, tforces, divu, comp, temp, sync_ind,
                                     use_conserv_diff, comp,
                                     ns_level_bc.dataPtr(), PRE_MAC, volume[level][S_fpi]);
                 //
@@ -817,38 +761,6 @@ MacProj::mac_sync_compute (int                   level,
         // Fill temp_reg with the normal fluxes.
         //
         int velpred = 0;
-        if (modify_reflux_normal_vel)
-        {
-            for (int comp = 0; comp < BL_SPACEDIM; comp++)
-            {
-                int iconserv_dummy = 0;
-                godunov->edge_states(grids[i], dx, dt, velpred,
-                                     u_mac[0][S_fpi], xflux, 
-                                     u_mac[1][S_fpi], yflux,
-#if (BL_SPACEDIM == 3)                            
-                                     u_mac[2][S_fpi], zflux,
-#endif
-                                     U, S, tforces, divu, comp, comp,
-                                     ns_level_bc.dataPtr(), iconserv_dummy,
-                                     PRE_MAC);
-
-                if (comp == 0)
-                {
-                    temp_reg->CrseInit(xflux,xflux.box(),comp,0,comp,1,1.0);
-                }
-                else if (comp == 1)
-                {
-                    temp_reg->CrseInit(yflux,yflux.box(),comp,0,comp,1,1.0);
-#if (BL_SPACEDIM == 3)
-                }
-                else if (comp == 2)
-                {
-                    temp_reg->CrseInit(zflux,zflux.box(),comp,0,comp,1,1.0);
-#endif
-                } 
-            }
-            temp_reg->CrseInitFinish();
-        }
         //
         // Include grad_phi in the mac registers corresponding
         // to the next coarsest interface.
@@ -863,38 +775,6 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Multiply the sync term by dt -- now done in the calling routine.
         //
-    }
-
-    if (modify_reflux_normal_vel)
-    {
-          // Multiply the fluxes (stored in temp_reg) 
-          //   by delta U (area-weighted, stored in mr) on each edge
-          //   and store the result in temp_reg.
-          // Then reflux the result into u_sync
-
-          FluxRegister& mr = mac_reg[level+1];
-          const Real scale =  1.0;
-
-          for (int dir = 0; dir < BL_SPACEDIM; dir++)
-          {
-              FabSet& lofabs_temp = (*temp_reg)[Orientation(dir,Orientation::low)];
-              FabSet& hifabs_temp = (*temp_reg)[Orientation(dir,Orientation::high)];
-              FabSet& lofabs_mr   = mr[Orientation(dir,Orientation::low)];
-              FabSet& hifabs_mr   = mr[Orientation(dir,Orientation::high)];
-
-              for (FabSetIter fsi(lofabs_temp); fsi.isValid(); ++fsi)
-              {
-                  lofabs_temp[fsi].mult(lofabs_mr[fsi],0,dir,1);
-              }
-              for (FabSetIter fsi(hifabs_temp); fsi.isValid(); ++fsi)
-              {
-                  hifabs_temp[fsi].mult(hifabs_mr[fsi],0,dir,1);
-              }
-          }
-
-          temp_reg->Reflux(*Vsync,volume[level],scale,0,0,BL_SPACEDIM,geom);
-
-          delete temp_reg;
     }
 
     delete divu_fp;
@@ -916,10 +796,9 @@ MacProj::mac_sync_compute (int                    level,
                            int                    s_ind,
                            const MultiFab* const* sync_edges,
 			   int                    eComp,
-                           MultiFab*              rho_half,
+                           MultiFab*              mac_coef,
                            FluxRegister*          adv_flux_reg,
                            Array<AdvectionForm>&  advectionType, 
-			   bool                   modify_reflux_normal_vel,
                            Real                   dt)
 {
     FArrayBox xflux, yflux, zflux;
@@ -928,17 +807,11 @@ MacProj::mac_sync_compute (int                    level,
     const BoxArray& grids        = LevelData[level].boxArray();
     const Geometry& geom         = parent->Geom(level);
     MultiFab*       mac_sync_phi = &mac_phi_crse[level];
-    NavierStokes&   ns_level     = *(NavierStokes*) &(parent->getLevel(level));
+    PorousMedia&   ns_level     = *(PorousMedia*) &(parent->getLevel(level));
 
     Godunov godunov(512);
 
     FluxRegister* temp_reg = 0;
-    if (modify_reflux_normal_vel && comp < BL_SPACEDIM)
-    {
-        temp_reg = new FluxRegister(LevelData[level+1].boxArray(),
-                                    parent->refRatio(level),level+1,BL_SPACEDIM);
-        temp_reg->setVal(0.);
-    }
     //
     // Compute the mac sync correction.
     //
@@ -954,7 +827,7 @@ MacProj::mac_sync_compute (int                    level,
         mac_vel_update(1,
                        D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
                        (*mac_sync_phi)[Syncmfi],
-                       &(*rho_half)[Syncmfi], 0,
+                       &(*mac_coef)[Syncmfi], 
                        grids[Syncmfi.index()], level, Syncmfi.index(),
                        geom.CellSize(), dt/2.0);
         //
@@ -995,56 +868,6 @@ MacProj::mac_sync_compute (int                    level,
         //
         // Fill temp_reg with the normal fluxes.
         //
-        if (modify_reflux_normal_vel && comp < BL_SPACEDIM)
-        {
-             if (comp == 0)
-             {
-                temp_reg->CrseInit((*sync_edges[0])[Syncmfi],(*sync_edges[0])[Syncmfi].box(),eComp,0,comp,1,1.0);
-             }
-             else if (comp == 1)
-             {
-                temp_reg->CrseInit((*sync_edges[1])[Syncmfi],(*sync_edges[1])[Syncmfi].box(),eComp,0,comp,1,1.0);
-#if (BL_SPACEDIM == 3)
-             }
-             else if (comp == 2)
-             {
-                temp_reg->CrseInit((*sync_edges[2])[Syncmfi],(*sync_edges[2])[Syncmfi].box(),eComp,0,comp,1,1.0);
-#endif
-             } 
-             temp_reg->CrseInitFinish();
-        }
-    }
-
-    if (modify_reflux_normal_vel && comp < BL_SPACEDIM)
-    {
-          // Multiply the fluxes (stored in temp_reg) 
-          //   by delta U (area-weighted, stored in mr) on each edge
-          //   and store the result in temp_reg.
-          // Then reflux the result into Sync (which is Vsync in this case)
-
-          FluxRegister& mr = mac_reg[level+1];
-          const Real scale =  1.0;
-
-          int dir = comp;
-          {
-              FabSet& lofabs_temp = (*temp_reg)[Orientation(dir,Orientation::low)];
-              FabSet& hifabs_temp = (*temp_reg)[Orientation(dir,Orientation::high)];
-              FabSet& lofabs_mr   = mr[Orientation(dir,Orientation::low)];
-              FabSet& hifabs_mr   = mr[Orientation(dir,Orientation::high)];
-
-              for (FabSetIter fsi(lofabs_temp); fsi.isValid(); ++fsi)
-              {
-                  lofabs_temp[fsi].mult(lofabs_mr[fsi],0,dir,1);
-              }
-              for (FabSetIter fsi(hifabs_temp); fsi.isValid(); ++fsi)
-              {
-                  hifabs_temp[fsi].mult(hifabs_mr[fsi],0,dir,1);
-              }
-          }
-
-          temp_reg->Reflux(*Sync,volume[level],scale,comp,comp,1,geom);
-
-          delete temp_reg;
     }
 }
 //
@@ -1113,134 +936,6 @@ MacProj::check_div_cond (int      level,
         
         if (ParallelDescriptor::IOProcessor())
             std::cout << "SUM of DIV(U_edge) = " << sum << '\n';
-    }
-}
-
-void
-MacProj::set_outflow_bcs (int             level,
-                          MultiFab*       mac_phi,
-                          const MultiFab* u_mac, 
-                          const MultiFab& S,
-                          const MultiFab& divu)
-{
-  // This code is very similar to the outflow BC stuff in the Projection
-  // class except that here the the phi to be solved for lives on the
-  // out-directed faces.  The projection equation to satisfy is
-  //
-  //   (1/r)(d/dr)[r/rho dphi/dr] = dv/dr - S
-  //
-  bool hasOutFlow;
-  Orientation outFaces[2*BL_SPACEDIM];
-  int numOutFlowFaces;
-
-  OutFlowBC::GetOutFlowFaces(hasOutFlow,outFaces,phys_bc,numOutFlowFaces);
-
-  const BoxArray&   grids  = LevelData[level].boxArray();
-  const Geometry&   geom   = parent->Geom(level);
-  const Box&        domain = parent->Geom(level).Domain();
-
-  //
-  // Create 1-wide cc box just outside boundary to hold phi.
-  // Create 1-wide cc box just inside  boundary to hold rho,u,divu.
-  //
-
-  BoxList  ccBoxList;
-  BoxList phiBoxList;
-
-  for (int iface = 0; iface < numOutFlowFaces; iface++)
-    {
-      if (grids_on_side_of_domain(grids,geom.Domain(),outFaces[iface])) 
-	{
-	  const int outDir    = outFaces[iface].coordDir();
-
-	  Box ccBndBox;
-	  if (outFaces[iface].faceDir() == Orientation::high)
-	    {
-	      ccBndBox = 
-		Box(BoxLib::adjCellHi(domain,outDir,2)).shift(outDir,-2);
-	    } 
-	  else 
-	    {
-	      ccBndBox = 
-		Box(BoxLib::adjCellLo(domain,outDir,2)).shift(outDir,2);
-	    }
-	  ccBoxList.push_back(ccBndBox);
-
-	  Box phiBox  = BoxLib::adjCell(domain,outFaces[iface],1);
-	  phiBoxList.push_back(phiBox);
-
-	  const Box      valid_ccBndBox       = ccBndBox & domain;
-	  const BoxArray uncovered_outflow_ba = BoxLib::complementIn(valid_ccBndBox,grids);
-
-	  if (uncovered_outflow_ba.size() && 
-	      BoxLib::intersect(grids,valid_ccBndBox).size())
-	    BoxLib::Error("MacProj: Cannot yet handle partially refined outflow");
-	}
-    }
-  
-
-  if ( !ccBoxList.isEmpty() ) 
-    {
-      BoxArray  ccBoxArray( ccBoxList);
-      BoxArray phiBoxArray(phiBoxList);
-    
-      FArrayBox rhodat[2*BL_SPACEDIM];
-      FArrayBox divudat[2*BL_SPACEDIM];
-      FArrayBox phidat[2*BL_SPACEDIM];
-      
-      for ( int iface = 0; iface < numOutFlowFaces; ++iface) 
-	{
-	  rhodat[iface].resize(ccBoxArray[iface], 1);
-	  divudat[iface].resize(ccBoxArray[iface], 1);
-	  phidat[iface].resize(phiBoxArray[iface], 1);
-
-	  phidat[iface].setVal(0.0);
-	  divu.copy(divudat[iface]);
-	  S.copy(rhodat[iface], Density, 0, 1);
-	}
-
-      // rhodat.copy(S, Density, 0, 1);
-      // divudat.copy(divu, 0, 0, 1);
-
-      //
-      // Load ec data.
-      //
-
-      FArrayBox uedat[BL_SPACEDIM][2*BL_SPACEDIM];
-      for (int i = 0; i < BL_SPACEDIM; ++i)
-	{
-	  BoxArray edgeArray(ccBoxArray);
-	  edgeArray.surroundingNodes(i);
-	  for ( int iface = 0; iface < numOutFlowFaces; ++iface) 
-	    {
-	      uedat[i][iface].resize(edgeArray[iface], 1);
-	      u_mac[i].copy(uedat[i][iface], 0, 0, 1);
-	      // uedat[iface][i].copy(u_mac[i], 0, 0, 1);
-	    }
-	}
-    
-      MacOutFlowBC macBC;
-      // phidat.setVal(0.0);
-
-      NavierStokes* ns_level = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
-      Real gravity = ns_level->getGravity();
-      const int* lo_bc = phys_bc->lo();
-      const int* hi_bc = phys_bc->hi();
-      macBC.computeBC(uedat, divudat, rhodat, phidat,
-		      geom, outFaces, numOutFlowFaces, lo_bc, hi_bc, gravity);
-
-      // Must do this kind of copy instead of mac_phi->copy(phidat);
-      //   because we're copying onto the ghost cells of the FABs,
-      //   not the valid regions.
-      for ( int iface =0; iface < numOutFlowFaces; ++iface )
-	{
-	  for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
-	    {
-	      Box ovlp = (*mac_phi)[mfi].box() & phidat[iface].box();
-	      if (ovlp.ok())
-		(*mac_phi)[mfi].copy(phidat[iface],ovlp);
-	    }
-	}
     }
 }
 

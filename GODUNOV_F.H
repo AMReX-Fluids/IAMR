@@ -2,12 +2,11 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.16 2005-04-19 19:45:03 almgren Exp $
+** $Id: GODUNOV_F.H,v 1.17 2006-09-08 21:21:02 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
-#    define FORT_TEST_U_RHO         testurho
-#    define FORT_TEST_UMAC_RHO      testumacrho
+#    define FORT_TEST_UMAC          testumac
 #    define FORT_ESTDT              estmdt
 #    define FORT_TRANSVEL           transvel
 #    define FORT_ESTATE             estate
@@ -28,8 +27,7 @@
 #    define FORT_SET_PARAMS         setparams
 #else
 #  if defined(BL_FORT_USE_UPPERCASE)
-#    define FORT_TEST_U_RHO         TESTURHO 
-#    define FORT_TEST_UMAC_RHO      TESTUMACRHO
+#    define FORT_TEST_UMAC          TESTUMAC
 #    define FORT_ESTDT              ESTMDT 
 #    define FORT_TRANSVEL           TRANSVEL  
 #    define FORT_ESTATE             ESTATE    
@@ -49,8 +47,7 @@
 #    define FORT_SUM_TF_DIVU        SUMTFDIVU 
 #    define FORT_SET_PARAMS         SETPARAMS
 #  elif defined(BL_FORT_USE_LOWERCASE)
-#    define FORT_TEST_U_RHO         testurho
-#    define FORT_TEST_UMAC_RHO      testumacrho
+#    define FORT_TEST_UMAC          testumac
 #    define FORT_ESTDT              estmdt
 #    define FORT_TRANSVEL           transvel
 #    define FORT_ESTATE             estate
@@ -70,8 +67,7 @@
 #    define FORT_SUM_TF_DIVU        sumtfdivu
 #    define FORT_SET_PARAMS         setparams
 #  elif defined(BL_FORT_USE_UNDERSCORE)
-#    define FORT_TEST_U_RHO         testurho_
-#    define FORT_TEST_UMAC_RHO      testumacrho_
+#    define FORT_TEST_UMAC          testumac_
 #    define FORT_ESTDT              estmdt_
 #    define FORT_TRANSVEL           transvel_
 #    define FORT_ESTATE             estate_
@@ -96,30 +92,19 @@
 
 extern "C"
 {
-   void FORT_TEST_U_RHO(const Real* u,  ARLIM_P(vlo), ARLIM_P(vhi),
-			const Real* v,  ARLIM_P(vlo), ARLIM_P(vhi),
-#if (BL_SPACEDIM == 3)                          
-			const Real* w,  ARLIM_P(vlo), ARLIM_P(vhi),
-#endif
-			const Real* rh, ARLIM_P(rlo), ARLIM_P(rhi),
-			const int* lo, const int* hi, const Real* dt, 
-			const Real* dx, Real* cflmax, 
-			const Real* u_max, int* verbose);
-   
-   void FORT_TEST_UMAC_RHO(const Real* um, ARLIM_P(ulo), ARLIM_P(uhi),
-			   const Real* vm, ARLIM_P(vlo), ARLIM_P(vhi),
+   void FORT_TEST_UMAC(const Real* um, ARLIM_P(ulo), ARLIM_P(uhi),
+		       const Real* vm, ARLIM_P(vlo), ARLIM_P(vhi),
 #if (BL_SPACEDIM == 3)                            
-			   const Real* wm, ARLIM_P(wlo), ARLIM_P(whi),
+		       const Real* wm, ARLIM_P(wlo), ARLIM_P(whi),
 #endif                                              
-			   const Real* rh, ARLIM_P(rlo), ARLIM_P(rhi),
-			   const int* lo, const int* hi, const Real* dt, 
-			   const Real* dx, Real* cfl, const Real* u_max);
+		       const Real* rh, ARLIM_P(rlo), ARLIM_P(rhi),
+		       const int* lo, const int* hi, const Real* dt, 
+       		       const Real* dx, Real* cfl, const Real* u_max);
    
-   void FORT_ESTDT(const Real* Udat,  ARLIM_P(vlo), ARLIM_P(vhi),
-		   const Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
-		   const Real* rdat,  ARLIM_P(rlo), ARLIM_P(rhi),
+   void FORT_ESTDT(const Real* Sdat,  ARLIM_P(slo), ARLIM_P(shi),
+		   const Real* gpdat,  ARLIM_P(gplo), ARLIM_P(gphi),
 		   const int* lo, const int* hi, Real* dt, 
-		   const Real* dx, Real* cfl, Real* u_max);
+		   const Real* dx, Real* cfl);
    
    void FORT_TRANSVEL( const Real* u_dat, const Real* uad_dat, 
 		       const Real* xhi_dat, const Real* slx_dat, 
@@ -259,7 +244,6 @@ extern "C"
 			     const int* lo, const int* hi, const int* bc);
 
    void FORT_CONSSCALMINMAX (const Real* Sold_dat, const Real* Snew_dat, 
-			     const Real*  Rho_dat, const Real* Rhon_dat,
                              ARLIM_P(slo), ARLIM_P(shi),
 #if (BL_SPACEDIM == 3)
 			     const Real* smin_dat, const Real* smax_dat,
@@ -288,32 +272,27 @@ extern "C"
 			       const Real* AOdat, ARLIM_P(alo), ARLIM_P(ahi),
 			       const Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
 			       const Real* GPdat, ARLIM_P(glo), ARLIM_P(ghi),
-			       const Real* RHdat, ARLIM_P(rlo), ARLIM_P(rhi),
 			       const int* lo, const int* hi, Real* dt);
    
    void FORT_SUM_TF_GP_VISC(const Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
 			    const Real* VIdat, ARLIM_P(vlo), ARLIM_P(vhi),
 			    const Real* GPdat, ARLIM_P(glo), ARLIM_P(ghi),
-			    const Real* RHdat, ARLIM_P(rlo), ARLIM_P(rhi),
 			    const int* tlo, const int* thi);
    
    void FORT_SUM_TF_DIVU_VISC(const Real* Sdat,  ARLIM_P(slo), ARLIM_P(shi),
 			      const Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
 			      const Real* DUdat, ARLIM_P(dlo), ARLIM_P(dhi),
 			      const Real* VIdat, ARLIM_P(vlo), ARLIM_P(vhi),
-			      const Real* RHdat, ARLIM_P(rlo), ARLIM_P(rhi),
 			      const int* tlo, const int* thi, 
 			      int* num_comp, int* iconserv);
    
    void FORT_SUM_TF_GP(const Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
 		       const Real* GPdat, ARLIM_P(glo), ARLIM_P(ghi),
-		       const Real* RHdat, ARLIM_P(rlo), ARLIM_P(rhi),
 		       const int* tlo, const int* thi);
    
    void FORT_SUM_TF_DIVU(const Real* Sdat,  ARLIM_P(slo), ARLIM_P(shi),
 			 const Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
 			 const Real* DUdat, ARLIM_P(dlo), ARLIM_P(dhi),
-			 const Real* RHdat, ARLIM_P(rlo), ARLIM_P(rhi),
 			 const int* tlo, const int* thi, 
 			 int* num_comp, int* iconserv);
    

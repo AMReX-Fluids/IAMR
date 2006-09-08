@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_3D.F,v 1.8 2003-02-05 22:11:42 almgren Exp $
+c $Id: MACOPERATOR_3D.F,v 1.9 2006-09-08 21:21:02 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -26,22 +26,22 @@ c ::  ax,ay,az     => edge based area arrays
 c ::  DIMS(ax)     => index limits for ax
 c ::  DIMS(ay)     => index limits for ay
 c ::  DIMS(az)     => index limits for az
-c ::  rho          => cell centered density array
-c ::  DIMS(rho)    => index limits of rho array
+c ::  coef         => cell centered density array
+c ::  DIMS(coef)   => index limits of coef array
 c ::  lo,hi        => index limits for rhs
 c ::  dx           => cell size
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_MACCOEF (cx,DIMS(cx),cy,DIMS(cy),cz,DIMS(cz),
      &                          ax,DIMS(ax),ay,DIMS(ay),az,DIMS(az),
-     &                          rho,DIMS(rho),lo,hi,dx)
+     &                          coef,DIMS(coef),lo,hi,dx)
        integer DIMDEC(cx)
        integer DIMDEC(cy)
        integer DIMDEC(cz)
        integer DIMDEC(ax)
        integer DIMDEC(ay)
        integer DIMDEC(az)
-       integer DIMDEC(rho)
+       integer DIMDEC(coef)
        integer lo(SDIM), hi(SDIM)
        REAL_T  dx(SDIM)
        REAL_T  cx(DIMV(cx))
@@ -50,18 +50,18 @@ c ::
        REAL_T  ax(DIMV(ax))
        REAL_T  ay(DIMV(ay))
        REAL_T  az(DIMV(az))
-       REAL_T  rho(DIMV(rho))
+       REAL_T  coef(DIMV(coef))
 
        integer i, j, k
-       REAL_T  rhoavg
+       REAL_T  coef_avg
 
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                if (rho(i,j,k) .lt. zero) then
+                if (coef(i,j,k) .lt. zero) then
                    print *,' '
                    print *,'TESTING in MACCOEF '
-                   print *,'RHO HAS GONE NEGATIVE AT ',i,j,k,rho(i,j,k)
+                   print *,'MAC COEF HAS GONE NEGATIVE AT ',i,j,k,coef(i,j,k)
                    call bl_abort(" ")
                 end if
              end do
@@ -73,9 +73,8 @@ c
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)+1
-                rhoavg = half * ( rho(i,j,k) + rho(i-1,j,k) )
-c          cx(i,j,k) = half*dx(1)*ax(i,j,k)*(one/rho(i,j,k) + one/rho(i-1,j,k))
-                cx(i,j,k) = dx(1) * ax(i,j,k) / rhoavg 
+                coef_avg = half * ( coef(i,j,k) + coef(i-1,j,k) )
+                cx(i,j,k) = dx(1) * ax(i,j,k) * coef_avg 
              end do
           end do
        end do
@@ -85,9 +84,8 @@ c
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)+1
              do i = lo(1), hi(1)
-                rhoavg = half * ( rho(i,j,k) + rho(i,j-1,k) )
-c          cy(i,j,k) = half*dx(2)*ay(i,j,k)*(one/rho(i,j,k) + one/rho(i,j-1,k))
-                cy(i,j,k) = dx(2) * ay(i,j,k) / rhoavg 
+                coef_avg = half * ( coef(i,j,k) + coef(i,j-1,k) )
+                cy(i,j,k) = dx(2) * ay(i,j,k) * coef_avg 
              end do
           end do
        end do
@@ -97,9 +95,8 @@ c
        do k = lo(3), hi(3)+1
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                rhoavg = half * ( rho(i,j,k) + rho(i,j,k-1) )
-c          cz(i,j,k) = half*dx(3)*az(i,j,k)*(one/rho(i,j,k) + one/rho(i,j,k-1))
-                cz(i,j,k) = dx(3) * az(i,j,k) / rhoavg 
+                coef_avg = half * ( coef(i,j,k) + coef(i,j,k-1) )
+                cz(i,j,k) = dx(3) * az(i,j,k) * coef_avg 
              end do
           end do
        end do
@@ -179,8 +176,8 @@ c ::  DIMS(uy)     => index limits for uy
 c ::  DIMS(uz)     => index limits for uz
 c ::  phi          => soln from MAC project
 c ::  DIMS(phi)    => index limits for phi
-c ::  rho          => density at time N
-c ::  DIMS(rho)    => index limits for rho
+c ::  coef         => density at time N
+c ::  DIMS(coef)   => index limits for coef
 c ::  dx           => cell size
 c ::  mult         => scalar multiplier
 c :: ----------------------------------------------------------
@@ -188,25 +185,25 @@ c ::
        subroutine FORT_MACUPDATE(
      &     init,
      &     ux,DIMS(ux),uy,DIMS(uy),uz,DIMS(uz),
-     &     phi,DIMS(phi),rho,DIMS(rho),
+     &     phi,DIMS(phi),coef,DIMS(coef),
      &     lo,hi,dx,mult)
 
        integer DIMDEC(ux)
        integer DIMDEC(uy)
        integer DIMDEC(uz)
        integer DIMDEC(phi)
-       integer DIMDEC(rho)
+       integer DIMDEC(coef)
        integer lo(SDIM), hi(SDIM)
        REAL_T  dx(SDIM), mult
        REAL_T  ux(DIMV(ux))
        REAL_T  uy(DIMV(uy))
        REAL_T  uz(DIMV(uz))
        REAL_T  phi(DIMV(phi))
-       REAL_T  rho(DIMV(rho))
+       REAL_T  coef(DIMV(coef))
        integer init
 
        integer i, j, k
-       REAL_T  rhoavg, gp
+       REAL_T  coef_avg, gp
 c
 c     set gradient to zero if initializing
 c
@@ -239,9 +236,9 @@ c
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)+1
-                rhoavg = half*(rho(i,j,k) + rho(i-1,j,k))
+                coef_avg = half*(coef(i,j,k) + coef(i-1,j,k))
                 gp = (phi(i,j,k)-phi(i-1,j,k))/dx(1)
-                ux(i,j,k) = ux(i,j,k) + mult * gp / rhoavg
+                ux(i,j,k) = ux(i,j,k) + mult * gp * coef_avg
              end do
           end do
        end do
@@ -251,9 +248,9 @@ c
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)+1
              do i = lo(1),hi(1)
-                rhoavg = half*(rho(i,j,k) + rho(i,j-1,k))
+                coef_avg = half*(coef(i,j,k) + coef(i,j-1,k))
                 gp = (phi(i,j,k)-phi(i,j-1,k))/dx(2)
-                uy(i,j,k) = uy(i,j,k) + mult * gp / rhoavg
+                uy(i,j,k) = uy(i,j,k) + mult * gp * coef_avg
              end do
           end do
        end do
@@ -263,9 +260,9 @@ c
        do k = lo(3),hi(3)+1
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                rhoavg = half*(rho(i,j,k) + rho(i,j,k-1))
+                coef_avg = half*(coef(i,j,k) + coef(i,j,k-1))
                 gp = (phi(i,j,k)-phi(i,j,k-1))/dx(3)
-                uz(i,j,k) = uz(i,j,k) + mult * gp / rhoavg
+                uz(i,j,k) = uz(i,j,k) + mult * gp * coef_avg
              end do
           end do
        end do

@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.31 2005-05-20 17:00:13 almgren Exp $
+c $Id: GODUNOV_3D.F,v 1.32 2006-09-08 21:21:02 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -13,18 +13,13 @@ c
 #include "ArrayLim.H"
 
 #define SDIM 3
-#define XVEL 1
-#define YVEL 2
-#define ZVEL 3
-#define RHO  4
 
 #define ALL  999
 
       subroutine FORT_ESTDT (
-     &     vel,DIMS(vel),
-     &     tforces,DIMS(tf),
-     &     rho,DIMS(rho),
-     &     lo,hi,dt,dx,cfl,u_max)
+     &     state,DIMS(state),
+     &     tp,DIMS(tp),
+     &     lo,hi,dt,dx,cfl)
 c 
 c     ----------------------------------------------------------
 c     estimate the timestep for this grid and scale by CFL number
@@ -37,61 +32,32 @@ c
       REAL_T  u, v, w
       REAL_T  small
       REAL_T  dt_start
-      REAL_T  tforce1,tforce2,tforce3
       integer lo(SDIM), hi(SDIM)
       REAL_T  dt,dx(SDIM),cfl,u_max(SDIM)
 
-      integer DIMDEC(vel)
-      integer DIMDEC(rho)
-      integer DIMDEC(tf)
+      integer DIMDEC(state)
+      integer DIMDEC(gp)
 
-      REAL_T  vel(DIMV(vel),SDIM)
-      REAL_T  rho(DIMV(rho))
-      REAL_T  tforces(DIMV(tf),SDIM)
+      REAL_T  state(DIMV(state),SDIM)
+      REAL_T  gp(DIMV(gp),SDIM)
 
       small   = 1.0D-8
       u       = zero
       v       = zero
       w       = zero
-      tforce1 = zero
-      tforce2 = zero
-      tforce3 = zero
 
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               u = max(u,abs(vel(i,j,k,1)))	
-               v = max(v,abs(vel(i,j,k,2)))
-               w = max(w,abs(vel(i,j,k,3)))
-               tforce1 = max(tforce1,abs(tforces(i,j,k,1)/rho(i,j,k)))
-               tforce2 = max(tforce2,abs(tforces(i,j,k,2)/rho(i,j,k)))
-               tforce3 = max(tforce3,abs(tforces(i,j,k,3)/rho(i,j,k)))
+               u = max(u,abs(state(i,j,k,1)))	
+               v = max(v,abs(state(i,j,k,2)))
+               w = max(w,abs(state(i,j,k,3)))
             end do
          end do
       end do
 
-      u_max(1) = u
-      u_max(2) = v
-      u_max(3) = w
-
       dt_start = 1.0D+20
       dt = dt_start
-
-      if (u .gt. small) dt = min(dt,dx(1)/u)
-      if (v .gt. small) dt = min(dt,dx(2)/v)
-      if (w .gt. small) dt = min(dt,dx(3)/w)
-
-      if (tforce1 .gt. small) then
-         dt  = min(dt,sqrt(two*dx(1)/tforce1))
-      end if
-
-      if (tforce2 .gt. small) then
-         dt  = min(dt,sqrt(two*dx(2)/tforce2))
-      end if
-
-      if (tforce3 .gt. small) then
-         dt  = min(dt,sqrt(two*dx(3)/tforce3))
-      end if
 
       if (dt .eq. dt_start) dt = min(dx(1),dx(2),dx(3))
 
@@ -99,11 +65,10 @@ c
 
       end
 
-      subroutine FORT_TEST_U_RHO(
+      subroutine FORT_TEST_U(
      &     u,DIMS(u),
      &     v,DIMS(v),
      &     w,DIMS(w),
-     &     rho,DIMS(rho),
      &     lo,hi,dt,dx,cflmax,u_max,verbose)
 c
 c     This subroutine computes the extrema of the density
@@ -112,18 +77,16 @@ c
       integer DIMDEC(u)
       integer DIMDEC(v)
       integer DIMDEC(w)
-      integer DIMDEC(rho)
       integer imin, imax, jmin, jmax, kmin, kmax
       integer i, j, k
       integer lo(SDIM),hi(SDIM)
       REAL_T  dx(SDIM), u_max(SDIM),cflmax, dt
       REAL_T  hx, hy, hz
-      REAL_T  umax, vmax, wmax, rhomax
-      REAL_T  umin, vmin, wmin, rhomin
+      REAL_T  umax, vmax, wmax
+      REAL_T  umin, vmin, wmin
       REAL_T  u(DIMV(u))
       REAL_T  v(DIMV(v))
       REAL_T  w(DIMV(w))
-      REAL_T  rho(DIMV(rho))
       integer verbose
 
       hx   = dx(1)
@@ -141,8 +104,6 @@ c
       umin =  1.d200
       vmin =  1.d200
       wmin =  1.d200
-      rhomax = -1.d200
-      rhomin =  1.d200
 
       do k = kmin, kmax
          do j = jmin, jmax
@@ -153,8 +114,6 @@ c
                vmin = min(vmin,v(i,j,k))
                wmax = max(wmax,w(i,j,k))
                wmin = min(wmin,w(i,j,k))
-               rhomax = max(rhomax,rho(i,j,k))
-               rhomin = min(rhomin,rho(i,j,k))
             end do
          end do
       end do
@@ -168,7 +127,6 @@ c
          write(6,1000) umax,umin,u_max(1)
          write(6,1001) vmax,vmin,u_max(2)
          write(6,1002) wmax,wmin,u_max(3)
-         write(6,1003) rhomax,rhomin
 #ifndef	BL_NO_FORT_FLUSH
 c         call flush(6)
 #endif
@@ -177,15 +135,13 @@ c         call flush(6)
  1000 format(' U  MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
  1001 format(' V  MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
  1002 format(' W  MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
- 1003 format('RHO MAX/MIN      ',e21.14,2x,e21.14)
 
       end
 
-      subroutine FORT_TEST_UMAC_RHO(
+      subroutine FORT_TEST_UMAC(
      &     umac,DIMS(umac),
      &     vmac,DIMS(vmac),
      &     wmac,DIMS(wmac),
-     &     rho,DIMS(rho),
      &     lo,hi,dt,dx,cflmax,u_max)
 c
 c     This subroutine computes the extrema of the density
@@ -196,18 +152,16 @@ c
       integer imin, imax, jmin, jmax, kmin, kmax
       integer i, j, k
       REAL_T  hx, hy, hz
-      REAL_T  umax, vmax, wmax, rhomax
-      REAL_T  umin, vmin, wmin, rhomin
+      REAL_T  umax, vmax, wmax
+      REAL_T  umin, vmin, wmin
 
       integer DIMDEC(umac)
       integer DIMDEC(vmac)
       integer DIMDEC(wmac)
-      integer DIMDEC(rho)
 
       REAL_T  umac(DIMV(umac))
       REAL_T  vmac(DIMV(vmac))
       REAL_T  wmac(DIMV(wmac))
-      REAL_T  rho(DIMV(rho))
 
       hx   = dx(1)
       hy   = dx(2)
@@ -224,8 +178,6 @@ c
       umin =  1.d200
       vmin =  1.d200
       wmin =  1.d200
-      rhomax = -1.d200
-      rhomin =  1.d200
 
       do k = kmin, kmax
          do j = jmin, jmax
@@ -254,15 +206,6 @@ c
          end do
       end do
 
-      do k = kmin, kmax
-         do j = jmin, jmax
-            do i = imin, imax
-               rhomax = max(rhomax,rho(i,j,k))
-               rhomin = min(rhomin,rho(i,j,k))
-            end do
-         end do
-      end do
-
       u_max(1) = max(abs(umax), abs(umin))
       u_max(2) = max(abs(vmax), abs(vmin))
       u_max(3) = max(abs(wmax), abs(wmin))
@@ -271,12 +214,10 @@ c
       write(6,1000) umax,umin,u_max(1)
       write(6,1001) vmax,vmin,u_max(2)
       write(6,1002) wmax,wmin,u_max(3)
-      write(6,1003) rhomax,rhomin
 
  1000 format('UMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
  1001 format('VMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
  1002 format('WMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
- 1003 format('RHO  MAX/MIN      ',e21.14,2x,e21.14)
 
 #ifndef	BL_NO_FORT_FLUSH
 c      call flush(6)
@@ -2801,7 +2742,7 @@ c
 
       end
 
-      subroutine FORT_CONSSCALMINMAX(s,sn,rho,rhon,DIMS(s),
+      subroutine FORT_CONSSCALMINMAX(s,sn,DIMS(s),
      &                               smin,smax,DIMS(smin),lo,hi,bc)
 c
 c     correct an conservatively-advected field for under/over shoots
@@ -2813,8 +2754,6 @@ c
       integer  bc(SDIM,2), do_minmax
       REAL_T      s(DIMV(s))
       REAL_T     sn(DIMV(s))
-      REAL_T    rho(DIMV(s))
-      REAL_T   rhon(DIMV(s))
       integer  km, kk, kp
       REAL_T   smn, smx
       REAL_T   smin(DIM12(smin),0:2)
@@ -2831,35 +2770,27 @@ c     correct the 8 corners
 c
       if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
            s(imin-1,jmin-1,kmin-1) =   s(imin,jmin,kmin)
-         rho(imin-1,jmin-1,kmin-1) = rho(imin,jmin,kmin)
       end if
       if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
            s(imax+1,jmin-1,kmin-1) =   s(imax,jmin,kmin)
-         rho(imax+1,jmin-1,kmin-1) = rho(imax,jmin,kmin)
       end if
       if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
            s(imin-1,jmax+1,kmin-1) =   s(imin,jmax,kmin)
-         rho(imin-1,jmax+1,kmin-1) = rho(imin,jmax,kmin)
       end if
       if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
            s(imax+1,jmax+1,kmin-1) =   s(imax,jmax,kmin)
-         rho(imax+1,jmax+1,kmin-1) = rho(imax,jmax,kmin)
       end if
       if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
            s(imin-1,jmin-1,kmax+1) =   s(imin,jmin,kmax)
-         rho(imin-1,jmin-1,kmax+1) = rho(imin,jmin,kmax)
       end if
       if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
            s(imax+1,jmin-1,kmax+1) =   s(imax,jmin,kmax)
-         rho(imax+1,jmin-1,kmax+1) = rho(imax,jmin,kmax)
       end if
       if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
            s(imin-1,jmax+1,kmax+1) =   s(imin,jmax,kmax)
-         rho(imin-1,jmax+1,kmax+1) = rho(imin,jmax,kmax)
       end if
       if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
            s(imax+1,jmax+1,kmax+1) =   s(imax,jmax,kmax)
-         rho(imax+1,jmax+1,kmax+1) = rho(imax,jmax,kmax)
       end if
 c
 c     correct the 12 edges
@@ -2867,83 +2798,63 @@ c
       if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
         do k = kmin,kmax
             s(imin-1,jmin-1,k) =   s(imin,jmin,k)
-          rho(imin-1,jmin-1,k) = rho(imin,jmin,k)
         end do
       end if
       if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
         do k = kmin,kmax
             s(imax+1,jmin-1,k) =   s(imax,jmin,k)
-          rho(imax+1,jmin-1,k) = rho(imax,jmin,k)
         end do
       end if
       if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
         do k = kmin,kmax
             s(imin-1,jmax+1,k) =   s(imin,jmax,k)
-          rho(imin-1,jmax+1,k) = rho(imin,jmax,k)
         end do
       end if
       if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
         do k = kmin,kmax
             s(imax+1,jmax+1,k) =   s(imax,jmax,k)
-          rho(imax+1,jmax+1,k) = rho(imax,jmax,k)
         end do
       end if
       if (bc(1,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
         do j = jmin,jmax
             s(imin-1,j,kmin-1) =   s(imin,j,kmin)
-          rho(imin-1,j,kmin-1) = rho(imin,j,kmin)
         end do
       end if
       if (bc(1,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
         do j = jmin,jmax
             s(imax+1,j,kmin-1) =   s(imax,j,kmin)
-          rho(imax+1,j,kmin-1) = rho(imax,j,kmin)
         end do
       end if
       if (bc(1,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
         do j = jmin,jmax
             s(imin-1,j,kmax+1) =   s(imin,j,kmax)
-          rho(imin-1,j,kmax+1) = rho(imin,j,kmax)
         end do
       end if
       if (bc(1,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
         do j = jmin,jmax
             s(imax+1,j,kmax+1) =   s(imax,j,kmax)
-          rho(imax+1,j,kmax+1) = rho(imax,j,kmax)
         end do
       end if
       if (bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
         do i = imin,imax
             s(i,jmin-1,kmin-1) =   s(i,jmin,kmin)
-          rho(i,jmin-1,kmin-1) = rho(i,jmin,kmin)
         end do
       end if
       if (bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
         do i = imin,imax
             s(i,jmax+1,kmin-1) =   s(i,jmax,kmin)
-          rho(i,jmax+1,kmin-1) = rho(i,jmax,kmin)
         end do
       end if
       if (bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
         do i = imin,imax
             s(i,jmin-1,kmax+1) =   s(i,jmin,kmax)
-          rho(i,jmin-1,kmax+1) = rho(i,jmin,kmax)
         end do
       end if
       if (bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
         do i = imin,imax
             s(i,jmax+1,kmax+1) =   s(i,jmax,kmax)
-          rho(i,jmax+1,kmax+1) = rho(i,jmax,kmax)
         end do
       end if
-
-      do k = kmin-1, kmax+1
-      do j = jmin-1, jmax+1
-         do i = imin-1, imax+1
-            s(i,j,k) = s(i,j,k) / rho(i,j,k)
-         end do
-      end do
-      end do
 c
 c     ::::: compute min/max a slab at a time
 c     ::::: compute min and max of neighbors on kmin-1 slab
@@ -2995,8 +2906,8 @@ c        ::::: compute min/max of cell
 c
                smn = min(smin(i,j,km),smin(i,j,kk),smin(i,j,kp))
                smx = max(smax(i,j,km),smax(i,j,kk),smax(i,j,kp))
-               sn(i,j,k) = max(sn(i,j,k)/rhon(i,j,k),smn) * rhon(i,j,k)
-               sn(i,j,k) = min(sn(i,j,k)/rhon(i,j,k),smx) * rhon(i,j,k)
+               sn(i,j,k) = max(sn(i,j,k),smn)
+               sn(i,j,k) = min(sn(i,j,k),smx)
                
             end do
          end do
@@ -3008,20 +2919,11 @@ c
          kp = mod(kp+1,3)
       end do
 
-      do k = kmin-1, kmax+1
-      do j = jmin-1, jmax+1
-         do i = imin-1, imax+1
-            s(i,j,k) = s(i,j,k) * rho(i,j,k)
-         end do
-      end do
-      end do
-
       end
 
       subroutine FORT_SUM_TF_GP(
      &     tforces,DIMS(tf),
      &     gp,DIMS(gp),
-     &     rho,DIMS(rho),
      &     lo,hi )
 c
 c     sum pressure forcing into tforces
@@ -3030,19 +2932,16 @@ c
       integer DIMDEC(tf)
       integer DIMDEC(visc)
       integer DIMDEC(gp)
-      integer DIMDEC(rho)
       integer lo(SDIM), hi(SDIM)
       REAL_T tforces(DIMV(tf),SDIM)
       REAL_T gp(DIMV(gp),SDIM)
-      REAL_T rho(DIMV(rho))
 
       do n = 1, SDIM
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   tforces(i,j,k,n) = (
-     &            tforces(i,j,k,n) - gp(i,j,k,n)
-     &                 )/rho(i,j,k)
+     &            tforces(i,j,k,n) - gp(i,j,k,n))
                end do
             end do
          end do
@@ -3054,7 +2953,6 @@ c
      &     tforces,DIMS(tf),
      &     visc,DIMS(visc),
      &     gp,DIMS(gp),
-     &     rho,DIMS(rho),
      &     lo,hi )
 c
 c     sum pressure forcing and viscous forcing into
@@ -3064,12 +2962,10 @@ c
       integer DIMDEC(tf)
       integer DIMDEC(visc)
       integer DIMDEC(gp)
-      integer DIMDEC(rho)
       integer lo(SDIM), hi(SDIM)
       REAL_T tforces(DIMV(tf),SDIM)
       REAL_T visc(DIMV(visc),SDIM)
       REAL_T gp(DIMV(gp),SDIM)
-      REAL_T rho(DIMV(rho))
 
       do n = 1, SDIM
          do k = lo(3), hi(3)
@@ -3078,7 +2974,7 @@ c
                   tforces(i,j,k,n) = (
      &                 tforces(i,j,k,n)
      &                 +  visc(i,j,k,n)
-     &                 -    gp(i,j,k,n) )/rho(i,j,k)
+     &                 -    gp(i,j,k,n) )
                end do
             end do
          end do
@@ -3090,7 +2986,6 @@ c
      &     S,DIMS(S),
      &     tforces,DIMS(tf),
      &     divu,DIMS(divu),
-     &     rho,DIMS(rho),
      &     lo,hi,nvar,iconserv )
 c
 c     sum tforces, viscous forcing and divU*S into tforces
@@ -3103,12 +2998,10 @@ c
       integer DIMDEC(S)
       integer DIMDEC(tf)
       integer DIMDEC(divu)
-      integer DIMDEC(rho)
 
       REAL_T S(DIMV(S),nvar)
       REAL_T tforces(DIMV(tf),nvar)
       REAL_T divu(DIMV(divu))
-      REAL_T rho(DIMV(rho))
 
       if ( iconserv .eq. 1 ) then
          do n = 1, nvar
@@ -3117,17 +3010,6 @@ c
                   do i = lo(1), hi(1)
                      tforces(i,j,k,n) = 
      &               tforces(i,j,k,n) - S(i,j,k,n)*divu(i,j,k)
-                  end do
-               end do
-            end do
-         end do
-      else
-         do n = 1, nvar
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     tforces(i,j,k,n) = 
-     &               tforces(i,j,k,n)/rho(i,j,k)
                   end do
                end do
             end do
@@ -3141,7 +3023,6 @@ c
      &     tforces,DIMS(tf),
      &     divu,DIMS(divu),
      &     visc,DIMS(visc),
-     &     rho,DIMS(rho),
      &     lo,hi,nvar,iconserv )
 c
 c     sum tforces, viscous forcing and divU*S into tforces
@@ -3155,13 +3036,11 @@ c
       integer DIMDEC(tf)
       integer DIMDEC(divu)
       integer DIMDEC(visc)
-      integer DIMDEC(rho)
 
       REAL_T S(DIMV(S),nvar)
       REAL_T tforces(DIMV(tf),nvar)
       REAL_T divu(DIMV(divu))
       REAL_T visc(DIMV(visc),nvar)
-      REAL_T rho(DIMV(rho))
 
       if ( iconserv .eq. 1 ) then
          do n = 1, nvar
@@ -3183,7 +3062,7 @@ c
                   do i = lo(1), hi(1)
                      tforces(i,j,k,n) = (
      &                    tforces(i,j,k,n)
-     &                    +  visc(i,j,k,n) )/rho(i,j,k)
+     &                    +  visc(i,j,k,n) )
                   end do
                end do
             end do
@@ -3297,7 +3176,6 @@ c
      &     aofs,    DIMS(aofs),
      &     tforces, DIMS(tf),
      &     gp,      DIMS(gp),
-     &     rho,     DIMS(rho),
      &     lo, hi, dt)
 
 c
@@ -3307,14 +3185,12 @@ c
       integer DIMDEC(u)
       integer DIMDEC(un)
       integer DIMDEC(aofs)
-      integer DIMDEC(rho)
       integer DIMDEC(gp)
       integer DIMDEC(tf)
       integer lo(SDIM), hi(SDIM)
       REAL_T u(DIMV(u),SDIM)
       REAL_T un(DIMV(un),SDIM)
       REAL_T aofs(DIMV(aofs),SDIM)
-      REAL_T rho(DIMV(rho))
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T tforces(DIMV(tf),SDIM)
       REAL_T dt
@@ -3325,8 +3201,8 @@ c
                do i = lo(1), hi(1)
                   un(i,j,k,n) = u(i,j,k,n)
      &                 - dt*   aofs(i,j,k,n)
-     &                 + dt*tforces(i,j,k,n)/rho(i,j,k)
-     &                 - dt*     gp(i,j,k,n)/rho(i,j,k)
+     &                 + dt*tforces(i,j,k,n)
+     &                 - dt*     gp(i,j,k,n)
                end do
             end do
          end do
