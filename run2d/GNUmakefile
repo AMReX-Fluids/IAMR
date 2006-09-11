@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.37 2006-09-08 21:21:02 almgren Exp $
+# $Id: GNUmakefile,v 1.38 2006-09-11 17:51:56 almgren Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -27,7 +27,7 @@ include ./Make.package
 
 fincludes=$(includes)
 
-Bdirs := BoxLib PorousMedia amrlib mglib bndrylib 
+Bdirs := BoxLib iamrlib amrlib mglib bndrylib 
 
 Bpack	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
