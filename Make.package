@@ -1,16 +1,20 @@
 #
-# $Id: Make.package,v 1.45 2006-09-08 21:21:02 almgren Exp $
+# $Id: Make.package,v 1.46 2006-09-11 18:06:06 almgren Exp $
 #
 
-CEXE_sources += main.cpp ViscBndry.cpp  MacBndry.cpp 
+CEXE_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
 
-CEXE_sources += MacOutFlowBC.cpp OutFlowBC.cpp
-CEXE_headers += MacOutFlowBC.H OutFlowBC.H
+CEXE_sources += ViscBndryTensor.cpp ProjOutFlowBC.cpp \
+			     MacOutFlowBC.cpp OutFlowBC.cpp
+CEXE_headers += ViscBndryTensor.H   MacOutFlowBC.H \
+			     ProjOutFlowBC.H OutFlowBC.H
 
-CEXE_headers += RegType.H ViscBndry.H MacBndry.H
+CEXE_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H
 
-FEXE_headers += VISCOPERATOR_F.H MACOUTFLOWBC_F.H
-FEXE_sources += VISCOPERATOR_$(DIM)D.F MACOUTFLOWBC_$(DIM)D.F
+FEXE_headers += SYNCREG_F.H VISCOPERATOR_F.H \
+		            PROJOUTFLOWBC_F.H MACOUTFLOWBC_F.H
+FEXE_sources += SYNCREG_$(DIM)D.F VISCOPERATOR_$(DIM)D.F \
+			    PROJOUTFLOWBC_$(DIM)D.F MACOUTFLOWBC_$(DIM)D.F
 #
 # Disconnect MacOperators for different mass continuity.
 #
@@ -21,11 +25,14 @@ ifndef ATMOS_MACOP
   FEXE_headers += MACOPERATOR_F.H
 endif
 
-CEXE_sources += PorousMedia.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
-CEXE_headers += MacProj.H Godunov.H Diffusion.H PorousMedia.H 
+CEXE_sources += NavierStokes.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
+CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H 
 
 FEXE_sources += DERIVE_$(DIM)D.F GODUNOV_F.F GODUNOV_$(DIM)D.F \
-                POROUSMEDIA_$(DIM)D.F MACPROJ_$(DIM)D.F DIFFUSION_$(DIM)D.F 
+                            NAVIERSTOKES_$(DIM)D.F PROJECTION_$(DIM)D.F \
+                            MACPROJ_$(DIM)D.F DIFFUSION_$(DIM)D.F       \
+                            SLABSTAT_NS_$(DIM)D.F
 
-FEXE_headers += DERIVE_F.H GODCOMM_F.H GODUNOV_F.H \
-                MACPROJ_F.H DIFFUSION_F.H POROUSMEDIA_F.H 
+FEXE_headers += DERIVE_F.H GODCOMM_F.H GODUNOV_F.H PROJECTION_F.H \
+                            MACPROJ_F.H DIFFUSION_F.H NAVIERSTOKES_F.H \
+                            SLABSTAT_NS_F.H

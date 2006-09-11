@@ -3,7 +3,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.16 2006-09-08 21:21:02 almgren Exp $
+// $Id: Godunov.H,v 1.17 2006-09-11 17:59:32 almgren Exp $
 //
 //
 // A useful enumeration of the forms for the advective terms
@@ -39,12 +39,12 @@ public:      // public access functions
     // set up the Godunov Box
     virtual void Setup( const Box &grd, const Real *dx, Real dt, int set_fluxes, 
                         FArrayBox &xflux, const int *ubc,
-#if (BL_SPACEDIM == 2 )
-                        FArrayBox &yflux, const int *vbc);
-#elif (BL_SPACEDIM == 3 )
                         FArrayBox &yflux, const int *vbc,
-                        FArrayBox &zflux, const int *wbc);
+#if (BL_SPACEDIM == 3 )
+                        FArrayBox &zflux, const int *wbc,
 #endif
+                        FArrayBox &S, FArrayBox &Rho, 
+                        const FArrayBox& tforces);
 
     // =============================================================
     // Data access functions
@@ -63,7 +63,7 @@ public:      // public access functions
 #if (BL_SPACEDIM == 3 )
                       FArrayBox &wedge, FArrayBox &stz,
 #endif
-                      FArrayBox &S, 
+                      FArrayBox &U, FArrayBox &S, 
                       FArrayBox &tforces, FArrayBox& divu,
                       int fab_ind, int state_ind, const int *bc,
                       int use_conserv, AdvectionScheme which_scheme);
@@ -75,7 +75,7 @@ public:      // public access functions
 #if (BL_SPACEDIM == 3 )
                       FArrayBox &wedge, FArrayBox &stz,
 #endif
-                      FArrayBox &S,
+                      FArrayBox &U, FArrayBox &S,
                       FArrayBox &tforces, 
                       int fab_ind, int state_ind, const int *bc);
 
@@ -101,6 +101,15 @@ public:      // public access functions
                           int fab_ind,
                           int state_ind, const int *bc, int inconserv );
         
+    // compute divergent mac velocities
+    void ComputeUmac( const Box &grd, const Real *dx, Real dt, 
+                      FArrayBox &umac, const int *ubc, 
+                      FArrayBox &vmac, const int *vbc, 
+#if (BL_SPACEDIM == 3 )
+                      FArrayBox &wmac, const int *wbc, 
+#endif
+                      FArrayBox &U, FArrayBox &tforces );
+    
     // advect a state component
     virtual void AdvectState( const Box &grd, const Real *dx, Real dt, 
                               FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
@@ -108,6 +117,7 @@ public:      // public access functions
 #if (BL_SPACEDIM == 3 )                               
                               FArrayBox &areaz, FArrayBox &wedge, FArrayBox &zflux,
 #endif
+                              FArrayBox &U,
                               FArrayBox &S, 
                               FArrayBox &tforces, FArrayBox& divu,
                               int fab_ind,
@@ -136,7 +146,7 @@ public:      // public access functions
                              FArrayBox &areaz, FArrayBox &wedge,
                              FArrayBox &wcorr, FArrayBox &zflux,
 #endif
-                             FArrayBox &S,
+                             FArrayBox &U, FArrayBox &S,
                              FArrayBox &tforces, FArrayBox& divu, int ind,
                              FArrayBox &sync,                     int sync_ind,
                              int iconserv, int state_ind, const int *bc,
@@ -156,6 +166,7 @@ public:      // public access functions
     // correct a conservatively-advected scalar for under-over shoots
     void ConservativeScalMinMax( FArrayBox &Sold, FArrayBox &Snew, 
                                  int ind_old_s, int ind_old_rho,
+                                 int ind_new_s, int ind_new_rho,
                                  const int *bc, const Box &grd );
 
     // correct a convectively-advected scalar for under-over shoots
@@ -168,8 +179,13 @@ public:      // public access functions
     // =============================================================
     
     // estimate the timestep from the cell-centered quantities
-    Real estdt( FArrayBox &S, FArrayBox &gp, 
-                const Box &grd, const Real *dx, Real cfl);
+    Real estdt( FArrayBox &U, FArrayBox &tforces, FArrayBox &Rho,
+                const Box &grd, const Real *dx, Real cfl, Real *u_max );
+
+    // test the cell centered Courant number 
+    Real test_u_rho( FArrayBox &U, FArrayBox &Rho, const Box &grd,
+                     const Real *dx, const Real dt,
+                     const Real *u_max );
 
     // test the mac edge velocity Courant numbers 
     Real test_umac_rho( FArrayBox &umac,
@@ -223,30 +239,33 @@ public:      // public access functions
     // psi^n+1 = psi^n - dt*aofs - dt*gp/rho + dt*tforces
     void Add_aofs_tf_gp( FArrayBox &Uold, FArrayBox &Unew,
                          FArrayBox &Aofs, FArrayBox &tforces,
-                         FArrayBox &gp,   
+                         FArrayBox &gp,   FArrayBox &rho, 
                          const Box &grd,  Real dt);
 
     // compute total source term for velocities
     // tforces = (tforces + visc - gp)/rho
     void Sum_tf_gp_visc( FArrayBox &tforces, FArrayBox &visc, 
-                         FArrayBox &gp);
+                         FArrayBox &gp,      FArrayBox &Rho);
 
     // iconserv==1   => tforces = tforces + visc - divU*S
     // iconserv==0   => tforces = (tforces+visc)/rho
     void Sum_tf_divu_visc( FArrayBox &S, FArrayBox &tforces,
                            int s_ind, int num_comp,
                            FArrayBox &visc,    int v_ind,
-                           FArrayBox &divu, int iconserv );
+                           FArrayBox &divu,    FArrayBox &rho,
+                           int iconserv );
     
     // compute total source term for velocities
     // tforces = (tforces - gp)/rho
-    void Sum_tf_gp( FArrayBox &tforces, FArrayBox &gp);
+    void Sum_tf_gp( FArrayBox &tforces, 
+                    FArrayBox &gp,      FArrayBox &Rho );
 
     // iconserv==1   => tforces = tforces - divU*S
     // iconserv==0   => tforces = (tforces)/rho
     void Sum_tf_divu( FArrayBox &S, FArrayBox &tforces,
                       int s_ind, int num_comp,
-                      FArrayBox &divu, int iconserv );
+                      FArrayBox &divu,    FArrayBox &rho,
+                      int iconserv );
 
     //================ for debugging purposes this is made public
     // internal FABS

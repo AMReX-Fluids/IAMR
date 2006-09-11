@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.38 2006-09-08 21:21:02 almgren Exp $
+// $Id: MacOperator.cpp,v 1.39 2006-09-11 18:02:39 almgren Exp $
 //
 #include <winstd.H>
 
@@ -19,7 +19,7 @@
 #include <mg_cpp_f.h>
 #endif
 
-#ifndef _PorousMedia_H_
+#ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type};
 #endif
 
@@ -47,14 +47,15 @@ MacOperator::~MacOperator () {}
 
 void
 MacOperator::setCoefficients (MultiFab*   area,
-                              MultiFab&   mac_coef,
+                              MultiFab&   rho,
+                              int         rho_comp,
                               const Real* dx)
 {
     //
     // Should check that all BoxArrays are consistant.
     //
     const BoxArray& ba = gbox[0];
-    BL_ASSERT(mac_coef.boxArray() == ba);
+    BL_ASSERT(rho.boxArray() == ba);
     //
     // First set scalar coeficients.
     //
@@ -71,34 +72,34 @@ MacOperator::setCoefficients (MultiFab*   area,
            bycoef.setVal(0);,
            bzcoef.setVal(0););
 
-    for (MFIter mfi(mac_coef); mfi.isValid(); ++mfi)
+    for (MFIter rhomfi(rho); rhomfi.isValid(); ++rhomfi)
     {
-        BL_ASSERT(ba[mfi.index()] == mfi.validbox());
+        BL_ASSERT(ba[rhomfi.index()] == rhomfi.validbox());
 
-        const Box& grd       = ba[mfi.index()];
+        const Box& grd       = ba[rhomfi.index()];
         const int* lo        = grd.loVect();
         const int* hi        = grd.hiVect();
-        FArrayBox& bx        = bxcoef[mfi];
-        FArrayBox& by        = bycoef[mfi];
-        const FArrayBox& ax  = area[0][mfi];
-        const FArrayBox& ay  = area[1][mfi];
-        const FArrayBox& mcc = mac_coef[mfi];
+        FArrayBox& bx        = bxcoef[rhomfi];
+        FArrayBox& by        = bycoef[rhomfi];
+        const FArrayBox& ax  = area[0][rhomfi];
+        const FArrayBox& ay  = area[1][rhomfi];
+        const FArrayBox& den = rho[rhomfi];
 
         DEF_LIMITS(bx,bx_dat,bxlo,bxhi);
         DEF_LIMITS(by,by_dat,bylo,byhi);
         DEF_CLIMITS(ax,ax_dat,axlo,axhi);
         DEF_CLIMITS(ay,ay_dat,aylo,ayhi);
 
-        const int* mlo      = mcc.loVect();
-        const int* mhi      = mcc.hiVect();
-        const Real* mcc_dat = mcc.dataPtr();
+        const int* dlo      = den.loVect();
+        const int* dhi      = den.hiVect();
+        const Real* den_dat = den.dataPtr(rho_comp);
 
 #if (BL_SPACEDIM == 2)
         FORT_MACCOEF(bx_dat,ARLIM(bxlo),ARLIM(bxhi),
                      by_dat,ARLIM(bylo),ARLIM(byhi),
                      ax_dat,ARLIM(axlo),ARLIM(axhi),
                      ay_dat,ARLIM(aylo),ARLIM(ayhi),
-                     mcc_dat,ARLIM(mlo),ARLIM(mhi),lo,hi,dx);
+                     den_dat,ARLIM(dlo),ARLIM(dhi),lo,hi,dx);
 #endif
 #if (BL_SPACEDIM == 3)
         FArrayBox& bz       = bzcoef[rhomfi];
@@ -113,7 +114,7 @@ MacOperator::setCoefficients (MultiFab*   area,
                      ax_dat,ARLIM(axlo),ARLIM(axhi),
                      ay_dat,ARLIM(aylo),ARLIM(ayhi),
                      az_dat,ARLIM(azlo),ARLIM(azhi),
-                     mcc_dat,ARLIM(mlo),ARLIM(mhi),lo,hi,dx);
+                     den_dat,ARLIM(dlo),ARLIM(dhi),lo,hi,dx);
 #endif
     }
   
@@ -201,7 +202,8 @@ mac_vel_update (int              init,
                        FArrayBox& uy,
                        FArrayBox& uz),
                 const FArrayBox& phi,
-                const FArrayBox* mac_coef_ptr,
+                const FArrayBox* rhoptr,
+                int              rho_comp,  
                 const Box&       grd,
                 int              level,
                 int              n,
@@ -211,22 +213,22 @@ mac_vel_update (int              init,
     const int* lo        = grd.loVect();
     const int* hi        = grd.hiVect();
 
-    const FArrayBox& mac_coef = *mac_coef_ptr;
+    const FArrayBox& rho = *rhoptr;
     
     DEF_LIMITS(ux,ux_dat,uxlo,uxhi);
     DEF_LIMITS(uy,uy_dat,uylo,uyhi);
     DEF_CLIMITS(phi,phi_dat,p_lo,p_hi);
 
-    const int* mlo      = mac_coef.loVect();
-    const int* mhi      = mac_coef.hiVect();
-    const Real* mcc_dat = mac_coef.dataPtr();
+    const int* rlo      = rho.loVect();
+    const int* rhi      = rho.hiVect();
+    const Real* rho_dat = rho.dataPtr(rho_comp);
     
 #if (BL_SPACEDIM == 2)
     FORT_MACUPDATE(&init,
                    ux_dat,ARLIM(uxlo),ARLIM(uxhi),
                    uy_dat,ARLIM(uylo),ARLIM(uyhi),
                    phi_dat,ARLIM(p_lo),ARLIM(p_hi),
-                   mcc_dat,ARLIM(mlo),ARLIM(mhi),
+                   rho_dat,ARLIM(rlo),ARLIM(rhi),
                    lo,hi,dx,&scale);
 #endif
 #if (BL_SPACEDIM == 3)
@@ -237,7 +239,7 @@ mac_vel_update (int              init,
                    uy_dat,ARLIM(uylo),ARLIM(uyhi),
                    uz_dat,ARLIM(uzlo),ARLIM(uzhi),
                    phi_dat,ARLIM(p_lo),ARLIM(p_hi),
-                   mcc_dat,ARLIM(mlo),ARLIM(mhi),
+                   rho_dat,ARLIM(rlo),ARLIM(rhi),
                    lo,hi,dx,&scale);
 #endif
 }
@@ -250,7 +252,8 @@ mac_vel_update (int              init,
 void
 MacOperator::velUpdate (MultiFab*       Vel,
                         MultiFab&       Phi,
-                        const MultiFab& mac_coef,
+                        const MultiFab& Rho,
+                        int             rho_comp,
                         const Real*     dx,
                         Real            scale)
 {
@@ -258,7 +261,7 @@ MacOperator::velUpdate (MultiFab*       Vel,
     // Should check that all BoxArrays are consistant.
     //
     const BoxArray& ba = gbox[0];
-    BL_ASSERT(mac_coef.boxArray() == ba);
+    BL_ASSERT(Rho.boxArray() == ba);
     //
     // Set bndry data in ghost zones.
     //
@@ -274,7 +277,7 @@ MacOperator::velUpdate (MultiFab*       Vel,
         mac_vel_update(0, 
                        D_DECL(Vel[0][Phimfi],Vel[1][Phimfi],Vel[2][Phimfi]),
                        Phi[Phimfi],
-                       &(mac_coef[Phimfi]), 
+                       &(Rho[Phimfi]), rho_comp,  
                        grd, 0, Phimfi.index(), dx, scale );
     }
 }
@@ -324,6 +327,7 @@ mac_level_driver (const MacBndry& mac_bndry,
                   const BoxArray& grids,
                   int             the_solver,
                   int             level,
+                  int             Density,
                   const Real*     dx,
                   Real            dt,
                   Real            mac_tol,
@@ -331,14 +335,14 @@ mac_level_driver (const MacBndry& mac_bndry,
                   Real            rhs_scale,
                   MultiFab*       area,
                   MultiFab&       volume,
-                  MultiFab&       mac_coef,
+                  MultiFab&       S,
                   MultiFab&       Rhs,
                   MultiFab*       u_mac,
                   MultiFab*       mac_phi)
 {
   BL_PROFILE("mac_level_driver");
   MacOperator mac_op(mac_bndry,dx);
-  mac_op.setCoefficients(area,mac_coef,dx);
+  mac_op.setCoefficients(area,S,Density,dx);
   mac_op.defRHS(area,volume,Rhs,u_mac,rhs_scale);
   mac_op.maxOrder(2);
   if (the_solver == 1 && mac_op.maxOrder() != 2)
@@ -353,6 +357,23 @@ mac_level_driver (const MacBndry& mac_bndry,
       bool use_mg_precond = true;
       CGSolver mac_cg(mac_op,use_mg_precond);
       mac_cg.solve(*mac_phi,Rhs,mac_tol,mac_abs_tol);
+    }
+  else if (the_solver == 2 )
+    {
+#ifdef MG_USE_HYPRE
+      HypreABec hp(mac_phi->boxArray(), mac_bndry, dx, 0, false);
+      hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
+      hp.aCoefficients(mac_op.aCoefficients());
+      for ( int i = 0; i < BL_SPACEDIM; ++i )
+	{
+	  hp.bCoefficients(mac_op.bCoefficients(i), i);
+	}
+      hp.setup_solver(mac_tol, mac_abs_tol, 50);
+      hp.solve(*mac_phi, Rhs, true);
+      hp.clear_solver();
+#else
+      BoxLib::Error("mac_level_driver::HypreABec not in this build");
+#endif
     }
   else if (the_solver == 3 ) 
     {
@@ -408,7 +429,7 @@ mac_level_driver (const MacBndry& mac_bndry,
   //
   // velUpdate will set bndry values for mac_phi.
   //
-  mac_op.velUpdate(u_mac,*mac_phi,mac_coef,dx,-dt/2.0);
+  mac_op.velUpdate(u_mac,*mac_phi,S,Density,dx,-dt/2.0);
 }
 
 //
@@ -429,13 +450,13 @@ mac_sync_driver (const MacBndry& mac_bndry,
                  MultiFab*       area,
                  MultiFab&       volume,
                  MultiFab&       Rhs,
-                 MultiFab*       mac_coef,
+                 MultiFab*       rho_half,
                  MultiFab*       mac_sync_phi)
 {
   BL_PROFILE("mac_sync_driver");
   MacOperator mac_op(mac_bndry,dx);
   mac_op.maxOrder(2);
-  mac_op.setCoefficients(area,*mac_coef, dx);
+  mac_op.setCoefficients(area,*rho_half, 0, dx);
   mac_op.syncRhs(volume,Rhs,rhs_scale,dx);
   if (the_solver == 1 && mac_op.maxOrder() != 2)
     {

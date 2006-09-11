@@ -2,12 +2,12 @@
 #define _MACOPERATOR_H_
 
 //
-// $Id: MacOperator.H,v 1.10 2006-09-08 21:21:02 almgren Exp $
+// $Id: MacOperator.H,v 1.11 2006-09-11 17:59:52 almgren Exp $
 //
 
 //==========================================================================
 // This class defines how mass continuity is defined for the projection operators
-// in class PorousMedia.  For the Mac project, this is done through setting a
+// in class NavierStokes.  For the Mac project, this is done through setting a
 // linop and a few driver functions, while for the mac project this is done
 // through a few driver functions which scale variables.
 //==========================================================================
@@ -29,7 +29,8 @@ public:
     // Define the gradient coeficients used by the multigrid object.
     //
     void setCoefficients (MultiFab*   area,
-                          MultiFab&   coef,
+                          MultiFab&   rho,
+                          int         rho_comp,
                           const Real* dx);
     //
     // Initialize the rhs for the level solves.
@@ -44,7 +45,8 @@ public:
     //
     void velUpdate (MultiFab*       vel,
                     MultiFab&       phi,
-                    const MultiFab& coef,
+                    const MultiFab& Rho,
+                    int             rho_comp,
                     const Real*     dx,
                     Real            scale);
     //

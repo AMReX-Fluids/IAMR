@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.44 2006-09-08 21:21:02 almgren Exp $
+// $Id: main.cpp,v 1.45 2006-09-11 17:56:21 almgren Exp $
 //
 
 #include <cstdio>
@@ -14,6 +14,7 @@
 #include <ParallelDescriptor.H>
 #include <AmrLevel.H>
 #include <TagBox.H>
+#include <hgparallel.H>
 
 #ifndef NDEBUG
 
@@ -139,6 +140,10 @@ main (int   argc,
     Real stop_time;
 
     ParmParse pp;
+    //
+    // Initialize some Holy Grail junk.
+    //
+    HG::MPI_init();
 
     max_step  = -1;    
     strt_time =  0.0;  
@@ -157,12 +162,9 @@ main (int   argc,
             "Exiting because neither max_step nor stop_time is non-negative.");
     }
 
-    std::cout << "STARTING AMR " << std::endl;
     Amr* amrptr = new Amr;
 
-    std::cout << "STARTING INIT " << std::endl;
     amrptr->init(strt_time,stop_time);
-    std::cout << "FINISHED INIT " << std::endl;
 
     while ( amrptr->okToContinue()           &&
            (amrptr->levelSteps(0) < max_step || max_step < 0) &&
@@ -172,6 +174,10 @@ main (int   argc,
     }
 
     delete amrptr;
+    //
+    // Close down the Holy Grail junk.
+    //
+    HG::MPI_finish();
 
     if (CArena* arena = dynamic_cast<CArena*>(BoxLib::The_Arena()))
     {
