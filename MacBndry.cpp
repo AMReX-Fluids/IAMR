@@ -1,5 +1,5 @@
 //
-// $Id: MacBndry.cpp,v 1.15 2001-08-22 16:42:00 car Exp $
+// $Id: MacBndry.cpp,v 1.16 2006-09-13 18:03:02 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -17,6 +17,14 @@ MacBndry::MacBndry (const BoxArray& _grids,
     :
     InterpBndryData(_grids,_ncomp,_geom)
 {}
+
+void
+MacBndry::setBndryConds (const BCRec& phys_bc,
+                         int          ratio)
+{
+    IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    setBndryConds(phys_bc, ratio_vect);
+}
 
 void
 MacBndry::setBndryConds (const BCRec& phys_bc,

@@ -3,7 +3,7 @@
 #define _VISCBNDRYDATA_H_
 
 //
-// $Id: ViscBndry.H,v 1.8 2000-10-02 20:50:17 lijewski Exp $
+// $Id: ViscBndry.H,v 1.9 2006-09-13 18:03:02 lijewski Exp $
 //
 
 #include <InterpBndryData.H>
@@ -24,6 +24,9 @@ public:
         :
         InterpBndryData(_grids,_ncomp,_geom)
     {}
+
+    virtual void setBndryConds (const BCRec& phys_bc,
+                                int          ratio);
 
     virtual void setBndryConds (const BCRec&   phys_bc,
                                 /*const*/ IntVect& ratio,

@@ -77,8 +77,12 @@ int  Diffusion::do_reflux           = 1;
 int  Diffusion::use_cg_solve        = 0;
 namespace
 {
+#ifdef MG_USE_HYPRE
   bool use_hypre_solve = false;
+#endif
+#ifdef MG_USE_FBOXLIB
   bool use_fboxlib_mg = false;
+#endif
 }
 int  Diffusion::use_tensor_cg_solve = 0;
 bool Diffusion::use_mg_precond_flag = false;
@@ -512,6 +516,7 @@ Diffusion::diffuse_scalar (Real                   dt,
         mgt_solver.solve(phi_p, Rhs_p, S_tol, S_tol_abs, visc_bndry);
       }
 #endif
+
 #ifdef MG_USE_HYPRE
     else if ( use_hypre_solve )
       {
@@ -1036,8 +1041,9 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
             CGSolver cg(*visc_op,use_mg_precond_flag);
             cg.solve(Soln,Rhs,S_tol,S_tol_abs);
         }
-	else if ( use_hypre_solve )
+
 #ifdef MG_USE_HYPRE
+	else if ( use_hypre_solve )
 	  {
 	    BoxLib::Error("HypreABec not ready");
 	    //	    Real* dx = 0;
@@ -1046,8 +1052,6 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
 	    //	    hp.solve(Soln, Rhs, true);
 	    //	    hp.clear_solver();
 	  }
-#else
-          BoxLib::Error("HypreABec not in this build");
 #endif
 	else
         {

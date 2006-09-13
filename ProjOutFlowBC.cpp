@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.32 2006-09-06 17:31:04 lijewski Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.33 2006-09-13 18:03:02 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -351,19 +351,20 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                             x.dataPtr());
 #else
 
+#ifndef NDEBUG
         // Assert that, if faces are connected, one of the coordinate
         //  directions has no outflow faces.
-        int outx = 0;
-        int outy = 0;
-        int outz = 0;
-        for (int iface = 0; iface < numOutFlowFaces; iface++) {
-          int outDir        = outFaces[iface].coordDir();
-          if (outDir == 0) outx = 1;
-          if (outDir == 1) outy = 1;
-          if (outDir == 2) outz = 1;
+        int outx = 0, outy = 0, outz = 0;
+        for (int iface = 0; iface < numOutFlowFaces; iface++)
+        {
+            int outDir = outFaces[iface].coordDir();
+            if (outDir == 0) outx = 1;
+            if (outDir == 1) outy = 1;
+            if (outDir == 2) outz = 1;
         }
-        int sum_dirs = outx + outy + outz;
-        BL_ASSERT (sum_dirs > 0 && sum_dirs < 3);
+        BL_ASSERT ((outx + outy + outz) > 0);
+        BL_ASSERT ((outx + outy + outz) < 3);
+#endif
         BL_ASSERT(dx[1] == dx[2]);
 
         // Here we know the ordering of faces is XLO,YLO,ZLO,XHI,YHI,ZHI.

@@ -1,11 +1,19 @@
 
 //
-// $Id: ViscBndry.cpp,v 1.18 2001-08-09 22:42:00 marc Exp $
+// $Id: ViscBndry.cpp,v 1.19 2006-09-13 18:03:02 lijewski Exp $
 //
 #include <winstd.H>
 
 #include <LO_BCTYPES.H>
 #include <ViscBndry.H>
+
+void
+ViscBndry::setBndryConds (const BCRec& phys_bc,
+                          int          ratio)
+{
+    IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    setBndryConds(phys_bc, ratio_vect);
+}
 
 void
 ViscBndry::setBndryConds (const BCRec&   bc,
