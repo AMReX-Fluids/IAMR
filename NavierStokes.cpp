@@ -195,6 +195,8 @@ GetBndryCells (const BoxArray& ba,
         gcells.catenate(bcells);
     }
 
+    gcells.simplify();
+
     return BoxArray(gcells);
 }
 
