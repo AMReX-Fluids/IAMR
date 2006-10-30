@@ -1,0 +1,38 @@
+ &fortin
+  probtype = 3
+  flct_file = "swr_48920-55870"
+  forceInflow = .TRUE.
+  forceInflow = .FALSE.
+  numInflPlanesStore = 30
+  zstandoff = -0.0191
+  zstandoff = -0.025975
+  zBL = .004
+  vheight = 000.0
+
+  Vin = 1.0
+  tVco_l = 0.0
+  tVco_r = 1.0
+  Vco_l  = 1.5
+  Vco_r  = 1.5
+
+  flametracval = 2.e-5
+  max_temp_lev = 0
+  temperr = 100
+  tempgrad = 300.0
+  max_vort_lev = 1
+  max_vort_lev = 0
+  vorterr = 5000.
+  refine_stick = 0
+  refine_nozzle = 1
+  refine_nozzle = 0
+  max_nozzle_lev = 1
+  max_nozzle_lev = 0
+  refine_nozzle_x = 0.03
+  refine_nozzle_z = 0.02
+
+  tstart_turb = 0.018821
+ /
+ &heattransin
+  pamb = 101325.
+  dpdt_factor = .3
+ /
