@@ -36,3 +36,6 @@
       common /inflow2/probSizeFile
       save /inflow1/, /inflow2/
 
+      REAL_T Vco, Rfu, Rtran, tVco_l, tVco_r, Vco_l, Vco_r
+      common /inflow3/Vco, Rfu, Rtran, tVco_l, tVco_r, Vco_l, Vco_r
+      save /inflow3/

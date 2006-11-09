@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.28 2006-07-05 19:23:00 jbb Exp $
+c $Id: PROB_3D.F,v 1.29 2006-11-09 22:09:24 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -71,10 +71,12 @@ c ::: -----------------------------------------------------------
      &                  vb_unifdir
 #ifdef BL_DO_FLCT
       namelist /fortin/ forceInflow, numInflPlanesStore, strmwse_dir,
-     &                  forceLo, forceHi, flct_file, turb_scale
+     &                  forceLo, forceHi, flct_file, turb_scale, nCompInflow
 #endif
       namelist /fortin/ rt_splitx, rt_xfrontw, rt_den_1, rt_den_2,
      &                  rt_pertamp, rt_nfreq, rt_graddenerr
+
+      namelist /fortin/ Vco, Rfu, Rtran, tVco_l, tVco_r, Vco_l, Vco_r
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -108,6 +110,11 @@ c
       flct_file = ""
       turb_scale = 1
 #endif
+
+      tVco_l = -1
+      tVco_r = -1
+      Vco_l = -1
+      Vco_r = -1
 
       untin = 9
       if (namlen .eq. 0) then
@@ -209,7 +216,7 @@ c
                   permax = max(permax, pert)
                end do
             end do
-c           rt_pertamp = 2.d0*rt_pertamp/(permax - permin)
+            rt_pertamp = 2.d0*rt_pertamp/(permax - permin)
          end if
       end if
 
@@ -245,6 +252,7 @@ c ::: -----------------------------------------------------------
       subroutine FORT_INITDATA(level,time,lo,hi,nscal,
      &	 	               vel,scal,DIMS(state),press,DIMS(press),
      &                         dx,xlo,xhi)
+      implicit none
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(state)
@@ -319,6 +327,11 @@ c ::: -----------------------------------------------------------
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
 
+      else if (probtype .eq. 13) then
+         call swirl(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
 
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
@@ -367,13 +380,10 @@ c
 c
 c     ::::: local variables
 c
-      integer i, j, k, n, m, numint
+      integer i, j, k, n, m
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
-      REAL_T  pert,ztemp,zint1,hdz
-      REAL_T  hloc
-      REAL_T  xloc,yloc,zloc
-      integer iloc,jloc,kloc
+      REAL_T  pert,ztemp
 
 #include "probdata.H"
 
@@ -381,118 +391,29 @@ c
       hy = dx(2)
       hz = dx(3)
 
-#if 1
-
-      numint = 10
-      hloc = hx/dfloat(numint)
       do j = lo(2), hi(2)
-c        y = xlo(2) + hy*(dble(j-lo(2)) + 0.5d0)
-         y = xlo(2) + hy*(dble(j-lo(2)) )
+         y = xlo(2) + hy*(dble(j-lo(2)) + 0.5d0)
          do i = lo(1), hi(1)
-c           x = xlo(1) + hx*(dble(i-lo(1)) + 0.5d0)
-            x = xlo(1) + hx*(dble(i-lo(1)) )
-c           pert = 0.d0
-c           do n = 1, rt_nfreq
-c              do m = 1, rt_nfreq
-c                 pert = pert
-c    &                 + sin(
-c    &                 2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1)
-c    &                 )
-c    &                 * sin(
-c    &                 2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2)
-c    &                 )
-c    &                 *rt_ranampl(n,m)
-c              end do
-c           end do
-
-c           pert = rt_pertamp*(cos( 2.0D0*rt_PI*x/f_probhi(1)  )
-c    &                 * cos( 2.0D0*rt_PI*y/f_probhi(2) )
-c    &                 )
-
-c           ztemp = rt_splitx - pert
-            hdz = 0.5d0*hz
+            x = xlo(1) + hx*(dble(i-lo(1)) + 0.5d0)
+            pert = 0.d0
+            do n = 1, rt_nfreq
+               do m = 1, rt_nfreq
+                  pert = pert
+     &                 + sin(
+     &                 2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1)
+     &                 )
+     &                 * sin(
+     &                 2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2)
+     &                 )
+     &                 *rt_ranampl(n,m)
+               end do
+            end do
+            ztemp = rt_splitx - pert*rt_pertamp
             do k = lo(3), hi(3)
                z = xlo(3) + hz*(dble(k-lo(3)) + 0.5d0)
-
-               scal(i,j,k,1) = 0.d0
-               do jloc=1,numint
-               do iloc=1,numint
-
-                 xloc = x+hloc*(dfloat(iloc)-0.5d0)
-                 yloc = y+hloc*(dfloat(jloc)-0.5d0)
-
-                pert = rt_pertamp*(cos( 2.0D0*rt_PI*xloc/f_probhi(1)  )
-     &                 + cos( 2.0D0*rt_PI*yloc/f_probhi(2) )
-     &                 )
-                zint1 = rt_splitx - pert
-
-
- 
-               if(z-hdz.gt.zint1)then
-                    scal(i,j,k,1) = scal(i,j,k,1)+ rt_den_1
-               elseif(z+hdz.gt.zint1)then
-                    scal(i,j,k,1) = scal(i,j,k,1)+ (rt_den_2 * (zint1-z+hdz)
-     &                  + rt_den_1* ( z+hdz-zint1))/hz
-               else
-                    scal(i,j,k,1) =  scal(i,j,k,1)+rt_den_2
-               endif
-               enddo
-               enddo
-               scal(i,j,k,1) = scal(i,j,k,1)/dfloat(numint**2)
-#endif
-#if 0
-
-      numint = 10
-      hloc = hx/dfloat(numint)
-
-      do j = lo(2), hi(2)
-c        y = xlo(2) + hy*(dble(j-lo(2)) + 0.5d0)
-         y = xlo(2) + hy*(dble(j-lo(2)) )
-         do i = lo(1), hi(1)
-c           x = xlo(1) + hx*(dble(i-lo(1)) + 0.5d0)
-            x = xlo(1) + hx*(dble(i-lo(1)) )
-c           pert = 0.d0
-c           do n = 1, rt_nfreq
-c              do m = 1, rt_nfreq
-c                 pert = pert
-c    &                 + sin(
-c    &                 2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1)
-c    &                 )
-c    &                 * sin(
-c    &                 2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2)
-c    &                 )
-c    &                 *rt_ranampl(n,m)
-c              end do
-c           end do
-            hdz = 0.5d0*hz
-            do k = lo(3), hi(3)
-               z = xlo(3) + hz*(dble(k-lo(3)) )
-               scal(i,j,k,1) = 0.d0
-               do kloc=1,numint
-               do jloc=1,numint
-               do iloc=1,numint
-
-                 zint1 = rt_splitx - pert
-                 xloc = x+hloc*(dfloat(iloc)-0.5d0)
-                 yloc = y+hloc*(dfloat(jloc)-0.5d0)
-                 zloc = z+hloc*(dfloat(kloc)-0.5d0)
-
-                pert = rt_pertamp*(cos( 2.0D0*rt_PI*xloc/f_probhi(1)  )
-     &                 + cos( 2.0D0*rt_PI*yloc/f_probhi(2) )
-     &                 )
-                ztemp = rt_splitx - pert
-
-
-               scal(i,j,k,1) = scal(i,j,k,1)+
-     &              rt_den_2
-     &              + (rt_den_1-rt_den_2)*zblend1(z,ztemp,rt_xfrontw)
- 
-               enddo
-               enddo
-               enddo
-               scal(i,j,k,1) = scal(i,j,k,1)/dfloat(numint**3)
-
-#endif
+               scal(i,j,k,1) = 
+     &              rt_den_1 
+     &              + (rt_den_2-rt_den_1)*zblend1(z,ztemp,rt_xfrontw)
                vel(i,j,k,1) = 0
                vel(i,j,k,2) = 0
                vel(i,j,k,3) = 0
@@ -511,6 +432,7 @@ c
       subroutine initbubble(level,time,lo,hi,nscal,
      &	 	            vel,scal,DIMS(state),press,DIMS(press),
      &                      dx,xlo,xhi)
+      implicit none
 
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -579,6 +501,7 @@ c
       subroutine initpervort(level,time,lo,hi,nscal,
      &                       vel,scal,DIMS(state),press,DIMS(press),
      &                       dx,xlo,xhi)
+      implicit none
 
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -636,6 +559,7 @@ c
       subroutine initspin(level,time,lo,hi,nscal,
      &	 	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
+      implicit none
 
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -726,6 +650,7 @@ c
       subroutine initviscbench(level,time,lo,hi,nscal,
      &                         vel,scal,DIMS(state),press,DIMS(press),
      &                         dx,xlo,xhi)
+      implicit none
 
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -812,6 +737,7 @@ c
       subroutine initvort(level,time,lo,hi,nscal,
      &	 	          vel,scal,DIMS(state),press,DIMS(press),
      &                    dx,xlo,xhi)
+      implicit none
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(state)
@@ -875,6 +801,7 @@ c
       subroutine initchannel(level,time,lo,hi,nscal,
      &	 	             vel,scal,DIMS(state),press,DIMS(press),
      &                       dx,xlo,xhi)
+      implicit none
 
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -926,6 +853,7 @@ c
       subroutine inithotspot(level,time,lo,hi,nscal,
      &	 	             vel,scal,DIMS(state),press,DIMS(press),
      &                       dx,xlo,xhi)
+      implicit none
 
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -996,6 +924,7 @@ c
       subroutine initeuler(level,time,lo,hi,nscal,
      &                       vel,scal,DIMS(state),press,DIMS(press),
      &                       dx,xlo,xhi)
+      implicit none
 
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -1036,16 +965,10 @@ c
                x = xlo(1) + hx*(float(i-lo(1)) + half) -half
                vel(i,j,k,1) = tanh( (rho_input - r_yz) / delta_input)
                vel(i,j,k,2) = zero
-               vel(i,j,k,3) = eps_input * exp(-beta_input * (x*x + y*y
-     1                  +.01*abs(x*y)) )
+               vel(i,j,k,3) = eps_input * exp(-beta_input * (x*x + y*y) )
 
                scal(i,j,k,1) = one
-c              scal(i,j,k,2) = exp( -kappa_input * (rho_input - r_yz)**2 )
-               if(rho_input .gt. r_yz)then
-                 scal(i,j,k,2) = one
-               else
-                 scal(i,j,k,2) = zero
-               endif
+               scal(i,j,k,2) = exp( -kappa_input * (rho_input - r_yz)**2 )
 
                do n = 3,nscal
                   scal(i,j,k,n) = one
@@ -1062,6 +985,7 @@ c
       subroutine initbrnrsh(level,time,lo,hi,nscal,
      &                      vel,scal,DIMS(state),press,DIMS(press),
      &                      dx,xlo,xhi)
+      implicit none
 
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -1116,6 +1040,7 @@ c
       subroutine inflowt(level,time,lo,hi,nscal,
      &                       vel,scal,DIMS(state),press,DIMS(press),
      &                       dx,xlo,xhi)
+      implicit none
 
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -1169,6 +1094,7 @@ c
       subroutine taylorgreen(level,time,lo,hi,nscal,
      &	 	             vel,scal,DIMS(state),press,DIMS(press),
      &                       dx,xlo,xhi)
+      implicit none
 
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -1212,6 +1138,59 @@ c
                   
 c 	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
 c	       scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+	    end do
+         end do
+      end do
+
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine swirl(level,time,lo,hi,nscal,
+     &	 	       vel,scal,DIMS(state),press,DIMS(press),
+     &                 dx,xlo,xhi)
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  dist
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+	    do i = lo(1), hi(1)
+
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+               vel(i,j,k,1) = 0.d0
+               vel(i,j,k,2) = 0.d0
+               vel(i,j,k,3) = Vco
+
+               scal(i,j,k,1) = denfact
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = one
+               end do
+                  
 	    end do
          end do
       end do
@@ -1391,15 +1370,6 @@ c     probtype = HOT SPOT
 
       else if (probtype .eq. 7) then
 
-        do k = lo(3), hi(3)
-           do j = lo(2), hi(2)
-              do i = lo(1), hi(1)
-                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
-              end do
-           end do
-        end do
-
-
         return
 
       else if (probtype .eq. 8) then
@@ -1486,6 +1456,7 @@ c ::: -----------------------------------------------------------
      &                           temperature,DIMS(temp),lo,hi,nvar,
      &                           domlo,domhi,dx,xlo,
      &                           problo,time,level)
+      implicit none
 
       integer   DIMDEC(tag)
       integer   DIMDEC(temp)
@@ -1581,6 +1552,7 @@ c ::: -----------------------------------------------------------
      &                         vort,DIMS(vort),lo,hi,nvar,
      &                         domlo,domhi,dx,xlo,
      &			       problo,time,level)
+      implicit none
 
       integer   DIMDEC(tag)
       integer   DIMDEC(vort)
@@ -1687,7 +1659,7 @@ c     probtype = VISCOUS BENCHMARK
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1))*dx(1).gt.vorterr)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
                end do
             end do
          end do
@@ -1724,6 +1696,7 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_DENFILL (rho,DIMS(rho),domlo,domhi,dx,
      &                         xlo,time,bc )
+      implicit none
 
       integer    DIMDEC(rho)
       integer    domlo(SDIM), domhi(SDIM)
@@ -1915,6 +1888,7 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_ADVFILL (adv,DIMS(adv),domlo,domhi,dx,
      &                         xlo,time,bc )
+      implicit none
 
       integer    DIMDEC(adv)
       integer    domlo(SDIM), domhi(SDIM)
@@ -2098,6 +2072,7 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_TEMPFILL (temp,DIMS(temp),domlo,domhi,dx,
      &                          xlo,time,bc )
+      implicit none
 
       integer    DIMDEC(temp)
       integer    domlo(SDIM), domhi(SDIM)
@@ -2221,6 +2196,8 @@ c ::: -----------------------------------------------------------
 #include "INFL_FORCE_F.H"
 #endif
 
+      REAL_T x,r,u1,u2,u3,u_inf,eta
+
       parameter (constn=.22089323)
 
       lo(1) = ARG_L1(u)
@@ -2302,16 +2279,31 @@ c
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(u).lt.domlo(3)) then
          do k = ARG_L3(u), domlo(3)-1
             do j = ARG_L2(u), ARG_H2(u)
+               y = domnlo(2) + (j+0.5)*dx(2)
                do i = ARG_L1(u), ARG_H1(u)
-#ifdef BL_DO_FLCT
-                  if (forceLo .and. adv_dir .eq. 3) then
-                     u(i,j,k) = uflct(i,j,1)*turb_scale
+
+                  if (probtype.eq.13) then
+                     x = domnlo(1) + (i+0.5)*dx(1)
+                     r = SQRT( x*x + y*y )
+                     call vswirlXYZ(x,y,u1,u2,u3)
+                     if (r.gt.Rfu) then
+                        u_inf = 0.d0
+                        eta = TANH(2*(r-Rfu)/Rtran)
+                        u(i,j,k) = eta*u_inf + (1.d0-eta)*u1
+                        uflct(i,j,1) = 0.d0
+                     else
+                        u(i,j,k) = u1
+                     endif
                   else
                      u(i,j,k) = zero
+                  endif
+
+#ifdef BL_DO_FLCT
+                  if (forceLo .and. adv_dir .eq. 3) then
+                     u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
                   end if
-#else
-                  u(i,j,k) = zero
 #endif
+
                end do
             end do
          end do
@@ -2379,6 +2371,7 @@ c ::: -----------------------------------------------------------
       REAL_T, allocatable :: vflct(:,:,:)
 #include "INFL_FORCE_F.H"
 #endif
+      REAL_T x,y,r,u1,u2,u3,u_inf,eta
 
       lo(1) = ARG_L1(v)
       lo(2) = ARG_L2(v)
@@ -2454,16 +2447,31 @@ c ::: -----------------------------------------------------------
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(v).lt.domlo(3)) then
          do k = ARG_L3(v), domlo(3)-1
             do j = ARG_L2(v), ARG_H2(v)
+               y = domnlo(2) + (j+0.5)*dx(2)
                do i = ARG_L1(v), ARG_H1(v)
-#ifdef BL_DO_FLCT
-                  if (forceLo .and. adv_dir .eq. 3) then
-                     v(i,j,k) = zero + vflct(i,j,1)*turb_scale
+
+                  if (probtype.eq.13) then
+                     x = domnlo(1) + (i+0.5)*dx(1)
+                     r = SQRT( x*x + y*y )
+                     call vswirlXYZ(x,y,u1,u2,u3)
+                     if (r.gt.Rfu) then
+                        u_inf = 0.d0
+                        eta = TANH(2*(r-Rfu)/Rtran)
+                        v(i,j,k) = eta*u_inf + (1.d0-eta)*u2
+                        vflct(i,j,1) = 0.d0
+                     else
+                        v(i,j,k) = u2
+                     endif
                   else
                      v(i,j,k) = zero
+                  endif
+
+#ifdef BL_DO_FLCT
+                  if (forceLo .and. adv_dir .eq. 3) then
+                     v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
                   end if
-#else
-                  v(i,j,k) = zero
 #endif
+
                end do
             end do
          end do
@@ -2528,6 +2536,7 @@ c ::: -----------------------------------------------------------
       REAL_T, allocatable :: wflct(:,:,:)
 #include "INFL_FORCE_F.H"
 #endif
+      REAL_T x,y,r,u1,u2,u3,u_inf,eta
 
       lo(1) = ARG_L1(w)
       lo(2) = ARG_L2(w)
@@ -2551,6 +2560,16 @@ c ::: -----------------------------------------------------------
          call INFL_FILL(FLCT_ZVEL,DIMS(wflct),wflct,xlo,dx,t_flct,bc,domnlo,domnhi)
       end if
 #endif
+
+      if ( (time .gt. zero).and.(tVco_l.ge.zero) ) then
+         if (time .le. tVco_l) then
+            Vco = Vco_l
+         else if (time .ge. tVco_r) then
+            Vco = Vco_r
+         else
+            Vco = Vco_l+(time-tVco_l)*(Vco_r-Vco_l)/(tVco_r-tVco_l)
+         endif
+      endif
 
       if (adv_dir .eq. 3) then
          z_vel = adv_vel
@@ -2603,16 +2622,31 @@ c ::: -----------------------------------------------------------
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(w).lt.domlo(3)) then
          do k = ARG_L3(w), domlo(3)-1
             do j = ARG_L2(w), ARG_H2(w)
+               y = domnlo(2) + (j+0.5)*dx(2)
                do i = ARG_L1(w), ARG_H1(w)
+
+                  if (probtype.eq.13) then
+                     x = domnlo(1) + (i+0.5)*dx(1)
+                     r = SQRT( x*x + y*y )
+                     call vswirlXYZ(x,y,u1,u2,u3)
+                     if (r.gt.Rfu) then
+                        u_inf = Vco
+                        eta = TANH(2*(r-Rfu)/Rtran)
+                        w(i,j,k) = eta*u_inf + (1.d0-eta)*u3
+                        wflct(i,j,1) = 0.d0
+                     else
+                        w(i,j,k) = u3
+                     endif
+                  else
+                     w(i,j,k) = z_vel
+                  endif
+
 #ifdef BL_DO_FLCT
                   if (forceLo .and. adv_dir .eq. 3) then
-                     w(i,j,k) = adv_vel + wflct(i,j,1)*turb_scale
-                  else
-                     w(i,j,k) = adv_vel
+                     w(i,j,k) = w(i,j,k) + wflct(i,j,1)*turb_scale
                   endif
-#else
-                  w(i,j,k) = adv_vel
 #endif
+
                end do
             end do
          end do
@@ -2659,6 +2693,7 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_DIVUFILL (divu,DIMS(divu),domlo,domhi,dx,
      &                          xlo,time,bc)
+      implicit none
 
       integer    DIMDEC(divu)
       integer    domlo(SDIM), domhi(SDIM)
@@ -2766,6 +2801,7 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_DSDTFILL (dsdt,DIMS(dsdt),domlo,domhi,dx,
      &                          xlo,time,bc)
+      implicit none
 
       integer    DIMDEC(dsdt)
       integer    domlo(SDIM), domhi(SDIM)
@@ -2864,6 +2900,7 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_PRESFILL (p,DIMS(p),domlo,domhi,dx,
      &                          xlo,time,bc)
+      implicit none
 
       integer    DIMDEC(p)
       integer    domlo(SDIM), domhi(SDIM)
