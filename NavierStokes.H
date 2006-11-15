@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.88 2004-07-07 22:13:05 almgren Exp $
+// $Id: NavierStokes.H,v 1.89 2006-11-15 21:14:12 aaspden Exp $
 //
 
 #include <LevelBld.H>
@@ -529,12 +529,21 @@ protected:
     //
     // Get the forcing term.
     //
+#ifdef GENGETFORCE
+    void getForce (FArrayBox&       statevars,
+		   FArrayBox&       force,
+                   int              gridno,
+                   int              ngrow,
+                   int              strt_comp,
+                   int              num_comp);
+#else
     void getForce (FArrayBox&       force,
                    int              gridno,
                    int              ngrow,
                    int              strt_comp,
                    int              num_comp,
                    const FArrayBox& Rho);
+#endif
     //
     // Get state data.
     //
@@ -760,7 +769,8 @@ protected:
     //
     // Internal switches.
     //
-    static int Temp;
+    static int  Tracer;     // AJA
+    static int  Temp;
     static int  do_temp;
     static int  do_sync_proj;
     static int  do_MLsync_proj;

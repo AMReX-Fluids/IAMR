@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.106 2006-09-11 18:02:57 almgren Exp $
+// $Id: MacProj.cpp,v 1.107 2006-11-15 21:14:12 aaspden Exp $
 //
 #include <winstd.H>
 
@@ -741,7 +741,12 @@ MacProj::mac_sync_compute (int                   level,
         Rho.resize(BoxLib::grow(grids[i],1),1);
         Rho.copy(S,Density,0,1);
 
+#ifdef GENGETFORCE
+	// Since ngrow == 0 here we can just use S_old, no need to filpatch. // ASA
+        ns_level.getForce(S,tforces,i,1,0,NUM_STATE);
+#else
         ns_level.getForce(tforces,i,1,0,NUM_STATE,Rho);
+#endif
         //
         // Compute total forcing terms.
         //
@@ -751,7 +756,11 @@ MacProj::mac_sync_compute (int                   level,
 
         if (use_forces_in_trans)
         {
+#ifdef GENGETFORCE
+            ns_level.getForce(S,tvelforces,i,1,Xvel,BL_SPACEDIM);
+#else
             ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho);
+#endif
             godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[S_fpi],Gp[i],Rho);
         }
         //

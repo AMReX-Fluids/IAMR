@@ -94,6 +94,7 @@ Array<Real> NavierStokes::visc_coef;
 //
 int  NavierStokes::do_temp                    = 0;
 int  NavierStokes::Temp                       = -1;
+int  NavierStokes::Tracer                     = -1; // AJA
 int  NavierStokes::do_sync_proj               = 1;
 int  NavierStokes::do_MLsync_proj             = 1;
 int  NavierStokes::do_reflux                  = 1;
@@ -389,6 +390,10 @@ NavierStokes::read_params ()
     pp.getarr("scal_diff_coefs",scal_diff_coefs,0,n_scal_diff_coefs);
 
     int scalId = Density;
+
+    // Will need to add more lines when more variables are added - AJA
+    Tracer = Density+1;
+
     for (int i = 0; i < n_scal_diff_coefs; i++)
     {
         visc_coef[++scalId] = scal_diff_coefs[i];
@@ -1747,16 +1752,29 @@ NavierStokes::predict_velocity (Real  dt,
 
     MultiFab Gp(grids,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
-
+    
     FArrayBox* null_fab = 0;
+#ifdef GENGETFORCE
+    int ngrow_force = 1;
+    for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
+             U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
+             S_fpi(*this,visc_terms,ngrow_force,prev_time,State_Type,0,NUM_STATE);
+             U_fpi.isValid() && P_fpi.isValid() && S_fpi.isValid();
+         ++U_fpi, ++P_fpi, ++S_fpi)
+#else
     for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
              U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM);
          U_fpi.isValid() && P_fpi.isValid();
          ++U_fpi, ++P_fpi)
+#endif
     {
         const int i = U_fpi.index();
 
+#ifdef GENGETFORCE
+        getForce(S_fpi(),tforces,i,ngrow_force,Xvel,BL_SPACEDIM);
+#else
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+#endif
         //
         // Test velocities, rho and cfl.
         //
@@ -1859,18 +1877,32 @@ NavierStokes::velocity_advection (Real dt)
     //
     FArrayBox S;
 
+#ifdef GENGETFORCE
+    int ngrow_force = 1;
+    for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
+             U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
+             S_fpi(*this,visc_terms,ngrow_force,prev_time,State_Type,0,NUM_STATE),
+             Rho_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Density,1);
+         U_fpi.isValid() && P_fpi.isValid() && S_fpi.isValid() && Rho_fpi.isValid(); 
+         ++U_fpi, ++P_fpi, ++S_fpi, ++Rho_fpi)
+#else
     for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
              U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
              Rho_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Density,1);
          U_fpi.isValid() && P_fpi.isValid() && Rho_fpi.isValid(); 
          ++U_fpi, ++P_fpi, ++Rho_fpi)
+#endif
     {
         //
         // Since all the MultiFabs are on same grid we'll just use indices.
         //
         const int i = U_fpi.index();
 
+#ifdef GENGETFORCE
+        getForce(S_fpi(),tforces,i,ngrow_force,Xvel,BL_SPACEDIM);
+#else
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+#endif
 
         godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*rho_ptime)[i]);
 
@@ -1989,19 +2021,38 @@ NavierStokes::scalar_advection (Real dt,
     //
     // Compute the advective forcing.
     //
+#ifdef GENGETFORCE
+    int ngrow_force = 1;
+    for (FillPatchIterator 
+             P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
+             U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
+             S_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,fscalar,num_scalars),
+             State_fpi(*this,visc_terms,ngrow_force,prev_time,State_Type,0,NUM_STATE);
+         U_fpi.isValid() && S_fpi.isValid() && P_fpi.isValid() && State_fpi.isValid();
+         ++U_fpi, ++S_fpi, ++P_fpi, ++State_fpi)
+#else
     for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
              U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
              S_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,fscalar,num_scalars);
          U_fpi.isValid() && S_fpi.isValid() && P_fpi.isValid();
          ++U_fpi, ++S_fpi, ++P_fpi)
+#endif
     {
         const int i = U_fpi.index();
 
+#ifdef GENGETFORCE
+        getForce(State_fpi(),tforces,i,ngrow_force,fscalar,num_scalars);
+#else
         getForce(tforces,i,1,fscalar,num_scalars,(*rho_ptime)[i]);
+#endif
         
         if (use_forces_in_trans)
         {
+#ifdef GENGETFORCE
+            getForce(State_fpi(),tvelforces,i,ngrow_force,Xvel,BL_SPACEDIM);
+#else
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+#endif
 
             godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[i],Gp[i],(*rho_ptime)[i]);
         }
@@ -2165,7 +2216,11 @@ NavierStokes::scalar_advection_update (Real dt,
             const int i = Rho_mfi.index();
             for (int sigma = sComp; sigma <= last_scalar; sigma++)
             {
+#ifdef GENGETFORCE
+                getForce(S_old[i],tforces,i,0,sigma,1);
+#else
                 getForce(tforces,i,0,sigma,1,halftime[Rho_mfi]);
+#endif
                 godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
                                      Aofs[Rho_mfi],sigma,tforces,0,grids[i],dt);
             }
@@ -2367,13 +2422,27 @@ NavierStokes::velocity_advection_update (Real dt)
     MFIter    Rhohalf_mfi(halftime);
     FArrayBox S;
 
+#ifdef GENGETFORCE
+    for (FillPatchIterator 
+         P_fpi(*this,P_old,0,prev_pres_time,Press_Type,0,1),
+         S_fpi(*this,U_old,0,prev_time,State_Type,0,NUM_STATE);
+         Rhohalf_mfi.isValid() && P_fpi.isValid() && S_fpi.isValid();
+         ++Rhohalf_mfi, ++P_fpi, ++S_fpi)
+#else
     for (FillPatchIterator P_fpi(*this,P_old,0,prev_pres_time,Press_Type,0,1);
          Rhohalf_mfi.isValid() && P_fpi.isValid();
          ++Rhohalf_mfi, ++P_fpi)
+#endif
     {
         const int i = Rhohalf_mfi.index();
 
+#ifdef GENGETFORCE
+        // NOTE : we are using old-time data here as input to forcing terms // ASA
+        // We could also just use S_old[i] here since ngrow for force = 0.
+	getForce(S_fpi(),tforces,i,0,Xvel,BL_SPACEDIM);
+#else
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,halftime[i]);
+#endif
         //
         // Do following only at initial iteration--per JBB.
         //
@@ -2543,13 +2612,21 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
         //
         MultiFab* Rh = get_rho_half_time();
 
+#ifdef GENGETFORCE
+	MultiFab& S_old = get_old_data(State_Type); //AJA
+#endif
+
         for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),0,prev_pres_time,Press_Type,0,1);
              P_fpi.isValid();
              ++P_fpi)
         {
             const int i = P_fpi.index();
 
+#ifdef GENGETFORCE
+            getForce(S_old[i],tforces,i,0,Xvel,BL_SPACEDIM);
+#else
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+#endif
 
             godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*Rh)[i]);
 
@@ -3032,7 +3109,12 @@ NavierStokes::estTimeStep ()
         //
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
+#ifdef GENGETFORCE
+        // Using U_new[i] is fine here since n_grow == 0 (and it's defined)
+        getForce(U_new[i],tforces,i,n_grow,Xvel,BL_SPACEDIM);
+#else
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,(*rho_ctime)[i]);
+#endif
         tforces.minus(Gp[i],0,0,BL_SPACEDIM);
         //
         // Estimate the maximum allowable timestep from the Godunov box.
@@ -4753,6 +4835,77 @@ NavierStokes::pullFluxes (int        i,
 // source term, which requires a division by rho in the predict_velocity
 // and velocity_advection routines.
 //
+#ifdef GENGETFORCE
+void
+NavierStokes::getForce (FArrayBox&       statevars,
+			FArrayBox&       force,
+                        int              gridno,
+                        int              ngrow,
+                        int              scomp,
+                        int              ncomp)
+{
+
+  const Real* dx       = geom.CellSize();
+  const Real  cur_time = state[State_Type].curTime();
+  const Real  grav     = std::abs(gravity);
+
+  Real* XvelPtr       = statevars.dataPtr(Xvel);           // Set up arrays to be passed and pass NULL for optional values not turned on
+  Real* DensityPtr    = statevars.dataPtr(Density);
+  Real* TracerPtr     = statevars.dataPtr(Tracer);
+
+//  printf("Xvel:    %i,%p\nDensity: %i,%p\nTracer:  %i,%p\n",Xvel,XvelPtr,Density,DensityPtr,Tracer,TracerPtr);
+
+  force.resize(BoxLib::grow(grids[gridno],ngrow),ncomp);
+
+//Momentum forcing *** This may just be easier as one function but it's like this for now!
+  if (scomp == Xvel && ncomp >= BL_SPACEDIM)                
+    {
+      const int* s_lo = statevars.loVect();
+      const int* s_hi = statevars.hiVect();
+      const int* f_lo = force.loVect();
+      const int* f_hi = force.hiVect();
+
+      FORT_MAKEFORCE (&cur_time,
+		      force.dataPtr(),
+		      XvelPtr, DensityPtr, TracerPtr,
+                      ARLIM(f_lo), ARLIM(f_hi),
+                      ARLIM(s_lo), ARLIM(s_hi),
+		      dx,
+		      grid_loc[gridno].lo(),
+		      grid_loc[gridno].hi(),
+		      &grav);
+ 
+    }
+
+  if ((scomp+ncomp)>BL_SPACEDIM)                                        // Scalar forcing    
+    {
+      const int* s_lo = statevars.loVect();
+      const int* s_hi = statevars.hiVect();
+      const int* f_lo = force.loVect();
+      const int* f_hi = force.hiVect();
+      int comps[10], compc=0;
+
+      // Set up the comps array to hold the variable number of the scalars
+      for (compc=0; compc<10; compc++)
+	comps[compc] = -1;
+      
+      compc = BL_SPACEDIM;
+      ;                comps[0] = compc++; // Density
+      ;                comps[1] = compc++; // Tracer
+
+      FORT_MAKESCALFORCE (&cur_time,
+			  force.dataPtr(),
+			  XvelPtr, DensityPtr, TracerPtr,
+			  ARLIM(f_lo), ARLIM(f_hi),
+			  ARLIM(s_lo), ARLIM(s_hi),
+			  dx,
+			  grid_loc[gridno].lo(),
+			  grid_loc[gridno].hi(),
+			  &grav, &scomp, &ncomp, comps);
+    }
+
+}
+#else
 void
 NavierStokes::getForce (FArrayBox&       force,
                         int              gridno,
@@ -4791,6 +4944,8 @@ NavierStokes::getForce (FArrayBox&       force,
         }
     }
 }
+// Generalised getForce
+#endif
 
 void
 NavierStokes::getGradP (MultiFab& gp,

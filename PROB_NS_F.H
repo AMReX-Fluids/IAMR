@@ -2,7 +2,7 @@
 #define _PROB_NS_F_H_
 
 /*
-** $Id: PROB_NS_F.H,v 1.1 2002-06-03 21:37:21 car Exp $
+** $Id: PROB_NS_F.H,v 1.2 2006-11-15 21:14:12 aaspden Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -20,6 +20,10 @@
 #    define FORT_ADVERROR    adverror
 #    define FORT_TEMPERROR   temperror
 #    define FORT_MVERROR     mverror
+#ifdef GENGETFORCE
+#    define FORT_MAKEFORCE      makeforce
+#    define FORT_MAKESCALFORCE  makescalforce
+#endif
 #else
 #  if  defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_INITDATA    INITDATA
@@ -36,6 +40,10 @@
 #    define FORT_ADVERROR    ADVERROR
 #    define FORT_TEMPERROR   TEMPERROR
 #    define FORT_MVERROR     MVERROR
+#ifdef GENGETFORCE
+#    define FORT_MAKEFORCE      MAKEFORCE
+#    define FORT_MAKESCALFORCE  MAKESCALFORCE
+#endif
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_INITDATA    initdata
 #    define FORT_DENFILL     denfill
@@ -51,6 +59,10 @@
 #    define FORT_ADVERROR    adverror
 #    define FORT_TEMPERROR   temperror
 #    define FORT_MVERROR     mverror
+#ifdef GENGETFORCE
+#    define FORT_MAKEFORCE      makeforce
+#    define FORT_MAKESCALFORCE  makescalforce
+#endif
 #  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_INITDATA    initdata_
 #    define FORT_DENFILL     denfill_
@@ -66,6 +78,10 @@
 #    define FORT_ADVERROR    adverror_
 #    define FORT_TEMPERROR   temperror_
 #    define FORT_MVERROR     mverror_
+#ifdef GENGETFORCE
+#    define FORT_MAKEFORCE      makeforce_
+#    define FORT_MAKESCALFORCE  makescalforce_
+#endif
 #  endif
 
 #include "ArrayLim.H"
@@ -164,6 +180,24 @@
                           const Real* prob_lo, const Real* time,
                           const int* level);
 
+#ifdef GENGETFORCE
+     void FORT_MAKEFORCE (const Real* time, Real* force,
+                          Real* vel, Real* rho, Real* tracer,
+                          ARLIM_P(i_lo), ARLIM_P(i_hi),
+                          ARLIM_P(s_lo), ARLIM_P(s_hi),
+                          const Real* dx,
+                          const Real* xlo, const Real* xhi,
+			  const Real* gravity);
+
+     void FORT_MAKESCALFORCE (const Real* time, Real* force,
+			      Real* vel, Real* rho, Real* tracer,
+			      ARLIM_P(i_lo), ARLIM_P(i_hi),
+			      ARLIM_P(s_lo), ARLIM_P(s_hi),
+			      const Real* dx,
+			      const Real* xlo, const Real* xhi,
+			      const Real* gravity,
+			      const int* scomp, const int* ncomp, int comps[10]);
+#endif
   }
 #endif
 #endif /*_PROB_F_H_*/

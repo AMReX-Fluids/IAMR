@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.29 2006-11-09 22:09:24 marc Exp $
+c $Id: PROB_3D.F,v 1.30 2006-11-15 21:11:17 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -77,6 +77,11 @@ c ::: -----------------------------------------------------------
      &                  rt_pertamp, rt_nfreq, rt_graddenerr
 
       namelist /fortin/ Vco, Rfu, Rtran, tVco_l, tVco_r, Vco_l, Vco_r
+
+      namelist /fortin/ grav_angle, omega, nmodes,
+     &                  AXY, BXY, CXY, PXY, QXY, RXY,
+     &                  AZX, BZX, CZX, PZX, QZX, RZX,
+     &                  AYZ, BYZ, CYZ, PYZ, QYZ, RYZ
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -329,6 +334,11 @@ c ::: -----------------------------------------------------------
 
       else if (probtype .eq. 13) then
          call swirl(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
+      else if (probtype .eq. 14) then
+         call inithit(level,time,lo,hi,nscal,
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
 
@@ -1197,6 +1207,301 @@ c
 
       end
 c
+c ::: -----------------------------------------------------------
+c
+      subroutine inithit(level,time,lo,hi,nscal,
+     &	 	       vel,scal,DIMS(state),press,DIMS(press),
+     &                 dx,xlo,xhi)
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  dist
+      REAL_T  twicePi
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      twicePi = two*Pi
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+	    do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+               vel(i,j,k,1) = cos(twicePi*y)*cos(twicePi*z)
+               vel(i,j,k,2) = cos(twicePi*x)*cos(twicePi*z)
+               vel(i,j,k,3) = cos(twicePi*x)*cos(twicePi*y)
+
+               scal(i,j,k,1) = one
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = one
+               end do
+                  
+	    end do
+         end do
+      end do
+
+      end
+c
+c
+c ::: -----------------------------------------------------------
+c
+c     This routine add the forcing terms to the momentum equation
+c
+      subroutine FORT_MAKEFORCE(time,
+     &                          force,vel,rho,tracer,
+     &                          DIMS(istate),DIMS(state),
+     &                          dx,xlo,xhi,gravity)
+
+      implicit none
+
+      integer    DIMDEC(state)
+      integer    DIMDEC(istate)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     force  (DIMV(istate),SDIM)
+      REAL_T     vel    (DIMV(state) ,SDIM)
+      REAL_T     rho    (DIMV(state))
+      REAL_T     tracer (DIMV(state))
+      REAL_T     gravity
+
+#include "probdata.H"
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      integer ilo, jlo, klo
+      integer ihi, jhi, khi
+      integer a2, a3, a4, a5
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  sga, cga
+      REAL_T  f1, f2, f3
+      REAL_T  twicePi
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      ilo = istate_l1
+      jlo = istate_l2
+      klo = istate_l3
+      ihi = istate_h1
+      jhi = istate_h2
+      khi = istate_h3
+
+      gravity=abs(gravity)
+
+      if (probtype.eq.14) then
+c     Homogeneous Isotropic Turbulence
+         twicePi=two*Pi
+         do k = klo, khi
+            z = xlo(3) + hz*(float(k-klo) + half)
+            do j = jlo, jhi
+               y = xlo(2) + hy*(float(j-jlo) + half)
+               do i = ilo, ihi
+                  x = xlo(1) + hx*(float(i-ilo) + half)
+                  f1 = zero
+                  f2 = zero
+                  f3 = zero
+                  do n = 1, nmodes
+                     f1 = f1 + BXY(n) * cos(CXY(n)*time+RXY(n)) * cos(twicePi*AXY(n)*x+PXY(n)) * sin(twicePi*BXY(n)*y+QXY(n)) 
+     &                       - AZX(n) * cos(CZX(n)*time+RZX(n)) * sin(twicePi*AZX(n)*z+PZX(n)) * cos(twicePi*BZX(n)*x+QZX(n))
+                     f2 = f2 + BYZ(n) * cos(CYZ(n)*time+RYZ(n)) * cos(twicePi*AYZ(n)*y+PYZ(n)) * sin(twicePi*BYZ(n)*z+QYZ(n)) 
+     &                       - AXY(n) * cos(CXY(n)*time+RXY(n)) * sin(twicePi*AXY(n)*x+PXY(n)) * cos(twicePi*BXY(n)*y+QXY(n))
+                     f3 = f3 + BZX(n) * cos(CZX(n)*time+RZX(n)) * cos(twicePi*AZX(n)*z+PZX(n)) * sin(twicePi*BZX(n)*x+QZX(n)) 
+     &                       - AYZ(n) * cos(CYZ(n)*time+RYZ(n)) * sin(twicePi*AYZ(n)*y+PYZ(n)) * cos(twicePi*BYZ(n)*z+QYZ(n))
+                  enddo
+                  force(i,j,k,1) = f1
+                  force(i,j,k,2) = f2
+                  force(i,j,k,3) = f3
+               enddo
+            enddo
+         enddo
+      else if (probtype.eq.99.and.abs(grav_angle).gt.0.001) then
+c     Angled gravity
+         sga =  gravity * sin(Pi*grav_angle/180.)
+         cga = -gravity * cos(Pi*grav_angle/180.)
+         do k = klo, khi
+            do j = jlo, jhi
+               do i = ilo, ihi
+                  force(i,j,k,1) = rho(i,j,k)*sga
+                  force(i,j,k,2) = zero
+                  force(i,j,k,3) = rho(i,j,k)*cga
+               enddo
+            enddo
+         enddo
+      else if (probtype.eq.99.and.abs(omega).gt.0.001) then
+c     Rotation about x=y=0 rate omega
+         do k = klo, khi
+            do j = jlo, jhi
+               do i = ilo, ihi
+                  force(i,j,k,1) =  2.*omega*vel(i,j,k,2)
+                  force(i,j,k,2) = -2.*omega*vel(i,j,k,1)
+                  force(i,j,k,3) =  zero
+               enddo
+            enddo
+         enddo
+c     Default to gravity...
+      elseif (gravity.gt.0.001) then
+         do k = klo, khi
+            do j = jlo, jhi
+               do i = ilo, ihi
+                  force(i,j,k,1) = zero
+                  force(i,j,k,2) = zero
+                  force(i,j,k,3) = -gravity*rho(i,j,k)
+               enddo
+            enddo
+         enddo
+c     else to zero
+      else
+         do k = klo, khi
+            do j = jlo, jhi
+               do i = ilo, ihi
+                  force(i,j,k,1) = zero
+                  force(i,j,k,2) = zero
+                  force(i,j,k,3) = zero
+               enddo
+            enddo
+         enddo
+      endif
+
+      end
+
+
+c
+c ::: -----------------------------------------------------------
+c
+c     This routine add the forcing terms to the scalar equations
+c
+
+c     Might be worth thinking about passing Density, Tracer and
+c     Temp as integers so that the decision making done below
+c     matches up - just in case things change
+c     Then again, maybe not... AJA
+
+      subroutine FORT_MAKESCALFORCE(time,
+     &                              force,vel,rho,tracer,
+     &                              DIMS(istate),DIMS(state),
+     &                              dx,xlo,xhi,gravity,scomp,ncomp,
+     &                              comps)
+
+      implicit none
+
+      integer    DIMDEC(state)
+      integer    DIMDEC(istate)
+      integer    scomp, ncomp
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     force  (DIMV(istate),scomp:scomp+ncomp-1)
+      REAL_T     vel    (DIMV(state) ,SDIM)
+      REAL_T     rho    (DIMV(state))
+      REAL_T     tracer (DIMV(state))
+      REAL_T     gravity
+      integer    comps(10)
+
+#include "probdata.H"
+
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      integer ilo, jlo, klo
+      integer ihi, jhi, khi
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  r, r2
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      ilo = istate_l1
+      jlo = istate_l2
+      klo = istate_l3
+      ihi = istate_h1
+      jhi = istate_h2
+      khi = istate_h3
+
+c      write(*,*) "Comps 1-5 are :",comps(1),comps(2),comps(3),comps(4),comps(5)
+
+      do n = scomp, scomp+ncomp-1
+         if (n.eq.comps(1)) then
+c
+c     Density
+c
+            do k = klo, khi
+               do j = jlo, jhi
+                  do i = ilo, ihi
+                     force(i,j,k,n) = zero
+                  enddo
+               enddo
+            enddo
+         else if (n.eq.comps(2)) then
+c
+c     Tracer
+c
+            if (probtype.eq.99) then
+c     Boussinesq
+               do k = klo, khi
+                  z = xlo(3) + hz*(float(k-klo) + half)
+                  do j = jlo, jhi
+                     y = xlo(2) + hy*(float(j-jlo) + half)
+                     do i = ilo, ihi
+                        x = xlo(1) + hx*(float(i-ilo) + half)
+
+                        if (sqrt(x*x+y*y).lt.radblob) then
+c     force(i,j,k,n) = heatflux
+                           force(i,j,k,n) = zero
+                        else
+                           force(i,j,k,n) = zero
+                        endif
+                     enddo
+                  enddo
+               enddo
+            else
+c     Tracer - not probtype 99
+               do k = klo, khi
+                  do j = jlo, jhi
+                     do i = ilo, ihi
+                        force(i,j,k,n) = zero
+                     enddo
+                  enddo
+               enddo
+            endif
+         else
+c     Default to zero
+            do k = klo, khi
+               do j = jlo, jhi
+                  do i = ilo, ihi
+                     force(i,j,k,n) = zero
+                  enddo
+               enddo
+            enddo
+         endif
+      enddo
+
+      end
+
 
 c     ::: -----------------------------------------------------------
 c     ::: This routine will tag high error cells based on the 
@@ -2283,6 +2588,7 @@ c
                do i = ARG_L1(u), ARG_H1(u)
 
                   if (probtype.eq.13) then
+#ifdef BL_DO_FLCT
                      x = domnlo(1) + (i+0.5)*dx(1)
                      r = SQRT( x*x + y*y )
                      call vswirlXYZ(x,y,u1,u2,u3)
@@ -2294,6 +2600,7 @@ c
                      else
                         u(i,j,k) = u1
                      endif
+#endif
                   else
                      u(i,j,k) = zero
                   endif
@@ -2451,6 +2758,7 @@ c ::: -----------------------------------------------------------
                do i = ARG_L1(v), ARG_H1(v)
 
                   if (probtype.eq.13) then
+#ifdef BL_DO_FLCT
                      x = domnlo(1) + (i+0.5)*dx(1)
                      r = SQRT( x*x + y*y )
                      call vswirlXYZ(x,y,u1,u2,u3)
@@ -2462,6 +2770,7 @@ c ::: -----------------------------------------------------------
                      else
                         v(i,j,k) = u2
                      endif
+#endif
                   else
                      v(i,j,k) = zero
                   endif
@@ -2626,6 +2935,7 @@ c ::: -----------------------------------------------------------
                do i = ARG_L1(w), ARG_H1(w)
 
                   if (probtype.eq.13) then
+#ifdef BL_DO_FLCT
                      x = domnlo(1) + (i+0.5)*dx(1)
                      r = SQRT( x*x + y*y )
                      call vswirlXYZ(x,y,u1,u2,u3)
@@ -2637,6 +2947,7 @@ c ::: -----------------------------------------------------------
                      else
                         w(i,j,k) = u3
                      endif
+#endif
                   else
                      w(i,j,k) = z_vel
                   endif
