@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.30 2006-11-15 21:11:17 aaspden Exp $
+c $Id: PROB_3D.F,v 1.31 2006-11-17 00:08:48 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -342,6 +342,11 @@ c ::: -----------------------------------------------------------
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
 
+      else if (probtype .eq. 15) then
+         call initinflow(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
 
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
@@ -476,7 +481,8 @@ c
          x_vel = zero
          y_vel = adv_vel
          z_vel = zero
-      else if (adv_dir .eq. 2) then
+c     AJA - This next line originally said 2!
+      else if (adv_dir .eq. 3) then
          x_vel = zero
          y_vel = zero
          z_vel = adv_vel
@@ -604,7 +610,8 @@ c
          x_vel = zero
          y_vel = adv_vel
          z_vel = zero
-      else if (adv_dir .eq. 2) then
+c     AJA - This next line also originally said 2!
+      else if (adv_dir .eq. 3) then
          x_vel = zero
          y_vel = zero
          z_vel = adv_vel
@@ -897,6 +904,7 @@ c     ::::: local variables
          x_vel = zero
          y_vel = adv_vel
          z_vel = zero
+c     AJA - Strangely, this one did not
       else if (adv_dir .eq. 3) then
          x_vel = zero
          y_vel = zero
@@ -1230,7 +1238,7 @@ c
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
       REAL_T  dist
-      REAL_T  twicePi
+      REAL_T  twicePi, rn
 
 #include "probdata.H"
 
@@ -1239,6 +1247,38 @@ c
       hz = dx(3)
 
       twicePi = two*Pi
+
+      call blutilinitrand(111397)
+
+      do n = 1, nmodes
+         call blutilrand(rn)
+         CXY(n) = half+rn
+         call blutilrand(rn)
+         CZX(n) = half+rn
+         call blutilrand(rn)
+         CYZ(n) = half+rn
+
+         call blutilrand(rn)
+         PXY(n) = twicePi*rn
+         call blutilrand(rn)
+         PZX(n) = twicePi*rn
+         call blutilrand(rn)
+         PYZ(n) = twicePi*rn
+
+         call blutilrand(rn)
+         QXY(n) = twicePi*rn
+         call blutilrand(rn)
+         QZX(n) = twicePi*rn
+         call blutilrand(rn)
+         QYZ(n) = twicePi*rn
+
+         call blutilrand(rn)
+         RXY(n) = twicePi*rn
+         call blutilrand(rn)
+         RZX(n) = twicePi*rn
+         call blutilrand(rn)
+         RYZ(n) = twicePi*rn
+      enddo
 
       do k = lo(3), hi(3)
          z = xlo(3) + hz*(float(k-lo(3)) + half)
@@ -1254,6 +1294,70 @@ c
                scal(i,j,k,1) = one
                do n = 2,nscal-1
                   scal(i,j,k,n) = one
+               end do
+                  
+	    end do
+         end do
+      end do
+
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initinflow(level,time,lo,hi,nscal,
+     &	 	       vel,scal,DIMS(state),press,DIMS(press),
+     &                 dx,xlo,xhi)
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  dist
+      REAL_T  x_vel, y_vel, z_vel
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      x_vel = zero
+      y_vel = zero
+      z_vel = zero
+      if (adv_dir.eq.1) then
+         x_vel = adv_vel
+      else if (adv_dir.eq.2) then
+         y_vel = adv_vel
+      else if (adv_dir.eq.3) then
+         z_vel = adv_vel
+      endif
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+	    do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+               vel(i,j,k,1) = x_vel
+               vel(i,j,k,2) = y_vel
+               vel(i,j,k,3) = z_vel
+
+               scal(i,j,k,1) = one
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = zero
                end do
                   
 	    end do
@@ -1728,6 +1832,12 @@ c     probtype = VISCOUS BENCHMARK
 
       else if (probtype .eq. 12) then
 
+      else if (probtype .eq. 13) then
+
+      else if (probtype .eq. 14) then
+
+      else if (probtype .eq. 15) then
+
       return
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
@@ -1825,6 +1935,12 @@ c     probtype = VISCOUS BENCHMARK
 
 
       else if (probtype .eq. 10.or. probtype .eq. 11 .or.probtype.eq.12) then
+
+      else if (probtype .eq. 13) then
+
+      else if (probtype .eq. 14) then
+
+      else if (probtype .eq. 15) then
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
@@ -1968,6 +2084,12 @@ c     probtype = VISCOUS BENCHMARK
                end do
             end do
          end do
+
+      else if (probtype .eq. 13) then
+
+      else if (probtype .eq. 14) then
+
+      else if (probtype .eq. 15) then
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_MVERROR ',probtype
@@ -2145,6 +2267,15 @@ c ::: -----------------------------------------------------------
       end if            
 
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(rho).lt.domlo(3)) then
+         if (probtype.eq.15) then
+           do k = lo(3), domlo(3)-1
+              do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 rho(i,j,k) = one
+              enddo
+              enddo
+           enddo
+        else
          do k = ARG_L3(rho), domlo(3)-1
             do j = ARG_L2(rho), ARG_H2(rho)
                do i = ARG_L1(rho), ARG_H1(rho)
@@ -2152,6 +2283,7 @@ c ::: -----------------------------------------------------------
                end do
             end do
          end do
+         endif
       end if
 
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(rho).gt.domhi(3)) then
@@ -2591,7 +2723,7 @@ c
 #ifdef BL_DO_FLCT
                      x = domnlo(1) + (i+0.5)*dx(1)
                      r = SQRT( x*x + y*y )
-                     call vswirlXYZ(x,y,u1,u2,u3)
+c                    call vswirlXYZ(x,y,u1,u2,u3)
                      if (r.gt.Rfu) then
                         u_inf = 0.d0
                         eta = TANH(2*(r-Rfu)/Rtran)
@@ -2761,7 +2893,7 @@ c ::: -----------------------------------------------------------
 #ifdef BL_DO_FLCT
                      x = domnlo(1) + (i+0.5)*dx(1)
                      r = SQRT( x*x + y*y )
-                     call vswirlXYZ(x,y,u1,u2,u3)
+c                    call vswirlXYZ(x,y,u1,u2,u3)
                      if (r.gt.Rfu) then
                         u_inf = 0.d0
                         eta = TANH(2*(r-Rfu)/Rtran)
@@ -2938,7 +3070,7 @@ c ::: -----------------------------------------------------------
 #ifdef BL_DO_FLCT
                      x = domnlo(1) + (i+0.5)*dx(1)
                      r = SQRT( x*x + y*y )
-                     call vswirlXYZ(x,y,u1,u2,u3)
+c                    call vswirlXYZ(x,y,u1,u2,u3)
                      if (r.gt.Rfu) then
                         u_inf = Vco
                         eta = TANH(2*(r-Rfu)/Rtran)
