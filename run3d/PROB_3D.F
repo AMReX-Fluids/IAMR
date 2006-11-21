@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.31 2006-11-17 00:08:48 aaspden Exp $
+c $Id: PROB_3D.F,v 1.32 2006-11-21 00:22:25 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -2142,14 +2142,14 @@ c ::: -----------------------------------------------------------
 
       call filcc(rho,DIMS(rho),domlo,domhi,dx,xlo,bc)
 
-      if(probtype .eq.8 ) then
-
       lo(1) = ARG_L1(rho)
       lo(2) = ARG_L2(rho)
       lo(3) = ARG_L3(rho)
       hi(1) = ARG_H1(rho)
       hi(2) = ARG_H2(rho)
       hi(3) = ARG_H3(rho)
+
+      if(probtype .eq.8 ) then
 
       umid = (vel1+vel2)*half
       rmid = (den1+den2)*half
