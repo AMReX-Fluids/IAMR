@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.39 2006-12-06 18:10:28 lijewski Exp $
+# $Id: GNUmakefile,v 1.40 2007-01-19 23:38:57 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -14,7 +14,7 @@ DEBUG	  = FALSE
 DEBUG	  = TRUE
 PROFILE   = FALSE
 DIM	  = 2
-COMP	  = g++
+COMP	  = Intel
 FCOMP	  = Intel
 USE_MPI   = TRUE
 USE_MPI   = FALSE
@@ -27,7 +27,7 @@ include ./Make.package
 
 fincludes=$(includes)
 
-Bdirs := BoxLib iamrlib amrlib mglib bndrylib tensorMG 
+Bdirs := BoxLib iamrlib amrlib mglib bndrylib tensorMG hgproj
 
 Bpack	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
