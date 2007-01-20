@@ -5,7 +5,7 @@ c
       integer infl_type, infl_periodic_type, infl_swirl_type
       double precision  convVel, tstart_turb
       logical forceLo, forceHi
-      character flct_file*(80)
+      character flct_file*(256)
       double precision, pointer :: fluct_times(:)
 
       common /InflFrc_Comms/convVel, strmwse_dir, numInflPlanesStore,

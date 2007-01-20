@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.11 2005-12-15 20:47:46 lijewski Exp $
+c $Id: FLUCTFILE.F,v 1.12 2007-01-20 18:32:45 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -99,31 +99,37 @@ c
 
 #include "INFL_FORCE_F.H"
 
-      integer iunit, dimFile(3), nCmpFile
+      integer iunit, dimFile(3), nCmpFile, proc
       REAL_T probSizeFile(3), dxFile(3)
 
-      integer i1bc, j1bc, k1bc, dummy, ierr, i
+      integer i1bc, j1bc, k1bc, dummy, i
       logical first
+
+      call bl_pd_myproc(proc)
+
+      if (proc.eq.0) print*, 'Entered RD_SCL_FLCTHD'
 
       first = (infl_type .eq. -1)
 
-      ierr = 0
-      read(iunit,iostat=ierr) dimFile, nCmpFile
-      if (ierr.ne.0) nCmpFile = BL_SPACEDIM
+      read(iunit,*) dimFile
+
+      if (proc.eq.0) print*, 'dimFile: ', dimFile
+
+      nCmpFile = BL_SPACEDIM
 
       nCompInflow = nCmpFile
 
-      read(iunit) probSizeFile
-      !
-      ! Assume infl_swirl_type file until proven otherwise.
-      !
-      infl_type = infl_swirl_type
+      read(iunit,*) probSizeFile
+
+      if (proc.eq.0) print*, 'probSizeFile: ', probSizeFile
       !
       ! infl_periodic_type only has three integers here.
       !
-      ierr = 0
-      read(iunit,iostat=ierr) i1bc, j1bc, k1bc, dummy
-      if (ierr.ne.0) infl_type = infl_periodic_type
+      read(iunit,*) i1bc, j1bc, k1bc
+      !
+      ! TODO -- fix this
+      !
+      infl_type = infl_periodic_type
 
       if (infl_type .eq. infl_swirl_type) then
          !
@@ -136,7 +142,7 @@ c
          if (.NOT. ASSOCIATED(fluct_times)) then
             allocate(fluct_times(1:dimFile(strmwse_dir)))
          endif
-         read(iunit) (fluct_times(i),i=1,dimFile(strmwse_dir))
+         read(iunit,*) (fluct_times(i),i=1,dimFile(strmwse_dir))
       else
          !
          ! Assumes node-centered data.
@@ -150,7 +156,7 @@ c
          endif
       endif
 
-      if (first) then
+      if (first .and. proc.eq.0) then
          if (infl_type .eq. infl_periodic_type) then
             write(6,*) 'RD_SCL_FLCTHD: infl_type: infl_periodic_type'
          else if (infl_type .eq. infl_swirl_type) then
@@ -179,53 +185,30 @@ c ::: FF_DIMS(dat)  => Dimensions of the array dat
 c ::: dat          <=  Array to fill
 c ::: -----------------------------------------------------------
 c
-      SUBROUTINE RD_FLCTREC(iunit, dimFile, arrLo, arrHi, fileLo,
-     $                      FF_DIMS(dat), dat)
+      SUBROUTINE RD_FLCTREC(dimFile, lo, hi, fileLo, FF_DIMS(dat), dat, ncomp)
 
       implicit none
 
-      integer iunit, dimFile(3)
-      integer arrLo(3), arrHi(3), fileLo(3)
-      integer FF_DIMDEC(dat)
+      integer dimFile(3), i, j, k, n, proc, ncomp
+      integer lo(3), hi(3), fileLo(3), FF_DIMDEC(dat), iflctfile(300)
       REAL_T dat(FF_DIMV(dat))
 
-      integer i, j, k, ijoff, ipad, kpad
-      REAL_T dummy
-c
-c     ***********************************
-c     *** Read Data From Restart File ***
-c     ***********************************
-c
-c     The logic here seems quite complicated.  This is done so that
-c     only the data which is needed to fill the FAB is read from the
-c     disk and stored into memory.  This should speed up the I/O as
-c     well as keep the memory usage down.
-c
-c     *** Skip through records to the K-range desired as ***
-c     ***   specified by fileLo(3)                        ***
-c
-      do k = 1, fileLo(3)-1
-        READ(iunit) dummy
-      enddo
-c
-c     *** Read the Necessary Data ***
-c
-      ijoff = (fileLo(2) - 1) * dimFile(1)
-      ipad    = dimFile(1) - (fileLo(1)-1 + arrHi(1) - arrLo(1) + 1)
+#include "INFL_FORCE_F.H"
 
-      do k = arrLo(3), arrHi(3)
-        READ(iunit) (dummy, i=1, ijoff),
-     $             ((dummy, i=1, fileLo(1)-1),
-     $              (dat(i,j,k), i=arrLo(1),arrHi(1)),
-     $              (dummy, i=1, ipad), j=arrLo(2),arrHi(2))
-      enddo
+      call bl_pd_myproc(proc)
 c
-c     *** Skip through the remaining records for this variable ***
+c     Build integer version of flct_file name passable to C++
 c
-      kpad    = dimFile(3) - (fileLo(3)-1 + arrHi(3) - arrLo(3) + 1)
-      do k = 1, kpad
-        READ(iunit) dummy
+      n = len(trim(flct_file))
+
+      do i = 1, n
+         iflctfile(i) = ichar(flct_file(i:i))
+      end do
+c
+c     Read the Necessary Data
+c
+      do k = lo(3), hi(3)
+        call getplane(iflctfile(1), n, dat(lo(1),lo(2),k), k, ncomp)
       enddo
 
       END
-

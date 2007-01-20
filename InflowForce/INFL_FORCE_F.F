@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.12 2004-10-13 19:31:01 lijewski Exp $
+c $Id: INFL_FORCE_F.F,v 1.13 2007-01-20 18:32:45 lijewski Exp $
 c
 
 #undef BL_LANG_CC
@@ -47,7 +47,7 @@ c
       REAL_T inflDat(DIMV(inflDat)), probLo(SDIM), probHi(SDIM)
 
       integer lo(SDIM), hi(SDIM), nCmpFile
-      integer n, npass, filePnt, storePnt, filePntOld, npassOld
+      integer n, npass, filePnt, storePnt, filePntOld, npassOld,proc
       REAL_T dtFile, timeMaxFile, timeOffset, timePnt,
      $       dtEstimate
       logical is_periodic
@@ -67,9 +67,14 @@ c
 
 #include "INFL_FORCE_F.H"
 
+      call bl_pd_myproc(proc)
+
       if (.NOT. ALLOCATED(storDat)) then
-         open(FF_UNIT, file=flct_file, form='unformatted')
+
+         open(FF_UNIT, file=trim(flct_file)//'/HDR', form='formatted', action='read', status='old')
+
          call RD_SCL_FLCTHD(FF_UNIT,nCmpFile,dimFile,probSizeFile,dxFile)
+
          close(FF_UNIT)
 
          call SET_LOHI(DIMS(inflDat), lo, hi)
@@ -161,7 +166,7 @@ c
       REAL_T time, xlo(SDIM), dx(SDIM)
       REAL_T inflDat(DIMV(inflDat)), probLo(SDIM), probHi(SDIM)
 
-      integer lo(SDIM), hi(SDIM), nCmpFile, storePnt, shft
+      integer lo(SDIM), hi(SDIM), nCmpFile, storePnt, shft, proc
       integer n, filePnt, fileBase, FF_DIMDEC(storDat)
       integer dimFile(3), loStoreDim(3), hiStoreDim(3)
       REAL_T dxFile(3), probSizeFile(3), xloFile(3), xhiFile(3), timePnt
@@ -174,9 +179,17 @@ c
 
 #include "INFL_FORCE_F.H"
 
+      call bl_pd_myproc(proc)
+
+      if (proc.eq.0) print*,'infl_swirl_type not implemented'
+      call bl_abort('infl_swirl_type not implemented');
+
       if (.NOT. ALLOCATED(storDat)) then
-         open(FF_UNIT, file=flct_file, form='unformatted')
+
+         open(FF_UNIT, file=trim(flct_file)//'/HDR', form='formatted', action='read', status='old')
+
          call RD_SCL_FLCTHD(FF_UNIT,nCmpFile,dimFile,probSizeFile,dxFile)
+
          close(FF_UNIT)
 
          call SET_LOHI(DIMS(inflDat), lo, hi)
@@ -346,11 +359,13 @@ c
       integer FF_DIMDEC(dat)
       REAL_T dat(FF_DIMV(dat),nComp)
 
-      integer intDummy, n
+      integer intDummy, n, proc
       integer lo(3), hi(3), loRd(3), hiRd(3), filLo(3)
       REAL_T realDummy
 
 #include "INFL_FORCE_F.H"
+
+      call bl_pd_myproc(proc)
 
       call FF_SET_LOHI(FF_DIMS(dat), lo, hi)
 
@@ -373,6 +388,7 @@ c     *** If the data can be filled in one pass, do so ***
 c
       if (hi(strmwse_dir) - baseArrayPnt + 1 
      $                        .LE. dimFile(strmwse_dir) - baseFilePnt + 1) then
+
         do n = 1, 3
           filLo(n) = 1
           loRd(n) = lo(n)
@@ -381,18 +397,10 @@ c
         loRd(strmwse_dir) = baseArrayPnt
         filLo(strmwse_dir) = baseFilePnt
 
-        open(FF_UNIT, file=flct_file, form='unformatted')
-        read(FF_UNIT) intDummy
-        read(FF_UNIT) realDummy
-        read(FF_UNIT) intDummy
         do n = 1, nComp
-          call RD_FLCTREC(FF_UNIT, dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
-     $                    dat(lo(1),lo(2),lo(3),n))
+          call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
+     $                    dat(lo(1),lo(2),lo(3),n),n)
         enddo
-        close(FF_UNIT)
-c
-c     *** If the data can not be filled in one pass, fill in two ***
-c     ***   passes wrapping around in the streamwise direction   ***
 c
 c     Note: In this case, we are guaranteed that the arrays can be filled 
 c           in two passes since the array is guaranteed not to have 
@@ -403,6 +411,7 @@ c
 c       Fill as much data as can be read without reading beyond the end of
 c       the file
 c
+
         do n = 1, 3
           filLo(n) = 1
           loRd(n) = lo(n)
@@ -412,16 +421,10 @@ c
         loRd(strmwse_dir) = baseArrayPnt
         hiRd(strmwse_dir) = loRd(strmwse_dir) + dimFile(strmwse_dir) 
      $                                                         - baseFilePnt
-
-        open(FF_UNIT, file=flct_file, form='unformatted')
-        read(FF_UNIT) intDummy
-        read(FF_UNIT) realDummy
-        read(FF_UNIT) intDummy
         do n = 1, nComp
-          call RD_FLCTREC(FF_UNIT, dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
-     $                    dat(lo(1),lo(2),lo(3),n))
+          call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
+     $                    dat(lo(1),lo(2),lo(3),n),n)
         enddo
-        close(FF_UNIT)
 c
 c       Now fill the rest of the array starting from the beginning of the file
 c
@@ -432,15 +435,11 @@ c
         loRd(strmwse_dir) = hiRd(strmwse_dir) + 1
         hiRd(strmwse_dir) = hi(strmwse_dir)
 
-        open(FF_UNIT, file=flct_file, form='unformatted')
-        read(FF_UNIT) intDummy
-        read(FF_UNIT) realDummy
-        read(FF_UNIT) intDummy
         do n = 1, nComp
-          call RD_FLCTREC(FF_UNIT, dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
-     $                    dat(lo(1),lo(2),lo(3),n))
+          call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
+     $                    dat(lo(1),lo(2),lo(3),n),n)
         enddo
-        close(FF_UNIT)
+
       endif
 
       END
@@ -472,18 +471,18 @@ c
       loRd(strmwse_dir)  = baseArrayPnt
       filLo(strmwse_dir) = baseFilePnt
 
-      open(FF_UNIT, file=flct_file, form='unformatted')
+c      open(FF_UNIT, file=trim(flct_file)//'/HDR', form='formatted', action='read', status='old')
 
-      read(FF_UNIT) intDummy
-      read(FF_UNIT) realDummy
-      read(FF_UNIT) intDummy
-      read(FF_UNIT) realDummy
+c      read(FF_UNIT) intDummy
+c      read(FF_UNIT) realDummy
+c      read(FF_UNIT) intDummy
+c      read(FF_UNIT) realDummy
 
       do n = 1, nComp
-         call RD_FLCTREC(FF_UNIT, dimFile, loRd, hiRd, filLo,
-     $        FF_DIMS(dat), dat(lo(1),lo(2),lo(3),n))
+         call RD_FLCTREC(dimFile, loRd, hiRd, filLo,
+     $        FF_DIMS(dat), dat(lo(1),lo(2),lo(3),n),n)
       enddo
 
-      close(FF_UNIT)
+c      close(FF_UNIT)
 
       end
