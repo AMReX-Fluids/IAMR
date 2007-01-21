@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.12 2007-01-20 18:32:45 lijewski Exp $
+c $Id: FLUCTFILE.F,v 1.13 2007-01-21 04:57:00 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -208,7 +208,7 @@ c
 c     Read the Necessary Data
 c
       do k = lo(3), hi(3)
-        call getplane(iflctfile(1), n, dat(lo(1),lo(2),k), k, ncomp)
+         call getplane(iflctfile(1), n, dat(lo(1),lo(2),k), k, ncomp)
       enddo
 
       END
