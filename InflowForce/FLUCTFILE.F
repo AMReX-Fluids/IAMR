@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.13 2007-01-21 04:57:00 lijewski Exp $
+c $Id: FLUCTFILE.F,v 1.14 2007-01-22 17:10:34 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -189,7 +189,7 @@ c
 
       implicit none
 
-      integer dimFile(3), i, j, k, n, proc, ncomp
+      integer dimFile(3), i, j, k, n, proc, ncomp, plane
       integer lo(3), hi(3), fileLo(3), FF_DIMDEC(dat), iflctfile(300)
       REAL_T dat(FF_DIMV(dat))
 
@@ -207,8 +207,10 @@ c
 c
 c     Read the Necessary Data
 c
+      plane = fileLo(3)
       do k = lo(3), hi(3)
-         call getplane(iflctfile(1), n, dat(lo(1),lo(2),k), k, ncomp)
+         call getplane(iflctfile(1), n, dat(lo(1),lo(2),k), plane, ncomp)
+         plane = plane + 1
       enddo
 
       END

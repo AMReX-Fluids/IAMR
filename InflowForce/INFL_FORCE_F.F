@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.13 2007-01-20 18:32:45 lijewski Exp $
+c $Id: INFL_FORCE_F.F,v 1.14 2007-01-22 17:10:34 lijewski Exp $
 c
 
 #undef BL_LANG_CC
@@ -47,7 +47,7 @@ c
       REAL_T inflDat(DIMV(inflDat)), probLo(SDIM), probHi(SDIM)
 
       integer lo(SDIM), hi(SDIM), nCmpFile
-      integer n, npass, filePnt, storePnt, filePntOld, npassOld,proc
+      integer n, npass, filePnt, storePnt, filePntOld, npassOld, proc
       REAL_T dtFile, timeMaxFile, timeOffset, timePnt,
      $       dtEstimate
       logical is_periodic
@@ -388,7 +388,6 @@ c     *** If the data can be filled in one pass, do so ***
 c
       if (hi(strmwse_dir) - baseArrayPnt + 1 
      $                        .LE. dimFile(strmwse_dir) - baseFilePnt + 1) then
-
         do n = 1, 3
           filLo(n) = 1
           loRd(n) = lo(n)
@@ -411,7 +410,6 @@ c
 c       Fill as much data as can be read without reading beyond the end of
 c       the file
 c
-
         do n = 1, 3
           filLo(n) = 1
           loRd(n) = lo(n)
@@ -421,6 +419,7 @@ c
         loRd(strmwse_dir) = baseArrayPnt
         hiRd(strmwse_dir) = loRd(strmwse_dir) + dimFile(strmwse_dir) 
      $                                                         - baseFilePnt
+
         do n = 1, nComp
           call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
      $                    dat(lo(1),lo(2),lo(3),n),n)
