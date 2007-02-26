@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.39 2006-09-11 18:02:39 almgren Exp $
+// $Id: MacOperator.cpp,v 1.40 2007-02-26 23:08:49 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -32,12 +32,29 @@ Real* fabdat = (fab).dataPtr();
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
+//
+// This is the default maxorder for the linear operator.
+//
+// To change this ParmParse in a new value for "macop.max_order"
+//
+static int max_order = 4;
 
 MacOperator::MacOperator (const BndryData& mgb,
                           const Real*      h)
     :
     ABecLaplacian(mgb,h)
-{}
+{
+    static bool first = true;
+
+    if (true)
+    {
+        first = false;
+
+        ParmParse pp("macop");
+
+        pp.query("max_order", max_order);
+    }
+}
 
 MacOperator::~MacOperator () {}
 
@@ -340,96 +357,99 @@ mac_level_driver (const MacBndry& mac_bndry,
                   MultiFab*       u_mac,
                   MultiFab*       mac_phi)
 {
-  BL_PROFILE("mac_level_driver");
-  MacOperator mac_op(mac_bndry,dx);
-  mac_op.setCoefficients(area,S,Density,dx);
-  mac_op.defRHS(area,volume,Rhs,u_mac,rhs_scale);
-  mac_op.maxOrder(2);
-  if (the_solver == 1 && mac_op.maxOrder() != 2)
+    BL_PROFILE("mac_level_driver");
+
+    MacOperator mac_op(mac_bndry,dx);
+
+    mac_op.setCoefficients(area,S,Density,dx);
+    mac_op.defRHS(area,volume,Rhs,u_mac,rhs_scale);
+    mac_op.maxOrder(max_order);
+
+    if (the_solver == 1 && mac_op.maxOrder() != 2)
     {
-      BoxLib::Error("Can't use CGSolver with maxorder > 2");
+        BoxLib::Error("Can't use CGSolver with maxorder > 2");
     }
-  //
-  // Construct MultiGrid or CGSolver object and solve system.
-  //
-  if (the_solver == 1)
+    //
+    // Construct MultiGrid or CGSolver object and solve system.
+    //
+    if (the_solver == 1)
     {
-      bool use_mg_precond = true;
-      CGSolver mac_cg(mac_op,use_mg_precond);
-      mac_cg.solve(*mac_phi,Rhs,mac_tol,mac_abs_tol);
+        bool use_mg_precond = true;
+        CGSolver mac_cg(mac_op,use_mg_precond);
+        mac_cg.solve(*mac_phi,Rhs,mac_tol,mac_abs_tol);
     }
-  else if (the_solver == 2 )
+    else if (the_solver == 2 )
     {
 #ifdef MG_USE_HYPRE
-      HypreABec hp(mac_phi->boxArray(), mac_bndry, dx, 0, false);
-      hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
-      hp.aCoefficients(mac_op.aCoefficients());
-      for ( int i = 0; i < BL_SPACEDIM; ++i )
-	{
-	  hp.bCoefficients(mac_op.bCoefficients(i), i);
-	}
-      hp.setup_solver(mac_tol, mac_abs_tol, 50);
-      hp.solve(*mac_phi, Rhs, true);
-      hp.clear_solver();
+        HypreABec hp(mac_phi->boxArray(), mac_bndry, dx, 0, false);
+        hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
+        hp.aCoefficients(mac_op.aCoefficients());
+        for ( int i = 0; i < BL_SPACEDIM; ++i )
+        {
+            hp.bCoefficients(mac_op.bCoefficients(i), i);
+        }
+        hp.setup_solver(mac_tol, mac_abs_tol, 50);
+        hp.solve(*mac_phi, Rhs, true);
+        hp.clear_solver();
 #else
-      BoxLib::Error("mac_level_driver::HypreABec not in this build");
+        BoxLib::Error("mac_level_driver::HypreABec not in this build");
 #endif
     }
-  else if (the_solver == 3 ) 
+    else if (the_solver == 3 ) 
     {
 #ifdef MG_USE_FBOXLIB
-      std::vector<BoxArray> bav(1);
-      bav[0] = mac_phi->boxArray();
-      std::vector<DistributionMapping> dmv(1);
-      dmv[0] = Rhs.DistributionMap();
-      bool nodal = false;
-      std::vector<Geometry> geom(1);
-      geom[0] = mac_bndry.getGeom();
+        std::vector<BoxArray> bav(1);
+        bav[0] = mac_phi->boxArray();
+        std::vector<DistributionMapping> dmv(1);
+        dmv[0] = Rhs.DistributionMap();
+        bool nodal = false;
+        std::vector<Geometry> geom(1);
+        geom[0] = mac_bndry.getGeom();
 
-      int mg_bc[2*BL_SPACEDIM];
-      for ( int i = 0; i < BL_SPACEDIM; ++i )
-      { 
-        if ( geom[0].isPeriodic(i) )
-        {
-          mg_bc[i*2 + 0] = 0;
-          mg_bc[i*2 + 1] = 0;
+        int mg_bc[2*BL_SPACEDIM];
+        for ( int i = 0; i < BL_SPACEDIM; ++i )
+        { 
+            if ( geom[0].isPeriodic(i) )
+            {
+                mg_bc[i*2 + 0] = 0;
+                mg_bc[i*2 + 1] = 0;
+            }
+            else
+            {
+                mg_bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+                mg_bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+            }
         }
-      else
+        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
+
+        const MultiFab* aa_p[1]; 
+        aa_p[0] = &(mac_op.aCoefficients());
+        const MultiFab* bb_p[1][BL_SPACEDIM];
+        for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-          mg_bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-          mg_bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+            bb_p[0][i] = &(mac_op.bCoefficients(i));
         }
-      }
-      MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
+        mgt_solver.set_mac_coefficients(aa_p, bb_p, mac_bndry);
 
-      const MultiFab* aa_p[1]; 
-      aa_p[0] = &(mac_op.aCoefficients());
-      const MultiFab* bb_p[1][BL_SPACEDIM];
-      for ( int i = 0; i < BL_SPACEDIM; ++i )
-      {
-          bb_p[0][i] = &(mac_op.bCoefficients(i));
-      }
-      mgt_solver.set_mac_coefficients(aa_p, bb_p, mac_bndry);
+        MultiFab* mac_phi_p[1];
+        MultiFab* Rhs_p[1];
+        mac_phi_p[0] = mac_phi;
+        Rhs_p[0] = &Rhs;
 
-      MultiFab* mac_phi_p[1];
-      MultiFab* Rhs_p[1];
-      mac_phi_p[0] = mac_phi;
-      Rhs_p[0] = &Rhs;
-
-      mgt_solver.solve(mac_phi_p, Rhs_p, mac_tol, mac_abs_tol, mac_bndry);
+        mgt_solver.solve(mac_phi_p, Rhs_p, mac_tol, mac_abs_tol, mac_bndry);
 #else
-      BoxLib::Error("mac_level_driver::mg_cpp not in this build");
+        BoxLib::Error("mac_level_driver::mg_cpp not in this build");
 #endif
     }
-  else
+    else
     {
-      MultiGrid mac_mg(mac_op);
-      mac_mg.solve(*mac_phi,Rhs,mac_tol,mac_abs_tol);
+        MultiGrid mac_mg(mac_op);
+        mac_mg.solve(*mac_phi,Rhs,mac_tol,mac_abs_tol);
     }
-  //
-  // velUpdate will set bndry values for mac_phi.
-  //
-  mac_op.velUpdate(u_mac,*mac_phi,S,Density,dx,-dt/2.0);
+    //
+    // velUpdate will set bndry values for mac_phi.
+    //
+    mac_op.velUpdate(u_mac,*mac_phi,S,Density,dx,-dt/2.0);
 }
 
 //
@@ -453,94 +473,97 @@ mac_sync_driver (const MacBndry& mac_bndry,
                  MultiFab*       rho_half,
                  MultiFab*       mac_sync_phi)
 {
-  BL_PROFILE("mac_sync_driver");
-  MacOperator mac_op(mac_bndry,dx);
-  mac_op.maxOrder(2);
-  mac_op.setCoefficients(area,*rho_half, 0, dx);
-  mac_op.syncRhs(volume,Rhs,rhs_scale,dx);
-  if (the_solver == 1 && mac_op.maxOrder() != 2)
+    BL_PROFILE("mac_sync_driver");
+
+    MacOperator mac_op(mac_bndry,dx);
+
+    mac_op.maxOrder(max_order);
+    mac_op.setCoefficients(area,*rho_half, 0, dx);
+    mac_op.syncRhs(volume,Rhs,rhs_scale,dx);
+
+    if (the_solver == 1 && mac_op.maxOrder() != 2)
     {
-      BoxLib::Error("Can't use CGSolver with maxorder > 2");
+        BoxLib::Error("Can't use CGSolver with maxorder > 2");
     }
-  //
-  // Now construct MultiGrid or CGSolver object to solve system.
-  //
-  if (the_solver == 1)
+    //
+    // Now construct MultiGrid or CGSolver object to solve system.
+    //
+    if (the_solver == 1)
     {
-      bool use_mg_precond = true;
-      CGSolver mac_cg(mac_op,use_mg_precond);
-      mac_cg.solve(*mac_sync_phi,Rhs,mac_sync_tol,mac_abs_tol);
+        bool use_mg_precond = true;
+        CGSolver mac_cg(mac_op,use_mg_precond);
+        mac_cg.solve(*mac_sync_phi,Rhs,mac_sync_tol,mac_abs_tol);
     }
-  else if ( the_solver == 2 )
+    else if ( the_solver == 2 )
     {
 #ifdef MG_USE_HYPRE
-      HypreABec hp(mac_sync_phi->boxArray(), mac_bndry, dx, 0, false);
-      hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
-      hp.aCoefficients(mac_op.aCoefficients());
-      for ( int i = 0; i < BL_SPACEDIM; ++i )
+        HypreABec hp(mac_sync_phi->boxArray(), mac_bndry, dx, 0, false);
+        hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
+        hp.aCoefficients(mac_op.aCoefficients());
+        for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-	  hp.bCoefficients(mac_op.bCoefficients(i), i);
+            hp.bCoefficients(mac_op.bCoefficients(i), i);
         }
-      hp.setup_solver(mac_sync_tol, mac_abs_tol, 50);
-      hp.solve(*mac_sync_phi, Rhs, true);
-      hp.clear_solver();
+        hp.setup_solver(mac_sync_tol, mac_abs_tol, 50);
+        hp.solve(*mac_sync_phi, Rhs, true);
+        hp.clear_solver();
 #else
-      BoxLib::Error("mac_sync_driver: HypreABec not in this build");
+        BoxLib::Error("mac_sync_driver: HypreABec not in this build");
 #endif
     }
-  else if (the_solver == 3 )
+    else if (the_solver == 3 )
     {
 #ifdef MG_USE_FBOXLIB
-      std::vector<BoxArray> bav(1);
-      bav[0] = mac_sync_phi->boxArray();
-      std::vector<DistributionMapping> dmv(1);
-      dmv[0] = Rhs.DistributionMap();
-      bool nodal = false;
-      std::vector<Geometry> geom(1);
-      geom[0] = mac_bndry.getGeom();
+        std::vector<BoxArray> bav(1);
+        bav[0] = mac_sync_phi->boxArray();
+        std::vector<DistributionMapping> dmv(1);
+        dmv[0] = Rhs.DistributionMap();
+        bool nodal = false;
+        std::vector<Geometry> geom(1);
+        geom[0] = mac_bndry.getGeom();
 
-      int mg_bc[2*BL_SPACEDIM];
-      for ( int i = 0; i < BL_SPACEDIM; ++i )
-      { 
-        if ( geom[0].isPeriodic(i) )
-        {
-          mg_bc[i*2 + 0] = 0;
-          mg_bc[i*2 + 1] = 0;
+        int mg_bc[2*BL_SPACEDIM];
+        for ( int i = 0; i < BL_SPACEDIM; ++i )
+        { 
+            if ( geom[0].isPeriodic(i) )
+            {
+                mg_bc[i*2 + 0] = 0;
+                mg_bc[i*2 + 1] = 0;
+            }
+            else
+            {
+                mg_bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+                mg_bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+            }
         }
-      else
+
+        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
+
+        const MultiFab* aa_p[1];
+        aa_p[0] = &(mac_op.aCoefficients());
+        const MultiFab* bb_p[1][BL_SPACEDIM];
+        for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-          mg_bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-          mg_bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+            bb_p[0][i] = &(mac_op.bCoefficients(i));
         }
-      }
+        mgt_solver.set_mac_coefficients(aa_p, bb_p, mac_bndry);
 
-      MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
+        MultiFab* mac_phi_p[1];
+        MultiFab* Rhs_p[1];
+        mac_phi_p[0] = mac_sync_phi;
+        Rhs_p[0] = &Rhs;
 
-      const MultiFab* aa_p[1];
-      aa_p[0] = &(mac_op.aCoefficients());
-      const MultiFab* bb_p[1][BL_SPACEDIM];
-      for ( int i = 0; i < BL_SPACEDIM; ++i )
-      {
-          bb_p[0][i] = &(mac_op.bCoefficients(i));
-      }
-      mgt_solver.set_mac_coefficients(aa_p, bb_p, mac_bndry);
-
-      MultiFab* mac_phi_p[1];
-      MultiFab* Rhs_p[1];
-      mac_phi_p[0] = mac_sync_phi;
-      Rhs_p[0] = &Rhs;
-
-      mgt_solver.solve(mac_phi_p, Rhs_p, mac_sync_tol, mac_abs_tol, mac_bndry);
+        mgt_solver.solve(mac_phi_p, Rhs_p, mac_sync_tol, mac_abs_tol, mac_bndry);
 #else
-      BoxLib::Error("mac_sync_driver::mg_cpp not in this build");
+        BoxLib::Error("mac_sync_driver::mg_cpp not in this build");
 #endif
     }
-  else
+    else
     {
-      MultiGrid mac_mg(mac_op);
-      mac_mg.solve(*mac_sync_phi,Rhs,mac_sync_tol,mac_abs_tol);
+        MultiGrid mac_mg(mac_op);
+        mac_mg.solve(*mac_sync_phi,Rhs,mac_sync_tol,mac_abs_tol);
     }
     
-  int mac_op_lev = 0;
-  mac_op.applyBC(*mac_sync_phi,0,1,mac_op_lev);
+    int mac_op_lev = 0;
+    mac_op.applyBC(*mac_sync_phi,0,1,mac_op_lev);
 }
