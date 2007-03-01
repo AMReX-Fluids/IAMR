@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.42 2006-11-09 22:09:24 marc Exp $
+# $Id: GNUmakefile,v 1.43 2007-03-01 21:29:59 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -13,8 +13,8 @@ TOP = $(PBOXLIB_HOME)
 PRECISION = DOUBLE
 DEBUG	  = TRUE
 DEBUG	  = FALSE
-PROFILE   = TRUE
 PROFILE   = FALSE
+PROFILE   = TRUE
 DIM       = 3
 COMP	  = Intel
 FCOMP     = Intel
@@ -81,6 +81,7 @@ ifeq ($(USE_ARRAYVIEW),TRUE)
 endif
 
 Bdirs := BoxLib iamrlib amrlib tensorMG mglib bndrylib 
+
 ifeq ($(USE_FLCTS),TRUE)
   Bdirs += iamrlib/InflowForce
 endif
@@ -135,8 +136,10 @@ vpath %.f90 $(VPATH_LOCATIONS)
 all: $(executable)
 
 ifeq ($(WHICHLINUX), COLUMBIA)
+o/3d.Linux.Intel.Intel.PROF.MPI.EXE/amr_real3d.2.o:
+	ifort -module o/3d.Linux.Intel.Intel.PROF.MPI.EXE -O3 -hlo0 -ip  -I. -I.. -I. -I../../LMC/ -I../../iamrlib/ -I../../tensorMG/ -I../../hgproj/ -I../../mglib/ -I../../amrlib/ -I../../bndrylib/ -I../../BoxLib/ -I../../iamrlib/InflowForce -I../../pAmrvis -I../../iamrlib/InflowForce -c  ../../hgproj/amr_real3d.2.f -o o/3d.Linux.Intel.Intel.PROF.MPI.EXE/amr_real3d.2.o
 o/3d.Linux.Intel.Intel.MPI.EXE/amr_real3d.2.o:
-	ifort -module o/3d.Linux.Intel.Intel.PROF.MPI.EXE -O3 -hlo0 -ip  -I. -I.. -I. -I../../LMC/ -I../../iamrlib/ -I../../tensorMG/ -I../../hgproj/ -I../../mglib/ -I../../amrlib/ -I../../bndrylib/ -I../../BoxLib/ -I../../iamrlib/InflowForce -I../../pAmrvis -I../../iamrlib/InflowForce -c  ../../hgproj/amr_real3d.2.f -o o/3d.Linux.Intel.Intel.MPI.EXE/amr_real3d.2.o
+	ifort -module o/3d.Linux.Intel.Intel.MPI.EXE -O3 -hlo0 -ip  -I. -I.. -I. -I../../LMC/ -I../../iamrlib/ -I../../tensorMG/ -I../../hgproj/ -I../../mglib/ -I../../amrlib/ -I../../bndrylib/ -I../../BoxLib/ -I../../iamrlib/InflowForce -I../../pAmrvis -I../../iamrlib/InflowForce -c  ../../hgproj/amr_real3d.2.f -o o/3d.Linux.Intel.Intel.MPI.EXE/amr_real3d.2.o
 o/3d.Linux.Intel.Intel.EXE/amr_real3d.2.o:
 	ifort -module o/3d.Linux.Intel.Intel.EXE -O3 -hlo0 -ip -I. -I. -I../../BoxLib -I../../iamrlib -I../../amrlib -I../../tensorMG -I../../mglib -I../../bndrylib -I../../iamrlib/InflowForce -I../../hgproj -c  ../../hgproj/amr_real3d.2.f -o o/3d.Linux.Intel.Intel.EXE/amr_real3d.2.o
 endif
