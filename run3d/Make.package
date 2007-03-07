@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.4 2006-11-09 22:09:24 marc Exp $
+# $Id: Make.package,v 1.5 2007-03-07 21:46:21 lijewski Exp $
 #
 CEXE_sources += NS_setup.cpp NSBld.cpp
 FEXE_headers += probdata.H PROB_F.H
@@ -9,4 +9,6 @@ ifeq (${USE_FLCTS}, TRUE)
   FEXE_sources += FLUCTFILE.F INFL_FORCE_$(DIM)D.F INFL_FORCE_F.F
 endif
 
-fEXE_sources += vswirl.f
+ifeq (${USE_SWIRL_DATA}, TRUE)
+  fEXE_sources += vswirl.f
+endif
