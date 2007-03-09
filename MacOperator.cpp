@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.40 2007-02-26 23:08:49 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.41 2007-03-09 00:17:07 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -46,7 +46,7 @@ MacOperator::MacOperator (const BndryData& mgb,
 {
     static bool first = true;
 
-    if (true)
+    if (first)
     {
         first = false;
 
