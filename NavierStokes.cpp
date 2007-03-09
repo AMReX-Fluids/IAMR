@@ -2748,24 +2748,26 @@ NavierStokes::volWgtSum (const std::string& name,
     MultiFab*   mf      = derive(name,time,0);
     Array<Real> tmp;
 
+    BoxArray baf;
+
+    if (level < parent->finestLevel())
+    {
+        baf = parent->boxArray(level+1);
+
+        baf.coarsen(fine_ratio);
+    }
+
     for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
     {
         FArrayBox& fab = (*mf)[mfi];
 
         if (level < parent->finestLevel())
         {
-            const BoxArray& f_box = parent->boxArray(level+1);
+            std::vector< std::pair<int,Box> > isects = baf.intersections(grids[mfi.index()]);
 
-            for (int j = 0; j < f_box.size(); j++)
+            for (int ii = 0; ii < isects.size(); ii++)
             {
-                Box c_box = BoxLib::coarsen(f_box[j],fine_ratio);
-
-                Box isect = c_box & grids[mfi.index()];
-
-                if (isect.ok())
-                {
-                    fab.setVal(0,isect,0);
-                }
+                fab.setVal(0,isects[ii].second,0);
             }
         }
         Real        s;
