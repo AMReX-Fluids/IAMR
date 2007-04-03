@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.40 2007-01-19 23:38:57 lijewski Exp $
+# $Id: GNUmakefile,v 1.41 2007-04-03 17:38:58 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -9,18 +9,20 @@ TOP = $(PBOXLIB_HOME)
 #
 # Variables for the user to set ...
 #
-PRECISION = DOUBLE
-DEBUG	  = FALSE
-DEBUG	  = TRUE
-PROFILE   = FALSE
-DIM	  = 2
-COMP	  = Intel
-FCOMP	  = Intel
-USE_MPI   = TRUE
-USE_MPI   = FALSE
+PRECISION   = DOUBLE
+DEBUG       = FALSE
+DEBUG       = TRUE
+PROFILE     = FALSE
+DIM         = 2
+COMP        = Intel
+FCOMP       = Intel
+USE_MPI     = TRUE
+USE_MPI     = FALSE
 USE_THREADS = TRUE
 USE_THREADS = FALSE
-EBASE     = amr
+USE_XT3     = FALSE
+
+EBASE = amr
 
 include $(TOP)/mk/Make.defs 
 include ./Make.package
@@ -33,6 +35,23 @@ Bpack	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
 
 include $(Bpack)
+
+ifeq ($(USE_XT3),TRUE)
+  LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
+  DEFINES += -DBL_PGI -DMPICH_SKIP_MPICXX -DBL_XT3
+ifeq ($(USE_MPI),TRUE)
+  CXX := CC -target=catamount
+  FC  := ftn -target=catamount
+  fC  := ftn -target=catamount
+else
+  CXX := pgCC
+  FC  := pgf90
+  fC  := pgf90
+endif
+  CXXOPTF += -O -fastsse -Minline=levels:10 --no_exceptions
+  FOPTF   += -O -fastsse -Minline=levels:10
+  fOPTF   += -O -fastsse -Minline=levels:10
+endif
 
 ifdef FBOXLIB_HOME
   DEFINES += -DMG_USE_FBOXLIB
