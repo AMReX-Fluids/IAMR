@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.44 2007-04-03 17:39:53 lijewski Exp $
+# $Id: GNUmakefile,v 1.45 2007-04-03 23:04:05 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -71,7 +71,7 @@ else
   FC  := pgf90
   fC  := pgf90
 endif
-  CXXOPTF += -O -fastsse -Minline=levels:10 --no_exceptions
+  CXXOPTF += -O -Minline=levels:10 --no_exceptions
   FOPTF   += -O -fastsse -Minline=levels:10
   fOPTF   += -O -fastsse -Minline=levels:10
 endif
