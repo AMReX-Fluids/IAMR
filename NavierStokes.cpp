@@ -5822,9 +5822,35 @@ NavierStokes::create_umac_grown ()
             getLevel(level-1).geom.FillPeriodicBoundary(crseT,0,1);
             //
             // crse_src & fine_src must have same parallel distribution.
+            // We'll use the KnapSack distribution for the fine_src_ba.
+            // Since fine_src_ba should contain more points, this'll lead
+            // to a better distribution.
             //
-            MultiFab crse_src(BoxArray(c_bnd_ba).surroundingNodes(n), 1, 0);
-	    MultiFab fine_src(BoxArray(f_bnd_ba).surroundingNodes(n), 1, 0);
+            BoxArray crse_src_ba(c_bnd_ba);
+            BoxArray fine_src_ba(f_bnd_ba);
+
+            crse_src_ba.surroundingNodes(n);
+            fine_src_ba.surroundingNodes(n);
+
+            std::vector<long> wgts(fine_src_ba.size());
+
+            for (unsigned int i = 0; i < wgts.size(); i++)
+            {
+                wgts[i] = fine_src_ba[i].numPts();
+            }
+            DistributionMapping dm;
+            //
+            // This call doesn't invoke the MinimizeCommCosts() stuff.
+            // There's very little to gain with these types of coverings
+            // of trying to use SFC or anything else.
+            // This also guarantees that these DMs won't be put into the
+            // cache, as it's not representative of that used for more
+            // usual MultiFabs.
+            //
+            dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
+
+            MultiFab crse_src; crse_src.define(crse_src_ba, 1, 0, dm, Fab_allocate);
+	    MultiFab fine_src; fine_src.define(fine_src_ba, 1, 0, dm, Fab_allocate);
 
             crse_src.setVal(1.e200);
             crse_src.copy(crseT);
