@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.29 2006-09-06 17:31:04 lijewski Exp $
+// $Id: MacOutFlowBC.cpp,v 1.30 2007-04-16 18:14:56 almgren Exp $
 //
 #include <winstd.H>
 
@@ -55,6 +55,23 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
                          int               numOutFlowFaces,
                          const int*        lo_bc,
                          const int*        hi_bc,
+                         Real              gravity)
+{
+  Real small_udiff = 1.e-10;
+  computeBC (velMF,divuMF,rhoMF,phiMF,geom,outFaces,numOutFlowFaces,lo_bc,hi_bc,small_udiff,gravity);
+}
+
+void 
+MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
+                         FArrayBox         divuMF[2*BL_SPACEDIM],
+                         FArrayBox         rhoMF[2*BL_SPACEDIM],
+                         FArrayBox         phiMF[2*BL_SPACEDIM],
+                         const Geometry&   geom, 
+                         Orientation*      outFaces,
+                         int               numOutFlowFaces,
+                         const int*        lo_bc,
+                         const int*        hi_bc,
+                         Real              small_udiff,
                          Real              gravity)
 {
     BL_ASSERT(numOutFlowFaces <= 2*BL_SPACEDIM);
@@ -180,8 +197,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
         ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
         ARLIM(ccElo),ARLIM(ccEhi),rhoEPtr,
         dx,
-        origLo,origHi,&faces[iface],isPeriodicFiltered[iface],&zeroIt[iface]);
-
+        origLo,origHi,&faces[iface],isPeriodicFiltered[iface],&zeroIt[iface],&small_udiff);
     }
 
     int connected = 0;

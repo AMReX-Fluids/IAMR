@@ -20,7 +20,7 @@
       subroutine FORT_EXTRAP_MAC(DIMS(u0),u0,DIMS(u1),u1,DIMS(u2),u2,DIMS(div),
      &                           divu,DIMS(rho),rho,
      &                           DIMS(divuExt),divuExt,DIMS(rhoExt),rhoExt,
-     &                           dx,lo,hi,face,per,zeroIt)
+     &                           dx,lo,hi,face,per,zeroIt,small_udiff)
 c
 c     Compute the value of phi for macproj 
 c     assuming that the tangential velocity on the edges of the outflow boundary
@@ -50,12 +50,11 @@ c    compute divu_ave twice due to precision problems
       integer per(2)
       integer zeroIt
       integer face
+      REAL_T small_udiff
 
 c     Local variables
       REAL_T small_pert
-      REAL_T small_udiff
       parameter ( small_pert = SMALL)
-      parameter (small_udiff = SMALL)
       REAL_T max_divu, min_divu, max_pert
       REAL_T divu_ave1,divu_ave2
       REAL_T hx,hy,hz  

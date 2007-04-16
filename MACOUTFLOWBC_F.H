@@ -139,7 +139,7 @@ extern "C" {
 			  ARLIM_P(rhoE_lo), ARLIM_P(rhoE_hi), const Real* rhoE,
 			  const Real* dx,
 			  const int* faceLo, const int* faceHi,
-			  int* face, int* per, int* zeroIt);
+			  int* face, int* per, int* zeroIt, Real* small_udiff);
 
     void FORT_MACRELAX (ARLIM_P(rhslo), ARLIM_P(rhshi), const Real* rhs,
 			ARLIM_P(beta0lo), ARLIM_P(beta0hi), const Real* beta0,

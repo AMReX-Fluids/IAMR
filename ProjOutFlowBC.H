@@ -2,7 +2,7 @@
 #define _PROJOUTFLOWBC_H_
 
 //
-// $Id: ProjOutFlowBC.H,v 1.10 2003-09-11 21:10:14 almgren Exp $
+// $Id: ProjOutFlowBC.H,v 1.11 2007-04-16 18:14:56 almgren Exp $
 //
 
 #include "FArrayBox.H"
@@ -35,7 +35,19 @@ public:
                     int               numOutFlowFaces,
                     const int*        lo_bc,
                     const int*        hi_bc,
-                    Real              gravity = 0.0);
+                    Real              gravity);
+
+    void computeBC (FArrayBox         velFab[][2*BL_SPACEDIM],
+                    FArrayBox         divuFab[2*BL_SPACEDIM],
+                    FArrayBox         rhoFab[2*BL_SPACEDIM],
+                    FArrayBox         phiFab[2*BL_SPACEDIM],
+                    const Geometry&   geom,
+                    Orientation*      outFaces,
+                    int               numOutFlowFaces,
+                    const int*        lo_bc,
+                    const int*        hi_bc,
+                    Real              small_udiff,
+                    Real              gravity);
 
     void computeRhoG (FArrayBox*         rhoFab,
                       FArrayBox*         phiFab,

@@ -2,7 +2,7 @@
 #define _MACOUTFLOWBC_H_
 
 //
-// $Id: MacOutFlowBC.H,v 1.11 2003-09-11 21:10:14 almgren Exp $
+// $Id: MacOutFlowBC.H,v 1.12 2007-04-16 18:14:56 almgren Exp $
 //
 
 #include "FArrayBox.H"
@@ -35,7 +35,19 @@ public:
                     int               numOutFlowFaces,
                     const int*        lo_bc,
                     const int*        hi_bc,
-                    Real              gravity = 0.0);
+                    Real              gravity);
+
+    void computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
+                    FArrayBox         divuMF[2*BL_SPACEDIM],
+                    FArrayBox         rhoMF[2*BL_SPACEDIM],
+                    FArrayBox         phiMF[2*BL_SPACEDIM],
+                    const Geometry&   geom,
+                    Orientation*      outFaces,
+                    int               numOutFlowFaces,
+                    const int*        lo_bc,
+                    const int*        hi_bc,
+                    Real              small_udiff,
+                    Real              gravity);
 
 protected:
 

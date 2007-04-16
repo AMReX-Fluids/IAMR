@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.33 2006-09-13 18:03:02 lijewski Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.34 2007-04-16 18:14:56 almgren Exp $
 //
 #include <winstd.H>
 
@@ -56,6 +56,22 @@ ProjOutFlowBC::ProjOutFlowBC ()
 }
 
 #if 1
+void 
+ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
+                          FArrayBox        divuMF[2*BL_SPACEDIM],
+                          FArrayBox        rhoMF[2*BL_SPACEDIM],
+                          FArrayBox        phiMF[2*BL_SPACEDIM],
+                          const Geometry&   geom, 
+                          Orientation*      outFaces,
+                          int               numOutFlowFaces,
+                          const int*        lo_bc,
+                          const int*        hi_bc,
+                          Real              small_udiff,
+                          Real              gravity)
+{
+  computeBC (velMF,divuMF,rhoMF,phiMF,geom,outFaces,numOutFlowFaces,lo_bc,hi_bc,gravity);
+}
+
 void 
 ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                           FArrayBox        divuMF[2*BL_SPACEDIM],

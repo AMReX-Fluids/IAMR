@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.107 2006-11-15 21:14:12 aaspden Exp $
+// $Id: MacProj.cpp,v 1.108 2007-04-16 18:14:56 almgren Exp $
 //
 #include <winstd.H>
 
@@ -1236,7 +1236,7 @@ MacProj::set_outflow_bcs (int             level,
       const int* lo_bc = phys_bc->lo();
       const int* hi_bc = phys_bc->hi();
       macBC.computeBC(uedat, divudat, rhodat, phidat,
-		      geom, outFaces, numOutFlowFaces, lo_bc, hi_bc, gravity);
+		      geom, outFaces, numOutFlowFaces, lo_bc, hi_bc, umac_periodic_test_Tol, gravity);
 
       // Must do this kind of copy instead of mac_phi->copy(phidat);
       //   because we're copying onto the ghost cells of the FABs,
