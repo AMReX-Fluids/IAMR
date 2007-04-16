@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_3D.F,v 1.4 2004-01-07 23:54:18 lijewski Exp $
+c $Id: INFL_FORCE_3D.F,v 1.5 2007-04-16 18:27:06 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -73,6 +73,7 @@ c :::
       REAL_T probLo(SDIM), probHi(SDIM)
       REAL_T inflDat(DIMV(inflDat))
       REAL_T storDat(FF_DIMV(storDat),nCompStorDat)
+      REAL_T lengthFile1, lengthFile2
 
       integer i, j, k, iloc, jloc, kloc, ixcalc, jycalc, kzcalc
       integer lo(SDIM), hi(SDIM), n_lev_cells(SDIM)
@@ -303,7 +304,12 @@ c
 c
 c     :::: Streamwise Z-direction ::::
 c
+c      write (*,*) "dx,lo,hi(1):",dxFile(1),xloFile(1),xhiFile(1)
+c      write (*,*) "dx,lo,hi(2):",dxFile(2),xloFile(2),xhiFile(2)
+      lengthFile1 = (xhiFile(1)-xloFile(1))-dxFile(1)*two
+      lengthFile2 = (xhiFile(2)-xloFile(2))-dxFile(2)*two
       do j = lo(2), hi(2)
+#if 1
         jycalc = j
         if (bc(2,1) .eq. INT_DIR .and. j .lt. 0) then
           jycalc = j + n_lev_cells(2)
@@ -311,6 +317,15 @@ c
           jycalc = j - n_lev_cells(2)
         endif
         y = probLo(2) + dx(2)*(float(jycalc) + half)
+#else
+        y = probLo(2) + dx(2)*(float(j) + half)
+        do while (y.gt.xhiFile(2)-dxFile(2))
+           y = y - lengthFile2
+        end do
+        do while (y.lt.xloFile(2)+dxFile(2))
+           y = y + lengthFile2
+        end do
+#endif
 
         if (xloFile(2) .le. y .and. y .le. xhiFile(2)) then
           jloc = (y - xloFile(2) + half*dxFile(2))/dxFile(2) + 1
@@ -325,6 +340,7 @@ c
         endif
 
         do i = lo(1), hi(1)
+#if 1
           ixcalc = i
           if (bc(1,1) .eq. INT_DIR .and. i .lt. 0) then
             ixcalc = i + n_lev_cells(1)
@@ -332,6 +348,15 @@ c
             ixcalc = i - n_lev_cells(1)
           endif
           x = probLo(1) + dx(1)*(float(ixcalc) + half)
+#else
+          x = probLo(1) + dx(1)*(float(i) + half)
+          do while (x.gt.xhiFile(1)-dxFile(1))
+             x = x - lengthFile1
+          end do
+          do while (x.lt.xloFile(1)+dxFile(1))
+             x = x + lengthFile1
+          end do
+#endif
 
           if ((xloFile(1) .le. x .and. x .le. xhiFile(1)) .and. 
      $        (xloFile(2) .le. y .and. y .le. xhiFile(2))) then
