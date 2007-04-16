@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.89 2006-11-15 21:14:12 aaspden Exp $
+// $Id: NavierStokes.H,v 1.90 2007-04-16 18:22:33 aaspden Exp $
 //
 
 #include <LevelBld.H>
@@ -138,6 +138,11 @@ public:
 
     Real volWgtSum (const std::string& name,
                     Real           time);
+
+    void TurbSum   (Real time, 
+		    Real *tmp,
+		    int  ksize,
+		    int  turbVars);
     //
     // A string written as the first item in writePlotFile() at level zero.
     // It is so we can distinguish between different types of plot files.
@@ -242,6 +247,8 @@ protected:
     static void read_geometry (); // Set metrics
 
     virtual void sum_integrated_quantities ();
+
+    virtual void sum_turbulent_quantities ();
     //
     // Setup, clean up for a level timestep.
     //
@@ -742,6 +749,7 @@ protected:
     static int  initial_step;  // flag for initial iterations
     static Real dt_cutoff;     // minimum dt allowed
     static int  sum_interval;  // number of timesteps for conservation stats
+    static int  turb_interval; // number of timesteps for turbulence stats
     //
     // Internal parameters for options.
     //
@@ -781,6 +789,11 @@ protected:
     static int  do_refine_outflow;          // The following three items control
     static int  do_derefine_outflow;        //   how grids are treated at 
     static int  Nbuf_outflow;               //   outflow boundaries.
+    static int  do_denminmax;               // AJA - The code for these was in NavierStokes.cpp, 
+    static int  do_scalminmax;              //       but the flags were not declared or read in.
+    static int  do_density_ref;             // AJA - Flags added for refinement control
+    static int  do_tracer_ref;
+    static int  do_vorticity_ref;
     //
     // Member when pressure defined at points in time rather than interval
     //

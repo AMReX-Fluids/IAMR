@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.49 2004-12-04 17:35:37 car Exp $
+// $Id: NS_setup.cpp,v 1.50 2007-04-16 18:22:33 aaspden Exp $
 //
 
 #include <winstd.H>
@@ -349,11 +349,61 @@ NavierStokes::variableSetUp ()
     //
     derive_lst.add("gradpz",IndexType::TheCellType(),1,FORT_DERGRDPZ,the_same_box);
     derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
+
+#ifdef BUILDING_IAMR
+    //
+    // forcing - used to calculate the rate of injection of energy in probtype 14 (HIT)
+    //
+    derive_lst.add("forcing",IndexType::TheCellType(),1,FORT_DERFORCING,the_same_box);
+    derive_lst.addComponent("forcing",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("forcing",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
+    // forcex - used to put the forcing term in the plot file
+    //
+    derive_lst.add("forcex",IndexType::TheCellType(),1,FORT_DERFORCEX,the_same_box);
+    derive_lst.addComponent("forcex",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("forcex",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
+    // forcey - used to put the forcing term in the plot file
+    //
+    derive_lst.add("forcey",IndexType::TheCellType(),1,FORT_DERFORCEY,the_same_box);
+    derive_lst.addComponent("forcey",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("forcey",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
+    // forcez - used to put the forcing term in the plot file
+    //
+    derive_lst.add("forcez",IndexType::TheCellType(),1,FORT_DERFORCEZ,the_same_box);
+    derive_lst.addComponent("forcez",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("forcez",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
+    // Turbulence Variable - for integrating on the fly
+    //
+    derive_lst.add("TurbVars",IndexType::TheCellType(),4,FORT_DERTURBVARS,the_same_box);
+    derive_lst.addComponent("TurbVars",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("TurbVars",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
+    // Pressure stuff for on-the-fly integration
+    //
+    derive_lst.add("PresVars",IndexType::TheCellType(),4,FORT_DERPRESVARS,
+                   the_same_box);
+    derive_lst.addComponent("PresVars",desc_lst,Press_Type,Pressure,1);
+    // BUILDING IAMR
+#endif
+    // DIMS = 3
 #endif
     //
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
     //
-    err_list.add("density", 1, ErrorRec::Special, FORT_DENERROR);
-    err_list.add("tracer",1,ErrorRec::Special,FORT_ADVERROR);
-    err_list.add("mag_vort",0,ErrorRec::Special,FORT_MVERROR);
+    if (do_density_ref)   {
+        err_list.add("density",  1, ErrorRec::Special, FORT_DENERROR);
+        if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on DENSITY" << std::endl;
+    }
+    if (do_tracer_ref)    {
+        err_list.add("tracer",   1, ErrorRec::Special, FORT_ADVERROR);
+        if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on TRACER" << std::endl;
+    }
+    if (do_vorticity_ref) {
+        err_list.add("mag_vort", 0, ErrorRec::Special, FORT_MVERROR);
+        if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on MAG_VORT" << std::endl;
+    }
 }

@@ -68,6 +68,7 @@ int  NavierStokes::initial_step = false;
 int  NavierStokes::initial_iter = false;
 int  NavierStokes::radius_grow  = 1;
 int  NavierStokes::sum_interval = -1;
+int  NavierStokes::turb_interval= -1;
 int  NavierStokes::NUM_SCALARS  = 0;
 int  NavierStokes::NUM_STATE    = 0;
 
@@ -106,6 +107,11 @@ int  NavierStokes::do_refine_outflow          = 0;
 int  NavierStokes::do_derefine_outflow        = 1;
 int  NavierStokes::Nbuf_outflow               = 1;
 int  NavierStokes::do_running_statistics      = 0;
+int  NavierStokes::do_denminmax               = 0;
+int  NavierStokes::do_scalminmax              = 0;
+int  NavierStokes::do_density_ref             = 0;
+int  NavierStokes::do_tracer_ref              = 0;
+int  NavierStokes::do_vorticity_ref           = 0;
 
 int  NavierStokes::Dpdt_Type                  = -1;
 
@@ -196,7 +202,7 @@ GetBndryCells (const BoxArray& ba,
         gcells.catenate(bcells);
     }
 
-    //gcells.simplify();
+    gcells.simplify();
 
     return BoxArray(gcells);
 }
@@ -318,6 +324,7 @@ NavierStokes::read_params ()
     pp.query("change_max",change_max);
     pp.query("fixed_dt",fixed_dt);
     pp.query("sum_interval",sum_interval);
+    pp.query("turb_interval",turb_interval);
     pp.query("gravity",gravity);
 
     //
@@ -333,6 +340,11 @@ NavierStokes::read_params ()
     pp.query("do_init_proj",             do_init_proj     );
     pp.query("do_mac_proj",              do_mac_proj      );
     pp.query("do_divu_sync",             do_divu_sync     );
+    pp.query("do_denminmax",             do_denminmax     );
+    pp.query("do_scalminmax",            do_scalminmax    );
+    pp.query("do_density_ref",           do_density_ref   );
+    pp.query("do_tracer_ref",            do_tracer_ref    );
+    pp.query("do_vorticity_ref",         do_vorticity_ref );
 
     //
     // Make sure we don't use divu_sync.
@@ -2162,6 +2174,7 @@ NavierStokes::scalar_advection_update (Real dt,
     MultiFab&  S_new    = get_new_data(State_Type);
     MultiFab&  Aofs     = *aofs;
     const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
+    const Real prev_time= state[State_Type].prevTime();
     Array<int> state_bc;
     FArrayBox  tforces;
     //
@@ -2180,10 +2193,9 @@ NavierStokes::scalar_advection_update (Real dt,
             godunov->Add_aofs_tf(S_old[S_oldmfi],S_new[S_oldmfi],Density,1,
                                  Aofs[S_oldmfi],Density,tforces,0,grids[i],dt);
         }
-#if 0
+#if 1
         // Call ScalMinMax to avoid overshoots in density
         if (do_denminmax) {
-
           // Must do FillPatch here instead of MF iterator because we need the
           //  boundary values in the old data (especially at inflow)
 
@@ -2227,7 +2239,7 @@ NavierStokes::scalar_advection_update (Real dt,
         }
     }
 
-#if 0
+#if 1
     // Call ScalMinMax to avoid overshoots in the scalars 
     if ( do_scalminmax && (sComp <= last_scalar) )
     {
@@ -2818,6 +2830,7 @@ NavierStokes::sum_integrated_quantities ()
 //    Real mass = 0.0;
 //    Real trac = 0.0;
     Real energy = 0.0;
+    Real forcing = 0.0;
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
@@ -2825,6 +2838,8 @@ NavierStokes::sum_integrated_quantities ()
 //        mass += ns_level.volWgtSum("density",time);
 //        trac += ns_level.volWgtSum("tracer",time);
         energy += ns_level.volWgtSum("energy",time);
+	if (BL_SPACEDIM==3)
+	    forcing += ns_level.volWgtSum("forcing",time);
     }
 
     if (ParallelDescriptor::IOProcessor())
@@ -2834,9 +2849,143 @@ NavierStokes::sum_integrated_quantities ()
 //        std::cout << "TIME= " << time << " MASS= " << mass << '\n';
 //        std::cout << "TIME= " << time << " TRAC= " << trac << '\n';
         std::cout << "TIME= " << time << " KENG= " << energy << '\n';
+	if (BL_SPACEDIM==3)
+	    std::cout << "TIME= " << time << " FORC= " << forcing << '\n';
         std::cout.precision(old_prec);
     }
 }
+
+void
+NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
+{
+    const Real* dx = geom.CellSize();
+
+    int turbGrow(1);
+    int presGrow(0);
+    MultiFab* TurbMF = derive("TurbVars",time,turbGrow);
+    MultiFab* PresMF = derive("PresVars",time,presGrow);
+
+    for (MFIter turbMfi(*TurbMF), presMfi(*PresMF);
+	 turbMfi.isValid(), presMfi.isValid();
+	 ++turbMfi, ++presMfi) {
+
+	FArrayBox& turbFab = (*TurbMF)[turbMfi];
+	FArrayBox& presFab = (*PresMF)[presMfi];
+
+        if (level < parent->finestLevel()) {
+            const BoxArray& f_box = parent->boxArray(level+1);
+            for (int j = 0; j < f_box.size(); j++) {
+
+                Box c_box = BoxLib::coarsen(f_box[j],fine_ratio);
+
+                Box turbIsect = c_box & grids[turbMfi.index()];
+                if (turbIsect.ok())
+                    turbFab.setVal(0,turbIsect,0);
+
+                Box presIsect = c_box & grids[presMfi.index()];
+                if (presIsect.ok())
+                    presFab.setVal(0,presIsect,0);
+            }
+        }
+
+        const Real* turbData = turbFab.dataPtr();
+        const Real* presData = presFab.dataPtr();
+        const int*  dlo = turbFab.loVect();
+        const int*  dhi = turbFab.hiVect();
+        const int*  lo  = grids[turbMfi.index()].loVect();
+        const int*  hi  = grids[turbMfi.index()].hiVect();
+
+        FORT_SUMTURB(turbData,presData,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+		     dx,turb,&ksize,&turbVars);
+    }
+    delete TurbMF;
+    delete PresMF;
+
+}
+
+void
+NavierStokes::sum_turbulent_quantities ()
+{
+    Real time = state[State_Type].curTime();
+    const int finestLevel = parent->finestLevel();
+    const Real *dx = parent->Geom(finestLevel).CellSize();
+    int ksize(parent->Geom(finestLevel).Domain().length(2));
+    int turbVars(33);
+    int refRatio(1);
+
+    Real *turb;
+    turb = (Real*)malloc(turbVars*ksize*sizeof(Real));
+    if (turb==NULL) {std::cout << "Error: Couldn't allocate turb stats memory" << std::endl; return;}
+    for (int i=0; i<turbVars*ksize; i++) turb[i]=0.;
+
+    for (int lev = finestLevel; lev >= 0; lev--) {
+
+	int levKsize(parent->Geom(lev).Domain().length(2));
+
+	Real *levTurb;
+	levTurb = (Real*)malloc(turbVars*levKsize*sizeof(Real));
+	if (levTurb==NULL) {std::cout << "Error: Couldn't allocate turb stats memory" << std::endl; return;}
+	for (int i=0; i<turbVars*levKsize; i++) levTurb[i]=0.;
+    
+        NavierStokes& ns_level = getLevel(lev);
+	ns_level.TurbSum(time,levTurb,levKsize,turbVars);
+
+	if (lev<finestLevel)  refRatio *= parent->refRatio(lev)[2];
+	else                  refRatio  = 1;
+
+	for (int l=0, k=0; l<levKsize; l++)
+	    for (int r=0; r<refRatio; r++, k++)
+		for (int v=0; v<turbVars; v++)
+		    turb[k*turbVars+v] += levTurb[l*turbVars+v];
+
+	free(levTurb);
+    }
+
+    for (int k=0; k<ksize*turbVars; k++) 
+	ParallelDescriptor::ReduceRealSum(turb[k], ParallelDescriptor::IOProcessorNumber());
+
+    if (ParallelDescriptor::IOProcessor()) {
+      std::string DirPath = "TurbData";
+      if (!BoxLib::UtilCreateDirectory(DirPath, 0755))
+	BoxLib::CreateDirectoryFailed(DirPath);
+
+      int steps = parent->levelSteps(0);
+      FILE *file;
+      char filename[256];
+      sprintf(filename,"TurbData/TurbData_%04d.dat",steps);
+      file = fopen(filename,"w");
+      for (int k=0; k<ksize; k++) {
+	  fprintf(file,"%e ",dx[2]*(0.5+(double)k));
+	  for (int v=0; v<turbVars; v++)
+	      fprintf(file,"%e ",turb[k*turbVars+v]);
+	  fprintf(file,"\n");
+      }
+      fclose(file);
+    }
+    
+    free(turb);
+
+}
+
+    //Geometry   geom       = parent->Geom(finestLevel);
+    //RealBox    probDomain = geom.ProbDomain();
+    //Box        domain     = geom.Domain();
+    //CoordSys   cs         = (CoordSys&) geom;
+    //std::cout << "parent->Geom(finestLevel) = " << parent->Geom(finestLevel) << std::endl;
+    //std::cout << "geom = " << geom << std::endl;
+    //std::cout << "probDomain = " << probDomain << std::endl;
+    //std::cout << "Domain = " << domain << std::endl;
+    //std::cout << "cs = " << cs << std::endl;
+    //const Real *dx = ((CoordSys&)parent->Geom(finestLevel)).CellSize();
+    //
+    //std::cout << "Outside level loop:" << std::endl;
+    //std::cout << "ksize = " << ksize << std::endl;
+    //std::cout << "dx = " << dx[0] << ", "  << dx[1] << ", "  << dx[2] << std::endl;
+    //
+    //const Real *levDx = ((CoordSys&)parent->Geom(lev)).CellSize();
+    //    std::cout << "Inside level loop: level = " << lev << std::endl;
+    //    std::cout << "levKsize = " << levKsize << std::endl;
+    //    std::cout << "levDx = " << levDx[0] << ", "  << levDx[1] << ", "  << levDx[2] << std::endl;
 
 void
 NavierStokes::setPlotVariables()
@@ -3390,6 +3539,13 @@ NavierStokes::post_timestep (int crse_iteration)
     {
         sum_integrated_quantities();
     }
+    //
+    // Derive turbulent statistics
+    //
+    if (level==0 && turb_interval>0 && (parent->levelSteps(0)%turb_interval == 0))
+    {
+        sum_turbulent_quantities();
+    }
 
     if (level > 0) incrPAvg();
 
@@ -3459,6 +3615,11 @@ NavierStokes::post_init (Real stop_time)
     //
     if (sum_interval > 0)
         sum_integrated_quantities();
+    //
+    // Derive turbulent statistics
+    //
+    if (turb_interval > 0)
+        sum_turbulent_quantities();
 }
 
 //
@@ -5900,3 +6061,4 @@ NavierStokes::create_umac_grown ()
         }
     }
 }
+
