@@ -202,7 +202,7 @@ GetBndryCells (const BoxArray& ba,
         gcells.catenate(bcells);
     }
 
-    gcells.simplify();
+    //gcells.simplify();
 
     return BoxArray(gcells);
 }
