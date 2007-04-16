@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.15 2003-01-31 18:47:22 car Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.16 2007-04-16 18:14:53 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -24,6 +24,8 @@ c :: Compute a cell centered gradient from a node
 c :: centered field.  Returns all components of GRADP
 c :: ----------------------------------------------------------
 c ::
+      implicit none
+
       integer DIMDEC(p)  
       integer DIMDEC(gp)  
       integer    lo(SDIM),  hi(SDIM)
@@ -78,6 +80,8 @@ c     fv        = fine grid volume array
 c     lo,hi     = index limits of overlap (crse grid)
 c     ratios    = IntVect refinement ratio
 c     ----------------------------------------------------------
+      implicit none
+
       integer  DIMDEC(crse)
       integer  DIMDEC(cv)
       integer  DIMDEC(fine)
@@ -148,6 +152,8 @@ c
 c
 c     test for consistency of pressure nodes
 c
+      implicit none
+
       integer  DIMDEC(crse)
       integer  DIMDEC(fine)
       integer  lo(3), hi(3)
@@ -198,6 +204,8 @@ c ::
       subroutine FORT_PUTDOWN (crse,DIMS(crse),
      &			       fine,DIMS(fine),lo,hi,ratios)
 
+      implicit none
+
       integer  DIMDEC(crse)
       integer  DIMDEC(fine)
       integer  lo(SDIM), hi(SDIM)
@@ -237,6 +245,8 @@ c :: ----------------------------------------------------------
 c ::
        subroutine FORT_INCRMULT(a,DIMS(a),b,DIMS(b),lo,hi,alpha)
 
+       implicit none
+      
        integer    DIMDEC(a)
        integer    DIMDEC(b)
        integer    lo(SDIM), hi(SDIM)
@@ -256,6 +266,106 @@ c ::
 
        end
 
+c ::
+c :: ----------------------------------------------------------
+c :: SUMTURB
+c :: ----------------------------------------------------------
+c ::
+      subroutine FORT_SUMTURB(dat,pres,DIMS(dat),DIMS(grid),delta,
+     &                        turb,ksize,turbVars)
+
+      implicit none
+
+      integer DIMDEC(dat)
+      integer DIMDEC(grid)
+      integer ksize, turbVars
+      REAL_T  delta(SDIM)
+      REAL_T  dat(DIMV(dat),4)
+      REAL_T  pres(DIMV(dat),4)
+      REAL_T  turb(0:ksize*turbVars-1)
+      
+      integer i, j, k, v
+      integer ilo, jlo, klo
+      integer ihi, jhi, khi
+      
+      REAL_T area
+      REAL_T rho, ux, uy, uz, p, XC, XMg
+      REAL_T e, T, f, wC, wMg
+      REAL_T duxdx, duxdy, duxdz
+      REAL_T duydx, duydy, duydz
+      REAL_T duzdx, duzdy, duzdz
+      REAL_T dpdx, dpdy, dpdz
+      REAL_T dx, dy, dz
+      REAL_T tdx, tdy, tdz
+      
+      ilo = ARG_L1(grid)
+      ihi = ARG_H1(grid)
+      jlo = ARG_L2(grid)
+      jhi = ARG_H2(grid)
+      klo = ARG_L3(grid)
+      khi = ARG_H3(grid)
+      
+      dx = delta(1)
+      dy = delta(2)
+      dz = delta(3)
+
+      tdx = two*dx
+      tdy = two*dy
+      tdz = two*dz
+      
+      area = dx*dy
+      
+      do k = klo, khi
+         do i = ilo, ihi
+            do j = jlo, jhi
+
+               rho  = dat(i,j,k,1)
+               ux   = dat(i,j,k,2)
+               uy   = dat(i,j,k,3)
+               uz   = dat(i,j,k,4)
+               p    = pres(i,j,k,1)
+               dpdx = pres(i,j,k,2)
+               dpdy = pres(i,j,k,3)
+               dpdz = pres(i,j,k,4)
+               
+               duxdx = ( dat(i+1,j,k,2) - dat(i-1,j,k,2) ) / (tdx)
+               duydx = ( dat(i+1,j,k,3) - dat(i-1,j,k,2) ) / (tdx)
+               duzdx = ( dat(i+1,j,k,4) - dat(i-1,j,k,2) ) / (tdx)
+               
+               duxdy = ( dat(i,j+1,k,2) - dat(i,j-1,k,2) ) / (tdy)
+               duydy = ( dat(i,j+1,k,3) - dat(i,j-1,k,2) ) / (tdy)
+               duzdy = ( dat(i,j+1,k,4) - dat(i,j-1,k,2) ) / (tdy)
+               
+               duxdz = ( dat(i,j,k+1,2) - dat(i,j,k-1,2) ) / (tdz)
+               duydz = ( dat(i,j,k+1,3) - dat(i,j,k-1,2) ) / (tdz)
+               duzdz = ( dat(i,j,k+1,4) - dat(i,j,k-1,2) ) / (tdz)
+               
+               turb(k*turbVars+0)  = turb(k*turbVars+0)  + area*rho
+               turb(k*turbVars+1)  = turb(k*turbVars+1)  + area*rho*ux
+               turb(k*turbVars+2)  = turb(k*turbVars+2)  + area*rho*uy
+               turb(k*turbVars+3)  = turb(k*turbVars+3)  + area*rho*uz
+               turb(k*turbVars+4)  = turb(k*turbVars+4)  + area*rho*ux*ux
+               turb(k*turbVars+5)  = turb(k*turbVars+5)  + area*rho*ux*uy
+               turb(k*turbVars+6)  = turb(k*turbVars+6)  + area*rho*ux*uz
+               turb(k*turbVars+7)  = turb(k*turbVars+7)  + area*rho*uy*uy
+               turb(k*turbVars+8)  = turb(k*turbVars+8)  + area*rho*uy*uz
+               turb(k*turbVars+9)  = turb(k*turbVars+9)  + area*rho*uz*uz
+               turb(k*turbVars+10) = turb(k*turbVars+10) + area*rho*ux*ux*ux
+               turb(k*turbVars+11) = turb(k*turbVars+11) + area*rho*ux*ux*uy
+               turb(k*turbVars+12) = turb(k*turbVars+12) + area*rho*ux*ux*uz
+               turb(k*turbVars+13) = turb(k*turbVars+13) + area*rho*ux*uy*uy
+               turb(k*turbVars+14) = turb(k*turbVars+14) + area*rho*ux*uy*uz
+               turb(k*turbVars+15) = turb(k*turbVars+15) + area*rho*ux*uz*uz
+               turb(k*turbVars+16) = turb(k*turbVars+16) + area*rho*uy*uy*uy
+               turb(k*turbVars+17) = turb(k*turbVars+17) + area*rho*uy*uy*uz
+               turb(k*turbVars+18) = turb(k*turbVars+18) + area*rho*uz*uz*uz
+
+            end do
+         end do
+      end do
+      
+      end
+
 c :: ----------------------------------------------------------
 c :: SUMMASS
 c ::             MASS = sum{ vol(i,j)*rho(i,j) }
@@ -271,6 +381,8 @@ c ::  tmp        => temp column array
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_SUMMASS(rho,DIMS(rho),DIMS(grid),delta,mass,tmp)
+
+       implicit none
 
        integer DIMDEC(rho)
        integer DIMDEC(grid)
@@ -319,6 +431,8 @@ c :: ----------------------------------------------------------
 c ::
        subroutine FORT_SUMMASSSQ(rho,DIMS(rho),DIMS(grid),delta,mass,tmp)
 
+       implicit none
+
        integer DIMDEC(rho)
        integer DIMDEC(grid)
        REAL_T  mass, delta(SDIM)
@@ -366,6 +480,8 @@ c ::
        subroutine FORT_SUMPRESS(press,DIMS(press),vol,DIMS(vol),lo,hi,
      $                          total_press,total_vol)
 
+       implicit none
+
        integer lo(3),hi(3)
        integer DIMDEC(press)
        integer DIMDEC(vol)
@@ -412,6 +528,8 @@ c
      &     DIMS(cfab), cfab,
      &     DIMS(efab), efab, nc, dir, isharm
      &     )
+      implicit none
+
       integer lo(SDIM), hi(SDIM), nc, dir, isharm
       integer DIMDEC(cfab)
       integer DIMDEC(efab)
