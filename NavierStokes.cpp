@@ -2721,22 +2721,23 @@ NavierStokes::sumDerive (const std::string& name, Real time)
 
     BL_ASSERT(!(mf == 0));
 
+    BoxArray baf;
+
+    if (level < parent->finestLevel())
+    {
+        baf = parent->boxArray(level+1);
+        baf.coarsen(fine_ratio);
+    }
+
     for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
     {
         if (level < parent->finestLevel())
         {
-            const BoxArray& f_box = parent->boxArray(level+1);
+            std::vector< std::pair<int,Box> > isects = baf.intersections(grids[mfi.index()]);
 
-            for (int j = 0; j < f_box.size(); j++)
+            for (int ii = 0; ii < isects.size(); ii++)
             {
-                Box c_box = BoxLib::coarsen(f_box[j],fine_ratio);
-
-                Box isect = c_box & grids[mfi.index()];
-
-                if (isect.ok())
-                {
-                    (*mf)[mfi].setVal(0,isect,0);
-                }
+                (*mf)[mfi].setVal(0,isects[ii].second,0);
             }
         }
 
@@ -2765,7 +2766,6 @@ NavierStokes::volWgtSum (const std::string& name,
     if (level < parent->finestLevel())
     {
         baf = parent->boxArray(level+1);
-
         baf.coarsen(fine_ratio);
     }
 
@@ -2860,31 +2860,34 @@ NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
 {
     const Real* dx = geom.CellSize();
 
-    int turbGrow(1);
-    int presGrow(0);
+    const int turbGrow(1);
+    const int presGrow(0);
     MultiFab* TurbMF = derive("TurbVars",time,turbGrow);
     MultiFab* PresMF = derive("PresVars",time,presGrow);
 
-    for (MFIter turbMfi(*TurbMF), presMfi(*PresMF);
-	 turbMfi.isValid(), presMfi.isValid();
-	 ++turbMfi, ++presMfi) {
+    BoxArray baf;
 
+    if (level < parent->finestLevel())
+    {
+        baf = parent->boxArray(level+1);
+        baf.coarsen(fine_ratio);
+    }
+
+    for (MFIter turbMfi(*TurbMF), presMfi(*PresMF);
+	 turbMfi.isValid() && presMfi.isValid();
+	 ++turbMfi, ++presMfi)
+    {
 	FArrayBox& turbFab = (*TurbMF)[turbMfi];
 	FArrayBox& presFab = (*PresMF)[presMfi];
 
-        if (level < parent->finestLevel()) {
-            const BoxArray& f_box = parent->boxArray(level+1);
-            for (int j = 0; j < f_box.size(); j++) {
+        if (level < parent->finestLevel())
+        {
+            std::vector< std::pair<int,Box> > isects = baf.intersections(grids[turbMfi.index()]);
 
-                Box c_box = BoxLib::coarsen(f_box[j],fine_ratio);
-
-                Box turbIsect = c_box & grids[turbMfi.index()];
-                if (turbIsect.ok())
-                    turbFab.setVal(0,turbIsect,0);
-
-                Box presIsect = c_box & grids[presMfi.index()];
-                if (presIsect.ok())
-                    presFab.setVal(0,presIsect,0);
+            for (int ii = 0; ii < isects.size(); ii++)
+            {
+                turbFab.setVal(0,isects[ii].second,0);
+                presFab.setVal(0,isects[ii].second,0);
             }
         }
 
@@ -2898,9 +2901,9 @@ NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
         FORT_SUMTURB(turbData,presData,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
 		     dx,turb,&ksize,&turbVars);
     }
+
     delete TurbMF;
     delete PresMF;
-
 }
 
 void
@@ -2909,23 +2912,21 @@ NavierStokes::sum_turbulent_quantities ()
     Real time = state[State_Type].curTime();
     const int finestLevel = parent->finestLevel();
     const Real *dx = parent->Geom(finestLevel).CellSize();
-    int ksize(parent->Geom(finestLevel).Domain().length(2));
-    int turbVars(33);
+    const int ksize(parent->Geom(finestLevel).Domain().length(2));
+    const int turbVars(33);
     int refRatio(1);
 
-    Real *turb;
-    turb = (Real*)malloc(turbVars*ksize*sizeof(Real));
-    if (turb==NULL) {std::cout << "Error: Couldn't allocate turb stats memory" << std::endl; return;}
-    for (int i=0; i<turbVars*ksize; i++) turb[i]=0.;
+    Real* turb = new Real[turbVars*ksize];
 
-    for (int lev = finestLevel; lev >= 0; lev--) {
+    for (int i=0; i<turbVars*ksize; i++) turb[i]=0;
 
-	int levKsize(parent->Geom(lev).Domain().length(2));
+    for (int lev = finestLevel; lev >= 0; lev--)
+    {
+	const int levKsize(parent->Geom(lev).Domain().length(2));
 
-	Real *levTurb;
-	levTurb = (Real*)malloc(turbVars*levKsize*sizeof(Real));
-	if (levTurb==NULL) {std::cout << "Error: Couldn't allocate turb stats memory" << std::endl; return;}
-	for (int i=0; i<turbVars*levKsize; i++) levTurb[i]=0.;
+	Real* levTurb = new Real[turbVars*levKsize];
+
+	for (int i=0; i<turbVars*levKsize; i++) levTurb[i]=0;
     
         NavierStokes& ns_level = getLevel(lev);
 	ns_level.TurbSum(time,levTurb,levKsize,turbVars);
@@ -2938,33 +2939,33 @@ NavierStokes::sum_turbulent_quantities ()
 		for (int v=0; v<turbVars; v++)
 		    turb[k*turbVars+v] += levTurb[l*turbVars+v];
 
-	free(levTurb);
+	delete [] levTurb;
     }
 
-    for (int k=0; k<ksize*turbVars; k++) 
-	ParallelDescriptor::ReduceRealSum(turb[k], ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceRealSum(&turb[0], ksize*turbVars, ParallelDescriptor::IOProcessorNumber());
 
-    if (ParallelDescriptor::IOProcessor()) {
-      std::string DirPath = "TurbData";
-      if (!BoxLib::UtilCreateDirectory(DirPath, 0755))
-	BoxLib::CreateDirectoryFailed(DirPath);
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::string DirPath = "TurbData";
+        if (!BoxLib::UtilCreateDirectory(DirPath, 0755))
+            BoxLib::CreateDirectoryFailed(DirPath);
 
-      int steps = parent->levelSteps(0);
-      FILE *file;
-      char filename[256];
-      sprintf(filename,"TurbData/TurbData_%04d.dat",steps);
-      file = fopen(filename,"w");
-      for (int k=0; k<ksize; k++) {
-	  fprintf(file,"%e ",dx[2]*(0.5+(double)k));
-	  for (int v=0; v<turbVars; v++)
-	      fprintf(file,"%e ",turb[k*turbVars+v]);
-	  fprintf(file,"\n");
-      }
-      fclose(file);
+        const int steps = parent->levelSteps(0);
+        FILE *file;
+        char filename[256];
+        sprintf(filename,"TurbData/TurbData_%04d.dat",steps);
+        file = fopen(filename,"w");
+        for (int k=0; k<ksize; k++)
+        {
+            fprintf(file,"%e ",dx[2]*(0.5+(double)k));
+            for (int v=0; v<turbVars; v++)
+                fprintf(file,"%e ",turb[k*turbVars+v]);
+            fprintf(file,"\n");
+        }
+        fclose(file);
     }
     
-    free(turb);
-
+    delete [] turb;
 }
 
     //Geometry   geom       = parent->Geom(finestLevel);
