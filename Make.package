@@ -1,16 +1,16 @@
 #
-# $Id: Make.package,v 1.47 2007-04-17 16:56:26 lijewski Exp $
+# $Id: Make.package,v 1.48 2007-04-17 17:28:48 lijewski Exp $
 #
 
 CEXE_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
 
 CEXE_sources += ViscBndryTensor.cpp ProjOutFlowBC.cpp \
-			     MacOutFlowBC.cpp OutFlowBC.cpp AuxBoundaryData.cpp
+			     MacOutFlowBC.cpp OutFlowBC.cpp
 
 CEXE_headers += ViscBndryTensor.H   MacOutFlowBC.H \
 			     ProjOutFlowBC.H OutFlowBC.H
 
-CEXE_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H AuxBoundaryData.H
+CEXE_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H
 
 FEXE_headers += SYNCREG_F.H VISCOPERATOR_F.H \
 		            PROJOUTFLOWBC_F.H MACOUTFLOWBC_F.H
