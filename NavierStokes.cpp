@@ -3542,10 +3542,12 @@ NavierStokes::post_timestep (int crse_iteration)
     //
     // Derive turbulent statistics
     //
+#if (BL_SPACEDIM == 3)                              
     if (level==0 && turb_interval>0 && (parent->levelSteps(0)%turb_interval == 0))
     {
         sum_turbulent_quantities();
     }
+#endif
 
     if (level > 0) incrPAvg();
 
