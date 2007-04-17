@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.33 2007-04-17 16:38:02 aaspden Exp $
+c $Id: PROB_3D.F,v 1.34 2007-04-17 16:43:32 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -259,11 +259,8 @@ c
          if (isioproc .eq. 1) then
             write (*,*) "Initialising random number generator..."
          endif
-      
+         
          twicePi = two*Pi
-c         write(6,*) "Twice pi", twicePi
-c         write(6,1234) twicePi
-c1234     format(d25.20)
          
          if (blrandseed.gt.0) then
             call blutilinitrand(blrandseed)
@@ -275,20 +272,79 @@ c1234     format(d25.20)
             call blutilinitrand(111397)
          endif
 
-         if (forcing_type.eq.4) then
-            do kz = mode_start, nmodes
-               kzd = dfloat(kz)
-               do ky = mode_start, nmodes
-                  kyd = dfloat(ky)
-                  do kx = mode_start, nmodes
-                     kxd = dfloat(kx)
-c     Translation speeds
+         if (probtype.eq.14) then 
+            Lx = domnhi(1)-domnlo(1)
+            Ly = domnhi(2)-domnlo(2)
+            Lz = domnhi(3)-domnlo(3)
+         else if (probtype.eq.15) then 
+            Lx = forcing_xlength
+            Ly = forcing_ylength
+            Lz = forcing_zlength
+         endif
+         
+         if (isioproc .eq. 1) then
+            write(*,*) "Lx = ",Lx
+            write(*,*) "Ly = ",Ly 
+            write(*,*) "Lz = ",Lz
+         endif
+         
+         Lmin = min(Lx,Ly,Lz)
+         kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
+         nxmodes = nmodes*int(0.5+Lx/Lmin)
+         nymodes = nmodes*int(0.5+Ly/Lmin)
+         nzmodes = nmodes*int(0.5+Lz/Lmin)
+         if (isioproc .eq. 1) then
+            write(*,*) "Lmin = ",Lmin
+            write(*,*) "kappaMax = ",kappaMax
+            write(*,*) "nxmodes = ",nxmodes
+            write(*,*) "nymodes = ",nymodes
+            write(*,*) "nzmodes = ",nzmodes
+         endif
+         
+         if (forcing_time_scale_min.eq.zero) then
+            forcing_time_scale_min = half
+         endif
+         if (forcing_time_scale_max.eq.zero) then
+            forcing_time_scale_max = one
+         endif
+
+         freqMin = one/forcing_time_scale_max
+         freqMax = one/forcing_time_scale_min
+         freqDiff= freqMax-freqMin
+         
+         if (isioproc .eq. 1) then
+            write(*,*) "forcing_time_scale_min = ",forcing_time_scale_min
+            write(*,*) "forcing_time_scale_max = ",forcing_time_scale_max
+            write(*,*) "freqMin = ",freqMin
+            write(*,*) "freqMax = ",freqMax
+            write(*,*) "freqDiff = ",freqDiff
+         endif
+         
+         mode_count = 0
+
+         xstep = int(Lx/Lmin+0.5)
+         ystep = int(Ly/Lmin+0.5)
+         zstep = int(Lz/Lmin+0.5)
+         if (isioproc .eq. 1) then
+            write (*,*) "Mode step ",xstep, ystep, zstep
+         endif
+         
+         do kz = mode_start*zstep, nzmodes, zstep
+            kzd = dfloat(kz)
+            do ky = mode_start*ystep, nymodes, ystep
+               kyd = dfloat(ky)
+               do kx = mode_start*xstep, nxmodes, xstep
+                  kxd = dfloat(kx)
+                  
+                  kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                  
+                  if (kappa.le.kappaMax) then
                      call blutilrand(rn)
-                     FTX(kx,ky,kz) = (one+rn)*twicePi
+                     FTX(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
                      call blutilrand(rn)
-                     FTY(kx,ky,kz) = (one+rn)*twicePi
+                     FTY(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
                      call blutilrand(rn)
-                     FTZ(kx,ky,kz) = (one+rn)*twicePi
+                     FTZ(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
 c     Translation angles, theta=0..2Pi and phi=0..Pi
                      call blutilrand(rn)
                      TAT(kx,ky,kz) = rn*twicePi
@@ -310,530 +366,148 @@ c     Amplitudes (alpha)
                      phiTmp        = rn*Pi
                      cosPhiTmp     = cos(phiTmp)
                      sinPhiTmp     = sin(phiTmp)
-                     px            = kzd * sinThetaTmp * sinPhiTmp - kyd *               cosPhiTmp
-                     py            = kxd *               cosPhiTmp - kzd * cosThetaTmp * sinPhiTmp
-                     pz            = kyd * cosThetaTmp * sinPhiTmp - kxd * sinThetaTmp * sinPhiTmp
+
+                     px = cosThetaTmp * sinPhiTmp
+                     py = sinThetaTmp * sinPhiTmp
+                     pz =               cosPhiTmp
+
                      mp2           = px*px + py*py + pz*pz
                      if (mp2 .lt. 0.000001) then
+                        write(*,*) "ZERO AMPLITUDE MODE ",kx,ky,kz
                         FAX(kx,ky,kz) = zero
                         FAY(kx,ky,kz) = zero
                         FAZ(kx,ky,kz) = zero
                      else
-                        Ekh           = dsqrt(one)
-                        FAX(kx,ky,kz) = px * Ekh / mp2
-                        FAY(kx,ky,kz) = py * Ekh / mp2
-                        FAZ(kx,ky,kz) = pz * Ekh / mp2
+c     Count modes that contribute
+                        mode_count = mode_count + 1
+c     Set amplitudes
+                        if (spectrum_type.eq.1) then
+                           Ekh        = one / kappa
+                        else if (spectrum_type.eq.2) then
+                           Ekh        = one / (kappa*kappa)
+                        else
+                           Ekh        = one
+                        endif
+                        if (force_scale.gt.zero) then
+                           FAX(kx,ky,kz) = force_scale * px * Ekh / mp2
+                           FAY(kx,ky,kz) = force_scale * py * Ekh / mp2
+                           FAZ(kx,ky,kz) = force_scale * pz * Ekh / mp2 
+                        else
+                           FAX(kx,ky,kz) = px * Ekh / mp2
+                           FAY(kx,ky,kz) = py * Ekh / mp2
+                           FAZ(kx,ky,kz) = pz * Ekh / mp2
+                        endif
+
+                        if (isioproc.eq.1) then
+                           write (*,*) "Mode"
+                           write (*,*) "kappa = ",kx,ky,kz,kappa
+                           write (*,*) "Amplitudes"
+                           write (*,*) FAX(kx,ky,kz), FAY(kx,ky,kz), FAZ(kx,ky,kz)
+                           write (*,*) "Frequencies"
+                           write (*,*) FTX(kx,ky,kz), FTY(kx,ky,kz), FTZ(kx,ky,kz)
+                        endif
                      endif
-
-                  enddo
+                  endif   
                enddo
             enddo
-         else if (forcing_type.eq.5.or.forcing_type.eq.6.or.forcing_type.eq.7) then
-            
-            if (isioproc .eq. 1) then
-               write(*,*) "Generation random numbers for probtype ",probtype
-            endif
-            
-            if (probtype.eq.14) then 
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then 
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-
-            if (isioproc .eq. 1) then
-               write(*,*) "Lx = ",Lx
-               write(*,*) "Ly = ",Ly 
-               write(*,*) "Lz = ",Lz
-            endif
-
-            if (forcing_type.eq.7) then
-               Lmin = min(Lx,Ly,Lz)
-               kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-               nxmodes = nmodes*int(0.5+Lx/Lmin)
-               nymodes = nmodes*int(0.5+Ly/Lmin)
-               nzmodes = nmodes*int(0.5+Lz/Lmin)
-               if (isioproc .eq. 1) then
-                  write(*,*) "Lmin = ",Lmin
-                  write(*,*) "kappaMax = ",kappaMax
-                  write(*,*) "nxmodes = ",nxmodes
-                  write(*,*) "nymodes = ",nymodes
-                  write(*,*) "nzmodes = ",nzmodes
-               endif
-            endif
-            if (forcing_time_scale_min.eq.zero) then
-               forcing_time_scale_min = half
-            endif
-            if (forcing_time_scale_max.eq.zero) then
-               forcing_time_scale_max = one
-            endif
-
-            freqMin = one/forcing_time_scale_max
-            freqMax = one/forcing_time_scale_min
-            freqDiff= freqMax-freqMin
-
-            if (isioproc .eq. 1) then
-               write(*,*) "forcing_time_scale_min = ",forcing_time_scale_min
-               write(*,*) "forcing_time_scale_max = ",forcing_time_scale_max
-               write(*,*) "freqMin = ",freqMin
-               write(*,*) "freqMax = ",freqMax
-               write(*,*) "freqDiff = ",freqDiff
-            endif
-
-            mode_count = 0
-            reduced_mode_count = 0
-
-            do kz = mode_start, nzmodes
-               kzd = dfloat(kz)
-               do ky = mode_start, nymodes
-                  kyd = dfloat(ky)
-                  do kx = mode_start, nxmodes
-                     kxd = dfloat(kx)
-                     
-                     kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-
-                     if (forcing_type.eq.5 .or. forcing_type.eq.6 .or. (forcing_type.eq.7.and.kappa.le.kappaMax)) then
-c     Translation speeds
-                        call blutilrand(rn)
-                        FTX(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
-                        call blutilrand(rn)
-                        FTY(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
-                        call blutilrand(rn)
-                        FTZ(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
-c     Translation angles, theta=0..2Pi and phi=0..Pi
-                        call blutilrand(rn)
-                        TAT(kx,ky,kz) = rn*twicePi
-                        call blutilrand(rn)
-                        TAP(kx,ky,kz) = rn*Pi
-c     Phases
-                        call blutilrand(rn)
-                        FPX(kx,ky,kz) = rn*twicePi
-                        call blutilrand(rn)
-                        FPY(kx,ky,kz) = rn*twicePi
-                        call blutilrand(rn)
-                        FPZ(kx,ky,kz) = rn*twicePi
-c     Amplitudes (alpha)
-                        call blutilrand(rn)
-                        thetaTmp      = rn*twicePi
-                        cosThetaTmp   = cos(thetaTmp)
-                        sinThetaTmp   = sin(thetaTmp)
-                        call blutilrand(rn)
-                        phiTmp        = rn*Pi
-                        cosPhiTmp     = cos(phiTmp)
-                        sinPhiTmp     = sin(phiTmp)
-                        if (do_mode_division.eq.1) then
-                           px = cosThetaTmp * sinPhiTmp / Lx
-                           py = sinThetaTmp * sinPhiTmp / Ly
-                           pz =               cosPhiTmp / Lz
-                        else
-                           px = cosThetaTmp * sinPhiTmp
-                           py = sinThetaTmp * sinPhiTmp
-                           pz =               cosPhiTmp
-                        endif
-
-c     Cross product
-c                        px            = (kzd/Lz) * sinThetaTmp * sinPhiTmp - (kyd/Ly) *               cosPhiTmp
-c                        py            = (kxd/Lx) *               cosPhiTmp - (kzd/Lz) * cosThetaTmp * sinPhiTmp
-c                        pz            = (kyd/Ly) * cosThetaTmp * sinPhiTmp - (kxd/Lx) * sinThetaTmp * sinPhiTmp
-c                        px            = (kzd) * sinThetaTmp * sinPhiTmp - (kyd) *               cosPhiTmp
-c                        py            = (kxd) *               cosPhiTmp - (kzd) * cosThetaTmp * sinPhiTmp
-c                        pz            = (kyd) * cosThetaTmp * sinPhiTmp - (kxd) * sinThetaTmp * sinPhiTmp
-
-c     Projection (subtraction)
-c                        pdk = (px*kxd/Lx) + (py*kyd/Ly) + (pz*kzd/Lz)
-c                        if (kappa.gt.0.000001) then
-c                           px = px - pdk*kxd / (Lx*kappa*kappa)
-c                           py = py - pdk*kyd / (Ly*kappa*kappa)
-c                           pz = pz - pdk*kzd / (Lz*kappa*kappa)
-c                        else
-c                           px = zero
-c                           py = zero
-c                           pz = zero
-c                        endif
-
-                        mp2           = px*px + py*py + pz*pz
-                        if (mp2 .lt. 0.000001 .or. kappa.lt.0.000001) then
-                           write(*,*) "ZERO AMPLITUDE MODE ",kx,ky,kz
-                           FAX(kx,ky,kz) = zero
-                           FAY(kx,ky,kz) = zero
-                           FAZ(kx,ky,kz) = zero
-                        else
-c     Count modes that contribute
-                           mode_count = mode_count + 1
-c     Set amplitudes
-                           if (spectrum_type.eq.1) then
-                              Ekh        = one / kappa
-                           else if (spectrum_type.eq.2) then
-                              Ekh        = one / (kappa*kappa)
-                           else
-                              Ekh        = one
-                           endif
-                           if (force_scale.gt.zero) then
-                              FAX(kx,ky,kz) = force_scale * px * Ekh / mp2
-                              FAY(kx,ky,kz) = force_scale * py * Ekh / mp2
-                              FAZ(kx,ky,kz) = force_scale * pz * Ekh / mp2
-                           else
-                              FAX(kx,ky,kz) = px * Ekh / mp2
-                              FAY(kx,ky,kz) = py * Ekh / mp2
-                              FAZ(kx,ky,kz) = pz * Ekh / mp2
-                           endif
-
-                           if (forcing_type.eq.7) then
-c     Take Lx/Lmin, Ly/Lmin, Lz/Lmin
-c     If (kappa_i mod Li/Lmin) != 0
-c     multiply by epsilon
-                              modx = mod(kx,int(Lx/Lmin+0.5))
-                              mody = mod(ky,int(Ly/Lmin+0.5))
-                              modz = mod(kz,int(Lz/Lmin+0.5))
-c                              write (*,*) "MODE ",kx,ky,kz
-c                              write (*,*) "MODS ",modx, mody, modz
-                              if (modx.eq.0 .and. mody.eq.0 .and. modz.eq.0 ) then
-                                 write (*,*) "Not reducing mode ",kx,ky,kz
-                              else
-c                              write (*,*) "Reducing mode",kx,ky,kz
-                                 FAX(kx,ky,kz) = FAX(kx,ky,kz) * forcing_epsilon
-                                 FAY(kx,ky,kz) = FAY(kx,ky,kz) * forcing_epsilon
-                                 FAZ(kx,ky,kz) = FAZ(kx,ky,kz) * forcing_epsilon
-                                 reduced_mode_count = reduced_mode_count + 1
-                              endif
-                           endif
-
-                           if (isioproc.eq.1) then
-                              write (*,*) "Mode"
-                              write (*,*) "kappa = ",kappa
-                              write (*,*) "Amplitudes"
-                              write (*,*) FAX(kx,ky,kz), FAY(kx,ky,kz), FAZ(kx,ky,kz)
-                              write (*,*) "Frequencies"
-                              write (*,*) FTX(kx,ky,kz), FTY(kx,ky,kz), FTZ(kx,ky,kz)
-c                              write (*,*) thetaTmp, sinThetaTmp, cosThetaTmp
-c                              write (*,*) phiTmp, sinPhiTmp, cosPhiTmp
-                           endif
-                        endif
-                     endif   
-                  enddo
-               enddo
-            enddo
-
-            if (isioproc .eq. 1) then
-               write(*,*) "mode_count = ",mode_count
-               write(*,*) "of which reduced = ",reduced_mode_count
-               if (spectrum_type.eq.1) then
-                  write (*,*) "Spectrum type 1"
-               else if (spectrum_type.eq.2) then
-                  write (*,*) "Spectrum type 2"
-               else
-                  write (*,*) "Spectrum type OTHER"
-               endif
-
-c               write(*,*) "FTX",FTX
-c               write(*,*) "FTY",FTY
-c               write(*,*) "FTZ",FTZ
-c               write(*,*) "TAT",TAT
-c               write(*,*) "TAP",TAP
-c               write(*,*) "FPX",FPX
-c               write(*,*) "FPY",FPY
-c               write(*,*) "FPZ",FPZ
-c               write(*,*) "FAX",FAX
-c               write(*,*) "FAY",FAY
-c               write(*,*) "FAZ",FAZ
-
-               write(*,*) "END OF INITDATA"
-            endif
-c     END OF FORCING TYPE 7
-
-         else if (forcing_type.eq.8) then
-
-            if (isioproc .eq. 1) then
-               write(*,*) "Generation random numbers for probtype ",probtype
-               write(*,*) "Forcing type ", forcing_type
-            endif
-            
-            if (probtype.eq.14) then 
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then 
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            
-            if (isioproc .eq. 1) then
-               write(*,*) "Lx = ",Lx
-               write(*,*) "Ly = ",Ly 
-               write(*,*) "Lz = ",Lz
-            endif
-            
-            Lmin = min(Lx,Ly,Lz)
-            kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-            nxmodes = nmodes*int(0.5+Lx/Lmin)
-            nymodes = nmodes*int(0.5+Ly/Lmin)
-            nzmodes = nmodes*int(0.5+Lz/Lmin)
-            if (isioproc .eq. 1) then
-               write(*,*) "Lmin = ",Lmin
-               write(*,*) "kappaMax = ",kappaMax
-               write(*,*) "nxmodes = ",nxmodes
-               write(*,*) "nymodes = ",nymodes
-               write(*,*) "nzmodes = ",nzmodes
-            endif
-
-            if (forcing_time_scale_min.eq.zero) then
-               forcing_time_scale_min = half
-            endif
-            if (forcing_time_scale_max.eq.zero) then
-               forcing_time_scale_max = one
-            endif
-
-            freqMin = one/forcing_time_scale_max
-            freqMax = one/forcing_time_scale_min
-            freqDiff= freqMax-freqMin
-
-            if (isioproc .eq. 1) then
-               write(*,*) "forcing_time_scale_min = ",forcing_time_scale_min
-               write(*,*) "forcing_time_scale_max = ",forcing_time_scale_max
-               write(*,*) "freqMin = ",freqMin
-               write(*,*) "freqMax = ",freqMax
-               write(*,*) "freqDiff = ",freqDiff
-            endif
-
-            mode_count = 0
-
-            xstep = int(Lx/Lmin+0.5)
-            ystep = int(Ly/Lmin+0.5)
-            zstep = int(Lz/Lmin+0.5)
-            if (isioproc .eq. 1) then
-               write (*,*) "Mode step ",xstep, ystep, zstep
-            endif
-
-            do kz = mode_start*zstep, nzmodes, zstep
-               kzd = dfloat(kz)
-               do ky = mode_start*ystep, nymodes, ystep
-                  kyd = dfloat(ky)
-                  do kx = mode_start*xstep, nxmodes, xstep
-                     kxd = dfloat(kx)
-                     
-                     kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-
-                     if (kappa.le.kappaMax) then
-c     Translation speeds
-                        call blutilrand(rn)
-                        FTX(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
-                        call blutilrand(rn)
-                        FTY(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
-                        call blutilrand(rn)
-                        FTZ(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
-c     Translation angles, theta=0..2Pi and phi=0..Pi
-                        call blutilrand(rn)
-                        TAT(kx,ky,kz) = rn*twicePi
-                        call blutilrand(rn)
-                        TAP(kx,ky,kz) = rn*Pi
-c     Phases
-                        call blutilrand(rn)
-                        FPX(kx,ky,kz) = rn*twicePi
-                        call blutilrand(rn)
-                        FPY(kx,ky,kz) = rn*twicePi
-                        call blutilrand(rn)
-                        FPZ(kx,ky,kz) = rn*twicePi
-c     Amplitudes (alpha)
-                        call blutilrand(rn)
-                        thetaTmp      = rn*twicePi
-                        cosThetaTmp   = cos(thetaTmp)
-                        sinThetaTmp   = sin(thetaTmp)
-                        call blutilrand(rn)
-                        phiTmp        = rn*Pi
-                        cosPhiTmp     = cos(phiTmp)
-                        sinPhiTmp     = sin(phiTmp)
-
-                        px = cosThetaTmp * sinPhiTmp
-                        py = sinThetaTmp * sinPhiTmp
-                        pz =               cosPhiTmp
-
-                        mp2           = px*px + py*py + pz*pz
-                        if (mp2 .lt. 0.000001) then
-                           write(*,*) "ZERO AMPLITUDE MODE ",kx,ky,kz
-                           FAX(kx,ky,kz) = zero
-                           FAY(kx,ky,kz) = zero
-                           FAZ(kx,ky,kz) = zero
-                        else
-c     Count modes that contribute
-                           mode_count = mode_count + 1
-c     Set amplitudes
-                           if (spectrum_type.eq.1) then
-                              Ekh        = one / kappa
-                           else if (spectrum_type.eq.2) then
-                              Ekh        = one / (kappa*kappa)
-                           else
-                              Ekh        = one
-                           endif
-                           if (force_scale.gt.zero) then
-                              FAX(kx,ky,kz) = force_scale * px * Ekh / mp2
-                              FAY(kx,ky,kz) = force_scale * py * Ekh / mp2
-                              FAZ(kx,ky,kz) = force_scale * pz * Ekh / mp2 
-                          else
-                              FAX(kx,ky,kz) = px * Ekh / mp2
-                              FAY(kx,ky,kz) = py * Ekh / mp2
-                              FAZ(kx,ky,kz) = pz * Ekh / mp2
-                           endif
-
-                           if (isioproc.eq.1) then
-                              write (*,*) "Mode"
-                              write (*,*) "kappa = ",kx,ky,kz,kappa
-                              write (*,*) "Amplitudes"
-                              write (*,*) FAX(kx,ky,kz), FAY(kx,ky,kz), FAZ(kx,ky,kz)
-                              write (*,*) "Frequencies"
-                              write (*,*) FTX(kx,ky,kz), FTY(kx,ky,kz), FTZ(kx,ky,kz)
-c                              write (*,*) thetaTmp, sinThetaTmp, cosThetaTmp
-c                              write (*,*) phiTmp, sinPhiTmp, cosPhiTmp
-                           endif
-                        endif
-                     endif   
-                  enddo
-               enddo
-            enddo
+         enddo
 
 c     Now let's break symmetry, have to assume high aspect ratio in z for now
-            reduced_mode_count = 0
-            do kz = mode_start, zstep - 1
-               kzd = dfloat(kz)
-               do ky = mode_start, nymodes
-                  kyd = dfloat(ky)
-                  do kx = mode_start, nxmodes
-                     kxd = dfloat(kx)
-                     
-                     kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+         reduced_mode_count = 0
+         do kz = mode_start, zstep - 1
+            kzd = dfloat(kz)
+            do ky = mode_start, nymodes
+               kyd = dfloat(ky)
+               do kx = mode_start, nxmodes
+                  kxd = dfloat(kx)
+                  
+                  kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
 
-                     if (kappa.le.kappaMax) then
-c     Translation speeds
-                        call blutilrand(rn)
-                        FTX(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
-                        call blutilrand(rn)
-                        FTY(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
-                        call blutilrand(rn)
-                        FTZ(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
+                  if (kappa.le.kappaMax) then
+                     call blutilrand(rn)
+                     FTX(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
+                     call blutilrand(rn)
+                     FTY(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
+                     call blutilrand(rn)
+                     FTZ(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
 c     Translation angles, theta=0..2Pi and phi=0..Pi
-                        call blutilrand(rn)
-                        TAT(kx,ky,kz) = rn*twicePi
-                        call blutilrand(rn)
-                        TAP(kx,ky,kz) = rn*Pi
+                     call blutilrand(rn)
+                     TAT(kx,ky,kz) = rn*twicePi
+                     call blutilrand(rn)
+                     TAP(kx,ky,kz) = rn*Pi
 c     Phases
-                        call blutilrand(rn)
-                        FPX(kx,ky,kz) = rn*twicePi
-                        call blutilrand(rn)
-                        FPY(kx,ky,kz) = rn*twicePi
-                        call blutilrand(rn)
-                        FPZ(kx,ky,kz) = rn*twicePi
+                     call blutilrand(rn)
+                     FPX(kx,ky,kz) = rn*twicePi
+                     call blutilrand(rn)
+                     FPY(kx,ky,kz) = rn*twicePi
+                     call blutilrand(rn)
+                     FPZ(kx,ky,kz) = rn*twicePi
 c     Amplitudes (alpha)
-                        call blutilrand(rn)
-                        thetaTmp      = rn*twicePi
-                        cosThetaTmp   = cos(thetaTmp)
-                        sinThetaTmp   = sin(thetaTmp)
-                        call blutilrand(rn)
-                        phiTmp        = rn*Pi
-                        cosPhiTmp     = cos(phiTmp)
-                        sinPhiTmp     = sin(phiTmp)
+                     call blutilrand(rn)
+                     thetaTmp      = rn*twicePi
+                     cosThetaTmp   = cos(thetaTmp)
+                     sinThetaTmp   = sin(thetaTmp)
+                     call blutilrand(rn)
+                     phiTmp        = rn*Pi
+                     cosPhiTmp     = cos(phiTmp)
+                     sinPhiTmp     = sin(phiTmp)
 
-                        px = cosThetaTmp * sinPhiTmp
-                        py = sinThetaTmp * sinPhiTmp
-                        pz =               cosPhiTmp
+                     px = cosThetaTmp * sinPhiTmp
+                     py = sinThetaTmp * sinPhiTmp
+                     pz =               cosPhiTmp
 
-                        mp2           = px*px + py*py + pz*pz
-                        if (mp2 .lt. 0.000001) then
-                           write(*,*) "ZERO AMPLITUDE MODE ",kx,ky,kz
-                           FAX(kx,ky,kz) = zero
-                           FAY(kx,ky,kz) = zero
-                           FAZ(kx,ky,kz) = zero
-                        else
+                     mp2           = px*px + py*py + pz*pz
+                     if (mp2 .lt. 0.000001) then
+                        write(*,*) "ZERO AMPLITUDE MODE ",kx,ky,kz
+                        FAX(kx,ky,kz) = zero
+                        FAY(kx,ky,kz) = zero
+                        FAZ(kx,ky,kz) = zero
+                     else
 c     Count modes that contribute
-                           reduced_mode_count = reduced_mode_count + 1
+                        reduced_mode_count = reduced_mode_count + 1
 c     Set amplitudes
-                           if (spectrum_type.eq.1) then
-                              Ekh        = one / kappa
-                           else if (spectrum_type.eq.2) then
-                              Ekh        = one / (kappa*kappa)
-                           else
-                              Ekh        = one
-                           endif
-                           if (force_scale.gt.zero) then
-                              FAX(kx,ky,kz) = forcing_epsilon * force_scale * px * Ekh / mp2
-                              FAY(kx,ky,kz) = forcing_epsilon * force_scale * py * Ekh / mp2
-                              FAZ(kx,ky,kz) = forcing_epsilon * force_scale * pz * Ekh / mp2
-                           else
-                              FAX(kx,ky,kz) = forcing_epsilon * px * Ekh / mp2
-                              FAY(kx,ky,kz) = forcing_epsilon * py * Ekh / mp2
-                              FAZ(kx,ky,kz) = forcing_epsilon * pz * Ekh / mp2
-                           endif
-
-                           if (isioproc.eq.1) then
-                              write (*,*) "Mode"
-                              write (*,*) "kappa = ",kx,ky,kz,kappa
-                              write (*,*) "Amplitudes"
-                              write (*,*) FAX(kx,ky,kz), FAY(kx,ky,kz), FAZ(kx,ky,kz)
-                              write (*,*) "Frequencies"
-                              write (*,*) FTX(kx,ky,kz), FTY(kx,ky,kz), FTZ(kx,ky,kz)
-c                              write (*,*) thetaTmp, sinThetaTmp, cosThetaTmp
-c                              write (*,*) phiTmp, sinPhiTmp, cosPhiTmp
-                           endif
+                        if (spectrum_type.eq.1) then
+                           Ekh        = one / kappa
+                        else if (spectrum_type.eq.2) then
+                           Ekh        = one / (kappa*kappa)
+                        else
+                           Ekh        = one
                         endif
-                     endif   
-                  enddo
+                        if (force_scale.gt.zero) then
+                           FAX(kx,ky,kz) = forcing_epsilon * force_scale * px * Ekh / mp2
+                           FAY(kx,ky,kz) = forcing_epsilon * force_scale * py * Ekh / mp2
+                           FAZ(kx,ky,kz) = forcing_epsilon * force_scale * pz * Ekh / mp2
+                        else
+                           FAX(kx,ky,kz) = forcing_epsilon * px * Ekh / mp2
+                           FAY(kx,ky,kz) = forcing_epsilon * py * Ekh / mp2
+                           FAZ(kx,ky,kz) = forcing_epsilon * pz * Ekh / mp2
+                        endif
+
+                        if (isioproc.eq.1) then
+                           write (*,*) "Mode"
+                           write (*,*) "kappa = ",kx,ky,kz,kappa
+                           write (*,*) "Amplitudes"
+                           write (*,*) FAX(kx,ky,kz), FAY(kx,ky,kz), FAZ(kx,ky,kz)
+                           write (*,*) "Frequencies"
+                           write (*,*) FTX(kx,ky,kz), FTY(kx,ky,kz), FTZ(kx,ky,kz)
+                        endif
+                     endif
+                  endif   
                enddo
             enddo
+         enddo
 
-            if (isioproc .eq. 1) then
-               write(*,*) "mode_count = ",mode_count
-               write(*,*) "reduced_mode_count = ",reduced_mode_count
-               if (spectrum_type.eq.1) then
-                  write (*,*) "Spectrum type 1"
-               else if (spectrum_type.eq.2) then
-                  write (*,*) "Spectrum type 2"
-               else
-                  write (*,*) "Spectrum type OTHER"
-               endif
+         if (isioproc .eq. 1) then
+            write(*,*) "mode_count = ",mode_count
+            write(*,*) "reduced_mode_count = ",reduced_mode_count
+            if (spectrum_type.eq.1) then
+               write (*,*) "Spectrum type 1"
+            else if (spectrum_type.eq.2) then
+               write (*,*) "Spectrum type 2"
+            else
+               write (*,*) "Spectrum type OTHER"
             endif
-
-         else
-
-            do n = 1, nmodes
-               call blutilrand(rn)
-               CXY(n) = (one+rn)*twicePi
-               call blutilrand(rn)
-               CZX(n) = (one+rn)*twicePi
-               call blutilrand(rn)
-               CYZ(n) = (one+rn)*twicePi
-               
-               call blutilrand(rn)
-               DXY(n) = (one+rn)*twicePi
-               call blutilrand(rn)
-               DZX(n) = (one+rn)*twicePi
-               call blutilrand(rn)
-               DYZ(n) = (one+rn)*twicePi
-               
-               call blutilrand(rn)
-               PXY(n) = twicePi*rn
-               call blutilrand(rn)
-               PZX(n) = twicePi*rn
-               call blutilrand(rn)
-               PYZ(n) = twicePi*rn
-               
-               call blutilrand(rn)
-               QXY(n) = twicePi*rn
-               call blutilrand(rn)
-               QZX(n) = twicePi*rn
-               call blutilrand(rn)
-               QYZ(n) = twicePi*rn
-               
-               call blutilrand(rn)
-               RXY(n) = twicePi*rn
-               call blutilrand(rn)
-               RZX(n) = twicePi*rn
-               call blutilrand(rn)
-               RYZ(n) = twicePi*rn
-            enddo
          endif
-
       endif
 #endif
 
@@ -2183,356 +1857,80 @@ c     Adjust z offset for probtype 15
             zlo = xlo(3)
          endif
 
-         if (forcing_type.eq.1) then
-            do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     do n = 1, nmodes
-                        f1 = f1 + BXY(n) * cos(CXY(n)*infl_time+RXY(n)) * cos(twicePi*AXY(n)*x+PXY(n)) * sin(twicePi*BXY(n)*y+QXY(n)) 
-     &                          - AZX(n) * cos(CZX(n)*infl_time+RZX(n)) * sin(twicePi*AZX(n)*z+PZX(n)) * cos(twicePi*BZX(n)*x+QZX(n))
-                        f2 = f2 + BYZ(n) * cos(CYZ(n)*infl_time+RYZ(n)) * cos(twicePi*AYZ(n)*y+PYZ(n)) * sin(twicePi*BYZ(n)*z+QYZ(n)) 
-     &                          - AXY(n) * cos(CXY(n)*infl_time+RXY(n)) * sin(twicePi*AXY(n)*x+PXY(n)) * cos(twicePi*BXY(n)*y+QXY(n))
-                        f3 = f3 + BZX(n) * cos(CZX(n)*infl_time+RZX(n)) * cos(twicePi*AZX(n)*z+PZX(n)) * sin(twicePi*BZX(n)*x+QZX(n)) 
-     &                          - AYZ(n) * cos(CYZ(n)*infl_time+RYZ(n)) * sin(twicePi*AYZ(n)*y+PYZ(n)) * cos(twicePi*BYZ(n)*z+QYZ(n))
-                     enddo
-                     force(i,j,k,1) = f1
-                     force(i,j,k,2) = f2
-                     force(i,j,k,3) = f3
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.2) then
-            do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     do n = 1, nmodes
-                        f1 = f1 + cos( twicePi*AXY(n)*x + Pi*cos(CXY(n)*infl_time+PXY(n)) ) * sin( twicePi*BXY(n)*y + Pi*cos(DXY(n)*infl_time+QXY(n)) )
-     &                          - sin( twicePi*AZX(n)*z + Pi*cos(CZX(n)*infl_time+PZX(n)) ) * cos( twicePi*BZX(n)*x + Pi*cos(DZX(n)*infl_time+QZX(n)) )
-                        f2 = f2 + cos( twicePi*AYZ(n)*y + Pi*cos(CYZ(n)*infl_time+PYZ(n)) ) * sin( twicePi*BYZ(n)*z + Pi*cos(DYZ(n)*infl_time+QYZ(n)) )
-     &                          - sin( twicePi*AXY(n)*x + Pi*cos(CXY(n)*infl_time+PXY(n)) ) * cos( twicePi*BXY(n)*y + Pi*cos(DXY(n)*infl_time+QXY(n)) )
-                        f3 = f3 + cos( twicePi*AZX(n)*z + Pi*cos(CZX(n)*infl_time+PZX(n)) ) * sin( twicePi*BZX(n)*x + Pi*cos(DZX(n)*infl_time+QZX(n)) )
-     &                          - sin( twicePi*AYZ(n)*y + Pi*cos(CYZ(n)*infl_time+PYZ(n)) ) * cos( twicePi*BYZ(n)*z + Pi*cos(DYZ(n)*infl_time+QYZ(n)) )
-                     enddo
-                     force(i,j,k,1) = f1
-                     force(i,j,k,2) = f2
-                     force(i,j,k,3) = f3
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.3) then
-            do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     do n = 1, nmodes
-                        f1 = f1 + cos( twicePi*AXY(n)*x + CXY(n)*infl_time*cos(RXY(n)) + PXY(n) ) * sin( twicePi*BXY(n)*y + CXY(n)*infl_time*sin(RXY(n)) + QXY(n) )
-     &                          - sin( twicePi*AZX(n)*z + CZX(n)*infl_time*cos(RZX(n)) + PZX(n) ) * cos( twicePi*BZX(n)*x + CZX(n)*infl_time*sin(RZX(n)) + QZX(n) )
-                        f2 = f2 + cos( twicePi*AYZ(n)*y + CYZ(n)*infl_time*cos(RYZ(n)) + PYZ(n) ) * sin( twicePi*BYZ(n)*z + CYZ(n)*infl_time*sin(RYZ(n)) + QYZ(n) )
-     &                          - sin( twicePi*AXY(n)*x + CXY(n)*infl_time*cos(RXY(n)) + PXY(n) ) * cos( twicePi*BXY(n)*y + CXY(n)*infl_time*sin(RXY(n)) + QXY(n) )
-                        f3 = f3 + cos( twicePi*AZX(n)*z + CZX(n)*infl_time*cos(RZX(n)) + PZX(n) ) * sin( twicePi*BZX(n)*x + CZX(n)*infl_time*sin(RZX(n)) + QZX(n) )
-     &                          - sin( twicePi*AYZ(n)*y + CYZ(n)*infl_time*cos(RYZ(n)) + PYZ(n) ) * cos( twicePi*BYZ(n)*z + CYZ(n)*infl_time*sin(RYZ(n)) + QYZ(n) )
-                     enddo
-                     force(i,j,k,1) = f1
-                     force(i,j,k,2) = f2
-                     force(i,j,k,3) = f3
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.4) then
-            do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     do kz = 0, nmodes
-                        kzd = dfloat(kz)
-                        do ky = 0, nmodes
-                           kyd = dfloat(ky)
-                           do kx = 0, nmodes
-                              kxd = dfloat(kx)
-                              xT = x+FTX(kx,ky,kz)*infl_time*cos(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              yT = y+FTY(kx,ky,kz)*infl_time*sin(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              zT = z+FTZ(kx,ky,kz)*infl_time*                   cos(TAP(kx,ky,kz))
-                              f1 = f1 + FAX(kx,ky,kz)*cos(twicePi*kxd*xT+FPX(kx,ky,kz)) * sin(twicePi*kyd*yT+FPY(kx,ky,kz)) * sin(twicePi*kzd*zT+FPZ(kx,ky,kz))
-                              f2 = f2 + FAY(kx,ky,kz)*sin(twicePi*kxd*xT+FPX(kx,ky,kz)) * cos(twicePi*kyd*yT+FPY(kx,ky,kz)) * sin(twicePi*kzd*zT+FPZ(kx,ky,kz))
-                              f3 = f3 + FAZ(kx,ky,kz)*sin(twicePi*kxd*xT+FPX(kx,ky,kz)) * sin(twicePi*kyd*yT+FPY(kx,ky,kz)) * cos(twicePi*kzd*zT+FPZ(kx,ky,kz))
-                           enddo
-                        enddo
-                     enddo
-                     force(i,j,k,1) = f1
-                     force(i,j,k,2) = f2
-                     force(i,j,k,3) = f3
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.5) then
-            if (probtype.eq.14) then 
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then 
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              xT = x+FTX(kx,ky,kz)*infl_time*cos(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              yT = y+FTY(kx,ky,kz)*infl_time*sin(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              zT = z+FTZ(kx,ky,kz)*infl_time*                   cos(TAP(kx,ky,kz))
-                              f1 = f1 + FAX(kx,ky,kz)*cos(twicePi*kxd*xT/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*yT/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*zT/Lz+FPZ(kx,ky,kz))
-                              f2 = f2 + FAY(kx,ky,kz)*sin(twicePi*kxd*xT/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*yT/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*zT/Lz+FPZ(kx,ky,kz))
-                              f3 = f3 + FAZ(kx,ky,kz)*sin(twicePi*kxd*xT/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*yT/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*zT/Lz+FPZ(kx,ky,kz))
-                           enddo
-                        enddo
-                     enddo
-                     force(i,j,k,1) = f1
-                     force(i,j,k,2) = f2
-                     force(i,j,k,3) = f3
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.6) then
-            if (probtype.eq.14) then 
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then 
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
+         if (probtype.eq.14) then 
+            Lx = domnhi(1)-domnlo(1)
+            Ly = domnhi(2)-domnlo(2)
+            Lz = domnhi(3)-domnlo(3)
+         else if (probtype.eq.15) then 
+            Lx = forcing_xlength
+            Ly = forcing_ylength
+            Lz = forcing_zlength
+         endif
+
+         Lmin = min(Lx,Ly,Lz)
+         kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
+         nxmodes = nmodes*int(0.5+Lx/Lmin)
+         nymodes = nmodes*int(0.5+Ly/Lmin)
+         nzmodes = nmodes*int(0.5+Lz/Lmin)
+
+         xstep = int(Lx/Lmin+0.5)
+         ystep = int(Ly/Lmin+0.5)
+         zstep = int(Lz/Lmin+0.5)
+
+         do k = klo, khi
+            z = zlo + hz*(float(k-klo) + half)
+            do j = jlo, jhi
+               y = xlo(2) + hy*(float(j-jlo) + half)
+               do i = ilo, ihi
+                  x = xlo(1) + hx*(float(i-ilo) + half)
+                  f1 = zero
+                  f2 = zero
+                  f3 = zero
+                  do kz = mode_start*zstep, nzmodes, zstep
+                     kzd = dfloat(kz)
+                     do ky = mode_start*ystep, nymodes, ystep
+                        kyd = dfloat(ky)
+                        do kx = mode_start*xstep, nxmodes, xstep
+                           kxd = dfloat(kx)
+                           kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                           if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
                               f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
                               f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
                               f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                           enddo
+                           endif
                         enddo
                      enddo
+                  enddo
+                  do kz = mode_start, zstep - 1
+                     kzd = dfloat(kz)
+                     do ky = mode_start, nymodes
+                        kyd = dfloat(ky)
+                        do kx = mode_start, nxmodes
+                           kxd = dfloat(kx)
+                           kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                           if (kappa.le.kappaMax) then
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
+                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                           endif
+                        enddo
+                     enddo
+                  enddo
+                  if (use_rho_in_forcing.eq.1) then
+                     force(i,j,k,1) = f1*rho(i,j,k)
+                     force(i,j,k,2) = f2*rho(i,j,k)
+                     force(i,j,k,3) = f3*rho(i,j,k)
+                  else
                      force(i,j,k,1) = f1
                      force(i,j,k,2) = f2
                      force(i,j,k,3) = f3
-                     force(i,j,k,1) = zero
-                     force(i,j,k,2) = zero
-                     force(i,j,k,3) = zero
-                  enddo
+                  endif
                enddo
             enddo
-         else if (forcing_type.eq.7) then
-            if (probtype.eq.14) then 
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then 
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            Lmin = min(Lx,Ly,Lz)
-            kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-            nxmodes = nmodes*int(0.5+Lx/Lmin)
-            nymodes = nmodes*int(0.5+Ly/Lmin)
-            nzmodes = nmodes*int(0.5+Lz/Lmin)
+         enddo
 
-            do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-c                     mode_count = 0
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-c                                 mode_count = mode_count + 1
-c                                 if (k.eq.klo.and.j.eq.jlo.and.i.eq.ilo.and.isioproc) then
-c                                    write (*,*) "-"
-c                                    write (*,*) "Forcing mode ",kx,ky,kz
-c                                    write (*,*) "Amplitude ",xT,FAX(kx,ky,kz),FAY(kx,ky,kz),FAZ(kx,ky,kz)
-c                                 endif
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-                     if (use_rho_in_forcing.eq.1) then
-                        force(i,j,k,1) = f1*rho(i,j,k)
-                        force(i,j,k,2) = f2*rho(i,j,k)
-                        force(i,j,k,3) = f3*rho(i,j,k)
-                     else
-                        force(i,j,k,1) = f1
-                        force(i,j,k,2) = f2
-                        force(i,j,k,3) = f3
-                     endif
-                  enddo
-               enddo
-            enddo
-            call bl_pd_is_ioproc(isioproc)
-c            if (isioproc) then
-c               write (*,*) "MAKEFORCE"
-c               write (*,*) "Lmin = ",Lmin
-c               write (*,*) "nimodes = ",nxmodes,nymodes,nzmodes
-c               write (*,*) "kappaMax = ",kappaMax
-c            endif
-
-         else if (forcing_type.eq.8) then
-            if (probtype.eq.14) then 
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then 
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-
-            Lmin = min(Lx,Ly,Lz)
-            kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-            nxmodes = nmodes*int(0.5+Lx/Lmin)
-            nymodes = nmodes*int(0.5+Ly/Lmin)
-            nzmodes = nmodes*int(0.5+Lz/Lmin)
-
-            xstep = int(Lx/Lmin+0.5)
-            ystep = int(Ly/Lmin+0.5)
-            zstep = int(Lz/Lmin+0.5)
-
-            do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     do kz = mode_start*zstep, nzmodes, zstep
-                        kzd = dfloat(kz)
-                        do ky = mode_start*ystep, nymodes, ystep
-                           kyd = dfloat(ky)
-                           do kx = mode_start*xstep, nxmodes, xstep
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-                     do kz = mode_start, zstep - 1
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-                     if (use_rho_in_forcing.eq.1) then
-                        force(i,j,k,1) = f1*rho(i,j,k)
-                        force(i,j,k,2) = f2*rho(i,j,k)
-                        force(i,j,k,3) = f3*rho(i,j,k)
-                     else
-                        force(i,j,k,1) = f1
-                        force(i,j,k,2) = f2
-                        force(i,j,k,3) = f3
-                     endif
-                  enddo
-               enddo
-            enddo
-
-         else
-c     Default to constant-in-time
-            do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     do n = 1, nmodes
-                        f1 = f1 + cos(twicePi*AYZ(n)*y+PYZ(n)) * cos(twicePi*BYZ(n)*z+QYZ(n)) 
-                        f2 = f2 + cos(twicePi*AZX(n)*z+PZX(n)) * cos(twicePi*BZX(n)*x+QZX(n)) 
-                        f3 = f3 + cos(twicePi*AXY(n)*x+PXY(n)) * cos(twicePi*BXY(n)*y+QXY(n)) 
-                     enddo
-                     force(i,j,k,1) = f1
-                     force(i,j,k,2) = f2
-                     force(i,j,k,3) = f3
-                  enddo
-               enddo
-            enddo
-         endif
 #endif
       else if (probtype.eq.99.and.abs(grav_angle).gt.0.001) then
 c     Angled gravity
