@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.18 2007-04-16 18:06:45 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.19 2007-04-17 16:32:46 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -36,7 +36,7 @@ c     time      => problem evolution time
 c     bc        => array of bndry types for component values
 c                  valid only if component touches bndry
 c     -----------------------------------------------------------
-#ifdef BUILDING_IAMR
+#ifdef DO_IAMR_FORCE
       subroutine FORT_DERFORCING (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                            bc,level,grid_no)
@@ -77,6 +77,7 @@ c
       REAL_T     kappa, kappaMax
 
 #include "probdata.H"
+#include "forcedata.H"
 
       hx = delta(1)
       hy = delta(2)
@@ -527,6 +528,7 @@ c
       REAL_T     kappa, kappaMax
 
 #include "probdata.H"
+#include "forcedata.H"
 
       hx = delta(1)
       hy = delta(2)
@@ -883,6 +885,7 @@ c
       REAL_T     kappa, kappaMax
 
 #include "probdata.H"
+#include "forcedata.H"
 
       hx = delta(1)
       hy = delta(2)
@@ -1240,6 +1243,7 @@ c
       REAL_T     kappa, kappaMax
 
 #include "probdata.H"
+#include "forcedata.H"
 
       hx = delta(1)
       hy = delta(2)

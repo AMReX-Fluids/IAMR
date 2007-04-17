@@ -2,7 +2,7 @@
 #define _DERIVE_F_H
 
 /*
-** $Id: DERIVE_F.H,v 1.17 2007-04-16 18:06:45 aaspden Exp $
+** $Id: DERIVE_F.H,v 1.18 2007-04-17 16:33:15 aaspden Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -22,7 +22,7 @@
 #    define FORT_DERGRDPY    dergrdpy
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    dergrdpz
-#ifdef BUILDING_IAMR
+#ifdef DO_IAMR_FORCE
 #    define FORT_DERFORCING  derforcing
 #    define FORT_DERFORCEX   derforcex
 #    define FORT_DERFORCEY   derforcey
@@ -49,7 +49,7 @@
 #    define FORT_DERGRDPY    DERGRDPY
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    DERGRDPZ
-#ifdef BUILDING_IAMR
+#ifdef DO_IAMR_FORCE
 #    define FORT_DERFORCING  DERFORCING
 #    define FORT_DERFORCEX   DERFORCEX
 #    define FORT_DERFORCEY   DERFORCEY
@@ -76,7 +76,7 @@
 #    define FORT_DERGRDPY    dergrdpy
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    dergrdpz
-#ifdef BUILDING_IAMR
+#ifdef DO_IAMR_FORCE
 #    define FORT_DERFORCING  derforcing
 #    define FORT_DERFORCEX   derforcex
 #    define FORT_DERFORCEY   derforcey
@@ -103,7 +103,7 @@
 #    define FORT_DERGRDPY    dergrdpy_
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    dergrdpz_
-#ifdef BUILDING_IAMR
+#ifdef DO_IAMR_FORCE
 #    define FORT_DERFORCING  derforcing_
 #    define FORT_DERFORCEX   derforcex_
 #    define FORT_DERFORCEY   derforcey_
@@ -248,7 +248,7 @@ extern "C" {
 			   const Real* delta, const Real* xlo,
 			   const Real* time, const Real* dt, const int* bcrec, 
                            const int* level, const int* grid_no) ;
-
+#ifdef DO_IAMR_FORCE
      void FORT_DERFORCING (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
@@ -284,7 +284,7 @@ extern "C" {
 			   const Real* delta, const Real* xlo,
 			   const Real* time, const Real* dt, const int* bcrec, 
                            const int* level, const int* grid_no) ;
-
+#endif
      void FORT_DERTURBVARS(Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
