@@ -4,24 +4,22 @@
       REAL_T  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag,freq(10),mag(10)
       REAL_T  f_problo(SDIM), f_probhi(SDIM)
       REAL_T  turb_scale,domnlo(SDIM),domnhi(SDIM)
-      REAL_T  grav_angle, omega
-      REAL_T  AXY(10), BXY(10), CXY(10), PXY(10), QXY(10), RXY(10)
-      REAL_T  AZX(10), BZX(10), CZX(10), PZX(10), QZX(10), RZX(10)
-      REAL_T  AYZ(10), BYZ(10), CYZ(10), PYZ(10), QYZ(10), RYZ(10)
-      integer probtype, adv_dir, axis_dir, vb_unifdir, nmodes
-      common /probdt1/ probtype, adv_dir, axis_dir, nmodes
-      common /probdt2/  den1,den2,vel1,vel2,delta0,
-     &                  xlev1,zlev1,freq,mag, amag
-      common /probdt3/ vorterr, adverr, denerr, temperr
+      REAL_T  grav_angle, omega, infl_time_offset, injection_time
+      REAL_T  jet_x, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel
+      REAL_T  ref_centre, ref_radius
+      integer probtype, adv_dir, axis_dir, vb_unifdir, blrandseed
+      integer spectrum_type, ref_type, use_rho_in_forcing, do_mode_division
+      common /probdt1/ probtype, adv_dir, axis_dir, ref_type
+      common /probdt2/ den1,den2,vel1,vel2,delta0,
+     &                 xlev1,zlev1,freq,mag, amag, injection_time
+      common /probdt3/ vorterr, adverr, denerr, temperr, ref_centre, ref_radius
       common /probdt4/ denfact, xblob, yblob, zblob, radvort,
      &                 radblob, velfact, randfact, bubgrad
       common /probdt5/ rhozero, tempzero, r_d, c_d, adv_vel
       common /probdt6/ f_problo, f_probhi,domnlo,domnhi,turb_scale
-      common /probdt7/ vb_unifdir
-      common /probdt9/ grav_angle, omega,
-     &                 AXY, BXY, CXY, PXY, QXY, RXY,
-     &                 AZX, BZX, CZX, PZX, QZX, RZX,
-     &                 AYZ, BYZ, CYZ, PYZ, QYZ, RYZ
+      common /probdt7/ vb_unifdir, blrandseed
+      common /probdt9/ grav_angle, omega
+      common /probdt10/ jet_x, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel
 
       integer rt_max_freq
       parameter (RT_MAX_FREQ = 10)	
