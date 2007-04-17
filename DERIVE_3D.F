@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.19 2007-04-17 16:32:46 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.20 2007-04-17 17:38:44 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -96,407 +96,95 @@ c     Adjust z offset for probtype 15
             infl_time = time
             zlo = xlo(3)
          endif
-
-         if (forcing_type.eq.1) then
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     
-                     rho = dat(i,j,k,1)
-                     u   = dat(i,j,k,2)
-                     v   = dat(i,j,k,3)
-                     w   = dat(i,j,k,4)
-                     
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     
-                     do n = 1, nmodes
-                        f1 = f1 + BXY(n) * cos(CXY(n)*infl_time+RXY(n)) * cos(twicePi*AXY(n)*x+PXY(n)) * sin(twicePi*BXY(n)*y+QXY(n))
-     &                          - AZX(n) * cos(CZX(n)*infl_time+RZX(n)) * sin(twicePi*AZX(n)*z+PZX(n)) * cos(twicePi*BZX(n)*x+QZX(n))
-                        f2 = f2 + BYZ(n) * cos(CYZ(n)*infl_time+RYZ(n)) * cos(twicePi*AYZ(n)*y+PYZ(n)) * sin(twicePi*BYZ(n)*z+QYZ(n))
-     &                          - AXY(n) * cos(CXY(n)*infl_time+RXY(n)) * sin(twicePi*AXY(n)*x+PXY(n)) * cos(twicePi*BXY(n)*y+QXY(n))
-                        f3 = f3 + BZX(n) * cos(CZX(n)*infl_time+RZX(n)) * cos(twicePi*AZX(n)*z+PZX(n)) * sin(twicePi*BZX(n)*x+QZX(n))
-     &                          - AYZ(n) * cos(CYZ(n)*infl_time+RYZ(n)) * sin(twicePi*AYZ(n)*y+PYZ(n)) * cos(twicePi*BYZ(n)*z+QYZ(n))
-                     enddo
-                     
-                     e(i,j,k,1) = rho * ( u*f1 + v*f2 + w*f3 )
-                     
-                  end do
-               end do
-            end do
-         else if (forcing_type.eq.2) then
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     
-                     rho = dat(i,j,k,1)
-                     u   = dat(i,j,k,2)
-                     v   = dat(i,j,k,3)
-                     w   = dat(i,j,k,4)
-                     
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     
-                     do n = 1, nmodes
-                        f1 = f1 + cos( twicePi*AXY(n)*x + Pi*cos(CXY(n)*infl_time+PXY(n)) ) * sin( twicePi*BXY(n)*y + Pi*cos(DXY(n)*infl_time+QXY(n)) )
-     &                          - sin( twicePi*AZX(n)*z + Pi*cos(CZX(n)*infl_time+PZX(n)) ) * cos( twicePi*BZX(n)*x + Pi*cos(DZX(n)*infl_time+QZX(n)) )
-                        f2 = f2 + cos( twicePi*AYZ(n)*y + Pi*cos(CYZ(n)*infl_time+PYZ(n)) ) * sin( twicePi*BYZ(n)*z + Pi*cos(DYZ(n)*infl_time+QYZ(n)) )
-     &                          - sin( twicePi*AXY(n)*x + Pi*cos(CXY(n)*infl_time+PXY(n)) ) * cos( twicePi*BXY(n)*y + Pi*cos(DXY(n)*infl_time+QXY(n)) )
-                        f3 = f3 + cos( twicePi*AZX(n)*z + Pi*cos(CZX(n)*infl_time+PZX(n)) ) * sin( twicePi*BZX(n)*x + Pi*cos(DZX(n)*infl_time+QZX(n)) )
-     &                          - sin( twicePi*AYZ(n)*y + Pi*cos(CYZ(n)*infl_time+PYZ(n)) ) * cos( twicePi*BYZ(n)*z + Pi*cos(DYZ(n)*infl_time+QYZ(n)) )
-                     enddo
-                     
-                     e(i,j,k,1) = rho * ( u*f1 + v*f2 + w*f3 )
-                     
-                  end do
-               end do
-            end do
-         else if (forcing_type.eq.3) then
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     
-                     rho = dat(i,j,k,1)
-                     u   = dat(i,j,k,2)
-                     v   = dat(i,j,k,3)
-                     w   = dat(i,j,k,4)
-                                          
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     
-                     do n = 1, nmodes
-                        f1 = f1 + cos( twicePi*AXY(n)*x + CXY(n)*infl_time*cos(RXY(n)) + PXY(n) ) * sin( twicePi*BXY(n)*y + CXY(n)*infl_time*sin(RXY(n)) + QXY(n) )
-     &                          - sin( twicePi*AZX(n)*z + CZX(n)*infl_time*cos(RZX(n)) + PZX(n) ) * cos( twicePi*BZX(n)*x + CZX(n)*infl_time*sin(RZX(n)) + QZX(n) )
-                        f2 = f2 + cos( twicePi*AYZ(n)*y + CYZ(n)*infl_time*cos(RYZ(n)) + PYZ(n) ) * sin( twicePi*BYZ(n)*z + CYZ(n)*infl_time*sin(RYZ(n)) + QYZ(n) )
-     &                          - sin( twicePi*AXY(n)*x + CXY(n)*infl_time*cos(RXY(n)) + PXY(n) ) * cos( twicePi*BXY(n)*y + CXY(n)*infl_time*sin(RXY(n)) + QXY(n) )
-                        f3 = f3 + cos( twicePi*AZX(n)*z + CZX(n)*infl_time*cos(RZX(n)) + PZX(n) ) * sin( twicePi*BZX(n)*x + CZX(n)*infl_time*sin(RZX(n)) + QZX(n) )
-     &                          - sin( twicePi*AYZ(n)*y + CYZ(n)*infl_time*cos(RYZ(n)) + PYZ(n) ) * cos( twicePi*BYZ(n)*z + CYZ(n)*infl_time*sin(RYZ(n)) + QYZ(n) )
-                     enddo
-
-                     e(i,j,k,1) = rho * ( u*f1 + v*f2 + w*f3 )
-                     
-                  end do
-               end do
-            end do
-         else if (forcing_type.eq.4) then
-c            write (*,*) "DF:Forcing type 4, time = ",time
-c            write (*,*) "DF:FTX", FTX(1,1,1)
-c            write (*,*) "DF:TAT", TAT(1,1,1)
-c            write (*,*) "DF:FAX", FAX(1,1,1)
-c            write (*,*) "DF:FPX", FPX(1,1,1)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     
-                     rho = dat(i,j,k,1)
-                     u   = dat(i,j,k,2)
-                     v   = dat(i,j,k,3)
-                     w   = dat(i,j,k,4)
-                     
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     
-                     do kz = mode_start, nmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nmodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nmodes
-                              kxd = dfloat(kx)
-                              xT = x+FTX(kx,ky,kz)*infl_time*cos(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              yT = y+FTY(kx,ky,kz)*infl_time*sin(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              zT = z+FTZ(kx,ky,kz)*infl_time*                   cos(TAP(kx,ky,kz))
-                              f1 = f1 + FAX(kx,ky,kz)*cos(twicePi*kxd*xT+FPX(kx,ky,kz)) * sin(twicePi*kyd*yT+FPY(kx,ky,kz)) * sin(twicePi*kzd*zT+FPZ(kx,ky,kz))
-                              f2 = f2 + FAY(kx,ky,kz)*sin(twicePi*kxd*xT+FPX(kx,ky,kz)) * cos(twicePi*kyd*yT+FPY(kx,ky,kz)) * sin(twicePi*kzd*zT+FPZ(kx,ky,kz))
-                              f3 = f3 + FAZ(kx,ky,kz)*sin(twicePi*kxd*xT+FPX(kx,ky,kz)) * sin(twicePi*kyd*yT+FPY(kx,ky,kz)) * cos(twicePi*kzd*zT+FPZ(kx,ky,kz))
-                           enddo
-                        enddo
-                     enddo
-                     
-                     e(i,j,k,1) = rho * ( u*f1 + v*f2 + w*f3 )
-                     
-                  end do
-               end do
-            end do
-         else if (forcing_type.eq.5) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     
-                     rho = dat(i,j,k,1)
-                     u   = dat(i,j,k,2)
-                     v   = dat(i,j,k,3)
-                     w   = dat(i,j,k,4)
-                     
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              xT = x+FTX(kx,ky,kz)*infl_time*cos(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              yT = y+FTY(kx,ky,kz)*infl_time*sin(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              zT = z+FTZ(kx,ky,kz)*infl_time*                   cos(TAP(kx,ky,kz))
-                              f1 = f1 + FAX(kx,ky,kz)*cos(twicePi*kxd*xT/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*yT/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*zT/Lz+FPZ(kx,ky,kz))
-                              f2 = f2 + FAY(kx,ky,kz)*sin(twicePi*kxd*xT/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*yT/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*zT/Lz+FPZ(kx,ky,kz))
-                              f3 = f3 + FAZ(kx,ky,kz)*sin(twicePi*kxd*xT/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*yT/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*zT/Lz+FPZ(kx,ky,kz))
-                           enddo
-                        enddo
-                     enddo
-                     
-                     e(i,j,k,1) = rho * ( u*f1 + v*f2 + w*f3 )
-                     
-                  end do
-               end do
-            end do
-         else if (forcing_type.eq.6) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     
-                     rho = dat(i,j,k,1)
-                     u   = dat(i,j,k,2)
-                     v   = dat(i,j,k,3)
-                     w   = dat(i,j,k,4)
-                     
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
+         
+         if (probtype.eq.14) then
+            Lx = domnhi(1)-domnlo(1)
+            Ly = domnhi(2)-domnlo(2)
+            Lz = domnhi(3)-domnlo(3)
+         else if (probtype.eq.15) then
+            Lx = forcing_xlength
+            Ly = forcing_ylength
+            Lz = forcing_zlength
+         endif
+         Lmin = min(Lx,Ly,Lz)
+         kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
+         nxmodes = nmodes*int(0.5+Lx/Lmin)
+         nymodes = nmodes*int(0.5+Ly/Lmin)
+         nzmodes = nmodes*int(0.5+Lz/Lmin)
+         xstep = int(Lx/Lmin+0.5)
+         ystep = int(Ly/Lmin+0.5)
+         zstep = int(Lz/Lmin+0.5)
+         do k = lo(3), hi(3)
+            z = zlo + hz * ( float( k-lo(3) ) + half )
+            do j = lo(2), hi(2)
+               y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+               do i = lo(1), hi(1)
+                  x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+                  
+                  rho = dat(i,j,k,1)
+                  u   = dat(i,j,k,2)
+                  v   = dat(i,j,k,3)
+                  w   = dat(i,j,k,4)
+                  
+                  f1 = zero
+                  f2 = zero
+                  f3 = zero
+                  
+                  do kz = mode_start*zstep, nzmodes, zstep
+                     kzd = dfloat(kz)
+                     do ky = mode_start*ystep, nymodes, ystep
+                        kyd = dfloat(ky)
+                        do kx = mode_start*xstep, nxmodes, xstep
+                           kxd = dfloat(kx)
+                           kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                           if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
                               f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
                               f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
                               f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                           enddo
+                           endif
                         enddo
                      enddo
-                     
+                  enddo
+                  do kz = mode_start, zstep - 1
+                     kzd = dfloat(kz)
+                     do ky = mode_start, nymodes
+                        kyd = dfloat(ky)
+                        do kx = mode_start, nxmodes
+                           kxd = dfloat(kx)
+                           kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                           if (kappa.le.kappaMax) then
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
+                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                           endif
+                        enddo
+                     enddo
+                  enddo
+                  
+                  if (use_rho_in_forcing.eq.1) then 
                      e(i,j,k,1) = rho * ( u*f1 + v*f2 + w*f3 )
-                     
-                  end do
+                  else
+                     e(i,j,k,1) =         u*f1 + v*f2 + w*f3
+                  endif
+                  
                end do
             end do
-         else if (forcing_type.eq.7) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            Lmin = min(Lx,Ly,Lz)
-            kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-            nxmodes = nmodes*int(0.5+Lx/Lmin)
-            nymodes = nmodes*int(0.5+Ly/Lmin)
-            nzmodes = nmodes*int(0.5+Lz/Lmin)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     
-                     rho = dat(i,j,k,1)
-                     u   = dat(i,j,k,2)
-                     v   = dat(i,j,k,3)
-                     w   = dat(i,j,k,4)
-                     
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 kxd = dfloat(kx)
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 endif
-                           enddo
-                        enddo
-                     enddo
-                     
-                     if (use_rho_in_forcing.eq.1) then 
-                        e(i,j,k,1) = rho * ( u*f1 + v*f2 + w*f3 )
-                     else
-                        e(i,j,k,1) =         u*f1 + v*f2 + w*f3
-                     endif
-                     
-                  end do
-               end do
-            end do
-         else if (forcing_type.eq.8) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            Lmin = min(Lx,Ly,Lz)
-            kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-            nxmodes = nmodes*int(0.5+Lx/Lmin)
-            nymodes = nmodes*int(0.5+Ly/Lmin)
-            nzmodes = nmodes*int(0.5+Lz/Lmin)
-            xstep = int(Lx/Lmin+0.5)
-            ystep = int(Ly/Lmin+0.5)
-            zstep = int(Lz/Lmin+0.5)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     
-                     rho = dat(i,j,k,1)
-                     u   = dat(i,j,k,2)
-                     v   = dat(i,j,k,3)
-                     w   = dat(i,j,k,4)
-                     
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     
-                     do kz = mode_start*zstep, nzmodes, zstep
-                        kzd = dfloat(kz)
-                        do ky = mode_start*ystep, nymodes, ystep
-                           kyd = dfloat(ky)
-                           do kx = mode_start*xstep, nxmodes, xstep
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-                     do kz = mode_start, zstep - 1
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-                     
-                     if (use_rho_in_forcing.eq.1) then 
-                        e(i,j,k,1) = rho * ( u*f1 + v*f2 + w*f3 )
-                     else
-                        e(i,j,k,1) =         u*f1 + v*f2 + w*f3
-                     endif
-                     
-                  end do
-               end do
-            end do
-         else
-c     Default to constant-in-time
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     
-                     rho = dat(i,j,k,1)
-                     u   = dat(i,j,k,2)
-                     v   = dat(i,j,k,3)
-                     w   = dat(i,j,k,4)
-                     
-                     f1 = zero
-                     f2 = zero
-                     f3 = zero
-                     
-                     
-                     e(i,j,k,1) = rho * ( u*f1 + v*f2 + w*f3 )
-                     
-                  end do
-               end do
-            end do
-         endif
+         end do
       endif
       end
 
 
       subroutine FORT_DERFORCEX (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                           bc,level,grid_no)
-c
+     &     lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &     bc,level,grid_no)
+c     
 c     This routine will derive the energy being injected by the
 c     forcing term used for generating turbulence in probtype 14
 c     Requires velocity field, time, and the right parameters
 c     for the forcing term, i.e. probin, *somehow*
-c
+c     
 
       implicit none
 
@@ -548,296 +236,69 @@ c     Adjust z offset for probtype 15
             zlo = xlo(3)
          endif
 
-         if (forcing_type.eq.1) then
-c     Original time-dependent coefficients
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f1 = zero
-                     do n = 1, nmodes
-                        f1 = f1 + BXY(n) * cos(CXY(n)*infl_time+RXY(n)) * cos(twicePi*AXY(n)*x+PXY(n)) * sin(twicePi*BXY(n)*y+QXY(n))
-     &                          - AZX(n) * cos(CZX(n)*infl_time+RZX(n)) * sin(twicePi*AZX(n)*z+PZX(n)) * cos(twicePi*BZX(n)*x+QZX(n))
-                     enddo
-                     e(i,j,k,1) = f1
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.2) then
-c     Translational time-dependence
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f1 = zero
-                     do n = 1, nmodes
-                        f1 = f1 + cos( twicePi*AXY(n)*x + Pi*cos(CXY(n)*infl_time+PXY(n)) ) * sin( twicePi*BXY(n)*y + Pi*cos(DXY(n)*infl_time+QXY(n)) )
-     &                          - sin( twicePi*AZX(n)*z + Pi*cos(CZX(n)*infl_time+PZX(n)) ) * cos( twicePi*BZX(n)*x + Pi*cos(DZX(n)*infl_time+QZX(n)) )
-                     enddo
-                     e(i,j,k,1) = f1
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.3) then
-c     Translational time-dependence
-c            write (*,*) "FORCEX, time = ",time
-c            write (*,*) "XY (A,B,C,P,Q,R): ",AXY(1),BXY(1),CXY(1),PXY(1),QXY(1),RXY(1)
-c            write (*,*) "ZX (A,B,C,P,Q,R): ",AZX(1),BZX(1),CZX(1),PZX(1),QZX(1),RZX(1)
-c            write (*,*) "YZ (A,B,C,P,Q,R): ",AYZ(1),BYZ(1),CYZ(1),PYZ(1),QYZ(1),RYZ(1)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f1 = zero
-                     do n = 1, nmodes
-                        f1 = f1 + cos( twicePi*AXY(n)*x + CXY(n)*infl_time*cos(RXY(n)) + PXY(n) ) * sin( twicePi*BXY(n)*y + CXY(n)*infl_time*sin(RXY(n)) + QXY(n) )
-     &                          - sin( twicePi*AZX(n)*z + CZX(n)*infl_time*cos(RZX(n)) + PZX(n) ) * cos( twicePi*BZX(n)*x + CZX(n)*infl_time*sin(RZX(n)) + QZX(n) )
-                     enddo
-                     e(i,j,k,1) = f1
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.4) then
-c     Bells and whistles
-c            write (*,*) "Forcing type 4, time = ",time
-c            write (*,*) "FTX", FTX(1,1,1)
-c            write (*,*) "TAT", TAT(1,1,1)
-c            write (*,*) "FAX", FAX(1,1,1)
-c            write (*,*) "FPX", FPX(1,1,1)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f1 = zero
-
-                     do kz = mode_start, nmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nmodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nmodes
-                              kxd = dfloat(kx)
-                              xT = x+FTX(kx,ky,kz)*infl_time*cos(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              yT = y+FTY(kx,ky,kz)*infl_time*sin(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              zT = z+FTZ(kx,ky,kz)*infl_time*                   cos(TAP(kx,ky,kz))
-                              f1 = f1 + FAX(kx,ky,kz)*cos(twicePi*kxd*xT+FPX(kx,ky,kz)) * sin(twicePi*kyd*yT+FPY(kx,ky,kz)) * sin(twicePi*kzd*zT+FPZ(kx,ky,kz))
-                           enddo
-                        enddo
-                     enddo
-
-                     e(i,j,k,1) = f1
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.5) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-
-                     f1 = zero
-
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              xT = x+FTX(kx,ky,kz)*infl_time*cos(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              yT = y+FTY(kx,ky,kz)*infl_time*sin(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              zT = z+FTZ(kx,ky,kz)*infl_time*                   cos(TAP(kx,ky,kz))
-                              f1 = f1 + FAX(kx,ky,kz)*cos(twicePi*kxd*xT/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*yT/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*zT/Lz+FPZ(kx,ky,kz))
-                           enddo
-                        enddo
-                     enddo
-
-                     e(i,j,k,1) = f1
-
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.6) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-
-                     f1 = zero
-
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
+         if (probtype.eq.14) then
+            Lx = domnhi(1)-domnlo(1)
+            Ly = domnhi(2)-domnlo(2)
+            Lz = domnhi(3)-domnlo(3)
+         else if (probtype.eq.15) then
+            Lx = forcing_xlength
+            Ly = forcing_ylength
+            Lz = forcing_zlength
+         endif
+         Lmin = min(Lx,Ly,Lz)
+         kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
+         nxmodes = nmodes*int(0.5+Lx/Lmin)
+         nymodes = nmodes*int(0.5+Ly/Lmin)
+         nzmodes = nmodes*int(0.5+Lz/Lmin)
+         xstep = int(Lx/Lmin+0.5)
+         ystep = int(Ly/Lmin+0.5)
+         zstep = int(Lz/Lmin+0.5)
+         do k = lo(3), hi(3)
+            z = zlo + hz * ( float( k-lo(3) ) + half )
+            do j = lo(2), hi(2)
+               y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+               do i = lo(1), hi(1)
+                  x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+                  
+                  f1 = zero
+                  
+                  do kz = mode_start*zstep, nzmodes, zstep
+                     kzd = dfloat(kz)
+                     do ky = mode_start*ystep, nymodes, ystep
+                        kyd = dfloat(ky)
+                        do kx = mode_start*xstep, nxmodes, xstep
+                           kxd = dfloat(kx)
+                           kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                           if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
                               f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                           enddo
+                           endif
                         enddo
                      enddo
-
+                  enddo
+                  do kz = mode_start, zstep - 1
+                     kzd = dfloat(kz)
+                     do ky = mode_start, nymodes
+                        kyd = dfloat(ky)
+                        do kx = mode_start, nxmodes
+                           kxd = dfloat(kx)
+                           kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                           if (kappa.le.kappaMax) then
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
+                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                           endif
+                        enddo
+                     enddo
+                  enddo
+                  
+                  if (use_rho_in_forcing.eq.1) then 
+                     e(i,j,k,1) = f1 * dat(i,j,k,1)
+                  else
                      e(i,j,k,1) = f1
-
-                  enddo
+                  endif
                enddo
             enddo
-         else if (forcing_type.eq.7) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            Lmin = min(Lx,Ly,Lz)
-            kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-            nxmodes = nmodes*int(0.5+Lx/Lmin)
-            nymodes = nmodes*int(0.5+Ly/Lmin)
-            nzmodes = nmodes*int(0.5+Lz/Lmin)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-
-                     f1 = zero
-
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-
-                     if (use_rho_in_forcing.eq.1) then
-                        e(i,j,k,1) = f1*dat(i,j,k,1)
-                     else
-                        e(i,j,k,1) = f1
-                     endif
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.8) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            Lmin = min(Lx,Ly,Lz)
-            kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-            nxmodes = nmodes*int(0.5+Lx/Lmin)
-            nymodes = nmodes*int(0.5+Ly/Lmin)
-            nzmodes = nmodes*int(0.5+Lz/Lmin)
-            xstep = int(Lx/Lmin+0.5)
-            ystep = int(Ly/Lmin+0.5)
-            zstep = int(Lz/Lmin+0.5)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     
-                     f1 = zero
-                     
-                     do kz = mode_start*zstep, nzmodes, zstep
-                        kzd = dfloat(kz)
-                        do ky = mode_start*ystep, nymodes, ystep
-                           kyd = dfloat(ky)
-                           do kx = mode_start*xstep, nxmodes, xstep
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-                     do kz = mode_start, zstep - 1
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-                     
-                     if (use_rho_in_forcing.eq.1) then 
-                        e(i,j,k,1) = f1 * dat(i,j,k,1)
-                     else
-                        e(i,j,k,1) = f1
-                     endif
-                  enddo
-               enddo
-            enddo
-         else
-c     Default to constant-in-time
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f1 = zero
-                     do n = 1, nmodes
-                        f1 = f1 + cos(twicePi*AYZ(n)*y+PYZ(n)) * cos(twicePi*BYZ(n)*z+QYZ(n))
-                     enddo
-                     e(i,j,k,1) = f1
-                  enddo
-               enddo
-            enddo
-         endif
+         enddo
 
       endif
 
@@ -846,14 +307,14 @@ c     Default to constant-in-time
 
 
       subroutine FORT_DERFORCEY (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                            bc,level,grid_no)
-c
+     &     lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &     bc,level,grid_no)
+c     
 c     This routine will derive the energy being injected by the
 c     forcing term used for generating turbulence in probtype 14
 c     Requires velocity field, time, and the right parameters
 c     for the forcing term, i.e. probin, *somehow*
-c
+c     
 
       implicit none
 
@@ -905,297 +366,69 @@ c     Adjust z offset for probtype 15
             zlo = xlo(3)
          endif
 
-         if (forcing_type.eq.1) then
-c     Original time-dependent coefficients
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f2 = zero
-                     do n = 1, nmodes
-                        f2 = f2 + BYZ(n) * cos(CYZ(n)*infl_time+RYZ(n)) * cos(twicePi*AYZ(n)*y+PYZ(n)) * sin(twicePi*BYZ(n)*z+QYZ(n))
-     &                          - AXY(n) * cos(CXY(n)*infl_time+RXY(n)) * sin(twicePi*AXY(n)*x+PXY(n)) * cos(twicePi*BXY(n)*y+QXY(n))
-                     enddo
-                     e(i,j,k,1) = f2
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.2) then
-c     Translational time-dependence
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f2 = zero
-                     do n = 1, nmodes
-                        f2 = f2 + cos( twicePi*AYZ(n)*y + Pi*cos(CYZ(n)*infl_time+PYZ(n)) ) * sin( twicePi*BYZ(n)*z + Pi*cos(DYZ(n)*infl_time+QYZ(n)) )
-     &                          - sin( twicePi*AXY(n)*x + Pi*cos(CXY(n)*infl_time+PXY(n)) ) * cos( twicePi*BXY(n)*y + Pi*cos(DXY(n)*infl_time+QXY(n)) )
-                     enddo
-                     e(i,j,k,1) = f2
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.3) then
-c     Translational time-dependence
-c            write (*,*) "FORCINGOUT, time = ",time
-c            write (*,*) "XY (A,B,C,P,Q,R): ",AXY(1),BXY(1),CXY(1),PXY(1),QXY(1),RXY(1)
-c            write (*,*) "ZX (A,B,C,P,Q,R): ",AZX(1),BZX(1),CZX(1),PZX(1),QZX(1),RZX(1)
-c            write (*,*) "YZ (A,B,C,P,Q,R): ",AYZ(1),BYZ(1),CYZ(1),PYZ(1),QYZ(1),RYZ(1)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f2 = zero
-                     do n = 1, nmodes
-                        f2 = f2 + cos( twicePi*AYZ(n)*y + CYZ(n)*infl_time*cos(RYZ(n)) + PYZ(n) ) * sin( twicePi*BYZ(n)*z + CYZ(n)*infl_time*sin(RYZ(n)) + QYZ(n) )
-     &                          - sin( twicePi*AXY(n)*x + CXY(n)*infl_time*cos(RXY(n)) + PXY(n) ) * cos( twicePi*BXY(n)*y + CXY(n)*infl_time*sin(RXY(n)) + QXY(n) )
-                     enddo
-                     e(i,j,k,1) = f2
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.4) then
-c     Bells and whistles
-c            write (*,*) "Forcing type 4, time = ",time
-c            write (*,*) "FTX", FTX(1,1,1)
-c            write (*,*) "TAT", TAT(1,1,1)
-c            write (*,*) "FAX", FAX(1,1,1)
-c            write (*,*) "FPX", FPX(1,1,1)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f2 = zero
-
-                     do kz = mode_start, nmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nmodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nmodes
-                              kxd = dfloat(kx)
-                              xT = x+FTX(kx,ky,kz)*infl_time*cos(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              yT = y+FTY(kx,ky,kz)*infl_time*sin(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              zT = z+FTZ(kx,ky,kz)*infl_time*                   cos(TAP(kx,ky,kz))
-                              f2 = f2 + FAY(kx,ky,kz)*sin(twicePi*kxd*xT+FPX(kx,ky,kz)) * cos(twicePi*kyd*yT+FPY(kx,ky,kz)) * sin(twicePi*kzd*zT+FPZ(kx,ky,kz))
-                           enddo
-                        enddo
-                     enddo
-
-                     e(i,j,k,1) = f2
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.5) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-
-                     f2 = zero
-
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              xT = x+FTX(kx,ky,kz)*infl_time*cos(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              yT = y+FTY(kx,ky,kz)*infl_time*sin(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              zT = z+FTZ(kx,ky,kz)*infl_time*                   cos(TAP(kx,ky,kz))
-                              f2 = f2 + FAY(kx,ky,kz)*sin(twicePi*kxd*xT/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*yT/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*zT/Lz+FPZ(kx,ky,kz))
-                           enddo
-                        enddo
-                     enddo
-
-                     e(i,j,k,1) = f2
-
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.6) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-
-                     f2 = zero
-
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
+         if (probtype.eq.14) then
+            Lx = domnhi(1)-domnlo(1)
+            Ly = domnhi(2)-domnlo(2)
+            Lz = domnhi(3)-domnlo(3)
+         else if (probtype.eq.15) then
+            Lx = forcing_xlength
+            Ly = forcing_ylength
+            Lz = forcing_zlength
+         endif
+         Lmin = min(Lx,Ly,Lz)
+         kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
+         nxmodes = nmodes*int(0.5+Lx/Lmin)
+         nymodes = nmodes*int(0.5+Ly/Lmin)
+         nzmodes = nmodes*int(0.5+Lz/Lmin)
+         xstep = int(Lx/Lmin+0.5)
+         ystep = int(Ly/Lmin+0.5)
+         zstep = int(Lz/Lmin+0.5)
+         do k = lo(3), hi(3)
+            z = zlo + hz * ( float( k-lo(3) ) + half )
+            do j = lo(2), hi(2)
+               y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+               do i = lo(1), hi(1)
+                  x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+                  
+                  f2 = zero
+                  
+                  do kz = mode_start*zstep, nzmodes, zstep
+                     kzd = dfloat(kz)
+                     do ky = mode_start*ystep, nymodes, ystep
+                        kyd = dfloat(ky)
+                        do kx = mode_start*xstep, nxmodes, xstep
+                           kxd = dfloat(kx)
+                           kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                           if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
                               f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                           enddo
+                           endif
                         enddo
                      enddo
-
+                  enddo
+                  do kz = mode_start, zstep - 1
+                     kzd = dfloat(kz)
+                     do ky = mode_start, nymodes
+                        kyd = dfloat(ky)
+                        do kx = mode_start, nxmodes
+                           kxd = dfloat(kx)
+                           kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                           if (kappa.le.kappaMax) then
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
+                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                           endif
+                        enddo
+                     enddo
+                  enddo
+                  
+                  if (use_rho_in_forcing.eq.1) then 
+                     e(i,j,k,1) = f2 * dat(i,j,k,1)
+                  else
                      e(i,j,k,1) = f2
-
-                  enddo
+                  endif
                enddo
             enddo
-         else if (forcing_type.eq.7) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            Lmin = min(Lx,Ly,Lz)
-            kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-            nxmodes = nmodes*int(0.5+Lx/Lmin)
-            nymodes = nmodes*int(0.5+Ly/Lmin)
-            nzmodes = nmodes*int(0.5+Lz/Lmin)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-
-                     f2 = zero
-
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-
-                     if (use_rho_in_forcing.eq.1) then
-                        e(i,j,k,1) = f2*dat(i,j,k,1)
-                     else
-                        e(i,j,k,1) = f2
-                     endif
-
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.8) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            Lmin = min(Lx,Ly,Lz)
-            kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-            nxmodes = nmodes*int(0.5+Lx/Lmin)
-            nymodes = nmodes*int(0.5+Ly/Lmin)
-            nzmodes = nmodes*int(0.5+Lz/Lmin)
-            xstep = int(Lx/Lmin+0.5)
-            ystep = int(Ly/Lmin+0.5)
-            zstep = int(Lz/Lmin+0.5)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     
-                     f2 = zero
-                     
-                     do kz = mode_start*zstep, nzmodes, zstep
-                        kzd = dfloat(kz)
-                        do ky = mode_start*ystep, nymodes, ystep
-                           kyd = dfloat(ky)
-                           do kx = mode_start*xstep, nxmodes, xstep
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-                     do kz = mode_start, zstep - 1
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-                     
-                     if (use_rho_in_forcing.eq.1) then 
-                        e(i,j,k,1) = f2 * dat(i,j,k,1)
-                     else
-                        e(i,j,k,1) = f2
-                     endif
-                  enddo
-               enddo
-            enddo
-         else
-c     Default to constant-in-time
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f2 = zero
-                     do n = 1, nmodes
-                        f2 = f2 + cos(twicePi*AZX(n)*z+PZX(n)) * cos(twicePi*BZX(n)*x+QZX(n))
-                     enddo
-                     e(i,j,k,1) = f2
-                  enddo
-               enddo
-            enddo
-         endif
+         enddo
 
       endif
 
@@ -1204,14 +437,14 @@ c     Default to constant-in-time
 
 
       subroutine FORT_DERFORCEZ (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                            bc,level,grid_no)
-c
+     &     lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &     bc,level,grid_no)
+c     
 c     This routine will derive the energy being injected by the
 c     forcing term used for generating turbulence in probtype 14
 c     Requires velocity field, time, and the right parameters
 c     for the forcing term, i.e. probin, *somehow*
-c
+c     
 
       implicit none
 
@@ -1263,297 +496,69 @@ c     Adjust z offset for probtype 15
             zlo = xlo(3)
          endif
 
-         if (forcing_type.eq.1) then
-c     Original time-dependent coefficients
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f3 = zero
-                     do n = 1, nmodes
-                        f3 = f3 + BZX(n) * cos(CZX(n)*infl_time+RZX(n)) * cos(twicePi*AZX(n)*z+PZX(n)) * sin(twicePi*BZX(n)*x+QZX(n))
-     &                          - AYZ(n) * cos(CYZ(n)*infl_time+RYZ(n)) * sin(twicePi*AYZ(n)*y+PYZ(n)) * cos(twicePi*BYZ(n)*z+QYZ(n))
-                     enddo
-                     e(i,j,k,1) = f3
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.2) then
-c     Translational time-dependence
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f3 = zero
-                     do n = 1, nmodes
-                        f3 = f3 + cos( twicePi*AZX(n)*z + Pi*cos(CZX(n)*infl_time+PZX(n)) ) * sin( twicePi*BZX(n)*x + Pi*cos(DZX(n)*infl_time+QZX(n)) )
-     &                          - sin( twicePi*AYZ(n)*y + Pi*cos(CYZ(n)*infl_time+PYZ(n)) ) * cos( twicePi*BYZ(n)*z + Pi*cos(DYZ(n)*infl_time+QYZ(n)) )
-                     enddo
-                     e(i,j,k,1) = f3
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.3) then
-c     Translational time-dependence
-c            write (*,*) "FORCINGOUT, time = ",time
-c            write (*,*) "XY (A,B,C,P,Q,R): ",AXY(1),BXY(1),CXY(1),PXY(1),QXY(1),RXY(1)
-c            write (*,*) "ZX (A,B,C,P,Q,R): ",AZX(1),BZX(1),CZX(1),PZX(1),QZX(1),RZX(1)
-c            write (*,*) "YZ (A,B,C,P,Q,R): ",AYZ(1),BYZ(1),CYZ(1),PYZ(1),QYZ(1),RYZ(1)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f3 = zero
-                     do n = 1, nmodes
-                        f3 = f3 + cos( twicePi*AZX(n)*z + CZX(n)*infl_time*cos(RZX(n)) + PZX(n) ) * sin( twicePi*BZX(n)*x + CZX(n)*infl_time*sin(RZX(n)) + QZX(n) )
-     &                          - sin( twicePi*AYZ(n)*y + CYZ(n)*infl_time*cos(RYZ(n)) + PYZ(n) ) * cos( twicePi*BYZ(n)*z + CYZ(n)*infl_time*sin(RYZ(n)) + QYZ(n) )
-                     enddo
-                     e(i,j,k,1) = f3
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.4) then
-c     Bells and whistles
-c            write (*,*) "Forcing type 4, time = ",time
-c            write (*,*) "FTX", FTX(1,1,1)
-c            write (*,*) "TAT", TAT(1,1,1)
-c            write (*,*) "FAX", FAX(1,1,1)
-c            write (*,*) "FPX", FPX(1,1,1)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f3 = zero
-
-                     do kz = mode_start, nmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nmodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nmodes
-                              kxd = dfloat(kx)
-                              xT = x+FTX(kx,ky,kz)*infl_time*cos(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              yT = y+FTY(kx,ky,kz)*infl_time*sin(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              zT = z+FTZ(kx,ky,kz)*infl_time*                   cos(TAP(kx,ky,kz))
-                              f3 = f3 + FAZ(kx,ky,kz)*sin(twicePi*kxd*xT+FPX(kx,ky,kz)) * sin(twicePi*kyd*yT+FPY(kx,ky,kz)) * cos(twicePi*kzd*zT+FPZ(kx,ky,kz))
-                           enddo
-                        enddo
-                     enddo
-
-                     e(i,j,k,1) = f3
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.5) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-
-                     f3 = zero
-
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              xT = x+FTX(kx,ky,kz)*infl_time*cos(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              yT = y+FTY(kx,ky,kz)*infl_time*sin(TAT(kx,ky,kz))*sin(TAP(kx,ky,kz))
-                              zT = z+FTZ(kx,ky,kz)*infl_time*                   cos(TAP(kx,ky,kz))
-                              f3 = f3 + FAZ(kx,ky,kz)*sin(twicePi*kxd*xT/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*yT/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*zT/Lz+FPZ(kx,ky,kz))
-                           enddo
-                        enddo
-                     enddo
-
-                     e(i,j,k,1) = f3
-
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.6) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-
-                     f3 = zero
-
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
+         if (probtype.eq.14) then
+            Lx = domnhi(1)-domnlo(1)
+            Ly = domnhi(2)-domnlo(2)
+            Lz = domnhi(3)-domnlo(3)
+         else if (probtype.eq.15) then
+            Lx = forcing_xlength
+            Ly = forcing_ylength
+            Lz = forcing_zlength
+         endif
+         Lmin = min(Lx,Ly,Lz)
+         kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
+         nxmodes = nmodes*int(0.5+Lx/Lmin)
+         nymodes = nmodes*int(0.5+Ly/Lmin)
+         nzmodes = nmodes*int(0.5+Lz/Lmin)
+         xstep = int(Lx/Lmin+0.5)
+         ystep = int(Ly/Lmin+0.5)
+         zstep = int(Lz/Lmin+0.5)
+         do k = lo(3), hi(3)
+            z = zlo + hz * ( float( k-lo(3) ) + half )
+            do j = lo(2), hi(2)
+               y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+               do i = lo(1), hi(1)
+                  x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+                  
+                  f3 = zero
+                  
+                  do kz = mode_start*zstep, nzmodes, zstep
+                     kzd = dfloat(kz)
+                     do ky = mode_start*ystep, nymodes, ystep
+                        kyd = dfloat(ky)
+                        do kx = mode_start*xstep, nxmodes, xstep
+                           kxd = dfloat(kx)
+                           kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                           if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
                               f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                           enddo
+                           endif
                         enddo
                      enddo
-
+                  enddo
+                  do kz = mode_start, zstep - 1
+                     kzd = dfloat(kz)
+                     do ky = mode_start, nymodes
+                        kyd = dfloat(ky)
+                        do kx = mode_start, nxmodes
+                           kxd = dfloat(kx)
+                           kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                           if (kappa.le.kappaMax) then
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
+                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                           endif
+                        enddo
+                     enddo
+                  enddo
+                  
+                  if (use_rho_in_forcing.eq.1) then 
+                     e(i,j,k,1) = f3 * dat(i,j,k,1)
+                  else
                      e(i,j,k,1) = f3
-
-                  enddo
+                  endif
                enddo
             enddo
-         else if (forcing_type.eq.7) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            Lmin = min(Lx,Ly,Lz)
-            kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-            nxmodes = nmodes*int(0.5+Lx/Lmin)
-            nymodes = nmodes*int(0.5+Ly/Lmin)
-            nzmodes = nmodes*int(0.5+Lz/Lmin)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-
-                     f3 = zero
-
-                     do kz = mode_start, nzmodes
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-
-                     if (use_rho_in_forcing.eq.1) then
-                        e(i,j,k,1) = f3*dat(i,j,k,1)
-                     else
-                        e(i,j,k,1) = f3
-                     endif
-
-                  enddo
-               enddo
-            enddo
-         else if (forcing_type.eq.8) then
-            if (probtype.eq.14) then
-               Lx = domnhi(1)-domnlo(1)
-               Ly = domnhi(2)-domnlo(2)
-               Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then
-               Lx = forcing_xlength
-               Ly = forcing_ylength
-               Lz = forcing_zlength
-            endif
-            Lmin = min(Lx,Ly,Lz)
-            kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-            nxmodes = nmodes*int(0.5+Lx/Lmin)
-            nymodes = nmodes*int(0.5+Ly/Lmin)
-            nzmodes = nmodes*int(0.5+Lz/Lmin)
-            xstep = int(Lx/Lmin+0.5)
-            ystep = int(Ly/Lmin+0.5)
-            zstep = int(Lz/Lmin+0.5)
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     
-                     f3 = zero
-                     
-                     do kz = mode_start*zstep, nzmodes, zstep
-                        kzd = dfloat(kz)
-                        do ky = mode_start*ystep, nymodes, ystep
-                           kyd = dfloat(ky)
-                           do kx = mode_start*xstep, nxmodes, xstep
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-                     do kz = mode_start, zstep - 1
-                        kzd = dfloat(kz)
-                        do ky = mode_start, nymodes
-                           kyd = dfloat(ky)
-                           do kx = mode_start, nxmodes
-                              kxd = dfloat(kx)
-                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                              if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              endif
-                           enddo
-                        enddo
-                     enddo
-                     
-                     if (use_rho_in_forcing.eq.1) then 
-                        e(i,j,k,1) = f3 * dat(i,j,k,1)
-                     else
-                        e(i,j,k,1) = f3
-                     endif
-                  enddo
-               enddo
-            enddo
-         else
-c     Default to constant-in-time
-            do k = lo(3), hi(3)
-               z = zlo + hz * ( float( k-lo(3) ) + half )
-               do j = lo(2), hi(2)
-                  y = xlo(2) + hy * ( float( j-lo(2) ) + half )
-                  do i = lo(1), hi(1)
-                     x = xlo(1) + hx * ( float( i-lo(1) ) + half )
-                     f3 = zero
-                     do n = 1, nmodes
-                        f3 = f3 + cos(twicePi*AXY(n)*x+PXY(n)) * cos(twicePi*BXY(n)*y+QXY(n))
-                     enddo
-                     e(i,j,k,1) = f3
-                  enddo
-               enddo
-            enddo
-         endif
+         enddo
 
       endif
 
