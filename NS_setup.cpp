@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.50 2007-04-16 18:22:33 aaspden Exp $
+// $Id: NS_setup.cpp,v 1.51 2007-04-17 16:34:26 aaspden Exp $
 //
 
 #include <winstd.H>
@@ -196,6 +196,9 @@ NavierStokes::variableSetUp ()
     //
     NUM_STATE = Density + 1;
     int Trac = NUM_STATE++;
+    int Trac2;
+    if (do_trac2)
+	Trac2 = NUM_STATE++;
     if (do_temp) NUM_STATE++;
     NUM_SCALARS = NUM_STATE - Density;
 
@@ -219,6 +222,8 @@ NavierStokes::variableSetUp ()
     set_scalar_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Density,"density",bc,BndryFunc(FORT_DENFILL));
     desc_lst.setComponent(State_Type,Trac,"tracer",bc,BndryFunc(FORT_ADVFILL));
+    if (do_trac2)
+	desc_lst.setComponent(State_Type,Trac2,"tracer2",bc,BndryFunc(FORT_ADV2FILL));
     //
     // **************  DEFINE TEMPERATURE  ********************
     //
@@ -248,6 +253,10 @@ NavierStokes::variableSetUp ()
     if (do_temp) advectionType[Temp] = NonConservative;
     advectionType[Trac] = NonConservative;
     diffusionType[Trac] = Laplacian_S;
+    if (do_trac2) {
+	advectionType[Trac2] = NonConservative;
+	diffusionType[Trac2] = Laplacian_S;
+    }
     if (is_diffusive[Density])
     {
         BoxLib::Error("Density cannot diffuse, bad visc_coef");
@@ -401,6 +410,10 @@ NavierStokes::variableSetUp ()
     if (do_tracer_ref)    {
         err_list.add("tracer",   1, ErrorRec::Special, FORT_ADVERROR);
         if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on TRACER" << std::endl;
+	if (do_trac2) {
+	    err_list.add("tracer2",   1, ErrorRec::Special, FORT_ADVERROR);
+	    if (ParallelDescriptor::IOProcessor()) std::cout << "Also refining on TRACER2" << std::endl;
+	}
     }
     if (do_vorticity_ref) {
         err_list.add("mag_vort", 0, ErrorRec::Special, FORT_MVERROR);

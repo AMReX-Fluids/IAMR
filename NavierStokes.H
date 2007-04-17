@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.90 2007-04-16 18:22:33 aaspden Exp $
+// $Id: NavierStokes.H,v 1.91 2007-04-17 16:34:26 aaspden Exp $
 //
 
 #include <LevelBld.H>
@@ -778,7 +778,9 @@ protected:
     // Internal switches.
     //
     static int  Tracer;     // AJA
+    static int  Tracer2;    // AJA
     static int  Temp;
+    static int  do_trac2;   // AJA
     static int  do_temp;
     static int  do_sync_proj;
     static int  do_MLsync_proj;

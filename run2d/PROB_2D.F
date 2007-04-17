@@ -1116,6 +1116,56 @@ c ::: -----------------------------------------------------------
 
       end
 
+      subroutine FORT_ADV2FILL (adv,DIMS(adv),domlo,domhi,dx,xlo,time,bc)
+
+      integer    DIMDEC(adv)
+      integer    domlo(SDIM), domhi(SDIM)
+      REAL_T     dx(SDIM), xlo(SDIM), time
+      REAL_T     adv(DIMV(adv))
+      integer    bc(SDIM,2)
+
+      integer    i, j
+
+#include "probdata.H"
+
+      call filcc(adv,DIMS(adv),domlo,domhi,dx,xlo,bc)
+
+      if (bc(1,1).eq.EXT_DIR.and.ARG_L1(adv).lt.domlo(1)) then
+         do i = ARG_L1(adv), domlo(1)-1
+            do j = ARG_L2(adv), ARG_H2(adv)
+	       adv(i,j) = zero
+	    end do
+	 end do
+      end if            
+
+      if (bc(1,2).eq.EXT_DIR.and.ARG_H1(adv).gt.domhi(1)) then
+         do i = domhi(1)+1, ARG_H1(adv)
+            do j = ARG_L2(adv), ARG_H2(adv)
+	       adv(i,j) = zero
+	    end do
+	 end do
+      end if            
+
+      if (bc(2,1).eq.EXT_DIR.and.ARG_L2(adv).lt.domlo(2)) then
+
+         do j = ARG_L2(adv), domlo(2)-1
+            do i = ARG_L1(adv), ARG_H1(adv)
+	       adv(i,j) = zero
+	    end do
+	 end do
+
+      end if            
+
+      if (bc(2,2).eq.EXT_DIR.and.ARG_H2(adv).gt.domhi(2)) then
+         do j = domhi(2)+1, ARG_H2(adv)
+            do i = ARG_L1(adv), ARG_H1(adv)
+	       adv(i,j) = zero
+	    end do
+	 end do
+      end if            
+
+      end
+
 c ::: -----------------------------------------------------------
 c ::: This routine is called during a filpatch operation when
 c ::: the patch to be filled falls outside the interior

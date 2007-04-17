@@ -2,13 +2,14 @@
 #define _PROB_NS_F_H_
 
 /*
-** $Id: PROB_F.H,v 1.12 2006-11-15 21:14:12 aaspden Exp $
+** $Id: PROB_F.H,v 1.13 2007-04-17 16:35:53 aaspden Exp $
 */
 
 #ifdef BL_LANG_FORT
 #    define FORT_INITDATA    initdata
 #    define FORT_DENFILL     denfill
 #    define FORT_ADVFILL     advfill
+#    define FORT_ADV2FILL    adv2fill
 #    define FORT_XVELFILL    xvelfill
 #    define FORT_YVELFILL    yvelfill
 #    define FORT_ZVELFILL    zvelfill
@@ -29,6 +30,7 @@
 #    define FORT_INITDATA    INITDATA
 #    define FORT_DENFILL     DENFILL
 #    define FORT_ADVFILL     ADVFILL
+#    define FORT_ADV2FILL    ADV2FILL
 #    define FORT_XVELFILL    XVELFILL
 #    define FORT_YVELFILL    YVELFILL
 #    define FORT_ZVELFILL    ZVELFILL
@@ -48,6 +50,7 @@
 #    define FORT_INITDATA    initdata
 #    define FORT_DENFILL     denfill
 #    define FORT_ADVFILL     advfill
+#    define FORT_ADV2FILL    adv2fill
 #    define FORT_XVELFILL    xvelfill
 #    define FORT_YVELFILL    yvelfill
 #    define FORT_ZVELFILL    zvelfill
@@ -67,6 +70,7 @@
 #    define FORT_INITDATA    initdata_
 #    define FORT_DENFILL     denfill_
 #    define FORT_ADVFILL     advfill_
+#    define FORT_ADV2FILL    adv2fill_
 #    define FORT_XVELFILL    xvelfill_
 #    define FORT_YVELFILL    yvelfill_
 #    define FORT_ZVELFILL    zvelfill_
@@ -104,6 +108,11 @@
                          const Real* time, const int* bc);
 
      void FORT_ADVFILL  (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
+                         const int* dom_lo, const int* dom_hi,
+                         const Real* dx, const Real* grd_lo,
+                         const Real* time, const int* bc);
+
+     void FORT_ADV2FILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
                          const int* dom_lo, const int* dom_hi,
                          const Real* dx, const Real* grd_lo,
                          const Real* time, const int* bc);
