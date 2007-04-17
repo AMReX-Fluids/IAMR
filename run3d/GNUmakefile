@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.45 2007-04-03 23:04:05 lijewski Exp $
+# $Id: GNUmakefile,v 1.46 2007-04-17 16:48:32 aaspden Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -44,6 +44,12 @@ endif
 ifeq ($(USE_BGL),TRUE)
   NEEDS_FLUSH_F := TRUE
 endif
+
+# This allows GetForce to call a Fortran routine
+# DEFINES += -DGENGETFORCE
+
+# This is for the time-dependent turbulence forcing term
+#DEFINES += -DDO_IAMR_FORCE
 
 include $(TOP)/mk/Make.defs
 
