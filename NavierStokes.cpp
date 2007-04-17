@@ -94,8 +94,10 @@ Array<Real> NavierStokes::visc_coef;
 // Internal switches.
 //
 int  NavierStokes::do_temp                    = 0;
+int  NavierStokes::do_trac2                   = 0;
 int  NavierStokes::Temp                       = -1;
 int  NavierStokes::Tracer                     = -1; // AJA
+int  NavierStokes::Tracer2                    = -1; // AJA
 int  NavierStokes::do_sync_proj               = 1;
 int  NavierStokes::do_MLsync_proj             = 1;
 int  NavierStokes::do_reflux                  = 1;
@@ -331,6 +333,7 @@ NavierStokes::read_params ()
     // Get run options.
     //
     pp.query("do_temp",                  do_temp          );
+    pp.query("do_trac2",                 do_trac2         );
     int initial_do_sync_proj =           do_sync_proj;
     pp.query("do_sync_proj",             do_sync_proj     );
     pp.query("do_MLsync_proj",           do_MLsync_proj   );
@@ -405,6 +408,8 @@ NavierStokes::read_params ()
 
     // Will need to add more lines when more variables are added - AJA
     Tracer = Density+1;
+    if (do_trac2)
+	Tracer2 = Density+2;
 
     for (int i = 0; i < n_scal_diff_coefs; i++)
     {
@@ -2858,6 +2863,7 @@ NavierStokes::sum_integrated_quantities ()
 void
 NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
 {
+#if (BL_SPACEDIM==3)
     const Real* dx = geom.CellSize();
 
     const int turbGrow(1);
@@ -2904,6 +2910,9 @@ NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
 
     delete TurbMF;
     delete PresMF;
+#else
+    BoxLib::Error("TurbSum not implemented in 2D");
+#endif
 }
 
 void
@@ -3543,12 +3552,10 @@ NavierStokes::post_timestep (int crse_iteration)
     //
     // Derive turbulent statistics
     //
-#if (BL_SPACEDIM == 3)                              
-    if (level==0 && turb_interval>0 && (parent->levelSteps(0)%turb_interval == 0))
+    if (level==0 && turb_interval>0 && (parent->levelSteps(0)%turb_interval == 0) && BL_SPACEDIM==3)
     {
         sum_turbulent_quantities();
     }
-#endif
 
     if (level > 0) incrPAvg();
 
