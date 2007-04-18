@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.34 2006-11-09 22:12:40 marc Exp $
+c $Id: GODUNOV_3D.F,v 1.35 2007-04-18 00:06:13 jbb Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -857,7 +857,7 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                   if (n.eq.YVEL) then
                      if (velpred.eq.1) then
                         styhi(jmin) = MIN(styhi(jmin),zero)
-                        stylo(jmin) = stzhi(jmin)
+                        stylo(jmin) = styhi(jmin)
                      else
                         if (vad(i,jmin,k).ge.zero) then
                            styhi(jmin) = MIN(styhi(jmin),zero)
