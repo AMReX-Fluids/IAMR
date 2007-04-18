@@ -2868,8 +2868,8 @@ NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
 
     const int turbGrow(1);
     const int presGrow(0);
-    MultiFab* TurbMF = derive("TurbVars",time,turbGrow);
-    MultiFab* PresMF = derive("PresVars",time,presGrow);
+    MultiFab* turbMF = derive("TurbVars",time,turbGrow);
+    MultiFab* presMF = derive("PresVars",time,presGrow);
 
     BoxArray baf;
 
@@ -2879,12 +2879,12 @@ NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
         baf.coarsen(fine_ratio);
     }
 
-    for (MFIter turbMfi(*TurbMF), presMfi(*PresMF);
+    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
 	 turbMfi.isValid() && presMfi.isValid();
 	 ++turbMfi, ++presMfi)
     {
-	FArrayBox& turbFab = (*TurbMF)[turbMfi];
-	FArrayBox& presFab = (*PresMF)[presMfi];
+	FArrayBox& turbFab = (*turbMF)[turbMfi];
+	FArrayBox& presFab = (*presMF)[presMfi];
 
         if (level < parent->finestLevel())
         {
@@ -2892,10 +2892,24 @@ NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
 
             for (int ii = 0; ii < isects.size(); ii++)
             {
-                turbFab.setVal(0,isects[ii].second,0);
-                presFab.setVal(0,isects[ii].second,0);
+              presFab.setVal(0,isects[ii].second,0,presMF->nComp());
+              turbFab.setVal(0,isects[ii].second,0,turbMF->nComp());
             }
         }
+    }
+
+    turbMF->FillBoundary(0,turbMF->nComp());
+    geom.FillPeriodicBoundary(*turbMF,0,turbMF->nComp());
+
+    presMF->FillBoundary(0,presMF->nComp());
+    geom.FillPeriodicBoundary(*presMF,0,presMF->nComp());
+    
+    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
+	 turbMfi.isValid() && presMfi.isValid();
+	 ++turbMfi, ++presMfi)
+    {
+	FArrayBox& turbFab = (*turbMF)[turbMfi];
+	FArrayBox& presFab = (*presMF)[presMfi];
 
         const Real* turbData = turbFab.dataPtr();
         const Real* presData = presFab.dataPtr();
@@ -2908,8 +2922,8 @@ NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
 		     dx,turb,&ksize,&turbVars);
     }
 
-    delete TurbMF;
-    delete PresMF;
+    delete turbMF;
+    delete presMF;
 #else
     BoxLib::Error("TurbSum not implemented in 2D");
 #endif
