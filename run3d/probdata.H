@@ -8,7 +8,7 @@
       REAL_T  jet_x, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel
       REAL_T  ref_centre, ref_radius
       integer probtype, adv_dir, axis_dir, vb_unifdir, blrandseed
-      integer spectrum_type, ref_type, use_rho_in_forcing, do_mode_division
+      integer ref_type
       common /probdt1/ probtype, adv_dir, axis_dir, ref_type
       common /probdt2/ den1,den2,vel1,vel2,delta0,
      &                 xlev1,zlev1,freq,mag, amag, injection_time
@@ -18,7 +18,7 @@
       common /probdt5/ rhozero, tempzero, r_d, c_d, adv_vel
       common /probdt6/ f_problo, f_probhi,domnlo,domnhi,turb_scale
       common /probdt7/ vb_unifdir, blrandseed
-      common /probdt9/ grav_angle, omega
+      common /probdt9/ grav_angle, omega, infl_time_offset
       common /probdt10/ jet_x, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel
 
       integer rt_max_freq

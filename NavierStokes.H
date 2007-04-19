@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.91 2007-04-17 16:34:26 aaspden Exp $
+// $Id: NavierStokes.H,v 1.92 2007-04-19 22:26:18 aaspden Exp $
 //
 
 #include <LevelBld.H>
@@ -536,21 +536,15 @@ protected:
     //
     // Get the forcing term.
     //
-#ifdef GENGETFORCE
-    void getForce (FArrayBox&       statevars,
-		   FArrayBox&       force,
-                   int              gridno,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp);
-#else
     void getForce (FArrayBox&       force,
                    int              gridno,
                    int              ngrow,
                    int              strt_comp,
                    int              num_comp,
+#ifdef GENGETFORCE
+		   const Real       time,
+#endif		 
                    const FArrayBox& Rho);
-#endif
     //
     // Get state data.
     //

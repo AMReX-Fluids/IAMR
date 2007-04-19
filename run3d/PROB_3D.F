@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.34 2007-04-17 16:43:32 aaspden Exp $
+c $Id: PROB_3D.F,v 1.35 2007-04-19 22:27:11 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1785,21 +1785,19 @@ c ::: -----------------------------------------------------------
 c
 c     This routine add the forcing terms to the momentum equation
 c
-      subroutine FORT_MAKEFORCE(time,
-     &                          force,vel,rho,tracer,
+      subroutine FORT_MAKEFORCE(time,force,rho,
      &                          DIMS(istate),DIMS(state),
-     &                          dx,xlo,xhi,gravity)
+     &                          dx,xlo,xhi,gravity,scomp,ncomp)
 
       implicit none
 
       integer    DIMDEC(state)
       integer    DIMDEC(istate)
+      integer    scomp, ncomp
       REAL_T     time, dx(SDIM)
       REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     force  (DIMV(istate),SDIM)
-      REAL_T     vel    (DIMV(state) ,SDIM)
+      REAL_T     force  (DIMV(istate),scomp+1:scomp+ncomp)
       REAL_T     rho    (DIMV(state))
-      REAL_T     tracer (DIMV(state))
       REAL_T     gravity
 
       REAL_T     Lx, Ly, Lz, Lmin
@@ -1829,6 +1827,7 @@ c
       REAL_T  zlo
       integer kx, ky, kz, mode_count, xstep, ystep, zstep
       integer isioproc
+      integer nXvel, nYvel, nZvel, nRho, nTrac
 
       hx = dx(1)
       hy = dx(2)
@@ -1841,240 +1840,165 @@ c
       jhi = istate_h2
       khi = istate_h3
 
-      gravity=abs(gravity)
+c     Assumes components are in the following order
+      nXvel = 1
+      nYvel = 2
+      nZvel = 3
+      nRho  = 4
+      nTrac = 5
 
-      if (probtype.eq.14.or.probtype.eq.15) then
+      if (scomp.eq.0) then
+c     Do velocity forcing
+         if (probtype.eq.14.or.probtype.eq.15) then
 #ifdef DO_IAMR_FORCE
 c     Homogeneous Isotropic Turbulence
-         twicePi=two*Pi
-         
+            twicePi=two*Pi
+            
 c     Adjust z offset for probtype 15
-         if (probtype.eq.15.and.infl_time_offset.gt.(-half)) then
-            infl_time = time + infl_time_offset
-            zlo = xlo(3) - (time*adv_vel)
-         else
-            infl_time = time
-            zlo = xlo(3)
-         endif
+            if (probtype.eq.15.and.infl_time_offset.gt.(-half)) then
+               infl_time = time + infl_time_offset
+               zlo = xlo(3) - (time*adv_vel)
+            else
+               infl_time = time
+               zlo = xlo(3)
+            endif
 
-         if (probtype.eq.14) then 
-            Lx = domnhi(1)-domnlo(1)
-            Ly = domnhi(2)-domnlo(2)
-            Lz = domnhi(3)-domnlo(3)
-         else if (probtype.eq.15) then 
-            Lx = forcing_xlength
-            Ly = forcing_ylength
-            Lz = forcing_zlength
-         endif
+            if (probtype.eq.14) then 
+               Lx = domnhi(1)-domnlo(1)
+               Ly = domnhi(2)-domnlo(2)
+               Lz = domnhi(3)-domnlo(3)
+            else if (probtype.eq.15) then 
+               Lx = forcing_xlength
+               Ly = forcing_ylength
+               Lz = forcing_zlength
+            endif
 
-         Lmin = min(Lx,Ly,Lz)
-         kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-         nxmodes = nmodes*int(0.5+Lx/Lmin)
-         nymodes = nmodes*int(0.5+Ly/Lmin)
-         nzmodes = nmodes*int(0.5+Lz/Lmin)
+            Lmin = min(Lx,Ly,Lz)
+            kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
+            nxmodes = nmodes*int(0.5+Lx/Lmin)
+            nymodes = nmodes*int(0.5+Ly/Lmin)
+            nzmodes = nmodes*int(0.5+Lz/Lmin)
 
-         xstep = int(Lx/Lmin+0.5)
-         ystep = int(Ly/Lmin+0.5)
-         zstep = int(Lz/Lmin+0.5)
+            xstep = int(Lx/Lmin+0.5)
+            ystep = int(Ly/Lmin+0.5)
+            zstep = int(Lz/Lmin+0.5)
 
-         do k = klo, khi
-            z = zlo + hz*(float(k-klo) + half)
-            do j = jlo, jhi
-               y = xlo(2) + hy*(float(j-jlo) + half)
-               do i = ilo, ihi
-                  x = xlo(1) + hx*(float(i-ilo) + half)
-                  f1 = zero
-                  f2 = zero
-                  f3 = zero
-                  do kz = mode_start*zstep, nzmodes, zstep
-                     kzd = dfloat(kz)
-                     do ky = mode_start*ystep, nymodes, ystep
-                        kyd = dfloat(ky)
-                        do kx = mode_start*xstep, nxmodes, xstep
-                           kxd = dfloat(kx)
-                           kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                           if (kappa.le.kappaMax) then
-                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                           endif
+            do k = klo, khi
+               z = zlo + hz*(float(k-klo) + half)
+               do j = jlo, jhi
+                  y = xlo(2) + hy*(float(j-jlo) + half)
+                  do i = ilo, ihi
+                     x = xlo(1) + hx*(float(i-ilo) + half)
+                     f1 = zero
+                     f2 = zero
+                     f3 = zero
+                     do kz = mode_start*zstep, nzmodes, zstep
+                        kzd = dfloat(kz)
+                        do ky = mode_start*ystep, nymodes, ystep
+                           kyd = dfloat(ky)
+                           do kx = mode_start*xstep, nxmodes, xstep
+                              kxd = dfloat(kx)
+                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                              if (kappa.le.kappaMax) then
+                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
+                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              endif
+                           enddo
                         enddo
                      enddo
-                  enddo
-                  do kz = mode_start, zstep - 1
-                     kzd = dfloat(kz)
-                     do ky = mode_start, nymodes
-                        kyd = dfloat(ky)
-                        do kx = mode_start, nxmodes
-                           kxd = dfloat(kx)
-                           kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
-                           if (kappa.le.kappaMax) then
-                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                           endif
+                     do kz = mode_start, zstep - 1
+                        kzd = dfloat(kz)
+                        do ky = mode_start, nymodes
+                           kyd = dfloat(ky)
+                           do kx = mode_start, nxmodes
+                              kxd = dfloat(kx)
+                              kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                              if (kappa.le.kappaMax) then
+                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
+                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              endif
+                           enddo
                         enddo
                      enddo
+                     if (use_rho_in_forcing.eq.1) then
+                        force(i,j,k,nXvel) = f1*rho(i,j,k)
+                        force(i,j,k,nYvel) = f2*rho(i,j,k)
+                        force(i,j,k,nZvel) = f3*rho(i,j,k)
+                     else
+                        force(i,j,k,nXvel) = f1
+                        force(i,j,k,nYvel) = f2
+                        force(i,j,k,nZvel) = f3
+                     endif
                   enddo
-                  if (use_rho_in_forcing.eq.1) then
-                     force(i,j,k,1) = f1*rho(i,j,k)
-                     force(i,j,k,2) = f2*rho(i,j,k)
-                     force(i,j,k,3) = f3*rho(i,j,k)
-                  else
-                     force(i,j,k,1) = f1
-                     force(i,j,k,2) = f2
-                     force(i,j,k,3) = f3
-                  endif
                enddo
             enddo
-         enddo
-
 #endif
-      else if (probtype.eq.99.and.abs(grav_angle).gt.0.001) then
+         else if (probtype.eq.99.and.abs(grav_angle).gt.0.001) then
 c     Angled gravity
-         sga =  gravity * sin(Pi*grav_angle/180.)
-         cga = -gravity * cos(Pi*grav_angle/180.)
-         do k = klo, khi
-            do j = jlo, jhi
-               do i = ilo, ihi
-                  force(i,j,k,1) = rho(i,j,k)*sga
-                  force(i,j,k,2) = zero
-                  force(i,j,k,3) = rho(i,j,k)*cga
-               enddo
-            enddo
-         enddo
-      else if (probtype.eq.99.and.abs(omega).gt.0.001) then
-c     Rotation about x=y=0 rate omega
-         do k = klo, khi
-            do j = jlo, jhi
-               do i = ilo, ihi
-                  force(i,j,k,1) =  2.*omega*vel(i,j,k,2)
-                  force(i,j,k,2) = -2.*omega*vel(i,j,k,1)
-                  force(i,j,k,3) =  zero
-               enddo
-            enddo
-         enddo
-c     Default to gravity...
-      elseif (gravity.gt.0.001) then
-         do k = klo, khi
-            do j = jlo, jhi
-               do i = ilo, ihi
-                  force(i,j,k,1) = zero
-                  force(i,j,k,2) = zero
-                  force(i,j,k,3) = -gravity*rho(i,j,k)
-               enddo
-            enddo
-         enddo
-c     else to zero
-      else
-         do k = klo, khi
-            do j = jlo, jhi
-               do i = ilo, ihi
-                  force(i,j,k,1) = zero
-                  force(i,j,k,2) = zero
-                  force(i,j,k,3) = zero
-               enddo
-            enddo
-         enddo
-      endif
-
-      end
-
-
-c
-c ::: -----------------------------------------------------------
-c
-c     This routine add the forcing terms to the scalar equations
-c
-
-c     Might be worth thinking about passing Density, Tracer and
-c     Temp as integers so that the decision making done below
-c     matches up - just in case things change
-c     Then again, maybe not... AJA
-
-      subroutine FORT_MAKESCALFORCE(time,
-     &                              force,vel,rho,tracer,
-     &                              DIMS(istate),DIMS(state),
-     &                              dx,xlo,xhi,gravity,scomp,ncomp,
-     &                              comps)
-
-      implicit none
-
-      integer    DIMDEC(state)
-      integer    DIMDEC(istate)
-      integer    scomp, ncomp
-      REAL_T     time, dx(SDIM)
-      REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     force  (DIMV(istate),scomp:scomp+ncomp-1)
-      REAL_T     vel    (DIMV(state) ,SDIM)
-      REAL_T     rho    (DIMV(state))
-      REAL_T     tracer (DIMV(state))
-      REAL_T     gravity
-      integer    comps(10)
-
-#include "probdata.H"
-
-c
-c     ::::: local variables
-c
-      integer i, j, k, n
-      integer ilo, jlo, klo
-      integer ihi, jhi, khi
-      REAL_T  x, y, z
-      REAL_T  hx, hy, hz
-      REAL_T  r, r2
-
-      hx = dx(1)
-      hy = dx(2)
-      hz = dx(3)
-
-      ilo = istate_l1
-      jlo = istate_l2
-      klo = istate_l3
-      ihi = istate_h1
-      jhi = istate_h2
-      khi = istate_h3
-
-c      write(*,*) "Comps 1-5 are :",comps(1),comps(2),comps(3),comps(4),comps(5)
-
-      do n = scomp, scomp+ncomp-1
-         if (n.eq.comps(1)) then
-c
-c     Density
-c
+            sga =  gravity * sin(Pi*grav_angle/180.)
+            cga = -gravity * cos(Pi*grav_angle/180.)
             do k = klo, khi
                do j = jlo, jhi
                   do i = ilo, ihi
-                     force(i,j,k,n) = zero
+                     force(i,j,k,nXvel) = rho(i,j,k)*sga
+                     force(i,j,k,nYvel) = zero
+                     force(i,j,k,nZvel) = rho(i,j,k)*cga
                   enddo
                enddo
             enddo
-         else if (n.eq.comps(2)) then
-c
-c     Tracer
-c
-            if (probtype.eq.99) then
-c     Boussinesq
-               do k = klo, khi
-                  z = xlo(3) + hz*(float(k-klo) + half)
-                  do j = jlo, jhi
-                     y = xlo(2) + hy*(float(j-jlo) + half)
-                     do i = ilo, ihi
-                        x = xlo(1) + hx*(float(i-ilo) + half)
+c     Default to gravity...
+         elseif (abs(gravity).gt.0.0001) then
+            do k = klo, khi
+               do j = jlo, jhi
+                  do i = ilo, ihi
+                     force(i,j,k,nXvel) = zero
+                     force(i,j,k,nYvel) = zero
+                     force(i,j,k,nZvel) = gravity*rho(i,j,k)
+                  enddo
+               enddo
+            enddo
+c     else to zero
+         else
+            do k = klo, khi
+               do j = jlo, jhi
+                  do i = ilo, ihi
+                     force(i,j,k,nXvel) = zero
+                     force(i,j,k,nYvel) = zero
+                     force(i,j,k,nZvel) = zero
+                  enddo
+               enddo
+            enddo
+         endif
+c     End of velocity forcing
+      endif
 
-                        if (sqrt(x*x+y*y).lt.radblob) then
-c     force(i,j,k,n) = heatflux
-                           force(i,j,k,n) = zero
-                        else
-                           force(i,j,k,n) = zero
-                        endif
+      if ((scomp+ncomp).gt.BL_SPACEDIM) then
+c     Scalar forcing
+         do n = max(scomp+1,nRho), scomp+ncomp
+            if (n.eq.nRho) then
+c     Density
+               do k = klo, khi
+                  do j = jlo, jhi
+                     do i = ilo, ihi
+                        force(i,j,k,n) = zero
+                     enddo
+                  enddo
+               enddo
+            else if (n.eq.nTrac) then
+c     Tracer
+               do k = klo, khi
+                  do j = jlo, jhi
+                     do i = ilo, ihi
+                        force(i,j,k,n) = zero
                      enddo
                   enddo
                enddo
             else
-c     Tracer - not probtype 99
+c     Other scalar
                do k = klo, khi
                   do j = jlo, jhi
                      do i = ilo, ihi
@@ -2083,20 +2007,10 @@ c     Tracer - not probtype 99
                   enddo
                enddo
             endif
-         else
-c     Default to zero
-            do k = klo, khi
-               do j = jlo, jhi
-                  do i = ilo, ihi
-                     force(i,j,k,n) = zero
-                  enddo
-               enddo
-            enddo
-         endif
-      enddo
+         enddo
+      endif
 
       end
-
 
 c     ::: -----------------------------------------------------------
 c     ::: This routine will tag high error cells based on the 
