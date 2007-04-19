@@ -58,7 +58,7 @@ c
       namelist /fortin/ denerr, vorterr, adverr, temperr,
      &			denfact, xblob, yblob, zblob, radblob, 
      &                  velfact, probtype, randfact, bubgrad,
-     &			rhozero, tempzero, c_d, r_d, 
+     &			rhozero, tempzero, c_d, r_d, grav_angle,
      &                  adv_dir, adv_vel, axis_dir, radvort
 #ifdef BL_DO_FLCT
      &                  ,forceInflow, numInflPlanesStore, strmwse_dir,
@@ -664,6 +664,118 @@ c ::: -----------------------------------------------------------
 
       end
 
+c
+c
+c ::: -----------------------------------------------------------
+c
+c     This routine add the forcing terms to the momentum equation
+c
+      subroutine FORT_MAKEFORCE(time,force,rho,
+     &                          DIMS(istate),DIMS(state),
+     &                          dx,xlo,xhi,gravity,scomp,ncomp)
+
+      implicit none
+
+      integer    DIMDEC(state)
+      integer    DIMDEC(istate)
+      integer    scomp, ncomp
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     force  (DIMV(istate),scomp+1:scomp+ncomp)
+      REAL_T     rho    (DIMV(state))
+      REAL_T     gravity
+
+#include "probdata.H"
+
+c
+c     ::::: local variables
+c
+      integer i, j, n
+      integer ilo, jlo
+      integer ihi, jhi
+      REAL_T  x, y
+      REAL_T  hx, hy
+      REAL_T  sga, cga
+      integer kx, ky, mode_count, xstep, ystep
+      integer isioproc
+      integer nXvel, nYvel, nRho, nTrac
+
+      hx = dx(1)
+      hy = dx(2)
+
+      ilo = istate_l1
+      jlo = istate_l2
+      ihi = istate_h1
+      jhi = istate_h2
+
+c     Assumes components are in the following order
+      nXvel = 1
+      nYvel = 2
+      nRho  = 3
+      nTrac = 4
+
+      if (scomp.eq.0) then
+c     Do velocity forcing
+         if (probtype.eq.99.and.abs(grav_angle).gt.0.001) then
+c     Angled gravity
+            sga =  gravity * sin(Pi*grav_angle/180.)
+            cga = -gravity * cos(Pi*grav_angle/180.)
+            do j = jlo, jhi
+               do i = ilo, ihi
+                  force(i,j,nXvel) = rho(i,j)*sga
+                  force(i,j,nYvel) = rho(i,j)*cga
+               enddo
+            enddo
+c     Default to gravity...
+         elseif (abs(gravity).gt.0.0001) then
+            do j = jlo, jhi
+               do i = ilo, ihi
+                  force(i,j,nXvel) = zero
+                  force(i,j,nYvel) = gravity*rho(i,j)
+               enddo
+            enddo
+c     else to zero
+         else
+            do j = jlo, jhi
+               do i = ilo, ihi
+                  force(i,j,nXvel) = zero
+                  force(i,j,nYvel) = zero
+               enddo
+            enddo
+         endif
+c     End of velocity forcing
+      endif
+
+      if ((scomp+ncomp).gt.BL_SPACEDIM) then
+c     Scalar forcing
+
+         do n = max(scomp+1,nRho), scomp+ncomp
+            if (n.eq.nRho) then
+c     Density
+               do j = jlo, jhi
+                  do i = ilo, ihi
+                     force(i,j,n) = zero
+                  enddo
+               enddo
+            else if (n.eq.nTrac) then
+c     Tracer
+               do j = jlo, jhi
+                  do i = ilo, ihi
+                     force(i,j,n) = zero
+                  enddo
+               enddo
+            else
+c     Other scalar
+               do j = jlo, jhi
+                  do i = ilo, ihi
+                     force(i,j,n) = zero
+                  enddo
+               enddo
+            endif
+         enddo
+      endif
+
+      end
 c ::: -----------------------------------------------------------
 c ::: This routine will tag high error cells based on the 
 c ::: density gradient
