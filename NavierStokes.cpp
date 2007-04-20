@@ -2693,17 +2693,19 @@ NavierStokes::sumDerive (const std::string& name, Real time)
 
     for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
     {
+        FArrayBox& fab = mf->get(mfi);
+
         if (level < parent->finestLevel())
         {
             std::vector< std::pair<int,Box> > isects = baf.intersections(grids[mfi.index()]);
 
             for (int ii = 0; ii < isects.size(); ii++)
             {
-                (*mf)[mfi].setVal(0,isects[ii].second,0);
+                fab.setVal(0,isects[ii].second,0,fab.nComp());
             }
         }
 
-        sum += (*mf)[mfi].sum(0);
+        sum += fab.sum(0);
     }
 
     delete mf;
@@ -2741,7 +2743,7 @@ NavierStokes::volWgtSum (const std::string& name,
 
             for (int ii = 0; ii < isects.size(); ii++)
             {
-                fab.setVal(0,isects[ii].second,0);
+                fab.setVal(0,isects[ii].second,0,fab.nComp());
             }
         }
         Real        s;
