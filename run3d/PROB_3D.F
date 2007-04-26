@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.35 2007-04-19 22:27:11 aaspden Exp $
+c $Id: PROB_3D.F,v 1.36 2007-04-26 21:01:58 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -264,10 +264,12 @@ c
          
          if (blrandseed.gt.0) then
             call blutilinitrand(blrandseed)
-            write (*,*) "blrandseed = ",blrandseed
             call blutilrand(rn)
-            write (*,*) "first random number = ",rn
             call blutilinitrand(blrandseed)
+            if (isioproc .eq. 1) then
+               write (*,*) "blrandseed = ",blrandseed
+               write (*,*) "first random number = ",rn
+            endif
          else
             call blutilinitrand(111397)
          endif

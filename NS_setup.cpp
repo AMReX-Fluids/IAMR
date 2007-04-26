@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.51 2007-04-17 16:34:26 aaspden Exp $
+// $Id: NS_setup.cpp,v 1.52 2007-04-26 21:02:07 aaspden Exp $
 //
 
 #include <winstd.H>
@@ -359,7 +359,7 @@ NavierStokes::variableSetUp ()
     derive_lst.add("gradpz",IndexType::TheCellType(),1,FORT_DERGRDPZ,the_same_box);
     derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
 
-#ifdef BUILDING_IAMR
+#ifdef DO_IAMR_FORCE
     //
     // forcing - used to calculate the rate of injection of energy in probtype 14 (HIT)
     //
