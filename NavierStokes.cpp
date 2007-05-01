@@ -171,7 +171,7 @@ GetBndryCells (const BoxArray& ba,
         }
     }
     //
-    // Now strip out overlaps.  Also does a crude simplify().
+    // Now strip out overlaps.
     //
     gcells.clear();
     gcells = BoxLib::removeOverlap(bcells);
@@ -203,8 +203,6 @@ GetBndryCells (const BoxArray& ba,
 
         gcells.catenate(bcells);
     }
-
-    //gcells.simplify();
 
     return BoxArray(gcells);
 }
