@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.20 2007-04-17 17:38:44 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.21 2007-05-04 00:58:35 marc Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -704,7 +704,7 @@ c
       integer    DIMDEC(dat)
       integer    domlo(SDIM), domhi(SDIM)
       integer    nv, ncomp
-     integer    bc(SDIM,2,ncomp)
+      integer    bc(SDIM,2,ncomp)
       REAL_T     delta(SDIM), xlo(SDIM)
       REAL_T     time, dt
       REAL_T     e(DIMV(e),nv)
