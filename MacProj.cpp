@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.109 2007-04-19 22:26:18 aaspden Exp $
+// $Id: MacProj.cpp,v 1.110 2007-06-27 17:51:38 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -471,6 +471,7 @@ MacProj::mac_sync_solve (int       level,
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_sync_solve at level " << level << '\n';
 
+    const Real      strt_time  = ParallelDescriptor::second();
     const BoxArray& grids      = LevelData[level].boxArray();
     const Geometry& geom       = parent->Geom(level);
     const Real*     dx         = geom.CellSize();
@@ -593,23 +594,35 @@ MacProj::mac_sync_solve (int       level,
     // Solve the sync system.
     //
     int the_solver = 0;
-    if (use_cg_solve)
+    if ( use_cg_solve )
     {
 	the_solver = 1;
     }
     else if ( use_hypre_solve )
-      {
+    {
 	the_solver = 2;
-      }
+    }
     else if ( use_fboxlib_mg )
     {
 	the_solver = 3;
     }
-    if (anel_coeff[level] != 0) scaleArea(level,area[level],anel_coeff[level]);
+    if (anel_coeff[level] != 0)
+        scaleArea(level,area[level],anel_coeff[level]);
+
     mac_sync_driver(mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
                     mac_sync_tol, mac_abs_tol, rhs_scale, area[level],
                     volume[level], Rhs, rho_half, mac_sync_phi);
-    if (anel_coeff[level] != 0) rescaleArea(level,area[level],anel_coeff[level]);
+
+    if (anel_coeff[level] != 0)
+        rescaleArea(level,area[level],anel_coeff[level]);
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "MacProj::mac_sync_solve(): time: " << run_time << std::endl;
 }
 
 //
