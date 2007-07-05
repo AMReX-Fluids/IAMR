@@ -3,7 +3,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.17 2006-09-11 17:59:32 almgren Exp $
+// $Id: Godunov.H,v 1.18 2007-07-05 17:01:48 lijewski Exp $
 //
 //
 // A useful enumeration of the forms for the advective terms
@@ -34,7 +34,7 @@ public:      // public access functions
     void read_params();
     
     // destruct the advection object
-    ~Godunov();
+    virtual ~Godunov();
 
     // set up the Godunov Box
     virtual void Setup( const Box &grd, const Real *dx, Real dt, int set_fluxes, 
