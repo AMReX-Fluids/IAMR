@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.42 2007-07-05 20:01:47 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.43 2007-07-05 20:59:23 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -158,8 +158,6 @@ MacOperator::defRHS (MultiFab* area,
 
     for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
-        BL_ASSERT(ba[Rhsmfi.index()] == Rhsmfi.validbox());
-
         const Box& grd       = Rhsmfi.validbox();
         const int* lo        = grd.loVect();
         const int* hi        = grd.hiVect();
@@ -285,8 +283,6 @@ MacOperator::velUpdate (MultiFab*       Vel,
 
     for (MFIter Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
     {
-        BL_ASSERT(ba[Phimfi.index()] == Phimfi.validbox());
-
         const Box& grd = Phimfi.validbox();
 
         mac_vel_update(0, 
@@ -310,8 +306,6 @@ MacOperator::syncRhs (const MultiFab& Volume,
 {
     for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
-        BL_ASSERT(ba[Rhsmfi.index()] == Rhsmfi.validbox());
-
         const Box& grd       = Rhsmfi.validbox();
         const int* lo        = grd.loVect();
         const int* hi        = grd.hiVect();

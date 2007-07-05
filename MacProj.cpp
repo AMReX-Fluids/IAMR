@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.111 2007-07-05 20:01:47 lijewski Exp $
+// $Id: MacProj.cpp,v 1.112 2007-07-05 20:59:23 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1359,7 +1359,7 @@ MacProj::test_umac_periodic (int level,MultiFab* u_mac)
 
         BL_ASSERT(pirm[i].m_fbid.box() == pirm[i].m_srcBox);
         BL_ASSERT(pirm[i].m_srcBox.sameSize(pirm[i].m_dstBox));
-        BL_ASSERT(u_mac[dim].DistributionMap()[pirm[i].m_idx] == MyProc);
+        BL_ASSERT(u_mac[dim].DistributionMap()[pirm[i].m_idx] == ParallelDescriptor::MyProc());
 
         diff.resize(pirm[i].m_srcBox, 1);
 

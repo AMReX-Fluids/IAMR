@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.74 2007-07-05 20:01:48 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.75 2007-07-05 20:59:23 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -266,7 +266,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
     for (int i = 0; i < srrec.size(); i++)
     {
-        BL_ASSERT(rhs.DistributionMap()[srrec[i].m_idx] == MyProc);
+        BL_ASSERT(rhs.DistributionMap()[srrec[i].m_idx] == ParallelDescriptor::MyProc());
 
         FArrayBox& fab = rhs[srrec[i].m_idx];
 
@@ -316,7 +316,7 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
     {
         const Box& bx = srrec[i].m_fbid.box();
 
-        BL_ASSERT(rhs.DistributionMap()[srrec[i].m_idx] == MyProc);
+        BL_ASSERT(rhs.DistributionMap()[srrec[i].m_idx] == ParallelDescriptor::MyProc());
 
         FArrayBox& rhs_fab = rhs[srrec[i].m_idx];
 
@@ -594,7 +594,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
     {
         FabSet& fabset = bndry[srrec[i].m_face];
 
-        BL_ASSERT(fabset.DistributionMap()[srrec[i].m_idx] == MyProc);
+        BL_ASSERT(fabset.DistributionMap()[srrec[i].m_idx] == ParallelDescriptor::MyProc());
 
         tmpfab.resize(srrec[i].m_fbid.box(), mf.nComp());
 
