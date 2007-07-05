@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.110 2007-06-27 17:51:38 lijewski Exp $
+// $Id: MacProj.cpp,v 1.111 2007-07-05 20:01:47 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -70,15 +70,17 @@ MacProj::MacProj (Amr*   _parent,
                   int    _radius_grow)
   :
     parent(_parent),
-    finest_level(_finest_level),
-    phys_bc(_phys_bc), 
-    radius_grow(_radius_grow), 
     LevelData(_finest_level+1),
+    phys_bc(_phys_bc), 
     phi_bcs(_finest_level+1),
     mac_phi_crse(_finest_level+1, PArrayManage),
     mac_reg(_finest_level+1, PArrayManage),
-    volume(_finest_level+1), area(_finest_level+1),
-    anel_coeff(_finest_level+1), radius(_finest_level+1) 
+    volume(_finest_level+1),
+    area(_finest_level+1),
+    anel_coeff(_finest_level+1),
+    radius_grow(_radius_grow),
+    radius(_finest_level+1),
+    finest_level(_finest_level)
 {
     read_params();
 
@@ -949,7 +951,6 @@ MacProj::mac_sync_compute (int                    level,
     const BoxArray& grids        = LevelData[level].boxArray();
     const Geometry& geom         = parent->Geom(level);
     MultiFab*       mac_sync_phi = &mac_phi_crse[level];
-    NavierStokes&   ns_level     = *(NavierStokes*) &(parent->getLevel(level));
 
     Godunov godunov(512);
 
@@ -1308,8 +1309,6 @@ MacProj::test_umac_periodic (int level,MultiFab* u_mac)
 
     if (!geom.isAnyPeriodic()) return;
 
-    const BoxArray&         grids  = LevelData[level].boxArray();
-    const int               MyProc = ParallelDescriptor::MyProc();
     FArrayBox               diff;
     Array<IntVect>          pshifts(27);
     MultiFabCopyDescriptor  mfcd;

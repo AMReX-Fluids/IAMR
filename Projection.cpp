@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.164 2006-03-21 00:07:00 lijewski Exp $
+// $Id: Projection.cpp,v 1.165 2007-07-05 20:01:48 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -88,13 +88,13 @@ Projection::Projection (Amr*   _parent,
                         int    _radius_grow )
    :
     parent(_parent),
-    phys_bc(_phys_bc), 
-    do_sync_proj(_do_sync_proj),
-    finest_level(_finest_level),
+    LevelData(_finest_level+1),
     radius_grow(_radius_grow), 
-    LevelData(_finest_level+1), 
     radius(_finest_level+1),
-    anel_coeff(_finest_level+1)
+    anel_coeff(_finest_level+1),
+    phys_bc(_phys_bc), 
+    finest_level(_finest_level),
+    do_sync_proj(_do_sync_proj)
 {
     read_params();
 
@@ -909,8 +909,6 @@ Projection::syncProject (int             c_lev,
 
     const Real strt_time = ParallelDescriptor::second();
 
-    int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
-
     if (verbose && ParallelDescriptor::IOProcessor()) 
     {
         std::cout << "SyncProject: level = "
@@ -1076,7 +1074,6 @@ Projection::MLsyncProject (int             c_lev,
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << '\n';
     
-    int rz_flag = (CoordSys::IsRZ() ? 1 : 0);
     if (sync_proj == 0)
         bldSyncProject();
     //
@@ -1357,8 +1354,7 @@ Projection::initialVelocityProject (int  c_lev,
         //
         // Set the physical boundary values.
         //
-        AmrLevel&       amr_level = parent->getLevel(lev);
-        const BoxArray& grids     = amr_level.boxArray();
+        AmrLevel& amr_level = parent->getLevel(lev);
 
         amr_level.setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM);
 
@@ -1858,8 +1854,6 @@ Projection::put_divu_in_node_rhs (MultiFab&       rhs,
     rhs.setVal(0);
 
     const Geometry& geom   = parent->Geom(level);
-    const int       bcxlo  = phys_bc->lo(0);
-    const int       bcxhi  = phys_bc->hi(0);
     int             isrz   = user_rz == -1 ? CoordSys::IsRZ() : user_rz;
     const Real*     dx     = geom.CellSize();
     Real            hx     = dx[0];
@@ -2382,9 +2376,7 @@ Projection::initialVorticityProject (int c_lev)
     //
     // Set up projector bndry just for this projection.
     //
-    const int*      lo_bc = phys_bc->lo();
-    const int*      hi_bc = phys_bc->hi();
-    const Geometry& geom  = parent->Geom(0);
+    const Geometry& geom = parent->Geom(0);
 
     RegType proj_bc[BL_SPACEDIM][2];
 
@@ -2580,9 +2572,7 @@ Projection::getStreamFunction (PArray<MultiFab>& phi)
     //
     // Set up projector bndry just for this projection.
     //
-    const int*      lo_bc = phys_bc->lo();
-    const int*      hi_bc = phys_bc->hi();
-    const Geometry& geom  = parent->Geom(0);
+    const Geometry& geom = parent->Geom(0);
 
     RegType proj_bc[BL_SPACEDIM][2];
 
@@ -2817,11 +2807,11 @@ Projection::set_outflow_bcs (int        which_call,
     BL_ASSERT(!(ns0 == 0));
    
     int Divu_Type, Divu;
-    Real gravity;
+    Real gravity = 0;
 
     if (which_call == INITIAL_SYNC || which_call == INITIAL_VEL)
     {
-      gravity = 0.;
+      gravity = 0;
       if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu))
         BoxLib::Error("Projection::set_outflow_bcs: No divu.");
     }
@@ -2830,7 +2820,7 @@ Projection::set_outflow_bcs (int        which_call,
     {
       gravity = ns0->getGravity();
       if (!LevelData[c_lev].isStateVariable("divu", Divu_Type, Divu) &&
-          (gravity == 0.) )
+          (gravity == 0) )
         BoxLib::Error("Projection::set_outflow_bcs: No divu or gravity.");
     }
 
@@ -2866,8 +2856,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
                                       int          have_divu,
                                       Real         gravity)
 {
-  NavierStokes* ns = dynamic_cast<NavierStokes*>(&LevelData[lev]);
-  BL_ASSERT(!(ns == 0));
+  BL_ASSERT(dynamic_cast<NavierStokes*>(&LevelData[lev]) != 0);
 
   Box domain = parent->Geom(lev).Domain();
 
@@ -2894,7 +2883,6 @@ Projection::set_outflow_bcs_at_level (int          which_call,
       dsdt[iface].resize(state_strip[iface],1);
       dudt[0][iface].resize(state_strip[iface],BL_SPACEDIM);
 
-      const int outDir    = outFacesAtThisLevel[iface].coordDir();
       rho[iface].resize(state_strip[iface],1);
 
       Sig_grown.copy(rho[iface]);

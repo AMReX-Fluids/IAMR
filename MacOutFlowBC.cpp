@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.30 2007-04-16 18:14:56 almgren Exp $
+// $Id: MacOutFlowBC.cpp,v 1.31 2007-07-05 20:01:47 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -225,17 +225,12 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
        } else {
 
 #if (BL_SPACEDIM == 2)
-        int face   = int(outFaces[iface]);
-        int outDir = outFaces[iface].coordDir();
         int length = ccExt[iface].length()[0];
 
-        const int* ccElo = ccExt[iface].loVect();
-        const int* ccEhi = ccExt[iface].hiVect();
         const Real*  rhoEPtr = ccExt[iface].dataPtr(0);
         const Real* divuEPtr = ccExt[iface].dataPtr(1);
   
         Box faceBox(ccExt[iface].box());
-        DEF_BOX_LIMITS(faceBox,faceLo,faceHi);
         DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
 
         Real* x = new Real[length];
@@ -246,8 +241,6 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
         FORT_MACPHI_FROM_X(ARLIM(philo),ARLIM(phihi),phiPtr,
                            &length,x);
         delete x;
-
-
 #elif (BL_SPACEDIM == 3)
 
         Box faceBox(ccExt[iface].box());

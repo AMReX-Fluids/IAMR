@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.45 2006-09-11 17:56:21 almgren Exp $
+// $Id: main.cpp,v 1.46 2007-07-05 20:01:48 lijewski Exp $
 //
 
 #include <cstdio>
@@ -178,23 +178,6 @@ main (int   argc,
     // Close down the Holy Grail junk.
     //
     HG::MPI_finish();
-
-    if (CArena* arena = dynamic_cast<CArena*>(BoxLib::The_Arena()))
-    {
-        //
-        // We're using a CArena -- output some FAB memory stats.
-        // This'll output total # of bytes of heap space in the Arena.
-        // It's actually the high water mark of heap space required by FABs.
-        //
-        char buf[256];
-
-        sprintf(buf,
-                "CPU(%d): Heap Space (bytes) used by Coalescing FAB Arena: %ld",
-                ParallelDescriptor::MyProc(),
-                arena->heap_space_used());
-
-        std::cout << buf << std::endl;
-    }
 
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      run_stop = ParallelDescriptor::second() - run_strt;

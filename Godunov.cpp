@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.42 2006-09-11 18:01:59 almgren Exp $
+// $Id: Godunov.cpp,v 1.43 2007-07-05 20:01:47 lijewski Exp $
 //
 
 //
@@ -401,8 +401,6 @@ Godunov::edge_states_orig (const Box&  grd,
     const Real *tfr_dat   = tforces.dataPtr(fab_ind);
     const Real *uad_dat   = uad.dataPtr();
     const Real *vad_dat   = vad.dataPtr();
-    const Real *stx_dat   = stx.dataPtr();
-    const Real *sty_dat   = sty.dataPtr();
     //
     // Set work space to bogus values.
     //

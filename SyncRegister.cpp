@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.73 2006-01-25 16:58:26 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.74 2007-07-05 20:01:48 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -218,7 +218,6 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
     if (!geom.isAnyPeriodic()) return;
 
-    const int            MyProc    = ParallelDescriptor::MyProc();
     Array<IntVect>       pshifts(27);
     std::vector<SRRec>   srrec;
     FabSetCopyDescriptor fscd;
@@ -282,7 +281,6 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::multByBndryMask()");
 
-    const int            MyProc = ParallelDescriptor::MyProc();
     FabSetCopyDescriptor fscd;
     FabSetId             fsid[2*BL_SPACEDIM];
     std::vector<SRRec>   srrec;
@@ -338,8 +336,6 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     rhs.setVal(0);
 
     Box domain = BoxLib::surroundingNodes(geom.Domain());
-
-    const int MyProc = ParallelDescriptor::MyProc();
 
     FabSetCopyDescriptor fscd;
 
@@ -546,7 +542,6 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
     if (!geom.isAnyPeriodic()) return;
 
-    const int              MyProc    = ParallelDescriptor::MyProc();
     const BoxArray&        mfBA      = mf.boxArray();
     Array<IntVect>         pshifts(27);
     std::vector<SRRec>     srrec;
@@ -684,9 +679,6 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
     BuildMFs(*Sync_resid_fine,cloMF,chiMF,ratio,WITH_BOX);
 
     Sync_resid_fine->mult(mult);
-
-    const int* phys_lo = phys_bc->lo();
-    const int* phys_hi = phys_bc->hi();
 
     Box fine_node_domain = BoxLib::surroundingNodes(fine_geom.Domain());
     Box crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());

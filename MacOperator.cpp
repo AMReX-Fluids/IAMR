@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.41 2007-03-09 00:17:07 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.42 2007-07-05 20:01:47 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -154,8 +154,7 @@ MacOperator::defRHS (MultiFab* area,
     //
     // Should check that all BoxArrays are consistant.
     //
-    const BoxArray& ba = gbox[0];
-    BL_ASSERT(Rhs.boxArray() == ba);
+    BL_ASSERT(Rhs.boxArray() == gbox[0]);
 
     for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
@@ -277,8 +276,7 @@ MacOperator::velUpdate (MultiFab*       Vel,
     //
     // Should check that all BoxArrays are consistant.
     //
-    const BoxArray& ba = gbox[0];
-    BL_ASSERT(Rho.boxArray() == ba);
+    BL_ASSERT(Rho.boxArray() ==  gbox[0]);
     //
     // Set bndry data in ghost zones.
     //
@@ -310,8 +308,6 @@ MacOperator::syncRhs (const MultiFab& Volume,
                       Real            rhs_scale,
                       const Real*     dx)
 {
-    const BoxArray& ba = gbox[0];
-
     for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
         BL_ASSERT(ba[Rhsmfi.index()] == Rhsmfi.validbox());

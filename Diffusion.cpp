@@ -108,12 +108,13 @@ Diffusion::Diffusion (Amr*               Parent,
     caller(Caller),
     grids(caller->boxArray()),
     level(caller->Level()),
+    volume(Volume),
+    area(Area),
     coarser(Coarser),
     finer(0),
     NUM_STATE(num_state),
-    viscflux_reg(Viscflux_reg),
-    volume(Volume),
-    area(Area)
+    viscflux_reg(Viscflux_reg)
+
 {
     if (first)
     {
@@ -302,8 +303,6 @@ Diffusion::diffuse_scalar (Real                   dt,
     checkBetas(betan, betanp1, allthere, allnull);
 
     BL_ASSERT(solve_mode==ONEPASS || (delta_rhs && delta_rhs->boxArray()==grids));
-    
-    const int finest_level = parent->finestLevel();
     //
     // At this point, S_old has bndry at time N, S_new has bndry at time N+1
     //
@@ -822,7 +821,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     const MultiFab* rho = (rho_flag == 1) ? rho_half : ns.rho_ctime;
     DivVis* tensor_op = getTensorOp(a,b,cur_time,visc_bndry,rho,dComp,betanp1);
     tensor_op->maxOrder(tensor_max_order);
-    const MultiFab* alpha = &(tensor_op->aCoefficients());
     //
     // Construct solver and call it.
     //
@@ -875,9 +873,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                 const Box& grd = BoxLib::enclosedCells(tensorflux0mfi.validbox());
 
                 BL_ASSERT(grd == grids[tensorflux0mfi.index()]);
-
-                const int* lo  = grd.loVect();
-                const int* hi  = grd.hiVect();
 
                 Box xflux_bx(grd);
                 xflux_bx.surroundingNodes(0);
@@ -1034,7 +1029,6 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         // Construct solver and call it.
         //
         const Real      S_tol     = visc_tol;
-        const MultiFab* alpha     = &(visc_op->aCoefficients());
         const Real      S_tol_abs = -1;
         if (use_cg_solve)
         {
@@ -1170,10 +1164,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
         std::cout << "Diffusion::diffuse_tensor_Vsync ...\n";
 
     NavierStokes& ns         = *(NavierStokes*) &(parent->getLevel(level));
-    const int   finest_level = parent->finestLevel();
-    const Real* dx           = caller->Geom().CellSize();
     const int   IOProc       = ParallelDescriptor::IOProcessorNumber();
-    const Real  cur_time     = caller->get_state_data(State_Type).curTime();
 
     MultiFab Soln(grids,BL_SPACEDIM,1);
     MultiFab Rhs(grids,BL_SPACEDIM,0);
@@ -1214,7 +1205,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     const MultiFab* rho       = (rho_flag == 1) ? rho_half : ns.rho_ctime;
     DivVis*         tensor_op = getTensorOp(a,b,rho,dComp,beta);
     tensor_op->maxOrder(tensor_max_order);
-    const MultiFab* alpha     = &(tensor_op->aCoefficients());
     //
     // Construct solver and call it.
     //
@@ -1272,9 +1262,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
                 const Box& grd = BoxLib::enclosedCells(tensorflux0mfi.validbox());
 
                 BL_ASSERT(grd==grids[tensorflux0mfi.index()]);
-
-                const int* lo  = grd.loVect();
-                const int* hi  = grd.hiVect();
 
                 Box xflux_bx(grd);
                 xflux_bx.surroundingNodes(0);
@@ -1559,10 +1546,8 @@ Diffusion::getTensorOp (Real                   a,
     if (!allthere)
         BoxLib::Abort("Diffusion::getTensorOp(): all betas must allocated all 0 or all non-0");
 
-    const Real* dx     = caller->Geom().CellSize();
-    const Box&  domain = caller->Geom().Domain();
-
-    const int nDer = MCLinOp::bcComponentsNeeded();
+    const Real* dx   = caller->Geom().CellSize();
+    const int   nDer = MCLinOp::bcComponentsNeeded();
 
     Array<BCRec> bcarray(nDer,BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
                                     D_DECL(EXT_DIR,EXT_DIR,EXT_DIR)));
@@ -1801,7 +1786,6 @@ Diffusion::getViscOp (int                    comp,
 
     const Geometry& geom = caller->Geom();
     const Real*  dx      = geom.CellSize();
-    const Box&   domain  = geom.Domain();
     const BCRec& bc      = caller->get_desc_lst()[State_Type].getBC(comp);
 
     IntVect ref_ratio = level > 0 ? parent->refRatio(level-1) : IntVect::TheUnitVector();
@@ -2068,7 +2052,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     //
     const Real* dx   = caller->Geom().CellSize();
     MultiFab&   S    = caller->get_data(State_Type,time);
-    const int   ngrd = grids.size();
     visc_terms.setVal(0.0,src_comp,BL_SPACEDIM,1);
     //
     // FIXME
@@ -2525,7 +2508,6 @@ Diffusion::compute_divmusi (Real                   time,
     for (MFIter divmusimfi(divmusi); divmusimfi.isValid(); ++divmusimfi)
     {
         const int  i    = divmusimfi.index();
-        FArrayBox& fab  = divmusi[divmusimfi];
         FArrayBox& divu = (*divu_fp)[divmusimfi];
         const Box& box  = divmusimfi.validbox();
 
@@ -2561,7 +2543,8 @@ Diffusion::compute_divmusi (Real                   time,
 int
 Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
 {
-    int rho_flag;
+    int rho_flag = 0;
+
     switch (compDiffusionType)
     {
         case Laplacian_S:

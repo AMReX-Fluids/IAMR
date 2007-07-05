@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.34 2007-04-16 18:14:56 almgren Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.35 2007-07-05 20:01:48 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -194,7 +194,6 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
     }
 #else
     Array<Real> rcen;
-//    int r_len = 0;
 #endif
 
     DEF_BOX_LIMITS(origBox,origLo,origHi);
@@ -208,7 +207,6 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
     DEF_LIMITS(divuMF[iface], divuPtr, divulo, divuhi);
     DEF_LIMITS( rhoMF[iface],  rhoPtr,  rholo,  rhohi);
     DEF_LIMITS( velMF[0][iface],  velPtr,  vello,  velhi);
-
     //
     // Extrapolate the velocities, divu, and rho to the outflow edge in
     // the shifted coordinate system (where the last dimension is 1).
@@ -450,7 +448,6 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         per[1] = isPeriodic[BL_SPACEDIM-1];
         
         computeCoefficients(rhs_temp,beta,ccE_conn,connected_region,dxFiltered[0],per);
-
         //
         // Need phi to have ghost cells.
         //
@@ -470,18 +467,6 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         proj_mg.solve(tol,abs_tol,2,2,proj_mg.MaxIters(),proj_mg.Verbose());
       
         DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
-        DEF_BOX_LIMITS(connected_region,lo,hi);
-        //
-        // Subtract the average phi.
-        //
-//      FORT_HGSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
-//                            lo,hi,isPeriodicFiltered);
-
-        //
-        // Translate the solution back to the original coordinate system.
-        //
-//      FORT_HG_RESHIFT_PHI(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
-//                          ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
 
         Real *phiptr0,*phiptr1,*phiptr2,*phiptr3,*phiptr4,*phiptr5;
 

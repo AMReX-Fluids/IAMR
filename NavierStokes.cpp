@@ -2143,11 +2143,10 @@ NavierStokes::scalar_advection_update (Real dt,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::scalar_advection_update()");
 
-    MultiFab&  S_old    = get_old_data(State_Type);
-    MultiFab&  S_new    = get_new_data(State_Type);
-    MultiFab&  Aofs     = *aofs;
-    const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-    const Real prev_time= state[State_Type].prevTime();
+    MultiFab&  S_old     = get_old_data(State_Type);
+    MultiFab&  S_new     = get_new_data(State_Type);
+    MultiFab&  Aofs      = *aofs;
+    const Real prev_time = state[State_Type].prevTime();
     Array<int> state_bc;
     FArrayBox  tforces;
     //
@@ -2396,10 +2395,7 @@ NavierStokes::velocity_advection_update (Real dt)
     MultiFab&  U_new          = get_new_data(State_Type);
     MultiFab&  P_old          = get_old_data(Press_Type);
     MultiFab&  Aofs           = *aofs;
-    const Real prev_time      = state[State_Type].prevTime();
-    const Real curr_time      = state[State_Type].curTime();
     const Real prev_pres_time = state[Press_Type].prevTime();
-    const Real half_time      = 0.5*(curr_time+prev_time);
 
     MultiFab Gp(grids,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
@@ -2452,14 +2448,10 @@ void
 NavierStokes::velocity_diffusion_update (Real dt)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::velocity_diffusion_update()");
-
     //
     // Compute the viscous forcing.
     // Do following except at initial iteration.
     //
-    MultiFab& U_old = get_old_data(State_Type);
-    MultiFab& U_new = get_new_data(State_Type);
-
     if (is_diffusive[Xvel])
     {
         int rho_flag = (do_mom_diff == 0) ? 1 : 3;
@@ -2647,7 +2639,6 @@ NavierStokes::errorEst (TagBoxArray& tags,
         for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
         {
             itags             = tags[mfi.index()].tags();
-            FArrayBox&  fab   = (*mf)[mfi];
             int*        tptr  = itags.dataPtr();
             const int*  tlo   = tags[mfi.index()].box().loVect();
             const int*  thi   = tags[mfi.index()].box().hiVect();
@@ -3218,11 +3209,9 @@ NavierStokes::estTimeStep ()
 
     const int   n_grow        = 0;
     Real        estdt         = 1.0e+20;
-    const Real  cur_time      = state[State_Type].curTime();
     const Real  cur_pres_time = state[Press_Type].curTime();
     MultiFab&   P_new         = get_new_data(Press_Type);
     MultiFab&   U_new         = get_new_data(State_Type);
-    const Real* dx            = geom.CellSize();
 
     Real gr_max[BL_SPACEDIM], u_max[BL_SPACEDIM] = {0};
 
@@ -3571,8 +3560,6 @@ NavierStokes::post_init (Real stop_time)
         //
         return;
 
-    MultiFab&   P_new        = get_new_data(Press_Type);
-    MultiFab&   P_old        = get_old_data(Press_Type);
     const int   finest_level = parent->finestLevel();
     Real        dt_init      = 0.0;
     Array<Real> dt_save(finest_level+1);
@@ -3736,8 +3723,6 @@ NavierStokes::post_init_press (Real&        dt_init,
 
     const Real strt_time       = state[State_Type].curTime();
     const int  finest_level    = parent->finestLevel();
-    MultiFab&  P_new           = get_new_data(Press_Type);
-    MultiFab&  P_old           = get_old_data(Press_Type);
     NavierStokes::initial_iter = true;
     //
     // Iterate over the advance function.
@@ -3908,9 +3893,7 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
     for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
     {
         int         i     = mfi.index();
-        const Box&  grd   = fgrids[i];
         FArrayBox&  cdata = cdataMF[mfi];
-        const Box&  cgrd  = cdata.box();
         const int*  clo   = cdata.loVect();
         const int*  chi   = cdata.hiVect();
         const Real* xlo   = fine_level.grid_loc[i].lo();
@@ -3933,9 +3916,11 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
     FArrayBox    fdata;
     Array<BCRec> bc_interp(num_comp);
 
-    MultiFab* fine_stateMF;
+    MultiFab* fine_stateMF = 0;
     if (interpolater == &protected_interp)
+    {
         fine_stateMF = &(getLevel(f_lev).get_new_data(State_Type));
+    }
 
     for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
     {
@@ -3974,8 +3959,8 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
         {
             fdata.mult(dt_clev);
 
-            if (interpolater == &protected_interp) {
-
+            if (interpolater == &protected_interp)
+            {
               cdata.mult(dt_clev);
               FArrayBox& fine_state = (*fine_stateMF)[i];
               interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
@@ -3983,7 +3968,6 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
                                     cgeom,fgeom,bc_interp);
               Real dt_clev_inv = 1./dt_clev;
               cdata.mult(dt_clev_inv);
-
             }
             
             FineSync[i].plus(fdata,0,dest_comp,num_comp);
@@ -4195,7 +4179,6 @@ NavierStokes::level_sync (int crse_iteration)
     const int       finest_level  = parent->finestLevel();
     int             crse_dt_ratio = parent->nCycle(level);
     Real            dt            = parent->dtLevel(level);
-    const Real      half_time     = state[State_Type].prevTime() + 0.5*dt;
     MultiFab&       pres          = get_new_data(Press_Type);
     MultiFab&       vel           = get_new_data(State_Type);
     SyncRegister&   rhs_sync_reg  = getLevel(level+1).getSyncReg();
@@ -4683,8 +4666,6 @@ NavierStokes::reflux ()
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::reflux()");
 
     BL_ASSERT(do_reflux);
-
-    MultiFab& S_crse = get_new_data(State_Type);
     //
     // First do refluxing step.
     //
@@ -4868,7 +4849,6 @@ NavierStokes::avgDown ()
     MultiFab&       P_fine_init = fine_lev.get_new_data(Press_Type);
     MultiFab&       P_fine_avg  = *fine_lev.p_avg;
     MultiFab&       P_fine      = initial_step ? P_fine_init : P_fine_avg;
-    const BoxArray& P_cgrids    = state[Press_Type].boxArray();
     const BoxArray& P_fgrids    = fine_lev.state[Press_Type].boxArray();
 
     BoxArray crse_P_fine_BA(P_fgrids.size());
@@ -5511,11 +5491,10 @@ NavierStokes::calcViscosity (const Real time,
                              const int  iteration,
                              const int  ncycle)
 {
-    const MultiFab& S = get_data(State_Type, time);
     //
     // Select time level to work with (N or N+1)
     //
-    MultiFab* visc_cc;
+    MultiFab* visc_cc = 0;
 
     const TimeLevel whichTime = which_time(State_Type,time);
 
@@ -5564,12 +5543,10 @@ NavierStokes::calcDiffusivity (const Real time,
     //        0 in the arrays diffn and diffnp1.
     //
     BL_ASSERT(src_comp > Density);
-
-    const MultiFab& S = get_data(State_Type, time);
     //
     // Select time level to work with (N or N+1)
     //
-    MultiFab* diff_cc;
+    MultiFab* diff_cc = 0;
 
     const TimeLevel whichTime = which_time(State_Type,time);
 
@@ -5614,7 +5591,7 @@ NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
     //
     // Select time level to work with (N or N+1)
     //
-    MultiFab* visc_cc;
+    MultiFab* visc_cc = 0;
 
     const TimeLevel whichTime = which_time(State_Type,time);
 
@@ -5657,7 +5634,7 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
     //
     // Select time level to work with (N or N+1)
     //
-    MultiFab* diff_cc;
+    MultiFab* diff_cc = 0;
 
     const TimeLevel whichTime = which_time(State_Type,time);
 
