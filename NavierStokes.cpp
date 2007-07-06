@@ -5890,18 +5890,9 @@ NavierStokes::create_umac_grown ()
             c_bnd_ba.set(i,Box(f_bnd_ba[i]).coarsen(crse_ratio));
             f_bnd_ba.set(i,Box(c_bnd_ba[i]).refine(crse_ratio));
         }
-            
-        const BoxArray& cgrids = getLevel(level-1).boxArray();
-            
+
         for (int n = 0; n < BL_SPACEDIM; ++n)
         {
-            MultiFab crseT(BoxArray(cgrids).surroundingNodes(n),1,0);
-                
-            crseT.setVal(1.e200);
-            for (MFIter mfi(crseT); mfi.isValid(); ++mfi)
-                crseT[mfi].copy(getLevel(level-1).u_mac[n][mfi]);
-            crseT.FillBoundary(0,1);
-            getLevel(level-1).geom.FillPeriodicBoundary(crseT,0,1);
             //
             // crse_src & fine_src must have same parallel distribution.
             // We'll use the KnapSack distribution for the fine_src_ba.
@@ -5935,14 +5926,12 @@ NavierStokes::create_umac_grown ()
 	    MultiFab fine_src; fine_src.define(fine_src_ba, 1, 0, dm, Fab_allocate);
 
             crse_src.setVal(1.e200);
-            crse_src.copy(crseT);
-            crse_src.FillBoundary(0,1);
-            getLevel(level-1).geom.FillPeriodicBoundary(crse_src,0,1);
+            crse_src.copy(getLevel(level-1).u_mac[n]);
 
             for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
-                const Box  box   = crse_src[mfi].box();
+                const Box& box   = crse_src[mfi].box();
                 const int* rat   = crse_ratio.getVect();
                 FORT_PC_CF_EDGE_INTERP(box.loVect(), box.hiVect(), &nComp, rat, &n,
                                        crse_src[mfi].dataPtr(),
