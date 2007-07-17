@@ -2146,6 +2146,9 @@ NavierStokes::scalar_advection_update (Real dt,
     MultiFab&  S_old     = get_old_data(State_Type);
     MultiFab&  S_new     = get_new_data(State_Type);
     MultiFab&  Aofs      = *aofs;
+#ifdef GENGETFORCE
+    const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
+#endif
     const Real prev_time = state[State_Type].prevTime();
     Array<int> state_bc;
     FArrayBox  tforces;
@@ -2396,6 +2399,9 @@ NavierStokes::velocity_advection_update (Real dt)
     MultiFab&  P_old          = get_old_data(Press_Type);
     MultiFab&  Aofs           = *aofs;
     const Real prev_pres_time = state[Press_Type].prevTime();
+#ifdef GENGETFORCE
+    const Real half_time      = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
+#endif
 
     MultiFab Gp(grids,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
@@ -3209,6 +3215,9 @@ NavierStokes::estTimeStep ()
 
     const int   n_grow        = 0;
     Real        estdt         = 1.0e+20;
+#ifdef GENGETFORCE
+    const Real  cur_time      = state[State_Type].curTime();
+#endif
     const Real  cur_pres_time = state[Press_Type].curTime();
     MultiFab&   P_new         = get_new_data(Press_Type);
     MultiFab&   U_new         = get_new_data(State_Type);
