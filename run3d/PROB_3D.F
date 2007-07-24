@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.37 2007-07-17 20:38:11 aaspden Exp $
+c $Id: PROB_3D.F,v 1.38 2007-07-24 20:37:17 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -63,7 +63,6 @@ c ::: -----------------------------------------------------------
 
       INTEGER dimFile(3)
       integer nCompFile
-      parameter (nCompFile = 3)
       REAL_T dxFile(3)
 
       REAL_T  twicePi, kxd, kyd, kzd
@@ -109,7 +108,7 @@ c ::: -----------------------------------------------------------
      &                  FPX, FPY, FPZ, FAX, FAY, FAZ
 #endif
 
-      namelist /fortin/ jet_x, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel
+      namelist /fortin/ jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -1453,6 +1452,8 @@ c
                vel(i,j,k,3) = zero
 
                scal(i,j,k,1) = denfact
+c     This is the theoretical pressure perturbation from p_0
+               scal(i,j,k,2) = (denfact*velfact*velfact/16.d0)*(two+cos(two*z))*(cos(two*x)+cos(two*y))
                do n = 2,nscal-1
                   scal(i,j,k,n) = one
                end do
@@ -4010,14 +4011,14 @@ c ::: -----------------------------------------------------------
                enddo
             enddo
 
-         else if (probtype.eq.17) then
+         else if (probtype.eq.18) then
             do k = ARG_L3(w), domlo(3)-1
                do j = ARG_L2(w), ARG_H2(w)
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(w), ARG_H1(w)
                      x = domnlo(1) + (i+0.5)*dx(1)
                      r = sqrt( (x-jet_x)*(x-jet_x) + (y-jet_y)*(y-jet_y) )
-                     if (r.lt.jet_width.and.time.lt.injection_time) then
+                     if (r.lt.jet_width) then
                         w(i,j,k) = jet_vel
                      else
                         w(i,j,k) = zero
