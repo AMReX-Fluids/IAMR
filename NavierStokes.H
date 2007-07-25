@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.92 2007-04-19 22:26:18 aaspden Exp $
+// $Id: NavierStokes.H,v 1.93 2007-07-25 21:31:22 aaspden Exp $
 //
 
 #include <LevelBld.H>
@@ -776,6 +776,8 @@ protected:
     static int  Temp;
     static int  do_trac2;   // AJA
     static int  do_temp;
+    static int  do_cons_trac;    // AJA
+    static int  do_cons_trac2;   // AJA
     static int  do_sync_proj;
     static int  do_MLsync_proj;
     static int  do_reflux;

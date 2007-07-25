@@ -120,6 +120,9 @@ int  NavierStokes::Dpdt_Type                  = -1;
 int  NavierStokes::do_mom_diff                = 0;
 int  NavierStokes::predict_mom_together       = 0;
 
+int  NavierStokes::do_cons_trac               = 0;
+int  NavierStokes::do_cons_trac2              = 0;
+
 //     
 // New members for non-zero divu.
 //
@@ -332,6 +335,8 @@ NavierStokes::read_params ()
     //
     pp.query("do_temp",                  do_temp          );
     pp.query("do_trac2",                 do_trac2         );
+    pp.query("do_cons_trac",             do_cons_trac     );
+    pp.query("do_cons_trac2",            do_cons_trac2    );
     int initial_do_sync_proj =           do_sync_proj;
     pp.query("do_sync_proj",             do_sync_proj     );
     pp.query("do_MLsync_proj",           do_MLsync_proj   );

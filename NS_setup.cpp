@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.52 2007-04-26 21:02:07 aaspden Exp $
+// $Id: NS_setup.cpp,v 1.53 2007-07-25 21:31:22 aaspden Exp $
 //
 
 #include <winstd.H>
@@ -251,12 +251,27 @@ NavierStokes::variableSetUp ()
 
     advectionType[Density] = Conservative;
     if (do_temp) advectionType[Temp] = NonConservative;
+
     advectionType[Trac] = NonConservative;
     diffusionType[Trac] = Laplacian_S;
+    if (do_cons_trac) {
+      advectionType[Trac] = Conservative;
+      diffusionType[Trac] = RhoInverse_Laplacian_S;
+      if (ParallelDescriptor::IOProcessor())
+	std::cout << "Using conservative advection update for tracer." << std::endl;
+    }
+
     if (do_trac2) {
 	advectionType[Trac2] = NonConservative;
 	diffusionType[Trac2] = Laplacian_S;
+	if (do_cons_trac2) {
+	  advectionType[Trac2] = Conservative;
+	  diffusionType[Trac2] = RhoInverse_Laplacian_S;
+	  if (ParallelDescriptor::IOProcessor())
+	    std::cout << "Using conservative advection update for tracer2." << std::endl;
+	}
     }
+
     if (is_diffusive[Density])
     {
         BoxLib::Error("Density cannot diffuse, bad visc_coef");
