@@ -5,8 +5,8 @@
       REAL_T  f_problo(SDIM), f_probhi(SDIM)
       REAL_T  turb_scale,domnlo(SDIM),domnhi(SDIM)
       REAL_T  grav_angle, omega, infl_time_offset, injection_time
-      REAL_T  jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel
-      REAL_T  ref_centre, ref_radius
+      REAL_T  jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel, jet_temp
+      REAL_T  ref_centre, ref_radius, ref_height
       integer probtype, adv_dir, axis_dir, vb_unifdir, blrandseed
       integer ref_type
       common /probdt1/ probtype, adv_dir, axis_dir, ref_type
@@ -19,7 +19,7 @@
       common /probdt6/ f_problo, f_probhi,domnlo,domnhi,turb_scale
       common /probdt7/ vb_unifdir, blrandseed
       common /probdt9/ grav_angle, omega, infl_time_offset
-      common /probdt10/ jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel
+      common /probdt10/ jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel, jet_temp, ref_height
 
       integer rt_max_freq
       parameter (RT_MAX_FREQ = 10)	

@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.38 2007-07-24 20:37:17 aaspden Exp $
+c $Id: PROB_3D.F,v 1.39 2007-07-25 21:31:55 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -108,7 +108,7 @@ c ::: -----------------------------------------------------------
      &                  FPX, FPY, FPZ, FAX, FAY, FAZ
 #endif
 
-      namelist /fortin/ jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel
+      namelist /fortin/ jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel, jet_temp, ref_height
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -1809,7 +1809,7 @@ c
 c     ::::: local variables
 c
       integer i, j, k, n
-      REAL_T  x, y, z, r
+      REAL_T  x, y, z, r, r2
       REAL_T  hx, hy, hz
       REAL_T  dist
       REAL_T  x_vel, y_vel, z_vel
@@ -1828,14 +1828,15 @@ c
 	    do i = lo(1), hi(1)
                x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-               r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
+               r2= (x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y)
+               r = sqrt(r2)
 
                vel(i,j,k,1) = zero
                vel(i,j,k,2) = zero
                vel(i,j,k,3) = zero
 
                scal(i,j,k,1) = coflow_rho
-               scal(i,j,k,2) = cvmgt(one,zero,r.le.jet_width .and. z.le.jet_width)
+               scal(i,j,k,2) = cvmgt(one,zero,sqrt(r2+z*z).le.jet_width)
 
                if (nscal.ge.3) then 
                   do n = 3,nscal
@@ -2370,11 +2371,14 @@ c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 18) then
  
         do k = lo(3), hi(3)
-           do j = lo(2), hi(2)
-              do i = lo(1), hi(1)
-                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+           z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
+           if (z.lt.ref_height) then
+              do j = lo(2), hi(2)
+                 do i = lo(1), hi(1)
+                    tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+                 end do
               end do
-           end do
+           endif
         end do
 
       else
@@ -2694,11 +2698,14 @@ c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 18) then
 
          do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+            z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
+            if (z.lt.ref_height) then
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  end do
                end do
-            end do
+            endif
          end do
 
       else
@@ -2744,7 +2751,7 @@ c ::: -----------------------------------------------------------
 
       integer    i, j, k
       REAL_T  umid,rmid,lamv,lamr,rfact
-      REAL_T  hx, hy, hz, gpert, z, y, x, r, ypert, magwif, constn
+      REAL_T  hx, hy, hz, gpert, z, y, x, r, ypert, magwif, constn, rs, rd
 
       parameter (constn=.22089323)
 
@@ -2904,13 +2911,15 @@ c           write (6,*) "Filling with unit density"
               enddo
            enddo
         else if (probtype.eq.18) then
+           rs = jet_rho+coflow_rho
+           rd = jet_rho-coflow_rho
            do k = ARG_L3(rho), domlo(3)-1
               do j = ARG_L2(rho), ARG_H2(rho)
                  y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
                  do i = ARG_L1(rho), ARG_H1(rho)
                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                     r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
-                    rho(i,j,k) = cvmgt(jet_rho,coflow_rho,r.le.jet_width)
+                    rho(i,j,k) = half*(rs-rd*tanh(two*(r-jet_width)/delta0))
                  enddo
               enddo
            enddo
@@ -2999,9 +3008,11 @@ c ::: -----------------------------------------------------------
       hi(2) = ARG_H2(adv)
       hi(3) = ARG_H3(adv)
 
-      if( probtype .eq. 8) then
+      hx = dx(1)
       hy = dx(2)
       hz = dx(3)
+
+      if( probtype .eq. 8) then
       magwif = one/ten
       if (bc(1,1).eq.EXT_DIR.and.lo(1).lt.domlo(1)) then
          do i = lo(1), domlo(1)-1
@@ -3047,6 +3058,7 @@ c ::: -----------------------------------------------------------
             enddo
          enddo
       endif
+
       if (bc(3,1).eq.EXT_DIR.and.lo(3).lt.domlo(3)) then
          do k = lo(3), domlo(3)-1
             do j = lo(2), hi(2)
@@ -3137,7 +3149,18 @@ c ::: -----------------------------------------------------------
                   enddo
                enddo
             enddo
-         else
+         else if (probtype.eq.18) then
+            do k = ARG_L3(adv), domlo(3)-1
+               do j = ARG_L2(adv), ARG_H2(adv)
+                  y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
+                  do i = ARG_L1(adv), ARG_H1(adv)
+                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
+                     r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
+                     adv(i,j,k) = half*(one-tanh(two*(r-jet_width)/delta0))
+                  enddo
+               enddo
+            enddo
+         else 
             do k = ARG_L3(adv), domlo(3)-1
                do j = ARG_L2(adv), ARG_H2(adv)
                   do i = ARG_L1(adv), ARG_H1(adv)
@@ -3231,15 +3254,28 @@ c ::: -----------------------------------------------------------
       end if            
 
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(adv).lt.domlo(3)) then
-         do k = ARG_L3(adv), domlo(3)-1
-            do j = ARG_L2(adv), ARG_H2(adv)
-               do i = ARG_L1(adv), ARG_H1(adv)
-                  adv(i,j,k) = zero
+         if (probtype.eq.18) then
+            do k = ARG_L3(adv), domlo(3)-1
+               do j = ARG_L2(adv), ARG_H2(adv)
+                  y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
+                  do i = ARG_L1(adv), ARG_H1(adv)
+                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
+                     r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
+                     adv(i,j,k) = half*(one-tanh(two*(r-jet_width)/delta0))
+                  enddo
+               enddo
+            enddo
+         else 
+            do k = ARG_L3(adv), domlo(3)-1
+               do j = ARG_L2(adv), ARG_H2(adv)
+                  do i = ARG_L1(adv), ARG_H1(adv)
+                     adv(i,j,k) = zero
+                  end do
                end do
             end do
-         end do
+         end if 
       endif
-
+      
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(adv).gt.domhi(3)) then
          if (probtype.eq.17) then
             do k = domhi(3)+1, ARG_H3(adv)
@@ -3301,13 +3337,21 @@ c ::: -----------------------------------------------------------
       REAL_T     dx(SDIM), xlo(SDIM), time
       REAL_T     temp(DIMV(temp))
       integer    bc(SDIM,2)
+      integer    lo(SDIM), hi(SDIM)
 
       integer    i, j, k
-      REAL_T     z
+      REAL_T     x, y, z, r
 
 #include "probdata.H"
 
       call filcc(temp,DIMS(temp),domlo,domhi,dx,xlo,bc)
+
+      lo(1) = ARG_L1(temp)
+      lo(2) = ARG_L2(temp)
+      lo(3) = ARG_L3(temp)
+      hi(1) = ARG_H1(temp)
+      hi(2) = ARG_H2(temp)
+      hi(3) = ARG_H3(temp)
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(temp).lt.domlo(1)) then
          do i = ARG_L1(temp), domlo(1)-1
@@ -3350,13 +3394,26 @@ c ::: -----------------------------------------------------------
       end if            
 
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(temp).lt.domlo(3)) then
-         do k = ARG_L3(temp), domlo(3)-1
-            do j = ARG_L2(temp), ARG_H2(temp)
-               do i = ARG_L1(temp), ARG_H1(temp)
-                  temp(i,j,k) = one
+         if (probtype.eq.18) then
+            do k = ARG_L3(temp), domlo(3)-1
+               do j = ARG_L2(temp), ARG_H2(temp)
+                  y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
+                  do i = ARG_L1(temp), ARG_H1(temp)
+                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
+                     r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
+                     temp(i,j,k) = cvmgt(one,zero,r.le.jet_width)
+                  end do
                end do
             end do
-         end do
+         else
+            do k = ARG_L3(temp), domlo(3)-1
+               do j = ARG_L2(temp), ARG_H2(temp)
+                  do i = ARG_L1(temp), ARG_H1(temp)
+                     temp(i,j,k) = one
+                  end do
+               end do
+            end do
+         endif
       end if 
 
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(temp).gt.domhi(3)) then
@@ -3523,10 +3580,11 @@ c
                   do i = ARG_L1(u), ARG_H1(u)
                      x = domnlo(1) + (i+0.5)*dx(1)
                      r = sqrt( (x-jet_x)*(x-jet_x) + (y-jet_y)*(y-jet_y) )
+                     jv= half*jet_vel*(one-tanh(two*(r-jet_width)/delta0))
                      u(i,j,k) = zero
 #ifdef BL_DO_FLCT
                      if (r.lt.jet_width) then
-                        u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
+                        u(i,j,k) = u(i,j,k) + jv*uflct(i,j,1)*turb_scale
                      endif
 #endif
                   enddo
@@ -3766,10 +3824,11 @@ c ::: -----------------------------------------------------------
                   do i = ARG_L1(v), ARG_H1(v)
                      x = domnlo(1) + (i+0.5)*dx(1)
                      r = sqrt( (x-jet_x)*(x-jet_x) + (y-jet_y)*(y-jet_y) )
+                     jv= half*jet_vel*(one-tanh(two*(r-jet_width)/delta0))
                      v(i,j,k) = zero
 #ifdef BL_DO_FLCT
                      if (r.lt.jet_width) then
-                        v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
+                        v(i,j,k) = v(i,j,k) + jv*vflct(i,j,1)*turb_scale
                      endif
 #endif
                   enddo
@@ -4018,14 +4077,10 @@ c ::: -----------------------------------------------------------
                   do i = ARG_L1(w), ARG_H1(w)
                      x = domnlo(1) + (i+0.5)*dx(1)
                      r = sqrt( (x-jet_x)*(x-jet_x) + (y-jet_y)*(y-jet_y) )
-                     if (r.lt.jet_width) then
-                        w(i,j,k) = jet_vel
-                     else
-                        w(i,j,k) = zero
-                     endif
+                     w(i,j,k) = half*jet_vel*(one-tanh(two*(r-jet_width)/delta0))
 #ifdef BL_DO_FLCT
                      if (r.lt.jet_width) then
-                        w(i,j,k) = w(i,j,k) + wflct(i,j,1)*turb_scale
+                        w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
                      endif
 #endif
                   enddo
