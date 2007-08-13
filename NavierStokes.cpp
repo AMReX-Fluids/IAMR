@@ -3286,7 +3286,15 @@ NavierStokes::estTimeStep ()
 Real
 NavierStokes::initialTimeStep ()
 {
-    return init_shrink*estTimeStep();
+  Real returnDt = init_shrink*estTimeStep();
+
+  if (ParallelDescriptor::IOProcessor())
+    {
+      std::cout << "Multiplying dt by init_shrink; dt = " 
+		<< returnDt << std::endl;
+    }
+
+  return returnDt;
 }
 
 void
