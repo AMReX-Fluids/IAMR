@@ -3327,6 +3327,9 @@ NavierStokes::computeNewDt (int                   finest_level,
     for (int i = 0; i <= finest_level; i++)
     {
         dt_min[i] = std::min(dt_min[i],getLevel(i).estTimeStep());
+        if (ParallelDescriptor::IOProcessor())
+	  std::cout << "Actual dt after change limiting = " 
+		    << dt_min[i] << std::endl;
         if (fixed_dt <= 0.0) 
           dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
         n_factor *= n_cycle[i];
