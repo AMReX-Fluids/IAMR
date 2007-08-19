@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.15 2007-04-16 18:14:53 aaspden Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.16 2007-08-19 19:08:34 jbb Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -13,6 +13,7 @@
 #    define FORT_TESTINJECT  testinject
 #    define FORT_INCRMULT    incrmult
 #    define FORT_SUMTURB     sumturb
+#    define FORT_MAXVAL      maxval
 #    define FORT_SUMMASS     summass
 #    define FORT_SUMMASSSQ   summasssq
 #    define FORT_CEN2EDG     cen2edg
@@ -27,6 +28,7 @@
 #    define FORT_TESTINJECT  TESTINJECT
 #    define FORT_INCRMULT    INCRMULT
 #    define FORT_SUMTURB     SUMTURB
+#    define FORT_MAXVAL      MAXVAL
 #    define FORT_SUMMASS     SUMMASS
 #    define FORT_SUMMASSSQ   SUMMASSSQ
 #    define FORT_CEN2EDG     CEN2EDG
@@ -40,6 +42,7 @@
 #    define FORT_TESTINJECT  testinject
 #    define FORT_INCRMULT    incrmult
 #    define FORT_SUMTURB     sumturb
+#    define FORT_MAXVAL      maxval
 #    define FORT_SUMMASS     summass
 #    define FORT_SUMMASSSQ   summasssq
 #    define FORT_CEN2EDG     cen2edg
@@ -53,6 +56,7 @@
 #    define FORT_TESTINJECT  testinject_
 #    define FORT_INCRMULT    incrmult_
 #    define FORT_SUMTURB     sumturb_
+#    define FORT_MAXVAL      maxval_
 #    define FORT_SUMMASS     summass_
 #    define FORT_SUMMASSSQ   summasssq_
 #    define FORT_CEN2EDG     cen2edg_
@@ -121,6 +125,10 @@ extern "C" {
                        const int* irlo, const int* irhi,
                        const int* rz_flag, Real* tmp);
 #else
+    void FORT_MAXVAL (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                       ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+                       const Real* delta, Real* mass, Real* tmp);
+
     void FORT_SUMMASS (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                        ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                        const Real* delta, Real* mass, Real* tmp);

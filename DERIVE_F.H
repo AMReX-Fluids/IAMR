@@ -2,12 +2,18 @@
 #define _DERIVE_F_H
 
 /*
-** $Id: DERIVE_F.H,v 1.18 2007-04-17 16:33:15 aaspden Exp $
+** $Id: DERIVE_F.H,v 1.19 2007-08-19 19:08:34 jbb Exp $
 */
 
 #ifdef BL_LANG_FORT
 #    define FORT_DERKENG     derkeng
 #    define FORT_DERMGVORT   dermgvort
+#if (BL_SPACEDIM == 3)
+#    define FORT_DERVORTX    dervortx
+#    define FORT_DERVORTY    dervorty
+#    define FORT_DERVORTZ    dervortz
+#    define FORT_DERDMAG     derdmag
+#endif
 #    define FORT_DERVORT     dervort
 #    define FORT_DERMVEL     dermvel
 #    define FORT_DERLOGS     derlogs
@@ -35,6 +41,12 @@
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_DERKENG     DERKENG
 #    define FORT_DERMGVORT   DERMGVORT
+#if (BL_SPACEDIM == 3)
+#    define FORT_DERVORTX    DERVORTX
+#    define FORT_DERVORTY    DERVORTY
+#    define FORT_DERVORTZ    DERVORTZ
+#    define FORT_DERDMAG     DERDMAG
+#endif
 #    define FORT_DERVORT     DERVORT
 #    define FORT_DERMVEL     DERMVEL
 #    define FORT_DERLOGS     DERLOGS
@@ -62,6 +74,12 @@
 #    define FORT_GRADP_DIR   gradpdir
 #    define FORT_DERKENG     derkeng
 #    define FORT_DERMGVORT   dermgvort
+#if (BL_SPACEDIM == 3)
+#    define FORT_DERVORTX    dervortx
+#    define FORT_DERVORTY    dervorty
+#    define FORT_DERVORTZ    dervortz
+#    define FORT_DERDMAG     derdmag
+#endif
 #    define FORT_DERVORT     dervort
 #    define FORT_DERMVEL     dermvel
 #    define FORT_DERLOGS     derlogs
@@ -89,6 +107,12 @@
 #    define FORT_GRADP_DIR   gradpdir_
 #    define FORT_DERKENG     derkeng_
 #    define FORT_DERMGVORT   dermgvort_
+#if (BL_SPACEDIM == 3)
+#    define FORT_DERVORTX    dervortx_
+#    define FORT_DERVORTY    dervorty_
+#    define FORT_DERVORTZ    dervortz_
+#    define FORT_DERDMAG     derdmag_
+#endif
 #    define FORT_DERVORT     dervort_
 #    define FORT_DERMVEL     dermvel_
 #    define FORT_DERLOGS     derlogs_
@@ -134,6 +158,45 @@ extern "C" {
 			   const Real* delta, const Real* xlo,
 			   const Real* time, const Real* dt, const int* bcrec, 
                            const int* level, const int* grid_no) ;
+#if (BL_SPACEDIM == 3)
+
+     void FORT_DERVORTX  (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
+
+     void FORT_DERVORTY  (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
+
+     void FORT_DERVORTZ  (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
+
+     void FORT_DERDMAG     (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
+
+#endif
 
      void FORT_DERVORT    (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const Real* compdat,

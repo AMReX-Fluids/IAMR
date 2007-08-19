@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.93 2007-07-25 21:31:22 aaspden Exp $
+// $Id: NavierStokes.H,v 1.94 2007-08-19 19:08:34 jbb Exp $
 //
 
 #include <LevelBld.H>
@@ -134,6 +134,9 @@ public:
     // Integrate derived quantities over domain.
     //
     Real sumDerive (const std::string& name,
+                    Real           time);
+
+    Real volWgtMax (const std::string& name,
                     Real           time);
 
     Real volWgtSum (const std::string& name,

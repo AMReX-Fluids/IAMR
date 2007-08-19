@@ -2785,6 +2785,76 @@ NavierStokes::volWgtSum (const std::string& name,
     return sum;
 }
 
+Real 
+NavierStokes::volWgtMax (const std::string& name,
+                         Real           time)
+{
+    Real        sum     = 0.0;
+    int         rz_flag = CoordSys::IsRZ() ? 1 : 0;
+    const Real* dx      = geom.CellSize();
+    MultiFab*   mf      = derive(name,time,0);
+    Array<Real> tmp;
+
+    BoxArray baf;
+
+    if (level < parent->finestLevel())
+    {
+        baf = parent->boxArray(level+1);
+        baf.coarsen(fine_ratio);
+    }
+
+    for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
+    {
+        FArrayBox& fab = (*mf)[mfi];
+
+        if (level < parent->finestLevel())
+        {
+            std::vector< std::pair<int,Box> > isects = baf.intersections(grids[mfi.index()]);
+
+            for (int ii = 0; ii < isects.size(); ii++)
+            {
+                fab.setVal(0,isects[ii].second,0,fab.nComp());
+            }
+        }
+        Real        s;
+        const Real* dat = fab.dataPtr();
+        const int*  dlo = fab.loVect();
+        const int*  dhi = fab.hiVect();
+        const int*  lo  = grids[mfi.index()].loVect();
+        const int*  hi  = grids[mfi.index()].hiVect();
+        Real*       rad = &radius[mfi.index()][0];
+
+        tmp.resize(hi[1]-lo[1]+1);
+
+#if (BL_SPACEDIM == 2)
+        int irlo  = lo[0]-radius_grow;
+        int irhi  = hi[0]+radius_grow;
+        //
+        // Note that this routine will do a volume weighted sum of
+        // whatever quantity is passed in, not strictly the "mass".
+        //
+        FORT_MAXVAL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+                     dx,&s,rad,&irlo,&irhi,&rz_flag,tmp.dataPtr());
+#endif
+
+#if (BL_SPACEDIM == 3)
+        //
+        // Note that this routine will do a volume weighted sum of
+        // whatever quantity is passed in, not strictly the "mass".
+        //
+        FORT_MAXVAL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+                     dx,&s,tmp.dataPtr());
+#endif
+        sum = std::max(sum, s);
+    }
+
+    delete mf;
+
+    ParallelDescriptor::ReduceRealMax(sum);
+
+    return sum;
+}
+
 void
 NavierStokes::sum_integrated_quantities ()
 {
@@ -2795,6 +2865,7 @@ NavierStokes::sum_integrated_quantities ()
 //    Real trac = 0.0;
     Real energy = 0.0;
     Real forcing = 0.0;
+    Real mgvort = 0.0;
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
@@ -2802,8 +2873,11 @@ NavierStokes::sum_integrated_quantities ()
 //        mass += ns_level.volWgtSum("density",time);
 //        trac += ns_level.volWgtSum("tracer",time);
         energy += ns_level.volWgtSum("energy",time);
-	if (BL_SPACEDIM==3)
-	    forcing += ns_level.volWgtSum("forcing",time);
+        mgvort = std::max(mgvort,ns_level.volWgtMax("mag_vort",time));
+#ifdef GENGETFORCE
+  	if (BL_SPACEDIM==3)
+  	    forcing += ns_level.volWgtSum("forcing",time);
+#endif
     }
 
     if (ParallelDescriptor::IOProcessor())
@@ -2813,8 +2887,9 @@ NavierStokes::sum_integrated_quantities ()
 //        std::cout << "TIME= " << time << " MASS= " << mass << '\n';
 //        std::cout << "TIME= " << time << " TRAC= " << trac << '\n';
         std::cout << "TIME= " << time << " KENG= " << energy << '\n';
-	if (BL_SPACEDIM==3)
-	    std::cout << "TIME= " << time << " FORC= " << forcing << '\n';
+//	if (BL_SPACEDIM==3)
+//	    std::cout << "TIME= " << time << " FORC= " << forcing << '\n';
+            std::cout <<"TIME= " << time << " MAGVORT= " << mgvort << '\n';
         std::cout.precision(old_prec);
     }
 }

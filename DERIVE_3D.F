@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.21 2007-05-04 00:58:35 marc Exp $
+c $Id: DERIVE_3D.F,v 1.22 2007-08-19 19:08:34 jbb Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -892,6 +892,1048 @@ c
 
       end
 
+      subroutine FORT_DERDMAG (dmag,DIMS(dmag),nv,dat,DIMS(dat),ncomp,
+     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                           bc,level,grid_no)
+c
+c ::: This routine will derive magnitude of vorticity from
+c ::: the velocity field
+c
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(dmag)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     dmag(DIMV(dmag),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer   i,j,k
+      REAL_T    ux, uy, uz, vx, vy, vz, wx, wy, wz, dx, dy, dz
+      REAL_T    uxcen, uycen, uzcen, uxlo, uxhi, uylo, uyhi, uzlo, uzhi
+      REAL_T    vxcen, vycen, vzcen, vxlo, vxhi, vylo, vyhi, vzlo, vzhi
+      REAL_T    wxcen, wycen, wzcen, wxlo, wxhi, wylo, wyhi, wzlo, wzhi
+  
+      REAL_T    xi1,xi2,xi3,s11,s12,s13,s22,s23,s33,xmag
+
+      logical   fixulo_x, fixvlo_x, fixwlo_x, fixuhi_x, fixvhi_x, fixwhi_x
+      logical   fixulo_y, fixvlo_y, fixwlo_y, fixuhi_y, fixvhi_y, fixwhi_y
+      logical   fixulo_z, fixvlo_z, fixwlo_z, fixuhi_z, fixvhi_z, fixwhi_z
+c
+c     ::::: some useful macro definitions
+c
+#     define U(i,j,k) dat(i,j,k,1)
+#     define V(i,j,k) dat(i,j,k,2)
+#     define W(i,j,k) dat(i,j,k,3)
+
+#     define ULOX bc(1,1,1)
+#     define UHIX bc(1,2,1)
+#     define ULOY bc(2,1,1)
+#     define UHIY bc(2,2,1)
+#     define ULOZ bc(3,1,1)
+#     define UHIZ bc(3,2,1)
+
+#     define VLOX bc(1,1,2)
+#     define VHIX bc(1,2,2)
+#     define VLOY bc(2,1,2)
+#     define VHIY bc(2,2,2)
+#     define VLOZ bc(3,1,2)
+#     define VHIZ bc(3,2,2)
+
+#     define WLOX bc(1,1,3)
+#     define WHIX bc(1,2,3)
+#     define WLOY bc(2,1,3)
+#     define WHIY bc(2,2,3)
+#     define WLOZ bc(3,1,3)
+#     define WHIZ bc(3,2,3)
+c
+c     ::::: statement functions that implement stencil
+c
+      uxcen(i,j,k) = half*(U(i+1,j,k)-U(i-1,j,k))/dx
+      uxlo(i,j,k)  = (U(i+1,j,k)+three*U(i,j,k)-four*U(i-1,j,k))/(three*dx)
+      uxhi(i,j,k)  =-(U(i-1,j,k)+three*U(i,j,k)-four*U(i+1,j,k))/(three*dx)
+
+      uycen(i,j,k) = half*(U(i,j+1,k)-U(i,j-1,k))/dy
+      uylo(i,j,k)  = (U(i,j+1,k)+three*U(i,j,k)-four*U(i,j-1,k))/(three*dy)
+      uyhi(i,j,k)  =-(U(i,j-1,k)+three*U(i,j,k)-four*U(i,j+1,k))/(three*dy)
+
+      uzcen(i,j,k) = half*(U(i,j,k+1)-U(i,j,k-1))/dz
+      uzlo(i,j,k)  = (U(i,j,k+1)+three*U(i,j,k)-four*U(i,j,k-1))/(three*dz)
+      uzhi(i,j,k)  =-(U(i,j,k-1)+three*U(i,j,k)-four*U(i,j,k+1))/(three*dz)
+
+      vxcen(i,j,k) = half*(V(i+1,j,k)-V(i-1,j,k))/dx
+      vxlo(i,j,k)  = (V(i+1,j,k)+three*V(i,j,k)-four*V(i-1,j,k))/(three*dx)
+      vxhi(i,j,k)  =-(V(i-1,j,k)+three*V(i,j,k)-four*V(i+1,j,k))/(three*dx)
+
+      vycen(i,j,k) = half*(V(i,j+1,k)-V(i,j-1,k))/dy
+      vylo(i,j,k)  = (V(i,j+1,k)+three*V(i,j,k)-four*V(i,j-1,k))/(three*dy)
+      vyhi(i,j,k)  =-(V(i,j-1,k)+three*V(i,j,k)-four*V(i,j+1,k))/(three*dy)
+
+      vzcen(i,j,k) = half*(V(i,j,k+1)-V(i,j,k-1))/dz
+      vzlo(i,j,k)  = (V(i,j,k+1)+three*V(i,j,k)-four*V(i,j,k-1))/(three*dz)
+      vzhi(i,j,k)  =-(V(i,j,k-1)+three*V(i,j,k)-four*V(i,j,k+1))/(three*dz)
+
+      wxcen(i,j,k) = half*(W(i+1,j,k)-W(i-1,j,k))/dx
+      wxlo(i,j,k)  = (W(i+1,j,k)+three*W(i,j,k)-four*W(i-1,j,k))/(three*dx)
+      wxhi(i,j,k)  =-(W(i-1,j,k)+three*W(i,j,k)-four*W(i+1,j,k))/(three*dx)
+
+      wycen(i,j,k) = half*(W(i,j+1,k)-W(i,j-1,k))/dy
+      wylo(i,j,k)  = (W(i,j+1,k)+three*W(i,j,k)-four*W(i,j-1,k))/(three*dy)
+      wyhi(i,j,k)  =-(W(i,j-1,k)+three*W(i,j,k)-four*W(i,j+1,k))/(three*dy)
+
+      wzcen(i,j,k) = half*(W(i,j,k+1)-W(i,j,k-1))/dz
+      wzlo(i,j,k)  = (W(i,j,k+1)+three*W(i,j,k)-four*W(i,j,k-1))/(three*dz)
+      wzhi(i,j,k)  =-(W(i,j,k-1)+three*W(i,j,k)-four*W(i,j,k+1))/(three*dz)
+
+
+      dx = delta(1)
+      dy = delta(2)
+      dz = delta(3)
+      
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               ux = uxcen(i,j,k)
+               uy = uycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vx = vxcen(i,j,k)
+               vy = vycen(i,j,k)
+               vz = vzcen(i,j,k)
+               wx = wxcen(i,j,k)
+               wy = wycen(i,j,k)
+               wz = wzcen(i,j,k)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+            end do
+         end do
+      end do
+
+      fixulo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) )
+      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP) )
+      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
+      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
+
+      fixulo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+      fixvlo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (VLOY .eq. EXT_DIR .or. VLOY .eq. HOEXTRAP) )
+      fixvhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (VHIY .eq. EXT_DIR .or. VHIY .eq. HOEXTRAP) )
+      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
+      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
+
+      fixulo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
+      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
+      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
+      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
+      fixwlo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (WLOZ .eq. EXT_DIR .or. WLOZ .eq. HOEXTRAP) )
+      fixwhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (WHIZ .eq. EXT_DIR .or. WHIZ .eq. HOEXTRAP) )
+c
+c     First do all the faces
+c
+      if (fixvlo_x .or. fixwlo_x.or.fixulo_x) then
+         i = lo(1)
+         do k = lo(3),hi(3)
+            do j = lo(2),hi(2)
+               ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+               vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+               wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+               uy = uycen(i,j,k)
+               vy = vycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               wz = wzcen(i,j,k)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+            end do
+         end do
+      end if
+
+      if (fixvhi_x .or. fixwhi_x.or.fixuhi_x) then
+         i = hi(1)
+         do k = lo(3),hi(3)
+            do j = lo(2),hi(2)
+               ux = cvmgt(uxhi(i,j,k),vxcen(i,j,k),fixuhi_x)
+               vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+               wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+               uy = uycen(i,j,k)
+               vy = vycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               wz = wzcen(i,j,k)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+            end do
+         end do
+      end if
+
+      if (fixulo_y .or. fixwlo_y.or.fixvlo_y) then
+         j = lo(2)
+         do k = lo(3),hi(3)
+            do i = lo(1),hi(1)
+               ux = uxcen(i,j,k)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+               vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+               wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               wz = wzcen(i,j,k)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+            end do
+         end do
+      end if
+
+      if (fixuhi_y .or. fixwhi_y.or.fixvhi_y) then
+         j = hi(2)
+         do k = lo(3),hi(3)
+            do i = lo(1),hi(1)
+               ux = uxcen(i,j,k)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+               vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+               wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               wz = vzcen(i,j,k)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+            end do
+         end do
+      end if
+
+      if (fixulo_z .or. fixvlo_z.or.fixwlo_z) then
+         k = lo(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               ux = uxcen(i,j,k)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = uycen(i,j,k)
+               vy = vycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+               vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+               wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+            end do
+         end do
+      end if
+
+      if (fixuhi_z .or. fixvhi_z .or. fixwhi_z) then
+         k = hi(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               ux = uxcen(i,j,k)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = uycen(i,j,k)
+               vy = vycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+               vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+               wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+            end do
+         end do
+      end if
+c
+c     Next do all the edges
+c
+      if ((fixulo_x .or. fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixvlo_y .or. fixwlo_y)) then
+         i = lo(1)
+         j = lo(2)
+         do k = lo(3),hi(3)
+            ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            wz = wzcen(i,j,k)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+         end do
+      end if
+
+      if ((fixuhi_x .or. fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixvlo_y .or. fixwlo_y)) then
+         i = hi(1)
+         j = lo(2)
+         do k = lo(3),hi(3)
+            ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            wz = wzcen(i,j,k)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+         end do
+      end if
+
+      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or.fixvhi_y .or. fixwhi_y)) then
+         i = lo(1)
+         j = hi(2)
+         do k = lo(3),hi(3)
+            ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            wz = wzcen(i,j,k)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+         end do
+      end if
+
+      if ((fixuhi_x.or.fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or.fixvhi_y .or. fixwhi_y)) then
+         i = hi(1)
+         j = hi(2)
+         do k = lo(3),hi(3)
+            ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            wz = vzcen(i,j,k)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+         end do
+      end if
+
+      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixulo_z .or. fixvlo_z .or. fixwlo_z)) then
+         i = lo(1)
+         k = lo(3)
+         do j = lo(2),hi(2)
+            ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = uycen(i,j,k)
+            vy = vycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+         end do
+      end if
+
+      if ((fixuhi_x .or. fixvhi_x .or. fixwhi_x) .and. (fixulo_z .or. fixvlo_z .or. fixwlo_z)) then
+         i = hi(1)
+         k = lo(3)
+         do j = lo(2),hi(2)
+            ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = uycen(i,j,k)
+            vy = vycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+         end do
+      end if
+
+
+      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
+         i = lo(1)
+         k = hi(3)
+         do j = lo(2),hi(2)
+            ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = uycen(i,j,k)
+            vy = vycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+         end do
+      end if
+
+      if ((fixuhi_x.or.fixvhi_x .or. fixwhi_x) .and. (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
+         i = hi(1)
+         k = hi(3)
+         do j = lo(2),hi(2)
+            ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = uycen(i,j,k)
+            vy = vycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+         end do
+      end if
+
+      if ((fixulo_y .or.fixvlo_y.or.fixwlo_y) .and. (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
+         j = lo(2)
+         k = lo(3)
+         do i = lo(1),hi(1)
+            ux = uxcen(i,j,k)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+         end do
+      end if
+
+      if ((fixuhi_y .or.fixvhi_y.or. fixwhi_y) .and. (fixulo_z .or. fixvlo_z.or.fixvlo_z)) then
+         j = hi(2)
+         k = lo(3)
+         do i = lo(1),hi(1)
+            ux = vxcen(i,j,k)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+         end do
+      end if
+
+      if ((fixulo_y .or. fixvlo_y.or.fixwlo_y) .and. (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
+         j = lo(2)
+         k = hi(3)
+         do i = lo(1),hi(1)
+            ux = vxcen(i,j,k)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+         end do
+      end if
+
+      if ((fixuhi_y .or. fixvhi_y.or.fixwhi_y) .and. (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
+         j = hi(2)
+         k = hi(3)
+         do i = lo(1),hi(1)
+            ux = uxcen(i,j,k)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+         end do
+      end if
+c
+c     Finally do all the corners
+c
+      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixulo_y.or.fixvlo_y .or. fixwlo_y) .and. 
+     $     (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
+         i = lo(1)
+         j = lo(2)
+         k = lo(3)
+         ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+      end if
+
+      if ((fixuhi_x.or. fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixvlo_y.or.fixwlo_y) .and. 
+     $     (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
+         i = hi(1)
+         j = lo(2)
+         k = lo(3)
+         ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+      end if
+
+      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or.fixvhi_y.or. fixwhi_y) .and. 
+     $     (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
+         i = lo(1)
+         j = hi(2)
+         k = lo(3)
+         ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+      end if
+
+      if ((fixuhi_x.or.fixvhi_x .or. fixwhi_x) .and. (fixuhi_y.or.fixvhi_y .or. fixwhi_y) .and. 
+     $     (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
+         i = hi(1)
+         j = hi(2)
+         k = lo(3)
+         ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+      end if
+
+      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or.fixvlo_y.or. fixwlo_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
+         i = lo(1)
+         j = lo(2)
+         k = hi(3)
+         ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+      end if
+
+      if ((fixuhi_z.or.fixvhi_x .or. fixwhi_x) .and. (fixulo_y.or.fixvlo_y .or. fixwlo_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
+         i = hi(1)
+         j = lo(2)
+         k = hi(3)
+         ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+      end if
+
+      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixvhi_y.or. fixwhi_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
+         i = lo(1)
+         j = hi(2)
+         k = hi(3)
+         ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+      end if
+
+      if ((fixuhi_x.or.fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixvhi_y .or. fixwhi_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z.or. fixwhi_z)) then
+         i = hi(1)
+         j = hi(2)
+         k = hi(3)
+         ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xi1 = xi1/xmag
+               xi2 = xi2/xmag
+               xi3 = xi3/xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     1                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     1                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+      end if
+
+#     undef U
+#     undef V      
+#     undef W
+#     undef ULOX
+#     undef UHIX
+#     undef ULOY
+#     undef UHIY
+#     undef ULOZ
+#     undef UHIZ
+#     undef VLOX
+#     undef VHIX
+#     undef VLOY
+#     undef VHIY
+#     undef VLOZ
+#     undef VHIZ
+#     undef WLOX
+#     undef WHIX
+#     undef WLOY
+#     undef WHIY
+#     undef WLOZ
+#     undef WHIZ
+
+      end
+
+
       subroutine FORT_DERMGVORT (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                           bc,level,grid_no)
@@ -1409,6 +2451,1560 @@ c
 #     undef WHIY
 
       end
+
+      subroutine FORT_DERVORTX (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
+     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                           bc,level,grid_no)
+c
+c ::: This routine will derive magnitude of vorticity from
+c ::: the velocity field
+c
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(vort)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     vort(DIMV(vort),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer   i,j,k
+      REAL_T    uy, uz, vx, vz, wx, wy, dx, dy, dz
+      REAL_T    uycen, uzcen, uylo, uyhi, uzlo, uzhi
+      REAL_T    vxcen, vzcen, vxlo, vxhi, vzlo, vzhi
+      REAL_T    wxcen, wycen, wxlo, wxhi, wylo, wyhi
+      REAL_T    vorfun
+
+      logical   fixvlo_x, fixwlo_x, fixvhi_x, fixwhi_x
+      logical   fixulo_y, fixwlo_y, fixuhi_y, fixwhi_y
+      logical   fixulo_z, fixvlo_z, fixuhi_z, fixvhi_z
+c
+c     ::::: some useful macro definitions
+c
+#     define U(i,j,k) dat(i,j,k,1)
+#     define V(i,j,k) dat(i,j,k,2)
+#     define W(i,j,k) dat(i,j,k,3)
+
+#     define ULOY bc(2,1,1)
+#     define UHIY bc(2,2,1)
+#     define ULOZ bc(3,1,1)
+#     define UHIZ bc(3,2,1)
+
+#     define VLOX bc(1,1,2)
+#     define VHIX bc(1,2,2)
+#     define VLOZ bc(3,1,2)
+#     define VHIZ bc(3,2,2)
+
+#     define WLOX bc(1,1,3)
+#     define WHIX bc(1,2,3)
+#     define WLOY bc(2,1,3)
+#     define WHIY bc(2,2,3)
+c
+c     ::::: statement functions that implement stencil
+c
+      uycen(i,j,k) = half*(U(i,j+1,k)-U(i,j-1,k))/dy
+      uylo(i,j,k)  = (U(i,j+1,k)+three*U(i,j,k)-four*U(i,j-1,k))/(three*dy)
+      uyhi(i,j,k)  =-(U(i,j-1,k)+three*U(i,j,k)-four*U(i,j+1,k))/(three*dy)
+
+      uzcen(i,j,k) = half*(U(i,j,k+1)-U(i,j,k-1))/dz
+      uzlo(i,j,k)  = (U(i,j,k+1)+three*U(i,j,k)-four*U(i,j,k-1))/(three*dz)
+      uzhi(i,j,k)  =-(U(i,j,k-1)+three*U(i,j,k)-four*U(i,j,k+1))/(three*dz)
+
+      vxcen(i,j,k) = half*(V(i+1,j,k)-V(i-1,j,k))/dx
+      vxlo(i,j,k)  = (V(i+1,j,k)+three*V(i,j,k)-four*V(i-1,j,k))/(three*dx)
+      vxhi(i,j,k)  =-(V(i-1,j,k)+three*V(i,j,k)-four*V(i+1,j,k))/(three*dx)
+
+      vzcen(i,j,k) = half*(V(i,j,k+1)-V(i,j,k-1))/dz
+      vzlo(i,j,k)  = (V(i,j,k+1)+three*V(i,j,k)-four*V(i,j,k-1))/(three*dz)
+      vzhi(i,j,k)  =-(V(i,j,k-1)+three*V(i,j,k)-four*V(i,j,k+1))/(three*dz)
+
+      wxcen(i,j,k) = half*(W(i+1,j,k)-W(i-1,j,k))/dx
+      wxlo(i,j,k)  = (W(i+1,j,k)+three*W(i,j,k)-four*W(i-1,j,k))/(three*dx)
+      wxhi(i,j,k)  =-(W(i-1,j,k)+three*W(i,j,k)-four*W(i+1,j,k))/(three*dx)
+
+      wycen(i,j,k) = half*(W(i,j+1,k)-W(i,j-1,k))/dy
+      wylo(i,j,k)  = (W(i,j+1,k)+three*W(i,j,k)-four*W(i,j-1,k))/(three*dy)
+      wyhi(i,j,k)  =-(W(i,j-1,k)+three*W(i,j,k)-four*W(i,j+1,k))/(three*dy)
+
+
+      dx = delta(1)
+      dy = delta(2)
+      dz = delta(3)
+      
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               uy = uycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vx = vxcen(i,j,k)
+               vz = vzcen(i,j,k)
+               wx = wxcen(i,j,k)
+               wy = wycen(i,j,k)
+               vort(i,j,k,1) = wy-vz
+            end do
+         end do
+      end do
+
+      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
+      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
+
+      fixulo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
+      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
+
+      fixulo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
+      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
+      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
+      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
+c
+c     First do all the faces
+c
+      if (fixvlo_x .or. fixwlo_x) then
+         i = lo(1)
+         do k = lo(3),hi(3)
+            do j = lo(2),hi(2)
+               vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+               wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+               uy = uycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               vort(i,j,k,1) = wy-vz
+            end do
+         end do
+      end if
+
+      if (fixvhi_x .or. fixwhi_x) then
+         i = hi(1)
+         do k = lo(3),hi(3)
+            do j = lo(2),hi(2)
+               vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+               wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+               uy = uycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               vort(i,j,k,1) = wy-vz
+            end do
+         end do
+      end if
+
+      if (fixulo_y .or. fixwlo_y) then
+         j = lo(2)
+         do k = lo(3),hi(3)
+            do i = lo(1),hi(1)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+               wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               vort(i,j,k,1) = wy-vz
+            end do
+         end do
+      end if
+
+      if (fixuhi_y .or. fixwhi_y) then
+         j = hi(2)
+         do k = lo(3),hi(3)
+            do i = lo(1),hi(1)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+               wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               vort(i,j,k,1) = wy-vz
+            end do
+         end do
+      end if
+
+      if (fixulo_z .or. fixvlo_z) then
+         k = lo(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = uycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+               vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+               vort(i,j,k,1) = wy-vz
+            end do
+         end do
+      end if
+
+      if (fixuhi_z .or. fixvhi_z) then
+         k = hi(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = uycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+               vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+               vort(i,j,k,1) = wy-vz
+            end do
+         end do
+      end if
+c
+c     Next do all the edges
+c
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y)) then
+         i = lo(1)
+         j = lo(2)
+         do k = lo(3),hi(3)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            vort(i,j,k,1) = wy-vz
+         end do
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y)) then
+         i = hi(1)
+         j = lo(2)
+         do k = lo(3),hi(3)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            vort(i,j,k,1) = wy-vz
+         end do
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y)) then
+         i = lo(1)
+         j = hi(2)
+         do k = lo(3),hi(3)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            vort(i,j,k,1) = wy-vz
+         end do
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y)) then
+         i = hi(1)
+         j = hi(2)
+         do k = lo(3),hi(3)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            vort(i,j,k,1) = wy-vz
+         end do
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_z .or. fixvlo_z)) then
+         i = lo(1)
+         k = lo(3)
+         do j = lo(2),hi(2)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = uycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vort(i,j,k,1) = wy-vz
+         end do
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_z .or. fixvlo_z)) then
+         i = hi(1)
+         k = lo(3)
+         do j = lo(2),hi(2)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = uycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vort(i,j,k,1) = wy-vz
+         end do
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_z .or. fixvhi_z)) then
+         i = lo(1)
+         k = hi(3)
+         do j = lo(2),hi(2)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = uycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vort(i,j,k,1) = wy-vz
+         end do
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_z .or. fixvhi_z)) then
+         i = hi(1)
+         k = hi(3)
+         do j = lo(2),hi(2)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = uycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vort(i,j,k,1) = wy-vz
+         end do
+      end if
+
+      if ((fixulo_y .or. fixwlo_y) .and. (fixulo_z .or. fixvlo_z)) then
+         j = lo(2)
+         k = lo(3)
+         do i = lo(1),hi(1)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vort(i,j,k,1) = wy-vz
+         end do
+      end if
+
+      if ((fixuhi_y .or. fixwhi_y) .and. (fixulo_z .or. fixvlo_z)) then
+         j = hi(2)
+         k = lo(3)
+         do i = lo(1),hi(1)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vort(i,j,k,1) = wy-vz
+         end do
+      end if
+
+      if ((fixulo_y .or. fixwlo_y) .and. (fixuhi_z .or. fixvhi_z)) then
+         j = lo(2)
+         k = hi(3)
+         do i = lo(1),hi(1)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vort(i,j,k,1) = wy-vz
+         end do
+      end if
+
+      if ((fixuhi_y .or. fixwhi_y) .and. (fixuhi_z .or. fixvhi_z)) then
+         j = hi(2)
+         k = hi(3)
+         do i = lo(1),hi(1)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vort(i,j,k,1) = wy-vz
+         end do
+      end if
+c
+c     Finally do all the corners
+c
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $     (fixulo_z .or. fixvlo_z)) then
+         i = lo(1)
+         j = lo(2)
+         k = lo(3)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vort(i,j,k,1) = wy-vz
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $     (fixulo_z .or. fixvlo_z)) then
+         i = hi(1)
+         j = lo(2)
+         k = lo(3)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vort(i,j,k,1) = wy-vz
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $     (fixulo_z .or. fixvlo_z)) then
+         i = lo(1)
+         j = hi(2)
+         k = lo(3)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vort(i,j,k,1) = wy-vz
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $     (fixulo_z .or. fixvlo_z)) then
+         i = hi(1)
+         j = hi(2)
+         k = lo(3)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vort(i,j,k,1) = wy-vz
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z)) then
+         i = lo(1)
+         j = lo(2)
+         k = hi(3)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vort(i,j,k,1) = wy-vz
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z)) then
+         i = hi(1)
+         j = lo(2)
+         k = hi(3)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vort(i,j,k,1) = wy-vz
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z)) then
+         i = lo(1)
+         j = hi(2)
+         k = hi(3)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vort(i,j,k,1) = wy-vz
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z)) then
+         i = hi(1)
+         j = hi(2)
+         k = hi(3)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vort(i,j,k,1) = wy-vz
+      end if
+
+#     undef U
+#     undef V      
+#     undef W
+#     undef ULOY
+#     undef UHIY
+#     undef ULOZ
+#     undef UHIZ
+#     undef VLOX
+#     undef VHIX
+#     undef VLOZ
+#     undef VHIZ
+#     undef WLOX
+#     undef WHIX
+#     undef WLOY
+#     undef WHIY
+
+      end
+
+
+      subroutine FORT_DERVORTY (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
+     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                           bc,level,grid_no)
+c
+c ::: This routine will derive magnitude of vorticity from
+c ::: the velocity field
+c
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(vort)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     vort(DIMV(vort),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer   i,j,k
+      REAL_T    uy, uz, vx, vz, wx, wy, dx, dy, dz
+      REAL_T    uycen, uzcen, uylo, uyhi, uzlo, uzhi
+      REAL_T    vxcen, vzcen, vxlo, vxhi, vzlo, vzhi
+      REAL_T    wxcen, wycen, wxlo, wxhi, wylo, wyhi
+      REAL_T    vorfun
+
+      logical   fixvlo_x, fixwlo_x, fixvhi_x, fixwhi_x
+      logical   fixulo_y, fixwlo_y, fixuhi_y, fixwhi_y
+      logical   fixulo_z, fixvlo_z, fixuhi_z, fixvhi_z
+c
+c     ::::: some useful macro definitions
+c
+#     define U(i,j,k) dat(i,j,k,1)
+#     define V(i,j,k) dat(i,j,k,2)
+#     define W(i,j,k) dat(i,j,k,3)
+
+#     define ULOY bc(2,1,1)
+#     define UHIY bc(2,2,1)
+#     define ULOZ bc(3,1,1)
+#     define UHIZ bc(3,2,1)
+
+#     define VLOX bc(1,1,2)
+#     define VHIX bc(1,2,2)
+#     define VLOZ bc(3,1,2)
+#     define VHIZ bc(3,2,2)
+
+#     define WLOX bc(1,1,3)
+#     define WHIX bc(1,2,3)
+#     define WLOY bc(2,1,3)
+#     define WHIY bc(2,2,3)
+c
+c     ::::: statement functions that implement stencil
+c
+      uycen(i,j,k) = half*(U(i,j+1,k)-U(i,j-1,k))/dy
+      uylo(i,j,k)  = (U(i,j+1,k)+three*U(i,j,k)-four*U(i,j-1,k))/(three*dy)
+      uyhi(i,j,k)  =-(U(i,j-1,k)+three*U(i,j,k)-four*U(i,j+1,k))/(three*dy)
+
+      uzcen(i,j,k) = half*(U(i,j,k+1)-U(i,j,k-1))/dz
+      uzlo(i,j,k)  = (U(i,j,k+1)+three*U(i,j,k)-four*U(i,j,k-1))/(three*dz)
+      uzhi(i,j,k)  =-(U(i,j,k-1)+three*U(i,j,k)-four*U(i,j,k+1))/(three*dz)
+
+      vxcen(i,j,k) = half*(V(i+1,j,k)-V(i-1,j,k))/dx
+      vxlo(i,j,k)  = (V(i+1,j,k)+three*V(i,j,k)-four*V(i-1,j,k))/(three*dx)
+      vxhi(i,j,k)  =-(V(i-1,j,k)+three*V(i,j,k)-four*V(i+1,j,k))/(three*dx)
+
+      vzcen(i,j,k) = half*(V(i,j,k+1)-V(i,j,k-1))/dz
+      vzlo(i,j,k)  = (V(i,j,k+1)+three*V(i,j,k)-four*V(i,j,k-1))/(three*dz)
+      vzhi(i,j,k)  =-(V(i,j,k-1)+three*V(i,j,k)-four*V(i,j,k+1))/(three*dz)
+
+      wxcen(i,j,k) = half*(W(i+1,j,k)-W(i-1,j,k))/dx
+      wxlo(i,j,k)  = (W(i+1,j,k)+three*W(i,j,k)-four*W(i-1,j,k))/(three*dx)
+      wxhi(i,j,k)  =-(W(i-1,j,k)+three*W(i,j,k)-four*W(i+1,j,k))/(three*dx)
+
+      wycen(i,j,k) = half*(W(i,j+1,k)-W(i,j-1,k))/dy
+      wylo(i,j,k)  = (W(i,j+1,k)+three*W(i,j,k)-four*W(i,j-1,k))/(three*dy)
+      wyhi(i,j,k)  =-(W(i,j-1,k)+three*W(i,j,k)-four*W(i,j+1,k))/(three*dy)
+
+
+      dx = delta(1)
+      dy = delta(2)
+      dz = delta(3)
+      
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               uy = uycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vx = vxcen(i,j,k)
+               vz = vzcen(i,j,k)
+               wx = wxcen(i,j,k)
+               wy = wycen(i,j,k)
+               vort(i,j,k,1) = uz-wx
+            end do
+         end do
+      end do
+
+      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
+      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
+
+      fixulo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
+      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
+
+      fixulo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
+      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
+      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
+      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
+c
+c     First do all the faces
+c
+      if (fixvlo_x .or. fixwlo_x) then
+         i = lo(1)
+         do k = lo(3),hi(3)
+            do j = lo(2),hi(2)
+               vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+               wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+               uy = uycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               vort(i,j,k,1) = uz-wx
+            end do
+         end do
+      end if
+
+      if (fixvhi_x .or. fixwhi_x) then
+         i = hi(1)
+         do k = lo(3),hi(3)
+            do j = lo(2),hi(2)
+               vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+               wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+               uy = uycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               vort(i,j,k,1) = uz-wx
+            end do
+         end do
+      end if
+
+      if (fixulo_y .or. fixwlo_y) then
+         j = lo(2)
+         do k = lo(3),hi(3)
+            do i = lo(1),hi(1)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+               wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               vort(i,j,k,1) = uz-wx
+            end do
+         end do
+      end if
+
+      if (fixuhi_y .or. fixwhi_y) then
+         j = hi(2)
+         do k = lo(3),hi(3)
+            do i = lo(1),hi(1)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+               wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               vort(i,j,k,1) = uz-wx
+            end do
+         end do
+      end if
+
+      if (fixulo_z .or. fixvlo_z) then
+         k = lo(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = uycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+               vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+               vort(i,j,k,1) = uz-wx
+            end do
+         end do
+      end if
+
+      if (fixuhi_z .or. fixvhi_z) then
+         k = hi(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = uycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+               vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+               vort(i,j,k,1) = uz-wx
+            end do
+         end do
+      end if
+c
+c     Next do all the edges
+c
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y)) then
+         i = lo(1)
+         j = lo(2)
+         do k = lo(3),hi(3)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            vort(i,j,k,1) = uz-wx
+         end do
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y)) then
+         i = hi(1)
+         j = lo(2)
+         do k = lo(3),hi(3)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            vort(i,j,k,1) = uz-wx
+         end do
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y)) then
+         i = lo(1)
+         j = hi(2)
+         do k = lo(3),hi(3)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            vort(i,j,k,1) = uz-wx
+         end do
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y)) then
+         i = hi(1)
+         j = hi(2)
+         do k = lo(3),hi(3)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            vort(i,j,k,1) = uz-wx
+         end do
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_z .or. fixvlo_z)) then
+         i = lo(1)
+         k = lo(3)
+         do j = lo(2),hi(2)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = uycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vort(i,j,k,1) = uz-wx
+         end do
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_z .or. fixvlo_z)) then
+         i = hi(1)
+         k = lo(3)
+         do j = lo(2),hi(2)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = uycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vort(i,j,k,1) = uz-wx
+         end do
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_z .or. fixvhi_z)) then
+         i = lo(1)
+         k = hi(3)
+         do j = lo(2),hi(2)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = uycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vort(i,j,k,1) = uz-wx
+         end do
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_z .or. fixvhi_z)) then
+         i = hi(1)
+         k = hi(3)
+         do j = lo(2),hi(2)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = uycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vort(i,j,k,1) = uz-wx
+         end do
+      end if
+
+      if ((fixulo_y .or. fixwlo_y) .and. (fixulo_z .or. fixvlo_z)) then
+         j = lo(2)
+         k = lo(3)
+         do i = lo(1),hi(1)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vort(i,j,k,1) = uz-wx
+         end do
+      end if
+
+      if ((fixuhi_y .or. fixwhi_y) .and. (fixulo_z .or. fixvlo_z)) then
+         j = hi(2)
+         k = lo(3)
+         do i = lo(1),hi(1)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vort(i,j,k,1) = uz-wx
+         end do
+      end if
+
+      if ((fixulo_y .or. fixwlo_y) .and. (fixuhi_z .or. fixvhi_z)) then
+         j = lo(2)
+         k = hi(3)
+         do i = lo(1),hi(1)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vort(i,j,k,1) = uz-wx
+         end do
+      end if
+
+      if ((fixuhi_y .or. fixwhi_y) .and. (fixuhi_z .or. fixvhi_z)) then
+         j = hi(2)
+         k = hi(3)
+         do i = lo(1),hi(1)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vort(i,j,k,1) = uz-wx
+         end do
+      end if
+c
+c     Finally do all the corners
+c
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $     (fixulo_z .or. fixvlo_z)) then
+         i = lo(1)
+         j = lo(2)
+         k = lo(3)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vort(i,j,k,1) = uz-wx
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $     (fixulo_z .or. fixvlo_z)) then
+         i = hi(1)
+         j = lo(2)
+         k = lo(3)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vort(i,j,k,1) = uz-wx
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $     (fixulo_z .or. fixvlo_z)) then
+         i = lo(1)
+         j = hi(2)
+         k = lo(3)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vort(i,j,k,1) = uz-wx
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $     (fixulo_z .or. fixvlo_z)) then
+         i = hi(1)
+         j = hi(2)
+         k = lo(3)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vort(i,j,k,1) = uz-wx
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z)) then
+         i = lo(1)
+         j = lo(2)
+         k = hi(3)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vort(i,j,k,1) = uz-wx
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z)) then
+         i = hi(1)
+         j = lo(2)
+         k = hi(3)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vort(i,j,k,1) = uz-wx
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z)) then
+         i = lo(1)
+         j = hi(2)
+         k = hi(3)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vort(i,j,k,1) = uz-wx
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z)) then
+         i = hi(1)
+         j = hi(2)
+         k = hi(3)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vort(i,j,k,1) = uz-wx
+      end if
+
+#     undef U
+#     undef V      
+#     undef W
+#     undef ULOY
+#     undef UHIY
+#     undef ULOZ
+#     undef UHIZ
+#     undef VLOX
+#     undef VHIX
+#     undef VLOZ
+#     undef VHIZ
+#     undef WLOX
+#     undef WHIX
+#     undef WLOY
+#     undef WHIY
+
+      end
+
+
+      subroutine FORT_DERVORTZ (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
+     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                           bc,level,grid_no)
+c
+c ::: This routine will derive magnitude of vorticity from
+c ::: the velocity field
+c
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(vort)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     vort(DIMV(vort),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer   i,j,k
+      REAL_T    uy, uz, vx, vz, wx, wy, dx, dy, dz
+      REAL_T    uycen, uzcen, uylo, uyhi, uzlo, uzhi
+      REAL_T    vxcen, vzcen, vxlo, vxhi, vzlo, vzhi
+      REAL_T    wxcen, wycen, wxlo, wxhi, wylo, wyhi
+      REAL_T    vorfun
+
+      logical   fixvlo_x, fixwlo_x, fixvhi_x, fixwhi_x
+      logical   fixulo_y, fixwlo_y, fixuhi_y, fixwhi_y
+      logical   fixulo_z, fixvlo_z, fixuhi_z, fixvhi_z
+c
+c     ::::: some useful macro definitions
+c
+#     define U(i,j,k) dat(i,j,k,1)
+#     define V(i,j,k) dat(i,j,k,2)
+#     define W(i,j,k) dat(i,j,k,3)
+
+#     define ULOY bc(2,1,1)
+#     define UHIY bc(2,2,1)
+#     define ULOZ bc(3,1,1)
+#     define UHIZ bc(3,2,1)
+
+#     define VLOX bc(1,1,2)
+#     define VHIX bc(1,2,2)
+#     define VLOZ bc(3,1,2)
+#     define VHIZ bc(3,2,2)
+
+#     define WLOX bc(1,1,3)
+#     define WHIX bc(1,2,3)
+#     define WLOY bc(2,1,3)
+#     define WHIY bc(2,2,3)
+c
+c     ::::: statement functions that implement stencil
+c
+      uycen(i,j,k) = half*(U(i,j+1,k)-U(i,j-1,k))/dy
+      uylo(i,j,k)  = (U(i,j+1,k)+three*U(i,j,k)-four*U(i,j-1,k))/(three*dy)
+      uyhi(i,j,k)  =-(U(i,j-1,k)+three*U(i,j,k)-four*U(i,j+1,k))/(three*dy)
+
+      uzcen(i,j,k) = half*(U(i,j,k+1)-U(i,j,k-1))/dz
+      uzlo(i,j,k)  = (U(i,j,k+1)+three*U(i,j,k)-four*U(i,j,k-1))/(three*dz)
+      uzhi(i,j,k)  =-(U(i,j,k-1)+three*U(i,j,k)-four*U(i,j,k+1))/(three*dz)
+
+      vxcen(i,j,k) = half*(V(i+1,j,k)-V(i-1,j,k))/dx
+      vxlo(i,j,k)  = (V(i+1,j,k)+three*V(i,j,k)-four*V(i-1,j,k))/(three*dx)
+      vxhi(i,j,k)  =-(V(i-1,j,k)+three*V(i,j,k)-four*V(i+1,j,k))/(three*dx)
+
+      vzcen(i,j,k) = half*(V(i,j,k+1)-V(i,j,k-1))/dz
+      vzlo(i,j,k)  = (V(i,j,k+1)+three*V(i,j,k)-four*V(i,j,k-1))/(three*dz)
+      vzhi(i,j,k)  =-(V(i,j,k-1)+three*V(i,j,k)-four*V(i,j,k+1))/(three*dz)
+
+      wxcen(i,j,k) = half*(W(i+1,j,k)-W(i-1,j,k))/dx
+      wxlo(i,j,k)  = (W(i+1,j,k)+three*W(i,j,k)-four*W(i-1,j,k))/(three*dx)
+      wxhi(i,j,k)  =-(W(i-1,j,k)+three*W(i,j,k)-four*W(i+1,j,k))/(three*dx)
+
+      wycen(i,j,k) = half*(W(i,j+1,k)-W(i,j-1,k))/dy
+      wylo(i,j,k)  = (W(i,j+1,k)+three*W(i,j,k)-four*W(i,j-1,k))/(three*dy)
+      wyhi(i,j,k)  =-(W(i,j-1,k)+three*W(i,j,k)-four*W(i,j+1,k))/(three*dy)
+
+
+      dx = delta(1)
+      dy = delta(2)
+      dz = delta(3)
+      
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               uy = uycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vx = vxcen(i,j,k)
+               vz = vzcen(i,j,k)
+               wx = wxcen(i,j,k)
+               wy = wycen(i,j,k)
+               vort(i,j,k,1) = vx-uy
+            end do
+         end do
+      end do
+
+      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
+      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
+
+      fixulo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
+      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
+
+      fixulo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
+      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
+      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
+      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
+c
+c     First do all the faces
+c
+      if (fixvlo_x .or. fixwlo_x) then
+         i = lo(1)
+         do k = lo(3),hi(3)
+            do j = lo(2),hi(2)
+               vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+               wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+               uy = uycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               vort(i,j,k,1) = vx-uy
+            end do
+         end do
+      end if
+
+      if (fixvhi_x .or. fixwhi_x) then
+         i = hi(1)
+         do k = lo(3),hi(3)
+            do j = lo(2),hi(2)
+               vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+               wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+               uy = uycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               vort(i,j,k,1) = vx-uy
+            end do
+         end do
+      end if
+
+      if (fixulo_y .or. fixwlo_y) then
+         j = lo(2)
+         do k = lo(3),hi(3)
+            do i = lo(1),hi(1)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+               wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               vort(i,j,k,1) = vx-uy
+            end do
+         end do
+      end if
+
+      if (fixuhi_y .or. fixwhi_y) then
+         j = hi(2)
+         do k = lo(3),hi(3)
+            do i = lo(1),hi(1)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+               wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               vort(i,j,k,1) = vx-uy
+            end do
+         end do
+      end if
+
+      if (fixulo_z .or. fixvlo_z) then
+         k = lo(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = uycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+               vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+               vort(i,j,k,1) = vx-uy
+            end do
+         end do
+      end if
+
+      if (fixuhi_z .or. fixvhi_z) then
+         k = hi(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = uycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+               vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+               vort(i,j,k,1) = vx-uy
+            end do
+         end do
+      end if
+c
+c     Next do all the edges
+c
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y)) then
+         i = lo(1)
+         j = lo(2)
+         do k = lo(3),hi(3)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            vort(i,j,k,1) = vx-uy
+         end do
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y)) then
+         i = hi(1)
+         j = lo(2)
+         do k = lo(3),hi(3)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            vort(i,j,k,1) = vx-uy
+         end do
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y)) then
+         i = lo(1)
+         j = hi(2)
+         do k = lo(3),hi(3)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            vort(i,j,k,1) = vx-uy
+         end do
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y)) then
+         i = hi(1)
+         j = hi(2)
+         do k = lo(3),hi(3)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            vort(i,j,k,1) = vx-uy
+         end do
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_z .or. fixvlo_z)) then
+         i = lo(1)
+         k = lo(3)
+         do j = lo(2),hi(2)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = uycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vort(i,j,k,1) = vx-uy
+         end do
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_z .or. fixvlo_z)) then
+         i = hi(1)
+         k = lo(3)
+         do j = lo(2),hi(2)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = uycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vort(i,j,k,1) = vx-uy
+         end do
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_z .or. fixvhi_z)) then
+         i = lo(1)
+         k = hi(3)
+         do j = lo(2),hi(2)
+            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = uycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vort(i,j,k,1) = vx-uy
+         end do
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_z .or. fixvhi_z)) then
+         i = hi(1)
+         k = hi(3)
+         do j = lo(2),hi(2)
+            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = uycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vort(i,j,k,1) = vx-uy
+         end do
+      end if
+
+      if ((fixulo_y .or. fixwlo_y) .and. (fixulo_z .or. fixvlo_z)) then
+         j = lo(2)
+         k = lo(3)
+         do i = lo(1),hi(1)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vort(i,j,k,1) = vx-uy
+         end do
+      end if
+
+      if ((fixuhi_y .or. fixwhi_y) .and. (fixulo_z .or. fixvlo_z)) then
+         j = hi(2)
+         k = lo(3)
+         do i = lo(1),hi(1)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vort(i,j,k,1) = vx-uy
+         end do
+      end if
+
+      if ((fixulo_y .or. fixwlo_y) .and. (fixuhi_z .or. fixvhi_z)) then
+         j = lo(2)
+         k = hi(3)
+         do i = lo(1),hi(1)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vort(i,j,k,1) = vx-uy
+         end do
+      end if
+
+      if ((fixuhi_y .or. fixwhi_y) .and. (fixuhi_z .or. fixvhi_z)) then
+         j = hi(2)
+         k = hi(3)
+         do i = lo(1),hi(1)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vort(i,j,k,1) = vx-uy
+         end do
+      end if
+c
+c     Finally do all the corners
+c
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $     (fixulo_z .or. fixvlo_z)) then
+         i = lo(1)
+         j = lo(2)
+         k = lo(3)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vort(i,j,k,1) = vx-uy
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $     (fixulo_z .or. fixvlo_z)) then
+         i = hi(1)
+         j = lo(2)
+         k = lo(3)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vort(i,j,k,1) = vx-uy
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $     (fixulo_z .or. fixvlo_z)) then
+         i = lo(1)
+         j = hi(2)
+         k = lo(3)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vort(i,j,k,1) = vx-uy
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $     (fixulo_z .or. fixvlo_z)) then
+         i = hi(1)
+         j = hi(2)
+         k = lo(3)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vort(i,j,k,1) = vx-uy
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z)) then
+         i = lo(1)
+         j = lo(2)
+         k = hi(3)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vort(i,j,k,1) = vx-uy
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z)) then
+         i = hi(1)
+         j = lo(2)
+         k = hi(3)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vort(i,j,k,1) = vx-uy
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z)) then
+         i = lo(1)
+         j = hi(2)
+         k = hi(3)
+         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vort(i,j,k,1) = vx-uy
+      end if
+
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
+     $     (fixuhi_z .or. fixvhi_z)) then
+         i = hi(1)
+         j = hi(2)
+         k = hi(3)
+         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vort(i,j,k,1) = vx-uy
+      end if
+
+#     undef U
+#     undef V      
+#     undef W
+#     undef ULOY
+#     undef UHIY
+#     undef ULOZ
+#     undef UHIZ
+#     undef VLOX
+#     undef VHIX
+#     undef VLOZ
+#     undef VHIZ
+#     undef WLOX
+#     undef WHIX
+#     undef WLOY
+#     undef WHIY
+
+      end
+
 
       subroutine FORT_DERMGDIVU (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,

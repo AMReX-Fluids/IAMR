@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.53 2007-07-25 21:31:22 aaspden Exp $
+// $Id: NS_setup.cpp,v 1.54 2007-08-19 19:08:34 jbb Exp $
 //
 
 #include <winstd.H>
@@ -340,6 +340,19 @@ NavierStokes::variableSetUp ()
     //
     derive_lst.add("mag_vort",IndexType::TheCellType(),1,FORT_DERMGVORT,grow_box_by_one);
     derive_lst.addComponent("mag_vort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+#if (BL_SPACEDIM == 3)
+    //
+    //  vorticity vector field
+    //
+    derive_lst.add("vort_x",IndexType::TheCellType(),1,FORT_DERVORTX,grow_box_by_one);
+    derive_lst.addComponent("vort_x",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    derive_lst.add("vort_y",IndexType::TheCellType(),1,FORT_DERVORTY,grow_box_by_one);
+    derive_lst.addComponent("vort_y",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    derive_lst.add("vort_z",IndexType::TheCellType(),1,FORT_DERVORTZ,grow_box_by_one);
+    derive_lst.addComponent("vort_z",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    derive_lst.add("DMagVort",IndexType::TheCellType(),1,FORT_DERDMAG,grow_box_by_one);
+    derive_lst.addComponent("DMagVort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+#endif
     //
     // divergence of velocity field
     //

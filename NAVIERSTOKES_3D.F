@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.16 2007-04-16 18:14:53 aaspden Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.17 2007-08-19 19:08:34 jbb Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -365,6 +365,40 @@ c ::
       end do
       
       end
+       subroutine FORT_MAXVAL(rho,DIMS(rho),DIMS(grid),delta,mass,tmp)
+
+       implicit none
+
+       integer DIMDEC(rho)
+       integer DIMDEC(grid)
+       REAL_T  mass, delta(SDIM)
+       REAL_T  rho(DIMV(rho))
+       REAL_T  tmp(DIM2(grid))
+
+       integer i, j, k
+       REAL_T  vol
+
+
+       do j = ARG_L2(grid), ARG_H2(grid)
+          tmp(j) = zero
+       end do
+
+       do k = ARG_L3(grid), ARG_H3(grid)
+          do i = ARG_L1(grid), ARG_H1(grid)
+             do j = ARG_L2(grid), ARG_H2(grid)
+                tmp(j) = max( tmp(j) , rho(i,j,k) )
+             end do
+          end do
+       end do
+
+       mass = zero
+       do j = ARG_L2(grid), ARG_H2(grid)
+          mass = max(mass , tmp(j))
+       end do
+
+       end
+
+
 
 c :: ----------------------------------------------------------
 c :: SUMMASS
