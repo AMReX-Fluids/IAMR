@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.39 2007-07-25 21:31:55 aaspden Exp $
+c $Id: PROB_3D.F,v 1.40 2007-08-19 19:10:24 jbb Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -212,7 +212,7 @@ c
       enddo
 
       if ( probtype .eq. 10 ) then
-         if ( rt_max_freq < rt_nfreq ) then
+         if ( rt_max_freq .lt. rt_nfreq ) then
             stop 'RT_INIT broken: 1'
          end if
          call blutilinitrand(111397)
@@ -1432,13 +1432,14 @@ c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
-      REAL_T  dist
+      REAL_T  dist, pi
 
 #include "probdata.H"
 
       hx = dx(1)
       hy = dx(2)
       hz = dx(3)
+      pi = 4.d0*atan2(1.d0,1.d0)
 
       do k = lo(3), hi(3)
          z = xlo(3) + hz*(float(k-lo(3)) + half)
@@ -1447,8 +1448,11 @@ c
 	    do i = lo(1), hi(1)
                x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-               vel(i,j,k,1) =  velfact*sin(x)*cos(y)*cos(z)
-               vel(i,j,k,2) = -velfact*cos(x)*sin(y)*cos(z)
+c              vel(i,j,k,1) =  velfact*sin(x)*cos(y)*cos(z)
+c              vel(i,j,k,2) = -velfact*cos(x)*sin(y)*cos(z)
+
+               vel(i,j,k,1) = sin(x-pi*0.5d0)*cos(y-pi)*cos(z-pi*0.5d0)
+               vel(i,j,k,2) = -cos(x-pi*0.5d0)*sin(y-pi)*cos(z-pi*0.5d0)
                vel(i,j,k,3) = zero
 
                scal(i,j,k,1) = denfact
