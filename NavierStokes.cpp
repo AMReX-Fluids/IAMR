@@ -2828,7 +2828,6 @@ NavierStokes::MaxVal (const std::string& name,
 #endif
         FORT_MAXVAL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
                     tmp.dataPtr(),&s);
-#endif
         maxval = std::max(maxval, s);
     }
 
