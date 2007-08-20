@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.94 2007-08-19 19:08:34 jbb Exp $
+// $Id: NavierStokes.H,v 1.95 2007-08-20 19:36:29 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -136,8 +136,8 @@ public:
     Real sumDerive (const std::string& name,
                     Real           time);
 
-    Real volWgtMax (const std::string& name,
-                    Real           time);
+    Real MaxVal (const std::string& name,
+                 Real           time);
 
     Real volWgtSum (const std::string& name,
                     Real           time);

@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.14 2003-01-30 07:16:29 almgren Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.15 2007-08-20 19:36:29 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -226,6 +226,40 @@ c ::
              a(i,j) = a(i,j) + alpha*b(i,j)
           end do
        end do
+
+       end
+
+c :: ----------------------------------------------------------
+c :: MAXVAL
+c ::             maxval = max{ rho(i,j) }
+c ::
+c :: ----------------------------------------------------------
+c ::
+       subroutine FORT_MAXVAL(rho,DIMS(rho),DIMS(grid),tmp,mass)
+
+       integer DIMDEC(rho)
+       integer DIMDEC(grid)
+       REAL_T  rho(DIMV(rho))
+       REAL_T  tmp(DIM2(grid))
+       REAL_T  mass
+
+       integer i,j
+
+       do j = ARG_L2(grid), ARG_H2(grid)
+          tmp(j) = zero
+       end do
+
+       do i = ARG_L1(grid), ARG_H1(grid)
+          do j = ARG_L2(grid), ARG_H2(grid)
+             tmp(j) = max( tmp(j) , rho(i,j) )
+          end do
+       end do
+
+       mass = zero
+       do j = ARG_L2(grid), ARG_H2(grid)
+          mass = max(mass , tmp(j))
+       end do
+
 
        end
 

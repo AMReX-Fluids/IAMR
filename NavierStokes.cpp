@@ -2786,12 +2786,10 @@ NavierStokes::volWgtSum (const std::string& name,
 }
 
 Real 
-NavierStokes::volWgtMax (const std::string& name,
-                         Real           time)
+NavierStokes::MaxVal (const std::string& name,
+                      Real           time)
 {
-    Real        sum     = 0.0;
-    int         rz_flag = CoordSys::IsRZ() ? 1 : 0;
-    const Real* dx      = geom.CellSize();
+    Real        maxval  = 0.0;
     MultiFab*   mf      = derive(name,time,0);
     Array<Real> tmp;
 
@@ -2822,37 +2820,23 @@ NavierStokes::volWgtMax (const std::string& name,
         const int*  dhi = fab.hiVect();
         const int*  lo  = grids[mfi.index()].loVect();
         const int*  hi  = grids[mfi.index()].hiVect();
-        Real*       rad = &radius[mfi.index()][0];
-
-        tmp.resize(hi[1]-lo[1]+1);
 
 #if (BL_SPACEDIM == 2)
-        int irlo  = lo[0]-radius_grow;
-        int irhi  = hi[0]+radius_grow;
-        //
-        // Note that this routine will do a volume weighted sum of
-        // whatever quantity is passed in, not strictly the "mass".
-        //
-        FORT_MAXVAL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
-                     dx,&s,rad,&irlo,&irhi,&rz_flag,tmp.dataPtr());
+        tmp.resize(hi[1]-lo[1]+1);
+#elif (BL_SPACEDIM == 3)
+        tmp.resize(hi[2]-lo[2]+1);
 #endif
-
-#if (BL_SPACEDIM == 3)
-        //
-        // Note that this routine will do a volume weighted sum of
-        // whatever quantity is passed in, not strictly the "mass".
-        //
         FORT_MAXVAL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
-                     dx,&s,tmp.dataPtr());
+                    tmp.dataPtr(),&s);
 #endif
-        sum = std::max(sum, s);
+        maxval = std::max(maxval, s);
     }
 
     delete mf;
 
-    ParallelDescriptor::ReduceRealMax(sum);
+    ParallelDescriptor::ReduceRealMax(maxval);
 
-    return sum;
+    return maxval;
 }
 
 void
@@ -2873,7 +2857,7 @@ NavierStokes::sum_integrated_quantities ()
 //        mass += ns_level.volWgtSum("density",time);
 //        trac += ns_level.volWgtSum("tracer",time);
         energy += ns_level.volWgtSum("energy",time);
-        mgvort = std::max(mgvort,ns_level.volWgtMax("mag_vort",time));
+        mgvort = std::max(mgvort,ns_level.MaxVal("mag_vort",time));
 #ifdef GENGETFORCE
   	if (BL_SPACEDIM==3)
   	    forcing += ns_level.volWgtSum("forcing",time);

@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.16 2007-08-19 19:08:34 jbb Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.17 2007-08-20 19:36:29 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -125,10 +125,6 @@ extern "C" {
                        const int* irlo, const int* irhi,
                        const int* rz_flag, Real* tmp);
 #else
-    void FORT_MAXVAL (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                       ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                       const Real* delta, Real* mass, Real* tmp);
-
     void FORT_SUMMASS (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                        ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                        const Real* delta, Real* mass, Real* tmp);
@@ -137,6 +133,11 @@ extern "C" {
                          ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                          const Real* delta, Real* mass, Real* tmp);
 #endif
+
+    void FORT_MAXVAL (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                      ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+                      Real* tmp, Real* maxval);
+
 
     void FORT_CEN2EDG(const int* lo, const int* hi,
                       ARLIM_P(clo), ARLIM_P(chi), const Real* cfabdat,
