@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.14 2007-01-22 17:10:34 lijewski Exp $
+c $Id: INFL_FORCE_F.F,v 1.15 2007-09-04 21:15:00 sepp Exp $
 c
 
 #undef BL_LANG_CC
@@ -70,7 +70,6 @@ c
       call bl_pd_myproc(proc)
 
       if (.NOT. ALLOCATED(storDat)) then
-
          open(FF_UNIT, file=trim(flct_file)//'/HDR', form='formatted', action='read', status='old')
 
          call RD_SCL_FLCTHD(FF_UNIT,nCmpFile,dimFile,probSizeFile,dxFile)
@@ -369,76 +368,91 @@ c
 
       call FF_SET_LOHI(FF_DIMS(dat), lo, hi)
 
-      intDummy = hi(strmwse_dir) - lo(strmwse_dir) + 1
-c
-c     *** Wrap baseFilePnt into the box if it is outside ***
-c
-c     Note: This assumes the first and last point in the file 
-c           are the same.  This is the case for data generated with mkInitFlct.
-c
-      if (baseFilePnt .lt. 1) then
-        baseFilePnt = dimFile(strmwse_dir) - (1 - baseFilePnt)
-      endif
-
-      if (baseFilePnt .gt. dimFile(strmwse_dir) - 1) then
-        baseFilePnt = baseFilePnt - (dimFile(strmwse_dir) - 1)
-      endif
-c
-c     *** If the data can be filled in one pass, do so ***
-c
-      if (hi(strmwse_dir) - baseArrayPnt + 1 
-     $                        .LE. dimFile(strmwse_dir) - baseFilePnt + 1) then
-        do n = 1, 3
-          filLo(n) = 1
-          loRd(n) = lo(n)
-          hiRd(n) = hi(n)
-        enddo
-        loRd(strmwse_dir) = baseArrayPnt
-        filLo(strmwse_dir) = baseFilePnt
-
-        do n = 1, nComp
-          call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
-     $                    dat(lo(1),lo(2),lo(3),n),n)
-        enddo
-c
-c     Note: In this case, we are guaranteed that the arrays can be filled 
-c           in two passes since the array is guaranteed not to have 
-c           dimensions larger than the data in the file.
-c
+      if (SDIM .eq. 2) then
+         do n = 1, 3
+            filLo(n) = 1
+            loRd(n) = lo(n)
+            hiRd(n) = hi(n)
+         enddo
+         loRd(strmwse_dir) = baseArrayPnt
+         filLo(strmwse_dir) = baseFilePnt
+         do n = 1, nComp
+            call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
+     &           dat(lo(1),lo(2),lo(3),n),n)
+         enddo
       else
-c
-c       Fill as much data as can be read without reading beyond the end of
-c       the file
-c
-        do n = 1, 3
-          filLo(n) = 1
-          loRd(n) = lo(n)
-          hiRd(n) = hi(n)
-        enddo
-        filLo(strmwse_dir) = baseFilePnt
-        loRd(strmwse_dir) = baseArrayPnt
-        hiRd(strmwse_dir) = loRd(strmwse_dir) + dimFile(strmwse_dir) 
-     $                                                         - baseFilePnt
 
-        do n = 1, nComp
-          call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
-     $                    dat(lo(1),lo(2),lo(3),n),n)
-        enddo
-c
-c       Now fill the rest of the array starting from the beginning of the file
-c
-c       Note: The first point in the file in the streamwise direction is 
-c             skipped because it is identical to the last point in the file.
-c
-        filLo(strmwse_dir) = 2
-        loRd(strmwse_dir) = hiRd(strmwse_dir) + 1
-        hiRd(strmwse_dir) = hi(strmwse_dir)
+         intDummy = hi(strmwse_dir) - lo(strmwse_dir) + 1
+c     
+c     *** Wrap baseFilePnt into the box if it is outside ***
+c     
+c     Note: This assumes the first and last point in the file 
+c     are the same.  This is the case for data generated with mkInitFlct.
+c     
+         if (baseFilePnt .lt. 1) then
+            baseFilePnt = dimFile(strmwse_dir) - (1 - baseFilePnt)
+         endif
 
-        do n = 1, nComp
-          call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
-     $                    dat(lo(1),lo(2),lo(3),n),n)
-        enddo
+         if (baseFilePnt .gt. dimFile(strmwse_dir) - 1) then
+            baseFilePnt = baseFilePnt - (dimFile(strmwse_dir) - 1)
+         endif
+c     
+c     *** If the data can be filled in one pass, do so ***
+c     
+         if (hi(strmwse_dir) - baseArrayPnt + 1 
+     $        .LE. dimFile(strmwse_dir) - baseFilePnt + 1) then
+            do n = 1, 3
+               filLo(n) = 1
+               loRd(n) = lo(n)
+               hiRd(n) = hi(n)
+            enddo
+            loRd(strmwse_dir) = baseArrayPnt
+            filLo(strmwse_dir) = baseFilePnt
 
+            do n = 1, nComp
+               call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
+     $              dat(lo(1),lo(2),lo(3),n),n)
+            enddo
+c     
+c     Note: In this case, we are guaranteed that the arrays can be filled 
+c     in two passes since the array is guaranteed not to have 
+c     dimensions larger than the data in the file.
+c     
+         else
+c     
+c     Fill as much data as can be read without reading beyond the end of
+c     the file
+c     
+            do n = 1, 3
+               filLo(n) = 1
+               loRd(n) = lo(n)
+               hiRd(n) = hi(n)
+            enddo
+            filLo(strmwse_dir) = baseFilePnt
+            loRd(strmwse_dir) = baseArrayPnt
+            hiRd(strmwse_dir) = loRd(strmwse_dir) + dimFile(strmwse_dir) 
+     $           - baseFilePnt
+
+            do n = 1, nComp
+               call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
+     $              dat(lo(1),lo(2),lo(3),n),n)
+            enddo
+c     
+c     Now fill the rest of the array starting from the beginning of the file
+c     
+c     Note: The first point in the file in the streamwise direction is 
+c     skipped because it is identical to the last point in the file.
+c     
+            filLo(strmwse_dir) = 2
+            loRd(strmwse_dir) = hiRd(strmwse_dir) + 1
+            hiRd(strmwse_dir) = hi(strmwse_dir)
+
+            do n = 1, nComp
+               call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
+     $              dat(lo(1),lo(2),lo(3),n),n)
+            enddo
+
+         endif
       endif
 
       END
