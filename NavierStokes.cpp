@@ -2789,8 +2789,8 @@ Real
 NavierStokes::MaxVal (const std::string& name,
                       Real           time)
 {
-    Real        maxval  = 0.0;
-    MultiFab*   mf      = derive(name,time,0);
+    Real        mxval = 0.0;
+    MultiFab*   mf    = derive(name,time,0);
     Array<Real> tmp;
 
     BoxArray baf;
@@ -2828,14 +2828,14 @@ NavierStokes::MaxVal (const std::string& name,
 #endif
         FORT_MAXVAL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
                     tmp.dataPtr(),&s);
-        maxval = std::max(maxval, s);
+        mxval = std::max(mxval, s);
     }
 
     delete mf;
 
-    ParallelDescriptor::ReduceRealMax(maxval);
+    ParallelDescriptor::ReduceRealMax(mxval);
 
-    return maxval;
+    return mxval;
 }
 
 void
