@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.44 2007-04-19 22:21:59 aaspden Exp $
+# $Id: GNUmakefile,v 1.45 2007-09-10 17:48:34 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -10,14 +10,14 @@ TOP = $(PBOXLIB_HOME)
 # Variables for the user to set ...
 #
 PRECISION   = DOUBLE
-DEBUG       = FALSE
+DEBUG       = TRUE
 PROFILE     = FALSE
 DIM         = 2
-COMP        = Intel
-FCOMP       = Intel
-USE_MPI     = FALSE
+COMP        = CC
+FCOMP       = ftn
+USE_MPI     = TRUE
 USE_THREADS = FALSE
-USE_XT3     = FALSE
+USE_XT3     = TRUE
 
 # This allows GetForce to call a Fortran routine
 #DEFINES += -DGENGETFORCE
@@ -38,11 +38,11 @@ include $(Bpack)
 
 ifeq ($(USE_XT3),TRUE)
   LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
-  DEFINES += -DBL_PGI -DMPICH_SKIP_MPICXX -DBL_XT3
+  DEFINES += -DBL_PGI -DMPICH_SKIP_MPICXX #-DBL_XT3
 ifeq ($(USE_MPI),TRUE)
-  CXX := CC -target=catamount
-  FC  := ftn -target=catamount
-  fC  := ftn -target=catamount
+  CXX := CC -target=linux
+  FC  := ftn -target=linux
+  fC  := ftn -target=linux
 else
   CXX := pgCC
   FC  := pgf90
@@ -80,6 +80,6 @@ vpath %.f90 $(VPATH_LOCATIONS)
 
 all: $(executable)
 
-$(executable): $(LIBRARIES)
+$(executable):
 
 include $(TOP)/mk/Make.rules
