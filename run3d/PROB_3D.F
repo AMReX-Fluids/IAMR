@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.40 2007-08-19 19:10:24 jbb Exp $
+c $Id: PROB_3D.F,v 1.41 2007-09-20 20:15:39 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -96,7 +96,7 @@ c ::: -----------------------------------------------------------
 
 #ifdef DO_IAMR_FORCE
       namelist /fortin/ nmodes, nxmodes, nymodes, nzmodes, mode_start,
-     &                  forcing_type, spectrum_type, ref_type,
+     &                  forcing_type, spectrum_type, ref_type, forcing_twice_wavelength,
      &                  forcing_xlength, forcing_ylength, forcing_zlength,
      &                  forcing_time_scale_min, forcing_time_scale_max, 
      &                  force_scale, forcing_epsilon,
@@ -1874,7 +1874,7 @@ c
       REAL_T     rho    (DIMV(state))
       REAL_T     gravity
 
-      REAL_T     Lx, Ly, Lz, Lmin
+      REAL_T     Lx, Ly, Lz, Lmin, HLx, HLy, HLz
       REAL_T     kappa, kappaMax
 
 #include "probdata.H"
@@ -1957,6 +1957,16 @@ c     Adjust z offset for probtype 15
             ystep = int(Ly/Lmin+0.5)
             zstep = int(Lz/Lmin+0.5)
 
+            if (forcing_twice_wavelength.eq.1) then
+               HLx = Lx/two
+               HLy = Ly/two
+               HLz = Lz/two
+            else
+               HLx = Lx
+               HLy = Ly
+               HLz = Lz
+            endif
+
             do k = klo, khi
                z = zlo + hz*(float(k-klo) + half)
                do j = jlo, jhi
@@ -1975,9 +1985,9 @@ c     Adjust z offset for probtype 15
                               kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                               if (kappa.le.kappaMax) then
                                  xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                               endif
                            enddo
                         enddo

@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.22 2007-08-19 19:08:34 jbb Exp $
+c $Id: DERIVE_3D.F,v 1.23 2007-09-20 20:15:39 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -73,7 +73,7 @@ c
       REAL_T     xt, yt, zt
       REAL_T     zlo, infl_time
 
-      REAL_T     Lx, Ly, Lz, Lmin
+      REAL_T     Lx, Ly, Lz, Lmin, HLx, HLy, HLz
       REAL_T     kappa, kappaMax
 
 #include "probdata.H"
@@ -114,6 +114,15 @@ c     Adjust z offset for probtype 15
          xstep = int(Lx/Lmin+0.5)
          ystep = int(Ly/Lmin+0.5)
          zstep = int(Lz/Lmin+0.5)
+         if (forcing_twice_wavelength.eq.1) then
+            HLx = Lx/two
+            HLy = Ly/two
+            HLz = Lz/two
+         else
+            HLx = Lx
+            HLy = Ly
+            HLz = Lz
+         endif
          do k = lo(3), hi(3)
             z = zlo + hz * ( float( k-lo(3) ) + half )
             do j = lo(2), hi(2)
@@ -139,9 +148,9 @@ c     Adjust z offset for probtype 15
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                            endif
                         enddo
                      enddo
@@ -155,9 +164,9 @@ c     Adjust z offset for probtype 15
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                            endif
                         enddo
                      enddo
@@ -212,7 +221,7 @@ c
       REAL_T     xt, yt, zt
       REAL_T     zlo, infl_time
 
-      REAL_T     Lx, Ly, Lz, Lmin
+      REAL_T     Lx, Ly, Lz, Lmin, HLx, HLy, HLz
       REAL_T     kappa, kappaMax
 
 #include "probdata.H"
@@ -253,6 +262,15 @@ c     Adjust z offset for probtype 15
          xstep = int(Lx/Lmin+0.5)
          ystep = int(Ly/Lmin+0.5)
          zstep = int(Lz/Lmin+0.5)
+         if (forcing_twice_wavelength.eq.1) then
+            HLx = Lx/two
+            HLy = Ly/two
+            HLz = Lz/two
+         else
+            HLx = Lx
+            HLy = Ly
+            HLz = Lz
+         endif
          do k = lo(3), hi(3)
             z = zlo + hz * ( float( k-lo(3) ) + half )
             do j = lo(2), hi(2)
@@ -271,7 +289,7 @@ c     Adjust z offset for probtype 15
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                            endif
                         enddo
                      enddo
@@ -285,7 +303,7 @@ c     Adjust z offset for probtype 15
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                            endif
                         enddo
                      enddo
@@ -342,7 +360,7 @@ c
       REAL_T     xt, yt, zt
       REAL_T     zlo, infl_time
 
-      REAL_T     Lx, Ly, Lz, Lmin
+      REAL_T     Lx, Ly, Lz, Lmin, HLx, HLy, HLz
       REAL_T     kappa, kappaMax
 
 #include "probdata.H"
@@ -383,6 +401,15 @@ c     Adjust z offset for probtype 15
          xstep = int(Lx/Lmin+0.5)
          ystep = int(Ly/Lmin+0.5)
          zstep = int(Lz/Lmin+0.5)
+         if (forcing_twice_wavelength.eq.1) then
+            HLx = Lx/two
+            HLy = Ly/two
+            HLz = Lz/two
+         else
+            HLx = Lx
+            HLy = Ly
+            HLz = Lz
+         endif
          do k = lo(3), hi(3)
             z = zlo + hz * ( float( k-lo(3) ) + half )
             do j = lo(2), hi(2)
@@ -401,7 +428,7 @@ c     Adjust z offset for probtype 15
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                            endif
                         enddo
                      enddo
@@ -415,7 +442,7 @@ c     Adjust z offset for probtype 15
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                            endif
                         enddo
                      enddo
@@ -472,7 +499,7 @@ c
       REAL_T     xt, yt, zt
       REAL_T     zlo, infl_time
 
-      REAL_T     Lx, Ly, Lz, Lmin
+      REAL_T     Lx, Ly, Lz, Lmin, HLx, HLy, HLz
       REAL_T     kappa, kappaMax
 
 #include "probdata.H"
@@ -513,6 +540,15 @@ c     Adjust z offset for probtype 15
          xstep = int(Lx/Lmin+0.5)
          ystep = int(Ly/Lmin+0.5)
          zstep = int(Lz/Lmin+0.5)
+         if (forcing_twice_wavelength.eq.1) then
+            HLx = Lx/two
+            HLy = Ly/two
+            HLz = Lz/two
+         else
+            HLx = Lx
+            HLy = Ly
+            HLz = Lz
+         endif
          do k = lo(3), hi(3)
             z = zlo + hz * ( float( k-lo(3) ) + half )
             do j = lo(2), hi(2)
@@ -531,7 +567,7 @@ c     Adjust z offset for probtype 15
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                            endif
                         enddo
                      enddo
@@ -545,7 +581,7 @@ c     Adjust z offset for probtype 15
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                            endif
                         enddo
                      enddo
