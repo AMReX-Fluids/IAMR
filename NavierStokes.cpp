@@ -5957,9 +5957,12 @@ NavierStokes::create_umac_grown ()
 
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
-        u_macG[n].copy(u_mac[n]);
-        u_macG[n].FillBoundary(0,1);
-        geom.FillPeriodicBoundary(u_macG[n],0,1);
+        MultiFab tmp(u_mac[n].boxArray(), 1, 1);
+        tmp.copy(u_mac[n]);
+        tmp.FillBoundary();
+        geom.FillPeriodicBoundary(tmp);
+        for (MFIter mfi(tmp); mfi.isValid(); ++mfi)
+            u_macG[n][mfi].copy(tmp[mfi]);
     }
         
     if (level > 0)
@@ -6009,7 +6012,7 @@ NavierStokes::create_umac_grown ()
 	    MultiFab fine_src; fine_src.define(fine_src_ba, 1, 0, dm, Fab_allocate);
 
             crse_src.setVal(1.e200);
-            crse_src.copy(getLevel(level-1).u_mac[n]);
+            crse_src.copy(getLevel(level-1).u_macG[n]);
 
             for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
             {
@@ -6049,8 +6052,7 @@ NavierStokes::create_umac_grown ()
 
             u_macG[n].copy(fine_src);
             u_macG[n].copy(u_mac[n]);
-            u_macG[n].FillBoundary(0,1);
-            geom.FillPeriodicBoundary(u_macG[n],0,1);
+            u_macG[n].FillBoundary();
         }
     }
 }
