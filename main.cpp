@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.46 2007-07-05 20:01:48 lijewski Exp $
+// $Id: main.cpp,v 1.47 2007-10-04 19:31:32 lijewski Exp $
 //
 
 #include <cstdio>
@@ -21,7 +21,6 @@
 extern "C"
 {
     void PrintBoxArray (const BoxArray& ba);
-  //    void PrintBoxDomain (const BoxDomain& bd);
     void PrintTagBox (const TagBox& tb);
     void PrintTagBoxArray (const TagBoxArray& tba);
     void TagBoxCount (const TagBox& tb);
@@ -29,8 +28,6 @@ extern "C"
 }
 
 void PrintBoxArray (const BoxArray& ba) { std::cout << ba << std::endl; }
-
-//void PrintBoxDomain (const BoxDomain& bd) { std::cout << bd << std::endl; }
 
 void
 PrintTagBox (const TagBox& tb)
@@ -126,6 +123,11 @@ main (int   argc,
       char* argv[])
 {
     BoxLib::Initialize(argc,argv);
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "\n*** MPI initialized with "
+                  << ParallelDescriptor::NProcs()
+                  << " processor(s)\n";
 
     const Real run_strt = ParallelDescriptor::second();
 
