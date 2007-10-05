@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.46 2007-04-17 16:48:32 aaspden Exp $
+# $Id: GNUmakefile,v 1.47 2007-10-05 21:09:37 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -24,7 +24,6 @@ USE_FLCTS = FALSE
 USE_FLCTS = TRUE
 USE_HYPRE = FALSE
 USE_METIS = FALSE
-USE_XT3   = FALSE
 USE_BGL   = FALSE
 EBASE     = amr
 
@@ -63,23 +62,6 @@ ifeq ($(USE_BGL),TRUE)
   LDFLAGS+=-L/opt/ibmcmp/xlf/bg/10.1/blrts_lib
   BL_MPI_LIBS=-lxlf90 -lxlfmath
   FORTLINK:=LOWERCASE
-endif
-
-ifeq ($(USE_XT3),TRUE)
-  LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
-  DEFINES += -DBL_PGI -DMPICH_SKIP_MPICXX -DBL_XT3
-ifeq ($(USE_MPI),TRUE)
-  CXX := CC -target=catamount
-  FC  := ftn -target=catamount
-  fC  := ftn -target=catamount
-else
-  CXX := pgCC
-  FC  := pgf90
-  fC  := pgf90
-endif
-  CXXOPTF += -O -Minline=levels:10 --no_exceptions
-  FOPTF   += -O -fastsse -Minline=levels:10
-  fOPTF   += -O -fastsse -Minline=levels:10
 endif
 
 include ./Make.package
