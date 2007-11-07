@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.23 2007-09-20 20:15:39 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.24 2007-11-07 20:58:27 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -36,7 +36,189 @@ c     time      => problem evolution time
 c     bc        => array of bndry types for component values
 c                  valid only if component touches bndry
 c     -----------------------------------------------------------
-#ifdef DO_IAMR_FORCE
+
+#ifdef MOREGENGETFORCE
+      subroutine FORT_DERXVELROT (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                         bc,level, grid_no)
+
+      implicit none
+
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer    i,j,k
+      REAL_T     u, v, w
+      REAL_T     y
+      REAL_T     hy
+
+#include "probdata.H"
+
+      hy = delta(2)
+
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+            do i = lo(1), hi(1)
+               e(i,j,k,1) = dat(i,j,k,1) - omega*y
+            end do
+         end do
+      end do
+
+      end
+
+      subroutine FORT_DERYVELROT (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                         bc,level, grid_no)
+
+      implicit none
+
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer    i,j,k
+      REAL_T     u, v, w
+      REAL_T     x
+      REAL_T     hx
+
+#include "probdata.H"
+
+      hx = delta(1)
+
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+               e(i,j,k,1) = dat(i,j,k,2) + omega*x
+            end do
+         end do
+      end do
+
+      end
+
+      subroutine FORT_DERMAGVELROT (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                         bc,level, grid_no)
+
+      implicit none
+
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer    i,j,k
+      REAL_T     u, v, w
+      REAL_T     x, y
+      REAL_T     hx, hy
+
+#include "probdata.H"
+
+      hx = delta(1)
+      hy = delta(2)
+
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+               u = dat(i,j,k,1) - omega*y
+               v = dat(i,j,k,2) + omega*x
+               w = dat(i,j,k,3)
+               e(i,j,k,1) = sqrt(u*u+v*v+w*w)
+            end do
+         end do
+      end do
+
+      end
+
+      subroutine FORT_DERMAGVORTROT (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                         bc,level, grid_no)
+
+      implicit none
+
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer    i,j,k
+      REAL_T     u, v, w
+      REAL_T     wx, wy, wz
+      REAL_T     hx, hy, hz
+      REAL_T     dudy, dudz
+      REAL_T     dvdx, dvdz
+      REAL_T     dwdx, dwdy
+
+#include "probdata.H"
+
+      hx = delta(1)
+      hy = delta(2)
+      hz = delta(3)
+
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               u   = dat(i,j,k,1)
+               v   = dat(i,j,k,2)
+               w   = dat(i,j,k,3)
+
+               dudy = (dat(i,j+1,k,1)-dat(i,j-1,k,1))/(two*hy)
+               dudz = (dat(i,j,k+1,1)-dat(i,j,k-1,1))/(two*hz)
+
+               dvdx = (dat(i+1,j,k,2)-dat(i-1,j,k,2))/(two*hx)
+               dvdz = (dat(i,j,k+1,2)-dat(i,j,k-1,2))/(two*hz)
+
+               dwdx = (dat(i+1,j,k,3)-dat(i-1,j,k,3))/(two*hx)
+               dwdy = (dat(i,j+1,k,3)-dat(i,j-1,k,3))/(two*hy)
+
+               wx = dwdy - dvdz
+               wy = dudz - dwdx
+               wz = dvdx - dudy - two*omega
+
+               e(i,j,k,1) = sqrt(wx*wx+wy*wy+wz*wz)
+
+            end do
+         end do
+      end do
+
+      end
+#endif
+
+#if defined(DO_IAMR_FORCE) && ( defined(GENGETFORCE) || defined(MOREGENGETFORCE)) 
       subroutine FORT_DERFORCING (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                            bc,level,grid_no)
@@ -600,6 +782,7 @@ c     Adjust z offset for probtype 15
 
       end
 
+#endif
 
 
       subroutine FORT_DERPRESVARS (e,DIMS(gp),nv,dat,DIMS(dat),ncomp,
@@ -607,7 +790,7 @@ c     Adjust z offset for probtype 15
      &                            bc,level,grid_no)
 c
 c     This routine computes cell-centered pressure as average of the eight
-c       surrounding nodal values.
+c     surrounding nodal values, along with the three gradients.
 c
       implicit none
 
@@ -626,7 +809,7 @@ c
       integer grid_no
 
       integer i,j,k
-
+ 
       dx = fourth/delta(1)
       dy = fourth/delta(2)
       dz = fourth/delta(3)
@@ -647,17 +830,18 @@ c     X Gradient
      &            dat(i+1,j,k+1)   - dat(i,j,k+1)   +
      &            dat(i+1,j+1,k+1) - dat(i,j+1,k+1) )
 c     Y Gradient
-            e(i,j,k,2) = dy*(
+            e(i,j,k,3) = dy*(
      &            dat(i,j+1,k)     - dat(i,j,k)     +
      &            dat(i+1,j+1,k)   - dat(i+1,j,k)   +
      &            dat(i,j+1,k+1)   - dat(i,j,k+1)   +
      &            dat(i+1,j+1,k+1) - dat(i+1,j,k+1) )
 c     Z Gradient
-            e(i,j,k,2) = dz*(
+            e(i,j,k,4) = dz*(
      &            dat(i,j,k+1)     - dat(i,j,k)     +
      &            dat(i+1,j,k+1)   - dat(i+1,j,k)   +
      &            dat(i,j+1,k+1)   - dat(i,j+1,k)   +
      &            dat(i+1,j+1,k+1) - dat(i+1,j+1,k) )
+
           end do
         end do
       end do
@@ -683,42 +867,33 @@ c     Z Gradient
       integer    level, grid_no
 
       integer    i,j,k,n
-      REAL_T     twicePi
-      REAL_T     x, y, z
-      REAL_T     hx, hy, hz
-      REAL_T     rho, ux, uy, uz
-      REAL_T     force(DIMV(e))
-      REAL_T     f3
-
-      integer    kx, ky, kz, xstep, ystep, zstep
-      REAL_T     kxd, kyd, kzd
-      REAL_T     xt, yt, zt
-      REAL_T     zlo, infl_time
-
-      REAL_T     Lx, Ly, Lz
+c      REAL_T     x, y, z
+c      REAL_T     hx, hy, hz
+      REAL_T     tdx, tdy, tdz
 
 #include "probdata.H"
 
-      hx = delta(1)
-      hy = delta(2)
-      hz = delta(3)
+c      hx = delta(1)
+c      hy = delta(2)
+c      hz = delta(3)
+
+      tdx = two*delta(1)
+      tdy = two*delta(2)
+      tdz = two*delta(3)
 
       do k = lo(3), hi(3)
-         z = zlo + hz * ( float( k-lo(3) ) + half )
+c         z = zlo + hz * ( float( k-lo(3) ) + half )
          do j = lo(2), hi(2)
-            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+c            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
             do i = lo(1), hi(1)
-               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+c               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
 
-               rho = dat(i,j,k,1)
-               ux  = dat(i,j,k,2)
-               uy  = dat(i,j,k,3)
-               uz  = dat(i,j,k,4)
-
-               e(i,j,k,1) = rho
-               e(i,j,k,2) = ux
-               e(i,j,k,3) = uy
-               e(i,j,k,4) = uz
+               do n = 1, 4
+                  e(i,j,k,n) = dat(i,j,k,n)
+                  e(i,j,k,n+04) = (dat(i+1,j,k,n)-dat(i-1,j,k,n))/tdx
+                  e(i,j,k,n+08) = (dat(i,j+1,k,n)-dat(i,j-1,k,n))/tdy
+                  e(i,j,k,n+12) = (dat(i,j,k+1,n)-dat(i,j,k-1,n))/tdz
+               enddo
 
             enddo
          enddo
@@ -726,8 +901,265 @@ c     Z Gradient
 
       end
 
-#endif
+#ifdef SUMJET
+      subroutine FORT_DERJETPRESVARS (e,DIMS(gp),nv,dat,DIMS(dat),ncomp,
+     &                                lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                                bc,level,grid_no)
+c
+c     This routine computes cell-centered pressure as average of the eight
+c     surrounding nodal values, along with the three gradients.  The gradients
+c     of each of these is also calculated for slope reconstruction in the
+c     jet diagnostics routine.
+c
+      implicit none
 
+      integer DIMDEC(gp)
+      integer DIMDEC(dat)
+      integer nv, ncomp
+      REAL_T  e(DIMV(gp),nv)
+      REAL_T  dat(DIMV(dat))
+      integer lo(SDIM), hi(SDIM)
+      integer domlo(SDIM), domhi(SDIM)
+      REAL_T  delta(SDIM)
+      REAL_T  xlo(SDIM)
+      REAL_T  time, dt, dx, dy, dz, tdx, tdy, tdz
+      integer bc(SDIM,2,ncomp)
+      integer level
+      integer grid_no
+
+      integer i,j,k
+ 
+      dx = fourth/delta(1)
+      dy = fourth/delta(2)
+      dz = fourth/delta(3)
+
+      tdx = two*delta(1)
+      tdy = two*delta(2)
+      tdz = two*delta(3)
+
+      do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+c     Average pressure
+            e(i,j,k,1) = eighth*( 
+     &            dat(i+1,j,k)     + dat(i,j,k)     +
+     &            dat(i+1,j+1,k)   + dat(i,j+1,k)   +
+     &            dat(i+1,j,k+1)   + dat(i,j,k+1)   +
+     &            dat(i+1,j+1,k+1) + dat(i,j+1,k+1) )
+c     X Gradient
+            e(i,j,k,2) = dx*(
+     &            dat(i+1,j,k)     - dat(i,j,k)     +
+     &            dat(i+1,j+1,k)   - dat(i,j+1,k)   +
+     &            dat(i+1,j,k+1)   - dat(i,j,k+1)   +
+     &            dat(i+1,j+1,k+1) - dat(i,j+1,k+1) )
+c     Y Gradient
+            e(i,j,k,3) = dy*(
+     &            dat(i,j+1,k)     - dat(i,j,k)     +
+     &            dat(i+1,j+1,k)   - dat(i+1,j,k)   +
+     &            dat(i,j+1,k+1)   - dat(i,j,k+1)   +
+     &            dat(i+1,j+1,k+1) - dat(i+1,j,k+1) )
+c     Z Gradient
+            e(i,j,k,4) = dz*(
+     &            dat(i,j,k+1)     - dat(i,j,k)     +
+     &            dat(i+1,j,k+1)   - dat(i+1,j,k)   +
+     &            dat(i,j+1,k+1)   - dat(i,j+1,k)   +
+     &            dat(i+1,j+1,k+1) - dat(i+1,j+1,k) )
+
+c     Average pressure X Gradient
+            e(i,j,k,5) = (eighth*( 
+     &            dat(i+2,j,k)     + dat(i+1,j,k)   +
+     &            dat(i+2,j+1,k)   + dat(i+1,j+1,k) +
+     &            dat(i+2,j,k+1)   + dat(i+1,j,k+1) +
+     &            dat(i+2,j+1,k+1) + dat(i+1,j+1,k+1) )
+     &           -eighth*( 
+     &            dat(i,j,k)     + dat(i-1,j,k)     +
+     &            dat(i,j+1,k)   + dat(i-1,j+1,k)   +
+     &            dat(i,j,k+1)   + dat(i-1,j,k+1)   +
+     &            dat(i,j+1,k+1) + dat(i-1,j+1,k+1) ) ) / tdx
+c     X Gradient X Gradient
+            e(i,j,k,6) = (dx*(
+     &            dat(i+2,j,k)     - dat(i+1,j,k)   +
+     &            dat(i+2,j+1,k)   - dat(i+1,j+1,k) +
+     &            dat(i+2,j,k+1)   - dat(i+1,j,k+1) +
+     &            dat(i+2,j+1,k+1) - dat(i+1,j+1,k+1) )
+     &           -dx*(
+     &            dat(i,j,k)     - dat(i-1,j,k)     +
+     &            dat(i,j+1,k)   - dat(i-1,j+1,k)   +
+     &            dat(i,j,k+1)   - dat(i-1,j,k+1)   +
+     &            dat(i,j+1,k+1) - dat(i-1,j+1,k+1) ) ) / tdx
+c     Y Gradient X Gradient
+            e(i,j,k,7) = (dy*(
+     &            dat(i+1,j+1,k)   - dat(i+1,j,k)   +
+     &            dat(i+2,j+1,k)   - dat(i+2,j,k)   +
+     &            dat(i+1,j+1,k+1) - dat(i+1,j,k+1) +
+     &            dat(i+2,j+1,k+1) - dat(i+2,j,k+1) )
+     &           -dy*(
+     &            dat(i-1,j+1,k)   - dat(i-1,j,k)   +
+     &            dat(i,j+1,k)     - dat(i,j,k)     +
+     &            dat(i-1,j+1,k+1) - dat(i-1,j,k+1) +
+     &            dat(i,j+1,k+1)   - dat(i,j,k+1) ) ) / tdx
+c     Z Gradient X Gradient
+            e(i,j,k,8) = (dz*(
+     &            dat(i+1,j,k+1)   - dat(i+1,j,k)   +
+     &            dat(i+2,j,k+1)   - dat(i+2,j,k)   +
+     &            dat(i+1,j+1,k+1) - dat(i+1,j+1,k) +
+     &            dat(i+2,j+1,k+1) - dat(i+2,j+1,k) )
+     &           -dz*(
+     &            dat(i-1,j,k+1)   - dat(i-1,j,k)   +
+     &            dat(i,j,k+1)     - dat(i,j,k)     +
+     &            dat(i-1,j+1,k+1) - dat(i-1,j+1,k) +
+     &            dat(i,j+1,k+1)   - dat(i,j+1,k) ) ) / tdx
+
+c     Average pressure Y Gradient
+            e(i,j,k,9) = ( eighth*( 
+     &            dat(i+1,j+1,k)   + dat(i,j+1,k)   +
+     &            dat(i+1,j+2,k)   + dat(i,j+2,k)   +
+     &            dat(i+1,j+1,k+1) + dat(i,j+1,k+1) +
+     &            dat(i+1,j+2,k+1) + dat(i,j+2,k+1) )
+     &           -eighth*( 
+     &            dat(i+1,j-1,k)   + dat(i,j-1,k)   +
+     &            dat(i+1,j,k)     + dat(i,j,k)     +
+     &            dat(i+1,j-1,k+1) + dat(i,j-1,k+1) +
+     &            dat(i+1,j,k+1)   + dat(i,j,k+1) ) ) / tdy
+c     X Gradient Y Gradient
+            e(i,j,k,2) = (dx*(
+     &            dat(i+1,j+1,k)   - dat(i,j+1,k)   +
+     &            dat(i+1,j+2,k)   - dat(i,j+2,k)   +
+     &            dat(i+1,j+1,k+1) - dat(i,j+1,k+1) +
+     &            dat(i+1,j+2,k+1) - dat(i,j+2,k+1) )
+     &           -dx*(
+     &            dat(i+1,j-1,k)   - dat(i,j-1,k)   +
+     &            dat(i+1,j,k)     - dat(i,j,k)     +
+     &            dat(i+1,j-1,k+1) - dat(i,j-1,k+1) +
+     &            dat(i+1,j,k+1)   - dat(i,j,k+1) ) ) / tdy
+c     Y Gradient Y Gradient
+            e(i,j,k,3) = (dy*(
+     &            dat(i,j+2,k)     - dat(i,j+1,k)   +
+     &            dat(i+1,j+2,k)   - dat(i+1,j+1,k) +
+     &            dat(i,j+2,k+1)   - dat(i,j+1,k+1) +
+     &            dat(i+1,j+2,k+1) - dat(i+1,j+1,k+1) )
+     &           -dy*(
+     &            dat(i,j,k)     - dat(i,j-1,k)     +
+     &            dat(i+1,j,k)   - dat(i+1,j-1,k)   +
+     &            dat(i,j,k+1)   - dat(i,j-1,k+1)   +
+     &            dat(i+1,j,k+1) - dat(i+1,j-1,k+1) ) ) / tdy
+c     Z Gradient Y Gradient
+            e(i,j,k,4) = (dz*(
+     &            dat(i,j+1,k+1)   - dat(i,j+1,k)   +
+     &            dat(i+1,j+1,k+1) - dat(i+1,j+1,k) +
+     &            dat(i,j+2,k+1)   - dat(i,j+2,k)   +
+     &            dat(i+1,j+2,k+1) - dat(i+1,j+2,k) )
+     &           -dz*(
+     &            dat(i,j-1,k+1)   - dat(i,j-1,k)   +
+     &            dat(i+1,j-1,k+1) - dat(i+1,j-1,k) +
+     &            dat(i,j,k+1)     - dat(i,j,k)     +
+     &            dat(i+1,j,k+1)   - dat(i+1,j,k) ) ) / tdy
+
+c     Average pressure Z Gradient
+            e(i,j,k,13) = ( eighth*( 
+     &            dat(i+1,j,k+1)   + dat(i,j,k+1)   +
+     &            dat(i+1,j+1,k+1) + dat(i,j+1,k+1) +
+     &            dat(i+1,j,k+2)   + dat(i,j,k+2)   +
+     &            dat(i+1,j+1,k+2) + dat(i,j+1,k+2) )
+     &           -eighth*( 
+     &            dat(i+1,j,k-1)   + dat(i,j,k-1)   +
+     &            dat(i+1,j+1,k-1) + dat(i,j+1,k-1) +
+     &            dat(i+1,j,k)     + dat(i,j,k)     +
+     &            dat(i+1,j+1,k)   + dat(i,j+1,k) ) ) / tdz
+c     X Gradient Z Gradient
+            e(i,j,k,14) = (dx*(
+     &            dat(i+1,j,k+1)   - dat(i,j,k+1)   +
+     &            dat(i+1,j+1,k+1) - dat(i,j+1,k+1) +
+     &            dat(i+1,j,k+2)   - dat(i,j,k+2)   +
+     &            dat(i+1,j+1,k+2) - dat(i,j+1,k+2) )
+     &           -dx*(
+     &            dat(i+1,j,k-1)   - dat(i,j,k-1)   +
+     &            dat(i+1,j+1,k-1) - dat(i,j+1,k-1) +
+     &            dat(i+1,j,k)     - dat(i,j,k)     +
+     &            dat(i+1,j+1,k)   - dat(i,j+1,k) ) ) / tdz
+c     Y Gradient Z Gradient
+            e(i,j,k,15) = (dy*(
+     &            dat(i,j+1,k+1)   - dat(i,j,k+1)   +
+     &            dat(i+1,j+1,k+1) - dat(i+1,j,k+1) +
+     &            dat(i,j+1,k+2)   - dat(i,j,k+2)   +
+     &            dat(i+1,j+1,k+2) - dat(i+1,j,k+2) )
+     &           -dy*(
+     &            dat(i,j+1,k-1)   - dat(i,j,k-1)   +
+     &            dat(i+1,j+1,k-1) - dat(i+1,j,k-1) +
+     &            dat(i,j+1,k)     - dat(i,j,k)     +
+     &            dat(i+1,j+1,k)   - dat(i+1,j,k) ) ) / tdz
+c     Z Gradient Z Gradient
+            e(i,j,k,16) = (dz*(
+     &            dat(i,j,k+2)     - dat(i,j,k+1)   +
+     &            dat(i+1,j,k+2)   - dat(i+1,j,k+1) +
+     &            dat(i,j+1,k+2)   - dat(i,j+1,k+1) +
+     &            dat(i+1,j+1,k+2) - dat(i+1,j+1,k+1) )
+     &           -dz*(
+     &            dat(i,j,k)     - dat(i,j,k-1)     +
+     &            dat(i+1,j,k)   - dat(i+1,j,k-1)   +
+     &            dat(i,j+1,k)   - dat(i,j+1,k-1)   +
+     &            dat(i+1,j+1,k) - dat(i+1,j+1,k-1) ) ) / tdz
+
+          end do
+        end do
+      end do
+
+      end
+
+      subroutine FORT_DERJETVARS(e,DIMS(e),nv,dat,DIMS(dat),ncomp,
+     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                           bc,level,grid_no)
+
+      implicit none
+
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer    i,j,k,n
+c      REAL_T     x, y, z
+c      REAL_T     hx, hy, hz
+
+      REAL_T     tdx, tdy, tdz
+
+#include "probdata.H"
+
+c      hx = delta(1)
+c      hy = delta(2)
+c      hz = delta(3)
+
+      tdx = two*delta(1)
+      tdy = two*delta(2)
+      tdz = two*delta(3)
+
+      do k = lo(3), hi(3)
+c         z = zlo + hz * ( float( k-lo(3) ) + half )
+         do j = lo(2), hi(2)
+c            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+            do i = lo(1), hi(1)
+c               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+
+               do n = 1, 6
+                  e(i,j,k,n+00) = dat(i,j,k,n)
+                  e(i,j,k,n+06) = (dat(i+1,j,k,n)-dat(i-1,j,k,n))/tdx
+                  e(i,j,k,n+12) = (dat(i,j+1,k,n)-dat(i,j-1,k,n))/tdy
+                  e(i,j,k,n+18) = (dat(i,j,k+1,n)-dat(i,j,k-1,n))/tdz
+               enddo
+
+            enddo
+         enddo
+      enddo
+
+      end
+#endif
       subroutine FORT_DERKENG (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                         bc,level,grid_no)

@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.95 2007-08-20 19:36:29 almgren Exp $
+// $Id: NavierStokes.H,v 1.96 2007-11-07 20:58:27 aaspden Exp $
 //
 
 #include <LevelBld.H>
@@ -142,10 +142,21 @@ public:
     Real volWgtSum (const std::string& name,
                     Real           time);
 
+#if (BL_SPACEDIM == 3)
     void TurbSum   (Real time, 
 		    Real *tmp,
 		    int  ksize,
 		    int  turbVars);
+#ifdef SUMJET
+    void JetSum   (Real time, 
+		   Real *jetData,
+		   int  levRsize,
+		   int  levKsize,
+		   int  rsize,
+		   int  ksize,
+		   int  jetVars);
+#endif
+#endif
     //
     // A string written as the first item in writePlotFile() at level zero.
     // It is so we can distinguish between different types of plot files.
@@ -251,7 +262,12 @@ protected:
 
     virtual void sum_integrated_quantities ();
 
+#if (BL_SPACEDIM == 3)
     virtual void sum_turbulent_quantities ();
+#ifdef SUMJET
+    virtual void sum_jet_quantities ();
+#endif
+#endif
     //
     // Setup, clean up for a level timestep.
     //
@@ -539,6 +555,17 @@ protected:
     //
     // Get the forcing term.
     //
+#ifdef MOREGENGETFORCE
+    void getForce (FArrayBox&       force,
+                   int              gridno,
+                   int              ngrow,
+                   int              strt_comp,
+                   int              num_comp,
+		   const Real       time,
+                   const FArrayBox& Vel,
+                   const FArrayBox& Scal,
+		   int              scalScomp);
+#else
     void getForce (FArrayBox&       force,
                    int              gridno,
                    int              ngrow,
@@ -548,6 +575,7 @@ protected:
 		   const Real       time,
 #endif		 
                    const FArrayBox& Rho);
+#endif		 
     //
     // Get state data.
     //
@@ -747,6 +775,8 @@ protected:
     static Real dt_cutoff;     // minimum dt allowed
     static int  sum_interval;  // number of timesteps for conservation stats
     static int  turb_interval; // number of timesteps for turbulence stats
+    static int  jet_interval;  // number of timesteps for turbulence stats for the round jet
+    static int  jet_interval_split;  // cell divisor for each dimension in numerical integration 
     //
     // Internal parameters for options.
     //
@@ -774,13 +804,13 @@ protected:
     //
     // Internal switches.
     //
-    static int  Tracer;     // AJA
-    static int  Tracer2;    // AJA
+    static int  Tracer;
+    static int  Tracer2;
     static int  Temp;
-    static int  do_trac2;   // AJA
+    static int  do_trac2;
     static int  do_temp;
-    static int  do_cons_trac;    // AJA
-    static int  do_cons_trac2;   // AJA
+    static int  do_cons_trac;
+    static int  do_cons_trac2;
     static int  do_sync_proj;
     static int  do_MLsync_proj;
     static int  do_reflux;
@@ -790,11 +820,15 @@ protected:
     static int  do_refine_outflow;          // The following three items control
     static int  do_derefine_outflow;        //   how grids are treated at 
     static int  Nbuf_outflow;               //   outflow boundaries.
-    static int  do_denminmax;               // AJA - The code for these was in NavierStokes.cpp, 
-    static int  do_scalminmax;              //       but the flags were not declared or read in.
-    static int  do_density_ref;             // AJA - Flags added for refinement control
+    static int  do_denminmax;               // The code for these was in NavierStokes.cpp, 
+    static int  do_scalminmax;              //   but the flags were not declared or read in.
+    static int  do_density_ref;             // Flags added for refinement control
     static int  do_tracer_ref;
+    static int  do_tracer2_ref;
     static int  do_vorticity_ref;
+    static int  do_scalar_update_in_order;  // Flags to allow evaluation of source terms
+    static Array<int> scalarUpdateOrder;
+    static int  getForceVerbose;            // Does exactly what it says on the tin
     //
     // Member when pressure defined at points in time rather than interval
     //

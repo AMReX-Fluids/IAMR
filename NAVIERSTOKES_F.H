@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.17 2007-08-20 19:36:29 almgren Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.18 2007-11-07 20:58:27 aaspden Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -12,13 +12,18 @@
 #    define FORT_PUTDOWN     putdown
 #    define FORT_TESTINJECT  testinject
 #    define FORT_INCRMULT    incrmult
-#    define FORT_SUMTURB     sumturb
 #    define FORT_MAXVAL      maxval
 #    define FORT_SUMMASS     summass
 #    define FORT_SUMMASSSQ   summasssq
 #    define FORT_CEN2EDG     cen2edg
 #    define FORT_EDGE_INTERP edge_interp
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
+#if (BL_SPACEDIM == 3)
+#    define FORT_SUMTURB     sumturb
+#ifdef SUMJET
+#    define FORT_SUMJET      sumjet
+#endif
+#endif
 #else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_FILCC       FILCC
@@ -27,13 +32,18 @@
 #    define FORT_PUTDOWN     PUTDOWN
 #    define FORT_TESTINJECT  TESTINJECT
 #    define FORT_INCRMULT    INCRMULT
-#    define FORT_SUMTURB     SUMTURB
 #    define FORT_MAXVAL      MAXVAL
 #    define FORT_SUMMASS     SUMMASS
 #    define FORT_SUMMASSSQ   SUMMASSSQ
 #    define FORT_CEN2EDG     CEN2EDG
 #    define FORT_EDGE_INTERP EDGE_INTERP
 #    define FORT_PC_CF_EDGE_INTERP PC_EDGE_INTERP
+#if (BL_SPACEDIM == 3)
+#    define FORT_SUMTURB     SUMTURB
+#ifdef SUMJET
+#    define FORT_SUMJET      SUMJET
+#endif
+#endif
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_FILCC       filcc
 #    define FORT_GRADP       gradp
@@ -41,13 +51,18 @@
 #    define FORT_PUTDOWN     putdown
 #    define FORT_TESTINJECT  testinject
 #    define FORT_INCRMULT    incrmult
-#    define FORT_SUMTURB     sumturb
 #    define FORT_MAXVAL      maxval
 #    define FORT_SUMMASS     summass
 #    define FORT_SUMMASSSQ   summasssq
 #    define FORT_CEN2EDG     cen2edg
 #    define FORT_EDGE_INTERP edge_interp
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
+#if (BL_SPACEDIM == 3)
+#    define FORT_SUMTURB     sumturb
+#ifdef SUMJET
+#    define FORT_SUMJET      sumjet
+#endif
+#endif
 #  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_FILCC       filcc_
 #    define FORT_GRADP       gradp_
@@ -55,13 +70,18 @@
 #    define FORT_PUTDOWN     putdown_
 #    define FORT_TESTINJECT  testinject_
 #    define FORT_INCRMULT    incrmult_
-#    define FORT_SUMTURB     sumturb_
 #    define FORT_MAXVAL      maxval_
 #    define FORT_SUMMASS     summass_
 #    define FORT_SUMMASSSQ   summasssq_
 #    define FORT_CEN2EDG     cen2edg_
 #    define FORT_EDGE_INTERP edge_interp_
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp_
+#if (BL_SPACEDIM == 3)
+#    define FORT_SUMTURB     sumturb_
+#ifdef SUMJET
+#    define FORT_SUMJET      sumjet_
+#endif
+#endif
 #  endif
 
 #include <ArrayLim.H>
@@ -104,11 +124,25 @@ extern "C" {
                         const int* lo, const int* hi,
                         const Real* alpha);
 
+#if (BL_SPACEDIM == 3)
     void FORT_SUMTURB (const Real* dat, const Real* pres,
 		       ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+		       ARLIM_P(pres_lo), ARLIM_P(pres_hi),
                        ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                        const Real* delta, Real* turb,
 		       int *ksize, int *turbVars);
+
+#if SUMJET
+    void FORT_SUMJET (const Real* dat, const Real* pres,
+		      ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+		      ARLIM_P(pres_lo), ARLIM_P(pres_hi),
+                      ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+                      const Real* delta, Real* turb,
+		      int *levRsize, int *levKsize, int *rsize, int *ksize,
+		      int *jetVars, int* numSplit,
+		      const Real* xlo, const Real* xhi);
+#endif
+#endif
 
 #if (BL_SPACEDIM == 2)
     void FORT_SUMMASS (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),

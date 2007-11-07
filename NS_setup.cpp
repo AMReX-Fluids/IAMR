@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.54 2007-08-19 19:08:34 jbb Exp $
+// $Id: NS_setup.cpp,v 1.55 2007-11-07 20:58:27 aaspden Exp $
 //
 
 #include <winstd.H>
@@ -202,6 +202,19 @@ NavierStokes::variableSetUp ()
     if (do_temp) NUM_STATE++;
     NUM_SCALARS = NUM_STATE - Density;
 
+    if (do_scalar_update_in_order) {
+	// Need to check numbers and values of scalar update
+	// Idea is to specify the scalar index (counting Density as zero)
+	int maxComp=NUM_SCALARS-1;
+	for (int iComp=0; iComp<maxComp; iComp++) {
+	    if ((scalarUpdateOrder[iComp]>maxComp)||(scalarUpdateOrder[iComp]<1))
+		BoxLib::Abort("Scalar Update Order out of bounds");
+	    for (int jComp=iComp+1; jComp<maxComp; jComp++)
+		if (scalarUpdateOrder[iComp]==scalarUpdateOrder[jComp])
+		    BoxLib::Abort("Scalar Update Order values not unique");
+	}
+    }
+
     //
     // **************  DEFINE VELOCITY VARIABLES  ********************
     //
@@ -256,7 +269,7 @@ NavierStokes::variableSetUp ()
     diffusionType[Trac] = Laplacian_S;
     if (do_cons_trac) {
       advectionType[Trac] = Conservative;
-      diffusionType[Trac] = RhoInverse_Laplacian_S;
+      diffusionType[Trac] = Laplacian_SoverRho;
       if (ParallelDescriptor::IOProcessor())
 	std::cout << "Using conservative advection update for tracer." << std::endl;
     }
@@ -266,7 +279,7 @@ NavierStokes::variableSetUp ()
 	diffusionType[Trac2] = Laplacian_S;
 	if (do_cons_trac2) {
 	  advectionType[Trac2] = Conservative;
-	  diffusionType[Trac2] = RhoInverse_Laplacian_S;
+	  diffusionType[Trac2] = Laplacian_SoverRho;
 	  if (ParallelDescriptor::IOProcessor())
 	    std::cout << "Using conservative advection update for tracer2." << std::endl;
 	}
@@ -386,8 +399,29 @@ NavierStokes::variableSetUp ()
     //
     derive_lst.add("gradpz",IndexType::TheCellType(),1,FORT_DERGRDPZ,the_same_box);
     derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
-
-#ifdef DO_IAMR_FORCE
+#ifdef MOREGENGETFORCE
+    //
+    // x_velocity in laboratory frame for rotating frame of refernce
+    //
+    derive_lst.add("x_velocity_rot",IndexType::TheCellType(),1,FORT_DERXVELROT,the_same_box);
+    derive_lst.addComponent("x_velocity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
+    // x_velocity in laboratory frame for rotating frame of refernce
+    //
+    derive_lst.add("y_velocity_rot",IndexType::TheCellType(),1,FORT_DERYVELROT,the_same_box);
+    derive_lst.addComponent("y_velocity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
+    // magnitude of velocity in laboratory frame for rotating frame of refernce
+    //
+    derive_lst.add("mag_velocity_rot",IndexType::TheCellType(),1,FORT_DERMAGVELROT,the_same_box);
+    derive_lst.addComponent("mag_velocity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
+    // magnitude of vorticity in laboratory frame for rotating frame of refernce
+    //
+    derive_lst.add("mag_vorticity_rot",IndexType::TheCellType(),1,FORT_DERMAGVORTROT,grow_box_by_one);
+    derive_lst.addComponent("mag_vorticity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+#endif
+#if defined(DO_IAMR_FORCE) && (defined(GENGETFORCE)||defined(MOREGENGETFORCE))
     //
     // forcing - used to calculate the rate of injection of energy in probtype 14 (HIT)
     //
@@ -412,21 +446,35 @@ NavierStokes::variableSetUp ()
     derive_lst.add("forcez",IndexType::TheCellType(),1,FORT_DERFORCEZ,the_same_box);
     derive_lst.addComponent("forcez",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("forcez",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+#endif
     //
     // Turbulence Variable - for integrating on the fly
     //
-    derive_lst.add("TurbVars",IndexType::TheCellType(),4,FORT_DERTURBVARS,the_same_box);
+    derive_lst.add("TurbVars",IndexType::TheCellType(),16,FORT_DERTURBVARS,grow_box_by_one);
     derive_lst.addComponent("TurbVars",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("TurbVars",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // Pressure stuff for on-the-fly integration
     //
-    derive_lst.add("PresVars",IndexType::TheCellType(),4,FORT_DERPRESVARS,
-                   the_same_box);
+    derive_lst.add("PresVars",IndexType::TheCellType(),4,FORT_DERPRESVARS,the_same_box);
     derive_lst.addComponent("PresVars",desc_lst,Press_Type,Pressure,1);
-    // BUILDING IAMR
+#ifdef SUMJET
+    //
+    // Jet Variables - for integrating on the fly
+    //
+    derive_lst.add("JetVars",IndexType::TheCellType(),24,FORT_DERJETVARS,grow_box_by_one);
+    derive_lst.addComponent("JetVars",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("JetVars",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    derive_lst.addComponent("JetVars",desc_lst,State_Type,Trac,1);
+    if (do_trac2)
+	derive_lst.addComponent("JetVars",desc_lst,State_Type,Trac2,1);
+    //
+    // Pressure stuff for the jet on-the-fly integration (note need to grow for slope reconstruction of *derivatives*)
+    //
+    derive_lst.add("JetPresVars",IndexType::TheCellType(),16,FORT_DERJETPRESVARS,grow_box_by_one);
+    derive_lst.addComponent("JetPresVars",desc_lst,Press_Type,Pressure,1); 
 #endif
-    // DIMS = 3
+//3D
 #endif
     //
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
@@ -438,10 +486,10 @@ NavierStokes::variableSetUp ()
     if (do_tracer_ref)    {
         err_list.add("tracer",   1, ErrorRec::Special, FORT_ADVERROR);
         if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on TRACER" << std::endl;
-	if (do_trac2) {
-	    err_list.add("tracer2",   1, ErrorRec::Special, FORT_ADVERROR);
-	    if (ParallelDescriptor::IOProcessor()) std::cout << "Also refining on TRACER2" << std::endl;
-	}
+    }
+    if (do_tracer2_ref)    {
+	err_list.add("tracer2",   1, ErrorRec::Special, FORT_ADV2ERROR);
+	if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on TRACER2" << std::endl;
     }
     if (do_vorticity_ref) {
         err_list.add("mag_vort", 0, ErrorRec::Special, FORT_MVERROR);

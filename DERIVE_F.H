@@ -2,7 +2,7 @@
 #define _DERIVE_F_H
 
 /*
-** $Id: DERIVE_F.H,v 1.19 2007-08-19 19:08:34 jbb Exp $
+** $Id: DERIVE_F.H,v 1.20 2007-11-07 20:58:27 aaspden Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -28,13 +28,21 @@
 #    define FORT_DERGRDPY    dergrdpy
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    dergrdpz
+#    define FORT_DERXVELROT  derxvelrot
+#    define FORT_DERYVELROT  deryvelrot
+#    define FORT_DERMAGVELROT dermagvelrot
+#    define FORT_DERMAGVORTROT dermagvortrot
 #ifdef DO_IAMR_FORCE
 #    define FORT_DERFORCING  derforcing
 #    define FORT_DERFORCEX   derforcex
 #    define FORT_DERFORCEY   derforcey
 #    define FORT_DERFORCEZ   derforcez
+#endif
 #    define FORT_DERTURBVARS derturbvars
 #    define FORT_DERPRESVARS derpresvars
+#ifdef SUMJET
+#    define FORT_DERJETVARS  derjetvars
+#    define FORT_DERJETPRESVARS derjetpresvars
 #endif
 #endif
 #else
@@ -61,13 +69,21 @@
 #    define FORT_DERGRDPY    DERGRDPY
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    DERGRDPZ
+#    define FORT_DERXVELROT  DERXVELROT
+#    define FORT_DERYVELROT  DERYVELROT
+#    define FORT_DERMAGVELROT DERMAGVELROT
+#    define FORT_DERMAGVORTROT DERMAGVORTROT
 #ifdef DO_IAMR_FORCE
 #    define FORT_DERFORCING  DERFORCING
 #    define FORT_DERFORCEX   DERFORCEX
 #    define FORT_DERFORCEY   DERFORCEY
 #    define FORT_DERFORCEZ   DERFORCEZ
+#endif
 #    define FORT_DERTURBVARS DERTURBVARS
 #    define FORT_DERPRESVARS DERPRESVARS
+#ifdef SUMJET
+#    define FORT_DERJETVARS  DERJETVARS
+#    define FORT_DERJETPRESVARS DERJETPRESVARS
 #endif
 #endif
 #  elif defined (BL_FORT_USE_LOWERCASE)
@@ -94,13 +110,21 @@
 #    define FORT_DERGRDPY    dergrdpy
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    dergrdpz
+#    define FORT_DERXVELROT  derxvelrot
+#    define FORT_DERYVELROT  deryvelrot
+#    define FORT_DERMAGVELROT dermagvelrot
+#    define FORT_DERMAGVORTROT dermagvortrot
 #ifdef DO_IAMR_FORCE
 #    define FORT_DERFORCING  derforcing
 #    define FORT_DERFORCEX   derforcex
 #    define FORT_DERFORCEY   derforcey
 #    define FORT_DERFORCEZ   derforcez
+#endif
 #    define FORT_DERTURBVARS derturbvars
 #    define FORT_DERPRESVARS derpresvars
+#ifdef SUMJET
+#    define FORT_DERJETVARS  derjetvars
+#    define FORT_DERJETPRESVARS derjetpresvars
 #endif
 #endif
 #  elif defined (BL_FORT_USE_UNDERSCORE)
@@ -127,13 +151,21 @@
 #    define FORT_DERGRDPY    dergrdpy_
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    dergrdpz_
+#    define FORT_DERXVELROT  derxvelrot_
+#    define FORT_DERYVELROT  deryvelrot_
+#    define FORT_DERMAGVELROT dermagvelrot_
+#    define FORT_DERMAGVORTROT dermagvortrot_
 #ifdef DO_IAMR_FORCE
 #    define FORT_DERFORCING  derforcing_
 #    define FORT_DERFORCEX   derforcex_
 #    define FORT_DERFORCEY   derforcey_
 #    define FORT_DERFORCEZ   derforcez_
+#endif
 #    define FORT_DERTURBVARS derturbvars_
 #    define FORT_DERPRESVARS derpresvars_
+#ifdef SUMJET
+#    define FORT_DERJETVARS  derjetvars_
+#    define FORT_DERJETPRESVARS derjetpresvars_
 #endif
 #endif
 #  endif
@@ -311,6 +343,43 @@ extern "C" {
 			   const Real* delta, const Real* xlo,
 			   const Real* time, const Real* dt, const int* bcrec, 
                            const int* level, const int* grid_no) ;
+
+     void FORT_DERXVELROT (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
+
+     void FORT_DERYVELROT (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
+
+     void FORT_DERMAGVELROT (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
+
+     void FORT_DERMAGVORTROT (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
+
 #ifdef DO_IAMR_FORCE
      void FORT_DERFORCING (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const Real* compdat,
@@ -348,6 +417,7 @@ extern "C" {
 			   const Real* time, const Real* dt, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 #endif
+
      void FORT_DERTURBVARS(Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
@@ -366,7 +436,27 @@ extern "C" {
 			   const Real* time, const Real* dt, const int* bcrec, 
                            const int* level, const int* grid_no) ;
 
+#ifdef SUMJET
+     void FORT_DERJETVARS(Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                          const int* nvar, const Real* compdat,
+			  ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			  const int* lo, const int* hi,
+			  const int* domain_lo, const int* domain_hi,
+			  const Real* delta, const Real* xlo,
+			  const Real* time, const Real* dt, const int* bcrec, 
+                          const int* level, const int* grid_no) ;
+
+     void FORT_DERJETPRESVARS(Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                              const int* nvar, const Real* compdat,
+			      ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			      const int* lo, const int* hi,
+			      const int* domain_lo, const int* domain_hi,
+			      const Real* delta, const Real* xlo,
+			      const Real* time, const Real* dt, const int* bcrec, 
+			      const int* level, const int* grid_no) ;
 #endif
+#endif
+
 }
 #endif
 #endif

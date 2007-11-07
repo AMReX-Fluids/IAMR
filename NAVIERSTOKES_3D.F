@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.18 2007-08-20 19:36:29 almgren Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.19 2007-11-07 20:58:27 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -271,17 +271,18 @@ c :: ----------------------------------------------------------
 c :: SUMTURB
 c :: ----------------------------------------------------------
 c ::
-      subroutine FORT_SUMTURB(dat,pres,DIMS(dat),DIMS(grid),delta,
+      subroutine FORT_SUMTURB(dat,pres,DIMS(dat),DIMS(pres),DIMS(grid),delta,
      &                        turb,ksize,turbVars)
 
       implicit none
 
       integer DIMDEC(dat)
+      integer DIMDEC(pres)
       integer DIMDEC(grid)
       integer ksize, turbVars
       REAL_T  delta(SDIM)
       REAL_T  dat(DIMV(dat),4)
-      REAL_T  pres(DIMV(dat),4)
+      REAL_T  pres(DIMV(pres),4)
       REAL_T  turb(0:ksize*turbVars-1)
       
       integer i, j, k, v
@@ -291,12 +292,12 @@ c ::
       REAL_T area
       REAL_T rho, ux, uy, uz, p, XC, XMg
       REAL_T e, T, f, wC, wMg
+      REAL_T drhodx, drhody, drhodz
       REAL_T duxdx, duxdy, duxdz
       REAL_T duydx, duydy, duydz
       REAL_T duzdx, duzdy, duzdz
       REAL_T dpdx, dpdy, dpdz
       REAL_T dx, dy, dz
-      REAL_T tdx, tdy, tdz
       
       ilo = ARG_L1(grid)
       ihi = ARG_H1(grid)
@@ -309,10 +310,6 @@ c ::
       dy = delta(2)
       dz = delta(3)
 
-      tdx = two*dx
-      tdy = two*dy
-      tdz = two*dz
-      
       area = dx*dy
       
       do k = klo, khi
@@ -323,23 +320,28 @@ c ::
                ux   = dat(i,j,k,2)
                uy   = dat(i,j,k,3)
                uz   = dat(i,j,k,4)
+
+c     Here are the derivatives, can't do it here because of zeroed intersections
+               drhodx= dat(i,j,k,5)
+               duxdx = dat(i,j,k,6)
+               duydx = dat(i,j,k,7)
+               duzdx = dat(i,j,k,8)
+
+               drhody= dat(i,j,k,9)
+               duxdy = dat(i,j,k,10)
+               duydy = dat(i,j,k,11)
+               duzdy = dat(i,j,k,12)
+
+               drhodz= dat(i,j,k,13)
+               duxdz = dat(i,j,k,14)
+               duydz = dat(i,j,k,15)
+               duzdz = dat(i,j,k,16)
+
                p    = pres(i,j,k,1)
                dpdx = pres(i,j,k,2)
                dpdy = pres(i,j,k,3)
                dpdz = pres(i,j,k,4)
-               
-               duxdx = ( dat(i+1,j,k,2) - dat(i-1,j,k,2) ) / (tdx)
-               duydx = ( dat(i+1,j,k,3) - dat(i-1,j,k,2) ) / (tdx)
-               duzdx = ( dat(i+1,j,k,4) - dat(i-1,j,k,2) ) / (tdx)
-               
-               duxdy = ( dat(i,j+1,k,2) - dat(i,j-1,k,2) ) / (tdy)
-               duydy = ( dat(i,j+1,k,3) - dat(i,j-1,k,2) ) / (tdy)
-               duzdy = ( dat(i,j+1,k,4) - dat(i,j-1,k,2) ) / (tdy)
-               
-               duxdz = ( dat(i,j,k+1,2) - dat(i,j,k-1,2) ) / (tdz)
-               duydz = ( dat(i,j,k+1,3) - dat(i,j,k-1,2) ) / (tdz)
-               duzdz = ( dat(i,j,k+1,4) - dat(i,j,k-1,2) ) / (tdz)
-               
+
                turb(k*turbVars+0)  = turb(k*turbVars+0)  + area*rho
                turb(k*turbVars+1)  = turb(k*turbVars+1)  + area*rho*ux
                turb(k*turbVars+2)  = turb(k*turbVars+2)  + area*rho*uy
@@ -365,6 +367,494 @@ c ::
       end do
       
       end
+
+#ifdef SUMJET
+c ::
+c :: ----------------------------------------------------------
+c :: SUMJET
+c :: ----------------------------------------------------------
+c ::
+      subroutine FORT_SUMJET(dat,pres,DIMS(dat),DIMS(pres),DIMS(grid),delta,
+     &                      jetData,levRsize,levKsize,rsize,ksize,jetVars,numSplit,
+     &                      xlo,xhi);
+
+      implicit none
+
+      integer DIMDEC(dat)
+      integer DIMDEC(pres)
+      integer DIMDEC(grid)
+      integer levRsize, levKsize, rsize, ksize, jetVars
+      REAL_T  delta(SDIM)
+      REAL_T  xlo(SDIM)
+      REAL_T  xhi(SDIM)
+      REAL_T  dat(DIMV(dat),24)
+      REAL_T  pres(DIMV(pres),4)
+      REAL_T  jetData(0:ksize*jetVars-1)
+      REAL_T  gridDx
+      
+      integer i, j, k, v
+      integer ilo, jlo, klo
+      integer ihi, jhi, khi
+      
+      REAL_T  rho, ux, uy, uz, p, XC, XMg
+      REAL_T  dpdx, dpdy, dpdz, dpdr, dpdt
+      REAL_T  dx, dy, dz
+
+      integer ii,jj,kk,kn,nn,numSplit,kklo,kkhi,ridx, idx
+      REAL_T  dxnn,dynn,dznn
+      REAL_T  xlow,ylow,zlow,xctr,yctr,zctr,xx,yy,zz,rr
+      REAL_T  rhoctr, uxctr, uyctr, uzctr, tracctr, tempctr
+      REAL_T  pctr, dpdxctr, dpdyctr, dpdzctr
+
+      REAL_T  deltax, deltay, deltaz
+      REAL_T  ur, ut, trac, temp
+      
+      REAL_T  mdx, mdy
+      REAL_T  drx, dry, dtx, dty
+      REAL_T  xxp, yyp, xxm, yym, rrp, rrm
+      REAL_T  uxp, uyp, uxm, uym, urp, urm, utp, utm
+      REAL_T  durdr, dutdr, durdt, dutdt
+
+      integer idx_rho, idx_ux, idx_uy, idx_uz, idx_trac, idx_temp
+      integer idx_p, idx_dpdx, idx_dpdy, idx_dpdz
+      integer var
+      
+      integer isioproc
+      
+#include "probdata.H"
+
+      call bl_pd_is_ioproc(isioproc)
+
+      ilo = ARG_L1(grid)
+      ihi = ARG_H1(grid)
+      jlo = ARG_L2(grid)
+      jhi = ARG_H2(grid)
+      klo = ARG_L3(grid)
+      khi = ARG_H3(grid)
+      
+      dx = delta(1)
+      dy = delta(2)
+      dz = delta(3)
+
+      kn   = ksize/levKsize
+      nn   = numSplit*kn
+      dxnn = dx/float(nn)
+      dynn = dy/float(nn)
+c     Note this is right, it really should be kn not nn
+      dznn = dz/float(kn)
+c     Mod dx
+      mdx = sqrt(dxnn*dxnn+dynn*dynn)
+      
+      gridDx=dx/dfloat(kn)
+      
+      if (isioproc) then 
+         write (*,*) "In SUMJET:"
+         write (*,*) "   ilo/ihi:",ilo,ihi
+         write (*,*) "   jlo/jhi:",jlo,jhi
+         write (*,*) "   klo/khi:",klo,khi
+         write (*,*) "   xlo/xhi:",xlo(1),xhi(1)
+         write (*,*) "   ylo/yhi:",xlo(2),xhi(2)
+         write (*,*) "   zlo/zhi:",xlo(3),xhi(3)
+         write (*,*) "   dx:",dx,dy,dz
+         write (*,*) "   ksize:",ksize
+         write (*,*) "   levKsize:",levKsize
+         write (*,*) "   rsize:",rsize
+         write (*,*) "   levRsize:",levRsize
+         write (*,*) "   kn = ksize / levKsize:",kn
+         write (*,*) "   nn = kn * numSplit:",nn
+         write (*,*) "   dxnn = dx / nn:"
+         write (*,*) "      ",dxnn,dynn,dznn
+         write (*,*) "   dat l/h 1 = ", dat_l1, dat_h1
+         write (*,*) "   dat l/h 2 = ", dat_l2, dat_h2
+         write (*,*) "   dat l/h 3 = ", dat_l3, dat_h3
+         write (*,*) "   pres l/h 1 = ", pres_l1, pres_h1
+         write (*,*) "   pres l/h 2 = ", pres_l2, pres_h2
+         write (*,*) "   pres l/h 3 = ", pres_l3, pres_h3
+      endif
+
+      idx_rho  = 1
+      idx_ux   = 2
+      idx_uy   = 3
+      idx_uz   = 4
+      idx_trac = 5
+      idx_temp = 6
+
+      idx_p    = 1
+      idx_dpdx = 2
+      idx_dpdy = 3
+      idx_dpdz = 4
+
+      do k = klo, khi
+c     Bounds for vertical numerical integration
+         kklo=k*kn
+         kkhi=kklo+kn-1
+c     Calculate left hand edge of cell
+         zlow = xlo(3) + dz*dfloat(k-klo)
+c     And x centre/er
+         zctr = zlow + 0.5*dz
+
+         do i = ilo, ihi
+c     Calculate left hand edge of cell
+            xlow = xlo(1) + dx*dfloat(i-ilo) - jet_x
+c     And x centre/er
+            xctr = xlow + 0.5*dx
+
+            do j = jlo, jhi
+c     Calculate front of cell
+               ylow = xlo(2) + dy*dfloat(j-jlo) - jet_y
+c     And y centre/er
+               yctr = ylow + 0.5*dy
+
+               rhoctr  = dat(i,j,k,idx_rho)
+               uxctr   = dat(i,j,k,idx_ux)
+               uyctr   = dat(i,j,k,idx_uy)
+               uzctr   = dat(i,j,k,idx_uz)
+               tracctr = dat(i,j,k,idx_trac)
+               tempctr = dat(i,j,k,idx_temp)
+
+               pctr    = pres(i,j,k,idx_p)
+               dpdxctr = pres(i,j,k,idx_dpdx)
+               dpdyctr = pres(i,j,k,idx_dpdy)
+               dpdzctr = pres(i,j,k,idx_dpdz)
+
+               if (rhoctr.gt.zero) then
+c     We're not in a zeroed out bit, let's integrate...
+
+c     Integrate numerically
+                  do ii=1,nn
+                     xx = xlow + dxnn*(dfloat(ii)-half)
+                     do jj=1,nn
+                        yy = ylow + dynn*(dfloat(jj)-half)
+                        
+                        rr = sqrt(xx*xx+yy*yy)
+                        
+                        ridx = int(rr/gridDx)
+                        
+                        if (ridx.lt.rsize) then
+                           
+                           do kk=kklo,kkhi
+                              
+                              zz = zlow + dznn*(dfloat(kk-kklo)+half)
+c     How far are we from the centre of the cell?
+                              deltax = xx-xctr
+                              deltay = yy-yctr
+                              deltaz = zz-zctr
+c     Do slope reconstruction
+                              rho  = rhoctr  + deltax*dat(i,j,k,idx_rho +06) + deltay*dat(i,j,k,idx_rho +12) + deltaz*dat(i,j,k,idx_rho +18)
+                              ux   = uxctr   + deltax*dat(i,j,k,idx_ux  +06) + deltay*dat(i,j,k,idx_ux  +12) + deltaz*dat(i,j,k,idx_ux  +18)
+                              uy   = uyctr   + deltax*dat(i,j,k,idx_uy  +06) + deltay*dat(i,j,k,idx_uy  +12) + deltaz*dat(i,j,k,idx_uy  +18)
+                              uz   = uzctr   + deltax*dat(i,j,k,idx_uz  +06) + deltay*dat(i,j,k,idx_uz  +12) + deltaz*dat(i,j,k,idx_uz  +18)
+                              trac = tracctr + deltax*dat(i,j,k,idx_trac+06) + deltay*dat(i,j,k,idx_trac+12) + deltaz*dat(i,j,k,idx_trac+18)
+                              temp = tempctr + deltax*dat(i,j,k,idx_temp+06) + deltay*dat(i,j,k,idx_temp+12) + deltaz*dat(i,j,k,idx_temp+18)
+c     Radial and azimuthal velocities
+                              ur = (ux*yy+uy*xx)/rr
+                              ut = (uy*yy-ux*xx)/rr
+c     Get radial derivative of radial and azimuthal velocity (more complicated than it sounds)
+                              drx = mdx*xx/(rr*rr)
+                              dry = mdx*yy/(rr*rr)
+                              xxp = xx + drx
+                              yyp = yy + dry
+                              rrp = sqrt(xxp*xxp+yyp*yyp)
+                              xxm = xx - drx
+                              yym = yy - dry
+                              rrm = sqrt(xxm*xxm+yym*yym)
+                              uxp = uxctr   + (xxp-xctr)*dat(i,j,k,idx_ux  +06) + (yyp-yctr)*dat(i,j,k,idx_ux  +12) + deltaz*dat(i,j,k,idx_ux  +18)
+                              uyp = uyctr   + (xxp-xctr)*dat(i,j,k,idx_uy  +06) + (yyp-yctr)*dat(i,j,k,idx_uy  +12) + deltaz*dat(i,j,k,idx_uy  +18)
+                              uxm = uxctr   + (xxm-xctr)*dat(i,j,k,idx_ux  +06) + (yym-yctr)*dat(i,j,k,idx_ux  +12) + deltaz*dat(i,j,k,idx_ux  +18)
+                              uym = uyctr   + (xxm-xctr)*dat(i,j,k,idx_uy  +06) + (yym-yctr)*dat(i,j,k,idx_uy  +12) + deltaz*dat(i,j,k,idx_uy  +18)
+                              urp = (uxp*yyp+uyp*xxp)/rrp
+                              utp = (uyp*yyp-uxp*xxp)/rrp
+                              urm = (uxm*yym+uym*xxm)/rrm
+                              utm = (uym*yym-uxm*xxm)/rrm
+                              durdr = (urp-urm)/(two*mdx)
+                              dutdr = (utp-utm)/(two*mdx)
+c     Get azimuthal derivative of radial and azimuthal velocity (more complicated than it sounds)
+                              dtx =-mdx*yy/(rr*rr)
+                              dty = mdx*xx/(rr*rr)
+                              xxp = xx + dtx
+                              yyp = yy + dty
+                              rrp = sqrt(xxp*xxp+yyp*yyp)
+                              xxm = xx - drx
+                              yym = yy - dry
+                              rrm = sqrt(xxm*xxm+yym*yym)
+                              uxp = uxctr   + (xxp-xctr)*dat(i,j,k,idx_ux  +06) + (yyp-yctr)*dat(i,j,k,idx_ux  +12) + deltaz*dat(i,j,k,idx_ux  +18)
+                              uyp = uyctr   + (xxp-xctr)*dat(i,j,k,idx_uy  +06) + (yyp-yctr)*dat(i,j,k,idx_uy  +12) + deltaz*dat(i,j,k,idx_uy  +18)
+                              uxm = uxctr   + (xxm-xctr)*dat(i,j,k,idx_ux  +06) + (yym-yctr)*dat(i,j,k,idx_ux  +12) + deltaz*dat(i,j,k,idx_ux  +18)
+                              uym = uyctr   + (xxm-xctr)*dat(i,j,k,idx_uy  +06) + (yym-yctr)*dat(i,j,k,idx_uy  +12) + deltaz*dat(i,j,k,idx_uy  +18)
+                              urp = (uxp*yyp+uyp*xxp)/rrp
+                              utp = (uyp*yyp-uxp*xxp)/rrp
+                              urm = (uxm*yym+uym*xxm)/rrm
+                              utm = (uym*yym-uxm*xxm)/rrm
+                              durdt = (urp-urm)/(two*mdx)
+                              dutdt = (utp-utm)/(two*mdx)
+c     Pressure and its derivatives
+                              p      = pctr    + deltax*pres(i,j,k,idx_p   +04) + deltay*pres(i,j,k,idx_p   +08) + deltaz*pres(i,j,k,idx_p   +12)
+                              dpdx   = dpdxctr + deltax*pres(i,j,k,idx_dpdx+04) + deltay*pres(i,j,k,idx_dpdx+08) + deltaz*pres(i,j,k,idx_dpdx+12)
+                              dpdy   = dpdyctr + deltax*pres(i,j,k,idx_dpdy+04) + deltay*pres(i,j,k,idx_dpdy+08) + deltaz*pres(i,j,k,idx_dpdy+12)
+                              dpdz   = dpdzctr + deltax*pres(i,j,k,idx_dpdz+04) + deltay*pres(i,j,k,idx_dpdz+08) + deltaz*pres(i,j,k,idx_dpdz+12)
+c     Radial and azimuthal derivatives of pressure
+                              dpdr   = ( xx*dpdx + yy*dpdy)/rr
+                              dpdt   = (-yy*dpdx + xx*dpdy)
+                              
+c     Start counter
+                              idx = (kk*rsize+ridx)*jetVars+00
+c     0 - Let's keep track of how many cells contribute to the integral
+                              jetData(idx) = jetData(idx) + one
+c     1 - Denstiy
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho
+c     2 - Flow vars not density-weighted
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) +     ur
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) +     ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) +     uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) +     trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) +     temp
+c     7 - Flow vars density-weighted
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*temp
+c     12 - Second order (ur)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*ur
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*temp
+                              
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*temp
+
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*uz*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*uz*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*uz*temp
+
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*trac*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*trac*temp
+
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*temp*temp
+c     27 - Third-order (ur)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*ur*ur
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*ur*ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*ur*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*ur*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*ur*temp
+                              
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*ut*ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*ut*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*ut*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*ut*temp
+
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*uz*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*uz*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*uz*temp
+
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*trac*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*trac*temp
+
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ur*temp*temp
+c     42 - Third-order (ut)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*ut*ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*ut*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*ut*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*ut*temp
+
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*uz*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*uz*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*uz*temp
+
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*trac*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*trac*temp
+
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*ut*temp*temp
+c     52 - Third-order (uz)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*uz*uz*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*uz*uz*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*uz*uz*temp
+
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*uz*trac*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*uz*trac*temp
+
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*uz*temp*temp
+c     58 - Third-order (trac)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*trac*trac*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*trac*trac*temp
+
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*trac*temp*temp
+c     61 - Third-order (temp)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*temp*temp*temp
+c     62 - Pressure
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*ur
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*temp
+c     68 - Presure gradient (r)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdr*ur
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdr*ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdr*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdr*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdr*temp
+c     73 - Presure gradient (t)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdt*ur
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdt*ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdt*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdt*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdt*temp
+c     78 - Presure gradient (z)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdz*ur
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdz*ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdz*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdz*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + dpdz*temp
+c     83 - Pressure . gradient (r)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*durdr
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*dutdr
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*((xx/rr)*dat(i,j,k,idx_uz  +06)+(yy/rr)*dat(i,j,k,idx_uz  +12))
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*((xx/rr)*dat(i,j,k,idx_trac+06)+(yy/rr)*dat(i,j,k,idx_trac+12))
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*((xx/rr)*dat(i,j,k,idx_temp+06)+(yy/rr)*dat(i,j,k,idx_temp+12))
+c     88 - Pressure . gradient (t)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*durdt
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*dutdt
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*(-yy*dat(i,j,k,idx_uz  +06)+xx*dat(i,j,k,idx_uz  +12))
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*(-yy*dat(i,j,k,idx_trac+06)+xx*dat(i,j,k,idx_trac+12))
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*(-yy*dat(i,j,k,idx_temp+06)+xx*dat(i,j,k,idx_temp+12))
+c     93 - Pressure . gradient (z)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*( yy*dat(i,j,k,idx_ux  +18)+xx*dat(i,j,k,idx_uy  +18))/rr
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*(-xx*dat(i,j,k,idx_ux  +18)+yy*dat(i,j,k,idx_uy  +18))/rr
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*dat(i,j,k,idx_uz  +18)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*dat(i,j,k,idx_trac+18)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*dat(i,j,k,idx_temp+18)
+c     98 - Density fluctuations
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*rho
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*rho*ur
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*rho*ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*rho*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*rho*trac
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*rho*temp
+
+c     zz loop
+                        enddo
+c     r < rsize
+                     endif
+c     yy
+                  enddo
+c     xx
+               enddo
+c     zeroed out
+            endif
+
+            end do
+         end do
+      end do
+      
+      end
+#endif
 
        subroutine FORT_MAXVAL(rho,DIMS(rho),DIMS(grid),tmp,mass)
 

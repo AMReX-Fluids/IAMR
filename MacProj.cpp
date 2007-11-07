@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.112 2007-07-05 20:59:23 lijewski Exp $
+// $Id: MacProj.cpp,v 1.113 2007-11-07 20:58:27 aaspden Exp $
 //
 #include <winstd.H>
 
@@ -756,11 +756,18 @@ MacProj::mac_sync_compute (int                   level,
         Rho.resize(BoxLib::grow(grids[i],1),1);
         Rho.copy(S,Density,0,1);
 
-        ns_level.getForce(tforces,i,1,0,NUM_STATE,
 #ifdef GENGETFORCE
-			  prev_time,
+        ns_level.getForce(tforces,i,1,0,NUM_STATE,prev_time,Rho);
+#else
+#ifdef MOREGENGETFORCE
+	//Need to add a getForceVerbose() fn to NavierStokes if we want verbosity here
+	//if (ParallelDescriptor::IOProcessor() && getForceVerbose)
+	//std::cout << "---" << std::endl << "I - mac sync compute:" << std::endl<< "Calling getForce..." << std::endl;
+        ns_level.getForce(tforces,i,1,0,NUM_STATE,prev_time,S_fpi(),S_fpi(),Density);
+#else
+        ns_level.getForce(tforces,i,1,0,NUM_STATE,Rho);
 #endif		 
-			  Rho);
+#endif		 
         //
         // Compute total forcing terms.
         //
@@ -770,11 +777,17 @@ MacProj::mac_sync_compute (int                   level,
 
         if (use_forces_in_trans)
         {
-            ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,
 #ifdef GENGETFORCE
-			      prev_time,
+            ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,Rho);
+#else
+#ifdef MOREGENGETFORCE
+	    //if (ParallelDescriptor::IOProcessor() && getForceVerbose)
+	    //std::cout << "---" << std::endl << "J - mac sync compute (use_forces_in_trans):" << std::endl<< "Calling getForce..." << std::endl;
+            ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi(),S_fpi(),Density);
+#else
+            ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho);
 #endif		 
-			      Rho);
+#endif		 
             godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[S_fpi],Gp[i],Rho);
         }
         //

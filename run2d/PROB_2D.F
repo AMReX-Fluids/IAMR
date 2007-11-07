@@ -207,6 +207,11 @@ c ::: -----------------------------------------------------------
      &     	            vel,scal,DIMS(state),press,DIMS(press),
      &                      dx,xlo,xhi)
 
+      else if (probtype .eq. 8) then
+         call initrt(level,time,lo,hi,nscal,
+     &     	            vel,scal,DIMS(state),press,DIMS(press),
+     &                      dx,xlo,xhi)
+
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
          stop
@@ -617,6 +622,56 @@ c     ::::: local variables
       
       end
       
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initrt(level,time,lo,hi,nscal,
+     &	 	             vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+
+
+c     ::::: local variables
+      integer i, j, n
+      REAL_T  x, y
+      REAL_T  hx, hy
+      REAL_T  x_vel, y_vel
+      REAL_T  dist
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+
+      do j = lo(2), hi(2)
+         y = xlo(2) + hy*(float(j-lo(2)) + half)
+         do i = lo(1), hi(1)
+            x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+            vel(i,j,1) = zero
+            vel(i,j,2) = zero
+            if (y.gt.zero) then
+               scal(i,j,1) = two
+            else
+               scal(i,j,1) = one
+            endif
+            scal(i,j,2) = zero
+         end do
+      end do
+c      vel(31,31,2) = -0.1
+c      vel(32,31,2) = -0.1
+      
+      end
+      
 c ::: -----------------------------------------------------------
 c ::: This routine will tag high error cells based on the 
 c ::: density gradient
@@ -668,22 +723,102 @@ c
 c
 c ::: -----------------------------------------------------------
 c
-c     This routine add the forcing terms to the momentum equation
+c     This routine averages the mac face velocities for makeforce at half time
 c
-      subroutine FORT_MAKEFORCE(time,force,rho,
-     &                          DIMS(istate),DIMS(state),
-     &                          dx,xlo,xhi,gravity,scomp,ncomp)
+      subroutine FORT_AVERAGE_EDGE_STATES(vel,umacx,umacy,
+     &                                    DIMS(vel),DIMS(umacx),DIMS(umacy),
+     &                                    getForceVerbose)
 
       implicit none
 
-      integer    DIMDEC(state)
-      integer    DIMDEC(istate)
+      integer    DIMDEC(vel)
+      integer    DIMDEC(umacx)
+      integer    DIMDEC(umacy)
+      integer    getForceVerbose
+      REAL_T     vel  (DIMV(vel),SDIM)
+      REAL_T     umacx(DIMV(umacx))
+      REAL_T     umacy(DIMV(umacy))
+
+      integer i,j,n
+      integer ilo,jlo
+      integer ihi,jhi
+
+      integer isioproc
+
+      REAL_T  velmin(SDIM)
+      REAL_T  velmax(SDIM)
+
+      do n = 1, SDIM
+         velmin(n) = 1.d234
+         velmax(n) = -1.d234
+      enddo
+
+      ilo = vel_l1
+      jlo = vel_l2
+      ihi = vel_h1
+      jhi = vel_h2
+
+      do j = jlo, jhi
+         do i = ilo, ihi
+            vel(i,j,1) = half*(umacx(i,j)+umacx(i+1,j))
+            vel(i,j,2) = half*(umacy(i,j)+umacy(i,j+1))
+            do n=1, SDIM
+               velmin(n)=min(velmin(n),vel(i,j,n))
+               velmax(n)=max(velmax(n),vel(i,j,n))
+            enddo
+         enddo
+      enddo
+      
+      if (getForceVerbose.gt.0) then
+         call bl_pd_is_ioproc(isioproc)
+         if (isioproc) then
+            do n = 1, SDIM
+               write (6,*) "mac velmin (",n,") = ",velmin(n)
+               write (6,*) "mac velmax (",n,") = ",velmax(n)
+            enddo
+         endif
+      endif
+
+      end
+c
+c
+c ::: -----------------------------------------------------------
+c
+c     This routine add the forcing terms to the momentum equation
+c
+      subroutine FORT_MAKEFORCE(time,force,
+#ifdef MOREGENGETFORCE
+     &                          vel,
+#endif
+     &                          scal,
+     &                          DIMS(force),
+#ifdef MOREGENGETFORCE
+     &                          DIMS(vel),
+#endif
+     &                          DIMS(scal),
+     &                          dx,xlo,xhi,gravity,scomp,ncomp
+#ifdef MOREGENGETFORCE
+     &,                         nscal,getForceVerbose
+#endif
+     &)
+
+      implicit none
+
+      integer    DIMDEC(force)
+      integer    DIMDEC(scal)
       integer    scomp, ncomp
       REAL_T     time, dx(SDIM)
       REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     force  (DIMV(istate),scomp+1:scomp+ncomp)
-      REAL_T     rho    (DIMV(state))
+      REAL_T     force  (DIMV(force),scomp:scomp+ncomp-1)
       REAL_T     gravity
+#ifdef MOREGENGETFORCE
+      integer    DIMDEC(vel)
+      integer    getForceVerbose, nscal
+      REAL_T     vel    (DIMV(vel),0:SDIM-1)
+      REAL_T     scal   (DIMV(scal),0:nscal-1)
+#else
+      REAL_T     scal   (DIMV(scal),0:0)
+#endif
 
 #include "probdata.H"
 
@@ -698,40 +833,119 @@ c
       REAL_T  sga, cga
       integer kx, ky, mode_count, xstep, ystep
       integer isioproc
-      integer nXvel, nYvel, nRho, nTrac
+      integer nXvel, nYvel, nRho, nTrac, nTrac2
+      integer nRhoScal, nTracScal, nTrac2Scal
 
+#ifdef MOREGENGETFORCE
+      REAL_T  velmin(0:SDIM-1)
+      REAL_T  velmax(0:SDIM-1)
+      REAL_T  scalmin(0:nscal-1)
+      REAL_T  scalmax(0:nscal-1)
+      REAL_T  forcemin(scomp:scomp+ncomp-1)
+      REAL_T  forcemax(scomp:scomp+ncomp-1)
+#endif
       hx = dx(1)
       hy = dx(2)
 
-      ilo = istate_l1
-      jlo = istate_l2
-      ihi = istate_h1
-      jhi = istate_h2
+      ilo = force_l1
+      jlo = force_l2
+      ihi = force_h1
+      jhi = force_h2
 
 c     Assumes components are in the following order
-      nXvel = 1
-      nYvel = 2
-      nRho  = 3
-      nTrac = 4
+      nXvel = 0
+      nYvel = 1
+      nRho  = 2
+      nTrac = 3
+      nTrac2= 4
 
+      nRhoScal   = nRho-SDIM
+      nTracScal  = nTrac-SDIM
+      nTrac2Scal = nTrac2-SDIM
+
+#ifdef MOREGENGETFORCE
+      if (getForceVerbose.gt.0) then
+         call bl_pd_is_ioproc(isioproc)
+         if (isioproc) then
+
+            write (6,*) "In MAKEFORCE"
+            
+            write (6,*) "probtype = ",probtype
+            write (6,*) "gravity = ",gravity
+            write (6,*) "scomp = ",scomp
+            write (6,*) "ncomp = ",ncomp
+            write (6,*) "nscal = ",nscal
+            
+            do n = 0, SDIM-1
+               velmin(n) = 1.d234
+               velmax(n) = -1.d234
+            enddo
+            do n = 0, nscal-1
+               scalmin(n) = 1.d234
+               scalmax(n) = -1.d234
+            enddo
+            
+c     Get min/max
+            do j = jlo, jhi
+               do i = ilo, ihi
+c     Velocities
+                  do n = 0, SDIM-1
+                     if (vel(i,j,n).gt.velmax(n)) then
+                        velmax(n)=vel(i,j,n)
+                     endif
+                     if (vel(i,j,n).lt.velmin(n)) then
+                        velmin(n)=vel(i,j,n)
+                     endif
+                  enddo
+c     Scalars
+                  do n = 0, nscal-1
+                     if (scal(i,j,n).gt.scalmax(n)) then
+                        scalmax(n)=scal(i,j,n)
+                     endif
+                     if (scal(i,j,n).lt.scalmin(n)) then
+                        scalmin(n)=scal(i,j,n)
+                     endif
+                  enddo
+                  
+               enddo
+            enddo
+            
+            do n = 0, SDIM-1
+               write (6,*) "velmin (",n,") = ",velmin(n)
+               write (6,*) "velmax (",n,") = ",velmax(n)
+            enddo
+            do n = 0, nscal-1
+               write (6,*) "scalmin(",n,") = ",scalmin(n)
+               write (6,*) "scalmax(",n,") = ",scalmax(n)
+            enddo
+         endif
+      endif
+#endif
+
+c     
+c     Here's where the forcing actually gets done
+c
+      
       if (scomp.eq.0) then
+c
 c     Do velocity forcing
+c
          if (probtype.eq.99.and.abs(grav_angle).gt.0.001) then
 c     Angled gravity
             sga =  gravity * sin(Pi*grav_angle/180.)
             cga = -gravity * cos(Pi*grav_angle/180.)
             do j = jlo, jhi
                do i = ilo, ihi
-                  force(i,j,nXvel) = rho(i,j)*sga
-                  force(i,j,nYvel) = rho(i,j)*cga
+                  force(i,j,nXvel) = scal(i,j,nRhoScal)*sga
+                  force(i,j,nYvel) = scal(i,j,nRhoScal)*cga
                enddo
             enddo
 c     Default to gravity...
-         elseif (abs(gravity).gt.0.0001) then
+         else if (abs(gravity).gt.0.0001) then
             do j = jlo, jhi
                do i = ilo, ihi
                   force(i,j,nXvel) = zero
-                  force(i,j,nYvel) = gravity*rho(i,j)
+                  force(i,j,nYvel) = gravity*scal(i,j,nRhoScal)
                enddo
             enddo
 c     else to zero
@@ -747,25 +961,32 @@ c     End of velocity forcing
       endif
 
       if ((scomp+ncomp).gt.BL_SPACEDIM) then
+c
 c     Scalar forcing
-
-         do n = max(scomp+1,nRho), scomp+ncomp
+c
+         do n = max(scomp,nRho), scomp+ncomp-1
             if (n.eq.nRho) then
+c
 c     Density
+c
                do j = jlo, jhi
                   do i = ilo, ihi
                      force(i,j,n) = zero
                   enddo
                enddo
             else if (n.eq.nTrac) then
+c
 c     Tracer
+c
                do j = jlo, jhi
                   do i = ilo, ihi
                      force(i,j,n) = zero
                   enddo
                enddo
             else
+c
 c     Other scalar
+c
                do j = jlo, jhi
                   do i = ilo, ihi
                      force(i,j,n) = zero
@@ -775,6 +996,26 @@ c     Other scalar
          enddo
       endif
 
+#ifdef MOREGENGETFORCE
+      if (getForceVerbose.gt.0 .and. isioproc) then
+         do n = scomp,scomp+ncomp-1
+            forcemin(n) = 1.d234
+            forcemax(n) = -1.d234
+         enddo
+         do j = jlo, jhi
+            do i = ilo, ihi
+               do n = scomp,ncomp+scomp-1
+                  forcemin(n) = min(forcemin(n),force(i,j,n))
+                  forcemax(n) = max(forcemax(n),force(i,j,n))
+               enddo
+            enddo
+         enddo
+         do n = scomp,ncomp+scomp-1
+            write (6,*) "forcemin (",n,") = ",forcemin(n)
+            write (6,*) "forcemax (",n,") = ",forcemax(n)
+         enddo
+      endif
+#endif      
       end
 c ::: -----------------------------------------------------------
 c ::: This routine will tag high error cells based on the 
@@ -882,6 +1123,115 @@ c     probtype = VISCOUS BENCHMARK
            end do
         end do
 
+c     probtype = RT
+      else if (probtype .eq. 8) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
+      else
+        print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
+        stop
+      end if
+ 
+      end
+      subroutine FORT_ADV2ERROR (tag,DIMS(tag),set,clear,
+     &                          adv,DIMS(adv),lo,hi,nvar,
+     &                          domlo,domhi,dx,xlo,
+     &			        problo,time,level)
+
+      integer   DIMDEC(tag)
+      integer   DIMDEC(adv)
+      integer   nvar, set, clear, level
+      integer   domlo(SDIM), domhi(SDIM)
+      integer   lo(SDIM), hi(SDIM)
+      REAL_T    dx(SDIM), xlo(SDIM), problo(SDIM), time
+      integer   tag(DIMV(tag))
+      REAL_T    adv(DIMV(adv),nvar)
+
+      REAL_T    x, y, ax, ay, aerr, dy
+      integer   i, j
+
+#include "probdata.H"
+
+c     probtype = SPIN
+      if (probtype .eq. 1) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
+c     probtype = BUBBLE
+      else if (probtype .eq. 2) then
+
+        if (level .eq. 0) then
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+             end do
+          end do
+        end if
+
+c     probtype = VORTEX IN A BOX
+      else if (probtype .eq. 3) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
+c     probtype = CHANNEL
+      else if (probtype .eq. 4) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
+c     probtype = PERIODIC SHEAR LAYER
+      else if (probtype .eq. 5) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
+c     probtype = HOT SPOT
+      else if (probtype .eq. 6) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
+
+c     probtype = VISCOUS BENCHMARK
+      else if (probtype .eq. 7) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
+c     probtype = RT
+      else if (probtype .eq. 8) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
         stop
@@ -969,6 +1319,9 @@ c         ::::: refine where there is temperature gradient
 
 c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 7) then
+
+c     probtype = VISCOUS BENCHMARK
+      else if (probtype .eq. 8) then
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
@@ -1067,6 +1420,14 @@ c     probtype = HOT SPOT
 
 c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 7) then
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+           end do
+        end do
+
+c     probtype = RT
+      else if (probtype .eq. 8) then
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
               tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)

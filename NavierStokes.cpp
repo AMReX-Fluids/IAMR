@@ -69,6 +69,8 @@ int  NavierStokes::initial_iter = false;
 int  NavierStokes::radius_grow  = 1;
 int  NavierStokes::sum_interval = -1;
 int  NavierStokes::turb_interval= -1;
+int  NavierStokes::jet_interval = -1;
+int  NavierStokes::jet_interval_split = 2;
 int  NavierStokes::NUM_SCALARS  = 0;
 int  NavierStokes::NUM_STATE    = 0;
 
@@ -96,8 +98,8 @@ Array<Real> NavierStokes::visc_coef;
 int  NavierStokes::do_temp                    = 0;
 int  NavierStokes::do_trac2                   = 0;
 int  NavierStokes::Temp                       = -1;
-int  NavierStokes::Tracer                     = -1; // AJA
-int  NavierStokes::Tracer2                    = -1; // AJA
+int  NavierStokes::Tracer                     = -1;
+int  NavierStokes::Tracer2                    = -1;
 int  NavierStokes::do_sync_proj               = 1;
 int  NavierStokes::do_MLsync_proj             = 1;
 int  NavierStokes::do_reflux                  = 1;
@@ -113,7 +115,12 @@ int  NavierStokes::do_denminmax               = 0;
 int  NavierStokes::do_scalminmax              = 0;
 int  NavierStokes::do_density_ref             = 0;
 int  NavierStokes::do_tracer_ref              = 0;
+int  NavierStokes::do_tracer2_ref             = 0;
 int  NavierStokes::do_vorticity_ref           = 0;
+
+int  NavierStokes::getForceVerbose            = 0;
+int  NavierStokes::do_scalar_update_in_order  = 0;
+Array<int>  NavierStokes::scalarUpdateOrder;
 
 int  NavierStokes::Dpdt_Type                  = -1;
 
@@ -328,6 +335,8 @@ NavierStokes::read_params ()
     pp.query("fixed_dt",fixed_dt);
     pp.query("sum_interval",sum_interval);
     pp.query("turb_interval",turb_interval);
+    pp.query("jet_interval",jet_interval);
+    pp.query("jet_interval_split",jet_interval_split);
     pp.query("gravity",gravity);
 
     //
@@ -350,7 +359,17 @@ NavierStokes::read_params ()
     pp.query("do_scalminmax",            do_scalminmax    );
     pp.query("do_density_ref",           do_density_ref   );
     pp.query("do_tracer_ref",            do_tracer_ref    );
+    pp.query("do_tracer2_ref",           do_tracer2_ref   );
     pp.query("do_vorticity_ref",         do_vorticity_ref );
+#ifdef MOREGENGETFORCE
+    pp.query("getForceVerbose",          getForceVerbose  );
+    pp.query("do_scalar_update_in_order",do_scalar_update_in_order );
+    if (do_scalar_update_in_order) {
+	const int n_scalar_update_order_vals = pp.countval("scalar_update_order");
+	scalarUpdateOrder.resize(n_scalar_update_order_vals);
+	int got_scalar_update_order = pp.queryarr("scalar_update_order",scalarUpdateOrder,0,n_scalar_update_order_vals);
+    }
+#endif
 
     //
     // Make sure we don't use divu_sync.
@@ -409,7 +428,7 @@ NavierStokes::read_params ()
 
     int scalId = Density;
 
-    // Will need to add more lines when more variables are added - AJA
+    // Will need to add more lines when more variables are added
     Tracer = Density+1;
     if (do_trac2)
 	Tracer2 = Density+2;
@@ -1479,7 +1498,20 @@ NavierStokes::advance (Real time,
     //
     // Add the advective and other terms to get scalars at t^{n+1}.
     //
+#ifdef MOREGENGETFORCE
+    if (do_scalar_update_in_order) {
+	for (int iComp=0; iComp<NUM_SCALARS-1; iComp++) {
+	    int iScal = first_scalar+scalarUpdateOrder[iComp];
+	    if (ParallelDescriptor::IOProcessor())
+		std::cout << "... ... updating " << desc_lst[0].name(iScal) << std::endl;
+	    scalar_update(dt,iScal,iScal);
+	}
+    } else {
+	scalar_update(dt,first_scalar+1,last_scalar);
+    }
+#else
     scalar_update(dt,first_scalar+1,last_scalar);
+#endif
     //
     // S appears in rhs of the velocity update, so we better do it now.
     //
@@ -1775,17 +1807,31 @@ NavierStokes::predict_velocity (Real  dt,
     
     FArrayBox* null_fab = 0;
     for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
-             U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM);
-         U_fpi.isValid() && P_fpi.isValid();
-         ++U_fpi, ++P_fpi)
+#ifdef MOREGENGETFORCE
+	     U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
+	     S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+	 S_fpi.isValid() && U_fpi.isValid() && P_fpi.isValid();
+	 ++S_fpi, ++U_fpi, ++P_fpi
+#else
+	     U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM);
+	 U_fpi.isValid() && P_fpi.isValid();
+	 ++U_fpi, ++P_fpi
+#endif
+	)
     {
         const int i = U_fpi.index();
 
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,
 #ifdef GENGETFORCE
-		 prev_time,
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
+#else	
+#ifdef MOREGENGETFORCE
+	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
+	    std::cout << "---" << std::endl << "A - Predict velocity:" << std::endl << " Calling getForce..." << std::endl;
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
+#else
+	getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+#endif
 #endif		 
-		 (*rho_ptime)[i]);
         //
         // Test velocities, rho and cfl.
         //
@@ -1889,21 +1935,36 @@ NavierStokes::velocity_advection (Real dt)
     FArrayBox S;
 
     for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
+#ifdef MOREGENGETFORCE
+             U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
+             S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS),
+             Rho_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Density,1);
+         S_fpi.isValid() && U_fpi.isValid() && P_fpi.isValid() && Rho_fpi.isValid(); 
+         ++S_fpi, ++U_fpi, ++P_fpi, ++Rho_fpi
+#else
              U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
              Rho_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Density,1);
          U_fpi.isValid() && P_fpi.isValid() && Rho_fpi.isValid(); 
-         ++U_fpi, ++P_fpi, ++Rho_fpi)
+         ++U_fpi, ++P_fpi, ++Rho_fpi
+#endif
+	)
     {
         //
         // Since all the MultiFabs are on same grid we'll just use indices.
         //
         const int i = U_fpi.index();
 
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,
 #ifdef GENGETFORCE
-		 prev_time,
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
+#else
+#ifdef MOREGENGETFORCE
+	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
+	    std::cout << "---" << std::endl << "B - velocity advection:" << std::endl << "Calling getForce..." << std::endl;
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
+#else
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
 #endif		 
-		 (*rho_ptime)[i]);
+#endif		 
 
         godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*rho_ptime)[i]);
 
@@ -2030,20 +2091,31 @@ NavierStokes::scalar_advection (Real dt,
     {
         const int i = U_fpi.index();
 
-        getForce(tforces,i,1,fscalar,num_scalars,
 #ifdef GENGETFORCE
-		 prev_time,
+        getForce(tforces,i,1,fscalar,num_scalars,prev_time,(*rho_ptime)[i]);
+#else
+#ifdef MOREGENGETFORCE
+	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
+	    std::cout << "---" << std::endl << "C - scalar advection:" << std::endl << " Calling getForce..." << std::endl;
+        getForce(tforces,i,1,fscalar,num_scalars,prev_time,U_fpi(),S_fpi(),0);
+#else
+        getForce(tforces,i,1,fscalar,num_scalars,(*rho_ptime)[i]);
+#endif
 #endif		 
-		 (*rho_ptime)[i]);
         
         if (use_forces_in_trans)
         {
-            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,
 #ifdef GENGETFORCE
-		     prev_time,
+            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
+#else
+#ifdef MOREGENGETFORCE
+	    if (ParallelDescriptor::IOProcessor() && getForceVerbose)
+		std::cout << "---" << std::endl << "D - scalar advection (use_forces_in_trans):" << std::endl << " Calling getForce..." << std::endl;
+            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
+#else
+            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+#endif
 #endif		 
-		     (*rho_ptime)[i]);
-
             godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[i],Gp[i],(*rho_ptime)[i]);
         }
 
@@ -2151,8 +2223,8 @@ NavierStokes::scalar_advection_update (Real dt,
     MultiFab&  S_old     = get_old_data(State_Type);
     MultiFab&  S_new     = get_new_data(State_Type);
     MultiFab&  Aofs      = *aofs;
-#ifdef GENGETFORCE
-    const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
+#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
+    const Real halftime  = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
 #endif
     const Real prev_time = state[State_Type].prevTime();
     Array<int> state_bc;
@@ -2208,11 +2280,54 @@ NavierStokes::scalar_advection_update (Real dt,
             const int i = Rho_mfi.index();
             for (int sigma = sComp; sigma <= last_scalar; sigma++)
             {
-                getForce(tforces,i,0,sigma,1,
 #ifdef GENGETFORCE
-			 halftime,
+                getForce(tforces,i,0,sigma,1,halftime,rho_halftime[Rho_mfi]);
+#else
+#ifdef MOREGENGETFORCE
+		// Need to do some funky half-time stuff
+		if (ParallelDescriptor::IOProcessor() && getForceVerbose)
+		    std::cout << "---" << std::endl << "E - scalar advection update (half time):" << std::endl;
+
+		// Average the mac face velocities to get cell centred velocities
+		FArrayBox Vel(BoxLib::grow(grids[i],0),BL_SPACEDIM);
+		const int* vel_lo  = Vel.loVect();
+		const int* vel_hi  = Vel.hiVect();
+		const int* umacx_lo = u_mac[0][i].loVect();
+		const int* umacx_hi = u_mac[0][i].hiVect();
+		const int* umacy_lo = u_mac[1][i].loVect();
+		const int* umacy_hi = u_mac[1][i].hiVect();
+#if (BL_SPACEDIM==3)
+		const int* umacz_lo = u_mac[2][i].loVect();
+		const int* umacz_hi = u_mac[2][i].hiVect();
+#endif
+		FORT_AVERAGE_EDGE_STATES(Vel.dataPtr(),
+					 u_mac[0][i].dataPtr(),
+					 u_mac[1][i].dataPtr(),
+#if (BL_SPACEDIM==3)
+					 u_mac[2][i].dataPtr(),
+#endif
+					 ARLIM(vel_lo),  ARLIM(vel_hi),
+					 ARLIM(umacx_lo), ARLIM(umacx_hi),
+					 ARLIM(umacy_lo), ARLIM(umacy_hi),
+#if (BL_SPACEDIM==3)
+
+					 ARLIM(umacz_lo), ARLIM(umacz_hi),
+#endif
+					 &getForceVerbose);
+		
+		// Average the new and old time to get Crank-Nicholson half time approximation
+		FArrayBox Scal(BoxLib::grow(grids[i],0),NUM_SCALARS);
+		Scal.copy(S_old[i],Density,0,NUM_SCALARS);
+		Scal.plus(S_new[i],Density,0,NUM_SCALARS);
+		Scal.mult(0.5);
+		
+		if (ParallelDescriptor::IOProcessor() && getForceVerbose)
+		    std::cout << "Calling getForce..." << std::endl;
+                getForce(tforces,i,0,sigma,1,halftime,Vel,Scal,0);
+#else
+                getForce(tforces,i,0,sigma,1,rho_halftime[Rho_mfi]);
+#endif
 #endif		 
-			 rho_halftime[Rho_mfi]);
                 godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
                                      Aofs[Rho_mfi],sigma,tforces,0,grids[i],dt);
             }
@@ -2404,7 +2519,7 @@ NavierStokes::velocity_advection_update (Real dt)
     MultiFab&  P_old          = get_old_data(Press_Type);
     MultiFab&  Aofs           = *aofs;
     const Real prev_pres_time = state[Press_Type].prevTime();
-#ifdef GENGETFORCE
+#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
     const Real half_time      = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
 #endif
 
@@ -2421,11 +2536,53 @@ NavierStokes::velocity_advection_update (Real dt)
     {
         const int i = Rhohalf_mfi.index();
 
-	getForce(tforces,i,0,Xvel,BL_SPACEDIM,
 #ifdef GENGETFORCE
-		 half_time,
+	getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,halftime[i]);
+#else
+#ifdef MOREGENGETFORCE
+	// Need to do some funky half-time stuff
+	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
+	    std::cout << "---" << std::endl << "F - velocity advection update (half time):" << std::endl;
+
+	// Average the mac face velocities to get cell centred velocities
+	FArrayBox Vel(BoxLib::grow(grids[i],0),BL_SPACEDIM);
+	const int* vel_lo  = Vel.loVect();
+	const int* vel_hi  = Vel.hiVect();
+	const int* umacx_lo = u_mac[0][i].loVect();
+	const int* umacx_hi = u_mac[0][i].hiVect();
+	const int* umacy_lo = u_mac[1][i].loVect();
+	const int* umacy_hi = u_mac[1][i].hiVect();
+#if (BL_SPACEDIM==3)
+	const int* umacz_lo = u_mac[2][i].loVect();
+	const int* umacz_hi = u_mac[2][i].hiVect();
+#endif
+	FORT_AVERAGE_EDGE_STATES(Vel.dataPtr(),
+				 u_mac[0][i].dataPtr(),
+				 u_mac[1][i].dataPtr(),
+#if (BL_SPACEDIM==3)
+				 u_mac[2][i].dataPtr(),
+#endif
+				 ARLIM(vel_lo),  ARLIM(vel_hi),
+				 ARLIM(umacx_lo), ARLIM(umacx_hi),
+				 ARLIM(umacy_lo), ARLIM(umacy_hi),
+#if (BL_SPACEDIM==3)
+				 ARLIM(umacz_lo), ARLIM(umacz_hi),
+#endif
+				 &getForceVerbose);
+	
+	// Average the new and old time to get Crank-Nicholson half time approximation
+	FArrayBox Scal(BoxLib::grow(grids[i],0),NUM_SCALARS);
+	Scal.copy(U_old[i],Density,0,NUM_SCALARS);
+	Scal.plus(U_new[i],Density,0,NUM_SCALARS);
+	Scal.mult(0.5);
+	
+	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
+	    std::cout << "Calling getForce..." << std::endl;
+	getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
+#else
+	getForce(tforces,i,0,Xvel,BL_SPACEDIM,halftime[i]);
 #endif		 
-		 halftime[i]);
+#endif		 
         //
         // Do following only at initial iteration--per JBB.
         //
@@ -2597,11 +2754,17 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
         {
             const int i = P_fpi.index();
 
-            getForce(tforces,i,0,Xvel,BL_SPACEDIM,
 #ifdef GENGETFORCE
-		     prev_time,
+            getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
+#else
+#ifdef MOREGENGETFORCE
+	    if (ParallelDescriptor::IOProcessor() && getForceVerbose)
+		std::cout << "---" << std::endl << "G - initial velocity diffusion update:" << std::endl << "Calling getForce..." << std::endl;
+            getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,U_old[i],U_old[i],Density);
+#else
+            getForce(tforces,i,0,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
 #endif		 
-		     (*rho_ptime)[i]);
+#endif		 
 
             godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*Rh)[i]);
 
@@ -2857,7 +3020,7 @@ NavierStokes::sum_integrated_quantities ()
 //        trac += ns_level.volWgtSum("tracer",time);
         energy += ns_level.volWgtSum("energy",time);
         mgvort = std::max(mgvort,ns_level.MaxVal("mag_vort",time));
-#ifdef GENGETFORCE
+#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
   	if (BL_SPACEDIM==3)
   	    forcing += ns_level.volWgtSum("forcing",time);
 #endif
@@ -2877,13 +3040,13 @@ NavierStokes::sum_integrated_quantities ()
     }
 }
 
+#if (BL_SPACEDIM==3)
 void
 NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
 {
-#if (BL_SPACEDIM==3)
     const Real* dx = geom.CellSize();
 
-    const int turbGrow(1);
+    const int turbGrow(0);
     const int presGrow(0);
     MultiFab* turbMF = derive("TurbVars",time,turbGrow);
     MultiFab* presMF = derive("PresVars",time,presGrow);
@@ -2932,18 +3095,17 @@ NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
         const Real* presData = presFab.dataPtr();
         const int*  dlo = turbFab.loVect();
         const int*  dhi = turbFab.hiVect();
+        const int*  plo = presFab.loVect();
+        const int*  phi = presFab.hiVect();
         const int*  lo  = grids[turbMfi.index()].loVect();
         const int*  hi  = grids[turbMfi.index()].hiVect();
 
-        FORT_SUMTURB(turbData,presData,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+        FORT_SUMTURB(turbData,presData,ARLIM(dlo),ARLIM(dhi),ARLIM(plo),ARLIM(phi),ARLIM(lo),ARLIM(hi),
 		     dx,turb,&ksize,&turbVars);
-    }
+   } 
 
     delete turbMF;
     delete presMF;
-#else
-    BoxLib::Error("TurbSum not implemented in 2D");
-#endif
 }
 
 void
@@ -3008,25 +3170,172 @@ NavierStokes::sum_turbulent_quantities ()
     delete [] turb;
 }
 
-    //Geometry   geom       = parent->Geom(finestLevel);
-    //RealBox    probDomain = geom.ProbDomain();
-    //Box        domain     = geom.Domain();
-    //CoordSys   cs         = (CoordSys&) geom;
-    //std::cout << "parent->Geom(finestLevel) = " << parent->Geom(finestLevel) << std::endl;
-    //std::cout << "geom = " << geom << std::endl;
-    //std::cout << "probDomain = " << probDomain << std::endl;
-    //std::cout << "Domain = " << domain << std::endl;
-    //std::cout << "cs = " << cs << std::endl;
-    //const Real *dx = ((CoordSys&)parent->Geom(finestLevel)).CellSize();
-    //
-    //std::cout << "Outside level loop:" << std::endl;
-    //std::cout << "ksize = " << ksize << std::endl;
-    //std::cout << "dx = " << dx[0] << ", "  << dx[1] << ", "  << dx[2] << std::endl;
-    //
-    //const Real *levDx = ((CoordSys&)parent->Geom(lev)).CellSize();
-    //    std::cout << "Inside level loop: level = " << lev << std::endl;
-    //    std::cout << "levKsize = " << levKsize << std::endl;
-    //    std::cout << "levDx = " << levDx[0] << ", "  << levDx[1] << ", "  << levDx[2] << std::endl;
+#ifdef SUMJET
+void
+NavierStokes::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,  int rsize,  int ksize, int jetVars)
+{
+    const Real* dx = geom.CellSize();
+
+    const int turbGrow(0);
+    const int presGrow(0);
+    MultiFab* turbMF = derive("JetVars",time,turbGrow);
+    MultiFab* presMF = derive("JetPresVars",time,presGrow);
+
+    BoxArray baf;
+
+    if (level < parent->finestLevel())
+    {
+        baf = parent->boxArray(level+1);
+        baf.coarsen(fine_ratio);
+    }
+
+    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
+	 turbMfi.isValid() && presMfi.isValid();
+	 ++turbMfi, ++presMfi)
+    {
+	FArrayBox& turbFab = (*turbMF)[turbMfi];
+	FArrayBox& presFab = (*presMF)[presMfi];
+
+        if (level < parent->finestLevel())
+        {
+            std::vector< std::pair<int,Box> > isects = baf.intersections(grids[turbMfi.index()]);
+
+            for (int ii = 0; ii < isects.size(); ii++)
+            {
+              presFab.setVal(0,isects[ii].second,0,presMF->nComp());
+              turbFab.setVal(0,isects[ii].second,0,turbMF->nComp());
+            }
+        }
+    }
+
+    turbMF->FillBoundary(0,turbMF->nComp());
+    geom.FillPeriodicBoundary(*turbMF,0,turbMF->nComp());
+
+    presMF->FillBoundary(0,presMF->nComp());
+    geom.FillPeriodicBoundary(*presMF,0,presMF->nComp());
+    
+    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
+	 turbMfi.isValid() && presMfi.isValid();
+	 ++turbMfi, ++presMfi)
+    {
+	FArrayBox& turbFab = (*turbMF)[turbMfi];
+	FArrayBox& presFab = (*presMF)[presMfi];
+
+        const Real* turbData = turbFab.dataPtr();
+        const Real* presData = presFab.dataPtr();
+        const int*  dlo = turbFab.loVect();
+        const int*  dhi = turbFab.hiVect();
+        const int*  plo = presFab.loVect();
+        const int*  phi = presFab.hiVect();
+        const int*  lo  = grids[turbMfi.index()].loVect();
+        const int*  hi  = grids[turbMfi.index()].hiVect();
+
+        FORT_SUMJET(turbData,presData,ARLIM(dlo),ARLIM(dhi),ARLIM(plo),ARLIM(phi),ARLIM(lo),ARLIM(hi),
+		    dx,jetData,&levRsize,&levKsize,&rsize,&ksize,&jetVars,&jet_interval_split,
+		    grid_loc[turbMfi.index()].lo(),grid_loc[turbMfi.index()].hi());
+    }
+
+    delete turbMF;
+    delete presMF;
+}
+
+void
+NavierStokes::sum_jet_quantities ()
+{
+    Real time = state[State_Type].curTime();
+    const int finestLevel = parent->finestLevel();
+    const Real *dx = parent->Geom(finestLevel).CellSize();
+    const int isize(parent->Geom(finestLevel).Domain().length(0));
+    const int ksize(parent->Geom(finestLevel).Domain().length(2));
+    const int rsize=isize>>1;
+    const int jetVars(104);
+    int refRatio(1);
+
+    if (ParallelDescriptor::IOProcessor())
+	std::cout << "NavierStokes::sum_jet_quantities():" << std::endl
+		  << "   rsize: " << rsize << std::endl
+		  << "   ksize: " << ksize << std::endl;
+    
+    Real* jetData = new Real[jetVars*ksize*rsize];
+
+    for (int i=0; i<jetVars*ksize*rsize; i++) jetData[i]=0;
+
+    for (int lev = finestLevel; lev >= 0; lev--)
+    {
+	const int levIsize(parent->Geom(lev).Domain().length(0));
+	const int levKsize(parent->Geom(lev).Domain().length(2));
+	const int levRsize(levIsize>>1);
+
+        NavierStokes& ns_level = getLevel(lev);
+	ns_level.JetSum(time,jetData,levRsize,levKsize,rsize,ksize,jetVars);
+    }
+
+    ParallelDescriptor::ReduceRealSum(&jetData[0], ksize*rsize*jetVars, ParallelDescriptor::IOProcessorNumber());
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::string DirPath = "JetData";
+        if (!BoxLib::UtilCreateDirectory(DirPath, 0755))
+            BoxLib::CreateDirectoryFailed(DirPath);
+
+        const int steps = parent->levelSteps(0);
+        FILE *file;
+        char filename[256];
+
+	Array<Real> r(rsize);
+	for (int i=0; i<rsize; i++)
+	    r[i] = dx[0]*(0.5+(double)i);
+	Array<Real> z(ksize);
+	for (int k=0; k<ksize; k++)
+	    z[k] = dx[2]*(0.5+(double)k);
+
+#if 0
+	sprintf(filename,"JetData/JetData_%04d_r.dat",steps);
+	file = fopen(filename,"w");
+	for (int i=0; i<rsize; i++)
+	    fprintf(file,"%e ",r[i]);
+	fclose(file);
+
+	sprintf(filename,"JetData/JetData_%04d_z.dat",steps);
+	file = fopen(filename,"w");
+	for (int k=0; k<ksize; k++) 
+	    fprintf(file,"%e ",dx[2]*(0.5+(double)k));
+	fclose(file);
+
+	for (int v=0; v<jetVars; v++) {
+	    sprintf(filename,"JetData/JetData_%04d_v%04d.dat",steps,v);
+	    file = fopen(filename,"w");
+	    for (int k=0; k<ksize; k++) {
+		for (int i=0; i<rsize; i++) {
+		    fprintf(file,"%e ",jetData[(k*rsize+i)*jetVars+v]);
+		}
+		fprintf(file,"\n");
+	    }
+	    fclose(file);
+	}
+#else
+	sprintf(filename,"JetData/JD%04d",steps);
+	std::string FullPath = filename;
+	if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
+	    BoxLib::CreateDirectoryFailed(FullPath);
+	sprintf(filename,"%s/data.bin",FullPath.c_str());
+	file=fopen(filename,"w");
+	fwrite(&time,sizeof(double),1,file);
+	fwrite(&rsize,sizeof(int),1,file);
+	fwrite(&ksize,sizeof(int),1,file);
+	fwrite(&jetVars,sizeof(int),1,file);
+	fwrite(r.dataPtr(),sizeof(Real),rsize,file);
+	fwrite(z.dataPtr(),sizeof(Real),ksize,file);
+	fwrite(jetData,sizeof(Real),jetVars*rsize*ksize,file);
+	fclose(file);
+#endif
+    }
+    
+    delete [] jetData;
+}
+#endif
+#endif
+
 
 void
 NavierStokes::setPlotVariables()
@@ -3278,7 +3587,7 @@ NavierStokes::estTimeStep ()
 
     const int   n_grow        = 0;
     Real        estdt         = 1.0e+20;
-#ifdef GENGETFORCE
+#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
     const Real  cur_time      = state[State_Type].curTime();
 #endif
     const Real  cur_pres_time = state[Press_Type].curTime();
@@ -3302,11 +3611,17 @@ NavierStokes::estTimeStep ()
         //
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
-        getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,
 #ifdef GENGETFORCE
-		 cur_time,
+        getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,(*rho_ctime)[i]);
+#else
+#ifdef MOREGENGETFORCE
+	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
+	    std::cout << "---" << std::endl << "H - est Time Step:" << std::endl << "Calling getForce..." << std::endl;
+        getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i],U_new[i],Density);
+#else
+        getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,(*rho_ctime)[i]);
 #endif		 
-		 (*rho_ctime)[i]);
+#endif		 
         tforces.minus(Gp[i],0,0,BL_SPACEDIM);
         //
         // Estimate the maximum allowable timestep from the Godunov box.
@@ -3591,13 +3906,24 @@ NavierStokes::post_timestep (int crse_iteration)
     {
         sum_integrated_quantities();
     }
+#if (BL_SPACEDIM==3)
     //
     // Derive turbulent statistics
     //
-    if (level==0 && turb_interval>0 && (parent->levelSteps(0)%turb_interval == 0) && BL_SPACEDIM==3)
+    if (level==0 && turb_interval>0 && (parent->levelSteps(0)%turb_interval == 0))
     {
         sum_turbulent_quantities();
     }
+#ifdef SUMJET
+    //
+    // Derive turbulent statistics for the round jet
+    //
+    if (level==0 && jet_interval>0 && (parent->levelSteps(0)%jet_interval == 0))
+    {
+        sum_jet_quantities();
+    }
+#endif
+#endif
 
     if (level > 0) incrPAvg();
 
@@ -3665,11 +3991,20 @@ NavierStokes::post_init (Real stop_time)
     //
     if (sum_interval > 0)
         sum_integrated_quantities();
+#if (BL_SPACEDIM==3)
     //
     // Derive turbulent statistics
     //
     if (turb_interval > 0)
         sum_turbulent_quantities();
+#ifdef SUMJET
+    //
+    // Derive turbulent statistics for the round jet
+    //
+    if (jet_interval > 0)
+        sum_jet_quantities();
+#endif
+#endif
 }
 
 //
@@ -5076,6 +5411,188 @@ NavierStokes::getForce (FArrayBox&       force,
 
 }
 #else
+#ifdef MOREGENGETFORCE
+void
+NavierStokes::getForce (FArrayBox&       force,
+                        int              gridno,
+                        int              ngrow,
+                        int              scomp,
+                        int              ncomp,
+                        const Real       time,
+			const FArrayBox& Vel,
+                        const FArrayBox& Scal,
+			int              scalScomp)
+{
+    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
+	std::cout << "NavierStokes::getForce(): Entered..." << std::endl 
+		  << "time      = " << time << std::endl
+		  << "scomp     = " << scomp << std::endl
+		  << "ncomp     = " << ncomp << std::endl
+		  << "ngrow     = " << ngrow << std::endl
+		  << "scalScomp = " << scalScomp << std::endl;
+
+	if (scomp==0)
+	    if  (ncomp==3) std::cout << "Doing velocities only" << std::endl;
+	    else           std::cout << "Doing all components" << std::endl;
+	else if (scomp==3)
+	    if  (ncomp==1) std::cout << "Doing density only" << std::endl;
+	    else           std::cout << "Doing all scalars" << std::endl;
+	else if (scomp==4) std::cout << "Doing tracer only" << std::endl;
+	else               std::cout << "Doing individual scalar" << std::endl;
+
+    }
+
+    force.resize(BoxLib::grow(grids[gridno],ngrow),ncomp);
+
+    const Real* VelDataPtr  = Vel.dataPtr();
+    const Real* ScalDataPtr = Scal.dataPtr(scalScomp);
+
+    const Real* dx       = geom.CellSize();
+    const Real  grav     = gravity;
+    const int*  f_lo     = force.loVect();
+    const int*  f_hi     = force.hiVect();
+    const int*  v_lo     = Vel.loVect();
+    const int*  v_hi     = Vel.hiVect();
+    const int*  s_lo     = Scal.loVect();
+    const int*  s_hi     = Scal.hiVect();
+    const int   nscal    = NUM_SCALARS;
+
+    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
+#if (BL_SPACEDIM == 3)
+	std::cout << "NavierStokes::getForce(): Force Domain:" << std::endl;
+	std::cout << "(" << f_lo[0] << "," << f_lo[1] << "," << f_lo[2] << ") - "
+		  << "(" << f_hi[0] << "," << f_hi[1] << "," << f_hi[2] << ")" << std::endl;
+	std::cout << "NavierStokes::getForce(): Vel Domain:" << std::endl;
+	std::cout << "(" << v_lo[0] << "," << v_lo[1] << "," << v_lo[2] << ") - "
+		  << "(" << v_hi[0] << "," << v_hi[1] << "," << v_hi[2] << ")" << std::endl;
+	std::cout << "NavierStokes::getForce(): Scal Domain:" << std::endl;
+	std::cout << "(" << s_lo[0] << "," << s_lo[1] << "," << s_lo[2] << ") - "
+		  << "(" << s_hi[0] << "," << s_hi[1] << "," << s_hi[2] << ")" << std::endl;
+#else
+	std::cout << "NavierStokes::getForce(): Force Domain:" << std::endl;
+	std::cout << "(" << f_lo[0] << "," << f_lo[1] << ") - "
+		  << "(" << f_hi[0] << "," << f_hi[1] << ")" << std::endl;
+	std::cout << "NavierStokes::getForce(): Vel Domain:" << std::endl;
+	std::cout << "(" << v_lo[0] << "," << v_lo[1] << ") - "
+		  << "(" << v_hi[0] << "," << v_hi[1] << ")" << std::endl;
+	std::cout << "NavierStokes::getForce(): Scal Domain:" << std::endl;
+	std::cout << "(" << s_lo[0] << "," << s_lo[1] << ") - "
+		  << "(" << s_hi[0] << "," << s_hi[1] << ")" << std::endl;
+#endif
+
+	Array<Real> velmin(BL_SPACEDIM), velmax(BL_SPACEDIM);
+	Array<Real> scalmin(NUM_SCALARS), scalmax(NUM_SCALARS);
+	for (int n=0; n<BL_SPACEDIM; n++) {
+	    velmin[n]= 1.e234;
+	    velmax[n]=-1.e234;
+	}
+	int ix = v_hi[0]-v_lo[0]+1;
+	int jx = v_hi[1]-v_lo[1]+1;
+#if (BL_SPACEDIM == 3)
+	int kx = v_hi[2]-v_lo[2]+1;
+	for (int k=0; k<kx; k++) {
+#endif
+	    for (int j=0; j<jx; j++) {
+		for (int i=0; i<ix; i++) {
+		    for (int n=0; n<BL_SPACEDIM; n++) {
+#if (BL_SPACEDIM == 3)
+			int cell = ((n*kx+k)*jx+j)*ix+i;
+#else
+			int cell = (n*jx+j)*ix+i;
+#endif
+			Real v = VelDataPtr[cell];
+			if (v<velmin[n]) velmin[n] = v;
+			if (v>velmax[n]) velmax[n] = v;
+		    }
+		}
+	    }
+#if (BL_SPACEDIM == 3)
+	}
+#endif
+	for (int n=0; n<BL_SPACEDIM; n++) 
+	    std::cout << "Vel  " << n << " min/max " << velmin[n] << " / " << velmax[n] << std::endl;
+	
+	for (int n=0; n<NUM_SCALARS; n++) {
+	    scalmin[n]= 1.e234;
+	    scalmax[n]=-1.e234;
+	}
+	ix = s_hi[0]-s_lo[0]+1;
+	jx = s_hi[1]-s_lo[1]+1;
+#if (BL_SPACEDIM == 3)
+	kx = s_hi[2]-s_lo[2]+1;
+	for (int k=0; k<kx; k++) {
+#endif
+	    for (int j=0; j<jx; j++) {
+		for (int i=0; i<ix; i++) {
+		    for (int n=0; n<NUM_SCALARS; n++) {
+#if (BL_SPACEDIM == 3)
+			int cell = ((n*kx+k)*jx+j)*ix+i;
+#else
+			int cell = (n*jx+j)*ix+i;
+#endif
+			Real s = ScalDataPtr[cell];
+			if (s<scalmin[n]) scalmin[n] = s;
+			if (s>scalmax[n]) scalmax[n] = s;
+		    }
+		}
+	    }
+#if (BL_SPACEDIM == 3)
+	}
+#endif
+	for (int n=0; n<NUM_SCALARS; n++) 
+	    std::cout << "Scal " << n << " min/max " << scalmin[n] << " / " << scalmax[n] << std::endl;
+    }
+    
+    // Here's the meat
+    FORT_MAKEFORCE (&time,
+		    force.dataPtr(),
+		    VelDataPtr,
+		    ScalDataPtr,
+		    ARLIM(f_lo), ARLIM(f_hi),
+		    ARLIM(v_lo), ARLIM(v_hi),
+		    ARLIM(s_lo), ARLIM(s_hi),
+		    dx,
+		    grid_loc[gridno].lo(),
+		    grid_loc[gridno].hi(),
+		    &grav,&scomp,&ncomp,&nscal,&getForceVerbose);
+
+    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
+	Array<Real> forcemin(ncomp);
+	Array<Real> forcemax(ncomp);
+	for (int n=0; n<ncomp; n++) {
+	    forcemin[n]= 1.e234;
+	    forcemax[n]=-1.e234;
+	}
+	int ix = f_hi[0]-f_lo[0]+1;
+	int jx = f_hi[1]-f_lo[1]+1;
+#if (BL_SPACEDIM == 3)
+	int kx = f_hi[2]-f_lo[2]+1;
+	for (int k=0; k<kx; k++) {
+#endif
+	    for (int j=0; j<jx; j++) {
+		for (int i=0; i<ix; i++) {
+		    for (int n=0; n<ncomp; n++) {
+#if (BL_SPACEDIM == 3)
+			int cell = ((n*kx+k)*jx+j)*ix+i;
+#else
+			int cell = (n*jx+j)*ix+i;
+#endif
+			Real f = force.dataPtr()[cell];
+			if (f<forcemin[n]) forcemin[n] = f;
+			if (f>forcemax[n]) forcemax[n] = f;
+		    }
+		}
+	    }
+#if (BL_SPACEDIM == 3)
+	}
+#endif
+	for (int n=0; n<ncomp; n++) 
+	    std::cout << "Force " << n+scomp << " min/max " << forcemin[n] << " / " << forcemax[n] << std::endl;
+	
+	std::cout << "NavierStokes::getForce(): Leaving..." << std::endl << "---" << std::endl;
+    }
+}
+#else
 void
 NavierStokes::getForce (FArrayBox&       force,
                         int              gridno,
@@ -5112,9 +5629,10 @@ NavierStokes::getForce (FArrayBox&       force,
         {
             force.setVal(0,dc);
         }
-    }
+    }    
 }
 // Generalised getForce
+#endif
 #endif
 
 void

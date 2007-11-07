@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.41 2007-09-20 20:15:39 aaspden Exp $
+c $Id: PROB_3D.F,v 1.42 2007-11-07 20:58:28 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -92,7 +92,9 @@ c ::: -----------------------------------------------------------
 
       namelist /fortin/ Vco, Rfu, Rtran, tVco_l, tVco_r, Vco_l, Vco_r
 
-      namelist /fortin/ grav_angle, omega, infl_time_offset, ref_centre, ref_radius
+      namelist /fortin/ grav_angle, omega, infl_time_offset, ref_centre, ref_radius,
+     &                  thermal_expansion, heating_coeff
+
 
 #ifdef DO_IAMR_FORCE
       namelist /fortin/ nmodes, nxmodes, nymodes, nzmodes, mode_start,
@@ -648,6 +650,16 @@ c ::: -----------------------------------------------------------
 
       else if (probtype .eq. 18) then
          call initroundjet(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
+      else if (probtype .eq. 19) then
+         call initcoriolis(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
+      else if (probtype .eq. 20) then
+         call initheating(level,time,lo,hi,nscal,
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
 
@@ -1840,7 +1852,7 @@ c
                vel(i,j,k,3) = zero
 
                scal(i,j,k,1) = coflow_rho
-               scal(i,j,k,2) = cvmgt(one,zero,sqrt(r2+z*z).le.jet_width)
+               scal(i,j,k,2) = cvmgt(one,zero,sqrt(r2+z*z).le.jet_width+hx)
 
                if (nscal.ge.3) then 
                   do n = 3,nscal
@@ -1854,25 +1866,307 @@ c
 
       end
 c
+c ::: -----------------------------------------------------------
+c
+      subroutine initcoriolis(level,time,lo,hi,nscal,
+     &	 	              vel,scal,DIMS(state),press,DIMS(press),
+     &                        dx,xlo,xhi)
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n, m
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  Lx, Ly, Lz
+
+      integer nx, mx
+c     nx is the number of modes to use for velocity perturbation
+      parameter (nx=10)
+c     mx is the maximum wavenumber in each direction to choose random modes from
+      parameter (mx=4)
+c     a,b,c are random amplitudes in the range (0,1)
+      REAL_T  a(nx,SDIM),b(nx,SDIM),c(nx,SDIM),rn
+c     d,e,f are random modes in the range (1,mx)
+      integer d(nx,SDIM),e(nx,SDIM),f(nx,SDIM)
+
+      integer isioproc
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      Lx = f_probhi(1)-f_problo(1)
+      Ly = f_probhi(1)-f_problo(1)
+      Lz = min(ref_height-f_problo(1),f_probhi(1)-f_problo(1))
+
+      call bl_pd_is_ioproc(isioproc)
+
+      call blutilinitrand(blrandseed)
+      do n = 1, nx
+         do m = 1,3
+            call blutilrand(rn)
+            a(n,m) = rn
+            call blutilrand(rn)
+            b(n,m) = rn
+            call blutilrand(rn)
+            c(n,m) = rn
+            call blutilrand(rn)
+            d(n,m) = int(rn*mx+one)
+            call blutilrand(rn)
+            e(n,m) = int(rn*mx+one)
+            call blutilrand(rn)
+            f(n,m) = int(rn*mx+one)
+         enddo
+      enddo
+      if (lo(1).eq.0.and.lo(2).eq.0.and.lo(3).eq.0.and.isioproc.eq.1) then
+         write (6,*) "a",a
+         write (6,*) "b",b
+         write (6,*) "c",c
+         write (6,*) "d",d
+         write (6,*) "e",e
+         write (6,*) "f",f
+      endif
+
+      do k = lo(3), hi(3)
+         z = ( xlo(3) + hz*(float(k-lo(3)) + half) )
+         do j = lo(2), hi(2)
+            y = ( xlo(2) + hy*(float(j-lo(2)) + half) )
+	    do i = lo(1), hi(1)
+               x = ( xlo(1) + hx*(float(i-lo(1)) + half) )
+
+               vel(i,j,k,1)  =  omega*y
+               vel(i,j,k,2)  = -omega*x
+               vel(i,j,k,3)  = zero
+
+               if (z.gt.ref_height) then
+c     Maybe try a real free surface? Let's soften the blow with a hyperbolic tangent though
+c     To run without the free surface, make sure ref_height is greater than the top of the box
+                  scal(i,j,k,1) = half*rhozero*((one+denfact)-(one-denfact)*tanh((z-ref_height)/(two*delta0)))
+                  scal(i,j,k,2) = zero
+                  do n = 2,nscal-1
+                     scal(i,j,k,n) = zero
+                  enddo
+               else
+                  do n = 1, nx
+                     do m = 1, SDIM
+                        vel(i,j,k,m) = vel(i,j,k,m) + turb_scale*
+     &                       a(n,m)*sin(two*Pi*d(n,m)*(x-f_problo(1))/Lx)*
+     &                       b(n,m)*sin(two*Pi*e(n,m)*(y-f_problo(2))/Ly)*
+     &                       c(n,m)*sin(two*Pi*f(n,m)*(z-f_problo(3))/Lz)
+                     enddo
+                  enddo
+                  scal(i,j,k,1) = rhozero
+                  scal(i,j,k,2) = zero
+                  do n = 2,nscal-1
+                     scal(i,j,k,n) = zero
+                  end do
+               endif
+                  
+	    end do
+         end do
+      end do
+
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initheating(level,time,lo,hi,nscal,
+     &	 	             vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      integer ii,jj,kk,nn
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  dist, pi
+
+      REAL_T  xx, yy, zz
+      REAL_T  hxx, hyy, hzz, ds
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      nn = 8
+      ds = one/float(nn*nn*nn)
+      hxx = hx/float(nn)
+      hyy = hy/float(nn)
+      hzz = hz/float(nn)
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)))
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)))
+	    do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)))
+
+               vel(i,j,k,1) = zero
+               vel(i,j,k,2) = zero
+               vel(i,j,k,3) = zero
+
+               scal(i,j,k,1) = rhozero
+               scal(i,j,k,2) = zero
+               scal(i,j,k,3) = zero
+
+               do kk = 1, nn
+                  zz = z + hzz*(float(kk) - half)
+                  do jj = 1, nn
+                     yy = y + hyy*(float(jj) - half)
+                     do ii = 1, nn
+                        xx = x + hxx*(float(ii) - half)
+                        if (sqrt((xx-0.25)*(xx-0.25)+yy*yy+(zz+0.25)*(zz+0.25)).lt.0.1) then
+#ifdef MOREGENGETFORCE
+                           scal(i,j,k,2) = scal(i,j,k,2) + ds
+#else
+                           scal(i,j,k,1) = scal(i,j,k,1) - ds
+#endif
+                        endif
+                        if (sqrt((xx+0.25)*(xx+0.25)+yy*yy+(zz+0.25)*(zz+0.25)).lt.0.1) then
+                           scal(i,j,k,3) = scal(i,j,k,3) + ds
+                        endif                        
+                     enddo
+                  enddo
+               enddo
+	    end do
+         end do
+      end do
+
+      end
+c
+c
+c ::: -----------------------------------------------------------
+c
+c     This routine averages the mac face velocities for makeforce at half time
+c
+      subroutine FORT_AVERAGE_EDGE_STATES(vel,umacx,umacy,umacz,
+     &                                    DIMS(vel),DIMS(umacx),DIMS(umacy),DIMS(umacz),
+     &                                    getForceVerbose)
+
+      implicit none
+
+      integer    DIMDEC(vel)
+      integer    DIMDEC(umacx)
+      integer    DIMDEC(umacy)
+      integer    DIMDEC(umacz)
+      integer    getForceVerbose
+      REAL_T     vel  (DIMV(vel),SDIM)
+      REAL_T     umacx(DIMV(umacx))
+      REAL_T     umacy(DIMV(umacy))
+      REAL_T     umacz(DIMV(umacz))
+
+      integer i,j,k,n
+      integer ilo,jlo,klo
+      integer ihi,jhi,khi
+
+      integer isioproc
+
+      REAL_T  velmin(3)
+      REAL_T  velmax(3)
+
+      do n = 1, 3
+         velmin(n) = 1.d234
+         velmax(n) = -1.d234
+      enddo
+
+      ilo = vel_l1
+      jlo = vel_l2
+      klo = vel_l3
+      ihi = vel_h1
+      jhi = vel_h2
+      khi = vel_h3
+
+      do k = klo, khi
+         do j = jlo, jhi
+            do i = ilo, ihi
+               vel(i,j,k,1) = half*(umacx(i,j,k)+umacx(i+1,j,k))
+               vel(i,j,k,2) = half*(umacy(i,j,k)+umacy(i,j+1,k))
+               vel(i,j,k,3) = half*(umacz(i,j,k)+umacz(i,j,k+1))
+               do n=1, 3
+                  velmin(n)=min(velmin(n),vel(i,j,k,n))
+                  velmax(n)=max(velmax(n),vel(i,j,k,n))
+               enddo
+            enddo
+         enddo
+      enddo
+      
+      if (getForceVerbose.gt.0) then
+         call bl_pd_is_ioproc(isioproc)
+         if (isioproc) then
+            do n = 1, 3
+               write (6,*) "mac velmin (",n,") = ",velmin(n)
+               write (6,*) "mac velmax (",n,") = ",velmax(n)
+            enddo
+         endif
+      endif
+
+      end
+c
 c
 c ::: -----------------------------------------------------------
 c
 c     This routine add the forcing terms to the momentum equation
 c
-      subroutine FORT_MAKEFORCE(time,force,rho,
-     &                          DIMS(istate),DIMS(state),
-     &                          dx,xlo,xhi,gravity,scomp,ncomp)
+      subroutine FORT_MAKEFORCE(time,force,
+#ifdef MOREGENGETFORCE
+     &                          vel,
+#endif
+     &                          scal,
+     &                          DIMS(force),
+#ifdef MOREGENGETFORCE
+     &                          DIMS(vel),
+#endif
+     &                          DIMS(scal),
+     &                          dx,xlo,xhi,gravity,scomp,ncomp
+#ifdef MOREGENGETFORCE
+     &,                         nscal,getForceVerbose
+#endif
+     &)
 
       implicit none
 
-      integer    DIMDEC(state)
-      integer    DIMDEC(istate)
+      integer    DIMDEC(force)
+      integer    DIMDEC(scal)
       integer    scomp, ncomp
       REAL_T     time, dx(SDIM)
       REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     force  (DIMV(istate),scomp+1:scomp+ncomp)
-      REAL_T     rho    (DIMV(state))
+      REAL_T     force  (DIMV(force),scomp:scomp+ncomp-1)
       REAL_T     gravity
+#ifdef MOREGENGETFORCE
+      integer    DIMDEC(vel)
+      integer    nscal, getForceVerbose
+      REAL_T     vel    (DIMV(vel),0:SDIM-1)
+      REAL_T     scal   (DIMV(scal),0:nscal-1)
+#else
+      REAL_T     scal   (DIMV(scal),0:0)
+#endif
 
       REAL_T     Lx, Ly, Lz, Lmin, HLx, HLy, HLz
       REAL_T     kappa, kappaMax
@@ -1901,29 +2195,127 @@ c
       REAL_T  zlo
       integer kx, ky, kz, mode_count, xstep, ystep, zstep
       integer isioproc
-      integer nXvel, nYvel, nZvel, nRho, nTrac
+      integer nXvel, nYvel, nZvel, nRho, nTrac, nTrac2, nRhoScal, nTracScal, nTrac2Scal
+
+#ifdef MOREGENGETFORCE
+      REAL_T  velmin(0:SDIM-1)
+      REAL_T  velmax(0:SDIM-1)
+      REAL_T  scalmin(0:nscal-1)
+      REAL_T  scalmax(0:nscal-1)
+      REAL_T  forcemin(scomp:scomp+ncomp-1)
+      REAL_T  forcemax(scomp:scomp+ncomp-1)
+#endif
 
       hx = dx(1)
       hy = dx(2)
       hz = dx(3)
 
-      ilo = istate_l1
-      jlo = istate_l2
-      klo = istate_l3
-      ihi = istate_h1
-      jhi = istate_h2
-      khi = istate_h3
+      ilo = force_l1
+      jlo = force_l2
+      klo = force_l3
+      ihi = force_h1
+      jhi = force_h2
+      khi = force_h3
 
 c     Assumes components are in the following order
-      nXvel = 1
-      nYvel = 2
-      nZvel = 3
-      nRho  = 4
-      nTrac = 5
+      nXvel  = 0
+      nYvel  = 1
+      nZvel  = 2
+      nRho   = 3
+      nTrac  = 4
+      nTrac2 = 5
 
+      nRhoScal   = nRho-SDIM
+      nTracScal  = nTrac-SDIM
+      nTrac2Scal = nTrac2-SDIM
+
+#ifdef MOREGENGETFORCE
+      if (getForceVerbose.gt.0) then
+         call bl_pd_is_ioproc(isioproc)
+         if (isioproc) then
+
+            write (6,*) "In MAKEFORCE"
+            
+            write (6,*) "probtype = ",probtype
+            write (6,*) "gravity = ",gravity
+            write (6,*) "scomp = ",scomp
+            write (6,*) "ncomp = ",ncomp
+            write (6,*) "nscal = ",nscal
+            
+            do n = 0, SDIM-1
+               velmin(n) = 1.d234
+               velmax(n) = -1.d234
+            enddo
+            do n = 0, nscal-1
+               scalmin(n) = 1.d234
+               scalmax(n) = -1.d234
+            enddo
+            
+c     Get min/max
+            do k = klo, khi
+               do j = jlo, jhi
+                  do i = ilo, ihi
+c     Velocities
+                     do n = 0, SDIM-1
+                        if (vel(i,j,k,n).gt.velmax(n)) then
+                           velmax(n)=vel(i,j,k,n)
+                        endif
+                        if (vel(i,j,k,n).lt.velmin(n)) then
+                           velmin(n)=vel(i,j,k,n)
+                        endif
+                     enddo
+c     Scalars
+                     do n = 0, nscal-1
+                        if (scal(i,j,k,n).gt.scalmax(n)) then
+                           scalmax(n)=scal(i,j,k,n)
+                        endif
+                        if (scal(i,j,k,n).lt.scalmin(n)) then
+                           scalmin(n)=scal(i,j,k,n)
+                        endif
+                     enddo
+                     
+                  enddo
+               enddo
+            enddo
+            
+            do n = 0, SDIM-1
+               write (6,*) "velmin (",n,") = ",velmin(n)
+               write (6,*) "velmax (",n,") = ",velmax(n)
+            enddo
+            do n = 0, nscal-1
+               write (6,*) "scalmin(",n,") = ",scalmin(n)
+               write (6,*) "scalmax(",n,") = ",scalmax(n)
+            enddo
+         endif
+      endif
+#endif
+
+c
+c     Here's where the forcing actually gets done
+c
+      
       if (scomp.eq.0) then
+c
 c     Do velocity forcing
-         if (probtype.eq.14.or.probtype.eq.15) then
+c
+         if (probtype.eq.20) then 
+            do k = klo, khi
+               z = zlo + hz*(float(k-klo) + half)
+               do j = jlo, jhi
+                  y = xlo(2) + hy*(float(j-jlo) + half)
+                  do i = ilo, ihi
+                     x = xlo(1) + hx*(float(i-ilo) + half)
+                     force(i,j,k,nXvel) = zero
+                     force(i,j,k,nYvel) = zero
+#ifdef MOREGENGETFORCE
+                     force(i,j,k,nZvel) = thermal_expansion*scal(i,j,k,nTrac2Scal)
+#else
+                     force(i,j,k,nXvel) = zero
+#endif
+                  enddo
+               enddo
+            enddo
+         else if (probtype.eq.14.or.probtype.eq.15) then
 #ifdef DO_IAMR_FORCE
 c     Homogeneous Isotropic Turbulence
             twicePi=two*Pi
@@ -2009,14 +2401,50 @@ c     Adjust z offset for probtype 15
                         enddo
                      enddo
                      if (use_rho_in_forcing.eq.1) then
-                        force(i,j,k,nXvel) = f1*rho(i,j,k)
-                        force(i,j,k,nYvel) = f2*rho(i,j,k)
-                        force(i,j,k,nZvel) = f3*rho(i,j,k)
+                        force(i,j,k,nXvel) = f1*scal(i,j,k,nRhoScal)
+                        force(i,j,k,nYvel) = f2*scal(i,j,k,nRhoScal)
+                        force(i,j,k,nZvel) = f3*scal(i,j,k,nRhoScal)
                      else
                         force(i,j,k,nXvel) = f1
                         force(i,j,k,nYvel) = f2
                         force(i,j,k,nZvel) = f3
                      endif
+                  enddo
+               enddo
+            enddo
+#else
+            do k = klo, khi
+               do j = jlo, jhi
+                  do i = ilo, ihi
+                     force(i,j,k,nXvel) = zero
+                     force(i,j,k,nYvel) = zero
+                     force(i,j,k,nXvel) = zero
+                  enddo
+               enddo
+            enddo
+#endif
+         else if (probtype.eq.19) then
+#ifdef MOREGENGETFORCE
+c     Coriolis
+            do k = klo, khi
+               z = zlo + hz*(float(k-klo) + half)
+               do j = jlo, jhi
+                  y = xlo(2) + hy*(float(j-jlo) + half)
+                  do i = ilo, ihi
+                     x = xlo(1) + hx*(float(i-ilo) + half)
+                     force(i,j,k,nXvel) = scal(i,j,k,nRhoScal)*( two*omega*vel(i,j,k,nYvel)+omega*omega*x)
+                     force(i,j,k,nYvel) = scal(i,j,k,nRhoScal)*(-two*omega*vel(i,j,k,nXvel)+omega*omega*y)
+                     force(i,j,k,nZvel) = gravity*scal(i,j,k,nRhoScal)
+                  enddo
+               enddo
+            enddo
+#else
+            do k = klo, khi
+               do j = jlo, jhi
+                  do i = ilo, ihi
+                     force(i,j,k,nXvel) = zero
+                     force(i,j,k,nYvel) = zero
+                     force(i,j,k,nXvel) = zero
                   enddo
                enddo
             enddo
@@ -2028,9 +2456,9 @@ c     Angled gravity
             do k = klo, khi
                do j = jlo, jhi
                   do i = ilo, ihi
-                     force(i,j,k,nXvel) = rho(i,j,k)*sga
+                     force(i,j,k,nXvel) = scal(i,j,k,nRhoScal)*sga
                      force(i,j,k,nYvel) = zero
-                     force(i,j,k,nZvel) = rho(i,j,k)*cga
+                     force(i,j,k,nZvel) = scal(i,j,k,nRhoScal)*cga
                   enddo
                enddo
             enddo
@@ -2041,7 +2469,7 @@ c     Default to gravity...
                   do i = ilo, ihi
                      force(i,j,k,nXvel) = zero
                      force(i,j,k,nYvel) = zero
-                     force(i,j,k,nZvel) = gravity*rho(i,j,k)
+                     force(i,j,k,nZvel) = gravity*scal(i,j,k,nRhoScal)
                   enddo
                enddo
             enddo
@@ -2061,10 +2489,14 @@ c     End of velocity forcing
       endif
 
       if ((scomp+ncomp).gt.BL_SPACEDIM) then
+c
 c     Scalar forcing
-         do n = max(scomp+1,nRho), scomp+ncomp
+c
+         do n = max(scomp,nRho), scomp+ncomp-1
             if (n.eq.nRho) then
+c
 c     Density
+c
                do k = klo, khi
                   do j = jlo, jhi
                      do i = ilo, ihi
@@ -2073,7 +2505,9 @@ c     Density
                   enddo
                enddo
             else if (n.eq.nTrac) then
+c
 c     Tracer
+c
                do k = klo, khi
                   do j = jlo, jhi
                      do i = ilo, ihi
@@ -2081,8 +2515,38 @@ c     Tracer
                      enddo
                   enddo
                enddo
-            else
+            else if (n.eq.nTrac2) then
+c
 c     Other scalar
+c
+               if (probtype.eq.20) then 
+c
+c     Temperature perturbation
+c
+                  do k = klo, khi
+                     do j = jlo, jhi
+                        do i = ilo, ihi
+#ifdef MOREGENGETFORCE
+                           force(i,j,k,n) = heating_coeff * scal(i,j,k,nTracScal)
+#else
+                           force(i,j,k,n) = zero
+#endif
+                        enddo
+                     enddo
+                  enddo
+               else
+                  do k = klo, khi
+                     do j = jlo, jhi
+                        do i = ilo, ihi
+                           force(i,j,k,n) = zero
+                        enddo
+                     enddo
+                  enddo
+               endif
+            else
+c
+c     Other scalar
+c
                do k = klo, khi
                   do j = jlo, jhi
                      do i = ilo, ihi
@@ -2093,6 +2557,29 @@ c     Other scalar
             endif
          enddo
       endif
+      
+#ifdef MOREGENGETFORCE
+      if (getForceVerbose.gt.0 .and. isioproc) then
+         do n = scomp,scomp+ncomp-1
+            forcemin(n) = 1.d234
+            forcemax(n) = -1.d234
+         enddo
+         do k = klo, khi
+            do j = jlo, jhi
+               do i = ilo, ihi
+                  do n = scomp,ncomp+scomp-1
+                     forcemin(n) = min(forcemin(n),force(i,j,k,n))
+                     forcemax(n) = max(forcemax(n),force(i,j,k,n))
+                  enddo
+               enddo
+            enddo
+         enddo
+         do n = scomp,ncomp+scomp-1
+            write (6,*) "forcemin (",n,") = ",forcemin(n)
+            write (6,*) "forcemax (",n,") = ",forcemax(n)
+         enddo
+      endif
+#endif
 
       end
 
@@ -2148,15 +2635,23 @@ c     ::: -----------------------------------------------------------
                end do
             end do
          end do
-      end if
-
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               tag(i,j,k) = cvmgt(set,tag(i,j,k),rho(i,j,k,1).lt.denerr)
+      else if ( probtype .eq. 19 ) then
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),rho(i,j,k,1).gt.denerr)
+               end do
             end do
          end do
-      end do
+      else
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),rho(i,j,k,1).lt.denerr)
+               end do
+            end do
+         end do
+      endif
 
       end
 
@@ -2395,11 +2890,68 @@ c     probtype = VISCOUS BENCHMARK
            endif
         end do
 
+      else if (probtype .eq. 19) then
+ 
+        do k = lo(3), hi(3)
+           z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
+           if (z.lt.ref_height) then
+              do j = lo(2), hi(2)
+                 do i = lo(1), hi(1)
+                    tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+                 end do
+              end do
+           endif
+        end do
+
+      else if (probtype .eq. 20) then
+ 
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+        
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
         stop
       end if
  
+      end
+
+      subroutine FORT_ADV2ERROR (tag,DIMS(tag),set,clear,
+     &                           adv,DIMS(adv),lo,hi,nvar,
+     &                           domlo,domhi,dx,xlo,
+     &			         problo,time,level)
+      implicit none
+      integer   DIMDEC(tag)
+      integer   DIMDEC(adv)
+      integer   lo(SDIM), hi(SDIM)
+      integer   ng, nvar, set, clear, level
+      integer   domlo(SDIM), domhi(SDIM)
+      REAL_T    dx(SDIM), xlo(SDIM), problo(SDIM), time
+      integer   tag(DIMV(tag))
+      REAL_T    adv(DIMV(adv),nvar)
+
+      REAL_T    x, y, z, ax, ay, az, aerr
+      integer   i, j, k
+
+#include "probdata.H"
+
+      if (probtype .eq. 20) then
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+               end do
+            end do
+         end do
+      else
+         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
+         stop
+      end if
+      
       end
 
 c ::: -----------------------------------------------------------
@@ -2501,6 +3053,10 @@ c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 17) then
 
       else if (probtype .eq. 18) then
+
+      else if (probtype .eq. 19) then
+
+      else if (probtype .eq. 20) then
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
@@ -2710,6 +3266,19 @@ c     probtype = VISCOUS BENCHMARK
          end do
 
       else if (probtype .eq. 18) then
+
+         do k = lo(3), hi(3)
+            z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
+            if (z.lt.ref_height) then
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  end do
+               end do
+            endif
+         end do
+
+      else if (probtype .eq. 19) then
 
          do k = lo(3), hi(3)
             z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
