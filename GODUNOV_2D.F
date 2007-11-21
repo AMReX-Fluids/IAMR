@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.42 2006-09-11 18:04:56 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.43 2007-11-21 22:13:44 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -382,8 +382,8 @@ c
       REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
       REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
 
-      REAL_T uedge(DIMV(uedge)), xstate(DIMV(uedge))
-      REAL_T vedge(DIMV(vedge)), ystate(DIMV(vedge))
+      REAL_T uedge(DIMV(uedge)), xstate(DIMV(xstate))
+      REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate))
 
       REAL_T xlo(DIMV(work)), xhi(DIMV(work))
       REAL_T ylo(DIMV(work)), yhi(DIMV(work))
@@ -428,11 +428,13 @@ c
          end do
       end if
 
-      call trans_xbc(s,DIMS(s),
-     &     xlo,xhi,DIMS(work),uad,DIMS(work),lo,hi,n,bc,eps_for_bc)
+      call trans_xbc(
+     &     s,DIMS(s),
+     &     xlo,xhi,DIMS(work),uad,DIMS(work),
+     &     lo,hi,n,bc,eps_for_bc)
       
-      do i = imin, imax+1
-         do j = jmin-1,jmax+1
+      do j = jmin-1,jmax+1
+         do i = imin, imax+1
             fu  = cvmgt(zero,one,abs(uad(i,j)).lt.eps)
             stx = cvmgp(xlo(i,j),xhi(i,j),uad(i,j))
             xlo(i,j) = fu*stx + (one - fu)*half*(xhi(i,j)+xlo(i,j))
@@ -455,8 +457,10 @@ c
          end do
       end if
 
-      call trans_ybc(s,DIMS(s),
-     &     ylo,yhi,DIMS(work),vad,DIMS(work),lo,hi,n,bc,eps_for_bc)
+      call trans_ybc(
+     &     s,DIMS(s),
+     &     ylo,yhi,DIMS(work),vad,DIMS(work),
+     &     lo,hi,n,bc,eps_for_bc)
 
       do j = jmin,jmax+1
          do i = imin-1,imax+1
@@ -681,8 +685,8 @@ c     trace the state to the cell edges
 c
       do j = jmin-1,jmax+1
          do i = imin,  imax+1
-            xlo(i,j) = s(i-1,j) + (half  - dthx*uedge(i,j))*sx(i-1,j)
-            xhi(i,j) = s(i,  j) + (-half - dthx*uedge(i,j))*sx(i,  j)
+            xlo(i,j) = s(i-1,j) + (half - dthx*uedge(i,j))*sx(i-1,j)
+            xhi(i,j) = s(i,  j) - (half + dthx*uedge(i,j))*sx(i,  j)
          end do
       end do
 
@@ -718,8 +722,8 @@ c
 
       do j = jmin,  jmax+1
          do i = imin-1,imax+1
-            ylo(i,j) = s(i,j-1) + (half  - dthy*vedge(i,j))*sy(i,j-1)
-            yhi(i,j) = s(i,j)   + (-half - dthy*vedge(i,j))*sy(i,j)
+            ylo(i,j) = s(i,j-1) + (half - dthy*vedge(i,j))*sy(i,j-1)
+            yhi(i,j) = s(i,j)   - (half + dthy*vedge(i,j))*sy(i,j)
          end do
       end do
 

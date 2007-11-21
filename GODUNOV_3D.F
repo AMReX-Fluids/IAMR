@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.35 2007-04-18 00:06:13 jbb Exp $
+c $Id: GODUNOV_3D.F,v 1.36 2007-11-21 22:14:45 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -530,11 +530,10 @@ c
       REAL_T w(DIMV(s))
       REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
       REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
-      REAL_T stzlo(DIM3(s)),stzhi(DIM3(s)),slzscr(DIM3(s),4)
-
-      REAL_T uedge(DIMV(uedge)), xstate(DIMV(uedge))
-      REAL_T vedge(DIMV(vedge)), ystate(DIMV(vedge))
-      REAL_T wedge(DIMV(wedge)), zstate(DIMV(wedge))
+      REAL_T stzlo(DIM3(s)),stzhi(DIM3(s)),slzscr(DIM3(s),4) 
+      REAL_T uedge(DIMV(uedge)), xstate(DIMV(xstate))
+      REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate))
+      REAL_T wedge(DIMV(wedge)), zstate(DIMV(zstate))
 
       REAL_T xlo(DIMV(work)), xhi(DIMV(work))
       REAL_T ylo(DIMV(work)), yhi(DIMV(work))
