@@ -146,6 +146,8 @@ int  NavierStokes::num_state_type = 2;     // for backward compatibility
 
 int  NavierStokes::do_divu_sync = 0;       // for debugging new correction to MLSP
 
+int NavierStokes::DoTrac2() {return do_trac2;}
+
 static
 BoxArray
 GetBndryCells (const BoxArray& ba,
@@ -3171,6 +3173,16 @@ NavierStokes::sum_turbulent_quantities ()
 }
 
 #ifdef SUMJET
+
+#include <BLFort.H>
+
+BL_FORT_PROC_DECL(BL_NS_DOTRAC2,bl_ns_dotrac2)(int* dotrac2)
+{
+  if (ParallelDescriptor::IOProcessor()) 
+    std::cout << "In DoTrac2?" << std::endl;
+  *dotrac2 = NavierStokes::DoTrac2();
+}
+
 void
 NavierStokes::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,  int rsize,  int ksize, int jetVars)
 {
@@ -3178,6 +3190,7 @@ NavierStokes::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,  in
 
     const int turbGrow(0);
     const int presGrow(0);
+
     MultiFab* turbMF = derive("JetVars",time,turbGrow);
     MultiFab* presMF = derive("JetPresVars",time,presGrow);
 
@@ -3249,12 +3262,12 @@ NavierStokes::sum_jet_quantities ()
     const int ksize(parent->Geom(finestLevel).Domain().length(2));
     const int rsize=isize>>1;
     const int jetVars(104);
-    int refRatio(1);
 
     if (ParallelDescriptor::IOProcessor())
 	std::cout << "NavierStokes::sum_jet_quantities():" << std::endl
-		  << "   rsize: " << rsize << std::endl
-		  << "   ksize: " << ksize << std::endl;
+		  << "   jetVars: " << jetVars << std::endl
+		  << "   rsize  : " << rsize << std::endl
+		  << "   ksize  : " << ksize << std::endl;
     
     Real* jetData = new Real[jetVars*ksize*rsize];
 
@@ -3274,6 +3287,7 @@ NavierStokes::sum_jet_quantities ()
 
     if (ParallelDescriptor::IOProcessor())
     {
+        std::cout << "      Creating JetData..." << std::endl;
         std::string DirPath = "JetData";
         if (!BoxLib::UtilCreateDirectory(DirPath, 0755))
             BoxLib::CreateDirectoryFailed(DirPath);
@@ -3312,6 +3326,7 @@ NavierStokes::sum_jet_quantities ()
 		fprintf(file,"\n");
 	    }
 	    fclose(file);
+	    std::cout << "   ...done." << std::endl;
 	}
 #else
 	sprintf(filename,"JetData/JD%04d",steps);
@@ -3330,7 +3345,7 @@ NavierStokes::sum_jet_quantities ()
 	fclose(file);
 #endif
     }
-    
+
     delete [] jetData;
 }
 #endif

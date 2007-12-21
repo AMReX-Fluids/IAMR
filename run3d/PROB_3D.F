@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.42 2007-11-07 20:58:28 aaspden Exp $
+c $Id: PROB_3D.F,v 1.43 2007-12-21 18:38:17 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -93,7 +93,7 @@ c ::: -----------------------------------------------------------
       namelist /fortin/ Vco, Rfu, Rtran, tVco_l, tVco_r, Vco_l, Vco_r
 
       namelist /fortin/ grav_angle, omega, infl_time_offset, ref_centre, ref_radius,
-     &                  thermal_expansion, heating_coeff
+     &                  thermal_expansion, heating_coeff, heating_centre, heating_radius
 
 
 #ifdef DO_IAMR_FORCE
@@ -1460,11 +1460,11 @@ c
 	    do i = lo(1), hi(1)
                x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-c              vel(i,j,k,1) =  velfact*sin(x)*cos(y)*cos(z)
-c              vel(i,j,k,2) = -velfact*cos(x)*sin(y)*cos(z)
+               vel(i,j,k,1) =  velfact*sin(x)*cos(y)*cos(z)
+               vel(i,j,k,2) = -velfact*cos(x)*sin(y)*cos(z)
 
-               vel(i,j,k,1) = sin(x-pi*0.5d0)*cos(y-pi)*cos(z-pi*0.5d0)
-               vel(i,j,k,2) = -cos(x-pi*0.5d0)*sin(y-pi)*cos(z-pi*0.5d0)
+c               vel(i,j,k,1) = sin(x-pi*0.5d0)*cos(y-pi)*cos(z-pi*0.5d0)
+c               vel(i,j,k,2) = -cos(x-pi*0.5d0)*sin(y-pi)*cos(z-pi*0.5d0)
                vel(i,j,k,3) = zero
 
                scal(i,j,k,1) = denfact
@@ -1951,7 +1951,7 @@ c     d,e,f are random modes in the range (1,mx)
                vel(i,j,k,2)  = -omega*x
                vel(i,j,k,3)  = zero
 
-               if (z.gt.ref_height) then
+               if (ref_height.gt.zero.and.z.gt.ref_height) then
 c     Maybe try a real free surface? Let's soften the blow with a hyperbolic tangent though
 c     To run without the free surface, make sure ref_height is greater than the top of the box
                   scal(i,j,k,1) = half*rhozero*((one+denfact)-(one-denfact)*tanh((z-ref_height)/(two*delta0)))
@@ -2194,7 +2194,7 @@ c
       REAL_T  xt, yt, zt
       REAL_T  zlo
       integer kx, ky, kz, mode_count, xstep, ystep, zstep
-      integer isioproc
+      integer isioproc, do_trac2
       integer nXvel, nYvel, nZvel, nRho, nTrac, nTrac2, nRhoScal, nTracScal, nTrac2Scal
 
 #ifdef MOREGENGETFORCE
@@ -2205,6 +2205,8 @@ c
       REAL_T  forcemin(scomp:scomp+ncomp-1)
       REAL_T  forcemax(scomp:scomp+ncomp-1)
 #endif
+
+      call bl_ns_dotrac2(do_trac2)
 
       hx = dx(1)
       hy = dx(2)
@@ -2307,10 +2309,30 @@ c
                      x = xlo(1) + hx*(float(i-ilo) + half)
                      force(i,j,k,nXvel) = zero
                      force(i,j,k,nYvel) = zero
+                     force(i,j,k,nZvel) = zero
 #ifdef MOREGENGETFORCE
-                     force(i,j,k,nZvel) = thermal_expansion*scal(i,j,k,nTrac2Scal)
-#else
+                     if (do_trac2) then
+                        force(i,j,k,nZvel) = force(i,j,k,nZvel) + thermal_expansion*scal(i,j,k,nTrac2Scal)
+                     endif
+#endif
+                  enddo
+               enddo
+            enddo
+         else if (probtype.eq.18) then 
+c     Round jet/plume
+            do k = klo, khi
+               z = zlo + hz*(float(k-klo) + half)
+               do j = jlo, jhi
+                  y = xlo(2) + hy*(float(j-jlo) + half)
+                  do i = ilo, ihi
+                     x = xlo(1) + hx*(float(i-ilo) + half)
                      force(i,j,k,nXvel) = zero
+                     force(i,j,k,nYvel) = zero
+                     force(i,j,k,nZvel) = gravity*scal(i,j,k,nRhoScal)
+#ifdef MOREGENGETFORCE
+                     if (do_trac2.eq.1) then
+                        force(i,j,k,nZvel) = force(i,j,k,nZvel) + thermal_expansion*scal(i,j,k,nTrac2Scal)
+                     endif
 #endif
                   enddo
                enddo
@@ -2515,14 +2537,12 @@ c
                      enddo
                   enddo
                enddo
-            else if (n.eq.nTrac2) then
+            else if (n.eq.nTrac2.and.do_trac2.eq.1) then
 c
 c     Other scalar
 c
                if (probtype.eq.20) then 
-c
 c     Temperature perturbation
-c
                   do k = klo, khi
                      do j = jlo, jhi
                         do i = ilo, ihi
@@ -2534,7 +2554,26 @@ c
                         enddo
                      enddo
                   enddo
+               else  if (probtype.eq.18) then 
+c     Round Jet/Plume
+                  do k = klo, khi
+                     z = zlo + hz*(float(k-klo) + half)
+                     do j = jlo, jhi
+                        do i = ilo, ihi
+#ifdef MOREGENGETFORCE
+                           if (abs(z-heating_centre).lt.heating_radius) then 
+                              force(i,j,k,n) = heating_coeff * scal(i,j,k,nTracScal)
+                           else
+                              force(i,j,k,n) = zero
+                           endif
+#else
+                           force(i,j,k,n) = zero
+#endif
+                        enddo
+                     enddo
+                  enddo
                else
+c     Some other probtype
                   do k = klo, khi
                      do j = jlo, jhi
                         do i = ilo, ihi
@@ -3844,7 +3883,7 @@ c ::: -----------------------------------------------------------
                   do i = ARG_L1(adv), ARG_H1(adv)
                      x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                      r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
-                     adv(i,j,k) = half*(one-tanh(two*(r-jet_width)/delta0))
+                     adv(i,j,k) = jet_temp*half*(one-tanh(two*(r-jet_width)/delta0))
                   enddo
                enddo
             enddo

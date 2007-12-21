@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.96 2007-11-07 20:58:27 aaspden Exp $
+// $Id: NavierStokes.H,v 1.97 2007-12-21 18:38:17 aaspden Exp $
 //
 
 #include <LevelBld.H>
@@ -248,6 +248,8 @@ public:
     {
       return gravity;
     }
+
+    static int DoTrac2();
 
 protected:
 

@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.24 2007-11-07 20:58:27 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.25 2007-12-21 18:38:17 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1124,7 +1124,7 @@ c     Z Gradient Z Gradient
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
 
-      integer    i,j,k,n
+      integer    i,j,k,n,nvars,do_trac2
 c      REAL_T     x, y, z
 c      REAL_T     hx, hy, hz
 
@@ -1140,6 +1140,14 @@ c      hz = delta(3)
       tdy = two*delta(2)
       tdz = two*delta(3)
 
+      call bl_ns_dotrac2(do_trac2)
+
+      if (do_trac2.eq.1) then
+         nvars=6
+      else
+         nvars=5
+      endif
+
       do k = lo(3), hi(3)
 c         z = zlo + hz * ( float( k-lo(3) ) + half )
          do j = lo(2), hi(2)
@@ -1147,12 +1155,20 @@ c            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
             do i = lo(1), hi(1)
 c               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
 
-               do n = 1, 6
+               do n = 1, nvars
                   e(i,j,k,n+00) = dat(i,j,k,n)
                   e(i,j,k,n+06) = (dat(i+1,j,k,n)-dat(i-1,j,k,n))/tdx
                   e(i,j,k,n+12) = (dat(i,j+1,k,n)-dat(i,j-1,k,n))/tdy
                   e(i,j,k,n+18) = (dat(i,j,k+1,n)-dat(i,j,k-1,n))/tdz
                enddo
+
+               if (do_trac2.eq.1) then
+                  n = 6
+                  e(i,j,k,n+00) = zero
+                  e(i,j,k,n+06) = zero
+                  e(i,j,k,n+12) = zero
+                  e(i,j,k,n+18) = zero
+               endif
 
             enddo
          enddo
