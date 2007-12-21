@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.36 2007-11-21 22:14:45 almgren Exp $
+c $Id: GODUNOV_3D.F,v 1.37 2007-12-21 20:45:29 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -728,16 +728,26 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP) then
                   if (n.eq.XVEL) then
                      if (velpred.eq.1) then
+#ifndef ALLOWXINFLOW
                         stxhi(imin) = MIN(stxhi(imin),zero)
+#endif
                         stxlo(imin) = stxhi(imin)
                      else
                         if (uad(imin,j,k).ge.zero) then
+#ifndef ALLOWXINFLOW
                            stxhi(imin) = MIN(stxhi(imin),zero)
+#endif
                            stxlo(imin) = stxhi(imin)
                         endif
                      endif
                   else
                      stxlo(imin) = stxhi(imin)
+#ifdef NOVERTICALINFLOW
+c     Hack for no vertical inflow velocity
+                     if (n.eq.ZVEL)then
+                        stxlo(imin) = zero
+                     endif
+#endif
                   endif
                else if (bc(1,1).eq.REFLECT_EVEN) then
                   stxlo(imin) = stxhi(imin)
@@ -760,16 +770,26 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP) then
                   if (n.eq.XVEL) then
                      if (velpred.eq.1) then
+#ifndef ALLOWXINFLOW
                         stxlo(imax+1) = MAX(stxlo(imax+1),zero)
+#endif
                         stxhi(imax+1) = stxlo(imax+1)
                      else
                         if (uad(imax+1,j,k).le.zero) then
+#ifndef ALLOWXINFLOW
                            stxlo(imax+1) = MAX(stxlo(imax+1),zero)
+#endif
                            stxhi(imax+1) = stxlo(imax+1)
                         endif
                      endif
                   else
                      stxhi(imax+1) = stxlo(imax+1)
+#ifdef NOVERTICALINFLOW
+c     Hack for no vertical inflow velocity
+                     if (n.eq.ZVEL)then
+                        stxhi(imax+1) = zero
+                     endif
+#endif
                   endif
                else if (bc(1,2).eq.REFLECT_EVEN) then
                   stxhi(imax+1) = stxlo(imax+1)
@@ -855,16 +875,26 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP) then
                   if (n.eq.YVEL) then
                      if (velpred.eq.1) then
+#ifndef ALLOWYINFLOW
                         styhi(jmin) = MIN(styhi(jmin),zero)
+#endif
                         stylo(jmin) = styhi(jmin)
                      else
                         if (vad(i,jmin,k).ge.zero) then
+#ifndef ALLOWYINFLOW
                            styhi(jmin) = MIN(styhi(jmin),zero)
+#endif
                            stylo(jmin) = styhi(jmin)
                         endif
                      endif
                   else
                      stylo(jmin) = styhi(jmin)
+#ifdef NOVERTICALINFLOW
+c     Hack for no vertical inflow velocity
+                     if (n.eq.ZVEL)then
+                        stylo(jmin) = zero
+                     endif
+#endif
                   endif
                else if (bc(2,1).eq.REFLECT_EVEN) then
                   stylo(jmin) = styhi(jmin)
@@ -888,16 +918,26 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP) then
                   if (n.eq.YVEL) then
                      if (velpred.eq.1) then
+#ifndef ALLOWYINFLOW
                         stylo(jmax+1) = MAX(stylo(jmax+1),zero)
+#endif
                         styhi(jmax+1) = stylo(jmax+1)
                      else
                         if (vad(i,jmax+1,k).le.zero) then
+#ifndef ALLOWYINFLOW
                            stylo(jmax+1) = MAX(stylo(jmax+1),zero)
+#endif
                            styhi(jmax+1) = stylo(jmax+1)
                         endif
                      endif
                   else
                      styhi(jmax+1) = stylo(jmax+1)
+#ifdef NOVERTICALINFLOW
+c     Hack for no vertical inflow velocity
+                     if (n.eq.ZVEL)then
+                        styhi(jmax+1) = zero
+                     endif
+#endif
                   endif
                else if (bc(2,2).eq.REFLECT_EVEN) then
                   styhi(jmax+1) = stylo(jmax+1)
@@ -983,11 +1023,15 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                else if (bc(3,1).eq.FOEXTRAP.or.bc(3,1).eq.HOEXTRAP) then
                   if (n.eq.ZVEL) then
                      if (velpred.eq.1) then
+#ifndef ALLOWZINFLOW
                         stzhi(kmin) = MIN(stzhi(kmin),zero)
+#endif
                         stzlo(kmin) = stzhi(kmin)
                      else
                         if (wad(i,j,kmin).ge.zero) then
+#ifndef ALLOWZINFLOW
                            stzhi(kmin) = MIN(stzhi(kmin),zero)
+#endif
                            stzlo(kmin) = stzhi(kmin)
                         endif
                      endif
@@ -1015,11 +1059,15 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                else if (bc(3,2).eq.FOEXTRAP.or.bc(3,2).eq.HOEXTRAP) then
                   if (n.eq.ZVEL) then
                      if (velpred.eq.1) then
+#ifndef ALLOWZINFLOW
                         stzlo(kmax+1) = MAX(stzlo(kmax+1),zero)
+#endif
                         stzhi(kmax+1) = stzlo(kmax+1)
                      else
                         if (wad(i,j,kmax+1).le.zero) then
+#ifndef ALLOWZINFLOW
                            stzlo(kmax+1) = MAX(stzlo(kmax+1),zero)
+#endif
                            stzhi(kmax+1) = stzlo(kmax+1)
                         endif
                      endif
