@@ -3178,8 +3178,6 @@ NavierStokes::sum_turbulent_quantities ()
 
 BL_FORT_PROC_DECL(BL_NS_DOTRAC2,bl_ns_dotrac2)(int* dotrac2)
 {
-  if (ParallelDescriptor::IOProcessor()) 
-    std::cout << "In DoTrac2?" << std::endl;
   *dotrac2 = NavierStokes::DoTrac2();
 }
 
