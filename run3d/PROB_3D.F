@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.44 2007-12-21 18:43:01 aaspden Exp $
+c $Id: PROB_3D.F,v 1.45 2008-01-14 23:17:49 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -2301,7 +2301,7 @@ c     Do velocity forcing
 c
          if (probtype.eq.20) then 
             do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
+               z = xlo(3) + hz*(float(k-klo) + half)
                do j = jlo, jhi
                   y = xlo(2) + hy*(float(j-jlo) + half)
                   do i = ilo, ihi
@@ -2310,7 +2310,7 @@ c
                      force(i,j,k,nYvel) = zero
                      force(i,j,k,nZvel) = zero
 #ifdef MOREGENGETFORCE
-                     if (do_trac2) then
+                     if (do_trac2.eq.1) then
                         force(i,j,k,nZvel) = force(i,j,k,nZvel) + thermal_expansion*scal(i,j,k,nTrac2Scal)
                      endif
 #endif
@@ -2320,7 +2320,7 @@ c
          else if (probtype.eq.18) then 
 c     Round jet/plume
             do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
+               z = xlo(3) + hz*(float(k-klo) + half)
                do j = jlo, jhi
                   y = xlo(2) + hy*(float(j-jlo) + half)
                   do i = ilo, ihi
@@ -2448,7 +2448,7 @@ c     Adjust z offset for probtype 15
 #ifdef MOREGENGETFORCE
 c     Coriolis
             do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
+               z = xlo(3) + hz*(float(k-klo) + half)
                do j = jlo, jhi
                   y = xlo(2) + hy*(float(j-jlo) + half)
                   do i = ilo, ihi
@@ -2556,7 +2556,7 @@ c     Temperature perturbation
                else  if (probtype.eq.18) then 
 c     Round Jet/Plume
                   do k = klo, khi
-                     z = zlo + hz*(float(k-klo) + half)
+                     z = xlo(3) + hz*(float(k-klo) + half)
                      do j = jlo, jhi
                         do i = ilo, ihi
 #ifdef MOREGENGETFORCE
