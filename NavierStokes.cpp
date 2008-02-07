@@ -27,6 +27,7 @@
 #include <PROB_NS_F.H>
 #include <TagBox.H>
 #include <VISCOPERATOR_F.H>
+#include <BLFort.H>
 
 #define GEOM_GROW   1
 #define HYP_GROW    3
@@ -147,6 +148,11 @@ int  NavierStokes::num_state_type = 2;     // for backward compatibility
 int  NavierStokes::do_divu_sync = 0;       // for debugging new correction to MLSP
 
 int NavierStokes::DoTrac2() {return do_trac2;}
+
+BL_FORT_PROC_DECL(BL_NS_DOTRAC2,bl_ns_dotrac2)(int* dotrac2)
+{
+  *dotrac2 = NavierStokes::DoTrac2();
+}
 
 static
 BoxArray
@@ -3173,13 +3179,6 @@ NavierStokes::sum_turbulent_quantities ()
 }
 
 #ifdef SUMJET
-
-#include <BLFort.H>
-
-BL_FORT_PROC_DECL(BL_NS_DOTRAC2,bl_ns_dotrac2)(int* dotrac2)
-{
-  *dotrac2 = NavierStokes::DoTrac2();
-}
 
 void
 NavierStokes::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,  int rsize,  int ksize, int jetVars)
