@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.15 2004-09-08 21:01:48 almgren Exp $
+c $Id: PROJECTION_3D.F,v 1.16 2008-02-08 18:39:48 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -31,7 +31,8 @@ c     lo,hi      => index limits of cell centered interior
 c     fac        => fudge factor for filtering
 c     
 c     ----------------------------------------------------------
-c 
+c
+       implicit none
        integer    DIMDEC(p)
        REAL_T     pnew(DIMV(p))
        REAL_T     scratch(DIMV(p))
@@ -76,6 +77,7 @@ c
 c     This function converts unew into a velocity via
 c     Unew = Uold + alpha*Unew
 c
+       implicit none
        integer    lo(SDIM), hi(SDIM)
        REAL_T     dt
        integer    DIMDEC(uold),DIMDEC(unew)
@@ -102,7 +104,8 @@ c
      &     dt )
 c     
 c     This function converts unew into an acceleration
-c     
+c
+      implicit none
       integer    lo(SDIM), hi(SDIM)
       REAL_T     dt
       integer    DIMDEC(unew),DIMDEC(uold)
@@ -131,7 +134,8 @@ c
 c     
 c     This function updates un via un = un + alpha*uo
 c     The loop bounds are determined in the C++
-c     
+c
+      implicit none
       integer    boxlo(SDIM), boxhi(SDIM), nvar, ngrow
       REAL_T     alpha
       integer    DIMDEC(un),DIMDEC(uo)
@@ -156,6 +160,7 @@ c
 c 
 c     multiply A by a Radius r
 c
+      implicit none
       integer    ng,nr
       integer    n(SDIM)
       integer    DIMDEC(grid)
@@ -172,6 +177,7 @@ c
 c 
 c     divide A by a Radius r
 c
+      implicit none
       integer    ng,nr
       integer    n(SDIM)
       integer    DIMDEC(grid)
@@ -192,6 +198,7 @@ c
 c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
 c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
 c
+      implicit none
       integer    ng,nr
       integer    DIMDEC(grid)
       integer    domlo(3), domhi(3)
@@ -385,6 +392,7 @@ c ::: -----------------------------------------------------------
      &                        divgp,DIMS(divgp),
      &                        lo,hi,dx,mult,is_rz)
 
+      implicit none
       integer    DIMDEC(phi)
       integer    DIMDEC(sigma)
       integer    DIMDEC(divgp)

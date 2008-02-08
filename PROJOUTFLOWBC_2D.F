@@ -267,6 +267,7 @@ c *************************************************************************
      &                   DIMS(resid),resid,DIMS(dgphi),dgphi,
      &                   lo,hi,h,isPeriodic,maxnorm)
 
+      implicit none
       integer DIMDEC(beta)
       integer DIMDEC(rhs)
       integer DIMDEC(phi)
@@ -1253,6 +1254,7 @@ c *************************************************************************
       subroutine FORT_FILL_ONED(lenx,leny,length,faces,numOutFlowFaces,
      $                          cc0,cc1,cc2,cc3,r0,r1,r2,r3,cc_conn,nodal_conn,per,hx,hy)
 
+      implicit none
       integer lenx,leny,length
       integer faces(4)
       integer numOutFlowFaces
@@ -1515,6 +1517,7 @@ c *************************************************************************
       subroutine FORT_ALLPHI_FROM_X(lenx,leny,length,faces,numOutFlowFaces,
      $                              phi0,phi1,phi2,phi3,x)
 
+      implicit none
       integer lenx,leny,length
       integer numOutFlowFaces
       integer faces(4)
@@ -1624,6 +1627,7 @@ c *************************************************************************
 
       subroutine FORT_PHI_FROM_X(DIMS(phi),phi,length,x,per)
 
+      implicit none
       integer DIMDEC(phi)
       integer length
       REAL_T phi(DIMV(phi))

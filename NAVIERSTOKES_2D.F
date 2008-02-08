@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.15 2007-08-20 19:36:29 almgren Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.16 2008-02-08 18:39:48 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -21,7 +21,8 @@ c
 c 
 c     Compute a cell centered gradient from a node
 c     centered field.  Returns all components of GRADP
-c     
+c
+      implicit none
       integer    DIMDEC(p)
       integer    DIMDEC(gp)
       integer    lo(SDIM), hi(SDIM)
@@ -71,6 +72,7 @@ c     fv        = fine grid volume array
 c     lo,hi     = index limits of overlap (crse grid)
 c     ratios    = IntVect refinement ratio
 c     ----------------------------------------------------------
+      implicit none
       integer  DIMDEC(crse)
       integer  DIMDEC(cv)
       integer  DIMDEC(fine)
@@ -131,6 +133,7 @@ c
 c
 c     test for consistency of pressure nodes
 c
+      implicit none
       integer  DIMDEC(crse)
       integer  DIMDEC(fine)
       integer  lo(2), hi(2)
@@ -176,6 +179,7 @@ c :: ----------------------------------------------------------
 c ::
       subroutine FORT_PUTDOWN (crse,DIMS(crse),
      &			       fine,DIMS(fine),lo,hi,ratios)
+      implicit none
       integer  DIMDEC(crse)
       integer  DIMDEC(fine)
       integer  lo(2), hi(2)
@@ -212,6 +216,7 @@ c :: ----------------------------------------------------------
 c ::
        subroutine FORT_INCRMULT(a,DIMS(a),b,DIMS(b),lo,hi,alpha)
 
+       implicit none
        integer    DIMDEC(a)
        integer    DIMDEC(b)
        integer    lo(2), hi(2)
@@ -237,6 +242,7 @@ c :: ----------------------------------------------------------
 c ::
        subroutine FORT_MAXVAL(rho,DIMS(rho),DIMS(grid),tmp,mass)
 
+       implicit none
        integer DIMDEC(rho)
        integer DIMDEC(grid)
        REAL_T  rho(DIMV(rho))
@@ -282,6 +288,7 @@ c ::
        subroutine FORT_SUMMASS(rho,DIMS(rho),DIMS(grid),dx,mass,
      &                         r,irlo,irhi,rz_flag,tmp)
 
+       implicit none
        integer irlo, irhi, rz_flag
        integer DIMDEC(rho)
        integer DIMDEC(grid)
@@ -334,6 +341,7 @@ c ::
        subroutine FORT_SUMMASSSQ(rho,DIMS(rho),DIMS(grid),dx,mass,
      &                           r,irlo,irhi,rz_flag,tmp)
 
+       implicit none
        integer irlo, irhi, rz_flag
        integer DIMDEC(rho)
        integer DIMDEC(grid)
@@ -384,6 +392,7 @@ c ::
        subroutine FORT_SUMPRESS(press,DIMS(press),vol,DIMS(vol),lo,hi,
      $                          total_press,total_vol)
 
+       implicit none
        integer lo(2),hi(2)
        integer DIMDEC(press)
        integer DIMDEC(vol)
@@ -426,6 +435,7 @@ c ::
      &     DIMS(cfab), cfab,
      &     DIMS(efab), efab, nc, dir,
      &     isharm)
+      implicit none
       integer lo(SDIM), hi(SDIM), nc, dir, isharm
       integer DIMDEC(cfab)
       integer DIMDEC(efab)

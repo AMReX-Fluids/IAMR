@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_2D.F,v 1.10 2006-09-11 18:04:56 almgren Exp $
+c $Id: MACOPERATOR_2D.F,v 1.11 2008-02-08 18:39:48 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -33,6 +33,7 @@ c ::
        subroutine FORT_MACCOEF (cx,DIMS(cx),cy,DIMS(cy),
      &                          ax,DIMS(ax),ay,DIMS(ay),
      &                          rho,DIMS(rho),lo,hi,dx)
+       implicit none
        integer DIMDEC(cx)
        integer DIMDEC(cy)
        integer DIMDEC(ax)
@@ -104,6 +105,7 @@ c ::
      &                         ax,DIMS(ax),ay,DIMS(ay),
      &                         vol,DIMS(vol),rhs,DIMS(rhs),
      &                         lo,hi,scale)
+       implicit none
        integer DIMDEC(ux)
        integer DIMDEC(uy)
        integer DIMDEC(ax)
@@ -155,6 +157,7 @@ c ::
      &                           phi,DIMS(phi),rho,DIMS(rho),
      &                           lo,hi,dx,mult)
 
+       implicit none
        integer DIMDEC(ux)
        integer DIMDEC(uy)
        integer DIMDEC(phi)
@@ -221,6 +224,7 @@ c :: ----------------------------------------------------------
 c ::
        subroutine FORT_MACSYNCRHS(rhs,DIMS(rhs),lo,hi,
      &                            vol,DIMS(vol),rhsscale)
+       implicit none
        integer DIMDEC(rhs)
        integer DIMDEC(vol)
        integer lo(SDIM), hi(SDIM)

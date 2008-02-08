@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.43 2007-11-21 22:13:44 almgren Exp $
+c $Id: GODUNOV_2D.F,v 1.44 2008-02-08 18:39:48 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -28,7 +28,8 @@ c     This routine sets dt as dt = dt_est*cfl where
 c     dt_est is estimated from the actual velocities and their 
 c     total forcing
 c     ----------------------------------------------------------
-c 
+c
+      implicit none
       REAL_T    u, v
       REAL_T    small
       REAL_T    dt_start
@@ -97,6 +98,7 @@ c
 c     This subroutine computes the extrema of the density
 c     and velocities at cell centers
 c
+      implicit none
       integer DIMDEC(u)
       integer DIMDEC(v)
       integer DIMDEC(rho)
@@ -169,6 +171,7 @@ c
 c     This subroutine computes the extrema of the density
 c     and mac edge velocities
 c
+      implicit none
       integer DIMDEC(umac)
       integer DIMDEC(vmac)
       integer DIMDEC(rho)
@@ -358,6 +361,7 @@ c
      &     DIMS(work),
      &     bc,lo,hi,dt,dx,n,velpred, use_minion)
 c
+      implicit none
       integer i,j,n,velpred
       integer lo(SDIM),hi(SDIM),bc(SDIM,2)
       integer imin,jmin,imax,jmax
@@ -621,6 +625,7 @@ c     simplicity-efficiency in the new way of computing states
 c     and complexity in the old way.  By eliminating loops over
 c     state components though, the new way uses much less memory.
 c
+      implicit none
       integer i,j,n
       integer lo(SDIM),hi(SDIM),bc(SDIM,2)
       integer imin,jmin,imax,jmax
@@ -1087,6 +1092,7 @@ c     traced to cell faces in the x direction.  This is used for
 c     computing velocities and edge states used in calculating
 c     transverse derivatives
 c
+      implicit none
       integer DIMDEC(s), DIMDEC(xx), DIMDEC(uad)
       integer n
       integer lo(SDIM), hi(SDIM)
@@ -1178,6 +1184,7 @@ c     traced to cell faces in the y direction.  This is used for
 c     computing velocities and edge states used in calculating
 c     transverse derivatives
 c
+      implicit none
       integer DIMDEC(s), DIMDEC(yy), DIMDEC(vad)
       integer n
       integer lo(SDIM), hi(SDIM)
@@ -1640,6 +1647,7 @@ c
 c
 c     correct an convectively-advected field for under/over shoots
 c
+      implicit none
       integer DIMDEC(s)
       integer DIMDEC(sn)
       integer lo(SDIM), hi(SDIM)
@@ -1703,6 +1711,7 @@ c
 c
 c     correct an conservatively-advected field for under/over shoots
 c
+      implicit none
       integer DIMDEC(s)
       integer lo(SDIM), hi(SDIM)
       integer bc(SDIM,2)
@@ -1791,6 +1800,7 @@ c
 c
 c     sum pressure forcing into tforces
 c
+      implicit none
       integer i, j, n
       integer DIMDEC(tf)
       integer DIMDEC(gp)
@@ -1822,6 +1832,7 @@ c
 c     sum pressure forcing and viscous forcing into
 c     tforces
 c
+      implicit none
       integer i, j, n
       integer DIMDEC(tf)
       integer DIMDEC(visc)
@@ -1856,6 +1867,7 @@ c
 c     sum divU*S into tforces or divide tforces by rho
 c     depending on the value of iconserv
 c
+      implicit none
       integer nvar, iconserv
       integer lo(SDIM), hi(SDIM)
       integer i, j, n
@@ -1903,6 +1915,7 @@ c
 c     sum tforces, viscous foricing and divU*S into tforces
 c     depending on the value of iconserv
 c
+      implicit none
       integer nvar, iconserv
       integer lo(SDIM), hi(SDIM)
       integer i, j, n
@@ -1952,6 +1965,7 @@ c
 c
 c     update a field with a forcing term
 c
+      implicit none
       integer i, j, n, nvar
       integer DIMDEC(s)
       integer DIMDEC(sn)
@@ -1979,6 +1993,7 @@ c
 c
 c     correct 1st order rk to second-order
 c
+      implicit none
       integer i, j, n, nvar
       integer lo(SDIM), hi(SDIM)
       REAL_T dt,hdt
@@ -2012,6 +2027,7 @@ c
 c     update a field with an advective tendency
 c     and a forcing term
 c
+      implicit none
       integer i, j, n, nvar
       integer DIMDEC(s)
       integer DIMDEC(sn)
@@ -2048,6 +2064,7 @@ c
 c
 c     update the velocities
 c
+      implicit none
       integer i, j, n
       integer DIMDEC(u)
       integer DIMDEC(un)
@@ -2080,6 +2097,7 @@ c
 
       subroutine bdsslope(s,lo_1,lo_2,hi_1,hi_2,slx,sly,sc,dx)
 
+      implicit none
       integer lo_1,lo_2,hi_1,hi_2
       REAL_T      s(lo_1-3:hi_1+3,lo_2-3:hi_2+3)
       REAL_T    slx(lo_1-1:hi_1+1,lo_2-1:hi_2+1)
@@ -2516,6 +2534,7 @@ c
 
       subroutine bilin(poly,c,x,y,hx,hy,istart,iend,lo_1,hi_1)
 
+      implicit none
       integer lo_1,hi_1
       integer istart,iend
       REAL_T poly(lo_1-1:hi_1+1)

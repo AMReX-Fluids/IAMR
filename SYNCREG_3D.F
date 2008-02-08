@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.13 2002-08-29 22:14:52 car Exp $
+c $Id: SYNCREG_3D.F,v 1.14 2008-02-08 18:39:48 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -30,6 +30,7 @@ c ::: -----------------------------------------------------------
       subroutine FORT_SRCRSEREG(fine,DIMS(fine),crse,DIMS(crse),lo,hi,dir,
      &                          ratios)
 
+      implicit none
       integer    DIMDEC(fine)
       integer    DIMDEC(crse)
       integer    lo(SDIM)
@@ -388,6 +389,7 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_MAKEMASK(mask,DIMS(mask),cells,DIMS(cells))
 
+      implicit none
       integer    DIMDEC(mask)
       integer    DIMDEC(cells)
       REAL_T     mask(DIMV(mask))
@@ -420,6 +422,7 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_CONVERTMASK(mask,DIMS(mask))
 
+      implicit none
       integer    DIMDEC(mask)
       REAL_T     mask(DIMV(mask))
  

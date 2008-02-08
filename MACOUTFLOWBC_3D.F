@@ -1187,6 +1187,7 @@ c *************************************************************************
       subroutine FORT_MACFILL_TWOD(lenx,leny,length,width,faces,numOutFlowFaces,
      $                             cc0,cc1,cc2,cc3,cc4,cc5,conn)
 
+      implicit none
       integer lenx,leny,length,width
       integer faces(4)
       integer numOutFlowFaces

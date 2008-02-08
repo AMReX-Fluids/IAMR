@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_2D.F,v 1.10 2006-09-11 18:04:56 almgren Exp $
+c $Id: DIFFUSION_2D.F,v 1.11 2008-02-08 18:39:48 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -31,6 +31,7 @@ c ::
      $                             bn, bnp1, DIMS(b),
      $                             dx,mult,theta,dir)
 
+      implicit none
       integer lo(SDIM), hi(SDIM)
       integer DIMDEC(s)
       integer DIMDEC(flux)
@@ -88,6 +89,7 @@ c ::
      $                             flux, DIMS(flux), area, DIMS(area),
      $                             dx,mult,theta,dir)
 
+      implicit none
       integer lo(SDIM), hi(SDIM)
       integer DIMDEC(s)
       integer DIMDEC(flux)
@@ -130,6 +132,7 @@ c     ::::: compute Y fluxes
      $                              xflux,DIMS(xf),yflux,DIMS(yf),
      $                              xarea,DIMS(ax),yarea,DIMS(ay),dx,mult)
 
+      implicit none
       integer lo(2), hi(2)
       integer DIMDEC(ssync)
       integer DIMDEC(xf)
@@ -180,6 +183,7 @@ c :: ----------------------------------------------------------
 c ::
        subroutine FORT_HOOPSRC (DIMS(grid), fab, DIMS(fab), u, DIMS(u), r, mu)
 
+       implicit none
        integer DIMDEC(grid)
        integer DIMDEC(fab)
        integer DIMDEC(u)
@@ -222,6 +226,7 @@ c :: ----------------------------------------------------------
 c ::
        subroutine FORT_HOOPRHS (fab, DIMS(fab), u, DIMS(u), r, b,
      &                          vol, DIMS(vol))
+       implicit none
        integer DIMDEC(fab)
        integer DIMDEC(u)
        integer DIMDEC(vol)
@@ -264,6 +269,7 @@ c ::
      &                          r, b,
      &                          vol, DIMS(vol), betax, DIMS(betax),
      &                          betay, DIMS(betay))
+       implicit none
        integer xvelcomp
        integer DIMDEC(fab)
        integer DIMDEC(u)
@@ -307,6 +313,7 @@ c ::
        subroutine FORT_TENSOR_HOOPSRC (comp, DIMS(grid), fab, DIMS(fab), u, 
      &      DIMS(u), r, betax, DIMS(betax), betay, DIMS(betay))
 
+       implicit none
        integer comp
        integer DIMDEC(grid)
        integer DIMDEC(fab)
@@ -354,6 +361,7 @@ c ::
      $                           b, vol, DIMS(vol),
      &                           denfab,DIMS(den),usehoop,useden)
 
+       implicit none
        integer DIMDEC(fab)
        integer lo(SDIM), hi(SDIM)
        integer DIMDEC(vol)
@@ -426,6 +434,7 @@ c ::
      &                           denfab,DIMS(den),betax,DIMS(betax),
      &                           betay,DIMS(betay),isrz)
 
+       implicit none
        integer DIMDEC(alpha)
        integer lo(SDIM), hi(SDIM)
        integer DIMDEC(vol)

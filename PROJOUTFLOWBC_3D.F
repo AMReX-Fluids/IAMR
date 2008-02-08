@@ -585,6 +585,7 @@ c double dgphi at edges
      &                   DIMS(resid),resid,DIMS(dgphi),dgphi,
      &                   lo,hi,h,isPeriodic,maxnorm)
 
+      implicit none
       integer DIMDEC(beta)
       integer DIMDEC(rhs)
       integer DIMDEC(phi)
@@ -1661,6 +1662,7 @@ c *************************************************************************
      $                          faces,numOutFlowFaces,
      $                          cc0,cc1,cc2,cc3,cc4,cc5,conn)
 
+      implicit none
       integer lenx,leny,lenz
       integer length,width
       integer faces(6)
@@ -1812,6 +1814,7 @@ c *************************************************************************
      $                              faces,numOutFlowFaces,
      $                              phi0,phi1,phi2,phi3,phi4,phi5,x,DIMS(x))
 
+      implicit none
       integer DIMDEC(x)
       integer lenx,leny,lenz,length,width
       integer numOutFlowFaces

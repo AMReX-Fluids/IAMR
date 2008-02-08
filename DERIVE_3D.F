@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.25 2007-12-21 18:38:17 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.26 2008-02-08 18:39:48 lijewski Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1179,6 +1179,7 @@ c               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
       subroutine FORT_DERKENG (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                         bc,level,grid_no)
+      implicit none
 c
 c     This routine will derive kinetic energy from density
 c     and the velocity field.
@@ -1215,6 +1216,7 @@ c
       subroutine FORT_DERLOGS (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                         bc,level, grid_no)
+      implicit none
 c
 c     This routine will derive log of given scalar quantity
 c
@@ -1250,6 +1252,7 @@ c
       subroutine FORT_DERMVEL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                         bc,level, grid_no)
+      implicit none
 c
 c ::: This routine will derive the magnitude of the velocity field
 c ::: from the velocity field
@@ -1285,6 +1288,7 @@ c
       subroutine FORT_DERDVRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                          bc,level, grid_no)
+      implicit none
 c
 c ::: This routine will derive C/RHO
 c
@@ -1315,6 +1319,7 @@ c
       subroutine FORT_DERMPRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                          bc,level, grid_no)
+      implicit none
 c
 c ::: This routine will derive RHO*C
 c
@@ -1345,6 +1350,7 @@ c
       subroutine FORT_DERLGRHODUST (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                              lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                              bc,level,grid_no)
+      implicit none
 c
 c ::: This routine will derive log(RHO*C)
 c
@@ -1379,6 +1385,7 @@ c
       subroutine FORT_DERDMAG (dmag,DIMS(dmag),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                           bc,level,grid_no)
+      implicit none
 c
 c ::: This routine will derive magnitude of vorticity from
 c ::: the velocity field
@@ -2421,6 +2428,7 @@ c
       subroutine FORT_DERMGVORT (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                           bc,level,grid_no)
+      implicit none
 c
 c ::: This routine will derive magnitude of vorticity from
 c ::: the velocity field
@@ -2939,6 +2947,7 @@ c
       subroutine FORT_DERVORTX (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                           bc,level,grid_no)
+      implicit none
 c
 c ::: This routine will derive magnitude of vorticity from
 c ::: the velocity field
@@ -3457,6 +3466,7 @@ c
       subroutine FORT_DERVORTY (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                           bc,level,grid_no)
+      implicit none
 c
 c ::: This routine will derive magnitude of vorticity from
 c ::: the velocity field
@@ -3975,6 +3985,7 @@ c
       subroutine FORT_DERVORTZ (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                           bc,level,grid_no)
+      implicit none
 c
 c ::: This routine will derive magnitude of vorticity from
 c ::: the velocity field
@@ -4493,6 +4504,7 @@ c
       subroutine FORT_DERMGDIVU (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                           bc,level,grid_no)
+      implicit none
 c
 c ::: This routine will derive magnitude of the divergence of velocity
 c
@@ -4690,6 +4702,8 @@ c
      &     p,DIMS(p),
      &     gp,DIMS(gp),
      &     lo,hi,dir,dx)
+
+      implicit none
 c
 c     compute a node centered pressure gradient in direction (dir)
 c
@@ -4749,6 +4763,7 @@ c
       subroutine FORT_DERGRDPX (grdpx,DIMS(gp),nv,dat,DIMS(dat),ncomp,
      &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                          bc,level,grid_no)
+      implicit none
 c
 c     This routine computes pressure gradient in x direciton
 c
@@ -4773,6 +4788,7 @@ c
       subroutine FORT_DERGRDPY (grdpy,DIMS(gp),nv,dat,DIMS(dat),ncomp,
      &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                          bc,level,grid_no)
+      implicit none
 c
 c     This routine computes pressure gradient in Y direciton
 c
@@ -4797,6 +4813,7 @@ c
       subroutine FORT_DERGRDPZ (grdpz,DIMS(gp),nv,dat,DIMS(dat),ncomp,
      &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                          bc,level,grid_no)
+      implicit none
 c
 c     This routine computes pressure gradient in Z direciton
 c
@@ -4822,6 +4839,7 @@ c
       subroutine FORT_DERAVGPRES (avgpres,DIMS(gp),nv,dat,DIMS(dat),ncomp,
      &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                            bc,level,grid_no)
+      implicit none
 c
 c     This routine computes cell-centered pressure as average of the eight
 c       surrounding nodal values.
@@ -4861,6 +4879,7 @@ c=========================================================
       subroutine FORT_DERGRDP (grdp,DIMS(gp),nv,p,DIMS(p),ncomp,
      &                         lo,hi,domlo,domhi,dx,xlo,time,dt,
      $                         bc,level,grid_no)
+      implicit none
 c
 c     This routine computes the magnitude of pressure gradient 
 c

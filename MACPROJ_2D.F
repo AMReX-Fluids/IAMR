@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_2D.F,v 1.15 2004-09-08 21:02:25 almgren Exp $
+c $Id: MACPROJ_2D.F,v 1.16 2008-02-08 18:39:48 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -38,6 +38,7 @@ c ::
      &                         xarea,DIMS(ax),yarea,DIMS(ay),
      &                         vol,DIMS(vol))
 
+       implicit none
        integer DIMDEC(dmac)
        integer lo(SDIM), hi(SDIM)
        integer DIMDEC(ux)
@@ -84,6 +85,7 @@ c ::
        subroutine FORT_UCORUPDT (snew,sold,DIMS(s),nvar,lo,hi,
      &                           dmac,DIMS(dmac),mult)
 
+       implicit none
        integer DIMDEC(s)
        integer DIMDEC(dmac)
        integer nvar
@@ -115,6 +117,7 @@ c :: ----------------------------------------------------------
        subroutine FORT_SCALEAREA (xarea,DIMS(ax),yarea,DIMS(ay),
      &                            anel_coeff,anel_coeff_lo,anel_coeff_hi,lo,hi,mult)
 
+       implicit none
        integer lo(SDIM), hi(SDIM)
        integer anel_coeff_lo,anel_coeff_hi
        integer DIMDEC(ax)

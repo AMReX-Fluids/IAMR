@@ -1,5 +1,5 @@
 c
-c $Id: VISCOPERATOR_3D.F,v 1.5 1998-03-31 17:26:41 lijewski Exp $
+c $Id: VISCOPERATOR_3D.F,v 1.6 2008-02-08 18:39:48 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -26,6 +26,7 @@ c :: ----------------------------------------------------------
 c ::
        subroutine FORT_VISCEXTRAP (visc,DIMS(visc),lo,hi,ncomp)
 
+       implicit none
        integer DIMDEC(visc)
        integer lo(SDIM), hi(SDIM)
        integer ncomp

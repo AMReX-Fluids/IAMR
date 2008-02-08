@@ -938,6 +938,7 @@ c *************************************************************************
      $                             cc0,cc1,cc2,cc3,
      $                             r0, r1, r2, r3 , conn, redge_conn)
 
+      implicit none
       integer lenx,leny,length
       integer faces(4)
       integer numOutFlowFaces
@@ -1080,6 +1081,7 @@ c *************************************************************************
 
       subroutine FORT_MACPHI_FROM_X(DIMS(phi),phi,length,x)
 
+      implicit none
       integer DIMDEC(phi)
       integer length
       REAL_T phi(DIMV(phi))
@@ -1116,6 +1118,7 @@ c *************************************************************************
       subroutine FORT_MACALLPHI_FROM_X(lenx,leny,length,faces,numOutFlowFaces,
      $                                 phi0,phi1,phi2,phi3,x)
 
+      implicit none
       integer lenx,leny,length
       integer numOutFlowFaces
       integer faces(4)

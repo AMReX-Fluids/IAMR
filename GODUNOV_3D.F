@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.38 2008-02-07 22:43:28 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.39 2008-02-08 18:39:48 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -32,7 +32,8 @@ c     This routine sets dt as dt = dt_est*cfl where
 c     dt_est is estimated from the actual velocities and their 
 c     total forcing
 c     ----------------------------------------------------------
-c 
+c
+      implicit none
       integer i, j, k
       REAL_T  u, v, w
       REAL_T  small
@@ -109,6 +110,7 @@ c
 c     This subroutine computes the extrema of the density
 c     and velocities at cell centers
 c
+      implicit none
       integer DIMDEC(u)
       integer DIMDEC(v)
       integer DIMDEC(w)
@@ -191,6 +193,7 @@ c
 c     This subroutine computes the extrema of the density
 c     and mac edge velocities
 c
+      implicit none
       integer lo(SDIM),hi(SDIM)
       REAL_T  dt, dx(SDIM), u_max(SDIM), cflmax
       integer imin, imax, jmin, jmax, kmin, kmax
@@ -504,6 +507,7 @@ c     simplicity-efficiency in the new way of computing states
 c     and complexity in the old way.  By eliminating loops over
 c     state components though, the new way uses much less memory.
 c
+      implicit none
       integer i,j,k,n,velpred
       integer lo(SDIM),hi(SDIM),bc(SDIM,2)
       integer imin,jmin,kmin,imax,jmax,kmax,inc
@@ -1129,6 +1133,7 @@ c     it assumes that the edge velocities are valid in a grow cell outside
 c     the box, and no *ad (unprojected) velocities are used.  This routine
 c     will fail if the UMAC coming in hasn't been "fillpatched"
 c
+      implicit none
       integer i,j,k,n,inc
       integer lo(SDIM),hi(SDIM),bc(SDIM,2)
       integer imin,jmin,kmin,imax,jmax,kmax
@@ -1902,6 +1907,7 @@ c     traced to cell faces in the x direction.  This is used for
 c     computing velocities and edge states used in calculating
 c     transverse derivatives
 c
+      implicit none
       integer DIMDEC(s)
       REAL_T s(DIMV(s))
       integer DIMDEC(xx)
@@ -2018,6 +2024,7 @@ c     traced to cell faces in the y direction.  This is used for
 c     computing velocities and edge states used in calculating
 c     transverse derivatives
 c
+      implicit none
       integer DIMDEC(s)
       REAL_T s(DIMV(s))
       integer DIMDEC(yy)
@@ -2134,6 +2141,7 @@ c     traced to cell faces in the z direction.  This is used for
 c     computing velocities and edge states used in calculating
 c     transverse derivatives
 c
+      implicit none
       integer DIMDEC(s)
       REAL_T s(DIMV(s))
       integer DIMDEC(zz)
@@ -2847,6 +2855,7 @@ c
 c
 c     correct an advected field for under/over shoots
 c
+      implicit none
       integer  i, j, k, imin, imax, jmin, jmax, kmin, kmax
       integer  DIMDEC(s)
       integer  DIMDEC(sn)
@@ -3027,6 +3036,7 @@ c
 c
 c     correct an conservatively-advected field for under/over shoots
 c
+      implicit none
       integer  i, j, k, imin, imax, jmin, jmax, kmin, kmax
       integer  DIMDEC(s)
       integer  DIMDEC(smin)
@@ -3247,6 +3257,7 @@ c
 c
 c     sum pressure forcing into tforces
 c
+      implicit none
       integer i, j, k, n
       integer DIMDEC(tf)
       integer DIMDEC(visc)
@@ -3281,6 +3292,7 @@ c
 c     sum pressure forcing and viscous forcing into
 c     tforces
 c
+      implicit none
       integer i, j, k, n
       integer DIMDEC(tf)
       integer DIMDEC(visc)
@@ -3317,6 +3329,7 @@ c
 c     sum tforces, viscous forcing and divU*S into tforces
 c     depending on the value of iconserv
 c
+      implicit none
       integer nvar, iconserv
       integer lo(SDIM), hi(SDIM)
       integer i, j, k, n
@@ -3368,6 +3381,7 @@ c
 c     sum tforces, viscous forcing and divU*S into tforces
 c     depending on the value of iconserv
 c
+      implicit none
       integer nvar, iconserv
       integer lo(SDIM), hi(SDIM)
       integer i, j, k, n
@@ -3421,6 +3435,7 @@ c
 c
 c     update a field with a forcing term
 c
+      implicit none
       integer i, j, k, n, nvar
       integer DIMDEC(s)
       integer DIMDEC(sn)
@@ -3451,6 +3466,7 @@ c
 c
 c     correct 1st order rk to second-order
 c
+      implicit none
       integer i, j, k, n, nvar
       integer lo(SDIM), hi(SDIM)
       REAL_T dt,hdt
@@ -3486,6 +3502,7 @@ c
 c     update a field with an advective tendency
 c     and a forcing term
 c
+      implicit none
       integer i, j, k, n, nvar
       integer DIMDEC(s)
       integer DIMDEC(sn)
@@ -3524,6 +3541,7 @@ c
 c
 c     update the velocities
 c
+      implicit none
       integer i, j, k, n
       integer DIMDEC(u)
       integer DIMDEC(un)

@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_3D.F,v 1.10 2002-08-29 22:14:52 car Exp $
+c $Id: DIFFUSION_3D.F,v 1.11 2008-02-08 18:39:48 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -31,6 +31,7 @@ c ::
      $                             bn, bnp1, DIMS(b),
      $                             dx,mult,theta,dir)
 
+      implicit none
       integer lo(SDIM), hi(SDIM)
       integer DIMDEC(s)
       integer DIMDEC(flux)
@@ -103,6 +104,7 @@ c ::
      $                             flux, DIMS(flux), area, DIMS(area),
      $                             dx,mult,theta,dir)
 
+      implicit none
       integer lo(SDIM), hi(SDIM)
       integer DIMDEC(s)
       integer DIMDEC(flux)
@@ -162,6 +164,7 @@ c     ::::: compute Z fluxes
      $                              xarea,DIMS(ax),yarea,DIMS(ay),
      $                              zarea,DIMS(az),dx,mult)
 
+      implicit none
       integer lo(3), hi(3)
       integer DIMDEC(ssync)
       integer DIMDEC(xf)
@@ -243,6 +246,7 @@ c ::
      $                           vol, DIMS(vol), denfab, DIMS(den),
      &                           usehoop,useden)
 
+       implicit none
        integer DIMDEC(fab)
        integer DIMDEC(r)
        integer DIMDEC(vol)
@@ -304,6 +308,7 @@ c ::
      &                           denfab,DIMS(den),betax,DIMS(betax),
      &                           betay,DIMS(betay),betaz,DIMS(betaz),isrz)
 
+       implicit none
        integer DIMDEC(alpha)
        integer lo(SDIM), hi(SDIM)
        integer DIMDEC(vol)
