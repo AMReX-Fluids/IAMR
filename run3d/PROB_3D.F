@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.45 2008-01-14 23:17:49 aaspden Exp $
+c $Id: PROB_3D.F,v 1.46 2008-02-08 18:00:30 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -4698,7 +4698,7 @@ c ::: -----------------------------------------------------------
                   do i = ARG_L1(w), ARG_H1(w)
                      x = domnlo(1) + (i+0.5)*dx(1)
                      r = sqrt( (x-jet_x)*(x-jet_x) + (y-jet_y)*(y-jet_y) )
-                     w(i,j,k) = half*jet_vel*(one-tanh(two*(r-jet_width)/delta0))
+                     w(i,j,k) = half*((jet_vel+coflow_vel)-(jet_vel-coflow_vel)*tanh(two*(r-jet_width)/delta0))
 #ifdef BL_DO_FLCT
                      if (r.lt.jet_width) then
                         w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
