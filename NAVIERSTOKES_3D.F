@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.20 2008-02-29 20:33:03 aaspden Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.21 2008-02-29 20:39:33 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -374,7 +374,7 @@ c :: ----------------------------------------------------------
 c :: SUMJET
 c :: ----------------------------------------------------------
 c ::
-      subroutine FORT_SUMJET(dat,pres,DIMS(dat),DIMS(pres),DIMS(grid),xlo,delta,
+      subroutine FORT_SUMJET(dat,pres,DIMS(dat),DIMS(pres),DIMS(grid),delta,
      &                      jetData,levRsize,levKsize,rsize,ksize,jetVars,numSplit,
      &                      xlo,xhi);
 
