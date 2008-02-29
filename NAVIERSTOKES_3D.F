@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.19 2007-11-07 20:58:27 aaspden Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.20 2008-02-29 20:33:03 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -374,7 +374,7 @@ c :: ----------------------------------------------------------
 c :: SUMJET
 c :: ----------------------------------------------------------
 c ::
-      subroutine FORT_SUMJET(dat,pres,DIMS(dat),DIMS(pres),DIMS(grid),delta,
+      subroutine FORT_SUMJET(dat,pres,DIMS(dat),DIMS(pres),DIMS(grid),xlo,delta,
      &                      jetData,levRsize,levKsize,rsize,ksize,jetVars,numSplit,
      &                      xlo,xhi);
 
@@ -447,7 +447,7 @@ c     Mod dx
       
       gridDx=dx/dfloat(kn)
       
-      if (isioproc) then 
+      if (isioproc.eq.1) then 
          write (*,*) "In SUMJET:"
          write (*,*) "   ilo/ihi:",ilo,ihi
          write (*,*) "   jlo/jhi:",jlo,jhi
@@ -492,19 +492,19 @@ c     Calculate left hand edge of cell
          zlow = xlo(3) + dz*dfloat(k-klo)
 c     And x centre/er
          zctr = zlow + 0.5*dz
-
-         do i = ilo, ihi
-c     Calculate left hand edge of cell
-            xlow = xlo(1) + dx*dfloat(i-ilo) - jet_x
-c     And x centre/er
-            xctr = xlow + 0.5*dx
-
-            do j = jlo, jhi
+         
+         do j = jlo, jhi
 c     Calculate front of cell
-               ylow = xlo(2) + dy*dfloat(j-jlo) - jet_y
+            ylow = xlo(2) + dy*dfloat(j-jlo) - jet_y
 c     And y centre/er
-               yctr = ylow + 0.5*dy
-
+            yctr = ylow + 0.5*dy
+            
+            do i = ilo, ihi
+c     Calculate left hand edge of cell
+               xlow = xlo(1) + dx*dfloat(i-ilo) - jet_x
+c     And x centre/er
+               xctr = xlow + 0.5*dx
+               
                rhoctr  = dat(i,j,k,idx_rho)
                uxctr   = dat(i,j,k,idx_ux)
                uyctr   = dat(i,j,k,idx_uy)
@@ -521,10 +521,11 @@ c     And y centre/er
 c     We're not in a zeroed out bit, let's integrate...
 
 c     Integrate numerically
-                  do ii=1,nn
-                     xx = xlow + dxnn*(dfloat(ii)-half)
-                     do jj=1,nn
-                        yy = ylow + dynn*(dfloat(jj)-half)
+                  do jj=1,nn
+                     yy = ylow + dynn*(dfloat(jj)-half)
+                     
+                     do ii=1,nn
+                        xx = xlow + dxnn*(dfloat(ii)-half)
                         
                         rr = sqrt(xx*xx+yy*yy)
                         
@@ -547,11 +548,12 @@ c     Do slope reconstruction
                               trac = tracctr + deltax*dat(i,j,k,idx_trac+06) + deltay*dat(i,j,k,idx_trac+12) + deltaz*dat(i,j,k,idx_trac+18)
                               temp = tempctr + deltax*dat(i,j,k,idx_temp+06) + deltay*dat(i,j,k,idx_temp+12) + deltaz*dat(i,j,k,idx_temp+18)
 c     Radial and azimuthal velocities
-                              ur = (ux*yy+uy*xx)/rr
-                              ut = (uy*yy-ux*xx)/rr
+                              ur = (ux*xx+uy*yy)/rr
+                              ut = (uy*xx-ux*yy)/rr
+
 c     Get radial derivative of radial and azimuthal velocity (more complicated than it sounds)
-                              drx = mdx*xx/(rr*rr)
-                              dry = mdx*yy/(rr*rr)
+                              drx = mdx*xx/rr
+                              dry = mdx*yy/rr
                               xxp = xx + drx
                               yyp = yy + dry
                               rrp = sqrt(xxp*xxp+yyp*yyp)
@@ -562,15 +564,17 @@ c     Get radial derivative of radial and azimuthal velocity (more complicated t
                               uyp = uyctr   + (xxp-xctr)*dat(i,j,k,idx_uy  +06) + (yyp-yctr)*dat(i,j,k,idx_uy  +12) + deltaz*dat(i,j,k,idx_uy  +18)
                               uxm = uxctr   + (xxm-xctr)*dat(i,j,k,idx_ux  +06) + (yym-yctr)*dat(i,j,k,idx_ux  +12) + deltaz*dat(i,j,k,idx_ux  +18)
                               uym = uyctr   + (xxm-xctr)*dat(i,j,k,idx_uy  +06) + (yym-yctr)*dat(i,j,k,idx_uy  +12) + deltaz*dat(i,j,k,idx_uy  +18)
-                              urp = (uxp*yyp+uyp*xxp)/rrp
-                              utp = (uyp*yyp-uxp*xxp)/rrp
-                              urm = (uxm*yym+uym*xxm)/rrm
-                              utm = (uym*yym-uxm*xxm)/rrm
+
+                              urp = (uxp*xxp+uyp*yyp)/rrp
+                              utp = (uyp*xxp-uxp*yyp)/rrp
+                              urm = (uxm*xxm+uym*yym)/rrm
+                              utm = (uym*xxm-uxm*yym)/rrm
+
                               durdr = (urp-urm)/(two*mdx)
                               dutdr = (utp-utm)/(two*mdx)
 c     Get azimuthal derivative of radial and azimuthal velocity (more complicated than it sounds)
-                              dtx =-mdx*yy/(rr*rr)
-                              dty = mdx*xx/(rr*rr)
+                              dtx =-mdx*yy/rr
+                              dty = mdx*xx/rr
                               xxp = xx + dtx
                               yyp = yy + dty
                               rrp = sqrt(xxp*xxp+yyp*yyp)
@@ -581,10 +585,10 @@ c     Get azimuthal derivative of radial and azimuthal velocity (more complicate
                               uyp = uyctr   + (xxp-xctr)*dat(i,j,k,idx_uy  +06) + (yyp-yctr)*dat(i,j,k,idx_uy  +12) + deltaz*dat(i,j,k,idx_uy  +18)
                               uxm = uxctr   + (xxm-xctr)*dat(i,j,k,idx_ux  +06) + (yym-yctr)*dat(i,j,k,idx_ux  +12) + deltaz*dat(i,j,k,idx_ux  +18)
                               uym = uyctr   + (xxm-xctr)*dat(i,j,k,idx_uy  +06) + (yym-yctr)*dat(i,j,k,idx_uy  +12) + deltaz*dat(i,j,k,idx_uy  +18)
-                              urp = (uxp*yyp+uyp*xxp)/rrp
-                              utp = (uyp*yyp-uxp*xxp)/rrp
-                              urm = (uxm*yym+uym*xxm)/rrm
-                              utm = (uym*yym-uxm*xxm)/rrm
+                              urp = (uxp*xxp+uyp*yyp)/rrp
+                              utp = (uyp*xxp-uxp*yyp)/rrp
+                              urm = (uxm*xxm+uym*yym)/rrm
+                              utm = (uym*xxm-uxm*yym)/rrm
                               durdt = (urp-urm)/(two*mdx)
                               dutdt = (utp-utm)/(two*mdx)
 c     Pressure and its derivatives
@@ -780,7 +784,7 @@ c     73 - Presure gradient (t)
                               jetData(idx) = jetData(idx) + dpdt*trac
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + dpdt*temp
-c     78 - Presure gradient (z)
+c     78 - Presure gradient (z)idx_uy
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + dpdz*ur
                               idx = idx + 1
@@ -815,9 +819,9 @@ c     88 - Pressure . gradient (t)
                               jetData(idx) = jetData(idx) + p*(-yy*dat(i,j,k,idx_temp+06)+xx*dat(i,j,k,idx_temp+12))
 c     93 - Pressure . gradient (z)
                               idx = idx + 1
-                              jetData(idx) = jetData(idx) + p*( yy*dat(i,j,k,idx_ux  +18)+xx*dat(i,j,k,idx_uy  +18))/rr
+                              jetData(idx) = jetData(idx) + p*( xx*dat(i,j,k,idx_ux  +18)+yy*dat(i,j,k,idx_uy  +18))/rr
                               idx = idx + 1
-                              jetData(idx) = jetData(idx) + p*(-xx*dat(i,j,k,idx_ux  +18)+yy*dat(i,j,k,idx_uy  +18))/rr
+                              jetData(idx) = jetData(idx) + p*(-yy*dat(i,j,k,idx_ux  +18)+xx*dat(i,j,k,idx_uy  +18))/rr
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + p*dat(i,j,k,idx_uz  +18)
                               idx = idx + 1
