@@ -154,77 +154,6 @@ BL_FORT_PROC_DECL(BL_NS_DOTRAC2,bl_ns_dotrac2)(int* dotrac2)
   *dotrac2 = NavierStokes::DoTrac2();
 }
 
-static
-BoxArray
-GetBndryCells (const BoxArray& ba,
-               int             ngrow,
-               const Geometry& geom)
-{
-    //
-    // First get list of all ghost cells.
-    //
-    BoxList gcells, bcells;
-
-    for (int i = 0; i < ba.size(); ++i)
-	gcells.join(BoxLib::boxDiff(BoxLib::grow(ba[i],ngrow),ba[i]));
-    //
-    // Now strip out intersections with original BoxArray.
-    //
-    for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
-    {
-        std::vector< std::pair<int,Box> > isects = ba.intersections(*it);
-
-        if (isects.empty())
-            bcells.push_back(*it);
-        else
-        {
-            //
-            // Collect all the intersection pieces.
-            //
-            BoxList pieces;
-            for (int i = 0; i < isects.size(); i++)
-                pieces.push_back(isects[i].second);
-            BoxList leftover = BoxLib::complementIn(*it,pieces);
-            bcells.catenate(leftover);
-        }
-    }
-    //
-    // Now strip out overlaps.
-    //
-    gcells.clear();
-    gcells = BoxLib::removeOverlap(bcells);
-    bcells.clear();
-
-    if (geom.isAnyPeriodic())
-    {
-        Array<IntVect> pshifts(27);
-
-        const Box domain = geom.Domain();
-
-        for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
-        {
-            if (!domain.contains(*it))
-            {
-                //
-                // Add in periodic ghost cells shifted to valid region.
-                //
-                geom.periodicShift(domain, *it, pshifts);
-
-                for (int i = 0; i < pshifts.size(); i++)
-                {
-                    const Box shftbox = *it + pshifts[i];
-
-                    bcells.push_back(domain & shftbox);
-                }
-            }
-        }
-
-        gcells.catenate(bcells);
-    }
-
-    return BoxArray(gcells);
-}
-
 void
 NavierStokes::variableCleanUp ()
 {
@@ -6497,7 +6426,7 @@ NavierStokes::create_umac_grown ()
         
     if (level > 0)
     {
-        BoxArray f_bnd_ba = GetBndryCells(grids,1,geom);
+        BoxArray f_bnd_ba = geom.GetBndryCells(grids,1);
 
         BoxArray c_bnd_ba = BoxArray(f_bnd_ba.size());
 
