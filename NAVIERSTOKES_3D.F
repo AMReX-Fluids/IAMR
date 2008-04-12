@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.21 2008-02-29 20:39:33 aaspden Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.22 2008-04-12 00:27:49 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -941,6 +941,62 @@ c ::
 
        end
 
+c :: ----------------------------------------------------------
+c :: SUMMASSCYL
+c ::    MASS = sum{ vol(i,j,k)*rho(i,j,k) } over subregion cylinder
+c ::
+c :: INPUTS / OUTPUTS:
+c ::  rho        => density field
+c ::  DIMS(rho)  => index limits of rho aray
+c ::  lo,hi      => index limits of grid interior
+c ::  delta	 => cell size
+c ::  mass      <=  total mass
+c ::  r		 => radius at cell center
+c ::  tmp        => temp column array
+c :: ----------------------------------------------------------
+c ::
+       subroutine FORT_SUMMASS_CYL(rho,DIMS(rho),DIMS(grid),delta,
+     &                             plo,vws_dz,vws_Rcyl,mass,tmp)
+
+       implicit none
+
+       integer DIMDEC(rho)
+       integer DIMDEC(grid)
+       REAL_T  mass, delta(SDIM), plo(SDIM), vws_dz, vws_Rcyl
+       REAL_T  rho(DIMV(rho))
+       REAL_T  tmp(DIM2(grid))
+
+       integer i, j, k
+       REAL_T  vol, x, y, z, r
+
+       vol = delta(1)*delta(2)*delta(3)
+
+       do j = ARG_L2(grid), ARG_H2(grid)
+          tmp(j) = zero
+       end do
+
+       do k = ARG_L3(grid), ARG_H3(grid)
+          z = plo(3) + (k+half)*delta(3)
+          if (z-plo(3) .le. vws_dz) then 
+             do i = ARG_L1(grid), ARG_H1(grid)
+                x = plo(1) + (i+half)*delta(1)
+                do j = ARG_L2(grid), ARG_H2(grid)
+                   y = plo(2) + (j+half)*delta(2)
+                   r = SQRT(x*x + y*y)
+                   if (r .le. vws_Rcyl) then
+                      tmp(j) = tmp(j) + vol*rho(i,j,k)
+                   end if
+                end do
+             end do
+          end if
+       end do
+
+       mass = zero
+       do j = ARG_L2(grid), ARG_H2(grid)
+          mass = mass + tmp(j)
+       end do
+
+       end
 
 c :: ----------------------------------------------------------
 c :: SUMMASSSQ

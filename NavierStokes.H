@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.97 2007-12-21 18:38:17 aaspden Exp $
+// $Id: NavierStokes.H,v 1.98 2008-04-12 00:27:49 marc Exp $
 //
 
 #include <LevelBld.H>
@@ -852,6 +852,13 @@ protected:
     // Running statistics controls
     //
     static int  do_running_statistics;
+    static Real volWgtSum_sub_origin_x;
+    static Real volWgtSum_sub_origin_y;
+    static Real volWgtSum_sub_origin_z;
+    static Real volWgtSum_sub_Rcyl;
+    static Real volWgtSum_sub_dx;
+    static Real volWgtSum_sub_dy;
+    static Real volWgtSum_sub_dz;
     //
     // Control velocity vs momentum update
     //

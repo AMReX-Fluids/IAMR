@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.16 2008-02-08 18:39:48 lijewski Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.17 2008-04-12 00:27:49 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -313,6 +313,72 @@ c ::
           do j = ARG_L2(grid), ARG_H2(grid)
 	     tmp(j) = tmp(j) + vol*rho(i,j)
 	  end do
+       end do
+
+       mass = zero
+       do j = ARG_L2(grid), ARG_H2(grid)
+          mass = mass + tmp(j)
+       end do
+
+       end
+
+c :: ----------------------------------------------------------
+c :: SUMMASSCYL
+c ::    MASS = sum{ vol(i,j)*rho(i,j) } over subregion cylinder
+c ::
+c :: INPUTS / OUTPUTS:
+c ::  rho        => density field
+c ::  DIMS(rho)  => index limits of rho aray
+c ::  lo,hi      => index limits of grid interior
+c ::  dx	 => cell size
+c ::  mass      <=  total mass
+c ::  r		 => radius at cell center
+c ::  irlo,hi    => index limits of r array
+c ::  rz_flag    => == 1 if R_Z coords
+c ::  plo        => domain lo end
+c ::  vws_dz     => height of subregion, from plo
+c ::  vws_R      => radius of subregion
+c ::  tmp        => temp column array
+c :: ----------------------------------------------------------
+c ::
+       subroutine FORT_SUMMASS_CYL(rho,DIMS(rho),DIMS(grid),dx,mass,
+     &                             r,irlo,irhi,rz_flag,plo,vws_dz,vws_R,
+     &                             tmp)
+
+       implicit none
+       integer irlo, irhi, rz_flag
+       integer DIMDEC(rho)
+       integer DIMDEC(grid)
+       REAL_T  mass, dx(2)
+       REAL_T  rho(DIMV(rho))
+       REAL_T  r(irlo:irhi)
+       REAL_T  plo(2),vws_dz, vws_R
+       REAL_T  tmp(DIM2(grid))
+
+       integer i, j
+       REAL_T  dr, dz, vol, rr
+
+       dr = dx(1)
+       dz = dx(2)
+
+       do j = ARG_L2(grid), ARG_H2(grid)
+          tmp(j) = zero
+       end do
+
+       do i = ARG_L1(grid), ARG_H1(grid)
+          if (rz_flag .eq. 1) then
+             rr = r(i)
+          else
+             rr = plo(1) + (i+half)*dx(1)
+          endif
+
+          if (rr.le.vws_R) then 
+             vol = dr*dz
+             if (rz_flag .eq. 1) vol = vol*two*Pi*rr
+             do j = ARG_L2(grid), ARG_H2(grid)
+                tmp(j) = tmp(j) + vol*rho(i,j)
+             end do
+          endif
        end do
 
        mass = zero

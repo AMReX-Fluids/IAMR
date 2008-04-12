@@ -147,6 +147,15 @@ int  NavierStokes::num_state_type = 2;     // for backward compatibility
 
 int  NavierStokes::do_divu_sync = 0;       // for debugging new correction to MLSP
 
+Real NavierStokes::volWgtSum_sub_origin_x = 0;
+Real NavierStokes::volWgtSum_sub_origin_y = 0;
+Real NavierStokes::volWgtSum_sub_origin_z = 0;
+Real NavierStokes::volWgtSum_sub_Rcyl = -1;
+Real NavierStokes::volWgtSum_sub_dx = -1;
+Real NavierStokes::volWgtSum_sub_dy = -1;
+Real NavierStokes::volWgtSum_sub_dz = -1;
+
+
 int NavierStokes::DoTrac2() {return do_trac2;}
 
 BL_FORT_PROC_DECL(BL_NS_DOTRAC2,bl_ns_dotrac2)(int* dotrac2)
@@ -403,6 +412,15 @@ NavierStokes::read_params ()
     // Check whether we are doing running statistics.
     //
     pp.query("do_running_statistics",do_running_statistics);
+
+    // If dx,dy,dz,Rcyl<0 (default) the volWgtSum is computed over the entire domain
+    pp.query("volWgtSum_sub_origin_x",volWgtSum_sub_origin_x);
+    pp.query("volWgtSum_sub_origin_y",volWgtSum_sub_origin_y);
+    pp.query("volWgtSum_sub_origin_z",volWgtSum_sub_origin_z);
+    pp.query("volWgtSum_sub_Rcyl",volWgtSum_sub_Rcyl);
+    pp.query("volWgtSum_sub_dx",volWgtSum_sub_dx);
+    pp.query("volWgtSum_sub_dy",volWgtSum_sub_dy);
+    pp.query("volWgtSum_sub_dz",volWgtSum_sub_dz);
 
     //
     // Are we going to do velocity or momentum update?
@@ -2823,6 +2841,7 @@ NavierStokes::volWgtSum (const std::string& name,
     int         rz_flag = CoordSys::IsRZ() ? 1 : 0;
     const Real* dx      = geom.CellSize();
     MultiFab*   mf      = derive(name,time,0);
+
     Array<Real> tmp;
 
     BoxArray baf;
@@ -2863,8 +2882,18 @@ NavierStokes::volWgtSum (const std::string& name,
         // Note that this routine will do a volume weighted sum of
         // whatever quantity is passed in, not strictly the "mass".
         //
-        FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
-                     dx,&s,rad,&irlo,&irhi,&rz_flag,tmp.dataPtr());
+        if (volWgtSum_sub_dz>0 && volWgtSum_sub_Rcyl>0)
+        {
+            const Real* plo = geom.ProbLo();
+            FORT_SUMMASS_CYL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+                             dx,&s,rad,&irlo,&irhi,&rz_flag,plo,
+                             &volWgtSum_sub_dz,&volWgtSum_sub_Rcyl,tmp.dataPtr());
+        }
+        else
+        {
+            FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+                         dx,&s,rad,&irlo,&irhi,&rz_flag,tmp.dataPtr());
+        }
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -2872,8 +2901,17 @@ NavierStokes::volWgtSum (const std::string& name,
         // Note that this routine will do a volume weighted sum of
         // whatever quantity is passed in, not strictly the "mass".
         //
-        FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
-                     dx,&s,tmp.dataPtr());
+        if (volWgtSum_sub_dz>0 && volWgtSum_sub_Rcyl>0)
+        {
+            const Real* plo = geom.ProbLo();
+            FORT_SUMMASS_CYL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+                             dx,plo,&volWgtSum_sub_dz,&volWgtSum_sub_Rcyl,&s,tmp.dataPtr());
+        }
+        else
+        {
+            FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+                         dx,&s,tmp.dataPtr());
+        }
 #endif
         sum += s;
     }

@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.18 2007-11-07 20:58:27 aaspden Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.19 2008-04-12 00:27:49 marc Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -14,6 +14,7 @@
 #    define FORT_INCRMULT    incrmult
 #    define FORT_MAXVAL      maxval
 #    define FORT_SUMMASS     summass
+#    define FORT_SUMMASS_CYL summass_cyl
 #    define FORT_SUMMASSSQ   summasssq
 #    define FORT_CEN2EDG     cen2edg
 #    define FORT_EDGE_INTERP edge_interp
@@ -34,6 +35,7 @@
 #    define FORT_INCRMULT    INCRMULT
 #    define FORT_MAXVAL      MAXVAL
 #    define FORT_SUMMASS     SUMMASS
+#    define FORT_SUMMASS_CYL SUMMASS_CYL
 #    define FORT_SUMMASSSQ   SUMMASSSQ
 #    define FORT_CEN2EDG     CEN2EDG
 #    define FORT_EDGE_INTERP EDGE_INTERP
@@ -53,6 +55,7 @@
 #    define FORT_INCRMULT    incrmult
 #    define FORT_MAXVAL      maxval
 #    define FORT_SUMMASS     summass
+#    define FORT_SUMMASS_CYL summass_cyl
 #    define FORT_SUMMASSSQ   summasssq
 #    define FORT_CEN2EDG     cen2edg
 #    define FORT_EDGE_INTERP edge_interp
@@ -72,6 +75,7 @@
 #    define FORT_INCRMULT    incrmult_
 #    define FORT_MAXVAL      maxval_
 #    define FORT_SUMMASS     summass_
+#    define FORT_SUMMASS_CYL summass_cyl_
 #    define FORT_SUMMASSSQ   summasssq_
 #    define FORT_CEN2EDG     cen2edg_
 #    define FORT_EDGE_INTERP edge_interp_
@@ -152,16 +156,23 @@ extern "C" {
                        const int* irlo, const int* irhi,
                        const int* rz_flag, Real* tmp);
 
-    void FORT_SUMMASS (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                       ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                       const Real* delta, Real* mass,
-                       const Real* radius,
-                       const int* irlo, const int* irhi,
-                       const int* rz_flag, Real* tmp);
+    void FORT_SUMMASS_CYL (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+                           const Real* delta, Real* mass,
+                           const Real* radius,
+                           const int* irlo, const int* irhi,
+                           const int* rz_flag, const Real* plo,
+                           const Real* vws_dz, const Real* vws_Rcyl,
+                           Real* tmp);
 #else
     void FORT_SUMMASS (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                        ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                        const Real* delta, Real* mass, Real* tmp);
+
+    void FORT_SUMMASS_CYL (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+                           const Real* delta, const Real* plo, const Real* vws_dz,
+                           const Real* vws_Rcyl, Real* mass, Real* tmp);
 
     void FORT_SUMMASSSQ (const Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                          ARLIM_P(grid_lo), ARLIM_P(grid_hi),
