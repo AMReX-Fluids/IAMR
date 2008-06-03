@@ -771,7 +771,7 @@ c
       
       if (getForceVerbose.gt.0) then
          call bl_pd_is_ioproc(isioproc)
-         if (isioproc) then
+         if (isioproc .eq. 1) then
             do n = 1, SDIM
                write (6,*) "mac velmin (",n,") = ",velmin(n)
                write (6,*) "mac velmax (",n,") = ",velmax(n)
@@ -866,7 +866,7 @@ c     Assumes components are in the following order
 #ifdef MOREGENGETFORCE
       if (getForceVerbose.gt.0) then
          call bl_pd_is_ioproc(isioproc)
-         if (isioproc) then
+         if (isioproc .eq. 1) then
 
             write (6,*) "In MAKEFORCE"
             
@@ -997,7 +997,7 @@ c
       endif
 
 #ifdef MOREGENGETFORCE
-      if (getForceVerbose.gt.0 .and. isioproc) then
+      if (getForceVerbose.gt.0 .and. isioproc .eq. 1) then
          do n = scomp,scomp+ncomp-1
             forcemin(n) = 1.d234
             forcemax(n) = -1.d234
