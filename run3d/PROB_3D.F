@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.46 2008-02-08 18:00:30 aaspden Exp $
+c $Id: PROB_3D.F,v 1.47 2008-06-04 22:24:42 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -182,6 +182,11 @@ c            open(untin, file=flct_file, form='unformatted')
             print *, 'probSizeFile: ', (probSizeFile(i),i=1,3)
             print *, 'dxFile: ',       (dxFile(i),i=1,3)
          end if
+      endif
+
+c     Need to set adv_vel for the round jet
+      if (probtype.eq.18) then
+         adv_vel = jet_vel
       endif
 #endif
 
