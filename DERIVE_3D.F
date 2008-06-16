@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.26 2008-02-08 18:39:48 lijewski Exp $
+c $Id: DERIVE_3D.F,v 1.27 2008-06-16 22:32:58 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1162,7 +1162,7 @@ c               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
                   e(i,j,k,n+18) = (dat(i,j,k+1,n)-dat(i,j,k-1,n))/tdz
                enddo
 
-               if (do_trac2.eq.1) then
+               if (do_trac2.eq.0) then
                   n = 6
                   e(i,j,k,n+00) = zero
                   e(i,j,k,n+06) = zero

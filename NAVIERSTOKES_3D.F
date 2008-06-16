@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.22 2008-04-12 00:27:49 marc Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.23 2008-06-16 22:32:58 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -424,6 +424,9 @@ c ::
 #include "probdata.H"
 
       call bl_pd_is_ioproc(isioproc)
+
+c     Hack to zero
+      isioproc = 0
 
       ilo = ARG_L1(grid)
       ihi = ARG_H1(grid)
@@ -856,7 +859,7 @@ c     zeroed out
             end do
          end do
       end do
-      
+
       end
 #endif
 
