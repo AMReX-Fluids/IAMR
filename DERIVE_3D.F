@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.27 2008-06-16 22:32:58 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.28 2008-06-26 20:32:51 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1126,19 +1126,22 @@ c     Z Gradient Z Gradient
 
       integer    i,j,k,n,nvars,do_trac2
 c      REAL_T     x, y, z
-c      REAL_T     hx, hy, hz
-
+      REAL_T     hx, hy, hz
       REAL_T     tdx, tdy, tdz
+      REAL_T     dxt, dyt, dzt
 
 #include "probdata.H"
 
-c      hx = delta(1)
-c      hy = delta(2)
-c      hz = delta(3)
+      hx = delta(1)
+      hy = delta(2)
+      hz = delta(3)
 
-      tdx = two*delta(1)
-      tdy = two*delta(2)
-      tdz = two*delta(3)
+      tdx = two*hx
+      tdy = two*hy
+      tdz = two*hz
+      dxt = hx*hx
+      dyt = hy*hy
+      dzt = hz*hz
 
       call bl_ns_dotrac2(do_trac2)
 
@@ -1161,6 +1164,10 @@ c               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
                   e(i,j,k,n+12) = (dat(i,j+1,k,n)-dat(i,j-1,k,n))/tdy
                   e(i,j,k,n+18) = (dat(i,j,k+1,n)-dat(i,j,k-1,n))/tdz
                enddo
+c     Need these for D = u.nabla^2 u
+               e(i,j,k,25) = (dat(i+1,j,k,2)-two*dat(i,j,k,2)+dat(i-1,j,k,2))/dxt
+               e(i,j,k,26) = (dat(i,j+1,k,3)-two*dat(i,j,k,3)+dat(i,j-1,k,3))/dyt
+               e(i,j,k,27) = (dat(i,j,k+1,4)-two*dat(i,j,k,4)+dat(i,j,k-1,4))/dzt
 
                if (do_trac2.eq.0) then
                   n = 6

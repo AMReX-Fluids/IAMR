@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.55 2007-11-07 20:58:27 aaspden Exp $
+// $Id: NS_setup.cpp,v 1.56 2008-06-26 20:32:51 aaspden Exp $
 //
 
 #include <winstd.H>
@@ -462,7 +462,7 @@ NavierStokes::variableSetUp ()
     //
     // Jet Variables - for integrating on the fly
     //
-    derive_lst.add("JetVars",IndexType::TheCellType(),24,FORT_DERJETVARS,grow_box_by_one);
+    derive_lst.add("JetVars",IndexType::TheCellType(),27,FORT_DERJETVARS,grow_box_by_one);
     derive_lst.addComponent("JetVars",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("JetVars",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     derive_lst.addComponent("JetVars",desc_lst,State_Type,Trac,1);

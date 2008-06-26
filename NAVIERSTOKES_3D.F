@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.23 2008-06-16 22:32:58 aaspden Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.24 2008-06-26 20:32:51 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -281,7 +281,7 @@ c ::
       integer DIMDEC(grid)
       integer ksize, turbVars
       REAL_T  delta(SDIM)
-      REAL_T  dat(DIMV(dat),4)
+      REAL_T  dat(DIMV(dat),16)
       REAL_T  pres(DIMV(pres),4)
       REAL_T  turb(0:ksize*turbVars-1)
       
@@ -387,7 +387,7 @@ c ::
       REAL_T  delta(SDIM)
       REAL_T  xlo(SDIM)
       REAL_T  xhi(SDIM)
-      REAL_T  dat(DIMV(dat),24)
+      REAL_T  dat(DIMV(dat),27)
       REAL_T  pres(DIMV(pres),4)
       REAL_T  jetData(0:ksize*jetVars-1)
       REAL_T  gridDx
@@ -414,6 +414,8 @@ c ::
       REAL_T  xxp, yyp, xxm, yym, rrp, rrm
       REAL_T  uxp, uyp, uxm, uym, urp, urm, utp, utm
       REAL_T  durdr, dutdr, durdt, dutdt
+
+      REAL_T  KEK, KED, KEP
 
       integer idx_rho, idx_ux, idx_uy, idx_uz, idx_trac, idx_temp
       integer idx_p, idx_dpdx, idx_dpdy, idx_dpdz
@@ -602,6 +604,10 @@ c     Pressure and its derivatives
 c     Radial and azimuthal derivatives of pressure
                               dpdr   = ( xx*dpdx + yy*dpdy)/rr
                               dpdt   = (-yy*dpdx + xx*dpdy)
+c     KE terms
+                              KEK  = ux*ux   + uy*uy   + uz*uz
+                              KEP  = ux*dpdx + uy*dpdy + uz*dpdz
+                              KED  = ux*dat(i,j,k,25) + uy*dat(i,j,k,26) + uz*dat(i,j,k,27)
                               
 c     Start counter
                               idx = (kk*rsize+ridx)*jetVars+00
@@ -844,6 +850,22 @@ c     98 - Density fluctuations
                               jetData(idx) = jetData(idx) + rho*rho*trac
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*rho*temp
+c     103 - Pressue fluctuations
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + p*p
+c     104 - Kinetic Energy Equation (shouldn't need these)
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*KEK
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*KEK*ur
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*KEK*ut
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*KEK*uz
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*KEP
+                              idx = idx + 1
+                              jetData(idx) = jetData(idx) + rho*KED
 
 c     zz loop
                         enddo
