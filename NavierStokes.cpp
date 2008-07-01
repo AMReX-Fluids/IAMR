@@ -6464,14 +6464,18 @@ NavierStokes::create_umac_grown ()
         
     if (level > 0)
     {
-        BoxArray f_bnd_ba = geom.GetBndryCells(grids,1);
+        BoxList bl = BoxLib::GetBndryCells(grids,1);
+
+        BoxArray f_bnd_ba(bl);
+
+        bl.clear();
 
         BoxArray c_bnd_ba = BoxArray(f_bnd_ba.size());
 
         for (int i = 0; i < f_bnd_ba.size(); ++i)
         {
             c_bnd_ba.set(i,Box(f_bnd_ba[i]).coarsen(crse_ratio));
-            f_bnd_ba.set(i,Box(c_bnd_ba[i]).refine(crse_ratio));
+            f_bnd_ba.set(i,Box(c_bnd_ba[i]).refine( crse_ratio));
         }
 
         for (int n = 0; n < BL_SPACEDIM; ++n)
@@ -6491,22 +6495,22 @@ NavierStokes::create_umac_grown ()
             std::vector<long> wgts(fine_src_ba.size());
 
             for (unsigned int i = 0; i < wgts.size(); i++)
-            {
                 wgts[i] = fine_src_ba[i].numPts();
-            }
+
             DistributionMapping dm;
             //
             // This call doesn't invoke the MinimizeCommCosts() stuff.
-            // There's very little to gain with these types of coverings
-            // of trying to use SFC or anything else.
             // This also guarantees that these DMs won't be put into the
             // cache, as it's not representative of that used for more
             // usual MultiFabs.
             //
             dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
 
-            MultiFab crse_src; crse_src.define(crse_src_ba, 1, 0, dm, Fab_allocate);
-	    MultiFab fine_src; fine_src.define(fine_src_ba, 1, 0, dm, Fab_allocate);
+            MultiFab crse_src; 
+	    MultiFab fine_src; 
+
+            crse_src.define(crse_src_ba, 1, 0, dm, Fab_allocate);
+            fine_src.define(fine_src_ba, 1, 0, dm, Fab_allocate);
 
             crse_src.setVal(1.e200);
             crse_src.copy(getLevel(level-1).u_macG[n]);
@@ -6549,7 +6553,6 @@ NavierStokes::create_umac_grown ()
 
             u_macG[n].copy(fine_src);
             u_macG[n].copy(u_mac[n]);
-            u_macG[n].FillBoundary();
         }
     }
 }
