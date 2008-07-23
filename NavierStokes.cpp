@@ -1866,7 +1866,7 @@ NavierStokes::velocity_advection (Real dt)
         visc_terms.setVal(0,1);
 
     Array<int> bndry[BL_SPACEDIM];
-    FArrayBox xflux, yflux, zflux, divu, tforces;
+    FArrayBox xflux, yflux, zflux, tforces, S;
 
     int nGrowF = 1;
     MultiFab* divu_fp = create_mac_rhs_grown(nGrowF,prev_time,dt);
@@ -1883,12 +1883,11 @@ NavierStokes::velocity_advection (Real dt)
 #endif
 
     MultiFab Gp(grids,BL_SPACEDIM,1);
+
     getGradP(Gp, prev_pres_time);
     //
     // Compute the advective forcing.
     //
-    FArrayBox S;
-
     for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
 #ifdef MOREGENGETFORCE
              U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
@@ -1939,6 +1938,8 @@ NavierStokes::velocity_advection (Real dt)
         S.resize(U_fpi().box(),BL_SPACEDIM);
         S.copy(U_fpi(),0,0,BL_SPACEDIM);
 
+        FArrayBox divu_dummy;
+
         for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
         {
             int use_conserv_diff = (advectionType[comp] == Conservative) 
@@ -1948,7 +1949,7 @@ NavierStokes::velocity_advection (Real dt)
                 S.mult(Rho_fpi(),S.box(),S.box(),0,comp,1);
                 tforces.mult((*rho_ptime)[i],tforces.box(),tforces.box(),0,comp,1);
             }
-            FArrayBox divu_dummy;
+
             godunov->AdvectState(grids[i], dx, dt, 
                                  area[0][i], u_mac[0][i], xflux,
                                  area[1][i], u_mac[1][i], yflux,
@@ -2007,6 +2008,7 @@ NavierStokes::scalar_advection (Real dt,
     FArrayBox xflux, yflux, zflux, tforces, tvelforces;
 
     MultiFab Gp(grids,BL_SPACEDIM,1);
+
     getGradP(Gp, prev_pres_time);
 
     MultiFab vel_visc_terms;
@@ -2098,11 +2100,14 @@ NavierStokes::scalar_advection (Real dt,
                                                              ? true : false;
             AdvectionScheme adv_scheme = PRE_MAC;
 
-            if (adv_scheme == PRE_MAC) {
+            if (adv_scheme == PRE_MAC)
+            {
               godunov->Sum_tf_divu_visc(S_fpi(),tforces,comp,1,visc_terms[i],
                                         comp,(*divu_fp)[i],(*rho_ptime)[i],
                                         use_conserv_diff);
-            } else {
+            }
+            else
+            {
               FArrayBox junkDivu(tforces.box(),1);
               junkDivu.setVal(0.);
               godunov->Sum_tf_divu_visc(S_fpi(),tforces,comp,1,visc_terms[i],
@@ -2468,7 +2473,7 @@ NavierStokes::velocity_advection_update (Real dt)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::velocity_advection_update()");
 
-    FArrayBox  tforces;
+    FArrayBox  tforces, S;
     MultiFab&  U_old          = get_old_data(State_Type);
     MultiFab&  U_new          = get_new_data(State_Type);
     MultiFab&  P_old          = get_old_data(Press_Type);
@@ -2483,7 +2488,6 @@ NavierStokes::velocity_advection_update (Real dt)
 
     MultiFab& halftime = *get_rho_half_time();
     MFIter    Rhohalf_mfi(halftime);
-    FArrayBox S;
 
     for (FillPatchIterator P_fpi(*this,P_old,0,prev_pres_time,Press_Type,0,1);
          Rhohalf_mfi.isValid() && P_fpi.isValid();
@@ -3575,18 +3579,13 @@ NavierStokes::estTimeStep ()
 
     Real gr_max[BL_SPACEDIM], u_max[BL_SPACEDIM] = {0};
 
-    FArrayBox p_fab, tforces;
+    FArrayBox tforces;
     MultiFab Gp(grids,BL_SPACEDIM,1);
     getGradP(Gp, cur_pres_time);
 
     for (MFIter Rho_mfi(*rho_ctime); Rho_mfi.isValid(); ++Rho_mfi)
     {
         const int i = Rho_mfi.index();
-        //
-        // Get the pressure.
-        //
-        p_fab.resize(BoxLib::surroundingNodes(grids[i]),1);
-        p_fab.copy(P_new[i],p_fab.box());
         //
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
@@ -4862,6 +4861,8 @@ NavierStokes::mac_sync ()
                 }
             }
         }
+
+        delta_ssync.clear();
 
         if (do_mom_diff == 1)
         {
