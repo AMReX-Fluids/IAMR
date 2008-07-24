@@ -988,12 +988,13 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
     // At this point in time we can only do decoupled scalar
     // so we loop over components.
     //
+    MultiFab Soln(grids,1,1);
+    MultiFab Rhs(grids,1,0);
     for (int comp = 0; comp < BL_SPACEDIM; comp++)
     {
-        MultiFab Soln(grids,1,1);
-        MultiFab Rhs(grids,1,0);
-
+        Rhs.setVal(0);
         Soln.setVal(0);
+
         MultiFab::Copy(Rhs,*Vsync,comp,0,1,0);
 
         if (verbose > 1)
@@ -1071,10 +1072,10 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
 
         delete visc_op;
 
-        FArrayBox xflux, yflux;
-
         if (level > 0)
         {
+            FArrayBox xflux, yflux, zflux;
+
             for (MFIter Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
             {
                 BL_ASSERT(grids[Vsyncmfi.index()] == Vsyncmfi.validbox());
@@ -1088,13 +1089,15 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
                 const int* uhi    = u_sync.hiVect();
 
                 Box xflux_bx(grd);
-                xflux_bx.surroundingNodes(0);
-                xflux.resize(xflux_bx,1);
-                DEF_LIMITS(xflux,xflux_dat,xflux_lo,xflux_hi);
-
                 Box yflux_bx(grd);
+
+                xflux_bx.surroundingNodes(0);
                 yflux_bx.surroundingNodes(1);
+
+                xflux.resize(xflux_bx,1);
                 yflux.resize(yflux_bx,1);
+
+                DEF_LIMITS(xflux,xflux_dat,xflux_lo,xflux_hi);
                 DEF_LIMITS(yflux,yflux_dat,yflux_lo,yflux_hi);
 
                 const FArrayBox& xarea = (area[0])[i];
@@ -1118,8 +1121,6 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
                                    dx,&mult);
 #endif
 #if (BL_SPACEDIM == 3)
-
-                FArrayBox zflux;
                 Box zflux_bx(grd);
                 zflux_bx.surroundingNodes(2);
                 zflux.resize(zflux_bx,1);
@@ -1220,6 +1221,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
         MCMultiGrid mg(*tensor_op);
         mg.solve(Soln,Rhs,S_tol,S_tol_abs);
     }
+    Rhs.clear();
 
     int visc_op_lev = 0;
     tensor_op->applyBC(Soln,visc_op_lev); 
@@ -1237,10 +1239,9 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
             std::cout << "Final max of Vsync " << s_norm << '\n';
     }
 
-    FArrayBox xflux, yflux, zflux;
-
     if (level > 0)
     {
+        FArrayBox flux;
         MultiFab** tensorflux;
         allocFluxBoxesLevel(tensorflux,0,BL_SPACEDIM);
         tensor_op->compFlux(D_DECL(*(tensorflux[0]), *(tensorflux[1]), *(tensorflux[2])),Soln);
@@ -1263,28 +1264,14 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
 
                 BL_ASSERT(grd==grids[tensorflux0mfi.index()]);
 
-                Box xflux_bx(grd);
-                xflux_bx.surroundingNodes(0);
-                xflux.resize(xflux_bx,1);
-                xflux.copy((*(tensorflux[0]))[i],sigma,0,1);
-
-                Box yflux_bx(grd);
-                yflux_bx.surroundingNodes(1);
-                yflux.resize(yflux_bx,1);
-                yflux.copy((*(tensorflux[1]))[i],sigma,0,1); 
-#if (BL_SPACEDIM == 3)
-                Box zflux_bx(grd);
-                zflux_bx.surroundingNodes(2);
-                zflux.resize(zflux_bx,1);
-                zflux.copy((*(tensorflux[2]))[i],sigma,0,1);
-#endif
-                //
-                //  Multiply by dt^2: one to make fluxes "extensive", the other to 
-                //   convert Vsync from accel increment to velocity increment
-                //
-                D_TERM(viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,dt*dt);,
-                       viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,dt*dt);,
-                       viscflux_reg->FineAdd(zflux,2,i,0,sigma,1,dt*dt););
+                for (int k = 0; k < BL_SPACEDIM; k++)
+                {
+                    Box flux_bx(grd);
+                    flux_bx.surroundingNodes(k);
+                    flux.resize(flux_bx,1);
+                    flux.copy((*(tensorflux[k]))[i],sigma,0,1);
+                    viscflux_reg->FineAdd(flux,k,i,0,sigma,1,dt*dt);
+                }
             }
         }
         removeFluxBoxesLevel(tensorflux);
@@ -1511,6 +1498,8 @@ Diffusion::getTensorOp (Real                   a,
     tensor_op->setScalars(a,b);
     tensor_op->aCoefficients(alpha);
 
+    alpha.clear();
+
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
         MultiFab bcoeffs(area[n].boxArray(),1,nghost);
@@ -1629,6 +1618,8 @@ Diffusion::getTensorOp (Real                   a,
     tensor_op->setScalars(a,b);
     tensor_op->aCoefficients(alpha);
 
+    alpha.clear();
+
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
         MultiFab bcoeffs(area[n].boxArray(),1,nghost);
@@ -1739,6 +1730,7 @@ Diffusion::getViscOp (int                    comp,
     if (allnull)
     {
         visc_op->aCoefficients(alpha);
+        alpha.clear();
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
             MultiFab bcoeffs(area[n].boxArray(),1,0);
@@ -1750,6 +1742,7 @@ Diffusion::getViscOp (int                    comp,
     else
     {
         visc_op->aCoefficients(alpha);
+        alpha.clear();
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
             MultiFab bcoeffs(area[n].boxArray(),1,0);
@@ -1859,6 +1852,8 @@ Diffusion::getViscOp (int                    comp,
         visc_op->setScalars(a,b);
     }
     visc_op->aCoefficients(alpha);
+
+    alpha.clear();
 
     if (allnull)
     {
@@ -2080,9 +2075,11 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         // alpha should be the same size as volume.
         //
         const int nCompAlpha = BL_SPACEDIM == 2  ?  2 : 1;
-        MultiFab alpha(grids,nCompAlpha,nghost);
-        alpha.setVal(0.0);
-        tensor_op.aCoefficients(alpha);
+        {
+            MultiFab alpha(grids,nCompAlpha,nghost);
+            alpha.setVal(0.0);
+            tensor_op.aCoefficients(alpha);
+        }
 
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
