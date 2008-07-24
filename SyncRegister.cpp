@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.75 2007-07-05 20:59:23 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.76 2008-07-24 20:31:02 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -17,63 +17,6 @@
 #endif
 
 #include <SYNCREG_F.H>
-
-//#define BL_SYNC_DEBUG 1
-
-#ifdef BL_SYNC_DEBUG
-static
-Real
-Norm_0 (const SyncRegister& br)
-{
-    Real r = 0;
-    for (OrientationIter face; face; ++face)
-    {
-        for (ConstFabSetIter cmfi(br[face()]); cmfi.isValid(); ++cmfi)
-        {
-            Real s = cmfi->norm(cmfi->box(), 0, 0, cmfi->nComp());
-            r = (r > s) ? r : s;
-        }
-    }
-    ParallelDescriptor::ReduceRealMax(r,ParallelDescriptor::IOProcessorNumber());
-    return r;
-}
-
-static
-Real
-Norm_1 (const SyncRegister& br)
-{
-    Real r = 0;
-    for (OrientationIter face; face; ++face)
-    {
-        for (FabSetIter cmfi(br[face()]); cmfi.isValid(); ++cmfi)
-        {
-            r += cmfi->norm(cmfi->box(), 1, 0, cmfi->nComp());
-        }
-    }
-    ParallelDescriptor::ReduceRealSum(r,ParallelDescriptor::IOProcessorNumber());
-    return r;
-}
-
-static
-void
-WriteNorms (const SyncRegister& sr,
-            const char*         msg)
-{
-    Real n_0 = Norm_0(sr);
-    Real n_1 = Norm_1(sr);
-    if (ParallelDescriptor::IOProcessor())
-    {
-        cout << "*** " << msg << ": Norm_0: " << n_0 << endl;
-        cout << "*** " << msg << ": Norm_1: " << n_1 << endl;
-    }
-}
-#else
-inline
-void
-WriteNorms (const SyncRegister&, const char*)
-{}
-#endif /*BL_SYNC_DEBUG*/
-
 
 //
 // Structure used by some SyncRegister functions.
@@ -488,49 +431,37 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     }
 
     multByBndryMask(rhs);
-
-    WriteNorms(*this,"SyncRegister::InitRHS(E)");
 }
-
-enum HowToBuild { WITH_BOX, WITH_SURROUNDING_BOX };
 
 static
 void
 BuildMFs (const MultiFab& mf,
-          MultiFab        cloMF[BL_SPACEDIM],
-          MultiFab        chiMF[BL_SPACEDIM],
+          MultiFab&       cloMF,
+          MultiFab&       chiMF,
           const IntVect&  ratio,
-          HowToBuild      how)
+          int             dir)
 {
-    BL_ASSERT(how == WITH_BOX || how == WITH_SURROUNDING_BOX);
+    BoxArray cloBA(mf.size());
+    BoxArray chiBA(mf.size());
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    for (int i = 0; i < mf.size(); i++)
     {
-        BoxArray cloBA(mf.size());
-        BoxArray chiBA(mf.size());
+        const Box& bx = mf.boxArray()[i];
 
-        for (int i = 0; i < mf.size(); i++)
-        {
-            Box bx = mf.boxArray()[i];
+        Box tboxlo(bx), tboxhi(bx);
 
-            if (how == WITH_SURROUNDING_BOX)
-                bx = BoxLib::surroundingNodes(mf.boxArray()[i]);
+        tboxlo.setRange(dir,bx.smallEnd(dir),1);
+        tboxhi.setRange(dir,bx.bigEnd(dir),1);
 
-            Box tboxlo(bx), tboxhi(bx);
-
-            tboxlo.setRange(dir,bx.smallEnd(dir),1);
-            tboxhi.setRange(dir,bx.bigEnd(dir),1);
-
-            cloBA.set(i,BoxLib::coarsen(tboxlo,ratio));
-            chiBA.set(i,BoxLib::coarsen(tboxhi,ratio));
-        }
-
-        cloMF[dir].define(cloBA,1,0,Fab_allocate);
-        chiMF[dir].define(chiBA,1,0,Fab_allocate);
-
-        cloMF[dir].setVal(0);
-        chiMF[dir].setVal(0);
+        cloBA.set(i,BoxLib::coarsen(tboxlo,ratio));
+        chiBA.set(i,BoxLib::coarsen(tboxhi,ratio));
     }
+
+    cloMF.define(cloBA,1,0,Fab_allocate);
+    chiMF.define(chiBA,1,0,Fab_allocate);
+
+    cloMF.setVal(0);
+    chiMF.setVal(0);
 }
 
 void
@@ -611,8 +542,6 @@ SyncRegister::CrseInit  (MultiFab* Sync_resid_crse,
                          const Geometry& crse_geom, 
                          Real            mult)
 {
-    WriteNorms(*this,"SyncRegister::CrseInit(B)");
-
     setVal(0.);
 
     Sync_resid_crse->mult(mult);
@@ -624,8 +553,6 @@ SyncRegister::CrseInit  (MultiFab* Sync_resid_crse,
     {
         bndry[face()].plusFrom(*Sync_resid_crse,0,0,0,1);
     }
-
-    WriteNorms(*this,"SyncRegister::CrseInit(E)");
 }
 
 void
@@ -672,27 +599,25 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
                         const BCRec*    phys_bc,
                         Real            mult)
 {
-    WriteNorms(*this,"SyncRegister::FineAdd(B)");
-
-    MultiFab cloMF[BL_SPACEDIM], chiMF[BL_SPACEDIM];
-
-    BuildMFs(*Sync_resid_fine,cloMF,chiMF,ratio,WITH_BOX);
-
     Sync_resid_fine->mult(mult);
 
     Box fine_node_domain = BoxLib::surroundingNodes(fine_geom.Domain());
     Box crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());
-    //
-    // Coarsen edge values.
-    //
-    for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
-    {
-        const int* resid_lo = (*Sync_resid_fine)[mfi].box().loVect();
-        const int* resid_hi = (*Sync_resid_fine)[mfi].box().hiVect();
 
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        MultiFab cloMF, chiMF;
+
+        BuildMFs(*Sync_resid_fine,cloMF,chiMF,ratio,dir);
+        //
+        // Coarsen edge values.
+        //
+        for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
         {
-            FArrayBox& cfablo = cloMF[dir][mfi.index()];
+            const int* resid_lo = (*Sync_resid_fine)[mfi].box().loVect();
+            const int* resid_hi = (*Sync_resid_fine)[mfi].box().hiVect();
+
+            FArrayBox& cfablo = cloMF[mfi.index()];
             const Box& cboxlo = cfablo.box();
             const int* clo = cboxlo.loVect();
             const int* chi = cboxlo.hiVect();
@@ -702,7 +627,7 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
                            cfablo.dataPtr(),ARLIM(clo),ARLIM(chi),
                            clo,chi,&dir,ratio.getVect());
 
-            FArrayBox& cfabhi = chiMF[dir][mfi.index()];
+            FArrayBox& cfabhi = chiMF[mfi.index()];
             const Box& cboxhi = cfabhi.box();
             clo = cboxhi.loVect();
             chi = cboxhi.hiVect();
@@ -712,26 +637,23 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
                            cfabhi.dataPtr(),ARLIM(clo),ARLIM(chi),
                            clo,chi,&dir,ratio.getVect());
         }
-    }
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        if (!crse_geom.isPeriodic(dir))
+        for (int j = 0; j < BL_SPACEDIM; j++)
         {
-            //
-            // Now points on the physical bndry must be doubled
-            // for any boundary but outflow or periodic
-            //
-            Box domlo(crse_node_domain), domhi(crse_node_domain);
-
-            domlo.setRange(dir,crse_node_domain.smallEnd(dir),1);
-            domhi.setRange(dir,crse_node_domain.bigEnd(dir),1);
-
-            for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
+            if (!crse_geom.isPeriodic(j))
             {
-                for (int dir_cfab = 0; dir_cfab < BL_SPACEDIM; dir_cfab++) 
+                //
+                // Now points on the physical bndry must be doubled
+                // for any boundary but outflow or periodic
+                //
+                Box domlo(crse_node_domain), domhi(crse_node_domain);
+
+                domlo.setRange(j,crse_node_domain.smallEnd(j),1);
+                domhi.setRange(j,crse_node_domain.bigEnd(j),1);
+
+                for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
                 {
-                    FArrayBox& cfablo = cloMF[dir_cfab][mfi.index()];
+                    FArrayBox& cfablo = cloMF[mfi.index()];
                     const Box& cboxlo = cfablo.box();
 
                     Box isectlo = domlo & cboxlo;
@@ -742,7 +664,7 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
                     if (isecthi.ok())
                         cfablo.mult(2.0,isecthi,0,1);
 
-                    FArrayBox& cfabhi = chiMF[dir_cfab][mfi.index()];
+                    FArrayBox& cfabhi = chiMF[mfi.index()];
                     const Box& cboxhi = cfabhi.box();
 
                     isectlo = domlo & cboxhi;
@@ -755,21 +677,16 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
                 }
             }
         }
-    }
-    //
-    // Intersect and add to registers.
-    //
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
+        //
+        // Intersect and add to registers.
+        //
         for (OrientationIter face; face; ++face)
         {
-            bndry[face()].plusFrom(cloMF[dir],0,0,0,1);
-            bndry[face()].plusFrom(chiMF[dir],0,0,0,1);
+            bndry[face()].plusFrom(cloMF,0,0,0,1);
+            bndry[face()].plusFrom(chiMF,0,0,0,1);
         }
-        incrementPeriodic(crse_geom, crse_node_domain, cloMF[dir]);
-        incrementPeriodic(crse_geom, crse_node_domain, chiMF[dir]);
+        incrementPeriodic(crse_geom, crse_node_domain, cloMF);
+        incrementPeriodic(crse_geom, crse_node_domain, chiMF);
     }
-
-    WriteNorms(*this,"SyncRegister::FineAdd(E)");
 }
 
