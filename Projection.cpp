@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.165 2007-07-05 20:01:48 lijewski Exp $
+// $Id: Projection.cpp,v 1.166 2008-07-24 20:59:52 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2856,65 +2856,66 @@ Projection::set_outflow_bcs_at_level (int          which_call,
                                       int          have_divu,
                                       Real         gravity)
 {
-  BL_ASSERT(dynamic_cast<NavierStokes*>(&LevelData[lev]) != 0);
+    BL_ASSERT(dynamic_cast<NavierStokes*>(&LevelData[lev]) != 0);
 
-  Box domain = parent->Geom(lev).Domain();
+    Box domain = parent->Geom(lev).Domain();
 
-  BoxList   phi_strip_bl(IndexType::TheNodeType());
-  BoxList state_strip_bl;
+    BoxList   phi_strip_bl(IndexType::TheNodeType());
+    BoxList state_strip_bl;
 
-  const int ncStripWidth = 1;
+    const int ncStripWidth = 1;
 
-  FArrayBox  rho[2*BL_SPACEDIM];
-  FArrayBox dsdt[2*BL_SPACEDIM];
-  FArrayBox dudt[1][2*BL_SPACEDIM];
+    FArrayBox  rho[2*BL_SPACEDIM];
+    FArrayBox dsdt[2*BL_SPACEDIM];
+    FArrayBox dudt[1][2*BL_SPACEDIM];
+    FArrayBox phi_fine_strip[2*BL_SPACEDIM];
 
-  FArrayBox phi_fine_strip[2*BL_SPACEDIM];
+    BoxArray grown_grids(Sig_in->boxArray());
+    grown_grids.grow(1);
+    MultiFab Sig_grown(grown_grids,1,0);
+    for (MFIter mfi(Sig_grown); mfi.isValid(); ++mfi)
+        Sig_grown[mfi].copy((*Sig_in)[mfi]);
 
-//This is necessary to copy from the ghost cells in Sig_in into rho[iface]
-  BoxArray grown_grids(Sig_in->boxArray());
-  grown_grids.grow(1);
-  MultiFab Sig_grown(grown_grids,1,0);
-  for (MFIter mfi(Sig_grown); mfi.isValid(); ++mfi)
-     Sig_grown[mfi].copy((*Sig_in)[mfi]);
+    for (int iface = 0; iface < numOutFlowFaces; iface++)
+    {
+        dsdt[iface].resize(state_strip[iface],1);
+        dudt[0][iface].resize(state_strip[iface],BL_SPACEDIM);
 
-  for (int iface = 0; iface < numOutFlowFaces; iface++)
-  {
-      dsdt[iface].resize(state_strip[iface],1);
-      dudt[0][iface].resize(state_strip[iface],BL_SPACEDIM);
+        rho[iface].resize(state_strip[iface],1);
 
-      rho[iface].resize(state_strip[iface],1);
+        Sig_grown.copy(rho[iface]);
 
-      Sig_grown.copy(rho[iface]);
+        Box phi_strip = 
+            BoxLib::surroundingNodes(BoxLib::bdryNode(domain,
+                                                      outFacesAtThisLevel[iface],
+                                                      ncStripWidth));
+        phi_fine_strip[iface].resize(phi_strip,1);
+        phi_fine_strip[iface].setVal(0.);
+    }
+    Sig_grown.clear();
 
-      Box phi_strip = 
-	BoxLib::surroundingNodes(BoxLib::bdryNode(domain,
-						  outFacesAtThisLevel[iface],
-						  ncStripWidth));
-      phi_fine_strip[iface].resize(phi_strip,1);
-      phi_fine_strip[iface].setVal(0.);
-  }
-
-  ProjOutFlowBC projBC;
-  if (which_call == INITIAL_PRESS) 
+    ProjOutFlowBC projBC;
+    if (which_call == INITIAL_PRESS) 
     {
 
-      const int*      lo_bc = phys_bc->lo();
-      const int*      hi_bc = phys_bc->hi();
-      projBC.computeRhoG(rho,phi_fine_strip,
-                         parent->Geom(lev),
-                         outFacesAtThisLevel,numOutFlowFaces,gravity,
-                         lo_bc,hi_bc);
+        const int*      lo_bc = phys_bc->lo();
+        const int*      hi_bc = phys_bc->hi();
+        projBC.computeRhoG(rho,phi_fine_strip,
+                           parent->Geom(lev),
+                           outFacesAtThisLevel,numOutFlowFaces,gravity,
+                           lo_bc,hi_bc);
     }
-  else
+    else
     {
         Vel_in->FillBoundary();
-        //      Build a new MultiFab for which the cells outside the domain
-        //        are in the valid region instead of being ghost cells, so that
-        //        we can copy these values into the dudt array.
+        //
+        // Build a new MultiFab for which the cells outside the domain
+        // are in the valid region instead of being ghost cells, so that
+        // we can copy these values into the dudt array.
+        //
         BoxList grown_vel_bl;
         for (int i = 0; i < Vel_in->size(); i++)
-	    grown_vel_bl.push_back(BoxLib::grow(Vel_in->boxArray()[i],1));
+            grown_vel_bl.push_back(BoxLib::grow(Vel_in->boxArray()[i],1));
         BoxArray grown_vel_ba(grown_vel_bl);
         MultiFab grown_vel(grown_vel_ba,BL_SPACEDIM,0);
         for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
@@ -2922,54 +2923,63 @@ Projection::set_outflow_bcs_at_level (int          which_call,
             grown_vel[vmfi.index()].copy((*Vel_in)[vmfi.index()]);
         }
 
-      if (have_divu)
-	{
-	  for (int iface = 0; iface < numOutFlowFaces; iface++) 
-	    {
-	      grown_vel.copy(dudt[0][iface]);
-	    }
-          // Reuse grown_vel to fill dsdt
-	  for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
-	    {
-	      grown_vel[vmfi.index()].copy((*Divu_in)[vmfi.index()],0,0,1);
-	    }
+        if (have_divu)
+        {
+            for (int iface = 0; iface < numOutFlowFaces; iface++) 
+            {
+                grown_vel.copy(dudt[0][iface]);
+            }
+            //
+            // Reuse grown_vel to fill dsdt.
+            //
+            for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
+            {
+                grown_vel[vmfi.index()].copy((*Divu_in)[vmfi.index()],0,0,1);
+            }
 
-	  for (int iface = 0; iface < numOutFlowFaces; iface++) 
-	    {
-	      grown_vel.copy(dsdt[iface],0,0,1);
-	    }
-	}
-      else
-	{
-	  for (int iface = 0; iface < numOutFlowFaces; iface++) 
-	    {
-	      grown_vel.copy(dudt[0][iface]);
-	      dsdt[iface].setVal(0);
-	    }
-	}
+            for (int iface = 0; iface < numOutFlowFaces; iface++) 
+            {
+                grown_vel.copy(dsdt[iface],0,0,1);
+            }
+        }
+        else
+        {
+            for (int iface = 0; iface < numOutFlowFaces; iface++) 
+            {
+                grown_vel.copy(dudt[0][iface]);
+                dsdt[iface].setVal(0);
+            }
+        }
 
-      const int*      lo_bc = phys_bc->lo();
-      const int*      hi_bc = phys_bc->hi();
-      projBC.computeBC(dudt, dsdt, rho, phi_fine_strip,
-		       parent->Geom(lev),
-		       outFacesAtThisLevel,
-		       numOutFlowFaces, lo_bc, hi_bc, gravity);
+        const int*      lo_bc = phys_bc->lo();
+        const int*      hi_bc = phys_bc->hi();
+        projBC.computeBC(dudt, dsdt, rho, phi_fine_strip,
+                         parent->Geom(lev),
+                         outFacesAtThisLevel,
+                         numOutFlowFaces, lo_bc, hi_bc, gravity);
     }
 
-  for ( int iface = 0; iface < numOutFlowFaces; iface++)
+    for (int i = 0; i < 2*BL_SPACEDIM; i++)
     {
-      BoxArray phi_fine_strip_ba(phi_fine_strip[iface].box());
-      MultiFab phi_fine_strip_mf(phi_fine_strip_ba,1,0);
-
-      for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi)
-         phi_fine_strip_mf[mfi].copy(phi_fine_strip[iface]);
-
-      phi[lev]->copy(phi_fine_strip_mf);
+        rho[i].clear();
+        dsdt[i].clear();
+        dudt[0][i].clear();
     }
 
-  if (lev > c_lev) 
+    for ( int iface = 0; iface < numOutFlowFaces; iface++)
     {
-      putDown(phi, phi_fine_strip, c_lev, lev, outFacesAtThisLevel,
-	      numOutFlowFaces, ncStripWidth);
+        BoxArray phi_fine_strip_ba(phi_fine_strip[iface].box());
+        MultiFab phi_fine_strip_mf(phi_fine_strip_ba,1,0);
+
+        for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi)
+            phi_fine_strip_mf[mfi].copy(phi_fine_strip[iface]);
+
+        phi[lev]->copy(phi_fine_strip_mf);
+    }
+
+    if (lev > c_lev) 
+    {
+        putDown(phi, phi_fine_strip, c_lev, lev, outFacesAtThisLevel,
+                numOutFlowFaces, ncStripWidth);
     }
 }
