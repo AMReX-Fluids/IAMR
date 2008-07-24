@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.113 2007-11-07 20:58:27 aaspden Exp $
+// $Id: MacProj.cpp,v 1.114 2008-07-24 17:13:37 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -505,20 +505,19 @@ MacProj::mac_sync_solve (int       level,
     const Real scale = -1.0;
     mr.Reflux(Rhs,volume[level],scale,0,0,1,geom);
 
-    for (int kf = 0, nfine = fine_boxes.size(); kf < nfine; kf++)
+    BoxArray baf = fine_boxes;
+
+    baf.coarsen(fine_ratio);
+
+    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
-        Box bf = BoxLib::coarsen(fine_boxes[kf],fine_ratio);
+        BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
 
-        for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+        std::vector< std::pair<int,Box> > isects = baf.intersections(Rhsmfi.validbox());
+
+        for (int ii = 0; ii < isects.size(); ii++)
         {
-            BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
-
-            Box isect = Rhsmfi.validbox() & bf;
-
-            if (isect.ok())
-            {
-                Rhs[Rhsmfi].setVal(0.0,isect,0);
-            }
+            Rhs[Rhsmfi].setVal(0.0,isects[ii].second,0);
         }
     }
     //
