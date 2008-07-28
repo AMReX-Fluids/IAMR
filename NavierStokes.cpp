@@ -1577,16 +1577,19 @@ NavierStokes::mac_project (Real      time,
 
     create_umac_grown();
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
-
-    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "NavierStokes:mac_project(): lev: "
-                  << level
-                  << ", time: " << run_time << std::endl;
+        Real run_time    = ParallelDescriptor::second() - strt_time;
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "NavierStokes:mac_project(): lev: "
+                      << level
+                      << ", time: " << run_time << std::endl;
+        }
     }
 }
 
@@ -3622,10 +3625,10 @@ NavierStokes::estTimeStep ()
 
     if (verbose)
     {
-        for (int k = 0; k < BL_SPACEDIM; k++)
-        {
-            ParallelDescriptor::ReduceRealMax(u_max[k]);
-        }
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
+
         if (ParallelDescriptor::IOProcessor())
         {
             std::cout << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
@@ -3644,10 +3647,10 @@ NavierStokes::initialTimeStep ()
   Real returnDt = init_shrink*estTimeStep();
 
   if (ParallelDescriptor::IOProcessor())
-    {
+  {
       std::cout << "Multiplying dt by init_shrink; dt = " 
 		<< returnDt << std::endl;
-    }
+  }
 
   return returnDt;
 }
