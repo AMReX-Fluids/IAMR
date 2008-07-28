@@ -344,10 +344,9 @@ Diffusion::diffuse_scalar (Real                   dt,
     //    else
     //       S_new = S_old - dt.Div(U.Phi),   want Rhs -= Div(U.Phi) )
     //
-    FArrayBox tmpfab;
-
     if (solve_mode == PREDICTOR)
     {
+        FArrayBox tmpfab;
         for (MFIter Smfi(S_new); Smfi.isValid(); ++Smfi)
         {
             const Box& box = Smfi.validbox();
@@ -368,6 +367,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     //
     if (delta_rhs != 0)
     {
+        FArrayBox tmpfab;
         for (MFIter mfi(*delta_rhs); mfi.isValid(); ++mfi)
         {
             const Box& box = mfi.validbox();
@@ -591,21 +591,23 @@ Diffusion::diffuse_velocity (Real                   dt,
 
             if (do_reflux)
             {
-                FArrayBox fluxtot;
-                for (int d = 0; d < BL_SPACEDIM; ++d)
                 {
-                    for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
+                    FArrayBox fluxtot;
+                    for (int d = 0; d < BL_SPACEDIM; ++d)
                     {
-                        const Box& ebox = (*fluxSCn[d])[fmfi].box();
-                        fluxtot.resize(ebox,nComp);
-                        fluxtot.copy((*fluxSCn[d])[fmfi],ebox,0,ebox,0,nComp);
-                        fluxtot.plus((*fluxSCnp1[d])[fmfi],ebox,0,0,nComp);
-                        if (level < parent->finestLevel())
-                            finer->viscflux_reg->CrseInit(fluxtot,ebox,
-                                                          d,0,sigma,nComp,-dt);
-                        if (level > 0)
-                            viscflux_reg->FineAdd(fluxtot,d,fmfi.index(),
-                                                  0,sigma,nComp,dt);
+                        for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
+                        {
+                            const Box& ebox = (*fluxSCn[d])[fmfi].box();
+                            fluxtot.resize(ebox,nComp);
+                            fluxtot.copy((*fluxSCn[d])[fmfi],ebox,0,ebox,0,nComp);
+                            fluxtot.plus((*fluxSCnp1[d])[fmfi],ebox,0,0,nComp);
+                            if (level < parent->finestLevel())
+                                finer->viscflux_reg->CrseInit(fluxtot,ebox,
+                                                              d,0,sigma,nComp,-dt);
+                            if (level > 0)
+                                viscflux_reg->FineAdd(fluxtot,d,fmfi.index(),
+                                                      0,sigma,nComp,dt);
+                        }
                     }
                 }
                 if (level < parent->finestLevel())
@@ -862,45 +864,34 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         }       
         removeFluxBoxesLevel(tensorflux_old);
     
-        FArrayBox xflux, yflux, zflux;
+        FArrayBox flux;
 
         for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
         {
             for (MFIter tensorflux0mfi(*(tensorflux[0]));
-                 tensorflux0mfi.isValid(); ++tensorflux0mfi)
+                 tensorflux0mfi.isValid();
+                 ++tensorflux0mfi)
             {
                 const int  i   = tensorflux0mfi.index();
                 const Box& grd = BoxLib::enclosedCells(tensorflux0mfi.validbox());
 
                 BL_ASSERT(grd == grids[tensorflux0mfi.index()]);
 
-                Box xflux_bx(grd);
-                xflux_bx.surroundingNodes(0);
-                xflux.resize(xflux_bx,1);
-                xflux.copy((*(tensorflux[0]))[i],sigma,0,1);
+                for (int k = 0; k < BL_SPACEDIM; k++)
+                {
+                    Box flux_bx(grd);
+                    flux_bx.surroundingNodes(k);
+                    flux.resize(flux_bx,1);
+                    flux.copy((*(tensorflux[k]))[i],sigma,0,1);
 
-                Box yflux_bx(grd);
-                yflux_bx.surroundingNodes(1);
-                yflux.resize(yflux_bx,1);
-                yflux.copy((*(tensorflux[1]))[i],sigma,0,1);
-#if (BL_SPACEDIM == 3)
-                Box zflux_bx(grd);
-                zflux_bx.surroundingNodes(2);
-                zflux.resize(zflux_bx,1);
-                zflux.copy((*(tensorflux[2]))[i],sigma,0,1);
-#endif
-                if (level < finest_level)
-                {
-                    FluxRegister& fr = *finer->viscflux_reg;
-                    D_TERM(fr.CrseInit(xflux,xflux_bx,0,0,sigma,1,-dt);,
-                           fr.CrseInit(yflux,yflux_bx,1,0,sigma,1,-dt);,
-                           fr.CrseInit(zflux,zflux_bx,2,0,sigma,1,-dt););
-                }
-                if (level > 0)
-                {
-                    D_TERM(viscflux_reg->FineAdd(xflux,0,i,0,sigma,1,dt);,
-                           viscflux_reg->FineAdd(yflux,1,i,0,sigma,1,dt);,
-                           viscflux_reg->FineAdd(zflux,2,i,0,sigma,1,dt););
+                    if (level < finest_level)
+                    {
+                        (*finer->viscflux_reg).CrseInit(flux,flux_bx,k,0,sigma,1,-dt);
+                    }
+                    if (level > 0)
+                    {
+                        viscflux_reg->FineAdd(flux,k,i,0,sigma,1,dt);
+                    }
                 }
             }
             if (level < finest_level)
