@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.115 2008-07-28 19:37:37 lijewski Exp $
+// $Id: MacProj.cpp,v 1.116 2008-07-28 20:44:49 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -656,9 +656,6 @@ MacProj::mac_sync_compute (int                   level,
                            int                   do_mom_diff,
                            const Array<int>&     increment_sync)
 {
-    FArrayBox Rho, tforces, tvelforces;
-    FArrayBox xflux, yflux, zflux;
-    FArrayBox grad_phi[BL_SPACEDIM];
     //
     // Get parameters.
     //
@@ -681,10 +678,9 @@ MacProj::mac_sync_compute (int                   level,
     //
     if (be_cn_theta != 1.0) 
     {
-        int i;
         bool do_get_visc_terms = false;
 
-        for (i=0; i < BL_SPACEDIM; ++i)
+        for (int i=0; i < BL_SPACEDIM; ++i)
             if (!increment_sync.size() || increment_sync[i]==1)
                 do_get_visc_terms = true;
 
@@ -692,7 +688,7 @@ MacProj::mac_sync_compute (int                   level,
             ns_level.getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
 
         do_get_visc_terms = false;
-        for (i=BL_SPACEDIM; i < increment_sync.size(); ++i)
+        for (int i=BL_SPACEDIM; i < increment_sync.size(); ++i)
             if (!increment_sync.size() || increment_sync[i]==1)
                 do_get_visc_terms = true;
 
@@ -701,9 +697,7 @@ MacProj::mac_sync_compute (int                   level,
     }
 
     Array<int> ns_level_bc, bndry[BL_SPACEDIM];
-    //
-    // FillPatch()d stuff allocated on heap ...
-    //
+
     MultiFab Gp(grids,BL_SPACEDIM,1);
 
     ns_level.getGradP(Gp, prev_pres_time);
@@ -730,16 +724,15 @@ MacProj::mac_sync_compute (int                   level,
         const int i     = S_fpi.index();
         FArrayBox& S    = S_fpi();
         FArrayBox& divu = (*divu_fp)[i];
-
-        FArrayBox U;
-
-        U.resize(S.box(),BL_SPACEDIM);
-        U.copy(S_fpi(),0,0,BL_SPACEDIM);
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
         // Create storage for corrective velocities.
         //
+        FArrayBox xflux, yflux, zflux, tforces, tvelforces, U;
+
+        FArrayBox grad_phi[BL_SPACEDIM], Rho(BoxLib::grow(grids[i],1),1);
+
         D_TERM(grad_phi[0].resize(BoxLib::surroundingNodes(grids[i],0),1);,
                grad_phi[1].resize(BoxLib::surroundingNodes(grids[i],1),1);,
                grad_phi[2].resize(BoxLib::surroundingNodes(grids[i],2),1););
@@ -752,20 +745,14 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Get needed data.
         //
-        Rho.resize(BoxLib::grow(grids[i],1),1);
         Rho.copy(S,Density,0,1);
 
 #ifdef GENGETFORCE
         ns_level.getForce(tforces,i,1,0,NUM_STATE,prev_time,Rho);
-#else
-#ifdef MOREGENGETFORCE
-	//Need to add a getForceVerbose() fn to NavierStokes if we want verbosity here
-	//if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	//std::cout << "---" << std::endl << "I - mac sync compute:" << std::endl<< "Calling getForce..." << std::endl;
+#elif MOREGENGETFORCE
         ns_level.getForce(tforces,i,1,0,NUM_STATE,prev_time,S_fpi(),S_fpi(),Density);
 #else
         ns_level.getForce(tforces,i,1,0,NUM_STATE,Rho);
-#endif		 
 #endif		 
         //
         // Compute total forcing terms.
@@ -778,14 +765,10 @@ MacProj::mac_sync_compute (int                   level,
         {
 #ifdef GENGETFORCE
             ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,Rho);
-#else
-#ifdef MOREGENGETFORCE
-	    //if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    //std::cout << "---" << std::endl << "J - mac sync compute (use_forces_in_trans):" << std::endl<< "Calling getForce..." << std::endl;
+#elif MOREGENGETFORCE
             ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi(),S_fpi(),Density);
 #else
             ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho);
-#endif		 
 #endif		 
             godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[S_fpi],Gp[i],Rho);
         }
@@ -803,11 +786,17 @@ MacProj::mac_sync_compute (int                   level,
                        zflux, bndry[2].dataPtr(),
 #endif
                        S, Rho, tvelforces);
+
+        Rho.clear();
+        tvelforces.clear();
         //
         // Get the sync FABS.
         //
         FArrayBox& u_sync = (*Vsync)[S_fpi];
         FArrayBox& s_sync = (*Ssync)[S_fpi];
+
+        U.resize(S.box(),BL_SPACEDIM);
+        U.copy(S_fpi(),0,0,BL_SPACEDIM);
         //
         // Loop over state components and compute the sync advective component.
         //
@@ -884,6 +873,9 @@ MacProj::mac_sync_compute (int                   level,
             }
             temp_reg->CrseInitFinish();
         }
+
+        U.clear();
+        tforces.clear();
         //
         // Include grad_phi in the mac registers corresponding
         // to the next coarsest interface.
@@ -903,8 +895,8 @@ MacProj::mac_sync_compute (int                   level,
     if (modify_reflux_normal_vel)
     {
           // Multiply the fluxes (stored in temp_reg) 
-          //   by delta U (area-weighted, stored in mr) on each edge
-          //   and store the result in temp_reg.
+          // by delta U (area-weighted, stored in mr) on each edge
+          // and store the result in temp_reg.
           // Then reflux the result into u_sync
 
           FluxRegister& mr = mac_reg[level+1];
@@ -958,7 +950,6 @@ MacProj::mac_sync_compute (int                    level,
                            Real                   dt)
 {
     FArrayBox xflux, yflux, zflux;
-    FArrayBox grad_phi[BL_SPACEDIM];
 
     const BoxArray& grids        = LevelData[level].boxArray();
     const Geometry& geom         = parent->Geom(level);
@@ -981,6 +972,8 @@ MacProj::mac_sync_compute (int                    level,
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
+        FArrayBox grad_phi[BL_SPACEDIM];
+
         D_TERM(grad_phi[0].resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],0),1);,
                grad_phi[1].resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],1),1);,
                grad_phi[2].resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],2),1););
@@ -1016,6 +1009,8 @@ MacProj::mac_sync_compute (int                    level,
 #endif
                                 volume[level][Syncmfi], (*Sync)[Syncmfi],
                                 s_ind, use_conserv_diff);
+
+        D_TERM(grad_phi[0].clear();, grad_phi[1].clear();, grad_phi[2].clear(););
         //
         // NOTE: the signs here are opposite from VELGOD.
         // NOTE: fluxes expected to be in extensive form.
@@ -1216,7 +1211,7 @@ MacProj::set_outflow_bcs (int             level,
         BoxArray phiBoxArray(phiBoxList);
         ccBoxList.clear();
         phiBoxList.clear();
-    
+
         FArrayBox rhodat[2*BL_SPACEDIM];
         FArrayBox divudat[2*BL_SPACEDIM];
         FArrayBox phidat[2*BL_SPACEDIM];
