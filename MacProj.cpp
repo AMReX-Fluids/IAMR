@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.114 2008-07-24 17:13:37 lijewski Exp $
+// $Id: MacProj.cpp,v 1.115 2008-07-28 19:37:37 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1157,122 +1157,120 @@ MacProj::set_outflow_bcs (int             level,
                           const MultiFab& S,
                           const MultiFab& divu)
 {
-  // This code is very similar to the outflow BC stuff in the Projection
-  // class except that here the the phi to be solved for lives on the
-  // out-directed faces.  The projection equation to satisfy is
-  //
-  //   (1/r)(d/dr)[r/rho dphi/dr] = dv/dr - S
-  //
-  bool hasOutFlow;
-  Orientation outFaces[2*BL_SPACEDIM];
-  int numOutFlowFaces;
+    //
+    // This code is very similar to the outflow BC stuff in the Projection
+    // class except that here the the phi to be solved for lives on the
+    // out-directed faces.  The projection equation to satisfy is
+    //
+    //   (1/r)(d/dr)[r/rho dphi/dr] = dv/dr - S
+    //
+    bool hasOutFlow;
+    Orientation outFaces[2*BL_SPACEDIM];
+    int numOutFlowFaces;
 
-  OutFlowBC::GetOutFlowFaces(hasOutFlow,outFaces,phys_bc,numOutFlowFaces);
+    OutFlowBC::GetOutFlowFaces(hasOutFlow,outFaces,phys_bc,numOutFlowFaces);
 
-  const BoxArray&   grids  = LevelData[level].boxArray();
-  const Geometry&   geom   = parent->Geom(level);
-  const Box&        domain = parent->Geom(level).Domain();
+    const BoxArray&   grids  = LevelData[level].boxArray();
+    const Geometry&   geom   = parent->Geom(level);
+    const Box&        domain = parent->Geom(level).Domain();
+    //
+    // Create 1-wide cc box just outside boundary to hold phi.
+    // Create 1-wide cc box just inside  boundary to hold rho,u,divu.
+    //
+    BoxList ccBoxList, phiBoxList;
 
-  //
-  // Create 1-wide cc box just outside boundary to hold phi.
-  // Create 1-wide cc box just inside  boundary to hold rho,u,divu.
-  //
-
-  BoxList  ccBoxList;
-  BoxList phiBoxList;
-
-  for (int iface = 0; iface < numOutFlowFaces; iface++)
+    for (int iface = 0; iface < numOutFlowFaces; iface++)
     {
-      if (grids_on_side_of_domain(grids,geom.Domain(),outFaces[iface])) 
+        if (grids_on_side_of_domain(grids,geom.Domain(),outFaces[iface])) 
 	{
-	  const int outDir    = outFaces[iface].coordDir();
+            const int outDir    = outFaces[iface].coordDir();
 
-	  Box ccBndBox;
-	  if (outFaces[iface].faceDir() == Orientation::high)
+            Box ccBndBox;
+            if (outFaces[iface].faceDir() == Orientation::high)
 	    {
-	      ccBndBox = 
-		Box(BoxLib::adjCellHi(domain,outDir,2)).shift(outDir,-2);
+                ccBndBox = 
+                    Box(BoxLib::adjCellHi(domain,outDir,2)).shift(outDir,-2);
 	    } 
-	  else 
+            else 
 	    {
-	      ccBndBox = 
-		Box(BoxLib::adjCellLo(domain,outDir,2)).shift(outDir,2);
+                ccBndBox = 
+                    Box(BoxLib::adjCellLo(domain,outDir,2)).shift(outDir,2);
 	    }
-	  ccBoxList.push_back(ccBndBox);
+            ccBoxList.push_back(ccBndBox);
 
-	  Box phiBox  = BoxLib::adjCell(domain,outFaces[iface],1);
-	  phiBoxList.push_back(phiBox);
+            Box phiBox  = BoxLib::adjCell(domain,outFaces[iface],1);
+            phiBoxList.push_back(phiBox);
 
-	  const Box      valid_ccBndBox       = ccBndBox & domain;
-	  const BoxArray uncovered_outflow_ba = BoxLib::complementIn(valid_ccBndBox,grids);
+            const Box      valid_ccBndBox       = ccBndBox & domain;
+            const BoxArray uncovered_outflow_ba = BoxLib::complementIn(valid_ccBndBox,grids);
 
-	  if (uncovered_outflow_ba.size() && 
-	      BoxLib::intersect(grids,valid_ccBndBox).size())
-	    BoxLib::Error("MacProj: Cannot yet handle partially refined outflow");
+            if (uncovered_outflow_ba.size() && 
+                BoxLib::intersect(grids,valid_ccBndBox).size())
+                BoxLib::Error("MacProj: Cannot yet handle partially refined outflow");
 	}
     }
   
-
-  if ( !ccBoxList.isEmpty() ) 
+    if ( !ccBoxList.isEmpty() ) 
     {
-      BoxArray  ccBoxArray( ccBoxList);
-      BoxArray phiBoxArray(phiBoxList);
+        BoxArray  ccBoxArray( ccBoxList);
+        BoxArray phiBoxArray(phiBoxList);
+        ccBoxList.clear();
+        phiBoxList.clear();
     
-      FArrayBox rhodat[2*BL_SPACEDIM];
-      FArrayBox divudat[2*BL_SPACEDIM];
-      FArrayBox phidat[2*BL_SPACEDIM];
+        FArrayBox rhodat[2*BL_SPACEDIM];
+        FArrayBox divudat[2*BL_SPACEDIM];
+        FArrayBox phidat[2*BL_SPACEDIM];
       
-      for ( int iface = 0; iface < numOutFlowFaces; ++iface) 
+        for ( int iface = 0; iface < numOutFlowFaces; ++iface) 
 	{
-	  rhodat[iface].resize(ccBoxArray[iface], 1);
-	  divudat[iface].resize(ccBoxArray[iface], 1);
-	  phidat[iface].resize(phiBoxArray[iface], 1);
+            rhodat[iface].resize(ccBoxArray[iface], 1);
+            divudat[iface].resize(ccBoxArray[iface], 1);
+            phidat[iface].resize(phiBoxArray[iface], 1);
 
-	  phidat[iface].setVal(0.0);
-	  divu.copy(divudat[iface]);
-	  S.copy(rhodat[iface], Density, 0, 1);
+            phidat[iface].setVal(0.0);
+            divu.copy(divudat[iface]);
+            S.copy(rhodat[iface], Density, 0, 1);
 	}
 
-      // rhodat.copy(S, Density, 0, 1);
-      // divudat.copy(divu, 0, 0, 1);
+        // rhodat.copy(S, Density, 0, 1);
+        // divudat.copy(divu, 0, 0, 1);
 
-      //
-      // Load ec data.
-      //
+        //
+        // Load ec data.
+        //
 
-      FArrayBox uedat[BL_SPACEDIM][2*BL_SPACEDIM];
-      for (int i = 0; i < BL_SPACEDIM; ++i)
+        FArrayBox uedat[BL_SPACEDIM][2*BL_SPACEDIM];
+        for (int i = 0; i < BL_SPACEDIM; ++i)
 	{
-	  BoxArray edgeArray(ccBoxArray);
-	  edgeArray.surroundingNodes(i);
-	  for ( int iface = 0; iface < numOutFlowFaces; ++iface) 
+            BoxArray edgeArray(ccBoxArray);
+            edgeArray.surroundingNodes(i);
+            for ( int iface = 0; iface < numOutFlowFaces; ++iface) 
 	    {
-	      uedat[i][iface].resize(edgeArray[iface], 1);
-	      u_mac[i].copy(uedat[i][iface], 0, 0, 1);
-	      // uedat[iface][i].copy(u_mac[i], 0, 0, 1);
+                uedat[i][iface].resize(edgeArray[iface], 1);
+                u_mac[i].copy(uedat[i][iface], 0, 0, 1);
 	    }
 	}
     
-      MacOutFlowBC macBC;
-      // phidat.setVal(0.0);
+        MacOutFlowBC macBC;
 
-      NavierStokes* ns_level = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
-      Real gravity = ns_level->getGravity();
-      const int* lo_bc = phys_bc->lo();
-      const int* hi_bc = phys_bc->hi();
-      macBC.computeBC(uedat, divudat, rhodat, phidat,
-		      geom, outFaces, numOutFlowFaces, lo_bc, hi_bc, umac_periodic_test_Tol, gravity);
-
-      // Must do this kind of copy instead of mac_phi->copy(phidat);
-      //   because we're copying onto the ghost cells of the FABs,
-      //   not the valid regions.
-      for ( int iface =0; iface < numOutFlowFaces; ++iface )
+        NavierStokes* ns_level = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
+        Real gravity = ns_level->getGravity();
+        const int* lo_bc = phys_bc->lo();
+        const int* hi_bc = phys_bc->hi();
+        macBC.computeBC(uedat, divudat, rhodat, phidat,
+                        geom, outFaces, numOutFlowFaces, lo_bc, hi_bc, umac_periodic_test_Tol, gravity);
+        //
+        // Must do this kind of copy instead of mac_phi->copy(phidat);
+        // because we're copying onto the ghost cells of the FABs,
+        // not the valid regions.
+        //
+        for ( int iface = 0; iface < numOutFlowFaces; ++iface )
 	{
-	  for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
 	    {
-	      Box ovlp = (*mac_phi)[mfi].box() & phidat[iface].box();
-	      if (ovlp.ok())
-		(*mac_phi)[mfi].copy(phidat[iface],ovlp);
+                Box ovlp = (*mac_phi)[mfi].box() & phidat[iface].box();
+                if (ovlp.ok())
+                    (*mac_phi)[mfi].copy(phidat[iface],ovlp);
 	    }
 	}
     }
