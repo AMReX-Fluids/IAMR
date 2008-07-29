@@ -1784,14 +1784,12 @@ NavierStokes::predict_velocity (Real  dt,
 
 #ifdef GENGETFORCE
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
-#else	
-#ifdef MOREGENGETFORCE
+#elif MOREGENGETFORCE
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << std::endl << "A - Predict velocity:" << std::endl << " Calling getForce..." << std::endl;
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
 	getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
-#endif
 #endif		 
         //
         // Test velocities, rho and cfl.
@@ -1878,17 +1876,6 @@ NavierStokes::velocity_advection (Real dt)
     int nGrowF = 1;
     MultiFab* divu_fp = create_mac_rhs_grown(nGrowF,prev_time,dt);
 
-#if 0
-    MultiFab* divu_fp = getDivCond(nGrowF,prev_time);
-    MultiFab* dsdt = getDsdt(nGrowF,prev_time);
-    for (MFIter dsdtmfi(*dsdt); dsdtmfi.isValid(); ++dsdtmfi)
-    {
-       (*dsdt)[dsdtmfi].mult(.5*dt);
-       (*divu_fp)[dsdtmfi].plus((*dsdt)[dsdtmfi]);
-    }
-    delete dsdt;
-#endif
-
     MultiFab Gp(grids,BL_SPACEDIM,1);
 
     getGradP(Gp, prev_pres_time);
@@ -1910,21 +1897,16 @@ NavierStokes::velocity_advection (Real dt)
 #endif
 	)
     {
-        //
-        // Since all the MultiFabs are on same grid we'll just use indices.
-        //
         const int i = U_fpi.index();
 
 #ifdef GENGETFORCE
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
-#else
-#ifdef MOREGENGETFORCE
+#elif MOREGENGETFORCE
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << std::endl << "B - velocity advection:" << std::endl << "Calling getForce..." << std::endl;
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
-#endif		 
 #endif		 
 
         godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*rho_ptime)[i]);
@@ -2012,29 +1994,10 @@ NavierStokes::scalar_advection (Real dt,
     //
     FArrayBox xflux, yflux, zflux, tforces, tvelforces;
 
-    MultiFab Gp(grids,BL_SPACEDIM,1);
-
-    getGradP(Gp, prev_pres_time);
-
-    MultiFab vel_visc_terms;
-
-    const int use_forces_in_trans = godunov->useForcesInTrans();
-
-    if (use_forces_in_trans)
-    {
-      vel_visc_terms.define(grids,BL_SPACEDIM,1,Fab_allocate);
-
-      if (be_cn_theta != 1.0)
-          getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
-      else
-          vel_visc_terms.setVal(0,1);
-    }
-    Array<int> state_bc, bndry[BL_SPACEDIM];
+    MultiFab Gp, vel_visc_terms;
 
     MultiFab* divu_fp = getDivCond(1,prev_time);
-
-    int nGrowF = 1;
-    MultiFab* dsdt = getDsdt(nGrowF,prev_time);
+    MultiFab* dsdt    = getDsdt(1,prev_time);
     for (MFIter dsdtmfi(*dsdt); dsdtmfi.isValid(); ++dsdtmfi)
     {
        (*dsdt)[dsdtmfi].mult(.5*dt);
@@ -2042,6 +2005,22 @@ NavierStokes::scalar_advection (Real dt,
     }
     delete dsdt;
 
+    const int use_forces_in_trans = godunov->useForcesInTrans();
+
+    if (use_forces_in_trans)
+    {
+        Gp.define(grids,BL_SPACEDIM,1,Fab_allocate);
+
+        vel_visc_terms.define(grids,BL_SPACEDIM,1,Fab_allocate);
+
+        getGradP(Gp, prev_pres_time);
+
+        if (be_cn_theta != 1.0)
+            getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
+        else
+            vel_visc_terms.setVal(0,1);
+    }
+    Array<int> state_bc, bndry[BL_SPACEDIM];
     //
     // Compute the advective forcing.
     //
@@ -2055,28 +2034,24 @@ NavierStokes::scalar_advection (Real dt,
 
 #ifdef GENGETFORCE
         getForce(tforces,i,1,fscalar,num_scalars,prev_time,(*rho_ptime)[i]);
-#else
-#ifdef MOREGENGETFORCE
+#elif MOREGENGETFORCE
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << std::endl << "C - scalar advection:" << std::endl << " Calling getForce..." << std::endl;
         getForce(tforces,i,1,fscalar,num_scalars,prev_time,U_fpi(),S_fpi(),0);
 #else
         getForce(tforces,i,1,fscalar,num_scalars,(*rho_ptime)[i]);
-#endif
 #endif		 
         
         if (use_forces_in_trans)
         {
 #ifdef GENGETFORCE
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
-#else
-#ifdef MOREGENGETFORCE
+#elif MOREGENGETFORCE
 	    if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 		std::cout << "---" << std::endl << "D - scalar advection (use_forces_in_trans):" << std::endl << " Calling getForce..." << std::endl;
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
-#endif
 #endif		 
             godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[i],Gp[i],(*rho_ptime)[i]);
         }
@@ -2250,8 +2225,7 @@ NavierStokes::scalar_advection_update (Real dt,
             {
 #ifdef GENGETFORCE
                 getForce(tforces,i,0,sigma,1,halftime,rho_halftime[Rho_mfi]);
-#else
-#ifdef MOREGENGETFORCE
+#elif MOREGENGETFORCE
 		// Need to do some funky half-time stuff
 		if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 		    std::cout << "---" << std::endl << "E - scalar advection update (half time):" << std::endl;
@@ -2295,7 +2269,6 @@ NavierStokes::scalar_advection_update (Real dt,
                 getForce(tforces,i,0,sigma,1,halftime,Vel,Scal,0);
 #else
                 getForce(tforces,i,0,sigma,1,rho_halftime[Rho_mfi]);
-#endif
 #endif		 
                 godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
                                      Aofs[Rho_mfi],sigma,tforces,0,grids[i],dt);
@@ -2505,8 +2478,7 @@ NavierStokes::velocity_advection_update (Real dt)
 
 #ifdef GENGETFORCE
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,halftime[i]);
-#else
-#ifdef MOREGENGETFORCE
+#elif MOREGENGETFORCE
 	// Need to do some funky half-time stuff
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << std::endl << "F - velocity advection update (half time):" << std::endl;
@@ -2548,7 +2520,6 @@ NavierStokes::velocity_advection_update (Real dt)
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
 #else
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,halftime[i]);
-#endif		 
 #endif		 
         //
         // Do following only at initial iteration--per JBB.
@@ -2722,16 +2693,13 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
 
 #ifdef GENGETFORCE
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
-#else
-#ifdef MOREGENGETFORCE
+#elif MOREGENGETFORCE
 	    if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 		std::cout << "---" << std::endl << "G - initial velocity diffusion update:" << std::endl << "Calling getForce..." << std::endl;
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,U_old[i],U_old[i],Density);
 #else
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
 #endif		 
-#endif		 
-
             godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*Rh)[i]);
 
             S.resize(U_old[i].box(),BL_SPACEDIM);
@@ -3598,14 +3566,12 @@ NavierStokes::estTimeStep ()
         //
 #ifdef GENGETFORCE
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,(*rho_ctime)[i]);
-#else
-#ifdef MOREGENGETFORCE
+#elif MOREGENGETFORCE
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << std::endl << "H - est Time Step:" << std::endl << "Calling getForce..." << std::endl;
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i],U_new[i],Density);
 #else
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,(*rho_ctime)[i]);
-#endif		 
 #endif		 
         tforces.minus(Gp[i],0,0,BL_SPACEDIM);
         //
@@ -4506,6 +4472,8 @@ NavierStokes::avgDown (const BoxArray& cgrids,
                 f_level,c_level,crse_S_fine_BA[i],scomp,ncomp,fratio);
     }
 
+    crse_fvolume.clear();
+
     S_crse.copy(crse_S_fine,0,scomp,ncomp);
 }
 
@@ -4605,10 +4573,15 @@ NavierStokes::level_sync (int crse_iteration)
         sync_bc[i] = sync_bc_array[i].dataPtr();
     }
 
-    MultiFab cc_rhs_crse(grids,1,1);
-    MultiFab cc_rhs_fine(finegrids,1,1);
-    cc_rhs_crse.setVal(0);
-    cc_rhs_fine.setVal(0);
+    MultiFab cc_rhs_crse, cc_rhs_fine;
+
+    if ((do_sync_proj && have_divu && do_divu_sync == 1) || do_MLsync_proj)
+    {
+        cc_rhs_crse.define(grids,1,1,Fab_allocate);
+        cc_rhs_fine.define(finegrids,1,1,Fab_allocate);
+        cc_rhs_crse.setVal(0);
+        cc_rhs_fine.setVal(0);
+    }
     //
     // At this point the Divu state data is what was used in the original
     // level project and has not been updated by avgDown or mac_sync.
