@@ -532,6 +532,7 @@ Diffusion::diffuse_scalar (Real                   dt,
         MultiGrid mg(*visc_op);
         mg.solve(Soln,Rhs,S_tol,S_tol_abs);
     }
+    Rhs.clear();
     //
     // Get extensivefluxes from new-time op
     //
@@ -839,6 +840,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         MCMultiGrid mg(*tensor_op);
         mg.solve(Soln,Rhs,S_tol,S_tol_abs);
     }
+    Rhs.clear();
 
     int visc_op_lev = 0;
     tensor_op->applyBC(Soln,visc_op_lev); // This may not be needed.
@@ -1044,6 +1046,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
             MultiGrid mg(*visc_op);
             mg.solve(Soln,Rhs,S_tol,S_tol_abs);
         }
+        Rhs.clear();
 
         int visc_op_lev = 0;
         visc_op->applyBC(Soln,0,1,visc_op_lev);
@@ -1368,6 +1371,7 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
         MultiGrid mg(*visc_op);
         mg.solve(Soln,Rhs,S_tol,S_tol_abs);
     }
+    Rhs.clear();
 
     int flux_allthere, flux_allnull;
     checkBeta(flux, flux_allthere, flux_allnull);

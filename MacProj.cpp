@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.116 2008-07-28 20:44:49 lijewski Exp $
+// $Id: MacProj.cpp,v 1.117 2008-07-29 18:19:40 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -388,6 +388,7 @@ MacProj::mac_project (int             level,
     mac_level_driver(mac_bndry, *phys_bc, grids, the_solver, level, Density,
                      dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
                      area[level], volume[level], S, Rhs, u_mac, mac_phi);
+    Rhs.clear();
     //
     // Test that u_mac is divergence free
     //
