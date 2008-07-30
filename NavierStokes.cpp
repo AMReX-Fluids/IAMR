@@ -1234,7 +1234,6 @@ NavierStokes::advance_setup (Real time,
             u_mac[dir].define(edge_grids,1,0,Fab_allocate);
         }
     }
-
     if (u_macG == 0)
     {
         u_macG = new MultiFab[BL_SPACEDIM];
@@ -6417,14 +6416,6 @@ void
 NavierStokes::create_umac_grown ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::create_umac_grown()");
-
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        BoxArray edge_grids(grids);
-        edge_grids.surroundingNodes(dir).grow(1);
-        u_macG[dir].define(edge_grids,1,0,Fab_allocate);
-        u_macG[dir].setVal(1.e40);
-    }
 
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
