@@ -1,7 +1,7 @@
 #ifndef _MacProj_H_
 #define _MacProj_H_
 //
-// $Id: MacProj.H,v 1.29 2006-09-11 18:00:47 almgren Exp $
+// $Id: MacProj.H,v 1.30 2008-07-30 20:37:02 lijewski Exp $
 //
 #include <BC_TYPES.H>
 #include <BCRec.H>
@@ -17,7 +17,7 @@ public:
     MacProj (Amr*   parent,
              int    _finest_level,
              BCRec* _phys_bc, 
-             int    _radius_grow );
+             int    /*not used*/ );
     
     virtual ~MacProj ();
     void read_params ();
@@ -26,7 +26,7 @@ public:
                         AmrLevel*             level_data,
                         MultiFab&             volume,
                         MultiFab*             area,
-                        Array< Array<Real> >* _radius );
+                        Array< Array<Real> >* /*not used*/ );
 
     void install_anelastic_coefficient (int                    level, 
                                         Real**            anel_coeff);
@@ -126,11 +126,6 @@ protected:
     // Anelastic coefficient array.
     //
     Array<Real**> anel_coeff;
-    //
-    // Radius data.
-    //
-    int                            radius_grow;
-    PArray< Array< Array<Real> > > radius;
     //
     // Parameters.
     //

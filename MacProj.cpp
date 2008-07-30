@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.117 2008-07-29 18:19:40 lijewski Exp $
+// $Id: MacProj.cpp,v 1.118 2008-07-30 20:37:02 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -67,7 +67,7 @@ namespace
 MacProj::MacProj (Amr*   _parent,
                   int    _finest_level,
                   BCRec* _phys_bc,
-                  int    _radius_grow)
+                  int    /*not used*/)
   :
     parent(_parent),
     LevelData(_finest_level+1),
@@ -78,8 +78,6 @@ MacProj::MacProj (Amr*   _parent,
     volume(_finest_level+1),
     area(_finest_level+1),
     anel_coeff(_finest_level+1),
-    radius_grow(_radius_grow),
-    radius(_finest_level+1),
     finest_level(_finest_level)
 {
     read_params();
@@ -131,7 +129,7 @@ MacProj::install_level (int                   level,
                         AmrLevel*             level_data,
                         MultiFab&             _volume,
                         MultiFab*             _area,
-                        Array< Array<Real> >* _radius)
+                        Array< Array<Real> >* /*not used*/)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Installing MacProj level " << level << '\n';
@@ -151,7 +149,6 @@ MacProj::install_level (int                   level,
         mac_reg.resize(finest_level+1);
         volume.resize(finest_level+1);
         area.resize(finest_level+1);
-        radius.resize(finest_level+1);
     }
 
     LevelData.clear(level);
@@ -159,8 +156,6 @@ MacProj::install_level (int                   level,
     volume.clear(level);
     volume.set(level, &_volume);
     area.set(level, _area);
-    radius.clear(level);
-    radius.set(level, _radius);
 
     BuildPhiBC(level);
 
