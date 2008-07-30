@@ -742,7 +742,7 @@ NavierStokes::restart (Amr&          papa,
         projector = new Projection(parent,&phys_bc,do_sync_proj,
                                    parent->finestLevel(),radius_grow);
     }
-    projector->install_level(level, this, &radius );
+    projector->install_level(level, this, &radius);
     //
     // Set the godunov box.
     //
@@ -751,9 +751,9 @@ NavierStokes::restart (Amr&          papa,
     if (mac_projector == 0)
     {
         mac_projector = new MacProj(parent,parent->finestLevel(),
-                                    &phys_bc,radius_grow );
+                                    &phys_bc,radius_grow);
     }
-    mac_projector->install_level(level,this,volume,area,&radius );
+    mac_projector->install_level(level,this,volume,area,&radius);
 
     rho_avg = 0;
     p_avg   = 0;
@@ -830,28 +830,31 @@ NavierStokes::restart (Amr&          papa,
 void
 NavierStokes::buildMetrics ()
 {
-    radius.resize(grids.size());
-
-    const Real dxr = geom.CellSize()[0];
-
-    for (int i = 0; i < grids.size(); i++)
+    if (CoordSys::IsRZ()) 
     {
-        const int ilo = grids[i].smallEnd(0)-radius_grow;
-        const int ihi = grids[i].bigEnd(0)+radius_grow;
-        const int len = ihi - ilo + 1;
+        radius.resize(grids.size());
 
-        radius[i].resize(len);
+        const Real dxr = geom.CellSize()[0];
 
-        if (CoordSys::IsCartesian())
+        for (int i = 0; i < grids.size(); i++)
         {
-            for (int j = 0; j < len; j++)
-                radius[i][j] = 1.0;
-        }
-        else
-        {
-            const Real xlo = grid_loc[i].lo(0) + (0.5 - radius_grow)*dxr;
-            for (int j = 0; j < len; j++)
-                radius[i][j] = xlo + j*dxr;
+            const int ilo = grids[i].smallEnd(0)-radius_grow;
+            const int ihi = grids[i].bigEnd(0)+radius_grow;
+            const int len = ihi - ilo + 1;
+
+            radius[i].resize(len);
+
+//            if (CoordSys::IsCartesian())
+//            {
+//                for (int j = 0; j < len; j++)
+//                    radius[i][j] = 1.0;
+//            }
+//            else
+            {
+                const Real xlo = grid_loc[i].lo(0) + (0.5 - radius_grow)*dxr;
+                for (int j = 0; j < len; j++)
+                    radius[i][j] = xlo + j*dxr;
+            }
         }
     }
     //
@@ -2831,11 +2834,11 @@ NavierStokes::volWgtSum (const std::string& name,
         const int*  dhi = fab.hiVect();
         const int*  lo  = grids[mfi.index()].loVect();
         const int*  hi  = grids[mfi.index()].hiVect();
-        Real*       rad = &radius[mfi.index()][0];
 
         tmp.resize(hi[1]-lo[1]+1);
 
 #if (BL_SPACEDIM == 2)
+        Real* rad = &radius[mfi.index()][0];
         int irlo  = lo[0]-radius_grow;
         int irhi  = hi[0]+radius_grow;
         //
