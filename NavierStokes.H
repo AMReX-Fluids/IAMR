@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.98 2008-04-12 00:27:49 marc Exp $
+// $Id: NavierStokes.H,v 1.99 2008-07-30 17:38:09 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -290,12 +290,14 @@ protected:
 
     //
     // Create the RHS for the MAC projection.
+    // It is the user's responsibility to remove the returned MultiFab.
     //
     virtual MultiFab* create_mac_rhs (Real time, Real dt);
 
     //
     // Create a grown-by-1 RHS for the MAC projection, which
-    //   is identical to mac_rhs in all the valid regions.
+    // is identical to mac_rhs in all the valid regions.
+    // It is the user's responsibility to remove the returned MultiFab.
     //
     MultiFab* create_mac_rhs_grown (int nGrow, Real time, Real dt);
 
@@ -306,8 +308,9 @@ protected:
                       MultiFab* divu, int have_divu);
     //
     // Grow by 1 and fillpatch the MAC-projected velocities.
+    // The returned array of MultiFabs must be deleted by the caller.
     //
-    void create_umac_grown ();
+    MultiFab* create_umac_grown ();
     //
     // Advect velocities.
     //
@@ -682,17 +685,10 @@ protected:
     // MAC edge velocities.
     //
     MultiFab* u_mac;
-    MultiFab* u_macG;
-    MultiFab* u_corr;
     //
     // Advective update terms.
     //
     MultiFab* aofs;
-
-    //
-    // RHS for the MAC projection.
-    //
-    MultiFab* mac_rhs;
 
     Diffusion* diffusion;
     //

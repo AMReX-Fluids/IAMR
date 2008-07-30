@@ -453,9 +453,6 @@ NavierStokes::NavierStokes ()
     advflux_reg  = 0;
     viscflux_reg = 0;
     u_mac        = 0;
-    u_macG       = 0;
-    u_corr       = 0;
-    mac_rhs      = 0;
     aofs         = 0;
     diffusion    = 0;
 
@@ -520,9 +517,6 @@ NavierStokes::NavierStokes (Amr&            papa,
     Vsync   = 0;
     Ssync   = 0;
     u_mac   = 0;
-    u_macG  = 0;
-    u_corr  = 0;
-    mac_rhs = 0;
     aofs    = 0;
     //
     // Set up the level projector.
@@ -588,8 +582,6 @@ NavierStokes::~NavierStokes ()
     delete advflux_reg;
     delete viscflux_reg;
     delete [] u_mac;
-    delete [] u_macG;
-    delete [] u_corr;
     
     if (mac_projector != 0)
         mac_projector->cleanup(level);
@@ -1239,38 +1231,11 @@ NavierStokes::advance_setup (Real time,
             u_mac[dir].define(edge_grids,1,0,Fab_allocate);
         }
     }
-    if (u_macG == 0)
-    {
-        u_macG = new MultiFab[BL_SPACEDIM];
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            BoxArray edge_grids(grids);
-            edge_grids.surroundingNodes(dir).grow(1);
-            u_macG[dir].define(edge_grids,1,0,Fab_allocate);
-            u_macG[dir].setVal(1.e40);
-        }
-    }
-    if (u_corr == 0)
-    {
-        u_corr = new MultiFab[BL_SPACEDIM];
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            BoxArray edge_grids(grids);
-            edge_grids.surroundingNodes(dir).grow(1);
-            u_corr[dir].define(edge_grids,1,0,Fab_allocate);
-        }
-    }
     //
     // Alloc MultiFab to hold advective update terms.
     //
     BL_ASSERT(aofs == 0);
     aofs = new MultiFab(grids,NUM_STATE,0);
-    //
-    // Alloc MultiFab to hold RHS for MAC projection.
-    //
-    BL_ASSERT(mac_rhs == 0);
     //
     // Set rho_avg.
     //
@@ -1377,15 +1342,8 @@ NavierStokes::advance_cleanup (Real dt,
     {
         delete [] u_mac;
         u_mac = 0;
-
-        delete [] u_macG;
-        u_macG = 0;
-
-        delete [] u_corr;
-        u_corr = 0;
     }
-    delete mac_rhs;
-    mac_rhs = 0;
+
     delete aofs;
     aofs = 0;
 }
@@ -1410,24 +1368,21 @@ NavierStokes::advance (Real time,
                   << " with dt = "               << dt << '\n';
     }
     advance_setup(time,dt,iteration,ncycle);
-
     //
     // Compute traced states for normal comp of velocity at half time level.
     //
     Real dummy   = 0.0;
     Real dt_test = predict_velocity(dt,dummy);
-
     //
     // Do MAC projection and update edge velocities.
     //
-
     if (do_mac_proj) 
     {
-      mac_rhs = create_mac_rhs(time,dt);
-      MultiFab& S_old  = get_old_data(State_Type);
-      mac_project(time,dt,S_old,mac_rhs,have_divu);
+        MultiFab* mac_rhs = create_mac_rhs(time,dt);
+        MultiFab& S_old  = get_old_data(State_Type);
+        mac_project(time,dt,S_old,mac_rhs,have_divu);
+        delete mac_rhs;
     }
-
     //
     // Advect velocities.
     //
@@ -1454,14 +1409,18 @@ NavierStokes::advance (Real time,
     // Add the advective and other terms to get scalars at t^{n+1}.
     //
 #ifdef MOREGENGETFORCE
-    if (do_scalar_update_in_order) {
-	for (int iComp=0; iComp<NUM_SCALARS-1; iComp++) {
+    if (do_scalar_update_in_order)
+    {
+	for (int iComp=0; iComp<NUM_SCALARS-1; iComp++)
+        {
 	    int iScal = first_scalar+scalarUpdateOrder[iComp];
 	    if (ParallelDescriptor::IOProcessor())
 		std::cout << "... ... updating " << desc_lst[0].name(iScal) << std::endl;
 	    scalar_update(dt,iScal,iScal);
 	}
-    } else {
+    }
+    else
+    {
 	scalar_update(dt,first_scalar+1,last_scalar);
     }
 #else
@@ -1511,17 +1470,18 @@ NavierStokes::advance (Real time,
 MultiFab*
 NavierStokes::create_mac_rhs (Real time, Real dt)
 {
-      MultiFab* mac_rhs = getDivCond(0,time);
-      MultiFab* dsdt = getDsdt(0,time);
+    MultiFab* mac_rhs = getDivCond(0,time);
+    MultiFab* dsdt = getDsdt(0,time);
 
-      for (MFIter mfi(*mac_rhs); mfi.isValid(); ++mfi)
-      {
-          (*dsdt)[mfi].mult(.5*dt);
-          (*mac_rhs)[mfi].plus((*dsdt)[mfi]);
-      }
+    for (MFIter mfi(*mac_rhs); mfi.isValid(); ++mfi)
+    {
+        (*dsdt)[mfi].mult(.5*dt);
+        (*mac_rhs)[mfi].plus((*dsdt)[mfi]);
+    }
 
-      delete dsdt;
-      return mac_rhs;
+    delete dsdt;
+
+    return mac_rhs;
 }
 
 MultiFab*
@@ -1548,10 +1508,14 @@ NavierStokes::create_mac_rhs_grown (int  nGrow,
     //
     // Now we copy from the MultiFab mac_rhs which has no ghost cells.
     //
+    MultiFab* mac_rhs = create_mac_rhs(time,dt);
+
     for (MFIter mfi(*mac_rhs_grown); mfi.isValid(); ++mfi) 
     {
         (*mac_rhs_grown)[mfi].copy((*mac_rhs)[mfi],grids[mfi.index()]);
     }
+
+    delete mac_rhs;
 
     if (nGrow > 0) 
         mac_rhs_grown->FillBoundary();
@@ -1873,8 +1837,7 @@ NavierStokes::velocity_advection (Real dt)
 
     FArrayBox xflux, yflux, zflux, tforces, S;
 
-    int nGrowF = 1;
-    MultiFab* divu_fp = create_mac_rhs_grown(nGrowF,prev_time,dt);
+    MultiFab* divu_fp = create_mac_rhs_grown(1,prev_time,dt);
 
     MultiFab Gp(grids,BL_SPACEDIM,1);
 
@@ -6431,10 +6394,20 @@ NavierStokes::calcDpdt ()
     }
 }
 
-void
+MultiFab*
 NavierStokes::create_umac_grown ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::create_umac_grown()");
+
+    MultiFab* u_macG = new MultiFab[BL_SPACEDIM];
+
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        BoxArray edge_grids(grids);
+        edge_grids.surroundingNodes(dir).grow(1);
+        u_macG[dir].define(edge_grids,1,0,Fab_allocate);
+        u_macG[dir].setVal(1.e40);
+    }
 
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
@@ -6461,6 +6434,8 @@ NavierStokes::create_umac_grown ()
             c_bnd_ba.set(i,Box(f_bnd_ba[i]).coarsen(crse_ratio));
             f_bnd_ba.set(i,Box(c_bnd_ba[i]).refine( crse_ratio));
         }
+
+        MultiFab* u_macG_coarse = getLevel(level-1).create_umac_grown();
 
         for (int n = 0; n < BL_SPACEDIM; ++n)
         {
@@ -6497,7 +6472,8 @@ NavierStokes::create_umac_grown ()
             fine_src.define(fine_src_ba, 1, 0, dm, Fab_allocate);
 
             crse_src.setVal(1.e200);
-            crse_src.copy(getLevel(level-1).u_macG[n]);
+
+            crse_src.copy(u_macG_coarse[n]);
 
             for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
             {
@@ -6513,6 +6489,7 @@ NavierStokes::create_umac_grown ()
                                        ARLIM(fine_src[mfi].hiVect()));
             }
             crse_src.clear();
+            u_macG_coarse[n].clear();
             //
             // Replace pc-interpd fine data with preferred u_mac data at
             // this level u_mac valid only on surrounding faces of valid
@@ -6539,6 +6516,10 @@ NavierStokes::create_umac_grown ()
             u_macG[n].copy(fine_src);
             u_macG[n].copy(u_mac[n]);
         }
+
+        delete [] u_macG_coarse;
     }
+
+    return u_macG;
 }
 
