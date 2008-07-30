@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.99 2008-07-30 17:38:09 lijewski Exp $
+// $Id: NavierStokes.H,v 1.100 2008-07-30 18:14:11 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -308,9 +308,8 @@ protected:
                       MultiFab* divu, int have_divu);
     //
     // Grow by 1 and fillpatch the MAC-projected velocities.
-    // The returned array of MultiFabs must be deleted by the caller.
     //
-    MultiFab* create_umac_grown ();
+    void create_umac_grown ();
     //
     // Advect velocities.
     //
@@ -685,6 +684,7 @@ protected:
     // MAC edge velocities.
     //
     MultiFab* u_mac;
+    MultiFab* u_macG;
     //
     // Advective update terms.
     //
