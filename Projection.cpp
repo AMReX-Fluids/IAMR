@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.166 2008-07-24 20:59:52 lijewski Exp $
+// $Id: Projection.cpp,v 1.167 2008-07-30 16:07:29 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2516,42 +2516,42 @@ Projection::putDown (MultiFab**         phi,
                      int                numOutFlowFaces,
                      int                ncStripWidth)
 {
-  //
-  // Put down to coarser levels.
-  //
-  const int nCompPhi = 1; // phi_fine_strip.nComp();
-  const int nGrow    = 0; // phi_fine_strip.nGrow();
-  IntVect ratio      = IntVect::TheUnitVector();
+    //
+    // Put down to coarser levels.
+    //
+    const int nCompPhi = 1; // phi_fine_strip.nComp();
+    const int nGrow    = 0; // phi_fine_strip.nGrow();
+    IntVect ratio      = IntVect::TheUnitVector();
 
-  for (int lev = f_lev-1; lev >= c_lev; lev--)
+    for (int lev = f_lev-1; lev >= c_lev; lev--)
     {
+        ratio *= parent->refRatio(lev);
+        const Box& domainC = parent->Geom(lev).Domain();
 
-      ratio *= parent->refRatio(lev);
-      const Box& domainC = parent->Geom(lev).Domain();
-      BoxList phiC_strip_bl(IndexType::TheNodeType());
+        for (int iface = 0; iface < numOutFlowFaces; iface++) 
+        {
+            Box phiC_strip = 
+                BoxLib::surroundingNodes(BoxLib::bdryNode(domainC, outFaces[iface], ncStripWidth));
+            phiC_strip.grow(nGrow);
+            BoxArray ba(phiC_strip);
+            MultiFab phi_crse_strip(ba, nCompPhi, 0);
+            phi_crse_strip.setVal(0);
 
-      FArrayBox phi_crse_strip[2*BL_SPACEDIM];
-      // (phiC_strip_ba, nCompPhi, nGrow);
-      for (int iface = 0; iface < numOutFlowFaces; iface++) 
-	{
-	  Box phiC_strip = 
-	    BoxLib::surroundingNodes(BoxLib::bdryNode(domainC, outFaces[iface], ncStripWidth));
-	  phiC_strip.grow(nGrow);
-	  phi_crse_strip[iface].resize(phiC_strip, nCompPhi);
-	  phi_crse_strip[iface].setVal(0);
-	}
-      
-      for ( int iface = 0; iface < numOutFlowFaces; ++iface )
-	{
-	  Box ovlp = BoxLib::coarsen(phi_fine_strip[iface].box(),ratio) & phi_crse_strip[iface].box();
-	  FORT_PUTDOWN (BL_TO_FORTRAN(phi_crse_strip[iface]),
-			BL_TO_FORTRAN(phi_fine_strip[iface]),
-			ovlp.loVect(), ovlp.hiVect(), ratio.getVect());
-	}
-      for ( int iface = 0; iface < numOutFlowFaces; ++iface )
-	{
-	  phi[lev]->copy(phi_crse_strip[iface]);
-	}
+            for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
+            {
+                Box ovlp = BoxLib::coarsen(phi_fine_strip[iface].box(),ratio) & mfi.validbox();
+
+                if (ovlp.ok())
+                {
+                    FArrayBox& cfab = phi_crse_strip[mfi];
+                    FORT_PUTDOWN (BL_TO_FORTRAN(cfab),
+                                  BL_TO_FORTRAN(phi_fine_strip[iface]),
+                                  ovlp.loVect(), ovlp.hiVect(), ratio.getVect());
+                }
+            }
+
+            phi[lev]->copy(phi_crse_strip);
+        }
     }
 }
 
@@ -2860,9 +2860,6 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
     Box domain = parent->Geom(lev).Domain();
 
-    BoxList   phi_strip_bl(IndexType::TheNodeType());
-    BoxList state_strip_bl;
-
     const int ncStripWidth = 1;
 
     FArrayBox  rho[2*BL_SPACEDIM];
@@ -2913,34 +2910,24 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         // are in the valid region instead of being ghost cells, so that
         // we can copy these values into the dudt array.
         //
-        BoxList grown_vel_bl;
-        for (int i = 0; i < Vel_in->size(); i++)
-            grown_vel_bl.push_back(BoxLib::grow(Vel_in->boxArray()[i],1));
-        BoxArray grown_vel_ba(grown_vel_bl);
+        BoxArray grown_vel_ba = Vel_in->boxArray();
+        grown_vel_ba.grow(1);
         MultiFab grown_vel(grown_vel_ba,BL_SPACEDIM,0);
         for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
-        {
             grown_vel[vmfi.index()].copy((*Vel_in)[vmfi.index()]);
-        }
 
         if (have_divu)
         {
             for (int iface = 0; iface < numOutFlowFaces; iface++) 
-            {
                 grown_vel.copy(dudt[0][iface]);
-            }
             //
             // Reuse grown_vel to fill dsdt.
             //
             for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
-            {
                 grown_vel[vmfi.index()].copy((*Divu_in)[vmfi.index()],0,0,1);
-            }
 
             for (int iface = 0; iface < numOutFlowFaces; iface++) 
-            {
                 grown_vel.copy(dsdt[iface],0,0,1);
-            }
         }
         else
         {
