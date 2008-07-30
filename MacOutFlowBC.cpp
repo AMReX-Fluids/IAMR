@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.31 2007-07-05 20:01:47 lijewski Exp $
+// $Id: MacOutFlowBC.cpp,v 1.32 2008-07-30 16:07:53 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -57,8 +57,8 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
                          const int*        hi_bc,
                          Real              gravity)
 {
-  Real small_udiff = 1.e-10;
-  computeBC (velMF,divuMF,rhoMF,phiMF,geom,outFaces,numOutFlowFaces,lo_bc,hi_bc,small_udiff,gravity);
+    const Real small_udiff = 1.e-10;
+    computeBC(velMF,divuMF,rhoMF,phiMF,geom,outFaces,numOutFlowFaces,lo_bc,hi_bc,small_udiff,gravity);
 }
 
 void 
@@ -75,16 +75,19 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
                          Real              gravity)
 {
     BL_ASSERT(numOutFlowFaces <= 2*BL_SPACEDIM);
+
     int i,iface;
 
     int faces[2*BL_SPACEDIM];
-    for (i = 0; i < numOutFlowFaces; i++) faces[i] = int(outFaces[i]);
+    for (i = 0; i < numOutFlowFaces; i++)
+        faces[i] = int(outFaces[i]);
 
     const Real* dx     = geom.CellSize();
     const Box&  domain = geom.Domain();
 
     int zeroIt[2*BL_SPACEDIM];
-    for (i = 0; i < numOutFlowFaces; i++) zeroIt[i] = 0;
+    for (i = 0; i < numOutFlowFaces; i++)
+        zeroIt[i] = 0;
 
 #if (BL_SPACEDIM == 2)
     Real* redge[2*BL_SPACEDIM];
@@ -100,400 +103,429 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
     int isPeriodicFiltered[2*BL_SPACEDIM][BL_SPACEDIM];
     Real dxFiltered[2*BL_SPACEDIM][BL_SPACEDIM];
 
-    for (iface = 0; iface < numOutFlowFaces; iface++) {
-
-    const int   outDir = outFaces[iface].coordDir();
-    //
-    // Filter out direction we don't care about.
-    //
-    int ncStripWidth = 1;
-    Box origBox = BoxLib::adjCell(domain,outFaces[iface],ncStripWidth);
-    IntVect lo = origBox.smallEnd();
-    IntVect hi = origBox.bigEnd();
-
-    //
-    // Rearrange the box, dx, and isPeriodic so that the dimension that is 1
-    // is the last dimension.
-    //
-    int cnt = 0;
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    for (iface = 0; iface < numOutFlowFaces; iface++)
     {
-        if (dir != outDir)
-	{
-            loFiltered[cnt] = lo[dir];
-            hiFiltered[cnt] = hi[dir];
-            dxFiltered[iface][cnt] = dx[dir];
-            isPeriodicFiltered[iface][cnt] = isPeriodic[dir];
-            cnt++;
-	}
-        else
-        {
-            loFiltered[BL_SPACEDIM-1] = lo[dir];
-            hiFiltered[BL_SPACEDIM-1] = hi[dir];
-            dxFiltered[iface][BL_SPACEDIM-1] = dx[dir];
-            isPeriodicFiltered[iface][BL_SPACEDIM-1] = isPeriodic[dir];
-	}
-    }
+        const int   outDir = outFaces[iface].coordDir();
+        //
+        // Filter out direction we don't care about.
+        //
+        int ncStripWidth = 1;
+        Box origBox = BoxLib::adjCell(domain,outFaces[iface],ncStripWidth);
+        IntVect lo = origBox.smallEnd();
+        IntVect hi = origBox.bigEnd();
 
-    Box       faceBox(loFiltered,hiFiltered);
-//  One for rho, one for divu.
-    ccExt[iface].resize(faceBox,2);
+        //
+        // Rearrange the box, dx, and isPeriodic so that the dimension that is 1
+        // is the last dimension.
+        //
+        int cnt = 0;
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            if (dir != outDir)
+            {
+                loFiltered[cnt] = lo[dir];
+                hiFiltered[cnt] = hi[dir];
+                dxFiltered[iface][cnt] = dx[dir];
+                isPeriodicFiltered[iface][cnt] = isPeriodic[dir];
+                cnt++;
+            }
+            else
+            {
+                loFiltered[BL_SPACEDIM-1] = lo[dir];
+                hiFiltered[BL_SPACEDIM-1] = hi[dir];
+                dxFiltered[iface][BL_SPACEDIM-1] = dx[dir];
+                isPeriodicFiltered[iface][BL_SPACEDIM-1] = isPeriodic[dir];
+            }
+        }
+
+        Box       faceBox(loFiltered,hiFiltered);
+        //
+        //  One for rho, one for divu.
+        //
+        ccExt[iface].resize(faceBox,2);
   
 #if (BL_SPACEDIM == 2)
-    //
-    // Make edge-centered r (set = 1 if cartesian).
-    //
-    int perpDir = 1 - outDir;
-    int r_len = domain.length(perpDir)+1;
-    redge[iface] = new Real[r_len];
-
-    // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
-    if (CoordSys::IsRZ()) {
-      if (faces[iface] == 0) {
-        for (i=0;i<r_len;i++) redge[iface][i] = geom.ProbLo()[0];
-      } else if (faces[iface] == 2) {
-        for (i=0;i<r_len;i++) redge[iface][i] = geom.ProbHi()[0];
-      } else if (faces[iface] == 1 || faces[iface]== 3) {
-        for (i=0;i<r_len;i++) redge[iface][i] = geom.ProbLo()[0] +i*dx[0];
-      }
-    } else {
-      for (i = 0; i < r_len; i++) redge[iface][i] = 1.;
-    }
+        //
+        // Make edge-centered r (set = 1 if cartesian).
+        //
+        int perpDir = 1 - outDir;
+        int r_len = domain.length(perpDir)+1;
+        redge[iface] = new Real[r_len];
+        //
+        // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
+        //
+        if (CoordSys::IsRZ())
+        {
+            if (faces[iface] == 0)
+            {
+                for (i=0;i<r_len;i++)
+                    redge[iface][i] = geom.ProbLo()[0];
+            }
+            else if (faces[iface] == 2)
+            {
+                for (i=0;i<r_len;i++)
+                    redge[iface][i] = geom.ProbHi()[0];
+            }
+            else if (faces[iface] == 1 || faces[iface]== 3)
+            {
+                for (i=0;i<r_len;i++)
+                    redge[iface][i] = geom.ProbLo()[0] +i*dx[0];
+            }
+        }
+        else
+        {
+            for (i = 0; i < r_len; i++)
+                redge[iface][i] = 1.;
+        }
 #else
-    Array<Real> redge;
-//    int r_len = 0;
+        Array<Real> redge;
 #endif
    
-    DEF_BOX_LIMITS(origBox,origLo,origHi);
+        DEF_BOX_LIMITS(origBox,origLo,origHi);
 
-    const int* ccElo = ccExt[iface].loVect();
-    const int* ccEhi = ccExt[iface].hiVect();
-    const Real*  rhoEPtr = ccExt[iface].dataPtr(0);
-    const Real* divuEPtr = ccExt[iface].dataPtr(1);
+        const int* ccElo = ccExt[iface].loVect();
+        const int* ccEhi = ccExt[iface].hiVect();
+        const Real*  rhoEPtr = ccExt[iface].dataPtr(0);
+        const Real* divuEPtr = ccExt[iface].dataPtr(1);
 
-    DEF_LIMITS(divuMF[iface],divuPtr,divulo, divuhi);
-    DEF_LIMITS( rhoMF[iface], rhoPtr, rholo, rhohi);
-    DEF_LIMITS(velMF[0][iface],velXPtr,velXlo,velXhi);
-    DEF_LIMITS(velMF[1][iface],velYPtr,velYlo,velYhi);
+        DEF_LIMITS(divuMF[iface],divuPtr,divulo, divuhi);
+        DEF_LIMITS( rhoMF[iface], rhoPtr, rholo, rhohi);
+        DEF_LIMITS(velMF[0][iface],velXPtr,velXlo,velXhi);
+        DEF_LIMITS(velMF[1][iface],velYPtr,velYlo,velYhi);
 #if (BL_SPACEDIM == 3)
-    DEF_LIMITS(velMF[2][iface],velZPtr,velZlo,velZhi);
+        DEF_LIMITS(velMF[2][iface],velZPtr,velZlo,velZhi);
 #endif
-    //
-    // Extrapolate divu, and rho to the outflow edge in
-    // the shifted coordinate system (where the last dimension is 1),
-    // and replace (divu) by (divu - d/dperpdir (vel)).
-    //
-    FORT_EXTRAP_MAC(
-        ARLIM(velXlo), ARLIM(velXhi), velXPtr,
-        ARLIM(velYlo), ARLIM(velYhi), velYPtr,
+        //
+        // Extrapolate divu, and rho to the outflow edge in
+        // the shifted coordinate system (where the last dimension is 1),
+        // and replace (divu) by (divu - d/dperpdir (vel)).
+        //
+        FORT_EXTRAP_MAC(
+            ARLIM(velXlo), ARLIM(velXhi), velXPtr,
+            ARLIM(velYlo), ARLIM(velYhi), velYPtr,
 #if (BL_SPACEDIM == 3)
-        ARLIM(velZlo), ARLIM(velZhi), velZPtr,
+            ARLIM(velZlo), ARLIM(velZhi), velZPtr,
 #endif
-        ARLIM(divulo),ARLIM(divuhi),divuPtr,
-        ARLIM(rholo), ARLIM(rhohi), rhoPtr,
+            ARLIM(divulo),ARLIM(divuhi),divuPtr,
+            ARLIM(rholo), ARLIM(rhohi), rhoPtr,
 #if (BL_SPACEDIM == 2)
-        &r_len, redge[iface],
+            &r_len, redge[iface],
 #endif
-        ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
-        ARLIM(ccElo),ARLIM(ccEhi),rhoEPtr,
-        dx,
-        origLo,origHi,&faces[iface],isPeriodicFiltered[iface],&zeroIt[iface],&small_udiff);
+            ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
+            ARLIM(ccElo),ARLIM(ccEhi),rhoEPtr,
+            dx,
+            origLo,origHi,&faces[iface],isPeriodicFiltered[iface],&zeroIt[iface],&small_udiff);
     }
 
     int connected = 0;
-
-//  Test for whether multiple faces are touching.
-//    therefore not touching.
-    if (numOutFlowFaces == 2) {
-       if (outFaces[0].coordDir() != outFaces[1].coordDir())
-         connected = 1;
-    } else if (numOutFlowFaces > 2) {
-         connected = 1;
+    //
+    //  Test for whether multiple faces are touching.
+    //
+    if (numOutFlowFaces == 2)
+    {
+        if (outFaces[0].coordDir() != outFaces[1].coordDir())
+            connected = 1;
+    }
+    else if (numOutFlowFaces > 2)
+    {
+        connected = 1;
     }
   
-    if (connected == 0) 
-      for (iface = 0; iface < numOutFlowFaces; iface++) {
+    if (connected == 0)
+    {
+        for (iface = 0; iface < numOutFlowFaces; iface++)
+        {
+            zeroIt[iface] = 1; // HACK HACK
 
-// HACK HACK
-        zeroIt[iface] = 1;
-
-       if (zeroIt[iface])
-       {
-
-        phiMF[iface].setVal(0);
-
-       } else {
-
+            if (zeroIt[iface])
+            {
+                phiMF[iface].setVal(0);
+            }
+            else
+            {
 #if (BL_SPACEDIM == 2)
-        int length = ccExt[iface].length()[0];
+                int length = ccExt[iface].length()[0];
 
-        const Real*  rhoEPtr = ccExt[iface].dataPtr(0);
-        const Real* divuEPtr = ccExt[iface].dataPtr(1);
+                const Real*  rhoEPtr = ccExt[iface].dataPtr(0);
+                const Real* divuEPtr = ccExt[iface].dataPtr(1);
   
-        Box faceBox(ccExt[iface].box());
-        DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
+                Box faceBox(ccExt[iface].box());
+                DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
 
-        Real* x = new Real[length];
-        FORT_MACPHIBC(x, &length, divuEPtr, rhoEPtr,
-                      redge[iface], dxFiltered[iface],
-                      isPeriodicFiltered[iface]);
+                Real* x = new Real[length];
+                FORT_MACPHIBC(x, &length, divuEPtr, rhoEPtr,
+                              redge[iface], dxFiltered[iface],
+                              isPeriodicFiltered[iface]);
 
-        FORT_MACPHI_FROM_X(ARLIM(philo),ARLIM(phihi),phiPtr,
-                           &length,x);
-        delete x;
+                FORT_MACPHI_FROM_X(ARLIM(philo),ARLIM(phihi),phiPtr,
+                                   &length,x);
+                delete x;
 #elif (BL_SPACEDIM == 3)
+                Box faceBox(ccExt[iface].box());
 
-        Box faceBox(ccExt[iface].box());
-        FArrayBox phiFiltered(faceBox,1);
-        phiFiltered.setVal(0.);
+                DEF_LIMITS(phiMF[iface],phiFabPtr,phiFab_lo,phiFab_hi);
 
-        DEF_LIMITS(phiMF[iface],phiFabPtr,phiFab_lo,phiFab_hi);
-        DEF_LIMITS(phiFiltered,phiFilteredPtr,phiFiltered_lo,phiFiltered_hi);
+                FArrayBox rhs, beta[BL_SPACEDIM-1];
       
-        FArrayBox rhs;
-        FArrayBox  beta[BL_SPACEDIM-1];
+                computeCoefficients(rhs,beta,
+                                    ccExt[iface],
+                                    faceBox,dxFiltered[iface],isPeriodicFiltered[iface]);
+                //
+                // Need phi to have ghost cells.
+                //
+                Box phiGhostBox = OutFlowBC::SemiGrow(faceBox,1,BL_SPACEDIM-1);
+                FArrayBox phi(phiGhostBox,1), resid(rhs.box(),1);
+                phi.setVal(0);
+            
+                MacOutFlowBC_MG mac_mg(faceBox,&phi,&rhs,&resid,beta,
+                                       dxFiltered[iface],isPeriodicFiltered[iface]);
       
-        computeCoefficients(rhs,beta,
-                            ccExt[iface],
-                            faceBox,dxFiltered[iface],isPeriodicFiltered[iface]);
-        //
-        // Need phi to have ghost cells.
-        //
-        Box phiGhostBox = OutFlowBC::SemiGrow(phiFiltered.box(),1,BL_SPACEDIM-1);
-        FArrayBox phi(phiGhostBox,1);
-        phi.setVal(0);
-        phi.copy(phiFiltered);
+                mac_mg.solve(tol,abs_tol,2,2,mac_mg.MaxIters(),mac_mg.Verbose());
       
-        FArrayBox resid(rhs.box(),1);
-      
-        MacOutFlowBC_MG mac_mg(faceBox,&phi,&rhs,&resid,beta,
-                               dxFiltered[iface],isPeriodicFiltered[iface]);
-      
-        mac_mg.solve(tol,abs_tol,2,2,mac_mg.MaxIters(),mac_mg.Verbose());
-      
-        DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
-        DEF_BOX_LIMITS(faceBox,lo,hi);
-        //
-        // Subtract the average phi.
-        //
-//      FORT_MACSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
-//                             &r_len,redge,
-//                             lo,hi,isPeriodicFiltered[iface]);
-        //
-        // Translate the solution back to the original coordinate system.
-        //
-        int face   = int(outFaces[iface]);
-        FORT_MAC_RESHIFT_PHI(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
-                             ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
+                DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
+                DEF_BOX_LIMITS(faceBox,lo,hi);
+                //
+                // Subtract the average phi.
+                //
+                //FORT_MACSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
+                //             &r_len,redge,
+                //             lo,hi,isPeriodicFiltered[iface]);
+                //
+                // Translate the solution back to the original coordinate system.
+                //
+                int face   = int(outFaces[iface]);
+                FORT_MAC_RESHIFT_PHI(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
+                                     ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
 #endif
+            }
+        }
     }
-   }
 
-    if (connected == 1) {
+    if (connected == 1)
+    {
+        //
+        // Define connected region.  In both 2-d and 3-d, if there are
+        // multiple outflow faces and it's not just two across from
+        // each other, then the multiple faces form a *single*
+        // connected region.
+        //
+        int zeroAll = 1;
+        for (i = 0; i < numOutFlowFaces; i++)
+            if (zeroIt[i] == 0) zeroAll = 0;
 
-  // Define connected region.  In both 2-d and 3-d, if there are
-  //   multiple outflow faces and it's not just two across from
-  //   each other, then the multiple faces form a *single*
-  //   connected region.
-     
-       int zeroAll = 1;
-       for (i = 0; i < numOutFlowFaces; i++)
-         if (zeroIt[i] == 0) zeroAll = 0;
+        zeroAll = 1;  // HACK HACK
 
-//     HACK HACK
-       zeroAll = 1;
+        if (zeroAll)
+        {
+            for ( i = 0; i < numOutFlowFaces; i++ )
+                phiMF[i].setVal(0);
+        }
+        else
+        {
+            //
+            // Since we only use a constant dx in the Fortran,
+            //  we'll assume for now we can choose either one.
+            //
+            BL_ASSERT(dx[0] == dx[1]);
 
-       if (zeroAll) {
+            int lenx = domain.length(0);
+            int leny = domain.length(1);
 
-         for ( i = 0; i < numOutFlowFaces; i++ )
-	   {
-	     phiMF[i].setVal(0);
-	   }
-
-       } else {
-
-         // Since we only use a constant dx in the Fortran,
-         //  we'll assume for now we can choose either one.
-         BL_ASSERT(dx[0] == dx[1]);
-
-         int lenx = domain.length(0);
-         int leny = domain.length(1);
-
-         int length = 0;
+            int length = 0;
 
 #if (BL_SPACEDIM == 2)
-         // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
+            //
+            // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
+            //
+            Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3;
+            for (i=0; i < numOutFlowFaces; i++)
+            {
+                if (faces[i] == 0)
+                {
+                    ccEptr0 = ccExt[i].dataPtr();
+                    length = length + leny;
+                }
+                else if (faces[i] == 1)
+                {
+                    ccEptr1 = ccExt[i].dataPtr();
+                    length = length + lenx;
+                }
+                else if (faces[i] == 2)
+                {
+                    ccEptr2 = ccExt[i].dataPtr();
+                    length = length + leny;
+                }
+                else if (faces[i] == 3)
+                {
+                    ccEptr3 = ccExt[i].dataPtr();
+                    length = length + lenx;
+                }
+            }
 
-         Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3;
-         for (i=0; i < numOutFlowFaces; i++)
-         {
-           if (faces[i] == 0) {
-             ccEptr0 = ccExt[i].dataPtr();
-             length = length + leny;
-           } else if (faces[i] == 1) {
-             ccEptr1 = ccExt[i].dataPtr();
-             length = length + lenx;
-           } else if (faces[i] == 2) {
-             ccEptr2 = ccExt[i].dataPtr();
-             length = length + leny;
-           } else if (faces[i] == 3) {
-             ccEptr3 = ccExt[i].dataPtr();
-             length = length + lenx;
-           }
-         }
-
-         Real *r0,*r1,*r2,*r3;
-         for (i=0; i < numOutFlowFaces; i++)
-         {
-           if (faces[i] == 0) {
-                  r0 = redge[i];
-           } else if (faces[i] == 1) {
-                  r1 = redge[i];
-           } else if (faces[i] == 2) {
-                  r2 = redge[i];
-           } else if (faces[i] == 3) {
-                  r3 = redge[i];
-           }
-         }
+            Real *r0,*r1,*r2,*r3;
+            for (i=0; i < numOutFlowFaces; i++)
+            {
+                if (faces[i] == 0)
+                {
+                    r0 = redge[i];
+                }
+                else if (faces[i] == 1)
+                {
+                    r1 = redge[i];
+                }
+                else if (faces[i] == 2)
+                {
+                    r2 = redge[i];
+                }
+                else if (faces[i] == 3)
+                {
+                    r3 = redge[i];
+                }
+            }
 
 #elif (BL_SPACEDIM == 3)
-         // Here we know the ordering of faces is XLO,YLO,ZLO,XHI,YHI,ZHI.
+            //
+            // Here we know the ordering of faces is XLO,YLO,ZLO,XHI,YHI,ZHI.
+            //
+            int lenz = domain.length(2);
 
-         int lenz = domain.length(2);
-
-         Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3,*ccEptr4,*ccEptr5;
-         for (i=0; i < numOutFlowFaces; i++)
-         {
-           if (faces[i] == 0) {
-             ccEptr0 = ccExt[i].dataPtr();
-             length = length + leny*lenz;
-           } else if (faces[i] == 1) {
-             ccEptr1 = ccExt[i].dataPtr();
-             length = length + lenx*lenz;
-           } else if (faces[i] == 2) {
-             ccEptr2 = ccExt[i].dataPtr();
-             length = length + lenx*leny;
-           } else if (faces[i] == 3) {
-             ccEptr3 = ccExt[i].dataPtr();
-             length = length + leny*lenz;
-           } else if (faces[i] == 4) {
-             ccEptr4 = ccExt[i].dataPtr();
-             length = length + lenx*lenz;
-           } else if (faces[i] == 5) {
-             ccEptr5 = ccExt[i].dataPtr();
-             length = length + lenx*leny;
-           }
-         }
+            Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3,*ccEptr4,*ccEptr5;
+            for (i=0; i < numOutFlowFaces; i++)
+            {
+                if (faces[i] == 0)
+                {
+                    ccEptr0 = ccExt[i].dataPtr();
+                    length = length + leny*lenz;
+                }
+                else if (faces[i] == 1)
+                {
+                    ccEptr1 = ccExt[i].dataPtr();
+                    length = length + lenx*lenz;
+                }
+                else if (faces[i] == 2)
+                {
+                    ccEptr2 = ccExt[i].dataPtr();
+                    length = length + lenx*leny;
+                }
+                else if (faces[i] == 3)
+                {
+                    ccEptr3 = ccExt[i].dataPtr();
+                    length = length + leny*lenz;
+                }
+                else if (faces[i] == 4)
+                {
+                    ccEptr4 = ccExt[i].dataPtr();
+                    length = length + lenx*lenz;
+                }
+                else if (faces[i] == 5)
+                {
+                    ccEptr5 = ccExt[i].dataPtr();
+                    length = length + lenx*leny;
+                }
+            }
 #endif
+            IntVect loconn, hiconn;
 
-         IntVect loconn;
-         IntVect hiconn;
-
-         loconn[0] = 0;
-         hiconn[0] = length-1;
+            loconn[0] = 0;
+            hiconn[0] = length-1;
 #if (BL_SPACEDIM == 3)
-         loconn[1] = 0;
-         hiconn[1] = lenz-1;
+            loconn[1] = 0;
+            hiconn[1] = lenz-1;
 #endif
-         loconn[BL_SPACEDIM-1] = 0;
-         hiconn[BL_SPACEDIM-1] = 0;
-         Box connected_region(loconn,hiconn);
-         FArrayBox ccE_conn(connected_region,BL_SPACEDIM+1);
-         FArrayBox x(connected_region,1);
-         ccE_conn.setVal(1.e200);
+            loconn[BL_SPACEDIM-1] = 0;
+            hiconn[BL_SPACEDIM-1] = 0;
+            Box connected_region(loconn,hiconn);
+            FArrayBox ccE_conn(connected_region,BL_SPACEDIM+1);
+            ccE_conn.setVal(1.e200);
 
 #if (BL_SPACEDIM == 2)
+            FArrayBox x(connected_region,1);
 
-         int per = (numOutFlowFaces == 2*BL_SPACEDIM) ? 1 : 0;
+            int per = (numOutFlowFaces == 2*BL_SPACEDIM) ? 1 : 0;
 
-        Real * redge_conn = new Real[length+1];
+            Real * redge_conn = new Real[length+1];
 
-        FORT_MACFILL_ONED(&lenx,&leny,&length,faces,&numOutFlowFaces,
-                          ccEptr0,ccEptr1,ccEptr2,ccEptr3,
-                          r0,r1,r2,r3,
-                          ccE_conn.dataPtr(),redge_conn);
+            FORT_MACFILL_ONED(&lenx,&leny,&length,faces,&numOutFlowFaces,
+                              ccEptr0,ccEptr1,ccEptr2,ccEptr3,
+                              r0,r1,r2,r3,
+                              ccE_conn.dataPtr(),redge_conn);
 
-        FORT_MACPHIBC(x.dataPtr(), &length, 
-                      ccE_conn.dataPtr(1), ccE_conn.dataPtr(0),
-                      redge_conn, dx, &per);
+            FORT_MACPHIBC(x.dataPtr(), &length, 
+                          ccE_conn.dataPtr(1), ccE_conn.dataPtr(0),
+                          redge_conn, dx, &per);
 
-         Real *phiptr0, *phiptr1, *phiptr2, *phiptr3;
-         for (int i=0; i < numOutFlowFaces; i++)
-         {
-           if (faces[i] == 0) {
-             phiptr0 = phiMF[i].dataPtr();
-           }
-           if (faces[i] == 1) {
-             phiptr1 = phiMF[i].dataPtr();
-           }
-           if (faces[i] == 2) {
-             phiptr2 = phiMF[i].dataPtr();
-           }
-           if (faces[i] == 3) {
-             phiptr3 = phiMF[i].dataPtr();
-           }
-         }
+            Real *phiptr0, *phiptr1, *phiptr2, *phiptr3;
+            for (int i=0; i < numOutFlowFaces; i++)
+            {
+                if (faces[i] == 0)
+                {
+                    phiptr0 = phiMF[i].dataPtr();
+                }
+                if (faces[i] == 1)
+                {
+                    phiptr1 = phiMF[i].dataPtr();
+                }
+                if (faces[i] == 2)
+                {
+                    phiptr2 = phiMF[i].dataPtr();
+                }
+                if (faces[i] == 3)
+                {
+                    phiptr3 = phiMF[i].dataPtr();
+                }
+            }
 
-
-         FORT_MACALLPHI_FROM_X(&lenx,&leny,&length,faces,&numOutFlowFaces,
-                               phiptr0, phiptr1, phiptr2, phiptr3,
-                               x.dataPtr());
-
-
+            FORT_MACALLPHI_FROM_X(&lenx,&leny,&length,faces,&numOutFlowFaces,
+                                  phiptr0, phiptr1, phiptr2, phiptr3,
+                                  x.dataPtr());
 #elif (BL_SPACEDIM == 3)
 
-        int width = lenz;
-        FORT_MACFILL_TWOD(&lenx,&leny,&length,&width,faces,&numOutFlowFaces,
-                          ccEptr0,ccEptr1,ccEptr2,ccEptr3,ccEptr4,ccEptr5,
-                          ccE_conn.dataPtr());
+            int width = lenz;
+            FORT_MACFILL_TWOD(&lenx,&leny,&length,&width,faces,&numOutFlowFaces,
+                              ccEptr0,ccEptr1,ccEptr2,ccEptr3,ccEptr4,ccEptr5,
+                              ccE_conn.dataPtr());
+            ccE_conn.clear();
 
-        Box faceBox(ccExt[iface].box());
-        FArrayBox phiFiltered(faceBox,1);
-        phiFiltered.setVal(0.);
+            Box faceBox(ccExt[iface].box());
 
-        DEF_LIMITS(phiMF[iface],phiFabPtr,phiFab_lo,phiFab_hi);
-        DEF_LIMITS(phiFiltered,phiFilteredPtr,phiFiltered_lo,phiFiltered_hi);
+            DEF_LIMITS(phiMF[iface],phiFabPtr,phiFab_lo,phiFab_hi);
       
-        FArrayBox rhs;
-        FArrayBox  beta[BL_SPACEDIM-1];
+            FArrayBox rhs, beta[BL_SPACEDIM-1];
       
-        computeCoefficients(rhs,beta,
-                            ccExt[iface],
-                            faceBox,dxFiltered[iface],isPeriodicFiltered[iface]);
-        //
-        // Need phi to have ghost cells.
-        //
-        Box phiGhostBox = OutFlowBC::SemiGrow(phiFiltered.box(),1,BL_SPACEDIM-1);
-        FArrayBox phi(phiGhostBox,1);
-        phi.setVal(0);
-        phi.copy(phiFiltered);
+            computeCoefficients(rhs,beta,
+                                ccExt[iface],
+                                faceBox,dxFiltered[iface],isPeriodicFiltered[iface]);
+            //
+            // Need phi to have ghost cells.
+            //
+            Box phiGhostBox = OutFlowBC::SemiGrow(faceBox,1,BL_SPACEDIM-1);
+            FArrayBox phi(phiGhostBox,1);
+            phi.setVal(0);
       
-        FArrayBox resid(rhs.box(),1);
+            FArrayBox resid(rhs.box(),1);
       
-        MacOutFlowBC_MG mac_mg(faceBox,&phi,&rhs,&resid,beta,
-                               dxFiltered[iface],isPeriodicFiltered[iface]);
+            MacOutFlowBC_MG mac_mg(faceBox,&phi,&rhs,&resid,beta,
+                                   dxFiltered[iface],isPeriodicFiltered[iface]);
       
-        mac_mg.solve(tol,abs_tol,2,2,mac_mg.MaxIters(),mac_mg.Verbose());
+            mac_mg.solve(tol,abs_tol,2,2,mac_mg.MaxIters(),mac_mg.Verbose());
       
-        DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
-        DEF_BOX_LIMITS(faceBox,lo,hi);
-        //
-        // Subtract the average phi.
-        //
-//      FORT_MACSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
-//                             &r_len,redge,
-//                             lo,hi,isPeriodicFiltered[iface]);
-        //
-        // Translate the solution back to the original coordinate system.
-        //
-        int face   = int(outFaces[iface]);
-        FORT_MAC_RESHIFT_PHI(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
-                             ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
+            DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
+            DEF_BOX_LIMITS(faceBox,lo,hi);
+            //
+            // Subtract the average phi.
+            //
+            //FORT_MACSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
+            //                   &r_len,redge,
+            //                   lo,hi,isPeriodicFiltered[iface]);
+            //
+            // Translate the solution back to the original coordinate system.
+            //
+            int face   = int(outFaces[iface]);
+            FORT_MAC_RESHIFT_PHI(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
+                                 ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
 #endif
+        }
     }
-
-  // end if connected = 1
-  }
 }
 
 #if (BL_SPACEDIM == 3)

@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.35 2007-07-05 20:01:48 lijewski Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.36 2008-07-30 16:08:09 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -55,7 +55,6 @@ ProjOutFlowBC::ProjOutFlowBC ()
 #endif
 }
 
-#if 1
 void 
 ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                           FArrayBox        divuMF[2*BL_SPACEDIM],
@@ -85,10 +84,10 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                           Real              gravity)
 {
     BL_ASSERT(numOutFlowFaces <= 2*BL_SPACEDIM);
-    int i;
 
-    int faces[2*BL_SPACEDIM];
-    for (i = 0; i < numOutFlowFaces; i++) faces[i] = int(outFaces[i]);
+    int i, faces[2*BL_SPACEDIM];
+    for (i = 0; i < numOutFlowFaces; i++)
+        faces[i] = int(outFaces[i]);
 
     const Real* dx    = geom.CellSize();
     const Box& domain = geom.Domain();
@@ -97,7 +96,8 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
     int leny = domain.length(1);
 
     int zeroIt[2*BL_SPACEDIM];
-    for (int i = 0; i < numOutFlowFaces; i++) zeroIt[i] = 0;
+    for (int i = 0; i < numOutFlowFaces; i++)
+        zeroIt[i] = 0;
 
 #if (BL_SPACEDIM == 2)
     Real* rcen[2*BL_SPACEDIM];
@@ -118,406 +118,436 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
     Real dxFiltered[2*BL_SPACEDIM][BL_SPACEDIM];
 #endif
 
-    for (int iface = 0; iface < numOutFlowFaces; iface++) {
-
-    int outDir        = outFaces[iface].coordDir();
-    //
-    // Filter out the direction we don't care about.
-    //
-    int ncStripWidth = 1;
-    Box origBox = BoxLib::adjCell(domain,outFaces[iface],ncStripWidth);
-    IntVect lo = origBox.smallEnd();
-    IntVect hi = origBox.bigEnd();
-    //
-    // Rearrange the box, dx, and isPeriodic so that the dimension that is 1
-    // is the last dimension.
-    //
-    int cnt = 0;
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    for (int iface = 0; iface < numOutFlowFaces; iface++)
     {
-        if (dir != outDir)
-	{
-            loFiltered[cnt] = lo[dir];
-            hiFiltered[cnt] = hi[dir];
+        int outDir        = outFaces[iface].coordDir();
+        //
+        // Filter out the direction we don't care about.
+        //
+        int ncStripWidth = 1;
+        Box origBox = BoxLib::adjCell(domain,outFaces[iface],ncStripWidth);
+        IntVect lo = origBox.smallEnd();
+        IntVect hi = origBox.bigEnd();
+        //
+        // Rearrange the box, dx, and isPeriodic so that the dimension that is 1
+        // is the last dimension.
+        //
+        int cnt = 0;
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            if (dir != outDir)
+            {
+                loFiltered[cnt] = lo[dir];
+                hiFiltered[cnt] = hi[dir];
 #if (BL_SPACEDIM == 3)
-            dxFiltered[iface][cnt] = dx[dir];
+                dxFiltered[iface][cnt] = dx[dir];
 #endif
 #if (BL_SPACEDIM == 2)
-            isPeriodicFiltered[iface][cnt] = isPeriodic[dir];
+                isPeriodicFiltered[iface][cnt] = isPeriodic[dir];
 #endif
-            cnt++;
-	}
+                cnt++;
+            }
+            else
+            {
+                loFiltered[BL_SPACEDIM-1] = lo[dir];
+                hiFiltered[BL_SPACEDIM-1] = hi[dir];
+#if (BL_SPACEDIM == 3)
+                dxFiltered[iface][BL_SPACEDIM-1] = dx[dir];
+#endif
+#if (BL_SPACEDIM == 2)
+                isPeriodicFiltered[iface][BL_SPACEDIM-1] = isPeriodic[dir];
+#endif
+            }
+        }
+
+        Box       faceBox(loFiltered,hiFiltered);
+        for (int dir = 0; dir < BL_SPACEDIM-1; dir++)
+            faceBox.grow(dir,1);
+        //
+        //  One for rho, one for divu, (BL_SPACEDIM-1) for velocity.
+        //
+        ccExt[iface].resize(faceBox,BL_SPACEDIM+1);
+
+#if (BL_SPACEDIM == 2)
+        //
+        // Make edge-centered and cc r (set = 1 if cartesian)
+        //
+        int perpDir = 1 - outDir;
+        int r_len = domain.length(perpDir)+1;
+        rcen[iface] = new Real[r_len-1];
+        redge[iface] = new Real[r_len];
+        //
+        // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
+        //
+        if (CoordSys::IsRZ())
+        {
+            if (faces[iface] == 0)
+            {
+                for (i=0;i<r_len  ;i++)
+                    redge[iface][i] = geom.ProbLo()[0];
+                for (i=0;i<r_len-1;i++)
+                    rcen[iface][i] = geom.ProbLo()[0];
+            }
+            else if (faces[iface] == 2)
+            {
+                for (i=0;i<r_len  ;i++)
+                    redge[iface][i] = geom.ProbHi()[0];
+                for (i=0;i<r_len-1;i++)
+                    rcen[iface][i] = geom.ProbHi()[0];
+            }
+            else if (faces[iface] == 1 || faces[iface]== 3)
+            {
+                for (i=0;i<r_len  ;i++)
+                    redge[iface][i] = geom.ProbLo()[0] + i     *dx[0];
+                for (i=0;i<r_len-1;i++)
+                    rcen[iface][i] = geom.ProbLo()[0] +(i+0.5)*dx[0];
+            }
+        }
         else
         {
-            loFiltered[BL_SPACEDIM-1] = lo[dir];
-            hiFiltered[BL_SPACEDIM-1] = hi[dir];
-#if (BL_SPACEDIM == 3)
-            dxFiltered[iface][BL_SPACEDIM-1] = dx[dir];
-#endif
-#if (BL_SPACEDIM == 2)
-            isPeriodicFiltered[iface][BL_SPACEDIM-1] = isPeriodic[dir];
-#endif
-	}
-    }
-
-    Box       faceBox(loFiltered,hiFiltered);
-    for (int dir = 0; dir < BL_SPACEDIM-1; dir++)
-      faceBox.grow(dir,1);
-
-//  One for rho, one for divu, (BL_SPACEDIM-1) for velocity.
-    ccExt[iface].resize(faceBox,BL_SPACEDIM+1);
-
-#if (BL_SPACEDIM == 2)
-    //
-    // Make edge-centered and cc r (set = 1 if cartesian)
-    //
-    int perpDir = 1 - outDir;
-    int r_len = domain.length(perpDir)+1;
-    rcen[iface] = new Real[r_len-1];
-    redge[iface] = new Real[r_len];
-
-    // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
-    if (CoordSys::IsRZ()) {
-      if (faces[iface] == 0) {
-        for (i=0;i<r_len  ;i++) redge[iface][i] = geom.ProbLo()[0];
-        for (i=0;i<r_len-1;i++)  rcen[iface][i] = geom.ProbLo()[0];
-      } else if (faces[iface] == 2) {
-        for (i=0;i<r_len  ;i++) redge[iface][i] = geom.ProbHi()[0];
-        for (i=0;i<r_len-1;i++)  rcen[iface][i] = geom.ProbHi()[0];
-      } else if (faces[iface] == 1 || faces[iface]== 3) {
-        for (i=0;i<r_len  ;i++) redge[iface][i] = geom.ProbLo()[0] + i     *dx[0];
-        for (i=0;i<r_len-1;i++)  rcen[iface][i] = geom.ProbLo()[0] +(i+0.5)*dx[0];
-      }
-    } else {
-      for (i = 0; i < r_len  ; i++) redge[iface][i] = 1.;
-      for (i = 0; i < r_len-1; i++)  rcen[iface][i] = 1.;
-    }
+            for (i = 0; i < r_len  ; i++)
+                redge[iface][i] = 1.;
+            for (i = 0; i < r_len-1; i++)
+                rcen[iface][i] = 1.;
+        }
 #else
-    Array<Real> rcen;
+        Array<Real> rcen;
 #endif
 
-    DEF_BOX_LIMITS(origBox,origLo,origHi);
+        DEF_BOX_LIMITS(origBox,origLo,origHi);
 
-    const int* ccElo = ccExt[iface].loVect();
-    const int* ccEhi = ccExt[iface].hiVect();
-    const Real*  rhoEPtr = ccExt[iface].dataPtr(0);
-    const Real* divuEPtr = ccExt[iface].dataPtr(1);
-    const Real*    uEPtr = ccExt[iface].dataPtr(2);
+        const int* ccElo = ccExt[iface].loVect();
+        const int* ccEhi = ccExt[iface].hiVect();
+        const Real*  rhoEPtr = ccExt[iface].dataPtr(0);
+        const Real* divuEPtr = ccExt[iface].dataPtr(1);
+        const Real*    uEPtr = ccExt[iface].dataPtr(2);
 
-    DEF_LIMITS(divuMF[iface], divuPtr, divulo, divuhi);
-    DEF_LIMITS( rhoMF[iface],  rhoPtr,  rholo,  rhohi);
-    DEF_LIMITS( velMF[0][iface],  velPtr,  vello,  velhi);
-    //
-    // Extrapolate the velocities, divu, and rho to the outflow edge in
-    // the shifted coordinate system (where the last dimension is 1).
-    //
-    Real hx = dx[0];
-    FORT_EXTRAP_PROJ(ARLIM(vello),  ARLIM(velhi), velPtr,
-                     ARLIM(divulo), ARLIM(divuhi), divuPtr,
-                     ARLIM(rholo),  ARLIM(rhohi),rhoPtr,
+        DEF_LIMITS(divuMF[iface], divuPtr, divulo, divuhi);
+        DEF_LIMITS( rhoMF[iface],  rhoPtr,  rholo,  rhohi);
+        DEF_LIMITS( velMF[0][iface],  velPtr,  vello,  velhi);
+        //
+        // Extrapolate the velocities, divu, and rho to the outflow edge in
+        // the shifted coordinate system (where the last dimension is 1).
+        //
+        Real hx = dx[0];
+        FORT_EXTRAP_PROJ(ARLIM(vello),  ARLIM(velhi), velPtr,
+                         ARLIM(divulo), ARLIM(divuhi), divuPtr,
+                         ARLIM(rholo),  ARLIM(rhohi),rhoPtr,
 #if (BL_SPACEDIM == 2)
-                     &r_len,redge[iface],
+                         &r_len,redge[iface],
 #endif
-                     ARLIM(ccElo),ARLIM(ccEhi),uEPtr,
-                     ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
-                     ARLIM(ccElo),ARLIM(ccEhi),rhoEPtr,
-                     origLo,origHi,&faces[iface],&zeroIt[iface],&hx);
+                         ARLIM(ccElo),ARLIM(ccEhi),uEPtr,
+                         ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
+                         ARLIM(ccElo),ARLIM(ccEhi),rhoEPtr,
+                         origLo,origHi,&faces[iface],&zeroIt[iface],&hx);
     }
-
-//  Test for whether multiple faces are touching.
-//    therefore not touching.
+    //
+    //  Test for whether multiple faces are touching.
+    //  therefore not touching.
+    //
     int numRegions = 1;
     if ( (numOutFlowFaces == 2) &&
          (outFaces[0].coordDir() == outFaces[1].coordDir()) )
-       numRegions = 2;
+        numRegions = 2;
+    //
+    // Since we only use a constant dx in the Fortran,
+    //  we'll assume for now we can choose either one.
+    //
+    if (numRegions == 1 && numOutFlowFaces > 1)
+        BL_ASSERT(dx[0] == dx[1]);
+    //
+    //   Note numRegions = 1 or 2, those are the only possibilities.
+    //
+    for (int ireg = 0; ireg < numRegions; ireg++) 
+    {
+        //
+        // Define connected region.  In both 2-d and 3-d, if there are
+        // multiple outflow faces and it's not just two across from
+        // each other, then the multiple faces form a *single* 
+        // connected region.
+        //
+        int zeroAll = zeroIt[ireg];
+        if (numRegions == 1)
+            for (int i = 0; i < numOutFlowFaces; i++)
+                if (zeroIt[i] == 0) zeroAll = 0;
 
-     // Since we only use a constant dx in the Fortran,
-     //  we'll assume for now we can choose either one.
-     if (numRegions == 1 && numOutFlowFaces > 1)
-       BL_ASSERT(dx[0] == dx[1]);
+        zeroAll = 1; // HACK HACK
 
-//   Note numRegions = 1 or 2, those are the only possibilities.
-     for (int ireg = 0; ireg < numRegions; ireg++) 
-     {
-
-  // Define connected region.  In both 2-d and 3-d, if there are
-  //   multiple outflow faces and it's not just two across from
-  //   each other, then the multiple faces form a *single* 
-  //   connected region.
-
-       int zeroAll = zeroIt[ireg];
-       if (numRegions == 1)
-        for (int i = 0; i < numOutFlowFaces; i++)
-         if (zeroIt[i] == 0) zeroAll = 0;
-
-// HACK HACK
-        zeroAll = 1;
-
-       if (zeroAll) {
-
-         for (int i=0; i < numOutFlowFaces; i++) {
-           phiMF[i].setVal(0);
-         }
-
-       } else {
-
-         int faces[2*BL_SPACEDIM];
+        if (zeroAll)
+        {
+            for (int i=0; i < numOutFlowFaces; i++)
+                phiMF[i].setVal(0);
+        }
+        else
+        {
+            int faces[2*BL_SPACEDIM];
 #if (BL_SPACEDIM == 2)
-         int numOutFlowFacesInRegion;
+            int numOutFlowFacesInRegion;
 #endif
-         if (numRegions == 1)
-         {
-           for (int i=0; i < numOutFlowFaces; i++) 
-             faces[i] = int(outFaces[i]);
+            if (numRegions == 1)
+            {
+                for (int i=0; i < numOutFlowFaces; i++) 
+                    faces[i] = int(outFaces[i]);
 #if (BL_SPACEDIM == 2)
-             numOutFlowFacesInRegion = numOutFlowFaces;
+                numOutFlowFacesInRegion = numOutFlowFaces;
 #endif
-         } else if (numRegions == 2) {
-             faces[0] = int(outFaces[ireg]);
+            }
+            else if (numRegions == 2)
+            {
+                faces[0] = int(outFaces[ireg]);
 #if (BL_SPACEDIM == 2)
-             numOutFlowFacesInRegion = 1;
+                numOutFlowFacesInRegion = 1;
 #endif
-         }
+            }
 
 #if (BL_SPACEDIM == 2)
-         // Here we know the ordering of faces is XLO,XHI,YLO,YHI.
+            //
+            // Here we know the ordering of faces is XLO,XHI,YLO,YHI.
+            //
+            int length = 0;
+            Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3;
+            Real *r0,*r1,*r2,*r3;
+            for (int i=0; i < numOutFlowFacesInRegion; i++) 
+            {
+                if (faces[i] == 0)
+                {
+                    ccEptr0 = ccExt[i].dataPtr();
+                    r0 = rcen[i];
+                    length = length + leny;
+                }
+                else if (faces[i] == 1)
+                {
+                    ccEptr1 = ccExt[i].dataPtr();
+                    r1 = rcen[i];
+                    length = length + lenx;
+                }
+                else if (faces[i] == 2)
+                {
+                    ccEptr2 = ccExt[i].dataPtr();
+                    r2 = rcen[i];
+                    length = length + leny;
+                }
+                else if (faces[i] == 3) {
+                    ccEptr3 = ccExt[i].dataPtr();
+                    r3 = rcen[i];
+                    length = length + lenx;
+                }
+            }
 
-         int length = 0;
-         Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3;
-         Real *r0,*r1,*r2,*r3;
-         for (int i=0; i < numOutFlowFacesInRegion; i++) 
-         {
-           if (faces[i] == 0) {
-             ccEptr0 = ccExt[i].dataPtr();
-                  r0 = rcen[i];
-             length = length + leny;
-           } else if (faces[i] == 1) {
-             ccEptr1 = ccExt[i].dataPtr();
-                  r1 = rcen[i];
-             length = length + lenx;
-           } else if (faces[i] == 2) {
-             ccEptr2 = ccExt[i].dataPtr();
-                  r2 = rcen[i];
-             length = length + leny;
-           } else if (faces[i] == 3) {
-             ccEptr3 = ccExt[i].dataPtr();
-                  r3 = rcen[i];
-             length = length + lenx;
-           }
-         }
+            IntVect loconn;
+            IntVect hiconn;
 
-         IntVect loconn;
-         IntVect hiconn;
-
-         loconn[0] = 0;
-         hiconn[0] = length-1;
-         loconn[BL_SPACEDIM-1] = 0;
-         hiconn[BL_SPACEDIM-1] = 0;
-         Box connected_region(loconn,hiconn);
-         FArrayBox ccE_conn(connected_region,1);
+            loconn[0] = 0;
+            hiconn[0] = length-1;
+            loconn[BL_SPACEDIM-1] = 0;
+            hiconn[BL_SPACEDIM-1] = 0;
+            Box connected_region(loconn,hiconn);
+            FArrayBox ccE_conn(connected_region,1);
   
-         hiconn[0] = length;
-         Box nodal_connected_region(loconn,hiconn);
-         FArrayBox x(nodal_connected_region,1);
-         FArrayBox s(nodal_connected_region,1);
-         s.setVal(0.);
+            hiconn[0] = length;
+            Box nodal_connected_region(loconn,hiconn);
+            FArrayBox x(nodal_connected_region,1);
+            FArrayBox s(nodal_connected_region,1);
+            s.setVal(0.);
 
-         ccE_conn.setVal(1.e200);
+            ccE_conn.setVal(1.e200);
 
-         int per = 0;
-         if ( (numOutFlowFaces == 1) || 
-              (numRegions == 2) ) per = isPeriodicFiltered[ireg][0];
+            int per = 0;
+            if ( (numOutFlowFaces == 1) || 
+                 (numRegions == 2) ) per = isPeriodicFiltered[ireg][0];
 
-         FORT_FILL_ONED(&lenx,&leny,&length,faces,&numOutFlowFacesInRegion,
-                        ccEptr0, ccEptr1, ccEptr2, ccEptr3,
-                        r0,r1,r2,r3,
-                        ccE_conn.dataPtr(),s.dataPtr(),&per,
-                        &(dx[0]),&(dx[1]));
+            FORT_FILL_ONED(&lenx,&leny,&length,faces,&numOutFlowFacesInRegion,
+                           ccEptr0, ccEptr1, ccEptr2, ccEptr3,
+                           r0,r1,r2,r3,
+                           ccE_conn.dataPtr(),s.dataPtr(),&per,
+                           &(dx[0]),&(dx[1]));
 
-         if (numOutFlowFaces == 2*BL_SPACEDIM) per = 1;
+            if (numOutFlowFaces == 2*BL_SPACEDIM) per = 1;
 
-         FORT_HGPHIBC(dx,
-                      ccE_conn.dataPtr(0),
-                      s.dataPtr(),
-                      x.dataPtr(),
-                      &length,&per);
+            FORT_HGPHIBC(dx,
+                         ccE_conn.dataPtr(0),
+                         s.dataPtr(),
+                         x.dataPtr(),
+                         &length,&per);
 
-         Real *phiptr0,*phiptr1,*phiptr2,*phiptr3;
+            Real *phiptr0,*phiptr1,*phiptr2,*phiptr3;
 
-         for (int i=0; i < numOutFlowFacesInRegion; i++) 
-         {
-           if (faces[i] == 0) {
-             phiptr0 = phiMF[i].dataPtr();
-           }
-           if (faces[i] == 1) {
-             phiptr1 = phiMF[i].dataPtr();
-           }
-           if (faces[i] == 2) {
-             phiptr2 = phiMF[i].dataPtr();
-           }
-           if (faces[i] == 3) {
-             phiptr3 = phiMF[i].dataPtr();
-           }
-         }
+            for (int i=0; i < numOutFlowFacesInRegion; i++) 
+            {
+                if (faces[i] == 0) {
+                    phiptr0 = phiMF[i].dataPtr();
+                }
+                if (faces[i] == 1) {
+                    phiptr1 = phiMF[i].dataPtr();
+                }
+                if (faces[i] == 2) {
+                    phiptr2 = phiMF[i].dataPtr();
+                }
+                if (faces[i] == 3) {
+                    phiptr3 = phiMF[i].dataPtr();
+                }
+            }
 
-         FORT_ALLPHI_FROM_X(&lenx,&leny,&length,faces,&numOutFlowFaces,
-                            phiptr0, phiptr1, phiptr2, phiptr3,
-                            x.dataPtr());
+            FORT_ALLPHI_FROM_X(&lenx,&leny,&length,faces,&numOutFlowFaces,
+                               phiptr0, phiptr1, phiptr2, phiptr3,
+                               x.dataPtr());
 #else
 
 #ifndef NDEBUG
-        // Assert that, if faces are connected, one of the coordinate
-        //  directions has no outflow faces.
-        int outx = 0, outy = 0, outz = 0;
-        for (int iface = 0; iface < numOutFlowFaces; iface++)
-        {
-            int outDir = outFaces[iface].coordDir();
-            if (outDir == 0) outx = 1;
-            if (outDir == 1) outy = 1;
-            if (outDir == 2) outz = 1;
-        }
-        BL_ASSERT ((outx + outy + outz) > 0);
-        BL_ASSERT ((outx + outy + outz) < 3);
+            //
+            // Assert that, if faces are connected, one of the coordinate
+            // directions has no outflow faces.
+            //
+            int outx = 0, outy = 0, outz = 0;
+            for (int iface = 0; iface < numOutFlowFaces; iface++)
+            {
+                int outDir = outFaces[iface].coordDir();
+                if (outDir == 0) outx = 1;
+                if (outDir == 1) outy = 1;
+                if (outDir == 2) outz = 1;
+            }
+            BL_ASSERT ((outx + outy + outz) > 0);
+            BL_ASSERT ((outx + outy + outz) < 3);
 #endif
-        BL_ASSERT(dx[1] == dx[2]);
+            BL_ASSERT(dx[1] == dx[2]);
 
-        // Here we know the ordering of faces is XLO,YLO,ZLO,XHI,YHI,ZHI.
+            // Here we know the ordering of faces is XLO,YLO,ZLO,XHI,YHI,ZHI.
 
-        // FOR NOW: ASSERT THAT NO OUTFLOW FACES IN Z-DIR!
-        BL_ASSERT (outz == 0);
+            // FOR NOW: ASSERT THAT NO OUTFLOW FACES IN Z-DIR!
+            BL_ASSERT (outz == 0);
 
-        int lenz = domain.length(2);
+            int lenz = domain.length(2);
 
-        int length = 0;
-        int  width = lenz;
-        Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3,*ccEptr4,*ccEptr5;
-        for (int i=0; i < numOutFlowFaces; i++) 
-        {
-          if (faces[i] == 0) {
-            ccEptr0 = ccExt[i].dataPtr();
-            length = length + leny*lenz;
-          } else if (faces[i] == 1) {
-            ccEptr1 = ccExt[i].dataPtr();
-            length = length + lenx*lenz;
-          } else if (faces[i] == 2) {
-            ccEptr2 = ccExt[i].dataPtr();
-            length = length + lenx*leny;
-          } else if (faces[i] == 3) {
-            ccEptr3 = ccExt[i].dataPtr();
-            length = length + leny*lenz;
-          } else if (faces[i] == 4) {
-            ccEptr4 = ccExt[i].dataPtr();
-            length = length + lenx*lenz;
-          } else if (faces[i] == 5) {
-            ccEptr5 = ccExt[i].dataPtr();
-            length = length + lenx*leny;
-          } else {
-            std::cout << "OOPS - DIDNT PROGRAM FOR Z-OUTFLOW FACES! " << i << 
-                    " " << faces[i] << std::endl;
-            exit(0);
-          }
-        }
+            int length = 0;
+            int  width = lenz;
+            Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3,*ccEptr4,*ccEptr5;
+            for (int i=0; i < numOutFlowFaces; i++) 
+            {
+                if (faces[i] == 0) {
+                    ccEptr0 = ccExt[i].dataPtr();
+                    length = length + leny*lenz;
+                } else if (faces[i] == 1) {
+                    ccEptr1 = ccExt[i].dataPtr();
+                    length = length + lenx*lenz;
+                } else if (faces[i] == 2) {
+                    ccEptr2 = ccExt[i].dataPtr();
+                    length = length + lenx*leny;
+                } else if (faces[i] == 3) {
+                    ccEptr3 = ccExt[i].dataPtr();
+                    length = length + leny*lenz;
+                } else if (faces[i] == 4) {
+                    ccEptr4 = ccExt[i].dataPtr();
+                    length = length + lenx*lenz;
+                } else if (faces[i] == 5) {
+                    ccEptr5 = ccExt[i].dataPtr();
+                    length = length + lenx*leny;
+                } else {
+                    std::cout << "OOPS - DIDNT PROGRAM FOR Z-OUTFLOW FACES! " << i << 
+                        " " << faces[i] << std::endl;
+                    exit(0);
+                }
+            }
 
-        IntVect loconn;
-        IntVect hiconn;
+            IntVect loconn;
+            IntVect hiconn;
 
-        loconn[0] = 0;
-        hiconn[0] = length-1;
-        loconn[1] = 0;
-        hiconn[1] = width-1;
-        loconn[BL_SPACEDIM-1] = 0;
-        hiconn[BL_SPACEDIM-1] = 0;
-        Box connected_region(loconn,hiconn);
-        FArrayBox ccE_conn(connected_region,BL_SPACEDIM+1);
+            loconn[0] = 0;
+            hiconn[0] = length-1;
+            loconn[1] = 0;
+            hiconn[1] = width-1;
+            loconn[BL_SPACEDIM-1] = 0;
+            hiconn[BL_SPACEDIM-1] = 0;
+            Box connected_region(loconn,hiconn);
+            FArrayBox ccE_conn(connected_region,BL_SPACEDIM+1);
  
-        hiconn[0] = length;
-        hiconn[1] = width;
-        Box nodal_connected_region(loconn,hiconn);
-        FArrayBox phiFiltered(nodal_connected_region,1);
-        phiFiltered.setVal(0.);
+            hiconn[0] = length;
+            hiconn[1] = width;
+            Box nodal_connected_region(loconn,hiconn);
+            FArrayBox phiFiltered(nodal_connected_region,1);
+            phiFiltered.setVal(0.);
 
-        FORT_FILL_TWOD(&lenx,&leny,&lenz,&length,&width,
-                       faces,&numOutFlowFaces,
-                       ccEptr0, ccEptr1, ccEptr2, ccEptr3, ccEptr4, ccEptr5,
-                       ccE_conn.dataPtr());
+            FORT_FILL_TWOD(&lenx,&leny,&lenz,&length,&width,
+                           faces,&numOutFlowFaces,
+                           ccEptr0, ccEptr1, ccEptr2, ccEptr3, ccEptr4, ccEptr5,
+                           ccE_conn.dataPtr());
       
-        FArrayBox rhs_temp, beta;
+            FArrayBox rhs_temp, beta;
   
-        int* per = new int[2];
-        per[0] = (numOutFlowFaces == 2*BL_SPACEDIM) ? 1 : 0;
-        per[1] = isPeriodic[BL_SPACEDIM-1];
+            int* per = new int[2];
+            per[0] = (numOutFlowFaces == 2*BL_SPACEDIM) ? 1 : 0;
+            per[1] = isPeriodic[BL_SPACEDIM-1];
         
-        computeCoefficients(rhs_temp,beta,ccE_conn,connected_region,dxFiltered[0],per);
-        //
-        // Need phi to have ghost cells.
-        //
-        Box phiGhostBox = OutFlowBC::SemiGrow(phiFiltered.box(),1,BL_SPACEDIM-1);
-        FArrayBox phi(phiGhostBox,1);
-        phi.setVal(0);
-        phi.copy(phiFiltered);
+            computeCoefficients(rhs_temp,beta,ccE_conn,connected_region,dxFiltered[0],per);
+            //
+            // Need phi to have ghost cells.
+            //
+            Box phiGhostBox = OutFlowBC::SemiGrow(phiFiltered.box(),1,BL_SPACEDIM-1);
+            FArrayBox phi(phiGhostBox,1);
+            phi.setVal(0);
+            phi.copy(phiFiltered);
       
-        Box grownRhs = OutFlowBC::SemiGrow(rhs_temp.box(),1,BL_SPACEDIM-1);
-        FArrayBox rhs(grownRhs,1);
-        rhs.setVal(0);
-        rhs.copy(rhs_temp);
-        FArrayBox resid(rhs.box(),1);
-        ProjOutFlowBC_MG proj_mg(connected_region,&phi,&rhs,&resid,&beta,
-                                 dxFiltered[0],per);
+            Box grownRhs = OutFlowBC::SemiGrow(rhs_temp.box(),1,BL_SPACEDIM-1);
+            FArrayBox rhs(grownRhs,1);
+            rhs.setVal(0);
+            rhs.copy(rhs_temp);
+            FArrayBox resid(rhs.box(),1);
+            ProjOutFlowBC_MG proj_mg(connected_region,&phi,&rhs,&resid,&beta,
+                                     dxFiltered[0],per);
 
-        proj_mg.solve(tol,abs_tol,2,2,proj_mg.MaxIters(),proj_mg.Verbose());
+            proj_mg.solve(tol,abs_tol,2,2,proj_mg.MaxIters(),proj_mg.Verbose());
       
-        DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
+            DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
 
-        Real *phiptr0,*phiptr1,*phiptr2,*phiptr3,*phiptr4,*phiptr5;
+            Real *phiptr0,*phiptr1,*phiptr2,*phiptr3,*phiptr4,*phiptr5;
 
-        for (int i=0; i < numOutFlowFaces; i++) 
-        {
-           if (faces[i] == 0) {
-             phiptr0 = phiMF[i].dataPtr();
-           } else 
-           if (faces[i] == 1) {
-             phiptr1 = phiMF[i].dataPtr();
-           } else 
-           if (faces[i] == 2) {
-             phiptr2 = phiMF[i].dataPtr();
-           } else 
-           if (faces[i] == 3) {
-             phiptr3 = phiMF[i].dataPtr();
-           } else 
-           if (faces[i] == 4) {
-             phiptr4 = phiMF[i].dataPtr();
-           } else 
-           if (faces[i] == 5) {
-             phiptr5 = phiMF[i].dataPtr();
-           }
+            for (int i=0; i < numOutFlowFaces; i++) 
+            {
+                if (faces[i] == 0) {
+                    phiptr0 = phiMF[i].dataPtr();
+                } else 
+                    if (faces[i] == 1) {
+                        phiptr1 = phiMF[i].dataPtr();
+                    } else 
+                        if (faces[i] == 2) {
+                            phiptr2 = phiMF[i].dataPtr();
+                        } else 
+                            if (faces[i] == 3) {
+                                phiptr3 = phiMF[i].dataPtr();
+                            } else 
+                                if (faces[i] == 4) {
+                                    phiptr4 = phiMF[i].dataPtr();
+                                } else 
+                                    if (faces[i] == 5) {
+                                        phiptr5 = phiMF[i].dataPtr();
+                                    }
+            }
+            FORT_ALLPHI_FROM_X(&lenx,&leny,&lenz,&length,&width,faces,&numOutFlowFaces,
+                               phiptr0, phiptr1, phiptr2, phiptr3, phiptr4, phiptr5,
+                               phi.dataPtr(),ARLIM(phi_lo),ARLIM(phi_hi));
+#endif
         }
-        FORT_ALLPHI_FROM_X(&lenx,&leny,&lenz,&length,&width,faces,&numOutFlowFaces,
-                           phiptr0, phiptr1, phiptr2, phiptr3, phiptr4, phiptr5,
-                           phi.dataPtr(),ARLIM(phi_lo),ARLIM(phi_hi));
-#endif
-       }
     }
 
-    if (std::abs(gravity) > 0.) {
-     const int* domlo  = domain.loVect();
-     const int* domhi  = domain.hiVect();
-     for (int iface = 0; iface < numOutFlowFaces; iface++) 
-     {
-      int face          = int(outFaces[iface]);
-      int outDir        = outFaces[iface].coordDir();
+    if (std::abs(gravity) > 0.)
+    {
+        const int* domlo  = domain.loVect();
+        const int* domhi  = domain.hiVect();
+        for (int iface = 0; iface < numOutFlowFaces; iface++) 
+        {
+            int face          = int(outFaces[iface]);
+            int outDir        = outFaces[iface].coordDir();
 
-      DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
-      DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
-      if (outDir != (BL_SPACEDIM-1))
-        FORT_RHOGBC(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
-                    phiPtr,ARLIM(philo),ARLIM(phihi),
-                    &face,&gravity,dx,domlo,domhi,
-                    lo_bc,hi_bc);
+            DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
+            DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
+            if (outDir != (BL_SPACEDIM-1))
+                FORT_RHOGBC(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
+                            phiPtr,ARLIM(philo),ARLIM(phihi),
+                            &face,&gravity,dx,domlo,domhi,
+                            lo_bc,hi_bc);
   
+        }
     }
-   }
 }
-#endif
 
 void 
 ProjOutFlowBC::computeRhoG (FArrayBox*         rhoMF,
