@@ -538,7 +538,7 @@ NavierStokes::NavierStokes (Amr&            papa,
     //
     diffusion = new Diffusion(parent,this,
                               (level > 0) ? getLevel(level-1).diffusion : 0,
-                              NUM_STATE,viscflux_reg,volume,area,
+                              NUM_STATE,viscflux_reg,volume,
                               is_diffusive,visc_coef);
     //
     // Allocate the storage for variable viscosity and diffusivity
@@ -566,7 +566,7 @@ NavierStokes::NavierStokes (Amr&            papa,
         mac_projector = new MacProj(parent,parent->finestLevel(),
                                     &phys_bc,radius_grow);
     }
-    mac_projector->install_level(level,this,volume,area,&radius);
+    mac_projector->install_level(level,this,volume);
 }
 
 NavierStokes::~NavierStokes ()
@@ -753,7 +753,7 @@ NavierStokes::restart (Amr&          papa,
         mac_projector = new MacProj(parent,parent->finestLevel(),
                                     &phys_bc,radius_grow);
     }
-    mac_projector->install_level(level,this,volume,area,&radius);
+    mac_projector->install_level(level,this,volume);
 
     rho_avg = 0;
     p_avg   = 0;
@@ -802,7 +802,7 @@ NavierStokes::restart (Amr&          papa,
 
     diffusion = new Diffusion(parent, this,
                               (level > 0) ? getLevel(level-1).diffusion : 0,
-                              NUM_STATE, viscflux_reg, volume, area,
+                              NUM_STATE, viscflux_reg, volume,
                               is_diffusive, visc_coef);
     //
     // Allocate the storage for variable viscosity and diffusivity
@@ -844,27 +844,15 @@ NavierStokes::buildMetrics ()
 
             radius[i].resize(len);
 
-//            if (CoordSys::IsCartesian())
-//            {
-//                for (int j = 0; j < len; j++)
-//                    radius[i][j] = 1.0;
-//            }
-//            else
-            {
-                const Real xlo = grid_loc[i].lo(0) + (0.5 - radius_grow)*dxr;
-                for (int j = 0; j < len; j++)
-                    radius[i][j] = xlo + j*dxr;
-            }
+            const Real xlo = grid_loc[i].lo(0) + (0.5 - radius_grow)*dxr;
+            for (int j = 0; j < len; j++)
+                radius[i][j] = xlo + j*dxr;
         }
     }
     //
-    // Build volume and face area arrays.
+    // Build volume array.
     //
     geom.GetVolume(volume,grids,GEOM_GROW);
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        geom.GetFaceArea(area[dir],grids,dir,GEOM_GROW);
-    }
 }
 
 //
@@ -1863,6 +1851,8 @@ NavierStokes::velocity_advection (Real dt)
     MultiFab Gp(grids,BL_SPACEDIM,1);
 
     getGradP(Gp, prev_pres_time);
+
+    FArrayBox area[BL_SPACEDIM];
     //
     // Compute the advective forcing.
     //
@@ -1911,6 +1901,11 @@ NavierStokes::velocity_advection (Real dt)
         S.resize(U_fpi().box(),BL_SPACEDIM);
         S.copy(U_fpi(),0,0,BL_SPACEDIM);
 
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            geom.GetFaceArea(area[dir],grids,i,dir,GEOM_GROW);
+        }
+
         for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
         {
             int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
@@ -1922,10 +1917,10 @@ NavierStokes::velocity_advection (Real dt)
             }
 
             godunov->AdvectState(grids[i], dx, dt, 
-                                 area[0][i], u_mac[0][i], xflux,
-                                 area[1][i], u_mac[1][i], yflux,
+                                 area[0], u_mac[0][i], xflux,
+                                 area[1], u_mac[1][i], yflux,
 #if (BL_SPACEDIM == 3)                       
-                                 area[2][i], u_mac[2][i], zflux,
+                                 area[2], u_mac[2][i], zflux,
 #endif
                                  U_fpi(), S, tforces, (*divu_fp)[i], comp,
                                  (*aofs)[i],comp,use_conserv_diff,
@@ -1979,6 +1974,8 @@ NavierStokes::scalar_advection (Real dt,
     FArrayBox xflux, yflux, zflux, tforces, tvelforces;
 
     MultiFab Gp, vel_visc_terms;
+
+    FArrayBox area[BL_SPACEDIM];
 
     MultiFab* divu_fp = getDivCond(1,prev_time);
     MultiFab* dsdt    = getDsdt(1,prev_time);
@@ -2051,6 +2048,11 @@ NavierStokes::scalar_advection (Real dt,
                        zflux, bndry[2].dataPtr(),
 #endif
                        U_fpi(),(*rho_ptime)[i],tvelforces);
+
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            geom.GetFaceArea(area[dir],grids,i,dir,GEOM_GROW);
+        }
         //
         // Loop over the scalar components.
         //
@@ -2084,10 +2086,10 @@ NavierStokes::scalar_advection (Real dt,
             state_bc = getBCArray(State_Type,i,state_ind,1);
 
             godunov->AdvectState(grids[i], dx, dt, 
-                                 area[0][i], u_mac[0][i], xflux,
-                                 area[1][i], u_mac[1][i], yflux,
+                                 area[0], u_mac[0][i], xflux,
+                                 area[1], u_mac[1][i], yflux,
 #if (BL_SPACEDIM == 3)                        
-                                 area[2][i], u_mac[2][i], zflux,
+                                 area[2], u_mac[2][i], zflux,
 #endif
                                  U_fpi(),S_fpi(),tforces,(*divu_fp)[i],comp,
                                  (*aofs)[i],state_ind,use_conserv_diff,

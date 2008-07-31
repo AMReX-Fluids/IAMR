@@ -100,7 +100,6 @@ Diffusion::Diffusion (Amr*               Parent,
                       int                num_state,
                       FluxRegister*      Viscflux_reg,
                       MultiFab&          Volume,
-                      MultiFab*          Area,
                       const Array<int>&  _is_diffusive,
                       const Array<Real>& _visc_coef)
     :
@@ -109,7 +108,6 @@ Diffusion::Diffusion (Amr*               Parent,
     grids(caller->boxArray()),
     level(caller->Level()),
     volume(Volume),
-    area(Area),
     coarser(Coarser),
     finer(0),
     NUM_STATE(num_state),
@@ -1068,7 +1066,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
 
         if (level > 0)
         {
-            FArrayBox xflux, yflux, zflux;
+            FArrayBox xflux, yflux, zflux, area[BL_SPACEDIM];
 
             for (MFIter Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
             {
@@ -1082,6 +1080,11 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
                 const int* ulo    = u_sync.loVect();
                 const int* uhi    = u_sync.hiVect();
 
+                for (int dir = 0; dir < BL_SPACEDIM; dir++)
+                {
+                    caller->Geom().GetFaceArea(area[dir],grids,i,dir,GEOM_GROW);
+                }
+
                 Box xflux_bx(grd);
                 Box yflux_bx(grd);
 
@@ -1094,8 +1097,8 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
                 DEF_LIMITS(xflux,xflux_dat,xflux_lo,xflux_hi);
                 DEF_LIMITS(yflux,yflux_dat,yflux_lo,yflux_hi);
 
-                const FArrayBox& xarea = (area[0])[i];
-                const FArrayBox& yarea = (area[1])[i];
+                const FArrayBox& xarea = area[0];
+                const FArrayBox& yarea = area[1];
 
                 DEF_CLIMITS(xarea,xarea_dat,xarea_lo,xarea_hi);
                 DEF_CLIMITS(yarea,yarea_dat,yarea_lo,yarea_hi);
@@ -1120,7 +1123,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
                 zflux.resize(zflux_bx,1);
                 DEF_LIMITS(zflux,zflux_dat,zflux_lo,zflux_hi);
 
-                const FArrayBox& zarea = (area[2])[i];
+                const FArrayBox& zarea = area[2];
                 DEF_CLIMITS(zarea,zarea_dat,zarea_lo,zarea_hi);
 
                 FORT_VISCSYNCFLUX (u_sync.dataPtr(comp), ARLIM(ulo), ARLIM(uhi),
@@ -1497,9 +1500,8 @@ Diffusion::getTensorOp (Real                   a,
 
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-        MultiFab bcoeffs(area[n].boxArray(),1,nghost);
-        bcoeffs.setBndry(0);
-        MultiFab::Copy(bcoeffs,area[n],0,0,1,nghost);
+        MultiFab bcoeffs;
+        caller->Geom().GetFaceArea(bcoeffs,grids,n,nghost);
         for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
         {
             const int i = bcoeffsmfi.index();
@@ -1617,9 +1619,8 @@ Diffusion::getTensorOp (Real                   a,
 
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-        MultiFab bcoeffs(area[n].boxArray(),1,nghost);
-        bcoeffs.setBndry(0);
-        MultiFab::Copy(bcoeffs,area[n],0,0,1,nghost);
+        MultiFab bcoeffs;
+        caller->Geom().GetFaceArea(bcoeffs,grids,n,nghost);
         for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
         {
             const int i = bcoeffsmfi.index();
@@ -1728,8 +1729,8 @@ Diffusion::getViscOp (int                    comp,
         alpha.clear();
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            MultiFab bcoeffs(area[n].boxArray(),1,0);
-            bcoeffs.copy(area[n]);
+            MultiFab bcoeffs;
+            caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
             bcoeffs.mult(dx[n]);
             visc_op->bCoefficients(bcoeffs,n);
         }
@@ -1740,8 +1741,8 @@ Diffusion::getViscOp (int                    comp,
         alpha.clear();
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            MultiFab bcoeffs(area[n].boxArray(),1,0);
-            bcoeffs.copy(area[n]);
+            MultiFab bcoeffs;
+            caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
             for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
                 const int i = bcoeffsmfi.index();
@@ -1854,8 +1855,8 @@ Diffusion::getViscOp (int                    comp,
     {
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            MultiFab bcoeffs(area[n].boxArray(),1,0);
-            bcoeffs.copy(area[n]);
+            MultiFab bcoeffs;
+            caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
             bcoeffs.mult(dx[n],0,1,0);
             visc_op->bCoefficients(bcoeffs,n);
         }
@@ -1864,8 +1865,8 @@ Diffusion::getViscOp (int                    comp,
     {
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            MultiFab bcoeffs(area[n].boxArray(),1,0);
-            bcoeffs.copy(area[n]);
+            MultiFab bcoeffs;
+            caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
             for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
                 const int i = bcoeffsmfi.index();
@@ -1931,8 +1932,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
         {
             for (int n = 0; n < BL_SPACEDIM; n++)
             {
-                MultiFab bcoeffs(area[n].boxArray(),1,0);
-                bcoeffs.copy(area[n]);
+                MultiFab bcoeffs;
+                caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
                 bcoeffs.mult(dx[n]);
                 visc_op.bCoefficients(bcoeffs,n);
             }
@@ -1941,8 +1942,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
         {
             for (int n = 0; n < BL_SPACEDIM; n++)
             {
-                MultiFab bcoeffs(area[n].boxArray(),1,0);
-                bcoeffs.copy(area[n]);
+                MultiFab bcoeffs;
+                caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
                 for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
                 {
                     const int i = bcoeffsmfi.index();
@@ -2078,9 +2079,8 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            MultiFab bcoeffs(area[n].boxArray(),1,nghost);
-            bcoeffs.setBndry(0);
-            MultiFab::Copy(bcoeffs,area[n],0,0,1,nghost);
+            MultiFab bcoeffs;
+            caller->Geom().GetFaceArea(bcoeffs,grids,n,nghost);
             for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
                 const int i = bcoeffsmfi.index();

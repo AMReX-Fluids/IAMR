@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.118 2008-07-30 20:37:02 lijewski Exp $
+// $Id: MacProj.cpp,v 1.119 2008-07-31 18:16:50 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -76,7 +76,6 @@ MacProj::MacProj (Amr*   _parent,
     mac_phi_crse(_finest_level+1, PArrayManage),
     mac_reg(_finest_level+1, PArrayManage),
     volume(_finest_level+1),
-    area(_finest_level+1),
     anel_coeff(_finest_level+1),
     finest_level(_finest_level)
 {
@@ -127,9 +126,7 @@ MacProj::read_params ()
 void
 MacProj::install_level (int                   level,
                         AmrLevel*             level_data,
-                        MultiFab&             _volume,
-                        MultiFab*             _area,
-                        Array< Array<Real> >* /*not used*/)
+                        MultiFab&             _volume)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Installing MacProj level " << level << '\n';
@@ -148,14 +145,12 @@ MacProj::install_level (int                   level,
         mac_phi_crse.resize(finest_level+1);
         mac_reg.resize(finest_level+1);
         volume.resize(finest_level+1);
-        area.resize(finest_level+1);
     }
 
     LevelData.clear(level);
     LevelData.set(level, level_data);
     volume.clear(level);
     volume.set(level, &_volume);
-    area.set(level, _area);
 
     BuildPhiBC(level);
 
@@ -361,8 +356,14 @@ MacProj::mac_project (int             level,
     // Initialize the rhs with divu.
     //
     const Real rhs_scale = 2.0/dt;
-    MultiFab Rhs(grids,1,0);
+    MultiFab Rhs(grids,1,0), area[BL_SPACEDIM];
+
     Rhs.copy(divu);
+
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        geom.GetFaceArea(area[dir],grids,dir,GEOM_GROW);
+    }
 
     int the_solver = 0;
     if (use_cg_solve)
@@ -378,11 +379,11 @@ MacProj::mac_project (int             level,
 	the_solver = 3;
     }
 
-    if (anel_coeff[level] != 0) scaleArea(level,area[level],anel_coeff[level]);
+    if (anel_coeff[level] != 0) scaleArea(level,area,anel_coeff[level]);
 
     mac_level_driver(mac_bndry, *phys_bc, grids, the_solver, level, Density,
                      dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
-                     area[level], volume[level], S, Rhs, u_mac, mac_phi);
+                     area, volume[level], S, Rhs, u_mac, mac_phi);
     Rhs.clear();
     //
     // Test that u_mac is divergence free
@@ -402,7 +403,7 @@ MacProj::mac_project (int             level,
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
-            mr.CrseInit(u_mac[dir],area[level][dir],dir,0,0,1,-1.0);
+            mr.CrseInit(u_mac[dir],area[dir],dir,0,0,1,-1.0);
         }
 
         if (verbose)
@@ -425,7 +426,7 @@ MacProj::mac_project (int             level,
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
-            mac_reg[level].FineAdd(u_mac[dir],area[level][dir],dir,0,0,1,mult);
+            mac_reg[level].FineAdd(u_mac[dir],area[dir],dir,0,0,1,mult);
         }
 
         if (verbose)
@@ -451,7 +452,7 @@ MacProj::mac_project (int             level,
     if (check_umac_periodicity)
         test_umac_periodic(level,u_mac);
 
-    if (anel_coeff[level] != 0) rescaleArea(level,area[level],anel_coeff[level]);
+    if (anel_coeff[level] != 0) rescaleArea(level,area,anel_coeff[level]);
 }
 
 //
@@ -490,7 +491,7 @@ MacProj::mac_sync_solve (int       level,
     // MAC register, VOL = cell volume.  All other cells have a
     // value of zero (including crse cells under fine grids).
     //
-    MultiFab Rhs(grids,1,0);
+    MultiFab Rhs(grids,1,0), area[BL_SPACEDIM];
     Rhs.setVal(0.0);
     //
     // Reflux subtracts values at hi edge of coarse cell and
@@ -603,15 +604,16 @@ MacProj::mac_sync_solve (int       level,
     {
 	the_solver = 3;
     }
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        geom.GetFaceArea(area[dir],grids,dir,GEOM_GROW);
+    }
     if (anel_coeff[level] != 0)
-        scaleArea(level,area[level],anel_coeff[level]);
+        scaleArea(level,area,anel_coeff[level]);
 
     mac_sync_driver(mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
-                    mac_sync_tol, mac_abs_tol, rhs_scale, area[level],
+                    mac_sync_tol, mac_abs_tol, rhs_scale, area,
                     volume[level], Rhs, rho_half, mac_sync_phi);
-
-    if (anel_coeff[level] != 0)
-        rescaleArea(level,area[level],anel_coeff[level]);
 
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      run_time = ParallelDescriptor::second() - strt_time;
@@ -709,6 +711,7 @@ MacProj::mac_sync_compute (int                   level,
                                     BL_SPACEDIM);
         temp_reg->setVal(0);
     }
+
     //
     // Compute the mac sync correction.
     //
@@ -725,7 +728,7 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Create storage for corrective velocities.
         //
-        FArrayBox xflux, yflux, zflux, tforces, tvelforces, U;
+        FArrayBox xflux, yflux, zflux, tforces, tvelforces, U, area[BL_SPACEDIM];
 
         FArrayBox grad_phi[BL_SPACEDIM], Rho(BoxLib::grow(grids[i],1),1);
 
@@ -785,6 +788,11 @@ MacProj::mac_sync_compute (int                   level,
 
         Rho.clear();
         tvelforces.clear();
+
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            geom.GetFaceArea(area[dir],grids,i,dir,GEOM_GROW);
+        }
         //
         // Get the sync FABS.
         //
@@ -813,10 +821,10 @@ MacProj::mac_sync_compute (int                   level,
                 }
 
                 godunov->SyncAdvect(grids[i], dx, dt, level, 
-                                    area[level][0][S_fpi], u_mac[0][S_fpi], grad_phi[0], xflux, 
-                                    area[level][1][S_fpi], u_mac[1][S_fpi], grad_phi[1], yflux,
+                                    area[0], u_mac[0][S_fpi], grad_phi[0], xflux, 
+                                    area[1], u_mac[1][S_fpi], grad_phi[1], yflux,
 #if (BL_SPACEDIM == 3)                            
-                                    area[level][2][S_fpi], u_mac[2][S_fpi], grad_phi[2], zflux,
+                                    area[2], u_mac[2][S_fpi], grad_phi[2], zflux,
 #endif
                                     U, S, tforces, divu, comp, temp, sync_ind,
                                     use_conserv_diff, comp,
@@ -879,9 +887,9 @@ MacProj::mac_sync_compute (int                   level,
         if (level > 0)
         {
             const Real mlt =  -1.0/( (double) parent->nCycle(level));
-            D_TERM(mac_reg[level].FineAdd(grad_phi[0],area[level][0][S_fpi],0,i,0,0,1,mlt);,
-                   mac_reg[level].FineAdd(grad_phi[1],area[level][1][S_fpi],1,i,0,0,1,mlt);,
-                   mac_reg[level].FineAdd(grad_phi[2],area[level][2][S_fpi],2,i,0,0,1,mlt););
+            D_TERM(mac_reg[level].FineAdd(grad_phi[0],area[0],0,i,0,0,1,mlt);,
+                   mac_reg[level].FineAdd(grad_phi[1],area[1],1,i,0,0,1,mlt);,
+                   mac_reg[level].FineAdd(grad_phi[2],area[2],2,i,0,0,1,mlt););
         }
         //
         // Multiply the sync term by dt -- now done in the calling routine.
@@ -968,7 +976,7 @@ MacProj::mac_sync_compute (int                    level,
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
-        FArrayBox grad_phi[BL_SPACEDIM];
+        FArrayBox grad_phi[BL_SPACEDIM], area[BL_SPACEDIM];
 
         D_TERM(grad_phi[0].resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],0),1);,
                grad_phi[1].resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],1),1);,
@@ -991,21 +999,27 @@ MacProj::mac_sync_compute (int                    level,
                yflux.copy((*sync_edges[1])[Syncmfi],eComp,0,1);,
                zflux.copy((*sync_edges[2])[Syncmfi],eComp,0,1););
 
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            geom.GetFaceArea(area[dir],grids,Syncmfi.index(),dir,GEOM_GROW);
+        }
+
         int use_conserv_diff = (advectionType[comp] == Conservative)
                                                              ? true : false;
         godunov.ComputeSyncAofs(grids[Syncmfi.index()],
-                                area[level][0][Syncmfi],
+                                area[0],
                                 grad_phi[0],       xflux,
                                 
-                                area[level][1][Syncmfi],
+                                area[1],
                                 grad_phi[1],       yflux,
 #if (BL_SPACEDIM == 3)                            
-                                area[level][2][Syncmfi],
+                                area[2],
                                 grad_phi[2],       zflux,
 #endif
                                 volume[level][Syncmfi], (*Sync)[Syncmfi],
                                 s_ind, use_conserv_diff);
 
+        D_TERM(area[0].clear();, area[1].clear();, area[2].clear(););
         D_TERM(grad_phi[0].clear();, grad_phi[1].clear();, grad_phi[2].clear(););
         //
         // NOTE: the signs here are opposite from VELGOD.
@@ -1090,10 +1104,17 @@ MacProj::check_div_cond (int      level,
     {
         dmac.resize(grids[U_edge0mfi.index()],1);
 
+        FArrayBox area[BL_SPACEDIM];
+
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            parent->Geom(level).GetFaceArea(area[dir],grids,U_edge0mfi.index(),dir,GEOM_GROW);
+        }
+
         const FArrayBox& uxedge = U_edge[0][U_edge0mfi];
         const FArrayBox& uyedge = U_edge[1][U_edge0mfi];
-        const FArrayBox& xarea  = area[level][0][U_edge0mfi];
-        const FArrayBox& yarea  = area[level][1][U_edge0mfi];
+        const FArrayBox& xarea  = area[0];
+        const FArrayBox& yarea  = area[1];
         const FArrayBox& vol    = volume[level][U_edge0mfi];
 
         DEF_LIMITS(dmac,dmac_dat,dlo,dhi);
@@ -1115,7 +1136,7 @@ MacProj::check_div_cond (int      level,
 #if (BL_SPACEDIM == 3)
         const FArrayBox& uzedge = U_edge[2][U_edge0mfi];
         DEF_CLIMITS(uzedge,uz_dat,uzlo,uzhi);
-        const FArrayBox& zarea = area[level][2][U_edge0mfi];
+        const FArrayBox& zarea = area[2];
         DEF_CLIMITS(zarea,az_dat,azlo,azhi);
 
         FORT_MACDIV(dmac_dat,ARLIM(dlo),ARLIM(dhi),dlo,dhi,

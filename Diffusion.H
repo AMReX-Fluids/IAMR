@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.H,v 1.32 2006-09-11 17:58:25 almgren Exp $
+// $Id: Diffusion.H,v 1.33 2008-07-31 18:16:50 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -59,7 +59,6 @@ public:
                int                num_state,
                FluxRegister*      Viscflux_reg,
                MultiFab&          Volume,
-               MultiFab*          Area,
                const Array<int>&  _is_diffusive,
                const Array<Real>& _visc_coef);
 
@@ -272,7 +271,6 @@ protected:
     // Volume and area fractions.
     //
     const MultiFab& volume;
-    const MultiFab* area;
     //
     // Static data.
     //

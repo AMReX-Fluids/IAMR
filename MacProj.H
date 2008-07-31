@@ -1,7 +1,7 @@
 #ifndef _MacProj_H_
 #define _MacProj_H_
 //
-// $Id: MacProj.H,v 1.30 2008-07-30 20:37:02 lijewski Exp $
+// $Id: MacProj.H,v 1.31 2008-07-31 18:16:50 lijewski Exp $
 //
 #include <BC_TYPES.H>
 #include <BCRec.H>
@@ -24,9 +24,7 @@ public:
     
     void install_level (int                   level, 
                         AmrLevel*             level_data,
-                        MultiFab&             volume,
-                        MultiFab*             area,
-                        Array< Array<Real> >* /*not used*/ );
+                        MultiFab&             volume);
 
     void install_anelastic_coefficient (int                    level, 
                                         Real**            anel_coeff);
@@ -121,7 +119,6 @@ protected:
     // Volume and area fractions.
     //
     PArray<MultiFab> volume;
-    Array<MultiFab*> area;
     //
     // Anelastic coefficient array.
     //

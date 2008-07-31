@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.100 2008-07-30 18:14:11 lijewski Exp $
+// $Id: NavierStokes.H,v 1.101 2008-07-31 18:16:50 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -700,7 +700,7 @@ protected:
     // Volume and area fractions.
     //
     MultiFab volume;
-    MultiFab area[BL_SPACEDIM];
+//    MultiFab area[BL_SPACEDIM];
     //
     // Sync update quantities.
     //
