@@ -538,8 +538,7 @@ NavierStokes::NavierStokes (Amr&            papa,
     //
     diffusion = new Diffusion(parent,this,
                               (level > 0) ? getLevel(level-1).diffusion : 0,
-                              NUM_STATE,viscflux_reg,volume,
-                              is_diffusive,visc_coef);
+                              NUM_STATE,viscflux_reg,is_diffusive,visc_coef);
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
@@ -566,7 +565,7 @@ NavierStokes::NavierStokes (Amr&            papa,
         mac_projector = new MacProj(parent,parent->finestLevel(),
                                     &phys_bc,radius_grow);
     }
-    mac_projector->install_level(level,this,volume);
+    mac_projector->install_level(level,this);
 }
 
 NavierStokes::~NavierStokes ()
@@ -753,7 +752,7 @@ NavierStokes::restart (Amr&          papa,
         mac_projector = new MacProj(parent,parent->finestLevel(),
                                     &phys_bc,radius_grow);
     }
-    mac_projector->install_level(level,this,volume);
+    mac_projector->install_level(level,this);
 
     rho_avg = 0;
     p_avg   = 0;
@@ -802,8 +801,7 @@ NavierStokes::restart (Amr&          papa,
 
     diffusion = new Diffusion(parent, this,
                               (level > 0) ? getLevel(level-1).diffusion : 0,
-                              NUM_STATE, viscflux_reg, volume,
-                              is_diffusive, visc_coef);
+                              NUM_STATE, viscflux_reg,is_diffusive, visc_coef);
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
@@ -849,10 +847,6 @@ NavierStokes::buildMetrics ()
                 radius[i][j] = xlo + j*dxr;
         }
     }
-    //
-    // Build volume array.
-    //
-    geom.GetVolume(volume,grids,GEOM_GROW);
 }
 
 //
@@ -1852,7 +1846,7 @@ NavierStokes::velocity_advection (Real dt)
 
     getGradP(Gp, prev_pres_time);
 
-    FArrayBox area[BL_SPACEDIM];
+    FArrayBox area[BL_SPACEDIM], volume;
     //
     // Compute the advective forcing.
     //
@@ -1905,6 +1899,7 @@ NavierStokes::velocity_advection (Real dt)
         {
             geom.GetFaceArea(area[dir],grids,i,dir,GEOM_GROW);
         }
+        geom.GetVolume(volume,grids,i,GEOM_GROW);
 
         for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
         {
@@ -1924,7 +1919,7 @@ NavierStokes::velocity_advection (Real dt)
 #endif
                                  U_fpi(), S, tforces, (*divu_fp)[i], comp,
                                  (*aofs)[i],comp,use_conserv_diff,
-                                 comp,bndry[comp].dataPtr(),PRE_MAC,volume[i]);
+                                 comp,bndry[comp].dataPtr(),PRE_MAC,volume);
             //
             // Get fluxes for diagnostics and refluxing.
             //
@@ -1971,11 +1966,9 @@ NavierStokes::scalar_advection (Real dt,
     //
     // Set up the grid loop.
     //
-    FArrayBox xflux, yflux, zflux, tforces, tvelforces;
+    FArrayBox xflux, yflux, zflux, tforces, tvelforces, area[BL_SPACEDIM], volume;
 
     MultiFab Gp, vel_visc_terms;
-
-    FArrayBox area[BL_SPACEDIM];
 
     MultiFab* divu_fp = getDivCond(1,prev_time);
     MultiFab* dsdt    = getDsdt(1,prev_time);
@@ -2053,6 +2046,7 @@ NavierStokes::scalar_advection (Real dt,
         {
             geom.GetFaceArea(area[dir],grids,i,dir,GEOM_GROW);
         }
+        geom.GetVolume(volume,grids,i,GEOM_GROW);
         //
         // Loop over the scalar components.
         //
@@ -2093,7 +2087,7 @@ NavierStokes::scalar_advection (Real dt,
 #endif
                                  U_fpi(),S_fpi(),tforces,(*divu_fp)[i],comp,
                                  (*aofs)[i],state_ind,use_conserv_diff,
-                                 state_ind,state_bc.dataPtr(),adv_scheme,volume[i]);
+                                 state_ind,state_bc.dataPtr(),adv_scheme,volume);
             //
             // Get the fluxes for refluxing and diagnostic purposes.
             //
@@ -4609,13 +4603,17 @@ NavierStokes::level_sync (int crse_iteration)
                            fine_lev.get_new_data(Dsdt_Type));
         for (int k = level; k>= 0; k--)
         {
+            MultiFab fvolume;
+            MultiFab cvolume;
+
             NavierStokes&   flev     = getLevel(k+1);
             const BoxArray& fgrids   = flev.grids;
-            MultiFab&       fvolume  = flev.volume;
           
             NavierStokes&   clev     = getLevel(k);
             const BoxArray& cgrids   = clev.grids;
-            MultiFab&       cvolume  = clev.volume;
+
+            flev.geom.GetVolume(fvolume,flev.grids,GEOM_GROW);
+            clev.geom.GetVolume(cvolume,clev.grids,GEOM_GROW);
           
             IntVect&  fratio = clev.fine_ratio;
           
@@ -5049,6 +5047,9 @@ NavierStokes::reflux ()
     //   do_mom_diff == 1, both components of the refluxing will
     //   be divided by rho^(n+1) in level_sync.
     //
+    MultiFab volume;
+    geom.GetVolume(volume,grids,GEOM_GROW);
+
     fr_visc.Reflux(*Vsync,volume,scale,0,0,BL_SPACEDIM,geom);
     fr_visc.Reflux(*Ssync,volume,scale,BL_SPACEDIM,0,NUM_STATE-BL_SPACEDIM,geom);
 
@@ -5123,9 +5124,12 @@ NavierStokes::avgDown (int comp)
 
     NavierStokes&   fine_lev = getLevel(level+1);
     const BoxArray& fgrids   = fine_lev.grids;
-    MultiFab&       fvolume  = fine_lev.volume;
     MultiFab&       S_crse   = get_new_data(State_Type);
     MultiFab&       S_fine   = fine_lev.get_new_data(State_Type);
+
+    MultiFab fvolume, volume;
+    geom.GetVolume(volume, grids,GEOM_GROW);
+    fine_lev.geom.GetVolume(fvolume,fine_lev.grids,GEOM_GROW);
 
     avgDown(grids,fgrids,S_crse,S_fine,volume,fvolume,level,level+1,comp,1,fine_ratio);
 
@@ -5201,7 +5205,10 @@ NavierStokes::avgDown ()
 
     NavierStokes&   fine_lev = getLevel(level+1);
     const BoxArray& fgrids   = fine_lev.grids;
-    MultiFab&       fvolume  = fine_lev.volume;
+
+    MultiFab fvolume, volume;
+    geom.GetVolume(volume, grids,GEOM_GROW);
+    fine_lev.geom.GetVolume(fvolume,fine_lev.grids,GEOM_GROW);
     //
     // Average down the states at the new time.
     //

@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.H,v 1.33 2008-07-31 18:16:50 lijewski Exp $
+// $Id: Diffusion.H,v 1.34 2008-07-31 21:55:25 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -58,7 +58,6 @@ public:
                Diffusion*         coarser,
                int                num_state,
                FluxRegister*      Viscflux_reg,
-               MultiFab&          Volume,
                const Array<int>&  _is_diffusive,
                const Array<Real>& _visc_coef);
 
@@ -267,10 +266,6 @@ protected:
     AmrLevel*       caller;
     const BoxArray& grids;
     const int       level;
-    //
-    // Volume and area fractions.
-    //
-    const MultiFab& volume;
     //
     // Static data.
     //

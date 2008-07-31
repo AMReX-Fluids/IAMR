@@ -1,7 +1,7 @@
 #ifndef _MacProj_H_
 #define _MacProj_H_
 //
-// $Id: MacProj.H,v 1.31 2008-07-31 18:16:50 lijewski Exp $
+// $Id: MacProj.H,v 1.32 2008-07-31 21:55:25 lijewski Exp $
 //
 #include <BC_TYPES.H>
 #include <BCRec.H>
@@ -22,9 +22,8 @@ public:
     virtual ~MacProj ();
     void read_params ();
     
-    void install_level (int                   level, 
-                        AmrLevel*             level_data,
-                        MultiFab&             volume);
+    void install_level (int       level, 
+                        AmrLevel* level_data);
 
     void install_anelastic_coefficient (int                    level, 
                                         Real**            anel_coeff);
@@ -115,10 +114,6 @@ protected:
     //
     PArray<MultiFab>     mac_phi_crse;
     PArray<FluxRegister> mac_reg;
-    //
-    // Volume and area fractions.
-    //
-    PArray<MultiFab> volume;
     //
     // Anelastic coefficient array.
     //

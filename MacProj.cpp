@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.119 2008-07-31 18:16:50 lijewski Exp $
+// $Id: MacProj.cpp,v 1.120 2008-07-31 21:55:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -75,7 +75,6 @@ MacProj::MacProj (Amr*   _parent,
     phi_bcs(_finest_level+1),
     mac_phi_crse(_finest_level+1, PArrayManage),
     mac_reg(_finest_level+1, PArrayManage),
-    volume(_finest_level+1),
     anel_coeff(_finest_level+1),
     finest_level(_finest_level)
 {
@@ -124,9 +123,8 @@ MacProj::read_params ()
 }
 
 void
-MacProj::install_level (int                   level,
-                        AmrLevel*             level_data,
-                        MultiFab&             _volume)
+MacProj::install_level (int       level,
+                        AmrLevel* level_data)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Installing MacProj level " << level << '\n';
@@ -144,13 +142,10 @@ MacProj::install_level (int                   level,
         phi_bcs.resize(finest_level+1);
         mac_phi_crse.resize(finest_level+1);
         mac_reg.resize(finest_level+1);
-        volume.resize(finest_level+1);
     }
 
     LevelData.clear(level);
     LevelData.set(level, level_data);
-    volume.clear(level);
-    volume.set(level, &_volume);
 
     BuildPhiBC(level);
 
@@ -379,11 +374,19 @@ MacProj::mac_project (int             level,
 	the_solver = 3;
     }
 
-    if (anel_coeff[level] != 0) scaleArea(level,area,anel_coeff[level]);
+    if (anel_coeff[level] != 0)
+        scaleArea(level,area,anel_coeff[level]);
 
-    mac_level_driver(mac_bndry, *phys_bc, grids, the_solver, level, Density,
-                     dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
-                     area, volume[level], S, Rhs, u_mac, mac_phi);
+    {
+        MultiFab volume;
+
+        geom.GetVolume(volume,grids,GEOM_GROW);
+
+        mac_level_driver(mac_bndry, *phys_bc, grids, the_solver, level, Density,
+                         dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
+                         area, volume, S, Rhs, u_mac, mac_phi);
+    }
+
     Rhs.clear();
     //
     // Test that u_mac is divergence free
@@ -500,7 +503,12 @@ MacProj::mac_sync_solve (int       level,
     //
     FluxRegister& mr = mac_reg[level+1];
     const Real scale = -1.0;
-    mr.Reflux(Rhs,volume[level],scale,0,0,1,geom);
+
+    MultiFab volume;
+
+    geom.GetVolume(volume,grids,GEOM_GROW);
+
+    mr.Reflux(Rhs,volume,scale,0,0,1,geom);
 
     BoxArray baf = fine_boxes;
 
@@ -542,9 +550,9 @@ MacProj::mac_sync_solve (int       level,
             {
                 vol_wgted_rhs.resize(Rhs[Rhsmfi].box());
                 vol_wgted_rhs.copy(Rhs[Rhsmfi]);
-                vol_wgted_rhs.mult(volume[level][Rhsmfi]);
+                vol_wgted_rhs.mult(volume[Rhsmfi]);
                 sum += vol_wgted_rhs.sum(0,1);
-                vol += volume[level][Rhsmfi].sum(Rhs[Rhsmfi].box(),0,1);
+                vol += volume[Rhsmfi].sum(Rhs[Rhsmfi].box(),0,1);
             }
             ParallelDescriptor::ReduceRealSum(sum);
             ParallelDescriptor::ReduceRealSum(vol);
@@ -613,7 +621,7 @@ MacProj::mac_sync_solve (int       level,
 
     mac_sync_driver(mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
                     mac_sync_tol, mac_abs_tol, rhs_scale, area,
-                    volume[level], Rhs, rho_half, mac_sync_phi);
+                    volume, Rhs, rho_half, mac_sync_phi);
 
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      run_time = ParallelDescriptor::second() - strt_time;
@@ -728,7 +736,7 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Create storage for corrective velocities.
         //
-        FArrayBox xflux, yflux, zflux, tforces, tvelforces, U, area[BL_SPACEDIM];
+        FArrayBox xflux, yflux, zflux, tforces, tvelforces, U, area[BL_SPACEDIM], volume;
 
         FArrayBox grad_phi[BL_SPACEDIM], Rho(BoxLib::grow(grids[i],1),1);
 
@@ -793,6 +801,7 @@ MacProj::mac_sync_compute (int                   level,
         {
             geom.GetFaceArea(area[dir],grids,i,dir,GEOM_GROW);
         }
+        geom.GetVolume(volume,grids,i,GEOM_GROW);
         //
         // Get the sync FABS.
         //
@@ -828,7 +837,7 @@ MacProj::mac_sync_compute (int                   level,
 #endif
                                     U, S, tforces, divu, comp, temp, sync_ind,
                                     use_conserv_diff, comp,
-                                    ns_level_bc.dataPtr(), PRE_MAC, volume[level][S_fpi]);
+                                    ns_level_bc.dataPtr(), PRE_MAC, volume);
                 //
                 // NOTE: the signs here are opposite from VELGOD.
                 // NOTE: fluxes expected to be in extensive form.
@@ -923,7 +932,11 @@ MacProj::mac_sync_compute (int                   level,
               }
           }
 
-          temp_reg->Reflux(*Vsync,volume[level],scale,0,0,BL_SPACEDIM,geom);
+          MultiFab volume;
+
+          geom.GetVolume(volume,grids,GEOM_GROW);
+
+          temp_reg->Reflux(*Vsync,volume,scale,0,0,BL_SPACEDIM,geom);
 
           delete temp_reg;
     }
@@ -953,7 +966,7 @@ MacProj::mac_sync_compute (int                    level,
 			   bool                   modify_reflux_normal_vel,
                            Real                   dt)
 {
-    FArrayBox xflux, yflux, zflux;
+    FArrayBox xflux, yflux, zflux, grad_phi[BL_SPACEDIM], area[BL_SPACEDIM], volume;
 
     const BoxArray& grids        = LevelData[level].boxArray();
     const Geometry& geom         = parent->Geom(level);
@@ -976,8 +989,6 @@ MacProj::mac_sync_compute (int                    level,
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
-        FArrayBox grad_phi[BL_SPACEDIM], area[BL_SPACEDIM];
-
         D_TERM(grad_phi[0].resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],0),1);,
                grad_phi[1].resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],1),1);,
                grad_phi[2].resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],2),1););
@@ -1003,6 +1014,7 @@ MacProj::mac_sync_compute (int                    level,
         {
             geom.GetFaceArea(area[dir],grids,Syncmfi.index(),dir,GEOM_GROW);
         }
+        geom.GetVolume(volume,grids,Syncmfi.index(),GEOM_GROW);
 
         int use_conserv_diff = (advectionType[comp] == Conservative)
                                                              ? true : false;
@@ -1016,7 +1028,7 @@ MacProj::mac_sync_compute (int                    level,
                                 area[2],
                                 grad_phi[2],       zflux,
 #endif
-                                volume[level][Syncmfi], (*Sync)[Syncmfi],
+                                volume, (*Sync)[Syncmfi],
                                 s_ind, use_conserv_diff);
 
         D_TERM(area[0].clear();, area[1].clear();, area[2].clear(););
@@ -1081,7 +1093,11 @@ MacProj::mac_sync_compute (int                    level,
               }
           }
 
-          temp_reg->Reflux(*Sync,volume[level],scale,comp,comp,1,geom);
+          MultiFab volume;
+
+          geom.GetVolume(volume,grids,GEOM_GROW);
+
+          temp_reg->Reflux(*Sync,volume,scale,comp,comp,1,geom);
 
           delete temp_reg;
     }
@@ -1098,24 +1114,23 @@ MacProj::check_div_cond (int      level,
 
     Real sum = 0.0;
 
-    FArrayBox dmac;
+    FArrayBox dmac, area[BL_SPACEDIM], volume;
 
     for (MFIter U_edge0mfi(U_edge[0]); U_edge0mfi.isValid(); ++U_edge0mfi)
     {
         dmac.resize(grids[U_edge0mfi.index()],1);
 
-        FArrayBox area[BL_SPACEDIM];
-
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             parent->Geom(level).GetFaceArea(area[dir],grids,U_edge0mfi.index(),dir,GEOM_GROW);
         }
+        parent->Geom(level).GetVolume(volume,grids,U_edge0mfi.index(),GEOM_GROW);
 
         const FArrayBox& uxedge = U_edge[0][U_edge0mfi];
         const FArrayBox& uyedge = U_edge[1][U_edge0mfi];
         const FArrayBox& xarea  = area[0];
         const FArrayBox& yarea  = area[1];
-        const FArrayBox& vol    = volume[level][U_edge0mfi];
+        const FArrayBox& vol    = volume;
 
         DEF_LIMITS(dmac,dmac_dat,dlo,dhi);
         DEF_CLIMITS(uxedge,ux_dat,uxlo,uxhi);
