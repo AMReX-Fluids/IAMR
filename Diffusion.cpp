@@ -991,14 +991,15 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
     // At this point in time we can only do decoupled scalar
     // so we loop over components.
     //
-    MultiFab volume, Soln(grids,1,1), Rhs(grids,1,0);
+    MultiFab volume;
 
     caller->Geom().GetVolume(volume,grids,GEOM_GROW);
 
     for (int comp = 0; comp < BL_SPACEDIM; comp++)
     {
+        MultiFab Rhs(grids,1,0);
+
         Rhs.setVal(0);
-        Soln.setVal(0);
 
         MultiFab::Copy(Rhs,*Vsync,comp,0,1,0);
 
@@ -1036,6 +1037,11 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         //
         const Real      S_tol     = visc_tol;
         const Real      S_tol_abs = -1;
+
+        MultiFab Soln(grids,1,1);
+
+        Soln.setVal(0);
+
         if (use_cg_solve)
         {
             CGSolver cg(*visc_op,use_mg_precond_flag);
