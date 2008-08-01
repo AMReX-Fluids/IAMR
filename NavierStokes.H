@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.102 2008-07-31 21:55:25 lijewski Exp $
+// $Id: NavierStokes.H,v 1.103 2008-08-01 21:13:47 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -684,7 +684,6 @@ protected:
     // MAC edge velocities.
     //
     MultiFab* u_mac;
-    MultiFab* u_macG;
     //
     // Advective update terms.
     //

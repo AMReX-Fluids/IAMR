@@ -453,7 +453,6 @@ NavierStokes::NavierStokes ()
     advflux_reg  = 0;
     viscflux_reg = 0;
     u_mac        = 0;
-    u_macG       = 0;
     aofs         = 0;
     diffusion    = 0;
 
@@ -518,7 +517,6 @@ NavierStokes::NavierStokes (Amr&            papa,
     Vsync   = 0;
     Ssync   = 0;
     u_mac   = 0;
-    u_macG  = 0;
     aofs    = 0;
     //
     // Set up the level projector.
@@ -583,7 +581,6 @@ NavierStokes::~NavierStokes ()
     delete advflux_reg;
     delete viscflux_reg;
     delete [] u_mac;
-    delete [] u_macG;
     
     if (mac_projector != 0)
         mac_projector->cleanup(level);
@@ -1216,19 +1213,8 @@ NavierStokes::advance_setup (Real time,
         {
             BoxArray edge_grids(grids);
             edge_grids.surroundingNodes(dir);
-            u_mac[dir].define(edge_grids,1,0,Fab_allocate);
-        }
-    }
-    if (u_macG == 0)
-    {
-        u_macG = new MultiFab[BL_SPACEDIM];
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            BoxArray edge_grids(grids);
-            edge_grids.surroundingNodes(dir).grow(1);
-            u_macG[dir].define(edge_grids,1,0,Fab_allocate);
-            u_macG[dir].setVal(1.e40);
+            u_mac[dir].define(edge_grids,1,1,Fab_allocate);
+            u_mac[dir].setVal(1.e40);
         }
     }
     //
@@ -1342,9 +1328,6 @@ NavierStokes::advance_cleanup (Real dt,
     {
         delete [] u_mac;
         u_mac = 0;
-
-        delete [] u_macG;
-        u_macG = 0;
     }
 
     delete aofs;
@@ -6429,16 +6412,6 @@ NavierStokes::create_umac_grown ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::create_umac_grown()");
 
-    for (int n = 0; n < BL_SPACEDIM; ++n)
-    {
-        MultiFab tmp(u_mac[n].boxArray(), 1, 1);
-        tmp.copy(u_mac[n]);
-        tmp.FillBoundary();
-        geom.FillPeriodicBoundary(tmp);
-        for (MFIter mfi(tmp); mfi.isValid(); ++mfi)
-            u_macG[n][mfi].copy(tmp[mfi]);
-    }
-        
     if (level > 0)
     {
         BoxList bl = BoxLib::GetBndryCells(grids,1);
@@ -6463,8 +6436,7 @@ NavierStokes::create_umac_grown ()
             // Since fine_src_ba should contain more points, this'll lead
             // to a better distribution.
             //
-            BoxArray crse_src_ba(c_bnd_ba);
-            BoxArray fine_src_ba(f_bnd_ba);
+            BoxArray crse_src_ba(c_bnd_ba), fine_src_ba(f_bnd_ba);
 
             crse_src_ba.surroundingNodes(n);
             fine_src_ba.surroundingNodes(n);
@@ -6477,20 +6449,34 @@ NavierStokes::create_umac_grown ()
             DistributionMapping dm;
             //
             // This call doesn't invoke the MinimizeCommCosts() stuff.
-            // This also guarantees that these DMs won't be put into the
-            // cache, as it's not representative of that used for more
-            // usual MultiFabs.
+            // This also guarantees that these DMs won't be put into the cache.
             //
             dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
 
-            MultiFab crse_src; 
-	    MultiFab fine_src; 
+            MultiFab crse_src, fine_src;
 
             crse_src.define(crse_src_ba, 1, 0, dm, Fab_allocate);
             fine_src.define(fine_src_ba, 1, 0, dm, Fab_allocate);
 
             crse_src.setVal(1.e200);
-            crse_src.copy(getLevel(level-1).u_macG[n]);
+            fine_src.setVal(1.e200);
+            //
+            // We want to fill crse_src from lower level u_mac including u_mac's grow cells.
+            // Gotta do it in steps since parallel copy only does valid region.
+            //
+            {
+                const MultiFab& u_macLL = getLevel(level-1).u_mac[n];
+
+                BoxArray edge_grids = u_macLL.boxArray();
+                edge_grids.grow(1);
+
+                MultiFab u_macC(edge_grids,1,0);
+
+                for (MFIter mfi(u_macLL); mfi.isValid(); ++mfi)
+                    u_macC[mfi].copy(u_macLL[mfi]);
+
+                crse_src.copy(u_macC);
+            }
 
             for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
             {
@@ -6512,14 +6498,13 @@ NavierStokes::create_umac_grown ()
             // region - this op will not fill grow region.
             //
             fine_src.copy(u_mac[n]);
-
+            //
+            // Interpolate unfilled grow cells using best data from
+            // surrounding faces of valid region, and pc-interpd data
+            // on fine edges overlaying coarse edges.
+            //
             for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
             {
-                //
-                // Interpolate unfilled grow cells using best data from
-                // surrounding faces of valid region, and pc-interpd data
-                // on fine edges overlaying coarse edges.
-                //
                 const int  nComp = 1;
                 const Box& fbox  = fine_src[mfi.index()].box();
                 const int* rat   = crse_ratio.getVect();
@@ -6528,10 +6513,27 @@ NavierStokes::create_umac_grown ()
                                  ARLIM(fine_src[mfi].loVect()),
                                  ARLIM(fine_src[mfi].hiVect()));
             }
+            //
+            // Make copy of of u_mac[n] covering valid+grow regions and containing no
+            // grow regions itself so that we can parallel copy fine_src into it, from
+            // which we can then update u_mac[n].
+            //
+            BoxArray edge_grids = u_mac[n].boxArray();
+            edge_grids.grow(1);
 
-            u_macG[n].copy(fine_src);
-            u_macG[n].copy(u_mac[n]);
+            MultiFab u_macG(edge_grids,1,0);
+
+            u_macG.copy(fine_src);
+            u_macG.copy(u_mac[n]);
+
+            for (MFIter mfi(u_macG); mfi.isValid(); ++mfi)
+                u_mac[n][mfi].copy(u_macG[mfi]);
         }
     }
-}
 
+    for (int n = 0; n < BL_SPACEDIM; ++n)
+    {
+        u_mac[n].FillBoundary();
+        geom.FillPeriodicBoundary(u_mac[n]);
+    }
+}
