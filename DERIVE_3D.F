@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.28 2008-06-26 20:32:51 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.29 2008-09-04 17:14:39 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -288,6 +288,9 @@ c     Adjust z offset for probtype 15
             Ly = forcing_ylength
             Lz = forcing_zlength
          endif
+         if (hack_lz) then
+            Lz = Lz/two
+         endif
          Lmin = min(Lx,Ly,Lz)
          kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
          nxmodes = nmodes*int(0.5+Lx/Lmin)
@@ -436,6 +439,9 @@ c     Adjust z offset for probtype 15
             Ly = forcing_ylength
             Lz = forcing_zlength
          endif
+         if (hack_lz) then
+            Lz = Lz/two
+         endif
          Lmin = min(Lx,Ly,Lz)
          kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
          nxmodes = nmodes*int(0.5+Lx/Lmin)
@@ -575,6 +581,9 @@ c     Adjust z offset for probtype 15
             Ly = forcing_ylength
             Lz = forcing_zlength
          endif
+         if (hack_lz) then
+            Lz = Lz/two
+         endif
          Lmin = min(Lx,Ly,Lz)
          kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
          nxmodes = nmodes*int(0.5+Lx/Lmin)
@@ -713,6 +722,9 @@ c     Adjust z offset for probtype 15
             Lx = forcing_xlength
             Ly = forcing_ylength
             Lz = forcing_zlength
+         endif
+         if (hack_lz) then
+            Lz = Lz/two
          endif
          Lmin = min(Lx,Ly,Lz)
          kappaMax = dfloat(nmodes)/Lmin + 1.0d-8

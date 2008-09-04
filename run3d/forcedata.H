@@ -5,9 +5,9 @@
       REAL_T  AYZ(32), BYZ(32), CYZ(32), DYZ(32), PYZ(32), QYZ(32), RYZ(32)
       REAL_T  FTX(0:32,0:32,0:32), FTY(0:32,0:32,0:32), FTZ(0:32,0:32,0:32), TAT(0:32,0:32,0:32), TAP(0:32,0:32,0:32)
       REAL_T  FPX(0:32,0:32,0:32), FPY(0:32,0:32,0:32), FPZ(0:32,0:32,0:32), FAX(0:32,0:32,0:32), FAY(0:32,0:32,0:32), FAZ(0:32,0:32,0:32)
-      integer nmodes, nxmodes, nymodes, nzmodes, mode_start
+      integer nmodes, nxmodes, nymodes, nzmodes, mode_start, hack_lz
       integer spectrum_type, forcing_type, use_rho_in_forcing, do_mode_division, forcing_twice_wavelength
-      common /forcedti/nmodes, nxmodes, nymodes, nzmodes, mode_start, 
+      common /forcedti/nmodes, nxmodes, nymodes, nzmodes, mode_start, hack_lz,
      &                 spectrum_type, forcing_type,use_rho_in_forcing, do_mode_division, forcing_twice_wavelength
       common /forcedt/ force_scale, forcing_epsilon, 
      &                 forcing_xlength, forcing_ylength, forcing_zlength,
