@@ -825,25 +825,29 @@ NavierStokes::restart (Amr&          papa,
 void
 NavierStokes::buildMetrics ()
 {
-    if (CoordSys::IsRZ()) 
+    //
+    // We "should" only need radius when we're RZ, but some 2-D code is written to
+    // access it first and then "use" if if RZ.  It's easier to just always build
+    // it for 2D than try to fix the underlying Fortran calls that take radius.
+    //
+#if (BL_SPACEDIM == 2)
+    radius.resize(grids.size());
+
+    const Real dxr = geom.CellSize()[0];
+
+    for (int i = 0; i < grids.size(); i++)
     {
-        radius.resize(grids.size());
+        const int ilo = grids[i].smallEnd(0)-radius_grow;
+        const int ihi = grids[i].bigEnd(0)+radius_grow;
+        const int len = ihi - ilo + 1;
 
-        const Real dxr = geom.CellSize()[0];
+        radius[i].resize(len);
 
-        for (int i = 0; i < grids.size(); i++)
-        {
-            const int ilo = grids[i].smallEnd(0)-radius_grow;
-            const int ihi = grids[i].bigEnd(0)+radius_grow;
-            const int len = ihi - ilo + 1;
-
-            radius[i].resize(len);
-
-            const Real xlo = grid_loc[i].lo(0) + (0.5 - radius_grow)*dxr;
-            for (int j = 0; j < len; j++)
-                radius[i][j] = xlo + j*dxr;
-        }
+        const Real xlo = grid_loc[i].lo(0) + (0.5 - radius_grow)*dxr;
+        for (int j = 0; j < len; j++)
+            radius[i][j] = xlo + j*dxr;
     }
+#endif
 }
 
 //
