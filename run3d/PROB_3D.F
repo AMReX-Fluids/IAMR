@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.48 2008-09-04 17:14:39 aaspden Exp $
+c $Id: PROB_3D.F,v 1.49 2008-10-27 00:58:57 jbb Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -72,6 +72,7 @@ c ::: -----------------------------------------------------------
       REAL_T  px, py, pz, mp2, Ekh
       integer kx, ky, kz, mode_count, reduced_mode_count
       integer modx, mody, modz, xstep, ystep, zstep
+      integer iseed
 
       REAL_T  Lx, Ly, Lz, Lmin
       REAL_T  kappa, kappaMax, freqMin, freqMax, freqDiff, pdk
@@ -89,6 +90,8 @@ c ::: -----------------------------------------------------------
 #endif
       namelist /fortin/ rt_splitx, rt_xfrontw, rt_den_1, rt_den_2,
      &                  rt_pertamp, rt_nfreq, rt_graddenerr
+
+      namelist /fortin/ eul_nfreq, eul_pertamp, iseed
 
       namelist /fortin/ Vco, Rfu, Rtran, tVco_l, tVco_r, Vco_l, Vco_r
 
@@ -122,7 +125,7 @@ c
 
       character probin*(maxlen)
 
-      integer j, m, n
+      integer j, k, m, n
       integer MAXPHASE
       parameter (MAXPHASE = 1000)
       DOUBLE PRECISION rn, permin, permax, xtmp, ytmp, pert
@@ -149,6 +152,8 @@ c
       tVco_r = -1
       Vco_l = -1
       Vco_r = -1
+      eul_nfreq = 2
+      iseed = 111397
 
       untin = 9
       if (namlen .eq. 0) then
@@ -217,6 +222,34 @@ c
          f_problo(i) = problo(i)
          f_probhi(i) = probhi(i)
       enddo
+
+      if ( probtype .eq. 21 ) then
+
+         call blutilinitrand(iseed)
+         do i = 1, eul_nfreq
+            do j = 1, eul_nfreq
+               do k = 1, eul_nfreq
+                 call blutilrand(rn)
+                 eul_ranampl(i,j,k,1) = 2.d0*(rn-0.5d0)
+                 call blutilrand(rn)
+                 eul_ranampl(i,j,k,2) = 2.d0*(rn-0.5d0)
+                 call blutilrand(rn)
+                 eul_ranampl(i,j,k,3) = 2.d0*(rn-0.5d0)
+                 call blutilrand(rn)
+                 eul_ranphase(i,j,k,1) = 2.d0*Pi*rn
+                 call blutilrand(rn)
+                 eul_ranphase(i,j,k,2) = 2.d0*Pi*rn
+                 call blutilrand(rn)
+                 eul_ranphase(i,j,k,3) = 2.d0*Pi*rn
+              end do
+            end do
+         end do
+
+         eul_ranampl(1,1,1,1) = 0.d0
+         eul_ranampl(1,1,1,2) = 0.d0
+         eul_ranampl(1,1,1,3) = 0.d0
+
+      endif
 
       if ( probtype .eq. 10 ) then
          if ( rt_max_freq .lt. rt_nfreq ) then
@@ -670,6 +703,12 @@ c ::: -----------------------------------------------------------
          call initheating(level,time,lo,hi,nscal,
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
+
+      else if (probtype .eq. 21) then
+         call initraneul(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
 
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
@@ -2068,6 +2107,99 @@ c
 
       end
 c
+c ::: -----------------------------------------------------------
+c
+      subroutine initraneul(level,time,lo,hi,nscal,
+     &	 	       vel,scal,DIMS(state),press,DIMS(press),
+     &                 dx,xlo,xhi)
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n, ifx, jfx, kfx
+      integer ift,jft,kft
+      REAL_T  x, y, z
+      REAL_T  sinx, siny, sinz
+      REAL_T  cosx, cosy, cosz
+      REAL_T  keng
+      REAL_T  hx, hy, hz
+      REAL_T  piloc
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+      piloc = 4.d0*atan2(1.d0,1.d0)
+
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+	    do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+               vel(i,j,k,1) = zero
+               vel(i,j,k,2) = zero
+               vel(i,j,k,3) = zero
+
+c              do kfx = 1, eul_nfreq
+c              do jfx = 1, eul_nfreq
+c              do ifx = 1, eul_nfreq
+               do kft = 1, eul_nfreq
+               do jft = 1, eul_nfreq
+               do ift = 1, eul_nfreq
+                  ifx = ift-1
+                  jfx = jft-1
+                  kfx = kft-1
+
+                  sinx = sin(2.d0*piloc*dfloat(ifx)*x + eul_ranphase(ifx,jfx,kfx,1))
+                  siny = sin(2.d0*piloc*dfloat(jfx)*y + eul_ranphase(ifx,jfx,kfx,2))
+                  sinz = sin(2.d0*piloc*dfloat(kfx)*z + eul_ranphase(ifx,jfx,kfx,3))
+                  cosx = dfloat(ifx)* cos(2.d0*piloc*dfloat(ifx)*x + eul_ranphase(ifx,jfx,kfx,1))
+                  cosy = dfloat(jfx)* cos(2.d0*piloc*dfloat(jfx)*y + eul_ranphase(ifx,jfx,kfx,2))
+                  cosz = dfloat(kfx)* cos(2.d0*piloc*dfloat(kfx)*z + eul_ranphase(ifx,jfx,kfx,3))
+
+                  vel(i,j,k,1) = vel(i,j,k,1) 
+     1                + eul_ranampl(ifx,jfx,kfx,3)*sinx*cosy*sinz
+     1                - eul_ranampl(ifx,jfx,kfx,2)*sinx*siny*cosz
+                  vel(i,j,k,2) = vel(i,j,k,2) 
+     1                + eul_ranampl(ifx,jfx,kfx,1)*sinx*siny*cosz
+     1                - eul_ranampl(ifx,jfx,kfx,3)*cosx*siny*sinz
+                  vel(i,j,k,3) = vel(i,j,k,3) 
+     1                + eul_ranampl(ifx,jfx,kfx,2)*cosx*siny*sinz
+     1                - eul_ranampl(ifx,jfx,kfx,1)*sinx*cosy*sinz
+               
+               enddo
+               enddo
+               enddo
+
+               vel(i,j,k,1) = eul_pertamp*vel(i,j,k,1)
+               vel(i,j,k,2) = eul_pertamp*vel(i,j,k,2)
+               vel(i,j,k,3) = eul_pertamp*vel(i,j,k,3)
+               
+               scal(i,j,k,1) = one
+               do n = 2,nscal
+                     scal(i,j,k,n) = one
+               end do
+                  
+	    end do
+         end do
+      end do
+
+      end
+c
 c
 c ::: -----------------------------------------------------------
 c
@@ -3338,6 +3470,16 @@ c     probtype = VISCOUS BENCHMARK
                   end do
                end do
             endif
+         end do
+
+      else if (probtype .eq. 21) then
+
+         do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),dx(1)*abs(vort(i,j,k,1)).gt.vorterr)
+              end do
+           end do
          end do
 
       else

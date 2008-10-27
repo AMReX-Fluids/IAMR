@@ -23,6 +23,16 @@
       common /probdt10/ jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel, jet_temp, ref_height
       common /probdt11/ thermal_expansion, heating_coeff, heating_centre, heating_radius
 
+
+      integer max_eul_freq
+      parameter (max_eul_freq = 2)	
+      REAL_T eul_ranampl(max_eul_freq,max_eul_freq,max_eul_freq,3)
+      REAL_T eul_ranphase(max_eul_freq,max_eul_freq,max_eul_freq,3)
+      REAL_T eul_pertamp
+      integer eul_nfreq
+      common /probdt12/ eul_ranampl, eul_ranphase, eul_pertamp
+      common /probdt12_i/ eul_nfreq
+
       integer rt_max_freq
       parameter (RT_MAX_FREQ = 10)	
       REAL_T rt_splitx, rt_xfrontw, rt_den_1, rt_den_2
