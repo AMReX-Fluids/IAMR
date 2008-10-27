@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.24 2008-06-26 20:32:51 aaspden Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.25 2008-10-27 01:34:18 jbb Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -910,7 +910,7 @@ c     zeroed out
        end do
 
        mass = zero
-       do j = ARG_L3(grid), ARG_H3(grid)
+       do k = ARG_L3(grid), ARG_H3(grid)
           mass = max(mass , tmp(k))
        end do
 
