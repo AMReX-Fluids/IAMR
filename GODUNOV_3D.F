@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.39 2008-02-08 18:39:48 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.40 2008-12-06 01:54:35 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1172,6 +1172,16 @@ c
       REAL_T tforces(DIMV(work))
       REAL_T    divu(DIMV(work))
 
+      logical corner_couple
+
+c     used in 3d corner coupling
+      REAL_T xylo(DIMV(work)), xyhi(DIMV(work))
+      REAL_T xzlo(DIMV(work)), xzhi(DIMV(work))
+      REAL_T yxlo(DIMV(work)), yxhi(DIMV(work))
+      REAL_T yzlo(DIMV(work)), yzhi(DIMV(work))
+      REAL_T zxlo(DIMV(work)), zxhi(DIMV(work))
+      REAL_T zylo(DIMV(work)), zyhi(DIMV(work))
+
       integer use_minion, iconserv
       REAL_T spx,smx,spy,smy,spz,smz,st,denom
 
@@ -1188,6 +1198,9 @@ c
       imax = hi(1)
       jmax = hi(2)
       kmax = hi(3)
+
+      corner_couple = .false.
+
 c
 c     compute the slopes
 c
@@ -1333,6 +1346,20 @@ c
             end do
          end do
       end do
+
+      if (corner_couple) then
+
+c
+c     NEW CORNER COUPLING CODE
+c
+
+c
+c     compute the corner-coupled terms:
+c     xylo/hi, xzlo/hi, yxlo/hi, yzlo/hi, zxlo/hi, zylo/hi
+c
+
+
+         
 c
 c     compute the xedge states
 c
@@ -1672,6 +1699,355 @@ c                  stzhi(kmax+1) = stzlo(kmax+1)
                place_to_break = 1
             end do
       end do
+
+      else
+
+c    
+c     ORIGINAL NON-CORNER COUPLING CODE
+c
+
+c
+c     compute the xedge states
+c
+      do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin-1,imax+1
+
+                  spx = s(i,j,k) + half*sx(i,j,k)
+                  smx = s(i,j,k) - half*sx(i,j,k)
+
+                  if (iconserv.eq.1) then
+
+                     tr =
+     &                    (vedge(i,j+1,k)*ylo(i,j+1,k) - vedge(i,j,k)*ylo(i,j,k))/hy +   
+     &                    (wedge(i,j,k+1)*zlo(i,j,k+1) - wedge(i,j,k)*zlo(i,j,k))/hz   
+
+                     st = -dth*tr + dth*(tforces(i,j,k) - s(i,j,k)*divu(i,j,k))
+     &                    + dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
+     &                    + dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
+c    &                    - dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
+
+                  else
+
+                     if (vedge(i,j,k)*vedge(i,j+1,k).le.0.d0) then
+                        vbar = 0.5d0*(vedge(i,j,k)+vedge(i,j+1,k))
+                        if (vbar.lt.0.d0) then
+                           inc = 1
+                        else
+                           inc = 0
+                        endif
+                        tr1 = vbar*(s(i,j+inc,k)-s(i,j+inc-1,k))/hy
+                     else
+                        tr1 = half*(vedge(i,j+1,k) + vedge(i,j,k)) *
+     &                               (ylo(i,j+1,k) -   ylo(i,j,k)  ) / hy
+                     endif
+                     if (wedge(i,j,k)*wedge(i,j,k+1).lt.0.d0) then
+                        wbar = 0.5d0*(wedge(i,j,k)+wedge(i,j,k+1))
+                        if (wbar.lt.0.d0) then
+                           inc = 1
+                        else
+                           inc = 0
+                        endif
+                        tr2 = wbar*(s(i,j,k+inc)-s(i,j,k+inc-1))/hz
+                     else
+                        tr2 = half*(wedge(i,j,k+1) + wedge(i,j,k)) *
+     &                               (zlo(i,j,k+1) -   zlo(i,j,k)  ) / hz
+                     endif
+
+                     st = -dth*(tr1 + tr2) + dth*tforces(i,j,k)
+                  endif
+
+                  stxlo(i+1)= spx - dthx*uedge(i+1,j,k)*sx(i,j,k) + st
+                  stxhi(i  )= smx - dthx*uedge(i  ,j,k)*sx(i,j,k) + st
+
+               end do
+
+               if (bc(1,1).eq.EXT_DIR .and. uedge(imin,j,k).ge.zero) then
+                  stxhi(imin) = s(imin-1,j,k)
+                  stxlo(imin) = s(imin-1,j,k)
+               else if (bc(1,1).eq.EXT_DIR .and. uedge(imin,j,k).lt.zero) then
+                  stxlo(imin) = stxhi(imin)
+c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+               else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP) then
+                  if (n.eq.XVEL) then
+                     if (uedge(imin,j,k).ge.zero) then
+                        stxhi(imin) = MIN(stxhi(imin),zero)
+                        stxlo(imin) = stxhi(imin)
+                     endif
+                  else
+                     stxlo(imin) = stxhi(imin)
+                  endif
+               else if (bc(1,1).eq.REFLECT_EVEN) then
+                  stxlo(imin) = stxhi(imin)
+c               else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP
+c     &                 .or.bc(1,1).eq.REFLECT_EVEN) then
+c                  stxlo(imin) = stxhi(imin)
+               else if (bc(1,1).eq.REFLECT_ODD) then
+                  stxhi(imin) = zero
+                  stxlo(imin) = zero
+               end if
+               if (bc(1,2).eq.EXT_DIR .and. uedge(imax+1,j,k).le.zero) then
+                  stxlo(imax+1) = s(imax+1,j,k)
+                  stxhi(imax+1) = s(imax+1,j,k)
+               else if (bc(1,2).eq.EXT_DIR .and. uedge(imax+1,j,k).gt.zero) then
+                  stxhi(imax+1) = stxlo(imax+1)
+c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+               else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP) then
+                  if (n.eq.XVEL) then
+                     if (uedge(imax+1,j,k).le.zero) then
+                        stxlo(imax+1) = MAX(stxlo(imax+1),zero)
+                        stxhi(imax+1) = stxlo(imax+1)
+                     endif
+                  else
+                     stxhi(imax+1) = stxlo(imax+1)
+                  endif
+               else if (bc(1,2).eq.REFLECT_EVEN) then
+                  stxhi(imax+1) = stxlo(imax+1)
+c               else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP
+c     &                 .or.bc(1,2).eq.REFLECT_EVEN) then
+c                  stxhi(imax+1) = stxlo(imax+1)
+               else if (bc(1,2).eq.REFLECT_ODD) then
+                  stxlo(imax+1) = zero
+                  stxhi(imax+1) = zero
+               end if
+
+               do i = imin, imax+1
+                  xstate(i,j,k) = cvmgp(stxlo(i),stxhi(i),uedge(i,j,k))
+                  xstate(i,j,k) = cvmgt(half*(stxlo(i)+stxhi(i)),xstate(i,j,k)
+     &                 ,abs(uedge(i,j,k)).lt.eps)
+               end do
+               place_to_break = 1
+            end do
+      end do
+c
+c     compute the yedge states
+c
+      do k = kmin,kmax
+            do i = imin,imax
+               
+               do j = jmin-1,jmax+1
+                  spy = s(i,j,k) + half*sy(i,j,k)
+                  smy = s(i,j,k) - half*sy(i,j,k)
+                  if (iconserv.eq.1) then
+
+                     tr =
+     &                    (uedge(i+1,j,k)*xlo(i+1,j,k) - uedge(i,j,k)*xlo(i,j,k))/hx +   
+     &                    (wedge(i,j,k+1)*zlo(i,j,k+1) - wedge(i,j,k)*zlo(i,j,k))/hz   
+
+                     st = -dth*tr + dth*(tforces(i,j,k) - s(i,j,k)*divu(i,j,k))
+     &                    + dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
+     &                    + dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
+c    &                    - dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
+
+
+                  else
+
+                     if (uedge(i,j,k)*uedge(i+1,j,k).le.0.d0) then
+                        ubar = 0.5d0*(uedge(i,j,k)+uedge(i+1,j,k))
+                        if (ubar.lt.0.d0) then
+                           inc = 1
+                        else
+                           inc = 0
+                        endif
+                        tr1 = ubar*(s(i+inc,j,k)-s(i+inc-1,j,k))/hx
+                     else
+                        tr1 = half*(uedge(i+1,j,k) + uedge(i,j,k)) *
+     &                               (xlo(i+1,j,k) -   xlo(i,j,k)  ) / hx
+                     endif
+                     if (wedge(i,j,k)*wedge(i,j,k+1).lt.0.d0) then
+                        wbar = 0.5d0*(wedge(i,j,k)+wedge(i,j,k+1))
+                        if (wbar.lt.0.d0) then
+                           inc = 1
+                        else
+                           inc = 0
+                        endif
+                        tr2 = wbar*(s(i,j,k+inc)-s(i,j,k+inc-1))/hz
+                     else
+                        tr2 = half*(wedge(i,j,k+1) + wedge(i,j,k)) *
+     &                               (zlo(i,j,k+1) -   zlo(i,j,k)  ) / hz
+                     endif
+
+                     st = -dth*(tr1 + tr2) + dth*tforces(i,j,k)
+
+                  endif
+
+                  stylo(j+1)= spy - dthy*vedge(i,j+1,k)*sy(i,j,k) + st
+                  styhi(j  )= smy - dthy*vedge(i,j  ,k)*sy(i,j,k) + st
+               end do
+
+               if (bc(2,1).eq.EXT_DIR .and. vedge(i,jmin,k).ge.zero) then
+                  styhi(jmin) = s(i,jmin-1,k)
+                  stylo(jmin) = s(i,jmin-1,k)
+               else if (bc(2,1).eq.EXT_DIR .and. vedge(i,jmin,k).lt.zero) then
+                  stylo(jmin) = styhi(jmin)
+c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+               else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP) then
+                  if (n.eq.YVEL) then
+                     if (vedge(i,jmin,k).ge.zero) then
+                        styhi(jmin) = MIN(styhi(jmin),zero)
+                        stylo(jmin) = styhi(jmin)
+                     endif
+                  else
+                     stylo(jmin) = styhi(jmin)
+                  endif
+               else if (bc(2,1).eq.REFLECT_EVEN) then
+                  stylo(jmin) = styhi(jmin)
+c               else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP
+c     &                 .or.bc(2,1).eq.REFLECT_EVEN) then
+c                  stylo(jmin) = styhi(jmin)
+               else if (bc(2,1).eq.REFLECT_ODD) then
+                  styhi(jmin) = zero
+                  stylo(jmin) = zero
+               end if
+               
+               if (bc(2,2).eq.EXT_DIR .and. vedge(i,jmax+1,k).le.zero) then
+                  stylo(jmax+1) = s(i,jmax+1,k)
+                  styhi(jmax+1) = s(i,jmax+1,k)
+               else if (bc(2,2).eq.EXT_DIR .and. vedge(i,jmax+1,k).le.zero) then
+                  styhi(jmax+1) = stylo(jmax+1)
+c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+               else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP) then
+                  if (n.eq.YVEL) then
+                     if (vedge(i,jmax+1,k).le.zero) then
+                        stylo(jmax+1) = MAX(stylo(jmax+1),zero)
+                        styhi(jmax+1) = stylo(jmax+1)
+                     endif
+                  else
+                     styhi(jmax+1) = stylo(jmax+1)
+                  endif
+               else if (bc(2,2).eq.REFLECT_EVEN) then
+                  styhi(jmax+1) = stylo(jmax+1)
+c               else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
+c     &                 .or.bc(2,2).eq.REFLECT_EVEN) then
+c                  styhi(jmax+1) = stylo(jmax+1)
+               else if (bc(2,2).eq.REFLECT_ODD) then
+                  stylo(jmax+1) = zero
+                  styhi(jmax+1) = zero
+               end if
+
+               do j=jmin,jmax+1
+                  ystate(i,j,k) = cvmgp(stylo(j),styhi(j),vedge(i,j,k))
+                  ystate(i,j,k) = cvmgt(half*(stylo(j)+styhi(j)),ystate(i,j,k),
+     &                 abs(vedge(i,j,k)).lt.eps)
+               end do
+               place_to_break = 1
+            end do
+      end do
+c
+c     compute the zedge states
+c
+      do j = jmin,jmax
+            do i = imin,imax
+               
+               do k = kmin-1,kmax+1
+                  
+                  spz = s(i,j,k) + half*sz(i,j,k)
+                  smz = s(i,j,k) - half*sz(i,j,k)
+
+                  if (iconserv.eq.1) then
+                     tr =
+     &                    (uedge(i+1,j,k)*xlo(i+1,j,k) - uedge(i,j,k)*xlo(i,j,k))/hx +   
+     &                    (vedge(i,j+1,k)*ylo(i,j+1,k) - vedge(i,j,k)*ylo(i,j,k))/hy   
+                     
+                     st = -dth*tr + dth*(tforces(i,j,k) - s(i,j,k)*divu(i,j,k))
+     &                    + dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
+     &                    + dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
+c    &                    - dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
+
+                  else
+                     if (uedge(i,j,k)*uedge(i+1,j,k).le.0.d0) then
+                        ubar = 0.5d0*(uedge(i,j,k)+uedge(i+1,j,k))
+                        if (ubar.lt.0.d0) then
+                           inc = 1
+                        else
+                           inc = 0
+                        endif
+                        tr1 = ubar*(s(i+inc,j,k)-s(i+inc-1,j,k))/hx
+                     else
+                        tr1 = half*(uedge(i+1,j,k) + uedge(i,j,k)) *
+     &                       (xlo(i+1,j,k) - xlo(i,j,k)  ) / hx
+                     endif
+                     if (vedge(i,j,k)*vedge(i,j+1,k).lt.0.d0) then
+                        vbar = 0.5d0*(vedge(i,j,k)+vedge(i,j+1,k))
+                        if (vbar.lt.0.d0) then
+                           inc = 1
+                        else
+                           inc = 0
+                        endif
+                        tr2 = vbar*(s(i,j+inc,k)-s(i,j+inc-1,k))/hy
+                     else
+                        tr2 = half*(vedge(i,j+1,k) + vedge(i,j,k)) *
+     &                       (ylo(i,j+1,k) - ylo(i,j,k)  ) / hy
+                     endif
+
+                     st = -dth*(tr1 + tr2) + dth*tforces(i,j,k)
+                  endif
+
+                  stzlo(k+1)= spz - dthz*wedge(i,j,k+1)*sz(i,j,k) + st
+                  stzhi(k  )= smz - dthz*wedge(i,j,k  )*sz(i,j,k) + st
+
+               end do
+
+               if (bc(3,1).eq.EXT_DIR .and. wedge(i,j,kmin).ge.zero) then
+                  stzlo(kmin) = s(i,j,kmin-1)
+                  stzhi(kmin) = s(i,j,kmin-1)
+               else if (bc(3,1).eq.EXT_DIR .and. wedge(i,j,kmin).lt.zero) then
+                  stzlo(kmin) = stzhi(kmin)
+c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+               else if (bc(3,1).eq.FOEXTRAP.or.bc(3,1).eq.HOEXTRAP) then
+                  if (n.eq.ZVEL) then
+                     if (wedge(i,j,kmin).ge.zero) then
+                        stzhi(kmin) = MIN(stzhi(kmin),zero)
+                        stzlo(kmin) = stzhi(kmin)
+                     endif
+                  else
+                     stzlo(kmin) = stzhi(kmin)
+                  endif
+               else if (bc(3,1).eq.REFLECT_EVEN) then
+                  stzlo(kmin) = stzhi(kmin)
+c               else if (bc(3,1).eq.FOEXTRAP.or.bc(3,1).eq.HOEXTRAP
+c     &                 .or.bc(3,1).eq.REFLECT_EVEN) then
+c                  stzlo(kmin) = stzhi(kmin)
+               else if (bc(3,1).eq.REFLECT_ODD) then
+                  stzlo(kmin) = zero
+                  stzhi(kmin) = zero
+               end if
+               if (bc(3,2).eq.EXT_DIR .and. wedge(i,j,kmax+1).le.zero) then
+                  stzlo(kmax+1) = s(i,j,kmax+1)
+                  stzhi(kmax+1) = s(i,j,kmax+1)
+               else if (bc(3,2).eq.EXT_DIR .and. wedge(i,j,kmax+1).gt.zero) then
+                  stzhi(kmax+1) = stzlo(kmax+1)
+c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+               else if (bc(3,2).eq.FOEXTRAP.or.bc(3,2).eq.HOEXTRAP) then
+                  if (n.eq.ZVEL) then
+                     if (wedge(i,j,kmax+1).le.zero) then
+                        stzlo(kmax+1) = MAX(stzlo(kmax+1),zero)
+                        stzhi(kmax+1) = stzlo(kmax+1)
+                     endif
+                  else
+                     stzhi(kmax+1) = stzlo(kmax+1)
+                  endif
+               else if (bc(3,2).eq.REFLECT_EVEN) then
+                  stzhi(kmax+1) = stzlo(kmax+1)
+c               else if (bc(3,2).eq.FOEXTRAP.or.bc(3,2).eq.HOEXTRAP
+c     &                 .or.bc(3,2).eq.REFLECT_EVEN) then
+c                  stzhi(kmax+1) = stzlo(kmax+1)
+               else if (bc(3,2).eq.REFLECT_ODD) then
+                  stzlo(kmax+1) = zero
+                  stzhi(kmax+1) = zero
+               end if
+
+               do k = kmin,kmax+1
+                  zstate(i,j,k) = cvmgp(stzlo(k),stzhi(k),wedge(i,j,k))
+                  zstate(i,j,k) = cvmgt(half*(stzlo(k)+stzhi(k)),zstate(i,j,k),
+     &                 abs(wedge(i,j,k)).lt.eps)
+               end do
+               place_to_break = 1
+            end do
+      end do
+
+
+      end if
 
       end
 
