@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.48 2008-12-08 21:14:05 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.49 2008-12-08 21:14:55 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -587,7 +587,7 @@ c     used in 3d corner coupling
       jmax = hi(2)
       kmax = hi(3)
 
-      corner_couple = .true.
+      corner_couple = .false.
 
 c
 c     compute the slopes
