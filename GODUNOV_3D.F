@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.42 2008-12-08 18:23:01 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.43 2008-12-08 18:47:28 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -513,6 +513,7 @@ c
       integer imin,jmin,kmin,imax,jmax,kmax,inc
       REAL_T place_to_break
       REAL_T hx, hy, hz, dt, dth, dthx, dthy, dthz
+      REAL_T dt3, dt3x, dt3y, dt3z, dt6, dt6x, dt6y, dt6z
       REAL_T tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw,dx(SDIM)
       REAL_T eps,eps_for_bc
       logical ltx,lty,ltz
@@ -539,9 +540,9 @@ c
       REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate))
       REAL_T wedge(DIMV(wedge)), zstate(DIMV(zstate))
 
-      REAL_T xlo(DIMV(work)), xhi(DIMV(work))
-      REAL_T ylo(DIMV(work)), yhi(DIMV(work))
-      REAL_T zlo(DIMV(work)), zhi(DIMV(work))
+      REAL_T xlo(DIMV(work)), xhi(DIMV(work)), xedge(DIMV(work))
+      REAL_T ylo(DIMV(work)), yhi(DIMV(work)), yedge(DIMV(work))
+      REAL_T zlo(DIMV(work)), zhi(DIMV(work)), zedge(DIMV(work))
       REAL_T  sx(DIMV(work)), uad(DIMV(work))
       REAL_T  sy(DIMV(work)), vad(DIMV(work))
       REAL_T  sz(DIMV(work)), wad(DIMV(work))
@@ -553,6 +554,14 @@ c
       dthx = half*dt / dx(1)
       dthy = half*dt / dx(2)
       dthz = half*dt / dx(3)
+      dt3  = dt / 3.0d0
+      dt3x = dt3 / dx(1)
+      dt3y = dt3 / dx(2)
+      dt3z = dt3 / dx(3)
+      dt6  = dt / 6.0d0
+      dt6x = dt6 / dx(1)
+      dt6y = dt6 / dx(2)
+      dt6z = dt6 / dx(3)
       hx   = dx(1)
       hy   = dx(2)
       hz   = dx(3)
@@ -602,7 +611,7 @@ c
             do i = imin,  imax+1
                fu  = cvmgt(zero,one,abs(uad(i,j,k)).lt.eps)
                stx = cvmgp(xlo(i,j,k),xhi(i,j,k),uad(i,j,k))
-               xlo(i,j,k) = fu*stx + (one - fu)*half*(xhi(i,j,k)+xlo(i,j,k))
+               xedge(i,j,k) = fu*stx + (one - fu)*half*(xhi(i,j,k)+xlo(i,j,k))
             end do
          end do
       end do
@@ -637,7 +646,7 @@ c
             do i = imin-1,imax+1
                fv  = cvmgt(zero,one,abs(vad(i,j,k)).lt.eps)
                sty = cvmgp(ylo(i,j,k),yhi(i,j,k),vad(i,j,k))
-               ylo(i,j,k) = fv*sty + (one - fv)*half*(yhi(i,j,k)+ylo(i,j,k))
+               yedge(i,j,k) = fv*sty + (one - fv)*half*(yhi(i,j,k)+ylo(i,j,k))
             end do
          end do
       end do
@@ -672,7 +681,7 @@ c
             do i = imin-1,imax+1
                fw  = cvmgt(zero,one,abs(wad(i,j,k)).lt.eps)
                stz = cvmgp(zlo(i,j,k),zhi(i,j,k),wad(i,j,k))
-               zlo(i,j,k) = fw*stz + (one-fw)*half*(zhi(i,j,k)+zlo(i,j,k))
+               zedge(i,j,k) = fw*stz + (one-fw)*half*(zhi(i,j,k)+zlo(i,j,k))
             end do
          end do
       end do
@@ -695,7 +704,7 @@ c
                   else
                       tr1 = half*
      &                 (vad(i,j+1,k) + vad(i,j,k)) *
-     &                 (ylo(i,j+1,k) - ylo(i,j,k)) / hy
+     &                 (yedge(i,j+1,k) - yedge(i,j,k)) / hy
                   endif
 
                   if (wad(i,j,k)*wad(i,j,k+1).lt.0.d0) then
@@ -709,7 +718,7 @@ c
                   else
                       tr2 = half*
      &                 (wad(i,j,k+1) + wad(i,j,k)) *
-     &                 (zlo(i,j,k+1) - zlo(i,j,k)) / hz
+     &                 (zedge(i,j,k+1) - zedge(i,j,k)) / hz
                   endif
 
                   stxlo(i+1)= s(i,j,k) + (half-dthx*u(i,j,k))*sx(i,j,k)
@@ -842,7 +851,7 @@ c
                   else
                       tr1 = half*
      &                 (uad(i+1,j,k) + uad(i,j,k)) *
-     &                 (xlo(i+1,j,k) - xlo(i,j,k)) / hx
+     &                 (xedge(i+1,j,k) - xedge(i,j,k)) / hx
                   endif
 
                   if (wad(i,j,k)*wad(i,j,k+1).lt.0.d0) then
@@ -856,7 +865,7 @@ c
                   else
                       tr2 = half*
      &                 (wad(i,j,k+1) + wad(i,j,k)) *
-     &                 (zlo(i,j,k+1) - zlo(i,j,k)) / hz
+     &                 (zedge(i,j,k+1) - zedge(i,j,k)) / hz
                   endif
 
                   stylo(j+1)= s(i,j,k) + (half-dthy*v(i,j,k))*sy(i,j,k)
@@ -990,7 +999,7 @@ c
                   else
                       tr1 = half*
      &                 (uad(i+1,j,k) + uad(i,j,k)) *
-     &                 (xlo(i+1,j,k) - xlo(i,j,k)) / hx
+     &                 (xedge(i+1,j,k) - xedge(i,j,k)) / hx
                   endif
 
                   if (vad(i,j,k)*vad(i,j+1,k).lt.0.d0) then
@@ -1004,7 +1013,7 @@ c
                   else
                       tr2 = half*
      &                 (vad(i,j+1,k) + vad(i,j,k)) *
-     &                 (ylo(i,j+1,k) - ylo(i,j,k)) / hy
+     &                 (yedge(i,j+1,k) - yedge(i,j,k)) / hy
                   endif
 
                   stzlo(k+1)= s(i,j,k) + (half-dthz*w(i,j,k))*sz(i,j,k)
@@ -1139,6 +1148,7 @@ c
       integer imin,jmin,kmin,imax,jmax,kmax
       REAL_T place_to_break
       REAL_T hx, hy, hz, dt, dth, dthx, dthy, dthz
+      REAL_T dt3, dt3x, dt3y, dt3z, dt6, dt6x, dt6y, dt6z
       REAL_T tr,tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw,dx(SDIM)
       REAL_T eps,eps_for_bc
       logical ltx,lty,ltz
@@ -1163,9 +1173,9 @@ c
       REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate))
       REAL_T wedge(DIMV(wedge)), zstate(DIMV(zstate))
 
-      REAL_T xlo(DIMV(work)), xhi(DIMV(work))
-      REAL_T ylo(DIMV(work)), yhi(DIMV(work))
-      REAL_T zlo(DIMV(work)), zhi(DIMV(work))
+      REAL_T xlo(DIMV(work)), xhi(DIMV(work)), xedge(DIMV(work))
+      REAL_T ylo(DIMV(work)), yhi(DIMV(work)), yedge(DIMV(work))
+      REAL_T zlo(DIMV(work)), zhi(DIMV(work)), zedge(DIMV(work))
       REAL_T  sx(DIMV(work))
       REAL_T  sy(DIMV(work))
       REAL_T  sz(DIMV(work))
@@ -1189,6 +1199,14 @@ c     used in 3d corner coupling
       dthx = half*dt / dx(1)
       dthy = half*dt / dx(2)
       dthz = half*dt / dx(3)
+      dt3  = dt / 3.0d0
+      dt3x = dt3 / dx(1)
+      dt3y = dt3 / dx(2)
+      dt3z = dt3 / dx(3)
+      dt6  = dt / 6.0d0
+      dt6x = dt6 / dx(1)
+      dt6y = dt6 / dx(2)
+      dt6z = dt6 / dx(3)
       hx   = dx(1)
       hy   = dx(2)
       hz   = dx(3)
@@ -1252,7 +1270,7 @@ c
             do i = imin,  imax+1
                fu  = cvmgt(zero,one,abs(uedge(i,j,k)).lt.eps)
                stx = cvmgp(xlo(i,j,k),xhi(i,j,k),uedge(i,j,k))
-               xlo(i,j,k) = fu*stx + (one - fu)*half*(xhi(i,j,k)+xlo(i,j,k))
+               xedge(i,j,k) = fu*stx + (one - fu)*half*(xhi(i,j,k)+xlo(i,j,k))
             end do
          end do
       end do
@@ -1297,7 +1315,7 @@ c
             do i = imin-1,imax+1
                fv  = cvmgt(zero,one,abs(vedge(i,j,k)).lt.eps)
                sty = cvmgp(ylo(i,j,k),yhi(i,j,k),vedge(i,j,k))
-               ylo(i,j,k) = fv*sty + (one - fv)*half*(yhi(i,j,k)+ylo(i,j,k))
+               yedge(i,j,k) = fv*sty + (one - fv)*half*(yhi(i,j,k)+ylo(i,j,k))
             end do
          end do
       end do
@@ -1342,7 +1360,7 @@ c
             do i = imin-1,imax+1
                fw  = cvmgt(zero,one,abs(wedge(i,j,k)).lt.eps)
                stz = cvmgp(zlo(i,j,k),zhi(i,j,k),wedge(i,j,k))
-               zlo(i,j,k) = fw*stz + (one-fw)*half*(zhi(i,j,k)+zlo(i,j,k))
+               zedge(i,j,k) = fw*stz + (one-fw)*half*(zhi(i,j,k)+zlo(i,j,k))
             end do
          end do
       end do
@@ -1739,8 +1757,8 @@ c
                   if (iconserv.eq.1) then
 
                      tr =
-     &                    (vedge(i,j+1,k)*ylo(i,j+1,k) - vedge(i,j,k)*ylo(i,j,k))/hy +   
-     &                    (wedge(i,j,k+1)*zlo(i,j,k+1) - wedge(i,j,k)*zlo(i,j,k))/hz   
+     &                    (vedge(i,j+1,k)*yedge(i,j+1,k) - vedge(i,j,k)*yedge(i,j,k))/hy +   
+     &                    (wedge(i,j,k+1)*zedge(i,j,k+1) - wedge(i,j,k)*zedge(i,j,k))/hz   
 
                      st = -dth*tr + dth*(tforces(i,j,k) - s(i,j,k)*divu(i,j,k))
      &                    + dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
@@ -1759,7 +1777,7 @@ c    &                    - dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
                         tr1 = vbar*(s(i,j+inc,k)-s(i,j+inc-1,k))/hy
                      else
                         tr1 = half*(vedge(i,j+1,k) + vedge(i,j,k)) *
-     &                               (ylo(i,j+1,k) -   ylo(i,j,k)  ) / hy
+     &                               (yedge(i,j+1,k) -   yedge(i,j,k)  ) / hy
                      endif
                      if (wedge(i,j,k)*wedge(i,j,k+1).lt.0.d0) then
                         wbar = 0.5d0*(wedge(i,j,k)+wedge(i,j,k+1))
@@ -1771,7 +1789,7 @@ c    &                    - dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
                         tr2 = wbar*(s(i,j,k+inc)-s(i,j,k+inc-1))/hz
                      else
                         tr2 = half*(wedge(i,j,k+1) + wedge(i,j,k)) *
-     &                               (zlo(i,j,k+1) -   zlo(i,j,k)  ) / hz
+     &                               (zedge(i,j,k+1) -   zedge(i,j,k)  ) / hz
                      endif
 
                      st = -dth*(tr1 + tr2) + dth*tforces(i,j,k)
@@ -1851,8 +1869,8 @@ c
                   if (iconserv.eq.1) then
 
                      tr =
-     &                    (uedge(i+1,j,k)*xlo(i+1,j,k) - uedge(i,j,k)*xlo(i,j,k))/hx +   
-     &                    (wedge(i,j,k+1)*zlo(i,j,k+1) - wedge(i,j,k)*zlo(i,j,k))/hz   
+     &                    (uedge(i+1,j,k)*xedge(i+1,j,k) - uedge(i,j,k)*xedge(i,j,k))/hx +   
+     &                    (wedge(i,j,k+1)*zedge(i,j,k+1) - wedge(i,j,k)*zedge(i,j,k))/hz   
 
                      st = -dth*tr + dth*(tforces(i,j,k) - s(i,j,k)*divu(i,j,k))
      &                    + dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
@@ -1872,7 +1890,7 @@ c    &                    - dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
                         tr1 = ubar*(s(i+inc,j,k)-s(i+inc-1,j,k))/hx
                      else
                         tr1 = half*(uedge(i+1,j,k) + uedge(i,j,k)) *
-     &                               (xlo(i+1,j,k) -   xlo(i,j,k)  ) / hx
+     &                               (xedge(i+1,j,k) -   xedge(i,j,k)  ) / hx
                      endif
                      if (wedge(i,j,k)*wedge(i,j,k+1).lt.0.d0) then
                         wbar = 0.5d0*(wedge(i,j,k)+wedge(i,j,k+1))
@@ -1884,7 +1902,7 @@ c    &                    - dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
                         tr2 = wbar*(s(i,j,k+inc)-s(i,j,k+inc-1))/hz
                      else
                         tr2 = half*(wedge(i,j,k+1) + wedge(i,j,k)) *
-     &                               (zlo(i,j,k+1) -   zlo(i,j,k)  ) / hz
+     &                               (zedge(i,j,k+1) -   zedge(i,j,k)  ) / hz
                      endif
 
                      st = -dth*(tr1 + tr2) + dth*tforces(i,j,k)
@@ -1966,8 +1984,8 @@ c
 
                   if (iconserv.eq.1) then
                      tr =
-     &                    (uedge(i+1,j,k)*xlo(i+1,j,k) - uedge(i,j,k)*xlo(i,j,k))/hx +   
-     &                    (vedge(i,j+1,k)*ylo(i,j+1,k) - vedge(i,j,k)*ylo(i,j,k))/hy   
+     &                    (uedge(i+1,j,k)*xedge(i+1,j,k) - uedge(i,j,k)*xedge(i,j,k))/hx +   
+     &                    (vedge(i,j+1,k)*yedge(i,j+1,k) - vedge(i,j,k)*yedge(i,j,k))/hy   
                      
                      st = -dth*tr + dth*(tforces(i,j,k) - s(i,j,k)*divu(i,j,k))
      &                    + dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
@@ -1985,7 +2003,7 @@ c    &                    - dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
                         tr1 = ubar*(s(i+inc,j,k)-s(i+inc-1,j,k))/hx
                      else
                         tr1 = half*(uedge(i+1,j,k) + uedge(i,j,k)) *
-     &                       (xlo(i+1,j,k) - xlo(i,j,k)  ) / hx
+     &                       (xedge(i+1,j,k) - xedge(i,j,k)  ) / hx
                      endif
                      if (vedge(i,j,k)*vedge(i,j+1,k).lt.0.d0) then
                         vbar = 0.5d0*(vedge(i,j,k)+vedge(i,j+1,k))
@@ -1997,7 +2015,7 @@ c    &                    - dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
                         tr2 = vbar*(s(i,j+inc,k)-s(i,j+inc-1,k))/hy
                      else
                         tr2 = half*(vedge(i,j+1,k) + vedge(i,j,k)) *
-     &                       (ylo(i,j+1,k) - ylo(i,j,k)  ) / hy
+     &                       (yedge(i,j+1,k) - yedge(i,j,k)  ) / hy
                      endif
 
                      st = -dth*(tr1 + tr2) + dth*tforces(i,j,k)
