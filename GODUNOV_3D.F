@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.40 2008-12-06 01:54:35 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.41 2008-12-08 17:58:45 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -431,17 +431,17 @@ c
       call trans_xbc(
      &     u,DIMS(s),
      &     ulo,uhi,DIMS(work),ulo,DIMS(work),
-     &     lo,hi,XVEL,ubc,eps_for_bc)
+     &     lo,hi,XVEL,ubc,eps_for_bc,.false.,.false.)
 
       call trans_ybc(
      &     v,DIMS(s),
      &     vlo,vhi,DIMS(work),vlo,DIMS(work),
-     &     lo,hi,YVEL,vbc,eps_for_bc)
+     &     lo,hi,YVEL,vbc,eps_for_bc,.false.,.false.)
 
       call trans_zbc(
      &     w,DIMS(s),
      &     wlo,whi,DIMS(work),wlo,DIMS(work),
-     &     lo,hi,ZVEL,wbc,eps_for_bc)
+     &     lo,hi,ZVEL,wbc,eps_for_bc,.false.,.false.)
 
       do k = kmin-1,kmax+1
          do j = jmin-1,jmax+1
@@ -595,7 +595,7 @@ c
       call trans_xbc(
      &     s,DIMS(s),
      &     xlo,xhi,DIMS(work),uad,DIMS(work),
-     &     lo,hi,n,bc,eps_for_bc)
+     &     lo,hi,n,bc,eps_for_bc,.false.,.false.)
 
       do k = kmin-1,kmax+1
          do j = jmin-1,jmax+1
@@ -630,7 +630,7 @@ c
       call trans_ybc(
      &     s,DIMS(s),
      &     ylo,yhi,DIMS(work),vad,DIMS(work),
-     &     lo,hi,n,bc,eps_for_bc)
+     &     lo,hi,n,bc,eps_for_bc,.false.,.false.)
 
       do k = kmin-1,kmax+1
          do j = jmin,  jmax+1
@@ -665,7 +665,7 @@ c
       call trans_zbc(
      &     s,DIMS(s),
      &     zlo,zhi,DIMS(work),wad,DIMS(work),
-     &     lo,hi,n,bc,eps_for_bc)
+     &     lo,hi,n,bc,eps_for_bc,.false.,.false.)
 
       do k = kmin,kmax+1
          do j = jmin-1,jmax+1
@@ -1245,7 +1245,7 @@ c
       call trans_xbc(
      &     s,DIMS(s),
      &     xlo,xhi,DIMS(work),uedge,DIMS(uedge),
-     &     lo,hi,n,bc,eps_for_bc)
+     &     lo,hi,n,bc,eps_for_bc,.false.,.false.)
 
       do k = kmin-1,kmax+1
          do j = jmin-1,jmax+1
@@ -1290,7 +1290,7 @@ c
       call trans_ybc(
      &     s,DIMS(s),
      &     ylo,yhi,DIMS(work),vedge,DIMS(vedge),
-     &     lo,hi,n,bc,eps_for_bc)
+     &     lo,hi,n,bc,eps_for_bc,.false.,.false.)
 
       do k = kmin-1,kmax+1
          do j = jmin,  jmax+1
@@ -1335,7 +1335,7 @@ c
       call trans_zbc(
      &     s,DIMS(s),
      &     zlo,zhi,DIMS(work),wedge,DIMS(wedge),
-     &     lo,hi,n,bc,eps_for_bc)
+     &     lo,hi,n,bc,eps_for_bc,.false.,.false.)
 
       do k = kmin,kmax+1
          do j = jmin-1,jmax+1
@@ -2276,7 +2276,7 @@ c
       subroutine trans_xbc(
      &     s,DIMS(s),
      &     xlo,xhi,DIMS(xx),uad,DIMS(uad),
-     &     lo,hi,n,xbc,eps)
+     &     lo,hi,n,xbc,eps,ycouple,zcouple)
 c
 c     This subroutine processes boundary conditions on information
 c     traced to cell faces in the x direction.  This is used for
@@ -2292,6 +2292,8 @@ c
       REAL_T xhi(DIMV(xx))
       REAL_T uad(DIMV(uad))
       REAL_T eps
+      logical ycouple
+      logical zcouple
       integer lo(SDIM), hi(SDIM)
       integer n
       integer xbc(SDIM,2)
@@ -2307,6 +2309,18 @@ c
       imax = hi(1)
       jmax = hi(2)
       kmax = hi(3)
+
+c     if we are applying bc's to intermediate corner-copuled terms
+c     the bounds are slightly different on the valid data
+      if (ycouple) then
+         jmin = jmin + 1
+         jmax = jmax - 1
+      end if
+
+      if (zcouple) then
+         kmin = kmin + 1
+         kmax = kmax - 1
+      end if
 c
 c     -------------- the lower x boundary
 c
@@ -2393,7 +2407,7 @@ c
       subroutine trans_ybc(
      &     s,DIMS(s),
      &     ylo,yhi,DIMS(yy),vad,DIMS(vad),
-     &     lo,hi,n,ybc,eps)
+     &     lo,hi,n,ybc,eps,xcouple,zcouple)
 c
 c     This subroutine processes boundary conditions on information
 c     traced to cell faces in the y direction.  This is used for
@@ -2409,6 +2423,8 @@ c
       REAL_T yhi(DIMV(yy))
       REAL_T vad(DIMV(vad))
       REAL_T eps
+      logical xcouple
+      logical zcouple
       integer lo(SDIM), hi(SDIM)
       integer n
       integer ybc(SDIM,2)
@@ -2424,6 +2440,19 @@ c
       imax = hi(1)
       jmax = hi(2)
       kmax = hi(3)
+
+c     if we are applying bc's to intermediate corner-copuled terms
+c     the bounds are slightly different on the valid data
+      if (xcouple) then
+         imin = imin + 1
+         imax = imax - 1
+      end if
+
+      if (zcouple) then
+         kmin = kmin + 1
+         kmax = kmax - 1
+      end if
+
 c
 c     -------------- the lower y boundary
 c
@@ -2510,7 +2539,7 @@ c
       subroutine trans_zbc(
      &     s,DIMS(s),
      &     zlo,zhi,DIMS(zz),wad,DIMS(wad),
-     &     lo,hi,n,zbc,eps)
+     &     lo,hi,n,zbc,eps,xcouple,ycouple)
 c
 c     This subroutine processes boundary conditions on information
 c     traced to cell faces in the z direction.  This is used for
@@ -2526,6 +2555,8 @@ c
       REAL_T zhi(DIMV(zz))
       REAL_T wad(DIMV(wad))
       REAL_T eps
+      logical xcouple
+      logical ycouple
       integer lo(SDIM), hi(SDIM)
       integer n
       integer zbc(SDIM,2)
@@ -2541,6 +2572,19 @@ c
       imax = hi(1)
       jmax = hi(2)
       kmax = hi(3)
+
+c     if we are applying bc's to intermediate corner-copuled terms
+c     the bounds are slightly different on the valid data
+      if (xcouple) then
+         imin = imin + 1
+         imax = imax - 1
+      end if
+
+      if (ycouple) then
+         jmin = jmin + 1
+         jmax = jmax - 1
+      end if
+
 c
 c     -------------- the lower z boundary
 c
