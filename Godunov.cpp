@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.43 2007-07-05 20:01:47 lijewski Exp $
+// $Id: Godunov.cpp,v 1.44 2008-12-08 23:39:32 ajnonaka Exp $
 //
 
 //
@@ -232,7 +232,13 @@ Godunov::Setup (const Box&       grd,
     // Create the advective velocities and FAB workspace for GODUNOV Box.
     //
     work_bx = BoxLib::grow(grd,1);
-    work.resize(work_bx,2*BL_SPACEDIM+1);
+    
+#if (BL_SPACEDIM == 2)
+    work.resize(work_bx,5);
+#endif
+#if (BL_SPACEDIM == 3)
+    work.resize(work_bx,19);
+#endif
     D_TERM(uad.resize(work_bx,1);,
            vad.resize(work_bx,1);,
            wad.resize(work_bx,1););
@@ -411,14 +417,29 @@ Godunov::edge_states_orig (const Box&  grd,
     const Real *wad_dat   = wad.dataPtr();
     const Real *stz_dat   = stz.dataPtr();
     const Real *xhi_dat   = work.dataPtr(0);
-    const Real *yhi_dat   = work.dataPtr(0);
-    const Real *zhi_dat   = work.dataPtr(0);
-    const Real *xlo_dat   = work.dataPtr(1);
-    const Real *ylo_dat   = work.dataPtr(2);
-    const Real *zlo_dat   = work.dataPtr(3);
-    const Real *slx_dat   = work.dataPtr(4);
-    const Real *sly_dat   = work.dataPtr(5);
-    const Real *slz_dat   = work.dataPtr(6);
+    const Real *yhi_dat   = work.dataPtr(1);
+    const Real *zhi_dat   = work.dataPtr(2);
+    const Real *xlo_dat   = work.dataPtr(3);
+    const Real *ylo_dat   = work.dataPtr(4);
+    const Real *zlo_dat   = work.dataPtr(5);
+    const Real *slx_dat   = work.dataPtr(6);
+    const Real *sly_dat   = work.dataPtr(7);
+    const Real *slz_dat   = work.dataPtr(8);
+    const Real *xedge_dat = work.dataPtr(9);
+    const Real *yedge_dat = work.dataPtr(10);
+    const Real *zedge_dat = work.dataPtr(11);
+    const Real *xylo_dat  = work.dataPtr(12);
+    const Real *xzlo_dat  = work.dataPtr(13);
+    const Real *yxlo_dat  = work.dataPtr(14);
+    const Real *yzlo_dat  = work.dataPtr(15);
+    const Real *zxlo_dat  = work.dataPtr(16);
+    const Real *zylo_dat  = work.dataPtr(17);
+    const Real *xyhi_dat  = work.dataPtr(18);
+    const Real *xzhi_dat  = work.dataPtr(18);
+    const Real *yxhi_dat  = work.dataPtr(18);
+    const Real *yzhi_dat  = work.dataPtr(18);
+    const Real *zxhi_dat  = work.dataPtr(18);
+    const Real *zyhi_dat  = work.dataPtr(18);
 #else
     const Real *xhi_dat   = work.dataPtr(0);
     const Real *yhi_dat   = work.dataPtr(0);
@@ -448,6 +469,10 @@ Godunov::edge_states_orig (const Box&  grd,
                 slzscr, stzlo, stzhi,
                 wedge.dataPtr(), ARLIM(wedge.loVect()), ARLIM(wedge.hiVect()),
                  stz.dataPtr(),  ARLIM(  stz.loVect()), ARLIM(  stz.hiVect()),
+
+		xedge_dat, yedge_dat, zedge_dat,
+		xylo_dat, xzlo_dat, yxlo_dat, yzlo_dat, zxlo_dat, zylo_dat,
+		xyhi_dat, xzhi_dat, yxhi_dat, yzhi_dat, zxhi_dat, zyhi_dat,
 #endif
                 ARLIM(ww_lo), ARLIM(ww_hi),
                 bc, lo, hi, &dt, dx, &fort_ind, &velpred, 
@@ -511,14 +536,29 @@ Godunov::edge_states_fpu (const Box&  grd,
 
 #if (BL_SPACEDIM == 3)
     const Real *xhi_dat   = work.dataPtr(0);
-    const Real *yhi_dat   = work.dataPtr(0);
-    const Real *zhi_dat   = work.dataPtr(0);
-    const Real *xlo_dat   = work.dataPtr(1);
-    const Real *ylo_dat   = work.dataPtr(2);
-    const Real *zlo_dat   = work.dataPtr(3);
-    const Real *slx_dat   = work.dataPtr(4);
-    const Real *sly_dat   = work.dataPtr(5);
-    const Real *slz_dat   = work.dataPtr(6);
+    const Real *yhi_dat   = work.dataPtr(1);
+    const Real *zhi_dat   = work.dataPtr(2);
+    const Real *xlo_dat   = work.dataPtr(3);
+    const Real *ylo_dat   = work.dataPtr(4);
+    const Real *zlo_dat   = work.dataPtr(5);
+    const Real *slx_dat   = work.dataPtr(6);
+    const Real *sly_dat   = work.dataPtr(7);
+    const Real *slz_dat   = work.dataPtr(8);
+    const Real *xedge_dat = work.dataPtr(9);
+    const Real *yedge_dat = work.dataPtr(10);
+    const Real *zedge_dat = work.dataPtr(11);
+    const Real *xylo_dat  = work.dataPtr(12);
+    const Real *xzlo_dat  = work.dataPtr(13);
+    const Real *yxlo_dat  = work.dataPtr(14);
+    const Real *yzlo_dat  = work.dataPtr(15);
+    const Real *zxlo_dat  = work.dataPtr(16);
+    const Real *zylo_dat  = work.dataPtr(17);
+    const Real *xyhi_dat  = work.dataPtr(18);
+    const Real *xzhi_dat  = work.dataPtr(18);
+    const Real *yxhi_dat  = work.dataPtr(18);
+    const Real *yzhi_dat  = work.dataPtr(18);
+    const Real *zxhi_dat  = work.dataPtr(18);
+    const Real *zyhi_dat  = work.dataPtr(18);
 #else
     const Real *xhi_dat   = work.dataPtr(0);
     const Real *yhi_dat   = work.dataPtr(0);
@@ -550,6 +590,10 @@ Godunov::edge_states_fpu (const Box&  grd,
                     slzscr, stzlo, stzhi,
                     wedge.dataPtr(), ARLIM(wedge.loVect()), ARLIM(wedge.hiVect()),
                     stz.dataPtr(),   ARLIM(stz.loVect()),   ARLIM(stz.hiVect()),
+
+		    xedge_dat, yedge_dat, zedge_dat,
+		    xylo_dat, xzlo_dat, yxlo_dat, yzlo_dat, zxlo_dat, zylo_dat,
+		    xyhi_dat, xzhi_dat, yxhi_dat, yzhi_dat, zxhi_dat, zyhi_dat,
 #endif
                     ARLIM(ww_lo), ARLIM(ww_hi),
                     bc, lo, hi, &dt, dx, &fort_ind,

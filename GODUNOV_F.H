@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.18 2006-09-11 17:59:15 almgren Exp $
+** $Id: GODUNOV_F.H,v 1.19 2008-12-08 23:39:32 ajnonaka Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -160,6 +160,12 @@ extern "C"
 		    Real* slzscr, Real* stzlo, Real* stzhi,
 		    const Real* wedge_dat, ARLIM_P(we_lo), ARLIM_P(we_hi),
                     const Real* stz,       ARLIM_P(stz_lo),ARLIM_P(stz_hi),
+
+		    const Real* xedge_dat, const Real* yedge_dat, const Real* zedge_dat,
+		    const Real* xylo_dat,  const Real* xzlo_dat,  const Real* yxlo_dat,
+		    const Real* yzlo_dat,  const Real* zxlo_dat,  const Real* zylo_dat,
+		    const Real* xyhi_dat,  const Real* xzhi_dat,  const Real* yxhi_dat,
+		    const Real* yzhi_dat,  const Real* zxhi_dat,  const Real* zyhi_dat,
 #endif
 		    ARLIM_P(ww_lo),ARLIM_P(ww_hi),
 		    const int* bc, const int* lo, const int* hi, 
@@ -184,6 +190,12 @@ extern "C"
 		    Real* slzscr, Real* stzlo, Real* stzhi,
 		    const Real* wedge_dat, ARLIM_P(we_lo), ARLIM_P(we_hi),
                     const Real* stz,       ARLIM_P(stz_lo),ARLIM_P(stz_hi),
+
+		    const Real* xedge_dat, const Real* yedge_dat, const Real* zedge_dat,
+		    const Real* xylo_dat,  const Real* xzlo_dat,  const Real* yxlo_dat,
+		    const Real* yzlo_dat,  const Real* zxlo_dat,  const Real* zylo_dat,
+		    const Real* xyhi_dat,  const Real* xzhi_dat,  const Real* yxhi_dat,
+		    const Real* yzhi_dat,  const Real* zxhi_dat,  const Real* zyhi_dat,
 #endif
 		    ARLIM_P(ww_lo),ARLIM_P(ww_hi),
 		    const int* bc, const int* lo, const int* hi, 

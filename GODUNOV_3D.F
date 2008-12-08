@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.49 2008-12-08 21:14:55 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.50 2008-12-08 23:39:32 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -497,6 +497,10 @@ c
 
      &     w, zlo, zhi, sz, wad, slzscr, stzlo, stzhi,
      &     wedge, DIMS(wedge), zstate, DIMS(zstate),
+
+     &     xedge, yedge, zedge,
+     &     xylo, xzlo, yxlo, yzlo, zxlo, zylo,
+     &     xyhi, xzhi, yxhi, yzhi, zxhi, zyhi,
 
      &     DIMS(work),
      &     bc,lo,hi,dt,dx,n,velpred, use_minion)
@@ -1729,6 +1733,10 @@ c                  stzhi(kmax+1) = stzlo(kmax+1)
 
      &     zlo, zhi, sz, slzscr, stzlo, stzhi,
      &     wedge, DIMS(wedge), zstate, DIMS(zstate),
+
+     &     xedge, yedge, zedge,
+     &     xylo, xzlo, yxlo, yzlo, zxlo, zylo,
+     &     xyhi, xzhi, yxhi, yzhi, zxhi, zyhi,
 
      &     DIMS(work),
      &     bc,lo,hi,dt,dx,n,use_minion,iconserv)
