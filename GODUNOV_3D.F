@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.45 2008-12-08 20:11:15 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.46 2008-12-08 20:49:31 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -2114,10 +2114,46 @@ c
             do i = imin,imax+1
                   
                if (iconserv.eq.1) then
-                  
+
+                  stxlo(i) = xlo(i,j,k)
+     &                 - dthy*(yzlo(i-1,j+1,k  )*vedge(i-1,j+1,k  )
+     &                 - yzlo(i-1,j,k)*vedge(i-1,j,k))
+     &                 - dthz*(zylo(i-1,j  ,k+1)*wedge(i-1,j  ,k+1)
+     &                 - zylo(i-1,j,k)*wedge(i-1,j,k))
+     &                 + dthy*s(i-1,j,k)*(vedge(i-1,j+1,k)-vedge(i-1,j,k))
+     &                 + dthz*s(i-1,j,k)*(wedge(i-1,j,k+1)-wedge(i-1,j,k))
+                  stxhi(i) = xhi(i,j,k)
+     &                 - dthy*(yzlo(i  ,j+1,k  )*vedge(i  ,j+1,  k)
+     &                 - yzlo(i  ,j,k)*vedge(i  ,j,k))
+     &                 - dthz*(zylo(i  ,j  ,k+1)*wedge(i  ,j  ,k+1)
+     &                 - zylo(i  ,j,k)*wedge(i  ,j,k))
+     &                 + dthy*s(i  ,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))
+     &                 + dthz*s(i  ,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))
+                
+                  if (use_minion.eq.0) then
+                     stxlo(i) = stxlo(i) - dth*s(i-1,j,k)*divu(i-1,j,k)
+                     stxhi(i) = stxhi(i) - dth*s(i  ,j,k)*divu(i,  j,k)
+                  end if
+
                else
-                  
+
+                  stxlo(i) = xlo(i,j,k)
+     &                 - dt4y*(vedge(i-1,j+1,k  )+vedge(i-1,j,k))*
+     &                 (yzlo(i-1,j+1,k  )-yzlo(i-1,j,k))
+     &                 - dt4z*(wedge(i-1,j  ,k+1)+wedge(i-1,j,k))*
+     &                 (zylo(i-1,j  ,k+1)-zylo(i-1,j,k))
+                  stxhi(i) = xhi(i,j,k)
+     &                 - (dt4/hy)*(vedge(i  ,j+1,k  )+vedge(i  ,j,k))*
+     &                 (yzlo(i  ,j+1,k  )-yzlo(i  ,j,k))
+     &                 - (dt4/hz)*(wedge(i  ,j  ,k+1)+wedge(i  ,j,k))*
+     &                 (zylo(i  ,j  ,k+1)-zylo(i  ,j,k))
+
                endif
+
+               if (use_minion.eq.0) then
+                  stxlo(i) = stxlo(i) + dth*tforces(i-1,j,k)
+                  stxhi(i) = stxhi(i) + dth*tforces(i,  j,k)
+               end if
                
             end do
             
@@ -2187,9 +2223,45 @@ c
 
                if (iconserv.eq.1) then
 
+                  stylo(j) = ylo(i,j,k)
+     &                 - dthx*(xzlo(i+1,j-1,k  )*uedge(i+1,j-1,k  )
+     &                 - xzlo(i,j-1,k)*uedge(i,j-1,k))
+     &                 - dthz*(zxlo(i  ,j-1,k+1)*wedge(i  ,j-1,k+1)
+     &                 - zxlo(i,j-1,k)*wedge(i,j-1,k))
+     &                 + dthx*s(i,j-1,k)*(uedge(i+1,j-1,k)-uedge(i,j-1,k))
+     &                 + dthz*s(i,j-1,k)*(wedge(i,j-1,k+1)-wedge(i,j-1,k))
+                  styhi(j) = yhi(i,j,k)
+     &                 - dthx*(xzlo(i+1,j  ,k  )*uedge(i+1,j  ,k  )
+     &                 - xzlo(i,j  ,k)*uedge(i,j  ,k))
+     &                 - dthz*(zxlo(i  ,j  ,k+1)*wedge(i  ,j  ,k+1)
+     &                 - zxlo(i,j  ,k)*wedge(i,j  ,k))
+     &                 + dthx*s(i,j  ,k)*(uedge(i+1,j,k)-uedge(i,j,k))
+     &                 + dthz*s(i,j  ,k)*(wedge(i,j,k+1)-wedge(i,j,k))
+                  
+                  if (use_minion .eq. 0) then
+                     stylo(j) = stylo(j) - dth*s(i,j-1,k)*divu(i,j-1,k)
+                     styhi(j) = styhi(j) - dth*s(i,j  ,k)*divu(i,j,  k)
+                  end if
+
                else
                   
+                  stylo(j) = ylo(i,j,k)
+     &                 - dt4x*(uedge(i+1,j-1,k  )+uedge(i,j-1,k))*
+     &                 (xzlo(i+1,j-1,k  )-xzlo(i,j-1,k))
+     &                 - dt4z*(wedge(i  ,j-1,k+1)+wedge(i,j-1,k))*
+     &                 (zxlo(i  ,j-1,k+1)-zxlo(i,j-1,k))
+                  styhi(j) = yhi(i,j,k)
+     &                 - dt4x*(uedge(i+1,j  ,k  )+uedge(i,j  ,k))*
+     &                 (xzlo(i+1,j  ,k  )-xzlo(i,j  ,k))
+     &                 - dt4z*(wedge(i  ,j  ,k+1)+wedge(i,j  ,k))*
+     &                 (zxlo(i  ,j  ,k+1)-zxlo(i,j  ,k))
+
                endif
+
+               if (use_minion.eq.0) then
+                  stylo(j) = stylo(j) + dth*tforces(i,j-1,k)
+                  styhi(j) = styhi(j) + dth*tforces(i,j,  k)
+               end if
                
             end do
 
@@ -2259,10 +2331,47 @@ c
             do k = kmin,kmax+1
                   
                if (iconserv.eq.1) then
-                  
+                 
+                  stzlo(k) = zlo(i,j,k)
+     &                 - dthx*(xylo(i+1,j  ,k-1)*uedge(i+1,j  ,k-1)
+     &                 - xylo(i,j,k-1)*uedge(i,j,k-1))
+     &                 - dthy*(yxlo(i  ,j+1,k-1)*vedge(i  ,j+1,k-1)
+     &                 - yxlo(i,j,k-1)*vedge(i,j,k-1))
+     &                 + dthx*s(i,j,k-1)*(uedge(i+1,j,k-1)-uedge(i,j,k-1))
+     &                 + dthy*s(i,j,k-1)*(vedge(i,j+1,k-1)-vedge(i,j,k-1))
+                  stzhi(k) = zhi(i,j,k)
+     &                 - dthx*(xylo(i+1,j  ,k  )*uedge(i+1,j  ,k  )
+     &                 - xylo(i,j,k  )*uedge(i,j,k  ))
+     &                 - dthy*(yxlo(i  ,j+1,k  )*vedge(i  ,j+1,k  )
+     &                 - yxlo(i,j,k  )*vedge(i,j,k  ))
+     &                 + dthx*s(i,j,k  )*(uedge(i+1,j,k)-uedge(i,j,k))
+     &                 + dthy*s(i,j,k  )*(vedge(i,j+1,k)-vedge(i,j,k))
+
+                  if (use_minion.eq.0) then
+                     stzlo(k) = stzlo(k) - dth*s(i,j,k-1)*divu(i,j,k-1)
+                     stzhi(k) = stzhi(k) - dth*s(i,j,k  )*divu(i,j,k  )
+                  end if
+
                else
 
+                  stzlo(k) = zlo(i,j,k)
+     &                 - dt4x*(uedge(i+1,j  ,k-1)+uedge(i,j,k-1))
+     &                 *(xylo(i+1,j  ,k-1)-xylo(i,j,k-1))
+     &                 - dt4y*(vedge(i  ,j+1,k-1)+vedge(i,j,k-1))
+     &                 *(yxlo(i  ,j+1,k-1)-yxlo(i,j,k-1))
+                  
+                  stzhi(k) = zhi(i,j,k)
+     &                 - dt4x*(uedge(i+1,j  ,k  )+uedge(i,j,k  ))
+     &                 *(xylo(i+1,j  ,k  )-xylo(i,j,k  ))
+     &                 - dt4y*(vedge(i  ,j+1,k  )+vedge(i,j,k  ))
+     &                 *(yxlo(i  ,j+1,k  )-yxlo(i,j,k  ))
+
                endif
+
+               if (use_minion.eq.0) then
+                  stzlo(k) = stzlo(k) + dth*tforces(i,j,k-1)
+                  stzhi(k) = stzhi(k) + dth*tforces(i,j,k)
+               end if
 
             end do
 
