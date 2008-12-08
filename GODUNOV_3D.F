@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.44 2008-12-08 18:58:44 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.45 2008-12-08 20:11:15 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -513,7 +513,8 @@ c
       integer imin,jmin,kmin,imax,jmax,kmax,inc
       REAL_T place_to_break
       REAL_T hx, hy, hz, dt, dth, dthx, dthy, dthz
-      REAL_T dt3, dt3x, dt3y, dt3z, dt6, dt6x, dt6y, dt6z
+      REAL_T dt3, dt3x, dt3y, dt3z, dt4, dt4x, dt4y, dt4z
+      REAL_T dt6, dt6x, dt6y, dt6z
       REAL_T tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw,dx(SDIM)
       REAL_T eps,eps_for_bc
       logical ltx,lty,ltz
@@ -568,6 +569,10 @@ c     used in 3d corner coupling
       dt3x = dt3 / dx(1)
       dt3y = dt3 / dx(2)
       dt3z = dt3 / dx(3)
+      dt4  = dt / 4.0d0
+      dt4x = dt4 / dx(1)
+      dt4y = dt4 / dx(2)
+      dt4z = dt4 / dx(3)
       dt6  = dt / 6.0d0
       dt6x = dt6 / dx(1)
       dt6y = dt6 / dx(2)
@@ -726,7 +731,9 @@ c     upwind
       do k=kmin-1,kmax+1
          do j=jmin,jmax
             do i=imin,imax+1
-
+               fu  = cvmgt(zero,one,abs(uad(i,j,k)).lt.eps)
+               stx = cvmgp(xylo(i,j,k),xyhi(i,j,k),uad(i,j,k))
+               xylo(i,j,k) = fu*stx + (one - fu)*half*(xyhi(i,j,k)+xylo(i,j,k))
             end do
          end do
       end do
@@ -750,7 +757,9 @@ c     upwind
       do k=kmin,kmax
          do j=jmin-1,jmax+1
             do i=imin,imax+1
-
+               fu  = cvmgt(zero,one,abs(uad(i,j,k)).lt.eps)
+               stx = cvmgp(xzlo(i,j,k),xzhi(i,j,k),uad(i,j,k))
+               xzlo(i,j,k) = fu*stx + (one - fu)*half*(xzhi(i,j,k)+xzlo(i,j,k))
             end do
          end do
       end do
@@ -774,7 +783,9 @@ c     upwind
       do k=kmin-1,kmax+1
          do j=jmin,jmax+1
             do i=imin,imax
-
+               fv  = cvmgt(zero,one,abs(vad(i,j,k)).lt.eps)
+               sty = cvmgp(yxlo(i,j,k),yxhi(i,j,k),vad(i,j,k))
+               yxlo(i,j,k) = fv*sty + (one - fv)*half*(yxhi(i,j,k)+yxlo(i,j,k))
             end do
          end do
       end do
@@ -798,7 +809,9 @@ c     upwind
       do k=kmin,kmax
          do j=jmin,jmax+1
             do i=imin-1,imax+1
-
+               fv  = cvmgt(zero,one,abs(vad(i,j,k)).lt.eps)
+               sty = cvmgp(yzlo(i,j,k),yzhi(i,j,k),vad(i,j,k))
+               yzlo(i,j,k) = fv*sty + (one - fv)*half*(yzhi(i,j,k)+yzlo(i,j,k))
             end do
          end do
       end do
@@ -822,7 +835,9 @@ c     upwind
       do k=kmin,kmax+1
          do j=jmin-1,jmax+1
             do i=imin,imax
-
+               fw  = cvmgt(zero,one,abs(wad(i,j,k)).lt.eps)
+               stz = cvmgp(zxlo(i,j,k),zxhi(i,j,k),wad(i,j,k))
+               zxlo(i,j,k) = fw*stz + (one-fw)*half*(zxhi(i,j,k)+zxlo(i,j,k))
             end do
          end do
       end do
@@ -846,7 +861,9 @@ c     upwind
       do k=kmin,kmax+1
          do j=jmin,jmax
             do i=imin-1,imax+1
-
+               fw  = cvmgt(zero,one,abs(wad(i,j,k)).lt.eps)
+               stz = cvmgp(zylo(i,j,k),zyhi(i,j,k),wad(i,j,k))
+               zylo(i,j,k) = fw*stz + (one-fw)*half*(zyhi(i,j,k)+zylo(i,j,k))
             end do
          end do
       end do
@@ -858,6 +875,22 @@ c
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax+1
+
+                  stxlo(i) = xlo(i,j,k)
+     &                 - dt4y*(vad(i-1,j+1,k  )+vad(i-1,j,k))*
+     &                 (yzlo(i-1,j+1,k  )-yzlo(i-1,j,k))
+     &                 - dt4z*(wad(i-1,j  ,k+1)+wad(i-1,j,k))*
+     &                 (zylo(i-1,j  ,k+1)-zylo(i-1,j,k))
+                  stxhi(i) = xhi(i,j,k)
+     &                 - (dt4/hy)*(vad(i  ,j+1,k  )+vad(i  ,j,k))*
+     &                 (yzlo(i  ,j+1,k  )-yzlo(i  ,j,k))
+     &                 - (dt4/hz)*(wad(i  ,j  ,k+1)+wad(i  ,j,k))*
+     &                 (zylo(i  ,j  ,k+1)-zylo(i  ,j,k))
+
+                  if (use_minion.eq.0) then
+                     stxlo(i) = stxlo(i) + dth*tforces(i-1,j,k)
+                     stxhi(i) = stxhi(i) + dth*tforces(i,  j,k)
+                  end if
 
                end do
 
@@ -972,6 +1005,22 @@ c
             do i = imin,imax
                do j = jmin,jmax+1
 
+                  stylo(j) = ylo(i,j,k)
+     &                 - dt4x*(uad(i+1,j-1,k  )+uad(i,j-1,k))*
+     &                 (xzlo(i+1,j-1,k  )-xzlo(i,j-1,k))
+     &                 - dt4z*(wad(i  ,j-1,k+1)+wad(i,j-1,k))*
+     &                 (zxlo(i  ,j-1,k+1)-zxlo(i,j-1,k))
+                  styhi(j) = yhi(i,j,k)
+     &                 - dt4x*(uad(i+1,j  ,k  )+uad(i,j  ,k))*
+     &                 (xzlo(i+1,j  ,k  )-xzlo(i,j  ,k))
+     &                 - dt4z*(wad(i  ,j  ,k+1)+wad(i,j  ,k))*
+     &                 (zxlo(i  ,j  ,k+1)-zxlo(i,j  ,k))
+
+                  if (use_minion.eq.0) then
+                     stylo(j) = stylo(j) + dth*tforces(i,j-1,k)
+                     styhi(j) = styhi(j) + dth*tforces(i,j,  k)
+                  end if
+
                end do
 
                if (bc(2,1).eq.EXT_DIR .and. velpred.eq.1) then
@@ -1085,6 +1134,23 @@ c
          do j = jmin,jmax
             do i = imin,imax
                do k = kmin,kmax+1
+
+                  stzlo(k) = zlo(i,j,k)
+     &                 - dt4x*(uad(i+1,j  ,k-1)+uad(i,j,k-1))
+     &                 *(xylo(i+1,j  ,k-1)-xylo(i,j,k-1))
+     &                 - dt4y*(vad(i  ,j+1,k-1)+vad(i,j,k-1))
+     &                 *(yxlo(i  ,j+1,k-1)-yxlo(i,j,k-1))
+                  
+                  stzhi(k) = zhi(i,j,k)
+     &                 - dt4x*(uad(i+1,j  ,k  )+uad(i,j,k  ))
+     &                 *(xylo(i+1,j  ,k  )-xylo(i,j,k  ))
+     &                 - dt4y*(vad(i  ,j+1,k  )+vad(i,j,k  ))
+     &                 *(yxlo(i  ,j+1,k  )-yxlo(i,j,k  ))
+                  
+                  if (use_minion.eq.0) then
+                     stzlo(k) = stzlo(k) + dth*tforces(i,j,k-1)
+                     stzhi(k) = stzhi(k) + dth*tforces(i,j,k)
+                  end if
 
                end do
 
@@ -1651,7 +1717,8 @@ c
       integer imin,jmin,kmin,imax,jmax,kmax
       REAL_T place_to_break
       REAL_T hx, hy, hz, dt, dth, dthx, dthy, dthz
-      REAL_T dt3, dt3x, dt3y, dt3z, dt6, dt6x, dt6y, dt6z
+      REAL_T dt3, dt3x, dt3y, dt3z, dt4, dt4x, dt4y, dt4z
+      REAL_T dt6, dt6x, dt6y, dt6z
       REAL_T tr,tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw,dx(SDIM)
       REAL_T eps,eps_for_bc
       logical ltx,lty,ltz
@@ -1706,6 +1773,10 @@ c     used in 3d corner coupling
       dt3x = dt3 / dx(1)
       dt3y = dt3 / dx(2)
       dt3z = dt3 / dx(3)
+      dt4  = dt / 4.0d0
+      dt4x = dt4 / dx(1)
+      dt4y = dt4 / dx(2)
+      dt4z = dt4 / dx(3)
       dt6  = dt / 6.0d0
       dt6x = dt6 / dx(1)
       dt6y = dt6 / dx(2)
@@ -1898,7 +1969,9 @@ c     upwind
       do k=kmin-1,kmax+1
          do j=jmin,jmax
             do i=imin,imax+1
-
+               fu  = cvmgt(zero,one,abs(uedge(i,j,k)).lt.eps)
+               stx = cvmgp(xylo(i,j,k),xyhi(i,j,k),uedge(i,j,k))
+               xylo(i,j,k) = fu*stx + (one - fu)*half*(xyhi(i,j,k)+xylo(i,j,k))
             end do
          end do
       end do
@@ -1922,7 +1995,9 @@ c     upwind
       do k=kmin,kmax
          do j=jmin-1,jmax+1
             do i=imin,imax+1
-
+               fu  = cvmgt(zero,one,abs(uedge(i,j,k)).lt.eps)
+               stx = cvmgp(xzlo(i,j,k),xzhi(i,j,k),uedge(i,j,k))
+               xzlo(i,j,k) = fu*stx + (one - fu)*half*(xzhi(i,j,k)+xzlo(i,j,k))
             end do
          end do
       end do
@@ -1946,7 +2021,9 @@ c     upwind
       do k=kmin-1,kmax+1
          do j=jmin,jmax+1
             do i=imin,imax
-
+               fv  = cvmgt(zero,one,abs(vedge(i,j,k)).lt.eps)
+               sty = cvmgp(yxlo(i,j,k),yxhi(i,j,k),vedge(i,j,k))
+               yxlo(i,j,k) = fv*sty + (one - fv)*half*(yxhi(i,j,k)+yxlo(i,j,k))
             end do
          end do
       end do
@@ -1970,7 +2047,9 @@ c     upwind
       do k=kmin,kmax
          do j=jmin,jmax+1
             do i=imin-1,imax+1
-
+               fv  = cvmgt(zero,one,abs(vedge(i,j,k)).lt.eps)
+               sty = cvmgp(yzlo(i,j,k),yzhi(i,j,k),vedge(i,j,k))
+               yzlo(i,j,k) = fv*sty + (one - fv)*half*(yzhi(i,j,k)+yzlo(i,j,k))
             end do
          end do
       end do
@@ -1994,7 +2073,9 @@ c     upwind
       do k=kmin,kmax+1
          do j=jmin-1,jmax+1
             do i=imin,imax
-
+               fw  = cvmgt(zero,one,abs(wedge(i,j,k)).lt.eps)
+               stz = cvmgp(zxlo(i,j,k),zxhi(i,j,k),wedge(i,j,k))
+               zxlo(i,j,k) = fw*stz + (one-fw)*half*(zxhi(i,j,k)+zxlo(i,j,k))
             end do
          end do
       end do
@@ -2018,7 +2099,9 @@ c     upwind
       do k=kmin,kmax+1
          do j=jmin,jmax
             do i=imin-1,imax+1
-
+               fw  = cvmgt(zero,one,abs(wedge(i,j,k)).lt.eps)
+               stz = cvmgp(zylo(i,j,k),zyhi(i,j,k),wedge(i,j,k))
+               zylo(i,j,k) = fw*stz + (one-fw)*half*(zyhi(i,j,k)+zylo(i,j,k))
             end do
          end do
       end do
