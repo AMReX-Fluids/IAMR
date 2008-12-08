@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.47 2008-12-08 21:03:21 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.48 2008-12-08 21:14:05 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -587,7 +587,7 @@ c     used in 3d corner coupling
       jmax = hi(2)
       kmax = hi(3)
 
-      corner_couple = .false.
+      corner_couple = .true.
 
 c
 c     compute the slopes
@@ -1988,7 +1988,12 @@ c     loop over appropriate xy faces
          do k=kmin-1,kmax+1
             do j=jmin,jmax
                do i=imin,imax+1
-                  
+                  xylo(i,j,k) = xlo(i,j,k)
+     &                 - dt3y*(yedge(i-1,j+1,k)*vedge(i-1,j+1,k)
+     &                 - yedge(i-1,j,k)*vedge(i-1,j,k))
+                  xyhi(i,j,k) = xhi(i,j,k)
+     &                 - dt3y*(yedge(i  ,j+1,k)*vedge(i  ,j+1,k)
+     &                 - yedge(i  ,j,k)*vedge(i  ,j,k))  
                end do
             end do
          end do
@@ -2029,7 +2034,12 @@ c     loop over appropriate xz faces
          do k=kmin,kmax
             do j=jmin-1,jmax+1
                do i=imin,imax+1
-                  
+                  xzlo(i,j,k) = xlo(i,j,k)
+     &                 - dt3z*(zedge(i-1,j,k+1)*wedge(i-1,j,k+1)
+     &                 - zedge(i-1,j,k)*wedge(i-1,j,k))
+                  xzhi(i,j,k) = xhi(i,j,k)
+     &                 - dt3z*(zedge(i  ,j,k+1)*wedge(i  ,j,k+1)
+     &                 - zedge(i  ,j,k)*wedge(i  ,j,k))
                end do
             end do
          end do
@@ -2070,6 +2080,12 @@ c     loop over appropriate yx faces
          do k=kmin-1,kmax+1
             do j=jmin,jmax+1
                do i=imin,imax
+                  yxlo(i,j,k) = ylo(i,j,k)
+     &                 - dt3x*(xedge(i+1,j-1,k)*uedge(i+1,j-1,k)
+     &                 - xedge(i,j-1,k)*uedge(i,j-1,k))
+                  yxhi(i,j,k) = yhi(i,j,k)
+     &                 - dt3x*(xedge(i+1,j  ,k)*uedge(i+1,j  ,k)
+     &                 - xedge(i,j  ,k)*uedge(i,j  ,k))
                end do
             end do
          end do
@@ -2111,7 +2127,12 @@ c     loop over appropriate yz faces
          do k=kmin,kmax
             do j=jmin,jmax+1
                do i=imin-1,imax+1
-                  
+                  yzlo(i,j,k) = ylo(i,j,k)
+     &                 - dt3z*(zedge(i,j-1,k+1)*wedge(i,j-1,k+1)
+     &                 - zedge(i,j-1,k)*wedge(i,j-1,k))
+                  yzhi(i,j,k) = yhi(i,j,k)
+     &                 - dt3z*(zedge(i,j  ,k+1)*wedge(i,j  ,k+1)
+     &                 - zedge(i,j  ,k)*wedge(i,j  ,k))
                end do
             end do
          end do
@@ -2152,7 +2173,12 @@ c     loop over appropriate zx faces
          do k=kmin,kmax+1
             do j=jmin-1,jmax+1
                do i=imin,imax
-                  
+                  zxlo(i,j,k) = zlo(i,j,k)
+     &                 - dt3x*(xedge(i+1,j,k-1)*uedge(i+1,j,k-1)
+     &                 - xedge(i,j,k-1)*uedge(i,j,k-1))
+                  zxhi(i,j,k) = zhi(i,j,k)
+     &                 - dt3x*(xedge(i+1,j,k  )*uedge(i+1,j,k  )
+     &                 - xedge(i,j,k  )*uedge(i,j,k  ))
                end do
             end do
          end do
@@ -2193,7 +2219,12 @@ c     loop over appropriate zy faces
          do k=kmin,kmax+1
             do j=jmin,jmax
                do i=imin-1,imax+1
-                  
+                  zylo(i,j,k) = zlo(i,j,k)
+     &                 - dt3y*(yedge(i,j+1,k-1)*vedge(i,j+1,k-1)
+     &                 - yedge(i,j,k-1)*vedge(i,j,k-1))
+                  zyhi(i,j,k) = zhi(i,j,k)
+     &                 - dt3y*(yedge(i,j+1,k  )*vedge(i,j+1,k  )
+     &                 - yedge(i,j,k  )*vedge(i,j,k  ))
                end do
             end do
          end do
