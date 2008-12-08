@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.43 2008-12-08 18:47:28 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.44 2008-12-08 18:58:44 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -548,6 +548,16 @@ c
       REAL_T  sz(DIMV(work)), wad(DIMV(work))
       REAL_T tforces(DIMV(work))
 
+      logical corner_couple
+
+c     used in 3d corner coupling
+      REAL_T xylo(DIMV(work)), xyhi(DIMV(work))
+      REAL_T xzlo(DIMV(work)), xzhi(DIMV(work))
+      REAL_T yxlo(DIMV(work)), yxhi(DIMV(work))
+      REAL_T yzlo(DIMV(work)), yzhi(DIMV(work))
+      REAL_T zxlo(DIMV(work)), zxhi(DIMV(work))
+      REAL_T zylo(DIMV(work)), zyhi(DIMV(work))
+
       integer use_minion
 
       dth  = half*dt
@@ -685,6 +695,497 @@ c
             end do
          end do
       end do
+
+      if (corner_couple) then
+
+c
+c     NEW CORNER COUPLING CODE
+c
+
+c
+c     compute the corner-coupled terms:
+c     xylo/hi, xzlo/hi, yxlo/hi, yzlo/hi, zxlo/hi, zylo/hi
+c
+
+c     loop over appropriate xy faces
+      do k=kmin-1,kmax+1
+         do j=jmin,jmax
+            do i=imin,imax+1
+
+            end do
+         end do
+      end do
+
+c     boundary conditions
+      call trans_xbc(
+     &     s,DIMS(s),
+     &     xylo,xyhi,DIMS(work),uad,DIMS(work),
+     &     lo,hi,n,bc,eps_for_bc,.true.,.false.)
+
+c     upwind
+      do k=kmin-1,kmax+1
+         do j=jmin,jmax
+            do i=imin,imax+1
+
+            end do
+         end do
+      end do
+
+c     loop over appropriate xz faces
+      do k=kmin,kmax
+         do j=jmin-1,jmax+1
+            do i=imin,imax+1
+               
+            end do
+         end do
+      end do
+
+c     boundary conditions
+      call trans_xbc(
+     &     s,DIMS(s),
+     &     xzlo,xzhi,DIMS(work),uad,DIMS(work),
+     &     lo,hi,n,bc,eps_for_bc,.false.,.true.)
+
+c     upwind
+      do k=kmin,kmax
+         do j=jmin-1,jmax+1
+            do i=imin,imax+1
+
+            end do
+         end do
+      end do
+
+c     loop over appropriate yx faces
+      do k=kmin-1,kmax+1
+         do j=jmin,jmax+1
+            do i=imin,imax
+
+            end do
+         end do
+      end do
+
+c     boundary conditions
+      call trans_ybc(
+     &     s,DIMS(s),
+     &     yxlo,yxhi,DIMS(work),vad,DIMS(work),
+     &     lo,hi,n,bc,eps_for_bc,.true.,.false.)
+
+c     upwind
+      do k=kmin-1,kmax+1
+         do j=jmin,jmax+1
+            do i=imin,imax
+
+            end do
+         end do
+      end do
+
+c     loop over appropriate yz faces
+      do k=kmin,kmax
+         do j=jmin,jmax+1
+            do i=imin-1,imax+1
+
+            end do
+         end do
+      end do
+
+c     boundary conditions
+      call trans_ybc(
+     &     s,DIMS(s),
+     &     yzlo,yzhi,DIMS(work),vad,DIMS(work),
+     &     lo,hi,n,bc,eps_for_bc,.false.,.true.)
+
+c     upwind
+      do k=kmin,kmax
+         do j=jmin,jmax+1
+            do i=imin-1,imax+1
+
+            end do
+         end do
+      end do
+
+c     loop over appropriate zx faces
+      do k=kmin,kmax+1
+         do j=jmin-1,jmax+1
+            do i=imin,imax
+
+            end do
+         end do
+      end do
+
+c     boundary conditions
+      call trans_zbc(
+     &     s,DIMS(s),
+     &     zxlo,zxhi,DIMS(work),wad,DIMS(work),
+     &     lo,hi,n,bc,eps_for_bc,.true.,.false.)
+
+c     upwind
+      do k=kmin,kmax+1
+         do j=jmin-1,jmax+1
+            do i=imin,imax
+
+            end do
+         end do
+      end do
+
+c     loop over appropriate zy faces
+      do k=kmin,kmax+1
+         do j=jmin,jmax
+            do i=imin-1,imax+1
+
+            end do
+         end do
+      end do
+
+c     boundary conditions
+      call trans_zbc(
+     &     s,DIMS(s),
+     &     zylo,zyhi,DIMS(work),wad,DIMS(work),
+     &     lo,hi,n,bc,eps_for_bc,.false.,.true.)
+
+c     upwind
+      do k=kmin,kmax+1
+         do j=jmin,jmax
+            do i=imin-1,imax+1
+
+            end do
+         end do
+      end do
+
+c
+c     compute the xedge states
+c
+      if ((velpred.ne.1) .or. (n.eq.XVEL)) then
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax+1
+
+               end do
+
+               if (bc(1,1).eq.EXT_DIR .and. velpred.eq.1) then
+                  stxhi(imin) = s(imin-1,j,k)
+                  stxlo(imin) = s(imin-1,j,k)
+               else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j,k).ge.zero) then
+                  stxhi(imin) = s(imin-1,j,k)
+                  stxlo(imin) = s(imin-1,j,k)
+               else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j,k).lt.zero) then
+                  stxlo(imin) = stxhi(imin)
+c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+               else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP) then
+                  if (n.eq.XVEL) then
+                     if (velpred.eq.1) then
+#ifndef ALLOWXINFLOW
+                        stxhi(imin) = MIN(stxhi(imin),zero)
+#endif
+                        stxlo(imin) = stxhi(imin)
+                     else
+                        if (uad(imin,j,k).ge.zero) then
+#ifndef ALLOWXINFLOW
+                           stxhi(imin) = MIN(stxhi(imin),zero)
+#endif
+                           stxlo(imin) = stxhi(imin)
+                        endif
+                     endif
+                  else
+                     stxlo(imin) = stxhi(imin)
+#ifdef NOVERTICALINFLOW
+c     Hack for no vertical inflow velocity
+                     if (n.eq.ZVEL)then
+                        stxlo(imin) = zero
+                     endif
+#endif
+                  endif
+               else if (bc(1,1).eq.REFLECT_EVEN) then
+                  stxlo(imin) = stxhi(imin)
+c               else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP
+c     &                 .or.bc(1,1).eq.REFLECT_EVEN) then
+c                  stxlo(imin) = stxhi(imin)
+               else if (bc(1,1).eq.REFLECT_ODD) then
+                  stxhi(imin) = zero
+                  stxlo(imin) = zero
+               end if
+               if (bc(1,2).eq.EXT_DIR .and. velpred.eq.1) then
+                  stxlo(imax+1) = s(imax+1,j,k)
+                  stxhi(imax+1) = s(imax+1,j,k)
+               else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j,k).le.zero) then
+                  stxlo(imax+1) = s(imax+1,j,k)
+                  stxhi(imax+1) = s(imax+1,j,k)
+               else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j,k).gt.zero) then
+                  stxhi(imax+1) = stxlo(imax+1)
+c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+               else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP) then
+                  if (n.eq.XVEL) then
+                     if (velpred.eq.1) then
+#ifndef ALLOWXINFLOW
+                        stxlo(imax+1) = MAX(stxlo(imax+1),zero)
+#endif
+                        stxhi(imax+1) = stxlo(imax+1)
+                     else
+                        if (uad(imax+1,j,k).le.zero) then
+#ifndef ALLOWXINFLOW
+                           stxlo(imax+1) = MAX(stxlo(imax+1),zero)
+#endif
+                           stxhi(imax+1) = stxlo(imax+1)
+                        endif
+                     endif
+                  else
+                     stxhi(imax+1) = stxlo(imax+1)
+#ifdef NOVERTICALINFLOW
+c     Hack for no vertical inflow velocity
+                     if (n.eq.ZVEL)then
+                        stxhi(imax+1) = zero
+                     endif
+#endif
+                  endif
+               else if (bc(1,2).eq.REFLECT_EVEN) then
+                  stxhi(imax+1) = stxlo(imax+1)
+c               else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP
+c     &                 .or.bc(1,2).eq.REFLECT_EVEN) then
+c                  stxhi(imax+1) = stxlo(imax+1)
+               else if (bc(1,2).eq.REFLECT_ODD) then
+                  stxlo(imax+1) = zero
+                  stxhi(imax+1) = zero
+               end if
+
+               if ( velpred .eq. 1 ) then
+                  do i = imin, imax+1
+                     ltx = stxlo(i) .le. zero  .and.  stxhi(i) .ge. zero
+                     ltx = ltx .or. (abs(stxlo(i)+stxhi(i)) .lt. eps)
+                     stx = cvmgp(stxlo(i),stxhi(i),stxlo(i)+stxhi(i))
+                     xstate(i,j,k) = cvmgt(zero,stx,ltx)
+                  end do
+               else
+                  do i = imin, imax+1
+                     xstate(i,j,k) = cvmgp(stxlo(i),stxhi(i),uedge(i,j,k))
+                     xstate(i,j,k) = cvmgt(half*(stxlo(i)+stxhi(i)),xstate(i,j,k)
+     &                    ,abs(uedge(i,j,k)).lt.eps)
+                  end do
+               end if
+               place_to_break = 1
+            end do
+         end do
+      end if
+c
+c     compute the yedge states
+c
+      if ((velpred.ne.1) .or. (n.eq.YVEL)) then
+         do k = kmin,kmax
+            do i = imin,imax
+               do j = jmin,jmax+1
+
+               end do
+
+               if (bc(2,1).eq.EXT_DIR .and. velpred.eq.1) then
+                  styhi(jmin) = s(i,jmin-1,k)
+                  stylo(jmin) = s(i,jmin-1,k)
+               else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin,k).ge.zero) then
+                  styhi(jmin) = s(i,jmin-1,k)
+                  stylo(jmin) = s(i,jmin-1,k)
+               else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin,k).lt.zero) then
+                  stylo(jmin) = styhi(jmin)
+c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+               else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP) then
+                  if (n.eq.YVEL) then
+                     if (velpred.eq.1) then
+#ifndef ALLOWYINFLOW
+                        styhi(jmin) = MIN(styhi(jmin),zero)
+#endif
+                        stylo(jmin) = styhi(jmin)
+                     else
+                        if (vad(i,jmin,k).ge.zero) then
+#ifndef ALLOWYINFLOW
+                           styhi(jmin) = MIN(styhi(jmin),zero)
+#endif
+                           stylo(jmin) = styhi(jmin)
+                        endif
+                     endif
+                  else
+                     stylo(jmin) = styhi(jmin)
+#ifdef NOVERTICALINFLOW
+c     Hack for no vertical inflow velocity
+                     if (n.eq.ZVEL)then
+                        stylo(jmin) = zero
+                     endif
+#endif
+                  endif
+               else if (bc(2,1).eq.REFLECT_EVEN) then
+                  stylo(jmin) = styhi(jmin)
+c               else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP
+c     &                 .or.bc(2,1).eq.REFLECT_EVEN) then
+c                  stylo(jmin) = styhi(jmin)
+               else if (bc(2,1).eq.REFLECT_ODD) then
+                  styhi(jmin) = zero
+                  stylo(jmin) = zero
+               end if
+               
+               if (bc(2,2).eq.EXT_DIR .and. velpred.eq.1) then
+                  stylo(jmax+1) = s(i,jmax+1,k)
+                  styhi(jmax+1) = s(i,jmax+1,k)
+               else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1,k).le.zero) then
+                  stylo(jmax+1) = s(i,jmax+1,k)
+                  styhi(jmax+1) = s(i,jmax+1,k)
+               else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1,k).gt.zero) then
+                  styhi(jmax+1) = stylo(jmax+1)
+c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+               else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP) then
+                  if (n.eq.YVEL) then
+                     if (velpred.eq.1) then
+#ifndef ALLOWYINFLOW
+                        stylo(jmax+1) = MAX(stylo(jmax+1),zero)
+#endif
+                        styhi(jmax+1) = stylo(jmax+1)
+                     else
+                        if (vad(i,jmax+1,k).le.zero) then
+#ifndef ALLOWYINFLOW
+                           stylo(jmax+1) = MAX(stylo(jmax+1),zero)
+#endif
+                           styhi(jmax+1) = stylo(jmax+1)
+                        endif
+                     endif
+                  else
+                     styhi(jmax+1) = stylo(jmax+1)
+#ifdef NOVERTICALINFLOW
+c     Hack for no vertical inflow velocity
+                     if (n.eq.ZVEL)then
+                        styhi(jmax+1) = zero
+                     endif
+#endif
+                  endif
+               else if (bc(2,2).eq.REFLECT_EVEN) then
+                  styhi(jmax+1) = stylo(jmax+1)
+c               else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
+c     &                 .or.bc(2,2).eq.REFLECT_EVEN) then
+c                  styhi(jmax+1) = stylo(jmax+1)
+               else if (bc(2,2).eq.REFLECT_ODD) then
+                  stylo(jmax+1) = zero
+                  styhi(jmax+1) = zero
+               end if
+
+               if ( velpred .eq. 1 ) then
+                  do j = jmin, jmax+1
+                     lty = stylo(j) .le. zero  .and.  styhi(j) .ge. zero
+                     lty = lty .or. (abs(stylo(j)+styhi(j)) .lt. eps)
+                     sty = cvmgp(stylo(j),styhi(j),stylo(j)+styhi(j))
+                     ystate(i,j,k) = cvmgt(zero,sty,lty)
+                  end do
+               else
+                  do j=jmin,jmax+1
+                     ystate(i,j,k) = cvmgp(stylo(j),styhi(j),vedge(i,j,k))
+                     ystate(i,j,k) = cvmgt(half*(stylo(j)+styhi(j)),ystate(i,j,k),
+     &                    abs(vedge(i,j,k)).lt.eps)
+                  end do
+               end if
+               place_to_break = 1
+            end do
+         end do
+      end if
+c
+c     compute the zedge states
+c
+      if ((velpred.ne.1) .or. (n.eq.ZVEL)) then
+         do j = jmin,jmax
+            do i = imin,imax
+               do k = kmin,kmax+1
+
+               end do
+
+               if (bc(3,1).eq.EXT_DIR .and. velpred.eq.1) then
+                  stzlo(kmin) = s(i,j,kmin-1)
+                  stzhi(kmin) = s(i,j,kmin-1)
+               else if (bc(3,1).eq.EXT_DIR .and. wad(i,j,kmin).ge.zero) then
+                  stzlo(kmin) = s(i,j,kmin-1)
+                  stzhi(kmin) = s(i,j,kmin-1)
+               else if (bc(3,1).eq.EXT_DIR .and. wad(i,j,kmin).lt.zero) then
+                  stzlo(kmin) = stzhi(kmin)
+c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+               else if (bc(3,1).eq.FOEXTRAP.or.bc(3,1).eq.HOEXTRAP) then
+                  if (n.eq.ZVEL) then
+                     if (velpred.eq.1) then
+#ifndef ALLOWZINFLOW
+                        stzhi(kmin) = MIN(stzhi(kmin),zero)
+#endif
+                        stzlo(kmin) = stzhi(kmin)
+                     else
+                        if (wad(i,j,kmin).ge.zero) then
+#ifndef ALLOWZINFLOW
+                           stzhi(kmin) = MIN(stzhi(kmin),zero)
+#endif
+                           stzlo(kmin) = stzhi(kmin)
+                        endif
+                     endif
+                  else
+                     stzlo(kmin) = stzhi(kmin)
+                  endif
+               else if (bc(3,1).eq.REFLECT_EVEN) then
+                  stzlo(kmin) = stzhi(kmin)
+c               else if (bc(3,1).eq.FOEXTRAP.or.bc(3,1).eq.HOEXTRAP
+c     &                 .or.bc(3,1).eq.REFLECT_EVEN) then
+c                  stzlo(kmin) = stzhi(kmin)
+               else if (bc(3,1).eq.REFLECT_ODD) then
+                  stzlo(kmin) = zero
+                  stzhi(kmin) = zero
+               end if
+               if (bc(3,2).eq.EXT_DIR .and. velpred.eq.1) then
+                  stzlo(kmax+1) = s(i,j,kmax+1)
+                  stzhi(kmax+1) = s(i,j,kmax+1)
+               else if (bc(3,2).eq.EXT_DIR .and. wad(i,j,kmax+1).le.zero) then
+                  stzlo(kmax+1) = s(i,j,kmax+1)
+                  stzhi(kmax+1) = s(i,j,kmax+1)
+               else if (bc(3,2).eq.EXT_DIR .and. wad(i,j,kmax+1).gt.zero) then
+                  stzhi(kmax+1) = stzlo(kmax+1)
+c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+               else if (bc(3,2).eq.FOEXTRAP.or.bc(3,2).eq.HOEXTRAP) then
+                  if (n.eq.ZVEL) then
+                     if (velpred.eq.1) then
+#ifndef ALLOWZINFLOW
+                        stzlo(kmax+1) = MAX(stzlo(kmax+1),zero)
+#endif
+                        stzhi(kmax+1) = stzlo(kmax+1)
+                     else
+                        if (wad(i,j,kmax+1).le.zero) then
+#ifndef ALLOWZINFLOW
+                           stzlo(kmax+1) = MAX(stzlo(kmax+1),zero)
+#endif
+                           stzhi(kmax+1) = stzlo(kmax+1)
+                        endif
+                     endif
+                  else
+                     stzhi(kmax+1) = stzlo(kmax+1)
+                  endif
+               else if (bc(3,2).eq.REFLECT_EVEN) then
+                  stzhi(kmax+1) = stzlo(kmax+1)
+c               else if (bc(3,2).eq.FOEXTRAP.or.bc(3,2).eq.HOEXTRAP
+c     &                 .or.bc(3,2).eq.REFLECT_EVEN) then
+c                  stzhi(kmax+1) = stzlo(kmax+1)
+               else if (bc(3,2).eq.REFLECT_ODD) then
+                  stzlo(kmax+1) = zero
+                  stzhi(kmax+1) = zero
+               end if
+
+               if ( velpred .eq. 1 ) then
+                  do k = kmin,kmax+1
+                     ltz = stzlo(k) .le. zero  .and.  stzhi(k) .ge. zero
+                     ltz = ltz .or. (abs(stzlo(k)+stzhi(k)) .lt. eps)
+                     stz = cvmgp(stzlo(k),stzhi(k),stzlo(k)+stzhi(k))
+                     zstate(i,j,k) = cvmgt(zero,stz,ltz)
+                  end do
+               else
+                  do k = kmin,kmax+1
+                     zstate(i,j,k) = cvmgp(stzlo(k),stzhi(k),wedge(i,j,k))
+                     zstate(i,j,k) = cvmgt(half*(stzlo(k)+stzhi(k)),zstate(i,j,k),
+     &                    abs(wedge(i,j,k)).lt.eps)
+                  end do
+               end if
+               place_to_break = 1
+            end do
+         end do
+      end if
+
+      else
+
+c    
+c     ORIGINAL NON-CORNER COUPLING CODE
+c
+
 c
 c     compute the xedge states
 c
@@ -1114,6 +1615,8 @@ c                  stzhi(kmax+1) = stzlo(kmax+1)
                place_to_break = 1
             end do
          end do
+      end if
+
       end if
 
       end
@@ -2083,7 +2586,6 @@ c                  stzhi(kmax+1) = stzlo(kmax+1)
                place_to_break = 1
             end do
       end do
-
 
       end if
 
