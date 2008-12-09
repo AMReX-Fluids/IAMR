@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.49 2008-10-27 00:58:57 jbb Exp $
+c $Id: PROB_3D.F,v 1.50 2008-12-09 15:35:23 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -706,6 +706,11 @@ c ::: -----------------------------------------------------------
 
       else if (probtype .eq. 21) then
          call initraneul(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
+      else if (probtype .eq. 22) then
+         call initdenadvect(level,time,lo,hi,nscal,
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
 
@@ -2197,6 +2202,68 @@ c              do ifx = 1, eul_nfreq
 	    end do
          end do
       end do
+
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initdenadvect(level,time,lo,hi,nscal,
+     &	 	               vel,scal,DIMS(state),press,DIMS(press),
+     &     dx,xlo,xhi)
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+	    do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+               vel(i,j,k,1) = one
+               vel(i,j,k,2) = one
+               vel(i,j,k,3) = one
+
+               scal(i,j,k,1) = one
+               scal(i,j,k,2) = zero
+
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = zero
+               end do
+
+	    end do
+         end do
+      end do
+
+      scal(7,7,7,2) = 2.0d0
+      scal(7,7,8,2) = 2.0d0
+      scal(7,8,7,2) = 2.0d0
+      scal(7,8,8,2) = 2.0d0
+      scal(8,7,7,2) = 2.0d0
+      scal(8,7,8,2) = 2.0d0
+      scal(8,8,7,2) = 2.0d0
+      scal(8,8,8,2) = 2.0d0
 
       end
 c
