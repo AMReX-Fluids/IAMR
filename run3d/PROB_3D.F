@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.50 2008-12-09 15:35:23 ajnonaka Exp $
+c $Id: PROB_3D.F,v 1.51 2008-12-09 15:41:29 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -2256,14 +2256,15 @@ c
          end do
       end do
 
-      scal(7,7,7,2) = 2.0d0
-      scal(7,7,8,2) = 2.0d0
-      scal(7,8,7,2) = 2.0d0
-      scal(7,8,8,2) = 2.0d0
-      scal(8,7,7,2) = 2.0d0
-      scal(8,7,8,2) = 2.0d0
-      scal(8,8,7,2) = 2.0d0
-      scal(8,8,8,2) = 2.0d0
+c     initialize a block of tracer
+      scal(7,7,7,2) = 1.0d0
+      scal(7,7,8,2) = 1.0d0
+      scal(7,8,7,2) = 1.0d0
+      scal(7,8,8,2) = 1.0d0
+      scal(8,7,7,2) = 1.0d0
+      scal(8,7,8,2) = 1.0d0
+      scal(8,8,7,2) = 1.0d0
+      scal(8,8,8,2) = 1.0d0
 
       end
 c
