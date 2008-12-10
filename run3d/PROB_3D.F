@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.51 2008-12-09 15:41:29 ajnonaka Exp $
+c $Id: PROB_3D.F,v 1.52 2008-12-10 20:34:09 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -98,6 +98,7 @@ c ::: -----------------------------------------------------------
       namelist /fortin/ grav_angle, omega, infl_time_offset, ref_centre, ref_radius,
      &                  thermal_expansion, heating_coeff, heating_centre, heating_radius
 
+      namelist /fortin/ density_pert, interface_height, wavelength_min, wavelength_max, tracer_height
 
 #ifdef DO_IAMR_FORCE
       namelist /fortin/ nmodes, nxmodes, nymodes, nzmodes, mode_start, hack_lz,
@@ -129,6 +130,10 @@ c
       integer MAXPHASE
       parameter (MAXPHASE = 1000)
       DOUBLE PRECISION rn, permin, permax, xtmp, ytmp, pert
+
+      REAL_T   ran1, f0, fmin, fmax, fdif
+      external ran1
+      integer  idum
 
       call bl_pd_is_ioproc(isioproc)
 
@@ -557,6 +562,30 @@ c     Set amplitudes
       endif
 #endif
 
+      if (probtype.eq.23) then
+         Lx = f_probhi(1)-f_problo(1)
+         Ly = f_probhi(2)-f_problo(2)
+         Lz = f_probhi(3)-f_problo(3)
+         
+c     Initialise random number generator
+         idum=-1
+         f0 = ran1(idum)
+         
+c     Get frequencies higher than fundamental
+         f0 = half*(vel1+vel2)/(five*delta0)
+         fmin = f0/five
+         fmax = f0
+         fdif = fmax-fmin
+         
+c     Get random numbers
+         do n = 1, 10
+            mag(n)  = amag*ran1(idum)
+            freq(n) = ran1(idum)*(fmax-fmin)+fmin
+            phi1(n) = ran1(idum)*two*Pi
+            phi2(n) = ran1(idum)*two*Pi
+         end do
+      endif
+
       end
 
 c ::: -----------------------------------------------------------
@@ -714,6 +743,20 @@ c ::: -----------------------------------------------------------
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
 
+      else if (probtype .eq. 23) then
+         call initrayleightaylor(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
+      else if (probtype .eq. 24) then
+         call initshearlayer(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
+      else if (probtype .eq. 25) then
+         call initgravitycurrent(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
 
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
@@ -2114,6 +2157,441 @@ c
 c
 c ::: -----------------------------------------------------------
 c
+      subroutine initgravitycurrent(level,time,lo,hi,nscal,
+     &                       vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, l, n, m, mdp_trace_counter,mdp_mod
+
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  mdp_lock_Z_start,mdp_lock_Z_finish,
+     &        mdp_lock_X_start,mdp_lock_X_finish,
+     &        mdp_lock_Y_start,mdp_lock_Y_finish,
+     &        mdp_lock_density,mdp_ambient_density_at_base,
+     &        mdp_delta_den,mdp_z_max
+      REAL_T  hz0, zOhz0
+
+      integer x_modes, y_modes, z_modes, amps
+      REAL_T  aja_pert, Lx, Ly, Lz, lambda_min, lambda_max, lambda_x, lambda_y, lambda_z, lambda, rn, cx, cy, cz
+      REAL_T  aja_pert_min, aja_pert_max, amp_rms
+      REAL_T  amp(-32:32,-32:32,-32:32)
+      REAL_T  phs(-32:32,-32:32,-32:32,3)
+
+      character tmp*10
+
+#include "probdata.H"
+
+      mdp_trace_counter=0
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+c     To get stratification consistent with old way
+      hz0 = 0.3d0/64.0d0
+
+      open(33,file="gc.data")
+      read(33,'(A10)')tmp
+      read(33,*)mdp_lock_X_start
+      read(33,*)mdp_lock_X_finish
+      read(33,*)mdp_lock_Y_start
+      read(33,*)mdp_lock_Y_finish
+      read(33,*)mdp_lock_Z_start
+      read(33,*)mdp_lock_Z_finish
+      read(33,*)mdp_lock_density
+      read(33,*)mdp_ambient_density_at_base
+      read(33,*)mdp_delta_den
+      read(33,*)mdp_z_max
+      close(33)
+
+      write (*,*) xlo(1),xhi(1)
+      
+      if (mdp_lock_X_finish.ge.xlo(1) .and. mdp_lock_X_start.le.xhi(1)) then
+
+         call blutilinitrand(blrandseed)
+         
+         Lx = mdp_lock_X_finish - mdp_lock_X_start
+         Ly = mdp_lock_Y_finish - mdp_lock_Y_start
+         Lz = mdp_lock_Z_finish - mdp_lock_Z_start
+         
+         lambda_min = 0.01875d0
+         lambda_max = 0.07500d0
+
+         write (*,*) "lambda_min = ",lambda_min
+         write (*,*) "lambda_max = ",lambda_max
+         
+         x_modes = int( 0.5 + Lx / lambda_min )
+         y_modes = int( 0.5 + Ly / lambda_min )
+         z_modes = int( 0.5 + Lz / lambda_min )
+         
+         if (x_modes.gt.32) x_modes=32
+         if (y_modes.gt.32) y_modes=32
+         if (z_modes.gt.32) z_modes=32
+
+         write (*,*) "x_modes = ",x_modes
+         write (*,*) "y_modes = ",y_modes
+         write (*,*) "z_modes = ",z_modes
+         
+         amps = 0
+         amp_rms = zero
+         
+         do l = -x_modes, x_modes
+            if (x_modes.eq.0) then
+               lambda_x=zero
+            else
+               lambda_x = Lx / float(m)
+            endif
+            
+            do m = -y_modes, y_modes
+               if (y_modes.eq.0) then
+                  lambda_y=zero
+               else
+                  lambda_y = Ly / float(m)
+               endif
+               
+               do n = -z_modes, z_modes
+                  if (z_modes.eq.0) then
+                     lambda_z=zero
+                  else
+                     lambda_z = Lz / float(n)
+                  endif
+                  
+                  lambda = sqrt( lambda_x*lambda_x + lambda_y*lambda_y + lambda_z*lambda_z )
+                  
+                  if (lambda .ge. lambda_min .and. lambda .le. lambda_max) then
+                     call blutilrand(rn)
+                     amp(l,m,n) = two*(rn-half)*lambda*lambda
+                     call blutilrand(rn)
+                     phs(l,m,n,1) = two*Pi*rn
+                     call blutilrand(rn)
+                     phs(l,m,n,2) = two*Pi*rn
+                     call blutilrand(rn)
+                     phs(l,m,n,3) = two*Pi*rn
+                     write (*,*) amp(l,m,n),phs(l,m,n,1),phs(l,m,n,2),phs(l,m,n,3)
+                     amps = amps + 1
+                  else
+                     amp(l,m,n) = zero
+                  end if
+               end do
+            end do
+         end do
+
+         write (*,*) "amps = ",amps
+         
+c     Need to integrate over the lock volume to normalise the perturbation
+         
+         write (*,*) int(0.5+Lx/hx)
+         write (*,*) int(0.5+Ly/hy)
+         write (*,*) int(0.5+Lz/hz)
+
+         amp_rms = zero
+
+         do k = 1,int(0.5+Lz/hz)
+            z = hz*(float(k) + half)/Lz
+            do j = 1,int(0.5+Ly/hy)
+               y = hy*(float(j) + half)/Ly
+               do i = 1,int(0.5+Lx/hx)
+                  x = hx*(float(i) + half)/Lx
+                  aja_pert = zero
+                  do l = -x_modes, x_modes
+                     do m = -y_modes, y_modes
+                        do n = -z_modes, z_modes
+                           if (abs(amp(l,m,n)).gt.zero) then
+                              cx = cos(2*Pi*l*(x-mdp_lock_X_start)/Lx+phs(l,m,n,1))
+                              cy = cos(2*Pi*m*(y-mdp_lock_Y_start)/Ly+phs(l,m,n,2))
+                              cz = cos(2*Pi*n*(z-mdp_lock_Z_start)/Lz+phs(l,m,n,3))
+                              aja_pert = aja_pert + denfact*amp(l,m,n)*cx*cy*cz
+                           endif
+                        end do
+                     end do
+                  end do
+                  amp_rms = amp_rms + aja_pert*aja_pert
+               end do
+            end do
+         end do
+
+         write (*,*) "amp_rms = ",amp_rms
+
+         aja_pert_min = 1.d10
+         aja_pert_max = -aja_pert_min
+
+      endif
+      
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         zOhz0 = abs((z-0.3d0)/hz0+half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+	       vel(i,j,k,1) =  zero
+	       vel(i,j,k,2) =  zero
+	       vel(i,j,k,3) =  zero
+
+               if(x.ge.mdp_lock_X_start.and.x.le.mdp_lock_X_finish.and.
+     &              y.ge.mdp_lock_Y_start.and.y.le.mdp_lock_Y_finish.and.
+     &              z.ge.mdp_lock_Z_start.and.z.le.mdp_lock_Z_finish)then
+
+                  scal(i,j,k,1) = mdp_lock_density
+                  scal(i,j,k,2) = zero
+                  mdp_mod=(i+j+k)
+
+c                  if (mod(mdp_mod,10).eq.0)then
+c                     mdp_trace_counter=mdp_trace_counter+1
+c                     scal(i,j,k,2) = mdp_trace_counter
+c                  endif
+
+c     if ( mdp_lock_X_finish-x .lt. hx+1d-6) then
+                  aja_pert = one
+                  do l = -x_modes, x_modes
+                     do m = -y_modes, y_modes
+                        do n = -z_modes, z_modes
+                           if (abs(amp(l,m,n)).gt.zero) then
+                              cx = cos(2*Pi*l*(x-mdp_lock_X_start)/Lx+phs(l,m,n,1))
+                              cy = cos(2*Pi*m*(y-mdp_lock_Y_start)/Ly+phs(l,m,n,2))
+                              cz = cos(2*Pi*n*(z-mdp_lock_Z_start)/Lz+phs(l,m,n,3))
+                              aja_pert = aja_pert + denfact*amp(l,m,n)*cx*cy*cz
+                           endif
+                        end do
+                     end do
+                  end do
+                  scal(i,j,k,1) = scal(i,j,k,1)*aja_pert
+                  if (aja_pert.gt.aja_pert_max) aja_pert_max=aja_pert
+                  if (aja_pert.lt.aja_pert_min) aja_pert_min=aja_pert
+c     endif
+
+                  scal(i,j,k,2) = one
+                  
+               else
+
+c     This is the old way with k
+c                  scal(i,j,k,1) = mdp_ambient_density_at_base + (abs(k-mdp_z_max)*mdp_delta_den)
+c     This is the new way with z, should be consistent and resoltion independent
+                  scal(i,j,k,1) = mdp_ambient_density_at_base + (zOhz0*mdp_delta_den)
+c     if (i.eq.100.and.j.eq.30)then
+c     write(*,*)'ZZZZZZZZZZ=',k,scal(i,j,k,1) 
+c     endif
+
+                  scal(i,j,k,2) = zero
+                  
+               endif
+               
+            end do
+         end do
+      end do
+      
+      if (mdp_lock_X_finish.ge.xlo(1) .and. mdp_lock_X_start.le.xhi(1)) then
+         write (*,*) "pert min = ",aja_pert_min
+         write (*,*) "pert max = ",aja_pert_max
+      endif
+      
+      end
+
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initrayleightaylor(level,time,lo,hi,nscal,
+     &                       vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz, hz0
+
+      REAL_T   ran1
+      external ran1
+      integer  idum
+
+      integer x_modes, y_modes, amps, l, m
+      REAL_T  pert, Lx, Ly, Lz, lambda_x, lambda_y, lambda, random_number, cx, cy
+      REAL_T  pert_min, pert_max, amp_rms, frac
+      REAL_T  amp(-32:32,-32:32)
+      REAL_T  phs(-32:32,-32:32,2)
+      REAL_T  eta(state_l1:state_h1,state_l2:state_h2)
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      Lx = f_probhi(1)-f_problo(1)
+      Ly = f_probhi(2)-f_problo(2)
+      Lz = f_probhi(3)-f_problo(3)
+
+c     Use hz0 for base resolution for consistency (only used in defining perturbation)
+      hz0 = Lz/512.d0
+
+      idum=-1
+      random_number = ran1(idum)
+
+c      write (*,*) "wavelength_min = ",wavelength_min
+c      write (*,*) "wavelength_max = ",wavelength_max
+      
+      x_modes = int( 0.5 + Lx / wavelength_min )
+      y_modes = int( 0.5 + Ly / wavelength_min )
+      
+      if (x_modes.gt.32) x_modes=32
+      if (y_modes.gt.32) y_modes=32
+      
+      write (*,*) "x_modes = ",x_modes
+      write (*,*) "y_modes = ",y_modes
+      
+      amps = 0
+      amp_rms = zero
+      
+      do l = -x_modes, x_modes
+         if (x_modes.eq.0) then
+            lambda_x=zero
+         else
+            lambda_x = Lx / float(l)
+         endif
+            
+         do m = -y_modes, y_modes
+            if (y_modes.eq.0) then
+               lambda_y=zero
+            else
+               lambda_y = Ly / float(m)
+            endif
+            
+            lambda = sqrt( lambda_x*lambda_x + lambda_y*lambda_y )
+            
+            if (lambda .ge. wavelength_min .and. lambda .le. wavelength_max) then
+               amp(l,m) = two*(ran1(idum)-half)*lambda*lambda
+               phs(l,m,1) = two*Pi*ran1(idum)
+               phs(l,m,2) = two*Pi*ran1(idum)
+               amps = amps + 1
+            else
+               amp(l,m) = zero
+            end if
+
+         end do
+      end do
+      
+      write (*,*) "amps = ",amps
+         
+c     Need to integrate to normalise the perturbation
+      amp_rms = zero
+      do j = 1,int(0.5+Ly/hy)
+         y = hy*(float(j) + half)/Ly
+         do i = 1,int(0.5+Lx/hx)
+            x = hx*(float(i) + half)/Lx
+            pert = zero
+            do l = -x_modes, x_modes
+               do m = -y_modes, y_modes
+                  if (abs(amp(l,m)).gt.zero) then
+                     cx = cos(2*Pi*float(l)*x/Lx+phs(l,m,1))
+                     cy = cos(2*Pi*float(m)*y/Ly+phs(l,m,2))
+                     pert = pert + amp(l,m)*cx*cy
+                  endif
+               end do
+            end do
+            amp_rms = amp_rms + pert*pert
+         end do
+      end do
+      
+      amp_rms = sqrt(amp_rms*hx*hy/(Lx*Ly))
+
+      write (*,*) "amp_rms = ",amp_rms
+
+      do l = -x_modes, x_modes
+         do m = -y_modes, y_modes
+            amp(l,m) = density_pert*hz0*amp(l,m)/amp_rms
+         enddo
+      enddo
+      
+      pert_min = 1.d10
+      pert_max = -pert_min
+
+      do j = lo(2), hi(2)
+         y = xlo(2) + hy*(float(j-lo(2)) + half)
+         do i = lo(1), hi(1)
+            x = xlo(1) + hx*(float(i-lo(1)) + half)
+            pert = zero
+            do l = -x_modes, x_modes
+               do m = -y_modes, y_modes
+                  if (abs(amp(l,m)).gt.zero) then
+                     cx = cos(2*Pi*float(l)*x/Lx+phs(l,m,1))
+                     cy = cos(2*Pi*float(m)*y/Ly+phs(l,m,2))
+                     pert = pert + amp(l,m)*cx*cy
+                  endif
+               end do
+            end do
+            eta(i,j) = pert
+            if (pert.gt.pert_max) pert_max=pert
+            if (pert.lt.pert_min) pert_min=pert
+         end do
+      end do
+      
+      write (*,*) "pert_min/hz = ",pert_min/hz
+      write (*,*) "pert_max/hz = ",pert_max/hz
+
+c     Go to work...
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half) - interface_height
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               
+c     Set velocities to zero if required
+               vel(i,j,k,1) = zero
+               vel(i,j,k,2) = zero
+               vel(i,j,k,3) = zero
+               
+               if (abs(z-eta(i,j)).lt.half*hz) then
+                  frac = half+(eta(i,j)-z)/hz
+                  scal(i,j,k,1) = den1*(one-frac) + den2*frac
+               else
+                  if (z.gt.zero) then
+                     scal(i,j,k,1) = den1
+                  else
+                     scal(i,j,k,1) = den2
+                  endif
+               endif
+
+c     Set a tracer on the interface
+               if (abs(z).lt.half*tracer_height) then
+                  scal(i,j,k,2) = one
+               else
+                  scal(i,j,k,2) = zero
+               endif
+
+            enddo
+         enddo
+      enddo
+
+      end
+c
+c ::: -----------------------------------------------------------
+c
       subroutine initraneul(level,time,lo,hi,nscal,
      &	 	       vel,scal,DIMS(state),press,DIMS(press),
      &                 dx,xlo,xhi)
@@ -2271,6 +2749,136 @@ c
 c
 c ::: -----------------------------------------------------------
 c
+      subroutine initshearlayer(level,time,lo,hi,nscal,
+     &                       vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z, t
+      REAL_T  hx, hy, hz
+      REAL_T  Lx, Ly, Lz
+      REAL_T  z0
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      Lx = f_probhi(1)-f_problo(1)
+      Ly = f_probhi(2)-f_problo(2)
+      Lz = f_probhi(3)-f_problo(3)
+
+c     Go to work...
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+               
+               t = time-half*x*(vel1+vel2)
+               z0 = interface_height
+               do n = 1, 10
+                  z0 = z0 + mag(n)*cos(freq(n)*t+phi1(n))*cos(float(n)*y/Ly+phi2(n))
+               enddo
+
+               vel(i,j,k,1) = half*((vel1+vel2)+(vel1-vel2)*tanh(two*(z-z0)/delta0))
+               vel(i,j,k,2) = zero
+               vel(i,j,k,3) = zero
+
+               scal(i,j,k,1) = half*((den1+den2)+(den1-den2)*tanh(two*(z-z0)/delta0))
+               scal(i,j,k,2) = exp(-((z-interface_height)/delta0)**2)
+
+            enddo
+         enddo
+      enddo
+
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initiwpctm(level,time,lo,hi,nscal,
+     &                       vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z, t
+      REAL_T  hx, hy, hz
+      REAL_T  Lx, Ly, Lz
+      REAL_T  z0
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      Lx = f_probhi(1)-f_problo(1)
+      Ly = f_probhi(2)-f_problo(2)
+      Lz = f_probhi(3)-f_problo(3)
+
+c     Go to work...
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+               
+               vel(i,j,k,1) = zero
+               vel(i,j,k,2) = zero
+               vel(i,j,k,3) = zero
+
+               z0 = 0.01*(cos(two*Pi*x)+cos(two*Pi*y))
+
+               if (z.gt.z0) then
+                  scal(i,j,k,1) = den1
+                  scal(i,j,k,2) = one
+               else
+                  scal(i,j,k,1) = den2
+                  scal(i,j,k,2) = zero
+               endif
+
+               scal(i,j,k,1) = half*(den1+den2)+half*(den1-den2)*tanh((z-z0)/delta0)
+               
+            enddo
+         enddo
+      enddo
+
+      end
+c     
+c     
+c     ::: -----------------------------------------------------------
+c     
 c     This routine averages the mac face velocities for makeforce at half time
 c
       subroutine FORT_AVERAGE_EDGE_STATES(vel,umacx,umacy,umacz,
@@ -2400,7 +3008,7 @@ c
       REAL_T  kxd, kyd, kzd
       REAL_T  xt, yt, zt
       REAL_T  zlo
-      integer kx, ky, kz, mode_count, xstep, ystep, zstep
+      integer kx, ky, kz, mode_count, xstep, ystep, zstep, count
       integer isioproc, do_trac2
       integer nXvel, nYvel, nZvel, nRho, nTrac, nTrac2, nRhoScal, nTracScal, nTrac2Scal
 
@@ -2411,6 +3019,7 @@ c
       REAL_T  scalmax(0:nscal-1)
       REAL_T  forcemin(scomp:scomp+ncomp-1)
       REAL_T  forcemax(scomp:scomp+ncomp-1)
+      REAL_T  tmpMin, tmpMax
 #endif
 
       call bl_ns_dotrac2(do_trac2)
@@ -2459,7 +3068,8 @@ c     Assumes components are in the following order
                scalmin(n) = 1.d234
                scalmax(n) = -1.d234
             enddo
-            
+
+            count = 0
 c     Get min/max
             do k = klo, khi
                do j = jlo, jhi
@@ -2474,6 +3084,10 @@ c     Velocities
                         endif
                      enddo
 c     Scalars
+                     if (scal(i,j,k,0).lt.0.001) then
+                        count=count+1
+c                        write (*,*) i,j,k,scal(i,j,k,n)
+                     endif
                      do n = 0, nscal-1
                         if (scal(i,j,k,n).gt.scalmax(n)) then
                            scalmax(n)=scal(i,j,k,n)
@@ -2486,7 +3100,9 @@ c     Scalars
                   enddo
                enddo
             enddo
-            
+
+            write(*,*) "DODGY DENSITY COUNT = ",count
+
             do n = 0, SDIM-1
                write (6,*) "velmin (",n,") = ",velmin(n)
                write (6,*) "velmax (",n,") = ",velmax(n)
@@ -3162,6 +3778,56 @@ c     probtype = VISCOUS BENCHMARK
            end do
         end do
         
+      else if (probtype .eq. 21) then
+ 
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+        
+      else if (probtype .eq. 22) then
+ 
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+        
+      else if (probtype .eq. 23) then
+ 
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+        
+      else if (probtype .eq. 24) then
+ 
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+        
+      else if (probtype .eq. 25) then
+ 
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+        
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
         stop
@@ -3307,6 +3973,16 @@ c     probtype = VISCOUS BENCHMARK
 
       else if (probtype .eq. 20) then
 
+      else if (probtype .eq. 21) then
+
+      else if (probtype .eq. 22) then
+
+      else if (probtype .eq. 23) then
+
+      else if (probtype .eq. 24) then
+
+      else if (probtype .eq. 25) then
+
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_TEMPERROR ',probtype
         stop
@@ -3354,6 +4030,8 @@ c ::: -----------------------------------------------------------
       REAL_T    radius, maxvort
 
 #include "probdata.H"
+
+      write (*,*) "MVERROR: probtype ",probtype," on level ",level
 
 c     probtype = SPIN
       if (probtype .eq. 1) then
@@ -3469,6 +4147,7 @@ c     probtype = VISCOUS BENCHMARK
                end do
             end do
          else if (ref_type.eq.2) then
+            write (*,*) "Refining probtype 14 on level",level
             do k = lo(3), hi(3)
                z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
                if (abs(z-ref_centre).lt.ref_radius) then
@@ -3540,7 +4219,69 @@ c     probtype = VISCOUS BENCHMARK
             endif
          end do
 
+      else if (probtype .eq. 20) then
+
+         do k = lo(3), hi(3)
+            z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
+            if (z.lt.ref_height) then
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  end do
+               end do
+            endif
+         end do
+
       else if (probtype .eq. 21) then
+
+         do k = lo(3), hi(3)
+            z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
+            if (z.lt.ref_height) then
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  end do
+               end do
+            endif
+         end do
+
+      else if (probtype .eq. 22) then
+
+         do k = lo(3), hi(3)
+            z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
+            if (z.lt.ref_height) then
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  end do
+               end do
+            endif
+         end do
+
+      else if (probtype .eq. 23) then
+
+         do k = lo(3), hi(3)
+            z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
+            if (z.lt.ref_height) then
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  end do
+               end do
+            endif
+         end do
+
+      else if (probtype .eq. 24) then
+
+         do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = cvmgt(set,tag(i,j,k),dx(1)*abs(vort(i,j,k,1)).gt.vorterr)
+              end do
+           end do
+         end do
+
+      else if (probtype .eq. 25) then
 
          do k = lo(3), hi(3)
            do j = lo(2), hi(2)
@@ -3591,8 +4332,8 @@ c ::: -----------------------------------------------------------
       integer    bc(SDIM,2)
       integer    lo(SDIM), hi(SDIM)
 
-      integer    i, j, k
-      REAL_T  umid,rmid,lamv,lamr,rfact
+      integer    i, j, k, n
+      REAL_T  umid,rmid,lamv,lamr,rfact, Ly, z0
       REAL_T  hx, hy, hz, gpert, z, y, x, r, ypert, magwif, constn, rs, rd
 
       parameter (constn=.22089323)
@@ -3686,13 +4427,32 @@ c ::: -----------------------------------------------------------
 
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(rho).lt.domlo(1)) then
-         do i = ARG_L1(rho), domlo(1)-1
+         if (probtype.eq.24) then
+c     SHEAR LAYER
+            Ly = f_probhi(2)-f_problo(2)
             do k = ARG_L3(rho), ARG_H3(rho)
+               z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
                do j = ARG_L2(rho), ARG_H2(rho)
-                  rho(i,j,k) = denfact
+                  y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
+                  z0 = interface_height
+                  do n = 1, 10
+                     z0 = z0 + mag(n)*cos(freq(n)*time+phi1(n))*cos(float(n)*y/Ly+phi2(n))
+                  enddo
+                  do i = ARG_L1(rho), domlo(1)-1
+c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
+                     rho(i,j,k) = half*((den1+den2)+(den1-den2)*tanh(two*(z-z0)/delta0))
+                  end do
                end do
-	    end do
-	 end do
+            end do
+         else
+            do i = ARG_L1(rho), domlo(1)-1
+               do k = ARG_L3(rho), ARG_H3(rho)
+                  do j = ARG_L2(rho), ARG_H2(rho)
+                     rho(i,j,k) = denfact
+                  end do
+               end do
+            end do
+         end if
       end if
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(rho).gt.domhi(1)) then
@@ -3834,8 +4594,8 @@ c ::: -----------------------------------------------------------
       integer    bc(SDIM,2)
       integer    lo(SDIM), hi(SDIM)
 
-      integer    i, j, k
-      REAL_T  hx, hy, hz, gpert, z, y, x, ypert, magwif, constn,r
+      integer    i, j, k, n
+      REAL_T  hx, hy, hz, gpert, z, y, x, ypert, magwif, constn,r, Ly, z0
 
       parameter (constn=.22089323)
 
@@ -3925,13 +4685,31 @@ c ::: -----------------------------------------------------------
       else
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(adv).lt.domlo(1)) then
-         do i = ARG_L1(adv), domlo(1)-1
+         if (probtype.eq.24) then
+c     SHEAR LAYER
             do k = ARG_L3(adv), ARG_H3(adv)
+               z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
                do j = ARG_L2(adv), ARG_H2(adv)
-                  adv(i,j,k) = zero
+c                  y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
+                  z0 = interface_height
+c                  do n = 1, 10
+c                     z0 = z0 + mag(n)*cos(freq(n)*time+phi1(n))*cos(float(n)*y/Ly+phi2(n))
+c                  enddo
+                  do i = ARG_L1(adv), domlo(1)-1
+c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
+                     adv(i,j,k) = exp(-((z-z0)/delta0)**2)
+                  end do
                end do
-	    end do
-	 end do
+            end do
+         else
+            do i = ARG_L1(adv), domlo(1)-1
+               do k = ARG_L3(adv), ARG_H3(adv)
+                  do j = ARG_L2(adv), ARG_H2(adv)
+                     adv(i,j,k) = zero
+                  end do
+               end do
+            end do
+         end if            
       end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(adv).gt.domhi(1)) then
@@ -4301,8 +5079,8 @@ c ::: -----------------------------------------------------------
       REAL_T     u(DIMV(u))
       integer    bc(SDIM,2)
       integer    lo(SDIM),hi(SDIM)
-      integer    i, j, k
-      REAL_T     x_vel
+      integer    i, j, k, n
+      REAL_T     x_vel, Ly, z0
       REAL_T     y, ul, g_t
       REAL_T     umid,rmid,lamv,lamr,rfact
       REAL_T     hx, hy, hz, gpert, z,  ypert, magwif, constn
@@ -4359,13 +5137,32 @@ c
       call filcc(u,DIMS(u),domlo,domhi,dx,xlo,bc)
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(u).lt.domlo(1)) then
-         do i = ARG_L1(u), domlo(1)-1
+         if (probtype.eq.24) then
+c     SHEAR LAYER
+            Ly = f_probhi(2)-f_problo(2)
             do k = ARG_L3(u), ARG_H3(u)
+               z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
                do j = ARG_L2(u), ARG_H2(u)
-                  u(i,j,k) = x_vel
+                  y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
+                  z0 = interface_height
+                  do n = 1, 10
+                     z0 = z0 + mag(n)*cos(freq(n)*time+phi1(n))*cos(float(n)*y/Ly+phi2(n))
+                  enddo
+                  do i = ARG_L1(u), domlo(1)-1
+c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
+                     u(i,j,k) = half*((vel1+vel2)+(vel1-vel2)*tanh(two*(z-z0)/delta0))
+                  end do
                end do
-	    end do
-	 end do
+            end do
+         else
+            do i = ARG_L1(u), domlo(1)-1
+               do k = ARG_L3(u), ARG_H3(u)
+                  do j = ARG_L2(u), ARG_H2(u)
+                     u(i,j,k) = x_vel
+                  end do
+               end do
+            end do
+         end if            
       end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(u).gt.domhi(1)) then
@@ -6263,3 +7060,41 @@ c*****************************************************************************
 c*****************************************************************************
 
       end
+
+***************************************************************
+*    "Minimal" random number generator of Park and Miller with
+*    Bays-Durham shuffle and added safeguards.  Returns a uniform random
+*    deviate between 0.0 and 1.0 (exclusive of the endpoint values).
+*    Call with IDUM a negative integer to initialize; thereafter, do not
+*    alter IDUM between successive deviates in a sequence.  RNMX should
+*    approximate the largest floating value that is less than 1.
+
+      function ran1(idum)
+      integer idum,ia,im,iq,ir,ntab,ndiv
+      REAL_T ran1,am,eps,rnmx
+      parameter (ia=16807,im=2147483647,am=1./im,iq=127773,ir=2836,
+     &     ntab=32,ndiv=1+(im-1)/ntab,eps=1.2e-7,rnmx=1.-eps)
+      integer j,k,iv(ntab),iy
+      save iv,iy
+      data iv /ntab*0/, iy /0/
+      if (idum.le.0.or.iy.eq.0) then
+         idum=max(-idum,1)
+         do 11 j=ntab+8,1,-1
+            k=idum/iq
+            idum=ia*(idum-k*iq)-ir*k
+            if (idum.lt.0) idum=idum+im
+            if (j.le.ntab) iv(j)=idum
+ 11      continue
+         iy=iv(1)
+      endif
+      k=idum/iq
+      idum=ia*(idum-k*iq)-ir*k
+      if (idum.lt.0) idum=idum+im
+      j=1+iy/ndiv
+      iy=iv(j)
+      iv(j)=idum
+      ran1=min(am*iy,rnmx)
+      return
+      end
+*
+*     After Press et al., Numerical Recipes for Fortran
