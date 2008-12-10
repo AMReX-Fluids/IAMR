@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_2D.F,v 1.19 2008-02-08 18:39:47 lijewski Exp $ 
+c $Id: DERIVE_2D.F,v 1.20 2008-12-10 20:28:37 aaspden Exp $ 
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -42,6 +42,41 @@ c     time      => problem evolution time
 c     bc        => array of bndry types for component values
 c                  valid only if component touches bndry
 c     -----------------------------------------------------------
+
+      subroutine FORT_DERMODGRADRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                         bc,level,grid_no)
+      implicit none
+c
+c     This routine will derive kinetic energy from density
+c     and the velocity field.
+c
+      integer    lo(2), hi(2)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(2), domhi(2)
+      integer    nv, ncomp
+      integer    bc(2,2,ncomp)
+      REAL_T     delta(2), xlo(2), time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer    i,j
+      REAL_T     drdx, drdy, tdx, tdy
+
+      tdx = two*delta(1)
+      tdy = two*delta(2)
+
+      do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            drdx = (dat(i+1,j,1)-dat(i-1,j,1))/tdx
+            drdy = (dat(i,j+1,1)-dat(i,j-1,1))/tdy
+            e(i,j,1) = sqrt( drdx*drdx + drdy*drdy )
+         end do
+      end do
+
+      end
 
       subroutine FORT_DERKENG (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,

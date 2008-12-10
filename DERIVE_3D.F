@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.29 2008-09-04 17:14:39 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.30 2008-12-10 20:28:37 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1195,6 +1195,46 @@ c     Need these for D = u.nabla^2 u
 
       end
 #endif
+
+      subroutine FORT_DERMODGRADRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                         bc,level,grid_no)
+      implicit none
+c
+c     This routine will derive the modulus of the density gradients
+c
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer    i,j,k
+      REAL_T     drdx, drdy, drdz, tdx, tdy, tdz
+
+      tdx = two*delta(1)
+      tdy = two*delta(2)
+      tdz = two*delta(3)
+
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               drdx = (dat(i+1,j,k,1)-dat(i-1,j,k,1))/tdx
+               drdy = (dat(i,j+1,k,1)-dat(i,j-1,k,1))/tdy
+               drdz = (dat(i,j,k+1,1)-dat(i,j,k-1,1))/tdz
+               e(i,j,k,1) = sqrt( drdx*drdx + drdy*drdy + drdz*drdz )
+            end do
+         end do
+      end do
+
+      end
+
       subroutine FORT_DERKENG (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                         bc,level,grid_no)

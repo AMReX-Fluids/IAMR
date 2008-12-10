@@ -2,10 +2,11 @@
 #define _DERIVE_F_H
 
 /*
-** $Id: DERIVE_F.H,v 1.20 2007-11-07 20:58:27 aaspden Exp $
+** $Id: DERIVE_F.H,v 1.21 2008-12-10 20:28:37 aaspden Exp $
 */
 
 #ifdef BL_LANG_FORT
+#    define FORT_DERMODGRADRHO     dermodgradrho
 #    define FORT_DERKENG     derkeng
 #    define FORT_DERMGVORT   dermgvort
 #if (BL_SPACEDIM == 3)
@@ -47,6 +48,7 @@
 #endif
 #else
 #  if defined(BL_FORT_USE_UPPERCASE)
+#    define FORT_DERMODGRADRHO     DERMODGRADRHO
 #    define FORT_DERKENG     DERKENG
 #    define FORT_DERMGVORT   DERMGVORT
 #if (BL_SPACEDIM == 3)
@@ -88,6 +90,7 @@
 #endif
 #  elif defined (BL_FORT_USE_LOWERCASE)
 #    define FORT_GRADP_DIR   gradpdir
+#    define FORT_DERMODGRADRHO     dermodgradrho
 #    define FORT_DERKENG     derkeng
 #    define FORT_DERMGVORT   dermgvort
 #if (BL_SPACEDIM == 3)
@@ -129,6 +132,7 @@
 #endif
 #  elif defined (BL_FORT_USE_UNDERSCORE)
 #    define FORT_GRADP_DIR   gradpdir_
+#    define FORT_DERMODGRADRHO     dermodgradrho_
 #    define FORT_DERKENG     derkeng_
 #    define FORT_DERMGVORT   dermgvort_
 #if (BL_SPACEDIM == 3)
@@ -173,6 +177,15 @@
 #include <ArrayLim.H>
 
 extern "C" {
+     void FORT_DERMODGRADRHO    (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
+
      void FORT_DERKENG    (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
