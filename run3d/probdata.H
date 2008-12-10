@@ -6,7 +6,7 @@
       REAL_T  turb_scale,domnlo(SDIM),domnhi(SDIM)
       REAL_T  grav_angle, omega, infl_time_offset, injection_time
       REAL_T  jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel, jet_temp
-      REAL_T  ref_centre, ref_radius, ref_height
+      REAL_T  ref_centre, ref_radius, ref_height, ref_height2
       REAL_T  thermal_expansion, heating_coeff, heating_centre, heating_radius
       REAL_T  density_pert, interface_height, wavelength_min, wavelength_max, tracer_height
       REAL_T  phi1(10), phi2(10)
@@ -22,7 +22,7 @@
       common /probdt6/ f_problo, f_probhi,domnlo,domnhi,turb_scale
       common /probdt7/ vb_unifdir, blrandseed
       common /probdt9/ grav_angle, omega, infl_time_offset
-      common /probdt10/ jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel, jet_temp, ref_height
+      common /probdt10/ jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2
       common /probdt11/ thermal_expansion, heating_coeff, heating_centre, heating_radius
       common /probdt12/ density_pert, interface_height, wavelength_min, wavelength_max, tracer_height, phi1, phi2
 

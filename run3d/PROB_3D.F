@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.52 2008-12-10 20:34:09 aaspden Exp $
+c $Id: PROB_3D.F,v 1.53 2008-12-10 20:59:29 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -114,7 +114,7 @@ c ::: -----------------------------------------------------------
      &                  FPX, FPY, FPZ, FAX, FAY, FAZ
 #endif
 
-      namelist /fortin/ jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel, jet_temp, ref_height
+      namelist /fortin/ jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -329,7 +329,7 @@ c
             Ly = forcing_ylength
             Lz = forcing_zlength
          endif
-         if (hack_lz) then 
+         if (hack_lz.eq.1) then 
             Lz = Lz/two
          endif
          
@@ -3183,7 +3183,7 @@ c     Adjust z offset for probtype 15
                Ly = forcing_ylength
                Lz = forcing_zlength
             endif
-            if (hack_lz) then 
+            if (hack_lz.eq.1) then 
                Lz = Lz/two
             endif
             
@@ -3555,7 +3555,7 @@ c ::: -----------------------------------------------------------
       integer   tag(DIMV(tag))
       REAL_T    adv(DIMV(adv),nvar)
 
-      REAL_T    x, y, z, ax, ay, az, aerr
+      REAL_T    x, y, z, ax, ay, az, aerr, rh
       integer   i, j, k
 
 #include "probdata.H"
@@ -3743,10 +3743,16 @@ c     probtype = VISCOUS BENCHMARK
         endif
         
       else if (probtype .eq. 18) then
+
+        if (ref_height2.gt.0 .and. level.eq.1) then
+           rh = ref_height2
+        else
+           rh = ref_height
+        endif
  
         do k = lo(3), hi(3)
            z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
-           if (z.lt.ref_height) then
+           if (z.lt.rh) then
               do j = lo(2), hi(2)
                  do i = lo(1), hi(1)
                     tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
