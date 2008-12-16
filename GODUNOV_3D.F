@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.50 2008-12-08 23:39:32 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.51 2008-12-16 23:16:18 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -4161,6 +4161,62 @@ c
 c ... end, if slope_order .eq. 4
 c
       end if
+
+      end
+
+      subroutine FORT_PPM(s,DIMS(s),u,DIMS(u),Ip,Im,DIMS(Il),lo,hi,bc)
+
+      implicit none
+
+      integer lo(SDIM), hi(SDIM)
+      integer bc(SDIM,2)
+      integer DIMDEC(s)
+      integer DIMDEC(u)
+      integer DIMDEC(Il)
+      REAL_T  s(DIMV(s))
+      REAL_T  u(DIMV(u))
+      REAL_T  Ip(DIMV(Il))
+      REAL_T  Im(DIMV(Il))
+
+      integer imin,jmin,kmin,imax,jmax,kmax,i,j,k
+
+      imin = lo(1)
+      jmin = lo(2)
+      kmin = lo(3)
+      imax = hi(1)
+      jmax = hi(2)
+      kmax = hi(3)
+
+      end
+
+      subroutine FORT_PPM_FPU(s,DIMS(s),
+     &     uedge,DIMS(uedge),vedge,DIMS(vedge),wedge,DIMS(wedge),
+     &     Ip,Im,DIMS(Il),lo,hi,bc)
+
+      implicit none
+
+      integer lo(SDIM), hi(SDIM)
+      integer bc(SDIM,2)
+      integer DIMDEC(s)
+      integer DIMDEC(uedge)
+      integer DIMDEC(vedge)
+      integer DIMDEC(wedge)
+      integer DIMDEC(Il)
+      REAL_T  s(DIMV(s))
+      REAL_T  uedge(DIMV(uedge))
+      REAL_T  vedge(DIMV(vedge))
+      REAL_T  wedge(DIMV(wedge))
+      REAL_T  Ip(DIMV(Il))
+      REAL_T  Im(DIMV(Il))
+
+      integer imin,jmin,kmin,imax,jmax,kmax,i,j,k
+
+      imin = lo(1)
+      jmin = lo(2)
+      kmin = lo(3)
+      imax = hi(1)
+      jmax = hi(2)
+      kmax = hi(3)
 
       end
 

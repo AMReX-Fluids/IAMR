@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.44 2008-02-08 18:39:48 lijewski Exp $
+c $Id: GODUNOV_2D.F,v 1.45 2008-12-16 23:16:18 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1639,6 +1639,56 @@ c
 c ... end, if slope_order .eq. 4
 c
       end if
+
+      end
+
+      subroutine FORT_PPM(s,DIMS(s),u,DIMS(u),Ip,Im,DIMS(Il),lo,hi,bc)
+
+      implicit none
+
+      integer lo(SDIM), hi(SDIM)
+      integer bc(SDIM,2)
+      integer DIMDEC(s)
+      integer DIMDEC(u)
+      integer DIMDEC(Il)
+      REAL_T  s(DIMV(s))
+      REAL_T  u(DIMV(u))
+      REAL_T  Ip(DIMV(Il))
+      REAL_T  Im(DIMV(Il))
+
+      integer imin,jmin,imax,jmax,i,j
+
+      imin = lo(1)
+      jmin = lo(2)
+      imax = hi(1)
+      jmax = hi(2)
+
+      end
+
+      subroutine FORT_PPM_FPU(s,DIMS(s),
+     &     uedge,DIMS(uedge),vedge,DIMS(vedge),
+     &     Ip,Im,DIMS(Il),lo,hi,bc)
+
+      implicit none
+
+      integer lo(SDIM), hi(SDIM)
+      integer bc(SDIM,2)
+      integer DIMDEC(s)
+      integer DIMDEC(uedge)
+      integer DIMDEC(vedge)
+      integer DIMDEC(Il)
+      REAL_T  s(DIMV(s))
+      REAL_T  uedge(DIMV(uedge))
+      REAL_T  vedge(DIMV(vedge))
+      REAL_T  Ip(DIMV(Il))
+      REAL_T  Im(DIMV(Il))
+
+      integer imin,jmin,imax,jmax,i,j
+
+      imin = lo(1)
+      jmin = lo(2)
+      imax = hi(1)
+      jmax = hi(2)
 
       end
 
