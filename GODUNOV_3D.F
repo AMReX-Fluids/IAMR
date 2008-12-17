@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.54 2008-12-17 18:02:53 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.55 2008-12-17 19:11:06 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1448,12 +1448,21 @@ c
      &                 (zedge(i,j,k+1) - zedge(i,j,k)) / hz
                   endif
 
-                  stxlo(i+1)= s(i,j,k) + (half-dthx*u(i,j,k))*sx(i,j,k)
-     &                 - dth*tr1 - dth*tr2
-     &                 + dth*tforces(i,j,k)
-                  stxhi(i  )= s(i,j,k) - (half+dthx*u(i,j,k))*sx(i,j,k)
-     &                 - dth*tr1 - dth*tr2
-     &                 + dth*tforces(i,j,k)
+                  if (use_ppm) then
+                     stxlo(i+1)= Ipx(i,j,k)
+     &                    - dth*tr1 - dth*tr2
+     &                    + dth*tforces(i,j,k)
+                     stxhi(i  )= Imx(i,j,k)
+     &                    - dth*tr1 - dth*tr2
+     &                    + dth*tforces(i,j,k)
+                  else
+                     stxlo(i+1)= s(i,j,k) + (half-dthx*u(i,j,k))*sx(i,j,k)
+     &                    - dth*tr1 - dth*tr2
+     &                    + dth*tforces(i,j,k)
+                     stxhi(i  )= s(i,j,k) - (half+dthx*u(i,j,k))*sx(i,j,k)
+     &                    - dth*tr1 - dth*tr2
+     &                    + dth*tforces(i,j,k)
+                  end if
                end do
 
                if (bc(1,1).eq.EXT_DIR .and. velpred.eq.1) then
@@ -1595,12 +1604,21 @@ c
      &                 (zedge(i,j,k+1) - zedge(i,j,k)) / hz
                   endif
 
-                  stylo(j+1)= s(i,j,k) + (half-dthy*v(i,j,k))*sy(i,j,k)
-     &                 - dth*tr1 - dth*tr2
-     &                 + dth*tforces(i,j,k)
-                  styhi(j)  = s(i,j,k) - (half+dthy*v(i,j,k))*sy(i,j,k)
-     &                 - dth*tr1 - dth*tr2
-     &                 + dth*tforces(i,j,k)
+                  if (use_ppm) then
+                     stylo(j+1)= Ipy(i,j,k)
+     &                    - dth*tr1 - dth*tr2
+     &                    + dth*tforces(i,j,k)
+                     styhi(j)  = Imy(i,j,k)
+     &                    - dth*tr1 - dth*tr2
+     &                    + dth*tforces(i,j,k)
+                  else
+                     stylo(j+1)= s(i,j,k) + (half-dthy*v(i,j,k))*sy(i,j,k)
+     &                    - dth*tr1 - dth*tr2
+     &                    + dth*tforces(i,j,k)
+                     styhi(j)  = s(i,j,k) - (half+dthy*v(i,j,k))*sy(i,j,k)
+     &                    - dth*tr1 - dth*tr2
+     &                    + dth*tforces(i,j,k)
+                  end if
                end do
 
                if (bc(2,1).eq.EXT_DIR .and. velpred.eq.1) then
@@ -1743,12 +1761,21 @@ c
      &                 (yedge(i,j+1,k) - yedge(i,j,k)) / hy
                   endif
 
-                  stzlo(k+1)= s(i,j,k) + (half-dthz*w(i,j,k))*sz(i,j,k)
-     &                 - dth*tr1 - dth*tr2
-     &                 + dth*tforces(i,j,k)
-                  stzhi(k)  = s(i,j,k) - (half+dthz*w(i,j,k))*sz(i,j,k)
-     &                 - dth*tr1 - dth*tr2
-     &                 + dth*tforces(i,j,k)
+                  if (use_ppm) then
+                     stzlo(k+1)= Ipz(i,j,k)
+     &                    - dth*tr1 - dth*tr2
+     &                    + dth*tforces(i,j,k)
+                     stzhi(k)  = Imz(i,j,k)
+     &                    - dth*tr1 - dth*tr2
+     &                    + dth*tforces(i,j,k)
+                  else
+                     stzlo(k+1)= s(i,j,k) + (half-dthz*w(i,j,k))*sz(i,j,k)
+     &                    - dth*tr1 - dth*tr2
+     &                    + dth*tforces(i,j,k)
+                     stzhi(k)  = s(i,j,k) - (half+dthz*w(i,j,k))*sz(i,j,k)
+     &                    - dth*tr1 - dth*tr2
+     &                    + dth*tforces(i,j,k)
+                  end if
                end do
 
                if (bc(3,1).eq.EXT_DIR .and. velpred.eq.1) then
@@ -1929,7 +1956,7 @@ c     used in 3d corner coupling
       REAL_T zylo(DIMV(work)), zyhi(DIMV(work))
 
       integer use_minion, iconserv
-      REAL_T spx,smx,spy,smy,spz,smz,st,denom
+      REAL_T st,denom
 
       logical use_ppm
       REAL_T, allocatable :: Ipx(:,:,:)
@@ -2788,9 +2815,6 @@ c
             do j = jmin,jmax
                do i = imin-1,imax+1
 
-                  spx = s(i,j,k) + half*sx(i,j,k)
-                  smx = s(i,j,k) - half*sx(i,j,k)
-
                   if (iconserv.eq.1) then
 
                      tr =
@@ -2832,8 +2856,13 @@ c    &                    - dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
                      st = -dth*(tr1 + tr2) + dth*tforces(i,j,k)
                   endif
 
-                  stxlo(i+1)= spx - dthx*uedge(i+1,j,k)*sx(i,j,k) + st
-                  stxhi(i  )= smx - dthx*uedge(i  ,j,k)*sx(i,j,k) + st
+                  if (use_ppm) then
+                     stxlo(i+1)= Ipx(i,j,k) + st
+                     stxhi(i  )= Imx(i,j,k) + st
+                  else
+                     stxlo(i+1)= s(i,j,k) + (half-dthx*uedge(i+1,j,k))*sx(i,j,k) + st
+                     stxhi(i  )= s(i,j,k) - (half-dthx*uedge(i  ,j,k))*sx(i,j,k) + st
+                  end if
 
                end do
 
@@ -2899,10 +2928,8 @@ c     compute the yedge states
 c
       do k = kmin,kmax
             do i = imin,imax
-               
                do j = jmin-1,jmax+1
-                  spy = s(i,j,k) + half*sy(i,j,k)
-                  smy = s(i,j,k) - half*sy(i,j,k)
+
                   if (iconserv.eq.1) then
 
                      tr =
@@ -2946,8 +2973,14 @@ c    &                    - dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
 
                   endif
 
-                  stylo(j+1)= spy - dthy*vedge(i,j+1,k)*sy(i,j,k) + st
-                  styhi(j  )= smy - dthy*vedge(i,j  ,k)*sy(i,j,k) + st
+                  if (use_ppm) then
+                     stylo(j+1)= Ipy(i,j,k) + st
+                     styhi(j  )= Imy(i,j,k) + st
+                  else
+                     stylo(j+1)= s(i,j,k) + (half-dthy*vedge(i,j+1,k))*sy(i,j,k) + st
+                     styhi(j  )= s(i,j,k) - (half-dthy*vedge(i,j  ,k))*sy(i,j,k) + st
+                  end if
+
                end do
 
                if (bc(2,1).eq.EXT_DIR .and. vedge(i,jmin,k).ge.zero) then
@@ -3013,11 +3046,7 @@ c     compute the zedge states
 c
       do j = jmin,jmax
             do i = imin,imax
-               
                do k = kmin-1,kmax+1
-                  
-                  spz = s(i,j,k) + half*sz(i,j,k)
-                  smz = s(i,j,k) - half*sz(i,j,k)
 
                   if (iconserv.eq.1) then
                      tr =
@@ -3058,8 +3087,13 @@ c    &                    - dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
                      st = -dth*(tr1 + tr2) + dth*tforces(i,j,k)
                   endif
 
-                  stzlo(k+1)= spz - dthz*wedge(i,j,k+1)*sz(i,j,k) + st
-                  stzhi(k  )= smz - dthz*wedge(i,j,k  )*sz(i,j,k) + st
+                  if (use_ppm) then
+                     stzlo(k+1)= Ipz(i,j,k) + st
+                     stzhi(k  )= Imz(i,j,k) + st
+                  else
+                     stzlo(k+1)= s(i,j,k) + (half-dthz*wedge(i,j,k+1))*sz(i,j,k) + st
+                     stzhi(k  )= s(i,j,k) - (half-dthz*wedge(i,j,k  ))*sz(i,j,k) + st
+                  end if
 
                end do
 

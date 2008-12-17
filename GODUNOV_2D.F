@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.49 2008-12-17 18:02:53 ajnonaka Exp $
+c $Id: GODUNOV_2D.F,v 1.50 2008-12-17 19:11:06 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -565,12 +565,21 @@ c
      &              (vad(i,j+1)+vad(i,j))*
      &              (ylo(i,j+1)-ylo(i,j))/hy
                
-               stxlo(i+1) = s(i,j) + (half-dthx*u(i,j))*sx(i,j)
-     &              - dth*tr
-     &              + dth*tforces(i,j)
-               stxhi(i  ) = s(i,j) - (half+dthx*u(i,j))*sx(i,j)
-     &              - dth*tr
-     &              + dth*tforces(i,j)
+               if (use_ppm) then
+                  stxlo(i+1) = Ipx(i,j)
+     &                 - dth*tr
+     &                 + dth*tforces(i,j)
+                  stxhi(i  ) = Imx(i,j)
+     &                 - dth*tr
+     &                 + dth*tforces(i,j)
+               else
+                  stxlo(i+1) = s(i,j) + (half-dthx*u(i,j))*sx(i,j)
+     &                 - dth*tr
+     &                 + dth*tforces(i,j)
+                  stxhi(i  ) = s(i,j) - (half+dthx*u(i,j))*sx(i,j)
+     &                 - dth*tr
+     &                 + dth*tforces(i,j)
+               end if
             end do
 
             if (bc(1,1).eq.EXT_DIR .and. velpred.eq.1) then
@@ -632,12 +641,21 @@ c
      &              (uad(i+1,j)+uad(i,j))*
      &              (xlo(i+1,j)-xlo(i,j))/hx
 
-               stylo(j+1)= s(i,j) + (half-dthy*v(i,j))*sy(i,j)
-     &              - dth*tr
-     &              + dth*tforces(i,j)
-               styhi(j  )= s(i,j) - (half+dthy*v(i,j))*sy(i,j)
-     &              - dth*tr
-     &              + dth*tforces(i,j)
+               if (use_ppm) then
+                  stylo(j+1)= Ipy(i,j)
+     &                 - dth*tr
+     &                 + dth*tforces(i,j)
+                  styhi(j  )= Imy(i,j)
+     &                 - dth*tr
+     &                 + dth*tforces(i,j)
+               else
+                  stylo(j+1)= s(i,j) + (half-dthy*v(i,j))*sy(i,j)
+     &                 - dth*tr
+     &                 + dth*tforces(i,j)
+                  styhi(j  )= s(i,j) - (half+dthy*v(i,j))*sy(i,j)
+     &                 - dth*tr
+     &                 + dth*tforces(i,j)
+               end if
             end do
 
             if (bc(2,1).eq.EXT_DIR .and. velpred .eq. 1) then
@@ -744,7 +762,7 @@ c
       REAL_T extra_work(DIMV(work),6)
 #endif
       
-      REAL_T spx,smx,spy,smy,st,denom
+      REAL_T st,denom
 
       integer use_minion, iconserv
       integer inc
@@ -897,8 +915,6 @@ c
       do j = jmin,jmax
 
             do i = imin-1,imax+1
-               spx = s(i,j) + half * sx(i,j)
-               smx = s(i,j) - half * sx(i,j)
 
                if (iconserv.eq.1) then
 
@@ -929,8 +945,17 @@ c
 
                endif
 
-               stxlo(i+1)= spx - dthx*uedge(i+1,j)*sx(i,j) + dth*(st + tforces(i,j))
-               stxhi(i  )= smx - dthx*uedge(i  ,j)*sx(i,j) + dth*(st + tforces(i,j))
+               if (use_ppm) then
+                  stxlo(i+1)= Ipx(i,j)
+     &                 + dth*(st + tforces(i,j))
+                  stxhi(i  )= Imx(i,j)
+     &                 + dth*(st + tforces(i,j))
+               else
+                  stxlo(i+1)= s(i,j) + (half-dthx*uedge(i+1,j))*sx(i,j)
+     &                 + dth*(st + tforces(i,j))
+                  stxhi(i  )= s(i,j) - (half-dthx*uedge(i  ,j)*sx(i,j))
+     &                 + dth*(st + tforces(i,j))
+               end if
 
             end do
 
@@ -972,8 +997,6 @@ c
       do i = imin,imax
             
             do j = jmin-1,jmax+1
-               spy = s(i,j) + half * sy(i,j)
-               smy = s(i,j) - half * sy(i,j)
 
                if (iconserv.eq.1) then
 
@@ -1003,8 +1026,17 @@ c
 
                endif
 
-               stylo(j+1)= spy - dthy*vedge(i,j+1)*sy(i,j) + dth*(st + tforces(i,j))
-               styhi(j  )= smy - dthy*vedge(i,j  )*sy(i,j) + dth*(st + tforces(i,j))
+               if (use_ppm) then
+                  stylo(j+1)= Ipy(i,j)
+     &                 + dth*(st + tforces(i,j))
+                  styhi(j  )= s(i,j) - (half-dthy*vedge(i,j  ))*sy(i,j)
+     &                 + dth*(st + tforces(i,j))
+               else
+                  stylo(j+1)= Imy(i,j)
+     &                 + dth*(st + tforces(i,j))
+                  styhi(j  )= s(i,j) - (half-dthy*vedge(i,j  ))*sy(i,j)
+     &                 + dth*(st + tforces(i,j))
+               end if
 
             end do
             
