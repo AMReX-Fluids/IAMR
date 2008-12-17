@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.53 2008-12-17 17:36:34 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.54 2008-12-17 18:02:53 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -327,6 +327,14 @@ c
       integer use_minion
       REAL_T tforces(DIMV(work),SDIM)
 
+      logical use_ppm
+      REAL_T, allocatable :: Ipx(:,:,:)
+      REAL_T, allocatable :: Imx(:,:,:)
+      REAL_T, allocatable :: Ipy(:,:,:)
+      REAL_T, allocatable :: Imy(:,:,:)
+      REAL_T, allocatable :: Ipz(:,:,:)
+      REAL_T, allocatable :: Imz(:,:,:)
+
       dth  = half*dt
       dthx = half*dt / dx(1)
       dthy = half*dt / dx(2)
@@ -340,6 +348,16 @@ c
       imax = hi(1)
       jmax = hi(2)
       kmax = hi(3)
+
+      use_ppm = .false.
+
+      allocate(Ipx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Imx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Ipy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Imy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Ipz(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Imz(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+
 c
 c     =============== THE SCREWY ORDER is to maximize comparability
 c     with the old fortran
@@ -353,19 +371,35 @@ c     --------------------------------------------------------------
 c     compute the z transverse velocities
 c     --------------------------------------------------------------
 c
-      call FORT_SLOPES( XVEL,
-     &     u,DIMS(s),
-     &     sx,sy,sz,DIMS(work),
-     &     lo,hi,slxscr,slyscr,slzscr,ubc)
+      if (use_ppm) then
+         call FORT_PPM(u,u,v,w,DIMS(s),
+     &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),lo,hi,dx,dt,ubc,eps_for_bc)
+      else
+         call FORT_SLOPES( XVEL,
+     &        u,DIMS(s),
+     &        sx,sy,sz,DIMS(work),
+     &        lo,hi,slxscr,slyscr,slzscr,ubc)
+      end if
 
-      do k = kmin-1,kmax+1
-         do j = jmin-1,jmax+1
-            do i = imin,  imax+1
-               ulo(i,j,k) = u(i-1,j,k) + (half  - dthx*u(i-1,j,k))*sx(i-1,j,k)
-               uhi(i,j,k) = u(i,  j,k) + (-half - dthx*u(i,  j,k))*sx(i,  j,k)
+      if (use_ppm) then
+         do k = kmin-1,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin,  imax+1
+                  ulo(i,j,k) = Ipx(i-1,j,k)
+                  uhi(i,j,k) = Imx(i  ,j,k)
+               end do
             end do
          end do
-      end do
+      else
+         do k = kmin-1,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin,  imax+1
+                  ulo(i,j,k) = u(i-1,j,k) + (half  - dthx*u(i-1,j,k))*sx(i-1,j,k)
+                  uhi(i,j,k) = u(i,  j,k) + (-half - dthx*u(i,  j,k))*sx(i,  j,k)
+               end do
+            end do
+         end do
+      end if
 
       if (use_minion .eq. 1 )then
          do k = kmin-1,kmax+1
@@ -378,19 +412,35 @@ c
          end do
       end if
 
-      call FORT_SLOPES(YVEL,
-     &     v,DIMS(s),
-     &     sx,sy,sz,DIMS(work),
-     &     lo,hi,slxscr,slyscr,slzscr,vbc)
+      if (use_ppm) then
+         call FORT_PPM(v,u,v,w,DIMS(s),
+     &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),lo,hi,dx,dt,vbc,eps_for_bc)
+      else
+         call FORT_SLOPES(YVEL,
+     &        v,DIMS(s),
+     &        sx,sy,sz,DIMS(work),
+     &        lo,hi,slxscr,slyscr,slzscr,vbc)
+      end if
 
-      do k = kmin-1,kmax+1
-         do j = jmin,  jmax+1
-            do i = imin-1,imax+1
-               vlo(i,j,k) = v(i,j-1,k) + (half  - dthy*v(i,j-1,k))*sy(i,j-1,k)
-               vhi(i,j,k) = v(i,j,  k) + (-half - dthy*v(i,j,  k))*sy(i,j,  k)
+      if (use_ppm) then
+         do k = kmin-1,kmax+1
+            do j = jmin,  jmax+1
+               do i = imin-1,imax+1
+                  vlo(i,j,k) = Ipy(i,j-1,k)
+                  vhi(i,j,k) = Imy(i,j  ,k)
+               end do
             end do
          end do
-      end do
+      else
+         do k = kmin-1,kmax+1
+            do j = jmin,  jmax+1
+               do i = imin-1,imax+1
+                  vlo(i,j,k) = v(i,j-1,k) + (half  - dthy*v(i,j-1,k))*sy(i,j-1,k)
+                  vhi(i,j,k) = v(i,j,  k) + (-half - dthy*v(i,j,  k))*sy(i,j,  k)
+               end do
+            end do
+         end do
+      end if
 
       if (use_minion .eq. 1 )then
          do k = kmin-1,kmax+1
@@ -403,19 +453,35 @@ c
          end do
       end if
 
-      call FORT_SLOPES(ZVEL,
-     &     w,DIMS(s),
-     &     sx,sy,sz,DIMS(work),
-     &     lo,hi,slxscr,slyscr,slzscr,wbc)
+      if (use_ppm) then
+         call FORT_PPM(w,u,v,w,DIMS(s),
+     &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),lo,hi,dx,dt,wbc,eps_for_bc)
+      else
+         call FORT_SLOPES(ZVEL,
+     &        w,DIMS(s),
+     &        sx,sy,sz,DIMS(work),
+     &        lo,hi,slxscr,slyscr,slzscr,wbc)
+      end if
 
-      do k = kmin,kmax+1
-         do j = jmin-1,jmax+1
-            do i = imin-1,imax+1
-               wlo(i,j,k) = w(i,j,k-1) + (half  - dthz*w(i,j,k-1))*sz(i,j,k-1)
-               whi(i,j,k) = w(i,j,k  ) + (-half - dthz*w(i,j,k  ))*sz(i,j,k  )
+      if (use_ppm) then
+         do k = kmin,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin-1,imax+1
+                  wlo(i,j,k) = Ipz(i,j,k-1)
+                  whi(i,j,k) = Imz(i,j,k  )
+               end do
             end do
          end do
-      end do
+      else
+         do k = kmin,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin-1,imax+1
+                  wlo(i,j,k) = w(i,j,k-1) + (half  - dthz*w(i,j,k-1))*sz(i,j,k-1)
+                  whi(i,j,k) = w(i,j,k  ) + (-half - dthz*w(i,j,k  ))*sz(i,j,k  )
+               end do
+            end do
+         end do
+      end if
 
       if (use_minion .eq. 1 )then
          do k = kmin,kmax+1
@@ -485,6 +551,8 @@ c
          end do
       end do
 
+      deallocate(Ipx,Imx,Ipy,Imy,Ipz,Imz)
+      
       end
 
       subroutine FORT_ESTATE(s, tforces, DIMS(s),
@@ -565,6 +633,14 @@ c     used in 3d corner coupling
 
       integer use_minion
 
+      logical use_ppm
+      REAL_T, allocatable :: Ipx(:,:,:)
+      REAL_T, allocatable :: Imx(:,:,:)
+      REAL_T, allocatable :: Ipy(:,:,:)
+      REAL_T, allocatable :: Imy(:,:,:)
+      REAL_T, allocatable :: Ipz(:,:,:)
+      REAL_T, allocatable :: Imz(:,:,:)
+
       dth  = half*dt
       dthx = half*dt / dx(1)
       dthy = half*dt / dx(2)
@@ -593,24 +669,49 @@ c     used in 3d corner coupling
 
       corner_couple = .false.
 
+      use_ppm = .false.
+
+      allocate(Ipx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Imx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Ipy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Imy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Ipz(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Imz(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+
 c
 c     compute the slopes
 c
-      call FORT_SLOPES(ALL,
-     &     s,DIMS(s),
-     &     sx,sy,sz,DIMS(work),
-     &     lo,hi,slxscr,slyscr,slzscr,bc)
+      if (use_ppm) then
+         call FORT_PPM(s,u,v,w,DIMS(s),
+     &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),lo,hi,dx,dt,bc,eps_for_bc)
+      else
+         call FORT_SLOPES(ALL,
+     &        s,DIMS(s),
+     &        sx,sy,sz,DIMS(work),
+     &        lo,hi,slxscr,slyscr,slzscr,bc)
+      end if
 c
 c     trace the state to the cell edges
 c
-      do k = kmin-1,kmax+1
-         do j = jmin-1,jmax+1
-            do i = imin,  imax+1
-               xlo(i,j,k) = s(i-1,j,k) + (half  - dthx*u(i-1,j,k))*sx(i-1,j,k)
-               xhi(i,j,k) = s(i,  j,k) + (-half - dthx*u(i,  j,k))*sx(i,  j,k)
+      if (use_ppm) then
+         do k = kmin-1,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin,  imax+1
+                  xlo(i,j,k) = Ipx(i-1,j,k)
+                  xhi(i,j,k) = Imx(i  ,j,k)
+               end do
             end do
          end do
-      end do
+      else
+         do k = kmin-1,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin,  imax+1
+                  xlo(i,j,k) = s(i-1,j,k) + (half  - dthx*u(i-1,j,k))*sx(i-1,j,k)
+                  xhi(i,j,k) = s(i,  j,k) + (-half - dthx*u(i,  j,k))*sx(i,  j,k)
+               end do
+            end do
+         end do
+      end if
 
       if(use_minion.eq.1)then
          do k = kmin-1,kmax+1
@@ -638,14 +739,25 @@ c
          end do
       end do
 
-      do k = kmin-1,kmax+1
-         do j = jmin,  jmax+1
-            do i = imin-1,imax+1
-               ylo(i,j,k) = s(i,j-1,k) + (half  - dthy*v(i,j-1,k))*sy(i,j-1,k)
-               yhi(i,j,k) = s(i,j, k)  + (-half - dthy*v(i,j,  k))*sy(i,j, k)
+      if (use_ppm) then
+         do k = kmin-1,kmax+1
+            do j = jmin,  jmax+1
+               do i = imin-1,imax+1
+                  ylo(i,j,k) = Ipy(i,j-1,k)
+                  yhi(i,j,k) = Imy(i,j  ,k)
+               end do
             end do
          end do
-      end do
+      else
+         do k = kmin-1,kmax+1
+            do j = jmin,  jmax+1
+               do i = imin-1,imax+1
+                  ylo(i,j,k) = s(i,j-1,k) + (half  - dthy*v(i,j-1,k))*sy(i,j-1,k)
+                  yhi(i,j,k) = s(i,j, k)  + (-half - dthy*v(i,j,  k))*sy(i,j, k)
+               end do
+            end do
+         end do
+      end if
 
       if (use_minion.eq.1)then
          do k = kmin-1,kmax+1
@@ -673,14 +785,25 @@ c
          end do
       end do
 
-      do k = kmin,kmax+1
-         do j = jmin-1,jmax+1
-            do i = imin-1,imax+1
-               zlo(i,j,k) = s(i,j,k-1) + (half  - dthz*w(i,j,k-1))*sz(i,j,k-1)
-               zhi(i,j,k) = s(i,j,k  ) + (-half - dthz*w(i,j,k  ))*sz(i,j,k  )
+      if (use_ppm) then
+         do k = kmin,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin-1,imax+1
+                  zlo(i,j,k) = Ipz(i,j,k-1)
+                  zhi(i,j,k) = Imz(i,j,k  )
+               end do
             end do
          end do
-      end do
+      else
+         do k = kmin,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin-1,imax+1
+                  zlo(i,j,k) = s(i,j,k-1) + (half  - dthz*w(i,j,k-1))*sz(i,j,k-1)
+                  zhi(i,j,k) = s(i,j,k  ) + (-half - dthz*w(i,j,k  ))*sz(i,j,k  )
+               end do
+            end do
+         end do
+      end if
 
       if (use_minion.eq.1)then
          do k = kmin,kmax+1
@@ -1722,6 +1845,8 @@ c                  stzhi(kmax+1) = stzlo(kmax+1)
 
       end if
 
+      deallocate(Ipx,Imx,Ipy,Imy,Ipz,Imz)
+
       end
 
       subroutine FORT_ESTATE_FPU(s, tforces, divu, DIMS(s),
@@ -1806,6 +1931,14 @@ c     used in 3d corner coupling
       integer use_minion, iconserv
       REAL_T spx,smx,spy,smy,spz,smz,st,denom
 
+      logical use_ppm
+      REAL_T, allocatable :: Ipx(:,:,:)
+      REAL_T, allocatable :: Imx(:,:,:)
+      REAL_T, allocatable :: Ipy(:,:,:)
+      REAL_T, allocatable :: Imy(:,:,:)
+      REAL_T, allocatable :: Ipz(:,:,:)
+      REAL_T, allocatable :: Imz(:,:,:)
+
       dth  = half*dt
       dthx = half*dt / dx(1)
       dthy = half*dt / dx(2)
@@ -1834,24 +1967,49 @@ c     used in 3d corner coupling
 
       corner_couple = .false.
 
+      use_ppm = .false.
+
+      allocate(Ipx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Imx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Ipy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Imy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Ipz(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+      allocate(Imz(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+
 c
 c     compute the slopes
 c
-      call FORT_SLOPES(ALL,
-     &     s,DIMS(s),
-     &     sx,sy,sz,DIMS(work),
-     &     lo,hi,slxscr,slyscr,slzscr,bc)
+      if (use_ppm) then
+         call FORT_PPM_FPU(s,DIMS(s),uedge,vedge,wedge,DIMS(uedge),
+     &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),lo,hi,dx,dt,bc,eps_for_bc)
+      else
+         call FORT_SLOPES(ALL,
+     &        s,DIMS(s),
+     &        sx,sy,sz,DIMS(work),
+     &        lo,hi,slxscr,slyscr,slzscr,bc)
+      end if
 c
 c     trace the state to the cell edges
 c
-      do k = kmin-1,kmax+1
-         do j = jmin-1,jmax+1
-            do i = imin,  imax+1
-               xlo(i,j,k) = s(i-1,j,k) + (half  - dthx*uedge(i,j,k))*sx(i-1,j,k)
-               xhi(i,j,k) = s(i,  j,k) + (-half - dthx*uedge(i,j,k))*sx(i,  j,k)
+      if (use_ppm) then
+         do k = kmin-1,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin,  imax+1
+                  xlo(i,j,k) = Ipx(i-1,j,k)
+                  xhi(i,j,k) = Imx(i  ,j,k)
+               end do
             end do
          end do
-      end do
+      else
+         do k = kmin-1,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin,  imax+1
+                  xlo(i,j,k) = s(i-1,j,k) + (half  - dthx*uedge(i,j,k))*sx(i-1,j,k)
+                  xhi(i,j,k) = s(i,  j,k) + (-half - dthx*uedge(i,j,k))*sx(i,  j,k)
+               end do
+            end do
+         end do
+      end if
 
       if(use_minion.eq.1)then
          do k = kmin-1,kmax+1
@@ -1890,14 +2048,25 @@ c
          end do
       end do
 
-      do k = kmin-1,kmax+1
-         do j = jmin,  jmax+1
-            do i = imin-1,imax+1
-               ylo(i,j,k) = s(i,j-1,k) + (half  - dthy*vedge(i,j,k))*sy(i,j-1,k)
-               yhi(i,j,k) = s(i,j, k)  + (-half - dthy*vedge(i,j,k))*sy(i,j, k)
+      if (use_ppm) then
+         do k = kmin-1,kmax+1
+            do j = jmin,  jmax+1
+               do i = imin-1,imax+1
+                  ylo(i,j,k) = Ipy(i,j-1,k)
+                  yhi(i,j,k) = Imy(i,j  ,k)
+               end do
             end do
          end do
-      end do
+      else
+         do k = kmin-1,kmax+1
+            do j = jmin,  jmax+1
+               do i = imin-1,imax+1
+                  ylo(i,j,k) = s(i,j-1,k) + (half  - dthy*vedge(i,j,k))*sy(i,j-1,k)
+                  yhi(i,j,k) = s(i,j, k)  + (-half - dthy*vedge(i,j,k))*sy(i,j, k)
+               end do
+            end do
+         end do
+      end if
 
       if (use_minion.eq.1)then
          do k = kmin-1,kmax+1
@@ -1935,14 +2104,25 @@ c
          end do
       end do
 
-      do k = kmin,kmax+1
-         do j = jmin-1,jmax+1
-            do i = imin-1,imax+1
-               zlo(i,j,k) = s(i,j,k-1) + (half  - dthz*wedge(i,j,k))*sz(i,j,k-1)
-               zhi(i,j,k) = s(i,j,k  ) + (-half - dthz*wedge(i,j,k))*sz(i,j,k  )
+      if (use_ppm) then
+         do k = kmin,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin-1,imax+1
+                  zlo(i,j,k) = Ipz(i,j,k-1)
+                  zhi(i,j,k) = Imz(i,j,k  )
+               end do
             end do
          end do
-      end do
+      else
+         do k = kmin,kmax+1
+            do j = jmin-1,jmax+1
+               do i = imin-1,imax+1
+                  zlo(i,j,k) = s(i,j,k-1) + (half  - dthz*wedge(i,j,k))*sz(i,j,k-1)
+                  zhi(i,j,k) = s(i,j,k  ) + (-half - dthz*wedge(i,j,k))*sz(i,j,k  )
+               end do
+            end do
+         end do
+      end if
 
       if (use_minion.eq.1)then
          do k = kmin,kmax+1
@@ -2942,6 +3122,8 @@ c                  stzhi(kmax+1) = stzlo(kmax+1)
       end do
 
       end if
+
+      deallocate(Ipx,Imx,Ipy,Imy,Ipz,Imz)
 
       end
 

@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.48 2008-12-17 17:36:34 ajnonaka Exp $
+c $Id: GODUNOV_2D.F,v 1.49 2008-12-17 18:02:53 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -270,6 +270,12 @@ c
       integer use_minion
       REAL_T tforces(DIMV(work),SDIM)
 
+      logical use_ppm
+      REAL_T, allocatable :: Ipx(:,:)
+      REAL_T, allocatable :: Imx(:,:)
+      REAL_T, allocatable :: Ipy(:,:)
+      REAL_T, allocatable :: Imy(:,:)
+
       dth  = half*dt
       dthx = half*dt / dx(1)
       dthy = half*dt / dx(2)
@@ -279,20 +285,43 @@ c
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
+
+      use_ppm = .false.
+
+      allocate(Ipx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+      allocate(Imx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+      allocate(Ipy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+      allocate(Imy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+
 c
 c     --------------------------------------------------------------
 c     compute the x transverse velocities
 c     --------------------------------------------------------------
 c
-      call FORT_SLOPES(u,DIMS(s),
-     &     sx,sy,DIMS(work),lo,hi,slxscr,slyscr,ubc)
+      if (use_ppm) then
+         call FORT_PPM(u,u,v,DIMS(s),
+     &        Ipx,Imx,Ipy,Imy,DIMS(work),lo,hi,dx,dt,ubc,eps_for_bc)
 
-      do i = imin, imax+1
-         do j = jmin-1,jmax+1
-            ulo(i,j) = u(i-1,j) + (half  - dthx*u(i-1,j))*sx(i-1,j)
-            uhi(i,j) = u(i,j)   + (-half - dthx*u(i,  j))*sx(i,j)
+      else
+         call FORT_SLOPES(u,DIMS(s),
+     &        sx,sy,DIMS(work),lo,hi,slxscr,slyscr,ubc)
+      end if
+         
+      if (use_ppm) then
+         do i = imin, imax+1
+            do j = jmin-1,jmax+1
+               ulo(i,j) = Ipx(i-1,j)
+               uhi(i,j) = Imx(i  ,j)
+            end do
          end do
-      end do
+      else
+         do i = imin, imax+1
+            do j = jmin-1,jmax+1
+               ulo(i,j) = u(i-1,j) + (half  - dthx*u(i-1,j))*sx(i-1,j)
+               uhi(i,j) = u(i,j)   + (-half - dthx*u(i,  j))*sx(i,j)
+            end do
+         end do
+      end if
 
       if(use_minion.eq.1)then
         do i = imin, imax+1
@@ -317,15 +346,29 @@ c
 c
 c     compute the y transverse velocities
 c
-      call FORT_SLOPES(v,DIMS(s),
-     &     sx,sy,DIMS(work),lo,hi,slxscr,slyscr,vbc)
+      if (use_ppm) then
+         call FORT_PPM(v,u,v,DIMS(s),
+     &        Ipx,Imx,Ipy,Imy,DIMS(work),lo,hi,dx,dt,vbc,eps_for_bc)
+      else
+         call FORT_SLOPES(v,DIMS(s),
+     &        sx,sy,DIMS(work),lo,hi,slxscr,slyscr,vbc)
+      end if
 
-      do i = imin-1,imax+1
-         do j = jmin,jmax+1
-            vlo(i,j) = v(i,j-1) + (half  - dthy*v(i,j-1))*sy(i,j-1)
-            vhi(i,j) = v(i,j)   + (-half - dthy*v(i,j  ))*sy(i,j)
+      if (use_ppm) then
+         do i = imin-1,imax+1
+            do j = jmin,jmax+1
+               vlo(i,j) = Ipy(i,j-1)
+               vhi(i,j) = Imy(i,j  )
+            end do
          end do
-      end do
+      else
+         do i = imin-1,imax+1
+            do j = jmin,jmax+1
+               vlo(i,j) = v(i,j-1) + (half  - dthy*v(i,j-1))*sy(i,j-1)
+               vhi(i,j) = v(i,j)   + (-half - dthy*v(i,j  ))*sy(i,j)
+            end do
+         end do
+      end if
 
       if(use_minion.eq.1)then
          do i = imin-1, imax+1
@@ -347,6 +390,8 @@ c
             vlo(i,j) = cvmgt(zero,vad,ltm)
          end do
       end do
+
+      deallocate(Ipx,Imx,Ipy,Imy)
 
       end
 
@@ -397,6 +442,12 @@ c
 
       integer use_minion
 
+      logical use_ppm
+      REAL_T, allocatable :: Ipx(:,:)
+      REAL_T, allocatable :: Imx(:,:)
+      REAL_T, allocatable :: Ipy(:,:)
+      REAL_T, allocatable :: Imy(:,:)
+
       dth  = half*dt
       dthx = half*dt/dx(1)
       dthy = half*dt/dx(2)
@@ -406,22 +457,44 @@ c
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
+
+      use_ppm = .false.
+
+      allocate(Ipx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+      allocate(Imx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+      allocate(Ipy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+      allocate(Imy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+
 c
 c     compute the slopes
 c
 c     trace the state to the cell edges
 c
-      call FORT_SLOPES(s,DIMS(s),
-     &     sx,sy,DIMS(work),lo,hi,slxscr,slyscr,bc)
+      if (use_ppm) then
+         call FORT_PPM(s,u,v,DIMS(s),
+     &        Ipx,Imx,Ipy,Imy,DIMS(work),lo,hi,dx,dt,bc,eps_for_bc)
+      else
+         call FORT_SLOPES(s,DIMS(s),
+     &        sx,sy,DIMS(work),lo,hi,slxscr,slyscr,bc)
+      end if
 c
 c     trace the state to the cell edges
 c
-      do i = imin, imax+1
-         do j = jmin-1,jmax+1
-            xlo(i,j) = s(i-1,j) + (half - dthx*u(i-1,j))*sx(i-1,j)
-            xhi(i,j) = s(i  ,j) - (half + dthx*u(i  ,j))*sx(i  ,j)
+      if (use_ppm) then
+         do i = imin, imax+1
+            do j = jmin-1,jmax+1
+               xlo(i,j) = Ipx(i-1,j)
+               xhi(i,j) = Imx(i  ,j)
+            end do
          end do
-      end do
+      else
+         do i = imin, imax+1
+            do j = jmin-1,jmax+1
+               xlo(i,j) = s(i-1,j) + (half - dthx*u(i-1,j))*sx(i-1,j)
+               xhi(i,j) = s(i  ,j) - (half + dthx*u(i  ,j))*sx(i  ,j)
+            end do
+         end do
+      end if
 
       if(use_minion.eq.1)then
          do i = imin, imax+1
@@ -445,12 +518,21 @@ c
          end do
       end do
 
-      do j = jmin,jmax+1
-         do i = imin-1,imax+1
-            ylo(i,j) = s(i,j-1) + (half - dthy*v(i,j-1))*sy(i,j-1)
-            yhi(i,j) = s(i,j  ) - (half + dthy*v(i,j  ))*sy(i,j  )
+      if (use_ppm) then
+         do j = jmin,jmax+1
+            do i = imin-1,imax+1
+               ylo(i,j) = Ipy(i,j-1)
+               yhi(i,j) = Ipy(i,j  )
+            end do
          end do
-      end do
+      else
+         do j = jmin,jmax+1
+            do i = imin-1,imax+1
+               ylo(i,j) = s(i,j-1) + (half - dthy*v(i,j-1))*sy(i,j-1)
+               yhi(i,j) = s(i,j  ) - (half + dthy*v(i,j  ))*sy(i,j  )
+            end do
+         end do
+      end if
 
       if(use_minion.eq.1)then
          do i = imin-1, imax+1
@@ -667,6 +749,12 @@ c
       integer use_minion, iconserv
       integer inc
 
+      logical use_ppm
+      REAL_T, allocatable :: Ipx(:,:)
+      REAL_T, allocatable :: Imx(:,:)
+      REAL_T, allocatable :: Ipy(:,:)
+      REAL_T, allocatable :: Imy(:,:)
+
       REAL_T umax
 
       dth  = half*dt
@@ -678,22 +766,47 @@ c
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
+
+      use_ppm = .false.
+
+      allocate(Ipx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+      allocate(Imx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+      allocate(Ipy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+      allocate(Imy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+
 c
 c     compute the slopes
 c
-      call FORT_SLOPES(
-     &     s,DIMS(s),
-     &     sx,sy,DIMS(work),
-     &     lo,hi,slxscr,slyscr,bc)
+      if (use_ppm) then
+         call FORT_PPM_FPU(s,DIMS(s),uedge,vedge,DIMS(uedge),
+     &        Ipx,Imx,Ipy,Imy,DIMS(work),lo,hi,dx,dt,bc,eps_for_bc)
+
+      else
+         call FORT_SLOPES(
+     &        s,DIMS(s),
+     &        sx,sy,DIMS(work),
+     &        lo,hi,slxscr,slyscr,bc)
+      end if
+
 c
 c     trace the state to the cell edges
 c
-      do j = jmin-1,jmax+1
-         do i = imin,  imax+1
-            xlo(i,j) = s(i-1,j) + (half - dthx*uedge(i,j))*sx(i-1,j)
-            xhi(i,j) = s(i,  j) - (half + dthx*uedge(i,j))*sx(i,  j)
+
+      if (use_ppm) then
+         do j = jmin-1,jmax+1
+            do i = imin,  imax+1
+               xlo(i,j) = Ipx(i-1,j)
+               xhi(i,j) = Imx(i  ,j)
+            end do
          end do
-      end do
+      else
+         do j = jmin-1,jmax+1
+            do i = imin,  imax+1
+               xlo(i,j) = s(i-1,j) + (half - dthx*uedge(i,j))*sx(i-1,j)
+               xhi(i,j) = s(i,  j) - (half + dthx*uedge(i,j))*sx(i,  j)
+            end do
+         end do
+      end if
 
       if(use_minion.eq.1)then
          do j = jmin-1,jmax+1
@@ -725,12 +838,21 @@ c
          end do
       end do
 
-      do j = jmin,  jmax+1
-         do i = imin-1,imax+1
-            ylo(i,j) = s(i,j-1) + (half - dthy*vedge(i,j))*sy(i,j-1)
-            yhi(i,j) = s(i,j)   - (half + dthy*vedge(i,j))*sy(i,j)
+      if (use_ppm) then
+         do j = jmin,  jmax+1
+            do i = imin-1,imax+1
+               ylo(i,j) = Ipy(i,j-1)
+               yhi(i,j) = Imy(i,j  )
+            end do
          end do
-      end do
+      else
+         do j = jmin,  jmax+1
+            do i = imin-1,imax+1
+               ylo(i,j) = s(i,j-1) + (half - dthy*vedge(i,j))*sy(i,j-1)
+               yhi(i,j) = s(i,j)   - (half + dthy*vedge(i,j))*sy(i,j)
+            end do
+         end do
+      end if
 
       if (use_minion.eq.1)then
          do j = jmin, jmax+1
@@ -919,6 +1041,9 @@ c
             end do
             place_to_break = 1
       end do
+
+      deallocate(Ipx,Imx,Ipy,Imy)
+
       end
 
 
