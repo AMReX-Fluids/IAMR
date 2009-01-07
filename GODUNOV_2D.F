@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.50 2008-12-17 19:11:06 ajnonaka Exp $
+c $Id: GODUNOV_2D.F,v 1.51 2009-01-07 18:51:04 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -953,7 +953,7 @@ c
                else
                   stxlo(i+1)= s(i,j) + (half-dthx*uedge(i+1,j))*sx(i,j)
      &                 + dth*(st + tforces(i,j))
-                  stxhi(i  )= s(i,j) - (half-dthx*uedge(i  ,j)*sx(i,j))
+                  stxhi(i  )= s(i,j) - (half+dthx*uedge(i  ,j))*sx(i,j)
      &                 + dth*(st + tforces(i,j))
                end if
 
@@ -1029,12 +1029,12 @@ c
                if (use_ppm) then
                   stylo(j+1)= Ipy(i,j)
      &                 + dth*(st + tforces(i,j))
-                  styhi(j  )= s(i,j) - (half-dthy*vedge(i,j  ))*sy(i,j)
+                  styhi(j  )= Imy(i,j)
      &                 + dth*(st + tforces(i,j))
                else
-                  stylo(j+1)= Imy(i,j)
+                  stylo(j+1)= s(i,j) - (half-dthy*vedge(i,j+1))*sy(i,j)
      &                 + dth*(st + tforces(i,j))
-                  styhi(j  )= s(i,j) - (half-dthy*vedge(i,j  ))*sy(i,j)
+                  styhi(j  )= s(i,j) - (half+dthy*vedge(i,j  ))*sy(i,j)
      &                 + dth*(st + tforces(i,j))
                end if
 
