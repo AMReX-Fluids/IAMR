@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.51 2009-01-07 18:51:04 marc Exp $
+c $Id: GODUNOV_2D.F,v 1.52 2009-01-07 18:57:52 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1032,7 +1032,7 @@ c
                   styhi(j  )= Imy(i,j)
      &                 + dth*(st + tforces(i,j))
                else
-                  stylo(j+1)= s(i,j) - (half-dthy*vedge(i,j+1))*sy(i,j)
+                  stylo(j+1)= s(i,j) + (half-dthy*vedge(i,j+1))*sy(i,j)
      &                 + dth*(st + tforces(i,j))
                   styhi(j  )= s(i,j) - (half+dthy*vedge(i,j  ))*sy(i,j)
      &                 + dth*(st + tforces(i,j))
