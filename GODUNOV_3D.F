@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.55 2008-12-17 19:11:06 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.56 2009-01-07 19:06:43 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -2861,7 +2861,7 @@ c    &                    - dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
                      stxhi(i  )= Imx(i,j,k) + st
                   else
                      stxlo(i+1)= s(i,j,k) + (half-dthx*uedge(i+1,j,k))*sx(i,j,k) + st
-                     stxhi(i  )= s(i,j,k) - (half-dthx*uedge(i  ,j,k))*sx(i,j,k) + st
+                     stxhi(i  )= s(i,j,k) - (half+dthx*uedge(i  ,j,k))*sx(i,j,k) + st
                   end if
 
                end do
@@ -2978,7 +2978,7 @@ c    &                    - dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
                      styhi(j  )= Imy(i,j,k) + st
                   else
                      stylo(j+1)= s(i,j,k) + (half-dthy*vedge(i,j+1,k))*sy(i,j,k) + st
-                     styhi(j  )= s(i,j,k) - (half-dthy*vedge(i,j  ,k))*sy(i,j,k) + st
+                     styhi(j  )= s(i,j,k) - (half+dthy*vedge(i,j  ,k))*sy(i,j,k) + st
                   end if
 
                end do
@@ -3092,7 +3092,7 @@ c    &                    - dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
                      stzhi(k  )= Imz(i,j,k) + st
                   else
                      stzlo(k+1)= s(i,j,k) + (half-dthz*wedge(i,j,k+1))*sz(i,j,k) + st
-                     stzhi(k  )= s(i,j,k) - (half-dthz*wedge(i,j,k  ))*sz(i,j,k) + st
+                     stzhi(k  )= s(i,j,k) - (half+dthz*wedge(i,j,k  ))*sz(i,j,k) + st
                   end if
 
                end do
