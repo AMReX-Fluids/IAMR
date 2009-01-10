@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.52 2009-01-07 18:57:52 ajnonaka Exp $
+c $Id: GODUNOV_2D.F,v 1.53 2009-01-10 01:40:37 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1973,8 +1973,7 @@ c     modify using Colella 2008 limiters
             else if (abs(alpham) .ge. 2.0d0*abs(alphap)) then
                dI = -alpham**2 / (4.0d0*(alphap+alpham))
                ds = s(i-1,j)-s(i,j)
-c     inverted - changed from Colella 2008
-               sgn = -sign(1.0d0,s(i+1,j)-s(i-1,j))
+               sgn = sign(1.0d0,s(i+1,j)-s(i-1,j))
                if (sgn*dI .ge. sgn*ds) then
                   sm(i,j) = s(i,j) - (2.0d0*ds + 2.0d0*sgn*sqrt(ds**2 - ds*alphap))
                end if
@@ -2182,8 +2181,7 @@ c     ! modify using Colella 2008 limiters
             else if (abs(alpham) .ge. 2.0d0*abs(alphap)) then
                dI = -alpham**2 / (4.0d0*(alphap+alpham))
                ds = s(i,j-1)-s(i,j)
-c     inverted - changed from Colella 2008
-               sgn = -sign(1.0d0,s(i,j+1)-s(i,j-1))
+               sgn = sign(1.0d0,s(i,j+1)-s(i,j-1))
                if (sgn*dI .ge. sgn*ds) then
                   sm(i,j) = s(i,j) - (2.0d0*ds + 2.0d0*sgn*sqrt(ds**2 - ds*alphap))
                end if
@@ -2442,8 +2440,7 @@ c     modify using Colella 2008 limiters
             else if (abs(alpham) .ge. 2.0d0*abs(alphap)) then
                dI = -alpham**2 / (4.0d0*(alphap+alpham))
                ds = s(i-1,j)-s(i,j)
-c     inverted - changed from Colella 2008
-               sgn = -sign(1.0d0,s(i+1,j)-s(i-1,j))
+               sgn = sign(1.0d0,s(i+1,j)-s(i-1,j))
                if (sgn*dI .ge. sgn*ds) then
                   sm(i,j) = s(i,j) - (2.0d0*ds + 2.0d0*sgn*sqrt(ds**2 - ds*alphap))
                end if
@@ -2652,8 +2649,7 @@ c     ! modify using Colella 2008 limiters
             else if (abs(alpham) .ge. 2.0d0*abs(alphap)) then
                dI = -alpham**2 / (4.0d0*(alphap+alpham))
                ds = s(i,j-1)-s(i,j)
-c     inverted - changed from Colella 2008
-               sgn = -sign(1.0d0,s(i,j+1)-s(i,j-1))
+               sgn = sign(1.0d0,s(i,j+1)-s(i,j-1))
                if (sgn*dI .ge. sgn*ds) then
                   sm(i,j) = s(i,j) - (2.0d0*ds + 2.0d0*sgn*sqrt(ds**2 - ds*alphap))
                end if
