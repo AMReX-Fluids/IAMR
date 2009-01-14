@@ -209,11 +209,12 @@ c ::: -----------------------------------------------------------
 
       else if (probtype .eq. 8) then
          call initrt(level,time,lo,hi,nscal,
-     &     	            vel,scal,DIMS(state),press,DIMS(press),
-     &                      dx,xlo,xhi)
+     &               vel,scal,DIMS(state),press,DIMS(press),
+     &               dx,xlo,xhi)
 
       else if (probtype .eq. 9) then
-         call inittraceradvect()
+         call inittraceradvect(lo,hi,nscal,vel,scal,DIMS(state),dx,
+     &                         xlo,xhi)
 
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
@@ -675,18 +676,16 @@ c      vel(32,31,2) = -0.1
       
       end
 
-      subroutine inittraceradvect(lo,hi,nscal,vel,scal,
-     &     DIMS(state),press,DIMS(press),dx,xlo,xhi)
+      subroutine inittraceradvect(lo,hi,nscal,vel,scal,DIMS(state),dx, 
+     &                            xlo,xhi)
 
       integer    nscal
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(state)
-      integer    DIMDEC(press)
       REAL_T     dx(SDIM)
       REAL_T     xlo(SDIM), xhi(SDIM)
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
-      REAL_T   press(DIMV(press))
 
 
 c     ::::: local variables
@@ -710,8 +709,7 @@ c     ::::: local variables
             vel(i,j,1) = 1.0d0
             vel(i,j,2) = 2.0d0
             scal(i,j,1) = 1.0d0
-
-            scal(i,j,2) = 1.0d0*exp(-dist**2)
+            scal(i,j,2) = 1.0d0*exp(-(10.0d0*dist)**2)
 
          end do
       end do
