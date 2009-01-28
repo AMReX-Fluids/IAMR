@@ -53,8 +53,10 @@ FORT_GETPLANE (int* filename, int* len, Real* data, int* plane, int* ncomp)
         int  idummy;
         Real rdummy;
 
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        // Hardwire loop max to 3 regardless of spacedim
+        for (int i = 0; i < 3; i++)
             ifs >> kmax;
+
         ifs >> rdummy >> rdummy >> rdummy;
         ifs >> idummy >> idummy >> idummy;
 
