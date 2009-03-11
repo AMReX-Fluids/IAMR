@@ -843,7 +843,9 @@ NavierStokes::buildMetrics ()
 
         radius[i].resize(len);
 
-        const Real xlo = grid_loc[i].lo(0) + (0.5 - radius_grow)*dxr;
+        RealBox gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
+
+        const Real xlo = gridloc.lo(0) + (0.5 - radius_grow)*dxr;
         for (int j = 0; j < len; j++)
             radius[i][j] = xlo + j*dxr;
     }
@@ -947,13 +949,14 @@ NavierStokes::initData ()
 
         P_new[snewmfi].setVal(0);
 
-        const int  i    = snewmfi.index();
-        const int* lo   = snewmfi.validbox().loVect();
-        const int* hi   = snewmfi.validbox().hiVect();
-        const int* s_lo = S_new[snewmfi].loVect();
-        const int* s_hi = S_new[snewmfi].hiVect();
-        const int* p_lo = P_new[snewmfi].loVect();
-        const int* p_hi = P_new[snewmfi].hiVect();
+        const int  i       = snewmfi.index();
+        RealBox    gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
+        const int* lo      = snewmfi.validbox().loVect();
+        const int* hi      = snewmfi.validbox().hiVect();
+        const int* s_lo    = S_new[snewmfi].loVect();
+        const int* s_hi    = S_new[snewmfi].hiVect();
+        const int* p_lo    = P_new[snewmfi].loVect();
+        const int* p_hi    = P_new[snewmfi].hiVect();
 
         FORT_INITDATA (&level,&cur_time,lo,hi,&ns,
                        S_new[snewmfi].dataPtr(Xvel),
@@ -961,7 +964,7 @@ NavierStokes::initData ()
                        ARLIM(s_lo), ARLIM(s_hi),
                        P_new[snewmfi].dataPtr(),
                        ARLIM(p_lo), ARLIM(p_hi),
-                       dx,grid_loc[i].lo(),grid_loc[i].hi() );
+                       dx,gridloc.lo(),gridloc.hi() );
     }
 
     make_rho_prev_time();
@@ -2713,17 +2716,18 @@ NavierStokes::errorEst (TagBoxArray& tags,
 
         for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
         {
-            itags             = tags[mfi.index()].tags();
-            int*        tptr  = itags.dataPtr();
-            const int*  tlo   = tags[mfi.index()].box().loVect();
-            const int*  thi   = tags[mfi.index()].box().hiVect();
-            const int*  lo    = mfi.validbox().loVect();
-            const int*  hi    = mfi.validbox().hiVect();
-            const Real* xlo   = grid_loc[mfi.index()].lo();
-            Real*       dat   = (*mf)[mfi].dataPtr();
-            const int*  dlo   = (*mf)[mfi].box().loVect();
-            const int*  dhi   = (*mf)[mfi].box().hiVect();
-            const int   ncomp = (*mf)[mfi].nComp();
+            RealBox     gridloc = RealBox(grids[mfi.index()],geom.CellSize(),geom.ProbLo());
+            itags               = tags[mfi.index()].tags();
+            int*        tptr    = itags.dataPtr();
+            const int*  tlo     = tags[mfi.index()].box().loVect();
+            const int*  thi     = tags[mfi.index()].box().hiVect();
+            const int*  lo      = mfi.validbox().loVect();
+            const int*  hi      = mfi.validbox().hiVect();
+            const Real* xlo     = gridloc.lo();
+            Real*       dat     = (*mf)[mfi].dataPtr();
+            const int*  dlo     = (*mf)[mfi].box().loVect();
+            const int*  dhi     = (*mf)[mfi].box().hiVect();
+            const int   ncomp   = (*mf)[mfi].nComp();
 
             err_list[j].errFunc()(tptr, ARLIM(tlo), ARLIM(thi), &tagval,
                                   &clearval, dat, ARLIM(dlo), ARLIM(dhi),
@@ -3144,6 +3148,7 @@ NavierStokes::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,  in
 	FArrayBox& turbFab = (*turbMF)[turbMfi];
 	FArrayBox& presFab = (*presMF)[presMfi];
 
+        RealBox     gridloc  = RealBox(grids[turbMfi.index()],geom.CellSize(),geom.ProbLo());
         const Real* turbData = turbFab.dataPtr();
         const Real* presData = presFab.dataPtr();
         const int*  dlo = turbFab.loVect();
@@ -3155,7 +3160,7 @@ NavierStokes::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,  in
 
         FORT_SUMJET(turbData,presData,ARLIM(dlo),ARLIM(dhi),ARLIM(plo),ARLIM(phi),ARLIM(lo),ARLIM(hi),
 		    dx,jetData,&levRsize,&levKsize,&rsize,&ksize,&jetVars,&jet_interval_split,
-		    grid_loc[turbMfi.index()].lo(),grid_loc[turbMfi.index()].hi());
+		    gridloc.lo(),gridloc.hi());
     }
 
     delete turbMF;
@@ -3407,8 +3412,9 @@ NavierStokes::writePlotFile (const std::string& dir,
 
         for (i = 0; i < grids.size(); ++i)
         {
+            RealBox gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
             for (n = 0; n < BL_SPACEDIM; n++)
-                os << grid_loc[i].lo(n) << ' ' << grid_loc[i].hi(n) << '\n';
+                os << gridloc.lo(n) << ' ' << gridloc.hi(n) << '\n';
         }
         //
         // The full relative pathname of the MultiFabs at this level.
@@ -4228,11 +4234,12 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
     //
     for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
     {
-        int         i     = mfi.index();
-        FArrayBox&  cdata = cdataMF[mfi];
-        const int*  clo   = cdata.loVect();
-        const int*  chi   = cdata.hiVect();
-        const Real* xlo   = fine_level.grid_loc[i].lo();
+        int         i       = mfi.index();
+        RealBox     gridloc = RealBox(fine_level.grids[i],fine_level.geom.CellSize(),fine_level.geom.ProbLo());
+        FArrayBox&  cdata   = cdataMF[mfi];
+        const int*  clo     = cdata.loVect();
+        const int*  chi     = cdata.hiVect();
+        const Real* xlo     = gridloc.lo();
 
         for (int n = 0; n < num_comp; n++)
         {
@@ -5337,12 +5344,13 @@ NavierStokes::getForce (FArrayBox&       force,
 
     BL_ASSERT(Rho.box().contains(force.box()));
 
-    const Real* dx       = geom.CellSize();
-    const Real  grav     = gravity;
-    const int*  s_lo     = Rho.loVect();
-    const int*  s_hi     = Rho.hiVect();
-    const int*  f_lo     = force.loVect();
-    const int*  f_hi     = force.hiVect();
+    RealBox     gridloc = RealBox(grids[gridno],geom.CellSize(),geom.ProbLo());
+    const Real* dx      = geom.CellSize();
+    const Real  grav    = gravity;
+    const int*  s_lo    = Rho.loVect();
+    const int*  s_hi    = Rho.hiVect();
+    const int*  f_lo    = force.loVect();
+    const int*  f_hi    = force.hiVect();
 
     FORT_MAKEFORCE (&time,
 		    force.dataPtr(),
@@ -5350,10 +5358,9 @@ NavierStokes::getForce (FArrayBox&       force,
 		    ARLIM(f_lo), ARLIM(f_hi),
 		    ARLIM(s_lo), ARLIM(s_hi),
 		    dx,
-		    grid_loc[gridno].lo(),
-		    grid_loc[gridno].hi(),
+		    gridloc.lo(),
+		    gridloc.hi(),
 		    &grav,&scomp,&ncomp);
-
 }
 #else
 #ifdef MOREGENGETFORCE
@@ -5487,6 +5494,8 @@ NavierStokes::getForce (FArrayBox&       force,
 	for (int n=0; n<NUM_SCALARS; n++) 
 	    std::cout << "Scal " << n << " min/max " << scalmin[n] << " / " << scalmax[n] << std::endl;
     }
+
+    RealBox gridloc = RealBox(grids[gridno],geom.CellSize(),geom.ProbLo());
     
     // Here's the meat
     FORT_MAKEFORCE (&time,
@@ -5497,8 +5506,8 @@ NavierStokes::getForce (FArrayBox&       force,
 		    ARLIM(v_lo), ARLIM(v_hi),
 		    ARLIM(s_lo), ARLIM(s_hi),
 		    dx,
-		    grid_loc[gridno].lo(),
-		    grid_loc[gridno].hi(),
+		    gridloc.lo(),
+		    gridloc.hi(),
 		    &grav,&scomp,&ncomp,&nscal,&getForceVerbose);
 
     if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
