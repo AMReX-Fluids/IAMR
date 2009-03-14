@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.44 2008-12-08 23:39:32 ajnonaka Exp $
+// $Id: Godunov.cpp,v 1.45 2009-03-14 07:07:01 marc Exp $
 //
 
 //
@@ -244,6 +244,19 @@ Godunov::Setup (const Box&       grd,
            wad.resize(work_bx,1););
 
     SetBogusScratch();
+
+    // Build some scratch areas
+    Box g1box = Box(grd).grow(1);
+    smp.resize(g1box,2);
+    I.resize(g1box,2*BL_SPACEDIM);
+
+    Box g2box = Box(grd).grow(2);
+    dsvl.resize(g2box,1);
+    
+    D_TERM(sedgex.resize(g1box.surroundingNodes(0),1);,
+           sedgey.resize(g1box.surroundingNodes(1),1);,
+           sedgez.resize(g1box.surroundingNodes(2),1););
+
     //
     // Test the cell-centered velocities.
     //
@@ -262,6 +275,17 @@ Godunov::Setup (const Box&       grd,
     const Real *uad_dat = uad.dataPtr();
     const Real *v_dat   = U.dataPtr(YVEL);
     const Real *vad_dat = vad.dataPtr();
+    Real* sm = smp.dataPtr(0);
+    Real* sp = smp.dataPtr(1);
+    Real* Imx = I.dataPtr(0);
+    Real* Ipx = I.dataPtr(1);
+    Real* Imy = I.dataPtr(2);
+    Real* Ipy = I.dataPtr(3);
+#if (BL_SPACEDIM == 3)
+    Real* Imz = I.dataPtr(4);
+    Real* Ipz = I.dataPtr(5);
+#endif
+
 #if (BL_SPACEDIM == 3)
     const Real *w_dat   = U.dataPtr(ZVEL);
     const Real *wad_dat = wad.dataPtr();
@@ -286,13 +310,19 @@ Godunov::Setup (const Box&       grd,
     //
     // Compute the transverse velocities.
     //
-    FORT_TRANSVEL(u_dat, uad_dat, xhi_dat, slx_dat, ubc, slxscr, 
-                  v_dat, vad_dat, yhi_dat, sly_dat, vbc, slyscr, 
+    FORT_TRANSVEL(u_dat, uad_dat, xhi_dat, slx_dat, ubc, slxscr, Imx, Ipx,
+                  sedgex.dataPtr(), ARLIM(sedgex.loVect()),  ARLIM(sedgex.hiVect()),
+                  v_dat, vad_dat, yhi_dat, sly_dat, vbc, slyscr, Imy, Ipy, 
+                  sedgey.dataPtr(), ARLIM(sedgey.loVect()),  ARLIM(sedgey.hiVect()),
 #if (BL_SPACEDIM == 3)
-                  w_dat, wad_dat, zhi_dat, slz_dat, wbc, slzscr,
+                  w_dat, wad_dat, zhi_dat, slz_dat, wbc, slzscr, Imz, Ipz,
+                  sedgez.dataPtr(), ARLIM(sedgez.loVect()),  ARLIM(sedgez.hiVect()),
 #endif    
                   ARLIM(u_lo), ARLIM(u_hi),
                   ARLIM(w_lo), ARLIM(w_hi), 
+                  ARLIM(I.loVect()), ARLIM(I.hiVect()),
+                  dsvl.dataPtr(), ARLIM(dsvl.loVect()), ARLIM(dsvl.hiVect()),
+                  sm, sp, ARLIM(smp.loVect()), ARLIM(smp.hiVect()),
                   lo, hi, &dt, dx, &use_forces_in_trans, tforcedat);
 }
 
@@ -412,6 +442,29 @@ Godunov::edge_states_orig (const Box&  grd,
     //
     SetBogusScratch();
 
+    // Build additional work space
+    Box g1box = Box(grd).grow(1);
+    smp.resize(g1box,2);
+    I.resize(g1box,2*BL_SPACEDIM);
+
+    Real* sm = smp.dataPtr(0);
+    Real* sp = smp.dataPtr(1);
+    Real* Imx = I.dataPtr(0);
+    Real* Ipx = I.dataPtr(1);
+    Real* Imy = I.dataPtr(2);
+    Real* Ipy = I.dataPtr(3);
+#if (BL_SPACEDIM == 3)
+    Real* Imz = I.dataPtr(4);
+    Real* Ipz = I.dataPtr(5);
+#endif
+
+    Box g2box = Box(grd).grow(2);
+    dsvl.resize(g2box,1);
+    
+    D_TERM(sedgex.resize(g1box.surroundingNodes(0),1);,
+           sedgey.resize(g1box.surroundingNodes(1),1);,
+           sedgez.resize(g1box.surroundingNodes(2),1););
+
 #if (BL_SPACEDIM == 3)
     const Real *w_dat     = U.dataPtr(ZVEL);
     const Real *wad_dat   = wad.dataPtr();
@@ -458,23 +511,30 @@ Godunov::edge_states_orig (const Box&  grd,
                 u_dat, xlo_dat, xhi_dat, slx_dat, uad_dat,
                 slxscr, stxlo, stxhi,
                 uedge.dataPtr(), ARLIM(uedge.loVect()), ARLIM(uedge.hiVect()),
-                 stx.dataPtr(),  ARLIM(  stx.loVect()), ARLIM(  stx.hiVect()),
+                 stx.dataPtr(),  ARLIM(  stx.loVect()), ARLIM(  stx.hiVect()), Imx, Ipx,
+                sedgex.dataPtr(), ARLIM(sedgex.loVect()), ARLIM(sedgex.hiVect()),
 
                 v_dat, ylo_dat, yhi_dat, sly_dat, vad_dat,
                 slyscr, stylo, styhi,
                 vedge.dataPtr(), ARLIM(vedge.loVect()), ARLIM(vedge.hiVect()),
-                 sty.dataPtr(),  ARLIM(  sty.loVect()), ARLIM(  sty.hiVect()),
+                 sty.dataPtr(),  ARLIM(  sty.loVect()), ARLIM(  sty.hiVect()), Imy, Ipy, 
+                sedgey.dataPtr(), ARLIM(sedgey.loVect()), ARLIM(sedgey.hiVect()),
+
 #if (BL_SPACEDIM == 3)
                 w_dat, zlo_dat, zhi_dat, slz_dat, wad_dat,
                 slzscr, stzlo, stzhi,
                 wedge.dataPtr(), ARLIM(wedge.loVect()), ARLIM(wedge.hiVect()),
-                 stz.dataPtr(),  ARLIM(  stz.loVect()), ARLIM(  stz.hiVect()),
+                 stz.dataPtr(),  ARLIM(  stz.loVect()), ARLIM(  stz.hiVect()), Imz, Ipz,
+                sedgez.dataPtr(), ARLIM(sedgez.loVect()), ARLIM(sedgez.hiVect()),
 
 		xedge_dat, yedge_dat, zedge_dat,
 		xylo_dat, xzlo_dat, yxlo_dat, yzlo_dat, zxlo_dat, zylo_dat,
 		xyhi_dat, xzhi_dat, yxhi_dat, yzhi_dat, zxhi_dat, zyhi_dat,
 #endif
                 ARLIM(ww_lo), ARLIM(ww_hi),
+                ARLIM(I.loVect()), ARLIM(I.hiVect()),
+                dsvl.dataPtr(), ARLIM(dsvl.loVect()), ARLIM(dsvl.hiVect()),
+                sm, sp, ARLIM(smp.loVect()), ARLIM(smp.hiVect()),
                 bc, lo, hi, &dt, dx, &fort_ind, &velpred, 
                 &use_forces_in_trans);
 }
@@ -534,6 +594,29 @@ Godunov::edge_states_fpu (const Box&  grd,
     //
     SetBogusScratch();
 
+    // Build additional work space
+    Box g1box = Box(grd).grow(1);
+    smp.resize(g1box,2);
+    I.resize(g1box,2*BL_SPACEDIM);
+
+    Real* sm = smp.dataPtr(0);
+    Real* sp = smp.dataPtr(1);
+    Real* Imx = I.dataPtr(0);
+    Real* Ipx = I.dataPtr(1);
+    Real* Imy = I.dataPtr(2);
+    Real* Ipy = I.dataPtr(3);
+#if (BL_SPACEDIM == 3)
+    Real* Imz = I.dataPtr(4);
+    Real* Ipz = I.dataPtr(5);
+#endif
+
+    Box g2box = Box(grd).grow(2);
+    dsvl.resize(g2box,1);
+    
+    D_TERM(sedgex.resize(g1box.surroundingNodes(0),1);,
+           sedgey.resize(g1box.surroundingNodes(1),1);,
+           sedgez.resize(g1box.surroundingNodes(2),1););
+
 #if (BL_SPACEDIM == 3)
     const Real *xhi_dat   = work.dataPtr(0);
     const Real *yhi_dat   = work.dataPtr(1);
@@ -579,23 +662,30 @@ Godunov::edge_states_fpu (const Box&  grd,
                     xlo_dat, xhi_dat, slx_dat,
                     slxscr, stxlo, stxhi,
                     uedge.dataPtr(), ARLIM(uedge.loVect()), ARLIM(uedge.hiVect()),
-                    stx.dataPtr(),   ARLIM(stx.loVect()),   ARLIM(stx.hiVect()),
+                    stx.dataPtr(),   ARLIM(stx.loVect()),   ARLIM(stx.hiVect()), Imx, Ipx,
+                    sedgex.dataPtr(), ARLIM(sedgex.loVect()), ARLIM(sedgex.hiVect()),
                     
                     ylo_dat, yhi_dat, sly_dat,
                     slyscr, stylo, styhi,
                     vedge.dataPtr(), ARLIM(vedge.loVect()), ARLIM(vedge.hiVect()),
-                    sty.dataPtr(),   ARLIM(sty.loVect()),   ARLIM(sty.hiVect()),
+                    sty.dataPtr(),   ARLIM(sty.loVect()),   ARLIM(sty.hiVect()), Imy, Ipy,
+                    sedgey.dataPtr(), ARLIM(sedgey.loVect()), ARLIM(sedgey.hiVect()),
+
 #if (BL_SPACEDIM == 3)
                     zlo_dat, zhi_dat, slz_dat,
                     slzscr, stzlo, stzhi,
                     wedge.dataPtr(), ARLIM(wedge.loVect()), ARLIM(wedge.hiVect()),
-                    stz.dataPtr(),   ARLIM(stz.loVect()),   ARLIM(stz.hiVect()),
+                    stz.dataPtr(),   ARLIM(stz.loVect()),   ARLIM(stz.hiVect()), Imz, Ipz,
+                    sedgez.dataPtr(), ARLIM(sedgez.loVect()), ARLIM(sedgez.hiVect()),
 
 		    xedge_dat, yedge_dat, zedge_dat,
 		    xylo_dat, xzlo_dat, yxlo_dat, yzlo_dat, zxlo_dat, zylo_dat,
 		    xyhi_dat, xzhi_dat, yxhi_dat, yzhi_dat, zxhi_dat, zyhi_dat,
 #endif
                     ARLIM(ww_lo), ARLIM(ww_hi),
+                    ARLIM(I.loVect()), ARLIM(I.hiVect()),
+                    dsvl.dataPtr(), ARLIM(dsvl.loVect()), ARLIM(dsvl.hiVect()),
+                    sm, sp, ARLIM(smp.loVect()), ARLIM(smp.hiVect()),
                     bc, lo, hi, &dt, dx, &fort_ind,
                     &use_forces_in_trans, &iconserv);
 }

@@ -3,7 +3,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.18 2007-07-05 17:01:48 lijewski Exp $
+// $Id: Godunov.H,v 1.19 2009-03-14 07:07:01 marc Exp $
 //
 //
 // A useful enumeration of the forms for the advective terms
@@ -275,6 +275,11 @@ public:      // public access functions
 #if (BL_SPACEDIM == 3 )    
     FArrayBox wad;
 #endif
+
+    // More workspace for modified advection scheme allowing for ppm option
+    //  (pulled in to avoid f90 allocates)
+    FArrayBox smp, dsvl, I;
+    FArrayBox D_DECL(sedgex, sedgey, sedgez);
 
     // internal parameters
     int max_1d;    // largest dimension size allowed

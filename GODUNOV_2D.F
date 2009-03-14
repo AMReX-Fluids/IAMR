@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.53 2009-01-10 01:40:37 ajnonaka Exp $
+c $Id: GODUNOV_2D.F,v 1.54 2009-03-14 07:07:01 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -237,9 +237,10 @@ c      call flush(6)
       end
 
       subroutine FORT_TRANSVEL(
-     &     u, ulo, uhi, sx, ubc, slxscr,
-     &     v, vlo, vhi, sy, vbc, slyscr,
-     &     DIMS(s), DIMS(work),
+     &     u, ulo, uhi, sx, ubc, slxscr, Imx, Ipx, sedgex, DIMS(sedgex),
+     &     v, vlo, vhi, sy, vbc, slyscr, Imy, Ipy, sedgey, DIMS(sedgey),
+     &     DIMS(s), DIMS(work), DIMS(I),
+     &     dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
      &     lo,hi,dt,dx,use_minion,tforces)
 c
 c     This subroutine computes the advective velocities used in
@@ -258,6 +259,11 @@ c
       parameter( eps_for_bc = 1.0D-10 )
       integer DIMDEC(s)
       integer DIMDEC(work)
+      integer DIMDEC(I)
+      integer DIMDEC(dsvl)
+      integer DIMDEC(smp)
+      integer DIMDEC(sedgex)
+      integer DIMDEC(sedgey)
       REAL_T  u(DIMV(s))
       REAL_T  v(DIMV(s))
       REAL_T ulo(DIMV(work)),uhi(DIMV(work))
@@ -266,15 +272,18 @@ c
       REAL_T sy(DIMV(work))
       REAL_T slxscr(DIM1(s), 4)
       REAL_T slyscr(DIM2(s), 4)
+      REAL_T Imx(DIMV(I))
+      REAL_T Ipx(DIMV(I))
+      REAL_T Imy(DIMV(I))
+      REAL_T Ipy(DIMV(I))
+      REAL_T sedgex(DIMV(sedgex))
+      REAL_T sedgey(DIMV(sedgey))
+      REAL_T dsvl(DIMV(dsvl)), sm(DIMV(smp)), sp(DIMV(smp))
 
       integer use_minion
       REAL_T tforces(DIMV(work),SDIM)
 
       logical use_ppm
-      REAL_T, allocatable :: Ipx(:,:)
-      REAL_T, allocatable :: Imx(:,:)
-      REAL_T, allocatable :: Ipy(:,:)
-      REAL_T, allocatable :: Imy(:,:)
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -288,11 +297,6 @@ c
 
       use_ppm = .false.
 
-      allocate(Ipx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-      allocate(Imx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-      allocate(Ipy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-      allocate(Imy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-
 c
 c     --------------------------------------------------------------
 c     compute the x transverse velocities
@@ -300,7 +304,8 @@ c     --------------------------------------------------------------
 c
       if (use_ppm) then
          call FORT_PPM(u,u,v,DIMS(s),
-     &        Ipx,Imx,Ipy,Imy,DIMS(work),lo,hi,dx,dt,ubc,eps_for_bc)
+     &        Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,ubc,eps_for_bc)
 
       else
          call FORT_SLOPES(u,DIMS(s),
@@ -348,7 +353,8 @@ c     compute the y transverse velocities
 c
       if (use_ppm) then
          call FORT_PPM(v,u,v,DIMS(s),
-     &        Ipx,Imx,Ipy,Imy,DIMS(work),lo,hi,dx,dt,vbc,eps_for_bc)
+     &        Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,vbc,eps_for_bc)
       else
          call FORT_SLOPES(v,DIMS(s),
      &        sx,sy,DIMS(work),lo,hi,slxscr,slyscr,vbc)
@@ -391,19 +397,17 @@ c
          end do
       end do
 
-      deallocate(Ipx,Imx,Ipy,Imy)
-
       end
 
       subroutine FORT_ESTATE(s, tforces, DIMS(s),
 
      &     u, xlo, xhi, sx, uad, slxscr, stxlo, stxhi,
-     &     uedge, DIMS(uedge), xstate, DIMS(xstate),
+     &     uedge, DIMS(uedge), xstate, DIMS(xstate), Imx, Ipx, sedgex, DIMS(sedgex),
 
      &     v, ylo, yhi, sy, vad, slyscr, stylo, styhi,
-     &     vedge, DIMS(vedge), ystate, DIMS(ystate),
+     &     vedge, DIMS(vedge), ystate, DIMS(ystate), Imy, Ipy, sedgey, DIMS(sedgey),
 
-     &     DIMS(work),
+     &     DIMS(work), DIMS(I), dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
      &     bc,lo,hi,dt,dx,n,velpred, use_minion)
 c
       implicit none
@@ -424,6 +428,11 @@ c
       integer DIMDEC(vedge)
       integer DIMDEC(xstate)
       integer DIMDEC(ystate)
+      integer DIMDEC(I)
+      integer DIMDEC(sedgex)
+      integer DIMDEC(sedgey)
+      integer DIMDEC(dsvl)
+      integer DIMDEC(smp)
 
       REAL_T s(DIMV(s))
       REAL_T u(DIMV(s))
@@ -431,8 +440,9 @@ c
       REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
       REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
 
-      REAL_T uedge(DIMV(uedge)), xstate(DIMV(xstate))
-      REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate))
+      REAL_T uedge(DIMV(uedge)), xstate(DIMV(xstate)), Imx(DIMV(I)), Ipx(DIMV(I)), sedgex(DIMV(sedgex))
+      REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate)), Imy(DIMV(I)), Ipy(DIMV(I)), sedgey(DIMV(sedgey))
+      REAL_T dsvl(DIMV(dsvl)), sm(DIMV(smp)), sp(DIMV(smp))
 
       REAL_T xlo(DIMV(work)), xhi(DIMV(work))
       REAL_T ylo(DIMV(work)), yhi(DIMV(work))
@@ -443,10 +453,6 @@ c
       integer use_minion
 
       logical use_ppm
-      REAL_T, allocatable :: Ipx(:,:)
-      REAL_T, allocatable :: Imx(:,:)
-      REAL_T, allocatable :: Ipy(:,:)
-      REAL_T, allocatable :: Imy(:,:)
 
       dth  = half*dt
       dthx = half*dt/dx(1)
@@ -460,11 +466,6 @@ c
 
       use_ppm = .false.
 
-      allocate(Ipx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-      allocate(Imx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-      allocate(Ipy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-      allocate(Imy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-
 c
 c     compute the slopes
 c
@@ -472,7 +473,8 @@ c     trace the state to the cell edges
 c
       if (use_ppm) then
          call FORT_PPM(s,u,v,DIMS(s),
-     &        Ipx,Imx,Ipy,Imy,DIMS(work),lo,hi,dx,dt,bc,eps_for_bc)
+     &        Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps_for_bc)
       else
          call FORT_SLOPES(s,DIMS(s),
      &        sx,sy,DIMS(work),lo,hi,slxscr,slyscr,bc)
@@ -711,12 +713,12 @@ c
 
       subroutine FORT_ESTATE_FPU(s, tforces, divu, DIMS(s),
      &     xlo, xhi, sx, slxscr, stxlo, stxhi,
-     &     uedge, DIMS(uedge), xstate, DIMS(xstate),
+     &     uedge, DIMS(uedge), xstate, DIMS(xstate), Imx, Ipx, sedgex, DIMS(sedgex),
 
      &     ylo, yhi, sy, slyscr, stylo, styhi,
-     &     vedge, DIMS(vedge), ystate, DIMS(ystate),
+     &     vedge, DIMS(vedge), ystate, DIMS(ystate), Imy, Ipy, sedgey, DIMS(sedgey),
 
-     &     DIMS(work),
+     &     DIMS(work), DIMS(I), dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
      &     bc,lo,hi,dt,dx,n,use_minion,iconserv)
 c
 c     This subroutine computes edges states, right now it uses
@@ -743,13 +745,19 @@ c
       integer DIMDEC(xstate)
       integer DIMDEC(vedge)
       integer DIMDEC(ystate)
+      integer DIMDEC(I)
+      integer DIMDEC(sedgex)
+      integer DIMDEC(sedgey)
+      integer DIMDEC(dsvl)
+      integer DIMDEC(smp)
 
       REAL_T s(DIMV(s))
       REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
       REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
 
-      REAL_T uedge(DIMV(uedge)), xstate(DIMV(xstate))
-      REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate))
+      REAL_T uedge(DIMV(uedge)), xstate(DIMV(xstate)), Imx(DIMV(I)), Ipx(DIMV(I)), sedgex(DIMV(sedgex))
+      REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate)), Imy(DIMV(I)), Ipy(DIMV(I)), sedgey(DIMV(sedgey))
+      REAL_T dsvl(DIMV(dsvl)), sm(DIMV(smp)), sp(DIMV(smp))
 
       REAL_T xlo(DIMV(work)), xhi(DIMV(work))
       REAL_T ylo(DIMV(work)), yhi(DIMV(work))
@@ -768,10 +776,6 @@ c
       integer inc
 
       logical use_ppm
-      REAL_T, allocatable :: Ipx(:,:)
-      REAL_T, allocatable :: Imx(:,:)
-      REAL_T, allocatable :: Ipy(:,:)
-      REAL_T, allocatable :: Imy(:,:)
 
       REAL_T umax
 
@@ -787,17 +791,13 @@ c
 
       use_ppm = .false.
 
-      allocate(Ipx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-      allocate(Imx(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-      allocate(Ipy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-      allocate(Imy(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-
 c
 c     compute the slopes
 c
       if (use_ppm) then
          call FORT_PPM_FPU(s,DIMS(s),uedge,vedge,DIMS(uedge),
-     &        Ipx,Imx,Ipy,Imy,DIMS(work),lo,hi,dx,dt,bc,eps_for_bc)
+     &        Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps_for_bc)
 
       else
          call FORT_SLOPES(
@@ -1073,8 +1073,6 @@ c
             end do
             place_to_break = 1
       end do
-
-      deallocate(Ipx,Imx,Ipy,Imy)
 
       end
 
@@ -1800,7 +1798,8 @@ c
       end
 
       subroutine FORT_PPM(s,u,v,DIMS(s),
-     &     Ipx,Imx,Ipy,Imy,DIMS(work),lo,hi,dx,dt,bc,eps)
+     &     Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
+     &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps)
 
       implicit none
 
@@ -1808,6 +1807,10 @@ c
       integer bc(SDIM,2)
       integer DIMDEC(s)
       integer DIMDEC(work)
+      integer DIMDEC(smp)
+      integer DIMDEC(dsvl)
+      integer DIMDEC(sedgex)
+      integer DIMDEC(sedgey)
       REAL_T  s(DIMV(s))
       REAL_T  u(DIMV(s))
       REAL_T  v(DIMV(s))
@@ -1815,6 +1818,11 @@ c
       REAL_T  Imx(DIMV(work))
       REAL_T  Ipy(DIMV(work))
       REAL_T  Imy(DIMV(work))
+      REAL_T   sm(DIMV(smp))
+      REAL_T   sp(DIMV(smp))
+      REAL_T dsvl(DIMV(dsvl))
+      REAL_T sedgex(DIMV(sedgex))
+      REAL_T sedgey(DIMV(sedgey))
       REAL_T eps
       REAL_T dx(SDIM)
       REAL_T dt
@@ -1828,18 +1836,18 @@ c     local
       REAL_T sigma, s6
 
 c     s_{\ib,+}, s_{\ib,-}
-      REAL_T, allocatable :: sp(:,:)
-      REAL_T, allocatable :: sm(:,:)
+c      REAL_T, allocatable :: sp(:,:)
+c      REAL_T, allocatable :: sm(:,:)
 
 c     c \delta s_{\ib}^{vL}
-      REAL_T, allocatable :: dsvl(:,:)
+c      REAL_T, allocatable :: dsvl(:,:)
 
 c     s_{i+\half}^{H.O.}
-      REAL_T, allocatable :: sedge(:,:)
+c      REAL_T, allocatable :: sedge(:,:)
 
 c     cell-centered indexing
-      allocate(sp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-      allocate(sm(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+c      allocate(sp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+c      allocate(sm(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
 
 c     constant used in Colella 2008
       C = 1.25d0
@@ -1852,10 +1860,10 @@ c     x-direction
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 c     cell-centered indexing w/extra x-ghost cell
-      allocate(dsvl(lo(1)-2:hi(1)+2,lo(2)-1:hi(2)+1))
+c      allocate(dsvl(lo(1)-2:hi(1)+2,lo(2)-1:hi(2)+1))
 
 c     edge-centered indexing for x-faces
-      allocate(sedge(lo(1)-1:hi(1)+2,lo(2)-1:hi(2)+1))
+c      allocate(sedge(lo(1)-1:hi(1)+2,lo(2)-1:hi(2)+1))
 
 c     compute s at x-edges
       if (ppm_edge_interp_type .eq. 1) then
@@ -1873,10 +1881,10 @@ c     compute van Leer slopes in x-direction
 c     interpolate s to x-edges
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+2
-               sedge(i,j) = 0.5d0*(s(i,j)+s(i-1,j)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i-1,j))
-c     make sure sedge lies in between adjacent cell-centered values
-               sedge(i,j) = max(sedge(i,j),min(s(i,j),s(i-1,j)))
-               sedge(i,j) = min(sedge(i,j),max(s(i,j),s(i-1,j)))
+               sedgex(i,j) = 0.5d0*(s(i,j)+s(i-1,j)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i-1,j))
+c     make sure sedgex lies in between adjacent cell-centered values
+               sedgex(i,j) = max(sedgex(i,j),min(s(i,j),s(i-1,j)))
+               sedgex(i,j) = min(sedgex(i,j),max(s(i,j),s(i-1,j)))
             end do
          end do
 
@@ -1892,19 +1900,19 @@ c     store centered differences in dsvl
 c     interpolate s to x-edges
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+2
-               sedge(i,j) = 0.5d0*(s(i,j)+s(i-1,j)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i-1,j))
-c     if sedge is not in between the neighboring s values, we limit
-               if (sedge(i,j) .lt. min(s(i,j),s(i-1,j)) .or.
-     &              sedge(i,j) .gt. max(s(i,j),s(i-1,j))) then
-               D2  = (3.0d0/dx(1)**2)*(s(i-1,j)-2.0d0*sedge(i,j)+s(i,j))
+               sedgex(i,j) = 0.5d0*(s(i,j)+s(i-1,j)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i-1,j))
+c     if sedgex is not in between the neighboring s values, we limit
+               if (sedgex(i,j) .lt. min(s(i,j),s(i-1,j)) .or.
+     &              sedgex(i,j) .gt. max(s(i,j),s(i-1,j))) then
+               D2  = (3.0d0/dx(1)**2)*(s(i-1,j)-2.0d0*sedgex(i,j)+s(i,j))
                D2L = (1.0d0/dx(1)**2)*(s(i-2,j)-2.0d0*s(i-1,j)+s(i,j))
                D2R = (1.0d0/dx(1)**2)*(s(i-1,j)-2.0d0*s(i,j)+s(i+1,j))
                if (sign(1.0d0,D2) .eq. sign(1.0d0,D2L) .and.
      &              sign(1.0d0,D2) .eq. sign(1.0d0,D2R)) then
-                  sedge(i,j) = 0.5d0*(s(i-1,j)+s(i,j)) - (dx(1)**2/3.0d0)
+                  sedgex(i,j) = 0.5d0*(s(i-1,j)+s(i,j)) - (dx(1)**2/3.0d0)
      &                 *sign(1.0d0,D2)*min(C*abs(D2L),C*abs(D2R),abs(D2))
                else
-                  sedge(i,j) = 0.5d0*(s(i-1,j)+s(i,j))
+                  sedgex(i,j) = 0.5d0*(s(i-1,j)+s(i,j))
                end if
             end if
          end do
@@ -1915,8 +1923,8 @@ c     if sedge is not in between the neighboring s values, we limit
 c     fill x-component of sp and sm
       do j=lo(2)-1,hi(2)+1
          do i=lo(1)-1,hi(1)+1
-            sp(i,j) = sedge(i+1,j)
-            sm(i,j) = sedge(i  ,j)
+            sp(i,j) = sedgex(i+1,j)
+            sm(i,j) = sedgex(i  ,j)
          end do
       end do
 
@@ -1987,49 +1995,57 @@ c     modify using Colella 2008 limiters
 c     ! different stencil needed for x-component of EXT_DIR and HOEXTRAP bc's
       if (bc(1,1) .eq. EXT_DIR  .or. bc(1,1) .eq. HOEXTRAP) then
 c     the value in the first cc ghost cell represents the edge value
-         sm(lo(1),lo(2)-1:hi(2)+1) = s(lo(1)-1,lo(2)-1:hi(2)+1)
-
-c     use a modified stencil to get sedge on the first interior edge
-         sedge(lo(1)+1,lo(2)-1:hi(2)+1) = 
-     &        -0.2d0          *s(lo(1)-1,lo(2)-1:hi(2)+1)
-     &        + (3.0d0/4.0d0) *s(lo(1)  ,lo(2)-1:hi(2)+1)
-     &        + 0.5d0         *s(lo(1)+1,lo(2)-1:hi(2)+1)
-     &        - (1.0d0/20.0d0)*s(lo(1)+2,lo(2)-1:hi(2)+1)
-
-c     make sure sedge lies in between adjacent cell-centered values
          do j=lo(2)-1,hi(2)+1
-            sedge(lo(1)+1,j) = max(sedge(lo(1)+1,j),min(s(lo(1)+1,j),s(lo(1),j)))
-            sedge(lo(1)+1,j) = min(sedge(lo(1)+1,j),max(s(lo(1)+1,j),s(lo(1),j)))
+            sm(lo(1),j) = s(lo(1)-1,j)
+         enddo
+
+c     use a modified stencil to get sedgex on the first interior edge
+         do j=lo(2)-1,hi(2)+1
+            sedgex(lo(1)+1,j) = 
+     &           -0.2d0          *s(lo(1)-1,j)
+     &           + (3.0d0/4.0d0) *s(lo(1)  ,j)
+     &           + 0.5d0         *s(lo(1)+1,j)
+     &           - (1.0d0/20.0d0)*s(lo(1)+2,j)
+         enddo
+
+c     make sure sedgex lies in between adjacent cell-centered values
+         do j=lo(2)-1,hi(2)+1
+            sedgex(lo(1)+1,j) = max(sedgex(lo(1)+1,j),min(s(lo(1)+1,j),s(lo(1),j)))
+            sedgex(lo(1)+1,j) = min(sedgex(lo(1)+1,j),max(s(lo(1)+1,j),s(lo(1),j)))
          end do
 
-                                ! copy sedge into sp and sm
+                                ! copy sedgex into sp and sm
          do j=lo(2)-1,hi(2)+1
-            sp(lo(1)  ,j) = sedge(lo(1)+1,j)
-            sm(lo(1)+1,j) = sedge(lo(1)+1,j)
+            sp(lo(1)  ,j) = sedgex(lo(1)+1,j)
+            sm(lo(1)+1,j) = sedgex(lo(1)+1,j)
          end do
       end if
 
       if (bc(1,2) .eq. EXT_DIR  .or. bc(1,2) .eq. HOEXTRAP) then
 c     the value in the first cc ghost cell represents the edge value
-         sp(hi(1),lo(2)-1:hi(2)+1) = s(hi(1)+1,lo(2)-1:hi(2)+1)
-
-c     use a modified stencil to get sedge on the first interior edge
-         sedge(hi(1),lo(2)-1:hi(2)+1) = 
-     &        -0.2d0          *s(hi(1)+1,lo(2)-1:hi(2)+1)
-     &        + (3.0d0/4.0d0) *s(hi(1)  ,lo(2)-1:hi(2)+1)
-     &        + 0.5d0         *s(hi(1)-1,lo(2)-1:hi(2)+1)
-     &        - (1.0d0/20.0d0)*s(hi(1)-2,lo(2)-1:hi(2)+1)
-
-c     make sure sedge lies in between adjacent cell-centered values
          do j=lo(2)-1,hi(2)+1
-            sedge(hi(1),j) = max(sedge(hi(1),j),min(s(hi(1)-1,j),s(hi(1),j)))
-            sedge(hi(1),j) = min(sedge(hi(1),j),max(s(hi(1)-1,j),s(hi(1),j)))
+            sp(hi(1),j) = s(hi(1)+1,j)
+         enddo
+
+c     use a modified stencil to get sedges on the first interior edge
+         do j=lo(2)-1,hi(2)+1
+            sedgex(hi(1),j) = 
+     &           -0.2d0          *s(hi(1)+1,j)
+     &           + (3.0d0/4.0d0) *s(hi(1)  ,j)
+     &           + 0.5d0         *s(hi(1)-1,j)
+     &           - (1.0d0/20.0d0)*s(hi(1)-2,j)
+         enddo
+
+c     make sure sedgex lies in between adjacent cell-centered values
+         do j=lo(2)-1,hi(2)+1
+            sedgex(hi(1),j) = max(sedgex(hi(1),j),min(s(hi(1)-1,j),s(hi(1),j)))
+            sedgex(hi(1),j) = min(sedgex(hi(1),j),max(s(hi(1)-1,j),s(hi(1),j)))
          end do
 
-c     copy sedge into sp and sm
+c     copy sedgex into sp and sm
          do j=lo(2)-1,hi(2)+1
-            sp(hi(1)-1,j) = sedge(hi(1),j)
-            sm(hi(1)  ,j) = sedge(hi(1),j)
+            sp(hi(1)-1,j) = sedgex(hi(1),j)
+            sm(hi(1)  ,j) = sedgex(hi(1),j)
          end do
       end if
 
@@ -2053,17 +2069,17 @@ c     compute x-component of Ip and Im
          end do
       end do
 
-      deallocate(sedge,dsvl)
+c      deallocate(sedgex,dsvl)
 
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 c     y-direction
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 c     cell-centered indexing w/extra y-ghost cell
-      allocate( dsvl(lo(1)-1:hi(1)+1,lo(2)-2:hi(2)+2))
+c      allocate( dsvl(lo(1)-1:hi(1)+1,lo(2)-2:hi(2)+2))
 
 c     edge-centered indexing for y-faces
-      allocate(sedge(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+2))
+c      allocate(sedge(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+2))
 
 c     compute s at y-edges
       if (ppm_edge_interp_type .eq. 1) then
@@ -2081,10 +2097,10 @@ c     compute van Leer slopes in y-direction
 c     interpolate s to y-edges
          do j=lo(2)-1,hi(2)+2
             do i=lo(1)-1,hi(1)+1
-               sedge(i,j) = 0.5d0*(s(i,j)+s(i,j-1)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i,j-1))
-c     make sure sedge lies in between adjacent cell-centered values
-               sedge(i,j) = max(sedge(i,j),min(s(i,j),s(i,j-1)))
-               sedge(i,j) = min(sedge(i,j),max(s(i,j),s(i,j-1)))
+               sedgey(i,j) = 0.5d0*(s(i,j)+s(i,j-1)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i,j-1))
+c     make sure sedgey lies in between adjacent cell-centered values
+               sedgey(i,j) = max(sedgey(i,j),min(s(i,j),s(i,j-1)))
+               sedgey(i,j) = min(sedgey(i,j),max(s(i,j),s(i,j-1)))
             end do
          end do
 
@@ -2100,19 +2116,19 @@ c     store centered differences in dsvl
 c     interpolate s to y-edges
          do j=lo(2)-1,hi(2)+2
             do i=lo(1)-1,hi(1)+1
-               sedge(i,j) = 0.5d0*(s(i,j)+s(i,j-1)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i,j-1))
-c     if sedge is not in between the neighboring s values, we limit
-               if (sedge(i,j) .lt. min(s(i,j),s(i,j-1)) .or.
-     &              sedge(i,j) .gt. max(s(i,j),s(i,j-1))) then
-               D2  = (3.0d0/dx(2)**2)*(s(i,j-1)-2.0d0*sedge(i,j)+s(i,j))
+               sedgey(i,j) = 0.5d0*(s(i,j)+s(i,j-1)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i,j-1))
+c     if sedgey is not in between the neighboring s values, we limit
+               if (sedgey(i,j) .lt. min(s(i,j),s(i,j-1)) .or.
+     &              sedgey(i,j) .gt. max(s(i,j),s(i,j-1))) then
+               D2  = (3.0d0/dx(2)**2)*(s(i,j-1)-2.0d0*sedgey(i,j)+s(i,j))
                D2L = (1.0d0/dx(2)**2)*(s(i,j-2)-2.0d0*s(i,j-1)+s(i,j))
                D2R = (1.0d0/dx(2)**2)*(s(i,j-1)-2.0d0*s(i,j)+s(i,j+1))
                if (sign(1.0d0,D2) .eq. sign(1.0d0,D2L) .and.
      &              sign(1.0d0,D2) .eq. sign(1.0d0,D2R)) then
-                  sedge(i,j) = 0.5d0*(s(i,j-1)+s(i,j)) - (dx(2)**2/3.0d0)
+                  sedgey(i,j) = 0.5d0*(s(i,j-1)+s(i,j)) - (dx(2)**2/3.0d0)
      &                 *sign(1.0d0,D2)*min(C*abs(D2L),C*abs(D2R),abs(D2))
                else
-                  sedge(i,j) = 0.5d0*(s(i,j-1)+s(i,j))
+                  sedgey(i,j) = 0.5d0*(s(i,j-1)+s(i,j))
                end if
             end if
          end do
@@ -2123,8 +2139,8 @@ c     if sedge is not in between the neighboring s values, we limit
 c     fill y-component of sp and sm
       do j=lo(2)-1,hi(2)+1
          do i=lo(1)-1,hi(1)+1
-            sp(i,j) = sedge(i,j+1)
-            sm(i,j) = sedge(i,j  )
+            sp(i,j) = sedgey(i,j+1)
+            sm(i,j) = sedgey(i,j  )
          end do
       end do
 
@@ -2195,49 +2211,57 @@ c     ! modify using Colella 2008 limiters
 c     different stencil needed for y-component of EXT_DIR and HOEXTRAP bc's
       if (bc(2,1) .eq. EXT_DIR  .or. bc(2,1) .eq. HOEXTRAP) then
 c     the value in the first cc ghost cell represents the edge value
-         sm(lo(1)-1:hi(1)+1,lo(2)) = s(lo(1)-1:hi(1)+1,lo(2)-1)
-
-c     use a modified stencil to get sedge on the first interior edge
-         sedge(lo(1)-1:hi(1)+1,lo(2)+1) = 
-     &        -0.2d0        *s(lo(1)-1:hi(1)+1,lo(2)-1) 
-     &        + (3.0d0/4.0d0)*s(lo(1)-1:hi(1)+1,lo(2)  ) 
-     &        + 0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)+1) 
-     &        - (1.0d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)+2)
-
-c     make sure sedge lies in between adjacent cell-centered values
          do i=lo(1)-1,hi(1)+1
-            sedge(i,lo(2)+1) = max(sedge(i,lo(2)+1),min(s(i,lo(2)+1),s(i,lo(2))))
-            sedge(i,lo(2)+1) = min(sedge(i,lo(2)+1),max(s(i,lo(2)+1),s(i,lo(2))))
+            sm(i,lo(2)) = s(i,lo(2)-1)
+         enddo
+
+c     use a modified stencil to get sedgey on the first interior edge
+         do i=lo(1)-1,hi(1)+1
+            sedgey(i,lo(2)+1) = 
+     &           -0.2d0          *s(i,lo(2)-1) 
+     &           + (3.0d0/4.0d0) *s(i,lo(2)  ) 
+     &           + 0.5d0         *s(i,lo(2)+1) 
+     &           - (1.0d0/20.0d0)*s(i,lo(2)+2)
+         enddo
+
+c     make sure sedgey lies in between adjacent cell-centered values
+         do i=lo(1)-1,hi(1)+1
+            sedgey(i,lo(2)+1) = max(sedgey(i,lo(2)+1),min(s(i,lo(2)+1),s(i,lo(2))))
+            sedgey(i,lo(2)+1) = min(sedgey(i,lo(2)+1),max(s(i,lo(2)+1),s(i,lo(2))))
          end do
 
-c     copy sedge into sp and sm
+c     copy sedgey into sp and sm
          do i=lo(1)-1,hi(1)+1
-            sp(i,lo(2)  ) = sedge(i,lo(2)+1)
-            sm(i,lo(2)+1) = sedge(i,lo(2)+1)
+            sp(i,lo(2)  ) = sedgey(i,lo(2)+1)
+            sm(i,lo(2)+1) = sedgey(i,lo(2)+1)
          end do
       end if
 
       if (bc(2,2) .eq. EXT_DIR  .or. bc(2,2) .eq. HOEXTRAP) then
 c     the value in the first cc ghost cell represents the edge value
-         sp(lo(1)-1:hi(1)+1,hi(2)) = s(lo(1)-1:hi(1)+1,hi(2)+1)
-
-c     use a modified stencil to get sedge on the first interior edge
-         sedge(lo(1)-1:hi(1)+1,hi(2)) = 
-     &        -0.2d0         *s(lo(1)-1:hi(1)+1,hi(2)+1)
-     &        +(3.0d0/4.0d0) *s(lo(1)-1:hi(1)+1,hi(2)  )
-     &        +0.5d0         *s(lo(1)-1:hi(1)+1,hi(2)-1)
-     &        -(1.0d0/20.0d0)*s(lo(1)-1:hi(1)+1,hi(2)-2)
-
-c     make sure sedge lies in between adjacent cell-centered values
          do i=lo(1)-1,hi(1)+1
-            sedge(i,hi(2)) = max(sedge(i,hi(2)),min(s(i,hi(2)-1),s(i,hi(2))))
-            sedge(i,hi(2)) = min(sedge(i,hi(2)),max(s(i,hi(2)-1),s(i,hi(2))))
+            sp(i,hi(2)) = s(i,hi(2)+1)
+         enddo
+
+c     use a modified stencil to get sedgey on the first interior edge
+         do i=lo(1)-1,hi(1)+1
+            sedgey(i,hi(2)) = 
+     &           -0.2d0         *s(i,hi(2)+1)
+     &           +(3.0d0/4.0d0) *s(i,hi(2)  )
+     &           +0.5d0         *s(i,hi(2)-1)
+     &           -(1.0d0/20.0d0)*s(i,hi(2)-2)
+         enddo
+
+c     make sure sedgey lies in between adjacent cell-centered values
+         do i=lo(1)-1,hi(1)+1
+            sedgey(i,hi(2)) = max(sedgey(i,hi(2)),min(s(i,hi(2)-1),s(i,hi(2))))
+            sedgey(i,hi(2)) = min(sedgey(i,hi(2)),max(s(i,hi(2)-1),s(i,hi(2))))
          end do
 
-c     copy sedge into sp and sm
+c     copy sedgey into sp and sm
          do i=lo(1)-1,hi(1)+1
-            sp(i,hi(2)-1) = sedge(i,hi(2))
-            sm(i,hi(2)  ) = sedge(i,hi(2))
+            sp(i,hi(2)-1) = sedgey(i,hi(2))
+            sm(i,hi(2)  ) = sedgey(i,hi(2))
          end do
       end if
 
@@ -2261,12 +2285,13 @@ c     compute y-component of Ip and Im
          end do
       end do
 
-      deallocate(sp,sm,dsvl,sedge)
+c      deallocate(sp,sm,dsvl,sedge)
 
       end
 
       subroutine FORT_PPM_FPU(s,DIMS(s),uedge,vedge,DIMS(uedge),
-     &     Ipx,Imx,Ipy,Imy,DIMS(work),lo,hi,dx,dt,bc,eps)
+     &     Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
+     &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps)
 
       implicit none
 
@@ -2275,6 +2300,10 @@ c     compute y-component of Ip and Im
       integer DIMDEC(s)
       integer DIMDEC(uedge)
       integer DIMDEC(work)
+      integer DIMDEC(smp)
+      integer DIMDEC(dsvl)
+      integer DIMDEC(sedgex)
+      integer DIMDEC(sedgey)
       REAL_T  s(DIMV(s))
       REAL_T  uedge(DIMV(uedge))
       REAL_T  vedge(DIMV(uedge))
@@ -2282,6 +2311,11 @@ c     compute y-component of Ip and Im
       REAL_T  Imx(DIMV(work))
       REAL_T  Ipy(DIMV(work))
       REAL_T  Imy(DIMV(work))
+      REAL_T   sm(DIMV(smp))
+      REAL_T   sp(DIMV(smp))
+      REAL_T dsvl(DIMV(dsvl))
+      REAL_T sedgex(DIMV(sedgex))
+      REAL_T sedgey(DIMV(sedgey))
       REAL_T eps
       REAL_T dx(SDIM)
       REAL_T dt
@@ -2295,18 +2329,18 @@ c     local
       REAL_T sigmam, sigmap, s6
 
 c     s_{\ib,+}, s_{\ib,-}
-      REAL_T, allocatable :: sp(:,:)
-      REAL_T, allocatable :: sm(:,:)
+c      REAL_T, allocatable :: sp(:,:)
+c      REAL_T, allocatable :: sm(:,:)
 
 c     c \delta s_{\ib}^{vL}
-      REAL_T, allocatable :: dsvl(:,:)
+c      REAL_T, allocatable :: dsvl(:,:)
 
 c     s_{i+\half}^{H.O.}
-      REAL_T, allocatable :: sedge(:,:)
+c      REAL_T, allocatable :: sedge(:,:)
 
 c     cell-centered indexing
-      allocate(sp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-      allocate(sm(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+c      allocate(sp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+c      allocate(sm(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
 
 c     constant used in Colella 2008
       C = 1.25d0
@@ -2319,10 +2353,10 @@ c     x-direction
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 c     cell-centered indexing w/extra x-ghost cell
-      allocate(dsvl(lo(1)-2:hi(1)+2,lo(2)-1:hi(2)+1))
+c      allocate(dsvl(lo(1)-2:hi(1)+2,lo(2)-1:hi(2)+1))
 
 c     edge-centered indexing for x-faces
-      allocate(sedge(lo(1)-1:hi(1)+2,lo(2)-1:hi(2)+1))
+c      allocate(sedge(lo(1)-1:hi(1)+2,lo(2)-1:hi(2)+1))
 
 c     compute s at x-edges
       if (ppm_edge_interp_type .eq. 1) then
@@ -2340,10 +2374,10 @@ c     compute van Leer slopes in x-direction
 c     interpolate s to x-edges
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+2
-               sedge(i,j) = 0.5d0*(s(i,j)+s(i-1,j)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i-1,j))
-c     make sure sedge lies in between adjacent cell-centered values
-               sedge(i,j) = max(sedge(i,j),min(s(i,j),s(i-1,j)))
-               sedge(i,j) = min(sedge(i,j),max(s(i,j),s(i-1,j)))
+               sedgex(i,j) = 0.5d0*(s(i,j)+s(i-1,j)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i-1,j))
+c     make sure sedgex lies in between adjacent cell-centered values
+               sedgex(i,j) = max(sedgex(i,j),min(s(i,j),s(i-1,j)))
+               sedgex(i,j) = min(sedgex(i,j),max(s(i,j),s(i-1,j)))
             end do
          end do
 
@@ -2359,19 +2393,19 @@ c     store centered differences in dsvl
 c     interpolate s to x-edges
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+2
-               sedge(i,j) = 0.5d0*(s(i,j)+s(i-1,j)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i-1,j))
-c     if sedge is not in between the neighboring s values, we limit
-               if (sedge(i,j) .lt. min(s(i,j),s(i-1,j)) .or.
-     &              sedge(i,j) .gt. max(s(i,j),s(i-1,j))) then
-               D2  = (3.0d0/dx(1)**2)*(s(i-1,j)-2.0d0*sedge(i,j)+s(i,j))
+               sedgex(i,j) = 0.5d0*(s(i,j)+s(i-1,j)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i-1,j))
+c     if sedgex is not in between the neighboring s values, we limit
+               if (sedgex(i,j) .lt. min(s(i,j),s(i-1,j)) .or.
+     &              sedgex(i,j) .gt. max(s(i,j),s(i-1,j))) then
+               D2  = (3.0d0/dx(1)**2)*(s(i-1,j)-2.0d0*sedgex(i,j)+s(i,j))
                D2L = (1.0d0/dx(1)**2)*(s(i-2,j)-2.0d0*s(i-1,j)+s(i,j))
                D2R = (1.0d0/dx(1)**2)*(s(i-1,j)-2.0d0*s(i,j)+s(i+1,j))
                if (sign(1.0d0,D2) .eq. sign(1.0d0,D2L) .and.
      &              sign(1.0d0,D2) .eq. sign(1.0d0,D2R)) then
-                  sedge(i,j) = 0.5d0*(s(i-1,j)+s(i,j)) - (dx(1)**2/3.0d0)
+                  sedgex(i,j) = 0.5d0*(s(i-1,j)+s(i,j)) - (dx(1)**2/3.0d0)
      &                 *sign(1.0d0,D2)*min(C*abs(D2L),C*abs(D2R),abs(D2))
                else
-                  sedge(i,j) = 0.5d0*(s(i-1,j)+s(i,j))
+                  sedgex(i,j) = 0.5d0*(s(i-1,j)+s(i,j))
                end if
             end if
          end do
@@ -2382,8 +2416,8 @@ c     if sedge is not in between the neighboring s values, we limit
 c     fill x-component of sp and sm
       do j=lo(2)-1,hi(2)+1
          do i=lo(1)-1,hi(1)+1
-            sp(i,j) = sedge(i+1,j)
-            sm(i,j) = sedge(i  ,j)
+            sp(i,j) = sedgex(i+1,j)
+            sm(i,j) = sedgex(i  ,j)
          end do
       end do
 
@@ -2454,49 +2488,57 @@ c     modify using Colella 2008 limiters
 c     ! different stencil needed for x-component of EXT_DIR and HOEXTRAP bc's
       if (bc(1,1) .eq. EXT_DIR  .or. bc(1,1) .eq. HOEXTRAP) then
 c     the value in the first cc ghost cell represents the edge value
-         sm(lo(1),lo(2)-1:hi(2)+1) = s(lo(1)-1,lo(2)-1:hi(2)+1)
-
-c     use a modified stencil to get sedge on the first interior edge
-         sedge(lo(1)+1,lo(2)-1:hi(2)+1) = 
-     &        -0.2d0          *s(lo(1)-1,lo(2)-1:hi(2)+1)
-     &        + (3.0d0/4.0d0) *s(lo(1)  ,lo(2)-1:hi(2)+1)
-     &        + 0.5d0         *s(lo(1)+1,lo(2)-1:hi(2)+1)
-     &        - (1.0d0/20.0d0)*s(lo(1)+2,lo(2)-1:hi(2)+1)
-
-c     make sure sedge lies in between adjacent cell-centered values
          do j=lo(2)-1,hi(2)+1
-            sedge(lo(1)+1,j) = max(sedge(lo(1)+1,j),min(s(lo(1)+1,j),s(lo(1),j)))
-            sedge(lo(1)+1,j) = min(sedge(lo(1)+1,j),max(s(lo(1)+1,j),s(lo(1),j)))
+            sm(lo(1),j) = s(lo(1)-1,j)
+         enddo
+
+c     use a modified stencil to get sedgex on the first interior edge
+         do j=lo(2)-1,hi(2)+1
+            sedgex(lo(1)+1,j) = 
+     &           -0.2d0          *s(lo(1)-1,j)
+     &           + (3.0d0/4.0d0) *s(lo(1)  ,j)
+     &           + 0.5d0         *s(lo(1)+1,j)
+     &           - (1.0d0/20.0d0)*s(lo(1)+2,j)
+         enddo
+
+c     make sure sedgex lies in between adjacent cell-centered values
+         do j=lo(2)-1,hi(2)+1
+            sedgex(lo(1)+1,j) = max(sedgex(lo(1)+1,j),min(s(lo(1)+1,j),s(lo(1),j)))
+            sedgex(lo(1)+1,j) = min(sedgex(lo(1)+1,j),max(s(lo(1)+1,j),s(lo(1),j)))
          end do
 
-                                ! copy sedge into sp and sm
+                                ! copy sedgex into sp and sm
          do j=lo(2)-1,hi(2)+1
-            sp(lo(1)  ,j) = sedge(lo(1)+1,j)
-            sm(lo(1)+1,j) = sedge(lo(1)+1,j)
+            sp(lo(1)  ,j) = sedgex(lo(1)+1,j)
+            sm(lo(1)+1,j) = sedgex(lo(1)+1,j)
          end do
       end if
 
       if (bc(1,2) .eq. EXT_DIR  .or. bc(1,2) .eq. HOEXTRAP) then
 c     the value in the first cc ghost cell represents the edge value
-         sp(hi(1),lo(2)-1:hi(2)+1) = s(hi(1)+1,lo(2)-1:hi(2)+1)
-
-c     use a modified stencil to get sedge on the first interior edge
-         sedge(hi(1),lo(2)-1:hi(2)+1) = 
-     &        -0.2d0          *s(hi(1)+1,lo(2)-1:hi(2)+1)
-     &        + (3.0d0/4.0d0) *s(hi(1)  ,lo(2)-1:hi(2)+1)
-     &        + 0.5d0         *s(hi(1)-1,lo(2)-1:hi(2)+1)
-     &        - (1.0d0/20.0d0)*s(hi(1)-2,lo(2)-1:hi(2)+1)
-
-c     make sure sedge lies in between adjacent cell-centered values
          do j=lo(2)-1,hi(2)+1
-            sedge(hi(1),j) = max(sedge(hi(1),j),min(s(hi(1)-1,j),s(hi(1),j)))
-            sedge(hi(1),j) = min(sedge(hi(1),j),max(s(hi(1)-1,j),s(hi(1),j)))
+            sp(hi(1),j) = s(hi(1)+1,j)
+         enddo
+
+c     use a modified stencil to get sedgex on the first interior edge
+         do j=lo(2)-1,hi(2)+1
+            sedgex(hi(1),j) = 
+     &           -0.2d0          *s(hi(1)+1,j)
+     &           + (3.0d0/4.0d0) *s(hi(1)  ,j)
+     &           + 0.5d0         *s(hi(1)-1,j)
+     &           - (1.0d0/20.0d0)*s(hi(1)-2,j)
+         enddo
+
+c     make sure sedgex lies in between adjacent cell-centered values
+         do j=lo(2)-1,hi(2)+1
+            sedgex(hi(1),j) = max(sedgex(hi(1),j),min(s(hi(1)-1,j),s(hi(1),j)))
+            sedgex(hi(1),j) = min(sedgex(hi(1),j),max(s(hi(1)-1,j),s(hi(1),j)))
          end do
 
-c     copy sedge into sp and sm
+c     copy sedgex into sp and sm
          do j=lo(2)-1,hi(2)+1
-            sp(hi(1)-1,j) = sedge(hi(1),j)
-            sm(hi(1)  ,j) = sedge(hi(1),j)
+            sp(hi(1)-1,j) = sedgex(hi(1),j)
+            sm(hi(1)  ,j) = sedgex(hi(1),j)
          end do
       end if
 
@@ -2521,17 +2563,17 @@ c     compute x-component of Ip and Im
          end do
       end do
 
-      deallocate(sedge,dsvl)
+c      deallocate(sedge,dsvl)
 
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 c     y-direction
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 c     cell-centered indexing w/extra y-ghost cell
-      allocate( dsvl(lo(1)-1:hi(1)+1,lo(2)-2:hi(2)+2))
+c      allocate( dsvl(lo(1)-1:hi(1)+1,lo(2)-2:hi(2)+2))
 
 c     edge-centered indexing for y-faces
-      allocate(sedge(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+2))
+c      allocate(sedge(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+2))
 
 c     compute s at y-edges
       if (ppm_edge_interp_type .eq. 1) then
@@ -2549,10 +2591,10 @@ c     compute van Leer slopes in y-direction
 c     interpolate s to y-edges
          do j=lo(2)-1,hi(2)+2
             do i=lo(1)-1,hi(1)+1
-               sedge(i,j) = 0.5d0*(s(i,j)+s(i,j-1)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i,j-1))
-c     make sure sedge lies in between adjacent cell-centered values
-               sedge(i,j) = max(sedge(i,j),min(s(i,j),s(i,j-1)))
-               sedge(i,j) = min(sedge(i,j),max(s(i,j),s(i,j-1)))
+               sedgey(i,j) = 0.5d0*(s(i,j)+s(i,j-1)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i,j-1))
+c     make sure sedgey lies in between adjacent cell-centered values
+               sedgey(i,j) = max(sedgey(i,j),min(s(i,j),s(i,j-1)))
+               sedgey(i,j) = min(sedgey(i,j),max(s(i,j),s(i,j-1)))
             end do
          end do
 
@@ -2568,19 +2610,19 @@ c     store centered differences in dsvl
 c     interpolate s to y-edges
          do j=lo(2)-1,hi(2)+2
             do i=lo(1)-1,hi(1)+1
-               sedge(i,j) = 0.5d0*(s(i,j)+s(i,j-1)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i,j-1))
-c     if sedge is not in between the neighboring s values, we limit
-               if (sedge(i,j) .lt. min(s(i,j),s(i,j-1)) .or.
-     &              sedge(i,j) .gt. max(s(i,j),s(i,j-1))) then
-               D2  = (3.0d0/dx(2)**2)*(s(i,j-1)-2.0d0*sedge(i,j)+s(i,j))
+               sedgey(i,j) = 0.5d0*(s(i,j)+s(i,j-1)) - (1.0d0/6.0d0)*(dsvl(i,j)-dsvl(i,j-1))
+c     if sedgey is not in between the neighboring s values, we limit
+               if (sedgey(i,j) .lt. min(s(i,j),s(i,j-1)) .or.
+     &              sedgey(i,j) .gt. max(s(i,j),s(i,j-1))) then
+               D2  = (3.0d0/dx(2)**2)*(s(i,j-1)-2.0d0*sedgey(i,j)+s(i,j))
                D2L = (1.0d0/dx(2)**2)*(s(i,j-2)-2.0d0*s(i,j-1)+s(i,j))
                D2R = (1.0d0/dx(2)**2)*(s(i,j-1)-2.0d0*s(i,j)+s(i,j+1))
                if (sign(1.0d0,D2) .eq. sign(1.0d0,D2L) .and.
      &              sign(1.0d0,D2) .eq. sign(1.0d0,D2R)) then
-                  sedge(i,j) = 0.5d0*(s(i,j-1)+s(i,j)) - (dx(2)**2/3.0d0)
+                  sedgey(i,j) = 0.5d0*(s(i,j-1)+s(i,j)) - (dx(2)**2/3.0d0)
      &                 *sign(1.0d0,D2)*min(C*abs(D2L),C*abs(D2R),abs(D2))
                else
-                  sedge(i,j) = 0.5d0*(s(i,j-1)+s(i,j))
+                  sedgey(i,j) = 0.5d0*(s(i,j-1)+s(i,j))
                end if
             end if
          end do
@@ -2591,8 +2633,8 @@ c     if sedge is not in between the neighboring s values, we limit
 c     fill y-component of sp and sm
       do j=lo(2)-1,hi(2)+1
          do i=lo(1)-1,hi(1)+1
-            sp(i,j) = sedge(i,j+1)
-            sm(i,j) = sedge(i,j  )
+            sp(i,j) = sedgey(i,j+1)
+            sm(i,j) = sedgey(i,j  )
          end do
       end do
 
@@ -2663,49 +2705,57 @@ c     ! modify using Colella 2008 limiters
 c     different stencil needed for y-component of EXT_DIR and HOEXTRAP bc's
       if (bc(2,1) .eq. EXT_DIR  .or. bc(2,1) .eq. HOEXTRAP) then
 c     the value in the first cc ghost cell represents the edge value
-         sm(lo(1)-1:hi(1)+1,lo(2)) = s(lo(1)-1:hi(1)+1,lo(2)-1)
-
-c     use a modified stencil to get sedge on the first interior edge
-         sedge(lo(1)-1:hi(1)+1,lo(2)+1) = 
-     &        -0.2d0        *s(lo(1)-1:hi(1)+1,lo(2)-1) 
-     &        + (3.0d0/4.0d0)*s(lo(1)-1:hi(1)+1,lo(2)  ) 
-     &        + 0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)+1) 
-     &        - (1.0d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)+2)
-
-c     make sure sedge lies in between adjacent cell-centered values
          do i=lo(1)-1,hi(1)+1
-            sedge(i,lo(2)+1) = max(sedge(i,lo(2)+1),min(s(i,lo(2)+1),s(i,lo(2))))
-            sedge(i,lo(2)+1) = min(sedge(i,lo(2)+1),max(s(i,lo(2)+1),s(i,lo(2))))
+            sm(i,lo(2)) = s(i,lo(2)-1)
+         enddo
+
+c     use a modified stencil to get sedgey on the first interior edge
+         do i=lo(1)-1,hi(1)+1
+            sedgey(i,lo(2)+1) = 
+     &           -0.2d0          *s(i,lo(2)-1) 
+     &           + (3.0d0/4.0d0) *s(i,lo(2)  ) 
+     &           + 0.5d0         *s(i,lo(2)+1) 
+     &           - (1.0d0/20.0d0)*s(i,lo(2)+2)
+         enddo
+
+c     make sure sedgey lies in between adjacent cell-centered values
+         do i=lo(1)-1,hi(1)+1
+            sedgey(i,lo(2)+1) = max(sedgey(i,lo(2)+1),min(s(i,lo(2)+1),s(i,lo(2))))
+            sedgey(i,lo(2)+1) = min(sedgey(i,lo(2)+1),max(s(i,lo(2)+1),s(i,lo(2))))
          end do
 
-c     copy sedge into sp and sm
+c     copy sedgey into sp and sm
          do i=lo(1)-1,hi(1)+1
-            sp(i,lo(2)  ) = sedge(i,lo(2)+1)
-            sm(i,lo(2)+1) = sedge(i,lo(2)+1)
+            sp(i,lo(2)  ) = sedgey(i,lo(2)+1)
+            sm(i,lo(2)+1) = sedgey(i,lo(2)+1)
          end do
       end if
 
       if (bc(2,2) .eq. EXT_DIR  .or. bc(2,2) .eq. HOEXTRAP) then
 c     the value in the first cc ghost cell represents the edge value
-         sp(lo(1)-1:hi(1)+1,hi(2)) = s(lo(1)-1:hi(1)+1,hi(2)+1)
-
-c     use a modified stencil to get sedge on the first interior edge
-         sedge(lo(1)-1:hi(1)+1,hi(2)) = 
-     &        -0.2d0         *s(lo(1)-1:hi(1)+1,hi(2)+1)
-     &        +(3.0d0/4.0d0) *s(lo(1)-1:hi(1)+1,hi(2)  )
-     &        +0.5d0         *s(lo(1)-1:hi(1)+1,hi(2)-1)
-     &        -(1.0d0/20.0d0)*s(lo(1)-1:hi(1)+1,hi(2)-2)
-
-c     make sure sedge lies in between adjacent cell-centered values
          do i=lo(1)-1,hi(1)+1
-            sedge(i,hi(2)) = max(sedge(i,hi(2)),min(s(i,hi(2)-1),s(i,hi(2))))
-            sedge(i,hi(2)) = min(sedge(i,hi(2)),max(s(i,hi(2)-1),s(i,hi(2))))
+            sp(i,hi(2)) = s(i,hi(2)+1)
+         enddo
+
+c     use a modified stencil to get sedgey on the first interior edge
+         do i=lo(1)-1,hi(1)+1
+            sedgey(i,hi(2)) = 
+     &           -0.2d0         *s(i,hi(2)+1)
+     &           +(3.0d0/4.0d0) *s(i,hi(2)  )
+     &           +0.5d0         *s(i,hi(2)-1)
+     &           -(1.0d0/20.0d0)*s(i,hi(2)-2)
+         enddo
+
+c     make sure sedgey lies in between adjacent cell-centered values
+         do i=lo(1)-1,hi(1)+1
+            sedgey(i,hi(2)) = max(sedgey(i,hi(2)),min(s(i,hi(2)-1),s(i,hi(2))))
+            sedgey(i,hi(2)) = min(sedgey(i,hi(2)),max(s(i,hi(2)-1),s(i,hi(2))))
          end do
 
-c     copy sedge into sp and sm
+c     copy sedgey into sp and sm
          do i=lo(1)-1,hi(1)+1
-            sp(i,hi(2)-1) = sedge(i,hi(2))
-            sm(i,hi(2)  ) = sedge(i,hi(2))
+            sp(i,hi(2)-1) = sedgey(i,hi(2))
+            sm(i,hi(2)  ) = sedgey(i,hi(2))
          end do
       end if
 
@@ -2730,7 +2780,7 @@ c     compute y-component of Ip and Im
          end do
       end do
 
-      deallocate(sp,sm,dsvl,sedge)
+c      deallocate(sp,sm,dsvl,sedge)
 
       end
 

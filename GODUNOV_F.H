@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.19 2008-12-08 23:39:32 ajnonaka Exp $
+** $Id: GODUNOV_F.H,v 1.20 2009-03-14 07:07:01 marc Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -123,17 +123,24 @@ extern "C"
    
    void FORT_TRANSVEL( const Real* u_dat, const Real* uad_dat, 
 		       const Real* xhi_dat, const Real* slx_dat, 
-		       const int* ubc, Real* slxscr, 
+		       const int* ubc, Real* slxscr, Real* Imx, Real* Ipx, 
+                       Real* sedgex, ARLIM_P(sedgexlo), ARLIM_P(sedgexhi),
+
 		       const Real* v_dat, const Real* vad_dat, 
 		       const Real* yhi_dat, const Real* sly_dat, 
-		       const int* vbc, Real*slyscr, 
+		       const int* vbc, Real*slyscr, Real* Imy, Real* Ipy,
+                       Real* sedgey, ARLIM_P(sedgeylo), ARLIM_P(sedgeyhi),
 #if (BL_SPACEDIM == 3)
 		       const Real* w_dat, const Real* wad_dat, 
 		       const Real* zhi_dat, const Real* slz_dat, 
-		       const int* wbc, Real* slzscr,
+		       const int* wbc, Real* slzscr, Real* Imz, Real* Ipz,
+                       Real* sedgez, ARLIM_P(sedgezlo), ARLIM_P(sedgezhi),
 #endif    
 		       ARLIM_P(u_lo),ARLIM_P(u_hi),
 		       ARLIM_P(w_lo),ARLIM_P(w_hi),
+		       ARLIM_P(I_lo),ARLIM_P(I_hi),
+		       Real* dsvl, ARLIM_P(dsvl_lo),ARLIM_P(dsvl_hi),
+		       Real* sm, Real* sp, ARLIM_P(smp_lo),ARLIM_P(smp_hi),
 		       const int* lo, const int* hi, Real* dt, 
 		       const Real* dx, int* use_forces_in_trans, 
 		       const Real* tforcedat);
@@ -145,21 +152,24 @@ extern "C"
 		    const Real* uad_dat,
 		    Real* slxscr, Real* stxlo, Real* stxhi,
 		    const Real* uedge_dat, ARLIM_P(ue_lo), ARLIM_P(ue_hi),
-                    const Real* stx,       ARLIM_P(stx_lo),ARLIM_P(stx_hi),
+                    const Real* stx,       ARLIM_P(stx_lo),ARLIM_P(stx_hi), Real* Imx, Real* Ipx,
+                    Real* sedgex, ARLIM_P(sedgexlo), ARLIM_P(sedgexhi),
 		    
 		    const Real* v_dat, const Real* ylo_dat, 
 		    const Real* yhi_dat, const Real* sly_dat, 
 		    const Real* vad_dat,
 		    Real* slyscr, Real* stylo, Real* styhi,
 		    const Real* vedge_dat, ARLIM_P(ve_lo), ARLIM_P(ve_hi),
-                    const Real* sty,       ARLIM_P(sty_lo),ARLIM_P(sty_hi),
+                    const Real* sty,       ARLIM_P(sty_lo),ARLIM_P(sty_hi), Real* Imy, Real* Ipy,
+                    Real* sedgey, ARLIM_P(sedgeylo), ARLIM_P(sedgeyhi),
 #if (BL_SPACEDIM == 3)
 		    const Real* w_dat, const Real* zlo_dat, 
 		    const Real* zhi_dat, const Real* slz_dat, 
 		    const Real* wad_dat,
 		    Real* slzscr, Real* stzlo, Real* stzhi,
 		    const Real* wedge_dat, ARLIM_P(we_lo), ARLIM_P(we_hi),
-                    const Real* stz,       ARLIM_P(stz_lo),ARLIM_P(stz_hi),
+                    const Real* stz,       ARLIM_P(stz_lo),ARLIM_P(stz_hi), Real* Imz, Real* Ipz,
+                    Real* sedgez, ARLIM_P(sedgezlo), ARLIM_P(sedgezhi),
 
 		    const Real* xedge_dat, const Real* yedge_dat, const Real* zedge_dat,
 		    const Real* xylo_dat,  const Real* xzlo_dat,  const Real* yxlo_dat,
@@ -168,6 +178,9 @@ extern "C"
 		    const Real* yzhi_dat,  const Real* zxhi_dat,  const Real* zyhi_dat,
 #endif
 		    ARLIM_P(ww_lo),ARLIM_P(ww_hi),
+		    ARLIM_P(I_lo),ARLIM_P(I_hi),
+                    Real* dsvl, ARLIM_P(dsvl_lo),ARLIM_P(dsvl_hi),
+                    Real* sm, Real* sp, ARLIM_P(smp_lo),ARLIM_P(smp_hi),
 		    const int* bc, const int* lo, const int* hi, 
 		    Real* dt, const Real* dx, int* fort_ind, int* velpred, 
 		    int* use_forces_in_trans);
@@ -178,18 +191,23 @@ extern "C"
 		    const Real* xhi_dat, const Real* slx_dat, 
 		    Real* slxscr, Real* stxlo, Real* stxhi,
 		    const Real* uedge_dat, ARLIM_P(ue_lo), ARLIM_P(ue_hi),
-                    const Real* stx,       ARLIM_P(stx_lo),ARLIM_P(stx_hi),
+                    const Real* stx,       ARLIM_P(stx_lo),ARLIM_P(stx_hi), Real* Imx, Real* Ipx,
+                    Real* sedgex, ARLIM_P(sedgexlo), ARLIM_P(sedgexhi),
+
 		    const Real* ylo_dat, 
 		    const Real* yhi_dat, const Real* sly_dat, 
 		    Real* slyscr, Real* stylo, Real* styhi,
 		    const Real* vedge_dat, ARLIM_P(ve_lo), ARLIM_P(ve_hi),
-                    const Real* sty,       ARLIM_P(sty_lo),ARLIM_P(sty_hi),
+                    const Real* sty,       ARLIM_P(sty_lo),ARLIM_P(sty_hi), Real* Imy, Real* Ipy,
+                    Real* sedgey, ARLIM_P(sedgeylo), ARLIM_P(sedgeyhi),
+
 #if (BL_SPACEDIM == 3)
 		    const Real* zlo_dat, 
 		    const Real* zhi_dat, const Real* slz_dat, 
 		    Real* slzscr, Real* stzlo, Real* stzhi,
 		    const Real* wedge_dat, ARLIM_P(we_lo), ARLIM_P(we_hi),
-                    const Real* stz,       ARLIM_P(stz_lo),ARLIM_P(stz_hi),
+                    const Real* stz,       ARLIM_P(stz_lo),ARLIM_P(stz_hi), Real* Imz, Real* Ipz,
+                    Real* sedgez, ARLIM_P(sedgezlo), ARLIM_P(sedgezhi),
 
 		    const Real* xedge_dat, const Real* yedge_dat, const Real* zedge_dat,
 		    const Real* xylo_dat,  const Real* xzlo_dat,  const Real* yxlo_dat,
@@ -198,6 +216,9 @@ extern "C"
 		    const Real* yzhi_dat,  const Real* zxhi_dat,  const Real* zyhi_dat,
 #endif
 		    ARLIM_P(ww_lo),ARLIM_P(ww_hi),
+		    ARLIM_P(I_lo),ARLIM_P(I_hi),
+                    Real* dsvl, ARLIM_P(dsvl_lo),ARLIM_P(dsvl_hi),
+                    Real* sm, Real* sp, ARLIM_P(smp_lo),ARLIM_P(smp_hi),
 		    const int* bc, const int* lo, const int* hi, 
 		    Real* dt, const Real* dx, int* fort_ind, 
 		    int* use_forces_in_trans, int* iconserv);
