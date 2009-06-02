@@ -597,7 +597,7 @@ Diffusion::diffuse_velocity (Real                   dt,
             {
                 BoxArray ba = rho_half->boxArray();
                 ba.surroundingNodes(i);
-                fluxes[i].define(ba, nComp, 0, Fab_allocate);
+                fluxes[i].define(ba, BL_SPACEDIM, 0, Fab_allocate);
             }
         }
 
@@ -621,18 +621,18 @@ Diffusion::diffuse_velocity (Real                   dt,
                         fluxtot.copy((*fluxSCn[d])[fmfi],ebox,0,ebox,0,nComp);
                         fluxtot.plus((*fluxSCnp1[d])[fmfi],ebox,0,0,nComp);
                         if (level < parent->finestLevel())
-                            fluxes[d][fmfi.index()].copy(fluxtot);
+                            fluxes[d][fmfi.index()].copy(fluxtot,0,sigma,1);
                         if (level > 0)
                             viscflux_reg->FineAdd(fluxtot,d,fmfi.index(),0,sigma,nComp,dt);
                     }
                 }
-
-                if (level < parent->finestLevel())
-                {
-                    for (int d = 0; d < BL_SPACEDIM; ++d)
-                        finer->viscflux_reg->CrseInit(fluxes[d],d,0,sigma,nComp,-dt);
-                }
             }
+        }
+
+        if (level < parent->finestLevel())
+        {
+            for (int d = 0; d < BL_SPACEDIM; ++d)
+                finer->viscflux_reg->CrseInit(fluxes[d],d,0,0,BL_SPACEDIM,-dt);
         }
 
         removeFluxBoxesLevel(fluxSCn);
