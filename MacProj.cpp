@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.120 2008-07-31 21:55:25 lijewski Exp $
+// $Id: MacProj.cpp,v 1.121 2009-06-02 22:27:43 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -411,12 +411,11 @@ MacProj::mac_project (int             level,
 
         if (verbose)
         {
-            Real sumreg =  mr.SumReg(0);
+            Real sumreg = mr.SumReg(0);
 
             if (ParallelDescriptor::IOProcessor())
             {
-                std::cout << "LEVEL "                   << level
-                          << " MACREG: CrseInit sum = " << sumreg << std::endl;
+                std::cout << "LEVEL " << level << " MACREG: CrseInit sum = " << sumreg << std::endl;
             }
         }
     }
@@ -662,6 +661,8 @@ MacProj::mac_sync_compute (int                   level,
                            int                   do_mom_diff,
                            const Array<int>&     increment_sync)
 {
+    if (modify_reflux_normal_vel)
+        BoxLib::Abort("modify_reflux_normal_vel is no longer supported");
     //
     // Get parameters.
     //
@@ -672,7 +673,7 @@ MacProj::mac_sync_compute (int                   level,
     MultiFab*       mac_sync_phi        = &mac_phi_crse[level];
     NavierStokes&   ns_level            = *(NavierStokes*) &(parent->getLevel(level));
     Godunov*        godunov             = ns_level.godunov;
-    bool            use_forces_in_trans = godunov->useForcesInTrans()?true:false;
+    bool            use_forces_in_trans = godunov->useForcesInTrans() ? true : false;
 
     MultiFab vel_visc_terms(grids,BL_SPACEDIM,1);
     MultiFab scal_visc_terms(grids,numscal,1);
@@ -711,15 +712,6 @@ MacProj::mac_sync_compute (int                   level,
     MultiFab* divu_fp = ns_level.getDivCond(1,prev_time);
 
     FluxRegister* temp_reg = 0;
-
-    if (modify_reflux_normal_vel)
-    {
-        temp_reg = new FluxRegister(LevelData[level+1].boxArray(),
-                                    parent->refRatio(level),level+1,
-                                    BL_SPACEDIM);
-        temp_reg->setVal(0);
-    }
-
     //
     // Compute the mac sync correction.
     //
@@ -854,38 +846,6 @@ MacProj::mac_sync_compute (int                   level,
         // Fill temp_reg with the normal fluxes.
         //
         int velpred = 0;
-        if (modify_reflux_normal_vel)
-        {
-            for (int comp = 0; comp < BL_SPACEDIM; comp++)
-            {
-                int iconserv_dummy = 0;
-                godunov->edge_states(grids[i], dx, dt, velpred,
-                                     u_mac[0][S_fpi], xflux, 
-                                     u_mac[1][S_fpi], yflux,
-#if (BL_SPACEDIM == 3)                            
-                                     u_mac[2][S_fpi], zflux,
-#endif
-                                     U, S, tforces, divu, comp, comp,
-                                     ns_level_bc.dataPtr(), iconserv_dummy,
-                                     PRE_MAC);
-
-                if (comp == 0)
-                {
-                    temp_reg->CrseInit(xflux,xflux.box(),comp,0,comp,1,1.0);
-                }
-                else if (comp == 1)
-                {
-                    temp_reg->CrseInit(yflux,yflux.box(),comp,0,comp,1,1.0);
-#if (BL_SPACEDIM == 3)
-                }
-                else if (comp == 2)
-                {
-                    temp_reg->CrseInit(zflux,zflux.box(),comp,0,comp,1,1.0);
-#endif
-                } 
-            }
-            temp_reg->CrseInitFinish();
-        }
 
         U.clear();
         tforces.clear();
@@ -903,42 +863,6 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Multiply the sync term by dt -- now done in the calling routine.
         //
-    }
-
-    if (modify_reflux_normal_vel)
-    {
-          // Multiply the fluxes (stored in temp_reg) 
-          // by delta U (area-weighted, stored in mr) on each edge
-          // and store the result in temp_reg.
-          // Then reflux the result into u_sync
-
-          FluxRegister& mr = mac_reg[level+1];
-          const Real scale =  1.0;
-
-          for (int dir = 0; dir < BL_SPACEDIM; dir++)
-          {
-              FabSet& lofabs_temp = (*temp_reg)[Orientation(dir,Orientation::low)];
-              FabSet& hifabs_temp = (*temp_reg)[Orientation(dir,Orientation::high)];
-              FabSet& lofabs_mr   = mr[Orientation(dir,Orientation::low)];
-              FabSet& hifabs_mr   = mr[Orientation(dir,Orientation::high)];
-
-              for (FabSetIter fsi(lofabs_temp); fsi.isValid(); ++fsi)
-              {
-                  lofabs_temp[fsi].mult(lofabs_mr[fsi],0,dir,1);
-              }
-              for (FabSetIter fsi(hifabs_temp); fsi.isValid(); ++fsi)
-              {
-                  hifabs_temp[fsi].mult(hifabs_mr[fsi],0,dir,1);
-              }
-          }
-
-          MultiFab volume;
-
-          geom.GetVolume(volume,grids,GEOM_GROW);
-
-          temp_reg->Reflux(*Vsync,volume,scale,0,0,BL_SPACEDIM,geom);
-
-          delete temp_reg;
     }
 
     delete divu_fp;
@@ -966,6 +890,9 @@ MacProj::mac_sync_compute (int                    level,
 			   bool                   modify_reflux_normal_vel,
                            Real                   dt)
 {
+    if (modify_reflux_normal_vel)
+        BoxLib::Abort("modify_reflux_normal_vel is no longer supported");
+
     FArrayBox xflux, yflux, zflux, grad_phi[BL_SPACEDIM], area[BL_SPACEDIM], volume;
 
     const BoxArray& grids        = LevelData[level].boxArray();
@@ -975,12 +902,6 @@ MacProj::mac_sync_compute (int                    level,
     Godunov godunov(512);
 
     FluxRegister* temp_reg = 0;
-    if (modify_reflux_normal_vel && comp < BL_SPACEDIM)
-    {
-        temp_reg = new FluxRegister(LevelData[level+1].boxArray(),
-                                    parent->refRatio(level),level+1,BL_SPACEDIM);
-        temp_reg->setVal(0.);
-    }
     //
     // Compute the mac sync correction.
     //
@@ -1043,63 +964,6 @@ MacProj::mac_sync_compute (int                    level,
                    adv_flux_reg->FineAdd(yflux,1,Syncmfi.index(),0,comp,1,-dt);,
                    adv_flux_reg->FineAdd(zflux,2,Syncmfi.index(),0,comp,1,-dt););
         }
-        //
-        // Fill temp_reg with the normal fluxes.
-        //
-        if (modify_reflux_normal_vel && comp < BL_SPACEDIM)
-        {
-             if (comp == 0)
-             {
-                temp_reg->CrseInit((*sync_edges[0])[Syncmfi],(*sync_edges[0])[Syncmfi].box(),eComp,0,comp,1,1.0);
-             }
-             else if (comp == 1)
-             {
-                temp_reg->CrseInit((*sync_edges[1])[Syncmfi],(*sync_edges[1])[Syncmfi].box(),eComp,0,comp,1,1.0);
-#if (BL_SPACEDIM == 3)
-             }
-             else if (comp == 2)
-             {
-                temp_reg->CrseInit((*sync_edges[2])[Syncmfi],(*sync_edges[2])[Syncmfi].box(),eComp,0,comp,1,1.0);
-#endif
-             } 
-             temp_reg->CrseInitFinish();
-        }
-    }
-
-    if (modify_reflux_normal_vel && comp < BL_SPACEDIM)
-    {
-          // Multiply the fluxes (stored in temp_reg) 
-          //   by delta U (area-weighted, stored in mr) on each edge
-          //   and store the result in temp_reg.
-          // Then reflux the result into Sync (which is Vsync in this case)
-
-          FluxRegister& mr = mac_reg[level+1];
-          const Real scale =  1.0;
-
-          int dir = comp;
-          {
-              FabSet& lofabs_temp = (*temp_reg)[Orientation(dir,Orientation::low)];
-              FabSet& hifabs_temp = (*temp_reg)[Orientation(dir,Orientation::high)];
-              FabSet& lofabs_mr   = mr[Orientation(dir,Orientation::low)];
-              FabSet& hifabs_mr   = mr[Orientation(dir,Orientation::high)];
-
-              for (FabSetIter fsi(lofabs_temp); fsi.isValid(); ++fsi)
-              {
-                  lofabs_temp[fsi].mult(lofabs_mr[fsi],0,dir,1);
-              }
-              for (FabSetIter fsi(hifabs_temp); fsi.isValid(); ++fsi)
-              {
-                  hifabs_temp[fsi].mult(hifabs_mr[fsi],0,dir,1);
-              }
-          }
-
-          MultiFab volume;
-
-          geom.GetVolume(volume,grids,GEOM_GROW);
-
-          temp_reg->Reflux(*Sync,volume,scale,comp,comp,1,geom);
-
-          delete temp_reg;
     }
 }
 //
