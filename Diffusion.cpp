@@ -626,12 +626,11 @@ Diffusion::diffuse_velocity (Real                   dt,
                             viscflux_reg->FineAdd(fluxtot,d,fmfi.index(),0,sigma,nComp,dt);
                     }
                 }
-            }
-            if (do_reflux && level < parent->finestLevel())
-            {
-                for (int d = 0; d < BL_SPACEDIM; ++d)
+
+                if (level < parent->finestLevel())
                 {
-                    finer->viscflux_reg->CrseInit(fluxes[d],d,0,sigma,nComp,-dt);
+                    for (int d = 0; d < BL_SPACEDIM; ++d)
+                        finer->viscflux_reg->CrseInit(fluxes[d],d,0,sigma,nComp,-dt);
                 }
             }
         }
@@ -877,55 +876,37 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     //
     // Modify diffusive fluxes here.
     //
-    if (do_reflux && (level<finest_level || level>0))
+    if (do_reflux && (level < finest_level || level > 0))
     {
         MultiFab** tensorflux;
         allocFluxBoxesLevel(tensorflux,0,BL_SPACEDIM);
-        tensor_op->compFlux(D_DECL(*(tensorflux[0]),
-                                   *(tensorflux[1]),
-                                   *(tensorflux[2])),Soln);
+        tensor_op->compFlux(D_DECL(*(tensorflux[0]), *(tensorflux[1]), *(tensorflux[2])),Soln);
+
         for (int d = 0; d < BL_SPACEDIM; d++)
         {
             tensorflux[d]->mult(b/(dt*caller->Geom().CellSize()[d]),0);
             tensorflux[d]->plus(*(tensorflux_old[d]),0,BL_SPACEDIM,0);
         }       
+
         removeFluxBoxesLevel(tensorflux_old);
-    
-        FArrayBox flux;
 
-        for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
+        if (level > 0)
         {
-            for (MFIter tensorflux0mfi(*(tensorflux[0]));
-                 tensorflux0mfi.isValid();
-                 ++tensorflux0mfi)
+            for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
             {
-                const int  i   = tensorflux0mfi.index();
-                const Box& grd = BoxLib::enclosedCells(tensorflux0mfi.validbox());
-
-                BL_ASSERT(grd == grids[tensorflux0mfi.index()]);
+                const int i = mfi.index();
 
                 for (int k = 0; k < BL_SPACEDIM; k++)
-                {
-                    Box flux_bx(grd);
-                    flux_bx.surroundingNodes(k);
-                    flux.resize(flux_bx,1);
-                    flux.copy((*(tensorflux[k]))[i],sigma,0,1);
-
-                    if (level < finest_level)
-                    {
-                        (*finer->viscflux_reg).CrseInit(flux,flux_bx,k,0,sigma,1,-dt);
-                    }
-                    if (level > 0)
-                    {
-                        viscflux_reg->FineAdd(flux,k,i,0,sigma,1,dt);
-                    }
-                }
-            }
-            if (level < finest_level)
-            {
-                finer->viscflux_reg->CrseInitFinish();
+                    viscflux_reg->FineAdd((*(tensorflux[k]))[i],k,i,Xvel,Xvel,BL_SPACEDIM,dt);
             }
         }
+
+        if (level < finest_level)
+        {
+            for (int d = 0; d < BL_SPACEDIM; d++)
+                (*finer->viscflux_reg).CrseInit(*tensorflux[d],d,0,Xvel,BL_SPACEDIM,-dt);
+        }
+
         removeFluxBoxesLevel(tensorflux);
     }
 
@@ -1296,13 +1277,12 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
 
         for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
         {
-            for (MFIter tensorflux0mfi(*(tensorflux[0]));
-                 tensorflux0mfi.isValid(); ++tensorflux0mfi)
+            for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
             {
-                const int i    = tensorflux0mfi.index();
-                const Box& grd = BoxLib::enclosedCells(tensorflux0mfi.validbox());
+                const int i    = mfi.index();
+                const Box& grd = BoxLib::enclosedCells(mfi.validbox());
 
-                BL_ASSERT(grd==grids[tensorflux0mfi.index()]);
+                BL_ASSERT(grd==grids[mfi.index()]);
 
                 for (int k = 0; k < BL_SPACEDIM; k++)
                 {
