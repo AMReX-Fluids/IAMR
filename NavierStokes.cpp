@@ -1925,31 +1925,17 @@ NavierStokes::velocity_advection (Real dt)
                                  U_fpi(), S, tforces, (*divu_fp)[i], comp,
                                  (*aofs)[i],comp,use_conserv_diff,
                                  comp,bndry[comp].dataPtr(),PRE_MAC,volume);
-
             if (do_reflux)
             {
                 if (level < parent->finestLevel())
                 {
-                    FluxRegister& fr = getAdvFluxReg(level+1);
-                    if (!modify_reflux_normal_vel || comp != Xvel)
-                        fluxes[0][i].copy(flux[0],0,comp,1);
-                    if (!modify_reflux_normal_vel || comp != Yvel)
-                        fluxes[1][i].copy(flux[1],0,comp,1);
-#if (BL_SPACEDIM == 3)                              
-                    if (!modify_reflux_normal_vel || comp != Zvel)
-                        fluxes[2][i].copy(flux[2],0,comp,1);
-#endif
+                    for (int d = 0; d < BL_SPACEDIM; d++)
+                        fluxes[d][i].copy(flux[d],0,comp,1);
                 }
                 if (level > 0)
                 {
-                    if (!modify_reflux_normal_vel || comp != Xvel)
-                        advflux_reg->FineAdd(flux[0],0,i,0,comp,1,dt);
-                    if (!modify_reflux_normal_vel || comp != Yvel)
-                        advflux_reg->FineAdd(flux[1],1,i,0,comp,1,dt);
-#if (BL_SPACEDIM == 3)                                
-                    if (!modify_reflux_normal_vel || comp != Zvel)
-                        advflux_reg->FineAdd(flux[2],2,i,0,comp,1,dt);
-#endif
+                    for (int d = 0; d < BL_SPACEDIM; d++)
+                        advflux_reg->FineAdd(flux[d],d,i,0,comp,1,dt);
                 }
             }
 
@@ -1997,9 +1983,9 @@ NavierStokes::scalar_advection (Real dt,
     //
     // Set up the grid loop.
     //
-    FArrayBox xflux, yflux, zflux, tforces, tvelforces, area[BL_SPACEDIM], volume;
+    FArrayBox flux[BL_SPACEDIM], tforces, tvelforces, area[BL_SPACEDIM], volume;
 
-    MultiFab Gp, vel_visc_terms;
+    MultiFab Gp, vel_visc_terms, fluxes[BL_SPACEDIM];
 
     MultiFab* divu_fp = getDivCond(1,prev_time);
     MultiFab* dsdt    = getDsdt(1,prev_time);
@@ -2009,6 +1995,16 @@ NavierStokes::scalar_advection (Real dt,
        (*divu_fp)[dsdtmfi].plus((*dsdt)[dsdtmfi]);
     }
     delete dsdt;
+
+    if (do_reflux && level < parent->finestLevel())
+    {
+        for (int i = 0; i < BL_SPACEDIM; i++)
+        {
+            BoxArray ba = grids;
+            ba.surroundingNodes(i);
+            fluxes[i].define(ba, num_scalars, 0, Fab_allocate);
+        }
+    }
 
     const int use_forces_in_trans = godunov->useForcesInTrans();
 
@@ -2066,10 +2062,10 @@ NavierStokes::scalar_advection (Real dt,
                bndry[2] = getBCArray(State_Type,i,2,1);)
 
         godunov->Setup(grids[i], dx, dt, 0,
-                       xflux, bndry[0].dataPtr(),
-                       yflux, bndry[1].dataPtr(),
+                       flux[0], bndry[0].dataPtr(),
+                       flux[1], bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                         
-                       zflux, bndry[2].dataPtr(),
+                       flux[2], bndry[2].dataPtr(),
 #endif
                        U_fpi(),(*rho_ptime)[i],tvelforces);
 
@@ -2087,23 +2083,21 @@ NavierStokes::scalar_advection (Real dt,
             //
             // Compute total forcing.
             //
-            int use_conserv_diff = (advectionType[state_ind] == Conservative)
-                                                             ? true : false;
+            int use_conserv_diff = (advectionType[state_ind] == Conservative) ? true : false;
+
             AdvectionScheme adv_scheme = PRE_MAC;
 
             if (adv_scheme == PRE_MAC)
             {
-              godunov->Sum_tf_divu_visc(S_fpi(),tforces,comp,1,visc_terms[i],
-                                        comp,(*divu_fp)[i],(*rho_ptime)[i],
-                                        use_conserv_diff);
+                godunov->Sum_tf_divu_visc(S_fpi(),tforces,comp,1,visc_terms[i],
+                                          comp,(*divu_fp)[i],(*rho_ptime)[i], use_conserv_diff);
             }
             else
             {
-              FArrayBox junkDivu(tforces.box(),1);
-              junkDivu.setVal(0.);
-              godunov->Sum_tf_divu_visc(S_fpi(),tforces,comp,1,visc_terms[i],
-                                        comp,junkDivu,(*rho_ptime)[i],
-                                        use_conserv_diff);
+                FArrayBox junkDivu(tforces.box(),1);
+                junkDivu.setVal(0.);
+                godunov->Sum_tf_divu_visc(S_fpi(),tforces,comp,1,visc_terms[i],
+                                          comp,junkDivu,(*rho_ptime)[i],use_conserv_diff);
             }
             //
             // Advect scalar.
@@ -2111,26 +2105,37 @@ NavierStokes::scalar_advection (Real dt,
             state_bc = getBCArray(State_Type,i,state_ind,1);
 
             godunov->AdvectState(grids[i], dx, dt, 
-                                 area[0], u_mac[0][i], xflux,
-                                 area[1], u_mac[1][i], yflux,
+                                 area[0], u_mac[0][i], flux[0],
+                                 area[1], u_mac[1][i], flux[1],
 #if (BL_SPACEDIM == 3)                        
-                                 area[2], u_mac[2][i], zflux,
+                                 area[2], u_mac[2][i], flux[2],
 #endif
                                  U_fpi(),S_fpi(),tforces,(*divu_fp)[i],comp,
                                  (*aofs)[i],state_ind,use_conserv_diff,
                                  state_ind,state_bc.dataPtr(),adv_scheme,volume);
-            //
-            // Get the fluxes for refluxing and diagnostic purposes.
-            //
-            pullFluxes(i, state_ind, 1, xflux, yflux, zflux, dt);
+            if (do_reflux)
+            {
+                if (level < parent->finestLevel())
+                {
+                    for (int d = 0; d < BL_SPACEDIM; d++)
+                        fluxes[d][i].copy(flux[d],0,comp,1);
+                }
+                if (level > 0)
+                {
+                    for (int d = 0; d < BL_SPACEDIM; d++)
+                        advflux_reg->FineAdd(flux[d],d,i,0,state_ind,1,dt);
+                }
+            }
         }
     }
+
     delete divu_fp;
-    //
-    // pullFluxes() contains CrseInit() calls -- complete the process.
-    //
+
     if (do_reflux && level < parent->finestLevel())
-        getAdvFluxReg(level+1).CrseInitFinish();
+    {
+        for (int i = 0; i < BL_SPACEDIM; i++)
+            getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,fscalar,num_scalars,-dt);
+    }
 }
 
 //
@@ -4845,8 +4850,8 @@ NavierStokes::mac_sync ()
                                         do_mom_diff);
         //
         // The following used to be done in mac_sync_compute.  Ssync is
-        //   the source for a rate of change to S over the time step, so
-        //   Ssync*dt is the source to the actual sync amount.
+        // the source for a rate of change to S over the time step, so
+        // Ssync*dt is the source to the actual sync amount.
         //
         Ssync->mult(dt,Ssync->nGrow());
         //
@@ -5341,24 +5346,18 @@ NavierStokes::pullFluxes (int        i,
         if (level < parent->finestLevel())
         {
             FluxRegister& fr = getAdvFluxReg(level+1);
-            if (!modify_reflux_normal_vel || start_ind != Xvel)
-                fr.CrseInit(xflux,xflux.box(),0,0,start_ind,ncomp,-dt);
-            if (!modify_reflux_normal_vel || start_ind != Yvel)
-                fr.CrseInit(yflux,yflux.box(),1,0,start_ind,ncomp,-dt);
+            fr.CrseInit(xflux,xflux.box(),0,0,start_ind,ncomp,-dt);
+            fr.CrseInit(yflux,yflux.box(),1,0,start_ind,ncomp,-dt);
 #if (BL_SPACEDIM == 3)                              
-            if (!modify_reflux_normal_vel || start_ind != Zvel)
-                fr.CrseInit(zflux,zflux.box(),2,0,start_ind,ncomp,-dt);
+            fr.CrseInit(zflux,zflux.box(),2,0,start_ind,ncomp,-dt);
 #endif
         }
         if (level > 0)
         {
-            if (!modify_reflux_normal_vel || start_ind != Xvel)
-                advflux_reg->FineAdd(xflux,0,i,0,start_ind,ncomp,dt);
-            if (!modify_reflux_normal_vel || start_ind != Yvel)
-                advflux_reg->FineAdd(yflux,1,i,0,start_ind,ncomp,dt);
+            advflux_reg->FineAdd(xflux,0,i,0,start_ind,ncomp,dt);
+            advflux_reg->FineAdd(yflux,1,i,0,start_ind,ncomp,dt);
 #if (BL_SPACEDIM == 3)                                
-            if (!modify_reflux_normal_vel || start_ind != Zvel)
-                advflux_reg->FineAdd(zflux,2,i,0,start_ind,ncomp,dt);
+            advflux_reg->FineAdd(zflux,2,i,0,start_ind,ncomp,dt);
 #endif
         }
     }
