@@ -589,6 +589,18 @@ Diffusion::diffuse_velocity (Real                   dt,
         allocFluxBoxesLevel(fluxSCn,  nGrow,nComp);
         allocFluxBoxesLevel(fluxSCnp1,nGrow,nComp);
 
+        MultiFab fluxes[BL_SPACEDIM];
+
+        if (do_reflux && level < parent->finestLevel())
+        {
+            for (int i = 0; i < BL_SPACEDIM; i++)
+            {
+                BoxArray ba = rho_half->boxArray();
+                ba.surroundingNodes(i);
+                fluxes[i].define(ba, nComp, 0, Fab_allocate);
+            }
+        }
+
         for (int sigma = 0; sigma < BL_SPACEDIM; ++sigma)
         {
             const int state_ind = Xvel + sigma;
@@ -598,29 +610,32 @@ Diffusion::diffuse_velocity (Real                   dt,
 
             if (do_reflux)
             {
+                FArrayBox fluxtot;
+
+                for (int d = 0; d < BL_SPACEDIM; ++d)
                 {
-                    FArrayBox fluxtot;
-                    for (int d = 0; d < BL_SPACEDIM; ++d)
+                    for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
                     {
-                        for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
-                        {
-                            const Box& ebox = (*fluxSCn[d])[fmfi].box();
-                            fluxtot.resize(ebox,nComp);
-                            fluxtot.copy((*fluxSCn[d])[fmfi],ebox,0,ebox,0,nComp);
-                            fluxtot.plus((*fluxSCnp1[d])[fmfi],ebox,0,0,nComp);
-                            if (level < parent->finestLevel())
-                                finer->viscflux_reg->CrseInit(fluxtot,ebox,
-                                                              d,0,sigma,nComp,-dt);
-                            if (level > 0)
-                                viscflux_reg->FineAdd(fluxtot,d,fmfi.index(),
-                                                      0,sigma,nComp,dt);
-                        }
+                        const Box& ebox = (*fluxSCn[d])[fmfi].box();
+                        fluxtot.resize(ebox,nComp);
+                        fluxtot.copy((*fluxSCn[d])[fmfi],ebox,0,ebox,0,nComp);
+                        fluxtot.plus((*fluxSCnp1[d])[fmfi],ebox,0,0,nComp);
+                        if (level < parent->finestLevel())
+                            fluxes[d][fmfi.index()].copy(fluxtot);
+                        if (level > 0)
+                            viscflux_reg->FineAdd(fluxtot,d,fmfi.index(),0,sigma,nComp,dt);
                     }
                 }
-                if (level < parent->finestLevel())
-                    finer->viscflux_reg->CrseInitFinish();
+            }
+            if (do_reflux && level < parent->finestLevel())
+            {
+                for (int d = 0; d < BL_SPACEDIM; ++d)
+                {
+                    finer->viscflux_reg->CrseInit(fluxes[d],d,0,sigma,nComp,-dt);
+                }
             }
         }
+
         removeFluxBoxesLevel(fluxSCn);
         removeFluxBoxesLevel(fluxSCnp1);
     }
