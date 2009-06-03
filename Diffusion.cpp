@@ -584,10 +584,9 @@ Diffusion::diffuse_velocity (Real                   dt,
     {
         MultiFab* *fluxSCn;
         MultiFab* *fluxSCnp1;
-        const int nGrow = 0;
-        const int nComp = 1;
-        allocFluxBoxesLevel(fluxSCn,  nGrow,nComp);
-        allocFluxBoxesLevel(fluxSCnp1,nGrow,nComp);
+
+        allocFluxBoxesLevel(fluxSCn,  0,1);
+        allocFluxBoxesLevel(fluxSCnp1,0,1);
 
         MultiFab fluxes[BL_SPACEDIM];
 
@@ -610,20 +609,17 @@ Diffusion::diffuse_velocity (Real                   dt,
 
             if (do_reflux)
             {
-                FArrayBox fluxtot;
-
                 for (int d = 0; d < BL_SPACEDIM; ++d)
                 {
                     for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
                     {
-                        const Box& ebox = (*fluxSCn[d])[fmfi].box();
-                        fluxtot.resize(ebox,nComp);
-                        fluxtot.copy((*fluxSCn[d])[fmfi],ebox,0,ebox,0,nComp);
-                        fluxtot.plus((*fluxSCnp1[d])[fmfi],ebox,0,0,nComp);
+                        (*fluxSCnp1[d])[fmfi].plus((*fluxSCn[d])[fmfi]);
+
                         if (level < parent->finestLevel())
-                            fluxes[d][fmfi.index()].copy(fluxtot,0,sigma,1);
+                            fluxes[d][fmfi.index()].copy((*fluxSCnp1[d])[fmfi],0,sigma,1);
+
                         if (level > 0)
-                            viscflux_reg->FineAdd(fluxtot,d,fmfi.index(),0,sigma,nComp,dt);
+                            viscflux_reg->FineAdd((*fluxSCnp1[d])[fmfi],d,fmfi.index(),0,sigma,1,dt);
                     }
                 }
             }
