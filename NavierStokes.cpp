@@ -2339,23 +2339,11 @@ NavierStokes::scalar_diffusion_update (Real dt,
 
     MultiFab** fluxSCn;
     MultiFab** fluxSCnp1;
-    const int nGrow = 0;
-    const int nComp = 1;
-    diffusion->allocFluxBoxesLevel(fluxSCn,  nGrow,nComp);
-    diffusion->allocFluxBoxesLevel(fluxSCnp1,nGrow,nComp);
+
+    diffusion->allocFluxBoxesLevel(fluxSCn,  0,1);
+    diffusion->allocFluxBoxesLevel(fluxSCnp1,0,1);
+
     const MultiFab* Rh = get_rho_half_time();
-
-    MultiFab fluxes[BL_SPACEDIM];
-
-    if (do_reflux && level < parent->finestLevel())
-    {
-        for (int i = 0; i < BL_SPACEDIM; i++)
-        {
-            BoxArray ba = grids;
-            ba.surroundingNodes(i);
-            fluxes[i].define(ba, nComp, 0, Fab_allocate);
-        }
-    }
 
     for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
     {
@@ -2397,27 +2385,21 @@ NavierStokes::scalar_diffusion_update (Real dt,
             //
             if (do_reflux)
             {
-                FArrayBox fluxtot;
-
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
                     for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
                     {
-                        const Box& ebox = (*fluxSCn[d])[fmfi].box();
-                        fluxtot.resize(ebox,nComp);
-                        fluxtot.copy((*fluxSCn[d])[fmfi],ebox,0,ebox,0,nComp);
-                        fluxtot.plus((*fluxSCnp1[d])[fmfi],ebox,0,0,nComp);
-                        if (level < parent->finestLevel())
-                            fluxes[d][fmfi.index()].copy(fluxtot);
+                        (*fluxSCnp1[d])[fmfi].plus((*fluxSCn[d])[fmfi]);
+
                         if (level > 0)
-                            getViscFluxReg().FineAdd((*fluxSCn[d])[fmfi],d,fmfi.index(),0,sigma,nComp,dt);
+                            getViscFluxReg().FineAdd((*fluxSCn[d])[fmfi],d,fmfi.index(),0,sigma,1,dt);
                     }
                 }
 
                 if (level < parent->finestLevel())
                 {
                     for (int d = 0; d < BL_SPACEDIM; ++d)
-                        getLevel(level+1).getViscFluxReg().CrseInit(fluxes[d],d,0,sigma,nComp,-dt);
+                        getLevel(level+1).getViscFluxReg().CrseInit((*fluxSCnp1[d]),d,0,sigma,1,-dt);
                 }
             }
         }
