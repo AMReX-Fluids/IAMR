@@ -2392,7 +2392,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
                         (*fluxSCnp1[d])[fmfi].plus((*fluxSCn[d])[fmfi]);
 
                         if (level > 0)
-                            getViscFluxReg().FineAdd((*fluxSCn[d])[fmfi],d,fmfi.index(),0,sigma,1,dt);
+                            getViscFluxReg().FineAdd((*fluxSCnp1[d])[fmfi],d,fmfi.index(),0,sigma,1,dt);
                     }
                 }
 
