@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.121 2009-06-02 22:27:43 lijewski Exp $
+// $Id: MacProj.cpp,v 1.122 2009-06-11 17:29:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -94,6 +94,12 @@ MacProj::~MacProj () {}
 void
 MacProj::read_params ()
 {
+    static bool done = false;
+
+    if (done) return;
+
+    done = true;
+
     ParmParse pp("mac");
 
     pp.query( "v",                verbose          );
@@ -113,13 +119,13 @@ MacProj::read_params ()
     pp.query("umac_periodic_test_Tol",   umac_periodic_test_Tol);
 
     if ( use_cg_solve && use_hypre_solve )
-      {
+    {
 	BoxLib::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
-      }
+    }
     if ( use_cg_solve && use_fboxlib_mg )
-      {
+    {
 	BoxLib::Error("MacProj::read_params: cg_solve && .not. fboxlib_solve");
-      }
+    }
 }
 
 void

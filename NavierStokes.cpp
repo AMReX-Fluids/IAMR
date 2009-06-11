@@ -200,6 +200,12 @@ NavierStokes::read_geometry ()
 void
 NavierStokes::read_params ()
 {
+    static bool done = false;
+
+    if (done) return;
+
+    done = true;
+
     ParmParse pp("ns");
 
     pp.query("v",verbose);

@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.167 2008-07-30 16:07:29 lijewski Exp $
+// $Id: Projection.cpp,v 1.168 2009-06-11 17:29:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -129,6 +129,12 @@ Projection::read_params ()
     //
     // Read parameters from input file and command line.
     //
+    static bool done = false;
+
+    if (done) return;
+
+    done = true;
+
     ParmParse pp("proj");
 
     pp.query("v",verbose);

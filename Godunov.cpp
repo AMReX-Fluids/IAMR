@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.45 2009-03-14 07:07:01 marc Exp $
+// $Id: Godunov.cpp,v 1.46 2009-06-11 17:29:45 lijewski Exp $
 //
 
 //
@@ -68,6 +68,12 @@ Godunov::read_params ()
     //
     // Read parameters from input file and command line.
     //
+    static bool done = false;
+
+    if (done) return;
+
+    done = true;
+
     ParmParse pp("godunov");
 
     pp.query("v",verbose);
