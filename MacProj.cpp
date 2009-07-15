@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.122 2009-06-11 17:29:45 lijewski Exp $
+// $Id: MacProj.cpp,v 1.123 2009-07-15 16:18:12 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -716,8 +716,6 @@ MacProj::mac_sync_compute (int                   level,
     ns_level.getGradP(Gp, prev_pres_time);
 
     MultiFab* divu_fp = ns_level.getDivCond(1,prev_time);
-
-    FluxRegister* temp_reg = 0;
     //
     // Compute the mac sync correction.
     //
@@ -851,8 +849,6 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Fill temp_reg with the normal fluxes.
         //
-        int velpred = 0;
-
         U.clear();
         tforces.clear();
         //
@@ -906,8 +902,6 @@ MacProj::mac_sync_compute (int                    level,
     MultiFab*       mac_sync_phi = &mac_phi_crse[level];
 
     Godunov godunov(512);
-
-    FluxRegister* temp_reg = 0;
     //
     // Compute the mac sync correction.
     //
