@@ -1733,16 +1733,14 @@ NavierStokes::predict_velocity (Real  dt,
     
     FArrayBox* null_fab = 0;
 
-    for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
+    for (FillPatchIterator U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM)
 #ifdef MOREGENGETFORCE
-	     U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
-	     S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
-	 S_fpi.isValid() && U_fpi.isValid() && P_fpi.isValid();
-	 ++S_fpi, ++U_fpi, ++P_fpi
+	     , S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+	 S_fpi.isValid() && U_fpi.isValid();
+	 ++S_fpi, ++U_fpi
 #else
-	     U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM);
-	 U_fpi.isValid() && P_fpi.isValid();
-	 ++U_fpi, ++P_fpi
+             ; U_fpi.isValid();
+	 ++U_fpi
 #endif
 	)
     {
