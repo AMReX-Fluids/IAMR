@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.25 2008-10-27 01:34:18 jbb Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.26 2009-10-05 18:13:31 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -42,6 +42,7 @@ c ::
       ddy = fourth/dx(2)
       ddz = fourth/dx(3)
 
+!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -59,6 +60,7 @@ c ::
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1086,7 +1088,7 @@ c ::  total_vol  <= sum of volumes
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_SUMPRESS(press,DIMS(press),vol,DIMS(vol),lo,hi,
-     $                          total_press,total_vol)
+     $                          totpress,totvol)
 
        implicit none
 
@@ -1096,25 +1098,27 @@ c ::
        integer DIMDEC(grid)
        REAL_T  press(DIMV(press))
        REAL_T  vol(DIMV(vol))
-       REAL_T  total_press,total_vol
+       REAL_T  totpress,totvol
 
        integer i, j, k
-       REAL_T  surroundingVolume
+       REAL_T  svol
 
+!$omp parallel do private(i,j,k,svol) reduction(+ : totvol,totpress)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
 
-                surroundingVolume = vol(i,j  ,k  ) + vol(i-1,j  ,k  ) + 
+                svol = vol(i,j  ,k  ) + vol(i-1,j  ,k  ) + 
      $               vol(i,j-1,k  ) + vol(i-1,j-1,k  ) +
      $               vol(i,j  ,k-1) + vol(i-1,j  ,k-1) + 
      $               vol(i,j-1,k-1) + vol(i-1,j-1,k-1)
-                total_press = total_press + press(i,j,k) * surroundingVolume
-                total_vol   = total_vol   +                surroundingVolume
+                totpress = totpress + press(i,j,k) * svol
+                totvol   = totvol   +                svol
 
              end do
           end do
        end do
+!$omp end parallel do
 
        end
 c-----------------------------------------------------------------------

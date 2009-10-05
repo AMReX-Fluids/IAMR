@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_3D.F,v 1.11 2008-02-08 18:39:48 lijewski Exp $
+c $Id: DIFFUSION_3D.F,v 1.12 2009-10-05 18:13:31 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -52,40 +52,52 @@ c ::
       REAL_T  onemintheta
 
       onemintheta = one-theta
+
+!$omp parallel private(i,j,k,sx1,sx2,sy1,sy2,sz1,sz2)
+
       if (dir .EQ. 0) then
 c     ::::: compute X fluxes
+!$omp do
          do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-         do i = lo(1), hi(1)+1
-	    sx1 = (s_o(i,j,k) - s_o(i-1,j,k))*bn(i,j,k)
-	    sx2 = (s_n(i,j,k) - s_n(i-1,j,k))*bnp1(i,j,k)
-	    flux(i,j,k) = mult*(onemintheta*sx1 + theta*sx2)*area(i,j,k)/dx
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)+1
+                  sx1 = (s_o(i,j,k) - s_o(i-1,j,k))*bn(i,j,k)
+                  sx2 = (s_n(i,j,k) - s_n(i-1,j,k))*bnp1(i,j,k)
+                  flux(i,j,k) = mult*(onemintheta*sx1 + theta*sx2)*area(i,j,k)/dx
+               end do
+            end do
          end do
-         end do
-         end do
+!$omp end do
       else if (dir .EQ. 1) then
 c     ::::: compute Y fluxes
+!$omp do
          do k = lo(3), hi(3)
-         do j = lo(2), hi(2)+1
-         do i = lo(1), hi(1)
-            sy1 = (s_o(i,j,k) - s_o(i,j-1,k))*bn(i,j,k)
-            sy2 = (s_n(i,j,k) - s_n(i,j-1,k))*bnp1(i,j,k)
-            flux(i,j,k) = mult*(onemintheta*sy1 + theta*sy2)*area(i,j,k)/dx
-	 end do
+            do j = lo(2), hi(2)+1
+               do i = lo(1), hi(1)
+                  sy1 = (s_o(i,j,k) - s_o(i,j-1,k))*bn(i,j,k)
+                  sy2 = (s_n(i,j,k) - s_n(i,j-1,k))*bnp1(i,j,k)
+                  flux(i,j,k) = mult*(onemintheta*sy1 + theta*sy2)*area(i,j,k)/dx
+               end do
+            end do
          end do
-         end do
+!$omp end do
       else if (dir .EQ. 2) then
 c     ::::: compute Z fluxes
+!$omp do
          do k = lo(3), hi(3)+1
-         do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            sz1 = (s_o(i,j,k) - s_o(i,j,k-1))*bn(i,j,k)
-            sz2 = (s_n(i,j,k) - s_n(i,j,k-1))*bnp1(i,j,k)
-            flux(i,j,k) = mult*(onemintheta*sz1 + theta*sz2)*area(i,j,k)/dx
-	 end do
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  sz1 = (s_o(i,j,k) - s_o(i,j,k-1))*bn(i,j,k)
+                  sz2 = (s_n(i,j,k) - s_n(i,j,k-1))*bnp1(i,j,k)
+                  flux(i,j,k) = mult*(onemintheta*sz1 + theta*sz2)*area(i,j,k)/dx
+               end do
+            end do
          end do
-         end do
+!$omp end do
       end if
+
+!$omp end parallel
+
       end
 
 c ::
@@ -122,40 +134,52 @@ c ::
       REAL_T  onemintheta
 
       onemintheta = one-theta
+
+!$omp parallel private(i,j,k,sx1,sx2,sy1,sy2,sz1,sz2)
+
       if (dir .EQ. 0) then
 c     ::::: compute X fluxes
+!$omp do
          do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-         do i = lo(1), hi(1)+1
-            sx1 = s_o(i,j,k) - s_o(i-1,j,k)
-            sx2 = s_n(i,j,k) - s_n(i-1,j,k)
-            flux(i,j,k) = mult*(onemintheta*sx1 + theta*sx2)*area(i,j,k)/dx
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)+1
+                  sx1 = s_o(i,j,k) - s_o(i-1,j,k)
+                  sx2 = s_n(i,j,k) - s_n(i-1,j,k)
+                  flux(i,j,k) = mult*(onemintheta*sx1 + theta*sx2)*area(i,j,k)/dx
+               end do
+            end do
          end do
-         end do
-         end do
+!$omp end do
       else if (dir .EQ. 1) then
 c     ::::: compute Y fluxes
+!$omp do
          do k = lo(3), hi(3)
-         do j = lo(2), hi(2)+1
-         do i = lo(1), hi(1)
-            sy1 = s_o(i,j,k) - s_o(i,j-1,k)
-            sy2 = s_n(i,j,k) - s_n(i,j-1,k)
-            flux(i,j,k) = mult*(onemintheta*sy1 + theta*sy2)*area(i,j,k)/dx
+            do j = lo(2), hi(2)+1
+               do i = lo(1), hi(1)
+                  sy1 = s_o(i,j,k) - s_o(i,j-1,k)
+                  sy2 = s_n(i,j,k) - s_n(i,j-1,k)
+                  flux(i,j,k) = mult*(onemintheta*sy1 + theta*sy2)*area(i,j,k)/dx
+               end do
+            end do
          end do
-         end do
-         end do
+!$omp end do
       else
 c     ::::: compute Z fluxes
+!$omp do
          do k = lo(3), hi(3)+1
-         do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            sz1 = s_o(i,j,k) - s_o(i,j,k-1)
-            sz2 = s_n(i,j,k) - s_n(i,j,k-1)
-            flux(i,j,k) = mult*(onemintheta*sz1 + theta*sz2)*area(i,j,k)/dx
-	 end do
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  sz1 = s_o(i,j,k) - s_o(i,j,k-1)
+                  sz2 = s_n(i,j,k) - s_n(i,j,k-1)
+                  flux(i,j,k) = mult*(onemintheta*sz1 + theta*sz2)*area(i,j,k)/dx
+               end do
+            end do
          end do
-         end do
+!$omp end do
       end if
+
+!$omp end parallel
+
       end
 
       subroutine FORT_VISCSYNCFLUX (ssync,DIMS(ssync),lo,hi,
@@ -187,9 +211,12 @@ c     ::::: compute Z fluxes
       REAL_T  sx
       REAL_T  sy
       REAL_T  sz
+
+!$omp parallel private(i,j,k,sx,sy,sz)
 c
 c     ::::: compute X fluxes
 c
+!$omp do
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)+1
@@ -198,9 +225,11 @@ c
             end do
          end do
       end do
+!$omp end do
 c
 c     ::::: compute Y fluxes
 c
+!$omp do
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)+1
             do i = lo(1), hi(1)
@@ -209,9 +238,11 @@ c
             end do
          end do
       end do
+!$omp end do
 c
 c     ::::: compute Z fluxes
 c
+!$omp do
       do k = lo(3), hi(3)+1
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -220,6 +251,9 @@ c
             end do
          end do
       end do
+!$omp end do
+
+!$omp end parallel
       
       end
 
@@ -360,11 +394,12 @@ c
 c ... local 
 c
       integer i,j,k
-      REAL_T sleft, sright, stop, sbot, sfront, sback
+      REAL_T sleft, sright, stp, sbot, sfront, sback
 c
 c ... Note: the following IS correct for r-z. Terms from the hoop stress
 c           cancel with terms from tau_rr to eliminate all r dependence.
 c
+!$omp parallel do private(i,j,k,sleft,sright,stp,sbot,sfront,sback)
       do k=lo(3),hi(3)
          do j=lo(2),hi(2)
             do i=lo(1),hi(1)
@@ -373,10 +408,10 @@ c
 
                divmusi(i,j,k,1) = mu*(sright-sleft)/dx(1)
 
-               stop = half*(divu(i,j,k)+divu(i,j+1,k))
+               stp  = half*(divu(i,j,k)+divu(i,j+1,k))
                sbot = half*(divu(i,j-1,k)+divu(i,j,k))
 
-               divmusi(i,j,k,2) = mu*(stop-sbot)/dx(2)
+               divmusi(i,j,k,2) = mu*(stp-sbot)/dx(2)
 
                sfront = half*(divu(i,j,k)+divu(i,j,k+1))
                sback  = half*(divu(i,j,k-1)+divu(i,j,k))
@@ -385,6 +420,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -415,8 +451,9 @@ c
 c ... local 
 c
       integer i,j,k
-      REAL_T sleft, sright, stop, sbot, sfront, sback
+      REAL_T sleft, sright, stp, sbot, sfront, sback
 
+!$omp parallel do private(i,j,k,sleft,sright,stp,sbot,sfront,sback)
       do k=lo(3),hi(3)
          do j=lo(2),hi(2)
             do i=lo(1),hi(1)
@@ -426,10 +463,10 @@ c
                divmusi(i,j,k,1) = (betax(i+1,j,k)*sright-
      &              betax(i,j,k)*sleft)/dx(1)
 
-               stop = half*(divu(i,j,k)+divu(i,j+1,k))
+               stp = half*(divu(i,j,k)+divu(i,j+1,k))
                sbot = half*(divu(i,j-1,k)+divu(i,j,k))
 
-               divmusi(i,j,k,2) = (betay(i,j+1,k)*stop-
+               divmusi(i,j,k,2) = (betay(i,j+1,k)*stp-
      &              betay(i,j,k)*sbot)/dx(2)
 
                sfront = half*(divu(i,j,k)+divu(i,j,k+1))
@@ -441,6 +478,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 

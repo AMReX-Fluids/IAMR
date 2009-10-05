@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_3D.F,v 1.11 2008-02-08 18:39:48 lijewski Exp $
+c $Id: MACOPERATOR_3D.F,v 1.12 2009-10-05 18:13:31 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -156,6 +156,7 @@ c ::
 c
 c      ::::: rhs holds the divergence condition (possibly zero)
 c
+!$omp parallel do private(i,j,k,divu)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -166,6 +167,7 @@ c
              end do
           end do
        end do
+!$omp end parallel do
 
        end
 

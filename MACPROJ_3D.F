@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_3D.F,v 1.8 2008-02-08 18:39:48 lijewski Exp $
+c $Id: MACPROJ_3D.F,v 1.9 2009-10-05 18:13:31 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -63,16 +63,18 @@ c ::
 
        integer i, j, k
 
+!$omp parallel do private(i,j,k)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                dmac(i,j,k) = ( xarea(i+1,j,k)*ux(i+1,j,k) - xarea(i,j,k)*ux(i,j,k)
+                dmac(i,j,k) = (xarea(i+1,j,k)*ux(i+1,j,k) - xarea(i,j,k)*ux(i,j,k)
      &               +     yarea(i,j+1,k)*uy(i,j+1,k) - yarea(i,j,k)*uy(i,j,k)
      &               +     zarea(i,j,k+1)*uz(i,j,k+1) - zarea(i,j,k)*uz(i,j,k)
      &               )/vol(i,j,k)
              end do
           end do
        end do
+!$omp end parallel do
 
        end
 
