@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.58 2009-03-14 07:07:01 marc Exp $
+c $Id: GODUNOV_3D.F,v 1.59 2009-10-05 16:40:03 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -588,7 +588,6 @@ c
       integer i,j,k,n,velpred
       integer lo(SDIM),hi(SDIM),bc(SDIM,2)
       integer imin,jmin,kmin,imax,jmax,kmax,inc
-      REAL_T place_to_break
       REAL_T hx, hy, hz, dt, dth, dthx, dthy, dthz
       REAL_T dt3, dt3x, dt3y, dt3z, dt4, dt4x, dt4y, dt4z
       REAL_T dt6, dt6x, dt6y, dt6z
@@ -703,6 +702,7 @@ c
             end do
          end do
       else
+!$omp parallel do private(i,j,k)
          do k = kmin-1,kmax+1
             do j = jmin-1,jmax+1
                do i = imin,  imax+1
@@ -711,9 +711,10 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       end if
 
-      if(use_minion.eq.1)then
+      if (use_minion.eq.1)then
          do k = kmin-1,kmax+1
             do j = jmin-1,jmax+1
                do i = imin,  imax+1
@@ -729,6 +730,7 @@ c
      &     xlo,xhi,DIMS(work),uad,DIMS(work),
      &     lo,hi,n,bc,eps_for_bc,.false.,.false.)
 
+!$omp parallel do private(i,j,k,fu,stx)
       do k = kmin-1,kmax+1
          do j = jmin-1,jmax+1
             do i = imin,  imax+1
@@ -738,6 +740,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       if (use_ppm) then
          do k = kmin-1,kmax+1
@@ -749,6 +752,7 @@ c
             end do
          end do
       else
+!$omp parallel do private(i,j,k)
          do k = kmin-1,kmax+1
             do j = jmin,  jmax+1
                do i = imin-1,imax+1
@@ -757,6 +761,7 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       end if
 
       if (use_minion.eq.1)then
@@ -775,6 +780,7 @@ c
      &     ylo,yhi,DIMS(work),vad,DIMS(work),
      &     lo,hi,n,bc,eps_for_bc,.false.,.false.)
 
+!$omp parallel do private(i,j,k,fv,sty)
       do k = kmin-1,kmax+1
          do j = jmin,  jmax+1
             do i = imin-1,imax+1
@@ -784,6 +790,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       if (use_ppm) then
          do k = kmin,kmax+1
@@ -795,6 +802,7 @@ c
             end do
          end do
       else
+!$omp parallel do private(i,j,k)
          do k = kmin,kmax+1
             do j = jmin-1,jmax+1
                do i = imin-1,imax+1
@@ -803,6 +811,7 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       end if
 
       if (use_minion.eq.1)then
@@ -821,6 +830,7 @@ c
      &     zlo,zhi,DIMS(work),wad,DIMS(work),
      &     lo,hi,n,bc,eps_for_bc,.false.,.false.)
 
+!$omp parallel do private(i,j,k,fw,stz)
       do k = kmin,kmax+1
          do j = jmin-1,jmax+1
             do i = imin-1,imax+1
@@ -830,6 +840,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       if (corner_couple) then
 
@@ -1153,7 +1164,6 @@ c                  stxhi(imax+1) = stxlo(imax+1)
      &                    ,abs(uedge(i,j,k)).lt.eps)
                   end do
                end if
-               place_to_break = 1
             end do
          end do
       end if
@@ -1283,7 +1293,6 @@ c                  styhi(jmax+1) = stylo(jmax+1)
      &                    abs(vedge(i,j,k)).lt.eps)
                   end do
                end if
-               place_to_break = 1
             end do
          end do
       end if
@@ -1401,7 +1410,6 @@ c                  stzhi(kmax+1) = stzlo(kmax+1)
      &                    abs(wedge(i,j,k)).lt.eps)
                   end do
                end if
-               place_to_break = 1
             end do
          end do
       end if
@@ -1416,6 +1424,8 @@ c
 c     compute the xedge states
 c
       if ((velpred.ne.1) .or. (n.eq.XVEL)) then
+!$omp parallel do private(i,j,k,vbar,inc,tr1,wbar,tr2,stxlo,stxhi)
+!$omp&private(ltx,stx)
          do k = kmin,kmax
             do j = jmin,jmax
 
@@ -1564,14 +1574,16 @@ c                  stxhi(imax+1) = stxlo(imax+1)
      &                    ,abs(uedge(i,j,k)).lt.eps)
                   end do
                end if
-               place_to_break = 1
             end do
          end do
+!$omp end parallel do
       end if
 c
 c     compute the yedge states
 c
       if ((velpred.ne.1) .or. (n.eq.YVEL)) then
+!$omp parallel do private(i,j,k,ubar,inc,tr1,wbar,tr2,stylo,styhi)
+!$omp&private(lty,sty)
          do k = kmin,kmax
             do i = imin,imax
                
@@ -1721,14 +1733,16 @@ c                  styhi(jmax+1) = stylo(jmax+1)
      &                    abs(vedge(i,j,k)).lt.eps)
                   end do
                end if
-               place_to_break = 1
             end do
          end do
+!$omp end parallel do
       end if
 c
 c     compute the zedge states
 c
       if ((velpred.ne.1) .or. (n.eq.ZVEL)) then
+!$omp parallel do private(i,j,k,ubar,inc,tr1,vbar,tr2,stzlo,stzhi)
+!$omp&private(ltz,stz)
          do j = jmin,jmax
             do i = imin,imax
                
@@ -1865,9 +1879,9 @@ c                  stzhi(kmax+1) = stzlo(kmax+1)
      &                    abs(wedge(i,j,k)).lt.eps)
                   end do
                end if
-               place_to_break = 1
             end do
          end do
+!$omp end parallel do
       end if
 
       end if
@@ -1908,7 +1922,6 @@ c
       integer i,j,k,n,inc
       integer lo(SDIM),hi(SDIM),bc(SDIM,2)
       integer imin,jmin,kmin,imax,jmax,kmax
-      REAL_T place_to_break
       REAL_T hx, hy, hz, dt, dth, dthx, dthy, dthz
       REAL_T dt3, dt3x, dt3y, dt3z, dt4, dt4x, dt4y, dt4z
       REAL_T dt6, dt6x, dt6y, dt6z
@@ -2575,7 +2588,6 @@ c               stxhi(imax+1) = stxlo(imax+1)
                xstate(i,j,k) = cvmgt(half*(stxlo(i)+stxhi(i)),xstate(i,j,k)
      &              ,abs(uedge(i,j,k)).lt.eps)
             end do
-            place_to_break = 1
          end do
       end do
 c
@@ -2684,7 +2696,6 @@ c               styhi(jmax+1) = stylo(jmax+1)
                ystate(i,j,k) = cvmgt(half*(stylo(j)+styhi(j)),ystate(i,j,k),
      &              abs(vedge(i,j,k)).lt.eps)
             end do
-            place_to_break = 1
          end do
       end do
 c     
@@ -2793,7 +2804,6 @@ c               stzhi(kmax+1) = stzlo(kmax+1)
                zstate(i,j,k) = cvmgt(half*(stzlo(k)+stzhi(k)),zstate(i,j,k),
      &              abs(wedge(i,j,k)).lt.eps)
             end do
-            place_to_break = 1
          end do
       end do
       
@@ -2915,7 +2925,6 @@ c                  stxhi(imax+1) = stxlo(imax+1)
                   xstate(i,j,k) = cvmgt(half*(stxlo(i)+stxhi(i)),xstate(i,j,k)
      &                 ,abs(uedge(i,j,k)).lt.eps)
                end do
-               place_to_break = 1
             end do
       end do
 c
@@ -3033,7 +3042,6 @@ c                  styhi(jmax+1) = stylo(jmax+1)
                   ystate(i,j,k) = cvmgt(half*(stylo(j)+styhi(j)),ystate(i,j,k),
      &                 abs(vedge(i,j,k)).lt.eps)
                end do
-               place_to_break = 1
             end do
       end do
 c
@@ -3146,7 +3154,6 @@ c                  stzhi(kmax+1) = stzlo(kmax+1)
                   zstate(i,j,k) = cvmgt(half*(stzlo(k)+stzhi(k)),zstate(i,j,k),
      &                 abs(wedge(i,j,k)).lt.eps)
                end do
-               place_to_break = 1
             end do
       end do
 
@@ -3838,21 +3845,20 @@ c
 c     COMPUTE 0TH order slopes
 c
       if (slope_order.eq.1) then
-        if (ng .lt. 1) then
-	   call bl_abort("FORT_SLOPES: not enough bndry cells for 1st order")
-        end if
-        do k = kmin-1, kmax+1
-           do j = jmin-1, jmax+1 
-              do i = imin-1, imax+1
-                 slx(i,j,k) = zero
-                 sly(i,j,k) = zero
-                 slz(i,j,k) = zero
-              end do
-           end do
-        end do
-        return
+       if (ng .lt. 1) then
+       call bl_abort("FORT_SLOPES: not enough bndry cells for 1st order")
+       end if
+         do k = kmin-1, kmax+1
+            do j = jmin-1, jmax+1 
+               do i = imin-1, imax+1
+                  slx(i,j,k) = zero
+                  sly(i,j,k) = zero
+                  slz(i,j,k) = zero
+               end do
+            end do
+         end do
+         return
       end if
-
 c
 c     COMPUTE 2ND order slopes
 c
@@ -3864,221 +3870,175 @@ c
 c     ------------------------ x slopes
 c
         if ( (dir.eq.XVEL) .or. (dir.eq.ALL) ) then
-         if (use_unlimited_slopes) then
-            do k = kmin-1,kmax+1
-            do j = jmin-1,jmax+1
-               do i = imin-1,imax+1
-                  slx(i,j,k)= half*(s(i+1,j,k) - s(i-1,j,k))
-               end do
-            end do
-            end do
-            if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
-               do k = kmin-1, kmax+1
-               do j = jmin-1, jmax+1
-                  slx(imin-1,j,k) = zero
-                  slx(imin  ,j,k) = (s(imin+1,j,k)+three*s(imin,j,k)-four*s(imin-1,j,k))/three
-               end do
-               end do
-            end if
-            if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
-               do k = kmin-1, kmax+1
-               do j = jmin-1, jmax+1
-                  slx(imax+1,j,k) = zero
-                  slx(imax  ,j,k) = -(s(imax-1,j,k)+three*s(imax,j,k)-four*s(imax+1,j,k))/three
-               end do
-               end do
-            end if
-         else
-            do k = kmin-1,kmax+1
-            do j = jmin-1,jmax+1
-               do i = imin-1,imax+1
-                  del  = half*(s(i+1,j,k) - s(i-1,j,k))
-                  dpls =  two*(s(i+1,j,k) - s(i  ,j,k))
-                  dmin =  two*(s(i  ,j,k) - s(i-1,j,k))
-                  slim = min(abs(dpls), abs(dmin))
-                  slim = cvmgp(slim, zero, dpls*dmin)
-                  sflg = sign(one,del)
-                  slx(i,j,k)= sflg*min(slim,abs(del))
-               end do
-            end do
-            end do
-            
-            if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
-               do k = kmin-1, kmax+1
-               do j = jmin-1, jmax+1
-                  slx(imin-1,j,k) = zero
-                  del  = (s(imin+1,j,k)+three*s(imin,j,k)-four*s(imin-1,j,k))/three
-                  dpls = two*(s(imin+1,j,k) - s(imin  ,j,k))
-                  dmin = two*(s(imin  ,j,k) - s(imin-1,j,k))
-                  slim = min(abs(dpls), abs(dmin))
-                  slim = cvmgp(slim, zero, dpls*dmin)
-                  sflg = sign(one,del)
-                  slx(imin,j,k)= sflg*min(slim,abs(del))
-               end do
-               end do
-            end if
-            if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
-               do k = kmin-1, kmax+1
-               do j = jmin-1, jmax+1
-                  slx(imax+1,j,k) = zero
-                  del  = -(s(imax-1,j,k)+three*s(imax,j,k)-four*s(imax+1,j,k))/three
-                  dpls = two*(s(imax+1,j,k) - s(imax  ,j,k))
-                  dmin = two*(s(imax  ,j,k) - s(imax-1,j,k))
-                  slim = min(abs(dpls), abs(dmin))
-                  slim = cvmgp(slim, zero, dpls*dmin)
-                  sflg = sign(one,del)
-                  slx(imax,j,k)= sflg*min(slim,abs(del))
-               end do
-               end do
-            end if
-          end if
-         end if
+           if (use_unlimited_slopes) then
+              do k = kmin-1,kmax+1
+                 do j = jmin-1,jmax+1
+                    do i = imin-1,imax+1
+                       slx(i,j,k)= half*(s(i+1,j,k) - s(i-1,j,k))
+                    end do
+                    if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
+                       slx(imin-1,j,k) = zero
+                       slx(imin  ,j,k) = (s(imin+1,j,k)+three*s(imin,j,k)-four*s(imin-1,j,k))/three
+                    end if
+                    if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
+                       slx(imax+1,j,k) = zero
+                       slx(imax  ,j,k) = -(s(imax-1,j,k)+three*s(imax,j,k)-four*s(imax+1,j,k))/three
+                    end if
+                 end do
+              end do
+           else
+!$omp parallel do private(i,j,k,del,dpls,dmin,slim,sflg)
+              do k = kmin-1,kmax+1
+                 do j = jmin-1,jmax+1
+                    do i = imin-1,imax+1
+                       del  = half*(s(i+1,j,k) - s(i-1,j,k))
+                       dpls =  two*(s(i+1,j,k) - s(i  ,j,k))
+                       dmin =  two*(s(i  ,j,k) - s(i-1,j,k))
+                       slim = min(abs(dpls), abs(dmin))
+                       slim = cvmgp(slim, zero, dpls*dmin)
+                       sflg = sign(one,del)
+                       slx(i,j,k)= sflg*min(slim,abs(del))
+                    end do
+                    if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
+                       slx(imin-1,j,k) = zero
+                       del  = (s(imin+1,j,k)+three*s(imin,j,k)-four*s(imin-1,j,k))/three
+                       dpls = two*(s(imin+1,j,k) - s(imin  ,j,k))
+                       dmin = two*(s(imin  ,j,k) - s(imin-1,j,k))
+                       slim = min(abs(dpls), abs(dmin))
+                       slim = cvmgp(slim, zero, dpls*dmin)
+                       sflg = sign(one,del)
+                       slx(imin,j,k)= sflg*min(slim,abs(del))
+                    end if
+                    if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
+                       slx(imax+1,j,k) = zero
+                       del  = -(s(imax-1,j,k)+three*s(imax,j,k)-four*s(imax+1,j,k))/three
+                       dpls = two*(s(imax+1,j,k) - s(imax  ,j,k))
+                       dmin = two*(s(imax  ,j,k) - s(imax-1,j,k))
+                       slim = min(abs(dpls), abs(dmin))
+                       slim = cvmgp(slim, zero, dpls*dmin)
+                       sflg = sign(one,del)
+                       slx(imax,j,k)= sflg*min(slim,abs(del))
+                    end if
+                 end do
+              end do
+!$omp end parallel do
+           end if
+        end if
 c
 c     ------------------------ y slopes
 c
         if ( (dir.eq.YVEL) .or. (dir.eq.ALL) ) then
-         if (use_unlimited_slopes) then
-            do k = kmin-1,kmax+1
-            do j = jmin-1,jmax+1
-               do i = imin-1,imax+1
-                  sly(i,j,k) = half*(s(i,j+1,k)-s(i,j-1,k))
-               end do
-            end do
-            end do
-            if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
-               do k = kmin-1, kmax+1
-               do i = imin-1, imax+1
-                  sly(i,jmin-1,k) = zero
-                  sly(i,jmin  ,k) = (s(i,jmin+1,k)+three*s(i,jmin,k)-four*s(i,jmin-1,k))/three
-               end do
-               end do
-            end if
-            if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
-               do k = kmin-1, kmax+1
-               do i = imin-1, imax+1
-                  sly(i,jmax+1,k) = zero
-                  sly(i,jmax  ,k) = -(s(i,jmax-1,k)+three*s(i,jmax,k)-four*s(i,jmax+1,k))/three
-               end do
-               end do
-            end if
-         else
-            do j = jmin-1,jmax+1
-               do k = kmin-1,kmax+1
-               do i = imin-1,imax+1
-                  del  = half*(s(i,j+1,k) - s(i,j-1,k))
-                  dpls =  two*(s(i,j+1,k) - s(i,j  ,k))
-                  dmin =  two*(s(i,j  ,k) - s(i,j-1,k))
-                  slim = min(abs(dpls),abs(dmin))
-                  slim = cvmgp(slim, zero, dpls*dmin)
-                  sflg = sign(one,del)
-                  sly(i,j,k)= sflg*min(slim,abs(del))
-               end do
-               end do
-            end do
-
-            if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
-               do k = kmin-1, kmax+1
-               do i = imin-1, imax+1
-                  sly(i,jmin-1,k) = zero
-                  del  = (s(i,jmin+1,k)+three*s(i,jmin,k)-four*s(i,jmin-1,k))/three
-                  dpls = two*(s(i,jmin+1,k) - s(i,jmin  ,k))
-                  dmin = two*(s(i,jmin  ,k) - s(i,jmin-1,k))
-                  slim = min(abs(dpls), abs(dmin))
-                  slim = cvmgp(slim, zero, dpls*dmin)
-                  sflg = sign(one,del)
-                  sly(i,jmin,k)= sflg*min(slim,abs(del))
-               end do
-               end do
-            end if
-            if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
-               do k = kmin-1, kmax+1
-               do i = imin-1, imax+1
-                  sly(i,jmax+1,k) = zero
-                  del  = -(s(i,jmax-1,k)+three*s(i,jmax,k)-four*s(i,jmax+1,k))/three
-                  dpls = two*(s(i,jmax+1,k) - s(i,jmax  ,k))
-                  dmin = two*(s(i,jmax  ,k) - s(i,jmax-1,k))
-                  slim = min(abs(dpls), abs(dmin))
-                  slim = cvmgp(slim, zero, dpls*dmin)
-                  sflg = sign(one,del)
-                  sly(i,jmax,k)= sflg*min(slim,abs(del))
-               end do
-               end do
-            end if
-         end if
+           if (use_unlimited_slopes) then
+              do k = kmin-1,kmax+1
+                 do i = imin-1,imax+1
+                    do j = jmin-1,jmax+1
+                       sly(i,j,k) = half*(s(i,j+1,k)-s(i,j-1,k))
+                    end do
+                    if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
+                       sly(i,jmin-1,k) = zero
+                       sly(i,jmin  ,k) = (s(i,jmin+1,k)+three*s(i,jmin,k)-four*s(i,jmin-1,k))/three
+                    end if
+                    if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
+                       sly(i,jmax+1,k) = zero
+                       sly(i,jmax  ,k) = -(s(i,jmax-1,k)+three*s(i,jmax,k)-four*s(i,jmax+1,k))/three
+                    end if
+                 end do
+              end do
+           else
+!$omp parallel do private(i,j,k,del,dpls,dmin,slim,sflg)
+              do k = kmin-1,kmax+1
+                 do i = imin-1,imax+1
+                    do j = jmin-1,jmax+1
+                       del  = half*(s(i,j+1,k) - s(i,j-1,k))
+                       dpls =  two*(s(i,j+1,k) - s(i,j  ,k))
+                       dmin =  two*(s(i,j  ,k) - s(i,j-1,k))
+                       slim = min(abs(dpls),abs(dmin))
+                       slim = cvmgp(slim, zero, dpls*dmin)
+                       sflg = sign(one,del)
+                       sly(i,j,k)= sflg*min(slim,abs(del))
+                    end do
+                    if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
+                       sly(i,jmin-1,k) = zero
+                       del  = (s(i,jmin+1,k)+three*s(i,jmin,k)-four*s(i,jmin-1,k))/three
+                       dpls = two*(s(i,jmin+1,k) - s(i,jmin  ,k))
+                       dmin = two*(s(i,jmin  ,k) - s(i,jmin-1,k))
+                       slim = min(abs(dpls), abs(dmin))
+                       slim = cvmgp(slim, zero, dpls*dmin)
+                       sflg = sign(one,del)
+                       sly(i,jmin,k)= sflg*min(slim,abs(del))
+                    end if
+                    if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
+                       sly(i,jmax+1,k) = zero
+                       del  = -(s(i,jmax-1,k)+three*s(i,jmax,k)-four*s(i,jmax+1,k))/three
+                       dpls = two*(s(i,jmax+1,k) - s(i,jmax  ,k))
+                       dmin = two*(s(i,jmax  ,k) - s(i,jmax-1,k))
+                       slim = min(abs(dpls), abs(dmin))
+                       slim = cvmgp(slim, zero, dpls*dmin)
+                       sflg = sign(one,del)
+                       sly(i,jmax,k)= sflg*min(slim,abs(del))
+                    end if
+                 end do
+              end do
+!$omp end parallel do
+           end if
         end if
-
 c
 c     ------------------------ z slopes
 c
         if ( (dir.eq.ZVEL) .or. (dir.eq.ALL) ) then
-         if (use_unlimited_slopes) then
-            do j = jmin-1,jmax+1
-            do i = imin-1,imax+1
-               do k = kmin-1,kmax+1
-                  slz(i,j,k) = half*(s(i,j,k+1)-s(i,j,k-1))
-               end do
-            end do
-            end do
-            if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
-               do j = jmin-1, jmax+1
-               do i = imin-1, imax+1
-                  slz(i,j,kmin-1) = zero
-                  slz(i,j,kmin  ) = (s(i,j,kmin+1)+three*s(i,j,kmin)-four*s(i,j,kmin-1))/three
-               end do
-               end do
-            end if
-            if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
-               do j = jmin-1, jmax+1
-               do i = imin-1, imax+1
-                  slz(i,j,kmax+1) = zero
-                  slz(i,j,kmax  ) = -(s(i,j,kmax-1)+three*s(i,j,kmax)-four*s(i,j,kmax+1))/three
-               end do
-               end do
-            end if
-         else
-            do k = kmin-1,kmax+1
-               do j = jmin-1,jmax+1
-               do i = imin-1,imax+1
-                  del  = half*(s(i,j,k+1) - s(i,j,k-1))
-                  dpls =  two*(s(i,j,k+1) - s(i,j,k  ))
-                  dmin =  two*(s(i,j,k  ) - s(i,j,k-1))
-                  slim = min(abs(dpls),abs(dmin))
-                  slim = cvmgp(slim, zero, dpls*dmin)
-                  sflg = sign(one,del)
-                  slz(i,j,k)= sflg*min(slim,abs(del))
-               end do
-               end do
-            end do
-
-            if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
-               do j = jmin-1, jmax+1
-               do i = imin-1, imax+1
-                  slz(i,j,kmin-1) = zero
-                  del  = (s(i,j,kmin+1)+three*s(i,j,kmin)-four*s(i,j,kmin-1))/three
-                  dpls = two*(s(i,j,kmin+1) - s(i,j,kmin  ))
-                  dmin = two*(s(i,j,kmin  ) - s(i,j,kmin-1))
-                  slim = min(abs(dpls), abs(dmin))
-                  slim = cvmgp(slim, zero, dpls*dmin)
-                  sflg = sign(one,del)
-                  slz(i,j,kmin)= sflg*min(slim,abs(del))
-               end do
-               end do
-            end if
-            if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
-               do j = jmin-1, jmax+1
-               do i = imin-1, imax+1
-                  slz(i,j,kmax+1) = zero
-                  del  = -(s(i,j,kmax-1)+three*s(i,j,kmax)-four*s(i,j,kmax+1))/three
-                  dpls = two*(s(i,j,kmax+1) - s(i,j,kmax  ))
-                  dmin = two*(s(i,j,kmax  ) - s(i,j,kmax-1))
-                  slim = min(abs(dpls), abs(dmin))
-                  slim = cvmgp(slim, zero, dpls*dmin)
-                  sflg = sign(one,del)
-                  slz(i,j,kmax)= sflg*min(slim,abs(del))
-               end do
-               end do
-            end if
-         end if
+           if (use_unlimited_slopes) then
+              do j = jmin-1,jmax+1
+                 do i = imin-1,imax+1
+                    do k = kmin-1,kmax+1
+                       slz(i,j,k) = half*(s(i,j,k+1)-s(i,j,k-1))
+                    end do
+                    if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
+                       slz(i,j,kmin-1) = zero
+                       slz(i,j,kmin  ) = (s(i,j,kmin+1)+three*s(i,j,kmin)-four*s(i,j,kmin-1))/three
+                    end if
+                    if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
+                       slz(i,j,kmax+1) = zero
+                       slz(i,j,kmax  ) = -(s(i,j,kmax-1)+three*s(i,j,kmax)-four*s(i,j,kmax+1))/three
+                    end if
+                 end do
+              end do
+           else
+!$omp parallel do private(i,j,k,del,dpls,dmin,slim,sflg)
+              do j = jmin-1,jmax+1
+                 do i = imin-1,imax+1
+                    do k = kmin-1,kmax+1
+                       del  = half*(s(i,j,k+1) - s(i,j,k-1))
+                       dpls =  two*(s(i,j,k+1) - s(i,j,k  ))
+                       dmin =  two*(s(i,j,k  ) - s(i,j,k-1))
+                       slim = min(abs(dpls),abs(dmin))
+                       slim = cvmgp(slim, zero, dpls*dmin)
+                       sflg = sign(one,del)
+                       slz(i,j,k)= sflg*min(slim,abs(del))
+                    end do
+                    if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
+                       slz(i,j,kmin-1) = zero
+                       del  = (s(i,j,kmin+1)+three*s(i,j,kmin)-four*s(i,j,kmin-1))/three
+                       dpls = two*(s(i,j,kmin+1) - s(i,j,kmin  ))
+                       dmin = two*(s(i,j,kmin  ) - s(i,j,kmin-1))
+                       slim = min(abs(dpls), abs(dmin))
+                       slim = cvmgp(slim, zero, dpls*dmin)
+                       sflg = sign(one,del)
+                       slz(i,j,kmin)= sflg*min(slim,abs(del))
+                    end if
+                    if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
+                       slz(i,j,kmax+1) = zero
+                       del  = -(s(i,j,kmax-1)+three*s(i,j,kmax)-four*s(i,j,kmax+1))/three
+                       dpls = two*(s(i,j,kmax+1) - s(i,j,kmax  ))
+                       dmin = two*(s(i,j,kmax  ) - s(i,j,kmax-1))
+                       slim = min(abs(dpls), abs(dmin))
+                       slim = cvmgp(slim, zero, dpls*dmin)
+                       sflg = sign(one,del)
+                       slz(i,j,kmax)= sflg*min(slim,abs(del))
+                    end if
+                 end do
+              end do
+!$omp end parallel do
+           end if
         end if
 c
 c ... end, if slope_order .eq. 2
@@ -4096,6 +4056,7 @@ c     ------------------------ x slopes
 c
         if ( (dir.eq.XVEL) .or. (dir.eq.ALL) ) then
            if (use_unlimited_slopes) then
+!$omp parallel do private(i,j,k,slxscr)
               do k = kmin-1,kmax+1
                  do j = jmin-1,jmax+1
                     do i = imin-2,imax+2
@@ -4105,28 +4066,21 @@ c
                        slx(i,j,k) = two * two3rd * slxscr(i,cen) -
      &                      sixth * (slxscr(i+1,cen) + slxscr(i-1,cen))
                     end do
-                 end do
-              end do
-              
-              if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
-                 do k = kmin-1,kmax+1
-                    do j = jmin-1, jmax+1
+                    if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
                        slx(imin,j,k) = -sixteen/fifteen*s(imin-1,j,k) + half*s(imin,j,k) + 
      &                      two3rd*s(imin+1,j,k) - tenth*s(imin+2,j,k)
                        slx(imin-1,j,k) = zero
-                    end do
-                 end do
-              end if
-              if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
-                 do k = kmin-1,kmax+1
-                    do j = jmin-1, jmax+1
+                    end if
+                    if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
                        slx(imax,j,k) = -( -sixteen/fifteen*s(imax+1,j,k) + half*s(imax,j,k) + 
      &                      two3rd*s(imax-1,j,k) - tenth*s(imax-2,j,k) )
                        slx(imax+1,j,k) = zero
-                    end do
+                    end if
                  end do
-              end if
+              end do
+!$omp end parallel do
            else
+!$omp parallel do private(i,j,k,slxscr,dmin,dpls,ds,del,slim,sflg)
               do k = kmin-1,kmax+1
                  do j = jmin-1,jmax+1 
                     do i = imin-2,imax+2
@@ -4182,6 +4136,7 @@ c                      Recalculate the slope at imax-1 using the revised slxscr(
                     end if
                  end do
               end do
+!$omp end parallel do
            end if
         end if
 c
@@ -4189,6 +4144,7 @@ c     ------------------------ y slopes
 c
         if ( (dir.eq.YVEL) .or. (dir.eq.ALL) ) then
            if (use_unlimited_slopes) then
+!$omp parallel do private(i,j,k,slyscr)
               do k = kmin-1,kmax+1
                  do i = imin-1,imax+1
                     do j = jmin-2,jmax+2
@@ -4198,28 +4154,21 @@ c
                        sly(i,j,k) = two * two3rd * slyscr(j,cen) -
      &                      sixth * (slyscr(j+1,cen) + slyscr(j-1,cen))
                     end do
-                 end do
-              end do
-              
-              if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
-                 do k = kmin-1,kmax+1
-                    do i = imin-1, imax+1
+                    if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
                        sly(i,jmin-1,k) = zero
                        sly(i,jmin,k) = -sixteen/fifteen*s(i,jmin-1,k) + half*s(i,jmin,k) + 
      &                      two3rd*s(i,jmin+1,k) - tenth*s(i,jmin+2,k)
-                    end do
-                 end do
-              end if
-              if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
-                 do k = kmin-1,kmax+1
-                    do i = imin-1, imax+1
+                    end if
+                    if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
                        sly(i,jmax,k) = -( -sixteen/fifteen*s(i,jmax+1,k) + half*s(i,jmax,k) + 
      &                      two3rd*s(i,jmax-1,k) - tenth*s(i,jmax-2,k) )
                        sly(i,jmax+1,k) = zero
-                    end do
+                    end if
                  end do
-              end if
+              end do
+!$omp end parallel do
            else
+!$omp parallel do private(i,j,k,slyscr,dmin,dpls,ds,del,slim,sflg)
               do k = kmin-1,kmax+1
                  do i = imin-1,imax+1 
                     do j = jmin-2,jmax+2
@@ -4274,6 +4223,7 @@ c                      Recalculate the slope at jmax-1 using the revised slyscr(
                     end if
                  end do
               end do
+!$omp end parallel do
            end if
         end if
 c
@@ -4281,6 +4231,7 @@ c     ------------------------ z slopes
 c
         if ( (dir.eq.ZVEL) .or. (dir.eq.ALL) ) then
            if (use_unlimited_slopes) then
+!$omp parallel do private(i,j,k,slzscr)
               do j = jmin-1,jmax+1
                  do i = imin-1,imax+1
                     do k = kmin-2,kmax+2
@@ -4291,27 +4242,20 @@ c
      &                      sixth * (slzscr(k+1,cen) + slzscr(k-1,cen))
                     end do
                  end do
+                 if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
+                    slz(i,j,kmin-1) = zero
+                    slz(i,j,kmin) = -sixteen/fifteen*s(i,j,kmin-1) + half*s(i,j,kmin) + 
+     &                   two3rd*s(i,j,kmin+1) - tenth*s(i,j,kmin+2)
+                 end if
+                 if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
+                    slz(i,j,kmax) = -( -sixteen/fifteen*s(i,j,kmax+1) + half*s(i,j,kmax) + 
+     &                   two3rd*s(i,j,kmax-1) - tenth*s(i,j,kmax-2) )
+                    slz(i,j,kmax+1) = zero
+                 end if
               end do
-              
-              if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
-                 do i = imin-1, imax+1
-                    do j = jmin-1, jmax+1
-                       slz(i,j,kmin-1) = zero
-                       slz(i,j,kmin) = -sixteen/fifteen*s(i,j,kmin-1) + half*s(i,j,kmin) + 
-     &                      two3rd*s(i,j,kmin+1) - tenth*s(i,j,kmin+2)
-                    end do
-                 end do
-              end if
-              if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
-                 do j = jmin-1, jmax+1
-                    do i = imin-1, imax+1
-                       slz(i,j,kmax) = -( -sixteen/fifteen*s(i,j,kmax+1) + half*s(i,j,kmax) + 
-     &                      two3rd*s(i,j,kmax-1) - tenth*s(i,j,kmax-2) )
-                       slz(i,j,kmax+1) = zero
-                    end do
-                 end do
-              end if
+!$omp end parallel do
            else
+!$omp parallel do private(i,j,k,slzscr,dmin,dpls,ds,del,slim,sflg)
               do j = jmin-1,jmax+1
                  do i = imin-1,imax+1
                     do k = kmin-2,kmax+2
@@ -4366,6 +4310,7 @@ c                      Recalculate the slope at jmax-1 using the revised slzscr(
                     end if
                  end do
               end do
+!$omp end parallel do
            end if
         end if
 c
