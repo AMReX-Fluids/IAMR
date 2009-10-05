@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.59 2009-10-05 16:40:03 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.60 2009-10-05 20:41:40 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -3218,7 +3218,9 @@ c
 c
 c     if nonconservative initialize the advective tendency as -U*grad(S)
 c
+!$omp parallel private(i,j,k,divux,divuy,divuz)
       if ( iconserv .ne. 1 ) then
+!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -3239,10 +3241,12 @@ c
                end do
             end do
          end do
+!$omp end do nowait
       end if
 c
 c     convert edge states to fluxes
 c
+!$omp do
       do k = kmin,kmax
          do j = jmin,jmax
             do i = imin,imax+1
@@ -3250,6 +3254,8 @@ c
             end do
          end do
       end do
+!$omp end do nowait
+!$omp do
       do k = kmin,kmax
          do j = jmin,jmax+1
             do i = imin,imax
@@ -3257,6 +3263,8 @@ c
             end do
          end do
       end do
+!$omp end do nowait
+!$omp do
       do k = kmin,kmax+1
          do j = jmin,jmax
             do i = imin,imax
@@ -3264,11 +3272,13 @@ c
             end do
          end do
       end do
+!$omp end do
 c
 c     compute the part of the advective tendency 
 c     that depends on the flux convergence
 c
       if ( iconserv .ne. 1 ) then
+!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -3279,7 +3289,9 @@ c
                end do
             end do
          end do
+!$omp end do
       else
+!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -3290,7 +3302,9 @@ c
                end do
             end do
          end do
+!$omp end do nowait
       end if
+!$omp end parallel
 
       end
 
@@ -3350,6 +3364,8 @@ c
 c     compute corrective fluxes from edge states 
 c     and perform conservative update
 c
+!$omp parallel private(i,j,k)
+!$omp do
       do k = kmin,kmax
          do j = jmin,jmax
             do i = imin,imax+1
@@ -3357,6 +3373,8 @@ c
             end do
          end do
       end do
+!$omp end do nowait
+!$omp do
       do k = kmin,kmax
          do j = jmin,jmax+1
             do i = imin,imax
@@ -3364,6 +3382,8 @@ c
             end do
          end do
       end do
+!$omp end do nowait
+!$omp do
       do k = kmin,kmax+1
          do j = jmin,jmax
             do i = imin,imax
@@ -3371,7 +3391,8 @@ c
             end do
          end do
       end do
-
+!$omp end do
+!$omp do
       do k = kmin,kmax
          do j = jmin,jmax
             do i = imin,imax
@@ -3382,6 +3403,8 @@ c
             end do
          end do
       end do
+!$omp end do nowait
+!$omp end parallel
 
       end
 
@@ -6409,8 +6432,9 @@ c
       REAL_T visc(DIMV(visc),SDIM)
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T rho(DIMV(rho))
-
+!$omp parallel private(i,j,k)
       do n = 1, SDIM
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -6421,8 +6445,9 @@ c
                end do
             end do
          end do
+!$omp end do
       end do
-
+!$omp end parallel
       end
 
       subroutine FORT_SUM_TF_DIVU(
@@ -6620,8 +6645,9 @@ c
       REAL_T sn(DIMV(sn),nvar)
       REAL_T aofs(DIMV(aofs),nvar)
       REAL_T tforces(DIMV(tf),nvar)
-
+!$omp parallel private(i,j,k)
       do n = 1,nvar
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -6631,8 +6657,9 @@ c
                end do
             end do
          end do
+!$omp end do
       end do
-
+!$omp end parallel
       end
 
       subroutine FORT_UPDATE_AOFS_TF_GP(
@@ -6663,8 +6690,9 @@ c
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T tforces(DIMV(tf),SDIM)
       REAL_T dt
-
+!$omp parallel private(i,j,k)
       do n = 1, SDIM
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -6675,6 +6703,7 @@ c
                end do
             end do
          end do
+!$omp end do
       end do
-
+!$omp end parallel
       end

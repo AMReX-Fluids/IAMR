@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_3D.F,v 1.12 2009-10-05 18:13:31 lijewski Exp $
+c $Id: MACOPERATOR_3D.F,v 1.13 2009-10-05 20:41:40 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -68,43 +68,47 @@ c ::
              end do
           end do
        end do
+!$omp parallel private(i,j,k,rhoavg)
 c
 c      ::::: finish coef in X direction (part 2)
 c
+!$omp do
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)+1
                 rhoavg = half * ( rho(i,j,k) + rho(i-1,j,k) )
-c          cx(i,j,k) = half*dx(1)*ax(i,j,k)*(one/rho(i,j,k) + one/rho(i-1,j,k))
                 cx(i,j,k) = dx(1) * ax(i,j,k) / rhoavg 
              end do
           end do
        end do
+!$omp end do nowait
 c
 c      ::::: finish coef in Y direction (part 2)
 c
+!$omp do
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)+1
              do i = lo(1), hi(1)
                 rhoavg = half * ( rho(i,j,k) + rho(i,j-1,k) )
-c          cy(i,j,k) = half*dx(2)*ay(i,j,k)*(one/rho(i,j,k) + one/rho(i,j-1,k))
                 cy(i,j,k) = dx(2) * ay(i,j,k) / rhoavg 
              end do
           end do
        end do
+!$omp end do nowait
 c
 c      ::::: finish coef in Z direction (part 2)
 c
+!$omp do
        do k = lo(3), hi(3)+1
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 rhoavg = half * ( rho(i,j,k) + rho(i,j,k-1) )
-c          cz(i,j,k) = half*dx(3)*az(i,j,k)*(one/rho(i,j,k) + one/rho(i,j,k-1))
                 cz(i,j,k) = dx(3) * az(i,j,k) / rhoavg 
              end do
           end do
        end do
-
+!$omp end do nowait
+!$omp end parallel
        end
 
 c :: ----------------------------------------------------------
@@ -238,9 +242,11 @@ c
              end do
           end do
        end if
+!$omp parallel private(i,j,k,rhoavg,gp)
 c
 c      compute x MAC gradient
 c
+!$omp do
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)+1
@@ -250,9 +256,11 @@ c
              end do
           end do
        end do
+!$omp end do nowait
 c     
 c     compute y mac gradient
 c
+!$omp do
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)+1
              do i = lo(1),hi(1)
@@ -262,9 +270,11 @@ c
              end do
           end do
        end do
+!$omp end do nowait
 c       
 c     compute z mac gradient
 c
+!$omp do
        do k = lo(3),hi(3)+1
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -274,7 +284,8 @@ c
              end do
           end do
        end do
-
+!$omp end do nowait
+!$omp end parallel
        end
 
 c :: ----------------------------------------------------------
