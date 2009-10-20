@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.48 2009-10-20 17:57:00 ajnonaka Exp $
+// $Id: Godunov.cpp,v 1.49 2009-10-20 18:26:25 ajnonaka Exp $
 //
 
 //
@@ -264,6 +264,8 @@ Godunov::Setup (const Box&       grd,
     Box g2box = Box(grd).grow(2);
     dsvl.resize(g2box,1);
     
+    if (ppm_type == 2) g1box = Box(grd).grow(2);
+
     D_TERM(sedgex.resize(g1box.surroundingNodes(0),1);,
            sedgey.resize(g1box.surroundingNodes(1),1);,
            sedgez.resize(g1box.surroundingNodes(2),1););
@@ -472,6 +474,8 @@ Godunov::edge_states_orig (const Box&  grd,
     Box g2box = Box(grd).grow(2);
     dsvl.resize(g2box,1);
     
+    if (ppm_type == 2) g1box = Box(grd).grow(2);
+
     D_TERM(sedgex.resize(g1box.surroundingNodes(0),1);,
            sedgey.resize(g1box.surroundingNodes(1),1);,
            sedgez.resize(g1box.surroundingNodes(2),1););
@@ -626,6 +630,8 @@ Godunov::edge_states_fpu (const Box&  grd,
     Box g2box = Box(grd).grow(2);
     dsvl.resize(g2box,1);
     
+    if (ppm_type == 2) g1box = Box(grd).grow(2);
+
     D_TERM(sedgex.resize(g1box.surroundingNodes(0),1);,
            sedgey.resize(g1box.surroundingNodes(1),1);,
            sedgez.resize(g1box.surroundingNodes(2),1););
