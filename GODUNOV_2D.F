@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.55 2009-10-16 16:41:39 ajnonaka Exp $
+c $Id: GODUNOV_2D.F,v 1.56 2009-10-20 17:09:22 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -280,10 +280,8 @@ c
       REAL_T sedgey(DIMV(sedgey))
       REAL_T dsvl(DIMV(dsvl)), sm(DIMV(smp)), sp(DIMV(smp))
 
-      integer use_minion
+      integer use_minion, ppm_type
       REAL_T tforces(DIMV(work),SDIM)
-
-      logical use_ppm
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -295,24 +293,25 @@ c
       imax = hi(1)
       jmax = hi(2)
 
-      use_ppm = .false.
+      ppm_type = 0
 
 c
 c     --------------------------------------------------------------
 c     compute the x transverse velocities
 c     --------------------------------------------------------------
 c
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          call FORT_PPM(u,u,v,DIMS(s),
      &        Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,ubc,eps_for_bc)
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,ubc,
+     &        eps_for_bc,ppm_type)
 
       else
          call FORT_SLOPES(u,DIMS(s),
      &        sx,sy,DIMS(work),lo,hi,slxscr,slyscr,ubc)
       end if
          
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do i = imin, imax+1
             do j = jmin-1,jmax+1
                ulo(i,j) = Ipx(i-1,j)
@@ -351,16 +350,17 @@ c
 c
 c     compute the y transverse velocities
 c
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          call FORT_PPM(v,u,v,DIMS(s),
      &        Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,vbc,eps_for_bc)
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,vbc,
+     &        eps_for_bc,ppm_type)
       else
          call FORT_SLOPES(v,DIMS(s),
      &        sx,sy,DIMS(work),lo,hi,slxscr,slyscr,vbc)
       end if
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do i = imin-1,imax+1
             do j = jmin,jmax+1
                vlo(i,j) = Ipy(i,j-1)
@@ -450,9 +450,7 @@ c
       REAL_T  sy(DIMV(work)), vad(DIMV(work)) 
       REAL_T tforces(DIMV(work))
 
-      integer use_minion
-
-      logical use_ppm
+      integer use_minion, ppm_type
 
       dth  = half*dt
       dthx = half*dt/dx(1)
@@ -464,17 +462,18 @@ c
       imax = hi(1)
       jmax = hi(2)
 
-      use_ppm = .false.
+      ppm_type = 0
 
 c
 c     compute the slopes
 c
 c     trace the state to the cell edges
 c
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          call FORT_PPM(s,u,v,DIMS(s),
      &        Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps_for_bc)
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,
+     &        eps_for_bc,ppm_type)
       else
          call FORT_SLOPES(s,DIMS(s),
      &        sx,sy,DIMS(work),lo,hi,slxscr,slyscr,bc)
@@ -482,7 +481,7 @@ c
 c
 c     trace the state to the cell edges
 c
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do i = imin, imax+1
             do j = jmin-1,jmax+1
                xlo(i,j) = Ipx(i-1,j)
@@ -520,7 +519,7 @@ c
          end do
       end do
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do j = jmin,jmax+1
             do i = imin-1,imax+1
                ylo(i,j) = Ipy(i,j-1)
@@ -567,7 +566,7 @@ c
      &              (vad(i,j+1)+vad(i,j))*
      &              (ylo(i,j+1)-ylo(i,j))/hy
                
-               if (use_ppm) then
+               if (ppm_type .gt. 0) then
                   stxlo(i+1) = Ipx(i,j)
      &                 - dth*tr
      &                 + dth*tforces(i,j)
@@ -643,7 +642,7 @@ c
      &              (uad(i+1,j)+uad(i,j))*
      &              (xlo(i+1,j)-xlo(i,j))/hx
 
-               if (use_ppm) then
+               if (ppm_type .gt. 0) then
                   stylo(j+1)= Ipy(i,j)
      &                 - dth*tr
      &                 + dth*tforces(i,j)
@@ -773,9 +772,7 @@ c
       REAL_T st,denom
 
       integer use_minion, iconserv
-      integer inc
-
-      logical use_ppm
+      integer inc, ppm_type
 
       REAL_T umax
 
@@ -789,15 +786,16 @@ c
       imax = hi(1)
       jmax = hi(2)
 
-      use_ppm = .false.
+      ppm_type = 0
 
 c
 c     compute the slopes
 c
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          call FORT_PPM_FPU(s,DIMS(s),uedge,vedge,DIMS(uedge),
      &        Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps_for_bc)
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc, 
+     &        eps_for_bc,ppm_type)
 
       else
          call FORT_SLOPES(
@@ -810,7 +808,7 @@ c
 c     trace the state to the cell edges
 c
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do j = jmin-1,jmax+1
             do i = imin,  imax+1
                xlo(i,j) = Ipx(i-1,j)
@@ -856,7 +854,7 @@ c
          end do
       end do
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do j = jmin,  jmax+1
             do i = imin-1,imax+1
                ylo(i,j) = Ipy(i,j-1)
@@ -945,7 +943,7 @@ c
 
                endif
 
-               if (use_ppm) then
+               if (ppm_type .gt. 0) then
                   stxlo(i+1)= Ipx(i,j)
      &                 + dth*(st + tforces(i,j))
                   stxhi(i  )= Imx(i,j)
@@ -1026,7 +1024,7 @@ c
 
                endif
 
-               if (use_ppm) then
+               if (ppm_type .gt. 0) then
                   stylo(j+1)= Ipy(i,j)
      &                 + dth*(st + tforces(i,j))
                   styhi(j  )= Imy(i,j)
@@ -1799,7 +1797,8 @@ c
 
       subroutine FORT_PPM(s,u,v,DIMS(s),
      &     Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps)
+     &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps,
+     &     ppm_type)
 
       implicit none
 
@@ -1826,17 +1825,16 @@ c
       REAL_T eps
       REAL_T dx(SDIM)
       REAL_T dt
+      integer ppm_type
 
 c     local
-      integer i,j,ppm_type
+      integer i,j
 
       logical extremum, bigp, bigm
 
       REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
       REAL_T sgn, sigma, s6, w0cc, amax, delam, delap
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
-
-      ppm_type = 1
 
 c     constant used in Colella 2008
       C = 1.25d0
@@ -2754,7 +2752,8 @@ c     compute y-component of Ip and Im
 
       subroutine FORT_PPM_FPU(s,DIMS(s),uedge,vedge,DIMS(uedge),
      &     Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps)
+     &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps,
+     &     ppm_type)
 
       implicit none
 
@@ -2782,9 +2781,10 @@ c     compute y-component of Ip and Im
       REAL_T eps
       REAL_T dx(SDIM)
       REAL_T dt
+      integer ppm_type
 
 c     local
-      integer i,j,ppm_type
+      integer i,j
 
       logical extremum, bigp, bigm
 
@@ -2794,8 +2794,6 @@ c     local
 
 c     constant used in Colella 2008
       C = 1.25d0
-
-      ppm_type = 1
 
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 c     x-direction

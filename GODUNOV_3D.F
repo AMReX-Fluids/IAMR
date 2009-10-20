@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.61 2009-10-16 17:15:18 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.62 2009-10-20 17:09:22 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -341,10 +341,8 @@ c
       REAL_T sedgez(DIMV(sedgez))
       REAL_T dsvl(DIMV(dsvl)), sm(DIMV(smp)), sp(DIMV(smp))
 
-      integer use_minion
+      integer use_minion, ppm_type
       REAL_T tforces(DIMV(work),SDIM)
-
-      logical use_ppm
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -360,7 +358,7 @@ c
       jmax = hi(2)
       kmax = hi(3)
 
-      use_ppm = .false.
+      ppm_type = 0
 
 c
 c     =============== THE SCREWY ORDER is to maximize comparability
@@ -375,10 +373,11 @@ c     --------------------------------------------------------------
 c     compute the z transverse velocities
 c     --------------------------------------------------------------
 c
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          call FORT_PPM(u,u,v,w,DIMS(s),
      &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,dx,dt,ubc,eps_for_bc)
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),
+     &        lo,hi,dx,dt,ubc,eps_for_bc,ppm_type)
       else
          call FORT_SLOPES( XVEL,
      &        u,DIMS(s),
@@ -386,7 +385,7 @@ c
      &        lo,hi,slxscr,slyscr,slzscr,ubc)
       end if
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do k = kmin-1,kmax+1
             do j = jmin-1,jmax+1
                do i = imin,  imax+1
@@ -417,10 +416,11 @@ c
          end do
       end if
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          call FORT_PPM(v,u,v,w,DIMS(s),
      &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,dx,dt,vbc,eps_for_bc)
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez), 
+     &        lo,hi,dx,dt,vbc,eps_for_bc,ppm_type)
       else
          call FORT_SLOPES(YVEL,
      &        v,DIMS(s),
@@ -428,7 +428,7 @@ c
      &        lo,hi,slxscr,slyscr,slzscr,vbc)
       end if
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do k = kmin-1,kmax+1
             do j = jmin,  jmax+1
                do i = imin-1,imax+1
@@ -459,10 +459,11 @@ c
          end do
       end if
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          call FORT_PPM(w,u,v,w,DIMS(s),
      &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,dx,dt,wbc,eps_for_bc)
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),
+     &        lo,hi,dx,dt,wbc,eps_for_bc,ppm_type)
       else
          call FORT_SLOPES(ZVEL,
      &        w,DIMS(s),
@@ -470,7 +471,7 @@ c
      &        lo,hi,slxscr,slyscr,slzscr,wbc)
       end if
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do k = kmin,kmax+1
             do j = jmin-1,jmax+1
                do i = imin-1,imax+1
@@ -632,8 +633,6 @@ c
       REAL_T  sz(DIMV(work)), wad(DIMV(work))
       REAL_T tforces(DIMV(work))
 
-      logical corner_couple
-
 c     used in 3d corner coupling
       REAL_T xylo(DIMV(work)), xyhi(DIMV(work))
       REAL_T xzlo(DIMV(work)), xzhi(DIMV(work))
@@ -642,9 +641,8 @@ c     used in 3d corner coupling
       REAL_T zxlo(DIMV(work)), zxhi(DIMV(work))
       REAL_T zylo(DIMV(work)), zyhi(DIMV(work))
 
-      integer use_minion
-
-      logical use_ppm
+      logical corner_couple
+      integer use_minion, ppm_type
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -673,16 +671,16 @@ c     used in 3d corner coupling
       kmax = hi(3)
 
       corner_couple = .false.
-
-      use_ppm = .false.
+      ppm_type = 0
 
 c
 c     compute the slopes
 c
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          call FORT_PPM(s,u,v,w,DIMS(s),
      &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,dx,dt,bc,eps_for_bc)
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),
+     &        lo,hi,dx,dt,bc,eps_for_bc,ppm_type)
       else
          call FORT_SLOPES(ALL,
      &        s,DIMS(s),
@@ -692,7 +690,7 @@ c
 c
 c     trace the state to the cell edges
 c
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do k = kmin-1,kmax+1
             do j = jmin-1,jmax+1
                do i = imin,  imax+1
@@ -742,7 +740,7 @@ c
       end do
 !$omp end parallel do
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do k = kmin-1,kmax+1
             do j = jmin,  jmax+1
                do i = imin-1,imax+1
@@ -792,7 +790,7 @@ c
       end do
 !$omp end parallel do
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do k = kmin,kmax+1
             do j = jmin-1,jmax+1
                do i = imin-1,imax+1
@@ -1458,7 +1456,7 @@ c
      &                 (zedge(i,j,k+1) - zedge(i,j,k)) / hz
                   endif
 
-                  if (use_ppm) then
+                  if (ppm_type .gt. 0) then
                      stxlo(i+1)= Ipx(i,j,k)
      &                    - dth*tr1 - dth*tr2
      &                    + dth*tforces(i,j,k)
@@ -1616,7 +1614,7 @@ c
      &                 (zedge(i,j,k+1) - zedge(i,j,k)) / hz
                   endif
 
-                  if (use_ppm) then
+                  if (ppm_type .gt. 0) then
                      stylo(j+1)= Ipy(i,j,k)
      &                    - dth*tr1 - dth*tr2
      &                    + dth*tforces(i,j,k)
@@ -1775,7 +1773,7 @@ c
      &                 (yedge(i,j+1,k) - yedge(i,j,k)) / hy
                   endif
 
-                  if (use_ppm) then
+                  if (ppm_type .gt. 0) then
                      stzlo(k+1)= Ipz(i,j,k)
      &                    - dth*tr1 - dth*tr2
      &                    + dth*tforces(i,j,k)
@@ -1965,8 +1963,6 @@ c
       REAL_T tforces(DIMV(work))
       REAL_T    divu(DIMV(work))
 
-      logical corner_couple
-
 c     used in 3d corner coupling
       REAL_T xylo(DIMV(work)), xyhi(DIMV(work))
       REAL_T xzlo(DIMV(work)), xzhi(DIMV(work))
@@ -1978,7 +1974,8 @@ c     used in 3d corner coupling
       integer use_minion, iconserv
       REAL_T st,denom
 
-      logical use_ppm
+      logical corner_couple
+      integer ppm_type
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -2008,15 +2005,16 @@ c     used in 3d corner coupling
 
       corner_couple = .false.
 
-      use_ppm = .false.
+      ppm_type = 0
 
 c
 c     compute the slopes
 c
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          call FORT_PPM_FPU(s,DIMS(s),uedge,vedge,wedge,DIMS(uedge),
      &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,dx,dt,bc,eps_for_bc)
+     &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),
+     &        lo,hi,dx,dt,bc,eps_for_bc,ppm_type)
       else
          call FORT_SLOPES(ALL,
      &        s,DIMS(s),
@@ -2026,7 +2024,7 @@ c
 c
 c     trace the state to the cell edges
 c
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do k = kmin-1,kmax+1
             do j = jmin-1,jmax+1
                do i = imin,  imax+1
@@ -2083,7 +2081,7 @@ c
          end do
       end do
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do k = kmin-1,kmax+1
             do j = jmin,  jmax+1
                do i = imin-1,imax+1
@@ -2139,7 +2137,7 @@ c
          end do
       end do
 
-      if (use_ppm) then
+      if (ppm_type .gt. 0) then
          do k = kmin,kmax+1
             do j = jmin-1,jmax+1
                do i = imin-1,imax+1
@@ -2861,7 +2859,7 @@ c    &                    - dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
                      st = -dth*(tr1 + tr2) + dth*tforces(i,j,k)
                   endif
 
-                  if (use_ppm) then
+                  if (ppm_type .gt. 0) then
                      stxlo(i+1)= Ipx(i,j,k) + st
                      stxhi(i  )= Imx(i,j,k) + st
                   else
@@ -2977,7 +2975,7 @@ c    &                    - dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
 
                   endif
 
-                  if (use_ppm) then
+                  if (ppm_type .gt. 0) then
                      stylo(j+1)= Ipy(i,j,k) + st
                      styhi(j  )= Imy(i,j,k) + st
                   else
@@ -3090,7 +3088,7 @@ c    &                    - dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
                      st = -dth*(tr1 + tr2) + dth*tforces(i,j,k)
                   endif
 
-                  if (use_ppm) then
+                  if (ppm_type .gt. 0) then
                      stzlo(k+1)= Ipz(i,j,k) + st
                      stzhi(k  )= Imz(i,j,k) + st
                   else
