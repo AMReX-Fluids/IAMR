@@ -30,7 +30,6 @@
 #include <BLFort.H>
 
 #define GEOM_GROW   1
-#define HYP_GROW    3
 #define PRESS_GROW  1
 #define DIVU_GROW   1
 #define DSDT_GROW   1
@@ -53,6 +52,8 @@ BCRec       NavierStokes::phys_bc;
 Projection *NavierStokes::projector     = 0;
 MacProj    *NavierStokes::mac_projector = 0;
 Godunov    *NavierStokes::godunov       = 0;
+
+static int hyp_grow = 3;
 
 //
 // Internal parameters.
@@ -444,6 +445,16 @@ NavierStokes::read_params ()
     }
 
     pp.query("harm_avg_cen2edge", def_harm_avg_cen2edge);
+
+    {
+      ParmParse pp("godunov");
+      int ppm_type = 0;
+      pp.query("ppm_type",ppm_type);
+      if (ppm_type == 2)
+	{
+	  hyp_grow = 4;
+	}
+    }
 
 }
 
@@ -1733,7 +1744,7 @@ NavierStokes::predict_velocity (Real  dt,
     
     FArrayBox* null_fab = 0;
 
-    for (FillPatchIterator U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM)
+    for (FillPatchIterator U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM)
 #ifdef MOREGENGETFORCE
 	     , S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
 	 S_fpi.isValid() && U_fpi.isValid();
@@ -1861,14 +1872,14 @@ NavierStokes::velocity_advection (Real dt)
     //
     for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
 #ifdef MOREGENGETFORCE
-             U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
+             U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM),
              S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS),
-             Rho_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Density,1);
+             Rho_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Density,1);
          S_fpi.isValid() && U_fpi.isValid() && P_fpi.isValid() && Rho_fpi.isValid(); 
          ++S_fpi, ++U_fpi, ++P_fpi, ++Rho_fpi
 #else
-             U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
-             Rho_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Density,1);
+             U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM),
+             Rho_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Density,1);
          U_fpi.isValid() && P_fpi.isValid() && Rho_fpi.isValid(); 
          ++U_fpi, ++P_fpi, ++Rho_fpi
 #endif
@@ -2030,8 +2041,8 @@ NavierStokes::scalar_advection (Real dt,
     // Compute the advective forcing.
     //
     for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
-             U_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,Xvel,BL_SPACEDIM),
-             S_fpi(*this,visc_terms,HYP_GROW,prev_time,State_Type,fscalar,num_scalars);
+             U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM),
+             S_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,fscalar,num_scalars);
          U_fpi.isValid() && S_fpi.isValid() && P_fpi.isValid();
          ++U_fpi, ++S_fpi, ++P_fpi)
     {

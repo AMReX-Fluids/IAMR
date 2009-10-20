@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.49 2009-10-20 18:26:25 ajnonaka Exp $
+// $Id: Godunov.cpp,v 1.50 2009-10-20 19:25:27 ajnonaka Exp $
 //
 
 //
@@ -19,10 +19,11 @@
 #include <algorithm>
 
 #define GEOM_GROW 1
-#define HYP_GROW  3
 #define XVEL 0
 #define YVEL 1
 #define ZVEL 2
+
+static int hyp_grow = 3;
 
 int Godunov::verbose               = 0;
 int Godunov::slope_order           = 4;
@@ -90,8 +91,13 @@ Godunov::read_params ()
     int use_unlimited_slopes=use_unlimited_slopes_DEF;
     pp.query("use_unlimited_slopes",use_unlimited_slopes);
 
-    pp.query("ppm_type",ppm_type);
     pp.query("corner_couple",corner_couple);
+    pp.query("ppm_type",ppm_type);
+
+    if (ppm_type == 2)
+      {
+	hyp_grow = 4;
+      }
 
     FORT_SET_PARAMS(slope_order,use_unlimited_slopes);
 }
@@ -149,7 +155,7 @@ Godunov::SetScratch (int max_size)
         return;
     else
         max_1d = std::max(max_1d,max_size);
-    scr_size = (max_size+2*HYP_GROW)*4;
+    scr_size = (max_size+2*hyp_grow)*4;
     //
     // Get rid of the old scratch space.
     //
@@ -238,7 +244,7 @@ Godunov::Setup (const Box&       grd,
     //
     // Ensure 1D scratch space is large enough.
     //
-    SetScratch(BoxLib::grow(grd,HYP_GROW).longside());
+    SetScratch(BoxLib::grow(grd,hyp_grow).longside());
     //
     // Create the advective velocities and FAB workspace for GODUNOV Box.
     //
