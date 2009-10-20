@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.57 2009-10-20 17:44:53 ajnonaka Exp $
+c $Id: GODUNOV_2D.F,v 1.58 2009-10-20 18:01:51 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -292,8 +292,6 @@ c
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
-
-      print*,"ppm_type",ppm_type
 
 c
 c     --------------------------------------------------------------
