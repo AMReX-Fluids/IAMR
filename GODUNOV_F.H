@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.21 2009-10-20 17:44:53 ajnonaka Exp $
+** $Id: GODUNOV_F.H,v 1.22 2009-10-20 17:57:00 ajnonaka Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -176,6 +176,8 @@ extern "C"
 		    const Real* yzlo_dat,  const Real* zxlo_dat,  const Real* zylo_dat,
 		    const Real* xyhi_dat,  const Real* xzhi_dat,  const Real* yxhi_dat,
 		    const Real* yzhi_dat,  const Real* zxhi_dat,  const Real* zyhi_dat,
+
+		    bool* corner_couple,
 #endif
 		    ARLIM_P(ww_lo),ARLIM_P(ww_hi),
 		    ARLIM_P(I_lo),ARLIM_P(I_hi),
@@ -214,6 +216,8 @@ extern "C"
 		    const Real* yzlo_dat,  const Real* zxlo_dat,  const Real* zylo_dat,
 		    const Real* xyhi_dat,  const Real* xzhi_dat,  const Real* yxhi_dat,
 		    const Real* yzhi_dat,  const Real* zxhi_dat,  const Real* zyhi_dat,
+
+       	            bool* corner_couple,
 #endif
 		    ARLIM_P(ww_lo),ARLIM_P(ww_hi),
 		    ARLIM_P(I_lo),ARLIM_P(I_hi),

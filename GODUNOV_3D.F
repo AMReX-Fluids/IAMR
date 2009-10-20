@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.63 2009-10-20 17:44:53 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.64 2009-10-20 17:57:00 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -575,6 +575,8 @@ c
      &     xylo, xzlo, yxlo, yzlo, zxlo, zylo,
      &     xyhi, xzhi, yxhi, yzhi, zxhi, zyhi,
 
+     &     corner_couple,
+
      &     DIMS(work), DIMS(I), dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
      &     bc,lo,hi,dt,dx,n,velpred, use_minion,ppm_type)
 c
@@ -632,6 +634,7 @@ c
       REAL_T  sz(DIMV(work)), wad(DIMV(work))
       REAL_T tforces(DIMV(work))
       integer ppm_type
+      logical corner_couple
 
 c     used in 3d corner coupling
       REAL_T xylo(DIMV(work)), xyhi(DIMV(work))
@@ -640,8 +643,6 @@ c     used in 3d corner coupling
       REAL_T yzlo(DIMV(work)), yzhi(DIMV(work))
       REAL_T zxlo(DIMV(work)), zxhi(DIMV(work))
       REAL_T zylo(DIMV(work)), zyhi(DIMV(work))
-
-      logical corner_couple
       integer use_minion
 
       dth  = half*dt
@@ -669,8 +670,6 @@ c     used in 3d corner coupling
       imax = hi(1)
       jmax = hi(2)
       kmax = hi(3)
-
-      corner_couple = .false.
 
 c
 c     compute the slopes
@@ -1901,6 +1900,8 @@ c      deallocate(Ipx,Imx,Ipy,Imy,Ipz,Imz)
      &     xylo, xzlo, yxlo, yzlo, zxlo, zylo,
      &     xyhi, xzhi, yxhi, yzhi, zxhi, zyhi,
 
+     &     corner_couple,
+
      &     DIMS(work), DIMS(I), dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
      &     bc,lo,hi,dt,dx,n,use_minion,iconserv,ppm_type)
 c
@@ -2001,8 +2002,6 @@ c     used in 3d corner coupling
       imax = hi(1)
       jmax = hi(2)
       kmax = hi(3)
-
-      corner_couple = .false.
 
 c
 c     compute the slopes

@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.47 2009-10-20 17:44:53 ajnonaka Exp $
+// $Id: Godunov.cpp,v 1.48 2009-10-20 17:57:00 ajnonaka Exp $
 //
 
 //
@@ -91,6 +91,7 @@ Godunov::read_params ()
     pp.query("use_unlimited_slopes",use_unlimited_slopes);
 
     pp.query("ppm_type",ppm_type);
+    pp.query("corner_couple",corner_couple);
 
     FORT_SET_PARAMS(slope_order,use_unlimited_slopes);
 }
@@ -540,6 +541,8 @@ Godunov::edge_states_orig (const Box&  grd,
 		xedge_dat, yedge_dat, zedge_dat,
 		xylo_dat, xzlo_dat, yxlo_dat, yzlo_dat, zxlo_dat, zylo_dat,
 		xyhi_dat, xzhi_dat, yxhi_dat, yzhi_dat, zxhi_dat, zyhi_dat,
+
+		&corner_couple,
 #endif
                 ARLIM(ww_lo), ARLIM(ww_hi),
                 ARLIM(I.loVect()), ARLIM(I.hiVect()),
@@ -691,6 +694,8 @@ Godunov::edge_states_fpu (const Box&  grd,
 		    xedge_dat, yedge_dat, zedge_dat,
 		    xylo_dat, xzlo_dat, yxlo_dat, yzlo_dat, zxlo_dat, zylo_dat,
 		    xyhi_dat, xzhi_dat, yxhi_dat, yzhi_dat, zxhi_dat, zyhi_dat,
+
+		    &corner_couple,
 #endif
                     ARLIM(ww_lo), ARLIM(ww_hi),
                     ARLIM(I.loVect()), ARLIM(I.hiVect()),
