@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.46 2009-06-11 17:29:45 lijewski Exp $
+// $Id: Godunov.cpp,v 1.47 2009-10-20 17:44:53 ajnonaka Exp $
 //
 
 //
@@ -27,6 +27,8 @@
 int Godunov::verbose               = 0;
 int Godunov::slope_order           = 4;
 int Godunov::use_forces_in_trans   = 0;
+int Godunov::ppm_type              = 0;
+bool Godunov::corner_couple        = false;
 const int use_unlimited_slopes_DEF = 0;
 
 //
@@ -87,6 +89,8 @@ Godunov::read_params ()
     pp.query("use_forces_in_trans",use_forces_in_trans);
     int use_unlimited_slopes=use_unlimited_slopes_DEF;
     pp.query("use_unlimited_slopes",use_unlimited_slopes);
+
+    pp.query("ppm_type",ppm_type);
 
     FORT_SET_PARAMS(slope_order,use_unlimited_slopes);
 }
@@ -329,7 +333,7 @@ Godunov::Setup (const Box&       grd,
                   ARLIM(I.loVect()), ARLIM(I.hiVect()),
                   dsvl.dataPtr(), ARLIM(dsvl.loVect()), ARLIM(dsvl.hiVect()),
                   sm, sp, ARLIM(smp.loVect()), ARLIM(smp.hiVect()),
-                  lo, hi, &dt, dx, &use_forces_in_trans, tforcedat);
+                  lo, hi, &dt, dx, &use_forces_in_trans, tforcedat, &ppm_type);
 }
 
 //
@@ -542,7 +546,7 @@ Godunov::edge_states_orig (const Box&  grd,
                 dsvl.dataPtr(), ARLIM(dsvl.loVect()), ARLIM(dsvl.hiVect()),
                 sm, sp, ARLIM(smp.loVect()), ARLIM(smp.hiVect()),
                 bc, lo, hi, &dt, dx, &fort_ind, &velpred, 
-                &use_forces_in_trans);
+                &use_forces_in_trans, &ppm_type);
 }
 
 void
@@ -693,7 +697,7 @@ Godunov::edge_states_fpu (const Box&  grd,
                     dsvl.dataPtr(), ARLIM(dsvl.loVect()), ARLIM(dsvl.hiVect()),
                     sm, sp, ARLIM(smp.loVect()), ARLIM(smp.hiVect()),
                     bc, lo, hi, &dt, dx, &fort_ind,
-                    &use_forces_in_trans, &iconserv);
+                    &use_forces_in_trans, &iconserv, &ppm_type);
 }
 
 void

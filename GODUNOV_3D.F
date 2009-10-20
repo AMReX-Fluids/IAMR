@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.62 2009-10-20 17:09:22 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.63 2009-10-20 17:44:53 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -293,7 +293,7 @@ c      call flush(6)
      &     w, wlo, whi, sz, wbc, slzscr, Imz, Ipz, sedgez, DIMS(sedgez),
      &     DIMS(s), DIMS(work), DIMS(I),
      &     dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
-     &     lo,hi,dt,dx,use_minion,tforces)
+     &     lo,hi,dt,dx,use_minion,tforces,ppm_type)
 c
 c     This subroutine computes the advective velocities used in
 c     the transverse derivatives of the Godunov box
@@ -340,8 +340,9 @@ c
       REAL_T sedgey(DIMV(sedgey))
       REAL_T sedgez(DIMV(sedgez))
       REAL_T dsvl(DIMV(dsvl)), sm(DIMV(smp)), sp(DIMV(smp))
+      integer ppm_type
 
-      integer use_minion, ppm_type
+      integer use_minion
       REAL_T tforces(DIMV(work),SDIM)
 
       dth  = half*dt
@@ -357,8 +358,6 @@ c
       imax = hi(1)
       jmax = hi(2)
       kmax = hi(3)
-
-      ppm_type = 0
 
 c
 c     =============== THE SCREWY ORDER is to maximize comparability
@@ -577,7 +576,7 @@ c
      &     xyhi, xzhi, yxhi, yzhi, zxhi, zyhi,
 
      &     DIMS(work), DIMS(I), dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
-     &     bc,lo,hi,dt,dx,n,velpred, use_minion)
+     &     bc,lo,hi,dt,dx,n,velpred, use_minion,ppm_type)
 c
 c     This subroutine computes edges states, right now it uses
 c     a lot of memory, but there becomes a trade off between
@@ -632,6 +631,7 @@ c
       REAL_T  sy(DIMV(work)), vad(DIMV(work))
       REAL_T  sz(DIMV(work)), wad(DIMV(work))
       REAL_T tforces(DIMV(work))
+      integer ppm_type
 
 c     used in 3d corner coupling
       REAL_T xylo(DIMV(work)), xyhi(DIMV(work))
@@ -642,7 +642,7 @@ c     used in 3d corner coupling
       REAL_T zylo(DIMV(work)), zyhi(DIMV(work))
 
       logical corner_couple
-      integer use_minion, ppm_type
+      integer use_minion
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -671,7 +671,6 @@ c     used in 3d corner coupling
       kmax = hi(3)
 
       corner_couple = .false.
-      ppm_type = 0
 
 c
 c     compute the slopes
@@ -1903,7 +1902,7 @@ c      deallocate(Ipx,Imx,Ipy,Imy,Ipz,Imz)
      &     xyhi, xzhi, yxhi, yzhi, zxhi, zyhi,
 
      &     DIMS(work), DIMS(I), dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
-     &     bc,lo,hi,dt,dx,n,use_minion,iconserv)
+     &     bc,lo,hi,dt,dx,n,use_minion,iconserv,ppm_type)
 c
 c     This subroutine computes edges states, right now it uses
 c     a lot of memory, but there becomes a trade off between
@@ -2004,8 +2003,6 @@ c     used in 3d corner coupling
       kmax = hi(3)
 
       corner_couple = .false.
-
-      ppm_type = 0
 
 c
 c     compute the slopes

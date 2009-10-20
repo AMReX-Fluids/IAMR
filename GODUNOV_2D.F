@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.56 2009-10-20 17:09:22 ajnonaka Exp $
+c $Id: GODUNOV_2D.F,v 1.57 2009-10-20 17:44:53 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -241,7 +241,7 @@ c      call flush(6)
      &     v, vlo, vhi, sy, vbc, slyscr, Imy, Ipy, sedgey, DIMS(sedgey),
      &     DIMS(s), DIMS(work), DIMS(I),
      &     dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
-     &     lo,hi,dt,dx,use_minion,tforces)
+     &     lo,hi,dt,dx,use_minion,tforces,ppm_type)
 c
 c     This subroutine computes the advective velocities used in
 c     the transverse derivatives of the Godunov box
@@ -293,7 +293,7 @@ c
       imax = hi(1)
       jmax = hi(2)
 
-      ppm_type = 0
+      print*,"ppm_type",ppm_type
 
 c
 c     --------------------------------------------------------------
@@ -408,7 +408,7 @@ c
      &     vedge, DIMS(vedge), ystate, DIMS(ystate), Imy, Ipy, sedgey, DIMS(sedgey),
 
      &     DIMS(work), DIMS(I), dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
-     &     bc,lo,hi,dt,dx,n,velpred, use_minion)
+     &     bc,lo,hi,dt,dx,n,velpred, use_minion, ppm_type)
 c
       implicit none
       integer i,j,n,velpred
@@ -461,8 +461,6 @@ c
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
-
-      ppm_type = 0
 
 c
 c     compute the slopes
@@ -718,7 +716,7 @@ c
      &     vedge, DIMS(vedge), ystate, DIMS(ystate), Imy, Ipy, sedgey, DIMS(sedgey),
 
      &     DIMS(work), DIMS(I), dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
-     &     bc,lo,hi,dt,dx,n,use_minion,iconserv)
+     &     bc,lo,hi,dt,dx,n,use_minion,iconserv,ppm_type)
 c
 c     This subroutine computes edges states, right now it uses
 c     a lot of memory, but there becomes a trade off between
@@ -770,9 +768,9 @@ c
 #endif
       
       REAL_T st,denom
+      integer ppm_type
 
-      integer use_minion, iconserv
-      integer inc, ppm_type
+      integer use_minion, iconserv, inc
 
       REAL_T umax
 
@@ -785,8 +783,6 @@ c
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
-
-      ppm_type = 0
 
 c
 c     compute the slopes

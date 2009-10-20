@@ -3,7 +3,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.19 2009-03-14 07:07:01 marc Exp $
+// $Id: Godunov.H,v 1.20 2009-10-20 17:44:53 ajnonaka Exp $
 //
 //
 // A useful enumeration of the forms for the advective terms
@@ -324,6 +324,8 @@ protected:   // protected data members
 // algorithm control parameters
 
     static int slope_order;
+    static int ppm_type;
+    static bool corner_couple;
 
 };
 

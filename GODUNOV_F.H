@@ -2,7 +2,7 @@
 #define _GODUNOV_F_H_
 
 /*
-** $Id: GODUNOV_F.H,v 1.20 2009-03-14 07:07:01 marc Exp $
+** $Id: GODUNOV_F.H,v 1.21 2009-10-20 17:44:53 ajnonaka Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -143,7 +143,7 @@ extern "C"
 		       Real* sm, Real* sp, ARLIM_P(smp_lo),ARLIM_P(smp_hi),
 		       const int* lo, const int* hi, Real* dt, 
 		       const Real* dx, int* use_forces_in_trans, 
-		       const Real* tforcedat);
+		       const Real* tforcedat, int* ppm_type);
    
    void FORT_ESTATE(const Real* s_dat, const Real* tfr_dat, 
 		    ARLIM_P(s_lo),ARLIM_P(s_hi),
@@ -183,7 +183,7 @@ extern "C"
                     Real* sm, Real* sp, ARLIM_P(smp_lo),ARLIM_P(smp_hi),
 		    const int* bc, const int* lo, const int* hi, 
 		    Real* dt, const Real* dx, int* fort_ind, int* velpred, 
-		    int* use_forces_in_trans);
+		    int* use_forces_in_trans, int* ppm_type);
    
    void FORT_ESTATE_FPU(const Real* s_dat, const Real* tfr_dat, const Real* divu_dat,
 		    ARLIM_P(s_lo),ARLIM_P(s_hi),
@@ -221,7 +221,7 @@ extern "C"
                     Real* sm, Real* sp, ARLIM_P(smp_lo),ARLIM_P(smp_hi),
 		    const int* bc, const int* lo, const int* hi, 
 		    Real* dt, const Real* dx, int* fort_ind, 
-		    int* use_forces_in_trans, int* iconserv);
+		    int* use_forces_in_trans, int* iconserv, int* ppm_type);
 
    void FORT_ESTATE_BDS(const Real* s_dat, const Real* tfr_dat, const Real* divu_dat,
 		    ARLIM_P(s_lo),ARLIM_P(s_hi),
