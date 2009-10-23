@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.64 2009-10-20 17:57:00 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.65 2009-10-23 18:13:19 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -4339,7 +4339,8 @@ c
 
       subroutine FORT_PPM(s,u,v,w,DIMS(s),
      &     Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,dx,dt,bc,eps)
+     &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,
+     &     dx,dt,bc,eps,ppm_type)
 
       implicit none
       
@@ -4371,9 +4372,10 @@ c
       REAL_T eps
       REAL_T dx(SDIM)
       REAL_T dt
+      integer ppm_type
 
 c     local
-      integer i, j, k, ppm_type
+      integer i, j, k
 
       logical extremum, bigp, bigm
 
@@ -4384,8 +4386,6 @@ c     local
 
 c     constant used in Colella 2008
       C = 1.25d0
-
-      ppm_type = 1
 
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 c     ! x-direction
@@ -5876,7 +5876,8 @@ c     compute effect of w0 in plane-parallel
 
       subroutine FORT_PPM_FPU(s,DIMS(s),uedge,vedge,wedge,DIMS(uedge),
      &     Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,dx,dt,bc,eps)
+     &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,
+     &     dx,dt,bc,eps,ppm_type)
 
       implicit none
       
@@ -5909,9 +5910,10 @@ c     compute effect of w0 in plane-parallel
       REAL_T eps
       REAL_T dx(SDIM)
       REAL_T dt
+      integer ppm_type
 
 c     local
-      integer i, j, k, ppm_type
+      integer i, j, k
 
       logical extremum, bigp, bigm
 
@@ -5922,8 +5924,6 @@ c     local
 
 c     constant used in Colella 2008
       C = 1.25d0
-
-      ppm_type = 1
 
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 c     ! x-direction
