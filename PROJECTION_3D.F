@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.16 2008-02-08 18:39:48 lijewski Exp $
+c $Id: PROJECTION_3D.F,v 1.17 2009-10-26 23:38:45 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -144,7 +144,9 @@ c
 
       integer i, j, k, n
 
+!$omp parallel private(i,j,k)
       do n = 1, nvar
+!$omp do
          do k = boxlo(3), boxhi(3)
             do j = boxlo(2), boxhi(2)
                do i = boxlo(1), boxhi(1)
@@ -152,7 +154,9 @@ c
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
 
       end
 
@@ -253,58 +257,6 @@ c
       end if
 
       end
-
-      subroutine FORT_HGN2C(
-     &     isrz,lrweighted, DIMS(nodedat), nodedat,
-     &     DIMS(ccdat), lo, hi, ccdat)
-
-c     ----------------------------------------------------------
-c     HGN2C
-c     averages node centered data to cell centers for use in 
-c     holy grail projection
-
-      implicit none
-      integer isrz,lrweighted
-      integer lo(SDIM), hi(SDIM)
-      integer DIMDEC(ccdat)
-      integer DIMDEC(nodedat)
-      REAL_T  nodedat(DIMV(nodedat))
-      REAL_T  ccdat(DIMV(ccdat))
-
-      integer i,j,k
-
-      if (ARG_H1(ccdat)   .lt. lo(1) .or. 
-     &    ARG_L1(ccdat)   .gt. hi(1) .or. 
-     &    ARG_H2(ccdat)   .lt. lo(2) .or. 
-     &    ARG_L2(ccdat)   .gt. hi(2) .or. 
-     &    ARG_H3(ccdat)   .lt. lo(3) .or. 
-     &    ARG_L3(ccdat)   .gt. hi(3) .or. 
-     &    ARG_H1(nodedat) .lt. lo(1)+1 .or. 
-     &    ARG_L1(nodedat) .gt. hi(1) .or. 
-     &    ARG_H2(nodedat) .lt. lo(2)+1 .or. 
-     &    ARG_L2(nodedat) .gt. hi(2) .or.
-     &    ARG_H3(nodedat) .lt. lo(3)+1 .or. 
-     &    ARG_L3(nodedat) .gt. hi(3) ) then 
-        call bl_abort("FORT_HG_CELL_TO_NODE: bad index limits")
-      end if
-
-      if(isrz.eq.1.and.lrweighted.ne.1)then
-        call bl_abort('FORT_HGN2C : isrz=1 and lrweighted!=1 not implemented')
-      end if
-
-      do k=lo(3),hi(3)
-         do j=lo(2),hi(2)
-            do i=lo(1),hi(1)
-               ccdat(i,j,k)=eighth*(nodedat(i  ,j,  k  )+nodedat(i+1,j  ,k  )+
-     &                              nodedat(i  ,j+1,k  )+nodedat(i+1,j+1,k  )+
-     &                              nodedat(i  ,j,  k+1)+nodedat(i+1,j  ,k+1)+
-     &                              nodedat(i  ,j+1,k+1)+nodedat(i+1,j+1,k+1))
-            end do
-         end do
-      end do
-
-      end
-
 
        subroutine FORT_HGC2N(
      &     nghost, DIMS(dat), dat, rcen,
@@ -414,7 +366,7 @@ c           timestep on the coarse grid.  mult = 1/ratio.
 
 c check and make sure dx == dy == dz
       if ( dx(1) .NE. dx(2) .or. dx(1) .NE. dx(3) ) then
-         call bl_abort('FILTRHS:  code for dx != dy != dz not implemented')
+        call bl_abort('FILTRHS: code for dx != dy != dz not implemented')
       endif
 
       do k = lo(3), hi(3)
