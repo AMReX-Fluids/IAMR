@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.26 2009-10-05 18:13:31 lijewski Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.27 2009-10-26 23:15:56 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -258,6 +258,7 @@ c ::
 
        integer i, j, k
 
+!$omp parallel do private(i,j,k)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -265,6 +266,7 @@ c ::
              end do
           end do
        end do
+!$omp end parallel do
 
        end
 
@@ -1149,9 +1151,12 @@ c
       REAL_T  efab(DIMV(efab), nc)
       integer i,j,k,n
 
+!$omp parallel private(i,j,k)
+
       if ( isharm .eq. 0 ) then
          if (dir .EQ. 0) then
             do n = 1,nc
+!$omp do
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1)+1, hi(1)
@@ -1160,9 +1165,11 @@ c
                      end do
                   end do
                end do
+!$omp end do nowait
             end do
          else if (dir .EQ. 1) then
             do n = 1,nc
+!$omp do
                do k = lo(3), hi(3)
                   do j = lo(2)+1, hi(2)
                      do i = lo(1), hi(1)
@@ -1171,9 +1178,11 @@ c
                      end do
                   end do
                end do
+!$omp end do nowait
             end do
          else if (dir .EQ. 2) then
             do n = 1,nc
+!$omp do
                do k = lo(3)+1, hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
@@ -1182,11 +1191,13 @@ c
                      end do
                   end do
                end do
+!$omp end do nowait
             end do
          end if
       else
          if (dir .EQ. 0) then
             do n = 1,nc
+!$omp do
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1)+1, hi(1)
@@ -1201,9 +1212,11 @@ c
                      end do
                   end do
                end do
+!$omp end do nowait
             end do
          else if (dir .EQ. 1) then
             do n = 1,nc
+!$omp do
                do k = lo(3), hi(3)
                   do j = lo(2)+1, hi(2)
                      do i = lo(1), hi(1)
@@ -1218,9 +1231,11 @@ c
                      end do
                   end do
                end do
+!$omp end do nowait
             end do
          else if (dir .EQ. 2) then
             do n = 1,nc
+!$omp do
                do k = lo(3)+1, hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
@@ -1235,9 +1250,13 @@ c
                      end do
                   end do
                end do
+!$omp end do nowait
             end do
          end if
       end if
+
+!$omp end parallel
+
       end
 c-----------------------------------------------------------------------
       subroutine EDGE_INTERP(flo, fhi, nc, ratio, dir,
