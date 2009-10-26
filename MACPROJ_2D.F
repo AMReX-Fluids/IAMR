@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_2D.F,v 1.16 2008-02-08 18:39:48 lijewski Exp $
+c $Id: MACPROJ_2D.F,v 1.17 2009-10-26 22:34:50 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -61,47 +61,6 @@ c ::
      &                 +   yarea(i,j+1)*uy(i,j+1) - yarea(i,j)*uy(i,j)
      &            )/vol(i,j)
 
-          end do
-       end do
-
-       end
-
-
-c :: ----------------------------------------------------------
-c :: UCORUPDT
-c ::          Snew = Snew + mult*Sold*dmac
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  snew        <=  state vector at new time
-c ::  sold         => state vector at old time
-c ::  DIMS(s)      => index limits for sold and snew
-c ::  lo,hi        => index limits of grid interior
-c ::  nvar         => number of components in state vector
-c ::  dmac         => MAC divergence of Ucorr
-c ::  DIMS(dmac)   => index limits for dmac
-c ::  mult         => scalar multiplier
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_UCORUPDT (snew,sold,DIMS(s),nvar,lo,hi,
-     &                           dmac,DIMS(dmac),mult)
-
-       implicit none
-       integer DIMDEC(s)
-       integer DIMDEC(dmac)
-       integer nvar
-       integer lo(SDIM), hi(SDIM)
-       REAL_T  snew(DIMV(s),nvar)
-       REAL_T  sold(DIMV(s),nvar)
-       REAL_T  dmac(DIMV(dmac))
-       REAL_T  mult
-
-       integer i, j, n
-
-       do n = 1, nvar
-          do j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                snew(i,j,n) = snew(i,j,n) + mult*dmac(i,j)*sold(i,j,n)
-             end do
           end do
        end do
 

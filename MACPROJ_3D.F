@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_3D.F,v 1.9 2009-10-05 18:13:31 lijewski Exp $
+c $Id: MACPROJ_3D.F,v 1.10 2009-10-26 22:34:50 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -79,49 +79,6 @@ c ::
        end
 
 c :: ----------------------------------------------------------
-c :: UCORUPDT
-c ::          Snew = Snew + mult*Sold*dmac
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  snew        <=  state vector at new time
-c ::  sold         => state vector at old time
-c ::  DIMS(s)      => index limits for sold and snew
-c ::  lo,hi        => index limits of grid interior
-c ::  nvar         => number of components in state vector
-c ::  dmac         => MAC divergence of Ucorr
-c ::  DIMS(dmac)   => index limits for dmac
-c ::  mult         => scalar multiplier
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_UCORUPDT (snew,sold,DIMS(s),nvar,lo,hi,
-     &                           dmac,DIMS(dmac),mult)
-
-       implicit none
-       integer DIMDEC(s)
-       integer lo(SDIM), hi(SDIM)
-       integer DIMDEC(dmac)
-       integer nvar
-       REAL_T  mult
-       REAL_T  snew(DIMV(s),nvar)
-       REAL_T  sold(DIMV(s),nvar)
-       REAL_T  dmac(DIMV(dmac))
-
-       integer i, j, k, n
-
-
-       do n = 1, nvar
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   snew(i,j,k,n) = snew(i,j,k,n) + mult*dmac(i,j,k)*sold(i,j,k,n)
-                end do
-             end do
-          end do
-       end do
-
-       end
-
-c :: ----------------------------------------------------------
 c :: SCALEAREA
 c ::          area = area * anel_coeff
 c ::                 OR 
@@ -146,8 +103,11 @@ c :: ----------------------------------------------------------
 
        integer i,j,k
 
+!$omp parallel private(i,j,k)
+
        if (mult .eq. 1) then
 
+!$omp do
           do k = lo(3), hi(3)
           do j = lo(2), hi(2)
           do i = lo(1), hi(1)+1
@@ -155,7 +115,9 @@ c :: ----------------------------------------------------------
           end do
           end do
           end do
+!$omp end do nowait
 
+!$omp do
           do k = lo(3), hi(3)
           do j = lo(2), hi(2)+1
           do i = lo(1), hi(1)
@@ -163,7 +125,9 @@ c :: ----------------------------------------------------------
           end do
           end do
           end do
+!$omp end do nowait
 
+!$omp do
           do k = lo(3), hi(3)+1
           do j = lo(2), hi(2)
           do i = lo(1), hi(1)
@@ -171,19 +135,23 @@ c :: ----------------------------------------------------------
           end do
           end do
           end do
+!$omp end do
 
           if (lo(3) .eq. 0) then
              k = lo(3)
+!$omp do
              do j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 zarea(i,j,k) =  zarea(i,j,k) * anel_coeff(k-1) /
      $                          (0.5d0 * (anel_coeff(k)+anel_coeff(k-1)))
              end do
              end do
+!$omp end do
           end if
 
        else if (mult .eq. -1) then
 
+!$omp do
           do k = lo(3), hi(3)
           do j = lo(2), hi(2)
           do i = lo(1), hi(1)+1
@@ -191,7 +159,9 @@ c :: ----------------------------------------------------------
           end do
           end do
           end do
+!$omp end do nowait
 
+!$omp do
           do k = lo(3), hi(3)
           do j = lo(2), hi(2)+1
           do i = lo(1), hi(1)
@@ -199,7 +169,9 @@ c :: ----------------------------------------------------------
           end do
           end do
           end do
+!$omp end do nowait
 
+!$omp do
           do k = lo(3), hi(3)+1
           do j = lo(2), hi(2)
           do i = lo(1), hi(1)
@@ -207,15 +179,18 @@ c :: ----------------------------------------------------------
           end do
           end do
           end do
+!$omp end do
 
           if (lo(3) .eq. 0) then
              k = lo(3)
+!$omp do
              do j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 zarea(i,j,k) =  zarea(i,j,k) / anel_coeff(k-1) *
      $                         (0.5d0 * (anel_coeff(k)+anel_coeff(k-1)))
              end do
              end do
+!$omp end do
           end if
 
        else 
@@ -224,5 +199,7 @@ c :: ----------------------------------------------------------
           stop
 
        end if
+
+!$omp end parallel
 
        end

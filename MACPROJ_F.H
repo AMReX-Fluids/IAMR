@@ -2,26 +2,22 @@
 #define _MACPROJ_F_H
 
 /*
-** $Id: MACPROJ_F.H,v 1.10 2004-09-08 21:02:25 almgren Exp $
+** $Id: MACPROJ_F.H,v 1.11 2009-10-26 22:34:50 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
 #    define FORT_MACDIV      macdiv
 #    define FORT_SCALEAREA   scalearea
-#    define FORT_UCORUPDT    ucorupdt
 #else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_MACDIV      MACDIV
 #    define FORT_SCALEAREA   SCALEAREA
-#    define FORT_UCORUPDT    UCORUPDT
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_MACDIV      macdiv
 #    define FORT_SCALEAREA   scalearea
-#    define FORT_UCORUPDT    ucorupdt
 #  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_MACDIV      macdiv_
 #    define FORT_SCALEAREA   scalearea_
-#    define FORT_UCORUPDT    ucorupdt_
 #  endif
 
 #include <ArrayLim.H>
@@ -60,13 +56,6 @@ extern "C" {
                          const int* anel_coeff_lo, const int* anel_coeff_hi,
                          const int* lo, const int* hi, const int* mult);
 #endif
-
-    void FORT_UCORUPDT (Real* snew, const Real* sold,
-                        ARLIM_P(s_lo), ARLIM_P(s_hi),
-                        const int* nvar,
-                        const int* lo, const int* hi,
-                        const Real* dmac, ARLIM_P(dmac_lo), ARLIM_P(dmac_hi),
-                        const Real* mult);
 
 }
 
