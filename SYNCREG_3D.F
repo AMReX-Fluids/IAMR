@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.16 2009-10-26 22:16:56 lijewski Exp $
+c $Id: SYNCREG_3D.F,v 1.17 2009-10-27 02:40:14 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -436,19 +436,21 @@ c ::: -----------------------------------------------------------
  
       integer    i, j, k
 
+!$omp parallel do private(i,j,k)
       do k = ARG_L3(mask), ARG_H3(mask)
-       do j = ARG_L2(mask), ARG_H2(mask)
-        do i = ARG_L1(mask), ARG_H1(mask)
- 
-          if (mask(i,j,k) .gt. 7.5D0) then
-             mask(i,j,k) = zero
-          else
-             mask(i,j,k) = one
-          end if
+         do j = ARG_L2(mask), ARG_H2(mask)
+            do i = ARG_L1(mask), ARG_H1(mask)
+               
+               if (mask(i,j,k) .gt. 7.5D0) then
+                  mask(i,j,k) = zero
+               else
+                  mask(i,j,k) = one
+               end if
 
-        end do
-       end do
+            end do
+         end do
       end do
+!$omp end parallel do
  
       end
 

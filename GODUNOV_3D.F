@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.65 2009-10-23 18:13:19 ajnonaka Exp $
+c $Id: GODUNOV_3D.F,v 1.66 2009-10-27 02:40:14 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -58,6 +58,8 @@ c
       tforce2 = zero
       tforce3 = zero
 
+!$omp parallel do private(i,j,k)
+!$omp&reduction(max: u,v,w,tforce1,tforce2,tforce3)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -70,6 +72,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       u_max(1) = u
       u_max(2) = v
