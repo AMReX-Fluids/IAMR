@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.76 2008-07-24 20:31:02 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.77 2009-10-27 02:16:26 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -10,12 +10,7 @@
 
 #include <BC_TYPES.H>
 #include <SyncRegister.H>
-
 #include <NAVIERSTOKES_F.H>
-#ifndef FORT_HGC2N
-#include <PROJECTION_F.H>
-#endif
-
 #include <SYNCREG_F.H>
 
 //
