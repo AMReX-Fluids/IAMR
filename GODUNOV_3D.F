@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.67 2009-10-27 03:00:53 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.68 2009-10-27 03:36:20 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -420,6 +420,7 @@ c
             end do
          end do
       else
+!$omp parallel do private(i,j,k)
          do k = kmin-1,kmax+1
             do j = jmin-1,jmax+1
                do i = imin,  imax+1
@@ -428,6 +429,7 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       end if
 
       if (use_minion .eq. 1 )then
@@ -463,6 +465,7 @@ c
             end do
          end do
       else
+!$omp parallel do private(i,j,k)
          do k = kmin-1,kmax+1
             do j = jmin,  jmax+1
                do i = imin-1,imax+1
@@ -471,6 +474,7 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       end if
 
       if (use_minion .eq. 1 )then
@@ -506,6 +510,7 @@ c
             end do
          end do
       else
+!$omp parallel do private(i,j,k)
          do k = kmin,kmax+1
             do j = jmin-1,jmax+1
                do i = imin-1,imax+1
@@ -514,6 +519,7 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       end if
 
       if (use_minion .eq. 1 )then
@@ -542,6 +548,7 @@ c
      &     wlo,whi,DIMS(work),wlo,DIMS(work),
      &     lo,hi,ZVEL,wbc,eps_for_bc,.false.,.false.)
 
+!$omp parallel do private(i,j,k,tst,val,ltm)
       do k = kmin-1,kmax+1
          do j = jmin-1,jmax+1
             do i = imin,  imax+1
@@ -555,7 +562,9 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
+!$omp parallel do private(i,j,k,tst,val,ltm)
       do k = kmin-1,kmax+1
          do j = jmin,  jmax+1
             do i = imin-1,imax+1
@@ -569,7 +578,9 @@ c
             end do
          end do
       end do
-      
+!$omp end parallel do
+
+!$omp parallel do private(i,j,k,tst,val,ltm)      
       do k = kmin,kmax+1
          do j = jmin-1,jmax+1
             do i = imin-1,imax+1
@@ -583,6 +594,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -7907,7 +7919,7 @@ c
                end do
             end do
          end do
-!$omp end do
+!$omp end do nowait
       end do
 !$omp end parallel
       end
@@ -7991,8 +8003,11 @@ c
       REAL_T visc(DIMV(visc),nvar)
       REAL_T rho(DIMV(rho))
 
+!$omp parallel private(i,j,k)
+
       if ( iconserv .eq. 1 ) then
          do n = 1, nvar
+!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
@@ -8003,9 +8018,11 @@ c
                   end do
                end do
             end do
+!$omp end do nowait
          end do
       else
          do n = 1, nvar
+!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
@@ -8015,8 +8032,11 @@ c
                   end do
                end do
             end do
+!$omp end do nowait
          end do
       end if
+
+!$omp end parallel
 
       end
 
@@ -8165,7 +8185,7 @@ c
                end do
             end do
          end do
-!$omp end do
+!$omp end do nowait
       end do
 !$omp end parallel
       end
