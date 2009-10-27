@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.68 2009-10-27 03:36:20 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.69 2009-10-27 17:40:23 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1920,8 +1920,6 @@ c                  stzhi(kmax+1) = stzlo(kmax+1)
 
       end if
 
-c      deallocate(Ipx,Imx,Ipy,Imy,Ipz,Imz)
-
       end
 
       subroutine FORT_ESTATE_FPU(s, tforces, divu, DIMS(s),
@@ -2040,7 +2038,6 @@ c     used in 3d corner coupling
       imax = hi(1)
       jmax = hi(2)
       kmax = hi(3)
-
 c
 c     compute the slopes
 c
@@ -2068,6 +2065,7 @@ c
             end do
          end do
       else
+!$omp parallel do private(i,j,k)
          do k = kmin-1,kmax+1
             do j = jmin-1,jmax+1
                do i = imin,  imax+1
@@ -2076,9 +2074,10 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       end if
 
-      if(use_minion.eq.1)then
+      if (use_minion.eq.1)then
          do k = kmin-1,kmax+1
             do j = jmin-1,jmax+1
                do i = imin,  imax+1
@@ -2097,7 +2096,6 @@ c
              end do
            end do
          end if
-
       end if
 
       call trans_xbc(
@@ -2105,6 +2103,7 @@ c
      &     xlo,xhi,DIMS(work),uedge,DIMS(uedge),
      &     lo,hi,n,bc,eps_for_bc,.false.,.false.)
 
+!$omp parallel do private(i,j,k,fu,stx)
       do k = kmin-1,kmax+1
          do j = jmin-1,jmax+1
             do i = imin,  imax+1
@@ -2114,6 +2113,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       if (ppm_type .gt. 0) then
          do k = kmin-1,kmax+1
@@ -2125,6 +2125,7 @@ c
             end do
          end do
       else
+!$omp parallel do private(i,j,k)
          do k = kmin-1,kmax+1
             do j = jmin,  jmax+1
                do i = imin-1,imax+1
@@ -2133,6 +2134,7 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       end if
 
       if (use_minion.eq.1)then
@@ -2161,6 +2163,7 @@ c
      &     ylo,yhi,DIMS(work),vedge,DIMS(vedge),
      &     lo,hi,n,bc,eps_for_bc,.false.,.false.)
 
+!$omp parallel do private(i,j,k,fv,sty)
       do k = kmin-1,kmax+1
          do j = jmin,  jmax+1
             do i = imin-1,imax+1
@@ -2170,6 +2173,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       if (ppm_type .gt. 0) then
          do k = kmin,kmax+1
@@ -2181,6 +2185,7 @@ c
             end do
          end do
       else
+!$omp parallel do private(i,j,k)
          do k = kmin,kmax+1
             do j = jmin-1,jmax+1
                do i = imin-1,imax+1
@@ -2189,6 +2194,7 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       end if
 
       if (use_minion.eq.1)then
@@ -2217,6 +2223,7 @@ c
      &     zlo,zhi,DIMS(work),wedge,DIMS(wedge),
      &     lo,hi,n,bc,eps_for_bc,.false.,.false.)
 
+!$omp parallel do private(i,j,k,fw,stz)
       do k = kmin,kmax+1
          do j = jmin-1,jmax+1
             do i = imin-1,imax+1
@@ -2226,6 +2233,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       if (corner_couple) then
 
@@ -2840,7 +2848,6 @@ c               stzhi(kmax+1) = stzlo(kmax+1)
       end do
       
       else
-
 c    
 c     ORIGINAL NON-CORNER COUPLING CODE
 c
@@ -2848,23 +2855,19 @@ c
 c
 c     compute the xedge states
 c
+!$omp parallel do private(i,j,k,tr,st,vbar,inc,tr1,wbar,tr2)
+!$omp&private(stxlo,stxhi)
       do k = kmin,kmax
             do j = jmin,jmax
                do i = imin-1,imax+1
-
                   if (iconserv.eq.1) then
-
                      tr =
      &                    (vedge(i,j+1,k)*yedge(i,j+1,k) - vedge(i,j,k)*yedge(i,j,k))/hy +   
      &                    (wedge(i,j,k+1)*zedge(i,j,k+1) - wedge(i,j,k)*zedge(i,j,k))/hz   
-
                      st = -dth*tr + dth*(tforces(i,j,k) - s(i,j,k)*divu(i,j,k))
      &                    + dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
      &                    + dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
-c    &                    - dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
-
                   else
-
                      if (vedge(i,j,k)*vedge(i,j+1,k).le.0.d0) then
                         vbar = 0.5d0*(vedge(i,j,k)+vedge(i,j+1,k))
                         if (vbar.lt.0.d0) then
@@ -2908,7 +2911,7 @@ c    &                    - dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
                   stxlo(imin) = s(imin-1,j,k)
                else if (bc(1,1).eq.EXT_DIR .and. uedge(imin,j,k).lt.zero) then
                   stxlo(imin) = stxhi(imin)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+c              HACK down to commented code below, to attempt to prevent backflow on outflow face
                else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP) then
                   if (n.eq.XVEL) then
                      if (uedge(imin,j,k).ge.zero) then
@@ -2920,9 +2923,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                   endif
                else if (bc(1,1).eq.REFLECT_EVEN) then
                   stxlo(imin) = stxhi(imin)
-c               else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP
-c     &                 .or.bc(1,1).eq.REFLECT_EVEN) then
-c                  stxlo(imin) = stxhi(imin)
                else if (bc(1,1).eq.REFLECT_ODD) then
                   stxhi(imin) = zero
                   stxlo(imin) = zero
@@ -2932,7 +2932,7 @@ c                  stxlo(imin) = stxhi(imin)
                   stxhi(imax+1) = s(imax+1,j,k)
                else if (bc(1,2).eq.EXT_DIR .and. uedge(imax+1,j,k).gt.zero) then
                   stxhi(imax+1) = stxlo(imax+1)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+c              HACK down to commented code below, to attempt to prevent backflow on outflow face
                else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP) then
                   if (n.eq.XVEL) then
                      if (uedge(imax+1,j,k).le.zero) then
@@ -2944,9 +2944,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                   endif
                else if (bc(1,2).eq.REFLECT_EVEN) then
                   stxhi(imax+1) = stxlo(imax+1)
-c               else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP
-c     &                 .or.bc(1,2).eq.REFLECT_EVEN) then
-c                  stxhi(imax+1) = stxlo(imax+1)
                else if (bc(1,2).eq.REFLECT_ODD) then
                   stxlo(imax+1) = zero
                   stxhi(imax+1) = zero
@@ -2959,9 +2956,12 @@ c                  stxhi(imax+1) = stxlo(imax+1)
                end do
             end do
       end do
+!$omp end parallel do
 c
 c     compute the yedge states
 c
+!$omp parallel do private(i,j,k,tr,st,ubar,inc,tr1,wbar,tr2)
+!$omp&private(stylo,styhi)
       do k = kmin,kmax
             do i = imin,imax
                do j = jmin-1,jmax+1
@@ -2975,11 +2975,7 @@ c
                      st = -dth*tr + dth*(tforces(i,j,k) - s(i,j,k)*divu(i,j,k))
      &                    + dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
      &                    + dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
-c    &                    - dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
-
-
                   else
-
                      if (uedge(i,j,k)*uedge(i+1,j,k).le.0.d0) then
                         ubar = 0.5d0*(uedge(i,j,k)+uedge(i+1,j,k))
                         if (ubar.lt.0.d0) then
@@ -3006,7 +3002,6 @@ c    &                    - dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
                      endif
 
                      st = -dth*(tr1 + tr2) + dth*tforces(i,j,k)
-
                   endif
 
                   if (ppm_type .gt. 0) then
@@ -3024,7 +3019,7 @@ c    &                    - dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
                   stylo(jmin) = s(i,jmin-1,k)
                else if (bc(2,1).eq.EXT_DIR .and. vedge(i,jmin,k).lt.zero) then
                   stylo(jmin) = styhi(jmin)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+c              HACK down to commented code below, to attempt to prevent backflow on outflow face
                else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP) then
                   if (n.eq.YVEL) then
                      if (vedge(i,jmin,k).ge.zero) then
@@ -3036,9 +3031,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                   endif
                else if (bc(2,1).eq.REFLECT_EVEN) then
                   stylo(jmin) = styhi(jmin)
-c               else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP
-c     &                 .or.bc(2,1).eq.REFLECT_EVEN) then
-c                  stylo(jmin) = styhi(jmin)
                else if (bc(2,1).eq.REFLECT_ODD) then
                   styhi(jmin) = zero
                   stylo(jmin) = zero
@@ -3049,7 +3041,7 @@ c                  stylo(jmin) = styhi(jmin)
                   styhi(jmax+1) = s(i,jmax+1,k)
                else if (bc(2,2).eq.EXT_DIR .and. vedge(i,jmax+1,k).le.zero) then
                   styhi(jmax+1) = stylo(jmax+1)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+c              HACK down to commented code below, to attempt to prevent backflow on outflow face
                else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP) then
                   if (n.eq.YVEL) then
                      if (vedge(i,jmax+1,k).le.zero) then
@@ -3061,9 +3053,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                   endif
                else if (bc(2,2).eq.REFLECT_EVEN) then
                   styhi(jmax+1) = stylo(jmax+1)
-c               else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
-c     &                 .or.bc(2,2).eq.REFLECT_EVEN) then
-c                  styhi(jmax+1) = stylo(jmax+1)
                else if (bc(2,2).eq.REFLECT_ODD) then
                   stylo(jmax+1) = zero
                   styhi(jmax+1) = zero
@@ -3076,9 +3065,12 @@ c                  styhi(jmax+1) = stylo(jmax+1)
                end do
             end do
       end do
+!$omp end parallel do
 c
 c     compute the zedge states
 c
+!$omp parallel do private(i,j,k,tr,st,ubar,inc,tr1,vbar,tr2)
+!$omp&private(stzlo,stzhi)
       do j = jmin,jmax
             do i = imin,imax
                do k = kmin-1,kmax+1
@@ -3091,8 +3083,6 @@ c
                      st = -dth*tr + dth*(tforces(i,j,k) - s(i,j,k)*divu(i,j,k))
      &                    + dth*s(i,j,k)*(uedge(i+1,j,k)-uedge(i,j,k))/hx
      &                    + dth*s(i,j,k)*(vedge(i,j+1,k)-vedge(i,j,k))/hy
-c    &                    - dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
-
                   else
                      if (uedge(i,j,k)*uedge(i+1,j,k).le.0.d0) then
                         ubar = 0.5d0*(uedge(i,j,k)+uedge(i+1,j,k))
@@ -3137,7 +3127,7 @@ c    &                    - dth*s(i,j,k)*(wedge(i,j,k+1)-wedge(i,j,k))/hz
                   stzhi(kmin) = s(i,j,kmin-1)
                else if (bc(3,1).eq.EXT_DIR .and. wedge(i,j,kmin).lt.zero) then
                   stzlo(kmin) = stzhi(kmin)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+c              HACK down to commented code below, to attempt to prevent backflow on outflow face
                else if (bc(3,1).eq.FOEXTRAP.or.bc(3,1).eq.HOEXTRAP) then
                   if (n.eq.ZVEL) then
                      if (wedge(i,j,kmin).ge.zero) then
@@ -3149,9 +3139,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                   endif
                else if (bc(3,1).eq.REFLECT_EVEN) then
                   stzlo(kmin) = stzhi(kmin)
-c               else if (bc(3,1).eq.FOEXTRAP.or.bc(3,1).eq.HOEXTRAP
-c     &                 .or.bc(3,1).eq.REFLECT_EVEN) then
-c                  stzlo(kmin) = stzhi(kmin)
                else if (bc(3,1).eq.REFLECT_ODD) then
                   stzlo(kmin) = zero
                   stzhi(kmin) = zero
@@ -3161,7 +3148,7 @@ c                  stzlo(kmin) = stzhi(kmin)
                   stzhi(kmax+1) = s(i,j,kmax+1)
                else if (bc(3,2).eq.EXT_DIR .and. wedge(i,j,kmax+1).gt.zero) then
                   stzhi(kmax+1) = stzlo(kmax+1)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
+c              HACK down to commented code below, to attempt to prevent backflow on outflow face
                else if (bc(3,2).eq.FOEXTRAP.or.bc(3,2).eq.HOEXTRAP) then
                   if (n.eq.ZVEL) then
                      if (wedge(i,j,kmax+1).le.zero) then
@@ -3173,9 +3160,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                   endif
                else if (bc(3,2).eq.REFLECT_EVEN) then
                   stzhi(kmax+1) = stzlo(kmax+1)
-c               else if (bc(3,2).eq.FOEXTRAP.or.bc(3,2).eq.HOEXTRAP
-c     &                 .or.bc(3,2).eq.REFLECT_EVEN) then
-c                  stzhi(kmax+1) = stzlo(kmax+1)
                else if (bc(3,2).eq.REFLECT_ODD) then
                   stzlo(kmax+1) = zero
                   stzhi(kmax+1) = zero
@@ -3188,10 +3172,9 @@ c                  stzhi(kmax+1) = stzlo(kmax+1)
                end do
             end do
       end do
+!$omp end parallel do
 
       end if
-
-c      deallocate(Ipx,Imx,Ipy,Imy,Ipz,Imz)
 
       end
 
@@ -7478,6 +7461,7 @@ c
       jmax = hi(2)
       kmin = lo(3)
       kmax = hi(3)
+
 c
 c     correct the 8 corners
 c
@@ -7870,19 +7854,19 @@ c
       REAL_T tforces(DIMV(tf),SDIM)
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T rho(DIMV(rho))
-
+!$omp parallel private(i,j,k)
       do n = 1, SDIM
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tforces(i,j,k,n) = (
-     &            tforces(i,j,k,n) - gp(i,j,k,n)
-     &                 )/rho(i,j,k)
+                  tforces(i,j,k,n) = (tforces(i,j,k,n) - gp(i,j,k,n))/rho(i,j,k)
                end do
             end do
          end do
+!$omp end do nowait
       end do
-
+!$omp end parallel
       end
 
       subroutine FORT_SUM_TF_GP_VISC(
@@ -7912,9 +7896,7 @@ c
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tforces(i,j,k,n) = (
-     &                 tforces(i,j,k,n)
-     &                 +  visc(i,j,k,n)
+                  tforces(i,j,k,n) = (tforces(i,j,k,n) + visc(i,j,k,n)
      &                 -    gp(i,j,k,n) )/rho(i,j,k)
                end do
             end do
