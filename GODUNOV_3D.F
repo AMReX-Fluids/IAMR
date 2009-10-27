@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.66 2009-10-27 02:40:14 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.67 2009-10-27 03:00:53 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -149,34 +149,61 @@ c
       rhomax = -1.d200
       rhomin =  1.d200
 
+!$omp parallel do private(i,j,k) reduction(min:umin) reduction(max:umax)
       do k = kmin, kmax
          do j = jmin, jmax
             do i = imin, imax
                umax = max(umax,u(i,j,k))
                umin = min(umin,u(i,j,k))
+            end do
+         end do
+      end do
+!$omp end parallel do
+
+!$omp parallel do private(i,j,k) reduction(min:vmin) reduction(max:vmax)
+      do k = kmin, kmax
+         do j = jmin, jmax
+            do i = imin, imax
                vmax = max(vmax,v(i,j,k))
                vmin = min(vmin,v(i,j,k))
+            end do
+         end do
+      end do
+!$omp end parallel do
+
+!$omp parallel do private(i,j,k) reduction(min:wmin) reduction(max:wmax)
+      do k = kmin, kmax
+         do j = jmin, jmax
+            do i = imin, imax
                wmax = max(wmax,w(i,j,k))
                wmin = min(wmin,w(i,j,k))
+            end do
+         end do
+      end do
+!$omp end parallel do
+
+!$omp parallel do private(i,j,k)
+!$omp&reduction(min:rhomin) reduction(max:rhomax)
+      do k = kmin, kmax
+         do j = jmin, jmax
+            do i = imin, imax
                rhomax = max(rhomax,rho(i,j,k))
                rhomin = min(rhomin,rho(i,j,k))
             end do
          end do
       end do
+!$omp end parallel do
 
       u_max(1) = max(abs(umax), abs(umin))
       u_max(2) = max(abs(vmax), abs(vmin))
       u_max(3) = max(abs(wmax), abs(wmin))
       cflmax   = dt*max(u_max(1)/hx,u_max(2)/hy,u_max(3)/hz)
 
-      if(verbose.eq.1)then
+      if (verbose.eq.1)then
          write(6,1000) umax,umin,u_max(1)
          write(6,1001) vmax,vmin,u_max(2)
          write(6,1002) wmax,wmin,u_max(3)
          write(6,1003) rhomax,rhomin
-#ifndef	BL_NO_FORT_FLUSH
-c         call flush(6)
-#endif
       end if
 
  1000 format(' U  MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
@@ -283,10 +310,6 @@ c
  1001 format('VMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
  1002 format('WMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
  1003 format('RHO  MAX/MIN      ',e21.14,2x,e21.14)
-
-#ifndef	BL_NO_FORT_FLUSH
-c      call flush(6)
-#endif
 
       end
 
