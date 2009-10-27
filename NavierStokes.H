@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.103 2008-08-01 21:13:47 lijewski Exp $
+// $Id: NavierStokes.H,v 1.104 2009-10-27 02:17:04 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -487,13 +487,6 @@ protected:
     // Inject fine pressure nodes down onto coarse nodes.
     //
     void injectDown (const Box&       ovlp,
-                     FArrayBox&       Pcrse,
-                     const FArrayBox& Pfine,
-                     IntVect&         fine_ratio);
-    //
-    // Test for consistency between fine dirichlet and coarse nodes.
-    //
-    void testInject (const Box&       ovlp,
                      FArrayBox&       Pcrse,
                      const FArrayBox& Pfine,
                      IntVect&         fine_ratio);

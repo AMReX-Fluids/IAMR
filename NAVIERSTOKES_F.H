@@ -2,7 +2,7 @@
 #define _NAVIERSTOKES_F_H_
 
 /*
-** $Id: NAVIERSTOKES_F.H,v 1.19 2008-04-12 00:27:49 marc Exp $
+** $Id: NAVIERSTOKES_F.H,v 1.20 2009-10-27 02:17:04 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -10,7 +10,6 @@
 #    define FORT_GRADP       gradp
 #    define FORT_AVGDOWN     avgdown
 #    define FORT_PUTDOWN     putdown
-#    define FORT_TESTINJECT  testinject
 #    define FORT_INCRMULT    incrmult
 #    define FORT_MAXVAL      maxval
 #    define FORT_SUMMASS     summass
@@ -31,7 +30,6 @@
 #    define FORT_GRADP       GRADP
 #    define FORT_AVGDOWN     AVGDOWN
 #    define FORT_PUTDOWN     PUTDOWN
-#    define FORT_TESTINJECT  TESTINJECT
 #    define FORT_INCRMULT    INCRMULT
 #    define FORT_MAXVAL      MAXVAL
 #    define FORT_SUMMASS     SUMMASS
@@ -51,7 +49,6 @@
 #    define FORT_GRADP       gradp
 #    define FORT_AVGDOWN     avgdown
 #    define FORT_PUTDOWN     putdown
-#    define FORT_TESTINJECT  testinject
 #    define FORT_INCRMULT    incrmult
 #    define FORT_MAXVAL      maxval
 #    define FORT_SUMMASS     summass
@@ -71,7 +68,6 @@
 #    define FORT_GRADP       gradp_
 #    define FORT_AVGDOWN     avgdown_
 #    define FORT_PUTDOWN     putdown_
-#    define FORT_TESTINJECT  testinject_
 #    define FORT_INCRMULT    incrmult_
 #    define FORT_MAXVAL      maxval_
 #    define FORT_SUMMASS     summass_
@@ -117,11 +113,6 @@ extern "C" {
                        const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
                        const int* lo, const int* hi,
                        const int* ratio);
-    
-    void FORT_TESTINJECT (Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
-                          const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
-                          const int* lo, const int* hi,
-                          const int* ratio);
     
     void FORT_INCRMULT (Real* a, ARLIM_P(a_lo), ARLIM_P(a_hi),
                         const Real* b, ARLIM_P(b_lo), ARLIM_P(b_hi),

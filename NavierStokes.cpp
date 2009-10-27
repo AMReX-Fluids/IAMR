@@ -5230,30 +5230,6 @@ NavierStokes::injectDown (const Box&       ovlp,
 }
 
 //
-// Test for consistency between fine and coarse nodes.
-//
-
-void
-NavierStokes::testInject (const Box&       ovlp,
-                          FArrayBox&       Pcrse,
-                          const FArrayBox& Pfine,
-                          IntVect&         fine_ratio)
-{
-    const int*  ovlo  = ovlp.loVect();
-    const int*  ovhi  = ovlp.hiVect();
-    Real*       cpres = Pcrse.dataPtr();
-    const int*  clo   = Pcrse.loVect();
-    const int*  chi   = Pcrse.hiVect();
-    const Real* fpres = Pfine.dataPtr();
-    const int*  flo   = Pfine.loVect();
-    const int*  fhi   = Pfine.hiVect();
-
-    FORT_TESTINJECT(cpres,ARLIM(clo),ARLIM(chi),
-                    fpres,ARLIM(flo),ARLIM(fhi),
-                    ovlo,ovhi,fine_ratio.getVect());
-}
-
-//
 // Average fine information from the complete set of state types to coarse.
 //
 

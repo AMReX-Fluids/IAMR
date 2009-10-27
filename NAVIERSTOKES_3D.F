@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.27 2009-10-26 23:15:56 lijewski Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.28 2009-10-27 02:17:04 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -118,6 +118,7 @@ c
 c     sum fine data
 c
          do koff = 0, lratz-1
+!$omp parallel do private(i,j,k,ic,jc,kc,ioff,joff)
             do kc = lo(3),hi(3)
                k = kc*lratz + koff
                do joff = 0, lraty-1
@@ -133,57 +134,22 @@ c
                   end do
                end do
             end do
+!$omp end parallel do
          end do
 c
 c     divide out by volume weight
 c
+!$omp parallel do private(ic,jc,kc)
          do kc = lo(3), hi(3)
-            do ic = lo(1), hi(1)
-               do jc = lo(2), hi(2)
+            do jc = lo(2), hi(2)
+               do ic = lo(1), hi(1)
                   crse(ic,jc,kc,n) = crse(ic,jc,kc,n)/cv(ic,jc,kc)
                end do
             end do
          end do
+!$omp end parallel do
+
       end do
-
-      end
-
-      subroutine FORT_TESTINJECT(
-     &     crse,DIMS(crse),
-     &     fine,DIMS(fine),lo,hi,ratios)
-c
-c     test for consistency of pressure nodes
-c
-      implicit none
-
-      integer  DIMDEC(crse)
-      integer  DIMDEC(fine)
-      integer  lo(3), hi(3)
-      integer  ratios(3)
-      REAL_T   crse(DIMV(crse))
-      REAL_T   fine(DIMV(fine))
-
-      REAL_T diff
-      integer  ic, jc, kc
-      integer  lratx, lraty, lratz
-
-      lratx = ratios(1)
-      lraty = ratios(2)
-      lratz = ratios(3)
-
-      diff = zero
-      do kc = lo(3), hi(3)
-         do jc = lo(2), hi(2)
-            do ic = lo(1), hi(1)
-               diff = max( diff,
-     &              abs(crse(ic,jc,kc)-fine(lratx*ic,lraty*jc,lratz*kc)))
-            end do
-         end do
-      end do
-
-      if ( diff .gt. 1.0D-10 ) then
-         call bl_abort('mismatch between fine and coarse nodes')
-      end if
 
       end
 
@@ -215,20 +181,25 @@ c ::
       REAL_T   crse(DIMV(crse))
       REAL_T   fine(DIMV(fine))
 
-      integer  ic, jc, kc
+      integer  ic, jc, kc, i, j, k
       integer  lratx, lraty, lratz
 
       lratx = ratios(1)
       lraty = ratios(2)
       lratz = ratios(3)
 
+!$omp parallel do private(i,j,k,ic,jc,kc)
       do kc = lo(3), hi(3)
+         k = lratz*kc
          do jc = lo(2), hi(2)
+            j = lraty*jc
             do ic = lo(1), hi(1)
-               crse(ic,jc,kc) = fine(lratx*ic,lraty*jc,lratz*kc)
+               i = lratx*ic
+               crse(ic,jc,kc) = fine(i,j,k)
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1269,11 +1240,14 @@ c-----------------------------------------------------------------------
       integer i,j,k,ii,jj,kk,n,P,M,L,clo(0:3-1),chi(0:3-1)
       DOUBLE PRECISION val, df
 
+!$omp parallel private(i,j,k,df,M,val,P,L)
+
 c     Do linear in dir, pc transverse to dir, leave alone the fine values
 c     lining up with coarse edges--assume these have been set to hold the 
 c     values you want to interpolate to the rest.
       if (dir.eq.0) then
          do n=1,nc
+!$omp do
             do k=flo(2),fhi(2),ratio(2)
                do j=flo(1),fhi(1),ratio(1)
                   do i=flo(0),fhi(0)-ratio(dir),ratio(0)
@@ -1290,9 +1264,11 @@ c     values you want to interpolate to the rest.
                   enddo
                enddo
             enddo
+!$omp end do nowait
          enddo
       else if (dir.eq.1) then
          do n=1,nc
+!$omp do
             do k=flo(2),fhi(2),ratio(2)
                do j=flo(1),fhi(1)-ratio(dir),ratio(1)
                   do i=flo(0),fhi(0)
@@ -1309,9 +1285,11 @@ c     values you want to interpolate to the rest.
                   enddo
                enddo
             enddo
+!$omp end do nowait
          enddo
       else
          do n=1,nc
+!$omp do
             do k=flo(2),fhi(2)-ratio(dir),ratio(2)
                do j=flo(1),fhi(1),ratio(1)
                   do i=flo(0),fhi(0),ratio(0)
@@ -1328,8 +1306,10 @@ c     values you want to interpolate to the rest.
                   enddo
                enddo
             enddo
+!$omp end do nowait
          enddo
       endif
+!$omp end parallel
       end
 c-----------------------------------------------------------------------
       subroutine PC_EDGE_INTERP(lo, hi, nc, ratio, dir,
@@ -1346,11 +1326,14 @@ c-----------------------------------------------------------------------
       integer i,j,k,ii,jj,kk,n,L, P
       DOUBLE PRECISION val, dc
 
+!$omp parallel private(i,j,k,ii,jj,kk,P,L)
+
 c     For edge-based data, fill fine values with piecewise-constant interp of coarse data.
 c     Operate only on faces that overlap--ie, only fill the fine faces that make up each
 c     coarse face, leave the in-between faces alone.
       if (dir.eq.0) then
          do n=1,nc
+!$omp do
             do k=lo(3),hi(3)
                kk = ratio(2)*k
                do j=lo(2),hi(2)
@@ -1365,9 +1348,11 @@ c     coarse face, leave the in-between faces alone.
                   enddo
                enddo
             enddo
+!$omp end do nowait
          enddo
       else if (dir.eq.1) then
          do n=1,nc
+!$omp do
             do k=lo(3),hi(3)
                kk = ratio(2)*k
                do j=lo(2),hi(2)
@@ -1382,9 +1367,11 @@ c     coarse face, leave the in-between faces alone.
                   enddo
                enddo
             enddo
+!$omp end do nowait
          enddo
       else
          do n=1,nc
+!$omp do
             do k=lo(3),hi(3)
                kk = ratio(2)*k
                do j=lo(2),hi(2)
@@ -1399,6 +1386,8 @@ c     coarse face, leave the in-between faces alone.
                   enddo
                enddo
             enddo
+!$omp end do nowait
          enddo
       endif
+!$omp end parallel
       end

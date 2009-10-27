@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.17 2008-04-12 00:27:49 marc Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.18 2009-10-27 02:17:04 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -124,40 +124,6 @@ c
             end do
          end do
       end do
-
-      end
-
-      subroutine FORT_TESTINJECT(
-     &     crse,DIMS(crse),
-     &     fine,DIMS(fine),lo,hi,ratios)
-c
-c     test for consistency of pressure nodes
-c
-      implicit none
-      integer  DIMDEC(crse)
-      integer  DIMDEC(fine)
-      integer  lo(2), hi(2)
-      integer  ratios(2)
-      REAL_T   crse(DIMV(crse))
-      REAL_T   fine(DIMV(fine))
-
-      REAL_T diff
-      integer ic, jc
-      integer lratx, lraty
-
-      lratx = ratios(1)
-      lraty = ratios(2)
-
-      diff = zero
-      do jc = lo(2), hi(2)
-         do ic = lo(1), hi(1)
-            diff = max(diff,abs(crse(ic,jc)-fine(lratx*ic,lraty*jc)))
-         end do
-      end do
-
-      if ( diff .gt. 1.0D-10 ) then
-         call bl_abort('mismatch between fine and coarse nodes')
-      end if
 
       end
 
