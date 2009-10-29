@@ -649,30 +649,35 @@ c     ::::: local variables
       REAL_T  x, y
       REAL_T  hx, hy
       REAL_T  x_vel, y_vel
-      REAL_T  dist
+      REAL_T  dist, pertheight, L_x, rho_1, rho_2
 
 #include "probdata.H"
 
       hx = dx(1)
       hy = dx(2)
 
+      L_x = 0.5d0
+
+      rho_1 = 1.d0
+      rho_2 = 2.d0
+
       do j = lo(2), hi(2)
          y = xlo(2) + hy*(float(j-lo(2)) + half)
          do i = lo(1), hi(1)
             x = xlo(1) + hx*(float(i-lo(1)) + half)
 
+            pertheight = 0.5d0 + 0.005d0*
+     &           (cos(2.d0*Pi*x/L_x)+cos(2.d0*Pi*(L_x-x)/L_x))
+
+            scal(i,j,1) = rho_1 + 
+     &           ((rho_2-rho_1)/2.d0)*(1+tanh((y-pertheight)/0.005d0))
+            
+
             vel(i,j,1) = zero
             vel(i,j,2) = zero
-            if (y.gt.zero) then
-               scal(i,j,1) = two
-            else
-               scal(i,j,1) = one
-            endif
             scal(i,j,2) = zero
          end do
       end do
-c      vel(31,31,2) = -0.1
-c      vel(32,31,2) = -0.1
       
       end
 
