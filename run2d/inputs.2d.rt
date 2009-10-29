@@ -89,7 +89,7 @@ amr.probin_file 	= probin.2d.rt
 #*******************************************************************************
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
-geometry.coord_sys   =  1
+geometry.coord_sys   =  0
 
 #*******************************************************************************
 

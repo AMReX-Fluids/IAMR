@@ -662,20 +662,20 @@ c     ::::: local variables
       rho_2 = 2.d0
 
       do j = lo(2), hi(2)
-         y = xlo(2) + hy*(float(j-lo(2)) + half)
+         y = hy*(float(j) + half)
          do i = lo(1), hi(1)
-            x = xlo(1) + hx*(float(i-lo(1)) + half)
+            x = hx*(float(i) + half)
 
             pertheight = 0.5d0 + 0.005d0*
      &           (cos(2.d0*Pi*x/L_x)+cos(2.d0*Pi*(L_x-x)/L_x))
 
             scal(i,j,1) = rho_1 + 
      &           ((rho_2-rho_1)/2.d0)*(1+tanh((y-pertheight)/0.005d0))
-            
 
             vel(i,j,1) = zero
             vel(i,j,2) = zero
             scal(i,j,2) = zero
+
          end do
       end do
       
