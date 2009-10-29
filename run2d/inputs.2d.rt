@@ -18,8 +18,8 @@ stop_time 		= 2.5
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 		= 128 256
-amr.max_grid_size	= 128
+amr.n_cell 		= 256 512
+amr.max_grid_size	= 256
 
 #*******************************************************************************
 
@@ -79,7 +79,7 @@ ns.scal_diff_coefs      = 0.0
 #*******************************************************************************
 
 # Forcing term defaults to  rho * abs(gravity) "down"
-ns.gravity              = 1.0  
+ns.gravity              = -1.0  
 
 #*******************************************************************************
 
