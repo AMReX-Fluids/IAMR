@@ -19,7 +19,7 @@ stop_time 		= 2.5
 
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 		= 256 512
-amr.max_grid_size	= 256
+amr.max_grid_size	= 128
 
 #*******************************************************************************
 
