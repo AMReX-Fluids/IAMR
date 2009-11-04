@@ -6527,18 +6527,22 @@ NavierStokes::create_umac_grown ()
                 crse_src.copy(u_macC);
             }
 
-            for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
+            const int Ncrse = crse_src.IndexMap().size();
+
+#pragma omp parallel for
+            for (int i = 0; i < Ncrse; i++)
             {
                 const int  nComp = 1;
-                const Box& box   = crse_src[mfi].box();
+                const int  k     = crse_src.IndexMap()[i];
+                const Box& box   = crse_src[i].box();
                 const int* rat   = crse_ratio.getVect();
                 FORT_PC_CF_EDGE_INTERP(box.loVect(), box.hiVect(), &nComp, rat, &n,
-                                       crse_src[mfi].dataPtr(),
-                                       ARLIM(crse_src[mfi].loVect()),
-                                       ARLIM(crse_src[mfi].hiVect()),
-                                       fine_src[mfi].dataPtr(),
-                                       ARLIM(fine_src[mfi].loVect()),
-                                       ARLIM(fine_src[mfi].hiVect()));
+                                       crse_src[k].dataPtr(),
+                                       ARLIM(crse_src[k].loVect()),
+                                       ARLIM(crse_src[k].hiVect()),
+                                       fine_src[k].dataPtr(),
+                                       ARLIM(fine_src[k].loVect()),
+                                       ARLIM(fine_src[k].hiVect()));
             }
             crse_src.clear();
             //
@@ -6552,15 +6556,19 @@ NavierStokes::create_umac_grown ()
             // surrounding faces of valid region, and pc-interpd data
             // on fine edges overlaying coarse edges.
             //
-            for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
+            const int Nfine = fine_src.IndexMap().size();
+
+#pragma omp parallel for
+            for (int i = 0; i < Nfine; i++)
             {
                 const int  nComp = 1;
-                const Box& fbox  = fine_src[mfi.index()].box();
+                const int  k     = fine_src.IndexMap()[i];
+                const Box& fbox  = fine_src[k].box();
                 const int* rat   = crse_ratio.getVect();
                 FORT_EDGE_INTERP(fbox.loVect(), fbox.hiVect(), &nComp, rat, &n,
-                                 fine_src[mfi].dataPtr(),
-                                 ARLIM(fine_src[mfi].loVect()),
-                                 ARLIM(fine_src[mfi].hiVect()));
+                                 fine_src[k].dataPtr(),
+                                 ARLIM(fine_src[k].loVect()),
+                                 ARLIM(fine_src[k].hiVect()));
             }
             //
             // Make copy of of u_mac[n] covering valid+grow regions and containing no
