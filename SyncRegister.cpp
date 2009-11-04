@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.77 2009-10-27 02:16:26 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.78 2009-11-04 23:02:28 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -607,27 +607,32 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
         //
         // Coarsen edge values.
         //
-        for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
-        {
-            const int* resid_lo = (*Sync_resid_fine)[mfi].box().loVect();
-            const int* resid_hi = (*Sync_resid_fine)[mfi].box().hiVect();
+        const int N = Sync_resid_fine->IndexMap().size();
 
-            FArrayBox& cfablo = cloMF[mfi.index()];
+#pragma omp parallel for
+        for (int i = 0; i < N; i++)
+        {
+            const int k = Sync_resid_fine->IndexMap()[i];
+
+            const int* resid_lo = (*Sync_resid_fine)[k].box().loVect();
+            const int* resid_hi = (*Sync_resid_fine)[k].box().hiVect();
+
+            FArrayBox& cfablo = cloMF[k];
             const Box& cboxlo = cfablo.box();
             const int* clo = cboxlo.loVect();
             const int* chi = cboxlo.hiVect();
 
-            FORT_SRCRSEREG((*Sync_resid_fine)[mfi].dataPtr(),
+            FORT_SRCRSEREG((*Sync_resid_fine)[k].dataPtr(),
                            ARLIM(resid_lo),ARLIM(resid_hi),
                            cfablo.dataPtr(),ARLIM(clo),ARLIM(chi),
                            clo,chi,&dir,ratio.getVect());
 
-            FArrayBox& cfabhi = chiMF[mfi.index()];
+            FArrayBox& cfabhi = chiMF[k];
             const Box& cboxhi = cfabhi.box();
             clo = cboxhi.loVect();
             chi = cboxhi.hiVect();
 
-            FORT_SRCRSEREG((*Sync_resid_fine)[mfi].dataPtr(),
+            FORT_SRCRSEREG((*Sync_resid_fine)[k].dataPtr(),
                            ARLIM(resid_lo),ARLIM(resid_hi),
                            cfabhi.dataPtr(),ARLIM(clo),ARLIM(chi),
                            clo,chi,&dir,ratio.getVect());
