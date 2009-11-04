@@ -1,5 +1,5 @@
 c
-c $Id: MACPROJ_3D.F,v 1.10 2009-10-26 22:34:50 lijewski Exp $
+c $Id: MACPROJ_3D.F,v 1.11 2009-11-04 22:20:06 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -103,11 +103,8 @@ c :: ----------------------------------------------------------
 
        integer i,j,k
 
-!$omp parallel private(i,j,k)
-
        if (mult .eq. 1) then
 
-!$omp do
           do k = lo(3), hi(3)
           do j = lo(2), hi(2)
           do i = lo(1), hi(1)+1
@@ -115,9 +112,7 @@ c :: ----------------------------------------------------------
           end do
           end do
           end do
-!$omp end do nowait
 
-!$omp do
           do k = lo(3), hi(3)
           do j = lo(2), hi(2)+1
           do i = lo(1), hi(1)
@@ -125,9 +120,7 @@ c :: ----------------------------------------------------------
           end do
           end do
           end do
-!$omp end do nowait
 
-!$omp do
           do k = lo(3), hi(3)+1
           do j = lo(2), hi(2)
           do i = lo(1), hi(1)
@@ -135,23 +128,21 @@ c :: ----------------------------------------------------------
           end do
           end do
           end do
-!$omp end do
 
           if (lo(3) .eq. 0) then
              k = lo(3)
-!$omp do
+
              do j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 zarea(i,j,k) =  zarea(i,j,k) * anel_coeff(k-1) /
      $                          (0.5d0 * (anel_coeff(k)+anel_coeff(k-1)))
              end do
              end do
-!$omp end do
+
           end if
 
        else if (mult .eq. -1) then
 
-!$omp do
           do k = lo(3), hi(3)
           do j = lo(2), hi(2)
           do i = lo(1), hi(1)+1
@@ -159,9 +150,7 @@ c :: ----------------------------------------------------------
           end do
           end do
           end do
-!$omp end do nowait
 
-!$omp do
           do k = lo(3), hi(3)
           do j = lo(2), hi(2)+1
           do i = lo(1), hi(1)
@@ -169,9 +158,7 @@ c :: ----------------------------------------------------------
           end do
           end do
           end do
-!$omp end do nowait
 
-!$omp do
           do k = lo(3), hi(3)+1
           do j = lo(2), hi(2)
           do i = lo(1), hi(1)
@@ -179,18 +166,17 @@ c :: ----------------------------------------------------------
           end do
           end do
           end do
-!$omp end do
 
           if (lo(3) .eq. 0) then
              k = lo(3)
-!$omp do
+
              do j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 zarea(i,j,k) =  zarea(i,j,k) / anel_coeff(k-1) *
      $                         (0.5d0 * (anel_coeff(k)+anel_coeff(k-1)))
              end do
              end do
-!$omp end do
+
           end if
 
        else 
@@ -199,7 +185,5 @@ c :: ----------------------------------------------------------
           stop
 
        end if
-
-!$omp end parallel
 
        end
