@@ -1471,16 +1471,19 @@ Diffusion::getTensorOp (Real                   a,
     {
         FArrayBox volume;
 
-        for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
+        const int N = alpha.IndexMap().size();
+
+#pragma omp parallel for private(volume)
+        for (int j = 0; j < N; j++)
         {
-            const int   i         = alphamfi.index();
-            const Box&  bx        = alphamfi.validbox();
+            const int   i         = alpha.IndexMap()[j];
+            const Box&  bx        = alpha.box(j);
             Array<Real> rcen(bx.length(0));
             parent->Geom(level).GetCellLoc(rcen, bx, 0);
-            caller->Geom().GetVolume(volume,grids,alphamfi.index(),GEOM_GROW);
+            caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
             const int*  lo        = bx.loVect();
             const int*  hi        = bx.hiVect();
-            Real*       alpha_dat = alpha[alphamfi].dataPtr();
+            Real*       alpha_dat = alpha[i].dataPtr();
             Box         abx       = BoxLib::grow(bx,alpha.nGrow());
             const int*  alo       = abx.loVect();
             const int*  ahi       = abx.hiVect();
@@ -1490,21 +1493,21 @@ Diffusion::getTensorOp (Real                   a,
             const int*  vlo       = vbox.loVect();
             const int*  vhi       = vbox.hiVect();
 
-            const FArrayBox& Rh = (*rho)[alphamfi];
+            const FArrayBox& Rh = (*rho)[i];
             DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
 
-            const FArrayBox&  betax = (*beta[0])[alphamfi];
+            const FArrayBox&  betax = (*beta[0])[i];
             const Real* betax_dat   = betax.dataPtr(dataComp);
             const int*  betax_lo    = betax.loVect();
             const int*  betax_hi    = betax.hiVect();
 
-            const FArrayBox&  betay = (*beta[1])[alphamfi];
+            const FArrayBox&  betay = (*beta[1])[i];
             const Real* betay_dat   = betay.dataPtr(dataComp);
             const int*  betay_lo    = betay.loVect();
             const int*  betay_hi    = betay.hiVect();
 
 #if (BL_SPACEDIM == 3)
-            const FArrayBox&  betaz     = (*beta[2])[alphamfi];
+            const FArrayBox&  betaz     = (*beta[2])[i];
             const Real* betaz_dat = betaz.dataPtr(dataComp);
             const int*  betaz_lo  = betaz.loVect();
             const int*  betaz_hi  = betaz.hiVect();
@@ -1594,16 +1597,19 @@ Diffusion::getTensorOp (Real                   a,
     {
         FArrayBox volume;
 
-        for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
+        const int N = alpha.IndexMap().size();
+
+#pragma omp parallel for private(volume)
+        for (int j = 0; j < N; j++)
         {
-            const int   i         = alphamfi.index();
-            const Box&  bx        = alphamfi.validbox();
+            const int   i         = alpha.IndexMap()[j];
+            const Box&  bx        = alpha.box(j);
             Array<Real> rcen(bx.length(0));
             parent->Geom(level).GetCellLoc(rcen, bx, 0);
-            caller->Geom().GetVolume(volume,grids,alphamfi.index(),GEOM_GROW);
+            caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
             const int*  lo        = bx.loVect();
             const int*  hi        = bx.hiVect();
-            Real*       alpha_dat = alpha[alphamfi].dataPtr();
+            Real*       alpha_dat = alpha[i].dataPtr();
             Box         abx       = BoxLib::grow(bx,alpha.nGrow());
             const int*  alo       = abx.loVect();
             const int*  ahi       = abx.hiVect();
@@ -1613,20 +1619,20 @@ Diffusion::getTensorOp (Real                   a,
             const int*  vlo       = vbox.loVect();
             const int*  vhi       = vbox.hiVect();
 
-            const FArrayBox& Rh = (*rho)[alphamfi];
+            const FArrayBox& Rh = (*rho)[i];
             DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
 
-            const FArrayBox&  betax = (*beta[0])[alphamfi];
+            const FArrayBox&  betax = (*beta[0])[i];
             const Real* betax_dat   = betax.dataPtr(dataComp);
             const int*  betax_lo    = betax.loVect();
             const int*  betax_hi    = betax.hiVect();
-            const FArrayBox&  betay = (*beta[1])[alphamfi];
+            const FArrayBox&  betay = (*beta[1])[i];
             const Real* betay_dat   = betay.dataPtr(dataComp);
             const int*  betay_lo    = betay.loVect();
             const int*  betay_hi    = betay.hiVect();
 
 #if (BL_SPACEDIM == 3)
-            const FArrayBox&  betaz     = (*beta[2])[alphamfi];
+            const FArrayBox&  betaz     = (*beta[2])[i];
             const Real* betaz_dat = betaz.dataPtr(dataComp);
             const int*  betaz_lo  = betaz.loVect();
             const int*  betaz_hi  = betaz.hiVect();
@@ -1699,19 +1705,22 @@ Diffusion::getViscOp (int                    comp,
 
     FArrayBox volume;
 
-    for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
+    const int N = alpha.IndexMap().size();
+
+#pragma omp parallel for private(volume)
+    for (int j = 0; j < N; j++)
     {
-        const int  i  = alphamfi.index();
-        const Box& bx = alphamfi.validbox();
+        const int  i  = alpha.IndexMap()[j];
+        const Box& bx = alpha.box(j);
 
         Array<Real> rcen(bx.length(0));
         parent->Geom(level).GetCellLoc(rcen, bx, 0);
 
-        caller->Geom().GetVolume(volume,grids,alphamfi.index(),GEOM_GROW);
+        caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
 
         const int*  lo      = bx.loVect();
         const int*  hi      = bx.hiVect();
-        Real*       dat     = alpha[alphamfi].dataPtr();
+        Real*       dat     = alpha[i].dataPtr();
         Box         abx     = BoxLib::grow(bx,alpha.nGrow());
         const int*  alo     = abx.loVect();
         const int*  ahi     = abx.hiVect();
@@ -1721,7 +1730,7 @@ Diffusion::getViscOp (int                    comp,
         const int*  vlo     = vbox.loVect();
         const int*  vhi     = vbox.hiVect();
 
-        const FArrayBox& Rh = (*rho_half)[alphamfi];
+        const FArrayBox& Rh = (*rho_half)[i];
         DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
 
         FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),
@@ -1830,18 +1839,21 @@ Diffusion::getViscOp (int                    comp,
 
     FArrayBox volume;
 
-    for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
+    const int N = alpha.IndexMap().size();
+
+#pragma omp parallel for private(volume)
+    for (int j = 0; j < N; j++)
     {
-        const int        i       = alphamfi.index();
-        const Box&       bx      = alphamfi.validbox();
+        const int        i       = alpha.IndexMap()[j];
+        const Box&       bx      = alpha.box(j);
         Array<Real> rcen(bx.length(0));
         parent->Geom(level).GetCellLoc(rcen, bx, 0);
 
-        caller->Geom().GetVolume(volume,grids,alphamfi.index(),GEOM_GROW);
+        caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
 
         const int*       lo      = bx.loVect();
         const int*       hi      = bx.hiVect();
-        Real*            dat     = alpha[alphamfi].dataPtr();
+        Real*            dat     = alpha[i].dataPtr();
         Box              abx     = BoxLib::grow(bx,alpha.nGrow());
         const int*       alo     = abx.loVect();
         const int*       ahi     = abx.hiVect();
@@ -1850,7 +1862,7 @@ Diffusion::getViscOp (int                    comp,
         Box              vbox    = volume.box();
         const int*       vlo     = vbox.loVect();
         const int*       vhi     = vbox.hiVect();
-        const FArrayBox& Rh      = (*rho)[alphamfi];
+        const FArrayBox& Rh      = (*rho)[i];
         DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
 
         FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),

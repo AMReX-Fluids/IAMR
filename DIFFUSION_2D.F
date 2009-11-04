@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_2D.F,v 1.11 2008-02-08 18:39:48 lijewski Exp $
+c $Id: DIFFUSION_2D.F,v 1.12 2009-11-04 22:10:19 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -13,120 +13,6 @@ c
 #include "ArrayLim.H"
 
 #define SDIM 2
-
-c ::
-c :: ----------------------------------------------------------
-c :: compute the time averaged viscous flux at the given edge
-c ::  for variable transport coefficients
-c ::
-c :: NOTE:
-c ::   These are only computed for a reflux operation, and require
-c ::   that the ghost cells have been filled according to the 
-c ::   diffusion operator (maybe this isn't such a good idea...)
-c :: ----------------------------------------------------------
-c ::
-
-      subroutine FORT_VISCFLUX_VC (s_o,s_n,DIMS(s),lo,hi,
-     $                             flux, DIMS(flux), area, DIMS(area),
-     $                             bn, bnp1, DIMS(b),
-     $                             dx,mult,theta,dir)
-
-      implicit none
-      integer lo(SDIM), hi(SDIM)
-      integer DIMDEC(s)
-      integer DIMDEC(flux)
-      integer DIMDEC(area)
-      integer DIMDEC(b)
-      REAL_T  s_o(DIMV(s))
-      REAL_T  s_n(DIMV(s))
-      REAL_T  flux(DIMV(flux))
-      REAL_T  area(DIMV(area))
-      REAL_T  bn(DIMV(b))
-      REAL_T  bnp1(DIMV(b))
-      REAL_T  dx
-      REAL_T  mult,theta
-      integer dir
-
-      integer i, j
-      REAL_T  sx1, sx2, sy1, sy2
-      REAL_T  onemintheta
-
-      onemintheta = one-theta
-      if (dir .EQ. 0) then
-c     ::::: compute X fluxes
-         do j = lo(2), hi(2)
-         do i = lo(1), hi(1)+1
-            sx1 = (s_o(i,j) - s_o(i-1,j))*bn(i,j)
-            sx2 = (s_n(i,j) - s_n(i-1,j))*bnp1(i,j)
-            flux(i,j) = mult*(onemintheta*sx1 + theta*sx2)*area(i,j)/dx
-         end do
-         end do
-      else
-c     ::::: compute Y fluxes
-         do j = lo(2), hi(2)+1
-         do i = lo(1), hi(1)
-            sy1 = (s_o(i,j) - s_o(i,j-1))*bn(i,j)
-            sy2 = (s_n(i,j) - s_n(i,j-1))*bnp1(i,j)
-            flux(i,j) = mult*(onemintheta*sy1 + theta*sy2)*area(i,j)/dx
-         end do
-         end do
-      end if
-      end
-
-c ::
-c :: ----------------------------------------------------------
-c :: compute the time averaged viscous flux at the given edge
-c ::  for constant transport coefficients
-c ::
-c :: NOTE:
-c ::   These are only computed for a reflux operation, and require
-c ::   that the ghost cells have been filled according to the 
-c ::   diffusion operator (maybe this isn't such a good idea...)
-c :: ----------------------------------------------------------
-c ::
-
-      subroutine FORT_VISCFLUX_CC (s_o,s_n,DIMS(s),lo,hi,
-     $                             flux, DIMS(flux), area, DIMS(area),
-     $                             dx,mult,theta,dir)
-
-      implicit none
-      integer lo(SDIM), hi(SDIM)
-      integer DIMDEC(s)
-      integer DIMDEC(flux)
-      integer DIMDEC(area)
-      REAL_T  s_o(DIMV(s))
-      REAL_T  s_n(DIMV(s))
-      REAL_T  flux(DIMV(flux))
-      REAL_T  area(DIMV(area))
-      REAL_T  dx
-      REAL_T  mult,theta
-      integer dir
-
-      integer i, j
-      REAL_T  sx1, sx2, sy1, sy2
-      REAL_T  onemintheta
-
-      onemintheta = one-theta
-      if (dir .EQ. 0) then
-c     ::::: compute X fluxes
-         do j = lo(2), hi(2)
-         do i = lo(1), hi(1)+1
-            sx1 = s_o(i,j) - s_o(i-1,j)
-            sx2 = s_n(i,j) - s_n(i-1,j)
-            flux(i,j) = mult*(onemintheta*sx1 + theta*sx2)*area(i,j)/dx
-         end do
-         end do
-      else
-c     ::::: compute Y fluxes
-         do j = lo(2), hi(2)+1
-         do i = lo(1), hi(1)
-            sy1 = s_o(i,j) - s_o(i,j-1)
-            sy2 = s_n(i,j) - s_n(i,j-1)
-            flux(i,j) = mult*(onemintheta*sy1 + theta*sy2)*area(i,j)/dx
-         end do
-         end do
-      end if
-      end
 
       subroutine FORT_VISCSYNCFLUX (ssync,DIMS(ssync),lo,hi,
      $                              xflux,DIMS(xf),yflux,DIMS(yf),
@@ -560,42 +446,6 @@ c
             divmusi(i,j,2) = (betay(i,j+1)*stop-
      &           betay(i,j)*sbot)/dx(2)
 
-         end do
-      end do
-
-      end
-
-      subroutine FORT_CCTOEDGE(lo, hi, DIMS(beta), beta,
-     &   DIMS(betax), betax, DIMS(betay), betay)
-
-      implicit none
-c
-c ... inputs
-c
-      integer lo(SDIM), hi(SDIM)
-      integer DIMDEC(beta)
-      REAL_T  beta(DIMV(beta))
-      integer DIMDEC(betax)
-      integer DIMDEC(betay)
-c
-c ... outputs
-c
-      REAL_T  betax(DIMV(betax))
-      REAL_T  betay(DIMV(betay))
-c
-c ... local
-c
-      integer i,j
-
-      do j=lo(2),hi(2)
-         do i=lo(1),hi(1)+1
-            betax(i,j) = .5D0*(beta(i-1,j)+beta(i,j))
-         end do
-      end do
-
-      do j=lo(2),hi(2)+1
-         do i=lo(1),hi(1)
-            betay(i,j) = .5D0*(beta(i,j-1)+beta(i,j))
          end do
       end do
 

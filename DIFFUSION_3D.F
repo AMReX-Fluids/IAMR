@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_3D.F,v 1.13 2009-10-26 22:58:54 lijewski Exp $
+c $Id: DIFFUSION_3D.F,v 1.14 2009-11-04 22:10:19 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -13,174 +13,6 @@ c
 #include "ArrayLim.H"
 
 #define SDIM 3
-
-c ::
-c :: ----------------------------------------------------------
-c :: compute the time averaged viscous flux at the given edge
-c ::  for variable transport coefficients
-c ::
-c :: NOTE:
-c ::   These are only computed for a reflux operation, and require
-c ::   that the ghost cells have been filled according to the 
-c ::   diffusion operator (maybe this isnt such a good idea...)
-c :: ----------------------------------------------------------
-c ::
-
-      subroutine FORT_VISCFLUX_VC (s_o,s_n,DIMS(s),lo,hi,
-     $                             flux, DIMS(flux), area, DIMS(area),
-     $                             bn, bnp1, DIMS(b),
-     $                             dx,mult,theta,dir)
-
-      implicit none
-      integer lo(SDIM), hi(SDIM)
-      integer DIMDEC(s)
-      integer DIMDEC(flux)
-      integer DIMDEC(area)
-      integer DIMDEC(b)
-      REAL_T  s_o(DIMV(s))
-      REAL_T  s_n(DIMV(s))
-      REAL_T  flux(DIMV(flux))
-      REAL_T  area(DIMV(area))
-      REAL_T  bn(DIMV(b))
-      REAL_T  bnp1(DIMV(b))
-      REAL_T  dx
-      REAL_T  mult,theta
-      integer dir
-
-      integer i, j, k
-      REAL_T  sx1, sx2, sy1, sy2, sz1, sz2
-      REAL_T  onemintheta
-
-      onemintheta = one-theta
-
-!$omp parallel private(i,j,k,sx1,sx2,sy1,sy2,sz1,sz2)
-
-      if (dir .EQ. 0) then
-c     ::::: compute X fluxes
-!$omp do
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)+1
-                  sx1 = (s_o(i,j,k) - s_o(i-1,j,k))*bn(i,j,k)
-                  sx2 = (s_n(i,j,k) - s_n(i-1,j,k))*bnp1(i,j,k)
-                  flux(i,j,k) = mult*(onemintheta*sx1 + theta*sx2)*area(i,j,k)/dx
-               end do
-            end do
-         end do
-!$omp end do
-      else if (dir .EQ. 1) then
-c     ::::: compute Y fluxes
-!$omp do
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)+1
-               do i = lo(1), hi(1)
-                  sy1 = (s_o(i,j,k) - s_o(i,j-1,k))*bn(i,j,k)
-                  sy2 = (s_n(i,j,k) - s_n(i,j-1,k))*bnp1(i,j,k)
-                  flux(i,j,k) = mult*(onemintheta*sy1 + theta*sy2)*area(i,j,k)/dx
-               end do
-            end do
-         end do
-!$omp end do
-      else if (dir .EQ. 2) then
-c     ::::: compute Z fluxes
-!$omp do
-         do k = lo(3), hi(3)+1
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  sz1 = (s_o(i,j,k) - s_o(i,j,k-1))*bn(i,j,k)
-                  sz2 = (s_n(i,j,k) - s_n(i,j,k-1))*bnp1(i,j,k)
-                  flux(i,j,k) = mult*(onemintheta*sz1 + theta*sz2)*area(i,j,k)/dx
-               end do
-            end do
-         end do
-!$omp end do
-      end if
-
-!$omp end parallel
-
-      end
-
-c ::
-c :: ----------------------------------------------------------
-c :: compute the time averaged viscous flux at the given edge
-c ::  for constant transport coefficients
-c ::
-c :: NOTE:
-c ::   These are only computed for a reflux operation, and require
-c ::   that the ghost cells have been filled according to the 
-c ::   diffusion operator (maybe this isnt such a good idea...)
-c :: ----------------------------------------------------------
-c ::
-
-      subroutine FORT_VISCFLUX_CC (s_o,s_n,DIMS(s),lo,hi,
-     $                             flux, DIMS(flux), area, DIMS(area),
-     $                             dx,mult,theta,dir)
-
-      implicit none
-      integer lo(SDIM), hi(SDIM)
-      integer DIMDEC(s)
-      integer DIMDEC(flux)
-      integer DIMDEC(area)
-      REAL_T  s_o(DIMV(s))
-      REAL_T  s_n(DIMV(s))
-      REAL_T  flux(DIMV(flux))
-      REAL_T  area(DIMV(area))
-      REAL_T  dx
-      REAL_T  mult,theta
-      integer dir
-
-      integer i, j, k
-      REAL_T  sx1, sx2, sy1, sy2, sz1, sz2
-      REAL_T  onemintheta
-
-      onemintheta = one-theta
-
-!$omp parallel private(i,j,k,sx1,sx2,sy1,sy2,sz1,sz2)
-
-      if (dir .EQ. 0) then
-c     ::::: compute X fluxes
-!$omp do
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)+1
-                  sx1 = s_o(i,j,k) - s_o(i-1,j,k)
-                  sx2 = s_n(i,j,k) - s_n(i-1,j,k)
-                  flux(i,j,k) = mult*(onemintheta*sx1 + theta*sx2)*area(i,j,k)/dx
-               end do
-            end do
-         end do
-!$omp end do
-      else if (dir .EQ. 1) then
-c     ::::: compute Y fluxes
-!$omp do
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)+1
-               do i = lo(1), hi(1)
-                  sy1 = s_o(i,j,k) - s_o(i,j-1,k)
-                  sy2 = s_n(i,j,k) - s_n(i,j-1,k)
-                  flux(i,j,k) = mult*(onemintheta*sy1 + theta*sy2)*area(i,j,k)/dx
-               end do
-            end do
-         end do
-!$omp end do
-      else
-c     ::::: compute Z fluxes
-!$omp do
-         do k = lo(3), hi(3)+1
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  sz1 = s_o(i,j,k) - s_o(i,j,k-1)
-                  sz2 = s_n(i,j,k) - s_n(i,j,k-1)
-                  flux(i,j,k) = mult*(onemintheta*sz1 + theta*sz2)*area(i,j,k)/dx
-               end do
-            end do
-         end do
-!$omp end do
-      end if
-
-!$omp end parallel
-
-      end
 
       subroutine FORT_VISCSYNCFLUX (ssync,DIMS(ssync),lo,hi,
      $                              xflux,DIMS(xf),yflux,DIMS(yf),
@@ -208,9 +40,7 @@ c     ::::: compute Z fluxes
       REAL_T  mult
 
       integer i, j, k, n
-      REAL_T  sx
-      REAL_T  sy
-      REAL_T  sz
+      REAL_T  sx, sy, sz
 
 !$omp parallel private(i,j,k,sx,sy,sz)
 c
@@ -296,7 +126,6 @@ c ::
        integer i, j, k
 
        if (useden .eq. 0) then
-
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
@@ -304,10 +133,7 @@ c ::
                 end do
              end do
           end do
-
        else 
-
-!$omp parallel do private(i,j,k)
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
@@ -315,8 +141,6 @@ c ::
                 end do
              end do
           end do
-!$omp end parallel do
-
        end if
 
        end
@@ -365,7 +189,6 @@ c ::
 
        integer i, j, k
 
-!$omp parallel do private(i,j,k)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -373,7 +196,6 @@ c ::
              end do
           end do
        end do
-!$omp end parallel do
 
        end
 
@@ -483,66 +305,6 @@ c
          end do
       end do
 !$omp end parallel do
-
-      end
-
-      subroutine FORT_CCTOEDGE(lo, hi, DIMS(beta), beta,
-     &   DIMS(betax), betax, DIMS(betay), betay, DIMS(betaz), betaz)
-
-      implicit none
-c
-c ... inputs
-c
-      integer lo(SDIM), hi(SDIM)
-      integer DIMDEC(beta)
-      REAL_T  beta(DIMV(beta))
-      integer DIMDEC(betax)
-      integer DIMDEC(betay)
-      integer DIMDEC(betaz)
-c
-c ... outputs
-c
-      REAL_T  betax(DIMV(betax))
-      REAL_T  betay(DIMV(betay))
-      REAL_T  betaz(DIMV(betaz))
-c
-c ... local
-c
-      integer i,j,k
-
-!$omp parallel private(i,j,k)
-
-!$omp do
-      do k=lo(3),hi(3)
-         do j=lo(2),hi(2)
-            do i=lo(1),hi(1)+1
-               betax(i,j,k) = .5D0*(beta(i-1,j,k)+beta(i,j,k))
-            end do
-         end do
-      end do
-!$omp end do nowait
-
-!$omp do
-      do k=lo(3),hi(3)
-         do j=lo(2),hi(2)+1
-            do i=lo(1),hi(1)
-               betay(i,j,k) = .5D0*(beta(i,j-1,k)+beta(i,j,k))
-            end do
-         end do
-      end do
-!$omp end do nowait
-
-!$omp do
-      do k=lo(3),hi(3)+1
-         do j=lo(2),hi(2)
-            do i=lo(1),hi(1)
-               betaz(i,j,k) = .5D0*(beta(i,j,k-1)+beta(i,j,k))
-            end do
-         end do
-      end do
-!$omp end do nowait
-
-!$omp end parallel
 
       end
 
