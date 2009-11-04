@@ -1,5 +1,5 @@
 c
-c $Id: VISCOPERATOR_3D.F,v 1.7 2009-10-27 18:17:26 lijewski Exp $
+c $Id: VISCOPERATOR_3D.F,v 1.8 2009-11-04 23:14:42 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -34,68 +34,54 @@ c ::
 
        integer i, j, k, n
 
-!$omp parallel
-
        do n = 1, ncomp
 c         ::::: left side
           i = lo(1)-1
-!$omp do private(j,k)
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 visc(i,j,k,n) = visc(i+1,j,k,n)
              end do
           end do
-!$omp end do nowait
 
 c         ::::: right side
           i = hi(1)+1
-!$omp do private(j,k)
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 visc(i,j,k,n) = visc(i-1,j,k,n)
              end do
           end do
-!$omp end do nowait
 
 c         ::::: bottom side
           j = lo(2)-1
-!$omp do private(i,k)
           do k = lo(3), hi(3)
              do i = lo(1), hi(1)
                 visc(i,j,k,n) = visc(i,j+1,k,n)
              end do
           end do
-!$omp end do nowait
 
 c         ::::: top side
           j = hi(2)+1
-!$omp do private(i,k)
           do k = lo(3), hi(3)
              do i = lo(1), hi(1)
                 visc(i,j,k,n) = visc(i,j-1,k,n)
              end do
           end do
-!$omp end do nowait
 
 c         ::::: down side
           k = lo(3)-1
-!$omp do private(i,j)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 visc(i,j,k,n) = visc(i,j,k+1,n)
              end do
           end do
-!$omp end do nowait
 
 c         ::::: up side
           k = hi(3)+1
-!$omp do private(i,j)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 visc(i,j,k,n) = visc(i,j,k-1,n)
              end do
           end do
-!$omp end do
 
 c         ::::: k-edges
           i = lo(1)-1
@@ -214,7 +200,5 @@ c         ::::: corners
           visc(i,j,k,n) = visc(i-1,j-1,k-1,n)
 
        end do
-
-!$omp end parallel
 
        end

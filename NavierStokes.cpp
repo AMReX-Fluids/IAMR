@@ -6048,10 +6048,14 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     //    
     if (nGrow > 0)
     {
-        for (MFIter mfi(visc_terms); mfi.isValid(); ++mfi)
+        const int N = visc_terms.IndexMap().size();
+
+#pragma omp parallel for
+        for (int i = 0; i < N; i++)
         {
-            FArrayBox& vt  = visc_terms[mfi];
-            const Box& box = mfi.validbox();
+            const int  k   = visc_terms.IndexMap()[i];
+            FArrayBox& vt  = visc_terms[k];
+            const Box& box = visc_terms.box(k);
             FORT_VISCEXTRAP(vt.dataPtr(),ARLIM(vt.loVect()),ARLIM(vt.hiVect()),
                             box.loVect(),box.hiVect(),&ncomp);
         }
