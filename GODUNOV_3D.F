@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.69 2009-10-27 17:40:23 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.70 2009-11-05 21:30:15 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -3471,6 +3471,10 @@ c     the bounds are slightly different on the valid data
          kmin = kmin + 1
          kmax = kmax - 1
       end if
+
+!$omp sections private(j,k,ltest,stx)
+
+!$omp section
 c
 c     -------------- the lower x boundary
 c
@@ -3511,6 +3515,8 @@ c
             end do
          end do
       end if
+
+!$omp section
 c
 c     -------------- the upper x boundary
 c
@@ -3551,6 +3557,8 @@ c
             end do
          end do
       end if
+
+!$omp end sections
 
       end
 
@@ -3603,6 +3611,9 @@ c     the bounds are slightly different on the valid data
          kmax = kmax - 1
       end if
 
+!$omp sections private(i,k,ltest,sty)
+
+!$omp section
 c
 c     -------------- the lower y boundary
 c
@@ -3643,6 +3654,7 @@ c
             end do
          end do
       end if
+!$omp section
 c
 c     -------------- the upper y boundary
 c
@@ -3683,6 +3695,8 @@ c
             end do
          end do
       end if
+
+!$omp end sections
 
       end
 
@@ -3735,6 +3749,9 @@ c     the bounds are slightly different on the valid data
          jmax = jmax - 1
       end if
 
+!$omp sections private(i,j,ltest,stz)
+
+!$omp section
 c
 c     -------------- the lower z boundary
 c
@@ -3778,6 +3795,7 @@ c
 c
 c     -------------- the upper z boundary
 c
+!$omp section
       if (zbc(3,2).eq.EXT_DIR) then
          if ( n .eq. ZVEL ) then
             do i = imin-1,imax+1
@@ -3815,6 +3833,7 @@ c
             end do
          end do
       end if
+!$omp end sections
 
       end
 
@@ -3872,6 +3891,7 @@ c
 c
 c     Added to prevent underflow for small s values.
 c
+!$omp parallel do private(i,j,k)
       do k = lo(3)-ng, hi(3)+ng
          do j = lo(2)-ng, hi(2)+ng
             do i = lo(1)-ng, hi(1)+ng
@@ -3879,6 +3899,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 c
 c     COMPUTE 0TH order slopes
 c
