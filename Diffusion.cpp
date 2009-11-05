@@ -1477,7 +1477,7 @@ Diffusion::getTensorOp (Real                   a,
         for (int j = 0; j < N; j++)
         {
             const int   i         = alpha.IndexMap()[j];
-            const Box&  bx        = alpha.box(j);
+            const Box&  bx        = alpha.box(i);
             Array<Real> rcen(bx.length(0));
             parent->Geom(level).GetCellLoc(rcen, bx, 0);
             caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
@@ -1603,7 +1603,7 @@ Diffusion::getTensorOp (Real                   a,
         for (int j = 0; j < N; j++)
         {
             const int   i         = alpha.IndexMap()[j];
-            const Box&  bx        = alpha.box(j);
+            const Box&  bx        = alpha.box(i);
             Array<Real> rcen(bx.length(0));
             parent->Geom(level).GetCellLoc(rcen, bx, 0);
             caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
@@ -1711,7 +1711,7 @@ Diffusion::getViscOp (int                    comp,
     for (int j = 0; j < N; j++)
     {
         const int  i  = alpha.IndexMap()[j];
-        const Box& bx = alpha.box(j);
+        const Box& bx = alpha.box(i);
 
         Array<Real> rcen(bx.length(0));
         parent->Geom(level).GetCellLoc(rcen, bx, 0);
@@ -1845,7 +1845,7 @@ Diffusion::getViscOp (int                    comp,
     for (int j = 0; j < N; j++)
     {
         const int        i       = alpha.IndexMap()[j];
-        const Box&       bx      = alpha.box(j);
+        const Box&       bx      = alpha.box(i);
         Array<Real> rcen(bx.length(0));
         parent->Geom(level).GetCellLoc(rcen, bx, 0);
 
