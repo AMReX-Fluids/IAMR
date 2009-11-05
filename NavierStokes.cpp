@@ -6538,7 +6538,7 @@ NavierStokes::create_umac_grown ()
             {
                 const int  nComp = 1;
                 const int  k     = crse_src.IndexMap()[i];
-                const Box& box   = crse_src[i].box();
+                const Box& box   = crse_src[k].box();
                 const int* rat   = crse_ratio.getVect();
                 FORT_PC_CF_EDGE_INTERP(box.loVect(), box.hiVect(), &nComp, rat, &n,
                                        crse_src[k].dataPtr(),
