@@ -1473,7 +1473,6 @@ Diffusion::getTensorOp (Real                   a,
 
         const int N = alpha.IndexMap().size();
 
-#pragma omp parallel for private(volume)
         for (int j = 0; j < N; j++)
         {
             const int   i         = alpha.IndexMap()[j];
@@ -1599,7 +1598,6 @@ Diffusion::getTensorOp (Real                   a,
 
         const int N = alpha.IndexMap().size();
 
-#pragma omp parallel for private(volume)
         for (int j = 0; j < N; j++)
         {
             const int   i         = alpha.IndexMap()[j];
@@ -1707,7 +1705,6 @@ Diffusion::getViscOp (int                    comp,
 
     const int N = alpha.IndexMap().size();
 
-#pragma omp parallel for private(volume)
     for (int j = 0; j < N; j++)
     {
         const int  i  = alpha.IndexMap()[j];
@@ -1841,7 +1838,6 @@ Diffusion::getViscOp (int                    comp,
 
     const int N = alpha.IndexMap().size();
 
-#pragma omp parallel for private(volume)
     for (int j = 0; j < N; j++)
     {
         const int        i       = alpha.IndexMap()[j];

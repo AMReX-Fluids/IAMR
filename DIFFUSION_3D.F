@@ -1,5 +1,5 @@
 c
-c $Id: DIFFUSION_3D.F,v 1.14 2009-11-04 22:10:19 lijewski Exp $
+c $Id: DIFFUSION_3D.F,v 1.15 2009-11-05 22:40:46 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -126,6 +126,7 @@ c ::
        integer i, j, k
 
        if (useden .eq. 0) then
+!$omp parallel do private(i,j,k)
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
@@ -133,7 +134,9 @@ c ::
                 end do
              end do
           end do
+!$omp end parallel do
        else 
+!$omp parallel do private(i,j,k)
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
@@ -141,6 +144,7 @@ c ::
                 end do
              end do
           end do
+!$omp end parallel do
        end if
 
        end
@@ -189,6 +193,7 @@ c ::
 
        integer i, j, k
 
+!$omp parallel do private(i,j,k)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -196,6 +201,7 @@ c ::
              end do
           end do
        end do
+!$omp end parallel do
 
        end
 
