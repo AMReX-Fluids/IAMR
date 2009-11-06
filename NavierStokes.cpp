@@ -6050,7 +6050,9 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     {
         const int N = visc_terms.IndexMap().size();
 
+#ifdef BL_USE_OMP
 #pragma omp parallel for
+#endif
         for (int i = 0; i < N; i++)
         {
             const int  k   = visc_terms.IndexMap()[i];
@@ -6533,7 +6535,9 @@ NavierStokes::create_umac_grown ()
 
             const int Ncrse = crse_src.IndexMap().size();
 
+#ifdef BL_USE_OMP
 #pragma omp parallel for
+#endif
             for (int i = 0; i < Ncrse; i++)
             {
                 const int  nComp = 1;
@@ -6562,7 +6566,9 @@ NavierStokes::create_umac_grown ()
             //
             const int Nfine = fine_src.IndexMap().size();
 
+#ifdef BL_USE_OMP
 #pragma omp parallel for
+#endif
             for (int i = 0; i < Nfine; i++)
             {
                 const int  nComp = 1;

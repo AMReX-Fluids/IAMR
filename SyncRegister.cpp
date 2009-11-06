@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.78 2009-11-04 23:02:28 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.79 2009-11-06 20:34:20 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -609,7 +609,9 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
         //
         const int N = Sync_resid_fine->IndexMap().size();
 
+#ifdef BL_USE_OMP
 #pragma omp parallel for
+#endif
         for (int i = 0; i < N; i++)
         {
             const int k = Sync_resid_fine->IndexMap()[i];
