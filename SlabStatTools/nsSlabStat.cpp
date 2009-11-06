@@ -142,8 +142,8 @@ main (int   argc,
 
         const int *vblo = mfi.validbox().loVect();
         const int *vbhi = mfi.validbox().hiVect();
-        const int *fblo = mfi.fabbox().loVect();
-        const int *fbhi = mfi.fabbox().hiVect();
+        const int *fblo = ssData[mfi].box().loVect();
+        const int *fbhi = ssData[mfi].box().hiVect();
 
         const int nStats = StatsTypes[statIndx].nResStats;
 
