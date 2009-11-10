@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.17 2009-10-26 23:38:45 lijewski Exp $
+c $Id: PROJECTION_3D.F,v 1.18 2009-11-10 17:46:46 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -315,102 +315,6 @@ c local variables
 
       end
 
-
-c ::: -----------------------------------------------------------
-c ::: This routine will compute D (U / dt + sigma G^perp phi)
-c :::
-c ::: NOTE: phi is node-centered
-c :::       sigma is cell-centered      
-c :::       U is cell-centered      
-c :::
-c ::: As of now, this routine assumes dx == dy == dz
-c ::: Eventually, this will be changed..
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: phi        => node centered data
-c ::: DIMS(phi)  => index limits for phi
-c ::: sigma      => cell-centered coefficient array
-c ::: DIMS(sigma)=> index limits for sigma      
-c ::: u          => cell-centered velocity array
-c ::: DIMS(u)    => index limits for u      
-c ::: divgp     <=  node-centered divergence of gradient
-c ::: DIMS(divgp)=> index limits for divgp
-c ::: lo,hi      => node-centered subregion of divgp to define
-c ::: dx         => cell sizes      
-c ::: mult       => scalar multiplicative factor      
-c ::: -----------------------------------------------------------
-
-      subroutine FORT_FILTRHS(phi,DIMS(phi),sigma,DIMS(sigma),
-     &                        divgp,DIMS(divgp),
-     &                        lo,hi,dx,mult,is_rz)
-
-      implicit none
-      integer    DIMDEC(phi)
-      integer    DIMDEC(sigma)
-      integer    DIMDEC(divgp)
-      integer    lo(SDIM), hi(SDIM)
-      REAL_T     dx(SDIM), mult
-      REAL_T     phi(DIMV(phi))
-      REAL_T     sigma(DIMV(sigma))
-      REAL_T     divgp(DIMV(divgp))
-      integer    is_rz
-
-      integer    i, j, k
-      REAL_T     p1, p2, p3, p4, p5, p6, p7, p8, denom
-
-c     NOTE: the factor of mult here accounts for the fact that one
-c           takes ratio time steps on the fine grid for every one
-c           timestep on the coarse grid.  mult = 1/ratio.
-      
-      denom = -mult/(sixteen*dx(1)**2)
-
-c check and make sure dx == dy == dz
-      if ( dx(1) .NE. dx(2) .or. dx(1) .NE. dx(3) ) then
-        call bl_abort('FILTRHS: code for dx != dy != dz not implemented')
-      endif
-
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               p1 = sigma(i,j,k)*(
-     &              five*(phi(i+1,j,k) + phi(i,j+1,k) + phi(i,j,k+1)) 
-     &              - phi(i+1,j+1,k) - phi(i,j+1,k+1) - phi(i+1,j,k+1) 
-     &              - three*phi(i+1,j+1,k+1) - nine*phi(i,j,k) )
-               p2 = sigma(i-1,j,k)*(
-     &              five*(phi(i-1,j,k) + phi(i,j+1,k) + phi(i,j,k+1)) 
-     &              - phi(i-1,j+1,k) - phi(i,j+1,k+1) - phi(i-1,j,k+1) 
-     &              - three*phi(i-1,j+1,k+1) - nine*phi(i,j,k) )
-               p3 = sigma(i,j-1,k)*(
-     &              five*(phi(i+1,j,k) + phi(i,j-1,k) + phi(i,j,k+1)) 
-     &              - phi(i+1,j-1,k) - phi(i,j-1,k+1) - phi(i+1,j,k+1) 
-     &              - three*phi(i+1,j-1,k+1) - nine*phi(i,j,k) )
-               p4 = sigma(i-1,j-1,k)*(
-     &              five*(phi(i-1,j,k) + phi(i,j-1,k) + phi(i,j,k+1)) 
-     &              - phi(i-1,j-1,k) - phi(i,j-1,k+1) - phi(i-1,j,k+1) 
-     &              - three*phi(i-1,j-1,k+1) - nine*phi(i,j,k) )
-               p5 = sigma(i,j,k-1)*(
-     &              five*(phi(i+1,j,k) + phi(i,j+1,k) + phi(i,j,k-1)) 
-     &              - phi(i+1,j+1,k) - phi(i,j+1,k-1) - phi(i+1,j,k-1) 
-     &              - three*phi(i+1,j+1,k-1) - nine*phi(i,j,k) )
-               p6 = sigma(i-1,j,k-1)*(
-     &              five*(phi(i-1,j,k) + phi(i,j+1,k) + phi(i,j,k-1)) 
-     &              - phi(i-1,j+1,k) - phi(i,j+1,k-1) - phi(i-1,j,k-1) 
-     &              - three*phi(i-1,j+1,k-1) - nine*phi(i,j,k) )
-               p7 = sigma(i,j-1,k-1)*(
-     &              five*(phi(i+1,j,k) + phi(i,j-1,k) + phi(i,j,k-1)) 
-     &              - phi(i+1,j-1,k) - phi(i,j-1,k-1) - phi(i+1,j,k-1) 
-     &              - three*phi(i+1,j-1,k-1) - nine*phi(i,j,k) )
-               p8 = sigma(i-1,j-1,k-1)*(
-     &              five*(phi(i-1,j,k) + phi(i,j-1,k) + phi(i,j,k-1)) 
-     &              - phi(i-1,j-1,k) - phi(i,j-1,k-1) - phi(i-1,j,k-1) 
-     &              - three*phi(i-1,j-1,k-1) - nine*phi(i,j,k) )
-               divgp(i,j,k) = denom*(p1+p2+p3+p4+p5+p6+p7+p8)
-
-            end do
-         end do
-      end do
-
-      end
 
 
 

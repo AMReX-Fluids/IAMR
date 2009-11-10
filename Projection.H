@@ -3,7 +3,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.43 2004-09-08 20:58:54 almgren Exp $
+// $Id: Projection.H,v 1.44 2009-11-10 17:46:46 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -378,8 +378,6 @@ protected:
     static Real proj_tol;
     static Real sync_tol;
     static Real proj_abs_tol;
-    static Real filter_factor;
-    static int  proj_0;
     static int  proj_2;
     static int  filter_u;
     static int  rho_wgt_vel_proj;

@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.168 2009-06-11 17:29:45 lijewski Exp $
+// $Id: Projection.cpp,v 1.169 2009-11-10 17:46:46 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -48,12 +48,10 @@ int       Projection::P_code             = 0;
 Real      Projection::proj_tol           = 1.0e-12;
 Real      Projection::sync_tol           = 1.0e-8;
 Real      Projection::proj_abs_tol       = 1.0e-16;
-Real      Projection::filter_factor      = 0.1;
 Real      Projection::divu_minus_s_factor= 0.0;
 int       Projection::rho_wgt_vel_proj   = 0;
 int       Projection::do_outflow_bcs     = 1;
 int       Projection::make_sync_solvable = 0;
-int       Projection::proj_0             = 0;
 int       Projection::proj_2             = 0;
 int       Projection::add_vort_proj      = 0;
 
@@ -146,13 +144,7 @@ Projection::read_params ()
 
     pp.query("make_sync_solvable",make_sync_solvable);
 
-    pp.query("filter_factor",filter_factor);
-
-    pp.query("proj_0",proj_0);
     pp.query("proj_2",proj_2);
-
-    if (proj_0 && proj_2)
-	BoxLib::Error("You can only set proj_0 OR proj_2");
 
     if (!proj_2) 
 	BoxLib::Error("With new gravity and outflow stuff, must use proj_2");
@@ -422,25 +414,23 @@ Projection::level_project (int             level,
     }
 
     //
-    // Compute Ustar/dt as input to projector for proj_0,
-    //         Ustar/dt + Gp                  for proj_2,
-    //         (Ustar-Un)/dt for not proj_0 or proj_2 (ie the original).
+    // Compute Ustar/dt + Gp                  for proj_2,
+    //         (Ustar-Un)/dt for not proj_2 (ie the original).
     //
-    // Compute DU/dt for proj_0,
-    //         DU/dt for proj_2,
-    //         (DU-DU_old)/dt for not proj_0 or proj_2 (ie the original).
+    // Compute DU/dt for proj_2,
+    //         (DU-DU_old)/dt for not proj_2 (ie the original).
     //
     MultiFab *divusource = 0, *divuold = 0;
 
     if (have_divu)
     {
         divusource = ns->getDivCond(1,time+dt);
-        if (!proj_0 && !proj_2)
+        if (!proj_2)
             divuold = ns->getDivCond(1,time);
     }
 
     const Real dt_inv = 1./dt;
-    if (proj_0 || proj_2)
+    if (proj_2)
     {
         U_new.mult(dt_inv,0,BL_SPACEDIM,1);
         if (have_divu)
@@ -571,9 +561,7 @@ Projection::level_project (int             level,
     if (level < finest_level) 
         sync_resid_crse = new MultiFab(P_grids,1,1);
 
-    if ( level > 0 &&
-         ( ((proj_0 || proj_2) && iteration == crse_dt_ratio) ||
-           (!proj_0 && !proj_2)) )
+    if (level > 0 && (proj_2 && iteration == crse_dt_ratio) || !proj_2)
     {
         const int ngrow = parent->MaxRefRatio(level-1) - 1;
         sync_resid_fine = new MultiFab(P_grids,1,ngrow);
@@ -618,9 +606,7 @@ Projection::level_project (int             level,
           const Real mult = 1.0;
           crse_sync_reg->CrseInit(sync_resid_crse,geom,mult);
        }
-       if ( level > 0 &&
-            ( ((proj_0 || proj_2) && iteration == crse_dt_ratio) ||
-              (!proj_0 && !proj_2)) )
+       if (level > 0 && ((proj_2 && iteration == crse_dt_ratio) || !proj_2))
        {
           //
           // Increment sync registers between level and level-1.
@@ -653,8 +639,7 @@ Projection::level_project (int             level,
     //
     // Put U_new back to "normal"; subtract U_old*divu...factor/dt from U_new
     //
-    if ( (!proj_0 && !proj_2) && 
-        divu_minus_s_factor>0.0 && divu_minus_s_factor<=1.0 && have_divu) 
+    if (!proj_2 && divu_minus_s_factor>0.0 && divu_minus_s_factor<=1.0 && have_divu) 
     {
         const Real uoldfactor = -divu_minus_s_factor*dt/parent->dtLevel(0);
         UpdateArg1(U_new, uoldfactor/dt, U_old, BL_SPACEDIM, grids, 1);
@@ -662,7 +647,7 @@ Projection::level_project (int             level,
     //
     // Convert U back to a velocity, and phi into p^n+1/2.
     //
-    if (proj_0 || proj_2) 
+    if (proj_2) 
     {
         //
         // un = dt*un
@@ -680,14 +665,6 @@ Projection::level_project (int             level,
     if (!proj_2) 
         AddPhi(P_new, P_old, grids);             // pn = pn + po
 
-    if (proj_0)
-    {
-        const Real dt_inv = 1./dt;
-        U_old.mult(-dt_inv,0,BL_SPACEDIM,1);
-        filterP(level,geom,P_old,P_new,U_old,rho_half,bc,time,dt,have_divu);
-        U_old.mult(-dt,0,BL_SPACEDIM,1);
-    }
-
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      run_time = ParallelDescriptor::second() - strt_time;
 
@@ -699,194 +676,6 @@ Projection::level_project (int             level,
                   << level
                   << ", time: " << run_time << std::endl;
     }
-}
-
-void
-Projection::filterP (int             level,
-                     const Geometry& geom, 
-                     MultiFab&       P_old,
-                     MultiFab&       P_new,
-                     MultiFab&       U_old,
-                     MultiFab*       rho_half, 
-                     int**           bc,
-                     Real            time,
-                     Real            dt,
-                     int             have_divu)
-{
-    if ( verbose && ParallelDescriptor::IOProcessor() )
-        std::cout << "... filterP at level " << level << std::endl;
-
-    int             rzflag   = CoordSys::IsRZ();
-    const Real*     dx       = geom.CellSize();
-    Box             ndomain  = BoxLib::surroundingNodes(geom.Domain());
-    const int*      ndlo     = ndomain.loVect();
-    const int*      ndhi     = ndomain.hiVect();
-    const BoxArray& grids    = LevelData[level].boxArray();
-    const BoxArray& P_grids  = P_old.boxArray();
-    const int*      phys_lo  = phys_bc->lo();
-    const int*      phys_hi  = phys_bc->hi();
-    MultiFab*       rhs_nd   = new MultiFab(P_grids,1,0);
-    MultiFab*       temp_phi = new MultiFab(P_grids,1,1);
-    MultiFab*       temp_rho = new MultiFab(grids,1,1);
-    MultiFab*       temp_vel = new MultiFab(grids,BL_SPACEDIM,1);
-    MultiFab*       sync_resid_crse = 0;
-    MultiFab*       sync_resid_fine = 0;
-
-    BL_ASSERT(grids.size() == P_grids.size());
-    
-    temp_phi->setVal(0);
-    temp_rho->setVal(0);
-    rhs_nd->setVal(0);
-    //
-    // Scale the projection variables.
-    //
-    scaleVar(FILTER_P,rho_half, 0, &U_old, grids, level);
-    //
-    // Copy from valid regions only.
-    //
-    temp_rho->copy(*rho_half,0,0,1);
-    temp_rho->FillBoundary();
-    
-    temp_phi->copy(P_old,0,0,1);
-    temp_phi->FillBoundary();
-    //
-    // Copy from valid regions + bcs to get inflow values.
-    //
-    int n_ghost = 1;
-    MultiFab::Copy(*temp_vel,U_old,0,0,BL_SPACEDIM,n_ghost);
-
-    EnforcePeriodicity(*temp_vel, BL_SPACEDIM, grids, geom);
-    EnforcePeriodicity(*temp_rho, 1,           grids, geom);
-    EnforcePeriodicity(*temp_phi, 1,           P_grids, geom);
-
-    Real mult = -1.;
-
-    for (MFIter mfi(*temp_rho); mfi.isValid(); ++mfi)
-    {
-        const int  k    = mfi.index();
-        FArrayBox& sfab = (*temp_rho)[k];
-        const int* s_lo = sfab.loVect();
-        const int* s_hi = sfab.hiVect();
-        FArrayBox& pfab = (*temp_phi)[k];
-        const int* p_lo = pfab.loVect();
-        const int* p_hi = pfab.hiVect();
-        const int* r_lo = (*rhs_nd)[k].loVect();
-        const int* r_hi = (*rhs_nd)[k].hiVect();
-        const int* n_lo = P_grids[k].loVect();
-        const int* n_hi = P_grids[k].hiVect();
-
-        FORT_FILTRHS(pfab.dataPtr(),ARLIM(p_lo),ARLIM(p_hi),
-                     sfab.dataPtr(),ARLIM(s_lo),ARLIM(s_hi),
-                     (*rhs_nd)[k].dataPtr(),ARLIM(r_lo),ARLIM(r_hi),
-                     n_lo,n_hi,dx,&mult,&rzflag);
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            if (!geom.isPeriodic(dir))
-            {
-                Box ndomlo(ndomain), ndomhi(ndomain);
-                ndomlo.setRange(dir,ndlo[dir],1);
-                ndomhi.setRange(dir,ndhi[dir],1);
-                //
-                // Any RHS point on the physical bndry must be multiplied by
-                // two (only for ref-wall, inflow and symmetry) and set to 
-                // zero at outflow.
-                //
-                Box blo = P_grids[k] & ndomlo;
-                Box bhi = P_grids[k] & ndomhi;
-
-                if (blo.ok())
-                {
-                    if (phys_lo[dir] == Outflow) 
-                        (*rhs_nd)[k].setVal(0,blo,0,1);
-                    else
-                        (*rhs_nd)[k].mult(2,blo,0,1);
-                }
-                if (bhi.ok())
-                {
-                    if (phys_hi[dir] == Outflow) 
-                        (*rhs_nd)[k].setVal(0,bhi,0,1);
-                    else
-                        (*rhs_nd)[k].mult(2,bhi,0,1);
-                }
-            } 
-        }
-    }
-
-    if (have_divu)
-    {
-        const int nghost  = 0;
-
-        MultiFab* divuold = new MultiFab(P_grids,1,nghost);
-
-        put_divu_in_node_rhs(*divuold,level,nghost,time,rzflag);
-
-        for (MFIter mfi(*divuold); mfi.isValid(); ++mfi)
-        {
-            (*divuold)[mfi].mult(1.0/dt,0,1);
-        }
-
-        rhs_nd->plus(*divuold,0,1,nghost);
-
-        delete divuold;
-    }
-
-    temp_phi->setVal(0);
-    //
-    // Setup projection .
-    //
-    PArray<MultiFab> u_real[BL_SPACEDIM];
-    PArray<MultiFab> p_real(level+1), s_real(level+1);
-    PArray<MultiFab> rhs_real(level+1);
-    for (int n = 0; n < BL_SPACEDIM; n++)
-    {
-        u_real[n].resize(level+1,PArrayManage);
-        u_real[n].set(level, new MultiFab(grids, 1, 1));
-        for (MFIter u_realmfi(u_real[n][level]); u_realmfi.isValid(); ++u_realmfi)
-        {
-            const int i = u_realmfi.index();
-
-            u_real[n][level][i].copy((*temp_vel)[i], n, 0);
-        }
-    }
-
-    p_real.set(level, temp_phi);
-    s_real.set(level, temp_rho);
-    rhs_real.set(level, rhs_nd);
-
-    delete temp_vel;
-    delete temp_rho;
-    delete rhs_nd;
-    //
-    // Project ...
-    //
-    const bool use_u   = true;
-
-    if (level < finest_level) 
-        sync_resid_crse = new MultiFab(P_grids,1,1);
-
-    if (level > 0) 
-    {
-        const int ngrow = parent->MaxRefRatio(level-1) - 1;
-        sync_resid_fine = new MultiFab(P_grids,1,ngrow);
-    }
-
-    sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
-                              sync_resid_crse, sync_resid_fine, geom, 
-                              use_u, (Real*)dx,
-                              filter_factor, level, level, proj_abs_tol);
-    //
-    // Reset state + pressure data
-    //
-    AddPhi(P_new, *temp_phi, grids);
-    //
-    // Unscale the projection variables.
-    //
-    rescaleVar(FILTER_P, rho_half, 0, &U_old, grids, level);
-
-    delete temp_phi;
-    delete sync_resid_crse;
-    delete sync_resid_fine;
 }
 
 //
@@ -1006,8 +795,7 @@ Projection::syncProject (int             c_lev,
     // going into the level (c_lev-1) sync project.  Note that this must be
     // done before rho_half is scaled back.
     //
-    if (c_lev > 0 &&
-        (!proj_2 || crse_iteration == crse_dt_ratio) )
+    if (c_lev > 0 && (!proj_2 || crse_iteration == crse_dt_ratio))
     {
         const Real invrat         = 1.0/(double)crse_dt_ratio;
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
@@ -1211,8 +999,7 @@ Projection::MLsyncProject (int             c_lev,
     // going into the level (c_lev-1) sync project.  Note that this must be
     // done before rho_half is scaled back.
     //
-    if (c_lev > 0 &&
-        (!proj_2 || crse_iteration == crse_dt_ratio) )
+    if (c_lev > 0 && (!proj_2 || crse_iteration == crse_dt_ratio))
     {
         const Real invrat         = 1.0/(double)crse_dt_ratio;
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
