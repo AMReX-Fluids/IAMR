@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.169 2009-11-10 17:46:46 lijewski Exp $
+// $Id: Projection.cpp,v 1.170 2009-11-10 17:52:15 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -52,7 +52,7 @@ Real      Projection::divu_minus_s_factor= 0.0;
 int       Projection::rho_wgt_vel_proj   = 0;
 int       Projection::do_outflow_bcs     = 1;
 int       Projection::make_sync_solvable = 0;
-int       Projection::proj_2             = 0;
+int       Projection::proj_2             = 1;
 int       Projection::add_vort_proj      = 0;
 
 #ifndef BL_USE_HGPROJ_SERIAL

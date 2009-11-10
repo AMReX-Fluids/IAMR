@@ -126,5 +126,4 @@ amr.blocking_factor     = 8
 amr.derive_plot_vars    = mag_vort
 
 #*******************************************************************************
-proj.proj_2=1
 proj.v=1

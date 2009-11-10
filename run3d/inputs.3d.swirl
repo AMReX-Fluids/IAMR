@@ -17,7 +17,6 @@ ns.zeroBndryVisc=1
 ns.do_OT_radiation=1
 ns.do_OT_radiation=0
 
-proj.proj_2 = 1
 ns.num_divu_iters =3
 ns.max_grid_size_chem = 64
 ns.max_grid_size_chem = 32

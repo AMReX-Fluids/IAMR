@@ -133,6 +133,3 @@ amr.blocking_factor     = 4
 amr.derive_plot_vars    = mag_vort
 
 #*******************************************************************************
-
-# gotta doit
-proj.proj_2 = 1
