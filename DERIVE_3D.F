@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.30 2008-12-10 20:28:37 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.31 2009-11-16 22:57:59 lijewski Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -64,7 +64,7 @@ c     -----------------------------------------------------------
 #include "probdata.H"
 
       hy = delta(2)
-
+!$omp parallel do private(i,j,k,y)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             y = xlo(2) + hy * ( float( j-lo(2) ) + half )
@@ -73,6 +73,7 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -103,6 +104,7 @@ c     -----------------------------------------------------------
 
       hx = delta(1)
 
+!$omp parallel do private(i,j,k,x)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -111,6 +113,7 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -142,6 +145,7 @@ c     -----------------------------------------------------------
       hx = delta(1)
       hy = delta(2)
 
+!$omp parallel do private(i,j,k,x,y,u,v,w)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             y = xlo(2) + hy * ( float( j-lo(2) ) + half )
@@ -154,6 +158,7 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -189,6 +194,8 @@ c     -----------------------------------------------------------
       hy = delta(2)
       hz = delta(3)
 
+!$omp parallel do private(i,j,k,u,v,w,dudy,dudz,dvdx,dvdz)
+!$omp&private(dwdx,dwdy,wx,wy,wz)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -214,6 +221,7 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 #endif
@@ -826,6 +834,7 @@ c
       dy = fourth/delta(2)
       dz = fourth/delta(3)
 
+!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
@@ -857,6 +866,7 @@ c     Z Gradient
           end do
         end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1222,6 +1232,7 @@ c
       tdy = two*delta(2)
       tdz = two*delta(3)
 
+!$omp parallel do private(i,j,k,drdx,drdy,drdz)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1232,6 +1243,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1258,6 +1270,7 @@ c
       integer    i,j,k
       REAL_T     rho, u, v, w
 
+!$omp parallel do private(i,j,k,rho,u,v,w)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1269,6 +1282,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1297,6 +1311,7 @@ c
 
       parameter (sml = 1.0D-10)
 
+!$omp parallel do private(i,j,k,rho)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1305,6 +1320,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1331,6 +1347,7 @@ c
       integer    i,j,k
       REAL_T     u, v, w
 
+!$omp parallel do private(i,j,k,u,v,w)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1341,6 +1358,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1365,6 +1383,7 @@ c
 
       integer    i,j,k
       
+!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1372,6 +1391,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1396,6 +1416,7 @@ c
 
       integer    i,j,k
 
+!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1403,6 +1424,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1430,6 +1452,7 @@ c
 
       parameter (small = 1.0D-10)
 
+!$omp parallel do private(i,j,k,dust)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1438,6 +1461,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1542,7 +1566,7 @@ c
       dx = delta(1)
       dy = delta(2)
       dz = delta(3)
-      
+
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -4784,6 +4808,7 @@ c
 c     ::::: compute gradient on interior
 c
       if (dir .eq. 0) then
+!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -4793,7 +4818,9 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       else if (dir .eq. 1) then
+!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -4803,7 +4830,9 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       else if (dir .eq. 2) then
+!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -4813,6 +4842,7 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       else
 	 call bl_abort("FORT_GRADP_DIR: invalid dir = ")
       end if
@@ -4919,6 +4949,7 @@ c
 
       integer i,j,k
 
+!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
@@ -4930,6 +4961,7 @@ c
           end do
         end do
       end do
+!$omp end parallel do
 
       end
 
@@ -4955,7 +4987,8 @@ c
 
       REAL_T     gpx, gpy, gpz
       integer    i,j,k
-c
+
+!$omp parallel do private(i,j,k,gpx,gpy,gpz)
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
@@ -4969,5 +5002,6 @@ c
           end do
         end do
       end do
+!$omp end parallel do
 
       end
