@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.32 2009-11-19 18:35:58 lijewski Exp $
+c $Id: DERIVE_3D.F,v 1.33 2009-11-19 21:26:13 lijewski Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -860,25 +860,51 @@ c     Average pressure
      &            dat(i+1,j+1,k)   + dat(i,j+1,k)   +
      &            dat(i+1,j,k+1)   + dat(i,j,k+1)   +
      &            dat(i+1,j+1,k+1) + dat(i,j+1,k+1) )
+          end do
+        end do
+      end do
+!$omp end parallel do
+
+!$omp parallel do private(i,j,k)
+      do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
 c     X Gradient
             e(i,j,k,2) = dx*(
      &            dat(i+1,j,k)     - dat(i,j,k)     +
      &            dat(i+1,j+1,k)   - dat(i,j+1,k)   +
      &            dat(i+1,j,k+1)   - dat(i,j,k+1)   +
      &            dat(i+1,j+1,k+1) - dat(i,j+1,k+1) )
+          end do
+        end do
+      end do
+!$omp end parallel do
+
+!$omp parallel do private(i,j,k)
+      do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
 c     Y Gradient
             e(i,j,k,3) = dy*(
      &            dat(i,j+1,k)     - dat(i,j,k)     +
      &            dat(i+1,j+1,k)   - dat(i+1,j,k)   +
      &            dat(i,j+1,k+1)   - dat(i,j,k+1)   +
      &            dat(i+1,j+1,k+1) - dat(i+1,j,k+1) )
+          end do
+        end do
+      end do
+!$omp end parallel do
+
+!$omp parallel do private(i,j,k)
+      do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
 c     Z Gradient
             e(i,j,k,4) = dz*(
      &            dat(i,j,k+1)     - dat(i,j,k)     +
      &            dat(i+1,j,k+1)   - dat(i+1,j,k)   +
      &            dat(i,j+1,k+1)   - dat(i,j+1,k)   +
      &            dat(i+1,j+1,k+1) - dat(i+1,j+1,k) )
-
           end do
         end do
       end do
@@ -904,14 +930,8 @@ c     Z Gradient
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
 
-      integer    i,j,k,n
+      integer    i,j,k
       REAL_T     tdx, tdy, tdz
-
-#include "probdata.H"
-
-c      hx = delta(1)
-c      hy = delta(2)
-c      hz = delta(3)
 
       tdx = two*delta(1)
       tdy = two*delta(2)
@@ -920,17 +940,40 @@ c      hz = delta(3)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-
-               do n = 1, 4
-                  e(i,j,k,n) = dat(i,j,k,n)
-                  e(i,j,k,n+04) = (dat(i+1,j,k,n)-dat(i-1,j,k,n))/tdx
-                  e(i,j,k,n+08) = (dat(i,j+1,k,n)-dat(i,j-1,k,n))/tdy
-                  e(i,j,k,n+12) = (dat(i,j,k+1,n)-dat(i,j,k-1,n))/tdz
-               enddo
-
+               e(i,j,k,1) = dat(i,j,k,1)
             enddo
          enddo
       enddo
+
+!$omp parallel do private(i,j,k)
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               e(i,j,k,5) = (dat(i+1,j,k,5)-dat(i-1,j,k,5))/tdx
+            enddo
+         enddo
+      enddo
+!$omp end parallel do
+
+!$omp parallel do private(i,j,k)
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               e(i,j,k,9) = (dat(i,j+1,k,9)-dat(i,j-1,k,9))/tdy
+            enddo
+         enddo
+      enddo
+!$omp end parallel do
+
+!$omp parallel do private(i,j,k)
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               e(i,j,k,13) = (dat(i,j,k+1,13)-dat(i,j,k-1,13))/tdz
+            enddo
+         enddo
+      enddo
+!$omp end parallel do
 
       end
 
@@ -970,6 +1013,7 @@ c
       tdy = two*delta(2)
       tdz = two*delta(3)
 
+!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
@@ -1055,7 +1099,7 @@ c     Average pressure Y Gradient
      &            dat(i+1,j-1,k+1) + dat(i,j-1,k+1) +
      &            dat(i+1,j,k+1)   + dat(i,j,k+1) ) ) / tdy
 c     X Gradient Y Gradient
-            e(i,j,k,2) = (dx*(
+            e(i,j,k,10) = (dx*(
      &            dat(i+1,j+1,k)   - dat(i,j+1,k)   +
      &            dat(i+1,j+2,k)   - dat(i,j+2,k)   +
      &            dat(i+1,j+1,k+1) - dat(i,j+1,k+1) +
@@ -1066,7 +1110,7 @@ c     X Gradient Y Gradient
      &            dat(i+1,j-1,k+1) - dat(i,j-1,k+1) +
      &            dat(i+1,j,k+1)   - dat(i,j,k+1) ) ) / tdy
 c     Y Gradient Y Gradient
-            e(i,j,k,3) = (dy*(
+            e(i,j,k,11) = (dy*(
      &            dat(i,j+2,k)     - dat(i,j+1,k)   +
      &            dat(i+1,j+2,k)   - dat(i+1,j+1,k) +
      &            dat(i,j+2,k+1)   - dat(i,j+1,k+1) +
@@ -1077,7 +1121,7 @@ c     Y Gradient Y Gradient
      &            dat(i,j,k+1)   - dat(i,j-1,k+1)   +
      &            dat(i+1,j,k+1) - dat(i+1,j-1,k+1) ) ) / tdy
 c     Z Gradient Y Gradient
-            e(i,j,k,4) = (dz*(
+            e(i,j,k,12) = (dz*(
      &            dat(i,j+1,k+1)   - dat(i,j+1,k)   +
      &            dat(i+1,j+1,k+1) - dat(i+1,j+1,k) +
      &            dat(i,j+2,k+1)   - dat(i,j+2,k)   +
@@ -1136,6 +1180,7 @@ c     Z Gradient Z Gradient
           end do
         end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1158,7 +1203,6 @@ c     Z Gradient Z Gradient
       integer    level, grid_no
 
       integer    i,j,k,n,nvars,do_trac2
-c      REAL_T     x, y, z
       REAL_T     hx, hy, hz
       REAL_T     tdx, tdy, tdz
       REAL_T     dxt, dyt, dzt
@@ -1184,16 +1228,14 @@ c      REAL_T     x, y, z
          nvars=5
       endif
 
+!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
-c         z = zlo + hz * ( float( k-lo(3) ) + half )
          do j = lo(2), hi(2)
-c            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
             do i = lo(1), hi(1)
-c               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
 
                do n = 1, nvars
-                  e(i,j,k,n+00) = dat(i,j,k,n)
-                  e(i,j,k,n+06) = (dat(i+1,j,k,n)-dat(i-1,j,k,n))/tdx
+                  e(i,j,k,n+ 0) = dat(i,j,k,n)
+                  e(i,j,k,n+ 6) = (dat(i+1,j,k,n)-dat(i-1,j,k,n))/tdx
                   e(i,j,k,n+12) = (dat(i,j+1,k,n)-dat(i,j-1,k,n))/tdy
                   e(i,j,k,n+18) = (dat(i,j,k+1,n)-dat(i,j,k-1,n))/tdz
                enddo
@@ -1204,8 +1246,8 @@ c     Need these for D = u.nabla^2 u
 
                if (do_trac2.eq.0) then
                   n = 6
-                  e(i,j,k,n+00) = zero
-                  e(i,j,k,n+06) = zero
+                  e(i,j,k,n+ 0) = zero
+                  e(i,j,k,n+ 6) = zero
                   e(i,j,k,n+12) = zero
                   e(i,j,k,n+18) = zero
                endif
@@ -1213,6 +1255,7 @@ c     Need these for D = u.nabla^2 u
             enddo
          enddo
       enddo
+!$omp end parallel do
 
       end
 #endif
