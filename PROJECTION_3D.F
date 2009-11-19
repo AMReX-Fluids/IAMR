@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.18 2009-11-10 17:46:46 lijewski Exp $
+c $Id: PROJECTION_3D.F,v 1.19 2009-11-19 22:32:00 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -42,8 +42,7 @@ c
 
        integer i, j, k
        REAL_T     twelfth
-
-       twelfth = one / twelve
+       PARAMETER(twelfth = one / twelve)
 
        do k = lo(3)+1, hi(3)
           do j = lo(2)+1, hi(2)
@@ -257,66 +256,3 @@ c
       end if
 
       end
-
-       subroutine FORT_HGC2N(
-     &     nghost, DIMS(dat), dat, rcen,
-     &     DIMS(rhs), rhs,
-     &     domlo, domhi, lowfix, hifix, dr, is_rz) 
-c
-c     ----------------------------------------------------------
-c     HGC2N
-c     averages cell centered data to nodes for use in 
-c     holy grail projection
-c     
-c     INPUTS / OUTPUTS:
-c     nghost      => indicates buffer of rhs that does not need values
-c     dat         => cell centered array to be averaged
-c     DIMS(dat)   => index limits of dat
-c     rhslo,rhshi => index extents of rhs
-c     rhs         <= node centered array with results
-c     rcen,lowfix,hifix are artifacts of 2D r-z version and are not used
-c     ----------------------------------------------------------
-c 
-      implicit none
-      integer nghost
-      integer domlo(SDIM), domhi(SDIM)
-      integer DIMDEC(dat)
-      integer DIMDEC(rhs)
-      REAL_T  dat(DIMV(dat))
-      REAL_T  rhs(DIMV(rhs))
-
-c not used
-      integer is_rz, lowfix, hifix
-      REAL_T  rcen(DIM1(dat))
-      REAL_T  dr
-
-c local variables
-      integer i, j, k
-
-      if (ARG_L1(rhs)+1 .lt. ARG_L1(dat) .or. 
-     $    ARG_H1(rhs)-1 .gt. ARG_H1(dat) .or.
-     &    ARG_L2(rhs)+1 .lt. ARG_L2(dat) .or. 
-     $    ARG_H2(rhs)-1 .gt. ARG_H2(dat) .or.
-     &    ARG_L3(rhs)+1 .lt. ARG_L3(dat) .or. 
-     $    ARG_H3(rhs)-1 .gt. ARG_H3(dat) ) then
-         call bl_abort("FORT_HG_CELL_TO_NODE: bad index limits")
-      end if
-
-      do k=ARG_L3(rhs)+nghost,ARG_H3(rhs)-nghost
-         do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
-            do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
-               rhs(i,j,k)=eighth*(dat(i-1,j-1,k  )+dat(i-1,j,k  )+
-     &                            dat(i  ,j-1,k  )+dat(i  ,j,k  )+
-     &                            dat(i-1,j-1,k-1)+dat(i-1,j,k-1)+
-     &                            dat(i  ,j-1,k-1)+dat(i  ,j,k-1))
-            end do
-         end do
-      end do
-
-      end
-
-
-
-
-
-

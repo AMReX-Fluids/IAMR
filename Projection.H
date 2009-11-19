@@ -3,7 +3,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.44 2009-11-10 17:46:46 lijewski Exp $
+// $Id: Projection.H,v 1.45 2009-11-19 22:32:00 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -186,14 +186,6 @@ public:
     void AnelCoeffDiv (int       level,
                        MultiFab& mf,
                        int       comp);
-    //
-    // Put divu in the rhs of the projector.
-    //
-    void put_divu_in_node_rhs (MultiFab&       rhs,
-                               int             level,
-                               const int&      nghost,
-                               Real            time,
-                               int             user_rz = -1);
 
     void put_divu_in_cc_rhs (MultiFab&       rhs,
                              int             level,

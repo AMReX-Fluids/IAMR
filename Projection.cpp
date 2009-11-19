@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.170 2009-11-10 17:52:15 lijewski Exp $
+// $Id: Projection.cpp,v 1.171 2009-11-19 22:32:00 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1629,53 +1629,6 @@ Projection::initialSyncProject (int       c_lev,
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
         incrPress(lev, 1.0);
-}
-
-//
-// Put S in the rhs of the projector -- node based version.
-//
-
-void
-Projection::put_divu_in_node_rhs (MultiFab&       rhs,
-                                  int             level,
-                                  const int&      nghost,
-                                  Real            time,
-                                  int             user_rz)
-{
-    BL_ASSERT(user_rz >= -1 && user_rz <= 1);
-
-    rhs.setVal(0);
-
-    const Geometry& geom   = parent->Geom(level);
-    int             isrz   = user_rz == -1 ? CoordSys::IsRZ() : user_rz;
-    const Real*     dx     = geom.CellSize();
-    Real            hx     = dx[0];
-    const Box&      domain = geom.Domain();
-    const int*      domlo  = domain.loVect();
-    const int*      domhi  = domain.hiVect();
-
-    NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
-
-    BL_ASSERT(!(ns == 0));
-
-    MultiFab* divu = ns->getDivCond(1,time);
- 
-    int imax = geom.Domain().bigEnd()[0]+1;
-
-    for (MFIter rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi)
-    {
-        DEF_CLIMITS((*divu)[rhsmfi],divudat,divulo,divuhi);
-        DEF_LIMITS(rhs[rhsmfi],rhsdat,rhslo,rhshi);
-        Array<Real> rcen((*divu)[rhsmfi].box().length(0),1.0);
-        if (isrz == 1) 
-            geom.GetCellLoc(rcen,(*divu)[rhsmfi].box(),0);
-
-        FORT_HGC2N(&nghost,ARLIM(divulo),ARLIM(divuhi),divudat,
-                   rcen.dataPtr(), ARLIM(rhslo),ARLIM(rhshi),rhsdat,
-                   domlo,domhi,&hx,&isrz,&imax);
-    }
-
-    delete divu;
 }
 
 //
