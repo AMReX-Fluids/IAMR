@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.29 2009-11-04 22:42:38 lijewski Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.30 2009-11-19 22:24:08 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -874,6 +874,7 @@ c     zeroed out
           tmp(k) = zero
        end do
 
+!$omp parallel do private(i,j,k)
        do k = ARG_L3(grid), ARG_H3(grid)
           do i = ARG_L1(grid), ARG_H1(grid)
              do j = ARG_L2(grid), ARG_H2(grid)
@@ -881,6 +882,7 @@ c     zeroed out
              end do
           end do
        end do
+!$omp end parallel do
 
        mass = zero
        do k = ARG_L3(grid), ARG_H3(grid)
@@ -888,8 +890,6 @@ c     zeroed out
        end do
 
        end
-
-
 
 c :: ----------------------------------------------------------
 c :: SUMMASS
@@ -924,13 +924,15 @@ c ::
           tmp(j) = zero
        end do
 
-       do k = ARG_L3(grid), ARG_H3(grid)
-          do i = ARG_L1(grid), ARG_H1(grid)
-             do j = ARG_L2(grid), ARG_H2(grid)
+!$omp parallel do private(i,j,k)
+       do j = ARG_L2(grid), ARG_H2(grid)
+          do k = ARG_L3(grid), ARG_H3(grid)
+             do i = ARG_L1(grid), ARG_H1(grid)
                 tmp(j) = tmp(j) + vol*rho(i,j,k)
              end do
           end do
        end do
+!$omp end parallel do
 
        mass = zero
        do j = ARG_L2(grid), ARG_H2(grid)
