@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.70 2009-11-05 21:30:15 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.71 2009-11-20 17:52:33 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -50,7 +50,8 @@ c
       REAL_T  rho(DIMV(rho))
       REAL_T  tforces(DIMV(tf),SDIM)
 
-      small   = 1.0D-8
+      PARAMETER(small = 1.0D-8, dt_start = 1.0D+20)
+
       u       = zero
       v       = zero
       w       = zero
@@ -78,7 +79,6 @@ c
       u_max(2) = v
       u_max(3) = w
 
-      dt_start = 1.0D+20
       dt = dt_start
 
       if (u .gt. small) dt = min(dt,dx(1)/u)
@@ -333,8 +333,8 @@ c
       REAL_T dt, dx(SDIM)
       REAL_T eps, eps_for_bc, val, tst
       logical ltm
-      parameter (eps        = 1.d-6 )
-      parameter (eps_for_bc = 1.d-10)
+
+      PARAMETER (eps = 1.d-6 , eps_for_bc = 1.d-10)
 
       integer DIMDEC(s)
       integer DIMDEC(work)
@@ -634,8 +634,8 @@ c
       REAL_T tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw,dx(SDIM)
       REAL_T eps,eps_for_bc
       logical ltx,lty,ltz
-      parameter (eps        = 1.d-6 )
-      parameter (eps_for_bc = 1.d-10)
+
+      PARAMETER (eps = 1.d-6 , eps_for_bc = 1.d-10)
 
       integer DIMDEC(s)
       integer DIMDEC(work)
@@ -708,7 +708,6 @@ c     used in 3d corner coupling
       imax = hi(1)
       jmax = hi(2)
       kmax = hi(3)
-
 c
 c     compute the slopes
 c
@@ -1962,8 +1961,8 @@ c
       REAL_T tr,tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw,dx(SDIM)
       REAL_T eps,eps_for_bc
       logical ltx,lty,ltz
-      parameter (eps        = 1.d-6 )
-      parameter (eps_for_bc = 1.d-10)
+
+      PARAMETER (eps = 1.d-6 , eps_for_bc = 1.d-10)
 
       integer DIMDEC(s)
       integer DIMDEC(work)
@@ -3471,10 +3470,6 @@ c     the bounds are slightly different on the valid data
          kmin = kmin + 1
          kmax = kmax - 1
       end if
-
-!$omp sections private(j,k,ltest,stx)
-
-!$omp section
 c
 c     -------------- the lower x boundary
 c
@@ -3515,8 +3510,6 @@ c
             end do
          end do
       end if
-
-!$omp section
 c
 c     -------------- the upper x boundary
 c
@@ -3557,8 +3550,6 @@ c
             end do
          end do
       end if
-
-!$omp end sections
 
       end
 
@@ -3610,10 +3601,6 @@ c     the bounds are slightly different on the valid data
          kmin = kmin + 1
          kmax = kmax - 1
       end if
-
-!$omp sections private(i,k,ltest,sty)
-
-!$omp section
 c
 c     -------------- the lower y boundary
 c
@@ -3654,7 +3641,6 @@ c
             end do
          end do
       end if
-!$omp section
 c
 c     -------------- the upper y boundary
 c
@@ -3695,8 +3681,6 @@ c
             end do
          end do
       end if
-
-!$omp end sections
 
       end
 
@@ -3748,10 +3732,6 @@ c     the bounds are slightly different on the valid data
          jmin = jmin + 1
          jmax = jmax - 1
       end if
-
-!$omp sections private(i,j,ltest,stz)
-
-!$omp section
 c
 c     -------------- the lower z boundary
 c
@@ -3795,7 +3775,6 @@ c
 c
 c     -------------- the upper z boundary
 c
-!$omp section
       if (zbc(3,2).eq.EXT_DIR) then
          if ( n .eq. ZVEL ) then
             do i = imin-1,imax+1
@@ -3833,7 +3812,6 @@ c
             end do
          end do
       end if
-!$omp end sections
 
       end
 
@@ -3876,10 +3854,8 @@ c
       REAL_T dpls,dmin,ds
       REAL_T del,slim,sflg
       integer cen,lim,flag,fromm
-      parameter( cen = 1   )
-      parameter( lim = 2   )
-      parameter( flag = 3  )
-      parameter( fromm = 4 )
+
+      PARAMETER( cen = 1, lim = 2, flag = 3, fromm = 4 )
 
       ng = lo(1) - ARG_L1(s)
       imin = lo(1)
@@ -4425,9 +4401,12 @@ c     local
       REAL_T sgn, sigma, s6, w0cc, velcc
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
       REAL_T amax, delam, delap
-
+c
 c     constant used in Colella 2008
-      C = 1.25d0
+c
+      PARAMETER(C = 1.25d0)
+
+
 
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 c     ! x-direction
@@ -5963,9 +5942,10 @@ c     local
       REAL_T sgn, sigmam, sigmap, s6, w0lo, w0hi, vello, velhi
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
       REAL_T amax, delam, delap
-
+c
 c     constant used in Colella 2008
-      C = 1.25d0
+c
+      PARAMETER(C = 1.25d0)
 
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 c     ! x-direction
@@ -7482,7 +7462,6 @@ c
       jmax = hi(2)
       kmin = lo(3)
       kmax = hi(3)
-
 c
 c     correct the 8 corners
 c
