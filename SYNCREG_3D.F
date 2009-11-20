@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.18 2009-11-04 23:02:28 lijewski Exp $
+c $Id: SYNCREG_3D.F,v 1.19 2009-11-20 17:52:52 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -50,22 +50,22 @@ c ::: -----------------------------------------------------------
       parameter(one28        = eight * sixteen)
       parameter(fourthirds   = four  * third  )
       parameter(threefourths = three * fourth )
-
+c
 c     NOTE: the reason that the coefficients add up to 1/ratio_norm and NOT to 1
 c           is because the divergences and DGphi were computed using the
 c           local dx, so in order to add the fine contribution to the
 c           coarse contribution the fine contribution must be weighted
 c           by dx_fine/dx_coarse = 1/ratio
-
+c
       ratiox = ratios(0)
       ratioy = ratios(1)
       ratioz = ratios(2)
-
+c
 c     NOTE: we multiply fine by 1/2 on the edges and 1/3 on the corners
 c           since they are counted in all three directions; later we 
 c           multiply by 2 and 3, respectively, to restore them to their
 c           previous values.
-      
+c     
       if (dir .eq. 0) then
        
 c        ::::: sum in j and k directions
@@ -120,6 +120,7 @@ c        ::::: sum in j and k directions
              coeff = (ratioy - m) * (ratioz - n) * denom
              if (n .eq. 0) coeff = half * coeff
              if (m .eq. 0) coeff = half * coeff
+!$omp parallel do private(j,jc,k,kc)
              do kc = lo(3), hi(3)
                k = ratioz*kc
                do jc = lo(2), hi(2)
@@ -129,6 +130,7 @@ c        ::::: sum in j and k directions
      $                +fine(i,j+m,k-n) + fine(i,j-m,k-n) )
                end do
              end do
+!$omp end parallel do
            end do
          end do
 
@@ -223,6 +225,7 @@ c
              coeff = (ratiox - m) * (ratioz - n) * denom
              if (n .eq. 0) coeff = half * coeff
              if (m .eq. 0) coeff = half * coeff
+!$omp parallel do private(i,ic,k,kc)
              do kc = lo(3), hi(3)
                k = ratioz*kc
                do ic = lo(1), hi(1)
@@ -232,6 +235,7 @@ c
      $                +fine(i+m,j,k-n) + fine(i-m,j,k-n) )
                end do
              end do
+!$omp end parallel do
            end do
          end do
 
@@ -325,6 +329,7 @@ c        ::::: sum in i and j directions
              coeff = (ratiox - m) * (ratioy - n) * denom
              if (n .eq. 0) coeff = half * coeff
              if (m .eq. 0) coeff = half * coeff
+!$omp parallel do private(i,ic,j,jc)
              do jc = lo(2), hi(2)
                j = ratioy*jc
                do ic = lo(1), hi(1)
@@ -334,6 +339,7 @@ c        ::::: sum in i and j directions
      $                +fine(i+m,j-n,k) + fine(i-m,j-n,k) )
                end do
              end do
+!$omp end parallel do
            end do
          end do
 
