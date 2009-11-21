@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.15 2007-09-04 21:15:00 sepp Exp $
+c $Id: INFL_FORCE_F.F,v 1.16 2009-11-21 22:28:52 lijewski Exp $
 c
 
 #undef BL_LANG_CC
@@ -56,12 +56,13 @@ c     The arrays below are dimensioned as 3-d no matter what the
 c     BL_SPACEDIM is.  This is to allow for the fact that the inflow forcing
 c     data arrays are always 3-d.
 c
+      logical full_file_in_memory
       integer dimFile(3), loStoreDim(3), hiStoreDim(3)
       integer FF_DIMDEC(storDat)
       REAL_T dxFile(3), probSizeFile(3), xloFile(3), xhiFile(3)
-      REAL_T storDat(:,:,:,:)
-      allocatable storDat
-      save loStoreDim, hiStoreDim, storDat,
+      REAL_T, allocatable :: storDat(:,:,:,:)
+
+      save full_file_in_memory, loStoreDim, hiStoreDim, storDat,
      $     dimFile, xloFile, xhiFile, dxFile, dtFile, timeMaxFile, 
      $     storePnt, filePnt, timePnt, timeOffset, npass
 
@@ -70,6 +71,7 @@ c
       call bl_pd_myproc(proc)
 
       if (.NOT. ALLOCATED(storDat)) then
+
          open(FF_UNIT, file=trim(flct_file)//'/HDR', form='formatted', action='read', status='old')
 
          call RD_SCL_FLCTHD(FF_UNIT,nCmpFile,dimFile,probSizeFile,dxFile)
@@ -90,9 +92,12 @@ c
             hiStoreDim(n) = dimFile(n)
          enddo
 
-         if (numInflPlanesStore .GT. 0 .AND.
-     $        numInflPlanesStore .LT. hiStoreDim(strmwse_dir))
-     $        hiStoreDim(strmwse_dir) = numInflPlanesStore
+         if (numInflPlanesStore .GT. 0 .AND. numInflPlanesStore .LT. hiStoreDim(strmwse_dir)) then
+             hiStoreDim(strmwse_dir) = numInflPlanesStore
+             full_file_in_memory = .false.
+          else
+             full_file_in_memory = .true.
+          endif
 
          call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
 
@@ -102,14 +107,19 @@ c       ::::   Convert the streamwise direction lengths to times   ::::
 c       :::: and set up the pointers into the data arrays and file ::::
 c
          timeMaxFile = probSizeFile(strmwse_dir) / convVel
-         dtFile = dxFile(strmwse_dir) / convVel
+         dtFile      = dxFile(strmwse_dir) / convVel
 
-         npass = INT(time / timeMaxFile)
-         timeOffset = FLOAT(npass) * timeMaxFile
+         npass      = INT(time / timeMaxFile)
+         timeOffset = DBLE(npass) * timeMaxFile
 
          filePnt = INT((time - timeOffset) / dtFile) + 1
-         timePnt = timeOffset + FLOAT(filePnt-1) * dtFile
-         storePnt = 2
+         timePnt = timeOffset + DBLE(filePnt-1) * dtFile
+
+         if (full_file_in_memory) then
+            storePnt = filePnt + 1
+         else
+            storePnt = 2
+         endif
 
          call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
      $        FF_DIMS(storDat), storDat)
@@ -120,30 +130,33 @@ c
       npassOld   = npass
       filePntOld = filePnt
 
-      do while ( (time .lt. timePnt - half*dtFile) .or.
-     $           (time .gt. timePnt + half*dtFile) )
+      do while ( (time .lt. timePnt - half*dtFile) .or. (time .gt. timePnt + half*dtFile) )
          if (time .gt. timePnt + half*dtFile) then
             filePnt  = filePnt + 1
             storePnt = storePnt + 1
             if (filePnt .gt. dimFile(strmwse_dir) - 1) then
                npass      = npass + 1
-               timeOffset = FLOAT(npass) * timeMaxFile
+               timeOffset = DBLE(npass) * timeMaxFile
                filePnt    = filePnt - dimFile(strmwse_dir) + 1
+               if (full_file_in_memory) storePnt = filePnt + 1
             endif
          else if (time .lt. timePnt - half*dtFile) then
             filePnt  = filePnt - 1
             storePnt = storePnt - 1
             if (filePnt .lt. 1) then
                npass      = npass - 1
-               timeOffset = FLOAT(npass) * timeMaxFile
+               timeOffset = DBLE(npass) * timeMaxFile
                filePnt    = filePnt + dimFile(strmwse_dir) - 1
+               if (full_file_in_memory) storePnt = filePnt + 1
             endif
          endif
-         timePnt = timeOffset + FLOAT(filePnt-1) * dtFile
+         timePnt = timeOffset + DBLE(filePnt-1) * dtFile
       enddo
 
-      if ((storePnt + 1 .gt. hiStoreDim(strmwse_dir)) .or.
-     &    (storePnt - 1 .lt. 1)) then
+      if ((storePnt + 1 .gt. hiStoreDim(strmwse_dir)) .or. (storePnt - 1 .lt. 1)) then
+         if (full_file_in_memory) then
+            call bl_abort('INFL_FILL_PERIODIC: how did we get here?')
+         endif
          call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
      $        FF_DIMS(storDat), storDat)
          storePnt = 2
