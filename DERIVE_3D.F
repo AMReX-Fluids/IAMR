@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.33 2009-11-19 21:26:13 lijewski Exp $
+c $Id: DERIVE_3D.F,v 1.34 2009-11-28 23:46:28 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -297,7 +297,7 @@ c     Adjust z offset for probtype 15
             Lz = forcing_zlength
          endif
 
-         if (hack_lz) then
+         if (hack_lz.eq.1) then
             Lz = Lz/two
          endif
 
@@ -452,7 +452,7 @@ c     Adjust z offset for probtype 15
             Ly = forcing_ylength
             Lz = forcing_zlength
          endif
-         if (hack_lz) then
+         if (hack_lz.eq.1) then
             Lz = Lz/two
          endif
          Lmin = min(Lx,Ly,Lz)
@@ -597,7 +597,7 @@ c     Adjust z offset for probtype 15
             Ly = forcing_ylength
             Lz = forcing_zlength
          endif
-         if (hack_lz) then
+         if (hack_lz.eq.1) then
             Lz = Lz/two
          endif
          Lmin = min(Lx,Ly,Lz)
@@ -743,7 +743,7 @@ c     Adjust z offset for probtype 15
             Ly = forcing_ylength
             Lz = forcing_zlength
          endif
-         if (hack_lz) then
+         if (hack_lz.eq.1) then
             Lz = Lz/two
          endif
          Lmin = min(Lx,Ly,Lz)
