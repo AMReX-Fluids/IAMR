@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.53 2008-12-10 20:59:29 aaspden Exp $
+c $Id: PROB_3D.F,v 1.54 2009-11-28 23:46:44 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -114,7 +114,9 @@ c ::: -----------------------------------------------------------
      &                  FPX, FPY, FPZ, FAX, FAY, FAZ
 #endif
 
-      namelist /fortin/ jet_x, jet_y, jet_width, jet_rho, jet_vel, coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2
+      namelist /fortin/ jet_x, jet_y, jet_width, jet_rho, jet_vel,
+     &                  coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2,
+     &                  do_jet_sponge, jet_sponge_scale, jet_sponge_height, jet_sponge_radius
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -3155,6 +3157,13 @@ c     Round jet/plume
 #ifdef MOREGENGETFORCE
                      if (do_trac2.eq.1) then
                         force(i,j,k,nZvel) = force(i,j,k,nZvel) + thermal_expansion*scal(i,j,k,nTrac2Scal)
+                     endif
+                     if (do_jet_sponge.eq.1) then
+                        if (z.gt.jet_sponge_height .or. sqrt(x*x+y*y).gt.jet_sponge_radius) then
+                           force(i,j,k,nXvel) = force(i,j,k,nXvel) - jet_sponge_scale*vel(i,j,k,0)
+                           force(i,j,k,nYvel) = force(i,j,k,nYvel) - jet_sponge_scale*vel(i,j,k,1)
+                           force(i,j,k,nZvel) = force(i,j,k,nZvel) - jet_sponge_scale*vel(i,j,k,2)
+                        endif
                      endif
 #endif
                   enddo
