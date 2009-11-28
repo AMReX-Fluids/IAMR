@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.171 2009-11-19 22:32:00 lijewski Exp $
+// $Id: Projection.cpp,v 1.172 2009-11-28 03:40:18 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -672,9 +672,9 @@ Projection::level_project (int             level,
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        std::cout << "Projection:level_project(): lev: "
+        std::cout << "Projection::level_project(): lev: "
                   << level
-                  << ", time: " << run_time << std::endl;
+                  << ", time: " << run_time << '\n';
     }
 }
 
@@ -1086,6 +1086,8 @@ Projection::initialVelocityProject (int  c_lev,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::initialVelocityProject()");
 
+    const Real strt_time = ParallelDescriptor::second();
+
     int lev;
     int f_lev = finest_level;
     if (verbose && ParallelDescriptor::IOProcessor()) 
@@ -1273,6 +1275,16 @@ Projection::initialVelocityProject (int  c_lev,
         LevelData[lev].get_old_data(Press_Type).setVal(0);
         LevelData[lev].get_new_data(Press_Type).setVal(0);
     }
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "Projection::initialVelocityProject(): time: " << run_time << '\n';
+    }
 }
 
 void
@@ -1416,6 +1428,8 @@ Projection::initialSyncProject (int       c_lev,
                                 int       have_divu)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::initialSyncProject()");
+
+    const Real stime = ParallelDescriptor::second();
 
     int lev;
     int f_lev = finest_level;
@@ -1629,6 +1643,16 @@ Projection::initialSyncProject (int       c_lev,
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
         incrPress(lev, 1.0);
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - stime;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "Projection::initialSyncProject(): time: " << run_time << '\n';
+    }
 }
 
 //
