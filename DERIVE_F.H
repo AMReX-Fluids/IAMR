@@ -2,7 +2,7 @@
 #define _DERIVE_F_H
 
 /*
-** $Id: DERIVE_F.H,v 1.21 2008-12-10 20:28:37 aaspden Exp $
+** $Id: DERIVE_F.H,v 1.22 2009-12-02 21:30:41 aaspden Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -29,6 +29,8 @@
 #    define FORT_DERGRDPY    dergrdpy
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    dergrdpz
+#    define FORT_DERRADVEL   derradvel
+#    define FORT_DERAZIVEL   derazivel
 #    define FORT_DERXVELROT  derxvelrot
 #    define FORT_DERYVELROT  deryvelrot
 #    define FORT_DERMAGVELROT dermagvelrot
@@ -71,6 +73,8 @@
 #    define FORT_DERGRDPY    DERGRDPY
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    DERGRDPZ
+#    define FORT_DERRADVEL   DERRADVEL
+#    define FORT_DERAZIVEL   DERAZIVEL
 #    define FORT_DERXVELROT  DERXVELROT
 #    define FORT_DERYVELROT  DERYVELROT
 #    define FORT_DERMAGVELROT DERMAGVELROT
@@ -113,6 +117,8 @@
 #    define FORT_DERGRDPY    dergrdpy
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    dergrdpz
+#    define FORT_DERRADVEL   derradvel
+#    define FORT_DERAZIVEL   derazivel
 #    define FORT_DERXVELROT  derxvelrot
 #    define FORT_DERYVELROT  deryvelrot
 #    define FORT_DERMAGVELROT dermagvelrot
@@ -155,6 +161,8 @@
 #    define FORT_DERGRDPY    dergrdpy_
 #if (BL_SPACEDIM == 3)
 #    define FORT_DERGRDPZ    dergrdpz_
+#    define FORT_DERRADVEL   derradvel_
+#    define FORT_DERAZIVEL   derazivel_
 #    define FORT_DERXVELROT  derxvelrot_
 #    define FORT_DERYVELROT  deryvelrot_
 #    define FORT_DERMAGVELROT dermagvelrot_
@@ -349,6 +357,24 @@ extern "C" {
 
 #if (BL_SPACEDIM == 3)
      void FORT_DERGRDPZ   (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
+
+     void FORT_DERRADVEL (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
+
+     void FORT_DERAZIVEL (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
 			   const int* lo, const int* hi,

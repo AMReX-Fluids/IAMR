@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.34 2009-11-28 23:46:28 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.35 2009-12-02 21:30:41 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -38,6 +38,94 @@ c                  valid only if component touches bndry
 c     -----------------------------------------------------------
 
 #ifdef MOREGENGETFORCE
+      subroutine FORT_DERRADVEL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                         bc,level, grid_no)
+
+      implicit none
+
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer    i,j,k
+      REAL_T     ux, uy
+      REAL_T     x, y, r
+      REAL_T     hx, hy
+
+#include "probdata.H"
+
+      hx = delta(1)
+      hy = delta(2)
+!$omp parallel do private(i,j,k,x,y,r,ux,uy)
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+               r = sqrt(x*x+y*y)
+               ux = dat(i,j,k,1)
+               uy = dat(i,j,k,2)
+               e(i,j,k,1) = (ux*x+uy*y)/r
+            end do
+         end do
+      end do
+!$omp end parallel do
+
+      end
+
+      subroutine FORT_DERAZIVEL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                         bc,level, grid_no)
+
+      implicit none
+
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer    i,j,k
+      REAL_T     ux, uy
+      REAL_T     x, y, r
+      REAL_T     hx, hy
+
+#include "probdata.H"
+
+      hx = delta(1)
+      hy = delta(2)
+!$omp parallel do private(i,j,k,x,y,r,ux,uy)
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+               r = sqrt(x*x+y*y)
+               ux = dat(i,j,k,1)
+               uy = dat(i,j,k,2)
+               e(i,j,k,1) = (uy*x-ux*y)/r
+            end do
+         end do
+      end do
+!$omp end parallel do
+
+      end
+
       subroutine FORT_DERXVELROT (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                         bc,level, grid_no)

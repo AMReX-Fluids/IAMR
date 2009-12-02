@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.57 2008-12-10 20:28:37 aaspden Exp $
+// $Id: NS_setup.cpp,v 1.58 2009-12-02 21:30:41 aaspden Exp $
 //
 
 #include <winstd.H>
@@ -407,12 +407,22 @@ NavierStokes::variableSetUp ()
     derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
 #ifdef MOREGENGETFORCE
     //
+    // radial velocity
+    //
+    derive_lst.add("radial_velocity",IndexType::TheCellType(),1,FORT_DERRADVEL,the_same_box);
+    derive_lst.addComponent("radial_velocity",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
+    // azimuthal velocity
+    //
+    derive_lst.add("azimuthal_velocity",IndexType::TheCellType(),1,FORT_DERAZIVEL,the_same_box);
+    derive_lst.addComponent("azimuthal_velocity",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
     // x_velocity in laboratory frame for rotating frame of refernce
     //
     derive_lst.add("x_velocity_rot",IndexType::TheCellType(),1,FORT_DERXVELROT,the_same_box);
     derive_lst.addComponent("x_velocity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
-    // x_velocity in laboratory frame for rotating frame of refernce
+    // y_velocity in laboratory frame for rotating frame of refernce
     //
     derive_lst.add("y_velocity_rot",IndexType::TheCellType(),1,FORT_DERYVELROT,the_same_box);
     derive_lst.addComponent("y_velocity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);

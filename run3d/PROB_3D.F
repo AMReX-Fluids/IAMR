@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.54 2009-11-28 23:46:44 aaspden Exp $
+c $Id: PROB_3D.F,v 1.55 2009-12-02 21:30:57 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -115,7 +115,7 @@ c ::: -----------------------------------------------------------
 #endif
 
       namelist /fortin/ jet_x, jet_y, jet_width, jet_rho, jet_vel,
-     &                  coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2,
+     &                  coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2, plane_jet,
      &                  do_jet_sponge, jet_sponge_scale, jet_sponge_height, jet_sponge_radius
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
@@ -1941,8 +1941,13 @@ c
 	    do i = lo(1), hi(1)
                x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-               r2= (x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y)
-               r = sqrt(r2)
+               if (plane_jet.eq.1) then
+                  r = abs(x-jet_x)
+                  r2= r*r
+               else
+                  r2= (x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y)
+                  r = sqrt(r2)
+               endif
 
                vel(i,j,k,1) = zero
                vel(i,j,k,2) = zero
@@ -1987,11 +1992,13 @@ c
       REAL_T  hx, hy, hz
       REAL_T  Lx, Ly, Lz
 
-      integer nx, mx
+      integer nx, mx, mn
 c     nx is the number of modes to use for velocity perturbation
-      parameter (nx=10)
+      parameter (nx=16)
 c     mx is the maximum wavenumber in each direction to choose random modes from
-      parameter (mx=4)
+      parameter (mx=8)
+c     mn is the miniimum wavenumber in each direction to choose random modes from
+      parameter (mn=4)
 c     a,b,c are random amplitudes in the range (0,1)
       REAL_T  a(nx,SDIM),b(nx,SDIM),c(nx,SDIM),rn
 c     d,e,f are random modes in the range (1,mx)
@@ -2021,11 +2028,11 @@ c     d,e,f are random modes in the range (1,mx)
             call blutilrand(rn)
             c(n,m) = rn
             call blutilrand(rn)
-            d(n,m) = int(rn*mx+one)
+            d(n,m) = mn+int(rn*mx+one)
             call blutilrand(rn)
-            e(n,m) = int(rn*mx+one)
+            e(n,m) = mn+int(rn*mx+one)
             call blutilrand(rn)
-            f(n,m) = int(rn*mx+one)
+            f(n,m) = mn+int(rn*mx+one)
          enddo
       enddo
       if (lo(1).eq.0.and.lo(2).eq.0.and.lo(3).eq.0.and.isioproc.eq.1) then
@@ -3292,6 +3299,9 @@ c     Coriolis
                      force(i,j,k,nXvel) = scal(i,j,k,nRhoScal)*( two*omega*vel(i,j,k,nYvel)+omega*omega*x)
                      force(i,j,k,nYvel) = scal(i,j,k,nRhoScal)*(-two*omega*vel(i,j,k,nXvel)+omega*omega*y)
                      force(i,j,k,nZvel) = gravity*scal(i,j,k,nRhoScal)
+                     if (do_trac2.eq.1) then
+                        force(i,j,k,nZvel) = force(i,j,k,nZvel) + thermal_expansion*scal(i,j,k,nTrac2Scal)
+                     endif
                   enddo
                enddo
             enddo
@@ -3390,7 +3400,7 @@ c     Temperature perturbation
                      enddo
                   enddo
                else  if (probtype.eq.18) then 
-c     Round Jet/Plume
+c     Round Jet/Plume (18)
                   do k = klo, khi
                      z = xlo(3) + hz*(float(k-klo) + half)
                      do j = jlo, jhi
@@ -3398,6 +3408,24 @@ c     Round Jet/Plume
 #ifdef MOREGENGETFORCE
                            if (abs(z-heating_centre).lt.heating_radius) then 
                               force(i,j,k,n) = heating_coeff * scal(i,j,k,nTracScal)
+                           else
+                              force(i,j,k,n) = zero
+                           endif
+#else
+                           force(i,j,k,n) = zero
+#endif
+                        enddo
+                     enddo
+                  enddo
+               else  if (probtype.eq.19) then 
+c     Coriolis evaporation (19)
+                  do k = klo, khi
+                     z = xlo(3) + hz*(float(k-klo) + half)
+                     do j = jlo, jhi
+                        do i = ilo, ihi
+#ifdef MOREGENGETFORCE
+                           if (abs(z-heating_centre).lt.heating_radius) then 
+                              force(i,j,k,n) = heating_coeff
                            else
                               force(i,j,k,n) = zero
                            endif
@@ -4535,7 +4563,11 @@ c           write (6,*) "Filling with unit density"
                  y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
                  do i = ARG_L1(rho), ARG_H1(rho)
                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
-                    r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
+                    if (plane_jet.eq.1) then 
+                       r = abs(x-jet_x)
+                    else
+                       r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
+                    endif
                     rho(i,j,k) = half*(rs-rd*tanh(two*(r-jet_width)/delta0))
                  enddo
               enddo
@@ -4790,7 +4822,11 @@ c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                   y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
                   do i = ARG_L1(adv), ARG_H1(adv)
                      x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
-                     r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
+                     if (plane_jet.eq.1) then 
+                        r = abs(x-jet_x)
+                     else
+                        r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
+                     endif
                      adv(i,j,k) = half*(one-tanh(two*(r-jet_width)/delta0))
                   enddo
                enddo
@@ -4895,7 +4931,11 @@ c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                   y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
                   do i = ARG_L1(adv), ARG_H1(adv)
                      x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
-                     r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
+                     if (plane_jet.eq.1) then 
+                        r = abs(x-jet_x)
+                     else
+                        r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
+                     endif
                      adv(i,j,k) = jet_temp*half*(one-tanh(two*(r-jet_width)/delta0))
                   enddo
                enddo
@@ -5035,7 +5075,11 @@ c ::: -----------------------------------------------------------
                   y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
                   do i = ARG_L1(temp), ARG_H1(temp)
                      x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
-                     r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
+                     if (plane_jet.eq.1) then 
+                        r = abs(x-jet_x)
+                     else
+                        r = sqrt((x-jet_x)*(x-jet_x)+(y-jet_y)*(y-jet_y))
+                     endif
                      temp(i,j,k) = cvmgt(one,zero,r.le.jet_width)
                   end do
                end do
@@ -5233,7 +5277,11 @@ c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(u), ARG_H1(u)
                      x = domnlo(1) + (i+0.5)*dx(1)
-                     r = sqrt( (x-jet_x)*(x-jet_x) + (y-jet_y)*(y-jet_y) )
+                     if (plane_jet.eq.1) then 
+                        r = abs(x-jet_x)
+                     else
+                        r = sqrt( (x-jet_x)*(x-jet_x) + (y-jet_y)*(y-jet_y) )
+                     endif
                      jv= half*jet_vel*(one-tanh(two*(r-jet_width)/delta0))
                      u(i,j,k) = zero
 #ifdef BL_DO_FLCT
@@ -5477,7 +5525,11 @@ c ::: -----------------------------------------------------------
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(v), ARG_H1(v)
                      x = domnlo(1) + (i+0.5)*dx(1)
-                     r = sqrt( (x-jet_x)*(x-jet_x) + (y-jet_y)*(y-jet_y) )
+                     if (plane_jet.eq.1) then 
+                        r = abs(x-jet_x)
+                     else
+                        r = sqrt( (x-jet_x)*(x-jet_x) + (y-jet_y)*(y-jet_y) )
+                     endif
                      jv= half*jet_vel*(one-tanh(two*(r-jet_width)/delta0))
                      v(i,j,k) = zero
 #ifdef BL_DO_FLCT
@@ -5730,7 +5782,11 @@ c ::: -----------------------------------------------------------
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(w), ARG_H1(w)
                      x = domnlo(1) + (i+0.5)*dx(1)
-                     r = sqrt( (x-jet_x)*(x-jet_x) + (y-jet_y)*(y-jet_y) )
+                     if (plane_jet.eq.1) then 
+                        r = abs(x-jet_x)
+                     else
+                        r = sqrt( (x-jet_x)*(x-jet_x) + (y-jet_y)*(y-jet_y) )
+                     endif
                      w(i,j,k) = half*((jet_vel+coflow_vel)-(jet_vel-coflow_vel)*tanh(two*(r-jet_width)/delta0))
 #ifdef BL_DO_FLCT
                      if (r.lt.jet_width) then
