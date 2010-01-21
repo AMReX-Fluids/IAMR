@@ -6,7 +6,7 @@
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "BC_TYPES.H"
-#include "NAVIERSTOKES_F.H"
+#include "LS_F.H"
 #include "ArrayLim.H"
 
 #define SDIM 3
