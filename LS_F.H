@@ -119,7 +119,7 @@ extern "C" {
                          const int * lo, const int * hi, const Real * dx,
                          int * intfacenum, int* intface,
                          int * nband, int* nbandsize, int* nbandnum,
-                         int* mine, int* minenum, int* sgn, int* intfacesize, int* heap,
+                         int* mine, int* sgn, int* intfacesize, int* heap,
                          int * heaploc);
 
 
