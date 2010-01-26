@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.56 2010-01-26 10:02:13 marc Exp $
+c $Id: PROB_3D.F,v 1.57 2010-01-26 10:13:21 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -117,6 +117,8 @@ c ::: -----------------------------------------------------------
       namelist /fortin/ jet_x, jet_y, jet_width, jet_rho, jet_vel,
      &                  coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2, plane_jet,
      &                  do_jet_sponge, jet_sponge_scale, jet_sponge_height, jet_sponge_radius
+
+      namelist /fortin/ holeRad, holeBLfac, nHolesX, nHolesY
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -161,6 +163,11 @@ c
       Vco_r = -1
       eul_nfreq = 2
       iseed = 111397
+
+      holeRad = .0015d0
+      nHolesX = 5
+      nHolesY = 5
+      holeBLfac = 50.d0
 
       untin = 9
       if (namlen .eq. 0) then
@@ -5962,14 +5969,10 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
       implicit none
 #include "probdata.H"
       REAL_T x,y
-      REAL_T totHoleA, holeRad, holeSepX, holeSepY, nHolesX, nHolesY, Lx, Ly
-      REAL_T jetVel, xHole, yHole, rHole, holeBLfac, zblend1, rFact
+      REAL_T totHoleA, holeSepX, holeSepY, Lx, Ly
+      REAL_T jetVel, xHole, yHole, rHole, zblend1, rFact
       REAL_T hRad, hBL
       integer nHoles, iHoleX, iHoleY
-      parameter (holeRad = .0015d0)
-      parameter (nHolesX = 5)
-      parameter (nHolesY = 5)
-      parameter (holeBLfac = 50.d0)
 
       Lx = (domnhi(1) - domnlo(1))
       Ly = (domnhi(2) - domnlo(2))

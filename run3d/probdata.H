@@ -62,3 +62,9 @@
       REAL_T Vco, Rfu, Rtran, tVco_l, tVco_r, Vco_l, Vco_r
       common /inflow3/Vco, Rfu, Rtran, tVco_l, tVco_r, Vco_l, Vco_r
       save /inflow3/
+
+      REAL_T holeRad, holeBLfac
+      common /inflow4/ holeRad, holeBLfac
+      integer nHolesX, nHolesY
+      common /inflow5/ nHolesX, nHolesY
+      save /inflow4/, /inflow5/
