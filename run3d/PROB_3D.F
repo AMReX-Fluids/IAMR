@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.55 2009-12-02 21:30:57 aaspden Exp $
+c $Id: PROB_3D.F,v 1.56 2010-01-26 10:02:13 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -760,6 +760,10 @@ c ::: -----------------------------------------------------------
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
 
+      else if (probtype .eq. 26) then
+         call initinflow(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
       end if
@@ -4450,7 +4454,11 @@ c ::: -----------------------------------------------------------
            do k = lo(3), domlo(3)-1
               do j = lo(2), hi(2)
               do i = lo(1), hi(1)
-                 rho(i,j,k) = den2
+                 if (probtype.eq.26) then
+                    rho(i,j,k) = 1.d0
+                 else
+                    rho(i,j,k) = den2
+                 endif
               enddo
               enddo
            enddo
@@ -4572,6 +4580,14 @@ c           write (6,*) "Filling with unit density"
                  enddo
               enddo
            enddo
+        else if (probtype.eq.26) then
+           do k = ARG_L3(rho), domlo(3)-1
+              do j = ARG_L2(rho), ARG_H2(rho)
+                 do i = ARG_L1(rho), ARG_H1(rho)
+                    rho(i,j,k) = 1.d0
+                 end do
+              end do
+           end do
         else
            do k = ARG_L3(rho), domlo(3)-1
               do j = ARG_L2(rho), ARG_H2(rho)
@@ -5292,6 +5308,21 @@ c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                   enddo
                enddo
             enddo
+         else if (probtype.eq.26) then
+            do k = ARG_L3(u), domlo(3)-1
+               do j = ARG_L2(u), ARG_H2(u)
+                  y = domnlo(2) + (j+0.5)*dx(2)
+                  do i = ARG_L1(u), ARG_H1(u)
+                     x = domnlo(1) + (i+0.5)*dx(1)
+                     u(i,j,k) = zero
+#ifdef BL_DO_FLCT
+                     if (r.lt.jet_width) then
+                        u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
+                     endif
+#endif
+                  enddo
+               enddo
+            enddo
          else 
 
 
@@ -5540,6 +5571,21 @@ c ::: -----------------------------------------------------------
                   enddo
                enddo
             enddo
+         else if (probtype.eq.26) then
+            do k = ARG_L3(v), domlo(3)-1
+               do j = ARG_L2(v), ARG_H2(v)
+                  y = domnlo(2) + (j+0.5)*dx(2)
+                  do i = ARG_L1(v), ARG_H1(v)
+                     x = domnlo(1) + (i+0.5)*dx(1)
+                     v(i,j,k) = zero
+#ifdef BL_DO_FLCT
+                     if (r.lt.jet_width) then
+                        v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
+                     endif
+#endif
+                  enddo
+               enddo
+            enddo
          else 
             if (probtype.eq.16) then
                t = time*jet_vel/jet_width
@@ -5672,6 +5718,7 @@ c ::: -----------------------------------------------------------
 #include "INFL_FORCE_F.H"
 #endif
       REAL_T x,y,r,u1,u2,u3,u_inf,eta
+      REAL_T meanPlateVel
 
       lo(1) = ARG_L1(w)
       lo(2) = ARG_L2(w)
@@ -5797,6 +5844,22 @@ c ::: -----------------------------------------------------------
                enddo
             enddo
 
+         else if (probtype.eq.26) then
+            do k = ARG_L3(w), domlo(3)-1
+               do j = ARG_L2(w), ARG_H2(w)
+                  y = domnlo(2) + (j+0.5)*dx(2)
+                  do i = ARG_L1(w), ARG_H1(w)
+                     x = domnlo(1) + (i+0.5)*dx(1)
+                     w(i,j,k) = meanPlateVel(x,y)
+#ifdef BL_DO_FLCT
+                     if (r.lt.jet_width) then
+                        w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
+                     endif
+#endif
+                  enddo
+               enddo
+            enddo
+
          else 
             if (probtype.eq.16) then
                t = time*jet_vel/jet_width
@@ -5893,6 +5956,40 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
       if (forceInflow) deallocate(wflct)
 #endif
 
+      end
+
+      REAL_T function meanPlateVel(x,y)
+      implicit none
+#include "probdata.H"
+      REAL_T x,y
+      REAL_T totHoleA, holeRad, holeSepX, holeSepY, nHolesX, nHolesY, Lx, Ly
+      REAL_T jetVel, xHole, yHole, rHole, holeBLfac, zblend1, rFact
+      REAL_T hRad, hBL
+      integer nHoles, iHoleX, iHoleY
+      parameter (holeRad = .0015d0)
+      parameter (nHolesX = 5)
+      parameter (nHolesY = 5)
+      parameter (holeBLfac = 50.d0)
+
+      Lx = (domnhi(1) - domnlo(1))
+      Ly = (domnhi(2) - domnlo(2))
+      holeSepX = Lx / nHolesX
+      holeSepY = Ly / nHolesY
+      hRad = MIN(holeRad, 0.3*MIN(holeSepX,holeSepY))
+      hBL = hRad/holeBLfac
+      
+      totHoleA = nHolesX*nHolesY*Pi*hRad**2
+      jetVel = adv_vel * Lx * Ly / totHoleA
+
+      iHoleX = INT(x/holeSepX)
+      iHoleY = INT(y/holeSepY)
+
+      xHole = x - (iHoleX + 0.5)*holeSepX
+      yHole = y - (iHoleY + 0.5)*holeSepY
+      rHole = SQRT(xHole**2 + yHole**2)
+
+      rFact = 1.d0 - zblend1(rHole,hRad,hBL)
+      meanPlateVel = jetVel * rFact
       end
 
 c ::: -----------------------------------------------------------
