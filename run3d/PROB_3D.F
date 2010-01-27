@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.57 2010-01-26 10:13:21 marc Exp $
+c $Id: PROB_3D.F,v 1.58 2010-01-27 20:35:25 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -5323,9 +5323,7 @@ c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                      x = domnlo(1) + (i+0.5)*dx(1)
                      u(i,j,k) = zero
 #ifdef BL_DO_FLCT
-                     if (r.lt.jet_width) then
-                        u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
-                     endif
+                     u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
 #endif
                   enddo
                enddo
@@ -5586,9 +5584,7 @@ c ::: -----------------------------------------------------------
                      x = domnlo(1) + (i+0.5)*dx(1)
                      v(i,j,k) = zero
 #ifdef BL_DO_FLCT
-                     if (r.lt.jet_width) then
-                        v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
-                     endif
+                     v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
 #endif
                   enddo
                enddo
@@ -5859,9 +5855,7 @@ c ::: -----------------------------------------------------------
                      x = domnlo(1) + (i+0.5)*dx(1)
                      w(i,j,k) = meanPlateVel(x,y)
 #ifdef BL_DO_FLCT
-                     if (r.lt.jet_width) then
-                        w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
-                     endif
+                     w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
 #endif
                   enddo
                enddo
