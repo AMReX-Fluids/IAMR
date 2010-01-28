@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.58 2010-01-27 20:35:25 marc Exp $
+c $Id: PROB_3D.F,v 1.59 2010-01-28 22:36:44 xinfeng Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -769,6 +769,11 @@ c ::: -----------------------------------------------------------
 
       else if (probtype .eq. 26) then
          call initinflow(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
+      else if (probtype .eq. 27) then
+         call initflow(level,time,lo,hi,nscal,
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
       else
@@ -1795,6 +1800,125 @@ c
          end do
       end do
 
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initflow(level,time,lo,hi,nscal,
+     &	 	       vel,scal,DIMS(state),press,DIMS(press),
+     &                 dx,xlo,xhi)
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+      REAL_T totHoleA, holeRadius, holeSepX, holeSepY, Lx, Ly
+      REAL_T jetVel, xHole, yHole, rHole, zblend1, rFact
+      REAL_T hRad, hBL
+      integer nHoles, iHoleX, iHoleY
+      integer    bc(SDIM,2)
+
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  dist
+      REAL_T  x_vel, y_vel, z_vel
+      REAL_T  twicePi, rn
+
+#include "probdata.H"
+#ifdef BL_DO_FLCT
+      REAL_T t_flct
+      integer loFlctArray(SDIM), hiFlctArray(SDIM)
+      integer DIMDEC(wflct)
+      REAL_T, allocatable :: wflct(:,:,:)
+#include "INFL_FORCE_F.H"
+
+      if (forceInflow) then
+         do i = 1, 3
+            loFlctArray(i) = lo(i)
+            hiFlctArray(i) = hi(i)
+         end do
+         loFlctArray(adv_dir) = 1
+         hiFlctArray(adv_dir) = 1
+         call SET_ARGS(DIMS(wflct), loFlctArray, hiFlctArray)
+         allocate(wflct(DIMV(wflct)))
+         convVel = one
+         t_flct = adv_vel*time
+         call INFL_FILL(FLCT_ZVEL,DIMS(wflct),wflct,xlo,dx,t_flct,bc,domnlo,domnhi)
+      end if
+#endif
+
+
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      twicePi = two*Pi
+
+      holeRadius = .0015d0
+      nHolesX = 6
+      nHolesY = 6
+      holeBLfac = 50.d0   
+      Lx = 0.05
+      Ly = 0.05 
+      holeSepX = Lx / nHolesX
+      holeSepY = Ly / nHolesY
+      hRad = MIN(holeRadius, 0.3*MIN(holeSepX,holeSepY))
+      hBL = hRad/holeBLfac
+      
+      totHoleA = nHolesX*nHolesY*Pi*hRad**2
+      jetVel = adv_vel*Lx * Ly / totHoleA
+    
+      x_vel = zero
+      y_vel = zero
+      z_vel = zero
+      
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+	    do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+               vel(i,j,k,1) = x_vel
+               vel(i,j,k,2) = y_vel
+               vel(i,j,k,3) = z_vel
+
+               iHoleX = INT(x/holeSepX)
+               iHoleY = INT(y/holeSepY)
+               xHole = x - (iHoleX + 0.5)*holeSepX
+               yHole = y - (iHoleY + 0.5)*holeSepY
+               rHole = SQRT(xHole**2 + yHole**2)
+               
+               if (rHole.le.holeRadius) then
+                  rFact = 1.d0
+               else
+                  rFact= 0.d0
+               endif
+
+c               vel(i,j,k,3) = jetVel*rFact+ wflct(i,j,1)*turb_scale
+               
+               vel(i,j,k,3) = jetVel*(rFact+0.01*sin(twicePi*z/Lx + wflct(i,j,1))) 
+                      
+               scal(i,j,k,1) = one
+               do n = 2,nscal
+                  scal(i,j,k,n) = zero
+               end do
+               
+	    end do
+         end do
+      end do
+      
       end
 c
 c ::: -----------------------------------------------------------
