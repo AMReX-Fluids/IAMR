@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.59 2010-01-28 22:36:44 xinfeng Exp $
+c $Id: PROB_3D.F,v 1.60 2010-01-29 02:02:20 xinfeng Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -118,7 +118,7 @@ c ::: -----------------------------------------------------------
      &                  coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2, plane_jet,
      &                  do_jet_sponge, jet_sponge_scale, jet_sponge_height, jet_sponge_radius
 
-      namelist /fortin/ holeRad, holeBLfac, nHolesX, nHolesY
+      namelist /fortin/ holeRad, holeBLfac, nHolesX, nHolesY, nHolesZ
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -167,6 +167,7 @@ c
       holeRad = .0015d0
       nHolesX = 5
       nHolesY = 5
+      nHolesZ = 1
       holeBLfac = 50.d0
 
       untin = 9
@@ -1818,98 +1819,82 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-      REAL_T totHoleA, holeRadius, holeSepX, holeSepY, Lx, Ly
-      REAL_T jetVel, xHole, yHole, rHole, zblend1, rFact
-      REAL_T hRad, hBL
-      integer nHoles, iHoleX, iHoleY
-      integer    bc(SDIM,2)
-
+      integer  bc(SDIM,2)
+      integer dir(SDIM), numholes(SDIM), idholes(SDIM)
+      REAL_T  holespace(SDIM)
+      REAL_T  dist(SDIM), loc(SDIM),velocity(SDIM)
 c
 c     ::::: local variables
 c
       integer i, j, k, n
-      REAL_T  x, y, z
-      REAL_T  hx, hy, hz
-      REAL_T  dist
-      REAL_T  x_vel, y_vel, z_vel
       REAL_T  twicePi, rn
-
+      REAL_T cond 
+      REAL_T totHoleA
+      REAL_T jetVel, radius, sectarea
 #include "probdata.H"
-#ifdef BL_DO_FLCT
-      REAL_T t_flct
-      integer loFlctArray(SDIM), hiFlctArray(SDIM)
-      integer DIMDEC(wflct)
-      REAL_T, allocatable :: wflct(:,:,:)
-#include "INFL_FORCE_F.H"
-
-      if (forceInflow) then
-         do i = 1, 3
-            loFlctArray(i) = lo(i)
-            hiFlctArray(i) = hi(i)
-         end do
-         loFlctArray(adv_dir) = 1
-         hiFlctArray(adv_dir) = 1
-         call SET_ARGS(DIMS(wflct), loFlctArray, hiFlctArray)
-         allocate(wflct(DIMV(wflct)))
-         convVel = one
-         t_flct = adv_vel*time
-         call INFL_FILL(FLCT_ZVEL,DIMS(wflct),wflct,xlo,dx,t_flct,bc,domnlo,domnhi)
-      end if
-#endif
-
-
-
-      hx = dx(1)
-      hy = dx(2)
-      hz = dx(3)
-
-      twicePi = two*Pi
-
-      holeRadius = .0015d0
-      nHolesX = 6
-      nHolesY = 6
-      holeBLfac = 50.d0   
-      Lx = 0.05
-      Ly = 0.05 
-      holeSepX = Lx / nHolesX
-      holeSepY = Ly / nHolesY
-      hRad = MIN(holeRadius, 0.3*MIN(holeSepX,holeSepY))
-      hBL = hRad/holeBLfac
       
-      totHoleA = nHolesX*nHolesY*Pi*hRad**2
-      jetVel = adv_vel*Lx * Ly / totHoleA
+      cond = 0.d0
+      dir(1) = 0
+      dir(2) = 0
+      dir(3) = 0
+      radius = 0.d0
+      jetVel = 0.d0
+      
+      twicePi = two*Pi
+      totHoleA = numholes(1)*numholes(2)*numholes(3)*Pi*holeRad**2
+      
+      if (adv_dir.eq.1) then
+         dir(1) = 1
+      else if (adv_dir.eq.2) then
+         dir(2) = 1
+      else
+         dir(3) = 1
+      endif
+      
+      sectarea = dir(1)*(domnhi(2) - domnlo(2))*(domnhi(3) - domnlo(3))+
+     &     dir(2)*(domnhi(1) - domnlo(1)) * (domnhi(3) - domnlo(3))+
+     &     dir(3)*(domnhi(1) - domnlo(1)) * (domnhi(2) - domnlo(2)) 
+       
+      numholes(1)= nHolesX 
+      numholes(2)= nHolesY 
+      numholes(3)= nHolesZ  
     
-      x_vel = zero
-      y_vel = zero
-      z_vel = zero
+      do n = 1, 3 
+         holespace(n) = (domnhi(n) - domnlo(n)) / numholes(n)
+         velocity(n) = 0.d0
+      end do
+      
+      jetVel = adv_vel*sectarea/totHoleA
       
       do k = lo(3), hi(3)
-         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         loc(3) = xlo(3) + dx(3)*(float(k-lo(3)) + half)
          do j = lo(2), hi(2)
-            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            loc(2) = xlo(2) + dx(2)*(float(j-lo(2)) + half)
 	    do i = lo(1), hi(1)
-               x = xlo(1) + hx*(float(i-lo(1)) + half)
-
-               vel(i,j,k,1) = x_vel
-               vel(i,j,k,2) = y_vel
-               vel(i,j,k,3) = z_vel
-
-               iHoleX = INT(x/holeSepX)
-               iHoleY = INT(y/holeSepY)
-               xHole = x - (iHoleX + 0.5)*holeSepX
-               yHole = y - (iHoleY + 0.5)*holeSepY
-               rHole = SQRT(xHole**2 + yHole**2)
+               loc(1) = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                
-               if (rHole.le.holeRadius) then
-                  rFact = 1.d0
-               else
-                  rFact= 0.d0
+               do n = 1, 3
+                  idholes(n) = INT(loc(n)/holespace(n))
+                  dist(n) = loc(n) - (idholes(n) + half)*holespace(n)
+               end do
+
+               radius = dir(1)*(dist(2)**2 + dist(3)**2)+
+     &              dir(2)*(dist(1)**2 + dist(3)**2) +
+     &              dir(3)*(dist(1)**2 + dist(2)**2)
+               
+               if (radius.le.holeRad) then
+                  call blutilrand(rn)
+                  do n = 1, 3
+                     velocity(n) = dir(n)*jetVel*(1.d0+
+     &                    0.01*sin(twicePi*loc(n)/(domnhi(n)-domnlo(n)) + rn )) 
+c   &                    +dir(1)*uflct(i,j,1) + dir(2)*vflct(i,j,1) + dir(3)*wflct(i,j,1))) 
+                  end do
                endif
-
-c               vel(i,j,k,3) = jetVel*rFact+ wflct(i,j,1)*turb_scale
                
-               vel(i,j,k,3) = jetVel*(rFact+0.01*sin(twicePi*z/Lx + wflct(i,j,1))) 
-                      
+               do n = 1, 3
+                  vel(i,j,k,n) = velocity(n)
+               end do
+               
                scal(i,j,k,1) = one
                do n = 2,nscal
                   scal(i,j,k,n) = zero
@@ -1920,7 +1905,7 @@ c               vel(i,j,k,3) = jetVel*rFact+ wflct(i,j,1)*turb_scale
       end do
       
       end
-c
+c     
 c ::: -----------------------------------------------------------
 c
       subroutine initjet(level,time,lo,hi,nscal,
