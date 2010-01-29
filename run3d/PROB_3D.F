@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.60 2010-01-29 02:02:20 xinfeng Exp $
+c $Id: PROB_3D.F,v 1.61 2010-01-29 22:42:08 xinfeng Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1841,6 +1841,11 @@ c
       jetVel = 0.d0
       
       twicePi = two*Pi
+      
+      numholes(1)= nHolesX 
+      numholes(2)= nHolesY 
+      numholes(3)= nHolesZ  
+      
       totHoleA = numholes(1)*numholes(2)*numholes(3)*Pi*holeRad**2
       
       if (adv_dir.eq.1) then
@@ -1850,14 +1855,14 @@ c
       else
          dir(3) = 1
       endif
+
+      print *, ' double checking the directions...', dir(1), dir(2), dir(3)
       
       sectarea = dir(1)*(domnhi(2) - domnlo(2))*(domnhi(3) - domnlo(3))+
      &     dir(2)*(domnhi(1) - domnlo(1)) * (domnhi(3) - domnlo(3))+
      &     dir(3)*(domnhi(1) - domnlo(1)) * (domnhi(2) - domnlo(2)) 
        
-      numholes(1)= nHolesX 
-      numholes(2)= nHolesY 
-      numholes(3)= nHolesZ  
+    
     
       do n = 1, 3 
          holespace(n) = (domnhi(n) - domnlo(n)) / numholes(n)
@@ -1878,16 +1883,16 @@ c
                   dist(n) = loc(n) - (idholes(n) + half)*holespace(n)
                end do
 
-               radius = dir(1)*(dist(2)**2 + dist(3)**2)+
+               radius = SQRT(dir(1)*(dist(2)**2 + dist(3)**2)+
      &              dir(2)*(dist(1)**2 + dist(3)**2) +
-     &              dir(3)*(dist(1)**2 + dist(2)**2)
+     &              dir(3)*(dist(1)**2 + dist(2)**2))
                
+            
                if (radius.le.holeRad) then
                   call blutilrand(rn)
                   do n = 1, 3
-                     velocity(n) = dir(n)*jetVel*(1.d0+
-     &                    0.01*sin(twicePi*loc(n)/(domnhi(n)-domnlo(n)) + rn )) 
-c   &                    +dir(1)*uflct(i,j,1) + dir(2)*vflct(i,j,1) + dir(3)*wflct(i,j,1))) 
+                     velocity(n) =dir(n)*jetVel*(1.d0)
+c     &                    + 0.001*sin(twicePi*(loc(n)/(domnhi(n)-domnlo(n)) + rn ))) 
                   end do
                endif
                
@@ -1903,7 +1908,7 @@ c   &                    +dir(1)*uflct(i,j,1) + dir(2)*vflct(i,j,1) + dir(3)*wfl
 	    end do
          end do
       end do
-      
+     
       end
 c     
 c ::: -----------------------------------------------------------
@@ -5277,6 +5282,8 @@ c ::: -----------------------------------------------------------
       REAL_T     hx, hy, hz, gpert, z,  ypert, magwif, constn
       REAL_T     jv, s, t
 
+      REAL_T plateVel
+
 #include "probdata.H"
 
 #ifdef BL_DO_FLCT
@@ -5426,13 +5433,16 @@ c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
             enddo
          else if (probtype.eq.26) then
             do k = ARG_L3(u), domlo(3)-1
+               z = domnlo(3) + (k+0.5)*dx(3)
                do j = ARG_L2(u), ARG_H2(u)
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(u), ARG_H1(u)
                      x = domnlo(1) + (i+0.5)*dx(1)
                      u(i,j,k) = zero
 #ifdef BL_DO_FLCT
-                     u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
+c     u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
+                     u(i,j,k) = plateVel(x, y, z, 1, uflct(i,j,1))
+                     
 #endif
                   enddo
                enddo
@@ -5565,6 +5575,7 @@ c ::: -----------------------------------------------------------
       REAL_T     rn
       REAL_T     jv, s, t
 
+      REAL_T plateVel
 #include "probdata.H"
 
 #ifdef BL_DO_FLCT
@@ -5574,7 +5585,7 @@ c ::: -----------------------------------------------------------
       REAL_T, allocatable :: vflct(:,:,:)
 #include "INFL_FORCE_F.H"
 #endif
-      REAL_T x,y,r,u1,u2,u3,u_inf,eta
+      REAL_T x,y,z,r,u1,u2,u3,u_inf,eta
 
       lo(1) = ARG_L1(v)
       lo(2) = ARG_L2(v)
@@ -5687,13 +5698,15 @@ c ::: -----------------------------------------------------------
             enddo
          else if (probtype.eq.26) then
             do k = ARG_L3(v), domlo(3)-1
+               z = domnlo(3) + (k+0.5)*dx(3)
                do j = ARG_L2(v), ARG_H2(v)
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(v), ARG_H1(v)
                      x = domnlo(1) + (i+0.5)*dx(1)
                      v(i,j,k) = zero
 #ifdef BL_DO_FLCT
-                     v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
+c     v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
+                     v(i,j,k) = plateVel(x, y, z, 2, vflct(i,j,1))
 #endif
                   enddo
                enddo
@@ -5829,8 +5842,8 @@ c ::: -----------------------------------------------------------
       REAL_T, allocatable :: wflct(:,:,:)
 #include "INFL_FORCE_F.H"
 #endif
-      REAL_T x,y,r,u1,u2,u3,u_inf,eta
-      REAL_T meanPlateVel
+      REAL_T x,y,z,r,u1,u2,u3,u_inf,eta
+      REAL_T meanPlateVel, plateVel
 
       lo(1) = ARG_L1(w)
       lo(2) = ARG_L2(w)
@@ -5958,13 +5971,15 @@ c ::: -----------------------------------------------------------
 
          else if (probtype.eq.26) then
             do k = ARG_L3(w), domlo(3)-1
+               z = domnlo(3) + (k+0.5)*dx(3)
                do j = ARG_L2(w), ARG_H2(w)
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(w), ARG_H1(w)
                      x = domnlo(1) + (i+0.5)*dx(1)
                      w(i,j,k) = meanPlateVel(x,y)
 #ifdef BL_DO_FLCT
-                     w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
+                     w(i,j,k) = plateVel(x, y, z, 3, wflct(i,j,1))
+c                     w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
 #endif
                   enddo
                enddo
@@ -6076,7 +6091,7 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
       REAL_T jetVel, xHole, yHole, rHole, zblend1, rFact
       REAL_T hRad, hBL
       integer nHoles, iHoleX, iHoleY
-
+      
       Lx = (domnhi(1) - domnlo(1))
       Ly = (domnhi(2) - domnlo(2))
       holeSepX = Lx / nHolesX
@@ -6096,6 +6111,77 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
 
       rFact = 1.d0 - zblend1(rHole,hRad,hBL)
       meanPlateVel = jetVel * rFact
+      end
+
+c *****
+c **
+c *****
+      REAL_T function plateVel(x,y,z,cord,flct)
+      implicit none
+      
+      REAL_T   flct 
+      integer dir(SDIM), numholes(SDIM), idholes(SDIM)
+      REAL_T  holespace(SDIM)
+      REAL_T  dist(SDIM), loc(SDIM)
+c     
+c     ::::: local variables
+c     
+      integer cord, n
+      REAL_T  twicePi
+      REAL_T totHoleA
+      REAL_T jetVel, radius, sectarea
+      REAL_T x, y, z
+#include "probdata.H"
+      
+    
+      radius = 0.d0
+      jetVel = 0.d0
+      
+      twicePi = two*Pi
+      
+      numholes(1)= nHolesX 
+      numholes(2)= nHolesY 
+      numholes(3)= nHolesZ  
+      
+      totHoleA = numholes(1)*numholes(2)*numholes(3)*Pi*holeRad**2
+      
+      if (adv_dir.eq.1) then
+         dir(1) = 1
+      else if (adv_dir.eq.2) then
+         dir(2) = 1
+      else
+         dir(3) = 1
+      endif
+      
+      sectarea = dir(1)*(domnhi(2) - domnlo(2))*(domnhi(3) - domnlo(3))+
+     &     dir(2)*(domnhi(1) - domnlo(1)) * (domnhi(3) - domnlo(3))+
+     &     dir(3)*(domnhi(1) - domnlo(1)) * (domnhi(2) - domnlo(2)) 
+      
+      do n = 1, 3 
+         holespace(n) = (domnhi(n) - domnlo(n)) / numholes(n)
+      end do
+      
+      jetVel = adv_vel*sectarea/totHoleA
+      
+      loc(3) = z
+      loc(2) = y
+      loc(1) = x
+      
+      do n = 1, 3
+         idholes(n) = INT(loc(n)/holespace(n))
+         dist(n) = loc(n) - (idholes(n) + half)*holespace(n)
+      end do
+      
+      radius = SQRT(dir(1)*(dist(2)**2 + dist(3)**2)+
+     &     dir(2)*(dist(1)**2 + dist(3)**2) +
+     &     dir(3)*(dist(1)**2 + dist(2)**2))
+      
+      if (radius.le.holeRad) then
+         plateVel = jetVel*dir(cord)*(1.d0+flct*turb_scale) 
+      else
+         plateVel = 0.d0
+      endif
+      
       end
 
 c ::: -----------------------------------------------------------
