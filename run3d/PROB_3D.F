@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.61 2010-01-29 22:42:08 xinfeng Exp $
+c $Id: PROB_3D.F,v 1.62 2010-01-30 01:56:38 xinfeng Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1822,7 +1822,7 @@ c
       integer  bc(SDIM,2)
       integer dir(SDIM), numholes(SDIM), idholes(SDIM)
       REAL_T  holespace(SDIM)
-      REAL_T  dist(SDIM), loc(SDIM),velocity(SDIM)
+      REAL_T  dist(SDIM), loc(SDIM)
 c
 c     ::::: local variables
 c
@@ -1856,7 +1856,7 @@ c
          dir(3) = 1
       endif
 
-      print *, ' double checking the directions...', dir(1), dir(2), dir(3)
+     
       
       sectarea = dir(1)*(domnhi(2) - domnlo(2))*(domnhi(3) - domnlo(3))+
      &     dir(2)*(domnhi(1) - domnlo(1)) * (domnhi(3) - domnlo(3))+
@@ -1866,39 +1866,34 @@ c
     
       do n = 1, 3 
          holespace(n) = (domnhi(n) - domnlo(n)) / numholes(n)
-         velocity(n) = 0.d0
       end do
-      
+    
       jetVel = adv_vel*sectarea/totHoleA
       
       do k = lo(3), hi(3)
          loc(3) = xlo(3) + dx(3)*(float(k-lo(3)) + half)
          do j = lo(2), hi(2)
             loc(2) = xlo(2) + dx(2)*(float(j-lo(2)) + half)
-	    do i = lo(1), hi(1)
+	    do   i = lo(1), hi(1)
                loc(1) = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                
                do n = 1, 3
                   idholes(n) = INT(loc(n)/holespace(n))
                   dist(n) = loc(n) - (idholes(n) + half)*holespace(n)
+                  vel(i,j,k, n) = 0.d0
                end do
 
                radius = SQRT(dir(1)*(dist(2)**2 + dist(3)**2)+
      &              dir(2)*(dist(1)**2 + dist(3)**2) +
      &              dir(3)*(dist(1)**2 + dist(2)**2))
                
-            
                if (radius.le.holeRad) then
                   call blutilrand(rn)
                   do n = 1, 3
-                     velocity(n) =dir(n)*jetVel*(1.d0)
-c     &                    + 0.001*sin(twicePi*(loc(n)/(domnhi(n)-domnlo(n)) + rn ))) 
+                     vel(i,j,k, n) =dir(n)*(jetVel +
+     &                    0.01*sin(twicePi*(loc(n)/(domnhi(n)-domnlo(n)) + rn ))) 
                   end do
                endif
-               
-               do n = 1, 3
-                  vel(i,j,k,n) = velocity(n)
-               end do
                
                scal(i,j,k,1) = one
                do n = 2,nscal
@@ -6177,7 +6172,7 @@ c
      &     dir(3)*(dist(1)**2 + dist(2)**2))
       
       if (radius.le.holeRad) then
-         plateVel = jetVel*dir(cord)*(1.d0+flct*turb_scale) 
+         plateVel = jetVel*dir(cord)+flct*turb_scale 
       else
          plateVel = 0.d0
       endif

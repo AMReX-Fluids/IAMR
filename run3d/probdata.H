@@ -66,5 +66,5 @@
       REAL_T holeRad, holeBLfac
       common /inflow4/ holeRad, holeBLfac
       integer nHolesX, nHolesY, nHolesZ
-      common /inflow5/ nHolesX, nHolesY
+      common /inflow5/ nHolesX, nHolesY, nHolesZ
       save /inflow4/, /inflow5/
