@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.62 2010-01-30 01:56:38 xinfeng Exp $
+c $Id: PROB_3D.F,v 1.63 2010-02-02 02:24:09 xinfeng Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -118,7 +118,7 @@ c ::: -----------------------------------------------------------
      &                  coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2, plane_jet,
      &                  do_jet_sponge, jet_sponge_scale, jet_sponge_height, jet_sponge_radius
 
-      namelist /fortin/ holeRad, holeBLfac, nHolesX, nHolesY, nHolesZ
+      namelist /fortin/ holeRad, holeBLfac, nHolesX, nHolesY, nHolesZ, holeSp
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -165,10 +165,11 @@ c
       iseed = 111397
 
       holeRad = .0015d0
+      holeSp = .006875d0
       nHolesX = 5
       nHolesY = 5
       nHolesZ = 1
-      holeBLfac = 50.d0
+      holeBLfac = 0.5d0
 
       untin = 9
       if (namlen .eq. 0) then
@@ -6125,9 +6126,24 @@ c
       REAL_T  twicePi
       REAL_T totHoleA
       REAL_T jetVel, radius, sectarea
-      REAL_T x, y, z
+      REAL_T x, y, z, xcen,ycen, xloc, yloc
+      REAL_T mean 
+      integer icell,jcell,npts
 #include "probdata.H"
+       mean = 0.40
+       dir(1) = 0.d0
+       dir(2) = 0.d0
+       dir(3) = 0.d0
+ 
+      if (adv_dir.eq.1) then
+         dir(1) = 1
+      else if (adv_dir.eq.2) then
+         dir(2) = 1
+      else
+         dir(3) = 1
+      endif
       
+#if 0
     
       radius = 0.d0
       jetVel = 0.d0
@@ -6139,14 +6155,7 @@ c
       numholes(3)= nHolesZ  
       
       totHoleA = numholes(1)*numholes(2)*numholes(3)*Pi*holeRad**2
-      
-      if (adv_dir.eq.1) then
-         dir(1) = 1
-      else if (adv_dir.eq.2) then
-         dir(2) = 1
-      else
-         dir(3) = 1
-      endif
+     
       
       sectarea = dir(1)*(domnhi(2) - domnlo(2))*(domnhi(3) - domnlo(3))+
      &     dir(2)*(domnhi(1) - domnlo(1)) * (domnhi(3) - domnlo(3))+
@@ -6176,8 +6185,38 @@ c
       else
          plateVel = 0.d0
       endif
+#endif
+
+#if 1
+
+      jetVel = adv_vel/(1.0 - holeBLfac)      
+  
+      if(y.ge.0.d0)then
+         jcell = int(y / (half*sqrt(3.d0)*holeSp))
+      else
+         jcell = -1-int(-y/(half*sqrt(3.d0)*holeSp))
+      endif
+      yloc = y-dfloat(jcell)*half*sqrt(3.d0)*holeSp
+      x = x-y/sqrt(3.d0)
+      if(x.ge.0.d0)then
+         icell = int(x / (holeSp))
+      else
+         icell = -1-int(-x/(holeSp))
+      endif
+      
+      xloc = x - holeSp * dfloat(icell) + yloc/sqrt(3.d0)
+      xcen =.75d0*holeSp
+      ycen =(sqrt(3.d0)*.25d0)*holeSp
+      if(((xloc-xcen)**2 + (yloc-ycen)**2).le. holeRad**2)then
+         plateVel = jetVel*dir(cord)*(1.d0-mean) + flct*turb_scale 
+      else
+         plateVel = -jetVel*dir(cord)*mean
+      endif
+      
+#endif
       
       end
+
 
 c ::: -----------------------------------------------------------
 c ::: This routine is called during a filpatch operation when
