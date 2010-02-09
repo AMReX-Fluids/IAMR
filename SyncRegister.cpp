@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.79 2009-11-06 20:34:20 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.80 2010-02-09 01:07:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -157,7 +157,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
     if (!geom.isAnyPeriodic()) return;
 
     Array<IntVect>       pshifts(27);
-    std::vector<SRRec>   srrec;
+    std::list<SRRec>     srrec;
     FabSetCopyDescriptor fscd;
     FabSetId             fsid[2*BL_SPACEDIM];
 
@@ -202,15 +202,17 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
     fscd.CollectData();
 
-    for (int i = 0; i < srrec.size(); i++)
+    for (std::list<SRRec>::const_iterator it = srrec.begin();
+         it != srrec.end();
+         ++it)
     {
-        BL_ASSERT(rhs.DistributionMap()[srrec[i].m_idx] == ParallelDescriptor::MyProc());
+        BL_ASSERT(rhs.DistributionMap()[it->m_idx] == ParallelDescriptor::MyProc());
 
-        FArrayBox& fab = rhs[srrec[i].m_idx];
+        FArrayBox& fab = rhs[it->m_idx];
 
-        Box dstbox = srrec[i].m_fbid.box() + srrec[i].m_shift;
+        Box dstbox = it->m_fbid.box() + it->m_shift;
 
-        fscd.FillFab(fsid[srrec[i].m_face], srrec[i].m_fbid, fab, dstbox);
+        fscd.FillFab(fsid[it->m_face], it->m_fbid, fab, dstbox);
     }
 }
 
@@ -221,7 +223,7 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 
     FabSetCopyDescriptor fscd;
     FabSetId             fsid[2*BL_SPACEDIM];
-    std::vector<SRRec>   srrec;
+    std::list<SRRec>     srrec;
     FArrayBox            tmpfab;
 
     for (OrientationIter face; face; ++face)
@@ -250,17 +252,19 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 
     fscd.CollectData();
 
-    for (int i = 0; i < srrec.size(); i++)
+    for (std::list<SRRec>::const_iterator it = srrec.begin();
+         it != srrec.end();
+         ++it)
     {
-        const Box& bx = srrec[i].m_fbid.box();
+        const Box& bx = it->m_fbid.box();
 
-        BL_ASSERT(rhs.DistributionMap()[srrec[i].m_idx] == ParallelDescriptor::MyProc());
+        BL_ASSERT(rhs.DistributionMap()[it->m_idx] == ParallelDescriptor::MyProc());
 
-        FArrayBox& rhs_fab = rhs[srrec[i].m_idx];
+        FArrayBox& rhs_fab = rhs[it->m_idx];
 
         tmpfab.resize(bx, rhs_fab.nComp());
 
-        fscd.FillFab(fsid[srrec[i].m_face], srrec[i].m_fbid, tmpfab, bx);
+        fscd.FillFab(fsid[it->m_face], it->m_fbid, tmpfab, bx);
 
         rhs_fab.mult(tmpfab, bx, bx, 0, 0, rhs_fab.nComp());
     }
@@ -470,7 +474,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
     const BoxArray&        mfBA      = mf.boxArray();
     Array<IntVect>         pshifts(27);
-    std::vector<SRRec>     srrec;
+    std::list<SRRec>       srrec;
     FArrayBox              tmpfab;
     MultiFabCopyDescriptor mfcd;
     MultiFabId             mfid = mfcd.RegisterFabArray((MultiFab*) &mf);
@@ -516,19 +520,21 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
     mfcd.CollectData();
 
-    for (int i = 0; i < srrec.size(); i++)
+    for (std::list<SRRec>::const_iterator it = srrec.begin();
+         it != srrec.end();
+         ++it)
     {
-        FabSet& fabset = bndry[srrec[i].m_face];
+        FabSet& fabset = bndry[it->m_face];
 
-        BL_ASSERT(fabset.DistributionMap()[srrec[i].m_idx] == ParallelDescriptor::MyProc());
+        BL_ASSERT(fabset.DistributionMap()[it->m_idx] == ParallelDescriptor::MyProc());
 
-        tmpfab.resize(srrec[i].m_fbid.box(), mf.nComp());
+        tmpfab.resize(it->m_fbid.box(), mf.nComp());
 
-        mfcd.FillFab(mfid, srrec[i].m_fbid, tmpfab);
+        mfcd.FillFab(mfid, it->m_fbid, tmpfab);
 
-        tmpfab.shift(srrec[i].m_shift);
+        tmpfab.shift(it->m_shift);
 
-        fabset[srrec[i].m_idx].plus(tmpfab, 0, 0, mf.nComp());
+        fabset[it->m_idx].plus(tmpfab, 0, 0, mf.nComp());
     }
 }
 
