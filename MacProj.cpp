@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.123 2009-07-15 16:18:12 lijewski Exp $
+// $Id: MacProj.cpp,v 1.124 2010-02-10 20:20:24 almgren Exp $
 //
 #include <winstd.H>
 
@@ -45,8 +45,12 @@ int  MacProj::verbose          = 0;
 bool MacProj::use_cg_solve     = false;
 namespace
 {
+#if MG_USE_HYPRE
   bool        use_hypre_solve  = false;
+#endif
+#if MG_USE_FBOXLIB
   bool        use_fboxlib_mg   = false;
+#endif
 }
 Real MacProj::mac_tol          = 1.0e-12;
 Real MacProj::mac_abs_tol      = 1.0e-16;
@@ -118,14 +122,14 @@ MacProj::read_params ()
     pp.query("check_umac_periodicity",check_umac_periodicity);
     pp.query("umac_periodic_test_Tol",   umac_periodic_test_Tol);
 
+#if MG_USE_HYPRE
     if ( use_cg_solve && use_hypre_solve )
-    {
 	BoxLib::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
-    }
+#endif
+#if MG_USE_FBOXLIB
     if ( use_cg_solve && use_fboxlib_mg )
-    {
 	BoxLib::Error("MacProj::read_params: cg_solve && .not. fboxlib_solve");
-    }
+#endif
 }
 
 void
@@ -371,14 +375,18 @@ MacProj::mac_project (int             level,
     {
 	the_solver = 1;
     }
+#if MG_USE_HYPRE
     else if ( use_hypre_solve )
     {
 	the_solver = 2;
     }
+#endif
+#if MG_USE_FBOXLIB
     else if ( use_fboxlib_mg )
     {
 	the_solver = 3;
     }
+#endif
 
     if (anel_coeff[level] != 0)
         scaleArea(level,area,anel_coeff[level]);
@@ -609,14 +617,18 @@ MacProj::mac_sync_solve (int       level,
     {
 	the_solver = 1;
     }
+#if MG_USE_HYPRE
     else if ( use_hypre_solve )
     {
 	the_solver = 2;
     }
+#endif
+#if MG_USE_FBOXLIB
     else if ( use_fboxlib_mg )
     {
 	the_solver = 3;
     }
+#endif
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
         geom.GetFaceArea(area[dir],grids,dir,GEOM_GROW);
