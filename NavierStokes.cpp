@@ -3588,7 +3588,6 @@ NavierStokes::estTimeStep ()
     const Real  cur_time      = state[State_Type].curTime();
 #endif
     const Real  cur_pres_time = state[Press_Type].curTime();
-    MultiFab&   P_new         = get_new_data(Press_Type);
     MultiFab&   U_new         = get_new_data(State_Type);
 
     Real gr_max[BL_SPACEDIM], u_max[BL_SPACEDIM] = {0};
