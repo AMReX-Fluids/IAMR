@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.H,v 1.35 2010-02-10 21:48:31 almgren Exp $
+// $Id: Diffusion.H,v 1.36 2010-02-10 22:20:50 almgren Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -205,8 +205,7 @@ public:
                              MultiFab&          S_crse,
                              int                state_ind,
                              int                src_comp,
-                             int                num_comp,
-                             Real               time);
+                             int                num_comp);
 
     void FillBoundary (BndryRegister&     bdry,
                        int                src_comp,

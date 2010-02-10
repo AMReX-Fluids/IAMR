@@ -2281,8 +2281,7 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
                                MultiFab&  Rho_and_spec_crse,
                                int        state_ind,
                                int        src_comp,
-                               int        num_comp,
-                               Real       time)
+                               int        num_comp)
 {
     BL_ASSERT(num_comp == 1);
     const int     nGrow = 1;
