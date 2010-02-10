@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.174 2010-02-10 21:49:18 almgren Exp $
+// $Id: Projection.cpp,v 1.175 2010-02-10 22:41:22 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -522,7 +522,7 @@ Projection::level_project (int             level,
     //
     int is_rz = (CoordSys::IsRZ() ? 1 : 0);
 
-
+#ifdef MG_USE_FBOXLIB
     //  Start of if use_fboxlib_hg
     if (use_fboxlib_hg == 1) 
     {
@@ -566,7 +566,9 @@ Projection::level_project (int             level,
         mgt_solver.solve(phi_p, Rhs_p, proj_tol, proj_abs_tol, final_resnorm);
   
     //  Start of if NOT use_fboxlib_hg
-    } else {
+    } else
+#endif
+ {
 
     if (sync_proj == 0)
         bldSyncProject();
