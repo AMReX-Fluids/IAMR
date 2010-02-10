@@ -518,7 +518,8 @@ Diffusion::diffuse_scalar (Real                   dt,
         phi_p[0] = &Soln;
         Rhs_p[0] = &Rhs;
   
-        mgt_solver.solve(phi_p, Rhs_p, S_tol, S_tol_abs, visc_bndry);
+        Real final_resnorm;
+        mgt_solver.solve(phi_p, Rhs_p, S_tol, S_tol_abs, visc_bndry, final_resnorm);
       }
 #endif
 

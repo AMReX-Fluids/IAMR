@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.43 2007-07-05 20:59:23 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.44 2010-02-10 20:19:32 almgren Exp $
 //
 #include <winstd.H>
 
@@ -426,7 +426,8 @@ mac_level_driver (const MacBndry& mac_bndry,
         mac_phi_p[0] = mac_phi;
         Rhs_p[0] = &Rhs;
 
-        mgt_solver.solve(mac_phi_p, Rhs_p, mac_tol, mac_abs_tol, mac_bndry);
+        Real final_resnorm;
+        mgt_solver.solve(mac_phi_p, Rhs_p, mac_tol, mac_abs_tol, mac_bndry, final_resnorm);
 #else
         BoxLib::Error("mac_level_driver::mg_cpp not in this build");
 #endif
@@ -543,7 +544,8 @@ mac_sync_driver (const MacBndry& mac_bndry,
         mac_phi_p[0] = mac_sync_phi;
         Rhs_p[0] = &Rhs;
 
-        mgt_solver.solve(mac_phi_p, Rhs_p, mac_sync_tol, mac_abs_tol, mac_bndry);
+        Real final_resnorm;
+        mgt_solver.solve(mac_phi_p, Rhs_p, mac_sync_tol, mac_abs_tol, mac_bndry, final_resnorm);
 #else
         BoxLib::Error("mac_sync_driver::mg_cpp not in this build");
 #endif
