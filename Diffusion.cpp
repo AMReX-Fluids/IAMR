@@ -2282,8 +2282,7 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
                                int        state_ind,
                                int        src_comp,
                                int        num_comp,
-                               Real       time,
-                               int        rho_flag)
+                               Real       time)
 {
     BL_ASSERT(num_comp == 1);
     const int     nGrow = 1;
