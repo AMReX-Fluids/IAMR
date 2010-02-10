@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.172 2009-11-28 03:40:18 lijewski Exp $
+// $Id: Projection.cpp,v 1.173 2010-02-10 20:18:54 almgren Exp $
 //
 #include <winstd.H>
 
@@ -13,6 +13,11 @@
 #include <NAVIERSTOKES_F.H>
 #include <hg_projector.H>
 #include "ProjOutFlowBC.H"
+
+#ifdef MG_USE_FBOXLIB
+#include <MGT_Solver.H>
+#include <mg_cpp_f.h>
+#endif
 
 #ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type};
@@ -55,7 +60,16 @@ int       Projection::make_sync_solvable = 0;
 int       Projection::proj_2             = 1;
 int       Projection::add_vort_proj      = 0;
 
-#ifndef BL_USE_HGPROJ_SERIAL
+namespace
+{
+#if MG_USE_HYPRE
+  bool        use_hypre_solve  = false;
+#endif
+#if MG_USE_FBOXLIB
+  bool        use_fboxlib_hg   = false;
+#endif
+}
+
 #if BL_SPACEDIM == 2
 #if BL_PRVERSION == 9
 static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::full;
@@ -65,7 +79,6 @@ static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::
 #elif BL_SPACEDIM == 3
 static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
 #endif
-#endif // BL_USE_HGPROJ_SERIAL
 
 static RegType project_bc [] =
 {
@@ -142,6 +155,10 @@ Projection::read_params ()
     pp.query("sync_tol",sync_tol);
     pp.query("proj_abs_tol",proj_abs_tol);
 
+#if MG_USE_FBOXLIB
+    pp.query("use_fboxlib_hg",use_fboxlib_hg);
+#endif
+
     pp.query("make_sync_solvable",make_sync_solvable);
 
     pp.query("proj_2",proj_2);
@@ -158,7 +175,6 @@ Projection::read_params ()
     pp.query("add_vort_proj",add_vort_proj);
 
     {
-#ifndef BL_USE_HGPROJ_SERIAL
 	std::string stencil = "cross";
 	if ( pp.query("stencil", stencil) )
 	{
@@ -179,7 +195,6 @@ Projection::read_params ()
 		BoxLib::Error("stencil must be cross, terrain, or full");
 	    }
 	}
-#endif
     }
 }
 
@@ -206,12 +221,7 @@ Projection::setUpBcs ()
             proj_bc[i][1] = periodic;
         }
     }
-
-#ifdef BL_USE_HGPROJ_SERIAL
-    projector_bndry = new inviscid_fluid_boundary_class(proj_bc);
-#else
     projector_bndry = new inviscid_fluid_boundary(proj_bc);
-#endif
 }
 
 //
@@ -289,15 +299,6 @@ Projection::bldSyncProject ()
         amr_multigrid::mesh_write(amesh, gen_ratio, fdomain, std::cout);
     }
 
-#ifdef BL_USE_HGPROJ_SERIAL
-#if BL_SPACEDIM == 2
-    if (CoordSys::IsRZ())
-        amr_multigrid::SetRZ();
-#endif
-    sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
-                                             0, finest_level, finest_level,
-                                             *projector_bndry, P_code);
-#else
     sync_proj = new holy_grail_amr_projector(amesh, gen_ratio, fdomain,
                                              0, finest_level, finest_level,
                                              *projector_bndry,
@@ -306,7 +307,6 @@ Projection::bldSyncProject ()
 #if BL_SPACEDIM == 2
     if (CoordSys::IsRZ())
         sync_proj->setCoordSys(holy_grail_amr_multigrid::rz);
-#endif
 #endif
 
 #ifdef ATMOSPHERE
@@ -2168,11 +2168,7 @@ Projection::initialVorticityProject (int c_lev)
 
     delete projector_bndry;
 
-#ifdef BL_USE_HGPROJ_SERIAL
-    projector_bndry = new inviscid_fluid_boundary_class(proj_bc);
-#else
     projector_bndry = new inviscid_fluid_boundary(proj_bc);
-#endif
 
     bldSyncProject();
 
@@ -2364,11 +2360,7 @@ Projection::getStreamFunction (PArray<MultiFab>& phi)
 
     delete projector_bndry;
 
-#ifdef BL_USE_HGPROJ_SERIAL
-    projector_bndry = new inviscid_fluid_boundary_class(proj_bc);
-#else
     projector_bndry = new inviscid_fluid_boundary(proj_bc);
-#endif
 
     bldSyncProject();
 
