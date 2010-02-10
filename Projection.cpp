@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.173 2010-02-10 20:18:54 almgren Exp $
+// $Id: Projection.cpp,v 1.174 2010-02-10 21:49:18 almgren Exp $
 //
 #include <winstd.H>
 
@@ -351,10 +351,8 @@ Projection::level_project (int             level,
                            SyncRegister*   crse_sync_reg, 
                            SyncRegister*   fine_sync_reg,  
                            int             crse_dt_ratio,
-                           int**           bc,
                            int             iteration,
-                           int             have_divu, 
-                           int             Divu_Type) 
+                           int             have_divu)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::level_project()");
 
@@ -362,9 +360,6 @@ Projection::level_project (int             level,
 
     if ( verbose && ParallelDescriptor::IOProcessor() )
 	std::cout << "... level projector at level " << level << '\n';
-
-    if (sync_proj == 0)
-        bldSyncProject();
     //
     // old time velocity has bndry values already
     // must gen valid bndry data for new time velocity.
@@ -391,8 +386,7 @@ Projection::level_project (int             level,
     //    CONSTRUCTING THE OUTFLOW BC'S.
     //
     // Set boundary values for P_new, to increment, if applicable
-    //
-    // Note: we don't need to worry here about using FillCoarsePatch because
+    // // Note: we don't need to worry here about using FillCoarsePatch because
     //       it will automatically use the "new dpdt" to interpolate,
     //       since once we get here at level > 0, we've already defined
     //       a new pressure at level-1.
@@ -402,15 +396,13 @@ Projection::level_project (int             level,
         if (!proj_2) 
             P_new.minus(P_old,0,1,0); // Care about nodes on box boundary
     }
+
     const int nGrow = (level == 0  ?  0  :  -1);
     for (MFIter P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi)
     {
         const int i = P_newmfi.index();
 
         P_new[i].setVal(0.0,BoxLib::grow(P_new.box(i),nGrow),0,1);
-        //
-        // TODO -- also zero fine-fine nodes ???
-        //
     }
 
     //
@@ -423,8 +415,7 @@ Projection::level_project (int             level,
     MultiFab *divusource = 0, *divuold = 0;
 
     if (have_divu)
-    {
-        divusource = ns->getDivCond(1,time+dt);
+    { divusource = ns->getDivCond(1,time+dt);
         if (!proj_2)
             divuold = ns->getDivCond(1,time);
     }
@@ -443,8 +434,7 @@ Projection::level_project (int             level,
             const int i = U_newmfi.index();
 
             ConvertUnew(U_new[i],U_old[i],dt,U_new.box(i));
-        }
-        if (have_divu)
+        } if (have_divu)
         {
             divusource->minus(*divuold,0,1,divusource->nGrow());
             divusource->mult(dt_inv,0,1,divusource->nGrow());
@@ -520,7 +510,7 @@ Projection::level_project (int             level,
     // Scale the projection variables.
     //
     rho_half->setBndry(BogusValue);
-    scaleVar(LEVEL_PROJ,rho_half, 1, &U_new, grids, level);
+    scaleVar(LEVEL_PROJ,rho_half, 1, &U_new, level);
     //
     // Enforce periodicity of U_new and rho_half (i.e. coefficient of G phi)
     // *after* everything has been done to them.
@@ -531,6 +521,56 @@ Projection::level_project (int             level,
     // Add the contribution from the un-projected V to syncregisters.
     //
     int is_rz = (CoordSys::IsRZ() ? 1 : 0);
+
+
+    //  Start of if use_fboxlib_hg
+    if (use_fboxlib_hg == 1) 
+    {
+        std::cout << "USING NEW FBOXLIB_HG SOLVER " << std::endl;
+
+        std::vector<BoxArray> bav(1);
+        bav[0] = P_grids;
+        std::vector<DistributionMapping> dmv(1);
+        dmv[0] = divusource->DistributionMap();
+        bool nodal = true;
+        std::vector<Geometry> mg_geom(1);
+        mg_geom[0] = geom;
+
+        int mg_bc[2*BL_SPACEDIM];
+        for ( int i = 0; i < BL_SPACEDIM; ++i )
+        {
+            if ( mg_geom[0].isPeriodic(i) )
+            {
+                mg_bc[i*2 + 0] = 0;
+                mg_bc[i*2 + 1] = 0;
+            }
+            else
+            {
+                mg_bc[i*2 + 0] = phys_bc->lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+                mg_bc[i*2 + 1] = phys_bc->hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+            }
+        }
+        MGT_Solver mgt_solver(mg_geom, mg_bc, bav, dmv, nodal);
+
+        const MultiFab* sig[1];
+        sig[0] = rho_half;
+        mgt_solver.set_nodal_coefficients(sig);
+
+        MultiFab* phi_p[1];
+        phi_p[0] = &P_new;
+
+        MultiFab* Rhs_p[1];
+        Rhs_p[0] = divusource;
+
+        Real final_resnorm;
+        mgt_solver.solve(phi_p, Rhs_p, proj_tol, proj_abs_tol, final_resnorm);
+  
+    //  Start of if NOT use_fboxlib_hg
+    } else {
+
+    if (sync_proj == 0)
+        bldSyncProject();
+
     //
     // Setup projection (note that u_real is a temporary copy).
     //
@@ -630,12 +670,15 @@ Projection::level_project (int             level,
             U_new[i].copy(u_real[n][level][i], 0, n);
         }
     }
+
+    } //  End of if NOT use_fboxlib_hg
+
     //
     // Reset state + pressure data.
     //
     // Unscale level projection variables.
     //
-    rescaleVar(LEVEL_PROJ,rho_half, 1, &U_new, grids, level);
+    rescaleVar(LEVEL_PROJ,rho_half, 1, &U_new, level);
     //
     // Put U_new back to "normal"; subtract U_old*divu...factor/dt from U_new
     //
@@ -663,7 +706,7 @@ Projection::level_project (int             level,
     }
 
     if (!proj_2) 
-        AddPhi(P_new, P_old, grids);             // pn = pn + po
+        AddPhi(P_new, P_old);             // pn = pn + po
 
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      run_time = ParallelDescriptor::second() - strt_time;
@@ -732,7 +775,7 @@ Projection::syncProject (int             c_lev,
     //
     // Scale sync projection variables.
     //
-    scaleVar(SYNC_PROJ,&sig,1,Vsync,grids,c_lev);
+    scaleVar(SYNC_PROJ,&sig,1,Vsync,c_lev);
     //
     // If periodic, copy into periodic translates of Vsync.
     //
@@ -808,11 +851,11 @@ Projection::syncProject (int             c_lev,
     //
     // Unscale the sync projection variables for rz.
     //
-    rescaleVar(SYNC_PROJ,&sig,1,Vsync,grids,c_lev);
+    rescaleVar(SYNC_PROJ,&sig,1,Vsync,c_lev);
     //
     // Add projected Vsync to new velocity at this level & add phi to pressure.
     //
-    AddPhi(pres, phi, grids);
+    AddPhi(pres, phi);
     UpdateArg1(vel, dt_crse, *Vsync, BL_SPACEDIM, grids, 1);
 
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
@@ -847,12 +890,10 @@ Projection::MLsyncProject (int             c_lev,
                            MultiFab&       phi_fine,
                            SyncRegister*   rhs_sync_reg,
                            SyncRegister*   crsr_sync_reg,
-                           const Real*     dx,
                            Real            dt_crse, 
                            IntVect&        ratio,
                            int             crse_iteration,
                            int             crse_dt_ratio,
-                           const Geometry& fine_geom,
                            const Geometry& crse_geom,
                            bool		   pressure_time_is_interval,
                            bool first_crse_step_after_initial_iters,
@@ -904,8 +945,8 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Do necessary scaling
     //
-    scaleVar(SYNC_PROJ,&rho_crse, 0, Vsync,   grids,      c_lev  );
-    scaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, fine_grids, c_lev+1);
+    scaleVar(SYNC_PROJ,&rho_crse, 0, Vsync,   c_lev  );
+    scaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, c_lev+1);
     //
     // Set up alias lib.
     //
@@ -1012,8 +1053,8 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Do necessary un-scaling.
     //
-    rescaleVar(SYNC_PROJ,&rho_crse, 0, Vsync,   grids,      c_lev  );
-    rescaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, fine_grids, c_lev+1);
+    rescaleVar(SYNC_PROJ,&rho_crse, 0, Vsync,   c_lev  );
+    rescaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, c_lev+1);
 
     for (MFIter phimfi(*phi[c_lev+1]); phimfi.isValid(); ++phimfi) 
     {
@@ -1022,14 +1063,14 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Add phi to pressure.
     //
-    AddPhi(pres_crse, *phi[c_lev],   grids);
+    AddPhi(pres_crse, *phi[c_lev]);
 
     if (pressure_time_is_interval) 
     {
         //
         // Only update the most recent pressure.
         //
-        AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
+        AddPhi(pres_fine, *phi[c_lev+1]);
     }
     else 
     {
@@ -1043,16 +1084,16 @@ Projection::MLsyncProject (int             c_lev,
 
             Real cur_mult_factor = dt_to_cur_time / time_since_zero;
             (*phi[c_lev+1]).mult(cur_mult_factor);
-            AddPhi(pres_fine, *phi[c_lev+1], fine_grids);
+            AddPhi(pres_fine, *phi[c_lev+1]);
 
             Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
             (*phi[c_lev+1]).mult(prev_mult_factor);
-            AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
+            AddPhi(pres_fine_old, *phi[c_lev+1]);
         }
         else 
         {
-            AddPhi(pres_fine    , *phi[c_lev+1], fine_grids);
-            AddPhi(pres_fine_old, *phi[c_lev+1], fine_grids);
+            AddPhi(pres_fine    , *phi[c_lev+1]);
+            AddPhi(pres_fine_old, *phi[c_lev+1]);
         }
     }
     //
@@ -1168,7 +1209,7 @@ Projection::initialVelocityProject (int  c_lev,
             const BoxArray& grids     = amr_level.boxArray();
             rhs_cc[lev]  = new MultiFab(grids,1,nghost);
             MultiFab* rhslev = rhs_cc[lev];
-            put_divu_in_cc_rhs(*rhslev,lev,grids,cur_divu_time);
+            put_divu_in_cc_rhs(*rhslev,lev,cur_divu_time);
         }
     }
 
@@ -1179,11 +1220,7 @@ Projection::initialVelocityProject (int  c_lev,
      // Scale the projection variables.
      //
     for (lev = c_lev; lev <= f_lev; lev++) 
-    {
-       AmrLevel&       amr_level = parent->getLevel(lev);
-       const BoxArray& grids     = amr_level.boxArray();
-       scaleVar(INITIAL_VEL,sig[lev],1,vel[lev],grids,lev);
-    }
+       scaleVar(INITIAL_VEL,sig[lev],1,vel[lev],lev);
 
     //
     // Setup alias lib.
@@ -1265,10 +1302,7 @@ Projection::initialVelocityProject (int  c_lev,
     // Unscale initial projection variables.
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
-    {
-        const BoxArray& grids = parent->getLevel(lev).boxArray();
-        rescaleVar(INITIAL_VEL,sig[lev],1,vel[lev],grids,lev);
-    }
+        rescaleVar(INITIAL_VEL,sig[lev],1,vel[lev],lev);
 
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
@@ -1343,16 +1377,11 @@ Projection::initialPressureProject (int  c_lev)
                         c_lev,f_lev,have_divu_dummy);
     }
 
+    //
+    // Scale the projection variables.
+    //
     for (lev = c_lev; lev <= f_lev; lev++) 
-    {
-        AmrLevel&       amr_level = parent->getLevel(lev);
-        const BoxArray& grids     = amr_level.boxArray();
-
-        //
-        // Scale the projection variables.
-        //
-        scaleVar(INITIAL_PRESS,sig[lev],1,vel[lev],grids,lev);
-    }
+        scaleVar(INITIAL_PRESS,sig[lev],1,vel[lev],lev);
 
     //
     // Setup alias lib.
@@ -1400,10 +1429,7 @@ Projection::initialPressureProject (int  c_lev)
     // Unscale initial projection variables.
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
-    {
-        const BoxArray& grids = parent->getLevel(lev).boxArray();
-        rescaleVar(INITIAL_PRESS,sig[lev],1,vel[lev],grids,lev);
-    }
+        rescaleVar(INITIAL_PRESS,sig[lev],1,vel[lev],lev);
 
     //
     // Copy "old" pressure just computed into "new" pressure as well.
@@ -1424,7 +1450,6 @@ Projection::initialSyncProject (int       c_lev,
                                 MultiFab* sig[],
                                 Real      dt, 
                                 Real      strt_time,
-                                Real      dt_init,
                                 int       have_divu)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::initialSyncProject()");
@@ -1538,8 +1563,7 @@ Projection::initialSyncProject (int       c_lev,
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
-        AmrLevel& amr_level = parent->getLevel(lev);
-        scaleVar(INITIAL_SYNC,sig[lev],1,vel[lev],amr_level.boxArray(),lev);
+        scaleVar(INITIAL_SYNC,sig[lev],1,vel[lev],lev);
 
         if (have_divu && CoordSys::IsRZ()) 
           radMult(lev,*(rhs[lev]),0);    
@@ -1637,7 +1661,7 @@ Projection::initialSyncProject (int       c_lev,
     // Unscale initial sync projection variables.
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
-        rescaleVar(INITIAL_SYNC,sig[lev],1,vel[lev],parent->getLevel(lev).boxArray(),lev);
+        rescaleVar(INITIAL_SYNC,sig[lev],1,vel[lev],lev);
     //
     // Add correction at coarse and fine levels.
     //
@@ -1662,7 +1686,6 @@ Projection::initialSyncProject (int       c_lev,
 void
 Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
                                 int             level,
-                                const BoxArray& grids,
                                 Real            time)
 {
     rhs.setVal(0);
@@ -1853,8 +1876,7 @@ Projection::UpdateArg1 (FArrayBox& Unew,
 
 void
 Projection::AddPhi (MultiFab&        p,
-                    MultiFab&       phi,
-                    const BoxArray& grids)
+                    MultiFab&       phi)
 {
     for (MFIter pmfi(p); pmfi.isValid(); ++pmfi) 
     {
@@ -1894,7 +1916,6 @@ Projection::scaleVar (int             which_call,
                       MultiFab*       sig,
                       int             sig_nghosts,
                       MultiFab*       vel,
-                      const BoxArray& grids,
                       int             level)
 {
     BL_ASSERT((which_call == INITIAL_VEL  ) || 
@@ -1947,7 +1968,6 @@ Projection::rescaleVar (int             which_call,
                         MultiFab*       sig,
                         int             sig_nghosts,
                         MultiFab*       vel,
-                        const BoxArray& grids,
                         int             level)
 {
     BL_ASSERT((which_call == INITIAL_VEL  ) || 

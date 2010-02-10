@@ -3,7 +3,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.46 2010-02-10 20:18:54 almgren Exp $
+// $Id: Projection.H,v 1.47 2010-02-10 21:49:18 almgren Exp $
 //
 
 #include <BC_TYPES.H>
@@ -58,10 +58,8 @@ public:
                         SyncRegister*   crse_sync_reg,
                         SyncRegister*   fine_sync_reg,
                         int             crse_dt_ratio,
-                        int**           bc,
                         int             iteration,
-                        int             have_divu,
-                        int             Divu_Type);
+                        int             have_divu);
 
     // solve DG(correction to P_new) = -D G^perp p^(n-half)
     //  or   DG(correction to P_new) = -D G^perp p^(n-half) - D(U^n /dt)
@@ -109,12 +107,10 @@ public:
                         MultiFab&       phi,
                         SyncRegister*   rhs_sync_reg,
                         SyncRegister*   crsr_sync_reg,
-                        const Real*     dx,
                         Real            dt_crse,
                         IntVect&        ratio,
                         int             crse_iteration,
                         int             crse_dt_ratio,
-                        const Geometry& fine_geom,
                         const Geometry& crse_geom,
                         bool		pressure_time_is_interval,
                         bool		first_crse_step_after_initial_iters,
@@ -152,7 +148,6 @@ public:
                              MultiFab* sig[],
                              Real      dt, 
                              Real      strt_time,
-                             Real      dt_init,
                              int       have_divu);
     //
     // Enforce periodicity on a multifab.
@@ -185,7 +180,6 @@ public:
 
     void put_divu_in_cc_rhs (MultiFab&       rhs,
                              int             level,
-                             const BoxArray& grids,
                              Real            time);
 
     //
@@ -262,8 +256,7 @@ protected:
     // Add phi to P.
     //
     void AddPhi (MultiFab&       p,
-                 MultiFab&       phi,
-                 const BoxArray& grids);
+                 MultiFab&       phi);
     //
     // Convert phi into p^n+1/2.
     //
@@ -276,7 +269,6 @@ protected:
                    MultiFab*       sig,
                    int             sig_nghosts,
                    MultiFab*       vel,
-                   const BoxArray& grids,
                    int             level);
     //
     // This function rescales variables at the end of a projection.
@@ -285,7 +277,6 @@ protected:
                      MultiFab*       sig,
                      int             sig_nghosts,
                      MultiFab*       vel,
-                     const BoxArray& grids,
                      int             level);
 
     void setUpBcs ();

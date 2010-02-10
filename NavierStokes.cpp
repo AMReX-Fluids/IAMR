@@ -1607,8 +1607,7 @@ NavierStokes::level_projector (Real dt,
     projector->level_project(level,time,dt,cur_pres_time,prev_pres_time,
                              geom,U_old,U_new,P_old,P_new,
                              get_rho_half_time(),crse_ptr,sync_reg,
-                             crse_dt_ratio,sync_bc.dataPtr(),iteration,
-                             have_divu,Divu_Type);
+                             crse_dt_ratio,iteration,have_divu);
 
     if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
         calcDpdt();
@@ -4151,7 +4150,7 @@ NavierStokes::post_init_press (Real&        dt_init,
         }
         if (projector)
             projector->initialSyncProject(0,sig,parent->dtLevel(0),
-                                          strt_time,dt_init,have_divu);
+                                          strt_time,have_divu);
         delete [] sig;
 
         for (int k = finest_level-1; k >= 0; k--)
@@ -4736,8 +4735,8 @@ NavierStokes::level_sync (int crse_iteration)
                                  pres_fine,vel_fine,cc_rhs_fine,
                                  *Rh,rho_fine,Vsync,V_corr,
                                  phi,&rhs_sync_reg,crsr_sync_ptr,
-                                 dx,dt,ratio,crse_iteration,crse_dt_ratio, 
-                                 fine_geom,geom,pressure_time_is_interval,
+                                 dt,ratio,crse_iteration,crse_dt_ratio, 
+                                 geom,pressure_time_is_interval,
                                  first_crse_step_after_initial_iters,
                                  cur_crse_pres_time,prev_crse_pres_time,
                                  cur_fine_pres_time,prev_fine_pres_time);
