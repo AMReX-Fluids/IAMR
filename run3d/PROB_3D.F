@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.63 2010-02-02 02:24:09 xinfeng Exp $
+c $Id: PROB_3D.F,v 1.64 2010-02-11 00:08:04 xinfeng Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -118,7 +118,7 @@ c ::: -----------------------------------------------------------
      &                  coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2, plane_jet,
      &                  do_jet_sponge, jet_sponge_scale, jet_sponge_height, jet_sponge_radius
 
-      namelist /fortin/ holeRad, holeBLfac, nHolesX, nHolesY, nHolesZ, holeSp
+      namelist /fortin/ holeRad, holeBLfac, nHolesX, nHolesY, nHolesZ, holeSp, slotWidth
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -166,11 +166,12 @@ c
 
       holeRad = .0015d0
       holeSp = .006875d0
+      slotWidth = 0.006
       nHolesX = 5
       nHolesY = 5
       nHolesZ = 1
       holeBLfac = 0.5d0
-
+      
       untin = 9
       if (namlen .eq. 0) then
          open(untin,file='probin',form='formatted',status='old')
@@ -1761,7 +1762,7 @@ c
       REAL_T  hx, hy, hz
       REAL_T  dist
       REAL_T  x_vel, y_vel, z_vel
-      REAL_T  twicePi, rn
+      REAL_T  twicePi, rn, plateVel
 
 #include "probdata.H"
 
@@ -1791,8 +1792,11 @@ c
 
                vel(i,j,k,1) = x_vel
                vel(i,j,k,2) = y_vel
-               vel(i,j,k,3) = z_vel
-
+c               vel(i,j,k,3) = z_vel
+               do n = 1, 3
+                  vel(i,j,k,n) = plateVel(x,y,z,n,0.d0)
+               end do
+               
                scal(i,j,k,1) = one
                do n = 2,nscal
                   scal(i,j,k,n) = zero
@@ -6126,15 +6130,21 @@ c
       REAL_T  twicePi
       REAL_T totHoleA
       REAL_T jetVel, radius, sectarea
-      REAL_T x, y, z, xcen,ycen, xloc, yloc
-      REAL_T mean 
+      REAL_T x, y, z, xcen,ycen, xloc, yloc, xcord(5), ycord(5)
+      REAL_T mean, zblend1, vholeSp
       integer icell,jcell,npts
 #include "probdata.H"
-       mean = 0.40
-       dir(1) = 0.d0
-       dir(2) = 0.d0
-       dir(3) = 0.d0
- 
+      mean = 0.40
+      dir(1) = 0
+      dir(2) = 0
+      dir(3) = 0
+      vholeSp = 0.d0
+
+      do  npts = 1, 5
+         xcord(npts) = 0
+         ycord(npts) = 0
+      end do
+      
       if (adv_dir.eq.1) then
          dir(1) = 1
       else if (adv_dir.eq.2) then
@@ -6142,7 +6152,7 @@ c
       else
          dir(3) = 1
       endif
-      
+c     perforated plate of square pattern         
 #if 0
     
       radius = 0.d0
@@ -6180,17 +6190,18 @@ c
      &     dir(2)*(dist(1)**2 + dist(3)**2) +
      &     dir(3)*(dist(1)**2 + dist(2)**2))
       
-      if (radius.le.holeRad) then
+      if (radius .le. holeRad) then
          plateVel = jetVel*dir(cord)+flct*turb_scale 
       else
          plateVel = 0.d0
       endif
 #endif
-
-#if 1
-
+c     perforated plate of hexagnoal pattern     
+#if 0
+      
       jetVel = adv_vel/(1.0 - holeBLfac)      
-  
+      holeSp = SQRT(two*Pi/(sqrt(3.d0)*(1.d0 - holeBLfac)))*holeRad
+
       if(y.ge.0.d0)then
          jcell = int(y / (half*sqrt(3.d0)*holeSp))
       else
@@ -6198,7 +6209,7 @@ c
       endif
       yloc = y-dfloat(jcell)*half*sqrt(3.d0)*holeSp
       x = x-y/sqrt(3.d0)
-      if(x.ge.0.d0)then
+      if(x.ge.0.d0) then
          icell = int(x / (holeSp))
       else
          icell = -1-int(-x/(holeSp))
@@ -6207,15 +6218,74 @@ c
       xloc = x - holeSp * dfloat(icell) + yloc/sqrt(3.d0)
       xcen =.75d0*holeSp
       ycen =(sqrt(3.d0)*.25d0)*holeSp
-      if(((xloc-xcen)**2 + (yloc-ycen)**2).le. holeRad**2)then
-         plateVel = jetVel*dir(cord)*(1.d0-mean) + flct*turb_scale 
+      radius = SQRT((xloc-xcen)**2 + (yloc-ycen)**2)
+      if(radius .le. holeRad) then
+         plateVel = jetVel*dir(cord) + flct*turb_scale 
+         plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
       else
-         plateVel = -jetVel*dir(cord)*mean
+         plateVel = -jetVel*dir(cord)
       endif
       
 #endif
+c     perforated plate of hexagnoal pattern with slot
+#if 1
       
+      jetVel = adv_vel/(1.0 - holeBLfac)      
+      plateVel = 0.d0
+
+      holeSp = SQRT(two*Pi/(sqrt(3.d0)*(1.d0 - holeBLfac)))*holeRad      
+      vholeSp = sqrt(3.d0)*holeSp
+
+      icell = int (x/holeSp)
+      jcell = int (y/vholeSp)
+      
+      xcen = holeSp*(dfloat(icell) + half)
+      ycen = vholeSp*(dfloat(jcell) + half)
+
+      xloc = x-xcen
+      yloc = y-ycen
+      
+      xcord(1) = -half*holeSp
+      ycord(1) = -half*vholeSp
+      
+      xcord(2) = -half*holeSp
+      ycord(2) = half*vholeSp
+      
+      xcord(3) = half*holeSp
+      ycord(3) = half*vholeSp
+      
+      xcord(4) = half*holeSp
+      ycord(4) = -half*vholeSp
+      
+      xcord(5) = 0.d0
+      ycord(5) = 0.d0
+
+      do npts = 1, 5
+
+         radius = SQRT((xloc-xcord(npts))**2 + (yloc-ycord(npts))**2)
+         
+         if(radius .le. holeRad) then
+            plateVel = jetVel*dir(cord) + flct*turb_scale 
+            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
+         endif
+      end do
+      
+      if (y.ge.((domnhi(2)-domnlo(2)) - slotWidth)) then
+         if (cord .eq. 1) then
+            plateVel = jetVel*sin(37.d0/180.d0*Pi)*cos(37.d0/180.d0*Pi)
+         else if (cord .eq. 2) then
+            plateVel = jetVel*sin(37.d0/180.d0*Pi)*sin(37.d0/180.d0*Pi)
+         else
+            plateVel = jetVel*cos(37.d0/180.d0*Pi)
+         endif
+      endif
+      
+#endif
+
+
+
       end
+      
 
 
 c ::: -----------------------------------------------------------
