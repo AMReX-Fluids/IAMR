@@ -63,8 +63,8 @@
       common /inflow3/Vco, Rfu, Rtran, tVco_l, tVco_r, Vco_l, Vco_r
       save /inflow3/
 
-      REAL_T holeRad, holeBLfac, holeSp, slotWidth
-      common /inflow4/ holeRad, holeBLfac, holeSp, slotWidth
+      REAL_T holeRad, holeBLfac, holeSp, slotWidth, alpha, beta
+      common /inflow4/ holeRad, holeBLfac, holeSp, slotWidth, alpha, beta
 
       integer nHolesX, nHolesY, nHolesZ
       common /inflow5/ nHolesX, nHolesY, nHolesZ

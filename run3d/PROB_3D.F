@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.64 2010-02-11 00:08:04 xinfeng Exp $
+c $Id: PROB_3D.F,v 1.65 2010-02-12 00:50:02 xinfeng Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -118,7 +118,7 @@ c ::: -----------------------------------------------------------
      &                  coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2, plane_jet,
      &                  do_jet_sponge, jet_sponge_scale, jet_sponge_height, jet_sponge_radius
 
-      namelist /fortin/ holeRad, holeBLfac, nHolesX, nHolesY, nHolesZ, holeSp, slotWidth
+      namelist /fortin/ holeRad, holeBLfac, nHolesX, nHolesY, nHolesZ, holeSp, slotWidth, alpha, beta
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -171,6 +171,8 @@ c
       nHolesY = 5
       nHolesZ = 1
       holeBLfac = 0.5d0
+      alpha = 0.d0
+      beta = 0.d0
       
       untin = 9
       if (namlen .eq. 0) then
@@ -6131,7 +6133,7 @@ c
       REAL_T totHoleA
       REAL_T jetVel, radius, sectarea
       REAL_T x, y, z, xcen,ycen, xloc, yloc, xcord(5), ycord(5)
-      REAL_T mean, zblend1, vholeSp
+      REAL_T mean, zblend1, vholeSp, vane, xshift, yshift, delta
       integer icell,jcell,npts
 #include "probdata.H"
       mean = 0.40
@@ -6139,6 +6141,10 @@ c
       dir(2) = 0
       dir(3) = 0
       vholeSp = 0.d0
+      vane = 0.001
+      delta = 0.d0
+      
+
 
       do  npts = 1, 5
          xcord(npts) = 0
@@ -6227,15 +6233,17 @@ c     perforated plate of hexagnoal pattern
       endif
       
 #endif
-c     perforated plate of hexagnoal pattern with slot
-#if 1
+c     perforated plate of hexagnoal pattern with slot 
+#if 0
       
-      jetVel = adv_vel/(1.0 - holeBLfac)      
+c     jetVel = adv_vel/(1.0 - holeBLfac)     
+c 
+      jetVel = 18.d0
       plateVel = 0.d0
-
+      
       holeSp = SQRT(two*Pi/(sqrt(3.d0)*(1.d0 - holeBLfac)))*holeRad      
       vholeSp = sqrt(3.d0)*holeSp
-
+      
       icell = int (x/holeSp)
       jcell = int (y/vholeSp)
       
@@ -6269,16 +6277,122 @@ c     perforated plate of hexagnoal pattern with slot
             plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
          endif
       end do
-      
+c     in the slot region (5 mm width)
       if (y.ge.((domnhi(2)-domnlo(2)) - slotWidth)) then
          if (cord .eq. 1) then
-            plateVel = jetVel*sin(37.d0/180.d0*Pi)*cos(37.d0/180.d0*Pi)
+            plateVel = 32.d0*tan(37.d0/180.d0*Pi)
+
+            if (x .ge. 0.25*(domnhi(1)-domnlo(1)) .and. (x .le. (0.25*(domnhi(1)-domnlo(1)) + vane))) then 
+               plateVel = 0.d0
+            else  if (x .ge. 0.75*(domnhi(1)-domnlo(1)) .and. (x .le. (0.75*(domnhi(1)-domnlo(1)) + vane))) then
+               plateVel = 0.d0
+            end if
+            
          else if (cord .eq. 2) then
-            plateVel = jetVel*sin(37.d0/180.d0*Pi)*sin(37.d0/180.d0*Pi)
+            plateVel = 0.d0
          else
-            plateVel = jetVel*cos(37.d0/180.d0*Pi)
+            if (x .ge. 0.25*(domnhi(1)-domnlo(1)) .and. (x .le. (0.25*(domnhi(1)-domnlo(1)) + vane))) then 
+               plateVel = 0.d0
+            else  if (x .ge. 0.75*(domnhi(1)-domnlo(1)) .and. (x .le. (0.75*(domnhi(1)-domnlo(1)) + vane))) then
+               plateVel = 0.d0
+            else
+               plateVel = 32.d0
+            endif
          endif
       endif
+      if ((y.ge.((domnhi(2)-domnlo(2)) - slotWidth - vane)) .and. 
+     &     (y.lt.((domnhi(2)-domnlo(2)) - slotWidth))) then
+         plateVel = 0.d0
+      endif
+c     in the region of 1 mm between the slot region and the plate 
+      
+#endif
+
+
+c     perforated plate of hexagnoal pattern with slot and shifting in x and y directions 
+#if 1
+      
+c     jetVel = adv_vel/(1.0 - holeBLfac)     
+c 
+     
+      jetVel = 18.d0
+      plateVel = 0.d0
+      
+      holeSp = SQRT(two*Pi/(sqrt(3.d0)*(1.d0 - holeBLfac)))*holeRad      
+      vholeSp = sqrt(3.d0)*holeSp
+      
+      xshift = alpha*holeSp
+      yshift = beta*vholeSp
+
+      icell = int ((x-xshift)/holeSp)
+      jcell = int ((y-yshift)/vholeSp)
+      
+      if ((x-xshift) .le. 0.d0) then
+         icell = - 1 - int ((x-xshift)/holeSp)
+      endif
+      if ((y-yshift) .le. 0.d0) then
+         jcell = - 1 - int ((y-yshift)/vholeSp)
+      endif
+      
+      xcen = holeSp*(dfloat(icell) + half) + xshift
+      ycen = vholeSp*(dfloat(jcell) + half) + yshift
+      
+      xloc = x-xcen
+      yloc = y-ycen
+      
+      xcord(1) = -half*holeSp
+      ycord(1) = -half*vholeSp
+      
+      xcord(2) = -half*holeSp
+      ycord(2) = half*vholeSp
+      
+      xcord(3) = half*holeSp
+      ycord(3) = half*vholeSp
+      
+      xcord(4) = half*holeSp
+      ycord(4) = -half*vholeSp
+      
+      xcord(5) = 0.d0
+      ycord(5) = 0.d0
+
+      do npts = 1, 5
+         
+         radius = SQRT((xloc-xcord(npts))**2 + (yloc-ycord(npts))**2)
+         
+         if(radius .le. holeRad) then
+            plateVel = jetVel*dir(cord) + flct*turb_scale 
+            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
+         endif
+      end do
+c     in the slot region (5 mm width)
+      if (y.ge.((domnhi(2)-domnlo(2)) - slotWidth)) then
+         delta = (domnhi(1)-domnlo(1))
+         if (cord .eq. 1) then
+            plateVel = 32.d0*tan(37.d0/180.d0*Pi)
+            
+            do n = 1, 7, 2
+               if (x .ge. (dfloat(n)/8.d0*delta-half*vane) .and. (x .le. (dfloat(n)/8.d0*delta + half*vane))) then 
+                  plateVel = 0.d0
+               end if
+            end do
+        
+         else if (cord .eq. 2) then
+            plateVel = 0.d0
+         else
+            plateVel = 32.d0
+            do n = 1, 7, 2
+               if (x .ge. (dfloat(n)/8.d0*delta-half*vane) .and. (x .le. (dfloat(n)/8.d0*delta + half*vane))) then 
+                  plateVel = 0.d0
+               end if
+            end do
+         endif
+      endif
+c     in the thin 1 mm wide no flow region
+      if ((y.ge.((domnhi(2)-domnlo(2)) - slotWidth - vane)) .and. 
+     &     (y.lt.((domnhi(2)-domnlo(2)) - slotWidth))) then
+         plateVel = 0.d0
+      endif
+
       
 #endif
 
