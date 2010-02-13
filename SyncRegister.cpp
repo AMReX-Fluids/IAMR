@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.80 2010-02-09 01:07:16 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.81 2010-02-13 22:54:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -202,8 +202,8 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
     fscd.CollectData();
 
-    for (std::list<SRRec>::const_iterator it = srrec.begin();
-         it != srrec.end();
+    for (std::list<SRRec>::const_iterator it = srrec.begin(), end = srrec.end();
+         it != end;
          ++it)
     {
         BL_ASSERT(rhs.DistributionMap()[it->m_idx] == ParallelDescriptor::MyProc());
@@ -252,8 +252,8 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 
     fscd.CollectData();
 
-    for (std::list<SRRec>::const_iterator it = srrec.begin();
-         it != srrec.end();
+    for (std::list<SRRec>::const_iterator it = srrec.begin(), end = srrec.end();
+         it != end;
          ++it)
     {
         const Box& bx = it->m_fbid.box();
@@ -520,8 +520,8 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
     mfcd.CollectData();
 
-    for (std::list<SRRec>::const_iterator it = srrec.begin();
-         it != srrec.end();
+    for (std::list<SRRec>::const_iterator it = srrec.begin(), end = srrec.end();
+         it != end;
          ++it)
     {
         FabSet& fabset = bndry[it->m_face];

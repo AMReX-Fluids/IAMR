@@ -2245,8 +2245,8 @@ Diffusion::getBndryData (ViscBndry& bndry,
     {
         const BoxList gCells = BoxLib::boxDiff(Phi_fpi().box(),Phi_fpi.validbox());
 
-        for (BoxList::const_iterator bli = gCells.begin();
-             bli != gCells.end();
+        for (BoxList::const_iterator bli = gCells.begin(), end = gCells.end();
+             bli != end;
              ++bli)
         {
             S[Phi_fpi].copy(Phi_fpi(),*bli,0,*bli,0,num_comp);
@@ -2380,8 +2380,8 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
     {
         const BoxList gCells = BoxLib::boxDiff(Phi_fpi().box(), Phi_fpi.validbox());
         
-        for (BoxList::const_iterator bli = gCells.begin();
-             bli != gCells.end();
+        for (BoxList::const_iterator bli = gCells.begin(), end = gCells.end();
+             bli != end;
              ++bli)
         {
             S[Phi_fpi].copy(Phi_fpi(),*bli,0,*bli,0,num_comp);

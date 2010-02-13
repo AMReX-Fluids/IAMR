@@ -3373,8 +3373,8 @@ NavierStokes::writePlotFile (const std::string& dir,
     std::list<std::string> derive_names;
     const std::list<DeriveRec>& dlist = derive_lst.dlist();
 
-    for (std::list<DeriveRec>::const_iterator it = dlist.begin();
-         it != dlist.end();
+    for (std::list<DeriveRec>::const_iterator it = dlist.begin(), end = dlist.end();
+         it != end;
          ++it)
     {
         if (parent->isDerivePlotVar(it->name()))
@@ -3409,8 +3409,8 @@ NavierStokes::writePlotFile (const std::string& dir,
 	    os << desc_lst[typ].name(comp) << '\n';
         }
 
-	for (std::list<std::string>::const_iterator it = derive_names.begin();
-             it != derive_names.end();
+	for (std::list<std::string>::const_iterator it = derive_names.begin(), end = derive_names.end();
+             it != end;
              ++it)
         {
 	    const DeriveRec* rec = derive_lst.get(*it);
@@ -3521,8 +3521,8 @@ NavierStokes::writePlotFile (const std::string& dir,
 
     if (derive_names.size() > 0)
     {
-	for (std::list<std::string>::const_iterator it = derive_names.begin();
-             it != derive_names.end();
+	for (std::list<std::string>::const_iterator it = derive_names.begin(), end = derive_names.end();
+             it != end;
              ++it) 
 	{
             if (*it == "avg_pressure" ||
@@ -5856,7 +5856,7 @@ NavierStokes::FillStateBndry (Real time,
         //
         BoxList boxes = BoxLib::boxDiff(fpi().box(),grids[fpi.index()]);
 
-        for (BoxList::iterator bli = boxes.begin(); bli != boxes.end(); ++bli)
+        for (BoxList::iterator bli = boxes.begin(), end = boxes.end(); bli != end; ++bli)
         {
             S[fpi.index()].copy(fpi(),*bli,0,*bli,src_comp,ncomp);
         }
@@ -6494,10 +6494,12 @@ NavierStokes::create_umac_grown ()
             crse_src_ba.surroundingNodes(n);
             fine_src_ba.surroundingNodes(n);
 
-            std::vector<long> wgts(fine_src_ba.size());
+            std::vector<long> wgts;
 
-            for (unsigned int i = 0; i < wgts.size(); i++)
-                wgts[i] = fine_src_ba[i].numPts();
+            wgts.reserve(fine_src_ba.size());
+
+            for (int i = 0; i < fine_src_ba.size(); i++)
+                wgts.push_back(fine_src_ba[i].numPts());
 
             DistributionMapping dm;
             //
