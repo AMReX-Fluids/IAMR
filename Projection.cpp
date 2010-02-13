@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.175 2010-02-10 22:41:22 lijewski Exp $
+// $Id: Projection.cpp,v 1.176 2010-02-13 01:23:28 almgren Exp $
 //
 #include <winstd.H>
 
@@ -66,7 +66,7 @@ namespace
   bool        use_hypre_solve  = false;
 #endif
 #if MG_USE_FBOXLIB
-  bool        use_fboxlib_hg   = false;
+  bool        use_fboxlib_nd   = false;
 #endif
 }
 
@@ -156,7 +156,7 @@ Projection::read_params ()
     pp.query("proj_abs_tol",proj_abs_tol);
 
 #if MG_USE_FBOXLIB
-    pp.query("use_fboxlib_hg",use_fboxlib_hg);
+    pp.query("use_fboxlib_nd",use_fboxlib_nd);
 #endif
 
     pp.query("make_sync_solvable",make_sync_solvable);
@@ -523,15 +523,15 @@ Projection::level_project (int             level,
     int is_rz = (CoordSys::IsRZ() ? 1 : 0);
 
 #ifdef MG_USE_FBOXLIB
-    //  Start of if use_fboxlib_hg
-    if (use_fboxlib_hg == 1) 
+    //  Start of if use_fboxlib_nd
+    if (use_fboxlib_nd == 1) 
     {
         std::cout << "USING NEW FBOXLIB_HG SOLVER " << std::endl;
 
         std::vector<BoxArray> bav(1);
-        bav[0] = P_grids;
+        bav[0] = grids;
         std::vector<DistributionMapping> dmv(1);
-        dmv[0] = divusource->DistributionMap();
+        dmv[0] = P_new.DistributionMap();
         bool nodal = true;
         std::vector<Geometry> mg_geom(1);
         mg_geom[0] = geom;
@@ -552,6 +552,7 @@ Projection::level_project (int             level,
         }
         MGT_Solver mgt_solver(mg_geom, mg_bc, bav, dmv, nodal);
 
+        // Fill the coefficient array
         const MultiFab* sig[1];
         sig[0] = rho_half;
         mgt_solver.set_nodal_coefficients(sig);
@@ -559,13 +560,15 @@ Projection::level_project (int             level,
         MultiFab* phi_p[1];
         phi_p[0] = &P_new;
 
+        MultiFab* vel_p[1];
+        vel_p[0] = &U_new;
+
         MultiFab* Rhs_p[1];
         Rhs_p[0] = divusource;
 
-        Real final_resnorm;
-        mgt_solver.solve(phi_p, Rhs_p, proj_tol, proj_abs_tol, final_resnorm);
+        mgt_solver.nodal_project(phi_p, vel_p, Rhs_p, proj_tol, proj_abs_tol);
   
-    //  Start of if NOT use_fboxlib_hg
+    //  Start of if NOT use_fboxlib_nd
     } else
 #endif
  {
@@ -673,7 +676,7 @@ Projection::level_project (int             level,
         }
     }
 
-    } //  End of if NOT use_fboxlib_hg
+    } //  End of if NOT use_fboxlib_nd
 
     //
     // Reset state + pressure data.
