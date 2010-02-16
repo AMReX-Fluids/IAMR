@@ -6355,8 +6355,10 @@ NavierStokes::manual_tags_placement (TagBoxArray&    tags,
                 // from outflow
                 //
                 const int grid_tol = 1;
-                const Box outflowBox =
-                    BoxLib::adjCell(crse_domain,outFace,grid_tol).shift(oDir,mult*grid_tol);
+
+                Box outflowBox = BoxLib::adjCell(crse_domain,outFace,grid_tol);
+
+                outflowBox.shift(oDir,mult*grid_tol);
                 //
                 // Only refine if there are already tagged cells in the outflow
                 // region
