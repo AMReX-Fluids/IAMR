@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.176 2010-02-13 01:23:28 almgren Exp $
+// $Id: Projection.cpp,v 1.177 2010-02-17 17:06:53 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2554,13 +2554,13 @@ Projection::set_outflow_bcs (int        which_call,
 
         if (outFaces[iface].faceDir() == Orientation::high)
         {
-            temp_state_strip
-                = Box(BoxLib::adjCellHi(domain,outDir,ccStripWidth)).shift(outDir,-ccStripWidth);
+            temp_state_strip = BoxLib::adjCellHi(domain,outDir,ccStripWidth);
+            temp_state_strip.shift(outDir,-ccStripWidth);
         }
         else
         {
-            temp_state_strip
-                = Box(BoxLib::adjCellLo(domain,outDir,ccStripWidth)).shift(outDir,ccStripWidth);
+            temp_state_strip = BoxLib::adjCellLo(domain,outDir,ccStripWidth);
+            temp_state_strip.shift(outDir,ccStripWidth);
         }
         // Grow the box by one tangentially in order to get velocity bc's.
         for (int dir = 0; dir < BL_SPACEDIM; dir++) 
@@ -2580,10 +2580,7 @@ Projection::set_outflow_bcs (int        which_call,
             fine_level[iface] = lev;
             icount[lev]++;
         }
-
-      // end level loop
       }
-    // end iface loop
     }
 
     for (int lev = f_lev; lev >= c_lev; lev--) {

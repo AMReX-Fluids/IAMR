@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.124 2010-02-10 20:20:24 almgren Exp $
+// $Id: MacProj.cpp,v 1.125 2010-02-17 17:06:53 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1091,13 +1091,13 @@ MacProj::set_outflow_bcs (int             level,
             Box ccBndBox;
             if (outFaces[iface].faceDir() == Orientation::high)
 	    {
-                ccBndBox = 
-                    Box(BoxLib::adjCellHi(domain,outDir,2)).shift(outDir,-2);
+                ccBndBox = BoxLib::adjCellHi(domain,outDir,2);
+                ccBndBox.shift(outDir,-2);
 	    } 
             else 
 	    {
-                ccBndBox = 
-                    Box(BoxLib::adjCellLo(domain,outDir,2)).shift(outDir,2);
+                ccBndBox = BoxLib::adjCellLo(domain,outDir,2);
+                ccBndBox.shift(outDir,2);
 	    }
             ccBoxList.push_back(ccBndBox);
 
