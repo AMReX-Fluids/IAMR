@@ -3,7 +3,7 @@
 #define _SYNCREGISTER_H_
 
 //
-// $Id: SyncRegister.H,v 1.17 2000-10-02 20:50:16 lijewski Exp $
+// $Id: SyncRegister.H,v 1.18 2010-02-19 20:00:39 lijewski Exp $
 //
 
 #include <PArray.H>
@@ -33,7 +33,7 @@ public:
     //
     // Access functions.
     //
-    IntVect refRatio () const { return ratio; }
+    const IntVect& refRatio () const { return ratio; }
 
     int fineLevel () const { return fine_level; }
 
@@ -65,7 +65,7 @@ public:
     // Compute sum of values (overlap values only counted once).
     // WARNING: this is a diagnostic and is not efficient.
     //
-    Real sum ();
+    Real sum () const;
 
 protected:
     //

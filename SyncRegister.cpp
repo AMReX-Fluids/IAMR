@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.81 2010-02-13 22:54:21 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.82 2010-02-19 20:00:39 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -110,7 +110,7 @@ SyncRegister::define (const BoxArray& fine_boxes,
 SyncRegister::~SyncRegister () {}
 
 Real
-SyncRegister::sum ()
+SyncRegister::sum () const
 {
     //
     // Sum values in all registers.  Note that overlap is counted twice.
