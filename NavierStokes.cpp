@@ -2832,7 +2832,7 @@ NavierStokes::sumDerive (const std::string& name, Real time)
         {
             std::vector< std::pair<int,Box> > isects = baf.intersections(grids[mfi.index()]);
 
-            for (int ii = 0; ii < isects.size(); ii++)
+            for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
                 fab.setVal(0,isects[ii].second,0,fab.nComp());
             }
@@ -2875,7 +2875,7 @@ NavierStokes::volWgtSum (const std::string& name,
         {
             std::vector< std::pair<int,Box> > isects = baf.intersections(grids[mfi.index()]);
 
-            for (int ii = 0; ii < isects.size(); ii++)
+            for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
                 fab.setVal(0,isects[ii].second,0,fab.nComp());
             }
@@ -2962,7 +2962,7 @@ NavierStokes::MaxVal (const std::string& name,
         {
             std::vector< std::pair<int,Box> > isects = baf.intersections(grids[mfi.index()]);
 
-            for (int ii = 0; ii < isects.size(); ii++)
+            for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
                 fab.setVal(0,isects[ii].second,0,fab.nComp());
             }
@@ -3060,7 +3060,7 @@ NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
         {
             std::vector< std::pair<int,Box> > isects = baf.intersections(grids[turbMfi.index()]);
 
-            for (int ii = 0; ii < isects.size(); ii++)
+            for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
               presFab.setVal(0,isects[ii].second,0,presMF->nComp());
               turbFab.setVal(0,isects[ii].second,0,turbMF->nComp());
@@ -3192,7 +3192,7 @@ NavierStokes::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,  in
         {
             std::vector< std::pair<int,Box> > isects = baf.intersections(grids[turbMfi.index()]);
 
-            for (int ii = 0; ii < isects.size(); ii++)
+            for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
               presFab.setVal(0,isects[ii].second,0,presMF->nComp());
               turbFab.setVal(0,isects[ii].second,0,turbMF->nComp());
@@ -5160,7 +5160,7 @@ NavierStokes::reflux ()
 
         std::vector< std::pair<int,Box> > isects = baf.intersections(Vsyncmfi.validbox());
 
-        for (int ii = 0; ii < isects.size(); ii++)
+        for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
             (*Vsync)[i].setVal(0,isects[ii].second,0,BL_SPACEDIM);
             (*Ssync)[i].setVal(0,isects[ii].second,0,NUM_STATE-BL_SPACEDIM);
@@ -5735,7 +5735,7 @@ NavierStokes::getGradP (MultiFab& gp,
         {
             std::vector< std::pair<int,Box> > isects = fineBA.intersections(gpTmp[mfi].box());
 
-            for (int ii = 0; ii < isects.size(); ii++)
+            for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
                 gp[mfi].copy(gpTmp[mfi],isects[ii].second);
             }

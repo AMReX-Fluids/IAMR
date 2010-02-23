@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.82 2010-02-19 20:00:39 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.83 2010-02-23 21:37:22 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -234,7 +234,7 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
         {
             std::vector< std::pair<int,Box> > isects = bndry_mask[face()].boxArray().intersections(rhs[mfi].box());
 
-            for (int i = 0; i < isects.size(); i++)
+            for (int i = 0, N = isects.size(); i < N; i++)
             {
                 SRRec sr(face(), mfi.index());
 
@@ -346,7 +346,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
             std::vector< std::pair<int,Box> > isects = grids.intersections(mask_cells);
 
-            for (int i = 0; i < isects.size(); i++)
+            for (int i = 0, N = isects.size(); i < N; i++)
             {
                 tmpfab.setVal(1.0,isects[i].second,0,1);
             }
@@ -361,7 +361,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
                     std::vector< std::pair<int,Box> > isects = grids.intersections(mask_cells);
 
-                    for (int i = 0; i < isects.size(); i++)
+                    for (int i = 0, N = isects.size(); i < N; i++)
                     {
                         Box intersect = isects[i].second;
                         intersect    -= pshifts[iiv];
@@ -572,7 +572,7 @@ SyncRegister::CompAdd  (MultiFab*       Sync_resid_fine,
 
         std::vector< std::pair<int,Box> > isects = Pgrids.intersections(sync_box);
 
-        for (int ii = 0; ii < isects.size(); ii++)
+        for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
             const int i     = isects[ii].first;
             Box       isect = isects[ii].second;

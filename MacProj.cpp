@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.125 2010-02-17 17:06:53 lijewski Exp $
+// $Id: MacProj.cpp,v 1.126 2010-02-23 21:37:22 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -533,7 +533,7 @@ MacProj::mac_sync_solve (int       level,
 
         std::vector< std::pair<int,Box> > isects = baf.intersections(Rhsmfi.validbox());
 
-        for (int ii = 0; ii < isects.size(); ii++)
+        for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
             Rhs[Rhsmfi].setVal(0.0,isects[ii].second,0);
         }
@@ -1248,7 +1248,7 @@ MacProj::test_umac_periodic (int level,MultiFab* u_mac)
 
                     std::vector< std::pair<int,Box> > isects = u_mac[dim].boxArray().intersections(eBox);
 
-                    for (int i = 0; i < isects.size(); i++)
+                    for (int i = 0, N = isects.size(); i < N; i++)
                     {
                         const int j      = isects[i].first;
                         const Box srcBox = isects[i].second;
