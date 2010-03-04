@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.65 2010-02-12 00:50:02 xinfeng Exp $
+c $Id: PROB_3D.F,v 1.66 2010-03-04 01:01:13 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -80,7 +80,7 @@ c ::: -----------------------------------------------------------
       namelist /fortin/ denerr, vorterr, adverr, temperr,
      &			denfact, xblob, yblob, zblob, radblob, 
      &                  velfact, probtype, randfact, bubgrad,
-     &			rhozero, tempzero, c_d, r_d, 
+     &			rhozero, tempzero, c_d, r_d, rhograd,
      &                  adv_dir, adv_vel, axis_dir, radvort,
      &                  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag,
      &                  vb_unifdir, blrandseed, turb_scale, injection_time
@@ -2198,8 +2198,12 @@ c     To run without the free surface, make sure ref_height is greater than the 
      &                       c(n,m)*sin(two*Pi*f(n,m)*(z-f_problo(3))/Lz)
                      enddo
                   enddo
-                  scal(i,j,k,1) = rhozero
-                  scal(i,j,k,2) = zero
+c     Let's add a stratification
+                  if (rhograd.lt.zero) then
+                     scal(i,j,k,1) = rhozero + rhograd*z
+                  else
+                     scal(i,j,k,1) = rhozero
+                  endif
                   do n = 2,nscal-1
                      scal(i,j,k,n) = zero
                   end do
@@ -3293,10 +3297,16 @@ c     Round jet/plume
                         force(i,j,k,nZvel) = force(i,j,k,nZvel) + thermal_expansion*scal(i,j,k,nTrac2Scal)
                      endif
                      if (do_jet_sponge.eq.1) then
-                        if (z.gt.jet_sponge_height .or. sqrt(x*x+y*y).gt.jet_sponge_radius) then
-                           force(i,j,k,nXvel) = force(i,j,k,nXvel) - jet_sponge_scale*vel(i,j,k,0)
-                           force(i,j,k,nYvel) = force(i,j,k,nYvel) - jet_sponge_scale*vel(i,j,k,1)
-                           force(i,j,k,nZvel) = force(i,j,k,nZvel) - jet_sponge_scale*vel(i,j,k,2)
+c                        call bl_pd_is_ioproc(isioproc)
+c                        if (isioproc.eq.1) then
+c                           write (*,*) "jet_sponge_scale = ",jet_sponge_scale
+c                        endif
+                        if (z.gt.jet_sponge_height) then
+                           force(i,j,k,nXvel) = force(i,j,k,nXvel) - jet_sponge_scale*vel(i,j,k,0)*scal(i,j,k,nRhoScal)
+                           force(i,j,k,nYvel) = force(i,j,k,nYvel) - jet_sponge_scale*vel(i,j,k,1)*scal(i,j,k,nRhoScal)
+                           force(i,j,k,nZvel) = force(i,j,k,nZvel) - jet_sponge_scale*vel(i,j,k,2)*scal(i,j,k,nRhoScal)
+                        else if (sqrt(x*x+y*y).gt.jet_sponge_radius) then
+                           force(i,j,k,nZvel) = force(i,j,k,nZvel) - jet_sponge_scale*vel(i,j,k,2)*scal(i,j,k,nRhoScal)
                         endif
                      endif
 #endif
