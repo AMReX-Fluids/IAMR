@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.35 2009-12-02 21:30:41 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.36 2010-03-13 01:25:09 lijewski Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1707,7 +1707,7 @@ c
       dy = delta(2)
       dz = delta(3)
                
-!$omp parallel do private(i,j,k,ux,uy,uz,vx,vy,vz,wx,wy,wz)
+!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
 !$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
@@ -1785,7 +1785,7 @@ c     First do all the faces
 c
       if (fixvlo_x .or. fixwlo_x.or.fixulo_x) then
          i = lo(1)
-!$omp parallel do private(j,k,ux,uy,uz,vx,vy,vz,wx,wy,wz)
+!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
 !$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
@@ -1821,7 +1821,7 @@ c
 
       if (fixvhi_x .or. fixwhi_x.or.fixuhi_x) then
          i = hi(1)
-!$omp parallel do private(j,k,ux,uy,uz,vx,vy,vz,wx,wy,wz)
+!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
 !$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
@@ -1857,7 +1857,7 @@ c
 
       if (fixulo_y .or. fixwlo_y.or.fixvlo_y) then
          j = lo(2)
-!$omp parallel do private(i,k,ux,uy,uz,vx,vy,vz,wx,wy,wz)
+!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
 !$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
@@ -1893,7 +1893,7 @@ c
 
       if (fixuhi_y .or. fixwhi_y.or.fixvhi_y) then
          j = hi(2)
-!$omp parallel do private(i,k,ux,uy,uz,vx,vy,vz,wx,wy,wz)
+!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
 !$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
@@ -1929,7 +1929,7 @@ c
 
       if (fixulo_z .or. fixvlo_z.or.fixwlo_z) then
          k = lo(3)
-!$omp parallel do private(i,j,ux,uy,uz,vx,vy,vz,wx,wy,wz)
+!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
 !$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
@@ -1965,7 +1965,7 @@ c
 
       if (fixuhi_z .or. fixvhi_z .or. fixwhi_z) then
          k = hi(3)
-!$omp parallel do private(i,j,ux,uy,uz,vx,vy,vz,wx,wy,wz)
+!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
 !$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
@@ -2004,8 +2004,6 @@ c
       if ((fixulo_x .or. fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixvlo_y .or. fixwlo_y)) then
          i = lo(1)
          j = lo(2)
-!$omp parallel do private(k,ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
             vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
@@ -2033,14 +2031,11 @@ c
      &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
      &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
-!$omp end parallel do
       end if
 
       if ((fixuhi_x .or. fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixvlo_y .or. fixwlo_y)) then
          i = hi(1)
          j = lo(2)
-!$omp parallel do private(k,ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
             vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
@@ -2068,14 +2063,11 @@ c
      &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
      &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
-!$omp end parallel do
       end if
 
       if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or.fixvhi_y .or. fixwhi_y)) then
          i = lo(1)
          j = hi(2)
-!$omp parallel do private(k,ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
             vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
@@ -2103,14 +2095,11 @@ c
      &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
      &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
-!$omp end parallel do
       end if
 
       if ((fixuhi_x.or.fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or.fixvhi_y .or. fixwhi_y)) then
          i = hi(1)
          j = hi(2)
-!$omp parallel do private(k,ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
             vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
@@ -2138,14 +2127,11 @@ c
      &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
      &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
-!$omp end parallel do
       end if
 
       if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixulo_z .or. fixvlo_z .or. fixwlo_z)) then
          i = lo(1)
          k = lo(3)
-!$omp parallel do private(j,ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do j = lo(2),hi(2)
             ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
             vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
@@ -2173,14 +2159,11 @@ c
      &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
      &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
-!$omp end parallel do
       end if
 
       if ((fixuhi_x .or. fixvhi_x .or. fixwhi_x) .and. (fixulo_z .or. fixvlo_z .or. fixwlo_z)) then
          i = hi(1)
          k = lo(3)
-!$omp parallel do private(j,ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do j = lo(2),hi(2)
             ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
             vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
@@ -2208,15 +2191,12 @@ c
      &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
      &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
-!$omp end parallel do
       end if
 
 
       if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
          i = lo(1)
          k = hi(3)
-!$omp parallel do private(j,ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do j = lo(2),hi(2)
             ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
             vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
@@ -2244,14 +2224,11 @@ c
      &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
      &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
-!$omp end parallel do
       end if
 
       if ((fixuhi_x.or.fixvhi_x .or. fixwhi_x) .and. (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
          i = hi(1)
          k = hi(3)
-!$omp parallel do private(j,ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do j = lo(2),hi(2)
             ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
             vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
@@ -2279,14 +2256,11 @@ c
      &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
      &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
-!$omp end parallel do
       end if
 
       if ((fixulo_y .or.fixvlo_y.or.fixwlo_y) .and. (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
          j = lo(2)
          k = lo(3)
-!$omp parallel do private(i,ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do i = lo(1),hi(1)
             ux = uxcen(i,j,k)
             vx = vxcen(i,j,k)
@@ -2314,14 +2288,11 @@ c
      &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
      &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
-!$omp end parallel do
       end if
 
       if ((fixuhi_y .or.fixvhi_y.or. fixwhi_y) .and. (fixulo_z .or. fixvlo_z.or.fixvlo_z)) then
          j = hi(2)
          k = lo(3)
-!$omp parallel do private(i,ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do i = lo(1),hi(1)
             ux = vxcen(i,j,k)
             vx = vxcen(i,j,k)
@@ -2349,14 +2320,11 @@ c
      &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
      &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
-!$omp end parallel do
       end if
 
       if ((fixulo_y .or. fixvlo_y.or.fixwlo_y) .and. (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
          j = lo(2)
          k = hi(3)
-!$omp parallel do private(i,ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do i = lo(1),hi(1)
             ux = vxcen(i,j,k)
             vx = vxcen(i,j,k)
@@ -2384,14 +2352,11 @@ c
      &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
      &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
-!$omp end parallel do
       end if
 
       if ((fixuhi_y .or. fixvhi_y.or.fixwhi_y) .and. (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
          j = hi(2)
          k = hi(3)
-!$omp parallel do private(i,ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do i = lo(1),hi(1)
             ux = uxcen(i,j,k)
             vx = vxcen(i,j,k)
@@ -2419,7 +2384,6 @@ c
      &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
      &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
-!$omp end parallel do
       end if
 c
 c     Finally do all the corners
@@ -2789,7 +2753,6 @@ c
       dy = delta(2)
       dz = delta(3)
 
-!$omp parallel do private(i,j,k,uy,uz,vx,vz,wx,wy)      
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -2803,7 +2766,6 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
       fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
      &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
@@ -2836,7 +2798,6 @@ c     First do all the faces
 c
       if (fixvlo_x .or. fixwlo_x) then
          i = lo(1)
-!$omp parallel do private(j,k,uy,uz,vx,vz,wx,wy)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
@@ -2848,12 +2809,10 @@ c
                vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixvhi_x .or. fixwhi_x) then
          i = hi(1)
-!$omp parallel do private(j,k,uy,uz,vx,vz,wx,wy)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
@@ -2865,12 +2824,10 @@ c
                vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixulo_y .or. fixwlo_y) then
          j = lo(2)
-!$omp parallel do private(i,k,uy,uz,vx,vz,wx,wy)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
@@ -2882,12 +2839,10 @@ c
                vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixuhi_y .or. fixwhi_y) then
          j = hi(2)
-!$omp parallel do private(i,k,uy,uz,vx,vz,wx,wy)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
@@ -2899,12 +2854,10 @@ c
                vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixulo_z .or. fixvlo_z) then
          k = lo(3)
-!$omp parallel do private(i,j,uy,uz,vx,vz,wx,wy)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
@@ -2916,12 +2869,10 @@ c
                vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixuhi_z .or. fixvhi_z) then
          k = hi(3)
-!$omp parallel do private(i,j,uy,uz,vx,vz,wx,wy)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
@@ -2933,7 +2884,6 @@ c
                vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
             end do
          end do
-!$omp end parallel do
       end if
 c
 c     Next do all the edges
@@ -2941,7 +2891,6 @@ c
       if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y)) then
          i = lo(1)
          j = lo(2)
-!$omp parallel do private(k,uy,uz,vx,vz,wx,wy)
          do k = lo(3),hi(3)
             vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
             wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
@@ -2951,13 +2900,11 @@ c
             vz = vzcen(i,j,k)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
-!$omp end parallel do
       end if
 
       if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y)) then
          i = hi(1)
          j = lo(2)
-!$omp parallel do private(k,uy,uz,vx,vz,wx,wy)
          do k = lo(3),hi(3)
             vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
             wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
@@ -2967,13 +2914,11 @@ c
             vz = vzcen(i,j,k)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
-!$omp end parallel do
       end if
 
       if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y)) then
          i = lo(1)
          j = hi(2)
-!$omp parallel do private(k,uy,uz,vx,vz,wx,wy)
          do k = lo(3),hi(3)
             vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
             wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
@@ -2983,13 +2928,11 @@ c
             vz = vzcen(i,j,k)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
-!$omp end parallel do
       end if
 
       if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y)) then
          i = hi(1)
          j = hi(2)
-!$omp parallel do private(k,uy,uz,vx,vz,wx,wy)
          do k = lo(3),hi(3)
             vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
             wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
@@ -2999,13 +2942,11 @@ c
             vz = vzcen(i,j,k)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
-!$omp end parallel do
       end if
 
       if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_z .or. fixvlo_z)) then
          i = lo(1)
          k = lo(3)
-!$omp parallel do private(j,uy,uz,vx,vz,wx,wy)
          do j = lo(2),hi(2)
             vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
             wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
@@ -3015,13 +2956,11 @@ c
             vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
-!$omp end parallel do
       end if
 
       if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_z .or. fixvlo_z)) then
          i = hi(1)
          k = lo(3)
-!$omp parallel do private(j,uy,uz,vx,vz,wx,wy)
          do j = lo(2),hi(2)
             vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
             wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
@@ -3031,13 +2970,11 @@ c
             vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
-!$omp end parallel do
       end if
 
       if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_z .or. fixvhi_z)) then
          i = lo(1)
          k = hi(3)
-!$omp parallel do private(j,uy,uz,vx,vz,wx,wy)
          do j = lo(2),hi(2)
             vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
             wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
@@ -3047,13 +2984,11 @@ c
             vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
-!$omp end parallel do
       end if
 
       if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_z .or. fixvhi_z)) then
          i = hi(1)
          k = hi(3)
-!$omp parallel do private(j,uy,uz,vx,vz,wx,wy)
          do j = lo(2),hi(2)
             vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
             wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
@@ -3063,13 +2998,11 @@ c
             vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
-!$omp end parallel do
       end if
 
       if ((fixulo_y .or. fixwlo_y) .and. (fixulo_z .or. fixvlo_z)) then
          j = lo(2)
          k = lo(3)
-!$omp parallel do private(i,uy,uz,vx,vz,wx,wy)
          do i = lo(1),hi(1)
             vx = vxcen(i,j,k)
             wx = wxcen(i,j,k)
@@ -3079,13 +3012,11 @@ c
             vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
-!$omp end parallel do
       end if
 
       if ((fixuhi_y .or. fixwhi_y) .and. (fixulo_z .or. fixvlo_z)) then
          j = hi(2)
          k = lo(3)
-!$omp parallel do private(i,uy,uz,vx,vz,wx,wy)
          do i = lo(1),hi(1)
             vx = vxcen(i,j,k)
             wx = wxcen(i,j,k)
@@ -3095,13 +3026,11 @@ c
             vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
-!$omp end parallel do
       end if
 
       if ((fixulo_y .or. fixwlo_y) .and. (fixuhi_z .or. fixvhi_z)) then
          j = lo(2)
          k = hi(3)
-!$omp parallel do private(i,uy,uz,vx,vz,wx,wy)
          do i = lo(1),hi(1)
             vx = vxcen(i,j,k)
             wx = wxcen(i,j,k)
@@ -3111,13 +3040,11 @@ c
             vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
-!$omp end parallel do
       end if
 
       if ((fixuhi_y .or. fixwhi_y) .and. (fixuhi_z .or. fixvhi_z)) then
          j = hi(2)
          k = hi(3)
-!$omp parallel do private(i,uy,uz,vx,vz,wx,wy)
          do i = lo(1),hi(1)
             vx = vxcen(i,j,k)
             wx = wxcen(i,j,k)
@@ -3127,7 +3054,6 @@ c
             vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
-!$omp end parallel do
       end if
 c
 c     Finally do all the corners
@@ -3323,7 +3249,6 @@ c
       dy = delta(2)
       dz = delta(3)
 
-!$omp parallel do private(i,j,k,wy,vz)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -3333,7 +3258,6 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
       fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
      &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
@@ -3366,7 +3290,7 @@ c     First do all the faces
 c
       if (fixvlo_x .or. fixwlo_x) then
          i = lo(1)
-!$omp parallel do private(j,k,wy,vz)
+!$omp parallel do private(wy,vz)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                wy = wycen(i,j,k)
@@ -3379,7 +3303,7 @@ c
 
       if (fixvhi_x .or. fixwhi_x) then
          i = hi(1)
-!$omp parallel do private(j,k,wy,vz)
+!$omp parallel do private(wy,vz)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                wy = wycen(i,j,k)
@@ -3392,7 +3316,7 @@ c
 
       if (fixulo_y .or. fixwlo_y) then
          j = lo(2)
-!$omp parallel do private(i,k,wy,vz)
+!$omp parallel do private(wy,vz)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
@@ -3405,7 +3329,7 @@ c
 
       if (fixuhi_y .or. fixwhi_y) then
          j = hi(2)
-!$omp parallel do private(i,k,wy,vz)
+!$omp parallel do private(wy,vz)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
@@ -3418,7 +3342,7 @@ c
 
       if (fixulo_z .or. fixvlo_z) then
          k = lo(3)
-!$omp parallel do private(i,j,wy,vz)
+!$omp parallel do private(wy,vz)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                wy = wycen(i,j,k)
@@ -3431,7 +3355,7 @@ c
 
       if (fixuhi_z .or. fixvhi_z) then
          k = hi(3)
-!$omp parallel do private(i,j,wy,vz)
+!$omp parallel do private(wy,vz)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                wy = wycen(i,j,k)
@@ -3726,7 +3650,7 @@ c
       dy = delta(2)
       dz = delta(3)
 
-!$omp parallel do private(i,j,k,uz,wx)
+!$omp parallel do private(uz,wx)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -3769,7 +3693,7 @@ c     First do all the faces
 c
       if (fixvlo_x .or. fixwlo_x) then
          i = lo(1)
-!$omp parallel do private(j,k,uz,wx)
+!$omp parallel do private(uz,wx)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
@@ -3782,7 +3706,7 @@ c
 
       if (fixvhi_x .or. fixwhi_x) then
          i = hi(1)
-!$omp parallel do private(j,k,uz,wx)
+!$omp parallel do private(uz,wx)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
@@ -3795,7 +3719,7 @@ c
 
       if (fixulo_y .or. fixwlo_y) then
          j = lo(2)
-!$omp parallel do private(i,k,uz,wx)
+!$omp parallel do private(uz,wx)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                wx = wxcen(i,j,k)
@@ -3808,7 +3732,7 @@ c
 
       if (fixuhi_y .or. fixwhi_y) then
          j = hi(2)
-!$omp parallel do private(i,k,uz,wx)
+!$omp parallel do private(uz,wx)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                wx = wxcen(i,j,k)
@@ -3821,7 +3745,7 @@ c
 
       if (fixulo_z .or. fixvlo_z) then
          k = lo(3)
-!$omp parallel do private(i,j,uz,wx)
+!$omp parallel do private(uz,wx)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                wx = wxcen(i,j,k)
@@ -3834,7 +3758,7 @@ c
 
       if (fixuhi_z .or. fixvhi_z) then
          k = hi(3)
-!$omp parallel do private(i,j,uz,wx)
+!$omp parallel do private(uz,wx)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                wx = wxcen(i,j,k)
@@ -4129,7 +4053,7 @@ c
       dy = delta(2)
       dz = delta(3)
 
-!$omp parallel do private(i,j,k,vx,uy)      
+!$omp parallel do private(vx,uy)      
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -4172,7 +4096,7 @@ c     First do all the faces
 c
       if (fixvlo_x .or. fixwlo_x) then
          i = lo(1)
-!$omp parallel do private(j,k,vx,uy)
+!$omp parallel do private(vx,uy)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
@@ -4185,7 +4109,7 @@ c
 
       if (fixvhi_x .or. fixwhi_x) then
          i = hi(1)
-!$omp parallel do private(j,k,vx,uy)
+!$omp parallel do private(vx,uy)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
@@ -4198,7 +4122,7 @@ c
 
       if (fixulo_y .or. fixwlo_y) then
          j = lo(2)
-!$omp parallel do private(i,k,vx,uy)
+!$omp parallel do private(vx,uy)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
@@ -4211,7 +4135,7 @@ c
 
       if (fixuhi_y .or. fixwhi_y) then
          j = hi(2)
-!$omp parallel do private(i,k,vx,uy)
+!$omp parallel do private(vx,uy)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
@@ -4224,7 +4148,7 @@ c
 
       if (fixulo_z .or. fixvlo_z) then
          k = lo(3)
-!$omp parallel do private(i,j,vx,uy)
+!$omp parallel do private(vx,uy)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
@@ -4237,7 +4161,7 @@ c
 
       if (fixuhi_z .or. fixvhi_z) then
          k = hi(3)
-!$omp parallel do private(i,j,vx,uy)
+!$omp parallel do private(vx,uy)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
@@ -4636,7 +4560,7 @@ c
 	 end if
       end if
 
-!$omp parallel do private(i,j,k,ux,vy,wz)
+!$omp parallel do private(ux,vy,wz)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
