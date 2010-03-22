@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.66 2010-03-04 01:01:13 aaspden Exp $
+c $Id: PROB_3D.F,v 1.67 2010-03-22 19:51:03 xinfeng Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -80,8 +80,8 @@ c ::: -----------------------------------------------------------
       namelist /fortin/ denerr, vorterr, adverr, temperr,
      &			denfact, xblob, yblob, zblob, radblob, 
      &                  velfact, probtype, randfact, bubgrad,
-     &			rhozero, tempzero, c_d, r_d, rhograd,
-     &                  adv_dir, adv_vel, axis_dir, radvort,
+     &			rhozero, tempzero, c_d, r_d, 
+     &                  adv_dir, adv_vel, slot_vel, axis_dir, radvort,
      &                  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag,
      &                  vb_unifdir, blrandseed, turb_scale, injection_time
 #ifdef BL_DO_FLCT
@@ -1794,10 +1794,10 @@ c
 
                vel(i,j,k,1) = x_vel
                vel(i,j,k,2) = y_vel
-c               vel(i,j,k,3) = z_vel
-               do n = 1, 3
-                  vel(i,j,k,n) = plateVel(x,y,z,n,0.d0)
-               end do
+               vel(i,j,k,3) = z_vel
+c               do n = 1, 3
+c                  vel(i,j,k,n) = plateVel(x,y,z,n,0.d0)
+c               end do
                
                scal(i,j,k,1) = one
                do n = 2,nscal
@@ -6143,7 +6143,7 @@ c
       REAL_T totHoleA
       REAL_T jetVel, radius, sectarea
       REAL_T x, y, z, xcen,ycen, xloc, yloc, xcord(5), ycord(5)
-      REAL_T mean, zblend1, vholeSp, vane, xshift, yshift, delta
+      REAL_T mean, zblend1, vholeSp, vane, xshift, yshift, delta,vslot
       integer icell,jcell,npts
 #include "probdata.H"
       mean = 0.40
@@ -6153,7 +6153,7 @@ c
       vholeSp = 0.d0
       vane = 0.001
       delta = 0.d0
-      
+      vslot = 32.d0
 
 
       do  npts = 1, 5
@@ -6218,6 +6218,53 @@ c     perforated plate of hexagnoal pattern
       jetVel = adv_vel/(1.0 - holeBLfac)      
       holeSp = SQRT(two*Pi/(sqrt(3.d0)*(1.d0 - holeBLfac)))*holeRad
 
+   
+      vholeSp = sqrt(3.d0)*holeSp
+       
+      plateVel = 0.d0
+
+      icell = int (x/holeSp)
+      jcell = int (y/vholeSp)
+      
+      xcen = holeSp*(dfloat(icell) + half)
+      ycen = vholeSp*(dfloat(jcell) + half)
+
+      xloc = x-xcen
+      yloc = y-ycen
+      
+      xcord(1) = -half*holeSp
+      ycord(1) = -half*vholeSp
+      
+      xcord(2) = -half*holeSp
+      ycord(2) = half*vholeSp
+      
+      xcord(3) = half*holeSp
+      ycord(3) = half*vholeSp
+      
+      xcord(4) = half*holeSp
+      ycord(4) = -half*vholeSp
+      
+      xcord(5) = 0.d0
+      ycord(5) = 0.d0
+      
+      do npts = 1, 5
+         
+         radius = SQRT((xloc-xcord(npts))**2 + (yloc-ycord(npts))**2)
+         
+         if(radius .le. holeRad) then
+            plateVel = jetVel*dir(cord) + flct*turb_scale 
+            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
+         endif
+      end do
+      
+
+#endif
+c  this is the original code
+#if 0
+      
+      jetVel = adv_vel/(1.0 - holeBLfac)      
+      holeSp = SQRT(two*Pi/(sqrt(3.d0)*(1.d0 - holeBLfac)))*holeRad
+
       if(y.ge.0.d0)then
          jcell = int(y / (half*sqrt(3.d0)*holeSp))
       else
@@ -6237,13 +6284,14 @@ c     perforated plate of hexagnoal pattern
       radius = SQRT((xloc-xcen)**2 + (yloc-ycen)**2)
       if(radius .le. holeRad) then
          plateVel = jetVel*dir(cord) + flct*turb_scale 
-         plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
-      else
-         plateVel = -jetVel*dir(cord)
+c         plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
+c      else
+c         plateVel = -jetVel*dir(cord)
+c         plateVel = 0.d0
       endif
       
 #endif
-c     perforated plate of hexagnoal pattern with slot 
+c     perforated plate of hexagnoal pattern with slot  (2 gaps in swirl region)
 #if 0
       
 c     jetVel = adv_vel/(1.0 - holeBLfac)     
@@ -6284,7 +6332,7 @@ c
          
          if(radius .le. holeRad) then
             plateVel = jetVel*dir(cord) + flct*turb_scale 
-            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
+c            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
          endif
       end do
 c     in the slot region (5 mm width)
@@ -6319,14 +6367,17 @@ c     in the region of 1 mm between the slot region and the plate
 #endif
 
 
-c     perforated plate of hexagnoal pattern with slot and shifting in x and y directions 
+c     perforated plate of hexagnoal pattern with slot and shifting in x and y directions (4 gaps in swirl region)
 #if 1
       
 c     jetVel = adv_vel/(1.0 - holeBLfac)     
 c 
      
-      jetVel = 18.d0
+      jetVel = adv_vel
+      vslot = slot_vel
+
       plateVel = 0.d0
+      
       
       holeSp = SQRT(two*Pi/(sqrt(3.d0)*(1.d0 - holeBLfac)))*holeRad      
       vholeSp = sqrt(3.d0)*holeSp
@@ -6371,14 +6422,15 @@ c
          
          if(radius .le. holeRad) then
             plateVel = jetVel*dir(cord) + flct*turb_scale 
-            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
+c            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
          endif
       end do
 c     in the slot region (5 mm width)
       if (y.ge.((domnhi(2)-domnlo(2)) - slotWidth)) then
          delta = (domnhi(1)-domnlo(1))
          if (cord .eq. 1) then
-            plateVel = 32.d0*tan(37.d0/180.d0*Pi)
+c            plateVel = 32.d0*tan(37.d0/180.d0*Pi)
+            plateVel = vslot*tan(37.d0/180.d0*Pi)
             
             do n = 1, 7, 2
                if (x .ge. (dfloat(n)/8.d0*delta-half*vane) .and. (x .le. (dfloat(n)/8.d0*delta + half*vane))) then 
@@ -6389,7 +6441,8 @@ c     in the slot region (5 mm width)
          else if (cord .eq. 2) then
             plateVel = 0.d0
          else
-            plateVel = 32.d0
+c            plateVel = 32.d0
+            plateVel = vslot
             do n = 1, 7, 2
                if (x .ge. (dfloat(n)/8.d0*delta-half*vane) .and. (x .le. (dfloat(n)/8.d0*delta + half*vane))) then 
                   plateVel = 0.d0
