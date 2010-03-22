@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.67 2010-03-22 19:51:03 xinfeng Exp $
+c $Id: PROB_3D.F,v 1.68 2010-03-22 21:48:16 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -80,7 +80,7 @@ c ::: -----------------------------------------------------------
       namelist /fortin/ denerr, vorterr, adverr, temperr,
      &			denfact, xblob, yblob, zblob, radblob, 
      &                  velfact, probtype, randfact, bubgrad,
-     &			rhozero, tempzero, c_d, r_d, 
+     &			rhozero, rhograd, tempzero, c_d, r_d, 
      &                  adv_dir, adv_vel, slot_vel, axis_dir, radvort,
      &                  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag,
      &                  vb_unifdir, blrandseed, turb_scale, injection_time
