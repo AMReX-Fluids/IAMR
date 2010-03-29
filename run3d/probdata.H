@@ -19,7 +19,7 @@
       common /probdt3/ vorterr, adverr, denerr, temperr, ref_centre, ref_radius
       common /probdt4/ denfact, xblob, yblob, zblob, radvort,
      &                 radblob, velfact, randfact, bubgrad
-      common /probdt5/ rhozero, tempzero, r_d, c_d, adv_vel, slot_vel
+      common /probdt5/ rhozero,rhograd,tempzero,r_d,c_d,adv_vel,slot_vel
       common /probdt6/ f_problo, f_probhi,domnlo,domnhi,turb_scale
       common /probdt7/ vb_unifdir, blrandseed
       common /probdt9/ grav_angle, omega, infl_time_offset
