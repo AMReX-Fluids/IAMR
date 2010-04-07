@@ -2,6 +2,7 @@
 // Merge swirl-type turbulence files together over specified range.
 //
 
+#include <cstdlib>
 #include <iostream>
 
 #include <list>

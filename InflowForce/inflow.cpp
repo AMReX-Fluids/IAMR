@@ -18,10 +18,10 @@
 #    define FORT_GETPLANE    getplane_
 #  endif
 
-extern "C" void FORT_GETPLANE(int* filename, int* len, Real* data, int* plane, int* ncomp);
+extern "C" void FORT_GETPLANE(int* filename, int* len, Real* data, int* plane, int* ncomp, int* isswirltype);
 
 void
-FORT_GETPLANE (int* filename, int* len, Real* data, int* plane, int* ncomp)
+FORT_GETPLANE (int* filename, int* len, Real* data, int* plane, int* ncomp, int* isswirltype)
 {
     static int         kmax;
     static bool        first = true;
@@ -53,13 +53,23 @@ FORT_GETPLANE (int* filename, int* len, Real* data, int* plane, int* ncomp)
 
         int  idummy;
         Real rdummy;
-
-        // Hardwire loop max to 3 regardless of spacedim
+        //
+        // Hardwire loop max to 3 regardless of spacedim.
+        //
         for (int i = 0; i < 3; i++)
             ifs >> kmax;
 
         ifs >> rdummy >> rdummy >> rdummy;
         ifs >> idummy >> idummy >> idummy;
+
+        if (*isswirltype)
+        {
+            //
+            // Skip over fluct_times array.
+            //
+            for (int i = 0; i < kmax; i++)
+                ifs >> rdummy;
+        }
 
         offset.resize(kmax * BL_SPACEDIM);
 

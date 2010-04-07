@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_3D.F,v 1.5 2007-04-16 18:27:06 aaspden Exp $
+c $Id: INFL_FORCE_3D.F,v 1.6 2010-04-07 23:02:19 lijewski Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -96,26 +96,12 @@ c :::
 
       if (infl_type .eq. infl_periodic_type) then
          coff = one
-      else
-         coff = half
-      endif
-c
-c     ----------------------------------------------
-c     :::: Set the time interpolation constants ::::
-c     ----------------------------------------------
-c
-      if (infl_type .eq. -1) then
-         call bl_abort('INFL_FILL: infl_type is not set')
-      endif
-
-      if (infl_type .eq. infl_periodic_type) then
-         tm1 = timePnt - dtFile
-         tp1 = timePnt + dtFile
+         tm1  = timePnt - dtFile
+         tp1  = timePnt + dtFile
       else if (infl_type .eq. infl_swirl_type) then
-c         tm1 = fluct_times(filePnt + storePnt - 2)
-c         tp1 = fluct_times(filePnt + storePnt)
-         tm1 = fluct_times(filePnt - 1)
-         tp1 = fluct_times(filePnt + 1)
+         coff = half
+         tm1  = fluct_times(filePnt - 1)
+         tp1  = fluct_times(filePnt + 1)
       else
          call bl_abort('INTRP_DATA: unknown infl_type')
       endif

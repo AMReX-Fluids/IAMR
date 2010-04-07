@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.14 2007-01-22 17:10:34 lijewski Exp $
+c $Id: FLUCTFILE.F,v 1.15 2010-04-07 23:02:19 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -16,11 +16,9 @@ c
 
 #include "INFL_FORCE_F.H"
 
-      data nCompInflow          / 3/
-      data infl_type            /-1/
-      data infl_periodic_type   / 1/
-      data infl_swirl_type      / 2/
-      data tstart_turb          /-1/
+      data nCompInflow  / 3                /
+      data infl_type    /infl_periodic_type/  ! defaults to periodic
+      data tstart_turb  /-1                /
 
       end
 
@@ -103,13 +101,12 @@ c
       REAL_T probSizeFile(3), dxFile(3)
 
       integer i1bc, j1bc, k1bc, dummy, i
-      logical first
+
+      logical, save :: first = true
 
       call bl_pd_myproc(proc)
 
       if (proc.eq.0) print*, 'Entered RD_SCL_FLCTHD'
-
-      first = (infl_type .eq. -1)
 
       read(iunit,*) dimFile
 
@@ -126,10 +123,6 @@ c
       ! infl_periodic_type only has three integers here.
       !
       read(iunit,*) i1bc, j1bc, k1bc
-      !
-      ! TODO -- fix this
-      !
-      infl_type = infl_periodic_type
 
       if (infl_type .eq. infl_swirl_type) then
          !
@@ -143,7 +136,8 @@ c
             allocate(fluct_times(1:dimFile(strmwse_dir)))
          endif
          read(iunit,*) (fluct_times(i),i=1,dimFile(strmwse_dir))
-      else
+
+      else if (infl_type .eq. infl_periodic_type) then
          !
          ! Assumes node-centered data.
          !
@@ -154,16 +148,20 @@ c
          else
             dxFile(3) = zero
          endif
+      else
+         call bl_abort('RD_SCL_FLCTHD: infl_type is not set')
       endif
 
       if (first .and. proc.eq.0) then
+
+         first = .false.
+
          if (infl_type .eq. infl_periodic_type) then
             write(6,*) 'RD_SCL_FLCTHD: infl_type: infl_periodic_type'
          else if (infl_type .eq. infl_swirl_type) then
             write(6,*) 'RD_SCL_FLCTHD: infl_type: infl_swirl_type'
-         else
-            call bl_abort('RD_SCL_FLCTHD: unknown infl_type')
          endif
+
       endif
 
       end
@@ -189,7 +187,7 @@ c
 
       implicit none
 
-      integer dimFile(3), i, j, k, n, proc, ncomp, plane
+      integer dimFile(3), i, j, k, n, proc, ncomp, plane, isswirltype
       integer lo(3), hi(3), fileLo(3), FF_DIMDEC(dat), iflctfile(300)
       REAL_T dat(FF_DIMV(dat))
 
@@ -204,12 +202,18 @@ c
       do i = 1, n
          iflctfile(i) = ichar(flct_file(i:i))
       end do
+
+      if (infl_type .eq. infl_swirl_type) then
+         isswirltype = 1
+      else
+         isswirltype = 0
+      end if
 c
 c     Read the Necessary Data
 c
       plane = fileLo(3)
       do k = lo(3), hi(3)
-         call getplane(iflctfile(1), n, dat(lo(1),lo(2),k), plane, ncomp)
+         call getplane(iflctfile(1), n, dat(lo(1),lo(2),k), plane, ncomp, isswirltype)
          plane = plane + 1
       enddo
 

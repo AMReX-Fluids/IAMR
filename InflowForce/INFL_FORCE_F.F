@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.16 2009-11-21 22:28:52 lijewski Exp $
+c $Id: INFL_FORCE_F.F,v 1.17 2010-04-07 23:02:19 lijewski Exp $
 c
 
 #undef BL_LANG_CC
@@ -371,9 +371,7 @@ c
       integer FF_DIMDEC(dat)
       REAL_T dat(FF_DIMV(dat),nComp)
 
-      integer intDummy, n, proc
-      integer lo(3), hi(3), loRd(3), hiRd(3), filLo(3)
-      REAL_T realDummy
+      integer n, proc, lo(3), hi(3), loRd(3), hiRd(3), filLo(3)
 
 #include "INFL_FORCE_F.H"
 
@@ -394,8 +392,6 @@ c
      &           dat(lo(1),lo(2),lo(3),n),n)
          enddo
       else
-
-         intDummy = hi(strmwse_dir) - lo(strmwse_dir) + 1
 c     
 c     *** Wrap baseFilePnt into the box if it is outside ***
 c     
@@ -479,15 +475,12 @@ c
       integer FF_DIMDEC(dat)
       REAL_T dat(FF_DIMV(dat),nComp)
 
-      integer intDummy, n
+      integer n
       integer lo(3), hi(3), loRd(3), hiRd(3), filLo(3)
-      REAL_T realDummy
 
 #include "INFL_FORCE_F.H"
 
       call FF_SET_LOHI(FF_DIMS(dat), lo, hi)
-
-      intDummy = hi(strmwse_dir) - lo(strmwse_dir) + 1
 
       do n = 1, 3
          filLo(n) = 1
@@ -497,18 +490,9 @@ c
       loRd(strmwse_dir)  = baseArrayPnt
       filLo(strmwse_dir) = baseFilePnt
 
-c      open(FF_UNIT, file=trim(flct_file)//'/HDR', form='formatted', action='read', status='old')
-
-c      read(FF_UNIT) intDummy
-c      read(FF_UNIT) realDummy
-c      read(FF_UNIT) intDummy
-c      read(FF_UNIT) realDummy
-
       do n = 1, nComp
          call RD_FLCTREC(dimFile, loRd, hiRd, filLo,
      $        FF_DIMS(dat), dat(lo(1),lo(2),lo(3),n),n)
       enddo
-
-c      close(FF_UNIT)
 
       end
