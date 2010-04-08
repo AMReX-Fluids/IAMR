@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.17 2010-04-07 23:02:19 lijewski Exp $
+c $Id: INFL_FORCE_F.F,v 1.18 2010-04-08 22:28:19 lijewski Exp $
 c
 
 #undef BL_LANG_CC
@@ -193,9 +193,6 @@ c
 
       call bl_pd_myproc(proc)
 
-      if (proc.eq.0) print*,'infl_swirl_type not implemented'
-      call bl_abort('infl_swirl_type not implemented');
-
       if (.NOT. ALLOCATED(storDat)) then
 
          open(FF_UNIT, file=trim(flct_file)//'/HDR', form='formatted', action='read', status='old')
@@ -331,9 +328,6 @@ c
          call INFL_FILL_PERIODIC(fillComp, DIMS(inflDat), inflDat,
      $        xlo, dx, time, bc, probLo, probHi)
       else if (infl_type .eq. infl_swirl_type) then
-         if (tstart_turb .eq. -1) then
-            call bl_abort('INFL_FILL: tstart_turb is not set')
-         endif
          offset_time = time + tstart_turb
          call INFL_FILL_SWIRL(fillComp, DIMS(inflDat), inflDat,
      $        xlo, dx, offset_time, bc, probLo, probHi)

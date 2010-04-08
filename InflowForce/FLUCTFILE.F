@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.16 2010-04-08 20:01:08 lijewski Exp $
+c $Id: FLUCTFILE.F,v 1.17 2010-04-08 22:28:19 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -18,7 +18,7 @@ c
 
       data nCompInflow  / 3                /
       data infl_type    /infl_periodic_type/  ! defaults to periodic
-      data tstart_turb  /-1                /
+      data tstart_turb  / 0                /
 
       end
 

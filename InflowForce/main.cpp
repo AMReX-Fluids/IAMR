@@ -45,6 +45,8 @@ struct Line
     std::string m_name;
 };
 
+static bool verbose = false;
+
 static
 void
 usage ()
@@ -52,8 +54,9 @@ usage ()
     std::cout << "\nusage: turbMerge"
               << " ifile=inputfile"
               << " ofile=outputfile"
-              << " DX=\"dx dy dz\"]\n"
+              << " probsize=\"dx dy dz\"\n"
               << " [range=\"tstart tend\"]\n"
+              << " [verbose=[0|1]]\n"
               << std::endl;
     exit(1);
 }
@@ -64,11 +67,13 @@ GetFab (const std::string& name, FArrayBox& fab)
 {
     std::ifstream ifs(name.c_str(), std::ios::in);
 
-    std::cout << "Attempting to read FAB from file: " << name << " ... " << std::flush;
+    if (verbose)
+        std::cout << "Attempting to read FAB from file: " << name << " ... " << std::flush;
 
     fab.readFrom(ifs);
 
-    std::cout << "done\n\n" << std::flush;
+    if (verbose)
+        std::cout << "done\n\n" << std::flush;
 
     if (fab.box().length(2) != 1)
     {
@@ -93,8 +98,10 @@ main (int   argc,
 
     std::string       ofile;
     std::vector<Real> range;
-    std::vector<Real> DX;
+    std::vector<Real> probsize;
     std::string       ifile;
+
+    pp.query("verbose",verbose);
 
     pp.queryarr("range", range);
 
@@ -119,15 +126,15 @@ main (int   argc,
 
     std::cout << "\nrange: " << range[0] << ' ' << range[1] << '\n';
 
-    pp.queryarr("DX", DX);
+    pp.queryarr("probsize", probsize);
 
-    if (DX.size() != 3)
+    if (probsize.size() != 3)
     {
-        std::cout << "DX must have three components!\n";
+        std::cout << "probsize must have three components!\n";
         usage();
     }
 
-    std::cout << "\nDX: " << DX[0] << ' ' << DX[1] << ' ' << DX[2] << '\n';
+    std::cout << "\nprobsize: " << probsize[0] << ' ' << probsize[1] << ' ' << probsize[2] << '\n';
 
     pp.query("ifile",ifile);
 
@@ -233,9 +240,9 @@ main (int   argc,
          << NY << ' '
          << NZ << '\n';
 
-    ohdr << DX[0] << ' '
-         << DX[1] << ' '
-         << DX[2] << '\n';
+    ohdr << probsize[0] << ' '
+         << probsize[1] << ' '
+         << probsize[2] << '\n';
 
     ohdr << 1 << ' ' << 1 << ' ' << 1 << '\n';
 
@@ -244,45 +251,33 @@ main (int   argc,
         ohdr << it->m_time << '\n';
     }
     //
-    // Write out the first FABs info.
+    // Write out the FABS one slab at a time.
     //
-    for (int i = 0; i < 3; i++)
+    // All X's, then all the Y,s, then all the Z's.
+    //
+    for (int i = 0; i < BL_SPACEDIM; i++)
     {
-        ohdr << odat.tellp() << '\n';
-        //
-        // Write the FAB to the data file.
-        //
-        fab.writeOn(odat,i,1);
-    }
-    //
-    // Now get the rest of the FABs;
-    //
-    std::list<Line>::const_iterator it = LL.begin();
+        int len;
 
-    ++it; // Skip past first FAB.
-
-    for ( ; it != LL.end(); ++it)
-    {
-        GetFab(it->m_name, fab);
-
-        if (fab.box().length(0) != NX)
+        switch(i)
         {
-            std::cout << "FAB does not have correct X dimension!\n";
-            usage();
-        }
-        if (fab.box().length(1) != NY)
-        {
-            std::cout << "FAB does not have correct Y dimension!\n";
-            usage();
-        }
-        if (fab.box().length(2) != 1)
-        {
-            std::cout << "FAB does not have correct Z dimension!\n";
-            usage();
+        case 0: len = NX; break;
+        case 1: len = NY; break;
+        case 2: len = 1;  break;
+        default:
+            BoxLib::Abort("turbMerge: how did this happen?");
         }
 
-        for (int i = 0; i < 3; i++)
+        for (std::list<Line>::const_iterator it = LL.begin(); it != LL.end(); ++it)
         {
+            GetFab(it->m_name, fab);
+
+            if (fab.box().length(i) != len)
+            {
+                std::cout << "FAB does not have correct length in dim = " << i << "!\n";
+                usage();
+            }
+
             ohdr << odat.tellp() << '\n';
             //
             // Write the FAB to the data file.

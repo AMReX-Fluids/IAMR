@@ -3,12 +3,12 @@ PBOXLIB_HOME   = $(TOP)
 PRECISION      = DOUBLE
 DEBUG	       = TRUE
 PROFILE        = FALSE
+COMP           = Intel
 FCOMP          = Intel
 DIM    	       = 3
 BUILD_IN_PLACE = TRUE
 EBASE          = turbMerge
 USE_MPI        = FALSE
-COMP           = g++
 
 include $(TOP)/mk/Make.defs
 include $(TOP)/BoxLib/Make.package
