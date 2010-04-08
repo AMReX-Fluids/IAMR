@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.68 2010-03-22 21:48:16 aaspden Exp $
+c $Id: PROB_3D.F,v 1.69 2010-04-08 16:55:16 xinfeng Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -51,6 +51,7 @@ c ::: -----------------------------------------------------------
       integer untin, i
       REAL_T  problo(SDIM), probhi(SDIM)
 
+      
 #include "probdata.H"
 
 #ifdef DO_IAMR_FORCE
@@ -193,7 +194,7 @@ c      if (isioproc .eq. 1) write(6,fortin)
             untin=20
             if (isioproc .eq. 1) print*, 'Initializing turbulence ...'
 c     New file format: change as of Mike's email
-c            open(untin, file=flct_file, form='unformatted')
+c     open(untin, file=flct_file, form='unformatted')
             open(untin, file=trim(flct_file)//'/HDR', form='formatted')
             call RD_SCL_FLCTHD(untin,nCompFile, dimFile, probSizeFile, dxFile)
             close(untin)
