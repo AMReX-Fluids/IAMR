@@ -1,5 +1,5 @@
 c
-c $Id: FLUCTFILE.F,v 1.15 2010-04-07 23:02:19 lijewski Exp $
+c $Id: FLUCTFILE.F,v 1.16 2010-04-08 20:01:08 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -102,7 +102,7 @@ c
 
       integer i1bc, j1bc, k1bc, dummy, i
 
-      logical, save :: first = true
+      logical, save :: first = .true.
 
       call bl_pd_myproc(proc)
 
@@ -160,6 +160,7 @@ c
             write(6,*) 'RD_SCL_FLCTHD: infl_type: infl_periodic_type'
          else if (infl_type .eq. infl_swirl_type) then
             write(6,*) 'RD_SCL_FLCTHD: infl_type: infl_swirl_type'
+            write(6,*) 'RD_SCL_FLCTHD: fluct_times: ', fluct_times
          endif
 
       endif
