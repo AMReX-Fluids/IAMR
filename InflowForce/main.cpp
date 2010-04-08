@@ -88,6 +88,31 @@ GetFab (const std::string& name, FArrayBox& fab)
     }
 }
 
+static
+void
+Extend (FArrayBox& xfab,
+        FArrayBox& vfab,
+        const Box& dm)
+{
+    Box tbx = vfab.box();
+
+    tbx.setBig(0, dm.bigEnd(0) + 3);
+
+    const int ygrow = BL_SPACEDIM==3 ? 3 : 1;
+
+    tbx.setBig(1, dm.bigEnd(1) + ygrow);
+
+    xfab.resize(tbx,vfab.nComp());
+
+    xfab.copy(vfab);
+    vfab.shift(0, dm.length(0));
+    xfab.copy(vfab);
+    vfab.shift(1, dm.length(1));
+    xfab.copy(vfab);
+    vfab.shift(0, -dm.length(0));
+    xfab.copy(vfab);
+}
+
 int
 main (int   argc,
       char* argv[])
@@ -226,9 +251,9 @@ main (int   argc,
     if (!odat.good())
         BoxLib::FileOpenFailed(Dat);
     //
-    // Gotta open a FAB to get NX and NY.
+    // Gotta open a FAB to get initial NX and NY.
     //
-    FArrayBox fab;
+    FArrayBox fab, xfab;
 
     GetFab(LL.front().m_name, fab);
     
@@ -236,13 +261,17 @@ main (int   argc,
     const int NY = fab.box().length(1);
     const int NZ = LL.size();
 
-    ohdr << NX << ' '
-         << NY << ' '
-         << NZ << '\n';
+    const Box domain(IntVect(0,0,0), IntVect(NX-1,NY-1,0));
 
-    ohdr << probsize[0] << ' '
-         << probsize[1] << ' '
-         << probsize[2] << '\n';
+    const Real DX[BL_SPACEDIM] = {probsize[0]/NX, probsize[1]/NY, 1};
+
+    ohdr << NX + 3 << ' '
+         << NY + 3 << ' '
+         << NZ     << '\n';
+
+    ohdr << probsize[0] + 2*DX[0] << ' '
+         << probsize[1] + 2*DX[1] << ' '
+         << probsize[2]           << '\n';
 
     ohdr << 1 << ' ' << 1 << ' ' << 1 << '\n';
 
@@ -278,11 +307,13 @@ main (int   argc,
                 usage();
             }
 
+            Extend(xfab, fab, domain);
+
             ohdr << odat.tellp() << '\n';
             //
-            // Write the FAB to the data file.
+            // Write the extended FAB to the data file.
             //
-            fab.writeOn(odat,i,1);
+            xfab.writeOn(odat,i,1);
         }
     }
 
