@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.71 2010-04-09 17:53:58 lijewski Exp $
+c $Id: PROB_3D.F,v 1.72 2010-04-09 21:07:32 xinfeng Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -648,8 +648,10 @@ c ::: -----------------------------------------------------------
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
 
+     
 #include "probdata.H"
 
+      print *, 'INITDATA ', time
       if (probtype .eq. 1) then
          call initspin(level,time,lo,hi,nscal,
      &     	       vel,scal,DIMS(state),press,DIMS(press),
@@ -1880,10 +1882,12 @@ c
 
       do k = lo(3), hi(3)
          z = xlo(3) + hz*(float(k-lo(3)) + half)
-
+#if 0
 #ifdef BL_DO_FLCT
       if (forceInflow) then
          t_flct = fluct_times(k+1)+1.d-12
+c         t_flct = time
+         print *, 'INITDATA ', t_flct, fluct_times(k+1)
          call INFL_FILL(FLCT_XVEL,DIMS(uflct),uflct,xlo,dx,t_flct,bc,domnlo,domnhi)
          call INFL_FILL(FLCT_YVEL,DIMS(uflct),vflct,xlo,dx,t_flct,bc,domnlo,domnhi)
          call INFL_FILL(FLCT_ZVEL,DIMS(uflct),wflct,xlo,dx,t_flct,bc,domnlo,domnhi)
@@ -1904,6 +1908,25 @@ c
 	    end do
          end do
       end if
+#endif
+#else
+      do j = lo(2), hi(2)
+         y = xlo(2) + hy*(float(j-lo(2)) + half)
+         do i = lo(1), hi(1)
+            x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+               vel(i,j,k,1) = zero
+               vel(i,j,k,2) = zero
+               vel(i,j,k,3) = coflow_vel
+               
+               scal(i,j,k,1) = one
+               do n = 2,nscal
+                  scal(i,j,k,n) = zero
+               end do
+               
+	    end do
+         end do
+     
 #endif
       end do
 
@@ -4686,7 +4709,7 @@ c ::: -----------------------------------------------------------
            do k = lo(3), domlo(3)-1
               do j = lo(2), hi(2)
               do i = lo(1), hi(1)
-                 if (probtype.eq.26) then
+                 if ((probtype.eq.26) .or. (probtype.eq.28)) then
                     rho(i,j,k) = 1.d0
                  else
                     rho(i,j,k) = den2
@@ -4813,6 +4836,14 @@ c           write (6,*) "Filling with unit density"
               enddo
            enddo
         else if (probtype.eq.26) then
+           do k = ARG_L3(rho), domlo(3)-1
+              do j = ARG_L2(rho), ARG_H2(rho)
+                 do i = ARG_L1(rho), ARG_H1(rho)
+                    rho(i,j,k) = 1.d0
+                 end do
+              end do
+           end do
+        else if (probtype.eq.28) then
            do k = ARG_L3(rho), domlo(3)-1
               do j = ARG_L2(rho), ARG_H2(rho)
                  do i = ARG_L1(rho), ARG_H1(rho)
@@ -5432,7 +5463,8 @@ c        correct depth.  This requires that time is not further scaled inside th
 c        the INFL_FILL routine.  Just to be sure, we set convVel = 1 here again.
 c
          convVel = one
-         t_flct = adv_vel*time
+         t_flct = time
+         
          call INFL_FILL(FLCT_XVEL,DIMS(uflct),uflct,xlo,dx,t_flct,bc,domnlo,domnhi)
       end if
 #endif
@@ -5558,6 +5590,25 @@ c     u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
                   enddo
                enddo
             enddo
+         else if (probtype.eq.28) then
+            do k = ARG_L3(u), domlo(3)-1
+               z = domnlo(3) + (k+0.5)*dx(3)
+               do j = ARG_L2(u), ARG_H2(u)
+                  y = domnlo(2) + (j+0.5)*dx(2)
+                  do i = ARG_L1(u), ARG_H1(u)
+                     x = domnlo(1) + (i+0.5)*dx(1)
+                     r = SQRT( x*x + y*y )
+                     u(i,j,k) = zero
+#ifdef BL_DO_FLCT
+                     if (r .le. 0.025) then
+                        u(i,j,k) = uflct(i,j,1)
+                     endif
+#endif
+                  enddo
+               enddo
+            enddo
+            
+
          else 
 
 
@@ -5716,7 +5767,7 @@ c ::: -----------------------------------------------------------
          call SET_ARGS(DIMS(vflct), loFlctArray, hiFlctArray)
          allocate(vflct(DIMV(vflct)))
          convVel = one
-         t_flct = adv_vel*time
+         t_flct = time
          call INFL_FILL(FLCT_YVEL,DIMS(vflct),vflct,xlo,dx,t_flct,bc,domnlo,domnhi)
       end if
 #endif
@@ -5818,6 +5869,23 @@ c ::: -----------------------------------------------------------
 #ifdef BL_DO_FLCT
 c     v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
                      v(i,j,k) = plateVel(x, y, z, 2, vflct(i,j,1))
+#endif
+                  enddo
+               enddo
+            enddo
+         else if (probtype.eq.28) then
+            do k = ARG_L3(v), domlo(3)-1
+               z = domnlo(3) + (k+0.5)*dx(3)
+               do j = ARG_L2(v), ARG_H2(v)
+                  y = domnlo(2) + (j+0.5)*dx(2)
+                  do i = ARG_L1(v), ARG_H1(v)
+                     x = domnlo(1) + (i+0.5)*dx(1)
+                     r = SQRT( x*x + y*y )
+                     v(i,j,k) = zero
+#ifdef BL_DO_FLCT
+                     if (r .le. 0.025) then
+                        v(i,j,k) = vflct(i,j,1)
+                     endif
 #endif
                   enddo
                enddo
@@ -5974,7 +6042,7 @@ c ::: -----------------------------------------------------------
          call SET_ARGS(DIMS(wflct), loFlctArray, hiFlctArray)
          allocate(wflct(DIMV(wflct)))
          convVel = one
-         t_flct = adv_vel*time
+         t_flct = time
          call INFL_FILL(FLCT_ZVEL,DIMS(wflct),wflct,xlo,dx,t_flct,bc,domnlo,domnhi)
       end if
 #endif
@@ -6091,6 +6159,23 @@ c ::: -----------------------------------------------------------
 #ifdef BL_DO_FLCT
                      w(i,j,k) = plateVel(x, y, z, 3, wflct(i,j,1))
 c                     w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
+#endif
+                  enddo
+               enddo
+            enddo
+         else if (probtype.eq.28) then
+            do k = ARG_L3(w), domlo(3)-1
+               z = domnlo(3) + (k+0.5)*dx(3)
+               do j = ARG_L2(w), ARG_H2(w)
+                  y = domnlo(2) + (j+0.5)*dx(2)
+                  do i = ARG_L1(w), ARG_H1(w)
+                     x = domnlo(1) + (i+0.5)*dx(1)
+                     r = SQRT( x*x + y*y )
+                     w(i,j,k) = coflow_vel
+#ifdef BL_DO_FLCT
+                     if( r.le. 0.025) then
+                        w(i,j,k) = wflct(i,j,1)
+                     endif
 #endif
                   enddo
                enddo
