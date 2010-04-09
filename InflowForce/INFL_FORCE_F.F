@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_F.F,v 1.18 2010-04-08 22:28:19 lijewski Exp $
+c $Id: INFL_FORCE_F.F,v 1.19 2010-04-09 17:57:18 lijewski Exp $
 c
 
 #undef BL_LANG_CC
@@ -58,7 +58,7 @@ c     data arrays are always 3-d.
 c
       logical full_file_in_memory
       integer dimFile(3), loStoreDim(3), hiStoreDim(3)
-      integer FF_DIMDEC(storDat)
+      integer FF_DIMDEC(storDat), ierr
       REAL_T dxFile(3), probSizeFile(3), xloFile(3), xhiFile(3)
       REAL_T, allocatable :: storDat(:,:,:,:)
 
@@ -72,7 +72,13 @@ c
 
       if (.NOT. ALLOCATED(storDat)) then
 
-         open(FF_UNIT, file=trim(flct_file)//'/HDR', form='formatted', action='read', status='old')
+         ierr = 0
+
+         open(FF_UNIT, file=trim(flct_file)//'/HDR', form='formatted', action='read', status='old', iostat=ierr)
+
+         if (ierr .ne. 0) then
+            call bl_abort('Problem opening file: ' // trim(flct_file) // '/HDR')
+         end if
 
          call RD_SCL_FLCTHD(FF_UNIT,nCmpFile,dimFile,probSizeFile,dxFile)
 
@@ -179,7 +185,7 @@ c
       REAL_T inflDat(DIMV(inflDat)), probLo(SDIM), probHi(SDIM)
 
       integer lo(SDIM), hi(SDIM), nCmpFile, storePnt, shft, proc
-      integer n, filePnt, fileBase, FF_DIMDEC(storDat)
+      integer n, filePnt, fileBase, FF_DIMDEC(storDat), ierr
       integer dimFile(3), loStoreDim(3), hiStoreDim(3)
       REAL_T dxFile(3), probSizeFile(3), xloFile(3), xhiFile(3), timePnt
       REAL_T storDat(:,:,:,:), dtFile
@@ -195,7 +201,13 @@ c
 
       if (.NOT. ALLOCATED(storDat)) then
 
-         open(FF_UNIT, file=trim(flct_file)//'/HDR', form='formatted', action='read', status='old')
+         ierr = 0
+
+         open(FF_UNIT, file=trim(flct_file)//'/HDR', form='formatted', action='read', status='old', iostat=ierr)
+
+         if (ierr .ne. 0) then
+            call bl_abort('Problem opening file: ' // trim(flct_file) // '/HDR')
+         end if
 
          call RD_SCL_FLCTHD(FF_UNIT,nCmpFile,dimFile,probSizeFile,dxFile)
 
@@ -250,6 +262,7 @@ c
 
          call FILL_FRCARRYS_SWIRL(fileBase, 1, dimFile, nCompInflow,
      $        FF_DIMS(storDat), storDat)
+
       endif
 
       call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
