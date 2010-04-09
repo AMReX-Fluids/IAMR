@@ -14,6 +14,10 @@
 // For a total of N lines.
 //
 
+#if BL_SPACEDIM != 3
+#error "This code only works for BL_SPACEDIM==3"
+#endif
+
 #include <list>
 #include <limits>
 #include <vector>
