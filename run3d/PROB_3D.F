@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.70 2010-04-09 15:48:21 lijewski Exp $
+c $Id: PROB_3D.F,v 1.71 2010-04-09 17:53:58 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -124,7 +124,7 @@ c ::: -----------------------------------------------------------
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
-      integer maxlen, isioproc
+      integer maxlen, isioproc, ierr
       parameter (maxlen=256)
 
       REAL_T frecon, onep7
@@ -193,11 +193,13 @@ c      if (isioproc .eq. 1) write(6,fortin)
          forceHi = .FALSE.
       else
          if (flct_file .ne. "") then
+            ierr=0
             untin=20
             if (isioproc .eq. 1) print*, 'Initializing turbulence ...'
-c     New file format: change as of Mike's email
-c     open(untin, file=flct_file, form='unformatted')
-            open(untin, file=trim(flct_file)//'/HDR', form='formatted')
+            open(untin, file=trim(flct_file)//'/HDR', form='formatted', iostat=ierr)
+            if (ierr .ne. 0) then
+               call bl_abort('Problem opening file: ' // trim(flct_file) // '/HDR')
+            end if
             call RD_SCL_FLCTHD(untin,nCompFile, dimFile, probSizeFile, dxFile)
             close(untin)
          endif
