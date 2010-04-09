@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.69 2010-04-08 16:55:16 xinfeng Exp $
+c $Id: PROB_3D.F,v 1.70 2010-04-09 15:48:21 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -87,7 +87,8 @@ c ::: -----------------------------------------------------------
      &                  vb_unifdir, blrandseed, turb_scale, injection_time
 #ifdef BL_DO_FLCT
       namelist /fortin/ forceInflow, numInflPlanesStore, strmwse_dir,
-     &                  forceLo, forceHi, flct_file, nCompInflow
+     &                  forceLo, forceHi, flct_file, nCompInflow, infl_type,
+     &                  tstart_turb
 #endif
       namelist /fortin/ rt_splitx, rt_xfrontw, rt_den_1, rt_den_2,
      &                  rt_pertamp, rt_nfreq, rt_graddenerr
@@ -150,12 +151,13 @@ c
 
 #ifdef BL_DO_FLCT
       forceInflow = .FALSE.
-      numInflPlanesStore = 16
+      numInflPlanesStore = 8
       forceLo = .TRUE.
       forceHi = .FALSE.
       strmwse_dir = FLCT_ZVEL
       flct_file = ""
       turb_scale = 1
+      infl_type = infl_periodic_type
 #endif
 
       tVco_l = -1
@@ -780,6 +782,10 @@ c ::: -----------------------------------------------------------
 
       else if (probtype .eq. 27) then
          call initflow(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+      else if (probtype .eq. 28) then
+         call initswirltest(level,time,lo,hi,nscal,
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
       else
@@ -1807,6 +1813,96 @@ c               end do
                   
 	    end do
          end do
+      end do
+
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initswirltest(level,time,lo,hi,nscal,
+     &	 	       vel,scal,DIMS(state),press,DIMS(press),
+     &                 dx,xlo,xhi)
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
+      integer    bc(SDIM,2)
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  dist
+      REAL_T  x_vel, y_vel, z_vel
+      REAL_T  twicePi, rn, plateVel
+
+#include "probdata.H"
+
+#ifdef BL_DO_FLCT
+      integer loFlctArray(SDIM), hiFlctArray(SDIM)
+      integer DIMDEC(uflct)
+      REAL_T  t_flct
+      REAL_T, allocatable :: uflct(:,:,:)
+      REAL_T, allocatable :: vflct(:,:,:)
+      REAL_T, allocatable :: wflct(:,:,:)
+#include "INFL_FORCE_F.H"
+#endif
+
+#ifdef BL_DO_FLCT
+      if (forceInflow) then
+         do i = 1, 3
+            loFlctArray(i) = lo(i)
+            hiFlctArray(i) = hi(i)
+         end do
+         loFlctArray(adv_dir) = 1
+         hiFlctArray(adv_dir) = 1
+         call SET_ARGS(DIMS(uflct), loFlctArray, hiFlctArray)
+         allocate(uflct(DIMV(uflct)))
+         allocate(vflct(DIMV(uflct)))
+         allocate(wflct(DIMV(uflct)))
+         convVel = one
+      end if
+#endif
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+
+#ifdef BL_DO_FLCT
+      if (forceInflow) then
+         t_flct = fluct_times(k+1)+1.d-12
+         call INFL_FILL(FLCT_XVEL,DIMS(uflct),uflct,xlo,dx,t_flct,bc,domnlo,domnhi)
+         call INFL_FILL(FLCT_YVEL,DIMS(uflct),vflct,xlo,dx,t_flct,bc,domnlo,domnhi)
+         call INFL_FILL(FLCT_ZVEL,DIMS(uflct),wflct,xlo,dx,t_flct,bc,domnlo,domnhi)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+	    do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+               vel(i,j,k,1) = uflct(i,j,1)
+               vel(i,j,k,2) = vflct(i,j,1)
+               vel(i,j,k,3) = wflct(i,j,1)
+               
+               scal(i,j,k,1) = one
+               do n = 2,nscal
+                  scal(i,j,k,n) = zero
+               end do
+               
+	    end do
+         end do
+      end if
+#endif
       end do
 
       end

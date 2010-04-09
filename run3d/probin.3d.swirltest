@@ -1,0 +1,13 @@
+ &fortin
+
+  probtype = 28
+  vorterr  = .25
+  vorterr  = 2500.
+  adverr  = .01
+  infl_type = 2
+  forceInflow = .true.
+  flct_file = '../InflowForce/TURB.swirl'
+  tstart_turb = .05602
+  tstart_turb = 0.0
+
+ /
