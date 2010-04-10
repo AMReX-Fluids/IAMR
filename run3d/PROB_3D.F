@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.72 2010-04-09 21:07:32 xinfeng Exp $
+c $Id: PROB_3D.F,v 1.73 2010-04-10 23:01:29 xinfeng Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -651,7 +651,7 @@ c ::: -----------------------------------------------------------
      
 #include "probdata.H"
 
-      print *, 'INITDATA ', time
+      print *, 'INITDATA ', time, lo(1),hi(1), lo(2), hi(2), lo(3), hi(3)
       if (probtype .eq. 1) then
          call initspin(level,time,lo,hi,nscal,
      &     	       vel,scal,DIMS(state),press,DIMS(press),
@@ -1879,6 +1879,7 @@ c
       hx = dx(1)
       hy = dx(2)
       hz = dx(3)
+      print *, 'this is what I need ', lo(3), hi(3)
 
       do k = lo(3), hi(3)
          z = xlo(3) + hz*(float(k-lo(3)) + half)
@@ -1887,7 +1888,6 @@ c
       if (forceInflow) then
          t_flct = fluct_times(k+1)+1.d-12
 c         t_flct = time
-         print *, 'INITDATA ', t_flct, fluct_times(k+1)
          call INFL_FILL(FLCT_XVEL,DIMS(uflct),uflct,xlo,dx,t_flct,bc,domnlo,domnhi)
          call INFL_FILL(FLCT_YVEL,DIMS(uflct),vflct,xlo,dx,t_flct,bc,domnlo,domnhi)
          call INFL_FILL(FLCT_ZVEL,DIMS(uflct),wflct,xlo,dx,t_flct,bc,domnlo,domnhi)
@@ -1910,11 +1910,12 @@ c         t_flct = time
       end if
 #endif
 #else
-      do j = lo(2), hi(2)
-         y = xlo(2) + hy*(float(j-lo(2)) + half)
-         do i = lo(1), hi(1)
-            x = xlo(1) + hx*(float(i-lo(1)) + half)
-
+   
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+               
                vel(i,j,k,1) = zero
                vel(i,j,k,2) = zero
                vel(i,j,k,3) = coflow_vel
@@ -1923,9 +1924,9 @@ c         t_flct = time
                do n = 2,nscal
                   scal(i,j,k,n) = zero
                end do
-               
-	    end do
+            end do
          end do
+  
      
 #endif
       end do
@@ -5422,7 +5423,7 @@ c ::: -----------------------------------------------------------
       REAL_T     y, ul, g_t
       REAL_T     umid,rmid,lamv,lamr,rfact
       REAL_T     hx, hy, hz, gpert, z,  ypert, magwif, constn
-      REAL_T     jv, s, t
+      REAL_T     jv, s, t, xc, yc
 
       REAL_T plateVel
 
@@ -5468,6 +5469,9 @@ c
          call INFL_FILL(FLCT_XVEL,DIMS(uflct),uflct,xlo,dx,t_flct,bc,domnlo,domnhi)
       end if
 #endif
+
+      xc = 0.5*(domnhi(1) - domnlo(1))
+      yc = 0.5*(domnhi(2) - domnlo(2))
 
       if (adv_dir .eq. 1) then
          x_vel = adv_vel
@@ -5591,18 +5595,20 @@ c     u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
                enddo
             enddo
          else if (probtype.eq.28) then
+      
             do k = ARG_L3(u), domlo(3)-1
                z = domnlo(3) + (k+0.5)*dx(3)
                do j = ARG_L2(u), ARG_H2(u)
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(u), ARG_H1(u)
                      x = domnlo(1) + (i+0.5)*dx(1)
-                     r = SQRT( x*x + y*y )
+                     r = SQRT( (x-xc)*(x-xc) + (y-yc)*(y-yc))
                      u(i,j,k) = zero
 #ifdef BL_DO_FLCT
                      if (r .le. 0.025) then
                         u(i,j,k) = uflct(i,j,1)
                      endif
+                    
 #endif
                   enddo
                enddo
@@ -5735,8 +5741,7 @@ c ::: -----------------------------------------------------------
       integer    i, j, k
       REAL_T     y_vel
       REAL_T     rn
-      REAL_T     jv, s, t
-
+      REAL_T     jv, s, t, xc, yc
       REAL_T plateVel
 #include "probdata.H"
 
@@ -5771,6 +5776,9 @@ c ::: -----------------------------------------------------------
          call INFL_FILL(FLCT_YVEL,DIMS(vflct),vflct,xlo,dx,t_flct,bc,domnlo,domnhi)
       end if
 #endif
+
+      xc = 0.5*(domnhi(1) - domnlo(1))
+      yc = 0.5*(domnhi(2) - domnlo(2))
 
       if (adv_dir .eq. 2) then
          y_vel = adv_vel
@@ -5880,7 +5888,7 @@ c     v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(v), ARG_H1(v)
                      x = domnlo(1) + (i+0.5)*dx(1)
-                     r = SQRT( x*x + y*y )
+                     r = SQRT( (x-xc)*(x-xc) + (y-yc)*(y-yc))
                      v(i,j,k) = zero
 #ifdef BL_DO_FLCT
                      if (r .le. 0.025) then
@@ -6010,7 +6018,7 @@ c ::: -----------------------------------------------------------
       integer    lo(SDIM),hi(SDIM)
       integer    i, j, k
       REAL_T     z_vel
-      REAL_T     jv, s, t
+      REAL_T     jv, s, t,xc,yc
 
 #include "probdata.H"
 
@@ -6046,6 +6054,9 @@ c ::: -----------------------------------------------------------
          call INFL_FILL(FLCT_ZVEL,DIMS(wflct),wflct,xlo,dx,t_flct,bc,domnlo,domnhi)
       end if
 #endif
+
+      xc = 0.5*(domnhi(1) - domnlo(1))
+      yc = 0.5*(domnhi(2) - domnlo(2))
 
       if ( (time .gt. zero).and.(tVco_l.ge.zero) ) then
          if (time .le. tVco_l) then
@@ -6170,17 +6181,16 @@ c                     w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(w), ARG_H1(w)
                      x = domnlo(1) + (i+0.5)*dx(1)
-                     r = SQRT( x*x + y*y )
+                     r = SQRT( (x-xc)*(x-xc) + (y-yc)*(y-yc))
                      w(i,j,k) = coflow_vel
 #ifdef BL_DO_FLCT
                      if( r.le. 0.025) then
-                        w(i,j,k) = wflct(i,j,1)
-                     endif
-#endif
+                       	w(i,j,k) = wflct(i,j,1)
+                     endif	       
                   enddo
                enddo
             enddo
-
+            
          else 
             if (probtype.eq.16) then
                t = time*jet_vel/jet_width
