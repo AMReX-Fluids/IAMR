@@ -13,14 +13,11 @@ section_sources = Introduction/Introduction.tex \
                   GettingStarted/GettingStarted.tex \
 	          Inputs/Inputs.tex \
                   Equations/Equations.tex \
-	          Gravity/Gravity.tex \
 	          FlowChart/FlowChart.tex \
                   LevelSet/LevelSet.tex \
                   AMR/AMR.tex \
                   Visualization/Visualization.tex \
                   Software/Software.tex \
-                  Verification/Verification.tex \
-                  Scaling/Scaling.tex \
                   Suggestions/Suggestions.tex
 
 UsersGuide.dvi: UsersGuide.tex $(eps_source) $(section_sources) $(eps_source)
