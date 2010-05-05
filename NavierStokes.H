@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.104 2009-10-27 02:17:04 lijewski Exp $
+// $Id: NavierStokes.H,v 1.105 2010-05-05 21:56:01 almgren Exp $
 //
 
 #include <LevelBld.H>
@@ -196,7 +196,8 @@ public:
                                const Array<IntVect>& ref_ratio,
                                Array<Real>&          dt_min,
                                Array<Real>&          dt_level,
-                               Real                  stop_time);
+                               Real                  stop_time,
+                               int                   post_regrid_flag);
     //
     // This function estimates the initial timesteping used by the model.
     //

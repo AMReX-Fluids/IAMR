@@ -3665,7 +3665,8 @@ NavierStokes::computeNewDt (int                   finest_level,
                             const Array<IntVect>& ref_ratio,
                             Array<Real>&          dt_min,
                             Array<Real>&          dt_level,
-                            Real                  stop_time)
+                            Real                  stop_time,
+                            int                   post_regrid_flag) 
 {
     //
     // We are at the end of a coarse grid timecycle.
@@ -3691,12 +3692,44 @@ NavierStokes::computeNewDt (int                   finest_level,
         if (ParallelDescriptor::IOProcessor())
 	  std::cout << "Actual dt after change limiting = " 
 		    << dt_min[i] << std::endl;
-        if (fixed_dt <= 0.0) 
-          dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
+    }
+
+    if (fixed_dt <= 0.0) 
+    {
+       if (post_regrid_flag == 1)
+       {
+          //
+          // Limit dt's by pre-regrid dt
+          //
+          for (int i = 0; i <= finest_level; i++)
+          {
+              dt_min[i] = std::min(dt_min[i],dt_level[i]);
+          }
+       }
+       else
+       {
+          //
+          // Limit dt's by change_max * old dt
+          //
+          for (int i = 0; i <= finest_level; i++)
+          {
+              dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
+          }
+       }
+    }
+
+    //
+    // Find the minimum over all levels
+    //
+    for (int i = 0; i <= finest_level; i++)
+    {
         n_factor *= n_cycle[i];
         dt_0      = std::min(dt_0,n_factor*dt_min[i]);
     }
 
+    //
+    // Limit dt's by the value of stop_time.
+    //
     const Real eps      = 0.0001*dt_0;
     const Real cur_time = state[State_Type].curTime();
     if (stop_time >= 0.0)
