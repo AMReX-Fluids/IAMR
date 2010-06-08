@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.71 2009-11-20 17:52:33 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.72 2010-06-08 15:21:48 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -4416,13 +4416,15 @@ c     compute s at x-edges
       if (ppm_type .eq. 1) then
          
 c     compute van Leer slopes in x-direction
+         dsvl = 0.d0
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-2,hi(1)+2
                   dsc = 0.5d0 * (s(i+1,j,k) - s(i-1,j,k))
                   dsl = 2.d0  * (s(i  ,j,k) - s(i-1,j,k))
                   dsr = 2.d0  * (s(i+1,j,k) - s(i  ,j,k))
-                  dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
+                  if (dsl*dsr .gt. 0.d0) 
+     &                 dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
                end do
             end do
          end do
@@ -4910,13 +4912,15 @@ c     compute s at y-edges
       if (ppm_type .eq. 1) then
          
 c     compute van Leer slopes in y-direction
+         dsvl = 0.d0
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-2,hi(2)+2
                do i=lo(1)-1,hi(1)+1
                   dsc = 0.5d0 * (s(i,j+1,k) - s(i,j-1,k))
                   dsl = 2.d0  * (s(i,j  ,k) - s(i,j-1,k))
                   dsr = 2.d0  * (s(i,j+1,k) - s(i,j  ,k))
-                  dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
+                  if (dsl*dsr .gt. 0.d0) 
+     &                 dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
                end do
             end do
          end do
@@ -5405,13 +5409,15 @@ c     compute s at z-edges
       if (ppm_type .eq. 1) then
          
 c     compute van Leer slopes in z-direction
+         dsvl = 0.d0
          do k=lo(3)-2,hi(3)+2
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
                   dsc = 0.5d0 * (s(i,j,k+1) - s(i,j,k-1))
                   dsl = 2.d0  * (s(i,j,k  ) - s(i,j,k-1))
                   dsr = 2.d0  * (s(i,j,k+1) - s(i,j,k  ))
-                  dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
+                  if (dsl*dsr .gt. 0.d0) 
+     &                 dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
                end do
             end do
          end do
@@ -5955,13 +5961,15 @@ c     compute s at x-edges
       if (ppm_type .eq. 1) then
          
 c     compute van Leer slopes in x-direction
+         dsvl = 0.d0
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-2,hi(1)+2
                   dsc = 0.5d0 * (s(i+1,j,k) - s(i-1,j,k))
                   dsl = 2.d0  * (s(i  ,j,k) - s(i-1,j,k))
                   dsr = 2.d0  * (s(i+1,j,k) - s(i  ,j,k))
-                  dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
+                  if (dsl*dsr .gt. 0.d0) 
+     &                 dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
                end do
             end do
          end do
@@ -6450,13 +6458,15 @@ c     compute s at y-edges
       if (ppm_type .eq. 1) then
          
 c     compute van Leer slopes in y-direction
+         dsvl = 0.d0
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-2,hi(2)+2
                do i=lo(1)-1,hi(1)+1
                   dsc = 0.5d0 * (s(i,j+1,k) - s(i,j-1,k))
                   dsl = 2.d0  * (s(i,j  ,k) - s(i,j-1,k))
                   dsr = 2.d0  * (s(i,j+1,k) - s(i,j  ,k))
-                  dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
+                  if (dsl*dsr .gt. 0.d0) 
+     &                 dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
                end do
             end do
          end do
@@ -6946,13 +6956,15 @@ c     compute s at z-edges
       if (ppm_type .eq. 1) then
          
 c     compute van Leer slopes in z-direction
+         dsvl = 0.d0
          do k=lo(3)-2,hi(3)+2
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
                   dsc = 0.5d0 * (s(i,j,k+1) - s(i,j,k-1))
                   dsl = 2.d0  * (s(i,j,k  ) - s(i,j,k-1))
                   dsr = 2.d0  * (s(i,j,k+1) - s(i,j,k  ))
-                  dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
+                  if (dsl*dsr .gt. 0.d0) 
+     &                 dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
                end do
             end do
          end do

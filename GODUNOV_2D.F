@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_2D.F,v 1.58 2009-10-20 18:01:51 ajnonaka Exp $
+c $Id: GODUNOV_2D.F,v 1.59 2010-06-08 15:21:48 ajnonaka Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -1841,12 +1841,14 @@ c     compute s at x-edges
       if (ppm_type .eq. 1) then
 
 c     compute van Leer slopes in x-direction
+         dsvl = 0.d0
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-2,hi(1)+2
                dsc = 0.5d0 * (s(i+1,j) - s(i-1,j))
                dsl = 2.d0  * (s(i  ,j) - s(i-1,j))
                dsr = 2.d0  * (s(i+1,j) - s(i  ,j))
-               dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
+               if (dsl*dsr .gt. 0.d0)
+     &              dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
             end do
          end do
          
@@ -2298,12 +2300,14 @@ c     compute s at y-edges
       if (ppm_type .eq. 1) then
 
 c     compute van Leer slopes in y-direction
+         dsvl = 0.d0
          do j=lo(2)-2,hi(2)+2
             do i=lo(1)-1,hi(1)+1
                dsc = 0.5d0 * (s(i,j+1) - s(i,j-1))
                dsl = 2.d0  * (s(i,j  ) - s(i,j-1))
                dsr = 2.d0  * (s(i,j+1) - s(i,j  ))
-               dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
+               if (dsl*dsr .gt. 0.d0)
+     &              dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
             end do
          end do
          
@@ -2797,12 +2801,14 @@ c     compute s at x-edges
       if (ppm_type .eq. 1) then
 
 c     compute van Leer slopes in x-direction
+         dsvl = 0.d0
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-2,hi(1)+2
                dsc = 0.5d0 * (s(i+1,j) - s(i-1,j))
                dsl = 2.d0  * (s(i  ,j) - s(i-1,j))
                dsr = 2.d0  * (s(i+1,j) - s(i  ,j))
-               dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
+               if (dsl*dsr .gt. 0.d0)
+     &              dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
             end do
          end do
          
@@ -3255,12 +3261,14 @@ c     compute s at y-edges
       if (ppm_type .eq. 1) then
 
 c     compute van Leer slopes in y-direction
+         dsvl = 0.d0
          do j=lo(2)-2,hi(2)+2
             do i=lo(1)-1,hi(1)+1
                dsc = 0.5d0 * (s(i,j+1) - s(i,j-1))
                dsl = 2.d0  * (s(i,j  ) - s(i,j-1))
                dsr = 2.d0  * (s(i,j+1) - s(i,j  ))
-               dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
+               if (dsl*dsr .gt. 0.d0)
+     &              dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
             end do
          end do
          
