@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.47 2009-01-14 20:44:11 ajnonaka Exp $
+# $Id: GNUmakefile,v 1.48 2010-06-20 01:13:44 almgren Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -13,9 +13,12 @@ PRECISION   = DOUBLE
 DEBUG       = TRUE
 PROFILE     = FALSE
 DIM         = 2
+
 COMP        = Intel
 FCOMP       = Intel
+
 USE_MPI     = TRUE
+
 USE_THREADS = FALSE
 
 # This allows GetForce to call a Fortran routine
@@ -40,13 +43,24 @@ ifdef FBOXLIB_HOME
 
   include $(PBOXLIB_HOME)/MGT_Solver/Make.package
   INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/MGT_Solver
-  VPATH_LOCATIONS += $(PBOXLIB_HOME)/MGT_Solver
-
+  VPATH_LOCATIONS   += $(PBOXLIB_HOME)/MGT_Solver
+ 
   include $(FBOXLIB_HOME)/mg/FParallelMG.mak
   INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/mg/
-  Fdirs   := boxlib mg extern/SPARSKIT extern/LAPACK
-  Flocs   := $(foreach dir, $(Fdirs), $(FBOXLIB_HOME)/$(dir))
-  VPATH_LOCATIONS += $(Flocs)
+  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/mg
+ 
+  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/SPARSKIT
+  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/extern/SPARSKIT
+ 
+  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/LAPACK
+  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/extern/LAPACK
+ 
+  include $(FBOXLIB_HOME)/extern/BLAS/Make.package
+  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/BLAS
+  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/extern/BLAS
+
+  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/boxlib
+  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/boxlib
 endif
 
 VPATH_LOCATIONS   += . $(Blocs)
