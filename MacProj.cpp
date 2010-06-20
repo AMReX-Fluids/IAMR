@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.126 2010-02-23 21:37:22 lijewski Exp $
+// $Id: MacProj.cpp,v 1.127 2010-06-20 01:12:57 almgren Exp $
 //
 #include <winstd.H>
 
@@ -396,7 +396,7 @@ MacProj::mac_project (int             level,
 
         geom.GetVolume(volume,grids,GEOM_GROW);
 
-        mac_level_driver(mac_bndry, *phys_bc, grids, the_solver, level, Density,
+        mac_level_driver(parent, mac_bndry, *phys_bc, grids, the_solver, level, Density,
                          dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
                          area, volume, S, Rhs, u_mac, mac_phi);
     }
@@ -636,7 +636,7 @@ MacProj::mac_sync_solve (int       level,
     if (anel_coeff[level] != 0)
         scaleArea(level,area,anel_coeff[level]);
 
-    mac_sync_driver(mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
+    mac_sync_driver(parent, mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
                     mac_sync_tol, mac_abs_tol, rhs_scale, area,
                     volume, Rhs, rho_half, mac_sync_phi);
 

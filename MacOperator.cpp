@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.45 2010-06-20 00:23:57 almgren Exp $
+// $Id: MacOperator.cpp,v 1.46 2010-06-20 01:12:57 almgren Exp $
 //
 #include <winstd.H>
 
@@ -39,10 +39,11 @@ const Real* fabdat = (fab).dataPtr();
 //
 static int max_order = 4;
 
-MacOperator::MacOperator (const BndryData& mgb,
+MacOperator::MacOperator (Amr*             Parent,
+                          const BndryData& mgb,
                           const Real*      h)
     :
-    ABecLaplacian(mgb,h)
+    ABecLaplacian(mgb,h), parent(Parent)
 {
     static bool first = true;
 
@@ -329,7 +330,8 @@ MacOperator::syncRhs (const MultiFab& Volume,
 //
 
 void
-mac_level_driver (const MacBndry& mac_bndry,
+mac_level_driver (Amr*            parent,
+                  const MacBndry& mac_bndry,
 		  const BCRec&    phys_bc,
                   const BoxArray& grids,
                   int             the_solver,
@@ -349,7 +351,7 @@ mac_level_driver (const MacBndry& mac_bndry,
 {
     BL_PROFILE("mac_level_driver");
 
-    MacOperator mac_op(mac_bndry,dx);
+    MacOperator mac_op(parent,mac_bndry,dx);
 
     mac_op.setCoefficients(area,S,Density,dx);
     mac_op.defRHS(area,volume,Rhs,u_mac,rhs_scale);
@@ -470,7 +472,8 @@ mac_level_driver (const MacBndry& mac_bndry,
 //
 
 void
-mac_sync_driver (const MacBndry& mac_bndry,
+mac_sync_driver (Amr*            parent,
+                 const MacBndry& mac_bndry,
 	         const BCRec&    phys_bc,
                  const BoxArray& grids,
                  int             the_solver,
@@ -488,7 +491,7 @@ mac_sync_driver (const MacBndry& mac_bndry,
 {
     BL_PROFILE("mac_sync_driver");
 
-    MacOperator mac_op(mac_bndry,dx);
+    MacOperator mac_op(parent,mac_bndry,dx);
 
     mac_op.maxOrder(max_order);
     mac_op.setCoefficients(area,*rho_half, 0, dx);

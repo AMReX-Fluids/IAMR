@@ -503,7 +503,28 @@ Diffusion::diffuse_scalar (Real                   dt,
         }
 
         MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
-    
+
+        // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
+        Array< Array<Real> > xa(1);
+        Array< Array<Real> > xb(1);
+ 
+        xa[0].resize(BL_SPACEDIM);
+        xb[0].resize(BL_SPACEDIM);
+ 
+        if (level == 0) {
+          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
+            xa[0][i] = 0.;
+            xb[0][i] = 0.;
+          }
+        } else {
+          const Real* dx_crse   = parent->Geom(level-1).CellSize();
+          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
+            xa[0][i] = 0.5 * dx_crse[i];
+            xb[0][i] = 0.5 * dx_crse[i];
+          }
+        }
+
+        // Set alpha and beta as in (alpha - del dot beta grad)
         const MultiFab* aa_p[1];
         aa_p[0] = &(visc_op->aCoefficients());
         const MultiFab* bb_p[1][BL_SPACEDIM];
@@ -511,7 +532,7 @@ Diffusion::diffuse_scalar (Real                   dt,
         {
             bb_p[0][i] = &(visc_op->bCoefficients(i));
         }
-        mgt_solver.set_visc_coefficients(aa_p, bb_p, b, visc_bndry);
+        mgt_solver.set_visc_coefficients(aa_p, bb_p, b, xa, xb);
 
         MultiFab* phi_p[1];
         MultiFab* Rhs_p[1];

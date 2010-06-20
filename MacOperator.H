@@ -2,7 +2,7 @@
 #define _MACOPERATOR_H_
 
 //
-// $Id: MacOperator.H,v 1.11 2006-09-11 17:59:52 almgren Exp $
+// $Id: MacOperator.H,v 1.12 2010-06-20 01:12:57 almgren Exp $
 //
 
 //==========================================================================
@@ -12,6 +12,7 @@
 // through a few driver functions which scale variables.
 //==========================================================================
 
+#include <AmrLevel.H>
 #include <ABecLaplacian.H>
 #include <BndryData.H>
 
@@ -19,9 +20,13 @@ class MacOperator
     :
     public ABecLaplacian
 {
+protected:
+
+    Amr*        parent;
 public:
 
-    MacOperator (const BndryData& mgb,
+    MacOperator (Amr*             Parent,
+                 const BndryData& mgb,
                  const Real*      _h);
 
     virtual ~MacOperator ();
