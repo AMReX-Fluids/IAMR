@@ -1,10 +1,10 @@
 #
-# $Id: GNUmakefile,v 1.47 2007-10-05 21:09:37 lijewski Exp $
+# $Id: GNUmakefile,v 1.48 2010-06-20 01:17:31 almgren Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
-FBOXLIB_HOME = ../../../fParallel
 FBOXLIB_HOME =
+FBOXLIB_HOME = /home/almgren/CASTRO/fParallel
 
 TOP = $(PBOXLIB_HOME)
 #
@@ -76,11 +76,9 @@ Bdirs := BoxLib iamrlib amrlib tensorMG mglib bndrylib
 ifeq ($(USE_FLCTS),TRUE)
   Bdirs += iamrlib/InflowForce
 endif
-ifeq ($(USE_HGPROJ_SERIAL),TRUE)
-  Bdirs += hgproj-serial
-else
+
   Bdirs += hgproj
-endif
+
 ifeq ($(USE_HYPRE),TRUE)
   Bdirs   += HypreABec
   HYPRE_DIR=$(HOME)/amr/hypre
@@ -104,13 +102,24 @@ ifdef FBOXLIB_HOME
 
   include $(PBOXLIB_HOME)/MGT_Solver/Make.package
   INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/MGT_Solver
-  VPATH_LOCATIONS += $(PBOXLIB_HOME)/MGT_Solver
-
+  VPATH_LOCATIONS   += $(PBOXLIB_HOME)/MGT_Solver
+ 
   include $(FBOXLIB_HOME)/mg/FParallelMG.mak
   INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/mg/
-  Fdirs   := boxlib mg extern/SPARSKIT extern/LAPACK
-  Flocs   := $(foreach dir, $(Fdirs), $(FBOXLIB_HOME)/$(dir))
-  VPATH_LOCATIONS += $(Flocs)
+  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/mg
+ 
+  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/SPARSKIT
+  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/extern/SPARSKIT
+ 
+  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/LAPACK
+  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/extern/LAPACK
+ 
+  include $(FBOXLIB_HOME)/extern/BLAS/Make.package
+  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/BLAS
+  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/extern/BLAS
+
+  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/boxlib
+  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/boxlib
 endif
 
 INCLUDE_LOCATIONS += . $(Blocs)
