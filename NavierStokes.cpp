@@ -4142,7 +4142,7 @@ NavierStokes::post_init_state ()
     }
     make_rho_curr_time();
 
-    if (do_init_proj && projector && (std::abs(gravity)) > 0.)
+    if (do_init_proj && projector && (std::fabs(gravity)) > 0.)
         //
         // Do projection to establish initially hydrostatic pressure field.
         //
@@ -5634,10 +5634,10 @@ NavierStokes::getForce (FArrayBox&       force,
     {
         const int sc = scomp + dc;
 #if (BL_SPACEDIM == 2)
-        if (sc == Yvel && std::abs(grav) > 0.001) 
+        if (sc == Yvel && std::fabs(grav) > 0.001) 
 #endif
 #if (BL_SPACEDIM == 3)
-        if (sc == Zvel && std::abs(grav) > 0.001) 
+        if (sc == Zvel && std::fabs(grav) > 0.001) 
 #endif
         {
             //

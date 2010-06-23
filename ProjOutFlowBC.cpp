@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.36 2008-07-30 16:08:09 lijewski Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.37 2010-06-23 22:01:46 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -528,7 +528,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         }
     }
 
-    if (std::abs(gravity) > 0.)
+    if (std::fabs(gravity) > 0.)
     {
         const int* domlo  = domain.loVect();
         const int* domhi  = domain.hiVect();
@@ -573,7 +573,7 @@ ProjOutFlowBC::computeRhoG (FArrayBox*         rhoMF,
       DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
       DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
 
-      if (outDir != (BL_SPACEDIM-1) && std::abs(gravity) > 0.0)
+      if (outDir != (BL_SPACEDIM-1) && std::fabs(gravity) > 0.0)
         FORT_RHOGBC(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
                     phiPtr,ARLIM(philo),ARLIM(phihi),
                     &face,&gravity,dx,domlo,domhi,
