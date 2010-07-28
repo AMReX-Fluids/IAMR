@@ -4391,7 +4391,7 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
         ScaleCrseSyncInterp(cdata, c_lev, num_comp);
 
         interpolater->interp(cdata,0,fdata,0,num_comp,fgrids[i],ratio,
-                             cgeom,fgeom,bc_interp);
+                             cgeom,fgeom,bc_interp,src_comp,State_Type);
 
         reScaleFineSyncInterp(fdata, f_lev, num_comp);
 
@@ -4472,7 +4472,8 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
             fine_phi.resize(P_grids[mfi.index()],1);
             fine_phi.setVal(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
-                                        fine_phi.box(),ratio,cgeom,fgeom,bc);
+                                        fine_phi.box(),ratio,cgeom,fgeom,bc,
+                                        0,Press_Type);
             fine_phi.mult(cur_mult_factor);
             P_new[mfi.index()].plus(fine_phi);
             fine_phi.mult(prev_mult_factor);
@@ -4486,7 +4487,8 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
             fine_phi.resize(P_grids[mfi.index()],1);
             fine_phi.setVal(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
-                                        fine_phi.box(),ratio,cgeom,fgeom,bc);
+                                        fine_phi.box(),ratio,cgeom,fgeom,bc,
+                                        0,Press_Type);
             P_new[mfi.index()].plus(fine_phi);
             P_old[mfi.index()].plus(fine_phi);
         }
