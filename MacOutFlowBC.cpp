@@ -1,6 +1,6 @@
 
 //
-// $Id: MacOutFlowBC.cpp,v 1.32 2008-07-30 16:07:53 lijewski Exp $
+// $Id: MacOutFlowBC.cpp,v 1.33 2010-08-12 21:11:06 almgren Exp $
 //
 #include <winstd.H>
 
@@ -154,7 +154,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
         //
         // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
         //
-        if (CoordSys::IsRZ())
+        if (Geometry::IsRZ())
         {
             if (faces[iface] == 0)
             {

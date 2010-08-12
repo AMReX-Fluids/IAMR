@@ -9,7 +9,6 @@
 #include <cstdio>
 #include <cmath>
 
-#include <CoordSys.H>
 #include <Geometry.H>
 #include <BoxDomain.H>
 #include <ParmParse.H>
@@ -181,14 +180,14 @@ NavierStokes::read_geometry ()
 {
 #if (BL_SPACEDIM == 2)
     //
-    // Must load coord here because CoordSys hasn't read it in yet.
+    // Must load coord here because Geometry hasn't read it in yet.
     //
     ParmParse pp("geometry");
 
     int coord;
     pp.get("coord_sys",coord);
 
-    if ((CoordSys::CoordType) coord == CoordSys::RZ && phys_bc.lo(0) != Symmetry)
+    if ((Geometry::CoordType) coord == Geometry::RZ && phys_bc.lo(0) != Symmetry)
     {
         phys_bc.setLo(0,Symmetry);
 
@@ -2853,7 +2852,7 @@ NavierStokes::volWgtSum (const std::string& name,
                          Real           time)
 {
     Real        sum     = 0.0;
-    int         rz_flag = CoordSys::IsRZ() ? 1 : 0;
+    int         rz_flag = Geometry::IsRZ() ? 1 : 0;
     const Real* dx      = geom.CellSize();
     MultiFab*   mf      = derive(name,time,0);
 
@@ -3442,7 +3441,7 @@ NavierStokes::writePlotFile (const std::string& dir,
                 os << parent->Geom(i).CellSize()[k] << ' ';
             os << '\n';
         }
-        os << (int) CoordSys::Coord() << '\n';
+        os << (int) Geometry::Coord() << '\n';
         os << "0\n"; // Write bndry data.
     }
     // Build the directory to hold the MultiFab at this level.

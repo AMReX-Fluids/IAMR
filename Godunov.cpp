@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.50 2009-10-20 19:25:27 ajnonaka Exp $
+// $Id: Godunov.cpp,v 1.51 2010-08-12 21:11:06 almgren Exp $
 //
 
 //
@@ -9,7 +9,6 @@
 #include <winstd.H>
 
 #include <LO_BCTYPES.H>
-#include <CoordSys.H>
 #include <Geometry.H>
 #include <ParmParse.H>
 #include <FArrayBox.H>

@@ -1,9 +1,8 @@
 //
-// $Id: Projection.cpp,v 1.178 2010-06-23 22:01:46 lijewski Exp $
+// $Id: Projection.cpp,v 1.179 2010-08-12 21:11:07 almgren Exp $
 //
 #include <winstd.H>
 
-#include <CoordSys.H>
 #include <Geometry.H>
 #include <ParmParse.H>
 #include <NavierStokes.H>
@@ -305,7 +304,7 @@ Projection::bldSyncProject ()
 					     hg_stencil,
                                              P_code);
 #if BL_SPACEDIM == 2
-    if (CoordSys::IsRZ())
+    if (Geometry::IsRZ())
         sync_proj->setCoordSys(holy_grail_amr_multigrid::rz);
 #endif
 
@@ -520,7 +519,7 @@ Projection::level_project (int             level,
     //
     // Add the contribution from the un-projected V to syncregisters.
     //
-    int is_rz = (CoordSys::IsRZ() ? 1 : 0);
+    int is_rz = (Geometry::IsRZ() ? 1 : 0);
 
 #ifdef MG_USE_FBOXLIB
     //  Start of if use_fboxlib_nd
@@ -982,7 +981,7 @@ Projection::MLsyncProject (int             c_lev,
     s_real.set(c_lev,   &rho_crse);
     s_real.set(c_lev+1, &rho_fine);
 
-    if (CoordSys::IsRZ()) {
+    if (Geometry::IsRZ()) {
        radMult(c_lev  ,cc_rhs_crse,0);
        radMult(c_lev+1,cc_rhs_fine,0);
     }
@@ -1275,7 +1274,7 @@ Projection::initialVelocityProject (int  c_lev,
         for (lev = c_lev; lev <= f_lev; lev++) 
         {
             MultiFab* rhslev = rhs_cc[lev];
-            if (CoordSys::IsRZ()) radMult(lev,*rhslev,0); 
+            if (Geometry::IsRZ()) radMult(lev,*rhslev,0); 
             rhs_cc[lev]->mult(-1.0,0,1,nghost);
             rhs_real.set(lev, rhs_cc[lev]);
         }
@@ -1570,7 +1569,7 @@ Projection::initialSyncProject (int       c_lev,
     {
         scaleVar(INITIAL_SYNC,sig[lev],1,vel[lev],lev);
 
-        if (have_divu && CoordSys::IsRZ()) 
+        if (have_divu && Geometry::IsRZ()) 
           radMult(lev,*(rhs[lev]),0);    
     }
 
@@ -1947,7 +1946,7 @@ Projection::scaleVar (int             which_call,
     //
     // Scale by radius for RZ.
     //
-    if (CoordSys::IsRZ()) 
+    if (Geometry::IsRZ()) 
     {
         if (sig != 0)
             radMult(level,*sig,0);
@@ -1991,7 +1990,7 @@ Projection::rescaleVar (int             which_call,
     //
     // Divide by radius to rescale for RZ coordinates.
     //
-    if (CoordSys::IsRZ()) 
+    if (Geometry::IsRZ()) 
     {
         if (sig != 0)
             radDiv(level,*sig,0);

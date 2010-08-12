@@ -9,7 +9,6 @@
 #include <Box.H>
 #include <BoxArray.H>
 #include <Geometry.H>
-#include <CoordSys.H>
 #include <Geometry.H>
 #include <ParmParse.H>
 #include <ErrorList.H>
@@ -381,7 +380,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     // is eliminated by setting a = 0.
     //
 #if (BL_SPACEDIM == 2) 
-    if (sigma == Xvel && CoordSys::IsRZ())
+    if (sigma == Xvel && Geometry::IsRZ())
     {
         Array<Real> rcen;
 
@@ -778,7 +777,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         }
 
 #if (BL_SPACEDIM == 2) 
-        if (CoordSys::IsRZ())
+        if (Geometry::IsRZ())
         {
             int fort_xvel_comp = Xvel+1;
 
@@ -1480,7 +1479,7 @@ Diffusion::getTensorOp (Real                   a,
     DivVis* tensor_op = new DivVis(visc_bndry,dx);
     tensor_op->maxOrder(tensor_max_order);
 
-    int isrz   = CoordSys::IsRZ();
+    int isrz   = Geometry::IsRZ();
     const int nghost = 1; // Just like Bill.
     //
     // alpha should be the same size as volume.
@@ -1605,7 +1604,7 @@ Diffusion::getTensorOp (Real                   a,
     DivVis* tensor_op = new DivVis(bndry,dx);
     tensor_op->maxOrder(tensor_max_order);
 
-    int isrz   = CoordSys::IsRZ();
+    int isrz   = Geometry::IsRZ();
     const int nghost = 1; // Just like Bill.
     //
     // alpha should be the same size as volume.
@@ -1716,7 +1715,7 @@ Diffusion::getViscOp (int                    comp,
     ABecLaplacian* visc_op = new ABecLaplacian(visc_bndry,dx);
     visc_op->maxOrder(max_order);
 
-    int usehoop = comp == Xvel && (CoordSys::IsRZ());
+    int usehoop = comp == Xvel && (Geometry::IsRZ());
     int useden  = rho_flag == 1;
     //
     // alpha should be the same size as volume.
@@ -1849,7 +1848,7 @@ Diffusion::getViscOp (int                    comp,
     ABecLaplacian* visc_op = new ABecLaplacian(bndry,dx);
     visc_op->maxOrder(max_order);
 
-    int usehoop = ((comp==Xvel) && (CoordSys::IsRZ()));
+    int usehoop = ((comp==Xvel) && (Geometry::IsRZ()));
     int useden  = (rho_flag == 1);
     //
     // alpha should be the same size as volume.
@@ -2058,7 +2057,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
         }
 
 #if (BL_SPACEDIM == 2)
-        if (comp == Xvel && CoordSys::IsRZ())
+        if (comp == Xvel && Geometry::IsRZ())
         {
             for (MFIter visc_tmpmfi(visc_tmp); visc_tmpmfi.isValid(); ++visc_tmpmfi)
             {
@@ -2183,7 +2182,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         }
 
 #if (BL_SPACEDIM == 2)
-        if (CoordSys::IsRZ())
+        if (Geometry::IsRZ())
         {
             int fort_xvel_comp = Xvel+1;
 

@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.37 2010-06-23 22:01:46 lijewski Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.38 2010-08-12 21:11:07 almgren Exp $
 //
 #include <winstd.H>
 
@@ -179,7 +179,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         //
         // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
         //
-        if (CoordSys::IsRZ())
+        if (Geometry::IsRZ())
         {
             if (faces[iface] == 0)
             {

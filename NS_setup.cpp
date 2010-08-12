@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.58 2009-12-02 21:30:41 aaspden Exp $
+// $Id: NS_setup.cpp,v 1.59 2010-08-12 21:11:07 almgren Exp $
 //
 
 #include <winstd.H>
@@ -12,7 +12,6 @@
 #include <PROB_NS_F.H>
 #include <DERIVE_F.H>
 #include <FArrayBox.H>
-#include <CoordSys.H>
 
 static Box the_same_box (const Box& b)    { return b;                 }
 static Box grow_box_by_one (const Box& b) { return BoxLib::grow(b,1); }

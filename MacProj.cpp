@@ -1,11 +1,10 @@
 
 //
-// $Id: MacProj.cpp,v 1.127 2010-06-20 01:12:57 almgren Exp $
+// $Id: MacProj.cpp,v 1.128 2010-08-12 21:11:06 almgren Exp $
 //
 #include <winstd.H>
 
 #include <LO_BCTYPES.H>
-#include <CoordSys.H>
 #include <Geometry.H>
 #include <ParmParse.H>
 #include <MacProj.H>
