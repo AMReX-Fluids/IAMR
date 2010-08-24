@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.47 2007-10-04 19:31:32 lijewski Exp $
+// $Id: main.cpp,v 1.48 2010-08-24 20:10:19 almgren Exp $
 //
 
 #include <cstdio>
@@ -123,11 +123,6 @@ main (int   argc,
       char* argv[])
 {
     BoxLib::Initialize(argc,argv);
-
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "\n*** MPI initialized with "
-                  << ParallelDescriptor::NProcs()
-                  << " processor(s)\n";
 
     const Real run_strt = ParallelDescriptor::second();
 
