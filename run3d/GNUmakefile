@@ -1,8 +1,7 @@
 #
-# $Id: GNUmakefile,v 1.49 2010-08-27 23:20:32 almgren Exp $
+# $Id: GNUmakefile,v 1.50 2010-08-27 23:43:19 aaspden Exp $
 #
 PBOXLIB_HOME = ../..
-FBOXLIB_HOME =
 
 TOP = $(PBOXLIB_HOME)
 #
@@ -11,8 +10,8 @@ TOP = $(PBOXLIB_HOME)
 PRECISION = DOUBLE
 DEBUG	  = TRUE
 DEBUG	  = FALSE
-PROFILE   = FALSE
 PROFILE   = TRUE
+PROFILE   = FALSE
 DIM       = 3
 COMP	  = Intel
 FCOMP     = Intel
@@ -94,31 +93,6 @@ Bpack	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
 
 include $(Bpack)
-
-ifdef FBOXLIB_HOME
-  DEFINES += -DMG_USE_FBOXLIB
-
-  include $(PBOXLIB_HOME)/MGT_Solver/Make.package
-  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/MGT_Solver
-  VPATH_LOCATIONS   += $(PBOXLIB_HOME)/MGT_Solver
- 
-  include $(FBOXLIB_HOME)/mg/FParallelMG.mak
-  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/mg/
-  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/mg
- 
-  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/SPARSKIT
-  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/extern/SPARSKIT
- 
-  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/LAPACK
-  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/extern/LAPACK
- 
-  include $(FBOXLIB_HOME)/extern/BLAS/Make.package
-  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/BLAS
-  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/extern/BLAS
-
-  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/boxlib
-  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/boxlib
-endif
 
 INCLUDE_LOCATIONS += . $(Blocs)
 VPATH_LOCATIONS   += . $(Blocs)
