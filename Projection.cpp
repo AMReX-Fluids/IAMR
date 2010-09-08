@@ -1,11 +1,12 @@
 //
-// $Id: Projection.cpp,v 1.179 2010-08-12 21:11:07 almgren Exp $
+// $Id: Projection.cpp,v 1.180 2010-09-08 20:39:12 almgren Exp $
 //
 #include <winstd.H>
 
 #include <Geometry.H>
 #include <ParmParse.H>
 #include <NavierStokes.H>
+#include <NS_BC.H>
 #include <Profiler.H>
 #include <Projection.H>
 #include <PROJECTION_F.H>
@@ -44,6 +45,8 @@ const int* boxhi = (box).hiVect();
 #define BogusValue 1.e200
 #define MAX_LEV 10
 
+// NOTE: the RegType array project_bc is now defined in NS_BC.H in iamrlib
+
 //
 // Initialization of static members.
 //
@@ -78,11 +81,6 @@ static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::
 #elif BL_SPACEDIM == 3
 static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
 #endif
-
-static RegType project_bc [] =
-{
-    interior, inflow, outflow, refWall, refWall, refWall
-};
 
 #define LEVEL_PROJ      1001
 #define INITIAL_VEL     1002
