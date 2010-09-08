@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.60 2010-09-08 20:39:12 almgren Exp $
+// $Id: NS_setup.cpp,v 1.61 2010-09-08 20:44:29 almgren Exp $
 //
 
 #include <winstd.H>
@@ -187,8 +187,10 @@ NavierStokes::variableSetUp ()
                            &cell_cons_interp);
     set_x_vel_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,BndryFunc(FORT_XVELFILL));
+
     set_y_vel_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Yvel,"y_velocity",bc,BndryFunc(FORT_YVELFILL));
+
 #if (BL_SPACEDIM == 3)
     set_z_vel_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Zvel,"z_velocity",bc,BndryFunc(FORT_ZVELFILL));
@@ -198,9 +200,15 @@ NavierStokes::variableSetUp ()
     //
     set_scalar_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Density,"density",bc,BndryFunc(FORT_DENFILL));
+
+    set_scalar_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Trac,"tracer",bc,BndryFunc(FORT_ADVFILL));
+
     if (do_trac2)
-	desc_lst.setComponent(State_Type,Trac2,"tracer2",bc,BndryFunc(FORT_ADV2FILL));
+    {
+       set_scalar_bc(bc,phys_bc);
+       desc_lst.setComponent(State_Type,Trac2,"tracer2",bc,BndryFunc(FORT_ADV2FILL));
+    }
     //
     // **************  DEFINE TEMPERATURE  ********************
     //
@@ -230,8 +238,7 @@ NavierStokes::variableSetUp ()
     if (do_temp) advectionType[Temp] = NonConservative;
 
     advectionType[Trac] = NonConservative;
-    diffusionType[Trac] = Laplacian_S;
-    if (do_cons_trac) {
+    diffusionType[Trac] = Laplacian_S; if (do_cons_trac) {
       advectionType[Trac] = Conservative;
       diffusionType[Trac] = Laplacian_SoverRho;
       if (ParallelDescriptor::IOProcessor())
