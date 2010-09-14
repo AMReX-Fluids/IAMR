@@ -1,5 +1,5 @@
 c
-c $Id: INFL_FORCE_2D.F,v 1.5 2010-04-07 23:02:19 lijewski Exp $
+c $Id: INFL_FORCE_2D.F,v 1.6 2010-09-14 01:04:41 marc Exp $
 c
 
 #undef BL_LANG_CC
@@ -93,7 +93,7 @@ c :::
       enddo
 
       if (infl_type .eq. infl_periodic_type) then
-         coff = on
+         coff = one
          tm1  = timePnt - dtFile
          tp1  = timePnt + dtFile
       else if (infl_type .eq. infl_swirl_type) then
