@@ -28,6 +28,11 @@
 #include <VISCOPERATOR_F.H>
 #include <BLFort.H>
 
+#ifdef BL_USE_VELOCITY
+#include <DataServices.H>
+#include <AmrData.H>
+#endif
+
 #define GEOM_GROW   1
 #define PRESS_GROW  1
 #define DIVU_GROW   1
@@ -985,6 +990,72 @@ NavierStokes::initData ()
                        ARLIM(p_lo), ARLIM(p_hi),
                        dx,gridloc.lo(),gridloc.hi() );
     }
+
+#ifdef BL_USE_VELOCITY
+    //
+    // We want to add the velocity from the supplied plotfile
+    // to what we already put into the velocity field via FORT_INITDATA.
+    //
+    // This code has a few drawbacks.  It assumes that the physical
+    // domain size of the current problem is the same as that of the
+    // one that generated the pltfile.  It also assumes that the pltfile
+    // has at least as many levels (with the same refinement ratios) as does
+    // the current problem.  If either of these are false this code is
+    // likely to core dump.
+    //
+    ParmParse pp("ns");
+
+    std::string velocity_plotfile;
+    pp.query("velocity_plotfile", velocity_plotfile);
+
+    std::string velocity_plotfile_xvel_name = "x_velocity";
+    pp.query("velocity_plotfile_xvel_name", velocity_plotfile_xvel_name);
+
+    Real velocity_plotfile_scale(1.0);
+    pp.query("velocity_plotfile_scale",velocity_plotfile_scale);
+
+    if (!velocity_plotfile.empty())
+    {
+        if (ParallelDescriptor::IOProcessor())
+	  std::cout << "initData: reading data from: " << velocity_plotfile << " (" << velocity_plotfile_xvel_name << ")" << std::endl;
+
+        DataServices::SetBatchMode();
+        FileType fileType(NEWPLT);
+        DataServices dataServices(velocity_plotfile, fileType);
+
+        if (!dataServices.AmrDataOk())
+            //
+            // This calls ParallelDescriptor::EndParallel() and exit()
+            //
+            DataServices::Dispatch(DataServices::ExitRequest, NULL);
+    
+        AmrData&                  amrData   = dataServices.AmrDataRef();
+        Array<std::string>        plotnames = amrData.PlotVarNames();
+
+        int idX = -1;
+        for (int i = 0; i < plotnames.size(); ++i)
+            if (plotnames[i] == velocity_plotfile_xvel_name) idX = i;
+
+        if (idX == -1)
+            BoxLib::Abort("Could not find velocity fields in supplied velocity_plotfile");
+	else
+	  std::cout << "Found " << velocity_plotfile_xvel_name << ", idX = " << idX << std::endl;
+
+        MultiFab tmp(S_new.boxArray(), 1, 0);
+        for (int i = 0; i < BL_SPACEDIM; i++)
+        {
+            amrData.FillVar(tmp, level, plotnames[idX+i], 0);
+            for (MFIter mfi(tmp); mfi.isValid(); ++mfi) {
+  	        tmp[mfi].mult(velocity_plotfile_scale, 0, 1);
+                S_new[mfi].plus(tmp[mfi], tmp[mfi].box(), 0, Xvel+i, 1);
+	    }
+            amrData.FlushGrids(idX+i);
+        }
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "initData: finished init from velocity_plotfile" << std::endl;
+    }
+#endif /*BL_USE_VELOCITY*/
 
     make_rho_prev_time();
     make_rho_curr_time();
@@ -2998,6 +3069,7 @@ NavierStokes::sum_integrated_quantities ()
     Real time = state[State_Type].curTime();
 //    Real mass = 0.0;
 //    Real trac = 0.0;
+    Real udotlapu = 0.0;
     Real energy = 0.0;
     Real forcing = 0.0;
     Real mgvort = 0.0;
@@ -3007,6 +3079,7 @@ NavierStokes::sum_integrated_quantities ()
         NavierStokes& ns_level = getLevel(lev);
 //        mass += ns_level.volWgtSum("density",time);
 //        trac += ns_level.volWgtSum("tracer",time);
+        udotlapu += ns_level.volWgtSum("udotlapu",time);
         energy += ns_level.volWgtSum("energy",time);
         mgvort = std::max(mgvort,ns_level.MaxVal("mag_vort",time));
 #if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
@@ -3024,7 +3097,8 @@ NavierStokes::sum_integrated_quantities ()
         std::cout << "TIME= " << time << " KENG= " << energy << '\n';
 //	if (BL_SPACEDIM==3)
 //	    std::cout << "TIME= " << time << " FORC= " << forcing << '\n';
-            std::cout <<"TIME= " << time << " MAGVORT= " << mgvort << '\n';
+	std::cout << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
+	std::cout << "DIAG= " << time << " " << energy << " " << udotlapu << " " << forcing << std::endl;
         std::cout.precision(old_prec);
     }
 }

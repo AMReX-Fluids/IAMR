@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.6 2007-03-08 22:28:42 lijewski Exp $
+# $Id: Make.package,v 1.7 2010-09-24 00:24:43 aaspden Exp $
 #
 CEXE_sources += NS_setup.cpp NSBld.cpp
 FEXE_headers += probdata.H PROB_F.H
@@ -8,3 +8,10 @@ FEXE_sources += PROB_$(DIM)D.F
 ifeq (${USE_SWIRL_DATA}, TRUE)
   fEXE_sources += vswirl.f
 endif
+
+ifeq ($(USE_VELOCITY), TRUE)
+  CEXE_headers += DataServices.H AmrData.H XYPlotDataList.H AmrvisConstants.H
+  CEXE_sources += DataServices.cpp AmrData.cpp
+  FEXE_sources += FABUTIL_$(DIM)D.F
+endif
+

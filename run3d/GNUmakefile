@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.50 2010-08-27 23:43:19 aaspden Exp $
+# $Id: GNUmakefile,v 1.51 2010-09-24 00:24:43 aaspden Exp $
 #
 PBOXLIB_HOME = ../..
 
@@ -22,6 +22,8 @@ USE_FLCTS = TRUE
 USE_HYPRE = FALSE
 USE_METIS = FALSE
 USE_BGL   = FALSE
+USE_VELOCITY = TRUE
+USE_VELOCITY = FALSE
 EBASE     = amr
 
 ifeq ($(USE_BGL),TRUE)
@@ -43,6 +45,7 @@ endif
 
 # This allows GetForce to call a Fortran routine
 # DEFINES += -DGENGETFORCE
+#DEFINES += -DMOREGENGETFORCE
 
 # This is for the time-dependent turbulence forcing term
 #DEFINES += -DDO_IAMR_FORCE
@@ -62,6 +65,11 @@ ifeq ($(USE_BGL),TRUE)
 endif
 
 include ./Make.package
+
+ifeq ($(USE_VELOCITY), TRUE)
+  DEFINES += -DBL_NOLINEVALUES -DBL_USE_VELOCITY -DBL_PARALLEL_IO
+  INCLUDE_LOCATIONS += $(TOP)/pAmrvis
+endif
 
 ifeq ($(USE_ARRAYVIEW),TRUE)
   DEFINES += -DBL_USE_ARRAYVIEW
@@ -95,7 +103,11 @@ Blocs	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
 include $(Bpack)
 
 INCLUDE_LOCATIONS += . $(Blocs)
-VPATH_LOCATIONS   += . $(Blocs)
+VPATH_LOCATIONS   += . $(Blocs) 
+
+ifeq ($(USE_VELOCITY), TRUE)
+ VPATH_LOCATIONS +=  $(TOP)/pAmrvis
+endif
 
 vpath %.c   $(VPATH_LOCATIONS)
 vpath %.cpp $(VPATH_LOCATIONS)
