@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.128 2010-08-12 21:11:06 almgren Exp $
+// $Id: MacProj.cpp,v 1.129 2010-10-06 15:10:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -526,11 +526,13 @@ MacProj::mac_sync_solve (int       level,
 
     baf.coarsen(fine_ratio);
 
+    std::vector< std::pair<int,Box> > isects;
+
     for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
         BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
 
-        std::vector< std::pair<int,Box> > isects = baf.intersections(Rhsmfi.validbox());
+        isects = baf.intersections(Rhsmfi.validbox());
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
@@ -1227,6 +1229,8 @@ MacProj::test_umac_periodic (int level,MultiFab* u_mac)
     std::vector<TURec>      pirm;
     MultiFabId              mfid[BL_SPACEDIM];
 
+    std::vector< std::pair<int,Box> > isects;
+
     for (int dim = 0; dim < BL_SPACEDIM; dim++)
     {
         if (geom.isPeriodic(dim))
@@ -1245,7 +1249,7 @@ MacProj::test_umac_periodic (int level,MultiFab* u_mac)
                 {
                     eBox += pshifts[iiv];
 
-                    std::vector< std::pair<int,Box> > isects = u_mac[dim].boxArray().intersections(eBox);
+                    isects = u_mac[dim].boxArray().intersections(eBox);
 
                     for (int i = 0, N = isects.size(); i < N; i++)
                     {

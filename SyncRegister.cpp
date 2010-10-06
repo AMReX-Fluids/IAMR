@@ -1,6 +1,6 @@
 
 //
-// $Id: SyncRegister.cpp,v 1.83 2010-02-23 21:37:22 lijewski Exp $
+// $Id: SyncRegister.cpp,v 1.84 2010-10-06 15:10:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -226,13 +226,15 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
     std::list<SRRec>     srrec;
     FArrayBox            tmpfab;
 
+    std::vector< std::pair<int,Box> > isects;
+
     for (OrientationIter face; face; ++face)
     {
         fsid[face()] = fscd.RegisterFabSet((FabSet*) &bndry_mask[face()]);
 
         for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
         {
-            std::vector< std::pair<int,Box> > isects = bndry_mask[face()].boxArray().intersections(rhs[mfi].box());
+            isects = bndry_mask[face()].boxArray().intersections(rhs[mfi].box());
 
             for (int i = 0, N = isects.size(); i < N; i++)
             {
@@ -333,6 +335,8 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
     FArrayBox tmpfab;
 
+    std::vector< std::pair<int,Box> > isects;
+
     for (OrientationIter face; face; ++face)
     {
         FabSet& fs = bndry_mask[face()];
@@ -344,7 +348,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
             tmpfab.resize(mask_cells,1);
             tmpfab.setVal(0);
 
-            std::vector< std::pair<int,Box> > isects = grids.intersections(mask_cells);
+            isects = grids.intersections(mask_cells);
 
             for (int i = 0, N = isects.size(); i < N; i++)
             {
@@ -359,7 +363,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                 {
                     mask_cells += pshifts[iiv];
 
-                    std::vector< std::pair<int,Box> > isects = grids.intersections(mask_cells);
+                    isects = grids.intersections(mask_cells);
 
                     for (int i = 0, N = isects.size(); i < N; i++)
                     {
@@ -566,11 +570,13 @@ SyncRegister::CompAdd  (MultiFab*       Sync_resid_fine,
 {
     Array<IntVect> pshifts(27);
 
+    std::vector< std::pair<int,Box> > isects;
+
     for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
     {
         Box sync_box = mfi.validbox();
 
-        std::vector< std::pair<int,Box> > isects = Pgrids.intersections(sync_box);
+        isects = Pgrids.intersections(sync_box);
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
