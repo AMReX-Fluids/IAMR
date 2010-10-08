@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.73 2010-04-10 23:01:29 xinfeng Exp $
+c $Id: PROB_3D.F,v 1.74 2010-10-08 17:55:56 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -31,7 +31,7 @@ c ::: This routine is called at problem initialization time
 c ::: and when restarting from a checkpoint file.
 c ::: The purpose is (1) to specify the initial time value
 c ::: (not all problems start at time=0.0) and (2) to read
-c ::: problem specific data from a namelist or other input
+c ::: problem specific data from a namelist or other inputcdm
 c ::: files and possibly store them or derived information
 c ::: in FORTRAN common blocks for later use.
 c ::: 
@@ -84,7 +84,8 @@ c ::: -----------------------------------------------------------
      &			rhozero, rhograd, tempzero, c_d, r_d, 
      &                  adv_dir, adv_vel, slot_vel, axis_dir, radvort,
      &                  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag,
-     &                  vb_unifdir, blrandseed, turb_scale, injection_time
+     &                  vb_unifdir, blrandseed, turb_scale, injection_time,
+     &                  override_turb_force
 #ifdef BL_DO_FLCT
       namelist /fortin/ forceInflow, numInflPlanesStore, strmwse_dir,
      &                  forceLo, forceHi, flct_file, nCompInflow, infl_type,
@@ -97,7 +98,7 @@ c ::: -----------------------------------------------------------
 
       namelist /fortin/ Vco, Rfu, Rtran, tVco_l, tVco_r, Vco_l, Vco_r
 
-      namelist /fortin/ grav_angle, omega, infl_time_offset, ref_centre, ref_radius,
+      namelist /fortin/ grav_angle, omega, infl_time_offset, ref_centre, ref_radius, time_offset,
      &                  thermal_expansion, heating_coeff, heating_centre, heating_radius
 
       namelist /fortin/ density_pert, interface_height, wavelength_min, wavelength_max, tracer_height
@@ -108,7 +109,7 @@ c ::: -----------------------------------------------------------
      &                  forcing_xlength, forcing_ylength, forcing_zlength,
      &                  forcing_time_scale_min, forcing_time_scale_max, 
      &                  force_scale, forcing_epsilon,
-     &                  use_rho_in_forcing, do_mode_division,
+     &                  use_rho_in_forcing, do_mode_division, div_free_force, moderate_zero_modes,
      &                  AXY, BXY, CXY, DXY, PXY, QXY, RXY,
      &                  AZX, BZX, CZX, DZX, PZX, QZX, RZX,
      &                  AYZ, BYZ, CYZ, DYZ, PYZ, QYZ, RYZ,
@@ -427,6 +428,26 @@ c     Phases
                      FPY(kx,ky,kz) = rn*twicePi
                      call blutilrand(rn)
                      FPZ(kx,ky,kz) = rn*twicePi
+                     if (div_free_force.eq.1) then
+                        call blutilrand(rn)
+                        FPXX(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPYX(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPZX(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPXY(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPYY(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPZY(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPXZ(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPYZ(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPZZ(kx,ky,kz) = rn*twicePi
+                     endif
 c     Amplitudes (alpha)
                      call blutilrand(rn)
                      thetaTmp      = rn*twicePi
@@ -442,8 +463,10 @@ c     Amplitudes (alpha)
                      pz =               cosPhiTmp
 
                      mp2           = px*px + py*py + pz*pz
-                     if (mp2 .lt. 0.000001) then
-                        write(*,*) "ZERO AMPLITUDE MODE ",kx,ky,kz
+                     if (kappa .lt. 0.000001) then
+                        if (isioproc .eq. 1) then
+                           write(*,*) "ZERO AMPLITUDE MODE ",kx,ky,kz
+                        endif
                         FAX(kx,ky,kz) = zero
                         FAY(kx,ky,kz) = zero
                         FAZ(kx,ky,kz) = zero
@@ -458,6 +481,14 @@ c     Set amplitudes
                         else
                            Ekh        = one
                         endif
+                        if (div_free_force.eq.1) then
+                           Ekh = Ekh / kappa
+                        endif
+                        if (moderate_zero_modes.eq.1) then
+                           if (kx.eq.0) Ekh = Ekh / two
+                           if (ky.eq.0) Ekh = Ekh / two
+                           if (kz.eq.0) Ekh = Ekh / two
+                        endif
                         if (force_scale.gt.zero) then
                            FAX(kx,ky,kz) = force_scale * px * Ekh / mp2
                            FAY(kx,ky,kz) = force_scale * py * Ekh / mp2
@@ -470,8 +501,8 @@ c     Set amplitudes
 
                         if (isioproc.eq.1) then
                            write (*,*) "Mode"
-                           write (*,*) "kappa = ",kx,ky,kz,kappa
-                           write (*,*) "Amplitudes"
+                           write (*,*) "kappa = ",kx,ky,kz,kappa, sqrt(FAX(kx,ky,kz)**2+FAY(kx,ky,kz)**2+FAZ(kx,ky,kz)**2)
+                           write (*,*) "Amplitudes - A"
                            write (*,*) FAX(kx,ky,kz), FAY(kx,ky,kz), FAZ(kx,ky,kz)
                            write (*,*) "Frequencies"
                            write (*,*) FTX(kx,ky,kz), FTY(kx,ky,kz), FTZ(kx,ky,kz)
@@ -512,6 +543,26 @@ c     Phases
                      FPY(kx,ky,kz) = rn*twicePi
                      call blutilrand(rn)
                      FPZ(kx,ky,kz) = rn*twicePi
+                     if (div_free_force.eq.1) then
+                        call blutilrand(rn)
+                        FPXX(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPYX(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPZX(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPXY(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPYY(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPZY(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPXZ(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPYZ(kx,ky,kz) = rn*twicePi
+                        call blutilrand(rn)
+                        FPZZ(kx,ky,kz) = rn*twicePi
+                     endif
 c     Amplitudes (alpha)
                      call blutilrand(rn)
                      thetaTmp      = rn*twicePi
@@ -527,8 +578,10 @@ c     Amplitudes (alpha)
                      pz =               cosPhiTmp
 
                      mp2           = px*px + py*py + pz*pz
-                     if (mp2 .lt. 0.000001) then
-                        write(*,*) "ZERO AMPLITUDE MODE ",kx,ky,kz
+                     if (kappa .lt. 0.000001) then
+                        if (isioproc .eq. 1) then
+                           write(*,*) "ZERO AMPLITUDE MODE ",kx,ky,kz
+                        endif
                         FAX(kx,ky,kz) = zero
                         FAY(kx,ky,kz) = zero
                         FAZ(kx,ky,kz) = zero
@@ -543,6 +596,14 @@ c     Set amplitudes
                         else
                            Ekh        = one
                         endif
+                        if (div_free_force.eq.1) then
+                           Ekh = Ekh / kappa
+                        endif
+                        if (moderate_zero_modes.eq.1) then
+                           if (kx.eq.0) Ekh = Ekh / two
+                           if (ky.eq.0) Ekh = Ekh / two
+                           if (kz.eq.0) Ekh = Ekh / two
+                        endif
                         if (force_scale.gt.zero) then
                            FAX(kx,ky,kz) = forcing_epsilon * force_scale * px * Ekh / mp2
                            FAY(kx,ky,kz) = forcing_epsilon * force_scale * py * Ekh / mp2
@@ -555,8 +616,8 @@ c     Set amplitudes
 
                         if (isioproc.eq.1) then
                            write (*,*) "Mode"
-                           write (*,*) "kappa = ",kx,ky,kz,kappa
-                           write (*,*) "Amplitudes"
+                           write (*,*) "kappa = ",kx,ky,kz,kappa, sqrt(FAX(kx,ky,kz)**2+FAY(kx,ky,kz)**2+FAZ(kx,ky,kz)**2)
+                           write (*,*) "Amplitudes - B"
                            write (*,*) FAX(kx,ky,kz), FAY(kx,ky,kz), FAZ(kx,ky,kz)
                            write (*,*) "Frequencies"
                            write (*,*) FTX(kx,ky,kz), FTY(kx,ky,kz), FTZ(kx,ky,kz)
@@ -578,7 +639,247 @@ c     Set amplitudes
                write (*,*) "Spectrum type OTHER"
             endif
          endif
+
+c Override random numbers
+         if (override_turb_force.ge.1) then
+
+            if (override_turb_force.eq.1) then
+               do kz=0,32
+                  do ky=0,32
+                     do kx=0,32
+                        FAX(kx,ky,kz) = 0.d0
+                        FAY(kx,ky,kz) = 0.d0
+                        FAZ(kx,ky,kz) = 0.d0
+                        FTX(kx,ky,kz) = 0.d0
+                        FTY(kx,ky,kz) = 0.d0
+                        FTZ(kx,ky,kz) = 0.d0
+                        FPX(kx,ky,kz) = 0.d0
+                        FPY(kx,ky,kz) = 0.d0
+                        FPZ(kx,ky,kz) = 0.d0
+                        TAT(kx,ky,kz) = 0.d0
+                     enddo
+                  enddo
+               enddo
+            endif
+
+            FAX(1,1,1) = 4.9159487814194529d0
+            FAY(1,1,1) = 8.4733283347910291d0 
+            FAZ(1,1,1) = -4.2206554333498882d0
+            FTX(1,1,1) = 5.1975883412614365d0
+            FTY(1,1,1) =  5.9058228872665275d0
+            FTZ(1,1,1) = 3.6304842628015055d0
+            FPX(1,1,1) = 5.8021873618124946d0
+            FPY(1,1,1) = 5.0447187825551207d0
+            FPZ(1,1,1) = 1.8627240964262393d0
+            TAT(1,1,1) = 5.6478239516237787d0
+
+            FAX(2,1,1) = -2.5666438215760063d0
+            FAY(2,1,1) = -1.4239169102661757d0
+            FAZ(2,1,1) = -4.4530039939649946d0
+            FTX(2,1,1) = 3.7679884103646226d0
+            FTY(2,1,1) = 5.3250653798614538d0
+            FTZ(2,1,1) = 4.5150594485888291d0
+            FPX(2,1,1) = 6.2749868772687361d0
+            FPY(2,1,1) = 1.3705682802978747d0
+            FPZ(2,1,1) = 1.0304654059116896d0
+            TAT(2,1,1) = 2.8651852272695173d0
+
+            FAX(3,1,1) = 1.2864170156656984d0
+            FAY(3,1,1) = -2.2893975400193582d0
+            FAZ(3,1,1) = 1.2516389586915393d0
+            FTX(3,1,1) = 5.9033711974860932d0
+            FTY(3,1,1) = 4.4281708270687501d0
+            FTZ(3,1,1) = 4.2777444944303191d0
+            FPX(3,1,1) = 0.22011703989520284d0
+            FPY(3,1,1) = 4.2466220672604873d0
+            FPZ(3,1,1) = 4.8764721700720708d0
+            TAT(3,1,1) = 5.0553217246012565d0
+
+            FAX(1,2,1) = -0.20089188587586918d0
+            FAY(1,2,1) = 1.3763908645879952d0
+            FAZ(1,2,1) = 5.1487508273864258d0
+            FTX(1,2,1) = 3.9485897668695142d0
+            FTY(1,2,1) = 4.4692744553694244d0
+            FTZ(1,2,1) = 3.9508792365899366d0
+            FPX(1,2,1) = 1.7852441923049107d0
+            FPY(1,2,1) = 3.0829934386493503d0
+            FPZ(1,2,1) = 1.4672406821539532d0
+            TAT(1,2,1) = 1.4755814993444105d0
+
+            FAX(2,2,1) = 0.69396713816146716d0
+            FAY(2,2,1) = 2.861361830195257d0
+            FAZ(2,2,1) = -1.9932369142918278d0
+            FTX(2,2,1) = 5.6956730220436205d0
+            FTY(2,2,1) = 5.5588867839730547d0
+            FTZ(2,2,1) = 5.7649122186530564d0
+            FPX(2,2,1) = 2.5552810738283052d0
+            FPY(2,2,1) = 3.388311033772359d0
+            FPZ(2,2,1) = 1.3010559678548617d0
+            TAT(2,2,1) = 1.0339095056702137d0
+
+            FAX(3,2,1) = 1.9350279711990759d0
+            FAY(3,2,1) = -1.1279468985303027d0
+            FAZ(3,2,1) = -0.45595212543799785d0
+            FTX(3,2,1) = 4.772596551965731d0
+            FTY(3,2,1) = 3.8777674032401634d0
+            FTZ(3,2,1) = 5.3116096780714743d0
+            FPX(3,2,1) = 1.780426633370265d0
+            FPY(3,2,1) = 5.475785414516678d0
+            FPZ(3,2,1) = 4.4419968980233211d0
+            TAT(3,2,1) = 0.22540787623529085d0
+
+            FAX(1,3,1) = 2.864674922606242d0
+            FAY(1,3,1) = -0.50544520889614819d0
+            FAZ(1,3,1) = 3.11872722472469888d-2
+            FTX(1,3,1) = 3.7635706940051188d0
+            FTY(1,3,1) = 5.208809484692571d0
+            FTZ(1,3,1) = 4.7738469453527825d0
+            FPX(1,3,1) = 1.864303985046738d0
+            FPY(1,3,1) = 6.2540331417366657d0
+            FPZ(1,3,1) = 1.6475935810409588d0
+            TAT(1,3,1) = 3.3634507598363745d0
+
+            FAX(2,3,1) = 0.77945529357360954d0
+            FAY(2,3,1) = -0.91747387637372091d0
+            FAZ(2,3,1) = 1.9429824825278852d0
+            FTX(2,3,1) = 5.742158566501101d0
+            FTY(2,3,1) = 3.7482952632957014d0
+            FTZ(2,3,1) = 5.4874587715272858d0
+            FPX(2,3,1) = 2.9531052813760001d0
+            FPY(2,3,1) = 0.26215970214491496d0
+            FPZ(2,3,1) = 1.7493938062755146d0
+            TAT(2,3,1) = 1.91306574518684d0
+
+            FAX(1,1,2) = -5.305003847200731d0
+            FAY(1,1,2) = 0.50749773957239552d0
+            FAZ(1,1,2) = 0.2093434258791288d0
+            FTX(1,1,2) = 5.8647362046774285d0
+            FTY(1,1,2) = 4.1987859158702072d0
+            FTZ(1,1,2) = 3.9029081485618291d0
+            FPX(1,1,2) = 5.1002773317760663d0
+            FPY(1,1,2) = 2.1221436871767354d0
+            FPZ(1,1,2) = 0.6975038860903926d0
+            TAT(1,1,2) = 0.44023114810257413d0
+
+            FAX(2,1,2) = -2.4840532177547301d0
+            FAY(2,1,2) = -2.2711993844331797d0
+            FAZ(2,1,2) = 1.1459093664660789d0
+            FTX(2,1,2) = 4.3877095778001758d0
+            FTY(2,1,2) = 3.7581829005749277d0
+            FTZ(2,1,2) = 4.8766734961267275d0
+            FPX(2,1,2) = 4.7357438644376497d0
+            FPY(2,1,2) = 1.4783784275512053d0
+            FPZ(2,1,2) = 5.3774890550958716d0
+            TAT(2,1,2) = 5.7023832517246111d0
+
+            FAX(3,1,2) = 0.29669381505201736d0
+            FAY(3,1,2) = -1.9473540911634448d0
+            FAZ(3,1,2) = 1.1594285746251218d0
+            FTX(3,1,2) = 5.8542809412855927d0
+            FTY(3,1,2) = 3.8167045618392166d0
+            FTZ(3,1,2) = 5.4244408688497341d0
+            FPX(3,1,2) = 3.1993678345714365d0
+            FPY(3,1,2) = 0.88139277647217429d0
+            FPZ(3,1,2) = 5.4657479049374924d0
+            TAT(3,1,2) = 1.3614786992096499d0
+
+            FAX(1,2,2) = -1.9318740901427485d0
+            FAY(1,2,2) = -0.80218340917884778d0
+            FAZ(1,2,2) = 2.8751242732298206d0
+            FTX(1,2,2) = 5.8773266401625346d0
+            FTY(1,2,2) = 4.4329190612414395d0
+            FTZ(1,2,2) = 3.2881333624326348d0
+            FPX(1,2,2) = 5.003162786337116d0
+            FPY(1,2,2) = 1.2164277369010781d0
+            FPZ(1,2,2) = 0.14669665298429169d0
+            TAT(1,2,2) = 5.5595175028166013d0
+
+            FAX(2,2,2) = 0.4297562850971306d0
+            FAY(2,2,2) = -1.9466539669692717d0
+            FAZ(2,2,2) = 1.7711462332098464d0
+            FTX(2,2,2) = 4.6865618035445218d0
+            FTY(2,2,2) = 5.9494078155410257d0
+            FTZ(2,2,2) = 4.0205365556673778d0
+            FPX(2,2,2) = 4.5491812147738679d0
+            FPY(2,2,2) = 1.6761367863523891d0
+            FPZ(2,2,2) = 5.2026905021309613d0
+            TAT(2,2,2) = 4.6252688992576214d0
+
+            FAX(1,3,2) = 2.06658971082688374d-2
+            FAY(1,3,2) = 2.74013268199971953d-2 
+            FAZ(1,3,2) = -2.2854566029359611d0
+            FTX(1,3,2) = 5.8157142214007846d0
+            FTY(1,3,2) = 4.9600077380032275d0
+            FTZ(1,3,2) = 6.2077903202581997d0
+            FPX(1,3,2) = 1.5010646369853131d0
+            FPY(1,3,2) = 5.3916183465437202d0
+            FPZ(1,3,2) = 4.6437631037683511d0
+            TAT(1,3,2) = 3.0680376745582629d0
+
+            FAX(1,1,3) = 2.2949361665546917d0
+            FAY(1,1,3) = 1.4268107896343492d0
+            FAZ(1,1,3) = 1.0771670619628302d0
+            FTX(1,1,3) = 3.4163673645862564d0
+            FTY(1,1,3) = 3.4248811396554295d0
+            FTZ(1,1,3) = 4.6260711993739712d0
+            FPX(1,1,3) = 4.5109620235136738d0
+            FPY(1,1,3) = 5.8391370634844844d0
+            FPZ(1,1,3) = 3.4206386516235008d0
+            TAT(1,1,3) = 5.1764802854269849d0
+
+            FAX(2,1,3) = 0.72905204823447511d0
+            FAY(2,1,3) = -0.25947497300324907d0
+            FAZ(2,1,3) = 2.1507314209980866d0
+            FTX(2,1,3) = 3.8967963050404482d0
+            FTY(2,1,3) = 6.1779977397507002d0
+            FTZ(2,1,3) = 5.9597973778189886d0
+            FPX(2,1,3) = 2.991726230902561d0
+            FPY(2,1,3) = 5.4725093396771065d0
+            FPZ(2,1,3) = 0.95909300483380011d0
+            TAT(2,1,3) = 5.4692810554453581d0
+
+            FAX(1,2,3) = -2.1551885177430785d0
+            FAY(1,2,3) = 0.69991730842965261d0
+            FAZ(1,2,3) = 0.29961310096080823d0
+            FTX(1,2,3) = 4.0690501771057352d0
+            FTY(1,2,3) = 3.5887121197057796d0
+            FTZ(1,2,3) = 5.0908129869173395d0
+            FPX(1,2,3) = 2.2658198780716678d0
+            FPY(1,2,3) = 1.3269114298503693d0
+            FPZ(1,2,3) = 2.5274702857680205d0
+            TAT(1,2,3) = 3.3730006261545773d0
+
+            if (isioproc.eq.1) then
+               do kz = mode_start*zstep, nzmodes, zstep
+                  kzd = dfloat(kz)
+                  do ky = mode_start*ystep, nymodes, ystep
+                     kyd = dfloat(ky)
+                     do kx = mode_start*xstep, nxmodes, xstep
+                        kxd = dfloat(kx)
+                        kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
+                        if (kappa.le.kappaMax) then
+                           write (*,*) "Mode"
+                           write (*,*) "kappa = ",kx,ky,kz,kappa
+                           write (*,*) "Amplitudes - C"
+                           write (*,*) FAX(kx,ky,kz), FAY(kx,ky,kz), FAZ(kx,ky,kz)
+                           write (*,*) "Frequencies"
+                           write (*,*) FTX(kx,ky,kz), FTY(kx,ky,kz), FTZ(kx,ky,kz) 
+                           write (*,*) "Phases"
+                           write (*,*) FPX(kx,ky,kz), FPY(kx,ky,kz), FPZ(kx,ky,kz)
+                           write (*,*) "TAT"
+                           write (*,*) TAT(kx,ky,kz)
+                        endif   
+                     enddo
+                  enddo
+               enddo
+            endif
+c     override 
+         endif
+
+c     probtype 14 or 15
       endif
+
+c     iamr_force
 #endif
 
       if (probtype.eq.23) then
@@ -651,7 +952,8 @@ c ::: -----------------------------------------------------------
      
 #include "probdata.H"
 
-      print *, 'INITDATA ', time, lo(1),hi(1), lo(2), hi(2), lo(3), hi(3)
+c      print *, 'INITDATA ', time, lo(1),hi(1), lo(2), hi(2), lo(3), hi(3)
+
       if (probtype .eq. 1) then
          call initspin(level,time,lo,hi,nscal,
      &     	       vel,scal,DIMS(state),press,DIMS(press),
@@ -1692,6 +1994,8 @@ c
       REAL_T  dist
       REAL_T  twicePi, rn
 
+      REAL_T  xm, ym, zm, xp, yp, zp
+      REAL_T  cosxt, cosyt, coszt
 #include "probdata.H"
 
       hx = dx(1)
@@ -1718,15 +2022,15 @@ c
                x = xlo(1) + hx*(float(i-lo(1)) + half)
                x = (x-f_xlo)/Lmin
 
-               if (turb_scale.gt.zero) then
+c               if (turb_scale.gt.zero) then
                   vel(i,j,k,1) = turb_scale * cos(twicePi*y)*cos(twicePi*z)
                   vel(i,j,k,2) = turb_scale * cos(twicePi*x)*cos(twicePi*z)
                   vel(i,j,k,3) = turb_scale * cos(twicePi*x)*cos(twicePi*y)
-               else
-                  vel(i,j,k,1) = cos(twicePi*y)*cos(twicePi*z)
-                  vel(i,j,k,2) = cos(twicePi*x)*cos(twicePi*z)
-                  vel(i,j,k,3) = cos(twicePi*x)*cos(twicePi*y)
-               endif
+c               else
+c                  vel(i,j,k,1) = cos(twicePi*y)*cos(twicePi*z)
+c                  vel(i,j,k,2) = cos(twicePi*x)*cos(twicePi*z)
+c                  vel(i,j,k,3) = cos(twicePi*x)*cos(twicePi*y)
+c               endif
 
 c               vel(i,j,k,1) = zero
 c               vel(i,j,k,2) = zero
@@ -3446,7 +3750,11 @@ c     Adjust z offset for probtype 15
                infl_time = time + infl_time_offset
                zlo = xlo(3) - (time*adv_vel)
             else
-               infl_time = time
+               if (time_offset.gt.zero) then
+                  infl_time = time + time_offset
+               else
+                  infl_time = time
+               endif
                zlo = xlo(3)
             endif
 
@@ -3500,10 +3808,19 @@ c     Adjust z offset for probtype 15
                               kxd = dfloat(kx)
                               kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                               if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
-                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
-                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
+                                 if (div_free_force.eq.1) then
+                                    f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) 
+     &                                   -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
+                                    f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) 
+     &                                   -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
+                                    f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) 
+     &                                   -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
+                                 else
+                                    f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                                    f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                                    f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                                 endif
                               endif
                            enddo
                         enddo
@@ -3516,10 +3833,19 @@ c     Adjust z offset for probtype 15
                               kxd = dfloat(kx)
                               kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                               if (kappa.le.kappaMax) then
-                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
-                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                                 xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
+                                 if (div_free_force.eq.1) then
+                                    f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) 
+     &                                   -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
+                                    f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) 
+     &                                   -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
+                                    f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) 
+     &                                   -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
+                                 else
+                                    f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                                    f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                                    f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
+                                 endif
                               endif
                            enddo
                         enddo
@@ -6187,6 +6513,7 @@ c                     w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
                      if( r.le. 0.025) then
                        	w(i,j,k) = wflct(i,j,1)
                      endif	       
+#endif
                   enddo
                enddo
             enddo

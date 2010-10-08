@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.36 2010-03-13 01:25:09 lijewski Exp $
+c $Id: DERIVE_3D.F,v 1.37 2010-10-08 17:55:56 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -337,7 +337,7 @@ c
       REAL_T     time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
-      integer    level, grid_no
+      integer    level, grid_no, isioproc
 
       integer    i,j,k,n
       REAL_T     twicePi
@@ -357,6 +357,8 @@ c
 #include "probdata.H"
 #include "forcedata.H"
 
+      call bl_pd_is_ioproc(isioproc)
+
       hx = delta(1)
       hy = delta(2)
       hz = delta(3)
@@ -371,7 +373,11 @@ c     Adjust z offset for probtype 15
             infl_time = time + infl_time_offset
             zlo = xlo(3) - (time*adv_vel)
          else
-            infl_time = time
+            if (time_offset.gt.zero) then
+               infl_time = time + time_offset
+            else
+               infl_time = time
+            endif
             zlo = xlo(3)
          endif
          
@@ -429,10 +435,19 @@ c     Adjust z offset for probtype 15
                            kxd = dfloat(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
-                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
-                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
-                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
+                              if (div_free_force.eq.1) then
+                                 f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) 
+     &                                -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
+                                 f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) 
+     &                                -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
+                                 f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) 
+     &                                -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
+                              else
+                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              endif
                            endif
                         enddo
                      enddo
@@ -445,10 +460,19 @@ c     Adjust z offset for probtype 15
                            kxd = dfloat(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
-                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
-                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
-                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
+                              if (div_free_force.eq.1) then
+                                 f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) 
+     &                                -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
+                                 f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) 
+     &                                -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
+                                 f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) 
+     &                                -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
+                              else
+                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              endif
                            endif
                         enddo
                      enddo
@@ -494,7 +518,7 @@ c
       REAL_T     time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
-      integer    level, grid_no
+      integer    level, grid_no, isioproc
 
       integer    i,j,k,n
       REAL_T     twicePi
@@ -513,6 +537,8 @@ c
 #include "probdata.H"
 #include "forcedata.H"
 
+      call bl_pd_is_ioproc(isioproc)
+
       hx = delta(1)
       hy = delta(2)
       hz = delta(3)
@@ -527,7 +553,11 @@ c     Adjust z offset for probtype 15
             infl_time = time + infl_time_offset
             zlo = xlo(3) - (time*adv_vel)
          else
-            infl_time = time
+            if (time_offset.gt.zero) then
+               infl_time = time + time_offset
+            else
+               infl_time = time
+            endif
             zlo = xlo(3)
          endif
 
@@ -580,8 +610,13 @@ c     Adjust z offset for probtype 15
                            kxd = dfloat(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
-                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
+                              if (div_free_force.eq.1) then
+                                 f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) 
+     &                                -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
+                              else
+                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              endif
                            endif
                         enddo
                      enddo
@@ -594,8 +629,13 @@ c     Adjust z offset for probtype 15
                            kxd = dfloat(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
-                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
+                              if (div_free_force.eq.1) then
+                                 f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) 
+     &                                -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
+                              else
+                                 f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              endif
                            endif
                         enddo
                      enddo
@@ -639,7 +679,7 @@ c
       REAL_T     time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
-      integer    level, grid_no
+      integer    level, grid_no, isioproc
 
       integer    i,j,k,n
       REAL_T     twicePi
@@ -658,6 +698,8 @@ c
 #include "probdata.H"
 #include "forcedata.H"
 
+      call bl_pd_is_ioproc(isioproc)
+
       hx = delta(1)
       hy = delta(2)
       hz = delta(3)
@@ -672,7 +714,11 @@ c     Adjust z offset for probtype 15
             infl_time = time + infl_time_offset
             zlo = xlo(3) - (time*adv_vel)
          else
-            infl_time = time
+            if (time_offset.gt.zero) then
+               infl_time = time + time_offset
+            else
+               infl_time = time
+            endif
             zlo = xlo(3)
          endif
 
@@ -725,8 +771,13 @@ c     Adjust z offset for probtype 15
                            kxd = dfloat(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
-                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
+                              if (div_free_force.eq.1) then
+                                 f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) 
+     &                                -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
+                              else
+                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              endif
                            endif
                         enddo
                      enddo
@@ -739,8 +790,13 @@ c     Adjust z offset for probtype 15
                            kxd = dfloat(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
-                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
+                              if (div_free_force.eq.1) then
+                                 f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) 
+     &                                -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
+                              else
+                                 f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              endif
                            endif
                         enddo
                      enddo
@@ -784,7 +840,7 @@ c
       REAL_T     time, dt
       REAL_T     e(DIMV(e),nv)
       REAL_T     dat(DIMV(dat),ncomp)
-      integer    level, grid_no
+      integer    level, grid_no, isioproc
 
       integer    i,j,k,n
       REAL_T     twicePi
@@ -804,6 +860,8 @@ c
 #include "probdata.H"
 #include "forcedata.H"
 
+      call bl_pd_is_ioproc(isioproc)
+
       hx = delta(1)
       hy = delta(2)
       hz = delta(3)
@@ -818,7 +876,11 @@ c     Adjust z offset for probtype 15
             infl_time = time + infl_time_offset
             zlo = xlo(3) - (time*adv_vel)
          else
-            infl_time = time
+            if (time_offset.gt.zero) then
+               infl_time = time + time_offset
+            else
+               infl_time = time
+            endif
             zlo = xlo(3)
          endif
 
@@ -871,8 +933,13 @@ c     Adjust z offset for probtype 15
                            kxd = dfloat(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
-                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
+                              if (div_free_force.eq.1) then
+                                 f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) 
+     &                                -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
+                              else
+                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              endif
                            endif
                         enddo
                      enddo
@@ -885,8 +952,13 @@ c     Adjust z offset for probtype 15
                            kxd = dfloat(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
-                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,kx,kz))
-                              f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
+                              if (div_free_force.eq.1) then
+                                 f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) 
+     &                                -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
+                              else
+                                 f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
+                              endif
                            endif
                         enddo
                      enddo
@@ -1382,6 +1454,69 @@ c
                drdy = (dat(i,j+1,k,1)-dat(i,j-1,k,1))/tdy
                drdz = (dat(i,j,k+1,1)-dat(i,j,k-1,1))/tdz
                e(i,j,k,1) = sqrt( drdx*drdx + drdy*drdy + drdz*drdz )
+            end do
+         end do
+      end do
+!$omp end parallel do
+
+      end
+
+      subroutine FORT_DERUDOTLAPU (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     &                         bc,level,grid_no)
+      implicit none
+c
+c     This routine will derive u dot laplacian u
+c     from the velocity field.
+c
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer    i,j,k
+
+      REAL_T     dx2, dy2, dz2
+
+      dx2 = one/(delta(1)*delta(1))
+      dy2 = one/(delta(2)*delta(2))
+      dz2 = one/(delta(3)*delta(3))
+
+c      write (*,*) 'dx2', dx2,dy2,dz2,one,two
+c      write (*,*) 'ncomp', ncomp
+c      write (*,*) 'nv', nv
+c      write (*,*) 'lo', lo(1), lo(2), lo(3)
+c      write (*,*) 'hi', hi(1), hi(2), hi(3)
+c      write (*,*) 'dat_l', dat_l1, dat_l2, dat_l3
+c      write (*,*) 'dat_h', dat_h1, dat_h2, dat_h3
+c      write (*,*) 'e_l', e_l1, e_l2, e_l3
+c      write (*,*) 'e_h', e_h1, e_h2, e_h3
+
+
+!$omp parallel do private(i,j,k)
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               e(i,j,k,1) =
+     &              dat(i,j,k,1) * ( 
+     &              ( dat(i+1,j,k,1)-two*dat(i,j,k,1)+dat(i-1,j,k,1) ) * dx2 +
+     &              ( dat(i,j+1,k,1)-two*dat(i,j,k,1)+dat(i,j-1,k,1) ) * dy2 +
+     &              ( dat(i,j,k+1,1)-two*dat(i,j,k,1)+dat(i,j,k-1,1) ) * dz2 ) +
+     &              dat(i,j,k,2) * ( 
+     &              ( dat(i+1,j,k,2)-two*dat(i,j,k,2)+dat(i-1,j,k,2) ) * dx2 +
+     &              ( dat(i,j+1,k,2)-two*dat(i,j,k,2)+dat(i,j-1,k,2) ) * dy2 +
+     &              ( dat(i,j,k+1,2)-two*dat(i,j,k,2)+dat(i,j,k-1,2) ) * dz2 ) +
+     &              dat(i,j,k,3) * ( 
+     &              ( dat(i+1,j,k,3)-two*dat(i,j,k,3)+dat(i-1,j,k,3) ) * dx2 +
+     &              ( dat(i,j+1,k,3)-two*dat(i,j,k,3)+dat(i,j-1,k,3) ) * dy2 +
+     &              ( dat(i,j,k+1,3)-two*dat(i,j,k,3)+dat(i,j,k-1,3) ) * dz2 )
             end do
          end do
       end do
