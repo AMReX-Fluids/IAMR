@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.74 2010-10-08 17:55:56 aaspden Exp $
+c $Id: PROB_3D.F,v 1.75 2010-10-14 21:45:55 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -515,7 +515,7 @@ c     Set amplitudes
 
 c     Now let's break symmetry, have to assume high aspect ratio in z for now
          reduced_mode_count = 0
-         do kz = mode_start, zstep - 1
+         do kz = 1, zstep - 1
             kzd = dfloat(kz)
             do ky = mode_start, nymodes
                kyd = dfloat(ky)
@@ -3825,7 +3825,7 @@ c     Adjust z offset for probtype 15
                            enddo
                         enddo
                      enddo
-                     do kz = mode_start, zstep - 1
+                     do kz = 1, zstep - 1
                         kzd = dfloat(kz)
                         do ky = mode_start, nymodes
                            kyd = dfloat(ky)
@@ -5745,6 +5745,7 @@ c ::: -----------------------------------------------------------
       integer    bc(SDIM,2)
       integer    lo(SDIM),hi(SDIM)
       integer    i, j, k, n
+      integer    isioproc
       REAL_T     x_vel, Ly, z0
       REAL_T     y, ul, g_t
       REAL_T     umid,rmid,lamv,lamr,rfact
@@ -6025,6 +6026,8 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
             end do
          endif
       end if
+
+
 
 #ifdef BL_DO_FLCT
       if (forceInflow) deallocate(uflct)
@@ -6986,6 +6989,334 @@ c     in the thin 1 mm wide no flow region
       
 
 
+c ::: -----------------------------------------------------------
+c ::: This routine is called during a filpatch operation when
+c ::: the patch to be filled falls outside the interior
+c ::: of the problem domain.  You are requested to supply the
+c ::: data outside the problem interior in such a way that the
+c ::: data is consistant with the types of the boundary conditions
+c ::: you specified in the C++ code.  
+c ::: 
+c ::: NOTE:  you can assume all interior cells have been filled
+c :::        with valid data.
+c ::: 
+c ::: INPUTS/OUTPUTS:
+c ::: 
+c ::: u        <=  full velocity array
+c ::: DIMS(u)   => index extent of v array
+c ::: domlo,hi  => index extent of problem domain
+c ::: dx        => cell spacing
+c ::: xlo       => physical location of lower left hand
+c :::	           corner of rho array
+c ::: time      => problem evolution time
+c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi,comp)
+c ::: -----------------------------------------------------------
+
+      subroutine FORT_VELFILL (u,DIMS(u),domlo,domhi,dx,xlo,time,bc)
+      implicit none
+      integer    DIMDEC(u)
+      integer    domlo(SDIM), domhi(SDIM)
+      REAL_T     dx(SDIM), xlo(SDIM), time
+      REAL_T     u(DIMV(u),SDIM)
+      integer    bc(SDIM,2,SDIM)
+      integer    lo(SDIM),hi(SDIM)
+      integer    i, j, k
+      integer    isioproc
+      integer    ii, ji, ip, jp
+      REAL_T     x, y, z, r, jv
+      REAL_T     xi, yi, xp, yp, rp
+      REAL_T     uxp, uyp, up, ax, r2
+
+      integer    ilo, ihi, jlo, jhi
+
+#include "probdata.H"
+
+#ifdef BL_DO_FLCT
+      integer loFlctArray(SDIM), hiFlctArray(SDIM)
+      integer DIMDEC(uflct)
+      REAL_T  t_flct
+      REAL_T, allocatable :: uflct(:,:,:)
+      REAL_T, allocatable :: vflct(:,:,:)
+      REAL_T, allocatable :: wflct(:,:,:)
+#include "INFL_FORCE_F.H"
+#endif
+
+      lo(1) = ARG_L1(u)
+      lo(2) = ARG_L2(u)
+      lo(3) = ARG_L3(u)
+      hi(1) = ARG_H1(u)
+      hi(2) = ARG_H2(u)
+      hi(3) = ARG_H3(u)
+
+#ifdef BL_DO_FLCT
+      if (forceInflow) then
+         do i = 1, 3
+            loFlctArray(i) = lo(i)
+            hiFlctArray(i) = hi(i)
+         end do
+         loFlctArray(adv_dir) = 1
+         hiFlctArray(adv_dir) = 1
+         call SET_ARGS(DIMS(uflct), loFlctArray, hiFlctArray)
+         allocate(uflct(DIMV(uflct)))
+         allocate(vflct(DIMV(uflct)))
+         allocate(wflct(DIMV(uflct)))
+c
+c        Note that we are 'scaling time' here to step into the fluct file to the
+c        correct depth.  This requires that time is not further scaled inside the
+c        the INFL_FILL routine.  Just to be sure, we set convVel = 1 here again.
+c
+         convVel = one
+         t_flct = adv_vel*time
+         call INFL_FILL(FLCT_XVEL,DIMS(uflct),uflct,xlo,dx,t_flct,bc(1,1,1),domnlo,domnhi)
+         call INFL_FILL(FLCT_XVEL,DIMS(uflct),vflct,xlo,dx,t_flct,bc(1,1,2),domnlo,domnhi)
+         call INFL_FILL(FLCT_XVEL,DIMS(uflct),wflct,xlo,dx,t_flct,bc(1,1,3),domnlo,domnhi)
+      end if
+#endif
+
+      call filcc (u(ARG_L1(u),ARG_L2(u),ARG_L3(u),1),
+     $            DIMS(u),domlo,domhi,dx,xlo,bc(1,1,1))
+      call filcc (u(ARG_L1(u),ARG_L2(u),ARG_L3(u),2),
+     $            DIMS(u),domlo,domhi,dx,xlo,bc(1,1,2))
+      call filcc (u(ARG_L1(u),ARG_L2(u),ARG_L3(u),3),
+     $            DIMS(u),domlo,domhi,dx,xlo,bc(1,1,3))
+
+c     This forces radial inflow in a plane satisfying potential flow/incompressiblity
+
+      call bl_pd_is_ioproc(isioproc)
+      
+c      if (isioproc.eq.1) then
+c         write (*,*) "In VELFILL..."
+c      endif
+
+      if (probtype.eq.18) then
+c     This is the Jet probtype
+c     Here, we assume all the velocity components have the same bc type
+
+         if (bc(1,1,1).eq.FOEXTRAP.and.ARG_L1(u).lt.domlo(1)) then
+c     Lo x boundary            
+c            write (*,*) "Doing 'outflow' boundary conditions for jet"
+
+c     i on the interior
+            ii = domlo(1)
+c     x position of ii
+            xi = domnlo(1) + (ii+0.5)*dx(1) - jet_x
+            
+            jlo = ARG_L2(u); if (jlo.lt.domlo(2)) jlo=domlo(2);
+            jhi = ARG_H2(u); if (jhi.gt.domlo(2)) jhi=domlo(2);
+
+            do i = ARG_L1(u), domlo(1)-1
+               x = domnlo(1) + (i+0.5)*dx(1) - jet_x
+               do k = ARG_L3(u), ARG_H3(u)
+                  do j = jlo, jhi
+                     y = domnlo(2) + (j+0.5)*dx(2) - jet_y
+c     radius squared of ghost cell
+                     r2 = x*x + y*y
+c     j one cell closer to the origin
+                     jp = cvmgt(j+1,j-1,y.lt.zero)
+c     y position of the radius at ii
+                     yp = xi*y/x
+c     radius of yp
+                     rp = sqrt( xi*xi + yp*yp )
+c     interpolate factor
+                     ax = (y-yp)/dx(2)
+c     interpolate velocities to xp
+                     uxp = u(ii,j,k,1) + ax*(u(ii,jp,k,1)-u(ii,j,k,1))
+                     uyp = u(ii,j,k,2) + ax*(u(ii,jp,k,2)-u(ii,j,k,2))
+c     radial velocity at yp 
+c                     up = (uxp*xi-uyp*yp)/rp
+                     up = (uxp*xi-uyp*yp)
+c     radial velocity at bc
+c                     u(i,j,k,1) = x*rp*up/r2
+c                     u(i,j,k,2) = y*rp*up/r2
+                     u(i,j,k,1) = x*up/r2
+                     u(i,j,k,2) = y*up/r2
+                     u(i,j,k,3) = zero
+                  end do
+               end do
+            end do
+         endif
+         
+         if (bc(1,2,1).eq.FOEXTRAP.and.ARG_H1(u).gt.domhi(1)) then
+c     Hi x boundary
+c            write (*,*) "Doing 'outflow' boundary conditions for jet"
+
+c     i on the interior
+            ii = domhi(1)
+c     x position of ji
+            xi = domnlo(1) + (ii+0.5)*dx(1) - jet_x
+
+            jlo = ARG_L2(u); if (jlo.lt.domlo(2)) jlo=domlo(2);
+            jhi = ARG_H2(u); if (jhi.gt.domlo(2)) jhi=domlo(2);
+
+            do i = domhi(1)+1, ARG_H1(u)
+               x = domnlo(1) + (i+0.5)*dx(1) - jet_x
+               do k = ARG_L3(u), ARG_H3(u)
+                  do j = jlo, jhi
+                     y = domnlo(2) + (j+0.5)*dx(2) - jet_y
+c     radius squared of ghost cell
+                     r2 = x*x + y*y
+c     j one cell closer to the origin
+                     jp = cvmgt(j+1,j-1,y.lt.zero)
+c     y position of the radius at ii
+                     yp = xi*y/x
+c     radius of yp
+                     rp = sqrt( xi*xi + yp*yp )
+c     interpolate factor
+                     ax = (y-yp)/dx(2)
+c     interpolate velocities to xp
+                     uxp = u(ii,j,k,1) + ax*(u(ii,jp,k,1)-u(ii,j,k,1))
+                     uyp = u(ii,j,k,2) + ax*(u(ii,jp,k,2)-u(ii,j,k,2))
+c     radial velocity at yp
+c                     up = (uxp*xi-uyp*yp)/rp
+                     up = (uxp*xi-uyp*yp)/rp
+c     radial velocity at bc
+c                     u(i,j,k,1) = x*rp*up/r2
+c                     u(i,j,k,2) = y*rp*up/r2
+                     u(i,j,k,1) = x*up/r2
+                     u(i,j,k,2) = y*up/r2
+                     u(i,j,k,3) = zero
+                  end do
+               end do
+            end do
+         endif
+      
+         if (bc(2,1,1).eq.FOEXTRAP.and.ARG_L2(u).lt.domlo(2)) then
+c     Lo y boundary
+c            write (*,*) "Doing 'outflow' boundary conditions for jet"
+
+c     j on the interior
+            ji = domlo(2)
+c     y position of ji
+            yi = domnlo(2) + (ji+0.5)*dx(2) - jet_y
+
+            ilo = ARG_L1(u); if (ilo.lt.domlo(1)) ilo=domlo(1);
+            ihi = ARG_H1(u); if (ihi.gt.domlo(1)) ihi=domlo(1);
+
+            do j = ARG_L2(u), domlo(2)-1
+               y = domnlo(2) + (j+0.5)*dx(2) - jet_y
+               do k = ARG_L3(u), ARG_H3(u)
+                  do i = ilo, ihi
+                     x = domnlo(1) + (i+0.5)*dx(1) - jet_x
+c     radius squared of ghost cell
+                     r2 = x*x + y*y
+c     i one cell closer to the origin
+                     ip = cvmgt(i+1,i-1,x.lt.zero)
+c     x position of the radius at ji
+                     xp = yi*x/y
+c     radius of xp
+                     rp = sqrt( xp*xp + yi*yi )
+c     interpolate factor
+                     ax = (x-xp)/dx(1)
+c     interpolate velocities to xp (assumes azimuthal component is zero)
+                     uxp = u(i,ji,k,1) + ax*(u(ip,ji,k,1)-u(i,ji,k,1))
+                     uyp = u(i,ji,k,2) + ax*(u(ip,ji,k,2)-u(i,ji,k,2))
+c     radial velocity at xp
+c                     up = (uxp*xp-uyp*yi)/rp
+                     up = (uxp*xp-uyp*yi)
+c     radial velocity at bc
+c                     u(i,j,k,1) = x*rp*up/r2
+c                     u(i,j,k,2) = y*rp*up/r2
+                     u(i,j,k,1) = x*up/r2
+                     u(i,j,k,2) = y*up/r2
+                     u(i,j,k,3) = zero
+                  end do
+               end do
+            end do
+         endif
+         
+         if (bc(2,2,1).eq.FOEXTRAP.and.ARG_H2(u).gt.domhi(2)) then
+c     Hi y boundary
+c            write (*,*) "Doing 'outflow' boundary conditions for jet"
+
+c     j on the interior
+            ji = domhi(2)
+c     y position of ji
+            yi = domnlo(2) + (ji+0.5)*dx(2) - jet_y
+
+            ilo = ARG_L1(u); if (ilo.lt.domlo(1)) ilo=domlo(1);
+            ihi = ARG_H1(u); if (ihi.gt.domlo(1)) ihi=domlo(1);
+
+            do j = domhi(2)+1, ARG_H2(u)
+               y = domnlo(2) + (j+0.5)*dx(2) - jet_y
+               do k = ARG_L3(u), ARG_H3(u)
+                  do i = ilo, ihi
+                     x = domnlo(1) + (i+0.5)*dx(1) - jet_x
+c     radius squared of ghost cell
+                     r2 = x*x + y*y
+c     i one cell closer to the origin
+                     ip = cvmgt(i+1,i-1,x.lt.zero)
+c     x position of the radius at ji
+                     xp = yi*x/y
+c     radius of xp
+                     rp = sqrt( xp*xp + yi*yi )
+c     interpolate factor
+                     ax = (x-xp)/dx(1)
+c     interpolate velocities to xp
+                     uxp = u(i,ji,k,1) + ax*(u(ip,ji,k,1)-u(i,ji,k,1))
+                     uyp = u(i,ji,k,2) + ax*(u(ip,ji,k,2)-u(i,ji,k,2))
+c     radial velocity at xp
+c                     up = (uxp*xp-uyp*yi)/rp
+                     up = (uxp*xp-uyp*yi)
+c     radial velocity at bc
+c                     u(i,j,k,1) = x*rp*up/r2
+c                     u(i,j,k,2) = y*rp*up/r2
+                     u(i,j,k,1) = x*up/r2
+                     u(i,j,k,2) = y*up/r2
+                     u(i,j,k,3) = zero
+                  end do
+               end do
+            end do
+         endif
+         
+         if (bc(3,1,1).eq.EXT_DIR.and.ARG_L3(u).lt.domlo(3)) then
+c     Lo z boundary
+            do k = ARG_L3(u), domlo(3)-1
+               do j = ARG_L2(u), ARG_H2(u)
+                  y = domnlo(2) + (j+0.5)*dx(2) - jet_y
+                  do i = ARG_L1(u), ARG_H1(u)
+                     x = domnlo(1) + (i+0.5)*dx(1) - jet_x
+                     r = sqrt( x*x + y*y )
+                     jv= half*((jet_vel+coflow_vel)-(jet_vel-coflow_vel)*tanh(two*(r-jet_width)/delta0))
+                     u(i,j,k,1) = zero
+                     u(i,j,k,2) = zero
+                     u(i,j,k,3) = jv
+#ifdef BL_DO_FLCT
+                     if (r.lt.jet_width) then
+                        u(i,j,k,1) = u(i,j,k,1) + jv*uflct(i,j,1)*turb_scale
+                        u(i,j,k,2) = u(i,j,k,2) + jv*vflct(i,j,1)*turb_scale
+                        u(i,j,k,3) = u(i,j,k,3) + jv*wflct(i,j,1)*turb_scale
+                     endif
+#endif
+                  enddo
+               enddo
+            enddo
+         endif
+         
+         if (bc(3,2,1).eq.EXT_DIR.and.ARG_H3(u).gt.domhi(3)) then
+c     Hi z boundary
+            do k = domhi(3)+1, ARG_H3(u)
+               do j = ARG_L2(u), ARG_H2(u)
+                  do i = ARG_L1(u), ARG_H1(u)
+                     u(i,j,k,1) = zero
+                     u(i,j,k,2) = zero
+                     u(i,j,k,3) = zero
+                  end do
+               end do
+            end do
+         endif
+      else
+c     Not probtype 18 - do general fill
+         call bl_error('General VELFILL not implemented yet')
+      endif
+      
+#if defined(BL_DO_FLCT)
+      if (forceInflow) then
+         deallocate(uflct)
+         deallocate(vflct)
+         deallocate(wflct)
+      endif
+#endif
+      end
 c ::: -----------------------------------------------------------
 c ::: This routine is called during a filpatch operation when
 c ::: the patch to be filled falls outside the interior

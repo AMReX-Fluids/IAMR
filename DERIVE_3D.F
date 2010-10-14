@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.37 2010-10-08 17:55:56 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.38 2010-10-14 21:45:54 aaspden Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -452,7 +452,7 @@ c     Adjust z offset for probtype 15
                         enddo
                      enddo
                   enddo
-                  do kz = mode_start, zstep - 1
+                  do kz = 1, zstep - 1
                      kzd = dfloat(kz)
                      do ky = mode_start, nymodes
                         kyd = dfloat(ky)
@@ -621,7 +621,7 @@ c     Adjust z offset for probtype 15
                         enddo
                      enddo
                   enddo
-                  do kz = mode_start, zstep - 1
+                  do kz = 1, zstep - 1
                      kzd = dfloat(kz)
                      do ky = mode_start, nymodes
                         kyd = dfloat(ky)
@@ -782,7 +782,7 @@ c     Adjust z offset for probtype 15
                         enddo
                      enddo
                   enddo
-                  do kz = mode_start, zstep - 1
+                  do kz = 1, zstep - 1
                      kzd = dfloat(kz)
                      do ky = mode_start, nymodes
                         kyd = dfloat(ky)
@@ -944,7 +944,7 @@ c     Adjust z offset for probtype 15
                         enddo
                      enddo
                   enddo
-                  do kz = mode_start, zstep - 1
+                  do kz = 1, zstep - 1
                      kzd = dfloat(kz)
                      do ky = mode_start, nymodes
                         kyd = dfloat(ky)
