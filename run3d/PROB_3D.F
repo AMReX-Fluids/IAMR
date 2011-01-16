@@ -1,6 +1,6 @@
 
 c
-c $Id: PROB_3D.F,v 1.75 2010-10-14 21:45:55 aaspden Exp $
+c $Id: PROB_3D.F,v 1.76 2011-01-16 00:46:11 aaspden Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -3791,6 +3791,8 @@ c     Adjust z offset for probtype 15
                HLz = Lz
             endif
 
+!$omp parallel do private(i,j,k,x,y,z,f1,f2,f3,kx,ky,kz,kxd,kyd,kzd)
+!$omp&private(xT,kappa)
             do k = klo, khi
                z = zlo + hz*(float(k-klo) + half)
                do j = jlo, jhi
@@ -3862,6 +3864,7 @@ c     Adjust z offset for probtype 15
                   enddo
                enddo
             enddo
+!$omp end parallel do
 #else
             do k = klo, khi
                do j = jlo, jhi
