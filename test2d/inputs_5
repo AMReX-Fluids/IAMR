@@ -141,22 +141,6 @@ ns.hi_bc             = 0 0  # boundary conditions on the high end of the domain
 fab.format = NATIVE
 
 #**********************************
-#MORE PARALLEL CONTROLS
-#**********************************
-#
-# Initializes DistributionMapping strategy from ParmParse.
-#
-# ParmParse options are:
-#
-#   DistributionMapping.strategy = ROUNDROBIN
-#   DistributionMapping.strategy = KNAPSACK
-#
-# The default strategy is ROUNDROBIN.
-#
-DistributionMapping.strategy = ROUNDROBIN
-DistributionMapping.strategy = KNAPSACK
-
-#**********************************
 #GRIDDING & SOLVER CONTROLS (these are optional)
 #**********************************
 
@@ -166,21 +150,3 @@ amr.n_error_buf      = 2 2 # number of buffer cells around each tagged cell
 # necessary for convergence with this problem
 mg.usecg = 0              
 mg.nu_f = 100
-
-# USE THIS ONLY FOR TESTING
-#amr.max_grid_size = 64     # maximum linear dimension of any one grid
-#
-# StationData.vars     -- Names of StateData components to output
-# StationData.coord    -- BL_SPACEDIM array of Reals
-# StationData.coord    -- the next one
-# StationData.coord    -- ditto ...
-#
-# e.g.
-#
-#StationData.vars  = density xmom ymom zmom
-#StationData.coord = 0.1 0.1
-#StationData.coord = 0.11 0.21
-#StationData.coord = 0.5 0.5
-#StationData.coord = 1.23 1.23
-#StationData.coord = 0.23 1.53
-#StationData.coord = 2.34 2.34

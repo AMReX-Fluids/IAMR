@@ -1,8 +1,6 @@
 
 mg.smooth_on_cg_unstable=1
 
-DistributionMapping.verbose=1
-
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
 #max_step  =  1140 # maximum timestep
 max_step  =  6000000 # maximum timestep
@@ -173,26 +171,6 @@ mac.mac_sync_tol   = 1.0e-9   # tolerence for mac SYNC projection
 mac.mac_abs_tol    = 1.0e-14
 mac.use_cg_solve   = 0
 mac.do_outflow_bcs = 1
-
-# ------------------  INPUTS TO RADIAION CLASS  -------------------
-#rad.order          = 6          # ordinate set (4=S4)
-#rad.tolerance      = 0.00001    # tolerance on DO solver
-#rad.iterations     = 200        # maximum DO iterations
-#rad.difference     = 1          # spatial difference scheme
-#                                # (1=step, 2=minmod, 3=osher, 4=muscl
-#                                #  5=clam, 6=smart)
-#rad.verbose        = 1          # extensive print control (1=on)
-#rad.multi_level    = 1          # multi-level solution (1=on)
-#rad.multigrid      = 0   
-#rad.inertia        = 0.0
-#rad.absorption     = 0.1
-#rad.scattering     = 0.0
-#rad.temp           = 64.804
-#rad.wall_temp      = 0.0
-#rad.wall_emis      = 1.0
-#rad.rhocp          = 1174.
-#rad.ngg            = 2
-#rad.spectral       = 0
 #
 # Select form of FAB output: default is NATIVE
 #
@@ -202,34 +180,5 @@ mac.do_outflow_bcs = 1
 #   8BIT   (eight-bit run-length-encoded)
 #
 fab.format = NATIVE
-#
-# Initializes distribution strategy from ParmParse.
-#
-# ParmParse options are:
-#
-#   DistributionMapping.strategy = ROUNDROBIN
-#   DistributionMapping.strategy = KNAPSACK
-#
-# The default strategy is ROUNDROBIN.
-#
-DistributionMapping.strategy = ROUNDROBIN
-DistributionMapping.strategy = KNAPSACK
-
-# ns.cdf_prefix = DebugFiles/test
-#
-# StationData.vars     -- Names of StateData components to output
-# StationData.coord    -- BL_SPACEDIM array of Reals
-# StationData.coord    -- the next one
-# StationData.coord    -- ditto ...
-#
-# e.g.
-#
-#StationData.vars  = pressure
-#StationData.coord = 0.001 0.001
-#StationData.coord = 0.011 0.0021
-#StationData.coord = 0.0005 0.005
-#StationData.coord = 0.00123 0.00123
-#StationData.coord = 0.0023 0.00153
-#StationData.coord = 0.00234 0.00234
 
 ns.do_group_bndry_fills=1
