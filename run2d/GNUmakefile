@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.48 2010-06-20 01:13:44 almgren Exp $
+# $Id: GNUmakefile,v 1.49 2011-02-02 22:23:50 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -17,7 +17,7 @@ DIM         = 2
 COMP        = Intel
 FCOMP       = Intel
 
-USE_MPI     = TRUE
+USE_MPI     = FALSE
 
 USE_THREADS = FALSE
 
