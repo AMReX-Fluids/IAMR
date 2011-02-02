@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.105 2010-05-05 21:56:01 almgren Exp $
+// $Id: NavierStokes.H,v 1.106 2011-02-02 01:38:24 marc Exp $
 //
 
 #include <LevelBld.H>
@@ -286,8 +286,8 @@ protected:
     // Compute divergent mac velocities, estimate best timestep
     // from t^n data, and compile cfl number.
     //
-    Real predict_velocity (Real  dt,
-                           Real& comp_cfl);
+    virtual Real predict_velocity (Real  dt,
+                                   Real& comp_cfl);
 
     //
     // Create the RHS for the MAC projection.
