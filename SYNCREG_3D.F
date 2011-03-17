@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.19 2009-11-20 17:52:52 lijewski Exp $
+c $Id: SYNCREG_3D.F,v 1.20 2011-03-17 21:59:28 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -120,7 +120,6 @@ c        ::::: sum in j and k directions
              coeff = (ratioy - m) * (ratioz - n) * denom
              if (n .eq. 0) coeff = half * coeff
              if (m .eq. 0) coeff = half * coeff
-!$omp parallel do private(j,jc,k,kc)
              do kc = lo(3), hi(3)
                k = ratioz*kc
                do jc = lo(2), hi(2)
@@ -130,7 +129,6 @@ c        ::::: sum in j and k directions
      $                +fine(i,j+m,k-n) + fine(i,j-m,k-n) )
                end do
              end do
-!$omp end parallel do
            end do
          end do
 
@@ -225,7 +223,6 @@ c
              coeff = (ratiox - m) * (ratioz - n) * denom
              if (n .eq. 0) coeff = half * coeff
              if (m .eq. 0) coeff = half * coeff
-!$omp parallel do private(i,ic,k,kc)
              do kc = lo(3), hi(3)
                k = ratioz*kc
                do ic = lo(1), hi(1)
@@ -235,7 +232,6 @@ c
      $                +fine(i+m,j,k-n) + fine(i-m,j,k-n) )
                end do
              end do
-!$omp end parallel do
            end do
          end do
 
@@ -329,7 +325,6 @@ c        ::::: sum in i and j directions
              coeff = (ratiox - m) * (ratioy - n) * denom
              if (n .eq. 0) coeff = half * coeff
              if (m .eq. 0) coeff = half * coeff
-!$omp parallel do private(i,ic,j,jc)
              do jc = lo(2), hi(2)
                j = ratioy*jc
                do ic = lo(1), hi(1)
@@ -339,7 +334,6 @@ c        ::::: sum in i and j directions
      $                +fine(i+m,j-n,k) + fine(i-m,j-n,k) )
                end do
              end do
-!$omp end parallel do
            end do
          end do
 
@@ -436,7 +430,6 @@ c ::: -----------------------------------------------------------
  
       integer    i, j, k
 
-!$omp parallel do private(i,j,k)
       do k = ARG_L3(mask), ARG_H3(mask)
          do j = ARG_L2(mask), ARG_H2(mask)
             do i = ARG_L1(mask), ARG_H1(mask)
@@ -450,7 +443,6 @@ c ::: -----------------------------------------------------------
             end do
          end do
       end do
-!$omp end parallel do
- 
+
       end
 

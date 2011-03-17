@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.30 2009-11-19 22:24:08 lijewski Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.31 2011-03-17 21:59:28 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -118,7 +118,6 @@ c
 c     sum fine data
 c
          do koff = 0, lratz-1
-!$omp parallel do private(i,j,k,ic,jc,kc,ioff,joff)
             do kc = lo(3),hi(3)
                k = kc*lratz + koff
                do joff = 0, lraty-1
@@ -134,12 +133,10 @@ c
                   end do
                end do
             end do
-!$omp end parallel do
          end do
 c
 c     divide out by volume weight
 c
-!$omp parallel do private(ic,jc,kc)
          do kc = lo(3), hi(3)
             do jc = lo(2), hi(2)
                do ic = lo(1), hi(1)
@@ -147,7 +144,6 @@ c
                end do
             end do
          end do
-!$omp end parallel do
 
       end do
 
@@ -227,7 +223,6 @@ c ::
 
        integer i, j, k
 
-!$omp parallel do private(i,j,k)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -235,7 +230,6 @@ c ::
              end do
           end do
        end do
-!$omp end parallel do
 
        end
 
@@ -874,7 +868,6 @@ c     zeroed out
           tmp(k) = zero
        end do
 
-!$omp parallel do private(i,j,k)
        do k = ARG_L3(grid), ARG_H3(grid)
           do i = ARG_L1(grid), ARG_H1(grid)
              do j = ARG_L2(grid), ARG_H2(grid)
@@ -882,7 +875,6 @@ c     zeroed out
              end do
           end do
        end do
-!$omp end parallel do
 
        mass = zero
        do k = ARG_L3(grid), ARG_H3(grid)
@@ -924,7 +916,6 @@ c ::
           tmp(j) = zero
        end do
 
-!$omp parallel do private(i,j,k)
        do j = ARG_L2(grid), ARG_H2(grid)
           do k = ARG_L3(grid), ARG_H3(grid)
              do i = ARG_L1(grid), ARG_H1(grid)
@@ -932,7 +923,6 @@ c ::
              end do
           end do
        end do
-!$omp end parallel do
 
        mass = zero
        do j = ARG_L2(grid), ARG_H2(grid)

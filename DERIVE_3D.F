@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.38 2010-10-14 21:45:54 aaspden Exp $
+c $Id: DERIVE_3D.F,v 1.39 2011-03-17 21:59:28 lijewski Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -152,7 +152,6 @@ c     -----------------------------------------------------------
 #include "probdata.H"
 
       hy = delta(2)
-!$omp parallel do private(i,j,k,y)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             y = xlo(2) + hy * ( float( j-lo(2) ) + half )
@@ -161,7 +160,6 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
-!$omp end parallel do
 
       end
 
@@ -192,7 +190,6 @@ c     -----------------------------------------------------------
 
       hx = delta(1)
 
-!$omp parallel do private(i,j,k,x)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -201,7 +198,6 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
-!$omp end parallel do
 
       end
 
@@ -1660,7 +1656,6 @@ c
 
       integer    i,j,k
       
-!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1668,7 +1663,6 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
       end
 
@@ -1693,7 +1687,6 @@ c
 
       integer    i,j,k
 
-!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1701,7 +1694,6 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
       end
 
@@ -3425,7 +3417,6 @@ c     First do all the faces
 c
       if (fixvlo_x .or. fixwlo_x) then
          i = lo(1)
-!$omp parallel do private(wy,vz)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                wy = wycen(i,j,k)
@@ -3433,12 +3424,10 @@ c
                vort(i,j,k,1) = wy-vz
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixvhi_x .or. fixwhi_x) then
          i = hi(1)
-!$omp parallel do private(wy,vz)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                wy = wycen(i,j,k)
@@ -3446,12 +3435,10 @@ c
                vort(i,j,k,1) = wy-vz
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixulo_y .or. fixwlo_y) then
          j = lo(2)
-!$omp parallel do private(wy,vz)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
@@ -3459,12 +3446,10 @@ c
                vort(i,j,k,1) = wy-vz
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixuhi_y .or. fixwhi_y) then
          j = hi(2)
-!$omp parallel do private(wy,vz)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
@@ -3472,12 +3457,10 @@ c
                vort(i,j,k,1) = wy-vz
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixulo_z .or. fixvlo_z) then
          k = lo(3)
-!$omp parallel do private(wy,vz)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                wy = wycen(i,j,k)
@@ -3485,12 +3468,10 @@ c
                vort(i,j,k,1) = wy-vz
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixuhi_z .or. fixvhi_z) then
          k = hi(3)
-!$omp parallel do private(wy,vz)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                wy = wycen(i,j,k)
@@ -3498,7 +3479,6 @@ c
                vort(i,j,k,1) = wy-vz
             end do
          end do
-!$omp end parallel do
       end if
 c
 c     Next do all the edges
@@ -3785,7 +3765,6 @@ c
       dy = delta(2)
       dz = delta(3)
 
-!$omp parallel do private(uz,wx)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -3795,7 +3774,6 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
       fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
      &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
@@ -3828,7 +3806,6 @@ c     First do all the faces
 c
       if (fixvlo_x .or. fixwlo_x) then
          i = lo(1)
-!$omp parallel do private(uz,wx)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
@@ -3836,12 +3813,10 @@ c
                vort(i,j,k,1) = uz-wx
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixvhi_x .or. fixwhi_x) then
          i = hi(1)
-!$omp parallel do private(uz,wx)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
@@ -3849,12 +3824,10 @@ c
                vort(i,j,k,1) = uz-wx
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixulo_y .or. fixwlo_y) then
          j = lo(2)
-!$omp parallel do private(uz,wx)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                wx = wxcen(i,j,k)
@@ -3862,12 +3835,10 @@ c
                vort(i,j,k,1) = uz-wx
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixuhi_y .or. fixwhi_y) then
          j = hi(2)
-!$omp parallel do private(uz,wx)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                wx = wxcen(i,j,k)
@@ -3875,12 +3846,10 @@ c
                vort(i,j,k,1) = uz-wx
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixulo_z .or. fixvlo_z) then
          k = lo(3)
-!$omp parallel do private(uz,wx)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                wx = wxcen(i,j,k)
@@ -3888,12 +3857,10 @@ c
                vort(i,j,k,1) = uz-wx
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixuhi_z .or. fixvhi_z) then
          k = hi(3)
-!$omp parallel do private(uz,wx)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                wx = wxcen(i,j,k)
@@ -3901,7 +3868,6 @@ c
                vort(i,j,k,1) = uz-wx
             end do
          end do
-!$omp end parallel do
       end if
 c
 c     Next do all the edges
@@ -4188,7 +4154,6 @@ c
       dy = delta(2)
       dz = delta(3)
 
-!$omp parallel do private(vx,uy)      
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -4198,7 +4163,6 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
       fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
      &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
@@ -4231,7 +4195,6 @@ c     First do all the faces
 c
       if (fixvlo_x .or. fixwlo_x) then
          i = lo(1)
-!$omp parallel do private(vx,uy)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
@@ -4239,12 +4202,10 @@ c
                vort(i,j,k,1) = vx-uy
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixvhi_x .or. fixwhi_x) then
          i = hi(1)
-!$omp parallel do private(vx,uy)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
@@ -4252,12 +4213,10 @@ c
                vort(i,j,k,1) = vx-uy
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixulo_y .or. fixwlo_y) then
          j = lo(2)
-!$omp parallel do private(vx,uy)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
@@ -4265,12 +4224,10 @@ c
                vort(i,j,k,1) = vx-uy
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixuhi_y .or. fixwhi_y) then
          j = hi(2)
-!$omp parallel do private(vx,uy)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
@@ -4278,12 +4235,10 @@ c
                vort(i,j,k,1) = vx-uy
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixulo_z .or. fixvlo_z) then
          k = lo(3)
-!$omp parallel do private(vx,uy)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
@@ -4291,12 +4246,10 @@ c
                vort(i,j,k,1) = vx-uy
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixuhi_z .or. fixvhi_z) then
          k = hi(3)
-!$omp parallel do private(vx,uy)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
@@ -4304,7 +4257,6 @@ c
                vort(i,j,k,1) = vx-uy
             end do
          end do
-!$omp end parallel do
       end if
 c
 c     Next do all the edges
@@ -4695,7 +4647,6 @@ c
 	 end if
       end if
 
-!$omp parallel do private(ux,vy,wz)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -4706,7 +4657,6 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 c
 c we overwrote the ghost cells above, so set them back below
 c
