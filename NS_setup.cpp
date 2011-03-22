@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.62 2010-10-08 17:55:56 aaspden Exp $
+// $Id: NS_setup.cpp,v 1.63 2011-03-22 17:23:48 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -316,12 +316,13 @@ NavierStokes::variableSetUp ()
     derive_lst.add("modgradrho",IndexType::TheCellType(),1,FORT_DERMODGRADRHO,grow_box_by_one);
     derive_lst.addComponent("modgradrho",desc_lst,State_Type,Density,1);
 
+#if (BL_SPACEDIM==3)
     //
     // u dot laplacian u
     //
     derive_lst.add("udotlapu",IndexType::TheCellType(),1,FORT_DERUDOTLAPU,grow_box_by_one);
     derive_lst.addComponent("udotlapu",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-
+#endif
     //
     // kinetic energy
     //
