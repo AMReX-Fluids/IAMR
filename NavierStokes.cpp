@@ -4806,7 +4806,6 @@ NavierStokes::level_sync (int crse_iteration)
         
         MultiFab&       vel_fine    = fine_level.get_new_data(State_Type);
         MultiFab&       rho_fine    = *fine_level.rho_avg;
-        const Geometry& fine_geom   = parent->Geom(level+1);
         const Geometry& crse_geom   = parent->Geom(level);
         const BoxArray& P_finegrids = pres_fine.boxArray();
 
@@ -5252,7 +5251,6 @@ NavierStokes::reflux ()
     fr_adv.Reflux(*Ssync,volume,scale,BL_SPACEDIM,0,NUM_STATE-BL_SPACEDIM,geom);
 
     const BoxArray& fine_boxes = getLevel(level+1).boxArray();
-    const int       nfine      = fine_boxes.size();
     //
     // Zero out coarse grid cells which underlie fine grid cells.
     //

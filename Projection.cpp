@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.180 2010-09-08 20:39:12 almgren Exp $
+// $Id: Projection.cpp,v 1.181 2011-03-22 20:24:41 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -569,10 +569,8 @@ Projection::level_project (int             level,
     } else
 #endif
  {
-
     if (sync_proj == 0)
         bldSyncProject();
-
     //
     // Setup projection (note that u_real is a temporary copy).
     //
@@ -603,7 +601,7 @@ Projection::level_project (int             level,
     if (level < finest_level) 
         sync_resid_crse = new MultiFab(P_grids,1,1);
 
-    if (level > 0 && (proj_2 && iteration == crse_dt_ratio) || !proj_2)
+    if (level > 0 && ((proj_2 && iteration == crse_dt_ratio) || !proj_2))
     {
         const int ngrow = parent->MaxRefRatio(level-1) - 1;
         sync_resid_fine = new MultiFab(P_grids,1,ngrow);
