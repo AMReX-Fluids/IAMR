@@ -1,5 +1,5 @@
 c
-c $Id: PROJECTION_3D.F,v 1.20 2011-03-17 21:59:28 lijewski Exp $
+c $Id: PROJECTION_3D.F,v 1.21 2011-03-24 21:14:22 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -143,7 +143,9 @@ c
 
       integer i, j, k, n
 
+!$omp parallel private(i,j,k)
       do n = 1, nvar
+!$omp do
          do k = boxlo(3), boxhi(3)
             do j = boxlo(2), boxhi(2)
                do i = boxlo(1), boxhi(1)
@@ -151,7 +153,9 @@ c
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
 
       end
 

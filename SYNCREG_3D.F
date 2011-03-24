@@ -1,5 +1,5 @@
 c
-c $Id: SYNCREG_3D.F,v 1.20 2011-03-17 21:59:28 lijewski Exp $
+c $Id: SYNCREG_3D.F,v 1.21 2011-03-24 21:14:22 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -430,6 +430,7 @@ c ::: -----------------------------------------------------------
  
       integer    i, j, k
 
+!$omp parallel do private(i,j,k)
       do k = ARG_L3(mask), ARG_H3(mask)
          do j = ARG_L2(mask), ARG_H2(mask)
             do i = ARG_L1(mask), ARG_H1(mask)
@@ -443,6 +444,7 @@ c ::: -----------------------------------------------------------
             end do
          end do
       end do
-
+!$omp end parallel do
+ 
       end
 

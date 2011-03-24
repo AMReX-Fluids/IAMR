@@ -1,5 +1,5 @@
 c
-c $Id: MACOPERATOR_3D.F,v 1.15 2011-03-17 21:59:28 lijewski Exp $
+c $Id: MACOPERATOR_3D.F,v 1.16 2011-03-24 21:14:22 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -315,6 +315,7 @@ c
 c      ::::: multiply by volume since reflux step (which computed rhs)
 c      ::::: divided by volume.
 c
+!$omp parallel do private(i,j,k)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -322,5 +323,6 @@ c
              end do
           end do
        end do
+!$omp end parallel do
 
        end

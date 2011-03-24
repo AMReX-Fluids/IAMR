@@ -1,5 +1,5 @@
 c
-c $Id: GODUNOV_3D.F,v 1.73 2011-03-17 21:59:28 lijewski Exp $
+c $Id: GODUNOV_3D.F,v 1.74 2011-03-24 21:14:22 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -149,6 +149,7 @@ c
       rhomax = -1.d200
       rhomin =  1.d200
 
+!$omp parallel do private(i,j,k) reduction(min:umin) reduction(max:umax)
       do k = kmin, kmax
          do j = jmin, jmax
             do i = imin, imax
@@ -157,7 +158,9 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
+!$omp parallel do private(i,j,k) reduction(min:vmin) reduction(max:vmax)
       do k = kmin, kmax
          do j = jmin, jmax
             do i = imin, imax
@@ -166,7 +169,9 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
+!$omp parallel do private(i,j,k) reduction(min:wmin) reduction(max:wmax)
       do k = kmin, kmax
          do j = jmin, jmax
             do i = imin, imax
@@ -175,7 +180,10 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
+!$omp parallel do private(i,j,k)
+!$omp&reduction(min:rhomin) reduction(max:rhomax)
       do k = kmin, kmax
          do j = jmin, jmax
             do i = imin, imax
@@ -184,6 +192,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       u_max(1) = max(abs(umax), abs(umin))
       u_max(2) = max(abs(vmax), abs(vmin))
@@ -3858,6 +3867,7 @@ c
 c
 c     Added to prevent underflow for small s values.
 c
+!$omp parallel do private(i,j,k)
       do k = lo(3)-ng, hi(3)+ng
          do j = lo(2)-ng, hi(2)+ng
             do i = lo(1)-ng, hi(1)+ng
@@ -3865,6 +3875,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 c
 c     COMPUTE 0TH order slopes
 c
@@ -7855,8 +7866,9 @@ c
       REAL_T tforces(DIMV(tf),SDIM)
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T rho(DIMV(rho))
-
+!$omp parallel private(i,j,k)
       do n = 1, SDIM
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -7864,7 +7876,9 @@ c
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
       end
 
       subroutine FORT_SUM_TF_GP_VISC(

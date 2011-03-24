@@ -1,5 +1,5 @@
 c
-c $Id: DERIVE_3D.F,v 1.39 2011-03-17 21:59:28 lijewski Exp $
+c $Id: DERIVE_3D.F,v 1.40 2011-03-24 21:14:22 lijewski Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -152,6 +152,7 @@ c     -----------------------------------------------------------
 #include "probdata.H"
 
       hy = delta(2)
+!$omp parallel do private(i,j,k,y)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             y = xlo(2) + hy * ( float( j-lo(2) ) + half )
@@ -160,6 +161,7 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -190,6 +192,7 @@ c     -----------------------------------------------------------
 
       hx = delta(1)
 
+!$omp parallel do private(i,j,k,x)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -198,6 +201,7 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1656,6 +1660,7 @@ c
 
       integer    i,j,k
       
+!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1663,6 +1668,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -1687,6 +1693,7 @@ c
 
       integer    i,j,k
 
+!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1694,6 +1701,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
@@ -3765,6 +3773,7 @@ c
       dy = delta(2)
       dz = delta(3)
 
+!$omp parallel do private(uz,wx)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -3774,6 +3783,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
      &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
@@ -4154,6 +4164,7 @@ c
       dy = delta(2)
       dz = delta(3)
 
+!$omp parallel do private(vx,uy)      
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -4163,6 +4174,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
      &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
@@ -4647,6 +4659,7 @@ c
 	 end if
       end if
 
+!$omp parallel do private(ux,vy,wz)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -4657,6 +4670,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 c
 c we overwrote the ghost cells above, so set them back below
 c
