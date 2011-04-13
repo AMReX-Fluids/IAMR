@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.50 2011-04-07 21:21:53 lijewski Exp $
+# $Id: GNUmakefile,v 1.51 2011-04-13 22:28:34 lijewski Exp $
 #
 PBOXLIB_HOME = ../..
 FBOXLIB_HOME = ../../../fParallel
@@ -19,7 +19,6 @@ FCOMP       = gfortran
 
 USE_MPI     = TRUE
 USE_MPI     = FALSE
-USE_OMP     = TRUE
 
 # This allows GetForce to call a Fortran routine
 #DEFINES += -DGENGETFORCE
