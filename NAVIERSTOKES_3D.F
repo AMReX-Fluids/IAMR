@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_3D.F,v 1.32 2011-03-24 21:14:22 lijewski Exp $
+c $Id: NAVIERSTOKES_3D.F,v 1.33 2011-04-13 22:40:47 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -858,36 +858,28 @@ c     zeroed out
       end
 #endif
 
-       subroutine FORT_MAXVAL(rho,DIMS(rho),DIMS(grid),tmp,mass)
+       subroutine FORT_MAXVAL(rho,DIMS(rho),DIMS(grid),mxval)
 
        implicit none
 
        integer DIMDEC(rho)
        integer DIMDEC(grid)
        REAL_T  rho(DIMV(rho))
-       REAL_T  tmp(DIM3(grid))
-       REAL_T  mass
+       REAL_T  mxval
 
        integer i, j, k
 
-       do k = ARG_L3(grid), ARG_H3(grid)
-          tmp(k) = zero
-       end do
+       mxval = -Huge(0.0d0)
 
-!$omp parallel do private(i,j,k)
+!$omp parallel do private(i,j,k) reduction(max : mxval)
        do k = ARG_L3(grid), ARG_H3(grid)
-          do i = ARG_L1(grid), ARG_H1(grid)
-             do j = ARG_L2(grid), ARG_H2(grid)
-                tmp(k) = max( tmp(k) , rho(i,j,k) )
+          do j = ARG_L2(grid), ARG_H2(grid)
+             do i = ARG_L1(grid), ARG_H1(grid)
+                mxval = max(mxval, rho(i,j,k))
              end do
           end do
        end do
 !$omp end parallel do
-
-       mass = zero
-       do k = ARG_L3(grid), ARG_H3(grid)
-          mass = max(mass , tmp(k))
-       end do
 
        end
 
@@ -905,7 +897,7 @@ c ::  r		 => radius at cell center
 c ::  tmp        => temp column array
 c :: ----------------------------------------------------------
 c ::
-       subroutine FORT_SUMMASS(rho,DIMS(rho),DIMS(grid),delta,mass,tmp)
+       subroutine FORT_SUMMASS(rho,DIMS(rho),DIMS(grid),delta,mass)
 
        implicit none
 
@@ -913,31 +905,25 @@ c ::
        integer DIMDEC(grid)
        REAL_T  mass, delta(SDIM)
        REAL_T  rho(DIMV(rho))
-       REAL_T  tmp(DIM2(grid))
 
        integer i, j, k
        REAL_T  vol
 
        vol = delta(1)*delta(2)*delta(3)
 
-       do j = ARG_L2(grid), ARG_H2(grid)
-          tmp(j) = zero
-       end do
+       mass = zero
 
-!$omp parallel do private(i,j,k)
-       do j = ARG_L2(grid), ARG_H2(grid)
-          do k = ARG_L3(grid), ARG_H3(grid)
+!$omp parallel do private(i,j,k) reduction(+ : mass)
+       do k = ARG_L3(grid), ARG_H3(grid)
+          do j = ARG_L2(grid), ARG_H2(grid)
              do i = ARG_L1(grid), ARG_H1(grid)
-                tmp(j) = tmp(j) + vol*rho(i,j,k)
+                mass = mass + rho(i,j,k)
              end do
           end do
        end do
 !$omp end parallel do
 
-       mass = zero
-       do j = ARG_L2(grid), ARG_H2(grid)
-          mass = mass + tmp(j)
-       end do
+       mass = vol*mass
 
        end
 
@@ -956,7 +942,7 @@ c ::  tmp        => temp column array
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_SUMMASS_CYL(rho,DIMS(rho),DIMS(grid),delta,
-     &                             plo,vws_dz,vws_Rcyl,mass,tmp)
+     &                             plo,vws_dz,vws_Rcyl,mass)
 
        implicit none
 
@@ -964,136 +950,36 @@ c ::
        integer DIMDEC(grid)
        REAL_T  mass, delta(SDIM), plo(SDIM), vws_dz, vws_Rcyl
        REAL_T  rho(DIMV(rho))
-       REAL_T  tmp(DIM2(grid))
 
        integer i, j, k
        REAL_T  vol, x, y, z, r
 
        vol = delta(1)*delta(2)*delta(3)
 
-       do j = ARG_L2(grid), ARG_H2(grid)
-          tmp(j) = zero
-       end do
+       mass = zero
 
+!$omp parallel do private(i,j,k,x,y,z,r) reduction(+ : mass)
        do k = ARG_L3(grid), ARG_H3(grid)
           z = plo(3) + (k+half)*delta(3)
-          if (z-plo(3) .le. vws_dz) then 
-             do i = ARG_L1(grid), ARG_H1(grid)
-                x = plo(1) + (i+half)*delta(1)
-                do j = ARG_L2(grid), ARG_H2(grid)
-                   y = plo(2) + (j+half)*delta(2)
+          if (z-plo(3) .le. vws_dz) then
+             do j = ARG_L2(grid), ARG_H2(grid)
+                y = plo(2) + (j+half)*delta(2) 
+                do i = ARG_L1(grid), ARG_H1(grid)
+                   x = plo(1) + (i+half)*delta(1)
                    r = SQRT(x*x + y*y)
                    if (r .le. vws_Rcyl) then
-                      tmp(j) = tmp(j) + vol*rho(i,j,k)
+                      mass = mass + rho(i,j,k)
                    end if
                 end do
              end do
           end if
        end do
-
-       mass = zero
-       do j = ARG_L2(grid), ARG_H2(grid)
-          mass = mass + tmp(j)
-       end do
-
-       end
-
-c :: ----------------------------------------------------------
-c :: SUMMASSSQ
-c ::             MASS = sum{ vol(i,j)*rho(i,j)*rho(i,j) }
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  rho        => density field
-c ::  DIMS(rho)  => index limits of rho aray
-c ::  lo,hi      => index limits of grid interior
-c ::  delta	 => cell size
-c ::  mass      <=  total mass
-c ::  r		 => radius at cell center
-c ::  tmp        => temp column array
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_SUMMASSSQ(rho,DIMS(rho),DIMS(grid),delta,mass,tmp)
-
-       implicit none
-
-       integer DIMDEC(rho)
-       integer DIMDEC(grid)
-       REAL_T  mass, delta(SDIM)
-       REAL_T  rho(DIMV(rho))
-       REAL_T  tmp(DIM2(grid))
-
-       integer i, j, k
-       REAL_T  vol
-
-       vol = delta(1)*delta(2)*delta(3)
-
-       do j = ARG_L2(grid), ARG_H2(grid)
-          tmp(j) = zero
-       end do
-
-       do k = ARG_L3(grid), ARG_H3(grid)
-          do i = ARG_L1(grid), ARG_H1(grid)
-             do j = ARG_L2(grid), ARG_H2(grid)
-                tmp(j) = tmp(j) + vol*rho(i,j,k)*rho(i,j,k)
-             end do
-          end do
-       end do
-
-       mass = zero
-       do j = ARG_L2(grid), ARG_H2(grid)
-          mass = mass + tmp(j)
-       end do
-
-       end
-
-c :: ----------------------------------------------------------
-c :: SUMPRESS
-c ::             SUM = sum{ press(i,j,k) * surroundingVolume(i,j,k) }
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  press      => pressure field on nodes
-c ::  DIMS(press)=> index limits of press aray
-c ::  vol        => volume field (zero-ed out under finer grids)
-c ::  DIMS(vol)  => index limits of vol aray
-c ::  lo,hi      => index limits of grid interior in nodal space
-c ::  total_press<= sum of volume-weighted nodal pressures
-c ::  total_vol  <= sum of volumes
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_SUMPRESS(press,DIMS(press),vol,DIMS(vol),lo,hi,
-     $                          totpress,totvol)
-
-       implicit none
-
-       integer lo(3),hi(3)
-       integer DIMDEC(press)
-       integer DIMDEC(vol)
-       integer DIMDEC(grid)
-       REAL_T  press(DIMV(press))
-       REAL_T  vol(DIMV(vol))
-       REAL_T  totpress,totvol
-
-       integer i, j, k
-       REAL_T  svol
-
-!$omp parallel do private(i,j,k,svol) reduction(+ : totvol,totpress)
-       do k = lo(3),hi(3)
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)
-
-                svol = vol(i,j  ,k  ) + vol(i-1,j  ,k  ) + 
-     $               vol(i,j-1,k  ) + vol(i-1,j-1,k  ) +
-     $               vol(i,j  ,k-1) + vol(i-1,j  ,k-1) + 
-     $               vol(i,j-1,k-1) + vol(i-1,j-1,k-1)
-                totpress = totpress + press(i,j,k) * svol
-                totvol   = totvol   +                svol
-
-             end do
-          end do
-       end do
 !$omp end parallel do
 
+       mass = vol*mass
+
        end
+
 c-----------------------------------------------------------------------
 c     This routine fills an edge-centered fab from a cell-centered
 c     fab using simple linear interpolation.
@@ -1131,8 +1017,7 @@ c
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1)+1, hi(1)
-                        efab(i,j,k,n) =
-     &                       half*(cfab(i,j,k,n) + cfab(i-1,j,k,n))
+                        efab(i,j,k,n) = half*(cfab(i,j,k,n) + cfab(i-1,j,k,n))
                      end do
                   end do
                end do
@@ -1144,8 +1029,7 @@ c
                do k = lo(3), hi(3)
                   do j = lo(2)+1, hi(2)
                      do i = lo(1), hi(1)
-                        efab(i,j,k,n) =
-     &                       half*(cfab(i,j,k,n) + cfab(i,j-1,k,n))
+                        efab(i,j,k,n) = half*(cfab(i,j,k,n) + cfab(i,j-1,k,n))
                      end do
                   end do
                end do
@@ -1157,8 +1041,7 @@ c
                do k = lo(3)+1, hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        efab(i,j,k,n) =
-     &                       half*(cfab(i,j,k,n) + cfab(i,j,k-1,n))
+                        efab(i,j,k,n) = half*(cfab(i,j,k,n) + cfab(i,j,k-1,n))
                      end do
                   end do
                end do
@@ -1172,13 +1055,13 @@ c
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1)+1, hi(1)
-                        if((cfab(i,j,k,n) * cfab(i-1,j,k,n)) .gt.0.d0)
+                        if((cfab(i,j,k,n) * cfab(i-1,j,k,n)) .gt.zero)
      &                       then
                            efab(i,j,k,n) =
-     &                          2.d0*(cfab(i,j,k,n) * cfab(i-1,j,k,n))/
+     &                          2*(cfab(i,j,k,n) * cfab(i-1,j,k,n))/
      &                          (cfab(i,j,k,n) + cfab(i-1,j,k,n))
                         else
-                           efab(i,j,k,n)=0.d0
+                           efab(i,j,k,n) = zero
                         endif
                      end do
                   end do
@@ -1191,13 +1074,13 @@ c
                do k = lo(3), hi(3)
                   do j = lo(2)+1, hi(2)
                      do i = lo(1), hi(1)
-                        if((cfab(i,j,k,n) * cfab(i,j-1,k,n)).gt.0.d0)
+                        if((cfab(i,j,k,n) * cfab(i,j-1,k,n)).gt.zero)
      &                       then
                            efab(i,j,k,n) =
-     &                          2.d0*(cfab(i,j,k,n) * cfab(i,j-1,k,n))/
+     &                          2*(cfab(i,j,k,n) * cfab(i,j-1,k,n))/
      &                          (cfab(i,j,k,n) + cfab(i,j-1,k,n))
                         else
-                           efab(i,j,k,n)=0.d0
+                           efab(i,j,k,n) = zero
                         endif
                      end do
                   end do
@@ -1210,13 +1093,13 @@ c
                do k = lo(3)+1, hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        if((cfab(i,j,k,n) * cfab(i,j,k-1,n)).gt.0.d0)
+                        if((cfab(i,j,k,n) * cfab(i,j,k-1,n)).gt.zero)
      &                       then
                            efab(i,j,k,n) =
-     &                          2.d0*(cfab(i,j,k,n) * cfab(i,j,k-1,n))/
+     &                          2*(cfab(i,j,k,n) * cfab(i,j,k-1,n))/
      &                          (cfab(i,j,k,n) + cfab(i,j,k-1,n))
                         else
-                           efab(i,j,k,n)=0.d0
+                           efab(i,j,k,n) = zero
                         endif
                      end do
                   end do

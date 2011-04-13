@@ -1,5 +1,5 @@
 c
-c $Id: NAVIERSTOKES_2D.F,v 1.18 2009-10-27 02:17:04 lijewski Exp $
+c $Id: NAVIERSTOKES_2D.F,v 1.19 2011-04-13 22:40:47 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -118,8 +118,8 @@ c
 c
 c     divide out by volume weight
 c
-         do ic = lo(1), hi(1)
-            do jc = lo(2), hi(2)
+         do jc = lo(2), hi(2)
+            do ic = lo(1), hi(1)
                crse(ic,jc,n) = crse(ic,jc,n)/cv(ic,jc)
             end do
          end do
@@ -206,32 +206,23 @@ c ::             maxval = max{ rho(i,j) }
 c ::
 c :: ----------------------------------------------------------
 c ::
-       subroutine FORT_MAXVAL(rho,DIMS(rho),DIMS(grid),tmp,mass)
+       subroutine FORT_MAXVAL(rho,DIMS(rho),DIMS(grid),mxval)
 
        implicit none
        integer DIMDEC(rho)
        integer DIMDEC(grid)
        REAL_T  rho(DIMV(rho))
-       REAL_T  tmp(DIM2(grid))
-       REAL_T  mass
+       REAL_T  mxval
 
        integer i,j
 
-       do j = ARG_L2(grid), ARG_H2(grid)
-          tmp(j) = zero
-       end do
+       mxval = -Huge(zero)
 
-       do i = ARG_L1(grid), ARG_H1(grid)
-          do j = ARG_L2(grid), ARG_H2(grid)
-             tmp(j) = max( tmp(j) , rho(i,j) )
+       do j = ARG_L2(grid), ARG_H2(grid)
+          do i = ARG_L1(grid), ARG_H1(grid)
+             mxval = max(mxval, rho(i,j))
           end do
        end do
-
-       mass = zero
-       do j = ARG_L2(grid), ARG_H2(grid)
-          mass = max(mass , tmp(j))
-       end do
-
 
        end
 
@@ -252,7 +243,7 @@ c ::  tmp        => temp column array
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_SUMMASS(rho,DIMS(rho),DIMS(grid),dx,mass,
-     &                         r,irlo,irhi,rz_flag,tmp)
+     &                         r,irlo,irhi,rz_flag)
 
        implicit none
        integer irlo, irhi, rz_flag
@@ -261,7 +252,6 @@ c ::
        REAL_T  mass, dx(2)
        REAL_T  rho(DIMV(rho))
        REAL_T  r(irlo:irhi)
-       REAL_T  tmp(DIM2(grid))
 
        integer i, j
        REAL_T  dr, dz, vol
@@ -269,21 +259,14 @@ c ::
        dr = dx(1)
        dz = dx(2)
 
-       do j = ARG_L2(grid), ARG_H2(grid)
-          tmp(j) = zero
-       end do
+       mass = zero
 
        do i = ARG_L1(grid), ARG_H1(grid)
           vol = dr*dz
 	  if (rz_flag .eq. 1) vol = vol*two*Pi*r(i)
           do j = ARG_L2(grid), ARG_H2(grid)
-	     tmp(j) = tmp(j) + vol*rho(i,j)
+	     mass = mass + vol*rho(i,j)
 	  end do
-       end do
-
-       mass = zero
-       do j = ARG_L2(grid), ARG_H2(grid)
-          mass = mass + tmp(j)
        end do
 
        end
@@ -308,8 +291,7 @@ c ::  tmp        => temp column array
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_SUMMASS_CYL(rho,DIMS(rho),DIMS(grid),dx,mass,
-     &                             r,irlo,irhi,rz_flag,plo,vws_dz,vws_R,
-     &                             tmp)
+     &                             r,irlo,irhi,rz_flag,plo,vws_dz,vws_R)
 
        implicit none
        integer irlo, irhi, rz_flag
@@ -319,7 +301,6 @@ c ::
        REAL_T  rho(DIMV(rho))
        REAL_T  r(irlo:irhi)
        REAL_T  plo(2),vws_dz, vws_R
-       REAL_T  tmp(DIM2(grid))
 
        integer i, j
        REAL_T  dr, dz, vol, rr
@@ -327,9 +308,7 @@ c ::
        dr = dx(1)
        dz = dx(2)
 
-       do j = ARG_L2(grid), ARG_H2(grid)
-          tmp(j) = zero
-       end do
+       mass = zero
 
        do i = ARG_L1(grid), ARG_H1(grid)
           if (rz_flag .eq. 1) then
@@ -342,111 +321,12 @@ c ::
              vol = dr*dz
              if (rz_flag .eq. 1) vol = vol*two*Pi*rr
              do j = ARG_L2(grid), ARG_H2(grid)
-                tmp(j) = tmp(j) + vol*rho(i,j)
+                mass = mass + vol*rho(i,j)
              end do
           endif
        end do
 
-       mass = zero
-       do j = ARG_L2(grid), ARG_H2(grid)
-          mass = mass + tmp(j)
-       end do
-
        end
-
-c :: ----------------------------------------------------------
-c :: SUMMASSSQ
-c ::             MASS = sum{ vol(i,j)*rho(i,j)*rho(i,j) }
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  rho        => density field
-c ::  DIMS(rho)  => index limits of rho aray
-c ::  lo,hi      => index limits of grid interior
-c ::  ds   	 => cell size
-c ::  mass      <=  total mass
-c ::  r		 => radius at cell center
-c ::  irlo,hi    => index limits of r array
-c ::  rz_flag    => == 1 if R_Z coords
-c ::  tmp        => temp column array
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_SUMMASSSQ(rho,DIMS(rho),DIMS(grid),dx,mass,
-     &                           r,irlo,irhi,rz_flag,tmp)
-
-       implicit none
-       integer irlo, irhi, rz_flag
-       integer DIMDEC(rho)
-       integer DIMDEC(grid)
-       REAL_T  mass, dx(SDIM)
-       REAL_T  rho(DIMV(rho))
-       REAL_T  r(irlo:irhi)
-       REAL_T  tmp(DIM2(grid))
-
-       integer i, j
-       REAL_T  dr, dz, vol
-
-       dr = dx(1)
-       dz = dx(2)
-
-       do j = ARG_L2(grid), ARG_H2(grid)
-          tmp(j) = zero
-       end do
-
-       do i = ARG_L1(grid), ARG_H1(grid)
-          vol = dr*dz
-	  if (rz_flag .eq. 1) vol = vol*two*Pi*r(i)
-          do j = ARG_L2(grid), ARG_H2(grid)
-             tmp(j) = tmp(j) + vol*rho(i,j)*rho(i,j)
-          end do
-       end do
-
-       mass = zero
-       do j = ARG_L2(grid), ARG_H2(grid)
-          mass = mass + tmp(j)
-       end do
-
-       end
-
-c :: ----------------------------------------------------------
-c :: SUMPRESS
-c ::             SUM = sum{ press(i,j) * surroundingVolume(i,j) }
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  press      => pressure field on nodes
-c ::  DIMS(press)=> index limits of press aray
-c ::  vol        => volume field (zero-ed out under finer grids)
-c ::  DIMS(vol)  => index limits of vol aray
-c ::  lo,hi      => index limits of grid interior in nodal space
-c ::  total_press<= sum of volume-weighted nodal pressures
-c ::  total_vol  <= sum of volumes
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_SUMPRESS(press,DIMS(press),vol,DIMS(vol),lo,hi,
-     $                          total_press,total_vol)
-
-       implicit none
-       integer lo(2),hi(2)
-       integer DIMDEC(press)
-       integer DIMDEC(vol)
-       REAL_T  press(DIMV(press))
-       REAL_T  vol(DIMV(vol))
-       REAL_T  total_press,total_vol
-
-       integer i, j
-       REAL_T  surroundingVolume
-
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-
-             surroundingVolume = vol(i,j) + vol(i-1,j) + vol(i,j-1) + vol(i-1,j-1)
-             total_press = total_press + press(i,j) * surroundingVolume
-             total_vol   = total_vol   +              surroundingVolume
-
-          end do
-       end do
-
-       end
-
 
 c ::
 c :: ----------------------------------------------------------
@@ -499,12 +379,12 @@ c ::
             do n = 1,nc
                do j = lo(2), hi(2)
                   do i = lo(1)+1, hi(1)
-                     if((cfab(i,j,n) * cfab(i-1,j,n)).gt.0.d0)then
+                     if((cfab(i,j,n) * cfab(i-1,j,n)).gt.zero)then
                         efab(i,j,n)
-     &                       = 2.d0*(cfab(i,j,n) * cfab(i-1,j,n))/
+     &                       = 2*(cfab(i,j,n) * cfab(i-1,j,n))/
      &                       (cfab(i,j,n) + cfab(i-1,j,n))
                      else
-                        efab(i,j,n)=0.d0
+                        efab(i,j,n)=zero
                      endif
                   end do
                end do
@@ -513,12 +393,12 @@ c ::
             do n = 1,nc
                do j = lo(2)+1, hi(2)
                   do i = lo(1), hi(1)
-                     if((cfab(i,j,n) * cfab(i,j-1,n)).gt.0.d0)then
+                     if((cfab(i,j,n) * cfab(i,j-1,n)).gt.zero)then
                         efab(i,j,n)
-     &                       = 2.d0*(cfab(i,j,n) * cfab(i,j-1,n))/
+     &                       = 2*(cfab(i,j,n) * cfab(i,j-1,n))/
      &                       (cfab(i,j,n) + cfab(i,j-1,n))
                      else
-                        efab(i,j,n)=0.d0
+                        efab(i,j,n)=zero
                      endif
                   end do
                end do

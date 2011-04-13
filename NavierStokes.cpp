@@ -2927,8 +2927,6 @@ NavierStokes::volWgtSum (const std::string& name,
     const Real* dx      = geom.CellSize();
     MultiFab*   mf      = derive(name,time,0);
 
-    Array<Real> tmp;
-
     BoxArray baf;
 
     if (level < parent->finestLevel())
@@ -2957,8 +2955,6 @@ NavierStokes::volWgtSum (const std::string& name,
         const int*  lo  = grids[mfi.index()].loVect();
         const int*  hi  = grids[mfi.index()].hiVect();
 
-        tmp.resize(hi[1]-lo[1]+1);
-
 #if (BL_SPACEDIM == 2)
         Real* rad = &radius[mfi.index()][0];
         int irlo  = lo[0]-radius_grow;
@@ -2967,17 +2963,17 @@ NavierStokes::volWgtSum (const std::string& name,
         // Note that this routine will do a volume weighted sum of
         // whatever quantity is passed in, not strictly the "mass".
         //
-        if (volWgtSum_sub_dz>0 && volWgtSum_sub_Rcyl>0)
+        if (volWgtSum_sub_dz > 0 && volWgtSum_sub_Rcyl > 0)
         {
             const Real* plo = geom.ProbLo();
             FORT_SUMMASS_CYL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
                              dx,&s,rad,&irlo,&irhi,&rz_flag,plo,
-                             &volWgtSum_sub_dz,&volWgtSum_sub_Rcyl,tmp.dataPtr());
+                             &volWgtSum_sub_dz,&volWgtSum_sub_Rcyl);
         }
         else
         {
             FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
-                         dx,&s,rad,&irlo,&irhi,&rz_flag,tmp.dataPtr());
+                         dx,&s,rad,&irlo,&irhi,&rz_flag);
         }
 #endif
 
@@ -2986,16 +2982,15 @@ NavierStokes::volWgtSum (const std::string& name,
         // Note that this routine will do a volume weighted sum of
         // whatever quantity is passed in, not strictly the "mass".
         //
-        if (volWgtSum_sub_dz>0 && volWgtSum_sub_Rcyl>0)
+        if (volWgtSum_sub_dz > 0 && volWgtSum_sub_Rcyl > 0)
         {
             const Real* plo = geom.ProbLo();
             FORT_SUMMASS_CYL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
-                             dx,plo,&volWgtSum_sub_dz,&volWgtSum_sub_Rcyl,&s,tmp.dataPtr());
+                             dx,plo,&volWgtSum_sub_dz,&volWgtSum_sub_Rcyl,&s);
         }
         else
         {
-            FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
-                         dx,&s,tmp.dataPtr());
+            FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),dx,&s);
         }
 #endif
         sum += s;
@@ -3014,9 +3009,7 @@ NavierStokes::MaxVal (const std::string& name,
 {
     Real        mxval = 0.0;
     MultiFab*   mf    = derive(name,time,0);
-    Array<Real> tmp;
-
-    BoxArray baf;
+    BoxArray    baf;
 
     if (level < parent->finestLevel())
     {
@@ -3044,13 +3037,8 @@ NavierStokes::MaxVal (const std::string& name,
         const int*  lo  = grids[mfi.index()].loVect();
         const int*  hi  = grids[mfi.index()].hiVect();
 
-#if (BL_SPACEDIM == 2)
-        tmp.resize(hi[1]-lo[1]+1);
-#elif (BL_SPACEDIM == 3)
-        tmp.resize(hi[2]-lo[2]+1);
-#endif
-        FORT_MAXVAL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
-                    tmp.dataPtr(),&s);
+        FORT_MAXVAL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),&s);
+
         mxval = std::max(mxval, s);
     }
 
