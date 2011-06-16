@@ -1,5 +1,5 @@
 //
-// $Id: OutFlowBC.cpp,v 1.7 2006-02-09 21:07:07 car Exp $
+// $Id: OutFlowBC.cpp,v 1.8 2011-06-16 16:40:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -162,19 +162,7 @@ OutFlowBC::GetOutFlowFaces (bool&        haveOutFlow,
             outFaces[numOutFlowBC] = Orientation(idir,Orientation::high);
             numOutFlowBC++;
         }
-
     }
-
-#if 0
-//  We used to constrain our outflow bc to only one wall.  We are now
-//  in the process of fixing that (10/2/02)
-    if (numOutFlowBC > 1)
-        //
-        // True signals low-D solve for outflow.
-        // False will enforce Div(U) == 0.
-        //
-        haveOutFlow = false;
-#endif
 }
 
 bool
@@ -197,17 +185,6 @@ OutFlowBC::HasOutFlowBC (BCRec* _phys_bc)
             numOutFlowBC++;
         }
     }
-
-#if 0
-//  We used to constrain our outflow bc to only one wall.  We are now
-//  in the process of fixing that (10/2/02)
-    if (numOutFlowBC > 1)
-        //
-        // True signals low-D solve for outflow.
-        // False will enforce Div(U) == 0.
-        //
-        has_out_flow = false;
-#endif
 
     return has_out_flow;
 }

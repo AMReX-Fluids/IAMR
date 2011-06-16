@@ -3,7 +3,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.47 2010-02-10 21:49:18 almgren Exp $
+// $Id: Projection.H,v 1.48 2011-06-16 16:40:25 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -302,20 +302,6 @@ protected:
                                    MultiFab*    Sig_in,
                                    int          have_divu,
                                    Real         gravity);
-
-
-
-#if 0
-    void computeBC(FArrayBox& vel, FArrayBox& divu,
-		   FArrayBox& rho, FArrayBox& phi,
-		   const Geometry& geom, const Orientation& outFace,
-                   Real gravity = 0.0);
-
-    void computeRhoG(FArrayBox& rho, FArrayBox& phi,
-		     const Geometry& geom, const Orientation& outFace,
-                     Real gravity);
-#endif
-
 
 protected:
 
