@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.48 2010-08-24 20:10:19 almgren Exp $
+// $Id: main.cpp,v 1.49 2011-06-16 15:51:50 lijewski Exp $
 //
 
 #include <cstdio>
@@ -125,12 +125,6 @@ main (int   argc,
     BoxLib::Initialize(argc,argv);
 
     const Real run_strt = ParallelDescriptor::second();
-
-#ifdef BL_XT3
-   const int siobsize = 8192;
-   char stdiobufff[siobsize];
-   std::cout.rdbuf()->pubsetbuf(stdiobufff, siobsize);
-#endif
 
     int  max_step;
     Real strt_time;
