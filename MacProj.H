@@ -1,7 +1,7 @@
 #ifndef _MacProj_H_
 #define _MacProj_H_
 //
-// $Id: MacProj.H,v 1.32 2008-07-31 21:55:25 lijewski Exp $
+// $Id: MacProj.H,v 1.33 2011-07-08 16:19:52 lijewski Exp $
 //
 #include <BC_TYPES.H>
 #include <BCRec.H>
@@ -131,12 +131,7 @@ protected:
     static Real mac_abs_tol;
     static Real mac_sync_tol;
     static int  check_umac_periodicity;
-
-#if 1
-// this code should go away when Marc makes this option
-// part of the multigrid code--rbp, 2/13/97
     static int fix_mac_sync_rhs;
-#endif
 };
 
 #endif
