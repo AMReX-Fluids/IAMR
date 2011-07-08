@@ -1,6 +1,5 @@
-
 //
-// $Id: MacOutFlowBC.cpp,v 1.33 2010-08-12 21:11:06 almgren Exp $
+// $Id: MacOutFlowBC.cpp,v 1.34 2011-07-08 17:16:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -283,7 +282,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
                 mac_mg.solve(tol,abs_tol,2,2,mac_mg.MaxIters(),mac_mg.Verbose());
       
                 DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
-                DEF_BOX_LIMITS(faceBox,lo,hi);
+                //DEF_BOX_LIMITS(faceBox,lo,hi);
                 //
                 // Subtract the average phi.
                 //
@@ -510,7 +509,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
             mac_mg.solve(tol,abs_tol,2,2,mac_mg.MaxIters(),mac_mg.Verbose());
       
             DEF_LIMITS(phi,phiPtr,phi_lo,phi_hi);
-            DEF_BOX_LIMITS(faceBox,lo,hi);
+            //DEF_BOX_LIMITS(faceBox,lo,hi);
             //
             // Subtract the average phi.
             //
@@ -594,7 +593,15 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
     for (int dir = 0; dir < BL_SPACEDIM-1; dir++)
         test_side[dir] = (len[dir]&1) != 0 || len[dir] < min_length;
 
-    if (D_TERM(1 && ,test_side[0], || test_side[1]))
+#if BL_SPACEDIM==3
+    bool doit = test_side[0] || test_side[1];
+#elif BL_SPACEDIM==2
+    bool doit = test_side[0];
+#else
+    bool doit = true;
+#endif
+
+    if (doit)
     {
         if (useCGbottomSolver)
             cgwork = new FArrayBox(domain,4);
@@ -694,7 +701,7 @@ MacOutFlowBC_MG::step (int nGSRB)
         DEF_LIMITS(*rhs,rhsPtr,rhs_lo,rhs_hi);
         DEF_LIMITS(beta[0], beta0Ptr, beta0_lo,beta0_hi); 
         DEF_LIMITS(beta[1], beta1Ptr, beta1_lo,beta1_hi);
-        DEF_LIMITS(*cgwork,dummPtr,cg_lo,cg_hi);
+        DEF_BOX_LIMITS(*cgwork,cg_lo,cg_hi);
     
         FORT_SOLVEMAC(phiPtr, ARLIM(phi_lo),ARLIM(phi_hi),
                       dest0Ptr,ARLIM(dest0_lo),ARLIM(dest0_hi),
