@@ -1,6 +1,6 @@
 
 //
-// $Id: Godunov.cpp,v 1.51 2010-08-12 21:11:06 almgren Exp $
+// $Id: Godunov.cpp,v 1.52 2011-08-05 23:57:58 lijewski Exp $
 //
 
 //
@@ -22,59 +22,36 @@
 #define YVEL 1
 #define ZVEL 2
 
-static int hyp_grow = 3;
-
-int Godunov::verbose               = 0;
-int Godunov::slope_order           = 4;
-int Godunov::use_forces_in_trans   = 0;
-int Godunov::ppm_type              = 0;
-bool Godunov::corner_couple        = false;
-const int use_unlimited_slopes_DEF = 0;
-
-//
-// Construct the Godunov Object.
-//
-
-Godunov::Godunov ()
-    :
-    max_1d(0)
+namespace
 {
-    read_params();
-    //
-    // Set to 512 initiallly.
-    //
-    ZeroScratch();
-    SetScratch(512);
+    bool initialized = false;
+
+    const int use_unlimited_slopes_DEF = 0;
 }
+//
+// Set default values for these in Initialize()!!!
+//
+static int hyp_grow;
 
-//
-// Size the 1D workspace explicitly.
-//
-
-Godunov::Godunov (int max_size)
-    :
-    max_1d(max_size)
-{
-    read_params();
-    ZeroScratch();
-    SetScratch(max_size);
-}
-
-//
-// Read parameters from input file and command line.
-//
+int  Godunov::verbose;
+int  Godunov::slope_order;
+int  Godunov::use_forces_in_trans;
+int  Godunov::ppm_type;
+bool Godunov::corner_couple;
 
 void
-Godunov::read_params ()
+Godunov::Initialize ()
 {
     //
-    // Read parameters from input file and command line.
+    // Set defaults here!!!
     //
-    static bool done = false;
+    hyp_grow = 3;
 
-    if (done) return;
-
-    done = true;
+    Godunov::verbose             = 0;
+    Godunov::slope_order         = 4;
+    Godunov::use_forces_in_trans = 0;
+    Godunov::ppm_type            = 0;
+    Godunov::corner_couple       = false;
 
     ParmParse pp("godunov");
 
@@ -94,11 +71,52 @@ Godunov::read_params ()
     pp.query("ppm_type",ppm_type);
 
     if (ppm_type == 2)
-      {
+    {
 	hyp_grow = 4;
-      }
+    }
 
     FORT_SET_PARAMS(slope_order,use_unlimited_slopes);
+
+    BoxLib::ExecOnFinalize(Godunov::Finalize);
+
+    initialized = true;
+}
+
+void
+Godunov::Finalize ()
+{
+    initialized = false;
+}
+
+//
+// Construct the Godunov Object.
+//
+
+Godunov::Godunov ()
+    :
+    max_1d(0)
+{
+    if (!initialized)
+        Godunov::Initialize();
+    //
+    // Set to 512 initiallly.
+    //
+    ZeroScratch();
+    SetScratch(512);
+}
+
+//
+// Size the 1D workspace explicitly.
+//
+
+Godunov::Godunov (int max_size)
+    :
+    max_1d(max_size)
+{
+    if (!initialized)
+        Godunov::Initialize();
+    ZeroScratch();
+    SetScratch(max_size);
 }
 
 //

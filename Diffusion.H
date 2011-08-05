@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.H,v 1.36 2010-02-10 22:20:50 almgren Exp $
+// $Id: Diffusion.H,v 1.37 2011-08-05 23:57:58 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -257,6 +257,8 @@ public:
                          const int                   sComp,
                          const int                   nComp);
 protected:
+
+    static void Finalize ();
     //
     // Data Required by Derived Classes
     //
@@ -287,7 +289,7 @@ private:
     //
     // Static data.
     //
-    static int         first;
+    static bool        initialized;
     static int         do_reflux;
     static int         use_tensor_cg_solve;
     static int         max_order;

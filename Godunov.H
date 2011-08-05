@@ -3,7 +3,7 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.20 2009-10-20 17:44:53 ajnonaka Exp $
+// $Id: Godunov.H,v 1.21 2011-08-05 23:57:58 lijewski Exp $
 //
 //
 // A useful enumeration of the forms for the advective terms
@@ -30,9 +30,6 @@ public:      // public access functions
     // size 1d work space explicitly
     Godunov( int max_size );
 
-    // read parameters
-    void read_params();
-    
     // destruct the advection object
     virtual ~Godunov();
 
@@ -306,6 +303,9 @@ protected:   // protected work functions
     void SetScratch( int max_size );
     void RemScratch();
 
+    static void Initialize ();
+    static void Finalize ();
+
 protected:   // protected data members
 
     // sizing boxes
@@ -323,8 +323,8 @@ protected:   // protected data members
 
 // algorithm control parameters
 
-    static int slope_order;
-    static int ppm_type;
+    static int  slope_order;
+    static int  ppm_type;
     static bool corner_couple;
 
 };

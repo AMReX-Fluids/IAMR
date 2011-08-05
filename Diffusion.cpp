@@ -36,7 +36,6 @@ const Real BL_BOGUS      = 1.e200;
 #endif
 
 const Real BL_SAFE_BOGUS = -666.e200;
-
 //
 // Include files for tensor solve.
 //
@@ -67,31 +66,40 @@ const Real* fabdat = (fab).dataPtr();
 
 #define GEOM_GROW 1
 
+bool Diffusion::initialized = false;
+//
+// Set default values for these in !initialized section of code in constructor!!!
+//
 Array<int>  Diffusion::is_diffusive;
 Array<Real> Diffusion::visc_coef;
-Real      Diffusion::visc_tol = 1.0e-10;      // tolerance for viscous solve
+Real        Diffusion::visc_tol;
+int         Diffusion::do_reflux;
+int         Diffusion::use_cg_solve;
+int         Diffusion::use_tensor_cg_solve;
+bool        Diffusion::use_mg_precond_flag;
+int         Diffusion::verbose;
+int         Diffusion::max_order;
+int         Diffusion::tensor_max_order;
+int         Diffusion::scale_abec;
+Array<Real> Diffusion::typical_vals;
 
-int  Diffusion::first               = 1;
-int  Diffusion::do_reflux           = 1;
-int  Diffusion::use_cg_solve        = 0;
+const Real typical_vals_DEF = 1.0;
+
 namespace
 {
 #ifdef MG_USE_HYPRE
-  bool use_hypre_solve = false;
+    bool use_hypre_solve;
 #endif
 #ifdef MG_USE_FBOXLIB
-  bool use_fboxlib_mg = false;
+    bool use_fboxlib_mg;
 #endif
 }
-int  Diffusion::use_tensor_cg_solve = 0;
-bool Diffusion::use_mg_precond_flag = false;
-int  Diffusion::verbose             = 0;
-int  Diffusion::max_order           = 2;
-int  Diffusion::tensor_max_order    = 2;
-int  Diffusion::scale_abec          = 0;
 
-Array<Real> Diffusion::typical_vals;
-const Real typical_vals_DEF = 1.0;
+void
+Diffusion::Finalize ()
+{
+    initialized = false;
+}
 
 Diffusion::Diffusion (Amr*               Parent,
                       AmrLevel*          Caller,
@@ -111,36 +119,55 @@ Diffusion::Diffusion (Amr*               Parent,
     viscflux_reg(Viscflux_reg)
 
 {
-    if (first)
+    if (!initialized)
     {
-        first = 0;
+        //
+        // Set defaults here!!!
+        //
+        Diffusion::visc_tol            = 1.0e-10;
+        Diffusion::do_reflux           = 1;
+        Diffusion::use_cg_solve        = 0;
+        Diffusion::use_tensor_cg_solve = 0;
+        Diffusion::use_mg_precond_flag = false;
+        Diffusion::verbose             = 0;
+        Diffusion::max_order           = 2;
+        Diffusion::tensor_max_order    = 2;
+        Diffusion::scale_abec          = 0;
 
-        ParmParse ppdiff("diffuse");
-
-        ppdiff.query("v",verbose);
-
-        ppdiff.query("use_cg_solve",use_cg_solve);
 #ifdef MG_USE_HYPRE
-	ppdiff.query("use_hypre_solve", use_hypre_solve);
-        if ( use_cg_solve && use_hypre_solve )
-          {
-            BoxLib::Error("Diffusion::read_params: cg_solve && .not. hypre_solve");
-          }
+        use_hypre_solve = false;
 #endif
 #ifdef MG_USE_FBOXLIB
-	ppdiff.query("use_fboxlib_mg", use_fboxlib_mg);
-        if ( use_cg_solve && use_fboxlib_mg )
-          {
-            BoxLib::Error("Diffusion::read_params: cg_solve && .not. fboxlib_solve");
-          }
+        use_fboxlib_mg  = false;
 #endif
+        ParmParse ppdiff("diffuse");
+
+        ppdiff.query("v",            verbose);
+        ppdiff.query("use_cg_solve", use_cg_solve);
+
+#ifdef MG_USE_HYPRE
+        ppdiff.query("use_hypre_solve", use_hypre_solve);
+        if ( use_cg_solve && use_hypre_solve )
+        {
+            BoxLib::Error("Diffusion::read_params: cg_solve && .not. hypre_solve");
+        }
+#endif
+
+#ifdef MG_USE_FBOXLIB
+        ppdiff.query("use_fboxlib_mg", use_fboxlib_mg);
+        if ( use_cg_solve && use_fboxlib_mg )
+        {
+            BoxLib::Error("Diffusion::read_params: cg_solve && .not. fboxlib_solve");
+        }
+#endif
+
         ppdiff.query("use_tensor_cg_solve",use_tensor_cg_solve);
         int use_mg_precond = 0;
-        ppdiff.query("use_mg_precond",use_mg_precond);
+        ppdiff.query("use_mg_precond", use_mg_precond);
         use_mg_precond_flag = (use_mg_precond ? true : false);
-        ppdiff.query("max_order",max_order);
-        ppdiff.query("tensor_max_order",tensor_max_order);
-        ppdiff.query("scale_abec",scale_abec);
+        ppdiff.query("max_order", max_order);
+        ppdiff.query("tensor_max_order", tensor_max_order);
+        ppdiff.query("scale_abec", scale_abec);
 
         ppdiff.query("v",verbose);
 
@@ -186,6 +213,10 @@ Diffusion::Diffusion (Amr*               Parent,
         }
 
         echo_settings();
+
+        BoxLib::ExecOnFinalize(Diffusion::Finalize);
+
+        initialized = true;
     }
 
     if (level > 0)
@@ -225,20 +256,20 @@ Diffusion::echo_settings () const
     {
         std::cout << "Diffusion settings...\n";
         std::cout << "  From diffuse:\n";
-        std::cout << "   use_cg_solve =        " << use_cg_solve << '\n';
+        std::cout << "   use_cg_solve        = " << use_cg_solve        << '\n';
         std::cout << "   use_tensor_cg_solve = " << use_tensor_cg_solve << '\n';
         std::cout << "   use_mg_precond_flag = " << use_mg_precond_flag << '\n';
-        std::cout << "   max_order =           " << max_order << '\n';
-        std::cout << "   tensor_max_order =    " << tensor_max_order << '\n';
-        std::cout << "   scale_abec =          " << scale_abec << '\n';
+        std::cout << "   max_order           = " << max_order           << '\n';
+        std::cout << "   tensor_max_order    = " << tensor_max_order    << '\n';
+        std::cout << "   scale_abec          = " << scale_abec          << '\n';
     
         std::cout << "   typical_vals =";
         for (int i = 0; i <NUM_STATE; i++)
             std::cout << "  " << typical_vals[i];
 
         std::cout << "\n\n  From ns:\n";
-        std::cout << "   do_reflux =           " << do_reflux << '\n';
-        std::cout << "   visc_tol =            " << visc_tol << '\n';
+        std::cout << "   do_reflux           = " << do_reflux << '\n';
+        std::cout << "   visc_tol            = " << visc_tol  << '\n';
     
         std::cout << "   is_diffusive =";
         for (int i =0; i < NUM_STATE; i++)
