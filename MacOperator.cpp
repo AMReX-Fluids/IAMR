@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.46 2010-06-20 01:12:57 almgren Exp $
+// $Id: MacOperator.cpp,v 1.47 2011-08-05 22:10:54 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -9,6 +9,7 @@
 #include <MACOPERATOR_F.H>
 #include <CGSolver.H>
 #include <MultiGrid.H>
+#include <ParmParse.H>
 
 #ifdef MG_USE_HYPRE
 #include <HypreABec.H>
