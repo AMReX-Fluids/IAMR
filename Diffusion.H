@@ -1,6 +1,6 @@
 
 //
-// $Id: Diffusion.H,v 1.37 2011-08-05 23:57:58 lijewski Exp $
+// $Id: Diffusion.H,v 1.38 2011-08-08 20:04:24 lijewski Exp $
 //
 
 #ifndef _Diffusion_H_
@@ -289,7 +289,6 @@ private:
     //
     // Static data.
     //
-    static bool        initialized;
     static int         do_reflux;
     static int         use_tensor_cg_solve;
     static int         max_order;

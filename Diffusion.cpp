@@ -66,21 +66,25 @@ const Real* fabdat = (fab).dataPtr();
 
 #define GEOM_GROW 1
 
-bool Diffusion::initialized = false;
+namespace
+{
+    bool initialized = false;
+}
 //
-// Set default values for these in !initialized section of code in constructor!!!
+// Set default values in !initialized section of code in constructor!!!
 //
-Array<int>  Diffusion::is_diffusive;
-Array<Real> Diffusion::visc_coef;
+int         Diffusion::verbose;
 Real        Diffusion::visc_tol;
 int         Diffusion::do_reflux;
+int         Diffusion::max_order;
+int         Diffusion::scale_abec;
 int         Diffusion::use_cg_solve;
+int         Diffusion::tensor_max_order;
 int         Diffusion::use_tensor_cg_solve;
 bool        Diffusion::use_mg_precond_flag;
-int         Diffusion::verbose;
-int         Diffusion::max_order;
-int         Diffusion::tensor_max_order;
-int         Diffusion::scale_abec;
+
+Array<int>  Diffusion::is_diffusive;
+Array<Real> Diffusion::visc_coef;
 Array<Real> Diffusion::typical_vals;
 
 const Real typical_vals_DEF = 1.0;
@@ -124,15 +128,15 @@ Diffusion::Diffusion (Amr*               Parent,
         //
         // Set defaults here!!!
         //
+        Diffusion::verbose             = 0;
         Diffusion::visc_tol            = 1.0e-10;
         Diffusion::do_reflux           = 1;
+        Diffusion::max_order           = 2;
+        Diffusion::scale_abec          = 0;
         Diffusion::use_cg_solve        = 0;
+        Diffusion::tensor_max_order    = 2;
         Diffusion::use_tensor_cg_solve = 0;
         Diffusion::use_mg_precond_flag = false;
-        Diffusion::verbose             = 0;
-        Diffusion::max_order           = 2;
-        Diffusion::tensor_max_order    = 2;
-        Diffusion::scale_abec          = 0;
 
 #ifdef MG_USE_HYPRE
         use_hypre_solve = false;
@@ -140,10 +144,17 @@ Diffusion::Diffusion (Amr*               Parent,
 #ifdef MG_USE_FBOXLIB
         use_fboxlib_mg  = false;
 #endif
+        int use_mg_precond = 0;
+
         ParmParse ppdiff("diffuse");
 
-        ppdiff.query("v",            verbose);
-        ppdiff.query("use_cg_solve", use_cg_solve);
+        ppdiff.query("v",                   verbose);
+        ppdiff.query("max_order",           max_order);
+        ppdiff.query("scale_abec",          scale_abec);
+        ppdiff.query("use_cg_solve",        use_cg_solve);
+        ppdiff.query("use_mg_precond",      use_mg_precond);
+        ppdiff.query("tensor_max_order",    tensor_max_order);
+        ppdiff.query("use_tensor_cg_solve", use_tensor_cg_solve);
 
 #ifdef MG_USE_HYPRE
         ppdiff.query("use_hypre_solve", use_hypre_solve);
@@ -160,23 +171,14 @@ Diffusion::Diffusion (Amr*               Parent,
             BoxLib::Error("Diffusion::read_params: cg_solve && .not. fboxlib_solve");
         }
 #endif
-
-        ppdiff.query("use_tensor_cg_solve",use_tensor_cg_solve);
-        int use_mg_precond = 0;
-        ppdiff.query("use_mg_precond", use_mg_precond);
         use_mg_precond_flag = (use_mg_precond ? true : false);
-        ppdiff.query("max_order", max_order);
-        ppdiff.query("tensor_max_order", tensor_max_order);
-        ppdiff.query("scale_abec", scale_abec);
-
-        ppdiff.query("v",verbose);
 
         ParmParse pp("ns");
 
-        pp.query("do_reflux",do_reflux);
-        do_reflux = (do_reflux ? 1 : 0);
+        pp.query("visc_tol",  visc_tol);
+        pp.query("do_reflux", do_reflux);
 
-        pp.query("visc_tol",visc_tol);
+        do_reflux = (do_reflux ? 1 : 0);
 
         const int n_visc = _visc_coef.size();
         const int n_diff = _is_diffusive.size();
@@ -192,6 +194,7 @@ Diffusion::Diffusion (Amr*               Parent,
 
         visc_coef.resize(NUM_STATE);
         is_diffusive.resize(NUM_STATE);
+
         for (int i = 0; i < NUM_STATE; i++)
         {
             is_diffusive[i] = _is_diffusive[i];
