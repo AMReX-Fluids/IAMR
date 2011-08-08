@@ -2,7 +2,7 @@
 #define _MACOUTFLOWBC_H_
 
 //
-// $Id: MacOutFlowBC.H,v 1.12 2007-04-16 18:14:56 almgren Exp $
+// $Id: MacOutFlowBC.H,v 1.13 2011-08-08 17:32:52 lijewski Exp $
 //
 
 #include "FArrayBox.H"
@@ -49,6 +49,9 @@ public:
                     Real              small_udiff,
                     Real              gravity);
 
+    static void Initialize ();
+    static void Finalize ();
+
 protected:
 
 #if (BL_SPACEDIM == 3)
@@ -90,6 +93,9 @@ public:
     static int Verbose ();
 
     static int MaxIters ();
+
+    static void Initialize ();
+    static void Finalize ();
 
 protected:
 

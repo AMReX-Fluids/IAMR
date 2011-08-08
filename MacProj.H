@@ -1,7 +1,7 @@
 #ifndef _MacProj_H_
 #define _MacProj_H_
 //
-// $Id: MacProj.H,v 1.33 2011-07-08 16:19:52 lijewski Exp $
+// $Id: MacProj.H,v 1.34 2011-08-08 17:32:52 lijewski Exp $
 //
 #include <BC_TYPES.H>
 #include <BCRec.H>
@@ -20,7 +20,7 @@ public:
              int    /*not used*/ );
     
     virtual ~MacProj ();
-    void read_params ();
+
     
     void install_level (int       level, 
                         AmrLevel* level_data);
@@ -82,6 +82,9 @@ public:
 
     void   scaleArea (int level, MultiFab* area, Real** anel_coeff);
     void rescaleArea (int level, MultiFab* area, Real** anel_coeff);
+
+    static void Initialize ();
+    static void Finalize ();
 
 protected:
     //

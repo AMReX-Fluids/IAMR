@@ -2,7 +2,7 @@
 #define _MACOPERATOR_H_
 
 //
-// $Id: MacOperator.H,v 1.12 2010-06-20 01:12:57 almgren Exp $
+// $Id: MacOperator.H,v 1.13 2011-08-08 17:32:52 lijewski Exp $
 //
 
 //==========================================================================
@@ -61,6 +61,9 @@ public:
                   MultiFab&       Rhs,
                   Real            rhs_scale,
                   const Real*     dx);
+
+    static void Initialize ();
+    static void Finalize ();
 };
 
 #endif

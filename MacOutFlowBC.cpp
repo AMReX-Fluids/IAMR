@@ -1,5 +1,5 @@
 //
-// $Id: MacOutFlowBC.cpp,v 1.34 2011-07-08 17:16:17 lijewski Exp $
+// $Id: MacOutFlowBC.cpp,v 1.35 2011-08-08 17:32:52 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -22,26 +22,58 @@ const int* boxlo = (box).loVect();           \
 const int* boxhi = (box).hiVect();
 
 #if (BL_SPACEDIM == 3)
-Real    MacOutFlowBC::tol     = 1.0e-10;
-Real    MacOutFlowBC::abs_tol = 5.0e-10;
+//
+// Set defaults for these in the appropriate Initialize() routine!!!
+//
+Real MacOutFlowBC::tol;
+Real MacOutFlowBC::abs_tol;
 
-int  MacOutFlowBC_MG::verbose           = 0;
-bool MacOutFlowBC_MG::useCGbottomSolver = true;
-Real MacOutFlowBC_MG::cg_tol            = 1.0e-2;
-Real MacOutFlowBC_MG::cg_abs_tol        = 5.0e-12;
-Real MacOutFlowBC_MG::cg_max_jump       = 10.0;
-int  MacOutFlowBC_MG::cg_maxiter        = 40;
-int  MacOutFlowBC_MG::maxIters          = 40;
+int  MacOutFlowBC_MG::verbose;
+bool MacOutFlowBC_MG::useCGbottomSolver;
+Real MacOutFlowBC_MG::cg_tol;
+Real MacOutFlowBC_MG::cg_abs_tol;
+Real MacOutFlowBC_MG::cg_max_jump;
+int  MacOutFlowBC_MG::cg_maxiter;
+int  MacOutFlowBC_MG::maxIters;
 #endif
+
+namespace
+{
+    bool outflow_initialized    = false;
+    bool outflow_mg_initialized = false;
+}
 
 MacOutFlowBC::MacOutFlowBC ()
 {
+    if (!outflow_initialized)
+        MacOutFlowBC::Initialize();
+}
+
+void
+MacOutFlowBC::Initialize ()
+{
+#if (BL_SPACEDIM == 3)
+    //
+    // Set defaults here!!!
+    //
+    MacOutFlowBC::tol     = 1.0e-10;
+    MacOutFlowBC::abs_tol = 5.0e-10;
+
     ParmParse pp("macoutflow");
 
-#if (BL_SPACEDIM == 3)
-    pp.query("tol",tol);
-    pp.query("abs_tol",abs_tol);
+    pp.query("tol",     tol);
+    pp.query("abs_tol", abs_tol);
 #endif
+
+    BoxLib::ExecOnFinalize(MacOutFlowBC::Finalize);
+
+    outflow_initialized = true;
+}
+
+void
+MacOutFlowBC::Finalize ()
+{
+    outflow_initialized = false;
 }
 
 void 
@@ -559,6 +591,41 @@ MacOutFlowBC::computeCoefficients (FArrayBox&   rhs,
                           dxFiltered,isPeriodicFiltered);
 }
 
+void
+MacOutFlowBC_MG::Initialize ()
+{
+    //
+    // Set defaults here!!!
+    //
+    MacOutFlowBC_MG::verbose           = 0;
+    MacOutFlowBC_MG::useCGbottomSolver = true;
+    MacOutFlowBC_MG::cg_tol            = 1.0e-2;
+    MacOutFlowBC_MG::cg_abs_tol        = 5.0e-12;
+    MacOutFlowBC_MG::cg_max_jump       = 10.0;
+    MacOutFlowBC_MG::cg_maxiter        = 40;
+    MacOutFlowBC_MG::maxIters          = 40;
+
+    ParmParse pp("mac_mg");
+
+    pp.query("v",                 verbose);
+    pp.query("useCGbottomSolver", useCGbottomSolver);
+    pp.query("cg_tol",            cg_tol);
+    pp.query("cg_abs_tol",        cg_abs_tol);
+    pp.query("cg_max_jump",       cg_max_jump);
+    pp.query("cg_maxiter",        cg_maxiter);
+    pp.query("maxIters",          maxIters);
+
+    BoxLib::ExecOnFinalize(MacOutFlowBC_MG::Finalize);
+
+    outflow_mg_initialized = true;
+}
+
+void
+MacOutFlowBC_MG::Finalize ()
+{
+    outflow_mg_initialized = false;
+}
+
 MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
                                   FArrayBox* Phi,
                                   FArrayBox* Rhs,
@@ -569,22 +636,8 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
     :
     OutFlowBC_MG(Domain,Phi,Rhs,Resid,Beta,H,IsPeriodic,false)
 {
-    static int first = true;
-
-    if (first)
-    {
-        first = false;
-
-        ParmParse pp("mac_mg");
-
-        pp.query("v",verbose);
-        pp.query("useCGbottomSolver",useCGbottomSolver);
-        pp.query("cg_tol",cg_tol);
-        pp.query("cg_abs_tol",cg_abs_tol);
-        pp.query("cg_max_jump",cg_max_jump);
-        pp.query("cg_maxiter",cg_maxiter);
-        pp.query("maxIters",maxIters);
-    }
+    if (!outflow_mg_initialized)
+        MacOutFlowBC_MG::Initialize();
 
     IntVect len = domain.size();
 

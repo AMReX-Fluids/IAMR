@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.47 2011-08-05 22:10:54 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.48 2011-08-08 17:32:52 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -38,24 +38,47 @@ const Real* fabdat = (fab).dataPtr();
 //
 // To change this ParmParse in a new value for "macop.max_order"
 //
-static int max_order = 4;
+static int max_order;
+
+namespace
+{
+    bool initialized = false;
+}
+
+void
+MacOperator::Initialize ()
+{
+    //
+    // This is the default maxorder for the linear operator.
+    //
+    // To change this ParmParse in a new value for "macop.max_order"
+    //
+    max_order = 4;
+
+    ParmParse pp("macop");
+
+    pp.query("max_order", max_order);
+
+    BoxLib::ExecOnFinalize(MacOperator::Finalize);
+
+    initialized = true;
+}
+
+void
+MacOperator::Finalize ()
+{
+    initialized = false;
+}
 
 MacOperator::MacOperator (Amr*             Parent,
                           const BndryData& mgb,
                           const Real*      h)
     :
-    ABecLaplacian(mgb,h), parent(Parent)
+    ABecLaplacian(mgb,h),
+    parent(Parent)
 {
-    static bool first = true;
-
-    if (first)
-    {
-        first = false;
-
-        ParmParse pp("macop");
-
-        pp.query("max_order", max_order);
-    }
+    if (!initialized)
+        MacOperator::Initialize();
 }
 
 MacOperator::~MacOperator () {}

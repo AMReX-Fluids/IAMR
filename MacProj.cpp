@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.129 2010-10-06 15:10:21 lijewski Exp $
+// $Id: MacProj.cpp,v 1.130 2011-08-08 17:32:52 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -39,18 +39,11 @@ const int* boxhi = (box).hiVect();
 
 #define GEOM_GROW 1
 #define HYP_GROW 3
-
+//
+// Set defaults for these in Initialize()!!!
+//
 int  MacProj::verbose          = 0;
 bool MacProj::use_cg_solve     = false;
-namespace
-{
-#if MG_USE_HYPRE
-  bool        use_hypre_solve  = false;
-#endif
-#if MG_USE_FBOXLIB
-  bool        use_fboxlib_mg   = false;
-#endif
-}
 Real MacProj::mac_tol          = 1.0e-12;
 Real MacProj::mac_abs_tol      = 1.0e-16;
 Real MacProj::mac_sync_tol     = 1.0e-8;
@@ -60,7 +53,76 @@ int  MacProj::check_umac_periodicity = 1;
 
 namespace
 {
-  Real umac_periodic_test_Tol    = 1.e-10;
+    bool initialized = false;
+
+    Real umac_periodic_test_Tol;
+
+#if MG_USE_HYPRE
+    bool use_hypre_solve;
+#endif
+#if MG_USE_FBOXLIB
+    bool use_fboxlib_mg;
+#endif
+}
+
+void
+MacProj::Initialize ()
+{
+    MacProj::verbose                = 0;
+    MacProj::use_cg_solve           = false;
+    MacProj::mac_tol                = 1.0e-12;
+    MacProj::mac_abs_tol            = 1.0e-16;
+    MacProj::mac_sync_tol           = 1.0e-8;
+    MacProj::do_outflow_bcs         = 1;
+    MacProj::fix_mac_sync_rhs       = 0;
+    MacProj::check_umac_periodicity = 1;
+
+    umac_periodic_test_Tol = 1.e-10;
+
+#if MG_USE_HYPRE
+    use_hypre_solve  = false;
+#endif
+#if MG_USE_FBOXLIB
+    use_fboxlib_mg   = false;
+#endif
+
+    ParmParse pp("mac");
+
+    pp.query( "v",                       verbose);
+    pp.query( "mac_tol",                 mac_tol);
+    pp.query( "mac_sync_tol",            mac_sync_tol);
+    pp.query( "use_cg_solve",            use_cg_solve);
+    pp.query( "mac_abs_tol",             mac_abs_tol);
+    pp.query( "do_outflow_bcs",          do_outflow_bcs);
+    pp.query( "fix_mac_sync_rhs",        fix_mac_sync_rhs);
+    pp.query("check_umac_periodicity",   check_umac_periodicity);
+    pp.query("umac_periodic_test_Tol",   umac_periodic_test_Tol);
+
+#if MG_USE_HYPRE
+    pp.query( "use_hypre_solve", use_hypre_solve);
+#endif
+#if MG_USE_FBOXLIB
+    pp.query( "use_fboxlib_mg", use_fboxlib_mg);
+#endif
+
+#if MG_USE_HYPRE
+    if ( use_cg_solve && use_hypre_solve )
+	BoxLib::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
+#endif
+#if MG_USE_FBOXLIB
+    if ( use_cg_solve && use_fboxlib_mg )
+	BoxLib::Error("MacProj::read_params: cg_solve && .not. fboxlib_solve");
+#endif
+
+    BoxLib::ExecOnFinalize(MacProj::Finalize);
+
+    initialized = true;
+}
+
+void
+MacProj::Finalize ()
+{
+    initialized = false;
 }
 
 //
@@ -81,7 +143,8 @@ MacProj::MacProj (Amr*   _parent,
     anel_coeff(_finest_level+1),
     finest_level(_finest_level)
 {
-    read_params();
+    if (!initialized)
+        MacProj::Initialize();
 
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Creating mac_projector\n";
@@ -94,42 +157,6 @@ MacProj::MacProj (Amr*   _parent,
 
 MacProj::~MacProj () {}
 
-void
-MacProj::read_params ()
-{
-    static bool done = false;
-
-    if (done) return;
-
-    done = true;
-
-    ParmParse pp("mac");
-
-    pp.query( "v",                verbose          );
-    pp.query( "mac_tol",          mac_tol          );
-    pp.query( "mac_sync_tol",     mac_sync_tol     );
-    pp.query( "use_cg_solve",     use_cg_solve     );
-#if MG_USE_HYPRE
-    pp.query( "use_hypre_solve",     use_hypre_solve);
-#endif
-#if MG_USE_FBOXLIB
-    pp.query( "use_fboxlib_mg",     use_fboxlib_mg);
-#endif
-    pp.query( "mac_abs_tol",      mac_abs_tol      );
-    pp.query( "do_outflow_bcs",   do_outflow_bcs   );
-    pp.query( "fix_mac_sync_rhs", fix_mac_sync_rhs );
-    pp.query("check_umac_periodicity",check_umac_periodicity);
-    pp.query("umac_periodic_test_Tol",   umac_periodic_test_Tol);
-
-#if MG_USE_HYPRE
-    if ( use_cg_solve && use_hypre_solve )
-	BoxLib::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
-#endif
-#if MG_USE_FBOXLIB
-    if ( use_cg_solve && use_fboxlib_mg )
-	BoxLib::Error("MacProj::read_params: cg_solve && .not. fboxlib_solve");
-#endif
-}
 
 void
 MacProj::install_level (int       level,
