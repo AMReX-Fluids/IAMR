@@ -1,6 +1,6 @@
 
 //
-// $Id: NS_setup.cpp,v 1.63 2011-03-22 17:23:48 lijewski Exp $
+// $Id: NS_setup.cpp,v 1.64 2011-08-08 19:46:32 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -8,7 +8,6 @@
 #include <NavierStokes.H>
 #include <NS_BC.H>
 #include <RegType.H>
-#include <ParmParse.H>
 #include <ErrorList.H>
 #include <PROB_NS_F.H>
 #include <DERIVE_F.H>
@@ -152,7 +151,7 @@ NavierStokes::variableSetUp ()
         phys_bc.setHi(dir,SlipWall);
     }
 
-    read_params();
+    Initialize();
 
     BCRec bc;
     //

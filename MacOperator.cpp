@@ -1,5 +1,5 @@
 //
-// $Id: MacOperator.cpp,v 1.48 2011-08-08 17:32:52 lijewski Exp $
+// $Id: MacOperator.cpp,v 1.49 2011-08-08 19:46:32 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -48,6 +48,7 @@ namespace
 void
 MacOperator::Initialize ()
 {
+    if (initialized) return;
     //
     // This is the default maxorder for the linear operator.
     //
@@ -77,8 +78,7 @@ MacOperator::MacOperator (Amr*             Parent,
     ABecLaplacian(mgb,h),
     parent(Parent)
 {
-    if (!initialized)
-        MacOperator::Initialize();
+    Initialize();
 }
 
 MacOperator::~MacOperator () {}

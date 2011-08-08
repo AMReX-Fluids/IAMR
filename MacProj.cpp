@@ -1,6 +1,6 @@
 
 //
-// $Id: MacProj.cpp,v 1.130 2011-08-08 17:32:52 lijewski Exp $
+// $Id: MacProj.cpp,v 1.131 2011-08-08 19:46:32 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -39,22 +39,25 @@ const int* boxhi = (box).hiVect();
 
 #define GEOM_GROW 1
 #define HYP_GROW 3
-//
-// Set defaults for these in Initialize()!!!
-//
-int  MacProj::verbose          = 0;
-bool MacProj::use_cg_solve     = false;
-Real MacProj::mac_tol          = 1.0e-12;
-Real MacProj::mac_abs_tol      = 1.0e-16;
-Real MacProj::mac_sync_tol     = 1.0e-8;
-int  MacProj::do_outflow_bcs   = 1;
-int  MacProj::fix_mac_sync_rhs = 0;
-int  MacProj::check_umac_periodicity = 1;
 
 namespace
 {
     bool initialized = false;
+}
+//
+// Set defaults for these in Initialize()!!!
+//
+int  MacProj::verbose;
+Real MacProj::mac_tol;
+Real MacProj::mac_abs_tol;
+Real MacProj::mac_sync_tol;
+bool MacProj::use_cg_solve;
+int  MacProj::do_outflow_bcs;
+int  MacProj::fix_mac_sync_rhs;
+int  MacProj::check_umac_periodicity;
 
+namespace
+{
     Real umac_periodic_test_Tol;
 
 #if MG_USE_HYPRE
@@ -68,11 +71,15 @@ namespace
 void
 MacProj::Initialize ()
 {
+    if (initialized) return;
+    //
+    // Set defaults here!!!
+    //
     MacProj::verbose                = 0;
-    MacProj::use_cg_solve           = false;
     MacProj::mac_tol                = 1.0e-12;
     MacProj::mac_abs_tol            = 1.0e-16;
     MacProj::mac_sync_tol           = 1.0e-8;
+    MacProj::use_cg_solve           = false;
     MacProj::do_outflow_bcs         = 1;
     MacProj::fix_mac_sync_rhs       = 0;
     MacProj::check_umac_periodicity = 1;
@@ -88,21 +95,21 @@ MacProj::Initialize ()
 
     ParmParse pp("mac");
 
-    pp.query( "v",                       verbose);
-    pp.query( "mac_tol",                 mac_tol);
-    pp.query( "mac_sync_tol",            mac_sync_tol);
-    pp.query( "use_cg_solve",            use_cg_solve);
-    pp.query( "mac_abs_tol",             mac_abs_tol);
-    pp.query( "do_outflow_bcs",          do_outflow_bcs);
-    pp.query( "fix_mac_sync_rhs",        fix_mac_sync_rhs);
-    pp.query("check_umac_periodicity",   check_umac_periodicity);
-    pp.query("umac_periodic_test_Tol",   umac_periodic_test_Tol);
+    pp.query("v",                      verbose);
+    pp.query("mac_tol",                mac_tol);
+    pp.query("mac_abs_tol",            mac_abs_tol);
+    pp.query("mac_sync_tol",           mac_sync_tol);
+    pp.query("use_cg_solve",           use_cg_solve);
+    pp.query("do_outflow_bcs",         do_outflow_bcs);
+    pp.query("fix_mac_sync_rhs",       fix_mac_sync_rhs);
+    pp.query("check_umac_periodicity", check_umac_periodicity);
+    pp.query("umac_periodic_test_Tol", umac_periodic_test_Tol);
 
 #if MG_USE_HYPRE
-    pp.query( "use_hypre_solve", use_hypre_solve);
+    pp.query("use_hypre_solve", use_hypre_solve);
 #endif
 #if MG_USE_FBOXLIB
-    pp.query( "use_fboxlib_mg", use_fboxlib_mg);
+    pp.query("use_fboxlib_mg",  use_fboxlib_mg);
 #endif
 
 #if MG_USE_HYPRE
@@ -143,8 +150,7 @@ MacProj::MacProj (Amr*   _parent,
     anel_coeff(_finest_level+1),
     finest_level(_finest_level)
 {
-    if (!initialized)
-        MacProj::Initialize();
+    Initialize();
 
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Creating mac_projector\n";

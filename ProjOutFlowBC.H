@@ -2,7 +2,7 @@
 #define _PROJOUTFLOWBC_H_
 
 //
-// $Id: ProjOutFlowBC.H,v 1.11 2007-04-16 18:14:56 almgren Exp $
+// $Id: ProjOutFlowBC.H,v 1.12 2011-08-08 19:46:32 lijewski Exp $
 //
 
 #include "FArrayBox.H"
@@ -57,8 +57,10 @@ public:
                       Real               gravity,
                       const int*         lo_bc,
                       const int*         hi_bc);
-
 protected:
+
+    static void Initialize ();
+    static void Finalize ();
 
 #if (BL_SPACEDIM == 3)
     void computeCoefficients (FArrayBox&   rhs,
@@ -102,6 +104,9 @@ public:
     static int MaxIters () { return maxIters; }
 
 protected:
+
+    static void Initialize ();
+    static void Finalize ();
 
     void Restrict ();
     void interpolate ();

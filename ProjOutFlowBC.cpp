@@ -1,5 +1,5 @@
 //
-// $Id: ProjOutFlowBC.cpp,v 1.39 2011-07-08 17:16:17 lijewski Exp $
+// $Id: ProjOutFlowBC.cpp,v 1.40 2011-08-08 19:46:32 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -23,17 +23,26 @@ const Real* fabdat = (fab).dataPtr();
 const int* boxlo = (box).loVect();           \
 const int* boxhi = (box).hiVect();
 
-#if (BL_SPACEDIM == 3)
-Real    ProjOutFlowBC::tol     = 1.0e-10; 
-Real    ProjOutFlowBC::abs_tol = 5.0e-10;
+namespace
+{
+    bool outflowbc_initialized    = false;
+    bool outflowbc_mg_initialized = false;
+}
 
-int  ProjOutFlowBC_MG::verbose           = 0;
-bool ProjOutFlowBC_MG::useCGbottomSolver = true;
-Real ProjOutFlowBC_MG::cg_tol            = 1.0e-2;
-Real ProjOutFlowBC_MG::cg_abs_tol        = 5.0e-12;
-Real ProjOutFlowBC_MG::cg_max_jump       = 10.0;
-int  ProjOutFlowBC_MG::cg_maxiter        = 40;
-int  ProjOutFlowBC_MG::maxIters          = 40;
+#if (BL_SPACEDIM == 3)
+//
+// Set defaults in appropriate Initialize() routine!!!
+//
+Real ProjOutFlowBC::tol;
+Real ProjOutFlowBC::abs_tol;
+
+Real ProjOutFlowBC_MG::cg_tol;
+int  ProjOutFlowBC_MG::verbose;
+int  ProjOutFlowBC_MG::maxIters;
+Real ProjOutFlowBC_MG::cg_abs_tol;
+int  ProjOutFlowBC_MG::cg_maxiter;
+Real ProjOutFlowBC_MG::cg_max_jump;
+bool ProjOutFlowBC_MG::useCGbottomSolver;
 
 static
 Box
@@ -46,13 +55,37 @@ semiSurroundingNodes (const Box& baseBox,
 }
 #endif
 
-ProjOutFlowBC::ProjOutFlowBC ()
+void
+ProjOutFlowBC::Initialize ()
 {
-    ParmParse pp("projoutflow");
 #if (BL_SPACEDIM == 3)
+    if (outflowbc_initialized) return;
+    //
+    // Set defaults here !!!
+    //
+    ProjOutFlowBC::tol     = 1.0e-10; 
+    ProjOutFlowBC::abs_tol = 5.0e-10;
+
+    ParmParse pp("projoutflow");
+
     pp.query("tol",tol);
     pp.query("abs_tol",abs_tol);
+
+    BoxLib::ExecOnFinalize(ProjOutFlowBC::Finalize);
+
+    outflowbc_initialized = true;
 #endif
+}
+
+ProjOutFlowBC::ProjOutFlowBC ()
+{
+    Initialize();
+}
+
+void
+ProjOutFlowBC::Finalize ()
+{
+    outflowbc_initialized = false;
 }
 
 void 
@@ -614,6 +647,42 @@ ProjOutFlowBC::computeCoefficients (FArrayBox&   rhs,
                        dxFiltered,isPeriodicFiltered);
 }
 
+void
+ProjOutFlowBC_MG::Initialize ()
+{
+    if (outflowbc_mg_initialized) return;
+    //
+    // Set defaults here!!!
+    //
+    ProjOutFlowBC_MG::cg_tol            = 1.0e-2;
+    ProjOutFlowBC_MG::verbose           = 0;
+    ProjOutFlowBC_MG::maxIters          = 40;
+    ProjOutFlowBC_MG::cg_abs_tol        = 5.0e-12;
+    ProjOutFlowBC_MG::cg_maxiter        = 40;
+    ProjOutFlowBC_MG::cg_max_jump       = 10.0;
+    ProjOutFlowBC_MG::useCGbottomSolver = true;
+
+    ParmParse pp("proj_mg");
+
+    pp.query("v",                 verbose);
+    pp.query("cg_tol",            cg_tol);
+    pp.query("maxIters",          maxIters);
+    pp.query("cg_maxiter",        cg_maxiter);
+    pp.query("cg_abs_tol",        cg_abs_tol);
+    pp.query("cg_max_jump",       cg_max_jump);
+    pp.query("useCGbottomSolver", useCGbottomSolver);
+
+    BoxLib::ExecOnFinalize(ProjOutFlowBC_MG::Finalize);
+
+    outflowbc_mg_initialized = true;
+}
+
+void
+ProjOutFlowBC_MG::Finalize ()
+{
+    outflowbc_mg_initialized = false;
+}
+
 ProjOutFlowBC_MG::ProjOutFlowBC_MG (const Box& Domain,
                                     FArrayBox* Phi,
                                     FArrayBox* Rhs,
@@ -624,22 +693,7 @@ ProjOutFlowBC_MG::ProjOutFlowBC_MG (const Box& Domain,
     :
     OutFlowBC_MG(Domain,Phi,Rhs,Resid,Beta,H,IsPeriodic,true)
 {
-    static int first = true;
-
-    if (first)
-    {
-        first = false;
-
-        ParmParse pp("proj_mg");
-
-        pp.query("v",verbose);
-        pp.query("useCGbottomSolver",useCGbottomSolver);
-        pp.query("cg_tol",cg_tol);
-        pp.query("cg_abs_tol",cg_abs_tol);
-        pp.query("cg_max_jump",cg_max_jump);
-        pp.query("cg_maxiter",cg_maxiter);
-        pp.query("maxIters",maxIters);
-    }
+    Initialize();
 
     IntVect len = domain.size();
 

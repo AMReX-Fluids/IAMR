@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 //
-// $Id: NavierStokes.H,v 1.106 2011-02-02 01:38:24 marc Exp $
+// $Id: NavierStokes.H,v 1.107 2011-08-08 19:46:32 lijewski Exp $
 //
 
 #include <LevelBld.H>
@@ -260,7 +260,8 @@ protected:
     void zeroNewPress (); // Set new pressure to zero
     void zeroOldPress (); // Set old pressure to zero
 
-    static void read_params ();   // Read input file
+    static void Initialize ();   // Read input file
+    static void Finalize ();
     static void read_geometry (); // Set metrics
 
     virtual void sum_integrated_quantities ();

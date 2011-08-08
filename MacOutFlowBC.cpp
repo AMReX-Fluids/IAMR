@@ -1,5 +1,5 @@
 //
-// $Id: MacOutFlowBC.cpp,v 1.35 2011-08-08 17:32:52 lijewski Exp $
+// $Id: MacOutFlowBC.cpp,v 1.36 2011-08-08 19:46:32 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -28,13 +28,13 @@ const int* boxhi = (box).hiVect();
 Real MacOutFlowBC::tol;
 Real MacOutFlowBC::abs_tol;
 
-int  MacOutFlowBC_MG::verbose;
-bool MacOutFlowBC_MG::useCGbottomSolver;
 Real MacOutFlowBC_MG::cg_tol;
+int  MacOutFlowBC_MG::verbose;
+int  MacOutFlowBC_MG::maxIters;
+int  MacOutFlowBC_MG::cg_maxiter;
 Real MacOutFlowBC_MG::cg_abs_tol;
 Real MacOutFlowBC_MG::cg_max_jump;
-int  MacOutFlowBC_MG::cg_maxiter;
-int  MacOutFlowBC_MG::maxIters;
+bool MacOutFlowBC_MG::useCGbottomSolver;
 #endif
 
 namespace
@@ -45,14 +45,14 @@ namespace
 
 MacOutFlowBC::MacOutFlowBC ()
 {
-    if (!outflow_initialized)
-        MacOutFlowBC::Initialize();
+    Initialize();
 }
 
 void
 MacOutFlowBC::Initialize ()
 {
 #if (BL_SPACEDIM == 3)
+    if (outflow_initialized) return;
     //
     // Set defaults here!!!
     //
@@ -63,11 +63,11 @@ MacOutFlowBC::Initialize ()
 
     pp.query("tol",     tol);
     pp.query("abs_tol", abs_tol);
-#endif
 
     BoxLib::ExecOnFinalize(MacOutFlowBC::Finalize);
 
     outflow_initialized = true;
+#endif
 }
 
 void
@@ -594,26 +594,27 @@ MacOutFlowBC::computeCoefficients (FArrayBox&   rhs,
 void
 MacOutFlowBC_MG::Initialize ()
 {
+    if (outflow_mg_initialized) return;
     //
     // Set defaults here!!!
     //
-    MacOutFlowBC_MG::verbose           = 0;
-    MacOutFlowBC_MG::useCGbottomSolver = true;
     MacOutFlowBC_MG::cg_tol            = 1.0e-2;
+    MacOutFlowBC_MG::verbose           = 0;
+    MacOutFlowBC_MG::maxIters          = 40;
+    MacOutFlowBC_MG::cg_maxiter        = 40;
     MacOutFlowBC_MG::cg_abs_tol        = 5.0e-12;
     MacOutFlowBC_MG::cg_max_jump       = 10.0;
-    MacOutFlowBC_MG::cg_maxiter        = 40;
-    MacOutFlowBC_MG::maxIters          = 40;
+    MacOutFlowBC_MG::useCGbottomSolver = true;
 
     ParmParse pp("mac_mg");
 
     pp.query("v",                 verbose);
-    pp.query("useCGbottomSolver", useCGbottomSolver);
     pp.query("cg_tol",            cg_tol);
-    pp.query("cg_abs_tol",        cg_abs_tol);
-    pp.query("cg_max_jump",       cg_max_jump);
-    pp.query("cg_maxiter",        cg_maxiter);
     pp.query("maxIters",          maxIters);
+    pp.query("cg_abs_tol",        cg_abs_tol);
+    pp.query("cg_maxiter",        cg_maxiter);
+    pp.query("cg_max_jump",       cg_max_jump);
+    pp.query("useCGbottomSolver", useCGbottomSolver);
 
     BoxLib::ExecOnFinalize(MacOutFlowBC_MG::Finalize);
 
@@ -636,8 +637,7 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
     :
     OutFlowBC_MG(Domain,Phi,Rhs,Resid,Beta,H,IsPeriodic,false)
 {
-    if (!outflow_mg_initialized)
-        MacOutFlowBC_MG::Initialize();
+    Initialize();
 
     IntVect len = domain.size();
 

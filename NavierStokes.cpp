@@ -48,118 +48,104 @@ const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
 
+namespace
+{
+    bool initialized = false;
+}
 //
-// Static objects.
+// Set defaults for all variables in Initialize()!!!
 //
+static int hyp_grow;
+
 ErrorList   NavierStokes::err_list;
 BCRec       NavierStokes::phys_bc;
-Projection *NavierStokes::projector     = 0;
-MacProj    *NavierStokes::mac_projector = 0;
-Godunov    *NavierStokes::godunov       = 0;
+Projection* NavierStokes::projector;
+MacProj*    NavierStokes::mac_projector;
+Godunov*    NavierStokes::godunov;
 
-static int hyp_grow = 3;
-
-//
-// Internal parameters.
-//
-int  NavierStokes::verbose      = 0;
-Real NavierStokes::cfl          = 0.8;
-Real NavierStokes::init_shrink  = 1.0;
-Real NavierStokes::change_max   = 1.1;
-Real NavierStokes::fixed_dt     = -1.0;
-Real NavierStokes::dt_cutoff    = 0.0;
-int  NavierStokes::init_iter    = 2;
-Real NavierStokes::gravity      = 0.0;
-int  NavierStokes::initial_step = false;
-int  NavierStokes::initial_iter = false;
-int  NavierStokes::radius_grow  = 1;
-int  NavierStokes::sum_interval = -1;
-int  NavierStokes::turb_interval= -1;
-int  NavierStokes::jet_interval = -1;
-int  NavierStokes::jet_interval_split = 2;
-int  NavierStokes::NUM_SCALARS  = 0;
-int  NavierStokes::NUM_STATE    = 0;
-
-Array<AdvectionForm> NavierStokes::advectionType;
-Array<DiffusionForm> NavierStokes::diffusionType;
-
-bool NavierStokes::def_harm_avg_cen2edge = false;
-
-
+int  NavierStokes::verbose;
+Real NavierStokes::cfl;
+Real NavierStokes::init_shrink;
+Real NavierStokes::change_max;
+Real NavierStokes::fixed_dt;
+Real NavierStokes::dt_cutoff;
+int  NavierStokes::init_iter;
+Real NavierStokes::gravity;
+int  NavierStokes::initial_step;
+int  NavierStokes::initial_iter;
+int  NavierStokes::radius_grow;
+int  NavierStokes::sum_interval;
+int  NavierStokes::turb_interval;
+int  NavierStokes::jet_interval;
+int  NavierStokes::jet_interval_split;
+int  NavierStokes::NUM_SCALARS;
+int  NavierStokes::NUM_STATE;
+bool NavierStokes::def_harm_avg_cen2edge;
 //
 // ----------------------- viscosity parameters.
 //
-Real NavierStokes::be_cn_theta  = 0.5;
-Real NavierStokes::visc_tol     = 1.0e-10;  // tolerance for viscous solve
-Real NavierStokes::visc_abs_tol = 1.0e-10;  // absolute tol. for visc solve
-int  NavierStokes::variable_vel_visc  = 0;  // variable viscosity flag
-int  NavierStokes::variable_scal_diff = 0;  // variable scalar diffusion flag
-
-Array<int>  NavierStokes::is_diffusive;
-Array<Real> NavierStokes::visc_coef;
-
+Real NavierStokes::be_cn_theta;
+Real NavierStokes::visc_tol;           // tolerance for viscous solve
+Real NavierStokes::visc_abs_tol;       // absolute tol. for visc solve
+int  NavierStokes::variable_vel_visc;  // variable viscosity flag
+int  NavierStokes::variable_scal_diff; // variable scalar diffusion flag
 //
 // Internal switches.
 //
-int  NavierStokes::do_temp                    = 0;
-int  NavierStokes::do_trac2                   = 0;
-int  NavierStokes::Temp                       = -1;
-int  NavierStokes::Tracer                     = -1;
-int  NavierStokes::Tracer2                    = -1;
-int  NavierStokes::do_sync_proj               = 1;
-int  NavierStokes::do_MLsync_proj             = 1;
-int  NavierStokes::do_reflux                  = 1;
-int  NavierStokes::modify_reflux_normal_vel   = 0;
-int  NavierStokes::do_mac_proj                = 1;
-int  NavierStokes::do_init_vort_proj          = 0;
-int  NavierStokes::do_init_proj               = 1;
-int  NavierStokes::do_refine_outflow          = 0;
-int  NavierStokes::do_derefine_outflow        = 1;
-int  NavierStokes::Nbuf_outflow               = 1;
-int  NavierStokes::do_running_statistics      = 0;
-int  NavierStokes::do_denminmax               = 0;
-int  NavierStokes::do_scalminmax              = 0;
-int  NavierStokes::do_density_ref             = 0;
-int  NavierStokes::do_tracer_ref              = 0;
-int  NavierStokes::do_tracer2_ref             = 0;
-int  NavierStokes::do_vorticity_ref           = 0;
-
-int  NavierStokes::getForceVerbose            = 0;
-int  NavierStokes::do_scalar_update_in_order  = 0;
-Array<int>  NavierStokes::scalarUpdateOrder;
-
-int  NavierStokes::Dpdt_Type                  = -1;
-
-int  NavierStokes::do_mom_diff                = 0;
-int  NavierStokes::predict_mom_together       = 0;
-
-int  NavierStokes::do_cons_trac               = 0;
-int  NavierStokes::do_cons_trac2              = 0;
-
+int  NavierStokes::do_temp;
+int  NavierStokes::do_trac2;
+int  NavierStokes::Temp;
+int  NavierStokes::Tracer;
+int  NavierStokes::Tracer2;
+int  NavierStokes::do_sync_proj;
+int  NavierStokes::do_MLsync_proj;
+int  NavierStokes::do_reflux;
+int  NavierStokes::modify_reflux_normal_vel;
+int  NavierStokes::do_mac_proj;
+int  NavierStokes::do_init_vort_proj;
+int  NavierStokes::do_init_proj;
+int  NavierStokes::do_refine_outflow;
+int  NavierStokes::do_derefine_outflow;
+int  NavierStokes::Nbuf_outflow;
+int  NavierStokes::do_running_statistics;
+int  NavierStokes::do_denminmax;
+int  NavierStokes::do_scalminmax;
+int  NavierStokes::do_density_ref;
+int  NavierStokes::do_tracer_ref;
+int  NavierStokes::do_tracer2_ref; 
+int  NavierStokes::do_vorticity_ref;
+int  NavierStokes::getForceVerbose;
+int  NavierStokes::do_scalar_update_in_order;
+int  NavierStokes::Dpdt_Type;
+int  NavierStokes::do_mom_diff;
+int  NavierStokes::predict_mom_together;
+int  NavierStokes::do_cons_trac;
+int  NavierStokes::do_cons_trac2;
 //     
 // New members for non-zero divu.
 //
-int  NavierStokes::additional_state_types_initialized = 0;
-int  NavierStokes::Divu_Type                          = -1;
-int  NavierStokes::Dsdt_Type                          = -1;
-int  NavierStokes::have_divu                          = 0;
-int  NavierStokes::have_dsdt                          = 0;
-int  NavierStokes::S_in_vel_diffusion                 = 1;
+int  NavierStokes::additional_state_types_initialized;
+int  NavierStokes::Divu_Type;
+int  NavierStokes::Dsdt_Type;
+int  NavierStokes::have_divu;
+int  NavierStokes::have_dsdt;
+int  NavierStokes::S_in_vel_diffusion;
+Real NavierStokes::divu_relax_factor;
+int  NavierStokes::num_state_type;     // for backward compatibility
+int  NavierStokes::do_divu_sync;       // for debugging new correction to MLSP
+Real NavierStokes::volWgtSum_sub_origin_x;
+Real NavierStokes::volWgtSum_sub_origin_y;
+Real NavierStokes::volWgtSum_sub_origin_z;
+Real NavierStokes::volWgtSum_sub_Rcyl;
+Real NavierStokes::volWgtSum_sub_dx;
+Real NavierStokes::volWgtSum_sub_dy;
+Real NavierStokes::volWgtSum_sub_dz;
 
-Real NavierStokes::divu_relax_factor   = 0.0;
-     
-int  NavierStokes::num_state_type = 2;     // for backward compatibility
-
-int  NavierStokes::do_divu_sync = 0;       // for debugging new correction to MLSP
-
-Real NavierStokes::volWgtSum_sub_origin_x = 0;
-Real NavierStokes::volWgtSum_sub_origin_y = 0;
-Real NavierStokes::volWgtSum_sub_origin_z = 0;
-Real NavierStokes::volWgtSum_sub_Rcyl = -1;
-Real NavierStokes::volWgtSum_sub_dx = -1;
-Real NavierStokes::volWgtSum_sub_dy = -1;
-Real NavierStokes::volWgtSum_sub_dz = -1;
-
+Array<int>           NavierStokes::scalarUpdateOrder;
+Array<AdvectionForm> NavierStokes::advectionType;
+Array<DiffusionForm> NavierStokes::diffusionType;
+Array<int>           NavierStokes::is_diffusive;
+Array<Real>          NavierStokes::visc_coef;
 
 int NavierStokes::DoTrac2() {return do_trac2;}
 
@@ -172,6 +158,7 @@ void
 NavierStokes::variableCleanUp ()
 {
     desc_lst.clear();
+    err_list.clear();
     delete projector;
     projector = 0;
     delete mac_projector;
@@ -203,13 +190,91 @@ NavierStokes::read_geometry ()
 }
 
 void
-NavierStokes::read_params ()
+NavierStokes::Initialize ()
 {
-    static bool done = false;
+    if (initialized) return;
 
-    if (done) return;
-
-    done = true;
+    hyp_grow                            = 3;
+    NavierStokes::projector             = 0;
+    NavierStokes::mac_projector         = 0;
+    NavierStokes::godunov               = 0;
+    NavierStokes::verbose               = 0;
+    NavierStokes::cfl                   = 0.8;
+    NavierStokes::init_shrink           = 1.0;
+    NavierStokes::change_max            = 1.1;
+    NavierStokes::fixed_dt              = -1.0;
+    NavierStokes::dt_cutoff             = 0.0;
+    NavierStokes::init_iter             = 2;
+    NavierStokes::gravity               = 0.0;
+    NavierStokes::initial_step          = false;
+    NavierStokes::initial_iter          = false;
+    NavierStokes::radius_grow           = 1;
+    NavierStokes::sum_interval          = -1;
+    NavierStokes::turb_interval         = -1;
+    NavierStokes::jet_interval          = -1;
+    NavierStokes::jet_interval_split    = 2;
+    NavierStokes::NUM_SCALARS           = 0;
+    NavierStokes::NUM_STATE             = 0;
+    NavierStokes::def_harm_avg_cen2edge = false;
+    //
+    // ----------------------- viscosity parameters.
+    //
+    NavierStokes::be_cn_theta        = 0.5;
+    NavierStokes::visc_tol           = 1.0e-10; // tolerance for viscous solve
+    NavierStokes::visc_abs_tol       = 1.0e-10; // absolute tol. for visc solve
+    NavierStokes::variable_vel_visc  = 0;       // variable viscosity flag
+    NavierStokes::variable_scal_diff = 0;       // variable scalar diffusion flag
+    //
+    // Internal switches.
+    //
+    NavierStokes::do_temp                    = 0;
+    NavierStokes::do_trac2                   = 0;
+    NavierStokes::Temp                       = -1;
+    NavierStokes::Tracer                     = -1;
+    NavierStokes::Tracer2                    = -1;
+    NavierStokes::do_sync_proj               = 1;
+    NavierStokes::do_MLsync_proj             = 1;
+    NavierStokes::do_reflux                  = 1;
+    NavierStokes::modify_reflux_normal_vel   = 0;
+    NavierStokes::do_mac_proj                = 1;
+    NavierStokes::do_init_vort_proj          = 0;
+    NavierStokes::do_init_proj               = 1;
+    NavierStokes::do_refine_outflow          = 0;
+    NavierStokes::do_derefine_outflow        = 1;
+    NavierStokes::Nbuf_outflow               = 1;
+    NavierStokes::do_running_statistics      = 0;
+    NavierStokes::do_denminmax               = 0;
+    NavierStokes::do_scalminmax              = 0;
+    NavierStokes::do_density_ref             = 0;
+    NavierStokes::do_tracer_ref              = 0;
+    NavierStokes::do_tracer2_ref             = 0;
+    NavierStokes::do_vorticity_ref           = 0;
+    NavierStokes::getForceVerbose            = 0;
+    NavierStokes::do_scalar_update_in_order  = 0;
+    NavierStokes::Dpdt_Type                  = -1;
+    NavierStokes::do_mom_diff                = 0;
+    NavierStokes::predict_mom_together       = 0;
+    NavierStokes::do_cons_trac               = 0;
+    NavierStokes::do_cons_trac2              = 0;
+    //     
+    // New members for non-zero divu.
+    //
+    NavierStokes::additional_state_types_initialized = 0;
+    NavierStokes::Divu_Type                          = -1;
+    NavierStokes::Dsdt_Type                          = -1;
+    NavierStokes::have_divu                          = 0;
+    NavierStokes::have_dsdt                          = 0;
+    NavierStokes::S_in_vel_diffusion                 = 1;
+    NavierStokes::divu_relax_factor                  = 0.0;
+    NavierStokes::num_state_type                     = 2;
+    NavierStokes::do_divu_sync                       = 0;
+    NavierStokes::volWgtSum_sub_origin_x             = 0;
+    NavierStokes::volWgtSum_sub_origin_y             = 0;
+    NavierStokes::volWgtSum_sub_origin_z             = 0;
+    NavierStokes::volWgtSum_sub_Rcyl                 = -1;
+    NavierStokes::volWgtSum_sub_dx                   = -1;
+    NavierStokes::volWgtSum_sub_dy                   = -1;
+    NavierStokes::volWgtSum_sub_dz                   = -1;
 
     ParmParse pp("ns");
 
@@ -243,14 +308,14 @@ NavierStokes::read_params ()
                     std::cerr << "NavierStokes::variableSetUp:periodic in direction "
                               << dir
                               << " but low BC is not Interior\n";
-                    BoxLib::Abort("NavierStokes::read_params()");
+                    BoxLib::Abort("NavierStokes::Initialize()");
                 }
                 if (hi_bc[dir] != Interior)
                 {
                     std::cerr << "NavierStokes::variableSetUp:periodic in direction "
                               << dir
                               << " but high BC is not Interior\n";
-                    BoxLib::Abort("NavierStokes::read_params()");
+                    BoxLib::Abort("NavierStokes::Initialize()");
                 }
             } 
         }
@@ -269,14 +334,14 @@ NavierStokes::read_params ()
                   std::cerr << "NavierStokes::variableSetUp:Interior bc in direction "
                             << dir
                             << " but not defined as periodic\n";
-                  BoxLib::Abort("NavierStokes::read_params()");
+                  BoxLib::Abort("NavierStokes::Initialize()");
               }
               if (hi_bc[dir] == Interior)
               {
                   std::cerr << "NavierStokes::variableSetUp:Interior bc in direction "
                             << dir
                             << " but not defined as periodic\n";
-                  BoxLib::Abort("NavierStokes::read_params()");
+                  BoxLib::Abort("NavierStokes::Initialize()");
               }
             }
         }
@@ -345,7 +410,7 @@ NavierStokes::read_params ()
         std::cout << "Mismatched options for NavierStokes\n"
                   << "do_MLsync_proj and do_sync_proj are inconsistent\n";
 
-        BoxLib::Abort("NavierStokes::read_params()");
+        BoxLib::Abort("NavierStokes::Initialize()");
     }
     //
     // Read viscous/diffusive parameters and array of viscous/diffusive coeffs.
@@ -362,10 +427,10 @@ NavierStokes::read_params ()
     const int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
 
     if (n_vel_visc_coef != 1)
-        BoxLib::Abort("NavierStokes::read_params(): Only one vel_visc_coef allowed");
+        BoxLib::Abort("NavierStokes::Initialize(): Only one vel_visc_coef allowed");
 
     if (do_temp && n_temp_cond_coef != 1)
-        BoxLib::Abort("NavierStokes::read_params(): Only one temp_cond_coef allowed");
+        BoxLib::Abort("NavierStokes::Initialize(): Only one temp_cond_coef allowed");
 
     int n_visc = BL_SPACEDIM + 1 + n_scal_diff_coefs;
     if (do_temp)
@@ -410,7 +475,7 @@ NavierStokes::read_params ()
     pp.query("S_in_vel_diffusion",S_in_vel_diffusion);
     pp.query("be_cn_theta",be_cn_theta);
     if (be_cn_theta > 1.0 || be_cn_theta < .5)
-        BoxLib::Abort("NavierStokes::read_params(): Must have be_cn_theta <= 1.0 && >= .5");
+        BoxLib::Abort("NavierStokes::Initialize(): Must have be_cn_theta <= 1.0 && >= .5");
     //
     // Set parameters dealing with how grids are treated at outflow boundaries.
     //
@@ -451,15 +516,24 @@ NavierStokes::read_params ()
     pp.query("harm_avg_cen2edge", def_harm_avg_cen2edge);
 
     {
-      ParmParse pp("godunov");
-      int ppm_type = 0;
-      pp.query("ppm_type",ppm_type);
-      if (ppm_type == 2)
+        ParmParse pp("godunov");
+        int ppm_type = 0;
+        pp.query("ppm_type",ppm_type);
+        if (ppm_type == 2)
 	{
-	  hyp_grow = 4;
+            hyp_grow = 4;
 	}
     }
 
+    BoxLib::ExecOnFinalize(NavierStokes::Finalize);
+
+    initialized = true;
+}
+
+void
+NavierStokes::Finalize ()
+{
+    initialized = false;
 }
 
 NavierStokes::NavierStokes ()

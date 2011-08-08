@@ -3,7 +3,7 @@
 #define _Projection_H_
 
 //
-// $Id: Projection.H,v 1.48 2011-06-16 16:40:25 lijewski Exp $
+// $Id: Projection.H,v 1.49 2011-08-08 19:46:32 lijewski Exp $
 //
 
 #include <BC_TYPES.H>
@@ -185,17 +185,18 @@ public:
     //
     // Helper function for NavierStokes::getGradP().
     //
-    static
-    void getGradP (FArrayBox& p_fab,
-                   FArrayBox& gp,
-                   const Box& gpbox_to_fill,
-                   const Real* dx);
+    static void getGradP (FArrayBox& p_fab,
+                          FArrayBox& gp,
+                          const Box& gpbox_to_fill,
+                          const Real* dx);
 
 protected:
     //
     // Read parameters from the input file.
     //
-    static void read_params ();
+    static void Initialize ();
+
+    static void Finalize ();
     //
     // Set up the sync projection.
     //

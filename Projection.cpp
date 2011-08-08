@@ -1,5 +1,5 @@
 //
-// $Id: Projection.cpp,v 1.181 2011-03-22 20:24:41 lijewski Exp $
+// $Id: Projection.cpp,v 1.182 2011-08-08 19:46:32 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -12,7 +12,7 @@
 #include <PROJECTION_F.H>
 #include <NAVIERSTOKES_F.H>
 #include <hg_projector.H>
-#include "ProjOutFlowBC.H"
+#include <ProjOutFlowBC.H>
 
 #ifdef MG_USE_FBOXLIB
 #include <MGT_Solver.H>
@@ -45,30 +45,36 @@ const int* boxhi = (box).hiVect();
 #define BogusValue 1.e200
 #define MAX_LEV 10
 
+//
 // NOTE: the RegType array project_bc is now defined in NS_BC.H in iamrlib
+//
 
+namespace
+{
+    bool initialized = false;
+}
 //
-// Initialization of static members.
+// Set defaults for all static members in Initialize()!!!
 //
-int       Projection::verbose            = 0;
-int       Projection::P_code             = 0;
-Real      Projection::proj_tol           = 1.0e-12;
-Real      Projection::sync_tol           = 1.0e-8;
-Real      Projection::proj_abs_tol       = 1.0e-16;
-Real      Projection::divu_minus_s_factor= 0.0;
-int       Projection::rho_wgt_vel_proj   = 0;
-int       Projection::do_outflow_bcs     = 1;
-int       Projection::make_sync_solvable = 0;
-int       Projection::proj_2             = 1;
-int       Projection::add_vort_proj      = 0;
+int  Projection::P_code;
+int  Projection::proj_2;
+int  Projection::verbose;
+Real Projection::proj_tol;
+Real Projection::sync_tol;
+Real Projection::proj_abs_tol;
+int  Projection::add_vort_proj;
+int  Projection::do_outflow_bcs;
+int  Projection::rho_wgt_vel_proj;
+int  Projection::make_sync_solvable;
+Real Projection::divu_minus_s_factor;
 
 namespace
 {
 #if MG_USE_HYPRE
-  bool        use_hypre_solve  = false;
+    bool use_hypre_solve;
 #endif
 #if MG_USE_FBOXLIB
-  bool        use_fboxlib_nd   = false;
+    bool use_fboxlib_nd;
 #endif
 }
 
@@ -81,6 +87,86 @@ static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::
 #elif BL_SPACEDIM == 3
 static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
 #endif
+
+void
+Projection::Initialize ()
+{
+    if (initialized) return;
+    //
+    // Set defaults here !!!
+    //
+    Projection::P_code              = 0;
+    Projection::proj_2              = 1;
+    Projection::verbose             = 0;
+    Projection::proj_tol            = 1.0e-12;
+    Projection::sync_tol            = 1.0e-8;
+    Projection::proj_abs_tol        = 1.0e-16;
+    Projection::add_vort_proj       = 0;
+    Projection::do_outflow_bcs      = 1;
+    Projection::rho_wgt_vel_proj    = 0;
+    Projection::make_sync_solvable  = 0;
+    Projection::divu_minus_s_factor = 0.0;
+
+#if MG_USE_HYPRE
+    use_hypre_solve = false;
+#endif
+#if MG_USE_FBOXLIB
+    use_fboxlib_nd  = false;
+#endif
+
+    ParmParse pp("proj");
+
+    pp.query("v",                   verbose);
+    pp.query("Pcode",               P_code);
+    pp.query("proj_2",              proj_2);
+    pp.query("proj_tol",            proj_tol);
+    pp.query("sync_tol",            sync_tol);
+    pp.query("proj_abs_tol",        proj_abs_tol);
+    pp.query("add_vort_proj",       add_vort_proj);
+    pp.query("do_outflow_bcs",      do_outflow_bcs);
+    pp.query("rho_wgt_vel_proj",    rho_wgt_vel_proj);
+    pp.query("divu_minus_s_factor", divu_minus_s_factor);
+    pp.query("make_sync_solvable",  make_sync_solvable);
+
+#if MG_USE_FBOXLIB
+    pp.query("use_fboxlib_nd",use_fboxlib_nd);
+#endif
+
+    if (!proj_2) 
+	BoxLib::Error("With new gravity and outflow stuff, must use proj_2");
+
+    std::string stencil = "cross";
+
+    if ( pp.query("stencil", stencil) )
+    {
+        if ( stencil == "cross" )
+        {
+            hg_stencil = holy_grail_amr_multigrid::cross;
+        }
+        else if ( stencil == "terrain" )
+        {
+            hg_stencil = holy_grail_amr_multigrid::terrain;
+        }
+        else if ( stencil == "full" )
+        {
+            hg_stencil = holy_grail_amr_multigrid::full;
+        }
+        else
+        {
+            BoxLib::Error("stencil must be cross, terrain, or full");
+        }
+    }
+
+    BoxLib::ExecOnFinalize(Projection::Finalize);
+
+    initialized = true;
+}
+
+void
+Projection::Finalize ()
+{
+    initialized = false;
+}
 
 #define LEVEL_PROJ      1001
 #define INITIAL_VEL     1002
@@ -104,7 +190,7 @@ Projection::Projection (Amr*   _parent,
     finest_level(_finest_level),
     do_sync_proj(_do_sync_proj)
 {
-    read_params();
+    Initialize();
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "Creating projector\n";
@@ -131,69 +217,6 @@ Projection::~Projection ()
     projector_bndry = 0;
 }
 
-void
-Projection::read_params ()
-{
-    //
-    // Read parameters from input file and command line.
-    //
-    static bool done = false;
-
-    if (done) return;
-
-    done = true;
-
-    ParmParse pp("proj");
-
-    pp.query("v",verbose);
-    pp.query("Pcode",P_code);
-
-    pp.query("proj_tol",proj_tol);
-    pp.query("sync_tol",sync_tol);
-    pp.query("proj_abs_tol",proj_abs_tol);
-
-#if MG_USE_FBOXLIB
-    pp.query("use_fboxlib_nd",use_fboxlib_nd);
-#endif
-
-    pp.query("make_sync_solvable",make_sync_solvable);
-
-    pp.query("proj_2",proj_2);
-
-    if (!proj_2) 
-	BoxLib::Error("With new gravity and outflow stuff, must use proj_2");
-
-    pp.query("divu_minus_s_factor",divu_minus_s_factor);
-
-    pp.query("rho_wgt_vel_proj",rho_wgt_vel_proj);
-
-    pp.query("do_outflow_bcs",do_outflow_bcs);
-
-    pp.query("add_vort_proj",add_vort_proj);
-
-    {
-	std::string stencil = "cross";
-	if ( pp.query("stencil", stencil) )
-	{
-	    if ( stencil == "cross" )
-	    {
-		hg_stencil = holy_grail_amr_multigrid::cross;
-	    }
-	    else if ( stencil == "terrain" )
-	    {
-		hg_stencil = holy_grail_amr_multigrid::terrain;
-	    }
-	    else if ( stencil == "full" )
-	    {
-		hg_stencil = holy_grail_amr_multigrid::full;
-	    }
-	    else
-	    {
-		BoxLib::Error("stencil must be cross, terrain, or full");
-	    }
-	}
-    }
-}
 
 void 
 Projection::setUpBcs ()
