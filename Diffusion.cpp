@@ -83,9 +83,9 @@ int         Diffusion::tensor_max_order;
 int         Diffusion::use_tensor_cg_solve;
 bool        Diffusion::use_mg_precond_flag;
 
-Array<int>  Diffusion::is_diffusive;
 Array<Real> Diffusion::visc_coef;
 Array<Real> Diffusion::typical_vals;
+Array<int>  Diffusion::is_diffusive;
 
 const Real typical_vals_DEF = 1.0;
 
@@ -102,6 +102,10 @@ namespace
 void
 Diffusion::Finalize ()
 {
+    visc_coef.clear();
+    typical_vals.clear();
+    is_diffusive.clear();
+
     initialized = false;
 }
 

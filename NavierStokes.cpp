@@ -141,11 +141,11 @@ Real NavierStokes::volWgtSum_sub_dx;
 Real NavierStokes::volWgtSum_sub_dy;
 Real NavierStokes::volWgtSum_sub_dz;
 
-Array<int>           NavierStokes::scalarUpdateOrder;
+Array<Real>          NavierStokes::visc_coef;
+Array<int>           NavierStokes::is_diffusive;
 Array<AdvectionForm> NavierStokes::advectionType;
 Array<DiffusionForm> NavierStokes::diffusionType;
-Array<int>           NavierStokes::is_diffusive;
-Array<Real>          NavierStokes::visc_coef;
+Array<int>           NavierStokes::scalarUpdateOrder;
 
 int NavierStokes::DoTrac2() {return do_trac2;}
 
@@ -165,6 +165,13 @@ NavierStokes::variableCleanUp ()
     mac_projector = 0;
     delete godunov;
     godunov = 0;
+
+    visc_coef.clear();
+    is_diffusive.clear();
+    advectionType.clear();
+    diffusionType.clear();
+    scalarUpdateOrder.clear();
+
 }
 
 void
