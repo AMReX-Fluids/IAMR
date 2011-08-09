@@ -158,6 +158,7 @@ void
 NavierStokes::variableCleanUp ()
 {
     desc_lst.clear();
+    derive_lst.clear();
     err_list.clear();
     delete projector;
     projector = 0;
