@@ -1,0 +1,96 @@
+
+include $(PBOXLIB_HOME)/Tools/C_mk/Make.defs 
+
+fincludes=$(includes)
+
+#These are the directories in IAMR
+
+Bdirs += Source
+
+Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
+Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
+
+ifeq ($(USE_FLCTS),TRUE)
+  Bdirs += $(TOP)/InflowForce
+  Bpack	+= $(TOP)/InflowForce/Make.package
+  Blocs	+= $(TOP)/InflowForce/Make.package
+endif
+
+include $(Bpack)
+
+#These are the directories in BoxLib
+ 
+Pdirs   := C_BaseLib C_AMRLib C_BoundaryLib
+Pdirs   += LinearSolvers/C_CellMG  LinearSolvers/C_NodalMG  LinearSolvers/C_TensorMG
+Ppack   += $(foreach dir, $(Pdirs), $(PBOXLIB_HOME)/Src/$(dir)/Make.package)
+Plocs   += $(foreach dir, $(Pdirs), $(PBOXLIB_HOME)/Src/$(dir))
+
+include $(Ppack)
+INCLUDE_LOCATIONS += $(Plocs)
+VPATH_LOCATIONS   += $(Plocs)
+
+ifdef USE_F90_SOLVERS
+  DEFINES += -DMG_USE_F90_SOLVERS
+
+  include $(PBOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
+  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
+  VPATH_LOCATIONS   += $(PBOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
+ 
+  include $(PBOXLIB_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
+  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/Src/LinearSolvers/F_MG
+  VPATH_LOCATIONS   += $(PBOXLIB_HOME)/Src/LinearSolvers/F_MG
+
+  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/Src/F_BaseLib
+  VPATH_LOCATIONS   += $(PBOXLIB_HOME)/Src/F_BaseLib
+endif
+
+VPATH_LOCATIONS   += . $(Blocs)
+INCLUDE_LOCATIONS += . $(Blocs)
+
+ifeq ($(USE_VELOCITY), TRUE)
+ VPATH_LOCATIONS +=  $(AMRVIS_DIR)
+endif
+
+ifeq ($(USE_BGL),TRUE)
+  MACHINE=BGL
+  CXX=mpicxx.ibm
+  FC=blrts_xlf
+  fC=blrts_xlf
+  CPPFLAGS+= -DMPICH_SKIP_MPICXX
+  LDFLAGS+=-L/bgl/BlueLight/ppcfloor/bglsys/lib
+  LDFLAGS+=-L/opt/ibmcmp/xlf/bg/10.1/blrts_lib
+  BL_MPI_LIBS=-lxlf90 -lxlfmath
+  FORTLINK:=LOWERCASE
+endif
+ 
+ifeq ($(USE_VELOCITY), TRUE)
+  DEFINES += -DBL_NOLINEVALUES -DBL_USE_VELOCITY -DBL_PARALLEL_IO
+  INCLUDE_LOCATIONS += $(TOP)/pAmrvis
+endif
+
+ifeq ($(USE_HYPRE),TRUE)
+  Bdirs   += HypreABec
+  HYPRE_DIR=$(HOME)/amr/hypre
+  INCLUDE_LOCATIONS += $(HYPRE_DIR)/include
+  LIBRARY_LOCATIONS += $(HYPRE_DIR)/lib
+  LIBRARIES += -lHYPRE_struct_ls -lHYPRE_struct_mv -lHYPRE_blas -lHYPRE_utilities
+  DEFINES += -DMG_USE_HYPRE
+endif
+ifeq ($(USE_METIS),TRUE)
+  Bdirs += metis-4.0/Lib
+  DEFINES += -DBL_USE_METIS
+endif
+
+vpath %.c   $(VPATH_LOCATIONS)
+vpath %.cpp $(VPATH_LOCATIONS)
+vpath %.h   $(VPATH_LOCATIONS)
+vpath %.H   $(VPATH_LOCATIONS)
+vpath %.F   $(VPATH_LOCATIONS)
+vpath %.f   $(VPATH_LOCATIONS)
+vpath %.f90 $(VPATH_LOCATIONS)
+
+all: $(executable)
+
+$(executable):
+
+include $(PBOXLIB_HOME)/Tools/C_mk/Make.rules
