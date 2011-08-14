@@ -1,9 +1,6 @@
+
 #ifndef _PROB_NS_F_H_
 #define _PROB_NS_F_H_
-
-/*
-** $Id: PROB_F.H,v 1.15 2007-11-07 20:58:27 aaspden Exp $
-*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_INITDATA    initdata

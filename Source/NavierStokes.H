@@ -2,10 +2,6 @@
 #ifndef _NavierStokes_H_
 #define _NavierStokes_H_
 
-//
-// $Id: NavierStokes.H,v 1.107 2011-08-08 19:46:32 lijewski Exp $
-//
-
 #include <LevelBld.H>
 #include <BC_TYPES.H>
 #include <AmrLevel.H>

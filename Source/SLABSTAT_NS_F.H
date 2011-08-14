@@ -1,9 +1,6 @@
+
 #ifndef _SLABSTAT_NS_F_H_
 #define _SLABSTAT_NS_F_H_
-
-/*
-** $Id: SLABSTAT_NS_F.H,v 1.2 2002-04-26 22:10:02 lijewski Exp $
-*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_NS_BASICSTATS_NCTRAC    ns_basicstats_nctrac

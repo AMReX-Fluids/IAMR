@@ -1,6 +1,4 @@
-c
-c $Id: SLABSTAT_NS_3D.F,v 1.5 2002-11-14 23:04:56 lijewski Exp $
-c
+
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

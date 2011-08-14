@@ -1,6 +1,4 @@
-c
-c $Id: DERIVE_2D.F,v 1.20 2008-12-10 20:28:37 aaspden Exp $ 
-c
+
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

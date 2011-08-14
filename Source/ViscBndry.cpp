@@ -1,7 +1,4 @@
 
-//
-// $Id: ViscBndry.cpp,v 1.19 2006-09-13 18:03:02 lijewski Exp $
-//
 #include <winstd.H>
 
 #include <LO_BCTYPES.H>

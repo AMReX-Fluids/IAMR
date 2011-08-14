@@ -1,9 +1,6 @@
+
 #ifndef _DERIVE_F_H
 #define _DERIVE_F_H
-
-/*
-** $Id: DERIVE_F.H,v 1.23 2010-10-08 17:55:56 aaspden Exp $
-*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_DERMODGRADRHO     dermodgradrho

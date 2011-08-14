@@ -1,6 +1,3 @@
-c
-c $Id: VISCOPERATOR_3D.F,v 1.8 2009-11-04 23:14:42 lijewski Exp $
-c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

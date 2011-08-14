@@ -1,9 +1,6 @@
+
 #ifndef _GODUNOV_F_H_
 #define _GODUNOV_F_H_
-
-/*
-** $Id: GODUNOV_F.H,v 1.22 2009-10-20 17:57:00 ajnonaka Exp $
-*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_TEST_U_RHO         testurho

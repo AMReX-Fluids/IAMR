@@ -1,6 +1,4 @@
-c
-c $Id: DIFFUSION_3D.F,v 1.17 2011-03-24 21:14:22 lijewski Exp $
-c
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

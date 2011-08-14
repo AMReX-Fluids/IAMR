@@ -1,6 +1,4 @@
-//
-// $Id: MacOutFlowBC.cpp,v 1.36 2011-08-08 19:46:32 lijewski Exp $
-//
+
 #include <winstd.H>
 
 #include "MacOutFlowBC.H"

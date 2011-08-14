@@ -1,6 +1,4 @@
-c
-c $Id: PROJECTION_2D.F,v 1.42 2009-11-10 17:46:46 lijewski Exp $
-c
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

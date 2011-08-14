@@ -1,8 +1,7 @@
+
 #ifndef _MacProj_H_
 #define _MacProj_H_
-//
-// $Id: MacProj.H,v 1.34 2011-08-08 17:32:52 lijewski Exp $
-//
+
 #include <BC_TYPES.H>
 #include <BCRec.H>
 #include <Amr.H>

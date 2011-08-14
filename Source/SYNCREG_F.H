@@ -1,9 +1,6 @@
+
 #ifndef _SYNCREG_F_H_
 #define _SYNCREG_F_H_
-
-/*
-** $Id: SYNCREG_F.H,v 1.11 2002-04-26 22:10:02 lijewski Exp $
-*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_SRCRSEREG   srcrsereg

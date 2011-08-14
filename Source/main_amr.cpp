@@ -1,6 +1,3 @@
-//
-// $Id: main_amr.cpp,v 1.18 2001-08-01 21:51:01 lijewski Exp $
-//
 
 #include <cstdlib>
 

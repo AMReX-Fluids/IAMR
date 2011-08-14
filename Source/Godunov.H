@@ -3,9 +3,6 @@
 #define _GODUNOV_CLASS_H_ 
 
 //
-// $Id: Godunov.H,v 1.21 2011-08-05 23:57:58 lijewski Exp $
-//
-//
 // A useful enumeration of the forms for the advective terms
 //
 enum AdvectionForm {Conservative = 0, NonConservative};

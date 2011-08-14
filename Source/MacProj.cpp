@@ -1,7 +1,4 @@
 
-//
-// $Id: MacProj.cpp,v 1.131 2011-08-08 19:46:32 lijewski Exp $
-//
 #include <winstd.H>
 
 #include <LO_BCTYPES.H>

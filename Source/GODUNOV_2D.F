@@ -1,6 +1,4 @@
-c
-c $Id: GODUNOV_2D.F,v 1.59 2010-06-08 15:21:48 ajnonaka Exp $
-c
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

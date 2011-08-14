@@ -1,8 +1,4 @@
 
-//
-// $Id: NS_setup.cpp,v 1.64 2011-08-08 19:46:32 lijewski Exp $
-//
-
 #include <winstd.H>
 
 #include <NavierStokes.H>

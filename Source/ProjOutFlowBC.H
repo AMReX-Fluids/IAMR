@@ -1,9 +1,6 @@
+
 #ifndef _PROJOUTFLOWBC_H_
 #define _PROJOUTFLOWBC_H_
-
-//
-// $Id: ProjOutFlowBC.H,v 1.12 2011-08-08 19:46:32 lijewski Exp $
-//
 
 #include "FArrayBox.H"
 #include "Geometry.H"

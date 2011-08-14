@@ -1,9 +1,6 @@
+
 #ifndef _VISCBNDRYTENSOR_H_
 #define _VISCBNDRYTENSOR_H_
-
-//
-// $Id: ViscBndryTensor.H,v 1.2 1999-02-24 01:56:11 propp Exp $
-//
 
 #include <MCInterpBndryData.H>
 #include <BC_TYPES.H>

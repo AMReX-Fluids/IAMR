@@ -2,10 +2,6 @@
 #ifndef _SYNCREGISTER_H_
 #define _SYNCREGISTER_H_
 
-//
-// $Id: SyncRegister.H,v 1.18 2010-02-19 20:00:39 lijewski Exp $
-//
-
 #include <PArray.H>
 #include <BoxArray.H>
 #include <FArrayBox.H>

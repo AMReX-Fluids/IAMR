@@ -1,6 +1,4 @@
-//
-// $Id: ViscBndryTensor.cpp,v 1.7 2001-08-09 22:42:00 marc Exp $
-//
+
 #include <winstd.H>
 
 #include <LO_BCTYPES.H>

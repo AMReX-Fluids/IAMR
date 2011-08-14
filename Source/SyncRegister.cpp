@@ -1,7 +1,4 @@
 
-//
-// $Id: SyncRegister.cpp,v 1.84 2010-10-06 15:10:21 lijewski Exp $
-//
 #include <winstd.H>
 
 #include <cstdlib>

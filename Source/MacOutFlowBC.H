@@ -1,9 +1,6 @@
+
 #ifndef _MACOUTFLOWBC_H_
 #define _MACOUTFLOWBC_H_
-
-//
-// $Id: MacOutFlowBC.H,v 1.13 2011-08-08 17:32:52 lijewski Exp $
-//
 
 #include "FArrayBox.H"
 #include "Geometry.H"

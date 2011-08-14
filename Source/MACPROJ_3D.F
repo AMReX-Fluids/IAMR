@@ -1,6 +1,4 @@
-c
-c $Id: MACPROJ_3D.F,v 1.11 2009-11-04 22:20:06 lijewski Exp $
-c
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

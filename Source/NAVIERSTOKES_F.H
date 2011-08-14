@@ -1,9 +1,6 @@
+
 #ifndef _NAVIERSTOKES_F_H_
 #define _NAVIERSTOKES_F_H_
-
-/*
-** $Id: NAVIERSTOKES_F.H,v 1.21 2011-04-13 22:40:47 lijewski Exp $
-*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_FILCC       filcc

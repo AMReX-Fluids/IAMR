@@ -1,6 +1,3 @@
-//
-// $Id: main.cpp,v 1.49 2011-06-16 15:51:50 lijewski Exp $
-//
 
 #include <cstdio>
 

@@ -1,6 +1,4 @@
-c
-c $Id: MACOPERATOR_2D.F,v 1.11 2008-02-08 18:39:48 lijewski Exp $
-c
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

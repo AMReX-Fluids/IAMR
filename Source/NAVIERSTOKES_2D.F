@@ -1,6 +1,4 @@
-c
-c $Id: NAVIERSTOKES_2D.F,v 1.19 2011-04-13 22:40:47 lijewski Exp $
-c
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

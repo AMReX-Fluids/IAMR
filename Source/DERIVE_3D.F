@@ -1,6 +1,4 @@
-c
-c $Id: DERIVE_3D.F,v 1.40 2011-03-24 21:14:22 lijewski Exp $
-c
+
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

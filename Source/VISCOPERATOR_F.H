@@ -1,9 +1,6 @@
+
 #ifndef _VISCOPERATOR_F_H_
 #define _VISCOPERATOR_F_H_
-
-/*
-** $Id: VISCOPERATOR_F.H,v 1.7 2002-04-26 22:10:02 lijewski Exp $
-*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_VISCEXTRAP   viscextrap

@@ -1,6 +1,4 @@
-//
-// $Id: ProjOutFlowBC.cpp,v 1.40 2011-08-08 19:46:32 lijewski Exp $
-//
+
 #include <winstd.H>
 
 #include <iostream>

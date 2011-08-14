@@ -1,9 +1,6 @@
+
 #ifndef _MACOPERATOR_H_
 #define _MACOPERATOR_H_
-
-//
-// $Id: MacOperator.H,v 1.13 2011-08-08 17:32:52 lijewski Exp $
-//
 
 //==========================================================================
 // This class defines how mass continuity is defined for the projection operators

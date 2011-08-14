@@ -1,9 +1,6 @@
+
 #ifndef _OUTFLOWBC_H_
 #define _OUTFLOWBC_H_
-
-//
-// $Id: OutFlowBC.H,v 1.8 2007-04-16 18:14:56 almgren Exp $
-//
 
 #include "FArrayBox.H"
 #include "Geometry.H"

@@ -1,9 +1,6 @@
+
 #ifndef _PROJECTION_F_H_
 #define _PROJECTION_F_H_ 
-
-/*
-** $Id: PROJECTION_F.H,v 1.18 2004-09-08 20:58:54 almgren Exp $
-*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_FILTERP       filterp

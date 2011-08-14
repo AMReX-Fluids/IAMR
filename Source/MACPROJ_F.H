@@ -1,9 +1,6 @@
+
 #ifndef _MACPROJ_F_H
 #define _MACPROJ_F_H
-
-/*
-** $Id: MACPROJ_F.H,v 1.11 2009-10-26 22:34:50 lijewski Exp $
-*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_MACDIV      macdiv

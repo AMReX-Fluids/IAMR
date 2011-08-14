@@ -1,6 +1,4 @@
-//
-// $Id: OutFlowBC.cpp,v 1.9 2011-08-08 19:46:32 lijewski Exp $
-//
+
 #include <winstd.H>
 
 #include <iostream>

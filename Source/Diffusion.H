@@ -1,8 +1,4 @@
 
-//
-// $Id: Diffusion.H,v 1.38 2011-08-08 20:04:24 lijewski Exp $
-//
-
 #ifndef _Diffusion_H_
 #define _Diffusion_H_
 

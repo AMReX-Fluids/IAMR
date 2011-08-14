@@ -1,9 +1,6 @@
+
 #ifndef _MACOPERATOR_F_H_
 #define _MACOPERATOR_F_H_
-
-/*
-** $Id: MACOPERATOR_F.H,v 1.9 2003-02-05 22:11:42 almgren Exp $
-*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_MACCOEF       maccoef

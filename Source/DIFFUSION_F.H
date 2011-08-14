@@ -1,9 +1,6 @@
+
 #ifndef _DIFFUSION_F_H
 #define _DIFFUSION_F_H
-
-/*
-** $Id: DIFFUSION_F.H,v 1.16 2009-11-04 22:10:19 lijewski Exp $
-*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_VISCSYNCFLUX     viscsyncflux

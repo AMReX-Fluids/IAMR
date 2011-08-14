@@ -1,9 +1,5 @@
 
 //
-// $Id: Godunov.cpp,v 1.53 2011-08-08 19:46:32 lijewski Exp $
-//
-
-//
 // Godunov is the object which calculates advective terms for iamr.
 //
 #include <winstd.H>
