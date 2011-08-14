@@ -6,15 +6,10 @@ fincludes=$(includes)
 #These are the directories in IAMR
 
 Bdirs += Source
+Bdirs += Source/InflowForce
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
-
-ifeq ($(USE_FLCTS),TRUE)
-  Bdirs += $(TOP)/InflowForce
-  Bpack	+= $(TOP)/InflowForce/Make.package
-  Blocs	+= $(TOP)/InflowForce/Make.package
-endif
 
 include $(Bpack)
 
