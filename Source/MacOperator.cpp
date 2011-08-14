@@ -15,7 +15,7 @@
 #include <HypreABec.H>
 #endif
 
-#ifdef MG_USE_FBOXLIB
+#ifdef MG_USE_F90_SOLVERS
 #include <MGT_Solver.H>
 #include <mg_cpp_f.h>
 #endif
@@ -413,7 +413,7 @@ mac_level_driver (Amr*            parent,
     }
     else if (the_solver == 3 ) 
     {
-#ifdef MG_USE_FBOXLIB
+#ifdef MG_USE_F90_SOLVERS
         std::vector<BoxArray> bav(1);
         bav[0] = mac_phi->boxArray();
         std::vector<DistributionMapping> dmv(1);
@@ -553,7 +553,7 @@ mac_sync_driver (Amr*            parent,
     }
     else if (the_solver == 3 )
     {
-#ifdef MG_USE_FBOXLIB
+#ifdef MG_USE_F90_SOLVERS
         std::vector<BoxArray> bav(1);
         bav[0] = mac_sync_phi->boxArray();
         std::vector<DistributionMapping> dmv(1);

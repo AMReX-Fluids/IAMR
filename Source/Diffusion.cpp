@@ -49,7 +49,7 @@ const Real BL_SAFE_BOGUS = -666.e200;
 #include <HypreABec.H>
 #endif
 
-#ifdef MG_USE_FBOXLIB
+#ifdef MG_USE_F90_SOLVERS
 #include <MGT_Solver.H>
 #include <mg_cpp_f.h>
 #endif
@@ -94,7 +94,7 @@ namespace
 #ifdef MG_USE_HYPRE
     bool use_hypre_solve;
 #endif
-#ifdef MG_USE_FBOXLIB
+#ifdef MG_USE_F90_SOLVERS
     bool use_fboxlib_mg;
 #endif
 }
@@ -145,7 +145,7 @@ Diffusion::Diffusion (Amr*               Parent,
 #ifdef MG_USE_HYPRE
         use_hypre_solve = false;
 #endif
-#ifdef MG_USE_FBOXLIB
+#ifdef MG_USE_F90_SOLVERS
         use_fboxlib_mg  = false;
 #endif
         int use_mg_precond = 0;
@@ -168,7 +168,7 @@ Diffusion::Diffusion (Amr*               Parent,
         }
 #endif
 
-#ifdef MG_USE_FBOXLIB
+#ifdef MG_USE_F90_SOLVERS
         ppdiff.query("use_fboxlib_mg", use_fboxlib_mg);
         if ( use_cg_solve && use_fboxlib_mg )
         {
@@ -512,7 +512,7 @@ Diffusion::diffuse_scalar (Real                   dt,
         cg.solve(Soln,Rhs,S_tol,S_tol_abs);
     }
 
-#ifdef MG_USE_FBOXLIB
+#ifdef MG_USE_F90_SOLVERS
     else if ( use_fboxlib_mg )
       {
         std::vector<BoxArray> bav(1);

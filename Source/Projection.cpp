@@ -14,7 +14,7 @@
 #include <hg_projector.H>
 #include <ProjOutFlowBC.H>
 
-#ifdef MG_USE_FBOXLIB
+#ifdef MG_USE_F90_SOLVERS
 #include <MGT_Solver.H>
 #include <mg_cpp_f.h>
 #endif
@@ -73,7 +73,7 @@ namespace
 #if MG_USE_HYPRE
     bool use_hypre_solve;
 #endif
-#if MG_USE_FBOXLIB
+#if MG_USE_F90_SOLVERS
     bool use_fboxlib_nd;
 #endif
 }
@@ -110,7 +110,7 @@ Projection::Initialize ()
 #if MG_USE_HYPRE
     use_hypre_solve = false;
 #endif
-#if MG_USE_FBOXLIB
+#if MG_USE_F90_SOLVERS
     use_fboxlib_nd  = false;
 #endif
 
@@ -128,7 +128,7 @@ Projection::Initialize ()
     pp.query("divu_minus_s_factor", divu_minus_s_factor);
     pp.query("make_sync_solvable",  make_sync_solvable);
 
-#if MG_USE_FBOXLIB
+#if MG_USE_F90_SOLVERS
     pp.query("use_fboxlib_nd",use_fboxlib_nd);
 #endif
 
@@ -542,11 +542,11 @@ Projection::level_project (int             level,
     //
     int is_rz = (Geometry::IsRZ() ? 1 : 0);
 
-#ifdef MG_USE_FBOXLIB
+#ifdef MG_USE_F90_SOLVERS
     //  Start of if use_fboxlib_nd
     if (use_fboxlib_nd == 1) 
     {
-        std::cout << "USING NEW FBOXLIB_HG SOLVER " << std::endl;
+        std::cout << "USING NEW F90 NODAL SOLVER " << std::endl;
 
         std::vector<BoxArray> bav(1);
         bav[0] = grids;
