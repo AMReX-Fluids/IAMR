@@ -1,0 +1,9 @@
+
+CEXE_sources += inflow.cpp
+
+FEXE_sources += FLUCTFILE.F
+FEXE_headers += FLUCTFILE.H
+FEXE_sources += INFL_FORCE_$(DIM)D.F
+FEXE_sources += INFL_FORCE_F.F
+FEXE_headers += INFL_FORCE_F.H
+FEXE_headers += infl_frc.H
