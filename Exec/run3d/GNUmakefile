@@ -1,5 +1,5 @@
 #PBOXLIB_HOME defines the directory in which we will find the BoxLib directory
-PBOXLIB_HOME = /home/almgren/bin/BoxLib
+PBOXLIB_HOME = $(HOME)/GIT/BoxLib
  
 #TOP defines the directory in which we will find Source, Exec, etc.
 TOP = ../..
@@ -10,22 +10,22 @@ TOP = ../..
 
 PRECISION = DOUBLE
 
-DEBUG	  = TRUE
 DEBUG	  = FALSE
+DEBUG	  = TRUE
 
 PROFILE   = TRUE
 PROFILE   = FALSE
 
 DIM       = 3
 
-COMP	  = Intel
-FCOMP     = Intel
+COMP	  = gcc
+FCOMP     = gfortran
 
 USE_MPI   = FALSE
 USE_MPI   = TRUE
 
-USE_FLCTS = FALSE
 USE_FLCTS = TRUE
+USE_FLCTS = FALSE
 
 USE_HYPRE = FALSE
 USE_METIS = FALSE
