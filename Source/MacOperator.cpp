@@ -371,8 +371,6 @@ mac_level_driver (Amr*            parent,
                   MultiFab*       u_mac,
                   MultiFab*       mac_phi)
 {
-    BL_PROFILE("mac_level_driver");
-
     MacOperator mac_op(parent,mac_bndry,dx);
 
     mac_op.setCoefficients(area,S,Density,dx);
@@ -511,8 +509,6 @@ mac_sync_driver (Amr*            parent,
                  MultiFab*       rho_half,
                  MultiFab*       mac_sync_phi)
 {
-    BL_PROFILE("mac_sync_driver");
-
     MacOperator mac_op(parent,mac_bndry,dx);
 
     mac_op.maxOrder(max_order);

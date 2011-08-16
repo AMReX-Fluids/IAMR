@@ -372,8 +372,6 @@ Projection::level_project (int             level,
                            int             iteration,
                            int             have_divu)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::level_project()");
-
     const Real strt_time = ParallelDescriptor::second();
 
     if ( verbose && ParallelDescriptor::IOProcessor() )
@@ -764,8 +762,6 @@ Projection::syncProject (int             c_lev,
                          int             crse_iteration,
                          int             crse_dt_ratio)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::syncProject()");
-
     const Real strt_time = ParallelDescriptor::second();
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
@@ -923,8 +919,6 @@ Projection::MLsyncProject (int             c_lev,
                            Real             cur_fine_pres_time,
                            Real            prev_fine_pres_time)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::MLsyncProject()");
-
     const Real strt_time = ParallelDescriptor::second();
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
@@ -1146,8 +1140,6 @@ Projection::initialVelocityProject (int  c_lev,
                                     Real cur_divu_time, 
                                     int  have_divu)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::initialVelocityProject()");
-
     const Real strt_time = ParallelDescriptor::second();
 
     int lev;
@@ -1346,8 +1338,6 @@ void
 Projection::initialPressureProject (int  c_lev)
                                     
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::initialPressureProject()");
-
     int lev;
     int f_lev = finest_level;
     if (verbose && ParallelDescriptor::IOProcessor()) 
@@ -1473,8 +1463,6 @@ Projection::initialSyncProject (int       c_lev,
                                 Real      strt_time,
                                 int       have_divu)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::initialSyncProject()");
-
     const Real stime = ParallelDescriptor::second();
 
     int lev;

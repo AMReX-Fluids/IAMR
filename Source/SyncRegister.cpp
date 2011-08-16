@@ -149,8 +149,6 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                             const Box&      domain,
                             MultiFab&       rhs) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copyPeriodic()");
-
     if (!geom.isAnyPeriodic()) return;
 
     Array<IntVect>       pshifts(27);
@@ -216,8 +214,6 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 void
 SyncRegister::multByBndryMask (MultiFab& rhs) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::multByBndryMask()");
-
     FabSetCopyDescriptor fscd;
     FabSetId             fsid[2*BL_SPACEDIM];
     std::list<SRRec>     srrec;
@@ -469,8 +465,6 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                                  const Box&      domain,
                                  const MultiFab& mf)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::incrementPeriodic()");
-
     if (!geom.isAnyPeriodic()) return;
 
     const BoxArray&        mfBA      = mf.boxArray();

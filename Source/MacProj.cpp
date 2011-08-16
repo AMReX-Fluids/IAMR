@@ -322,8 +322,6 @@ MacProj::mac_project (int             level,
                       const MultiFab& divu,
                       int             have_divu)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::mac_project()");
-
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_project at level " << level << '\n';
 
@@ -1247,8 +1245,6 @@ struct TURec
 void
 MacProj::test_umac_periodic (int level,MultiFab* u_mac)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::test_umac_periodic()");
-
     const Geometry& geom = parent->Geom(level);
 
     if (!geom.isAnyPeriodic()) return;
