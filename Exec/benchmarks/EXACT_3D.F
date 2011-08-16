@@ -1,6 +1,4 @@
-c
-c $Id: EXACT_3D.F,v 1.3 1999-03-25 23:37:42 sstanley Exp $
-c
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

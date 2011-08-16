@@ -1,8 +1,4 @@
 
-//
-// $Id: ViscBench2d.cpp,v 1.6 2002-12-19 19:03:35 almgren Exp $
-//
-
 #include <new>
 #include <iostream>
 #include <cstdio>

@@ -1,7 +1,4 @@
 
-c
-c $Id: PROB_3D.F,v 1.76 2011-01-16 00:46:11 aaspden Exp $
-c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

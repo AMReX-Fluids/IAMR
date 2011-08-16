@@ -1,6 +1,4 @@
-#
-# $Id: Make.package,v 1.2 2002-12-18 19:27:58 almgren Exp $
-#
+
 CEXE_sources += WritePlotFile.cpp ViscBench$(DIM)d.cpp
 CEXE_headers += 
 
