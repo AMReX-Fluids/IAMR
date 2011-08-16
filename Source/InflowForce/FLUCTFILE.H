@@ -1,5 +1,4 @@
-c
-c $Id: FLUCTFILE.H,v 1.3 2001-02-26 21:18:26 marc Exp $
+
 c
 c ::: Array dimension definitions which are always 3-d
 c

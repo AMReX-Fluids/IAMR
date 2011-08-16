@@ -1,6 +1,3 @@
-c
-c $Id: STATS_3D.F,v 1.3 2000-07-20 17:37:17 sstanley Exp $
-c
 
 #include "REAL.H"
 #include "CONSTANTS.H"

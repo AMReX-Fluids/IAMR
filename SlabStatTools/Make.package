@@ -1,6 +1,4 @@
-#
-# $Id: Make.package,v 1.1 2000-07-13 18:21:06 sstanley Exp $
-#
+
 CEXE_sources += SlabStatTools.cpp PackArrayArray.cpp
 CEXE_headers += SlabStatTools.H   PackArrayArray.H
 

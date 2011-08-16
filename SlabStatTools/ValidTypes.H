@@ -1,7 +1,4 @@
 
-//
-// $Id: ValidTypes.H,v 1.3 2001-10-17 17:53:33 lijewski Exp $
-//
 #ifndef _ValidType_
 #define _ValidType_
 

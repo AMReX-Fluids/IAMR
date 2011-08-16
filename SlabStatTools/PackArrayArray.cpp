@@ -1,9 +1,5 @@
-//
-// $Id: PackArrayArray.cpp,v 1.1 2000-07-13 18:21:06 sstanley Exp $
-//
 
 #include "PackArrayArray.H"
-
 
 // ================================================================
 // ===== Routine:  PackArrayArray(int outerDim, int innerDim, 

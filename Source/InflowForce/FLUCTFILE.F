@@ -1,6 +1,3 @@
-c
-c $Id: FLUCTFILE.F,v 1.17 2010-04-08 22:28:19 lijewski Exp $
-c
 
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT

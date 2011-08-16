@@ -1,6 +1,4 @@
-c
-c $Id: INFL_FORCE_3D.F,v 1.6 2010-04-07 23:02:19 lijewski Exp $
-c
+
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

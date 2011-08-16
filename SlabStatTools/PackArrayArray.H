@@ -1,6 +1,4 @@
-//
-// $Id: PackArrayArray.H,v 1.1 2000-07-13 18:21:06 sstanley Exp $
-//
+
 #ifndef _PackArrayArray__
 #define _PackArrayArray_
 

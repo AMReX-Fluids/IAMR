@@ -1,6 +1,3 @@
-#
-# $Id: Make.package,v 1.48 2007-04-17 17:28:48 lijewski Exp $
-#
 
 CEXE_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
 
