@@ -1,5 +1,5 @@
-#PBOXLIB_HOME defines the directory in which we will find the BoxLib directory
-PBOXLIB_HOME = $(HOME)/BoxLib
+#BOXLIB_HOME defines the directory in which we will find the BoxLib directory
+BOXLIB_HOME = $(HOME)/BoxLib
 
 #TOP defines the directory in which we will find Source, Exec, etc.
 TOP = ../..

@@ -1,5 +1,5 @@
 TOP            = ../../../Parallel
-PBOXLIB_HOME   = $(TOP)
+BOXLIB_HOME   = $(TOP)
 PRECISION      = DOUBLE
 DEBUG	       = TRUE
 PROFILE        = FALSE

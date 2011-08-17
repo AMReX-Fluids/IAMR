@@ -1,7 +1,8 @@
 
-PBOXLIB_HOME = ../..
+BOXLIB_HOME = /path/to/BoxLib
 
-TOP = $(PBOXLIB_HOME)
+TOP = ../..
+
 #
 # Variables for the user to set ...
 #
