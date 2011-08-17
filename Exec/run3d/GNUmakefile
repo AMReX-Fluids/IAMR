@@ -1,5 +1,5 @@
 #BOXLIB_HOME defines the directory in which we will find the BoxLib directory
-BOXLIB_HOME = $(HOME)/BoxLib
+BOXLIB_HOME = $(HOME)/GIT/BoxLib
 
 #TOP defines the directory in which we will find Source, Exec, etc.
 TOP = ../..
@@ -10,11 +10,8 @@ TOP = ../..
 
 PRECISION = DOUBLE
 
-DEBUG	  = TRUE
 DEBUG	  = FALSE
-
-PROFILE   = TRUE
-PROFILE   = FALSE
+DEBUG	  = TRUE
 
 DIM       = 3
 

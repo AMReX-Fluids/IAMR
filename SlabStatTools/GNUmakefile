@@ -7,7 +7,6 @@ TOP = ..
 #
 PRECISION     = DOUBLE
 DEBUG	      = TRUE
-PROFILE       = FALSE
 DIM	      = 3
 COMP          = KCC
 USE_MPI       = FALSE
@@ -96,19 +95,5 @@ endif
 ##################
 
 all: $(executable)
-
-ifneq ($(BUILD_INPLACE), TRUE)
-#
-# Build and install all libraries needed in an appropriate order.
-#
-libs:
-	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-
-#
-# Cleanup libraries.
-#
-cleanlibs:
-	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-endif
 
 include $(TOP)/mk/Make.rules

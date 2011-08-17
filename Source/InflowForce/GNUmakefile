@@ -2,7 +2,6 @@ TOP            = ../../../Parallel
 BOXLIB_HOME   = $(TOP)
 PRECISION      = DOUBLE
 DEBUG	       = TRUE
-PROFILE        = FALSE
 COMP           = Intel
 FCOMP          = Intel
 DIM    	       = 3
