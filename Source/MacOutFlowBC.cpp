@@ -38,7 +38,10 @@ bool MacOutFlowBC_MG::useCGbottomSolver;
 namespace
 {
     bool outflow_initialized    = false;
+
+#if (BL_SPACEDIM == 3)
     bool outflow_mg_initialized = false;
+#endif
 }
 
 MacOutFlowBC::MacOutFlowBC ()

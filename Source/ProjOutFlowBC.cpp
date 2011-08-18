@@ -24,7 +24,10 @@ const int* boxhi = (box).hiVect();
 namespace
 {
     bool outflowbc_initialized    = false;
+
+#if (BL_SPACEDIM == 3)
     bool outflowbc_mg_initialized = false;
+#endif
 }
 
 #if (BL_SPACEDIM == 3)
