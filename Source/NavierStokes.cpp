@@ -2978,12 +2978,10 @@ Real
 NavierStokes::volWgtSum (const std::string& name,
                          Real           time)
 {
-    Real        sum     = 0.0;
-    int         rz_flag = Geometry::IsRZ() ? 1 : 0;
-    const Real* dx      = geom.CellSize();
-    MultiFab*   mf      = derive(name,time,0);
-
-    BoxArray baf;
+    Real        sum = 0.0;
+    const Real* dx  = geom.CellSize();
+    MultiFab*   mf  = derive(name,time,0);
+    BoxArray    baf;
 
     if (level < parent->finestLevel())
     {
@@ -3012,9 +3010,10 @@ NavierStokes::volWgtSum (const std::string& name,
         const int*  hi  = grids[mfi.index()].hiVect();
 
 #if (BL_SPACEDIM == 2)
-        Real* rad = &radius[mfi.index()][0];
-        int irlo  = lo[0]-radius_grow;
-        int irhi  = hi[0]+radius_grow;
+        int   rz_flag = Geometry::IsRZ() ? 1 : 0;
+        Real* rad     = &radius[mfi.index()][0];
+        int   irlo    = lo[0]-radius_grow;
+        int   irhi    = hi[0]+radius_grow;
         //
         // Note that this routine will do a volume weighted sum of
         // whatever quantity is passed in, not strictly the "mass".
