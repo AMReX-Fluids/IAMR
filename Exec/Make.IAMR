@@ -24,7 +24,7 @@ include $(Ppack)
 INCLUDE_LOCATIONS += $(Plocs)
 VPATH_LOCATIONS   += $(Plocs)
 
-ifdef USE_F90_SOLVERS
+ifeq ($(USE_F90_SOLVERS),TRUE)
   DEFINES += -DMG_USE_F90_SOLVERS
 
   include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
@@ -35,6 +35,7 @@ ifdef USE_F90_SOLVERS
   INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
   VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
 
+  include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
   INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
   VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/F_BaseLib
 endif

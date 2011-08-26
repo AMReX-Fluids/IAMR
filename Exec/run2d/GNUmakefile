@@ -20,6 +20,9 @@ FCOMP       = gfortran
 USE_MPI     = TRUE
 USE_MPI     = FALSE
 
+USE_F90_SOLVERS = TRUE
+USE_F90_SOLVERS = FALSE
+
 # This allows GetForce to call a Fortran routine
 #DEFINES += -DGENGETFORCE
 
