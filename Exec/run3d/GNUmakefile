@@ -27,28 +27,13 @@ USE_FLCTS = FALSE
 USE_HYPRE = FALSE
 USE_METIS = FALSE
 
-USE_BGL   = FALSE
-
 USE_VELOCITY = TRUE
 USE_VELOCITY = FALSE
 
 EBASE     = amr
 
-ifeq ($(USE_BGL),TRUE)
-  CXXOPTF += -O2 -qmaxmem=-1
-  FOPTF   += -O2 -qmaxmem=-1
-  fOPTF   += -O2 -qmaxmem=-1
-endif
-
-USE_VAMPIRE = TRUE
-USE_VAMPIRE = FALSE
-
 ifeq (${USE_FLCTS}, TRUE)
   DEFINES += -DBL_DO_FLCT
-endif
-
-ifeq ($(USE_BGL),TRUE)
-  NEEDS_FLUSH_F := TRUE
 endif
 
 ifeq (${USE_VELOCITY}, TRUE)
