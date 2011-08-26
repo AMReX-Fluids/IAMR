@@ -1922,9 +1922,9 @@ c
 !$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
-               ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
-               vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-               wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+               ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+               vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+               wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
                uy = uycen(i,j,k)
                vy = vycen(i,j,k)
                wy = wycen(i,j,k)
@@ -1958,9 +1958,9 @@ c
 !$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
-               ux = cvmgt(uxhi(i,j,k),vxcen(i,j,k),fixuhi_x)
-               vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-               wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+               ux = merge(uxhi(i,j,k),vxcen(i,j,k),fixuhi_x)
+               vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+               wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
                uy = uycen(i,j,k)
                vy = vycen(i,j,k)
                wy = wycen(i,j,k)
@@ -1997,9 +1997,9 @@ c
                ux = uxcen(i,j,k)
                vx = vxcen(i,j,k)
                wx = wxcen(i,j,k)
-               uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-               vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
-               wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+               uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+               vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+               wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
                uz = uzcen(i,j,k)
                vz = vzcen(i,j,k)
                wz = wzcen(i,j,k)
@@ -2033,9 +2033,9 @@ c
                ux = uxcen(i,j,k)
                vx = vxcen(i,j,k)
                wx = wxcen(i,j,k)
-               uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-               vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
-               wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+               uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+               vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+               wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
                uz = uzcen(i,j,k)
                vz = vzcen(i,j,k)
                wz = vzcen(i,j,k)
@@ -2072,9 +2072,9 @@ c
                uy = uycen(i,j,k)
                vy = vycen(i,j,k)
                wy = wycen(i,j,k)
-               uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-               vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
-               wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+               uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+               vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+               wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2108,9 +2108,9 @@ c
                uy = uycen(i,j,k)
                vy = vycen(i,j,k)
                wy = wycen(i,j,k)
-               uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-               vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
-               wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+               uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+               vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+               wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2138,12 +2138,12 @@ c
          i = lo(1)
          j = lo(2)
          do k = lo(3),hi(3)
-            ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
-            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-            vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
-            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
             uz = uzcen(i,j,k)
             vz = vzcen(i,j,k)
             wz = wzcen(i,j,k)
@@ -2170,12 +2170,12 @@ c
          i = hi(1)
          j = lo(2)
          do k = lo(3),hi(3)
-            ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
-            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-            vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
-            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
             uz = uzcen(i,j,k)
             vz = vzcen(i,j,k)
             wz = wzcen(i,j,k)
@@ -2202,12 +2202,12 @@ c
          i = lo(1)
          j = hi(2)
          do k = lo(3),hi(3)
-            ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
-            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-            vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
-            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
             uz = uzcen(i,j,k)
             vz = vzcen(i,j,k)
             wz = wzcen(i,j,k)
@@ -2234,12 +2234,12 @@ c
          i = hi(1)
          j = hi(2)
          do k = lo(3),hi(3)
-            ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
-            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-            vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
-            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
             uz = uzcen(i,j,k)
             vz = vzcen(i,j,k)
             wz = vzcen(i,j,k)
@@ -2266,15 +2266,15 @@ c
          i = lo(1)
          k = lo(3)
          do j = lo(2),hi(2)
-            ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
-            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
             uy = uycen(i,j,k)
             vy = vycen(i,j,k)
             wy = wycen(i,j,k)
-            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
-            wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2298,15 +2298,15 @@ c
          i = hi(1)
          k = lo(3)
          do j = lo(2),hi(2)
-            ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
-            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
             uy = uycen(i,j,k)
             vy = vycen(i,j,k)
             wy = wycen(i,j,k)
-            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
-            wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2331,15 +2331,15 @@ c
          i = lo(1)
          k = hi(3)
          do j = lo(2),hi(2)
-            ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
-            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
             uy = uycen(i,j,k)
             vy = vycen(i,j,k)
             wy = wycen(i,j,k)
-            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
-            wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2363,15 +2363,15 @@ c
          i = hi(1)
          k = hi(3)
          do j = lo(2),hi(2)
-            ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
-            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
             uy = uycen(i,j,k)
             vy = vycen(i,j,k)
             wy = wycen(i,j,k)
-            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
-            wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2398,12 +2398,12 @@ c
             ux = uxcen(i,j,k)
             vx = vxcen(i,j,k)
             wx = wxcen(i,j,k)
-            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-            vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
-            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
-            wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2430,12 +2430,12 @@ c
             ux = vxcen(i,j,k)
             vx = vxcen(i,j,k)
             wx = wxcen(i,j,k)
-            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-            vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
-            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
-            wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2462,12 +2462,12 @@ c
             ux = vxcen(i,j,k)
             vx = vxcen(i,j,k)
             wx = wxcen(i,j,k)
-            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-            vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
-            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
-            wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2494,12 +2494,12 @@ c
             ux = uxcen(i,j,k)
             vx = vxcen(i,j,k)
             wx = wxcen(i,j,k)
-            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-            vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
-            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
-            wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2526,15 +2526,15 @@ c
          i = lo(1)
          j = lo(2)
          k = lo(3)
-         ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
-         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-         vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
-         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
-         wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+         ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2558,15 +2558,15 @@ c
          i = hi(1)
          j = lo(2)
          k = lo(3)
-         ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
-         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-         vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
-         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
-         wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+         ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2590,15 +2590,15 @@ c
          i = lo(1)
          j = hi(2)
          k = lo(3)
-         ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
-         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-         vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
-         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
-         wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+         ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2622,15 +2622,15 @@ c
          i = hi(1)
          j = hi(2)
          k = lo(3)
-         ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
-         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-         vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
-         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
-         wz = cvmgt(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+         ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2654,15 +2654,15 @@ c
          i = lo(1)
          j = lo(2)
          k = hi(3)
-         ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
-         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-         vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
-         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
-         wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+         ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2686,15 +2686,15 @@ c
          i = hi(1)
          j = lo(2)
          k = hi(3)
-         ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
-         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-         vy = cvmgt(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
-         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
-         wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+         ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2718,15 +2718,15 @@ c
          i = lo(1)
          j = hi(2)
          k = hi(3)
-         ux = cvmgt(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
-         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-         vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
-         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
-         wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+         ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2750,15 +2750,15 @@ c
          i = hi(1)
          j = hi(2)
          k = hi(3)
-         ux = cvmgt(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
-         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-         vy = cvmgt(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
-         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
-         wz = cvmgt(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+         ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
                xi1 = wy-vz
                xi2 = uz-wx
                xi3 = vx-uy
@@ -2933,8 +2933,8 @@ c
          i = lo(1)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
-               vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-               wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+               vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+               wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
                uy = uycen(i,j,k)
                wy = wycen(i,j,k)
                uz = uzcen(i,j,k)
@@ -2948,8 +2948,8 @@ c
          i = hi(1)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
-               vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-               wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+               vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+               wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
                uy = uycen(i,j,k)
                wy = wycen(i,j,k)
                uz = uzcen(i,j,k)
@@ -2965,8 +2965,8 @@ c
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
                wx = wxcen(i,j,k)
-               uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-               wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+               uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+               wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
                uz = uzcen(i,j,k)
                vz = vzcen(i,j,k)
                vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
@@ -2980,8 +2980,8 @@ c
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
                wx = wxcen(i,j,k)
-               uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-               wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+               uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+               wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
                uz = uzcen(i,j,k)
                vz = vzcen(i,j,k)
                vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
@@ -2997,8 +2997,8 @@ c
                wx = wxcen(i,j,k)
                uy = uycen(i,j,k)
                wy = wycen(i,j,k)
-               uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-               vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+               uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+               vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
                vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
             end do
          end do
@@ -3012,8 +3012,8 @@ c
                wx = wxcen(i,j,k)
                uy = uycen(i,j,k)
                wy = wycen(i,j,k)
-               uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-               vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+               uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+               vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
                vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
             end do
          end do
@@ -3025,10 +3025,10 @@ c
          i = lo(1)
          j = lo(2)
          do k = lo(3),hi(3)
-            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
             uz = uzcen(i,j,k)
             vz = vzcen(i,j,k)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
@@ -3039,10 +3039,10 @@ c
          i = hi(1)
          j = lo(2)
          do k = lo(3),hi(3)
-            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
             uz = uzcen(i,j,k)
             vz = vzcen(i,j,k)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
@@ -3053,10 +3053,10 @@ c
          i = lo(1)
          j = hi(2)
          do k = lo(3),hi(3)
-            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
             uz = uzcen(i,j,k)
             vz = vzcen(i,j,k)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
@@ -3067,10 +3067,10 @@ c
          i = hi(1)
          j = hi(2)
          do k = lo(3),hi(3)
-            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
             uz = uzcen(i,j,k)
             vz = vzcen(i,j,k)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
@@ -3081,12 +3081,12 @@ c
          i = lo(1)
          k = lo(3)
          do j = lo(2),hi(2)
-            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
             uy = uycen(i,j,k)
             wy = wycen(i,j,k)
-            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
       end if
@@ -3095,12 +3095,12 @@ c
          i = hi(1)
          k = lo(3)
          do j = lo(2),hi(2)
-            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
             uy = uycen(i,j,k)
             wy = wycen(i,j,k)
-            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
       end if
@@ -3109,12 +3109,12 @@ c
          i = lo(1)
          k = hi(3)
          do j = lo(2),hi(2)
-            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
             uy = uycen(i,j,k)
             wy = wycen(i,j,k)
-            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
       end if
@@ -3123,12 +3123,12 @@ c
          i = hi(1)
          k = hi(3)
          do j = lo(2),hi(2)
-            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
             uy = uycen(i,j,k)
             wy = wycen(i,j,k)
-            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
       end if
@@ -3139,10 +3139,10 @@ c
          do i = lo(1),hi(1)
             vx = vxcen(i,j,k)
             wx = wxcen(i,j,k)
-            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
       end if
@@ -3153,10 +3153,10 @@ c
          do i = lo(1),hi(1)
             vx = vxcen(i,j,k)
             wx = wxcen(i,j,k)
-            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
       end if
@@ -3167,10 +3167,10 @@ c
          do i = lo(1),hi(1)
             vx = vxcen(i,j,k)
             wx = wxcen(i,j,k)
-            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
       end if
@@ -3181,10 +3181,10 @@ c
          do i = lo(1),hi(1)
             vx = vxcen(i,j,k)
             wx = wxcen(i,j,k)
-            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
       end if
@@ -3196,12 +3196,12 @@ c
          i = lo(1)
          j = lo(2)
          k = lo(3)
-         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
@@ -3210,12 +3210,12 @@ c
          i = hi(1)
          j = lo(2)
          k = lo(3)
-         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
@@ -3224,12 +3224,12 @@ c
          i = lo(1)
          j = hi(2)
          k = lo(3)
-         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
@@ -3238,12 +3238,12 @@ c
          i = hi(1)
          j = hi(2)
          k = lo(3)
-         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
-         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
@@ -3252,12 +3252,12 @@ c
          i = lo(1)
          j = lo(2)
          k = hi(3)
-         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
@@ -3266,12 +3266,12 @@ c
          i = hi(1)
          j = lo(2)
          k = hi(3)
-         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
-         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
@@ -3280,12 +3280,12 @@ c
          i = lo(1)
          j = hi(2)
          k = hi(3)
-         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
@@ -3294,12 +3294,12 @@ c
          i = hi(1)
          j = hi(2)
          k = hi(3)
-         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
-         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
-         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
@@ -3447,7 +3447,7 @@ c
          j = lo(2)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
-               wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+               wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
                vz = vzcen(i,j,k)
                vort(i,j,k,1) = wy-vz
             end do
@@ -3458,7 +3458,7 @@ c
          j = hi(2)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
-               wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+               wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
                vz = vzcen(i,j,k)
                vort(i,j,k,1) = wy-vz
             end do
@@ -3470,7 +3470,7 @@ c
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                wy = wycen(i,j,k)
-               vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+               vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
                vort(i,j,k,1) = wy-vz
             end do
          end do
@@ -3481,7 +3481,7 @@ c
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                wy = wycen(i,j,k)
-               vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+               vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
                vort(i,j,k,1) = wy-vz
             end do
          end do
@@ -3493,7 +3493,7 @@ c
          i = lo(1)
          j = lo(2)
          do k = lo(3),hi(3)
-            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
             vz = vzcen(i,j,k)
             vort(i,j,k,1) = wy-vz
          end do
@@ -3503,7 +3503,7 @@ c
          i = hi(1)
          j = lo(2)
          do k = lo(3),hi(3)
-            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
             vz = vzcen(i,j,k)
             vort(i,j,k,1) = wy-vz
          end do
@@ -3513,7 +3513,7 @@ c
          i = lo(1)
          j = hi(2)
          do k = lo(3),hi(3)
-            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
             vz = vzcen(i,j,k)
             vort(i,j,k,1) = wy-vz
          end do
@@ -3523,7 +3523,7 @@ c
          i = hi(1)
          j = hi(2)
          do k = lo(3),hi(3)
-            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
             vz = vzcen(i,j,k)
             vort(i,j,k,1) = wy-vz
          end do
@@ -3534,7 +3534,7 @@ c
          k = lo(3)
          do j = lo(2),hi(2)
             wy = wycen(i,j,k)
-            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
             vort(i,j,k,1) = wy-vz
          end do
       end if
@@ -3544,7 +3544,7 @@ c
          k = lo(3)
          do j = lo(2),hi(2)
             wy = wycen(i,j,k)
-            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
             vort(i,j,k,1) = wy-vz
          end do
       end if
@@ -3554,7 +3554,7 @@ c
          k = hi(3)
          do j = lo(2),hi(2)
             wy = wycen(i,j,k)
-            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
             vort(i,j,k,1) = wy-vz
          end do
       end if
@@ -3564,7 +3564,7 @@ c
          k = hi(3)
          do j = lo(2),hi(2)
             wy = wycen(i,j,k)
-            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
             vort(i,j,k,1) = wy-vz
          end do
       end if
@@ -3573,8 +3573,8 @@ c
          j = lo(2)
          k = lo(3)
          do i = lo(1),hi(1)
-            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
             vort(i,j,k,1) = wy-vz
          end do
       end if
@@ -3583,8 +3583,8 @@ c
          j = hi(2)
          k = lo(3)
          do i = lo(1),hi(1)
-            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-            vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
             vort(i,j,k,1) = wy-vz
          end do
       end if
@@ -3593,8 +3593,8 @@ c
          j = lo(2)
          k = hi(3)
          do i = lo(1),hi(1)
-            wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
             vort(i,j,k,1) = wy-vz
          end do
       end if
@@ -3603,8 +3603,8 @@ c
          j = hi(2)
          k = hi(3)
          do i = lo(1),hi(1)
-            wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-            vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
             vort(i,j,k,1) = wy-vz
          end do
       end if
@@ -3616,8 +3616,8 @@ c
          i = lo(1)
          j = lo(2)
          k = lo(3)
-         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
          vort(i,j,k,1) = wy-vz
       end if
 
@@ -3626,8 +3626,8 @@ c
          i = hi(1)
          j = lo(2)
          k = lo(3)
-         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
          vort(i,j,k,1) = wy-vz
       end if
 
@@ -3636,8 +3636,8 @@ c
          i = lo(1)
          j = hi(2)
          k = lo(3)
-         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
          vort(i,j,k,1) = wy-vz
       end if
 
@@ -3646,8 +3646,8 @@ c
          i = hi(1)
          j = hi(2)
          k = lo(3)
-         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-         vz = cvmgt(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
          vort(i,j,k,1) = wy-vz
       end if
 
@@ -3656,8 +3656,8 @@ c
          i = lo(1)
          j = lo(2)
          k = hi(3)
-         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
          vort(i,j,k,1) = wy-vz
       end if
 
@@ -3666,8 +3666,8 @@ c
          i = hi(1)
          j = lo(2)
          k = hi(3)
-         wy = cvmgt(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
-         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
          vort(i,j,k,1) = wy-vz
       end if
 
@@ -3676,8 +3676,8 @@ c
          i = lo(1)
          j = hi(2)
          k = hi(3)
-         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
          vort(i,j,k,1) = wy-vz
       end if
 
@@ -3686,8 +3686,8 @@ c
          i = hi(1)
          j = hi(2)
          k = hi(3)
-         wy = cvmgt(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
-         vz = cvmgt(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
          vort(i,j,k,1) = wy-vz
       end if
 
@@ -3816,7 +3816,7 @@ c
          i = lo(1)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
-               wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+               wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
                uz = uzcen(i,j,k)
                vort(i,j,k,1) = uz-wx
             end do
@@ -3827,7 +3827,7 @@ c
          i = hi(1)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
-               wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+               wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
                uz = uzcen(i,j,k)
                vort(i,j,k,1) = uz-wx
             end do
@@ -3861,7 +3861,7 @@ c
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                wx = wxcen(i,j,k)
-               uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+               uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
                vort(i,j,k,1) = uz-wx
             end do
          end do
@@ -3872,7 +3872,7 @@ c
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                wx = wxcen(i,j,k)
-               uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+               uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
                vort(i,j,k,1) = uz-wx
             end do
          end do
@@ -3884,7 +3884,7 @@ c
          i = lo(1)
          j = lo(2)
          do k = lo(3),hi(3)
-            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
             uz = uzcen(i,j,k)
             vort(i,j,k,1) = uz-wx
          end do
@@ -3894,7 +3894,7 @@ c
          i = hi(1)
          j = lo(2)
          do k = lo(3),hi(3)
-            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
             uz = uzcen(i,j,k)
             vort(i,j,k,1) = uz-wx
          end do
@@ -3904,7 +3904,7 @@ c
          i = lo(1)
          j = hi(2)
          do k = lo(3),hi(3)
-            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
             uz = uzcen(i,j,k)
             vort(i,j,k,1) = uz-wx
          end do
@@ -3914,7 +3914,7 @@ c
          i = hi(1)
          j = hi(2)
          do k = lo(3),hi(3)
-            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
             uz = uzcen(i,j,k)
             vort(i,j,k,1) = uz-wx
          end do
@@ -3924,8 +3924,8 @@ c
          i = lo(1)
          k = lo(3)
          do j = lo(2),hi(2)
-            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
             vort(i,j,k,1) = uz-wx
          end do
       end if
@@ -3934,8 +3934,8 @@ c
          i = hi(1)
          k = lo(3)
          do j = lo(2),hi(2)
-            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
             vort(i,j,k,1) = uz-wx
          end do
       end if
@@ -3944,8 +3944,8 @@ c
          i = lo(1)
          k = hi(3)
          do j = lo(2),hi(2)
-            wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
             vort(i,j,k,1) = uz-wx
          end do
       end if
@@ -3954,8 +3954,8 @@ c
          i = hi(1)
          k = hi(3)
          do j = lo(2),hi(2)
-            wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
             vort(i,j,k,1) = uz-wx
          end do
       end if
@@ -3965,7 +3965,7 @@ c
          k = lo(3)
          do i = lo(1),hi(1)
             wx = wxcen(i,j,k)
-            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
             vort(i,j,k,1) = uz-wx
          end do
       end if
@@ -3975,7 +3975,7 @@ c
          k = lo(3)
          do i = lo(1),hi(1)
             wx = wxcen(i,j,k)
-            uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
             vort(i,j,k,1) = uz-wx
          end do
       end if
@@ -3985,7 +3985,7 @@ c
          k = hi(3)
          do i = lo(1),hi(1)
             wx = wxcen(i,j,k)
-            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
             vort(i,j,k,1) = uz-wx
          end do
       end if
@@ -3995,7 +3995,7 @@ c
          k = hi(3)
          do i = lo(1),hi(1)
             wx = wxcen(i,j,k)
-            uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
             vort(i,j,k,1) = uz-wx
          end do
       end if
@@ -4007,8 +4007,8 @@ c
          i = lo(1)
          j = lo(2)
          k = lo(3)
-         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
          vort(i,j,k,1) = uz-wx
       end if
 
@@ -4017,8 +4017,8 @@ c
          i = hi(1)
          j = lo(2)
          k = lo(3)
-         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
          vort(i,j,k,1) = uz-wx
       end if
 
@@ -4027,8 +4027,8 @@ c
          i = lo(1)
          j = hi(2)
          k = lo(3)
-         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
          vort(i,j,k,1) = uz-wx
       end if
 
@@ -4037,8 +4037,8 @@ c
          i = hi(1)
          j = hi(2)
          k = lo(3)
-         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-         uz = cvmgt(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
          vort(i,j,k,1) = uz-wx
       end if
 
@@ -4047,8 +4047,8 @@ c
          i = lo(1)
          j = lo(2)
          k = hi(3)
-         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
          vort(i,j,k,1) = uz-wx
       end if
 
@@ -4057,8 +4057,8 @@ c
          i = hi(1)
          j = lo(2)
          k = hi(3)
-         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
          vort(i,j,k,1) = uz-wx
       end if
 
@@ -4067,8 +4067,8 @@ c
          i = lo(1)
          j = hi(2)
          k = hi(3)
-         wx = cvmgt(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
-         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
          vort(i,j,k,1) = uz-wx
       end if
 
@@ -4077,8 +4077,8 @@ c
          i = hi(1)
          j = hi(2)
          k = hi(3)
-         wx = cvmgt(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
-         uz = cvmgt(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
          vort(i,j,k,1) = uz-wx
       end if
 
@@ -4207,7 +4207,7 @@ c
          i = lo(1)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
-               vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+               vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
                uy = uycen(i,j,k)
                vort(i,j,k,1) = vx-uy
             end do
@@ -4218,7 +4218,7 @@ c
          i = hi(1)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
-               vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+               vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
                uy = uycen(i,j,k)
                vort(i,j,k,1) = vx-uy
             end do
@@ -4230,7 +4230,7 @@ c
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
-               uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+               uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
                vort(i,j,k,1) = vx-uy
             end do
          end do
@@ -4241,7 +4241,7 @@ c
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                vx = vxcen(i,j,k)
-               uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+               uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
                vort(i,j,k,1) = vx-uy
             end do
          end do
@@ -4275,8 +4275,8 @@ c
          i = lo(1)
          j = lo(2)
          do k = lo(3),hi(3)
-            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
             vort(i,j,k,1) = vx-uy
          end do
       end if
@@ -4285,8 +4285,8 @@ c
          i = hi(1)
          j = lo(2)
          do k = lo(3),hi(3)
-            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
             vort(i,j,k,1) = vx-uy
          end do
       end if
@@ -4295,8 +4295,8 @@ c
          i = lo(1)
          j = hi(2)
          do k = lo(3),hi(3)
-            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
             vort(i,j,k,1) = vx-uy
          end do
       end if
@@ -4305,8 +4305,8 @@ c
          i = hi(1)
          j = hi(2)
          do k = lo(3),hi(3)
-            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
             vort(i,j,k,1) = vx-uy
          end do
       end if
@@ -4315,7 +4315,7 @@ c
          i = lo(1)
          k = lo(3)
          do j = lo(2),hi(2)
-            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
             uy = uycen(i,j,k)
             vort(i,j,k,1) = vx-uy
          end do
@@ -4325,7 +4325,7 @@ c
          i = hi(1)
          k = lo(3)
          do j = lo(2),hi(2)
-            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
             uy = uycen(i,j,k)
             vort(i,j,k,1) = vx-uy
          end do
@@ -4335,7 +4335,7 @@ c
          i = lo(1)
          k = hi(3)
          do j = lo(2),hi(2)
-            vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
             uy = uycen(i,j,k)
             vort(i,j,k,1) = vx-uy
          end do
@@ -4345,7 +4345,7 @@ c
          i = hi(1)
          k = hi(3)
          do j = lo(2),hi(2)
-            vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
             uy = uycen(i,j,k)
             vort(i,j,k,1) = vx-uy
          end do
@@ -4356,7 +4356,7 @@ c
          k = lo(3)
          do i = lo(1),hi(1)
             vx = vxcen(i,j,k)
-            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
             vort(i,j,k,1) = vx-uy
          end do
       end if
@@ -4366,7 +4366,7 @@ c
          k = lo(3)
          do i = lo(1),hi(1)
             vx = vxcen(i,j,k)
-            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
             vort(i,j,k,1) = vx-uy
          end do
       end if
@@ -4376,7 +4376,7 @@ c
          k = hi(3)
          do i = lo(1),hi(1)
             vx = vxcen(i,j,k)
-            uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
             vort(i,j,k,1) = vx-uy
          end do
       end if
@@ -4386,7 +4386,7 @@ c
          k = hi(3)
          do i = lo(1),hi(1)
             vx = vxcen(i,j,k)
-            uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
             vort(i,j,k,1) = vx-uy
          end do
       end if
@@ -4398,8 +4398,8 @@ c
          i = lo(1)
          j = lo(2)
          k = lo(3)
-         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
          vort(i,j,k,1) = vx-uy
       end if
 
@@ -4408,8 +4408,8 @@ c
          i = hi(1)
          j = lo(2)
          k = lo(3)
-         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
          vort(i,j,k,1) = vx-uy
       end if
 
@@ -4418,8 +4418,8 @@ c
          i = lo(1)
          j = hi(2)
          k = lo(3)
-         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
          vort(i,j,k,1) = vx-uy
       end if
 
@@ -4428,8 +4428,8 @@ c
          i = hi(1)
          j = hi(2)
          k = lo(3)
-         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
          vort(i,j,k,1) = vx-uy
       end if
 
@@ -4438,8 +4438,8 @@ c
          i = lo(1)
          j = lo(2)
          k = hi(3)
-         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
          vort(i,j,k,1) = vx-uy
       end if
 
@@ -4448,8 +4448,8 @@ c
          i = hi(1)
          j = lo(2)
          k = hi(3)
-         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-         uy = cvmgt(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
          vort(i,j,k,1) = vx-uy
       end if
 
@@ -4458,8 +4458,8 @@ c
          i = lo(1)
          j = hi(2)
          k = hi(3)
-         vx = cvmgt(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
-         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
          vort(i,j,k,1) = vx-uy
       end if
 
@@ -4468,8 +4468,8 @@ c
          i = hi(1)
          j = hi(2)
          k = hi(3)
-         vx = cvmgt(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
-         uy = cvmgt(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
          vort(i,j,k,1) = vx-uy
       end if
 

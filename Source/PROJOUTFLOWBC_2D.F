@@ -482,7 +482,7 @@ c at edges -- both the rhs and the operator.
       do i = istart, iend
          factor = one
          testx  = (i .eq. lo(1) .or. i .eq. hi(1)+1)
-         factor = cvmgt(factor*half,factor,testx)
+         factor = merge(factor*half,factor,testx)
          z(i) = r(i) 
          rho    = rho + factor * z(i) * r(i) 
          norm0 = max(norm0,abs(r(i)))
@@ -519,7 +519,7 @@ c at edges -- both the rhs and the operator.
       do i = istart, iend 
          factor = one
          testx  = (i .eq. lo(1) .or. i .eq. hi(1)+1)
-         factor = cvmgt(factor*half,factor,testx)
+         factor = merge(factor*half,factor,testx)
          alpha  = alpha + factor*p(i)*w(i) 
       enddo
       
@@ -536,7 +536,7 @@ c at edges -- both the rhs and the operator.
       do i = istart, iend 
          factor = one
          testx  = (i .eq. lo(1) .or. i .eq. hi(1)+1)
-         factor = cvmgt(factor*half,factor,testx)
+         factor = merge(factor*half,factor,testx)
          x(i) = x(i) + alpha * p(i)
          r(i) = r(i) - alpha * w(i)
          z(i) = r(i) 
@@ -1239,7 +1239,7 @@ c        node wide in i-direction.
 12    continue
       call tridag(a,bb,c,u,z,n)
       den=one+z(1)+beta*z(n)/gamma
-      fact=cvmgt(zero,(x(1)+beta*x(n)/gamma)/den,den.eq.zero)
+      fact=merge(zero,(x(1)+beta*x(n)/gamma)/den,den.eq.zero)
       do 13 i=1,n
         x(i)=x(i)-fact*z(i)
 13    continue

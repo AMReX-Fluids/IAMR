@@ -464,11 +464,11 @@ c
                vel(i,j,k,1) = x_vel
                vel(i,j,k,2) = y_vel
                vel(i,j,k,3) = z_vel
-               scal(i,j,k,1) = cvmgt(denfact,one,dist.lt.radblob)
+               scal(i,j,k,1) = merge(denfact,one,dist.lt.radblob)
                do n = 2,nscal-1
                   scal(i,j,k,n) = one
                end do                  
-               scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+               scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
    	    end do
          end do
       end do
@@ -545,7 +545,7 @@ c
                do n = 2,nscal-1
                   scal(i,j,k,n) = one
                end do                  
-	       scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+	       scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
 
 	    end do
          end do
@@ -697,17 +697,17 @@ c              umagin = .5*r - 4*r**3
 c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
                umagin = velfact * (one - a*(r - r0)**2)
                umagout = velfact * b/max(radvort,r)
-               absu = cvmgp(umagout,umagin,r - radvort)
+               absu = merge(umagout,umagin,(r - radvort) .ge. 0.0d0)
                sinth = y/max(r,small*radvort)
                costh = x/max(r,small*radvort)
                vel(i,j,k,1) = -absu*sinth
                vel(i,j,k,2) = absu*costh
                vel(i,j,k,3) = zero
-               scal(i,j,k,1) = cvmgt(denfact,one,r.lt.radblob)
+               scal(i,j,k,1) = merge(denfact,one,r.lt.radblob)
                do n = 2,nscal-1
                   scal(i,j,k,n) = one
                end do                  
-               scal(i,j,k,nscal) = cvmgt(one,zero,r.lt.radblob)
+               scal(i,j,k,nscal) = merge(one,zero,r.lt.radblob)
 	    end do
          end do
       end do
@@ -759,7 +759,7 @@ c
 
                x = xlo(1) + hx*(float(i-lo(1)) + half)
   	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
-	       scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+	       scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
             end do
          end do
       end do
@@ -813,7 +813,7 @@ c
                end do
                   
   	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
-	       scal(i,j,k,nscal) = cvmgt(one,zero,dist.lt.radblob)
+	       scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
 	    end do
          end do
       end do
@@ -879,7 +879,7 @@ c     ::::: local variables
                vel(i,j,k,3) = z_vel
                scal(i,j,k,1) = one/denfact + (one - one/denfact)
      &              *half*(one + tanh(40.*(dist - radblob)))
-               scal(i,j,k,2) = cvmgt(one,zero,dist.lt.radblob)
+               scal(i,j,k,2) = merge(one,zero,dist.lt.radblob)
                do n = 3,nscal-1
                   scal(i,j,k,n) = one
                end do
@@ -996,7 +996,7 @@ c
                vel(i,j,k,2) = zero
                vel(i,j,k,3) = zero
                scal(i,j,k,1) = rmid*(one+lamr*tanh(two*z/delta0))
-               scal(i,j,k,2) = cvmgt(one,zero,z.gt.zero)
+               scal(i,j,k,2) = merge(one,zero,z.gt.zero)
             enddo
          enddo
          enddo
@@ -1114,7 +1114,7 @@ c     ::: -----------------------------------------------------------
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               tag(i,j,k) = cvmgt(set,tag(i,j,k),rho(i,j,k,1).lt.denerr)
+               tag(i,j,k) = merge(set,tag(i,j,k),rho(i,j,k,1).lt.denerr)
             end do
          end do
       end do
@@ -1167,7 +1167,7 @@ c     probtype = SPIN
         do k = lo(3), hi(3)
            do j = lo(2), hi(2)
               do i = lo(1), hi(1)
-                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+                 tag(i,j,k) = merge(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
               end do
            end do
         end do
@@ -1178,7 +1178,7 @@ c     probtype = BUBBLE
         do k = lo(3), hi(3)
            do j = lo(2), hi(2)
               do i = lo(1), hi(1)
-                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+                 tag(i,j,k) = merge(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
               end do
            end do
         end do
@@ -1189,7 +1189,7 @@ c     probtype = VORTEX IN A BOX
         do k = lo(3), hi(3)
            do j = lo(2), hi(2)
               do i = lo(1), hi(1)
-                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+                 tag(i,j,k) = merge(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
               end do
            end do
         end do
@@ -1200,7 +1200,7 @@ c     probtype = CHANNEL
         do k = lo(3), hi(3)
            do j = lo(2), hi(2)
               do i = lo(1), hi(1)
-                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+                 tag(i,j,k) = merge(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
               end do
            end do
         end do
@@ -1211,7 +1211,7 @@ c     probtype = PERIODIC SHEAR LAYER
         do k = lo(3), hi(3)
            do j = lo(2), hi(2)
               do i = lo(1), hi(1)
-                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+                 tag(i,j,k) = merge(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
               end do
            end do
         end do
@@ -1222,7 +1222,7 @@ c     probtype = HOT SPOT
         do k = lo(3), hi(3)
            do j = lo(2), hi(2)
               do i = lo(1), hi(1)
-                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+                 tag(i,j,k) = merge(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
               end do
            end do
         end do
@@ -1239,7 +1239,7 @@ c     probtype = HOT SPOT
              do j = lo(2), hi(2)
              do i = lo(1), hi(1)
                   x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
-                  tag(i,j,k) = cvmgt(set,clear,abs(z).lt.zlev1.and.x.lt.xlev1)
+                  tag(i,j,k) = merge(set,clear,abs(z).lt.zlev1.and.x.lt.xlev1)
              enddo
              enddo
           enddo
@@ -1252,7 +1252,7 @@ c     probtype = HOT SPOT
             ay = abs(adv(i,j+1,k,1) - adv(i,j-1,k,1))
             az = abs(adv(i,j,k+1,1) - adv(i,j,k-1,1))
             aerr = max(ax,ay,az)
-            tag(i,j,k) = cvmgt(set,tag(i,j,k),aerr.gt.adverr.and. x.lt.xlev1)
+            tag(i,j,k) = merge(set,tag(i,j,k),aerr.gt.adverr.and. x.lt.xlev1)
           enddo
           enddo
           enddo
@@ -1264,7 +1264,7 @@ c     probtype = VISCOUS BENCHMARK
         do k = lo(3), hi(3)
            do j = lo(2), hi(2)
               do i = lo(1), hi(1)
-                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+                 tag(i,j,k) = merge(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
               end do
            end do
         end do
@@ -1275,7 +1275,7 @@ c     probtype = VISCOUS BENCHMARK
         do k = lo(3), hi(3)
            do j = lo(2), hi(2)
               do i = lo(1), hi(1)
-                 tag(i,j,k) = cvmgt(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+                 tag(i,j,k) = merge(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
               end do
            end do
         end do
@@ -1350,7 +1350,7 @@ c         ::::: refine around entire hot spot
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
-                   tag(i,j,k) = cvmgt(set,tag(i,j,k),temperature(i,j,k,1).gt.temperr)
+                   tag(i,j,k) = merge(set,tag(i,j,k),temperature(i,j,k,1).gt.temperr)
                 end do
              end do
           end do
@@ -1363,7 +1363,7 @@ c         ::::: refine where there is temperature gradient
                    ay = abs(temperature(i,j+1,k,1) - temperature(i,j-1,k,1))
                    az = abs(temperature(i,j,k+1,1) - temperature(i,j,k-1,1))
                    aerr = max(ax,ay,az)
-                   tag(i,j,k) = cvmgt(set,tag(i,j,k),aerr.gt.bubgrad)
+                   tag(i,j,k) = merge(set,tag(i,j,k),aerr.gt.bubgrad)
                 end do
              end do
           end do
@@ -1432,7 +1432,7 @@ c     probtype = BUBBLE
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  tag(i,j,k) = merge(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
                end do
             end do
          end do
@@ -1443,7 +1443,7 @@ c     probtype = VORTEX IN A BOX
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  tag(i,j,k) = merge(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
                end do
             end do
          end do
@@ -1454,7 +1454,7 @@ c     probtype = CHANNEL
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  tag(i,j,k) = merge(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
                end do
             end do
          end do
@@ -1465,7 +1465,7 @@ c     probtype = PERIODIC SHEAR LAYER
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  tag(i,j,k) = merge(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
                end do
             end do
          end do
@@ -1476,7 +1476,7 @@ c     probtype = HOT SPOT
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  tag(i,j,k) = merge(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
                end do
             end do
          end do
@@ -1486,7 +1486,7 @@ c     probtype = EULER
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),
+                  tag(i,j,k) = merge(set,tag(i,j,k),
      &                   abs(dx(1)*vort(i,j,k,1)).gt.vorterr)
                end do
             end do
@@ -1503,7 +1503,7 @@ c     probtype = VISCOUS BENCHMARK
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  tag(i,j,k) = merge(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
                end do
             end do
          end do
@@ -1513,7 +1513,7 @@ c     probtype = VISCOUS BENCHMARK
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tag(i,j,k) = cvmgt(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+                  tag(i,j,k) = merge(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
                end do
             end do
          end do
@@ -1775,7 +1775,7 @@ c ::: -----------------------------------------------------------
             do j = lo(2), hi(2)
                y = xlo(2)+hy*(float(j-lo(2))+half)
                ypert = magwif*sin(freq(1)*time)*sin(constn*y)
-               adv(i,j,k) = cvmgt(one,zero,(z-ypert).gt.zero)
+               adv(i,j,k) = merge(one,zero,(z-ypert).gt.zero)
             enddo
             enddo
          enddo
@@ -1785,7 +1785,7 @@ c ::: -----------------------------------------------------------
          do i = domhi(1)+1, hi(1)
             do k = lo(3), hi(3)
             do j = lo(2), hi(2)
-               adv(i,j,k) = cvmgt(one,zero,z.gt.zero)
+               adv(i,j,k) = merge(one,zero,z.gt.zero)
             enddo
             enddo
          enddo
@@ -1796,7 +1796,7 @@ c ::: -----------------------------------------------------------
             do k = lo(3), hi(3)
             z = xlo(3) + hz*(float(k-lo(3)) + half)
             do i = lo(1), hi(1)
-               adv(i,j,k) =  cvmgt(one,zero,z.gt.zero)
+               adv(i,j,k) =  merge(one,zero,z.gt.zero)
             enddo
             enddo
          enddo
@@ -1807,7 +1807,7 @@ c ::: -----------------------------------------------------------
             do k = lo(3), hi(3)
             z = xlo(3) + hz*(float(k-lo(3)) + half)
             do i = lo(1), hi(1)
-               adv(i,j,k) =  cvmgt(one,zero,z.gt.zero)
+               adv(i,j,k) =  merge(one,zero,z.gt.zero)
             enddo
             enddo
          enddo

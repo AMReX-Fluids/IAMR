@@ -271,11 +271,11 @@ c
             vel(i,j,1) = x_vel
             vel(i,j,2) = y_vel
             scal(i,j,1) = one + half*(denfact-one)*(one-tanh(30.*(dist-radblob)))
-c           scal(i,j,1) = cvmgt(denfact,one,dist.lt.radblob)
+c           scal(i,j,1) = merge(denfact,one,dist.lt.radblob)
             do n = 2,nscal-1
                scal(i,j,n) = one
             end do                  
-            scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
+            scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
 	 end do
       end do
 
@@ -341,7 +341,7 @@ c
                do n = 2,nscal-1
                   scal(i,j,n) = one
                end do                  
-	       scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
+	       scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
 
 	    end do
          end do
@@ -455,16 +455,16 @@ c              umagin = .5*r - 4*r**3
 c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
                umagin = velfact * (one - a*(r - r0)**2)
                umagout = velfact * b/max(radvort,r)
-               absu = cvmgp(umagout,umagin,r - radvort)
+               absu = merge(umagout,umagin,(r - radvort) .ge. 0.0d0)
                sinth = y/max(r,small*radvort)
                costh = x/max(r,small*radvort)
                vel(i,j,1) = -absu*sinth
                vel(i,j,2) = absu*costh
-               scal(i,j,1) = cvmgt(denfact,one,r.lt.radblob)
+               scal(i,j,1) = merge(denfact,one,r.lt.radblob)
                do n = 2,nscal-1
                   scal(i,j,n) = one
                end do                  
-               scal(i,j,nscal) = cvmgt(one,zero,r.lt.radblob)
+               scal(i,j,nscal) = merge(one,zero,r.lt.radblob)
 	    end do
          end do
 
@@ -511,7 +511,7 @@ c
 
             x = xlo(1) + hx*(float(i-lo(1)) + half)
   	    dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-	    scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
+	    scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
 
          end do
       end do
@@ -561,7 +561,7 @@ c
                end do
                   
   	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-	       scal(i,j,nscal) = cvmgt(one,zero,dist.lt.radblob)
+	       scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
 	    end do
          end do
 
@@ -616,7 +616,7 @@ c     ::::: local variables
             vel(i,j,2) = y_vel
             scal(i,j,1) = one/denfact + (one - one/denfact)
      &           *half*(one + tanh(40.*(dist - radblob)))
-            scal(i,j,2) = cvmgt(one,zero,dist.lt.radblob)
+            scal(i,j,2) = merge(one,zero,dist.lt.radblob)
             do n = 3,nscal-1
                scal(i,j,n) = one
             end do
@@ -762,7 +762,7 @@ c ::: -----------------------------------------------------------
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
-            tag(i,j) = cvmgt(set,tag(i,j),rho(i,j,1).lt.denerr)
+            tag(i,j) = merge(set,tag(i,j),rho(i,j,1).lt.denerr)
 	 end do
       end do
 
@@ -1111,7 +1111,7 @@ c     probtype = SPIN
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1121,7 +1121,7 @@ c     probtype = BUBBLE
         if (level .eq. 0) then
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+                tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
              end do
           end do
         end if
@@ -1131,7 +1131,7 @@ c     probtype = VORTEX IN A BOX
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1140,7 +1140,7 @@ c     probtype = CHANNEL
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1149,7 +1149,7 @@ c     probtype = PERIODIC SHEAR LAYER
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1158,7 +1158,7 @@ c     probtype = HOT SPOT
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1168,7 +1168,7 @@ c     probtype = VISCOUS BENCHMARK
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1177,7 +1177,7 @@ c     probtype = RT
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1211,7 +1211,7 @@ c     probtype = SPIN
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1221,7 +1221,7 @@ c     probtype = BUBBLE
         if (level .eq. 0) then
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+                tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
              end do
           end do
         end if
@@ -1231,7 +1231,7 @@ c     probtype = VORTEX IN A BOX
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1240,7 +1240,7 @@ c     probtype = CHANNEL
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1249,7 +1249,7 @@ c     probtype = PERIODIC SHEAR LAYER
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1258,7 +1258,7 @@ c     probtype = HOT SPOT
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1268,7 +1268,7 @@ c     probtype = VISCOUS BENCHMARK
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1277,7 +1277,7 @@ c     probtype = RT
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),adv(i,j,1).gt.adverr)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
            end do
         end do
 
@@ -1350,7 +1350,7 @@ c     probtype = HOT SPOT
 c         ::::: refine around entire hot spot
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                tag(i,j) = cvmgt(set,tag(i,j),temperature(i,j,1).gt.temperr)
+                tag(i,j) = merge(set,tag(i,j),temperature(i,j,1).gt.temperr)
              end do
           end do
         else
@@ -1360,7 +1360,7 @@ c         ::::: refine where there is temperature gradient
                 ax = abs(temperature(i+1,j,1) - temperature(i-1,j,1))
                 ay = abs(temperature(i,j+1,1) - temperature(i,j-1,1))
                 aerr = max(ax,ay)
-                tag(i,j) = cvmgt(set,tag(i,j),aerr.gt.bubgrad)
+                tag(i,j) = merge(set,tag(i,j),aerr.gt.bubgrad)
              end do
           end do
         end if
@@ -1427,7 +1427,7 @@ c     probtype = BUBBLE
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr*2.d0**level)
+              tag(i,j) = merge(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr*2.d0**level)
            end do
         end do
 
@@ -1436,7 +1436,7 @@ c     probtype = VORTEX IN A BOX
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+              tag(i,j) = merge(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
            end do
         end do
 
@@ -1445,7 +1445,7 @@ c     probtype = CHANNEL
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+              tag(i,j) = merge(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
            end do
         end do
 
@@ -1454,7 +1454,7 @@ c     probtype = PERIODIC SHEAR LAYER
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+              tag(i,j) = merge(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
            end do
         end do
 
@@ -1463,7 +1463,7 @@ c     probtype = HOT SPOT
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+              tag(i,j) = merge(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
            end do
         end do
 
@@ -1471,7 +1471,7 @@ c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 7) then
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+              tag(i,j) = merge(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
            end do
         end do
 
@@ -1479,7 +1479,7 @@ c     probtype = RT
       else if (probtype .eq. 8) then
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              tag(i,j) = cvmgt(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+              tag(i,j) = merge(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
            end do
         end do
 

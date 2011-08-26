@@ -844,8 +844,8 @@ c at edges -- both the rhs and the operator.
             factor = one
             testx  = (i .eq. lo(1) .or. i .eq. hi(1)+1)
             testy  = (j .eq. lo(2) .or. j .eq. hi(2)+1)
-            factor = cvmgt(factor*half,factor,testx)
-            factor = cvmgt(factor*half,factor,testy)
+            factor = merge(factor*half,factor,testx)
+            factor = merge(factor*half,factor,testy)
             z(i,j) = r(i,j) 
             rho    = rho + factor * z(i,j) * r(i,j) 
             norm0 = max(norm0,abs(r(i,j)))
@@ -891,8 +891,8 @@ c at edges -- both the rhs and the operator.
             factor = one
             testx  = (i .eq. lo(1) .or. i .eq. hi(1)+1)
             testy  = (j .eq. lo(2) .or. j .eq. hi(2)+1)
-            factor = cvmgt(factor*half,factor,testx)
-            factor = cvmgt(factor*half,factor,testy)
+            factor = merge(factor*half,factor,testx)
+            factor = merge(factor*half,factor,testy)
             alpha  = alpha + factor*p(i,j)*w(i,j) 
         enddo
       enddo
@@ -912,8 +912,8 @@ c at edges -- both the rhs and the operator.
             factor = one
             testx  = (i .eq. lo(1) .or. i .eq. hi(1)+1)
             testy  = (j .eq. lo(2) .or. j .eq. hi(2)+1)
-            factor = cvmgt(factor*half,factor,testx)
-            factor = cvmgt(factor*half,factor,testy)
+            factor = merge(factor*half,factor,testx)
+            factor = merge(factor*half,factor,testy)
             x(i,j) = x(i,j) + alpha * p(i,j)
             r(i,j) = r(i,j) - alpha * w(i,j)
             z(i,j) = r(i,j) 
