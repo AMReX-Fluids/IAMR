@@ -2,7 +2,6 @@
 
   probtype = 7
   vorterr  = .25
-  vorterr  = 2500.
   adverr  = .01
 
  /
