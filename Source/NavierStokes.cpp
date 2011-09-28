@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <vector>
-#include <cstdio>
 #include <cmath>
 
 #include <Geometry.H>
@@ -3260,9 +3259,11 @@ NavierStokes::sum_turbulent_quantities ()
 
         const int steps = parent->levelSteps(0);
         FILE *file;
-        char filename[256];
-        sprintf(filename,"TurbData/TurbData_%04d.dat",steps);
-        file = fopen(filename,"w");
+
+        std::string filename = BoxLib::Concatenate("TurbData/TurbData_", steps, 4);
+        filename += ".dat";
+
+        file = fopen(filename.c_str(),"w");
         for (int k=0; k<ksize; k++)
         {
             fprintf(file,"%e ",dx[2]*(0.5+(double)k));
@@ -3390,7 +3391,7 @@ NavierStokes::sum_jet_quantities ()
 
         const int steps = parent->levelSteps(0);
         FILE *file;
-        char filename[256];
+        std::string filename;
 
 	Array<Real> r(rsize);
 	for (int i=0; i<rsize; i++)
@@ -3400,21 +3401,29 @@ NavierStokes::sum_jet_quantities ()
 	    z[k] = dx[2]*(0.5+(double)k);
 
 #if 0
-	sprintf(filename,"JetData/JetData_%04d_r.dat",steps);
-	file = fopen(filename,"w");
+        filename  = BoxLib::Concatenate("JetData/JetData_", steps, 4);
+        filename += "_r.dat";
+
+	file = fopen(filename.c_str(),"w");
 	for (int i=0; i<rsize; i++)
 	    fprintf(file,"%e ",r[i]);
 	fclose(file);
 
-	sprintf(filename,"JetData/JetData_%04d_z.dat",steps);
-	file = fopen(filename,"w");
+        filename  = BoxLib::Concatenate("JetData/JetData_", steps, 4);
+        filename += "_z.dat";
+
+	file = fopen(filename.c_str(),"w");
 	for (int k=0; k<ksize; k++) 
 	    fprintf(file,"%e ",dx[2]*(0.5+(double)k));
 	fclose(file);
 
 	for (int v=0; v<jetVars; v++) {
-	    sprintf(filename,"JetData/JetData_%04d_v%04d.dat",steps,v);
-	    file = fopen(filename,"w");
+
+            filename  = BoxLib::Concatenate("JetData/JetData_", steps, 4);
+            filename += BoxLib::Concatenate(filename + "_v", v, 4);
+            filename += ".dat";
+
+	    file = fopen(filename.c_str(),"w");
 	    for (int k=0; k<ksize; k++) {
 		for (int i=0; i<rsize; i++) {
 		    fprintf(file,"%e ",jetData[(k*rsize+i)*jetVars+v]);
@@ -3425,12 +3434,16 @@ NavierStokes::sum_jet_quantities ()
 	    std::cout << "   ...done." << std::endl;
 	}
 #else
-	sprintf(filename,"JetData/JD%04d",steps);
-	std::string FullPath = filename;
+	std::string FullPath = BoxLib::Concatenate("JetData/JD", steps, 4);
+
 	if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
 	    BoxLib::CreateDirectoryFailed(FullPath);
-	sprintf(filename,"%s/data.bin",FullPath.c_str());
-	file=fopen(filename,"w");
+
+        filename = FullPath;
+        filename += '/';
+        filename += "data.bin";
+
+	file=fopen(filename.c_str(),"w");
 	fwrite(&time,sizeof(double),1,file);
 	fwrite(&rsize,sizeof(int),1,file);
 	fwrite(&ksize,sizeof(int),1,file);
@@ -3565,9 +3578,8 @@ NavierStokes::writePlotFile (const std::string& dir,
     // The name is relative to the directory containing the Header file.
     //
     static const std::string BaseName = "/Cell";
-    char buf[64];
-    sprintf(buf, "Level_%d", level);
-    std::string Level = buf;
+
+    std::string Level = BoxLib::Concatenate("Level_", level, 1);
     //
     // Now for the full pathname of that directory.
     //
