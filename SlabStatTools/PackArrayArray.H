@@ -5,8 +5,8 @@
 //
 // Includes required for the interface definition
 //
-#include "Array.H"
-#include "REAL.H"
+#include <Array.H>
+#include <REAL.H>
 
 
 // ================================================================

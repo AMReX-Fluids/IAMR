@@ -1,17 +1,12 @@
-#ifdef BL_ARCH_CRAY
-#ifdef BL_USE_DOUBLE
-#error "DOUBLE PRECISION NOT ALLOWED ON CRAY"
-#endif
-#endif
 
-#ifndef        WIN32
+#ifndef WIN32
 #include <unistd.h>
 #endif
 
-#include "MultiFab.H"
-#include "ParmParse.H"
-#include "Utility.H"
-#include "ParallelDescriptor.H"
+#include <MultiFab.H>
+#include <ParmParse.H>
+#include <Utility.H>
+#include <ParallelDescriptor.H>
 
 #include <new>
 using std::setprecision;
@@ -20,12 +15,12 @@ using std::setprecision;
 using std::set_new_handler;
 #endif
 
-#include "ArrayLim.H"
+#include <ArrayLim.H>
 
-#include "SlabStatTools.H"
-#include "StatTypes.H"
-#include "ValidTypes.H"
-#include "PackArrayArray.H"
+#include <SlabStatTools.H>
+#include <StatTypes.H>
+#include <ValidTypes.H>
+#include <PackArrayArray.H>
 
 
 static

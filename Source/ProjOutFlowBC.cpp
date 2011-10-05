@@ -3,9 +3,9 @@
 
 #include <iostream>
 
-#include "ProjOutFlowBC.H"
-#include "PROJOUTFLOWBC_F.H"
-#include "ParmParse.H"
+#include <ProjOutFlowBC.H>
+#include <PROJOUTFLOWBC_F.H>
+#include <ParmParse.H>
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \

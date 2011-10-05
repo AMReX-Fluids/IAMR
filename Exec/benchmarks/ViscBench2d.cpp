@@ -4,23 +4,23 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+
 using std::ios;
-using std::set_new_handler;
 
 #include <unistd.h>
 
-#include "WritePlotFile.H"
-#include "REAL.H"
-#include "Box.H"
-#include "FArrayBox.H"
-#include "ParmParse.H"
-#include "ParallelDescriptor.H"
-#include "DataServices.H"
-#include "Utility.H"
-#include "VisMF.H"
-#include "ArrayLim.H"
+#include <WritePlotFile.H>
+#include <REAL.H>
+#include <Box.H>
+#include <FArrayBox.H>
+#include <ParmParse.H>
+#include <ParallelDescriptor.H>
+#include <DataServices.H>
+#include <Utility.H>
+#include <VisMF.H>
+#include <ArrayLim.H>
 
-#include "EXACT_F.H"
+#include <EXACT_F.H>
 
 #define GARBAGE 666.e+40
 
@@ -53,12 +53,6 @@ main (int   argc,
 
     if (argc == 1)
         PrintUsage(argv[0]);
-    //
-    // Make sure to catch new failures.
-    //
-    set_new_handler(BoxLib::OutOfMemory);
-
-    ParallelDescriptor::StartParallel(&argc, &argv);
 
     ParmParse pp;
 

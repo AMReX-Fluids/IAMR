@@ -1,4 +1,4 @@
-#include "RegType.H"
+#include <RegType.H>
 
 //
 // Components are  Interior, Inflow, Outflow, Symmetry, SlipWall, NoSlipWall.

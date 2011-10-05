@@ -4,11 +4,11 @@
 
 #include <iostream>
 
-#include "REAL.H"
-#include "aString.H"
-#include "ArrayLim.H"
+#include <REAL.H>
+#include <aString.H>
+#include <ArrayLim.H>
 
-#include "StatTypes.H"
+#include <StatTypes.H>
 
 // ============================================================
 // ===== Routine:  ValidType(aString reqType) 

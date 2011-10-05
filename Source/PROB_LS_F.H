@@ -20,7 +20,7 @@
 #    define FORT_LSERROR     lserror_
 #  endif
 
-#include "ArrayLim.H"
+#include <ArrayLim.H>
 
   extern "C" {
 

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <algorithm>
 
-#include "OutFlowBC.H"
+#include <OutFlowBC.H>
 
 OutFlowBC::OutFlowBC () {}
 
