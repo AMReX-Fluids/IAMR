@@ -386,8 +386,18 @@ Projection::level_project (int             level,
     U_new.setBndry(BogusValue,Xvel,BL_SPACEDIM);
     P_old.setBndry(BogusValue);
     P_new.setBndry(BogusValue);
-    LevelData[level].setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM,0);
-    LevelData[level].setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM,1);
+
+    MultiFab& S_old = LevelData[level].get_old_data(State_Type);
+    MultiFab& S_new = LevelData[level].get_new_data(State_Type);
+
+    Real prev_time = LevelData[level].get_state_data(State_Type).prevTime();
+    Real curr_time = LevelData[level].get_state_data(State_Type).curTime();
+
+    for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+    {
+        LevelData[level].setPhysBoundaryValues(S_old[mfi],State_Type,prev_time,Xvel,Xvel,BL_SPACEDIM);
+        LevelData[level].setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,BL_SPACEDIM);
+    }
 
     const Real*     dx      = geom.CellSize();
     const BoxArray& grids   = LevelData[level].boxArray();
@@ -1179,7 +1189,16 @@ Projection::initialVelocityProject (int  c_lev,
         {
             LevelData[lev].get_new_data(State_Type).setBndry(BogusValue,Density,1);
 
-            parent->getLevel(lev).setPhysBoundaryValues(State_Type,Density,1);
+            AmrLevel& amr_level = parent->getLevel(lev);
+
+            MultiFab& S_new = amr_level.get_new_data(State_Type);
+
+            Real curr_time = amr_level.get_state_data(State_Type).curTime();
+
+            for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+            {
+                amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Density,Density,1);
+            }
 
             MultiFab::Copy(*sig[lev],
                            LevelData[lev].get_new_data(State_Type),
@@ -1205,7 +1224,14 @@ Projection::initialVelocityProject (int  c_lev,
         //
         AmrLevel& amr_level = parent->getLevel(lev);
 
-        amr_level.setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM);
+        MultiFab& S_new = amr_level.get_new_data(State_Type);
+
+        Real curr_time = amr_level.get_state_data(State_Type).curTime();
+
+        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+        {
+            amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,BL_SPACEDIM);
+        }
 
         if (have_divu) 
         {
@@ -1216,8 +1242,15 @@ Projection::initialVelocityProject (int  c_lev,
             // Make sure ghost cells are properly filled.
             //
             MultiFab& divu_new = amr_level.get_new_data(Divu_Type);
+
             divu_new.FillBoundary();
-            amr_level.setPhysBoundaryValues(Divu_Type,0,1,cur_divu_time);
+
+            Real curr_time = amr_level.get_state_data(Divu_Type).curTime();
+
+            for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
+            {
+                amr_level.setPhysBoundaryValues(divu_new[mfi],Divu_Type,curr_time,0,0,1);
+            }
 
             const BoxArray& grids     = amr_level.boxArray();
             rhs_cc[lev]  = new MultiFab(grids,1,nghost);
@@ -1357,9 +1390,18 @@ Projection::initialPressureProject (int  c_lev)
         const BoxArray& grids  = LevelData[lev].boxArray();
         sig[lev]               = new MultiFab(grids,1,nghost);
 
-        LevelData[lev].get_new_data(State_Type).setBndry(BogusValue,Density,1);
+        AmrLevel& amr_level = parent->getLevel(lev);
 
-        parent->getLevel(lev).setPhysBoundaryValues(State_Type,Density,1);
+        MultiFab& S_new = amr_level.get_new_data(State_Type);
+
+        S_new.setBndry(BogusValue,Density,1);
+
+        Real curr_time = amr_level.get_state_data(State_Type).curTime();
+
+        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+        {
+            amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Density,Density,1);
+        }
 
         const Geometry& geom = parent->Geom(lev);
 
@@ -1505,11 +1547,19 @@ Projection::initialSyncProject (int       c_lev,
             // Make sure ghost cells are properly filled.
             //
             MultiFab& divu_new = amr_level.get_new_data(Divu_Type);
-            divu_new.FillBoundary();
             MultiFab& divu_old = amr_level.get_old_data(Divu_Type);
+
+            divu_new.FillBoundary();
             divu_old.FillBoundary();
-            amr_level.setPhysBoundaryValues(Divu_Type,0,1,strt_time);
-            amr_level.setPhysBoundaryValues(Divu_Type,0,1,strt_time+dt);
+
+            Real prev_time = amr_level.get_state_data(Divu_Type).prevTime();
+            Real curr_time = amr_level.get_state_data(Divu_Type).curTime();
+
+            for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
+            {
+                amr_level.setPhysBoundaryValues(divu_old[mfi],Divu_Type,prev_time,0,0,1);
+                amr_level.setPhysBoundaryValues(divu_new[mfi],Divu_Type,curr_time,0,0,1);
+            }
 
             const int nghost = 1;
             rhs[lev] = new MultiFab(amr_level.boxArray(),1,nghost);
@@ -1557,8 +1607,18 @@ Projection::initialSyncProject (int       c_lev,
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
-        LevelData[lev].setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM,1);
-        LevelData[lev].setPhysBoundaryValues(State_Type,Xvel,BL_SPACEDIM,0);
+        MultiFab& S_old = LevelData[lev].get_old_data(State_Type);
+        MultiFab& S_new = LevelData[lev].get_new_data(State_Type);
+
+        Real prev_time = LevelData[lev].get_state_data(State_Type).prevTime();
+        Real curr_time = LevelData[lev].get_state_data(State_Type).curTime();
+
+        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+        {
+            LevelData[lev].setPhysBoundaryValues(S_old[mfi],State_Type,prev_time,Xvel,Xvel,BL_SPACEDIM);
+            LevelData[lev].setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,BL_SPACEDIM);
+        }
+
         MultiFab& u_o = LevelData[lev].get_old_data(State_Type);
         ConvertUnew(*vel[lev], u_o, dt, LevelData[lev].boxArray());
     }
