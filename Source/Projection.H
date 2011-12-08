@@ -20,7 +20,7 @@ public:
     Projection (Amr*   _parent,
                 BCRec* _phys_bc, 
                 int    _do_sync_proj,
-                int    _finest_level, 
+                int    /*_finest_level*/, 
                 int    _radius_grow );
 
     virtual ~Projection ();
@@ -33,10 +33,6 @@ public:
 
     void install_anelastic_coefficient (int                        level,
                                         Real                **anel_coeff);
-    //
-    // Reset finest_level.
-    //
-    void setFinestLevel (int new_finest) { finest_level = new_finest; }
     //
     // Compute the level projection in NavierStokes::advance.
     //
@@ -328,7 +324,6 @@ protected:
     //
     BCRec*                         phys_bc;
     inviscid_fluid_boundary* projector_bndry;
-    int finest_level;
     int do_sync_proj;
 
     static int  verbose;

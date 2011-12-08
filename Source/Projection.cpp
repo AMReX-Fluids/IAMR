@@ -176,16 +176,15 @@ Projection::Finalize ()
 Projection::Projection (Amr*   _parent,
                         BCRec* _phys_bc, 
                         int    _do_sync_proj,
-                        int    _finest_level, 
+                        int    /*_finest_level*/, 
                         int    _radius_grow )
    :
     parent(_parent),
-    LevelData(_finest_level+1),
+    LevelData(_parent->finestLevel()+1),
     radius_grow(_radius_grow), 
-    radius(_finest_level+1),
-    anel_coeff(_finest_level+1),
+    radius(_parent->finestLevel()+1),
+    anel_coeff(_parent->finestLevel()+1),
     phys_bc(_phys_bc), 
-    finest_level(_finest_level),
     do_sync_proj(_do_sync_proj)
 {
     Initialize();
@@ -199,7 +198,7 @@ Projection::Projection (Amr*   _parent,
 
     sync_proj = 0;
  
-    for (int lev = 0; lev <= finest_level; lev++)
+    for (int lev = 0; lev <= parent->finestLevel(); lev++)
        anel_coeff[lev] = 0;
 }
 
@@ -254,7 +253,7 @@ Projection::install_level (int                   level,
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "Installing projector level " << level << '\n';
 
-    finest_level = parent->finestLevel();
+    int finest_level = parent->finestLevel();
 
     if (level > LevelData.size() - 1) 
     {
@@ -294,6 +293,8 @@ Projection::install_anelastic_coefficient (int                   level,
 void
 Projection::bldSyncProject ()
 {
+    int finest_level = parent->finestLevel();
+
     const Box& fdomain = parent->Geom(finest_level).Domain();
 
     delete sync_proj;
@@ -627,7 +628,7 @@ Projection::level_project (int             level,
     MultiFab* sync_resid_crse = 0;
     MultiFab* sync_resid_fine = 0;
 
-    if (level < finest_level) 
+    if (level < parent->finestLevel()) 
         sync_resid_crse = new MultiFab(P_grids,1,1);
 
     if (level > 0 && ((proj_2 && iteration == crse_dt_ratio) || !proj_2))
@@ -667,7 +668,7 @@ Projection::level_project (int             level,
     //
     if (do_sync_proj)
     {
-       if (level < finest_level)
+       if (level < parent->finestLevel())
        {
           //
           // Init sync registers between level and level+1.
@@ -779,7 +780,7 @@ Projection::syncProject (int             c_lev,
         std::cout << "SyncProject: level = "
                   << c_lev
                   << " correction to level "
-                  << finest_level << std::endl;
+                  << parent->finestLevel() << std::endl;
     }
     //
     // Manipulate state + pressure data.
@@ -1153,7 +1154,7 @@ Projection::initialVelocityProject (int  c_lev,
     const Real strt_time = ParallelDescriptor::second();
 
     int lev;
-    int f_lev = finest_level;
+    int f_lev = parent->finestLevel();
     if (verbose && ParallelDescriptor::IOProcessor()) 
     {
         std::cout << "initialVelocityProject: levels = " << c_lev
@@ -1372,7 +1373,7 @@ Projection::initialPressureProject (int  c_lev)
                                     
 {
     int lev;
-    int f_lev = finest_level;
+    int f_lev = parent->finestLevel();
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "initialPressureProject: levels = " << c_lev
                   << "  " << f_lev << '\n';
@@ -1508,7 +1509,7 @@ Projection::initialSyncProject (int       c_lev,
     const Real stime = ParallelDescriptor::second();
 
     int lev;
-    int f_lev = finest_level;
+    int f_lev = parent->finestLevel();
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "initialSyncProject: levels = " << c_lev << "  " << f_lev << '\n';
     //
@@ -2223,7 +2224,7 @@ void
 Projection::initialVorticityProject (int c_lev)
 {
 #if (BL_SPACEDIM == 2)
-    int f_lev = finest_level;
+    int f_lev = parent->finestLevel();
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
@@ -2415,7 +2416,7 @@ Projection::getStreamFunction (PArray<MultiFab>& phi)
 {
 #if (BL_SPACEDIM == 2)
     int c_lev = 0;
-    int f_lev = finest_level;
+    int f_lev = parent->finestLevel();
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
