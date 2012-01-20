@@ -1,5 +1,6 @@
 
 #ifndef _MACOPMACDRIVERS_H_
+#define _MACOPMACDRIVERS_H_
 
 //====================================================================
 // This header file contains declarations for the MacOperator mac projection

@@ -10,8 +10,10 @@
 #include <SyncRegister.H>
 #include <FluxRegister.H>
 
+#ifndef MG_USE_F90_SOLVERS
 class holy_grail_amr_projector;
 class inviscid_fluid_boundary;
+#endif
 
 class Projection 
 {
@@ -182,6 +184,10 @@ public:
                           const Box& gpbox_to_fill,
                           const Real* dx);
 
+#ifdef MG_USE_F90_SOLVERS
+  enum stencil_t {cross = 1, full = 2};  // This agrees with F90 nodal solver.
+#endif
+
 protected:
     //
     // Read parameters from the input file.
@@ -189,10 +195,14 @@ protected:
     static void Initialize ();
 
     static void Finalize ();
+
+#ifndef MG_USE_F90_SOLVERS
     //
     // Set up the sync projection.
     //
     void bldSyncProject ();
+#endif
+
     //
     // Convert U from an Accleration like quantity to a velocity
     // Unew = Uold + alpha*Unew
@@ -272,7 +282,9 @@ protected:
                      MultiFab*       vel,
                      int             level);
 
+#ifndef MG_USE_F90_SOLVERS
     void setUpBcs ();
+#endif
 
     void set_outflow_bcs (int        which_call,
                           MultiFab** phi,
@@ -315,15 +327,23 @@ protected:
     // Anelastic coefficient array.
     //
     Array<Real**> anel_coeff;
+
+#ifndef MG_USE_F90_SOLVERS
     //
     // The aliasLib level projector.
     //
     holy_grail_amr_projector *sync_proj;
+#endif
+
     //
     // Boundary objects.
     //
     BCRec*                         phys_bc;
+
+#ifndef MG_USE_F90_SOLVERS
     inviscid_fluid_boundary* projector_bndry;
+#endif
+
     int do_sync_proj;
 
     static int  verbose;
@@ -338,5 +358,31 @@ protected:
     static int  make_sync_solvable;
     static Real divu_minus_s_factor;
     static int  add_vort_proj;
+
+#ifdef MG_USE_F90_SOLVERS
+    static stencil_t hg_stencil;
+
+    void doNodalProjection(int c_lev, int nlevel, 
+			   MultiFab* vel[], MultiFab* phi[], MultiFab* sig[],
+			   MultiFab* rhs[], MultiFab* crse_rhs[], 
+			   MultiFab* sync_resid_crse=0,
+			   MultiFab* sync_resid_fine=0);
+
+  // Mask off fine grids
+  // Possible values for msk
+  // -1: outside this level
+  //  0: covered by fine level
+  //  1: valid region not covered fine level
+  void mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom,
+		  const BoxArray& fineGrids, const IntVect& ref_ratio);
+
+  // Mask off coarse grids
+  // Possible values for msk
+  // -1: outside physical domain
+  //  0: covered by coarse level
+  //  1: valid region 
+  void mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom);
+#endif
+
 };
 #endif

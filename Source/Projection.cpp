@@ -9,12 +9,14 @@
 #include <Projection.H>
 #include <PROJECTION_F.H>
 #include <NAVIERSTOKES_F.H>
-#include <hg_projector.H>
 #include <ProjOutFlowBC.H>
 
 #ifdef MG_USE_F90_SOLVERS
 #include <MGT_Solver.H>
 #include <mg_cpp_f.h>
+#include <fill_patch.H>
+#else
+#include <hg_projector.H>
 #endif
 
 #ifndef _NavierStokes_H_
@@ -66,16 +68,18 @@ int  Projection::rho_wgt_vel_proj;
 int  Projection::make_sync_solvable;
 Real Projection::divu_minus_s_factor;
 
+#ifdef MG_USE_F90_SOLVERS
+Projection::stencil_t Projection::hg_stencil;
+#endif
+
 namespace
 {
 #if MG_USE_HYPRE
     bool use_hypre_solve;
 #endif
-#if MG_USE_F90_SOLVERS
-    bool use_fboxlib_nd;
-#endif
 }
 
+#ifndef MG_USE_F90_SOLVERS
 #if BL_SPACEDIM == 2
 #if BL_PRVERSION == 9
 static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::full;
@@ -84,6 +88,7 @@ static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::
 #endif
 #elif BL_SPACEDIM == 3
 static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
+#endif
 #endif
 
 void
@@ -105,11 +110,20 @@ Projection::Initialize ()
     Projection::make_sync_solvable  = 0;
     Projection::divu_minus_s_factor = 0.0;
 
+#ifdef MG_USE_F90_SOLVERS
+#if BL_SPACEDIM == 2
+#if BL_PRVERSION == 9
+  Projection::hg_stencil = full;
+#else
+  Projection::hg_stencil = cross;
+#endif
+#elif BL_SPACEDIM == 3
+  Projection::hg_stencil = cross;
+#endif
+#endif
+
 #if MG_USE_HYPRE
     use_hypre_solve = false;
-#endif
-#if MG_USE_F90_SOLVERS
-    use_fboxlib_nd  = false;
 #endif
 
     ParmParse pp("proj");
@@ -126,15 +140,27 @@ Projection::Initialize ()
     pp.query("divu_minus_s_factor", divu_minus_s_factor);
     pp.query("make_sync_solvable",  make_sync_solvable);
 
-#if MG_USE_F90_SOLVERS
-    pp.query("use_fboxlib_nd",use_fboxlib_nd);
-#endif
-
     if (!proj_2) 
 	BoxLib::Error("With new gravity and outflow stuff, must use proj_2");
 
     std::string stencil = "cross";
 
+#ifdef MG_USE_F90_SOLVERS
+    if ( pp.query("stencil", stencil) ) {
+      if ( stencil == "cross" ) {
+	hg_stencil = cross;
+      }
+      else if ( stencil == "full" ) {
+	hg_stencil = full;
+      }
+      else if ( stencil == "dense" ) {
+	hg_stencil = full;
+      }
+      else {
+	BoxLib::Error("stencil must be cross, or full");
+      }
+    }
+#else
     if ( pp.query("stencil", stencil) )
     {
         if ( stencil == "cross" )
@@ -154,6 +180,7 @@ Projection::Initialize ()
             BoxLib::Error("stencil must be cross, terrain, or full");
         }
     }
+#endif
 
     BoxLib::ExecOnFinalize(Projection::Finalize);
 
@@ -192,12 +219,14 @@ Projection::Projection (Amr*   _parent,
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "Creating projector\n";
 
+#ifndef MG_USE_F90_SOLVERS
     projector_bndry = 0;
 
     setUpBcs();
 
     sync_proj = 0;
- 
+#endif 
+
     for (int lev = 0; lev <= parent->finestLevel(); lev++)
        anel_coeff[lev] = 0;
 }
@@ -207,14 +236,16 @@ Projection::~Projection ()
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "Deleting projector\n";
 
+#ifndef MG_USE_F90_SOLVERS
     delete sync_proj;
     delete projector_bndry;
 
     sync_proj       = 0;
     projector_bndry = 0;
+#endif
 }
 
-
+#ifndef MG_USE_F90_SOLVERS
 void 
 Projection::setUpBcs ()
 {
@@ -240,6 +271,7 @@ Projection::setUpBcs ()
     }
     projector_bndry = new inviscid_fluid_boundary(proj_bc);
 }
+#endif
 
 //
 // Install a level of the projection.
@@ -271,10 +303,13 @@ Projection::install_level (int                   level,
     radius.clear(level);
     radius.set(level, _radius);
 
+#ifndef MG_USE_F90_SOLVERS
     delete sync_proj;
 
     sync_proj = 0;
+#endif
 }
+
 void
 Projection::install_anelastic_coefficient (int                   level,
                                            Real                **_anel_coeff)
@@ -286,6 +321,7 @@ Projection::install_anelastic_coefficient (int                   level,
     anel_coeff.set(level, _anel_coeff);
 }
 
+#ifndef MG_USE_F90_SOLVERS
 //
 // Build the aliasLib projection object.
 //
@@ -338,6 +374,7 @@ Projection::bldSyncProject ()
     if (make_sync_solvable) 
         sync_proj->make_it_so();
 }
+#endif
 
 //
 //  Perform a level projection in the advance function
@@ -390,17 +427,20 @@ Projection::level_project (int             level,
 
     MultiFab& S_old = LevelData[level].get_old_data(State_Type);
     MultiFab& S_new = LevelData[level].get_new_data(State_Type);
-
+    
     Real prev_time = LevelData[level].get_state_data(State_Type).prevTime();
     Real curr_time = LevelData[level].get_state_data(State_Type).curTime();
-
-    for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-    {
-        LevelData[level].setPhysBoundaryValues(S_old[mfi],State_Type,prev_time,Xvel,Xvel,BL_SPACEDIM);
-        LevelData[level].setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,BL_SPACEDIM);
+    
+    for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
+      LevelData[level].setPhysBoundaryValues(S_old[mfi],State_Type,prev_time,
+					     Xvel,Xvel,BL_SPACEDIM);
+      LevelData[level].setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
+					     Xvel,Xvel,BL_SPACEDIM);
     }
 
+#ifndef MG_USE_F90_SOLVERS
     const Real*     dx      = geom.CellSize();
+#endif
     const BoxArray& grids   = LevelData[level].boxArray();
     const BoxArray& P_grids = P_old.boxArray();
 
@@ -461,7 +501,9 @@ Projection::level_project (int             level,
             const int i = U_newmfi.index();
 
             ConvertUnew(U_new[i],U_old[i],dt,U_new.box(i));
-        } if (have_divu)
+        } 
+
+        if (have_divu)
         {
             divusource->minus(*divuold,0,1,divusource->nGrow());
             divusource->mult(dt_inv,0,1,divusource->nGrow());
@@ -487,26 +529,17 @@ Projection::level_project (int             level,
     if (proj_2)
     {
         MultiFab Gp(grids,BL_SPACEDIM,1);
-
         ns->getGradP(Gp, prev_pres_time);
 
-        const int n_ghost = 1;
-
-        rho_half->invert(1.0,n_ghost);
-
-        for (FillPatchIterator P_fpi(LevelData[level],P_old,1,prev_pres_time,Press_Type,0,1);
-             P_fpi.isValid();
-             ++P_fpi)
-        {
-            const int idx = P_fpi.index();
-
-            for (int i = 0; i < BL_SPACEDIM; i++)
-                Gp[idx].mult((*rho_half)[idx],0,i,1);
-
-            U_new[idx].plus(Gp[idx],0,0,BL_SPACEDIM);
-        }
-
-        rho_half->invert(1.0,n_ghost);
+	for (MFIter mfi(*rho_half); mfi.isValid(); ++mfi) {
+	  const int idx = mfi.index();
+      
+	  for (int i = 0; i < BL_SPACEDIM; i++) {
+	    Gp[idx].divide((*rho_half)[idx],0,i,1);
+	  }
+      
+	  U_new[idx].plus(Gp[idx],0,0,BL_SPACEDIM);
+	}
     }
 
     //
@@ -550,55 +583,19 @@ Projection::level_project (int             level,
     int is_rz = (Geometry::IsRZ() ? 1 : 0);
 
 #ifdef MG_USE_F90_SOLVERS
-    //  Start of if use_fboxlib_nd
-    if (use_fboxlib_nd == 1) 
-    {
-        std::cout << "USING NEW F90 NODAL SOLVER " << std::endl;
 
-        std::vector<BoxArray> bav(1);
-        bav[0] = grids;
-        std::vector<DistributionMapping> dmv(1);
-        dmv[0] = P_new.DistributionMap();
-        bool nodal = true;
-        std::vector<Geometry> mg_geom(1);
-        mg_geom[0] = geom;
+    MultiFab* vel[MAX_LEV] = {0};
+    MultiFab* phi[MAX_LEV] = {0};
+    MultiFab* sig[MAX_LEV] = {0};
 
-        int mg_bc[2*BL_SPACEDIM];
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-            if ( mg_geom[0].isPeriodic(i) )
-            {
-                mg_bc[i*2 + 0] = 0;
-                mg_bc[i*2 + 1] = 0;
-            }
-            else
-            {
-                mg_bc[i*2 + 0] = phys_bc->lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-                mg_bc[i*2 + 1] = phys_bc->hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-            }
-        }
-        MGT_Solver mgt_solver(mg_geom, mg_bc, bav, dmv, nodal);
+    vel[level] = &U_new;
+    phi[level] = &P_new;
 
-        // Fill the coefficient array
-        const MultiFab* sig[1];
-        sig[0] = rho_half;
-        mgt_solver.set_nodal_coefficients(sig);
+    BL_ASSERT( 1 == rho_half->nGrow());
+    sig[level] = rho_half;
 
-        MultiFab* phi_p[1];
-        phi_p[0] = &P_new;
+#else
 
-        MultiFab* vel_p[1];
-        vel_p[0] = &U_new;
-
-        MultiFab* Rhs_p[1];
-        Rhs_p[0] = divusource;
-
-        mgt_solver.nodal_project(phi_p, vel_p, Rhs_p, proj_tol, proj_abs_tol);
-  
-    //  Start of if NOT use_fboxlib_nd
-    } else
-#endif
- {
     if (sync_proj == 0)
         bldSyncProject();
     //
@@ -622,6 +619,8 @@ Projection::level_project (int             level,
     }
     p_real.set(level, &P_new);
     s_real.set(level, rho_half);
+#endif
+
     //
     // Project
     //
@@ -639,9 +638,16 @@ Projection::level_project (int             level,
 
     if (!have_divu) 
     {
+#ifdef MG_USE_F90_SOLVERS
+        MultiFab* rhs[MAX_LEV] = {0};
+        MultiFab* crse_rhs[MAX_LEV] = {0};
+        doNodalProjection(level, 1, vel, phi, sig, rhs, crse_rhs, 
+			  sync_resid_crse, sync_resid_fine);
+#else
         sync_proj->project(u_real, p_real, null_amr_real, s_real, 
                            sync_resid_crse, sync_resid_fine, geom, 
                            (Real*)dx, proj_tol, level, level, proj_abs_tol);
+#endif
     }
     else 
     {
@@ -653,10 +659,15 @@ Projection::level_project (int             level,
 
         PArray<MultiFab> rhs_real(level+1);
         rhs_real.set(level, divusource);
+
+#ifdef MG_USE_F90_SOLVERS
+	BoxLib::Abort("Tell wqz: Projection::level_project does not support have_divu");
+#else
         sync_proj->manual_project(u_real,p_real,rhs_real,null_amr_real,s_real, 
                                   sync_resid_crse, sync_resid_fine, geom, 
                                   use_u, (Real*)dx,
                                   proj_tol, level, level, proj_abs_tol);
+#endif
     }
 
     delete divusource;
@@ -688,6 +699,8 @@ Projection::level_project (int             level,
     }
     delete sync_resid_crse;
     delete sync_resid_fine;
+
+#ifndef MG_USE_F90_SOLVERS
     //
     // Copy u_real.
     //
@@ -700,8 +713,7 @@ Projection::level_project (int             level,
             U_new[i].copy(u_real[n][level][i], 0, n);
         }
     }
-
-    } //  End of if NOT use_fboxlib_nd
+#endif
 
     //
     // Reset state + pressure data.
@@ -785,8 +797,12 @@ Projection::syncProject (int             c_lev,
     //
     // Manipulate state + pressure data.
     //
+
+#ifndef MG_USE_F90_SOLVERS
     if (sync_proj == 0)
         bldSyncProject();
+#endif
+
     //
     // Gather data.
     //
@@ -808,6 +824,18 @@ Projection::syncProject (int             c_lev,
     // If periodic, copy into periodic translates of Vsync.
     //
     EnforcePeriodicity(*Vsync, BL_SPACEDIM, grids, geom);
+
+#ifdef MG_USE_F90_SOLVERS
+    MultiFab *phis[MAX_LEV] = {0};
+    MultiFab* vels[MAX_LEV] = {0};
+    MultiFab* sigs[MAX_LEV] = {0};
+    MultiFab* rhss[MAX_LEV] = {0};
+    MultiFab* cRhs[MAX_LEV] = {0};
+    phis[c_lev] = &phi;
+    vels[c_lev] = Vsync;
+    sigs[c_lev] = &sig;
+    cRhs[c_lev] = &rhs;
+#else
     //
     // Build aliaslib structures.
     //
@@ -828,22 +856,28 @@ Projection::syncProject (int             c_lev,
     p_real.set(c_lev, &phi);
     s_real.set(c_lev, &sig);
     rhs_real.set(c_lev, &rhs);
+#endif
+
     //
     //  PROJECT
     //  if use_u = 0, then solves DGphi = RHS
     //  if use_u = 1, then solves DGphi = RHS + DV
     //  both return phi and (V-Gphi) as V
     //
-    const bool use_u          = true;
     MultiFab* sync_resid_crse = 0;
     MultiFab* sync_resid_fine = 0;
 
-    if (c_lev > 0)
+    if (c_lev > 0 && (!proj_2 || crse_iteration == crse_dt_ratio))
     {
         const int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
         sync_resid_fine = new MultiFab(P_grids,1,ngrow);
     }
 
+#ifdef MG_USE_F90_SOLVERS
+    doNodalProjection(c_lev, 1, vels, phis, sigs, rhss, cRhs, 
+		      sync_resid_crse, sync_resid_fine);
+#else
+    const bool use_u          = true;
     sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                               sync_resid_crse, sync_resid_fine, geom, 
                               use_u, (Real*)dx,
@@ -860,6 +894,8 @@ Projection::syncProject (int             c_lev,
             (*Vsync)[i].copy(u_real[n][c_lev][i], 0, n);
         }
     }
+#endif
+
     //
     // If this sync project is not at level 0 then we need to account for
     // the changes made here in the level c_lev velocity in the sync registers
@@ -935,30 +971,29 @@ Projection::MLsyncProject (int             c_lev,
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << '\n';
     
+#ifndef MG_USE_F90_SOLVERS
     if (sync_proj == 0)
         bldSyncProject();
+#endif
+
     //
     // Set up memory.
     //
-    MultiFab *phi[MAXLEV];
+    MultiFab *phi[MAXLEV] = {0};
 
     const BoxArray& grids      = LevelData[c_lev].boxArray();
     const BoxArray& fine_grids = LevelData[c_lev+1].boxArray();
     const BoxArray& Pgrids_crse = pres_crse.boxArray();
+    const BoxArray& Pgrids_fine = pres_fine.boxArray();
 
     phi[c_lev] = new MultiFab(Pgrids_crse,1,1);
     phi[c_lev]->setVal(0);
     
-    MultiFab* crse_rhs = new MultiFab(Pgrids_crse,1,1);
-    
-    const BoxArray& Pgrids_fine = pres_fine.boxArray();
     phi[c_lev+1] = new MultiFab(Pgrids_fine,1,1);
     phi[c_lev+1]->setVal(0);
 
-    PArray<MultiFab> u_real[BL_SPACEDIM];
-    PArray<MultiFab> p_real(c_lev+2,PArrayManage);
-    PArray<MultiFab> s_real(c_lev+2), crse_rhs_real(c_lev+1);
-    PArray<MultiFab> rhs_real(c_lev+2);
+    MultiFab* crse_rhs = new MultiFab(Pgrids_crse,1,1);
+
     //
     // Set up crse RHS
     //
@@ -973,9 +1008,51 @@ Projection::MLsyncProject (int             c_lev,
     //
     scaleVar(SYNC_PROJ,&rho_crse, 0, Vsync,   c_lev  );
     scaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, c_lev+1);
+
+    if (Geometry::IsRZ()) {
+       radMult(c_lev  ,cc_rhs_crse,0);
+       radMult(c_lev+1,cc_rhs_fine,0);
+    }
+
+#ifdef MG_USE_F90_SOLVERS
+
+    MultiFab* vel[MAX_LEV] = {0};
+    MultiFab* sig[MAX_LEV] = {0};
+    MultiFab* rhs[MAX_LEV] = {0};
+    MultiFab* cRh[MAX_LEV] = {0};
+
+    vel[c_lev  ] = Vsync;
+    vel[c_lev+1] = &V_corr;
+    sig[c_lev  ] = &rho_crse;
+    sig[c_lev+1] = &rho_fine;
+    rhs[c_lev  ] = &cc_rhs_crse; 
+    rhs[c_lev+1] = &cc_rhs_fine; 
+    cRh[c_lev  ] = crse_rhs;
+
+    {
+      MultiFab v_crse(grids, 1, 1);
+      MultiFab v_fine(fine_grids, 1, 1);
+      for (int n = 0; n < BL_SPACEDIM; n++) {
+    	MultiFab::Copy(v_crse, *vel[c_lev  ], n, 0, 1, 1);
+    	MultiFab::Copy(v_fine, *vel[c_lev+1], n, 0, 1, 1);
+
+    	restrict_level(v_crse, v_fine, ratio);
+
+    	MultiFab::Copy(*vel[c_lev  ], v_crse, 0, n, 1, 1);
+      }
+
+      restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
+    }
+
+#else
     //
     // Set up alias lib.
     //
+    PArray<MultiFab> u_real[BL_SPACEDIM];
+    PArray<MultiFab> p_real(c_lev+2,PArrayManage);
+    PArray<MultiFab> s_real(c_lev+2), crse_rhs_real(c_lev+1);
+    PArray<MultiFab> rhs_real(c_lev+2);
+
     int n;
     for (n = 0; n < BL_SPACEDIM; n++) 
     {
@@ -1003,11 +1080,6 @@ Projection::MLsyncProject (int             c_lev,
     s_real.set(c_lev,   &rho_crse);
     s_real.set(c_lev+1, &rho_fine);
 
-    if (Geometry::IsRZ()) {
-       radMult(c_lev  ,cc_rhs_crse,0);
-       radMult(c_lev+1,cc_rhs_fine,0);
-    }
-
     rhs_real.set(c_lev  , &cc_rhs_crse);
     rhs_real.set(c_lev+1, &cc_rhs_fine);
 
@@ -1019,6 +1091,23 @@ Projection::MLsyncProject (int             c_lev,
     // Note that crse_rhs_real is only built on the coarsest level.
     //
     crse_rhs_real.set(c_lev, crse_rhs);
+#endif
+
+    MultiFab*   sync_resid_crse = 0;
+    MultiFab*   sync_resid_fine = 0;
+
+    if (c_lev > 0 && (!proj_2 || crse_iteration == crse_dt_ratio))
+      //    if (c_lev > 0)
+    {
+        int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
+        sync_resid_fine = new MultiFab(Pgrids_crse,1,ngrow);
+    }
+
+#ifdef MG_USE_F90_SOLVERS
+
+    doNodalProjection(c_lev, 2, vel, phi, sig, rhs, cRh, 
+		      sync_resid_crse, sync_resid_fine);
+#else
     //
     // The Multilevel Projection
     // if use_u = false, then solves DGphi = RHS
@@ -1027,20 +1116,16 @@ Projection::MLsyncProject (int             c_lev,
     //
     const bool  use_u           = true;
     const Real* dx_fine         = parent->Geom(c_lev+1).CellSize();
-    MultiFab*   sync_resid_crse = 0;
-    MultiFab*   sync_resid_fine = 0;
-
-    if (c_lev > 0)
-    {
-        int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
-        sync_resid_fine = new MultiFab(Pgrids_crse,1,ngrow);
-    }
     sync_proj->manual_project(u_real, p_real, rhs_real,
                               crse_rhs_real, s_real, 
                               sync_resid_crse, sync_resid_fine, crse_geom, 
                               use_u, (Real*)dx_fine,
                               sync_tol, c_lev, c_lev+1, proj_abs_tol);
+#endif
+
     delete crse_rhs;
+
+#ifndef MG_USE_F90_SOLVERS
     //
     // Copy u_real.
     //
@@ -1060,6 +1145,8 @@ Projection::MLsyncProject (int             c_lev,
             V_corr[i].copy(u_real[n][c_lev+1][i], 0, n);
         }
     }
+#endif
+
     //
     // If this sync project is not at levels 0-1 then we need to account for
     // the changes made here in the level c_lev velocity in the sync registers
@@ -1128,6 +1215,14 @@ Projection::MLsyncProject (int             c_lev,
     UpdateArg1(vel_crse, dt_crse, *Vsync, BL_SPACEDIM, grids,      1);
     UpdateArg1(vel_fine, dt_crse, V_corr, BL_SPACEDIM, fine_grids, 1);
 
+#ifdef MG_USE_F90_SOLVERS    
+    for (int lev=c_lev; lev<c_lev+2; lev++) {
+      delete phi[lev];
+    }
+#else
+    // PArrayManage will do it 
+#endif
+
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      run_time = ParallelDescriptor::second() - strt_time;
 
@@ -1165,8 +1260,10 @@ Projection::initialVelocityProject (int  c_lev,
             std::cout << "CONSTANT DENSITY INITIAL VELOCITY PROJECTION\n";
     }
 
+#ifndef MG_USE_F90_SOLVERS
     if (sync_proj == 0)
         bldSyncProject();
+#endif
 
     MultiFab* vel[MAX_LEV] = {0};
     MultiFab* phi[MAX_LEV] = {0};
@@ -1190,15 +1287,15 @@ Projection::initialVelocityProject (int  c_lev,
         {
             LevelData[lev].get_new_data(State_Type).setBndry(BogusValue,Density,1);
 
-            AmrLevel& amr_level = parent->getLevel(lev);
-
-            MultiFab& S_new = amr_level.get_new_data(State_Type);
-
+	    AmrLevel& amr_level = parent->getLevel(lev);
+	    
+	    MultiFab& S_new = amr_level.get_new_data(State_Type);
+	    
             Real curr_time = amr_level.get_state_data(State_Type).curTime();
-
-            for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-            {
-                amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Density,Density,1);
+	    
+            for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
+	      amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
+					      Density,Density,1);
             }
 
             MultiFab::Copy(*sig[lev],
@@ -1243,7 +1340,6 @@ Projection::initialVelocityProject (int  c_lev,
             // Make sure ghost cells are properly filled.
             //
             MultiFab& divu_new = amr_level.get_new_data(Divu_Type);
-
             divu_new.FillBoundary();
 
             Real curr_time = amr_level.get_state_data(Divu_Type).curTime();
@@ -1252,7 +1348,7 @@ Projection::initialVelocityProject (int  c_lev,
             {
                 amr_level.setPhysBoundaryValues(divu_new[mfi],Divu_Type,curr_time,0,0,1);
             }
-
+	    
             const BoxArray& grids     = amr_level.boxArray();
             rhs_cc[lev]  = new MultiFab(grids,1,nghost);
             MultiFab* rhslev = rhs_cc[lev];
@@ -1269,6 +1365,7 @@ Projection::initialVelocityProject (int  c_lev,
     for (lev = c_lev; lev <= f_lev; lev++) 
        scaleVar(INITIAL_VEL,sig[lev],1,vel[lev],lev);
 
+#ifndef MG_USE_F90_SOLVERS
     //
     // Setup alias lib.
     //
@@ -1296,18 +1393,31 @@ Projection::initialVelocityProject (int  c_lev,
         p_real.set(lev, phi[lev]);
         s_real.set(lev, sig[lev]);
     }
+#endif
+
     //
     // Project
     //
     MultiFab*   sync_resid_crse = 0;
     MultiFab*   sync_resid_fine = 0;
+
+#ifndef MG_USE_F90_SOLVERS
     const Real* dx_lev          = parent->Geom(f_lev).CellSize();
+#endif
 
     if (!have_divu)
     {
+#ifdef MG_USE_F90_SOLVERS
+
+        MultiFab* rhs[MAX_LEV] = {0};
+	MultiFab* crse_rhs[MAX_LEV] = {0};
+	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs);
+
+#else
         sync_proj->project(u_real, p_real, null_amr_real, s_real,
                            sync_resid_crse, sync_resid_fine, parent->Geom(c_lev), 
                            (Real*)dx_lev, proj_tol, c_lev, f_lev,proj_abs_tol);
+#endif
     } 
     else 
     {
@@ -1322,13 +1432,18 @@ Projection::initialVelocityProject (int  c_lev,
             rhs_real.set(lev, rhs_cc[lev]);
         }
 
+#ifdef MG_USE_F90_SOLVERS
+	BoxLib::Abort("Tell wqz: Projection::initialVelocityProject does not support have_divu");
+#else
         sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real, 
                                   sync_resid_crse, sync_resid_fine, 
                                   parent->Geom(c_lev), 
                                   use_u, (Real*)dx_lev,
                                   proj_tol, c_lev, f_lev, proj_abs_tol);
+#endif
     }
 
+#ifndef MG_USE_F90_SOLVERS
     //
     // Copy u_real.
     //
@@ -1345,6 +1460,8 @@ Projection::initialVelocityProject (int  c_lev,
             }
         }
     }
+#endif
+
     //
     // Unscale initial projection variables.
     //
@@ -1356,6 +1473,15 @@ Projection::initialVelocityProject (int  c_lev,
         LevelData[lev].get_old_data(Press_Type).setVal(0);
         LevelData[lev].get_new_data(Press_Type).setVal(0);
     }
+
+#ifdef MG_USE_F90_SOLVERS
+    for (lev = c_lev; lev <= f_lev; lev++) {
+      delete sig[lev];
+      delete rhs_cc[lev];
+    }
+#else
+    // PArrayManage will do it
+#endif
 
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      run_time = ParallelDescriptor::second() - strt_time;
@@ -1390,6 +1516,8 @@ Projection::initialPressureProject (int  c_lev)
         const int       nghost = 1;
         const BoxArray& grids  = LevelData[lev].boxArray();
         sig[lev]               = new MultiFab(grids,1,nghost);
+
+        LevelData[lev].get_new_data(State_Type).setBndry(BogusValue,Density,1);
 
         AmrLevel& amr_level = parent->getLevel(lev);
 
@@ -1437,6 +1565,15 @@ Projection::initialPressureProject (int  c_lev)
     for (lev = c_lev; lev <= f_lev; lev++) 
         scaleVar(INITIAL_PRESS,sig[lev],1,vel[lev],lev);
 
+#ifdef MG_USE_F90_SOLVERS
+    for (lev = c_lev; lev <= f_lev; lev++) {
+      BoxArray grids = vel[lev]->boxArray();
+
+      vel[lev] = new MultiFab(grids, BL_SPACEDIM, 1);
+      vel[lev]->setVal(0.0    , 0            , BL_SPACEDIM-1, 1);
+      vel[lev]->setVal(gravity, BL_SPACEDIM-1, 1            , 1);
+    }
+#else
     //
     // Setup alias lib.
     //
@@ -1468,9 +1605,16 @@ Projection::initialPressureProject (int  c_lev)
         p_real.set(lev, phi[lev]);
         s_real.set(lev, sig[lev]);
     }
+#endif
+
     //
     // Project
     //
+#ifdef MG_USE_F90_SOLVERS
+    MultiFab* rhs[MAX_LEV] = {0};
+    MultiFab* crse_rhs[MAX_LEV] = {0};
+    doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs);
+#else
     const Real* dx_lev          = parent->Geom(f_lev).CellSize();
     MultiFab*   sync_resid_crse = 0;
     MultiFab*   sync_resid_fine = 0;
@@ -1478,6 +1622,7 @@ Projection::initialPressureProject (int  c_lev)
     sync_proj->project(u_real, p_real, null_amr_real, s_real,
                        sync_resid_crse, sync_resid_fine, parent->Geom(c_lev), 
                        (Real*)dx_lev, proj_tol, c_lev, f_lev,proj_abs_tol);
+#endif
 
     //
     // Unscale initial projection variables.
@@ -1492,6 +1637,13 @@ Projection::initialPressureProject (int  c_lev)
         MultiFab::Copy(LevelData[lev].get_new_data(Press_Type),
                        LevelData[lev].get_old_data(Press_Type),
                        0, 0, 1, 0);
+
+#ifdef MG_USE_F90_SOLVERS
+    for (lev = c_lev; lev <= f_lev; lev++) {
+      delete vel[lev];
+      delete sig[lev];
+    }
+#endif
 }
 
 //
@@ -1515,8 +1667,12 @@ Projection::initialSyncProject (int       c_lev,
     //
     // Manipulate state + pressure data.
     //
+
+#ifndef MG_USE_F90_SOLVERS
     if (sync_proj == 0)
         bldSyncProject();
+#endif
+
     //
     // Gather data.
     //
@@ -1549,7 +1705,6 @@ Projection::initialSyncProject (int       c_lev,
             //
             MultiFab& divu_new = amr_level.get_new_data(Divu_Type);
             MultiFab& divu_old = amr_level.get_old_data(Divu_Type);
-
             divu_new.FillBoundary();
             divu_old.FillBoundary();
 
@@ -1639,6 +1794,24 @@ Projection::initialSyncProject (int       c_lev,
           radMult(lev,*(rhs[lev]),0);    
     }
 
+#ifdef MG_USE_F90_SOLVERS
+    for (lev = f_lev; lev >= c_lev+1; lev--) {
+      const BoxArray& crse_grids = vel[lev-1]->boxArray();
+      const BoxArray& fine_grids = vel[lev  ]->boxArray();
+
+      MultiFab v_crse(crse_grids, 1, 1);
+      MultiFab v_fine(fine_grids, 1, 1);
+
+      for (int n = 0; n < BL_SPACEDIM; n++) {
+    	MultiFab::Copy(v_crse, *vel[lev-1], n, 0, 1, 1);
+    	MultiFab::Copy(v_fine, *vel[lev  ], n, 0, 1, 1);
+	
+    	restrict_level(v_crse, v_fine, parent->refRatio(lev-1));
+	
+    	MultiFab::Copy(*vel[lev-1], v_crse, 0, n, 1, 1);
+      }
+    }
+#else
     //
     // Build the aliaslib data structures
     //
@@ -1674,10 +1847,15 @@ Projection::initialSyncProject (int       c_lev,
                            parent->refRatio(lev-1));
         }
     }
+#endif
 
     MultiFab*   sync_resid_crse = 0;
     MultiFab*   sync_resid_fine = 0;
+
+#ifndef MG_USE_F90_SOLVERS
     const Real* dx_lev          = parent->Geom(f_lev).CellSize();
+#endif
+
     //
     // Project.
     //
@@ -1686,10 +1864,15 @@ Projection::initialSyncProject (int       c_lev,
         //
         // Zero divu only or debugging.
         //
+#ifdef MG_USE_F90_SOLVERS
+        MultiFab* crse_rhs[MAX_LEV] = {0};
+	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs);
+#else
         sync_proj->project(u_real, p_real, null_amr_real, s_real,
                            sync_resid_crse, sync_resid_fine, 
                            parent->Geom(c_lev), 
                            (Real*)dx_lev, proj_tol, c_lev, f_lev,proj_abs_tol);
+#endif
     } 
     else 
     {
@@ -1706,12 +1889,19 @@ Projection::initialSyncProject (int       c_lev,
             rhs[lev]->mult(-1.0,0,1);
             rhs_real.set(lev, rhs[lev]);
         }
+
+#ifdef MG_USE_F90_SOLVERS
+	BoxLib::Abort("Tell wqz: Projection::initialSyncProject does not support have_divu");
+#else
         sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                                   sync_resid_crse, sync_resid_fine, 
                                   parent->Geom(c_lev), 
                                   use_u, (Real*)dx_lev,
                                   proj_tol, c_lev, f_lev, proj_abs_tol);
+#endif
     }
+
+#ifndef MG_USE_F90_SOLVERS
     //
     // Copy u_real.
     //
@@ -1727,6 +1917,8 @@ Projection::initialSyncProject (int       c_lev,
             }
         }
     }
+#endif
+
     //
     // Unscale initial sync projection variables.
     //
@@ -1737,6 +1929,14 @@ Projection::initialSyncProject (int       c_lev,
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
         incrPress(lev, 1.0);
+
+#ifdef MG_USE_F90_SOLVERS
+    for (int lev = c_lev; lev <= f_lev; lev++) {
+      delete rhs[lev];
+    }
+#else
+    // PArrayManage will do it.
+#endif
 
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      run_time = ParallelDescriptor::second() - stime;
@@ -2223,6 +2423,9 @@ Projection::AnelCoeffDiv (int       level,
 void
 Projection::initialVorticityProject (int c_lev)
 {
+#ifdef MG_USE_F90_SOLVERS
+  BoxLib::Abort("Projection::initialVorticityProject not implemented for MG_USE_F90_SOLVERS");
+#else
 #if (BL_SPACEDIM == 2)
     int f_lev = parent->finestLevel();
 
@@ -2361,6 +2564,7 @@ Projection::initialVorticityProject (int c_lev)
 #else
     BoxLib::Error("Projection::initialVorticityProject(): not implented yet for 3D");
 #endif
+#endif
 }
 
 void 
@@ -2414,6 +2618,9 @@ Projection::putDown (MultiFab**         phi,
 void
 Projection::getStreamFunction (PArray<MultiFab>& phi)
 {
+#ifdef MG_USE_F90_SOLVERS
+  BoxLib::Abort("Projection::getStreamFunction not implemented for MG_USE_F90_SOLVERS");
+#else
 #if (BL_SPACEDIM == 2)
     int c_lev = 0;
     int f_lev = parent->finestLevel();
@@ -2513,6 +2720,7 @@ Projection::getStreamFunction (PArray<MultiFab>& phi)
 #else
     BoxLib::Error("Projection::getStreamFunction(): not implented yet for 3D");
 #endif
+#endif
 }
 
 //
@@ -2541,7 +2749,9 @@ Projection::getGradP (FArrayBox& p_fab,
 
 #if (BL_SPACEDIM == 2)
     int is_full = 0;
+#ifndef MG_USE_F90_SOLVERS
     if (hg_stencil == holy_grail_amr_multigrid::full)  is_full = 1;
+#endif
     FORT_GRADP(p_dat,ARLIM(plo),ARLIM(phi),gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx,
                &is_full);
 #elif (BL_SPACEDIM == 3)
@@ -2819,3 +3029,189 @@ Projection::set_outflow_bcs_at_level (int          which_call,
                 numOutFlowFaces, ncStripWidth);
     }
 }
+
+
+#ifdef MG_USE_F90_SOLVERS
+
+//
+// Given vel, rhs & sig, this solves Div (sig * Grad phi) = Div vel + rhs.
+// On return, vel becomes vel  - sig * Grad phi.
+//
+void Projection::doNodalProjection(int c_lev, int nlevel, 
+				   MultiFab* vel[], MultiFab* phi[], MultiFab* sig[],
+				   MultiFab* rhs[], MultiFab* crse_rhs[], 
+				   MultiFab* sync_resid_crse,
+				   MultiFab* sync_resid_fine)
+{
+  int f_lev = c_lev + nlevel - 1;
+
+  BL_ASSERT(vel[c_lev]->nGrow() == 1);
+  BL_ASSERT(vel[f_lev]->nGrow() == 1);
+  BL_ASSERT(phi[c_lev]->nGrow() == 1);
+  BL_ASSERT(phi[f_lev]->nGrow() == 1);
+  BL_ASSERT(sig[c_lev]->nGrow() == 1);
+  BL_ASSERT(sig[f_lev]->nGrow() == 1);
+
+  BL_ASSERT(sig[c_lev]->nComp() == 1);
+  BL_ASSERT(sig[f_lev]->nComp() == 1);
+
+  if (sync_resid_crse != 0) { 
+    BL_ASSERT(nlevel == 1);
+    BL_ASSERT(c_lev < parent->finestLevel());
+  }
+
+  if (sync_resid_fine != 0) { 
+    BL_ASSERT((nlevel == 1 || nlevel == 2));
+    BL_ASSERT(c_lev > 0);
+  }
+
+  if (rhs[c_lev] != 0) {
+    if (type(*rhs[c_lev]) == IntVect::TheNodeVector()) {
+      BoxLib::Abort("Projection::doNodalProjection: rhs cannot be nodal type");
+    }
+    BL_ASSERT(rhs[c_lev]->nGrow() == 1);
+    BL_ASSERT(rhs[f_lev]->nGrow() == 1);
+  }
+
+  PArray<MultiFab> vold(1, PArrayManage);
+  if (sync_resid_fine !=0 || sync_resid_crse != 0) {
+    vold.set(0, new MultiFab(parent->boxArray(c_lev), BL_SPACEDIM, 1));
+    MultiFab::Copy(vold[0], *vel[c_lev], 0, 0, BL_SPACEDIM, 1);
+  }
+
+  std::vector<Geometry> mg_geom(nlevel);
+  for (int lev = 0; lev < nlevel; lev++) {
+    mg_geom[lev] = parent->Geom(lev+c_lev);
+  }  
+
+  int mg_bc[2*BL_SPACEDIM];
+  for ( int i = 0; i < BL_SPACEDIM; ++i ) {
+    if ( mg_geom[0].isPeriodic(i) ) {
+      mg_bc[i*2 + 0] = 0;
+      mg_bc[i*2 + 1] = 0;
+    }
+    else {
+      mg_bc[i*2 + 0] = phys_bc->lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+      mg_bc[i*2 + 1] = phys_bc->hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+    }
+  }
+
+  std::vector<BoxArray> mg_grids(nlevel);
+  for (int lev = 0; lev < nlevel; lev++) {
+    mg_grids[lev] = parent->boxArray(lev+c_lev);
+  }
+
+  std::vector<DistributionMapping> dmap(nlevel);
+  for (int lev=0; lev < nlevel; lev++ ) {
+    dmap[lev] = LevelData[lev+c_lev].get_new_data(State_Type).DistributionMap();
+  }
+
+  bool nodal = true;
+
+  const MultiFab* csig[MAX_LEV];
+  for (int lev = 0; lev < nlevel; lev++) {
+    csig[lev] = sig[lev+c_lev];
+  }
+
+  MGT_Solver mgt_solver(mg_geom, mg_bc, mg_grids, dmap, nodal, hg_stencil);
+
+  mgt_solver.set_nodal_coefficients(csig);
+
+  mgt_solver.nodal_project(&phi[c_lev], &vel[c_lev], &crse_rhs[c_lev], proj_tol, proj_abs_tol);  
+
+  // Must fill sync_resid_fine before sync_resid_crse because of the side effecs in the calls.
+
+  if (sync_resid_fine != 0) {
+    const BoxArray& levelGrids = mg_grids[0];
+    const Geometry& levelGeom = mg_geom[0];
+
+    MultiFab msk(levelGrids, 1, 1); 
+
+    mask_grids(msk, levelGrids, levelGeom);
+
+    sync_resid_fine->setVal(0.0, sync_resid_fine->nGrow());
+
+    int isCoarse = 0;
+    mgt_solver.fill_sync_resid(sync_resid_fine, msk, vold[0], isCoarse);
+  }
+
+  if (sync_resid_crse != 0) {  // only level solve will come to here
+    const BoxArray& fineGrids = parent->boxArray(c_lev+1);
+    const BoxArray& levelGrids = mg_grids[0];
+    const Geometry& levelGeom = mg_geom[0];
+    IntVect ref_ratio = parent->refRatio(c_lev);
+
+    MultiFab msk(levelGrids, 1, 1); 
+
+    mask_grids(msk, levelGrids, levelGeom, fineGrids, ref_ratio);
+
+    sync_resid_crse->setVal(0.0, sync_resid_crse->nGrow());
+
+    int isCoarse = 1;
+    mgt_solver.fill_sync_resid(sync_resid_crse, msk, vold[0], isCoarse);
+  }
+
+}
+
+
+void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom,
+				 const BoxArray& fineGrids, const IntVect& ref_ratio)
+{
+  BoxArray localfine = fineGrids;
+  localfine.coarsen(ref_ratio);
+
+  msk.setBndry(-1.0);
+
+  for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
+    int i = mfi.index();
+
+    FArrayBox& msk_fab = msk[i];
+
+    const Box& reg  = grids[i]; // interior region
+    msk_fab.setVal(1.0, reg, 0); 
+      
+    std::vector< std::pair<int,Box> > isects = localfine.intersections(reg);
+
+    for (int ii = 0; ii < isects.size(); ii++) {
+      msk_fab.setVal(0.0, isects[ii].second, 0);
+    }
+  }
+
+  msk.FillBoundary();
+  if (geom.isAnyPeriodic()) {
+    geom.FillPeriodicBoundary(msk, true); // fill corners too
+  }
+}
+
+void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom)
+{
+  msk.setBndry(-1.0);
+
+  const Box& domainBox = geom.Domain();
+  IntVect is_periodic(D_DECL(geom.isPeriodic(0),
+  			     geom.isPeriodic(1),
+  			     geom.isPeriodic(2)));
+  Box domainBox_p = BoxLib::grow(domainBox, is_periodic);
+
+  for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
+    int i = mfi.index();
+    
+    FArrayBox& msk_fab = msk[i];
+    const Box& fullBox = msk_fab.box(); // including ghost cells
+
+    Box insBox = domainBox_p & fullBox;
+    if (! insBox.isEmpty()) {
+      msk_fab.setVal(0.0, insBox, 0);
+    }
+
+    const Box& regBox  = grids[i]; // interior region    
+    msk_fab.setVal(1.0, regBox, 0);    
+  }
+
+  msk.FillBoundary();
+  if (geom.isAnyPeriodic()) {
+    geom.FillPeriodicBoundary(msk, true); // fill corners tooo
+  }  
+}
+
+#endif

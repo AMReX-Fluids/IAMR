@@ -432,7 +432,10 @@ mac_level_driver (Amr*            parent,
                 mg_bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
             }
         }
+
         MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
+
+	mgt_solver.set_maxorder(max_order);
 
         // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
         Array< Array<Real> > xa(1);
@@ -472,6 +475,11 @@ mac_level_driver (Amr*            parent,
 
         Real final_resnorm;
         mgt_solver.solve(mac_phi_p, Rhs_p, mac_tol, mac_abs_tol, mac_bndry, final_resnorm);
+
+	mac_phi_p[0]->FillBoundary(0,1,true);
+	if (geom[0].isAnyPeriodic()) {
+	  geom[0].FillPeriodicBoundary(*mac_phi_p[0],0,1,true,true);
+	}
 #else
         BoxLib::Error("mac_level_driver::mg_cpp not in this build");
 #endif
@@ -481,6 +489,7 @@ mac_level_driver (Amr*            parent,
         MultiGrid mac_mg(mac_op);
         mac_mg.solve(*mac_phi,Rhs,mac_tol,mac_abs_tol);
     }
+
     //
     // velUpdate will set bndry values for mac_phi.
     //
@@ -573,6 +582,8 @@ mac_sync_driver (Amr*            parent,
 
         MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
 
+	mgt_solver.set_maxorder(max_order);
+
         // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
         Array< Array<Real> > xa(1);
         Array< Array<Real> > xb(1);
@@ -601,6 +612,7 @@ mac_sync_driver (Amr*            parent,
         {
             bb_p[0][i] = &(mac_op.bCoefficients(i));
         }
+
         mgt_solver.set_mac_coefficients(aa_p, bb_p, xa, xb);
 
         MultiFab* mac_phi_p[1];
@@ -610,6 +622,11 @@ mac_sync_driver (Amr*            parent,
 
         Real final_resnorm;
         mgt_solver.solve(mac_phi_p, Rhs_p, mac_sync_tol, mac_abs_tol, mac_bndry, final_resnorm);
+
+	mac_phi_p[0]->FillBoundary(0,1);
+	if (geom[0].isAnyPeriodic()) {
+	  geom[0].FillPeriodicBoundary(*mac_phi_p[0],0,1);
+	}
 #else
         BoxLib::Error("mac_sync_driver::mg_cpp not in this build");
 #endif
