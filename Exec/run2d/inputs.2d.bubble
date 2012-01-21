@@ -12,6 +12,9 @@ max_step 		= 50
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1.0
 
+# Use the tracer for the refinement criterion
+ns.do_tracer_ref = 1
+
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
@@ -32,7 +35,7 @@ amr.regrid_int		= 2
 #*******************************************************************************
 
 # Refinement ratio as a function of level
-amr.ref_ratio		= 2 2
+amr.ref_ratio		= 2 2 2 2
 
 #*******************************************************************************
 
@@ -77,7 +80,7 @@ ns.scal_diff_coefs      = 0.0
 #*******************************************************************************
 
 # Forcing term defaults to  rho * abs(gravity) "down"
-ns.gravity              = 9.8  
+ns.gravity              = -9.8  
 
 #*******************************************************************************
 
@@ -127,6 +130,6 @@ amr.blocking_factor     = 4
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = mag_vort
+amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
 
 #*******************************************************************************

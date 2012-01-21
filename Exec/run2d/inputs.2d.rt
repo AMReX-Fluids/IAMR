@@ -12,16 +12,20 @@ max_step 		= 1000
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 2.5
 
+ns.do_vorticity_ref = 1
+
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 		= 256 512
-amr.max_grid_size	= 128
+amr.n_cell 		= 64  128
+amr.max_grid_size	= 32
+
+amr.grid_eff = 0.95
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 0 # maximum number of levels of refinement
+amr.max_level		= 2 # maximum number of levels of refinement
 
 #*******************************************************************************
 
@@ -126,6 +130,6 @@ amr.blocking_factor     = 4
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = mag_vort
+amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
 
 #*******************************************************************************
