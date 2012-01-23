@@ -3121,7 +3121,9 @@ NavierStokes::sum_integrated_quantities ()
         NavierStokes& ns_level = getLevel(lev);
 //        mass += ns_level.volWgtSum("density",time);
 //        trac += ns_level.volWgtSum("tracer",time);
+#if (BL_SPACEDIM==3)
         udotlapu += ns_level.volWgtSum("udotlapu",time);
+#endif
         energy += ns_level.volWgtSum("energy",time);
         mgvort = std::max(mgvort,ns_level.MaxVal("mag_vort",time));
 #if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
