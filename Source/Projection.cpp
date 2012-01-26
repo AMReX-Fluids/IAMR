@@ -651,18 +651,23 @@ Projection::level_project (int             level,
     }
     else 
     {
-        bool use_u = true;
         if (is_rz == 1)
             radMult(level,*divusource,0);
         const int nghost = 0;
         divusource->mult(-1.0,0,1,nghost); // FIXME: this doesn't touch the ghost cells?
+	//                                    wqz. I don't think we need to.
 
         PArray<MultiFab> rhs_real(level+1);
         rhs_real.set(level, divusource);
 
 #ifdef MG_USE_F90_SOLVERS
-	BoxLib::Abort("Tell wqz: Projection::level_project does not support have_divu");
+	MultiFab* rhs_cc[MAX_LEV] = {0};
+	rhs_cc[level] = divusource;
+        MultiFab* crse_rhs[MAX_LEV] = {0};
+        doNodalProjection(level, 1, vel, phi, sig, rhs_cc, crse_rhs, 
+			  sync_resid_crse, sync_resid_fine);
 #else
+        bool use_u = true;
         sync_proj->manual_project(u_real,p_real,rhs_real,null_amr_real,s_real, 
                                   sync_resid_crse, sync_resid_fine, geom, 
                                   use_u, (Real*)dx,
@@ -1421,8 +1426,6 @@ Projection::initialVelocityProject (int  c_lev,
     } 
     else 
     {
-        const bool use_u = true;
-
         PArray<MultiFab> rhs_real(f_lev+1,PArrayManage);
         for (lev = c_lev; lev <= f_lev; lev++) 
         {
@@ -1433,8 +1436,12 @@ Projection::initialVelocityProject (int  c_lev,
         }
 
 #ifdef MG_USE_F90_SOLVERS
-	BoxLib::Abort("Tell wqz: Projection::initialVelocityProject does not support have_divu");
+
+	MultiFab* crse_rhs[MAX_LEV] = {0};
+	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs_cc, crse_rhs);
+
 #else
+        const bool use_u = true;
         sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real, 
                                   sync_resid_crse, sync_resid_fine, 
                                   parent->Geom(c_lev), 
@@ -1477,7 +1484,6 @@ Projection::initialVelocityProject (int  c_lev,
 #ifdef MG_USE_F90_SOLVERS
     for (lev = c_lev; lev <= f_lev; lev++) {
       delete sig[lev];
-      delete rhs_cc[lev];
     }
 #else
     // PArrayManage will do it
@@ -1879,7 +1885,6 @@ Projection::initialSyncProject (int       c_lev,
         //
         // General divu.
         //
-        bool use_u = true;
         //
         // This PArray is managed so it'll remove rhs on exiting scope.
         //
@@ -1891,8 +1896,10 @@ Projection::initialSyncProject (int       c_lev,
         }
 
 #ifdef MG_USE_F90_SOLVERS
-	BoxLib::Abort("Tell wqz: Projection::initialSyncProject does not support have_divu");
+	MultiFab* crse_rhs[MAX_LEV] = {0};
+	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs);
 #else
+        bool use_u = true;
         sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
                                   sync_resid_crse, sync_resid_fine, 
                                   parent->Geom(c_lev), 
@@ -1929,14 +1936,6 @@ Projection::initialSyncProject (int       c_lev,
     //
     for (lev = c_lev; lev <= f_lev; lev++) 
         incrPress(lev, 1.0);
-
-#ifdef MG_USE_F90_SOLVERS
-    for (int lev = c_lev; lev <= f_lev; lev++) {
-      delete rhs[lev];
-    }
-#else
-    // PArrayManage will do it.
-#endif
 
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      run_time = ParallelDescriptor::second() - stime;
@@ -3039,7 +3038,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 //
 void Projection::doNodalProjection(int c_lev, int nlevel, 
 				   MultiFab* vel[], MultiFab* phi[], MultiFab* sig[],
-				   MultiFab* rhs[], MultiFab* crse_rhs[], 
+				   MultiFab* rhs_cc[], MultiFab* crse_rhs[], 
 				   MultiFab* sync_resid_crse,
 				   MultiFab* sync_resid_fine)
 {
@@ -3065,12 +3064,12 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
     BL_ASSERT(c_lev > 0);
   }
 
-  if (rhs[c_lev] != 0) {
-    if (type(*rhs[c_lev]) == IntVect::TheNodeVector()) {
-      BoxLib::Abort("Projection::doNodalProjection: rhs cannot be nodal type");
+  if (rhs_cc[c_lev] != 0) {
+    if (type(*rhs_cc[c_lev]) == IntVect::TheNodeVector()) {
+      BoxLib::Abort("Projection::doNodalProjection: rhs_cc cannot be nodal type");
     }
-    BL_ASSERT(rhs[c_lev]->nGrow() == 1);
-    BL_ASSERT(rhs[f_lev]->nGrow() == 1);
+    BL_ASSERT(rhs_cc[c_lev]->nGrow() == 1);
+    BL_ASSERT(rhs_cc[f_lev]->nGrow() == 1);
   }
 
   PArray<MultiFab> vold(1, PArrayManage);
@@ -3113,11 +3112,14 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
     csig[lev] = sig[lev+c_lev];
   }
 
-  MGT_Solver mgt_solver(mg_geom, mg_bc, mg_grids, dmap, nodal, hg_stencil);
+  bool have_rhcc = (rhs_cc[c_lev] == 0) ? false : true;
+
+  MGT_Solver mgt_solver(mg_geom, mg_bc, mg_grids, dmap, nodal, hg_stencil, have_rhcc);
 
   mgt_solver.set_nodal_coefficients(csig);
 
-  mgt_solver.nodal_project(&phi[c_lev], &vel[c_lev], &crse_rhs[c_lev], proj_tol, proj_abs_tol);  
+  mgt_solver.nodal_project(&phi[c_lev], &vel[c_lev], &rhs_cc[c_lev], &crse_rhs[c_lev], 
+			   proj_tol, proj_abs_tol);  
 
   // Must fill sync_resid_fine before sync_resid_crse because of the side effecs in the calls.
 
