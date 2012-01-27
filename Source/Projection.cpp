@@ -641,7 +641,7 @@ Projection::level_project (int             level,
 #ifdef MG_USE_F90_SOLVERS
         MultiFab* rhs[MAX_LEV] = {0};
         MultiFab* crse_rhs[MAX_LEV] = {0};
-        doNodalProjection(level, 1, vel, phi, sig, rhs, crse_rhs, 
+        doNodalProjection(level, 1, vel, phi, sig, rhs, crse_rhs, proj_tol, proj_abs_tol, 
 			  sync_resid_crse, sync_resid_fine);
 #else
         sync_proj->project(u_real, p_real, null_amr_real, s_real, 
@@ -664,7 +664,7 @@ Projection::level_project (int             level,
 	MultiFab* rhs_cc[MAX_LEV] = {0};
 	rhs_cc[level] = divusource;
         MultiFab* crse_rhs[MAX_LEV] = {0};
-        doNodalProjection(level, 1, vel, phi, sig, rhs_cc, crse_rhs, 
+        doNodalProjection(level, 1, vel, phi, sig, rhs_cc, crse_rhs, proj_tol, proj_abs_tol,
 			  sync_resid_crse, sync_resid_fine);
 #else
         bool use_u = true;
@@ -697,7 +697,7 @@ Projection::level_project (int             level,
           //
           // Increment sync registers between level and level-1.
           //
-          const Real      invrat    = 1.0/(double)crse_dt_ratio;
+          const Real invrat = (proj_2) ? 1.0 : 1.0/(double)crse_dt_ratio;
           const Geometry& crse_geom = parent->Geom(level-1);
           fine_sync_reg->FineAdd(sync_resid_fine,geom,crse_geom,phys_bc,invrat);
        }
@@ -879,7 +879,7 @@ Projection::syncProject (int             c_lev,
     }
 
 #ifdef MG_USE_F90_SOLVERS
-    doNodalProjection(c_lev, 1, vels, phis, sigs, rhss, cRhs, 
+    doNodalProjection(c_lev, 1, vels, phis, sigs, rhss, cRhs, sync_tol, proj_abs_tol,
 		      sync_resid_crse, sync_resid_fine);
 #else
     const bool use_u          = true;
@@ -1110,7 +1110,7 @@ Projection::MLsyncProject (int             c_lev,
 
 #ifdef MG_USE_F90_SOLVERS
 
-    doNodalProjection(c_lev, 2, vel, phi, sig, rhs, cRh, 
+    doNodalProjection(c_lev, 2, vel, phi, sig, rhs, cRh, sync_tol, proj_abs_tol,
 		      sync_resid_crse, sync_resid_fine);
 #else
     //
@@ -1416,7 +1416,8 @@ Projection::initialVelocityProject (int  c_lev,
 
         MultiFab* rhs[MAX_LEV] = {0};
 	MultiFab* crse_rhs[MAX_LEV] = {0};
-	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs);
+	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs, 
+			  proj_tol, proj_abs_tol);
 
 #else
         sync_proj->project(u_real, p_real, null_amr_real, s_real,
@@ -1438,7 +1439,8 @@ Projection::initialVelocityProject (int  c_lev,
 #ifdef MG_USE_F90_SOLVERS
 
 	MultiFab* crse_rhs[MAX_LEV] = {0};
-	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs_cc, crse_rhs);
+	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs_cc, crse_rhs,
+			  proj_tol, proj_abs_tol);
 
 #else
         const bool use_u = true;
@@ -1619,7 +1621,8 @@ Projection::initialPressureProject (int  c_lev)
 #ifdef MG_USE_F90_SOLVERS
     MultiFab* rhs[MAX_LEV] = {0};
     MultiFab* crse_rhs[MAX_LEV] = {0};
-    doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs);
+    doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs,
+		      proj_tol, proj_abs_tol);
 #else
     const Real* dx_lev          = parent->Geom(f_lev).CellSize();
     MultiFab*   sync_resid_crse = 0;
@@ -1872,7 +1875,8 @@ Projection::initialSyncProject (int       c_lev,
         //
 #ifdef MG_USE_F90_SOLVERS
         MultiFab* crse_rhs[MAX_LEV] = {0};
-	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs);
+	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs,
+			  proj_tol, proj_abs_tol);
 #else
         sync_proj->project(u_real, p_real, null_amr_real, s_real,
                            sync_resid_crse, sync_resid_fine, 
@@ -1897,7 +1901,8 @@ Projection::initialSyncProject (int       c_lev,
 
 #ifdef MG_USE_F90_SOLVERS
 	MultiFab* crse_rhs[MAX_LEV] = {0};
-	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs);
+	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs,
+			  proj_tol, proj_abs_tol);
 #else
         bool use_u = true;
         sync_proj->manual_project(u_real, p_real, rhs_real, null_amr_real, s_real,
@@ -3039,6 +3044,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 void Projection::doNodalProjection(int c_lev, int nlevel, 
 				   MultiFab* vel[], MultiFab* phi[], MultiFab* sig[],
 				   MultiFab* rhs_cc[], MultiFab* crse_rhs[], 
+				   Real rel_tol, Real abs_tol,
 				   MultiFab* sync_resid_crse,
 				   MultiFab* sync_resid_fine)
 {
@@ -3119,7 +3125,7 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
   mgt_solver.set_nodal_coefficients(csig);
 
   mgt_solver.nodal_project(&phi[c_lev], &vel[c_lev], &rhs_cc[c_lev], &crse_rhs[c_lev], 
-			   proj_tol, proj_abs_tol);  
+			   rel_tol, abs_tol);  
 
   // Must fill sync_resid_fine before sync_resid_crse because of the side effecs in the calls.
 
@@ -3153,6 +3159,9 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
     mgt_solver.fill_sync_resid(sync_resid_crse, msk, vold[0], isCoarse);
   }
 
+  if (verbose >= 2) {
+    MGT_Solver::FlushFortranOutput();
+  }
 }
 
 
