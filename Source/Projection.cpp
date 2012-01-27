@@ -697,7 +697,13 @@ Projection::level_project (int             level,
           //
           // Increment sync registers between level and level-1.
           //
-          const Real invrat = (proj_2) ? 1.0 : 1.0/(double)crse_dt_ratio;
+	 // invrat is 1/crse_dt_ratio for both proj_2 and !proj_2, but for different reasons.
+	 // For !proj_2, this is because the fine residue is added to the sync register 
+	 //    for each fine step.
+	 // For proj_2, this is because the level projection works on U/dt, not dU/dt, 
+	 //    and dt on the fine level is crse_dt_ratio times smaller than dt one the 
+	 //    coarse level.
+	  const Real invrat = 1.0/(double)crse_dt_ratio;
           const Geometry& crse_geom = parent->Geom(level-1);
           fine_sync_reg->FineAdd(sync_resid_fine,geom,crse_geom,phys_bc,invrat);
        }
