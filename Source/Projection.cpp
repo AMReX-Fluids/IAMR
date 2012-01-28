@@ -3124,7 +3124,19 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
     csig[lev] = sig[lev+c_lev];
   }
 
-  bool have_rhcc = (rhs_cc[c_lev] == 0) ? false : true;
+  bool have_rhcc;
+  if (rhs_cc[c_lev] == 0) {
+    have_rhcc = false;
+  }
+  else {
+    have_rhcc = false;
+    for (int lev=c_lev; lev<=f_lev; lev++) {
+      if (rhs_cc[lev]->norm0() != 0.0) {
+	have_rhcc = true;
+	break;
+      }
+    }
+  }
 
   MGT_Solver mgt_solver(mg_geom, mg_bc, mg_grids, dmap, nodal, hg_stencil, have_rhcc);
 
