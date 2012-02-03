@@ -3095,6 +3095,21 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
 
   set_boundary_velocity(c_lev, nlevel, vel, true);
 
+  int lo_inflow[3] = {0};
+  int hi_inflow[3] = {0};
+
+  const int* lo_bc = phys_bc->lo();
+  const int* hi_bc = phys_bc->hi();
+
+  for (int idir=0; idir<BL_SPACEDIM; idir++) {
+    if (lo_bc[idir] == Inflow) {
+      lo_inflow[idir] = 1;
+    }
+    if (hi_bc[idir] == Inflow) {
+      hi_inflow[idir] = 1;
+    }
+  }
+
   std::vector<Geometry> mg_geom(nlevel);
   for (int lev = 0; lev < nlevel; lev++) {
     mg_geom[lev] = parent->Geom(lev+c_lev);
@@ -3148,7 +3163,7 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
   mgt_solver.set_nodal_coefficients(csig);
 
   mgt_solver.nodal_project(&phi[c_lev], &vel[c_lev], &rhs_cc[c_lev], &crse_rhs[c_lev], 
-			   rel_tol, abs_tol);  
+			   rel_tol, abs_tol, &lo_inflow[0], &hi_inflow[0]);  
 
   // Must fill sync_resid_fine before sync_resid_crse because of the side effecs in the calls.
 
