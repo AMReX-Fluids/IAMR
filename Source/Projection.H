@@ -17,6 +17,16 @@ class inviscid_fluid_boundary;
 
 class Projection 
 {
+protected:
+  static const int maxlev = 10;
+  static const Real BogusValue = 1.e200;
+  static const int  LEVEL_PROJ    = 1001;
+  static const int  INITIAL_VEL   = 1002;
+  static const int  INITIAL_PRESS = 1003;
+  static const int  INITIAL_SYNC  = 1004;
+  static const int  SYNC_PROJ     = 1005;
+  static const int  FILTER_P      = 1006;
+
 public:
 
     Projection (Amr*   _parent,

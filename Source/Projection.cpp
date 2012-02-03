@@ -42,9 +42,6 @@ const Real* fabdat = (fab).dataPtr();
 const int* boxlo = (box).loVect();           \
 const int* boxhi = (box).hiVect();
 
-#define BogusValue 1.e200
-#define MAX_LEV 10
-
 //
 // NOTE: the RegType array project_bc is now defined in NS_BC.H in iamrlib
 //
@@ -193,13 +190,6 @@ Projection::Finalize ()
     initialized = false;
 }
 
-#define LEVEL_PROJ      1001
-#define INITIAL_VEL     1002
-#define INITIAL_PRESS   1003
-#define INITIAL_SYNC    1004
-#define SYNC_PROJ       1005
-#define FILTER_P        1006
-
 Projection::Projection (Amr*   _parent,
                         BCRec* _phys_bc, 
                         int    _do_sync_proj,
@@ -214,6 +204,9 @@ Projection::Projection (Amr*   _parent,
     phys_bc(_phys_bc), 
     do_sync_proj(_do_sync_proj)
 {
+
+    BL_ASSERT ( parent->finestLevel()+1 <= maxlev );
+
     Initialize();
 
     if (verbose && ParallelDescriptor::IOProcessor()) 
@@ -551,16 +544,16 @@ Projection::level_project (int             level,
     if (OutFlowBC::HasOutFlowBC(phys_bc) && (have_divu || std::fabs(gravity) > 0.0) 
                                          && do_outflow_bcs) 
     {
-        MultiFab* phi[MAX_LEV] = {0};
+        MultiFab* phi[maxlev] = {0};
         phi[level] = &LevelData[level].get_new_data(Press_Type);
 
-        MultiFab* Vel_ML[MAX_LEV] = {0};
+        MultiFab* Vel_ML[maxlev] = {0};
         Vel_ML[level] = &U_new;
 
-        MultiFab* Divu_ML[MAX_LEV] = {0};
+        MultiFab* Divu_ML[maxlev] = {0};
         Divu_ML[level] = divusource;
 
-        MultiFab* Rho_ML[MAX_LEV] = {0};
+        MultiFab* Rho_ML[maxlev] = {0};
         Rho_ML[level] = rho_half;
 
         set_outflow_bcs(LEVEL_PROJ,phi,Vel_ML,Divu_ML,Rho_ML,level,level,have_divu);
@@ -584,9 +577,9 @@ Projection::level_project (int             level,
 
 #ifdef MG_USE_F90_SOLVERS
 
-    MultiFab* vel[MAX_LEV] = {0};
-    MultiFab* phi[MAX_LEV] = {0};
-    MultiFab* sig[MAX_LEV] = {0};
+    MultiFab* vel[maxlev] = {0};
+    MultiFab* phi[maxlev] = {0};
+    MultiFab* sig[maxlev] = {0};
 
     vel[level] = &U_new;
     phi[level] = &P_new;
@@ -639,8 +632,8 @@ Projection::level_project (int             level,
     if (!have_divu) 
     {
 #ifdef MG_USE_F90_SOLVERS
-        MultiFab* rhs[MAX_LEV] = {0};
-        MultiFab* crse_rhs[MAX_LEV] = {0};
+        MultiFab* rhs[maxlev] = {0};
+        MultiFab* crse_rhs[maxlev] = {0};
         doNodalProjection(level, 1, vel, phi, sig, rhs, crse_rhs, proj_tol, proj_abs_tol, 
 			  sync_resid_crse, sync_resid_fine);
 #else
@@ -661,9 +654,9 @@ Projection::level_project (int             level,
         rhs_real.set(level, divusource);
 
 #ifdef MG_USE_F90_SOLVERS
-	MultiFab* rhs_cc[MAX_LEV] = {0};
+	MultiFab* rhs_cc[maxlev] = {0};
 	rhs_cc[level] = divusource;
-        MultiFab* crse_rhs[MAX_LEV] = {0};
+        MultiFab* crse_rhs[maxlev] = {0};
         doNodalProjection(level, 1, vel, phi, sig, rhs_cc, crse_rhs, proj_tol, proj_abs_tol,
 			  sync_resid_crse, sync_resid_fine);
 #else
@@ -778,8 +771,6 @@ Projection::level_project (int             level,
 // SYNC_PROJECT
 //
 
-#define MAXLEV 10
-
 void
 Projection::syncProject (int             c_lev,
                          MultiFab&       pres,
@@ -837,11 +828,11 @@ Projection::syncProject (int             c_lev,
     EnforcePeriodicity(*Vsync, BL_SPACEDIM, grids, geom);
 
 #ifdef MG_USE_F90_SOLVERS
-    MultiFab *phis[MAX_LEV] = {0};
-    MultiFab* vels[MAX_LEV] = {0};
-    MultiFab* sigs[MAX_LEV] = {0};
-    MultiFab* rhss[MAX_LEV] = {0};
-    MultiFab* cRhs[MAX_LEV] = {0};
+    MultiFab *phis[maxlev] = {0};
+    MultiFab* vels[maxlev] = {0};
+    MultiFab* sigs[maxlev] = {0};
+    MultiFab* rhss[maxlev] = {0};
+    MultiFab* cRhs[maxlev] = {0};
     phis[c_lev] = &phi;
     vels[c_lev] = Vsync;
     sigs[c_lev] = &sig;
@@ -990,7 +981,7 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Set up memory.
     //
-    MultiFab *phi[MAXLEV] = {0};
+    MultiFab *phi[maxlev] = {0};
 
     const BoxArray& grids      = LevelData[c_lev].boxArray();
     const BoxArray& fine_grids = LevelData[c_lev+1].boxArray();
@@ -1027,10 +1018,10 @@ Projection::MLsyncProject (int             c_lev,
 
 #ifdef MG_USE_F90_SOLVERS
 
-    MultiFab* vel[MAX_LEV] = {0};
-    MultiFab* sig[MAX_LEV] = {0};
-    MultiFab* rhs[MAX_LEV] = {0};
-    MultiFab* cRh[MAX_LEV] = {0};
+    MultiFab* vel[maxlev] = {0};
+    MultiFab* sig[maxlev] = {0};
+    MultiFab* rhs[maxlev] = {0};
+    MultiFab* cRh[maxlev] = {0};
 
     vel[c_lev  ] = Vsync;
     vel[c_lev+1] = &V_corr;
@@ -1276,9 +1267,9 @@ Projection::initialVelocityProject (int  c_lev,
         bldSyncProject();
 #endif
 
-    MultiFab* vel[MAX_LEV] = {0};
-    MultiFab* phi[MAX_LEV] = {0};
-    MultiFab* sig[MAX_LEV] = {0};
+    MultiFab* vel[maxlev] = {0};
+    MultiFab* phi[maxlev] = {0};
+    MultiFab* sig[maxlev] = {0};
 
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
@@ -1322,7 +1313,7 @@ Projection::initialVelocityProject (int  c_lev,
         }
     }
 
-    MultiFab* rhs_cc[MAX_LEV] = {0};
+    MultiFab* rhs_cc[maxlev] = {0};
     const int nghost = 1; 
 
     for (lev = c_lev; lev <= f_lev; lev++) 
@@ -1420,8 +1411,8 @@ Projection::initialVelocityProject (int  c_lev,
     {
 #ifdef MG_USE_F90_SOLVERS
 
-        MultiFab* rhs[MAX_LEV] = {0};
-	MultiFab* crse_rhs[MAX_LEV] = {0};
+        MultiFab* rhs[maxlev] = {0};
+	MultiFab* crse_rhs[maxlev] = {0};
 	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs, 
 			  proj_tol, proj_abs_tol);
 
@@ -1444,7 +1435,7 @@ Projection::initialVelocityProject (int  c_lev,
 
 #ifdef MG_USE_F90_SOLVERS
 
-	MultiFab* crse_rhs[MAX_LEV] = {0};
+	MultiFab* crse_rhs[maxlev] = {0};
 	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs_cc, crse_rhs,
 			  proj_tol, proj_abs_tol);
 
@@ -1518,9 +1509,9 @@ Projection::initialPressureProject (int  c_lev)
         std::cout << "initialPressureProject: levels = " << c_lev
                   << "  " << f_lev << '\n';
 
-    MultiFab* vel[MAX_LEV] = {0};
-    MultiFab* phi[MAX_LEV] = {0};
-    MultiFab* sig[MAX_LEV] = {0};
+    MultiFab* vel[maxlev] = {0};
+    MultiFab* phi[maxlev] = {0};
+    MultiFab* sig[maxlev] = {0};
 
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
@@ -1567,7 +1558,7 @@ Projection::initialPressureProject (int  c_lev)
     if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs)
     {
         int have_divu_dummy = 0;
-        MultiFab* Divu_ML[MAX_LEV] = {0};
+        MultiFab* Divu_ML[maxlev] = {0};
 
         set_outflow_bcs(INITIAL_PRESS,phi,vel,Divu_ML,sig,
                         c_lev,f_lev,have_divu_dummy);
@@ -1625,8 +1616,8 @@ Projection::initialPressureProject (int  c_lev)
     // Project
     //
 #ifdef MG_USE_F90_SOLVERS
-    MultiFab* rhs[MAX_LEV] = {0};
-    MultiFab* crse_rhs[MAX_LEV] = {0};
+    MultiFab* rhs[maxlev] = {0};
+    MultiFab* crse_rhs[maxlev] = {0};
     doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs,
 		      proj_tol, proj_abs_tol);
 #else
@@ -1691,9 +1682,9 @@ Projection::initialSyncProject (int       c_lev,
     //
     // Gather data.
     //
-    MultiFab* vel[MAX_LEV] = {0};
-    MultiFab* phi[MAX_LEV] = {0};
-    MultiFab* rhs[MAX_LEV] = {0};
+    MultiFab* vel[maxlev] = {0};
+    MultiFab* phi[maxlev] = {0};
+    MultiFab* rhs[maxlev] = {0};
 
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
@@ -1880,7 +1871,7 @@ Projection::initialSyncProject (int       c_lev,
         // Zero divu only or debugging.
         //
 #ifdef MG_USE_F90_SOLVERS
-        MultiFab* crse_rhs[MAX_LEV] = {0};
+        MultiFab* crse_rhs[maxlev] = {0};
 	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs,
 			  proj_tol, proj_abs_tol);
 #else
@@ -1906,7 +1897,7 @@ Projection::initialSyncProject (int       c_lev,
         }
 
 #ifdef MG_USE_F90_SOLVERS
-	MultiFab* crse_rhs[MAX_LEV] = {0};
+	MultiFab* crse_rhs[maxlev] = {0};
 	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs,
 			  proj_tol, proj_abs_tol);
 #else
@@ -2475,7 +2466,7 @@ Projection::initialVorticityProject (int c_lev)
 
     bldSyncProject();
 
-    MultiFab* vel[MAX_LEV] = {0};
+    MultiFab* vel[maxlev] = {0};
 
     PArray<MultiFab> p_real(f_lev+1,PArrayManage);
     PArray<MultiFab> s_real(f_lev+1,PArrayManage);
@@ -2671,7 +2662,7 @@ Projection::getStreamFunction (PArray<MultiFab>& phi)
 
     bldSyncProject();
 
-    MultiFab* vel[MAX_LEV] = {0};
+    MultiFab* vel[maxlev] = {0};
 
     PArray<MultiFab> p_real(f_lev+1,PArrayManage);
     PArray<MultiFab> s_real(f_lev+1,PArrayManage);
@@ -2794,12 +2785,12 @@ Projection::set_outflow_bcs (int        which_call,
 
     bool        hasOutFlow;
     Orientation outFaces[2*BL_SPACEDIM];
-    Orientation outFacesAtThisLevel[MAXLEV][2*BL_SPACEDIM];
+    Orientation outFacesAtThisLevel[maxlev][2*BL_SPACEDIM];
 
     int fine_level[2*BL_SPACEDIM];
 
     int numOutFlowFacesAtAllLevels;
-    int numOutFlowFaces[MAXLEV];
+    int numOutFlowFaces[maxlev];
     OutFlowBC::GetOutFlowFaces(hasOutFlow,outFaces,phys_bc,numOutFlowFacesAtAllLevels);
 
     //
@@ -2819,10 +2810,10 @@ Projection::set_outflow_bcs (int        which_call,
     // by boxes at this level (skip if doesnt touch, and bomb if only partially
     // covered).
     //
-    Box state_strip[MAXLEV][2*BL_SPACEDIM];
+    Box state_strip[maxlev][2*BL_SPACEDIM];
 
-    int icount[MAXLEV];
-    for (int i=0; i < MAXLEV; i++) icount[i] = 0;
+    int icount[maxlev];
+    for (int i=0; i < maxlev; i++) icount[i] = 0;
 
     //
     // This loop is only to define the number of outflow faces at each level.
@@ -3084,7 +3075,7 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
     BL_ASSERT(rhs_cc[f_lev]->nGrow() == 1);
   }
 
-  MultiFab* vold[MAX_LEV] = {0};
+  MultiFab* vold[maxlev] = {0};
   if (sync_resid_fine !=0 || sync_resid_crse != 0) {
     vold[c_lev] = new MultiFab(parent->boxArray(c_lev), BL_SPACEDIM, 1);
     MultiFab::Copy(*vold[c_lev], *vel[c_lev], 0, 0, BL_SPACEDIM, 1);
@@ -3139,7 +3130,7 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
 
   bool nodal = true;
 
-  const MultiFab* csig[MAX_LEV];
+  const MultiFab* csig[maxlev];
   for (int lev = 0; lev < nlevel; lev++) {
     csig[lev] = sig[lev+c_lev];
   }
