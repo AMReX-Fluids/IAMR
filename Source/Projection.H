@@ -383,6 +383,10 @@ protected:
   //  0: covered by coarse level
   //  1: valid region 
   void mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom);
+
+  // set velocity in ghost cells to zero except for inflow
+  void set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[], bool inflowCorner);
+
 #endif
 
 };

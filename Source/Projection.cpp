@@ -3084,11 +3084,16 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
     BL_ASSERT(rhs_cc[f_lev]->nGrow() == 1);
   }
 
-  PArray<MultiFab> vold(1, PArrayManage);
+  MultiFab* vold[MAX_LEV] = {0};
   if (sync_resid_fine !=0 || sync_resid_crse != 0) {
-    vold.set(0, new MultiFab(parent->boxArray(c_lev), BL_SPACEDIM, 1));
-    MultiFab::Copy(vold[0], *vel[c_lev], 0, 0, BL_SPACEDIM, 1);
+    vold[c_lev] = new MultiFab(parent->boxArray(c_lev), BL_SPACEDIM, 1);
+    MultiFab::Copy(*vold[c_lev], *vel[c_lev], 0, 0, BL_SPACEDIM, 1);
+
+    bool inflowCorner = false;
+    set_boundary_velocity(c_lev, 1, vold, inflowCorner);
   }
+
+  set_boundary_velocity(c_lev, nlevel, vel, true);
 
   std::vector<Geometry> mg_geom(nlevel);
   for (int lev = 0; lev < nlevel; lev++) {
@@ -3158,7 +3163,7 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
     sync_resid_fine->setVal(0.0, sync_resid_fine->nGrow());
 
     int isCoarse = 0;
-    mgt_solver.fill_sync_resid(sync_resid_fine, msk, vold[0], isCoarse);
+    mgt_solver.fill_sync_resid(sync_resid_fine, msk, *vold[c_lev], isCoarse);
   }
 
   if (sync_resid_crse != 0) {  // only level solve will come to here
@@ -3174,8 +3179,10 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
     sync_resid_crse->setVal(0.0, sync_resid_crse->nGrow());
 
     int isCoarse = 1;
-    mgt_solver.fill_sync_resid(sync_resid_crse, msk, vold[0], isCoarse);
+    mgt_solver.fill_sync_resid(sync_resid_crse, msk, *vold[c_lev], isCoarse);
   }
+
+  delete vold[c_lev];
 
   if (verbose >= 2) {
     MGT_Solver::FlushFortranOutput();
@@ -3241,6 +3248,67 @@ void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry
   if (geom.isAnyPeriodic()) {
     geom.FillPeriodicBoundary(msk, true); // fill corners tooo
   }  
+}
+
+// set velocity in ghost cells to zero except for inflow
+void Projection::set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[], bool inflowCorner)
+{
+  const int* lo_bc = phys_bc->lo();
+  const int* hi_bc = phys_bc->hi();
+
+  for (int lev=c_lev; lev < c_lev+nlevel; lev++) {
+    const BoxArray& grids = parent->boxArray(lev);
+    const Box& domainBox = parent->Geom(lev).Domain();
+
+    for (int idir=0; idir<BL_SPACEDIM; idir++) {
+
+      if (lo_bc[idir] != Inflow && hi_bc[idir] != Inflow) {
+	vel[lev]->setBndry(0.0, Xvel+idir, 1);
+      }
+      else {
+	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
+	  int i = mfi.index();
+
+	  FArrayBox& v_fab = (*vel[lev])[i];
+
+	  const Box& reg = grids[i];
+	  const Box& bxg1 = BoxLib::grow(reg, 1);
+
+	  BoxList bxlist(reg);
+
+	  if (lo_bc[idir] == Inflow && reg.smallEnd(idir) == domainBox.smallEnd(idir)) {
+	    Box bx;
+	    if (inflowCorner) {
+	      bx = BoxLib::adjCellLo(bxg1, idir);
+	      bx.shift(idir, +1);
+	    }
+	    else {
+	      bx = BoxLib::adjCellLo(reg, idir);
+	    }
+	    bxlist.push_back(bx);
+	  }
+
+	  if (hi_bc[idir] == Inflow && reg.bigEnd(idir) == domainBox.bigEnd(idir)) {
+	    Box bx;
+	    if (inflowCorner) {
+	      bx = BoxLib::adjCellHi(bxg1, idir);
+	      bx.shift(idir, -1);
+	    }
+	    else {
+	      bx = BoxLib::adjCellHi(reg, idir);
+	    }
+	    bxlist.push_back(bx);
+	  }
+
+	  BoxList bxlist2 = BoxLib::complementIn(bxg1, bxlist);
+
+	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); it++) {
+	    v_fab.setVal(0.0, *it, Xvel+idir, 1);
+	  }
+	}
+      }
+    }
+  }
 }
 
 #endif
