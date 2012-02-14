@@ -1106,7 +1106,6 @@ Projection::MLsyncProject (int             c_lev,
     }
 
 #ifdef MG_USE_F90_SOLVERS
-
     doNodalProjection(c_lev, 2, vel, phi, sig, rhs, cRh, sync_tol, proj_abs_tol,
 		      sync_resid_crse, sync_resid_fine);
 #else
@@ -3091,7 +3090,7 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
 
   const int* lo_bc = phys_bc->lo();
   const int* hi_bc = phys_bc->hi();
-
+  
   for (int idir=0; idir<BL_SPACEDIM; idir++) {
     if (lo_bc[idir] == Inflow) {
       lo_inflow[idir] = 1;
@@ -3202,20 +3201,55 @@ void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry
   BoxArray localfine = fineGrids;
   localfine.coarsen(ref_ratio);
 
-  msk.setBndry(-1.0);
+  msk.setBndry(BogusValue);
+
+  const int* lo_bc = phys_bc->lo();
+  const int* hi_bc = phys_bc->hi();
+  const Box& domainBox = geom.Domain();
 
   for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
     int i = mfi.index();
 
     FArrayBox& msk_fab = msk[i];
 
-    const Box& reg  = grids[i]; // interior region
+    const Box& reg  = grids[i]; 
     msk_fab.setVal(1.0, reg, 0); 
-      
+
+    for (int idir=0; idir<BL_SPACEDIM; idir++) {
+      if (lo_bc[idir] == Inflow) {
+	if (reg.smallEnd(idir) == domainBox.smallEnd(idir)) {
+	  Box bx = BoxLib::adjCellLo(reg, idir);
+	  msk_fab.setVal(1.0, bx, 0);
+	}
+      }
+      if (hi_bc[idir] == Inflow) {
+	if (reg.bigEnd(idir) == domainBox.bigEnd(idir)) {
+	  Box bx = BoxLib::adjCellHi(reg, idir);
+	  msk_fab.setVal(1.0, bx, 0);
+	}
+      }
+    }
+
     std::vector< std::pair<int,Box> > isects = localfine.intersections(reg);
 
     for (int ii = 0; ii < isects.size(); ii++) {
-      msk_fab.setVal(0.0, isects[ii].second, 0);
+      const Box& fbox = isects[ii].second;
+      msk_fab.setVal(0.0, fbox, 0);
+
+      for (int idir=0; idir<BL_SPACEDIM; idir++) {
+	if (lo_bc[idir] == Inflow) {
+	  if (fbox.smallEnd(idir) == domainBox.smallEnd(idir)) {
+	    Box bx = BoxLib::adjCellLo(fbox, idir);
+	    msk_fab.setVal(0.0, bx, 0);
+	  }
+	}
+	if (hi_bc[idir] == Inflow) {
+	  if (fbox.bigEnd(idir) == domainBox.bigEnd(idir)) {
+	    Box bx = BoxLib::adjCellHi(fbox, idir);
+	    msk_fab.setVal(0.0, bx, 0);
+	  }
+	}
+      }      
     }
   }
 
@@ -3227,13 +3261,16 @@ void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry
 
 void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom)
 {
-  msk.setBndry(-1.0);
+  msk.setBndry(BogusValue);
 
   const Box& domainBox = geom.Domain();
   IntVect is_periodic(D_DECL(geom.isPeriodic(0),
   			     geom.isPeriodic(1),
   			     geom.isPeriodic(2)));
   Box domainBox_p = BoxLib::grow(domainBox, is_periodic);
+
+  const int* lo_bc = phys_bc->lo();
+  const int* hi_bc = phys_bc->hi();
 
   for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
     int i = mfi.index();
@@ -3248,6 +3285,21 @@ void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry
 
     const Box& regBox  = grids[i]; // interior region    
     msk_fab.setVal(1.0, regBox, 0);    
+
+    for (int idir=0; idir<BL_SPACEDIM; idir++) {
+      if (lo_bc[idir] == Inflow) {
+	if (regBox.smallEnd(idir) == domainBox.smallEnd(idir)) {
+	  Box bx = BoxLib::adjCellLo(regBox, idir);
+	  msk_fab.setVal(1.0, bx, 0);
+	}
+      }
+      if (hi_bc[idir] == Inflow) {
+	if (regBox.bigEnd(idir) == domainBox.bigEnd(idir)) {
+	  Box bx = BoxLib::adjCellHi(regBox, idir);
+	  msk_fab.setVal(1.0, bx, 0);
+	}
+      }
+    }
   }
 
   msk.FillBoundary();

@@ -381,17 +381,17 @@ protected:
 
   // Mask off fine grids
   // Possible values for msk
-  // -1: outside this level
-  //  0: covered by fine level
-  //  1: valid region not covered fine level
+  // BogusValue: outside this level
+  //          0: covered by fine level
+  //          1: valid region not covered fine level
   void mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom,
 		  const BoxArray& fineGrids, const IntVect& ref_ratio);
 
   // Mask off coarse grids
   // Possible values for msk
-  // -1: outside physical domain
-  //  0: covered by coarse level
-  //  1: valid region 
+  // BogusValue: outside physical domain, or we don't care
+  //          0: covered by coarse level
+  //          1: valid region 
   void mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom);
 
   // set velocity in ghost cells to zero except for inflow
