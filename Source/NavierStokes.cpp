@@ -1100,7 +1100,7 @@ NavierStokes::initData ()
 	  std::cout << "initData: reading data from: " << velocity_plotfile << " (" << velocity_plotfile_xvel_name << ")" << std::endl;
 
         DataServices::SetBatchMode();
-        FileType fileType(NEWPLT);
+        Amrvis::FileType fileType(Amrvis::NEWPLT);
         DataServices dataServices(velocity_plotfile, fileType);
 
         if (!dataServices.AmrDataOk())

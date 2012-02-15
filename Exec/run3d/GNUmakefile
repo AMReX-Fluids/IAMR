@@ -41,8 +41,7 @@ endif
 
 ifeq (${USE_VELOCITY}, TRUE)
   #AMRVIS_DIR defines the directory in which we will find pAmrvis (e.g. DataServices, AmrData and FABUTIL)
-  #AMRVIS_DIR = $(BOXLIB_HOME)/Src/Extern/amrdata
-  AMRVIS_DIR ?= ../../../Amrvis
+  AMRVIS_DIR = $(BOXLIB_HOME)/Src/Extern/amrdata
 endif
 
 # This allows GetForce to call a Fortran routine
