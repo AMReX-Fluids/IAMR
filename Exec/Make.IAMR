@@ -57,6 +57,9 @@ endif
  
 ifeq ($(USE_VELOCITY), TRUE)
   DEFINES += -DBL_NOLINEVALUES -DBL_USE_VELOCITY -DBL_PARALLEL_IO
+  CEXE_headers += DataServices.H AmrData.H XYPlotDataList.H AmrvisConstants.H
+  CEXE_sources += DataServices.cpp AmrData.cpp
+  FEXE_sources += FABUTIL_$(DIM)D.F
   INCLUDE_LOCATIONS += $(AMRVIS_DIR)
   VPATH_LOCATIONS   += $(AMRVIS_DIR)
 endif
