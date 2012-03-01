@@ -7,6 +7,7 @@ fincludes=$(includes)
 
 Bdirs += Source
 Bdirs += Source/InflowForce
+Bdirs += Source/Src_$(DIM)d
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))

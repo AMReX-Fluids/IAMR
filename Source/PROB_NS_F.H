@@ -227,7 +227,7 @@
 			  const Real* gravity,
 			  const int* scomp, const int* ncomp, const int* nscal,
 			  const int* getForceVerbose);
-#else
+#endif
 #ifdef GENGETFORCE
      void FORT_MAKEFORCE (const Real* time, Real* force, const Real* rho,
                           ARLIM_P(i_lo), ARLIM_P(i_hi),
@@ -237,6 +237,14 @@
 			  const Real* gravity,
 			  const int* scomp, const int* ncomp);
 #endif
+#ifdef BOUSSINESQ
+     void FORT_MAKEFORCE (Real* force,
+			  const Real* scal,
+                          ARLIM_P(f_lo), ARLIM_P(f_hi),
+                          ARLIM_P(s_lo), ARLIM_P(s_hi),
+                          const Real* dx,
+                          const Real* xlo, const Real* xhi,
+			  const int* scomp, const int* ncomp, const int* nscal);
 #endif
 
   }

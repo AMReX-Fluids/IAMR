@@ -156,9 +156,13 @@ c
                vel(i,j,k,1) = 0.d0
                vel(i,j,k,2) = 0.d0
                vel(i,j,k,3) = 0.d0
-               scal(i,j,k,1) = tanh(30.*(.25-abs(dist-.25)))
+  
+c              This is density  
+               scal(i,j,k,1) = 1.d0
+
+c              This is the scalar that defines the bubble 
                do n = 2,nscal
-                  scal(i,j,k,n) = 0.d0
+                  scal(i,j,k,2) = tanh(30.*(.25-abs(dist-.25)))
                end do                  
    	    end do
          end do

@@ -1,0 +1,12 @@
+
+FEXE_sources += SYNCREG_$(DIM)D.F VISCOPERATOR_$(DIM)D.F \
+			    PROJOUTFLOWBC_$(DIM)D.F MACOUTFLOWBC_$(DIM)D.F
+
+FEXE_sources += DERIVE_$(DIM)D.F GODUNOV_$(DIM)D.F \
+                NAVIERSTOKES_$(DIM)D.F PROJECTION_$(DIM)D.F \
+                MACPROJ_$(DIM)D.F DIFFUSION_$(DIM)D.F       \
+                SLABSTAT_NS_$(DIM)D.F
+
+ifndef ATMOS_MACOP
+  FEXE_sources += MACOPERATOR_$(DIM)D.F
+endif

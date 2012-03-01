@@ -550,6 +550,15 @@ protected:
     //
     // Get the forcing term.
     //
+#ifdef BOUSSINESQ
+    void getForce (FArrayBox&       force,
+                   int              gridno,
+                   int              ngrow,
+                   int              strt_comp,
+                   int              num_comp,
+		   const Real       time,
+                   const FArrayBox& Scal);
+#else
 #ifdef MOREGENGETFORCE
     void getForce (FArrayBox&       force,
                    int              gridno,
@@ -570,6 +579,7 @@ protected:
 		   const Real       time,
 #endif		 
                    const FArrayBox& Rho);
+#endif		 
 #endif		 
     //
     // Get state data.

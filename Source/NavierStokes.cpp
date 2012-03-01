@@ -1884,6 +1884,11 @@ NavierStokes::predict_velocity (Real  dt,
     FArrayBox* null_fab = 0;
 
     for (FillPatchIterator U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM)
+#ifdef BOUSSINESQ
+	     , S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+	 S_fpi.isValid() && U_fpi.isValid();
+	 ++S_fpi, ++U_fpi
+#else
 #ifdef MOREGENGETFORCE
 	     , S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
 	 S_fpi.isValid() && U_fpi.isValid();
@@ -1892,10 +1897,14 @@ NavierStokes::predict_velocity (Real  dt,
              ; U_fpi.isValid();
 	 ++U_fpi
 #endif
+#endif
 	)
     {
         const int i = U_fpi.index();
 
+#ifdef BOUSSINESQ
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
+#else
 #ifdef GENGETFORCE
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
 #elif MOREGENGETFORCE
@@ -1905,6 +1914,7 @@ NavierStokes::predict_velocity (Real  dt,
 #else
 	getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
 #endif		 
+#endif
         //
         // Test velocities, rho and cfl.
         //
@@ -2008,9 +2018,16 @@ NavierStokes::velocity_advection (Real dt)
     // Compute the advective forcing.
     //
     for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
+#ifdef BOUSSINESQ
+             U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel   ,BL_SPACEDIM),
+             S_fpi(*this,visc_terms,       1,prev_time,State_Type,Density,NUM_SCALARS),
+             Rho_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Density,1);
+         S_fpi.isValid() && U_fpi.isValid() && P_fpi.isValid() && Rho_fpi.isValid(); 
+         ++S_fpi, ++U_fpi, ++P_fpi, ++Rho_fpi
+#else
 #ifdef MOREGENGETFORCE
-             U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM),
-             S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS),
+             U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel   ,BL_SPACEDIM),
+             S_fpi(*this,visc_terms,       1,prev_time,State_Type,Density,NUM_SCALARS),
              Rho_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Density,1);
          S_fpi.isValid() && U_fpi.isValid() && P_fpi.isValid() && Rho_fpi.isValid(); 
          ++S_fpi, ++U_fpi, ++P_fpi, ++Rho_fpi
@@ -2020,18 +2037,23 @@ NavierStokes::velocity_advection (Real dt)
          U_fpi.isValid() && P_fpi.isValid() && Rho_fpi.isValid(); 
          ++U_fpi, ++P_fpi, ++Rho_fpi
 #endif
+#endif
 	)
     {
         const int i = U_fpi.index();
 
+#ifdef BOUSSINESQ
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
+#else
 #ifdef GENGETFORCE
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
 #elif MOREGENGETFORCE
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << std::endl << "B - velocity advection:" << std::endl << "Calling getForce..." << std::endl;
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+#endif		 
 #endif		 
 
         godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*rho_ptime)[i]);
@@ -2183,6 +2205,9 @@ NavierStokes::scalar_advection (Real dt,
     {
         const int i = U_fpi.index();
 
+#ifdef BOUSSINESQ
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
+#else
 #ifdef GENGETFORCE
         getForce(tforces,i,1,fscalar,num_scalars,prev_time,(*rho_ptime)[i]);
 #elif MOREGENGETFORCE
@@ -2192,9 +2217,13 @@ NavierStokes::scalar_advection (Real dt,
 #else
         getForce(tforces,i,1,fscalar,num_scalars,(*rho_ptime)[i]);
 #endif		 
+#endif		 
         
         if (use_forces_in_trans)
         {
+#ifdef BOUSSINESQ
+        getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
+#else
 #ifdef GENGETFORCE
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
 #elif MOREGENGETFORCE
@@ -2203,6 +2232,7 @@ NavierStokes::scalar_advection (Real dt,
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+#endif		 
 #endif		 
             godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[i],Gp[i],(*rho_ptime)[i]);
         }
@@ -2637,6 +2667,14 @@ NavierStokes::velocity_advection_update (Real dt)
     {
         const int i = Rhohalf_mfi.index();
 
+#ifdef BOUSSINESQ
+	// Average the new and old time to get half time approximation
+	FArrayBox Scal(grids[i],NUM_SCALARS);
+	Scal.copy(U_old[i],Density,0,NUM_SCALARS);
+	Scal.plus(U_new[i],Density,0,NUM_SCALARS);
+	Scal.mult(0.5);
+        getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,Scal);
+#else
 #ifdef GENGETFORCE
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,halftime[i]);
 #elif MOREGENGETFORCE
@@ -2681,6 +2719,7 @@ NavierStokes::velocity_advection_update (Real dt)
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
 #else
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,halftime[i]);
+#endif		 
 #endif		 
         //
         // Do following only at initial iteration--per JBB.
@@ -2851,6 +2890,9 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
         {
             const int i = P_fpi.index();
 
+#ifdef BOUSSINESQ
+            getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,U_old[i]);
+#else
 #ifdef GENGETFORCE
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
 #elif MOREGENGETFORCE
@@ -2859,6 +2901,7 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,U_old[i],U_old[i],Density);
 #else
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+#endif		 
 #endif		 
             godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*Rh)[i]);
 
@@ -3731,6 +3774,9 @@ NavierStokes::estTimeStep ()
         //
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
+#ifdef BOUSSINESQ
+        getForce(tforces,i,0,Xvel,BL_SPACEDIM,cur_time,U_new[i]);
+#else
 #ifdef GENGETFORCE
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,(*rho_ctime)[i]);
 #elif MOREGENGETFORCE
@@ -3739,6 +3785,7 @@ NavierStokes::estTimeStep ()
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i],U_new[i],Density);
 #else
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,(*rho_ctime)[i]);
+#endif		 
 #endif		 
         tforces.minus(Gp[i],0,0,BL_SPACEDIM);
         //
@@ -5504,266 +5551,6 @@ NavierStokes::pullFluxes (int        i,
 // source term, which requires a division by rho in the predict_velocity
 // and velocity_advection routines.
 //
-#ifdef GENGETFORCE
-void
-NavierStokes::getForce (FArrayBox&       force,
-                        int              gridno,
-                        int              ngrow,
-                        int              scomp,
-                        int              ncomp,
-                        const Real       time,
-                        const FArrayBox& Rho)
-{
-    BL_ASSERT(Rho.nComp() == 1);
-
-    force.resize(BoxLib::grow(grids[gridno],ngrow),ncomp);
-
-    BL_ASSERT(Rho.box().contains(force.box()));
-
-    RealBox     gridloc = RealBox(grids[gridno],geom.CellSize(),geom.ProbLo());
-    const Real* dx      = geom.CellSize();
-    const Real  grav    = gravity;
-    const int*  s_lo    = Rho.loVect();
-    const int*  s_hi    = Rho.hiVect();
-    const int*  f_lo    = force.loVect();
-    const int*  f_hi    = force.hiVect();
-
-    FORT_MAKEFORCE (&time,
-		    force.dataPtr(),
-		    Rho.dataPtr(),
-		    ARLIM(f_lo), ARLIM(f_hi),
-		    ARLIM(s_lo), ARLIM(s_hi),
-		    dx,
-		    gridloc.lo(),
-		    gridloc.hi(),
-		    &grav,&scomp,&ncomp);
-}
-#else
-#ifdef MOREGENGETFORCE
-void
-NavierStokes::getForce (FArrayBox&       force,
-                        int              gridno,
-                        int              ngrow,
-                        int              scomp,
-                        int              ncomp,
-                        const Real       time,
-			const FArrayBox& Vel,
-                        const FArrayBox& Scal,
-			int              scalScomp)
-{
-    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
-	std::cout << "NavierStokes::getForce(): Entered..." << std::endl 
-		  << "time      = " << time << std::endl
-		  << "scomp     = " << scomp << std::endl
-		  << "ncomp     = " << ncomp << std::endl
-		  << "ngrow     = " << ngrow << std::endl
-		  << "scalScomp = " << scalScomp << std::endl;
-
-	if (scomp==0)
-	    if  (ncomp==3) std::cout << "Doing velocities only" << std::endl;
-	    else           std::cout << "Doing all components" << std::endl;
-	else if (scomp==3)
-	    if  (ncomp==1) std::cout << "Doing density only" << std::endl;
-	    else           std::cout << "Doing all scalars" << std::endl;
-	else if (scomp==4) std::cout << "Doing tracer only" << std::endl;
-	else               std::cout << "Doing individual scalar" << std::endl;
-
-    }
-
-    force.resize(BoxLib::grow(grids[gridno],ngrow),ncomp);
-
-    const Real* VelDataPtr  = Vel.dataPtr();
-    const Real* ScalDataPtr = Scal.dataPtr(scalScomp);
-
-    const Real* dx       = geom.CellSize();
-    const Real  grav     = gravity;
-    const int*  f_lo     = force.loVect();
-    const int*  f_hi     = force.hiVect();
-    const int*  v_lo     = Vel.loVect();
-    const int*  v_hi     = Vel.hiVect();
-    const int*  s_lo     = Scal.loVect();
-    const int*  s_hi     = Scal.hiVect();
-    const int   nscal    = NUM_SCALARS;
-
-    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
-#if (BL_SPACEDIM == 3)
-	std::cout << "NavierStokes::getForce(): Force Domain:" << std::endl;
-	std::cout << "(" << f_lo[0] << "," << f_lo[1] << "," << f_lo[2] << ") - "
-		  << "(" << f_hi[0] << "," << f_hi[1] << "," << f_hi[2] << ")" << std::endl;
-	std::cout << "NavierStokes::getForce(): Vel Domain:" << std::endl;
-	std::cout << "(" << v_lo[0] << "," << v_lo[1] << "," << v_lo[2] << ") - "
-		  << "(" << v_hi[0] << "," << v_hi[1] << "," << v_hi[2] << ")" << std::endl;
-	std::cout << "NavierStokes::getForce(): Scal Domain:" << std::endl;
-	std::cout << "(" << s_lo[0] << "," << s_lo[1] << "," << s_lo[2] << ") - "
-		  << "(" << s_hi[0] << "," << s_hi[1] << "," << s_hi[2] << ")" << std::endl;
-#else
-	std::cout << "NavierStokes::getForce(): Force Domain:" << std::endl;
-	std::cout << "(" << f_lo[0] << "," << f_lo[1] << ") - "
-		  << "(" << f_hi[0] << "," << f_hi[1] << ")" << std::endl;
-	std::cout << "NavierStokes::getForce(): Vel Domain:" << std::endl;
-	std::cout << "(" << v_lo[0] << "," << v_lo[1] << ") - "
-		  << "(" << v_hi[0] << "," << v_hi[1] << ")" << std::endl;
-	std::cout << "NavierStokes::getForce(): Scal Domain:" << std::endl;
-	std::cout << "(" << s_lo[0] << "," << s_lo[1] << ") - "
-		  << "(" << s_hi[0] << "," << s_hi[1] << ")" << std::endl;
-#endif
-
-	Array<Real> velmin(BL_SPACEDIM), velmax(BL_SPACEDIM);
-	Array<Real> scalmin(NUM_SCALARS), scalmax(NUM_SCALARS);
-	for (int n=0; n<BL_SPACEDIM; n++) {
-	    velmin[n]= 1.e234;
-	    velmax[n]=-1.e234;
-	}
-	int ix = v_hi[0]-v_lo[0]+1;
-	int jx = v_hi[1]-v_lo[1]+1;
-#if (BL_SPACEDIM == 3)
-	int kx = v_hi[2]-v_lo[2]+1;
-	for (int k=0; k<kx; k++) {
-#endif
-	    for (int j=0; j<jx; j++) {
-		for (int i=0; i<ix; i++) {
-		    for (int n=0; n<BL_SPACEDIM; n++) {
-#if (BL_SPACEDIM == 3)
-			int cell = ((n*kx+k)*jx+j)*ix+i;
-#else
-			int cell = (n*jx+j)*ix+i;
-#endif
-			Real v = VelDataPtr[cell];
-			if (v<velmin[n]) velmin[n] = v;
-			if (v>velmax[n]) velmax[n] = v;
-		    }
-		}
-	    }
-#if (BL_SPACEDIM == 3)
-	}
-#endif
-	for (int n=0; n<BL_SPACEDIM; n++) 
-	    std::cout << "Vel  " << n << " min/max " << velmin[n] << " / " << velmax[n] << std::endl;
-	
-	for (int n=0; n<NUM_SCALARS; n++) {
-	    scalmin[n]= 1.e234;
-	    scalmax[n]=-1.e234;
-	}
-	ix = s_hi[0]-s_lo[0]+1;
-	jx = s_hi[1]-s_lo[1]+1;
-#if (BL_SPACEDIM == 3)
-	kx = s_hi[2]-s_lo[2]+1;
-	for (int k=0; k<kx; k++) {
-#endif
-	    for (int j=0; j<jx; j++) {
-		for (int i=0; i<ix; i++) {
-		    for (int n=0; n<NUM_SCALARS; n++) {
-#if (BL_SPACEDIM == 3)
-			int cell = ((n*kx+k)*jx+j)*ix+i;
-#else
-			int cell = (n*jx+j)*ix+i;
-#endif
-			Real s = ScalDataPtr[cell];
-			if (s<scalmin[n]) scalmin[n] = s;
-			if (s>scalmax[n]) scalmax[n] = s;
-		    }
-		}
-	    }
-#if (BL_SPACEDIM == 3)
-	}
-#endif
-	for (int n=0; n<NUM_SCALARS; n++) 
-	    std::cout << "Scal " << n << " min/max " << scalmin[n] << " / " << scalmax[n] << std::endl;
-    }
-
-    RealBox gridloc = RealBox(grids[gridno],geom.CellSize(),geom.ProbLo());
-    
-    // Here's the meat
-    FORT_MAKEFORCE (&time,
-		    force.dataPtr(),
-		    VelDataPtr,
-		    ScalDataPtr,
-		    ARLIM(f_lo), ARLIM(f_hi),
-		    ARLIM(v_lo), ARLIM(v_hi),
-		    ARLIM(s_lo), ARLIM(s_hi),
-		    dx,
-		    gridloc.lo(),
-		    gridloc.hi(),
-		    &grav,&scomp,&ncomp,&nscal,&getForceVerbose);
-
-    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
-	Array<Real> forcemin(ncomp);
-	Array<Real> forcemax(ncomp);
-	for (int n=0; n<ncomp; n++) {
-	    forcemin[n]= 1.e234;
-	    forcemax[n]=-1.e234;
-	}
-	int ix = f_hi[0]-f_lo[0]+1;
-	int jx = f_hi[1]-f_lo[1]+1;
-#if (BL_SPACEDIM == 3)
-	int kx = f_hi[2]-f_lo[2]+1;
-	for (int k=0; k<kx; k++) {
-#endif
-	    for (int j=0; j<jx; j++) {
-		for (int i=0; i<ix; i++) {
-		    for (int n=0; n<ncomp; n++) {
-#if (BL_SPACEDIM == 3)
-			int cell = ((n*kx+k)*jx+j)*ix+i;
-#else
-			int cell = (n*jx+j)*ix+i;
-#endif
-			Real f = force.dataPtr()[cell];
-			if (f<forcemin[n]) forcemin[n] = f;
-			if (f>forcemax[n]) forcemax[n] = f;
-		    }
-		}
-	    }
-#if (BL_SPACEDIM == 3)
-	}
-#endif
-	for (int n=0; n<ncomp; n++) 
-	    std::cout << "Force " << n+scomp << " min/max " << forcemin[n] << " / " << forcemax[n] << std::endl;
-	
-	std::cout << "NavierStokes::getForce(): Leaving..." << std::endl << "---" << std::endl;
-    }
-}
-#else
-void
-NavierStokes::getForce (FArrayBox&       force,
-                        int              gridno,
-                        int              ngrow,
-                        int              scomp,
-                        int              ncomp,
-                        const FArrayBox& Rho)
-{
-    BL_ASSERT(Rho.nComp() == 1);
-
-    force.resize(BoxLib::grow(grids[gridno],ngrow),ncomp);
-
-    BL_ASSERT(Rho.box().contains(force.box()));
-
-    const Real grav = gravity;
-
-    for (int dc = 0; dc < ncomp; dc++)
-    {
-        const int sc = scomp + dc;
-#if (BL_SPACEDIM == 2)
-        if (sc == Yvel && std::fabs(grav) > 0.001) 
-#endif
-#if (BL_SPACEDIM == 3)
-        if (sc == Zvel && std::fabs(grav) > 0.001) 
-#endif
-        {
-            //
-            // Set force to -rho*g.
-            //
-            force.copy(Rho,0,dc,1);
-            force.mult(grav,dc,1);
-        }
-        else
-        {
-            force.setVal(0,dc);
-        }
-    }    
-}
-// Generalised getForce
-#endif
-#endif
 
 void
 NavierStokes::getGradP (MultiFab& gp,
