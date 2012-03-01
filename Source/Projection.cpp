@@ -14,7 +14,6 @@
 #ifdef MG_USE_F90_SOLVERS
 #include <MGT_Solver.H>
 #include <mg_cpp_f.h>
-#include <fill_patch.H>
 #else
 #include <hg_projector.H>
 #endif
@@ -1031,6 +1030,11 @@ Projection::MLsyncProject (int             c_lev,
     rhs[c_lev+1] = &cc_rhs_fine; 
     cRh[c_lev  ] = crse_rhs;
 
+    NavierStokes* crse_lev = dynamic_cast<NavierStokes*>(&LevelData[c_lev]);
+    MultiFab fvolume, volume;
+    parent->Geom(c_lev  ).GetVolume( volume,     grids,1);
+    parent->Geom(c_lev+1).GetVolume(fvolume,fine_grids,1);
+
     {
       MultiFab v_crse(grids, 1, 1);
       MultiFab v_fine(fine_grids, 1, 1);
@@ -1038,12 +1042,16 @@ Projection::MLsyncProject (int             c_lev,
     	MultiFab::Copy(v_crse, *vel[c_lev  ], n, 0, 1, 1);
     	MultiFab::Copy(v_fine, *vel[c_lev+1], n, 0, 1, 1);
 
-    	restrict_level(v_crse, v_fine, ratio);
+    	// restrict_level(v_crse, v_fine, ratio);
+        crse_lev->avgDown(grids,fine_grids,v_crse,v_fine,volume,fvolume,
+                          c_lev,c_lev+1,0,v_crse.nComp(),ratio);
 
     	MultiFab::Copy(*vel[c_lev  ], v_crse, 0, n, 1, 1);
       }
 
-      restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
+      // restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
+      crse_lev->avgDown(grids,fine_grids,*sig[c_lev],*sig[c_lev+1],volume,fvolume,
+                        c_lev,c_lev+1,0,sig[c_lev]->nComp(),ratio);
     }
 
 #else
@@ -1399,8 +1407,10 @@ Projection::initialVelocityProject (int  c_lev,
     //
     // Project
     //
+#ifndef MG_USE_F90_SOLVERS
     MultiFab*   sync_resid_crse = 0;
     MultiFab*   sync_resid_fine = 0;
+#endif
 
 #ifndef MG_USE_F90_SOLVERS
     const Real* dx_lev          = parent->Geom(f_lev).CellSize();
@@ -1807,11 +1817,18 @@ Projection::initialSyncProject (int       c_lev,
       MultiFab v_crse(crse_grids, 1, 1);
       MultiFab v_fine(fine_grids, 1, 1);
 
+      MultiFab cvolume, fvolume;
+      NavierStokes* crse_lev = dynamic_cast<NavierStokes*>(&LevelData[lev-1]);
+      parent->Geom(lev-1).GetVolume(cvolume,crse_grids,1);
+      parent->Geom(lev  ).GetVolume(fvolume,fine_grids,1);
+
       for (int n = 0; n < BL_SPACEDIM; n++) {
     	MultiFab::Copy(v_crse, *vel[lev-1], n, 0, 1, 1);
     	MultiFab::Copy(v_fine, *vel[lev  ], n, 0, 1, 1);
-	
-    	restrict_level(v_crse, v_fine, parent->refRatio(lev-1));
+
+    	// restrict_level(v_crse, v_fine, parent->refRatio(lev-1));
+        crse_lev->avgDown(crse_grids,fine_grids,v_crse,v_fine,cvolume,fvolume,
+                          lev-1,lev,0,v_crse.nComp(),parent->refRatio(lev-1));
 	
     	MultiFab::Copy(*vel[lev-1], v_crse, 0, n, 1, 1);
       }
@@ -1854,8 +1871,10 @@ Projection::initialSyncProject (int       c_lev,
     }
 #endif
 
+#ifndef MG_USE_F90_SOLVERS
     MultiFab*   sync_resid_crse = 0;
     MultiFab*   sync_resid_fine = 0;
+#endif
 
 #ifndef MG_USE_F90_SOLVERS
     const Real* dx_lev          = parent->Geom(f_lev).CellSize();
@@ -3067,7 +3086,7 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
   }
 
   if (rhs_cc[c_lev] != 0) {
-    if (type(*rhs_cc[c_lev]) == IntVect::TheNodeVector()) {
+    if (rhs_cc[c_lev]->box(0).type() == IntVect::TheNodeVector()) {
       BoxLib::Abort("Projection::doNodalProjection: rhs_cc cannot be nodal type");
     }
     BL_ASSERT(rhs_cc[c_lev]->nGrow() == 1);

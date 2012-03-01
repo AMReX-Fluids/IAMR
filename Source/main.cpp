@@ -11,7 +11,10 @@
 #include <ParallelDescriptor.H>
 #include <AmrLevel.H>
 #include <TagBox.H>
+
+#ifndef MG_USE_F90_SOLVERS
 #include <hgparallel.H>
+#endif
 
 #ifndef NDEBUG
 
@@ -128,10 +131,12 @@ main (int   argc,
     Real stop_time;
 
     ParmParse pp;
+#ifndef MG_USE_F90_SOLVERS
     //
     // Initialize some Holy Grail junk.
     //
     HG::MPI_init();
+#endif
 
     max_step  = -1;    
     strt_time =  0.0;  
@@ -162,10 +167,13 @@ main (int   argc,
     }
 
     delete amrptr;
+
+#ifndef MG_USE_F90_SOLVERS
     //
     // Close down the Holy Grail junk.
     //
     HG::MPI_finish();
+#endif
 
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      run_stop = ParallelDescriptor::second() - run_strt;

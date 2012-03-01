@@ -16,7 +16,7 @@ include $(Bpack)
 #These are the directories in BoxLib
  
 Pdirs   := C_BaseLib C_AMRLib C_BoundaryLib
-Pdirs   += LinearSolvers/C_CellMG  LinearSolvers/C_NodalMG  LinearSolvers/C_TensorMG
+Pdirs   += LinearSolvers/C_CellMG  LinearSolvers/C_TensorMG
 Ppack   += $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
 Plocs   += $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir))
 
@@ -38,6 +38,10 @@ ifeq ($(USE_F90_SOLVERS),TRUE)
   include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
   INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
   VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/F_BaseLib
+else
+  include $(BOXLIB_HOME)/Src/LinearSolvers/C_NodalMG/Make.package
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_NodalMG
+  VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/LinearSolvers/C_NodalMG
 endif
 
 VPATH_LOCATIONS   += . $(Blocs)

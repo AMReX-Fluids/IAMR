@@ -1,0 +1,8 @@
+
+CEXE_sources += NS_setup.cpp NSBld.cpp
+FEXE_headers += probdata.H PROB_F.H
+FEXE_sources += PROB_3D.F 
+FEXE_sources += NS_ERR_3D.F 
+FEXE_sources += NS_FILL_3D.F 
+
+

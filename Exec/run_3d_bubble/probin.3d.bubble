@@ -1,0 +1,9 @@
+ &fortin
+
+  xblob = 0.5
+  yblob = 0.5
+  zblob = 1.0
+
+   adverr    = 0.5
+
+ /
