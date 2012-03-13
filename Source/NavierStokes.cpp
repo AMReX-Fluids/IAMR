@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include <cstdio>
 
 #include <Geometry.H>
 #include <BoxDomain.H>
