@@ -154,16 +154,16 @@
                             
         
 
-              Ad = Dxm + .5*SWITCH(Dxmm,Dxpm)
-              Bd = Dxp + .5*SWITCH(Dxpp,Dxpm)
-              Cd = Dym + .5*SWITCH(Dymm,Dypm)
-              Dd = Dyp + .5*SWITCH(Dypp,Dypm)
-              Ed = Dzm + .5*SWITCH(Dzmm,Dzpm)
-              Fd = Dzp + .5*SWITCH(Dzpp,Dzpm)
+              Ad = Dxm + .5d0*SWITCH(Dxmm,Dxpm)
+              Bd = Dxp + .5d0*SWITCH(Dxpp,Dxpm)
+              Cd = Dym + .5d0*SWITCH(Dymm,Dypm)
+              Dd = Dyp + .5d0*SWITCH(Dypp,Dypm)
+              Ed = Dzm + .5d0*SWITCH(Dzmm,Dzpm)
+              Fd = Dzp + .5d0*SWITCH(Dzpp,Dzpm)
               
-              Delp = (max(Ad,0.d0)**2 + min(Bd,0.d0)**2 + max(Cd,0.d0)**2 + min(Dd,0.d0)**2 + max(Ed,0.d0)**2 + min(Fd,0.d0)**2)**(.5)
+              Delp = (max(Ad,0.d0)**2 + min(Bd,0.d0)**2 + max(Cd,0.d0)**2 + min(Dd,0.d0)**2 + max(Ed,0.d0)**2 + min(Fd,0.d0)**2)**(.5d0)
               
-              Delm = (max(Bd,0.d0)**2 + min(Ad,0.d0)**2 + max(Dd,0.d0)**2 + min(Cd,0.d0)**2 + max(Fd,0.d0)**2 + min(Ed,0.d0)**2)**(.5)
+              Delm = (max(Bd,0.d0)**2 + min(Ad,0.d0)**2 + max(Dd,0.d0)**2 + min(Cd,0.d0)**2 + max(Fd,0.d0)**2 + min(Ed,0.d0)**2)**(.5d0)
               
            endif
         
@@ -172,11 +172,11 @@
               if (Fo .GT. 0) then
                  Fo = Fo*( ( max(Dxm,0.d0) + min(Dxp,0.d0) )**2 
      $                + ( max(Dym,0.d0) + min(Dyp,0.d0) )**2 
-     $		      + ( max(Dzm,0.d0) + min(Dzp,0.d0) )**2)**(1./2.) 
+     $		      + ( max(Dzm,0.d0) + min(Dzp,0.d0) )**2)**(.5d0) 
               else
                  Fo = Fo*( ( min(Dxm,0.d0) + max(Dxp,0.d0) )**2 
      $                + ( min(Dym,0.d0) + max(Dyp,0.d0) )**2  
-     $		      + ( min(Dzm,0.d0) + max(Dzp,0.d0) )**2)**(1./2.) 
+     $		      + ( min(Dzm,0.d0) + max(Dzp,0.d0) )**2)**(.5d0) 
               endif
            else if (LSorder .EQ. 2) then
               if (Fo .GT. 0) then
@@ -187,9 +187,9 @@
            endif
            
            Fadv = 0
-           uavg = ( uadv(i,j,k) + uadv(i+1,j,k) ) / 2.
-           vavg = ( vadv(i,j,k) + vadv(i,j+1,k) ) / 2.
-           wavg = ( wadv(i,j,k) + wadv(i,j+1,k) ) / 2.
+           uavg = ( uadv(i,j,k) + uadv(i+1,j,k) ) * .5d0
+           vavg = ( vadv(i,j,k) + vadv(i,j+1,k) ) * .5d0
+           wavg = ( wadv(i,j,k) + wadv(i,j+1,k) ) * .5d0
            
            if (LSorder .EQ. 1) then
 
@@ -332,11 +332,11 @@ c      FORT_LSCFL = 0.d0
               kappa = 0.d0
            endif          
             
-            speed = ( (.5*( uadv(i,j,k) + uadv(i+1,j,k) ) )**2 + ( .5*( vadv(i,j,k) +vadv(i,j+1,k) ) )**2 + ( .5*( wadv(i,j,k) +wadv(i,j,k+1) ) )**2)**.5
+            speed = ( (.5d0*( uadv(i,j,k) + uadv(i+1,j,k) ) )**2 + ( .5d0*( vadv(i,j,k) +vadv(i,j+1,k) ) )**2 + ( .5d0*( wadv(i,j,k) +wadv(i,j,k+1) ) )**2)**.5d0
      &           + abs(kapa-kapb*kappa)
              
             phidt = min( phit,
-     &                   1/(max(1./phidt,speed/(.8*min(dx(1),dx(2),dx(3))), 6*abs(kapb)/(.8*min(dx(1),dx(2),dx(3))**2) ))  )     
+     &                   1/(max(1.d0/phidt,speed/(.8d0*min(dx(1),dx(2),dx(3))), 6*abs(kapb)/(.8d0*min(dx(1),dx(2),dx(3))**2) ))  )     
 
          endif
       enddo
@@ -592,7 +592,7 @@ c     Local variables
       z = z0
       i = 0
       
-      do while  ( (delta1(1)**2 + delta1(2)**2 + delta1(3)**2 + delta2(1)**2 + delta2(2)**2 + delta2(3)**2)**(.5) 
+      do while  ( (delta1(1)**2 + delta1(2)**2 + delta1(3)**2 + delta2(1)**2 + delta2(2)**2 + delta2(3)**2)**(.5d0) 
      $             .LT. 10.0**(-3.0)*dx(1)*dx(2)*dx(3) .AND. i .LT. ITERMAX)
         
         CALL GRADPVAL(B,grad,x,y,z)
@@ -619,7 +619,7 @@ c     Local variables
       	
       else
       
-      	FINDDIST = ( (x - x0)**2 + (y-y0)**2 +(z-z0)**2 )**(.5)
+      	FINDDIST = ( (x - x0)**2 + (y-y0)**2 +(z-z0)**2 )**(.5d0)
       
       endif      
       end FUNCTION   
