@@ -116,10 +116,10 @@
               Dypm = (phi(i,j+1) - 2* phi(i,j) + phi(i,j-1))/dx(2)
         
 
-              Ad = Dxm + .5*SWITCH(Dxmm,Dxpm)
-              Bd = Dxp + .5*SWITCH(Dxpp,Dxpm)
-              Cd = Dym + .5*SWITCH(Dymm,Dypm)
-              Dd = Dyp + .5*SWITCH(Dypp,Dypm)
+              Ad = Dxm + .5d0*SWITCH(Dxmm,Dxpm)
+              Bd = Dxp + .5d0*SWITCH(Dxpp,Dxpm)
+              Cd = Dym + .5d0*SWITCH(Dymm,Dypm)
+              Dd = Dyp + .5d0*SWITCH(Dypp,Dypm)
               
               Delp = (max(Ad,0.d0)**2 + min(Bd,0.d0)**2 + max(Cd,0.d0)**2 + min(Dd,0.d0)**2)**(.5)
               
@@ -131,10 +131,10 @@
            if (LSorder .EQ. 1) then
               if (Fo .GT. 0) then
                  Fo = Fo*( ( max(Dxm,0.d0) + min(Dxp,0.d0) )**2 
-     $                + ( max(Dym,0.d0) + min(Dyp,0.d0) )**2  )**(1./2.) 
+     $                + ( max(Dym,0.d0) + min(Dyp,0.d0) )**2  )**(.5d0) 
               else
                  Fo = Fo*( ( min(Dxm,0.d0) + max(Dxp,0.d0) )**2 
-     $                + ( min(Dym,0.d0) + max(Dyp,0.d0) )**2  )**(1./2.) 
+     $                + ( min(Dym,0.d0) + max(Dyp,0.d0) )**2  )**(.5d0) 
               endif
            else if (LSorder .EQ. 2) then
               if (Fo .GT. 0) then
@@ -145,8 +145,8 @@
            endif
            
            Fadv = 0
-           uavg = ( uadv(i,j) + uadv(i+1,j) ) / 2.
-           vavg = ( vadv(i,j) + vadv(i,j+1) ) / 2.
+           uavg = ( uadv(i,j) + uadv(i+1,j) ) * .5d0
+           vavg = ( vadv(i,j) + vadv(i,j+1) ) * .5d0
            
            if (LSorder .EQ. 1) then
 
@@ -252,16 +252,16 @@
             phiyy = ( phi(i,j+1) - 2*phi(i,j) + phi(i,j-1) )/(dx(2)**2)
             phixy = (phi(i+1,j+1) + phi(i-1,j-1) - phi(i+1,j-1) - phi(i-1,j+1))/(4*dx(1)*dx(2))
             if (phix**2 + phiy**2 .GT. 0 ) then
-               kappa = (phixx*phiy**2 - 2*phiy*phix*phixy + phiyy*phix**2)/((phix**2+phiy**2)**(3./2.))
+               kappa = (phixx*phiy**2 - 2*phiy*phix*phixy + phiyy*phix**2)/((phix**2+phiy**2)**(3.d0/2.d0))
             else
                kappa = 0.d0
             endif
             
-            speed = ( (.5*( uadv(i,j) + uadv(i+1,j) ) )**2 + ( .5*( vadv(i,j) +vadv(i,j+1) ) )**2)**.5
+            speed = ( (.5d0*( uadv(i,j) + uadv(i+1,j) ) )**2 + ( .5d0*( vadv(i,j) +vadv(i,j+1) ) )**2)**.5d0
      &           + abs(kapa-kapb*kappa)
              
             phidt = min( phit,
-     &                   1/(max(1./phidt,speed/(.8*min(dx(1),dx(2))), 4*abs(kapb)/(.8*min(dx(1),dx(2))**2) ))  )     
+     &                   1/(max(1.d0/phidt,speed/(.8d0*min(dx(1),dx(2))), 4*abs(kapb)/(.8d0*min(dx(1),dx(2))**2) ))  )     
 
          endif
       enddo

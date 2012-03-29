@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include <cstdio>
 
 #include <Geometry.H>
 #include <BoxDomain.H>
@@ -6016,7 +6017,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     {
         const int N = visc_terms.IndexMap().size();
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < N; i++)
@@ -6501,7 +6502,7 @@ NavierStokes::create_umac_grown ()
 
             const int Ncrse = crse_src.IndexMap().size();
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < Ncrse; i++)
@@ -6532,7 +6533,7 @@ NavierStokes::create_umac_grown ()
             //
             const int Nfine = fine_src.IndexMap().size();
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < Nfine; i++)

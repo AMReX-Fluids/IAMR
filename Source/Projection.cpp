@@ -114,7 +114,10 @@ Projection::Initialize ()
   Projection::hg_stencil = cross;
 #endif
 #elif BL_SPACEDIM == 3
-  Projection::hg_stencil = cross;
+  //
+  // Default to full when using F90 solvers.
+  //
+  Projection::hg_stencil = full;
 #endif
 #endif
 
@@ -139,22 +142,27 @@ Projection::Initialize ()
     if (!proj_2) 
 	BoxLib::Error("With new gravity and outflow stuff, must use proj_2");
 
-    std::string stencil = "cross";
+    std::string stencil;
 
 #ifdef MG_USE_F90_SOLVERS
-    if ( pp.query("stencil", stencil) ) {
-      if ( stencil == "cross" ) {
-	hg_stencil = cross;
-      }
-      else if ( stencil == "full" ) {
-	hg_stencil = full;
-      }
-      else if ( stencil == "dense" ) {
-	hg_stencil = full;
-      }
-      else {
-	BoxLib::Error("stencil must be cross, or full");
-      }
+    if ( pp.query("stencil", stencil) )
+    {
+        if ( stencil == "cross" )
+        {
+            hg_stencil = cross;
+        }
+        else if ( stencil == "full" )
+        {
+            hg_stencil = full;
+        }
+        else if ( stencil == "dense" )
+        {
+            hg_stencil = full;
+        }
+        else
+        {
+            BoxLib::Error("stencil must be cross, full or dense");
+        }
     }
 #else
     if ( pp.query("stencil", stencil) )

@@ -612,7 +612,7 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
         //
         const int N = Sync_resid_fine->IndexMap().size();
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < N; i++)
