@@ -162,7 +162,7 @@ c              This is density
 
 c              This is the scalar that defines the bubble 
                do n = 2,nscal
-                  scal(i,j,k,2) = tanh(30.*(.25-abs(dist-.25)))
+                  scal(i,j,k,2) = 0.5d0 * (1.d0 - tanh((dist-1.d0)/0.05d0))
                end do                  
    	    end do
          end do

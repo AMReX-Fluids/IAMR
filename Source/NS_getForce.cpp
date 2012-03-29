@@ -1,59 +1,9 @@
 #include <winstd.H>
 
-#include <algorithm>
-#include <vector>
-#include <cmath>
+#include "NavierStokes.H"
+#include "BLFort.H"
+#include "PROB_NS_F.H"
 
-#include <Geometry.H>
-#include <BoxDomain.H>
-#include <ParmParse.H>
-#include <ErrorList.H>
-#include <FArrayBox.H>
-#include <Godunov.H>
-#include <Interpolater.H>
-#include <NavierStokes.H>
-#include <MultiGrid.H>
-#include <ArrayLim.H>
-#include <Utility.H>
-#include <NAVIERSTOKES_F.H>
-#include <Profiler.H>
-#include <PROB_NS_F.H>
-#include <TagBox.H>
-#include <VISCOPERATOR_F.H>
-#include <BLFort.H>
-
-#define GEOM_GROW   1
-#define PRESS_GROW  1
-#define DIVU_GROW   1
-#define DSDT_GROW   1
-
-#define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
-const int* fablo = (fab).loVect();           \
-const int* fabhi = (fab).hiVect();           \
-Real* fabdat = (fab).dataPtr();
-
-#define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
-const int* fablo = (fab).loVect();           \
-const int* fabhi = (fab).hiVect();           \
-const Real* fabdat = (fab).dataPtr();
-
-//
-// Virtual access function for getting the forcing terms for the
-// velocities and scalars.  The base version computes a buoyancy.
-//
-// As NavierStokes is currently implemented.  Velocities are integrated
-// according to the equation
-//
-//     ui_t + uj ui_j = S_ui        ===> tforces = rho S_ui
-//
-// and scalars psi where (psi = rho q) as
-//
-//     psi_t + (uj psi)_j = S_psi   ===> tforces = S_psi = rho S_q
-//
-// q is a concentration.  This function returns a rho weighted
-// source term, which requires a division by rho in the predict_velocity
-// and velocity_advection routines.
-//
 #ifdef BOUSSINESQ
 void
 NavierStokes::getForce (FArrayBox&       force,
@@ -66,24 +16,31 @@ NavierStokes::getForce (FArrayBox&       force,
 {
     force.resize(BoxLib::grow(grids[gridno],ngrow),ncomp);
 
-    const Real* ScalDataPtr = Scal.dataPtr(0);
+    if (scomp == Xvel && ncomp == BL_SPACEDIM)
+    {
+       if (Scal.nComp() > 1) 
+       {
+          std::cout << "OOPS -- ONLY SUPPOSED TO BE ONE COMPONENT IN SCALAR " << std::endl;
+          exit(0);
+       }
 
-    const Real* dx       = geom.CellSize();
-    const int*  f_lo     = force.loVect();
-    const int*  f_hi     = force.hiVect();
-    const int*  s_lo     = Scal.loVect();
-    const int*  s_hi     = Scal.hiVect();
-    const int   nscal    = NUM_SCALARS;
+       const Real* dx       = geom.CellSize();
+       const int*  f_lo     = force.loVect();
+       const int*  f_hi     = force.hiVect();
+       const int*  s_lo     = Scal.loVect();
+       const int*  s_hi     = Scal.hiVect();
+   
+       RealBox gridloc = RealBox(grids[gridno],geom.CellSize(),geom.ProbLo());
 
-    RealBox gridloc = RealBox(grids[gridno],geom.CellSize(),geom.ProbLo());
-    
-    // Here's the meat
-    FORT_MAKEFORCE (force.dataPtr(), ScalDataPtr,
-		    ARLIM(f_lo), ARLIM(f_hi),
-		    ARLIM(s_lo), ARLIM(s_hi),
-		    dx, gridloc.lo(), gridloc.hi(),
-		    &scomp,&ncomp,&nscal);
-
+       const Real* ScalDataPtr = Scal.dataPtr(0);
+       FORT_MAKEFORCE (force.dataPtr(), ScalDataPtr,
+   		       ARLIM(f_lo), ARLIM(f_hi),
+   		       ARLIM(s_lo), ARLIM(s_hi),
+   		       dx, gridloc.lo(), gridloc.hi(),
+   		       &scomp,&ncomp);
+    } else {
+       force.setVal(0.0);
+    }
 }
 #else
 #ifdef GENGETFORCE
@@ -120,6 +77,7 @@ NavierStokes::getForce (FArrayBox&       force,
 		    gridloc.hi(),
 		    &grav,&scomp,&ncomp);
 }
+
 #else
 #ifdef MOREGENGETFORCE
 void
@@ -343,7 +301,6 @@ NavierStokes::getForce (FArrayBox&       force,
         }
     }    
 }
-// Generalised getForce
 #endif
 #endif
 #endif

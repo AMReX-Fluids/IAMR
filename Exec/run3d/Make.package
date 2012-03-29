@@ -1,5 +1,4 @@
 
-CEXE_sources += NS_setup.cpp NSBld.cpp
 FEXE_headers += probdata.H PROB_F.H
 FEXE_sources += PROB_$(DIM)D.F 
 

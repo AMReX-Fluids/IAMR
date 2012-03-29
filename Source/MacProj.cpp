@@ -791,12 +791,16 @@ MacProj::mac_sync_compute (int                   level,
         //
         Rho.copy(S,Density,0,1);
 
+#ifdef BOUSSINESQ
+        ns_level.getForce(tforces,i,1,0,NUM_STATE,prev_time,S_fpi());
+#else
 #ifdef GENGETFORCE
         ns_level.getForce(tforces,i,1,0,NUM_STATE,prev_time,Rho);
 #elif MOREGENGETFORCE
         ns_level.getForce(tforces,i,1,0,NUM_STATE,prev_time,S_fpi(),S_fpi(),Density);
 #else
         ns_level.getForce(tforces,i,1,0,NUM_STATE,Rho);
+#endif		 
 #endif		 
         //
         // Compute total forcing terms.
@@ -807,12 +811,16 @@ MacProj::mac_sync_compute (int                   level,
 
         if (use_forces_in_trans)
         {
+#ifdef BOUSSINESQ
+            ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
+#else
 #ifdef GENGETFORCE
             ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,Rho);
 #elif MOREGENGETFORCE
             ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi(),S_fpi(),Density);
 #else
             ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho);
+#endif		 
 #endif		 
             godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[S_fpi],Gp[i],Rho);
         }

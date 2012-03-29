@@ -303,8 +303,5 @@ NavierStokes::variableSetUp ()
     //
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
     //
-    if (do_tracer_ref)    {
-        err_list.add("tracer",   1, ErrorRec::Special, FORT_ADVERROR);
-        if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on TRACER" << std::endl;
-    }
+    error_setup();
 }

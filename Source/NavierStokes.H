@@ -84,6 +84,12 @@ public:
     // Cleanup data descriptors at end of run.
     //
     static void variableCleanUp ();
+
+    //
+    // Define error estimators
+    //
+    static void error_setup ();
+
     //
     // Init grid data at problem start-up.
     //
@@ -581,6 +587,7 @@ protected:
                    const FArrayBox& Rho);
 #endif		 
 #endif		 
+
     //
     // Get state data.
     //

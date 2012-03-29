@@ -7,6 +7,7 @@
 #include <ErrorList.H>
 #include <PROB_NS_F.H>
 #include <DERIVE_F.H>
+#include <NS_error_F.H>
 #include <FArrayBox.H>
 
 static Box the_same_box (const Box& b)    { return b;                 }
@@ -465,23 +466,9 @@ NavierStokes::variableSetUp ()
 #endif
 //3D
 #endif
+
     //
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
     //
-    if (do_density_ref)   {
-        err_list.add("density",  1, ErrorRec::Special, FORT_DENERROR);
-        if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on DENSITY" << std::endl;
-    }
-    if (do_tracer_ref)    {
-        err_list.add("tracer",   1, ErrorRec::Special, FORT_ADVERROR);
-        if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on TRACER" << std::endl;
-    }
-    if (do_tracer2_ref)    {
-	err_list.add("tracer2",   1, ErrorRec::Special, FORT_ADV2ERROR);
-	if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on TRACER2" << std::endl;
-    }
-    if (do_vorticity_ref) {
-        err_list.add("mag_vort", 0, ErrorRec::Special, FORT_MVERROR);
-        if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on MAG_VORT" << std::endl;
-    }
+    error_setup();
 }

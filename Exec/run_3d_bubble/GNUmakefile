@@ -1,5 +1,5 @@
 #BOXLIB_HOME defines the directory in which we will find the BoxLib directory
-BOXLIB_HOME ?= ../../../BoxLib
+OXLIB_HOME ?= ../../../BoxLib
 
 #TOP defines the directory in which we will find Source, Exec, etc.
 TOP = ../..
@@ -10,8 +10,8 @@ TOP = ../..
 
 PRECISION = DOUBLE
 
-DEBUG	  = FALSE
 DEBUG	  = TRUE
+DEBUG	  = FALSE
 
 DIM       = 3
 
@@ -19,10 +19,12 @@ COMP	  = g++
 FCOMP     = gfortran
 
 USE_MPI   = TRUE
-USE_MPI   = FALSE
 
 USE_F90_SOLVERS = FALSE
 USE_F90_SOLVERS = TRUE
+
+# This allows GetForce to call a Fortran routine
+DEFINES += -DBOUSSINESQ
 
 EBASE     = amr
 

@@ -14,11 +14,6 @@
 #    define FORT_TEMPFILL    tempfill
 #    define FORT_DIVUFILL    divufill
 #    define FORT_DSDTFILL    dsdtfill
-#    define FORT_DENERROR    denerror
-#    define FORT_ADVERROR    adverror
-#    define FORT_ADV2ERROR    adv2error
-#    define FORT_TEMPERROR   temperror
-#    define FORT_MVERROR     mverror
 #if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
 #    define FORT_AVERAGE_EDGE_STATES      average_edge_states
 #    define FORT_MAKEFORCE      makeforce
@@ -36,11 +31,6 @@
 #    define FORT_TEMPFILL    TEMPFILL
 #    define FORT_DIVUFILL    DIVUFILL
 #    define FORT_DSDTFILL    DSDTFILL
-#    define FORT_DENERROR    DENERROR
-#    define FORT_ADVERROR    ADVERROR
-#    define FORT_ADV2ERROR   ADV2ERROR
-#    define FORT_TEMPERROR   TEMPERROR
-#    define FORT_MVERROR     MVERROR
 #if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
 #    define FORT_AVERAGE_EDGE_STATES      AVERAGE_EDGE_STATES
 #    define FORT_MAKEFORCE      MAKEFORCE
@@ -57,11 +47,6 @@
 #    define FORT_TEMPFILL    tempfill
 #    define FORT_DIVUFILL    divufill
 #    define FORT_DSDTFILL    dsdtfill
-#    define FORT_DENERROR    denerror
-#    define FORT_ADVERROR    adverror
-#    define FORT_ADV2ERROR   adv2error
-#    define FORT_TEMPERROR   temperror
-#    define FORT_MVERROR     mverror
 #if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
 #    define FORT_AVERAGE_EDGE_STATES      average_edge_states
 #    define FORT_MAKEFORCE      makeforce
@@ -78,11 +63,6 @@
 #    define FORT_TEMPFILL    tempfill_
 #    define FORT_DIVUFILL    divufill_
 #    define FORT_DSDTFILL    dsdtfill_
-#    define FORT_DENERROR    denerror_
-#    define FORT_ADVERROR    adverror_
-#    define FORT_ADV2ERROR   adv2error_
-#    define FORT_TEMPERROR   temperror_
-#    define FORT_MVERROR     mverror_
 #if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
 #    define FORT_AVERAGE_EDGE_STATES      average_edge_states_
 #    define FORT_MAKEFORCE      makeforce_
@@ -154,51 +134,15 @@
                          const Real* dx, const Real* grd_lo,
                          const Real* time, const int* bc);
 
-     void FORT_DENERROR  (int* tag, ARLIM_P(tlo), ARLIM_P(thi),
-                          const int* tagval, const int* clearval,
-                          Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
-                          const int* lo, const int* hi, const int* nvar,
-                          const int* domain_lo, const int* domain_hi,
-                          const Real* dx, const Real* xlo,
-                          const Real* prob_lo, const Real* time,
-                          const int* level);
- 
-     void FORT_ADVERROR  (int* tag, ARLIM_P(tlo), ARLIM_P(thi),
-                          const int* tagval, const int* clearval,
-                          Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
-                          const int* lo, const int* hi, const int* nvar,
-                          const int* domain_lo, const int* domain_hi,
-                          const Real* dx, const Real* xlo,
-                          const Real* prob_lo, const Real* time,
-                          const int* level);
- 
-     void FORT_ADV2ERROR (int* tag, ARLIM_P(tlo), ARLIM_P(thi),
-                          const int* tagval, const int* clearval,
-                          Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
-                          const int* lo, const int* hi, const int* nvar,
-                          const int* domain_lo, const int* domain_hi,
-                          const Real* dx, const Real* xlo,
-                          const Real* prob_lo, const Real* time,
-                          const int* level);
- 
-     void FORT_TEMPERROR  (int* tag, ARLIM_P(tlo), ARLIM_P(thi),
-                           const int* tagval, const int* clearval,
-                           Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
-                           const int* lo, const int* hi, const int* nvar,
-                           const int* domain_lo, const int* domain_hi,
-                           const Real* dx, const Real* xlo,
-                           const Real* prob_lo, const Real* time,
-                           const int* level);
-
-     void FORT_MVERROR   (int* tag, ARLIM_P(tlo), ARLIM_P(thi),
-                          const int* tagval, const int* clearval,
-                          Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
-                          const int* lo, const int* hi, const int* nvar,
-                          const int* domain_lo, const int* domain_hi,
-                          const Real* dx, const Real* xlo,
-                          const Real* prob_lo, const Real* time,
-                          const int* level);
-
+#ifdef BOUSSINESQ
+     void FORT_MAKEFORCE (Real* force,
+			  const Real* scal,
+                          ARLIM_P(f_lo), ARLIM_P(f_hi),
+                          ARLIM_P(s_lo), ARLIM_P(s_hi),
+                          const Real* dx,
+                          const Real* xlo, const Real* xhi,
+			  const int* scomp, const int* ncomp, const int* nscal);
+#else
 #ifdef MOREGENGETFORCE
 
      void FORT_AVERAGE_EDGE_STATES(const Real* Vel,
@@ -219,15 +163,15 @@
 			  Real* force,
 			  const Real* vel,
 			  const Real* scal,
-			  ARLIM_P(f_lo), ARLIM_P(f_hi),
-			  ARLIM_P(v_lo), ARLIM_P(v_hi),
-			  ARLIM_P(s_lo), ARLIM_P(s_hi),
-			  const Real* dx,
-			  const Real* xlo, const Real* xhi,
+                          ARLIM_P(f_lo), ARLIM_P(f_hi),
+                          ARLIM_P(v_lo), ARLIM_P(v_hi),
+                          ARLIM_P(s_lo), ARLIM_P(s_hi),
+                          const Real* dx,
+                          const Real* xlo, const Real* xhi,
 			  const Real* gravity,
 			  const int* scomp, const int* ncomp, const int* nscal,
 			  const int* getForceVerbose);
-#else
+#endif
 #ifdef GENGETFORCE
      void FORT_MAKEFORCE (const Real* time, Real* force, const Real* rho,
                           ARLIM_P(i_lo), ARLIM_P(i_hi),

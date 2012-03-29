@@ -1885,7 +1885,7 @@ NavierStokes::predict_velocity (Real  dt,
 
     for (FillPatchIterator U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM)
 #ifdef BOUSSINESQ
-	     , S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+                          ,S_fpi(*this,visc_terms,       1,prev_time,State_Type,Tracer,1);
 	 S_fpi.isValid() && U_fpi.isValid();
 	 ++S_fpi, ++U_fpi
 #else
@@ -1894,7 +1894,7 @@ NavierStokes::predict_velocity (Real  dt,
 	 S_fpi.isValid() && U_fpi.isValid();
 	 ++S_fpi, ++U_fpi
 #else
-             ; U_fpi.isValid();
+         ; U_fpi.isValid();
 	 ++U_fpi
 #endif
 #endif
@@ -2020,7 +2020,7 @@ NavierStokes::velocity_advection (Real dt)
     for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
 #ifdef BOUSSINESQ
              U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel   ,BL_SPACEDIM),
-             S_fpi(*this,visc_terms,       1,prev_time,State_Type,Density,NUM_SCALARS),
+             S_fpi(*this,visc_terms,       1,prev_time,State_Type,Tracer,1),
              Rho_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Density,1);
          S_fpi.isValid() && U_fpi.isValid() && P_fpi.isValid() && Rho_fpi.isValid(); 
          ++S_fpi, ++U_fpi, ++P_fpi, ++Rho_fpi
@@ -2199,6 +2199,9 @@ NavierStokes::scalar_advection (Real dt,
     //
     for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
              U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM),
+#ifdef BOUSSINESQ
+             Scal_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Tracer,1),
+#endif
              S_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,fscalar,num_scalars);
          U_fpi.isValid() && S_fpi.isValid() && P_fpi.isValid();
          ++U_fpi, ++S_fpi, ++P_fpi)
@@ -2206,7 +2209,7 @@ NavierStokes::scalar_advection (Real dt,
         const int i = U_fpi.index();
 
 #ifdef BOUSSINESQ
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
+        getForce(tforces,i,1,fscalar,num_scalars,prev_time,Scal_fpi());
 #else
 #ifdef GENGETFORCE
         getForce(tforces,i,1,fscalar,num_scalars,prev_time,(*rho_ptime)[i]);
@@ -2345,6 +2348,19 @@ NavierStokes::scalar_update (Real dt,
 
     if (do_any_diffuse)
       scalar_diffusion_update(dt, first_scalar, last_scalar);
+
+    MultiFab&  S_new     = get_new_data(State_Type);
+    for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
+    {
+       if (S_new.contains_nan(sigma,1,0))
+       {
+	  if (ParallelDescriptor::IOProcessor())
+          {
+             std::cout << "New scalar " << sigma << " contains Nans" << std::endl;
+          }
+          exit(0);
+       }
+    }
 }
 
 void
@@ -2355,9 +2371,7 @@ NavierStokes::scalar_advection_update (Real dt,
     MultiFab&  S_old     = get_old_data(State_Type);
     MultiFab&  S_new     = get_new_data(State_Type);
     MultiFab&  Aofs      = *aofs;
-#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
     const Real halftime  = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-#endif
     const Real prev_time = state[State_Type].prevTime();
     Array<int> state_bc;
     FArrayBox  tforces;
@@ -2376,6 +2390,8 @@ NavierStokes::scalar_advection_update (Real dt,
             tforces.setVal(0);
             godunov->Add_aofs_tf(S_old[S_oldmfi],S_new[S_oldmfi],Density,1,
                                  Aofs[S_oldmfi],Density,tforces,0,grids[i],dt);
+
+//          std::cout  << "DEN AOFS " << Aofs[S_oldmfi] << std::endl;
         }
         //
         // Call ScalMinMax to avoid overshoots in density.
@@ -2415,6 +2431,13 @@ NavierStokes::scalar_advection_update (Real dt,
             const int i = Rho_mfi.index();
             for (int sigma = sComp; sigma <= last_scalar; sigma++)
             {
+#ifdef BOUSSINESQ
+		FArrayBox Scal(BoxLib::grow(grids[i],0),1);
+		Scal.copy(S_old[i],Tracer,0,1);
+		Scal.plus(S_new[i],Tracer,0,1);
+		Scal.mult(0.5);
+                getForce(tforces,i,0,sigma,1,halftime,Scal);
+#else
 #ifdef GENGETFORCE
                 getForce(tforces,i,0,sigma,1,halftime,rho_halftime[Rho_mfi]);
 #elif MOREGENGETFORCE
@@ -2461,6 +2484,7 @@ NavierStokes::scalar_advection_update (Real dt,
                 getForce(tforces,i,0,sigma,1,halftime,Vel,Scal,0);
 #else
                 getForce(tforces,i,0,sigma,1,rho_halftime[Rho_mfi]);
+#endif		 
 #endif		 
                 godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
                                      Aofs[Rho_mfi],sigma,tforces,0,grids[i],dt);
@@ -2640,6 +2664,19 @@ NavierStokes::velocity_update (Real dt)
         velocity_diffusion_update(dt);
     else
         initial_velocity_diffusion_update(dt);
+
+    MultiFab&  S_new     = get_new_data(State_Type);
+    for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
+    {
+       if (S_new.contains_nan(sigma,1,0))
+       {
+	  if (ParallelDescriptor::IOProcessor())
+          {
+             std::cout << "New velocity " << sigma << " contains Nans" << std::endl;
+          }
+          exit(0);
+       }
+    }
 }
 
 void
@@ -2651,9 +2688,7 @@ NavierStokes::velocity_advection_update (Real dt)
     MultiFab&  P_old          = get_old_data(Press_Type);
     MultiFab&  Aofs           = *aofs;
     const Real prev_pres_time = state[Press_Type].prevTime();
-#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
     const Real half_time      = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
-#endif
 
     MultiFab Gp(grids,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
@@ -2669,9 +2704,9 @@ NavierStokes::velocity_advection_update (Real dt)
 
 #ifdef BOUSSINESQ
 	// Average the new and old time to get half time approximation
-	FArrayBox Scal(grids[i],NUM_SCALARS);
-	Scal.copy(U_old[i],Density,0,NUM_SCALARS);
-	Scal.plus(U_new[i],Density,0,NUM_SCALARS);
+	FArrayBox Scal(grids[i],1);
+	Scal.copy(U_old[i],Tracer,0,1);
+	Scal.plus(U_new[i],Tracer,0,1);
 	Scal.mult(0.5);
         getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,Scal);
 #else
@@ -2884,14 +2919,24 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
         //
         MultiFab* Rh = get_rho_half_time();
 
-        for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),0,prev_pres_time,Press_Type,0,1);
-             P_fpi.isValid();
+        for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),0,prev_pres_time,Press_Type,0,1)
+#ifdef BOUSSINESQ
+                              ,S_fpi(*this,get_old_data(State_Type),0,prev_time,State_Type,Tracer,1)
+#endif
+             ;P_fpi.isValid() 
+#ifdef BOUSSINESQ
+             ,S_fpi.isValid()
+#endif
+             ;
+#ifdef BOUSSINESQ
+             ++S_fpi,
+#endif
              ++P_fpi)
         {
             const int i = P_fpi.index();
 
 #ifdef BOUSSINESQ
-            getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,U_old[i]);
+            getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,S_fpi());
 #else
 #ifdef GENGETFORCE
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
@@ -3756,9 +3801,7 @@ NavierStokes::estTimeStep ()
 
     const int   n_grow        = 0;
     Real        estdt         = 1.0e+20;
-#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
     const Real  cur_time      = state[State_Type].curTime();
-#endif
     const Real  cur_pres_time = state[Press_Type].curTime();
     MultiFab&   U_new         = get_new_data(State_Type);
 
@@ -3775,7 +3818,11 @@ NavierStokes::estTimeStep ()
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
 #ifdef BOUSSINESQ
-        getForce(tforces,i,0,Xvel,BL_SPACEDIM,cur_time,U_new[i]);
+        // HACK HACK HACK 
+        // THIS CALL IS BROKEN 
+        // getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i]);
+        tforces.resize(BoxLib::grow(grids[i],n_grow),BL_SPACEDIM);
+        tforces.setVal(0.);
 #else
 #ifdef GENGETFORCE
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,(*rho_ctime)[i]);

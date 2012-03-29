@@ -5,46 +5,47 @@
 #endif
 
 #include "REAL.H"
+#include "CONSTANTS.H"
+#include "BC_TYPES.H"
 #include "PROB_NS_F.H"
 #include "ArrayLim.H"
 
-#define SDIM 3
-#ifdef BOUSSINESQ
 c
 c     This routine computes the forcing terms that will be added to the momentum equation
 c
-      subroutine FORT_MAKEFORCE(force,
+c     subroutine FORT_MAKEFORCE(force,
+      subroutine makeforce(force,
      &                          scal,
      &                          DIMS(force),
      &                          DIMS(scal),
-     &                          dx,xlo,xhi,scomp,ncomp,
-     &                          nscal)
+     &                          dx,xlo,xhi,scomp,ncomp)
 
       implicit none
 
       integer    DIMDEC(force)
       integer    DIMDEC(scal)
-      integer    scomp, ncomp, nscal
-      REAL_T     dx(SDIM), xlo(SDIM), xhi(SDIM)
+      integer    scomp, ncomp
+      REAL_T     dx(3), xlo(3), xhi(3)
       REAL_T     force  (DIMV(force),scomp:scomp+ncomp-1)
-      REAL_T     scal   (DIMV(scal),0:nscal-1)
+      REAL_T     scal   (DIMV(scal))
 
       integer    i,j,k
+      REAL_T     beta
 
-      print *,'SCOMP NCOMP ',scomp,ncomp
+      beta = 5.d0
 
-c     Here the scalar array has rho in the first component and 
-c                               phi in the second component 
-
-#include "probdata.H"
+c     Here the  force array has Xvel in the first component, Yvel in the second, Zvel in the third
 
       do k = force_l3, force_h3
       do j = force_l2, force_h2
       do i = force_l1, force_h1
-          force(i,j,k,SDIM) = -scal(i,j,k,1) * 1.d0
+          force(i,j,k,scomp  ) = 0.d0
+          force(i,j,k,scomp+1) = 0.d0
+          force(i,j,k,scomp+2) = 0.d0
+          force(i,j,k,scomp+2) = scal(i,j,k) * beta
       end do
       end do
       end do
+      call flush(6)
 
       end
-#endif

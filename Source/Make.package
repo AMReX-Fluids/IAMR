@@ -1,5 +1,8 @@
 
 CEXE_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
+CEXE_sources += NS_error.cpp
+CEXE_sources += NS_setup.cpp
+CEXE_sources += NSBld.cpp
 CEXE_sources += NS_getForce.cpp
 
 CEXE_sources += ViscBndryTensor.cpp ProjOutFlowBC.cpp \
@@ -11,7 +14,7 @@ CEXE_headers += ViscBndryTensor.H   MacOutFlowBC.H \
 CEXE_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H
 
 FEXE_headers += SYNCREG_F.H VISCOPERATOR_F.H \
-		            PROJOUTFLOWBC_F.H MACOUTFLOWBC_F.H
+		PROJOUTFLOWBC_F.H MACOUTFLOWBC_F.H
 #
 # Disconnect MacOperators for different mass continuity.
 #
@@ -29,3 +32,4 @@ FEXE_sources += GODUNOV_F.F
 FEXE_headers += DERIVE_F.H GODCOMM_F.H GODUNOV_F.H PROJECTION_F.H \
                             MACPROJ_F.H DIFFUSION_F.H NAVIERSTOKES_F.H \
                             SLABSTAT_NS_F.H
+FEXE_headers += NS_error_F.H
