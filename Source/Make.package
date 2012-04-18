@@ -1,8 +1,16 @@
 
 CEXE_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
-CEXE_sources += NS_error.cpp
-CEXE_sources += NS_setup.cpp
-CEXE_sources += NSBld.cpp
+
+ifneq ($(SKIP_NS_SPECIFIC_CODE), TRUE)
+  #
+  # These files contain routines that may be overriden by code that
+  # inherits from NavierStokes.  They should only be included if they
+  # aren't implemented by inherited code.  In particular, LMC has its own
+  # implementation of these routines.
+  #
+  CEXE_sources += NS_error.cpp NS_setup.cpp NSBld.cpp
+endif
+
 CEXE_sources += NS_getForce.cpp
 
 CEXE_sources += ViscBndryTensor.cpp ProjOutFlowBC.cpp \
