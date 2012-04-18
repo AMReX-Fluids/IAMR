@@ -2047,7 +2047,7 @@ NavierStokes::velocity_advection (Real dt)
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
 #elif MOREGENGETFORCE
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << std::endl << "B - velocity advection:" << std::endl << "Calling getForce..." << std::endl;
