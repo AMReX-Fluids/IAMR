@@ -1247,7 +1247,7 @@ Projection::MLsyncProject (int             c_lev,
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        std::cout << "Projection:MLsyncProject(): levels = "
+        std::cout << "Projection::MLsyncProject(): levels = "
                   << c_lev << ", " << c_lev+1
                   << ", time: " << run_time << std::endl;
     }
