@@ -4,6 +4,24 @@
 #include "BLFort.H"
 #include "PROB_NS_F.H"
 
+//
+// Virtual access function for getting the forcing terms for the
+// velocities and scalars.  The base version computes a buoyancy.
+//
+// As NavierStokes is currently implemented.  Velocities are integrated
+// according to the equation
+//
+//     ui_t + uj ui_j = S_ui        ===> tforces = rho S_ui
+//
+// and scalars psi where (psi = rho q) as
+//
+//     psi_t + (uj psi)_j = S_psi   ===> tforces = S_psi = rho S_q
+//
+// q is a concentration.  This function returns a rho weighted
+// source term, which requires a division by rho in the predict_velocity
+// and velocity_advection routines.
+//
+
 #ifdef BOUSSINESQ
 void
 NavierStokes::getForce (FArrayBox&       force,
