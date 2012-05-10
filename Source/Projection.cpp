@@ -41,6 +41,8 @@ const Real* fabdat = (fab).dataPtr();
 const int* boxlo = (box).loVect();           \
 const int* boxhi = (box).hiVect();
 
+const Real Projection::BogusValue = 1.e200;
+
 //
 // NOTE: the RegType array project_bc is now defined in NS_BC.H in iamrlib
 //

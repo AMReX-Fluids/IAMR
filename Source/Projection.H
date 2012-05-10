@@ -19,7 +19,7 @@ class Projection
 {
 protected:
   static const int maxlev = 10;
-  static const Real BogusValue = 1.e200;
+  static const Real BogusValue;
   static const int  LEVEL_PROJ    = 1001;
   static const int  INITIAL_VEL   = 1002;
   static const int  INITIAL_PRESS = 1003;
