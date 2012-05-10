@@ -1,0 +1,5 @@
+ &fortin
+  vorterr = 0.0
+  denfact = 2.0
+  velfact = 1.0
+ /
