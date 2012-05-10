@@ -34,6 +34,15 @@ enum StateNames  { Xvel=0, Yvel, Density};
 enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 #endif
 
+#ifdef PARTICLES
+#include <Particles.H>
+//
+// The "BL_SPACEDIM" bytes in m_data[] are to hold temporary positions and velocities
+//      in AdvectWithUmac().
+//
+typedef ParticleContainer<2*BL_SPACEDIM> NSParticleContainer;
+#endif
+
 enum PressureNames { Pressure=0 };
 enum DivuNames { Divu=0};
 enum DsDtNames { Dsdt=0};
@@ -207,6 +216,29 @@ public:
                          Array<int>&  nc_save,
                          Array<Real>& dt_save,
                          Real         stop_time);
+
+#ifdef PARTICLES
+    static NSParticleContainer* theNSPC ();
+    void ParticleDerive (const std::string& name, Real time, MultiFab& mf, int dcomp);
+#endif
+
+    //
+    // Returns a MultiFab containing the derived data for this level.
+    // The user is responsible for deleting this pointer when done
+    // with it.  If ngrow>0 the MultiFab is built on the appropriately
+    // grown BoxArray.
+    //
+    virtual MultiFab* derive (const std::string& name,
+                              Real               time,
+                              int                ngrow);
+    //
+    // This version of derive() fills the dcomp'th component of mf with the derived quantity.
+    //
+    virtual void derive (const std::string& name,
+                         Real               time,
+                         MultiFab&          mf,
+                         int                dcomp);
+
     //
     // Estimate the end of the simulation for amrLevel.
     //
@@ -253,6 +285,11 @@ public:
     }
 
     static int DoTrac2();
+
+    virtual void checkPoint (const std::string& dir,
+                             std::ostream&      os,
+                             VisMF::How         how = VisMF::OneFilePerCPU,
+                             bool               dump_old = true);
 
 protected:
 

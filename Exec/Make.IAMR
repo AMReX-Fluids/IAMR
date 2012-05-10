@@ -45,6 +45,10 @@ else
   VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/LinearSolvers/C_NodalMG
 endif
 
+ifeq ($(USE_PARTICLES),TRUE)
+  DEFINES += -DPARTICLES
+endif
+
 VPATH_LOCATIONS   += . $(Blocs)
 INCLUDE_LOCATIONS += . $(Blocs)
 

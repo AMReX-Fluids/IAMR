@@ -18,6 +18,8 @@ DIM       = 2
 COMP	  = g++
 FCOMP     = gfortran
 
+USE_PARTICLES   = TRUE
+
 USE_MPI   = TRUE
 
 USE_F90_SOLVERS = TRUE

@@ -1,14 +1,14 @@
 
 #*******************************************************************************
-# INPUTS.2D.SPIN
+# INPUTS
 #*******************************************************************************
 
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 10
 max_step 		= 0
+max_step 		= 100
 
 ns.init_iter = 0
 
@@ -19,9 +19,17 @@ stop_time 		= 10.0
 ns.do_tracer_ref = 1
 
 #*******************************************************************************
+# PARTICLE INPUTS
+
+particles.particle_init_file = particle_file
+particles.timestamp_dir = particle_dir
+particles.timestamp_indices = 1
+
+#*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 		= 32 32
+amr.n_cell 		= 64 64
 
 #*******************************************************************************
 
@@ -56,7 +64,7 @@ amr.check_int		= 10
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 10 
+amr.plot_int		= 10
 
 #*******************************************************************************
 
@@ -126,7 +134,7 @@ amr.blocking_factor 	= 4
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars 	= mag_vort
+amr.derive_plot_vars 	= mag_vort particle_count
 
 #*******************************************************************************
 
@@ -135,9 +143,10 @@ amr.grid_eff = 0.75
 
 #*******************************************************************************
 
-proj.v = 2
+proj.1 = 2
+proj.Pcode = 1
 proj.proj_tol = 1.e-12
 proj.proj_abs_tol = 1.e-15
 proj.stencil = full
 
-mg.v = 2
+mg.v = 1

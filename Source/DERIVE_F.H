@@ -46,6 +46,7 @@
 #    define FORT_DERJETPRESVARS derjetpresvars
 #endif
 #endif
+#    define FORT_DERNULL     dernull
 #else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_DERMODGRADRHO     DERMODGRADRHO
@@ -91,6 +92,7 @@
 #    define FORT_DERJETPRESVARS DERJETPRESVARS
 #endif
 #endif
+#    define FORT_DERNULL     DERNULL
 #  elif defined (BL_FORT_USE_LOWERCASE)
 #    define FORT_GRADP_DIR   gradpdir
 #    define FORT_DERMODGRADRHO     dermodgradrho
@@ -136,6 +138,7 @@
 #    define FORT_DERJETPRESVARS derjetpresvars
 #endif
 #endif
+#    define FORT_DERNULL     dernull
 #  elif defined (BL_FORT_USE_UNDERSCORE)
 #    define FORT_GRADP_DIR   gradpdir_
 #    define FORT_DERMODGRADRHO     dermodgradrho_
@@ -181,6 +184,7 @@
 #    define FORT_DERJETPRESVARS derjetpresvars_
 #endif
 #endif
+#    define FORT_DERNULL     dernull_
 #  endif
 
 #include <ArrayLim.H>
@@ -506,6 +510,14 @@ extern "C" {
 #endif
 #endif
 
+     void FORT_DERNULL(Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                       const int* nvar, const Real* compdat,
+		       ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+		       const int* lo, const int* hi,
+       		       const int* domain_lo, const int* domain_hi,
+		       const Real* delta, const Real* xlo,
+		       const Real* time, const Real* dt, const int* bcrec, 
+                       const int* level, const int* grid_no) ;
 }
 #endif
 #endif

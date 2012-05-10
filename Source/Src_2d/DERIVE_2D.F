@@ -803,3 +803,26 @@ c
       end do
 
       end
+
+c=========================================================
+
+      subroutine FORT_DERNULL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,bc,
+     $                         level,grid_no)
+      implicit none
+      !
+      ! This is a null derived routine.
+      !
+      integer    lo(2), hi(2)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(2), domhi(2)
+      integer    nv, ncomp
+      integer    bc(2,2,ncomp)
+      REAL_T     delta(2), xlo(2), time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      end
+

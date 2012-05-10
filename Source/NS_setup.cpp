@@ -467,6 +467,21 @@ NavierStokes::variableSetUp ()
 //3D
 #endif
 
+#ifdef PARTICLES
+    //
+    // The particle count at this level.
+    //
+    derive_lst.add("particle_count",IndexType::TheCellType(),1,
+                   FORT_DERNULL,the_same_box);
+    derive_lst.addComponent("particle_count",desc_lst,State_Type,Density,1);
+    //
+    // The total # of particles at our level or above.
+    //
+    derive_lst.add("total_particle_count",IndexType::TheCellType(),1,
+                   FORT_DERNULL,the_same_box);
+    derive_lst.addComponent("total_particle_count",desc_lst,State_Type,Density,1);
+#endif
+
     //
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
     //
