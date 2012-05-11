@@ -82,7 +82,7 @@ SyncRegister::define (const BoxArray& fine_boxes,
         BoxArray loBA(grids.size());
         BoxArray hiBA(grids.size());
 
-        for (int k = 0; k < grids.size(); k++)
+        for (int k = 0, N = grids.size(); k < N; k++)
         {
             Box ndbox = BoxLib::surroundingNodes(grids[k]);
 
@@ -114,7 +114,7 @@ SyncRegister::sum () const
     //
     Box bb = grids[0];
 
-    for (int k = 1; k < grids.size(); k++)
+    for (int k = 1, N = grids.size(); k < N; k++)
     {
         bb.minBox(grids[k]);
     }
@@ -162,21 +162,21 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
         for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
         {
-            for (int j = 0; j < grids.size(); j++)
+            for (int j = 0, N = grids.size(); j < N; j++)
             {
                 geom.periodicShift(domain,bndry[face()].fabbox(j),pshifts);
 
-                for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                for (int i = 0, M = pshifts.size(); i < M; i++)
                 {
-                    Box sbox = bndry[face()].fabbox(j) + pshifts[iiv];
+                    Box sbox = bndry[face()].fabbox(j) + pshifts[i];
 
                     sbox &= rhs[mfi].box();
 
                     if (sbox.ok())
                     {
-                        sbox -= pshifts[iiv];
+                        sbox -= pshifts[i];
 
-                        SRRec sr(face(), mfi.index(), pshifts[iiv]);
+                        SRRec sr(face(), mfi.index(), pshifts[i]);
 
                         sr.m_fbid = fscd.AddBox(fsid[face()],
                                                 sbox,
@@ -197,17 +197,16 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
     fscd.CollectData();
 
-    for (std::list<SRRec>::const_iterator it = srrec.begin(), end = srrec.end();
-         it != end;
+    for (std::list<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
+         it != End;
          ++it)
     {
         BL_ASSERT(rhs.DistributionMap()[it->m_idx] == ParallelDescriptor::MyProc());
 
         FArrayBox& fab = rhs[it->m_idx];
+        const Box  dbx = it->m_fbid.box() + it->m_shift;
 
-        Box dstbox = it->m_fbid.box() + it->m_shift;
-
-        fscd.FillFab(fsid[it->m_face], it->m_fbid, fab, dstbox);
+        fscd.FillFab(fsid[it->m_face], it->m_fbid, fab, dbx);
     }
 }
 
@@ -247,8 +246,8 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 
     fscd.CollectData();
 
-    for (std::list<SRRec>::const_iterator it = srrec.begin(), end = srrec.end();
-         it != end;
+    for (std::list<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
+         it != End;
          ++it)
     {
         const Box& bx = it->m_fbid.box();
@@ -345,14 +344,14 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
             for (int i = 0, N = isects.size(); i < N; i++)
             {
-                tmpfab.setVal(1.0,isects[i].second,0,1);
+                tmpfab.setVal(1,isects[i].second,0,1);
             }
  
             if (geom.isAnyPeriodic())
             {
                 geom.periodicShift(geom.Domain(),mask_cells,pshifts);
 
-                for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                 {
                     mask_cells += pshifts[iiv];
 
@@ -360,9 +359,9 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
                     for (int i = 0, N = isects.size(); i < N; i++)
                     {
-                        Box intersect = isects[i].second;
-                        intersect    -= pshifts[iiv];
-                        tmpfab.setVal(1.0,intersect,0,1);
+                        Box& isect = isects[i].second;
+                        isect     -= pshifts[iiv];
+                        tmpfab.setVal(1,isect,0,1);
                     }
 
                     mask_cells -= pshifts[iiv];
@@ -440,7 +439,7 @@ BuildMFs (const MultiFab& mf,
     BoxArray cloBA(mf.size());
     BoxArray chiBA(mf.size());
 
-    for (int i = 0; i < mf.size(); i++)
+    for (int i = 0, N = mf.size(); i < N; i++)
     {
         const Box& bx = mf.boxArray()[i];
 
@@ -467,16 +466,18 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 {
     if (!geom.isAnyPeriodic()) return;
 
-    const BoxArray&        mfBA      = mf.boxArray();
     Array<IntVect>         pshifts(27);
     std::list<SRRec>       srrec;
     FArrayBox              tmpfab;
     MultiFabCopyDescriptor mfcd;
+    const BoxArray&        mfba = mf.boxArray();
     MultiFabId             mfid = mfcd.RegisterFabArray((MultiFab*) &mf);
 
-    for (int j = 0; j < mfBA.size(); j++)
+    for (int j = 0, N = mfba.size(); j < N; j++)
     {
-        geom.periodicShift(domain, mfBA[j], pshifts);
+        geom.periodicShift(domain, mfba[j], pshifts);
+
+        if (pshifts.empty()) continue;
 
         for (OrientationIter face; face; ++face)
         {
@@ -484,17 +485,17 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
             for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
             {
-                for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                for (int i = 0, M = pshifts.size(); i < M; i++)
                 {
-                    Box sbox = mfBA[j] + pshifts[iiv];
+                    Box sbox = mfba[j] + pshifts[i];
 
                     sbox &= fs[fsi].box();
 
                     if (sbox.ok())
                     {
-                        sbox -= pshifts[iiv];
+                        sbox -= pshifts[i];
 
-                        SRRec sr(face(), fsi.index(), pshifts[iiv]);
+                        SRRec sr(face(), fsi.index(), pshifts[i]);
 
                         sr.m_fbid = mfcd.AddBox(mfid,
                                                 sbox,
@@ -515,8 +516,8 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
     mfcd.CollectData();
 
-    for (std::list<SRRec>::const_iterator it = srrec.begin(), end = srrec.end();
-         it != end;
+    for (std::list<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
+         it != End;
          ++it)
     {
         FabSet& fabset = bndry[it->m_face];
@@ -534,11 +535,11 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 }
 
 void
-SyncRegister::CrseInit  (MultiFab* Sync_resid_crse,
+SyncRegister::CrseInit  (MultiFab*       Sync_resid_crse,
                          const Geometry& crse_geom, 
                          Real            mult)
 {
-    setVal(0.);
+    setVal(0);
 
     Sync_resid_crse->mult(mult);
 
@@ -565,24 +566,23 @@ SyncRegister::CompAdd  (MultiFab*       Sync_resid_fine,
 
     for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
     {
-        Box sync_box = mfi.validbox();
+        const Box& sync_box = mfi.validbox();
 
         isects = Pgrids.intersections(sync_box);
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
-            const int i     = isects[ii].first;
-            Box       isect = isects[ii].second;
+            const int i = isects[ii].first;
 
-            (*Sync_resid_fine)[mfi].setVal(0.0,isect,0,1);
+            (*Sync_resid_fine)[mfi].setVal(0,isects[ii].second,0,1);
 
             fine_geom.periodicShift(sync_box, Pgrids[i], pshifts);
 
-            for (int iiv = 0; iiv < pshifts.size(); iiv++)
+            for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
             {
-                isect  = Pgrids[i] + pshifts[iiv];
-                isect &= sync_box;
-                (*Sync_resid_fine)[mfi].setVal(0.0,isect,0,1);
+                Box isect = Pgrids[i] + pshifts[iiv];
+                isect    &= sync_box;
+                (*Sync_resid_fine)[mfi].setVal(0,isect,0,1);
             }
         }
     }

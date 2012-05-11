@@ -1251,17 +1251,18 @@ struct TURec
 //
 
 void
-MacProj::test_umac_periodic (int level,MultiFab* u_mac)
+MacProj::test_umac_periodic (int       level,
+                             MultiFab* u_mac)
 {
     const Geometry& geom = parent->Geom(level);
 
     if (!geom.isAnyPeriodic()) return;
 
-    FArrayBox               diff;
-    Array<IntVect>          pshifts(27);
-    MultiFabCopyDescriptor  mfcd;
-    std::vector<TURec>      pirm;
-    MultiFabId              mfid[BL_SPACEDIM];
+    FArrayBox              diff;
+    Array<IntVect>         pshifts(27);
+    MultiFabCopyDescriptor mfcd;
+    std::vector<TURec>     pirm;
+    MultiFabId             mfid[BL_SPACEDIM];
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -1279,7 +1280,7 @@ MacProj::test_umac_periodic (int level,MultiFab* u_mac)
 
                 geom.periodicShift(eDomain, eBox, pshifts);
 
-                for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                 {
                     eBox += pshifts[iiv];
 
@@ -1287,11 +1288,18 @@ MacProj::test_umac_periodic (int level,MultiFab* u_mac)
 
                     for (int i = 0, N = isects.size(); i < N; i++)
                     {
-                        const int j      = isects[i].first;
-                        const Box srcBox = isects[i].second;
-                        const Box dstBox = srcBox - pshifts[iiv];
+                        const Box& srcBox = isects[i].second;
+                        const Box  dstBox = srcBox - pshifts[iiv];
+
                         TURec r(mfi.index(),dim,srcBox,dstBox);
-                        r.m_fbid = mfcd.AddBox(mfid[dim],srcBox,0,j,0,0,1);
+
+                        r.m_fbid = mfcd.AddBox(mfid[dim],
+                                               srcBox,
+                                               0,
+                                               isects[i].first,
+                                               0,
+                                               0,
+                                               1);
                         pirm.push_back(r);
                     }
 
