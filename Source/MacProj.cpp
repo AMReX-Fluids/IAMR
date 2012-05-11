@@ -1309,6 +1309,14 @@ MacProj::test_umac_periodic (int       level,
         }
     }
 
+    int nrecv = pirm.size();
+    ParallelDescriptor::ReduceIntMax(nrecv);
+    if (nrecv == 0)
+        //
+        // There's no parallel work to do.
+        //
+        return;
+
     mfcd.CollectData();
 
     for (int i = 0; i < pirm.size(); i++)

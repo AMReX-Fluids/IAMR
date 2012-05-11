@@ -195,6 +195,14 @@ SyncRegister::copyPeriodic (const Geometry& geom,
         }
     }
 
+    int nrecv = srrec.size();
+    ParallelDescriptor::ReduceIntMax(nrecv);
+    if (nrecv == 0)
+        //
+        // There's no parallel work to do.
+        //
+        return;
+
     fscd.CollectData();
 
     for (std::list<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
@@ -243,6 +251,14 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
             }
         }
     }
+
+    int nrecv = srrec.size();
+    ParallelDescriptor::ReduceIntMax(nrecv);
+    if (nrecv == 0)
+        //
+        // There's no parallel work to do.
+        //
+        return;
 
     fscd.CollectData();
 
@@ -513,6 +529,14 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
             }
         }
     }
+
+    int nrecv = srrec.size();
+    ParallelDescriptor::ReduceIntMax(nrecv);
+    if (nrecv == 0)
+        //
+        // There's no parallel work to do.
+        //
+        return;
 
     mfcd.CollectData();
 
