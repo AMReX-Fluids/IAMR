@@ -178,6 +178,10 @@ Real NavierStokes::volWgtSum_sub_Rcyl;
 Real NavierStokes::volWgtSum_sub_dx;
 Real NavierStokes::volWgtSum_sub_dy;
 Real NavierStokes::volWgtSum_sub_dz;
+//
+// Controls for particle subcycling (can be moved elsewhere)
+//
+int  NavierStokes::umac_n_grow;
 
 Array<Real>          NavierStokes::visc_coef;
 Array<int>           NavierStokes::is_diffusive;
@@ -1489,6 +1493,11 @@ NavierStokes::advance_setup (Real time,
                              int  ncycle)
 {
     const int finest_level = parent->finestLevel();
+    
+    umac_n_grow = 1;
+    
+    if (ncycle >= 1)
+        umac_n_grow = ncycle;
 
     mac_projector->setup(level);
     //
@@ -1522,7 +1531,7 @@ NavierStokes::advance_setup (Real time,
         {
             BoxArray edge_grids(grids);
             edge_grids.surroundingNodes(dir);
-            u_mac[dir].define(edge_grids,1,1,Fab_allocate);
+            u_mac[dir].define(edge_grids,1,umac_n_grow,Fab_allocate);
             u_mac[dir].setVal(1.e40);
         }
     }
@@ -1661,6 +1670,7 @@ NavierStokes::advance (Real time,
                   << " with dt = "               << dt << '\n';
     }
     advance_setup(time,dt,iteration,ncycle);
+    
     //
     // Compute traced states for normal comp of velocity at half time level.
     //
@@ -1673,7 +1683,7 @@ NavierStokes::advance (Real time,
     {
         MultiFab* mac_rhs = create_mac_rhs(time,dt);
         MultiFab& S_old  = get_old_data(State_Type);
-        mac_project(time,dt,S_old,mac_rhs,have_divu);
+        mac_project(time,dt,S_old,mac_rhs,have_divu, umac_n_grow);
         delete mac_rhs;
     }
     //
@@ -1866,7 +1876,8 @@ NavierStokes::mac_project (Real      time,
                            Real      dt,
                            MultiFab& Sold, 
                            MultiFab* divu,
-                           int       have_divu)
+                           int       have_divu,
+                           int ngrow)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_projection\n";
@@ -1875,7 +1886,7 @@ NavierStokes::mac_project (Real      time,
 
     mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu);
 
-    create_umac_grown();
+    create_umac_grown(ngrow);
 
     if (verbose)
     {
@@ -6748,7 +6759,7 @@ NavierStokes::calcDpdt ()
 }
 
 void
-NavierStokes::create_umac_grown ()
+NavierStokes::create_umac_grown (int nGrow)
 {
     if (level > 0)
     {
@@ -6808,7 +6819,7 @@ NavierStokes::create_umac_grown ()
                 const MultiFab& u_macLL = getLevel(level-1).u_mac[n];
 
                 BoxArray edge_grids = u_macLL.boxArray();
-                edge_grids.grow(1);
+                edge_grids.grow(1); //should this be more than 1?
 
                 MultiFab u_macC(edge_grids,1,0);
 

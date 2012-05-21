@@ -171,31 +171,35 @@ c
       a = one / ((radvort - r0)*(two*radvort - r0))
       b = a * radvort**2 * (radvort - r0)
 
-        do j = lo(2), hi(2)
-            y = xlo(2) + hy*(float(j-lo(2)) + half) - 0.5d0
-            do i = lo(1), hi(1)
-                x = xlo(1) + hx*(float(i-lo(1)) + half) - 0.5d0
-                r = sqrt(x**2 + y**2)
+      do j = lo(2), hi(2)
+         y = xlo(2) + hy*(float(j-lo(2)) + half) - 0.5d0
+         do i = lo(1), hi(1)
+             x = xlo(1) + hx*(float(i-lo(1)) + half) - 0.5d0
+             r = sqrt(x**2 + y**2)
 c              umagin = .5*r - 4*r**3
 c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
 
-               umagin = velfact * (one - a*(r - r0)**2)
-               umagout = velfact * b/max(radvort,r)
-               absu = merge(umagout,umagin,(r - radvort) .ge. 0.0d0)
-               sinth = y/max(r,small*radvort)
-               costh = x/max(r,small*radvort)
+c               umagin = velfact * (one - a*(r - r0)**2)
+c               umagout = velfact * b/max(radvort,r)
+c               absu = merge(umagout,umagin,(r - radvort) .ge. 0.0d0)
+c               sinth = y/max(r,small*radvort)
+c               costh = x/max(r,small*radvort)
 
-               vel(i,j,1) = -absu*sinth
-               vel(i,j,2) = absu*costh
+c               vel(i,j,1) = -absu*sinth
+c               vel(i,j,2) = absu*costh
+            vel(i,j,1) = .6
+            vel(i,j,2) = .4
 
-               scal(i,j,1) = merge(denfact,one,r.lt.0.25d0)
+c           scal(i,j,1) = merge(denfact,one,r.lt.0.25d0)
+            scal(i,j,1) = 1
 
-               do n = 2,nscal-1
-                  scal(i,j,n) = one
-               end do                  
-               scal(i,j,nscal) = merge(one,zero,r.lt.0.25d0)
-            end do
+            do n = 2,nscal-1
+                  scal(i,j,n) = 1
+            end do                  
+               scal(i,j,nscal) = 1
+c               scal(i,j,nscal) = merge(one,zero,r.lt.0.25d0)
          end do
+      end do
 
       end
       
