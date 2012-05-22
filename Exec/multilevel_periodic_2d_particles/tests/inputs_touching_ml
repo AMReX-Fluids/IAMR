@@ -13,7 +13,7 @@ max_step 		= 800
 ns.init_iter = 0
 
 # Time at which calculation stops, if max_step is not reached first.
-stop_time 		= 10.0
+stop_time 		= 5.0
 
 # Use the tracer for the refinement criterion
 ns.do_tracer_ref = 1
@@ -21,19 +21,26 @@ ns.do_tracer_ref = 1
 #*******************************************************************************
 # PARTICLE INPUTS
 
-particles.particle_init_file = particle_file
+particles.particle_init_file = tests/particle_file_touching_ml
+particles.pverbose = 0
 particles.timestamp_dir = particle_dir
 particles.timestamp_indices = 1
 
 #*******************************************************************************
 
+# Grid File - test this code with fixed grids
+amr.regrid_file = tests/fixed_grids_touching_ml
+# Grid efficiency (defaults to .70)
+#amr.grid_eff = 0.75
+
+#*******************************************************************************
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 		= 64 64
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 1 # maximum number of levels of refinement
+amr.max_level		= 2 # maximum number of levels of refinement
 
 #*******************************************************************************
 
@@ -63,7 +70,7 @@ amr.check_int		= 10
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 1
+amr.plot_int		= 10
 
 #*******************************************************************************
 
@@ -78,7 +85,7 @@ ns.init_shrink          = 1.0  # factor which multiplies the very first time ste
 #*******************************************************************************
 
 # Viscosity coefficient 
-ns.vel_visc_coef        = 0.001
+ns.vel_visc_coef        = 0.000
 
 #*******************************************************************************
 
@@ -137,17 +144,13 @@ amr.derive_plot_vars 	= mag_vort particle_count
 
 #*******************************************************************************
 
-# Grid File - test this code with fixed grids
-amr.regrid_file = fixed_grids
-# Grid efficiency (defaults to .70)
-#amr.grid_eff = 0.75
-
-#*******************************************************************************
 
 proj.1 = 2
 proj.Pcode = 1
 proj.proj_tol = 1.e-12
-proj.proj_abs_tol = 1.e-15
+proj.proj_abs_tol = 1.e-12
 proj.stencil = full
 
-mg.v = 1
+mg.v = 0
+
+ns.do_init_proj = 0

@@ -187,8 +187,8 @@ c               costh = x/max(r,small*radvort)
 
 c               vel(i,j,1) = -absu*sinth
 c               vel(i,j,2) = absu*costh
-            vel(i,j,1) = .6
-            vel(i,j,2) = .4
+            vel(i,j,1) = .6d0
+            vel(i,j,2) = .4d0
 
 c           scal(i,j,1) = merge(denfact,one,r.lt.0.25d0)
             scal(i,j,1) = 1

@@ -1497,8 +1497,8 @@ NavierStokes::advance_setup (Real time,
     umac_n_grow = 1;
     
     if (ncycle >= 1)
-        umac_n_grow = ncycle;
-
+        umac_n_grow = ncycle + 1;
+        
     mac_projector->setup(level);
     //
     // Why are they defined here versus the constructor?
@@ -1776,7 +1776,6 @@ NavierStokes::advance (Real time,
     // Clean up after the predicted value at t^n+1.
     // Estimate new timestep from umac cfl.
     //
-    advance_cleanup(dt,iteration,ncycle);
 
     return dt_test;  // Return estimate of best new timestep.
 }
@@ -4398,10 +4397,11 @@ void
 NavierStokes::post_timestep (int crse_iteration)
 {
     const int finest_level = parent->finestLevel();
+    const int ncycle = parent->nCycle(level);
     
 #ifdef PARTICLES
     // dont redistribute/timestamp on the final subiteration except on the coarsest grid
-    if (NSPC != 0 && (crse_iteration < parent->nCycle(level) || level == 0))
+    if (NSPC != 0 && (crse_iteration < ncycle || level == 0))
     {
 
         const Real curr_time = state[State_Type].curTime();
@@ -4414,14 +4414,15 @@ NavierStokes::post_timestep (int crse_iteration)
             if (basename[basename.length()-1] != '/') basename += '/';
 
             basename += "Timestamp";
-            for (int lev = parent->finestLevel(); lev >= level; lev --)
+            for (int lev = level; lev <= parent->finestLevel(); lev++)
             {
-
-                NSPC->Timestamp(basename, parent->getLevel(lev).get_new_data(State_Type), level, curr_time, timestamp_indices);
+                NSPC->Timestamp(basename, parent->getLevel(lev).get_new_data(State_Type), lev, curr_time, timestamp_indices);
             }
         }
     }
 #endif
+
+    advance_cleanup(0,crse_iteration,ncycle); //dt variable is unused but shouldn't be set to 0
 
     if (do_reflux && level < finest_level)
         reflux();
@@ -6883,7 +6884,7 @@ NavierStokes::create_umac_grown (int nGrow)
                 u_mac[n][mfi].copy(u_macG[mfi]);
         }
     }
-
+    
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
         u_mac[n].FillBoundary();
