@@ -1768,10 +1768,7 @@ NavierStokes::advance (Real time,
 #ifdef PARTICLES
     if (NSPC != 0)
     {
-        if (level == parent->finestLevel())
-        {
-            NSPC->AdvectWithUmac(u_mac, level, dt);
-        }
+        NSPC->AdvectWithUmac(u_mac, level, dt);
     }
 #endif
 
@@ -4525,8 +4522,8 @@ NavierStokes::post_regrid (int lbase,
     {
         NSPC->Redistribute(false, true, lbase, 2);
 
-        if (parent->finestLevel() > 0)
-            NSPC->RemoveParticlesNotAtFinestLevel();
+        //if (parent->finestLevel() > 0)
+            //NSPC->RemoveParticlesNotAtFinestLevel();
     }
 #endif
 }

@@ -8,7 +8,7 @@
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
 max_step 		= 0
-max_step 		= 100
+max_step 		= 800
 
 ns.init_iter = 0
 
@@ -28,7 +28,6 @@ particles.timestamp_indices = 1
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 		= 32 32
 amr.n_cell 		= 64 64
 
 #*******************************************************************************
@@ -138,8 +137,10 @@ amr.derive_plot_vars 	= mag_vort particle_count
 
 #*******************************************************************************
 
+# Grid File - test this code with fixed grids
+amr.regrid_file = fixed_grids
 # Grid efficiency (defaults to .70)
-amr.grid_eff = 0.75
+#amr.grid_eff = 0.75
 
 #*******************************************************************************
 
