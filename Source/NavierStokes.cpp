@@ -1770,38 +1770,7 @@ NavierStokes::advance (Real time,
     {
         if (level == parent->finestLevel())
         {
-            const MultiFab& mf = get_new_data(State_Type);
-
-            const Real curr_time = state[State_Type].curTime();
-
             NSPC->AdvectWithUmac(u_mac, level, dt);
-
-            if (!timestamp_dir.empty())
-            {
-                int pComp = mf.nComp();
-
-                MultiFab tmf(mf.boxArray(), pComp, 2);
-                
-                for (FillPatchIterator fpi(*this,tmf,2,curr_time,State_Type,0,mf.nComp());
-                     fpi.isValid();
-                     ++fpi)
-                {
-                    tmf[fpi.index()].copy(fpi(),0,0,mf.nComp());
-                }
-
-                std::string basename = timestamp_dir;
-
-                if (basename[basename.length()-1] != '/') basename += '/';
-
-                basename += "Timestamp";
-
-                NSPC->Timestamp(basename, tmf, level, curr_time, timestamp_indices);
-            }
-        }
-
-        if (parent->finestLevel() > 0)
-        {
-            NSPC->RemoveParticlesNotAtFinestLevel();
         }
     }
 #endif
@@ -4432,6 +4401,30 @@ void
 NavierStokes::post_timestep (int crse_iteration)
 {
     const int finest_level = parent->finestLevel();
+    
+#ifdef PARTICLES
+    // dont redistribute/timestamp on the final subiteration except on the coarsest grid
+    if (NSPC != 0 && (crse_iteration < parent->nCycle(level) || level == 0))
+    {
+
+        const Real curr_time = state[State_Type].curTime();
+            
+        NSPC->Redistribute(false, true, level, 2);
+        if (!timestamp_dir.empty())
+        {
+            std::string basename = timestamp_dir;
+
+            if (basename[basename.length()-1] != '/') basename += '/';
+
+            basename += "Timestamp";
+            for (int lev = parent->finestLevel(); lev >= level; lev --)
+            {
+
+                NSPC->Timestamp(basename, parent->getLevel(lev).get_new_data(State_Type), level, curr_time, timestamp_indices);
+            }
+        }
+    }
+#endif
 
     if (do_reflux && level < finest_level)
         reflux();
@@ -4530,7 +4523,7 @@ NavierStokes::post_regrid (int lbase,
 #ifdef PARTICLES
     if (NSPC != 0)
     {
-        NSPC->Redistribute();
+        NSPC->Redistribute(false, true, lbase, 2);
 
         if (parent->finestLevel() > 0)
             NSPC->RemoveParticlesNotAtFinestLevel();
@@ -6763,7 +6756,7 @@ NavierStokes::create_umac_grown (int nGrow)
 {
     if (level > 0)
     {
-        BoxList bl = BoxLib::GetBndryCells(grids,1);
+        BoxList bl = BoxLib::GetBndryCells(grids,nGrow);
 
         BoxArray f_bnd_ba(bl);
 
@@ -6882,7 +6875,7 @@ NavierStokes::create_umac_grown (int nGrow)
             // which we can then update u_mac[n].
             //
             BoxArray edge_grids = u_mac[n].boxArray();
-            edge_grids.grow(1);
+            edge_grids.grow(nGrow);
 
             MultiFab u_macG(edge_grids,1,0);
 
