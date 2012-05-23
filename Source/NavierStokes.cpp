@@ -1638,9 +1638,7 @@ NavierStokes::advance_setup (Real time,
 //
 
 void
-NavierStokes::advance_cleanup (Real dt,
-                               int  iteration,
-                               int  ncycle)
+NavierStokes::advance_cleanup (int iteration, int ncycle)
 {
     if (level == parent->finestLevel())
     {
@@ -4422,7 +4420,7 @@ NavierStokes::post_timestep (int crse_iteration)
     }
 #endif
 
-    advance_cleanup(0,crse_iteration,ncycle); //dt variable is unused but shouldn't be set to 0
+    advance_cleanup(crse_iteration,ncycle);
 
     if (do_reflux && level < finest_level)
         reflux();
@@ -4521,10 +4519,7 @@ NavierStokes::post_regrid (int lbase,
 #ifdef PARTICLES
     if (NSPC != 0)
     {
-        NSPC->Redistribute(false, true, lbase, 2);
-
-        //if (parent->finestLevel() > 0)
-            //NSPC->RemoveParticlesNotAtFinestLevel();
+        NSPC->Redistribute(false, true, lbase, umac_n_grow);
     }
 #endif
 }
@@ -6810,7 +6805,7 @@ NavierStokes::create_umac_grown (int nGrow)
                 const MultiFab& u_macLL = getLevel(level-1).u_mac[n];
 
                 BoxArray edge_grids = u_macLL.boxArray();
-                edge_grids.grow(1); //should this be more than 1?
+                edge_grids.grow(1);
 
                 MultiFab u_macC(edge_grids,1,0);
 
@@ -6884,7 +6879,7 @@ NavierStokes::create_umac_grown (int nGrow)
                 u_mac[n][mfi].copy(u_macG[mfi]);
         }
     }
-    
+
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
         u_mac[n].FillBoundary();

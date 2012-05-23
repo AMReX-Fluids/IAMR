@@ -319,9 +319,7 @@ protected:
                                 int  iteration,
                                 int  ncycle);
 
-    void advance_cleanup (Real dt,
-                          int  iteration,
-                          int  ncycle);
+    void advance_cleanup (int iteration,int ncycle);
     //
     // Compute divergent mac velocities, estimate best timestep
     // from t^n data, and compile cfl number.
