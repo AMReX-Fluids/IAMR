@@ -129,6 +129,10 @@ c ::: -----------------------------------------------------------
      &              vel,scal,DIMS(state),press,DIMS(press),
      &              dx,xlo,xhi)
 
+c     call initpervort(level,time,lo,hi,nscal,
+c    &                 vel,scal,DIMS(state),press,DIMS(press),
+c    &                 dx,xlo,xhi)
+
       end
 c
 c ::: -----------------------------------------------------------
@@ -179,16 +183,20 @@ c
 c              umagin = .5*r - 4*r**3
 c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
 
-               umagin = velfact * (one - a*(r - r0)**2)
-               umagout = velfact * b/max(radvort,r)
-               absu = merge(umagout,umagin,(r - radvort) .ge. 0.0d0)
-               sinth = y/max(r,small*radvort)
-               costh = x/max(r,small*radvort)
+c              umagin = velfact * (one - a*(r - r0)**2)
+c              umagout = velfact * b/max(radvort,r)
+c              absu = merge(umagout,umagin,(r - radvort) .ge. 0.0d0)
+c              sinth = y/max(r,small*radvort)
+c              costh = x/max(r,small*radvort)
 
-               vel(i,j,1) = -absu*sinth
-               vel(i,j,2) = absu*costh
+c              vel(i,j,1) = -absu*sinth
+c              vel(i,j,2) = absu*costh
 
-               scal(i,j,1) = merge(denfact,one,r.lt.0.25d0)
+               vel(i,j,1) = 1.d0 
+               vel(i,j,2) = 0.d0
+
+c              scal(i,j,1) = merge(denfact,one,r.lt.0.25d0)
+               scal(i,j,1) = 1.d0
 
                do n = 2,nscal-1
                   scal(i,j,n) = one
@@ -198,7 +206,55 @@ c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
          end do
 
       end
-      
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initpervort(level,time,lo,hi,nscal,
+     &	 	             vel,scal,DIMS(state),press,DIMS(press),
+     &                       dx,xlo,xhi)
+
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, n
+      REAL_T  x, y, r
+      REAL_T  hx, hy
+
+#include "probdata.H"
+
+      hx = dx(1)
+      hy = dx(2)
+      small = 1.0e-10
+
+      do j = lo(2), hi(2)
+      do i = lo(1), hi(1)
+
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            x = xlo(1) + hx*(float(i-lo(1)) + half)
+            vel(i,j,1) = tanh(30.*(.25-abs(y-.5)))
+            vel(i,j,2) = .05*sin(two*Pi*x)
+
+            scal(i,j,1) = 1.d0
+
+            do n = 2,nscal-1
+               scal(i,j,n) = one
+            end do                  
+            scal(i,j,nscal) = merge(one,zero,r.lt.0.25d0)
+      end do
+      end do
+
+      end
 c
 c
 c ::: -----------------------------------------------------------

@@ -67,7 +67,9 @@ int  Projection::make_sync_solvable;
 Real Projection::divu_minus_s_factor;
 
 #ifdef MG_USE_F90_SOLVERS
-Projection::stencil_t Projection::hg_stencil;
+Projection::stencil_t Projection::hg_stencil = full;
+#else
+static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
 #endif
 
 namespace
@@ -77,17 +79,6 @@ namespace
 #endif
 }
 
-#ifndef MG_USE_F90_SOLVERS
-#if BL_SPACEDIM == 2
-#if BL_PRVERSION == 9
-static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::full;
-#else
-static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
-#endif
-#elif BL_SPACEDIM == 3
-static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
-#endif
-#endif
 
 void
 Projection::Initialize ()
@@ -107,21 +98,6 @@ Projection::Initialize ()
     Projection::rho_wgt_vel_proj    = 0;
     Projection::make_sync_solvable  = 0;
     Projection::divu_minus_s_factor = 0.0;
-
-#ifdef MG_USE_F90_SOLVERS
-#if BL_SPACEDIM == 2
-#if BL_PRVERSION == 9
-  Projection::hg_stencil = full;
-#else
-  Projection::hg_stencil = cross;
-#endif
-#elif BL_SPACEDIM == 3
-  //
-  // Default to full when using F90 solvers.
-  //
-  Projection::hg_stencil = full;
-#endif
-#endif
 
 #if MG_USE_HYPRE
     use_hypre_solve = false;
@@ -163,7 +139,7 @@ Projection::Initialize ()
         }
         else
         {
-            BoxLib::Error("stencil must be cross, full or dense");
+            BoxLib::Error("Must set proj.stencil to be stencil cross, full or dense");
         }
     }
 #else
@@ -183,7 +159,7 @@ Projection::Initialize ()
         }
         else
         {
-            BoxLib::Error("stencil must be cross, terrain, or full");
+            BoxLib::Error("Must set proj.stencil to be stencil cross, terrain or full ");
         }
     }
 #endif
