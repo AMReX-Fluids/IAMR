@@ -125,13 +125,13 @@ c ::: -----------------------------------------------------------
 
 #include "probdata.H"
 
-      call initvort(level,time,lo,hi,nscal,
+c      call initvort(level,time,lo,hi,nscal,
+c     &              vel,scal,DIMS(state),press,DIMS(press),
+c     &              dx,xlo,xhi)
+
+      call initpervort(level,time,lo,hi,nscal,
      &              vel,scal,DIMS(state),press,DIMS(press),
      &              dx,xlo,xhi)
-
-c     call initpervort(level,time,lo,hi,nscal,
-c    &                 vel,scal,DIMS(state),press,DIMS(press),
-c    &                 dx,xlo,xhi)
 
       end
 c
@@ -219,7 +219,7 @@ c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(state)
       integer    DIMDEC(press)
-      REAL_T     time, dx(SDIM)
+      REAL_T     time, dx(SDIM), small
       REAL_T     xlo(SDIM), xhi(SDIM)
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)

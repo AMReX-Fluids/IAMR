@@ -154,3 +154,6 @@ proj.stencil = full
 mg.v = 0
 
 ns.do_init_proj = 0
+
+mac.mac_tol     = 1.e-12
+mac.mac_abs_tol = 1.e-12

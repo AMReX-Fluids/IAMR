@@ -1640,12 +1640,6 @@ NavierStokes::advance_setup (Real time,
 void
 NavierStokes::advance_cleanup (int iteration, int ncycle)
 {
-    if (level == parent->finestLevel())
-    {
-        delete [] u_mac;
-        u_mac = 0;
-    }
-
     delete aofs;
     aofs = 0;
 }
@@ -1770,6 +1764,7 @@ NavierStokes::advance (Real time,
     }
 #endif
 
+    advance_cleanup(iteration,ncycle);
     //
     // Clean up after the predicted value at t^n+1.
     // Estimate new timestep from umac cfl.
@@ -4420,7 +4415,11 @@ NavierStokes::post_timestep (int crse_iteration)
     }
 #endif
 
-    advance_cleanup(crse_iteration,ncycle);
+    if (level == parent->finestLevel())
+    {
+        delete [] u_mac;
+        u_mac = 0;
+    }
 
     if (do_reflux && level < finest_level)
         reflux();
@@ -6879,10 +6878,32 @@ NavierStokes::create_umac_grown (int nGrow)
                 u_mac[n][mfi].copy(u_macG[mfi]);
         }
     }
-
+    
+    //
+    // Now we set the boundary data
+    // FillBoundary fills grow cells that overlap valid regions.
+    // HOEXTRAPTOCC fills outside of domain cells.
+    // FillPeriodicBoundary refills grow cells that lie across a 
+    //      periodic boundary.
+    //
+    const Real* xlo = geom.ProbLo(); //these aren't actually used by the FORT method
+    const Real* dx  = geom.CellSize();
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
+        Box dm = geom.Domain();
+        dm.surroundingNodes(n);
+        const int*  lo  = dm.loVect();
+        const int*  hi  = dm.hiVect();
+        for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& fab = u_mac[n][mfi];
+            const int*  dlo = fab.loVect();
+            const int*  dhi = fab.hiVect();
+            FORT_HOEXTRAPTOCC(fab.dataPtr(),ARLIM(dlo),ARLIM(dhi),lo,hi,dx,xlo);
+        }
         u_mac[n].FillBoundary();
         geom.FillPeriodicBoundary(u_mac[n]);
     }
+    
+
 }
