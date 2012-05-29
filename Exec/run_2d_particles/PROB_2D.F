@@ -219,7 +219,7 @@ c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(state)
       integer    DIMDEC(press)
-      REAL_T     time, dx(SDIM), small
+      REAL_T     time, dx(SDIM)
       REAL_T     xlo(SDIM), xhi(SDIM)
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
