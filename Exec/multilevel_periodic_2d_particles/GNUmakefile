@@ -11,7 +11,7 @@ TOP = ../..
 PRECISION = DOUBLE
 
 DEBUG	  = TRUE
-DEBUG	  = FALSE
+#DEBUG	  = FALSE
 
 DIM       = 2
 

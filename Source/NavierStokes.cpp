@@ -1764,11 +1764,11 @@ NavierStokes::advance (Real time,
     }
 #endif
 
-    advance_cleanup(iteration,ncycle);
     //
     // Clean up after the predicted value at t^n+1.
     // Estimate new timestep from umac cfl.
     //
+    advance_cleanup(iteration,ncycle);
 
     return dt_test;  // Return estimate of best new timestep.
 }
@@ -4407,7 +4407,7 @@ NavierStokes::post_timestep (int crse_iteration)
             if (basename[basename.length()-1] != '/') basename += '/';
 
             basename += "Timestamp";
-            for (int lev = level; lev <= parent->finestLevel(); lev++)
+            for (int lev = level; lev <= finest_level; lev++)
             {
                 NSPC->Timestamp(basename, parent->getLevel(lev).get_new_data(State_Type), lev, curr_time, timestamp_indices);
             }
