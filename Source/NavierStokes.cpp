@@ -4399,7 +4399,7 @@ NavierStokes::post_timestep (int crse_iteration)
 
         const Real curr_time = state[State_Type].curTime();
             
-        NSPC->Redistribute(false, true, level, 2);
+        NSPC->Redistribute(false, true, level, umac_n_grow-1);
         if (!timestamp_dir.empty())
         {
             std::string basename = timestamp_dir;

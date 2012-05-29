@@ -4918,23 +4918,23 @@ c
 
 c=========================================================
 
-c      subroutine FORT_DERNULL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-c     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,bc,
-c     $                         level,grid_no)
-c      implicit none
-c      !
-c      ! This is a null derived routine.
-c      !
-c      integer    lo(SDIM), hi(SDIM)
-c      integer    DIMDEC(e)
-c      integer    DIMDEC(dat)
-c      integer    domlo(SDIM), domhi(SDIM)
-c      integer    nv, ncomp
-c      integer    bc(SDIM,2,ncomp)
-c      REAL_T     delta(SDIM), xlo(SDIM), time, dt
-c      REAL_T     e(DIMV(e),nv)
-c      REAL_T     dat(DIMV(dat),ncomp)
-c      integer    level, grid_no
+      subroutine FORT_DERNULL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,bc,
+     $                         level,grid_no)
+      implicit none
+      !
+      ! This is a null derived routine.
+      !
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM), time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
 
-c      end
+      end
 
