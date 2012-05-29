@@ -228,7 +228,7 @@ c
 c     ::::: local variables
 c
       integer i, j, n
-      REAL_T  x, y, r
+      REAL_T  small, x, y, r
       REAL_T  hx, hy
 
 #include "probdata.H"
