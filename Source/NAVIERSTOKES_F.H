@@ -33,6 +33,7 @@
 #    define FORT_CEN2EDG     CEN2EDG
 #    define FORT_EDGE_INTERP EDGE_INTERP
 #    define FORT_PC_CF_EDGE_INTERP PC_EDGE_INTERP
+#    define FORT_HOEXTRAPTOCC HOEXTRAPTOCC
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     SUMTURB
 #ifdef SUMJET
@@ -51,6 +52,7 @@
 #    define FORT_CEN2EDG     cen2edg
 #    define FORT_EDGE_INTERP edge_interp
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
+#    define FORT_HOEXTRAPTOCC hoextraptocc
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     sumturb
 #ifdef SUMJET
@@ -69,6 +71,7 @@
 #    define FORT_CEN2EDG     cen2edg_
 #    define FORT_EDGE_INTERP edge_interp_
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp_
+#    define FORT_HOEXTRAPTOCC hoextraptocc_
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     sumturb_
 #ifdef SUMJET
@@ -175,6 +178,11 @@ extern "C" {
                                 const int* nc, const int* refRatio, const int* dir,
                                 const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                                 Real*       fine, ARLIM_P(flo), ARLIM_P(fhi));
+
+    void FORT_HOEXTRAPTOCC (const Real* q, ARLIM_P(q_lo), ARLIM_P(q_hi),
+                     const int* dom_lo, const int* dom_hi,
+                     const Real* dx ,const Real* xlo);
+
 }
     
 #endif

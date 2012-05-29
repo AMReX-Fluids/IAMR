@@ -178,6 +178,10 @@ Real NavierStokes::volWgtSum_sub_Rcyl;
 Real NavierStokes::volWgtSum_sub_dx;
 Real NavierStokes::volWgtSum_sub_dy;
 Real NavierStokes::volWgtSum_sub_dz;
+//
+// Controls for particle subcycling (can be moved elsewhere)
+//
+int  NavierStokes::umac_n_grow;
 
 Array<Real>          NavierStokes::visc_coef;
 Array<int>           NavierStokes::is_diffusive;
@@ -1489,7 +1493,12 @@ NavierStokes::advance_setup (Real time,
                              int  ncycle)
 {
     const int finest_level = parent->finestLevel();
-
+    
+    umac_n_grow = 1;
+    
+    if (ncycle >= 1)
+        umac_n_grow = ncycle + 1;
+        
     mac_projector->setup(level);
     //
     // Why are they defined here versus the constructor?
@@ -1522,7 +1531,7 @@ NavierStokes::advance_setup (Real time,
         {
             BoxArray edge_grids(grids);
             edge_grids.surroundingNodes(dir);
-            u_mac[dir].define(edge_grids,1,1,Fab_allocate);
+            u_mac[dir].define(edge_grids,1,umac_n_grow,Fab_allocate);
             u_mac[dir].setVal(1.e40);
         }
     }
@@ -1629,16 +1638,8 @@ NavierStokes::advance_setup (Real time,
 //
 
 void
-NavierStokes::advance_cleanup (Real dt,
-                               int  iteration,
-                               int  ncycle)
+NavierStokes::advance_cleanup (int iteration, int ncycle)
 {
-    if (level == parent->finestLevel())
-    {
-        delete [] u_mac;
-        u_mac = 0;
-    }
-
     delete aofs;
     aofs = 0;
 }
@@ -1661,6 +1662,7 @@ NavierStokes::advance (Real time,
                   << " with dt = "               << dt << '\n';
     }
     advance_setup(time,dt,iteration,ncycle);
+    
     //
     // Compute traced states for normal comp of velocity at half time level.
     //
@@ -1673,7 +1675,7 @@ NavierStokes::advance (Real time,
     {
         MultiFab* mac_rhs = create_mac_rhs(time,dt);
         MultiFab& S_old  = get_old_data(State_Type);
-        mac_project(time,dt,S_old,mac_rhs,have_divu);
+        mac_project(time,dt,S_old,mac_rhs,have_divu, umac_n_grow);
         delete mac_rhs;
     }
     //
@@ -1758,41 +1760,7 @@ NavierStokes::advance (Real time,
 #ifdef PARTICLES
     if (NSPC != 0)
     {
-        if (level == parent->finestLevel())
-        {
-            const MultiFab& mf = get_new_data(State_Type);
-
-            const Real curr_time = state[State_Type].curTime();
-
-            NSPC->AdvectWithUmac(u_mac, level, dt);
-
-            if (!timestamp_dir.empty())
-            {
-                int pComp = mf.nComp();
-
-                MultiFab tmf(mf.boxArray(), pComp, 2);
-                
-                for (FillPatchIterator fpi(*this,tmf,2,curr_time,State_Type,0,mf.nComp());
-                     fpi.isValid();
-                     ++fpi)
-                {
-                    tmf[fpi.index()].copy(fpi(),0,0,mf.nComp());
-                }
-
-                std::string basename = timestamp_dir;
-
-                if (basename[basename.length()-1] != '/') basename += '/';
-
-                basename += "Timestamp";
-
-                NSPC->Timestamp(basename, tmf, level, curr_time, timestamp_indices);
-            }
-        }
-
-        if (parent->finestLevel() > 0)
-        {
-            NSPC->RemoveParticlesNotAtFinestLevel();
-        }
+        NSPC->AdvectWithUmac(u_mac, level, dt);
     }
 #endif
 
@@ -1800,7 +1768,7 @@ NavierStokes::advance (Real time,
     // Clean up after the predicted value at t^n+1.
     // Estimate new timestep from umac cfl.
     //
-    advance_cleanup(dt,iteration,ncycle);
+    advance_cleanup(iteration,ncycle);
 
     return dt_test;  // Return estimate of best new timestep.
 }
@@ -1866,7 +1834,8 @@ NavierStokes::mac_project (Real      time,
                            Real      dt,
                            MultiFab& Sold, 
                            MultiFab* divu,
-                           int       have_divu)
+                           int       have_divu,
+                           int ngrow)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_projection\n";
@@ -1875,7 +1844,7 @@ NavierStokes::mac_project (Real      time,
 
     mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu);
 
-    create_umac_grown();
+    create_umac_grown(ngrow);
 
     if (verbose)
     {
@@ -4421,6 +4390,36 @@ void
 NavierStokes::post_timestep (int crse_iteration)
 {
     const int finest_level = parent->finestLevel();
+    const int ncycle = parent->nCycle(level);
+    
+#ifdef PARTICLES
+    // dont redistribute/timestamp on the final subiteration except on the coarsest grid
+    if (NSPC != 0 && (crse_iteration < ncycle || level == 0))
+    {
+
+        const Real curr_time = state[State_Type].curTime();
+            
+        NSPC->Redistribute(false, true, level, umac_n_grow-1);
+        if (!timestamp_dir.empty())
+        {
+            std::string basename = timestamp_dir;
+
+            if (basename[basename.length()-1] != '/') basename += '/';
+
+            basename += "Timestamp";
+            for (int lev = level; lev <= finest_level; lev++)
+            {
+                NSPC->Timestamp(basename, parent->getLevel(lev).get_new_data(State_Type), lev, curr_time, timestamp_indices);
+            }
+        }
+    }
+#endif
+
+    if (level == parent->finestLevel())
+    {
+        delete [] u_mac;
+        u_mac = 0;
+    }
 
     if (do_reflux && level < finest_level)
         reflux();
@@ -4519,10 +4518,7 @@ NavierStokes::post_regrid (int lbase,
 #ifdef PARTICLES
     if (NSPC != 0)
     {
-        NSPC->Redistribute();
-
-        if (parent->finestLevel() > 0)
-            NSPC->RemoveParticlesNotAtFinestLevel();
+        NSPC->Redistribute(false, true, lbase, umac_n_grow);
     }
 #endif
 }
@@ -6748,11 +6744,11 @@ NavierStokes::calcDpdt ()
 }
 
 void
-NavierStokes::create_umac_grown ()
+NavierStokes::create_umac_grown (int nGrow)
 {
     if (level > 0)
     {
-        BoxList bl = BoxLib::GetBndryCells(grids,1);
+        BoxList bl = BoxLib::GetBndryCells(grids,nGrow);
 
         BoxArray f_bnd_ba(bl);
 
@@ -6871,7 +6867,7 @@ NavierStokes::create_umac_grown ()
             // which we can then update u_mac[n].
             //
             BoxArray edge_grids = u_mac[n].boxArray();
-            edge_grids.grow(1);
+            edge_grids.grow(nGrow);
 
             MultiFab u_macG(edge_grids,1,0);
 
@@ -6882,10 +6878,32 @@ NavierStokes::create_umac_grown ()
                 u_mac[n][mfi].copy(u_macG[mfi]);
         }
     }
-
+    
+    //
+    // Now we set the boundary data
+    // FillBoundary fills grow cells that overlap valid regions.
+    // HOEXTRAPTOCC fills outside of domain cells.
+    // FillPeriodicBoundary refills grow cells that lie across a 
+    //      periodic boundary.
+    //
+    const Real* xlo = geom.ProbLo(); //these aren't actually used by the FORT method
+    const Real* dx  = geom.CellSize();
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
+        Box dm = geom.Domain();
+        dm.surroundingNodes(n);
+        const int*  lo  = dm.loVect();
+        const int*  hi  = dm.hiVect();
+        for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& fab = u_mac[n][mfi];
+            const int*  dlo = fab.loVect();
+            const int*  dhi = fab.hiVect();
+            FORT_HOEXTRAPTOCC(fab.dataPtr(),ARLIM(dlo),ARLIM(dhi),lo,hi,dx,xlo);
+        }
         u_mac[n].FillBoundary();
         geom.FillPeriodicBoundary(u_mac[n]);
     }
+    
+
 }

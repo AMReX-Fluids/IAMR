@@ -319,9 +319,7 @@ protected:
                                 int  iteration,
                                 int  ncycle);
 
-    void advance_cleanup (Real dt,
-                          int  iteration,
-                          int  ncycle);
+    void advance_cleanup (int iteration,int ncycle);
     //
     // Compute divergent mac velocities, estimate best timestep
     // from t^n data, and compile cfl number.
@@ -346,11 +344,11 @@ protected:
     // Impose divergence constraint on MAC velocities.
     //
     void mac_project (Real time, Real dt, MultiFab& S_old, 
-                      MultiFab* divu, int have_divu);
+                      MultiFab* divu, int have_divu, int ngrow = 1);
     //
     // Grow by 1 and fillpatch the MAC-projected velocities.
     //
-    void create_umac_grown ();
+    void create_umac_grown (int nGrow = 1);
     //
     // Advect velocities.
     //
@@ -900,7 +898,10 @@ protected:
     static int  do_mom_diff;
     static int  predict_mom_together;
     static bool def_harm_avg_cen2edge;
-
+    //
+    // Controls for particle subcycling (can be moved elsewhere)
+    //
+    static int  umac_n_grow;
 };
 
 #endif /*_NavierStokes_H_*/
