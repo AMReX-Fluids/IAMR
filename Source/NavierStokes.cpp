@@ -4153,29 +4153,20 @@ NavierStokes::computeNewDt (int                   finest_level,
                             int                   post_regrid_flag) 
 {
     //
-    // We are at the end of a coarse grid timecycle.
+    // We are at the start of a coarse grid timecycle.
     // Compute the timesteps for the next iteration.
     //
-    if (level > 0) return;
-    //
-    // For Navier Stokes compute the new dt based on current velocity field.
-    //
-    const int max_level = parent->maxLevel();
+    if (level > 0) 
+        return;
 
-    n_cycle[0] = 1;
-    for (int i = 1; i <= max_level; i++)
-    {
-        n_cycle[i] = sub_cycle ? parent->MaxRefRatio(i-1) : 1;
-    }
+    int i;
 
     Real dt_0     = 1.0e+100;
     int  n_factor = 1;
-    for (int i = 0; i <= finest_level; i++)
+    for (i = 0; i <= finest_level; i++)
     {
-        dt_min[i] = std::min(dt_min[i],getLevel(i).estTimeStep());
-        if (ParallelDescriptor::IOProcessor())
-	  std::cout << "Actual dt after change limiting = " 
-		    << dt_min[i] << std::endl;
+        NavierStokes& adv_level = getLevel(i);
+        dt_min[i] = std::min(dt_min[i],adv_level.estTimeStep());
     }
 
     if (fixed_dt <= 0.0) 
@@ -4185,7 +4176,7 @@ NavierStokes::computeNewDt (int                   finest_level,
           //
           // Limit dt's by pre-regrid dt
           //
-          for (int i = 0; i <= finest_level; i++)
+          for (i = 0; i <= finest_level; i++)
           {
               dt_min[i] = std::min(dt_min[i],dt_level[i]);
           }
@@ -4195,9 +4186,20 @@ NavierStokes::computeNewDt (int                   finest_level,
           //
           // Limit dt's by change_max * old dt
           //
-          for (int i = 0; i <= finest_level; i++)
+          for (i = 0; i <= finest_level; i++)
           {
-              dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
+             if (verbose && ParallelDescriptor::IOProcessor())
+                 if (dt_min[i] > change_max*dt_level[i])
+                 {
+                        cout << "NavierStokes::compute_new_dt : limiting dt at level "
+                             << i << '\n';
+                        cout << " ... new dt computed: " << dt_min[i]
+                             << '\n';
+                        cout << " ... but limiting to: "
+                             << change_max * dt_level[i] << " = " << change_max
+                             << " * " << dt_level[i] << '\n';
+                 }
+             dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
           }
        }
     }
@@ -4205,7 +4207,7 @@ NavierStokes::computeNewDt (int                   finest_level,
     //
     // Find the minimum over all levels
     //
-    for (int i = 0; i <= finest_level; i++)
+    for (i = 0; i <= finest_level; i++)
     {
         n_factor *= n_cycle[i];
         dt_0      = std::min(dt_0,n_factor*dt_min[i]);
@@ -4245,7 +4247,7 @@ NavierStokes::computeNewDt (int                   finest_level,
     }
 
     n_factor = 1;
-    for (int i = 0; i <= max_level; i++)
+    for (i = 0; i <= finest_level; i++)
     {
         n_factor   *= n_cycle[i];
         dt_level[i] = dt_0/( (Real)n_factor );
@@ -4265,26 +4267,22 @@ NavierStokes::computeInitialDt (int                   finest_level,
     //
     if (level > 0)
         return;
-    //
-    // For Navier Stokes compute the new dt based on current velocity field.
-    //
-    const int max_level = parent->maxLevel();
 
-    n_cycle[0] = 1;
-    for (int i = 1; i <= max_level; i++)
-    {
-        n_cycle[i] = sub_cycle ? parent->MaxRefRatio(i-1) : 1;
-    }
+    int i;
 
     Real dt_0    = 1.0e+100;
     int n_factor = 1;
-    for (int i = 0; i <= finest_level; i++)
+    ///TODO/DEBUG: This will need to change for optimal subcycling.
+    for (i = 0; i <= finest_level; i++)
     {
         dt_level[i] = getLevel(i).initialTimeStep();
         n_factor   *= n_cycle[i];
         dt_0        = std::min(dt_0,n_factor*dt_level[i]);
     }
 
+    //
+    // Limit dt's by the value of stop_time.
+    //
     if (stop_time >= 0.0)
     {
         const Real eps      = 0.0001*dt_0;
@@ -4294,7 +4292,7 @@ NavierStokes::computeInitialDt (int                   finest_level,
     }
 
     n_factor = 1;
-    for (int i = 0; i <= max_level; i++)
+    for (i = 0; i <= finest_level; i++)
     {
         n_factor   *= n_cycle[i];
         dt_level[i] = dt_0/( (Real)n_factor );
