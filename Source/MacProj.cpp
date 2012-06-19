@@ -556,11 +556,13 @@ MacProj::mac_sync_solve (int       level,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
         BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
 
-        isects = baf.intersections(Rhsmfi.validbox());
+        baf.intersections(Rhsmfi.validbox(),isects);
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
@@ -1266,6 +1268,8 @@ MacProj::test_umac_periodic (int       level,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (int dim = 0; dim < BL_SPACEDIM; dim++)
     {
         if (geom.isPeriodic(dim))
@@ -1284,7 +1288,7 @@ MacProj::test_umac_periodic (int       level,
                 {
                     eBox += pshifts[iiv];
 
-                    isects = u_mac[dim].boxArray().intersections(eBox);
+                    u_mac[dim].boxArray().intersections(eBox,isects);
 
                     for (int i = 0, N = isects.size(); i < N; i++)
                     {

@@ -228,13 +228,15 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (OrientationIter face; face; ++face)
     {
         fsid[face()] = fscd.RegisterFabSet((FabSet*) &bndry_mask[face()]);
 
         for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
         {
-            isects = bndry_mask[face()].boxArray().intersections(rhs[mfi].box());
+            bndry_mask[face()].boxArray().intersections(rhs[mfi].box(),isects);
 
             for (int i = 0, N = isects.size(); i < N; i++)
             {
@@ -345,6 +347,8 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (OrientationIter face; face; ++face)
     {
         FabSet& fs = bndry_mask[face()];
@@ -356,7 +360,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
             tmpfab.resize(mask_cells,1);
             tmpfab.setVal(0);
 
-            isects = grids.intersections(mask_cells);
+            grids.intersections(mask_cells,isects);
 
             for (int i = 0, N = isects.size(); i < N; i++)
             {
@@ -371,7 +375,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                 {
                     mask_cells += pshifts[iiv];
 
-                    isects = grids.intersections(mask_cells);
+                    grids.intersections(mask_cells,isects);
 
                     for (int i = 0, N = isects.size(); i < N; i++)
                     {
@@ -588,11 +592,13 @@ SyncRegister::CompAdd  (MultiFab*       Sync_resid_fine,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
     {
         const Box& sync_box = mfi.validbox();
 
-        isects = Pgrids.intersections(sync_box);
+        Pgrids.intersections(sync_box,isects);
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {

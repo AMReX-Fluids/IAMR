@@ -3172,20 +3172,22 @@ NavierStokes::errorEst (TagBoxArray& tags,
 Real
 NavierStokes::sumDerive (const std::string& name, Real time)
 {
-    Real      sum = 0.0;
     MultiFab* mf  = derive(name,time,0);
 
     BL_ASSERT(!(mf == 0));
 
     BoxArray baf;
 
+    std::vector< std::pair<int,Box> > isects;
+
     if (level < parent->finestLevel())
     {
         baf = parent->boxArray(level+1);
         baf.coarsen(fine_ratio);
+        isects.reserve(27);
     }
 
-    std::vector< std::pair<int,Box> > isects;
+    Real sum = 0.0;
 
     for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
     {
@@ -3193,7 +3195,7 @@ NavierStokes::sumDerive (const std::string& name, Real time)
 
         if (level < parent->finestLevel())
         {
-            isects = baf.intersections(grids[mfi.index()]);
+            baf.intersections(grids[mfi.index()],isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
@@ -3228,13 +3230,15 @@ NavierStokes::volWgtSum (const std::string& name,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
     {
         FArrayBox& fab = (*mf)[mfi];
 
         if (level < parent->finestLevel())
         {
-            isects = baf.intersections(grids[mfi.index()]);
+            baf.intersections(grids[mfi.index()],isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
@@ -3313,13 +3317,15 @@ NavierStokes::MaxVal (const std::string& name,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
     {
         FArrayBox& fab = (*mf)[mfi];
 
         if (level < parent->finestLevel())
         {
-            isects = baf.intersections(grids[mfi.index()]);
+            baf.intersections(grids[mfi.index()],isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
@@ -3410,6 +3416,8 @@ NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (MFIter turbMfi(*turbMF), presMfi(*presMF);
 	 turbMfi.isValid() && presMfi.isValid();
 	 ++turbMfi, ++presMfi)
@@ -3419,7 +3427,7 @@ NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
 
         if (level < parent->finestLevel())
         {
-            isects = baf.intersections(grids[turbMfi.index()]);
+            baf.intersections(grids[turbMfi.index()],isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
@@ -3546,6 +3554,8 @@ NavierStokes::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,  in
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (MFIter turbMfi(*turbMF), presMfi(*presMF);
 	 turbMfi.isValid() && presMfi.isValid();
 	 ++turbMfi, ++presMfi)
@@ -3555,7 +3565,7 @@ NavierStokes::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,  in
 
         if (level < parent->finestLevel())
         {
-            isects = baf.intersections(grids[turbMfi.index()]);
+            baf.intersections(grids[turbMfi.index()],isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
@@ -4191,11 +4201,11 @@ NavierStokes::computeNewDt (int                   finest_level,
              if (verbose && ParallelDescriptor::IOProcessor())
                  if (dt_min[i] > change_max*dt_level[i])
                  {
-                        cout << "NavierStokes::compute_new_dt : limiting dt at level "
+                     std::cout << "NavierStokes::compute_new_dt : limiting dt at level "
                              << i << '\n';
-                        cout << " ... new dt computed: " << dt_min[i]
+                     std::cout << " ... new dt computed: " << dt_min[i]
                              << '\n';
-                        cout << " ... but limiting to: "
+                     std::cout << " ... but limiting to: "
                              << change_max * dt_level[i] << " = " << change_max
                              << " * " << dt_level[i] << '\n';
                  }
@@ -5719,13 +5729,15 @@ NavierStokes::reflux ()
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (MFIter Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
     {
         const int i = Vsyncmfi.index();
 
         BL_ASSERT(grids[i] == Vsyncmfi.validbox());
 
-        isects = baf.intersections(Vsyncmfi.validbox());
+        baf.intersections(Vsyncmfi.validbox(),isects);
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
@@ -6020,9 +6032,11 @@ NavierStokes::getGradP (MultiFab& gp,
 
         std::vector< std::pair<int,Box> > isects;
 
+        isects.reserve(27);
+
         for (MFIter mfi(gpTmp); mfi.isValid(); ++mfi) 
         {
-            isects = fineBA.intersections(gpTmp[mfi].box());
+            fineBA.intersections(gpTmp[mfi].box(),isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
