@@ -2519,7 +2519,7 @@ NavierStokes::scalar_advection_update (Real dt,
     MultiFab&  S_old     = get_old_data(State_Type);
     MultiFab&  S_new     = get_new_data(State_Type);
     MultiFab&  Aofs      = *aofs;
-    const Real halftime  = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
+
     const Real prev_time = state[State_Type].prevTime();
     Array<int> state_bc;
     FArrayBox  tforces;
@@ -2580,6 +2580,7 @@ NavierStokes::scalar_advection_update (Real dt,
             for (int sigma = sComp; sigma <= last_scalar; sigma++)
             {
 #ifdef BOUSSINESQ
+                const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
 		FArrayBox Scal(BoxLib::grow(grids[i],0),1);
 		Scal.copy(S_old[i],Tracer,0,1);
 		Scal.plus(S_new[i],Tracer,0,1);
@@ -2587,6 +2588,7 @@ NavierStokes::scalar_advection_update (Real dt,
                 getForce(tforces,i,0,sigma,1,halftime,Scal);
 #else
 #ifdef GENGETFORCE
+                const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
                 getForce(tforces,i,0,sigma,1,halftime,rho_halftime[Rho_mfi]);
 #elif MOREGENGETFORCE
 		// Need to do some funky half-time stuff
@@ -2594,6 +2596,7 @@ NavierStokes::scalar_advection_update (Real dt,
 		    std::cout << "---" << std::endl << "E - scalar advection update (half time):" << std::endl;
 
 		// Average the mac face velocities to get cell centred velocities
+                const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
 		FArrayBox Vel(BoxLib::grow(grids[i],0),BL_SPACEDIM);
 		const int* vel_lo  = Vel.loVect();
 		const int* vel_hi  = Vel.hiVect();
@@ -2836,7 +2839,6 @@ NavierStokes::velocity_advection_update (Real dt)
     MultiFab&  P_old          = get_old_data(Press_Type);
     MultiFab&  Aofs           = *aofs;
     const Real prev_pres_time = state[Press_Type].prevTime();
-    const Real half_time      = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
 
     MultiFab Gp(grids,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
@@ -2852,6 +2854,7 @@ NavierStokes::velocity_advection_update (Real dt)
 
 #ifdef BOUSSINESQ
 	// Average the new and old time to get half time approximation
+        const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
 	FArrayBox Scal(grids[i],1);
 	Scal.copy(U_old[i],Tracer,0,1);
 	Scal.plus(U_new[i],Tracer,0,1);
@@ -2859,6 +2862,7 @@ NavierStokes::velocity_advection_update (Real dt)
         getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,Scal);
 #else
 #ifdef GENGETFORCE
+        const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,halftime[i]);
 #elif MOREGENGETFORCE
 	// Need to do some funky half-time stuff
@@ -2899,6 +2903,7 @@ NavierStokes::velocity_advection_update (Real dt)
 	
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "Calling getForce..." << std::endl;
+        const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
 #else
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,halftime[i]);
@@ -4071,7 +4076,7 @@ NavierStokes::estTimeStep ()
 
     const int   n_grow        = 0;
     Real        estdt         = 1.0e+20;
-    const Real  cur_time      = state[State_Type].curTime();
+
     const Real  cur_pres_time = state[Press_Type].curTime();
     MultiFab&   U_new         = get_new_data(State_Type);
 
@@ -4088,6 +4093,7 @@ NavierStokes::estTimeStep ()
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
 #ifdef BOUSSINESQ
+        const Real cur_time = state[State_Type].curTime();
         // HACK HACK HACK 
         // THIS CALL IS BROKEN 
         // getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i]);
@@ -4095,8 +4101,10 @@ NavierStokes::estTimeStep ()
         tforces.setVal(0.);
 #else
 #ifdef GENGETFORCE
+        const Real cur_time = state[State_Type].curTime();
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,(*rho_ctime)[i]);
 #elif MOREGENGETFORCE
+        const Real cur_time = state[State_Type].curTime();
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << std::endl << "H - est Time Step:" << std::endl << "Calling getForce..." << std::endl;
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i],U_new[i],Density);
@@ -4397,10 +4405,10 @@ NavierStokes::okToContinue ()
 void
 NavierStokes::post_timestep (int crse_iteration)
 {
-    const int finest_level = parent->finestLevel();
-    const int ncycle = parent->nCycle(level);
-    
+const int finest_level = parent->finestLevel();
+
 #ifdef PARTICLES
+    const int ncycle = parent->nCycle(level);
     // dont redistribute/timestamp on the final subiteration except on the coarsest grid
     if (NSPC != 0 && (crse_iteration < ncycle || level == 0))
     {
