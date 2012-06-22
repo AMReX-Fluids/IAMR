@@ -95,6 +95,7 @@ vpath %.f   $(VPATH_LOCATIONS)
 vpath %.f90 $(VPATH_LOCATIONS)
 
 all: $(executable)
+     @echo SUCCESS
 
 $(executable):
 

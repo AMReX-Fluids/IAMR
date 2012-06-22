@@ -3957,16 +3957,25 @@ NavierStokes::derive (const std::string& name,
                       Real               time,
                       int                ngrow)
 {
+#ifdef PARTICLES
+  if (name == "particle_count" || name == "total_particle_count") {
     int ncomp = 1;
     const DeriveRec* rec = derive_lst.get(name);
     if (rec)
     {
-        ncomp = rec->numDerive();
+      ncomp = rec->numDerive();
     }
-
+    
     MultiFab* ret = new MultiFab(grids, ncomp, ngrow);
-    derive(name,time,*ret,0);
+    ParticleDerive(name,time,*ret,0);
     return ret;
+  }
+  else {
+    return AmrLevel::derive(name, time, ngrow);
+  }
+#else
+  return AmrLevel::derive(name, time, ngrow);
+#endif 
 }
 
 void
