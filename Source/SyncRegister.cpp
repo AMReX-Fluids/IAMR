@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
+#include <deque>
 
 #include <BC_TYPES.H>
 #include <SyncRegister.H>
@@ -152,7 +153,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
     if (!geom.isAnyPeriodic()) return;
 
     Array<IntVect>       pshifts(27);
-    std::list<SRRec>     srrec;
+    std::deque<SRRec>    srrec;
     FabSetCopyDescriptor fscd;
     FabSetId             fsid[2*BL_SPACEDIM];
 
@@ -205,7 +206,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
     fscd.CollectData();
 
-    for (std::list<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
+    for (std::deque<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
          it != End;
          ++it)
     {
@@ -223,7 +224,7 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 {
     FabSetCopyDescriptor fscd;
     FabSetId             fsid[2*BL_SPACEDIM];
-    std::list<SRRec>     srrec;
+    std::deque<SRRec>    srrec;
     FArrayBox            tmpfab;
 
     std::vector< std::pair<int,Box> > isects;
@@ -264,7 +265,7 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 
     fscd.CollectData();
 
-    for (std::list<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
+    for (std::deque<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
          it != End;
          ++it)
     {
@@ -487,7 +488,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
     if (!geom.isAnyPeriodic()) return;
 
     Array<IntVect>         pshifts(27);
-    std::list<SRRec>       srrec;
+    std::deque<SRRec>      srrec;
     FArrayBox              tmpfab;
     MultiFabCopyDescriptor mfcd;
     const BoxArray&        mfba = mf.boxArray();
@@ -544,7 +545,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
     mfcd.CollectData();
 
-    for (std::list<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
+    for (std::deque<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
          it != End;
          ++it)
     {
