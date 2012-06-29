@@ -7,37 +7,10 @@
 #include <deque>
 
 #include <BC_TYPES.H>
+#include <FluxRegister.H>
 #include <SyncRegister.H>
 #include <NAVIERSTOKES_F.H>
 #include <SYNCREG_F.H>
-
-//
-// Structure used by some SyncRegister functions.
-//
-
-struct SRRec
-{
-    SRRec (Orientation    face,
-           int            index,
-           const IntVect& shift)
-        :
-        m_shift(shift),
-        m_idx(index),
-        m_face(face)
-    {}
-
-    SRRec (Orientation face,
-           int         index)
-        :
-        m_idx(index),
-        m_face(face)
-    {}
-
-    FillBoxId   m_fbid;
-    IntVect     m_shift;
-    int         m_idx;
-    Orientation m_face;
-};
 
 SyncRegister::SyncRegister ()
 {
@@ -152,10 +125,10 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 {
     if (!geom.isAnyPeriodic()) return;
 
-    Array<IntVect>       pshifts(27);
-    std::deque<SRRec>    srrec;
-    FabSetCopyDescriptor fscd;
-    FabSetId             fsid[2*BL_SPACEDIM];
+    Array<IntVect>                pshifts(27);
+    std::deque<FluxRegister::Rec> srrec;
+    FabSetCopyDescriptor          fscd;
+    FabSetId                      fsid[2*BL_SPACEDIM];
 
     for (OrientationIter face; face; ++face)
     {
@@ -177,7 +150,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                     {
                         sbox -= pshifts[i];
 
-                        SRRec sr(face(), mfi.index(), pshifts[i]);
+                        FluxRegister::Rec sr(face(), mfi.index(), pshifts[i]);
 
                         sr.m_fbid = fscd.AddBox(fsid[face()],
                                                 sbox,
@@ -206,7 +179,8 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
     fscd.CollectData();
 
-    for (std::deque<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
+    for (std::deque<FluxRegister::Rec>::const_iterator it = srrec.begin(),
+             End = srrec.end();
          it != End;
          ++it)
     {
@@ -222,14 +196,12 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 void
 SyncRegister::multByBndryMask (MultiFab& rhs) const
 {
-    FabSetCopyDescriptor fscd;
-    FabSetId             fsid[2*BL_SPACEDIM];
-    std::deque<SRRec>    srrec;
-    FArrayBox            tmpfab;
+    FabSetCopyDescriptor          fscd;
+    FabSetId                      fsid[2*BL_SPACEDIM];
+    std::deque<FluxRegister::Rec> srrec;
+    FArrayBox                     tmpfab;
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (OrientationIter face; face; ++face)
     {
@@ -241,7 +213,7 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 
             for (int i = 0, N = isects.size(); i < N; i++)
             {
-                SRRec sr(face(), mfi.index());
+                FluxRegister::Rec sr(face(), mfi.index());
 
                 sr.m_fbid = fscd.AddBox(fsid[face()],
                                         isects[i].second,
@@ -265,7 +237,8 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 
     fscd.CollectData();
 
-    for (std::deque<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
+    for (std::deque<FluxRegister::Rec>::const_iterator it = srrec.begin(),
+             End = srrec.end();
          it != End;
          ++it)
     {
@@ -347,8 +320,6 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     FArrayBox tmpfab;
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (OrientationIter face; face; ++face)
     {
@@ -487,12 +458,12 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 {
     if (!geom.isAnyPeriodic()) return;
 
-    Array<IntVect>         pshifts(27);
-    std::deque<SRRec>      srrec;
-    FArrayBox              tmpfab;
-    MultiFabCopyDescriptor mfcd;
-    const BoxArray&        mfba = mf.boxArray();
-    MultiFabId             mfid = mfcd.RegisterFabArray((MultiFab*) &mf);
+    Array<IntVect>                pshifts(27);
+    std::deque<FluxRegister::Rec> srrec;
+    FArrayBox                     tmpfab;
+    MultiFabCopyDescriptor        mfcd;
+    const BoxArray&               mfba = mf.boxArray();
+    MultiFabId                    mfid = mfcd.RegisterFabArray((MultiFab*) &mf);
 
     for (int j = 0, N = mfba.size(); j < N; j++)
     {
@@ -516,7 +487,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                     {
                         sbox -= pshifts[i];
 
-                        SRRec sr(face(), fsi.index(), pshifts[i]);
+                        FluxRegister::Rec sr(face(), fsi.index(), pshifts[i]);
 
                         sr.m_fbid = mfcd.AddBox(mfid,
                                                 sbox,
@@ -545,7 +516,8 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
     mfcd.CollectData();
 
-    for (std::deque<SRRec>::const_iterator it = srrec.begin(), End = srrec.end();
+    for (std::deque<FluxRegister::Rec>::const_iterator it = srrec.begin(),
+             End = srrec.end();
          it != End;
          ++it)
     {
@@ -592,8 +564,6 @@ SyncRegister::CompAdd  (MultiFab*       Sync_resid_fine,
     Array<IntVect> pshifts(27);
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
     {
