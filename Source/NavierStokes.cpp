@@ -3189,7 +3189,6 @@ NavierStokes::sumDerive (const std::string& name, Real time)
     {
         baf = parent->boxArray(level+1);
         baf.coarsen(fine_ratio);
-        isects.reserve(27);
     }
 
     Real sum = 0.0;
@@ -3234,8 +3233,6 @@ NavierStokes::volWgtSum (const std::string& name,
     }
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
     {
@@ -3321,8 +3318,6 @@ NavierStokes::MaxVal (const std::string& name,
     }
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
     {
@@ -3420,8 +3415,6 @@ NavierStokes::TurbSum (Real time, Real *turb, int ksize, int turbVars)
     }
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (MFIter turbMfi(*turbMF), presMfi(*presMF);
 	 turbMfi.isValid() && presMfi.isValid();
@@ -3558,8 +3551,6 @@ NavierStokes::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,  in
     }
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (MFIter turbMfi(*turbMF), presMfi(*presMF);
 	 turbMfi.isValid() && presMfi.isValid();
@@ -5746,8 +5737,6 @@ NavierStokes::reflux ()
 
     std::vector< std::pair<int,Box> > isects;
 
-    isects.reserve(27);
-
     for (MFIter Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
     {
         const int i = Vsyncmfi.index();
@@ -6048,8 +6037,6 @@ NavierStokes::getGradP (MultiFab& gp,
         }
 
         std::vector< std::pair<int,Box> > isects;
-
-        isects.reserve(27);
 
         for (MFIter mfi(gpTmp); mfi.isValid(); ++mfi) 
         {

@@ -556,8 +556,6 @@ MacProj::mac_sync_solve (int       level,
 
     std::vector< std::pair<int,Box> > isects;
 
-    isects.reserve(27);
-
     for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
         BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
@@ -1267,8 +1265,6 @@ MacProj::test_umac_periodic (int       level,
     MultiFabId             mfid[BL_SPACEDIM];
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (int dim = 0; dim < BL_SPACEDIM; dim++)
     {
