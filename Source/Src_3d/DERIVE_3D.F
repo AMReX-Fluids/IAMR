@@ -1877,7 +1877,7 @@ c
 
       fixulo_x = ( (lo(1) .eq. domlo(1)) .and.
      &             (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) )
-      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
+      fixuhi_x = ( (hi(1) .eq. domhi(1)) .and.
      &             (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP) )
       fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
      &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
