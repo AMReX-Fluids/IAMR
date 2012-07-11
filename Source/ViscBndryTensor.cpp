@@ -16,15 +16,18 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
 
     for (OrientationIter fi; fi; ++fi)
     {
-        Array<Real>&               bloc  = bcloc[fi()];
-        Array< Array<BoundCond> >& bctag = bcond[fi()];
+        Array<Real>& bloc  = bcloc[fi()];
 
-        int dir = fi().coordDir();
-	Real delta = dx[dir]*ratio;
-        int p_bc = fi().isLow() ? bc.lo(dir): bc.hi(dir);
+        const int  dir   = fi().coordDir();
+	const Real delta = dx[dir]*ratio;
+        const int  p_bc  = fi().isLow() ? bc.lo(dir): bc.hi(dir);
 
-        for (int i = 0; i < boxes().size(); i++)
+        for (FabSetIter fsi(bndry[fi()]); fsi.isValid(); ++fsi)
         {
+            const int i = fsi.index();
+
+            Array<BoundCond>& bctag = bcond[fi()][i];
+
             if (domain[fi()] == boxes()[i][fi()] && !geom.isPeriodic(dir))
             {
                 //
@@ -32,18 +35,17 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
                 //
                 if (p_bc == EXT_DIR )
                 {
-                    bctag[i][comp] = LO_DIRICHLET;
+                    bctag[comp] = LO_DIRICHLET;
                     bloc[i] = 0.0;
                 }
-                else if (p_bc == FOEXTRAP || p_bc == HOEXTRAP 
-                                          || p_bc == REFLECT_EVEN)
+                else if (p_bc == FOEXTRAP || p_bc == HOEXTRAP || p_bc == REFLECT_EVEN)
                 {
-                    bctag[i][comp] = LO_NEUMANN;
+                    bctag[comp] = LO_NEUMANN;
                     bloc[i] = 0.0;
                 }
                 else if (p_bc == REFLECT_ODD)
                 {
-                    bctag[i][comp] = LO_REFLECT_ODD;
+                    bctag[comp] = LO_REFLECT_ODD;
                     bloc[i] = 0.0;
                 }
             }
@@ -52,7 +54,7 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
                 //
                 // Internal bndry, distance is half of crse.
                 //
-                bctag[i][comp] = LO_DIRICHLET;
+                bctag[comp] = LO_DIRICHLET;
                 bloc[i] = 0.5*delta;
             }
         }
