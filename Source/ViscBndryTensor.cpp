@@ -16,8 +16,6 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
 
     for (OrientationIter fi; fi; ++fi)
     {
-        Array<Real>& bloc  = bcloc[fi()];
-
         const int  dir   = fi().coordDir();
 	const Real delta = dx[dir]*ratio;
         const int  p_bc  = fi().isLow() ? bc.lo(dir): bc.hi(dir);
@@ -25,6 +23,8 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
         for (FabSetIter fsi(bndry[fi()]); fsi.isValid(); ++fsi)
         {
             const int i = fsi.index();
+
+            Real& bloc = bcloc[fi()][i];
 
             Array<BoundCond>& bctag = bcond[fi()][i];
 
@@ -36,17 +36,17 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
                 if (p_bc == EXT_DIR )
                 {
                     bctag[comp] = LO_DIRICHLET;
-                    bloc[i] = 0.0;
+                    bloc        = 0;
                 }
                 else if (p_bc == FOEXTRAP || p_bc == HOEXTRAP || p_bc == REFLECT_EVEN)
                 {
                     bctag[comp] = LO_NEUMANN;
-                    bloc[i] = 0.0;
+                    bloc        = 0;
                 }
                 else if (p_bc == REFLECT_ODD)
                 {
                     bctag[comp] = LO_REFLECT_ODD;
-                    bloc[i] = 0.0;
+                    bloc        = 0;
                 }
             }
             else
@@ -55,7 +55,7 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
                 // Internal bndry, distance is half of crse.
                 //
                 bctag[comp] = LO_DIRICHLET;
-                bloc[i] = 0.5*delta;
+                bloc        = 0.5*delta;
             }
         }
     }
