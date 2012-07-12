@@ -23,42 +23,44 @@ ViscBndry::setBndryConds (const BCRec&   bc,
     //
     const Real* dx    = geom.CellSize();
     const Box& domain = geom.Domain();
-
-    for (OrientationIter fi; fi; ++fi)
+    //
+    // We note that all orientations of the FabSets have the same distribution.
+    // We'll use the low 0 side as the model.
+    //
+    for (FabSetIter fsi(bndry[Orientation(0,Orientation::low)]); fsi.isValid(); ++fsi)
     {
-        const int  dir   = fi().coordDir();
-        const Real delta = dx[dir]*ratio[dir];
-        const int  p_bc  = (fi().isLow() ? bc.lo(dir) : bc.hi(dir));
+        const int                  i     = fsi.index();
+        RealTuple&                 bloc  = bcloc[i];
+        Array< Array<BoundCond> >& bctag = bcond[i];
 
-        for (FabSetIter fsi(bndry[fi()]); fsi.isValid(); ++fsi)
+        for (OrientationIter fi; fi; ++fi)
         {
-            const int i = fsi.index();
+            const Orientation face  = fi();
+            const int         dir   = face.coordDir();
 
-            Real& bloc = bcloc[fi()][i];
-
-            Array<BoundCond>& bctag = bcond[fi()][i];
-
-            if (domain[fi()] == boxes()[i][fi()] && !geom.isPeriodic(dir))
+            if (domain[face] == boxes()[i][face] && !geom.isPeriodic(dir))
             {
                 //
                 // All physical bc values are located on face.
                 //
+                const int p_bc  = (face.isLow() ? bc.lo(dir) : bc.hi(dir));
+
                 if (p_bc == EXT_DIR)
                 {
-                    bctag[comp] = LO_DIRICHLET;
-                    bloc        = 0;
+                    bctag[face][comp] = LO_DIRICHLET;
+                    bloc[face]        = 0;
                 }
                 else if (p_bc == FOEXTRAP      ||
                          p_bc == HOEXTRAP      || 
                          p_bc == REFLECT_EVEN)
                 {
-                    bctag[comp] = LO_NEUMANN;
-                    bloc        = 0;
+                    bctag[face][comp] = LO_NEUMANN;
+                    bloc[face]        = 0;
                 }
                 else if (p_bc == REFLECT_ODD)
                 {
-                    bctag[comp] = LO_REFLECT_ODD;
-                    bloc        = 0;
+                    bctag[face][comp] = LO_REFLECT_ODD;
+                    bloc[face]        = 0;
                 }
             }
             else
@@ -66,8 +68,10 @@ ViscBndry::setBndryConds (const BCRec&   bc,
                 //
                 // Internal bndry.
                 //
-                bctag[comp] = LO_DIRICHLET;
-                bloc        = 0.5*delta;
+                const Real delta = dx[dir]*ratio[dir];
+
+                bctag[face][comp] = LO_DIRICHLET;
+                bloc[face]        = 0.5*delta;
             }
         }
     }
@@ -81,9 +85,11 @@ ViscBndry::setHomogValues (const BCRec& bc,
 
     for (OrientationIter fi; fi; ++fi)
     {
-        for (FabSetIter fsi(bndry[fi()]); fsi.isValid(); ++fsi)
+        const Orientation face  = fi();
+
+        for (FabSetIter fsi(bndry[face]); fsi.isValid(); ++fsi)
         {
-            bndry[fi()][fsi].setVal(0);
+            bndry[face][fsi].setVal(0);
         }
     }
 }
