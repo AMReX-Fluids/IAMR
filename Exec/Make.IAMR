@@ -87,6 +87,7 @@ ifeq ($(USE_METIS),TRUE)
 endif
 
 all: $(executable)
+	$(SILENT) $(RM) buildInfo.cpp
 	@echo SUCCESS
 
 # job_info support
@@ -95,7 +96,8 @@ CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
 INCLUDE_LOCATIONS +=  $(BOXLIB_HOME)/Tools/C_scripts
 
 buildInfo.cpp: $(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp
-	$(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp "$(BOXLIB_HOME)"
+	$(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp "$(BOXLIB_HOME)" \
+            "$(COMP)" "$(FCOMP)"
 
 
 vpath %.c   $(VPATH_LOCATIONS)
@@ -107,3 +109,6 @@ vpath %.f   $(VPATH_LOCATIONS)
 vpath %.f90 $(VPATH_LOCATIONS)
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+
+clean::
+	$(SILENT) $(RM) buildInfo.cpp

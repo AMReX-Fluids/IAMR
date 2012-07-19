@@ -3883,6 +3883,11 @@ NavierStokes::writePlotFile (const std::string& dir,
 	jobInfoFile << "build dir:     " << buildInfoGetBuildDir() << "\n";
 	jobInfoFile << "BoxLib dir:    " << buildInfoGetBoxlibDir() << "\n";
 
+	jobInfoFile << "\n";
+	
+	jobInfoFile << "COMP:  " << buildInfoGetComp() << "\n";
+	jobInfoFile << "FCOMP: " << buildInfoGetFcomp() << "\n";
+
 	jobInfoFile << "\n\n";
 
 
