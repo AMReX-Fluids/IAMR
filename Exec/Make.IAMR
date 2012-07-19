@@ -86,6 +86,18 @@ ifeq ($(USE_METIS),TRUE)
   DEFINES += -DBL_USE_METIS
 endif
 
+all: $(executable)
+	@echo SUCCESS
+
+# job_info support
+CEXE_sources += buildInfo.cpp
+CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
+INCLUDE_LOCATIONS +=  $(BOXLIB_HOME)/Tools/C_scripts
+
+buildInfo.cpp: $(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp
+	$(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp "$(BOXLIB_HOME)"
+
+
 vpath %.c   $(VPATH_LOCATIONS)
 vpath %.cpp $(VPATH_LOCATIONS)
 vpath %.h   $(VPATH_LOCATIONS)
@@ -93,10 +105,5 @@ vpath %.H   $(VPATH_LOCATIONS)
 vpath %.F   $(VPATH_LOCATIONS)
 vpath %.f   $(VPATH_LOCATIONS)
 vpath %.f90 $(VPATH_LOCATIONS)
-
-all: $(executable)
-	@echo SUCCESS
-
-$(executable):
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
