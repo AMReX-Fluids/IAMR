@@ -145,7 +145,7 @@ amr.derive_plot_vars 	= mag_vort particle_count
 #*******************************************************************************
 
 
-proj.1 = 2
+proj.v = 2
 proj.Pcode = 1
 proj.proj_tol = 1.e-12
 proj.proj_abs_tol = 1.e-15
