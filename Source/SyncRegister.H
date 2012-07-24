@@ -57,11 +57,6 @@ public:
     void InitRHS (MultiFab&       rhs,
                   const Geometry& geom,
                   const BCRec*    phys_bc);
-    //
-    // Compute sum of values (overlap values only counted once).
-    // WARNING: this is a diagnostic and is not efficient.
-    //
-    Real sum () const;
 
 protected:
     //
