@@ -511,12 +511,14 @@ Projection::level_project (int             level,
 
 	for (MFIter mfi(*rho_half); mfi.isValid(); ++mfi) {
 	  const int idx = mfi.index();
+          FArrayBox& Gpfab = Gp[idx];
+          const FArrayBox& rhofab = (*rho_half)[idx];
       
 	  for (int i = 0; i < BL_SPACEDIM; i++) {
-	    Gp[idx].divide((*rho_half)[idx],0,i,1);
+	    Gpfab.divide(rhofab,0,i,1);
 	  }
       
-	  U_new[idx].plus(Gp[idx],0,0,BL_SPACEDIM);
+	  U_new[idx].plus(Gpfab,0,0,BL_SPACEDIM);
 	}
     }
 
@@ -1595,10 +1597,13 @@ Projection::initialPressureProject (int  c_lev)
             for (MFIter u_realmfi(u_real[n][lev]); u_realmfi.isValid(); ++u_realmfi)
             {
                 const int i = u_realmfi.index();
-                if (n == (BL_SPACEDIM-1)) {
-                  u_real[n][lev][i].setVal(gravity);
-                } else { 
-                  u_real[n][lev][i].setVal(0.);
+                if (n == (BL_SPACEDIM-1))
+                {
+                    u_real[n][lev][i].setVal(gravity);
+                }
+                else
+                { 
+                    u_real[n][lev][i].setVal(0.);
                 }
             }
         }
@@ -1732,10 +1737,10 @@ Projection::initialSyncProject (int       c_lev,
 
             for (MFIter mfi(*rhslev); mfi.isValid(); ++mfi)
             {
-
-                (*dsdt)[mfi].minus((*divu)[mfi]);
-                (*dsdt)[mfi].mult(dt_inv);
-                (*rhslev)[mfi].copy((*dsdt)[mfi]);
+                FArrayBox& dsdtfab = (*dsdt)[mfi];
+                dsdtfab.minus((*divu)[mfi]);
+                dsdtfab.mult(dt_inv);
+                (*rhslev)[mfi].copy(dsdtfab);
             }
 
             delete divu;
@@ -2307,8 +2312,9 @@ Projection::radMult (int       level,
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 
-        const int* lo = mfmfi.validbox().loVect();
-        const int* hi = mfmfi.validbox().hiVect();
+        const Box& bx = mfmfi.validbox();
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
         Real* dat     = mf[mfmfi].dataPtr(comp);
         Real* rad     = &radius[level][mfmfi.index()][0];
 
@@ -2342,8 +2348,9 @@ Projection::radDiv (int       level,
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 
-        const int* lo  = mfmfi.validbox().loVect();
-        const int* hi  = mfmfi.validbox().hiVect();
+        const Box& bx  = mfmfi.validbox();
+        const int* lo  = bx.loVect();
+        const int* hi  = bx.hiVect();
         Real*      dat = mf[mfmfi].dataPtr(comp);
         Real*      rad = &radius[level][mfmfi.index()][0];
 
@@ -2377,8 +2384,9 @@ Projection::AnelCoeffMult (int       level,
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 
-        const int* lo = mfmfi.validbox().loVect();
-        const int* hi = mfmfi.validbox().hiVect();
+        const Box& bx = mfmfi.validbox();
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
         Real* dat     = mf[mfmfi].dataPtr(comp);
 
         FORT_ANELCOEFFMPY(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
@@ -2411,8 +2419,9 @@ Projection::AnelCoeffDiv (int       level,
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 
-        const int* lo = mfmfi.validbox().loVect();
-        const int* hi = mfmfi.validbox().hiVect();
+        const Box& bx = mfmfi.validbox();
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
         Real* dat     = mf[mfmfi].dataPtr(comp);
 
         FORT_ANELCOEFFMPY(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,

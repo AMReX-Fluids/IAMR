@@ -467,15 +467,16 @@ Diffusion::diffuse_scalar (Real                   dt,
         for (MFIter mfi(Soln); mfi.isValid(); ++mfi)
         {
             caller->Geom().GetVolume(volume,grids,mfi.index(),GEOM_GROW);
-            const Box& box = mfi.validbox();
-            Soln[mfi].mult(volume,box,0,0,1);
+            const Box& box     = mfi.validbox();
+            FArrayBox& Solnfab = Soln[mfi];
+            Solnfab.mult(volume,box,0,0,1);
             if (rho_flag == 1)
-                Soln[mfi].mult((*rho_half)[mfi],box,0,0,1);
+                Solnfab.mult((*rho_half)[mfi],box,0,0,1);
             if (rho_flag == 3)
-                Soln[mfi].mult((*ns.rho_ptime)[mfi],box,0,0,1);
+                Solnfab.mult((*ns.rho_ptime)[mfi],box,0,0,1);
             if (alpha!=0)
-                Soln[mfi].mult((*alpha)[mfi],box,dataComp,0,1);
-            Rhs[mfi].plus(Soln[mfi],box,0,0,1);
+                Solnfab.mult((*alpha)[mfi],box,dataComp,0,1);
+            Rhs[mfi].plus(Solnfab,box,0,0,1);
         }
     }
     //
@@ -610,8 +611,13 @@ Diffusion::diffuse_scalar (Real                   dt,
     MultiFab::Copy(S_new,Soln,0,sigma,1,0);
     
     if (rho_flag == 2)
+    {
         for (MFIter Smfi(S_new); Smfi.isValid(); ++Smfi)
-            S_new[Smfi].mult(S_new[Smfi],Smfi.validbox(),Density,sigma,1);
+        {
+            FArrayBox& Sfab = S_new[Smfi];
+            Sfab.mult(Sfab,Smfi.validbox(),Density,sigma,1);
+        }
+    }
 }
 
 void
@@ -669,13 +675,16 @@ Diffusion::diffuse_velocity (Real                   dt,
                 {
                     for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
                     {
-                        (*fluxSCnp1[d])[fmfi].plus((*fluxSCn[d])[fmfi]);
+                        const int  index = fmfi.index();
+                        FArrayBox& fabp1 = (*fluxSCnp1[d])[fmfi];
+
+                        fabp1.plus((*fluxSCn[d])[fmfi]);
 
                         if (level < parent->finestLevel())
-                            fluxes[d][fmfi.index()].copy((*fluxSCnp1[d])[fmfi],0,sigma,1);
+                            fluxes[d][index].copy(fabp1,0,sigma,1);
 
                         if (level > 0)
-                            viscflux_reg->FineAdd((*fluxSCnp1[d])[fmfi],d,fmfi.index(),0,sigma,1,dt);
+                            viscflux_reg->FineAdd(fabp1,d,index,0,sigma,1,dt);
                     }
                 }
             }
@@ -772,39 +781,40 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
             //
             for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
             {
-                BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
+                const Box& vbx = Rhsmfi.validbox();
+
+                BL_ASSERT(grids[Rhsmfi.index()] == vbx);
                 //
                 // Scale inviscid part by volume.
                 //
-                U_new[Rhsmfi].mult(volume[Rhsmfi],Rhsmfi.validbox(),0,sigma,1);
+                FArrayBox& Ufab = U_new[Rhsmfi];
+
+                Ufab.mult(volume[Rhsmfi],vbx,0,sigma,1);
                 //
                 // Multiply by density at time nph (if rho_flag==1)
                 //                     or time n   (if rho_flag==3).
                 //
                 if (rho_flag == 1)
-                {
-                  const FArrayBox& Rh = (*rho_half)[Rhsmfi];
-                  U_new[Rhsmfi].mult(Rh,Rhsmfi.validbox(),0,sigma,1);
-                }
+                    Ufab.mult((*rho_half)[Rhsmfi],vbx,0,sigma,1);
+
                 if (rho_flag == 3)
-                {
-                  FArrayBox& Rh = (*ns.rho_ptime)[Rhsmfi.index()];
-                  U_new[Rhsmfi].mult(Rh,Rhsmfi.validbox(),0,sigma,1);
-                }
+                    Ufab.mult((*ns.rho_ptime)[Rhsmfi],vbx,0,sigma,1);
                 //
                 // Add to Rhs which contained operator applied to U_old.
                 //
-                Rhs[Rhsmfi].plus(U_new[Rhsmfi],Rhsmfi.validbox(),sigma,comp,1);
+                Rhs[Rhsmfi].plus(Ufab,vbx,sigma,comp,1);
             }
 
             if (delta_rhs != 0)
             {
                 for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
                 {
-                    BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
-                    (*delta_rhs)[Rhsmfi].mult(dt,comp+dComp,1);
-                    (*delta_rhs)[Rhsmfi].mult(volume[Rhsmfi],Rhsmfi.validbox(),0,comp+dComp,1);
-                    Rhs[Rhsmfi].plus((*delta_rhs)[Rhsmfi],Rhsmfi.validbox(),comp+dComp,comp,1);
+                    const Box& vbx = Rhsmfi.validbox();
+                    BL_ASSERT(grids[Rhsmfi.index()] == vbx);
+                    FArrayBox& deltafab = (*delta_rhs)[Rhsmfi];
+                    deltafab.mult(dt,comp+dComp,1);
+                    deltafab.mult(volume[Rhsmfi],vbx,0,comp+dComp,1);
+                    Rhs[Rhsmfi].plus(deltafab,vbx,comp+dComp,comp,1);
                 }
             }
         }
@@ -1061,8 +1071,9 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         const MultiFab* rho = (rho_flag == 1) ? rho_half : ns.rho_ctime;
         for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
         {
-            Rhs[Rhsmfi].mult(volume[Rhsmfi]); 
-            Rhs[Rhsmfi].mult((*rho)[Rhsmfi]); 
+            FArrayBox& rhsfab = Rhs[Rhsmfi];
+            rhsfab.mult(volume[Rhsmfi]); 
+            rhsfab.mult((*rho)[Rhsmfi]); 
         }
         //
         // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
@@ -1250,11 +1261,12 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
         {
             for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
             {
-                Rhs[Rhsmfi].mult(volume[Rhsmfi],0,comp,1); 
+                FArrayBox& rhsfab = Rhs[Rhsmfi];
+                rhsfab.mult(volume[Rhsmfi],0,comp,1); 
                 if (rho_flag == 1)
-                    Rhs[Rhsmfi].mult((*rho_half)[Rhsmfi],0,comp,1); 
+                    rhsfab.mult((*rho_half)[Rhsmfi],0,comp,1); 
                 if (rho_flag == 3)
-                    Rhs[Rhsmfi].mult((*ns.rho_ptime)[Rhsmfi],0,comp,1); 
+                    rhsfab.mult((*ns.rho_ptime)[Rhsmfi],0,comp,1); 
             }
         }
     }
@@ -1409,10 +1421,11 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
 
         for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
         {
+            FArrayBox& rhsfab = Rhs[Rhsmfi];
             caller->Geom().GetVolume(volume,grids,Rhsmfi.index(),GEOM_GROW);
-            Rhs[Rhsmfi].mult(volume); 
+            rhsfab.mult(volume); 
             if (rho_flag == 1)
-                Rhs[Rhsmfi].mult((*rho_half)[Rhsmfi]);
+                rhsfab.mult((*rho_half)[Rhsmfi]);
         }
     }
     Rhs.mult(rhsscale,0,1);
@@ -1582,8 +1595,9 @@ Diffusion::getTensorOp (Real                   a,
         for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
         {
             const int i = bcoeffsmfi.index();
-            bcoeffs[i].mult(dx[n]);
-            bcoeffs[i].mult((*beta[n])[i],dataComp,0,1);
+            FArrayBox& bcfab = bcoeffs[i];
+            bcfab.mult(dx[n]);
+            bcfab.mult((*beta[n])[i],dataComp,0,1);
         }
         tensor_op->bCoefficients(bcoeffs,n);
     }
@@ -1706,8 +1720,9 @@ Diffusion::getTensorOp (Real                   a,
         for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
         {
             const int i = bcoeffsmfi.index();
-            bcoeffs[i].mult(dx[n]);
-            bcoeffs[i].mult((*beta[n])[i],dataComp,0,1);
+            FArrayBox& bcfab = bcoeffs[i];
+            bcfab.mult(dx[n]);
+            bcfab.mult((*beta[n])[i],dataComp,0,1);
         }
         tensor_op->bCoefficients(bcoeffs,n);
     }
@@ -1834,8 +1849,9 @@ Diffusion::getViscOp (int                    comp,
             for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
                 const int i = bcoeffsmfi.index();
-                bcoeffs[i].mult((*beta[n])[i],dataComp,0,1);
-                bcoeffs[i].mult(dx[n]);
+                FArrayBox& bcfab = bcoeffs[i];
+                bcfab.mult((*beta[n])[i],dataComp,0,1);
+                bcfab.mult(dx[n]);
             }
             visc_op->bCoefficients(bcoeffs,n);
         }
@@ -2042,8 +2058,9 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
                 for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
                 {
                     const int i = bcoeffsmfi.index();
-                    bcoeffs[i].mult((*beta[n])[i],dataComp,0,1);
-                    bcoeffs[i].mult(dx[n]);
+                    FArrayBox& bcfab = bcoeffs[i];
+                    bcfab.mult((*beta[n])[i],dataComp,0,1);
+                    bcfab.mult(dx[n]);
                 }
                 visc_op.bCoefficients(bcoeffs,n);
             }
@@ -2183,8 +2200,9 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
             for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
                 const int i = bcoeffsmfi.index();
-                bcoeffs[i].mult(dx[n]);
-                bcoeffs[i].mult((*beta[n])[i],dataComp,0,1);
+                FArrayBox& bcfab = bcoeffs[i];
+                bcfab.mult(dx[n]);
+                bcfab.mult((*beta[n])[i],dataComp,0,1);
             }
             tensor_op.bCoefficients(bcoeffs,n);
         }
@@ -2201,8 +2219,10 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
             for (MFIter visc_tmpmfi(visc_tmp); visc_tmpmfi.isValid(); ++visc_tmpmfi)
             {
                 const int i = visc_tmpmfi.index();
+                FArrayBox& viscfab = visc_tmp[i];
+                const FArrayBox& volfab = volume[i];
                 for (int n = 0; n < BL_SPACEDIM; ++n)
-                    visc_tmp[i].divide(volume[i],volume.box(i),0,n,1);
+                    viscfab.divide(volfab,volume.box(i),0,n,1);
             }
         }
 
@@ -2286,17 +2306,19 @@ Diffusion::getBndryData (ViscBndry& bndry,
          Rho_mfi.isValid() && Phi_fpi.isValid();
          ++Rho_mfi, ++Phi_fpi)
     {
-        const BoxList gCells = BoxLib::boxDiff(Phi_fpi().box(),Phi_fpi.validbox());
+        FArrayBox&       Sfab   = S[Phi_fpi];
+        const FArrayBox& rhofab = rhotime[Rho_mfi];
+        const BoxList    gCells = BoxLib::boxDiff(Phi_fpi().box(),Phi_fpi.validbox());
 
         for (BoxList::const_iterator bli = gCells.begin(), end = gCells.end();
              bli != end;
              ++bli)
         {
-            S[Phi_fpi].copy(Phi_fpi(),*bli,0,*bli,0,num_comp);
+            Sfab.copy(Phi_fpi(),*bli,0,*bli,0,num_comp);
 
             if (rho_flag == 2)
                 for (int n = 0; n < num_comp; ++n)
-                    S[Phi_fpi].divide(rhotime[Rho_mfi],*bli,0,n,1);
+                    Sfab.divide(rhofab,*bli,0,n,1);
         }
     }
     
@@ -2380,13 +2402,14 @@ Diffusion::FillBoundary (BndryRegister& bdry,
          Rho_mfi.isValid() && S_fpi.isValid();
          ++Rho_mfi, ++S_fpi)
     {
-        S[S_fpi.index()].copy(S_fpi(),0,0,num_comp);
+        FArrayBox&       Sfab   = S[S_fpi];
+        const FArrayBox& rhofab = rhotime[Rho_mfi];
+
+        Sfab.copy(S_fpi(),0,0,num_comp);
    
    	if (rho_flag == 2)
-        {
             for (int n = 0; n < num_comp; ++n)
-                S[S_fpi.index()].divide(rhotime[Rho_mfi],0,n,1);
-        }
+                Sfab.divide(rhofab,0,n,1);
     }
     //
     // Copy into boundary register.
@@ -2422,12 +2445,14 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
          ++Phi_fpi)
     {
         const BoxList gCells = BoxLib::boxDiff(Phi_fpi().box(), Phi_fpi.validbox());
+
+        FArrayBox& Sfab = S[Phi_fpi];
         
         for (BoxList::const_iterator bli = gCells.begin(), end = gCells.end();
              bli != end;
              ++bli)
         {
-            S[Phi_fpi].copy(Phi_fpi(),*bli,0,*bli,0,num_comp);
+            Sfab.copy(Phi_fpi(),*bli,0,*bli,0,num_comp);
         }
     }
     

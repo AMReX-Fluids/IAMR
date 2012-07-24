@@ -562,9 +562,11 @@ MacProj::mac_sync_solve (int       level,
 
         baf.intersections(Rhsmfi.validbox(),isects);
 
+        FArrayBox& rhsfab = Rhs[Rhsmfi];
+
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
-            Rhs[Rhsmfi].setVal(0.0,isects[ii].second,0);
+            rhsfab.setVal(0.0,isects[ii].second,0);
         }
     }
     //
@@ -590,11 +592,12 @@ MacProj::mac_sync_solve (int       level,
             FArrayBox vol_wgted_rhs;
             for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
             {
-                vol_wgted_rhs.resize(Rhs[Rhsmfi].box());
-                vol_wgted_rhs.copy(Rhs[Rhsmfi]);
+                const FArrayBox& rhsfab = Rhs[Rhsmfi];
+                vol_wgted_rhs.resize(rhsfab.box());
+                vol_wgted_rhs.copy(rhsfab);
                 vol_wgted_rhs.mult(volume[Rhsmfi]);
                 sum += vol_wgted_rhs.sum(0,1);
-                vol += volume[Rhsmfi].sum(Rhs[Rhsmfi].box(),0,1);
+                vol += volume[Rhsmfi].sum(rhsfab.box(),0,1);
             }
             ParallelDescriptor::ReduceRealSum(sum);
             ParallelDescriptor::ReduceRealSum(vol);
@@ -858,6 +861,10 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Loop over state components and compute the sync advective component.
         //
+        D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][S_fpi];,
+               FArrayBox& u_mac_fab1 = u_mac[1][S_fpi];,
+               FArrayBox& u_mac_fab2 = u_mac[2][S_fpi];);
+
         for (int comp = 0; comp < NUM_STATE; comp++)
         {
             if (!increment_sync.size() || increment_sync[comp]==1)
@@ -875,10 +882,10 @@ MacProj::mac_sync_compute (int                   level,
                 }
 
                 godunov->SyncAdvect(grids[i], dx, dt, level, 
-                                    area[0], u_mac[0][S_fpi], grad_phi[0], xflux, 
-                                    area[1], u_mac[1][S_fpi], grad_phi[1], yflux,
+                                    area[0], u_mac_fab0, grad_phi[0], xflux, 
+                                    area[1], u_mac_fab1, grad_phi[1], yflux,
 #if (BL_SPACEDIM == 3)                            
-                                    area[2], u_mac[2][S_fpi], grad_phi[2], zflux,
+                                    area[2], u_mac_fab2, grad_phi[2], zflux,
 #endif
                                     U, S, tforces, divu, comp, temp, sync_ind,
                                     use_conserv_diff, comp,
@@ -956,25 +963,27 @@ MacProj::mac_sync_compute (int                    level,
     //
     for (MFIter Syncmfi(*Sync); Syncmfi.isValid(); ++Syncmfi)
     {
+        const int  i   = Syncmfi.index();
+        const Box& grd = grids[i];
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
-        D_TERM(grad_phi[0].resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],0),1);,
-               grad_phi[1].resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],1),1);,
-               grad_phi[2].resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],2),1););
+        D_TERM(grad_phi[0].resize(BoxLib::surroundingNodes(grd,0),1);,
+               grad_phi[1].resize(BoxLib::surroundingNodes(grd,1),1);,
+               grad_phi[2].resize(BoxLib::surroundingNodes(grd,2),1););
 
         mac_vel_update(1,
                        D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
                        (*mac_sync_phi)[Syncmfi],
                        &(*rho_half)[Syncmfi], 0,
-                       grids[Syncmfi.index()], level, Syncmfi.index(),
+                       grd, level, i,
                        geom.CellSize(), dt/2.0);
         //
         // Step 2: compute Mac correction by advecting the edge states.
         //
-        D_TERM(xflux.resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],0),1);,
-               yflux.resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],1),1);,
-               zflux.resize(BoxLib::surroundingNodes(grids[Syncmfi.index()],2),1););
+        D_TERM(xflux.resize(BoxLib::surroundingNodes(grd,0),1);,
+               yflux.resize(BoxLib::surroundingNodes(grd,1),1);,
+               zflux.resize(BoxLib::surroundingNodes(grd,2),1););
 
         D_TERM(xflux.copy((*sync_edges[0])[Syncmfi],eComp,0,1);,
                yflux.copy((*sync_edges[1])[Syncmfi],eComp,0,1);,
@@ -982,13 +991,13 @@ MacProj::mac_sync_compute (int                    level,
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
-            geom.GetFaceArea(area[dir],grids,Syncmfi.index(),dir,GEOM_GROW);
+            geom.GetFaceArea(area[dir],grids,i,dir,GEOM_GROW);
         }
-        geom.GetVolume(volume,grids,Syncmfi.index(),GEOM_GROW);
+        geom.GetVolume(volume,grids,i,GEOM_GROW);
 
-        int use_conserv_diff = (advectionType[comp] == Conservative)
-                                                             ? true : false;
-        godunov.ComputeSyncAofs(grids[Syncmfi.index()],
+        int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
+
+        godunov.ComputeSyncAofs(grd,
                                 area[0],
                                 grad_phi[0],       xflux,
                                 
@@ -1009,9 +1018,9 @@ MacProj::mac_sync_compute (int                    level,
         //
         if (level > 0)
         {
-            D_TERM(adv_flux_reg->FineAdd(xflux,0,Syncmfi.index(),0,comp,1,-dt);,
-                   adv_flux_reg->FineAdd(yflux,1,Syncmfi.index(),0,comp,1,-dt);,
-                   adv_flux_reg->FineAdd(zflux,2,Syncmfi.index(),0,comp,1,-dt););
+            D_TERM(adv_flux_reg->FineAdd(xflux,0,i,0,comp,1,-dt);,
+                   adv_flux_reg->FineAdd(yflux,1,i,0,comp,1,-dt);,
+                   adv_flux_reg->FineAdd(zflux,2,i,0,comp,1,-dt););
         }
     }
 }
@@ -1354,14 +1363,15 @@ MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff)
 
     for (MFIter mfi(*area); mfi.isValid(); ++mfi)
     {
+        const int        i      = mfi.index();
         const FArrayBox& xarea  = area[0][mfi];
         const FArrayBox& yarea  = area[1][mfi];
 
         DEF_CLIMITS(xarea,ax_dat,axlo,axhi);
         DEF_CLIMITS(yarea,ay_dat,aylo,ayhi);
 
-        const int* lo = grids[mfi.index()].loVect();
-        const int* hi = grids[mfi.index()].hiVect();
+        const int* lo = grids[i].loVect();
+        const int* hi = grids[i].hiVect();
 
         int anel_coeff_lo = lo[BL_SPACEDIM-1]-1;
         int anel_coeff_hi = hi[BL_SPACEDIM-1]+1;
@@ -1369,7 +1379,7 @@ MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff)
 #if (BL_SPACEDIM == 2)
         FORT_SCALEAREA(ax_dat,ARLIM(axlo),ARLIM(axhi), 
                        ay_dat,ARLIM(aylo),ARLIM(ayhi), 
-                       anel_coeff[mfi.index()],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+                       anel_coeff[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
 
 #elif (BL_SPACEDIM == 3)
         const FArrayBox& zarea = area[2][mfi];
@@ -1377,7 +1387,7 @@ MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff)
         FORT_SCALEAREA(ax_dat,ARLIM(axlo),ARLIM(axhi), 
                        ay_dat,ARLIM(aylo),ARLIM(ayhi), 
                        az_dat,ARLIM(azlo),ARLIM(azhi), 
-                       anel_coeff[mfi.index()],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+                       anel_coeff[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
 
 #endif
     }
@@ -1392,14 +1402,15 @@ MacProj::rescaleArea (int level, MultiFab* area, Real** anel_coeff)
 
     for (MFIter mfi(*area); mfi.isValid(); ++mfi)
     {
+        const int        i      = mfi.index();
         const FArrayBox& xarea  = area[0][mfi];
         const FArrayBox& yarea  = area[1][mfi];
 
         DEF_CLIMITS(xarea,ax_dat,axlo,axhi);
         DEF_CLIMITS(yarea,ay_dat,aylo,ayhi);
 
-        const int* lo        = grids[mfi.index()].loVect();
-        const int* hi        = grids[mfi.index()].hiVect();
+        const int* lo        = grids[i].loVect();
+        const int* hi        = grids[i].hiVect();
 
         int anel_coeff_lo = lo[BL_SPACEDIM-1]-1;
         int anel_coeff_hi = hi[BL_SPACEDIM-1]+1;
@@ -1407,7 +1418,7 @@ MacProj::rescaleArea (int level, MultiFab* area, Real** anel_coeff)
 #if (BL_SPACEDIM == 2)
         FORT_SCALEAREA(ax_dat,ARLIM(axlo),ARLIM(axhi), 
                        ay_dat,ARLIM(aylo),ARLIM(ayhi), 
-                       anel_coeff[mfi.index()],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+                       anel_coeff[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
 
 #elif (BL_SPACEDIM == 3)
         const FArrayBox& zarea = area[2][mfi];
@@ -1415,7 +1426,7 @@ MacProj::rescaleArea (int level, MultiFab* area, Real** anel_coeff)
         FORT_SCALEAREA(ax_dat,ARLIM(axlo),ARLIM(axhi), 
                        ay_dat,ARLIM(aylo),ARLIM(ayhi), 
                        az_dat,ARLIM(azlo),ARLIM(azhi), 
-                       anel_coeff[mfi.index()],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+                       anel_coeff[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
 
 #endif
     }
