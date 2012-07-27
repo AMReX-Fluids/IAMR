@@ -97,7 +97,8 @@ INCLUDE_LOCATIONS +=  $(BOXLIB_HOME)/Tools/C_scripts
 
 buildInfo.cpp: $(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp
 	$(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp "$(BOXLIB_HOME)" \
-            "$(COMP)" "$(FCOMP)"
+            "$(COMP)" "$(FCOMP)" \
+            "GIT=$(TOP)" "GIT=$(BOXLIB_HOME)"
 
 
 vpath %.c   $(VPATH_LOCATIONS)

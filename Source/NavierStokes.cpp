@@ -3919,6 +3919,17 @@ NavierStokes::writePlotFile (const std::string& dir,
         jobInfoFile << "COMP:  " << buildInfoGetComp() << '\n';
         jobInfoFile << "FCOMP: " << buildInfoGetFcomp() << '\n';
 
+	jobInfoFile << "\n";
+
+	const char* githash1 = buildInfoGetGitHash(1);
+	const char* githash2 = buildInfoGetGitHash(2);
+	if (strlen(githash1) > 0) {
+	  jobInfoFile << "IAMR   git hash: " << githash1 << "\n";
+	}
+	if (strlen(githash2) > 0) {
+	  jobInfoFile << "BoxLib git hash: " << githash2 << "\n";
+	}
+
 	jobInfoFile << "\n\n";
 
 
