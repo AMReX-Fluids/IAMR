@@ -13,6 +13,7 @@
 
 #ifdef MG_USE_F90_SOLVERS
 #include <MGT_Solver.H>
+#include <stencil_types.H>
 #include <mg_cpp_f.h>
 #else
 #include <hg_projector.H>
@@ -67,7 +68,7 @@ int  Projection::make_sync_solvable;
 Real Projection::divu_minus_s_factor;
 
 #ifdef MG_USE_F90_SOLVERS
-Projection::stencil_t Projection::hg_stencil = full;
+static int hg_stencil = ND_DENSE_STENCIL;
 #else
 static holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
 #endif
@@ -127,19 +128,15 @@ Projection::Initialize ()
     {
         if ( stencil == "cross" )
         {
-            hg_stencil = cross;
+            hg_stencil = ND_CROSS_STENCIL;
         }
-        else if ( stencil == "full" )
+        else if ( stencil == "full" || stencil == "dense")
         {
-            hg_stencil = full;
-        }
-        else if ( stencil == "dense" )
-        {
-            hg_stencil = full;
+            hg_stencil = ND_DENSE_STENCIL;
         }
         else
         {
-            BoxLib::Error("Must set proj.stencil to be stencil cross, full or dense");
+            BoxLib::Error("Must set proj.stencil to be cross, full or dense");
         }
     }
 #else

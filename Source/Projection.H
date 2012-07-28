@@ -193,11 +193,6 @@ public:
                           FArrayBox& gp,
                           const Box& gpbox_to_fill,
                           const Real* dx);
-
-#ifdef MG_USE_F90_SOLVERS
-  enum stencil_t {cross = 1, full = 2};  // This agrees with F90 nodal solver.
-#endif
-
 protected:
     //
     // Read parameters from the input file.
@@ -370,8 +365,6 @@ protected:
     static int  add_vort_proj;
 
 #ifdef MG_USE_F90_SOLVERS
-    static stencil_t hg_stencil;
-
     void doNodalProjection(int c_lev, int nlevel, 
 			   MultiFab* vel[], MultiFab* phi[], MultiFab* sig[],
 			   MultiFab* rhs[], MultiFab* crse_rhs[], 
