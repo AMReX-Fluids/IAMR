@@ -15,6 +15,7 @@
 
 #ifdef MG_USE_F90_SOLVERS
 #include <MGT_Solver.H>
+#include <stencil_types.H>
 #include <mg_cpp_f.h>
 #endif
 
@@ -415,6 +416,7 @@ mac_level_driver (Amr*            parent,
         std::vector<DistributionMapping> dmv(1);
         dmv[0] = Rhs.DistributionMap();
         bool nodal = false;
+	int stencil = CC_CROSS_STENCIL;
         std::vector<Geometry> geom(1);
         geom[0] = mac_bndry.getGeom();
 
@@ -433,7 +435,7 @@ mac_level_driver (Amr*            parent,
             }
         }
 
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
+        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
 
 	mgt_solver.set_maxorder(max_order);
 
@@ -562,6 +564,7 @@ mac_sync_driver (Amr*            parent,
         std::vector<DistributionMapping> dmv(1);
         dmv[0] = Rhs.DistributionMap();
         bool nodal = false;
+	int stencil = CC_CROSS_STENCIL;
         std::vector<Geometry> geom(1);
         geom[0] = mac_bndry.getGeom();
 
@@ -580,7 +583,7 @@ mac_sync_driver (Amr*            parent,
             }
         }
 
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
+        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
 
 	mgt_solver.set_maxorder(max_order);
 

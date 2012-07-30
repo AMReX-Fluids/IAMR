@@ -51,6 +51,7 @@ const Real BL_SAFE_BOGUS = -666.e200;
 
 #ifdef MG_USE_F90_SOLVERS
 #include <MGT_Solver.H>
+#include <stencil_types.H>
 #include <mg_cpp_f.h>
 #endif
 
@@ -520,6 +521,7 @@ Diffusion::diffuse_scalar (Real                   dt,
         std::vector<DistributionMapping> dmv(1);
         dmv[0] = Rhs.DistributionMap();
         bool nodal = false;
+	int stencil = CC_CROSS_STENCIL;
         std::vector<Geometry> geom(1);
         geom[0] = visc_bndry.getGeom();
         const BCRec& scal_bc = caller->get_desc_lst()[State_Type].getBC(sigma);
@@ -539,7 +541,7 @@ Diffusion::diffuse_scalar (Real                   dt,
           }
         }
 
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
+        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
 
         // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
         Array< Array<Real> > xa(1);
