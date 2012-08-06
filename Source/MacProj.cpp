@@ -763,10 +763,12 @@ MacProj::mac_sync_compute (int                   level,
     //
     // Compute the mac sync correction.
     //
-    for (FillPatchIterator P_fpi(ns_level,ns_level.get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
-             S_fpi(ns_level,vel_visc_terms,HYP_GROW,prev_time,State_Type,0,NUM_STATE);
-         S_fpi.isValid() && P_fpi.isValid();
-         ++S_fpi, ++P_fpi)
+    FArrayBox xflux, yflux, zflux, tforces, tvelforces, U, area[BL_SPACEDIM], volume;
+    FArrayBox grad_phi[BL_SPACEDIM], Rho;
+
+    for (FillPatchIterator S_fpi(ns_level,vel_visc_terms,HYP_GROW,prev_time,State_Type,0,NUM_STATE);
+         S_fpi.isValid();
+         ++S_fpi)
     {
         const int i     = S_fpi.index();
         FArrayBox& S    = S_fpi();
@@ -776,9 +778,7 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Create storage for corrective velocities.
         //
-        FArrayBox xflux, yflux, zflux, tforces, tvelforces, U, area[BL_SPACEDIM], volume;
-
-        FArrayBox grad_phi[BL_SPACEDIM], Rho(BoxLib::grow(grids[i],1),1);
+        Rho.resize(BoxLib::grow(grids[i],1),1);
 
         D_TERM(grad_phi[0].resize(BoxLib::surroundingNodes(grids[i],0),1);,
                grad_phi[1].resize(BoxLib::surroundingNodes(grids[i],1),1);,
@@ -842,13 +842,9 @@ MacProj::mac_sync_compute (int                   level,
 #endif
                        S, Rho, tvelforces);
 
-        Rho.clear();
-        tvelforces.clear();
-
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
             geom.GetFaceArea(area[dir],grids,i,dir,GEOM_GROW);
-        }
+
         geom.GetVolume(volume,grids,i,GEOM_GROW);
         //
         // Get the sync FABS.
@@ -902,11 +898,6 @@ MacProj::mac_sync_compute (int                   level,
                 }
             }
         }
-        //
-        // Fill temp_reg with the normal fluxes.
-        //
-        U.clear();
-        tforces.clear();
         //
         // Include grad_phi in the mac registers corresponding
         // to the next coarsest interface.

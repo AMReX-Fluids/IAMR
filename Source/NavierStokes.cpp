@@ -2049,7 +2049,7 @@ NavierStokes::predict_velocity (Real  dt,
 
     for (FillPatchIterator U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM)
 #ifdef BOUSSINESQ
-                          ,S_fpi(*this,visc_terms,       1,prev_time,State_Type,Tracer,1);
+             ,S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
 	 S_fpi.isValid() && U_fpi.isValid();
 	 ++S_fpi, ++U_fpi
 #else
@@ -2157,17 +2157,13 @@ NavierStokes::velocity_advection (Real dt)
 
     Array<int> bndry[BL_SPACEDIM];
 
-    FArrayBox flux[BL_SPACEDIM], tforces, S;
-
     MultiFab* divu_fp = create_mac_rhs_grown(1,prev_time,dt);
 
-    MultiFab Gp(grids,BL_SPACEDIM,1);
+    MultiFab Gp(grids,BL_SPACEDIM,1), fluxes[BL_SPACEDIM];
 
     getGradP(Gp, prev_pres_time);
 
-    FArrayBox area[BL_SPACEDIM], volume;
-
-    MultiFab fluxes[BL_SPACEDIM];
+    FArrayBox flux[BL_SPACEDIM], tforces, S, area[BL_SPACEDIM], volume;
 
     if (do_reflux && level < parent->finestLevel())
     {
@@ -2181,25 +2177,25 @@ NavierStokes::velocity_advection (Real dt)
     //
     // Compute the advective forcing.
     //
-    for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
+    for (FillPatchIterator
 #ifdef BOUSSINESQ
              U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel   ,BL_SPACEDIM),
              S_fpi(*this,visc_terms,       1,prev_time,State_Type,Tracer,1),
              Rho_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Density,1);
-         S_fpi.isValid() && U_fpi.isValid() && P_fpi.isValid() && Rho_fpi.isValid(); 
-         ++S_fpi, ++U_fpi, ++P_fpi, ++Rho_fpi
+         S_fpi.isValid() && U_fpi.isValid() && Rho_fpi.isValid(); 
+         ++S_fpi, ++U_fpi, ++Rho_fpi
 #else
 #ifdef MOREGENGETFORCE
              U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel   ,BL_SPACEDIM),
              S_fpi(*this,visc_terms,       1,prev_time,State_Type,Density,NUM_SCALARS),
              Rho_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Density,1);
-         S_fpi.isValid() && U_fpi.isValid() && P_fpi.isValid() && Rho_fpi.isValid(); 
-         ++S_fpi, ++U_fpi, ++P_fpi, ++Rho_fpi
+         S_fpi.isValid() && U_fpi.isValid() && Rho_fpi.isValid(); 
+         ++S_fpi, ++U_fpi, ++Rho_fpi
 #else
              U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM),
              Rho_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Density,1);
-         U_fpi.isValid() && P_fpi.isValid() && Rho_fpi.isValid(); 
-         ++U_fpi, ++P_fpi, ++Rho_fpi
+         U_fpi.isValid() && Rho_fpi.isValid(); 
+         ++U_fpi, ++Rho_fpi
 #endif
 #endif
 	)
@@ -2369,14 +2365,13 @@ NavierStokes::scalar_advection (Real dt,
     //
     // Compute the advective forcing.
     //
-    for (FillPatchIterator P_fpi(*this,get_old_data(Press_Type),1,prev_pres_time,Press_Type,0,1),
-             U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM),
+    for (FillPatchIterator U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM),
 #ifdef BOUSSINESQ
              Scal_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Tracer,1),
 #endif
              S_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,fscalar,num_scalars);
-         U_fpi.isValid() && S_fpi.isValid() && P_fpi.isValid();
-         ++U_fpi, ++S_fpi, ++P_fpi)
+         U_fpi.isValid() && S_fpi.isValid();
+         ++U_fpi, ++S_fpi)
     {
         const int i = U_fpi.index();
 
@@ -2869,7 +2864,6 @@ NavierStokes::velocity_advection_update (Real dt)
     FArrayBox  tforces, S;
     MultiFab&  U_old          = get_old_data(State_Type);
     MultiFab&  U_new          = get_new_data(State_Type);
-    MultiFab&  P_old          = get_old_data(Press_Type);
     MultiFab&  Aofs           = *aofs;
     const Real prev_pres_time = state[Press_Type].prevTime();
 
@@ -2877,16 +2871,15 @@ NavierStokes::velocity_advection_update (Real dt)
     getGradP(Gp, prev_pres_time);
 
     MultiFab& halftime = *get_rho_half_time();
-    MFIter    Rhohalf_mfi(halftime);
 
-    for (FillPatchIterator P_fpi(*this,P_old,0,prev_pres_time,Press_Type,0,1);
-         Rhohalf_mfi.isValid() && P_fpi.isValid();
-         ++Rhohalf_mfi, ++P_fpi)
+    for (MFIter Rhohalf_mfi(halftime); Rhohalf_mfi.isValid(); ++Rhohalf_mfi)
     {
         const int i = Rhohalf_mfi.index();
 
 #ifdef BOUSSINESQ
-	// Average the new and old time to get half time approximation
+        //
+	// Average the new and old time to get half time approximation.
+        //
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
 	FArrayBox Scal(grids[i],1);
 	Scal.copy(U_old[i],Tracer,0,1);
@@ -2898,11 +2891,14 @@ NavierStokes::velocity_advection_update (Real dt)
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,halftime[i]);
 #elif MOREGENGETFORCE
-	// Need to do some funky half-time stuff
+        //
+	// Need to do some funky half-time stuff.
+        //
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << std::endl << "F - velocity advection update (half time):" << std::endl;
-
-	// Average the mac face velocities to get cell centred velocities
+        //
+	// Average the mac face velocities to get cell centred velocities.
+        //
 	FArrayBox Vel(BoxLib::grow(grids[i],0),BL_SPACEDIM);
 	const int* vel_lo  = Vel.loVect();
 	const int* vel_hi  = Vel.hiVect();
@@ -2927,8 +2923,9 @@ NavierStokes::velocity_advection_update (Real dt)
 				 ARLIM(umacz_lo), ARLIM(umacz_hi),
 #endif
 				 &getForceVerbose);
-	
-	// Average the new and old time to get Crank-Nicholson half time approximation
+        //
+	// Average the new and old time to get Crank-Nicholson half time approximation.
+        //
 	FArrayBox Scal(BoxLib::grow(grids[i],0),NUM_SCALARS);
 	Scal.copy(U_old[i],Density,0,NUM_SCALARS);
 	Scal.plus(U_new[i],Density,0,NUM_SCALARS);
