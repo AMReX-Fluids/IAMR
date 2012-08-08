@@ -132,6 +132,21 @@ public:
                         const MultiFab* const* beta = 0,
 			const MultiFab*        alpha = 0);
 
+    void setAlpha (ABecLaplacian*  visc_op,
+                   int             src_comp,
+                   Real            a,
+                   Real            b, 
+                   Real            time,
+                   const MultiFab* rho_half,
+                   int                    rho_flag,
+                   Real*                  rhsscale,
+                   int                    dataComp,
+                   const MultiFab* alpha_in);
+
+    void setBeta (ABecLaplacian*         visc_op,
+                  int                    dataComp,
+                  const MultiFab* const* beta);
+
     ABecLaplacian* getViscOp (int                    src_comp,
                               Real                   a,
                               Real                   b, 
