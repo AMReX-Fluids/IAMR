@@ -4,17 +4,31 @@
 #include <LO_BCTYPES.H>
 #include <ViscBndry.H>
 
+ViscBndry::ViscBndry ()
+    :
+    InterpBndryData()
+{}
+
+ViscBndry::ViscBndry (const BoxArray& _grids,
+                      int             _ncomp,
+                      const Geometry& _geom)
+    :
+    InterpBndryData(_grids,_ncomp,_geom)
+{}
+
+ViscBndry::~ViscBndry () {}
+
 void
 ViscBndry::setBndryConds (const BCRec& phys_bc,
                           int          ratio)
 {
-    IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    const IntVect ratio_vect = ratio * IntVect::TheUnitVector();
     setBndryConds(phys_bc, ratio_vect);
 }
 
 void
 ViscBndry::setBndryConds (const BCRec&   bc,
-                          /*const*/ IntVect& ratio,
+                          const IntVect& ratio,
 			  int comp)
 {
     //
@@ -78,8 +92,8 @@ ViscBndry::setBndryConds (const BCRec&   bc,
 }
 
 void
-ViscBndry::setHomogValues (const BCRec& bc,
-                           /*const*/ IntVect& ratio)
+ViscBndry::setHomogValues (const BCRec&   bc,
+                           const IntVect& ratio)
 {
     setBndryConds(bc, ratio);
 
