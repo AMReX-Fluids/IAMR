@@ -3,6 +3,8 @@
 // "Dsdt_Type" means pd S/pd t, where S is as above
 //
 #include <winstd.H>
+#include <time.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <vector>
