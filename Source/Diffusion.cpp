@@ -1368,7 +1368,8 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
                           MultiFab* const*       flux,
                           int                    dataComp,
                           const MultiFab* const* beta,
-                          const MultiFab*        alpha)
+                          const MultiFab*        alpha,
+                          int                    fluxComp)
 {
     const int state_ind = sigma + BL_SPACEDIM;
     const int IOProc    = ParallelDescriptor::IOProcessorNumber();
@@ -1467,9 +1468,11 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     checkBeta(flux, flux_allthere, flux_allnull);
     if (flux_allthere)
     {
-        visc_op->compFlux(D_DECL(*flux[0],*flux[1],*flux[2]),Soln);
+        visc_op->compFlux(D_DECL(*flux[0],*flux[1],*flux[2]),
+                          Soln,
+                          LinOp::Inhomogeneous_BC, 0, fluxComp);
         for (int i = 0; i < BL_SPACEDIM; ++i)
-            (*flux[i]).mult(b/(dt*caller->Geom().CellSize()[i]),0);
+            (*flux[i]).mult(b/(dt*caller->Geom().CellSize()[i]),fluxComp,1);
     }
 
     MultiFab::Copy(*Ssync,Soln,0,sigma,1,0);

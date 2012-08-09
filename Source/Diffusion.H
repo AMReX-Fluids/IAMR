@@ -130,7 +130,8 @@ public:
 			MultiFab* const*       flux,
 			int                    dataComp = 0,
                         const MultiFab* const* beta = 0,
-			const MultiFab*        alpha = 0);
+			const MultiFab*        alpha = 0,
+                        int                    fluxComp = 0);
 
     void setAlpha (ABecLaplacian*  visc_op,
                    int             src_comp,
