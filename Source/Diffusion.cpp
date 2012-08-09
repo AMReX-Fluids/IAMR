@@ -1234,18 +1234,21 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Diffusion::diffuse_tensor_Vsync ...\n";
 
-    NavierStokes& ns         = *(NavierStokes*) &(parent->getLevel(level));
-    const int   IOProc       = ParallelDescriptor::IOProcessorNumber();
-
-    MultiFab Rhs(grids,BL_SPACEDIM,0);
-
-    MultiFab::Copy(Rhs,*Vsync,0,0,BL_SPACEDIM,0);
+    NavierStokes& ns   = *(NavierStokes*) &(parent->getLevel(level));
+    const int   IOProc = ParallelDescriptor::IOProcessorNumber();
+    //
+    // Use Vsync directly as the RHS.
+    //
+    MultiFab& Rhs = *Vsync;
 
     if (verbose > 1)
     {
         Real r_norm = 0.0;
         for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-            r_norm = std::max(r_norm,Rhs[Rhsmfi].norm(0));
+        {
+            const Box& vbx = Rhsmfi.validbox();
+            r_norm = std::max(r_norm,Rhs[Rhsmfi].norm(vbx,0,BL_SPACEDIM));
+        }
         ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
@@ -1254,24 +1257,25 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     //
     // Multiply RHS by volume and density.
     //
-    {
-        MultiFab volume;
+    FArrayBox volume;
 
-        caller->Geom().GetVolume(volume,grids,GEOM_GROW);
+    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    {
+        FArrayBox& rhsfab = Rhs[Rhsmfi];
+
+        caller->Geom().GetVolume(volume,grids,Rhsmfi.index(),GEOM_GROW);
 
         for (int comp = 0; comp < BL_SPACEDIM; comp++)
         {
-            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-            {
-                FArrayBox& rhsfab = Rhs[Rhsmfi];
-                rhsfab.mult(volume[Rhsmfi],0,comp,1); 
-                if (rho_flag == 1)
-                    rhsfab.mult((*rho_half)[Rhsmfi],0,comp,1); 
-                if (rho_flag == 3)
-                    rhsfab.mult((*ns.rho_ptime)[Rhsmfi],0,comp,1); 
-            }
+            rhsfab.mult(volume,0,comp,1); 
+            if (rho_flag == 1)
+                rhsfab.mult((*rho_half)[Rhsmfi],0,comp,1); 
+            if (rho_flag == 3)
+                rhsfab.mult((*ns.rho_ptime)[Rhsmfi],0,comp,1); 
         }
     }
+
+    volume.clear();
     //
     // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
     //
@@ -1280,6 +1284,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     const int       dComp     = 0; // FIXME: start comp for betas, should be passed in
     const MultiFab* rho       = (rho_flag == 1) ? rho_half : ns.rho_ctime;
     DivVis*         tensor_op = getTensorOp(a,b,rho,dComp,beta);
+
     tensor_op->maxOrder(tensor_max_order);
 
     MultiFab Soln(grids,BL_SPACEDIM,1);
@@ -1300,7 +1305,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
         MCMultiGrid mg(*tensor_op);
         mg.solve(Soln,Rhs,S_tol,S_tol_abs);
     }
-    Rhs.clear();
 
     int visc_op_lev = 0;
     tensor_op->applyBC(Soln,visc_op_lev); 
@@ -1311,7 +1315,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     {
         Real s_norm = 0.0;
         for (MFIter Solnmfi(Soln); Solnmfi.isValid(); ++Solnmfi)
-            s_norm = std::max(s_norm,Soln[Solnmfi].norm(0));
+            s_norm = std::max(s_norm,Soln[Solnmfi].norm(0,BL_SPACEDIM));
         ParallelDescriptor::ReduceRealMax(s_norm,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
@@ -1337,8 +1341,8 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
         {
             for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
             {
-                const int i    = mfi.index();
-                const Box& grd = BoxLib::enclosedCells(mfi.validbox());
+                const int i   = mfi.index();
+                const Box grd = BoxLib::enclosedCells(mfi.validbox());
 
                 BL_ASSERT(grd==grids[mfi.index()]);
 
