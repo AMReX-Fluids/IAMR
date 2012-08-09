@@ -1375,31 +1375,33 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     const int IOProc    = ParallelDescriptor::IOProcessorNumber();
 
     if (verbose && ParallelDescriptor::IOProcessor())
+    {
         std::cout << "Diffusion::diffuse_Ssync: "
                   << caller->get_desc_lst()[State_Type].name(state_ind) << '\n';
+    }
 
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
 
-    MultiFab  Rhs(grids,1,0);
+    MultiFab Rhs(grids,1,0);
 
     MultiFab::Copy(Rhs,*Ssync,sigma,0,1,0);
 
     if (verbose > 1)
     {
-        MultiFab junk(grids,1,0);
-
-        MultiFab::Copy(junk,Rhs,0,0,1,0);
-
+        //
+        // Note that Ssync[sigma] gets overwritten later so we can modify
+        // it here.  No need to make a temporary MultiFab.
+        //
         if (rho_flag == 2)
         {
             MultiFab& S_new = caller->get_new_data(State_Type);
-            for (MFIter jmfi(junk); jmfi.isValid(); ++jmfi)
-                junk[jmfi].divide(S_new[jmfi],jmfi.validbox(),Density,0,1);
+            for (MFIter jmfi(*Ssync); jmfi.isValid(); ++jmfi)
+                (*Ssync)[jmfi].divide(S_new[jmfi],jmfi.validbox(),Density,sigma,1);
         }
         Real r_norm = 0.0;
-        for (MFIter jmfi(junk); jmfi.isValid(); ++jmfi)
-            r_norm = std::max(r_norm,junk[jmfi].norm(0));
+        for (MFIter jmfi(*Ssync); jmfi.isValid(); ++jmfi)
+            r_norm = std::max(r_norm,(*Ssync)[jmfi].norm(0,sigma,1));
         ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
