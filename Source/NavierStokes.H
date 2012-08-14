@@ -489,8 +489,6 @@ protected:
                   const BoxArray& fgrids,
                   MultiFab&       S_crse,
                   MultiFab&       S_fine,
-                  MultiFab&       volume,
-                  MultiFab&       fvolume,
                   int             c_level,
                   int             f_level,
                   int             strt_comp,

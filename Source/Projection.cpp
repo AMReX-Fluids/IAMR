@@ -1016,9 +1016,6 @@ Projection::MLsyncProject (int             c_lev,
     cRh[c_lev  ] = crse_rhs;
 
     NavierStokes* crse_lev = dynamic_cast<NavierStokes*>(&LevelData[c_lev]);
-    MultiFab fvolume, volume;
-    parent->Geom(c_lev  ).GetVolume( volume,     grids,1);
-    parent->Geom(c_lev+1).GetVolume(fvolume,fine_grids,1);
 
     {
       MultiFab v_crse(grids, 1, 1);
@@ -1028,14 +1025,14 @@ Projection::MLsyncProject (int             c_lev,
     	MultiFab::Copy(v_fine, *vel[c_lev+1], n, 0, 1, 1);
 
     	// restrict_level(v_crse, v_fine, ratio);
-        crse_lev->avgDown(grids,fine_grids,v_crse,v_fine,volume,fvolume,
+        crse_lev->avgDown(grids,fine_grids,v_crse,v_fine,
                           c_lev,c_lev+1,0,v_crse.nComp(),ratio);
 
     	MultiFab::Copy(*vel[c_lev  ], v_crse, 0, n, 1, 1);
       }
 
       // restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
-      crse_lev->avgDown(grids,fine_grids,*sig[c_lev],*sig[c_lev+1],volume,fvolume,
+      crse_lev->avgDown(grids,fine_grids,*sig[c_lev],*sig[c_lev+1],
                         c_lev,c_lev+1,0,sig[c_lev]->nComp(),ratio);
     }
 
@@ -1805,17 +1802,14 @@ Projection::initialSyncProject (int       c_lev,
       MultiFab v_crse(crse_grids, 1, 1);
       MultiFab v_fine(fine_grids, 1, 1);
 
-      MultiFab cvolume, fvolume;
       NavierStokes* crse_lev = dynamic_cast<NavierStokes*>(&LevelData[lev-1]);
-      parent->Geom(lev-1).GetVolume(cvolume,crse_grids,1);
-      parent->Geom(lev  ).GetVolume(fvolume,fine_grids,1);
 
       for (int n = 0; n < BL_SPACEDIM; n++) {
     	MultiFab::Copy(v_crse, *vel[lev-1], n, 0, 1, 1);
     	MultiFab::Copy(v_fine, *vel[lev  ], n, 0, 1, 1);
 
     	// restrict_level(v_crse, v_fine, parent->refRatio(lev-1));
-        crse_lev->avgDown(crse_grids,fine_grids,v_crse,v_fine,cvolume,fvolume,
+        crse_lev->avgDown(crse_grids,fine_grids,v_crse,v_fine,
                           lev-1,lev,0,v_crse.nComp(),parent->refRatio(lev-1));
 	
     	MultiFab::Copy(*vel[lev-1], v_crse, 0, n, 1, 1);

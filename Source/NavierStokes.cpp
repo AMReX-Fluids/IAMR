@@ -5186,8 +5186,6 @@ NavierStokes::avgDown (const BoxArray& cgrids,
                        const BoxArray& fgrids,
                        MultiFab&       S_crse,
                        MultiFab&       S_fine,
-                       MultiFab&       cvolume,
-                       MultiFab&       fvolume,
                        int             c_level,
                        int             f_level,
                        int             scomp,
@@ -5196,34 +5194,32 @@ NavierStokes::avgDown (const BoxArray& cgrids,
 {
     BL_ASSERT(cgrids == S_crse.boxArray());
     BL_ASSERT(fgrids == S_fine.boxArray());
-    BL_ASSERT(cvolume.boxArray() == cgrids);
-    BL_ASSERT(fvolume.boxArray() == fgrids);
     BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-    BL_ASSERT(fvolume.nComp() == 1 && cvolume.nComp() == 1);
+
+    NavierStokes& flev = getLevel(f_level);
+    NavierStokes& clev = getLevel(c_level);
     //
     // Coarsen() the fine stuff on processors owning the fine data.
     //
     BoxArray crse_S_fine_BA(fgrids.size());
 
     for (int i = 0; i < fgrids.size(); ++i)
-    {
         crse_S_fine_BA.set(i,BoxLib::coarsen(fgrids[i],fratio));
-    }
 
     MultiFab crse_S_fine(crse_S_fine_BA,ncomp,0);
-    MultiFab crse_fvolume(crse_S_fine_BA,1,0);
 
-    crse_fvolume.copy(cvolume);
+    FArrayBox fvolume, cvolume;
 
     for (MFIter mfi(S_fine); mfi.isValid(); ++mfi)
     {
         const int i = mfi.index();
 
-        avgDown(S_fine[i],crse_S_fine[i],fvolume[i],crse_fvolume[i],
+        flev.geom.GetVolume(fvolume,fgrids,i,GEOM_GROW);
+        clev.geom.GetVolume(cvolume,crse_S_fine_BA,i,GEOM_GROW);
+
+        avgDown(S_fine[i],crse_S_fine[i],fvolume,cvolume,
                 f_level,c_level,crse_S_fine_BA[i],scomp,ncomp,fratio);
     }
-
-    crse_fvolume.clear();
 
     S_crse.copy(crse_S_fine,0,scomp,ncomp);
 }
@@ -5372,30 +5368,22 @@ NavierStokes::level_sync (int crse_iteration)
                            fine_lev.get_new_data(Dsdt_Type));
         for (int k = level; k>= 0; k--)
         {
-            MultiFab fvolume;
-            MultiFab cvolume;
-
             NavierStokes&   flev     = getLevel(k+1);
             const BoxArray& fgrids   = flev.grids;
           
             NavierStokes&   clev     = getLevel(k);
             const BoxArray& cgrids   = clev.grids;
 
-            flev.geom.GetVolume(fvolume,flev.grids,GEOM_GROW);
-            clev.geom.GetVolume(cvolume,clev.grids,GEOM_GROW);
-          
             IntVect&  fratio = clev.fine_ratio;
           
             NavierStokes::avgDown(cgrids, fgrids,
                                   clev.get_new_data(Divu_Type),
                                   flev.get_new_data(Divu_Type),
-                                  cvolume, fvolume,
                                   k, k+1, 0, 1, fratio);
 
             NavierStokes::avgDown(cgrids, fgrids,
                                   clev.get_new_data(Dsdt_Type),
                                   flev.get_new_data(Dsdt_Type),
-                                  cvolume, fvolume,
                                   k, k+1, 0, 1, fratio);
         }
     }
@@ -5805,8 +5793,8 @@ NavierStokes::reflux ()
     //
     FluxRegister& fr_adv  = getAdvFluxReg(level+1);
     FluxRegister& fr_visc = getViscFluxReg(level+1);
-    Real          dt_crse = parent->dtLevel(level);
-    Real          scale   = 1.0/dt_crse;
+    const Real    dt_crse = parent->dtLevel(level);
+    const Real    scale   = 1.0/dt_crse;
     //
     // It is important, for do_mom_diff == 0, to do the viscous
     //   refluxing first, since this will be divided by rho_half
@@ -5898,11 +5886,7 @@ NavierStokes::avgDown (int comp)
     MultiFab&       S_crse   = get_new_data(State_Type);
     MultiFab&       S_fine   = fine_lev.get_new_data(State_Type);
 
-    MultiFab fvolume, volume;
-    geom.GetVolume(volume, grids,GEOM_GROW);
-    fine_lev.geom.GetVolume(fvolume,fine_lev.grids,GEOM_GROW);
-
-    avgDown(grids,fgrids,S_crse,S_fine,volume,fvolume,level,level+1,comp,1,fine_ratio);
+    avgDown(grids,fgrids,S_crse,S_fine,level,level+1,comp,1,fine_ratio);
 
     if (comp == Density) 
     {
@@ -5910,9 +5894,7 @@ NavierStokes::avgDown (int comp)
         // Fill rho_ctime at current and finer levels with the correct data.
         //
         for (int lev = level; lev <= parent->finestLevel(); lev++)
-        {
             getLevel(lev).make_rho_curr_time();
-        }
     }
 }
 
@@ -5952,17 +5934,13 @@ NavierStokes::avgDown ()
 
     NavierStokes&   fine_lev = getLevel(level+1);
     const BoxArray& fgrids   = fine_lev.grids;
-
-    MultiFab fvolume, volume;
-    geom.GetVolume(volume, grids,GEOM_GROW);
-    fine_lev.geom.GetVolume(fvolume,fine_lev.grids,GEOM_GROW);
     //
     // Average down the states at the new time.
     //
     MultiFab& S_crse = get_new_data(State_Type);
     MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
-    avgDown(grids,fgrids,S_crse,S_fine,volume,fvolume,level,level+1,0,S_crse.nComp(), fine_ratio);
+    avgDown(grids,fgrids,S_crse,S_fine,level,level+1,0,S_crse.nComp(),fine_ratio);
     //
     // Now average down pressure over time n-(n+1) interval.
     //
@@ -5975,9 +5953,8 @@ NavierStokes::avgDown ()
     BoxArray crse_P_fine_BA(P_fgrids.size());
 
     for (int i = 0; i < P_fgrids.size(); ++i)
-    {
         crse_P_fine_BA.set(i,BoxLib::coarsen(P_fgrids[i],fine_ratio));
-    }
+
     MultiFab crse_P_fine(crse_P_fine_BA,1,0);
 
     for (MFIter mfi(P_fine); mfi.isValid(); ++mfi)
@@ -5997,14 +5974,14 @@ NavierStokes::avgDown ()
         MultiFab& Divu_crse = get_new_data(Divu_Type);
         MultiFab& Divu_fine = fine_lev.get_new_data(Divu_Type);
         
-        avgDown(grids,fgrids,Divu_crse,Divu_fine,volume,fvolume,level,level+1,0,1,fine_ratio);
+        avgDown(grids,fgrids,Divu_crse,Divu_fine,level,level+1,0,1,fine_ratio);
     }
     if (have_dsdt)
     {
         MultiFab& Dsdt_crse = get_new_data(Dsdt_Type);
         MultiFab& Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
         
-        avgDown(grids,fgrids,Dsdt_crse,Dsdt_fine,volume,fvolume,level,level+1,0,1,fine_ratio);
+        avgDown(grids,fgrids,Dsdt_crse,Dsdt_fine,level,level+1,0,1,fine_ratio);
     }
     //
     // Fill rho_ctime at the current and finer levels with the correct data.
