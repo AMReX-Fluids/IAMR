@@ -167,6 +167,12 @@ main (int   argc,
     }
 
     delete amrptr;
+    //
+    // Flush caches here so we get one final look at their usage space requirements.
+    //
+    FabArrayBase::CPC::FlushCache();
+    MultiFab::FlushSICache();
+    Geometry::FlushPIRMCache();
 
 #ifndef MG_USE_F90_SOLVERS
     //
