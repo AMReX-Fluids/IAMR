@@ -704,7 +704,12 @@ c
       end if
       end
 
-      subroutine FORT_ESTATE_FPU(s, tforces, divu, DIMS(s),
+      subroutine FORT_ESTATE_FPU(
+#ifdef LMC_SDC
+     &     s, DIMS(s), tforces, DIMS(t), divu, DIMS(d),
+#else
+     &     s, tforces, divu, DIMS(s),
+#endif
      &     xlo, xhi, sx, slxscr, stxlo, stxhi,
      &     uedge, DIMS(uedge), xstate, DIMS(xstate), Imx, Ipx, sedgex, DIMS(sedgex),
 
@@ -733,6 +738,10 @@ c
       parameter( eps_for_bc = 1.0D-10 )
 
       integer DIMDEC(s)
+#ifdef LMC_SDC
+      integer DIMDEC(t)
+      integer DIMDEC(d)
+#endif
       integer DIMDEC(work)
       integer DIMDEC(uedge)
       integer DIMDEC(xstate)
@@ -756,8 +765,13 @@ c
       REAL_T ylo(DIMV(work)), yhi(DIMV(work))
       REAL_T  sx(DIMV(work))
       REAL_T  sy(DIMV(work))
+#ifdef LMC_SDC
+      REAL_T tforces(DIMV(t))
+      REAL_T divu(DIMV(d))
+#else
       REAL_T tforces(DIMV(work))
       REAL_T divu(DIMV(work))
+#endif
 
 #if 0
       REAL_T extra_work(DIMV(work),6)

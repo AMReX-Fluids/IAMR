@@ -617,7 +617,12 @@ protected:
 #ifdef GENGETFORCE
 		   const Real       time,
 #endif		 
+#ifdef LMC_SDC		 
+                   const FArrayBox& Rho,
+                   int              RComp = 0);
+#else
                    const FArrayBox& Rho);
+#endif
 #endif		 
 #endif		 
 
