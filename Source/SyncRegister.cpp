@@ -439,6 +439,21 @@ BuildMFs (const MultiFab& mf,
     chiMF.setVal(0);
 }
 
+//
+// Used in some parallel SyncRegister operations.
+//
+struct SyncComTag
+{
+    Box         box;
+    IntVect     shift;
+    int         fabIndex;
+    Orientation face;
+};
+
+typedef std::deque<SyncComTag> SyncComTagsContainer;
+
+typedef std::map<int,SyncComTagsContainer> MapOfSyncComTagContainers;
+
 void
 SyncRegister::incrementPeriodic (const Geometry& geom,
                                  const Box&      domain,
@@ -446,12 +461,17 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 {
     if (!geom.isAnyPeriodic()) return;
 
-    Array<IntVect>                pshifts(27);
-    std::deque<FluxRegister::Rec> srrec;
-    FArrayBox                     tmpfab;
-    MultiFabCopyDescriptor        mfcd;
-    const BoxArray&               mfba = mf.boxArray();
-    MultiFabId                    mfid = mfcd.RegisterFabArray((MultiFab*) &mf);
+    FArrayBox                   fab;
+    SyncComTag                  tag;
+    MapOfSyncComTagContainers   m_SndTags, m_RcvTags;
+    std::map<int,int>           m_SndVols, m_RcvVols;
+    std::map<int,int>::iterator vol_it;
+    Array<IntVect>              pshifts(27);
+
+    const int                  MyProc  = ParallelDescriptor::MyProc();
+    const int                  ncomp   = mf.nComp();
+    const BoxArray&            mfba    = mf.boxArray();
+    const DistributionMapping& srcDMap = mf.DistributionMap();
 
     for (int j = 0, N = mfba.size(); j < N; j++)
     {
@@ -461,74 +481,246 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
         if (pshifts.empty()) continue;
 
+        const int src_owner = srcDMap[j];
+
         for (OrientationIter face_it; face_it; ++face_it)
         {
-            const Orientation face = face_it();
+            const Orientation          face    = face_it();
+            FabSet&                    fabset  = bndry[face];
+            const DistributionMapping& dstDMap = fabset.DistributionMap();
 
-            FabSet& fs = bndry[face];
-
-            for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
+            for (int idx = 0; idx < fabset.size(); idx++)
             {
-                const int        idx   = fsi.index();
-                const int        ncomp = mf.nComp();
-                const FArrayBox& fab   = fs[fsi];
+                const Box fabbox = fabset.fabbox(idx);
 
-                for (int i = 0, M = pshifts.size(); i < M; i++)
+                for (int ii = 0, M = pshifts.size(); ii < M; ii++)
                 {
-                    Box sbox = bx + pshifts[i];
+                    Box sbx = bx + pshifts[ii];
 
-                    sbox &= fab.box();
+                    sbx &= fabbox;
 
-                    if (sbox.ok())
+                    if (!sbx.ok()) continue;
+
+                    const int dst_owner = dstDMap[idx];
+
+                    if (dst_owner != MyProc && src_owner != MyProc) continue;
+
+                    sbx -= pshifts[ii];
+
+                    tag.box   = sbx;
+                    tag.shift = pshifts[ii];
+                    tag.face  = face;
+
+                    const int vol = sbx.numPts();
+
+                    if (dst_owner == MyProc)
                     {
-                        sbox -= pshifts[i];
+                        tag.fabIndex = idx;
 
-                        FluxRegister::Rec sr(face, idx, pshifts[i]);
+                        if (src_owner == MyProc)
+                        {
+                            //
+                            // Do the local work right here.
+                            //
+                            Box dbx = tag.box;
+                            dbx += tag.shift;
+                            fabset[tag.fabIndex].plus(mf[j],sbx,dbx,0,0,ncomp);
+                        }
+                        else
+                        {
+                            m_RcvTags[src_owner].push_back(tag);
 
-                        sr.m_fbid = mfcd.AddBox(mfid,
-                                                sbox,
-                                                0,
-                                                j,
-                                                0,
-                                                0,
-                                                ncomp);
+                            vol_it = m_RcvVols.find(src_owner);
 
-                        BL_ASSERT(sr.m_fbid.box() == sbox);
+                            if (vol_it != m_RcvVols.end())
+                            {
+                                vol_it->second += vol;
+                            }
+                            else
+                            {
+                                m_RcvVols[src_owner] = vol;
+                            }
+                        }
+                    }
+                    else if (src_owner == MyProc)
+                    {
+                        tag.fabIndex = j;
 
-                        srrec.push_back(sr);
+                        m_SndTags[dst_owner].push_back(tag);
+
+                        vol_it = m_SndVols.find(dst_owner);
+
+                        if (vol_it != m_SndVols.end())
+                        {
+                            vol_it->second += vol;
+                        }
+                        else
+                        {
+                            m_SndVols[dst_owner] = vol;
+                        }
                     }
                 }
             }
         }
     }
 
-    int nrecv = srrec.size();
-    ParallelDescriptor::ReduceIntMax(nrecv);
-    if (nrecv == 0)
+#ifdef BL_USE_MPI
+    if (ParallelDescriptor::NProcs() == 1) return;
+    //
+    // Do this before prematurely exiting if running in parallel.
+    // Otherwise sequence numbers will not match across MPI processes.
+    //
+    const int SeqNum = ParallelDescriptor::SeqNum();
+
+    if (m_SndTags.empty() && m_RcvTags.empty())
         //
-        // There's no work to do.
+        // No parallel work for this MPI process to do.
         //
         return;
 
-    mfcd.CollectData();
-
-    for (std::deque<FluxRegister::Rec>::const_iterator it = srrec.begin(),
-             End = srrec.end();
+    Array<MPI_Status>  stats;
+    Array<int>         recv_from, index;
+    Array<double*>     recv_data, send_data;
+    Array<MPI_Request> recv_reqs, send_reqs;
+    //
+    // Post rcvs. Allocate one chunk of space to hold'm all.
+    //
+    int TotalRcvsVolume = 0;
+    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
+             End = m_RcvVols.end();
          it != End;
          ++it)
     {
-        FabSet& fabset = bndry[it->m_face];
-
-        BL_ASSERT(fabset.DistributionMap()[it->m_idx] == ParallelDescriptor::MyProc());
-
-        tmpfab.resize(it->m_fbid.box(), mf.nComp());
-
-        mfcd.FillFab(mfid, it->m_fbid, tmpfab);
-
-        tmpfab.shift(it->m_shift);
-
-        fabset[it->m_idx].plus(tmpfab, 0, 0, mf.nComp());
+        TotalRcvsVolume += it->second;
     }
+    TotalRcvsVolume *= ncomp;
+
+    BL_ASSERT((TotalRcvsVolume*sizeof(double)) < std::numeric_limits<int>::max());
+
+    double* the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
+
+    int Offset = 0;
+    for (MapOfSyncComTagContainers::const_iterator m_it = m_RcvTags.begin(),
+             m_End = m_RcvTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        vol_it = m_RcvVols.find(m_it->first);
+
+        BL_ASSERT(vol_it != m_RcvVols.end());
+
+        const int N = vol_it->second*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        recv_data.push_back(&the_recv_data[Offset]);
+        recv_from.push_back(m_it->first);
+        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
+
+        Offset += N;
+    }
+    //
+    // Send the data.
+    //
+    for (MapOfSyncComTagContainers::const_iterator m_it = m_SndTags.begin(),
+             m_End = m_SndTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        vol_it = m_SndVols.find(m_it->first);
+
+        BL_ASSERT(vol_it != m_SndVols.end());
+
+        const int N = vol_it->second*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        double* data = static_cast<double*>(BoxLib::The_Arena()->alloc(N*sizeof(double)));
+        double* dptr = data;
+
+        for (SyncComTagsContainer::const_iterator it = m_it->second.begin(),
+                 End = m_it->second.end();
+             it != End;
+             ++it)
+        {
+            const Box& bx = it->box;
+            fab.resize(bx,ncomp);
+            fab.copy(mf[it->fabIndex],bx,0,bx,0,ncomp);
+            const int Cnt = bx.numPts()*ncomp;
+            memcpy(dptr,fab.dataPtr(),Cnt*sizeof(double));
+            dptr += Cnt;
+        }
+        BL_ASSERT(data+N == dptr);
+
+        if (FabArrayBase::do_async_sends)
+        {
+            send_data.push_back(data);
+            send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
+        }
+        else
+        {
+            ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
+            BoxLib::The_Arena()->free(data);
+        }
+    }
+    //
+    // Now receive and unpack FAB data as it becomes available.
+    //
+    MapOfSyncComTagContainers::const_iterator m_it;
+
+    const int N_rcvs = m_RcvTags.size();
+
+    index.resize(N_rcvs);
+    stats.resize(N_rcvs);
+
+    for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
+    {
+        ParallelDescriptor::Waitsome(recv_reqs, completed, index, stats);
+
+        for (int k = 0; k < completed; k++)
+        {
+            const double* dptr = recv_data[index[k]];
+
+            BL_ASSERT(dptr != 0);
+
+            m_it = m_RcvTags.find(recv_from[index[k]]);
+
+            BL_ASSERT(m_it != m_RcvTags.end());
+
+            for (SyncComTagsContainer::const_iterator it = m_it->second.begin(),
+                     End = m_it->second.end();
+                 it != End;
+                 ++it)
+            {
+                const Box& sbx = it->box;
+                fab.resize(sbx,ncomp);
+                const int Cnt = sbx.numPts()*ncomp;
+                memcpy(fab.dataPtr(),dptr,Cnt*sizeof(double));
+                Box dbx = sbx;
+                dbx += it->shift;
+                bndry[it->face][it->fabIndex].plus(fab,sbx,dbx,0,0,ncomp);
+                dptr += Cnt;
+            }
+        }
+    }
+
+    BoxLib::The_Arena()->free(the_recv_data);
+
+    if (FabArrayBase::do_async_sends && !m_SndTags.empty())
+    {
+        //
+        // Now grok the asynchronous send buffers & free up send buffer space.
+        //
+        const int N_snds = m_SndTags.size();
+
+        stats.resize(N_snds);
+
+        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
+
+        for (int i = 0; i < N_snds; i++)
+            BoxLib::The_Arena()->free(send_data[i]);
+    }
+#endif /*BL_USE_MPI*/
 }
 
 void
