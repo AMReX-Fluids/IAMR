@@ -14,19 +14,13 @@
 
 //
 // Used in some parallel SyncRegister operations.
+// These data structures are used in a number of other places.
+// I'm reusing'm here to cut down on code bloat.
 //
-struct SyncComTag
-{
-    Box         box;
-    IntVect     shift;
-    int         fabIndex;
-    Orientation face;
-};
 
-typedef std::deque<SyncComTag> SyncComTagsContainer;
+typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
 
-typedef std::map<int,SyncComTagsContainer> MapOfSyncComTagContainers;
-
+typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
 
 SyncRegister::SyncRegister ()
 {
@@ -110,8 +104,8 @@ SyncRegister::copyPeriodic (const Geometry& geom,
     if (!geom.isAnyPeriodic()) return;
 
     FArrayBox                   fab;
-    SyncComTag                  tag;
-    MapOfSyncComTagContainers   m_SndTags, m_RcvTags;
+    FabArrayBase::CopyComTag    tag;
+    MapOfCopyComTagContainers   m_SndTags, m_RcvTags;
     std::map<int,int>           m_SndVols, m_RcvVols;
     std::map<int,int>::iterator vol_it;
     Array<IntVect>              pshifts(27);
@@ -183,7 +177,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                     else if (src_owner == MyProc)
                     {
                         tag.fabIndex = j;
-                        tag.face     = face;
+                        tag.srcIndex = face;  // Store face in srcIndex!
                         tag.box      = sbx;
 
                         m_SndTags[dst_owner].push_back(tag);
@@ -240,7 +234,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
     double* the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
 
     int Offset = 0;
-    for (MapOfSyncComTagContainers::const_iterator m_it = m_RcvTags.begin(),
+    for (MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.begin(),
              m_End = m_RcvTags.end();
          m_it != m_End;
          ++m_it)
@@ -262,7 +256,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
     //
     // Send the data.
     //
-    for (MapOfSyncComTagContainers::const_iterator m_it = m_SndTags.begin(),
+    for (MapOfCopyComTagContainers::const_iterator m_it = m_SndTags.begin(),
              m_End = m_SndTags.end();
          m_it != m_End;
          ++m_it)
@@ -278,14 +272,14 @@ SyncRegister::copyPeriodic (const Geometry& geom,
         double* data = static_cast<double*>(BoxLib::The_Arena()->alloc(N*sizeof(double)));
         double* dptr = data;
 
-        for (SyncComTagsContainer::const_iterator it = m_it->second.begin(),
+        for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                  End = m_it->second.end();
              it != End;
              ++it)
         {
             const Box& bx = it->box;
             fab.resize(bx,ncomp);
-            fab.copy(bndry[it->face][it->fabIndex],bx,0,bx,0,ncomp);
+            fab.copy(bndry[it->srcIndex][it->fabIndex],bx,0,bx,0,ncomp);
             const int Cnt = bx.numPts()*ncomp;
             memcpy(dptr,fab.dataPtr(),Cnt*sizeof(double));
             dptr += Cnt;
@@ -306,7 +300,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
     //
     // Now receive and unpack FAB data as it becomes available.
     //
-    MapOfSyncComTagContainers::const_iterator m_it;
+    MapOfCopyComTagContainers::const_iterator m_it;
 
     const int N_rcvs = m_RcvTags.size();
 
@@ -327,7 +321,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
             BL_ASSERT(m_it != m_RcvTags.end());
 
-            for (SyncComTagsContainer::const_iterator it = m_it->second.begin(),
+            for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -639,8 +633,8 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
     if (!geom.isAnyPeriodic()) return;
 
     FArrayBox                   fab;
-    SyncComTag                  tag;
-    MapOfSyncComTagContainers   m_SndTags, m_RcvTags;
+    FabArrayBase::CopyComTag    tag;
+    MapOfCopyComTagContainers   m_SndTags, m_RcvTags;
     std::map<int,int>           m_SndVols, m_RcvVols;
     std::map<int,int>::iterator vol_it;
     Array<IntVect>              pshifts(27);
@@ -676,31 +670,26 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
                 for (int ii = 0, M = pshifts.size(); ii < M; ii++)
                 {
-                    Box sbx = bx + pshifts[ii];
+                    Box dbx = bx + pshifts[ii];
 
-                    sbx &= fabbox;
+                    dbx &= fabbox;
 
-                    if (!sbx.ok()) continue;
+                    if (!dbx.ok()) continue;
 
-                    sbx -= pshifts[ii];
-
-                    tag.box   = sbx;
-                    tag.shift = pshifts[ii];
-                    tag.face  = face;
-
+                    const Box sbx = dbx - pshifts[ii];
                     const int vol = sbx.numPts();
 
                     if (dst_owner == MyProc)
                     {
                         tag.fabIndex = i;
+                        tag.srcIndex = face;  // Store face in srcIndex!
+                        tag.box      = dbx;
 
                         if (src_owner == MyProc)
                         {
                             //
                             // Do the local work right here.
                             //
-                            Box dbx = tag.box;
-                            dbx += tag.shift;
                             fabset[tag.fabIndex].plus(mf[j],sbx,dbx,0,0,ncomp);
                         }
                         else
@@ -722,6 +711,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                     else if (src_owner == MyProc)
                     {
                         tag.fabIndex = j;
+                        tag.box      = sbx;
 
                         m_SndTags[dst_owner].push_back(tag);
 
@@ -777,7 +767,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
     double* the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
 
     int Offset = 0;
-    for (MapOfSyncComTagContainers::const_iterator m_it = m_RcvTags.begin(),
+    for (MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.begin(),
              m_End = m_RcvTags.end();
          m_it != m_End;
          ++m_it)
@@ -799,7 +789,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
     //
     // Send the data.
     //
-    for (MapOfSyncComTagContainers::const_iterator m_it = m_SndTags.begin(),
+    for (MapOfCopyComTagContainers::const_iterator m_it = m_SndTags.begin(),
              m_End = m_SndTags.end();
          m_it != m_End;
          ++m_it)
@@ -815,7 +805,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
         double* data = static_cast<double*>(BoxLib::The_Arena()->alloc(N*sizeof(double)));
         double* dptr = data;
 
-        for (SyncComTagsContainer::const_iterator it = m_it->second.begin(),
+        for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                  End = m_it->second.end();
              it != End;
              ++it)
@@ -843,7 +833,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
     //
     // Now receive and unpack FAB data as it becomes available.
     //
-    MapOfSyncComTagContainers::const_iterator m_it;
+    MapOfCopyComTagContainers::const_iterator m_it;
 
     const int N_rcvs = m_RcvTags.size();
 
@@ -864,18 +854,16 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
             BL_ASSERT(m_it != m_RcvTags.end());
 
-            for (SyncComTagsContainer::const_iterator it = m_it->second.begin(),
+            for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
             {
-                const Box& sbx = it->box;
-                fab.resize(sbx,ncomp);
-                const int Cnt = sbx.numPts()*ncomp;
+                const Box& bx = it->box;
+                fab.resize(bx,ncomp);
+                const int Cnt = bx.numPts()*ncomp;
                 memcpy(fab.dataPtr(),dptr,Cnt*sizeof(double));
-                Box dbx = sbx;
-                dbx += it->shift;
-                bndry[it->face][it->fabIndex].plus(fab,sbx,dbx,0,0,ncomp);
+                bndry[it->srcIndex][it->fabIndex].plus(fab,bx,bx,0,0,ncomp);
                 dptr += Cnt;
             }
         }
