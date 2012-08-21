@@ -18,9 +18,9 @@
 // I'm reusing'm here to cut down on code bloat.
 //
 
-typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
+//typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
 
-typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+//typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
 
 SyncRegister::SyncRegister ()
 {
@@ -92,6 +92,207 @@ SyncRegister::define (const BoxArray& fine_boxes,
 SyncRegister::~SyncRegister () {}
 
 //
+// Consolidate the various parallel operations in this file.
+//
+
+void
+SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
+                            const MapOfCopyComTagContainers& m_RcvTags,
+                            const std::map<int,int>&         m_SndVols,
+                            const std::map<int,int>&         m_RcvVols,
+                            int                              ncomp,
+                            Who                              who,
+                            MultiFab*                        rhs,
+                            const MultiFab*                  mf)
+{
+    switch (who)
+    {
+    case SyncRegister::CopyPeriodic:
+        BL_ASSERT(rhs != 0); break;
+    case SyncRegister::MultByBndryMask:
+        BL_ASSERT(rhs != 0); break;
+    case SyncRegister::IncrementPeriodic:
+        BL_ASSERT(mf != 0); break;
+    }
+
+#ifdef BL_USE_MPI
+    //
+    // Do this before prematurely exiting if running in parallel.
+    // Otherwise sequence numbers will not match across MPI processes.
+    //
+    const int SeqNum = ParallelDescriptor::SeqNum();
+
+    if (m_SndTags.empty() && m_RcvTags.empty())
+        //
+        // No parallel work for this MPI process to do.
+        //
+        return;
+
+    FArrayBox          fab;
+    Array<MPI_Status>  stats;
+    Array<int>         recv_from, index;
+    Array<double*>     recv_data, send_data;
+    Array<MPI_Request> recv_reqs, send_reqs;
+    //
+    // Post rcvs. Allocate one chunk of space to hold'm all.
+    //
+    int TotalRcvsVolume = 0;
+    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
+             End = m_RcvVols.end();
+         it != End;
+         ++it)
+    {
+        TotalRcvsVolume += it->second;
+    }
+    TotalRcvsVolume *= ncomp;
+
+    BL_ASSERT((TotalRcvsVolume*sizeof(double)) < std::numeric_limits<int>::max());
+
+    double* the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
+
+    int Offset = 0;
+    for (MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.begin(),
+             m_End = m_RcvTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
+
+        BL_ASSERT(vol_it != m_RcvVols.end());
+
+        const int N = vol_it->second*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        recv_data.push_back(&the_recv_data[Offset]);
+        recv_from.push_back(m_it->first);
+        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
+
+        Offset += N;
+    }
+    //
+    // Send the data.
+    //
+    for (MapOfCopyComTagContainers::const_iterator m_it = m_SndTags.begin(),
+             m_End = m_SndTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        std::map<int,int>::const_iterator vol_it = m_SndVols.find(m_it->first);
+
+        BL_ASSERT(vol_it != m_SndVols.end());
+
+        const int N = vol_it->second*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        double* data = static_cast<double*>(BoxLib::The_Arena()->alloc(N*sizeof(double)));
+        double* dptr = data;
+
+        for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
+                 End = m_it->second.end();
+             it != End;
+             ++it)
+        {
+            const Box& bx = it->box;
+            fab.resize(bx,ncomp);
+
+            switch (who)
+            {
+            case SyncRegister::CopyPeriodic:
+                fab.copy(bndry[it->srcIndex][it->fabIndex],bx,0,bx,0,ncomp); break;
+            case SyncRegister::MultByBndryMask:
+                fab.copy(bndry_mask[it->srcIndex][it->fabIndex],bx,0,bx,0,ncomp); break;
+            case SyncRegister::IncrementPeriodic:
+                fab.copy((*mf)[it->fabIndex],bx,0,bx,0,ncomp); break;
+            }
+
+            const int Cnt = bx.numPts()*ncomp;
+            memcpy(dptr,fab.dataPtr(),Cnt*sizeof(double));
+            dptr += Cnt;
+        }
+        BL_ASSERT(data+N == dptr);
+
+        if (FabArrayBase::do_async_sends)
+        {
+            send_data.push_back(data);
+            send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
+        }
+        else
+        {
+            ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
+            BoxLib::The_Arena()->free(data);
+        }
+    }
+    //
+    // Now receive and unpack FAB data as it becomes available.
+    //
+    MapOfCopyComTagContainers::const_iterator m_it;
+
+    const int N_rcvs = m_RcvTags.size();
+
+    index.resize(N_rcvs);
+    stats.resize(N_rcvs);
+
+    for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
+    {
+        ParallelDescriptor::Waitsome(recv_reqs, completed, index, stats);
+
+        for (int k = 0; k < completed; k++)
+        {
+            const double* dptr = recv_data[index[k]];
+
+            BL_ASSERT(dptr != 0);
+
+            m_it = m_RcvTags.find(recv_from[index[k]]);
+
+            BL_ASSERT(m_it != m_RcvTags.end());
+
+            for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
+                     End = m_it->second.end();
+                 it != End;
+                 ++it)
+            {
+                const Box& bx = it->box;
+                fab.resize(bx,ncomp);
+                const int Cnt = bx.numPts()*ncomp;
+                memcpy(fab.dataPtr(),dptr,Cnt*sizeof(double));
+
+                switch (who)
+                {
+                case SyncRegister::CopyPeriodic:
+                    (*rhs)[it->fabIndex].copy(fab,bx,0,bx,0,ncomp); break;
+                case SyncRegister::MultByBndryMask:
+                    (*rhs)[it->fabIndex].mult(fab,bx,bx,0,0,ncomp); break;
+                case SyncRegister::IncrementPeriodic:
+                    bndry[it->srcIndex][it->fabIndex].plus(fab,bx,bx,0,0,ncomp); break;
+                }
+
+                dptr += Cnt;
+            }
+        }
+    }
+
+    BoxLib::The_Arena()->free(the_recv_data);
+
+    if (FabArrayBase::do_async_sends && !m_SndTags.empty())
+    {
+        //
+        // Now grok the asynchronous send buffers & free up send buffer space.
+        //
+        const int N_snds = m_SndTags.size();
+
+        stats.resize(N_snds);
+
+        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
+
+        for (int i = 0; i < N_snds; i++)
+            BoxLib::The_Arena()->free(send_data[i]);
+    }
+#endif /*BL_USE_MPI*/
+}
+
+//
 // If periodic, copy the values from sync registers onto the nodes of the
 // rhs which are not covered by sync registers through periodic shifts.
 //
@@ -99,7 +300,7 @@ SyncRegister::~SyncRegister () {}
 void
 SyncRegister::copyPeriodic (const Geometry& geom,
                             const Box&      domain,
-                            MultiFab&       rhs) const
+                            MultiFab&       rhs)
 {
     if (!geom.isAnyPeriodic()) return;
 
@@ -198,167 +399,14 @@ SyncRegister::copyPeriodic (const Geometry& geom,
         }
     }
 
-#ifdef BL_USE_MPI
     if (ParallelDescriptor::NProcs() == 1) return;
-    //
-    // Do this before prematurely exiting if running in parallel.
-    // Otherwise sequence numbers will not match across MPI processes.
-    //
-    const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if (m_SndTags.empty() && m_RcvTags.empty())
-        //
-        // No parallel work for this MPI process to do.
-        //
-        return;
-
-    Array<MPI_Status>  stats;
-    Array<int>         recv_from, index;
-    Array<double*>     recv_data, send_data;
-    Array<MPI_Request> recv_reqs, send_reqs;
-    //
-    // Post rcvs. Allocate one chunk of space to hold'm all.
-    //
-    int TotalRcvsVolume = 0;
-    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
-             End = m_RcvVols.end();
-         it != End;
-         ++it)
-    {
-        TotalRcvsVolume += it->second;
-    }
-    TotalRcvsVolume *= ncomp;
-
-    BL_ASSERT((TotalRcvsVolume*sizeof(double)) < std::numeric_limits<int>::max());
-
-    double* the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
-
-    int Offset = 0;
-    for (MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.begin(),
-             m_End = m_RcvTags.end();
-         m_it != m_End;
-         ++m_it)
-    {
-        vol_it = m_RcvVols.find(m_it->first);
-
-        BL_ASSERT(vol_it != m_RcvVols.end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        recv_data.push_back(&the_recv_data[Offset]);
-        recv_from.push_back(m_it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
-
-        Offset += N;
-    }
-    //
-    // Send the data.
-    //
-    for (MapOfCopyComTagContainers::const_iterator m_it = m_SndTags.begin(),
-             m_End = m_SndTags.end();
-         m_it != m_End;
-         ++m_it)
-    {
-        vol_it = m_SndVols.find(m_it->first);
-
-        BL_ASSERT(vol_it != m_SndVols.end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        double* data = static_cast<double*>(BoxLib::The_Arena()->alloc(N*sizeof(double)));
-        double* dptr = data;
-
-        for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                 End = m_it->second.end();
-             it != End;
-             ++it)
-        {
-            const Box& bx = it->box;
-            fab.resize(bx,ncomp);
-            fab.copy(bndry[it->srcIndex][it->fabIndex],bx,0,bx,0,ncomp);
-            const int Cnt = bx.numPts()*ncomp;
-            memcpy(dptr,fab.dataPtr(),Cnt*sizeof(double));
-            dptr += Cnt;
-        }
-        BL_ASSERT(data+N == dptr);
-
-        if (FabArrayBase::do_async_sends)
-        {
-            send_data.push_back(data);
-            send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
-        }
-        else
-        {
-            ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
-            BoxLib::The_Arena()->free(data);
-        }
-    }
-    //
-    // Now receive and unpack FAB data as it becomes available.
-    //
-    MapOfCopyComTagContainers::const_iterator m_it;
-
-    const int N_rcvs = m_RcvTags.size();
-
-    index.resize(N_rcvs);
-    stats.resize(N_rcvs);
-
-    for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
-    {
-        ParallelDescriptor::Waitsome(recv_reqs, completed, index, stats);
-
-        for (int k = 0; k < completed; k++)
-        {
-            const double* dptr = recv_data[index[k]];
-
-            BL_ASSERT(dptr != 0);
-
-            m_it = m_RcvTags.find(recv_from[index[k]]);
-
-            BL_ASSERT(m_it != m_RcvTags.end());
-
-            for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                     End = m_it->second.end();
-                 it != End;
-                 ++it)
-            {
-                const Box& bx = it->box;
-                fab.resize(bx,ncomp);
-                const int Cnt = bx.numPts()*ncomp;
-                memcpy(fab.dataPtr(),dptr,Cnt*sizeof(double));
-                rhs[it->fabIndex].copy(fab,bx,0,bx,0,ncomp);
-                dptr += Cnt;
-            }
-        }
-    }
-
-    BoxLib::The_Arena()->free(the_recv_data);
-
-    if (FabArrayBase::do_async_sends && !m_SndTags.empty())
-    {
-        //
-        // Now grok the asynchronous send buffers & free up send buffer space.
-        //
-        const int N_snds = m_SndTags.size();
-
-        stats.resize(N_snds);
-
-        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-        for (int i = 0; i < N_snds; i++)
-            BoxLib::The_Arena()->free(send_data[i]);
-    }
-#endif /*BL_USE_MPI*/
+    SendRecvDoit(m_SndTags,m_RcvTags,m_SndVols,m_RcvVols,ncomp,SyncRegister::CopyPeriodic,&rhs,0);
 }
 
 void
-SyncRegister::multByBndryMask (MultiFab& rhs) const
+SyncRegister::multByBndryMask (MultiFab& rhs)
 {
-    FArrayBox                         fab;
     FabArrayBase::CopyComTag          tag;
     MapOfCopyComTagContainers         m_SndTags, m_RcvTags;
     std::map<int,int>                 m_SndVols, m_RcvVols;
@@ -442,161 +490,9 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
         }
     }
 
-#ifdef BL_USE_MPI
     if (ParallelDescriptor::NProcs() == 1) return;
-    //
-    // Do this before prematurely exiting if running in parallel.
-    // Otherwise sequence numbers will not match across MPI processes.
-    //
-    const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if (m_SndTags.empty() && m_RcvTags.empty())
-        //
-        // No parallel work for this MPI process to do.
-        //
-        return;
-
-    Array<MPI_Status>  stats;
-    Array<int>         recv_from, index;
-    Array<double*>     recv_data, send_data;
-    Array<MPI_Request> recv_reqs, send_reqs;
-    //
-    // Post rcvs. Allocate one chunk of space to hold'm all.
-    //
-    int TotalRcvsVolume = 0;
-    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
-             End = m_RcvVols.end();
-         it != End;
-         ++it)
-    {
-        TotalRcvsVolume += it->second;
-    }
-    TotalRcvsVolume *= ncomp;
-
-    BL_ASSERT((TotalRcvsVolume*sizeof(double)) < std::numeric_limits<int>::max());
-
-    double* the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
-
-    int Offset = 0;
-    for (MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.begin(),
-             m_End = m_RcvTags.end();
-         m_it != m_End;
-         ++m_it)
-    {
-        vol_it = m_RcvVols.find(m_it->first);
-
-        BL_ASSERT(vol_it != m_RcvVols.end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        recv_data.push_back(&the_recv_data[Offset]);
-        recv_from.push_back(m_it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
-
-        Offset += N;
-    }
-    //
-    // Send the data.
-    //
-    for (MapOfCopyComTagContainers::const_iterator m_it = m_SndTags.begin(),
-             m_End = m_SndTags.end();
-         m_it != m_End;
-         ++m_it)
-    {
-        vol_it = m_SndVols.find(m_it->first);
-
-        BL_ASSERT(vol_it != m_SndVols.end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        double* data = static_cast<double*>(BoxLib::The_Arena()->alloc(N*sizeof(double)));
-        double* dptr = data;
-
-        for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                 End = m_it->second.end();
-             it != End;
-             ++it)
-        {
-            const Box& bx = it->box;
-            fab.resize(bx,ncomp);
-            fab.copy(bndry_mask[it->srcIndex][it->fabIndex],bx,0,bx,0,ncomp);
-            const int Cnt = bx.numPts()*ncomp;
-            memcpy(dptr,fab.dataPtr(),Cnt*sizeof(double));
-            dptr += Cnt;
-        }
-        BL_ASSERT(data+N == dptr);
-
-        if (FabArrayBase::do_async_sends)
-        {
-            send_data.push_back(data);
-            send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
-        }
-        else
-        {
-            ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
-            BoxLib::The_Arena()->free(data);
-        }
-    }
-    //
-    // Now receive and unpack FAB data as it becomes available.
-    //
-    MapOfCopyComTagContainers::const_iterator m_it;
-
-    const int N_rcvs = m_RcvTags.size();
-
-    index.resize(N_rcvs);
-    stats.resize(N_rcvs);
-
-    for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
-    {
-        ParallelDescriptor::Waitsome(recv_reqs, completed, index, stats);
-
-        for (int k = 0; k < completed; k++)
-        {
-            const double* dptr = recv_data[index[k]];
-
-            BL_ASSERT(dptr != 0);
-
-            m_it = m_RcvTags.find(recv_from[index[k]]);
-
-            BL_ASSERT(m_it != m_RcvTags.end());
-
-            for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                     End = m_it->second.end();
-                 it != End;
-                 ++it)
-            {
-                const Box& bx = it->box;
-                fab.resize(bx,ncomp);
-                const int Cnt = bx.numPts()*ncomp;
-                memcpy(fab.dataPtr(),dptr,Cnt*sizeof(double));
-                rhs[it->fabIndex].mult(fab,bx,bx,0,0,ncomp);
-                dptr += Cnt;
-            }
-        }
-    }
-
-    BoxLib::The_Arena()->free(the_recv_data);
-
-    if (FabArrayBase::do_async_sends && !m_SndTags.empty())
-    {
-        //
-        // Now grok the asynchronous send buffers & free up send buffer space.
-        //
-        const int N_snds = m_SndTags.size();
-
-        stats.resize(N_snds);
-
-        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-        for (int i = 0; i < N_snds; i++)
-            BoxLib::The_Arena()->free(send_data[i]);
-    }
-#endif /*BL_USE_MPI*/
+    SendRecvDoit(m_SndTags,m_RcvTags,m_SndVols,m_RcvVols,ncomp,SyncRegister::MultByBndryMask,&rhs,0);
 }
 
 void
@@ -906,161 +802,9 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
         }
     }
 
-#ifdef BL_USE_MPI
     if (ParallelDescriptor::NProcs() == 1) return;
-    //
-    // Do this before prematurely exiting if running in parallel.
-    // Otherwise sequence numbers will not match across MPI processes.
-    //
-    const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if (m_SndTags.empty() && m_RcvTags.empty())
-        //
-        // No parallel work for this MPI process to do.
-        //
-        return;
-
-    Array<MPI_Status>  stats;
-    Array<int>         recv_from, index;
-    Array<double*>     recv_data, send_data;
-    Array<MPI_Request> recv_reqs, send_reqs;
-    //
-    // Post rcvs. Allocate one chunk of space to hold'm all.
-    //
-    int TotalRcvsVolume = 0;
-    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
-             End = m_RcvVols.end();
-         it != End;
-         ++it)
-    {
-        TotalRcvsVolume += it->second;
-    }
-    TotalRcvsVolume *= ncomp;
-
-    BL_ASSERT((TotalRcvsVolume*sizeof(double)) < std::numeric_limits<int>::max());
-
-    double* the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
-
-    int Offset = 0;
-    for (MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.begin(),
-             m_End = m_RcvTags.end();
-         m_it != m_End;
-         ++m_it)
-    {
-        vol_it = m_RcvVols.find(m_it->first);
-
-        BL_ASSERT(vol_it != m_RcvVols.end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        recv_data.push_back(&the_recv_data[Offset]);
-        recv_from.push_back(m_it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
-
-        Offset += N;
-    }
-    //
-    // Send the data.
-    //
-    for (MapOfCopyComTagContainers::const_iterator m_it = m_SndTags.begin(),
-             m_End = m_SndTags.end();
-         m_it != m_End;
-         ++m_it)
-    {
-        vol_it = m_SndVols.find(m_it->first);
-
-        BL_ASSERT(vol_it != m_SndVols.end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        double* data = static_cast<double*>(BoxLib::The_Arena()->alloc(N*sizeof(double)));
-        double* dptr = data;
-
-        for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                 End = m_it->second.end();
-             it != End;
-             ++it)
-        {
-            const Box& bx = it->box;
-            fab.resize(bx,ncomp);
-            fab.copy(mf[it->fabIndex],bx,0,bx,0,ncomp);
-            const int Cnt = bx.numPts()*ncomp;
-            memcpy(dptr,fab.dataPtr(),Cnt*sizeof(double));
-            dptr += Cnt;
-        }
-        BL_ASSERT(data+N == dptr);
-
-        if (FabArrayBase::do_async_sends)
-        {
-            send_data.push_back(data);
-            send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
-        }
-        else
-        {
-            ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
-            BoxLib::The_Arena()->free(data);
-        }
-    }
-    //
-    // Now receive and unpack FAB data as it becomes available.
-    //
-    MapOfCopyComTagContainers::const_iterator m_it;
-
-    const int N_rcvs = m_RcvTags.size();
-
-    index.resize(N_rcvs);
-    stats.resize(N_rcvs);
-
-    for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
-    {
-        ParallelDescriptor::Waitsome(recv_reqs, completed, index, stats);
-
-        for (int k = 0; k < completed; k++)
-        {
-            const double* dptr = recv_data[index[k]];
-
-            BL_ASSERT(dptr != 0);
-
-            m_it = m_RcvTags.find(recv_from[index[k]]);
-
-            BL_ASSERT(m_it != m_RcvTags.end());
-
-            for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                     End = m_it->second.end();
-                 it != End;
-                 ++it)
-            {
-                const Box& bx = it->box;
-                fab.resize(bx,ncomp);
-                const int Cnt = bx.numPts()*ncomp;
-                memcpy(fab.dataPtr(),dptr,Cnt*sizeof(double));
-                bndry[it->srcIndex][it->fabIndex].plus(fab,bx,bx,0,0,ncomp);
-                dptr += Cnt;
-            }
-        }
-    }
-
-    BoxLib::The_Arena()->free(the_recv_data);
-
-    if (FabArrayBase::do_async_sends && !m_SndTags.empty())
-    {
-        //
-        // Now grok the asynchronous send buffers & free up send buffer space.
-        //
-        const int N_snds = m_SndTags.size();
-
-        stats.resize(N_snds);
-
-        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-        for (int i = 0; i < N_snds; i++)
-            BoxLib::The_Arena()->free(send_data[i]);
-    }
-#endif /*BL_USE_MPI*/
+    SendRecvDoit(m_SndTags,m_RcvTags,m_SndVols,m_RcvVols,ncomp,SyncRegister::IncrementPeriodic,0,&mf);
 }
 
 void

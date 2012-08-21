@@ -60,6 +60,23 @@ public:
 
 protected:
     //
+    // Helpers for various parallel routines.
+    //
+    typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
+
+    typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+
+    enum Who { CopyPeriodic, MultByBndryMask, IncrementPeriodic };
+
+    void SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
+                       const MapOfCopyComTagContainers& m_RcvTags,
+                       const std::map<int,int>&         m_SndVols,
+                       const std::map<int,int>&         m_RcvVols,
+                       int                              ncomp,
+                       Who                              who,
+                       MultiFab*                        rhs,
+                       const MultiFab*                  mf);
+    //
     // Helper member functions.
     //
     void incrementPeriodic (const Geometry& geom,
@@ -68,9 +85,9 @@ protected:
 
     void copyPeriodic (const Geometry& geom,
                        const Box&      domain,
-                       MultiFab&       rhs) const;
+                       MultiFab&       rhs);
 
-    void multByBndryMask (MultiFab& rhs) const;
+    void multByBndryMask (MultiFab& rhs);
     //
     // The data.
     //
