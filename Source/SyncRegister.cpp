@@ -12,16 +12,6 @@
 #include <NAVIERSTOKES_F.H>
 #include <SYNCREG_F.H>
 
-//
-// Used in some parallel SyncRegister operations.
-// These data structures are used in a number of other places.
-// I'm reusing'm here to cut down on code bloat.
-//
-
-//typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
-
-//typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
-
 SyncRegister::SyncRegister ()
 {
     fine_level = -1;
@@ -361,18 +351,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                         }
                         else
                         {
-                            m_RcvTags[src_owner].push_back(tag);
-
-                            vol_it = m_RcvVols.find(src_owner);
-
-                            if (vol_it != m_RcvVols.end())
-                            {
-                                vol_it->second += vol;
-                            }
-                            else
-                            {
-                                m_RcvVols[src_owner] = vol;
-                            }
+                            FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                         }
                     }
                     else if (src_owner == MyProc)
@@ -381,18 +360,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                         tag.srcIndex = face;  // Store face in srcIndex!
                         tag.box      = sbx;
 
-                        m_SndTags[dst_owner].push_back(tag);
-
-                        vol_it = m_SndVols.find(dst_owner);
-
-                        if (vol_it != m_SndVols.end())
-                        {
-                            vol_it->second += vol;
-                        }
-                        else
-                        {
-                            m_SndVols[dst_owner] = vol;
-                        }
+                        FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
                     }
                 }
             }
@@ -454,18 +422,7 @@ SyncRegister::multByBndryMask (MultiFab& rhs)
                     }
                     else
                     {
-                        m_RcvTags[src_owner].push_back(tag);
-
-                        vol_it = m_RcvVols.find(src_owner);
-
-                        if (vol_it != m_RcvVols.end())
-                        {
-                            vol_it->second += vol;
-                        }
-                        else
-                        {
-                            m_RcvVols[src_owner] = vol;
-                        }
+                        FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                     }
                 }
                 else if (src_owner == MyProc)
@@ -473,18 +430,7 @@ SyncRegister::multByBndryMask (MultiFab& rhs)
                     tag.fabIndex = k;
                     tag.srcIndex = face;
 
-                    m_SndTags[dst_owner].push_back(tag);
-
-                    vol_it = m_SndVols.find(dst_owner);
-
-                    if (vol_it != m_SndVols.end())
-                    {
-                        vol_it->second += vol;
-                    }
-                    else
-                    {
-                        m_SndVols[dst_owner] = vol;
-                    }
+                    FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
                 }
             }
         }
@@ -765,18 +711,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                         }
                         else
                         {
-                            m_RcvTags[src_owner].push_back(tag);
-
-                            vol_it = m_RcvVols.find(src_owner);
-
-                            if (vol_it != m_RcvVols.end())
-                            {
-                                vol_it->second += vol;
-                            }
-                            else
-                            {
-                                m_RcvVols[src_owner] = vol;
-                            }
+                            FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                         }
                     }
                     else if (src_owner == MyProc)
@@ -784,18 +719,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                         tag.fabIndex = j;
                         tag.box      = sbx;
 
-                        m_SndTags[dst_owner].push_back(tag);
-
-                        vol_it = m_SndVols.find(dst_owner);
-
-                        if (vol_it != m_SndVols.end())
-                        {
-                            vol_it->second += vol;
-                        }
-                        else
-                        {
-                            m_SndVols[dst_owner] = vol;
-                        }
+                        FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
                     }
                 }
             }
