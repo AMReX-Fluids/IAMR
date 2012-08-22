@@ -62,9 +62,9 @@ protected:
     //
     // Helpers for various parallel routines.
     //
-    typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
+    typedef FabArrayBase::CopyComTag::CopyComTagsContainer CopyComTagsContainer;
 
-    typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+    typedef FabArrayBase::CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
 
     enum Who { CopyPeriodic, MultByBndryMask, IncrementPeriodic };
 
