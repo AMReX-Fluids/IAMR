@@ -126,40 +126,9 @@ SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
-    int TotalRcvsVolume = 0;
-    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
-             End = m_RcvVols.end();
-         it != End;
-         ++it)
-    {
-        TotalRcvsVolume += it->second;
-    }
-    TotalRcvsVolume *= ncomp;
+    double* the_recv_data = 0;
 
-    BL_ASSERT((TotalRcvsVolume*sizeof(double)) < std::numeric_limits<int>::max());
-
-    double* the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
-
-    int Offset = 0;
-    for (MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.begin(),
-             m_End = m_RcvTags.end();
-         m_it != m_End;
-         ++m_it)
-    {
-        std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
-
-        BL_ASSERT(vol_it != m_RcvVols.end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        recv_data.push_back(&the_recv_data[Offset]);
-        recv_from.push_back(m_it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
-
-        Offset += N;
-    }
+    FabArrayBase::CopyComTag::PostRcvs(m_RcvTags,m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
     //
     // Send the data.
     //
@@ -217,8 +186,6 @@ SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
     //
     // Now receive and unpack FAB data as it becomes available.
     //
-    MapOfCopyComTagContainers::const_iterator m_it;
-
     const int N_rcvs = m_RcvTags.size();
 
     index.resize(N_rcvs);
@@ -234,7 +201,7 @@ SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
 
             BL_ASSERT(dptr != 0);
 
-            m_it = m_RcvTags.find(recv_from[index[k]]);
+            MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.find(recv_from[index[k]]);
 
             BL_ASSERT(m_it != m_RcvTags.end());
 
@@ -286,7 +253,6 @@ SyncRegister::copyPeriodic (const Geometry& geom,
     FabArrayBase::CopyComTag    tag;
     MapOfCopyComTagContainers   m_SndTags, m_RcvTags;
     std::map<int,int>           m_SndVols, m_RcvVols;
-    std::map<int,int>::iterator vol_it;
     Array<IntVect>              pshifts(27);
 
     const int                  MyProc  = ParallelDescriptor::MyProc();
@@ -366,7 +332,6 @@ SyncRegister::multByBndryMask (MultiFab& rhs)
     FabArrayBase::CopyComTag          tag;
     MapOfCopyComTagContainers         m_SndTags, m_RcvTags;
     std::map<int,int>                 m_SndVols, m_RcvVols;
-    std::map<int,int>::iterator       vol_it;
     std::vector< std::pair<int,Box> > isects;
 
     const int                  MyProc  = ParallelDescriptor::MyProc();
@@ -641,7 +606,6 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
     FabArrayBase::CopyComTag    tag;
     MapOfCopyComTagContainers   m_SndTags, m_RcvTags;
     std::map<int,int>           m_SndVols, m_RcvVols;
-    std::map<int,int>::iterator vol_it;
     Array<IntVect>              pshifts(27);
 
     const int                  MyProc  = ParallelDescriptor::MyProc();
