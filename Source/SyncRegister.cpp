@@ -289,13 +289,9 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                     if (!dbx.ok()) continue;
 
                     const Box sbx = dbx - pshifts[ii];
-                    const int vol = dbx.numPts();
 
                     if (dst_owner == MyProc)
                     {
-                        tag.fabIndex = i;
-                        tag.box      = dbx;
-
                         if (src_owner == MyProc)
                         {
                             //
@@ -305,6 +301,11 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                         }
                         else
                         {
+                            tag.fabIndex = i;
+                            tag.box      = dbx;
+
+                            const int vol = dbx.numPts();
+
                             FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                         }
                     }
@@ -313,6 +314,8 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                         tag.fabIndex = j;
                         tag.srcIndex = face;  // Store face in srcIndex!
                         tag.box      = sbx;
+
+                        const int vol = dbx.numPts();
 
                         FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
                     }
@@ -358,14 +361,8 @@ SyncRegister::multByBndryMask (MultiFab& rhs)
 
                 if (dst_owner != MyProc && src_owner != MyProc) continue;
 
-                tag.box = bx;
-
-                const int vol = bx.numPts();
-
                 if (dst_owner == MyProc)
                 {
-                    tag.fabIndex = i;
-
                     if (src_owner == MyProc)
                     {
                         //
@@ -375,13 +372,21 @@ SyncRegister::multByBndryMask (MultiFab& rhs)
                     }
                     else
                     {
+                        tag.box      = bx;
+                        tag.fabIndex = i;
+
+                        const int vol = bx.numPts();
+
                         FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                     }
                 }
                 else if (src_owner == MyProc)
                 {
+                    tag.box      = bx;
                     tag.fabIndex = k;
                     tag.srcIndex = face;
+
+                    const int vol = bx.numPts();
 
                     FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
                 }
@@ -646,14 +651,9 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                     if (!dbx.ok()) continue;
 
                     const Box sbx = dbx - pshifts[ii];
-                    const int vol = sbx.numPts();
 
                     if (dst_owner == MyProc)
                     {
-                        tag.fabIndex = i;
-                        tag.srcIndex = face;  // Store face in srcIndex!
-                        tag.box      = dbx;
-
                         if (src_owner == MyProc)
                         {
                             //
@@ -663,6 +663,12 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                         }
                         else
                         {
+                            tag.fabIndex = i;
+                            tag.srcIndex = face;  // Store face in srcIndex!
+                            tag.box      = dbx;
+
+                            const int vol = sbx.numPts();
+
                             FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                         }
                     }
@@ -670,6 +676,8 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                     {
                         tag.fabIndex = j;
                         tag.box      = sbx;
+
+                        const int vol = sbx.numPts();
 
                         FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
                     }
