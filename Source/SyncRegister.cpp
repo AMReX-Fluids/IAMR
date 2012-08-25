@@ -277,12 +277,6 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                 if (dst_owner != MyProc && src_owner != MyProc) continue;
 
                 const Box fabbox = fabset.fabbox(j);
-                //
-                // domain & fabbox are nodal.  If we grow fabbox by one and it's
-                // contained in domain, then shifting by geom.Domain() can't possible
-                // return any intersections.
-                //
-                if (domain.contains(BoxLib::grow(fabbox,1))) continue;
 
                 geom.periodicShift(domain,fabbox,pshifts);
 
@@ -635,12 +629,6 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
     for (int j = 0, N = mfba.size(); j < N; j++)
     {
         const Box& bx = mfba[j];
-        //
-        // domain & bx are nodal.  If we grow bx by one and it's
-        // contained in domain, then shifting by geom.Domain() can't possible
-        // return any intersections.
-        //
-        if (domain.contains(BoxLib::grow(bx,1))) continue;
 
         geom.periodicShift(domain, bx, pshifts);
 
