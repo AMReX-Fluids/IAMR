@@ -79,7 +79,14 @@ MacProj::Initialize ()
     MacProj::use_cg_solve           = false;
     MacProj::do_outflow_bcs         = 1;
     MacProj::fix_mac_sync_rhs       = 0;
+    //
+    // Only check umac periodicity when debugging.  Can be overridden on input.
+    //
+#ifdef NDEBUG
+    MacProj::check_umac_periodicity = 0;
+#else
     MacProj::check_umac_periodicity = 1;
+#endif
 
     umac_periodic_test_Tol = 1.e-10;
 
