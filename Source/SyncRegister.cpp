@@ -277,18 +277,28 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                 if (dst_owner != MyProc && src_owner != MyProc) continue;
 
                 const Box fabbox = fabset.fabbox(j);
+                //
+                // domain & fabbox are nodal.  If we grow fabbox by one and it's
+                // contained in domain, then shifting by geom.Domain() can't possible
+                // return any intersections.
+                //
+                if (domain.contains(BoxLib::grow(fabbox,1))) continue;
 
                 geom.periodicShift(domain,fabbox,pshifts);
 
-                for (int ii = 0, M = pshifts.size(); ii < M; ii++)
+                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                     it != End;
+                     ++it)
                 {
-                    Box dbx = fabbox + pshifts[ii];
+                    const IntVect& iv = *it;
+
+                    Box dbx = fabbox + iv;
 
                     dbx &= rhsbox;
 
                     if (!dbx.ok()) continue;
 
-                    const Box sbx = dbx - pshifts[ii];
+                    const Box sbx = dbx - iv;
 
                     if (dst_owner == MyProc)
                     {
@@ -485,24 +495,28 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                 tmpfab.setVal(1,isects[i].second,0,1);
             }
  
-            if (geom.isAnyPeriodic())
+            if (geom.isAnyPeriodic() && !geom.Domain().contains(mask_cells))
             {
                 geom.periodicShift(geom.Domain(),mask_cells,pshifts);
 
-                for (int j = 0, M = pshifts.size(); j < M; j++)
+                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                     it != End;
+                     ++it)
                 {
-                    mask_cells += pshifts[j];
+                    const IntVect& iv = *it;
+
+                    mask_cells += iv;
 
                     grids.intersections(mask_cells,isects);
 
                     for (int i = 0, N = isects.size(); i < N; i++)
                     {
                         Box& isect = isects[i].second;
-                        isect     -= pshifts[j];
+                        isect     -= iv;
                         tmpfab.setVal(1,isect,0,1);
                     }
 
-                    mask_cells -= pshifts[j];
+                    mask_cells -= iv;
                 }
             }
             Real* mask_dat = fab.dataPtr();
@@ -621,6 +635,12 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
     for (int j = 0, N = mfba.size(); j < N; j++)
     {
         const Box& bx = mfba[j];
+        //
+        // domain & bx are nodal.  If we grow bx by one and it's
+        // contained in domain, then shifting by geom.Domain() can't possible
+        // return any intersections.
+        //
+        if (domain.contains(BoxLib::grow(bx,1))) continue;
 
         geom.periodicShift(domain, bx, pshifts);
 
@@ -642,15 +662,19 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
                 const Box fabbox = fabset.fabbox(i);
 
-                for (int ii = 0, M = pshifts.size(); ii < M; ii++)
+                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                     it != End;
+                     ++it)
                 {
-                    Box dbx = bx + pshifts[ii];
+                    const IntVect& iv = *it;
+
+                    Box dbx = bx + iv;
 
                     dbx &= fabbox;
 
                     if (!dbx.ok()) continue;
 
-                    const Box sbx = dbx - pshifts[ii];
+                    const Box sbx = dbx - iv;
 
                     if (dst_owner == MyProc)
                     {
