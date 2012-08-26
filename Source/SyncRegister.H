@@ -66,7 +66,7 @@ protected:
 
     typedef FabArrayBase::CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
 
-    enum Who { CopyPeriodic, MultByBndryMask, IncrementPeriodic };
+    enum Who { CopyPeriodic, IncrementPeriodic };
 
     void SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
                        const MapOfCopyComTagContainers& m_RcvTags,
@@ -87,7 +87,7 @@ protected:
                        const Box&      domain,
                        MultiFab&       rhs);
 
-    void multByBndryMask (MultiFab& rhs);
+    void multByBndryMask (MultiFab& rhs) const;
     //
     // The data.
     //

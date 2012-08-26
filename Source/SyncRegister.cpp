@@ -95,15 +95,7 @@ SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
                             MultiFab*                        rhs,
                             const MultiFab*                  mf)
 {
-    switch (who)
-    {
-    case SyncRegister::CopyPeriodic:
-        BL_ASSERT(rhs != 0); break;
-    case SyncRegister::MultByBndryMask:
-        BL_ASSERT(rhs != 0); break;
-    case SyncRegister::IncrementPeriodic:
-        BL_ASSERT(mf != 0); break;
-    }
+    BL_ASSERT(who == SyncRegister::CopyPeriodic || who ==  SyncRegister::IncrementPeriodic);
 
 #ifdef BL_USE_MPI
     //
@@ -156,14 +148,13 @@ SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
             const Box& bx = it->box;
             fab.resize(bx,ncomp);
 
-            switch (who)
+            if (who == SyncRegister::CopyPeriodic)
             {
-            case SyncRegister::CopyPeriodic:
-                fab.copy(bndry[it->srcIndex][it->fabIndex],bx,0,bx,0,ncomp); break;
-            case SyncRegister::MultByBndryMask:
-                fab.copy(bndry_mask[it->srcIndex][it->fabIndex],bx,0,bx,0,ncomp); break;
-            case SyncRegister::IncrementPeriodic:
-                fab.copy((*mf)[it->fabIndex],bx,0,bx,0,ncomp); break;
+                fab.copy(bndry[it->srcIndex][it->fabIndex],bx,0,bx,0,ncomp);
+            }
+            else
+            {
+                fab.copy((*mf)[it->fabIndex],bx,0,bx,0,ncomp);
             }
 
             const int Cnt = bx.numPts()*ncomp;
@@ -215,14 +206,13 @@ SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
                 const int Cnt = bx.numPts()*ncomp;
                 memcpy(fab.dataPtr(),dptr,Cnt*sizeof(double));
 
-                switch (who)
+                if (who == SyncRegister::CopyPeriodic)
                 {
-                case SyncRegister::CopyPeriodic:
-                    (*rhs)[it->fabIndex].copy(fab,bx,0,bx,0,ncomp); break;
-                case SyncRegister::MultByBndryMask:
-                    (*rhs)[it->fabIndex].mult(fab,bx,bx,0,0,ncomp); break;
-                case SyncRegister::IncrementPeriodic:
-                    bndry[it->srcIndex][it->fabIndex].plus(fab,bx,bx,0,0,ncomp); break;
+                    (*rhs)[it->fabIndex].copy(fab,bx,0,bx,0,ncomp);
+                }
+                else
+                {
+                    bndry[it->srcIndex][it->fabIndex].plus(fab,bx,bx,0,0,ncomp);
                 }
 
                 dptr += Cnt;
@@ -331,74 +321,69 @@ SyncRegister::copyPeriodic (const Geometry& geom,
     SendRecvDoit(m_SndTags,m_RcvTags,m_SndVols,m_RcvVols,ncomp,SyncRegister::CopyPeriodic,&rhs,0);
 }
 
-void
-SyncRegister::multByBndryMask (MultiFab& rhs)
+//
+// Structure used by multByBndryMask.
+//
+
+struct SRRec
 {
-    FabArrayBase::CopyComTag          tag;
-    MapOfCopyComTagContainers         m_SndTags, m_RcvTags;
-    std::map<int,int>                 m_SndVols, m_RcvVols;
+    FillBoxId   m_fbid;
+    int         m_idx;
+    Orientation m_face;
+};
+
+void
+SyncRegister::multByBndryMask (MultiFab& rhs) const
+{
+    FabSetCopyDescriptor              fscd;
+    FabSetId                          fsid[2*BL_SPACEDIM];
+    std::deque<SRRec>                 SRRecs;
+    FArrayBox                         fab;
+    SRRec                             SR;
     std::vector< std::pair<int,Box> > isects;
 
-    const int                  MyProc  = ParallelDescriptor::MyProc();
-    const int                  ncomp   = rhs.nComp();
-    const DistributionMapping& dstDMap = rhs.DistributionMap();
-
-    for (OrientationIter face_it; face_it; ++face_it)
+    for (OrientationIter face; face; ++face)
     {
-        const Orientation          face    = face_it();
-        const FabSet&              fabset  = bndry_mask[face];
-        const DistributionMapping& srcDMap = fabset.DistributionMap();
+        fsid[face()] = fscd.RegisterFabSet((FabSet*) &bndry_mask[face()]);
 
-        for (int i = 0, M = rhs.size(); i < M; i++)
+        for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
         {
-            const int dst_owner = dstDMap[i];
+            bndry_mask[face()].boxArray().intersections(rhs[mfi].box(),isects);
 
-            fabset.boxArray().intersections(rhs.fabbox(i),isects);
-
-            for (int ii = 0, N = isects.size(); ii < N; ii++)
+            for (int i = 0, N = isects.size(); i < N; i++)
             {
-                const Box& bx        = isects[ii].second;
-                const int  k         = isects[ii].first;
-                const int  src_owner = srcDMap[k];
-
-                if (dst_owner != MyProc && src_owner != MyProc) continue;
-
-                if (dst_owner == MyProc)
-                {
-                    if (src_owner == MyProc)
-                    {
-                        //
-                        // Do the local work right here.
-                        //
-                        rhs[i].mult(fabset[k],bx,bx,0,0,ncomp);
-                    }
-                    else
-                    {
-                        tag.box      = bx;
-                        tag.fabIndex = i;
-
-                        const int vol = bx.numPts();
-
-                        FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
-                    }
-                }
-                else if (src_owner == MyProc)
-                {
-                    tag.box      = bx;
-                    tag.fabIndex = k;
-                    tag.srcIndex = face;
-
-                    const int vol = bx.numPts();
-
-                    FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
-                }
+                SR.m_idx  = mfi.index();
+                SR.m_face = face();
+                SR.m_fbid = fscd.AddBox(fsid[face()],
+                                        isects[i].second,
+                                        0,
+                                        isects[i].first,
+                                        0,
+                                        0,
+                                        rhs[mfi].nComp());
+                SRRecs.push_back(SR);
             }
         }
     }
 
-    if (ParallelDescriptor::NProcs() == 1) return;
+    fscd.CollectData();
 
-    SendRecvDoit(m_SndTags,m_RcvTags,m_SndVols,m_RcvVols,ncomp,SyncRegister::MultByBndryMask,&rhs,0);
+    for (std::deque<SRRec>::const_iterator it = SRRecs.begin(), End = SRRecs.end();
+         it != End;
+         ++it)
+    {
+        const Box& bx = it->m_fbid.box();
+
+        BL_ASSERT(rhs.DistributionMap()[it->m_idx] == ParallelDescriptor::MyProc());
+
+        FArrayBox& rhs_fab = rhs[it->m_idx];
+
+        fab.resize(bx, rhs_fab.nComp());
+
+        fscd.FillFab(fsid[it->m_face], it->m_fbid, fab, bx);
+
+        rhs_fab.mult(fab, bx, bx, 0, 0, rhs_fab.nComp());
+    }
 }
 
 void
