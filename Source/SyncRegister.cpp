@@ -267,7 +267,6 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
         for (int i = 0; i < rhs.size(); i++)
         {
-            const Box rhsbox    = rhs.fabbox(i);
             const int dst_owner = dstDMap[i];
 
             for (int j = 0, N = grids.size(); j < N; j++)
@@ -276,6 +275,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
                 if (dst_owner != MyProc && src_owner != MyProc) continue;
 
+                const Box rhsbox = rhs.fabbox(i);
                 const Box fabbox = fabset.fabbox(j);
 
                 geom.periodicShift(domain,fabbox,pshifts);
@@ -286,9 +286,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                 {
                     const IntVect& iv = *it;
 
-                    Box dbx = fabbox + iv;
-
-                    dbx &= rhsbox;
+                    Box dbx = fabbox + iv; dbx &= rhsbox;
 
                     if (!dbx.ok()) continue;
 
@@ -656,9 +654,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                 {
                     const IntVect& iv = *it;
 
-                    Box dbx = bx + iv;
-
-                    dbx &= fabbox;
+                    Box dbx = bx + iv; dbx &= fabbox;
 
                     if (!dbx.ok()) continue;
 
