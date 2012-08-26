@@ -11,6 +11,7 @@
 #include <ParallelDescriptor.H>
 #include <AmrLevel.H>
 #include <TagBox.H>
+#include <FabSet.H>
 
 #ifndef MG_USE_F90_SOLVERS
 #include <hgparallel.H>
@@ -170,9 +171,10 @@ main (int   argc,
     //
     // Flush caches here so we get one final look at their usage space requirements.
     //
-    FabArrayBase::CPC::FlushCache();
+    FabSet::FlushCache();
     MultiFab::FlushSICache();
     Geometry::FlushPIRMCache();
+    FabArrayBase::CPC::FlushCache();
 
 #ifndef MG_USE_F90_SOLVERS
     //
