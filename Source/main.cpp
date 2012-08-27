@@ -171,10 +171,10 @@ main (int   argc,
     //
     // Flush caches here so we get one final look at their usage space requirements.
     //
-    FabSet::FlushCache();
     MultiFab::FlushSICache();
     Geometry::FlushPIRMCache();
     FabArrayBase::CPC::FlushCache();
+    DistributionMapping::FlushCache();
 
 #ifndef MG_USE_F90_SOLVERS
     //
