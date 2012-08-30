@@ -268,6 +268,8 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                 const Box rhsbox = rhs.fabbox(i);
                 const Box fabbox = fabset.fabbox(j);
 
+                if (domain.contains(BoxLib::grow(fabbox,1))) continue;
+
                 geom.periodicShift(domain,fabbox,pshifts);
 
                 for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
@@ -609,6 +611,8 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
     {
         const Box& bx = mfba[j];
 
+        if (domain.contains(BoxLib::grow(bx,1))) continue;
+
         geom.periodicShift(domain, bx, pshifts);
 
         if (pshifts.empty()) continue;
@@ -724,9 +728,11 @@ SyncRegister::CompAdd  (MultiFab*       Sync_resid_fine,
 
             fine_geom.periodicShift(sync_box, pbx, pshifts);
 
-            for (int j = 0, M = pshifts.size(); j < M; j++)
+            for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                 it != End;
+                 ++it)
             {
-                Box isect = pbx + pshifts[j];
+                Box isect = pbx + *it;
                 isect    &= sync_box;
                 syncfab.setVal(0,isect,0,1);
             }
