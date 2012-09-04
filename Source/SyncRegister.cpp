@@ -319,68 +319,28 @@ SyncRegister::copyPeriodic (const Geometry& geom,
     SendRecvDoit(m_SndTags,m_RcvTags,m_SndVols,m_RcvVols,ncomp,SyncRegister::CopyPeriodic,&rhs,0);
 }
 
-//
-// Structure used by multByBndryMask.
-//
-
-struct SRRec
-{
-    FillBoxId   m_fbid;
-    int         m_idx;
-    Orientation m_face;
-};
-
 void
 SyncRegister::multByBndryMask (MultiFab& rhs) const
 {
-    FabSetCopyDescriptor              fscd;
-    FabSetId                          fsid[2*BL_SPACEDIM];
-    std::deque<SRRec>                 SRRecs;
-    FArrayBox                         fab;
-    SRRec                             SR;
-    std::vector< std::pair<int,Box> > isects;
-
+    BL_ASSERT(rhs.nComp() == 1);
+ 
     for (OrientationIter face; face; ++face)
     {
-        fsid[face()] = fscd.RegisterFabSet((FabSet*) &bndry_mask[face()]);
+        BL_ASSERT(bndry_mask[face()].nComp() == 1);
+
+        BoxArray ba(rhs.size());
+
+        for (int i = 0; i < ba.size(); i++)
+            ba.set(i,rhs.fabbox(i));
+
+        FabSet fs(ba, 1);
+
+        fs.setVal(1);
+
+        fs.copyFrom(bndry_mask[face()]);
 
         for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
-        {
-            bndry_mask[face()].boxArray().intersections(rhs[mfi].box(),isects);
-
-            for (int i = 0, N = isects.size(); i < N; i++)
-            {
-                SR.m_idx  = mfi.index();
-                SR.m_face = face();
-                SR.m_fbid = fscd.AddBox(fsid[face()],
-                                        isects[i].second,
-                                        0,
-                                        isects[i].first,
-                                        0,
-                                        0,
-                                        rhs[mfi].nComp());
-                SRRecs.push_back(SR);
-            }
-        }
-    }
-
-    fscd.CollectData();
-
-    for (std::deque<SRRec>::const_iterator it = SRRecs.begin(), End = SRRecs.end();
-         it != End;
-         ++it)
-    {
-        const Box& bx = it->m_fbid.box();
-
-        BL_ASSERT(rhs.DistributionMap()[it->m_idx] == ParallelDescriptor::MyProc());
-
-        FArrayBox& rhs_fab = rhs[it->m_idx];
-
-        fab.resize(bx, rhs_fab.nComp());
-
-        fscd.FillFab(fsid[it->m_face], it->m_fbid, fab, bx);
-
-        rhs_fab.mult(fab, bx, bx, 0, 0, rhs_fab.nComp());
+            rhs[mfi].mult(fs[mfi], ba[mfi.index()], ba[mfi.index()], 0, 0, 1);
     }
 }
 
