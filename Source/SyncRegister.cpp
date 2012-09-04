@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
-#include <deque>
 
 #include <BC_TYPES.H>
 #include <FluxRegister.H>
@@ -224,6 +223,7 @@ SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
 
     if (FabArrayBase::do_async_sends && !m_SndTags.empty())
         FabArrayBase::GrokAsyncSends(m_SndTags.size(),send_reqs,send_data,stats);
+
 #endif /*BL_USE_MPI*/
 }
 
@@ -239,12 +239,9 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 {
     if (!geom.isAnyPeriodic()) return;
 
-    FArrayBox                   fab;
-    FabArrayBase::CopyComTag    tag;
-    MapOfCopyComTagContainers   m_SndTags, m_RcvTags;
-    std::map<int,int>           m_SndVols, m_RcvVols;
-    Array<IntVect>              pshifts(27);
-
+    MapOfCopyComTagContainers  m_SndTags, m_RcvTags;
+    std::map<int,int>          m_SndVols, m_RcvVols;
+    Array<IntVect>             pshifts(27);
     const int                  MyProc  = ParallelDescriptor::MyProc();
     const int                  ncomp   = rhs.nComp();
     const DistributionMapping& dstDMap = rhs.DistributionMap();
@@ -283,6 +280,8 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                     if (!dbx.ok()) continue;
 
                     const Box sbx = dbx - iv;
+
+                    FabArrayBase::CopyComTag tag;
 
                     if (dst_owner == MyProc)
                     {
