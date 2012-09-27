@@ -2053,7 +2053,8 @@ c
 c     compute the slopes
 c
       if (ppm_type .gt. 0) then
-         call FORT_PPM_FPU(s,DIMS(s),uedge,vedge,wedge,DIMS(uedge),
+         call FORT_PPM_FPU(s,DIMS(s),
+     &        uedge,DIMS(uedge),vedge,DIMS(vedge),wedge,DIMS(wedge),
      &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),
      &        lo,hi,dx,dt,bc,eps_for_bc,ppm_type)
@@ -5913,7 +5914,8 @@ c     compute effect of w0 in plane-parallel
 
       end
 
-      subroutine FORT_PPM_FPU(s,DIMS(s),uedge,vedge,wedge,DIMS(uedge),
+      subroutine FORT_PPM_FPU(s,DIMS(s),
+     &     uedge,DIMS(uedge),vedge,DIMS(vedge),wedge,DIMS(wedge),
      &     Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,
      &     dx,dt,bc,eps,ppm_type)
@@ -5924,6 +5926,8 @@ c     compute effect of w0 in plane-parallel
       integer bc(SDIM,2)
       integer DIMDEC(s)
       integer DIMDEC(uedge)
+      integer DIMDEC(vedge)
+      integer DIMDEC(wedge)
       integer DIMDEC(work)
       integer DIMDEC(smp)
       integer DIMDEC(dsvl)
@@ -5932,8 +5936,8 @@ c     compute effect of w0 in plane-parallel
       integer DIMDEC(sedgez)
       REAL_T  s(DIMV(s))
       REAL_T  uedge(DIMV(uedge))
-      REAL_T  vedge(DIMV(uedge))
-      REAL_T  wedge(DIMV(uedge))
+      REAL_T  vedge(DIMV(vedge))
+      REAL_T  wedge(DIMV(wedge))
       REAL_T  Ipx(DIMV(work))
       REAL_T  Imx(DIMV(work))
       REAL_T  Ipy(DIMV(work))

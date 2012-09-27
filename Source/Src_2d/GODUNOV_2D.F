@@ -798,7 +798,7 @@ c
 c     compute the slopes
 c
       if (ppm_type .gt. 0) then
-         call FORT_PPM_FPU(s,DIMS(s),uedge,vedge,DIMS(uedge),
+         call FORT_PPM_FPU(s,DIMS(s),uedge,DIMS(uedge),vedge,DIMS(vedge),
      &        Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc, 
      &        eps_for_bc,ppm_type)
@@ -2760,7 +2760,7 @@ c     compute y-component of Ip and Im
 
       end
 
-      subroutine FORT_PPM_FPU(s,DIMS(s),uedge,vedge,DIMS(uedge),
+      subroutine FORT_PPM_FPU(s,DIMS(s),uedge,DIMS(uedge),vedge,DIMS(vedge),
      &     Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps,
      &     ppm_type)
@@ -2771,6 +2771,7 @@ c     compute y-component of Ip and Im
       integer bc(SDIM,2)
       integer DIMDEC(s)
       integer DIMDEC(uedge)
+      integer DIMDEC(vedge)
       integer DIMDEC(work)
       integer DIMDEC(smp)
       integer DIMDEC(dsvl)
@@ -2778,7 +2779,7 @@ c     compute y-component of Ip and Im
       integer DIMDEC(sedgey)
       REAL_T  s(DIMV(s))
       REAL_T  uedge(DIMV(uedge))
-      REAL_T  vedge(DIMV(uedge))
+      REAL_T  vedge(DIMV(vedge))
       REAL_T  Ipx(DIMV(work))
       REAL_T  Imx(DIMV(work))
       REAL_T  Ipy(DIMV(work))
@@ -3711,6 +3712,7 @@ c     compute y-component of Ip and Im
             else
                Ipy(i,j) = s(i,j)
             end if
+
             if (vedge(i,j) .lt. -eps) then
                Imy(i,j) = sm(i,j) + (sigmam/2.0d0)*
      &              (sp(i,j)-sm(i,j)+(1.0d0-(2.0d0/3.0d0)*sigmam)*s6)
