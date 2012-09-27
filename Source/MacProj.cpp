@@ -815,9 +815,15 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Compute total forcing terms.
         //
+#ifdef LMC_SDC
+        godunov->Sum_tf_gp_visc(tforces, 0, vel_visc_terms[S_fpi], 0, Gp[i], 0, Rho, 0);
+        godunov->Sum_tf_divu_visc(S, BL_SPACEDIM, tforces, BL_SPACEDIM, numscal,
+                                  scal_visc_terms[S_fpi], 0, divu, 0, Rho, 0, 1);
+#else
         godunov->Sum_tf_gp_visc(tforces, vel_visc_terms[S_fpi], Gp[i], Rho);
         godunov->Sum_tf_divu_visc(S, tforces, BL_SPACEDIM, numscal,
                                   scal_visc_terms[S_fpi], 0, divu, Rho, 1);
+#endif
 
         if (use_forces_in_trans)
         {
@@ -832,7 +838,11 @@ MacProj::mac_sync_compute (int                   level,
             ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho);
 #endif		 
 #endif		 
+#if LMC_SDC
+	    godunov->Sum_tf_gp_visc(tvelforces,0,vel_visc_terms[S_fpi],0,Gp[i],0,Rho,0);
+#else
             godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[S_fpi],Gp[i],Rho);
+#endif
         }
         //
         // Set up the workspace for the godunov Box.
@@ -841,6 +851,12 @@ MacProj::mac_sync_compute (int                   level,
                bndry[1] = ns_level.getBCArray(State_Type,i,1,1);,
                bndry[2] = ns_level.getBCArray(State_Type,i,2,1);)
 
+#ifdef LMC_SDC
+        godunov->Setup(grids[i], dx, dt, 0,
+                       D_DECL(xflux,yflux,zflux),
+                       D_DECL(bndry[0].dataPtr(),bndry[1].dataPtr(),bndry[2].dataPtr()),
+                       D_DECL(S,S,S), D_DECL(0,1,2), tvelforces, 0);
+#else
         godunov->Setup(grids[i], dx, dt, 0,
                        xflux, bndry[0].dataPtr(),
                        yflux, bndry[1].dataPtr(),
@@ -848,6 +864,7 @@ MacProj::mac_sync_compute (int                   level,
                        zflux, bndry[2].dataPtr(),
 #endif
                        S, Rho, tvelforces);
+#endif
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
             geom.GetFaceArea(area[dir],grids,i,dir,GEOM_GROW);
