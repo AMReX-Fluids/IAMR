@@ -3268,7 +3268,7 @@ c
                end do
             end do
          end do
-!$omp end do nowait
+!$omp end do
       end if
 c
 c     convert edge states to fluxes
@@ -3316,7 +3316,7 @@ c
                end do
             end do
          end do
-!$omp end do
+!$omp end do nowait
       else
 !$omp do
          do k = kmin,kmax
