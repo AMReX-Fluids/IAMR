@@ -3316,7 +3316,7 @@ c
                end do
             end do
          end do
-!$omp end do nowait
+!$omp end do
       else
 !$omp do
          do k = kmin,kmax
@@ -3329,7 +3329,7 @@ c
                end do
             end do
          end do
-!$omp end do nowait
+!$omp end do
       end if
 !$omp end parallel
 
@@ -3430,7 +3430,7 @@ c
             end do
          end do
       end do
-!$omp end do nowait
+!$omp end do
 !$omp end parallel
 
       end
@@ -7882,7 +7882,7 @@ c
       REAL_T tforces(DIMV(tf),SDIM)
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T rho(DIMV(rho))
-!$omp parallel private(i,j,k)
+!$omp parallel private(i,j,k,n)
       do n = 1, SDIM
 !$omp do
          do k = lo(3), hi(3)
@@ -7918,7 +7918,7 @@ c
       REAL_T visc(DIMV(visc),SDIM)
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T rho(DIMV(rho))
-!$omp parallel private(i,j,k)
+!$omp parallel private(i,j,k,n)
       do n = 1, SDIM
 !$omp do
          do k = lo(3), hi(3)
@@ -8013,7 +8013,7 @@ c
       REAL_T visc(DIMV(visc),nvar)
       REAL_T rho(DIMV(rho))
 
-!$omp parallel private(i,j,k)
+!$omp parallel private(i,j,k,n)
 
       if ( iconserv .eq. 1 ) then
          do n = 1, nvar
@@ -8137,7 +8137,7 @@ c
       REAL_T sn(DIMV(sn),nvar)
       REAL_T aofs(DIMV(aofs),nvar)
       REAL_T tforces(DIMV(tf),nvar)
-!$omp parallel private(i,j,k)
+!$omp parallel private(i,j,k,n)
       do n = 1,nvar
 !$omp do
          do k = lo(3), hi(3)
@@ -8149,7 +8149,7 @@ c
                end do
             end do
          end do
-!$omp end do
+!$omp end do nowait
       end do
 !$omp end parallel
       end
@@ -8182,7 +8182,7 @@ c
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T tforces(DIMV(tf),SDIM)
       REAL_T dt
-!$omp parallel private(i,j,k)
+!$omp parallel private(i,j,k,n)
       do n = 1, SDIM
 !$omp do
          do k = lo(3), hi(3)
