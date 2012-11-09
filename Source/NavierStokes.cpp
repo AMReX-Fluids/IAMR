@@ -1330,6 +1330,7 @@ NavierStokes::initData ()
 void
 NavierStokes::init (AmrLevel &old)
 {
+    BL_PROFILE("NavierStokes::init()");
     NavierStokes* oldns     = (NavierStokes*) &old;
     const Real    dt_new    = parent->dtLevel(level);
     const Real    cur_time  = oldns->state[State_Type].curTime();
@@ -1409,6 +1410,7 @@ NavierStokes::init (AmrLevel &old)
 void
 NavierStokes::init ()
 {
+    BL_PROFILE("NavierStokes::init()");
     MultiFab& S_new = get_new_data(State_Type);
     MultiFab& P_new = get_new_data(Press_Type);
     MultiFab& P_old = get_old_data(Press_Type);
@@ -1507,6 +1509,7 @@ NavierStokes::advance_setup (Real time,
                              int  iteration,
                              int  ncycle)
 {
+    BL_PROFILE("NavierStokes::advance_setup()");
     const int finest_level = parent->finestLevel();
     
     umac_n_grow = 1;
@@ -1670,6 +1673,7 @@ NavierStokes::advance (Real time,
                        int  iteration,
                        int  ncycle)
 {
+    BL_PROFILE("NavierStokes::advance()");
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         std::cout << "Advancing grids at level " << level
@@ -1854,6 +1858,7 @@ NavierStokes::mac_project (Real      time,
                            int       have_divu,
                            int ngrow)
 {
+    BL_PROFILE("NavierStokes::mac_project()");
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_projection\n";
 
@@ -1884,6 +1889,7 @@ NavierStokes::level_projector (Real dt,
                                Real time,
                                int  iteration)
 {
+    BL_PROFILE("NavierStokes::level_projector()");
     BL_ASSERT(iteration > 0);
 
     MultiFab& U_old = get_old_data(State_Type);
@@ -2007,6 +2013,7 @@ Real
 NavierStokes::predict_velocity (Real  dt,
                                 Real& comp_cfl)
 {
+    BL_PROFILE("NavierStokes::predict_velocity()");
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... predict edge velocities\n";
     //
@@ -2126,6 +2133,7 @@ NavierStokes::predict_velocity (Real  dt,
 void
 NavierStokes::velocity_advection (Real dt)
 {
+    BL_PROFILE("NavierStokes::velocity_advection()");
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         if (do_mom_diff == 0) 
@@ -2303,6 +2311,7 @@ NavierStokes::scalar_advection (Real dt,
                                 int  fscalar,
                                 int  lscalar)
 {
+    BL_PROFILE("NavierStokes::scalar_advection()");
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... advect scalars\n";
     //
@@ -2516,6 +2525,7 @@ NavierStokes::scalar_update (Real dt,
                              int  first_scalar,
                              int  last_scalar)
 {
+    BL_PROFILE("NavierStokes::scalar_update()");
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... update scalars\n";
 
@@ -2547,6 +2557,7 @@ NavierStokes::scalar_advection_update (Real dt,
                                        int  first_scalar,
                                        int  last_scalar)
 {
+    BL_PROFILE("NavierStokes::scalar_advection_update()");
     MultiFab&  S_old     = get_old_data(State_Type);
     MultiFab&  S_new     = get_new_data(State_Type);
     MultiFab&  Aofs      = *aofs;
@@ -2716,6 +2727,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                        int  first_scalar,
                                        int  last_scalar)
 {
+    BL_PROFILE("NavierStokes::scalar_diffusion_update()");
     MultiFab** fluxSCn;
     MultiFab** fluxSCnp1;
 
@@ -2827,6 +2839,7 @@ NavierStokes::diffuse_scalar_setup (Real        dt,
 void
 NavierStokes::velocity_update (Real dt)
 {
+    BL_PROFILE("NavierStokes::velocity_update()");
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         if (do_mom_diff == 0) 
@@ -2863,6 +2876,7 @@ NavierStokes::velocity_update (Real dt)
 void
 NavierStokes::velocity_advection_update (Real dt)
 {
+    BL_PROFILE("NavierStokes::velocity_advection_update()");
     FArrayBox  tforces, S;
     MultiFab&  U_old          = get_old_data(State_Type);
     MultiFab&  U_new          = get_new_data(State_Type);
@@ -2973,6 +2987,7 @@ NavierStokes::velocity_advection_update (Real dt)
 void
 NavierStokes::velocity_diffusion_update (Real dt)
 {
+    BL_PROFILE("NavierStokes::velocity_diffusion_update()");
     //
     // Compute the viscous forcing.
     // Do following except at initial iteration.
@@ -3167,6 +3182,7 @@ NavierStokes::errorEst (TagBoxArray& tags,
                         int          n_error_buf, 
                         int          ngrow)
 {
+    BL_PROFILE("NavierStokes::errorEst()");
     const int*  domain_lo = geom.Domain().loVect();
     const int*  domain_hi = geom.Domain().hiVect();
     const Real* dx        = geom.CellSize();
@@ -5524,6 +5540,7 @@ NavierStokes::level_sync (int crse_iteration)
 void
 NavierStokes::mac_sync ()
 {
+    BL_PROFILE("NavierStokes::mac_sync()");
     const int  numscal        = NUM_STATE - BL_SPACEDIM;
     const Real prev_time      = state[State_Type].prevTime();
     const Real prev_pres_time = state[Press_Type].prevTime();
@@ -6500,6 +6517,7 @@ NavierStokes::calcViscosity (const Real time,
                              const int  iteration,
                              const int  ncycle)
 {
+    BL_PROFILE("NavierStokes::calcViscosity()");
     //
     // Select time level to work with (N or N+1)
     //
@@ -6543,6 +6561,7 @@ NavierStokes::calcDiffusivity (const Real time,
                                const int  src_comp, 
                                const int  ncomp)
 {
+    BL_PROFILE("NavierStokes::calcDiffusivity()");
     //
     // NOTE:  The component numbers passed into NavierStokes::calcDiffusivity
     //        correspond to the components in the state.  In the diffusivity 
