@@ -376,6 +376,9 @@ MacProj::mac_project (int             level,
     else
     {
         MultiFab& CPhi = mac_phi_crse[level-1];
+	CPhi.FillBoundary();
+	parent->Geom(level-1).FillPeriodicBoundary(CPhi,true);
+
         BoxArray crse_boxes(grids);
         crse_boxes.coarsen(crse_ratio);
         const int in_rad     = 0;
