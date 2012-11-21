@@ -12,6 +12,7 @@
 #include <AmrLevel.H>
 #include <TagBox.H>
 #include <FabSet.H>
+#include <Profiler.H>
 
 #ifndef MG_USE_F90_SOLVERS
 #include <hgparallel.H>
@@ -125,6 +126,8 @@ main (int   argc,
 {
     BoxLib::Initialize(argc,argv);
 
+    BL_PROFILE_VAR("main()", pmain);
+
     const Real run_strt = ParallelDescriptor::second();
 
     int  max_step;
@@ -192,6 +195,11 @@ main (int   argc,
 
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Run time = " << run_stop << std::endl;
+
+    BL_PROFILE_VAR_STOP(pmain);
+    BL_PROFILE_SET_RUN_TIME(run_stop);
+    BL_PROFILE_FINALIZE();
+
 
     BoxLib::Finalize();
 
