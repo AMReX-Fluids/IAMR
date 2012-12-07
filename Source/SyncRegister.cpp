@@ -10,6 +10,7 @@
 #include <SyncRegister.H>
 #include <NAVIERSTOKES_F.H>
 #include <SYNCREG_F.H>
+#include <Profiler.H>
 
 SyncRegister::SyncRegister ()
 {
@@ -238,6 +239,8 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                             MultiFab&       rhs)
 {
     if (!geom.isAnyPeriodic()) return;
+
+    BL_PROFILE("SyncRegister::copyPeriodic()");
 
     MapOfCopyComTagContainers  m_SndTags, m_RcvTags;
     std::map<int,int>          m_SndVols, m_RcvVols;
@@ -554,6 +557,8 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                                  const MultiFab& mf)
 {
     if (!geom.isAnyPeriodic()) return;
+
+    BL_PROFILE("SyncRegister::incrementPeriodic()");
 
     FArrayBox                   fab;
     FabArrayBase::CopyComTag    tag;
