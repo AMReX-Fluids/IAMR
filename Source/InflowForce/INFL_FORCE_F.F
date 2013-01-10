@@ -118,6 +118,7 @@ c
          filePnt = INT((time - timeOffset) / dtFile) + 1
          timePnt = timeOffset + DBLE(filePnt-1) * dtFile
 
+
          if (full_file_in_memory) then
             storePnt = filePnt + 1
          else
@@ -129,6 +130,7 @@ c
       endif
 
       call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
+
 
       npassOld   = npass
       filePntOld = filePnt
@@ -158,6 +160,13 @@ c
 
       if ((storePnt + 1 .gt. hiStoreDim(strmwse_dir)) .or. (storePnt - 1 .lt. 1)) then
          if (full_file_in_memory) then
+         write(6,*)"Problem "
+         write(6,*)"time = ",time
+         write(6,*)"timeMaxFile = ",timeMaxFile
+         write(6,*)"dtFile = ",dtFile
+         write(6,*)"npass = ",npass
+         write(6,*)"timeOffset = ",timeOffset
+         write(6,*)"filePnt,timePnt,storePnt = ",filePnt,timePnt,storePnt
             call bl_abort('INFL_FILL_PERIODIC: how did we get here?')
          endif
          call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
