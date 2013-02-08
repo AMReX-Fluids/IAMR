@@ -141,9 +141,8 @@ c
 
       integer i, j, k, n
 
-!$omp parallel private(i,j,k,n)
+!$omp parallel do private(i,j,k,n) collapse(2)
       do n = 1, nvar
-!$omp do
          do k = boxlo(3), boxhi(3)
             do j = boxlo(2), boxhi(2)
                do i = boxlo(1), boxhi(1)
@@ -151,9 +150,8 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
+!$omp end parallel do
 
       end
 
