@@ -363,7 +363,7 @@ Diffusion::diffuse_scalar (Real                   dt,
         for (MFIter Smfi(Soln); Smfi.isValid(); ++Smfi)
             Soln[Smfi].divide(S_old[Smfi],Smfi.validbox(),Density,0,1);
     visc_op->apply(Rhs,Soln);
-    visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,LinOp::Inhomogeneous_BC,false);
+    visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC);
     for (int i = 0; i < BL_SPACEDIM; ++i)
         (*fluxn[i]).mult(-b/(dt*caller->Geom().CellSize()[i]));
     delete visc_op;
