@@ -585,17 +585,18 @@ c
                stxlo(imin) = s(imin-1,j)
             else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j).lt.zero) then
                stxlo(imin) = stxhi(imin)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
             else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP) then
                if (n.eq.XVEL) then
                   if (velpred.eq.1) then
 #ifndef ALLOWXINFLOW
+c     prevent backflow
                      stxhi(imin) = MIN(stxhi(imin),zero)
 #endif
                      stxlo(imin) = stxhi(imin)
                   else
                      if (uad(imin,j).ge.zero) then
 #ifndef ALLOWXINFLOW
+c     prevent backflow
                         stxhi(imin) = MIN(stxhi(imin),zero)
 #endif
                         stxlo(imin) = stxhi(imin)
@@ -606,9 +607,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                end if
             else if (bc(1,1).eq.REFLECT_EVEN) then
                stxlo(imin) = stxhi(imin)
-c            else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP
-c     &              .or.bc(1,1).eq.REFLECT_EVEN) then
-c               stxlo(imin) = stxhi(imin)
             else if (bc(1,1).eq.REFLECT_ODD) then
                stxhi(imin) = zero
                stxlo(imin) = stxhi(imin)
@@ -622,17 +620,18 @@ c               stxlo(imin) = stxhi(imin)
                stxhi(imax+1) = s(imax+1,j)
             else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j).gt.zero) then
                stxhi(imax+1) = stxlo(imax+1) 
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
             else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP) then
                if (n.eq.XVEL) then
                   if (velpred.eq.1) then
 #ifndef ALLOWXINFLOW
+c     prevent backflow
                      stxlo(imax+1) = MAX(stxlo(imax+1),zero)
 #endif
                      stxhi(imax+1) = stxlo(imax+1)
                   else
                      if (uad(imax+1,j).le.zero) then
 #ifndef ALLOWXINFLOW
+c     prevent backflow
                         stxlo(imax+1) = MAX(stxlo(imax+1),zero)
 #endif
                         stxhi(imax+1) = stxlo(imax+1)
@@ -643,9 +642,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                endif
             else if (bc(1,2).eq.REFLECT_EVEN) then
                stxhi(imax+1) = stxlo(imax+1)
-c            else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP
-c     &              .or.bc(1,2).eq.REFLECT_EVEN) then
-c               stxhi(imax+1) = stxlo(imax+1)
             else if (bc(1,2).eq.REFLECT_ODD) then
                stxlo(imax+1) = zero
                stxhi(imax+1) = zero
@@ -703,17 +699,18 @@ c
                stylo(jmin) = s(i,jmin-1)
             else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin).lt.zero) then
                stylo(jmin) = styhi(jmin)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
             else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP) then
                if (n.eq.YVEL) then
                   if (velpred.eq.1) then
 #ifndef ALLOWYINFLOW
+c     prevent backflow
                      styhi(jmin) = MIN(styhi(jmin),zero)
 #endif
                      stylo(jmin) = styhi(jmin)
                   else
                      if (vad(i,jmin).ge.zero) then
 #ifndef ALLOWYINFLOW
+c     prevent backflow
                         styhi(jmin) = MIN(styhi(jmin),zero)
 #endif
                         stylo(jmin) = styhi(jmin)
@@ -724,9 +721,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                endif
             else if (bc(2,1).eq.REFLECT_EVEN) then
                stylo(jmin) = styhi(jmin)
-c            else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP
-c     &              .or.bc(2,1).eq.REFLECT_EVEN) then
-c               stylo(jmin) = styhi(jmin)
             else if (bc(2,1).eq.REFLECT_ODD) then
                styhi(jmin) = zero
                stylo(jmin) = zero
@@ -740,17 +734,18 @@ c               stylo(jmin) = styhi(jmin)
                styhi(jmax+1) = s(i,jmax+1)
             else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1).gt.zero) then
                styhi(jmax+1) = stylo(jmax+1)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
             else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP) then
                if (n.eq.YVEL) then
                   if (velpred.eq.1) then
 #ifndef ALLOWYINFLOW
+c     prevent backflow
                      stylo(jmax+1) = MAX(stylo(jmax+1),zero)
 #endif
                      styhi(jmax+1) = stylo(jmax+1)
                   else
                      if (vad(i,jmax+1).le.zero) then
 #ifndef ALLOWYINFLOW
+c     prevent backflow
                         stylo(jmax+1) = MAX(stylo(jmax+1),zero)
 #endif
                         styhi(jmax+1) = stylo(jmax+1)
@@ -761,9 +756,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                endif
             else if (bc(2,2).eq.REFLECT_EVEN) then
                styhi(jmax+1) = stylo(jmax+1)
-c            else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
-c     &              .or.bc(2,2).eq.REFLECT_EVEN) then
-c               styhi(jmax+1) = stylo(jmax+1)
             else if (bc(2,2).eq.REFLECT_ODD) then
                stylo(jmax+1) = zero
                styhi(jmax+1) = zero
@@ -1052,11 +1044,13 @@ c
                stxlo(imin) = s(imin-1,j)
             else if (bc(1,1).eq.EXT_DIR .and. uedge(imin,j).lt.zero) then
                stxlo(imin) = stxhi(imin)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
             else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP) then
                if (n.eq.XVEL) then
                   if (uedge(imin,j).ge.zero) then
+#ifndef ALLOWXINFLOW
+c     prevent backflow
                      stxhi(imin) = MIN(stxhi(imin),zero)
+#endif
                      stxlo(imin) = stxhi(imin)
                   endif
                else
@@ -1064,9 +1058,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                endif
             else if (bc(1,1).eq.REFLECT_EVEN) then
                stxlo(imin) = stxhi(imin)
-c            else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP
-c     &              .or.bc(1,1).eq.REFLECT_EVEN) then
-c               stxlo(imin) = stxhi(imin)
             else if (bc(1,1).eq.REFLECT_ODD) then
                stxhi(imin) = zero
                stxlo(imin) = zero
@@ -1076,11 +1067,13 @@ c               stxlo(imin) = stxhi(imin)
                stxhi(imax+1) = s(imax+1,j)
             else if (bc(1,2).eq.EXT_DIR .and. uedge(imax+1,j).gt.zero) then
                stxhi(imax+1) = stxlo(imax+1)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
             else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP) then
                if (n.eq.XVEL) then
                   if (uedge(imax+1,j).le.zero) then
+#ifndef ALLOWXINFLOW
+c     prevent backflow
                      stxlo(imax+1) = MAX(stxlo(imax+1),zero)
+#endif
                      stxhi(imax+1) = stxlo(imax+1)
                   endif
                else
@@ -1088,9 +1081,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                endif
             else if (bc(1,2).eq.REFLECT_EVEN) then
                stxhi(imax+1) = stxlo(imax+1)
-c            else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP
-c     &              .or.bc(1,2).eq.REFLECT_EVEN) then
-c               stxhi(imax+1) = stxlo(imax+1)
             else if (bc(1,2).eq.REFLECT_ODD) then
                stxlo(imax+1) = zero
                stxhi(imax+1) = zero
@@ -1157,11 +1147,13 @@ c
                stylo(jmin) = s(i,jmin-1)
             else if (bc(2,1).eq.EXT_DIR .and. vedge(i,jmin).lt.zero) then
                stylo(jmin) = styhi(jmin)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
             else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP) then
                if (n.eq.YVEL) then
                   if (vedge(i,jmin).ge.zero) then
+#ifndef ALLOWYINFLOW
+c     prevent backflow
                      styhi(jmin) = MIN(styhi(jmin),zero)
+#endif
                      stylo(jmin) = styhi(jmin)
                   endif
                else
@@ -1169,9 +1161,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                endif
             else if (bc(2,1).eq.REFLECT_EVEN) then
                stylo(jmin) = styhi(jmin)
-c            else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP
-c     &              .or.bc(2,1).eq.REFLECT_EVEN) then
-c               stylo(jmin) = styhi(jmin)
             else if (bc(2,1).eq.REFLECT_ODD) then
                styhi(jmin) = zero
                stylo(jmin) = zero
@@ -1182,11 +1171,13 @@ c               stylo(jmin) = styhi(jmin)
                styhi(jmax+1) = s(i,jmax+1)
             else if (bc(2,2).eq.EXT_DIR .and. vedge(i,jmax+1).gt.zero) then
                styhi(jmax+1) = stylo(jmax+1)
-c     HACK down to commented code below, to attempt to prevent backflow on outflow face
             else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP) then
                if (n.eq.YVEL) then
                   if (vedge(i,jmax+1).le.zero) then
+#ifndef ALLOWYINFLOW
+c     prevent backflow
                      stylo(jmax+1) = MAX(stylo(jmax+1),zero)
+#endif
                      styhi(jmax+1) = stylo(jmax+1)
                   endif
                else
@@ -1194,9 +1185,6 @@ c     HACK down to commented code below, to attempt to prevent backflow on outfl
                endif
             else if (bc(2,2).eq.REFLECT_EVEN) then
                styhi(jmax+1) = stylo(jmax+1)
-c            else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP
-c     &              .or.bc(2,2).eq.REFLECT_EVEN) then
-c               styhi(jmax+1) = stylo(jmax+1)
             else if (bc(2,2).eq.REFLECT_ODD) then
                stylo(jmax+1) = zero
                styhi(jmax+1) = zero
