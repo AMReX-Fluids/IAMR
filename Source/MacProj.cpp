@@ -609,8 +609,13 @@ MacProj::mac_sync_solve (int       level,
                 sum += vol_wgted_rhs.sum(0,1);
                 vol += volume[Rhsmfi].sum(rhsfab.box(),0,1);
             }
-            ParallelDescriptor::ReduceRealSum(sum);
-            ParallelDescriptor::ReduceRealSum(vol);
+
+            Real vals[2] = {sum,vol};
+
+            ParallelDescriptor::ReduceRealSum(&vals[0],2);
+
+            sum = vals[0];
+            vol = vals[1];
 
             const Real fix = sum / vol;
 
