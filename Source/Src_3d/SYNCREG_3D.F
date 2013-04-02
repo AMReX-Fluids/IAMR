@@ -43,7 +43,6 @@ c ::: -----------------------------------------------------------
       integer    ratiox, ratioy, ratioz
       REAL_T     one28, fourthirds, threefourths
       REAL_T     coeff, denom
-      REAL_T     temp
 
       parameter(one28        = eight * sixteen)
       parameter(fourthirds   = four  * third  )

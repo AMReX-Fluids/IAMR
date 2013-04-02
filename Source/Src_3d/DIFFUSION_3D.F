@@ -37,7 +37,7 @@
       REAL_T  dx(3)
       REAL_T  mult
 
-      integer i, j, k, n
+      integer i, j, k
       REAL_T  sx, sy, sz
 
 !$omp parallel private(i,j,k,sx,sy,sz)
@@ -184,7 +184,7 @@ c ::
        REAL_T  betay(DIMV(betay))
        REAL_T  betaz(DIMV(betaz))
        REAL_T  r(DIM1(r))
-       REAL_T  b, betacen
+       REAL_T  b
        integer isrz
 
        integer i, j, k

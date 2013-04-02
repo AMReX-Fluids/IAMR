@@ -59,10 +59,10 @@ c     Local variables
       REAL_T divu_ave1,divu_ave2
       REAL_T hx,hy,hz  
       REAL_T diff
-      integer i,j,k,neq,n
+      integer i,j,k
       integer ics,ice,jcs,jce,kcs,kce
       integer ifs,ife,jfs,jfe,kfs,kfe
-      integer if,jf,kf,ic,jc,kc
+      integer if,jf,kf
 c     NOTE: Assumes that rho at edge between i, i-1 = half*(rho(i)+rho(i-1))
 c             (1) Linear fit of rho between nodes
 c             (2) rho, divu on same boxes (box)
@@ -597,8 +597,6 @@ c Local variables
       integer i,j,iter
       integer redblack
       REAL_T lam,dg
-      REAL_T phitot, vtot
-      REAL_T maxnorm
       REAL_T hxsqinv,hysqinv
       integer niter
       integer iinc
@@ -1201,8 +1199,7 @@ c *************************************************************************
 
       integer xlo_outflow,ylo_outflow,zlo_outflow
       integer xhi_outflow,yhi_outflow,zhi_outflow
-      integer i,ifinal,n
-      REAL_T sum 
+      integer i
 
 #define XLO 0
 #define YLO 1

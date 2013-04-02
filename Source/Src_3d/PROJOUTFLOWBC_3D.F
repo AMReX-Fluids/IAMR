@@ -1829,7 +1829,7 @@ c *************************************************************************
 
       integer xlo_outflow,ylo_outflow,zlo_outflow
       integer xhi_outflow,yhi_outflow,zhi_outflow
-      integer i,j,k,ifinal,n
+      integer i,j,k,ifinal
 
 #define XLO 0
 #define YLO 1

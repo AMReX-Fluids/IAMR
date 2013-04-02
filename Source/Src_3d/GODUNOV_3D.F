@@ -631,7 +631,6 @@ c
       REAL_T dt6, dt6x, dt6y, dt6z
       REAL_T tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw,dx(SDIM)
       REAL_T eps,eps_for_bc
-      logical ltx,lty,ltz
 
       PARAMETER (eps = 1.d-6 , eps_for_bc = 1.d-10)
 
@@ -670,7 +669,7 @@ c
       REAL_T  sz(DIMV(work)), wad(DIMV(work))
       REAL_T tforces(DIMV(work))
       integer ppm_type
-      logical corner_couple
+      logical corner_couple, ltx, lty, ltz
 
 c     used in 3d corner coupling
       REAL_T xylo(DIMV(work)), xyhi(DIMV(work))
@@ -1939,7 +1938,6 @@ c
       REAL_T dt6, dt6x, dt6y, dt6z
       REAL_T tr,tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw,dx(SDIM)
       REAL_T eps,eps_for_bc
-      logical ltx,lty,ltz
 
       PARAMETER (eps = 1.d-6 , eps_for_bc = 1.d-10)
 
@@ -1995,7 +1993,7 @@ c     used in 3d corner coupling
       REAL_T zylo(DIMV(work)), zyhi(DIMV(work))
 
       integer use_minion, iconserv
-      REAL_T st,denom
+      REAL_T st
 
       logical corner_couple
       integer ppm_type
@@ -3192,7 +3190,7 @@ c
       implicit none
       integer i,j,k
       integer iconserv
-      REAL_T divux,divuy,divuz,rincr
+      REAL_T divux,divuy,divuz
       integer imin,jmin,kmin,imax,jmax,kmax
       integer lo(SDIM),hi(SDIM)
       integer DIMDEC(aofs)
@@ -3337,7 +3335,6 @@ c
       implicit none
       integer i,j,k
       integer iconserv
-      REAL_T divux,divuy,divuz
       integer imin,jmin,kmin,imax,jmax,kmax
       integer lo(SDIM),hi(SDIM)
       integer DIMDEC(sync)
@@ -4393,15 +4390,13 @@ c     local
       logical extremum, bigp, bigm
 
       REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
-      REAL_T sgn, sigma, s6, w0cc, velcc
+      REAL_T sgn, sigma, s6
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
       REAL_T amax, delam, delap
 c
 c     constant used in Colella 2008
 c
       PARAMETER(C = 1.25d0)
-
-
 
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 c     ! x-direction
@@ -5943,7 +5938,7 @@ c     local
       logical extremum, bigp, bigm
 
       REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
-      REAL_T sgn, sigmam, sigmap, s6, w0lo, w0hi, vello, velhi
+      REAL_T sgn, sigmam, sigmap, s6
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
       REAL_T amax, delam, delap
 c
@@ -7458,7 +7453,7 @@ c
       integer  DIMDEC(sn)
       integer  DIMDEC(smin)
       integer  lo(SDIM), hi(SDIM)
-      integer  bc(SDIM,2), do_minmax
+      integer  bc(SDIM,2)
       REAL_T   s(DIMV(s))
       REAL_T   sn(DIMV(sn))
       integer  km, kk, kp
@@ -7638,7 +7633,7 @@ c
       integer  DIMDEC(s)
       integer  DIMDEC(smin)
       integer  lo(SDIM), hi(SDIM)
-      integer  bc(SDIM,2), do_minmax
+      integer  bc(SDIM,2)
       REAL_T      s(DIMV(s))
       REAL_T     sn(DIMV(s))
       REAL_T    rho(DIMV(s))
@@ -7857,7 +7852,6 @@ c
       implicit none
       integer i, j, k, n
       integer DIMDEC(tf)
-      integer DIMDEC(visc)
       integer DIMDEC(gp)
       integer DIMDEC(rho)
       integer lo(SDIM), hi(SDIM)

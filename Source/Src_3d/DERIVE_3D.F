@@ -4708,10 +4708,8 @@ c
       REAL_T   p(DIMV(p))
       REAL_T  gp(DIMV(gp))
 
-      logical    invalid
       integer    i,j,k
       REAL_T     d
-      integer    ilo, ihi, jlo, jhi, klo, khi
 
       d = fourth/dx
 c

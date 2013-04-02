@@ -26,15 +26,12 @@ c ::
 
       integer DIMDEC(p)  
       integer DIMDEC(gp)  
-      integer    lo(SDIM),  hi(SDIM)
-      integer domlo(SDIM), domhi(SDIM)
+      integer lo(SDIM),  hi(SDIM)
       REAL_T  dx(SDIM)
       REAL_T  p(DIMV(p))
       REAL_T  gp(DIMV(gp),SDIM)
-      logical    invalid
-      integer    i,j,k
-      REAL_T     ddx, ddy, ddz
-      integer    ilo, ihi, jlo, jhi, klo, khi
+      integer i,j,k
+      REAL_T  ddx, ddy, ddz
 
       ddx = fourth/dx(1)
       ddy = fourth/dx(2)
@@ -254,13 +251,12 @@ c ::
       REAL_T  pres(DIMV(pres),4)
       REAL_T  turb(0:ksize*turbVars-1)
       
-      integer i, j, k, v
+      integer i, j, k
       integer ilo, jlo, klo
       integer ihi, jhi, khi
       
       REAL_T area
-      REAL_T rho, ux, uy, uz, p, XC, XMg
-      REAL_T e, T, f, wC, wMg
+      REAL_T rho, ux, uy, uz, p
       REAL_T drhodx, drhody, drhodz
       REAL_T duxdx, duxdy, duxdz
       REAL_T duydx, duydy, duydz
@@ -365,7 +361,7 @@ c ::
       integer ilo, jlo, klo
       integer ihi, jhi, khi
       
-      REAL_T  rho, ux, uy, uz, p, XC, XMg
+      REAL_T  rho, ux, uy, uz, p
       REAL_T  dpdx, dpdy, dpdz, dpdr, dpdt
       REAL_T  dx, dy, dz
 
@@ -1116,7 +1112,7 @@ c-----------------------------------------------------------------------
       integer fine_l0, fine_l1, fine_l2, fine_h0, fine_h1, fine_h2
       DOUBLE PRECISION
      &     fine(fine_l0:fine_h0,fine_l1:fine_h1,fine_l2:fine_h2,nc)
-      integer i,j,k,ii,jj,kk,n,P,M,L,clo(0:3-1),chi(0:3-1)
+      integer i,j,k,n,P,M,L
       DOUBLE PRECISION val, df
 c
 c     Do linear in dir, pc transverse to dir, leave alone the fine values
@@ -1201,7 +1197,6 @@ c-----------------------------------------------------------------------
       DOUBLE PRECISION
      &     fine(fine_l0:fine_h0,fine_l1:fine_h1,fine_l2:fine_h2,nc)
       integer i,j,k,ii,jj,kk,n,L, P
-      DOUBLE PRECISION val, dc
 c
 c     For edge-based data, fill fine values with piecewise-constant interp of coarse data.
 c     Operate only on faces that overlap--ie, only fill the fine faces that make up each
