@@ -412,7 +412,7 @@ c-----------------------------------------------------------------------
       integer flo(0:2-1), fhi(0:2-1), nc, ratio(0:2-1), dir
       integer fine_l0, fine_l1, fine_h0, fine_h1
       DOUBLE PRECISION fine(fine_l0:fine_h0,fine_l1:fine_h1,nc)
-      integer i,j,ii,jj,n,P,M,clo(0:2-1),chi(0:2-1)
+      integer i,j,n,P,M
       DOUBLE PRECISION val, df
 
 c     Do linear in dir, pc transverse to dir, leave alone the fine values
@@ -460,7 +460,6 @@ c-----------------------------------------------------------------------
       DOUBLE PRECISION crse(crse_l0:crse_h0,crse_l1:crse_h1,nc)
       DOUBLE PRECISION fine(fine_l0:fine_h0,fine_l1:fine_h1,nc)
       integer i,j,ii,jj,n,L
-      DOUBLE PRECISION val, dc
 
 c     For edge-based data, fill fine values with piecewise-constant interp of coarse data.
 c     Operate only on faces that overlap--ie, only fill the fine faces that make up each

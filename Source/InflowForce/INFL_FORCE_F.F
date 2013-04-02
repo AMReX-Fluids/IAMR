@@ -45,9 +45,7 @@ c
 
       integer lo(SDIM), hi(SDIM), nCmpFile
       integer n, npass, filePnt, storePnt, filePntOld, npassOld, proc
-      REAL_T dtFile, timeMaxFile, timeOffset, timePnt,
-     $       dtEstimate
-      logical is_periodic
+      REAL_T dtFile, timeMaxFile, timeOffset, timePnt
 c
 c     The arrays below are dimensioned as 3-d no matter what the 
 c     BL_SPACEDIM is.  This is to allow for the fact that the inflow forcing

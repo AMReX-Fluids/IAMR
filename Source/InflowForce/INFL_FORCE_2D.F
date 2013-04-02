@@ -61,7 +61,6 @@ c :::
       implicit none
 
       integer storePnt, fillComp, filePnt, nCompStorDat
-      integer loStoreDim(3), hiStoreDim(3)
       integer DIMDEC(inflDat)
       integer FF_DIMDEC(storDat)
       integer bc(SDIM,2)
@@ -78,7 +77,7 @@ c :::
       REAL_T tm1, tp1, ctm1, ct0, ctp1, coff,
      $       x, xm1, x0, xp1, cxm1, cx0, cxp1,
      $       y, ym1, y0, yp1, cym1, cy0, cyp1,
-     $       valm1, val0, valp1
+     $       val0
 
 #include "INFL_FORCE_F.H"
 

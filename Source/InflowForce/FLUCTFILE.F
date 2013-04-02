@@ -97,7 +97,7 @@ c
       integer iunit, dimFile(3), nCmpFile, proc
       REAL_T probSizeFile(3), dxFile(3)
 
-      integer i1bc, j1bc, k1bc, dummy, i
+      integer i1bc, j1bc, k1bc, i
 
       logical, save :: first = .true.
 
@@ -185,7 +185,7 @@ c
 
       implicit none
 
-      integer dimFile(3), i, j, k, n, proc, ncomp, plane, isswirltype
+      integer dimFile(3), i, k, n, proc, ncomp, plane, isswirltype
       integer lo(3), hi(3), fileLo(3), FF_DIMDEC(dat), iflctfile(300)
       REAL_T dat(FF_DIMV(dat))
 

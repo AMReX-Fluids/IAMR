@@ -809,7 +809,6 @@ c
       REAL_T hx, hy, dt, dth, dthx, dthy
       REAL_T tr,ubar,vbar,stx,sty,fu,fv,dx(SDIM)
       REAL_T eps,eps_for_bc
-      logical ltx,lty
       parameter( eps        = 1.0D-6 )
       parameter( eps_for_bc = 1.0D-10 )
 
@@ -853,12 +852,10 @@ c
       REAL_T extra_work(DIMV(work),6)
 #endif
       
-      REAL_T st,denom
+      REAL_T st
       integer ppm_type
 
       integer use_minion, iconserv, inc
-
-      REAL_T umax
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -1959,7 +1956,7 @@ c     local
       logical extremum, bigp, bigm
 
       REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
-      REAL_T sgn, sigma, s6, w0cc, amax, delam, delap
+      REAL_T sgn, sigma, s6, amax, delam, delap
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
 
 c     constant used in Colella 2008
@@ -2920,7 +2917,7 @@ c     local
       logical extremum, bigp, bigm
 
       REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
-      REAL_T sgn, sigmam, sigmap, s6, w0cc, amax, delam, delap
+      REAL_T sgn, sigmam, sigmap, s6, amax, delam, delap
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
 
 c     constant used in Colella 2008
@@ -4448,11 +4445,9 @@ c
       integer i,j,n
       integer lo(SDIM),hi(SDIM),bc(SDIM,2)
       integer is,js,ie,je
-      REAL_T place_to_break
       REAL_T hx, hy, dt, dth, dthx, dthy
-      REAL_T tr,ubar,vbar,stx,sty,fu,fv,dx(SDIM)
+      REAL_T dx(SDIM)
       REAL_T eps,eps_for_bc
-      logical ltx,lty
       parameter( eps        = 1.0D-6 )
       parameter( eps_for_bc = 1.0D-10 )
 
@@ -4477,7 +4472,6 @@ c
       REAL_T tforces(DIMV(work))
       REAL_T    divu(DIMV(work))
       
-      REAL_T spx,smx,spy,smy,st,denom
       REAL_T smin,smax
 
       REAL_T   sc(DIMV(work),4)
@@ -4491,7 +4485,6 @@ c
       integer choose_hi(DIM1(work))
 
       integer use_minion, iconserv
-      integer inc
       integer iup,isign,jup,jsign
       REAL_T vtrans,vmult,vdif,stem,vaddif
 

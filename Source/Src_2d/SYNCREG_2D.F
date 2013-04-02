@@ -38,7 +38,7 @@ c ::: -----------------------------------------------------------
       REAL_T     crse(DIMV(crse))
       
       integer    i, j, ic, jc
-      integer    m, n
+      integer    m
       integer    ratiox, ratioy
       REAL_T     coeff, denom
 

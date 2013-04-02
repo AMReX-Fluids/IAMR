@@ -449,7 +449,11 @@ c
       integer is_rz, imax
 
       integer i, j
-      REAL_T  factor, rhi, rlo
+      REAL_T  rhi, rlo
+
+#if BL_PRVERSION == 9
+      REAL_T  factor
+#endif
 
       if (ARG_L1(rhs)+1 .lt. ARG_L1(dat) .or. 
      $     ARG_H1(rhs)-1 .gt. ARG_H1(dat) .or.

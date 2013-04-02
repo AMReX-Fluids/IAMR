@@ -281,9 +281,9 @@ c *************************************************************************
       integer isPeriodic(SDIM)
       REAL_T h(SDIM)
       integer lo(SDIM),hi(SDIM)
-      REAL_T hxsqinv,hysqinv
+      REAL_T hxsqinv
 
-      integer i,j
+      integer i
       REAL_T maxnorm
       logical setSingularPoint
  
@@ -751,7 +751,6 @@ c *************************************************************************
 c     Local variables
       integer ii,ic
       integer is,ie,isc,iec
-      logical setSingularPoint
 
       is = lo(1)
       ie = hi(1)
@@ -800,11 +799,11 @@ c     Local variables
       integer NstripMAX
       parameter (NstripMAX = 2000)
       integer ics, ice
-      integer i, j, icL, icR, neq
+      integer i, icL, icR, neq
       REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX)
       REAL_T alpha, beta, sVal
       logical rNormed
-      REAL_T vtot, rnode, hdr
+      REAL_T vtot, hdr
       REAL_T phitot
 #define XLO 0
 #define YLO 1
@@ -950,7 +949,7 @@ c     Local variables
       integer NstripMAX
       parameter (NstripMAX = 2000)
       integer ics, ice
-      integer i, j, icL, icR, neq
+      integer i, icL, icR, neq
       REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX), s(NstripMAX)
       REAL_T alpha, beta, sVal
       logical rNormed
@@ -1273,8 +1272,8 @@ c *************************************************************************
 
       integer xlo_outflow,ylo_outflow
       integer xhi_outflow,yhi_outflow
-      integer i,ifinal,n
-      REAL_T  rnode,vol,sum
+      integer i,ifinal
+      REAL_T  rnode,vol
 
 #define XLO 0
 #define YLO 1
@@ -1529,7 +1528,7 @@ c *************************************************************************
 
       integer xlo_outflow,ylo_outflow
       integer xhi_outflow,yhi_outflow
-      integer i,j,ifinal,n
+      integer i,j,ifinal
 
 #define XLO 0
 #define YLO 1

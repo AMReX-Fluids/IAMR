@@ -425,7 +425,6 @@ c
       integer    level, grid_no
 
       integer   i,j
-      integer   nxlo, nxhi, nylo, nyhi
       REAL_T    uy, vx, dx, dy
       REAL_T    uycen, uylo, uyhi
       REAL_T    vxcen, vxlo, vxhi
@@ -531,7 +530,6 @@ c
       integer    level, grid_no
 
       integer   i,j
-      integer   nxlo, nxhi, nylo, nyhi
       REAL_T    ux, vy, dx, dy
       REAL_T    uxcen, uxlo, uxhi
       REAL_T    vycen, vylo, vyhi

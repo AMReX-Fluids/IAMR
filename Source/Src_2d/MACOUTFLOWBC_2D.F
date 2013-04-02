@@ -55,14 +55,14 @@ c     (subtract divu_ave twice due to precision problems)
 c     Local variables
       REAL_T small_pert
       parameter ( small_pert = SMALL)
-      integer i, j, neq,n
+      integer i, j
       REAL_T divu_ave1,divu_ave2
       REAL_T max_divu, min_divu, max_pert
       REAL_T diff
       REAL_T rc,hx,hy
       integer ics,ice,jcs,jce
       integer ifs,ife,jfs,jfe
-      integer if,jf,ic,jc
+      integer if,jf
 c     NOTE: Assumes that rho at edge between i, i-1 = half*(rho(i)+rho(i-1))
 c             (1) Linear fit of rho between nodes
 c             (2) rho, divu on same boxes (box)
@@ -325,9 +325,7 @@ c Local variables
       integer ics,ice
       integer i,iter
       REAL_T lam, dg
-      REAL_T phitot,vtot
       logical setSingularPoint
-      REAL_T maxnorm
       REAL_T hxsqinv
       integer niter
 
@@ -366,7 +364,7 @@ c *************************************************************************
       integer isPeriodic(SDIM)
 
       REAL_T phitot,vtot
-      integer ics,ice,ine
+      integer ics,ice
       integer i
       logical setSingularPoint
 
@@ -696,7 +694,7 @@ c      write(6,*) iter,norm
       integer isPeriodic(SDIM)
       logical setSingularPoint
 
-      integer i,j
+      integer i
       REAL_T hxsqinv
 
       hxsqinv = one/(h(1)*h(1))
@@ -806,7 +804,6 @@ c    are either zero or periodic.
 c
       implicit none
       integer length
-      integer r_len
       integer per
       REAL_T     phi(length)
       REAL_T divuExt(0:length-1)
@@ -817,12 +814,11 @@ c
 c     Local variables
       integer NstripMAX
       parameter (NstripMAX = 2000)
-      integer i, j, neq,n
+      integer i, neq,n
       REAL_T a(NstripMAX), b(NstripMAX), c(NstripMAX), s(NstripMAX)
       REAL_T alpha, beta, sVal
       logical rNormed
       REAL_T vtot
-      REAL_T rL, rR, diff
       REAL_T phitot
       REAL_T rcen
       integer ics, ice
@@ -955,7 +951,7 @@ c *************************************************************************
 
       integer xlo_outflow,ylo_outflow
       integer xhi_outflow,yhi_outflow
-      integer i,ifinal,n
+      integer i,ifinal
       REAL_T sum
 
 #define XLO 0
@@ -1130,7 +1126,7 @@ c *************************************************************************
 
       integer xlo_outflow,ylo_outflow
       integer xhi_outflow,yhi_outflow
-      integer i,j,ifinal,n
+      integer i,j,ifinal
 
 #define XLO 0
 #define YLO 1
