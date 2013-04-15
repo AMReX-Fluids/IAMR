@@ -327,7 +327,8 @@ MacProj::mac_project (int             level,
                       Real            dt,
                       Real            time,
                       const MultiFab& divu,
-                      int             have_divu)
+                      int             have_divu,
+                      bool            increment_vel_register)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_project at level " << level << '\n';
@@ -444,52 +445,56 @@ MacProj::mac_project (int             level,
     //
     if (verbose)
         check_div_cond(level, u_mac);
-    //
-    // Store advection velocities in mac registers at crse/fine boundaries.
-    //
-    // Initialize advection velocity registers with coarse grid velocity.
-    //
-    if (level < finest_level)
+
+    if (increment_vel_register)
     {
-        FluxRegister& mr = mac_reg[level+1];
-
-        mr.setVal(0.0);
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        //
+        // Store advection velocities in mac registers at crse/fine boundaries.
+        //
+        // Initialize advection velocity registers with coarse grid velocity.
+        //
+        if (level < finest_level)
         {
-            mr.CrseInit(u_mac[dir],area[dir],dir,0,0,1,-1.0);
-        }
+            FluxRegister& mr = mac_reg[level+1];
 
-        if (verbose)
-        {
-            Real sumreg = mr.SumReg(0);
+            mr.setVal(0.0);
 
-            if (ParallelDescriptor::IOProcessor())
+            for (int dir = 0; dir < BL_SPACEDIM; dir++)
             {
-                std::cout << "LEVEL " << level << " MACREG: CrseInit sum = " << sumreg << std::endl;
+                mr.CrseInit(u_mac[dir],area[dir],dir,0,0,1,-1.0);
+            }
+
+            if (verbose)
+            {
+                Real sumreg = mr.SumReg(0);
+
+                if (ParallelDescriptor::IOProcessor())
+                {
+                    std::cout << "LEVEL " << level << " MACREG: CrseInit sum = " << sumreg << std::endl;
+                }
             }
         }
-    }
-    //
-    // Increment in fine grid velocity to velocity registers.
-    //
-    if (level > 0)
-    {
-        const Real mult = 1.0/parent->nCycle(level);
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        //
+        // Increment in fine grid velocity to velocity registers.
+        //
+        if (level > 0)
         {
-            mac_reg[level].FineAdd(u_mac[dir],area[dir],dir,0,0,1,mult);
-        }
+            const Real mult = 1.0/parent->nCycle(level);
 
-        if (verbose)
-        {
-            Real sumreg = mac_reg[level].SumReg(0);
-
-            if (ParallelDescriptor::IOProcessor())
+            for (int dir = 0; dir < BL_SPACEDIM; dir++)
             {
-                std::cout << "LEVEL "                  << level
-                          << " MACREG: FineAdd sum = " << sumreg << std::endl;
+                mac_reg[level].FineAdd(u_mac[dir],area[dir],dir,0,0,1,mult);
+            }
+
+            if (verbose)
+            {
+                Real sumreg = mac_reg[level].SumReg(0);
+
+                if (ParallelDescriptor::IOProcessor())
+                {
+                    std::cout << "LEVEL "                  << level
+                              << " MACREG: FineAdd sum = " << sumreg << std::endl;
+                }
             }
         }
     }

@@ -38,7 +38,8 @@ public:
                       Real            dt,
                       Real            prev_time,
                       const MultiFab& divu,
-                      int             have_divu);
+                      int             have_divu,
+                      bool            increment_vel_register = true);
 
     void test_umac_periodic (int level, MultiFab* u_mac);
     //
