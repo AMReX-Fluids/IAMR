@@ -1689,10 +1689,10 @@ NavierStokes::advance (Real time,
     //
     if (do_mac_proj) 
     {
-        MultiFab* mac_rhs = create_mac_rhs(time,dt);
-        MultiFab& S_old  = get_old_data(State_Type);
-        mac_project(time,dt,S_old,mac_rhs,have_divu, umac_n_grow);
-        delete mac_rhs;
+        MultiFab mac_rhs(grids,1,0);
+        create_mac_rhs(mac_rhs,0,time,dt);
+        MultiFab& S_old = get_old_data(State_Type);
+        mac_project(time,dt,S_old,&mac_rhs,have_divu,umac_n_grow,true);
     }
     //
     // Advect velocities.
@@ -1789,62 +1789,31 @@ NavierStokes::advance (Real time,
     return dt_test;  // Return estimate of best new timestep.
 }
 
-MultiFab*
-NavierStokes::create_mac_rhs (Real time, Real dt)
+void
+NavierStokes::create_mac_rhs (MultiFab& mac_rhs, int nGrow, Real time, Real dt)
 {
-    MultiFab* mac_rhs = getDivCond(0,time);
-    MultiFab* dsdt    = getDsdt(0,time);
+    BL_ASSERT(mac_rhs.nGrow()>=nGrow);
+    BL_ASSERT(mac_rhs.boxArray()==grids);
 
-    for (MFIter mfi(*mac_rhs); mfi.isValid(); ++mfi)
+    MultiFab* divu = getDivCond(nGrow,time);
+
+    MultiFab::Copy(mac_rhs,*divu,0,0,1,nGrow);
+
+    delete divu;
+
+    MultiFab* dsdt = getDsdt(nGrow,time);
+
+    for (MFIter mfi(mac_rhs); mfi.isValid(); ++mfi)
     {
         FArrayBox& dsdtfab = (*dsdt)[mfi];
         dsdtfab.mult(.5*dt);
-        (*mac_rhs)[mfi].plus(dsdtfab);
+        mac_rhs[mfi].plus(dsdtfab);
     }
 
     delete dsdt;
 
-    return mac_rhs;
-}
-
-MultiFab*
-NavierStokes::create_mac_rhs_grown (int  nGrow,
-                                    Real time,
-                                    Real dt)
-{
-    //
-    // We do all this just to fill the ghost cells.
-    //
-    MultiFab* mac_rhs_grown = 0;
-
     if (nGrow > 0) 
-    {
-        mac_rhs_grown = getDivCond(nGrow,time);
-        MultiFab* dsdt_grown = getDsdt(nGrow,time);
-        for (MFIter mfi(*mac_rhs_grown); mfi.isValid(); ++mfi)
-        {
-            FArrayBox& dsdtgfab = (*dsdt_grown)[mfi];
-            dsdtgfab.mult(.5*dt);
-            (*mac_rhs_grown)[mfi].plus(dsdtgfab);
-        }
-        delete dsdt_grown;
-    }
-    //
-    // Now we copy from the MultiFab mac_rhs which has no ghost cells.
-    //
-    MultiFab* mac_rhs = create_mac_rhs(time,dt);
-
-    for (MFIter mfi(*mac_rhs_grown); mfi.isValid(); ++mfi) 
-    {
-        (*mac_rhs_grown)[mfi].copy((*mac_rhs)[mfi],grids[mfi.index()]);
-    }
-
-    delete mac_rhs;
-
-    if (nGrow > 0) 
-        mac_rhs_grown->FillBoundary();
-
-    return mac_rhs_grown;
+        mac_rhs.FillBoundary();
 }
 
 void
@@ -1853,7 +1822,8 @@ NavierStokes::mac_project (Real      time,
                            MultiFab& Sold, 
                            MultiFab* divu,
                            int       have_divu,
-                           int ngrow)
+                           int       ngrow,
+                           bool      increment_vel_register)
 {
     BL_PROFILE("NavierStokes::mac_project()");
 
@@ -1862,7 +1832,7 @@ NavierStokes::mac_project (Real      time,
 
     const Real strt_time = ParallelDescriptor::second();
 
-    mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu);
+    mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu,increment_vel_register);
 
     create_umac_grown(ngrow);
 
@@ -2168,7 +2138,9 @@ NavierStokes::velocity_advection (Real dt)
 
     Array<int> bndry[BL_SPACEDIM];
 
-    MultiFab* divu_fp = create_mac_rhs_grown(1,prev_time,dt);
+    MultiFab divu_fp(grids,1,1);
+
+    create_mac_rhs(divu_fp,1,prev_time,dt);
 
     MultiFab Gp(grids,BL_SPACEDIM,1), fluxes[BL_SPACEDIM];
 
@@ -2251,7 +2223,7 @@ NavierStokes::velocity_advection (Real dt)
         }
         geom.GetVolume(volume,grids,i,GEOM_GROW);
 
-        FArrayBox& divufab = (*divu_fp)[i];
+        FArrayBox& divufab = divu_fp[i];
         FArrayBox& aofsfab = (*aofs)[i];
 
         D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][i];,
@@ -2293,8 +2265,6 @@ NavierStokes::velocity_advection (Real dt)
 
         }
     }
-
-    delete divu_fp;
 
     if (do_reflux && level < finest_level)
     {

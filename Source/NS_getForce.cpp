@@ -287,18 +287,10 @@ NavierStokes::getForce (FArrayBox&       force,
                         int              ngrow,
                         int              scomp,
                         int              ncomp,
-#ifdef LMC_SDC
                         const FArrayBox& Rho,
                         int              RComp)
-#else
-                        const FArrayBox& Rho)
-#endif
 {
-#ifdef LMC_SDC
     BL_ASSERT(Rho.nComp() > RComp);
-#else
-    BL_ASSERT(Rho.nComp() == 1);
-#endif
 
     force.resize(BoxLib::grow(grids[gridno],ngrow),ncomp);
 
@@ -319,11 +311,7 @@ NavierStokes::getForce (FArrayBox&       force,
             //
             // Set force to -rho*g.
             //
-#ifdef LMC_SDC
      	    force.copy(Rho,RComp,dc,1);
-#else
-            force.copy(Rho,0,dc,1);
-#endif
             force.mult(grav,dc,1);
         }
         else

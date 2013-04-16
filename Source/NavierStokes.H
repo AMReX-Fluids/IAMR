@@ -326,25 +326,20 @@ protected:
     //
     virtual Real predict_velocity (Real  dt,
                                    Real& comp_cfl);
-
     //
     // Create the RHS for the MAC projection.
-    // It is the user's responsibility to remove the returned MultiFab.
     //
-    virtual MultiFab* create_mac_rhs (Real time, Real dt);
-
-    //
-    // Create a grown-by-1 RHS for the MAC projection, which
-    // is identical to mac_rhs in all the valid regions.
-    // It is the user's responsibility to remove the returned MultiFab.
-    //
-    MultiFab* create_mac_rhs_grown (int nGrow, Real time, Real dt);
-
+    virtual void create_mac_rhs (MultiFab& rhs, int nGrow, Real time, Real dt);
     //
     // Impose divergence constraint on MAC velocities.
     //
-    void mac_project (Real time, Real dt, MultiFab& S_old, 
-                      MultiFab* divu, int have_divu, int ngrow = 1);
+    void mac_project (Real      time,
+                      Real      dt,
+                      MultiFab& S_old, 
+                      MultiFab* divu,
+                      int       have_divu,
+                      int       ngrow,
+                      bool      increment_vel_register);
     //
     // Grow by 1 and fillpatch the MAC-projected velocities.
     //
@@ -617,12 +612,8 @@ protected:
 #ifdef GENGETFORCE
 		   const Real       time,
 #endif		 
-#ifdef LMC_SDC		 
                    const FArrayBox& Rho,
                    int              RComp = 0);
-#else
-                   const FArrayBox& Rho);
-#endif
 #endif		 
 #endif		 
 
