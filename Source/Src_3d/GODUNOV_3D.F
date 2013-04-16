@@ -1895,11 +1895,7 @@ c     prevent backflow
       end
 
       subroutine FORT_ESTATE_FPU(
-#ifdef LMC_SDC
      &     s, DIMS(s), tforces, DIMS(t), divu, DIMS(d),
-#else
-     &     s, tforces, divu, DIMS(s),
-#endif
      &     xlo, xhi, sx, slxscr, stxlo, stxhi,
      &     uedge, DIMS(uedge), xstate, DIMS(xstate), Imx, Ipx, sedgex, DIMS(sedgex),
 
@@ -1942,10 +1938,8 @@ c
       PARAMETER (eps = 1.d-6 , eps_for_bc = 1.d-10)
 
       integer DIMDEC(s)
-#ifdef LMC_SDC
       integer DIMDEC(t)
       integer DIMDEC(d)
-#endif
       integer DIMDEC(work)
       integer DIMDEC(uedge)
       integer DIMDEC(xstate)
@@ -1976,13 +1970,8 @@ c
       REAL_T  sx(DIMV(work))
       REAL_T  sy(DIMV(work))
       REAL_T  sz(DIMV(work))
-#ifdef LMC_SDC
       REAL_T tforces(DIMV(t))
       REAL_T    divu(DIMV(d))
-#else
-      REAL_T tforces(DIMV(work))
-      REAL_T    divu(DIMV(work))
-#endif
 
 c     used in 3d corner coupling
       REAL_T xylo(DIMV(work)), xyhi(DIMV(work))

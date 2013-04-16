@@ -185,14 +185,9 @@ extern "C"
 		    int* use_forces_in_trans, int* ppm_type);
    
    void FORT_ESTATE_FPU(
-#ifdef LMC_SDC
                     const Real* s_dat,    ARLIM_P(s_lo),ARLIM_P(s_hi),
 		    const Real* tfr_dat,  ARLIM_P(t_lo),ARLIM_P(t_hi),
 		    const Real* divu_dat, ARLIM_P(d_lo),ARLIM_P(d_hi),
-#else
-		    const Real* s_dat, const Real* tfr_dat, const Real* divu_dat,
-		    ARLIM_P(s_lo),ARLIM_P(s_hi),
-#endif
 		    const Real* xlo_dat, 
 		    const Real* xhi_dat, const Real* slx_dat, 
 		    Real* slxscr, Real* stxlo, Real* stxhi,

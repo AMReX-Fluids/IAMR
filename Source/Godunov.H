@@ -28,17 +28,36 @@ public:      // public access functions
     Godunov( int max_size );
 
     // destruct the advection object
-    virtual ~Godunov();
+    ~Godunov();
 
     // set up the Godunov Box
-    virtual void Setup( const Box &grd, const Real *dx, Real dt, int set_fluxes, 
-                        FArrayBox &xflux, const int *ubc,
-                        FArrayBox &yflux, const int *vbc,
+    void BuildWorkSpace (const Box& grd, const Real* dx, Real dt);
+
+    void AllocEdgeBoxes (const Box& grd, D_DECL(FArrayBox& xflux,
+                                                        FArrayBox& yflux,
+                                                        FArrayBox& zflux));
+
+    void ComputeTransverVelocities (const Box& grd, const Real* dx, Real dt,
+                                    D_DECL(const int* ubc,const int* vbc,const int* wbc),
+                                    D_DECL(const FArrayBox& U,const FArrayBox& V,const FArrayBox& W),
+                                    D_DECL(int Ucomp,int Vcomp,int Wcomp),
+                                    const FArrayBox& tforces, int Tcomp);
+
+    void Setup (const Box& grd, const Real* dx, Real dt, int velpred, 
+                FArrayBox& xflux, const int* ubc,
+                FArrayBox& yflux, const int* vbc,
 #if (BL_SPACEDIM == 3 )
-                        FArrayBox &zflux, const int *wbc,
+                FArrayBox& zflux, const int* wbc,
 #endif
-                        FArrayBox &S, FArrayBox &Rho, 
-                        const FArrayBox& tforces);
+                const FArrayBox& U, const FArrayBox& Rho, 
+                const FArrayBox& tforces);
+
+    void Setup (const Box& grd, const Real* dx, Real dt, int velpred,
+                D_DECL(FArrayBox& xflux,FArrayBox& yflux,FArrayBox& zflux),
+                D_DECL(const int* ubc,const int* vbc,const int* wbc),
+                D_DECL(const FArrayBox& U,const FArrayBox& V,const FArrayBox& W),
+                D_DECL(int Ucomp,int Vcomp,int Wcomp),
+                const FArrayBox& tforces, int Tcomp);
 
     // =============================================================
     // Data access functions
@@ -50,51 +69,53 @@ public:      // public access functions
     // Advection functions follow
     // =============================================================
 
-    // compute the edge states
-    void edge_states( const Box &grd, const Real *dx, Real dt, int velpred,
-                      FArrayBox &uedge, FArrayBox &stx,
-                      FArrayBox &vedge, FArrayBox &sty,
+    void edge_states (const Box& grd, const Real* dx, Real dt, int velpred,
+                      const FArrayBox& uedge, FArrayBox& stx,
+                      const FArrayBox& vedge, FArrayBox& sty,
 #if (BL_SPACEDIM == 3 )
-                      FArrayBox &wedge, FArrayBox &stz,
+                      const FArrayBox& wedge, FArrayBox& stz,
 #endif
-                      FArrayBox &U, FArrayBox &S, 
-                      FArrayBox &tforces, FArrayBox& divu,
+                      const FArrayBox& U, const FArrayBox& S, 
+                      const FArrayBox& tforces, const FArrayBox& divu,
                       int fab_ind, int state_ind, const int *bc,
                       int use_conserv, AdvectionScheme which_scheme);
 
-    // compute the edge states
+    void edge_states (const Box& grd, const Real* dx, Real dt, int velpred,
+                      D_DECL(const FArrayBox &uedge, const FArrayBox &vedge, const FArrayBox &wedge),
+                      D_DECL(int mCompX,       int mCompY,       int mCompZ),
+                      D_DECL(FArrayBox &stx,   FArrayBox &sty,   FArrayBox &stz  ),
+                      D_DECL(int eCompX,       int eCompY,       int eCompZ),
+                      D_DECL(const FArrayBox& U, const FArrayBox &V, const FArrayBox &W),
+                      D_DECL(int Ucomp,        int Vcomp,        int Wcomp),
+                      const FArrayBox &S, int Scomp, const FArrayBox &tforces, int Tcomp, const FArrayBox& divu, int Dcomp,
+                      int state_ind, const int *bc, int use_conserv, AdvectionScheme which_scheme);
+
     void edge_states_orig( const Box &grd, const Real *dx, Real dt, int velpred,
-                      FArrayBox &uedge, FArrayBox &stx,
-                      FArrayBox &vedge, FArrayBox &sty,
-#if (BL_SPACEDIM == 3 )
-                      FArrayBox &wedge, FArrayBox &stz,
-#endif
-                      FArrayBox &U, FArrayBox &S,
-                      FArrayBox &tforces, 
-                      int fab_ind, int state_ind, const int *bc);
+                           D_DECL(const FArrayBox &uedge, const FArrayBox &vedge, const FArrayBox &wedge),
+                           D_DECL(int mCompX,       int mCompY,       int mCompZ),
+                           D_DECL(FArrayBox &stx,   FArrayBox &sty,   FArrayBox &stz  ),
+                           D_DECL(int eCompX,       int eCompY,       int eCompZ),
+                           D_DECL(const FArrayBox& U, const FArrayBox &V, const FArrayBox &W),
+                           D_DECL(int Ucomp,        int Vcomp,        int Wcomp),
+                           const FArrayBox &S, int Scomp, const FArrayBox &tforces, int Tcomp,
+                           int state_ind, const int *bc);
 
-    // compute the edge states, edges velocities filled in grow cells
-    void edge_states_fpu( const Box &grd, const Real *dx, Real dt, int velpred,
-                          FArrayBox &uedge, FArrayBox &stx,
-                          FArrayBox &vedge, FArrayBox &sty,
-#if (BL_SPACEDIM == 3 )
-                          FArrayBox &wedge, FArrayBox &stz,
-#endif
-                          FArrayBox &S, FArrayBox &tforces, FArrayBox& divu,
-                          int fab_ind,
-                          int state_ind, const int *bc, int inconserv );
-
-    // compute the edge states using the BDS algorithm
-    void edge_states_bds( const Box &grd, const Real *dx, Real dt, int velpred,
-                          FArrayBox &uedge, FArrayBox &stx,
-                          FArrayBox &vedge, FArrayBox &sty,
-#if (BL_SPACEDIM == 3 )
-                          FArrayBox &wedge, FArrayBox &stz,
-#endif
-                          FArrayBox &S, FArrayBox &tforces, FArrayBox& divu,
-                          int fab_ind,
-                          int state_ind, const int *bc, int inconserv );
-        
+    void edge_states_fpu( const Box &grd, const Real *dx, Real dt,
+                          D_DECL(const FArrayBox &uedge, const FArrayBox &vedge, const FArrayBox &wedge),
+                          D_DECL(int mCompX,       int mCompY,       int mCompZ),
+                          D_DECL(FArrayBox &stx,   FArrayBox &sty,   FArrayBox &stz  ),
+                          D_DECL(int eCompX,       int eCompY,       int eCompZ),
+                          const FArrayBox &S, int Scomp, const FArrayBox &tforces, int Tcomp, const FArrayBox& divu, int Dcomp,
+                          int state_ind, const int *bc, int use_conserv);
+    
+    void edge_states_bds( const Box &grd, const Real *dx, Real dt,
+                          D_DECL(const FArrayBox &uedge, const FArrayBox &vedge, const FArrayBox &wedge),
+                          D_DECL(int mCompX,       int mCompY,       int mCompZ),
+                          D_DECL(FArrayBox &stx,   FArrayBox &sty,   FArrayBox &stz  ),
+                          D_DECL(int eCompX,       int eCompY,       int eCompZ),
+                          const FArrayBox &S, int Scomp, const FArrayBox &tforces, int Tcomp, const FArrayBox& divu, int Dcomp,
+                          int state_ind, const int *bc, int use_conserv);
+    
     // compute divergent mac velocities
     void ComputeUmac( const Box &grd, const Real *dx, Real dt, 
                       FArrayBox &umac, const int *ubc, 
@@ -105,46 +126,62 @@ public:      // public access functions
                       FArrayBox &U, FArrayBox &tforces );
     
     // advect a state component
-    virtual void AdvectState( const Box &grd, const Real *dx, Real dt, 
-                              FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
-                              FArrayBox &areay, FArrayBox &vedge, FArrayBox &yflux,  
-#if (BL_SPACEDIM == 3 )                               
-                              FArrayBox &areaz, FArrayBox &wedge, FArrayBox &zflux,
-#endif
-                              FArrayBox &U,
-                              FArrayBox &S, 
-                              FArrayBox &tforces, FArrayBox& divu,
-                              int fab_ind,
-                              FArrayBox &aofs,                  
-                              int aofs_ind,
-                              int iconserv, int state_ind, const int *bc,
-                              AdvectionScheme scheme, FArrayBox &vol );
-
-    // compute the advective derivative from fluxes
-    void ComputeAofs( const Box &grd, 
+    void AdvectState( const Box &grd, const Real *dx, Real dt, 
                       FArrayBox &areax, FArrayBox &uedge, FArrayBox &xflux,  
                       FArrayBox &areay, FArrayBox &vedge, FArrayBox &yflux,  
-#if (BL_SPACEDIM == 3 )
+#if (BL_SPACEDIM == 3 )                               
                       FArrayBox &areaz, FArrayBox &wedge, FArrayBox &zflux,
 #endif
-                      FArrayBox &vol,
-                      FArrayBox &aofs,  int aofs_ind, int iconserv );
+                      FArrayBox &U,
+                      FArrayBox &S, 
+                      FArrayBox &tforces, FArrayBox& divu,
+                      int fab_ind,
+                      FArrayBox &aofs,                  
+                      int aofs_ind,
+                      int iconserv, int state_ind, const int *bc,
+                      AdvectionScheme scheme, FArrayBox &vol );
+
+    // compute the advective derivative from fluxes
+    void ComputeAofs (const Box& grd, 
+                      const FArrayBox& areax, const FArrayBox& uedge, const FArrayBox& xflux,  
+                      const FArrayBox& areay, const FArrayBox& vedge, const FArrayBox& yflux,  
+#if (BL_SPACEDIM == 3 )
+                      const FArrayBox& areaz, const FArrayBox& wedge, const FArrayBox& zflux,
+#endif
+                      const FArrayBox& vol,
+                      FArrayBox& aofs, int aofs_ind, int iconserv) const;
+
+    void ComputeAofs (const Box& grd, 
+                      D_DECL(const FArrayBox& areax,
+                             const FArrayBox& areay,
+                             const FArrayBox& areaz),
+                      D_DECL(int axcomp,int aycomp,int azcomp),
+                      D_DECL(const FArrayBox& uedge,
+                             const FArrayBox& vedge,
+                             const FArrayBox& wedge),
+                      D_DECL(int ucomp, int vcomp, int wcomp),
+                      D_DECL(const FArrayBox& xflux,
+                             const FArrayBox& yflux,
+                             const FArrayBox& zflux),
+                      D_DECL(int fxcomp,int fycomp,int fzcomp),
+                      const FArrayBox& vol, int volcomp, 
+                      FArrayBox& aofs,int acomp, int iconserv ) const;
 
     // sync advect a state component
-    virtual void SyncAdvect( const Box &grd, const Real *dx, Real dt, int level,
-                             FArrayBox &areax, FArrayBox &uedge,
-                             FArrayBox &ucorr, FArrayBox &xflux,
-                             FArrayBox &areay, FArrayBox &vedge,
-                             FArrayBox &vcorr, FArrayBox &yflux,
+    void SyncAdvect( const Box &grd, const Real *dx, Real dt, int level,
+                     FArrayBox &areax, FArrayBox &uedge,
+                     FArrayBox &ucorr, FArrayBox &xflux,
+                     FArrayBox &areay, FArrayBox &vedge,
+                     FArrayBox &vcorr, FArrayBox &yflux,
 #if (BL_SPACEDIM == 3 )
-                             FArrayBox &areaz, FArrayBox &wedge,
-                             FArrayBox &wcorr, FArrayBox &zflux,
+                     FArrayBox &areaz, FArrayBox &wedge,
+                     FArrayBox &wcorr, FArrayBox &zflux,
 #endif
-                             FArrayBox &U, FArrayBox &S,
-                             FArrayBox &tforces, FArrayBox& divu, int ind,
-                             FArrayBox &sync,                     int sync_ind,
-                             int iconserv, int state_ind, const int *bc,
-                             AdvectionScheme scheme, FArrayBox &vol );
+                     FArrayBox &U, FArrayBox &S,
+                     FArrayBox &tforces, FArrayBox& divu, int ind,
+                     FArrayBox &sync,                     int sync_ind,
+                     int iconserv, int state_ind, const int *bc,
+                     AdvectionScheme scheme, FArrayBox &vol );
     
     // compute the advective derivative of corrective fluxes for the mac sync
     void ComputeSyncAofs( const Box &grd,
@@ -208,59 +245,79 @@ public:      // public access functions
     
     // compute the update rule, this is useful for 1st order RK
     // psi^n+1 = psi^n + dt*(tf^n)
-    void Add_tf( FArrayBox &Sold,
+    void Add_tf( const FArrayBox &Sold,
                  FArrayBox &Snew,    int start_ind, int num_comp,
-                 FArrayBox &tforces, int tf_ind,
-                 const Box &grd,     Real dt );
+                 const FArrayBox &tforces, int tf_ind,
+                 const Box &grd,     Real dt ) const;
 
     // correct the 1st order RK to 2nd order via
     // psi^n+1 = psi^* + (dt/2)*(tf^* - tf^n)
-    void Correct_tf( FArrayBox &Sstar, FArrayBox &Snew,
+    void Correct_tf( const FArrayBox &Sstar, FArrayBox &Snew,
                      int start_ind, int num_comp, 
-                     FArrayBox &tfstar, FArrayBox &tfn,
+                     const FArrayBox &tfstar, const FArrayBox &tfn,
                      int tf_ind,
-                     const Box &grd,     Real dt );
+                     const Box &grd,     Real dt ) const;
 
     // compute the update rule
     // psi^n+1 = psi^n - dt*aofs + dt*tforces
-    void Add_aofs_tf( FArrayBox &Sold,
+    void Add_aofs_tf( const FArrayBox &Sold,
                       FArrayBox &Snew,    int start_ind, int num_comp,
-                      FArrayBox &Aofs,    int aofs_ind,
-                      FArrayBox &tforces, int tf_ind,
-                      const Box &grd,     Real dt );
+                      const FArrayBox &Aofs,    int aofs_ind,
+                      const FArrayBox &tforces, int tf_ind,
+                      const Box &grd,     Real dt ) const;
 
     // compute the update rule for velocities or momenta
     // psi^n+1 = psi^n - dt*aofs - dt*gp/rho + dt*tforces
-    void Add_aofs_tf_gp( FArrayBox &Uold, FArrayBox &Unew,
-                         FArrayBox &Aofs, FArrayBox &tforces,
-                         FArrayBox &gp,   FArrayBox &rho, 
-                         const Box &grd,  Real dt);
+    void Add_aofs_tf_gp( const FArrayBox &Uold, FArrayBox &Unew,
+                         const FArrayBox &Aofs, const FArrayBox &tforces,
+                         const FArrayBox &gp,   const FArrayBox &rho, 
+                         const Box &grd,  Real dt) const;
 
     // compute total source term for velocities
     // tforces = (tforces + visc - gp)/rho
-    void Sum_tf_gp_visc( FArrayBox &tforces, FArrayBox &visc, 
-                         FArrayBox &gp,      FArrayBox &Rho);
+    void Sum_tf_gp_visc (FArrayBox&       tforces, int Tcomp,
+                         const FArrayBox& visc,    int Vcomp,
+                         const FArrayBox& gp,      int Gcomp,
+                         const FArrayBox& rho,     int Rcomp) const;
+
+    void Sum_tf_gp_visc( FArrayBox&       tforces,
+                         const FArrayBox& visc, 
+                         const FArrayBox& gp,
+                         const FArrayBox& Rho) const;
 
     // iconserv==1   => tforces = tforces + visc - divU*S
     // iconserv==0   => tforces = (tforces+visc)/rho
-    void Sum_tf_divu_visc( FArrayBox &S, FArrayBox &tforces,
+    void Sum_tf_divu_visc (const FArrayBox& S,
+                           FArrayBox& tforces,
                            int s_ind, int num_comp,
-                           FArrayBox &visc,    int v_ind,
-                           FArrayBox &divu,    FArrayBox &rho,
-                           int iconserv );
-    
+                           const FArrayBox& visc, int v_ind,
+                           const FArrayBox& divu,
+                           const FArrayBox& rho,
+                           int iconserv) const;
+
+    void Sum_tf_divu_visc (const FArrayBox& S, int s_ind,
+                           FArrayBox& tforces, int t_ind,
+                           int        num_comp,
+                           const FArrayBox& visc,    int v_ind,
+                           const FArrayBox& divu,    int d_ind,
+                           const FArrayBox& rho,     int tr_ind,
+                           int        iconserv) const;
+
     // compute total source term for velocities
     // tforces = (tforces - gp)/rho
-    void Sum_tf_gp( FArrayBox &tforces, 
-                    FArrayBox &gp,      FArrayBox &Rho );
+    void Sum_tf_gp (FArrayBox& tforces, int Tcomp,
+                    const FArrayBox& gp, int Gcomp,
+                    const FArrayBox& rho, int Rcomp) const;
 
     // iconserv==1   => tforces = tforces - divU*S
     // iconserv==0   => tforces = (tforces)/rho
-    void Sum_tf_divu( FArrayBox &S, FArrayBox &tforces,
-                      int s_ind, int num_comp,
-                      FArrayBox &divu,    FArrayBox &rho,
-                      int iconserv );
-
+    void Sum_tf_divu (const FArrayBox& S,       int s_ind,
+                      FArrayBox& tforces, int t_ind,
+                      int        num_comp,
+                      const FArrayBox& divu,    int d_ind,
+                      const FArrayBox& rho,     int r_ind,
+                      int        iconserv) const; 
+    
     //================ for debugging purposes this is made public
     // internal FABS
     FArrayBox work; // work space for the Godunov Box
