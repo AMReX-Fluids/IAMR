@@ -353,7 +353,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     ViscBndry visc_bndry_0;
     const Real prev_time   = caller->get_state_data(State_Type).prevTime();
     ABecLaplacian* visc_op = getViscOp(sigma,a,b,prev_time,visc_bndry_0,
-                                       rho_half,rho_flag,0,dataComp,betan);
+                                       rho_half,rho_flag,0,dataComp,betan,0);
     visc_op->maxOrder(max_order);
     //
     // Copy to single-component multifab, then apply op to rho-scaled state
@@ -669,7 +669,7 @@ Diffusion::diffuse_velocity (Real                   dt,
             const int state_ind = Xvel + sigma;
         
             diffuse_scalar(dt,state_ind,be_cn_theta,rho_half,rho_flag,
-                           fluxSCn,fluxSCnp1,sigma,delta_rhs);
+                           fluxSCn,fluxSCnp1,sigma,delta_rhs,0,0,0);
 
             if (do_reflux)
             {
@@ -1085,7 +1085,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         const Real     a        = 1.0;
         const Real     b        = be_cn_theta*dt*visc_coef[comp];
         Real           rhsscale = 1.0;
-        ABecLaplacian* visc_op  = getViscOp(comp,a,b,rho,rho_flag,&rhsscale);
+        ABecLaplacian* visc_op  = getViscOp(comp,a,b,rho,rho_flag,&rhsscale,0,0,0);
 
         visc_op->maxOrder(max_order);
         Rhs.mult(rhsscale,0,1);

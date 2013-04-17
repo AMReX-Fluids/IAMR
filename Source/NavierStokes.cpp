@@ -5649,7 +5649,7 @@ NavierStokes::mac_sync ()
                 }
 
                 diffusion->diffuse_Ssync(Ssync,sigma,dt,be_cn_theta,
-                                         Rh,rho_flag,fluxSC,0,cmp_diffn);
+                                         Rh,rho_flag,fluxSC,0,cmp_diffn,0,0);
 
                 if (variable_scal_diff)
                 {
@@ -6395,7 +6395,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
             {
                 int rho_flag = Diffusion::set_rho_flag(diffusionType[icomp]);
 
-                diffusion->getViscTerms(visc_terms,src_comp,icomp,time,rho_flag);
+                diffusion->getViscTerms(visc_terms,src_comp,icomp,time,rho_flag,0,0);
             }
         }
         //
