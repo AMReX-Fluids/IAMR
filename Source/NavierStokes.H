@@ -343,7 +343,7 @@ protected:
     //
     // Grow by 1 and fillpatch the MAC-projected velocities.
     //
-    void create_umac_grown (int nGrow = 1);
+    void create_umac_grown (int nGrow);
     //
     // Advect velocities.
     //
@@ -650,12 +650,16 @@ protected:
                                 const int  iteration,
                                 const int  ncycle);
 
+#ifdef LMC_SDC
+    virtual void calcDiffusivity (const Real time);
+#else
     virtual void calcDiffusivity (const Real time,
                                   const Real dt,
                                   const int  iteration,
                                   const int  ncycle,
-                                  const int  src_comp = 0,
-                                  const int  num_comp = 1);
+                                  const int  src_comp,
+                                  const int  num_comp);
+#endif
 
     virtual void getViscosity (MultiFab*  viscosity[BL_SPACEDIM],
                                const Real time);

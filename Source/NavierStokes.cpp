@@ -1637,9 +1637,13 @@ NavierStokes::advance_setup (Real time,
 
     if (variable_scal_diff)
     {
+#ifdef LMC_SDC
         const int num_diff = NUM_STATE-Density-1;
-
+        calcDiffusivity(prev_time);
+#else
+        const int num_diff = NUM_STATE - BL_SPACEDIM -1;
         calcDiffusivity(prev_time,dt,iteration,ncycle,Density+1,num_diff);
+#endif
 
         for (MFIter np1Mfi(*diffnp1_cc); np1Mfi.isValid(); ++np1Mfi)
         {
@@ -1658,7 +1662,6 @@ NavierStokes::advance_cleanup (int iteration, int ncycle)
     delete aofs;
     aofs = 0;
 }
-
 
 //
 // Compute a timestep at a level. Return largest safe timestep.
@@ -1755,7 +1758,6 @@ NavierStokes::advance (Real time,
     // Add the advective and other terms to get velocity at t^{n+1}.
     //
     velocity_update(dt);
-
     //
     // Increment rho average.
     //
@@ -1779,7 +1781,6 @@ NavierStokes::advance (Real time,
         NSPC->AdvectWithUmac(u_mac, level, dt);
     }
 #endif
-
     //
     // Clean up after the predicted value at t^n+1.
     // Estimate new timestep from umac cfl.
@@ -1790,30 +1791,40 @@ NavierStokes::advance (Real time,
 }
 
 void
-NavierStokes::create_mac_rhs (MultiFab& mac_rhs, int nGrow, Real time, Real dt)
+NavierStokes::create_mac_rhs (MultiFab& rhs, int nGrow, Real time, Real dt)
 {
-    BL_ASSERT(mac_rhs.nGrow()>=nGrow);
-    BL_ASSERT(mac_rhs.boxArray()==grids);
+    BL_ASSERT(rhs.nGrow()>=nGrow);
+    BL_ASSERT(rhs.boxArray()==grids);
 
-    MultiFab* divu = getDivCond(nGrow,time);
+    const int sCompDivU = 0;
+    const int nCompDivU = 1;
+    const int sCompDsdt = 0;
+    const int nCompDsdt = 1;
 
-    MultiFab::Copy(mac_rhs,*divu,0,0,1,nGrow);
-
-    delete divu;
-
-    MultiFab* dsdt = getDsdt(nGrow,time);
-
-    for (MFIter mfi(mac_rhs); mfi.isValid(); ++mfi)
+    if (have_divu)
     {
-        FArrayBox& dsdtfab = (*dsdt)[mfi];
-        dsdtfab.mult(.5*dt);
-        mac_rhs[mfi].plus(dsdtfab);
+        for (FillPatchIterator Divu_fpi(*this,rhs,nGrow,time,Divu_Type,sCompDivU,nCompDivU);
+             Divu_fpi.isValid(); 
+             ++Divu_fpi)
+        {
+            rhs[Divu_fpi].copy(Divu_fpi(),0,sCompDivU,nCompDivU);
+        }
+    }
+    else
+    {
+        rhs.setVal(0);
     }
 
-    delete dsdt;
-
-    if (nGrow > 0) 
-        mac_rhs.FillBoundary();
+    if (have_dsdt)
+    {
+        for (FillPatchIterator Dsdt_fpi(*this,rhs,nGrow,time,Dsdt_Type,sCompDsdt,nCompDsdt);
+             Dsdt_fpi.isValid(); 
+             ++Dsdt_fpi)
+        {
+            Dsdt_fpi().mult(.5*dt);
+            rhs[Dsdt_fpi].plus(Dsdt_fpi(),0, sCompDsdt,nCompDsdt);
+        }
+    }
 }
 
 void
@@ -2197,8 +2208,7 @@ NavierStokes::velocity_advection (Real dt)
 #else
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
 #endif		 
-#endif		 
-
+#endif
         godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*rho_ptime)[i]);
 
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
@@ -2386,7 +2396,7 @@ NavierStokes::scalar_advection (Real dt,
 #else
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
 #endif		 
-#endif		 
+#endif
             godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[i],Gp[i],(*rho_ptime)[i]);
         }
 
@@ -2433,12 +2443,12 @@ NavierStokes::scalar_advection (Real dt,
             if (adv_scheme == PRE_MAC)
             {
                 godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[i],
-                                          comp,divufab,rhopfab, use_conserv_diff);
+                                          comp,divufab,rhopfab,use_conserv_diff);
             }
             else
             {
                 FArrayBox junkDivu(tforces.box(),1);
-                junkDivu.setVal(0.);
+                junkDivu.setVal(0);
                 godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[i],
                                           comp,junkDivu,rhopfab,use_conserv_diff);
             }
@@ -2735,9 +2745,19 @@ NavierStokes::scalar_diffusion_update (Real dt,
             diffuse_scalar_setup(dt, sigma, &rho_flag, 
                                  delta_rhs, alpha, cmp_diffn, cmp_diffnp1);
 
+#ifdef LMC_SDC
+            const int betaComp  = 0;
+            const int rhsComp   = 0;
+            const int alphaComp = 0;
+            const int fluxComp  = 0;
+            diffusion->diffuse_scalar(dt,sigma,be_cn_theta,Rh,
+                                      rho_flag,fluxSCn,fluxSCnp1,fluxComp,delta_rhs,
+                                      rhsComp,alpha,alphaComp,cmp_diffn,cmp_diffnp1,betaComp);
+#else
             diffusion->diffuse_scalar(dt,sigma,be_cn_theta,Rh,
                                       rho_flag,fluxSCn,fluxSCnp1,0,delta_rhs,
                                       alpha,cmp_diffn,cmp_diffnp1);
+#endif
             if (variable_scal_diff)
             {
                 diffusion->removeFluxBoxesLevel(cmp_diffn);
@@ -2996,7 +3016,6 @@ NavierStokes::velocity_diffusion_update (Real dt)
 
         diffusion->diffuse_velocity(dt,be_cn_theta,get_rho_half_time(),rho_flag,
                                     delta_rhs,loc_viscn,loc_viscnp1);
-
         if (variable_vel_visc)
         {
             diffusion->removeFluxBoxesLevel(loc_viscn);
@@ -5615,7 +5634,7 @@ NavierStokes::mac_sync ()
                 getViscosity(loc_viscn, viscTime);
             }
 
-            diffusion->diffuse_Vsync(Vsync,dt,be_cn_theta,Rh,rho_flag,loc_viscn);
+            diffusion->diffuse_Vsync(Vsync,dt,be_cn_theta,Rh,rho_flag,loc_viscn,0);
 
             if (variable_vel_visc)
             {
@@ -5649,7 +5668,7 @@ NavierStokes::mac_sync ()
                 }
 
                 diffusion->diffuse_Ssync(Ssync,sigma,dt,be_cn_theta,
-                                         Rh,rho_flag,fluxSC,0,cmp_diffn,0,0);
+                                         Rh,rho_flag,fluxSC,0,cmp_diffn,0,0,0);
 
                 if (variable_scal_diff)
                 {
@@ -6387,7 +6406,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
             diffusion->allocFluxBoxesLevel(viscosity, 0, 1);
             getViscosity(viscosity, time);
 
-            diffusion->getTensorViscTerms(visc_terms,time,0,viscosity);
+            diffusion->getTensorViscTerms(visc_terms,time,viscosity,0);
         }
         else
         {
@@ -6449,7 +6468,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
                 }
 
                 diffusion->getViscTerms(visc_terms,src_comp,icomp,
-                                        time,rho_flag,0,cmp_diffn);
+                                        time,rho_flag,cmp_diffn,0);
 
                 if (variable_scal_diff)
                 {
@@ -6536,6 +6555,59 @@ NavierStokes::calcViscosity (const Real time,
     }
 }
 
+#ifdef LMC_SDC
+void 
+NavierStokes::calcDiffusivity (const Real time)
+{
+    //
+    // NOTE:  In the diffusivity 
+    //        arrays, there is an offset since no diffusivity array
+    //        is kept for the velocities or the density.  So, the scalar
+    //        component Density+1 in the state corresponds to component
+    //        0 in the arrays diffn and diffnp1.
+    //
+    int src_comp = Density+1;
+    int ncomp = NUM_STATE - BL_SPACEDIM -1;
+    //
+    // Select time level to work with (N or N+1)
+    //
+    MultiFab* diff_cc = 0;
+
+    const TimeLevel whichTime = which_time(State_Type,time);
+
+    BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+
+    if (whichTime == AmrOldTime)               // time N
+    {
+        diff_cc = diffn_cc;
+    }
+    else if (whichTime == AmrNewTime)          // time N+1
+    {
+        diff_cc = diffnp1_cc;
+    }
+    //
+    // Calculate diffusivity
+    //
+    const int nGrow = diff_cc->nGrow();
+
+    for (int comp=src_comp; comp<src_comp+ncomp; comp++)
+    {
+        int diff_comp = comp - Density - 1;
+
+        if (is_diffusive[comp])
+        {
+            if (visc_coef[comp] >= 0.0)
+            {
+                diff_cc->setVal(visc_coef[comp], diff_comp, 1, nGrow);
+            }
+            else
+            {
+                BoxLib::Abort("NavierStokes::calcDiffusivity() : must have scalar diff_coefs >= 0.0");
+            }
+        }
+    }
+}
+#else
 void 
 NavierStokes::calcDiffusivity (const Real time, 
                                const Real dt,
@@ -6592,7 +6664,7 @@ NavierStokes::calcDiffusivity (const Real time,
         }
     }
 }
-
+#endif
 
 void 
 NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
