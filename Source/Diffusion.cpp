@@ -290,325 +290,6 @@ Diffusion::diffuse_scalar (Real                   dt,
                            int                    rho_flag,
                            MultiFab* const*       fluxn,
                            MultiFab* const*       fluxnp1,
-                           int                    dataComp,
-                           MultiFab*              delta_rhs, 
-                           const MultiFab*        alpha, 
-                           const MultiFab* const* betan, 
-                           const MultiFab* const* betanp1,
-                           const SolveMode&       solve_mode)
-{
-    //
-    // This routine expects that physical BC's have been loaded into
-    // the grow cells of the old and new state at this level.  If rho_flag==2,
-    // the values there are rho.phi, where phi is the quantity being diffused.
-    // Values in these cells will be preserved.  Also, if there are any
-    // explicit update terms, these have already incremented the new state
-    // on the valid region (i.e., on the valid region the new state is the old
-    // state + dt*Div(explicit_fluxes), e.g.)
-    //
-    NavierStokes& ns = *(NavierStokes*) &(parent->getLevel(level));
-
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "... diffusing scalar: " << caller->get_desc_lst()[State_Type].name(sigma) << '\n';
-
-    int allnull, allthere;
-    checkBetas(betan, betanp1, allthere, allnull);
-
-    BL_ASSERT(solve_mode==ONEPASS || (delta_rhs && delta_rhs->boxArray()==grids));
-    //
-    // At this point, S_old has bndry at time N, S_new has bndry at time N+1
-    //
-    MultiFab& S_old = caller->get_old_data(State_Type);
-    MultiFab& S_new = caller->get_new_data(State_Type);
-
-    MultiFab Rhs(grids,1,0), Soln(grids,1,1);
-    //
-    // Set up Rhs.
-    //
-    Real a = 0.0;
-    Real b = -(1.0-be_cn_theta)*dt;
-    if (allnull)
-        b *= visc_coef[sigma];
-    ViscBndry visc_bndry_0;
-    const Real prev_time   = caller->get_state_data(State_Type).prevTime();
-    ABecLaplacian* visc_op = getViscOp(sigma,a,b,prev_time,visc_bndry_0,
-                                       rho_half,rho_flag,0,betan,dataComp,0,0);
-    visc_op->maxOrder(max_order);
-    //
-    // Copy to single-component multifab, then apply op to rho-scaled state
-    //
-    MultiFab::Copy(Soln,S_old,sigma,0,1,0);
-    if (rho_flag == 2)
-        for (MFIter Smfi(Soln); Smfi.isValid(); ++Smfi)
-            Soln[Smfi].divide(S_old[Smfi],Smfi.validbox(),Density,0,1);
-    visc_op->apply(Rhs,Soln);
-    visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC);
-    for (int i = 0; i < BL_SPACEDIM; ++i)
-        (*fluxn[i]).mult(-b/(dt*caller->Geom().CellSize()[i]));
-    delete visc_op;
-    //
-    // If this is a predictor step, put "explicit" updates passed via S_new
-    // into delta_rhs after scaling by rho_half if reqd, so they dont get lost,
-    // pull it off S_new to avoid double counting
-    //   (for rho_flag == 1:
-    //       S_new = S_old - dt.(U.Grad(phi)); want Rhs -= rho_half.(U.Grad(phi)),
-    //    else
-    //       S_new = S_old - dt.Div(U.Phi),   want Rhs -= Div(U.Phi) )
-    //
-    if (solve_mode == PREDICTOR)
-    {
-        FArrayBox tmpfab;
-        for (MFIter Smfi(S_new); Smfi.isValid(); ++Smfi)
-        {
-            const Box& box = Smfi.validbox();
-            tmpfab.resize(box,1);
-            tmpfab.copy(S_new[Smfi],box,sigma,box,0,1);
-            tmpfab.minus(S_old[Smfi],box,sigma,0,1);
-            S_new[Smfi].minus(tmpfab,box,0,sigma,1); // Remove this term from S_new
-            tmpfab.mult(1.0/dt,box,0,1);
-            if (rho_flag == 1)
-                tmpfab.mult((*rho_half)[Smfi],box,0,0,1);
-            if (alpha!=0)
-                tmpfab.mult((*alpha)[Smfi],box,dataComp,0,1);            
-            (*delta_rhs)[Smfi].plus(tmpfab,box,0,dataComp,1);
-        }
-    }
-    //
-    // Add body sources
-    //
-    if (delta_rhs != 0)
-    {
-        FArrayBox tmpfab, volume;
-        for (MFIter mfi(*delta_rhs); mfi.isValid(); ++mfi)
-        {
-            caller->Geom().GetVolume(volume,grids,mfi.index(),GEOM_GROW);
-            const Box& box = mfi.validbox();
-            tmpfab.resize(box,1);
-            tmpfab.copy((*delta_rhs)[mfi],box,dataComp,box,0,1);
-            tmpfab.mult(dt,box,0,1);
-            tmpfab.mult(volume,box,0,0,1);
-            Rhs[mfi].plus(tmpfab,box,0,0,1);
-        }
-    }
-    //
-    // Add hoop stress for x-velocity in r-z coordinates
-    // Note: we have to add hoop stress explicitly because the hoop
-    // stress which is added through the operator in getViscOp
-    // is eliminated by setting a = 0.
-    //
-#if (BL_SPACEDIM == 2) 
-    if (sigma == Xvel && Geometry::IsRZ())
-    {
-        Array<Real> rcen;
-
-        FArrayBox volume;
-
-        for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-        {
-            const int  i    = Rhsmfi.index();
-            const Box& bx   = Rhsmfi.validbox();
-
-            caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
-
-            Box sbx  = BoxLib::grow(S_old.box(i),S_old.nGrow());
-            Box vbox = volume.box();
-
-            rcen.resize(bx.length(0));
-            parent->Geom(level).GetCellLoc(rcen, bx, 0);
-
-            const int*  lo      = bx.loVect();
-            const int*  hi      = bx.hiVect();
-            const int*  slo     = sbx.loVect();
-            const int*  shi     = sbx.hiVect();
-            Real*       rhs     = Rhs[Rhsmfi].dataPtr();
-            const Real* sdat    = S_old[Rhsmfi].dataPtr(sigma);
-            const Real* rcendat = rcen.dataPtr();
-            const Real  coeff   = (1.0-be_cn_theta)*visc_coef[sigma]*dt;
-            const Real* voli    = volume.dataPtr();
-            const int*  vlo     = vbox.loVect();
-            const int*  vhi     = vbox.hiVect();
-            FORT_HOOPRHS(rhs, ARLIM(lo), ARLIM(hi), 
-                         sdat, ARLIM(slo), ARLIM(shi),
-                         rcendat, &coeff, voli, ARLIM(vlo),ARLIM(vhi));
-        }
-    }
-#endif
-    //
-    // Increment Rhs with S_old*V (or S_old*V*rho_half if rho_flag==1
-    //                             or S_old*V*rho_old  if rho_flag==3)
-    //  (Note: here S_new holds S_old, but also maybe an explicit increment
-    //         from advection if solve_mode != PREDICTOR)
-    //
-    MultiFab::Copy(Soln,S_new,sigma,0,1,0);
-
-    {
-        FArrayBox volume;
-
-        for (MFIter mfi(Soln); mfi.isValid(); ++mfi)
-        {
-            caller->Geom().GetVolume(volume,grids,mfi.index(),GEOM_GROW);
-            const Box& box     = mfi.validbox();
-            FArrayBox& Solnfab = Soln[mfi];
-            Solnfab.mult(volume,box,0,0,1);
-            if (rho_flag == 1)
-                Solnfab.mult((*rho_half)[mfi],box,0,0,1);
-            if (rho_flag == 3)
-                Solnfab.mult((*ns.rho_ptime)[mfi],box,0,0,1);
-            if (alpha!=0)
-                Solnfab.mult((*alpha)[mfi],box,dataComp,0,1);
-            Rhs[mfi].plus(Solnfab,box,0,0,1);
-        }
-    }
-    //
-    // Make a good guess for Soln
-    //
-    MultiFab::Copy(Soln,S_new,sigma,0,1,0);
-    if (rho_flag == 2)
-        for (MFIter Smfi(Soln); Smfi.isValid(); ++Smfi)
-            Soln[Smfi].divide(S_new[Smfi],Smfi.validbox(),Density,0,1);
-    //
-    // Construct viscous operator with bndry data at time N+1.
-    //
-    a = 1.0;
-    b = be_cn_theta*dt;
-    if (allnull)
-        b *= visc_coef[sigma];
-    ViscBndry  visc_bndry;
-    const Real cur_time = caller->get_state_data(State_Type).curTime();
-    Real       rhsscale = 1.0;
-
-    visc_op  = getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,
-                         rho_flag,&rhsscale,betanp1,dataComp,alpha,0);
-    Rhs.mult(rhsscale,0,1);
-    visc_op->maxOrder(max_order);
-    //
-    // Construct solver and call it.
-    //
-    const Real S_tol     = visc_tol;
-    const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
-    if (use_cg_solve)
-    {
-        CGSolver cg(*visc_op,use_mg_precond_flag);
-        cg.solve(Soln,Rhs,S_tol,S_tol_abs);
-    }
-
-#ifdef MG_USE_F90_SOLVERS
-    else if ( use_fboxlib_mg )
-      {
-        std::vector<BoxArray> bav(1);
-        bav[0] = S_new.boxArray();
-        std::vector<DistributionMapping> dmv(1);
-        dmv[0] = Rhs.DistributionMap();
-        bool nodal = false;
-	int stencil = CC_CROSS_STENCIL;
-        std::vector<Geometry> geom(1);
-        geom[0] = visc_bndry.getGeom();
-        const BCRec& scal_bc = caller->get_desc_lst()[State_Type].getBC(sigma);
- 
-        int mg_bc[2*BL_SPACEDIM];
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-          if ( geom[0].isPeriodic(i) )
-          {
-            mg_bc[i*2 + 0] = 0;
-            mg_bc[i*2 + 1] = 0;
-          }
-        else
-          {
-            mg_bc[i*2 + 0] = scal_bc.lo(i)==EXT_DIR? MGT_BC_DIR : MGT_BC_NEU;
-            mg_bc[i*2 + 1] = scal_bc.hi(i)==EXT_DIR? MGT_BC_DIR : MGT_BC_NEU;
-          }
-        }
-
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
-
-        // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
-        Array< Array<Real> > xa(1);
-        Array< Array<Real> > xb(1);
- 
-        xa[0].resize(BL_SPACEDIM);
-        xb[0].resize(BL_SPACEDIM);
- 
-        if (level == 0) {
-          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-            xa[0][i] = 0.;
-            xb[0][i] = 0.;
-          }
-        } else {
-          const Real* dx_crse   = parent->Geom(level-1).CellSize();
-          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-            xa[0][i] = 0.5 * dx_crse[i];
-            xb[0][i] = 0.5 * dx_crse[i];
-          }
-        }
-
-        // Set alpha and beta as in (alpha - del dot beta grad)
-        const MultiFab* aa_p[1];
-        aa_p[0] = &(visc_op->aCoefficients());
-        const MultiFab* bb_p[1][BL_SPACEDIM];
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-            bb_p[0][i] = &(visc_op->bCoefficients(i));
-        }
-        mgt_solver.set_visc_coefficients(aa_p, bb_p, b, xa, xb);
-
-        MultiFab* phi_p[1];
-        MultiFab* Rhs_p[1];
-        phi_p[0] = &Soln;
-        Rhs_p[0] = &Rhs;
-  
-        Real final_resnorm;
-        mgt_solver.solve(phi_p, Rhs_p, S_tol, S_tol_abs, visc_bndry, final_resnorm);
-      }
-#endif
-
-#ifdef MG_USE_HYPRE
-    else if ( use_hypre_solve )
-      {
-	BoxLib::Error("HypreABec not ready");
-	Real* dx = 0;
-	HypreABec hp(Soln.boxArray(), visc_bndry, dx, 0, false);
-	hp.setup_solver(S_tol, S_tol_abs, 50);
-	hp.solve(Soln, Rhs, true);
-	hp.clear_solver();
-      }
-#endif
-    else
-    {
-        MultiGrid mg(*visc_op);
-        mg.solve(Soln,Rhs,S_tol,S_tol_abs);
-    }
-    Rhs.clear();
-    //
-    // Get extensivefluxes from new-time op
-    //
-    visc_op->compFlux(D_DECL(*fluxnp1[0],*fluxnp1[1],*fluxnp1[2]),Soln);
-    for (int i = 0; i < BL_SPACEDIM; ++i)
-        (*fluxnp1[i]).mult(b/(dt*caller->Geom().CellSize()[i]));
-    delete visc_op;
-    //
-    // Copy into state variable at new time, without bc's
-    //
-    MultiFab::Copy(S_new,Soln,0,sigma,1,0);
-    
-    if (rho_flag == 2)
-    {
-        for (MFIter Smfi(S_new); Smfi.isValid(); ++Smfi)
-        {
-            FArrayBox& Sfab = S_new[Smfi];
-            Sfab.mult(Sfab,Smfi.validbox(),Density,sigma,1);
-        }
-    }
-}
-
-void
-Diffusion::diffuse_scalar (Real                   dt,
-                           int                    sigma,
-                           Real                   be_cn_theta,
-                           const MultiFab*        rho_half,
-                           int                    rho_flag,
-                           MultiFab* const*       fluxn,
-                           MultiFab* const*       fluxnp1,
                            int                    fluxComp,
                            MultiFab*              delta_rhs, 
                            int                    rhsComp,
@@ -650,6 +331,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     // Set up Rhs.
     //
     MultiFab Rhs(grids,1,0), Soln(grids,1,1);
+
     if (add_old_time_divFlux)
     {
         Real a = 0.0;
@@ -829,7 +511,7 @@ Diffusion::diffuse_scalar (Real                   dt,
 
 #ifdef MG_USE_F90_SOLVERS
     else if ( use_fboxlib_mg )
-      {
+    {
         std::vector<BoxArray> bav(1);
         bav[0] = S_new.boxArray();
         std::vector<DistributionMapping> dmv(1);
@@ -843,16 +525,16 @@ Diffusion::diffuse_scalar (Real                   dt,
         int mg_bc[2*BL_SPACEDIM];
         for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-          if ( geom[0].isPeriodic(i) )
-          {
-            mg_bc[i*2 + 0] = 0;
-            mg_bc[i*2 + 1] = 0;
-          }
-        else
-          {
-            mg_bc[i*2 + 0] = scal_bc.lo(i)==EXT_DIR? MGT_BC_DIR : MGT_BC_NEU;
-            mg_bc[i*2 + 1] = scal_bc.hi(i)==EXT_DIR? MGT_BC_DIR : MGT_BC_NEU;
-          }
+            if ( geom[0].isPeriodic(i) )
+            {
+                mg_bc[i*2 + 0] = 0;
+                mg_bc[i*2 + 1] = 0;
+            }
+            else
+            {
+                mg_bc[i*2 + 0] = scal_bc.lo(i)==EXT_DIR? MGT_BC_DIR : MGT_BC_NEU;
+                mg_bc[i*2 + 1] = scal_bc.hi(i)==EXT_DIR? MGT_BC_DIR : MGT_BC_NEU;
+            }
         }
 
         MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
@@ -864,20 +546,26 @@ Diffusion::diffuse_scalar (Real                   dt,
         xa[0].resize(BL_SPACEDIM);
         xb[0].resize(BL_SPACEDIM);
  
-        if (level == 0) {
-          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-            xa[0][i] = 0.;
-            xb[0][i] = 0.;
-          }
-        } else {
-          const Real* dx_crse   = parent->Geom(level-1).CellSize();
-          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-            xa[0][i] = 0.5 * dx_crse[i];
-            xb[0][i] = 0.5 * dx_crse[i];
-          }
+        if (level == 0)
+        {
+            for ( int i = 0; i < BL_SPACEDIM; ++i )
+            {
+                xa[0][i] = 0.;
+                xb[0][i] = 0.;
+            }
         }
-
-        // Set alpha and beta as in (alpha - del dot beta grad)
+        else
+        {
+            const Real* dx_crse   = parent->Geom(level-1).CellSize();
+            for ( int i = 0; i < BL_SPACEDIM; ++i )
+            {
+                xa[0][i] = 0.5 * dx_crse[i];
+                xb[0][i] = 0.5 * dx_crse[i];
+            }
+        }
+        //
+        // Set alpha and beta as in (alpha - del dot beta grad).
+        //
         const MultiFab* aa_p[1];
         aa_p[0] = &(visc_op->aCoefficients());
         const MultiFab* bb_p[1][BL_SPACEDIM];
@@ -894,25 +582,26 @@ Diffusion::diffuse_scalar (Real                   dt,
   
         Real final_resnorm;
         mgt_solver.solve(phi_p, Rhs_p, S_tol, S_tol_abs, visc_bndry, final_resnorm);
-      }
+    }
 #endif
 
 #ifdef MG_USE_HYPRE
     else if ( use_hypre_solve )
-      {
+    {
 	BoxLib::Error("HypreABec not ready");
 	Real* dx = 0;
 	HypreABec hp(Soln.boxArray(), visc_bndry, dx, 0, false);
 	hp.setup_solver(S_tol, S_tol_abs, 50);
 	hp.solve(Soln, Rhs, true);
 	hp.clear_solver();
-      }
+    }
 #endif
     else
     {
         MultiGrid mg(*visc_op);
         mg.solve(Soln,Rhs,S_tol,S_tol_abs);
     }
+
     Rhs.clear();
     //
     // Get extensivefluxes from new-time op

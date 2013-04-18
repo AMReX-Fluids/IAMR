@@ -2745,19 +2745,12 @@ NavierStokes::scalar_diffusion_update (Real dt,
             diffuse_scalar_setup(dt, sigma, &rho_flag, 
                                  delta_rhs, alpha, cmp_diffn, cmp_diffnp1);
 
-#ifdef LMC_SDC
-            const int betaComp  = 0;
-            const int rhsComp   = 0;
-            const int alphaComp = 0;
-            const int fluxComp  = 0;
+            const int betaComp = 0, rhsComp = 0, alphaComp = 0, fluxComp  = 0;
+
             diffusion->diffuse_scalar(dt,sigma,be_cn_theta,Rh,
                                       rho_flag,fluxSCn,fluxSCnp1,fluxComp,delta_rhs,
                                       rhsComp,alpha,alphaComp,cmp_diffn,cmp_diffnp1,betaComp);
-#else
-            diffusion->diffuse_scalar(dt,sigma,be_cn_theta,Rh,
-                                      rho_flag,fluxSCn,fluxSCnp1,0,delta_rhs,
-                                      alpha,cmp_diffn,cmp_diffnp1);
-#endif
+
             if (variable_scal_diff)
             {
                 diffusion->removeFluxBoxesLevel(cmp_diffn);
