@@ -20,30 +20,6 @@
 
 using std::cout;
 using std::endl;
-static
-void dump(const FArrayBox& fab, int comp=-1)
-{
-
-#if (BL_SPACEDIM == 2)
-    int sComp = comp < 0 ? 0 : comp;
-    int nComp = comp < 0 ? fab.nComp() : 1;
-
-    for (int j=60; j<=70; ++j) {
-        IntVect iv(1,j);
-        cout << j << " ";
-        for (int n=sComp; n<sComp+nComp; ++n) {
-            cout << fab(iv,n) << " ";
-        }
-        cout << endl;
-    }
-#endif
-
-}
-static
-void dump(const MultiFab& mf, int comp=-1)
-{
-    dump(mf[0],comp);
-}
 
 namespace
 {
