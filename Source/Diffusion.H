@@ -206,19 +206,6 @@ public:
 
     ABecLaplacian* getViscOp (int                    src_comp,
                               Real                   a,
-                              Real                   b, 
-                              Real                   time,
-                              ViscBndry&             visc_bndry,
-                              const MultiFab*        rho_half,
-                              int                    rho_flag,
-                              Real*                  rhsscale,
-			      int                    dataComp,
-                              const MultiFab* const* beta,
-                              const MultiFab*        alpha_in,
-                              bool		     bndry_already_filled = false);
-
-    ABecLaplacian* getViscOp (int                    src_comp,
-                              Real                   a,
                               Real                   b,
                               const MultiFab*        rho_half,
                               int                    rho_flag,

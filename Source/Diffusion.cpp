@@ -332,7 +332,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     ViscBndry visc_bndry_0;
     const Real prev_time   = caller->get_state_data(State_Type).prevTime();
     ABecLaplacian* visc_op = getViscOp(sigma,a,b,prev_time,visc_bndry_0,
-                                       rho_half,rho_flag,0,dataComp,betan,0);
+                                       rho_half,rho_flag,0,betan,dataComp,0,0);
     visc_op->maxOrder(max_order);
     //
     // Copy to single-component multifab, then apply op to rho-scaled state
@@ -478,7 +478,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     Real       rhsscale = 1.0;
 
     visc_op  = getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,
-                                        rho_flag,&rhsscale,dataComp,betanp1,alpha);
+                         rho_flag,&rhsscale,betanp1,dataComp,alpha,0);
     Rhs.mult(rhsscale,0,1);
     visc_op->maxOrder(max_order);
     //
@@ -2482,36 +2482,6 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
             visc_op->bCoefficients(bcoeffs,n);
         }
     }
-}
-
-ABecLaplacian*
-Diffusion::getViscOp (int                    comp,
-                      Real                   a,
-                      Real                   b,
-                      Real                   time,
-                      ViscBndry&             visc_bndry,
-                      const MultiFab*        rho_half,
-                      int                    rho_flag, 
-                      Real*                  rhsscale,
-                      int                    dataComp,
-                      const MultiFab* const* beta,
-                      const MultiFab*        alpha_in,
-                      bool		     bndry_already_filled)
-{
-    if (!bndry_already_filled)
-        getBndryData(visc_bndry,comp,1,time,rho_flag);
-
-    const Real* dx = caller->Geom().CellSize();
-
-    ABecLaplacian* visc_op = new ABecLaplacian(visc_bndry,dx);
-
-    visc_op->maxOrder(max_order);
-
-    setAlpha(visc_op,comp,a,b,time,rho_half,rho_flag,rhsscale,dataComp,alpha_in);
-
-    setBeta(visc_op,dataComp,beta);
-
-    return visc_op;
 }
 
 ABecLaplacian*
