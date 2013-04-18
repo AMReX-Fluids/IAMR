@@ -145,28 +145,14 @@ public:
                         Real                   be_cn_theta,
                         const MultiFab*        rho_half,
                         int                    rho_flag,
-                        const MultiFab* const* beta);
-
-    void diffuse_Vsync (MultiFab*              Vsync,
-                        Real                   dt,
-                        Real                   be_cn_theta,
-                        const MultiFab*        rho_half,
-                        int                    rho_flag,
                         const MultiFab* const* beta,
-                        int                    betaComp);
+                        int                    betaComp = 0);
 
     void diffuse_Vsync_constant_mu (MultiFab*       Vsync,
                                     Real            dt,
                                     Real            be_cn_theta,
                                     const MultiFab* rho_half,
                                     int             rho_flag);
-
-    void diffuse_tensor_Vsync (MultiFab*              Vsync,
-                               Real                   dt,
-                               Real                   be_cn_theta,
-                               const MultiFab*        rho_half,
-                               int                    rho_flag,
-                               const MultiFab* const* beta);
 
     void diffuse_tensor_Vsync (MultiFab*              Vsync,
                                Real                   dt,
@@ -272,14 +258,6 @@ public:
                          const MultiFab* const* beta,
 			 int                    betaComp);
 
-    DivVis* getTensorOp (Real                   a,
-                         Real                   b, 
-                         Real                   time, 
-                         ViscBndryTensor&       visc_bndry,
-                         const MultiFab*        rho_half,
-			 int                    dataComp,
-                         const MultiFab* const* beta);
-
     void getTensorBndryData (ViscBndryTensor& bndry, Real time);
 
     DivVis* getTensorOp (Real                   a,
@@ -287,12 +265,6 @@ public:
                          const MultiFab*        rho_half,
                          const MultiFab* const* beta,
 			 int                    betaComp);
-
-    DivVis* getTensorOp (Real                   a,
-                         Real                   b, 
-                         const MultiFab*        rho_half,
-			 int                    dataComp,
-                         const MultiFab* const* beta);
 
     void getViscTerms (MultiFab&              visc_terms,
                        int                    src_comp,
