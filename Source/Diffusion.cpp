@@ -941,81 +941,8 @@ Diffusion::diffuse_velocity (Real                   dt,
                              const MultiFab* const* betan, 
                              const MultiFab* const* betanp1)
 {
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "... diffuse_velocity\n";
-
-    int allnull, allthere;
-    checkBetas(betan, betanp1, allthere, allnull);
- 
-    BL_ASSERT( rho_flag == 1 || rho_flag == 3);
-
-#ifndef NDEBUG
-    for (int d = 0; d < BL_SPACEDIM; ++d)
-        BL_ASSERT(allnull ? visc_coef[Xvel+d]>=0 : betan[d]->min(0,0) >= 0.0);
-#endif
-
-    if (allnull)
-    {
-        MultiFab* *fluxSCn;
-        MultiFab* *fluxSCnp1;
-
-        allocFluxBoxesLevel(fluxSCn,  0,1);
-        allocFluxBoxesLevel(fluxSCnp1,0,1);
-
-        MultiFab fluxes[BL_SPACEDIM];
-
-        if (do_reflux && level < parent->finestLevel())
-        {
-            for (int i = 0; i < BL_SPACEDIM; i++)
-            {
-                BoxArray ba = rho_half->boxArray();
-                ba.surroundingNodes(i);
-                fluxes[i].define(ba, BL_SPACEDIM, 0, Fab_allocate);
-            }
-        }
-
-        for (int sigma = 0; sigma < BL_SPACEDIM; ++sigma)
-        {
-            const int state_ind = Xvel + sigma;
-        
-            diffuse_scalar(dt,state_ind,be_cn_theta,rho_half,rho_flag,
-                           fluxSCn,fluxSCnp1,sigma,delta_rhs,0,0,0);
-
-            if (do_reflux)
-            {
-                for (int d = 0; d < BL_SPACEDIM; ++d)
-                {
-                    for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
-                    {
-                        const int  index = fmfi.index();
-                        FArrayBox& fabp1 = (*fluxSCnp1[d])[fmfi];
-
-                        fabp1.plus((*fluxSCn[d])[fmfi]);
-
-                        if (level < parent->finestLevel())
-                            fluxes[d][index].copy(fabp1,0,sigma,1);
-
-                        if (level > 0)
-                            viscflux_reg->FineAdd(fabp1,d,index,0,sigma,1,dt);
-                    }
-                }
-            }
-        }
-
-        if (level < parent->finestLevel())
-        {
-            for (int d = 0; d < BL_SPACEDIM; ++d)
-                finer->viscflux_reg->CrseInit(fluxes[d],d,0,0,BL_SPACEDIM,-dt);
-        }
-
-        removeFluxBoxesLevel(fluxSCn);
-        removeFluxBoxesLevel(fluxSCnp1);
-    }
-    else
-    {
-        diffuse_tensor_velocity(dt,be_cn_theta,rho_half,rho_flag,
-                                delta_rhs,0,betan,betanp1,0);
-    }
+    diffuse_velocity(dt, be_cn_theta, rho_half, rho_flag,
+                     delta_rhs, 0, betan, betanp1, 0);
 }
 
 void
