@@ -1014,7 +1014,7 @@ Diffusion::diffuse_velocity (Real                   dt,
     else
     {
         diffuse_tensor_velocity(dt,be_cn_theta,rho_half,rho_flag,
-                                delta_rhs,betan,betanp1);
+                                delta_rhs,0,betan,betanp1,0);
     }
 }
 
@@ -1111,8 +1111,10 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                                     const MultiFab*        rho_half,
                                     int                    rho_flag, 
                                     MultiFab*              delta_rhs,
+                                    int                    rhsComp,
                                     const MultiFab* const* betan, 
-                                    const MultiFab* const* betanp1)
+                                    const MultiFab* const* betanp1,
+                                    int                    betaComp)
 {
     BL_ASSERT(rho_flag == 1 || rho_flag == 3);
     const int finest_level = parent->finestLevel();
@@ -1124,7 +1126,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     MultiFab&  U_new     = caller->get_new_data(State_Type);
     const Real cur_time  = caller->get_state_data(State_Type).curTime();
     const Real prev_time = caller->get_state_data(State_Type).prevTime();
-    const int  dComp     = 0; // FIXME: Start comp for data: dR, betas, should pass in
 
     int allnull, allthere;
     checkBetas(betan, betanp1, allthere, allnull);
@@ -1150,7 +1151,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         if (do_reflux && (level < finest_level || level > 0))
         {
             ViscBndryTensor visc_bndry;
-            DivVis* tensor_op = getTensorOp(a,b,prev_time,visc_bndry,rho,betan,dComp);
+            DivVis* tensor_op = getTensorOp(a,b,prev_time,visc_bndry,rho,betan,betaComp);
             tensor_op->maxOrder(tensor_max_order);
 
             const int soln_old_grow = 1;
@@ -1209,9 +1210,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                 if (delta_rhs != 0)
                 {
                     FArrayBox& deltafab = (*delta_rhs)[Rhsmfi];
-                    deltafab.mult(dt,comp+dComp,1);
-                    deltafab.mult(volume,vbx,0,comp+dComp,1);
-                    Rhs[Rhsmfi].plus(deltafab,vbx,comp+dComp,comp,1);
+                    deltafab.mult(dt,comp+rhsComp,1);
+                    deltafab.mult(volume,Rhsmfi.validbox(),0,comp+rhsComp,1);
+                    Rhs[Rhsmfi].plus(deltafab,Rhsmfi.validbox(),comp+rhsComp,comp,1);
                 }
             }
         }
@@ -1241,273 +1242,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                 const Real       coeff     = (1.0-be_cn_theta)*dt;
                 const Real*      voli      = volume.dataPtr();
                 Box              vbox      = volume.box();
-                const int*       vlo       = vbox.loVect();
-                const int*       vhi       = vbox.hiVect();
-                const FArrayBox& betax     = (*betanp1[0])[Rhsmfi];
-                const int*       betax_lo  = betax.loVect();
-                const int*       betax_hi  = betax.hiVect();
-                const Real*      betax_dat = betax.dataPtr(dComp);
-                const FArrayBox& betay     = (*betanp1[1])[Rhsmfi];
-                const int*       betay_lo  = betay.loVect();
-                const int*       betay_hi  = betay.hiVect();
-                const Real*      betay_dat = betay.dataPtr(dComp);
-
-                FORT_TENSOR_HOOPRHS(&fort_xvel_comp, rhs, ARLIM(lo), ARLIM(hi), 
-                                    sdat, ARLIM(slo), ARLIM(shi),
-                                    rcendat, &coeff, 
-                                    voli, ARLIM(vlo), ARLIM(vhi),
-                                    betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
-                                    betay_dat,ARLIM(betay_lo),ARLIM(betay_hi));
-            }
-        }
-#endif
-    }
-    const int soln_grow = 1;
-    MultiFab Soln(grids,BL_SPACEDIM,soln_grow);
-    Soln.setVal(0.0);
-    //
-    // Compute guess of solution.
-    //
-    if (level == 0)
-    {
-        MultiFab::Copy(Soln,U_old,Xvel,0,BL_SPACEDIM,0);
-    }
-    else
-    {
-        caller->FillCoarsePatch(Soln,0,cur_time,State_Type,Xvel,BL_SPACEDIM);
-    }
-    //
-    // Copy guess into U_new.
-    //
-    // The new-time operator is initialized with a "guess" for the new-time
-    // state.  We intentionally initialize the grow cells with a bogus
-    // value to emphasize that the values are not to be considered "valid"
-    // (we shouldn't specify any grow cell information), but rather are to
-    // filled by the "physics bc's, etc" in the problem-dependent code.  In
-    // the course of this filling (typically while generating/filling the
-    // BndryData object for the solvers), StateData::filcc is called to get
-    // physical bc's.  Here 'something computable' has to already exist in
-    // the grow cells (even though filcc ultimately will fill the corner
-    // correctly, if applicable).  This is apparently where the
-    // `something computable' is to be set.
-    //
-    int n_comp  = BL_SPACEDIM;
-    int n_ghost = 1;
-    U_new.setVal(BL_SAFE_BOGUS,Xvel,n_comp,n_ghost);
-    n_ghost = 0;
-    U_new.copy(Soln,0,Xvel,n_comp);
-    //
-    // Construct viscous operator with bndry data at time N+1.
-    //
-    const Real a = 1.0;
-    Real       b = be_cn_theta*dt;
-    if (allnull)
-        b *= visc_coef[Xvel];
-       
-    ViscBndryTensor visc_bndry;
-    const MultiFab* rho = (rho_flag == 1) ? rho_half : ns.rho_ctime;
-    DivVis* tensor_op = getTensorOp(a,b,cur_time,visc_bndry,rho,betanp1,dComp);
-    tensor_op->maxOrder(tensor_max_order);
-    //
-    // Construct solver and call it.
-    //
-    const Real S_tol     = visc_tol;
-    const Real S_tol_abs = -1;
-    if (use_tensor_cg_solve)
-    {
-        const int use_mg_pre = 0;
-        MCCGSolver cg(*tensor_op,use_mg_pre);
-        cg.solve(Soln,Rhs,S_tol,S_tol_abs);
-    }
-    else
-    {
-        MCMultiGrid mg(*tensor_op);
-        mg.solve(Soln,Rhs,S_tol,S_tol_abs);
-    }
-    Rhs.clear();
-
-    int visc_op_lev = 0;
-    tensor_op->applyBC(Soln,visc_op_lev); // This may not be needed.
-    //
-    // Copy into state variable at new time.
-    //
-    n_ghost = soln_grow;
-    MultiFab::Copy(U_new,Soln,0,Xvel,n_comp,n_ghost);
-    //
-    // Modify diffusive fluxes here.
-    //
-    if (do_reflux && (level < finest_level || level > 0))
-    {
-        MultiFab** tensorflux;
-        allocFluxBoxesLevel(tensorflux,0,BL_SPACEDIM);
-        tensor_op->compFlux(D_DECL(*(tensorflux[0]), *(tensorflux[1]), *(tensorflux[2])),Soln);
-
-        for (int d = 0; d < BL_SPACEDIM; d++)
-        {
-            tensorflux[d]->mult(b/(dt*caller->Geom().CellSize()[d]),0);
-            tensorflux[d]->plus(*(tensorflux_old[d]),0,BL_SPACEDIM,0);
-        }       
-
-        removeFluxBoxesLevel(tensorflux_old);
-
-        if (level > 0)
-        {
-            for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
-            {
-                const int i = mfi.index();
-
-                for (int k = 0; k < BL_SPACEDIM; k++)
-                    viscflux_reg->FineAdd((*(tensorflux[k]))[i],k,i,Xvel,Xvel,BL_SPACEDIM,dt);
-            }
-        }
-
-        if (level < finest_level)
-        {
-            for (int d = 0; d < BL_SPACEDIM; d++)
-                (*finer->viscflux_reg).CrseInit(*tensorflux[d],d,0,Xvel,BL_SPACEDIM,-dt);
-        }
-
-        removeFluxBoxesLevel(tensorflux);
-    }
-
-    delete tensor_op;
-}
-
-void
-Diffusion::diffuse_tensor_velocity (Real                   dt,
-                                    Real                   be_cn_theta,
-                                    const MultiFab*        rho_half,
-                                    int                    rho_flag, 
-                                    MultiFab*              delta_rhs,
-                                    int                    rhsComp,
-                                    const MultiFab* const* betan, 
-                                    const MultiFab* const* betanp1,
-                                    int                    betaComp)
-{
-    BL_ASSERT(rho_flag == 1 || rho_flag == 3);
-    const int finest_level = parent->finestLevel();
-    NavierStokes& ns    = *(NavierStokes*) &(parent->getLevel(level));
-    //
-    // At this point, S_old has bndry at time N S_new contains GRAD(SU).
-    //
-    MultiFab&  U_old     = caller->get_old_data(State_Type);
-    MultiFab&  U_new     = caller->get_new_data(State_Type);
-    const Real cur_time  = caller->get_state_data(State_Type).curTime();
-    const Real prev_time = caller->get_state_data(State_Type).prevTime();
-
-    int allnull, allthere;
-    checkBetas(betan, betanp1, allthere, allnull);
-    //
-    // U_new now contains the inviscid update of U.
-    // This is part of the RHS for the viscous solve.
-    //
-    MultiFab Rhs(grids,BL_SPACEDIM,0);
-    Rhs.setVal(0.0);
-
-    MultiFab** tensorflux_old;
-    {
-        //
-        // Set up Rhs.
-        //
-        const int soln_old_grow = 1;
-        MultiFab Soln_old(grids,BL_SPACEDIM,soln_old_grow);
-        const Real a = 0.0;
-        Real       b = -(1.0-be_cn_theta)*dt;
-        if (allnull)
-            b *= visc_coef[Xvel];
-        ViscBndryTensor visc_bndry;
-        const MultiFab* rho = (rho_flag == 1) ? rho_half : ns.rho_ptime;
-        
-        DivVis* tensor_op = getTensorOp(a,b,prev_time,visc_bndry,rho,betan,betaComp);
-        tensor_op->maxOrder(tensor_max_order);
-        //
-        // Copy to single-component multifab.  Use Soln as a temporary here.
-        //
-        MultiFab::Copy(Soln_old,U_old,Xvel,0,BL_SPACEDIM,0);
-        tensor_op->apply(Rhs,Soln_old);
-
-        if (do_reflux && (level<finest_level || level>0))
-        {
-            allocFluxBoxesLevel(tensorflux_old,0,BL_SPACEDIM);
-            tensor_op->compFlux(D_DECL(*(tensorflux_old[0]),
-                                       *(tensorflux_old[1]),
-                                       *(tensorflux_old[2])),Soln_old);
-            for (int d = 0; d < BL_SPACEDIM; d++)
-                tensorflux_old[d]->mult(-b/(dt*caller->Geom().CellSize()[d]),0);
-        }
-        delete tensor_op;
-
-        MultiFab volume;
-
-        caller->Geom().GetVolume(volume,grids,GEOM_GROW);
-
-        for (int comp = 0; comp < BL_SPACEDIM; comp++)
-        {
-            int sigma = Xvel + comp;
-            //
-            // Complete Rhs by adding body sources.
-            //
-            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-            {
-                BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
-                //
-                // Scale inviscid part by volume.
-                //
-                U_new[Rhsmfi].mult(volume[Rhsmfi],Rhsmfi.validbox(),0,sigma,1);
-                //
-                // Multiply by density at time nph (if rho_flag==1)
-                //                     or time n   (if rho_flag==3).
-                //
-                if (rho_flag == 1)
-                {
-                  const FArrayBox& Rh = (*rho_half)[Rhsmfi];
-                  U_new[Rhsmfi].mult(Rh,Rhsmfi.validbox(),0,sigma,1);
-                }
-                if (rho_flag == 3)
-                {
-                  FArrayBox& Rh = (*ns.rho_ptime)[Rhsmfi.index()];
-                  U_new[Rhsmfi].mult(Rh,Rhsmfi.validbox(),0,sigma,1);
-                }
-                //
-                // Add to Rhs which contained operator applied to U_old.
-                //
-                Rhs[Rhsmfi].plus(U_new[Rhsmfi],Rhsmfi.validbox(),sigma,comp,1);
-            }
-
-            if (delta_rhs != 0)
-            {
-                for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-                {
-                    BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
-                    (*delta_rhs)[Rhsmfi].mult(dt,comp+rhsComp,1);
-                    (*delta_rhs)[Rhsmfi].mult(volume[Rhsmfi],Rhsmfi.validbox(),0,comp+rhsComp,1);
-                    Rhs[Rhsmfi].plus((*delta_rhs)[Rhsmfi],Rhsmfi.validbox(),comp+rhsComp,comp,1);
-                }
-            }
-        }
-
-#if (BL_SPACEDIM == 2) 
-        if (Geometry::IsRZ())
-        {
-            int fort_xvel_comp = Xvel+1;
-
-            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-            {
-                const int  i  = Rhsmfi.index();
-                const Box& bx = Rhsmfi.validbox();
-                Box sbx       = BoxLib::grow(U_old.box(i),U_old.nGrow());
-                Array<Real> rcen(bx.length(0));
-                parent->Geom(level).GetCellLoc(rcen, bx, 0);
-                const int*       lo        = bx.loVect();
-                const int*       hi        = bx.hiVect();
-                const int*       slo       = sbx.loVect();
-                const int*       shi       = sbx.hiVect();
-                Real*            rhs       = Rhs[Rhsmfi].dataPtr();
-                const Real*      sdat      = U_old[Rhsmfi].dataPtr(Xvel);
-                const Real*      rcendat   = rcen.dataPtr();
-                const Real       coeff     = (1.0-be_cn_theta)*dt;
-                const Real*      voli      = volume[Rhsmfi].dataPtr();
-                Box              vbox      = volume[Rhsmfi].box();
                 const int*       vlo       = vbox.loVect();
                 const int*       vhi       = vbox.hiVect();
                 const FArrayBox& betax     = (*betanp1[0])[Rhsmfi];

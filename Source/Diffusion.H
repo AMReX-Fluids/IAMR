@@ -127,14 +127,6 @@ public:
                                   const MultiFab*        rho_half,
                                   int                    rho_flag,
                                   MultiFab*              delta_rhs, 
-                                  const MultiFab* const* betan, 
-                                  const MultiFab* const* betanp1);
-
-    void diffuse_tensor_velocity (Real                   dt,
-                                  Real                   be_cn_theta,
-                                  const MultiFab*        rho_half,
-                                  int                    rho_flag,
-                                  MultiFab*              delta_rhs, 
                                   int                    rhsComp,
                                   const MultiFab* const* betan, 
                                   const MultiFab* const* betanp1,
