@@ -204,16 +204,6 @@ public:
                               const MultiFab*        alpha_in,
 			      int                    alphaComp);
 
-    ABecLaplacian* getViscOp (int                    src_comp,
-                              Real                   a,
-                              Real                   b,
-                              const MultiFab*        rho_half,
-                              int                    rho_flag,
-                              Real*                  rhsscale,
-			      int                    dataComp,
-                              const MultiFab* const* beta,
-                              const MultiFab*        alpha_in);
-
     void setAlpha (ABecLaplacian*  visc_op,
                    int             src_comp,
                    Real            a,

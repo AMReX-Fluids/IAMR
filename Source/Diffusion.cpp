@@ -2484,41 +2484,6 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
     }
 }
 
-ABecLaplacian*
-Diffusion::getViscOp (int                    comp,
-                      Real                   a,
-                      Real                   b,
-                      const MultiFab*        rho,
-                      int                    rho_flag,
-                      Real*                  rhsscale,
-                      int                    dataComp,
-                      const MultiFab* const* beta,
-                      const MultiFab*        alpha_in)
-{
-
-    const Geometry& geom = caller->Geom();
-    const Real*  dx      = geom.CellSize();
-    const BCRec& bc      = caller->get_desc_lst()[State_Type].getBC(comp);
-
-    IntVect ref_ratio = level > 0 ? parent->refRatio(level-1) : IntVect::TheUnitVector();
-
-    ViscBndry bndry(grids,1,geom);
-    bndry.setHomogValues(bc, ref_ratio);
-
-    ABecLaplacian* visc_op = new ABecLaplacian(bndry,dx);
-    visc_op->maxOrder(max_order);
-    //
-    // Note: This assumes that the "NEW" density is to be used, if rho_flag==2
-    //
-    const Real cur_time = caller->get_state_data(0).curTime();
-
-    setAlpha(visc_op,comp,a,b,cur_time,rho,rho_flag,rhsscale,dataComp,alpha_in);
-
-    setBeta(visc_op,dataComp,beta);
-
-    return visc_op;
-}
-
 void
 Diffusion::getViscTerms (MultiFab&              visc_terms,
                          int                    src_comp,
