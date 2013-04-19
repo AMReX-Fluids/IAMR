@@ -26,16 +26,6 @@
 #include <cfloat>
 #include <iomanip>
 
-#if defined(BL_OSF1)
-#if defined(BL_USE_DOUBLE)
-const Real BL_BOGUS      = DBL_QNAN;
-#else
-const Real BL_BOGUS      = FLT_QNAN;
-#endif
-#else
-const Real BL_BOGUS      = 1.e200;
-#endif
-
 const Real BL_SAFE_BOGUS = -666.e200;
 //
 // Include files for tensor solve.
@@ -1912,9 +1902,6 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     //
     const Real* dx = caller->Geom().CellSize();
     MultiFab&   S  = caller->get_data(State_Type,time);
-
-    int ngrow = visc_terms.nGrow();
-    visc_terms.setVal(0,comp-src_comp,1,ngrow);
     //
     // FIXME
     // LinOp classes cannot handle multcomponent MultiFabs yet,
@@ -2032,7 +2019,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     //
     const Real* dx   = caller->Geom().CellSize();
     MultiFab&   S    = caller->get_data(State_Type,time);
-    visc_terms.setVal(0,src_comp,BL_SPACEDIM,1);
     //
     // FIXME
     // LinOp classes cannot handle multcomponent MultiFabs yet,
@@ -2166,8 +2152,6 @@ Diffusion::getBndryData (ViscBndry& bndry,
 
     MultiFab S(grids, num_comp, nGrow);
 
-    S.setVal(BL_SAFE_BOGUS);
-
     bndry.define(grids,num_comp,caller->Geom());
 
     const MultiFab& rhotime = ns.get_rho(time);
@@ -2203,7 +2187,6 @@ Diffusion::getBndryData (ViscBndry& bndry,
         //
         // interp for solvers over ALL c-f brs, need safe data.
         //
-        crse_br.setVal(BL_BOGUS);
         coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
         bndry.setBndryValues(crse_br,0,S,0,0,num_comp,crse_ratio,bc);
     }
@@ -2240,7 +2223,6 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
         //
         // interp for solvers over ALL c-f brs, need safe data.
         //
-        crse_br.setVal(BL_BOGUS);
         crse_br.copyFrom(Rho_and_spec_crse,nGrow,src_comp,0,num_comp);
         bndry.setBndryValues(crse_br,0,Rho_and_spec,src_comp,0,num_comp,crse_ratio,bc);
     }
@@ -2330,7 +2312,6 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
         BoxArray cgrids(grids);
         cgrids.coarsen(crse_ratio);
         BndryRegister crse_br(cgrids,0,1,1,num_comp);
-        crse_br.setVal(BL_BOGUS);
         const int rho_flag = 0;
         coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
         bndry.setBndryValues(crse_br,0,S,0,0,num_comp,crse_ratio[0],bcarray);
