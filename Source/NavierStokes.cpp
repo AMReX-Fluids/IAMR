@@ -1637,13 +1637,9 @@ NavierStokes::advance_setup (Real time,
 
     if (variable_scal_diff)
     {
-#ifdef LMC_SDC
-        const int num_diff = NUM_STATE-Density-1;
+        const int num_diff = NUM_STATE-BL_SPACEDIM-1;
+
         calcDiffusivity(prev_time);
-#else
-        const int num_diff = NUM_STATE - BL_SPACEDIM -1;
-        calcDiffusivity(prev_time,dt,iteration,ncycle,Density+1,num_diff);
-#endif
 
         for (MFIter np1Mfi(*diffnp1_cc); np1Mfi.isValid(); ++np1Mfi)
         {
@@ -6548,7 +6544,6 @@ NavierStokes::calcViscosity (const Real time,
     }
 }
 
-#ifdef LMC_SDC
 void 
 NavierStokes::calcDiffusivity (const Real time)
 {
@@ -6600,64 +6595,6 @@ NavierStokes::calcDiffusivity (const Real time)
         }
     }
 }
-#else
-void 
-NavierStokes::calcDiffusivity (const Real time, 
-                               const Real dt,
-                               const int  iteration,
-                               const int  ncycle,
-                               const int  src_comp, 
-                               const int  ncomp)
-{
-    //
-    // NOTE:  The component numbers passed into NavierStokes::calcDiffusivity
-    //        correspond to the components in the state.  In the diffusivity 
-    //        arrays, there is an offset since no diffusivity array
-    //        is kept for the velocities or the density.  So, the scalar
-    //        component Density+1 in the state corresponds to component
-    //        0 in the arrays diffn and diffnp1.
-    //
-    BL_ASSERT(src_comp > Density);
-    //
-    // Select time level to work with (N or N+1)
-    //
-    MultiFab* diff_cc = 0;
-
-    const TimeLevel whichTime = which_time(State_Type,time);
-
-    BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
-
-    if (whichTime == AmrOldTime)               // time N
-    {
-        diff_cc = diffn_cc;
-    }
-    else if (whichTime == AmrNewTime)          // time N+1
-    {
-        diff_cc = diffnp1_cc;
-    }
-    //
-    // Calculate diffusivity
-    //
-    const int nGrow = diff_cc->nGrow();
-
-    for (int comp=src_comp; comp<src_comp+ncomp; comp++)
-    {
-        int diff_comp = comp - Density - 1;
-
-        if (is_diffusive[comp])
-        {
-            if (visc_coef[comp] >= 0.0)
-            {
-                diff_cc->setVal(visc_coef[comp], diff_comp, 1, nGrow);
-            }
-            else
-            {
-                BoxLib::Abort("NavierStokes::calcDiffusivity() : must have scalar diff_coefs >= 0.0");
-            }
-        }
-    }
-}
-#endif
 
 void 
 NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
