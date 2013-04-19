@@ -202,8 +202,8 @@ public:
                    const MultiFab* alpha_in);
 
     void setBeta (ABecLaplacian*         visc_op,
-                  int                    dataComp,
-                  const MultiFab* const* beta);
+                  const MultiFab* const* beta,
+                  int                    betaComp);
 
     DivVis* getTensorOp (Real                   a,
                          Real                   b, 

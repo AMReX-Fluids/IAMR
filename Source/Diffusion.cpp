@@ -1765,108 +1765,18 @@ Diffusion::getViscOp (int                    comp,
                       int                    alphaComp,
                       bool		     bndry_already_filled)
 {
-    int allnull, allthere;
-    checkBeta(beta, allthere, allnull);
-
     const Real* dx = caller->Geom().CellSize();
 
     if (!bndry_already_filled)
         getBndryData(visc_bndry,comp,1,time,rho_flag);
 
     ABecLaplacian* visc_op = new ABecLaplacian(visc_bndry,dx);
+
     visc_op->maxOrder(max_order);
 
-    int usehoop = (comp == Xvel && (Geometry::IsRZ()));
-    int useden  = (rho_flag == 1);
-    //
-    // alpha should be the same size as volume.
-    //
-    MultiFab alpha;
-    //
-    // Rewrite slightly to avoid requiring rho_half when usehoop and useden are false
-    // (leave function arguments for now though)
-    //
-    if (!usehoop)
-    {
-        caller->Geom().GetVolume(alpha,grids,GEOM_GROW);
+    setAlpha(visc_op,comp,a,b,time,rho_half,rho_flag,rhsscale,alphaComp,alpha_in);
 
-        if (useden) 
-            MultiFab::Multiply(alpha,*rho_half,0,0,1,alpha.nGrow());
-    }
-    else
-    {
-        alpha.define(grids,1,GEOM_GROW,Fab_allocate);
-
-        FArrayBox volume;
-        const int N = alpha.IndexMap().size();
-        
-        for (int j = 0; j < N; j++)
-        {
-            const int  i  = alpha.IndexMap()[j];
-            const Box& bx = alpha.box(i);
-            
-            Array<Real> rcen(bx.length(0));
-            parent->Geom(level).GetCellLoc(rcen, bx, 0);
-            
-            caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
-            
-            const int*  lo      = bx.loVect();
-            const int*  hi      = bx.hiVect();
-            Real*       dat     = alpha[i].dataPtr();
-            Box         abx     = BoxLib::grow(bx,alpha.nGrow());
-            const int*  alo     = abx.loVect();
-            const int*  ahi     = abx.hiVect();
-            const Real* rcendat = rcen.dataPtr();
-            const Real* voli    = volume.dataPtr();
-            Box         vbox    = volume.box();
-            const int*  vlo     = vbox.loVect();
-            const int*  vhi     = vbox.hiVect();
-            
-            const FArrayBox& Rh = (*rho_half)[i];
-            DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
-            
-            FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),
-                          lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
-                          voli, ARLIM(vlo), ARLIM(vhi),
-                          rho_dat,ARLIM(rlo),ARLIM(rhi),&usehoop,&useden);
-        }
-    }
-
-    if (rho_flag == 2 || rho_flag == 3)
-    {
-        MultiFab& S = caller->get_data(State_Type,time);
-
-        for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
-        {
-            BL_ASSERT(grids[alphamfi.index()] == alphamfi.validbox());
-            alpha[alphamfi].mult(S[alphamfi],alphamfi.validbox(),Density,0,1);
-        }
-    }
-    if (alpha_in != 0)
-    {
-        for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
-        {
-            const int i = alphamfi.index();
-            BL_ASSERT(grids[i] == alphamfi.validbox());
-            alpha[i].mult((*alpha_in)[i],alphamfi.validbox(),alphaComp,0,1);
-        }
-    }
-    if (rhsscale != 0)
-    {
-        *rhsscale = scale_abec ? 1.0/alpha.max(0) : 1.0;
-
-        visc_op->setScalars(a*(*rhsscale),b*(*rhsscale));
-    }
-    else
-    {
-        visc_op->setScalars(a,b);
-    }
-
-    visc_op->aCoefficients(alpha);
-
-    alpha.clear();
-
-    setBeta(visc_op,betaComp,beta);
+    setBeta(visc_op,beta,betaComp);
 
     return visc_op;
 }
@@ -1886,9 +1796,6 @@ Diffusion::getViscOp (int                    comp,
     //
     // Note: This assumes that the "NEW" density is to be used, if rho_flag==2
     //
-    int allnull, allthere;
-    checkBeta(beta, allthere, allnull);
-
     const Geometry& geom = caller->Geom();
     const Real*  dx      = geom.CellSize();
     const BCRec& bc      = caller->get_desc_lst()[State_Type].getBC(comp);
@@ -1901,80 +1808,11 @@ Diffusion::getViscOp (int                    comp,
     ABecLaplacian* visc_op = new ABecLaplacian(bndry,dx);
     visc_op->maxOrder(max_order);
 
-    int usehoop = ((comp==Xvel) && (Geometry::IsRZ()));
-    int useden  = (rho_flag == 1);
-    //
-    // alpha should be the same size as volume.
-    //
-    MultiFab alpha(grids,1,GEOM_GROW);
+    const Real time = caller->get_state_data(State_Type).curTime();
 
-    FArrayBox volume;
+    setAlpha(visc_op,comp,a,b,time,rho,rho_flag,rhsscale,alphaComp,alpha_in);
 
-    const int N = alpha.IndexMap().size();
-
-    for (int j = 0; j < N; j++)
-    {
-        const int        i       = alpha.IndexMap()[j];
-        const Box&       bx      = alpha.box(i);
-        Array<Real> rcen(bx.length(0));
-        parent->Geom(level).GetCellLoc(rcen, bx, 0);
-
-        caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
-
-        const int*       lo      = bx.loVect();
-        const int*       hi      = bx.hiVect();
-        Real*            dat     = alpha[i].dataPtr();
-        Box              abx     = BoxLib::grow(bx,alpha.nGrow());
-        const int*       alo     = abx.loVect();
-        const int*       ahi     = abx.hiVect();
-        const Real*      rcendat = rcen.dataPtr();
-        const Real*      voli    = volume.dataPtr();
-        Box              vbox    = volume.box();
-        const int*       vlo     = vbox.loVect();
-        const int*       vhi     = vbox.hiVect();
-        const FArrayBox& Rh      = (*rho)[i];
-        DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
-
-        FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),
-                      lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
-                      voli, ARLIM(vlo), ARLIM(vhi),
-                      rho_dat,ARLIM(rlo),ARLIM(rhi),&usehoop,&useden);
-    }
-
-    if (rho_flag == 2 || rho_flag == 3)
-    {
-        MultiFab& S = caller->get_new_data(State_Type);
-
-        for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
-        {
-            BL_ASSERT(grids[alphamfi.index()] == alphamfi.validbox());
-            alpha[alphamfi].mult(S[alphamfi],alphamfi.validbox(),Density,0,1);
-        }
-    }
-    if (alpha_in != 0)
-    {
-        for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
-        {
-            const int i = alphamfi.index();
-            BL_ASSERT(grids[i] == alphamfi.validbox());
-            alpha[i].mult((*alpha_in)[i],alphamfi.validbox(),alphaComp,0,1);
-        }
-    }
-    if (rhsscale != 0)
-    {
-        *rhsscale = scale_abec ? 1.0/alpha.max(0) : 1.0;
-
-        visc_op->setScalars(a*(*rhsscale),b*(*rhsscale));
-    }
-    else
-    {
-        visc_op->setScalars(a,b);
-    }
-    visc_op->aCoefficients(alpha);
-
-    alpha.clear();
-
-    setBeta(visc_op,betaComp,beta);
+    setBeta(visc_op,beta,betaComp);
 
     return visc_op;
 }
@@ -1985,7 +1823,7 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
                      Real            a,
                      Real            b,
                      Real            time,
-                     const MultiFab* rho_half,
+                     const MultiFab* rho,
                      int             rho_flag, 
                      Real*           rhsscale,
                      int             dataComp,
@@ -1993,46 +1831,58 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
 {
     BL_ASSERT(visc_op != 0);
 
-    int usehoop = comp == Xvel && (Geometry::IsRZ());
-    int useden  = rho_flag == 1;
+    int usehoop = (comp == Xvel && (Geometry::IsRZ()));
+    int useden  = (rho_flag == 1);
     //
     // alpha should be the same size as volume.
     //
-    MultiFab alpha(grids,1,GEOM_GROW);
+    MultiFab alpha;
 
-    FArrayBox volume;
-
-    const int N = alpha.IndexMap().size();
-
-    for (int j = 0; j < N; j++)
+    if (!usehoop)
     {
-        const int  i  = alpha.IndexMap()[j];
-        const Box& bx = alpha.box(i);
+        caller->Geom().GetVolume(alpha,grids,GEOM_GROW);
 
-        Array<Real> rcen(bx.length(0));
-        parent->Geom(level).GetCellLoc(rcen, bx, 0);
+        if (useden) 
+            MultiFab::Multiply(alpha,*rho,0,0,1,alpha.nGrow());
+    }
+    else
+    {
+        alpha.define(grids,1,GEOM_GROW,Fab_allocate);
 
-        caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
+        FArrayBox volume;
 
-        const int*       lo      = bx.loVect();
-        const int*       hi      = bx.hiVect();
-        Real*            dat     = alpha[i].dataPtr();
-        Box              abx     = BoxLib::grow(bx,alpha.nGrow());
-        const int*       alo     = abx.loVect();
-        const int*       ahi     = abx.hiVect();
-        const Real*      rcendat = rcen.dataPtr();
-        const Real*      voli    = volume.dataPtr();
-        Box              vbox    = volume.box();
-        const int*       vlo     = vbox.loVect();
-        const int*       vhi     = vbox.hiVect();
-        const FArrayBox& Rh      = (*rho_half)[i];
+        const int N = alpha.IndexMap().size();
 
-        DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
+        for (int j = 0; j < N; j++)
+        {
+            const int  i  = alpha.IndexMap()[j];
+            const Box& bx = alpha.box(i);
 
-        FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),
-                      lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
-                      voli, ARLIM(vlo), ARLIM(vhi),
-                      rho_dat,ARLIM(rlo),ARLIM(rhi),&usehoop,&useden);
+            Array<Real> rcen(bx.length(0));
+            parent->Geom(level).GetCellLoc(rcen, bx, 0);
+
+            caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
+
+            const int*       lo      = bx.loVect();
+            const int*       hi      = bx.hiVect();
+            Real*            dat     = alpha[i].dataPtr();
+            Box              abx     = BoxLib::grow(bx,alpha.nGrow());
+            const int*       alo     = abx.loVect();
+            const int*       ahi     = abx.hiVect();
+            const Real*      rcendat = rcen.dataPtr();
+            const Real*      voli    = volume.dataPtr();
+            Box              vbox    = volume.box();
+            const int*       vlo     = vbox.loVect();
+            const int*       vhi     = vbox.hiVect();
+            const FArrayBox& Rh      = (*rho)[i];
+
+            DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
+
+            FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),
+                          lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
+                          voli, ARLIM(vlo), ARLIM(vhi),
+                          rho_dat,ARLIM(rlo),ARLIM(rhi),&usehoop,&useden);
+        }
     }
 
     if (rho_flag == 2 || rho_flag == 3)
@@ -2045,6 +1895,7 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
             alpha[alphamfi].mult(S[alphamfi],alphamfi.validbox(),Density,0,1);
         }
     }
+
     if (alpha_in != 0)
     {
         BL_ASSERT(dataComp >= 0 && dataComp < alpha.nComp());
@@ -2056,6 +1907,7 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
             alpha[i].mult((*alpha_in)[i],alphamfi.validbox(),dataComp,0,1);
         }
     }
+
     if (rhsscale != 0)
     {
         *rhsscale = scale_abec ? 1.0/alpha.max(0) : 1.0;
@@ -2072,8 +1924,8 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
 
 void
 Diffusion::setBeta (ABecLaplacian*         visc_op,
-                    int                    betaComp,
-                    const MultiFab* const* beta)
+                    const MultiFab* const* beta,
+                    int                    betaComp)
 {
     BL_ASSERT(visc_op != 0);
 
@@ -2157,7 +2009,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
         visc_op.setScalars(a,b);
         visc_op.maxOrder(max_order);
 
-        setBeta(&visc_op,betaComp,beta);
+        setBeta(&visc_op,beta,betaComp);
         //
         // Copy to single component multifab for operator classes.
         //
