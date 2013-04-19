@@ -750,7 +750,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     // This is part of the RHS for the viscous solve.
     //
     MultiFab Rhs(grids,BL_SPACEDIM,0);
-    Rhs.setVal(0.0);
+    Rhs.setVal(0);
 
     MultiFab** tensorflux_old;
     {
@@ -772,6 +772,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         // Copy to single-component multifab.  Use Soln as a temporary here.
         //
         MultiFab::Copy(Soln_old,U_old,Xvel,0,BL_SPACEDIM,0);
+
         tensor_op->apply(Rhs,Soln_old);
 
         if (do_reflux && (level<finest_level || level>0))
@@ -785,20 +786,22 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         }
         delete tensor_op;
 
+        Soln_old.clear();
+
         FArrayBox volume;
         //
         // Complete Rhs by adding body sources.
         //
         for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
         {
-            const Box& vbx = Rhsmfi.validbox();
+            const Box& vbx    = Rhsmfi.validbox();
+            FArrayBox& rhsfab = Rhs[Rhsmfi];
+            FArrayBox& Ufab   = U_new[Rhsmfi];
 
             BL_ASSERT(grids[Rhsmfi.index()] == vbx);
             //
             // Scale inviscid part by volume.
             //
-            FArrayBox& Ufab = U_new[Rhsmfi];
-
             caller->Geom().GetVolume(volume,grids,Rhsmfi.index(),GEOM_GROW);
 
             for (int comp = 0; comp < BL_SPACEDIM; comp++)
@@ -812,20 +815,19 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                 //
                 if (rho_flag == 1)
                     Ufab.mult((*rho_half)[Rhsmfi],vbx,0,sigma,1);
-
                 if (rho_flag == 3)
                     Ufab.mult((*ns.rho_ptime)[Rhsmfi],vbx,0,sigma,1);
                 //
                 // Add to Rhs which contained operator applied to U_old.
                 //
-                Rhs[Rhsmfi].plus(Ufab,vbx,sigma,comp,1);
+                rhsfab.plus(Ufab,vbx,sigma,comp,1);
 
                 if (delta_rhs != 0)
                 {
                     FArrayBox& deltafab = (*delta_rhs)[Rhsmfi];
                     deltafab.mult(dt,comp+rhsComp,1);
                     deltafab.mult(volume,Rhsmfi.validbox(),0,comp+rhsComp,1);
-                    Rhs[Rhsmfi].plus(deltafab,Rhsmfi.validbox(),comp+rhsComp,comp,1);
+                    rhsfab.plus(deltafab,Rhsmfi.validbox(),comp+rhsComp,comp,1);
                 }
             }
         }
@@ -837,8 +839,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 
             for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
             {
-                const int  i  = Rhsmfi.index();
-                const Box& bx = Rhsmfi.validbox();
+                const int  i      = Rhsmfi.index();
+                const Box& bx     = Rhsmfi.validbox();
+                FArrayBox& rhsfab = Rhs[Rhsmfi];
 
                 caller->Geom().GetVolume(volume,grids,Rhsmfi.index(),GEOM_GROW);
 
@@ -849,7 +852,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                 const int*       hi        = bx.hiVect();
                 const int*       slo       = sbx.loVect();
                 const int*       shi       = sbx.hiVect();
-                Real*            rhs       = Rhs[Rhsmfi].dataPtr();
+                Real*            rhs       = rhsfab.dataPtr();
                 const Real*      sdat      = U_old[Rhsmfi].dataPtr(Xvel);
                 const Real*      rcendat   = rcen.dataPtr();
                 const Real       coeff     = (1.0-be_cn_theta)*dt;
@@ -878,7 +881,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     }
     const int soln_grow = 1;
     MultiFab Soln(grids,BL_SPACEDIM,soln_grow);
-    Soln.setVal(0.0);
+    Soln.setVal(0);
     //
     // Compute guess of solution.
     //
