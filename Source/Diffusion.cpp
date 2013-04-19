@@ -757,36 +757,33 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         //
         // Set up Rhs.
         //
+        const int soln_old_grow = 1;
+        MultiFab Soln_old(grids,BL_SPACEDIM,soln_old_grow);
         const Real a = 0.0;
         Real       b = -(1.0-be_cn_theta)*dt;
         if (allnull)
             b *= visc_coef[Xvel];
-
+        ViscBndryTensor visc_bndry;
         const MultiFab* rho = (rho_flag == 1) ? rho_half : ns.rho_ptime;
+        
+        DivVis* tensor_op = getTensorOp(a,b,prev_time,visc_bndry,rho,betan,betaComp);
+        tensor_op->maxOrder(tensor_max_order);
+        //
+        // Copy to single-component multifab.  Use Soln as a temporary here.
+        //
+        MultiFab::Copy(Soln_old,U_old,Xvel,0,BL_SPACEDIM,0);
+        tensor_op->apply(Rhs,Soln_old);
 
-        if (do_reflux && (level < finest_level || level > 0))
+        if (do_reflux && (level<finest_level || level>0))
         {
-            ViscBndryTensor visc_bndry;
-            DivVis* tensor_op = getTensorOp(a,b,prev_time,visc_bndry,rho,betan,betaComp);
-            tensor_op->maxOrder(tensor_max_order);
-
-            const int soln_old_grow = 1;
-            MultiFab Soln_old(grids,BL_SPACEDIM,soln_old_grow);
-            //
-            // Copy to single-component multifab.  Use Soln as a temporary here.
-            //
-            MultiFab::Copy(Soln_old,U_old,Xvel,0,BL_SPACEDIM,0);
-            tensor_op->apply(Rhs,Soln_old);
-
             allocFluxBoxesLevel(tensorflux_old,0,BL_SPACEDIM);
             tensor_op->compFlux(D_DECL(*(tensorflux_old[0]),
                                        *(tensorflux_old[1]),
                                        *(tensorflux_old[2])),Soln_old);
             for (int d = 0; d < BL_SPACEDIM; d++)
                 tensorflux_old[d]->mult(-b/(dt*caller->Geom().CellSize()[d]),0);
-
-            delete tensor_op;
         }
+        delete tensor_op;
 
         FArrayBox volume;
         //
