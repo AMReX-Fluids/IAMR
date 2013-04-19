@@ -358,7 +358,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     }
     else
     {
-        Rhs.setVal(0.0);
+        Rhs.setVal(0);
     }
     //
     // If this is a predictor step, put "explicit" updates passed via S_new
@@ -750,7 +750,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     // This is part of the RHS for the viscous solve.
     //
     MultiFab Rhs(grids,BL_SPACEDIM,0);
-    Rhs.setVal(0);
 
     MultiFab** tensorflux_old;
     {
@@ -881,7 +880,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     }
     const int soln_grow = 1;
     MultiFab Soln(grids,BL_SPACEDIM,soln_grow);
-    Soln.setVal(0);
     //
     // Compute guess of solution.
     //
@@ -1031,14 +1029,14 @@ Diffusion::diffuse_Vsync (MultiFab*              Vsync,
                 IntVect smallend = domain.smallEnd();
                 smallend.setVal(k,domain.bigEnd(k));
                 Box top_strip(smallend,domain.bigEnd(),IntVect::TheCellVector());
-                Vsync->setVal(0.0,top_strip,n-Xvel,1,1);
+                Vsync->setVal(0,top_strip,n-Xvel,1,1);
             }
             if (velbc.lo(k) == EXT_DIR)
             {
                 IntVect bigend = domain.bigEnd();
                 bigend.setVal(k,domain.smallEnd(k));
                 Box bottom_strip(domain.smallEnd(),bigend,IntVect::TheCellVector());
-                Vsync->setVal(0.0,bottom_strip,n-Xvel,1,1);
+                Vsync->setVal(0,bottom_strip,n-Xvel,1,1);
             }
         }
     }
@@ -1061,16 +1059,12 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
     // At this point in time we can only do decoupled scalar
     // so we loop over components.
     //
-    MultiFab volume;
+    MultiFab volume, Rhs(grids,1,0);
 
     caller->Geom().GetVolume(volume,grids,GEOM_GROW);
 
     for (int comp = 0; comp < BL_SPACEDIM; comp++)
     {
-        MultiFab Rhs(grids,1,0);
-
-        Rhs.setVal(0);
-
         MultiFab::Copy(Rhs,*Vsync,comp,0,1,0);
 
         if (verbose > 1)
@@ -1109,8 +1103,6 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         const Real      S_tol_abs = -1;
 
         MultiFab Soln(grids,1,1);
-
-        Soln.setVal(0);
 
         if (use_cg_solve)
         {
@@ -1297,8 +1289,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     tensor_op->maxOrder(tensor_max_order);
 
     MultiFab Soln(grids,BL_SPACEDIM,1);
-
-    Soln.setVal(0);
     //
     // Construct solver and call it.
     //
@@ -1466,8 +1456,6 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     Rhs.mult(rhsscale,0,1);
 
     MultiFab Soln(grids,1,1);
-
-    Soln.setVal(0);
     //
     // Construct solver and call it.
     //
@@ -1560,7 +1548,6 @@ Diffusion::getTensorOp (Real                   a,
     //
     const int nCompAlpha = BL_SPACEDIM == 2  ?  2  :  1;
     MultiFab alpha(grids,nCompAlpha,nghost);
-    alpha.setVal(0.0,nghost);
 
     if (a != 0.0)
     {
@@ -1685,7 +1672,6 @@ Diffusion::getTensorOp (Real                   a,
     //
     const int nCompAlpha = BL_SPACEDIM == 2  ?  2  :  1;
     MultiFab alpha(grids,nCompAlpha,nghost);
-    alpha.setVal(0.0);
 
     if (a != 0.0)
     {
@@ -1790,8 +1776,8 @@ Diffusion::getViscOp (int                    comp,
     ABecLaplacian* visc_op = new ABecLaplacian(visc_bndry,dx);
     visc_op->maxOrder(max_order);
 
-    int usehoop = comp == Xvel && (Geometry::IsRZ());
-    int useden  = rho_flag == 1;
+    int usehoop = (comp == Xvel && (Geometry::IsRZ()));
+    int useden  = (rho_flag == 1);
     //
     // alpha should be the same size as volume.
     //
@@ -1805,9 +1791,7 @@ Diffusion::getViscOp (int                    comp,
         caller->Geom().GetVolume(alpha,grids,GEOM_GROW);
 
         if (useden) 
-        {
             MultiFab::Multiply(alpha,*rho_half,0,0,1,alpha.nGrow());
-        }
     }
     else
     {
@@ -1877,35 +1861,12 @@ Diffusion::getViscOp (int                    comp,
     {
         visc_op->setScalars(a,b);
     }
-    if (allnull)
-    {
-        visc_op->aCoefficients(alpha);
-        alpha.clear();
-        for (int n = 0; n < BL_SPACEDIM; n++)
-        {
-            MultiFab bcoeffs;
-            caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
-            bcoeffs.mult(dx[n]);
-            visc_op->bCoefficients(bcoeffs,n);
-        }
-    }
-    else
-    {
-        visc_op->aCoefficients(alpha);
-        alpha.clear();
-        for (int n = 0; n < BL_SPACEDIM; n++)
-        {
-            MultiFab bcoeffs;
-            caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
-            for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-            {
-                const int i = bcoeffsmfi.index();
-                bcoeffs[i].mult((*beta[n])[i],betaComp,0,1);
-                bcoeffs[i].mult(dx[n]);
-            }
-            visc_op->bCoefficients(bcoeffs,n);
-        }
-    }
+
+    visc_op->aCoefficients(alpha);
+
+    alpha.clear();
+
+    setBeta(visc_op,betaComp,beta);
 
     return visc_op;
 }
@@ -2013,31 +1974,7 @@ Diffusion::getViscOp (int                    comp,
 
     alpha.clear();
 
-    if (allnull)
-    {
-        for (int n = 0; n < BL_SPACEDIM; n++)
-        {
-            MultiFab bcoeffs;
-            caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
-            bcoeffs.mult(dx[n],0,1,0);
-            visc_op->bCoefficients(bcoeffs,n);
-        }
-    }
-    else
-    {
-        for (int n = 0; n < BL_SPACEDIM; n++)
-        {
-            MultiFab bcoeffs;
-            caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
-            for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-            {
-                const int i = bcoeffsmfi.index();
-                bcoeffs[i].mult((*beta[n])[i],betaComp,0,1);
-            }
-            bcoeffs.mult(dx[n],0,1,0);
-            visc_op->bCoefficients(bcoeffs,n);
-        }
-    }
+    setBeta(visc_op,betaComp,beta);
 
     return visc_op;
 }
@@ -2135,7 +2072,7 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
 
 void
 Diffusion::setBeta (ABecLaplacian*         visc_op,
-                    int                    dataComp,
+                    int                    betaComp,
                     const MultiFab* const* beta)
 {
     BL_ASSERT(visc_op != 0);
@@ -2165,7 +2102,7 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
             {
                 const int  i     = bcoeffsmfi.index();
                 FArrayBox& bcfab = bcoeffs[i];
-                bcfab.mult((*beta[n])[i],dataComp,0,1);
+                bcfab.mult((*beta[n])[i],betaComp,0,1);
                 bcfab.mult(dx[n]);
             }
             visc_op->bCoefficients(bcoeffs,n);
@@ -2197,14 +2134,13 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     MultiFab&   S  = caller->get_data(State_Type,time);
 
     int ngrow = visc_terms.nGrow();
-    visc_terms.setVal(0.0,comp-src_comp,1,ngrow);
+    visc_terms.setVal(0,comp-src_comp,1,ngrow);
     //
     // FIXME
     // LinOp classes cannot handle multcomponent MultiFabs yet,
     // construct the components one at a time and copy to visc_terms.
     //
-    MultiFab visc_tmp(grids,1,1);
-    MultiFab s_tmp(grids,1,1);
+    MultiFab visc_tmp(grids,1,1), s_tmp(grids,1,1);
 
     if (is_diffusive[comp])
     {
@@ -2221,31 +2157,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
         visc_op.setScalars(a,b);
         visc_op.maxOrder(max_order);
 
-        if (allnull)
-        {
-            for (int n = 0; n < BL_SPACEDIM; n++)
-            {
-                MultiFab bcoeffs;
-                caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
-                bcoeffs.mult(dx[n]);
-                visc_op.bCoefficients(bcoeffs,n);
-            }
-        }
-        else
-        {
-            for (int n = 0; n < BL_SPACEDIM; n++)
-            {
-                MultiFab bcoeffs;
-                caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
-                for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-                {
-                    const int i = bcoeffsmfi.index();
-                    bcoeffs[i].mult((*beta[n])[i],betaComp,0,1);
-                    bcoeffs[i].mult(dx[n]);
-                }
-                visc_op.bCoefficients(bcoeffs,n);
-            }
-        }
+        setBeta(&visc_op,betaComp,beta);
         //
         // Copy to single component multifab for operator classes.
         //
@@ -2340,14 +2252,13 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     //
     const Real* dx   = caller->Geom().CellSize();
     MultiFab&   S    = caller->get_data(State_Type,time);
-    visc_terms.setVal(0.0,src_comp,BL_SPACEDIM,1);
+    visc_terms.setVal(0,src_comp,BL_SPACEDIM,1);
     //
     // FIXME
     // LinOp classes cannot handle multcomponent MultiFabs yet,
     // construct the components one at a time and copy to visc_terms.
     //
-    MultiFab visc_tmp(grids,BL_SPACEDIM,1);
-    MultiFab s_tmp(grids,BL_SPACEDIM,1);
+    MultiFab visc_tmp(grids,BL_SPACEDIM,1), s_tmp(grids,BL_SPACEDIM,1);
 
     if (is_diffusive[src_comp])
     {
@@ -2370,7 +2281,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         const int nCompAlpha = BL_SPACEDIM == 2  ?  2 : 1;
         {
             MultiFab alpha(grids,nCompAlpha,nghost);
-            alpha.setVal(0.0);
+            alpha.setVal(0);
             tensor_op.aCoefficients(alpha);
         }
 
@@ -2765,7 +2676,7 @@ Diffusion::compute_divmusi (Real      time,
     else
     {
         const int nGrow = 0; // Not to fill grow cells here
-        divmusi.setVal(0.0,nGrow);
+        divmusi.setVal(0,nGrow);
     }
 }
 
