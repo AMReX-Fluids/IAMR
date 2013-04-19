@@ -1522,31 +1522,23 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     delete visc_op;
 }
 
-DivVis*
-Diffusion::getTensorOp (Real                   a,
-                        Real                   b,
-                        Real                   time,
-                        ViscBndryTensor&       visc_bndry,
-                        const MultiFab*        rho,
-                        const MultiFab* const* beta,
-                        int                    betaComp)
+void
+Diffusion::getTensorOp_doit (DivVis*                tensor_op,
+                             Real                   a,
+                             Real                   b,
+                             const MultiFab*        rho,
+                             const MultiFab* const* beta,
+                             int                    betaComp)
 {
     int allthere;
     checkBeta(beta, allthere);
 
+    int       isrz       = Geometry::IsRZ();
+    const int nghost     = 1;
+    const int nCompAlpha = BL_SPACEDIM == 2  ?  2  :  1;
+
     const Real* dx = caller->Geom().CellSize();
 
-    getTensorBndryData(visc_bndry,time);
-
-    DivVis* tensor_op = new DivVis(visc_bndry,dx);
-    tensor_op->maxOrder(tensor_max_order);
-
-    int isrz   = Geometry::IsRZ();
-    const int nghost = 1; // Just like Bill.
-    //
-    // alpha should be the same size as volume.
-    //
-    const int nCompAlpha = BL_SPACEDIM == 2  ?  2  :  1;
     MultiFab alpha(grids,nCompAlpha,nghost);
 
     if (a != 0.0)
@@ -1560,8 +1552,10 @@ Diffusion::getTensorOp (Real                   a,
             const int   i         = alpha.IndexMap()[j];
             const Box&  bx        = alpha.box(i);
             Array<Real> rcen(bx.length(0));
+
             parent->Geom(level).GetCellLoc(rcen, bx, 0);
             caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
+
             const int*  lo        = bx.loVect();
             const int*  hi        = bx.hiVect();
             Real*       alpha_dat = alpha[i].dataPtr();
@@ -1588,10 +1582,10 @@ Diffusion::getTensorOp (Real                   a,
             const int*  betay_hi    = betay.hiVect();
 
 #if (BL_SPACEDIM == 3)
-            const FArrayBox&  betaz     = (*beta[2])[i];
-            const Real* betaz_dat = betaz.dataPtr(betaComp);
-            const int*  betaz_lo  = betaz.loVect();
-            const int*  betaz_hi  = betaz.hiVect();
+            const FArrayBox&  betaz = (*beta[2])[i];
+            const Real* betaz_dat   = betaz.dataPtr(betaComp);
+            const int*  betaz_lo    = betaz.loVect();
+            const int*  betaz_hi    = betaz.hiVect();
 #endif
 
             FORT_SET_TENSOR_ALPHA(alpha_dat, ARLIM(alo), ARLIM(ahi),
@@ -1623,6 +1617,26 @@ Diffusion::getTensorOp (Real                   a,
         }
         tensor_op->bCoefficients(bcoeffs,n);
     }
+}
+
+DivVis*
+Diffusion::getTensorOp (Real                   a,
+                        Real                   b,
+                        Real                   time,
+                        ViscBndryTensor&       visc_bndry,
+                        const MultiFab*        rho,
+                        const MultiFab* const* beta,
+                        int                    betaComp)
+{
+    const Real* dx = caller->Geom().CellSize();
+
+    getTensorBndryData(visc_bndry,time);
+
+    DivVis* tensor_op = new DivVis(visc_bndry,dx);
+
+    tensor_op->maxOrder(tensor_max_order);
+
+    getTensorOp_doit(tensor_op, a, b, rho, beta, betaComp);
 
     return tensor_op;
 }
@@ -1634,16 +1648,8 @@ Diffusion::getTensorOp (Real                   a,
                         const MultiFab* const* beta,
                         int                    betaComp)
 {
-    int allthere = beta != 0;
-    if (allthere)
-    {
-        for (int d = 0; d < BL_SPACEDIM; d++)
-        {
-            allthere = allthere && beta[d] != 0;
-        }
-    }
-    if (!allthere)
-        BoxLib::Abort("Diffusion::getTensorOp(): all betas must allocated all 0 or all non-0");
+    int allthere;
+    checkBeta(beta, allthere);
 
     const Real* dx   = caller->Geom().CellSize();
     const int   nDer = MCLinOp::bcComponentsNeeded();
@@ -1662,90 +1668,12 @@ Diffusion::getTensorOp (Real                   a,
 
     bndry.define(grids,nDer,caller->Geom());
     bndry.setHomogValues(bcarray, ref_ratio[0]);
+
     DivVis* tensor_op = new DivVis(bndry,dx);
+
     tensor_op->maxOrder(tensor_max_order);
 
-    int isrz   = Geometry::IsRZ();
-    const int nghost = 1; // Just like Bill.
-    //
-    // alpha should be the same size as volume.
-    //
-    const int nCompAlpha = BL_SPACEDIM == 2  ?  2  :  1;
-    MultiFab alpha(grids,nCompAlpha,nghost);
-
-    if (a != 0.0)
-    {
-        FArrayBox volume;
-
-        const int N = alpha.IndexMap().size();
-
-        for (int j = 0; j < N; j++)
-        {
-            const int   i         = alpha.IndexMap()[j];
-            const Box&  bx        = alpha.box(i);
-            Array<Real> rcen(bx.length(0));
-            parent->Geom(level).GetCellLoc(rcen, bx, 0);
-            caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
-            const int*  lo        = bx.loVect();
-            const int*  hi        = bx.hiVect();
-            Real*       alpha_dat = alpha[i].dataPtr();
-            Box         abx       = BoxLib::grow(bx,alpha.nGrow());
-            const int*  alo       = abx.loVect();
-            const int*  ahi       = abx.hiVect();
-            const Real* rcendat   = rcen.dataPtr();
-            const Real* voli      = volume.dataPtr();
-            Box         vbox      = volume.box();
-            const int*  vlo       = vbox.loVect();
-            const int*  vhi       = vbox.hiVect();
-
-            const FArrayBox& Rh = (*rho)[i];
-            DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
-
-            const FArrayBox&  betax = (*beta[0])[i];
-            const Real* betax_dat   = betax.dataPtr(betaComp);
-            const int*  betax_lo    = betax.loVect();
-            const int*  betax_hi    = betax.hiVect();
-            const FArrayBox&  betay = (*beta[1])[i];
-            const Real* betay_dat   = betay.dataPtr(betaComp);
-            const int*  betay_lo    = betay.loVect();
-            const int*  betay_hi    = betay.hiVect();
-
-#if (BL_SPACEDIM == 3)
-            const FArrayBox&  betaz     = (*beta[2])[i];
-            const Real* betaz_dat = betaz.dataPtr(betaComp);
-            const int*  betaz_lo  = betaz.loVect();
-            const int*  betaz_hi  = betaz.hiVect();
-#endif
-
-            FORT_SET_TENSOR_ALPHA(alpha_dat, ARLIM(alo), ARLIM(ahi),
-                                  lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
-                                  voli, ARLIM(vlo), ARLIM(vhi),
-                                  rho_dat,ARLIM(rlo),ARLIM(rhi),
-                                  betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
-                                  betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),
-#if (BL_SPACEDIM == 3)
-                                  betaz_dat,ARLIM(betaz_lo),ARLIM(betaz_hi),
-#endif
-                                  &isrz);
-        }
-    }
-    tensor_op->setScalars(a,b);
-    tensor_op->aCoefficients(alpha);
-
-    alpha.clear();
-
-    for (int n = 0; n < BL_SPACEDIM; n++)
-    {
-        MultiFab bcoeffs;
-        caller->Geom().GetFaceArea(bcoeffs,grids,n,nghost);
-        for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-        {
-            const int i = bcoeffsmfi.index();
-            bcoeffs[i].mult(dx[n]);
-            bcoeffs[i].mult((*beta[n])[i],betaComp,0,1);
-        }
-        tensor_op->bCoefficients(bcoeffs,n);
-    }
+    getTensorOp_doit(tensor_op, a, b, rho, beta, betaComp);
 
     return tensor_op;
 }

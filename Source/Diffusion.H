@@ -304,6 +304,13 @@ public:
                          const int                   nComp);
 protected:
 
+    void getTensorOp_doit (DivVis*                tensor_op,
+                           Real                   a,
+                           Real                   b,
+                           const MultiFab*        rho,
+                           const MultiFab* const* beta,
+                           int                    betaComp);
+
     static void Finalize ();
     //
     // Data Required by Derived Classes
