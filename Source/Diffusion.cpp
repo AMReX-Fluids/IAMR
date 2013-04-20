@@ -26,6 +26,16 @@
 #include <cfloat>
 #include <iomanip>
 
+#if defined(BL_OSF1)
+#if defined(BL_USE_DOUBLE)
+const Real BL_BOGUS      = DBL_QNAN;
+#else
+const Real BL_BOGUS      = FLT_QNAN;
+#endif
+#else
+const Real BL_BOGUS      = 1.e200;
+#endif
+
 const Real BL_SAFE_BOGUS = -666.e200;
 //
 // Include files for tensor solve.
@@ -870,6 +880,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     }
     const int soln_grow = 1;
     MultiFab Soln(grids,BL_SPACEDIM,soln_grow);
+    Soln.setVal(0);
     //
     // Compute guess of solution.
     //
@@ -1094,6 +1105,8 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
 
         MultiFab Soln(grids,1,1);
 
+        Soln.setVal(0);
+
         if (use_cg_solve)
         {
             CGSolver cg(*visc_op,use_mg_precond_flag);
@@ -1279,6 +1292,8 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     tensor_op->maxOrder(tensor_max_order);
 
     MultiFab Soln(grids,BL_SPACEDIM,1);
+
+    Soln.setVal(0);
     //
     // Construct solver and call it.
     //
@@ -1446,6 +1461,8 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     Rhs.mult(rhsscale,0,1);
 
     MultiFab Soln(grids,1,1);
+
+    Soln.setVal(0);
     //
     // Construct solver and call it.
     //
@@ -1530,6 +1547,8 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
     const Real* dx = caller->Geom().CellSize();
 
     MultiFab alpha(grids,nCompAlpha,nghost);
+
+    alpha.setVal(0,nghost);
 
     if (a != 0.0)
     {
@@ -2152,6 +2171,8 @@ Diffusion::getBndryData (ViscBndry& bndry,
 
     MultiFab S(grids, num_comp, nGrow);
 
+    S.setVal(BL_SAFE_BOGUS);
+
     bndry.define(grids,num_comp,caller->Geom());
 
     const MultiFab& rhotime = ns.get_rho(time);
@@ -2187,6 +2208,7 @@ Diffusion::getBndryData (ViscBndry& bndry,
         //
         // interp for solvers over ALL c-f brs, need safe data.
         //
+        crse_br.setVal(BL_BOGUS);
         coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
         bndry.setBndryValues(crse_br,0,S,0,0,num_comp,crse_ratio,bc);
     }
@@ -2223,6 +2245,7 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
         //
         // interp for solvers over ALL c-f brs, need safe data.
         //
+        crse_br.setVal(BL_BOGUS);
         crse_br.copyFrom(Rho_and_spec_crse,nGrow,src_comp,0,num_comp);
         bndry.setBndryValues(crse_br,0,Rho_and_spec,src_comp,0,num_comp,crse_ratio,bc);
     }
@@ -2312,6 +2335,7 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
         BoxArray cgrids(grids);
         cgrids.coarsen(crse_ratio);
         BndryRegister crse_br(cgrids,0,1,1,num_comp);
+        crse_br.setVal(BL_BOGUS);
         const int rho_flag = 0;
         coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
         bndry.setBndryValues(crse_br,0,S,0,0,num_comp,crse_ratio[0],bcarray);
