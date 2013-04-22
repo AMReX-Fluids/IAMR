@@ -1920,15 +1920,16 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     //
     const Real* dx = caller->Geom().CellSize();
     MultiFab&   S  = caller->get_data(State_Type,time);
+
     //
     // FIXME
     // LinOp classes cannot handle multcomponent MultiFabs yet,
     // construct the components one at a time and copy to visc_terms.
     //
-    MultiFab visc_tmp(grids,1,1), s_tmp(grids,1,1);
-
     if (is_diffusive[comp])
     {
+        MultiFab visc_tmp(grids,1,1), s_tmp(grids,1,1);
+
         ViscBndry visc_bndry;
         getBndryData(visc_bndry,comp,1,time,rho_flag);
         //
@@ -2010,6 +2011,10 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 
         MultiFab::Copy(visc_terms,visc_tmp,0,comp-src_comp,1,0);
     }
+    else {
+      int ngrow = visc_terms.nGrow();
+      visc_terms.setVal(0.0,comp-src_comp,1,ngrow);
+    }
 }
 
 void
@@ -2042,10 +2047,10 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     // LinOp classes cannot handle multcomponent MultiFabs yet,
     // construct the components one at a time and copy to visc_terms.
     //
-    MultiFab visc_tmp(grids,BL_SPACEDIM,1), s_tmp(grids,BL_SPACEDIM,1);
-
     if (is_diffusive[src_comp])
     {
+        MultiFab visc_tmp(grids,BL_SPACEDIM,1), s_tmp(grids,BL_SPACEDIM,1);
+
         ViscBndryTensor visc_bndry;
         getTensorBndryData(visc_bndry,time);
         //
@@ -2145,6 +2150,10 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         }
 #endif
         MultiFab::Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,0);
+    }
+    else {
+      int ngrow = visc_terms.nGrow();
+      visc_terms.setVal(0.0,src_comp,BL_SPACEDIM,ngrow);
     }
 }
 
