@@ -1129,7 +1129,6 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
             MultiGrid mg(*visc_op);
             mg.solve(Soln,Rhs,S_tol,S_tol_abs);
         }
-        Rhs.clear();
 
         int visc_op_lev = 0;
         visc_op->applyBC(Soln,0,1,visc_op_lev);
