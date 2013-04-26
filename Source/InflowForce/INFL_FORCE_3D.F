@@ -4,12 +4,12 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "BC_TYPES.H"
-#include "ArrayLim.H"
-#include "infl_frc.H"
-#include "FLUCTFILE.H"
+#include <REAL.H>
+#include <CONSTANTS.H>
+#include <BC_TYPES.H>
+#include <ArrayLim.H>
+#include <infl_frc.H>
+#include <FLUCTFILE.H>
 
 #define SDIM 3
 
@@ -83,7 +83,7 @@ c :::
      $       z, zm1, z0, zp1, czm1, cz0, czp1,
      $       valm1, val0, valp1
 
-#include "INFL_FORCE_F.H"
+#include <INFL_FORCE_F.H>
 
       call SET_LOHI(DIMS(inflDat), lo, hi)
       call FF_SET_LOHI(FF_DIMS(storDat), loStorDim, hiStorDim)

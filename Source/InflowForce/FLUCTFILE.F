@@ -4,14 +4,14 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "SPACE.H"
-#include "CONSTANTS.H"
-#include "FLUCTFILE.H"
+#include <REAL.H>
+#include <SPACE.H>
+#include <CONSTANTS.H>
+#include <FLUCTFILE.H>
 
       block data Inflow_Force_Data
 
-#include "INFL_FORCE_F.H"
+#include <INFL_FORCE_F.H>
 
       data nCompInflow  / 3                /
       data infl_type    /infl_periodic_type/  ! defaults to periodic
@@ -92,7 +92,7 @@ c
 
       implicit none
 
-#include "INFL_FORCE_F.H"
+#include <INFL_FORCE_F.H>
 
       integer iunit, dimFile(3), nCmpFile, proc
       REAL_T probSizeFile(3), dxFile(3)
@@ -189,7 +189,7 @@ c
       integer lo(3), hi(3), fileLo(3), FF_DIMDEC(dat), iflctfile(300)
       REAL_T dat(FF_DIMV(dat))
 
-#include "INFL_FORCE_F.H"
+#include <INFL_FORCE_F.H>
 
       call bl_pd_myproc(proc)
 c

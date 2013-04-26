@@ -4,11 +4,11 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "BC_TYPES.H"
-#include "GODUNOV_F.H"
-#include "ArrayLim.H"
+#include <REAL.H>
+#include <CONSTANTS.H>
+#include <BC_TYPES.H>
+#include <GODUNOV_F.H>
+#include <ArrayLim.H>
 
 #define SDIM 2
 #define XVEL 1
@@ -1541,7 +1541,7 @@ c     one-sided derivative from the interior
 c
       implicit none
 
-#include "GODCOMM_F.H"
+#include <GODCOMM_F.H>
 
       integer lo(SDIM), hi(SDIM)
       integer bc(SDIM,2)

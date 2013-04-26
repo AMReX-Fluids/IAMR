@@ -1,7 +1,7 @@
 #include <winstd.H>
 
-#include "NavierStokes.H"
-#include "NS_error_F.H"
+#include <NavierStokes.H>
+#include <NS_error_F.H>
 
 using std::string;
 

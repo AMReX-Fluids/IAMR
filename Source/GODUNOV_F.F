@@ -4,11 +4,11 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "BC_TYPES.H"
-#include "GODUNOV_F.H"
-#include "ArrayLim.H"
+#include <REAL.H>
+#include <CONSTANTS.H>
+#include <BC_TYPES.H>
+#include <GODUNOV_F.H>
+#include <ArrayLim.H>
 
 c=========================================================
 
@@ -16,7 +16,7 @@ c=========================================================
       implicit none
       integer slope_order_in,use_unlim_in
 
-#include "GODCOMM_F.H"
+#include <GODCOMM_F.H>
 
       slope_order = slope_order_in
 

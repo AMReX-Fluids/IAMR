@@ -1,8 +1,8 @@
 #include <winstd.H>
 
-#include "NavierStokes.H"
-#include "BLFort.H"
-#include "PROB_NS_F.H"
+#include <NavierStokes.H>
+#include <BLFort.H>
+#include <PROB_NS_F.H>
 
 //
 // Virtual access function for getting the forcing terms for the

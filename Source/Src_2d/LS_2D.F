@@ -3,11 +3,11 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "BC_TYPES.H"
-#include "LS_F.H"
-#include "ArrayLim.H"
+#include <REAL.H>
+#include <CONSTANTS.H>
+#include <BC_TYPES.H>
+#include <LS_F.H>
+#include <ArrayLim.H>
 
 #define SDIM 2
 #define BOGUS 1.d30
@@ -36,7 +36,7 @@
       REAL_T   dx(SDIM)
       integer  DIMDEC(type)
       integer  type(DIMV(type))
-#include "probdata.H"
+#include <probdata.H>
 
       integer  i, j, p,s,t
       REAL_T   Dxm, Dxp
@@ -228,7 +228,7 @@
       REAL_T   phit
       integer  DIMDEC(type)
       integer  type(DIMV(type))
-#include "probdata.H"
+#include <probdata.H>
 
       integer i, j, p
       REAL_T phix, phiy, phixx, phiyy, phixy, kappa, speed
@@ -708,7 +708,7 @@ c     Local variables
       integer     nbandnum
       integer     sgn
       integer heap(nbandsize,SDIM)
-#include "probdata.H"
+#include <probdata.H>
 
       integer i, j, n, p
       integer numtent
@@ -1093,7 +1093,7 @@ c     FIXME: The following had a sign(right,...), mistake?
       integer     nband(nbandsize,SDIM)
       integer     nbandnum
       integer     sgn
-#include "probdata.H"
+#include <probdata.H>
       
       integer i, j, n
       integer heap(nbandsize,SDIM)

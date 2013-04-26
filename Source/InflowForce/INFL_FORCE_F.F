@@ -4,12 +4,12 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "ArrayLim.H"
-#include "infl_frc.H"
-#include "FLUCTFILE.H"
-#include "BC_TYPES.H"
+#include <REAL.H>
+#include <CONSTANTS.H>
+#include <ArrayLim.H>
+#include <infl_frc.H>
+#include <FLUCTFILE.H>
+#include <BC_TYPES.H>
 
 #define SDIM BL_SPACEDIM
 
@@ -64,7 +64,7 @@ c
      $     dimFile, xloFile, xhiFile, dxFile, dtFile, timeMaxFile, 
      $     storePnt, filePnt, timePnt, timeOffset, npass
 
-#include "INFL_FORCE_F.H"
+#include <INFL_FORCE_F.H>
 
       call bl_pd_myproc(proc)
 
@@ -282,7 +282,7 @@ c    should interpolate about filePnt in 2d not storePnt
       save loStoreDim, hiStoreDim, storDat, dimFile, xloFile, xhiFile,
      $     dxFile, fileBase
 
-#include "INFL_FORCE_F.H"
+#include <INFL_FORCE_F.H>
 
       call bl_pd_myproc(proc)
 
@@ -418,7 +418,7 @@ c    should interpolate about filePnt in 2d not storePnt
 
       REAL_T offset_time
 
-#include "INFL_FORCE_F.H"
+#include <INFL_FORCE_F.H>
 
       if (infl_type .eq. -1) then
          call bl_abort('INFL_FILL: infl_type is not set')
@@ -467,7 +467,7 @@ c
 
       integer n, proc, lo(3), hi(3), loRd(3), hiRd(3), filLo(3)
 
-#include "INFL_FORCE_F.H"
+#include <INFL_FORCE_F.H>
 
       call bl_pd_myproc(proc)
 
@@ -573,7 +573,7 @@ c
       integer n
       integer lo(3), hi(3), loRd(3), hiRd(3), filLo(3)
 
-#include "INFL_FORCE_F.H"
+#include <INFL_FORCE_F.H>
 
       call FF_SET_LOHI(FF_DIMS(dat), lo, hi)
 

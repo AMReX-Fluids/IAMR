@@ -4,12 +4,12 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "BC_TYPES.H"
-#include "DERIVE_F.H"
-#include "PROB_NS_F.H"
-#include "ArrayLim.H"
+#include <REAL.H>
+#include <CONSTANTS.H>
+#include <BC_TYPES.H>
+#include <DERIVE_F.H>
+#include <PROB_NS_F.H>
+#include <ArrayLim.H>
 
 #define SDIM 3
 
@@ -59,7 +59,7 @@ c     -----------------------------------------------------------
       REAL_T     x, y, r
       REAL_T     hx, hy
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = delta(1)
       hy = delta(2)
@@ -103,7 +103,7 @@ c     -----------------------------------------------------------
       REAL_T     x, y, r
       REAL_T     hx, hy
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = delta(1)
       hy = delta(2)
@@ -147,7 +147,7 @@ c     -----------------------------------------------------------
       REAL_T     y
       REAL_T     hy
 
-#include "probdata.H"
+#include <probdata.H>
 
       hy = delta(2)
 !$omp parallel do private(i,j,k,y)
@@ -186,7 +186,7 @@ c     -----------------------------------------------------------
       REAL_T     x
       REAL_T     hx
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = delta(1)
 
@@ -226,7 +226,7 @@ c     -----------------------------------------------------------
       REAL_T     x, y
       REAL_T     hx, hy
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = delta(1)
       hy = delta(2)
@@ -274,7 +274,7 @@ c     -----------------------------------------------------------
       REAL_T     dvdx, dvdz
       REAL_T     dwdx, dwdy
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = delta(1)
       hy = delta(2)
@@ -352,8 +352,8 @@ c
       REAL_T     Lx, Ly, Lz, Lmin, HLx, HLy, HLz
       REAL_T     kappa, kappaMax
 
-#include "probdata.H"
-#include "forcedata.H"
+#include <probdata.H>
+#include <forcedata.H>
 
       call bl_pd_is_ioproc(isioproc)
 
@@ -532,8 +532,8 @@ c
       REAL_T     Lx, Ly, Lz, Lmin, HLx, HLy, HLz
       REAL_T     kappa, kappaMax
 
-#include "probdata.H"
-#include "forcedata.H"
+#include <probdata.H>
+#include <forcedata.H>
 
       call bl_pd_is_ioproc(isioproc)
 
@@ -693,8 +693,8 @@ c
       REAL_T     Lx, Ly, Lz, Lmin, HLx, HLy, HLz
       REAL_T     kappa, kappaMax
 
-#include "probdata.H"
-#include "forcedata.H"
+#include <probdata.H>
+#include <forcedata.H>
 
       call bl_pd_is_ioproc(isioproc)
 
@@ -855,8 +855,8 @@ c
       REAL_T     Lx, Ly, Lz, Lmin, HLx, HLy, HLz
       REAL_T     kappa, kappaMax
 
-#include "probdata.H"
-#include "forcedata.H"
+#include <probdata.H>
+#include <forcedata.H>
 
       call bl_pd_is_ioproc(isioproc)
 
@@ -1365,7 +1365,7 @@ c     Z Gradient Z Gradient
       REAL_T     tdx, tdy, tdz
       REAL_T     dxt, dyt, dzt
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = delta(1)
       hy = delta(2)
