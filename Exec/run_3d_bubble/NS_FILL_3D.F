@@ -3,12 +3,12 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "BC_TYPES.H"
-#include "PROB_AMR_F.H"
-#include "PROB_NS_F.H"
-#include "ArrayLim.H"
+#include <REAL.H>
+#include <CONSTANTS.H>
+#include <BC_TYPES.H>
+#include <PROB_AMR_F.H>
+#include <PROB_NS_F.H>
+#include <ArrayLim.H>
 
 #define SDIM 3
 
@@ -341,7 +341,7 @@ c ::: -----------------------------------------------------------
       logical    per_xlo, per_ylo, per_zlo
       logical    per_xhi, per_yhi, per_zhi
 
-#include "probdata.H"
+#include <probdata.H>
 
       fix_xlo = (ARG_L1(p) .lt. domlo(1)) .and. (bc(1,1) .ne. INT_DIR)
       per_xlo = (ARG_L1(p) .lt. domlo(1)) .and. (bc(1,1) .eq. INT_DIR)

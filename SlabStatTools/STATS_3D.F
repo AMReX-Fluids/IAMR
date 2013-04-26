@@ -1,9 +1,9 @@
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "ArrayLim.H"
+#include <REAL.H>
+#include <CONSTANTS.H>
+#include <ArrayLim.H>
 
-#include "StatTypes.H"
+#include <StatTypes.H>
 #define SDIM 3
 
 

@@ -4,12 +4,12 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "BC_TYPES.H"
-#include "PROB_AMR_F.H"
-#include "PROB_NS_F.H"
-#include "ArrayLim.H"
+#include <REAL.H>
+#include <CONSTANTS.H>
+#include <BC_TYPES.H>
+#include <PROB_AMR_F.H>
+#include <PROB_NS_F.H>
+#include <ArrayLim.H>
 
 #define SDIM 2
 
@@ -40,11 +40,11 @@ c ::: -----------------------------------------------------------
       integer untin, i
       REAL_T  problo(SDIM), probhi(SDIM)
 
-#include "probdata.H"
+#include <probdata.H>
 
 #ifdef BL_DO_FLCT
-#include "INFL_FORCE_F.H"
-#include "infl_frc.H"
+#include <INFL_FORCE_F.H>
+#include <infl_frc.H>
 #endif
 
 c
@@ -170,7 +170,7 @@ c ::: -----------------------------------------------------------
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
 
-#include "probdata.H"
+#include <probdata.H>
 
       if (probtype .eq. 1) then
          call initspin(level,time,lo,hi,nscal,
@@ -247,7 +247,7 @@ c
       REAL_T  dist
       REAL_T  x_vel, y_vel
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -306,7 +306,7 @@ c
       REAL_T  x_vel, y_vel
       REAL_T  spx, spy, cpx, cpy
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -383,7 +383,7 @@ c
       REAL_T  hx, hy
       REAL_T  spx, spy, cpx, cpy
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -436,7 +436,7 @@ c
       REAL_T  umagin, umagout, absu, sinth, costh
       REAL_T  small, a, b, r0
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -493,7 +493,7 @@ c
       REAL_T  hx, hy
       REAL_T  dist
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -541,7 +541,7 @@ c
       REAL_T  hx, hy
       REAL_T  dist
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -591,7 +591,7 @@ c     ::::: local variables
       REAL_T  x_vel, y_vel
       REAL_T  dist
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -651,7 +651,7 @@ c     ::::: local variables
       REAL_T  x_vel, y_vel
       REAL_T  dist, pertheight, L_x, rho_1, rho_2
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -699,7 +699,7 @@ c     ::::: local variables
       REAL_T  hx, hy
       REAL_T  dist
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -758,7 +758,7 @@ c ::: -----------------------------------------------------------
 
       integer   i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
@@ -869,7 +869,7 @@ c
       REAL_T     scal   (DIMV(scal),0:0)
 #endif
 
-#include "probdata.H"
+#include <probdata.H>
 
 c
 c     ::::: local variables
@@ -1104,7 +1104,7 @@ c ::: -----------------------------------------------------------
       REAL_T    x, y, ax, ay, aerr, dy
       integer   i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
 c     probtype = SPIN
       if (probtype .eq. 1) then
@@ -1204,7 +1204,7 @@ c     probtype = RT
       REAL_T    x, y, ax, ay, aerr, dy
       integer   i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
 c     probtype = SPIN
       if (probtype .eq. 1) then
@@ -1326,7 +1326,7 @@ c ::: -----------------------------------------------------------
       REAL_T    x, y, ax, ay, aerr
       integer   i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
 c     probtype = SPIN
       if (probtype .eq. 1) then
@@ -1417,7 +1417,7 @@ c ::: -----------------------------------------------------------
       REAL_T    x, y
       integer   i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
 c     probtype = SPIN
       if (probtype .eq. 1) then
@@ -1525,7 +1525,7 @@ c ::: -----------------------------------------------------------
 
       integer    i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(rho,DIMS(rho),domlo,domhi,dx,xlo,bc)
 
@@ -1598,7 +1598,7 @@ c ::: -----------------------------------------------------------
 
       integer    i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(adv,DIMS(adv),domlo,domhi,dx,xlo,bc)
 
@@ -1648,7 +1648,7 @@ c ::: -----------------------------------------------------------
 
       integer    i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(adv,DIMS(adv),domlo,domhi,dx,xlo,bc)
 
@@ -1723,7 +1723,7 @@ c ::: -----------------------------------------------------------
 
       integer    i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(temperature,DIMS(temp),domlo,domhi,dx,xlo,bc)
 
@@ -1802,10 +1802,10 @@ c ::: -----------------------------------------------------------
       REAL_T, allocatable :: uflct(:,:)
 #endif
 
-#include "probdata.H"
+#include <probdata.H>
 
 #ifdef BL_DO_FLCT
-#include "INFL_FORCE_F.H"
+#include <INFL_FORCE_F.H>
 #endif
 
       lo(1) = ARG_L1(u)
@@ -1931,10 +1931,10 @@ c ::: -----------------------------------------------------------
       REAL_T  t_flct
 #endif
 
-#include "probdata.H"
+#include <probdata.H>
 
 #ifdef BL_DO_FLCT
-#include "INFL_FORCE_F.H"
+#include <INFL_FORCE_F.H>
 #endif
 
       lo(1) = ARG_L1(v)

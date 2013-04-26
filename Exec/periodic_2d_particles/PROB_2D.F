@@ -4,12 +4,12 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "BC_TYPES.H"
-#include "PROB_AMR_F.H"
-#include "PROB_NS_F.H"
-#include "ArrayLim.H"
+#include <REAL.H>
+#include <CONSTANTS.H>
+#include <BC_TYPES.H>
+#include <PROB_AMR_F.H>
+#include <PROB_NS_F.H>
+#include <ArrayLim.H>
 
 #define SDIM 2
 
@@ -40,7 +40,7 @@ c ::: -----------------------------------------------------------
       integer untin, i
       REAL_T  problo(SDIM), probhi(SDIM)
 
-#include "probdata.H"
+#include <probdata.H>
 
 c
 c Dimensions of the Inflow file.
@@ -123,7 +123,7 @@ c ::: -----------------------------------------------------------
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
 
-#include "probdata.H"
+#include <probdata.H>
 
       call initvort(level,time,lo,hi,nscal,
      &              vel,scal,DIMS(state),press,DIMS(press),
@@ -159,7 +159,7 @@ c
       REAL_T  small, a, b, r0
       REAL_T  radvort
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -303,7 +303,7 @@ c ::: -----------------------------------------------------------
       REAL_T    x, y
       integer   i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)

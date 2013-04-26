@@ -39,7 +39,7 @@
 #include <omp.h>
 #endif
 
-#include "buildInfo.H"
+#include <buildInfo.H>
 
 #define GEOM_GROW   1
 #define PRESS_GROW  1

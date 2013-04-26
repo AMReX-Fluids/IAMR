@@ -2157,7 +2157,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     }
 }
 
-#include "Utility.H"
+#include <Utility.H>
 
 void
 Diffusion::getBndryData (ViscBndry& bndry,

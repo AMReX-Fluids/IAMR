@@ -4,18 +4,18 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "BC_TYPES.H"
-#include "PROB_AMR_F.H"
-#include "PROB_NS_F.H"
-#include "ArrayLim.H"
-#include "infl_frc.H"
+#include <REAL.H>
+#include <CONSTANTS.H>
+#include <BC_TYPES.H>
+#include <PROB_AMR_F.H>
+#include <PROB_NS_F.H>
+#include <ArrayLim.H>
+#include <infl_frc.H>
 
 #define SDIM 3
 
       block data rt_common
-#include "probdata.H"
+#include <probdata.H>
       data rt_pertamp/0.0D0/
       data rt_nfreq/0/
       data rt_xfrontw/0.0d0/
@@ -45,8 +45,8 @@ c ::: -----------------------------------------------------------
       integer untin, i
       REAL_T  problo(SDIM), probhi(SDIM)
 
-#include "probdata.H"
-#include "INFL_FORCE_F.H"
+#include <probdata.H>
+#include <INFL_FORCE_F.H>
       INTEGER dimFile(3)
       integer nCompFile
       parameter (nCompFile = 3)
@@ -254,7 +254,7 @@ c ::: -----------------------------------------------------------
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
 
-#include "probdata.H"
+#include <probdata.H>
 
       if (probtype .eq. 1) then
          call initspin(level,time,lo,hi,nscal,
@@ -365,7 +365,7 @@ c
       REAL_T  hx, hy, hz
       REAL_T  pert,ztemp
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -431,7 +431,7 @@ c
       REAL_T  dist
       REAL_T  x_vel, y_vel, z_vel
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -500,7 +500,7 @@ c
       REAL_T  x_vel, y_vel, z_vel
       REAL_T  spx, spy, cpx, cpy
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -588,7 +588,7 @@ c
       REAL_T  hx, hy, hz
       REAL_T  spx, spy, spz, cpx, cpy, cpz
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -675,7 +675,7 @@ c
       REAL_T  umagin, umagout, absu, sinth, costh
       REAL_T  small, a, b, r0
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -737,7 +737,7 @@ c
       REAL_T  hx, hy, hz
       REAL_T  dist
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -789,7 +789,7 @@ c
       REAL_T  hx, hy, hz
       REAL_T  dist
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -844,7 +844,7 @@ c     ::::: local variables
       REAL_T  x_vel, y_vel, z_vel
       REAL_T  dist
 
-#include "probdata.H"
+#include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
@@ -919,7 +919,7 @@ c
       parameter (beta_input=15., delta_input=0.0333)
       parameter (kappa_input=500.)
 
-#include "probdata.H"
+#include <probdata.H>
       
       hx = dx(1)
       hy = dx(2)
@@ -976,7 +976,7 @@ c
       REAL_T  umid,rmid,lamv,lamr,rfact
 
 
-#include "probdata.H"
+#include <probdata.H>
       hx = dx(1)
       hy = dx(2)
       hz = dx(3)
@@ -1030,7 +1030,7 @@ c
       REAL_T  delta_input, kappa_input
 
 
-#include "probdata.H"
+#include <probdata.H>
       
       hx = dx(1)
       hy = dx(2)
@@ -1095,7 +1095,7 @@ c     ::: -----------------------------------------------------------
       integer   i, j, k
       REAL_T    ax, ay, az, aerr
 
-#include "probdata.H"
+#include <probdata.H>
 
       if ( probtype .eq. 10 ) then
          do k = lo(3), hi(3)
@@ -1159,7 +1159,7 @@ c ::: -----------------------------------------------------------
       REAL_T    x, y, z, ax, ay, az, aerr
       integer   i, j, k
 
-#include "probdata.H"
+#include <probdata.H>
 
 c     probtype = SPIN
       if (probtype .eq. 1) then
@@ -1325,7 +1325,7 @@ c ::: -----------------------------------------------------------
       REAL_T    x, y, z, ax, ay, az, aerr
       integer   i, j, k
 
-#include "probdata.H"
+#include <probdata.H>
 
 c     probtype = SPIN
       if (probtype .eq. 1) then
@@ -1421,7 +1421,7 @@ c ::: -----------------------------------------------------------
       integer   i, j, k
       REAL_T    radius
 
-#include "probdata.H"
+#include <probdata.H>
 
 c     probtype = SPIN
       if (probtype .eq. 1) then
@@ -1564,7 +1564,7 @@ c ::: -----------------------------------------------------------
 
       parameter (constn=.22089323)
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(rho,DIMS(rho),domlo,domhi,dx,xlo,bc)
 
@@ -1754,7 +1754,7 @@ c ::: -----------------------------------------------------------
 
       parameter (constn=.22089323)
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(adv,DIMS(adv),domlo,domhi,dx,xlo,bc)
       if( probtype .eq. 8) then
@@ -1934,7 +1934,7 @@ c ::: -----------------------------------------------------------
       integer    i, j, k
       REAL_T     z
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(temp,DIMS(temp),domlo,domhi,dx,xlo,bc)
 
@@ -2047,9 +2047,9 @@ c ::: -----------------------------------------------------------
 
       parameter (constn=.22089323)
 
-#include "probdata.H"
-#include "INFL_FORCE_F.H"
-c         #include "infl_frc.fi"
+#include <probdata.H>
+#include <INFL_FORCE_F.H>
+c         #include <infl_frc.fi>
 
 
       lo(1) = ARG_L1(u)
@@ -2213,9 +2213,9 @@ c ::: -----------------------------------------------------------
       integer DIMDEC(vflct)
       REAL_T  t_flct
 
-#include "probdata.H"
-#include "INFL_FORCE_F.H"
-c   #include "infl_frc.fi"
+#include <probdata.H>
+#include <INFL_FORCE_F.H>
+c   #include <infl_frc.fi>
 
       REAL_T, allocatable :: vflct(:,:,:)
 
@@ -2373,9 +2373,9 @@ c ::: -----------------------------------------------------------
       integer loFlctArray(SDIM), hiFlctArray(SDIM)
       integer DIMDEC(wflct)
 
-#include "probdata.H"
-#include "INFL_FORCE_F.H"
-c    #include "infl_frc.fi"
+#include <probdata.H>
+#include <INFL_FORCE_F.H>
+c    #include <infl_frc.fi>
 
 
       REAL_T, allocatable :: wflct(:,:,:)
@@ -2530,7 +2530,7 @@ c ::: -----------------------------------------------------------
       integer    i, j, k
       REAL_T     z_vel
 
-#include "probdata.H"
+#include <probdata.H>
 
       if (adv_dir .eq. 3) then
          z_vel = adv_vel
@@ -2739,7 +2739,7 @@ c ::: -----------------------------------------------------------
       logical    per_xlo, per_ylo, per_zlo
       logical    per_xhi, per_yhi, per_zhi
 
-#include "probdata.H"
+#include <probdata.H>
 
       fix_xlo = (ARG_L1(p) .lt. domlo(1)) .and. (bc(1,1) .ne. INT_DIR)
       per_xlo = (ARG_L1(p) .lt. domlo(1)) .and. (bc(1,1) .eq. INT_DIR)

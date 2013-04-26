@@ -3,12 +3,12 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "BC_TYPES.H"
-#include "PROB_AMR_F.H"
-#include "PROB_NS_F.H"
-#include "ArrayLim.H"
+#include <REAL.H>
+#include <CONSTANTS.H>
+#include <BC_TYPES.H>
+#include <PROB_AMR_F.H>
+#include <PROB_NS_F.H>
+#include <ArrayLim.H>
 
 #define SDIM 2
 
@@ -48,7 +48,7 @@ c ::: -----------------------------------------------------------
 
       integer    i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(rho,DIMS(rho),domlo,domhi,dx,xlo,bc)
 
@@ -121,7 +121,7 @@ c ::: -----------------------------------------------------------
 
       integer    i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(adv,DIMS(adv),domlo,domhi,dx,xlo,bc)
 
@@ -171,7 +171,7 @@ c ::: -----------------------------------------------------------
 
       integer    i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(adv,DIMS(adv),domlo,domhi,dx,xlo,bc)
 
@@ -246,7 +246,7 @@ c ::: -----------------------------------------------------------
 
       integer    i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(temperature,DIMS(temp),domlo,domhi,dx,xlo,bc)
 
@@ -318,7 +318,7 @@ c ::: -----------------------------------------------------------
       REAL_T     u(DIMV(u)), x_vel
       integer    lo(SDIM),hi(SDIM), bc(SDIM,2), i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       lo(1) = ARG_L1(u)
       lo(2) = ARG_L2(u)
@@ -365,7 +365,7 @@ c ::: -----------------------------------------------------------
       REAL_T     y_vel
       integer    lo(SDIM),hi(SDIM)
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(v,DIMS(v),domlo,domhi,dx,xlo,bc)
 
@@ -572,7 +572,7 @@ c ::: -----------------------------------------------------------
 
       integer    i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(divu,DIMS(divu),domlo,domhi,dx,xlo,bc)
 
@@ -612,7 +612,7 @@ c ::: -----------------------------------------------------------
 
       integer    i, j
 
-#include "probdata.H"
+#include <probdata.H>
 
       call filcc(dsdt,DIMS(dsdt),domlo,domhi,dx,xlo,bc)
 
