@@ -50,7 +50,6 @@ ns.v = 1
 #mac.v = 1
 proj.v = 0
 
-mg.cg_solver=1
 cg.cg_solver=1
 
 amr.n_cell    = 16 16 16
