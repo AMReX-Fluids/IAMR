@@ -55,6 +55,8 @@ int  MacProj::check_umac_periodicity;
 
 namespace
 {
+    bool benchmarking;
+
     Real umac_periodic_test_Tol;
 
 #if MG_USE_HYPRE
@@ -72,6 +74,7 @@ MacProj::Initialize ()
     //
     // Set defaults here!!!
     //
+    benchmarking                    = false;
     MacProj::verbose                = 0;
     MacProj::mac_tol                = 1.0e-12;
     MacProj::mac_abs_tol            = 1.0e-16;
@@ -104,6 +107,7 @@ MacProj::Initialize ()
     pp.query("mac_abs_tol",            mac_abs_tol);
     pp.query("mac_sync_tol",           mac_sync_tol);
     pp.query("use_cg_solve",           use_cg_solve);
+    pp.query("benchmarking",           benchmarking);
     pp.query("do_outflow_bcs",         do_outflow_bcs);
     pp.query("fix_mac_sync_rhs",       fix_mac_sync_rhs);
     pp.query("check_umac_periodicity", check_umac_periodicity);
@@ -528,6 +532,8 @@ MacProj::mac_sync_solve (int       level,
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_sync_solve at level " << level << '\n';
 
+    if (verbose && benchmarking) ParallelDescriptor::Barrier();
+
     const Real      strt_time  = ParallelDescriptor::second();
     const BoxArray& grids      = LevelData[level].boxArray();
     const Geometry& geom       = parent->Geom(level);
@@ -692,13 +698,16 @@ MacProj::mac_sync_solve (int       level,
                     mac_sync_tol, mac_abs_tol, rhs_scale, area,
                     volume, Rhs, rho_half, mac_sync_phi);
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
+    if (verbose)
+    {
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      run_time = ParallelDescriptor::second() - strt_time;
 
-    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "MacProj::mac_sync_solve(): time: " << run_time << std::endl;
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "MacProj::mac_sync_solve(): time: " << run_time << std::endl;
+    }
 }
 
 //

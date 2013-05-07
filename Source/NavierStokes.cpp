@@ -97,11 +97,11 @@ NSParticleContainer* NavierStokes::theNSPC () { return NSPC; }
 
 #endif /*PARTICLES*/
 
-
 //
 // Set defaults for all variables in Initialize()!!!
 //
 static int hyp_grow;
+static bool benchmarking;
 
 ErrorList   NavierStokes::err_list;
 BCRec       NavierStokes::phys_bc;
@@ -257,6 +257,7 @@ NavierStokes::Initialize ()
     if (initialized) return;
 
     hyp_grow                            = 3;
+    benchmarking                        = false;
     NavierStokes::projector             = 0;
     NavierStokes::mac_projector         = 0;
     NavierStokes::godunov               = 0;
@@ -345,6 +346,8 @@ NavierStokes::Initialize ()
 #endif /*PARTICLES*/
 
     ParmParse pp("ns");
+
+    pp.query("benchmarking",benchmarking);
 
     pp.query("v",verbose);
 
@@ -577,7 +580,7 @@ NavierStokes::Initialize ()
 
     if (do_mom_diff == 0 && predict_mom_together == 1)
     {
-      std::cout << "MAKES NO SENSE TO HAVE DO_MOM_DIFF=0 AND PREDICT_MOM_TOGETHER=1" << std::endl;
+      std::cout << "MAKES NO SENSE TO HAVE DO_MOM_DIFF=0 AND PREDICT_MOM_TOGETHER=1" << '\n';
       exit(0);
     }
 
@@ -850,10 +853,10 @@ NavierStokes::init_additional_state_types ()
 
     if (have_divu && do_sync_proj && !do_MLsync_proj) 
     {
-        std::cout << "Must run the ML sync project if have_divu is true " << std::endl;
-        std::cout << "  because the divu sync is only implemented in the " << std::endl;
-        std::cout << "  multilevel sync (MLsyncProject), not in the single level " << std::endl;
-        std::cout << "  (syncProject)." << std::endl;
+        std::cout << "Must run the ML sync project if have_divu is true " << '\n';
+        std::cout << "  because the divu sync is only implemented in the " << '\n';
+        std::cout << "  multilevel sync (MLsyncProject), not in the single level " << '\n';
+        std::cout << "  (syncProject)." << '\n';
         BoxLib::Abort("NavierStokes::init_additional_state_types()");
     }
 
@@ -1214,6 +1217,8 @@ NavierStokes::initData ()
     //
     ParmParse pp("ns");
 
+
+
     std::string velocity_plotfile;
     pp.query("velocity_plotfile", velocity_plotfile);
 
@@ -1226,7 +1231,7 @@ NavierStokes::initData ()
     if (!velocity_plotfile.empty())
     {
         if (ParallelDescriptor::IOProcessor())
-	  std::cout << "initData: reading data from: " << velocity_plotfile << " (" << velocity_plotfile_xvel_name << ")" << std::endl;
+	  std::cout << "initData: reading data from: " << velocity_plotfile << " (" << velocity_plotfile_xvel_name << ")" << '\n';
 
         DataServices::SetBatchMode();
         Amrvis::FileType fileType(Amrvis::NEWPLT);
@@ -1248,7 +1253,7 @@ NavierStokes::initData ()
         if (idX == -1)
             BoxLib::Abort("Could not find velocity fields in supplied velocity_plotfile");
 	else
-	  std::cout << "Found " << velocity_plotfile_xvel_name << ", idX = " << idX << std::endl;
+	  std::cout << "Found " << velocity_plotfile_xvel_name << ", idX = " << idX << '\n';
 
         MultiFab tmp(S_new.boxArray(), 1, 0);
         for (int i = 0; i < BL_SPACEDIM; i++)
@@ -1264,7 +1269,7 @@ NavierStokes::initData ()
         }
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "initData: finished init from velocity_plotfile" << std::endl;
+            std::cout << "initData: finished init from velocity_plotfile" << '\n';
     }
 #endif /*BL_USE_VELOCITY*/
 
@@ -1725,7 +1730,7 @@ NavierStokes::advance (Real time,
         {
 	    int iScal = first_scalar+scalarUpdateOrder[iComp];
 	    if (ParallelDescriptor::IOProcessor())
-		std::cout << "... ... updating " << desc_lst[0].name(iScal) << std::endl;
+		std::cout << "... ... updating " << desc_lst[0].name(iScal) << '\n';
 	    scalar_update(dt,iScal,iScal);
 	}
     }
@@ -1837,6 +1842,8 @@ NavierStokes::mac_project (Real      time,
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_projection\n";
 
+    if (verbose && benchmarking) ParallelDescriptor::Barrier();
+
     const Real strt_time = ParallelDescriptor::second();
 
     mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu,increment_vel_register);
@@ -1854,7 +1861,7 @@ NavierStokes::mac_project (Real      time,
         {
             std::cout << "NavierStokes:mac_project(): lev: "
                       << level
-                      << ", time: " << run_time << std::endl;
+                      << ", time: " << run_time << '\n';
         }
     }
 }
@@ -2059,7 +2066,7 @@ NavierStokes::predict_velocity (Real  dt,
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
 #elif MOREGENGETFORCE
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    std::cout << "---" << std::endl << "A - Predict velocity:" << std::endl << " Calling getForce..." << std::endl;
+	    std::cout << "---" << '\n' << "A - Predict velocity:" << '\n' << " Calling getForce..." << '\n';
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
 	getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
@@ -2122,7 +2129,7 @@ NavierStokes::velocity_advection (Real dt)
         {
             if (predict_mom_together == 0)
             {
-                std::cout << "Must set predict_mom_together == 1 in NavierStokes." << std::endl;
+                std::cout << "Must set predict_mom_together == 1 in NavierStokes." << '\n';
                 exit(0);
             }
             std::cout << "... advect momenta\n";
@@ -2199,7 +2206,7 @@ NavierStokes::velocity_advection (Real dt)
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
 #elif MOREGENGETFORCE
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    std::cout << "---" << std::endl << "B - velocity advection:" << std::endl << "Calling getForce..." << std::endl;
+	    std::cout << "---" << '\n' << "B - velocity advection:" << '\n' << "Calling getForce..." << '\n';
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
@@ -2371,7 +2378,7 @@ NavierStokes::scalar_advection (Real dt,
         getForce(tforces,i,1,fscalar,num_scalars,prev_time,(*rho_ptime)[i]);
 #elif MOREGENGETFORCE
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    std::cout << "---" << std::endl << "C - scalar advection:" << std::endl << " Calling getForce..." << std::endl;
+	    std::cout << "---" << '\n' << "C - scalar advection:" << '\n' << " Calling getForce..." << '\n';
         getForce(tforces,i,1,fscalar,num_scalars,prev_time,U_fpi(),S_fpi(),0);
 #else
         getForce(tforces,i,1,fscalar,num_scalars,(*rho_ptime)[i]);
@@ -2387,7 +2394,7 @@ NavierStokes::scalar_advection (Real dt,
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
 #elif MOREGENGETFORCE
 	    if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-		std::cout << "---" << std::endl << "D - scalar advection (use_forces_in_trans):" << std::endl << " Calling getForce..." << std::endl;
+		std::cout << "---" << '\n' << "D - scalar advection (use_forces_in_trans):" << '\n' << " Calling getForce..." << '\n';
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
@@ -2524,7 +2531,7 @@ NavierStokes::scalar_update (Real dt,
        {
 	  if (ParallelDescriptor::IOProcessor())
           {
-             std::cout << "New scalar " << sigma << " contains Nans" << std::endl;
+             std::cout << "New scalar " << sigma << " contains Nans" << '\n';
           }
           exit(0);
        }
@@ -2614,7 +2621,7 @@ NavierStokes::scalar_advection_update (Real dt,
 #elif MOREGENGETFORCE
 		// Need to do some funky half-time stuff
 		if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-		    std::cout << "---" << std::endl << "E - scalar advection update (half time):" << std::endl;
+		    std::cout << "---" << '\n' << "E - scalar advection update (half time):" << '\n';
 
 		// Average the mac face velocities to get cell centred velocities
                 const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
@@ -2652,7 +2659,7 @@ NavierStokes::scalar_advection_update (Real dt,
 		Scal.mult(0.5);
 		
 		if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-		    std::cout << "Calling getForce..." << std::endl;
+		    std::cout << "Calling getForce..." << '\n';
                 getForce(tforces,i,0,sigma,1,halftime,Vel,Scal,0);
 #else
                 getForce(tforces,i,0,sigma,1,rho_halftime[Rho_mfi]);
@@ -2851,7 +2858,7 @@ NavierStokes::velocity_update (Real dt)
        {
 	  if (ParallelDescriptor::IOProcessor())
           {
-             std::cout << "New velocity " << sigma << " contains Nans" << std::endl;
+             std::cout << "New velocity " << sigma << " contains Nans" << '\n';
           }
           exit(0);
        }
@@ -2895,7 +2902,7 @@ NavierStokes::velocity_advection_update (Real dt)
 	// Need to do some funky half-time stuff.
         //
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    std::cout << "---" << std::endl << "F - velocity advection update (half time):" << std::endl;
+	    std::cout << "---" << '\n' << "F - velocity advection update (half time):" << '\n';
         //
 	// Average the mac face velocities to get cell centred velocities.
         //
@@ -2932,7 +2939,7 @@ NavierStokes::velocity_advection_update (Real dt)
 	Scal.mult(0.5);
 	
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    std::cout << "Calling getForce..." << std::endl;
+	    std::cout << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
 #else
@@ -3125,7 +3132,7 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
 #elif MOREGENGETFORCE
 	    if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-		std::cout << "---" << std::endl << "G - initial velocity diffusion update:" << std::endl << "Calling getForce..." << std::endl;
+		std::cout << "---" << '\n' << "G - initial velocity diffusion update:" << '\n' << "Calling getForce..." << '\n';
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,U_old[i],U_old[i],Density);
 #else
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
@@ -3424,7 +3431,7 @@ NavierStokes::sum_integrated_quantities ()
 //	if (BL_SPACEDIM==3)
 //	    std::cout << "TIME= " << time << " FORC= " << forcing << '\n';
 	std::cout << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
-	std::cout << "DIAG= " << time << " " << energy << " " << udotlapu << " " << forcing << std::endl;
+	std::cout << "DIAG= " << time << " " << energy << " " << udotlapu << " " << forcing << '\n';
         std::cout.precision(old_prec);
     }
 }
@@ -3649,10 +3656,10 @@ NavierStokes::sum_jet_quantities ()
     const int jetVars(104);
 
     if (ParallelDescriptor::IOProcessor())
-	std::cout << "NavierStokes::sum_jet_quantities():" << std::endl
-		  << "   jetVars: " << jetVars << std::endl
-		  << "   rsize  : " << rsize << std::endl
-		  << "   ksize  : " << ksize << std::endl;
+	std::cout << "NavierStokes::sum_jet_quantities():" << '\n'
+		  << "   jetVars: " << jetVars << '\n'
+		  << "   rsize  : " << rsize << '\n'
+		  << "   ksize  : " << ksize << '\n';
     
     Real* jetData = new Real[jetVars*ksize*rsize];
 
@@ -3672,7 +3679,7 @@ NavierStokes::sum_jet_quantities ()
 
     if (ParallelDescriptor::IOProcessor())
     {
-        std::cout << "      Creating JetData..." << std::endl;
+        std::cout << "      Creating JetData..." << '\n';
         std::string DirPath = "JetData";
         if (!BoxLib::UtilCreateDirectory(DirPath, 0755))
             BoxLib::CreateDirectoryFailed(DirPath);
@@ -3719,7 +3726,7 @@ NavierStokes::sum_jet_quantities ()
 		fprintf(file,"\n");
 	    }
 	    fclose(file);
-	    std::cout << "   ...done." << std::endl;
+	    std::cout << "   ...done." << '\n';
 	}
 #else
 	std::string FullPath = BoxLib::Concatenate("JetData/JD", steps, 4);
@@ -4220,7 +4227,7 @@ NavierStokes::estTimeStep ()
 #elif MOREGENGETFORCE
         const Real cur_time = state[State_Type].curTime();
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    std::cout << "---" << std::endl << "H - est Time Step:" << std::endl << "Calling getForce..." << std::endl;
+	    std::cout << "---" << '\n' << "H - est Time Step:" << '\n' << "Calling getForce..." << '\n';
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i],U_new[i],Density);
 #else
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,(*rho_ctime)[i]);
@@ -4268,7 +4275,7 @@ NavierStokes::initialTimeStep ()
   if (ParallelDescriptor::IOProcessor())
   {
       std::cout << "Multiplying dt by init_shrink; dt = " 
-		<< returnDt << std::endl;
+		<< returnDt << '\n';
   }
 
   return returnDt;
@@ -6373,7 +6380,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 #ifndef NDEBUG
     if (src_comp<BL_SPACEDIM && (src_comp!=Xvel || ncomp<BL_SPACEDIM))
     {
-        std::cout << "src_comp=" << src_comp << "   ncomp=" << ncomp << std::endl;
+        std::cout << "src_comp=" << src_comp << "   ncomp=" << ncomp << '\n';
         BoxLib::Error("must call NavierStokes::getViscTerms with all three velocity components");
     }
 #endif

@@ -78,6 +78,8 @@ namespace
 #if MG_USE_HYPRE
     bool use_hypre_solve;
 #endif
+
+    bool benchmarking;
 }
 
 
@@ -88,6 +90,7 @@ Projection::Initialize ()
     //
     // Set defaults here !!!
     //
+    benchmarking                    = false;
     Projection::P_code              = 0;
     Projection::proj_2              = 1;
     Projection::verbose             = 0;
@@ -112,6 +115,7 @@ Projection::Initialize ()
     pp.query("proj_tol",            proj_tol);
     pp.query("sync_tol",            sync_tol);
     pp.query("proj_abs_tol",        proj_abs_tol);
+    pp.query("benchmarking",        benchmarking);
     pp.query("add_vort_proj",       add_vort_proj);
     pp.query("do_outflow_bcs",      do_outflow_bcs);
     pp.query("rho_wgt_vel_proj",    rho_wgt_vel_proj);
@@ -385,10 +389,12 @@ Projection::level_project (int             level,
                            int             iteration,
                            int             have_divu)
 {
-    const Real strt_time = ParallelDescriptor::second();
-
     if ( verbose && ParallelDescriptor::IOProcessor() )
 	std::cout << "... level projector at level " << level << '\n';
+
+    if (verbose && benchmarking) ParallelDescriptor::Barrier();
+
+    const Real strt_time = ParallelDescriptor::second();
     //
     // old time velocity has bndry values already
     // must gen valid bndry data for new time velocity.
@@ -406,7 +412,8 @@ Projection::level_project (int             level,
     Real prev_time = LevelData[level].get_state_data(State_Type).prevTime();
     Real curr_time = LevelData[level].get_state_data(State_Type).curTime();
     
-    for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+    {
       LevelData[level].setPhysBoundaryValues(S_old[mfi],State_Type,prev_time,
 					     Xvel,Xvel,BL_SPACEDIM);
       LevelData[level].setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
@@ -738,16 +745,19 @@ Projection::level_project (int             level,
     if (!proj_2) 
         AddPhi(P_new, P_old);             // pn = pn + po
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
-
-    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "Projection::level_project(): lev: "
-                  << level
-                  << ", time: " << run_time << '\n';
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      run_time = ParallelDescriptor::second() - strt_time;
+
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "Projection::level_project(): lev: "
+                      << level
+                      << ", time: " << run_time << '\n';
+        }
     }
 }
 
@@ -771,24 +781,24 @@ Projection::syncProject (int             c_lev,
                          int             crse_iteration,
                          int             crse_dt_ratio)
 {
-    const Real strt_time = ParallelDescriptor::second();
-
     if (verbose && ParallelDescriptor::IOProcessor()) 
     {
         std::cout << "SyncProject: level = "
                   << c_lev
                   << " correction to level "
-                  << parent->finestLevel() << std::endl;
+                  << parent->finestLevel() << '\n';
     }
+
+    if (verbose && benchmarking) ParallelDescriptor::Barrier();
+
+    const Real strt_time = ParallelDescriptor::second();
     //
     // Manipulate state + pressure data.
     //
-
 #ifndef MG_USE_F90_SOLVERS
     if (sync_proj == 0)
         bldSyncProject();
 #endif
-
     //
     // Gather data.
     //
@@ -908,16 +918,19 @@ Projection::syncProject (int             c_lev,
     AddPhi(pres, phi);
     UpdateArg1(vel, dt_crse, *Vsync, BL_SPACEDIM, grids, 1);
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
-
-    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "Projection:syncProject(): c_lev: "
-                  << c_lev
-                  << ", time: " << run_time << std::endl;
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      run_time = ParallelDescriptor::second() - strt_time;
+
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "Projection:syncProject(): c_lev: "
+                      << c_lev
+                      << ", time: " << run_time << '\n';
+        }
     }
 }
 
@@ -952,16 +965,17 @@ Projection::MLsyncProject (int             c_lev,
                            Real             cur_fine_pres_time,
                            Real            prev_fine_pres_time)
 {
-    const Real strt_time = ParallelDescriptor::second();
-
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << '\n';
+
+    if (verbose && benchmarking) ParallelDescriptor::Barrier();
+
+    const Real strt_time = ParallelDescriptor::second();
     
 #ifndef MG_USE_F90_SOLVERS
     if (sync_proj == 0)
         bldSyncProject();
 #endif
-
     //
     // Set up memory.
     //
@@ -979,7 +993,6 @@ Projection::MLsyncProject (int             c_lev,
     phi[c_lev+1]->setVal(0);
 
     MultiFab* crse_rhs = new MultiFab(Pgrids_crse,1,1);
-
     //
     // Set up crse RHS
     //
@@ -1214,16 +1227,19 @@ Projection::MLsyncProject (int             c_lev,
     // PArrayManage will do it 
 #endif
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
-
-    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "Projection::MLsyncProject(): levels = "
-                  << c_lev << ", " << c_lev+1
-                  << ", time: " << run_time << std::endl;
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      run_time = ParallelDescriptor::second() - strt_time;
+
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "Projection::MLsyncProject(): levels = "
+                      << c_lev << ", " << c_lev+1
+                      << ", time: " << run_time << '\n';
+        }
     }
 }
 
@@ -1237,10 +1253,9 @@ Projection::initialVelocityProject (int  c_lev,
                                     Real cur_divu_time, 
                                     int  have_divu)
 {
-    const Real strt_time = ParallelDescriptor::second();
-
     int lev;
     int f_lev = parent->finestLevel();
+
     if (verbose && ParallelDescriptor::IOProcessor()) 
     {
         std::cout << "initialVelocityProject: levels = " << c_lev
@@ -1250,6 +1265,10 @@ Projection::initialVelocityProject (int  c_lev,
         else 
             std::cout << "CONSTANT DENSITY INITIAL VELOCITY PROJECTION\n";
     }
+
+    if (verbose && benchmarking) ParallelDescriptor::Barrier();
+
+    const Real strt_time = ParallelDescriptor::second();
 
 #ifndef MG_USE_F90_SOLVERS
     if (sync_proj == 0)
@@ -1479,14 +1498,15 @@ Projection::initialVelocityProject (int  c_lev,
     // PArrayManage will do it
 #endif
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
-
-    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "Projection::initialVelocityProject(): time: " << run_time << '\n';
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      run_time = ParallelDescriptor::second() - strt_time;
+
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+        if ( ParallelDescriptor::IOProcessor())
+            std::cout << "Projection::initialVelocityProject(): time: " << run_time << '\n';
     }
 }
 
@@ -1658,21 +1678,22 @@ Projection::initialSyncProject (int       c_lev,
                                 Real      strt_time,
                                 int       have_divu)
 {
-    const Real stime = ParallelDescriptor::second();
-
     int lev;
     int f_lev = parent->finestLevel();
+
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "initialSyncProject: levels = " << c_lev << "  " << f_lev << '\n';
+
+    if (verbose && benchmarking) ParallelDescriptor::Barrier();
+
+    const Real stime = ParallelDescriptor::second();
     //
     // Manipulate state + pressure data.
     //
-
 #ifndef MG_USE_F90_SOLVERS
     if (sync_proj == 0)
         bldSyncProject();
 #endif
-
     //
     // Gather data.
     //
@@ -1939,14 +1960,15 @@ Projection::initialSyncProject (int       c_lev,
     for (lev = c_lev; lev <= f_lev; lev++) 
         incrPress(lev, 1.0);
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - stime;
-
-    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "Projection::initialSyncProject(): time: " << run_time << '\n';
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      run_time = ParallelDescriptor::second() - stime;
+
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "Projection::initialSyncProject(): time: " << run_time << '\n';
     }
 }
 
@@ -2439,7 +2461,7 @@ Projection::initialVorticityProject (int c_lev)
         std::cout << "initialVorticityProject: levels = "
                   << c_lev
                   << "  "
-                  << f_lev << std::endl;
+                  << f_lev << '\n';
     }
     //
     // Set up projector bndry just for this projection.
@@ -2635,7 +2657,7 @@ Projection::getStreamFunction (PArray<MultiFab>& phi)
         std::cout << "getStreamFunction: levels = "
                   << c_lev
                   << "  "
-                  << f_lev << std::endl;
+                  << f_lev << '\n';
     }
     //
     // Set up projector bndry just for this projection.
@@ -2783,9 +2805,7 @@ Projection::set_outflow_bcs (int        which_call,
       BL_ASSERT(c_lev == 0);
 
     if ( verbose && ParallelDescriptor::IOProcessor() ) 
-      {
-	std::cout << "...setting outflow bcs for the nodal projection ... " << std::endl;
-      }
+	std::cout << "...setting outflow bcs for the nodal projection ... " << '\n';
 
     bool        hasOutFlow;
     Orientation outFaces[2*BL_SPACEDIM];
