@@ -2979,6 +2979,8 @@ void
 NavierStokes::velocity_diffusion_update (Real dt)
 {
     BL_PROFILE("NavierStokes::velocity_diffusion_update()");
+
+    const Real strt_time = ParallelDescriptor::second();
     //
     // Compute the viscous forcing.
     // Do following except at initial iteration.
@@ -3019,6 +3021,21 @@ NavierStokes::velocity_diffusion_update (Real dt)
         }
 
         delete delta_rhs;
+    }
+
+    if (verbose)
+    {
+        Real run_time    = ParallelDescriptor::second() - strt_time;
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "NavierStokes:velocity_diffusion_update(): lev: "
+                      << level
+                      << ", time: " << run_time << '\n';
+        }
     }
 }
 
