@@ -1887,15 +1887,6 @@ NavierStokes::level_projector (Real dt,
         crse_ptr = &(getLevel(level+1).getSyncReg());
     }
 
-    Array<int*>         sync_bc(grids.size());
-    Array< Array<int> > sync_bc_array(grids.size());
-
-    for (int i = 0; i < grids.size(); i++)
-    {
-        sync_bc_array[i] = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
-        sync_bc[i]       = sync_bc_array[i].dataPtr();
-    }
-
     int        crse_dt_ratio  = (level > 0) ? parent->nCycle(level) : -1;
     const Real cur_pres_time  = state[Press_Type].curTime();
     const Real prev_pres_time = state[Press_Type].prevTime();
