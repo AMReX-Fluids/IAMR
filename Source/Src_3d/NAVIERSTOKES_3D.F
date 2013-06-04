@@ -37,25 +37,41 @@ c ::
       ddy = fourth/dx(2)
       ddz = fourth/dx(3)
 
-!$omp parallel do private(i,j,k)
+!$omp parallel private(i,j,k)
+!$omp do
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                gp(i,j,k,1) = ddx*(
      &              p(i+1,j,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i,j+1,k  )+
      &              p(i+1,j,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i,j+1,k+1))
-
+            end do
+         end do
+      end do
+!$omp end do nowait
+!$omp do
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
                gp(i,j,k,2) = ddy*(
      &              p(i,j+1,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i+1,j,k  )+
      &              p(i,j+1,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i+1,j,k+1))
-
+            end do
+         end do
+      end do
+!$omp end do nowait
+!$omp do
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
                gp(i,j,k,3) = ddz*(
      &              p(i,  j,k+1)-p(i,  j,k)+p(i,  j+1,k+1)-p(i,  j+1,k)+
      &              p(i+1,j,k+1)-p(i+1,j,k)+p(i+1,j+1,k+1)-p(i+1,j+1,k))
             end do
          end do
       end do
-!$omp end parallel do
+!$omp end do nowait
+!$omp end parallel
 
       end
 
