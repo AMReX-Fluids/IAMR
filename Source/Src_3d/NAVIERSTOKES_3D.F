@@ -114,7 +114,7 @@ c     ----------------------------------------------------------
       lraty = ratios(2)
       lratz = ratios(3)
 
-!$omp parallel do private(i,j,k,ic,jc,kc,ioff,joff,koff) if (nvar > 1)
+!$omp parallel do private(i,j,k,ic,jc,kc,ioff,joff,koff)
       do n = 1, nvar
 c
 c     set coarse grid to zero on overlap
@@ -1137,7 +1137,6 @@ c     values you want to interpolate to the rest.
 c
       if (dir.eq.0) then
          do n=1,nc
-!$omp parallel do private(i,j,k,df,M,val,P,L)
             do k=flo(2),fhi(2),ratio(2)
                do j=flo(1),fhi(1),ratio(1)
                   do i=flo(0),fhi(0)-ratio(dir),ratio(0)
@@ -1154,11 +1153,9 @@ c
                   enddo
                enddo
             enddo
-!$omp end parallel do
          enddo
       else if (dir.eq.1) then
          do n=1,nc
-!$omp parallel do private(i,j,k,df,M,val,P,L)
             do k=flo(2),fhi(2),ratio(2)
                do j=flo(1),fhi(1)-ratio(dir),ratio(1)
                   do i=flo(0),fhi(0)
@@ -1175,11 +1172,9 @@ c
                   enddo
                enddo
             enddo
-!$omp end parallel do
          enddo
       else
          do n=1,nc
-!$omp parallel do private(i,j,k,df,M,val,P,L)
             do k=flo(2),fhi(2)-ratio(dir),ratio(2)
                do j=flo(1),fhi(1),ratio(1)
                   do i=flo(0),fhi(0),ratio(0)
@@ -1196,7 +1191,6 @@ c
                   enddo
                enddo
             enddo
-!$omp end parallel do
          enddo
       endif
       end
@@ -1220,7 +1214,6 @@ c     coarse face, leave the in-between faces alone.
 c
       if (dir.eq.0) then
          do n=1,nc
-!$omp parallel do private(i,j,k,ii,jj,kk,P,L)
             do k=lo(3),hi(3)
                kk = ratio(2)*k
                do j=lo(2),hi(2)
@@ -1235,11 +1228,9 @@ c
                   enddo
                enddo
             enddo
-!$omp end parallel do
          enddo
       else if (dir.eq.1) then
          do n=1,nc
-!$omp parallel do private(i,j,k,ii,jj,kk,P,L)
             do k=lo(3),hi(3)
                kk = ratio(2)*k
                do j=lo(2),hi(2)
@@ -1254,11 +1245,9 @@ c
                   enddo
                enddo
             enddo
-!$omp end parallel do
          enddo
       else
          do n=1,nc
-!$omp parallel do private(i,j,k,ii,jj,kk,P,L)
             do k=lo(3),hi(3)
                kk = ratio(2)*k
                do j=lo(2),hi(2)
@@ -1273,7 +1262,6 @@ c
                   enddo
                enddo
             enddo
-!$omp end parallel do
          enddo
       endif
       end
