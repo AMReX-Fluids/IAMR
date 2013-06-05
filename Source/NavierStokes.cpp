@@ -3184,25 +3184,28 @@ NavierStokes::errorEst (TagBoxArray& tags,
     const int*  domain_hi = geom.Domain().hiVect();
     const Real* dx        = geom.CellSize();
     const Real* prob_lo   = geom.ProbLo();
-    Array<int>  itags;
 
     for (int j = 0; j < err_list.size(); j++)
     {
         MultiFab* mf = derive(err_list[j].name(), time, err_list[j].nGrow());
+        const int N  = mf->IndexMap().size();
 
-        for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int n = 0; n < N; n++)
         {
-            const int   i       = mfi.index();
-            const Box&  vbx     = mfi.validbox();
+            const int   i       = mf->IndexMap()[n];
+            const Box&  vbx     = mf->box(i);
             RealBox     gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
-            itags               = tags[i].tags();
+            Array<int>  itags   = tags[i].tags();
             int*        tptr    = itags.dataPtr();
             const int*  tlo     = tags[i].box().loVect();
             const int*  thi     = tags[i].box().hiVect();
             const int*  lo      = vbx.loVect();
             const int*  hi      = vbx.hiVect();
             const Real* xlo     = gridloc.lo();
-            FArrayBox&  fab     = (*mf)[mfi];
+            FArrayBox&  fab     = (*mf)[i];
             Real*       dat     = fab.dataPtr();
             const int*  dlo     = fab.box().loVect();
             const int*  dhi     = fab.box().hiVect();
@@ -5032,6 +5035,7 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
         const int*  clo     = cdata.loVect();
         const int*  chi     = cdata.hiVect();
         const Real* xlo     = gridloc.lo();
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -6976,12 +6980,15 @@ NavierStokes::create_umac_grown (int nGrow)
             crse_src_ba.surroundingNodes(n);
             fine_src_ba.surroundingNodes(n);
 
-            std::vector<long> wgts;
+            const int N = fine_src_ba.size();
 
-            wgts.reserve(fine_src_ba.size());
+            std::vector<long> wgts(N);
 
-            for (int i = 0; i < fine_src_ba.size(); i++)
-                wgts.push_back(fine_src_ba[i].numPts());
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+            for (int i = 0; i < N; i++)
+                wgts[i] = fine_src_ba[i].numPts();
 
             DistributionMapping dm;
             //
