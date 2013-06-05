@@ -3250,9 +3250,7 @@ NavierStokes::sumDerive (const std::string& name, Real time)
             baf.intersections(grids[mfi.index()],isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
-            {
                 fab.setVal(0,isects[ii].second,0,fab.nComp());
-            }
         }
 
         sum += fab.sum(0);
@@ -3291,9 +3289,7 @@ NavierStokes::volWgtSum (const std::string& name,
             baf.intersections(grids[mfi.index()],isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
-            {
                 fab.setVal(0,isects[ii].second,0,fab.nComp());
-            }
         }
         Real        s;
         const Real* dat = fab.dataPtr();
@@ -3377,9 +3373,7 @@ NavierStokes::MaxVal (const std::string& name,
             baf.intersections(grids[i],isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
-            {
                 fab.setVal(0,isects[ii].second,0,fab.nComp());
-            }
         }
         Real        s;
         const Real* dat = fab.dataPtr();
@@ -4945,7 +4939,7 @@ set_bc_new (int*            bc_new,
  
         if (clo[dir] < cdomlo[dir] || chi[dir] > cdomhi[dir])
         {
-            for (int crse = 0; crse < cgrids.size(); crse++)
+            for (int crse = 0, N = cgrids.size(); crse < N; crse++)
             {
                 const int* c_lo = cgrids[crse].loVect();
                 const int* c_hi = cgrids[crse].hiVect();
@@ -5010,10 +5004,14 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
     const int*      cdomlo     = cdomain.loVect();
     const int*      cdomhi     = cdomain.hiVect();
     int*            bc_new     = new int[2*BL_SPACEDIM*(src_comp+num_comp)];
+    const int       N          = fgrids.size();
 
-    BoxArray cdataBA(fgrids.size());
+    BoxArray cdataBA(N);
 
-    for (int i = 0; i < fgrids.size(); i++)
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
         cdataBA.set(i,interpolater->CoarseBox(fgrids[i],ratio));
     //
     // Note: The boxes in cdataBA may NOT be disjoint !!!
@@ -5034,7 +5032,9 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
         const int*  clo     = cdata.loVect();
         const int*  chi     = cdata.hiVect();
         const Real* xlo     = gridloc.lo();
-
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
         for (int n = 0; n < num_comp; n++)
         {
             set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
@@ -5070,6 +5070,9 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
         //
         // Set the boundary condition array for interpolation.
         //
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
         for (int n = 0; n < num_comp; n++)
         {
             set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
@@ -5136,13 +5139,15 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
     const Geometry& fgeom   = parent->Geom(f_lev);
     const BoxArray& P_grids = P_new.boxArray();
     const Geometry& cgeom   = parent->Geom(c_lev);
+    const int       N       = P_grids.size();
 
-    BoxArray crse_ba(P_grids.size());
+    BoxArray crse_ba(N);
 
-    for (int i = 0; i < P_grids.size(); i++)
-    {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
         crse_ba.set(i,node_bilinear_interp.CoarseBox(P_grids[i],ratio));
-    }
 
     Array<BCRec> bc(BL_SPACEDIM);
     MultiFab     crse_phi(crse_ba,1,0);
@@ -5215,12 +5220,16 @@ NavierStokes::avgDown (const BoxArray& cgrids,
 
     NavierStokes& flev = getLevel(f_level);
     NavierStokes& clev = getLevel(c_level);
+    const int     N    = fgrids.size();
     //
     // Coarsen() the fine stuff on processors owning the fine data.
     //
-    BoxArray crse_S_fine_BA(fgrids.size());
+    BoxArray crse_S_fine_BA(N);
 
-    for (int i = 0; i < fgrids.size(); ++i)
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; ++i)
         crse_S_fine_BA.set(i,BoxLib::coarsen(fgrids[i],fratio));
 
     MultiFab crse_S_fine(crse_S_fine_BA,ncomp,0);
@@ -5328,10 +5337,15 @@ NavierStokes::level_sync (int crse_iteration)
     //
     // Get boundary conditions.
     //
-    Array<int*>         sync_bc(grids.size());
-    Array< Array<int> > sync_bc_array(grids.size());
+    const int N = grids.size();
 
-    for (int i = 0; i < grids.size(); i++)
+    Array<int*>         sync_bc(N);
+    Array< Array<int> > sync_bc_array(N);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
     {
         sync_bc_array[i] = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
         sync_bc[i] = sync_bc_array[i].dataPtr();
@@ -5462,11 +5476,17 @@ NavierStokes::level_sync (int crse_iteration)
         //
         // Correct pressure and velocities after the projection.
         //
-        ratio = IntVect::TheUnitVector();
-        Array<int*>         fine_sync_bc(finegrids.size());
-        Array< Array<int> > fine_sync_bc_array(finegrids.size());
+        const int N = finegrids.size();
 
-        for (int i = 0; i < finegrids.size(); i++)
+        ratio = IntVect::TheUnitVector();
+
+        Array<int*>         fine_sync_bc(N);
+        Array< Array<int> > fine_sync_bc_array(N);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < N; i++)
         {
             fine_sync_bc_array[i] = getLevel(level+1).getBCArray(State_Type,
                                                                  i,
@@ -5733,14 +5753,20 @@ NavierStokes::mac_sync ()
         // Update rho_ctime after rho is updated with Ssync.
         //
         make_rho_curr_time();
+
         if (level > 0) incrRhoAvg((*Ssync),Density-BL_SPACEDIM,1.0);
         //
         // Get boundary conditions.
         //
-        Array<int*>         sync_bc(grids.size());
-        Array< Array<int> > sync_bc_array(grids.size());
+        const int N = grids.size();
 
-        for (int i = 0; i < grids.size(); i++)
+        Array<int*>         sync_bc(N);
+        Array< Array<int> > sync_bc_array(N);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < N; i++)
         {
             sync_bc_array[i] = getBCArray(State_Type,i,Density,numscal);
             sync_bc[i]       = sync_bc_array[i].dataPtr();
@@ -5972,10 +5998,14 @@ NavierStokes::avgDown ()
     MultiFab&       P_fine_avg  = *fine_lev.p_avg;
     MultiFab&       P_fine      = initial_step ? P_fine_init : P_fine_avg;
     const BoxArray& P_fgrids    = fine_lev.state[Press_Type].boxArray();
+    const int       NF          = P_fgrids.size();
 
-    BoxArray crse_P_fine_BA(P_fgrids.size());
+    BoxArray crse_P_fine_BA(NF);
 
-    for (int i = 0; i < P_fgrids.size(); ++i)
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < NF; ++i)
         crse_P_fine_BA.set(i,BoxLib::coarsen(P_fgrids[i],fine_ratio));
 
     MultiFab crse_P_fine(crse_P_fine_BA,1,0);
@@ -6062,10 +6092,9 @@ void
 NavierStokes::getGradP (MultiFab& gp,
                         Real      time)
 {
-    const int NGrow = gp.nGrow();
-    MultiFab& P_old = get_old_data(Press_Type);
-
-    const Real* dx             = geom.CellSize();
+    const int   NGrow = gp.nGrow();
+    MultiFab&   P_old = get_old_data(Press_Type);
+    const Real* dx    = geom.CellSize();
 
     if (level > 0 && state[Press_Type].descriptor()->timeType() ==
                      StateDescriptor::Point)
@@ -6082,10 +6111,14 @@ NavierStokes::getGradP (MultiFab& gp,
             // The valid region of the MultiFab will contain overlaps!
             //
             const BoxArray& pBA = state[Press_Type].boxArray();
+            const int       N   = pBA.size();
 
-            BoxArray ovlpBA(pBA.size());
+            BoxArray ovlpBA(N);
 
-            for (int j = 0; j < ovlpBA.size(); j++)
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+            for (int j = 0; j < N; j++)
                 ovlpBA.set(j,BoxLib::grow(pBA[j],NGrow));
 
             MultiFab pMF(ovlpBA,1,0);
@@ -6130,9 +6163,14 @@ NavierStokes::getGradP (MultiFab& gp,
         // We've now got good coarse data everywhere in gp.
         // FillPatch temp version of gp having overlapping valid regions.
         //
-        BoxArray ovlpBA(gp.boxArray().size());
+        const int N = gp.boxArray().size();
 
-        for (int j = 0; j < gp.boxArray().size(); j++)
+        BoxArray ovlpBA(N);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int j = 0; j < N; j++)
             ovlpBA.set(j,BoxLib::grow(gp.boxArray()[j],NGrow));
 
         MultiFab gpTmp(ovlpBA,gp.nComp(),0);
@@ -6146,9 +6184,14 @@ NavierStokes::getGradP (MultiFab& gp,
         //
         // Now must decide which parts of gpTmp to copy to gp.
         //
-        BoxArray fineBA(old_intersect_new.size());
+        const int M = old_intersect_new.size();
 
-        for (int j = 0; j < old_intersect_new.size(); j++)
+        BoxArray fineBA(M);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int j = 0; j < M; j++)
         {
             Box bx = old_intersect_new[j];
 
@@ -6907,9 +6950,14 @@ NavierStokes::create_umac_grown (int nGrow)
 
         bl.clear();
 
-        BoxArray c_bnd_ba = BoxArray(f_bnd_ba.size());
+        const int N = f_bnd_ba.size();
 
-        for (int i = 0; i < f_bnd_ba.size(); ++i)
+        BoxArray c_bnd_ba(N);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < N; ++i)
         {
             c_bnd_ba.set(i,Box(f_bnd_ba[i]).coarsen(crse_ratio));
             f_bnd_ba.set(i,Box(c_bnd_ba[i]).refine( crse_ratio));
@@ -7036,22 +7084,30 @@ NavierStokes::create_umac_grown (int nGrow)
     // Now we set the boundary data
     // FillBoundary fills grow cells that overlap valid regions.
     // HOEXTRAPTOCC fills outside of domain cells.
-    // FillPeriodicBoundary refills grow cells that lie across a 
-    //      periodic boundary.
+    // FillPeriodicBoundary refills grow cells that lie across a periodic boundary.
     //
     const Real* xlo = geom.ProbLo(); //these aren't actually used by the FORT method
     const Real* dx  = geom.CellSize();
+
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
         Box dm = geom.Domain();
         dm.surroundingNodes(n);
         const int*  lo  = dm.loVect();
         const int*  hi  = dm.hiVect();
-        for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
+        //
+        // HOEXTRAPTOCC isn't threaded.  OMP over calls to it.
+        //
+        const int N = u_mac[n].IndexMap().size();
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < N; i++)
         {
-            FArrayBox& fab = u_mac[n][mfi];
-            const int*  dlo = fab.loVect();
-            const int*  dhi = fab.hiVect();
+            FArrayBox& fab = u_mac[n][u_mac[n].IndexMap()[i]];
+            const int* dlo = fab.loVect();
+            const int* dhi = fab.hiVect();
             FORT_HOEXTRAPTOCC(fab.dataPtr(),ARLIM(dlo),ARLIM(dhi),lo,hi,dx,xlo);
         }
         u_mac[n].FillBoundary();
