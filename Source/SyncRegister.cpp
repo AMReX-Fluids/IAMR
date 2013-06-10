@@ -50,10 +50,14 @@ SyncRegister::define (const BoxArray& fine_boxes,
         //
         // Construct BoxArrays for the FabSets.
         //
-        BoxArray loBA(grids.size());
-        BoxArray hiBA(grids.size());
+        const int N = grids.size();
 
-        for (int k = 0, N = grids.size(); k < N; k++)
+        BoxArray loBA(N), hiBA(N);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int k = 0; k < N; k++)
         {
             const Box ndbox = BoxLib::surroundingNodes(grids[k]);
 
@@ -330,9 +334,14 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
     {
         BL_ASSERT(bndry_mask[face()].nComp() == 1);
 
-        BoxArray ba(rhs.size());
+        const int N = rhs.size();
 
-        for (int i = 0; i < ba.size(); i++)
+        BoxArray ba(N);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < N; i++)
             ba.set(i,rhs.fabbox(i));
 
         FabSet fs(ba, 1);
@@ -351,6 +360,8 @@ SyncRegister::InitRHS (MultiFab&       rhs,
                        const Geometry& geom,
                        const BCRec*    phys_bc)
 {
+    BL_PROFILE("SyncRegister::InitRHS()");
+
     rhs.setVal(0);
 
     const Box domain = BoxLib::surroundingNodes(geom.Domain());
@@ -528,10 +539,14 @@ BuildMFs (const MultiFab& mf,
           const IntVect&  ratio,
           int             dir)
 {
-    BoxArray cloBA(mf.size());
-    BoxArray chiBA(mf.size());
+    const int N = mf.size();
 
-    for (int i = 0, N = mf.size(); i < N; i++)
+    BoxArray cloBA(N), chiBA(N);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
     {
         const Box& bx = mf.boxArray()[i];
 
@@ -713,6 +728,8 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
                         const BCRec*    phys_bc,
                         Real            mult)
 {
+    BL_PROFILE("SyncRegister::FineAdd()");
+
     Sync_resid_fine->mult(mult);
 
     const Box crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());

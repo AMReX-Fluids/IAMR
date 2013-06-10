@@ -1512,6 +1512,8 @@ NavierStokes::advance_setup (Real time,
                              int  iteration,
                              int  ncycle)
 {
+    BL_PROFILE("NavierStokes::advance_setup()");
+
     const int finest_level = parent->finestLevel();
     
     umac_n_grow = 1;
@@ -1794,6 +1796,8 @@ NavierStokes::advance (Real time,
 void
 NavierStokes::create_mac_rhs (MultiFab& rhs, int nGrow, Real time, Real dt)
 {
+    BL_PROFILE("NavierStokes::create_mac_rhs()");
+
     BL_ASSERT(rhs.nGrow()>=nGrow);
     BL_ASSERT(rhs.boxArray()==grids);
 
@@ -2859,6 +2863,8 @@ NavierStokes::velocity_update (Real dt)
 void
 NavierStokes::velocity_advection_update (Real dt)
 {
+    BL_PROFILE("NavierStokes::velocity_advection_update()");
+
     FArrayBox  tforces, S;
     MultiFab&  U_old          = get_old_data(State_Type);
     MultiFab&  U_new          = get_new_data(State_Type);
@@ -4183,6 +4189,8 @@ NavierStokes::ParticleDerive (const std::string& name,
 Real
 NavierStokes::estTimeStep ()
 {
+    BL_PROFILE("NavierStokes::estTimeStep()");
+
     if (fixed_dt > 0.0)
     {
         Real factor = 1.0;
@@ -5140,6 +5148,8 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
                               Real      cur_crse_pres_time,
                               Real      prev_crse_pres_time)
 {
+    BL_PROFILE("NavierStokes:::SyncProjInterp()");
+
     const Geometry& fgeom   = parent->Geom(f_lev);
     const BoxArray& P_grids = P_new.boxArray();
     const Geometry& cgeom   = parent->Geom(c_lev);
@@ -5224,17 +5234,10 @@ NavierStokes::avgDown (const BoxArray& cgrids,
 
     NavierStokes& flev = getLevel(f_level);
     NavierStokes& clev = getLevel(c_level);
-    const int     N    = fgrids.size();
     //
     // Coarsen() the fine stuff on processors owning the fine data.
     //
-    BoxArray crse_S_fine_BA(N);
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i = 0; i < N; ++i)
-        crse_S_fine_BA.set(i,BoxLib::coarsen(fgrids[i],fratio));
+    BoxArray crse_S_fine_BA = fgrids; crse_S_fine_BA.coarsen(fratio);
 
     MultiFab crse_S_fine(crse_S_fine_BA,ncomp,0);
 
@@ -5290,11 +5293,12 @@ NavierStokes::avgDown_doit (const FArrayBox& fine_fab,
                             int              ncomp,
                             const IntVect&   fratio)
 {
-//
-//  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
-//        because the crse fab is a temporary which was made starting at comp 0, it is
-//        not the actual state data.
-//
+    BL_PROFILE("NavierStokes::avgDown_doit()");
+    //
+    //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
+    //        because the crse fab is a temporary which was made starting at comp 0, it is
+    //        not the actual state data.
+    //
     const int*  ovlo   = ovlp.loVect();
     const int*  ovhi   = ovlp.hiVect();
     const int*  flo    = fine_fab.loVect();
@@ -5961,6 +5965,8 @@ NavierStokes::injectDown (const Box&       ovlp,
                           const FArrayBox& Pfine,
                           IntVect&         fine_ratio )
 {
+    BL_PROFILE("NavierStokes::injectDown()");
+
     const int*  ovlo  = ovlp.loVect();
     const int*  ovhi  = ovlp.hiVect();
     Real*       cpres = Pcrse.dataPtr();
@@ -6002,15 +6008,8 @@ NavierStokes::avgDown ()
     MultiFab&       P_fine_avg  = *fine_lev.p_avg;
     MultiFab&       P_fine      = initial_step ? P_fine_init : P_fine_avg;
     const BoxArray& P_fgrids    = fine_lev.state[Press_Type].boxArray();
-    const int       NF          = P_fgrids.size();
 
-    BoxArray crse_P_fine_BA(NF);
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i = 0; i < NF; ++i)
-        crse_P_fine_BA.set(i,BoxLib::coarsen(P_fgrids[i],fine_ratio));
+    BoxArray crse_P_fine_BA = P_fgrids; crse_P_fine_BA.coarsen(fine_ratio);
 
     MultiFab crse_P_fine(crse_P_fine_BA,1,0);
 
@@ -6096,12 +6095,13 @@ void
 NavierStokes::getGradP (MultiFab& gp,
                         Real      time)
 {
+    BL_PROFILE("NavierStokes::getGradP()");
+
     const int   NGrow = gp.nGrow();
     MultiFab&   P_old = get_old_data(Press_Type);
     const Real* dx    = geom.CellSize();
 
-    if (level > 0 && state[Press_Type].descriptor()->timeType() ==
-                     StateDescriptor::Point)
+    if (level > 0 && state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
     {
         //
         // We want to be sure the intersection of old and new grids is
@@ -6115,15 +6115,8 @@ NavierStokes::getGradP (MultiFab& gp,
             // The valid region of the MultiFab will contain overlaps!
             //
             const BoxArray& pBA = state[Press_Type].boxArray();
-            const int       N   = pBA.size();
 
-            BoxArray ovlpBA(N);
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-            for (int j = 0; j < N; j++)
-                ovlpBA.set(j,BoxLib::grow(pBA[j],NGrow));
+            BoxArray ovlpBA = pBA; ovlpBA.grow(NGrow);
 
             MultiFab pMF(ovlpBA,1,0);
 
@@ -6169,13 +6162,7 @@ NavierStokes::getGradP (MultiFab& gp,
         //
         const int N = gp.boxArray().size();
 
-        BoxArray ovlpBA(N);
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (int j = 0; j < N; j++)
-            ovlpBA.set(j,BoxLib::grow(gp.boxArray()[j],NGrow));
+        BoxArray ovlpBA = gp.boxArray(); ovlpBA.grow(NGrow);
 
         MultiFab gpTmp(ovlpBA,gp.nComp(),0);
 
@@ -6305,6 +6292,8 @@ NavierStokes::getState (int  ngrow,
                         int  ncomp, 
                         Real time)
 {
+    BL_PROFILE("NavierStokes::getState()");
+
     MultiFab* mf = new MultiFab(state[state_idx].boxArray(),ncomp,ngrow);
 
     FillPatchIterator fpi(*this,*mf,ngrow,time,state_idx,scomp,ncomp);
@@ -6327,6 +6316,8 @@ NavierStokes::FillStateBndry (Real time,
                               int  src_comp, 
                               int  ncomp) 
 {
+    BL_PROFILE("NavierStokes::FillStateBndry()");
+
     MultiFab& S = get_data(state_idx,time);
 
     if (S.nGrow() == 0)
@@ -6359,6 +6350,8 @@ NavierStokes::calc_divu (Real      time,
                          Real      dt,
                          MultiFab& divu)
 {
+    BL_PROFILE("NavierStokes::calc_divu()");
+
     if (have_divu)
     {
         divu.setVal(0);
@@ -6946,6 +6939,8 @@ NavierStokes::calcDpdt ()
 void
 NavierStokes::create_umac_grown (int nGrow)
 {
+    BL_PROFILE("NavierStokes::create_umac_grown()");
+
     if (level > 0)
     {
         BoxList bl = BoxLib::GetBndryCells(grids,nGrow);
@@ -6954,18 +6949,9 @@ NavierStokes::create_umac_grown (int nGrow)
 
         bl.clear();
 
-        const int N = f_bnd_ba.size();
+        BoxArray c_bnd_ba = f_bnd_ba; c_bnd_ba.coarsen(crse_ratio);
 
-        BoxArray c_bnd_ba(N);
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (int i = 0; i < N; ++i)
-        {
-            c_bnd_ba.set(i,Box(f_bnd_ba[i]).coarsen(crse_ratio));
-            f_bnd_ba.set(i,Box(c_bnd_ba[i]).refine( crse_ratio));
-        }
+        f_bnd_ba = c_bnd_ba; f_bnd_ba.refine(crse_ratio);
 
         for (int n = 0; n < BL_SPACEDIM; ++n)
         {

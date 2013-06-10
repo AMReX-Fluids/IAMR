@@ -389,6 +389,8 @@ Projection::level_project (int             level,
                            int             iteration,
                            int             have_divu)
 {
+    BL_PROFILE("Projection::level_project()");
+
     if ( verbose && ParallelDescriptor::IOProcessor() )
 	std::cout << "... level projector at level " << level << '\n';
 
@@ -414,10 +416,10 @@ Projection::level_project (int             level,
     
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
-      LevelData[level].setPhysBoundaryValues(S_old[mfi],State_Type,prev_time,
-					     Xvel,Xvel,BL_SPACEDIM);
-      LevelData[level].setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
-					     Xvel,Xvel,BL_SPACEDIM);
+        LevelData[level].setPhysBoundaryValues(S_old[mfi],State_Type,prev_time,
+                                               Xvel,Xvel,BL_SPACEDIM);
+        LevelData[level].setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
+                                               Xvel,Xvel,BL_SPACEDIM);
     }
 
 #ifndef MG_USE_F90_SOLVERS
@@ -464,7 +466,8 @@ Projection::level_project (int             level,
     MultiFab *divusource = 0, *divuold = 0;
 
     if (have_divu)
-    { divusource = ns->getDivCond(1,time+dt);
+    {
+        divusource = ns->getDivCond(1,time+dt);
         if (!proj_2)
             divuold = ns->getDivCond(1,time);
     }
@@ -781,6 +784,8 @@ Projection::syncProject (int             c_lev,
                          int             crse_iteration,
                          int             crse_dt_ratio)
 {
+    BL_PROFILE("Projection::syncProject()");
+
     if (verbose && ParallelDescriptor::IOProcessor()) 
     {
         std::cout << "SyncProject: level = "
@@ -965,6 +970,8 @@ Projection::MLsyncProject (int             c_lev,
                            Real             cur_fine_pres_time,
                            Real            prev_fine_pres_time)
 {
+    BL_PROFILE("Projection::MLsyncProject()");
+
     if (verbose && ParallelDescriptor::IOProcessor()) 
         std::cout << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << '\n';
 
@@ -2603,6 +2610,7 @@ Projection::putDown (MultiFab**         phi,
                      int                numOutFlowFaces,
                      int                ncStripWidth)
 {
+    BL_PROFILE("Projection::putDown()");
     //
     // Put down to coarser levels.
     //
@@ -2760,6 +2768,7 @@ Projection::getGradP (FArrayBox& p_fab,
                       const Box& gpbox_to_fill,
                       const Real* dx)
 {
+    BL_PROFILE("Projection::getGradP()");
     //
     // Test to see if p_fab contains gpbox_to_fill
     //
@@ -3069,6 +3078,8 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
 				   MultiFab* sync_resid_crse,
 				   MultiFab* sync_resid_fine)
 {
+  BL_PROFILE("Projection:::doNodalProjection()");
+
   int f_lev = c_lev + nlevel - 1;
 
   BL_ASSERT(vel[c_lev]->nGrow() == 1);
@@ -3220,9 +3231,12 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
 }
 
 
-void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom,
-				 const BoxArray& fineGrids, const IntVect& ref_ratio)
+void
+Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& geom,
+                        const BoxArray& fineGrids, const IntVect& ref_ratio)
 {
+  BL_PROFILE("Projection::mask_grids(1)");
+
   BoxArray localfine = fineGrids;
   localfine.coarsen(ref_ratio);
 
@@ -3231,6 +3245,8 @@ void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry
   const int* lo_bc = phys_bc->lo();
   const int* hi_bc = phys_bc->hi();
   const Box& domainBox = geom.Domain();
+
+  std::vector< std::pair<int,Box> > isects;
 
   for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
     int i = mfi.index();
@@ -3255,7 +3271,7 @@ void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry
       }
     }
 
-    std::vector< std::pair<int,Box> > isects = localfine.intersections(reg);
+    localfine.intersections(reg,isects);
 
     for (int ii = 0; ii < isects.size(); ii++) {
       const Box& fbox = isects[ii].second;
@@ -3286,6 +3302,8 @@ void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry
 
 void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom)
 {
+  BL_PROFILE("Projection::mask_grids(2)");
+
   msk.setBndry(BogusValue);
 
   const Box& domainBox = geom.Domain();
