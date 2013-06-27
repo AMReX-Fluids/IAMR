@@ -7410,8 +7410,8 @@ c     compute z-component of Ip and Im
 c     compute effect of w0 in plane-parallel
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+1
-             sigmap = abs(wedge(i,j,k+1))*dt/dx(2)
-             sigmam = abs(wedge(i,j,k))*dt/dx(2)
+             sigmap = abs(wedge(i,j,k+1))*dt/dx(3)
+             sigmam = abs(wedge(i,j,k))*dt/dx(3)
              s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
              if (wedge(i,j,k+1) .gt. eps) then
                 Ipz(i,j,k) = sp(i,j,k) - (sigmap/2.0d0)*
