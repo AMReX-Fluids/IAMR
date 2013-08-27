@@ -10,8 +10,8 @@ TOP = ../..
 
 PRECISION = DOUBLE
 
-DEBUG	  = FALSE
 DEBUG	  = TRUE
+DEBUG	  = FALSE
 
 DIM       = 3
 
@@ -33,10 +33,20 @@ USE_VELOCITY = TRUE
 USE_F90_SOLVERS = FALSE
 USE_F90_SOLVERS = TRUE
 
+USE_XBLAS = TRUE
+USE_XBLAS = FALSE
+
 EBASE     = amr
 
 ifeq (${USE_FLCTS}, TRUE)
   DEFINES += -DBL_DO_FLCT
+endif
+
+ifeq (${USE_XBLAS}, TRUE)
+   XTRADEFS   += -DXBLAS
+   XTRAINCLOC += $(HOME)/tmp/xblas-1.0.248/src
+   XTRALIBLOC += $(HOME)/tmp/xblas-1.0.248/src
+   XTRALIBS   += -lxblas
 endif
 
 ifeq (${USE_VELOCITY}, TRUE)
