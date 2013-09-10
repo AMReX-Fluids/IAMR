@@ -6160,8 +6160,6 @@ NavierStokes::getGradP (MultiFab& gp,
         // We've now got good coarse data everywhere in gp.
         // FillPatch temp version of gp having overlapping valid regions.
         //
-        const int N = gp.boxArray().size();
-
         BoxArray ovlpBA = gp.boxArray(); ovlpBA.grow(NGrow);
 
         MultiFab gpTmp(ovlpBA,gp.nComp(),0);
