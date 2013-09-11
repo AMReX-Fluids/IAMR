@@ -3341,7 +3341,6 @@ c
       integer   i,j,k
       REAL_T    vz, wy, dx, dy, dz
       REAL_T vzcen, vzlo, vzhi, wycen, wylo, wyhi
-      REAL_T    vorfun
 
       logical   fixvlo_x, fixwlo_x, fixvhi_x, fixwhi_x
       logical   fixulo_y, fixwlo_y, fixuhi_y, fixwhi_y
@@ -3730,7 +3729,6 @@ c
       integer   i,j,k
       REAL_T    uz, wx, dx, dy, dz
       REAL_T    uzcen, uzlo, uzhi, wxcen, wxlo, wxhi
-      REAL_T    vorfun
 
       logical   fixvlo_x, fixwlo_x, fixvhi_x, fixwhi_x
       logical   fixulo_y, fixwlo_y, fixuhi_y, fixwhi_y
@@ -4121,7 +4119,6 @@ c
       integer   i,j,k
       REAL_T    uy, vx, dx, dy, dz
       REAL_T    uycen, uylo, uyhi, vxcen, vxlo, vxhi
-      REAL_T    vorfun
 
       logical   fixvlo_x, fixwlo_x, fixvhi_x, fixwhi_x
       logical   fixulo_y, fixwlo_y, fixuhi_y, fixwhi_y

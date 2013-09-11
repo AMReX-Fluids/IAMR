@@ -6626,7 +6626,7 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
       REAL_T totHoleA, holeSepX, holeSepY, Lx, Ly
       REAL_T jetVel, xHole, yHole, rHole, zblend1, rFact
       REAL_T hRad, hBL
-      integer nHoles, iHoleX, iHoleY
+      integer iHoleX, iHoleY
       
       Lx = (domnhi(1) - domnlo(1))
       Ly = (domnhi(2) - domnlo(2))

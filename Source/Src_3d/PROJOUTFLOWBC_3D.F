@@ -1300,7 +1300,6 @@ c *************************************************************************
 c     Local variables
       integer ii,jj,ic,jc
       integer is,ie,js,je,isc,iec,jsc,jec
-      logical setSingularPoint
 
       is = lo(1)
       js = lo(2)
@@ -1677,7 +1676,7 @@ c *************************************************************************
 
       integer xlo_outflow,ylo_outflow,zlo_outflow
       integer xhi_outflow,yhi_outflow,zhi_outflow
-      integer i,k,ifinal,n
+      integer i,k,ifinal
 
 #define XLO 0
 #define YLO 1
