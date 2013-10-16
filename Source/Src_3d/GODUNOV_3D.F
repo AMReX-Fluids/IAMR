@@ -258,6 +258,7 @@ c
       rhomax = -1.d200
       rhomin =  1.d200
 
+!$omp parallel do private(i,j,k) reduction(min:umin) reduction(max:umax)
       do k = kmin, kmax
          do j = jmin, jmax
             do i = imin, imax+1
@@ -266,7 +267,9 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
+!$omp parallel do private(i,j,k) reduction(min:vmin) reduction(max:vmax)
       do k = kmin, kmax
          do j = jmin, jmax+1
             do i = imin, imax
@@ -275,7 +278,9 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
+!$omp parallel do private(i,j,k) reduction(min:wmin) reduction(max:wmax)
       do k = kmin, kmax+1
          do j = jmin, jmax
             do i = imin, imax
@@ -284,7 +289,9 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
+!$omp parallel do private(i,j,k) reduction(min:rhomin) reduction(max:rhomax)
       do k = kmin, kmax
          do j = jmin, jmax
             do i = imin, imax
@@ -293,6 +300,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       u_max(1) = max(abs(umax), abs(umin))
       u_max(2) = max(abs(vmax), abs(vmin))
