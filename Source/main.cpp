@@ -14,10 +14,6 @@
 #include <FabSet.H>
 #include <Profiler.H>
 
-#ifndef MG_USE_F90_SOLVERS
-#include <hgparallel.H>
-#endif
-
 #ifndef NDEBUG
 
 extern "C"
@@ -135,12 +131,6 @@ main (int   argc,
     Real stop_time;
 
     ParmParse pp;
-#ifndef MG_USE_F90_SOLVERS
-    //
-    // Initialize some Holy Grail junk.
-    //
-    HG::MPI_init();
-#endif
 
     max_step  = -1;    
     strt_time =  0.0;  
@@ -163,6 +153,23 @@ main (int   argc,
 
     amrptr->init(strt_time,stop_time);
 
+    //
+    // If we set the regrid_on_restart flag and if we are *not* going to take
+    // a time step then we want to go ahead and regrid here.
+    //
+    if (amrptr->RegridOnRestart())
+    {
+        if (    (amrptr->levelSteps(0) >= max_step ) ||
+                ( (stop_time >= 0.0) &&
+                  (amrptr->cumTime() >= stop_time)  )    )
+        {
+            //
+            // Regrid only!
+            //
+            amrptr->RegridOnly(amrptr->cumTime());
+        }
+    }
+
     while ( amrptr->okToContinue()           &&
            (amrptr->levelSteps(0) < max_step || max_step < 0) &&
            (amrptr->cumTime() < stop_time || stop_time < 0.0) )
@@ -180,13 +187,6 @@ main (int   argc,
     }
 
     delete amrptr;
-
-#ifndef MG_USE_F90_SOLVERS
-    //
-    // Close down the Holy Grail junk.
-    //
-    HG::MPI_finish();
-#endif
 
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      run_stop = ParallelDescriptor::second() - run_strt;

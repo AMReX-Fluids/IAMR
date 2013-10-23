@@ -424,11 +424,12 @@ c    should interpolate about filePnt in 2d not storePnt
          call bl_abort('INFL_FILL: infl_type is not set')
       endif
 
+      offset_time = time + tstart_turb
+
       if (infl_type .eq. infl_periodic_type) then
          call INFL_FILL_PERIODIC(fillComp, DIMS(inflDat), inflDat,
-     $        xlo, dx, time, bc, probLo, probHi)
+     $        xlo, dx, offset_time, bc, probLo, probHi)
       else if (infl_type .eq. infl_swirl_type) then
-         offset_time = time + tstart_turb
          call INFL_FILL_SWIRL(fillComp, DIMS(inflDat), inflDat,
      $        xlo, dx, offset_time, bc, probLo, probHi)
       else
