@@ -153,6 +153,23 @@ main (int   argc,
 
     amrptr->init(strt_time,stop_time);
 
+    //
+    // If we set the regrid_on_restart flag and if we are *not* going to take
+    // a time step then we want to go ahead and regrid here.
+    //
+    if (amrptr->RegridOnRestart())
+    {
+        if (    (amrptr->levelSteps(0) >= max_step ) ||
+                ( (stop_time >= 0.0) &&
+                  (amrptr->cumTime() >= stop_time)  )    )
+        {
+            //
+            // Regrid only!
+            //
+            amrptr->RegridOnly(amrptr->cumTime());
+        }
+    }
+
     while ( amrptr->okToContinue()           &&
            (amrptr->levelSteps(0) < max_step || max_step < 0) &&
            (amrptr->cumTime() < stop_time || stop_time < 0.0) )
