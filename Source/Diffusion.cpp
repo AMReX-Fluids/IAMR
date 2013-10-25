@@ -1244,8 +1244,8 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Diffusion::diffuse_tensor_Vsync ...\n";
 
-    NavierStokes& ns         = *(NavierStokes*) &(parent->getLevel(level));
-    const int   IOProc       = ParallelDescriptor::IOProcessorNumber();
+    NavierStokes& ns   = *(NavierStokes*) &(parent->getLevel(level));
+    const int   IOProc = ParallelDescriptor::IOProcessorNumber();
 
     MultiFab Rhs(grids,BL_SPACEDIM,0);
 
@@ -1264,23 +1264,27 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     //
     // Multiply RHS by volume and density.
     //
-    {
-        MultiFab volume;
+    FArrayBox volume;
 
-        caller->Geom().GetVolume(volume,grids,GEOM_GROW);
+    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    {
+        caller->Geom().GetVolume(volume,grids,Rhsmfi.index(),GEOM_GROW);
+
+        FArrayBox&       rhs  = Rhs[Rhsmfi];
+        const FArrayBox& rho  = (*rho_half)[Rhsmfi];
+        const FArrayBox& prho = (*ns.rho_ptime)[Rhsmfi];
 
         for (int comp = 0; comp < BL_SPACEDIM; comp++)
         {
-            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-            {
-                Rhs[Rhsmfi].mult(volume[Rhsmfi],0,comp,1); 
-                if (rho_flag == 1)
-                    Rhs[Rhsmfi].mult((*rho_half)[Rhsmfi],0,comp,1); 
-                if (rho_flag == 3)
-                    Rhs[Rhsmfi].mult((*ns.rho_ptime)[Rhsmfi],0,comp,1); 
-            }
+            rhs.mult(volume,0,comp,1); 
+            if (rho_flag == 1)
+                rhs.mult(rho,0,comp,1); 
+            if (rho_flag == 3)
+                rhs.mult(prho,0,comp,1); 
         }
     }
+
+    volume.clear();
     //
     // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
     //
@@ -1446,17 +1450,17 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     //
     // Compute RHS.
     //
-    {
-        FArrayBox volume;
+    FArrayBox volume;
 
-        for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-        {
-            caller->Geom().GetVolume(volume,grids,Rhsmfi.index(),GEOM_GROW);
-            Rhs[Rhsmfi].mult(volume); 
-            if (rho_flag == 1)
-                Rhs[Rhsmfi].mult((*rho_half)[Rhsmfi]);
-        }
+    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    {
+        caller->Geom().GetVolume(volume,grids,Rhsmfi.index(),GEOM_GROW);
+        Rhs[Rhsmfi].mult(volume); 
+        if (rho_flag == 1)
+            Rhs[Rhsmfi].mult((*rho_half)[Rhsmfi]);
     }
+    volume.clear();
+
     Rhs.mult(rhsscale,0,1);
 
     MultiFab Soln(grids,1,1);
