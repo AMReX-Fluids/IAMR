@@ -125,9 +125,9 @@ c
          !
          ! Assumes cell-centered data.
          !
-         dxFile(1) = probSizeFile(1)/FLOAT(dimFile(1))
-         dxFile(2) = probSizeFile(2)/FLOAT(dimFile(2))
-         dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3))
+         dxFile(1) = probSizeFile(1)/DBLE(dimFile(1))
+         dxFile(2) = probSizeFile(2)/DBLE(dimFile(2))
+         dxFile(3) = probSizeFile(3)/DBLE(dimFile(3))
 
          if (.NOT. ASSOCIATED(fluct_times)) then
             allocate(fluct_times(1:dimFile(strmwse_dir)))
@@ -138,10 +138,10 @@ c
          !
          ! Assumes node-centered data.
          !
-         dxFile(1) = probSizeFile(1)/FLOAT(dimFile(1)-1)
-         dxFile(2) = probSizeFile(2)/FLOAT(dimFile(2)-1)
+         dxFile(1) = probSizeFile(1)/DBLE(dimFile(1)-1)
+         dxFile(2) = probSizeFile(2)/DBLE(dimFile(2)-1)
          if (dimFile(3) .gt. 1) then
-            dxFile(3) = probSizeFile(3)/FLOAT(dimFile(3)-1)
+            dxFile(3) = probSizeFile(3)/DBLE(dimFile(3)-1)
          else
             dxFile(3) = zero
          endif
