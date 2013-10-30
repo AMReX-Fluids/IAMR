@@ -456,24 +456,23 @@ Diffusion::diffuse_scalar (Real                   dt,
     //
     MultiFab::Copy(Soln,S_new,sigma,0,1,0);
 
-    {
-        FArrayBox volume;
+    FArrayBox volume;
 
-        for (MFIter mfi(Soln); mfi.isValid(); ++mfi)
-        {
-            caller->Geom().GetVolume(volume,grids,mfi.index(),GEOM_GROW);
-            const Box& box = mfi.validbox();
-            Soln[mfi].mult(volume,box,0,0,1);
-            if (rho_flag == 1)
-                Soln[mfi].mult((*rho_half)[mfi],box,0,0,1);
-            if (rho_flag == 3)
-                Soln[mfi].mult((*ns.rho_ptime)[mfi],box,0,0,1);
-            if (alpha!=0)
-                Soln[mfi].mult((*alpha)[mfi],box,alphaComp,0,1);
-            Rhs[mfi].plus(Soln[mfi],box,0,0,1);
-        }
+    for (MFIter mfi(Soln); mfi.isValid(); ++mfi)
+    {
+        caller->Geom().GetVolume(volume,grids,mfi.index(),GEOM_GROW);
+        const Box& box = mfi.validbox();
+        Soln[mfi].mult(volume,box,0,0,1);
+        if (rho_flag == 1)
+            Soln[mfi].mult((*rho_half)[mfi],box,0,0,1);
+        if (rho_flag == 3)
+            Soln[mfi].mult((*ns.rho_ptime)[mfi],box,0,0,1);
+        if (alpha!=0)
+            Soln[mfi].mult((*alpha)[mfi],box,alphaComp,0,1);
+        Rhs[mfi].plus(Soln[mfi],box,0,0,1);
     }
 
+    volume.clear();
     //
     // Make a good guess for Soln
     //
@@ -481,7 +480,6 @@ Diffusion::diffuse_scalar (Real                   dt,
     if (rho_flag == 2)
         for (MFIter Smfi(Soln); Smfi.isValid(); ++Smfi)
             Soln[Smfi].divide(S_new[Smfi],Smfi.validbox(),Density,0,1);
-
     //
     // Construct viscous operator with bndry data at time N+1.
     //
@@ -681,9 +679,8 @@ Diffusion::diffuse_velocity (Real                   dt,
         for (int sigma = 0; sigma < BL_SPACEDIM; ++sigma)
         {
             const int state_ind = Xvel + sigma;
-        
-            int fluxComp = 0;
-            int RHSComp = rhsComp + sigma;
+            const int fluxComp  = 0;
+            const int RHSComp   = rhsComp + sigma;
             diffuse_scalar(dt,state_ind,be_cn_theta,rho_half,rho_flag,
                            fluxSCn,fluxSCnp1,fluxComp,delta_rhs,RHSComp,0,0,0,0,0);
 
@@ -705,14 +702,14 @@ Diffusion::diffuse_velocity (Real                   dt,
             }
         }
 
+        removeFluxBoxesLevel(fluxSCn);
+        removeFluxBoxesLevel(fluxSCnp1);
+
         if (level < parent->finestLevel())
         {
             for (int d = 0; d < BL_SPACEDIM; ++d)
                 finer->viscflux_reg->CrseInit(fluxes[d],d,0,0,BL_SPACEDIM,-dt);
         }
-
-        removeFluxBoxesLevel(fluxSCn);
-        removeFluxBoxesLevel(fluxSCnp1);
     }
     else
     {
@@ -1244,8 +1241,8 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Diffusion::diffuse_tensor_Vsync ...\n";
 
-    NavierStokes& ns         = *(NavierStokes*) &(parent->getLevel(level));
-    const int   IOProc       = ParallelDescriptor::IOProcessorNumber();
+    NavierStokes& ns   = *(NavierStokes*) &(parent->getLevel(level));
+    const int   IOProc = ParallelDescriptor::IOProcessorNumber();
 
     MultiFab Rhs(grids,BL_SPACEDIM,0);
 
@@ -1264,23 +1261,27 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     //
     // Multiply RHS by volume and density.
     //
-    {
-        MultiFab volume;
+    FArrayBox volume;
 
-        caller->Geom().GetVolume(volume,grids,GEOM_GROW);
+    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    {
+        caller->Geom().GetVolume(volume,grids,Rhsmfi.index(),GEOM_GROW);
+
+        FArrayBox&       rhs  = Rhs[Rhsmfi];
+        const FArrayBox& rho  = (*rho_half)[Rhsmfi];
+        const FArrayBox& prho = (*ns.rho_ptime)[Rhsmfi];
 
         for (int comp = 0; comp < BL_SPACEDIM; comp++)
         {
-            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-            {
-                Rhs[Rhsmfi].mult(volume[Rhsmfi],0,comp,1); 
-                if (rho_flag == 1)
-                    Rhs[Rhsmfi].mult((*rho_half)[Rhsmfi],0,comp,1); 
-                if (rho_flag == 3)
-                    Rhs[Rhsmfi].mult((*ns.rho_ptime)[Rhsmfi],0,comp,1); 
-            }
+            rhs.mult(volume,0,comp,1); 
+            if (rho_flag == 1)
+                rhs.mult(rho,0,comp,1); 
+            if (rho_flag == 3)
+                rhs.mult(prho,0,comp,1); 
         }
     }
+
+    volume.clear();
     //
     // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
     //
@@ -1446,17 +1447,18 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     //
     // Compute RHS.
     //
-    {
-        FArrayBox volume;
+    FArrayBox volume;
 
-        for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-        {
-            caller->Geom().GetVolume(volume,grids,Rhsmfi.index(),GEOM_GROW);
-            Rhs[Rhsmfi].mult(volume); 
-            if (rho_flag == 1)
-                Rhs[Rhsmfi].mult((*rho_half)[Rhsmfi]);
-        }
+    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    {
+        caller->Geom().GetVolume(volume,grids,Rhsmfi.index(),GEOM_GROW);
+        Rhs[Rhsmfi].mult(volume); 
+        if (rho_flag == 1)
+            Rhs[Rhsmfi].mult((*rho_half)[Rhsmfi]);
     }
+
+    volume.clear();
+
     Rhs.mult(rhsscale,0,1);
 
     MultiFab Soln(grids,1,1);
@@ -1613,17 +1615,18 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
 
     alpha.clear();
 
+    FArrayBox bcoeffs;
+
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-        MultiFab bcoeffs;
-        caller->Geom().GetFaceArea(bcoeffs,grids,n,nghost);
-        for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
+        for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
         {
-            const int i = bcoeffsmfi.index();
-            bcoeffs[i].mult(dx[n]);
-            bcoeffs[i].mult((*beta[n])[i],betaComp,0,1);
+            const int gridno = bcoeffsmfi.index();
+            caller->Geom().GetFaceArea(bcoeffs,grids,gridno,n,nghost);
+            bcoeffs.mult(dx[n]);
+            bcoeffs.mult((*beta[n])[gridno],betaComp,0,1);
+            tensor_op->bCoefficients(bcoeffs,n,gridno);
         }
-        tensor_op->bCoefficients(bcoeffs,n);
     }
 }
 
@@ -1882,18 +1885,18 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
     }
     else
     {
+        FArrayBox bcoeffs;
+
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            MultiFab bcoeffs;
-            caller->Geom().GetFaceArea(bcoeffs,grids,n,0);
-            for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
+            for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
-                const int  i     = bcoeffsmfi.index();
-                FArrayBox& bcfab = bcoeffs[i];
-                bcfab.mult((*beta[n])[i],betaComp,0,1);
-                bcfab.mult(dx[n]);
+                const int  gridno = bcoeffsmfi.index();
+                caller->Geom().GetFaceArea(bcoeffs,grids,gridno,n,0);
+                bcoeffs.mult((*beta[n])[gridno],betaComp,0,1);
+                bcoeffs.mult(dx[n]);
+                visc_op->bCoefficients(bcoeffs,n,gridno);
             }
-            visc_op->bCoefficients(bcoeffs,n);
         }
     }
 }
@@ -2064,28 +2067,24 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         tensor_op.setScalars(a,b);
 
         const int nghost = 0;
-        //
-        // alpha should be the same size as volume.
-        //
-        const int nCompAlpha = BL_SPACEDIM == 2  ?  2 : 1;
-        {
-            MultiFab alpha(grids,nCompAlpha,nghost);
-            alpha.setVal(0);
-            tensor_op.aCoefficients(alpha);
-        }
+
+        tensor_op.ZeroACoefficients();
+
+        FArrayBox bcoeffs;
 
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            MultiFab bcoeffs;
-            caller->Geom().GetFaceArea(bcoeffs,grids,n,nghost);
-            for (MFIter bcoeffsmfi(bcoeffs); bcoeffsmfi.isValid(); ++bcoeffsmfi)
+            for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
-                const int i = bcoeffsmfi.index();
-                bcoeffs[i].mult(dx[n]);
-                bcoeffs[i].mult((*beta[n])[i],betaComp,0,1);
+                const int gridno = bcoeffsmfi.index();
+                caller->Geom().GetFaceArea(bcoeffs,grids,gridno,n,nghost);
+                bcoeffs.mult(dx[n]);
+                bcoeffs.mult((*beta[n])[gridno],betaComp,0,1);
+                tensor_op.bCoefficients(bcoeffs,n,gridno);
             }
-            tensor_op.bCoefficients(bcoeffs,n);
         }
+
+        bcoeffs.clear();
 
         MultiFab::Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,0);
 
@@ -2093,15 +2092,14 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         //
         // Must divide by volume.
         //
+        FArrayBox volume;
+
+        for (MFIter visc_tmpmfi(visc_tmp); visc_tmpmfi.isValid(); ++visc_tmpmfi)
         {
-            MultiFab volume;
-            caller->Geom().GetVolume(volume,grids,GEOM_GROW);
-            for (MFIter visc_tmpmfi(visc_tmp); visc_tmpmfi.isValid(); ++visc_tmpmfi)
-            {
-                const int i = visc_tmpmfi.index();
-                for (int n = 0; n < BL_SPACEDIM; ++n)
-                    visc_tmp[i].divide(volume[i],volume.box(i),0,n,1);
-            }
+            const int i = visc_tmpmfi.index();
+            caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
+            for (int n = 0; n < BL_SPACEDIM; ++n)
+                visc_tmp[i].divide(volume,grids[i],0,n,1);
         }
 
 #if (BL_SPACEDIM == 2)
@@ -2151,9 +2149,10 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 #endif
         MultiFab::Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,0);
     }
-    else {
-      int ngrow = visc_terms.nGrow();
-      visc_terms.setVal(0.0,src_comp,BL_SPACEDIM,ngrow);
+    else
+    {
+        int ngrow = visc_terms.nGrow();
+        visc_terms.setVal(0.0,src_comp,BL_SPACEDIM,ngrow);
     }
 }
 

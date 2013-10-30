@@ -10,11 +10,6 @@
 #include <SyncRegister.H>
 #include <FluxRegister.H>
 
-#ifndef MG_USE_F90_SOLVERS
-class holy_grail_amr_projector;
-class inviscid_fluid_boundary;
-#endif
-
 class Projection 
 {
 protected:
@@ -201,13 +196,6 @@ protected:
 
     static void Finalize ();
 
-#ifndef MG_USE_F90_SOLVERS
-    //
-    // Set up the sync projection.
-    //
-    void bldSyncProject ();
-#endif
-
     //
     // Convert U from an Accleration like quantity to a velocity
     // Unew = Uold + alpha*Unew
@@ -287,10 +275,6 @@ protected:
                      MultiFab*       vel,
                      int             level);
 
-#ifndef MG_USE_F90_SOLVERS
-    void setUpBcs ();
-#endif
-
     void set_outflow_bcs (int        which_call,
                           MultiFab** phi,
                           MultiFab** Vel_in,
@@ -333,21 +317,10 @@ protected:
     //
     Array<Real**> anel_coeff;
 
-#ifndef MG_USE_F90_SOLVERS
-    //
-    // The aliasLib level projector.
-    //
-    holy_grail_amr_projector *sync_proj;
-#endif
-
     //
     // Boundary objects.
     //
     BCRec*                         phys_bc;
-
-#ifndef MG_USE_F90_SOLVERS
-    inviscid_fluid_boundary* projector_bndry;
-#endif
 
     int do_sync_proj;
 
@@ -364,7 +337,6 @@ protected:
     static Real divu_minus_s_factor;
     static int  add_vort_proj;
 
-#ifdef MG_USE_F90_SOLVERS
     void doNodalProjection(int c_lev, int nlevel, 
 			   MultiFab* vel[], MultiFab* phi[], MultiFab* sig[],
 			   MultiFab* rhs[], MultiFab* crse_rhs[], 
@@ -389,8 +361,6 @@ protected:
 
   // set velocity in ghost cells to zero except for inflow
   void set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[], bool inflowCorner);
-
-#endif
 
 };
 #endif
