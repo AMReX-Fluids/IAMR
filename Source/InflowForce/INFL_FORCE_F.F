@@ -178,9 +178,20 @@ c
          enddo        
          enddo        
              
+         elseif(strmwse_dir.eq.3)then
 
+         do n=1,nCompInflow
+         do j = loStoreDim(2),hiStoreDim(2)
+         do i = loStoreDim(1),hiStoreDim(1)
+
+              storDat(i,j,0,n) = storDat(i,j,hiStoreDim(3)-1,n)
+
+         enddo        
+         enddo        
+         enddo        
+             
          else
-            call bl_abort('Only coded reflections to Y direction')
+            call bl_abort('Reflections to X direction not coded')
          endif
 
          else
