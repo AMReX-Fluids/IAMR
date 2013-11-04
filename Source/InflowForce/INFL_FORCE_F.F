@@ -171,16 +171,16 @@ c
 
       if (full_file_in_memory) then
          if ((filePnt + 1 .gt. hiStoreDim(strmwse_dir)) .or. (filePnt .lt. 1)) then
-            write(6,*)"Problem "
-            write(6,*)"time = ",time
-            write(6,*)"timeMaxFile = ",timeMaxFile
-            write(6,*)"dtFile = ",dtFile
-            write(6,*)"npass = ",npass
-            write(6,*)"timeOffset = ",timeOffset
-            write(6,*)"filePnt,timePnt,storePnt = ",filePnt,timePnt,storePnt
+            print*,"Problem "
+            print*,"time = ",time
+            print*,"timeMaxFile = ",timeMaxFile
+            print*,"dtFile = ",dtFile
+            print*,"npass = ",npass
+            print*,"timeOffset = ",timeOffset
+            print*,"filePnt,timePnt,storePnt = ",filePnt,timePnt,storePnt
+            call flush(6)
             call bl_abort('INFL_FILL_PERIODIC: how did we get here?')
          endif
-
       else
          if ((storePnt + 1 .gt. hiStoreDim(strmwse_dir)) .or. (storePnt - 1 .lt. 1)) then
             call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
@@ -197,9 +197,7 @@ c
      &        timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
      &        FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
      &        bc, probLo, probHi)
-
       else
-
          call INTRP_DATA(time, xlo, dx, storePnt, fillComp, filePnt,
      &        timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
      &        FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
