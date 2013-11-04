@@ -181,11 +181,11 @@ c ::: FF_DIMS(dat)  => Dimensions of the array dat
 c ::: dat          <=  Array to fill
 c ::: -----------------------------------------------------------
 c
-      SUBROUTINE RD_FLCTREC(dimFile, lo, hi, fileLo, FF_DIMS(dat), dat, ncomp)
+      SUBROUTINE RD_FLCTREC(lo, hi, fileLo, FF_DIMS(dat), dat, ncomp)
 
       implicit none
 
-      integer dimFile(3), i, k, n, proc, ncomp, plane, isswirltype
+      integer i, k, n, proc, ncomp, plane, isswirltype
       integer lo(3), hi(3), fileLo(3), FF_DIMDEC(dat), iflctfile(300)
       REAL_T dat(FF_DIMV(dat))
 

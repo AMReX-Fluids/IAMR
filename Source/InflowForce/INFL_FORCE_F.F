@@ -358,7 +358,7 @@ c    should interpolate about filePnt in 2d not storePnt
             fileBase = filePnt - 1
          endif
 
-         call FILL_FRCARRYS_SWIRL(fileBase, 1, dimFile, nCompInflow,
+         call FILL_FRCARRYS_SWIRL(fileBase, 1, nCompInflow,
      $        FF_DIMS(storDat), storDat)
 
       endif
@@ -403,7 +403,7 @@ c    should interpolate about filePnt in 2d not storePnt
             fileBase = filePnt - 1
          endif
 
-         call FILL_FRCARRYS_SWIRL(fileBase, 1, dimFile, nCompInflow,
+         call FILL_FRCARRYS_SWIRL(fileBase, 1, nCompInflow,
      $        FF_DIMS(storDat), storDat)
       endif
 
@@ -494,7 +494,7 @@ c
          loRd(strmwse_dir) = baseArrayPnt
          filLo(strmwse_dir) = baseFilePnt
          do n = 1, nComp
-            call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
+            call RD_FLCTREC(loRd, hiRd, filLo, FF_DIMS(dat),
      &           dat(lo(1),lo(2),lo(3),n),n)
          enddo
          
@@ -526,7 +526,7 @@ c
             filLo(strmwse_dir) = baseFilePnt
 
             do n = 1, nComp
-               call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
+               call RD_FLCTREC(loRd, hiRd, filLo, FF_DIMS(dat),
      $              dat(lo(1),lo(2),lo(3),n),n)
             enddo
 c     
@@ -550,7 +550,7 @@ c
      $           - baseFilePnt
 
             do n = 1, nComp
-               call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
+               call RD_FLCTREC(loRd, hiRd, filLo, FF_DIMS(dat),
      $              dat(lo(1),lo(2),lo(3),n),n)
             enddo
 c     
@@ -564,7 +564,7 @@ c
             hiRd(strmwse_dir) = hi(strmwse_dir)
 
             do n = 1, nComp
-               call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
+               call RD_FLCTREC(loRd, hiRd, filLo, FF_DIMS(dat),
      $              dat(lo(1),lo(2),lo(3),n),n)
             enddo
 
@@ -573,12 +573,12 @@ c
 
       END
 
-      subroutine FILL_FRCARRYS_SWIRL(baseFilePnt, baseArrayPnt, dimFile, 
+      subroutine FILL_FRCARRYS_SWIRL(baseFilePnt, baseArrayPnt,
      $     nComp, FF_DIMS(dat), dat)
 
       implicit none
 
-      integer baseFilePnt, baseArrayPnt, nComp, dimFile(3)
+      integer baseFilePnt, baseArrayPnt, nComp
       integer FF_DIMDEC(dat)
       REAL_T dat(FF_DIMV(dat),nComp)
 
@@ -598,7 +598,7 @@ c
       filLo(strmwse_dir) = baseFilePnt
 
       do n = 1, nComp
-         call RD_FLCTREC(dimFile, loRd, hiRd, filLo,
+         call RD_FLCTREC(loRd, hiRd, filLo,
      $        FF_DIMS(dat), dat(lo(1),lo(2),lo(3),n),n)
       enddo
 
