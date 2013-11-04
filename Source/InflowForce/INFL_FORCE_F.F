@@ -103,28 +103,19 @@ c
              full_file_in_memory = .true.
           endif
 
-         if(full_file_in_memory)then
-
-c        allocate a temporary to fix fill file case
-
-           call FF_SET_ARGS(FF_DIMS(tmpdat), loStoreDim, hiStoreDim)
-
-           ALLOCATE(tmpdat(FF_DIMV(tmpdat),nCompInflow))
-
-           loStoreDim(strmwse_dir)=0
-
-           call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
-
-           ALLOCATE(storDat(FF_DIMV(storDat),nCompInflow))
-
-           loStoreDim(strmwse_dir)=1
-
-         else
-
+         if (full_file_in_memory) then
+           !
+           ! allocate a temporary to fix fill file case.
+           !
+            call FF_SET_ARGS(FF_DIMS(tmpdat), loStoreDim, hiStoreDim)
+            ALLOCATE(tmpdat(FF_DIMV(tmpdat),nCompInflow))
+            loStoreDim(strmwse_dir)=0
             call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
-
             ALLOCATE(storDat(FF_DIMV(storDat),nCompInflow))
-
+            loStoreDim(strmwse_dir)=1
+         else
+            call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
+            ALLOCATE(storDat(FF_DIMV(storDat),nCompInflow))
          endif
 c
 c       ::::   Convert the streamwise direction lengths to times   ::::
@@ -132,13 +123,10 @@ c       :::: and set up the pointers into the data arrays and file ::::
 c
          timeMaxFile = probSizeFile(strmwse_dir) / convVel
          dtFile      = dxFile(strmwse_dir) / convVel
-
-         npass      = INT(time / timeMaxFile)
-         timeOffset = DBLE(npass) * timeMaxFile
-
-         filePnt = INT((time - timeOffset) / dtFile) + 1
-         timePnt = timeOffset + DBLE(filePnt-1) * dtFile
-
+         npass       = INT(time / timeMaxFile)
+         timeOffset  = DBLE(npass) * timeMaxFile
+         filePnt     = INT((time - timeOffset) / dtFile) + 1
+         timePnt     = timeOffset + DBLE(filePnt-1) * dtFile
 
          if (full_file_in_memory) then
             storePnt = filePnt + 1
@@ -146,64 +134,58 @@ c
             storePnt = 2
          endif
 
-         if(full_file_in_memory)then
+         if (full_file_in_memory) then
+            call FILL_FRCARRYS(1, 1, dimFile, nCompInflow,
+     $           FF_DIMS(tmpdat), tmpdat)
 
-         call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
-     $        FF_DIMS(tmpdat), tmpdat)
+            do n=1,nCompInflow
+               do k = loStoreDim(3),hiStoreDim(3)
+                  do j = loStoreDim(2),hiStoreDim(2)
+                     do i = loStoreDim(1),hiStoreDim(1)
+                        storDat(i,j,k,n) = tmpdat(i,j,k,n)
+                     enddo        
+                  enddo        
+               enddo        
+            enddo        
 
-         do n=1,nCompInflow
-         do k = loStoreDim(3),hiStoreDim(3)
-         do j = loStoreDim(2),hiStoreDim(2)
-         do i = loStoreDim(1),hiStoreDim(1)
+            deallocate(tmpdat)
 
-              storDat(i,j,k,n) = tmpdat(i,j,k,n)
+            loStoreDim(strmwse_dir) = 0
 
-         enddo        
-         enddo        
-         enddo        
-         enddo        
+            if (strmwse_dir.eq.2) then
 
-         deallocate(tmpdat)
+               do n=1,nCompInflow
+                  do k = loStoreDim(3),hiStoreDim(3)
+                     do i = loStoreDim(1),hiStoreDim(1)
+                        storDat(i,0,k,n) = storDat(i,hiStoreDim(2)-1,k,n)
+                     enddo        
+                  enddo        
+               enddo        
+               
+            else if (strmwse_dir.eq.3) then
 
-         loStoreDim(strmwse_dir)=0
-         if(strmwse_dir.eq.2)then
+               do n=1,nCompInflow
+                  do j = loStoreDim(2),hiStoreDim(2)
+                     do i = loStoreDim(1),hiStoreDim(1)
+                        storDat(i,j,0,n) = storDat(i,j,hiStoreDim(3)-1,n)
+                     enddo        
+                  enddo        
+               enddo        
 
-         do n=1,nCompInflow
-         do k = loStoreDim(3),hiStoreDim(3)
-         do i = loStoreDim(1),hiStoreDim(1)
-
-              storDat(i,0,k,n) = storDat(i,hiStoreDim(2)-1,k,n)
-
-         enddo        
-         enddo        
-         enddo        
-             
-         elseif(strmwse_dir.eq.3)then
-
-         do n=1,nCompInflow
-         do j = loStoreDim(2),hiStoreDim(2)
-         do i = loStoreDim(1),hiStoreDim(1)
-
-              storDat(i,j,0,n) = storDat(i,j,hiStoreDim(3)-1,n)
-
-         enddo        
-         enddo        
-         enddo        
-             
-         else
-            call bl_abort('Reflections to X direction not coded')
-         endif
+!               write(10,*) storDat(:,:,1,  1)
+!               write(11,*) storDat(:,:,321,1)
+               
+            else
+               call bl_abort('Reflections to X direction not coded')
+            endif
 
          else
-
-         call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
-     $        FF_DIMS(storDat), storDat)
-
+            call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
+     $           FF_DIMS(storDat), storDat)
          endif
       endif
 
       call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
-
 
       npassOld   = npass
       filePntOld = filePnt
@@ -507,9 +489,7 @@ c     are the same.  This is the case for data generated with mkInitFlct.
 c     
          if (baseFilePnt .lt. 1) then
             baseFilePnt = dimFile(strmwse_dir) - (1 - baseFilePnt)
-         endif
-
-         if (baseFilePnt .gt. dimFile(strmwse_dir) - 1) then
+         else if (baseFilePnt .gt. dimFile(strmwse_dir) - 1) then
             baseFilePnt = baseFilePnt - (dimFile(strmwse_dir) - 1)
          endif
 c     
