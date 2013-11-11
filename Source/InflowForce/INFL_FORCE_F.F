@@ -34,7 +34,7 @@ c ::: time           =>  Time for the fill
 c ::: -----------------------------------------------------------
 c
       subroutine INFL_FILL_PERIODIC(fillComp, DIMS(inflDat), inflDat,
-     $     xlo, dx, time, bc, probLo, probHi)
+     &     xlo, dx, time, bc, probLo, probHi)
 
       implicit none
 
@@ -54,15 +54,12 @@ c
       logical full_file_in_memory
       integer dimFile(3), loStoreDim(3), hiStoreDim(3)
       integer FF_DIMDEC(storDat), ierr
-      integer FF_DIMDEC(tmpdat)
-      integer i,j,k
       REAL_T dxFile(3), probSizeFile(3), xloFile(3), xhiFile(3)
       REAL_T, allocatable :: storDat(:,:,:,:)
-      REAL_T, allocatable :: tmpdat(:,:,:,:)
 
       save full_file_in_memory, loStoreDim, hiStoreDim, storDat,
-     $     dimFile, xloFile, xhiFile, dxFile, dtFile, timeMaxFile, 
-     $     storePnt, filePnt, timePnt, timeOffset, npass
+     &     dimFile, xloFile, xhiFile, dxFile, dtFile, timeMaxFile, 
+     &     storePnt, filePnt, timePnt, timeOffset, npass
 
 #include <INFL_FORCE_F.H>
 
@@ -103,42 +100,20 @@ c
              full_file_in_memory = .true.
           endif
 
-         if(full_file_in_memory)then
+         if (full_file_in_memory) loStoreDim(strmwse_dir) = 0
 
-c        allocate a temporary to fix fill file case
-
-           call FF_SET_ARGS(FF_DIMS(tmpdat), loStoreDim, hiStoreDim)
-
-           ALLOCATE(tmpdat(FF_DIMV(tmpdat),nCompInflow))
-
-           loStoreDim(strmwse_dir)=0
-
-           call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
-
-           ALLOCATE(storDat(FF_DIMV(storDat),nCompInflow))
-
-           loStoreDim(strmwse_dir)=1
-
-         else
-
-            call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
-
-            ALLOCATE(storDat(FF_DIMV(storDat),nCompInflow))
-
-         endif
+         call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
+         ALLOCATE(storDat(FF_DIMV(storDat),nCompInflow))
 c
 c       ::::   Convert the streamwise direction lengths to times   ::::
 c       :::: and set up the pointers into the data arrays and file ::::
 c
          timeMaxFile = probSizeFile(strmwse_dir) / convVel
          dtFile      = dxFile(strmwse_dir) / convVel
-
-         npass      = INT(time / timeMaxFile)
-         timeOffset = DBLE(npass) * timeMaxFile
-
-         filePnt = INT((time - timeOffset) / dtFile) + 1
-         timePnt = timeOffset + DBLE(filePnt-1) * dtFile
-
+         npass       = INT(time / timeMaxFile)
+         timeOffset  = DBLE(npass) * timeMaxFile
+         filePnt     = INT((time - timeOffset) / dtFile) + 1
+         timePnt     = timeOffset + DBLE(filePnt-1) * dtFile
 
          if (full_file_in_memory) then
             storePnt = filePnt + 1
@@ -146,64 +121,27 @@ c
             storePnt = 2
          endif
 
-         if(full_file_in_memory)then
-
-         call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
-     $        FF_DIMS(tmpdat), tmpdat)
-
-         do n=1,nCompInflow
-         do k = loStoreDim(3),hiStoreDim(3)
-         do j = loStoreDim(2),hiStoreDim(2)
-         do i = loStoreDim(1),hiStoreDim(1)
-
-              storDat(i,j,k,n) = tmpdat(i,j,k,n)
-
-         enddo        
-         enddo        
-         enddo        
-         enddo        
-
-         deallocate(tmpdat)
-
-         loStoreDim(strmwse_dir)=0
-         if(strmwse_dir.eq.2)then
-
-         do n=1,nCompInflow
-         do k = loStoreDim(3),hiStoreDim(3)
-         do i = loStoreDim(1),hiStoreDim(1)
-
-              storDat(i,0,k,n) = storDat(i,hiStoreDim(2)-1,k,n)
-
-         enddo        
-         enddo        
-         enddo        
-             
-         elseif(strmwse_dir.eq.3)then
-
-         do n=1,nCompInflow
-         do j = loStoreDim(2),hiStoreDim(2)
-         do i = loStoreDim(1),hiStoreDim(1)
-
-              storDat(i,j,0,n) = storDat(i,j,hiStoreDim(3)-1,n)
-
-         enddo        
-         enddo        
-         enddo        
-             
+         if (full_file_in_memory) then
+            call FILL_FRCARRYS(1, 1, dimFile, nCompInflow,
+     &           FF_DIMS(storDat), storDat)
+            if (strmwse_dir.eq.2) then
+               do n=1,nCompInflow
+                  storDat(:,0,:,n) = storDat(:,hiStoreDim(2)-1,:,n)
+               enddo        
+            else if (strmwse_dir.eq.3) then
+               do n=1,nCompInflow
+                  storDat(:,:,0,n) = storDat(:,:,hiStoreDim(3)-1,n)
+               end do
+            else
+               call bl_abort('Reflections to X direction not coded')
+            endif
          else
-            call bl_abort('Reflections to X direction not coded')
-         endif
-
-         else
-
-         call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
-     $        FF_DIMS(storDat), storDat)
-
+            call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
+     &           FF_DIMS(storDat), storDat)
          endif
       endif
 
       call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
-
 
       npassOld   = npass
       filePntOld = filePnt
@@ -232,49 +170,44 @@ c
       enddo
 
       if (full_file_in_memory) then
-        if ((filePnt + 1 .gt. hiStoreDim(strmwse_dir)) .or. (filePnt .lt. 1)) then
-        write(6,*)"Problem "
-        write(6,*)"time = ",time
-        write(6,*)"timeMaxFile = ",timeMaxFile
-        write(6,*)"dtFile = ",dtFile
-        write(6,*)"npass = ",npass
-        write(6,*)"timeOffset = ",timeOffset
-        write(6,*)"filePnt,timePnt,storePnt = ",filePnt,timePnt,storePnt
-           call bl_abort('INFL_FILL_PERIODIC: how did we get here?')
-        endif
-
-        else
-
-      if ((storePnt + 1 .gt. hiStoreDim(strmwse_dir)) .or. (storePnt - 1 .lt. 1)) then
-         call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
-     $        FF_DIMS(storDat), storDat)
-         storePnt = 2
-      endif
-
+         if ((filePnt + 1 .gt. hiStoreDim(strmwse_dir)) .or. (filePnt .lt. 1)) then
+            print*,"Problem "
+            print*,"time = ",time
+            print*,"timeMaxFile = ",timeMaxFile
+            print*,"dtFile = ",dtFile
+            print*,"npass = ",npass
+            print*,"timeOffset = ",timeOffset
+            print*,"filePnt,timePnt,storePnt = ",filePnt,timePnt,storePnt
+            call flush(6)
+            call bl_abort('INFL_FILL_PERIODIC: how did we get here?')
+         endif
+      else
+         if ((storePnt + 1 .gt. hiStoreDim(strmwse_dir)) .or. (storePnt - 1 .lt. 1)) then
+            call FILL_FRCARRYS(filePnt - 1, 1, dimFile, nCompInflow,
+     &           FF_DIMS(storDat), storDat)
+            storePnt = 2
+         endif
       endif
  
-      if(full_file_in_memory)then
-
-c    should interpolate about filePnt in 2d not storePnt
-      call INTRP_DATA(time, xlo, dx, filePnt, fillComp, storePnt,
-     $     timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
-     $     FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
-     $     bc, probLo, probHi)
-
+      if (full_file_in_memory) then
+         !
+         ! Should interpolate about filePnt in 2d not storePnt.
+         !
+         call INTRP_DATA(time, xlo, dx, filePnt, fillComp, storePnt,
+     &        timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
+     &        FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
+     &        bc, probLo, probHi)
       else
-
-      call INTRP_DATA(time, xlo, dx, storePnt, fillComp, filePnt,
-     $     timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
-     $     FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
-     $     bc, probLo, probHi)
-
-
+         call INTRP_DATA(time, xlo, dx, storePnt, fillComp, filePnt,
+     &        timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
+     &        FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
+     &        bc, probLo, probHi)
       endif
 
       end
 
       subroutine INFL_FILL_SWIRL(fillComp, DIMS(inflDat), inflDat, xlo,
-     $     dx, time, bc, probLo, probHi)
+     &     dx, time, bc, probLo, probHi)
 
       implicit none
 
@@ -291,7 +224,7 @@ c    should interpolate about filePnt in 2d not storePnt
       allocatable storDat
 
       save loStoreDim, hiStoreDim, storDat, dimFile, xloFile, xhiFile,
-     $     dxFile, fileBase
+     &     dxFile, fileBase
 
 #include <INFL_FORCE_F.H>
 
@@ -327,7 +260,7 @@ c    should interpolate about filePnt in 2d not storePnt
          enddo
 
          if (numInflPlanesStore .GT. 0 .AND.
-     $        numInflPlanesStore .LT. hiStoreDim(strmwse_dir)) then
+     &        numInflPlanesStore .LT. hiStoreDim(strmwse_dir)) then
             hiStoreDim(strmwse_dir) = numInflPlanesStore
          endif
 
@@ -336,7 +269,7 @@ c    should interpolate about filePnt in 2d not storePnt
          ALLOCATE(storDat(FF_DIMV(storDat),nCompInflow))
 
          if ((time .le. fluct_times(1)) .or.
-     $        (time .ge. fluct_times(dimFile(strmwse_dir)))) then
+     &        (time .ge. fluct_times(dimFile(strmwse_dir)))) then
             write(6,101) time, fluct_times(1), fluct_times(dimFile(strmwse_dir))
             call bl_abort('INFL_FILL_SWIRL: time is out of range')
          endif
@@ -358,15 +291,15 @@ c    should interpolate about filePnt in 2d not storePnt
             fileBase = filePnt - 1
          endif
 
-         call FILL_FRCARRYS_SWIRL(fileBase, 1, dimFile, nCompInflow,
-     $        FF_DIMS(storDat), storDat)
+         call FILL_FRCARRYS_SWIRL(fileBase, 1, nCompInflow,
+     &        FF_DIMS(storDat), storDat)
 
       endif
 
       call FF_SET_ARGS(FF_DIMS(storDat), loStoreDim, hiStoreDim)
 
       if ((time .le. fluct_times(1)) .or.
-     $     (time .ge. fluct_times(dimFile(strmwse_dir)))) then
+     &     (time .ge. fluct_times(dimFile(strmwse_dir)))) then
             write(6,101) time, fluct_times(1), fluct_times(dimFile(strmwse_dir))
          call bl_abort('INFL_FILL_SWIRL: time is out of range')
       endif
@@ -383,7 +316,7 @@ c    should interpolate about filePnt in 2d not storePnt
       endif
 
       if ((filePnt .gt. fileBase) .and.
-     $     (filePnt .lt. (fileBase + hiStoreDim(strmwse_dir) - 1))) then
+     &     (filePnt .lt. (fileBase + hiStoreDim(strmwse_dir) - 1))) then
          !
          ! We've got enough data in storDat to do the interpolation.
          !
@@ -403,22 +336,22 @@ c    should interpolate about filePnt in 2d not storePnt
             fileBase = filePnt - 1
          endif
 
-         call FILL_FRCARRYS_SWIRL(fileBase, 1, dimFile, nCompInflow,
-     $        FF_DIMS(storDat), storDat)
+         call FILL_FRCARRYS_SWIRL(fileBase, 1, nCompInflow,
+     &        FF_DIMS(storDat), storDat)
       endif
 
       timePnt = fluct_times(filePnt)
       dtFile  = -1 ! Not used
 
       call INTRP_DATA(time, xlo, dx, storePnt, fillComp, filePnt,
-     $     timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
-     $     FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
-     $     bc, probLo, probHi)
+     &     timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
+     &     FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
+     &     bc, probLo, probHi)
 
       end
 
       subroutine INFL_FILL(fillComp, DIMS(inflDat), inflDat, xlo, dx, time,
-     $                     bc, probLo, probHi)
+     &                     bc, probLo, probHi)
 
       implicit none
 
@@ -439,10 +372,10 @@ c    should interpolate about filePnt in 2d not storePnt
 
       if (infl_type .eq. infl_periodic_type) then
          call INFL_FILL_PERIODIC(fillComp, DIMS(inflDat), inflDat,
-     $        xlo, dx, offset_time, bc, probLo, probHi)
+     &        xlo, dx, offset_time, bc, probLo, probHi)
       else if (infl_type .eq. infl_swirl_type) then
          call INFL_FILL_SWIRL(fillComp, DIMS(inflDat), inflDat,
-     $        xlo, dx, offset_time, bc, probLo, probHi)
+     &        xlo, dx, offset_time, bc, probLo, probHi)
       else
          call bl_abort('INFL_FILL: unknown infl_type')
       endif
@@ -469,7 +402,7 @@ c ::: dat          <=  Array to fill
 c ::: -----------------------------------------------------------
 c
       subroutine FILL_FRCARRYS(baseFilePnt, baseArrayPnt, dimFile, 
-     $                         nComp, FF_DIMS(dat), dat)
+     &                         nComp, FF_DIMS(dat), dat)
 
       implicit none
 
@@ -494,7 +427,7 @@ c
          loRd(strmwse_dir) = baseArrayPnt
          filLo(strmwse_dir) = baseFilePnt
          do n = 1, nComp
-            call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
+            call RD_FLCTREC(loRd, hiRd, filLo, FF_DIMS(dat),
      &           dat(lo(1),lo(2),lo(3),n),n)
          enddo
          
@@ -507,16 +440,14 @@ c     are the same.  This is the case for data generated with mkInitFlct.
 c     
          if (baseFilePnt .lt. 1) then
             baseFilePnt = dimFile(strmwse_dir) - (1 - baseFilePnt)
-         endif
-
-         if (baseFilePnt .gt. dimFile(strmwse_dir) - 1) then
+         else if (baseFilePnt .gt. dimFile(strmwse_dir) - 1) then
             baseFilePnt = baseFilePnt - (dimFile(strmwse_dir) - 1)
          endif
 c     
 c     *** If the data can be filled in one pass, do so ***
 c     
          if (hi(strmwse_dir) - baseArrayPnt + 1 
-     $        .LE. dimFile(strmwse_dir) - baseFilePnt + 1) then
+     &        .LE. dimFile(strmwse_dir) - baseFilePnt + 1) then
             do n = 1, 3
                filLo(n) = 1
                loRd(n) = lo(n)
@@ -526,8 +457,8 @@ c
             filLo(strmwse_dir) = baseFilePnt
 
             do n = 1, nComp
-               call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
-     $              dat(lo(1),lo(2),lo(3),n),n)
+               call RD_FLCTREC(loRd, hiRd, filLo, FF_DIMS(dat),
+     &              dat(lo(1),lo(2),lo(3),n),n)
             enddo
 c     
 c     Note: In this case, we are guaranteed that the arrays can be filled 
@@ -547,11 +478,11 @@ c
             filLo(strmwse_dir) = baseFilePnt
             loRd(strmwse_dir) = baseArrayPnt
             hiRd(strmwse_dir) = loRd(strmwse_dir) + dimFile(strmwse_dir) 
-     $           - baseFilePnt
+     &           - baseFilePnt
 
             do n = 1, nComp
-               call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
-     $              dat(lo(1),lo(2),lo(3),n),n)
+               call RD_FLCTREC(loRd, hiRd, filLo, FF_DIMS(dat),
+     &              dat(lo(1),lo(2),lo(3),n),n)
             enddo
 c     
 c     Now fill the rest of the array starting from the beginning of the file
@@ -564,8 +495,8 @@ c
             hiRd(strmwse_dir) = hi(strmwse_dir)
 
             do n = 1, nComp
-               call RD_FLCTREC(dimFile, loRd, hiRd, filLo, FF_DIMS(dat),
-     $              dat(lo(1),lo(2),lo(3),n),n)
+               call RD_FLCTREC(loRd, hiRd, filLo, FF_DIMS(dat),
+     &              dat(lo(1),lo(2),lo(3),n),n)
             enddo
 
          endif
@@ -573,12 +504,12 @@ c
 
       END
 
-      subroutine FILL_FRCARRYS_SWIRL(baseFilePnt, baseArrayPnt, dimFile, 
-     $     nComp, FF_DIMS(dat), dat)
+      subroutine FILL_FRCARRYS_SWIRL(baseFilePnt, baseArrayPnt,
+     &     nComp, FF_DIMS(dat), dat)
 
       implicit none
 
-      integer baseFilePnt, baseArrayPnt, nComp, dimFile(3)
+      integer baseFilePnt, baseArrayPnt, nComp
       integer FF_DIMDEC(dat)
       REAL_T dat(FF_DIMV(dat),nComp)
 
@@ -598,8 +529,8 @@ c
       filLo(strmwse_dir) = baseFilePnt
 
       do n = 1, nComp
-         call RD_FLCTREC(dimFile, loRd, hiRd, filLo,
-     $        FF_DIMS(dat), dat(lo(1),lo(2),lo(3),n),n)
+         call RD_FLCTREC(loRd, hiRd, filLo,
+     &        FF_DIMS(dat), dat(lo(1),lo(2),lo(3),n),n)
       enddo
 
       end

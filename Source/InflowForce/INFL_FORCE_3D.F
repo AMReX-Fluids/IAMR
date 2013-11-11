@@ -37,9 +37,9 @@ c :::
 c ::: NOTE:  When x, y and z are calculated for each i, j, and k index
 c :::        in this routine, they are calculated based on formulaes
 c :::        of the form,
-c :::            x = probLo(1) + dx(1) * (FLOAT(i) + half)
+c :::            x = probLo(1) + dx(1) * (DBLE(i) + half)
 c :::        rather than on the more common form,
-c :::            x = xlo(1) + dx(1) * (FLOAT(i - lo(1)) + half)
+c :::            x = xlo(1) + dx(1) * (DBLE(i - lo(1)) + half)
 c :::        In other words, they are calculated based on the origin
 c :::        of the problem domain rather than the origin of the FAB
 c :::        we are working on.  This forces the physical location for
@@ -61,10 +61,7 @@ c :::
       implicit none
 
       integer storePnt, fillComp, filePnt, nCompStorDat
-      integer loStoreDim(3), hiStoreDim(3)
-      integer DIMDEC(inflDat)
-      integer FF_DIMDEC(storDat)
-      integer bc(SDIM,2)
+      integer DIMDEC(inflDat), FF_DIMDEC(storDat), bc(SDIM,2)
 
       REAL_T time, timePnt, dtFile
       REAL_T xlo(SDIM), dx(SDIM), dxFile(3), xloFile(3), xhiFile(3)
@@ -123,13 +120,13 @@ c
         else if (bc(3,2) .eq. INT_DIR .and. k .ge. n_lev_cells(3)) then
           kzcalc = k - n_lev_cells(3)
         endif
-        z = probLo(3) + dx(3)*(float(kzcalc) + half)
+        z = probLo(3) + dx(3)*(DBLE(kzcalc) + half)
 
         if (xloFile(3) .le. z .and. z .le. xhiFile(3)) then
           kloc = (z - xloFile(3) + half*dxFile(3))/dxFile(3) + 1
           kloc = MAX(kloc, loStorDim(3)+1)
           kloc = MIN(kloc, hiStorDim(3)-1)
-          z0 = (FLOAT(kloc)-coff) * dxFile(3) + xloFile(3)
+          z0 = (DBLE(kloc)-coff) * dxFile(3) + xloFile(3)
           zm1 = z0 - dxFile(3)
           zp1 = z0 + dxFile(3)
           czm1 = (z - z0)  * (z - zp1) / (zm1 - z0)  / (zm1 - zp1)
@@ -144,14 +141,14 @@ c
           else if (bc(2,2) .eq. INT_DIR .and. j .ge. n_lev_cells(2)) then
             jycalc = j - n_lev_cells(2)
           endif
-          y = probLo(2) + dx(2)*(float(jycalc) + half)
+          y = probLo(2) + dx(2)*(DBLE(jycalc) + half)
 
           if ((xloFile(2) .le. y .and. y .le. xhiFile(2)) .and.
      $        (xloFile(3) .le. z .and. z .le. xhiFile(3))) then
             jloc = (y - xloFile(2) + half*dxFile(2))/dxFile(2) + 1
             jloc = MAX(jloc, loStorDim(2)+1)
             jloc = MIN(jloc, hiStorDim(2)-1)
-            y0 = (FLOAT(jloc)-coff) * dxFile(2) + xloFile(2)
+            y0 = (DBLE(jloc)-coff) * dxFile(2) + xloFile(2)
             ym1 = y0 - dxFile(2)
             yp1 = y0 + dxFile(2)
             cym1 = (y - y0)  * (y - yp1) / (ym1 - y0)  / (ym1 - yp1)
@@ -209,13 +206,13 @@ c
         else if (bc(3,2) .eq. INT_DIR .and. k .ge. n_lev_cells(3)) then
           kzcalc = k - n_lev_cells(3)
         endif
-        z = probLo(3) + dx(3)*(float(kzcalc) + half)
+        z = probLo(3) + dx(3)*(DBLE(kzcalc) + half)
 
         if (xloFile(3) .le. z .and. z .le. xhiFile(3)) then
           kloc = (z - xloFile(3) + half*dxFile(3))/dxFile(3) + 1
           kloc = MAX(kloc, loStorDim(3)+1)
           kloc = MIN(kloc, hiStorDim(3)-1)
-          z0 = (FLOAT(kloc)-coff) * dxFile(3) + xloFile(3)
+          z0 = (DBLE(kloc)-coff) * dxFile(3) + xloFile(3)
           zm1 = z0 - dxFile(3)
           zp1 = z0 + dxFile(3)
           czm1 = (z - z0)  * (z - zp1) / (zm1 - z0)  / (zm1 - zp1)
@@ -230,14 +227,14 @@ c
           else if (bc(1,2) .eq. INT_DIR .and. i .ge. n_lev_cells(1)) then
             ixcalc = i - n_lev_cells(1)
           endif
-          x = probLo(1) + dx(1)*(float(ixcalc) + half)
+          x = probLo(1) + dx(1)*(DBLE(ixcalc) + half)
 
           if ((xloFile(1) .le. x .and. x .le. xhiFile(1)) .and.
      $        (xloFile(3) .le. z .and. z .le. xhiFile(3))) then
             iloc = (x - xloFile(1) + half*dxFile(1))/dxFile(1) + 1
             iloc = MAX(iloc, loStorDim(1)+1)
             iloc = MIN(iloc, hiStorDim(1)-1)
-            x0 = (FLOAT(iloc)-coff) * dxFile(1) + xloFile(1)
+            x0 = (DBLE(iloc)-coff) * dxFile(1) + xloFile(1)
             xm1 = x0 - dxFile(1)
             xp1 = x0 + dxFile(1)
             cxm1 = (x - x0)  * (x - xp1) / (xm1 - x0)  / (xm1 - xp1)
@@ -300,9 +297,9 @@ c      write (*,*) "dx,lo,hi(2):",dxFile(2),xloFile(2),xhiFile(2)
         else if (bc(2,2) .eq. INT_DIR .and. j .ge. n_lev_cells(2)) then
           jycalc = j - n_lev_cells(2)
         endif
-        y = probLo(2) + dx(2)*(float(jycalc) + half)
+        y = probLo(2) + dx(2)*(DBLE(jycalc) + half)
 #else
-        y = probLo(2) + dx(2)*(float(j) + half)
+        y = probLo(2) + dx(2)*(DBLE(j) + half)
         do while (y.gt.xhiFile(2)-dxFile(2))
            y = y - lengthFile2
         end do
@@ -315,7 +312,7 @@ c      write (*,*) "dx,lo,hi(2):",dxFile(2),xloFile(2),xhiFile(2)
           jloc = (y - xloFile(2) + half*dxFile(2))/dxFile(2) + 1
           jloc = MAX(jloc, loStorDim(2)+1)
           jloc = MIN(jloc, hiStorDim(2)-1)
-          y0 = (FLOAT(jloc)-coff) * dxFile(2) + xloFile(2)
+          y0 = (DBLE(jloc)-coff) * dxFile(2) + xloFile(2)
           ym1 = y0 - dxFile(2)
           yp1 = y0 + dxFile(2)
           cym1 = (y - y0)  * (y - yp1) / (ym1 - y0)  / (ym1 - yp1)
@@ -331,9 +328,9 @@ c      write (*,*) "dx,lo,hi(2):",dxFile(2),xloFile(2),xhiFile(2)
           else if (bc(1,2) .eq. INT_DIR .and. i .ge. n_lev_cells(1)) then
             ixcalc = i - n_lev_cells(1)
           endif
-          x = probLo(1) + dx(1)*(float(ixcalc) + half)
+          x = probLo(1) + dx(1)*(DBLE(ixcalc) + half)
 #else
-          x = probLo(1) + dx(1)*(float(i) + half)
+          x = probLo(1) + dx(1)*(DBLE(i) + half)
           do while (x.gt.xhiFile(1)-dxFile(1))
              x = x - lengthFile1
           end do
@@ -347,7 +344,7 @@ c      write (*,*) "dx,lo,hi(2):",dxFile(2),xloFile(2),xhiFile(2)
             iloc = (x - xloFile(1) + half*dxFile(1))/dxFile(1) + 1
             iloc = MAX(iloc, loStorDim(1)+1)
             iloc = MIN(iloc, hiStorDim(1)-1)
-            x0 = (FLOAT(iloc)-coff) * dxFile(1) + xloFile(1)
+            x0 = (DBLE(iloc)-coff) * dxFile(1) + xloFile(1)
             xm1 = x0 - dxFile(1)
             xp1 = x0 + dxFile(1)
             cxm1 = (x - x0)  * (x - xp1) / (xm1 - x0)  / (xm1 - xp1)
