@@ -147,7 +147,8 @@ c
       rhomax = -1.d200
       rhomin =  1.d200
 
-!$omp parallel do private(i,j,k) reduction(min:umin) reduction(max:umax)
+!$omp parallel do private(i,j,k) reduction(min:umin)
+!$omp& reduction(max:umax)
       do k = kmin, kmax
          do j = jmin, jmax
             do i = imin, imax
@@ -158,7 +159,8 @@ c
       end do
 !$omp end parallel do
 
-!$omp parallel do private(i,j,k) reduction(min:vmin) reduction(max:vmax)
+!$omp parallel do private(i,j,k) reduction(min:vmin)
+!$omp& reduction(max:vmax)
       do k = kmin, kmax
          do j = jmin, jmax
             do i = imin, imax
@@ -169,7 +171,8 @@ c
       end do
 !$omp end parallel do
 
-!$omp parallel do private(i,j,k) reduction(min:wmin) reduction(max:wmax)
+!$omp parallel do private(i,j,k) reduction(min:wmin)
+!$omp& reduction(max:wmax)
       do k = kmin, kmax
          do j = jmin, jmax
             do i = imin, imax
@@ -258,7 +261,8 @@ c
       rhomax = -1.d200
       rhomin =  1.d200
 
-!$omp parallel do private(i,j,k) reduction(min:umin) reduction(max:umax)
+!$omp parallel do private(i,j,k) reduction(min:umin)
+!$omp& reduction(max:umax)
       do k = kmin, kmax
          do j = jmin, jmax
             do i = imin, imax+1
@@ -269,7 +273,8 @@ c
       end do
 !$omp end parallel do
 
-!$omp parallel do private(i,j,k) reduction(min:vmin) reduction(max:vmax)
+!$omp parallel do private(i,j,k) reduction(min:vmin)
+!$omp& reduction(max:vmax)
       do k = kmin, kmax
          do j = jmin, jmax+1
             do i = imin, imax
@@ -280,7 +285,8 @@ c
       end do
 !$omp end parallel do
 
-!$omp parallel do private(i,j,k) reduction(min:wmin) reduction(max:wmax)
+!$omp parallel do private(i,j,k) reduction(min:wmin)
+!$omp& reduction(max:wmax)
       do k = kmin, kmax+1
          do j = jmin, jmax
             do i = imin, imax
@@ -291,7 +297,8 @@ c
       end do
 !$omp end parallel do
 
-!$omp parallel do private(i,j,k) reduction(min:rhomin) reduction(max:rhomax)
+!$omp parallel do private(i,j,k) reduction(min:rhomin)
+!$omp& reduction(max:rhomax)
       do k = kmin, kmax
          do j = jmin, jmax
             do i = imin, imax
