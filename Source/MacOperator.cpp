@@ -371,7 +371,7 @@ mac_level_driver (Amr*            parent,
                   MultiFab&       Rhs,
                   MultiFab*       u_mac,
                   MultiFab*       mac_phi,
-                  bool            verbose)
+                  int             verbose)
 {
     MacOperator mac_op(parent,mac_bndry,dx);
 
@@ -520,7 +520,7 @@ mac_sync_driver (Amr*            parent,
                  MultiFab&       Rhs,
                  MultiFab*       rho_half,
                  MultiFab*       mac_sync_phi,
-                 bool            verbose)
+                 int             verbose)
 {
     MacOperator mac_op(parent,mac_bndry,dx);
 
