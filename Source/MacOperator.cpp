@@ -483,6 +483,9 @@ mac_level_driver (Amr*            parent,
 	if (geom[0].isAnyPeriodic()) {
 	  geom[0].FillPeriodicBoundary(*mac_phi_p[0],0,1,true,true);
 	}
+
+        if (verbose >= 1)
+          MGT_Solver::FlushFortranOutput();
 #else
         BoxLib::Error("mac_level_driver::mg_cpp not in this build");
 #endif

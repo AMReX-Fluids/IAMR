@@ -2413,9 +2413,8 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
 
   delete vold[c_lev];
 
-  if (verbose >= 2) {
+  if (verbose >= 1)
     MGT_Solver::FlushFortranOutput();
-  }
 }
 
 
