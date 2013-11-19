@@ -535,7 +535,7 @@ Diffusion::diffuse_scalar (Real                   dt,
             }
         }
 
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
+        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil, false, 0, 1, verbose);
 
         // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
         Array< Array<Real> > xa(1);
@@ -581,6 +581,9 @@ Diffusion::diffuse_scalar (Real                   dt,
         Real final_resnorm;
         mgt_solver.solve(phi_p, Rhs_p, S_tol, S_tol_abs, visc_bndry, final_resnorm);
     }
+
+    if (verbose >= 1)
+        MGT_Solver::FlushFortranOutput();
 #endif
 
 #ifdef MG_USE_HYPRE
