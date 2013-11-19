@@ -370,7 +370,8 @@ mac_level_driver (Amr*            parent,
                   MultiFab&       S,
                   MultiFab&       Rhs,
                   MultiFab*       u_mac,
-                  MultiFab*       mac_phi)
+                  MultiFab*       mac_phi,
+                  bool            verbose)
 {
     MacOperator mac_op(parent,mac_bndry,dx);
 
@@ -435,7 +436,7 @@ mac_level_driver (Amr*            parent,
             }
         }
 
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
+        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil, false, 0, 1, verbose);
 
 	mgt_solver.set_maxorder(max_order);
 
@@ -518,7 +519,8 @@ mac_sync_driver (Amr*            parent,
                  MultiFab&       volume,
                  MultiFab&       Rhs,
                  MultiFab*       rho_half,
-                 MultiFab*       mac_sync_phi)
+                 MultiFab*       mac_sync_phi,
+                 bool            verbose)
 {
     MacOperator mac_op(parent,mac_bndry,dx);
 
@@ -583,7 +585,7 @@ mac_sync_driver (Amr*            parent,
             }
         }
 
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
+        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil, false, 0, 1, verbose);
 
 	mgt_solver.set_maxorder(max_order);
 

@@ -16,7 +16,7 @@ void mac_level_driver( Amr* parent, const MacBndry &mac_bndry, const BCRec& phys
                        Real mac_tol, Real mac_abs_tol, Real rhs_scale,
                        MultiFab *area,  MultiFab &volume,
                        MultiFab &S,     MultiFab &Rhs,
-                       MultiFab *u_mac, MultiFab *mac_phi );
+                       MultiFab *u_mac, MultiFab *mac_phi, bool verbose);
 
 // a driver function for computing a sync MAC solve
 void mac_sync_driver( Amr* parent, const MacBndry &mac_bndry, const BCRec& phys_bc,
@@ -26,7 +26,7 @@ void mac_sync_driver( Amr* parent, const MacBndry &mac_bndry, const BCRec& phys_
                       Real mac_sync_tol, Real mac_abs_tol, Real rhs_scale,
                       MultiFab *area,  MultiFab &volume,
                       MultiFab &Rhs,   MultiFab *rho_half,
-                      MultiFab *mac_sync_phi );
+                      MultiFab *mac_sync_phi, bool verbose);
 
 
 // apply the mac pressure gradient to a velocity field

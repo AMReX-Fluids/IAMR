@@ -440,7 +440,7 @@ MacProj::mac_project (int             level,
 
         mac_level_driver(parent, mac_bndry, *phys_bc, grids, the_solver, level, Density,
                          dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
-                         area, volume, S, Rhs, u_mac, mac_phi);
+                         area, volume, S, Rhs, u_mac, mac_phi, verbose);
     }
 
     Rhs.clear();
@@ -696,7 +696,7 @@ MacProj::mac_sync_solve (int       level,
 
     mac_sync_driver(parent, mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
                     mac_sync_tol, mac_abs_tol, rhs_scale, area,
-                    volume, Rhs, rho_half, mac_sync_phi);
+                    volume, Rhs, rho_half, mac_sync_phi, verbose);
 
     if (verbose)
     {
