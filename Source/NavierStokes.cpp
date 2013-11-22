@@ -5713,12 +5713,7 @@ NavierStokes::mac_sync ()
                 {
                     for (int d = 0; d < BL_SPACEDIM; d++)
                     {
-                        Real mult = dt;
-                        MultiFab& fluxSCd = *fluxSC[d];
-                        for (MFIter fmfi(fluxSCd); fmfi.isValid(); ++fmfi)
-                            getViscFluxReg().FineAdd(fluxSCd[fmfi],d,
-                                                     fmfi.index(),
-                                                     0,state_ind,1,mult);
+                        getViscFluxReg().FineAdd(*fluxSC[d],d,0,state_ind,1,dt);
                     }
                 }
             }
