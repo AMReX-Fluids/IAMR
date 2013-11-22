@@ -693,13 +693,15 @@ Diffusion::diffuse_velocity (Real                   dt,
                 {
                     for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
                     {
+                        const int idx = fmfi.index();
+
                         (*fluxSCnp1[d])[fmfi].plus((*fluxSCn[d])[fmfi]);
 
                         if (level < parent->finestLevel())
-                            fluxes[d][fmfi.index()].copy((*fluxSCnp1[d])[fmfi],fluxComp,sigma,1);
+                            fluxes[d][idx].copy((*fluxSCnp1[d])[fmfi],fluxComp,sigma,1);
 
                         if (level > 0)
-                            viscflux_reg->FineAdd((*fluxSCnp1[d])[fmfi],d,fmfi.index(),fluxComp,sigma,1,dt);
+                            viscflux_reg->FineAdd((*fluxSCnp1[d])[fmfi],d,idx,fluxComp,sigma,1,dt);
                     }
                 }
             }
@@ -968,19 +970,14 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 
         if (level > 0)
         {
-            for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
-            {
-                const int i = mfi.index();
-
-                for (int k = 0; k < BL_SPACEDIM; k++)
-                    viscflux_reg->FineAdd((*(tensorflux[k]))[i],k,i,Xvel,Xvel,BL_SPACEDIM,dt);
-            }
+            for (int k = 0; k < BL_SPACEDIM; k++)
+                viscflux_reg->FineAdd(*(tensorflux[k]),k,Xvel,Xvel,BL_SPACEDIM,dt);
         }
 
         if (level < finest_level)
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
-                (*finer->viscflux_reg).CrseInit(*tensorflux[d],d,0,Xvel,BL_SPACEDIM,-dt);
+                finer->viscflux_reg->CrseInit(*tensorflux[d],d,0,Xvel,BL_SPACEDIM,-dt);
         }
 
         removeFluxBoxesLevel(tensorflux);
