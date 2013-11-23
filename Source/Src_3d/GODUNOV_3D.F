@@ -46,7 +46,7 @@ c
 
       REAL_T  vel(DIMV(vel),SDIM)
       REAL_T  rho(DIMV(rho))
-      REAL_T  tforces(DIMV(tf),SDIM)
+      REAL_T  tforces(DIMV(tf),SDIM), irho
 
       PARAMETER(small = 1.0D-8, dt_start = 1.0D+20)
 
@@ -57,17 +57,18 @@ c
       tforce2 = zero
       tforce3 = zero
 
-!$omp parallel do private(i,j,k)
+!$omp parallel do private(i,j,k,irho)
 !$omp&reduction(max: u,v,w,tforce1,tforce2,tforce3)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
+               irho = 1.0d0/rho(i,j,k)
                u = max(u,abs(vel(i,j,k,1)))	
                v = max(v,abs(vel(i,j,k,2)))
                w = max(w,abs(vel(i,j,k,3)))
-               tforce1 = max(tforce1,abs(tforces(i,j,k,1)/rho(i,j,k)))
-               tforce2 = max(tforce2,abs(tforces(i,j,k,2)/rho(i,j,k)))
-               tforce3 = max(tforce3,abs(tforces(i,j,k,3)/rho(i,j,k)))
+               tforce1 = max(tforce1,abs(tforces(i,j,k,1)*irho))
+               tforce2 = max(tforce2,abs(tforces(i,j,k,2)*irho))
+               tforce3 = max(tforce3,abs(tforces(i,j,k,3)*irho))
             end do
          end do
       end do
@@ -83,17 +84,9 @@ c
       if (v .gt. small) dt = min(dt,dx(2)/v)
       if (w .gt. small) dt = min(dt,dx(3)/w)
 
-      if (tforce1 .gt. small) then
-         dt  = min(dt,sqrt(two*dx(1)/tforce1))
-      end if
-
-      if (tforce2 .gt. small) then
-         dt  = min(dt,sqrt(two*dx(2)/tforce2))
-      end if
-
-      if (tforce3 .gt. small) then
-         dt  = min(dt,sqrt(two*dx(3)/tforce3))
-      end if
+      if (tforce1 .gt. small) dt = min(dt,sqrt(two*dx(1)/tforce1))
+      if (tforce2 .gt. small) dt = min(dt,sqrt(two*dx(2)/tforce2))
+      if (tforce3 .gt. small) dt = min(dt,sqrt(two*dx(3)/tforce3))
 
       if (dt .eq. dt_start) dt = min(dx(1),dx(2),dx(3))
 
@@ -3237,17 +3230,17 @@ c
                do i = imin,imax
                   divux = (
      &                 areax(i+1,j,k)*uedge(i+1,j,k)-
-     &                 areax(i,  j,k)*uedge(i,  j,k))/vol(i,j,k)
+     &                 areax(i,  j,k)*uedge(i,  j,k))
                   divuy = (
      &                 areay(i,j+1,k)*vedge(i,j+1,k)-
-     &                 areay(i,j,  k)*vedge(i,j,  k))/vol(i,j,k)
+     &                 areay(i,j,  k)*vedge(i,j,  k))
                   divuz = (
      &                 areaz(i,j,k+1)*wedge(i,j,k+1)-
-     &                 areaz(i,j,k  )*wedge(i,j,k  ))/vol(i,j,k)
+     &                 areaz(i,j,k  )*wedge(i,j,k  ))
                   aofs(i,j,k) =
-     &                 - divux*half*(xflux(i+1,j,k)+xflux(i,j,k))
-     &                 - divuy*half*(yflux(i,j+1,k)+yflux(i,j,k))
-     &                 - divuz*half*(zflux(i,j,k+1)+zflux(i,j,k))
+     &                ( - divux*half*(xflux(i+1,j,k)+xflux(i,j,k))
+     &                  - divuy*half*(yflux(i,j+1,k)+yflux(i,j,k))
+     &                  - divuz*half*(zflux(i,j,k+1)+zflux(i,j,k)) )/vol(i,j,k)
               
                end do
             end do
@@ -3848,10 +3841,12 @@ c
       integer imin,jmin,kmin,imax,jmax,kmax,i,j,k
       integer ng
       REAL_T dpls,dmin,ds
-      REAL_T del,slim,sflg
+      REAL_T del,slim,sflg,sixteen15ths
       integer cen,lim,flag,fromm
 
       PARAMETER( cen = 1, lim = 2, flag = 3, fromm = 4 )
+      PARAMETER( sixteen15ths = sixteen/fifteen )
+
 
       ng = lo(1) - ARG_L1(s)
       imin = lo(1)
@@ -3909,11 +3904,11 @@ c
                     end do
                     if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
                        slx(imin-1,j,k) = zero
-                       slx(imin  ,j,k) = (s(imin+1,j,k)+three*s(imin,j,k)-four*s(imin-1,j,k))/three
+                       slx(imin  ,j,k) = (s(imin+1,j,k)+three*s(imin,j,k)-four*s(imin-1,j,k))*third
                     end if
                     if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
                        slx(imax+1,j,k) = zero
-                       slx(imax  ,j,k) = -(s(imax-1,j,k)+three*s(imax,j,k)-four*s(imax+1,j,k))/three
+                       slx(imax  ,j,k) = -(s(imax-1,j,k)+three*s(imax,j,k)-four*s(imax+1,j,k))*third
                     end if
                  end do
               end do
@@ -3932,7 +3927,7 @@ c
                     end do
                     if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
                        slx(imin-1,j,k) = zero
-                       del  = (s(imin+1,j,k)+three*s(imin,j,k)-four*s(imin-1,j,k))/three
+                       del  = (s(imin+1,j,k)+three*s(imin,j,k)-four*s(imin-1,j,k))*third
                        dpls = two*(s(imin+1,j,k) - s(imin  ,j,k))
                        dmin = two*(s(imin  ,j,k) - s(imin-1,j,k))
                        slim = min(abs(dpls), abs(dmin))
@@ -3942,7 +3937,7 @@ c
                     end if
                     if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
                        slx(imax+1,j,k) = zero
-                       del  = -(s(imax-1,j,k)+three*s(imax,j,k)-four*s(imax+1,j,k))/three
+                       del  = -(s(imax-1,j,k)+three*s(imax,j,k)-four*s(imax+1,j,k))*third
                        dpls = two*(s(imax+1,j,k) - s(imax  ,j,k))
                        dmin = two*(s(imax  ,j,k) - s(imax-1,j,k))
                        slim = min(abs(dpls), abs(dmin))
@@ -3967,11 +3962,11 @@ c
                     end do
                     if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
                        sly(i,jmin-1,k) = zero
-                       sly(i,jmin  ,k) = (s(i,jmin+1,k)+three*s(i,jmin,k)-four*s(i,jmin-1,k))/three
+                       sly(i,jmin  ,k) = (s(i,jmin+1,k)+three*s(i,jmin,k)-four*s(i,jmin-1,k))*third
                     end if
                     if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
                        sly(i,jmax+1,k) = zero
-                       sly(i,jmax  ,k) = -(s(i,jmax-1,k)+three*s(i,jmax,k)-four*s(i,jmax+1,k))/three
+                       sly(i,jmax  ,k) = -(s(i,jmax-1,k)+three*s(i,jmax,k)-four*s(i,jmax+1,k))*third
                     end if
                  end do
               end do
@@ -3990,7 +3985,7 @@ c
                     end do
                     if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
                        sly(i,jmin-1,k) = zero
-                       del  = (s(i,jmin+1,k)+three*s(i,jmin,k)-four*s(i,jmin-1,k))/three
+                       del  = (s(i,jmin+1,k)+three*s(i,jmin,k)-four*s(i,jmin-1,k))*third
                        dpls = two*(s(i,jmin+1,k) - s(i,jmin  ,k))
                        dmin = two*(s(i,jmin  ,k) - s(i,jmin-1,k))
                        slim = min(abs(dpls), abs(dmin))
@@ -4000,7 +3995,7 @@ c
                     end if
                     if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
                        sly(i,jmax+1,k) = zero
-                       del  = -(s(i,jmax-1,k)+three*s(i,jmax,k)-four*s(i,jmax+1,k))/three
+                       del  = -(s(i,jmax-1,k)+three*s(i,jmax,k)-four*s(i,jmax+1,k))*third
                        dpls = two*(s(i,jmax+1,k) - s(i,jmax  ,k))
                        dmin = two*(s(i,jmax  ,k) - s(i,jmax-1,k))
                        slim = min(abs(dpls), abs(dmin))
@@ -4025,11 +4020,11 @@ c
                     end do
                     if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
                        slz(i,j,kmin-1) = zero
-                       slz(i,j,kmin  ) = (s(i,j,kmin+1)+three*s(i,j,kmin)-four*s(i,j,kmin-1))/three
+                       slz(i,j,kmin  ) = (s(i,j,kmin+1)+three*s(i,j,kmin)-four*s(i,j,kmin-1))*third
                     end if
                     if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
                        slz(i,j,kmax+1) = zero
-                       slz(i,j,kmax  ) = -(s(i,j,kmax-1)+three*s(i,j,kmax)-four*s(i,j,kmax+1))/three
+                       slz(i,j,kmax  ) = -(s(i,j,kmax-1)+three*s(i,j,kmax)-four*s(i,j,kmax+1))*third
                     end if
                  end do
               end do
@@ -4048,7 +4043,7 @@ c
                     end do
                     if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
                        slz(i,j,kmin-1) = zero
-                       del  = (s(i,j,kmin+1)+three*s(i,j,kmin)-four*s(i,j,kmin-1))/three
+                       del  = (s(i,j,kmin+1)+three*s(i,j,kmin)-four*s(i,j,kmin-1))*third
                        dpls = two*(s(i,j,kmin+1) - s(i,j,kmin  ))
                        dmin = two*(s(i,j,kmin  ) - s(i,j,kmin-1))
                        slim = min(abs(dpls), abs(dmin))
@@ -4058,7 +4053,7 @@ c
                     end if
                     if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
                        slz(i,j,kmax+1) = zero
-                       del  = -(s(i,j,kmax-1)+three*s(i,j,kmax)-four*s(i,j,kmax+1))/three
+                       del  = -(s(i,j,kmax-1)+three*s(i,j,kmax)-four*s(i,j,kmax+1))*third
                        dpls = two*(s(i,j,kmax+1) - s(i,j,kmax  ))
                        dmin = two*(s(i,j,kmax  ) - s(i,j,kmax-1))
                        slim = min(abs(dpls), abs(dmin))
@@ -4098,12 +4093,12 @@ c
      &                      sixth * (slxscr(i+1,cen) + slxscr(i-1,cen))
                     end do
                     if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
-                       slx(imin,j,k) = -sixteen/fifteen*s(imin-1,j,k) + half*s(imin,j,k) + 
+                       slx(imin,j,k) = -sixteen15ths*s(imin-1,j,k) + half*s(imin,j,k) + 
      &                      two3rd*s(imin+1,j,k) - tenth*s(imin+2,j,k)
                        slx(imin-1,j,k) = zero
                     end if
                     if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
-                       slx(imax,j,k) = -( -sixteen/fifteen*s(imax+1,j,k) + half*s(imax,j,k) + 
+                       slx(imax,j,k) = -( -sixteen15ths*s(imax+1,j,k) + half*s(imax,j,k) + 
      &                      two3rd*s(imax-1,j,k) - tenth*s(imax-2,j,k) )
                        slx(imax+1,j,k) = zero
                     end if
@@ -4131,7 +4126,7 @@ c
                     end do
 
                     if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
-                       del  = -sixteen/fifteen*s(imin-1,j,k) + half*s(imin,j,k) + 
+                       del  = -sixteen15ths*s(imin-1,j,k) + half*s(imin,j,k) + 
      &                      two3rd*s(imin+1,j,k) -  tenth*s(imin+2,j,k)
                        dmin = two*(s(imin  ,j,k)-s(imin-1,j,k))
                        dpls = two*(s(imin+1,j,k)-s(imin  ,j,k))
@@ -4149,7 +4144,7 @@ c                      Recalculate the slope at imin+1 using the revised slxscr(
                     end if
 
                     if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
-                       del  = -( -sixteen/fifteen*s(imax+1,j,k) + half*s(imax,j,k) + 
+                       del  = -( -sixteen15ths*s(imax+1,j,k) + half*s(imax,j,k) + 
      &                      two3rd*s(imax-1,j,k) - tenth*s(imax-2,j,k) )
                        dmin = two*(s(imax  ,j,k)-s(imax-1,j,k))
                        dpls = two*(s(imax+1,j,k)-s(imax  ,j,k))
@@ -4187,11 +4182,11 @@ c
                     end do
                     if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
                        sly(i,jmin-1,k) = zero
-                       sly(i,jmin,k) = -sixteen/fifteen*s(i,jmin-1,k) + half*s(i,jmin,k) + 
+                       sly(i,jmin,k) = -sixteen15ths*s(i,jmin-1,k) + half*s(i,jmin,k) + 
      &                      two3rd*s(i,jmin+1,k) - tenth*s(i,jmin+2,k)
                     end if
                     if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
-                       sly(i,jmax,k) = -( -sixteen/fifteen*s(i,jmax+1,k) + half*s(i,jmax,k) + 
+                       sly(i,jmax,k) = -( -sixteen15ths*s(i,jmax+1,k) + half*s(i,jmax,k) + 
      &                      two3rd*s(i,jmax-1,k) - tenth*s(i,jmax-2,k) )
                        sly(i,jmax+1,k) = zero
                     end if
@@ -4219,7 +4214,7 @@ c
                     end do
 c
                     if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
-                       del  = -sixteen/fifteen*s(i,jmin-1,k) + half*s(i,jmin,k) + 
+                       del  = -sixteen15ths*s(i,jmin-1,k) + half*s(i,jmin,k) + 
      &                      two3rd*s(i,jmin+1,k) - tenth*s(i,jmin+2,k)
                        dmin = two*(s(i,jmin  ,k)-s(i,jmin-1,k))
                        dpls = two*(s(i,jmin+1,k)-s(i,jmin  ,k))
@@ -4236,7 +4231,7 @@ c                      Recalculate the slope at jmin+1 using the revised slyscr(
                        sly(i,jmin+1,k) = slyscr(jmin+1,flag)*min(abs(ds),slyscr(jmin+1,lim))
                     end if
                     if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
-                       del  = -( -sixteen/fifteen*s(i,jmax+1,k) + half*s(i,jmax,k) +
+                       del  = -( -sixteen15ths*s(i,jmax+1,k) + half*s(i,jmax,k) +
      &                      two3rd*s(i,jmax-1,k) - tenth*s(i,jmax-2,k) )
                        dmin = two*(s(i,jmax  ,k)-s(i,jmax-1,k))
                        dpls = two*(s(i,jmax+1,k)-s(i,jmax  ,k))
@@ -4275,11 +4270,11 @@ c
                  end do
                  if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
                     slz(i,j,kmin-1) = zero
-                    slz(i,j,kmin) = -sixteen/fifteen*s(i,j,kmin-1) + half*s(i,j,kmin) + 
+                    slz(i,j,kmin) = -sixteen15ths*s(i,j,kmin-1) + half*s(i,j,kmin) + 
      &                   two3rd*s(i,j,kmin+1) - tenth*s(i,j,kmin+2)
                  end if
                  if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
-                    slz(i,j,kmax) = -( -sixteen/fifteen*s(i,j,kmax+1) + half*s(i,j,kmax) + 
+                    slz(i,j,kmax) = -( -sixteen15ths*s(i,j,kmax+1) + half*s(i,j,kmax) + 
      &                   two3rd*s(i,j,kmax-1) - tenth*s(i,j,kmax-2) )
                     slz(i,j,kmax+1) = zero
                  end if
@@ -4306,7 +4301,7 @@ c
                     end do
 c
                     if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
-                       del  = -sixteen/fifteen*s(i,j,kmin-1) + half*s(i,j,kmin) +
+                       del  = -sixteen15ths*s(i,j,kmin-1) + half*s(i,j,kmin) +
      &                      two3rd*s(i,j,kmin+1) - tenth*s(i,j,kmin+2)
                        dmin = two*(s(i,j,kmin  )-s(i,j,kmin-1))
                        dpls = two*(s(i,j,kmin+1)-s(i,j,kmin  ))
@@ -4323,7 +4318,7 @@ c                      Recalculate the slope at jmin+1 using the revised slzscr(
                        slz(i,j,kmin+1) = slzscr(kmin+1,flag)*min(abs(ds),slzscr(kmin+1,lim))
                     end if
                     if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
-                       del  = sixteen/fifteen*s(i,j,kmax+1) - half*s(i,j,kmax)
+                       del  = sixteen15ths*s(i,j,kmax+1) - half*s(i,j,kmax)
      &                      - two3rd*s(i,j,kmax-1) + tenth*s(i,j,kmax-2)
                        dmin = two*(s(i,j,kmax  )-s(i,j,kmax-1))
                        dpls = two*(s(i,j,kmax+1)-s(i,j,kmax  ))
@@ -4396,11 +4391,11 @@ c     local
       REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
       REAL_T sgn, sigma, s6
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
-      REAL_T amax, delam, delap
+      REAL_T amax, delam, delap, three_4ths, one_20th
 c
 c     constant used in Colella 2008
 c
-      PARAMETER(C = 1.25d0)
+      PARAMETER(C = 1.25d0, three_4ths = 3.d0/4.d0, one_20th = 1.d0/20.0d0)
 
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 c     ! x-direction
@@ -4427,7 +4422,7 @@ c     interpolate s to x-edges
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+2
-                  sedgex(i,j,k) = 0.5d0*(s(i,j,k)+s(i-1,j,k)) - (1.d0/6.d0)*(dsvl(i,j,k)-dsvl(i-1,j,k))
+                  sedgex(i,j,k) = 0.5d0*(s(i,j,k)+s(i-1,j,k)) - (sixth)*(dsvl(i,j,k)-dsvl(i-1,j,k))
 c     make sure sedgex lies in between adjacent cell-centered values
                   sedgex(i,j,k) = max(sedgex(i,j,k),min(s(i,j,k),s(i-1,j,k)))
                   sedgex(i,j,k) = min(sedgex(i,j,k),max(s(i,j,k),s(i-1,j,k)))
@@ -4468,10 +4463,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgex on the first interior edge
             sedgex(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
 
 c     make sure sedgex lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -4518,10 +4513,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgex on the first interior edge
             sedgex(hi(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(hi(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
 
 c     make sure sedgex lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -4577,7 +4572,7 @@ c     limit sedgex
                      D2R = s(i-1,j,k)-2.d0*s(i,j,k)+s(i+1,j,k)
                      sgn = sign(1.d0,D2)
                      D2LIM = sgn*max(min(C*sgn*D2L,C*sgn*D2R,sgn*D2),0.d0)
-                     sedgex(i,j,k) = 0.5d0*(s(i-1,j,k)+s(i,j,k)) - (1.d0/6.d0)*D2LIM
+                     sedgex(i,j,k) = 0.5d0*(s(i-1,j,k)+s(i,j,k)) - (sixth)*D2LIM
                   end if
                end do
             end do
@@ -4670,10 +4665,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgex on the first interior edge
             sedgex(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
 
 c     make sure sedgex lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -4775,10 +4770,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgex on the first interior edge
             sedgex(hi(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(hi(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
 
 c     make sure sedgex lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -4883,13 +4878,13 @@ c     compute x-component of Ip and Im
                sigma = abs(u(i,j,k))*dt/dx(1)
                s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
                if (u(i,j,k) .gt. eps) then
-                  Ipx(i,j,k) = sp(i,j,k) - (sigma/2.0d0)*
-     &                 (sp(i,j,k)-sm(i,j,k)-(1.0d0-(2.0d0/3.0d0)*sigma)*s6)
+                  Ipx(i,j,k) = sp(i,j,k) - (sigma*half)*
+     &                 (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigma)*s6)
                   Imx(i,j,k) = s(i,j,k)
                else if (u(i,j,k) .lt. -eps) then
                   Ipx(i,j,k) = s(i,j,k)
-                  Imx(i,j,k) = sm(i,j,k) + (sigma/2.0d0)*
-     &                 (sp(i,j,k)-sm(i,j,k)+(1.0d0-(2.0d0/3.0d0)*sigma)*s6)
+                  Imx(i,j,k) = sm(i,j,k) + (sigma*half)*
+     &                 (sp(i,j,k)-sm(i,j,k)+(1.0d0-two3rd*sigma)*s6)
                else
                   Ipx(i,j,k) = s(i,j,k)
                   Imx(i,j,k) = s(i,j,k)
@@ -4923,7 +4918,7 @@ c     interpolate s to y-edges
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+2
                do i=lo(1)-1,hi(1)+1
-                  sedgey(i,j,k) = 0.5d0*(s(i,j,k)+s(i,j-1,k)) - (1.d0/6.d0)*(dsvl(i,j,k)-dsvl(i,j-1,k))
+                  sedgey(i,j,k) = 0.5d0*(s(i,j,k)+s(i,j-1,k)) - (sixth)*(dsvl(i,j,k)-dsvl(i,j-1,k))
 c     make sure sedgey lies in between adjacent cell-centered values
                   sedgey(i,j,k) = max(sedgey(i,j,k),min(s(i,j,k),s(i,j-1,k)))
                   sedgey(i,j,k) = min(sedgey(i,j,k),max(s(i,j,k),s(i,j-1,k)))
@@ -4964,10 +4959,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgey on the first interior edge
             sedgey(lo(1)-1:hi(1)+1,lo(2)+1,lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)  ,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,lo(2)  ,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)+1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)+2,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,lo(2)+2,lo(3)-1:hi(3)+1)
 
 c     make sure sedgey lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -5014,10 +5009,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgey on the first interior edge
             sedgey(lo(1)-1:hi(1)+1,hi(2),lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,hi(2)  ,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,hi(2)  ,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,hi(2)-1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,hi(2)-2,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,hi(2)-2,lo(3)-1:hi(3)+1)
 
 c     make sure sedgey lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -5073,7 +5068,7 @@ c     limit sedgey
                      D2R = s(i,j-1,k)-2.d0*s(i,j,k)+s(i,j+1,k)
                      sgn = sign(1.d0,D2)
                      D2LIM = sgn*max(min(C*sgn*D2L,C*sgn*D2R,sgn*D2),0.d0)
-                     sedgey(i,j,k) = 0.5d0*(s(i,j-1,k)+s(i,j,k)) - (1.d0/6.d0)*D2LIM
+                     sedgey(i,j,k) = 0.5d0*(s(i,j-1,k)+s(i,j,k)) - (sixth)*D2LIM
                   end if
                end do
             end do
@@ -5166,10 +5161,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgey on the first interior edge
             sedgey(lo(1)-1:hi(1)+1,lo(2)+1,lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)  ,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,lo(2)  ,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)+1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)+2,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,lo(2)+2,lo(3)-1:hi(3)+1)
 
 c     make sure sedgey lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -5272,10 +5267,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgey on the first interior edge
             sedgey(lo(1)-1:hi(1)+1,hi(2),lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,hi(2)  ,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,hi(2)  ,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,hi(2)-1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,hi(2)-2,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,hi(2)-2,lo(3)-1:hi(3)+1)
 
 c     make sure sedgey lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -5380,13 +5375,13 @@ c     compute y-component of Ip and Im
                sigma = abs(v(i,j,k))*dt/dx(2)
                s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
                if (v(i,j,k) .gt. eps) then
-                  Ipy(i,j,k) = sp(i,j,k) - (sigma/2.0d0)*
-     &                 (sp(i,j,k)-sm(i,j,k)-(1.0d0-(2.0d0/3.0d0)*sigma)*s6)
+                  Ipy(i,j,k) = sp(i,j,k) - (sigma*half)*
+     &                 (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigma)*s6)
                   Imy(i,j,k) = s(i,j,k)
                else if (v(i,j,k) .lt. -eps) then
                   Ipy(i,j,k) = s(i,j,k)
-                  Imy(i,j,k) = sm(i,j,k) + (sigma/2.0d0)*
-     &                 (sp(i,j,k)-sm(i,j,k)+(1.0d0-(2.0d0/3.0d0)*sigma)*s6)
+                  Imy(i,j,k) = sm(i,j,k) + (sigma*half)*
+     &                 (sp(i,j,k)-sm(i,j,k)+(1.0d0-two3rd*sigma)*s6)
                else
                   Ipy(i,j,k) = s(i,j,k)
                   Imy(i,j,k) = s(i,j,k)
@@ -5420,7 +5415,7 @@ c     interpolate s to z-edges
          do k=lo(3)-1,hi(3)+2
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
-                  sedgez(i,j,k) = 0.5d0*(s(i,j,k)+s(i,j,k-1)) - (1.d0/6.d0)*(dsvl(i,j,k)-dsvl(i,j,k-1))
+                  sedgez(i,j,k) = 0.5d0*(s(i,j,k)+s(i,j,k-1)) - (sixth)*(dsvl(i,j,k)-dsvl(i,j,k-1))
 c                  make sure sedgez lies in between adjacent cell-centered values
                   sedgez(i,j,k) = max(sedgez(i,j,k),min(s(i,j,k),s(i,j,k-1)))
                   sedgez(i,j,k) = min(sedgez(i,j,k),max(s(i,j,k),s(i,j,k-1)))
@@ -5461,10 +5456,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgez on the first interior edge
             sedgez(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  )
+     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  )
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+2)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+2)
 
 c     make sure sedgez lies in between adjacent cell-centered values
             do j=lo(2)-1,hi(2)+1
@@ -5511,10 +5506,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgez on the first interior edge
             sedgez(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)  )
+     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)  )
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-2)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-2)
 
 c     make sure sedgez lies in between adjacent cell-centered values
             do j=lo(2)-1,hi(2)+1
@@ -5570,7 +5565,7 @@ c     limit sedgez
                      D2R = s(i,j,k-1)-2.d0*s(i,j,k)+s(i,j,k+1)
                      sgn = sign(1.d0,D2)
                      D2LIM = sgn*max(min(C*sgn*D2L,C*sgn*D2R,sgn*D2),0.d0)
-                     sedgez(i,j,k) = 0.5d0*(s(i,j,k-1)+s(i,j,k)) - (1.d0/6.d0)*D2LIM
+                     sedgez(i,j,k) = 0.5d0*(s(i,j,k-1)+s(i,j,k)) - (sixth)*D2LIM
                   end if
                end do
             end do
@@ -5663,10 +5658,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgez on the first interior edge
             sedgez(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  )
+     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  )
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+2)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+2)
 
 c     make sure sedgez lies in between adjacent cell-centered values
             do j=lo(2)-1,hi(2)+1
@@ -5769,10 +5764,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgez on the first interior edge
             sedgez(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)  )
+     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)  )
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-2)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-2)
 
 c     make sure sedgez lies in between adjacent cell-centered values
             do j=lo(2)-1,hi(2)+1
@@ -5878,13 +5873,13 @@ c     compute effect of w0 in plane-parallel
                sigma = abs(w(i,j,k))*dt/dx(3)
                s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
                if (w(i,j,k) .gt. eps) then
-                  Ipz(i,j,k) = sp(i,j,k) - (sigma/2.0d0)*
-     &                 (sp(i,j,k)-sm(i,j,k)-(1.0d0-(2.0d0/3.0d0)*sigma)*s6)
+                  Ipz(i,j,k) = sp(i,j,k) - (sigma*half)*
+     &                 (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigma)*s6)
                   Imz(i,j,k) = s(i,j,k)
                else if (w(i,j,k) .lt. -eps) then
                   Ipz(i,j,k) = s(i,j,k)
-                  Imz(i,j,k) = sm(i,j,k) + (sigma/2.0d0)*
-     &                 (sp(i,j,k)-sm(i,j,k)+(1.0d0-(2.0d0/3.0d0)*sigma)*s6)
+                  Imz(i,j,k) = sm(i,j,k) + (sigma*half)*
+     &                 (sp(i,j,k)-sm(i,j,k)+(1.0d0-two3rd*sigma)*s6)
                else
                   Ipz(i,j,k) = s(i,j,k)
                   Imz(i,j,k) = s(i,j,k)
@@ -5944,11 +5939,13 @@ c     local
       REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
       REAL_T sgn, sigmam, sigmap, s6
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
-      REAL_T amax, delam, delap
+      REAL_T amax, delam, delap, three_4ths, one_20th, one_12th, seven_12ths
+
 c
 c     constant used in Colella 2008
 c
-      PARAMETER(C = 1.25d0)
+      PARAMETER(C = 1.25d0, three_4ths = 3.d0/4.d0, one_20th = 1.d0/20.0d0)
+      PARAMETER(one_12th = 1.d0/12.d0, seven_12ths = 7.d0/12.d0)
 
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 c     ! x-direction
@@ -5975,7 +5972,7 @@ c     interpolate s to x-edges
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+2
-                  sedgex(i,j,k) = 0.5d0*(s(i,j,k)+s(i-1,j,k)) - (1.d0/6.d0)*(dsvl(i,j,k)-dsvl(i-1,j,k))
+                  sedgex(i,j,k) = 0.5d0*(s(i,j,k)+s(i-1,j,k)) - (sixth)*(dsvl(i,j,k)-dsvl(i-1,j,k))
 c     make sure sedgex lies in between adjacent cell-centered values
                   sedgex(i,j,k) = max(sedgex(i,j,k),min(s(i,j,k),s(i-1,j,k)))
                   sedgex(i,j,k) = min(sedgex(i,j,k),max(s(i,j,k),s(i-1,j,k)))
@@ -6016,10 +6013,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgex on the first interior edge
             sedgex(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
 
 c     make sure sedgex lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -6066,10 +6063,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgex on the first interior edge
             sedgex(hi(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(hi(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
 
 c     make sure sedgex lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -6116,8 +6113,8 @@ c     interpolate s to x-edges
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-2,hi(1)+3
-                  sedgex(i,j,k) = (7.d0/12.d0)*(s(i-1,j,k)+s(i,j,k))
-     &                 - (1.d0/12.d0)*(s(i-2,j,k)+s(i+1,j,k))
+                  sedgex(i,j,k) = seven_12ths*(s(i-1,j,k)+s(i,j,k))
+     &                 - one_12th*(s(i-2,j,k)+s(i+1,j,k))
 c     limit sedgex
                   if ((sedgex(i,j,k)-s(i-1,j,k))*(s(i,j,k)-sedgex(i,j,k)) .lt. 0.d0) then
                      D2  = 3.d0*(s(i-1,j,k)-2.d0*sedgex(i,j,k)+s(i,j,k))
@@ -6125,7 +6122,7 @@ c     limit sedgex
                      D2R = s(i-1,j,k)-2.d0*s(i,j,k)+s(i+1,j,k)
                      sgn = sign(1.d0,D2)
                      D2LIM = sgn*max(min(C*sgn*D2L,C*sgn*D2R,sgn*D2),0.d0)
-                     sedgex(i,j,k) = 0.5d0*(s(i-1,j,k)+s(i,j,k)) - (1.d0/6.d0)*D2LIM
+                     sedgex(i,j,k) = 0.5d0*(s(i-1,j,k)+s(i,j,k)) - (sixth)*D2LIM
                   end if
                end do
             end do
@@ -6218,10 +6215,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgex on the first interior edge
             sedgex(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
 
 c     make sure sedgex lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -6323,10 +6320,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgex on the first interior edge
             sedgex(hi(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(hi(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
 
 c     make sure sedgex lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -6432,14 +6429,14 @@ c     compute x-component of Ip and Im
              sigmam = abs(uedge(i,j,k))*dt/dx(1)
              s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
              if (uedge(i+1,j,k) .gt. eps) then
-                Ipx(i,j,k) = sp(i,j,k) - (sigmap/2.0d0)*
-     &               (sp(i,j,k)-sm(i,j,k)-(1.0d0-(2.0d0/3.0d0)*sigmap)*s6)
+                Ipx(i,j,k) = sp(i,j,k) - (sigmap*half)*
+     &               (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigmap)*s6)
              else
                 Ipx(i,j,k) = s(i,j,k)
              end if
              if (uedge(i,j,k) .lt. -eps) then
-                Imx(i,j,k) = sm(i,j,k) + (sigmam/2.0d0)*
-     &               (sp(i,j,k)-sm(i,j,k)+(1.0d0-(2.0d0/3.0d0)*sigmam)*s6)
+                Imx(i,j,k) = sm(i,j,k) + (sigmam*half)*
+     &               (sp(i,j,k)-sm(i,j,k)+(1.0d0-two3rd*sigmam)*s6)
              else
                 Imx(i,j,k) = s(i,j,k)
              end if
@@ -6472,7 +6469,7 @@ c     interpolate s to y-edges
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+2
                do i=lo(1)-1,hi(1)+1
-                  sedgey(i,j,k) = 0.5d0*(s(i,j,k)+s(i,j-1,k)) - (1.d0/6.d0)*(dsvl(i,j,k)-dsvl(i,j-1,k))
+                  sedgey(i,j,k) = 0.5d0*(s(i,j,k)+s(i,j-1,k)) - (sixth)*(dsvl(i,j,k)-dsvl(i,j-1,k))
 c     make sure sedgey lies in between adjacent cell-centered values
                   sedgey(i,j,k) = max(sedgey(i,j,k),min(s(i,j,k),s(i,j-1,k)))
                   sedgey(i,j,k) = min(sedgey(i,j,k),max(s(i,j,k),s(i,j-1,k)))
@@ -6513,10 +6510,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgey on the first interior edge
             sedgey(lo(1)-1:hi(1)+1,lo(2)+1,lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)  ,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,lo(2)  ,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)+1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)+2,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,lo(2)+2,lo(3)-1:hi(3)+1)
 
 c     make sure sedgey lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -6563,10 +6560,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgey on the first interior edge
             sedgey(lo(1)-1:hi(1)+1,hi(2),lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,hi(2)  ,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,hi(2)  ,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,hi(2)-1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,hi(2)-2,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,hi(2)-2,lo(3)-1:hi(3)+1)
 
 c     make sure sedgey lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -6613,8 +6610,8 @@ c     interpolate s to y-edges
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-2,hi(2)+3
                do i=lo(1)-1,hi(1)+1
-                  sedgey(i,j,k) = (7.d0/12.d0)*(s(i,j-1,k)+s(i,j,k))
-     &                 - (1.d0/12.d0)*(s(i,j-2,k)+s(i,j+1,k))
+                  sedgey(i,j,k) = seven_12ths*(s(i,j-1,k)+s(i,j,k))
+     &                 - one_12th*(s(i,j-2,k)+s(i,j+1,k))
 c     limit sedgey
                   if ((sedgey(i,j,k)-s(i,j-1,k))*(s(i,j,k)-sedgey(i,j,k)) .lt. 0.d0) then
                      D2  = 3.d0*(s(i,j-1,k)-2.d0*sedgey(i,j,k)+s(i,j,k))
@@ -6622,7 +6619,7 @@ c     limit sedgey
                      D2R = s(i,j-1,k)-2.d0*s(i,j,k)+s(i,j+1,k)
                      sgn = sign(1.d0,D2)
                      D2LIM = sgn*max(min(C*sgn*D2L,C*sgn*D2R,sgn*D2),0.d0)
-                     sedgey(i,j,k) = 0.5d0*(s(i,j-1,k)+s(i,j,k)) - (1.d0/6.d0)*D2LIM
+                     sedgey(i,j,k) = 0.5d0*(s(i,j-1,k)+s(i,j,k)) - (sixth)*D2LIM
                   end if
                end do
             end do
@@ -6715,10 +6712,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgey on the first interior edge
             sedgey(lo(1)-1:hi(1)+1,lo(2)+1,lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)  ,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,lo(2)  ,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)+1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)+2,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,lo(2)+2,lo(3)-1:hi(3)+1)
 
 c     make sure sedgey lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -6821,10 +6818,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgey on the first interior edge
             sedgey(lo(1)-1:hi(1)+1,hi(2),lo(3)-1:hi(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,hi(2)  ,lo(3)-1:hi(3)+1)
+     &           -fifth        *s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,hi(2)  ,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,hi(2)-1,lo(3)-1:hi(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,hi(2)-2,lo(3)-1:hi(3)+1)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,hi(2)-2,lo(3)-1:hi(3)+1)
 
 c     make sure sedgey lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -6930,14 +6927,14 @@ c     compute y-component of Ip and Im
              sigmam = abs(vedge(i,j,k))*dt/dx(2)
              s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
              if (vedge(i,j+1,k) .gt. eps) then
-                Ipy(i,j,k) = sp(i,j,k) - (sigmap/2.0d0)*
-     &               (sp(i,j,k)-sm(i,j,k)-(1.0d0-(2.0d0/3.0d0)*sigmap)*s6)
+                Ipy(i,j,k) = sp(i,j,k) - (sigmap*half)*
+     &               (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigmap)*s6)
              else
                 Ipy(i,j,k) = s(i,j,k)
              end if
              if (vedge(i,j,k) .lt. -eps) then
-                Imy(i,j,k) = sm(i,j,k) + (sigmam/2.0d0)*
-     &               (sp(i,j,k)-sm(i,j,k)+(1.0d0-(2.0d0/3.0d0)*sigmam)*s6)
+                Imy(i,j,k) = sm(i,j,k) + (sigmam*half)*
+     &               (sp(i,j,k)-sm(i,j,k)+(1.0d0-two3rd*sigmam)*s6)
              else
                 Imy(i,j,k) = s(i,j,k)
              end if
@@ -6970,7 +6967,7 @@ c     interpolate s to z-edges
          do k=lo(3)-1,hi(3)+2
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
-                  sedgez(i,j,k) = 0.5d0*(s(i,j,k)+s(i,j,k-1)) - (1.d0/6.d0)*(dsvl(i,j,k)-dsvl(i,j,k-1))
+                  sedgez(i,j,k) = 0.5d0*(s(i,j,k)+s(i,j,k-1)) - (sixth)*(dsvl(i,j,k)-dsvl(i,j,k-1))
 c                  make sure sedgez lies in between adjacent cell-centered values
                   sedgez(i,j,k) = max(sedgez(i,j,k),min(s(i,j,k),s(i,j,k-1)))
                   sedgez(i,j,k) = min(sedgez(i,j,k),max(s(i,j,k),s(i,j,k-1)))
@@ -7011,10 +7008,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgez on the first interior edge
             sedgez(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  )
+     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  )
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+2)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+2)
 
 c     make sure sedgez lies in between adjacent cell-centered values
             do j=lo(2)-1,hi(2)+1
@@ -7061,10 +7058,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgez on the first interior edge
             sedgez(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)  )
+     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)  )
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-2)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-2)
 
 c     make sure sedgez lies in between adjacent cell-centered values
             do j=lo(2)-1,hi(2)+1
@@ -7111,8 +7108,8 @@ c     interpolate s to z-edges
          do k=lo(3)-2,hi(3)+3
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
-                  sedgez(i,j,k) = (7.d0/12.d0)*(s(i,j,k-1)+s(i,j,k))
-     &                 - (1.d0/12.d0)*(s(i,j,k-2)+s(i,j,k+1))
+                  sedgez(i,j,k) = seven_12ths*(s(i,j,k-1)+s(i,j,k))
+     &                 - one_12th*(s(i,j,k-2)+s(i,j,k+1))
 c     limit sedgez
                   if ((sedgez(i,j,k)-s(i,j,k-1))*(s(i,j,k)-sedgez(i,j,k)) .lt. 0.d0) then
                      D2  = 3.d0*(s(i,j,k-1)-2.d0*sedgez(i,j,k)+s(i,j,k))
@@ -7120,7 +7117,7 @@ c     limit sedgez
                      D2R = s(i,j,k-1)-2.d0*s(i,j,k)+s(i,j,k+1)
                      sgn = sign(1.d0,D2)
                      D2LIM = sgn*max(min(C*sgn*D2L,C*sgn*D2R,sgn*D2),0.d0)
-                     sedgez(i,j,k) = 0.5d0*(s(i,j,k-1)+s(i,j,k)) - (1.d0/6.d0)*D2LIM
+                     sedgez(i,j,k) = 0.5d0*(s(i,j,k-1)+s(i,j,k)) - (sixth)*D2LIM
                   end if
                end do
             end do
@@ -7213,10 +7210,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgez on the first interior edge
             sedgez(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+1) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  )
+     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  )
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+2)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+2)
 
 c     make sure sedgez lies in between adjacent cell-centered values
             do j=lo(2)-1,hi(2)+1
@@ -7319,10 +7316,10 @@ c     the value in the first cc ghost cell represents the edge value
 
 c     use a modified stencil to get sedgez on the first interior edge
             sedgez(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)) =
-     &           -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1)
-     &           +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)  )
+     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1)
+     &           +three_4ths   *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)  )
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-1)
-     &           -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-2)
+     &           -one_20th     *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-2)
 
 c     make sure sedgez lies in between adjacent cell-centered values
             do j=lo(2)-1,hi(2)+1
@@ -7429,14 +7426,14 @@ c     compute effect of w0 in plane-parallel
              sigmam = abs(wedge(i,j,k))*dt/dx(3)
              s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
              if (wedge(i,j,k+1) .gt. eps) then
-                Ipz(i,j,k) = sp(i,j,k) - (sigmap/2.0d0)*
-     &               (sp(i,j,k)-sm(i,j,k)-(1.0d0-(2.0d0/3.0d0)*sigmap)*s6)
+                Ipz(i,j,k) = sp(i,j,k) - (sigmap*half)*
+     &               (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigmap)*s6)
              else
                 Ipz(i,j,k) = s(i,j,k)
              end if
              if (wedge(i,j,k) .lt. -eps) then
-                Imz(i,j,k) = sm(i,j,k) + (sigmam/2.0d0)*
-     &               (sp(i,j,k)-sm(i,j,k)+(1.0d0-(2.0d0/3.0d0)*sigmam)*s6)
+                Imz(i,j,k) = sm(i,j,k) + (sigmam*half)*
+     &               (sp(i,j,k)-sm(i,j,k)+(1.0d0-two3rd*sigmam)*s6)
              else
                 Imz(i,j,k) = s(i,j,k)
              end if
@@ -7862,13 +7859,27 @@ c
       REAL_T tforces(DIMV(tf),SDIM)
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T rho(DIMV(rho))
+      REAL_T, allocatable :: irho(:,:,:)
+
+      allocate(irho(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
+
 !$omp parallel private(i,j,k,n)
+!$omp do
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               irho(i,j,k) = 1.0d0/rho(i,j,k)
+            end do
+         end do
+      end do
+!$omp end do
+
       do n = 1, SDIM
 !$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tforces(i,j,k,n) = (tforces(i,j,k,n) - gp(i,j,k,n))/rho(i,j,k)
+                  tforces(i,j,k,n) = (tforces(i,j,k,n) - gp(i,j,k,n))*irho(i,j,k)
                end do
             end do
          end do
@@ -7898,14 +7909,28 @@ c
       REAL_T visc(DIMV(visc),SDIM)
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T rho(DIMV(rho))
+      REAL_T, allocatable :: irho(:,:,:)
+
+      allocate(irho(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
+
 !$omp parallel private(i,j,k,n)
+!$omp do
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               irho(i,j,k) = 1.0d0/rho(i,j,k)
+            end do
+         end do
+      end do
+!$omp end do
+
       do n = 1, SDIM
 !$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   tforces(i,j,k,n) = (tforces(i,j,k,n) + visc(i,j,k,n)
-     &                 -    gp(i,j,k,n) )/rho(i,j,k)
+     &                 -    gp(i,j,k,n) )*irho(i,j,k)
                end do
             end do
          end do
@@ -7955,8 +7980,7 @@ c
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
-                     tforces(i,j,k,n) = 
-     &               tforces(i,j,k,n)/rho(i,j,k)
+                     tforces(i,j,k,n) = tforces(i,j,k,n)/rho(i,j,k)
                   end do
                end do
             end do
@@ -8001,10 +8025,8 @@ c
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
-                     tforces(i,j,k,n) = 
-     &                    tforces(i,j,k,n)
-     &                    +  visc(i,j,k,n)
-     &                    -     S(i,j,k,n)*divu(i,j,k)
+                     tforces(i,j,k,n) = tforces(i,j,k,n) +  visc(i,j,k,n)
+     &                    - S(i,j,k,n)*divu(i,j,k)
                   end do
                end do
             end do
@@ -8016,9 +8038,7 @@ c
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
-                     tforces(i,j,k,n) = (
-     &                    tforces(i,j,k,n)
-     &                    +  visc(i,j,k,n) )/rho(i,j,k)
+                     tforces(i,j,k,n) = (tforces(i,j,k,n) + visc(i,j,k,n))/rho(i,j,k)
                   end do
                end do
             end do
@@ -8053,8 +8073,7 @@ c
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  sn(i,j,k,n) = s(i,j,k,n)
-     &                 + dt*tforces(i,j,k,n)
+                  sn(i,j,k,n) = s(i,j,k,n) + dt*tforces(i,j,k,n)
                end do
             end do
          end do
@@ -8086,8 +8105,7 @@ c
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  sp(i,j,k,n) = ss(i,j,k,n)
-     &                 + hdt*(tfs(i,j,k,n)-tfn(i,j,k,n))
+                  sp(i,j,k,n) = ss(i,j,k,n) + hdt*(tfs(i,j,k,n)-tfn(i,j,k,n))
                end do
             end do
          end do
@@ -8117,15 +8135,14 @@ c
       REAL_T sn(DIMV(sn),nvar)
       REAL_T aofs(DIMV(aofs),nvar)
       REAL_T tforces(DIMV(tf),nvar)
+
 !$omp parallel private(i,j,k,n)
       do n = 1,nvar
 !$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  sn(i,j,k,n) = s(i,j,k,n)
-     &                 - dt*aofs(i,j,k,n)
-     &                 + dt*tforces(i,j,k,n)
+                  sn(i,j,k,n) = s(i,j,k,n) + dt*(tforces(i,j,k,n) - aofs(i,j,k,n))
                end do
             end do
          end do
@@ -8142,10 +8159,9 @@ c
      &     gp,      DIMS(gp),
      &     rho,     DIMS(rho),
      &     lo, hi, dt)
-
-c
-c     update the velocities
-c
+      !
+      ! update the velocities
+      !
       implicit none
       integer i, j, k, n
       integer DIMDEC(u)
@@ -8162,16 +8178,16 @@ c
       REAL_T gp(DIMV(gp),SDIM)
       REAL_T tforces(DIMV(tf),SDIM)
       REAL_T dt
+
 !$omp parallel private(i,j,k,n)
       do n = 1, SDIM
 !$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  un(i,j,k,n) = u(i,j,k,n)
-     &                 - dt*   aofs(i,j,k,n)
-     &                 + dt*tforces(i,j,k,n)/rho(i,j,k)
-     &                 - dt*     gp(i,j,k,n)/rho(i,j,k)
+                  un(i,j,k,n) = u(i,j,k,n) + dt *
+     &                 ( (tforces(i,j,k,n) - gp(i,j,k,n)) / rho(i,j,k) - aofs(i,j,k,n) )
+                  
                end do
             end do
          end do
