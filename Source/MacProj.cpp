@@ -35,7 +35,6 @@ const int* boxlo = (box).loVect();           \
 const int* boxhi = (box).hiVect();
 
 #define GEOM_GROW 1
-#define HYP_GROW 3
 
 namespace
 {
@@ -56,7 +55,6 @@ int  MacProj::check_umac_periodicity;
 namespace
 {
     bool benchmarking;
-
     Real umac_periodic_test_Tol;
 
 #if MG_USE_HYPRE
@@ -75,6 +73,7 @@ MacProj::Initialize ()
     // Set defaults here!!!
     //
     benchmarking                    = false;
+    umac_periodic_test_Tol          = 1.e-10;
     MacProj::verbose                = 0;
     MacProj::mac_tol                = 1.0e-12;
     MacProj::mac_abs_tol            = 1.0e-16;
@@ -90,8 +89,6 @@ MacProj::Initialize ()
 #else
     MacProj::check_umac_periodicity = 1;
 #endif
-
-    umac_periodic_test_Tol = 1.e-10;
 
 #if MG_USE_HYPRE
     use_hypre_solve  = false;
@@ -795,7 +792,8 @@ MacProj::mac_sync_compute (int                   level,
     FArrayBox xflux, yflux, zflux, tforces, tvelforces, U, area[BL_SPACEDIM], volume;
     FArrayBox grad_phi[BL_SPACEDIM], Rho;
 
-    for (FillPatchIterator S_fpi(ns_level,vel_visc_terms,HYP_GROW,prev_time,State_Type,0,NUM_STATE);
+    for (FillPatchIterator S_fpi(ns_level,vel_visc_terms,Godunov::hypgrow(),
+                                 prev_time,State_Type,0,NUM_STATE);
          S_fpi.isValid();
          ++S_fpi)
     {
@@ -938,6 +936,8 @@ MacProj::mac_sync_compute (int                   level,
         // Multiply the sync term by dt -- now done in the calling routine.
         //
     }
+
+    std::cout << "*** Got Here 2!!!" << std::endl;
 
     delete divu_fp;
 }

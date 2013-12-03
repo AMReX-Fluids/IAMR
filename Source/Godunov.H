@@ -238,6 +238,7 @@ public:      // public access functions
                         const int                   sComp,
                         const int                   nComp);
 
+    static int hypgrow ();
 
     // =============================================================
     // Source term functions follow

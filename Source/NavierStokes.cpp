@@ -100,7 +100,6 @@ NSParticleContainer* NavierStokes::theNSPC () { return NSPC; }
 //
 // Set defaults for all variables in Initialize()!!!
 //
-static int hyp_grow;
 static bool benchmarking;
 
 ErrorList   NavierStokes::err_list;
@@ -256,7 +255,6 @@ NavierStokes::Initialize ()
 {
     if (initialized) return;
 
-    hyp_grow                            = 3;
     benchmarking                        = false;
     NavierStokes::projector             = 0;
     NavierStokes::mac_projector         = 0;
@@ -585,16 +583,6 @@ NavierStokes::Initialize ()
     }
 
     pp.query("harm_avg_cen2edge", def_harm_avg_cen2edge);
-
-    {
-        ParmParse pp("godunov");
-        int ppm_type = 0;
-        pp.query("ppm_type",ppm_type);
-        if (ppm_type == 2)
-	{
-            hyp_grow = 4;
-	}
-    }
 
 #ifdef PARTICLES
     //
@@ -2035,7 +2023,8 @@ NavierStokes::predict_velocity (Real  dt,
     
     FArrayBox* null_fab = 0;
 
-    for (FillPatchIterator U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM)
+    for (FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),
+                                 prev_time,State_Type,Xvel,BL_SPACEDIM)
 #ifdef BOUSSINESQ
              ,S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
 	 S_fpi.isValid() && U_fpi.isValid();
@@ -2171,21 +2160,21 @@ NavierStokes::velocity_advection (Real dt)
     //
     for (FillPatchIterator
 #ifdef BOUSSINESQ
-             U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel   ,BL_SPACEDIM),
+             U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel   ,BL_SPACEDIM),
              S_fpi(*this,visc_terms,       1,prev_time,State_Type,Tracer,1),
-             Rho_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Density,1);
+             Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
          S_fpi.isValid() && U_fpi.isValid() && Rho_fpi.isValid(); 
          ++S_fpi, ++U_fpi, ++Rho_fpi
 #else
 #ifdef MOREGENGETFORCE
-             U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel   ,BL_SPACEDIM),
+             U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel   ,BL_SPACEDIM),
              S_fpi(*this,visc_terms,       1,prev_time,State_Type,Density,NUM_SCALARS),
-             Rho_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Density,1);
+             Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
          S_fpi.isValid() && U_fpi.isValid() && Rho_fpi.isValid(); 
          ++S_fpi, ++U_fpi, ++Rho_fpi
 #else
-             U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM),
-             Rho_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Density,1);
+             U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
+             Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
          U_fpi.isValid() && Rho_fpi.isValid(); 
          ++U_fpi, ++Rho_fpi
 #endif
@@ -2356,11 +2345,11 @@ NavierStokes::scalar_advection (Real dt,
     //
     // Compute the advective forcing.
     //
-    for (FillPatchIterator U_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM),
+    for (FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
 #ifdef BOUSSINESQ
-             Scal_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,Tracer,1),
+             Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1),
 #endif
-             S_fpi(*this,visc_terms,hyp_grow,prev_time,State_Type,fscalar,num_scalars);
+             S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
          U_fpi.isValid() && S_fpi.isValid();
          ++U_fpi, ++S_fpi)
     {

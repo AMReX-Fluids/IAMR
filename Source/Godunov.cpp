@@ -1735,6 +1735,12 @@ Godunov::are_any(const Array<AdvectionForm>& advectionType,
 }
 
 int
+Godunov::hypgrow ()
+{
+    return hyp_grow;
+}
+
+int
 Godunov::how_many(const Array<AdvectionForm>& advectionType,
                   const AdvectionForm         testForm,
                   const int                   sComp,
