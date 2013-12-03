@@ -63,12 +63,13 @@ c     -----------------------------------------------------------
 
       hx = delta(1)
       hy = delta(2)
+
 !$omp parallel do private(i,j,k,x,y,r,ux,uy)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
-            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+            y = xlo(2) + hy * ( dble( j-lo(2) ) + half )
             do i = lo(1), hi(1)
-               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+               x = xlo(1) + hx * ( dble( i-lo(1) ) + half )
                r = sqrt(x*x+y*y)
                ux = dat(i,j,k,1)
                uy = dat(i,j,k,2)
@@ -107,12 +108,13 @@ c     -----------------------------------------------------------
 
       hx = delta(1)
       hy = delta(2)
+
 !$omp parallel do private(i,j,k,x,y,r,ux,uy)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
-            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+            y = xlo(2) + hy * ( dble( j-lo(2) ) + half )
             do i = lo(1), hi(1)
-               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+               x = xlo(1) + hx * ( dble( i-lo(1) ) + half )
                r = sqrt(x*x+y*y)
                ux = dat(i,j,k,1)
                uy = dat(i,j,k,2)
@@ -150,10 +152,11 @@ c     -----------------------------------------------------------
 #include <probdata.H>
 
       hy = delta(2)
+
 !$omp parallel do private(i,j,k,y)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
-            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+            y = xlo(2) + hy * ( dble( j-lo(2) ) + half )
             do i = lo(1), hi(1)
                e(i,j,k,1) = dat(i,j,k,1) - omega*y
             end do
@@ -194,7 +197,7 @@ c     -----------------------------------------------------------
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+               x = xlo(1) + hx * ( dble( i-lo(1) ) + half )
                e(i,j,k,1) = dat(i,j,k,2) + omega*x
             end do
          end do
@@ -234,9 +237,9 @@ c     -----------------------------------------------------------
 !$omp parallel do private(i,j,k,x,y,u,v,w)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
-            y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+            y = xlo(2) + hy * ( dble( j-lo(2) ) + half )
             do i = lo(1), hi(1)
-               x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+               x = xlo(1) + hx * ( dble( i-lo(1) ) + half )
                u = dat(i,j,k,1) - omega*y
                v = dat(i,j,k,2) + omega*x
                w = dat(i,j,k,3)
@@ -273,12 +276,16 @@ c     -----------------------------------------------------------
       REAL_T     dudy, dudz
       REAL_T     dvdx, dvdz
       REAL_T     dwdx, dwdy
+      REAL_T     twoihx, twoihy, twoihz
 
 #include <probdata.H>
 
-      hx = delta(1)
-      hy = delta(2)
-      hz = delta(3)
+      hx     = delta(1)
+      hy     = delta(2)
+      hz     = delta(3)
+      twoihx = 1.0d0/(two*hx)
+      twoihy = 1.0d0/(two*hy)
+      twoihz = 1.0d0/(two*hz)
 
 !$omp parallel do private(i,j,k,u,v,w,dudy,dudz,dvdx,dvdz)
 !$omp&private(dwdx,dwdy,wx,wy,wz)
@@ -289,14 +296,14 @@ c     -----------------------------------------------------------
                v   = dat(i,j,k,2)
                w   = dat(i,j,k,3)
 
-               dudy = (dat(i,j+1,k,1)-dat(i,j-1,k,1))/(two*hy)
-               dudz = (dat(i,j,k+1,1)-dat(i,j,k-1,1))/(two*hz)
+               dudy = (dat(i,j+1,k,1)-dat(i,j-1,k,1))*twoihy
+               dudz = (dat(i,j,k+1,1)-dat(i,j,k-1,1))*twoihz
 
-               dvdx = (dat(i+1,j,k,2)-dat(i-1,j,k,2))/(two*hx)
-               dvdz = (dat(i,j,k+1,2)-dat(i,j,k-1,2))/(two*hz)
+               dvdx = (dat(i+1,j,k,2)-dat(i-1,j,k,2))*twoihx
+               dvdz = (dat(i,j,k+1,2)-dat(i,j,k-1,2))*twoihz
 
-               dwdx = (dat(i+1,j,k,3)-dat(i-1,j,k,3))/(two*hx)
-               dwdy = (dat(i,j+1,k,3)-dat(i,j-1,k,3))/(two*hy)
+               dwdx = (dat(i+1,j,k,3)-dat(i-1,j,k,3))*twoihx
+               dwdy = (dat(i,j+1,k,3)-dat(i,j-1,k,3))*twoihy
 
                wx = dwdy - dvdz
                wy = dudz - dwdx
@@ -310,9 +317,9 @@ c     -----------------------------------------------------------
 !$omp end parallel do
 
       end
-#endif
+#endif /*MOREGENGETFORCE*/
 
-#if defined(DO_IAMR_FORCE) && ( defined(GENGETFORCE) || defined(MOREGENGETFORCE)) 
+#if defined(DO_IAMR_FORCE) && (defined(GENGETFORCE) || defined(MOREGENGETFORCE)) 
       subroutine FORT_DERFORCING (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
      &                            bc,level,grid_no)
@@ -394,13 +401,13 @@ c     Adjust z offset for probtype 15
          endif
 
          Lmin = min(Lx,Ly,Lz)
-         kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-         nxmodes = nmodes*int(0.5+Lx/Lmin)
-         nymodes = nmodes*int(0.5+Ly/Lmin)
-         nzmodes = nmodes*int(0.5+Lz/Lmin)
-         xstep = int(Lx/Lmin+0.5)
-         ystep = int(Ly/Lmin+0.5)
-         zstep = int(Lz/Lmin+0.5)
+         kappaMax = dble(nmodes)/Lmin + 1.0d-8
+         nxmodes = nmodes*int(0.5d0+Lx/Lmin)
+         nymodes = nmodes*int(0.5d0+Ly/Lmin)
+         nzmodes = nmodes*int(0.5d0+Lz/Lmin)
+         xstep = int(Lx/Lmin+0.5d0)
+         ystep = int(Ly/Lmin+0.5d0)
+         zstep = int(Lz/Lmin+0.5d0)
 
          if (forcing_twice_wavelength.eq.1) then
             HLx = Lx/two
@@ -415,22 +422,22 @@ c     Adjust z offset for probtype 15
 !$omp parallel do private(i,j,k,x,y,z,f1,f2,f3)
 !$omp&private(kz,kzd,ky,kyd,kx,kxd,kappa,xT,u,v,w)
          do k = lo(3), hi(3)
-            z = zlo + hz * ( float( k-lo(3) ) + half )
+            z = zlo + hz * ( dble( k-lo(3) ) + half )
             do j = lo(2), hi(2)
-               y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+               y = xlo(2) + hy * ( dble( j-lo(2) ) + half )
                do i = lo(1), hi(1)
-                  x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+                  x = xlo(1) + hx * ( dble( i-lo(1) ) + half )
 
                   f1 = zero
                   f2 = zero
                   f3 = zero
                   
                   do kz = mode_start*zstep, nzmodes, zstep
-                     kzd = dfloat(kz)
+                     kzd = dble(kz)
                      do ky = mode_start*ystep, nymodes, ystep
-                        kyd = dfloat(ky)
+                        kyd = dble(ky)
                         do kx = mode_start*xstep, nxmodes, xstep
-                           kxd = dfloat(kx)
+                           kxd = dble(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
@@ -451,11 +458,11 @@ c     Adjust z offset for probtype 15
                      enddo
                   enddo
                   do kz = 1, zstep - 1
-                     kzd = dfloat(kz)
+                     kzd = dble(kz)
                      do ky = mode_start, nymodes
-                        kyd = dfloat(ky)
+                        kyd = dble(ky)
                         do kx = mode_start, nxmodes
-                           kxd = dfloat(kx)
+                           kxd = dble(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
@@ -572,13 +579,13 @@ c     Adjust z offset for probtype 15
             Lz = Lz/two
          endif
          Lmin = min(Lx,Ly,Lz)
-         kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-         nxmodes = nmodes*int(0.5+Lx/Lmin)
-         nymodes = nmodes*int(0.5+Ly/Lmin)
-         nzmodes = nmodes*int(0.5+Lz/Lmin)
-         xstep = int(Lx/Lmin+0.5)
-         ystep = int(Ly/Lmin+0.5)
-         zstep = int(Lz/Lmin+0.5)
+         kappaMax = dble(nmodes)/Lmin + 1.0d-8
+         nxmodes = nmodes*int(0.5d0+Lx/Lmin)
+         nymodes = nmodes*int(0.5d0+Ly/Lmin)
+         nzmodes = nmodes*int(0.5d0+Lz/Lmin)
+         xstep = int(Lx/Lmin+0.5d0)
+         ystep = int(Ly/Lmin+0.5d0)
+         zstep = int(Lz/Lmin+0.5d0)
          if (forcing_twice_wavelength.eq.1) then
             HLx = Lx/two
             HLy = Ly/two
@@ -592,20 +599,20 @@ c     Adjust z offset for probtype 15
 !$omp parallel do private(i,j,k,x,y,z,f1)
 !$omp&private(kz,kzd,ky,kyd,kx,kxd,kappa,xT)
          do k = lo(3), hi(3)
-            z = zlo + hz * ( float( k-lo(3) ) + half )
+            z = zlo + hz * ( dble( k-lo(3) ) + half )
             do j = lo(2), hi(2)
-               y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+               y = xlo(2) + hy * ( dble( j-lo(2) ) + half )
                do i = lo(1), hi(1)
-                  x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+                  x = xlo(1) + hx * ( dble( i-lo(1) ) + half )
                   
                   f1 = zero
                   
                   do kz = mode_start*zstep, nzmodes, zstep
-                     kzd = dfloat(kz)
+                     kzd = dble(kz)
                      do ky = mode_start*ystep, nymodes, ystep
-                        kyd = dfloat(ky)
+                        kyd = dble(ky)
                         do kx = mode_start*xstep, nxmodes, xstep
-                           kxd = dfloat(kx)
+                           kxd = dble(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
@@ -620,11 +627,11 @@ c     Adjust z offset for probtype 15
                      enddo
                   enddo
                   do kz = 1, zstep - 1
-                     kzd = dfloat(kz)
+                     kzd = dble(kz)
                      do ky = mode_start, nymodes
-                        kyd = dfloat(ky)
+                        kyd = dble(ky)
                         do kx = mode_start, nxmodes
-                           kxd = dfloat(kx)
+                           kxd = dble(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
@@ -733,13 +740,13 @@ c     Adjust z offset for probtype 15
             Lz = Lz/two
          endif
          Lmin = min(Lx,Ly,Lz)
-         kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-         nxmodes = nmodes*int(0.5+Lx/Lmin)
-         nymodes = nmodes*int(0.5+Ly/Lmin)
-         nzmodes = nmodes*int(0.5+Lz/Lmin)
-         xstep = int(Lx/Lmin+0.5)
-         ystep = int(Ly/Lmin+0.5)
-         zstep = int(Lz/Lmin+0.5)
+         kappaMax = dble(nmodes)/Lmin + 1.0d-8
+         nxmodes = nmodes*int(0.5d0+Lx/Lmin)
+         nymodes = nmodes*int(0.5d0+Ly/Lmin)
+         nzmodes = nmodes*int(0.5d0+Lz/Lmin)
+         xstep = int(Lx/Lmin+0.5d0)
+         ystep = int(Ly/Lmin+0.5d0)
+         zstep = int(Lz/Lmin+0.5d0)
          if (forcing_twice_wavelength.eq.1) then
             HLx = Lx/two
             HLy = Ly/two
@@ -753,20 +760,20 @@ c     Adjust z offset for probtype 15
 !$omp parallel do private(i,j,k,x,y,z,f2)
 !$omp&private(kz,kzd,ky,kyd,kx,kxd,kappa,xT)
          do k = lo(3), hi(3)
-            z = zlo + hz * ( float( k-lo(3) ) + half )
+            z = zlo + hz * ( dble( k-lo(3) ) + half )
             do j = lo(2), hi(2)
-               y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+               y = xlo(2) + hy * ( dble( j-lo(2) ) + half )
                do i = lo(1), hi(1)
-                  x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+                  x = xlo(1) + hx * ( dble( i-lo(1) ) + half )
                   
                   f2 = zero
                   
                   do kz = mode_start*zstep, nzmodes, zstep
-                     kzd = dfloat(kz)
+                     kzd = dble(kz)
                      do ky = mode_start*ystep, nymodes, ystep
-                        kyd = dfloat(ky)
+                        kyd = dble(ky)
                         do kx = mode_start*xstep, nxmodes, xstep
-                           kxd = dfloat(kx)
+                           kxd = dble(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
@@ -781,11 +788,11 @@ c     Adjust z offset for probtype 15
                      enddo
                   enddo
                   do kz = 1, zstep - 1
-                     kzd = dfloat(kz)
+                     kzd = dble(kz)
                      do ky = mode_start, nymodes
-                        kyd = dfloat(ky)
+                        kyd = dble(ky)
                         do kx = mode_start, nxmodes
-                           kxd = dfloat(kx)
+                           kxd = dble(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
@@ -895,13 +902,13 @@ c     Adjust z offset for probtype 15
             Lz = Lz/two
          endif
          Lmin = min(Lx,Ly,Lz)
-         kappaMax = dfloat(nmodes)/Lmin + 1.0d-8
-         nxmodes = nmodes*int(0.5+Lx/Lmin)
-         nymodes = nmodes*int(0.5+Ly/Lmin)
-         nzmodes = nmodes*int(0.5+Lz/Lmin)
-         xstep = int(Lx/Lmin+0.5)
-         ystep = int(Ly/Lmin+0.5)
-         zstep = int(Lz/Lmin+0.5)
+         kappaMax = dble(nmodes)/Lmin + 1.0d-8
+         nxmodes = nmodes*int(0.5d0+Lx/Lmin)
+         nymodes = nmodes*int(0.5d0+Ly/Lmin)
+         nzmodes = nmodes*int(0.5d0+Lz/Lmin)
+         xstep = int(Lx/Lmin+0.5d0)
+         ystep = int(Ly/Lmin+0.5d0)
+         zstep = int(Lz/Lmin+0.5d0)
          if (forcing_twice_wavelength.eq.1) then
             HLx = Lx/two
             HLy = Ly/two
@@ -915,20 +922,20 @@ c     Adjust z offset for probtype 15
 !$omp parallel do private(i,j,k,x,y,z,f3)
 !$omp&private(kz,kzd,ky,kyd,kx,kxd,kappa,xT)
          do k = lo(3), hi(3)
-            z = zlo + hz * ( float( k-lo(3) ) + half )
+            z = zlo + hz * ( dble( k-lo(3) ) + half )
             do j = lo(2), hi(2)
-               y = xlo(2) + hy * ( float( j-lo(2) ) + half )
+               y = xlo(2) + hy * ( dble( j-lo(2) ) + half )
                do i = lo(1), hi(1)
-                  x = xlo(1) + hx * ( float( i-lo(1) ) + half )
+                  x = xlo(1) + hx * ( dble( i-lo(1) ) + half )
                   
                   f3 = zero
                   
                   do kz = mode_start*zstep, nzmodes, zstep
-                     kzd = dfloat(kz)
+                     kzd = dble(kz)
                      do ky = mode_start*ystep, nymodes, ystep
-                        kyd = dfloat(ky)
+                        kyd = dble(ky)
                         do kx = mode_start*xstep, nxmodes, xstep
-                           kxd = dfloat(kx)
+                           kxd = dble(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
@@ -943,11 +950,11 @@ c     Adjust z offset for probtype 15
                      enddo
                   enddo
                   do kz = 1, zstep - 1
-                     kzd = dfloat(kz)
+                     kzd = dble(kz)
                      do ky = mode_start, nymodes
-                        kyd = dfloat(ky)
+                        kyd = dble(ky)
                         do kx = mode_start, nxmodes
-                           kxd = dfloat(kx)
+                           kxd = dble(kx)
                            kappa = sqrt( (kxd*kxd)/(Lx*Lx) + (kyd*kyd)/(Ly*Ly) + (kzd*kzd)/(Lz*Lz) )
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
@@ -976,8 +983,7 @@ c     Adjust z offset for probtype 15
 
       end
 
-#endif
-
+#endif /*defined(DO_IAMR_FORCE) && (defined(GENGETFORCE) || defined(MOREGENGETFORCE))*/
 
       subroutine FORT_DERPRESVARS (e,DIMS(gp),nv,dat,DIMS(dat),ncomp,
      &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
@@ -1008,11 +1014,13 @@ c
       dy = fourth/delta(2)
       dz = fourth/delta(3)
 
-!$omp parallel do private(i,j,k)
+!$omp parallel private(i,j,k)
+
+!$omp do
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-c     Average pressure
+            ! Average pressure
             e(i,j,k,1) = eighth*( 
      &            dat(i+1,j,k)     + dat(i,j,k)     +
      &            dat(i+1,j+1,k)   + dat(i,j+1,k)   +
@@ -1021,13 +1029,13 @@ c     Average pressure
           end do
         end do
       end do
-!$omp end parallel do
+!$omp end do nowait
 
-!$omp parallel do private(i,j,k)
+!$omp do
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-c     X Gradient
+            ! X Gradient
             e(i,j,k,2) = dx*(
      &            dat(i+1,j,k)     - dat(i,j,k)     +
      &            dat(i+1,j+1,k)   - dat(i,j+1,k)   +
@@ -1036,13 +1044,13 @@ c     X Gradient
           end do
         end do
       end do
-!$omp end parallel do
+!$omp end do nowait
 
-!$omp parallel do private(i,j,k)
+!$omp do
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-c     Y Gradient
+            ! Y Gradient
             e(i,j,k,3) = dy*(
      &            dat(i,j+1,k)     - dat(i,j,k)     +
      &            dat(i+1,j+1,k)   - dat(i+1,j,k)   +
@@ -1051,13 +1059,13 @@ c     Y Gradient
           end do
         end do
       end do
-!$omp end parallel do
+!$omp end do nowait
 
-!$omp parallel do private(i,j,k)
+!$omp do
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-c     Z Gradient
+            ! Z Gradient
             e(i,j,k,4) = dz*(
      &            dat(i,j,k+1)     - dat(i,j,k)     +
      &            dat(i+1,j,k+1)   - dat(i+1,j,k)   +
@@ -1066,7 +1074,9 @@ c     Z Gradient
           end do
         end do
       end do
-!$omp end parallel do
+!$omp end do
+
+!$omp end parallel
 
       end
 
@@ -1091,9 +1101,9 @@ c     Z Gradient
       integer    i,j,k
       REAL_T     tdx, tdy, tdz
 
-      tdx = two*delta(1)
-      tdy = two*delta(2)
-      tdz = two*delta(3)
+      tdx = 1.0d0/(two*delta(1))
+      tdy = 1.0d0/(two*delta(2))
+      tdz = 1.0d0/(two*delta(3))
 
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
@@ -1103,35 +1113,39 @@ c     Z Gradient
          enddo
       enddo
 
-!$omp parallel do private(i,j,k)
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               e(i,j,k,5) = (dat(i+1,j,k,5)-dat(i-1,j,k,5))/tdx
-            enddo
-         enddo
-      enddo
-!$omp end parallel do
+!$omp parallel private(i,j,k)
 
-!$omp parallel do private(i,j,k)
+!$omp do
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               e(i,j,k,9) = (dat(i,j+1,k,9)-dat(i,j-1,k,9))/tdy
+               e(i,j,k,5) = (dat(i+1,j,k,5)-dat(i-1,j,k,5))*tdx
             enddo
          enddo
       enddo
-!$omp end parallel do
+!$omp end do nowait
 
-!$omp parallel do private(i,j,k)
+!$omp do
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               e(i,j,k,13) = (dat(i,j,k+1,13)-dat(i,j,k-1,13))/tdz
+               e(i,j,k,9) = (dat(i,j+1,k,9)-dat(i,j-1,k,9))*tdy
             enddo
          enddo
       enddo
-!$omp end parallel do
+!$omp end do nowait
+
+!$omp do
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               e(i,j,k,13) = (dat(i,j,k+1,13)-dat(i,j,k-1,13))*tdz
+            enddo
+         enddo
+      enddo
+!$omp end do
+
+!$omp end parallel
 
       end
 
@@ -1371,12 +1385,12 @@ c     Z Gradient Z Gradient
       hy = delta(2)
       hz = delta(3)
 
-      tdx = two*hx
-      tdy = two*hy
-      tdz = two*hz
-      dxt = hx*hx
-      dyt = hy*hy
-      dzt = hz*hz
+      tdx = 1.0d0/(two*hx)
+      tdy = 1.0d0/(two*hy)
+      tdz = 1.0d0/(two*hz)
+      dxt = 1.0d0/(hx*hx)
+      dyt = 1.0d0/(hy*hy)
+      dzt = 1.0d0/(hz*hz)
 
       call bl_ns_dotrac2(do_trac2)
 
@@ -1393,14 +1407,14 @@ c     Z Gradient Z Gradient
 
                do n = 1, nvars
                   e(i,j,k,n+ 0) = dat(i,j,k,n)
-                  e(i,j,k,n+ 6) = (dat(i+1,j,k,n)-dat(i-1,j,k,n))/tdx
-                  e(i,j,k,n+12) = (dat(i,j+1,k,n)-dat(i,j-1,k,n))/tdy
-                  e(i,j,k,n+18) = (dat(i,j,k+1,n)-dat(i,j,k-1,n))/tdz
+                  e(i,j,k,n+ 6) = (dat(i+1,j,k,n)-dat(i-1,j,k,n))*tdx
+                  e(i,j,k,n+12) = (dat(i,j+1,k,n)-dat(i,j-1,k,n))*tdy
+                  e(i,j,k,n+18) = (dat(i,j,k+1,n)-dat(i,j,k-1,n))*tdz
                enddo
-c     Need these for D = u.nabla^2 u
-               e(i,j,k,25) = (dat(i+1,j,k,2)-two*dat(i,j,k,2)+dat(i-1,j,k,2))/dxt
-               e(i,j,k,26) = (dat(i,j+1,k,3)-two*dat(i,j,k,3)+dat(i,j-1,k,3))/dyt
-               e(i,j,k,27) = (dat(i,j,k+1,4)-two*dat(i,j,k,4)+dat(i,j,k-1,4))/dzt
+               ! Need these for D = u.nabla^2 u
+               e(i,j,k,25) = (dat(i+1,j,k,2)-two*dat(i,j,k,2)+dat(i-1,j,k,2))*dxt
+               e(i,j,k,26) = (dat(i,j+1,k,3)-two*dat(i,j,k,3)+dat(i,j-1,k,3))*dyt
+               e(i,j,k,27) = (dat(i,j,k+1,4)-two*dat(i,j,k,4)+dat(i,j,k-1,4))*dzt
 
                if (do_trac2.eq.0) then
                   n = 6
@@ -1416,7 +1430,7 @@ c     Need these for D = u.nabla^2 u
 !$omp end parallel do
 
       end
-#endif
+#endif /*SUMJET*/
 
       subroutine FORT_DERMODGRADRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
@@ -1440,17 +1454,17 @@ c
       integer    i,j,k
       REAL_T     drdx, drdy, drdz, tdx, tdy, tdz
 
-      tdx = two*delta(1)
-      tdy = two*delta(2)
-      tdz = two*delta(3)
+      tdx = 1.0d0/(two*delta(1))
+      tdy = 1.0d0/(two*delta(2))
+      tdz = 1.0d0/(two*delta(3))
 
 !$omp parallel do private(i,j,k,drdx,drdy,drdz)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               drdx = (dat(i+1,j,k,1)-dat(i-1,j,k,1))/tdx
-               drdy = (dat(i,j+1,k,1)-dat(i,j-1,k,1))/tdy
-               drdz = (dat(i,j,k+1,1)-dat(i,j,k-1,1))/tdz
+               drdx = (dat(i+1,j,k,1)-dat(i-1,j,k,1))*tdx
+               drdy = (dat(i,j+1,k,1)-dat(i,j-1,k,1))*tdy
+               drdz = (dat(i,j,k+1,1)-dat(i,j,k-1,1))*tdz
                e(i,j,k,1) = sqrt( drdx*drdx + drdy*drdy + drdz*drdz )
             end do
          end do
@@ -1486,17 +1500,6 @@ c
       dx2 = one/(delta(1)*delta(1))
       dy2 = one/(delta(2)*delta(2))
       dz2 = one/(delta(3)*delta(3))
-
-c      write (*,*) 'dx2', dx2,dy2,dz2,one,two
-c      write (*,*) 'ncomp', ncomp
-c      write (*,*) 'nv', nv
-c      write (*,*) 'lo', lo(1), lo(2), lo(3)
-c      write (*,*) 'hi', hi(1), hi(2), hi(3)
-c      write (*,*) 'dat_l', dat_l1, dat_l2, dat_l3
-c      write (*,*) 'dat_h', dat_h1, dat_h2, dat_h3
-c      write (*,*) 'e_l', e_l1, e_l2, e_l3
-c      write (*,*) 'e_h', e_h1, e_h2, e_h3
-
 
 !$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
@@ -1839,41 +1842,6 @@ c
       dx = delta(1)
       dy = delta(2)
       dz = delta(3)
-               
-!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               ux = uxcen(i,j,k)
-               uy = uycen(i,j,k)
-               uz = uzcen(i,j,k)
-               vx = vxcen(i,j,k)
-               vy = vycen(i,j,k)
-               vz = vzcen(i,j,k)
-               wx = wxcen(i,j,k)
-               wy = wycen(i,j,k)
-               wz = wzcen(i,j,k)
-               xi1 = wy-vz
-               xi2 = uz-wx
-               xi3 = vx-uy
-               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
-               s11 = ux
-               s12 = 0.5d0*(uy+vx)
-               s13 = 0.5d0*(uz+wx)
-               s22 = vy
-               s23 = 0.5d0*(vz+wy)
-               s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
-            end do
-         end do
-      end do
-!$omp end parallel do
 
       fixulo_x = ( (lo(1) .eq. domlo(1)) .and.
      &             (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) )
@@ -1913,6 +1881,43 @@ c
      &             (WLOZ .eq. EXT_DIR .or. WLOZ .eq. HOEXTRAP) )
       fixwhi_z = ( (hi(3) .eq. domhi(3)) .and.
      &             (WHIZ .eq. EXT_DIR .or. WHIZ .eq. HOEXTRAP) )
+               
+!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               ux = uxcen(i,j,k)
+               uy = uycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vx = vxcen(i,j,k)
+               vy = vycen(i,j,k)
+               vz = vzcen(i,j,k)
+               wx = wxcen(i,j,k)
+               wy = wycen(i,j,k)
+               wz = wzcen(i,j,k)
+               xi1 = wy-vz
+               xi2 = uz-wx
+               xi3 = vx-uy
+               xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
+               s11 = ux
+               s12 = 0.5d0*(uy+vx)
+               s13 = 0.5d0*(uz+wx)
+               s22 = vy
+               s23 = 0.5d0*(vz+wy)
+               s33 = wz
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
+     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
+     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+            end do
+         end do
+      end do
+!$omp end parallel do
+
 c
 c     First do all the faces
 c
@@ -1935,9 +1940,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -1971,9 +1977,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2007,9 +2014,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2043,9 +2051,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2079,9 +2088,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2115,9 +2125,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2151,9 +2162,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2183,9 +2195,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2215,9 +2228,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2247,9 +2261,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2279,9 +2294,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2311,9 +2327,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2344,9 +2361,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2376,9 +2394,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2408,9 +2427,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2440,9 +2460,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2472,9 +2493,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2504,9 +2526,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2539,9 +2562,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2571,9 +2595,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2603,9 +2628,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2635,9 +2661,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2667,9 +2694,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2699,9 +2727,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2731,9 +2760,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -2763,9 +2793,10 @@ c
                xi2 = uz-wx
                xi3 = vx-uy
                xmag = max(sqrt(xi1**2+xi2**2+xi3**2), 1.d-12)
-               xi1 = xi1/xmag
-               xi2 = xi2/xmag
-               xi3 = xi3/xmag
+               xmag = one / xmag
+               xi1 = xi1*xmag
+               xi2 = xi2*xmag
+               xi3 = xi3*xmag
                s11 = ux
                s12 = 0.5d0*(uy+vx)
                s13 = 0.5d0*(uz+wx)
@@ -4890,19 +4921,23 @@ c
       REAL_T  p(DIMV(p),ncomp)
       integer level, grid_no
 
-      REAL_T     gpx, gpy, gpz
+      REAL_T     gpx, gpy, gpz, idx, idy, idz
       integer    i,j,k
+
+      idx = 1.0d0 / dx(1)
+      idy = 1.0d0 / dx(2)
+      idz = 1.0d0 / dx(3)
 
 !$omp parallel do private(i,j,k,gpx,gpy,gpz)
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
             gpx = fourth * (p(i+1,j,k  ,1)-p(i,j,k  ,1)+p(i+1,j+1,k  ,1)-p(i,j+1,k  ,1)+
-     $                      p(i+1,j,k+1,1)-p(i,j,k+1,1)+p(i+1,j+1,k+1,1)-p(i,j+1,k+1,1))/dx(1)
+     $                      p(i+1,j,k+1,1)-p(i,j,k+1,1)+p(i+1,j+1,k+1,1)-p(i,j+1,k+1,1))*idx
             gpy = fourth * (p(i,j+1,k  ,1)-p(i,j,k  ,1)+p(i+1,j+1,k  ,1)-p(i+1,j,k  ,1)+
-     $                      p(i,j+1,k+1,1)-p(i,j,k+1,1)+p(i+1,j+1,k+1,1)-p(i+1,j,k+1,1))/dx(2)
+     $                      p(i,j+1,k+1,1)-p(i,j,k+1,1)+p(i+1,j+1,k+1,1)-p(i+1,j,k+1,1))*idy
             gpz = fourth * (p(i,  j,k+1,1)-p(i,  j,k,1)+p(i,  j+1,k+1,1)-p(i,  j+1,k,1)+
-     $                      p(i+1,j,k+1,1)-p(i+1,j,k,1)+p(i+1,j+1,k+1,1)-p(i+1,j+1,k,1))/dx(3)
+     $                      p(i+1,j,k+1,1)-p(i+1,j,k,1)+p(i+1,j+1,k+1,1)-p(i+1,j+1,k,1))*idz
             grdp(i,j,k,1) = sqrt(gpx**2 + gpy**2 + gpz**2)
           end do
         end do

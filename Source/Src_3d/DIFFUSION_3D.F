@@ -38,7 +38,11 @@
       REAL_T  mult
 
       integer i, j, k
-      REAL_T  sx, sy, sz
+      REAL_T  sx, sy, sz, idx, idy, idz
+
+      idx = 1.0d0 / dx(1)
+      idy = 1.0d0 / dx(2)
+      idz = 1.0d0 / dx(3)
 
 !$omp parallel private(i,j,k,sx,sy,sz)
 c
@@ -49,7 +53,7 @@ c
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)+1
                sx = ssync(i,j,k) - ssync(i-1,j,k)
-               xflux(i,j,k) = mult*sx*xarea(i,j,k)/dx(1)
+               xflux(i,j,k) = mult*sx*xarea(i,j,k)*idx
             end do
          end do
       end do
@@ -62,7 +66,7 @@ c
          do j = lo(2), hi(2)+1
             do i = lo(1), hi(1)
                sy = ssync(i,j,k) - ssync(i,j-1,k)
-               yflux(i,j,k) = mult*sy*yarea(i,j,k)/dx(2)
+               yflux(i,j,k) = mult*sy*yarea(i,j,k)*idy
             end do
          end do
       end do
@@ -75,7 +79,7 @@ c
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                sz = ssync(i,j,k) - ssync(i,j,k-1)
-               zflux(i,j,k) = half*mult*sz*zarea(i,j,k)/dx(3)
+               zflux(i,j,k) = half*mult*sz*zarea(i,j,k)*idz
             end do
          end do
       end do
@@ -205,24 +209,22 @@ c ::
      &     DIMS(divmusi), divmusi)
 
       implicit none
-c
-c ... inputs
-c
+
       integer lo(SDIM), hi(SDIM)
       REAL_T  dx(SDIM)
       integer DIMDEC(divu)
       REAL_T  divu(DIMV(divu))      
       REAL_T  mu
-c
-c ... outputs
-c
+
       integer DIMDEC(divmusi)
       REAL_T  divmusi(DIMV(divmusi),SDIM)
-c
-c ... local 
-c
+
       integer i,j,k
-      REAL_T sleft, sright, stp, sbot, sfront, sback
+      REAL_T sleft, sright, stp, sbot, sfront, sback, idx, idy, idz
+
+      idx = 1.0d0 / dx(1)
+      idy = 1.0d0 / dx(2)
+      idz = 1.0d0 / dx(3)
 c
 c ... Note: the following IS correct for r-z. Terms from the hoop stress
 c           cancel with terms from tau_rr to eliminate all r dependence.
@@ -231,20 +233,20 @@ c
       do k=lo(3),hi(3)
          do j=lo(2),hi(2)
             do i=lo(1),hi(1)
-               sleft = half*(divu(i-1,j,k)+divu(i,j,k))
-               sright = half*(divu(i+1,j,k)+divu(i,j,k))
+               sleft  = (divu(i-1,j,k)+divu(i,j,k))
+               sright = (divu(i+1,j,k)+divu(i,j,k))
 
-               divmusi(i,j,k,1) = mu*(sright-sleft)/dx(1)
+               divmusi(i,j,k,1) = mu*(sright-sleft)*idx*half
 
-               stp  = half*(divu(i,j,k)+divu(i,j+1,k))
-               sbot = half*(divu(i,j-1,k)+divu(i,j,k))
+               stp  = (divu(i,j,k)+divu(i,j+1,k))
+               sbot = (divu(i,j-1,k)+divu(i,j,k))
 
-               divmusi(i,j,k,2) = mu*(stp-sbot)/dx(2)
+               divmusi(i,j,k,2) = mu*(stp-sbot)*idy*half
 
-               sfront = half*(divu(i,j,k)+divu(i,j,k+1))
-               sback  = half*(divu(i,j,k-1)+divu(i,j,k))
+               sfront = (divu(i,j,k)+divu(i,j,k+1))
+               sback  = (divu(i,j,k-1)+divu(i,j,k))
 
-               divmusi(i,j,k,3) = mu*(sfront-sback)/dx(2)
+               divmusi(i,j,k,3) = mu*(sfront-sback)*idz*half
             end do
          end do
       end do
@@ -257,9 +259,7 @@ c
      &     betaz, DIMS(divmusi), divmusi)
 
       implicit none
-c
-c ... inputs
-c
+
       integer lo(SDIM), hi(SDIM)
       REAL_T  dx(SDIM)
       integer DIMDEC(divu)
@@ -270,38 +270,38 @@ c
       REAL_T  betay(DIMV(betay))
       integer DIMDEC(betaz)
       REAL_T  betaz(DIMV(betaz))
-c
-c ... outputs
-c
+
       integer DIMDEC(divmusi)
       REAL_T  divmusi(DIMV(divmusi),SDIM)
-c
-c ... local 
-c
+
       integer i,j,k
-      REAL_T sleft, sright, stp, sbot, sfront, sback
+      REAL_T sleft, sright, stp, sbot, sfront, sback, idx, idy, idz
+
+      idx = 1.0d0 / dx(1)
+      idy = 1.0d0 / dx(2)
+      idz = 1.0d0 / dx(3)
 
 !$omp parallel do private(i,j,k,sleft,sright,stp,sbot,sfront,sback)
       do k=lo(3),hi(3)
          do j=lo(2),hi(2)
             do i=lo(1),hi(1)
-               sleft = half*(divu(i-1,j,k)+divu(i,j,k))
-               sright = half*(divu(i+1,j,k)+divu(i,j,k))
+               sleft  = (divu(i-1,j,k)+divu(i,j,k))
+               sright = (divu(i+1,j,k)+divu(i,j,k))
 
                divmusi(i,j,k,1) = (betax(i+1,j,k)*sright-
-     &              betax(i,j,k)*sleft)/dx(1)
+     &              betax(i,j,k)*sleft)*idx*half
 
-               stp = half*(divu(i,j,k)+divu(i,j+1,k))
-               sbot = half*(divu(i,j-1,k)+divu(i,j,k))
+               stp  = (divu(i,j,k)+divu(i,j+1,k))
+               sbot = (divu(i,j-1,k)+divu(i,j,k))
 
                divmusi(i,j,k,2) = (betay(i,j+1,k)*stp-
-     &              betay(i,j,k)*sbot)/dx(2)
+     &              betay(i,j,k)*sbot)*idy*half
 
-               sfront = half*(divu(i,j,k)+divu(i,j,k+1))
-               sback  = half*(divu(i,j,k-1)+divu(i,j,k))
+               sfront = (divu(i,j,k)+divu(i,j,k+1))
+               sback  = (divu(i,j,k-1)+divu(i,j,k))
 
                divmusi(i,j,k,3) = (betaz(i,j,k+1)*sfront-
-     &              betaz(i,j,k)*sback)/dx(3)
+     &              betaz(i,j,k)*sback)*idz*half
 
             end do
          end do

@@ -424,14 +424,14 @@ c     Hack to zero
 
       kn   = ksize/levKsize
       nn   = numSplit*kn
-      dxnn = dx/float(nn)
-      dynn = dy/float(nn)
+      dxnn = dx/dble(nn)
+      dynn = dy/dble(nn)
 c     Note this is right, it really should be kn not nn
-      dznn = dz/float(kn)
+      dznn = dz/dble(kn)
 c     Mod dx
       mdx = sqrt(dxnn*dxnn+dynn*dynn)
       
-      gridDx=dx/dfloat(kn)
+      gridDx=dx/dble(kn)
       
       if (isioproc.eq.1) then 
          write (*,*) "In SUMJET:"
@@ -475,21 +475,21 @@ c     Bounds for vertical numerical integration
          kklo=k*kn
          kkhi=kklo+kn-1
 c     Calculate left hand edge of cell
-         zlow = xlo(3) + dz*dfloat(k-klo)
+         zlow = xlo(3) + dz*dble(k-klo)
 c     And x centre/er
-         zctr = zlow + 0.5*dz
+         zctr = zlow + 0.5d0*dz
          
          do j = jlo, jhi
 c     Calculate front of cell
-            ylow = xlo(2) + dy*dfloat(j-jlo) - jet_y
+            ylow = xlo(2) + dy*dble(j-jlo) - jet_y
 c     And y centre/er
-            yctr = ylow + 0.5*dy
+            yctr = ylow + 0.5d0*dy
             
             do i = ilo, ihi
 c     Calculate left hand edge of cell
-               xlow = xlo(1) + dx*dfloat(i-ilo) - jet_x
+               xlow = xlo(1) + dx*dble(i-ilo) - jet_x
 c     And x centre/er
-               xctr = xlow + 0.5*dx
+               xctr = xlow + 0.5d0*dx
                
                rhoctr  = dat(i,j,k,idx_rho)
                uxctr   = dat(i,j,k,idx_ux)
@@ -508,10 +508,10 @@ c     We're not in a zeroed out bit, let's integrate...
 
 c     Integrate numerically
                   do jj=1,nn
-                     yy = ylow + dynn*(dfloat(jj)-half)
+                     yy = ylow + dynn*(dble(jj)-half)
                      
                      do ii=1,nn
-                        xx = xlow + dxnn*(dfloat(ii)-half)
+                        xx = xlow + dxnn*(dble(ii)-half)
                         
                         rr = sqrt(xx*xx+yy*yy)
                         
@@ -521,7 +521,7 @@ c     Integrate numerically
                            
                            do kk=kklo,kkhi
                               
-                              zz = zlow + dznn*(dfloat(kk-kklo)+half)
+                              zz = zlow + dznn*(dble(kk-kklo)+half)
 c     How far are we from the centre of the cell?
                               deltax = xx-xctr
                               deltay = yy-yctr

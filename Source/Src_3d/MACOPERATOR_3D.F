@@ -61,6 +61,7 @@ c ::
                    print *,' '
                    print *,'TESTING in MACCOEF '
                    print *,'RHO HAS GONE NEGATIVE AT ',i,j,k,rho(i,j,k)
+                   call flush(6)
                    call bl_abort(" ")
                 end if
              end do
@@ -213,7 +214,7 @@ c ::
        integer init
 
        integer i, j, k
-       REAL_T  rhoavg, gp
+       REAL_T  rhoavg, gp, idx, idy, idz
 c
 c     set gradient to zero if initializing
 c
@@ -240,6 +241,11 @@ c
              end do
           end do
        end if
+
+       idx = 1.0d0 / dx(1)
+       idy = 1.0d0 / dx(2)
+       idz = 1.0d0 / dx(3)
+
 !$omp parallel private(i,j,k,rhoavg,gp)
 c
 c      compute x MAC gradient
@@ -249,7 +255,7 @@ c
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)+1
                 rhoavg = half*(rho(i,j,k) + rho(i-1,j,k))
-                gp = (phi(i,j,k)-phi(i-1,j,k))/dx(1)
+                gp = (phi(i,j,k)-phi(i-1,j,k))*idx
                 ux(i,j,k) = ux(i,j,k) + mult * gp / rhoavg
              end do
           end do
@@ -263,7 +269,7 @@ c
           do j = lo(2),hi(2)+1
              do i = lo(1),hi(1)
                 rhoavg = half*(rho(i,j,k) + rho(i,j-1,k))
-                gp = (phi(i,j,k)-phi(i,j-1,k))/dx(2)
+                gp = (phi(i,j,k)-phi(i,j-1,k))*idy
                 uy(i,j,k) = uy(i,j,k) + mult * gp / rhoavg
              end do
           end do
@@ -277,7 +283,7 @@ c
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
                 rhoavg = half*(rho(i,j,k) + rho(i,j,k-1))
-                gp = (phi(i,j,k)-phi(i,j,k-1))/dx(3)
+                gp = (phi(i,j,k)-phi(i,j,k-1))*idz
                 uz(i,j,k) = uz(i,j,k) + mult * gp / rhoavg
              end do
           end do
