@@ -937,8 +937,6 @@ MacProj::mac_sync_compute (int                   level,
         //
     }
 
-    std::cout << "*** Got Here 2!!!" << std::endl;
-
     delete divu_fp;
 }
 
