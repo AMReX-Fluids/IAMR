@@ -4408,9 +4408,14 @@ c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 c     compute s at x-edges
       if (ppm_type .eq. 1) then
+
+         dsvl = 0.d0
+
+!$omp parallel private(i,j,k,dsc,dsl,dsr)
          
 c     compute van Leer slopes in x-direction
-         dsvl = 0.d0
+
+!$omp do
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-2,hi(1)+2
@@ -4422,8 +4427,11 @@ c     compute van Leer slopes in x-direction
                end do
             end do
          end do
+!$omp end do
          
 c     interpolate s to x-edges
+
+!$omp do
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+2
@@ -4434,8 +4442,11 @@ c     make sure sedgex lies in between adjacent cell-centered values
                end do
             end do
          end do
+!$omp end do
 
 c     copy sedgex into sp and sm
+
+!$omp do
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
@@ -4444,8 +4455,11 @@ c     copy sedgex into sp and sm
                end do
             end do
          end do
+!$omp end do
 
 c     modify using quadratic limiters
+
+!$omp do
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
@@ -4460,6 +4474,9 @@ c     modify using quadratic limiters
                end do
             end do
          end do
+!$omp end do
+
+!$omp end parallel
          
 c     different stencil needed for x-component of EXT_DIR and HOEXTRAP bc's
          if (bc(1,1) .eq. EXT_DIR  .or. bc(1,1) .eq. HOEXTRAP) then
@@ -4497,9 +4514,9 @@ c     reset sp on second interior edge
             end do
 
 c     modify using quadratic limiters
+            i = lo(1)+1
             do k=lo(3)-1,hi(3)+1
                do j=lo(2)-1,hi(2)+1
-                  i = lo(1)+1
                   if ((sp(i,j,k)-s(i,j,k))*(s(i,j,k)-sm(i,j,k)) .le. 0.d0) then
                      sp(i,j,k) = s(i,j,k)
                      sm(i,j,k) = s(i,j,k)
@@ -4565,6 +4582,7 @@ c     modify using quadratic limiters
       else if (ppm_type .eq. 2) then
 
 c     interpolate s to x-edges
+
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-2,hi(1)+3
