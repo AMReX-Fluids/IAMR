@@ -5478,9 +5478,14 @@ c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 c     compute s at z-edges
       if (ppm_type .eq. 1) then
+
+         dsvl = 0.d0
+
+!$omp parallel private(i,j,k,dsc,dsl,dsr)
          
 c     compute van Leer slopes in z-direction
-         dsvl = 0.d0
+
+!$omp do
          do k=lo(3)-2,hi(3)+2
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
@@ -5492,8 +5497,11 @@ c     compute van Leer slopes in z-direction
                end do
             end do
          end do
+!$omp end do
 
 c     interpolate s to z-edges
+
+!$omp do
          do k=lo(3)-1,hi(3)+2
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
@@ -5504,8 +5512,11 @@ c                  make sure sedgez lies in between adjacent cell-centered value
                end do
             end do
          end do
+!$omp end do
 
 c     copy sedgez into sp and sm
+
+!$omp do
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
@@ -5514,8 +5525,11 @@ c     copy sedgez into sp and sm
                end do
             end do
          end do
+!$omp end do
 
 c     modify using quadratic limiters
+
+!$omp do
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
@@ -5530,6 +5544,9 @@ c     modify using quadratic limiters
                end do
             end do
          end do
+!$omp end do
+
+!$omp end parallel
          
 c     different stencil needed for z-component of EXT_DIR and HOEXTRAP bc's
          if (bc(3,1) .eq. EXT_DIR  .or. bc(3,1) .eq. HOEXTRAP) then
@@ -5567,9 +5584,9 @@ c     reset sp on second interior edge
             end do
 
 c     modify using quadratic limiters
+            k = lo(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
-                  k = lo(3)+1
                   if ((sp(i,j,k)-s(i,j,k))*(s(i,j,k)-sm(i,j,k)) .le. 0.d0) then
                      sp(i,j,k) = s(i,j,k)
                      sm(i,j,k) = s(i,j,k)
@@ -5617,9 +5634,9 @@ c     reset sm on second interior edge
             end do
 
 c     modify using quadratic limiters
+            k = hi(3)-1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
-                  k = hi(3)-1
                   if ((sp(i,j,k)-s(i,j,k))*(s(i,j,k)-sm(i,j,k)) .le. 0.d0) then
                      sp(i,j,k) = s(i,j,k)
                      sm(i,j,k) = s(i,j,k)
@@ -5635,6 +5652,8 @@ c     modify using quadratic limiters
       else if (ppm_type .eq. 2) then
 
 c     interpolate s to z-edges
+
+!$omp parallel do private(i,j,k,D2,D2L,D2R,sgn,D2LIM)
          do k=lo(3)-2,hi(3)+3
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
@@ -5652,10 +5671,15 @@ c     limit sedgez
                end do
             end do
          end do
+!$omp end parallel do
 
 c     use Colella 2008 limiters
 c     This is a new version of the algorithm 
 c     to eliminate sensitivity to roundoff.
+
+!$omp parallel do private(i,j,k,alphap,alpham,bigp,bigm,extremum)
+!$omp&private(dafacem,dafacep,dabarm,dabarp,dafacemin,dabarmin)
+!$omp&private(dachkm,dachkp,D2,D2L,D2R,D2C,sgn,D2LIM,amax,delam,delap)
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
@@ -5731,6 +5755,7 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
                end do
             end do
          end do
+!$omp end parallel do
 
 c     different stencil needed for z-component of EXT_DIR and HOEXTRAP bc's
          if (bc(3,1) .eq. EXT_DIR  .or. bc(3,1) .eq. HOEXTRAP) then
@@ -5762,6 +5787,10 @@ c     copy sedgez into sp
             
 c     apply Colella 2008 limiters to compute sm and sp in the second
 c     and third inner cells
+
+!$omp parallel do private(i,j,k,alphap,alpham,bigp,bigm,extremum)
+!$omp&private(dafacem,dafacep,dabarm,dabarp,dafacemin,dabarmin)
+!$omp&private(dachkm,dachkp,D2,D2L,D2R,D2C,sgn,D2LIM,amax,delam,delap)
             do k=lo(3)+1,lo(3)+2
                do j=lo(2)-1,hi(2)+1
                   do i=lo(1)-1,hi(1)+1
@@ -5837,6 +5866,7 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
                   end do
                end do
             end do
+!$omp end parallel do
          end if
 
          if (bc(3,2) .eq. EXT_DIR  .or. bc(3,2) .eq. HOEXTRAP) then
@@ -5868,6 +5898,10 @@ c     copy sedgez into sm
 
 c     apply Colella 2008 limiters to compute sm and sp in the second
 c     and third inner cells
+
+!$omp parallel do private(i,j,k,alphap,alpham,bigp,bigm,extremum)
+!$omp&private(dafacem,dafacep,dabarm,dabarp,dafacemin,dabarmin)
+!$omp&private(dachkm,dachkp,D2,D2L,D2R,D2C,sgn,D2LIM,amax,delam,delap)
             do k=hi(3)-2,hi(3)-1
                do j=lo(2)-1,hi(2)+1
                   do i=lo(1)-1,hi(1)+1
@@ -5943,11 +5977,14 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
                   end do
                end do
             end do
+!$omp end parallel do
          end if
 
       end if
 
 c     compute z-component of Ip and Im
+
+!$omp parallel do private(i,j,k,sigma,s6)
       do k=lo(3)-1,hi(3)+1
 c     compute effect of w0 in plane-parallel
          do j=lo(2)-1,hi(2)+1
@@ -5969,6 +6006,7 @@ c     compute effect of w0 in plane-parallel
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
