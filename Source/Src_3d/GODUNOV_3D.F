@@ -4388,7 +4388,6 @@ c
       REAL_T dt
       integer ppm_type
 
-c     local
       integer i, j, k
 
       logical extremum, bigp, bigm
@@ -4396,12 +4395,12 @@ c     local
       REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
       REAL_T sgn, sigma, s6
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
-      REAL_T amax, delam, delap, three4ths, one20th, one12th
+      REAL_T amax, delam, delap, three4ths, one20th, one12th, seven12ths
 c
 c     constant used in Colella 2008
 c
       PARAMETER(C = 1.25d0, three4ths = 3.d0/4.d0, one20th = 1.d0/20.0d0)
-      PARAMETER(one12th = 1.d0/12.d0)
+      PARAMETER(one12th = 1.d0/12.d0, seven12ths = 7.d0/12.d0)
 
 c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 c     ! x-direction
@@ -4487,9 +4486,9 @@ c     the value in the first cc ghost cell represents the edge value
 c     use a modified stencil to get sedgex on the first interior edge
             sedgex(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
      &           -fifth        *s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +three4ths   *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three4ths    *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -one20th     *s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -one20th      *s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
 
 c     make sure sedgex lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -4537,9 +4536,9 @@ c     the value in the first cc ghost cell represents the edge value
 c     use a modified stencil to get sedgex on the first interior edge
             sedgex(hi(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
      &           -fifth        *s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +three4ths   *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           +three4ths    *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(hi(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -one20th     *s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+     &           -one20th      *s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
 
 c     make sure sedgex lies in between adjacent cell-centered values
             do k=lo(3)-1,hi(3)+1
@@ -4565,9 +4564,9 @@ c     reset sm on second interior edge
             end do
 
 c     modify using quadratic limiters
+            i = hi(1)-1
             do k=lo(3)-1,hi(3)+1
                do j=lo(2)-1,hi(2)+1
-                  i = hi(1)-1
                   if ((sp(i,j,k)-s(i,j,k))*(s(i,j,k)-sm(i,j,k)) .le. 0.d0) then
                      sp(i,j,k) = s(i,j,k)
                      sm(i,j,k) = s(i,j,k)
@@ -4588,7 +4587,7 @@ c     interpolate s to x-edges
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-2,hi(1)+3
-                  sedgex(i,j,k) = (7.d0/12.d0)*(s(i-1,j,k)+s(i,j,k))
+                  sedgex(i,j,k) = (seven12ths)*(s(i-1,j,k)+s(i,j,k))
      &                 - (one12th)*(s(i-2,j,k)+s(i+1,j,k))
 c     limit sedgex
                   if ((sedgex(i,j,k)-s(i-1,j,k))*(s(i,j,k)-sedgex(i,j,k)) .lt. 0.d0) then
@@ -5122,7 +5121,7 @@ c     interpolate s to y-edges
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-2,hi(2)+3
                do i=lo(1)-1,hi(1)+1
-                  sedgey(i,j,k) = (7.d0/12.d0)*(s(i,j-1,k)+s(i,j,k))
+                  sedgey(i,j,k) = (seven12ths)*(s(i,j-1,k)+s(i,j,k))
      &                 - (one12th)*(s(i,j-2,k)+s(i,j+1,k))
 c     limit sedgey
                   if ((sedgey(i,j,k)-s(i,j-1,k))*(s(i,j,k)-sedgey(i,j,k)) .lt. 0.d0) then
@@ -5657,7 +5656,7 @@ c     interpolate s to z-edges
          do k=lo(3)-2,hi(3)+3
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
-                  sedgez(i,j,k) = (7.d0/12.d0)*(s(i,j,k-1)+s(i,j,k))
+                  sedgez(i,j,k) = (seven12ths)*(s(i,j,k-1)+s(i,j,k))
      &                 - (one12th)*(s(i,j,k-2)+s(i,j,k+1))
 c     limit sedgez
                   if ((sedgez(i,j,k)-s(i,j,k-1))*(s(i,j,k)-sedgez(i,j,k)) .lt. 0.d0) then
