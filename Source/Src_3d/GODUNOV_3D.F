@@ -4371,27 +4371,26 @@ c
 
       logical extremum, bigp, bigm
 
-      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham, sgn
-      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
-      REAL_T amax, delam, delap, three4ths, one20th, one12th, seven12ths
+      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, alphap, alpham
+      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin
+      REAL_T sgn, amax, delam, delap, dachkm, dachkp
 
-      PARAMETER(C = 1.25d0, three4ths = 3.d0/4.d0, one20th = 1.d0/20.0d0)
-      PARAMETER(one12th = 1.d0/12.d0, seven12ths = 7.d0/12.d0)
+      REAL_T, PARAMETER :: C          = 1.25d0
+      REAL_T, PARAMETER :: three4ths  = 3.d0/4.d0
+      REAL_T, PARAMETER :: one20th    = 1.d0/20.0d0
+      REAL_T, PARAMETER :: one12th    = 1.d0/12.d0
+      REAL_T, PARAMETER :: seven12ths = 7.d0/12.d0
 
-c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-c     ! z-direction
-c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-c     compute s at z-edges
       if (ppm_type .eq. 1) then
 
          dsvl = 0.d0
 
 !$omp parallel private(i,j,k,dsc,dsl,dsr)
-         
-c     compute van Leer slopes in z-direction
 
 !$omp do
+         !
+         ! Compute van Leer slopes.
+         !
          do k=lo(3)-2,hi(3)+2
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
@@ -4405,22 +4404,24 @@ c     compute van Leer slopes in z-direction
          end do
 !$omp end do
 
-c     interpolate s to z-edges
-
 !$omp do
+         !
+         ! Interpolate s to edges.
+         !
          do k=lo(3)-1,hi(3)+2
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
                   sedgez(i,j,k) = 0.5d0*(s(i,j,k)+s(i,j,k-1)) - (sixth)*(dsvl(i,j,k)-dsvl(i,j,k-1))
-c                  make sure sedgez lies in between adjacent cell-centered values
+                  !
+                  ! Make sure edge lies between adjacent
+                  ! cell-centered values.
+                  !
                   sedgez(i,j,k) = max(sedgez(i,j,k),min(s(i,j,k),s(i,j,k-1)))
                   sedgez(i,j,k) = min(sedgez(i,j,k),max(s(i,j,k),s(i,j,k-1)))
                end do
             end do
          end do
 !$omp end do
-
-c     copy sedgez into sp and sm
 
 !$omp do
          do k=lo(3)-1,hi(3)+1
@@ -4433,9 +4434,10 @@ c     copy sedgez into sp and sm
          end do
 !$omp end do
 
-c     modify using quadratic limiters
-
 !$omp do
+         !
+         ! Modify using quadratic limiters.
+         !
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
@@ -4911,27 +4913,26 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
 
       logical extremum, bigp, bigm
 
-      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham, sgn
-      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
-      REAL_T amax, delam, delap, three4ths, one20th, one12th, seven12ths
+      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, alphap, alpham
+      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin
+      REAL_T sgn, amax, delam, delap, dachkm, dachkp
 
-      PARAMETER(C = 1.25d0, three4ths = 3.d0/4.d0, one20th = 1.d0/20.0d0)
-      PARAMETER(one12th = 1.d0/12.d0, seven12ths = 7.d0/12.d0)
+      REAL_T, PARAMETER :: C          = 1.25d0
+      REAL_T, PARAMETER :: three4ths  = 3.d0/4.d0
+      REAL_T, PARAMETER :: one20th    = 1.d0/20.0d0
+      REAL_T, PARAMETER :: one12th    = 1.d0/12.d0
+      REAL_T, PARAMETER :: seven12ths = 7.d0/12.d0
 
-c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-c     ! y-direction
-c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-c     compute s at y-edges
       if (ppm_type .eq. 1) then
 
          dsvl = 0.d0
 
 !$omp parallel private(i,j,k,dsc,dsl,dsr)
-         
-c     compute van Leer slopes in y-direction
 
 !$omp do
+         !
+         ! Compute van Leer slopes.
+         !
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-2,hi(2)+2
                do i=lo(1)-1,hi(1)+1
@@ -4945,22 +4946,24 @@ c     compute van Leer slopes in y-direction
          end do
 !$omp end do
 
-c     interpolate s to y-edges
-
 !$omp do
+         !
+         ! Interpolate s to edges.
+         !
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+2
                do i=lo(1)-1,hi(1)+1
                   sedgey(i,j,k) = 0.5d0*(s(i,j,k)+s(i,j-1,k)) - (sixth)*(dsvl(i,j,k)-dsvl(i,j-1,k))
-c     make sure sedgey lies in between adjacent cell-centered values
+                  !
+                  ! Make sure edge lies between adjacent
+                  ! cell-centered values.
+                  !
                   sedgey(i,j,k) = max(sedgey(i,j,k),min(s(i,j,k),s(i,j-1,k)))
                   sedgey(i,j,k) = min(sedgey(i,j,k),max(s(i,j,k),s(i,j-1,k)))
                end do
             end do
          end do
 !$omp end do
-
-c     copy sedgey into sp and sm
 
 !$omp do
          do k=lo(3)-1,hi(3)+1
@@ -4973,9 +4976,10 @@ c     copy sedgey into sp and sm
          end do
 !$omp end do
 
-c     modify using quadratic limiters
-
 !$omp do
+         !
+         ! Modify using quadratic limiters.
+         !
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
@@ -5451,27 +5455,26 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
 
       logical extremum, bigp, bigm
 
-      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham, sgn
-      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
-      REAL_T amax, delam, delap, three4ths, one20th, one12th, seven12ths
+      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, alphap, alpham
+      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin
+      REAL_T sgn, amax, delam, delap, dachkm, dachkp
 
-      PARAMETER(C = 1.25d0, three4ths = 3.d0/4.d0, one20th = 1.d0/20.0d0)
-      PARAMETER(one12th = 1.d0/12.d0, seven12ths = 7.d0/12.d0)
+      REAL_T, PARAMETER :: C          = 1.25d0
+      REAL_T, PARAMETER :: three4ths  = 3.d0/4.d0
+      REAL_T, PARAMETER :: one20th    = 1.d0/20.0d0
+      REAL_T, PARAMETER :: one12th    = 1.d0/12.d0
+      REAL_T, PARAMETER :: seven12ths = 7.d0/12.d0
 
-c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-c     ! x-direction
-c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-c     compute s at x-edges
       if (ppm_type .eq. 1) then
 
          dsvl = 0.d0
 
 !$omp parallel private(i,j,k,dsc,dsl,dsr)
-         
-c     compute van Leer slopes in x-direction
 
 !$omp do
+         !
+         ! Compute van Leer slopes.
+         !
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-2,hi(1)+2
@@ -5484,23 +5487,25 @@ c     compute van Leer slopes in x-direction
             end do
          end do
 !$omp end do
-         
-c     interpolate s to x-edges
 
 !$omp do
+         !
+         ! Interpolate s to edges.
+         !
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+2
                   sedgex(i,j,k) = 0.5d0*(s(i,j,k)+s(i-1,j,k)) - (sixth)*(dsvl(i,j,k)-dsvl(i-1,j,k))
-c     make sure sedgex lies in between adjacent cell-centered values
+                  !
+                  ! Make sure edge lies between adjacent
+                  ! cell-centered values.
+                  !
                   sedgex(i,j,k) = max(sedgex(i,j,k),min(s(i,j,k),s(i-1,j,k)))
                   sedgex(i,j,k) = min(sedgex(i,j,k),max(s(i,j,k),s(i-1,j,k)))
                end do
             end do
          end do
 !$omp end do
-
-c     copy sedgex into sp and sm
 
 !$omp do
          do k=lo(3)-1,hi(3)+1
@@ -5513,9 +5518,10 @@ c     copy sedgex into sp and sm
          end do
 !$omp end do
 
-c     modify using quadratic limiters
-
 !$omp do
+         !
+         ! Modify using quadratic limiters.
+         !
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
@@ -6008,23 +6014,22 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
 
       integer i, j, k
 
-      REAL_T sigma, s6
-      REAL_T C, three4ths, one20th, one12th, seven12ths
-
-      PARAMETER(C = 1.25d0, three4ths = 3.d0/4.d0, one20th = 1.d0/20.0d0)
-      PARAMETER(one12th = 1.d0/12.d0, seven12ths = 7.d0/12.d0)
+      REAL_T sigma, s6, idtx, idty, idtz
 
       call FORT_PPM_XDIR(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &     sedgex,DIMS(sedgex),lo,hi,bc,ppm_type)
-      
-c     compute x-component of Ip and Im
+
+      idtx = dt / dx(1)
 
 !$omp parallel do private(i,j,k,sigma,s6)
+      !
+      ! Compute x-component of Ip and Im.
+      !
       do k=lo(3)-1,hi(3)+1
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+1
-               sigma = abs(u(i,j,k))*dt/dx(1)
-               s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+               s6    = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+               sigma = abs(u(i,j,k))*idtx
                if (u(i,j,k) .gt. eps) then
                   Ipx(i,j,k) = sp(i,j,k) - (sigma*half)*
      &                 (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigma)*s6)
@@ -6045,14 +6050,17 @@ c     compute x-component of Ip and Im
       call FORT_PPM_YDIR(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &     sedgey,DIMS(sedgey),lo,hi,bc,ppm_type)
 
-c     compute y-component of Ip and Im
+      idty = dt / dx(2)
 
 !$omp parallel do private(i,j,k,sigma,s6)
+      !
+      ! Compute y-component of Ip and Im.
+      !
       do k=lo(3)-1,hi(3)+1
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+1
-               sigma = abs(v(i,j,k))*dt/dx(2)
-               s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+               s6    = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+               sigma = abs(v(i,j,k))*idty
                if (v(i,j,k) .gt. eps) then
                   Ipy(i,j,k) = sp(i,j,k) - (sigma*half)*
      &                 (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigma)*s6)
@@ -6073,15 +6081,17 @@ c     compute y-component of Ip and Im
       call FORT_PPM_ZDIR(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &     sedgez,DIMS(sedgez),lo,hi,bc,ppm_type)
 
-c     compute z-component of Ip and Im
+      idtz = dt / dx(3)
 
 !$omp parallel do private(i,j,k,sigma,s6)
+      !
+      ! Compute z-component of Ip and Im.
+      !
       do k=lo(3)-1,hi(3)+1
-c     compute effect of w0 in plane-parallel
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+1
-               sigma = abs(w(i,j,k))*dt/dx(3)
-               s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+               s6    = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+               sigma = abs(w(i,j,k))*idtz
                if (w(i,j,k) .gt. eps) then
                   Ipz(i,j,k) = sp(i,j,k) - (sigma*half)*
      &                 (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigma)*s6)
@@ -6144,22 +6154,23 @@ c     compute effect of w0 in plane-parallel
 
       integer i, j, k
 
-      REAL_T sigmam, sigmap, s6
-      REAL_T C, three4ths, one20th, one12th, seven12ths
-
-      PARAMETER(C = 1.25d0, three4ths = 3.d0/4.d0, one20th = 1.d0/20.0d0)
-      PARAMETER(one12th = 1.d0/12.d0, seven12ths = 7.d0/12.d0)
+      REAL_T sigmam, sigmap, s6, idtx, idty, idtz
 
       call FORT_PPM_XDIR(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &     sedgex,DIMS(sedgex),lo,hi,bc,ppm_type)
-      
-c     compute x-component of Ip and Im
+
+      idtx = dt / dx(1)
+
+!$omp parallel do private(i,j,k,sigmam,sigmap,s6)
+      !
+      ! Compute x-component of Ip and Im.
+      !
       do k=lo(3)-1,hi(3)+1
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+1
-             sigmap = abs(uedge(i+1,j,k))*dt/dx(1)
-             sigmam = abs(uedge(i,j,k))*dt/dx(1)
-             s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+             s6     = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+             sigmap = abs(uedge(i+1,j,k))*idtx
+             sigmam = abs(uedge(i,j,k)  )*idtx
              if (uedge(i+1,j,k) .gt. eps) then
                 Ipx(i,j,k) = sp(i,j,k) - (sigmap*half)*
      &               (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigmap)*s6)
@@ -6175,17 +6186,23 @@ c     compute x-component of Ip and Im
             end do
          end do
       end do
+!$omp end parallel do
 
       call FORT_PPM_YDIR(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &     sedgey,DIMS(sedgey),lo,hi,bc,ppm_type)
 
-c     compute y-component of Ip and Im
+      idty = dt / dx(2)
+
+!$omp parallel do private(i,j,k,sigmam,sigmap,s6)
+      !
+      ! Compute y-component of Ip and Im.
+      !
       do k=lo(3)-1,hi(3)+1
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+1
-             sigmap = abs(vedge(i,j+1,k))*dt/dx(2)
-             sigmam = abs(vedge(i,j,k))*dt/dx(2)
-             s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+             s6     = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+             sigmap = abs(vedge(i,j+1,k))*idty
+             sigmam = abs(vedge(i,j,k)  )*idty
              if (vedge(i,j+1,k) .gt. eps) then
                 Ipy(i,j,k) = sp(i,j,k) - (sigmap*half)*
      &               (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigmap)*s6)
@@ -6201,18 +6218,23 @@ c     compute y-component of Ip and Im
             end do
          end do
       end do
+!$omp end parallel do
 
       call FORT_PPM_ZDIR(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &     sedgez,DIMS(sedgez),lo,hi,bc,ppm_type)
 
-c     compute z-component of Ip and Im
+      idtz = dt / dx(3)
+
+!$omp parallel do private(i,j,k,sigmam,sigmap,s6)
+      !
+      ! Compute z-component of Ip and Im.
+      !
       do k=lo(3)-1,hi(3)+1
-c     compute effect of w0 in plane-parallel
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+1
-             sigmap = abs(wedge(i,j,k+1))*dt/dx(3)
-             sigmam = abs(wedge(i,j,k))*dt/dx(3)
-             s6 = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+             s6     = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+             sigmap = abs(wedge(i,j,k+1))*idtz
+             sigmam = abs(wedge(i,j,k)  )*idtz
              if (wedge(i,j,k+1) .gt. eps) then
                 Ipz(i,j,k) = sp(i,j,k) - (sigmap*half)*
      &               (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigmap)*s6)
@@ -6228,6 +6250,7 @@ c     compute effect of w0 in plane-parallel
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 
