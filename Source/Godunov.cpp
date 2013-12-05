@@ -1136,7 +1136,7 @@ Godunov::ComputeSyncAofs (const Box& grd,
                           areaz.dataPtr(),ARLIM(areaz.loVect()),ARLIM(areaz.hiVect()),
 #endif
                           vol.dataPtr(), ARLIM(vol.loVect()), ARLIM(vol.hiVect()),
-                          lo, hi, &iconserv);
+                          lo, hi);
 }    
 
 //

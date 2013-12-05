@@ -3329,14 +3329,13 @@ c
      &     wcor ,DIMS(wcor),
      &     areaz,DIMS(az),
      &     vol ,DIMS(vol),
-     &     lo,hi,iconserv )
+     &     lo,hi)
 c
 c     This subroutine computes the sync advective tendency
 c     for a state variable
 c
       implicit none
       integer i,j,k
-      integer iconserv
       integer imin,jmin,kmin,imax,jmax,kmax
       integer lo(SDIM),hi(SDIM)
       integer DIMDEC(sync)
@@ -4351,54 +4350,31 @@ c
 
       end
 
-      subroutine FORT_PPM(s,u,v,w,DIMS(s),
-     &     Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,
-     &     dx,dt,bc,eps,ppm_type)
+      subroutine FORT_PPM_XDIR(s,DIMS(s),
+     &     sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
+     &     sedgex,DIMS(sedgex),lo,hi,bc,ppm_type)
 
       implicit none
       
-      integer lo(SDIM), hi(SDIM)
-      integer bc(SDIM,2)
+      integer lo(SDIM), hi(SDIM), bc(SDIM,2), ppm_type
       integer DIMDEC(s)
-      integer DIMDEC(work)
       integer DIMDEC(smp)
       integer DIMDEC(dsvl)
       integer DIMDEC(sedgex)
-      integer DIMDEC(sedgey)
-      integer DIMDEC(sedgez)
       REAL_T  s(DIMV(s))
-      REAL_T  u(DIMV(s))
-      REAL_T  v(DIMV(s))
-      REAL_T  w(DIMV(s))
-      REAL_T  Ipx(DIMV(work))
-      REAL_T  Imx(DIMV(work))
-      REAL_T  Ipy(DIMV(work))
-      REAL_T  Imy(DIMV(work))
-      REAL_T  Ipz(DIMV(work))
-      REAL_T  Imz(DIMV(work))
-      REAL_T   sm(DIMV(smp))
-      REAL_T   sp(DIMV(smp))
-      REAL_T dsvl(DIMV(dsvl))
-      REAL_T sedgex(DIMV(sedgex))
-      REAL_T sedgey(DIMV(sedgey))
-      REAL_T sedgez(DIMV(sedgez))
-      REAL_T eps
-      REAL_T dx(SDIM)
-      REAL_T dt
-      integer ppm_type
+      REAL_T  sm(DIMV(smp))
+      REAL_T  sp(DIMV(smp))
+      REAL_T  dsvl(DIMV(dsvl))
+      REAL_T  sedgex(DIMV(sedgex))
 
       integer i, j, k
 
       logical extremum, bigp, bigm
 
-      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
-      REAL_T sgn, sigma, s6
+      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham, sgn
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
       REAL_T amax, delam, delap, three4ths, one20th, one12th, seven12ths
-c
-c     constant used in Colella 2008
-c
+
       PARAMETER(C = 1.25d0, three4ths = 3.d0/4.d0, one20th = 1.d0/20.0d0)
       PARAMETER(one12th = 1.d0/12.d0, seven12ths = 7.d0/12.d0)
 
@@ -4910,6 +4886,60 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
          end if
 
       end if
+
+      end
+
+      subroutine FORT_PPM(s,u,v,w,DIMS(s),
+     &     Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
+     &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,
+     &     dx,dt,bc,eps,ppm_type)
+
+      implicit none
+      
+      integer lo(SDIM), hi(SDIM)
+      integer bc(SDIM,2)
+      integer DIMDEC(s)
+      integer DIMDEC(work)
+      integer DIMDEC(smp)
+      integer DIMDEC(dsvl)
+      integer DIMDEC(sedgex)
+      integer DIMDEC(sedgey)
+      integer DIMDEC(sedgez)
+      REAL_T  s(DIMV(s))
+      REAL_T  u(DIMV(s))
+      REAL_T  v(DIMV(s))
+      REAL_T  w(DIMV(s))
+      REAL_T  Ipx(DIMV(work))
+      REAL_T  Imx(DIMV(work))
+      REAL_T  Ipy(DIMV(work))
+      REAL_T  Imy(DIMV(work))
+      REAL_T  Ipz(DIMV(work))
+      REAL_T  Imz(DIMV(work))
+      REAL_T   sm(DIMV(smp))
+      REAL_T   sp(DIMV(smp))
+      REAL_T dsvl(DIMV(dsvl))
+      REAL_T sedgex(DIMV(sedgex))
+      REAL_T sedgey(DIMV(sedgey))
+      REAL_T sedgez(DIMV(sedgez))
+      REAL_T eps
+      REAL_T dx(SDIM)
+      REAL_T dt
+      integer ppm_type
+
+      integer i, j, k
+
+      logical extremum, bigp, bigm
+
+      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
+      REAL_T sgn, sigma, s6
+      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
+      REAL_T amax, delam, delap, three4ths, one20th, one12th, seven12ths
+
+      PARAMETER(C = 1.25d0, three4ths = 3.d0/4.d0, one20th = 1.d0/20.0d0)
+      PARAMETER(one12th = 1.d0/12.d0, seven12ths = 7.d0/12.d0)
+
+      call FORT_PPM_XDIR(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
+     &     sedgex,DIMS(sedgex),lo,hi,bc,ppm_type)
       
 c     compute x-component of Ip and Im
 
@@ -6050,7 +6080,6 @@ c     compute effect of w0 in plane-parallel
       REAL_T dt
       integer ppm_type
 
-c     local
       integer i, j, k
 
       logical extremum, bigp, bigm
@@ -6059,485 +6088,12 @@ c     local
       REAL_T sgn, sigmam, sigmap, s6
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
       REAL_T amax, delam, delap, three4ths, one20th, one12th, seven12ths
-c
-c     constant used in Colella 2008
-c
+
       PARAMETER(C = 1.25d0, three4ths = 3.d0/4.d0, one20th = 1.d0/20.0d0)
       PARAMETER(one12th = 1.d0/12.d0, seven12ths = 7.d0/12.d0)
 
-c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-c     ! x-direction
-c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-c     compute s at x-edges
-      if (ppm_type .eq. 1) then
-         
-c     compute van Leer slopes in x-direction
-         dsvl = 0.d0
-         do k=lo(3)-1,hi(3)+1
-            do j=lo(2)-1,hi(2)+1
-               do i=lo(1)-2,hi(1)+2
-                  dsc = 0.5d0 * (s(i+1,j,k) - s(i-1,j,k))
-                  dsl = 2.d0  * (s(i  ,j,k) - s(i-1,j,k))
-                  dsr = 2.d0  * (s(i+1,j,k) - s(i  ,j,k))
-                  if (dsl*dsr .gt. 0.d0) 
-     &                 dsvl(i,j,k) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
-               end do
-            end do
-         end do
-         
-c     interpolate s to x-edges
-         do k=lo(3)-1,hi(3)+1
-            do j=lo(2)-1,hi(2)+1
-               do i=lo(1)-1,hi(1)+2
-                  sedgex(i,j,k) = 0.5d0*(s(i,j,k)+s(i-1,j,k)) - (sixth)*(dsvl(i,j,k)-dsvl(i-1,j,k))
-c     make sure sedgex lies in between adjacent cell-centered values
-                  sedgex(i,j,k) = max(sedgex(i,j,k),min(s(i,j,k),s(i-1,j,k)))
-                  sedgex(i,j,k) = min(sedgex(i,j,k),max(s(i,j,k),s(i-1,j,k)))
-               end do
-            end do
-         end do
-
-c     copy sedgex into sp and sm
-         do k=lo(3)-1,hi(3)+1
-            do j=lo(2)-1,hi(2)+1
-               do i=lo(1)-1,hi(1)+1
-                  sp(i,j,k) = sedgex(i+1,j,k)
-                  sm(i,j,k) = sedgex(i  ,j,k)
-               end do
-            end do
-         end do
-
-c     modify using quadratic limiters
-         do k=lo(3)-1,hi(3)+1
-            do j=lo(2)-1,hi(2)+1
-               do i=lo(1)-1,hi(1)+1
-                  if ((sp(i,j,k)-s(i,j,k))*(s(i,j,k)-sm(i,j,k)) .le. 0.d0) then
-                     sp(i,j,k) = s(i,j,k)
-                     sm(i,j,k) = s(i,j,k)
-                  else if (abs(sp(i,j,k)-s(i,j,k)) .ge. 2.d0*abs(sm(i,j,k)-s(i,j,k))) then
-                     sp(i,j,k) = 3.d0*s(i,j,k) - 2.d0*sm(i,j,k)
-                  else if (abs(sm(i,j,k)-s(i,j,k)) .ge. 2.d0*abs(sp(i,j,k)-s(i,j,k))) then
-                     sm(i,j,k) = 3.d0*s(i,j,k) - 2.d0*sp(i,j,k)
-                  end if
-               end do
-            end do
-         end do
-         
-c     different stencil needed for x-component of EXT_DIR and HOEXTRAP bc's
-         if (bc(1,1) .eq. EXT_DIR  .or. bc(1,1) .eq. HOEXTRAP) then
-c     the value in the first cc ghost cell represents the edge value
-            sm(lo(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) = s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-
-c     use a modified stencil to get sedgex on the first interior edge
-            sedgex(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -fifth        *s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +three4ths    *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +0.5d0        *s(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -one20th      *s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-
-c     make sure sedgex lies in between adjacent cell-centered values
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  sedgex(lo(1)+1,j,k) = max(sedgex(lo(1)+1,j,k),min(s(lo(1)+1,j,k),s(lo(1),j,k)))
-                  sedgex(lo(1)+1,j,k) = min(sedgex(lo(1)+1,j,k),max(s(lo(1)+1,j,k),s(lo(1),j,k)))
-               end do
-            end do
-
-c     copy sedgex into sp and sm
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  sp(lo(1)  ,j,k) = sedgex(lo(1)+1,j,k)
-                  sm(lo(1)+1,j,k) = sedgex(lo(1)+1,j,k)
-               end do
-            end do
-
-c     reset sp on second interior edge
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  sp(lo(1)+1,j,k) = sedgex(lo(1)+2,j,k)
-               end do
-            end do
-
-c     modify using quadratic limiters
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  i = lo(1)+1
-                  if ((sp(i,j,k)-s(i,j,k))*(s(i,j,k)-sm(i,j,k)) .le. 0.d0) then
-                     sp(i,j,k) = s(i,j,k)
-                     sm(i,j,k) = s(i,j,k)
-                  else if (abs(sp(i,j,k)-s(i,j,k)) .ge. 2.d0*abs(sm(i,j,k)-s(i,j,k))) then
-                     sp(i,j,k) = 3.d0*s(i,j,k) - 2.d0*sm(i,j,k)
-                  else if (abs(sm(i,j,k)-s(i,j,k)) .ge. 2.d0*abs(sp(i,j,k)-s(i,j,k))) then
-                     sm(i,j,k) = 3.d0*s(i,j,k) - 2.d0*sp(i,j,k)
-                  end if
-               end do
-            end do
-         end if
-
-         if (bc(1,2) .eq. EXT_DIR  .or. bc(1,2) .eq. HOEXTRAP) then
-c     the value in the first cc ghost cell represents the edge value
-            sp(hi(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) = s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-
-c     use a modified stencil to get sedgex on the first interior edge
-            sedgex(hi(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -fifth        *s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +three4ths    *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +0.5d0        *s(hi(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -one20th      *s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-
-c     make sure sedgex lies in between adjacent cell-centered values
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  sedgex(hi(1),j,k) = max(sedgex(hi(1),j,k),min(s(hi(1)-1,j,k),s(hi(1),j,k)))
-                  sedgex(hi(1),j,k) = min(sedgex(hi(1),j,k),max(s(hi(1)-1,j,k),s(hi(1),j,k)))
-               end do
-            end do
-
-c     copy sedgex into sp and sm
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  sp(hi(1)-1,j,k) = sedgex(hi(1),j,k)
-                  sm(hi(1)  ,j,k) = sedgex(hi(1),j,k)
-               end do
-            end do
-
-c     reset sm on second interior edge
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  sm(hi(1)-1,j,k) = sedgex(hi(1)-1,j,k)
-               end do
-            end do
-
-c     modify using quadratic limiters
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  i = hi(1)-1
-                  if ((sp(i,j,k)-s(i,j,k))*(s(i,j,k)-sm(i,j,k)) .le. 0.d0) then
-                     sp(i,j,k) = s(i,j,k)
-                     sm(i,j,k) = s(i,j,k)
-                  else if (abs(sp(i,j,k)-s(i,j,k)) .ge. 2.d0*abs(sm(i,j,k)-s(i,j,k))) then
-                     sp(i,j,k) = 3.d0*s(i,j,k) - 2.d0*sm(i,j,k)
-                  else if (abs(sm(i,j,k)-s(i,j,k)) .ge. 2.d0*abs(sp(i,j,k)-s(i,j,k))) then
-                     sm(i,j,k) = 3.d0*s(i,j,k) - 2.d0*sp(i,j,k)
-                  end if
-               end do
-            end do
-         end if
-
-      else if (ppm_type .eq. 2) then
-
-c     interpolate s to x-edges
-         do k=lo(3)-1,hi(3)+1
-            do j=lo(2)-1,hi(2)+1
-               do i=lo(1)-2,hi(1)+3
-                  sedgex(i,j,k) = seven12ths*(s(i-1,j,k)+s(i,j,k))
-     &                 - one12th*(s(i-2,j,k)+s(i+1,j,k))
-c     limit sedgex
-                  if ((sedgex(i,j,k)-s(i-1,j,k))*(s(i,j,k)-sedgex(i,j,k)) .lt. 0.d0) then
-                     D2  = 3.d0*(s(i-1,j,k)-2.d0*sedgex(i,j,k)+s(i,j,k))
-                     D2L = s(i-2,j,k)-2.d0*s(i-1,j,k)+s(i,j,k)
-                     D2R = s(i-1,j,k)-2.d0*s(i,j,k)+s(i+1,j,k)
-                     sgn = sign(1.d0,D2)
-                     D2LIM = sgn*max(min(C*sgn*D2L,C*sgn*D2R,sgn*D2),0.d0)
-                     sedgex(i,j,k) = 0.5d0*(s(i-1,j,k)+s(i,j,k)) - (sixth)*D2LIM
-                  end if
-               end do
-            end do
-         end do
-
-c     use Colella 2008 limiters
-c     This is a new version of the algorithm 
-c     to eliminate sensitivity to roundoff.
-         do k=lo(3)-1,hi(3)+1
-            do j=lo(2)-1,hi(2)+1
-               do i=lo(1)-1,hi(1)+1
-
-                  alphap = sedgex(i+1,j,k)-s(i,j,k)
-                  alpham = sedgex(i  ,j,k)-s(i,j,k)
-                  bigp = abs(alphap).gt.2.d0*abs(alpham)
-                  bigm = abs(alpham).gt.2.d0*abs(alphap)
-                  extremum = .false.
-
-                  if (alpham*alphap .ge. 0.d0) then
-                     extremum = .true.
-                  else if (bigp .or. bigm) then
-c     Possible extremum. We look at cell centered values and face
-c     centered values for a change in sign in the differences adjacent to
-c     the cell. We use the pair of differences whose minimum magnitude is the
-c     largest, and thus least susceptible to sensitivity to roundoff.
-                     dafacem = sedgex(i,j,k) - sedgex(i-1,j,k)
-                     dafacep = sedgex(i+2,j,k) - sedgex(i+1,j,k)
-                     dabarm = s(i,j,k) - s(i-1,j,k)
-                     dabarp = s(i+1,j,k) - s(i,j,k)
-                     dafacemin = min(abs(dafacem),abs(dafacep))
-                     dabarmin= min(abs(dabarm),abs(dabarp))
-                     if (dafacemin.ge.dabarmin) then
-                        dachkm = dafacem
-                        dachkp = dafacep
-                     else
-                        dachkm = dabarm
-                        dachkp = dabarp
-                     endif
-                     extremum = (dachkm*dachkp .le. 0.d0)
-                  end if
-
-                  if (extremum) then
-                     D2  = 6.d0*(alpham + alphap)
-                     D2L = s(i-2,j,k)-2.d0*s(i-1,j,k)+s(i,j,k)
-                     D2R = s(i,j,k)-2.d0*s(i+1,j,k)+s(i+2,j,k)
-                     D2C = s(i-1,j,k)-2.d0*s(i,j,k)+s(i+1,j,k)
-                     sgn = sign(1.d0,D2)
-                     D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
-                     alpham = alpham*D2LIM/max(abs(D2),1.d-10)
-                     alphap = alphap*D2LIM/max(abs(D2),1.d-10)
-                  else
-                     if (bigp) then
-                        sgn = sign(1.d0,alpham)
-                        amax = -alphap**2 / (4*(alpham + alphap))
-                        delam = s(i-1,j,k) - s(i,j,k)
-                        if (sgn*amax .ge. sgn*delam) then
-                           if (sgn*(delam - alpham).ge.1.d-10) then
-                              alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                           else 
-                              alphap = -2.d0*alpham
-                           endif
-                        endif
-                     end if
-                     if (bigm) then
-                        sgn = sign(1.d0,alphap)
-                        amax = -alpham**2 / (4*(alpham + alphap))
-                        delap = s(i+1,j,k) - s(i,j,k)
-                        if (sgn*amax .ge. sgn*delap) then
-                           if (sgn*(delap - alphap).ge.1.d-10) then
-                              alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
-                           else
-                              alpham = -2.d0*alphap
-                           endif
-                        endif
-                     end if
-                  end if
-                  
-                  sm(i,j,k) = s(i,j,k) + alpham
-                  sp(i,j,k) = s(i,j,k) + alphap
-
-               end do
-            end do
-         end do
-
-c     different stencil needed for x-component of EXT_DIR and HOEXTRAP bc's
-         if (bc(1,1) .eq. EXT_DIR  .or. bc(1,1) .eq. HOEXTRAP) then
-c     the value in the first cc ghost cell represents the edge value
-            sm(lo(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)    = s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-            sedgex(lo(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) = s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-
-c     use a modified stencil to get sedgex on the first interior edge
-            sedgex(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -fifth        *s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +three4ths    *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +0.5d0        *s(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -one20th      *s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-
-c     make sure sedgex lies in between adjacent cell-centered values
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  sedgex(lo(1)+1,j,k) = max(sedgex(lo(1)+1,j,k),min(s(lo(1)+1,j,k),s(lo(1),j,k)))
-                  sedgex(lo(1)+1,j,k) = min(sedgex(lo(1)+1,j,k),max(s(lo(1)+1,j,k),s(lo(1),j,k)))
-               end do
-            end do
-
-c     copy sedgex into sp
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  sp(lo(1)  ,j,k) = sedgex(lo(1)+1,j,k)
-               end do
-            end do
-
-c     apply Colella 2008 limiters to compute sm and sp in the second
-c     and third inner cells
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  do i=lo(1)+1,lo(1)+2
-
-                     alphap = sedgex(i+1,j,k)-s(i,j,k)
-                     alpham = sedgex(i  ,j,k)-s(i,j,k)
-                     bigp = abs(alphap).gt.2.d0*abs(alpham)
-                     bigm = abs(alpham).gt.2.d0*abs(alphap)
-                     extremum = .false.
-
-                     if (alpham*alphap .ge. 0.d0) then
-                        extremum = .true.
-                     else if (bigp .or. bigm) then
-c     Possible extremum. We look at cell centered values and face
-c     centered values for a change in sign in the differences adjacent to
-c     the cell. We use the pair of differences whose minimum magnitude is the
-c     largest, and thus least susceptible to sensitivity to roundoff.
-                        dafacem = sedgex(i,j,k) - sedgex(i-1,j,k)
-                        dafacep = sedgex(i+2,j,k) - sedgex(i+1,j,k)
-                        dabarm = s(i,j,k) - s(i-1,j,k)
-                        dabarp = s(i+1,j,k) - s(i,j,k)
-                        dafacemin = min(abs(dafacem),abs(dafacep))
-                        dabarmin= min(abs(dabarm),abs(dabarp))
-                        if (dafacemin.ge.dabarmin) then
-                           dachkm = dafacem
-                           dachkp = dafacep
-                        else
-                           dachkm = dabarm
-                           dachkp = dabarp
-                        endif
-                        extremum = (dachkm*dachkp .le. 0.d0)
-                     end if
-
-                     if (extremum) then
-                        D2  = 6.d0*(alpham + alphap)
-                        D2L = s(i-2,j,k)-2.d0*s(i-1,j,k)+s(i,j,k)
-                        D2R = s(i,j,k)-2.d0*s(i+1,j,k)+s(i+2,j,k)
-                        D2C = s(i-1,j,k)-2.d0*s(i,j,k)+s(i+1,j,k)
-                        sgn = sign(1.d0,D2)
-                        D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
-                        alpham = alpham*D2LIM/max(abs(D2),1.d-10)
-                        alphap = alphap*D2LIM/max(abs(D2),1.d-10)
-                     else
-                        if (bigp) then
-                           sgn = sign(1.d0,alpham)
-                           amax = -alphap**2 / (4*(alpham + alphap))
-                           delam = s(i-1,j,k) - s(i,j,k)
-                           if (sgn*amax .ge. sgn*delam) then
-                              if (sgn*(delam - alpham).ge.1.d-10) then
-                                 alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                              else 
-                                 alphap = -2.d0*alpham
-                              endif
-                           endif
-                        end if
-                        if (bigm) then
-                           sgn = sign(1.d0,alphap)
-                           amax = -alpham**2 / (4*(alpham + alphap))
-                           delap = s(i+1,j,k) - s(i,j,k)
-                           if (sgn*amax .ge. sgn*delap) then
-                              if (sgn*(delap - alphap).ge.1.d-10) then
-                                 alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
-                              else
-                                 alpham = -2.d0*alphap
-                              endif
-                           endif
-                        end if
-                     end if
-
-                     sm(i,j,k) = s(i,j,k) + alpham
-                     sp(i,j,k) = s(i,j,k) + alphap
-
-                  end do
-               end do
-            end do
-         end if
-
-         if (bc(1,2) .eq. EXT_DIR  .or. bc(1,2) .eq. HOEXTRAP) then
-c     the value in the first cc ghost cell represents the edge value
-            sp(hi(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) = s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-
-c     use a modified stencil to get sedgex on the first interior edge
-            sedgex(hi(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -fifth        *s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +three4ths    *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +0.5d0        *s(hi(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -one20th      *s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-
-c     make sure sedgex lies in between adjacent cell-centered values
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  sedgex(hi(1),j,k) = max(sedgex(hi(1),j,k),min(s(hi(1)-1,j,k),s(hi(1),j,k)))
-                  sedgex(hi(1),j,k) = min(sedgex(hi(1),j,k),max(s(hi(1)-1,j,k),s(hi(1),j,k)))
-               end do
-            end do
-
-c     copy sedgex into sm
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  sm(hi(1)  ,j,k) = sedgex(hi(1),j,k)
-               end do
-            end do
-
-c     apply Colella 2008 limiters to compute sm and sp in the second
-c     and third inner cells
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  do i=hi(1)-2,hi(1)-1
-
-                     alphap = sedgex(i+1,j,k)-s(i,j,k)
-                     alpham = sedgex(i  ,j,k)-s(i,j,k)
-                     bigp = abs(alphap).gt.2.d0*abs(alpham)
-                     bigm = abs(alpham).gt.2.d0*abs(alphap)
-                     extremum = .false.
-
-                     if (alpham*alphap .ge. 0.d0) then
-                        extremum = .true.
-                     else if (bigp .or. bigm) then
-c     Possible extremum. We look at cell centered values and face
-c     centered values for a change in sign in the differences adjacent to
-c     the cell. We use the pair of differences whose minimum magnitude is the
-c     largest, and thus least susceptible to sensitivity to roundoff.
-                        dafacem = sedgex(i,j,k) - sedgex(i-1,j,k)
-                        dafacep = sedgex(i+2,j,k) - sedgex(i+1,j,k)
-                        dabarm = s(i,j,k) - s(i-1,j,k)
-                        dabarp = s(i+1,j,k) - s(i,j,k)
-                        dafacemin = min(abs(dafacem),abs(dafacep))
-                        dabarmin= min(abs(dabarm),abs(dabarp))
-                        if (dafacemin.ge.dabarmin) then
-                           dachkm = dafacem
-                           dachkp = dafacep
-                        else
-                           dachkm = dabarm
-                           dachkp = dabarp
-                        endif
-                        extremum = (dachkm*dachkp .le. 0.d0)
-                     end if
-
-                     if (extremum) then
-                        D2  = 6.d0*(alpham + alphap)
-                        D2L = s(i-2,j,k)-2.d0*s(i-1,j,k)+s(i,j,k)
-                        D2R = s(i,j,k)-2.d0*s(i+1,j,k)+s(i+2,j,k)
-                        D2C = s(i-1,j,k)-2.d0*s(i,j,k)+s(i+1,j,k)
-                        sgn = sign(1.d0,D2)
-                        D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
-                        alpham = alpham*D2LIM/max(abs(D2),1.d-10)
-                        alphap = alphap*D2LIM/max(abs(D2),1.d-10)
-                     else
-                        if (bigp) then
-                           sgn = sign(1.d0,alpham)
-                           amax = -alphap**2 / (4*(alpham + alphap))
-                           delam = s(i-1,j,k) - s(i,j,k)
-                           if (sgn*amax .ge. sgn*delam) then
-                              if (sgn*(delam - alpham).ge.1.d-10) then
-                                 alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                              else 
-                                 alphap = -2.d0*alpham
-                              endif
-                           endif
-                        end if
-                        if (bigm) then
-                           sgn = sign(1.d0,alphap)
-                           amax = -alpham**2 / (4*(alpham + alphap))
-                           delap = s(i+1,j,k) - s(i,j,k)
-                           if (sgn*amax .ge. sgn*delap) then
-                              if (sgn*(delap - alphap).ge.1.d-10) then
-                                 alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
-                              else
-                                 alpham = -2.d0*alphap
-                              endif
-                           endif
-                        end if
-                     end if
-
-                     sm(i,j,k) = s(i,j,k) + alpham
-                     sp(i,j,k) = s(i,j,k) + alphap
-
-                  end do
-               end do
-            end do
-         end if
-
-      end if
+      call FORT_PPM_XDIR(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
+     &     sedgex,DIMS(sedgex),lo,hi,bc,ppm_type)
       
 c     compute x-component of Ip and Im
       do k=lo(3)-1,hi(3)+1

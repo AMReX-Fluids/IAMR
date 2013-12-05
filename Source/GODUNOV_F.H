@@ -282,7 +282,7 @@ extern "C"
 			      const Real* areaz_dat, ARLIM_P(az_lo), ARLIM_P(az_hi),
 #endif
 			      const Real* vol_dat, ARLIM_P(v_lo),ARLIM_P(v_hi),
-			      const int* lo, const int* hi, int* iconserv);
+			      const int* lo, const int* hi);
    
    void FORT_CONVSCALMINMAX (const Real* Sold_dat, 
                              ARLIM_P(slo), ARLIM_P(shi),
