@@ -4427,20 +4427,14 @@ c
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Copy sedge into sp and sm.
+                  !
                   sp(i,j,k) = sedgez(i,j,k+1)
                   sm(i,j,k) = sedgez(i,j,k  )
-               end do
-            end do
-         end do
-!$omp end do
-
-!$omp do
-         !
-         ! Modify using quadratic limiters.
-         !
-         do k=lo(3)-1,hi(3)+1
-            do j=lo(2)-1,hi(2)+1
-               do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Modify using quadratic limiters.
+                  !
                   if ((sp(i,j,k)-s(i,j,k))*(s(i,j,k)-sm(i,j,k)) .le. 0.d0) then
                      sp(i,j,k) = s(i,j,k)
                      sm(i,j,k) = s(i,j,k)
@@ -4453,7 +4447,6 @@ c
             end do
          end do
 !$omp end do
-
 !$omp end parallel
          
 c     different stencil needed for z-component of EXT_DIR and HOEXTRAP bc's
@@ -4969,20 +4962,14 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Copy sedge into sp and sm.
+                  !
                   sp(i,j,k) = sedgey(i,j+1,k)
                   sm(i,j,k) = sedgey(i,j  ,k)
-               end do
-            end do
-         end do
-!$omp end do
-
-!$omp do
-         !
-         ! Modify using quadratic limiters.
-         !
-         do k=lo(3)-1,hi(3)+1
-            do j=lo(2)-1,hi(2)+1
-               do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Modify using quadratic limiters.
+                  !
                   if ((sp(i,j,k)-s(i,j,k))*(s(i,j,k)-sm(i,j,k)) .le. 0.d0) then
                      sp(i,j,k) = s(i,j,k)
                      sm(i,j,k) = s(i,j,k)
@@ -4995,7 +4982,6 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
             end do
          end do
 !$omp end do
-
 !$omp end parallel
 
 c     different stencil needed for y-component of EXT_DIR and HOEXTRAP bc's
@@ -5470,7 +5456,6 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
          dsvl = 0.d0
 
 !$omp parallel private(i,j,k,dsc,dsl,dsr)
-
 !$omp do
          !
          ! Compute van Leer slopes.
@@ -5511,20 +5496,14 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Copy sedge into sp and sm.
+                  !
                   sp(i,j,k) = sedgex(i+1,j,k)
                   sm(i,j,k) = sedgex(i  ,j,k)
-               end do
-            end do
-         end do
-!$omp end do
-
-!$omp do
-         !
-         ! Modify using quadratic limiters.
-         !
-         do k=lo(3)-1,hi(3)+1
-            do j=lo(2)-1,hi(2)+1
-               do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Modify using quadratic limiters.
+                  !
                   if ((sp(i,j,k)-s(i,j,k))*(s(i,j,k)-sm(i,j,k)) .le. 0.d0) then
                      sp(i,j,k) = s(i,j,k)
                      sm(i,j,k) = s(i,j,k)
@@ -5537,7 +5516,6 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
             end do
          end do
 !$omp end do
-
 !$omp end parallel
          
 c     different stencil needed for x-component of EXT_DIR and HOEXTRAP bc's
