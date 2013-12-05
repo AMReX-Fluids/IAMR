@@ -5432,27 +5432,24 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
       end
 
       subroutine FORT_PPM_XDIR_PPM2(s,DIMS(s),
-     &     sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &     sedgex,DIMS(sedgex),lo,hi,bc,ilo,ihi)
+     &     sm,sp,DIMS(smp),sedgex,DIMS(sedgex),lo,hi,ilo,ihi)
 
       implicit none
       
-      integer lo(SDIM), hi(SDIM), bc(SDIM,2), ilo, ihi
+      integer lo(SDIM), hi(SDIM), ilo, ihi
       integer DIMDEC(s)
       integer DIMDEC(smp)
-      integer DIMDEC(dsvl)
       integer DIMDEC(sedgex)
       REAL_T  s(DIMV(s))
       REAL_T  sm(DIMV(smp))
       REAL_T  sp(DIMV(smp))
-      REAL_T  dsvl(DIMV(dsvl))
       REAL_T  sedgex(DIMV(sedgex))
 
       integer i, j, k
 
       logical extremum, bigp, bigm
 
-      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, alphap, alpham
+      REAL_T D2, D2C, D2L, D2R, D2LIM, alphap, alpham
       REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin
       REAL_T sgn, amax, delam, delap, dachkm, dachkp
 
@@ -5571,11 +5568,7 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
 
       integer i, j, k
 
-      logical extremum, bigp, bigm
-
-      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, alphap, alpham
-      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin
-      REAL_T sgn, amax, delam, delap, dachkm, dachkp
+      REAL_T dsl, dsr, dsc, D2, D2L, D2R, D2LIM, sgn
 
       REAL_T, PARAMETER :: C          = 1.25d0
       REAL_T, PARAMETER :: three4ths  = 3.d0/4.d0
@@ -5781,8 +5774,8 @@ c     the value in the first cc ghost cell represents the edge value
          end do
 !$omp end parallel do
 
-      call FORT_PPM_XDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &     sedgex,DIMS(sedgex),lo,hi,bc,lo(1)-1,hi(1)+1)
+      call FORT_PPM_XDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+     &     sedgex,DIMS(sedgex),lo,hi,lo(1)-1,hi(1)+1)
          !
          ! Different stencil needed for x-component of
          ! EXT_DIR and HOEXTRAP bc's.
@@ -5825,8 +5818,8 @@ c     the value in the first cc ghost cell represents the edge value
             ! Apply Colella 2008 limiters to compute
             ! sm and sp in the 2nd and 3rd inner cells.
             !
-            call FORT_PPM_XDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &           sedgex,DIMS(sedgex),lo,hi,bc,lo(1)+1,lo(1)+2)
+            call FORT_PPM_XDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+     &           sedgex,DIMS(sedgex),lo,hi,lo(1)+1,lo(1)+2)
          end if
 
          if (bc(1,2) .eq. EXT_DIR  .or. bc(1,2) .eq. HOEXTRAP) then
@@ -5866,8 +5859,8 @@ c     the value in the first cc ghost cell represents the edge value
             ! Apply Colella 2008 limiters to compute sm and sp
             ! in the 2nd and 3rd inner cells.
             !
-            call FORT_PPM_XDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
-     &           sedgex,DIMS(sedgex),lo,hi,bc,hi(1)-2,hi(1)-1)
+            call FORT_PPM_XDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+     &           sedgex,DIMS(sedgex),lo,hi,hi(1)-2,hi(1)-1)
          end if
 
       end if
