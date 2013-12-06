@@ -4350,7 +4350,7 @@ c
 
       end
 
-      subroutine FORT_PPM_ZDIR_PPM2(s,DIMS(s),
+      subroutine FORT_PPM_ZDIR_COLELLA(s,DIMS(s),
      &     sm,sp,DIMS(smp),
      &     sedgez,DIMS(sedgez),lo,hi,klo,khi)
 
@@ -4697,7 +4697,7 @@ c
          end do
 !$omp end parallel do
 
-         call FORT_PPM_ZDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+         call FORT_PPM_ZDIR_COLELLA(s,DIMS(s),sm,sp,DIMS(smp),
      &        sedgez,DIMS(sedgez),lo,hi,lo(3)-1,hi(3)+1)
          !
          ! Different stencil needed for z-component of
@@ -4710,38 +4710,36 @@ c
             !
             sm(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3))     = s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1)
             sedgez(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)) = s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1)
-            !
-            ! Use a modified stencil to get sedgez on the
-            ! first interior edge.
-            !
-            sedgez(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+1) =
-     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1)
-     &           +three4ths    *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  )
-     &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+1)
-     &           -one20th      *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)+2)
-            !
-            ! Make sure sedgez lies in between adjacent
-            ! cell-centered values.
-            !
+
+!$omp parallel do private(i,j)
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Use a modified stencil to get sedgez on the
+                  ! first interior edge.
+                  !
+                  sedgez(i,j,lo(3)+1) = - fifth     *s(i,j,lo(3)-1)
+     &                                  + three4ths *s(i,j,lo(3)  )
+     &                                  + 0.5d0     *s(i,j,lo(3)+1)
+     &                                  - one20th   *s(i,j,lo(3)+2)
+                  !
+                  ! Make sure sedgez lies in between adjacent
+                  ! cell-centered values.
+                  !
                   sedgez(i,j,lo(3)+1) = max(sedgez(i,j,lo(3)+1),min(s(i,j,lo(3)+1),s(i,j,lo(3))))
                   sedgez(i,j,lo(3)+1) = min(sedgez(i,j,lo(3)+1),max(s(i,j,lo(3)+1),s(i,j,lo(3))))
-               end do
-            end do
-            !
-            ! Copy sedgez into sp.
-            !
-            do j=lo(2)-1,hi(2)+1
-               do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Copy sedgez into sp.
+                  !
                   sp(i,j,lo(3)  ) = sedgez(i,j,lo(3)+1)
                end do
             end do
+!$omp end parallel do
             !
             ! Apply Colella 2008 limiters to compute sm and sp
             ! in the 2nd and 3rd inner cells.
             !
-            call FORT_PPM_ZDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+            call FORT_PPM_ZDIR_COLELLA(s,DIMS(s),sm,sp,DIMS(smp),
      &           sedgez,DIMS(sedgez),lo,hi,lo(3)+1,lo(3)+2)
          end if
 
@@ -4752,38 +4750,36 @@ c
             !
             sp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3))       = s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1)
             sedgez(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1) = s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1)
-            !
-            ! Use a modified stencil to get sedgez on the
-            ! first interior edge.
-            !
-            sedgez(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)) =
-     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1)
-     &           +three4ths    *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)  )
-     &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-1)
-     &           -one20th      *s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)-2)
-            !
-            ! Make sure sedgez lies in between adjacent
-            ! cell-centered values.
-            !
+
+!$omp parallel do private(i,j)
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Use a modified stencil to get sedgez on the
+                  ! first interior edge.
+                  !
+                  sedgez(i,j,hi(3)) = - fifth     *s(i,j,hi(3)+1)
+     &                                + three4ths *s(i,j,hi(3)  )
+     &                                + 0.5d0     *s(i,j,hi(3)-1)
+     &                                - one20th   *s(i,j,hi(3)-2)
+                  !
+                  ! Make sure sedgez lies in between adjacent
+                  ! cell-centered values.
+                  !
                   sedgez(i,j,hi(3)) = max(sedgez(i,j,hi(3)),min(s(i,j,hi(3)-1),s(i,j,hi(3))))
                   sedgez(i,j,hi(3)) = min(sedgez(i,j,hi(3)),max(s(i,j,hi(3)-1),s(i,j,hi(3))))
-               end do
-            end do
-            !
-            ! Copy sedgez into sp.
-            !
-            do j=lo(2)-1,hi(2)+1
-               do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Copy sedgez into sp.
+                  !
                   sm(i,j,hi(3)  ) = sedgez(i,j,hi(3))
                end do
             end do
+!$omp end parallel do
             !
             ! Apply Colella 2008 limiters to compute sm and sp
             ! in the 2nd and 3rd inner cells.
             !
-            call FORT_PPM_ZDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+            call FORT_PPM_ZDIR_COLELLA(s,DIMS(s),sm,sp,DIMS(smp),
      &           sedgez,DIMS(sedgez),lo,hi,hi(3)-2,hi(3)-1)
          end if
 
@@ -4791,7 +4787,7 @@ c
 
       end
 
-      subroutine FORT_PPM_YDIR_PPM2(s,DIMS(s),
+      subroutine FORT_PPM_YDIR_COLELLA(s,DIMS(s),
      &     sm,sp,DIMS(smp),
      &     sedgey,DIMS(sedgey),lo,hi,jlo,jhi)
 
@@ -5138,7 +5134,7 @@ c
          end do
 !$omp end parallel do
 
-         call FORT_PPM_YDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+         call FORT_PPM_YDIR_COLELLA(s,DIMS(s),sm,sp,DIMS(smp),
      &        sedgey,DIMS(sedgey),lo,hi,lo(2)-1,hi(2)+1)
          !
          ! Different stencil needed for y-component of
@@ -5151,38 +5147,36 @@ c
             !
             sm(lo(1)-1:hi(1)+1,lo(2),lo(3)-1:hi(3)+1)     = s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
             sedgey(lo(1)-1:hi(1)+1,lo(2),lo(3)-1:hi(3)+1) = s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
-            !
-            ! Use a modified stencil to get sedgey
-            ! on the first interior edge.
-            !
-            sedgey(lo(1)-1:hi(1)+1,lo(2)+1,lo(3)-1:hi(3)+1) =
-     &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
-     &           +three4ths    *s(lo(1)-1:hi(1)+1,lo(2)  ,lo(3)-1:hi(3)+1)
-     &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)+1,lo(3)-1:hi(3)+1)
-     &           -one20th      *s(lo(1)-1:hi(1)+1,lo(2)+2,lo(3)-1:hi(3)+1)
-            !
-            ! Make sure sedgey lies in between adjacent
-            ! cell-centered values.
-            !
+
+!$omp parallel do private(i,k)
             do k=lo(3)-1,hi(3)+1
                do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Use a modified stencil to get sedgey
+                  ! on the first interior edge.
+                  !
+                  sedgey(i,lo(2)+1,k) = - fifth     *s(i,lo(2)-1,k)
+     &                                  + three4ths *s(i,lo(2)  ,k)
+     &                                  + 0.5d0     *s(i,lo(2)+1,k)
+     &                                  - one20th   *s(i,lo(2)+2,k)
+                  !
+                  ! Make sure sedgey lies in between adjacent
+                  ! cell-centered values.
+                  !
                   sedgey(i,lo(2)+1,k) = max(sedgey(i,lo(2)+1,k),min(s(i,lo(2)+1,k),s(i,lo(2),k)))
                   sedgey(i,lo(2)+1,k) = min(sedgey(i,lo(2)+1,k),max(s(i,lo(2)+1,k),s(i,lo(2),k)))
-               end do
-            end do
-            !
-            ! Copy sedgey into sp.
-            !
-            do k=lo(3)-1,hi(3)+1
-               do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Copy sedgey into sp.
+                  !
                   sp(i,lo(2)  ,k) = sedgey(i,lo(2)+1,k)
                end do
             end do
+!$omp end parallel do
             !
             ! Apply Colella 2008 limiters to compute sm and sp
             ! in the 2nd and 3rd inner cells.
             !
-            call FORT_PPM_YDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+            call FORT_PPM_YDIR_COLELLA(s,DIMS(s),sm,sp,DIMS(smp),
      &           sedgey,DIMS(sedgey),lo,hi,lo(2)+1,lo(2)+2)
          end if
 
@@ -5193,38 +5187,36 @@ c
             !
             sp(lo(1)-1:hi(1)+1,hi(2),lo(3)-1:hi(3)+1) = s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
             sedgey(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1) = s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
-            !
-            ! Use a modified stencil to get sedgey
-            ! on the first interior edge.
-            !
-            sedgey(lo(1)-1:hi(1)+1,hi(2),lo(3)-1:hi(3)+1) =
-     &           -fifth        *s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +three4ths    *s(lo(1)-1:hi(1)+1,hi(2)  ,lo(3)-1:hi(3)+1)
-     &           +0.5d0        *s(lo(1)-1:hi(1)+1,hi(2)-1,lo(3)-1:hi(3)+1)
-     &           -one20th      *s(lo(1)-1:hi(1)+1,hi(2)-2,lo(3)-1:hi(3)+1)
-            !
-            ! Make sure sedgey lies in between adjacent
-            ! cell-centered values.
-            !
+
+!$omp parallel do private(i,k)
             do k=lo(3)-1,hi(3)+1
                do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Use a modified stencil to get sedgey
+                  ! on the first interior edge.
+                  !
+                  sedgey(i,hi(2),k) = - fifth     *s(i,hi(2)+1,k)
+     &                                + three4ths *s(i,hi(2)  ,k)
+     &                                + 0.5d0     *s(i,hi(2)-1,k)
+     &                                - one20th   *s(i,hi(2)-2,k)
+                  !
+                  ! Make sure sedgey lies in between adjacent
+                  ! cell-centered values.
+                  !
                   sedgey(i,hi(2),k) = max(sedgey(i,hi(2),k),min(s(i,hi(2)-1,k),s(i,hi(2),k)))
                   sedgey(i,hi(2),k) = min(sedgey(i,hi(2),k),max(s(i,hi(2)-1,k),s(i,hi(2),k)))
-               end do
-            end do
-            !
-            ! Copy sedgey into sp.
-            !
-            do k=lo(3)-1,hi(3)+1
-               do i=lo(1)-1,hi(1)+1
+                  !
+                  ! Copy sedgey into sp.
+                  !
                   sm(i,hi(2)  ,k) = sedgey(i,hi(2),k)
                end do
             end do
+!$omp end parallel do
             !
             ! Apply Colella 2008 limiters to compute sm and sp
             ! in the 2nd and 3rd inner cells.
             !
-            call FORT_PPM_YDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+            call FORT_PPM_YDIR_COLELLA(s,DIMS(s),sm,sp,DIMS(smp),
      &           sedgey,DIMS(sedgey),lo,hi,hi(2)-2,hi(2)-1)
          end if
 
@@ -5232,7 +5224,7 @@ c
 
       end
 
-      subroutine FORT_PPM_XDIR_PPM2(s,DIMS(s),
+      subroutine FORT_PPM_XDIR_COLELLA(s,DIMS(s),
      &     sm,sp,DIMS(smp),sedgex,DIMS(sedgex),lo,hi,ilo,ihi)
 
       implicit none
@@ -5575,7 +5567,7 @@ c     the value in the first cc ghost cell represents the edge value
          end do
 !$omp end parallel do
 
-      call FORT_PPM_XDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+      call FORT_PPM_XDIR_COLELLA(s,DIMS(s),sm,sp,DIMS(smp),
      &     sedgex,DIMS(sedgex),lo,hi,lo(1)-1,hi(1)+1)
          !
          ! Different stencil needed for x-component of
@@ -5588,38 +5580,36 @@ c     the value in the first cc ghost cell represents the edge value
             !
             sm(lo(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)     = s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
             sedgex(lo(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) = s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-            !
-            ! Use a modified stencil to get sedgex
-            ! on the first interior edge.
-            !
-            sedgex(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -fifth        *s(lo(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +three4ths    *s(lo(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +0.5d0        *s(lo(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -one20th      *s(lo(1)+2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-            !
-            ! Make sure sedgex lies in between adjacent
-            ! cell-centered values.
-            !
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  sedgex(lo(1)+1,j,k) = max(sedgex(lo(1)+1,j,k),min(s(lo(1)+1,j,k),s(lo(1),j,k)))
-                  sedgex(lo(1)+1,j,k) = min(sedgex(lo(1)+1,j,k),max(s(lo(1)+1,j,k),s(lo(1),j,k)))
-               end do
-            end do
-            !
-            ! Copy sedgex into sp.
-            !
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
-                  sp(lo(1)  ,j,k) = sedgex(lo(1)+1,j,k)
-               end do
-            end do
+
+!$omp parallel do private(j,k)
+          do k=lo(3)-1,hi(3)+1
+             do j=lo(2)-1,hi(2)+1
+                !
+                ! Use a modified stencil to get sedgex
+                ! on the first interior edge.
+                !
+                sedgex(lo(1)+1,j,k) = - fifth     *s(lo(1)-1,j,k)
+     &                                + three4ths *s(lo(1)  ,j,k)
+     &                                + 0.5d0     *s(lo(1)+1,j,k)
+     &                                - one20th   *s(lo(1)+2,j,k)
+                !
+                ! Make sure sedgex lies in between adjacent
+                ! cell-centered values.
+                !
+                sedgex(lo(1)+1,j,k) = max(sedgex(lo(1)+1,j,k),min(s(lo(1)+1,j,k),s(lo(1),j,k)))
+                sedgex(lo(1)+1,j,k) = min(sedgex(lo(1)+1,j,k),max(s(lo(1)+1,j,k),s(lo(1),j,k)))
+                !
+                ! Copy sedgex into sp.
+                !
+                sp(lo(1)  ,j,k) = sedgex(lo(1)+1,j,k)
+             end do
+          end do
+!$omp end parallel do
             !
             ! Apply Colella 2008 limiters to compute
             ! sm and sp in the 2nd and 3rd inner cells.
             !
-            call FORT_PPM_XDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+            call FORT_PPM_XDIR_COLELLA(s,DIMS(s),sm,sp,DIMS(smp),
      &           sedgex,DIMS(sedgex),lo,hi,lo(1)+1,lo(1)+2)
          end if
 
@@ -5629,30 +5619,26 @@ c     the value in the first cc ghost cell represents the edge value
             ! represents the edge value.
             !
             sp(hi(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) = s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-            !
-            ! Use a modified stencil to get sedgex
-            ! on the first interior edge.
-            !
-            sedgex(hi(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) =
-     &           -fifth        *s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +three4ths    *s(hi(1)  ,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           +0.5d0        *s(hi(1)-1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-     &           -one20th      *s(hi(1)-2,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-            !
-            ! Make sure sedgex lies in between adjacent
-            ! cell-centered values.
-            !
+
             do k=lo(3)-1,hi(3)+1
                do j=lo(2)-1,hi(2)+1
+                  !
+                  ! Use a modified stencil to get sedgex
+                  ! on the first interior edge.
+                  !
+                  sedgex(hi(1),j,k) = - fifth     *s(hi(1)+1,j,k)
+     &                                + three4ths *s(hi(1)  ,j,k)
+     &                                + 0.5d0     *s(hi(1)-1,j,k)
+     &                                - one20th   *s(hi(1)-2,j,k)
+                  !
+                  ! Make sure sedgex lies in between adjacent
+                  ! cell-centered values.
+                  !
                   sedgex(hi(1),j,k) = max(sedgex(hi(1),j,k),min(s(hi(1)-1,j,k),s(hi(1),j,k)))
                   sedgex(hi(1),j,k) = min(sedgex(hi(1),j,k),max(s(hi(1)-1,j,k),s(hi(1),j,k)))
-               end do
-            end do
-            !
-            ! Copy sedgex into sm.
-            !
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)-1,hi(2)+1
+                  !
+                  ! Copy sedgex into sm.
+                  !
                   sm(hi(1)  ,j,k) = sedgex(hi(1),j,k)
                end do
             end do
@@ -5660,7 +5646,7 @@ c     the value in the first cc ghost cell represents the edge value
             ! Apply Colella 2008 limiters to compute sm and sp
             ! in the 2nd and 3rd inner cells.
             !
-            call FORT_PPM_XDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+            call FORT_PPM_XDIR_COLELLA(s,DIMS(s),sm,sp,DIMS(smp),
      &           sedgex,DIMS(sedgex),lo,hi,hi(1)-2,hi(1)-1)
          end if
 
