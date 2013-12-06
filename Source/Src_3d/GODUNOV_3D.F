@@ -4891,6 +4891,125 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
 
       end
 
+      subroutine FORT_PPM_YDIR_PPM2(s,DIMS(s),
+     &     sm,sp,DIMS(smp),
+     &     sedgey,DIMS(sedgey),lo,hi,jlo,jhi)
+
+      implicit none
+      
+      integer lo(SDIM), hi(SDIM), jlo, jhi
+      integer DIMDEC(s)
+      integer DIMDEC(smp)
+      integer DIMDEC(sedgey)
+      REAL_T  s(DIMV(s))
+      REAL_T  sm(DIMV(smp))
+      REAL_T  sp(DIMV(smp))
+      REAL_T  sedgey(DIMV(sedgey))
+
+      integer i, j, k
+
+      logical extremum, bigp, bigm
+
+      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, alphap, alpham
+      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin
+      REAL_T sgn, amax, delam, delap, dachkm, dachkp
+
+      REAL_T, PARAMETER :: C          = 1.25d0
+      REAL_T, PARAMETER :: three4ths  = 3.d0/4.d0
+      REAL_T, PARAMETER :: one20th    = 1.d0/20.0d0
+      REAL_T, PARAMETER :: one12th    = 1.d0/12.d0
+      REAL_T, PARAMETER :: seven12ths = 7.d0/12.d0
+       !
+       ! Use Colella 2008 limiters.
+       ! This is a new version of the algorithm
+       ! to eliminate sensitivity to roundoff.
+       !
+!$omp parallel do private(i,j,k,alphap,alpham,bigp,bigm,extremum)
+!$omp&private(dafacem,dafacep,dabarm,dabarp,dafacemin,dabarmin)
+!$omp&private(dachkm,dachkp,D2,D2L,D2R,D2C,sgn,D2LIM,amax,delam,delap)
+      do k=lo(3)-1,hi(3)+1
+         do j=jlo,jhi
+            do i=lo(1)-1,hi(1)+1
+
+               alphap = sedgey(i,j+1,k)-s(i,j,k)
+               alpham = sedgey(i,j  ,k)-s(i,j,k)
+               bigp = abs(alphap).gt.2.d0*abs(alpham)
+               bigm = abs(alpham).gt.2.d0*abs(alphap)
+               extremum = .false.
+
+               if (alpham*alphap .ge. 0.d0) then
+                  extremum = .true.
+               else if (bigp .or. bigm) then
+                  !
+                  ! Possible extremum. We look at cell centered
+                  ! values and face centered values for a change
+                  ! in sign in the differences adjacent to
+                  ! the cell. We use the pair of differences whose
+                  ! minimum magnitude is the largest, and thus least
+                  ! susceptible to sensitivity to roundoff.
+                  !
+                  dafacem = sedgey(i,j,k) - sedgey(i,j-1,k)
+                  dafacep = sedgey(i,j+2,k) - sedgey(i,j+1,k)
+                  dabarm = s(i,j,k) - s(i,j-1,k)
+                  dabarp = s(i,j+1,k) - s(i,j,k)
+                  dafacemin = min(abs(dafacem),abs(dafacep))
+                  dabarmin= min(abs(dabarm),abs(dabarp))
+                  if (dafacemin.ge.dabarmin) then
+                     dachkm = dafacem
+                     dachkp = dafacep
+                  else
+                     dachkm = dabarm
+                     dachkp = dabarp
+                  endif
+                  extremum = (dachkm*dachkp .le. 0.d0)
+               end if
+
+               if (extremum) then
+                  D2  = 6.d0*(alpham + alphap)
+                  D2L = s(i,j-2,k)-2.d0*s(i,j-1,k)+s(i,j,k)
+                  D2R = s(i,j,k)-2.d0*s(i,j+1,k)+s(i,j+2,k)
+                  D2C = s(i,j-1,k)-2.d0*s(i,j,k)+s(i,j+1,k)
+                  sgn = sign(1.d0,D2)
+                  D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
+                  alpham = alpham*D2LIM/max(abs(D2),1.d-10)
+                  alphap = alphap*D2LIM/max(abs(D2),1.d-10)
+               else
+                  if (bigp) then
+                     sgn = sign(1.d0,alpham)
+                     amax = -alphap**2 / (4*(alpham + alphap))
+                     delam = s(i,j-1,k) - s(i,j,k)
+                     if (sgn*amax .ge. sgn*delam) then
+                        if (sgn*(delam - alpham).ge.1.d-10) then
+                           alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
+                        else 
+                           alphap = -2.d0*alpham
+                        endif
+                     endif
+                  end if
+                  if (bigm) then
+                     sgn = sign(1.d0,alphap)
+                     amax = -alpham**2 / (4*(alpham + alphap))
+                     delap = s(i,j+1,k) - s(i,j,k)
+                     if (sgn*amax .ge. sgn*delap) then
+                        if (sgn*(delap - alphap).ge.1.d-10) then
+                           alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
+                        else
+                           alpham = -2.d0*alphap
+                        endif
+                     endif
+                  end if
+               end if
+               
+               sm(i,j,k) = s(i,j,k) + alpham
+               sp(i,j,k) = s(i,j,k) + alphap
+
+            end do
+         end do
+      end do
+!$omp end parallel do
+
+      end
+
       subroutine FORT_PPM_YDIR(s,DIMS(s),
      &     sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &     sedgey,DIMS(sedgey),lo,hi,bc,ppm_type)
@@ -5098,15 +5217,18 @@ c     largest, and thus least susceptible to sensitivity to roundoff.
 
       else if (ppm_type .eq. 2) then
 
-c     interpolate s to y-edges
-
 !$omp parallel do private(i,j,k,D2,D2L,D2R,sgn,D2LIM)
+         !
+         ! Interpolate s to y-edges.
+         !
          do k=lo(3)-1,hi(3)+1
             do j=lo(2)-2,hi(2)+3
                do i=lo(1)-1,hi(1)+1
                   sedgey(i,j,k) = (seven12ths)*(s(i,j-1,k)+s(i,j,k))
      &                 - (one12th)*(s(i,j-2,k)+s(i,j+1,k))
-c     limit sedgey
+                  !
+                  ! Limit sedgey.
+                  !
                   if ((sedgey(i,j,k)-s(i,j-1,k))*(s(i,j,k)-sedgey(i,j,k)) .lt. 0.d0) then
                      D2  = 3.d0*(s(i,j-1,k)-2.d0*sedgey(i,j,k)+s(i,j,k))
                      D2L = s(i,j-2,k)-2.d0*s(i,j-1,k)+s(i,j,k)
@@ -5119,312 +5241,95 @@ c     limit sedgey
             end do
          end do
 !$omp end parallel do
+
+         call FORT_PPM_YDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+     &        sedgey,DIMS(sedgey),lo,hi,lo(2)-1,hi(2)+1)
          !
-         ! Use Colella 2008 limiters.
-         ! This is a new version of the algorithm
-         ! to eliminate sensitivity to roundoff.
+         ! Different stencil needed for y-component of
+         ! EXT_DIR and HOEXTRAP bc's
          !
-!$omp parallel do private(i,j,k,alphap,alpham,bigp,bigm,extremum)
-!$omp&private(dafacem,dafacep,dabarm,dabarp,dafacemin,dabarmin)
-!$omp&private(dachkm,dachkp,D2,D2L,D2R,D2C,sgn,D2LIM,amax,delam,delap)
-         do k=lo(3)-1,hi(3)+1
-            do j=lo(2)-1,hi(2)+1
-               do i=lo(1)-1,hi(1)+1
-
-                  alphap = sedgey(i,j+1,k)-s(i,j,k)
-                  alpham = sedgey(i,j  ,k)-s(i,j,k)
-                  bigp = abs(alphap).gt.2.d0*abs(alpham)
-                  bigm = abs(alpham).gt.2.d0*abs(alphap)
-                  extremum = .false.
-
-                  if (alpham*alphap .ge. 0.d0) then
-                     extremum = .true.
-                  else if (bigp .or. bigm) then
-c     Possible extremum. We look at cell centered values and face
-c     centered values for a change in sign in the differences adjacent to
-c     the cell. We use the pair of differences whose minimum magnitude is the
-c     largest, and thus least susceptible to sensitivity to roundoff.
-                     dafacem = sedgey(i,j,k) - sedgey(i,j-1,k)
-                     dafacep = sedgey(i,j+2,k) - sedgey(i,j+1,k)
-                     dabarm = s(i,j,k) - s(i,j-1,k)
-                     dabarp = s(i,j+1,k) - s(i,j,k)
-                     dafacemin = min(abs(dafacem),abs(dafacep))
-                     dabarmin= min(abs(dabarm),abs(dabarp))
-                     if (dafacemin.ge.dabarmin) then
-                        dachkm = dafacem
-                        dachkp = dafacep
-                     else
-                        dachkm = dabarm
-                        dachkp = dabarp
-                     endif
-                     extremum = (dachkm*dachkp .le. 0.d0)
-                  end if
-
-                  if (extremum) then
-                     D2  = 6.d0*(alpham + alphap)
-                     D2L = s(i,j-2,k)-2.d0*s(i,j-1,k)+s(i,j,k)
-                     D2R = s(i,j,k)-2.d0*s(i,j+1,k)+s(i,j+2,k)
-                     D2C = s(i,j-1,k)-2.d0*s(i,j,k)+s(i,j+1,k)
-                     sgn = sign(1.d0,D2)
-                     D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
-                     alpham = alpham*D2LIM/max(abs(D2),1.d-10)
-                     alphap = alphap*D2LIM/max(abs(D2),1.d-10)
-                  else
-                     if (bigp) then
-                        sgn = sign(1.d0,alpham)
-                        amax = -alphap**2 / (4*(alpham + alphap))
-                        delam = s(i,j-1,k) - s(i,j,k)
-                        if (sgn*amax .ge. sgn*delam) then
-                           if (sgn*(delam - alpham).ge.1.d-10) then
-                              alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                           else 
-                              alphap = -2.d0*alpham
-                           endif
-                        endif
-                     end if
-                     if (bigm) then
-                        sgn = sign(1.d0,alphap)
-                        amax = -alpham**2 / (4*(alpham + alphap))
-                        delap = s(i,j+1,k) - s(i,j,k)
-                        if (sgn*amax .ge. sgn*delap) then
-                           if (sgn*(delap - alphap).ge.1.d-10) then
-                              alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
-                           else
-                              alpham = -2.d0*alphap
-                           endif
-                        endif
-                     end if
-                  end if
-                  
-                  sm(i,j,k) = s(i,j,k) + alpham
-                  sp(i,j,k) = s(i,j,k) + alphap
-
-               end do
-            end do
-         end do
-!$omp end parallel do
-
-c     different stencil needed for y-component of EXT_DIR and HOEXTRAP bc's
          if (bc(2,1) .eq. EXT_DIR  .or. bc(2,1) .eq. HOEXTRAP) then
-c     the value in the first cc ghost cell represents the edge value
-            sm(lo(1)-1:hi(1)+1,lo(2),lo(3)-1:hi(3)+1)    = s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
+            !
+            ! The value in the first cc ghost cell
+            ! represents the edge value.
+            !
+            sm(lo(1)-1:hi(1)+1,lo(2),lo(3)-1:hi(3)+1)     = s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
             sedgey(lo(1)-1:hi(1)+1,lo(2),lo(3)-1:hi(3)+1) = s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
-
-c     use a modified stencil to get sedgey on the first interior edge
+            !
+            ! Use a modified stencil to get sedgey
+            ! on the first interior edge.
+            !
             sedgey(lo(1)-1:hi(1)+1,lo(2)+1,lo(3)-1:hi(3)+1) =
      &           -fifth        *s(lo(1)-1:hi(1)+1,lo(2)-1,lo(3)-1:hi(3)+1)
      &           +three4ths    *s(lo(1)-1:hi(1)+1,lo(2)  ,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)+1,lo(3)-1:hi(3)+1)
      &           -one20th      *s(lo(1)-1:hi(1)+1,lo(2)+2,lo(3)-1:hi(3)+1)
-
-c     make sure sedgey lies in between adjacent cell-centered values
+            !
+            ! Make sure sedgey lies in between adjacent
+            ! cell-centered values.
+            !
             do k=lo(3)-1,hi(3)+1
                do i=lo(1)-1,hi(1)+1
                   sedgey(i,lo(2)+1,k) = max(sedgey(i,lo(2)+1,k),min(s(i,lo(2)+1,k),s(i,lo(2),k)))
                   sedgey(i,lo(2)+1,k) = min(sedgey(i,lo(2)+1,k),max(s(i,lo(2)+1,k),s(i,lo(2),k)))
                end do
             end do
-
-c     copy sedgey into sp
+            !
+            ! Copy sedgey into sp.
+            !
             do k=lo(3)-1,hi(3)+1
                do i=lo(1)-1,hi(1)+1
                   sp(i,lo(2)  ,k) = sedgey(i,lo(2)+1,k)
                end do
             end do
-
-c     apply Colella 2008 limiters to compute sm and sp in the second
-c     and third inner cells
-
-!$omp parallel do private(i,j,k,alphap,alpham,bigp,bigm,extremum)
-!$omp&private(dafacem,dafacep,dabarm,dabarp,dafacemin,dabarmin)
-!$omp&private(dachkm,dachkp,D2,D2L,D2R,D2C,sgn,D2LIM,amax,delam,delap)
-            do k=lo(3)-1,hi(3)+1
-               do j=lo(2)+1,lo(2)+2
-                  do i=lo(1)-1,hi(1)+1
-
-                     alphap = sedgey(i,j+1,k)-s(i,j,k)
-                     alpham = sedgey(i,j  ,k)-s(i,j,k)
-                     bigp = abs(alphap).gt.2.d0*abs(alpham)
-                     bigm = abs(alpham).gt.2.d0*abs(alphap)
-                     extremum = .false.
-
-                     if (alpham*alphap .ge. 0.d0) then
-                        extremum = .true.
-                     else if (bigp .or. bigm) then
-c     Possible extremum. We look at cell centered values and face
-c     centered values for a change in sign in the differences adjacent to
-c     the cell. We use the pair of differences whose minimum magnitude is the
-c     largest, and thus least susceptible to sensitivity to roundoff.
-                        dafacem = sedgey(i,j,k) - sedgey(i,j-1,k)
-                        dafacep = sedgey(i,j+2,k) - sedgey(i,j+1,k)
-                        dabarm = s(i,j,k) - s(i,j-1,k)
-                        dabarp = s(i,j+1,k) - s(i,j,k)
-                        dafacemin = min(abs(dafacem),abs(dafacep))
-                        dabarmin= min(abs(dabarm),abs(dabarp))
-                        if (dafacemin.ge.dabarmin) then
-                           dachkm = dafacem
-                           dachkp = dafacep
-                        else
-                           dachkm = dabarm
-                           dachkp = dabarp
-                        endif
-                        extremum = (dachkm*dachkp .le. 0.d0)
-                     end if
-
-                     if (extremum) then
-                        D2  = 6.d0*(alpham + alphap)
-                        D2L = s(i,j-2,k)-2.d0*s(i,j-1,k)+s(i,j,k)
-                        D2R = s(i,j,k)-2.d0*s(i,j+1,k)+s(i,j+2,k)
-                        D2C = s(i,j-1,k)-2.d0*s(i,j,k)+s(i,j+1,k)
-                        sgn = sign(1.d0,D2)
-                        D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
-                        alpham = alpham*D2LIM/max(abs(D2),1.d-10)
-                        alphap = alphap*D2LIM/max(abs(D2),1.d-10)
-                     else
-                        if (bigp) then
-                           sgn = sign(1.d0,alpham)
-                           amax = -alphap**2 / (4*(alpham + alphap))
-                           delam = s(i,j-1,k) - s(i,j,k)
-                           if (sgn*amax .ge. sgn*delam) then
-                              if (sgn*(delam - alpham).ge.1.d-10) then
-                                 alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                              else 
-                                 alphap = -2.d0*alpham
-                              endif
-                           endif
-                        end if
-                        if (bigm) then
-                           sgn = sign(1.d0,alphap)
-                           amax = -alpham**2 / (4*(alpham + alphap))
-                           delap = s(i,j+1,k) - s(i,j,k)
-                           if (sgn*amax .ge. sgn*delap) then
-                              if (sgn*(delap - alphap).ge.1.d-10) then
-                                 alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
-                              else
-                                 alpham = -2.d0*alphap
-                              endif
-                           endif
-                        end if
-                     end if
-
-                     sm(i,j,k) = s(i,j,k) + alpham
-                     sp(i,j,k) = s(i,j,k) + alphap
-
-                  end do
-               end do
-            end do
-!$omp end parallel do
+            !
+            ! Apply Colella 2008 limiters to compute sm and sp
+            ! in the 2nd and 3rd inner cells.
+            !
+            call FORT_PPM_YDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+     &           sedgey,DIMS(sedgey),lo,hi,lo(2)+1,lo(2)+2)
          end if
 
          if (bc(2,2) .eq. EXT_DIR  .or. bc(2,2) .eq. HOEXTRAP) then
-c     the value in the first cc ghost cell represents the edge value
+            !
+            ! The value in the first cc ghost cell
+            ! represents the edge value.
+            !
             sp(lo(1)-1:hi(1)+1,hi(2),lo(3)-1:hi(3)+1) = s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
             sedgey(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1) = s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
-
-c     use a modified stencil to get sedgey on the first interior edge
+            !
+            ! Use a modified stencil to get sedgey
+            ! on the first interior edge.
+            !
             sedgey(lo(1)-1:hi(1)+1,hi(2),lo(3)-1:hi(3)+1) =
      &           -fifth        *s(lo(1)-1:hi(1)+1,hi(2)+1,lo(3)-1:hi(3)+1)
      &           +three4ths    *s(lo(1)-1:hi(1)+1,hi(2)  ,lo(3)-1:hi(3)+1)
      &           +0.5d0        *s(lo(1)-1:hi(1)+1,hi(2)-1,lo(3)-1:hi(3)+1)
      &           -one20th      *s(lo(1)-1:hi(1)+1,hi(2)-2,lo(3)-1:hi(3)+1)
-
-c     make sure sedgey lies in between adjacent cell-centered values
+            !
+            ! Make sure sedgey lies in between adjacent
+            ! cell-centered values.
+            !
             do k=lo(3)-1,hi(3)+1
                do i=lo(1)-1,hi(1)+1
                   sedgey(i,hi(2),k) = max(sedgey(i,hi(2),k),min(s(i,hi(2)-1,k),s(i,hi(2),k)))
                   sedgey(i,hi(2),k) = min(sedgey(i,hi(2),k),max(s(i,hi(2)-1,k),s(i,hi(2),k)))
                end do
             end do
-
-c     copy sedgey into sm
+            !
+            ! Copy sedgey into sp.
+            !
             do k=lo(3)-1,hi(3)+1
                do i=lo(1)-1,hi(1)+1
                   sm(i,hi(2)  ,k) = sedgey(i,hi(2),k)
                end do
             end do
-
-c     apply Colella 2008 limiters to compute sm and sp in the second
-c     and third inner cells
-
-!$omp parallel do private(i,j,k,alphap,alpham,bigp,bigm,extremum)
-!$omp&private(dafacem,dafacep,dabarm,dabarp,dafacemin,dabarmin)
-!$omp&private(dachkm,dachkp,D2,D2L,D2R,D2C,sgn,D2LIM,amax,delam,delap)
-            do k=lo(3)-1,hi(3)+1
-               do j=hi(2)-2,hi(2)-1
-                  do i=lo(1)-1,hi(1)+1
-
-                     alphap = sedgey(i,j+1,k)-s(i,j,k)
-                     alpham = sedgey(i,j  ,k)-s(i,j,k)
-                     bigp = abs(alphap).gt.2.d0*abs(alpham)
-                     bigm = abs(alpham).gt.2.d0*abs(alphap)
-                     extremum = .false.
-
-                     if (alpham*alphap .ge. 0.d0) then
-                        extremum = .true.
-                     else if (bigp .or. bigm) then
-c     Possible extremum. We look at cell centered values and face
-c     centered values for a change in sign in the differences adjacent to
-c     the cell. We use the pair of differences whose minimum magnitude is the
-c     largest, and thus least susceptible to sensitivity to roundoff.
-                        dafacem = sedgey(i,j,k) - sedgey(i,j-1,k)
-                        dafacep = sedgey(i,j+2,k) - sedgey(i,j+1,k)
-                        dabarm = s(i,j,k) - s(i,j-1,k)
-                        dabarp = s(i,j+1,k) - s(i,j,k)
-                        dafacemin = min(abs(dafacem),abs(dafacep))
-                        dabarmin= min(abs(dabarm),abs(dabarp))
-                        if (dafacemin.ge.dabarmin) then
-                           dachkm = dafacem
-                           dachkp = dafacep
-                        else
-                           dachkm = dabarm
-                           dachkp = dabarp
-                        endif
-                        extremum = (dachkm*dachkp .le. 0.d0)
-                     end if
-
-                     if (extremum) then
-                        D2  = 6.d0*(alpham + alphap)
-                        D2L = s(i,j-2,k)-2.d0*s(i,j-1,k)+s(i,j,k)
-                        D2R = s(i,j,k)-2.d0*s(i,j+1,k)+s(i,j+2,k)
-                        D2C = s(i,j-1,k)-2.d0*s(i,j,k)+s(i,j+1,k)
-                        sgn = sign(1.d0,D2)
-                        D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
-                        alpham = alpham*D2LIM/max(abs(D2),1.d-10)
-                        alphap = alphap*D2LIM/max(abs(D2),1.d-10)
-                     else
-                        if (bigp) then
-                           sgn = sign(1.d0,alpham)
-                           amax = -alphap**2 / (4*(alpham + alphap))
-                           delam = s(i,j-1,k) - s(i,j,k)
-                           if (sgn*amax .ge. sgn*delam) then
-                              if (sgn*(delam - alpham).ge.1.d-10) then
-                                 alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                              else 
-                                 alphap = -2.d0*alpham
-                              endif
-                           endif
-                        end if
-                        if (bigm) then
-                           sgn = sign(1.d0,alphap)
-                           amax = -alpham**2 / (4*(alpham + alphap))
-                           delap = s(i,j+1,k) - s(i,j,k)
-                           if (sgn*amax .ge. sgn*delap) then
-                              if (sgn*(delap - alphap).ge.1.d-10) then
-                                 alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
-                              else
-                                 alpham = -2.d0*alphap
-                              endif
-                           endif
-                        end if
-                     end if
-
-                     sm(i,j,k) = s(i,j,k) + alpham
-                     sp(i,j,k) = s(i,j,k) + alphap
-
-                  end do
-               end do
-            end do
-!$omp end parallel do
+            !
+            ! Apply Colella 2008 limiters to compute sm and sp
+            ! in the 2nd and 3rd inner cells.
+            !
+            call FORT_PPM_YDIR_PPM2(s,DIMS(s),sm,sp,DIMS(smp),
+     &           sedgey,DIMS(sedgey),lo,hi,hi(2)-2,hi(2)-1)
          end if
 
       end if
