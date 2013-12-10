@@ -477,6 +477,8 @@ SyncRegister::InitRHS (MultiFab&       rhs,
             FORT_MAKEMASK(mask_dat,ARLIM(mlo),ARLIM(mhi), cell_dat,ARLIM(clo),ARLIM(chi));
         }
     }
+
+    grids.clear_hash_bin();
     //
     // Here double the cell contributions if at a non-periodic physical bdry.
     //
@@ -717,6 +719,8 @@ SyncRegister::CompAdd  (MultiFab*       Sync_resid_fine,
             }
         }
     }
+
+    Pgrids.clear_hash_bin();
 
     FineAdd(Sync_resid_fine,fine_geom,crse_geom,phys_bc,mult);
 }

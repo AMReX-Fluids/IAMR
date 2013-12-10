@@ -5071,9 +5071,6 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
         //
         // Set the boundary condition array for interpolation.
         //
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
         for (int n = 0; n < num_comp; n++)
         {
             set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
@@ -5339,9 +5336,6 @@ NavierStokes::level_sync (int crse_iteration)
     Array<int*>         sync_bc(N);
     Array< Array<int> > sync_bc_array(N);
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < N; i++)
     {
         sync_bc_array[i] = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
@@ -5480,9 +5474,6 @@ NavierStokes::level_sync (int crse_iteration)
         Array<int*>         fine_sync_bc(N);
         Array< Array<int> > fine_sync_bc_array(N);
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
         for (int i = 0; i < N; i++)
         {
             fine_sync_bc_array[i] = getLevel(level+1).getBCArray(State_Type,
@@ -5755,9 +5746,6 @@ NavierStokes::mac_sync ()
         Array<int*>         sync_bc(N);
         Array< Array<int> > sync_bc_array(N);
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
         for (int i = 0; i < N; i++)
         {
             sync_bc_array[i] = getBCArray(State_Type,i,Density,numscal);
@@ -6161,9 +6149,6 @@ NavierStokes::getGradP (MultiFab& gp,
 
         BoxArray fineBA(M);
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
         for (int j = 0; j < M; j++)
         {
             Box bx = old_intersect_new[j];
