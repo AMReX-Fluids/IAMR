@@ -6972,7 +6972,7 @@ NavierStokes::create_umac_grown (int nGrow)
                 for (MFIter mfi(u_macLL); mfi.isValid(); ++mfi)
                     u_macC[mfi].copy(u_macLL[mfi]);
 
-                crse_src.copy(u_macC);
+                crse_src.copy(u_macC,FabArrayBase::COPY,false);
             }
 
             const int Ncrse = crse_src.IndexMap().size();
@@ -7000,7 +7000,7 @@ NavierStokes::create_umac_grown (int nGrow)
             // this level u_mac valid only on surrounding faces of valid
             // region - this op will not fill grow region.
             //
-            fine_src.copy(u_mac[n]);
+            fine_src.copy(u_mac[n],FabArrayBase::COPY,false);
             //
             // Interpolate unfilled grow cells using best data from
             // surrounding faces of valid region, and pc-interpd data
@@ -7032,14 +7032,13 @@ NavierStokes::create_umac_grown (int nGrow)
 
             MultiFab u_macG(edge_grids,1,0);
 
-            u_macG.copy(fine_src);
-            u_macG.copy(u_mac[n]);
+            u_macG.copy(fine_src,FabArrayBase::COPY,false);
+            u_macG.copy(u_mac[n],FabArrayBase::COPY,false);
 
             for (MFIter mfi(u_macG); mfi.isValid(); ++mfi)
                 u_mac[n][mfi].copy(u_macG[mfi]);
         }
     }
-    
     //
     // Now we set the boundary data
     // FillBoundary fills grow cells that overlap valid regions.
