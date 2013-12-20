@@ -580,10 +580,12 @@ Diffusion::diffuse_scalar (Real                   dt,
   
         Real final_resnorm;
         mgt_solver.solve(phi_p, Rhs_p, S_tol, S_tol_abs, visc_bndry, final_resnorm);
-    }
 
-    if (verbose >= 1)
-        MGT_Solver::FlushFortranOutput();
+	if (verbose >= 1)
+	{
+	  MGT_Solver::FlushFortranOutput();
+	}
+    }
 #endif
 
 #ifdef MG_USE_HYPRE
