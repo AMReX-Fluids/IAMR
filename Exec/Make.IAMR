@@ -25,10 +25,6 @@ include $(Ppack)
 INCLUDE_LOCATIONS += $(Plocs)
 VPATH_LOCATIONS   += $(Plocs)
 
-ifeq ($(USE_F90_SOLVERS),TRUE)
-  DEFINES += -DMG_USE_F90_SOLVERS
-endif
-
 include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
 VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
