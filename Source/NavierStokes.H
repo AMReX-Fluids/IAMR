@@ -809,6 +809,8 @@ protected:
     static Real       gravity;
     static int        NUM_SCALARS;      // number of non-velocity components
     static int        NUM_STATE;        // total number of state variables
+    static int        NUM_SPEC;         // total number of species
+                                        // used in the SDC Wbar code
     //
     // Controls over how the convective and diffusive terms are calculated
     // for each state variable.
