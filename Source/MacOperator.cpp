@@ -13,11 +13,9 @@
 #include <HypreABec.H>
 #endif
 
-#ifdef MG_USE_F90_SOLVERS
 #include <MGT_Solver.H>
 #include <stencil_types.H>
 #include <mg_cpp_f.h>
-#endif
 
 #ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type};
@@ -411,7 +409,6 @@ mac_level_driver (Amr*            parent,
     }
     else if (the_solver == 3 ) 
     {
-#ifdef MG_USE_F90_SOLVERS
         std::vector<BoxArray> bav(1);
         bav[0] = mac_phi->boxArray();
         std::vector<DistributionMapping> dmv(1);
@@ -486,9 +483,6 @@ mac_level_driver (Amr*            parent,
 
         if (verbose >= 1)
           MGT_Solver::FlushFortranOutput();
-#else
-        BoxLib::Error("mac_level_driver::mg_cpp not in this build");
-#endif
     }
     else
     {
@@ -563,7 +557,6 @@ mac_sync_driver (Amr*            parent,
     }
     else if (the_solver == 3 )
     {
-#ifdef MG_USE_F90_SOLVERS
         std::vector<BoxArray> bav(1);
         bav[0] = mac_sync_phi->boxArray();
         std::vector<DistributionMapping> dmv(1);
@@ -635,9 +628,6 @@ mac_sync_driver (Amr*            parent,
 	if (geom[0].isAnyPeriodic()) {
 	  geom[0].FillPeriodicBoundary(*mac_phi_p[0],0,1);
 	}
-#else
-        BoxLib::Error("mac_sync_driver::mg_cpp not in this build");
-#endif
     }
     else
     {

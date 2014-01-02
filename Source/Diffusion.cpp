@@ -50,11 +50,9 @@ const Real BL_SAFE_BOGUS = -666.e200;
 #include <HypreABec.H>
 #endif
 
-#ifdef MG_USE_F90_SOLVERS
 #include <MGT_Solver.H>
 #include <stencil_types.H>
 #include <mg_cpp_f.h>
-#endif
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -93,9 +91,7 @@ namespace
 #ifdef MG_USE_HYPRE
     bool use_hypre_solve;
 #endif
-#ifdef MG_USE_F90_SOLVERS
     bool use_fboxlib_mg;
-#endif
 }
 
 void
@@ -143,9 +139,7 @@ Diffusion::Diffusion (Amr*               Parent,
 #ifdef MG_USE_HYPRE
         use_hypre_solve = false;
 #endif
-#ifdef MG_USE_F90_SOLVERS
         use_fboxlib_mg  = false;
-#endif
         int use_mg_precond = 0;
 
         ParmParse ppdiff("diffuse");
@@ -165,14 +159,11 @@ Diffusion::Diffusion (Amr*               Parent,
             BoxLib::Error("Diffusion::read_params: cg_solve && .not. hypre_solve");
         }
 #endif
-
-#ifdef MG_USE_F90_SOLVERS
         ppdiff.query("use_fboxlib_mg", use_fboxlib_mg);
         if ( use_cg_solve && use_fboxlib_mg )
         {
             BoxLib::Error("Diffusion::read_params: cg_solve && .not. fboxlib_solve");
         }
-#endif
         use_mg_precond_flag = (use_mg_precond ? true : false);
 
         ParmParse pp("ns");
@@ -506,8 +497,6 @@ Diffusion::diffuse_scalar (Real                   dt,
         CGSolver cg(*visc_op,use_mg_precond_flag);
         cg.solve(Soln,Rhs,S_tol,S_tol_abs);
     }
-
-#ifdef MG_USE_F90_SOLVERS
     else if ( use_fboxlib_mg )
     {
         std::vector<BoxArray> bav(1);
@@ -586,7 +575,6 @@ Diffusion::diffuse_scalar (Real                   dt,
 	  MGT_Solver::FlushFortranOutput();
 	}
     }
-#endif
 
 #ifdef MG_USE_HYPRE
     else if ( use_hypre_solve )

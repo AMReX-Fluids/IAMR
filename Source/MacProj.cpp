@@ -60,9 +60,7 @@ namespace
 #if MG_USE_HYPRE
     bool use_hypre_solve;
 #endif
-#if MG_USE_F90_SOLVERS
     bool use_fboxlib_mg;
-#endif
 }
 
 void
@@ -93,9 +91,7 @@ MacProj::Initialize ()
 #if MG_USE_HYPRE
     use_hypre_solve  = false;
 #endif
-#if MG_USE_F90_SOLVERS
     use_fboxlib_mg   = false;
-#endif
 
     ParmParse pp("mac");
 
@@ -113,18 +109,14 @@ MacProj::Initialize ()
 #if MG_USE_HYPRE
     pp.query("use_hypre_solve", use_hypre_solve);
 #endif
-#if MG_USE_F90_SOLVERS
     pp.query("use_fboxlib_mg",  use_fboxlib_mg);
-#endif
 
 #if MG_USE_HYPRE
     if ( use_cg_solve && use_hypre_solve )
 	BoxLib::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
 #endif
-#if MG_USE_F90_SOLVERS
     if ( use_cg_solve && use_fboxlib_mg )
 	BoxLib::Error("MacProj::read_params: cg_solve && .not. fboxlib_solve");
-#endif
 
     BoxLib::ExecOnFinalize(MacProj::Finalize);
 
@@ -420,12 +412,10 @@ MacProj::mac_project (int             level,
 	the_solver = 2;
     }
 #endif
-#if MG_USE_F90_SOLVERS
     else if ( use_fboxlib_mg )
     {
 	the_solver = 3;
     }
-#endif
 
     if (anel_coeff[level] != 0)
         scaleArea(level,area,anel_coeff[level]);
@@ -680,12 +670,11 @@ MacProj::mac_sync_solve (int       level,
 	the_solver = 2;
     }
 #endif
-#if MG_USE_F90_SOLVERS
     else if ( use_fboxlib_mg )
     {
 	the_solver = 3;
     }
-#endif
+
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
         geom.GetFaceArea(area[dir],grids,dir,GEOM_GROW);
