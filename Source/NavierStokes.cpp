@@ -125,6 +125,7 @@ int  NavierStokes::jet_interval;
 int  NavierStokes::jet_interval_split;
 int  NavierStokes::NUM_SCALARS;
 int  NavierStokes::NUM_STATE;
+int  NavierStokes::NUM_SPEC;
 bool NavierStokes::def_harm_avg_cen2edge;
 //
 // ----------------------- viscosity parameters.
@@ -759,8 +760,13 @@ NavierStokes::NavierStokes (Amr&            papa,
     diffnp1_cc = 0;
     if (variable_scal_diff) 
     {
+#ifdef USE_WBAR
+        diffn_cc   = new MultiFab(grids, NUM_STATE-Density-1+2*NUM_SPEC, 1);
+        diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1+2*NUM_SPEC, 1);
+#else
         diffn_cc   = new MultiFab(grids, NUM_STATE-Density-1, 1);
         diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1, 1);
+#endif
     }
     //
     // Set up the mac projector.
@@ -1021,8 +1027,13 @@ NavierStokes::restart (Amr&          papa,
     diffnp1_cc = 0;
     if (variable_scal_diff)
     {
+#ifdef USE_WBAR
+        diffn_cc   = new MultiFab(grids, NUM_STATE-Density-1+2*NUM_SPEC, 1);
+        diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1+2*NUM_SPEC, 1);
+#else
         diffn_cc   = new MultiFab(grids, NUM_STATE-Density-1, 1);
         diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1, 1);
+#endif
     }
 
     is_first_step_after_regrid = false;
