@@ -193,12 +193,12 @@ c
          !
          ! Should interpolate about filePnt in 2d not storePnt.
          !
-         call INTRP_DATA(time, xlo, dx, filePnt, fillComp, storePnt,
+         call INTRP_DATA(time, dx, filePnt, fillComp, storePnt,
      &        timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
      &        FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
      &        bc, probLo, probHi)
       else
-         call INTRP_DATA(time, xlo, dx, storePnt, fillComp, filePnt,
+         call INTRP_DATA(time, dx, storePnt, fillComp, filePnt,
      &        timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
      &        FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
      &        bc, probLo, probHi)
@@ -343,7 +343,7 @@ c
       timePnt = fluct_times(filePnt)
       dtFile  = -1 ! Not used
 
-      call INTRP_DATA(time, xlo, dx, storePnt, fillComp, filePnt,
+      call INTRP_DATA(time, dx, storePnt, fillComp, filePnt,
      &     timePnt, dtFile, dxFile, xloFile, xhiFile, nCompInflow, 
      &     FF_DIMS(storDat), storDat, DIMS(inflDat), inflDat,
      &     bc, probLo, probHi)

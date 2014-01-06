@@ -53,7 +53,7 @@ c :::        direction and pass in a FAB to fill with indices from -1 to 5,
 c :::        the -1 index is integer shifted over to an index of 63 to do
 c :::        the interpolation for the forcing.
 c :::
-      subroutine INTRP_DATA(time, xlo, dx, storePnt, fillComp, filePnt,
+      subroutine INTRP_DATA(time, dx, storePnt, fillComp, filePnt,
      $     timePnt, dtFile, dxFile, xloFile, xhiFile, nCompStorDat, 
      $     FF_DIMS(storDat), storDat,
      $     DIMS(inflDat), inflDat, bc, probLo, probHi)
@@ -64,7 +64,7 @@ c :::
       integer DIMDEC(inflDat), FF_DIMDEC(storDat), bc(SDIM,2)
 
       REAL_T time, timePnt, dtFile
-      REAL_T xlo(SDIM), dx(SDIM), dxFile(3), xloFile(3), xhiFile(3)
+      REAL_T dx(SDIM), dxFile(3), xloFile(3), xhiFile(3)
       REAL_T probLo(SDIM), probHi(SDIM)
       REAL_T inflDat(DIMV(inflDat))
       REAL_T storDat(FF_DIMV(storDat),nCompStorDat)
@@ -88,6 +88,8 @@ c :::
       do i = 1, SDIM
         n_lev_cells(i) = (probHi(i) - probLo(i)) / dx(i)
       enddo
+
+      iloc = 0; jloc = 0; kloc = 0
 
       if (infl_type .eq. infl_periodic_type) then
          coff = one
