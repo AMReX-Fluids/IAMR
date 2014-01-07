@@ -2590,7 +2590,7 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[], b
 
 	  BoxList bxlist2 = BoxLib::complementIn(bxg1, bxlist);
 
-	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); it++) {
+	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
 	    v_fab.setVal(0.0, *it, Xvel+idir, 1);
 	  }
 	}
