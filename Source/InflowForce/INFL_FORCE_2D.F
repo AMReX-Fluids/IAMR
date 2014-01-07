@@ -53,7 +53,7 @@ c :::        direction and pass in a FAB to fill with indices from -1 to 5,
 c :::        the -1 index is integer shifted over to an index of 63 to do
 c :::        the interpolation for the forcing.
 c :::
-      subroutine INTRP_DATA(time, xlo, dx, storePnt, fillComp, filePnt,
+      subroutine INTRP_DATA(time, dx, storePnt, fillComp, filePnt,
      $     timePnt, dtFile, dxFile, xloFile, xhiFile, nCompStorDat, 
      $     FF_DIMS(storDat), storDat,
      $     DIMS(inflDat), inflDat, bc, probLo, probHi)
