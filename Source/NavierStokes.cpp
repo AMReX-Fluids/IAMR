@@ -761,8 +761,8 @@ NavierStokes::NavierStokes (Amr&            papa,
     if (variable_scal_diff) 
     {
 #ifdef USE_WBAR
-        diffn_cc   = new MultiFab(grids, NUM_STATE-Density-1+2*NUM_SPEC, 1);
-        diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1+2*NUM_SPEC, 1);
+        diffn_cc   = new MultiFab(grids, NUM_STATE-Density-1+NUM_SPEC, 1);
+        diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1+NUM_SPEC, 1);
 #else
         diffn_cc   = new MultiFab(grids, NUM_STATE-Density-1, 1);
         diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1, 1);
@@ -1028,8 +1028,8 @@ NavierStokes::restart (Amr&          papa,
     if (variable_scal_diff)
     {
 #ifdef USE_WBAR
-        diffn_cc   = new MultiFab(grids, NUM_STATE-Density-1+2*NUM_SPEC, 1);
-        diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1+2*NUM_SPEC, 1);
+        diffn_cc   = new MultiFab(grids, NUM_STATE-Density-1+NUM_SPEC, 1);
+        diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1+NUM_SPEC, 1);
 #else
         diffn_cc   = new MultiFab(grids, NUM_STATE-Density-1, 1);
         diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1, 1);
