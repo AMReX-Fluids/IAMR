@@ -315,8 +315,8 @@ c ::: -----------------------------------------------------------
       integer    DIMDEC(u)
       integer    domlo(SDIM), domhi(SDIM)
       REAL_T     dx(SDIM), xlo(SDIM), time
-      REAL_T     u(DIMV(u)), x_vel
-      integer    lo(SDIM),hi(SDIM), bc(SDIM,2), i, j
+      REAL_T     u(DIMV(u))
+      integer    lo(SDIM),hi(SDIM), bc(SDIM,2)
 
 #include <probdata.H>
 
@@ -361,9 +361,7 @@ c ::: -----------------------------------------------------------
       integer    domlo(SDIM), domhi(SDIM)
       REAL_T     dx(SDIM), xlo(SDIM), time
       REAL_T     v(DIMV(v))
-      integer    bc(SDIM,2), i, j
-      REAL_T     y_vel
-      integer    lo(SDIM),hi(SDIM)
+      integer    bc(SDIM,2)
 
 #include <probdata.H>
 
@@ -570,8 +568,6 @@ c ::: -----------------------------------------------------------
       REAL_T     divu(DIMV(divu))
       integer    bc(SDIM,2)
 
-      integer    i, j
-
 #include <probdata.H>
 
       call filcc(divu,DIMS(divu),domlo,domhi,dx,xlo,bc)
@@ -609,8 +605,6 @@ c ::: -----------------------------------------------------------
       REAL_T     dx(SDIM), xlo(SDIM), time
       REAL_T     dsdt(DIMV(dsdt))
       integer    bc(SDIM,2)
-
-      integer    i, j
 
 #include <probdata.H>
 

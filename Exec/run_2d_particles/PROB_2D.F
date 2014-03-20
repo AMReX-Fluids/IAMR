@@ -45,10 +45,8 @@ c ::: -----------------------------------------------------------
 c
 c Dimensions of the Inflow file.
 c
-      INTEGER dimFile(3)
       integer nCompFile
       parameter (nCompFile = 2)
-      REAL_T dxFile(3)
 
       namelist /fortin/ vorterr,denfact,velfact
 c
@@ -158,44 +156,21 @@ c
       integer i, j, n
       REAL_T  x, y, r
       REAL_T  hx, hy
-      REAL_T  c, ux, uy
-      REAL_T  umagin, umagout, absu, sinth, costh
-      REAL_T  small, a, b, r0
-      REAL_T  radvort
 
 #include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
-      small = 1.0e-10
-
-      radvort = 0.25
-
-      r0 = two/three * radvort
-      a = one / ((radvort - r0)*(two*radvort - r0))
-      b = a * radvort**2 * (radvort - r0)
 
         do j = lo(2), hi(2)
             y = xlo(2) + hy*(float(j-lo(2)) + half) - 0.5d0
             do i = lo(1), hi(1)
-                x = xlo(1) + hx*(float(i-lo(1)) + half) - 0.5d0
-                r = sqrt(x**2 + y**2)
-c              umagin = .5*r - 4*r**3
-c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
-
-c              umagin = velfact * (one - a*(r - r0)**2)
-c              umagout = velfact * b/max(radvort,r)
-c              absu = merge(umagout,umagin,(r - radvort) .ge. 0.0d0)
-c              sinth = y/max(r,small*radvort)
-c              costh = x/max(r,small*radvort)
-
-c              vel(i,j,1) = -absu*sinth
-c              vel(i,j,2) = absu*costh
+               x = xlo(1) + hx*(float(i-lo(1)) + half) - 0.5d0
+               r = sqrt(x**2 + y**2)
 
                vel(i,j,1) = 1.d0 
                vel(i,j,2) = 0.d0
 
-c              scal(i,j,1) = merge(denfact,one,r.lt.0.25d0)
                scal(i,j,1) = 1.d0
 
                do n = 2,nscal-1
@@ -228,14 +203,13 @@ c
 c     ::::: local variables
 c
       integer i, j, n
-      REAL_T  small, x, y, r
+      REAL_T  x, y, r
       REAL_T  hx, hy
 
 #include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
-      small = 1.0e-10
 
       do j = lo(2), hi(2)
       do i = lo(1), hi(1)
@@ -352,7 +326,6 @@ c ::: -----------------------------------------------------------
       integer   tag(DIMV(tag))
       REAL_T    vort(DIMV(vort),nvar)
 
-      REAL_T    x, y
       integer   i, j
 
 #include <probdata.H>
