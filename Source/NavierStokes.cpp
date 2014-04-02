@@ -1036,9 +1036,13 @@ NavierStokes::checkPoint (const std::string& dir,
                           bool               dump_old)
 {
     AmrLevel::checkPoint(dir, os, how, dump_old);
+
 #ifdef PARTICLES
+    if (level == 0)
+    {
         if (NSPC != 0)
             NSPC->Checkpoint(dir,the_ns_particle_file_name);
+    }
 #endif
 }
 
@@ -4528,17 +4532,19 @@ NavierStokes::okToContinue ()
 void
 NavierStokes::post_timestep (int crse_iteration)
 {
-const int finest_level = parent->finestLevel();
+    const int finest_level = parent->finestLevel();
 
 #ifdef PARTICLES
     const int ncycle = parent->nCycle(level);
-    // dont redistribute/timestamp on the final subiteration except on the coarsest grid
+    //
+    // Don't redistribute/timestamp on the final subiteration except on the coarsest grid.
+    //
     if (NSPC != 0 && (crse_iteration < ncycle || level == 0))
     {
-
         const Real curr_time = state[State_Type].curTime();
             
         NSPC->Redistribute(false, true, level, umac_n_grow-1);
+
         if (!timestamp_dir.empty())
         {
             std::string basename = timestamp_dir;
@@ -4607,7 +4613,8 @@ const int finest_level = parent->finestLevel();
 // Build any additional data structures after restart.
 //
 
-void NavierStokes::post_restart()
+void
+NavierStokes::post_restart()
 {
     make_rho_prev_time();
     make_rho_curr_time();
