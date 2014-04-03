@@ -127,32 +127,50 @@ main (int   argc,
     const Real run_strt = ParallelDescriptor::second();
 
     int  max_step;
+    int  num_steps;
     Real strt_time;
     Real stop_time;
 
     ParmParse pp;
 
-    max_step  = -1;    
-    strt_time =  0.0;  
-    stop_time = -1.0;  
+    max_step  = -1; 
+    num_steps = -1; 
+    strt_time =  0.0;
+    stop_time = -1.0;
 
-    pp.query("max_step",max_step);
-    pp.query("strt_time",strt_time);
-    pp.query("stop_time",stop_time);
+    pp.query("max_step",  max_step);
+    pp.query("num_steps", num_steps);
+    pp.query("strt_time", strt_time);
+    pp.query("stop_time", stop_time);
 
     if (strt_time < 0.0)
-        BoxLib::Abort("MUST SPECIFY a non-negative strt_time");
-
-    if (max_step < 0 && stop_time < 0.0)
     {
-        BoxLib::Abort(
-            "Exiting because neither max_step nor stop_time is non-negative.");
+        BoxLib::Abort("MUST SPECIFY a non-negative strt_time");
+    }
+
+    if (max_step < 0 && stop_time < 0)
+    {
+        BoxLib::Abort("Exiting because neither max_step nor stop_time is non-negative.");
     }
 
     Amr* amrptr = new Amr;
 
     amrptr->init(strt_time,stop_time);
 
+    if (num_steps > 0)
+    {
+        if (max_step < 0)
+        {
+            max_step = num_steps + amrptr->levelSteps(0);
+        }
+        else
+        {
+            max_step = std::min(max_step, num_steps + amrptr->levelSteps(0));
+        }
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "Using effective max_step = " << max_step << '\n';
+    }
     //
     // If we set the regrid_on_restart flag and if we are *not* going to take
     // a time step then we want to go ahead and regrid here.
@@ -176,13 +194,16 @@ main (int   argc,
     {
         amrptr->coarseTimeStep(stop_time);
     }
-
-    // Write final checkpoint and plotfile
-    if (amrptr->stepOfLastCheckPoint() < amrptr->levelSteps(0)) {
+    //
+    // Write final checkpoint and plotfile.
+    //
+    if (amrptr->stepOfLastCheckPoint() < amrptr->levelSteps(0))
+    {
         amrptr->checkPoint();
     }
 
-    if (amrptr->stepOfLastPlotFile() < amrptr->levelSteps(0)) {
+    if (amrptr->stepOfLastPlotFile() < amrptr->levelSteps(0))
+    {
         amrptr->writePlotFile();
     }
 
