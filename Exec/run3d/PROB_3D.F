@@ -2107,9 +2107,9 @@ c
                vel(i,j,k,1) = x_vel
                vel(i,j,k,2) = y_vel
                vel(i,j,k,3) = z_vel
-c               do n = 1, 3
-c                  vel(i,j,k,n) = plateVel(x,y,z,n,0.d0)
-c               end do
+               do n = 1, 3
+                  vel(i,j,k,n) = plateVel(x,y,z,n,0.d0)
+               end do
                
                scal(i,j,k,1) = one
                do n = 2,nscal
@@ -2293,8 +2293,7 @@ c
      &     dir(2)*(domnhi(1) - domnlo(1)) * (domnhi(3) - domnlo(3))+
      &     dir(3)*(domnhi(1) - domnlo(1)) * (domnhi(2) - domnlo(2)) 
        
-    
-    
+
       do n = 1, 3 
          holespace(n) = (domnhi(n) - domnlo(n)) / numholes(n)
       end do
@@ -5953,10 +5952,10 @@ c     u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
                do j = ARG_L2(u), ARG_H2(u)
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(u), ARG_H1(u)
+                     x = domnlo(1) + (i+0.5)*dx(1)
 
                      if (probtype.eq.13) then
 #ifdef BL_DO_FLCT
-                        x = domnlo(1) + (i+0.5)*dx(1)
                         r = SQRT( x*x + y*y )
 c     call vswirlXYZ(x,y,u1,u2,u3)
                         if (r.gt.Rfu) then
@@ -5968,6 +5967,8 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
                            u(i,j,k) = u1
                         endif
 #endif
+                     else if (probtype.eq.15) then
+                        u(i,j,k) = plateVel(x,y,z,1,0.d0)
                      else
                         u(i,j,k) = zero
                      endif
@@ -6236,10 +6237,10 @@ c     v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
                do j = ARG_L2(v), ARG_H2(v)
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(v), ARG_H1(v)
+                     x = domnlo(1) + (i+0.5)*dx(1)
 
                      if (probtype.eq.13) then
 #ifdef BL_DO_FLCT
-                        x = domnlo(1) + (i+0.5)*dx(1)
                         r = SQRT( x*x + y*y )
 c     call vswirlXYZ(x,y,u1,u2,u3)
                         if (r.gt.Rfu) then
@@ -6251,6 +6252,8 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
                            v(i,j,k) = u2
                         endif
 #endif
+                     else if (probtype.eq.15) then
+                        v(i,j,k) = plateVel(x,y,z,2,0.d0)
                      else
                         v(i,j,k) = zero
                      endif
@@ -6359,7 +6362,7 @@ c ::: -----------------------------------------------------------
 #include <INFL_FORCE_F.H>
 #endif
       REAL_T x,y,z,r,u1,u2,u3,u_inf,eta
-      REAL_T meanPlateVel, plateVel
+      REAL_T meanPlateVel, plateVel, Lx, Ly, pert
 
       lo(1) = ARG_L1(w)
       lo(2) = ARG_L2(w)
@@ -6530,10 +6533,10 @@ c                     w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
                do j = ARG_L2(w), ARG_H2(w)
                   y = domnlo(2) + (j+0.5)*dx(2)
                   do i = ARG_L1(w), ARG_H1(w)
+                     x = domnlo(1) + (i+0.5)*dx(1)
 
                      if (probtype.eq.13) then
 #ifdef BL_DO_FLCT
-                        x = domnlo(1) + (i+0.5)*dx(1)
                         r = SQRT( x*x + y*y )
 c     call vswirlXYZ(x,y,u1,u2,u3)
                         if (r.gt.Rfu) then
@@ -6558,6 +6561,14 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
                         else
                            w(i,j,k) = zero
                         endif
+                     else if (probtype.eq.15) then
+                        w(i,j,k) = plateVel(x,y,z,3,0.d0)
+
+                        Lx = domnhi(1)-domnlo(1)
+                        Ly = domnhi(2)-domnlo(2)
+                        pert = .03*(sin(2*Pi*4*x/Lx) * sin(2*Pi*3*y/Ly) ) * sin(time/.00001) +
+     &                       .0438*(sin(2*Pi*5*(x-.17)/Lx) * sin(2*Pi*6*(y-.49)/Ly)) * sin(time/.000012)
+                        w(i,j,k) = w(i,j,k)*(1.d0 + pert)
                      else
                         w(i,j,k) = z_vel
                      endif
@@ -6742,7 +6753,6 @@ c     perforated plate of hexagnoal pattern
       jetVel = adv_vel/(1.0 - holeBLfac)      
       holeSp = SQRT(two*Pi/(sqrt(3.d0)*(1.d0 - holeBLfac)))*holeRad
 
-   
       vholeSp = sqrt(3.d0)*holeSp
        
       plateVel = 0.d0
@@ -6781,6 +6791,58 @@ c     perforated plate of hexagnoal pattern
          endif
       end do
       
+
+#endif
+c     perforated plate of hexagnoal pattern, no flow on boundaries (to enable periodic ok)
+#if 1
+      
+      jetVel = adv_vel/(1.0 - holeBLfac)      
+      holeSp = SQRT(two*Pi/(sqrt(3.d0)*(1.d0 - holeBLfac)))*holeRad
+
+      vholeSp = sqrt(3.d0)*holeSp
+       
+      plateVel = 0.d0
+
+      icell = int (x/holeSp)
+      jcell = int (y/vholeSp)
+      
+      xcen = holeSp*(dfloat(icell) + half)
+      ycen = vholeSp*(dfloat(jcell) + half)
+
+      xloc = x-xcen
+      yloc = y-ycen
+      
+      xcord(1) = -half*holeSp
+      ycord(1) = -half*vholeSp
+      
+      xcord(2) = -half*holeSp
+      ycord(2) = half*vholeSp
+      
+      xcord(3) = half*holeSp
+      ycord(3) = half*vholeSp
+      
+      xcord(4) = half*holeSp
+      ycord(4) = -half*vholeSp
+      
+      xcord(5) = 0.d0
+      ycord(5) = 0.d0
+      
+      do npts = 1, 5
+         
+         radius = SQRT((xloc-xcord(npts))**2 + (yloc-ycord(npts))**2)
+         
+         if(radius .le. holeRad) then
+            plateVel = jetVel*dir(cord) + flct*turb_scale 
+            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
+         endif
+      end do
+      
+      if ((x.lt.domnlo(1) + .001) .or. 
+     &     (x.gt.domnhi(1) - .001) .or.
+     &     (y.lt.domnlo(2) + .001) .or. 
+     &     (y.gt.domnhi(2) - .001)) then
+         plateVel = 0.d0
+      endif
 
 #endif
 c  this is the original code
@@ -6892,7 +6954,7 @@ c     in the region of 1 mm between the slot region and the plate
 
 
 c     perforated plate of hexagnoal pattern with slot and shifting in x and y directions (4 gaps in swirl region)
-#if 1
+#if 0
       
 c     jetVel = adv_vel/(1.0 - holeBLfac)     
 c 
