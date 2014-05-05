@@ -16,13 +16,14 @@ stop_time 		= 6.0
 
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 		= 64 64 192
-amr.n_cell 		= 128 128 384
+amr.n_cell 		= 256 256 384
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		= 0 # maximum number of levels of refinement
-
+#amr.max_level		= 1 # maximum number of levels of refinement
+#ns.do_vorticity_ref = 1
 #*******************************************************************************
 
 # Interval (in number of level l timesteps) between regridding
@@ -49,13 +50,13 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_int		= 5 
+amr.check_int		= 100
 amr.check_file          = chk
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 5
+amr.plot_int		= 100
 amr.plot_file           = plt
 
 #*******************************************************************************
@@ -71,7 +72,7 @@ ns.init_shrink          = 1.0  # factor which multiplies the very first time ste
 #*******************************************************************************
 
 # Viscosity coefficient 
-ns.vel_visc_coef        = 0.0
+ns.vel_visc_coef        = 2.e-5
 
 #*******************************************************************************
 
@@ -95,6 +96,7 @@ geometry.prob_lo     =  0. 0. 0.
 
 # Physical dimensions of the high end of the domain.
 geometry.prob_hi     =  0.05 0.05 0.15
+geometry.prob_hi     =  0.1 0.1 0.15
 
 #*******************************************************************************
 

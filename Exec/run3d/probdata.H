@@ -69,3 +69,7 @@
       integer nHolesX, nHolesY, nHolesZ
       common /inflow5/ nHolesX, nHolesY, nHolesZ
       save /inflow4/, /inflow5/
+
+      REAL_T tInflowFact_l, tInflowFact_r, InflowFact_l, InflowFact_r
+      common /inflow6/ tInflowFact_l, tInflowFact_r, InflowFact_l, InflowFact_r
+      save /inflow6/

@@ -119,6 +119,9 @@ c ::: -----------------------------------------------------------
      &                  do_jet_sponge, jet_sponge_scale, jet_sponge_height, jet_sponge_radius
 
       namelist /fortin/ holeRad, holeBLfac, nHolesX, nHolesY, nHolesZ, holeSp, slotWidth, alpha, beta
+
+      namelist /fortin/ tInflowFact_l, tInflowFact_r, InflowFact_l, InflowFact_r
+
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -174,7 +177,12 @@ c
       holeBLfac = 0.5d0
       alpha = 0.d0
       beta = 0.d0
-      
+
+      tInflowFact_l = -1.d0
+      tInflowFact_r = -1.d0
+      InflowFact_l = 1.d0
+      InflowFact_r = 1.d0
+
       untin = 9
       if (namlen .eq. 0) then
          open(untin,file='probin',form='formatted',status='old')
@@ -4659,7 +4667,7 @@ c ::: -----------------------------------------------------------
 
 #include <probdata.H>
 
-      write (*,*) "MVERROR: probtype ",probtype," on level ",level
+c      write (*,*) "MVERROR: probtype ",probtype," on level ",level
 
 c     probtype = SPIN
       if (probtype .eq. 1) then
@@ -4800,6 +4808,14 @@ c     probtype = VISCOUS BENCHMARK
          endif
 
       else if (probtype .eq. 15) then
+
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = merge(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+               end do
+            end do
+         end do
 
       else if (probtype .eq. 16) then
 
@@ -5751,7 +5767,7 @@ c ::: -----------------------------------------------------------
       REAL_T     hx, hy, hz, gpert, z,  ypert, magwif, constn
       REAL_T     jv, s, t, xc, yc
 
-      REAL_T plateVel
+      REAL_T plateVel, factor
 
 #include <probdata.H>
 
@@ -5798,6 +5814,19 @@ c
 
       xc = 0.5*(domnhi(1) - domnlo(1))
       yc = 0.5*(domnhi(2) - domnlo(2))
+
+      factor = 1.d0
+      if ( (time .gt. 0.d0).and.(tInflowFact_l.ge.0.d0) ) then
+         if (time .le. tInflowFact_l) then
+            factor = InflowFact_l
+         else if (time .ge. tInflowFact_r) then
+            factor = InflowFact_r
+         else
+            factor = InflowFact_l
+     &           +(time-tInflowFact_l)*(InflowFact_r-InflowFact_l)
+     &           /(tInflowFact_r-tInflowFact_l)
+         endif
+      endif
 
       if (adv_dir .eq. 1) then
          x_vel = adv_vel
@@ -5968,7 +5997,7 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
                         endif
 #endif
                      else if (probtype.eq.15) then
-                        u(i,j,k) = plateVel(x,y,z,1,0.d0)
+                        u(i,j,k) = plateVel(x,y,z,1,0.d0) * factor
                      else
                         u(i,j,k) = zero
                      endif
@@ -6072,7 +6101,7 @@ c ::: -----------------------------------------------------------
       REAL_T     y_vel
       REAL_T     rn
       REAL_T     jv, s, t, xc, yc
-      REAL_T plateVel
+      REAL_T plateVel, factor
 #include <probdata.H>
 
 #ifdef BL_DO_FLCT
@@ -6109,6 +6138,19 @@ c ::: -----------------------------------------------------------
 
       xc = 0.5*(domnhi(1) - domnlo(1))
       yc = 0.5*(domnhi(2) - domnlo(2))
+
+      factor = 1.d0
+      if ( (time .gt. 0.d0).and.(tInflowFact_l.ge.0.d0) ) then
+         if (time .le. tInflowFact_l) then
+            factor = InflowFact_l
+         else if (time .ge. tInflowFact_r) then
+            factor = InflowFact_r
+         else
+            factor = InflowFact_l
+     &           +(time-tInflowFact_l)*(InflowFact_r-InflowFact_l)
+     &           /(tInflowFact_r-tInflowFact_l)
+         endif
+      endif
 
       if (adv_dir .eq. 2) then
          y_vel = adv_vel
@@ -6253,7 +6295,7 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
                         endif
 #endif
                      else if (probtype.eq.15) then
-                        v(i,j,k) = plateVel(x,y,z,2,0.d0)
+                        v(i,j,k) = plateVel(x,y,z,2,0.d0) * factor
                      else
                         v(i,j,k) = zero
                      endif
@@ -6362,7 +6404,7 @@ c ::: -----------------------------------------------------------
 #include <INFL_FORCE_F.H>
 #endif
       REAL_T x,y,z,r,u1,u2,u3,u_inf,eta
-      REAL_T meanPlateVel, plateVel, Lx, Ly, pert
+      REAL_T meanPlateVel, plateVel, Lx, Ly, pert, factor
 
       lo(1) = ARG_L1(w)
       lo(2) = ARG_L2(w)
@@ -6397,6 +6439,19 @@ c ::: -----------------------------------------------------------
             Vco = Vco_r
          else
             Vco = Vco_l+(time-tVco_l)*(Vco_r-Vco_l)/(tVco_r-tVco_l)
+         endif
+      endif
+
+      factor = 1.d0
+      if ( (time .gt. 0.d0).and.(tInflowFact_l.ge.0.d0) ) then
+         if (time .le. tInflowFact_l) then
+            factor = InflowFact_l
+         else if (time .ge. tInflowFact_r) then
+            factor = InflowFact_r
+         else
+            factor = InflowFact_l
+     &           +(time-tInflowFact_l)*(InflowFact_r-InflowFact_l)
+     &           /(tInflowFact_r-tInflowFact_l)
          endif
       endif
 
@@ -6562,7 +6617,7 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
                            w(i,j,k) = zero
                         endif
                      else if (probtype.eq.15) then
-                        w(i,j,k) = plateVel(x,y,z,3,0.d0)
+                        w(i,j,k) = plateVel(x,y,z,3,0.d0) * factor
 
                         Lx = domnhi(1)-domnlo(1)
                         Ly = domnhi(2)-domnlo(2)

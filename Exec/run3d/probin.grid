@@ -1,8 +1,7 @@
  &fortin
 
   probtype = 15
-  vorterr  = .4
-  adv_vel = 10.
+  vorterr  = .0001
+  adv_vel = 6.
   adv_dir = 3
-
  /
