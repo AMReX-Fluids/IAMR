@@ -73,3 +73,9 @@
       REAL_T tInflowFact_l, tInflowFact_r, InflowFact_l, InflowFact_r
       common /inflow6/ tInflowFact_l, tInflowFact_r, InflowFact_l, InflowFact_r
       save /inflow6/
+
+      integer do_inlet_ref
+      common /inflow7i/ do_inlet_ref
+      REAL_T inlet_ref_height
+      common /inflow7r/ inlet_ref_height
+      save /inflow7i/, /inflow7r/

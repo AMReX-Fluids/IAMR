@@ -121,7 +121,7 @@ c ::: -----------------------------------------------------------
       namelist /fortin/ holeRad, holeBLfac, nHolesX, nHolesY, nHolesZ, holeSp, slotWidth, alpha, beta
 
       namelist /fortin/ tInflowFact_l, tInflowFact_r, InflowFact_l, InflowFact_r
-
+      namelist /fortin/ do_inlet_ref, inlet_ref_height
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -182,6 +182,9 @@ c
       tInflowFact_r = -1.d0
       InflowFact_l = 1.d0
       InflowFact_r = 1.d0
+
+      do_inlet_ref = 0
+      inlet_ref_height = -1.d0
 
       untin = 9
       if (namlen .eq. 0) then
@@ -4817,6 +4820,19 @@ c     probtype = VISCOUS BENCHMARK
             end do
          end do
 
+         if (do_inlet_ref .eq. 1) then
+            do k = lo(3), hi(3)
+               z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
+               if (z .le. inlet_ref_height) then
+                  do j = lo(2), hi(2)
+                     do i = lo(1), hi(1)
+                        tag(i,j,k) = set
+                     end do
+                  end do
+               endif
+            end do
+         endif
+
       else if (probtype .eq. 16) then
 
          do k = lo(3), hi(3)
@@ -6888,7 +6904,7 @@ c     perforated plate of hexagnoal pattern, no flow on boundaries (to enable pe
          
          if(radius .le. holeRad) then
             plateVel = jetVel*dir(cord) + flct*turb_scale 
-            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
+c            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
          endif
       end do
       
