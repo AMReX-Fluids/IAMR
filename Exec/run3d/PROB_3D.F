@@ -6751,6 +6751,16 @@ c
       REAL_T x, y, z, xcen,ycen, xloc, yloc, xcord(5), ycord(5)
       REAL_T mean, zblend1, vholeSp, vane, xshift, yshift, delta,vslot
       integer icell,jcell,npts
+
+      integer NringMAX, NperMAX
+      parameter (NringMAX=30,NperMAX=300)
+      integer NperRing(NringMAX)
+      double precision centHole(NringMAX,NperMAX,2)
+      double precision ringRad(NringMAX), cent(2)
+      integer i,j, Nring
+      double precision theta, ringSp
+
+
 #include <probdata.H>
       mean = 0.40
       dir(1) = 0
@@ -6865,7 +6875,7 @@ c     perforated plate of hexagnoal pattern
 
 #endif
 c     perforated plate of hexagnoal pattern, no flow on boundaries (to enable periodic ok)
-#if 1
+#if 0
       
       jetVel = adv_vel/(1.0 - holeBLfac)      
       holeSp = SQRT(two*Pi/(sqrt(3.d0)*(1.d0 - holeBLfac)))*holeRad
@@ -6907,6 +6917,54 @@ c     perforated plate of hexagnoal pattern, no flow on boundaries (to enable pe
 c            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
          endif
       end do
+      
+      if ((x.lt.domnlo(1) + .001) .or. 
+     &     (x.gt.domnhi(1) - .001) .or.
+     &     (y.lt.domnlo(2) + .001) .or. 
+     &     (y.gt.domnhi(2) - .001)) then
+         plateVel = 0.d0
+      endif
+
+#endif
+
+c     perforated plate with radial pattern, no flow on boundaries (to enable periodic ok)
+#if 1
+      jetVel = adv_vel/(1.0 - holeBLfac)      
+      do n=1,3
+         cent(n) = 0.5d0 * (domnlo(n) + domnhi(n))
+      enddo
+      holeRad = 0.0036d0
+      ringSp = .0112d0
+      Nring = MIN(NringMAX,1 + INT(0.5d0*sqrt(2.d0)*MAX(domnlo(1)+domnhi(1),domnlo(2)+domnhi(2))/ringSp))
+
+      do i=1,Nring
+         ringRad(i) = ringSp * (i-1)
+         if (i.eq.1) then
+            NperRing(i) = 1
+            centHole(i,1,1) = cent(1)
+            centHole(i,1,2) = cent(2)
+         else
+            NperRing(i) = 6 * (i-1)
+            do j=1,NperRing(i)
+               if (j .le. NperMAX) then
+                  theta = j*4*ASIN(1.d0)/DBLE(NperRing(i))
+                  centHole(i,j,1) = cent(1) + ringRad(i) * SIN(theta)
+                  centHole(i,j,2) = cent(2) + ringRad(i) * COS(theta)
+               endif
+            enddo
+         endif
+      enddo
+
+      do i=1,Nring
+         do j=1,NperRing(i)
+            if (j .le. NperMAX) then
+               radius = sqrt( (x-centHole(i,j,1))**2 + (y-centHole(i,j,2))**2 )
+               if(radius .le. holeRad) then
+                  plateVel = jetVel*dir(cord) + flct*turb_scale 
+               endif
+            endif
+         enddo
+      enddo
       
       if ((x.lt.domnlo(1) + .001) .or. 
      &     (x.gt.domnhi(1) - .001) .or.
