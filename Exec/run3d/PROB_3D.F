@@ -6955,6 +6955,7 @@ c     perforated plate with radial pattern, no flow on boundaries (to enable per
          endif
       enddo
 
+      plateVel = 0.d0
       do i=1,Nring
          do j=1,NperRing(i)
             if (j .le. NperMAX) then
