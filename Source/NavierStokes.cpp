@@ -109,6 +109,7 @@ MacProj*    NavierStokes::mac_projector;
 Godunov*    NavierStokes::godunov;
 
 static int dump_plane;
+static std::string dump_plane_name;
 
 int  NavierStokes::verbose;
 Real NavierStokes::cfl;
@@ -340,6 +341,7 @@ NavierStokes::Initialize ()
     NavierStokes::volWgtSum_sub_dz                   = -1;
 
     dump_plane = -1;
+    dump_plane_name = "SLABS/vel-";
 
 #ifdef PARTICLES
     timestamp_dir                    = "Timestamps";
@@ -4632,7 +4634,7 @@ NavierStokes::post_timestep (int crse_iteration)
 
         const Real time = state[State_Type].curTime();
 
-        std::string name("vel_");
+        std::string name(dump_plane_name);
 
         const int N = 64;
         char buf[N];
