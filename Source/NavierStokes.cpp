@@ -108,6 +108,8 @@ Projection* NavierStokes::projector;
 MacProj*    NavierStokes::mac_projector;
 Godunov*    NavierStokes::godunov;
 
+static int dump_plane;
+
 int  NavierStokes::verbose;
 Real NavierStokes::cfl;
 Real NavierStokes::init_shrink;
@@ -336,6 +338,8 @@ NavierStokes::Initialize ()
     NavierStokes::volWgtSum_sub_dx                   = -1;
     NavierStokes::volWgtSum_sub_dy                   = -1;
     NavierStokes::volWgtSum_sub_dz                   = -1;
+
+    dump_plane = -1;
 
 #ifdef PARTICLES
     timestamp_dir                    = "Timestamps";
@@ -570,6 +574,7 @@ NavierStokes::Initialize ()
     pp.query("volWgtSum_sub_dy",volWgtSum_sub_dy);
     pp.query("volWgtSum_sub_dz",volWgtSum_sub_dz);
 
+    pp.query("dump_plane",dump_plane);
     //
     // Are we going to do velocity or momentum update?
     //
@@ -4607,6 +4612,36 @@ NavierStokes::post_timestep (int crse_iteration)
 
     old_intersect_new          = grids;
     is_first_step_after_regrid = false;
+
+    if (level == 0 && dump_plane >= 0)
+    {
+        Box bx = geom.Domain();
+
+        BL_ASSERT(bx.bigEnd(BL_SPACEDIM-1) >= dump_plane);
+
+        bx.setSmall(BL_SPACEDIM-1, dump_plane);
+        bx.setBig  (BL_SPACEDIM-1, dump_plane);
+
+        BoxArray ba(bx);
+
+        ba.maxSize(parent->maxGridSize(0));
+
+        MultiFab mf(ba, BL_SPACEDIM, 0);
+
+        mf.copy(get_new_data(State_Type), Xvel, 0, BL_SPACEDIM);
+
+        const Real time = state[State_Type].curTime();
+
+        std::string name("vel_");
+
+        const int N = 64;
+        char buf[N];
+        sprintf(buf, "%12.10e", time);
+
+        name += buf;
+
+        VisMF::Write(mf, name);
+    }
 }
 
 //
