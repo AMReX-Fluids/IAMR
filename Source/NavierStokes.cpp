@@ -4626,23 +4626,26 @@ NavierStokes::post_timestep (int crse_iteration)
 
         BoxArray ba(bx);
 
-        ba.maxSize(parent->maxGridSize(0));
-
         MultiFab mf(ba, BL_SPACEDIM, 0);
 
         mf.copy(get_new_data(State_Type), Xvel, 0, BL_SPACEDIM);
 
-        const Real time = state[State_Type].curTime();
+        if (ParallelDescriptor::MyProc() == mf.DistributionMap()[0])
+        {
+            char buf[64];
+            sprintf(buf, "%14.12e", state[State_Type].curTime());
 
-        std::string name(dump_plane_name);
+            std::string name(dump_plane_name);
+            name += buf;
+            name += ".fab";
 
-        const int N = 64;
-        char buf[N];
-        sprintf(buf, "%12.10e", time);
+            std::ofstream ofs;
+            ofs.open(name.c_str(),std::ios::out|std::ios::trunc|std::ios::binary);
+            if (!ofs.good())
+                BoxLib::FileOpenFailed(name);
 
-        name += buf;
-
-        VisMF::Write(mf, name);
+            mf[0].writeOn(ofs);
+        }
     }
 }
 
