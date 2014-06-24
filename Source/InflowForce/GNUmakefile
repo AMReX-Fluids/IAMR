@@ -1,18 +1,23 @@
-TOP            = ../../../Parallel
-BOXLIB_HOME   = $(TOP)
+
 PRECISION      = DOUBLE
 DEBUG	       = TRUE
-COMP           = Intel
-FCOMP          = Intel
+COMP           = g++
+FCOMP          = gfortran
 DIM    	       = 3
 BUILD_IN_PLACE = TRUE
 EBASE          = turbMerge
 USE_MPI        = FALSE
 
-include $(TOP)/mk/Make.defs
-include $(TOP)/BoxLib/Make.package
+BOXLIB_HOME ?= ../../../BoxLib
 
-MySrcDirs = . $(TOP)/BoxLib
+include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+
+Bpack   := ./Make.package
+Blocs   := .
+
+include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+
+MySrcDirs = . $(BOXLIB_HOME)/Src/C_BaseLib
 
 INCLUDE_LOCATIONS += $(MySrcDirs)
 
@@ -23,8 +28,9 @@ vpath %.F   $(MySrcDirs)
 vpath %.H   $(MySrcDirs)
 vpath %.h   $(MySrcDirs)
 vpath %.f   $(MySrcDirs)
-vpath %.a   $(LIBRARY_LOCATIONS)
 
 all: $(executable)
 
-include $(TOP)/mk/Make.rules
+include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+
+
