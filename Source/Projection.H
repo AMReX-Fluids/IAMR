@@ -339,7 +339,7 @@ protected:
 
     void doNodalProjection(int c_lev, int nlevel, 
 			   MultiFab* vel[], MultiFab* phi[], MultiFab* sig[],
-			   MultiFab* rhs[], MultiFab* crse_rhs[], 
+			   MultiFab* rhs[], const PArray<MultiFab>& crse_rhs, 
 			   Real rel_tol, Real abs_tol,
 			   MultiFab* sync_resid_crse=0,
 			   MultiFab* sync_resid_fine=0);

@@ -459,8 +459,8 @@ Projection::level_project (int             level,
     if (!have_divu) 
     {
         MultiFab* rhs[maxlev] = {0};
-        MultiFab* crse_rhs[maxlev] = {0};
-        doNodalProjection(level, 1, vel, phi, sig, rhs, crse_rhs, proj_tol, proj_abs_tol, 
+        PArray<MultiFab> rhnd;
+        doNodalProjection(level, 1, vel, phi, sig, rhs, rhnd, proj_tol, proj_abs_tol, 
 			  sync_resid_crse, sync_resid_fine);
     }
     else 
@@ -476,8 +476,8 @@ Projection::level_project (int             level,
 
 	MultiFab* rhs_cc[maxlev] = {0};
 	rhs_cc[level] = divusource;
-        MultiFab* crse_rhs[maxlev] = {0};
-        doNodalProjection(level, 1, vel, phi, sig, rhs_cc, crse_rhs, proj_tol, proj_abs_tol,
+        PArray<MultiFab> rhnd;
+        doNodalProjection(level, 1, vel, phi, sig, rhs_cc, rhnd, proj_tol, proj_abs_tol,
 			  sync_resid_crse, sync_resid_fine);
     }
 
@@ -606,10 +606,11 @@ Projection::syncProject (int             c_lev,
     //
     const BoxArray& grids   = LevelData[c_lev].boxArray();
     const BoxArray& P_grids = pres.boxArray();
-    MultiFab  rhs(P_grids,1,1);
     MultiFab& sig = *rho_half;
 
-    rhs_sync_reg->InitRHS(rhs,geom,phys_bc);
+    PArray<MultiFab> rhnd(c_lev+1);
+    rhnd.set(c_lev, new MultiFab(P_grids,1,1));
+    rhs_sync_reg->InitRHS(rhnd[c_lev],geom,phys_bc);
 
     phi.setVal(0);
 
@@ -627,11 +628,9 @@ Projection::syncProject (int             c_lev,
     MultiFab* vels[maxlev] = {0};
     MultiFab* sigs[maxlev] = {0};
     MultiFab* rhss[maxlev] = {0};
-    MultiFab* cRhs[maxlev] = {0};
     phis[c_lev] = &phi;
     vels[c_lev] = Vsync;
     sigs[c_lev] = &sig;
-    cRhs[c_lev] = &rhs;
 
     //
     //  PROJECT
@@ -648,7 +647,7 @@ Projection::syncProject (int             c_lev,
         sync_resid_fine = new MultiFab(P_grids,1,ngrow);
     }
 
-    doNodalProjection(c_lev, 1, vels, phis, sigs, rhss, cRhs, sync_tol, proj_abs_tol,
+    doNodalProjection(c_lev, 1, vels, phis, sigs, rhss, rhnd, sync_tol, proj_abs_tol,
 		      sync_resid_crse, sync_resid_fine);
 
     //
@@ -749,16 +748,17 @@ Projection::MLsyncProject (int             c_lev,
     phi[c_lev+1] = new MultiFab(Pgrids_fine,1,1);
     phi[c_lev+1]->setVal(0);
 
-    MultiFab* crse_rhs = new MultiFab(Pgrids_crse,1,1);
     //
     // Set up crse RHS
     //
-    rhs_sync_reg->InitRHS(*crse_rhs,crse_geom,phys_bc);
+    PArray<MultiFab> rhnd(c_lev+1);
+    rhnd.set(c_lev,new MultiFab(Pgrids_crse,1,1));
+    rhs_sync_reg->InitRHS(rhnd[c_lev],crse_geom,phys_bc);
 
     Box P_finedomain(BoxLib::surroundingNodes(crse_geom.Domain()));
     P_finedomain.refine(ratio);
     if (Pgrids_fine[0] == P_finedomain)
-        crse_rhs->setVal(0);
+        rhnd[c_lev].setVal(0);
     //
     // Do necessary scaling
     //
@@ -773,15 +773,13 @@ Projection::MLsyncProject (int             c_lev,
     MultiFab* vel[maxlev] = {0};
     MultiFab* sig[maxlev] = {0};
     MultiFab* rhs[maxlev] = {0};
-    MultiFab* cRh[maxlev] = {0};
 
     vel[c_lev  ] = Vsync;
     vel[c_lev+1] = &V_corr;
     sig[c_lev  ] = &rho_crse;
     sig[c_lev+1] = &rho_fine;
     rhs[c_lev  ] = &cc_rhs_crse; 
-    rhs[c_lev+1] = &cc_rhs_fine; 
-    cRh[c_lev  ] = crse_rhs;
+    rhs[c_lev+1] = &cc_rhs_fine;
 
     NavierStokes* crse_lev = dynamic_cast<NavierStokes*>(&LevelData[c_lev]);
 
@@ -814,10 +812,8 @@ Projection::MLsyncProject (int             c_lev,
         sync_resid_fine = new MultiFab(Pgrids_crse,1,ngrow);
     }
 
-    doNodalProjection(c_lev, 2, vel, phi, sig, rhs, cRh, sync_tol, proj_abs_tol,
+    doNodalProjection(c_lev, 2, vel, phi, sig, rhs, rhnd, sync_tol, proj_abs_tol,
 		      sync_resid_crse, sync_resid_fine);
-
-    delete crse_rhs;
 
     //
     // If this sync project is not at levels 0-1 then we need to account for
@@ -1040,8 +1036,8 @@ Projection::initialVelocityProject (int  c_lev,
     if (!have_divu)
     {
         MultiFab* rhs[maxlev] = {0};
-	MultiFab* crse_rhs[maxlev] = {0};
-	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs, 
+	PArray<MultiFab> rhnd;
+	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, rhnd, 
 			  proj_tol, proj_abs_tol);
     } 
     else 
@@ -1055,8 +1051,8 @@ Projection::initialVelocityProject (int  c_lev,
             rhs_real.set(lev, rhs_cc[lev]);
         }
 
-	MultiFab* crse_rhs[maxlev] = {0};
-	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs_cc, crse_rhs,
+	PArray<MultiFab> rhnd;
+	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs_cc, rhnd,
 			  proj_tol, proj_abs_tol);
 
     }
@@ -1172,8 +1168,8 @@ Projection::initialPressureProject (int  c_lev)
     // Project
     //
     MultiFab* rhs[maxlev] = {0};
-    MultiFab* crse_rhs[maxlev] = {0};
-    doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs,
+    PArray<MultiFab> rhnd;
+    doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, rhnd,
 		      proj_tol, proj_abs_tol);
 
     //
@@ -1367,8 +1363,8 @@ Projection::initialSyncProject (int       c_lev,
         //
         // Zero divu only or debugging.
         //
-        MultiFab* crse_rhs[maxlev] = {0};
-	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs,
+        PArray<MultiFab> rhnd;
+	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, rhnd,
 			  proj_tol, proj_abs_tol);
     } 
     else 
@@ -1386,8 +1382,8 @@ Projection::initialSyncProject (int       c_lev,
             rhs_real.set(lev, rhs[lev]);
         }
 
-	MultiFab* crse_rhs[maxlev] = {0};
-	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, crse_rhs,
+        PArray<MultiFab> rhnd;
+	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, rhnd,
 			  proj_tol, proj_abs_tol);
     }
 
@@ -1888,11 +1884,125 @@ Projection::AnelCoeffDiv (int       level,
 // This projects the initial vorticity field (stored in pressure)
 // to define an initial velocity field.
 //
-
 void
 Projection::initialVorticityProject (int c_lev)
 {
-  BoxLib::Abort("Projection::initialVorticityProject not implemented");
+#if (BL_SPACEDIM == 2)
+  int f_lev = parent->finestLevel();
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "initialVorticityProject: levels = "
+                  << c_lev
+                  << "  "
+                  << f_lev << std::endl;
+    }
+    //
+    // Set up projector bndry just for this projection.
+    //
+    const Geometry& geom = parent->Geom(0);
+
+    MultiFab* p_real[maxlev] = {0};
+    MultiFab* s_real[maxlev] = {0};
+
+    for (int lev = c_lev; lev <= f_lev; lev++)
+    {
+        MultiFab& P_new  = LevelData[lev].get_new_data(Press_Type);
+        const int nghost = 1;
+        s_real[lev] = new MultiFab(LevelData[lev].boxArray(),1,nghost);
+        s_real[lev]->setVal(1,nghost);
+        p_real[lev] = new MultiFab(P_new.boxArray(),1,nghost);
+        p_real[lev]->setVal(0,nghost);
+    }
+    //
+    // Set up outflow bcs.
+    //
+    MultiFab* u_real[maxlev] = {0};
+    MultiFab* rhs_cc[maxlev] = {0};
+    PArray<MultiFab> rhnd(maxlev);
+
+    for (int lev = c_lev; lev <= f_lev; lev++)
+    {
+        const BoxArray& full_mesh = parent->getLevel(lev).boxArray();
+
+        u_real[lev] = new MultiFab(full_mesh, BL_SPACEDIM, 1);
+        u_real[lev]->setVal(0);
+        //
+        // The vorticity is stored in the new pressure variable for now.
+        //
+        MultiFab& P_new = LevelData[lev].get_new_data(Press_Type);
+
+        rhnd.set(lev, new MultiFab(P_new.boxArray(), 1, 1));
+
+        for (MFIter mfi(rhnd[lev]); mfi.isValid(); ++mfi)
+        {
+          rhnd[lev][mfi].setVal(0);
+          rhnd[lev][mfi].copy(P_new[mfi], 0, 0);
+        }
+    }
+
+    //
+    // Set BC for vorticity solve, save a copy of orig ones
+    //
+    BCRec phys_bc_save(phys_bc->lo(),phys_bc->hi());
+    for (int i=0; i<BL_SPACEDIM; ++i) {
+      phys_bc->setLo(i,Outflow);
+      phys_bc->setHi(i,Outflow);
+      if (geom.isPeriodic(i)) {
+        phys_bc->setLo(i,Interior);
+        phys_bc->setHi(i,Interior);
+      }
+    }
+    //
+    // Project.
+    //
+    doNodalProjection(c_lev, f_lev+1, u_real, p_real, s_real, rhs_cc, rhnd,
+                      proj_tol, proj_abs_tol);
+
+    //
+    // Generate velocity field from potential
+    //
+    const int idx[2] = {1, 0};
+
+    MultiFab* vel[maxlev] = {0};
+    for (int lev = c_lev; lev <= f_lev; lev++)
+    {
+        vel[lev] = &LevelData[lev].get_new_data(State_Type);
+        //
+        // Note: Here u_real from projection is -grad(phi), but if
+        //  phi is the stream function, u=dphi/dy, v=-dphi/dx
+        //
+        (*u_real[lev]).mult(-1,Yvel,1);
+
+        for (int n = 0; n < BL_SPACEDIM; n++)
+        {
+            for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi)
+            {
+                const Box& box = mfi.validbox();
+                if (add_vort_proj)
+                {
+                  (*vel[lev])[mfi].plus((*u_real[lev])[mfi],box,Xvel+n,Xvel+idx[n], 1);
+                }
+                else
+                {
+                  (*vel[lev])[mfi].copy((*u_real[lev])[mfi],box,Xvel+n,box,Xvel+idx[n], 1);
+                }
+            }
+        }
+    }
+
+    //
+    // Restore bcs
+    //
+    for (int i=0; i<BL_SPACEDIM; ++i) {
+      phys_bc->setLo(i,phys_bc_save.lo()[i]);
+      phys_bc->setHi(i,phys_bc_save.hi()[i]);
+    }
+
+
+#else
+    BoxLib::Error("Projection::initialVorticityProject(): not implented yet for 3D");
+#endif
 }
 
 void 
@@ -2260,7 +2370,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 //
 void Projection::doNodalProjection(int c_lev, int nlevel, 
 				   MultiFab* vel[], MultiFab* phi[], MultiFab* sig[],
-				   MultiFab* rhs_cc[], MultiFab* crse_rhs[], 
+				   MultiFab* rhs_cc[], const PArray<MultiFab>& rhnd, 
 				   Real rel_tol, Real abs_tol,
 				   MultiFab* sync_resid_crse,
 				   MultiFab* sync_resid_fine)
@@ -2376,7 +2486,7 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
 
   mgt_solver.set_nodal_coefficients(csig);
 
-  mgt_solver.nodal_project(&phi[c_lev], &vel[c_lev], &rhs_cc[c_lev], &crse_rhs[c_lev], 
+  mgt_solver.nodal_project(&phi[c_lev], &vel[c_lev], &rhs_cc[c_lev], rhnd, 
 			   rel_tol, abs_tol, &lo_inflow[0], &hi_inflow[0]);  
 
   // Must fill sync_resid_fine before sync_resid_crse because of the side effecs in the calls.
