@@ -608,9 +608,9 @@ Projection::syncProject (int             c_lev,
     const BoxArray& P_grids = pres.boxArray();
     MultiFab& sig = *rho_half;
 
-    PArray<MultiFab> rhnd(c_lev+1);
-    rhnd.set(c_lev, new MultiFab(P_grids,1,1));
-    rhs_sync_reg->InitRHS(rhnd[c_lev],geom,phys_bc);
+    PArray<MultiFab> rhnd(1);
+    rhnd.set(0, new MultiFab(P_grids,1,1));
+    rhs_sync_reg->InitRHS(rhnd[0],geom,phys_bc);
 
     phi.setVal(0);
 
@@ -751,9 +751,9 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Set up crse RHS
     //
-    PArray<MultiFab> rhnd(c_lev+1);
-    rhnd.set(c_lev,new MultiFab(Pgrids_crse,1,1));
-    rhs_sync_reg->InitRHS(rhnd[c_lev],crse_geom,phys_bc);
+    PArray<MultiFab> rhnd(1);
+    rhnd.set(0,new MultiFab(Pgrids_crse,1,1));
+    rhs_sync_reg->InitRHS(rhnd[0],crse_geom,phys_bc);
 
     Box P_finedomain(BoxLib::surroundingNodes(crse_geom.Domain()));
     P_finedomain.refine(ratio);
