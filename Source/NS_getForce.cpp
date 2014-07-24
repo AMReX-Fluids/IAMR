@@ -69,7 +69,8 @@ NavierStokes::getForce (FArrayBox&       force,
                         int              scomp,
                         int              ncomp,
                         const Real       time,
-                        const FArrayBox& Rho)
+                        const FArrayBox& Rho,
+                        int              RComp)
 {
     BL_ASSERT(Rho.nComp() == 1);
 
@@ -87,7 +88,7 @@ NavierStokes::getForce (FArrayBox&       force,
 
     FORT_MAKEFORCE (&time,
 		    force.dataPtr(),
-		    Rho.dataPtr(),
+		    Rho.dataPtr(RComp),
 		    ARLIM(f_lo), ARLIM(f_hi),
 		    ARLIM(s_lo), ARLIM(s_hi),
 		    dx,
