@@ -608,7 +608,7 @@ Projection::syncProject (int             c_lev,
     const BoxArray& P_grids = pres.boxArray();
     MultiFab& sig = *rho_half;
 
-    PArray<MultiFab> rhnd(1);
+    PArray<MultiFab> rhnd(1, PArrayManage);
     rhnd.set(0, new MultiFab(P_grids,1,1));
     rhs_sync_reg->InitRHS(rhnd[0],geom,phys_bc);
 
@@ -751,7 +751,7 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Set up crse RHS
     //
-    PArray<MultiFab> rhnd(1);
+    PArray<MultiFab> rhnd(1, PArrayManage);
     rhnd.set(0,new MultiFab(Pgrids_crse,1,1));
     rhs_sync_reg->InitRHS(rhnd[0],crse_geom,phys_bc);
 
@@ -814,6 +814,8 @@ Projection::MLsyncProject (int             c_lev,
 
     doNodalProjection(c_lev, 2, vel, phi, sig, rhs, rhnd, sync_tol, proj_abs_tol,
 		      sync_resid_crse, sync_resid_fine);
+
+    
 
     //
     // If this sync project is not at levels 0-1 then we need to account for
@@ -1919,7 +1921,7 @@ Projection::initialVorticityProject (int c_lev)
     //
     MultiFab* u_real[maxlev] = {0};
     MultiFab* rhs_cc[maxlev] = {0};
-    PArray<MultiFab> rhnd(maxlev);
+    PArray<MultiFab> rhnd(maxlev, PArrayManage);
 
     for (int lev = c_lev; lev <= f_lev; lev++)
     {
