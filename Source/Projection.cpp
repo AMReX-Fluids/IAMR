@@ -2482,7 +2482,7 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
   }
 
   MGT_Solver mgt_solver(mg_geom, mg_bc, mg_grids, dmap, nodal, hg_stencil, have_rhcc,
-                        0, 1, verbose);
+                        0, 1, P_code);
 
   mgt_solver.set_nodal_coefficients(csig);
 
