@@ -43,6 +43,10 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 typedef ParticleContainer<2*BL_SPACEDIM> NSParticleContainer;
 #endif
 
+#ifdef USE_BPM
+#include <BPM.H>
+#endif
+
 enum PressureNames { Pressure=0 };
 enum DivuNames { Divu=0};
 enum DsDtNames { Dsdt=0};
