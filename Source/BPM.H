@@ -32,7 +32,11 @@ class BPM
   Springs springs;
   ParticleSpringMap pmap;
 
+  int verbose;
+
 public:
+  BPM(int verbose=0) : verbose(verbose) { }
+
   void InitFromAsciiFile(const std::string& file);
   void ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& force, int lev, const int fcomp);
 

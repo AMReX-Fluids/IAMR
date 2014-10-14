@@ -14,6 +14,8 @@ typedef ParticleContainer<2*BL_SPACEDIM>::ParticleType ParticleType;
 //
 void BPM::ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& force, int lev, const int fcomp)
 {
+  BL_PROFILE("BPM::ComputeForces()");
+
   const PMap& pmap = particles.GetParticles(lev);
 
   //
@@ -74,13 +76,15 @@ void BPM::ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& f
           fvect[d] = dvect[d] / dnorm * force;
         }
 
-        // XXX: do something with fvect...
-
-        cout << "BPM::ComputeForces: force on " << ids[i1] << " from " << ids[i2] << " is: ";
-        for (int d=0; d < BL_SPACEDIM; d++) {
-          cout << fvect[d] << " ";
+        if (this->verbose > 1) {
+          cout << "BPM::ComputeForces: force on " << ids[i1] << " from " << ids[i2] << " is: ";
+          for (int d=0; d < BL_SPACEDIM; d++) {
+            cout << fvect[d] << " ";
+          }
+          cout << endl;
         }
-        cout << endl;
+
+        // spread force into fab...
 
 
       }
@@ -88,57 +92,6 @@ void BPM::ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& f
   }
 
 }
-
-// //
-// // Compute spring forces given particle locations.
-// //
-// void BPM::ComputeForces(Array<int>& part_ids, Array<int>& part_cpus, Array<Real>& part_locs)
-// {
-//   for (int i=0; i<part_cpus.size(); i++) {
-//     if (part_cpus[i] != ParallelDescriptor::MyProc()) continue;
-
-//     ParticleSpringRange range = this->pmap.equal_range(part_ids[i]);
-//     for (ParticleSpringMap::iterator it=range.first; it!=range.second; ++it) {
-//       if (it->first != part_ids[i]) continue;
-
-//       Spring spring = this->springs.at(it->second);
-
-//       // XXX: this is not going to scale well -- is there a better way?
-//       int i1, i2;
-//       if (spring.p1 == part_ids[i]) {
-//         for (i1=0; i1<part_ids.size(); i1++) if (part_ids[i1] == spring.p1) break;
-//         for (i2=0; i2<part_ids.size(); i2++) if (part_ids[i2] == spring.p2) break;
-//       } else {
-//         for (i1=0; i1<part_ids.size(); i1++) if (part_ids[i1] == spring.p2) break;
-//         for (i2=0; i2<part_ids.size(); i2++) if (part_ids[i2] == spring.p1) break;
-//       }
-
-//       // compute spring force
-//       Real dvect[BL_SPACEDIM];
-//       for (int d=0; d < BL_SPACEDIM; d++) {
-//         dvect[d] = part_locs[BL_SPACEDIM*i2+d] - part_locs[BL_SPACEDIM*i1+d];
-//       }
-
-//       Real dnorm = sqrt(D_TERM(dvect[0]*dvect[0], + dvect[1]*dvect[1], + dvect[2]*dvect[2]));
-//       Real force = spring.k * (spring.l - dnorm);
-
-//       Real fvect[BL_SPACEDIM];
-//       for (int d=0; d < BL_SPACEDIM; d++) {
-//         fvect[d] = dvect[d] / dnorm * force;
-//       }
-
-//       // XXX: do something with fvect...
-
-//       cout << "BPM::ComputeForces: force on " << part_ids[i1] << " from " << part_ids[i2] << " is: ";
-//       for (int d=0; d < BL_SPACEDIM; d++) {
-//         cout << fvect[d] << " ";
-//       }
-//       cout << endl;
-
-//     }
-//   }
-// }
-
 
 //
 // Read springs from file.
