@@ -20,16 +20,23 @@ struct Spring
   Real k;                       // spring constant
 };
 
+typedef std::deque<Spring> Springs;   // list of springs
+typedef std::multimap<int,int> ParticleSpringMap;
+typedef std::pair<ParticleSpringMap::iterator,ParticleSpringMap::iterator> ParticleSpringRange;
+
 //
 // Particle mesh for BPM method
 //
-class BPMMesh
+class BPM
 {
-  std::deque<Spring> springs;
-  std::multimap<int,int> pmap;
+  Springs springs;
+  ParticleSpringMap pmap;
 
 public:
   void InitFromAsciiFile(const std::string& file);
+  void ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& force, int lev, const int fcomp);
+
 };
+
 
 #endif
