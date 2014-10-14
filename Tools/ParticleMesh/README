@@ -1,0 +1,13 @@
+This directory contains Python scripts for generating and checking particle and spring files.
+
+To generate a 'carpet':
+
+$ python carpet.py
+
+This writes two files: particle_file and particle_mesh_file.  These
+files describe the initial position of BPM particles, and how they are
+interconnected (by springs), respectively.
+
+To visualize the generated particle mesh:
+
+$ python draw_mesh.py
