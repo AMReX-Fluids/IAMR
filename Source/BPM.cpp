@@ -1,7 +1,8 @@
 
-#include <BPM.H>
-
+#include <cmath>
 #include <iostream>
+
+#include <BPM.H>
 
 using namespace std;
 
@@ -9,10 +10,18 @@ typedef ParticleContainer<2*BL_SPACEDIM>::PBox PBox;
 typedef ParticleContainer<2*BL_SPACEDIM>::PMap PMap;
 typedef ParticleContainer<2*BL_SPACEDIM>::ParticleType ParticleType;
 
+extern "C" {
+  void bpm_compute_forces_2d(double const *x1, double const *x2,
+                             double sconstant, double slength,
+                             double blob_diam, int blob_patch_size,
+                             int const *lo, int const *hi, double const *xlo, double const *xhi, double dx,
+                             double *f, double *divf);
+}
+
 //
 // Compute spring forces given particle locations.
 //
-void BPM::ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& force, int lev, const int fcomp)
+void BPM::ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& force, Geometry& geom, int lev, int fcomp)
 {
   BL_PROFILE("BPM::ComputeForces()");
 
@@ -37,6 +46,8 @@ void BPM::ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& f
   for (int i=0; i<ids.size(); i++)
     idmap.insert(pair<int,int>(ids[i],i));
 
+  MultiFab divf(force.boxArray(), 1, 2);
+
   //
   // Loop through particles and compute forces...
   //
@@ -46,6 +57,7 @@ void BPM::ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& f
     const int   n    = pbox.size();
 
     FArrayBox& ffab = force[grid];
+    FArrayBox& divffab = divf[grid];
 
     for (int i = 0; i < n; i++) {
       const ParticleType& p = pbox[i];
@@ -62,30 +74,16 @@ void BPM::ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& f
         int i1 = (spring.p1 == id) ? idmap[spring.p1] : idmap[spring.p2];
         int i2 = (spring.p1 == id) ? idmap[spring.p2] : idmap[spring.p1];
 
-        // compute spring force; we're computing the force on particle i1 from particle i2
-        Real dvect[BL_SPACEDIM];
-        for (int d=0; d < BL_SPACEDIM; d++) {
-          dvect[d] = locs[BL_SPACEDIM*i2+d] - locs[BL_SPACEDIM*i1+d];
-        }
+        double blob_diameter = 123.0;
+        int blob_patch_size = 2;
 
-        Real dnorm = sqrt(D_TERM(dvect[0]*dvect[0], + dvect[1]*dvect[1], + dvect[2]*dvect[2]));
-        Real force = spring.k * (spring.l - dnorm);
+        // as it is now, this doesn't accumulate forces and then apply
+        // the bpm, it applies the bpm to each end of each spring...
 
-        Real fvect[BL_SPACEDIM];
-        for (int d=0; d < BL_SPACEDIM; d++) {
-          fvect[d] = dvect[d] / dnorm * force;
-        }
-
-        if (this->verbose > 1) {
-          cout << "BPM::ComputeForces: force on " << ids[i1] << " from " << ids[i2] << " is: ";
-          for (int d=0; d < BL_SPACEDIM; d++) {
-            cout << fvect[d] << " ";
-          }
-          cout << endl;
-        }
-
-        // spread force into fab...
-
+        bpm_compute_forces_2d(&locs[BL_SPACEDIM*i1], &locs[BL_SPACEDIM*i2],
+                              spring.k, spring.l, blob_diameter, blob_patch_size,
+                              ffab.loVect(), ffab.hiVect(), geom.ProbLo(), geom.ProbHi(), geom.CellSize()[0],
+                              ffab.dataPtr(), divffab.dataPtr());
 
       }
     }

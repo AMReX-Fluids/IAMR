@@ -35,10 +35,14 @@ class BPM
   int verbose;
 
 public:
+
+  Real diameter;
+
   BPM(int verbose=0) : verbose(verbose) { }
 
   void InitFromAsciiFile(const std::string& file);
-  void ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& force, int lev, const int fcomp);
+  void ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& force, Geometry& geom,
+                     int lev, int fcomp);
 
 };
 

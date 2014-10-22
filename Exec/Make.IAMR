@@ -82,6 +82,7 @@ ifeq ($(USE_BPM),TRUE)
   DEFINES += -DUSE_BPM
   CEXE_headers += BPM.H
   CEXE_sources += BPM.cpp
+  f90EXE_sources += bpm.f90
 endif
 
 all: $(executable)
