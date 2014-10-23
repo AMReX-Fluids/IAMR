@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <BPM.H>
+#include <BPM_F.H>
 
 using namespace std;
 
@@ -11,15 +12,6 @@ typedef ParticleContainer<2*BL_SPACEDIM>::PBox PBox;
 typedef ParticleContainer<2*BL_SPACEDIM>::PMap PMap;
 typedef ParticleContainer<2*BL_SPACEDIM>::ParticleType ParticleType;
 
-extern "C" {
-  void bpm_compute_forces_2d(double const *x1, double const *v1, double *f1,
-                             double const *x2, double const *v2, double *f2,
-                             double sconstant, double slength);
-
-  void bpm_spread_forces_2d(double const *x1, double const *f1, double blob_diameter, int blob_patch_size,
-                            int const *lo, int const *hi, double const *xlo, double const *xhi, double dx,
-                            double *f, double *divf);
-}
 
 //
 // Compute spring forces given particle locations.
@@ -44,7 +36,6 @@ void BPM::ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& f
   particles.GetParticleVelocities(vels);
   frcs.resize(locs.size());
   fill(frcs.begin(), frcs.end(), 0.0);
-  // frcs.fill(0.0);
 
   //
   // Build mapping from particle ID to index into the particle
@@ -71,7 +62,7 @@ void BPM::ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& f
       const int id = p.m_id;
       if (id <= 0) continue;
 
-      ParticleSpringRange range = this->pmap.equal_range(p.m_id);
+      ParticleSpringRange range = particle_to_spring_map.equal_range(p.m_id);
       for (ParticleSpringMap::iterator it=range.first; it!=range.second; ++it) {
         if (it->first != id) continue;
         Spring spring = this->springs.at(it->second);
@@ -80,7 +71,6 @@ void BPM::ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& f
         int i1 = (spring.p1 == id) ? idmap[spring.p1] : idmap[spring.p2];
         int i2 = (spring.p1 == id) ? idmap[spring.p2] : idmap[spring.p1];
 
-        // need some way to not double count...
         bpm_compute_forces_2d(&locs[BL_SPACEDIM*i1], &vels[BL_SPACEDIM*i1], &frcs[BL_SPACEDIM*i1],
                               &locs[BL_SPACEDIM*i2], &vels[BL_SPACEDIM*i2], &frcs[BL_SPACEDIM*i2],
                               spring.k, spring.l);
@@ -108,12 +98,12 @@ void BPM::ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& f
 
       int i1 = idmap[id];
 
-      double blob_diameter   = 0.05;
-      int    blob_patch_size = ceil(blob_diameter/2 / geom.CellSize()[0]) + 1;
+      bpm_parameters params;
+      params.type = 1;
+      params.diameter = 0.05;
 
-      bpm_spread_forces_2d(&locs[BL_SPACEDIM*i1], &frcs[BL_SPACEDIM*i1],
-                           blob_diameter, blob_patch_size,
-                           ffab.loVect(), ffab.hiVect(), geom.ProbLo(), geom.ProbHi(), geom.CellSize()[0],
+      bpm_spread_forces_2d(&locs[BL_SPACEDIM*i1], &frcs[BL_SPACEDIM*i1], &params,
+                           ffab.loVect(), ffab.hiVect(), 4, geom.ProbLo(), geom.ProbHi(), geom.CellSize()[0],
                            ffab.dataPtr(), divffab.dataPtr());
 
     }
@@ -142,8 +132,8 @@ void BPM::InitFromAsciiFile(const string& file)
   while (ifs >> p1 >> p2 >> l >> k) {
     Spring spring = { p1, p2, l, k };
     this->springs.push_back(spring);
-    this->pmap.insert(pair<int,int>(p1, this->springs.size()-1));
-    this->pmap.insert(pair<int,int>(p2, this->springs.size()-1));
+    this->particle_to_spring_map.insert(pair<int,int>(p1, this->springs.size()-1));
+    this->particle_to_spring_map.insert(pair<int,int>(p2, this->springs.size()-1));
   }
 
   cout << "BPM::InitFromAsciiFile: " << this->springs.size() << " springs read." << endl;

@@ -30,7 +30,7 @@ typedef std::pair<ParticleSpringMap::iterator,ParticleSpringMap::iterator> Parti
 class BPM
 {
   Springs springs;
-  ParticleSpringMap pmap;
+  ParticleSpringMap particle_to_spring_map;
 
   int verbose;
 
