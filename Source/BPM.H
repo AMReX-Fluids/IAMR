@@ -41,8 +41,9 @@ public:
   BPM(int verbose=0) : verbose(verbose) { }
 
   void InitFromAsciiFile(const std::string& file);
-  void ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles, MultiFab& force, Geometry& geom,
-                     int lev, int fcomp);
+  void ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles,
+                     MultiFab& force, MultiFab& divforce, Geometry& geom,
+                     int lev);
 
 };
 
