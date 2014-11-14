@@ -22,9 +22,6 @@ USE_PARTICLES   = TRUE
 
 USE_MPI   = TRUE
 
-USE_F90_SOLVERS = FALSE
-USE_F90_SOLVERS = TRUE
-
 # This allows GetForce to call a Fortran routine
 DEFINES += -DBOUSSINESQ
 

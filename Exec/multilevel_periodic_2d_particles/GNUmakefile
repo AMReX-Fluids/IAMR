@@ -22,9 +22,6 @@ USE_PARTICLES   = TRUE
 
 USE_MPI   = TRUE
 
-USE_F90_SOLVERS = TRUE
-#USE_F90_SOLVERS = FALSE
-
 EBASE     = amr
 
 Bpack   := ./Make.package
