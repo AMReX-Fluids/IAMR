@@ -688,7 +688,7 @@ Diffusion::diffuse_velocity (Real                   dt,
                         (*fluxSCnp1[d])[fmfi].plus((*fluxSCn[d])[fmfi]);
 
                         if (level < parent->finestLevel())
-                            fluxes[d][idx].copy((*fluxSCnp1[d])[fmfi],fluxComp,sigma,1);
+                            fluxes[d][fmfi].copy((*fluxSCnp1[d])[fmfi],fluxComp,sigma,1);
 
                         if (level > 0)
                             viscflux_reg->FineAdd((*fluxSCnp1[d])[fmfi],d,idx,fluxComp,sigma,1,dt);
@@ -1147,7 +1147,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
                 const Box& grd    = Vsyncmfi.validbox();
                 const int* lo     = grd.loVect();
                 const int* hi     = grd.hiVect();
-                FArrayBox& u_sync = (*Vsync)[i];
+                FArrayBox& u_sync = (*Vsync)[Vsyncmfi];
                 const int* ulo    = u_sync.loVect();
                 const int* uhi    = u_sync.hiVect();
 
@@ -1346,7 +1346,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
                     Box flux_bx(grd);
                     flux_bx.surroundingNodes(k);
                     flux.resize(flux_bx,1);
-                    flux.copy((*(tensorflux[k]))[i],sigma,0,1);
+                    flux.copy((*(tensorflux[k]))[mfi],sigma,0,1);
                     viscflux_reg->FineAdd(flux,k,i,0,sigma,1,dt*dt);
                 }
             }
@@ -1511,9 +1511,7 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
 
         for (MFIter Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
         {
-            const int i = Ssyncmfi.index();
-
-            (*Ssync)[i].mult(S_new[i],Ssyncmfi.validbox(),Density,sigma,1);
+            (*Ssync)[Ssyncmfi].mult(S_new[Ssyncmfi],Ssyncmfi.validbox(),Density,sigma,1);
         }
     }
     
@@ -1614,7 +1612,7 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
             const int gridno = bcoeffsmfi.index();
             caller->Geom().GetFaceArea(bcoeffs,grids,gridno,n,nghost);
             bcoeffs.mult(dx[n]);
-            bcoeffs.mult((*beta[n])[gridno],betaComp,0,1);
+            bcoeffs.mult((*beta[n])[bcoeffsmfi],betaComp,0,1);
             tensor_op->bCoefficients(bcoeffs,n,gridno);
         }
     }
@@ -1833,7 +1831,7 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
         {
             const int i = alphamfi.index();
             BL_ASSERT(grids[i] == alphamfi.validbox());
-            alpha[i].mult((*alpha_in)[i],alphamfi.validbox(),dataComp,0,1);
+            alpha[alphamfi].mult((*alpha_in)[alphamfi],alphamfi.validbox(),dataComp,0,1);
         }
     }
 
@@ -1883,7 +1881,7 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
             {
                 const int  gridno = bcoeffsmfi.index();
                 caller->Geom().GetFaceArea(bcoeffs,grids,gridno,n,0);
-                bcoeffs.mult((*beta[n])[gridno],betaComp,0,1);
+                bcoeffs.mult((*beta[n])[bcoeffsmfi],betaComp,0,1);
                 bcoeffs.mult(dx[n]);
                 visc_op->bCoefficients(bcoeffs,n,gridno);
             }
@@ -1966,7 +1964,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
                 const int i = visc_tmpmfi.index();
                 BL_ASSERT(grids[i] == visc_tmpmfi.validbox());
                 caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
-                visc_tmp[i].divide(volume,visc_tmpmfi.validbox(),0,0,1);
+                visc_tmp[visc_tmpmfi].divide(volume,visc_tmpmfi.validbox(),0,0,1);
             }
         }
 
@@ -2069,7 +2067,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
                 const int gridno = bcoeffsmfi.index();
                 caller->Geom().GetFaceArea(bcoeffs,grids,gridno,n,nghost);
                 bcoeffs.mult(dx[n]);
-                bcoeffs.mult((*beta[n])[gridno],betaComp,0,1);
+                bcoeffs.mult((*beta[n])[bcoeffsmfi],betaComp,0,1);
                 tensor_op.bCoefficients(bcoeffs,n,gridno);
             }
         }
@@ -2089,7 +2087,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
             const int i = visc_tmpmfi.index();
             caller->Geom().GetVolume(volume,grids,i,GEOM_GROW);
             for (int n = 0; n < BL_SPACEDIM; ++n)
-                visc_tmp[i].divide(volume,grids[i],0,n,1);
+                visc_tmp[visc_tmpmfi].divide(volume,grids[i],0,n,1);
         }
 
 #if (BL_SPACEDIM == 2)
@@ -2116,14 +2114,14 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
                 const int*       vhi       = vbx.hiVect();
                 const int*       slo       = sbx.loVect();
                 const int*       shi       = sbx.hiVect();
-                Real*            vdat      = visc_tmp[k].dataPtr();
-                Real*            sdat      = s_tmp[k].dataPtr();
+                Real*            vdat      = visc_tmp[vmfi].dataPtr();
+                Real*            sdat      = s_tmp[vmfi].dataPtr();
                 const Real*      rcendat   = rcen.dataPtr();
-                const FArrayBox& betax     = (*beta[0])[k];
+                const FArrayBox& betax     = (*beta[0])[vmfi];
                 const Real*      betax_dat = betax.dataPtr(betaComp);
                 const int*       betax_lo  = betax.loVect();
                 const int*       betax_hi  = betax.hiVect();
-                const FArrayBox& betay     = (*beta[1])[k];
+                const FArrayBox& betay     = (*beta[1])[vmfi];
                 const Real*      betay_dat = betay.dataPtr(betaComp);
                 const int*       betay_lo  = betay.loVect();
                 const int*       betay_hi  = betay.hiVect();
@@ -2272,12 +2270,12 @@ Diffusion::FillBoundary (BndryRegister& bdry,
          Rho_mfi.isValid() && S_fpi.isValid();
          ++Rho_mfi, ++S_fpi)
     {
-        S[S_fpi.index()].copy(S_fpi(),0,0,num_comp);
+        S[S_fpi].copy(S_fpi(),0,0,num_comp);
    
    	if (rho_flag == 2)
         {
             for (int n = 0; n < num_comp; ++n)
-                S[S_fpi.index()].divide(rhotime[Rho_mfi],0,n,1);
+                S[S_fpi].divide(rhotime[Rho_mfi],0,n,1);
         }
     }
     //
@@ -2499,8 +2497,8 @@ Diffusion::compute_divmusi (Real                   time,
 #if (BL_SPACEDIM==3)
                           ARLIM(betazlo), ARLIM(betazhi), betaz,
 #endif
-                          ARLIM(divmusi[i].loVect()), ARLIM(divmusi[i].hiVect()),
-                          divmusi[i].dataPtr());
+                          ARLIM(divmusi[divmusimfi].loVect()), ARLIM(divmusi[divmusimfi].hiVect()),
+                          divmusi[divmusimfi].dataPtr());
     }
 
     delete divu_fp;

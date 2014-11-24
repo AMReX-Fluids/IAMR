@@ -796,7 +796,7 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
 
                 for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
                 {
-                    FArrayBox& cfablo = cloMF[mfi.index()];
+                    FArrayBox& cfablo = cloMF[mfi];
                     const Box& cboxlo = cfablo.box();
 
                     Box isectlo = domlo & cboxlo;
@@ -807,7 +807,7 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
                     if (isecthi.ok())
                         cfablo.mult(2.0,isecthi,0,1);
 
-                    FArrayBox& cfabhi = chiMF[mfi.index()];
+                    FArrayBox& cfabhi = chiMF[mfi];
                     const Box& cboxhi = cfabhi.box();
 
                     isectlo = domlo & cboxhi;

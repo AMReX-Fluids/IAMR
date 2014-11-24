@@ -1386,7 +1386,7 @@ NavierStokes::init (AmrLevel &old)
         fpi.isValid();
          ++fpi)
     {
-        S_new[fpi.index()].copy(fpi());
+        S_new[fpi].copy(fpi());
     }
     //
     // Note: we don't need to worry here about using FillPatch because
@@ -1397,8 +1397,8 @@ NavierStokes::init (AmrLevel &old)
          fpi.isValid();
          ++fpi)
     {
-        P_old[fpi.index()].copy(fpi());
-        P_new[fpi.index()].copy(fpi());
+        P_old[fpi].copy(fpi());
+        P_new[fpi].copy(fpi());
     }
 
     if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point) 
@@ -1409,7 +1409,7 @@ NavierStokes::init (AmrLevel &old)
              fpi.isValid();
              ++fpi)
         {
-            Dpdt_new[fpi.index()].copy(fpi());
+            Dpdt_new[fpi].copy(fpi());
         }
     }
     //
@@ -1423,7 +1423,7 @@ NavierStokes::init (AmrLevel &old)
              fpi.isValid();
              ++fpi)
         {
-            Divu_new[fpi.index()].copy(fpi());
+            Divu_new[fpi].copy(fpi());
         }
 
         if (have_dsdt)
@@ -1434,7 +1434,7 @@ NavierStokes::init (AmrLevel &old)
                  fpi.isValid();
                  ++fpi)
             {
-                Dsdt_new[fpi.index()].copy(fpi());
+                Dsdt_new[fpi].copy(fpi());
             }
         }
     }
@@ -1643,7 +1643,7 @@ NavierStokes::advance_setup (Real time,
                 FillPatchIterator fpi(clevel,*(clevel.rho_qtime),
                                       1,qtime,State_Type,Density,1);
                 for ( ; fpi.isValid(); ++fpi)
-                    (*clevel.rho_qtime)[fpi.index()].copy(fpi());
+                    (*clevel.rho_qtime)[fpi].copy(fpi());
             }
             if (clevel.rho_tqtime == 0)
             {
@@ -1652,7 +1652,7 @@ NavierStokes::advance_setup (Real time,
                 FillPatchIterator fpi(clevel,*(clevel.rho_tqtime),
                                       1,tqtime,State_Type,Density,1);
                 for ( ; fpi.isValid(); ++fpi)
-                    (*clevel.rho_tqtime)[fpi.index()].copy(fpi());
+                    (*clevel.rho_tqtime)[fpi].copy(fpi());
             }
         }
     }
@@ -1945,7 +1945,7 @@ NavierStokes::make_rho_prev_time ()
 
     for ( ; fpi.isValid(); ++fpi)
     {
-        (*rho_ptime)[fpi.index()].copy(fpi());
+        (*rho_ptime)[fpi].copy(fpi());
     }
 }
 
@@ -1958,7 +1958,7 @@ NavierStokes::make_rho_curr_time ()
 
     for ( ; fpi.isValid(); ++fpi)
     {
-        (*rho_ctime)[fpi.index()].copy(fpi());
+        (*rho_ctime)[fpi].copy(fpi());
     }
 }
 
@@ -2091,25 +2091,25 @@ NavierStokes::predict_velocity (Real  dt,
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[U_fpi]);
 #elif MOREGENGETFORCE
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << '\n' << "A - Predict velocity:" << '\n' << " Calling getForce..." << '\n';
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
-	getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+	getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[U_fpi]);
 #endif		 
 #endif
         //
         // Test velocities, rho and cfl.
         //
-        cflgrid  = godunov->test_u_rho(U_fpi(),(*rho_ptime)[i],grids[i],dx,dt,u_max);
+        cflgrid  = godunov->test_u_rho(U_fpi(),(*rho_ptime)[U_fpi],grids[i],dx,dt,u_max);
         cflmax   = std::max(cflgrid,cflmax);
         comp_cfl = std::max(cflgrid,comp_cfl);
         //
         // Compute the total forcing.
         //
-        godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*rho_ptime)[i]);
+        godunov->Sum_tf_gp_visc(tforces,visc_terms[U_fpi],Gp[U_fpi],(*rho_ptime)[U_fpi]);
 
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
                bndry[1] = getBCArray(State_Type,i,1,1);,
@@ -2121,13 +2121,13 @@ NavierStokes::predict_velocity (Real  dt,
 #if (BL_SPACEDIM == 3)                         
                        *null_fab, bndry[2].dataPtr(),
 #endif
-                       U_fpi(), (*rho_ptime)[i], tforces);
+                       U_fpi(), (*rho_ptime)[U_fpi], tforces);
 
         godunov->ComputeUmac(grids[i], dx, dt, 
-                             u_mac[0][i], bndry[0].dataPtr(),
-                             u_mac[1][i], bndry[1].dataPtr(),
+                             u_mac[0][U_fpi], bndry[0].dataPtr(),
+                             u_mac[1][U_fpi], bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)
-                             u_mac[2][i], bndry[2].dataPtr(),
+                             u_mac[2][U_fpi], bndry[2].dataPtr(),
 #endif
                              U_fpi(), tforces);
     }
@@ -2231,16 +2231,16 @@ NavierStokes::velocity_advection (Real dt)
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[U_fpi]);
 #elif MOREGENGETFORCE
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << '\n' << "B - velocity advection:" << '\n' << "Calling getForce..." << '\n';
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+        getForce(tforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[U_fpi]);
 #endif		 
 #endif
-        godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*rho_ptime)[i]);
+        godunov->Sum_tf_gp_visc(tforces,visc_terms[U_fpi],Gp[U_fpi],(*rho_ptime)[U_fpi]);
 
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
                bndry[1] = getBCArray(State_Type,i,1,1);,
@@ -2251,7 +2251,7 @@ NavierStokes::velocity_advection (Real dt)
 #if (BL_SPACEDIM == 3)                          
                        flux[2], bndry[2].dataPtr(),
 #endif
-                       U_fpi(),(*rho_ptime)[i],tforces);
+                       U_fpi(),(*rho_ptime)[U_fpi],tforces);
         //
         // Loop over the velocity components.
         //
@@ -2264,12 +2264,12 @@ NavierStokes::velocity_advection (Real dt)
         }
         geom.GetVolume(volume,grids,i,GEOM_GROW);
 
-        FArrayBox& divufab = divu_fp[i];
-        FArrayBox& aofsfab = (*aofs)[i];
+        FArrayBox& divufab = divu_fp[U_fpi];
+        FArrayBox& aofsfab = (*aofs)[U_fpi];
 
-        D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][i];,
-               FArrayBox& u_mac_fab1 = u_mac[1][i];,
-               FArrayBox& u_mac_fab2 = u_mac[2][i];);
+        D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_fpi];,
+               FArrayBox& u_mac_fab1 = u_mac[1][U_fpi];,
+               FArrayBox& u_mac_fab2 = u_mac[2][U_fpi];);
 
         for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
         {
@@ -2278,7 +2278,7 @@ NavierStokes::velocity_advection (Real dt)
             if (do_mom_diff == 1)
             {
                 S.mult(Rho_fpi(),S.box(),S.box(),0,comp,1);
-                tforces.mult((*rho_ptime)[i],tforces.box(),tforces.box(),0,comp,1);
+                tforces.mult((*rho_ptime)[U_fpi],tforces.box(),tforces.box(),0,comp,1);
             }
 
             godunov->AdvectState(grids[i], dx, dt, 
@@ -2295,7 +2295,7 @@ NavierStokes::velocity_advection (Real dt)
                 if (level < parent->finestLevel())
                 {
                     for (int d = 0; d < BL_SPACEDIM; d++)
-                        fluxes[d][i].copy(flux[d],0,comp,1);
+                        fluxes[d][U_fpi].copy(flux[d],0,comp,1);
                 }
                 if (level > 0)
                 {
@@ -2403,13 +2403,13 @@ NavierStokes::scalar_advection (Real dt,
         getForce(tforces,i,1,fscalar,num_scalars,prev_time,Scal_fpi());
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,i,1,fscalar,num_scalars,prev_time,(*rho_ptime)[i]);
+        getForce(tforces,i,1,fscalar,num_scalars,prev_time,(*rho_ptime)[U_fpi]);
 #elif MOREGENGETFORCE
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << '\n' << "C - scalar advection:" << '\n' << " Calling getForce..." << '\n';
         getForce(tforces,i,1,fscalar,num_scalars,prev_time,U_fpi(),S_fpi(),0);
 #else
-        getForce(tforces,i,1,fscalar,num_scalars,(*rho_ptime)[i]);
+        getForce(tforces,i,1,fscalar,num_scalars,(*rho_ptime)[U_fpi]);
 #endif		 
 #endif		 
         
@@ -2419,16 +2419,16 @@ NavierStokes::scalar_advection (Real dt,
         getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
 #else
 #ifdef GENGETFORCE
-            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
+            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[U_fpi]);
 #elif MOREGENGETFORCE
 	    if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 		std::cout << "---" << '\n' << "D - scalar advection (use_forces_in_trans):" << '\n' << " Calling getForce..." << '\n';
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
-            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,(*rho_ptime)[U_fpi]);
 #endif		 
 #endif
-            godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[i],Gp[i],(*rho_ptime)[i]);
+            godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[U_fpi],Gp[U_fpi],(*rho_ptime)[U_fpi]);
         }
 
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
@@ -2441,7 +2441,7 @@ NavierStokes::scalar_advection (Real dt,
 #if (BL_SPACEDIM == 3)                         
                        flux[2], bndry[2].dataPtr(),
 #endif
-                       U_fpi(),(*rho_ptime)[i],tvelforces);
+                       U_fpi(),(*rho_ptime)[U_fpi],tvelforces);
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
@@ -2451,15 +2451,15 @@ NavierStokes::scalar_advection (Real dt,
         //
         // Loop over the scalar components.
         //
-        FArrayBox& divufab = (*divu_fp)[i];
-        FArrayBox& aofsfab = (*aofs)[i];
-        FArrayBox& rhopfab = (*rho_ptime)[i];
+        FArrayBox& divufab = (*divu_fp)[U_fpi];
+        FArrayBox& aofsfab = (*aofs)[U_fpi];
+        FArrayBox& rhopfab = (*rho_ptime)[U_fpi];
         FArrayBox& Ufab    = U_fpi();
         FArrayBox& Sfab    = S_fpi();
 
-        D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][i];,
-               FArrayBox& u_mac_fab1 = u_mac[1][i];,
-               FArrayBox& u_mac_fab2 = u_mac[2][i];);
+        D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_fpi];,
+               FArrayBox& u_mac_fab1 = u_mac[1][U_fpi];,
+               FArrayBox& u_mac_fab2 = u_mac[2][U_fpi];);
 
         for (int comp = 0 ; comp < num_scalars ; comp++)
         {
@@ -2473,14 +2473,14 @@ NavierStokes::scalar_advection (Real dt,
 
             if (adv_scheme == PRE_MAC)
             {
-                godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[i],
+                godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_fpi],
                                           comp,divufab,rhopfab,use_conserv_diff);
             }
             else
             {
                 FArrayBox junkDivu(tforces.box(),1);
                 junkDivu.setVal(0);
-                godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[i],
+                godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_fpi],
                                           comp,junkDivu,rhopfab,use_conserv_diff);
             }
             //
@@ -2502,7 +2502,7 @@ NavierStokes::scalar_advection (Real dt,
                 if (level < parent->finestLevel())
                 {
                     for (int d = 0; d < BL_SPACEDIM; d++)
-                        fluxes[d][i].copy(flux[d],0,comp,1);
+                        fluxes[d][U_fpi].copy(flux[d],0,comp,1);
                 }
                 if (level > 0)
                 {
@@ -2638,8 +2638,8 @@ NavierStokes::scalar_advection_update (Real dt,
 #ifdef BOUSSINESQ
                 const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
 		FArrayBox Scal(BoxLib::grow(grids[i],0),1);
-		Scal.copy(S_old[i],Tracer,0,1);
-		Scal.plus(S_new[i],Tracer,0,1);
+		Scal.copy(S_old[Rho_mfi],Tracer,0,1);
+		Scal.plus(S_new[Rho_mfi],Tracer,0,1);
 		Scal.mult(0.5);
                 getForce(tforces,i,0,sigma,1,halftime,Scal);
 #else
@@ -2656,19 +2656,19 @@ NavierStokes::scalar_advection_update (Real dt,
 		FArrayBox Vel(BoxLib::grow(grids[i],0),BL_SPACEDIM);
 		const int* vel_lo  = Vel.loVect();
 		const int* vel_hi  = Vel.hiVect();
-		const int* umacx_lo = u_mac[0][i].loVect();
-		const int* umacx_hi = u_mac[0][i].hiVect();
-		const int* umacy_lo = u_mac[1][i].loVect();
-		const int* umacy_hi = u_mac[1][i].hiVect();
+		const int* umacx_lo = u_mac[0][Rho_mfi].loVect();
+		const int* umacx_hi = u_mac[0][Rho_mfi].hiVect();
+		const int* umacy_lo = u_mac[1][Rho_mfi].loVect();
+		const int* umacy_hi = u_mac[1][Rho_mfi].hiVect();
 #if (BL_SPACEDIM==3)
-		const int* umacz_lo = u_mac[2][i].loVect();
-		const int* umacz_hi = u_mac[2][i].hiVect();
+		const int* umacz_lo = u_mac[2][Rho_mfi].loVect();
+		const int* umacz_hi = u_mac[2][Rho_mfi].hiVect();
 #endif
 		FORT_AVERAGE_EDGE_STATES(Vel.dataPtr(),
-					 u_mac[0][i].dataPtr(),
-					 u_mac[1][i].dataPtr(),
+					 u_mac[0][Rho_mfi].dataPtr(),
+					 u_mac[1][Rho_mfi].dataPtr(),
 #if (BL_SPACEDIM==3)
-					 u_mac[2][i].dataPtr(),
+					 u_mac[2][Rho_mfi].dataPtr(),
 #endif
 					 ARLIM(vel_lo),  ARLIM(vel_hi),
 					 ARLIM(umacx_lo), ARLIM(umacx_hi),
@@ -2682,8 +2682,8 @@ NavierStokes::scalar_advection_update (Real dt,
 		// Average the new and old time to get Crank-Nicholson half time approximation.
                 //
 		FArrayBox Scal(BoxLib::grow(grids[i],0),NUM_SCALARS);
-		Scal.copy(S_old[i],Density,0,NUM_SCALARS);
-		Scal.plus(S_new[i],Density,0,NUM_SCALARS);
+		Scal.copy(S_old[Rho_mfi],Density,0,NUM_SCALARS);
+		Scal.plus(S_new[Rho_mfi],Density,0,NUM_SCALARS);
 		Scal.mult(0.5);
 		
 		if (ParallelDescriptor::IOProcessor() && getForceVerbose)
@@ -2919,8 +2919,8 @@ NavierStokes::velocity_advection_update (Real dt)
         //
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
 	FArrayBox Scal(grids[i],1);
-	Scal.copy(U_old[i],Tracer,0,1);
-	Scal.plus(U_new[i],Tracer,0,1);
+	Scal.copy(U_old[Rhohalf_mfi],Tracer,0,1);
+	Scal.plus(U_new[Rhohalf_mfi],Tracer,0,1);
 	Scal.mult(0.5);
         getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,Scal);
 #else
@@ -2939,19 +2939,19 @@ NavierStokes::velocity_advection_update (Real dt)
 	FArrayBox Vel(BoxLib::grow(grids[i],0),BL_SPACEDIM);
 	const int* vel_lo  = Vel.loVect();
 	const int* vel_hi  = Vel.hiVect();
-	const int* umacx_lo = u_mac[0][i].loVect();
-	const int* umacx_hi = u_mac[0][i].hiVect();
-	const int* umacy_lo = u_mac[1][i].loVect();
-	const int* umacy_hi = u_mac[1][i].hiVect();
+	const int* umacx_lo = u_mac[0][Rhohalf_mfi].loVect();
+	const int* umacx_hi = u_mac[0][Rhohalf_mfi].hiVect();
+	const int* umacy_lo = u_mac[1][Rhohalf_mfi].loVect();
+	const int* umacy_hi = u_mac[1][Rhohalf_mfi].hiVect();
 #if (BL_SPACEDIM==3)
-	const int* umacz_lo = u_mac[2][i].loVect();
-	const int* umacz_hi = u_mac[2][i].hiVect();
+	const int* umacz_lo = u_mac[2][Rhohalf_mfi].loVect();
+	const int* umacz_hi = u_mac[2][Rhohalf_mfi].hiVect();
 #endif
 	FORT_AVERAGE_EDGE_STATES(Vel.dataPtr(),
-				 u_mac[0][i].dataPtr(),
-				 u_mac[1][i].dataPtr(),
+				 u_mac[0][Rhohalf_mfi].dataPtr(),
+				 u_mac[1][Rhohalf_mfi].dataPtr(),
 #if (BL_SPACEDIM==3)
-				 u_mac[2][i].dataPtr(),
+				 u_mac[2][Rhohalf_mfi].dataPtr(),
 #endif
 				 ARLIM(vel_lo),  ARLIM(vel_hi),
 				 ARLIM(umacx_lo), ARLIM(umacx_hi),
@@ -2964,8 +2964,8 @@ NavierStokes::velocity_advection_update (Real dt)
 	// Average the new and old time to get Crank-Nicholson half time approximation.
         //
 	FArrayBox Scal(BoxLib::grow(grids[i],0),NUM_SCALARS);
-	Scal.copy(U_old[i],Density,0,NUM_SCALARS);
-	Scal.plus(U_new[i],Density,0,NUM_SCALARS);
+	Scal.copy(U_old[Rhohalf_mfi],Density,0,NUM_SCALARS);
+	Scal.plus(U_new[Rhohalf_mfi],Density,0,NUM_SCALARS);
 	Scal.mult(0.5);
 	
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
@@ -2982,25 +2982,25 @@ NavierStokes::velocity_advection_update (Real dt)
         if (initial_iter && is_diffusive[Xvel])
             tforces.setVal(0);
 
-        S.resize(U_old[i].box(),BL_SPACEDIM);
-        S.copy(U_old[i],0,0,BL_SPACEDIM);
+        S.resize(U_old[Rhohalf_mfi].box(),BL_SPACEDIM);
+        S.copy(U_old[Rhohalf_mfi],0,0,BL_SPACEDIM);
 
         if (do_mom_diff == 1)
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
-                Gp[i].mult(halftime[i],grids[i],grids[i],0,d,1);
+                Gp[Rhohalf_mfi].mult(halftime[i],grids[i],grids[i],0,d,1);
                 tforces.mult(halftime[i],grids[i],grids[i],0,d,1);
-                S.mult((*rho_ptime)[i],grids[i],grids[i],0,d,1);
+                S.mult((*rho_ptime)[Rhohalf_mfi],grids[i],grids[i],0,d,1);
             }
         }
 
-        godunov->Add_aofs_tf_gp(S,U_new[i],Aofs[i],tforces,
-                                Gp[i],halftime[i],grids[i],dt);
+        godunov->Add_aofs_tf_gp(S,U_new[Rhohalf_mfi],Aofs[Rhohalf_mfi],tforces,
+                                Gp[Rhohalf_mfi],halftime[i],grids[i],dt);
         if (do_mom_diff == 1)
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
-                U_new[i].divide((*rho_ctime)[i],grids[i],grids[i],0,d,1);
+                U_new[Rhohalf_mfi].divide((*rho_ctime)[Rhohalf_mfi],grids[i],grids[i],0,d,1);
         }
     }
 }
@@ -3176,36 +3176,36 @@ NavierStokes::initial_velocity_diffusion_update (Real dt)
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,S_fpi());
 #else
 #ifdef GENGETFORCE
-            getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[i]);
+            getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,(*rho_ptime)[P_fpi]);
 #elif MOREGENGETFORCE
 	    if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 		std::cout << "---" << '\n' << "G - initial velocity diffusion update:" << '\n' << "Calling getForce..." << '\n';
-            getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,U_old[i],U_old[i],Density);
+            getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,U_old[P_fpi],U_old[P_fpi],Density);
 #else
-            getForce(tforces,i,0,Xvel,BL_SPACEDIM,(*rho_ptime)[i]);
+            getForce(tforces,i,0,Xvel,BL_SPACEDIM,(*rho_ptime)[P_fpi]);
 #endif		 
 #endif		 
-            godunov->Sum_tf_gp_visc(tforces,visc_terms[i],Gp[i],(*Rh)[i]);
+            godunov->Sum_tf_gp_visc(tforces,visc_terms[P_fpi],Gp[P_fpi],(*Rh)[P_fpi]);
 
-            S.resize(U_old[i].box(),BL_SPACEDIM);
-            S.copy(U_old[i],0,0,BL_SPACEDIM);
+            S.resize(U_old[P_fpi].box(),BL_SPACEDIM);
+            S.copy(U_old[P_fpi],0,0,BL_SPACEDIM);
 
             if (do_mom_diff == 1)
             {
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
-                    tforces.mult((*Rh)[i],grids[i],grids[i],0,d,1);
-                    S.mult((*rho_ptime)[i],grids[i],grids[i],0,d,1);
+                    tforces.mult((*Rh)[P_fpi],grids[i],grids[i],0,d,1);
+                    S.mult((*rho_ptime)[P_fpi],grids[i],grids[i],0,d,1);
                 }
             }
 
-            godunov->Add_aofs_tf(S,U_new[i],0,BL_SPACEDIM,Aofs[i],
+            godunov->Add_aofs_tf(S,U_new[P_fpi],0,BL_SPACEDIM,Aofs[P_fpi],
                                  0,tforces,0,grids[i],dt);
 
             if (do_mom_diff == 1)
             {
                 for (int d = 0; d < BL_SPACEDIM; d++)
-                    U_new[i].divide((*rho_ctime)[i],grids[i],grids[i],0,d,1);
+                    U_new[P_fpi].divide((*rho_ctime)[P_fpi],grids[i],grids[i],0,d,1);
             }
         }
     }
@@ -4269,21 +4269,21 @@ NavierStokes::estTimeStep ()
 #else
 #ifdef GENGETFORCE
         const Real cur_time = state[State_Type].curTime();
-        getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,(*rho_ctime)[i]);
+        getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,(*rho_ctime)[Rho_mfi]);
 #elif MOREGENGETFORCE
         const Real cur_time = state[State_Type].curTime();
 	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
 	    std::cout << "---" << '\n' << "H - est Time Step:" << '\n' << "Calling getForce..." << '\n';
-        getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i],U_new[i],Density);
+        getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[Rho_mfi],U_new[Rho_mfi],Density);
 #else
-        getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,(*rho_ctime)[i]);
+        getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,(*rho_ctime)[Rho_mfi]);
 #endif		 
 #endif		 
-        tforces.minus(Gp[i],0,0,BL_SPACEDIM);
+        tforces.minus(Gp[Rho_mfi],0,0,BL_SPACEDIM);
         //
         // Estimate the maximum allowable timestep from the Godunov box.
         //
-        Real dt = godunov->estdt(U_new[i],tforces,(*rho_ctime)[i],grids[i],
+        Real dt = godunov->estdt(U_new[Rho_mfi],tforces,(*rho_ctime)[Rho_mfi],grids[i],
                                  geom.CellSize(),cfl,gr_max);
 
         for (int k = 0; k < BL_SPACEDIM; k++)
@@ -4808,7 +4808,7 @@ NavierStokes::initRhoAvg (Real alpha)
     {
         const int i = rho_avgmfi.index();
         FArrayBox& rhoavgfab = (*rho_avg)[i];
-        rhoavgfab.copy(S_new[i],S_new.box(i),Density,S_new.box(i),0,1);
+        rhoavgfab.copy(S_new[rho_avgmfi],S_new.box(i),Density,S_new.box(i),0,1);
         rhoavgfab.mult(alpha);
     }
 }
@@ -5180,7 +5180,7 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
             if (interpolater == &protected_interp)
             {
               cdata.mult(dt_clev);
-              FArrayBox& fine_state = (*fine_stateMF)[i];
+              FArrayBox& fine_state = (*fine_stateMF)[mfi];
               interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
                                     num_comp,fgrids[i],ratio,
                                     cgeom,fgeom,bc_interp);
@@ -5188,11 +5188,11 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
               cdata.mult(dt_clev_inv);
             }
             
-            FineSync[i].plus(fdata,0,dest_comp,num_comp);
+            FineSync[mfi].plus(fdata,0,dest_comp,num_comp);
         }
         else
         {
-            FineSync[i].copy(fdata,0,dest_comp,num_comp);
+            FineSync[mfi].copy(fdata,0,dest_comp,num_comp);
         }
     }
 
@@ -5257,9 +5257,9 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
                                         0,Press_Type);
             fine_phi.mult(cur_mult_factor);
-            P_new[mfi.index()].plus(fine_phi);
+            P_new[mfi].plus(fine_phi);
             fine_phi.mult(prev_mult_factor);
-            P_old[mfi.index()].plus(fine_phi);
+            P_old[mfi].plus(fine_phi);
         }
     }
     else 
@@ -5271,8 +5271,8 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
                                         0,Press_Type);
-            P_new[mfi.index()].plus(fine_phi);
-            P_old[mfi.index()].plus(fine_phi);
+            P_new[mfi].plus(fine_phi);
+            P_old[mfi].plus(fine_phi);
         }
     }
 }
@@ -5316,7 +5316,7 @@ NavierStokes::avgDown (const BoxArray& cgrids,
         flev.geom.GetVolume(fvolume,fgrids,i,GEOM_GROW);
         clev.geom.GetVolume(cvolume,crse_S_fine_BA,i,GEOM_GROW);
 
-        avgDown(S_fine[i],crse_S_fine[i],fvolume,cvolume,
+        avgDown(S_fine[mfi],crse_S_fine[mfi],fvolume,cvolume,
                 f_level,c_level,crse_S_fine_BA[i],scomp,ncomp,fratio);
     }
 
@@ -5701,8 +5701,8 @@ NavierStokes::mac_sync ()
             for (MFIter Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
             {
                 const int        i      = Vsyncmfi.index();
-                FArrayBox&       vfab   = (*Vsync)[i];
-                const FArrayBox& rhofab = (*rho_ctime)[i];
+                FArrayBox&       vfab   = (*Vsync)[Vsyncmfi];
+                const FArrayBox& rhofab = (*rho_ctime)[Vsyncmfi];
                 const Box&       bx     = rho_ctime->box(i);
 
                 D_TERM(vfab.divide(rhofab,bx,0,Xvel,1);,
@@ -5796,7 +5796,7 @@ NavierStokes::mac_sync ()
                 for (MFIter SsyncMfi(*Ssync); SsyncMfi.isValid(); ++SsyncMfi)
                 {
                     const int i = SsyncMfi.index();
-                    (*Ssync)[i].plus((*DeltaSsync)[i], grids[i],
+                    (*Ssync)[SsyncMfi].plus((*DeltaSsync)[SsyncMfi], grids[i],
                                      iconserved, istate-BL_SPACEDIM, 1);
                 }
             }
@@ -5924,8 +5924,8 @@ NavierStokes::reflux ()
         for (MFIter Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
         {
             const int        i     = Vsyncmfi.index();
-            FArrayBox&       vfab  = (*Vsync)[i];
-            const FArrayBox& rhfab = (*Rh)[i];
+            FArrayBox&       vfab  = (*Vsync)[Vsyncmfi];
+            const FArrayBox& rhfab = (*Rh)[Vsyncmfi];
             const Box&       bx    = Rh->box(i);
 
             D_TERM(vfab.divide(rhfab,bx,0,Xvel,1);,
@@ -5944,7 +5944,7 @@ NavierStokes::reflux ()
             {
                 const int i = Ssyncmfi.index();
 
-                (*Ssync)[i].divide((*Rh)[i],Rh->box(i),0,sigma,1);
+                (*Ssync)[Ssyncmfi].divide((*Rh)[Ssyncmfi],Rh->box(i),0,sigma,1);
             }
         }
     }
@@ -5965,8 +5965,8 @@ NavierStokes::reflux ()
     for (MFIter Vsyncmfi(*Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
     {
         const int i     = Vsyncmfi.index();
-        FArrayBox& vfab = (*Vsync)[i];
-        FArrayBox& sfab = (*Ssync)[i];
+        FArrayBox& vfab = (*Vsync)[Vsyncmfi];
+        FArrayBox& sfab = (*Ssync)[Vsyncmfi];
 
         BL_ASSERT(grids[i] == Vsyncmfi.validbox());
 
@@ -6069,7 +6069,7 @@ NavierStokes::avgDown ()
     {
         const int i = mfi.index();
 
-        injectDown(crse_P_fine_BA[i],crse_P_fine[i],P_fine[i],fine_ratio);
+        injectDown(crse_P_fine_BA[i],crse_P_fine[mfi],P_fine[mfi],fine_ratio);
     }
     P_crse.copy(crse_P_fine);
 
@@ -6347,7 +6347,7 @@ NavierStokes::getState (int  ngrow,
 
     for ( ; fpi.isValid(); ++fpi)
     {
-        (*mf)[fpi.index()].copy(fpi());
+        (*mf)[fpi].copy(fpi());
     }
 
     return mf;
@@ -6379,7 +6379,7 @@ NavierStokes::FillStateBndry (Real time,
         //
         BoxList boxes = BoxLib::boxDiff(fpi().box(),grids[fpi.index()]);
 
-        FArrayBox& sfab = S[fpi.index()];
+        FArrayBox& sfab = S[fpi];
 
         for (BoxList::iterator bli = boxes.begin(), End = boxes.end(); bli != End; ++bli)
         {
@@ -6419,9 +6419,9 @@ NavierStokes::calc_divu (Real      time,
                   ++rho_mfi, ++temp_fpi)
             {
                 const int  i       = rho_mfi.index();
-                FArrayBox& divufab = divu[i];
+                FArrayBox& divufab = divu[rho_mfi];
 
-                divufab.divide(rhotime[i],divu.box(i),0,0,1);
+                divufab.divide(rhotime[rho_mfi],divu.box(i),0,0,1);
                 divufab.divide(temp_fpi(),divu.box(i),0,0,1);
             }
             Real THERMO_cp_inv = 1.0 / 1004.6;
@@ -6726,9 +6726,7 @@ NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
     {
         for (MFIter ecMfi(*viscosity[dir]); ecMfi.isValid(); ++ecMfi)
         {
-            const int i = ecMfi.index();
-
-            center_to_edge_plain((*visc_cc)[i],(*viscosity[dir])[i],0,0,1);
+            center_to_edge_plain((*visc_cc)[ecMfi],(*viscosity[dir])[ecMfi],0,0,1);
         }
     }
 }

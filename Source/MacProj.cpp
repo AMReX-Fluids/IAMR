@@ -790,7 +790,7 @@ MacProj::mac_sync_compute (int                   level,
     {
         const int i     = S_fpi.index();
         FArrayBox& S    = S_fpi();
-        FArrayBox& divu = (*divu_fp)[i];
+        FArrayBox& divu = (*divu_fp)[S_fpi];
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
@@ -826,7 +826,7 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Compute total forcing terms.
         //
-        godunov->Sum_tf_gp_visc(tforces, 0, vel_visc_terms[S_fpi], 0, Gp[i], 0, Rho, 0);
+        godunov->Sum_tf_gp_visc(tforces, 0, vel_visc_terms[S_fpi], 0, Gp[S_fpi], 0, Rho, 0);
         godunov->Sum_tf_divu_visc(S, BL_SPACEDIM, tforces, BL_SPACEDIM, numscal,
                                   scal_visc_terms[S_fpi], 0, divu, 0, Rho, 0, 1);
         if (use_forces_in_trans)
@@ -842,7 +842,7 @@ MacProj::mac_sync_compute (int                   level,
             ns_level.getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,Rho);
 #endif		 
 #endif		 
-	    godunov->Sum_tf_gp_visc(tvelforces,0,vel_visc_terms[S_fpi],0,Gp[i],0,Rho,0);
+	    godunov->Sum_tf_gp_visc(tvelforces,0,vel_visc_terms[S_fpi],0,Gp[S_fpi],0,Rho,0);
         }
         //
         // Set up the workspace for the godunov Box.

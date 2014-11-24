@@ -315,7 +315,7 @@ Projection::level_project (int             level,
     {
         const int i = P_newmfi.index();
 
-        P_new[i].setVal(0.0,BoxLib::grow(P_new.box(i),nGrow),0,1);
+        P_new[P_newmfi].setVal(0.0,BoxLib::grow(P_new.box(i),nGrow),0,1);
     }
 
     //
@@ -347,7 +347,7 @@ Projection::level_project (int             level,
         {
             const int i = U_newmfi.index();
 
-            ConvertUnew(U_new[i],U_old[i],dt,U_new.box(i));
+            ConvertUnew(U_new[U_newmfi],U_old[U_newmfi],dt,U_new.box(i));
         } 
 
         if (have_divu)
@@ -379,15 +379,14 @@ Projection::level_project (int             level,
         ns->getGradP(Gp, prev_pres_time);
 
 	for (MFIter mfi(*rho_half); mfi.isValid(); ++mfi) {
-	  const int idx = mfi.index();
-          FArrayBox& Gpfab = Gp[idx];
-          const FArrayBox& rhofab = (*rho_half)[idx];
+          FArrayBox& Gpfab = Gp[mfi];
+          const FArrayBox& rhofab = (*rho_half)[mfi];
       
 	  for (int i = 0; i < BL_SPACEDIM; i++) {
 	    Gpfab.divide(rhofab,0,i,1);
 	  }
       
-	  U_new[idx].plus(Gpfab,0,0,BL_SPACEDIM);
+	  U_new[mfi].plus(Gpfab,0,0,BL_SPACEDIM);
 	}
     }
 
@@ -2308,7 +2307,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         grown_vel_ba.grow(1);
         MultiFab grown_vel(grown_vel_ba,BL_SPACEDIM,0);
         for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
-            grown_vel[vmfi.index()].copy((*Vel_in)[vmfi.index()]);
+            grown_vel[vmfi].copy((*Vel_in)[vmfi]);
 
         if (have_divu)
         {
@@ -2318,7 +2317,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
             // Reuse grown_vel to fill dsdt.
             //
             for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
-                grown_vel[vmfi.index()].copy((*Divu_in)[vmfi.index()],0,0,1);
+                grown_vel[vmfi].copy((*Divu_in)[vmfi],0,0,1);
 
             for (int iface = 0; iface < numOutFlowFaces; iface++) 
                 grown_vel.copy(dsdt[iface],0,0,1);
@@ -2550,7 +2549,7 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
   for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
     int i = mfi.index();
 
-    FArrayBox& msk_fab = msk[i];
+    FArrayBox& msk_fab = msk[mfi];
 
     const Box& reg  = grids[i]; 
     msk_fab.setVal(1.0, reg, 0); 
@@ -2617,7 +2616,7 @@ void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry
   for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
     int i = mfi.index();
     
-    FArrayBox& msk_fab = msk[i];
+    FArrayBox& msk_fab = msk[mfi];
     const Box& fullBox = msk_fab.box(); // including ghost cells
 
     Box insBox = domainBox_p & fullBox;
@@ -2669,7 +2668,7 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[], b
 	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
 	  int i = mfi.index();
 
-	  FArrayBox& v_fab = (*vel[lev])[i];
+	  FArrayBox& v_fab = (*vel[lev])[mfi];
 
 	  const Box& reg = grids[i];
 	  const Box& bxg1 = BoxLib::grow(reg, 1);
