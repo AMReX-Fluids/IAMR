@@ -22,7 +22,7 @@ void
 ViscBndry::setBndryConds (const BCRec& phys_bc,
                           int          ratio)
 {
-    const IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    const IntVect& ratio_vect = ratio * IntVect::TheUnitVector();
     setBndryConds(phys_bc, ratio_vect);
 }
 

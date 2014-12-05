@@ -1155,8 +1155,8 @@ MacProj::set_outflow_bcs (int             level,
             Box phiBox  = BoxLib::adjCell(domain,outFaces[iface],1);
             phiBoxList.push_back(phiBox);
 
-            const Box      valid_ccBndBox       = ccBndBox & domain;
-            const BoxArray uncovered_outflow_ba = BoxLib::complementIn(valid_ccBndBox,grids);
+            const Box&      valid_ccBndBox       = ccBndBox & domain;
+            const BoxArray& uncovered_outflow_ba = BoxLib::complementIn(valid_ccBndBox,grids);
 
             if (uncovered_outflow_ba.size() && 
                 BoxLib::intersect(grids,valid_ccBndBox).size())
@@ -1303,7 +1303,7 @@ MacProj::test_umac_periodic (int       level,
                     for (int i = 0, N = isects.size(); i < N; i++)
                     {
                         const Box& srcBox = isects[i].second;
-                        const Box  dstBox = srcBox - pshifts[iiv];
+                        const Box& dstBox = srcBox - pshifts[iiv];
 
                         TURec r(mfi.index(),dim,srcBox,dstBox);
 

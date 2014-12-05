@@ -2176,8 +2176,8 @@ Projection::set_outflow_bcs (int        which_call,
           if (dir != outDir) temp_state_strip.grow(dir,1);
 
         const BoxArray& Lgrids               = parent->getLevel(lev).boxArray();
-        const Box       valid_state_strip    = temp_state_strip & domain;
-        const BoxArray  uncovered_outflow_ba = BoxLib::complementIn(valid_state_strip,Lgrids);
+        const Box&      valid_state_strip    = temp_state_strip & domain;
+        const BoxArray& uncovered_outflow_ba = BoxLib::complementIn(valid_state_strip,Lgrids);
 
         BL_ASSERT( !(uncovered_outflow_ba.size() &&
                      BoxLib::intersect(Lgrids,valid_state_strip).size()) );

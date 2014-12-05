@@ -59,7 +59,7 @@ SyncRegister::define (const BoxArray& fine_boxes,
 #endif
         for (int k = 0; k < N; k++)
         {
-            const Box ndbox = BoxLib::surroundingNodes(grids[k]);
+            const Box& ndbox = BoxLib::surroundingNodes(grids[k]);
 
             Box nd_lo = ndbox;
             Box nd_hi = ndbox;
@@ -269,8 +269,8 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
                 if (dst_owner != MyProc && src_owner != MyProc) continue;
 
-                const Box rhsbox = rhs.fabbox(i);
-                const Box fabbox = fabset.fabbox(j);
+                const Box& rhsbox = rhs.fabbox(i);
+                const Box& fabbox = fabset.fabbox(j);
 
                 if (domain.contains(BoxLib::grow(fabbox,1))) continue;
 
@@ -286,7 +286,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
 
                     if (!dbx.ok()) continue;
 
-                    const Box sbx = dbx - iv;
+                    const Box& sbx = dbx - iv;
 
                     FabArrayBase::CopyComTag tag;
 
@@ -364,7 +364,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
     rhs.setVal(0);
 
-    const Box domain = BoxLib::surroundingNodes(geom.Domain());
+    const Box& domain = BoxLib::surroundingNodes(geom.Domain());
 
     FabSetCopyDescriptor fscd;
 
@@ -387,7 +387,7 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     const int* phys_lo = phys_bc->lo();
     const int* phys_hi = phys_bc->hi();
 
-    const Box node_domain = BoxLib::surroundingNodes(geom.Domain());
+    const Box& node_domain = BoxLib::surroundingNodes(geom.Domain());
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
@@ -400,8 +400,8 @@ SyncRegister::InitRHS (MultiFab&       rhs,
 
             for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
             {
-                const Box blo = mfi.validbox() & domlo;
-                const Box bhi = mfi.validbox() & domhi;
+                const Box& blo = mfi.validbox() & domlo;
+                const Box& bhi = mfi.validbox() & domhi;
 
                 if (blo.ok() && phys_lo[dir] == Outflow)
                     rhs[mfi].mult(0.0,blo,0,1);
@@ -612,7 +612,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
                 if (dst_owner != MyProc && src_owner != MyProc) continue;
 
-                const Box fabbox = fabset.fabbox(i);
+                const Box& fabbox = fabset.fabbox(i);
 
                 for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
                      it != End;
@@ -624,7 +624,7 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 
                     if (!dbx.ok()) continue;
 
-                    const Box sbx = dbx - iv;
+                    const Box& sbx = dbx - iv;
 
                     if (dst_owner == MyProc)
                     {
@@ -670,7 +670,7 @@ SyncRegister::CrseInit  (MultiFab*       Sync_resid_crse,
 
     Sync_resid_crse->mult(mult);
 
-    const Box crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());
+    const Box& crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());
 
     incrementPeriodic(crse_geom, crse_node_domain, *Sync_resid_crse);
 
@@ -736,7 +736,7 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
 
     Sync_resid_fine->mult(mult);
 
-    const Box crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());
+    const Box& crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {

@@ -295,7 +295,7 @@ Godunov::ComputeTransverVelocities (const Box& grd, const Real* dx, Real dt,
     BL_ASSERT(dsvl.box().contains(BoxLib::grow(grd,2)));
 
     int nGrow = ppm_type==2 ? 2 : 1;
-    const Box gbox = Box(grd).grow(nGrow);
+    const Box& gbox = Box(grd).grow(nGrow);
     D_TERM(BL_ASSERT(sedgex.box().contains(BoxLib::surroundingNodes(gbox,0)));,
            BL_ASSERT(sedgey.box().contains(BoxLib::surroundingNodes(gbox,1)));,
            BL_ASSERT(sedgez.box().contains(BoxLib::surroundingNodes(gbox,2))););
