@@ -23,7 +23,7 @@
 #include <ArrayLim.H>
 #include <Utility.H>
 #include <NAVIERSTOKES_F.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 #include <PROJECTION_F.H>
 #include <PROB_NS_F.H>
 #include <TagBox.H>

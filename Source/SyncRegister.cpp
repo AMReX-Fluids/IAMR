@@ -10,7 +10,7 @@
 #include <SyncRegister.H>
 #include <NAVIERSTOKES_F.H>
 #include <SYNCREG_F.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 
 SyncRegister::SyncRegister ()
 {

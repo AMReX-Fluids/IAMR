@@ -5,7 +5,7 @@
 #include <ParmParse.H>
 #include <NavierStokes.H>
 #include <NS_BC.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 #include <Projection.H>
 #include <PROJECTION_F.H>
 #include <NAVIERSTOKES_F.H>

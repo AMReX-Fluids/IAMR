@@ -12,7 +12,7 @@
 #include <AmrLevel.H>
 #include <TagBox.H>
 #include <FabSet.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 
 #ifndef NDEBUG
 
