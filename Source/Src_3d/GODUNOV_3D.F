@@ -713,6 +713,10 @@ c     used in 3d corner coupling
       imax = hi(1)
       jmax = hi(2)
       kmax = hi(3)
+
+      ihx  = 1.0d0/dx(1)
+      ihy  = 1.0d0/dx(2)
+      ihz  = 1.0d0/dx(3)
 c
 c     compute the slopes
 c
@@ -1445,9 +1449,6 @@ c     prevent backflow
 c    
 c     ORIGINAL NON-CORNER COUPLING CODE
 c
-      ihx  = 1.0d0/dx(1)
-      ihy  = 1.0d0/dx(2)
-      ihz  = 1.0d0/dx(3)
 c
 c     compute the xedge states
 c
@@ -2023,6 +2024,11 @@ c     used in 3d corner coupling
       imax = hi(1)
       jmax = hi(2)
       kmax = hi(3)
+
+      ihx  = 1.0d0/dx(1)
+      ihy  = 1.0d0/dx(2)
+      ihz  = 1.0d0/dx(3)
+
 c
 c     compute the slopes
 c
@@ -2831,9 +2837,6 @@ c     prevent backflow
 c    
 c     ORIGINAL NON-CORNER COUPLING CODE
 c
-      ihx  = 1.0d0/dx(1)
-      ihy  = 1.0d0/dx(2)
-      ihz  = 1.0d0/dx(3)
 c
 c     compute the xedge states
 c
