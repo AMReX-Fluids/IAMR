@@ -3919,10 +3919,13 @@ NavierStokes::writePlotFile (const std::string& dir,
         // job_info file with details about the run
 	std::ofstream jobInfoFile;
 	std::string FullPathJobInfoFile = dir;
-	std::string PrettyLine = "===============================================================================\n";
-
 	FullPathJobInfoFile += "/job_info";
 	jobInfoFile.open(FullPathJobInfoFile.c_str(), std::ios::out);	
+
+	std::string PrettyLine = "===============================================================================\n";
+	std::string OtherLine = "--------------------------------------------------------------------------------\n";
+	std::string SkipSpace = "        ";
+
 
 	// job information
 	jobInfoFile << PrettyLine;

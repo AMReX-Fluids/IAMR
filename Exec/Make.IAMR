@@ -95,10 +95,11 @@ CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
 INCLUDE_LOCATIONS +=  $(BOXLIB_HOME)/Tools/C_scripts
 
 buildInfo.cpp: $(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp
-	$(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp "$(BOXLIB_HOME)" \
-            "$(COMP)" "$(FCOMP)" \
-            "GIT=$(TOP)" "GIT=$(BOXLIB_HOME)"
-
+	$(BOXLIB_HOME)/Tools/C_scripts/makebuildinfo_C.py \
+          --boxlib_home "$(BOXLIB_HOME)" \
+          --COMP "$(COMP)" \
+          --FCOMP "$(FCOMP)" \
+          --GIT "$(TOP) $(BOXLIB_HOME)" 
 
 vpath %.c   $(VPATH_LOCATIONS)
 vpath %.cpp $(VPATH_LOCATIONS)
