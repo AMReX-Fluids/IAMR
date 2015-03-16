@@ -122,6 +122,7 @@ main (int   argc,
 {
     BoxLib::Initialize(argc,argv);
 
+    BL_PROFILE_REGION_START("main()");
     BL_PROFILE_VAR("main()", pmain);
 
     const Real run_strt = ParallelDescriptor::second();
@@ -218,6 +219,7 @@ main (int   argc,
         std::cout << "Run time = " << run_stop << std::endl;
 
     BL_PROFILE_VAR_STOP(pmain);
+    BL_PROFILE_REGION_STOP("main()");
     BL_PROFILE_SET_RUN_TIME(run_stop);
     BL_PROFILE_FINALIZE();
 

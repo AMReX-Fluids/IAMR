@@ -323,6 +323,7 @@ MacProj::mac_project (int             level,
                       int             have_divu,
                       bool            increment_vel_register)
 {
+    BL_PROFILE("MacProj::mac_project()");
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_project at level " << level << '\n';
 
