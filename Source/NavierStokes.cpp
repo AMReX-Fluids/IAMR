@@ -1873,6 +1873,7 @@ NavierStokes::mac_project (Real      time,
                            int       ngrow,
                            bool      increment_vel_register)
 {
+    BL_PROFILE_REGION_START("R::NavierStokes::mac_project()");
     BL_PROFILE("NavierStokes::mac_project()");
 
     if (verbose && ParallelDescriptor::IOProcessor())
@@ -1900,6 +1901,7 @@ NavierStokes::mac_project (Real      time,
                       << ", time: " << run_time << '\n';
         }
     }
+    BL_PROFILE_REGION_STOP("R::NavierStokes::mac_project()");
 }
 
 void
@@ -1907,6 +1909,7 @@ NavierStokes::level_projector (Real dt,
                                Real time,
                                int  iteration)
 {
+    BL_PROFILE_REGION_START("R::NavierStokes::level_projector()");
     BL_PROFILE("NavierStokes::level_projector()");
 
     BL_ASSERT(iteration > 0);
@@ -1934,6 +1937,8 @@ NavierStokes::level_projector (Real dt,
 
     if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
         calcDpdt();
+
+    BL_PROFILE_REGION_STOP("R::NavierStokes::level_projector()");
 }
 
 void
@@ -5393,6 +5398,7 @@ NavierStokes::avgDown_doit (const FArrayBox& fine_fab,
 void
 NavierStokes::level_sync (int crse_iteration)
 {
+    BL_PROFILE_REGION_START("R::NavierStokes::level_sync()");
     BL_PROFILE("NavierStokes::level_sync()");
 
     const Real*     dx            = geom.CellSize();
@@ -5625,6 +5631,8 @@ NavierStokes::level_sync (int crse_iteration)
         if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
             calcDpdt();
     }
+
+    BL_PROFILE_REGION_STOP("R::NavierStokes::level_sync()");
 }
 
 //
@@ -5634,6 +5642,7 @@ NavierStokes::level_sync (int crse_iteration)
 void
 NavierStokes::mac_sync ()
 {
+    BL_PROFILE_REGION_START("R::NavierStokes::mac_sync()");
     BL_PROFILE("NavierStokes::mac_sync()");
 
     const int  numscal        = NUM_STATE - BL_SPACEDIM;
@@ -5861,6 +5870,8 @@ NavierStokes::mac_sync ()
     }
 
     sync_cleanup(DeltaSsync);
+
+    BL_PROFILE_REGION_STOP("R::NavierStokes::mac_sync()");
 }
 
 void
