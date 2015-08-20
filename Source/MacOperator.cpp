@@ -473,8 +473,9 @@ mac_level_driver (Amr*            parent,
         mac_phi_p[0] = mac_phi;
         Rhs_p[0] = &Rhs;
 
+	int always_use_bnorm = 0;
         Real final_resnorm;
-        mgt_solver.solve(mac_phi_p, Rhs_p, mac_tol, mac_abs_tol, mac_bndry, final_resnorm);
+        mgt_solver.solve(mac_phi_p, Rhs_p, mac_bndry, mac_tol, mac_abs_tol, always_use_bnorm, final_resnorm);
 
 	mac_phi_p[0]->FillBoundary(0,1,true);
 	if (geom[0].isAnyPeriodic()) {
@@ -621,8 +622,9 @@ mac_sync_driver (Amr*            parent,
         mac_phi_p[0] = mac_sync_phi;
         Rhs_p[0] = &Rhs;
 
+	int always_use_bnorm = 0;
         Real final_resnorm;
-        mgt_solver.solve(mac_phi_p, Rhs_p, mac_sync_tol, mac_abs_tol, mac_bndry, final_resnorm);
+        mgt_solver.solve(mac_phi_p, Rhs_p, mac_bndry, mac_sync_tol, mac_abs_tol, always_use_bnorm, final_resnorm);
 
 	mac_phi_p[0]->FillBoundary(0,1);
 	if (geom[0].isAnyPeriodic()) {

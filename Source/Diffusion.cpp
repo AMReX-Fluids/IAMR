@@ -567,8 +567,9 @@ Diffusion::diffuse_scalar (Real                   dt,
         phi_p[0] = &Soln;
         Rhs_p[0] = &Rhs;
   
+	int always_use_bnorm = 0;
         Real final_resnorm;
-        mgt_solver.solve(phi_p, Rhs_p, S_tol, S_tol_abs, visc_bndry, final_resnorm);
+        mgt_solver.solve(phi_p, Rhs_p, visc_bndry, S_tol, S_tol_abs, always_use_bnorm, final_resnorm);
 
 	if (verbose >= 1)
 	{
