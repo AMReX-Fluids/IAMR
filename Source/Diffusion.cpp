@@ -553,14 +553,15 @@ Diffusion::diffuse_scalar (Real                   dt,
         //
         // Set alpha and beta as in (alpha - del dot beta grad).
         //
-        const MultiFab* aa_p[1];
-        aa_p[0] = &(visc_op->aCoefficients());
-        const MultiFab* bb_p[1][BL_SPACEDIM];
+        PArray<MultiFab> aa_p(1);
+	aa_p.set(0, &(visc_op->aCoefficients()));
+	Array<PArray<MultiFab> > bb_p(1, PArray<MultiFab>(BL_SPACEDIM, PArrayNoManage));
         for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-            bb_p[0][i] = &(visc_op->bCoefficients(i));
+            bb_p[0].set(i, &(visc_op->bCoefficients(i)));
         }
-        mgt_solver.set_visc_coefficients(aa_p, bb_p, b, xa, xb);
+
+        mgt_solver.set_abeclap_coeffs(aa_p, b, bb_p, xa, xb);
 
         MultiFab* phi_p[1];
         MultiFab* Rhs_p[1];
