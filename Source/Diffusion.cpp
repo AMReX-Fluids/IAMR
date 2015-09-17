@@ -555,7 +555,8 @@ Diffusion::diffuse_scalar (Real                   dt,
         //
         PArray<MultiFab> aa_p(1);
 	aa_p.set(0, &(visc_op->aCoefficients()));
-	Array<PArray<MultiFab> > bb_p(1, PArray<MultiFab>(BL_SPACEDIM, PArrayNoManage));
+	Array<PArray<MultiFab> > bb_p(1);
+	bb_p[0].resize(BL_SPACEDIM, PArrayNoManage);
         for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
             bb_p[0].set(i, &(visc_op->bCoefficients(i)));
