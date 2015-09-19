@@ -4602,7 +4602,16 @@ NavierStokes::post_timestep (int crse_iteration)
             basename += "Timestamp";
             for (int lev = level; lev <= finest_level; lev++)
             {
-                NSPC->Timestamp(basename, parent->getLevel(lev).get_new_data(State_Type), lev, curr_time, timestamp_indices);
+		MultiFab& S_new = parent->getLevel(lev).get_new_data(State_Type);
+
+		for (FillPatchIterator fpi(parent->getLevel(lev),S_new,1,curr_time,State_Type,0,NUM_STATE);
+		     fpi.isValid();
+		     ++fpi)
+		{
+		    S_new[fpi].copy(fpi());
+		}
+
+                NSPC->Timestamp(basename, S_new, lev, curr_time, timestamp_indices);
             }
         }
     }
