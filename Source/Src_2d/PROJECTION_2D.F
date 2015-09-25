@@ -258,10 +258,17 @@ c
          end do
       end do
 
+c     NOTE: We used to set these to bogus_value to be sure that we didn't use them.
+c           But now in the divu routine in the F90 solvers we need to include these
+c           values in the stencil because they might contain inflow values, for example, 
+c           and the only test is on the BC for the pressure solve, which doesn't
+c           differentiate between inflow, reflecting and symmetry.
+
       if (ARG_L1(grid)-ng .lt. domlo(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = ARG_L1(grid)-ng, domlo(1)-1
-           a(i,j) = bogus_value
+c          a(i,j) = bogus_value
+           a(i,j) = 0.d0
          end do
          end do
       end if
@@ -269,7 +276,8 @@ c
       if (ARG_H1(grid)+ng .gt. domhi(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = domhi(1)+1, ARG_H1(grid)+ng
-           a(i,j) = bogus_value
+c          a(i,j) = bogus_value
+           a(i,j) = 0.d0
          end do
          end do
       end if
