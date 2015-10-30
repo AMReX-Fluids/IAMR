@@ -18,6 +18,7 @@
 #include <FArrayBox.H>
 #include <Godunov.H>
 #include <Interpolater.H>
+#include <MultiFabUtil.H>
 #include <NavierStokes.H>
 #include <MultiGrid.H>
 #include <ArrayLim.H>
@@ -5294,116 +5295,6 @@ NavierStokes::SyncProjInterp (MultiFab& phi,
     }
 }
 
-//
-// Averages a multifab of fine data down onto a multifab of coarse data.
-//
-// This should be an Amrlevel or Multifab function
-//
-
-void
-NavierStokes::avgDown (const BoxArray& cgrids,
-                       const BoxArray& fgrids,
-                       MultiFab&       S_crse,
-                       MultiFab&       S_fine,
-                       int             c_level,
-                       int             f_level,
-                       int             scomp,
-                       int             ncomp,
-                       const IntVect&  fratio)
-{
-    BL_ASSERT(cgrids == S_crse.boxArray());
-    BL_ASSERT(fgrids == S_fine.boxArray());
-    BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-
-    NavierStokes& flev = getLevel(f_level);
-    NavierStokes& clev = getLevel(c_level);
-    //
-    // Coarsen() the fine stuff on processors owning the fine data.
-    //
-    BoxArray crse_S_fine_BA = fgrids; crse_S_fine_BA.coarsen(fratio);
-
-    MultiFab crse_S_fine(crse_S_fine_BA,ncomp,0);
-
-    FArrayBox fvolume, cvolume;
-
-    for (MFIter mfi(S_fine); mfi.isValid(); ++mfi)
-    {
-        const int i = mfi.index();
-
-        flev.geom.GetVolume(fvolume,fgrids,i,GEOM_GROW);
-        clev.geom.GetVolume(cvolume,crse_S_fine_BA,i,GEOM_GROW);
-
-        avgDown(S_fine[mfi],crse_S_fine[mfi],fvolume,cvolume,
-                f_level,c_level,crse_S_fine_BA[i],scomp,ncomp,fratio);
-    }
-
-    S_crse.copy(crse_S_fine,0,scomp,ncomp);
-}
-
-//
-// Average fine down to coarse in the ovlp intersection.
-//
-
-void
-NavierStokes::avgDown (const FArrayBox& fine_fab,
-                       const FArrayBox& crse_fab, 
-                       const FArrayBox& fine_vol,
-                       const FArrayBox& crse_vol,
-                       int              f_level,
-                       int              c_level,
-                       const Box&       ovlp,
-                       int              scomp,
-                       int              ncomp,
-                       const IntVect&   fratio)
-{
-    avgDown_doit(fine_fab,crse_fab,fine_vol,crse_vol,
-                 f_level,c_level,ovlp,scomp,ncomp,fratio);
-}
-
-//
-// Actually average the data down (this is static)
-//
-
-void
-NavierStokes::avgDown_doit (const FArrayBox& fine_fab,
-                            const FArrayBox& crse_fab, 
-                            const FArrayBox& fine_vol,
-                            const FArrayBox& crse_vol,
-                            int              f_level,
-                            int              c_level,
-                            const Box&       ovlp,
-                            int              scomp,
-                            int              ncomp,
-                            const IntVect&   fratio)
-{
-    BL_PROFILE("NavierStokes::avgDown_doit()");
-    //
-    //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
-    //        because the crse fab is a temporary which was made starting at comp 0, it is
-    //        not the actual state data.
-    //
-    const int*  ovlo   = ovlp.loVect();
-    const int*  ovhi   = ovlp.hiVect();
-    const int*  flo    = fine_fab.loVect();
-    const int*  fhi    = fine_fab.hiVect();
-    const Real* f_dat  = fine_fab.dataPtr(scomp);
-    const int*  fvlo   = fine_vol.loVect();
-    const int*  fvhi   = fine_vol.hiVect();
-    const Real* fv_dat = fine_vol.dataPtr();
-    const int*  clo    = crse_fab.loVect();
-    const int*  chi    = crse_fab.hiVect();
-    const Real* c_dat  = crse_fab.dataPtr();
-    const int*  cvlo   = crse_vol.loVect();
-    const int*  cvhi   = crse_vol.hiVect();
-    const Real* cv_dat = crse_vol.dataPtr();
-
-    FORT_AVGDOWN(c_dat,ARLIM(clo),ARLIM(chi),&ncomp,
-                 f_dat,ARLIM(flo),ARLIM(fhi),
-                 cv_dat,ARLIM(cvlo),ARLIM(cvhi),
-                 fv_dat,ARLIM(fvlo),ARLIM(fvhi),
-                 ovlo,ovhi,fratio.getVect());
-}
-
 void
 NavierStokes::level_sync (int crse_iteration)
 {
@@ -5496,17 +5387,17 @@ NavierStokes::level_sync (int crse_iteration)
             NavierStokes&   clev     = getLevel(k);
             const BoxArray& cgrids   = clev.grids;
 
-            IntVect&  fratio = clev.fine_ratio;
+            const IntVect&  fratio = clev.fine_ratio;
           
-            NavierStokes::avgDown(cgrids, fgrids,
-                                  clev.get_new_data(Divu_Type),
-                                  flev.get_new_data(Divu_Type),
-                                  k, k+1, 0, 1, fratio);
+            BoxLib::average_down(flev.get_new_data(Divu_Type),
+                                 clev.get_new_data(Divu_Type),
+                                 flev.geom, clev.geom,
+                                 0, 1, fratio);
 
-            NavierStokes::avgDown(cgrids, fgrids,
-                                  clev.get_new_data(Dsdt_Type),
-                                  flev.get_new_data(Dsdt_Type),
-                                  k, k+1, 0, 1, fratio);
+            BoxLib::average_down(flev.get_new_data(Dsdt_Type),
+                                 clev.get_new_data(Dsdt_Type),
+                                 flev.geom, clev.geom,
+                                 0, 1, fratio);
         }
     }
     //
@@ -6013,12 +5904,14 @@ NavierStokes::avgDown (int comp)
     if (level == parent->finestLevel())
         return;
 
+    NavierStokes&   crse_lev = getLevel(level  );
     NavierStokes&   fine_lev = getLevel(level+1);
     const BoxArray& fgrids   = fine_lev.grids;
     MultiFab&       S_crse   = get_new_data(State_Type);
     MultiFab&       S_fine   = fine_lev.get_new_data(State_Type);
 
-    avgDown(grids,fgrids,S_crse,S_fine,level,level+1,comp,1,fine_ratio);
+    BoxLib::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
+                         comp, 1, fine_ratio);
 
     if (comp == Density) 
     {
@@ -6066,6 +5959,7 @@ NavierStokes::avgDown ()
     if (level == parent->finestLevel())
         return;
 
+    NavierStokes&   crse_lev = getLevel(level  );
     NavierStokes&   fine_lev = getLevel(level+1);
     const BoxArray& fgrids   = fine_lev.grids;
     //
@@ -6074,8 +5968,10 @@ NavierStokes::avgDown ()
     MultiFab& S_crse = get_new_data(State_Type);
     MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
-    avgDown(grids,fgrids,S_crse,S_fine,level,level+1,0,S_crse.nComp(),fine_ratio);
-    //
+    BoxLib::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
+                         0, S_crse.nComp(), fine_ratio);
+
+    //   
     // Now average down pressure over time n-(n+1) interval.
     //
     MultiFab&       P_crse      = get_new_data(Press_Type);
@@ -6105,14 +6001,16 @@ NavierStokes::avgDown ()
         MultiFab& Divu_crse = get_new_data(Divu_Type);
         MultiFab& Divu_fine = fine_lev.get_new_data(Divu_Type);
         
-        avgDown(grids,fgrids,Divu_crse,Divu_fine,level,level+1,0,1,fine_ratio);
+        BoxLib::average_down(Divu_fine, Divu_crse, fine_lev.geom, crse_lev.geom, 
+                             0, 1, fine_ratio);
     }
     if (have_dsdt)
     {
         MultiFab& Dsdt_crse = get_new_data(Dsdt_Type);
         MultiFab& Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
         
-        avgDown(grids,fgrids,Dsdt_crse,Dsdt_fine,level,level+1,0,1,fine_ratio);
+        BoxLib::average_down(Dsdt_fine, Dsdt_crse, fine_lev.geom, crse_lev.geom, 
+                             0, 1, fine_ratio);
     }
     //
     // Fill rho_ctime at the current and finer levels with the correct data.

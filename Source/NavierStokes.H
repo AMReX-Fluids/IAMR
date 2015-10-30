@@ -482,44 +482,6 @@ protected:
                          Real      cur_crse_pres_time,
                          Real      prev_crse_pres_time);
     //
-    // Average a fine multifab down onto a coarse one.
-    //
-    void avgDown (const BoxArray& grids,
-                  const BoxArray& fgrids,
-                  MultiFab&       S_crse,
-                  MultiFab&       S_fine,
-                  int             c_level,
-                  int             f_level,
-                  int             strt_comp,
-                  int             num_comp,
-                  const IntVect&  fratio);
-    //
-    // Average fine down to coarse in the ovlp intersection.
-    //
-    void avgDown (const FArrayBox& fine_fab,
-                  const FArrayBox& crse_fab, 
-                  const FArrayBox& fine_vol,
-                  const FArrayBox& crse_vol,
-                  int              f_level,
-                  int              c_level,
-                  const Box&       ovlp,
-                  int              start_comp,
-                  int              num_comp,
-                  const IntVect&   fratio);
-    //
-    // Average fine down to coarse in the ovlp intersection.
-    //
-    static void avgDown_doit (const FArrayBox& fine_fab,
-                              const FArrayBox& crse_fab, 
-                              const FArrayBox& fine_vol,
-                              const FArrayBox& crse_vol,
-                              int              f_level,
-                              int              c_level,
-                              const Box&       ovlp,
-                              int              start_comp,
-                              int              num_comp,
-                              const IntVect&   fratio);
-    //
     // Inject fine pressure nodes down onto coarse nodes.
     //
     void injectDown (const Box&       ovlp,
