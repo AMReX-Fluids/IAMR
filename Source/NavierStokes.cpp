@@ -5382,10 +5382,7 @@ NavierStokes::level_sync (int crse_iteration)
         for (int k = level; k>= 0; k--)
         {
             NavierStokes&   flev     = getLevel(k+1);
-            const BoxArray& fgrids   = flev.grids;
-          
             NavierStokes&   clev     = getLevel(k);
-            const BoxArray& cgrids   = clev.grids;
 
             const IntVect&  fratio = clev.fine_ratio;
           
@@ -5906,7 +5903,6 @@ NavierStokes::avgDown (int comp)
 
     NavierStokes&   crse_lev = getLevel(level  );
     NavierStokes&   fine_lev = getLevel(level+1);
-    const BoxArray& fgrids   = fine_lev.grids;
     MultiFab&       S_crse   = get_new_data(State_Type);
     MultiFab&       S_fine   = fine_lev.get_new_data(State_Type);
 
@@ -5961,7 +5957,6 @@ NavierStokes::avgDown ()
 
     NavierStokes&   crse_lev = getLevel(level  );
     NavierStokes&   fine_lev = getLevel(level+1);
-    const BoxArray& fgrids   = fine_lev.grids;
     //
     // Average down the states at the new time.
     //

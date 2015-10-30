@@ -5,7 +5,6 @@
 #ifdef BL_LANG_FORT
 #    define FORT_FILCC       filcc
 #    define FORT_GRADP       gradp
-#    define FORT_AVGDOWN     avgdown
 #    define FORT_PUTDOWN     putdown
 #    define FORT_INCRMULT    incrmult
 #    define FORT_MAXVAL      maxval
@@ -24,7 +23,6 @@
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_FILCC       FILCC
 #    define FORT_GRADP       GRADP
-#    define FORT_AVGDOWN     AVGDOWN
 #    define FORT_PUTDOWN     PUTDOWN
 #    define FORT_INCRMULT    INCRMULT
 #    define FORT_MAXVAL      MAXVAL
@@ -43,7 +41,6 @@
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_FILCC       filcc
 #    define FORT_GRADP       gradp
-#    define FORT_AVGDOWN     avgdown
 #    define FORT_PUTDOWN     putdown
 #    define FORT_INCRMULT    incrmult
 #    define FORT_MAXVAL      maxval
@@ -62,7 +59,6 @@
 #  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_FILCC       filcc_
 #    define FORT_GRADP       gradp_
-#    define FORT_AVGDOWN     avgdown_
 #    define FORT_PUTDOWN     putdown_
 #    define FORT_INCRMULT    incrmult_
 #    define FORT_MAXVAL      maxval_
@@ -97,13 +93,6 @@ extern "C" {
                      const Real* gp, ARLIM_P(gp_lo), ARLIM_P(gp_hi),
                      const int* lo, const int* hi, const Real* dx);
 #endif
-    
-    void FORT_AVGDOWN (const Real* crse, ARLIM_P(clo),     ARLIM_P(chi),
-                       const int* nvar,
-                       const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
-                       const Real* cvol, ARLIM_P(cv_lo),   ARLIM_P(cv_hi), 
-                       const Real* fvol, ARLIM_P(fv_lo),   ARLIM_P(fv_hi),
-                       const int* lo, const int* hi, const int* ratio);
     
     void FORT_PUTDOWN (Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
                        const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),

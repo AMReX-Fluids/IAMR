@@ -780,29 +780,15 @@ Projection::MLsyncProject (int             c_lev,
     rhs[c_lev  ] = &cc_rhs_crse; 
     rhs[c_lev+1] = &cc_rhs_fine;
 
-    NavierStokes* crse_lev = dynamic_cast<NavierStokes*>(&LevelData[c_lev  ]);
-    NavierStokes* fine_lev = dynamic_cast<NavierStokes*>(&LevelData[c_lev+1]);
     const Geometry& fine_geom = parent->Geom(c_lev+1);
 
-    {
-      MultiFab v_crse(grids, 1, 1);
-      MultiFab v_fine(fine_grids, 1, 1);
-      for (int n = 0; n < BL_SPACEDIM; n++) {
-    	MultiFab::Copy(v_crse, *vel[c_lev  ], n, 0, 1, 1);
-    	MultiFab::Copy(v_fine, *vel[c_lev+1], n, 0, 1, 1);
+    // restrict_level(v_crse, v_fine, ratio);
+    BoxLib::average_down(*vel[c_lev+1],*vel[c_lev],fine_geom,crse_geom,
+                         0, BL_SPACEDIM, ratio);
 
-    	// restrict_level(v_crse, v_fine, ratio);
-        BoxLib::average_down(v_fine,v_crse,fine_geom,crse_geom,
-                             0, v_crse.nComp(), ratio);
-
-
-    	MultiFab::Copy(*vel[c_lev  ], v_crse, 0, n, 1, 1);
-      }
-
-      // restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
-      BoxLib::average_down(*sig[c_lev+1],*sig[c_lev],fine_geom,crse_geom,
+    // restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
+    BoxLib::average_down(*sig[c_lev+1],*sig[c_lev],fine_geom,crse_geom,
                            0, sig[c_lev]->nComp(), ratio);
-    }
 
     MultiFab*   sync_resid_crse = 0;
     MultiFab*   sync_resid_fine = 0;
@@ -1342,8 +1328,6 @@ Projection::initialSyncProject (int       c_lev,
 
       MultiFab v_crse(crse_grids, BL_SPACEDIM, 1);
       MultiFab v_fine(fine_grids, BL_SPACEDIM, 1);
-
-      NavierStokes* crse_lev = dynamic_cast<NavierStokes*>(&LevelData[lev-1]);
 
       const Geometry& fine_geom = parent->Geom(lev  );
       const Geometry& crse_geom = parent->Geom(lev-1);
