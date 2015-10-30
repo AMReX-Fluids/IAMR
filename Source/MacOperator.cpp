@@ -13,9 +13,7 @@
 #include <HypreABec.H>
 #endif
 
-#include <MGT_Solver.H>
-#include <stencil_types.H>
-#include <mg_cpp_f.h>
+#include <FMultiGrid.H>
 
 #ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type};
@@ -409,80 +407,9 @@ mac_level_driver (Amr*            parent,
     }
     else if (the_solver == 3 ) 
     {
-        std::vector<BoxArray> bav(1);
-        bav[0] = mac_phi->boxArray();
-        std::vector<DistributionMapping> dmv(1);
-        dmv[0] = Rhs.DistributionMap();
-        bool nodal = false;
-	int stencil = CC_CROSS_STENCIL;
-        std::vector<Geometry> geom(1);
-        geom[0] = mac_bndry.getGeom();
-
-        int mg_bc[2*BL_SPACEDIM];
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        { 
-            if ( geom[0].isPeriodic(i) )
-            {
-                mg_bc[i*2 + 0] = 0;
-                mg_bc[i*2 + 1] = 0;
-            }
-            else
-            {
-                mg_bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-                mg_bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-            }
-        }
-
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil, false, 0, 1, verbose);
-
-	mgt_solver.set_maxorder(max_order);
-
-        // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
-        Array< Array<Real> > xa(1);
-        Array< Array<Real> > xb(1);
- 
-        xa[0].resize(BL_SPACEDIM);
-        xb[0].resize(BL_SPACEDIM);
- 
-        if (level == 0) {
-          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-            xa[0][i] = 0.;
-            xb[0][i] = 0.;
-          }
-        } else {
-          const Real* dx_crse   = parent->Geom(level-1).CellSize();
-          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-            xa[0][i] = 0.5 * dx_crse[i];
-            xb[0][i] = 0.5 * dx_crse[i];
-          }
-        }
-
-        // Set alpha and beta as in (alpha - del dot beta grad)
-	Array<PArray<MultiFab> > bb_p(1);
-	bb_p[0].resize(BL_SPACEDIM, PArrayNoManage);
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-            bb_p[0].set(i, &(mac_op.bCoefficients(i)));
-        }
-
-        mgt_solver.set_mac_coefficients(bb_p, xa, xb);
-
-        MultiFab* mac_phi_p[1];
-        MultiFab* Rhs_p[1];
-        mac_phi_p[0] = mac_phi;
-        Rhs_p[0] = &Rhs;
-
-	int always_use_bnorm = 0;
-        Real final_resnorm;
-        mgt_solver.solve(mac_phi_p, Rhs_p, mac_bndry, mac_tol, mac_abs_tol, always_use_bnorm, final_resnorm);
-
-	mac_phi_p[0]->FillBoundary(0,1,true);
-	if (geom[0].isAnyPeriodic()) {
-	  geom[0].FillPeriodicBoundary(*mac_phi_p[0],0,1,true,true);
-	}
-
-        if (verbose >= 1)
-          MGT_Solver::FlushFortranOutput();
+	fmg_mac_solve(parent, mac_bndry, mac_op,
+		      level, mac_tol, mac_abs_tol,
+		      Rhs, *mac_phi, verbose);
     }
     else
     {
@@ -557,77 +484,9 @@ mac_sync_driver (Amr*            parent,
     }
     else if (the_solver == 3 )
     {
-        std::vector<BoxArray> bav(1);
-        bav[0] = mac_sync_phi->boxArray();
-        std::vector<DistributionMapping> dmv(1);
-        dmv[0] = Rhs.DistributionMap();
-        bool nodal = false;
-	int stencil = CC_CROSS_STENCIL;
-        std::vector<Geometry> geom(1);
-        geom[0] = mac_bndry.getGeom();
-
-        int mg_bc[2*BL_SPACEDIM];
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        { 
-            if ( geom[0].isPeriodic(i) )
-            {
-                mg_bc[i*2 + 0] = 0;
-                mg_bc[i*2 + 1] = 0;
-            }
-            else
-            {
-                mg_bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-                mg_bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-            }
-        }
-
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil, false, 0, 1, verbose);
-
-	mgt_solver.set_maxorder(max_order);
-
-        // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
-        Array< Array<Real> > xa(1);
-        Array< Array<Real> > xb(1);
- 
-        xa[0].resize(BL_SPACEDIM);
-        xb[0].resize(BL_SPACEDIM);
- 
-        if (level == 0) {
-          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-            xa[0][i] = 0.;
-            xb[0][i] = 0.;
-          }
-        } else {
-          const Real* dx_crse   = parent->Geom(level-1).CellSize();
-          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-            xa[0][i] = 0.5 * dx_crse[i];
-            xb[0][i] = 0.5 * dx_crse[i];
-          }
-        }
-
-        // Set alpha and beta as in (alpha - del dot beta grad)
-	Array<PArray<MultiFab> > bb_p(1);
-	bb_p[0].resize(BL_SPACEDIM, PArrayNoManage);
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-            bb_p[0].set(i, &(mac_op.bCoefficients(i)));
-        }
-
-        mgt_solver.set_mac_coefficients(bb_p, xa, xb);
-
-        MultiFab* mac_phi_p[1];
-        MultiFab* Rhs_p[1];
-        mac_phi_p[0] = mac_sync_phi;
-        Rhs_p[0] = &Rhs;
-
-	int always_use_bnorm = 0;
-        Real final_resnorm;
-        mgt_solver.solve(mac_phi_p, Rhs_p, mac_bndry, mac_sync_tol, mac_abs_tol, always_use_bnorm, final_resnorm);
-
-	mac_phi_p[0]->FillBoundary(0,1);
-	if (geom[0].isAnyPeriodic()) {
-	  geom[0].FillPeriodicBoundary(*mac_phi_p[0],0,1);
-	}
+	fmg_mac_solve(parent, mac_bndry, mac_op,
+		      level, mac_sync_tol, mac_abs_tol,
+		      Rhs, *mac_sync_phi, verbose);
     }
     else
     {
@@ -637,4 +496,33 @@ mac_sync_driver (Amr*            parent,
     
     int mac_op_lev = 0;
     mac_op.applyBC(*mac_sync_phi,0,1,mac_op_lev);
+}
+
+void
+fmg_mac_solve ( Amr* parent, const MacBndry &mac_bndry, MacOperator &mac_op,
+		int level, Real tol, Real abs_tol, MultiFab &Rhs, MultiFab &phi,
+		int verbose)
+{
+	IntVect crse_ratio = level > 0 ? parent->refRatio(level-1)
+                                       : IntVect::TheZeroVector();
+	const Geometry& geom = mac_bndry.getGeom();
+
+	FMultiGrid fmg(geom, level, crse_ratio);
+
+	fmg.set_maxorder(max_order);
+
+	fmg.set_bc(mac_bndry);
+
+	PArray<MultiFab> b(BL_SPACEDIM);
+	for ( int i = 0; i < BL_SPACEDIM; ++i )
+        {
+            b.set(i, &(mac_op.bCoefficients(i)));
+        }
+	fmg.set_mac_coeffs(b);
+
+	int always_use_bnorm = 0;
+	fmg.solve(phi, Rhs, tol, abs_tol, always_use_bnorm);
+
+	if (verbose >= 1)
+	    MGT_Solver::FlushFortranOutput();
 }

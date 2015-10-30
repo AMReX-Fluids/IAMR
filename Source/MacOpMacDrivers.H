@@ -2,6 +2,8 @@
 #ifndef _MACOPMACDRIVERS_H_
 #define _MACOPMACDRIVERS_H_
 
+#include <MacOperator.H>
+
 //====================================================================
 // This header file contains declarations for the MacOperator mac projection
 // driver routines
@@ -28,6 +30,9 @@ void mac_sync_driver( Amr* parent, const MacBndry &mac_bndry, const BCRec& phys_
                       MultiFab &Rhs,   MultiFab *rho_half,
                       MultiFab *mac_sync_phi, int verbose);
 
+void fmg_mac_solve ( Amr* parent, const MacBndry &mac_bndry, MacOperator &mac_op,
+		     int level, Real tol, Real abs_tol, MultiFab &Rhs, MultiFab &phi,
+		     int verbose);
 
 // apply the mac pressure gradient to a velocity field
 // init, means that velocities are initialized here
