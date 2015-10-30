@@ -509,6 +509,7 @@ fmg_mac_solve ( Amr* parent, const MacBndry &mac_bndry, MacOperator &mac_op,
 
 	FMultiGrid fmg(geom, level, crse_ratio);
 
+	fmg.set_verbose(verbose);
 	fmg.set_maxorder(max_order);
 
 	fmg.set_bc(mac_bndry);
