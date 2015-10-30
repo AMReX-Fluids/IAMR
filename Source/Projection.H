@@ -9,6 +9,7 @@
 #include <RegType.H>
 #include <SyncRegister.H>
 #include <FluxRegister.H>
+#include <MultiFabUtil.H>
 
 class Projection 
 {
