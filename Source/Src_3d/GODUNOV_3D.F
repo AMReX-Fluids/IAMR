@@ -676,8 +676,8 @@ c
       REAL_T  sy(DIMV(work)), vad(DIMV(work))
       REAL_T  sz(DIMV(work)), wad(DIMV(work))
       REAL_T tforces(DIMV(work))
-      integer ppm_type
-      logical corner_couple, ltx, lty, ltz
+      integer ppm_type, corner_couple
+      logical ltx, lty, ltz
 
 c     used in 3d corner coupling
       REAL_T xylo(DIMV(work)), xyhi(DIMV(work))
@@ -884,7 +884,7 @@ c
       end do
 !$omp end parallel do
 
-      if (corner_couple) then
+      if (corner_couple .ne. 0) then
 
 c
 c     NEW CORNER COUPLING CODE
@@ -1996,8 +1996,7 @@ c     used in 3d corner coupling
       integer use_minion, iconserv
       REAL_T st
 
-      logical corner_couple
-      integer ppm_type
+      integer ppm_type, corner_couple
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -2227,7 +2226,7 @@ c
       end do
 !$omp end parallel do
 
-      if (corner_couple) then
+      if (corner_couple .ne. 0) then
 
 c
 c     NEW CORNER COUPLING CODE

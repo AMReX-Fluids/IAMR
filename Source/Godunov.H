@@ -380,7 +380,7 @@ protected:   // protected data members
 
     static int  slope_order;
     static int  ppm_type;
-    static bool corner_couple;
+    static int  corner_couple;
 
 };
 

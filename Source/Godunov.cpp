@@ -35,7 +35,7 @@ static int hyp_grow;
 int  Godunov::verbose;
 int  Godunov::ppm_type;
 int  Godunov::slope_order;
-bool Godunov::corner_couple;
+int  Godunov::corner_couple;
 int  Godunov::use_forces_in_trans;
 
 void
@@ -50,7 +50,7 @@ Godunov::Initialize ()
     Godunov::verbose             = 0;
     Godunov::ppm_type            = 0;
     Godunov::slope_order         = 4;
-    Godunov::corner_couple       = false;
+    Godunov::corner_couple       = 0;
     Godunov::use_forces_in_trans = 0;
 
     int use_unlimited_slopes = use_unlimited_slopes_DEF;
