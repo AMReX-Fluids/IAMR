@@ -35,12 +35,12 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 #endif
 
 #ifdef PARTICLES
-#include <Particles.H>
+#include <AmrParticles.H>
 //
 // The "BL_SPACEDIM" bytes in m_data[] are to hold temporary positions and velocities
 //      in AdvectWithUmac().
 //
-typedef ParticleContainer<2*BL_SPACEDIM> NSParticleContainer;
+typedef AmrParticleContainer<2*BL_SPACEDIM> NSParticleContainer;
 #endif
 
 #ifdef USE_BPM
