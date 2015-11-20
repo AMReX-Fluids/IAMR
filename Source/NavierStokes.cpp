@@ -1571,8 +1571,7 @@ NavierStokes::advance_setup (Real time,
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
-            BoxArray edge_grids(grids);
-            edge_grids.surroundingNodes(dir);
+	    const BoxArray& edge_grids = getEdgeBoxArray(dir);
             u_mac[dir].define(edge_grids,1,umac_n_grow,Fab_allocate);
             u_mac[dir].setVal(1.e40);
         }
@@ -2187,8 +2186,7 @@ NavierStokes::velocity_advection (Real dt)
     {
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
-            BoxArray ba = grids;
-            ba.surroundingNodes(i);
+            const BoxArray& ba = getEdgeBoxArray(i);
             fluxes[i].define(ba, BL_SPACEDIM, 0, Fab_allocate);
         }
     }
@@ -2351,8 +2349,7 @@ NavierStokes::scalar_advection (Real dt,
     {
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
-            BoxArray ba = grids;
-            ba.surroundingNodes(i);
+            const BoxArray& ba = getEdgeBoxArray(i);
             fluxes[i].define(ba, num_scalars, 0, Fab_allocate);
         }
     }

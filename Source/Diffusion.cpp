@@ -653,10 +653,11 @@ Diffusion::diffuse_velocity (Real                   dt,
 
         if (do_reflux && level < parent->finestLevel())
         {
+	    const NavierStokes& ns = *(NavierStokes*) &(parent->getLevel(level));
+
             for (int i = 0; i < BL_SPACEDIM; i++)
             {
-                BoxArray ba = rho_half->boxArray();
-                ba.surroundingNodes(i);
+                const BoxArray& ba = ns.getEdgeBoxArray(i);
                 fluxes[i].define(ba, BL_SPACEDIM, 0, Fab_allocate);
             }
         }
@@ -2040,8 +2041,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         tensor_op.maxOrder(tensor_max_order);
         tensor_op.setScalars(a,b);
 
-        const int nghost = 0;
-
         tensor_op.ZeroACoefficients();
 
         for (int n = 0; n < BL_SPACEDIM; n++)
@@ -2376,12 +2375,13 @@ Diffusion::allocFluxBoxesLevel (MultiFab**& fluxbox,
                                 int         nghost,
                                 int         nvar)
 {
+    const NavierStokes& ns = *(NavierStokes*) &(parent->getLevel(level));
+
     fluxbox = new MultiFab*[BL_SPACEDIM];
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        BoxArray edge_boxes(grids);
-        edge_boxes.surroundingNodes(dir);
-        fluxbox[dir] = new MultiFab(edge_boxes,nvar,nghost);
+	const BoxArray& ba = ns.getEdgeBoxArray(dir);
+        fluxbox[dir] = new MultiFab(ba,nvar,nghost);
     }
 }
 
@@ -2457,7 +2457,6 @@ Diffusion::compute_divmusi (Real                   time,
 
     for (MFIter divmusimfi(divmusi); divmusimfi.isValid(); ++divmusimfi)
     {
-        const int  i    = divmusimfi.index();
         FArrayBox& divu = (*divu_fp)[divmusimfi];
         const Box& box  = divmusimfi.validbox();
 
