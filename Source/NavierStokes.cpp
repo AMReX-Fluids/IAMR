@@ -2181,7 +2181,7 @@ NavierStokes::velocity_advection (Real dt)
 
     getGradP(Gp, prev_pres_time);
 
-    FArrayBox flux[BL_SPACEDIM], tforces, S, area[BL_SPACEDIM], volume;
+    FArrayBox flux[BL_SPACEDIM], tforces, S;
 
     if (do_reflux && level < parent->finestLevel())
     {
@@ -2251,12 +2251,6 @@ NavierStokes::velocity_advection (Real dt)
         S.resize(U_fpi().box(),BL_SPACEDIM);
         S.copy(U_fpi(),0,0,BL_SPACEDIM);
 
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            geom.GetFaceArea(area[dir],grids,i,dir,GEOM_GROW);
-        }
-        geom.GetVolume(volume,grids,i,GEOM_GROW);
-
         FArrayBox& divufab = divu_fp[U_fpi];
         FArrayBox& aofsfab = (*aofs)[U_fpi];
 
@@ -2275,14 +2269,14 @@ NavierStokes::velocity_advection (Real dt)
             }
 
             godunov->AdvectState(grids[i], dx, dt, 
-                                 area[0], u_mac_fab0, flux[0],
-                                 area[1], u_mac_fab1, flux[1],
+                                 area[0][i], u_mac_fab0, flux[0],
+                                 area[1][i], u_mac_fab1, flux[1],
 #if (BL_SPACEDIM == 3)                       
-                                 area[2], u_mac_fab2, flux[2],
+                                 area[2][i], u_mac_fab2, flux[2],
 #endif
                                  U_fpi(), S, tforces, divufab, comp,
                                  aofsfab,comp,use_conserv_diff,
-                                 comp,bndry[comp].dataPtr(),PRE_MAC,volume);
+                                 comp,bndry[comp].dataPtr(),PRE_MAC,volume[i]);
             if (do_reflux)
             {
                 if (level < parent->finestLevel())
@@ -2339,7 +2333,7 @@ NavierStokes::scalar_advection (Real dt,
     //
     // Set up the grid loop.
     //
-    FArrayBox flux[BL_SPACEDIM], tforces, tvelforces, area[BL_SPACEDIM], volume;
+    FArrayBox flux[BL_SPACEDIM], tforces, tvelforces;
 
     MultiFab Gp, vel_visc_terms, fluxes[BL_SPACEDIM];
 
@@ -2436,11 +2430,6 @@ NavierStokes::scalar_advection (Real dt,
 #endif
                        U_fpi(),(*rho_ptime)[U_fpi],tvelforces);
 
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            geom.GetFaceArea(area[dir],grids,i,dir,GEOM_GROW);
-        }
-        geom.GetVolume(volume,grids,i,GEOM_GROW);
         //
         // Loop over the scalar components.
         //
@@ -2482,14 +2471,14 @@ NavierStokes::scalar_advection (Real dt,
             state_bc = getBCArray(State_Type,i,state_ind,1);
 
             godunov->AdvectState(grids[i], dx, dt, 
-                                 area[0], u_mac_fab0, flux[0],
-                                 area[1], u_mac_fab1, flux[1],
+                                 area[0][i], u_mac_fab0, flux[0],
+                                 area[1][i], u_mac_fab1, flux[1],
 #if (BL_SPACEDIM == 3)                        
-                                 area[2], u_mac_fab2, flux[2],
+                                 area[2][i], u_mac_fab2, flux[2],
 #endif
                                  Ufab,Sfab,tforces,divufab,comp,
                                  aofsfab,state_ind,use_conserv_diff,
-                                 state_ind,state_bc.dataPtr(),adv_scheme,volume);
+                                 state_ind,state_bc.dataPtr(),adv_scheme,volume[i]);
             if (do_reflux)
             {
                 if (level < parent->finestLevel())
@@ -5809,8 +5798,6 @@ NavierStokes::reflux ()
     //   do_mom_diff == 1, both components of the refluxing will
     //   be divided by rho^(n+1) in level_sync.
     //
-    MultiFab volume;
-    geom.GetVolume(volume,grids,GEOM_GROW);
 
     fr_visc.Reflux(*Vsync,volume,scale,0,0,BL_SPACEDIM,geom);
     fr_visc.Reflux(*Ssync,volume,scale,BL_SPACEDIM,0,NUM_STATE-BL_SPACEDIM,geom);
