@@ -915,10 +915,7 @@ NavierStokes::initOldPress ()
     MultiFab& P_new = get_new_data(Press_Type);
     MultiFab& P_old = get_old_data(Press_Type);
 
-    for (MFIter mfi(P_new); mfi.isValid(); ++mfi)
-    {
-        P_old[mfi].copy(P_new[mfi]);
-    }
+    MultiFab::Copy(P_old, P_new, 0, 0, P_old.nComp(), P_old.nGrow());
 }
 
 void
@@ -1383,35 +1380,23 @@ NavierStokes::init (AmrLevel &old)
     //
     // Get best state and pressure data.
     //
-    for (FillPatchIterator fpi(old,S_new,0,cur_time,State_Type,0,NUM_STATE);
-        fpi.isValid();
-         ++fpi)
-    {
-        S_new[fpi].copy(fpi());
-    }
+    FillPatch(old,S_new,0,cur_time,State_Type,0,NUM_STATE);
     //
     // Note: we don't need to worry here about using FillPatch because
     //       it will automatically use the "old dpdt" to interpolate,
     //       since we haven't yet defined a new pressure at the lower level.
     //
-    for (FillPatchIterator fpi(old,P_new,0,cur_pres_time,Press_Type,0,1);
-         fpi.isValid();
-         ++fpi)
     {
-        P_old[fpi].copy(fpi());
-        P_new[fpi].copy(fpi());
+	FillPatchIterator fpi(old,P_new,0,cur_pres_time,Press_Type,0,1);
+	const MultiFab& mf_fpi = fpi.get_mf();
+	MultiFab::Copy(P_old, mf_fpi, 0, 0, 1, 0);
+	MultiFab::Copy(P_new, mf_fpi, 0, 0, 1, 0);
     }
 
     if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point) 
     {
         MultiFab& Dpdt_new = get_new_data(Dpdt_Type);
-
-        for (FillPatchIterator fpi(old,Dpdt_new,0,cur_pres_time,Dpdt_Type,0,1);
-             fpi.isValid();
-             ++fpi)
-        {
-            Dpdt_new[fpi].copy(fpi());
-        }
+	FillPatch(old,Dpdt_new,0,cur_pres_time,Dpdt_Type,0,1);
     }
     //
     // Get best divu and dSdt data.
@@ -1419,24 +1404,12 @@ NavierStokes::init (AmrLevel &old)
     if (have_divu)
     {
         MultiFab& Divu_new = get_new_data(Divu_Type);
-        
-        for (FillPatchIterator fpi(old,Divu_new,0,cur_time,Divu_Type,0,1);
-             fpi.isValid();
-             ++fpi)
-        {
-            Divu_new[fpi].copy(fpi());
-        }
+	FillPatch(old,Divu_new,0,cur_time,Divu_Type,0,1);
 
         if (have_dsdt)
         {
             MultiFab& Dsdt_new = get_new_data(Dsdt_Type);
-
-            for (FillPatchIterator fpi(old,Dsdt_new,0,cur_time,Dsdt_Type,0,1);
-                 fpi.isValid();
-                 ++fpi)
-            {
-                Dsdt_new[fpi].copy(fpi());
-            }
+	    FillPatch(old,Dsdt_new,0,cur_time,Dsdt_Type,0,1);
         }
     }
 
@@ -1485,10 +1458,8 @@ NavierStokes::init ()
     if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point) 
         FillCoarsePatch(get_new_data(Dpdt_Type),0,cur_time,Dpdt_Type,0,1);
 
-    for (MFIter mfi(P_new); mfi.isValid(); ++mfi)
-    {
-        P_old[mfi].copy(P_new[mfi]);
-    }
+    MultiFab::Copy(P_old, P_new, 0, 0, P_old.nComp(), P_old.nGrow());
+
     //
     // Get best coarse divU and dSdt data.
     //
