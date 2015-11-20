@@ -80,8 +80,7 @@ public:
                            bool		         modify_reflux_normal_vel,
                            Real                  dt);
 
-    void   scaleArea (int level, MultiFab* area, Real** anel_coeff);
-    void rescaleArea (int level, MultiFab* area, Real** anel_coeff);
+    void scaleArea (int level, MultiFab* area, Real** anel_coeff);
 
     static void Initialize ();
     static void Finalize ();

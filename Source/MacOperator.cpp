@@ -83,10 +83,10 @@ MacOperator::~MacOperator () {}
 //
 
 void
-MacOperator::setCoefficients (MultiFab*   area,
-                              MultiFab&   rho,
-                              int         rho_comp,
-                              const Real* dx)
+MacOperator::setCoefficients (const MultiFab* area,
+                              MultiFab&       rho,
+                              int             rho_comp,
+                              const Real*     dx)
 {
     //
     // Should check that all BoxArrays are consistant.
@@ -165,11 +165,11 @@ MacOperator::setCoefficients (MultiFab*   area,
 //
 
 void
-MacOperator::defRHS (MultiFab* area,
-                     MultiFab& volume,
-                     MultiFab& Rhs,
-                     MultiFab* vel,
-                     Real      scale)
+MacOperator::defRHS (const MultiFab* area,
+                     const MultiFab& volume,
+                     MultiFab&       Rhs,
+                     MultiFab*       vel,
+                     Real            scale)
 {
     //
     // Should check that all BoxArrays are consistant.
@@ -361,8 +361,8 @@ mac_level_driver (Amr*            parent,
                   Real            mac_tol,
                   Real            mac_abs_tol,
                   Real            rhs_scale,
-                  MultiFab*       area,
-                  MultiFab&       volume,
+                  const MultiFab* area,
+                  const MultiFab& volume,
                   MultiFab&       S,
                   MultiFab&       Rhs,
                   MultiFab*       u_mac,
@@ -439,8 +439,8 @@ mac_sync_driver (Amr*            parent,
                  Real            mac_sync_tol,
                  Real            mac_abs_tol,
                  Real            rhs_scale,
-                 MultiFab*       area,
-                 MultiFab&       volume,
+                 const MultiFab* area,
+                 const MultiFab& volume,
                  MultiFab&       Rhs,
                  MultiFab*       rho_half,
                  MultiFab*       mac_sync_phi,

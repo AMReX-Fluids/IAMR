@@ -169,28 +169,28 @@ public:      // public access functions
 
     // sync advect a state component
     void SyncAdvect( const Box &grd, const Real *dx, Real dt, int level,
-                     FArrayBox &areax, FArrayBox &uedge,
+                     const FArrayBox &areax, FArrayBox &uedge,
                      FArrayBox &ucorr, FArrayBox &xflux,
-                     FArrayBox &areay, FArrayBox &vedge,
+                     const FArrayBox &areay, FArrayBox &vedge,
                      FArrayBox &vcorr, FArrayBox &yflux,
 #if (BL_SPACEDIM == 3 )
-                     FArrayBox &areaz, FArrayBox &wedge,
+                     const FArrayBox &areaz, FArrayBox &wedge,
                      FArrayBox &wcorr, FArrayBox &zflux,
 #endif
                      FArrayBox &U, FArrayBox &S,
                      FArrayBox &tforces, FArrayBox& divu, int ind,
                      FArrayBox &sync,                     int sync_ind,
                      int iconserv, int state_ind, const int *bc,
-                     AdvectionScheme scheme, FArrayBox &vol );
+                     AdvectionScheme scheme, const FArrayBox &vol );
     
     // compute the advective derivative of corrective fluxes for the mac sync
     void ComputeSyncAofs( const Box &grd,
-                          FArrayBox &areax, FArrayBox &ucorr, FArrayBox &xflux,  
-                          FArrayBox &areay, FArrayBox &vcorr, FArrayBox &yflux,  
+                          const FArrayBox &areax, FArrayBox &ucorr, FArrayBox &xflux,  
+                          const FArrayBox &areay, FArrayBox &vcorr, FArrayBox &yflux,  
 #if (BL_SPACEDIM == 3 )
-                          FArrayBox &areaz, FArrayBox &wcorr, FArrayBox &zflux,
+                          const FArrayBox &areaz, FArrayBox &wcorr, FArrayBox &zflux,
 #endif                     
-                          FArrayBox &vol,
+                          const FArrayBox &vol,
                           FArrayBox &sync,
                           int sync_ind, int iconserv );
     

@@ -30,18 +30,18 @@ public:
     //
     // Define the gradient coeficients used by the multigrid object.
     //
-    void setCoefficients (MultiFab*   area,
-                          MultiFab&   rho,
-                          int         rho_comp,
-                          const Real* dx);
+    void setCoefficients (const MultiFab* area,
+                          MultiFab&       rho,
+                          int             rho_comp,
+                          const Real*     dx);
     //
     // Initialize the rhs for the level solves.
     //
-    void defRHS (MultiFab* area,
-                 MultiFab& vol,
-                 MultiFab& rhs,
-                 MultiFab* vel,
-                 Real      scale);
+    void defRHS (const MultiFab* area,
+                 const MultiFab& vol,
+                 MultiFab&       rhs,
+                 MultiFab*       vel,
+                 Real            scale);
     //
     // Apply the pressure gradient to the mac velocities.
     //

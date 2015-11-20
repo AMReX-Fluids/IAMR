@@ -16,7 +16,7 @@ void mac_level_driver( Amr* parent, const MacBndry &mac_bndry, const BCRec& phys
                        int use_cg_solve, int level, int Density,
                        const Real *dx, Real dt,
                        Real mac_tol, Real mac_abs_tol, Real rhs_scale,
-                       MultiFab *area,  MultiFab &volume,
+                       const MultiFab *area,  const MultiFab &volume,
                        MultiFab &S,     MultiFab &Rhs,
                        MultiFab *u_mac, MultiFab *mac_phi, int verbose);
 
@@ -26,7 +26,7 @@ void mac_sync_driver( Amr* parent, const MacBndry &mac_bndry, const BCRec& phys_
                       int use_cg_solve, int level, 
                       const Real *dx, Real dt,
                       Real mac_sync_tol, Real mac_abs_tol, Real rhs_scale,
-                      MultiFab *area,  MultiFab &volume,
+                      const MultiFab *area,  const MultiFab &volume,
                       MultiFab &Rhs,   MultiFab *rho_half,
                       MultiFab *mac_sync_phi, int verbose);
 

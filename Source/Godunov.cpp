@@ -1028,16 +1028,16 @@ Godunov::SyncAdvect (const Box&  grd,
                      const Real* dx,
                      Real        dt,
                      int         level,
-                     FArrayBox& areax,
+                     const FArrayBox& areax,
                      FArrayBox& uedge,
                      FArrayBox& ucorr,
                      FArrayBox& xflux,
-                     FArrayBox& areay,
+                     const FArrayBox& areay,
                      FArrayBox& vedge,
                      FArrayBox& vcorr,
                      FArrayBox& yflux,
 #if (BL_SPACEDIM == 3)
-                     FArrayBox& areaz,
+                     const FArrayBox& areaz,
                      FArrayBox& wedge,
                      FArrayBox& wcorr,
                      FArrayBox& zflux,
@@ -1053,7 +1053,7 @@ Godunov::SyncAdvect (const Box&  grd,
                      int        state_ind,
                      const int* bc,
                      AdvectionScheme scheme,
-                     FArrayBox& vol)
+                     const FArrayBox& vol)
 {
     int velpred = 0;
     //
@@ -1103,18 +1103,18 @@ Godunov::SyncAdvect (const Box&  grd,
 
 void
 Godunov::ComputeSyncAofs (const Box& grd,
-                          FArrayBox& areax,
+                          const FArrayBox& areax,
                           FArrayBox& ucorr,
                           FArrayBox& xflux,  
-                          FArrayBox& areay,
+                          const FArrayBox& areay,
                           FArrayBox& vcorr,
                           FArrayBox& yflux,  
 #if (BL_SPACEDIM == 3)                             
-                          FArrayBox& areaz,
+                          const FArrayBox& areaz,
                           FArrayBox& wcorr,
                           FArrayBox& zflux,
 #endif                     
-                          FArrayBox& vol,
+                          const FArrayBox& vol,
                           FArrayBox& sync,
                           int        sync_ind,
                           int        iconserv)
