@@ -727,6 +727,7 @@ NavierStokes::NavierStokes (Amr&            papa,
     rho_tqtime = 0;
     //
     // Build metric coefficients for RZ calculations.
+    // Build volume and areas.
     //
     buildMetrics();
     //
@@ -963,6 +964,12 @@ NavierStokes::restart (Amr&          papa,
 {
     AmrLevel::restart(papa,is,bReadSpecial);
 
+    //
+    // Build metric coefficients for RZ calculations.
+    // Build volume and areas.
+    //
+    buildMetrics();
+
     if (projector == 0)
     {
         projector = new Projection(parent,&phys_bc,do_sync_proj,
@@ -997,10 +1004,6 @@ NavierStokes::restart (Amr&          papa,
     rho_ctime  = new MultiFab(grids,1,1);
     rho_qtime  = 0;
     rho_tqtime = 0;
-    //
-    // Build metric coefficients for RZ calculations.
-    //
-    buildMetrics();
 
     BL_ASSERT(sync_reg == 0);
     if (level > 0 && do_sync_proj)
@@ -1097,6 +1100,20 @@ NavierStokes::buildMetrics ()
             radius[i][j] = xlo + j*dxr;
     }
 #endif
+
+    volume.clear();
+
+    for (int dir = 0; dir < BL_SPACEDIM; ++dir)
+    {
+        area[dir].clear();
+    }
+    
+    geom.GetVolume(volume,grids,GEOM_GROW);
+
+    for (int dir = 0; dir < BL_SPACEDIM; ++dir)
+    {
+        geom.GetFaceArea(area[dir],grids,dir,GEOM_GROW);
+    }
 }
 
 //
@@ -1422,7 +1439,6 @@ NavierStokes::init ()
 {
     MultiFab& S_new = get_new_data(State_Type);
     MultiFab& P_new = get_new_data(Press_Type);
-    MultiFab& P_old = get_old_data(Press_Type);
 
     BL_ASSERT(level > 0);
 
@@ -1458,7 +1474,7 @@ NavierStokes::init ()
     if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point) 
         FillCoarsePatch(get_new_data(Dpdt_Type),0,cur_time,Dpdt_Type,0,1);
 
-    MultiFab::Copy(P_old, P_new, 0, 0, P_old.nComp(), P_old.nGrow());
+    initOldPress();
 
     //
     // Get best coarse divU and dSdt data.

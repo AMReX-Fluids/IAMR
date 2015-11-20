@@ -295,6 +295,12 @@ public:
                              VisMF::How         how = VisMF::OneFilePerCPU,
                              bool               dump_old = true);
 
+    const MultiFab* Area () const;
+    const MultiFab& Area (int dir) const;
+    const MultiFab& Volume () const;
+    //
+    const BoxArray& getEdgeBoxArray (int dir) const;
+
 protected:
 
     void buildMetrics ();      // 1-D metric arrays for RZ
@@ -678,6 +684,10 @@ protected:
     }
 
 protected:
+
+    MultiFab volume;
+    MultiFab area[BL_SPACEDIM];
+
     //
     // MAC edge velocities.
     //
@@ -858,5 +868,33 @@ protected:
     //
     static int  umac_n_grow;
 };
+
+inline
+const MultiFab*
+NavierStokes::Area () const
+{
+    return area;
+}
+
+inline
+const MultiFab&
+NavierStokes::Area (int dir) const
+{
+    return area[dir];
+}
+
+inline
+const MultiFab&
+NavierStokes::Volume () const
+{
+    return volume;
+}
+
+inline
+const BoxArray&
+NavierStokes::getEdgeBoxArray (int dir) const
+{
+    return area[dir].boxArray();
+}
 
 #endif /*_NavierStokes_H_*/
