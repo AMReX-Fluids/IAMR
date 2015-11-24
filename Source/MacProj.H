@@ -18,7 +18,7 @@ public:
              BCRec* _phys_bc, 
              int    /*not used*/ );
     
-    virtual ~MacProj ();
+    ~MacProj ();
 
     
     void install_level (int       level, 

@@ -5157,12 +5157,12 @@ NavierStokes::SyncInterp (MultiFab&      CrseSync,
             }
         }
 
-        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
+//        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
 
         interpolater->interp(cdata,0,fdata,0,num_comp,fgrids[i],ratio,
                              cgeom,fgeom,bc_interp,src_comp,State_Type);
 
-        reScaleFineSyncInterp(fdata, f_lev, num_comp);
+//        reScaleFineSyncInterp(fdata, f_lev, num_comp);
 
         if (increment)
         {

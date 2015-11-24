@@ -57,7 +57,7 @@ public:
                const Array<int>&  _is_diffusive,
                const Array<Real>& _visc_coef);
 
-    virtual ~Diffusion ();
+    ~Diffusion ();
 
     void echo_settings () const;
 

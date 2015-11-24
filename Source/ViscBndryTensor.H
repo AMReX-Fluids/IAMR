@@ -5,6 +5,7 @@
 #include <MCInterpBndryData.H>
 #include <BC_TYPES.H>
 #include <MCLinOp.H>
+#include <BL_CXX11.H>
 
 class ViscBndryTensor
     :
@@ -20,7 +21,7 @@ public:
 
     virtual void setBndryConds (const BCRec& phys_bc,
                                 int          ratio,
-                                int          comp=0);
+                                int          comp=0) BL_OVERRIDE;
 
     void setHomogValues (const Array<BCRec>& phys_bc,
                          int                 ratio);

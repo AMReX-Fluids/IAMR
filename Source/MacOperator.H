@@ -12,6 +12,7 @@
 #include <AmrLevel.H>
 #include <ABecLaplacian.H>
 #include <BndryData.H>
+#include <BL_CXX11.H>
 
 class MacOperator
     :
@@ -26,7 +27,7 @@ public:
                  const BndryData& mgb,
                  const Real*      _h);
 
-    virtual ~MacOperator ();
+    virtual ~MacOperator () BL_OVERRIDE;
     //
     // Define the gradient coeficients used by the multigrid object.
     //

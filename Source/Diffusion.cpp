@@ -263,12 +263,7 @@ Real
 Diffusion::get_scaled_abs_tol (const MultiFab& rhs,
                                Real            reduction) const
 {
-    Real norm_est = 0;
-    for (MFIter Rhsmfi(rhs); Rhsmfi.isValid(); ++Rhsmfi)
-        norm_est = std::max(norm_est, rhs[Rhsmfi].norm(0));
-    ParallelDescriptor::ReduceRealMax(norm_est);
-
-    return norm_est * reduction;
+    return reduction * rhs.norm0();
 }
 
 void

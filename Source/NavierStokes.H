@@ -13,6 +13,7 @@
 #include <Godunov.H>
 #include <Diffusion.H>
 #include <MacProj.H> 
+#include <BL_CXX11.H>
 
 //
 // "Divu_Type" means S, where divergence U = S
@@ -56,14 +57,14 @@ class NSBld
     :
     public LevelBld
 {
-    virtual void variableSetUp ();
-    virtual void variableCleanUp ();
-    virtual AmrLevel *operator() ();
+    virtual void variableSetUp () BL_OVERRIDE;
+    virtual void variableCleanUp () BL_OVERRIDE;
+    virtual AmrLevel *operator() () BL_OVERRIDE;
     virtual AmrLevel *operator() (Amr&            papa,
                                   int             lev,
                                   const Geometry& level_geom,
                                   const BoxArray& ba,
-                                  Real            time);
+                                  Real            time) BL_OVERRIDE;
 };
 
 class NavierStokes
@@ -84,11 +85,11 @@ public:
                   const BoxArray& bl,
                   Real            time);
 
-    virtual ~NavierStokes ();
+    virtual ~NavierStokes () BL_OVERRIDE;
 
     virtual void restart (Amr&          papa,
                           std::istream& is,
-                          bool          bReadSpecial = false);
+                          bool          bReadSpecial = false) BL_OVERRIDE;
     //
     // Define data descriptors.
     //
@@ -106,7 +107,7 @@ public:
     //
     // Init grid data at problem start-up.
     //
-    virtual void initData ();
+    virtual void initData () BL_OVERRIDE;
     virtual void initDataOtherTypes () {}
     //
     // Reset time levels for the initial iterations.
@@ -119,21 +120,21 @@ public:
     //
     virtual void setTimeLevel (Real time,
                                Real dt_old,
-                               Real dt_new);
+                               Real dt_new) BL_OVERRIDE;
     //
     // This function fills a new level n with the best
     // level n and coarser data available (usually during regrid).
     //
-    virtual void init (AmrLevel& old);
+    virtual void init (AmrLevel& old) BL_OVERRIDE;
     //
     // Init data on this level after regridding if old level
     // did not exist previously.
     //
-    virtual void init ();
+    virtual void init () BL_OVERRIDE;
 
-    virtual void allocOldData ();
+    virtual void allocOldData () BL_OVERRIDE;
 
-    virtual void removeOldData ();
+    virtual void removeOldData () BL_OVERRIDE;
 
     void init_additional_state_types ();
     //
@@ -144,7 +145,7 @@ public:
                            int          tagval,
                            Real         time,
                            int          n_error_buf = 0,
-                           int          ngrow = 0);
+                           int          ngrow = 0) BL_OVERRIDE;
     //
     // Integrate derived quantities over domain.
     //
@@ -178,18 +179,18 @@ public:
     //
     // For NavierStokes it has the form: NavierStokes-Vnnn
     //
-    virtual std::string thePlotFileType () const;
+    virtual std::string thePlotFileType () const BL_OVERRIDE;
 
     //
     // Write plot file stuff to specified directory.
     //
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&  os,
-                                VisMF::How     how);
+                                VisMF::How     how) BL_OVERRIDE;
     //
     // Modify list of variables to be plotted
     //
-    virtual void setPlotVariables();
+    virtual void setPlotVariables() BL_OVERRIDE;
 
     //
     // Timestep estimation functions follow ...
@@ -203,7 +204,7 @@ public:
                                    Array<int>&           n_cycle,
                                    const Array<IntVect>& ref_ratio,
                                    Array<Real>&          dt_level,
-                                   Real                  stop_time);
+                                   Real                  stop_time) BL_OVERRIDE;
 
     virtual void computeNewDt (int                   finest_level,
                                int                   sub_cycle,
@@ -212,7 +213,7 @@ public:
                                Array<Real>&          dt_min,
                                Array<Real>&          dt_level,
                                Real                  stop_time,
-                               int                   post_regrid_flag);
+                               int                   post_regrid_flag) BL_OVERRIDE;
     //
     // This function estimates the initial timesteping used by the model.
     //
@@ -234,42 +235,42 @@ public:
     //
     virtual MultiFab* derive (const std::string& name,
                               Real               time,
-                              int                ngrow);
+                              int                ngrow) BL_OVERRIDE;
     //
     // This version of derive() fills the dcomp'th component of mf with the derived quantity.
     //
     virtual void derive (const std::string& name,
                          Real               time,
                          MultiFab&          mf,
-                         int                dcomp);
+                         int                dcomp) BL_OVERRIDE;
 
     //
     // Estimate the end of the simulation for amrLevel.
     //
-    virtual int okToContinue ();
+    virtual int okToContinue () BL_OVERRIDE;
     //
     // Sync state and pressure at the end of a composite timestep.
     //
-    virtual void post_timestep (int iteration);
+    virtual void post_timestep (int iteration) BL_OVERRIDE;
     //
     // Build any additional data structures after regrid.
     //
-    virtual void post_regrid (int lbase, int new_finest);
+    virtual void post_regrid (int lbase, int new_finest) BL_OVERRIDE;
     //
     // Build any additional data structures after restart.
     //
-    virtual void post_restart ();
+    virtual void post_restart () BL_OVERRIDE;
     //
     // Insure state, and pressure are consistent.
     //
-    virtual void post_init (Real stop_time);
+    virtual void post_init (Real stop_time) BL_OVERRIDE;
     //
     // Advance grids at this level in time.
     //
     virtual Real advance (Real time,
                           Real dt,
                           int  iteration,
-                          int  ncycle);
+                          int  ncycle) BL_OVERRIDE;
     //
     // Get divU from the state data.
     //
@@ -278,7 +279,7 @@ public:
     //
     // Public so MacProj can access it.
     //
-    virtual void SetGodunov ();
+    void SetGodunov ();
 
     //
     // Returns the value of "gravity" for use in the projection outflow bcs.
@@ -293,7 +294,7 @@ public:
     virtual void checkPoint (const std::string& dir,
                              std::ostream&      os,
                              VisMF::How         how = VisMF::OneFilePerCPU,
-                             bool               dump_old = true);
+                             bool               dump_old = true) BL_OVERRIDE;
 
     const MultiFab* Area () const;
     const MultiFab& Area (int dir) const;
@@ -316,9 +317,9 @@ protected:
     virtual void sum_integrated_quantities ();
 
 #if (BL_SPACEDIM == 3)
-    virtual void sum_turbulent_quantities ();
+    void sum_turbulent_quantities ();
 #ifdef SUMJET
-    virtual void sum_jet_quantities ();
+    void sum_jet_quantities ();
 #endif
 #endif
     //
@@ -371,21 +372,21 @@ protected:
                         int  first_scalar,
                         int  last_scalar);
 
-    void scalar_advection_update (Real dt,
-                                  int  first_scalar,
-                                  int  last_scalar);
+    virtual void scalar_advection_update (Real dt,
+					  int  first_scalar,
+					  int  last_scalar);
 
     void scalar_diffusion_update (Real dt,
                                   int  first_scalar,
                                   int  last_scalar);
 
     virtual void diffuse_scalar_setup (Real        dt,
-                                       int         sigma,
-                                       int*        rho_flag,
-                                       MultiFab*&  delta_rhs,
-                                       MultiFab*&  alpha,
-                                       MultiFab**& diffn,
-                                       MultiFab**& diffnp1); 
+				       int         sigma,
+				       int*        rho_flag,
+				       MultiFab*&  delta_rhs,
+				       MultiFab*&  alpha,
+				       MultiFab**& diffn,
+				       MultiFab**& diffnp1); 
     //
     // Make rho at time n.
     //
@@ -434,7 +435,7 @@ protected:
     // Ensure state is consistent, i.e. velocity field is nondivergent,
     // coarse level data are averages of fine level data, pressure is zero.
     //
-    virtual void post_init_state ();
+    void post_init_state ();
     //
     // Initialize the pressure by iterating the initial timestep.
     //
@@ -468,13 +469,13 @@ protected:
     //
     // Two virtual hooks for anelastic SyncInterp.
     //
-    virtual void ScaleCrseSyncInterp (FArrayBox& cdata,
-                                      int        c_lev,
-                                      int        num_comp) {}
+//    virtual void ScaleCrseSyncInterp (FArrayBox& cdata,
+//                                      int        c_lev,
+//                                      int        num_comp) {}
 
-    virtual void reScaleFineSyncInterp (FArrayBox& fdata,
-                                        int        f_lev,
-                                        int        num_comp) {}
+//    virtual void reScaleFineSyncInterp (FArrayBox& fdata,
+//                                        int        f_lev,
+//                                        int        num_comp) {}
     //
     // Bilinear interpolate nodal pressures from coarse to fine.
     //
@@ -497,13 +498,13 @@ protected:
     //
     // Compute the level sync correction.
     //
-    virtual void level_sync (int crse_iteration);
+    void level_sync (int crse_iteration);
     //
     // Compute the mac sync correction.
     //
     virtual void mac_sync ();
-    virtual void sync_setup (MultiFab*& DeltaSsync);
-    virtual void sync_cleanup (MultiFab*& DeltaSsync);
+    void sync_setup (MultiFab*& DeltaSsync);
+    void sync_cleanup (MultiFab*& DeltaSsync);
 
     //
     // Reflux function.
@@ -525,15 +526,15 @@ protected:
     //
     void incrPAvg ();
     //
-    // Virtual function get fluxes out of the advection routines.
+    // get fluxes out of the advection routines.
     //
-    virtual void pullFluxes (int        gridno,
-                             int        start_ind,
-                             int        ncomp,
-                             FArrayBox& xflux,
-                             FArrayBox& yflux,
-                             FArrayBox& zflux,
-                             Real       dt);
+    void pullFluxes (int        gridno,
+		     int        start_ind,
+		     int        ncomp,
+		     FArrayBox& xflux,
+		     FArrayBox& yflux,
+		     FArrayBox& zflux,
+		     Real       dt);
     //
     // Compute viscous terms.
     //
@@ -642,8 +643,8 @@ protected:
     // Called in grid_places after other tagging routines to modify
     //   the list of tagged points
     //
-    virtual void manual_tags_placement (TagBoxArray&    tags, 
-                                        Array<IntVect>& bf_lev);
+    void manual_tags_placement (TagBoxArray&    tags, 
+				Array<IntVect>& bf_lev);
     NavierStokes& getLevel (int lev)
     {
         return *(NavierStokes*) &parent->getLevel(lev);

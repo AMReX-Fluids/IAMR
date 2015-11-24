@@ -31,7 +31,7 @@ public:
                 int    /*_finest_level*/, 
                 int    _radius_grow );
 
-    virtual ~Projection ();
+    ~Projection ();
     //
     // Set a level in the projector.
     //

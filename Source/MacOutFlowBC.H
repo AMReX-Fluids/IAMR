@@ -6,6 +6,7 @@
 #include <Geometry.H>
 #include <Orientation.H>
 #include <OutFlowBC.H>
+#include <BL_CXX11.H>
 
 //
 // This class solves the BL_SPACEDIM-1 dimensional problem for the mac
@@ -23,28 +24,28 @@ public:
 
     MacOutFlowBC ();
 
-    void computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
-                    FArrayBox         divuMF[2*BL_SPACEDIM],
-                    FArrayBox         rhoMF[2*BL_SPACEDIM],
-                    FArrayBox         phiMF[2*BL_SPACEDIM],
-                    const Geometry&   geom,
-                    Orientation*      outFaces,
-                    int               numOutFlowFaces,
-                    const int*        lo_bc,
-                    const int*        hi_bc,
-                    Real              gravity);
+    virtual void computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
+			    FArrayBox         divuMF[2*BL_SPACEDIM],
+			    FArrayBox         rhoMF[2*BL_SPACEDIM],
+			    FArrayBox         phiMF[2*BL_SPACEDIM],
+			    const Geometry&   geom,
+			    Orientation*      outFaces,
+			    int               numOutFlowFaces,
+			    const int*        lo_bc,
+			    const int*        hi_bc,
+			    Real              gravity) BL_OVERRIDE;
 
-    void computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
-                    FArrayBox         divuMF[2*BL_SPACEDIM],
-                    FArrayBox         rhoMF[2*BL_SPACEDIM],
-                    FArrayBox         phiMF[2*BL_SPACEDIM],
-                    const Geometry&   geom,
-                    Orientation*      outFaces,
-                    int               numOutFlowFaces,
-                    const int*        lo_bc,
-                    const int*        hi_bc,
-                    Real              small_udiff,
-                    Real              gravity);
+    virtual void computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
+			    FArrayBox         divuMF[2*BL_SPACEDIM],
+			    FArrayBox         rhoMF[2*BL_SPACEDIM],
+			    FArrayBox         phiMF[2*BL_SPACEDIM],
+			    const Geometry&   geom,
+			    Orientation*      outFaces,
+			    int               numOutFlowFaces,
+			    const int*        lo_bc,
+			    const int*        hi_bc,
+			    Real              small_udiff,
+			    Real              gravity) BL_OVERRIDE;
 
     static void Initialize ();
     static void Finalize ();
@@ -85,7 +86,7 @@ public:
                      Real*      H,
                      int*       IsPeriodic);
 
-    ~MacOutFlowBC_MG ();
+    virtual ~MacOutFlowBC_MG ()  BL_OVERRIDE;
 
     static int Verbose ();
 
@@ -96,11 +97,11 @@ public:
 
 protected:
 
-    void Restrict ();
-    void interpolate ();
-    Real residual ();
-    void step (int nSteps);
-    void gsrb (int nSteps);
+    virtual void Restrict () BL_OVERRIDE;
+    virtual void interpolate () BL_OVERRIDE;
+    virtual Real residual () BL_OVERRIDE;
+    virtual void step (int nSteps) BL_OVERRIDE;
+    virtual void gsrb (int nSteps) BL_OVERRIDE;
     //
     // Static data.
     //
