@@ -299,8 +299,6 @@ public:
     const MultiFab* Area () const;
     const MultiFab& Area (int dir) const;
     const MultiFab& Volume () const;
-    //
-    const BoxArray& getEdgeBoxArray (int dir) const;
 
 protected:
 
@@ -889,13 +887,6 @@ const MultiFab&
 NavierStokes::Volume () const
 {
     return volume;
-}
-
-inline
-const BoxArray&
-NavierStokes::getEdgeBoxArray (int dir) const
-{
-    return area[dir].boxArray();
 }
 
 #endif /*_NavierStokes_H_*/

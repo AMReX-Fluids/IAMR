@@ -1102,17 +1102,14 @@ NavierStokes::buildMetrics ()
 #endif
 
     volume.clear();
+    volume.define(grids,1,GEOM_GROW,Fab_allocate);
+    geom.GetVolume(volume);
 
     for (int dir = 0; dir < BL_SPACEDIM; ++dir)
     {
         area[dir].clear();
-    }
-    
-    geom.GetVolume(volume,grids,GEOM_GROW);
-
-    for (int dir = 0; dir < BL_SPACEDIM; ++dir)
-    {
-        geom.GetFaceArea(area[dir],grids,dir,GEOM_GROW);
+	area[dir].define(getEdgeBoxArray(dir),1,GEOM_GROW,Fab_allocate);
+        geom.GetFaceArea(area[dir],dir);
     }
 }
 
