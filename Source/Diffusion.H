@@ -2,11 +2,7 @@
 #ifndef _Diffusion_H_
 #define _Diffusion_H_
 
-//
-// Comment out this line to use diffusion class outside
-// the context of NavierStokes and classes derived from it.
-//
-#define USE_NAVIERSTOKES 1
+#include <winstd.H>
 
 #include <Box.H>
 #include <BoxArray.H>
@@ -28,18 +24,12 @@
 #include <MCMultiGrid.H>
 #include <MCCGSolver.H>
 
-#ifndef _NavierStokes_H_
-enum StateType {State_Type=0, Press_Type}; 
-#  if (BL_SPACEDIM == 2)
-enum StateNames  { Xvel=0, Yvel, Density};
-#  else
-enum StateNames  { Xvel=0, Yvel, Zvel, Density};
-#  endif
-#endif
 //
 // Useful enumeration of the different forms of the diffusion terms
 //
 enum DiffusionForm { RhoInverse_Laplacian_S, Laplacian_SoverRho, Laplacian_S };
+
+class NavierStokes;
 
 class Diffusion 
 {
@@ -50,7 +40,7 @@ public:
     Diffusion ();
 
     Diffusion (Amr*               Parent,
-               AmrLevel*          Caller,
+               NavierStokes*      Caller,
                Diffusion*         coarser,
                int                num_state,
                FluxRegister*      Viscflux_reg,
@@ -278,7 +268,6 @@ public:
 
     void removeFluxBoxesLevel (MultiFab**& fluxbox);
 
-#ifdef USE_NAVIERSTOKES
     void compute_divmusi (Real                   time,
 			  const MultiFab* const* beta,
 			  MultiFab&              divmusi);
@@ -286,7 +275,6 @@ public:
     void compute_divmusi (Real      time,
 			  Real      mu,
 			  MultiFab& divmusi);
-#endif
 
     int maxOrder () const;
     int tensorMaxOrder () const;
@@ -316,7 +304,7 @@ protected:
     // Data Required by Derived Classes
     //
     Amr*            parent;
-    AmrLevel*       caller;
+    NavierStokes*   navier_stokes;
     const BoxArray& grids;
     const int       level;
     //

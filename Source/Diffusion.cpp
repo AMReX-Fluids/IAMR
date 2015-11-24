@@ -1,21 +1,9 @@
-//
-// Comment out this line to use diffusion class outside
-// the context of NavierStokes and classes derived from it.
-//
-#include <winstd.H>
 
-#define USE_NAVIERSTOKES 1
-
-#include <Box.H>
-#include <BoxArray.H>
-#include <Geometry.H>
-#include <Geometry.H>
 #include <ParmParse.H>
-#include <ErrorList.H>
-#ifdef USE_NAVIERSTOKES
-#include <NavierStokes.H>
-#endif
+
 #include <Diffusion.H>
+#include <NavierStokes.H>
+
 #include <MultiGrid.H>
 #include <CGSolver.H>
 
@@ -37,14 +25,6 @@ const Real BL_BOGUS      = 1.e200;
 #endif
 
 const Real BL_SAFE_BOGUS = -666.e200;
-//
-// Include files for tensor solve.
-//
-#include <DivVis.H>
-#include <LO_BCTYPES.H>
-#include <MCMultiGrid.H>
-#include <MCCGSolver.H>
-#include <ViscBndryTensor.H>
 
 #ifdef MG_USE_HYPRE
 #include <HypreABec.H>
@@ -102,7 +82,7 @@ Diffusion::Finalize ()
 }
 
 Diffusion::Diffusion (Amr*               Parent,
-                      AmrLevel*          Caller,
+                      NavierStokes*      Caller,
                       Diffusion*         Coarser,
                       int                num_state,
                       FluxRegister*      Viscflux_reg,
@@ -110,9 +90,9 @@ Diffusion::Diffusion (Amr*               Parent,
                       const Array<Real>& _visc_coef)
     :
     parent(Parent),
-    caller(Caller),
-    grids(caller->boxArray()),
-    level(caller->Level()),
+    navier_stokes(Caller),
+    grids(navier_stokes->boxArray()),
+    level(navier_stokes->Level()),
     coarser(Coarser),
     finer(0),
     NUM_STATE(num_state),
@@ -295,11 +275,10 @@ Diffusion::diffuse_scalar (Real                   dt,
     // state + dt*Div(explicit_fluxes), e.g.)
     //
 
-    NavierStokes& ns = *(NavierStokes*) &(parent->getLevel(level));
-    const MultiFab& volume = ns.Volume();
+    const MultiFab& volume = navier_stokes->Volume();
     
     if (verbose && ParallelDescriptor::IOProcessor())
-      std::cout << "... diffusing scalar: " << caller->get_desc_lst()[State_Type].name(sigma) << '\n';
+      std::cout << "... diffusing scalar: " << navier_stokes->get_desc_lst()[State_Type].name(sigma) << '\n';
 
     int allnull, allthere;
     checkBeta(betan, allthere, allnull);
@@ -309,8 +288,8 @@ Diffusion::diffuse_scalar (Real                   dt,
     //
     // At this point, S_old has bndry at time N, S_new has bndry at time N+1
     //
-    MultiFab& S_old = caller->get_old_data(State_Type);
-    MultiFab& S_new = caller->get_new_data(State_Type);
+    MultiFab& S_old = navier_stokes->get_old_data(State_Type);
+    MultiFab& S_new = navier_stokes->get_new_data(State_Type);
 
     //
     // Set up Rhs.
@@ -324,7 +303,7 @@ Diffusion::diffuse_scalar (Real                   dt,
         if (allnull)
             b *= visc_coef[sigma];
         ViscBndry visc_bndry_0;
-        const Real prev_time   = caller->get_state_data(State_Type).prevTime();
+        const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
         ABecLaplacian* visc_op = getViscOp(sigma,a,b,prev_time,visc_bndry_0,
                                            rho_half,rho_flag,0,betan,betaComp,0,0);
         visc_op->maxOrder(max_order);
@@ -338,7 +317,7 @@ Diffusion::diffuse_scalar (Real                   dt,
         visc_op->apply(Rhs,Soln);
         visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC,0,fluxComp);
         for (int i = 0; i < BL_SPACEDIM; ++i)
-            (*fluxn[i]).mult(-b/(dt*caller->Geom().CellSize()[i]),fluxComp,1,0);
+            (*fluxn[i]).mult(-b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
         delete visc_op;
     }
     else
@@ -408,7 +387,7 @@ Diffusion::diffuse_scalar (Real                   dt,
             const Box& vbox = volume[Rhsmfi].box();
 
             rcen.resize(bx.length(0));
-            parent->Geom(level).GetCellLoc(rcen, bx, 0);
+            navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
 
             const int*  lo      = bx.loVect();
             const int*  hi      = bx.hiVect();
@@ -442,7 +421,7 @@ Diffusion::diffuse_scalar (Real                   dt,
         if (rho_flag == 1)
             Soln[mfi].mult((*rho_half)[mfi],box,0,0,1);
         if (rho_flag == 3)
-            Soln[mfi].mult((*ns.rho_ptime)[mfi],box,0,0,1);
+            Soln[mfi].mult((*navier_stokes->rho_ptime)[mfi],box,0,0,1);
         if (alpha!=0)
             Soln[mfi].mult((*alpha)[mfi],box,alphaComp,0,1);
         Rhs[mfi].plus(Soln[mfi],box,0,0,1);
@@ -463,7 +442,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     if (allnull)
         b *= visc_coef[sigma];
     ViscBndry  visc_bndry;
-    const Real cur_time = caller->get_state_data(State_Type).curTime();
+    const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
     Real       rhsscale = 1.0;
 
     ABecLaplacian* visc_op  = getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,
@@ -491,7 +470,7 @@ Diffusion::diffuse_scalar (Real                   dt,
 	int stencil = CC_CROSS_STENCIL;
         std::vector<Geometry> geom(1);
         geom[0] = visc_bndry.getGeom();
-        const BCRec& scal_bc = caller->get_desc_lst()[State_Type].getBC(sigma);
+        const BCRec& scal_bc = navier_stokes->get_desc_lst()[State_Type].getBC(sigma);
  
         int mg_bc[2*BL_SPACEDIM];
         for ( int i = 0; i < BL_SPACEDIM; ++i )
@@ -587,7 +566,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     bool do_applyBC = true;
     visc_op->compFlux(D_DECL(*fluxnp1[0],*fluxnp1[1],*fluxnp1[2]),Soln,do_applyBC,LinOp::Inhomogeneous_BC,0,fluxComp);
     for (int i = 0; i < BL_SPACEDIM; ++i)
-        (*fluxnp1[i]).mult(b/(dt*caller->Geom().CellSize()[i]),fluxComp,1,0);
+        (*fluxnp1[i]).mult(b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
     delete visc_op;
     //
     // Copy into state variable at new time, without bc's
@@ -648,11 +627,9 @@ Diffusion::diffuse_velocity (Real                   dt,
 
         if (do_reflux && level < parent->finestLevel())
         {
-	    const NavierStokes& ns = *(NavierStokes*) &(parent->getLevel(level));
-
             for (int i = 0; i < BL_SPACEDIM; i++)
             {
-                const BoxArray& ba = ns.getEdgeBoxArray(i);
+                const BoxArray& ba = navier_stokes->getEdgeBoxArray(i);
                 fluxes[i].define(ba, BL_SPACEDIM, 0, Fab_allocate);
             }
         }
@@ -714,15 +691,14 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 {
     BL_ASSERT(rho_flag == 1 || rho_flag == 3);
     const int finest_level = parent->finestLevel();
-    NavierStokes& ns    = *(NavierStokes*) &(parent->getLevel(level));
-    const MultiFab& volume = ns.Volume();
+    const MultiFab& volume = navier_stokes->Volume();
     //
     // At this point, S_old has bndry at time N S_new contains GRAD(SU).
     //
-    MultiFab&  U_old     = caller->get_old_data(State_Type);
-    MultiFab&  U_new     = caller->get_new_data(State_Type);
-    const Real cur_time  = caller->get_state_data(State_Type).curTime();
-    const Real prev_time = caller->get_state_data(State_Type).prevTime();
+    MultiFab&  U_old     = navier_stokes->get_old_data(State_Type);
+    MultiFab&  U_new     = navier_stokes->get_new_data(State_Type);
+    const Real cur_time  = navier_stokes->get_state_data(State_Type).curTime();
+    const Real prev_time = navier_stokes->get_state_data(State_Type).prevTime();
 
     int allnull, allthere;
     checkBetas(betan, betanp1, allthere, allnull);
@@ -744,7 +720,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         if (allnull)
             b *= visc_coef[Xvel];
         ViscBndryTensor visc_bndry;
-        const MultiFab* rho = (rho_flag == 1) ? rho_half : ns.rho_ptime;
+        const MultiFab* rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ptime;
         
         DivVis* tensor_op = getTensorOp(a,b,prev_time,visc_bndry,rho,betan,betaComp);
         tensor_op->maxOrder(tensor_max_order);
@@ -762,7 +738,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                                        *(tensorflux_old[1]),
                                        *(tensorflux_old[2])),Soln_old);
             for (int d = 0; d < BL_SPACEDIM; d++)
-                tensorflux_old[d]->mult(-b/(dt*caller->Geom().CellSize()[d]),0);
+                tensorflux_old[d]->mult(-b/(dt*navier_stokes->Geom().CellSize()[d]),0);
         }
         delete tensor_op;
 
@@ -793,7 +769,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                 if (rho_flag == 1)
                     Ufab.mult((*rho_half)[Rhsmfi],vbx,0,sigma,1);
                 if (rho_flag == 3)
-                    Ufab.mult((*ns.rho_ptime)[Rhsmfi],vbx,0,sigma,1);
+                    Ufab.mult((*navier_stokes->rho_ptime)[Rhsmfi],vbx,0,sigma,1);
                 //
                 // Add to Rhs which contained operator applied to U_old.
                 //
@@ -821,7 +797,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 
                 const Box& sbx    = U_old[Rhsmfi].box();
                 Array<Real> rcen(bx.length(0));
-                parent->Geom(level).GetCellLoc(rcen, bx, 0);
+                navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
                 const int*       lo        = bx.loVect();
                 const int*       hi        = bx.hiVect();
                 const int*       slo       = sbx.loVect();
@@ -865,7 +841,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     }
     else
     {
-        caller->FillCoarsePatch(Soln,0,cur_time,State_Type,Xvel,BL_SPACEDIM);
+        navier_stokes->FillCoarsePatch(Soln,0,cur_time,State_Type,Xvel,BL_SPACEDIM);
     }
     //
     // Copy guess into U_new.
@@ -896,7 +872,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         b *= visc_coef[Xvel];
        
     ViscBndryTensor visc_bndry;
-    const MultiFab* rho = (rho_flag == 1) ? rho_half : ns.rho_ctime;
+    const MultiFab* rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
     DivVis* tensor_op = getTensorOp(a,b,cur_time,visc_bndry,rho,betanp1,betaComp);
     tensor_op->maxOrder(tensor_max_order);
     //
@@ -935,7 +911,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 
         for (int d = 0; d < BL_SPACEDIM; d++)
         {
-            tensorflux[d]->mult(b/(dt*caller->Geom().CellSize()[d]),0);
+            tensorflux[d]->mult(b/(dt*navier_stokes->Geom().CellSize()[d]),0);
             tensorflux[d]->plus(*(tensorflux_old[d]),0,BL_SPACEDIM,0);
         }       
 
@@ -987,11 +963,11 @@ Diffusion::diffuse_Vsync (MultiFab*              Vsync,
     // outside external Dirichlet boundaries. Reset these to zero
     // so that syncproject and conservative interpolation works correctly.
     //
-    Box domain = BoxLib::grow(caller->Geom().Domain(),1);
+    Box domain = BoxLib::grow(navier_stokes->Geom().Domain(),1);
 
     for (int n = Xvel; n < Xvel+BL_SPACEDIM; n++)
     {
-        const BCRec& velbc = caller->get_desc_lst()[State_Type].getBC(n);
+        const BCRec& velbc = navier_stokes->get_desc_lst()[State_Type].getBC(n);
 
         for (int k = 0; k < BL_SPACEDIM; k++)
         {
@@ -1023,10 +999,9 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Diffusion::diffuse_Vsync_constant_mu ...\n";
 
-    NavierStokes& ns       = *(NavierStokes*) &(parent->getLevel(level));
-    const MultiFab& volume = ns.Volume();
-    const MultiFab* area   = ns.Area();
-    const Real*   dx       = caller->Geom().CellSize();
+    const MultiFab& volume = navier_stokes->Volume();
+    const MultiFab* area   = navier_stokes->Area();
+    const Real*   dx       = navier_stokes->Geom().CellSize();
     const int     IOProc   = ParallelDescriptor::IOProcessorNumber();
     //
     // At this point in time we can only do decoupled scalar
@@ -1051,7 +1026,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         //
         // Multiply RHS by volume and density.
         //
-        const MultiFab* rho = (rho_flag == 1) ? rho_half : ns.rho_ctime;
+        const MultiFab* rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
         for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
         {
             Rhs[Rhsmfi].mult(volume[Rhsmfi]); 
@@ -1210,8 +1185,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Diffusion::diffuse_tensor_Vsync ...\n";
 
-    NavierStokes& ns       = *(NavierStokes*) &(parent->getLevel(level));
-    const MultiFab& volume = ns.Volume(); 
+    const MultiFab& volume = navier_stokes->Volume(); 
     const int   IOProc     = ParallelDescriptor::IOProcessorNumber();
 
     MultiFab Rhs(grids,BL_SPACEDIM,0);
@@ -1235,7 +1209,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     {
         FArrayBox&       rhs  = Rhs[Rhsmfi];
         const FArrayBox& rho  = (*rho_half)[Rhsmfi];
-        const FArrayBox& prho = (*ns.rho_ptime)[Rhsmfi];
+        const FArrayBox& prho = (*navier_stokes->rho_ptime)[Rhsmfi];
 
         for (int comp = 0; comp < BL_SPACEDIM; comp++)
         {
@@ -1252,7 +1226,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     //
     const Real      a         = 1.0;
     const Real      b         = be_cn_theta*dt;
-    const MultiFab* rho       = (rho_flag == 1) ? rho_half : ns.rho_ctime;
+    const MultiFab* rho       = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
     DivVis*         tensor_op = getTensorOp(a,b,rho,beta,betaComp);
     tensor_op->maxOrder(tensor_max_order);
 
@@ -1305,7 +1279,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
         // This is to remove the dx scaling in the coeffs
         //
         for (int d =0; d <BL_SPACEDIM; d++)
-            tensorflux[d]->mult(b/(dt*caller->Geom().CellSize()[d]),0);
+            tensorflux[d]->mult(b/(dt*navier_stokes->Geom().CellSize()[d]),0);
 
         for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
         {
@@ -1364,14 +1338,13 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
                           const MultiFab*        alpha,
                           int                    alphaComp)
 {
-    const NavierStokes& ns = *(NavierStokes*) &(parent->getLevel(level));
-    const MultiFab& volume = ns.Volume(); 
+    const MultiFab& volume = navier_stokes->Volume(); 
     const int state_ind    = sigma + BL_SPACEDIM;
     const int IOProc       = ParallelDescriptor::IOProcessorNumber();
 
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Diffusion::diffuse_Ssync: "
-                  << caller->get_desc_lst()[State_Type].name(state_ind) << '\n';
+                  << navier_stokes->get_desc_lst()[State_Type].name(state_ind) << '\n';
 
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
@@ -1388,7 +1361,7 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
 
         if (rho_flag == 2)
         {
-            MultiFab& S_new = caller->get_new_data(State_Type);
+            MultiFab& S_new = navier_stokes->get_new_data(State_Type);
             for (MFIter jmfi(junk); jmfi.isValid(); ++jmfi)
                 junk[jmfi].divide(S_new[jmfi],jmfi.validbox(),Density,0,1);
         }
@@ -1461,7 +1434,7 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
         bool do_applyBC = true;
         visc_op->compFlux(D_DECL(*flux[0],*flux[1],*flux[2]),Soln,do_applyBC,LinOp::Inhomogeneous_BC,0,fluxComp);
         for (int i = 0; i < BL_SPACEDIM; ++i)
-            (*flux[i]).mult(b/(dt*caller->Geom().CellSize()[i]),fluxComp,1,0);
+            (*flux[i]).mult(b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
     }
 
     MultiFab::Copy(*Ssync,Soln,0,sigma,1,0);
@@ -1479,7 +1452,7 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     
     if (rho_flag == 2)
     {
-        MultiFab& S_new = caller->get_new_data(State_Type);
+        MultiFab& S_new = navier_stokes->get_new_data(State_Type);
 
         for (MFIter Ssyncmfi(*Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
         {
@@ -1498,9 +1471,8 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
                              const MultiFab* const* beta,
                              int                    betaComp)
 {
-    const NavierStokes& ns = *(NavierStokes*) &(parent->getLevel(level));
-    const MultiFab& volume = ns.Volume(); 
-    const MultiFab* area   = ns.Area(); 
+    const MultiFab& volume = navier_stokes->Volume(); 
+    const MultiFab* area   = navier_stokes->Area(); 
 
     int allthere;
     checkBeta(beta, allthere);
@@ -1509,7 +1481,7 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
     const int nghost     = 1;
     const int nCompAlpha = BL_SPACEDIM == 2  ?  2  :  1;
 
-    const Real* dx = caller->Geom().CellSize();
+    const Real* dx = navier_stokes->Geom().CellSize();
 
     MultiFab alpha(grids,nCompAlpha,nghost);
 
@@ -1527,7 +1499,7 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
             const Box&  bx        = alpha.box(i);
             Array<Real> rcen(bx.length(0));
 
-            parent->Geom(level).GetCellLoc(rcen, bx, 0);
+            navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
 
             const int*  lo        = bx.loVect();
             const int*  hi        = bx.hiVect();
@@ -1603,7 +1575,7 @@ Diffusion::getTensorOp (Real                   a,
                         const MultiFab* const* beta,
                         int                    betaComp)
 {
-    const Real* dx = caller->Geom().CellSize();
+    const Real* dx = navier_stokes->Geom().CellSize();
 
     getTensorBndryData(visc_bndry,time);
 
@@ -1626,7 +1598,7 @@ Diffusion::getTensorOp (Real                   a,
     int allthere;
     checkBeta(beta, allthere);
 
-    const Real* dx   = caller->Geom().CellSize();
+    const Real* dx   = navier_stokes->Geom().CellSize();
     const int   nDer = MCLinOp::bcComponentsNeeded();
 
     Array<BCRec> bcarray(nDer,BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
@@ -1634,14 +1606,14 @@ Diffusion::getTensorOp (Real                   a,
 
     for (int id = 0; id < BL_SPACEDIM; id++)
     {
-        bcarray[id] = caller->get_desc_lst()[State_Type].getBC(Xvel+id);
+        bcarray[id] = navier_stokes->get_desc_lst()[State_Type].getBC(Xvel+id);
     }
 
     IntVect ref_ratio = level > 0 ? parent->refRatio(level-1) : IntVect::TheUnitVector();
 
     ViscBndryTensor bndry;
 
-    bndry.define(grids,nDer,caller->Geom());
+    bndry.define(grids,nDer,navier_stokes->Geom());
     bndry.setHomogValues(bcarray, ref_ratio[0]);
 
     DivVis* tensor_op = new DivVis(bndry,dx);
@@ -1668,7 +1640,7 @@ Diffusion::getViscOp (int                    comp,
                       int                    alphaComp,
                       bool		     bndry_already_filled)
 {
-    const Real* dx = caller->Geom().CellSize();
+    const Real* dx = navier_stokes->Geom().CellSize();
 
     if (!bndry_already_filled)
         getBndryData(visc_bndry,comp,1,time,rho_flag);
@@ -1699,9 +1671,9 @@ Diffusion::getViscOp (int                    comp,
     //
     // Note: This assumes that the "NEW" density is to be used, if rho_flag==2
     //
-    const Geometry& geom = caller->Geom();
+    const Geometry& geom = navier_stokes->Geom();
     const Real*  dx      = geom.CellSize();
-    const BCRec& bc      = caller->get_desc_lst()[State_Type].getBC(comp);
+    const BCRec& bc      = navier_stokes->get_desc_lst()[State_Type].getBC(comp);
 
     IntVect ref_ratio = level > 0 ? parent->refRatio(level-1) : IntVect::TheUnitVector();
 
@@ -1711,7 +1683,7 @@ Diffusion::getViscOp (int                    comp,
     ABecLaplacian* visc_op = new ABecLaplacian(bndry,dx);
     visc_op->maxOrder(max_order);
 
-    const Real time = caller->get_state_data(State_Type).curTime();
+    const Real time = navier_stokes->get_state_data(State_Type).curTime();
 
     setAlpha(visc_op,comp,a,b,time,rho,rho_flag,rhsscale,alphaComp,alpha_in);
 
@@ -1734,8 +1706,7 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
 {
     BL_ASSERT(visc_op != 0);
 
-    const NavierStokes& ns = *(NavierStokes*) &(parent->getLevel(level));
-    const MultiFab& volume = ns.Volume(); 
+    const MultiFab& volume = navier_stokes->Volume(); 
 
     int usehoop = (comp == Xvel && (Geometry::IsRZ()));
     int useden  = (rho_flag == 1);
@@ -1762,7 +1733,7 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
             const Box& bx = alpha.box(i);
 
             Array<Real> rcen(bx.length(0));
-            parent->Geom(level).GetCellLoc(rcen, bx, 0);
+            navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
 
             const int*       lo      = bx.loVect();
             const int*       hi      = bx.hiVect();
@@ -1788,7 +1759,7 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
 
     if (rho_flag == 2 || rho_flag == 3)
     {
-        MultiFab& S = caller->get_data(State_Type,time);
+        MultiFab& S = navier_stokes->get_data(State_Type,time);
 
         for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
         {
@@ -1833,10 +1804,9 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
 
-    const Real* dx = caller->Geom().CellSize();
+    const Real* dx = navier_stokes->Geom().CellSize();
 
-    const NavierStokes& ns = *(NavierStokes*) &(parent->getLevel(level));
-    const MultiFab* area   = ns.Area(); 
+    const MultiFab* area = navier_stokes->Area(); 
 
     PArray<MultiFab> bcoeffs(BL_SPACEDIM, PArrayManage);
     for (int n = 0; n < BL_SPACEDIM; n++)
@@ -1888,8 +1858,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     //
     // Note: This routine DOES NOT fill grow cells
     //
-    const Real* dx = caller->Geom().CellSize();
-    MultiFab&   S  = caller->get_data(State_Type,time);
+    const Real* dx = navier_stokes->Geom().CellSize();
+    MultiFab&   S  = navier_stokes->get_data(State_Type,time);
 
     //
     // FIXME
@@ -1937,8 +1907,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
         // Must divide by volume.
         //
         {
-	    const NavierStokes& ns = *(NavierStokes*) &(parent->getLevel(level));
-	    const MultiFab& volume = ns.Volume(); 
+	    const MultiFab& volume = navier_stokes->Volume(); 
 
             for (MFIter visc_tmpmfi(visc_tmp); visc_tmpmfi.isValid(); ++visc_tmpmfi)
             {
@@ -1959,7 +1928,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
                 Box        vbx = BoxLib::grow(bx,visc_tmp.nGrow());
                 Box        sbx = BoxLib::grow(s_tmp.box(i),s_tmp.nGrow());
                 Array<Real> rcen(bx.length(0));
-                parent->Geom(level).GetCellLoc(rcen, bx, 0);
+                navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
                 const int*  lo      = bx.loVect();
                 const int*  hi      = bx.hiVect();
                 const int*  vlo     = vbx.loVect();
@@ -1992,9 +1961,8 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
                                const MultiFab* const* beta,
                                int                    betaComp)
 {
-    const NavierStokes& ns = *(NavierStokes*) &(parent->getLevel(level));
-    const MultiFab& volume = ns.Volume(); 
-    const MultiFab* area   = ns.Area();
+    const MultiFab& volume = navier_stokes->Volume(); 
+    const MultiFab* area   = navier_stokes->Area();
 
     int allthere;
     checkBeta(beta, allthere);
@@ -2013,8 +1981,8 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     //
     // Note: This routine DOES NOT fill grow cells
     //
-    const Real* dx   = caller->Geom().CellSize();
-    MultiFab&   S    = caller->get_data(State_Type,time);
+    const Real* dx   = navier_stokes->Geom().CellSize();
+    MultiFab&   S    = navier_stokes->get_data(State_Type,time);
     //
     // FIXME
     // LinOp classes cannot handle multcomponent MultiFabs yet,
@@ -2080,7 +2048,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 
                 rcen.resize(bx.length(0));
 
-                parent->Geom(level).GetCellLoc(rcen, bx, 0);
+                navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
 
                 const int*       lo        = bx.loVect();
                 const int*       hi        = bx.hiVect();
@@ -2134,20 +2102,19 @@ Diffusion::getBndryData (ViscBndry& bndry,
     // TODO -- A MultiFab is a huge amount of space in which to pass along
     // the phys bc's.  InterpBndryData needs a more efficient interface.
     //
-    NavierStokes& ns    = *(NavierStokes*) &(parent->getLevel(level));
     const int     nGrow = 1;
-    const BCRec&  bc    = caller->get_desc_lst()[State_Type].getBC(src_comp);
+    const BCRec&  bc    = navier_stokes->get_desc_lst()[State_Type].getBC(src_comp);
 
     MultiFab S(grids, num_comp, nGrow);
 
     S.setVal(BL_SAFE_BOGUS);
 
-    bndry.define(grids,num_comp,caller->Geom());
+    bndry.define(grids,num_comp,navier_stokes->Geom());
 
-    const MultiFab& rhotime = ns.get_rho(time);
+    const MultiFab& rhotime = navier_stokes->get_rho(time);
     MFIter          Rho_mfi(rhotime);
 
-    for (FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
+    for (FillPatchIterator Phi_fpi(*navier_stokes,S,nGrow,time,State_Type,src_comp,num_comp);
          Rho_mfi.isValid() && Phi_fpi.isValid();
          ++Rho_mfi, ++Phi_fpi)
     {
@@ -2198,9 +2165,9 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
     // TODO -- A MultiFab is a huge amount of space in which to pass along
     // the phys bc's.  InterpBndryData needs a more efficient interface.
     //
-    const BCRec& bc = caller->get_desc_lst()[State_Type].getBC(state_ind);
+    const BCRec& bc = navier_stokes->get_desc_lst()[State_Type].getBC(state_ind);
 
-    bndry.define(grids,num_comp,caller->Geom());
+    bndry.define(grids,num_comp,navier_stokes->Geom());
 
     if (level == 0)
     {
@@ -2233,14 +2200,13 @@ Diffusion::FillBoundary (BndryRegister& bdry,
     // We assume filPatch gets this right, where possible.
     //
     const int     nGrow = 1;
-    NavierStokes& ns    = *(NavierStokes*) &(parent->getLevel(level));
 
-    MultiFab S(caller->boxArray(),num_comp,nGrow);
+    MultiFab S(navier_stokes->boxArray(),num_comp,nGrow);
 
-    const MultiFab& rhotime = ns.get_rho(time);
+    const MultiFab& rhotime = navier_stokes->get_rho(time);
     MFIter          Rho_mfi(rhotime);
 
-    for (FillPatchIterator S_fpi(*caller,S,nGrow,time,State_Type,state_ind,num_comp);
+    for (FillPatchIterator S_fpi(*navier_stokes,S,nGrow,time,State_Type,state_ind,num_comp);
          Rho_mfi.isValid() && S_fpi.isValid();
          ++Rho_mfi, ++S_fpi)
     {
@@ -2273,15 +2239,15 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
                                      D_DECL(EXT_DIR,EXT_DIR,EXT_DIR)));
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++)
-        bcarray[idim] = caller->get_desc_lst()[State_Type].getBC(src_comp+idim);
+        bcarray[idim] = navier_stokes->get_desc_lst()[State_Type].getBC(src_comp+idim);
 
-    bndry.define(grids,nDer,caller->Geom());
+    bndry.define(grids,nDer,navier_stokes->Geom());
 
     const int nGrow = 1;
 
     MultiFab S(grids,num_comp,nGrow,Fab_allocate);
 
-    for (FillPatchIterator Phi_fpi(*caller,S,nGrow,time,State_Type,src_comp,num_comp);
+    for (FillPatchIterator Phi_fpi(*navier_stokes,S,nGrow,time,State_Type,src_comp,num_comp);
          Phi_fpi.isValid();
          ++Phi_fpi)
     {
@@ -2370,12 +2336,10 @@ Diffusion::allocFluxBoxesLevel (MultiFab**& fluxbox,
                                 int         nghost,
                                 int         nvar)
 {
-    const NavierStokes& ns = *(NavierStokes*) &(parent->getLevel(level));
-
     fluxbox = new MultiFab*[BL_SPACEDIM];
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-	const BoxArray& ba = ns.getEdgeBoxArray(dir);
+	const BoxArray& ba = navier_stokes->getEdgeBoxArray(dir);
         fluxbox[dir] = new MultiFab(ba,nvar,nghost);
     }
 }
@@ -2392,7 +2356,6 @@ Diffusion::removeFluxBoxesLevel (MultiFab**& fluxbox)
     }
 }
 
-#ifdef USE_NAVIERSTOKES
 //
 // This routine computes the vector div mu SI, where I is the identity 
 // tensor, S = div U, and mu is constant.
@@ -2409,9 +2372,8 @@ Diffusion::compute_divmusi (Real      time,
     if (mu > 0.0)
     {
         const int     nGrowDU  = 1;
-        const Real*   dx       = caller->Geom().CellSize();
-        NavierStokes& ns_level = *(NavierStokes*) &(parent->getLevel(level));
-        MultiFab*     divu_fp  = ns_level.getDivCond(nGrowDU,time);
+        const Real*   dx       = navier_stokes->Geom().CellSize();
+        MultiFab*     divu_fp  = navier_stokes->getDivCond(nGrowDU,time);
 
         for (MFIter divmusimfi(divmusi); divmusimfi.isValid(); ++divmusimfi)
         {
@@ -2446,9 +2408,8 @@ Diffusion::compute_divmusi (Real                   time,
                             MultiFab&              divmusi)
 {
     const int     nGrowDU  = 1;
-    const Real*   dx       = caller->Geom().CellSize();
-    NavierStokes& ns_level = *(NavierStokes*) &(parent->getLevel(level));
-    MultiFab*     divu_fp  = ns_level.getDivCond(nGrowDU,time);
+    const Real*   dx       = navier_stokes->Geom().CellSize();
+    MultiFab*     divu_fp  = navier_stokes->getDivCond(nGrowDU,time);
 
     for (MFIter divmusimfi(divmusi); divmusimfi.isValid(); ++divmusimfi)
     {
@@ -2557,4 +2518,3 @@ Diffusion::are_any_Laplacian_SoverRho(const Array<DiffusionForm>& diffusionType,
     return false;
 }
 */
-#endif /*USE_NAVIERSTOKES*/
