@@ -15,10 +15,6 @@
 
 #include <FMultiGrid.H>
 
-#ifndef _NavierStokes_H_
-enum StateType {State_Type=0, Press_Type};
-#endif
-
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \

@@ -15,15 +15,6 @@
 #include <stencil_types.H>
 #include <mg_cpp_f.h>
 
-#ifndef _NavierStokes_H_
-enum StateType {State_Type=0, Press_Type};
-#if (BL_SPACEDIM == 2)
-enum StateNames  { Xvel=0, Yvel, Density};
-#else
-enum StateNames  { Xvel=0, Yvel, Zvel, Density};
-#endif
-#endif
-
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
