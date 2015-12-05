@@ -2237,11 +2237,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     FArrayBox dudt[1][2*BL_SPACEDIM];
     FArrayBox phi_fine_strip[2*BL_SPACEDIM];
 
-    BoxArray grown_grids(Sig_in->boxArray());
-    grown_grids.grow(1);
-    MultiFab Sig_grown(grown_grids,1,0);
-    for (MFIter mfi(Sig_grown); mfi.isValid(); ++mfi)
-        Sig_grown[mfi].copy((*Sig_in)[mfi]);
+    const int ngrow = 1;
 
     for (int iface = 0; iface < numOutFlowFaces; iface++)
     {
@@ -2250,7 +2246,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
         rho[iface].resize(state_strip[iface],1);
 
-        Sig_grown.copy(rho[iface]);
+        (*Sig_in).copy(rho[iface],0,0,1,ngrow);
 
         Box phi_strip = 
             BoxLib::surroundingNodes(BoxLib::bdryNode(domain,
@@ -2259,7 +2255,6 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         phi_fine_strip[iface].resize(phi_strip,1);
         phi_fine_strip[iface].setVal(0.);
     }
-    Sig_grown.clear();
 
     ProjOutFlowBC projBC;
     if (which_call == INITIAL_PRESS) 
@@ -2275,38 +2270,17 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     else
     {
         Vel_in->FillBoundary();
-        //
-        // Build a new MultiFab for which the cells outside the domain
-        // are in the valid region instead of being ghost cells, so that
-        // we can copy these values into the dudt array.
-        //
-        BoxArray grown_vel_ba = Vel_in->boxArray();
-        grown_vel_ba.grow(1);
-        MultiFab grown_vel(grown_vel_ba,BL_SPACEDIM,0);
-        for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
-            grown_vel[vmfi].copy((*Vel_in)[vmfi]);
 
-        if (have_divu)
-        {
-            for (int iface = 0; iface < numOutFlowFaces; iface++) 
-                grown_vel.copy(dudt[0][iface]);
-            //
-            // Reuse grown_vel to fill dsdt.
-            //
-            for (MFIter vmfi(*Vel_in); vmfi.isValid(); ++vmfi)
-                grown_vel[vmfi].copy((*Divu_in)[vmfi],0,0,1);
+	for (int iface = 0; iface < numOutFlowFaces; iface++) 
+	    (*Vel_in).copy(dudt[0][iface],0,0,BL_SPACEDIM,1);
 
+	if (have_divu) {
             for (int iface = 0; iface < numOutFlowFaces; iface++) 
-                grown_vel.copy(dsdt[iface],0,0,1);
-        }
-        else
-        {
+                (*Divu_in).copy(dsdt[iface],0,0,1,1);
+	} else {
             for (int iface = 0; iface < numOutFlowFaces; iface++) 
-            {
-                grown_vel.copy(dudt[0][iface]);
                 dsdt[iface].setVal(0);
-            }
-        }
+	}
 
         const int*      lo_bc = phys_bc->lo();
         const int*      hi_bc = phys_bc->hi();

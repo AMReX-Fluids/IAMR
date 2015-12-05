@@ -6046,20 +6046,13 @@ NavierStokes::getGradP (MultiFab& gp,
         BL_ASSERT(gp.boxArray() == grids);
 
         {
-            //
-            // Build MultiFab whose valid region encompasses NGrow grow cells.
-            // The valid region of the MultiFab will contain overlaps!
-            //
             const BoxArray& pBA = state[Press_Type].boxArray();
-
-            BoxArray ovlpBA = pBA; ovlpBA.grow(NGrow);
-
-            MultiFab pMF(ovlpBA,1,0);
+            MultiFab pMF(pBA,1,NGrow);
 
             if (time == getLevel(level-1).state[Press_Type].prevTime() || 
                 time == getLevel(level-1).state[Press_Type].curTime())
             {
-                FillCoarsePatch(pMF,0,time,Press_Type,0,1);
+                FillCoarsePatch(pMF,0,time,Press_Type,0,1,NGrow);
             } 
             else
             {
@@ -6074,17 +6067,17 @@ NavierStokes::getGradP (MultiFab& gp,
                     crse_time = getLevel(level-1).state[Press_Type].prevTime();
                 }
   
-                FillCoarsePatch(pMF,0,crse_time,Press_Type,0,1);
+                FillCoarsePatch(pMF,0,crse_time,Press_Type,0,1,NGrow);
   
-                MultiFab dpdtMF(ovlpBA,1,0);
+                MultiFab dpdtMF(pBA,1,NGrow);
 
-                FillCoarsePatch(dpdtMF,0,time,Dpdt_Type,0,1);
+                FillCoarsePatch(dpdtMF,0,time,Dpdt_Type,0,1,NGrow);
 
                 Real dt_temp = time - crse_time;
 
-                dpdtMF.mult(dt_temp);
+                dpdtMF.mult(dt_temp,0,1,NGrow);
 
-                pMF.plus(dpdtMF,0,1,0);
+                pMF.plus(dpdtMF,0,1,NGrow);
             }
 
             for (MFIter mfi(pMF); mfi.isValid(); ++mfi) 
@@ -6094,11 +6087,8 @@ NavierStokes::getGradP (MultiFab& gp,
         }
         //
         // We've now got good coarse data everywhere in gp.
-        // FillPatch temp version of gp having overlapping valid regions.
         //
-        BoxArray ovlpBA = gp.boxArray(); ovlpBA.grow(NGrow);
-
-        MultiFab gpTmp(ovlpBA,gp.nComp(),0);
+        MultiFab gpTmp(gp.boxArray(),1,NGrow);
 
         for (FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
              P_fpi.isValid();
@@ -6137,8 +6127,8 @@ NavierStokes::getGradP (MultiFab& gp,
         {
             fineBA.intersections(gpTmp[mfi].box(),isects);
 
-            FArrayBox& gpfab    = gp[mfi];
-            FArrayBox& gptmpfab = gpTmp[mfi];
+            FArrayBox&       gpfab    =    gp[mfi];
+            const FArrayBox& gptmpfab = gpTmp[mfi];
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
@@ -6921,21 +6911,9 @@ NavierStokes::create_umac_grown (int nGrow)
             fine_src.setVal(1.e200);
             //
             // We want to fill crse_src from lower level u_mac including u_mac's grow cells.
-            // Gotta do it in steps since parallel copy only does valid region.
             //
-            {
-                const MultiFab& u_macLL = getLevel(level-1).u_mac[n];
-
-                BoxArray edge_grids = u_macLL.boxArray();
-                edge_grids.grow(1);
-
-                MultiFab u_macC(edge_grids,1,0);
-
-                for (MFIter mfi(u_macLL); mfi.isValid(); ++mfi)
-                    u_macC[mfi].copy(u_macLL[mfi]);
-
-                crse_src.copy(u_macC);
-            }
+	    const MultiFab& u_macLL = getLevel(level-1).u_mac[n];
+	    crse_src.copy(u_macLL,0,0,1,1,0);
 
             const int Ncrse = crse_src.IndexMap().size();
 
@@ -6984,21 +6962,11 @@ NavierStokes::create_umac_grown (int nGrow)
                                  ARLIM(fine_src[k].loVect()),
                                  ARLIM(fine_src[k].hiVect()));
             }
-            //
-            // Make copy of of u_mac[n] covering valid+grow regions and containing no
-            // grow regions itself so that we can parallel copy fine_src into it, from
-            // which we can then update u_mac[n].
-            //
-            BoxArray edge_grids = u_mac[n].boxArray();
-            edge_grids.grow(nGrow);
 
-            MultiFab u_macG(edge_grids,1,0);
-
-            u_macG.copy(fine_src);
-            u_macG.copy(u_mac[n]);
-
-            for (MFIter mfi(u_macG); mfi.isValid(); ++mfi)
-                u_mac[n][mfi].copy(u_macG[mfi]);
+	    MultiFab u_mac_save(u_mac[n].boxArray(),1,0);
+	    u_mac_save.copy(u_mac[n]);
+	    u_mac[n].copy(fine_src,0,0,1,0,nGrow);
+	    u_mac[n].copy(u_mac_save);
         }
     }
     //
