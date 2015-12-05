@@ -1536,7 +1536,7 @@ NavierStokes::advance_setup (Real time,
     umac_n_grow = 1;
     
     if (ncycle >= 1)
-        umac_n_grow = ncycle + 1;
+        umac_n_grow = ncycle;
         
     mac_projector->setup(level);
     //
@@ -1562,8 +1562,10 @@ NavierStokes::advance_setup (Real time,
     //
     // Alloc space for edge velocities (normal comp only).
     //
-    if (u_mac == 0)
+    if (u_mac == 0 || u_mac[0].nGrow() < umac_n_grow)
     {
+	if (u_mac != 0) delete [] u_mac;
+
         u_mac = new MultiFab[BL_SPACEDIM];
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
