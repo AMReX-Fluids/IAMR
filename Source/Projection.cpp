@@ -31,38 +31,29 @@ const int* boxhi = (box).hiVect();
 
 const Real Projection::BogusValue = 1.e200;
 
-//
-// NOTE: the RegType array project_bc is now defined in NS_BC.H in iamrlib
-//
+int  Projection::P_code              = 0;
+int  Projection::proj_2              = 1;
+int  Projection::verbose             = 0;
+Real Projection::proj_tol            = 1.0e-12;
+Real Projection::sync_tol            = 1.e-8;
+Real Projection::proj_abs_tol        = 1.e-16;
+int  Projection::add_vort_proj       = 0;
+int  Projection::do_outflow_bcs      = 1;
+int  Projection::rho_wgt_vel_proj    = 0;
+int  Projection::make_sync_solvable  = 0;
+Real Projection::divu_minus_s_factor = 0.0;
 
 namespace
 {
     bool initialized = false;
-}
-//
-// Set defaults for all static members in Initialize()!!!
-//
-int  Projection::P_code;
-int  Projection::proj_2;
-int  Projection::verbose;
-Real Projection::proj_tol;
-Real Projection::sync_tol;
-Real Projection::proj_abs_tol;
-int  Projection::add_vort_proj;
-int  Projection::do_outflow_bcs;
-int  Projection::rho_wgt_vel_proj;
-int  Projection::make_sync_solvable;
-Real Projection::divu_minus_s_factor;
 
-static int hg_stencil = ND_DENSE_STENCIL;
-
-namespace
-{
 #if MG_USE_HYPRE
-    bool use_hypre_solve;
+    bool use_hypre_solve = false;
 #endif
 
-    bool benchmarking;
+    bool benchmarking = false;
+
+    int hg_stencil = ND_DENSE_STENCIL;
 }
 
 
@@ -70,25 +61,6 @@ void
 Projection::Initialize ()
 {
     if (initialized) return;
-    //
-    // Set defaults here !!!
-    //
-    benchmarking                    = false;
-    Projection::P_code              = 0;
-    Projection::proj_2              = 1;
-    Projection::verbose             = 0;
-    Projection::proj_tol            = 1.0e-12;
-    Projection::sync_tol            = 1.0e-8;
-    Projection::proj_abs_tol        = 1.0e-16;
-    Projection::add_vort_proj       = 0;
-    Projection::do_outflow_bcs      = 1;
-    Projection::rho_wgt_vel_proj    = 0;
-    Projection::make_sync_solvable  = 0;
-    Projection::divu_minus_s_factor = 0.0;
-
-#if MG_USE_HYPRE
-    use_hypre_solve = false;
-#endif
 
     ParmParse pp("proj");
 
