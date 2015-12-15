@@ -219,6 +219,9 @@ Projection::level_project (int             level,
 {
     BL_PROFILE("Projection::level_project()");
 
+    BL_ASSERT(rho_half->nGrow() >= 1);
+    BL_ASSERT(U_new.nGrow() >= 1);
+
     if ( verbose && ParallelDescriptor::IOProcessor() )
 	std::cout << "... level projector at level " << level << '\n';
 
@@ -274,11 +277,14 @@ Projection::level_project (int             level,
     }
 
     const int nGrow = (level == 0  ?  0  :  -1);
-    for (MFIter P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi)
-    {
-        const int i = P_newmfi.index();
 
-        P_new[P_newmfi].setVal(0.0,BoxLib::grow(P_new.box(i),nGrow),0,1);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(P_new,true); mfi.isValid(); ++mfi)
+    {
+	const Box& bx = mfi.growntilebox(nGrow);
+        P_new[mfi].setVal(0.0,bx,0,1);
     }
 
     //
@@ -341,15 +347,20 @@ Projection::level_project (int             level,
         MultiFab Gp(grids,BL_SPACEDIM,1);
         ns->getGradP(Gp, prev_pres_time);
 
-	for (MFIter mfi(*rho_half); mfi.isValid(); ++mfi) {
-          FArrayBox& Gpfab = Gp[mfi];
-          const FArrayBox& rhofab = (*rho_half)[mfi];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(*rho_half,true); mfi.isValid(); ++mfi) 
+	{
+	    const Box& bx = mfi.growntilebox(1);
+	    FArrayBox& Gpfab = Gp[mfi];
+	    const FArrayBox& rhofab = (*rho_half)[mfi];
       
-	  for (int i = 0; i < BL_SPACEDIM; i++) {
-	    Gpfab.divide(rhofab,0,i,1);
-	  }
+	    for (int i = 0; i < BL_SPACEDIM; i++) {
+		Gpfab.divide(rhofab,bx,0,i,1);
+	    }
       
-	  U_new[mfi].plus(Gpfab,0,0,BL_SPACEDIM);
+	    U_new[mfi].plus(Gpfab,bx,0,0,BL_SPACEDIM);
 	}
     }
 
