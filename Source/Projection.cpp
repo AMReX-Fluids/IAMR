@@ -441,8 +441,7 @@ Projection::level_project (int             level,
         if (is_rz == 1)
             radMult(level,*divusource,0);
         const int nghost = 0;
-        divusource->mult(-1.0,0,1,nghost); // FIXME: this doesn't touch the ghost cells?
-	//                                    wqz. I don't think we need to.
+        divusource->mult(-1.0,0,1,nghost);
 
         PArray<MultiFab> rhs_real(level+1);
         rhs_real.set(level, divusource);
@@ -799,10 +798,8 @@ Projection::MLsyncProject (int             c_lev,
     rescaleVar(SYNC_PROJ,&rho_crse, 0, Vsync,   c_lev  );
     rescaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, c_lev+1);
 
-    for (MFIter phimfi(*phi[c_lev+1]); phimfi.isValid(); ++phimfi) 
-    {
-        phi_fine[phimfi].copy((*phi[c_lev+1])[phimfi],0,0,1);
-    }
+    MultiFab::Copy(phi_fine, *phi[c_lev+1], 0, 0, 1, 1);
+
     //
     // Add phi to pressure.
     //
