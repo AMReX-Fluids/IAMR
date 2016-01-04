@@ -228,6 +228,9 @@ Projection::level_project (int             level,
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
     const Real strt_time = ParallelDescriptor::second();
+
+    PArray<MultiFab> raii(PArrayManage);
+
     //
     // old time velocity has bndry values already
     // must gen valid bndry data for new time velocity.
@@ -298,9 +301,9 @@ Projection::level_project (int             level,
 
     if (have_divu)
     {
-        divusource = ns->getDivCond(1,time+dt);
+        divusource = raii.push_back(ns->getDivCond(1,time+dt));
         if (!proj_2)
-            divuold = ns->getDivCond(1,time);
+            divuold = raii.push_back(ns->getDivCond(1,time));
     }
 
     const Real dt_inv = 1./dt;
@@ -340,7 +343,6 @@ Projection::level_project (int             level,
             }
         }
     }
-    delete divuold;
 
     if (proj_2)
     {
@@ -421,12 +423,12 @@ Projection::level_project (int             level,
     MultiFab* sync_resid_fine = 0;
 
     if (level < parent->finestLevel()) 
-        sync_resid_crse = new MultiFab(P_grids,1,1);
+        sync_resid_crse = raii.push_back(new MultiFab(P_grids,1,1));
 
     if (level > 0 && ((proj_2 && iteration == crse_dt_ratio) || !proj_2))
     {
         const int ngrow = parent->MaxRefRatio(level-1) - 1;
-        sync_resid_fine = new MultiFab(P_grids,1,ngrow);
+        sync_resid_fine = raii.push_back(new MultiFab(P_grids,1,ngrow));
     }
 
     if (!have_divu) 
@@ -453,7 +455,6 @@ Projection::level_project (int             level,
 			  sync_resid_crse, sync_resid_fine);
     }
 
-    delete divusource;
     //
     // Note: this must occur *after* the projection has been done
     //       (but before the modified velocity has been copied back)
@@ -486,8 +487,6 @@ Projection::level_project (int             level,
           fine_sync_reg->FineAdd(sync_resid_fine,geom,crse_geom,phys_bc,invrat);
        }
     }
-    delete sync_resid_crse;
-    delete sync_resid_fine;
 
     //
     // Reset state + pressure data.
@@ -573,6 +572,9 @@ Projection::syncProject (int             c_lev,
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
     const Real strt_time = ParallelDescriptor::second();
+
+    PArray<MultiFab> raii(PArrayManage);
+
     //
     // Gather data.
     //
@@ -616,7 +618,7 @@ Projection::syncProject (int             c_lev,
     if (c_lev > 0 && (!proj_2 || crse_iteration == crse_dt_ratio))
     {
         const int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
-        sync_resid_fine = new MultiFab(P_grids,1,ngrow);
+        sync_resid_fine = raii.push_back(new MultiFab(P_grids,1,ngrow));
     }
 
     doNodalProjection(c_lev, 1, vels, phis, sigs, rhss, rhnd, sync_tol, proj_abs_tol,
@@ -634,8 +636,6 @@ Projection::syncProject (int             c_lev,
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
         crsr_sync_reg->CompAdd(sync_resid_fine,geom,crsr_geom,phys_bc,sync_boxes,invrat);
     }
-    delete sync_resid_crse;
-    delete sync_resid_fine;
     //
     // Reset state + pressure data ...
     //
@@ -703,6 +703,8 @@ Projection::MLsyncProject (int             c_lev,
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
     const Real strt_time = ParallelDescriptor::second();
+
+    PArray<MultiFab> raii(PArrayManage);
     
     //
     // Set up memory.
@@ -714,10 +716,10 @@ Projection::MLsyncProject (int             c_lev,
     const BoxArray& Pgrids_crse = pres_crse.boxArray();
     const BoxArray& Pgrids_fine = pres_fine.boxArray();
 
-    phi[c_lev] = new MultiFab(Pgrids_crse,1,1);
+    phi[c_lev] = raii.push_back(new MultiFab(Pgrids_crse,1,1));
     phi[c_lev]->setVal(0);
     
-    phi[c_lev+1] = new MultiFab(Pgrids_fine,1,1);
+    phi[c_lev+1] = raii.push_back(new MultiFab(Pgrids_fine,1,1));
     phi[c_lev+1]->setVal(0);
 
     //
@@ -770,7 +772,7 @@ Projection::MLsyncProject (int             c_lev,
       //    if (c_lev > 0)
     {
         int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
-        sync_resid_fine = new MultiFab(Pgrids_crse,1,ngrow);
+        sync_resid_fine = raii.push_back(new MultiFab(Pgrids_crse,1,ngrow));
     }
 
     doNodalProjection(c_lev, 2, vel, phi, sig, rhs, rhnd, sync_tol, proj_abs_tol,
@@ -791,7 +793,6 @@ Projection::MLsyncProject (int             c_lev,
         crsr_sync_reg->CompAdd(sync_resid_fine,crse_geom,crsr_geom,
                                phys_bc,sync_boxes,invrat);
     }
-    delete sync_resid_fine;
     //
     // Do necessary un-scaling.
     //
@@ -842,10 +843,6 @@ Projection::MLsyncProject (int             c_lev,
     UpdateArg1(vel_crse, dt_crse, *Vsync, BL_SPACEDIM, grids,      1);
     UpdateArg1(vel_fine, dt_crse, V_corr, BL_SPACEDIM, fine_grids, 1);
 
-    for (int lev=c_lev; lev<c_lev+2; lev++) {
-      delete phi[lev];
-    }
-
     if (verbose)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
@@ -889,6 +886,8 @@ Projection::initialVelocityProject (int  c_lev,
 
     const Real strt_time = ParallelDescriptor::second();
 
+    PArray<MultiFab> raii(PArrayManage);
+
     MultiFab* vel[maxlev] = {0};
     MultiFab* phi[maxlev] = {0};
     MultiFab* sig[maxlev] = {0};
@@ -905,7 +904,7 @@ Projection::initialVelocityProject (int  c_lev,
 
         const int       nghost = 1;
         const BoxArray& grids  = LevelData[lev].boxArray();
-        sig[lev]               = new MultiFab(grids,1,nghost);
+        sig[lev]               = raii.push_back(new MultiFab(grids,1,nghost));
 
         if (rho_wgt_vel_proj) 
         {
@@ -1028,10 +1027,6 @@ Projection::initialVelocityProject (int  c_lev,
         LevelData[lev].get_new_data(Press_Type).setVal(0);
     }
 
-    for (lev = c_lev; lev <= f_lev; lev++) {
-      delete sig[lev];
-    }
-
     if (verbose)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
@@ -1054,6 +1049,8 @@ Projection::initialPressureProject (int  c_lev)
         std::cout << "initialPressureProject: levels = " << c_lev
                   << "  " << f_lev << '\n';
 
+    PArray<MultiFab> raii(PArrayManage);
+
     MultiFab* vel[maxlev] = {0};
     MultiFab* phi[maxlev] = {0};
     MultiFab* sig[maxlev] = {0};
@@ -1065,7 +1062,7 @@ Projection::initialPressureProject (int  c_lev)
 
         const int       nghost = 1;
         const BoxArray& grids  = LevelData[lev].boxArray();
-        sig[lev]               = new MultiFab(grids,1,nghost);
+        sig[lev]               = raii.push_back(new MultiFab(grids,1,nghost));
 
         LevelData[lev].get_new_data(State_Type).setBndry(BogusValue,Density,1);
 
@@ -1118,7 +1115,7 @@ Projection::initialPressureProject (int  c_lev)
     for (lev = c_lev; lev <= f_lev; lev++) {
       BoxArray grids = vel[lev]->boxArray();
 
-      vel[lev] = new MultiFab(grids, BL_SPACEDIM, 1);
+      vel[lev] = raii.push_back(new MultiFab(grids, BL_SPACEDIM, 1));
       vel[lev]->setVal(0.0    , 0            , BL_SPACEDIM-1, 1);
       vel[lev]->setVal(gravity, BL_SPACEDIM-1, 1            , 1);
     }
@@ -1144,11 +1141,6 @@ Projection::initialPressureProject (int  c_lev)
         MultiFab::Copy(LevelData[lev].get_new_data(Press_Type),
                        LevelData[lev].get_old_data(Press_Type),
                        0, 0, 1, 0);
-
-    for (lev = c_lev; lev <= f_lev; lev++) {
-      delete vel[lev];
-      delete sig[lev];
-    }
 }
 
 //
@@ -1172,6 +1164,9 @@ Projection::initialSyncProject (int       c_lev,
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
     const Real stime = ParallelDescriptor::second();
+
+    PArray<MultiFab> raii(PArrayManage);
+
     //
     // Gather data.
     //
@@ -1217,7 +1212,7 @@ Projection::initialSyncProject (int       c_lev,
             }
 
             const int nghost = 1;
-            rhs[lev] = new MultiFab(amr_level.boxArray(),1,nghost);
+            rhs[lev] = raii.push_back(new MultiFab(amr_level.boxArray(),1,nghost));
             MultiFab* rhslev = rhs[lev];
             rhslev->setVal(0);
 
@@ -1225,8 +1220,9 @@ Projection::initialSyncProject (int       c_lev,
 
             BL_ASSERT(!(ns == 0));
 
-            MultiFab* divu = ns->getDivCond(nghost,strt_time);
-            MultiFab* dsdt = ns->getDivCond(nghost,strt_time+dt);
+	    PArray<MultiFab> local_raii(PArrayManage);
+            MultiFab* divu = local_raii.push_back(ns->getDivCond(nghost,strt_time));
+            MultiFab* dsdt = local_raii.push_back(ns->getDivCond(nghost,strt_time+dt));
 
             for (MFIter mfi(*rhslev); mfi.isValid(); ++mfi)
             {
@@ -1235,9 +1231,6 @@ Projection::initialSyncProject (int       c_lev,
                 dsdtfab.mult(dt_inv);
                 (*rhslev)[mfi].copy(dsdtfab);
             }
-
-            delete divu;
-            delete dsdt;
         }
     }
 
@@ -1330,14 +1323,9 @@ Projection::initialSyncProject (int       c_lev,
         //
         // General divu.
         //
-        //
-        // This PArray is managed so it'll remove rhs on exiting scope.
-        //
-        PArray<MultiFab> rhs_real(f_lev+1,PArrayManage);
         for (lev = c_lev; lev <= f_lev; lev++) 
         {
             rhs[lev]->mult(-1.0,0,1);
-            rhs_real.set(lev, rhs[lev]);
         }
 
         PArray<MultiFab> rhnd;
@@ -1383,14 +1371,13 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 
     BL_ASSERT(!(ns == 0));
 
-    MultiFab* divu = ns->getDivCond(1,time);
+    PArray<MultiFab> raii(PArrayManage);
+    MultiFab* divu = raii.push_back(ns->getDivCond(1,time));
 
     for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
     {
         rhs[mfi].copy((*divu)[mfi]);
     }
-
-    delete divu;
 }
 
 void
@@ -2300,14 +2287,16 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 // Given vel, rhs & sig, this solves Div (sig * Grad phi) = Div vel + rhs.
 // On return, vel becomes vel  - sig * Grad phi.
 //
-void Projection::doNodalProjection(int c_lev, int nlevel, 
-				   MultiFab* vel[], MultiFab* phi[], MultiFab* sig[],
-				   MultiFab* rhs_cc[], const PArray<MultiFab>& rhnd, 
-				   Real rel_tol, Real abs_tol,
-				   MultiFab* sync_resid_crse,
-				   MultiFab* sync_resid_fine)
+void Projection::doNodalProjection (int c_lev, int nlevel, 
+				    MultiFab* vel[], MultiFab* phi[], MultiFab* sig[],
+				    MultiFab* rhs_cc[], const PArray<MultiFab>& rhnd, 
+				    Real rel_tol, Real abs_tol,
+				    MultiFab* sync_resid_crse,
+				    MultiFab* sync_resid_fine)
 {
   BL_PROFILE("Projection:::doNodalProjection()");
+
+  PArray<MultiFab> raii(PArrayManage);
 
   int f_lev = c_lev + nlevel - 1;
 
@@ -2341,7 +2330,7 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
 
   MultiFab* vold[maxlev] = {0};
   if (sync_resid_fine !=0 || sync_resid_crse != 0) {
-    vold[c_lev] = new MultiFab(parent->boxArray(c_lev), BL_SPACEDIM, 1);
+    vold[c_lev] = raii.push_back(new MultiFab(parent->boxArray(c_lev), BL_SPACEDIM, 1));
     MultiFab::Copy(*vold[c_lev], *vel[c_lev], 0, 0, BL_SPACEDIM, 1);
 
     bool inflowCorner = false;
@@ -2452,8 +2441,6 @@ void Projection::doNodalProjection(int c_lev, int nlevel,
     int isCoarse = 1;
     mgt_solver.fill_sync_resid(sync_resid_crse, msk, *vold[c_lev], isCoarse);
   }
-
-  delete vold[c_lev];
 
   if (verbose >= 1)
     MGT_Solver::FlushFortranOutput();
