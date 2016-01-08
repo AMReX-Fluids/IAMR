@@ -2722,8 +2722,8 @@ NavierStokes::scalar_diffusion_update (Real dt,
 {
     BL_PROFILE("NavierStokes::scalar_diffusion_update()");
 
-    Diffusion::FluxBoxes fb_SCn  (this, 0, 1);
-    Diffusion::FluxBoxes fb_SCnp1(this, 0, 1);
+    FluxBoxes fb_SCn  (this, 0, 1);
+    FluxBoxes fb_SCnp1(this, 0, 1);
 
     MultiFab** fluxSCn   = fb_SCn.get();
     MultiFab** fluxSCnp1 = fb_SCnp1.get();
@@ -2740,7 +2740,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
             MultiFab** cmp_diffn   = 0;
             MultiFab** cmp_diffnp1 = 0;
 
-	    Diffusion::FluxBoxes fb_diffn, fb_diffnp1;
+	    FluxBoxes fb_diffn, fb_diffnp1;
 
             if (variable_scal_diff)
             {
@@ -3000,7 +3000,7 @@ NavierStokes::velocity_diffusion_update (Real dt)
 
         MultiFab** loc_viscn   = 0;
         MultiFab** loc_viscnp1 = 0;
-	Diffusion::FluxBoxes fb_viscn, fb_viscnp1;
+	FluxBoxes fb_viscn, fb_viscnp1;
 
         if (variable_vel_visc)
         {
@@ -5589,7 +5589,7 @@ NavierStokes::mac_sync ()
             int rho_flag = (do_mom_diff == 0) ? 1 : 3;
 
             MultiFab** loc_viscn = 0;
-	    Diffusion::FluxBoxes fb_viscn;
+	    FluxBoxes fb_viscn;
 
             if (variable_vel_visc)
             {
@@ -5601,7 +5601,7 @@ NavierStokes::mac_sync ()
             diffusion->diffuse_Vsync(Vsync,dt,be_cn_theta,Rh,rho_flag,loc_viscn,0);
         }
 
-	Diffusion::FluxBoxes fb_SC;
+	FluxBoxes fb_SC;
         MultiFab** fluxSC        = 0;
         bool       any_diffusive = false;
         for (int sigma  = 0; sigma < numscal; sigma++)
@@ -5619,7 +5619,7 @@ NavierStokes::mac_sync ()
 
             if (is_diffusive[state_ind])
             {
-		Diffusion::FluxBoxes fb_diffn;
+		FluxBoxes fb_diffn;
                 MultiFab** cmp_diffn=0;
 
                 if (variable_scal_diff)
@@ -6351,7 +6351,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     //
     if (src_comp == Xvel && is_diffusive[Xvel])
     {
-	Diffusion::FluxBoxes fb;
+	FluxBoxes fb;
         MultiFab** viscosity = 0;
 
         if (variable_vel_visc)
@@ -6407,7 +6407,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
             {
                 int rho_flag = Diffusion::set_rho_flag(diffusionType[icomp]);
 
-		Diffusion::FluxBoxes fb;
+		FluxBoxes fb;
                 MultiFab** cmp_diffn = 0;
 
                 if (variable_scal_diff)

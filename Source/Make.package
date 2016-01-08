@@ -16,6 +16,8 @@ CEXE_sources += NS_getForce.cpp
 CEXE_sources += ViscBndryTensor.cpp ProjOutFlowBC.cpp \
 			     MacOutFlowBC.cpp OutFlowBC.cpp
 
+CEXE_sources += FluxBoxes.cpp
+
 CEXE_headers += ViscBndryTensor.H   MacOutFlowBC.H \
 			     ProjOutFlowBC.H OutFlowBC.H
 
@@ -33,7 +35,7 @@ ifndef ATMOS_MACOP
 endif
 
 CEXE_sources += NavierStokes.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
-CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H 
+CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H FluxBoxes.H
 
 FEXE_sources += GODUNOV_F.F
 

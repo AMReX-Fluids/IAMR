@@ -14,6 +14,7 @@
 #include <FluxRegister.H>
 #include <ABecLaplacian.H>
 #include <ViscBndry.H>
+#include <FluxBoxes.H>
 
 //
 // Include files for tensor solve.
@@ -284,20 +285,6 @@ public:
                          const DiffusionForm         testForm,
                          const int                   sComp,
                          const int                   nComp);
-
-
-    class FluxBoxes
-    {
-    public:
-        FluxBoxes () : data(0) {}
-	explicit FluxBoxes (const NavierStokes* ns, int nghost, int nvar)
-	    : data(define(ns, nghost, nvar)) {}
-	~FluxBoxes ();
-	MultiFab** define(const NavierStokes* ns, int nghost, int nvar);
-	MultiFab** get () {return data;}
-    private:
-	MultiFab** data;
-    };
 
 protected:
 

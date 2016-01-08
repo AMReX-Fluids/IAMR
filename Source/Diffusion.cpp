@@ -2326,29 +2326,6 @@ Diffusion::checkBeta (const MultiFab* const* beta,
         BoxLib::Abort("Diffusion::checkBeta(): betas must be all non-0");
 }
 
-MultiFab**
-Diffusion::FluxBoxes::define (const NavierStokes* ns, int nghost, int nvar)
-{
-    MultiFab** fluxbox = new MultiFab*[BL_SPACEDIM];
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-	const BoxArray& ba = ns->getEdgeBoxArray(dir);
-        fluxbox[dir] = new MultiFab(ba,nvar,nghost);
-    }
-    return fluxbox;
-}
-
-Diffusion::FluxBoxes::~FluxBoxes ()
-{
-    if (data != 0)
-    {
-        for (int i = 0; i<BL_SPACEDIM; i++)
-            delete data[i];
-        delete [] data;
-        data = 0;
-    }
-}
-
 //
 // This routine computes the vector div mu SI, where I is the identity 
 // tensor, S = div U, and mu is constant.
