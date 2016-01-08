@@ -262,12 +262,6 @@ public:
     void checkBeta (const MultiFab* const* beta,
                     int&                   allthere) const;
 
-    void allocFluxBoxesLevel (MultiFab**& fluxbox, 
-                              int         nghost = 0,
-                              int         nvar = 1);
-
-    void removeFluxBoxesLevel (MultiFab**& fluxbox);
-
     void compute_divmusi (Real                   time,
 			  const MultiFab* const* beta,
 			  MultiFab&              divmusi);
@@ -290,6 +284,21 @@ public:
                          const DiffusionForm         testForm,
                          const int                   sComp,
                          const int                   nComp);
+
+
+    class FluxBoxes
+    {
+    public:
+        FluxBoxes () : data(0) {}
+	explicit FluxBoxes (const NavierStokes* ns, int nghost, int nvar)
+	    : data(define(ns, nghost, nvar)) {}
+	~FluxBoxes ();
+	MultiFab** define(const NavierStokes* ns, int nghost, int nvar);
+	MultiFab** get () {return data;}
+    private:
+	MultiFab** data;
+    };
+
 protected:
 
     void getTensorOp_doit (DivVis*                tensor_op,

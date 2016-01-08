@@ -618,11 +618,11 @@ Diffusion::diffuse_velocity (Real                   dt,
 
     if (allnull)
     {
-        MultiFab* *fluxSCn;
-        MultiFab* *fluxSCnp1;
+	FluxBoxes fb_SCn  (navier_stokes, 0, 1);
+	FluxBoxes fb_SCnp1(navier_stokes, 0, 1);
 
-        allocFluxBoxesLevel(fluxSCn,  0,1);
-        allocFluxBoxesLevel(fluxSCnp1,0,1);
+        MultiFab* *fluxSCn   = fb_SCn.get();
+        MultiFab* *fluxSCnp1 = fb_SCnp1.get();
 
         MultiFab fluxes[BL_SPACEDIM];
 
@@ -662,9 +662,6 @@ Diffusion::diffuse_velocity (Real                   dt,
                 }
             }
         }
-
-        removeFluxBoxesLevel(fluxSCn);
-        removeFluxBoxesLevel(fluxSCnp1);
 
         if (level < parent->finestLevel())
         {
@@ -710,6 +707,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     MultiFab Rhs(grids,BL_SPACEDIM,0);
 
     MultiFab** tensorflux_old;
+    FluxBoxes fb_old;
     {
         //
         // Set up Rhs.
@@ -737,7 +735,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	    
 	    if (do_reflux && (level<finest_level || level>0))
 	    {
-		allocFluxBoxesLevel(tensorflux_old,0,BL_SPACEDIM);
+		tensorflux_old = fb_old.define(navier_stokes, 0, BL_SPACEDIM);
 		tensor_op->compFlux(D_DECL(*(tensorflux_old[0]),
 					   *(tensorflux_old[1]),
 					   *(tensorflux_old[2])),Soln_old);
@@ -911,8 +909,8 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     //
     if (do_reflux && (level < finest_level || level > 0))
     {
-        MultiFab** tensorflux;
-        allocFluxBoxesLevel(tensorflux,0,BL_SPACEDIM);
+	FluxBoxes fb(navier_stokes, 0, BL_SPACEDIM);
+        MultiFab** tensorflux = fb.get();
         tensor_op->compFlux(D_DECL(*(tensorflux[0]), *(tensorflux[1]), *(tensorflux[2])),Soln);
 
         for (int d = 0; d < BL_SPACEDIM; d++)
@@ -920,8 +918,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
             tensorflux[d]->mult(b/(dt*navier_stokes->Geom().CellSize()[d]),0);
             tensorflux[d]->plus(*(tensorflux_old[d]),0,BL_SPACEDIM,0);
         }       
-
-        removeFluxBoxesLevel(tensorflux_old);
 
         if (level > 0)
         {
@@ -934,8 +930,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
             for (int d = 0; d < BL_SPACEDIM; d++)
                 finer->viscflux_reg->CrseInit(*tensorflux[d],d,0,Xvel,BL_SPACEDIM,-dt);
         }
-
-        removeFluxBoxesLevel(tensorflux);
     }
 }
 
@@ -1274,8 +1268,8 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     if (level > 0)
     {
         FArrayBox flux;
-        MultiFab** tensorflux;
-        allocFluxBoxesLevel(tensorflux,0,BL_SPACEDIM);
+	FluxBoxes fb(navier_stokes, 0, BL_SPACEDIM);
+        MultiFab** tensorflux = fb.get();
         tensor_op->compFlux(D_DECL(*(tensorflux[0]), *(tensorflux[1]), *(tensorflux[2])),Soln);
         //
         // The extra factor of dt comes from the fact that Vsync looks
@@ -1305,7 +1299,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
                 }
             }
         }
-        removeFluxBoxesLevel(tensorflux);
     }
 }
 
@@ -2333,28 +2326,26 @@ Diffusion::checkBeta (const MultiFab* const* beta,
         BoxLib::Abort("Diffusion::checkBeta(): betas must be all non-0");
 }
 
-void
-Diffusion::allocFluxBoxesLevel (MultiFab**& fluxbox, 
-                                int         nghost,
-                                int         nvar)
+MultiFab**
+Diffusion::FluxBoxes::define (const NavierStokes* ns, int nghost, int nvar)
 {
-    fluxbox = new MultiFab*[BL_SPACEDIM];
+    MultiFab** fluxbox = new MultiFab*[BL_SPACEDIM];
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-	const BoxArray& ba = navier_stokes->getEdgeBoxArray(dir);
+	const BoxArray& ba = ns->getEdgeBoxArray(dir);
         fluxbox[dir] = new MultiFab(ba,nvar,nghost);
     }
+    return fluxbox;
 }
 
-void
-Diffusion::removeFluxBoxesLevel (MultiFab**& fluxbox) 
+Diffusion::FluxBoxes::~FluxBoxes ()
 {
-    if (fluxbox != 0)
+    if (data != 0)
     {
         for (int i = 0; i<BL_SPACEDIM; i++)
-            delete fluxbox[i];
-        delete [] fluxbox;
-        fluxbox = 0;
+            delete data[i];
+        delete [] data;
+        data = 0;
     }
 }
 

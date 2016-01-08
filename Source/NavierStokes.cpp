@@ -2722,11 +2722,11 @@ NavierStokes::scalar_diffusion_update (Real dt,
 {
     BL_PROFILE("NavierStokes::scalar_diffusion_update()");
 
-    MultiFab** fluxSCn;
-    MultiFab** fluxSCnp1;
+    Diffusion::FluxBoxes fb_SCn  (this, 0, 1);
+    Diffusion::FluxBoxes fb_SCnp1(this, 0, 1);
 
-    diffusion->allocFluxBoxesLevel(fluxSCn,  0,1);
-    diffusion->allocFluxBoxesLevel(fluxSCnp1,0,1);
+    MultiFab** fluxSCn   = fb_SCn.get();
+    MultiFab** fluxSCnp1 = fb_SCnp1.get();
 
     const MultiFab* Rh = get_rho_half_time();
 
@@ -2740,14 +2740,16 @@ NavierStokes::scalar_diffusion_update (Real dt,
             MultiFab** cmp_diffn   = 0;
             MultiFab** cmp_diffnp1 = 0;
 
+	    Diffusion::FluxBoxes fb_diffn, fb_diffnp1;
+
             if (variable_scal_diff)
             {
                 Real diffTime = state[State_Type].prevTime();
-                diffusion->allocFluxBoxesLevel(cmp_diffn, 0, 1);
+		cmp_diffn = fb_diffn.define(this, 0, 1);
                 getDiffusivity(cmp_diffn, diffTime, sigma, 0, 1);
 
                 diffTime = state[State_Type].curTime();
-                diffusion->allocFluxBoxesLevel(cmp_diffnp1, 0, 1);
+		cmp_diffnp1 = fb_diffnp1.define(this, 0, 1);
                 getDiffusivity(cmp_diffnp1, diffTime, sigma, 0, 1);
             }
 
@@ -2759,12 +2761,6 @@ NavierStokes::scalar_diffusion_update (Real dt,
             diffusion->diffuse_scalar(dt,sigma,be_cn_theta,Rh,
                                       rho_flag,fluxSCn,fluxSCnp1,fluxComp,delta_rhs,
                                       rhsComp,alpha,alphaComp,cmp_diffn,cmp_diffnp1,betaComp);
-
-            if (variable_scal_diff)
-            {
-                diffusion->removeFluxBoxesLevel(cmp_diffn);
-                diffusion->removeFluxBoxesLevel(cmp_diffnp1);
-            }
 
             delete delta_rhs;
             delete alpha;
@@ -2803,8 +2799,6 @@ NavierStokes::scalar_diffusion_update (Real dt,
             }
         }
     }
-    diffusion->removeFluxBoxesLevel(fluxSCn);
-    diffusion->removeFluxBoxesLevel(fluxSCnp1);
 }
 
 void
@@ -3006,15 +3000,16 @@ NavierStokes::velocity_diffusion_update (Real dt)
 
         MultiFab** loc_viscn   = 0;
         MultiFab** loc_viscnp1 = 0;
+	Diffusion::FluxBoxes fb_viscn, fb_viscnp1;
 
         if (variable_vel_visc)
         {
             Real viscTime = state[State_Type].prevTime();
-            diffusion->allocFluxBoxesLevel(loc_viscn, 0, 1);
+	    loc_viscn = fb_viscn.define(this, 0, 1);
             getViscosity(loc_viscn, viscTime);
 
             viscTime = state[State_Type].curTime();
-            diffusion->allocFluxBoxesLevel(loc_viscnp1, 0, 1);
+	    loc_viscnp1 = fb_viscnp1.define(this, 0, 1);
             getViscosity(loc_viscnp1, viscTime);
         }
 
@@ -3022,11 +3017,6 @@ NavierStokes::velocity_diffusion_update (Real dt)
 
         diffusion->diffuse_velocity(dt,be_cn_theta,get_rho_half_time(),rho_flag,
                                     delta_rhs,loc_viscn,loc_viscnp1);
-        if (variable_vel_visc)
-        {
-            diffusion->removeFluxBoxesLevel(loc_viscn);
-            diffusion->removeFluxBoxesLevel(loc_viscnp1);
-        }
 
         delete delta_rhs;
     }
@@ -5599,30 +5589,28 @@ NavierStokes::mac_sync ()
             int rho_flag = (do_mom_diff == 0) ? 1 : 3;
 
             MultiFab** loc_viscn = 0;
+	    Diffusion::FluxBoxes fb_viscn;
 
             if (variable_vel_visc)
             {
                 Real viscTime = state[State_Type].prevTime();
-                diffusion->allocFluxBoxesLevel(loc_viscn, 0, 1);
+		loc_viscn = fb_viscn.define(this, 0, 1);
                 getViscosity(loc_viscn, viscTime);
             }
 
             diffusion->diffuse_Vsync(Vsync,dt,be_cn_theta,Rh,rho_flag,loc_viscn,0);
-
-            if (variable_vel_visc)
-            {
-                diffusion->removeFluxBoxesLevel(loc_viscn);
-            }
         }
 
+	Diffusion::FluxBoxes fb_SC;
         MultiFab** fluxSC        = 0;
         bool       any_diffusive = false;
         for (int sigma  = 0; sigma < numscal; sigma++)
             if (is_diffusive[BL_SPACEDIM+sigma])
                 any_diffusive = true;
 
-        if (any_diffusive)
-            diffusion->allocFluxBoxesLevel(fluxSC,0,1);
+        if (any_diffusive) {
+	    fluxSC = fb_SC.define(this, 0, 1);
+	}
 
         for (int sigma = 0; sigma<numscal; sigma++)
         {
@@ -5631,22 +5619,19 @@ NavierStokes::mac_sync ()
 
             if (is_diffusive[state_ind])
             {
+		Diffusion::FluxBoxes fb_diffn;
                 MultiFab** cmp_diffn=0;
 
                 if (variable_scal_diff)
                 {
                     Real diffTime = state[State_Type].prevTime();
-                    diffusion->allocFluxBoxesLevel(cmp_diffn, 0, 1);
+		    cmp_diffn = fb_diffn.define(this, 0, 1);
                     getDiffusivity(cmp_diffn, diffTime, BL_SPACEDIM+sigma,0,1);
                 }
 
                 diffusion->diffuse_Ssync(Ssync,sigma,dt,be_cn_theta,
                                          Rh,rho_flag,fluxSC,0,cmp_diffn,0,0,0);
 
-                if (variable_scal_diff)
-                {
-                    diffusion->removeFluxBoxesLevel(cmp_diffn);
-                }
                 //
                 // Increment the viscous flux registers
                 //
@@ -5660,8 +5645,6 @@ NavierStokes::mac_sync ()
             }
         }
 
-        if (any_diffusive)
-            diffusion->removeFluxBoxesLevel(fluxSC);
         //
         // For all conservative variables Q (other than density)
         // increment sync by (sync_for_rho)*q_presync.
@@ -6368,11 +6351,12 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     //
     if (src_comp == Xvel && is_diffusive[Xvel])
     {
-        MultiFab** viscosity;
+	Diffusion::FluxBoxes fb;
+        MultiFab** viscosity = 0;
 
         if (variable_vel_visc)
         {
-            diffusion->allocFluxBoxesLevel(viscosity, 0, 1);
+	    viscosity = fb.define(this, 0, 1);
             getViscosity(viscosity, time);
 
             diffusion->getTensorViscTerms(visc_terms,time,viscosity,0);
@@ -6408,11 +6392,6 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 
             visc_terms.plus(divmusi,Xvel,BL_SPACEDIM,0);
         }
-        //
-        // Clean up variable viscosity arrays
-        //
-        if (variable_vel_visc)
-            diffusion->removeFluxBoxesLevel(viscosity);
     }
     //
     // Get Scalar Diffusive Terms
@@ -6428,21 +6407,17 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
             {
                 int rho_flag = Diffusion::set_rho_flag(diffusionType[icomp]);
 
+		Diffusion::FluxBoxes fb;
                 MultiFab** cmp_diffn = 0;
 
                 if (variable_scal_diff)
                 {
-                    diffusion->allocFluxBoxesLevel(cmp_diffn, 0, 1);
+		    cmp_diffn = fb.define(this, 0, 1);
                     getDiffusivity(cmp_diffn, time, icomp, 0, 1);
                 }
 
                 diffusion->getViscTerms(visc_terms,src_comp,icomp,
                                         time,rho_flag,cmp_diffn,0);
-
-                if (variable_scal_diff)
-                {
-                    diffusion->removeFluxBoxesLevel(cmp_diffn);
-                }
             }
         }
     }
