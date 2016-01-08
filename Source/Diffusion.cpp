@@ -304,8 +304,9 @@ Diffusion::diffuse_scalar (Real                   dt,
             b *= visc_coef[sigma];
         ViscBndry visc_bndry_0;
         const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
-        ABecLaplacian* visc_op = getViscOp(sigma,a,b,prev_time,visc_bndry_0,
-                                           rho_half,rho_flag,0,betan,betaComp,0,0);
+	PArray<ABecLaplacian> raii(PArrayManage);
+        ABecLaplacian* visc_op = raii.push_back
+	    (getViscOp(sigma,a,b,prev_time,visc_bndry_0,rho_half,rho_flag,0,betan,betaComp,0,0));
         visc_op->maxOrder(max_order);
         //
         // Copy to single-component multifab, then apply op to rho-scaled state
@@ -318,7 +319,6 @@ Diffusion::diffuse_scalar (Real                   dt,
         visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC,0,fluxComp);
         for (int i = 0; i < BL_SPACEDIM; ++i)
             (*fluxn[i]).mult(-b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
-        delete visc_op;
     }
     else
     {
@@ -445,8 +445,10 @@ Diffusion::diffuse_scalar (Real                   dt,
     const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
     Real       rhsscale = 1.0;
 
-    ABecLaplacian* visc_op  = getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,
-                                        rho_flag,&rhsscale,betanp1,betaComp,alpha,alphaComp);
+    PArray<ABecLaplacian> raii(PArrayManage);
+    ABecLaplacian* visc_op  = raii.push_back
+	(getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,
+		   rho_flag,&rhsscale,betanp1,betaComp,alpha,alphaComp));
     Rhs.mult(rhsscale,0,1);
     visc_op->maxOrder(max_order);
 
@@ -567,7 +569,6 @@ Diffusion::diffuse_scalar (Real                   dt,
     visc_op->compFlux(D_DECL(*fluxnp1[0],*fluxnp1[1],*fluxnp1[2]),Soln,do_applyBC,LinOp::Inhomogeneous_BC,0,fluxComp);
     for (int i = 0; i < BL_SPACEDIM; ++i)
         (*fluxnp1[i]).mult(b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
-    delete visc_op;
     //
     // Copy into state variable at new time, without bc's
     //
@@ -722,25 +723,28 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         ViscBndryTensor visc_bndry;
         const MultiFab* rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ptime;
         
-        DivVis* tensor_op = getTensorOp(a,b,prev_time,visc_bndry,rho,betan,betaComp);
-        tensor_op->maxOrder(tensor_max_order);
-        //
-        // Copy to single-component multifab.  Use Soln as a temporary here.
-        //
-        MultiFab::Copy(Soln_old,U_old,Xvel,0,BL_SPACEDIM,0);
-
-        tensor_op->apply(Rhs,Soln_old);
-
-        if (do_reflux && (level<finest_level || level>0))
-        {
-            allocFluxBoxesLevel(tensorflux_old,0,BL_SPACEDIM);
-            tensor_op->compFlux(D_DECL(*(tensorflux_old[0]),
-                                       *(tensorflux_old[1]),
-                                       *(tensorflux_old[2])),Soln_old);
-            for (int d = 0; d < BL_SPACEDIM; d++)
-                tensorflux_old[d]->mult(-b/(dt*navier_stokes->Geom().CellSize()[d]),0);
-        }
-        delete tensor_op;
+	{
+	    PArray<DivVis> raii(PArrayManage);
+	    DivVis* tensor_op = raii.push_back
+		(getTensorOp(a,b,prev_time,visc_bndry,rho,betan,betaComp));
+	    tensor_op->maxOrder(tensor_max_order);
+	    //
+	    // Copy to single-component multifab.  Use Soln as a temporary here.
+	    //
+	    MultiFab::Copy(Soln_old,U_old,Xvel,0,BL_SPACEDIM,0);
+	    
+	    tensor_op->apply(Rhs,Soln_old);
+	    
+	    if (do_reflux && (level<finest_level || level>0))
+	    {
+		allocFluxBoxesLevel(tensorflux_old,0,BL_SPACEDIM);
+		tensor_op->compFlux(D_DECL(*(tensorflux_old[0]),
+					   *(tensorflux_old[1]),
+					   *(tensorflux_old[2])),Soln_old);
+		for (int d = 0; d < BL_SPACEDIM; d++)
+		    tensorflux_old[d]->mult(-b/(dt*navier_stokes->Geom().CellSize()[d]),0);
+	    }
+	}
 
         Soln_old.clear();
 
@@ -873,7 +877,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
        
     ViscBndryTensor visc_bndry;
     const MultiFab* rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
-    DivVis* tensor_op = getTensorOp(a,b,cur_time,visc_bndry,rho,betanp1,betaComp);
+    PArray<DivVis> raii(PArrayManage);
+    DivVis* tensor_op = raii.push_back
+	(getTensorOp(a,b,cur_time,visc_bndry,rho,betanp1,betaComp));
     tensor_op->maxOrder(tensor_max_order);
     //
     // Construct solver and call it.
@@ -931,8 +937,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 
         removeFluxBoxesLevel(tensorflux);
     }
-
-    delete tensor_op;
 }
 
 void
@@ -1038,7 +1042,9 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
         const Real     a        = 1.0;
         const Real     b        = be_cn_theta*dt*visc_coef[comp];
         Real           rhsscale = 1.0;
-        ABecLaplacian* visc_op  = getViscOp(comp,a,b,rho,rho_flag,&rhsscale,0,0,0,0);
+	PArray<ABecLaplacian> raii(PArrayManage);
+        ABecLaplacian* visc_op = raii.push_back
+	    (getViscOp(comp,a,b,rho,rho_flag,&rhsscale,0,0,0,0));
 
         visc_op->maxOrder(max_order);
         Rhs.mult(rhsscale,0,1);
@@ -1090,8 +1096,6 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab*       Vsync,
             if (ParallelDescriptor::IOProcessor())
                 std::cout << "Final max of Vsync " << s_norm << '\n';
         }
-
-        delete visc_op;
 
         if (level > 0)
         {
@@ -1227,7 +1231,8 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     const Real      a         = 1.0;
     const Real      b         = be_cn_theta*dt;
     const MultiFab* rho       = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
-    DivVis*         tensor_op = getTensorOp(a,b,rho,beta,betaComp);
+    PArray<DivVis> raii(PArrayManage);
+    DivVis* tensor_op = raii.push_back( getTensorOp(a,b,rho,beta,betaComp) );
     tensor_op->maxOrder(tensor_max_order);
 
     MultiFab Soln(grids,BL_SPACEDIM,1);
@@ -1302,8 +1307,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
         }
         removeFluxBoxesLevel(tensorflux);
     }
-
-    delete tensor_op;
 }
 
 void
@@ -1381,8 +1384,9 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
     if (allnull)
         b *= visc_coef[state_ind];
     Real           rhsscale = 1.0;
-    ABecLaplacian* visc_op  = getViscOp(state_ind,a,b,rho_half,rho_flag,
-                                        &rhsscale,beta,betaComp,alpha,alphaComp);
+    PArray<ABecLaplacian> raii(PArrayManage);
+    ABecLaplacian* visc_op = raii.push_back 
+	(getViscOp(state_ind,a,b,rho_half,rho_flag,&rhsscale,beta,betaComp,alpha,alphaComp));
     visc_op->maxOrder(max_order);
     //
     // Compute RHS.
@@ -1459,8 +1463,6 @@ Diffusion::diffuse_Ssync (MultiFab*              Ssync,
             (*Ssync)[Ssyncmfi].mult(S_new[Ssyncmfi],Ssyncmfi.validbox(),Density,sigma,1);
         }
     }
-    
-    delete visc_op;
 }
 
 void
@@ -2373,7 +2375,8 @@ Diffusion::compute_divmusi (Real      time,
     {
         const int     nGrowDU  = 1;
         const Real*   dx       = navier_stokes->Geom().CellSize();
-        MultiFab*     divu_fp  = navier_stokes->getDivCond(nGrowDU,time);
+	PArray<MultiFab> raii(PArrayManage);
+        MultiFab* divu_fp = raii.push_back( navier_stokes->getDivCond(nGrowDU,time) );
 
         for (MFIter divmusimfi(divmusi); divmusimfi.isValid(); ++divmusimfi)
         {
@@ -2387,8 +2390,6 @@ Diffusion::compute_divmusi (Real      time,
                            ARLIM(fab.loVect()),  ARLIM(fab.hiVect()),
                            fab.dataPtr());
         }
-
-        delete divu_fp;
     }
     else
     {
@@ -2409,7 +2410,8 @@ Diffusion::compute_divmusi (Real                   time,
 {
     const int     nGrowDU  = 1;
     const Real*   dx       = navier_stokes->Geom().CellSize();
-    MultiFab*     divu_fp  = navier_stokes->getDivCond(nGrowDU,time);
+    PArray<MultiFab> raii(PArrayManage);
+    MultiFab* divu_fp = raii.push_back( navier_stokes->getDivCond(nGrowDU,time) );
 
     for (MFIter divmusimfi(divmusi); divmusimfi.isValid(); ++divmusimfi)
     {
@@ -2435,8 +2437,6 @@ Diffusion::compute_divmusi (Real                   time,
                           ARLIM(divmusi[divmusimfi].loVect()), ARLIM(divmusi[divmusimfi].hiVect()),
                           divmusi[divmusimfi].dataPtr());
     }
-
-    delete divu_fp;
 }
 
 
