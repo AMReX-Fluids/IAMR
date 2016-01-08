@@ -684,6 +684,9 @@ protected:
 
 protected:
 
+    PArray<FluxBoxes> raii_fbs;
+    PArray<MultiFab>  raii_mfs;
+
     MultiFab volume;
     MultiFab area[BL_SPACEDIM];
 

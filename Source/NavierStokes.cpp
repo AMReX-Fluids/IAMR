@@ -672,6 +672,9 @@ NavierStokes::Finalize ()
 }
 
 NavierStokes::NavierStokes ()
+    :
+    raii_fbs(PArrayManage),
+    raii_mfs(PArrayManage)
 {
     rho_avg      = 0;
     rho_half     = 0;
