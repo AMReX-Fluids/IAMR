@@ -2756,8 +2756,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
                 getDiffusivity(cmp_diffnp1, diffTime, sigma, 0, 1);
             }
 
-            diffuse_scalar_setup(dt, sigma, &rho_flag, 
-                                 delta_rhs, alpha, cmp_diffn, cmp_diffnp1);
+            diffuse_scalar_setup(sigma, rho_flag);
 
             const int betaComp = 0, rhsComp = 0, alphaComp = 0, fluxComp  = 0;
 
@@ -2805,15 +2804,9 @@ NavierStokes::scalar_diffusion_update (Real dt,
 }
 
 void
-NavierStokes::diffuse_scalar_setup (Real        dt,
-                                    int         sigma,
-                                    int*        rho_flag,
-                                    MultiFab*&  delta_rhs,
-                                    MultiFab*&  alpha,
-                                    MultiFab**& diffn,
-                                    MultiFab**& diffnp1)
+NavierStokes::diffuse_scalar_setup (int sigma, int& rho_flag)
 {
-    (*rho_flag) = Diffusion::set_rho_flag(diffusionType[sigma]);
+    rho_flag = Diffusion::set_rho_flag(diffusionType[sigma]);
 }
 
 //

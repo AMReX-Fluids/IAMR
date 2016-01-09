@@ -378,13 +378,8 @@ protected:
                                   int  first_scalar,
                                   int  last_scalar);
 
-    virtual void diffuse_scalar_setup (Real        dt,
-				       int         sigma,
-				       int*        rho_flag,
-				       MultiFab*&  delta_rhs,
-				       MultiFab*&  alpha,
-				       MultiFab**& diffn,
-				       MultiFab**& diffnp1); 
+    void diffuse_scalar_setup (int sigma, int& rho_flag);
+
     //
     // Make rho at time n.
     //
@@ -410,14 +405,14 @@ protected:
 
     void velocity_advection_update (Real dt);
 
-    virtual void velocity_diffusion_update (Real dt);
+    void velocity_diffusion_update (Real dt);
 
     void initial_velocity_diffusion_update (Real dt);
 
-    virtual void diffuse_velocity_setup (Real       dt,
-                                         MultiFab*& delta_rhs,
-                                         MultiFab**& viscn,
-                                         MultiFab**& viscnp1); 
+    void diffuse_velocity_setup (Real       dt,
+				 MultiFab*& delta_rhs,
+				 MultiFab**& viscn,
+				 MultiFab**& viscnp1); 
     //
     // Compute level projection.
     //
