@@ -618,8 +618,8 @@ Diffusion::diffuse_velocity (Real                   dt,
 
     if (allnull)
     {
-	FluxBoxes fb_SCn  (navier_stokes, 0, 1);
-	FluxBoxes fb_SCnp1(navier_stokes, 0, 1);
+	FluxBoxes fb_SCn  (navier_stokes);
+	FluxBoxes fb_SCnp1(navier_stokes);
 
         MultiFab* *fluxSCn   = fb_SCn.get();
         MultiFab* *fluxSCnp1 = fb_SCnp1.get();
@@ -735,7 +735,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	    
 	    if (do_reflux && (level<finest_level || level>0))
 	    {
-		tensorflux_old = fb_old.define(navier_stokes, 0, BL_SPACEDIM);
+		tensorflux_old = fb_old.define(navier_stokes, BL_SPACEDIM);
 		tensor_op->compFlux(D_DECL(*(tensorflux_old[0]),
 					   *(tensorflux_old[1]),
 					   *(tensorflux_old[2])),Soln_old);
@@ -909,7 +909,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     //
     if (do_reflux && (level < finest_level || level > 0))
     {
-	FluxBoxes fb(navier_stokes, 0, BL_SPACEDIM);
+	FluxBoxes fb(navier_stokes, BL_SPACEDIM);
         MultiFab** tensorflux = fb.get();
         tensor_op->compFlux(D_DECL(*(tensorflux[0]), *(tensorflux[1]), *(tensorflux[2])),Soln);
 
@@ -1268,7 +1268,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab*              Vsync,
     if (level > 0)
     {
         FArrayBox flux;
-	FluxBoxes fb(navier_stokes, 0, BL_SPACEDIM);
+	FluxBoxes fb(navier_stokes, BL_SPACEDIM);
         MultiFab** tensorflux = fb.get();
         tensor_op->compFlux(D_DECL(*(tensorflux[0]), *(tensorflux[1]), *(tensorflux[2])),Soln);
         //

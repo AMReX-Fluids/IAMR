@@ -9,12 +9,12 @@ public:
 
     FluxBoxes () : data(0) {}
 
-    explicit FluxBoxes (const AmrLevel* amr_level, int nghost, int nvar)
-	: data(define(amr_level, nghost, nvar)) {}
+    explicit FluxBoxes (const AmrLevel* amr_level, int nvar=1, int nghost=0)
+	: data(define(amr_level, nvar, nghost)) {}
 
     ~FluxBoxes () { clear(); };
 
-    MultiFab** define (const AmrLevel* amr_level, int nghost, int nvar);
+    MultiFab** define (const AmrLevel* amr_level, int nvar=1, int nghost=0);
 
     void clear ();
 

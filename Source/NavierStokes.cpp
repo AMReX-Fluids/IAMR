@@ -2725,8 +2725,8 @@ NavierStokes::scalar_diffusion_update (Real dt,
 {
     BL_PROFILE("NavierStokes::scalar_diffusion_update()");
 
-    FluxBoxes fb_SCn  (this, 0, 1);
-    FluxBoxes fb_SCnp1(this, 0, 1);
+    FluxBoxes fb_SCn  (this);
+    FluxBoxes fb_SCnp1(this);
 
     MultiFab** fluxSCn   = fb_SCn.get();
     MultiFab** fluxSCnp1 = fb_SCnp1.get();
@@ -2748,11 +2748,11 @@ NavierStokes::scalar_diffusion_update (Real dt,
             if (variable_scal_diff)
             {
                 Real diffTime = state[State_Type].prevTime();
-		cmp_diffn = fb_diffn.define(this, 0, 1);
+		cmp_diffn = fb_diffn.define(this);
                 getDiffusivity(cmp_diffn, diffTime, sigma, 0, 1);
 
                 diffTime = state[State_Type].curTime();
-		cmp_diffnp1 = fb_diffnp1.define(this, 0, 1);
+		cmp_diffnp1 = fb_diffnp1.define(this);
                 getDiffusivity(cmp_diffnp1, diffTime, sigma, 0, 1);
             }
 
@@ -3001,11 +3001,11 @@ NavierStokes::velocity_diffusion_update (Real dt)
         if (variable_vel_visc)
         {
             Real viscTime = state[State_Type].prevTime();
-	    loc_viscn = fb_viscn.define(this, 0, 1);
+	    loc_viscn = fb_viscn.define(this);
             getViscosity(loc_viscn, viscTime);
 
             viscTime = state[State_Type].curTime();
-	    loc_viscnp1 = fb_viscnp1.define(this, 0, 1);
+	    loc_viscnp1 = fb_viscnp1.define(this);
             getViscosity(loc_viscnp1, viscTime);
         }
 
@@ -5590,7 +5590,7 @@ NavierStokes::mac_sync ()
             if (variable_vel_visc)
             {
                 Real viscTime = state[State_Type].prevTime();
-		loc_viscn = fb_viscn.define(this, 0, 1);
+		loc_viscn = fb_viscn.define(this);
                 getViscosity(loc_viscn, viscTime);
             }
 
@@ -5605,7 +5605,7 @@ NavierStokes::mac_sync ()
                 any_diffusive = true;
 
         if (any_diffusive) {
-	    fluxSC = fb_SC.define(this, 0, 1);
+	    fluxSC = fb_SC.define(this);
 	}
 
         for (int sigma = 0; sigma<numscal; sigma++)
@@ -5621,7 +5621,7 @@ NavierStokes::mac_sync ()
                 if (variable_scal_diff)
                 {
                     Real diffTime = state[State_Type].prevTime();
-		    cmp_diffn = fb_diffn.define(this, 0, 1);
+		    cmp_diffn = fb_diffn.define(this);
                     getDiffusivity(cmp_diffn, diffTime, BL_SPACEDIM+sigma,0,1);
                 }
 
@@ -6352,7 +6352,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 
         if (variable_vel_visc)
         {
-	    viscosity = fb.define(this, 0, 1);
+	    viscosity = fb.define(this);
             getViscosity(viscosity, time);
 
             diffusion->getTensorViscTerms(visc_terms,time,viscosity,0);
@@ -6408,7 +6408,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 
                 if (variable_scal_diff)
                 {
-		    cmp_diffn = fb.define(this, 0, 1);
+		    cmp_diffn = fb.define(this);
                     getDiffusivity(cmp_diffn, time, icomp, 0, 1);
                 }
 

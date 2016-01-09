@@ -1,7 +1,7 @@
 #include <FluxBoxes.H>
 
 MultiFab**
-FluxBoxes::define (const AmrLevel* amr_level, int nghost, int nvar)
+FluxBoxes::define (const AmrLevel* amr_level, int nvar, int nghost)
 {
     MultiFab** fluxbox = new MultiFab*[BL_SPACEDIM];
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
