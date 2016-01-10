@@ -3,13 +3,14 @@
 MultiFab**
 FluxBoxes::define (const AmrLevel* amr_level, int nvar, int nghost)
 {
-    MultiFab** fluxbox = new MultiFab*[BL_SPACEDIM];
+    BL_ASSERT(data == 0);
+    data = new MultiFab*[BL_SPACEDIM];
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
 	const BoxArray& ba = amr_level->getEdgeBoxArray(dir);
-        fluxbox[dir] = new MultiFab(ba,nvar,nghost);
+        data[dir] = new MultiFab(ba,nvar,nghost);
     }
-    return fluxbox;
+    return data;
 }
 
 void

@@ -10,7 +10,7 @@ public:
     FluxBoxes () : data(0) {}
 
     explicit FluxBoxes (const AmrLevel* amr_level, int nvar=1, int nghost=0)
-	: data(define(amr_level, nvar, nghost)) {}
+	: data(0) { define(amr_level, nvar, nghost); }
 
     ~FluxBoxes () { clear(); };
 
