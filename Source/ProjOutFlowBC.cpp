@@ -134,8 +134,8 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         zeroIt[i] = 0;
 
 #if (BL_SPACEDIM == 2)
-    Real* rcen[2*BL_SPACEDIM];
-    Real* redge[2*BL_SPACEDIM];
+    Array<Array<Real> > rcen(2*BL_SPACEDIM);
+    Array<Array<Real> > redge(2*BL_SPACEDIM);
 #endif
 
     FArrayBox ccExt[2*BL_SPACEDIM];
@@ -208,8 +208,8 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         //
         int perpDir = 1 - outDir;
         int r_len = domain.length(perpDir)+1;
-        rcen[iface] = new Real[r_len-1];
-        redge[iface] = new Real[r_len];
+        rcen[iface].resize(r_len-1);
+        redge[iface].resize(r_len);
         //
         // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
         //
@@ -244,8 +244,6 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             for (i = 0; i < r_len-1; i++)
                 rcen[iface][i] = 1.;
         }
-#else
-        Array<Real> rcen;
 #endif
 
         DEF_BOX_LIMITS(origBox,origLo,origHi);
@@ -268,7 +266,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                          ARLIM(divulo), ARLIM(divuhi), divuPtr,
                          ARLIM(rholo),  ARLIM(rhohi),rhoPtr,
 #if (BL_SPACEDIM == 2)
-                         &r_len,redge[iface],
+                         &r_len,redge[iface].dataPtr(),
 #endif
                          ARLIM(ccElo),ARLIM(ccEhi),uEPtr,
                          ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
@@ -346,24 +344,24 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                 if (faces[i] == 0)
                 {
                     ccEptr0 = ccExt[i].dataPtr();
-                    r0 = rcen[i];
+                    r0 = rcen[i].dataPtr();
                     length = length + leny;
                 }
                 else if (faces[i] == 1)
                 {
                     ccEptr1 = ccExt[i].dataPtr();
-                    r1 = rcen[i];
+                    r1 = rcen[i].dataPtr();
                     length = length + lenx;
                 }
                 else if (faces[i] == 2)
                 {
                     ccEptr2 = ccExt[i].dataPtr();
-                    r2 = rcen[i];
+                    r2 = rcen[i].dataPtr();
                     length = length + leny;
                 }
                 else if (faces[i] == 3) {
                     ccEptr3 = ccExt[i].dataPtr();
-                    r3 = rcen[i];
+                    r3 = rcen[i].dataPtr();
                     length = length + lenx;
                 }
             }
