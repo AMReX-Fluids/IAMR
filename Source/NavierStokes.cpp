@@ -1215,7 +1215,8 @@ NavierStokes::initData ()
         FArrayBox& Sfab = S_new[snewmfi];
         FArrayBox& Pfab = P_new[snewmfi];
 
-        Pfab.setVal(0);
+	Sfab.setVal(0.0);
+        Pfab.setVal(0.0);
 
         const int  i       = snewmfi.index();
         RealBox    gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
@@ -1593,7 +1594,9 @@ NavierStokes::advance_setup (Real time,
     //
     for (int k = 0; k < num_state_type; k++)
     {
+	bool has_old_data = state[k].hasOldData();
         state[k].allocOldData();
+	if (! has_old_data) state[k].oldData().setVal(0.0);
         state[k].swapTimeLevels(dt);
     }
 
