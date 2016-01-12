@@ -329,8 +329,9 @@ MacProj::mac_project (int             level,
     //
     // If finest level possible no need to make permanent mac_phi for bcs.
     //
+    PArray<MultiFab> raii(PArrayManage);
     if (level == max_level)
-        mac_phi = new MultiFab(grids,1,1);
+        mac_phi = raii.push_back(new MultiFab(grids,1,1));
     else
         mac_phi = &mac_phi_crse[level];
 
@@ -477,14 +478,6 @@ MacProj::mac_project (int             level,
                 }
             }
         }
-    }
-    //
-    // If finest level possible no need to keep phi for boundary conditions.
-    //
-    if (level == max_level)
-    {
-        delete mac_phi;
-        mac_phi = 0;
     }
 
     if (check_umac_periodicity)
@@ -768,7 +761,8 @@ MacProj::mac_sync_compute (int                   level,
 
     ns_level.getGradP(Gp, prev_pres_time);
 
-    MultiFab* divu_fp = ns_level.getDivCond(1,prev_time);
+    PArray<MultiFab> raii(PArrayManage);
+    MultiFab* divu_fp = raii.push_back(ns_level.getDivCond(1,prev_time));
     //
     // Compute the mac sync correction.
     //
@@ -915,8 +909,6 @@ MacProj::mac_sync_compute (int                   level,
         // Multiply the sync term by dt -- now done in the calling routine.
         //
     }
-
-    delete divu_fp;
 }
 
 //
