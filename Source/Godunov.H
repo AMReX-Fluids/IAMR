@@ -22,10 +22,7 @@ public:      // public access functions
     // =============================================================
 
     // construct the advection object
-    Godunov();
-    
-    // size 1d work space explicitly
-    Godunov( int max_size );
+    Godunov( int max_size = 512 );
 
     // destruct the advection object
     ~Godunov();
@@ -333,9 +330,6 @@ public:      // public access functions
     FArrayBox smp, dsvl, I;
     FArrayBox D_DECL(sedgex, sedgey, sedgez);
 
-    // internal parameters
-    int max_1d;    // largest dimension size allowed
-    
     // 1D arrays used in computing slopes and edges states
     Array<Real> stxlo; 
     Array<Real> stxhi; 

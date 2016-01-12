@@ -91,22 +91,7 @@ Godunov::Finalize ()
 //
 // Construct the Godunov Object.
 //
-
-Godunov::Godunov ()
-    :
-    max_1d(0)
-{
-    Initialize();
-    SetScratch(512);
-}
-
-//
-// Size the 1D workspace explicitly.
-//
-
 Godunov::Godunov (int max_size)
-    :
-    max_1d(0)
 {
     Initialize();
     SetScratch(max_size);
@@ -146,13 +131,6 @@ Godunov::SetBogusScratch ()
 void
 Godunov::SetScratch (int max_size)
 {
-    //
-    // Set sizing parameters.
-    //
-    if (max_size <= max_1d)
-        return;
-    else
-        max_1d = std::max(max_1d,max_size);
     int scr_size = (max_size+2*hyp_grow)*4;
     //
     // Construct arrays.
