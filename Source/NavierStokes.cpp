@@ -4552,8 +4552,10 @@ NavierStokes::post_timestep (int crse_iteration)
     if (NSPC != 0 && (crse_iteration < ncycle || level == 0))
     {
         const Real curr_time = state[State_Type].curTime();
-            
-        NSPC->Redistribute(false, true, level, umac_n_grow-1);
+         
+	int ngrow = (level == 0) ? 0 : crse_iteration;
+   
+        NSPC->Redistribute(false, true, level, ngrow);
 
         if (!timestamp_dir.empty())
         {
@@ -4562,18 +4564,19 @@ NavierStokes::post_timestep (int crse_iteration)
             if (basename[basename.length()-1] != '/') basename += '/';
 
             basename += "Timestamp";
+
+	    int imax = *(std::max_element(timestamp_indices.begin(), 
+					  timestamp_indices.end()));
+
             for (int lev = level; lev <= finest_level; lev++)
             {
+		int ng = (lev == level) ? ngrow+1 : 1;
+
 		MultiFab& S_new = parent->getLevel(lev).get_new_data(State_Type);
-
-		for (FillPatchIterator fpi(parent->getLevel(lev),S_new,1,curr_time,State_Type,0,NUM_STATE);
-		     fpi.isValid();
-		     ++fpi)
-		{
-		    S_new[fpi].copy(fpi());
-		}
-
-                NSPC->Timestamp(basename, S_new, lev, curr_time, timestamp_indices);
+		FillPatchIterator fpi(parent->getLevel(lev), S_new, 
+				      ng, curr_time, State_Type, 0, imax+1);
+		const MultiFab& S = fpi.get_mf();
+		NSPC->Timestamp(basename, S, lev, curr_time, timestamp_indices);
             }
         }
     }
