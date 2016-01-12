@@ -715,7 +715,7 @@ ProjOutFlowBC_MG::ProjOutFlowBC_MG (const Box& Domain,
         {
             Box temp1Box = OutFlowBC::SemiGrow(domain,1,BL_SPACEDIM-1);
             Box temp2Box = semiSurroundingNodes(temp1Box,BL_SPACEDIM-1);
-            cgwork = new FArrayBox(temp2Box,4);
+            cgwork.resize(temp2Box,4);
         }
     }
     else
@@ -783,7 +783,7 @@ ProjOutFlowBC_MG::residual ()
 void 
 ProjOutFlowBC_MG::step (int nGSRB)
 {
-    if (cgwork != 0)
+    if (cgwork.isAllocated())
     {
         Real resnorm  = 0.0;
 
@@ -795,16 +795,16 @@ ProjOutFlowBC_MG::step (int nGSRB)
         DEF_LIMITS(dest0,dest0Ptr,dest0_lo,dest0_hi);
         DEF_LIMITS(*rhs,rhsPtr,rhs_lo,rhs_hi);
         DEF_LIMITS(*beta, betaPtr, beta_lo,beta_hi); 
-        DEF_BOX_LIMITS(*cgwork,cg_lo,cg_hi);
+        DEF_BOX_LIMITS(cgwork,cg_lo,cg_hi);
 
         FORT_SOLVEHG(phiPtr,ARLIM(phi_lo),ARLIM(phi_hi),
                      dest0Ptr, ARLIM(dest0_lo),ARLIM(dest0_hi),
                      rhsPtr,ARLIM(rhs_lo),ARLIM(rhs_hi),
                      betaPtr, ARLIM(beta_lo),ARLIM(beta_hi),
-                     cgwork->dataPtr(0),ARLIM(cg_lo),ARLIM(cg_hi),
-                     cgwork->dataPtr(1), ARLIM(cg_lo),ARLIM(cg_hi),
-                     cgwork->dataPtr(2), ARLIM(cg_lo),ARLIM(cg_hi),
-                     cgwork->dataPtr(3),ARLIM(cg_lo),ARLIM(cg_hi),
+                     cgwork.dataPtr(0),ARLIM(cg_lo),ARLIM(cg_hi),
+                     cgwork.dataPtr(1), ARLIM(cg_lo),ARLIM(cg_hi),
+                     cgwork.dataPtr(2), ARLIM(cg_lo),ARLIM(cg_hi),
+                     cgwork.dataPtr(3),ARLIM(cg_lo),ARLIM(cg_hi),
                      residPtr, ARLIM(resid_lo),ARLIM(resid_hi),
                      lo,hi,h,isPeriodic,&cg_maxiter,&cg_tol,
                      &cg_abs_tol,&cg_max_jump,&resnorm);

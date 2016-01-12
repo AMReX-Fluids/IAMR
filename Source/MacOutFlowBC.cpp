@@ -122,7 +122,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
         zeroIt[i] = 0;
 
 #if (BL_SPACEDIM == 2)
-    Real* redge[2*BL_SPACEDIM];
+    Array<Array<Real> > redge(2*BL_SPACEDIM);
 #endif
 
     FArrayBox ccExt[2*BL_SPACEDIM];
@@ -182,7 +182,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
         //
         int perpDir = 1 - outDir;
         int r_len = domain.length(perpDir)+1;
-        redge[iface] = new Real[r_len];
+        redge[iface].resize(r_len);
         //
         // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
         //
@@ -209,8 +209,6 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
             for (i = 0; i < r_len; i++)
                 redge[iface][i] = 1.;
         }
-#else
-        Array<Real> redge;
 #endif
    
         DEF_BOX_LIMITS(origBox,origLo,origHi);
@@ -241,7 +239,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
             ARLIM(divulo),ARLIM(divuhi),divuPtr,
             ARLIM(rholo), ARLIM(rhohi), rhoPtr,
 #if (BL_SPACEDIM == 2)
-            &r_len, redge[iface],
+            &r_len, redge[iface].dataPtr(),
 #endif
             ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
             ARLIM(ccElo),ARLIM(ccEhi),rhoEPtr,
@@ -265,6 +263,8 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
   
     if (connected == 0)
     {
+	Array<Real> x;
+
         for (iface = 0; iface < numOutFlowFaces; iface++)
         {
             zeroIt[iface] = 1; // HACK HACK
@@ -284,14 +284,13 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
                 Box faceBox(ccExt[iface].box());
                 DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
 
-                Real* x = new Real[length];
-                FORT_MACPHIBC(x, &length, divuEPtr, rhoEPtr,
-                              redge[iface], dxFiltered[iface],
+                x.resize(length);
+                FORT_MACPHIBC(x.dataPtr(), &length, divuEPtr, rhoEPtr,
+                              redge[iface].dataPtr(), dxFiltered[iface],
                               isPeriodicFiltered[iface]);
 
                 FORT_MACPHI_FROM_X(ARLIM(philo),ARLIM(phihi),phiPtr,
-                                   &length,x);
-                delete x;
+                                   &length,x.dataPtr());
 #elif (BL_SPACEDIM == 3)
                 Box faceBox(ccExt[iface].box());
 
@@ -399,19 +398,19 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
             {
                 if (faces[i] == 0)
                 {
-                    r0 = redge[i];
+                    r0 = redge[i].dataPtr();
                 }
                 else if (faces[i] == 1)
                 {
-                    r1 = redge[i];
+                    r1 = redge[i].dataPtr();
                 }
                 else if (faces[i] == 2)
                 {
-                    r2 = redge[i];
+                    r2 = redge[i].dataPtr();
                 }
                 else if (faces[i] == 3)
                 {
-                    r3 = redge[i];
+                    r3 = redge[i].dataPtr();
                 }
             }
 
@@ -475,16 +474,16 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
 
             int per = (numOutFlowFaces == 2*BL_SPACEDIM) ? 1 : 0;
 
-            Real * redge_conn = new Real[length+1];
+	    Array<Real> redge_conn(length+1);
 
             FORT_MACFILL_ONED(&lenx,&leny,&length,faces,&numOutFlowFaces,
                               ccEptr0,ccEptr1,ccEptr2,ccEptr3,
                               r0,r1,r2,r3,
-                              ccE_conn.dataPtr(),redge_conn);
+                              ccE_conn.dataPtr(),redge_conn.dataPtr());
 
             FORT_MACPHIBC(x.dataPtr(), &length, 
                           ccE_conn.dataPtr(1), ccE_conn.dataPtr(0),
-                          redge_conn, dx, &per);
+                          redge_conn.dataPtr(), dx, &per);
 
             Real *phiptr0, *phiptr1, *phiptr2, *phiptr3;
             for (int i=0; i < numOutFlowFaces; i++)
@@ -658,7 +657,7 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
     if (doit)
     {
         if (useCGbottomSolver)
-            cgwork = new FArrayBox(domain,4);
+            cgwork.resize(domain,4);
     }
     else
     {
@@ -742,7 +741,7 @@ MacOutFlowBC_MG::residual ()
 void 
 MacOutFlowBC_MG::step (int nGSRB)
 {
-    if (cgwork != 0)
+    if (cgwork.isAllocated())
     {
         Real resnorm = 0.0;
 
@@ -755,17 +754,17 @@ MacOutFlowBC_MG::step (int nGSRB)
         DEF_LIMITS(*rhs,rhsPtr,rhs_lo,rhs_hi);
         DEF_LIMITS(beta[0], beta0Ptr, beta0_lo,beta0_hi); 
         DEF_LIMITS(beta[1], beta1Ptr, beta1_lo,beta1_hi);
-        DEF_BOX_LIMITS(*cgwork,cg_lo,cg_hi);
+        DEF_BOX_LIMITS(cgwork,cg_lo,cg_hi);
     
         FORT_SOLVEMAC(phiPtr, ARLIM(phi_lo),ARLIM(phi_hi),
                       dest0Ptr,ARLIM(dest0_lo),ARLIM(dest0_hi),
                       rhsPtr, ARLIM(rhs_lo),ARLIM(rhs_hi),
                       beta0Ptr, ARLIM(beta0_lo),ARLIM(beta0_hi),
                       beta1Ptr,ARLIM(beta1_lo),ARLIM(beta1_hi),
-                      cgwork->dataPtr(0), ARLIM(cg_lo),ARLIM(cg_hi),
-                      cgwork->dataPtr(1), ARLIM(cg_lo),ARLIM(cg_hi),
-                      cgwork->dataPtr(2), ARLIM(cg_lo),ARLIM(cg_hi),
-                      cgwork->dataPtr(3), ARLIM(cg_lo),ARLIM(cg_hi),
+                      cgwork.dataPtr(0), ARLIM(cg_lo),ARLIM(cg_hi),
+                      cgwork.dataPtr(1), ARLIM(cg_lo),ARLIM(cg_hi),
+                      cgwork.dataPtr(2), ARLIM(cg_lo),ARLIM(cg_hi),
+                      cgwork.dataPtr(3), ARLIM(cg_lo),ARLIM(cg_hi),
                       residPtr, ARLIM(resid_lo), ARLIM(resid_hi),
                       lo,hi,h,isPeriodic,&cg_maxiter,&cg_tol,
                       &cg_abs_tol,&cg_max_jump,&resnorm);
