@@ -4717,9 +4717,9 @@ NavierStokes::post_regrid (int lbase,
                            int new_finest)
 {
 #ifdef PARTICLES
-    if (NSPC != 0)
+    if (NSPC && level == lbase)
     {
-        NSPC->Redistribute(false, true, lbase, umac_n_grow);
+        NSPC->Redistribute(false, false, lbase);
     }
 #endif
 }
