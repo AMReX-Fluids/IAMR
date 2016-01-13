@@ -82,14 +82,6 @@ namespace
     std::string      particle_output_file;
     bool             restart_from_nonparticle_chkfile;
     int              pverbose;
-    //
-    // We want to call this routine on exit to clean up particles.
-    //
-    void RemoveParticles ()
-    {
-        delete NSPC;
-        NSPC = 0;
-    }
 
 #ifdef USE_BPM
     BPMMesh* ParticleMesh = 0;
@@ -1344,10 +1336,6 @@ NavierStokes::initData ()
         if (NSPC == 0)
         {
             NSPC = new NSParticleContainer(parent);
-            //
-            // Make sure to call RemoveParticles() on exit.
-            //
-            BoxLib::ExecOnFinalize(RemoveParticles);
         }
 
         NSPC->SetVerbose(pverbose);
@@ -4680,10 +4668,6 @@ NavierStokes::post_restart()
         BL_ASSERT(NSPC == 0);
 
         NSPC = new NSParticleContainer(parent);
-        //
-        // Make sure to call RemoveParticles() on exit.
-        //
-        BoxLib::ExecOnFinalize(RemoveParticles);
 
         NSPC->SetVerbose(pverbose);
         //
