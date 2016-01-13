@@ -124,7 +124,7 @@ SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
     //
     double* the_recv_data = 0;
 
-    FabArrayBase::PostRcvs(m_RcvTags,m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+    FabArrayBase::PostRcvs(m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
     //
     // Send the data.
     //
