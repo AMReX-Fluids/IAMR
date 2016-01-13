@@ -922,7 +922,7 @@ MacProj::mac_sync_compute (int                   level,
 
 void
 MacProj::mac_sync_compute (int                    level,
-                           MultiFab*              Sync,
+                           MultiFab&              Sync,
                            int                    comp,
                            int                    s_ind,
                            const MultiFab* const* sync_edges,
@@ -949,7 +949,7 @@ MacProj::mac_sync_compute (int                    level,
     //
     // Compute the mac sync correction.
     //
-    for (MFIter Syncmfi(*Sync); Syncmfi.isValid(); ++Syncmfi)
+    for (MFIter Syncmfi(Sync); Syncmfi.isValid(); ++Syncmfi)
     {
         const int  i   = Syncmfi.index();
         const Box& grd = grids[i];
@@ -989,7 +989,7 @@ MacProj::mac_sync_compute (int                    level,
                                 area[2][Syncmfi],
                                 grad_phi[2],       zflux,
 #endif
-                                volume[Syncmfi], (*Sync)[Syncmfi],
+                                volume[Syncmfi], Sync[Syncmfi],
                                 s_ind, use_conserv_diff);
 
         D_TERM(grad_phi[0].clear();, grad_phi[1].clear();, grad_phi[2].clear(););

@@ -69,7 +69,7 @@ public:
                            const Array<int>&     increment_sync = Array<int>());
 
     void mac_sync_compute (int                   level,
-                           MultiFab*             Sync,
+                           MultiFab&             Sync,
                            int                   comp,
                            int                   s_ind,
                            const MultiFab*       const* sync_edges,
