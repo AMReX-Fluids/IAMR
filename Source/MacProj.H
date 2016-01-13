@@ -47,16 +47,16 @@ public:
     //
     void mac_sync_solve (int       level,
                          Real      dt, 
-                         MultiFab* rho_half,
+                         MultiFab& rho_half,
                          IntVect&  fine_ratio);
     //
     // Computing the sync tendency.
     //
     void mac_sync_compute (int                   level,
                            MultiFab*             u_mac, 
-                           MultiFab*             Vsync,
-                           MultiFab*             Ssync,
-                           MultiFab*             rho_half, 
+                           MultiFab&             Vsync,
+                           MultiFab&             Ssync,
+                           MultiFab&             rho_half, 
                            FluxRegister*         adv_flux_reg,
                            Array<AdvectionForm>& advectionType,
                            Real                  prev_time,
@@ -74,7 +74,7 @@ public:
                            int                   s_ind,
                            const MultiFab*       const* sync_edges,
 			   int                   eComp,
-                           MultiFab*             rho_half,
+                           MultiFab&             rho_half,
                            FluxRegister*         adv_flux_reg,
                            Array<AdvectionForm>& advectionType,
                            bool		         modify_reflux_normal_vel,

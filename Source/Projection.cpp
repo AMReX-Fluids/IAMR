@@ -210,7 +210,7 @@ Projection::level_project (int             level,
                            MultiFab&       U_new,
                            MultiFab&       P_old,
                            MultiFab&       P_new,
-                           MultiFab*       rho_half, 
+                           MultiFab&       rho_half, 
                            SyncRegister*   crse_sync_reg, 
                            SyncRegister*   fine_sync_reg,  
                            int             crse_dt_ratio,
@@ -219,7 +219,7 @@ Projection::level_project (int             level,
 {
     BL_PROFILE("Projection::level_project()");
 
-    BL_ASSERT(rho_half->nGrow() >= 1);
+    BL_ASSERT(rho_half.nGrow() >= 1);
     BL_ASSERT(U_new.nGrow() >= 1);
 
     if ( verbose && ParallelDescriptor::IOProcessor() )
@@ -352,11 +352,11 @@ Projection::level_project (int             level,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(*rho_half,true); mfi.isValid(); ++mfi) 
+	for (MFIter mfi(rho_half,true); mfi.isValid(); ++mfi) 
 	{
 	    const Box& bx = mfi.growntilebox(1);
 	    FArrayBox& Gpfab = Gp[mfi];
-	    const FArrayBox& rhofab = (*rho_half)[mfi];
+	    const FArrayBox& rhofab = rho_half[mfi];
       
 	    for (int i = 0; i < BL_SPACEDIM; i++) {
 		Gpfab.divide(rhofab,bx,0,i,1);
@@ -385,7 +385,7 @@ Projection::level_project (int             level,
         Divu_ML[level] = divusource;
 
         MultiFab* Rho_ML[maxlev] = {0};
-        Rho_ML[level] = rho_half;
+        Rho_ML[level] = &rho_half;
 
         set_outflow_bcs(LEVEL_PROJ,phi,Vel_ML,Divu_ML,Rho_ML,level,level,have_divu);
     }
@@ -393,14 +393,14 @@ Projection::level_project (int             level,
     //
     // Scale the projection variables.
     //
-    rho_half->setBndry(BogusValue);
-    scaleVar(LEVEL_PROJ,rho_half, 1, &U_new, level);
+    rho_half.setBndry(BogusValue);
+    scaleVar(LEVEL_PROJ,&rho_half, 1, &U_new, level);
     //
     // Enforce periodicity of U_new and rho_half (i.e. coefficient of G phi)
     // *after* everything has been done to them.
     //
-    EnforcePeriodicity(U_new,     BL_SPACEDIM, grids, geom);
-    EnforcePeriodicity(*rho_half, 1,           grids, geom);
+    EnforcePeriodicity(U_new,    BL_SPACEDIM, grids, geom);
+    EnforcePeriodicity(rho_half, 1,           grids, geom);
     //
     // Add the contribution from the un-projected V to syncregisters.
     //
@@ -413,8 +413,8 @@ Projection::level_project (int             level,
     vel[level] = &U_new;
     phi[level] = &P_new;
 
-    BL_ASSERT( 1 == rho_half->nGrow());
-    sig[level] = rho_half;
+    BL_ASSERT( 1 == rho_half.nGrow());
+    sig[level] = &rho_half;
 
     //
     // Project
@@ -493,7 +493,7 @@ Projection::level_project (int             level,
     //
     // Unscale level projection variables.
     //
-    rescaleVar(LEVEL_PROJ,rho_half, 1, &U_new, level);
+    rescaleVar(LEVEL_PROJ,&rho_half, 1, &U_new, level);
     //
     // Put U_new back to "normal"; subtract U_old*divu...factor/dt from U_new
     //
@@ -547,8 +547,8 @@ void
 Projection::syncProject (int             c_lev,
                          MultiFab&       pres,
                          MultiFab&       vel,
-                         MultiFab*       rho_half,
-                         MultiFab*       Vsync,
+                         MultiFab&       rho_half,
+                         MultiFab&       Vsync,
                          MultiFab&       phi,
                          SyncRegister*   rhs_sync_reg,
                          SyncRegister*   crsr_sync_reg,
@@ -580,7 +580,7 @@ Projection::syncProject (int             c_lev,
     //
     const BoxArray& grids   = LevelData[c_lev].boxArray();
     const BoxArray& P_grids = pres.boxArray();
-    MultiFab& sig = *rho_half;
+    MultiFab& sig = rho_half;
 
     PArray<MultiFab> rhnd(1, PArrayManage);
     rhnd.set(0, new MultiFab(P_grids,1,1));
@@ -592,18 +592,18 @@ Projection::syncProject (int             c_lev,
     //
     // Scale sync projection variables.
     //
-    scaleVar(SYNC_PROJ,&sig,1,Vsync,c_lev);
+    scaleVar(SYNC_PROJ,&sig,1,&Vsync,c_lev);
     //
     // If periodic, copy into periodic translates of Vsync.
     //
-    EnforcePeriodicity(*Vsync, BL_SPACEDIM, grids, geom);
+    EnforcePeriodicity(Vsync, BL_SPACEDIM, grids, geom);
 
     MultiFab *phis[maxlev] = {0};
     MultiFab* vels[maxlev] = {0};
     MultiFab* sigs[maxlev] = {0};
     MultiFab* rhss[maxlev] = {0};
     phis[c_lev] = &phi;
-    vels[c_lev] = Vsync;
+    vels[c_lev] = &Vsync;
     sigs[c_lev] = &sig;
 
     //
@@ -641,12 +641,12 @@ Projection::syncProject (int             c_lev,
     //
     // Unscale the sync projection variables for rz.
     //
-    rescaleVar(SYNC_PROJ,&sig,1,Vsync,c_lev);
+    rescaleVar(SYNC_PROJ,&sig,1,&Vsync,c_lev);
     //
     // Add projected Vsync to new velocity at this level & add phi to pressure.
     //
     AddPhi(pres, phi);
-    UpdateArg1(vel, dt_crse, *Vsync, BL_SPACEDIM, grids, 1);
+    UpdateArg1(vel, dt_crse, Vsync, BL_SPACEDIM, grids, 1);
 
     if (verbose)
     {
@@ -678,7 +678,7 @@ Projection::MLsyncProject (int             c_lev,
                            MultiFab&       cc_rhs_fine,
                            MultiFab&       rho_crse,
                            MultiFab&       rho_fine,
-                           MultiFab*       Vsync,
+                           MultiFab&       Vsync,
                            MultiFab&       V_corr,
                            MultiFab&       phi_fine,
                            SyncRegister*   rhs_sync_reg,
@@ -736,7 +736,7 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Do necessary scaling
     //
-    scaleVar(SYNC_PROJ,&rho_crse, 0, Vsync,   c_lev  );
+    scaleVar(SYNC_PROJ,&rho_crse, 0, &Vsync,   c_lev  );
     scaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, c_lev+1);
 
     if (Geometry::IsRZ()) {
@@ -748,7 +748,7 @@ Projection::MLsyncProject (int             c_lev,
     MultiFab* sig[maxlev] = {0};
     MultiFab* rhs[maxlev] = {0};
 
-    vel[c_lev  ] = Vsync;
+    vel[c_lev  ] = &Vsync;
     vel[c_lev+1] = &V_corr;
     sig[c_lev  ] = &rho_crse;
     sig[c_lev+1] = &rho_fine;
@@ -796,7 +796,7 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Do necessary un-scaling.
     //
-    rescaleVar(SYNC_PROJ,&rho_crse, 0, Vsync,   c_lev  );
+    rescaleVar(SYNC_PROJ,&rho_crse, 0, &Vsync,   c_lev  );
     rescaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, c_lev+1);
 
     MultiFab::Copy(phi_fine, *phi[c_lev+1], 0, 0, 1, 1);
@@ -840,7 +840,7 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Add projected vel to new velocity.
     //
-    UpdateArg1(vel_crse, dt_crse, *Vsync, BL_SPACEDIM, grids,      1);
+    UpdateArg1(vel_crse, dt_crse, Vsync, BL_SPACEDIM, grids,      1);
     UpdateArg1(vel_fine, dt_crse, V_corr, BL_SPACEDIM, fine_grids, 1);
 
     if (verbose)

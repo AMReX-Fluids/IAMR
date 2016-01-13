@@ -491,7 +491,7 @@ MacProj::mac_project (int             level,
 void
 MacProj::mac_sync_solve (int       level,
                          Real      dt,
-                         MultiFab* rho_half,
+                         MultiFab& rho_half,
                          IntVect&  fine_ratio)
 {
     BL_ASSERT(level < finest_level);
@@ -697,9 +697,9 @@ MacProj::mac_sync_solve (int       level,
 void
 MacProj::mac_sync_compute (int                   level,
                            MultiFab*             u_mac, 
-                           MultiFab*             Vsync,
-                           MultiFab*             Ssync,
-                           MultiFab*             rho_half,
+                           MultiFab&             Vsync,
+                           MultiFab&             Ssync,
+                           MultiFab&             rho_half,
                            FluxRegister*         adv_flux_reg,
                            Array<AdvectionForm>& advectionType,
                            Real                  prev_time, 
@@ -789,7 +789,7 @@ MacProj::mac_sync_compute (int                   level,
                grad_phi[2].resize(BoxLib::surroundingNodes(grids[i],2),1););
 
         mac_vel_update(1,D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
-                       (*mac_sync_phi)[S_fpi], &(*rho_half)[S_fpi],
+                       (*mac_sync_phi)[S_fpi], rho_half[S_fpi],
                        0, grids[i], level, i, dx, dt/2.0);
         //
         // Step 2: compute Mac correction by calling GODUNOV box
@@ -845,8 +845,8 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Get the sync FABS.
         //
-        FArrayBox& u_sync = (*Vsync)[S_fpi];
-        FArrayBox& s_sync = (*Ssync)[S_fpi];
+        FArrayBox& u_sync = Vsync[S_fpi];
+        FArrayBox& s_sync = Ssync[S_fpi];
 
         U.resize(S.box(),BL_SPACEDIM);
         U.copy(S_fpi(),0,0,BL_SPACEDIM);
@@ -927,7 +927,7 @@ MacProj::mac_sync_compute (int                    level,
                            int                    s_ind,
                            const MultiFab* const* sync_edges,
 			   int                    eComp,
-                           MultiFab*              rho_half,
+                           MultiFab&              rho_half,
                            FluxRegister*          adv_flux_reg,
                            Array<AdvectionForm>&  advectionType, 
 			   bool                   modify_reflux_normal_vel,
@@ -963,7 +963,7 @@ MacProj::mac_sync_compute (int                    level,
         mac_vel_update(1,
                        D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
                        (*mac_sync_phi)[Syncmfi],
-                       &(*rho_half)[Syncmfi], 0,
+                       rho_half[Syncmfi], 0,
                        grd, level, i,
                        geom.CellSize(), dt/2.0);
         //

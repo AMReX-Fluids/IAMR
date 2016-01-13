@@ -391,7 +391,7 @@ protected:
     //
     // Get rho at time n+1/2 -- don't delete the pointer !!!
     //
-    MultiFab* get_rho_half_time ();
+    MultiFab& get_rho_half_time ();
     //
     // Get rho at time.
     // Must be one of AmrOldTime, AmrHalfTime or AmrNewTime.
@@ -706,29 +706,29 @@ protected:
     // Average rho over a composite timestep.
     // Used only in the multlilevel sync projection
     //
-    MultiFab* rho_avg;
+    MultiFab rho_avg;
     //
     // Average p over a composite timestep.
     // Used only to average fine pressure data to coarse.
     //
-    MultiFab* p_avg;
+    MultiFab p_avg;
     
-    MultiFab* Vsync;    // Velocity sync update storage
-    MultiFab* Ssync;    // Scalar sync update storage
+    MultiFab Vsync;    // Velocity sync update storage
+    MultiFab Ssync;    // Scalar sync update storage
     //
     // Density at time n+1/2 (used in advance).
     //
-    MultiFab* rho_half;
+    MultiFab rho_half;
     MultiFab* rho_qtime;
     MultiFab* rho_tqtime;
     //
     // Density at prev_time used in advance().
     //
-    MultiFab* rho_ptime;
+    MultiFab rho_ptime;
     //
     // Density at cur_time used in advance().
     //
-    MultiFab* rho_ctime;
+    MultiFab rho_ctime;
     //
     // Data structure used to compute RHS for sync project.
     //

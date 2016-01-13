@@ -27,7 +27,7 @@ void mac_sync_driver( Amr* parent, const MacBndry &mac_bndry, const BCRec& phys_
                       const Real *dx, Real dt,
                       Real mac_sync_tol, Real mac_abs_tol, Real rhs_scale,
                       const MultiFab *area,  const MultiFab &volume,
-                      MultiFab &Rhs,   MultiFab *rho_half,
+                      MultiFab &Rhs,   MultiFab &rho_half,
                       MultiFab *mac_sync_phi, int verbose);
 
 void fmg_mac_solve ( Amr* parent, const MacBndry &mac_bndry, MacOperator &mac_op,
@@ -43,7 +43,7 @@ void mac_vel_update( int init,
                      FArrayBox &wvel,
 #endif
                      const FArrayBox &phi,
-                     const FArrayBox *rho, int rho_comp,  
+                     const FArrayBox &rho, int rho_comp,  
                      const Box &grd, int level, int n,
                      const Real *dx, Real scale );
 
